@@ -6,27 +6,15 @@
 #include "busybox.h"
 #include "runit_lib.h"
 
-static char *action;
 static const char *acts;
-static const char *varservice = "/var/service/";
 static char **service;
-static char **servicex;
-static unsigned services;
 static unsigned rc;
-static unsigned verbose;
-static unsigned long waitsec = 7;
-static unsigned kll;
-static struct taia tstart, tnow, tdiff;
-static struct tai tstatus;
-
-static int (*act)(const char*);
-static int (*cbk)(const char*);
-
-static int curdir, fd, r;
+static struct taia tstart, tnow;
 static char svstatus[20];
 
 #define usage() bb_show_usage()
 
+static void fatal_cannot(const char *m1) ATTRIBUTE_NORETURN;
 static void fatal_cannot(const char *m1)
 {
 	bb_perror_msg("fatal: cannot %s", m1);
@@ -42,23 +30,34 @@ static void out(const char *p, const char *m1)
 	puts(""); /* will also flush the output */
 }
 
-#define FAIL    "fail: "
 #define WARN    "warning: "
 #define OK      "ok: "
-#define RUN     "run: "
-#define FINISH  "finish: "
-#define DOWN    "down: "
-#define TIMEOUT "timeout: "
-#define KILL    "kill: "
 
-static void fail(const char *m1) { ++rc; out(FAIL, m1); }
-static void failx(const char *m1) { errno = 0; fail(m1); }
-static void warn_cannot(const char *m1) { ++rc; out("warning: cannot ", m1); }
-static void warnx_cannot(const char *m1) { errno = 0; warn_cannot(m1); }
-static void ok(const char *m1) { errno = 0; out(OK, m1); }
+static void fail(const char *m1) {
+	++rc;
+	out("fail: ", m1);
+}
+static void failx(const char *m1) {
+	errno = 0;
+	fail(m1);
+}
+static void warn_cannot(const char *m1) {
+	++rc;
+	out("warning: cannot ", m1);
+}
+static void warnx_cannot(const char *m1) {
+	errno = 0;
+	warn_cannot(m1);
+}
+static void ok(const char *m1) {
+	errno = 0;
+	out(OK, m1);
+}
 
 static int svstatus_get(void)
 {
+	int fd, r;
+
 	fd = open_write("supervise/ok");
 	if (fd == -1) {
 		if (errno == ENODEV) {
@@ -87,9 +86,11 @@ static int svstatus_get(void)
 
 static unsigned svstatus_print(const char *m)
 {
+	long diff;
 	int pid;
 	int normallyup = 0;
 	struct stat s;
+	struct tai tstatus;
 
 	if (stat("down", &s) == -1) {
 		if (errno != ENOENT) {
@@ -105,17 +106,20 @@ static unsigned svstatus_print(const char *m)
 	tai_unpack(svstatus, &tstatus);
 	if (pid) {
 		switch (svstatus[19]) {
-		case 1: printf(RUN); break;
-		case 2: printf(FINISH); break;
+		case 1: printf("run: "); break;
+		case 2: printf("finish: "); break;
 		}
 		printf("%s: (pid %d) ", m, pid);
+	} else {
+		printf("down: %s: ", m);
 	}
-	else {
-		printf(DOWN"%s: ", m);
+	diff = tnow.sec.x - tstatus.x;
+	printf("%lds", (diff < 0 ? 0L : diff));
+	if (pid) {
+		if (!normallyup) printf(", normally down");
+	} else {
+		if (normallyup) printf(", normally up");
 	}
-	printf("%lus", (unsigned long)(tnow.sec.x < tstatus.x ? 0 : tnow.sec.x-tstatus.x));
-	if (pid && !normallyup) printf(", normally down");
-	if (!pid && normallyup) printf(", normally up");
 	if (pid && svstatus[16]) printf(", paused");
 	if (!pid && (svstatus[17] == 'u')) printf(", want up");
 	if (pid && (svstatus[17] == 'd')) printf(", want down");
@@ -125,8 +129,11 @@ static unsigned svstatus_print(const char *m)
 
 static int status(const char *unused)
 {
+	int r;
+
 	r = svstatus_get();
 	switch (r) { case -1: case 0: return 0; }
+
 	r = svstatus_print(*service);
 	if (chdir("log") == -1) {
 		if (errno != ENOENT) {
@@ -175,22 +182,35 @@ static int checkscript(void)
 
 static int check(const char *a)
 {
+	int r;
 	unsigned pid;
+	struct tai tstatus;
 
-	if ((r = svstatus_get()) == -1) return -1;
-	if (r == 0) { if (*a == 'x') return 1; return -1; }
+	r = svstatus_get();
+	if (r == -1)
+		return -1;
+	if (r == 0) {
+		if (*a == 'x')
+			return 1;
+		return -1;
+	}
 	pid = (unsigned char)svstatus[15];
 	pid <<= 8; pid += (unsigned char)svstatus[14];
 	pid <<= 8; pid += (unsigned char)svstatus[13];
 	pid <<= 8; pid += (unsigned char)svstatus[12];
 	switch (*a) {
-	case 'x': return 0;
+	case 'x':
+		return 0;
 	case 'u':
 		if (!pid || svstatus[19] != 1) return 0;
 		if (!checkscript()) return 0;
 		break;
-	case 'd': if (pid) return 0; break;
-	case 'c': if (pid) if (!checkscript()) return 0; break;
+	case 'd':
+		if (pid) return 0;
+		break;
+	case 'c':
+		if (pid && !checkscript()) return 0;
+		break;
 	case 't':
 		if (!pid && svstatus[17] == 'd') break;
 		tai_unpack(svstatus, &tstatus);
@@ -210,6 +230,8 @@ static int check(const char *a)
 
 static int control(const char *a)
 {
+	int fd, r;
+
 	if (svstatus_get() <= 0) return -1;
 	if (svstatus[17] == *a) return 0;
 	fd = open_write("supervise/control");
@@ -234,25 +256,33 @@ int sv_main(int argc, char **argv)
 	unsigned opt;
 	unsigned i, want_exit;
 	char *x;
+	char *action;
+	const char *varservice = "/var/service/";
+	unsigned services;
+	char **servicex;
+	unsigned long waitsec = 7;
+	smallint kll = 0;
+	smallint verbose = 0;
+	int (*act)(const char*);
+	int (*cbk)(const char*);
+	int curdir;
 
-	for (i = strlen(*argv); i; --i)
-		if ((*argv)[i-1] == '/')
-			break;
-	*argv += i;
+	xfunc_error_retval = 100;
+
+	x = getenv("SVDIR");
+	if (x) varservice = x;
+	x = getenv("SVWAIT");
+	if (x) waitsec = xatoul(x);
+
+	opt = getopt32(argc, argv, "w:v", &x);
+	if (opt & 1) waitsec = xatoul(x); // -w
+	if (opt & 2) verbose = 1; // -v
+	argc -= optind;
+	argv += optind;
+	action = *argv++;
+	if (!action || !*argv) usage();
 	service = argv;
-	services = 1;
-	if ((x = getenv("SVDIR"))) varservice = x;
-	if ((x = getenv("SVWAIT"))) waitsec = xatoul(x);
-	/* TODO: V can be handled internally by getopt_ulflags */
-	opt = getopt32(argc, argv, "w:vV", &x);
-	if (opt & 1) waitsec = xatoul(x);
-	if (opt & 2) verbose = 1;
-	if (opt & 4) usage();
-	if (!(action = *argv++)) usage();
-	--argc;
-	service = argv;
-	services = argc;
-	if (!*service) usage();
+	services = argc - 1;
 
 	taia_now(&tnow);
 	tstart = tnow;
@@ -262,62 +292,83 @@ int sv_main(int argc, char **argv)
 
 	act = &control;
 	acts = "s";
-	if (verbose)
-		cbk = &check;
+	cbk = &check;
+
 	switch (*action) {
-	case 'x': case 'e':
-		acts = "x"; break;
-	case 'X': case 'E':
-		acts = "x"; kll = 1; cbk = &check; break;
+	case 'x':
+	case 'e':
+		acts = "x";
+		if (!verbose) cbk = NULL;
+		break;
+	case 'X':
+	case 'E':
+		acts = "x";
+		kll = 1;
+		break;
 	case 'D':
-		acts = "d"; kll = 1; cbk = &check; break;
+		acts = "d";
+		kll = 1;
+		break;
 	case 'T':
-		acts = "tc"; kll = 1; cbk = &check; break;
+		acts = "tc";
+		kll = 1;
+		break;
 	case 'c':
 		if (!str_diff(action, "check")) {
-			act = 0;
+			act = NULL;
 			acts = "c";
-			cbk = &check;
 			break;
 		}
 	case 'u': case 'd': case 'o': case 't': case 'p': case 'h':
 	case 'a': case 'i': case 'k': case 'q': case '1': case '2':
-		action[1] = 0; acts = action; break;
+		action[1] = '\0';
+		acts = action;
+		if (!verbose) cbk = NULL;
+		break;
 	case 's':
 		if (!str_diff(action, "shutdown")) {
 			acts = "x";
-			cbk = &check;
 			break;
 		}
 		if (!str_diff(action, "start")) {
 			acts = "u";
-			cbk = &check;
 			break;
 		}
 		if (!str_diff(action, "stop")) {
 			acts = "d";
-			cbk = &check;
 			break;
 		}
+		/* "status" */
 		act = &status;
 		cbk = NULL;
 		break;
 	case 'r':
 		if (!str_diff(action, "restart")) {
 			acts = "tcu";
-			cbk = &check;
 			break;
 		}
 		usage();
 	case 'f':
-		if (!str_diff(action, "force-reload"))
-			{ acts = "tc"; kll = 1; cbk = &check; break; }
-		if (!str_diff(action, "force-restart"))
-			{ acts = "tcu"; kll = 1; cbk = &check; break; }
-		if (!str_diff(action, "force-shutdown"))
-			{ acts = "x"; kll = 1; cbk = &check; break; }
-		if (!str_diff(action, "force-stop"))
-			{ acts = "d"; kll = 1; cbk = &check; break; }
+		if (!str_diff(action, "force-reload")) {
+			acts = "tc";
+			kll = 1;
+			break;
+		}
+		if (!str_diff(action, "force-restart")) {
+			acts = "tcu";
+			kll = 1;
+			break;
+		}
+		if (!str_diff(action, "force-shutdown")) {
+			acts = "x";
+			kll = 1;
+			break;
+		}
+		if (!str_diff(action, "force-stop")) {
+			acts = "d";
+			kll = 1;
+			break;
+		}
 	default:
 		usage();
 	}
@@ -325,59 +376,64 @@ int sv_main(int argc, char **argv)
 	servicex = service;
 	for (i = 0; i < services; ++i) {
 		if ((**service != '/') && (**service != '.')) {
-			if ((chdir(varservice) == -1) || (chdir(*service) == -1)) {
-				fail("cannot change to service directory");
-				*service = 0;
-			}
-		} else if (chdir(*service) == -1) {
-			fail("cannot change to service directory");
-			*service = 0;
+			if (chdir(varservice) == -1)
+				goto chdir_failed_0;
 		}
-		if (*service) if (act && (act(acts) == -1)) *service = 0;
-		if (fchdir(curdir) == -1) fatal_cannot("change to original directory");
+		if (chdir(*service) == -1) {
+ chdir_failed_0:
+			fail("cannot change to service directory");
+			goto nullify_service_0;
+		}
+		if (act && (act(acts) == -1)) {
+ nullify_service_0:
+			*service = NULL;
+		}
+		if (fchdir(curdir) == -1)
+			fatal_cannot("change to original directory");
 		service++;
 	}
 
-	if (*cbk) {
-		for (;;) {
-//TODO: tdiff resolution is way too high. seconds will be enough
-			taia_sub(&tdiff, &tnow, &tstart);
-			service = servicex; want_exit = 1;
-			for (i = 0; i < services; ++i, ++service) {
-				if (!*service)
-					continue;
-				if ((**service != '/') && (**service != '.')) {
-					if (chdir(varservice) == -1)
-						goto chdir_failed;
-				}
-				if (chdir(*service) == -1) {
- chdir_failed:
-					fail("cannot change to service directory");
-					goto nullify_service;
-				}
-				if (cbk(acts) != 0)
-					goto nullify_service;
-				want_exit = 0;
-				//if (taia_approx(&tdiff) > waitsec)
-				if (tdiff.sec.x >= waitsec) {
-					kll ? printf(KILL) : printf(TIMEOUT);
-					if (svstatus_get() > 0) {
-						svstatus_print(*service);
-						++rc;
-					}
-					puts(""); /* will also flush the output */
-					if (kll)
-						control("k");
- nullify_service:
-					*service = NULL;
-				}
-				if (fchdir(curdir) == -1)
-					fatal_cannot("change to original directory");
+	if (cbk) while (1) {
+		//struct taia tdiff;
+		long diff;
+
+		//taia_sub(&tdiff, &tnow, &tstart);
+		diff = tnow.sec.x - tstart.sec.x;
+		service = servicex;
+		want_exit = 1;
+		for (i = 0; i < services; ++i, ++service) {
+			if (!*service)
+				continue;
+			if ((**service != '/') && (**service != '.')) {
+				if (chdir(varservice) == -1)
+					goto chdir_failed;
 			}
-			if (want_exit) break;
-			usleep(420000);
-			taia_now(&tnow);
+			if (chdir(*service) == -1) {
+ chdir_failed:
+				fail("cannot change to service directory");
+				goto nullify_service;
+			}
+			if (cbk(acts) != 0)
+				goto nullify_service;
+			want_exit = 0;
+			if (diff >= waitsec) {
+				printf(kll ? "kill: " : "timeout: ");
+				if (svstatus_get() > 0) {
+					svstatus_print(*service);
+					++rc;
+				}
+				puts(""); /* will also flush the output */
+				if (kll)
+					control("k");
+ nullify_service:
+				*service = NULL;
+			}
+			if (fchdir(curdir) == -1)
+				fatal_cannot("change to original directory");
 		}
+		if (want_exit) break;
+		usleep(420000);
+		taia_now(&tnow);
 	}
 	return rc > 99 ? 99 : rc;
 }
