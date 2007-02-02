@@ -68,6 +68,7 @@ USE_FEATURE_FIND_MMIN(  ACTS(mmin,  char mmin_char; unsigned mmin_mins;))
 USE_FEATURE_FIND_NEWER( ACTS(newer, time_t newer_mtime;))
 USE_FEATURE_FIND_INUM(  ACTS(inum,  ino_t inode_num;))
 USE_FEATURE_FIND_EXEC(  ACTS(exec,  char **exec_argv; int *subst_count; int exec_argc;))
+USE_FEATURE_FIND_USER(  ACTS(user,  int uid;))
 USE_DESKTOP(            ACTS(paren, action ***subexpr;))
 USE_DESKTOP(            ACTS(size,  off_t size;))
 USE_DESKTOP(            ACTS(prune))
@@ -209,6 +210,13 @@ ACTF(exec)
 	for (i = 0; i < ap->exec_argc; i++)
 		free(argv[i]);
 	return rc == 0; /* return 1 if success */
+}
+#endif
+
+#if ENABLE_FEATURE_FIND_USER
+ACTF(user)
+{
+	return (statbuf->st_uid == ap->uid);
 }
 #endif
 
@@ -476,6 +484,17 @@ static action*** parse_params(char **argv)
 			i = ap->exec_argc;
 			while (i--)
 				ap->subst_count[i] = count_subst(ap->exec_argv[i]);
+		}
+#endif
+#ifdef ENABLE_FEATURE_FIND_USER
+		else if (strcmp(arg, "-user") == 0) {
+			action_user *ap;
+			if (!*++argv)
+				bb_error_msg_and_die(bb_msg_requires_arg, arg);
+			ap = ALLOC_ACTION(user);
+			ap->uid = bb_strtou(arg1, NULL, 10);
+			if (errno)
+				ap->uid = xuname2uid(arg1);
 		}
 #endif
 #if ENABLE_DESKTOP

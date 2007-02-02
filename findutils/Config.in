@@ -83,6 +83,13 @@ config FEATURE_FIND_EXEC
 	  Support the 'find -exec' option for executing commands based upon
 	  the files matched.
 
+config FEATURE_FIND_USER
+	bool "Enable username/uid matching (-user) option"
+	default y
+	depends on FIND
+	help
+	  Support the 'find -user' option for searching by username or uid.
+
 config GREP
 	bool "grep"
 	default n
