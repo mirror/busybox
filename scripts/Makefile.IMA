@@ -106,10 +106,11 @@ include libbb/Kbuild
 lib-all-y += $(patsubst %,libbb/%,$(sort $(lib-y)))
 lib-y:=
 
+include Makefile.flags
 ifndef BB_VER
 BB_VER:=""
 endif
-include Makefile.flags
+
 CPPFLAGS+= -D"KBUILD_STR(s)=\#s" #-Q
 
 HOSTCC = gcc
@@ -117,7 +118,7 @@ CC = gcc
 
 busybox: $(usage_stuff)
 	$(CC) $(CPPFLAGS) $(CFLAGS) $(CFLAGS_EXTRA) --combine -fwhole-program \
-		-funit-at-a-time -Wno-error  \
+		-funit-at-a-time -Wno-error -std=gnu99  \
 		-o $(@)_unstripped $(lib-all-y:.o=.c) \
 		-Wl,--start-group -lcrypt -lm -Wl,--end-group
 	cp $(@)_unstripped $@
