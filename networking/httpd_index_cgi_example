@@ -23,10 +23,6 @@ cd "${QUERY_STRING:1}" 2>/dev/null || exit 1
 f=`dirname "$QUERY_STRING"`
 test "$f" = "/" && f=""
 
-# Pipe thru dd (need to write header as single write(),
-# or else httpd doesn't see "Content-type: text/html"
-# in first read() and decides that it is not html)
-{
 printf "%s" \
 $'HTTP/1.0 200 OK\r\n'\
 $'Content-type: text/html\r\n\r\n'\
@@ -52,4 +48,3 @@ for f in *; do
     }
 done
 printf "</table></pre><hr></body></html>"$'\r\n'
-} | dd bs=4k
