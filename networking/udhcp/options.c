@@ -23,7 +23,7 @@ const struct dhcp_option dhcp_options[] = {
 	{"lprsvr",      OPTION_IP | OPTION_LIST,                0x09},
 	{"hostname",    OPTION_STRING | OPTION_REQ,             0x0c},
 	{"bootsize",    OPTION_U16,                             0x0d},
-	{"domain",      OPTION_STRING | OPTION_REQ,             0x0f},
+	{"domain",      OPTION_STRING | OPTION_LIST | OPTION_REQ, 0x0f},
 	{"swapsvr",     OPTION_IP,                              0x10},
 	{"rootpath",    OPTION_STRING,                          0x11},
 	{"ipttl",       OPTION_U8,                              0x17},

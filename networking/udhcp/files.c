@@ -101,19 +101,8 @@ static void attach_option(struct option_set **opt_list,
 {
 	struct option_set *existing, *new, **curr;
 
-	/* add it to an existing option */
 	existing = find_option(*opt_list, option->code);
-	if (existing) {
-		DEBUG("Attaching option %s to existing member of list", option->name);
-		if (option->flags & OPTION_LIST) {
-			if (existing->data[OPT_LEN] + length <= 255) {
-				existing->data = realloc(existing->data,
-						existing->data[OPT_LEN] + length + 2);
-				memcpy(existing->data + existing->data[OPT_LEN] + 2, buffer, length);
-				existing->data[OPT_LEN] += length;
-			} /* else, ignore the data, we could put this in a second option in the future */
-		} /* else, ignore the new data */
-	} else {
+	if (!existing) {
 		DEBUG("Attaching option %s to list", option->name);
 
 		/* make a new option */
@@ -129,7 +118,26 @@ static void attach_option(struct option_set **opt_list,
 
 		new->next = *curr;
 		*curr = new;
+		return;
 	}
+
+	/* add it to an existing option */
+	DEBUG("Attaching option %s to existing member of list", option->name);
+	if (option->flags & OPTION_LIST) {
+		if (existing->data[OPT_LEN] + length <= 255) {
+			existing->data = xrealloc(existing->data,
+					existing->data[OPT_LEN] + length + 3);
+			if ((option->flags & TYPE_MASK) == OPTION_STRING) {
+				if (existing->data[OPT_LEN] + length >= 255)
+					return;
+				/* add space separator between STRING options in a list */
+				existing->data[existing->data[OPT_LEN] + 2] = ' ';
+				existing->data[OPT_LEN]++;
+			}
+			memcpy(existing->data + existing->data[OPT_LEN] + 2, buffer, length);
+			existing->data[OPT_LEN] += length;
+		} /* else, ignore the data, we could put this in a second option in the future */
+	} /* else, ignore the new data */
 }
 
 
