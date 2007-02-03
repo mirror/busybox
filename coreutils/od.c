@@ -12,13 +12,13 @@
  */
 
 
+#include "busybox.h"
 #if ENABLE_DESKTOP
 /* This one provides -t (busybox's own build script needs it) */
 #include "od_bloaty.c"
 #else
-
 #include <getopt.h>
-#include "busybox.h"
+
 #include "dump.h"
 
 #define isdecdigit(c) isdigit(c)
