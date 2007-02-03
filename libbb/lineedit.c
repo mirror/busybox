@@ -1269,8 +1269,10 @@ int read_line_input(const char* prompt, char* command, int maxsize, line_input_t
 
 	/* With null flags, no other fields are ever used */
 	state = st ? st : (line_input_t*) &const_int_0;
+#if ENABLE_FEATURE_EDITING_SAVEHISTORY
 	if (state->flags & SAVE_HISTORY)
 		load_history(state->hist_file);
+#endif
 
 	/* prepare before init handlers */
 	cmdedit_y = 0;  /* quasireal y, not true if line > xt*yt */

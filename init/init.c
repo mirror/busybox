@@ -727,20 +727,19 @@ static void exec_signal(int sig ATTRIBUTE_UNUSED)
 
 static void shutdown_signal(int sig)
 {
-	char *m;
+	const char *m;
 	int rb;
 
 	shutdown_system();
 
+	m = "halt";
+	rb = RB_HALT_SYSTEM;
 	if (sig == SIGTERM) {
 		m = "reboot";
 		rb = RB_AUTOBOOT;
 	} else if (sig == SIGUSR2) {
 		m = "poweroff";
 		rb = RB_POWER_OFF;
-	} else {
-		m = "halt";
-		rb = RB_HALT_SYSTEM;
 	}
 	message(CONSOLE | LOG, "Requesting system %s.", m);
 	sync();
@@ -775,7 +774,7 @@ static void cont_handler(int sig ATTRIBUTE_UNUSED)
 	got_cont = 1;
 }
 
-#endif							/* ! ENABLE_DEBUG_INIT */
+#endif	/* !ENABLE_DEBUG_INIT */
 
 static void new_init_action(int action, const char *command, const char *cons)
 {
