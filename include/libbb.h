@@ -551,6 +551,16 @@ int execable_file(const char *name);
 char *find_execable(const char *filename);
 int exists_execable(const char *filename);
 
+#ifdef ENABLE_FEATURE_EXEC_PREFER_APPLETS
+#define BB_EXECVP(prog,cmd) \
+	execvp((find_applet_by_name(prog)) ? CONFIG_BUSYBOX_EXEC_PATH : prog, cmd)
+#define BB_EXECLP(prog,cmd,...) \
+	execlp((find_applet_by_name(prog)) ? CONFIG_BUSYBOX_EXEC_PATH : prog, cmd, __VA_ARGS__)
+#else
+#define BB_EXECVP(prog,cmd) execvp(prog,cmd)
+#define BB_EXECLP(prog,cmd,...) execvp(prog,cmd, __VA_ARGS__) 
+#endif
+
 USE_DESKTOP(long long) int uncompress(int fd_in, int fd_out);
 int inflate(int in, int out);
 

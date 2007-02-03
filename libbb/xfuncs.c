@@ -184,17 +184,13 @@ pid_t spawn(char **argv)
 	/* Why static? */
 	static int failed;
 	pid_t pid;
-	const char *prog;
 
 	// Be nice to nommu machines.
 	failed = 0;
 	pid = vfork();
 	if (pid < 0) return pid;
 	if (!pid) {
-		prog = argv[0];
-		if (ENABLE_FEATURE_EXEC_PREFER_APPLETS && find_applet_by_name(prog))
-			prog = CONFIG_BUSYBOX_EXEC_PATH;
-		execvp(prog, argv);
+		BB_EXECVP(argv[0], argv);
 
 		// We're sharing a stack with blocked parent, let parent know we failed
 		// and then exit to unblock parent (but don't run atexit() stuff, which

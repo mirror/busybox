@@ -389,7 +389,6 @@ static pid_t run(const struct init_action *a)
 #include CUSTOMIZED_BANNER
 #endif
 		"\nPlease press Enter to activate this console. ";
-	const char *prog;
 
 	/* Block sigchild while forking.  */
 	sigemptyset(&nmask);
@@ -561,10 +560,7 @@ static pid_t run(const struct init_action *a)
 
 		/* Now run it.  The new program will take over this PID,
 		 * so nothing further in init.c should be run. */
-		prog = cmdpath;
-		if (ENABLE_FEATURE_EXEC_PREFER_APPLETS && find_applet_by_name(prog))
-			prog = CONFIG_BUSYBOX_EXEC_PATH;
-		execvp(prog, cmd);
+		BB_EXECVP(cmdpath, cmd);
 
 		/* We're still here?  Some error happened. */
 		message(LOG | CONSOLE, "Bummer, cannot run '%s': %m", cmdpath);
@@ -682,7 +678,6 @@ static void exec_signal(int sig ATTRIBUTE_UNUSED)
 {
 	struct init_action *a, *tmp;
 	sigset_t unblock_signals;
-	char *prog;
 
 	for (a = init_action_list; a; a = tmp) {
 		tmp = a->next;
@@ -718,10 +713,7 @@ static void exec_signal(int sig ATTRIBUTE_UNUSED)
 			dup(0);
 
 			messageD(CONSOLE | LOG, "Trying to re-exec %s", a->command);
-			prog = a->command;
-			if (ENABLE_FEATURE_EXEC_PREFER_APPLETS && find_applet_by_name(prog))
-				prog = CONFIG_BUSYBOX_EXEC_PATH;
-			execlp(prog, a->command, NULL);
+			BB_EXECLP(a->command, a->command, NULL);
 
 			message(CONSOLE | LOG, "exec of '%s' failed: %m",
 					a->command);
@@ -1076,10 +1068,7 @@ int init_main(int argc, char **argv)
 
 		putenv("SELINUX_INIT=YES");
 		if (selinux_init_load_policy(&enforce) == 0) {
-			char *prog = argv[0];
-			if (ENABLE_FEATURE_EXEC_PREFER_APPLETS && find_applet_by_name(prog))
-				prog = CONFIG_BUSYBOX_EXEC_PATH;
-			execvp(prog, argv);
+			BB_EXECVP(argv[0], argv);
 		} else if (enforce > 0) {
 			/* SELinux in enforcing mode but load_policy failed */
 			/* At this point, we probably can't open /dev/console, so log() won't work */
