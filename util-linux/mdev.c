@@ -230,6 +230,7 @@ static void find_dev(char *path)
 	closedir(dir);
 }
 
+int mdev_main(int argc, char *argv[]);
 int mdev_main(int argc, char *argv[])
 {
 	char *action;

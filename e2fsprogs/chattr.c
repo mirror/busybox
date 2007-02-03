@@ -147,6 +147,7 @@ static void change_attributes(const char *name)
 		iterate_on_dir(name, chattr_dir_proc, NULL);
 }
 
+int chattr_main(int argc, char **argv);
 int chattr_main(int argc, char **argv)
 {
 	char *arg;

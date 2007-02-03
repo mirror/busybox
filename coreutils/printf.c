@@ -109,6 +109,7 @@ static void print_esc_string(char *str)
 	}
 }
 
+int printf_main(int argc, char **argv);
 int printf_main(int argc, char **argv)
 {
 	char *format;

@@ -84,6 +84,7 @@ static int addgroup(char *group, gid_t gid, const char *user)
  *
  * can be customized via command-line parameters.
  * ________________________________________________________________________ */
+int addgroup_main(int argc, char **argv);
 int addgroup_main(int argc, char **argv)
 {
 	char *group;

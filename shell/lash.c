@@ -1502,6 +1502,7 @@ static inline void setup_job_control(void)
 }
 #endif
 
+int lash_main(int argc_l, char **argv_l);
 int lash_main(int argc_l, char **argv_l)
 {
 	unsigned opt;

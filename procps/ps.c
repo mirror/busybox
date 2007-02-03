@@ -233,6 +233,7 @@ static void format_process(const procps_status_t *ps)
 /* Cannot be const: parse_o() will choke */
 static char default_o[] = "pid,user" /* TODO: ,vsz,stat */ ",args";
 
+int ps_main(int argc, char **argv);
 int ps_main(int argc, char **argv)
 {
 	procps_status_t *p;
@@ -280,6 +281,7 @@ int ps_main(int argc, char **argv)
 #else /* !ENABLE_DESKTOP */
 
 
+int ps_main(int argc, char **argv);
 int ps_main(int argc, char **argv)
 {
 	procps_status_t *p = NULL;

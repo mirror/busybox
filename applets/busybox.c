@@ -73,6 +73,7 @@ int main(int argc, char **argv)
 	bb_error_msg_and_die("applet not found");
 }
 
+int busybox_main(int argc, char **argv);
 int busybox_main(int argc, char **argv)
 {
 	/*

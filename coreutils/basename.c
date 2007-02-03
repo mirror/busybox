@@ -25,6 +25,7 @@
 #include <string.h>
 #include "busybox.h"
 
+int basename_main(int argc, char **argv);
 int basename_main(int argc, char **argv)
 {
 	size_t m, n;

@@ -10,6 +10,7 @@
 
 #include "busybox.h"
 
+int kill_main(int argc, char **argv);
 int kill_main(int argc, char **argv)
 {
 	char *arg;

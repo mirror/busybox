@@ -76,6 +76,7 @@ int get_prefix(unsigned long netmask);
 	};
 #endif
 
+int ipcalc_main(int argc, char **argv);
 int ipcalc_main(int argc, char **argv)
 {
 	unsigned opt;

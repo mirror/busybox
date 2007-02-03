@@ -23,6 +23,7 @@ static void watchdog_shutdown(int ATTRIBUTE_UNUSED unused)
 	exit(0);
 }
 
+int watchdog_main(int argc, char **argv);
 int watchdog_main(int argc, char **argv)
 {
 	unsigned opts;

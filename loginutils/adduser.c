@@ -158,6 +158,7 @@ static int adduser(struct passwd *p, unsigned long flags)
  *
  * can be customized via command-line parameters.
  */
+int adduser_main(int argc, char **argv);
 int adduser_main(int argc, char **argv)
 {
 	struct passwd pw;

@@ -229,6 +229,7 @@ static int update_passwd(const char *filename, const char *username,
 }
 
 
+int passwd_main(int argc, char **argv);
 int passwd_main(int argc, char **argv)
 {
 	enum {

@@ -3945,6 +3945,7 @@ static void print_load_map(struct obj_file *f)
 void print_load_map(struct obj_file *f);
 #endif
 
+int insmod_main( int argc, char **argv);
 int insmod_main( int argc, char **argv)
 {
 	char *opt_o, *arg1;
@@ -4258,6 +4259,7 @@ static const char *moderror(int err)
 	}
 }
 
+int insmod_ng_main(int argc, char **argv);
 int insmod_ng_main(int argc, char **argv)
 {
 	long ret;

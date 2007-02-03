@@ -1902,6 +1902,7 @@ static const char httpd_opts[] = "c:d:h:"
 	"p:if";
 
 
+int httpd_main(int argc, char *argv[]);
 int httpd_main(int argc, char *argv[])
 {
 	unsigned opt;

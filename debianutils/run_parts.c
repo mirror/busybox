@@ -142,6 +142,7 @@ static int run_parts(char **args, const unsigned char test_mode)
 
 /* run_parts_main */
 /* Process options */
+int run_parts_main(int argc, char **argv);
 int run_parts_main(int argc, char **argv)
 {
 	char **args = xmalloc(2 * sizeof(char *));

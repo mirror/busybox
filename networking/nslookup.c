@@ -128,6 +128,7 @@ static void set_default_dns(char *server)
 	}
 }
 
+int nslookup_main(int argc, char **argv);
 int nslookup_main(int argc, char **argv)
 {
 	/* We allow 1 or 2 arguments.

@@ -61,6 +61,7 @@ static void del_line_matching(const char *login, const char *filename)
 	}
 }
 
+int deluser_main(int argc, char **argv);
 int deluser_main(int argc, char **argv)
 {
 	if (argc != 2)

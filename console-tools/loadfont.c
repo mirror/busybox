@@ -30,6 +30,7 @@ struct psf_header {
 
 static void loadnewfont(int fd);
 
+int loadfont_main(int argc, char **argv);
 int loadfont_main(int argc, char **argv)
 {
 	int fd;

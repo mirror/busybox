@@ -297,6 +297,7 @@ static const struct option ftpgetput_long_options[] = {
 };
 #endif
 
+int ftpgetput_main(int argc, char **argv);
 int ftpgetput_main(int argc, char **argv)
 {
 	/* content-length of the file */

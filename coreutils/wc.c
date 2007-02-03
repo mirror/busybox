@@ -68,6 +68,7 @@ enum {
 	WC_LENGTH	= 3
 };
 
+int wc_main(int argc, char **argv);
 int wc_main(int argc, char **argv)
 {
 	FILE *fp;

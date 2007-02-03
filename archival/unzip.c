@@ -93,6 +93,7 @@ static int unzip_extract(zip_header_t *zip_header, int src_fd, int dst_fd)
 	return 0;
 }
 
+int unzip_main(int argc, char **argv);
 int unzip_main(int argc, char **argv)
 {
 	zip_header_t zip_header;

@@ -86,6 +86,7 @@ static char *base64enc(unsigned char *p, char *buf, int len)
 }
 #endif
 
+int wget_main(int argc, char **argv);
 int wget_main(int argc, char **argv)
 {
 	char buf[512];

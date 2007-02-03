@@ -31,6 +31,7 @@ static void EditFile(const char *user, const char *file);
 static int GetReplaceStream(const char *user, const char *file);
 static int ChangeUser(const char *user, short dochdir);
 
+int crontab_main(int ac, char **av);
 int crontab_main(int ac, char **av)
 {
 	enum { NONE, EDIT, LIST, REPLACE, DELETE } option = NONE;

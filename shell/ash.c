@@ -7900,8 +7900,8 @@ static void read_profile(const char *);
  * is used to figure out how far we had gotten.
  */
 
-int
-ash_main(int argc, char **argv)
+int ash_main(int argc, char **argv);
+int ash_main(int argc, char **argv)
 {
 	char *shinit;
 	volatile int state;

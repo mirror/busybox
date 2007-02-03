@@ -435,6 +435,7 @@ static int tftp(
 	return finished ? EXIT_SUCCESS : EXIT_FAILURE;
 }
 
+int tftp_main(int argc, char **argv);
 int tftp_main(int argc, char **argv)
 {
 	len_and_sockaddr *peer_lsa;

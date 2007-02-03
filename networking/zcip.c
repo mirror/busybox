@@ -204,6 +204,7 @@ static	int ready; // = 0;
 static	int verbose; // = 0;
 static	int state = PROBE;
 
+int zcip_main(int argc, char *argv[]);
 int zcip_main(int argc, char *argv[])
 {
 	struct ether_addr eth_addr;

@@ -9,6 +9,7 @@
 /* no options, no getopt */
 #include "busybox.h"
 
+int resize_main(int argc, char **argv);
 int resize_main(int argc, char **argv)
 {
 	struct termios old, new;

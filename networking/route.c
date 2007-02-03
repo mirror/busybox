@@ -638,6 +638,7 @@ static const char tbl_verb[] =	/* 2nd byte matches RTACTION_* code */
 	"\010\002delete"			/* Since last, we can save a byte. */
 ;
 
+int route_main(int argc, char **argv);
 int route_main(int argc, char **argv)
 {
 	unsigned opt;

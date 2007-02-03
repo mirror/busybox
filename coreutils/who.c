@@ -38,6 +38,7 @@ static const char * idle_string (time_t t)
 	return "old";
 }
 
+int who_main(int argc, char **argv);
 int who_main(int argc, char **argv)
 {
 	struct utmp *ut;

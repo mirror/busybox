@@ -12,6 +12,7 @@
 
 #include "busybox.h"
 
+int readahead_main(int argc, char **argv);
 int readahead_main(int argc, char **argv)
 {
 	FILE *f;

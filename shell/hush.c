@@ -2686,6 +2686,7 @@ static void setup_job_control(void)
 	tcsetpgrp(shell_terminal, shell_pgrp);
 }
 
+int hush_main(int argc, char **argv);
 int hush_main(int argc, char **argv)
 {
 	int opt;

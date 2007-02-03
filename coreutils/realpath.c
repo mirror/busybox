@@ -12,6 +12,7 @@
 
 #include "busybox.h"
 
+int realpath_main(int argc, char **argv);
 int realpath_main(int argc, char **argv)
 {
 	int retval = EXIT_SUCCESS;

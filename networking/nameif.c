@@ -55,6 +55,7 @@ static struct ether_addr *cc_macaddr(const char *str_macaddr)
 	return mac;
 }
 
+int nameif_main(int argc, char **argv);
 int nameif_main(int argc, char **argv)
 {
 	mactable_t *clist = NULL;

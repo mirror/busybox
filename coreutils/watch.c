@@ -23,6 +23,7 @@
 //
 // (procps 3.x and procps 2.x are forks, not newer/older versions of the same)
 
+int watch_main(int argc, char **argv);
 int watch_main(int argc, char **argv)
 {
 	unsigned opt;

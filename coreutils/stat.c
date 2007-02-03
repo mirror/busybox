@@ -515,6 +515,7 @@ static int do_stat(char const *filename, char const *format)
 	return 1;
 }
 
+int stat_main(int argc, char **argv);
 int stat_main(int argc, char **argv)
 {
 	int i;

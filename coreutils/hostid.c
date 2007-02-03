@@ -13,6 +13,7 @@
 #include <unistd.h>
 #include "busybox.h"
 
+int hostid_main(int argc, char ATTRIBUTE_UNUSED **argv);
 int hostid_main(int argc, char ATTRIBUTE_UNUSED **argv)
 {
 	if (argc > 1) {

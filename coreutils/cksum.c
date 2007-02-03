@@ -8,6 +8,7 @@
 
 #include "busybox.h"
 
+int cksum_main(int argc, char **argv);
 int cksum_main(int argc, char **argv)
 {
 

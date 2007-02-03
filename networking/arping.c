@@ -238,6 +238,7 @@ static int recv_pack(unsigned char *buf, int len, struct sockaddr_ll *FROM)
 	return 1;
 }
 
+int arping_main(int argc, char **argv);
 int arping_main(int argc, char **argv)
 {
 	const char *device = "eth0";

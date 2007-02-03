@@ -33,6 +33,7 @@ static long kscale(long b, long bs)
 }
 #endif
 
+int df_main(int argc, char **argv);
 int df_main(int argc, char **argv)
 {
 	long blocks_used;

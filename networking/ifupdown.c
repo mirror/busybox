@@ -1083,6 +1083,7 @@ static llist_t *find_iface_state(llist_t *state_list, const char *iface)
 	return NULL;
 }
 
+int ifupdown_main(int argc, char **argv);
 int ifupdown_main(int argc, char **argv)
 {
 	int (*cmds)(struct interface_defn_t *) = NULL;

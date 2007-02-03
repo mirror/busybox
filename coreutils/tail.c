@@ -68,6 +68,7 @@ static unsigned eat_num(const char *p) {
 	return xatou_sfx(p, tail_suffixes);
 }
 
+int tail_main(int argc, char **argv);
 int tail_main(int argc, char **argv)
 {
 	unsigned count = 10;

@@ -26,6 +26,7 @@ void BUG_bad_PRIO_PROCESS(void);
 void BUG_bad_PRIO_PGRP(void);
 void BUG_bad_PRIO_USER(void);
 
+int renice_main(int argc, char **argv);
 int renice_main(int argc, char **argv)
 {
 	static const char Xetpriority_msg[] = "%cetpriority";

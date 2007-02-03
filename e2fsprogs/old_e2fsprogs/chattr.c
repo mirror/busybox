@@ -170,6 +170,7 @@ static int chattr_dir_proc(const char *dir_name, struct dirent *de,
 	return 0;
 }
 
+int chattr_main(int argc, char **argv);
 int chattr_main(int argc, char **argv)
 {
 	int i;

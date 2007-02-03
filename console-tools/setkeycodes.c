@@ -9,9 +9,6 @@
  * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <fcntl.h>
 #include <sys/ioctl.h>
 #include "busybox.h"
 
@@ -24,8 +21,8 @@ enum {
 	KDSETKEYCODE = 0x4B4D  /* write kernel keycode table entry */
 };
 
-extern int
-setkeycodes_main(int argc, char** argv)
+int setkeycodes_main(int argc, char** argv);
+int setkeycodes_main(int argc, char** argv)
 {
 	int fd, sc;
 	struct kbkeycode a;

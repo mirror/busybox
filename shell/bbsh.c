@@ -198,6 +198,7 @@ static void handle(char *command)
 	}
 }
 
+int bbsh_main(int argc, char *argv[]);
 int bbsh_main(int argc, char *argv[])
 {
 	char *command=NULL;

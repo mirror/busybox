@@ -578,6 +578,7 @@ static int is_a_group_member(gid_t gid)
 
 /* applet entry point */
 
+int test_main(int argc, char **argv);
 int test_main(int argc, char **argv)
 {
 	return bb_test(argc, argv);

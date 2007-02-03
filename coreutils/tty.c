@@ -15,6 +15,7 @@
 #include <unistd.h>
 #include "busybox.h"
 
+int tty_main(int argc, char **argv);
 int tty_main(int argc, char **argv)
 {
 	const char *s;

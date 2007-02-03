@@ -11,6 +11,7 @@
 
 #include "busybox.h"
 
+int free_main(int argc, char **argv);
 int free_main(int argc, char **argv)
 {
 	struct sysinfo info;

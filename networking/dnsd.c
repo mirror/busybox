@@ -330,6 +330,7 @@ static void interrupt(int x)
 	exit(2);
 }
 
+int dnsd_main(int argc, char **argv);
 int dnsd_main(int argc, char **argv)
 {
 	char *listen_interface = NULL;

@@ -106,6 +106,7 @@ static const char name_types[] = {
 
 static const char conf_file_name[] = "/proc/net/vlan/config";
 
+int vconfig_main(int argc, char **argv);
 int vconfig_main(int argc, char **argv)
 {
 	struct vlan_ioctl_args ifr;

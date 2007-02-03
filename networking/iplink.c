@@ -17,6 +17,7 @@
 
 #include "busybox.h"
 
+int iplink_main(int argc, char **argv);
 int iplink_main(int argc, char **argv)
 {
 	ip_parse_common_args(&argc, &argv);

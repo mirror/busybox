@@ -13,6 +13,7 @@
 #include <stdlib.h>
 #include "busybox.h"
 
+int printenv_main(int argc, char **argv);
 int printenv_main(int argc, char **argv)
 {
 	extern char **environ;

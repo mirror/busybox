@@ -1176,6 +1176,7 @@ static void mke2fs_clean_up(void)
 	if (ENABLE_FEATURE_CLEAN_UP && journal_device) free(journal_device);
 }
 
+int mke2fs_main (int argc, char *argv[]);
 int mke2fs_main (int argc, char *argv[])
 {
 	errcode_t	retval;

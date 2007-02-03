@@ -25,6 +25,7 @@
 #include <unistd.h>
 #include "busybox.h"
 
+int logname_main(int argc, char ATTRIBUTE_UNUSED **argv);
 int logname_main(int argc, char ATTRIBUTE_UNUSED **argv)
 {
 	const char *p;

@@ -968,6 +968,7 @@ static void reload_signal(int sig ATTRIBUTE_UNUSED)
 }
 #endif  /* FEATURE_USE_INITTAB */
 
+int init_main(int argc, char **argv);
 int init_main(int argc, char **argv)
 {
 	struct init_action *a;

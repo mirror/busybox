@@ -41,6 +41,7 @@ static const struct option env_long_options[] = {
 };
 #endif
 
+int env_main(int argc, char** argv);
 int env_main(int argc, char** argv)
 {
 	static char *cleanenv[1] = { NULL };

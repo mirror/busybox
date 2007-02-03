@@ -44,6 +44,7 @@ static void maybe_set_utc(int opt)
 		xputenv((char*)"TZ=UTC0");
 }
 
+int date_main(int argc, char **argv);
 int date_main(int argc, char **argv)
 {
 	time_t tm;

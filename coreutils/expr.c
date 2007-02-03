@@ -74,6 +74,7 @@ static int toarith(VALUE * v);
 static void freev(VALUE * v);
 static void tostring(VALUE * v);
 
+int expr_main(int argc, char **argv);
 int expr_main(int argc, char **argv)
 {
 	VALUE *v;

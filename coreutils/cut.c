@@ -162,6 +162,7 @@ static void cut_file(FILE * file)
 
 static const char _op_on_field[] = " only when operating on fields";
 
+int cut_main(int argc, char **argv);
 int cut_main(int argc, char **argv)
 {
 	char *sopt, *ltok;

@@ -35,6 +35,7 @@ static const struct option mv_long_options[] = {
 
 static const char fmt[] = "cannot overwrite %sdirectory with %sdirectory";
 
+int mv_main(int argc, char **argv);
 int mv_main(int argc, char **argv)
 {
 	struct stat dest_stat;

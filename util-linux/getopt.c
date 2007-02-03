@@ -288,6 +288,7 @@ static const struct option longopts[]=
 static const char shortopts[]="+ao:l:n:qQs:Tu";
 
 
+int getopt_main(int argc, char *argv[]);
 int getopt_main(int argc, char *argv[])
 {
 	const char *optstr = NULL;

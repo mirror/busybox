@@ -16,6 +16,7 @@
 
 #include "busybox.h"
 
+int setsid_main(int argc, char *argv[]);
 int setsid_main(int argc, char *argv[])
 {
 	if (argc < 2)

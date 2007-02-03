@@ -193,6 +193,7 @@ static int complement(char *buffer, int buffer_len)
 	return ix;
 }
 
+int tr_main(int argc, char **argv);
 int tr_main(int argc, char **argv)
 {
 	unsigned char *ptr;

@@ -752,6 +752,7 @@ static const struct option tar_long_options[] = {
 };
 #endif
 
+int tar_main(int argc, char **argv);
 int tar_main(int argc, char **argv)
 {
 	char (*get_header_ptr)(archive_handle_t *) = get_header_tar;

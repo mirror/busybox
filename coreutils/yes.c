@@ -16,6 +16,7 @@
 
 #include "busybox.h"
 
+int yes_main(int argc, char **argv);
 int yes_main(int argc, char **argv)
 {
 	static const char fmt_str[] = " %s";

@@ -75,6 +75,7 @@ static int file_doesnt_exist(const char *filename)
 	return stat(filename, &statbuf);
 }
 
+int patch_main(int argc, char **argv);
 int patch_main(int argc, char **argv)
 {
 	int patch_level = -1;

@@ -41,6 +41,7 @@ static void do_sethostname(char *s, int isfile)
 	}
 }
 
+int hostname_main(int argc, char **argv);
 int hostname_main(int argc, char **argv)
 {
 	enum {

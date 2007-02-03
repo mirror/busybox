@@ -1215,6 +1215,7 @@ static void add_files_link(llist_t *opt_f)
 	free(opt_f);
 }
 
+int sed_main(int argc, char **argv);
 int sed_main(int argc, char **argv)
 {
 	enum {

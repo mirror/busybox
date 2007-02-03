@@ -98,6 +98,7 @@ static void lsattr_args(const char *name)
 	}
 }
 
+int lsattr_main(int argc, char **argv);
 int lsattr_main(int argc, char **argv)
 {
 	getopt32(argc, argv, "Radlv");

@@ -746,6 +746,7 @@ static void logmatch(struct logdir *ld)
 	}
 }
 
+int svlogd_main(int argc, char **argv);
 int svlogd_main(int argc, char **argv)
 {
 	sigset_t ss;

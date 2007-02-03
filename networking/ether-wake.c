@@ -105,6 +105,7 @@ static inline void get_dest_addr(const char *arg, struct ether_addr *eaddr);
 static inline int get_fill(unsigned char *pkt, struct ether_addr *eaddr, int broadcast);
 static inline int get_wol_pw(const char *ethoptarg, unsigned char *wol_passwd);
 
+int ether_wake_main(int argc, char *argv[]);
 int ether_wake_main(int argc, char *argv[])
 {
 	const char *ifname = "eth0";

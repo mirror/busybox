@@ -14,6 +14,7 @@
 #include <unistd.h>
 #include "busybox.h"
 
+int whoami_main(int argc, char **argv);
 int whoami_main(int argc, char **argv)
 {
 	if (argc > 1)

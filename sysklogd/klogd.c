@@ -34,6 +34,7 @@ static void klogd_signal(int sig ATTRIBUTE_UNUSED)
 
 #define KLOGD_LOGBUF_SIZE 4096
 
+int klogd_main(int argc, char **argv);
 int klogd_main(int argc, char **argv)
 {
 	RESERVE_CONFIG_BUFFER(log_buffer, KLOGD_LOGBUF_SIZE);

@@ -22,18 +22,19 @@ struct kbentry {
 #define NR_KEYS 128
 #define MAX_NR_KEYMAPS 256
 
+int dumpkmap_main(int argc, char **argv);
 int dumpkmap_main(int argc, char **argv)
 {
 	struct kbentry ke;
 	int i, j, fd;
-	char flags[MAX_NR_KEYMAPS], magic[] = "bkeymap";
+	char flags[MAX_NR_KEYMAPS];
 
-	if (argc >= 2 && *argv[1] == '-')
+	if (argc >= 2 && argv[1][0] == '-')
 		bb_show_usage();
 
 	fd = xopen(CURRENT_VC, O_RDWR);
 
-	write(1, magic, 7);
+	write(1, "bkeymap", 7);
 
 	/* Here we want to set everything to 0 except for indexes:
 	 * [0-2] [4-6] [8-10] [12] */

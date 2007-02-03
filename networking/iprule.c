@@ -17,6 +17,7 @@
 
 #include "busybox.h"
 
+int iprule_main(int argc, char **argv);
 int iprule_main(int argc, char **argv)
 {
 	ip_parse_common_args(&argc, &argv);

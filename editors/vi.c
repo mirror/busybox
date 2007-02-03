@@ -264,6 +264,7 @@ static void write1(const char *out)
 	fputs(out, stdout);
 }
 
+int vi_main(int argc, char **argv);
 int vi_main(int argc, char **argv)
 {
 	int c;

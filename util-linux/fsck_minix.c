@@ -1207,6 +1207,7 @@ static void check2(void)
 void check2(void);
 #endif
 
+int fsck_minix_main(int argc, char **argv);
 int fsck_minix_main(int argc, char **argv)
 {
 	struct termios tmp;

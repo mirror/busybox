@@ -14,6 +14,7 @@
 #include <unistd.h>
 #include "busybox.h"
 
+int usleep_main(int argc, char **argv);
 int usleep_main(int argc, char **argv)
 {
 	if (argc != 2) {

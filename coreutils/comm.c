@@ -108,6 +108,7 @@ static void cmp_files(char **infiles)
 	fclose(streams[1]);
 }
 
+int comm_main(int argc, char **argv);
 int comm_main(int argc, char **argv)
 {
 	unsigned long flags;

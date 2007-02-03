@@ -41,6 +41,7 @@ static char *__from_cpuset(cpu_set_t *mask)
 
 #define OPT_p 1
 
+int taskset_main(int argc, char** argv);
 int taskset_main(int argc, char** argv)
 {
 	cpu_set_t mask, new_mask;

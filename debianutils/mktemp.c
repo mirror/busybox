@@ -16,6 +16,7 @@
 #include <unistd.h>
 #include <stdlib.h>
 
+int mktemp_main(int argc, char **argv);
 int mktemp_main(int argc, char **argv)
 {
 	unsigned long flags = getopt32(argc, argv, "dqt");

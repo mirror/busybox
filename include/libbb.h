@@ -495,11 +495,14 @@ extern void bb_vinfo_msg(const char *s, va_list p);
 
 
 /* applets which are useful from another applets */
-extern int bb_cat(char** argv);
-extern int bb_echo(char** argv);
-extern int bb_test(int argc, char** argv);
+int bb_cat(char** argv);
+int bb_echo(char** argv);
+int bb_test(int argc, char** argv);
 #if ENABLE_ROUTE
-extern void bb_displayroutes(int noresolve, int netstatfmt);
+void bb_displayroutes(int noresolve, int netstatfmt);
+#endif
+#if ENABLE_GUNZIP
+int gunzip_main(int argc, char **argv);
 #endif
 
 

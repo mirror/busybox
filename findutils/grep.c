@@ -321,6 +321,7 @@ static int grep_dir(const char *dir)
 }
 
 
+int grep_main(int argc, char **argv);
 int grep_main(int argc, char **argv)
 {
 	FILE *file;

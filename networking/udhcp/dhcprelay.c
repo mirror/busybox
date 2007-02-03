@@ -295,6 +295,7 @@ static void dhcprelay_loop(int *fds, int num_sockets, int max_socket, char **cli
 	}
 }
 
+int dhcprelay_main(int argc, char **argv);
 int dhcprelay_main(int argc, char **argv)
 {
 	int i, num_sockets, max_socket, fds[MAX_INTERFACES];

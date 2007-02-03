@@ -16,6 +16,7 @@
 #include "busybox.h"
 #include "libcoreutils/coreutils.h"
 
+int mkfifo_main(int argc, char **argv);
 int mkfifo_main(int argc, char **argv)
 {
 	mode_t mode;

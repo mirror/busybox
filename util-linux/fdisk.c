@@ -2784,6 +2784,7 @@ unknown_command(int c)
 }
 #endif
 
+int fdisk_main(int argc, char **argv);
 int fdisk_main(int argc, char **argv)
 {
 	char *str_b, *str_C, *str_H, *str_S;

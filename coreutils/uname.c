@@ -54,6 +54,7 @@ static const unsigned short int utsname_offset[] = {
 	offsetof(uname_info_t,processor)
 };
 
+int uname_main(int argc, char **argv);
 int uname_main(int argc, char **argv)
 {
 	uname_info_t uname_info;

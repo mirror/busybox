@@ -255,6 +255,7 @@ static void envuidgid(int, char **);
 static void envdir(int, char **);
 static void softlimit(int, char **);
 
+int chpst_main(int argc, char **argv);
 int chpst_main(int argc, char **argv)
 {
 	if (applet_name[3] == 'd') envdir(argc, argv);

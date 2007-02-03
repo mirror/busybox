@@ -301,6 +301,7 @@ static int fuser_kill_pid_list(pid_list *plist, int sig)
 	return success;
 }
 
+int fuser_main(int argc, char **argv);
 int fuser_main(int argc, char **argv)
 {
 	int port, i, optn;

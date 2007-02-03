@@ -112,6 +112,7 @@ just_echo:
 	return 0;
 }
 
+int echo_main(int argc, char** argv);
 int echo_main(int argc, char** argv)
 {
 	(void)bb_echo(argv);

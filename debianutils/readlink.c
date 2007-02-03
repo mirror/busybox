@@ -13,6 +13,7 @@
 #include <stdlib.h>
 #include <getopt.h>
 
+int readlink_main(int argc, char **argv);
 int readlink_main(int argc, char **argv)
 {
 	char *buf;

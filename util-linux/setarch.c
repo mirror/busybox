@@ -16,6 +16,7 @@
 
 #include "busybox.h"
 
+int setarch_main(int ATTRIBUTE_UNUSED argc, char **argv);
 int setarch_main(int ATTRIBUTE_UNUSED argc, char **argv)
 {
 	int pers = -1;

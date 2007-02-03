@@ -11,6 +11,7 @@
 #define REMAINING 0
 #define ABSOLUTE 1
 
+int dumpleases_main(int argc, char *argv[]);
 int dumpleases_main(int argc, char *argv[])
 {
 	int fp;

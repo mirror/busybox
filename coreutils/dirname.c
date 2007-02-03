@@ -14,6 +14,7 @@
 #include <stdlib.h>
 #include "busybox.h"
 
+int dirname_main(int argc, char **argv);
 int dirname_main(int argc, char **argv)
 {
 	if (argc != 2) {

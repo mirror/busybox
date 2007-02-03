@@ -17,6 +17,7 @@
 #include "libiproute/utils.h"
 #include "libiproute/ip_common.h"
 
+int ip_main(int argc, char **argv);
 int ip_main(int argc, char **argv)
 {
 	int ret = EXIT_FAILURE;

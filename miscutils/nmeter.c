@@ -729,6 +729,7 @@ static init_func* init_functions[] = {
 	init_cr,
 };
 
+int nmeter_main(int argc, char* argv[]);
 int nmeter_main(int argc, char* argv[])
 {
 	char buf[32];

@@ -15,6 +15,7 @@
 #include "busybox.h"
 
 
+int clear_main(int argc, char **argv);
 int clear_main(int argc, char **argv)
 {
 	return printf("\033[H\033[J") != 6;

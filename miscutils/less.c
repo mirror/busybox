@@ -1181,6 +1181,7 @@ static void sig_catcher(int sig ATTRIBUTE_UNUSED)
 	exit(1);
 }
 
+int less_main(int argc, char **argv);
 int less_main(int argc, char **argv)
 {
 	int keypress;

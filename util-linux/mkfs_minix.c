@@ -587,6 +587,7 @@ static void get_list_blocks(char *filename)
 	printf("%d bad block(s)\n", badblocks);
 }
 
+int mkfs_minix_main(int argc, char **argv);
 int mkfs_minix_main(int argc, char **argv)
 {
 	struct mntent *mp;

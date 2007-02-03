@@ -77,6 +77,7 @@ static char *build_row(char *p, int *dp);
 #define	J_WEEK_LEN	(WEEK_LEN + 7)
 #define	HEAD_SEP	2		/* spaces between day headings */
 
+int cal_main(int argc, char **argv);
 int cal_main(int argc, char **argv)
 {
 	struct tm *local_time;

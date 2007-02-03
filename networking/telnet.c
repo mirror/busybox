@@ -581,6 +581,7 @@ static void cookmode(void)
 	if (G.do_termios) tcsetattr(0, TCSADRAIN, &G.termios_def);
 }
 
+int telnet_main(int argc, char** argv);
 int telnet_main(int argc, char** argv)
 {
 	char *host;

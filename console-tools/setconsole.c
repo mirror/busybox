@@ -18,6 +18,7 @@ static const struct option setconsole_long_options[] = {
 
 #define OPT_SETCONS_RESET 1
 
+int setconsole_main(int argc, char **argv);
 int setconsole_main(int argc, char **argv)
 {
 	unsigned long flags;

@@ -131,6 +131,7 @@ static void crondlog(const char *ctl, ...)
 	}
 }
 
+int crond_main(int ac, char **av);
 int crond_main(int ac, char **av)
 {
 	unsigned opt;

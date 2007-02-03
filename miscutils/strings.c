@@ -18,6 +18,7 @@
 #define PRINT_OFFSET	4
 #define SIZE			8
 
+int strings_main(int argc, char **argv);
 int strings_main(int argc, char **argv)
 {
 	int n, c, i = 0, status = EXIT_SUCCESS;

@@ -36,6 +36,7 @@
 #define GUNZIP_OPT_DECOMPRESS	8
 #define GUNZIP_OPT_VERBOSE	0x10
 
+int gunzip_main(int argc, char **argv);
 int gunzip_main(int argc, char **argv)
 {
 	USE_DESKTOP(long long) int status;

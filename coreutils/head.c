@@ -31,6 +31,7 @@ static const struct suffix_mult head_suffixes[] = {
 
 static const char header_fmt_str[] = "\n==> %s <==\n";
 
+int head_main(int argc, char **argv);
 int head_main(int argc, char **argv)
 {
 	unsigned long count = 10;

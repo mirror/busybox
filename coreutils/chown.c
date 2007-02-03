@@ -53,6 +53,7 @@ static int fileAction(const char *fileName, struct stat *statbuf,
 	return FALSE;
 }
 
+int chown_main(int argc, char **argv);
 int chown_main(int argc, char **argv)
 {
 	char *groupName;

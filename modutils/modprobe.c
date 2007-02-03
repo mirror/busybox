@@ -861,6 +861,7 @@ static int mod_remove(char *mod)
 	return rc;
 }
 
+int modprobe_main(int argc, char** argv);
 int modprobe_main(int argc, char** argv)
 {
 	int rc = EXIT_SUCCESS;

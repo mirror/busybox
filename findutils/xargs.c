@@ -387,6 +387,7 @@ enum {
 	USE_FEATURE_XARGS_SUPPORT_TERMOPT(     "x") \
 	USE_FEATURE_XARGS_SUPPORT_ZERO_TERM(   "0")
 
+int xargs_main(int argc, char **argv);
 int xargs_main(int argc, char **argv)
 {
 	char **args;

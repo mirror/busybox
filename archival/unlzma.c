@@ -15,6 +15,7 @@
 
 #define UNLZMA_OPT_STDOUT	1
 
+int unlzma_main(int argc, char **argv);
 int unlzma_main(int argc, char **argv)
 {
 	USE_DESKTOP(long long) int status;

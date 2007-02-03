@@ -49,6 +49,7 @@ static void skip_header(int rpm_fd)
 }
 
 /* No getopt required */
+int rpm2cpio_main(int argc, char **argv);
 int rpm2cpio_main(int argc, char **argv)
 {
 	struct rpm_lead lead;

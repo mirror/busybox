@@ -185,6 +185,7 @@ static void ping6(len_and_sockaddr *lsa)
 }
 #endif
 
+int ping_main(int argc, char **argv);
 int ping_main(int argc, char **argv)
 {
 	len_and_sockaddr *lsa;
@@ -715,6 +716,7 @@ static int parse_nipquad(const char *str, struct sockaddr_in* addr)
 	return 1; /* error */
 }
 
+int ping_main(int argc, char **argv);
 int ping_main(int argc, char **argv)
 {
 	len_and_sockaddr *lsa;
@@ -759,6 +761,7 @@ int ping_main(int argc, char **argv)
 
 
 #if ENABLE_PING6
+int ping6_main(int argc, char **argv);
 int ping6_main(int argc, char **argv)
 {
 	argv[0] = (char*)"-6";

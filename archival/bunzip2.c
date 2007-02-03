@@ -12,6 +12,7 @@
 #define BUNZIP2_OPT_STDOUT	1
 #define BUNZIP2_OPT_FORCE	2
 
+int bunzip2_main(int argc, char **argv);
 int bunzip2_main(int argc, char **argv)
 {
 	USE_DESKTOP(long long) int status;

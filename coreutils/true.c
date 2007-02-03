@@ -13,6 +13,7 @@
 #include <stdlib.h>
 #include "busybox.h"
 
+int true_main(int argc, char **argv);
 int true_main(int argc, char **argv)
 {
 	return EXIT_SUCCESS;

@@ -1322,6 +1322,7 @@ static void PRS(int argc, char *argv[])
 	    max_running = atoi(tmp);
 }
 
+int fsck_main(int argc, char *argv[]);
 int fsck_main(int argc, char *argv[])
 {
 	int i, status = 0;

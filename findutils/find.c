@@ -543,6 +543,7 @@ static action*** parse_params(char **argv)
 }
 
 
+int find_main(int argc, char **argv);
 int find_main(int argc, char **argv)
 {
 	int dereference = FALSE;

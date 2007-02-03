@@ -411,6 +411,7 @@ static void sig_catcher(int sig ATTRIBUTE_UNUSED)
 #endif /* FEATURE_USE_TERMIOS */
 
 
+int top_main(int argc, char **argv);
 int top_main(int argc, char **argv)
 {
 	int count, lines, col;

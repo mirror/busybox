@@ -38,6 +38,7 @@ static void gotsig(int sig)
 #endif /* FEATURE_USE_TERMIOS */
 
 
+int more_main(int argc, char **argv);
 int more_main(int argc, char **argv)
 {
 	int c, lines, input = 0;

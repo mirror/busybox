@@ -176,6 +176,7 @@ static int check_utc(void)
 #define HWCLOCK_OPT_HCTOSYS     0x08
 #define HWCLOCK_OPT_SYSTOHC     0x10
 
+int hwclock_main(int argc, char **argv );
 int hwclock_main(int argc, char **argv )
 {
 	unsigned opt;

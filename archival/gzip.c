@@ -2086,6 +2086,7 @@ static void abort_gzip(int ATTRIBUTE_UNUSED ignored)
 	exit(1);
 }
 
+int gzip_main(int argc, char **argv);
 int gzip_main(int argc, char **argv)
 {
 	enum {

@@ -773,6 +773,7 @@ static const unsigned opt_flags[] = {
 };
 
 
+int ls_main(int argc, char **argv);
 int ls_main(int argc, char **argv)
 {
 	struct dnode **dnd;

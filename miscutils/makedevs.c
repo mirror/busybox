@@ -10,6 +10,7 @@
 #include "busybox.h"
 
 #ifdef CONFIG_FEATURE_MAKEDEVS_LEAF
+int makedevs_main(int argc, char **argv);
 int makedevs_main(int argc, char **argv)
 {
 	mode_t mode;
@@ -68,6 +69,7 @@ int makedevs_main(int argc, char **argv)
 
 /* Licensed under the GPL v2 or later, see the file LICENSE in this tarball. */
 
+int makedevs_main(int argc, char **argv);
 int makedevs_main(int argc, char **argv)
 {
 	FILE *table = stdin;

@@ -59,8 +59,8 @@ int get_console_fd(void)
 		char arg;
 
 		fd4name = open_a_console(choise_console_names[fd]);
-	chk_std:
-		choise_fd = fd4name >= 0 ? fd4name : fd;
+ chk_std:
+		choise_fd = (fd4name >= 0 ? fd4name : fd);
 
 		arg = 0;
 		if (ioctl(choise_fd, KDGKBTYPE, &arg) == 0)

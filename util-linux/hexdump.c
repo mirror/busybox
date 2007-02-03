@@ -51,6 +51,7 @@ static const struct suffix_mult suffixes[] = {
 	{NULL, 0 }
 };
 
+int hexdump_main(int argc, char **argv);
 int hexdump_main(int argc, char **argv)
 {
 	const char *p;

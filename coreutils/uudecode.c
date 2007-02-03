@@ -123,6 +123,7 @@ static void read_base64(FILE *src_stream, FILE *dst_stream)
 	}
 }
 
+int uudecode_main(int argc, char **argv);
 int uudecode_main(int argc, char **argv)
 {
 	FILE *src_stream;

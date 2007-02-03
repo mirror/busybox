@@ -10,6 +10,7 @@
 #include <sys/resource.h>
 #include "busybox.h"
 
+int nice_main(int argc, char **argv);
 int nice_main(int argc, char **argv)
 {
 	int old_priority, adjustment;

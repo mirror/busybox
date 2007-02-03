@@ -12,6 +12,7 @@
 
 #include "busybox.h"
 
+int which_main(int argc, char **argv);
 int which_main(int argc, char **argv)
 {
 	int status = EXIT_SUCCESS;

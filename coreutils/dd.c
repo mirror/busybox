@@ -50,6 +50,7 @@ static ssize_t full_write_or_warn(int fd, const void *buf, size_t len,
 #define XATOU_SFX xatoul_sfx
 #endif
 
+int dd_main(int argc, char **argv);
 int dd_main(int argc, char **argv)
 {
 	enum {

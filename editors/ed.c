@@ -40,6 +40,7 @@ static LINE *findLine(int num);
 
 static int findString(const LINE *lp, const char * str, int len, int offset);
 
+int ed_main(int argc, char **argv);
 int ed_main(int argc, char **argv)
 {
 	if (!initEdit())

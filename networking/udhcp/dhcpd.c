@@ -20,6 +20,7 @@ struct dhcpOfferedAddr *leases;
 struct server_config_t server_config;
 
 
+int udhcpd_main(int argc, char *argv[]);
 int udhcpd_main(int argc, char *argv[])
 {
 	fd_set rfds;

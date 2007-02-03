@@ -1207,8 +1207,8 @@ dump_strings(void)
 	check_and_close();
 }
 
-int
-od_main(int argc, char **argv)
+int od_main(int argc, char **argv);
+int od_main(int argc, char **argv)
 {
 	static const struct suffix_mult bkm[] = {
 		{ "b", 512 },

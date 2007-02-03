@@ -12,6 +12,7 @@
 
 #include "busybox.h"
 
+int losetup_main(int argc, char **argv);
 int losetup_main(int argc, char **argv)
 {
 	unsigned opt;

@@ -5097,6 +5097,7 @@ static void freehere(int area)
  * shell
  */
 
+int msh_main(int argc, char **argv);
 int msh_main(int argc, char **argv)
 {
 	int f;

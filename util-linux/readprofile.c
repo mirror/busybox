@@ -41,6 +41,7 @@
 static const char defaultmap[] = "/boot/System.map";
 static const char defaultpro[] = "/proc/profile";
 
+int readprofile_main(int argc, char **argv);
 int readprofile_main(int argc, char **argv)
 {
 	FILE *map;

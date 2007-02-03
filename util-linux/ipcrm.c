@@ -73,6 +73,7 @@ static int remove_ids(type_id type, int argc, char **argv)
 #endif /* #ifndef CONFIG_IPCRM_DROP_LEGACY */
 
 
+int ipcrm_main(int argc, char **argv);
 int ipcrm_main(int argc, char **argv)
 {
 	int c;

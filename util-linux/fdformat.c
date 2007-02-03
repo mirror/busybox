@@ -52,6 +52,7 @@ static void xioctl(int fd, int request, void *argp, const char *string)
 	}
 }
 
+int fdformat_main(int argc,char **argv);
 int fdformat_main(int argc,char **argv)
 {
 	int fd, n, cyl, read_bytes, verify;

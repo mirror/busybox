@@ -18,6 +18,7 @@
 #include <unistd.h>
 #include "busybox.h"
 
+int rm_main(int argc, char **argv);
 int rm_main(int argc, char **argv)
 {
 	int status = 0;

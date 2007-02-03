@@ -13,6 +13,7 @@
 
 #define SRC_BUF_SIZE	45  // This *MUST* be a multiple of 3
 #define DST_BUF_SIZE    4 * ((SRC_BUF_SIZE + 2) / 3)
+int uuencode_main(int argc, char **argv);
 int uuencode_main(int argc, char **argv)
 {
 	const size_t src_buf_size = SRC_BUF_SIZE;

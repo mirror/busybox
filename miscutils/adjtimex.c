@@ -38,6 +38,7 @@ static const char * const ret_code_descript[] = {
 	"leap second has occurred",
 	"clock not synchronized" };
 
+int adjtimex_main(int argc, char **argv);
 int adjtimex_main(int argc, char **argv)
 {
 	enum {

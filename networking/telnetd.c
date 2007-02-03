@@ -360,8 +360,8 @@ void free_session(struct tsession *ts);
 #endif
 
 
-int
-telnetd_main(int argc, char **argv)
+int telnetd_main(int argc, char **argv);
+int telnetd_main(int argc, char **argv)
 {
 	fd_set rdfdset, wrfdset;
 	unsigned opt;

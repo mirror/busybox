@@ -12,6 +12,7 @@
 
 #include "busybox.h"
 
+int openvt_main(int argc, char **argv);
 int openvt_main(int argc, char **argv)
 {
 	int fd;

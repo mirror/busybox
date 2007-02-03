@@ -112,6 +112,7 @@ static int lsattr_dir_proc(const char *dir_name, struct dirent *de,
 	return 0;
 }
 
+int lsattr_main(int argc, char **argv);
 int lsattr_main(int argc, char **argv)
 {
 	int i;

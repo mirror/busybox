@@ -18,6 +18,7 @@ static void timeout(int signum)
 	bb_error_msg_and_die("timed out");
 }
 
+int nc_main(int argc, char **argv);
 int nc_main(int argc, char **argv)
 {
 	/* sfd sits _here_ only because of "repeat" option (-l -l). */

@@ -568,6 +568,7 @@ static void print_sem(int semid)
 	puts("");
 }
 
+int ipcs_main(int argc, char **argv);
 int ipcs_main(int argc, char **argv)
 {
 	int id = 0;

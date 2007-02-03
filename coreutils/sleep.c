@@ -33,6 +33,7 @@ static const struct suffix_mult sfx[] = {
 };
 #endif
 
+int sleep_main(int argc, char **argv);
 int sleep_main(int argc, char **argv)
 {
 	unsigned int duration;

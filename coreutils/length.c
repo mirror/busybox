@@ -7,6 +7,7 @@
 #include <stdio.h>
 #include "busybox.h"
 
+int length_main(int argc, char **argv);
 int length_main(int argc, char **argv)
 {
 	if ((argc != 2) ||  (**(++argv) == '-')) {

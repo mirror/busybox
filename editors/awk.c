@@ -2644,6 +2644,7 @@ static rstream *next_input_file(void)
 	return &rsm;
 }
 
+int awk_main(int argc, char **argv);
 int awk_main(int argc, char **argv)
 {
 	unsigned opt;

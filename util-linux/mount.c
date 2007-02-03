@@ -1524,6 +1524,7 @@ report_error:
 
 const char must_be_root[] = "you must be root";
 
+int mount_main(int argc, char **argv);
 int mount_main(int argc, char **argv)
 {
 	enum { OPT_ALL = 0x10 };

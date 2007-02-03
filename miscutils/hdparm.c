@@ -2094,7 +2094,9 @@ static const char hdparm_options[] = "gfu::n::p:r::m::c::k::a::B:tTh"
 /*-------------------------------------*/
 
 /* our main() routine: */
+int hdparm_main(int argc, char **argv) ATTRIBUTE_NORETURN;;
 int hdparm_main(int argc, char **argv) ATTRIBUTE_NORETURN;
+int hdparm_main(int argc, char **argv);
 int hdparm_main(int argc, char **argv)
 {
 	int c;

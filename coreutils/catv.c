@@ -12,6 +12,7 @@
 
 #include "busybox.h"
 
+int catv_main(int argc, char **argv);
 int catv_main(int argc, char **argv)
 {
 	int retval = EXIT_SUCCESS, fd;

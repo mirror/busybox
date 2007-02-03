@@ -143,6 +143,7 @@ static long du(const char * const filename)
 	return sum;
 }
 
+int du_main(int argc, char **argv);
 int du_main(int argc, char **argv)
 {
 	long total;

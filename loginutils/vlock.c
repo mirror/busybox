@@ -41,6 +41,7 @@ static void restore_terminal(void)
 	tcsetattr(STDIN_FILENO, TCSANOW, &oterm);
 }
 
+int vlock_main(int argc, char **argv);
 int vlock_main(int argc, char **argv)
 {
 	sigset_t sig;

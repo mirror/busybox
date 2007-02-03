@@ -11,6 +11,7 @@
 
 #include "busybox.h"
 
+int mountpoint_main(int argc, char **argv);
 int mountpoint_main(int argc, char **argv)
 {
 	struct stat st;

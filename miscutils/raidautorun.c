@@ -13,6 +13,7 @@
 #include <linux/major.h>
 #include <linux/raid/md_u.h>
 
+int raidautorun_main(int argc, char **argv);
 int raidautorun_main(int argc, char **argv)
 {
 	if (argc != 2)

@@ -1170,6 +1170,7 @@ static void diffdir(char *p1, char *p2)
 #endif
 
 
+int diff_main(int argc, char **argv);
 int diff_main(int argc, char **argv)
 {
 	bool gotstdin = 0;
