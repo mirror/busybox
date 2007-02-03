@@ -44,15 +44,19 @@ static int wstat;
 static struct taia trotate;
 
 static char *line;
-static unsigned exitasap;
-static unsigned rotateasap;
-static unsigned reopenasap;
-static unsigned linecomplete = 1;
-static unsigned tmaxflag;
-static iopause_fd input;
+static smallint exitasap;
+static smallint rotateasap;
+static smallint reopenasap;
+static smallint linecomplete = 1;
 
-static const char *replace = "";
+static smallint tmaxflag;
+
 static char repl;
+static const char *replace = "";
+
+sigset_t blocked_sigset;
+static iopause_fd input;
+static int fl_flag_0;
 
 static struct logdir {
 ////	char *btmp;
@@ -333,7 +337,7 @@ static int buffer_pwrite(int n, char *s, unsigned len)
 		if (len > (ld->sizemax - ld->size))
 			len = ld->sizemax - ld->size;
 	}
-	while ((i = write(ld->fdcur, s, len)) == -1) {
+	while ((i = full_write(ld->fdcur, s, len)) == -1) {
 		if ((errno == ENOSPC) && (ld->nmin < ld->nmax)) {
 			DIR *d;
 			struct dirent *f;
@@ -585,6 +589,17 @@ static void logdirs_reopen(void)
 	if (!ok) fatalx("no functional log directories");
 }
 
+/* Will look good in libbb one day */
+static ssize_t ndelay_read(int fd, void *buf, size_t count)
+{
+	if (!(fl_flag_0 & O_NONBLOCK))
+		fcntl(fd, F_SETFL, fl_flag_0 | O_NONBLOCK);
+	count = safe_read(fd, buf, count);
+	if (!(fl_flag_0 & O_NONBLOCK))
+		fcntl(fd, F_SETFL, fl_flag_0);
+	return count;
+}
+
 /* Used for reading stdin */
 static int buffer_pread(int fd, char *s, unsigned len)
 {
@@ -617,17 +632,10 @@ static int buffer_pread(int fd, char *s, unsigned len)
 		}
 
 	while (1) {
-		/* Comment? */
-		sig_unblock(SIGTERM);
-		sig_unblock(SIGCHLD);
-		sig_unblock(SIGALRM);
-		sig_unblock(SIGHUP);
+		sigprocmask(SIG_UNBLOCK, &blocked_sigset, NULL);
 		iopause(&input, 1, &trotate, &now);
-		sig_block(SIGTERM);
-		sig_block(SIGCHLD);
-		sig_block(SIGALRM);
-		sig_block(SIGHUP);
-		i = safe_read(fd, s, len);
+		sigprocmask(SIG_BLOCK, &blocked_sigset, NULL);
+		i = ndelay_read(fd, s, len);
 		if (i >= 0) break;
 		if (errno != EAGAIN) {
 			warn("cannot read standard input");
@@ -775,14 +783,17 @@ int svlogd_main(int argc, char **argv)
 	fndir = argv;
 	input.fd = 0;
 	input.events = IOPAUSE_READ;
-	/* I be damned. Linux 2.6.18: this somehow affects
-	 * OTHER processes! Konsole starts to redraw itself much slower!
-	 * This persists even after svlogd exits */
-	ndelay_on(input.fd);
-	sig_block(SIGTERM);
-	sig_block(SIGCHLD);
-	sig_block(SIGALRM);
-	sig_block(SIGHUP);
+	/* We cannot set NONBLOCK on fd #0 permanently - this setting
+	 * _isn't_ per-process! It is shared among all other processes
+	 * with the same stdin */
+	fl_flag_0 = fcntl(0, F_GETFL, 0);
+
+	sigemptyset(&blocked_sigset);
+	sigaddset(&blocked_sigset, SIGTERM);
+	sigaddset(&blocked_sigset, SIGCHLD);
+	sigaddset(&blocked_sigset, SIGALRM);
+	sigaddset(&blocked_sigset, SIGHUP);
+	sigprocmask(SIG_BLOCK, &blocked_sigset, NULL);
 	sig_catch(SIGTERM, sig_term_handler);
 	sig_catch(SIGCHLD, sig_child_handler);
 	sig_catch(SIGALRM, sig_alarm_handler);
@@ -850,8 +861,13 @@ int svlogd_main(int argc, char **argv)
 		/* linelen == no of chars incl. '\n' (or == stdin_cnt) */
 		ch = lineptr[linelen-1];
 
-		/* write out lineptr[0..linelen-1] to each log destination */
-		/* (or lineptr[-26..linelen-1] if timestamping) */
+		/* TODO: biggest performance hit is coming from the fact
+		 * that we do not buffer writes. We may read many lines
+		 * in one read() above, but will do one write()
+		 * per line below. Should we use stdio? */
+
+		/* write out lineptr[0..linelen-1] to each log destination
+		 * (or lineptr[-26..linelen-1] if timestamping) */
 		printlen = linelen;
 		printptr = lineptr;
 		if (timestamp) {
