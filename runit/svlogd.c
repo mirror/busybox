@@ -54,7 +54,7 @@ static smallint tmaxflag;
 static char repl;
 static const char *replace = "";
 
-sigset_t blocked_sigset;
+static sigset_t *blocked_sigset;
 static iopause_fd input;
 static int fl_flag_0;
 
@@ -646,9 +646,9 @@ static int buffer_pread(int fd, char *s, unsigned len, struct taia *now)
 		}
 
 	while (1) {
-		sigprocmask(SIG_UNBLOCK, &blocked_sigset, NULL);
+		sigprocmask(SIG_UNBLOCK, blocked_sigset, NULL);
 		iopause(&input, 1, &trotate, now);
-		sigprocmask(SIG_BLOCK, &blocked_sigset, NULL);
+		sigprocmask(SIG_BLOCK, blocked_sigset, NULL);
 		i = ndelay_read(fd, s, len);
 		if (i >= 0) break;
 		if (errno != EAGAIN) {
@@ -748,6 +748,7 @@ static void logmatch(struct logdir *ld)
 
 int svlogd_main(int argc, char **argv)
 {
+	sigset_t ss;
 	char *r,*l,*b;
 	ssize_t stdin_cnt = 0;
 	int i;
@@ -801,12 +802,13 @@ int svlogd_main(int argc, char **argv)
 	 * with the same stdin */
 	fl_flag_0 = fcntl(0, F_GETFL, 0);
 
-	sigemptyset(&blocked_sigset);
-	sigaddset(&blocked_sigset, SIGTERM);
-	sigaddset(&blocked_sigset, SIGCHLD);
-	sigaddset(&blocked_sigset, SIGALRM);
-	sigaddset(&blocked_sigset, SIGHUP);
-	sigprocmask(SIG_BLOCK, &blocked_sigset, NULL);
+	blocked_sigset = &ss;
+	sigemptyset(&ss);
+	sigaddset(&ss, SIGTERM);
+	sigaddset(&ss, SIGCHLD);
+	sigaddset(&ss, SIGALRM);
+	sigaddset(&ss, SIGHUP);
+	sigprocmask(SIG_BLOCK, &ss, NULL);
 	sig_catch(SIGTERM, sig_term_handler);
 	sig_catch(SIGCHLD, sig_child_handler);
 	sig_catch(SIGALRM, sig_alarm_handler);
