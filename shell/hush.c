@@ -2795,8 +2795,8 @@ int hush_main(int argc, char **argv)
 	}
 
 	debug_printf("\nrunning script '%s'\n", argv[optind]);
-	global_argv = argv+optind;
-	global_argc = argc-optind;
+	global_argv = argv + optind;
+	global_argc = argc - optind;
 	input = xfopen(argv[optind], "r");
 	opt = parse_file_outer(input);
 
@@ -2809,8 +2809,8 @@ int hush_main(int argc, char **argv)
 		for (cur = top_vars; cur; cur = tmp) {
 			tmp = cur->next;
 			if (!cur->flg_read_only) {
-				free(cur->name);
-				free(cur->value);
+				free((char*)cur->name);
+				free((char*)cur->value);
 				free(cur);
 			}
 		}

@@ -122,7 +122,7 @@ static struct init_action *init_action_list = NULL;
 static char console[CONSOLE_BUFF_SIZE] = CONSOLE_DEV;
 
 #if !ENABLE_SYSLOGD
-static char *log_console = VC_5;
+static const char *log_console = VC_5;
 #endif
 #if !ENABLE_DEBUG_INIT
 static sig_atomic_t got_cont = 0;

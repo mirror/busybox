@@ -316,12 +316,15 @@ static int find_type(const char *type)
 }
 #endif
 
+#if ENABLE_FEATURE_FIND_PERM || ENABLE_FEATURE_FIND_MTIME \
+ || ENABLE_FEATURE_FIND_MMIN
 static const char* plus_minus_num(const char* str)
 {
 	if (*str == '-' || *str == '+')
 		str++;
 	return str;
 }
+#endif
 
 static action*** parse_params(char **argv)
 {
@@ -486,7 +489,7 @@ static action*** parse_params(char **argv)
 				ap->subst_count[i] = count_subst(ap->exec_argv[i]);
 		}
 #endif
-#ifdef ENABLE_FEATURE_FIND_USER
+#if ENABLE_FEATURE_FIND_USER
 		else if (strcmp(arg, "-user") == 0) {
 			action_user *ap;
 			if (!*++argv)

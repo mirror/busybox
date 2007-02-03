@@ -107,7 +107,8 @@ static inline int get_wol_pw(const char *ethoptarg, unsigned char *wol_passwd);
 
 int ether_wake_main(int argc, char *argv[])
 {
-	char *ifname = "eth0", *pass = NULL;
+	const char *ifname = "eth0";
+	char *pass = NULL;
 	unsigned long flags;
 	unsigned char wol_passwd[6];
 	int wol_passwd_sz = 0;
