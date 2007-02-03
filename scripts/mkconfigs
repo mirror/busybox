@@ -40,12 +40,14 @@ echo \
  *
  * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  *
- * This file is generated automatically by scripts/config/mkconfigs.
+ * This file is generated automatically by scripts/mkconfigs.
  * Do not edit.
  *
  */"
 
 echo "static const char * const bbconfig_config ="
+# dash and probably ash produce wrong output (because of \n)
+# TODO: check whether our ash is ok
 echo "`sed 's/\"/\\\\\"/g' $config | grep "^#\? \?CONFIG_" | awk '{print "\\"" $0 "\\\\n\\"";}'`"
 echo ";"
 echo "#endif /* _BBCONFIGOPTS_H */"
