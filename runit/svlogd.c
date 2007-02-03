@@ -59,7 +59,7 @@ static iopause_fd input;
 static int fl_flag_0;
 
 static struct logdir {
-////	char *btmp;
+	////char *btmp;
 	/* pattern list to match, in "aa\0bb\0\cc\0\0" form */
 	char *inst;
 	char *processor;
@@ -73,6 +73,7 @@ static struct logdir {
 	int ppid;
 	int fddir;
 	int fdcur;
+	FILE* filecur; ////
 	int fdlock;
 	struct taia trotate;
 	char fnsave[FMT_PTIME];
@@ -300,11 +301,13 @@ static unsigned rotate(struct logdir *ld)
 	}
 
 	if (ld->size > 0) {
-		while (fsync(ld->fdcur) == -1)
+		while (fflush(ld->filecur) || fsync(ld->fdcur) == -1)
 			pause2cannot("fsync current logfile", ld->name);
 		while (fchmod(ld->fdcur, 0744) == -1)
 			pause2cannot("set mode of current", ld->name);
-		close(ld->fdcur);
+		////close(ld->fdcur);
+		fclose(ld->filecur);
+
 		if (verbose) {
 			bb_error_msg(INFO"rename: %s/current %s %u", ld->name,
 					ld->fnsave, ld->size);
@@ -313,6 +316,9 @@ static unsigned rotate(struct logdir *ld)
 			pause2cannot("rename current", ld->name);
 		while ((ld->fdcur = open("current", O_WRONLY|O_NDELAY|O_APPEND|O_CREAT, 0600)) == -1)
 			pause2cannot("create new current", ld->name);
+		/* we presume this cannot fail */
+		ld->filecur = fdopen(ld->fdcur, "a"); ////
+		setvbuf(ld->filecur, NULL, _IOFBF, linelen); ////
 		coe(ld->fdcur);
 		ld->size = 0;
 		while (fchmod(ld->fdcur, 0644) == -1)
@@ -337,7 +343,12 @@ static int buffer_pwrite(int n, char *s, unsigned len)
 		if (len > (ld->sizemax - ld->size))
 			len = ld->sizemax - ld->size;
 	}
-	while ((i = full_write(ld->fdcur, s, len)) == -1) {
+	while (1) {
+		////i = full_write(ld->fdcur, s, len);
+		////if (i != -1) break;
+		i = fwrite(s, 1, len, ld->filecur);
+		if (i == len) break;
+
 		if ((errno == ENOSPC) && (ld->nmin < ld->nmax)) {
 			DIR *d;
 			struct dirent *f;
@@ -399,11 +410,12 @@ static void logdir_close(struct logdir *ld)
 	ld->fddir = -1;
 	if (ld->fdcur == -1)
 		return; /* impossible */
-	while (fsync(ld->fdcur) == -1)
+	while (fflush(ld->filecur) || fsync(ld->fdcur) == -1)
 		pause2cannot("fsync current logfile", ld->name);
 	while (fchmod(ld->fdcur, 0744) == -1)
 		pause2cannot("set mode of current", ld->name);
-	close(ld->fdcur);
+	////close(ld->fdcur);
+	fclose(ld->filecur);
 	ld->fdcur = -1;
 	if (ld->fdlock == -1)
 		return; /* impossible */
@@ -560,6 +572,10 @@ static unsigned logdir_open(struct logdir *ld, const char *fn)
 	}
 	while ((ld->fdcur = open("current", O_WRONLY|O_NDELAY|O_APPEND|O_CREAT, 0600)) == -1)
 		pause2cannot("open current", ld->name);
+	/* we presume this cannot fail */
+	ld->filecur = fdopen(ld->fdcur, "a"); ////
+	setvbuf(ld->filecur, NULL, _IOFBF, linelen); ////
+
 	coe(ld->fdcur);
 	while (fchmod(ld->fdcur, 0644) == -1)
 		pause2cannot("set mode of current", ld->name);
@@ -601,9 +617,8 @@ static ssize_t ndelay_read(int fd, void *buf, size_t count)
 }
 
 /* Used for reading stdin */
-static int buffer_pread(int fd, char *s, unsigned len)
+static int buffer_pread(int fd, char *s, unsigned len, struct taia *now)
 {
-	struct taia now;
 	int i;
 
 	if (rotateasap) {
@@ -620,12 +635,11 @@ static int buffer_pread(int fd, char *s, unsigned len)
 		logdirs_reopen();
 		reopenasap = 0;
 	}
-	taia_now(&now);
 	taia_uint(&trotate, 2744);
-	taia_add(&trotate, &now, &trotate);
+	taia_add(&trotate, now, &trotate);
 	for (i = 0; i < dirn; ++i)
 		if (dir[i].tmax) {
-			if (taia_less(&dir[i].trotate, &now))
+			if (taia_less(&dir[i].trotate, now))
 				rotate(dir+i);
 			if (taia_less(&dir[i].trotate, &trotate))
 				trotate = dir[i].trotate;
@@ -633,7 +647,7 @@ static int buffer_pread(int fd, char *s, unsigned len)
 
 	while (1) {
 		sigprocmask(SIG_UNBLOCK, &blocked_sigset, NULL);
-		iopause(&input, 1, &trotate, &now);
+		iopause(&input, 1, &trotate, now);
 		sigprocmask(SIG_BLOCK, &blocked_sigset, NULL);
 		i = ndelay_read(fd, s, len);
 		if (i >= 0) break;
@@ -734,7 +748,6 @@ static void logmatch(struct logdir *ld)
 
 int svlogd_main(int argc, char **argv)
 {
-	struct taia now;
 	char *r,*l,*b;
 	ssize_t stdin_cnt = 0;
 	int i;
@@ -757,10 +770,10 @@ int svlogd_main(int argc, char **argv)
 		if (linemax == 0) linemax = BUFSIZ-26;
 		if (linemax < 256) linemax = 256;
 	}
-////	if (opt & 8) { // -b
-////		buflen = xatoi_u(b);
-////		if (buflen == 0) buflen = 1024;
-////	}
+	////if (opt & 8) { // -b
+	////	buflen = xatoi_u(b);
+	////	if (buflen == 0) buflen = 1024;
+	////}
 	//if (opt & 0x10) timestamp++; // -t
 	//if (opt & 0x20) verbose++; // -v
 	//if (timestamp > 2) timestamp = 2;
@@ -807,8 +820,11 @@ int svlogd_main(int argc, char **argv)
 	if (!timestamp)
 		memRchr = memrchr;
 
+	setvbuf(stderr, NULL, _IOFBF, linelen);
+
 	/* Each iteration processes one or more lines */
 	while (1) {
+		struct taia now;
 		char stamp[FMT_PTIME];
 		char *lineptr;
 		char *printptr;
@@ -817,9 +833,9 @@ int svlogd_main(int argc, char **argv)
 		char ch;
 
 		lineptr = line;
+		taia_now(&now);
 		/* Prepare timestamp if needed */
 		if (timestamp) {
-			taia_now(&now);
 			switch (timestamp) {
 			case 1:
 				fmt_taia25(stamp, &now);
@@ -839,7 +855,7 @@ int svlogd_main(int argc, char **argv)
 		if (!np && !exitasap) {
 			i = linemax - stdin_cnt; /* avail. bytes at tail */
 			if (i >= 128) {
-				i = buffer_pread(0, lineptr + stdin_cnt, i);
+				i = buffer_pread(0, lineptr + stdin_cnt, i, &now);
 				if (i <= 0) /* EOF or error on stdin */
 					exitasap = 1;
 				else {
@@ -861,10 +877,10 @@ int svlogd_main(int argc, char **argv)
 		/* linelen == no of chars incl. '\n' (or == stdin_cnt) */
 		ch = lineptr[linelen-1];
 
-		/* TODO: biggest performance hit is coming from the fact
-		 * that we do not buffer writes. We may read many lines
-		 * in one read() above, but will do one write()
-		 * per line below. Should we use stdio? */
+		/* Biggest performance hit was coming from the fact
+		 * that we did not buffer writes. We were reading many lines
+		 * in one read() above, but wrote one line per write().
+		 * We are using stdio to fix that */
 
 		/* write out lineptr[0..linelen-1] to each log destination
 		 * (or lineptr[-26..linelen-1] if timestamping) */
@@ -882,7 +898,8 @@ int svlogd_main(int argc, char **argv)
 			if (ld->inst)
 				logmatch(ld);
 			if (ld->matcherr == 'e')
-				full_write(2, printptr, printlen);
+				////full_write(2, printptr, printlen);
+				fwrite(lineptr, 1, linelen, stderr);
 			if (ld->match != '+') continue;
 			buffer_pwrite(i, printptr, printlen);
 		}
@@ -891,7 +908,8 @@ int svlogd_main(int argc, char **argv)
 		/* read/write repeatedly until we see it */
 		while (ch != '\n') {
 			/* lineptr is emptied now, safe to use as buffer */
-			stdin_cnt = exitasap ? -1 : buffer_pread(0, lineptr, linemax);
+			taia_now(&now);
+			stdin_cnt = exitasap ? -1 : buffer_pread(0, lineptr, linemax, &now);
 			if (stdin_cnt <= 0) { /* EOF or error on stdin */
 				exitasap = 1;
 				lineptr[0] = ch = '\n';
@@ -908,7 +926,8 @@ int svlogd_main(int argc, char **argv)
 			for (i = 0; i < dirn; ++i) {
 				if (dir[i].fddir == -1) continue;
 				if (dir[i].matcherr == 'e')
-					full_write(2, lineptr, linelen);
+					////full_write(2, lineptr, linelen);
+					fwrite(lineptr, 1, linelen, stderr);
 				if (dir[i].match != '+') continue;
 				buffer_pwrite(i, lineptr, linelen);
 			}
@@ -925,6 +944,7 @@ int svlogd_main(int argc, char **argv)
 			/* Move unprocessed data to the front of line */
 			memmove((timestamp ? line+26 : line), lineptr, stdin_cnt);
 		}
+		fflush(NULL);////
 	}
 
 	for (i = 0; i < dirn; ++i) {
