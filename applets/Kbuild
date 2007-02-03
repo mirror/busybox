@@ -10,7 +10,7 @@ obj-y	+= busybox.o
 
 # Generated file needs additional love
 
-applets/applets.o: include/usage_compressed.h
+applets/applets.o: .config include/usage_compressed.h
 
 hostprogs-y += usage
 always := $(hostprogs-y)

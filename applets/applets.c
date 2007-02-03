@@ -12,8 +12,13 @@
  * Licensed under GPLv2 or later, see file License in this tarball for details.
  */
 
-#include "busybox.h"
 #include <assert.h>
+#include "busybox.h"
+
+#define PROTOTYPES
+#include "applets.h"
+#undef PROTOTYPES
+
 
 /* Apparently uclibc defines __GLIBC__ (compat trick?). Oh well. */
 #if ENABLE_STATIC && defined(__GLIBC__) && !defined(__UCLIBC__)
