@@ -34,7 +34,7 @@ make
 
 %Install
 rm -rf $RPM_BUILD_ROOT
-make PREFIX=$RPM_BUILD_ROOT install
+make CONFIG_PREFIX=$RPM_BUILD_ROOT install
 
 %Clean
 rm -rf $RPM_BUILD_ROOT

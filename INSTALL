@@ -5,7 +5,7 @@ The BusyBox build process is similar to the Linux kernel build:
 
   make menuconfig     # This creates a file called ".config"
   make                # This creates the "busybox" executable
-  make install        # or make PREFIX=/path/from/root install
+  make install        # or make CONFIG_PREFIX=/path/from/root install
 
 The full list of configuration and install options is available by typing:
 
@@ -114,7 +114,7 @@ configuration step, as in:
   make O=/some/empty/directory allyesconfig
   cd /some/empty/directory
   make
-  make PREFIX=. install
+  make CONFIG_PREFIX=. install
 
 More Information:
 =================

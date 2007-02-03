@@ -50,10 +50,10 @@ Using busybox:
 
   The build automatically generates a file "busybox.links", which is used by
   'make install' to create symlinks to the BusyBox binary for all compiled in
-  commands.  This uses the PREFIX environment variable to specify where to
-  install, and installs hardlinks or symlinks depending on the configuration
-  preferences.  (You can also manually run the install script at
-  "applets/install.sh").
+  commands.  This uses the CONFIG_PREFIX environment variable to specify
+  where to install, and installs hardlinks or symlinks depending
+  on the configuration preferences.  (You can also manually run
+  the install script at "applets/install.sh").
 
 ----------------
 

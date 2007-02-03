@@ -72,7 +72,7 @@ The following steps will create a root file system.
  - Install the Busybox binary and accompanying symlinks:
 
 	(chdir to busybox directory)
-	make PREFIX=(path to)loop/ install
+	make CONFIG_PREFIX=(path to)loop/ install
 
  - Make device files in /dev:
 

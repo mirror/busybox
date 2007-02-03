@@ -76,7 +76,7 @@ cd $BASE_DIR
 cd $BUSYBOX_DIR
 make distclean
 make CC=$BASE_DIR/$UCLIBC_DIR/extra/gcc-uClibc/i386-uclibc-gcc
-make PREFIX=$BASE_DIR/$TARGET_DIR install
+make CONFIG_PREFIX=$BASE_DIR/$TARGET_DIR install
 cd $BASE_DIR
 
 
