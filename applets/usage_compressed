@@ -14,6 +14,6 @@ exec >"$target"
 
 echo 'static const char packed_usage[] = '
 "$loc/usage" | bzip2 -1 | od -v -t x1 \
-| $SED -e 's/^[^ ]*//' -e 's/ \(..\)/\\x\1/g' -e 's/^\(.*\)$/"\1"/'
+| $SED -e 's/^[^ ]*//' -e 's/  *\(..\)/\\x\1/g' -e 's/^\(.*\)$/"\1"/'
 echo ';'
 echo '#define SIZEOF_usage_messages' `expr 0 + $sz`
