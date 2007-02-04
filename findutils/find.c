@@ -67,20 +67,20 @@ USE_FEATURE_FIND_MTIME( ACTS(mtime, char mtime_char; unsigned mtime_days;))
 USE_FEATURE_FIND_MMIN(  ACTS(mmin,  char mmin_char; unsigned mmin_mins;))
 USE_FEATURE_FIND_NEWER( ACTS(newer, time_t newer_mtime;))
 USE_FEATURE_FIND_INUM(  ACTS(inum,  ino_t inode_num;))
-USE_FEATURE_FIND_EXEC(  ACTS(exec,  char **exec_argv; int *subst_count; int exec_argc;))
+USE_FEATURE_FIND_EXEC(  ACTS(exec,  char **exec_argv; unsigned int *subst_count; int exec_argc;))
 USE_FEATURE_FIND_USER(  ACTS(user,  int uid;))
 USE_DESKTOP(            ACTS(paren, action ***subexpr;))
 USE_DESKTOP(            ACTS(size,  off_t size;))
 USE_DESKTOP(            ACTS(prune))
 
 static action ***actions;
-static int need_print = 1;
+static smalluint need_print = 1;
 
 
 #if ENABLE_FEATURE_FIND_EXEC
-static int count_subst(const char *str)
+static unsigned int count_subst(const char *str)
 {
-	int count = 0;
+	unsigned int count = 0;
 	while ((str = strstr(str, "{}"))) {
 		count++;
 		str++;
@@ -89,7 +89,7 @@ static int count_subst(const char *str)
 }
 
 
-static char* subst(const char *src, int count, const char* filename)
+static char* subst(const char *src, unsigned int count, const char* filename)
 {
 	char *buf, *dst, *end;
 	int flen = strlen(filename);
@@ -329,8 +329,8 @@ static const char* plus_minus_num(const char* str)
 static action*** parse_params(char **argv)
 {
 	action*** appp;
-	int cur_group = 0;
-	int cur_action = 0;
+	unsigned cur_group = 0;
+	unsigned cur_action = 0;
 
 	action* alloc_action(int sizeof_struct, action_fp f)
 	{
@@ -359,6 +359,7 @@ static action*** parse_params(char **argv)
 // expr1 , expr2         List; both expr1 and expr2 are always evaluated
 // We implement: (), -a, -o
 
+//XXX: TODO: Use index_in_str_array here
 	while (*argv) {
 		const char *arg = argv[0];
 		const char *arg1 = argv[1];
@@ -504,7 +505,7 @@ static action*** parse_params(char **argv)
 		else if (LONE_CHAR(arg, '(')) {
 			action_paren *ap;
 			char **endarg;
-			int nested = 1;
+			unsigned nested = 1;
 
 			endarg = argv;
 			while (1) {
