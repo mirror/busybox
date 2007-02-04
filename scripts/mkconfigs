@@ -21,21 +21,21 @@
 #
 #   Busybox version by Matteo Croce <3297627799 at wind.it>
 #
-# Rules to generate bbconfig.h from .config:
+# Rules to generate bbconfigopts.h from .config:
 #      - Retain lines that begin with "CONFIG_"
 #      - Retain lines that begin with "# CONFIG_"
 #      - lines that use double-quotes must \\-escape-quote them
 
+config="$1"
 if [ $# -lt 1 ]
 then
 	config=.config
-else	config=$1
 fi
 
-echo "#ifndef _BBCONFIGOPTS_H"
-echo "#define _BBCONFIGOPTS_H"
-echo \
-"/*
+echo "\
+#ifndef _BBCONFIGOPTS_H
+#define _BBCONFIGOPTS_H
+/*
  * busybox configuration settings.
  *
  * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
@@ -43,11 +43,10 @@ echo \
  * This file is generated automatically by scripts/mkconfigs.
  * Do not edit.
  *
- */"
+ */
+static const char * const bbconfig_config ="
 
-echo "static const char * const bbconfig_config ="
-# dash and probably ash produce wrong output (because of \n)
-# TODO: check whether our ash is ok
-echo "`sed 's/\"/\\\\\"/g' $config | grep "^#\? \?CONFIG_" | awk '{print "\\"" $0 "\\\\n\\"";}'`"
+sed 's/\"/\\\"/g' $config | grep "^#\? \?CONFIG_" | awk '{print "\"" $0 "\\n\"";}'
+
 echo ";"
 echo "#endif /* _BBCONFIGOPTS_H */"
