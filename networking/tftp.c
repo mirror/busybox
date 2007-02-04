@@ -488,7 +488,7 @@ int tftp_main(int argc, char **argv)
 	}
 
 	port = bb_lookup_port(argv[optind + 1], "udp", 69);
-	peer_lsa = host2sockaddr(argv[optind], port);
+	peer_lsa = xhost2sockaddr(argv[optind], port);
 
 #if ENABLE_DEBUG_TFTP
 	fprintf(stderr, "using server \"%s\", "

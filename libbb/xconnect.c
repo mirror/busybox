@@ -111,16 +111,19 @@ void set_nport(len_and_sockaddr *lsa, unsigned port)
 	/* What? UNIX socket? IPX?? :) */
 }
 
+/* We hijack this constant to mean something else */
+/* It doesn't hurt because we will remove this bit anyway */
+#define DIE_ON_ERROR AI_CANONNAME
+
 /* host: "1.2.3.4[:port]", "www.google.com[:port]"
- * port: if neither of above specifies port #
- */
+ * port: if neither of above specifies port # */
 static len_and_sockaddr* str2sockaddr(
 		const char *host, int port,
 USE_FEATURE_IPV6(sa_family_t af,)
 		int ai_flags)
 {
 	int rc;
-	len_and_sockaddr *r; // = NULL;
+	len_and_sockaddr *r = NULL;
 	struct addrinfo *result = NULL;
 	const char *org_host = host; /* only for error msg */
 	const char *cp;
@@ -158,14 +161,18 @@ USE_FEATURE_IPV6(sa_family_t af,)
 	/* Needed. Or else we will get each address thrice (or more)
 	 * for each possible socket type (tcp,udp,raw...): */
 	hint.ai_socktype = SOCK_STREAM;
-	hint.ai_flags = ai_flags;
+	hint.ai_flags = ai_flags & ~DIE_ON_ERROR;
 	rc = getaddrinfo(host, NULL, &hint, &result);
-	if (rc || !result)
-		bb_error_msg_and_die("bad address '%s'", org_host);
+	if (rc || !result) {
+		if (ai_flags & DIE_ON_ERROR)
+			bb_error_msg_and_die("bad address '%s'", org_host);
+		goto ret;
+	}
 	r = xmalloc(offsetof(len_and_sockaddr, sa) + result->ai_addrlen);
 	r->len = result->ai_addrlen;
 	memcpy(&r->sa, result->ai_addr, result->ai_addrlen);
 	set_nport(r, htons(port));
+ ret:
 	freeaddrinfo(result);
 	return r;
 }
@@ -174,20 +181,20 @@ USE_FEATURE_IPV6(sa_family_t af,)
 #endif
 
 #if ENABLE_FEATURE_IPV6
-len_and_sockaddr* host_and_af2sockaddr(const char *host, int port, sa_family_t af)
+len_and_sockaddr* xhost_and_af2sockaddr(const char *host, int port, sa_family_t af)
 {
-	return str2sockaddr(host, port, af, 0);
+	return str2sockaddr(host, port, af, DIE_ON_ERROR);
 }
 #endif
 
-len_and_sockaddr* host2sockaddr(const char *host, int port)
+len_and_sockaddr* xhost2sockaddr(const char *host, int port)
 {
-	return str2sockaddr(host, port, AF_UNSPEC, 0);
+	return str2sockaddr(host, port, AF_UNSPEC, DIE_ON_ERROR);
 }
 
-static len_and_sockaddr* dotted2sockaddr(const char *host, int port)
+static len_and_sockaddr* xdotted2sockaddr(const char *host, int port)
 {
-	return str2sockaddr(host, port, AF_UNSPEC, NI_NUMERICHOST);
+	return str2sockaddr(host, port, AF_UNSPEC, AI_NUMERICHOST | DIE_ON_ERROR);
 }
 
 int xsocket_stream(len_and_sockaddr **lsap)
@@ -220,10 +227,7 @@ int create_and_bind_stream_or_die(const char *bindaddr, int port)
 	len_and_sockaddr *lsa;
 
 	if (bindaddr && bindaddr[0]) {
-		lsa = dotted2sockaddr(bindaddr, port);
-		/* currently NULL check is in str2sockaddr */
-		//if (!lsa)
-		//	bb_error_msg_and_die("bad address '%s'", bindaddr);
+		lsa = xdotted2sockaddr(bindaddr, port);
 		/* user specified bind addr dictates family */
 		fd = xsocket(lsa->sa.sa_family, SOCK_STREAM, 0);
 	} else {
@@ -241,10 +245,7 @@ int create_and_connect_stream_or_die(const char *peer, int port)
 	int fd;
 	len_and_sockaddr *lsa;
 
-	lsa = host2sockaddr(peer, port);
-	/* currently NULL check is in str2sockaddr */
-	//if (!lsa)
-	//	bb_error_msg_and_die("bad address '%s'", peer);
+	lsa = xhost2sockaddr(peer, port);
 	fd = xsocket(lsa->sa.sa_family, SOCK_STREAM, 0);
 	setsockopt_reuseaddr(fd);
 	xconnect(fd, &lsa->sa, lsa->len);

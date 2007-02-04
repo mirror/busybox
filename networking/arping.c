@@ -307,7 +307,7 @@ int arping_main(int argc, char **argv)
 
 	if (!inet_aton(target, &dst)) {
 		len_and_sockaddr *lsa;
-		lsa = host_and_af2sockaddr(target, 0, AF_INET);
+		lsa = xhost_and_af2sockaddr(target, 0, AF_INET);
 		memcpy(&dst, &lsa->sin.sin_addr.s_addr, 4);
 		if (ENABLE_FEATURE_CLEAN_UP)
 			free(lsa);

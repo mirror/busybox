@@ -211,9 +211,9 @@ int ping_main(int argc, char **argv)
 		bb_show_usage();
 
 #if ENABLE_PING6
-	lsa = host_and_af2sockaddr(hostname, 0, af);
+	lsa = xhost_and_af2sockaddr(hostname, 0, af);
 #else
-	lsa = host_and_af2sockaddr(hostname, 0, AF_INET);
+	lsa = xhost_and_af2sockaddr(hostname, 0, AF_INET);
 #endif
 	/* Set timer _after_ DNS resolution */
 	signal(SIGALRM, noresp);
@@ -743,9 +743,9 @@ int ping_main(int argc, char **argv)
 		af = AF_INET;
 	if (option_mask32 & OPT_IPV6)
 		af = AF_INET6;
-	lsa = host_and_af2sockaddr(hostname, 0, af);
+	lsa = xhost_and_af2sockaddr(hostname, 0, af);
 #else
-	lsa = host_and_af2sockaddr(hostname, 0, AF_INET);
+	lsa = xhost_and_af2sockaddr(hostname, 0, AF_INET);
 #endif
 	dotted = xmalloc_sockaddr2dotted_noport(&lsa->sa, lsa->len);
 #if ENABLE_PING6

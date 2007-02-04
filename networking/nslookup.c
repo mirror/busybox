@@ -49,7 +49,7 @@
 
 static int print_host(const char *hostname, const char *header)
 {
-	/* We can't use host2sockaddr() - we want to get ALL addresses,
+	/* We can't use xhost2sockaddr() - we want to get ALL addresses,
 	 * not just one */
 
 	struct addrinfo *result = NULL;

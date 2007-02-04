@@ -566,7 +566,7 @@ int syslogd_main(int argc, char **argv)
 #endif
 #if ENABLE_FEATURE_REMOTE_LOG
 	if (option_mask32 & OPT_remotelog) { // -R
-		remoteAddr = host2sockaddr(opt_R, 514);
+		remoteAddr = xhost2sockaddr(opt_R, 514);
 	}
 	//if (option_mask32 & OPT_locallog) // -L
 #endif

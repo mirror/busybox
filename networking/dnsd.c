@@ -377,7 +377,7 @@ int dnsd_main(int argc, char **argv)
 	signal(SIGURG, SIG_IGN);
 #endif
 
-	lsa = host2sockaddr(listen_interface, port);
+	lsa = xhost2sockaddr(listen_interface, port);
 	udps = xsocket(lsa->sa.sa_family, SOCK_DGRAM, 0);
 	xbind(udps, &lsa->sa, lsa->len);
 	// xlisten(udps, 50); - ?!! DGRAM sockets are never listened on I think?

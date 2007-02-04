@@ -234,7 +234,7 @@ int wget_main(int argc, char **argv)
 	/* We want to do exactly _one_ DNS lookup, since some
 	 * sites (i.e. ftp.us.debian.org) use round-robin DNS
 	 * and we want to connect to only one IP... */
-	lsa = host2sockaddr(server.host, server.port);
+	lsa = xhost2sockaddr(server.host, server.port);
 	if (!(opt & WGET_OPT_QUIET)) {
 		fprintf(stderr, "Connecting to %s (%s)\n", server.host,
 				xmalloc_sockaddr2dotted(&lsa->sa, lsa->len));
@@ -354,7 +354,7 @@ int wget_main(int argc, char **argv)
 							server.port = target.port;
 						}
 						free(lsa);
-						lsa = host2sockaddr(server.host, server.port);
+						lsa = xhost2sockaddr(server.host, server.port);
 						break;
 					}
 				}
