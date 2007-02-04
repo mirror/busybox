@@ -21,15 +21,14 @@
 /* on these functions, make sure you datatype matches */
 static int read_ip(const char *line, void *arg)
 {
-	struct in_addr *addr = arg;
-	struct hostent *host;
-	int retval = 1;
+	len_and_sockaddr *lsa;
+	int retval = 0;
 
-	if (!inet_aton(line, addr)) {
-		host = gethostbyname(line);
-		if (host)
-			addr->s_addr = *((unsigned long *) host->h_addr_list[0]);
-		else retval = 0;
+	lsa = host_and_af2sockaddr(line, 0, AF_INET);
+	if (lsa) {
+		*(struct in_addr*)arg = lsa->sin.sin_addr;
+		free(lsa);
+		retval = 1;
 	}
 	return retval;
 }

@@ -11,7 +11,8 @@
 
 #include "busybox.h"
 
-extern int setlogcons_main(int argc, char **argv)
+int setlogcons_main(int argc, char **argv);
+int setlogcons_main(int argc, char **argv)
 {
 	struct {
 		char fn;

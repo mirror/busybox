@@ -319,13 +319,15 @@ int xconnect_stream(const len_and_sockaddr *lsa);
  * UNIX socket address being returned, IPX sockaddr etc...
  * On error does bb_error_msg and returns NULL */
 len_and_sockaddr* host2sockaddr(const char *host, int port);
-/* Versions which die on error */
+/* Version which dies on error */
 len_and_sockaddr* xhost2sockaddr(const char *host, int port);
 #if ENABLE_FEATURE_IPV6
 /* Same, useful if you want to force family (e.g. IPv6) */
+len_and_sockaddr* host_and_af2sockaddr(const char *host, int port, sa_family_t af);
 len_and_sockaddr* xhost_and_af2sockaddr(const char *host, int port, sa_family_t af);
 #else
-/* [we evaluate af: think about "xhost_and_af2sockaddr(..., af++)"] */
+/* [we evaluate af: think about "host_and_af2sockaddr(..., af++)"] */
+#define host_and_af2sockaddr(host, port, af) ((void)(af), host2sockaddr((host), (port)))
 #define xhost_and_af2sockaddr(host, port, af) ((void)(af), xhost2sockaddr((host), (port)))
 #endif
 /* Assign sin[6]_port member if the socket is of corresponding type,
@@ -346,6 +348,8 @@ char* xmalloc_sockaddr2dotted_noport(const struct sockaddr *sa, socklen_t salen)
 // "old" (ipv4 only) API
 // users: traceroute.c hostname.c
 struct hostent *xgethostbyname(const char *name);
+// Also inetd.c and inetd.c are using gethostbyname(),
+// + inet_common.c has additional IPv4-only stuff
 
 
 extern char *xstrdup(const char *s);

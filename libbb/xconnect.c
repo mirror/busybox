@@ -182,6 +182,11 @@ USE_FEATURE_IPV6(sa_family_t af,)
 #endif
 
 #if ENABLE_FEATURE_IPV6
+len_and_sockaddr* host_and_af2sockaddr(const char *host, int port, sa_family_t af)
+{
+	return str2sockaddr(host, port, af, 0);
+}
+
 len_and_sockaddr* xhost_and_af2sockaddr(const char *host, int port, sa_family_t af)
 {
 	return str2sockaddr(host, port, af, DIE_ON_ERROR);
