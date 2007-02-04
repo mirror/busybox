@@ -568,10 +568,11 @@ static int find_param(const char * const name)
 		NULL
 	};
 	int i = index_in_str_array(params, name);
-	if (i) {
-		if (!(i == 4 || i == 5))
-			i |= 0x80;
-	}
+	if (i < 0)
+		return 0;
+	if (!(i == 4 || i == 5))
+		i |= 0x80;
+
 	return i;
 }
 
