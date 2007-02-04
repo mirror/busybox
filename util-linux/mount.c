@@ -687,6 +687,8 @@ get_mountport(struct sockaddr_in *server_addr,
 	static struct pmap p = {0, 0, 0, 0};
 
 	server_addr->sin_port = PMAPPORT;
+/* glibc 2.4 (still) has pmap_getmaps(struct sockaddr_in *).
+ * I understand it like "IPv6 for this is not 100% ready" */
 	pmap = pmap_getmaps(server_addr);
 
 	if (version > MAX_NFSPROT)
@@ -1396,8 +1398,9 @@ static int singlemount(struct mntent *mp, int ignore_busy)
 	 && (mp->mnt_fsname[0]=='/' || mp->mnt_fsname[0]=='\\')
 	 && mp->mnt_fsname[0]==mp->mnt_fsname[1]
 	) {
-		struct hostent *he;
-		char ip[32], *s;
+		len_and_sockaddr *lsa;
+		char *ip, *dotted;
+		char *s;
 
 		rc = 1;
 		// Replace '/' with '\' and verify that unc points to "//server/share".
@@ -1408,29 +1411,34 @@ static int singlemount(struct mntent *mp, int ignore_busy)
 		// get server IP
 
 		s = strrchr(mp->mnt_fsname, '\\');
-		if (s == mp->mnt_fsname+1) goto report_error;
+		if (s <= mp->mnt_fsname+1) goto report_error;
 		*s = '\0';
-		he = gethostbyname(mp->mnt_fsname+2);
+		lsa = host2sockaddr(mp->mnt_fsname+2, 0);
 		*s = '\\';
-		if (!he) goto report_error;
+		if (!lsa) goto report_error;
 
-		// Insert ip=... option into string flags.  (NOTE: Add IPv6 support.)
+		// insert ip=... option into string flags.
 
-		sprintf(ip, "ip=%d.%d.%d.%d", he->h_addr[0], he->h_addr[1],
-				he->h_addr[2], he->h_addr[3]);
+		dotted = xmalloc_sockaddr2dotted_noport(&lsa->sa, lsa->len);
+		ip = xasprintf("ip=%s", dotted);
 		parse_mount_options(ip, &filteropts);
 
 		// compose new unc '\\server-ip\share'
+		// (s => slash after hostname)
 
-		mp->mnt_fsname = xasprintf("\\\\%s%s", ip+3,
-					strchr(mp->mnt_fsname+2,'\\'));
+		mp->mnt_fsname = xasprintf("\\\\%s%s", dotted, s);
 
 		// lock is required
 		vfsflags |= MS_MANDLOCK;
 
 		mp->mnt_type = (char*)"cifs";
 		rc = mount_it_now(mp, vfsflags, filteropts);
-		if (ENABLE_FEATURE_CLEAN_UP) free(mp->mnt_fsname);
+		if (ENABLE_FEATURE_CLEAN_UP) {
+			free(mp->mnt_fsname);
+			free(ip);
+			free(dotted);
+			free(lsa);
+		}
 		goto report_error;
 	}
 
@@ -1508,8 +1516,9 @@ static int singlemount(struct mntent *mp, int ignore_busy)
 		}
 	}
 
-report_error:
-	if (ENABLE_FEATURE_CLEAN_UP) free(filteropts);
+ report_error:
+	if (ENABLE_FEATURE_CLEAN_UP)
+		free(filteropts);
 
 	if (rc && errno == EBUSY && ignore_busy) rc = 0;
 	if (rc < 0)

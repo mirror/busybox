@@ -316,7 +316,10 @@ int xconnect_stream(const len_and_sockaddr *lsa);
 /* Return malloc'ed len_and_sockaddr with socket address of host:port
  * Currently will return IPv4 or IPv6 sockaddrs only
  * (depending on host), but in theory nothing prevents e.g.
- * UNIX socket address being returned, IPX sockaddr etc... */
+ * UNIX socket address being returned, IPX sockaddr etc...
+ * On error does bb_error_msg and returns NULL */
+len_and_sockaddr* host2sockaddr(const char *host, int port);
+/* Versions which die on error */
 len_and_sockaddr* xhost2sockaddr(const char *host, int port);
 #if ENABLE_FEATURE_IPV6
 /* Same, useful if you want to force family (e.g. IPv6) */

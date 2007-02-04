@@ -164,8 +164,9 @@ USE_FEATURE_IPV6(sa_family_t af,)
 	hint.ai_flags = ai_flags & ~DIE_ON_ERROR;
 	rc = getaddrinfo(host, NULL, &hint, &result);
 	if (rc || !result) {
+		bb_error_msg("bad address '%s'", org_host);
 		if (ai_flags & DIE_ON_ERROR)
-			bb_error_msg_and_die("bad address '%s'", org_host);
+			sleep_and_die();
 		goto ret;
 	}
 	r = xmalloc(offsetof(len_and_sockaddr, sa) + result->ai_addrlen);
@@ -186,6 +187,11 @@ len_and_sockaddr* xhost_and_af2sockaddr(const char *host, int port, sa_family_t 
 	return str2sockaddr(host, port, af, DIE_ON_ERROR);
 }
 #endif
+
+len_and_sockaddr* host2sockaddr(const char *host, int port)
+{
+	return str2sockaddr(host, port, AF_UNSPEC, 0);
+}
 
 len_and_sockaddr* xhost2sockaddr(const char *host, int port)
 {
