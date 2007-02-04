@@ -266,9 +266,6 @@ int ifconfig_main(int argc, char **argv)
 {
 	struct ifreq ifr;
 	struct sockaddr_in sai;
-#if ENABLE_FEATURE_IPV6
-	struct sockaddr_in6 sai6;
-#endif
 #if ENABLE_FEATURE_IFCONFIG_HW
 	struct sockaddr sa;
 #endif
@@ -389,31 +386,33 @@ int ifconfig_main(int argc, char **argv)
 							sai.sin_addr.s_addr = (~sai_netmask) | (sai_hostname & sai_netmask);
 						}
 #endif
+						else {
+							len_and_sockaddr *lsa = xhost2sockaddr(host, 0);
 #if ENABLE_FEATURE_IPV6
-						else if (inet_pton(AF_INET6, host, &sai6.sin6_addr) > 0) {
-							int sockfd6;
-							struct in6_ifreq ifr6;
+							if (lsa->sa.sa_family == AF_INET6) {
+								int sockfd6;
+								struct in6_ifreq ifr6;
 
-							memcpy((char *) &ifr6.ifr6_addr,
-									(char *) &sai6.sin6_addr,
-									sizeof(struct in6_addr));
+								memcpy((char *) &ifr6.ifr6_addr,
+										(char *) &(lsa->sin6.sin6_addr),
+										sizeof(struct in6_addr));
 
-							/* Create a channel to the NET kernel. */
-							sockfd6 = xsocket(AF_INET6, SOCK_DGRAM, 0);
-							if (ioctl(sockfd6, SIOGIFINDEX, &ifr) < 0)
-								bb_perror_msg_and_die("SIOGIFINDEX");
-							ifr6.ifr6_ifindex = ifr.ifr_ifindex;
-							ifr6.ifr6_prefixlen = prefix_len;
-							if (ioctl(sockfd6, a1op->selector, &ifr6) < 0)
-								bb_perror_msg_and_die(a1op->name);
-							continue;
-						}
+								/* Create a channel to the NET kernel. */
+								sockfd6 = xsocket(AF_INET6, SOCK_DGRAM, 0);
+								if (ioctl(sockfd6, SIOGIFINDEX, &ifr) < 0)
+									bb_perror_msg_and_die("SIOGIFINDEX");
+								ifr6.ifr6_ifindex = ifr.ifr_ifindex;
+								ifr6.ifr6_prefixlen = prefix_len;
+								if (ioctl(sockfd6, a1op->selector, &ifr6) < 0)
+									bb_perror_msg_and_die(a1op->name);
+								if (ENABLE_FEATURE_CLEAN_UP)
+									free(lsa);
+								continue;
+							}
 #endif
-						else if (inet_aton(host, &sai.sin_addr) == 0) {
-							/* It's not a dotted quad. */
-							struct hostent *hp = xgethostbyname(host);
-							memcpy((char *) &sai.sin_addr, (char *) hp->h_addr_list[0],
-									sizeof(struct in_addr));
+							sai.sin_addr = lsa->sin.sin_addr;
+							if (ENABLE_FEATURE_CLEAN_UP)
+								free(lsa);
 						}
 #if ENABLE_FEATURE_IFCONFIG_BROADCAST_PLUS
 						if (mask & A_HOSTNAME)

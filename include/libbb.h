@@ -344,7 +344,7 @@ char* xmalloc_sockaddr2hostonly_noport(const struct sockaddr *sa, socklen_t sale
 char* xmalloc_sockaddr2dotted(const struct sockaddr *sa, socklen_t salen);
 char* xmalloc_sockaddr2dotted_noport(const struct sockaddr *sa, socklen_t salen);
 // "old" (ipv4 only) API
-// users: traceroute.c hostname.c ifconfig.c ping.c
+// users: traceroute.c hostname.c
 struct hostent *xgethostbyname(const char *name);
 
 

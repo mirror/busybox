@@ -247,7 +247,7 @@ struct ipovly {
 /*
  * UDP kernel structures and variables.
  */
-struct  udpiphdr {
+struct udpiphdr {
 	struct  ipovly ui_i;            /* overlaid ip structure */
 	struct  udphdr ui_u;            /* udp header */
 };
