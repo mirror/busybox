@@ -55,6 +55,9 @@ typedef int (*action_fp)(const char *fileName, struct stat *statbuf, void *);
 
 typedef struct {
 	action_fp f;
+#if ENABLE_FEATURE_FIND_NOT
+	smallint invert;
+#endif
 } action;
 #define ACTS(name, arg...) typedef struct { action a; arg; } action_##name;
 #define ACTF(name)         static int func_##name(const char *fileName, struct stat *statbuf, action_##name* ap)
@@ -118,12 +121,20 @@ static int exec_actions(action ***appp, const char *fileName, struct stat *statb
 	cur_group = -1;
 	while ((app = appp[++cur_group])) {
 		cur_action = -1;
-		do {
+		while (1) {
 			ap = app[++cur_action];
-		} while (ap && (rc = ap->f(fileName, statbuf, ap)));
-		if (!ap) {
-			/* all actions in group were successful */
-			break;
+			if (!ap) {
+				/* all actions in group were successful */
+				return rc;
+			}
+			rc = ap->f(fileName, statbuf, ap);
+#if ENABLE_FEATURE_FIND_NOT
+			if (ap->invert) rc = !rc;
+#endif
+			if (!rc) {
+				/* current group failed, try next */
+				break;
+			}
 		}
 	}
 	return rc;
@@ -331,6 +342,7 @@ static action*** parse_params(char **argv)
 	action*** appp;
 	unsigned cur_group = 0;
 	unsigned cur_action = 0;
+	USE_FEATURE_FIND_NOT( smallint invert_flag = 0; )
 
 	action* alloc_action(int sizeof_struct, action_fp f)
 	{
@@ -339,11 +351,12 @@ static action*** parse_params(char **argv)
 		appp[cur_group][cur_action++] = ap = xmalloc(sizeof_struct);
 		appp[cur_group][cur_action] = NULL;
 		ap->f = f;
+		USE_FEATURE_FIND_NOT( ap->invert = invert_flag; )
 		return ap;
 	}
 #define ALLOC_ACTION(name) (action_##name*)alloc_action(sizeof(action_##name), (action_fp) func_##name)
 
-	appp = xzalloc(2 * sizeof(*appp)); /* appp[0],[1] == NULL */
+	appp = xzalloc(2 * sizeof(appp[0])); /* appp[0],[1] == NULL */
 
 // Actions have side effects and return a true or false value
 // We implement: -print, -print0, -exec
@@ -367,27 +380,39 @@ static action*** parse_params(char **argv)
 		if (strcmp(arg, "-a") == 0
 		    USE_DESKTOP(|| strcmp(arg, "-and") == 0)
 		) {
-			/* no special handling required */
+			USE_FEATURE_FIND_NOT( invert_flag = 0; )
+			/* no further special handling required */
 		}
 		else if (strcmp(arg, "-o") == 0
 		         USE_DESKTOP(|| strcmp(arg, "-or") == 0)
 		) {
 			/* start new OR group */
+			USE_FEATURE_FIND_NOT( invert_flag = 0; )
 			cur_group++;
 			appp = xrealloc(appp, (cur_group+2) * sizeof(*appp));
-			appp[cur_group] = NULL;
+			/*appp[cur_group] = NULL; - already NULL */
 			appp[cur_group+1] = NULL;
 			cur_action = 0;
 		}
+#if ENABLE_FEATURE_FIND_NOT
+		else if (LONE_CHAR(arg, '!')
+		         USE_DESKTOP(|| strcmp(arg, "-not") == 0)
+		) {
+			invert_flag = 1;
+		}
+#endif
 
 	/* --- Tests and actions --- */
 		else if (strcmp(arg, "-print") == 0) {
 			need_print = 0;
+			/* GNU find ignores '!' here: "find ! -print" */
+			USE_FEATURE_FIND_NOT( invert_flag = 0; )
 			(void) ALLOC_ACTION(print);
 		}
 #if ENABLE_FEATURE_FIND_PRINT0
 		else if (strcmp(arg, "-print0") == 0) {
 			need_print = 0;
+			USE_FEATURE_FIND_NOT( invert_flag = 0; )
 			(void) ALLOC_ACTION(print0);
 		}
 #endif
@@ -471,6 +496,7 @@ static action*** parse_params(char **argv)
 			int i;
 			action_exec *ap;
 			need_print = 0;
+			USE_FEATURE_FIND_NOT( invert_flag = 0; )
 			ap = ALLOC_ACTION(exec);
 			ap->exec_argv = ++argv; /* first arg after -exec */
 			ap->exec_argc = 0;
@@ -524,6 +550,7 @@ static action*** parse_params(char **argv)
 			argv = endarg;
 		}
 		else if (strcmp(arg, "-prune") == 0) {
+			USE_FEATURE_FIND_NOT( invert_flag = 0; )
 			(void) ALLOC_ACTION(prune);
 		}
 		else if (strcmp(arg, "-size") == 0) {
@@ -554,6 +581,8 @@ int find_main(int argc, char **argv)
 
 	for (firstopt = 1; firstopt < argc; firstopt++) {
 		if (argv[firstopt][0] == '-')
+			break;
+		if (ENABLE_FEATURE_FIND_NOT && LONE_CHAR(argv[firstopt], '!'))
 			break;
 #if ENABLE_DESKTOP
 		if (LONE_CHAR(argv[firstopt], '('))

@@ -1278,7 +1278,7 @@ struct op *scantree(struct op *head)
 
 	DBGPRINTF5(("SCANTREE: checking node %p\n", head));
 
-	if ((head->type != TDOT) && (strcmp(".", head->words[0]) == 0)) {
+	if ((head->type != TDOT) && LONE_CHAR(head->words[0], '.')) {
 		DBGPRINTF5(("SCANTREE: dot found in node %p\n", head));
 		return head;
 	}
