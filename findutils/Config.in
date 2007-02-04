@@ -96,8 +96,8 @@ config FEATURE_FIND_NOT
 	depends on FIND
 	help
 	  Support the '!' operator to invert the test results. If 'Enable
-	  full-blown desktop' is enabled, then will also the non-POSIX 
-	  '-not' be supported.
+	  full-blown desktop' is enabled, then will also support the
+	  non-POSIX notation '-not'.
 
 config GREP
 	bool "grep"
