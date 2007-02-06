@@ -174,13 +174,16 @@ static char *zone_map;
 static unsigned char *inode_count;
 static unsigned char *zone_count;
 
-static int bit(char *a, unsigned i)
+static int bit(const char *a, unsigned i)
 {
-	return (a[i >> 3] & (1<<(i & 7))) != 0;
+	return (a[i >> 3] & (1<<(i & 7)));
 }
 
-#define inode_in_use(x) (bit(inode_map,(x)))
+/* setbit/clrbit are supplied by sys/param.h */
+
+/* Note: do not assume 0/1, it is 0/nonzero */
 #define zone_in_use(x) (bit(zone_map,(x)-FIRSTZONE+1))
+#define inode_in_use(x) (bit(inode_map,(x)))
 
 #define mark_inode(x) (setbit(inode_map,(x)),changed=1)
 #define unmark_inode(x) (clrbit(inode_map,(x)),changed=1)
@@ -1109,7 +1112,8 @@ static void check_counts(void)
 		}
 		if (Inode1[i].i_nlinks != inode_count[i]) {
 			printf("Inode %d (mode=%07o), i_nlinks=%d, counted=%d. ",
-				   i, Inode1[i].i_mode, Inode1[i].i_nlinks, inode_count[i]);
+				i, Inode1[i].i_mode, Inode1[i].i_nlinks,
+				inode_count[i]);
 			if (ask("Set i_nlinks to count", 1)) {
 				Inode1[i].i_nlinks = inode_count[i];
 				changed = 1;
@@ -1117,7 +1121,7 @@ static void check_counts(void)
 		}
 	}
 	for (i = FIRSTZONE; i < ZONES; i++) {
-		if (zone_in_use(i) == zone_count[i])
+		if ((zone_in_use(i) != 0) == zone_count[i])
 			continue;
 		if (!zone_count[i]) {
 			if (bad_zone(i))
@@ -1160,8 +1164,8 @@ static void check_counts2(void)
 		}
 		if (Inode2[i].i_nlinks != inode_count[i]) {
 			printf("Inode %d (mode=%07o), i_nlinks=%d, counted=%d. ",
-				   i, Inode2[i].i_mode, Inode2[i].i_nlinks,
-				   inode_count[i]);
+				i, Inode2[i].i_mode, Inode2[i].i_nlinks,
+				inode_count[i]);
 			if (ask("Set i_nlinks to count", 1)) {
 				Inode2[i].i_nlinks = inode_count[i];
 				changed = 1;
@@ -1169,7 +1173,7 @@ static void check_counts2(void)
 		}
 	}
 	for (i = FIRSTZONE; i < ZONES; i++) {
-		if (zone_in_use(i) == zone_count[i])
+		if ((zone_in_use(i) != 0) == zone_count[i])
 			continue;
 		if (!zone_count[i]) {
 			if (bad_zone(i))

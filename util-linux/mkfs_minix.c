@@ -147,9 +147,11 @@ static int bit(const char* a, unsigned i)
 	  return a[i >> 3] & (1<<(i & 7));
 }
 
+/* setbit/clrbit are supplied by sys/param.h */
+
 /* Note: do not assume 0/1, it is 0/nonzero */
-#define inode_in_use(x) bit(inode_map,(x))
 #define zone_in_use(x)  bit(zone_map,(x)-SB_FIRSTZONE+1)
+/*#define inode_in_use(x) bit(inode_map,(x))*/
 
 #define mark_inode(x)   setbit(inode_map,(x))
 #define unmark_inode(x) clrbit(inode_map,(x))
@@ -507,11 +509,11 @@ static void setup_tables(void)
 
 /*
  * Perform a test of a block; return the number of
- * blocks readable/writable.
+ * blocks readable.
  */
-static long do_check(char *buffer, int try, unsigned current_block)
+static size_t do_check(char *buffer, size_t try, unsigned current_block)
 {
-	long got;
+	ssize_t got;
 
 	/* Seek to the correct loc. */
 	msg_eol = "seek failed during testing of blocks";
@@ -522,11 +524,11 @@ static long do_check(char *buffer, int try, unsigned current_block)
 	got = read(dev_fd, buffer, try * BLOCK_SIZE);
 	if (got < 0)
 		got = 0;
-	if (got & (BLOCK_SIZE - 1)) {
-		printf("Weird values in do_check: probably bugs\n");
-	}
-	got /= BLOCK_SIZE;
-	return got;
+	try = ((size_t)got) / BLOCK_SIZE;
+
+	if (got & (BLOCK_SIZE - 1))
+		fprintf(stderr, "Short read at block %u\n", current_block + try);
+	return try;
 }
 
 static unsigned currently_testing;
@@ -545,7 +547,7 @@ static void alarm_intr(int alnum)
 
 static void check_blocks(void)
 {
-	int try, got;
+	size_t try, got;
 	/* buffer[] was the biggest static in entire bbox */
 	char *buffer = xmalloc(BLOCK_SIZE * TEST_BUFFER_BLOCKS);
 
@@ -620,8 +622,7 @@ int mkfs_minix_main(int argc, char **argv)
 #if ENABLE_FEATURE_MINIX2
 		version2 = 1;
 #else
-		bb_error_msg_and_die("%s: not compiled with minix v2 support",
-			device_name);
+		bb_error_msg_and_die("not compiled with minix v2 support");
 #endif
 	}
 
