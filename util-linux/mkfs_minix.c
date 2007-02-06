@@ -537,7 +537,7 @@ static size_t do_check(char *buffer, size_t try, unsigned current_block)
 	try = ((size_t)got) / BLOCK_SIZE;
 
 	if (got & (BLOCK_SIZE - 1))
-		fprintf(stderr, "Short read at block %u\n", current_block + try);
+		fprintf(stderr, "Short read at block %u\n", (unsigned)(current_block + try));
 	return try;
 }
 
