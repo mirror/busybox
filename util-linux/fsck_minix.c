@@ -174,22 +174,34 @@ static char *zone_map;
 static unsigned char *inode_count;
 static unsigned char *zone_count;
 
-static int bit(const char *a, unsigned i)
+/* Before you ask "where they come from?": */
+/* setbit/clrbit are supplied by sys/param.h */
+
+static int minix_bit(const char *a, unsigned i)
 {
 	return (a[i >> 3] & (1<<(i & 7)));
 }
 
-/* setbit/clrbit are supplied by sys/param.h */
+static void minix_setbit(char *a, unsigned i)
+{
+	setbit(a, i);
+	changed = 1;
+}
+static void minix_clrbit(char *a, unsigned i)
+{
+	clrbit(a, i);
+	changed = 1;
+}
 
 /* Note: do not assume 0/1, it is 0/nonzero */
-#define zone_in_use(x) (bit(zone_map,(x)-FIRSTZONE+1))
-#define inode_in_use(x) (bit(inode_map,(x)))
+#define zone_in_use(x)  (minix_bit(zone_map,(x)-FIRSTZONE+1))
+#define inode_in_use(x) (minix_bit(inode_map,(x)))
 
-#define mark_inode(x) (setbit(inode_map,(x)),changed=1)
-#define unmark_inode(x) (clrbit(inode_map,(x)),changed=1)
+#define mark_inode(x)   (minix_setbit(inode_map,(x)))
+#define unmark_inode(x) (minix_clrbit(inode_map,(x)))
 
-#define mark_zone(x) (setbit(zone_map,(x)-FIRSTZONE+1),changed=1)
-#define unmark_zone(x) (clrbit(zone_map,(x)-FIRSTZONE+1),changed=1)
+#define mark_zone(x)   (minix_setbit(zone_map,(x)-FIRSTZONE+1))
+#define unmark_zone(x) (minix_clrbit(zone_map,(x)-FIRSTZONE+1))
 
 
 static void recursive_check(unsigned ino);
@@ -655,8 +667,8 @@ static struct minix1_inode *get_inode(unsigned nr)
 			if (repair) {
 				if (ask("Mark as 'in use'", 1))
 					mark_inode(nr);
-			} else {
-				errors_uncorrected = 1;
+				else
+					errors_uncorrected = 1;
 			}
 		}
 		if (S_ISDIR(inode->i_mode))

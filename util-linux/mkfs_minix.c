@@ -142,21 +142,31 @@ static ATTRIBUTE_ALWAYS_INLINE unsigned div_roundup(unsigned size, unsigned n)
 #define INODE_BUFFER_SIZE       (INODE_BLOCKS * BLOCK_SIZE)
 #define NORM_FIRSTZONE          (2 + SB_IMAPS + SB_ZMAPS + INODE_BLOCKS)
 
-static int bit(const char* a, unsigned i)
+/* Before you ask "where they come from?": */
+/* setbit/clrbit are supplied by sys/param.h */
+
+static int minix_bit(const char* a, unsigned i)
 {
 	  return a[i >> 3] & (1<<(i & 7));
 }
 
-/* setbit/clrbit are supplied by sys/param.h */
+static void minix_setbit(char *a, unsigned i)
+{
+	setbit(a, i);
+}
+static void minix_clrbit(char *a, unsigned i)
+{
+	clrbit(a, i);
+}
 
 /* Note: do not assume 0/1, it is 0/nonzero */
-#define zone_in_use(x)  bit(zone_map,(x)-SB_FIRSTZONE+1)
-/*#define inode_in_use(x) bit(inode_map,(x))*/
+#define zone_in_use(x)  minix_bit(zone_map,(x)-SB_FIRSTZONE+1)
+/*#define inode_in_use(x) minix_bit(inode_map,(x))*/
 
-#define mark_inode(x)   setbit(inode_map,(x))
-#define unmark_inode(x) clrbit(inode_map,(x))
-#define mark_zone(x)    setbit(zone_map,(x)-SB_FIRSTZONE+1)
-#define unmark_zone(x)  clrbit(zone_map,(x)-SB_FIRSTZONE+1)
+#define mark_inode(x)   minix_setbit(inode_map,(x))
+#define unmark_inode(x) minix_clrbit(inode_map,(x))
+#define mark_zone(x)    minix_setbit(zone_map,(x)-SB_FIRSTZONE+1)
+#define unmark_zone(x)  minix_clrbit(zone_map,(x)-SB_FIRSTZONE+1)
 
 #ifndef BLKGETSIZE
 # define BLKGETSIZE     _IO(0x12,96)    /* return device size */
