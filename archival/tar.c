@@ -529,7 +529,7 @@ static int writeTarFile(const int tar_fd, const int verboseFlag,
 			close(gzipStatusPipe[0]);
 			fcntl(gzipStatusPipe[1], F_SETFD, FD_CLOEXEC);	/* close on exec shows success */
 
-			execlp(zip_exec, zip_exec, "-f", NULL);
+			BB_EXECLP(zip_exec, zip_exec, "-f", NULL);
 			vfork_exec_errno = errno;
 
 			close(gzipStatusPipe[1]);

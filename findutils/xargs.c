@@ -60,7 +60,7 @@ static int xargs_exec(char *const *args)
 
 	if (p == 0) {
 		/* vfork -- child */
-		execvp(args[0], args);
+		BB_EXECVP(args[0], args);
 		exec_errno = errno;     /* set error to shared stack */
 		_exit(1);
 	}

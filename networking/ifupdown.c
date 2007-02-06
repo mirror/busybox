@@ -1004,7 +1004,7 @@ static int popen2(FILE **in, FILE **out, char *command, ...)
 		close(infd[1]);
 		close(outfd[0]);
 		close(outfd[1]);
-		execvp(command, argv);
+		BB_EXECVP(command, argv);
 		exit(127);
 	default:			/* parent */
 		*in = fdopen(infd[1], "w");

@@ -73,7 +73,7 @@ static void runsv(int no, const char *name)
 		sig_uncatch(SIGHUP);
 		sig_uncatch(SIGTERM);
 		if (pgrp) setsid();
-		execvp(prog[0], prog);
+		BB_EXECVP(prog[0], prog);
 		//pathexec_run(*prog, prog, (char* const*)environ);
 		fatal2_cannot("start runsv ", name);
 	}

@@ -33,6 +33,6 @@ int chroot_main(int argc, char **argv)
 		argv[1] = (char *) "-i";
 	}
 
-	execvp(*argv, argv);
+	BB_EXECVP(*argv, argv);
 	bb_perror_msg_and_die("cannot execute %s", *argv);
 }

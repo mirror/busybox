@@ -59,3 +59,13 @@ int exists_execable(const char *filename)
 	}
 	return 0;
 }
+
+#ifdef ENABLE_FEATURE_EXEC_PREFER_APPLETS
+/* just like the real execvp, but try to launch an applet named 'file' first
+ */
+int bb_execvp(const char *file, char *const argv[])
+{
+	return execvp(find_applet_by_name(file) ? CONFIG_BUSYBOX_EXEC_PATH : file,
+					argv);
+}
+#endif

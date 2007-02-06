@@ -91,7 +91,7 @@ int taskset_main(int argc, char** argv)
 		goto print_aff;
 	}
 	++argv;
-	execvp(*argv, argv);
+	BB_EXECVP(*argv, argv);
 	bb_perror_msg_and_die("%s", *argv);
 }
 #undef OPT_p

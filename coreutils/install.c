@@ -126,7 +126,7 @@ int install_main(int argc, char **argv)
 			ret = EXIT_FAILURE;
 		}
 		if (flags & OPT_STRIP) {
-			if (execlp("strip", "strip", dest, NULL) == -1) {
+			if (BB_EXECLP("strip", "strip", dest, NULL) == -1) {
 				bb_perror_msg("strip");
 				ret = EXIT_FAILURE;
 			}

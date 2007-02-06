@@ -80,7 +80,7 @@ static void passwd_wrapper(const char *login) ATTRIBUTE_NORETURN;
 static void passwd_wrapper(const char *login)
 {
 	static const char prog[] = "passwd";
-	execlp(prog, prog, login, NULL);
+	BB_EXECLP(prog, prog, login, NULL);
 	bb_error_msg_and_die("failed to execute '%s', you must set the password for '%s' manually", prog, login);
 }
 

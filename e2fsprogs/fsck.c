@@ -677,7 +677,7 @@ static void execute(const char *type, const char *device, const char *mntpt,
 				 * Use "fsck -s" to avoid... */
 				close(0);
 			}
-			execvp(argv[0], argv);
+			BB_EXECVP(argv[0], argv);
 			bb_perror_msg_and_die("%s", argv[0]);
 		}
 	}

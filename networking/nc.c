@@ -149,7 +149,7 @@ int nc_main(int argc, char **argv)
 		}
 		dup2(0, 1);
 		dup2(0, 2);
-		USE_NC_EXTRA(execvp(execparam[0], execparam);)
+		USE_NC_EXTRA(BB_EXECVP(execparam[0], execparam);)
 		/* Don't print stuff or it will go over the wire.... */
 		_exit(127);
 	}

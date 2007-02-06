@@ -378,7 +378,7 @@ static void fork_and_execute(int die, char *arg0, char **arg )
 	 /* Child : if arg0 != NULL do execvp */
 	if(arg0 != NULL )
 	{
-		execvp (arg0, arg);
+		BB_EXECVP(arg0, arg);
 		msg_logger_and_die(LOG_ERR, "execvp");
 	}
 }

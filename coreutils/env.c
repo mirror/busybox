@@ -81,7 +81,7 @@ int env_main(int argc, char** argv)
 	}
 
 	if (*argv) {
-		execvp(*argv, argv);
+		BB_EXECVP(*argv, argv);
 		/* SUSv3-mandated exit codes. */
 		xfunc_error_retval = (errno == ENOENT) ? 127 : 126;
 		bb_perror_msg_and_die("%s", *argv);

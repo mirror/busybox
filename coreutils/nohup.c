@@ -53,7 +53,7 @@ int nohup_main(int argc, char **argv)
 		close(nullfd);
 	signal(SIGHUP, SIG_IGN);
 
-	execvp(argv[1], argv+1);
+	BB_EXECVP(argv[1], argv+1);
 	if (ENABLE_FEATURE_CLEAN_UP && home)
 		free((char*)nohupout);
 	bb_perror_msg_and_die("%s", argv[1]);

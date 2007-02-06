@@ -36,7 +36,7 @@ int openvt_main(int argc, char **argv)
 		dup2(fd, STDERR_FILENO);
 		while (fd > 2) close(fd--);
 
-		execvp(argv[2], &argv[2]);
+		BB_EXECVP(argv[2], &argv[2]);
 		_exit(1);
 	}
 	return EXIT_SUCCESS;
