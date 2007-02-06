@@ -592,6 +592,7 @@ extern void run_shell(const char *shell, int loginshell, const char *command, co
 extern void renew_current_security_context(void);
 extern void set_current_security_context(security_context_t sid);
 #endif
+extern void selinux_or_die(void);
 extern int restricted_shell(const char *shell);
 extern void setup_environment(const char *shell, int loginshell, int changeenv, const struct passwd *pw);
 extern int correct_password(const struct passwd *pw);

@@ -54,4 +54,8 @@ endif
 ifeq ($(CONFIG_STATIC),y)
 LDFLAGS += -static
 endif
+
+ifeq ($(CONFIG_SELINUX),y)
+LDFLAGS += -lselinux -lsepol
+endif
 #LDFLAGS += -nostdlib

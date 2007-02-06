@@ -1013,6 +1013,9 @@
        "	-6	When using port/proto only search IPv6 space\n" \
        "	-SIGNAL	When used with -k, this signal will be used to kill"
 
+#define getenforce_trivial_usage
+#define getenforce_full_usage
+
 #define getopt_trivial_usage \
        "[OPTIONS]..."
 #define getopt_full_usage \
@@ -1046,6 +1049,11 @@
        "   *) echo \"Internal error!\" ; exit 1 ;;\n" \
        " esac\n" \
        "done\n"
+
+#define getsebool_trivial_usage \
+       "-a or getsebool boolean..."
+#define getsebool_full_usage \
+       "	-a	Show all SELinux booleans"
 
 #define getty_trivial_usage \
        "[OPTIONS]... baud_rate,... line [termtype]"
@@ -1896,6 +1904,15 @@
        "/dev/hda[0-15]\n"
 #endif
 
+#define matchpathcon_trivial_usage \
+       "[-n] [-N] [-f file_contexts_file] [-p prefix] [-V]"
+#define matchpathcon_full_usage \
+       "	-n	Do not display path" \
+       "\n	-N	Do not use translations" \
+       "\n	-f	Use alternate file_context file" \
+       "\n	-p	Use prefix to speed translations" \
+       "\n	-V	Verify file context on disk matches defaults"
+
 #define md5sum_trivial_usage \
        "[OPTION] [FILEs...]" \
 	USE_FEATURE_MD5_SHA1_SUM_CHECK("\n   or: md5sum [OPTION] -c [FILE]")
@@ -2714,6 +2731,9 @@
        "$ echo \"foo\" | sed -e 's/f[a-zA-Z]o/bar/g'\n" \
        "bar\n"
 
+#define selinuxenabled_trivial_usage
+#define selinuxenabled_full_usage
+
 #define seq_trivial_usage \
        "[first [increment]] last"
 #define seq_full_usage \
@@ -2730,6 +2750,10 @@
        "Redirect system console output to DEVICE (default: /dev/tty)" \
        "\n\nOptions:\n" \
        "	-r	Reset output to /dev/console"
+
+#define setenforce_trivial_usage \
+       "[ Enforcing | Permissive | 1 | 0 ]"
+#define setenforce_full_usage
 
 #define setkeycodes_trivial_usage \
        "SCANCODE KEYCODE ..."
@@ -3449,12 +3473,12 @@
 #define vconfig_full_usage \
        "Create and remove virtual ethernet devices" \
        "\n\nOptions:\n" \
-       "	add             [interface-name] [vlan_id]\n" \
-       "	rem             [vlan-name]\n" \
-       "	set_flag        [interface-name] [flag-num]       [0 | 1]\n" \
-       "	set_egress_map  [vlan-name]      [skb_priority]   [vlan_qos]\n" \
-       "	set_ingress_map [vlan-name]      [skb_priority]   [vlan_qos]\n" \
-       "	set_name_type   [name-type]"
+       "	add		[interface-name] [vlan_id]\n" \
+       "	rem		[vlan-name]\n" \
+       "	set_flag	[interface-name] [flag-num] [0 | 1]\n" \
+       "	set_egress_map	[vlan-name] [skb_priority] [vlan_qos]\n" \
+       "	set_ingress_map	[vlan-name] [skb_priority] [vlan_qos]\n" \
+       "	set_name_type	[name-type]"
 
 #define vi_trivial_usage \
        "[OPTION] [FILE]..."
@@ -3569,9 +3593,9 @@
 #define zcip_full_usage \
        "Manage a ZeroConf IPv4 link-local address" \
        "\n\nOptions:\n" \
-       "	-f              foreground mode\n" \
-       "	-q              quit after address (no daemon)\n" \
-       "	-r 169.254.x.x  request this address first\n" \
-       "	-v              verbose"
+       "	-f		Foreground mode\n" \
+       "	-q		Quit after address (no daemon)\n" \
+       "	-r 169.254.x.x	Request this address first\n" \
+       "	-v		Verbose"
 
 #endif /* __BB_USAGE_H__ */

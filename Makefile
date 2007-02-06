@@ -442,6 +442,7 @@ libs-y		:= \
 		networking/udhcp/ \
 		procps/ \
 		runit/ \
+		selinux/ \
 		shell/ \
 		sysklogd/ \
 		util-linux/ \

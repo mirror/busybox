@@ -1,0 +1,47 @@
+#
+# For a description of the syntax of this configuration file,
+# see scripts/kbuild/config-language.txt.
+#
+
+menu "Selinux Utilities"
+	depends on SELINUX
+
+config GETENFORCE
+	bool "getenforce"
+	default n
+	depends on SELINUX
+	help
+	  Enable support to get the current mode of SELinux.
+
+config GETSEBOOL
+	bool "getsebool"
+	default n
+	depends on SELINUX
+	help
+	  Enable support to get SELinux boolean values.
+
+config MATCHPATHCON
+	bool "matchpathcon"
+	default n
+	depends on SELINUX
+	help
+	  Enable support to get default security context of the
+	  specified path from the file contexts configuration.
+
+config SELINUXENABLED
+	bool "selinuxenabled"
+	default n
+	depends on SELINUX
+	help
+	  Enable support for this command to be used within shell scripts
+	  to determine if selinux is enabled.
+
+config SETENFORCE
+	bool "setenforce"
+	default n
+	depends on SELINUX
+	help
+	  Enable support to modify the mode SELinux is running in.
+
+endmenu
+

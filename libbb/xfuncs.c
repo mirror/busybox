@@ -570,6 +570,21 @@ void xstat(const char *name, struct stat *stat_buf)
 		bb_perror_msg_and_die("can't stat '%s'", name);
 }
 
+// selinux_or_die() - die if SELinux is disabled.
+void selinux_or_die(void)
+{
+#if ENABLE_SELINUX
+	int rc = is_selinux_enabled();
+	if (rc == 0) {
+		bb_error_msg_and_die("SELinux is disabled");
+	} else if (rc < 0) {
+		bb_error_msg_and_die("is_selinux_enabled() failed");
+	}
+#else
+	bb_error_msg_and_die("SELinux support is disabled");
+#endif
+}
+
 /* It is perfectly ok to pass in a NULL for either width or for
  * height, in which case that value will not be set.  */
 int get_terminal_width_height(const int fd, int *width, int *height)
