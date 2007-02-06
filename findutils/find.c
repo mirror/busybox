@@ -352,6 +352,7 @@ static action*** parse_params(char **argv)
 		appp[cur_group][cur_action] = NULL;
 		ap->f = f;
 		USE_FEATURE_FIND_NOT( ap->invert = invert_flag; )
+		USE_FEATURE_FIND_NOT( invert_flag = 0; )
 		return ap;
 	}
 #define ALLOC_ACTION(name) (action_##name*)alloc_action(sizeof(action_##name), (action_fp) func_##name)
@@ -380,14 +381,12 @@ static action*** parse_params(char **argv)
 		if (strcmp(arg, "-a") == 0
 		    USE_DESKTOP(|| strcmp(arg, "-and") == 0)
 		) {
-			USE_FEATURE_FIND_NOT( invert_flag = 0; )
 			/* no further special handling required */
 		}
 		else if (strcmp(arg, "-o") == 0
 		         USE_DESKTOP(|| strcmp(arg, "-or") == 0)
 		) {
 			/* start new OR group */
-			USE_FEATURE_FIND_NOT( invert_flag = 0; )
 			cur_group++;
 			appp = xrealloc(appp, (cur_group+2) * sizeof(*appp));
 			/*appp[cur_group] = NULL; - already NULL */
@@ -398,7 +397,8 @@ static action*** parse_params(char **argv)
 		else if (LONE_CHAR(arg, '!')
 		         USE_DESKTOP(|| strcmp(arg, "-not") == 0)
 		) {
-			invert_flag = 1;
+			/* also handles "find ! ! -name 'foo*'" */
+			invert_flag ^= 1;
 		}
 #endif
 
