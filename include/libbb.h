@@ -561,7 +561,7 @@ int execable_file(const char *name);
 char *find_execable(const char *filename);
 int exists_execable(const char *filename);
 
-#ifdef ENABLE_FEATURE_EXEC_PREFER_APPLETS
+#if ENABLE_FEATURE_EXEC_PREFER_APPLETS
 int bb_execvp(const char *file, char *const argv[]);
 #define BB_EXECVP(prog,cmd) bb_execvp(prog,cmd)
 #define BB_EXECLP(prog,cmd,...) \
