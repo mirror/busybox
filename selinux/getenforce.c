@@ -8,6 +8,7 @@
 
 #include "busybox.h"
 
+int getenforce_main(int argc, char **argv);
 int getenforce_main(int argc, char **argv)
 {
 	int rc;

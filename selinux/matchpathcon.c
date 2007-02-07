@@ -29,6 +29,7 @@ static int print_matchpathcon(char *path, int noprint)
 #define OPT_PREFIX      (1<<3)  /* -p */
 #define OPT_VERIFY      (1<<4)  /* -V */
 
+int matchpathcon_main(int argc, char **argv);
 int matchpathcon_main(int argc, char **argv)
 {
 	int error = 0;
@@ -41,7 +42,7 @@ int matchpathcon_main(int argc, char **argv)
 	argv += optind;
 
 	if (opts & OPT_NOT_TRANS) {
-		set_matchpathcon_flags(NOTRANS);
+		set_matchpathcon_flags(MATCHPATHCON_NOTRANS);
 	}
 	if (opts & OPT_FCONTEXT) {
 		if (matchpathcon_init(fcontext))
@@ -57,7 +58,7 @@ int matchpathcon_main(int argc, char **argv)
 		int rc;
 
 		if (!(opts & OPT_VERIFY)) {
-			error += print_matchpathcon(path, opt & OPT_NOT_PRINT);
+			error += print_matchpathcon(path, opts & OPT_NOT_PRINT);
 			continue;
 		}
 

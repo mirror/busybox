@@ -8,12 +8,9 @@
 
 #include "busybox.h"
 
-static const smallint setenforce_mode[] = {
-	0,
-	1,
-	0,
-	1,
-};
+/* These strings are arranged so that odd ones
+ * result in security_setenforce(1) being done,
+ * the rest will do security_setenforce(0) */
 static const char *const setenforce_cmd[] = {
 	"0",
 	"1",
@@ -22,6 +19,7 @@ static const char *const setenforce_cmd[] = {
 	NULL,
 };
 
+int setenforce_main(int argc, char **argv);
 int setenforce_main(int argc, char **argv)
 {
 	int i, rc;
@@ -34,7 +32,7 @@ int setenforce_main(int argc, char **argv)
 	for (i = 0; setenforce_cmd[i]; i++) {
 		if (strcasecmp(argv[1], setenforce_cmd[i]) != 0)
 			continue;
-		rc = security_setenforce(setenforce_mode[i]);
+		rc = security_setenforce(i & 1);
 		if (rc < 0)
 			bb_perror_msg_and_die("setenforce() failed");
 		return 0;
