@@ -82,7 +82,7 @@ int xconnect_tcp_v4(struct sockaddr_in *s_addr)
 /* "New" networking API */
 
 
-int get_nport(len_and_sockaddr *lsa)
+int get_nport(const len_and_sockaddr *lsa)
 {
 #if ENABLE_FEATURE_IPV6
 	if (lsa->sa.sa_family == AF_INET6) {

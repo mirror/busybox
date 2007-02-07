@@ -289,7 +289,7 @@ int setsockopt_broadcast(int fd);
 /* NB: returns port in host byte order */
 unsigned bb_lookup_port(const char *port, const char *protocol, unsigned default_port);
 typedef struct len_and_sockaddr {
-	int len;
+	socklen_t len;
 	union {
 		struct sockaddr sa;
 		struct sockaddr_in sin;
@@ -335,7 +335,7 @@ len_and_sockaddr* xhost_and_af2sockaddr(const char *host, int port, sa_family_t 
  * NB: does NOT do htons() internally, just direct assignment. */
 void set_nport(len_and_sockaddr *lsa, unsigned port);
 /* Retrieve sin[6]_port or return -1 for non-INET[6] lsa's */
-int get_nport(len_and_sockaddr *lsa);
+int get_nport(const len_and_sockaddr *lsa);
 /* Reverse DNS. Returns NULL on failure. */
 char* xmalloc_sockaddr2host(const struct sockaddr *sa, socklen_t salen);
 /* This one doesn't append :PORTNUM */
