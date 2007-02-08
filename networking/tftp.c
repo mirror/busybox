@@ -280,7 +280,7 @@ static int tftp(
 				unsigned from_port;
 			case 1:
 				from->len = peer_lsa->len;
-				memset(from, 0, peer_lsa->len);
+				memset(&from->sa, 0, peer_lsa->len);
 				len = recvfrom(socketfd, rbuf, tftp_bufsize, 0,
 							&from->sa, &from->len);
 				if (len < 0) {
