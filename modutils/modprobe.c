@@ -496,11 +496,15 @@ static struct dep_t *build_dep(void)
 	/*
 	 * First parse system-specific options and aliases
 	 * as they take precedence over the kernel ones.
+	 * >=2.6: we only care about modprobe.conf
+	 * <=2.4: we care about modules.conf and conf.modules
 	 */
-	if (!ENABLE_FEATURE_2_6_MODULES
-	 || (fd = open("/etc/modprobe.conf", O_RDONLY)) < 0)
-		if ((fd = open("/etc/modules.conf", O_RDONLY)) < 0)
-			fd = open("/etc/conf.modules", O_RDONLY);
+	if (ENABLE_FEATURE_2_6_MODULES
+	 && (fd = open("/etc/modprobe.conf", O_RDONLY)) < 0)
+		if (ENABLE_FEATURE_2_4_MODULES
+		 && (fd = open("/etc/modules.conf", O_RDONLY)) < 0)
+			if (ENABLE_FEATURE_2_4_MODULES)
+				fd = open("/etc/conf.modules", O_RDONLY);
 
 	if (fd >= 0) {
 		include_conf(&first, &current, buffer, sizeof(buffer), fd);
