@@ -154,6 +154,10 @@ patch
   And while we're at it, a new patch filename quoting format is apparently
   coming soon:  http://marc.theaimsgroup.com/?l=git&m=112927316408690&w=2
 ---
+ps / top
+  Add support for both RSS and VSIZE rather than just one or the other.
+  Or make it a build option.
+---
 man
   It would be nice to have a man command.  Not one that handles troff or
   anything, just one that can handle preformatted ascii man pages, possibly

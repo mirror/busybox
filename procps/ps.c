@@ -47,10 +47,10 @@ static void func_pgid(char *buf, int size, const procps_status_t *ps)
 	snprintf(buf, size+1, "%*u", size, ps->pgid);
 }
 
-static void func_rss(char *buf, int size, const procps_status_t *ps)
+static void func_vsz(char *buf, int size, const procps_status_t *ps)
 {
 	char buf5[5];
-	smart_ulltoa5( ((unsigned long long)ps->rss) << 10, buf5);
+	smart_ulltoa5( ((unsigned long long)ps->vsz) << 10, buf5);
 	snprintf(buf, size+1, "%.*s", size, buf5);
 }
 
@@ -103,9 +103,9 @@ static const ps_out_t out_spec[] = {
 //	{ "ruser" ,"RUSER"  ,func_ruser ,PSSCAN_UIDGID,sizeof("RUSER"  )-1 },
 //	{ "time"  ,"TIME"   ,func_time  ,PSSCAN_      ,sizeof("TIME"   )-1 },
 //	{ "tty"   ,"TT"     ,func_tty   ,PSSCAN_      ,sizeof("TT"     )-1 },
-//	{ "vsz"   ,"VSZ"    ,func_vsz   ,PSSCAN_VSZ   ,4                   },
+	{ "vsz"   ,"VSZ"    ,func_vsz   ,PSSCAN_VSZ   ,4                   },
 // Not mandated by POSIX:
-	{ "rss"   ,"RSS"    ,func_rss   ,PSSCAN_RSS   ,4                   },
+//	{ "rss"   ,"RSS"    ,func_rss   ,PSSCAN_RSS   ,4                   },
 };
 
 #define VEC_SIZE(v) ( sizeof(v) / sizeof((v)[0]) )
@@ -321,13 +321,13 @@ int ps_main(int argc, char **argv)
 	if (use_selinux)
 		puts("  PID Context                          Stat Command");
 	else
-		puts("  PID  Uid     VmSize Stat Command");
+		puts("  PID  Uid        VSZ Stat Command");
 
 	while ((p = procps_scan(p, 0
 			| PSSCAN_PID
 			| PSSCAN_UIDGID
 			| PSSCAN_STATE
-			| PSSCAN_RSS
+			| PSSCAN_VSZ
 			| PSSCAN_CMD
 	))) {
 		char *namecmd = p->cmd;
@@ -355,12 +355,12 @@ int ps_main(int argc, char **argv)
 #endif
 		{
 			const char *user = get_cached_username(p->uid);
-			if (p->rss == 0)
+			if (p->vsz == 0)
 				len = printf("%5u %-8s        %s ",
 					p->pid, user, p->state);
 			else
 				len = printf("%5u %-8s %6ld %s ",
-					p->pid, user, p->rss, p->state);
+					p->pid, user, p->vsz, p->state);
 		}
 
 		i = terminal_width-len;

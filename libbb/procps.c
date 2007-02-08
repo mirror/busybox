@@ -127,7 +127,7 @@ procps_status_t* procps_scan(procps_status_t* sp, int flags)
 		 * ("continue" would mean that current /proc/NNN
 		 * is not a valid process info) */
 
-		memset(&sp->rss, 0, sizeof(*sp) - offsetof(procps_status_t, rss));
+		memset(&sp->vsz, 0, sizeof(*sp) - offsetof(procps_status_t, vsz));
 
 		sp->pid = pid;
 		if (!(flags & ~PSSCAN_PID)) break;
@@ -164,17 +164,16 @@ procps_status_t* procps_scan(procps_status_t* sp, int flags)
 				"%*s %*s %*s "         /* cutime, cstime, priority */
 				"%ld "                 /* nice */
 				"%*s %*s %*s "         /* timeout, it_real_value, start_time */
-				"%*s "                 /* vsize */
-				"%lu",                 /* rss */
+				"%lu ",                /* vsize */
 				sp->state, &sp->ppid,
 				&sp->pgid, &sp->sid,
 				&sp->utime, &sp->stime,
 				&tasknice,
-				&sp->rss);
+				&sp->vsz);
 			if (n != 8)
 				break;
 
-			if (sp->rss == 0 && sp->state[0] != 'Z')
+			if (sp->vsz == 0 && sp->state[0] != 'Z')
 				sp->state[1] = 'W';
 			else
 				sp->state[1] = ' ';
@@ -185,11 +184,7 @@ procps_status_t* procps_scan(procps_status_t* sp, int flags)
 			else
 				sp->state[2] = ' ';
 
-#ifdef PAGE_SHIFT
-			sp->rss <<= (PAGE_SHIFT - 10);     /* 2**10 = 1kb */
-#else
-			sp->rss *= (getpagesize() >> 10);     /* 2**10 = 1kb */
-#endif
+			sp->vsz >>= 10; /* vsize is in bytes and we want kb */
 		}
 
 		if (flags & PSSCAN_CMD) {
@@ -230,7 +225,6 @@ procps_status_t* procps_scan(procps_status_t* sp, int flags)
 		tty_pgrp,
 		task->flags,
 		min_flt,
-
 		cmin_flt,
 		maj_flt,
 		cmaj_flt,

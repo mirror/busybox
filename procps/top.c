@@ -32,7 +32,7 @@
 
 
 typedef struct {
-	unsigned long rss;
+	unsigned long vsz;
 #if ENABLE_FEATURE_TOP_CPU_USAGE_PERCENTAGE
 	unsigned long ticks;
 	unsigned pcpu; /* delta of ticks */
@@ -55,7 +55,7 @@ static struct save_hist *prev_hist;
 static int prev_hist_count;
 /* static int hist_iterations; */
 static unsigned total_pcpu;
-/* static unsigned long total_rss; */
+/* static unsigned long total_vsz; */
 #endif
 
 #define OPT_BATCH_MODE (option_mask32 & 0x4)
@@ -72,8 +72,8 @@ static int pid_sort(top_status_t *P, top_status_t *Q)
 static int mem_sort(top_status_t *P, top_status_t *Q)
 {
 	/* We want to avoid unsigned->signed and truncation errors */
-	if (Q->rss < P->rss) return -1;
-	return Q->rss != P->rss; /* 0 if ==, 1 if > */
+	if (Q->vsz < P->vsz) return -1;
+	return Q->vsz != P->vsz; /* 0 if ==, 1 if > */
 }
 
 
@@ -147,7 +147,7 @@ static void do_stats(void)
 
 	get_jiffy_counts();
 	total_pcpu = 0;
-	/* total_rss = 0; */
+	/* total_vsz = 0; */
 	new_hist = xmalloc(sizeof(struct save_hist)*ntop);
 	/*
 	 * Make a pass through the data to get stats.
@@ -179,7 +179,7 @@ static void do_stats(void)
 			i = (i+1) % prev_hist_count;
 			/* hist_iterations++; */
 		} while (i != last_i);
-		/* total_rss += cur->rss; */
+		/* total_vsz += cur->vsz; */
 	}
 
 	/*
@@ -287,8 +287,8 @@ static void display_status(int count, int scr_width)
 	};
 
 	top_status_t *s = top;
-	char rss_str_buf[8];
-	unsigned long total_memory = display_generic(scr_width); /* or use total_rss? */
+	char vsz_str_buf[8];
+	unsigned long total_memory = display_generic(scr_width); /* or use total_vsz? */
 	unsigned pmem_shift, pmem_scale;
 
 #if ENABLE_FEATURE_TOP_CPU_USAGE_PERCENTAGE
@@ -297,22 +297,22 @@ static void display_status(int count, int scr_width)
 
 	/* what info of the processes is shown */
 	printf(OPT_BATCH_MODE ? "%.*s" : "\e[7m%.*s\e[0m", scr_width,
-		"  PID USER     STATUS   RSS  PPID %CPU %MEM COMMAND");
+		"  PID USER     STATUS   VSZ  PPID %CPU %MEM COMMAND");
 #define MIN_WIDTH \
-	sizeof( "  PID USER     STATUS   RSS  PPID %CPU %MEM C")
+	sizeof( "  PID USER     STATUS   VSZ  PPID %CPU %MEM C")
 #else
 	printf(OPT_BATCH_MODE ? "%.*s" : "\e[7m%.*s\e[0m", scr_width,
-		"  PID USER     STATUS   RSS  PPID %MEM COMMAND");
+		"  PID USER     STATUS   VSZ  PPID %MEM COMMAND");
 #define MIN_WIDTH \
-	sizeof( "  PID USER     STATUS   RSS  PPID %MEM C")
+	sizeof( "  PID USER     STATUS   VSZ  PPID %MEM C")
 #endif
 
 	/*
-	 * MEM% = s->rss/MemTotal
+	 * MEM% = s->vsz/MemTotal
 	 */
 	pmem_shift = bits_per_int-11;
 	pmem_scale = 1000*(1U<<(bits_per_int-11)) / total_memory;
-	/* s->rss is in kb. we want (s->rss * pmem_scale) to never overflow */
+	/* s->vsz is in kb. we want (s->vsz * pmem_scale) to never overflow */
 	while (pmem_scale >= 512) {
 		pmem_scale /= 4;
 		pmem_shift -= 2;
@@ -346,14 +346,14 @@ static void display_status(int count, int scr_width)
 	/* printf(" pmem_scale=%u pcpu_scale=%u ", pmem_scale, pcpu_scale); */
 #endif
 	while (count-- > 0) {
-		div_t pmem = div((s->rss*pmem_scale) >> pmem_shift, 10);
+		div_t pmem = div((s->vsz*pmem_scale) >> pmem_shift, 10);
 		int col = scr_width+1;
 		USE_FEATURE_TOP_CPU_USAGE_PERCENTAGE(div_t pcpu;)
 
-		if (s->rss >= 100*1024)
-			sprintf(rss_str_buf, "%6ldM", s->rss/1024);
+		if (s->vsz >= 100*1024)
+			sprintf(vsz_str_buf, "%6ldM", s->vsz/1024);
 		else
-			sprintf(rss_str_buf, "%7ld", s->rss);
+			sprintf(vsz_str_buf, "%7ld", s->vsz);
 		USE_FEATURE_TOP_CPU_USAGE_PERCENTAGE(
 		pcpu = div((s->pcpu*pcpu_scale) >> pcpu_shift, 10);
 		)
@@ -362,7 +362,7 @@ static void display_status(int count, int scr_width)
 				USE_FEATURE_TOP_CPU_USAGE_PERCENTAGE("%3u.%c")
 				"%3u.%c ",
 				s->pid, get_cached_username(s->uid), s->state,
-				rss_str_buf, s->ppid,
+				vsz_str_buf, s->ppid,
 				USE_FEATURE_TOP_CPU_USAGE_PERCENTAGE(pcpu.quot, '0'+pcpu.rem,)
 				pmem.quot, '0'+pmem.rem);
 		if (col > 0)
@@ -474,7 +474,7 @@ int top_main(int argc, char **argv)
 		while ((p = procps_scan(p, 0
 				| PSSCAN_PID
 				| PSSCAN_PPID
-				| PSSCAN_RSS
+				| PSSCAN_VSZ
 				| PSSCAN_STIME
 				| PSSCAN_UTIME
 				| PSSCAN_STATE
@@ -486,7 +486,7 @@ int top_main(int argc, char **argv)
 			top = xrealloc(top, (++ntop)*sizeof(top_status_t));
 			top[n].pid = p->pid;
 			top[n].ppid = p->ppid;
-			top[n].rss = p->rss;
+			top[n].vsz = p->vsz;
 #if ENABLE_FEATURE_TOP_CPU_USAGE_PERCENTAGE
 			top[n].ticks = p->stime + p->utime;
 #endif

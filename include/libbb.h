@@ -668,7 +668,7 @@ typedef struct {
 	DIR *dir;
 /* Fields are set to 0/NULL if failed to determine (or not requested) */
 	char *cmd;
-	unsigned long rss;
+	unsigned long vsz;
 	unsigned long stime, utime;
 	unsigned pid;
 	unsigned ppid;
@@ -691,13 +691,13 @@ enum {
 	PSSCAN_COMM     = 1 << 5,
 	PSSCAN_CMD      = 1 << 6,
 	PSSCAN_STATE    = 1 << 7,
-	PSSCAN_RSS      = 1 << 8,
+	PSSCAN_VSZ      = 1 << 8,
 	PSSCAN_STIME    = 1 << 9,
 	PSSCAN_UTIME    = 1 << 10,
 	/* These are all retrieved from proc/NN/stat in one go: */
 	PSSCAN_STAT     = PSSCAN_PPID | PSSCAN_PGID | PSSCAN_SID
 	                | PSSCAN_COMM | PSSCAN_STATE
-	                | PSSCAN_RSS | PSSCAN_STIME | PSSCAN_UTIME,
+	                | PSSCAN_VSZ | PSSCAN_STIME | PSSCAN_UTIME,
 };
 procps_status_t* alloc_procps_scan(int flags);
 void free_procps_scan(procps_status_t* sp);
