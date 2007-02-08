@@ -264,8 +264,7 @@ static void include_conf(struct dep_t **first, struct dep_t **current, char *buf
 					/* handle alias as a module dependent on the aliased module */
 					if (!*current) {
 						(*first) = (*current) = xzalloc(sizeof(struct dep_t));
-					}
-					else {
+					} else {
 						(*current)->m_next = xzalloc(sizeof(struct dep_t));
 						(*current) = (*current)->m_next;
 					}
@@ -275,16 +274,14 @@ static void include_conf(struct dep_t **first, struct dep_t **current, char *buf
 					if ((strcmp(mod, "off") == 0) || (strcmp(mod, "null") == 0)) {
 						(*current)->m_depcnt = 0;
 						(*current)->m_deparr = 0;
-					}
-					else {
+					} else {
 						(*current)->m_depcnt  = 1;
 						(*current)->m_deparr  = xmalloc(1 * sizeof(char *));
 						(*current)->m_deparr[0] = xstrdup(mod);
 					}
 					(*current)->m_next    = 0;
 				}
-			}
-			else if ((strncmp(buffer, "options", 7) == 0) && isspace(buffer[7])) {
+			} else if ((strncmp(buffer, "options", 7) == 0) && isspace(buffer[7])) {
 				char *mod, *opt;
 
 				/* split the line in the module/alias name, and options */
@@ -307,8 +304,7 @@ static void include_conf(struct dep_t **first, struct dep_t **current, char *buf
 						}
 					}
 				}
-			}
-			else if ((strncmp(buffer, "include", 7) == 0) && isspace(buffer[7])) {
+			} else if ((strncmp(buffer, "include", 7) == 0) && isspace(buffer[7])) {
 				int fdi; char *filename;
 
 				filename = skip_whitespace(buffer + 8);
@@ -323,7 +319,7 @@ static void include_conf(struct dep_t **first, struct dep_t **current, char *buf
 }
 
 /*
- * This function builds a list of dependency rules from /lib/modules/`uname -r`\modules.dep.
+ * This function builds a list of dependency rules from /lib/modules/`uname -r`/modules.dep.
  * It then fills every modules and aliases with their default options, found by parsing
  * modprobe.conf (or modules.conf, or conf.modules).
  */
@@ -411,8 +407,7 @@ static struct dep_t *build_dep(void)
 				/* enqueue new module */
 				if (!current) {
 					first = current = xmalloc(sizeof(struct dep_t));
-				}
-				else {
+				} else {
 					current->m_next = xmalloc(sizeof(struct dep_t));
 					current = current->m_next;
 				}
@@ -425,12 +420,10 @@ static struct dep_t *build_dep(void)
 				current->m_next    = 0;
 
 				p = col + 1;
-			}
-			else
+			} else
 				/* this line is not a dep description */
 				p = 0;
-		}
-		else
+		} else
 			/* It's a dep description continuation */
 			p = buffer;
 
@@ -454,8 +447,7 @@ static struct dep_t *build_dep(void)
 				if (next) {
 					*next = 0;
 					next--;
-				}
-				else
+				} else
 					next = end;
 
 				/* find the beginning of the module file name */
@@ -648,8 +640,7 @@ static int mod_process(const struct mod_list_t *list, int do_insert)
 
 				if (do_insert) {
 					rc = rc2; /* only last module matters */
-				}
-				else if (!rc2) {
+				} else if (!rc2) {
 					rc = 0; /* success if remove any mod */
 				}
 			}
@@ -747,13 +738,11 @@ static void check_dep(char *mod, struct mod_list_t **head, struct mod_list_t **t
 					opts = opts->m_next;
 				}
 				dt = adt;
-			}
-			else {
+			} else {
 				bb_error_msg("module %s not found", mod);
 				return;
 			}
-		}
-		else {
+		} else {
 			bb_error_msg("bad alias %s", dt->m_name);
 			return;
 		}
