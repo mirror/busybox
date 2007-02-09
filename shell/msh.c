@@ -3157,12 +3157,15 @@ static int dochdir(struct op *t)
 	cp = t->words[1];
 	if (cp == NULL) {
 		cp = homedir->value;
-		if (cp == NULL)
-			er = ": no home directory";
-	} else if (chdir(cp) < 0)
+		if (cp != NULL)
+			goto do_cd;
+		er = ": no home directory";
+	} else {
+ do_cd:
+		if (chdir(cp) >= 0)
+			return 0;
 		er = ": bad directory";
-	else
-		return 0;
+	}
 	prs(cp != NULL ? cp : "cd");
 	err(er);
 	return 1;
