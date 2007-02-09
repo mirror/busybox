@@ -27,7 +27,6 @@
 #include "busybox.h"
 
 #ifdef DOTRACE
-#include <arpa/inet.h> /* for inet_ntoa()... */
 #define TRACE(x, y) do { if (x) printf y; } while (0)
 #else
 #define TRACE(x, y)

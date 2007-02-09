@@ -1093,12 +1093,14 @@ static void ife_print(struct interface *ptr)
 #define IPV6_ADDR_MAPPED        0x1000U
 #define IPV6_ADDR_RESERVED      0x2000U	/* reserved address space */
 
-	if ((f = fopen(_PATH_PROCNET_IFINET6, "r")) != NULL) {
+	f = fopen(_PATH_PROCNET_IFINET6, "r");
+	if (f != NULL) {
 		while (fscanf
 			   (f, "%4s%4s%4s%4s%4s%4s%4s%4s %02x %02x %02x %02x %20s\n",
 				addr6p[0], addr6p[1], addr6p[2], addr6p[3], addr6p[4],
 				addr6p[5], addr6p[6], addr6p[7], &if_idx, &plen, &scope,
-				&dad_status, devname) != EOF) {
+				&dad_status, devname) != EOF
+		) {
 			if (!strcmp(devname, ptr->name)) {
 				sprintf(addr6, "%s:%s:%s:%s:%s:%s:%s:%s",
 						addr6p[0], addr6p[1], addr6p[2], addr6p[3],
