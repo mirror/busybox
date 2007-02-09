@@ -302,13 +302,21 @@ static void pingstats(int junk ATTRIBUTE_UNUSED)
 	exit(status);
 }
 
-static void sendping_tail(void (*sp)(int), int sz, int sizeof_packet)
+static void sendping_tail(void (*sp)(int), const void *pkt, int size_pkt)
 {
+	int sz;
+
+	CLR((uint16_t)ntransmitted % MAX_DUP_CHK);
+	ntransmitted++;
+
+	/* sizeof(pingaddr) can be larger than real sa size, but I think
+	 * it doesn't matter */
+	sz = sendto(pingsock, pkt, size_pkt, 0,	&pingaddr.sa, sizeof(pingaddr));
 	if (sz < 0)
 		bb_perror_msg_and_die("sendto");
-	if (sz != sizeof_packet)
+	if (sz != size_pkt)
 		bb_error_msg_and_die("ping wrote %d chars; %d expected", sz,
-			sizeof_packet);
+			size_pkt);
 
 	signal(SIGALRM, sp);
 	if (pingcount == 0 || ntransmitted < pingcount) {	/* schedule next in 1s */
@@ -322,51 +330,31 @@ static void sendping_tail(void (*sp)(int), int sz, int sizeof_packet)
 
 static void sendping4(int junk ATTRIBUTE_UNUSED)
 {
-	struct icmp *pkt;
-	int i;
-	char packet[datalen + ICMP_MINLEN];
-
-	pkt = (struct icmp *) packet;
+	struct icmp *pkt = alloca(datalen + ICMP_MINLEN);
 
 	pkt->icmp_type = ICMP_ECHO;
 	pkt->icmp_code = 0;
 	pkt->icmp_cksum = 0;
 	pkt->icmp_seq = htons(ntransmitted); /* don't ++ here, it can be a macro */
 	pkt->icmp_id = myid;
-	CLR((uint16_t)ntransmitted % MAX_DUP_CHK);
-	ntransmitted++;
-
 	gettimeofday((struct timeval *) &pkt->icmp_dun, NULL);
-	pkt->icmp_cksum = in_cksum((unsigned short *) pkt, sizeof(packet));
+	pkt->icmp_cksum = in_cksum((unsigned short *) pkt, datalen + ICMP_MINLEN);
 
-	i = sendto(pingsock, packet, sizeof(packet), 0,
-			&pingaddr.sa, sizeof(pingaddr.sin));
-
-	sendping_tail(sendping4, i, sizeof(packet));
+	sendping_tail(sendping4, pkt, datalen + ICMP_MINLEN);
 }
 #if ENABLE_PING6
 static void sendping6(int junk ATTRIBUTE_UNUSED)
 {
-	struct icmp6_hdr *pkt;
-	int i;
-	char packet[datalen + sizeof (struct icmp6_hdr)];
-
-	pkt = (struct icmp6_hdr *) packet;
+	struct icmp6_hdr *pkt = alloca(datalen + sizeof(struct icmp6_hdr));
 
 	pkt->icmp6_type = ICMP6_ECHO_REQUEST;
 	pkt->icmp6_code = 0;
 	pkt->icmp6_cksum = 0;
 	pkt->icmp6_seq = htons(ntransmitted); /* don't ++ here, it can be a macro */
 	pkt->icmp6_id = myid;
-	CLR((uint16_t)ntransmitted % MAX_DUP_CHK);
-	ntransmitted++;
-
 	gettimeofday((struct timeval *) &pkt->icmp6_data8[4], NULL);
 
-	i = sendto(pingsock, packet, sizeof(packet), 0,
-			&pingaddr.sa, sizeof(pingaddr.sin6));
-
-	sendping_tail(sendping6, i, sizeof(packet));
+	sendping_tail(sendping6, pkt, datalen + sizeof(struct icmp6_hdr));
 }
 #endif
 
