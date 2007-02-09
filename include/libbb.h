@@ -321,6 +321,7 @@ int xconnect_stream(const len_and_sockaddr *lsa);
 len_and_sockaddr* host2sockaddr(const char *host, int port);
 /* Version which dies on error */
 len_and_sockaddr* xhost2sockaddr(const char *host, int port);
+len_and_sockaddr* xdotted2sockaddr(const char *host, int port);
 #if ENABLE_FEATURE_IPV6
 /* Same, useful if you want to force family (e.g. IPv6) */
 len_and_sockaddr* host_and_af2sockaddr(const char *host, int port, sa_family_t af);

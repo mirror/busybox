@@ -203,7 +203,7 @@ len_and_sockaddr* xhost2sockaddr(const char *host, int port)
 	return str2sockaddr(host, port, AF_UNSPEC, DIE_ON_ERROR);
 }
 
-static len_and_sockaddr* xdotted2sockaddr(const char *host, int port)
+len_and_sockaddr* xdotted2sockaddr(const char *host, int port)
 {
 	return str2sockaddr(host, port, AF_UNSPEC, AI_NUMERICHOST | DIE_ON_ERROR);
 }

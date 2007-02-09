@@ -2428,20 +2428,22 @@
 #define ping_full_usage \
        "Send ICMP ECHO_REQUEST packets to network hosts" \
        "\n\nOptions:\n" \
-       "	-c CNT	Send only CNT pings\n" \
-       "	-s SIZE	Send SIZE data bytes in packets (default=56)\n" \
-       "	-I IP	Use IP as source address\n" \
-       "	-q	Quiet mode, only displays output at start\n" \
-       "		and when finished"
+       "	-4, -6		Force IPv4 or IPv6 hostname resolution\n" \
+       "	-c CNT		Send only CNT pings\n" \
+       "	-s SIZE		Send SIZE data bytes in packets (default=56)\n" \
+       "	-I iface/IP	Use interface or IP address as source\n" \
+       "	-q		Quiet mode, only displays output at start\n" \
+       "			and when finished"
 #define ping6_trivial_usage \
        "[OPTION]... host"
 #define ping6_full_usage \
        "Send ICMP ECHO_REQUEST packets to network hosts" \
        "\n\nOptions:\n" \
-       "	-c CNT	Send only CNT pings\n" \
-       "	-s SIZE	Send SIZE data bytes in packets (default=56)\n" \
-       "	-q	Quiet mode, only displays output at start\n" \
-       "		and when finished"
+       "	-c CNT		Send only CNT pings\n" \
+       "	-s SIZE		Send SIZE data bytes in packets (default=56)\n" \
+       "	-I iface/IP	Use interface or IP address as source\n" \
+       "	-q		Quiet mode, only displays output at start\n" \
+       "			and when finished"
 #endif
 #define ping_example_usage \
        "$ ping localhost\n" \

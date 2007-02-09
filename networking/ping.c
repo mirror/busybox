@@ -254,7 +254,7 @@ static union {
 	struct sockaddr_in6 sin6;
 #endif
 } pingaddr;
-static struct sockaddr_in sourceaddr;
+static len_and_sockaddr *source_lsa;
 static int pingsock = -1;
 static unsigned datalen; /* intentionally uninitialized to work around gcc bug */
 
@@ -561,9 +561,8 @@ static void ping4(len_and_sockaddr *lsa)
 
 	pingsock = create_icmp_socket();
 	pingaddr.sin = lsa->sin;
-	if (sourceaddr.sin_addr.s_addr) {
-		xbind(pingsock, (struct sockaddr*)&sourceaddr, sizeof(sourceaddr));
-	}
+	if (source_lsa)
+		xbind(pingsock, &lsa->sa, lsa->len);
 
 	/* enable broadcast pings */
 	setsockopt_broadcast(pingsock);
@@ -571,13 +570,6 @@ static void ping4(len_and_sockaddr *lsa)
 	/* set recv buf for broadcast pings */
 	sockopt = 48 * 1024; /* explain why 48k? */
 	setsockopt(pingsock, SOL_SOCKET, SO_RCVBUF, &sockopt, sizeof(sockopt));
-
-	printf("PING %s (%s)", hostname, dotted);
-	if (sourceaddr.sin_addr.s_addr) {
-		printf(" from %s",
-			inet_ntoa(*(struct in_addr *) &sourceaddr.sin_addr.s_addr));
-	}
-	printf(": %d data bytes\n", datalen);
 
 	signal(SIGINT, pingstats);
 
@@ -615,9 +607,9 @@ static void ping6(len_and_sockaddr *lsa)
 
 	pingsock = create_icmp6_socket();
 	pingaddr.sin6 = lsa->sin6;
-	//if (sourceaddr.sin_addr.s_addr) {
-	//	xbind(pingsock, (struct sockaddr*)&sourceaddr, sizeof(sourceaddr));
-	//}
+	/* untested whether "-I addr" really works for IPv6: */
+	if (source_lsa)
+		xbind(pingsock, &lsa->sa, lsa->len);
 
 #ifdef ICMP6_FILTER
 	{
@@ -651,8 +643,6 @@ static void ping6(len_and_sockaddr *lsa)
 
 	if (if_index)
 		pingaddr.sin6.sin6_scope_id = if_index;
-
-	printf("PING %s (%s): %d data bytes\n", hostname, dotted, datalen);
 
 	signal(SIGINT, pingstats);
 
@@ -695,25 +685,21 @@ static void ping6(len_and_sockaddr *lsa)
 }
 #endif
 
-/* TODO: consolidate ether-wake.c, dnsd.c, ifupdown.c, nslookup.c
- * versions of below thing. BTW we have far too many "%u.%u.%u.%u" too...
-*/
-static int parse_nipquad(const char *str, struct sockaddr_in* addr)
+static void ping(len_and_sockaddr *lsa)
 {
-	char dummy;
-	unsigned i1, i2, i3, i4;
-	if (sscanf(str, "%u.%u.%u.%u%c",
-			   &i1, &i2, &i3, &i4, &dummy) == 4
-	&& ( (i1|i2|i3|i4) <= 0xff )
-	) {
-		uint8_t* ptr = (uint8_t*)&addr->sin_addr;
-		ptr[0] = i1;
-		ptr[1] = i2;
-		ptr[2] = i3;
-		ptr[3] = i4;
-		return 0;
+	printf("PING %s (%s)", hostname, dotted);
+	if (source_lsa) {
+		printf(" from %s",
+			xmalloc_sockaddr2dotted_noport(&lsa->sa, lsa->len));
 	}
-	return 1; /* error */
+	printf(": %d data bytes\n", datalen);
+
+#if ENABLE_PING6
+	if (lsa->sa.sa_family == AF_INET6)
+		ping6(lsa);
+	else
+#endif
+		ping4(lsa);
 }
 
 int ping_main(int argc, char **argv);
@@ -732,9 +718,11 @@ int ping_main(int argc, char **argv)
 	if (option_mask32 & OPT_s) datalen = xatou16(opt_s); // -s
 	if (option_mask32 & OPT_I) { // -I
 		if_index = if_nametoindex(opt_I);
-		if (!if_index)
-			if (parse_nipquad(opt_I, &sourceaddr))
-				bb_show_usage();
+		if (!if_index) {
+			/* TODO: I'm not sure it takes IPv6 unless in [XX:XX..] format */
+			/* (ping doesn't support source IPv6 addresses yet anyway) */
+			source_lsa = xdotted2sockaddr(opt_I, 0);
+		}
 	}
 	myid = (int16_t) getpid();
 	hostname = argv[optind];
@@ -747,13 +735,13 @@ int ping_main(int argc, char **argv)
 #else
 	lsa = xhost_and_af2sockaddr(hostname, 0, AF_INET);
 #endif
+
+	if (source_lsa && source_lsa->sa.sa_family != lsa->sa.sa_family)
+		/* leaking it here... */
+		source_lsa = NULL;
+
 	dotted = xmalloc_sockaddr2dotted_noport(&lsa->sa, lsa->len);
-#if ENABLE_PING6
-	if (lsa->sa.sa_family == AF_INET6)
-		ping6(lsa);
-	else
-#endif
-		ping4(lsa);
+	ping(lsa);
 	pingstats(0);
 	return EXIT_SUCCESS;
 }
