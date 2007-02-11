@@ -1044,15 +1044,10 @@ static int add_to_dirlist(const char *filename,
 		struct stat ATTRIBUTE_UNUSED * sb, void *userdata,
 		int depth ATTRIBUTE_UNUSED)
 {
+	/* +2: with space for eventual trailing NULL */
+	dl = xrealloc(dl, (dl_count+2) * sizeof(dl[0]));
+	dl[dl_count] = xstrdup(filename + (int)userdata);
 	dl_count++;
-	dl = xrealloc(dl, dl_count * sizeof(char *));
-	dl[dl_count - 1] = xstrdup(filename);
-	if (option_mask32 & FLAG_r) {
-		int *pp = (int *) userdata;
-		int path_len = *pp + 1;
-
-		dl[dl_count - 1] = &(dl[dl_count - 1])[path_len];
-	}
 	return TRUE;
 }
 
@@ -1060,27 +1055,19 @@ static int add_to_dirlist(const char *filename,
 /* This returns a sorted directory listing. */
 static char **get_dir(char *path)
 {
-	int i;
-	char **retval;
+	dl_count = 0;
+	dl = NULL;
 
 	/* If -r has been set, then the recursive_action function will be
 	 * used. Unfortunately, this outputs the root directory along with
 	 * the recursed paths, so use void *userdata to specify the string
-	 * length of the root directory. It can then be removed in
-	 * add_to_dirlist. */
+	 * length of the root directory - '(void*)(strlen(path)+)'.
+	 * add_to_dirlist then removes root dir prefix. */
 
-	int path_len = strlen(path);
-	void *userdata = &path_len;
-
-	/* Reset dl_count - there's no need to free dl as xrealloc does
-	 * the job nicely. */
-	dl_count = 0;
-
-	/* Now fill dl with a listing. */
-	if (option_mask32 & FLAG_r)
+	if (option_mask32 & FLAG_r) {
 		recursive_action(path, TRUE, TRUE, FALSE, add_to_dirlist, NULL,
-						 userdata, 0);
-	else {
+					(void*)(strlen(path)+1), 0);
+	} else {
 		DIR *dp;
 		struct dirent *ep;
 
@@ -1088,7 +1075,7 @@ static char **get_dir(char *path)
 		while ((ep = readdir(dp))) {
 			if (!strcmp(ep->d_name, "..") || LONE_CHAR(ep->d_name, '.'))
 				continue;
-			add_to_dirlist(ep->d_name, NULL, NULL, 0);
+			add_to_dirlist(ep->d_name, NULL, (void*)(int)0, 0);
 		}
 		closedir(dp);
 	}
@@ -1096,12 +1083,8 @@ static char **get_dir(char *path)
 	/* Sort dl alphabetically. */
 	qsort(dl, dl_count, sizeof(char *), dir_strcmp);
 
-	/* Copy dl so that we can return it. */
-	retval = xmalloc(dl_count * sizeof(char *));
-	for (i = 0; i < dl_count; i++)
-		retval[i] = xstrdup(dl[i]);
-
-	return retval;
+	dl[dl_count] = NULL;
+	return dl;
 }
 
 
@@ -1109,11 +1092,9 @@ static void diffdir(char *p1, char *p2)
 {
 	char **dirlist1, **dirlist2;
 	char *dp1, *dp2;
-	int dirlist1_count, dirlist2_count;
 	int pos;
 
 	/* Check for trailing slashes. */
-
 	dp1 = last_char_is(p1, '/');
 	if (dp1 != NULL)
 		*dp1 = '\0';
@@ -1124,11 +1105,7 @@ static void diffdir(char *p1, char *p2)
 	/* Get directory listings for p1 and p2. */
 
 	dirlist1 = get_dir(p1);
-	dirlist1_count = dl_count;
-	dirlist1[dirlist1_count] = NULL;
 	dirlist2 = get_dir(p2);
-	dirlist2_count = dl_count;
-	dirlist2[dirlist2_count] = NULL;
 
 	/* If -S was set, find the starting point. */
 	if (start) {
