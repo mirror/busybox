@@ -92,7 +92,7 @@ int busybox_main(int argc, char **argv)
 
 		/* link */
 // XXX: FIXME: this is broken. Why not just use argv[0] ?
-		busybox = xreadlink("/proc/self/exe");
+		busybox = xmalloc_readlink_or_warn("/proc/self/exe");
 		if (!busybox)
 			return 1;
 		install_links(busybox, use_symbolic_links);

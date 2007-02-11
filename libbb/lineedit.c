@@ -1090,7 +1090,7 @@ static void parse_prompt(const char *prmt_ptr)
 	size_t cur_prmt_len = 0;
 	char flg_not_length = '[';
 	char *prmt_mem_ptr = xzalloc(1);
-	char *pwd_buf = xgetcwd(0);
+	char *pwd_buf = xrealloc_getcwd_or_warn(NULL);
 	char buf2[PATH_MAX + 1];
 	char buf[2];
 	char c;

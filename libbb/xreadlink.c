@@ -11,7 +11,7 @@
  * yourself. You have been warned.
  */
 
-char *xreadlink(const char *path)
+char *xmalloc_readlink_or_warn(const char *path)
 {
 	enum { GROWBY = 80 }; /* how large we will grow strings by */
 

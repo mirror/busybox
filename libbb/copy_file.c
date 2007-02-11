@@ -233,7 +233,7 @@ int copy_file(const char *source, const char *dest, int flags)
 		} else if (S_ISLNK(source_stat.st_mode)) {
 			char *lpath;
 
-			lpath = xreadlink(source);
+			lpath = xmalloc_readlink_or_warn(source);
 			if (symlink(lpath, dest) < 0) {
 				bb_perror_msg("cannot create symlink '%s'", dest);
 				free(lpath);

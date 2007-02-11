@@ -217,7 +217,7 @@ static int builtin_cd(struct child_prog *child)
 		bb_perror_msg("cd: %s", newdir);
 		return EXIT_FAILURE;
 	}
-	cwd = xgetcwd((char *)cwd);
+	cwd = xrealloc_getcwd_or_warn((char *)cwd);
 	if (!cwd)
 		cwd = bb_msg_unknown;
 	return EXIT_SUCCESS;
@@ -342,7 +342,7 @@ static int builtin_jobs(struct child_prog *child)
 /* built-in 'pwd' handler */
 static int builtin_pwd(struct child_prog ATTRIBUTE_UNUSED *dummy)
 {
-	cwd = xgetcwd((char *)cwd);
+	cwd = xrealloc_getcwd_or_warn((char *)cwd);
 	if (!cwd)
 		cwd = bb_msg_unknown;
 	puts(cwd);
@@ -1569,7 +1569,7 @@ int lash_main(int argc_l, char **argv_l)
 	}
 
 	/* initialize the cwd -- this is never freed...*/
-	cwd = xgetcwd(0);
+	cwd = xrealloc_getcwd_or_warn(NULL);
 	if (!cwd)
 		cwd = bb_msg_unknown;
 

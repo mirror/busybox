@@ -258,8 +258,8 @@ extern int ndelay_off(int fd);
 extern DIR *xopendir(const char *path);
 extern DIR *warn_opendir(const char *path);
 
-char *xgetcwd(char *cwd);
-char *xreadlink(const char *path);
+char *xrealloc_getcwd_or_warn(char *cwd);
+char *xmalloc_readlink_or_warn(const char *path);
 char *xmalloc_realpath(const char *path);
 extern void xstat(const char *filename, struct stat *buf);
 extern pid_t spawn(char **argv);

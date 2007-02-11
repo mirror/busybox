@@ -664,7 +664,7 @@ static int list_single(struct dnode *dn)
 			break;
 		case LIST_SYMLINK:
 			if (S_ISLNK(dn->dstat.st_mode)) {
-				char *lpath = xreadlink(dn->fullname);
+				char *lpath = xmalloc_readlink_or_warn(dn->fullname);
 				if (!lpath) break;
 				printf(" -> ");
 #if ENABLE_FEATURE_LS_FILETYPES || ENABLE_FEATURE_LS_COLOR

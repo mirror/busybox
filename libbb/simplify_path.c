@@ -16,7 +16,7 @@ char *bb_simplify_path(const char *path)
 	if (path[0] == '/')
 		start = xstrdup(path);
 	else {
-		s = xgetcwd(NULL);
+		s = xrealloc_getcwd_or_warn(NULL);
 		start = concat_path_file(s, path);
 		free(s);
 	}

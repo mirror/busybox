@@ -24,9 +24,6 @@
 
 #define DEBUG 0
 
-/* Path to the unix socket */
-static const char *dev_log_name;
-
 /* Path for the file where all log messages are written */
 static const char *logFilePath = "/var/log/messages";
 static int logFD = -1;
@@ -446,7 +443,6 @@ static void quit_signal(int sig)
 {
 	timestamp_and_log(LOG_SYSLOG | LOG_INFO, (char*)"syslogd exiting", 0);
 	puts("syslogd exiting");
-	unlink(dev_log_name);
 	if (ENABLE_FEATURE_IPC_SYSLOG)
 		ipcsyslog_cleanup();
 	exit(1);
@@ -464,9 +460,9 @@ static void do_syslogd(void) ATTRIBUTE_NORETURN;
 static void do_syslogd(void)
 {
 	struct sockaddr_un sunx;
-	socklen_t addr_len;
 	int sock_fd;
 	fd_set fds;
+	char *dev_log_name;
 
 	/* Set up signal handlers */
 	signal(SIGINT, quit_signal);
@@ -480,22 +476,33 @@ static void do_syslogd(void)
 	signal(SIGALRM, do_mark);
 	alarm(markInterval);
 
-	dev_log_name = xmalloc_realpath(_PATH_LOG);
-	if (!dev_log_name)
-		dev_log_name = _PATH_LOG;
-
-	/* Unlink old /dev/log (or object it points to) */
-	unlink(dev_log_name);
-
 	memset(&sunx, 0, sizeof(sunx));
 	sunx.sun_family = AF_UNIX;
-	strncpy(sunx.sun_path, dev_log_name, sizeof(sunx.sun_path));
-	sock_fd = xsocket(AF_UNIX, SOCK_DGRAM, 0);
-	addr_len = sizeof(sunx.sun_family) + strlen(sunx.sun_path);
-	xbind(sock_fd, (struct sockaddr *) &sunx, addr_len);
+	strcpy(sunx.sun_path, "/dev/log");
 
-	if (chmod(dev_log_name, 0666) < 0) {
-		bb_perror_msg_and_die("cannot set permission on %s", dev_log_name);
+	/* Unlink old /dev/log or object it points to. */
+	/* (if it exists, bind will fail) */
+	logmode = LOGMODE_NONE;
+	dev_log_name = xmalloc_readlink_or_warn("/dev/log");
+	logmode = LOGMODE_STDIO;
+	if (dev_log_name) {
+		int fd = xopen(".", O_NONBLOCK);
+		xchdir("/dev");
+		/* we do not check whether this is a link also */
+		unlink(dev_log_name);
+		fchdir(fd);
+		close(fd);
+		safe_strncpy(sunx.sun_path, dev_log_name, sizeof(sunx.sun_path));
+		free(dev_log_name);
+	} else {
+		unlink("/dev/log");
+	}
+
+	sock_fd = xsocket(AF_UNIX, SOCK_DGRAM, 0);
+	xbind(sock_fd, (struct sockaddr *) &sunx, sizeof(sunx));
+
+	if (chmod("/dev/log", 0666) < 0) {
+		bb_perror_msg_and_die("cannot set permission on /dev/log");
 	}
 	if (ENABLE_FEATURE_IPC_SYSLOG && (option_mask32 & OPT_circularlog)) {
 		ipcsyslog_init();

@@ -38,7 +38,7 @@ int readlink_main(int argc, char **argv)
 	if (opt) {
 		buf = realpath(fname, bb_common_bufsiz1);
 	} else {
-		buf = xreadlink(fname);
+		buf = xmalloc_readlink_or_warn(fname);
 	}
 
 	if (!buf)

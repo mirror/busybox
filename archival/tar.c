@@ -273,8 +273,8 @@ static int writeTarHeader(struct TarBallInfo *tbInfo,
 					tbInfo->hlInfo->name, 0);
 #endif
 	} else if (S_ISLNK(statbuf->st_mode)) {
-		char *lpath = xreadlink(fileName);
-		if (!lpath)		/* Already printed err msg inside xreadlink() */
+		char *lpath = xmalloc_readlink_or_warn(fileName);
+		if (!lpath)
 			return FALSE;
 		header.typeflag = SYMTYPE;
 		strncpy(header.linkname, lpath, sizeof(header.linkname));

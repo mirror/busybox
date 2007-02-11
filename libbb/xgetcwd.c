@@ -18,7 +18,7 @@
 */
 
 char *
-xgetcwd(char *cwd)
+xrealloc_getcwd_or_warn(char *cwd)
 {
 	char *ret;
 	unsigned path_max;
@@ -26,7 +26,7 @@ xgetcwd(char *cwd)
 	path_max = (unsigned) PATH_MAX;
 	path_max += 2;                /* The getcwd docs say to do this. */
 
-	if (cwd==0)
+	if (cwd == NULL)
 		cwd = xmalloc(path_max);
 
 	while ((ret = getcwd(cwd, path_max)) == NULL && errno == ERANGE) {

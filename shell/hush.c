@@ -423,8 +423,8 @@ static const struct built_in_command bltins[] = {
 static const char *set_cwd(void)
 {
 	if (cwd == bb_msg_unknown)
-		cwd = NULL;     /* xgetcwd(arg) called free(arg) */
-	cwd = xgetcwd((char *)cwd);
+		cwd = NULL;     /* xrealloc_getcwd_or_warn(arg) called free(arg) */
+	cwd = xrealloc_getcwd_or_warn((char *)cwd);
 	if (!cwd)
 		cwd = bb_msg_unknown;
 	return cwd;

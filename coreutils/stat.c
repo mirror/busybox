@@ -188,7 +188,7 @@ static void print_stat(char *pformat, size_t buf_len, char m,
 	case 'N':
 		strncat(pformat, "s", buf_len);
 		if (S_ISLNK(statbuf->st_mode)) {
-			char *linkname = xreadlink(filename);
+			char *linkname = xmalloc_readlink_or_warn(filename);
 			if (linkname == NULL) {
 				bb_perror_msg("cannot read symbolic link '%s'", filename);
 				return;
@@ -477,7 +477,7 @@ static int do_stat(char const *filename, char const *format)
 		pw_ent = getpwuid(statbuf.st_uid);
 
 		if (S_ISLNK(statbuf.st_mode))
-			linkname = xreadlink(filename);
+			linkname = xmalloc_readlink_or_warn(filename);
 		if (linkname)
 			printf("  File: \"%s\" -> \"%s\"\n", filename, linkname);
 		else
