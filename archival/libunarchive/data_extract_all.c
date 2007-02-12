@@ -110,6 +110,14 @@ void data_extract_all(archive_handle_t *archive_handle)
 	if (!(archive_handle->flags & ARCHIVE_NOPRESERVE_OWN)) {
 		lchown(file_header->name, file_header->uid, file_header->gid);
 	}
+	/* uclibc has no lchmod, glibc is even stranger -
+	 * it has lchmod which seems to do nothing!
+	 * so we use chmod... */
+	if (!(archive_handle->flags & ARCHIVE_NOPRESERVE_PERM)
+	 && (file_header->mode & S_IFMT) != S_IFLNK
+	) {
+		chmod(file_header->name, file_header->mode);
+	}
 
 	if (archive_handle->flags & ARCHIVE_PRESERVE_DATE) {
 		struct utimbuf t;
