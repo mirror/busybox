@@ -115,9 +115,9 @@ CPPFLAGS+= -D"KBUILD_STR(s)=\#s" #-Q
 
 HOSTCC = gcc
 CC = gcc
-
+WHOLE_PROGRAM:=$(call cc-option,-fwhole-program,)
 busybox: $(usage_stuff)
-	$(CC) $(CPPFLAGS) $(CFLAGS) $(CFLAGS_EXTRA) --combine -fwhole-program \
+	$(CC) $(CPPFLAGS) $(CFLAGS) $(EXTRA_CFLAGS) --combine $(WHOLE_PROGRAM) \
 		-funit-at-a-time -Wno-error -std=gnu99  \
 		-o $(@)_unstripped $(lib-all-y:.o=.c) \
 		-Wl,--start-group -lcrypt -lm -Wl,--end-group
