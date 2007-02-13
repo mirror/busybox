@@ -967,7 +967,7 @@ static int sendCgi(const char *url,
 	int pid = 0;
 	int inFd;
 	int outFd;
-	int firstLine = 1;
+	int buf_count;
 	int status;
 	size_t post_read_size, post_read_idx;
 
@@ -994,7 +994,7 @@ static int sendCgi(const char *url,
 		dup2(toCgi[0], 0);  // replace stdin with the pipe
 		dup2(fromCgi[1], 1);  // replace stdout with the pipe
 		/* Huh? User seeing stderr can be a security problem...
-		 * and if cgi really wants that, it can always dup2(1,2)...
+		 * and if CGI really wants that, it can always dup2(1,2)...
 		if (!DEBUG)
 			dup2(fromCgi[1], 2);  // replace stderr with the pipe
 		*/
@@ -1125,6 +1125,7 @@ static int sendCgi(const char *url,
 
 	/* parent process */
 
+	buf_count = 0;
 	post_read_size = 0;
 	post_read_idx = 0; /* for gcc */
 	inFd = fromCgi[0];
@@ -1162,10 +1163,11 @@ static int sendCgi(const char *url,
 		}
 
 		if (nfound <= 0) {
-			if (waitpid(pid, &status, WNOHANG) <= 0)
+			if (waitpid(pid, &status, WNOHANG) <= 0) {
 				/* Weird. CGI didn't exit and no fd's
-				 *  are ready, yet select returned?! */
+				 * are ready, yet select returned?! */
 				continue;
+			}
 			close(inFd);
 			if (DEBUG && WIFEXITED(status))
 				bb_error_msg("piped has exited with status=%d", WEXITSTATUS(status));
@@ -1190,7 +1192,7 @@ static int sendCgi(const char *url,
 		) {
 			/* We expect data, prev data portion is eaten by CGI
 			 * and there *is* data to read from the peer
-			 * (POST data?) */
+			 * (POSTDATA?) */
 			count = bodyLen > (int)sizeof(wbuf) ? (int)sizeof(wbuf) : bodyLen;
 			count = safe_read(config->accepted_socket, wbuf, count);
 			if (count > 0) {
@@ -1202,42 +1204,56 @@ static int sendCgi(const char *url,
 			}
 		}
 
-		if (FD_ISSET(inFd, &readSet)) {
-			/* There is something to read from CGI */
-			int s = config->accepted_socket;
-			char *rbuf = config->buf;
 #define PIPESIZE PIPE_BUF
 #if PIPESIZE >= MAX_MEMORY_BUFF
 # error "PIPESIZE >= MAX_MEMORY_BUFF"
 #endif
-			/* Must use safe_read, not full_read, because
-			 * cgi may output a few first lines and then wait
-			 * for POSTDATA without closing stdout.
-			 * With full_read we may wait here forever. */
-			count = safe_read(inFd, rbuf, PIPESIZE);
-			if (count == 0)
-				break;  /* closed */
-			if (count < 0)
-				continue; /* huh, error, why continue?? */
+		if (FD_ISSET(inFd, &readSet)) {
+			/* There is something to read from CGI */
+			int s = config->accepted_socket;
+			char *rbuf = config->buf;
 
-			if (firstLine) {
+			/* Are we still buffering CGI output? */
+			if (buf_count >= 0) {
 				static const char HTTP_200[] = "HTTP/1.0 200 OK\r\n\r\n";
-				rbuf[count] = '\0';
-				/* check to see if the user script added headers */
-				/* (NB: buggy wrt cgi splitting "HTTP OK") */
-				if (memcmp(rbuf, HTTP_200, 4) != 0) {
-					/* there is no "HTTP", do it ourself */
-					full_write(s, HTTP_200, sizeof(HTTP_200)-1);
+				/* Must use safe_read, not full_read, because
+				 * CGI may output a few first bytes and then wait
+				 * for POSTDATA without closing stdout.
+				 * With full_read we may wait here forever. */
+				count = safe_read(inFd, rbuf + buf_count, PIPESIZE - 4);
+				if (count <= 0) {
+					/* eof (or error) and there was no "HTTP",
+					 * so add one and write out the received data */
+					if (buf_count) {
+						full_write(s, HTTP_200, sizeof(HTTP_200)-1);
+						full_write(s, rbuf, buf_count);
+					}
+					break;  /* closed */
 				}
-				/* Example of valid GCI without "Content-type:"
-				 * echo -en "HTTP/1.0 302 Found\r\n"
-				 * echo -en "Location: http://www.busybox.net\r\n"
-				 * echo -en "\r\n"
-				if (!strstr(rbuf, "ontent-")) {
-					full_write(s, "Content-type: text/plain\r\n\r\n", 28);
+				buf_count += count;
+				count = 0;
+				if (buf_count >= 4) {
+					/* check to see if CGI added "HTTP" */
+					if (memcmp(rbuf, HTTP_200, 4) != 0) {
+						/* there is no "HTTP", do it ourself */
+						if (full_write(s, HTTP_200, sizeof(HTTP_200)-1) != sizeof(HTTP_200)-1)
+							break;
+					}
+					/* example of valid CGI without "Content-type:"
+					 * echo -en "HTTP/1.0 302 Found\r\n"
+					 * echo -en "Location: http://www.busybox.net\r\n"
+					 * echo -en "\r\n"
+					if (!strstr(rbuf, "ontent-")) {
+						full_write(s, "Content-type: text/plain\r\n\r\n", 28);
+					}
+					 */
+					count = buf_count;
+					buf_count = -1; /* buffering off */
 				}
-				 */
-				firstLine = 0;
+			} else {
+				count = safe_read(inFd, rbuf, PIPESIZE);
+				if (count <= 0)
+					break;  /* eof (or error) */
 			}
 			if (full_write(s, rbuf, count) != count)
 				break;
