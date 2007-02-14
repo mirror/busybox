@@ -269,46 +269,30 @@ config MDEV
 	bool "mdev"
 	default n
 	help
-	  mdev is a mini-udev implementation: call it with -s to populate
-	  /dev from /sys, then "echo /sbin/mdev > /proc/sys/kernel/hotplug" to
-	  have it handle hotplug events afterwards.  Device names are taken
-	  from sysfs.
+	  mdev is a mini-udev implementation for dynamically creating device
+	  nodes in the /dev directory.
+
+	  For more information, please see docs/mdev.txt
 
 config FEATURE_MDEV_CONF
 	bool "Support /etc/mdev.conf"
 	default n
 	depends on MDEV
 	help
-	  The mdev config file contains lines that look like:
+	  Add support for the mdev config file to control ownership and
+	  permissions of the device nodes.
 
-	    hd[a-z][0-9]* 0:3 660
-
-	  That's device name (with regex match), uid:gid, and permissions.
-
-	  Config file parsing stops on the first matching line.  If no config
-	  entry is matched, devices are created with default 0:0 660.  (Make
-	  the last line match .* to override this.)
+	  For more information, please see docs/mdev.txt
 
 config FEATURE_MDEV_EXEC
 	bool "Support command execution at device addition/removal"
 	default n
 	depends on FEATURE_MDEV_CONF
 	help
-	  This adds support for an optional field to /etc/mdev.conf, consisting
-	  of a special character and a command line to run after creating the
-	  corresponding device(s) and before removing, ala:
+	  This adds support for an optional field to /etc/mdev.conf for
+	  executing commands when devices are created/removed.
 
-	    hdc root:cdrom 660  *ln -s $MDEV cdrom
-
-	  The $MDEV environment variable is set to the name of the device.
-
-	  The special characters and their meanings are:
-	    @ Run after creating the device.
-	    $ Run before removing the device.
-	    * Run both after creating and before removing the device.
-
-	  Commands are executed via system() so you need /bin/sh, meaning you
-	  probably want to select a default shell in the Shells menu.
+	  For more information, please see docs/mdev.txt
 
 config MKSWAP
 	bool "mkswap"
