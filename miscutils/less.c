@@ -48,6 +48,8 @@ enum {
 	REAL_PAGE_DOWN = '6',
 	REAL_KEY_HOME = '7',
 	REAL_KEY_END = '8',
+	REAL_KEY_HOME_XTERM = 'H',
+	REAL_KEY_END_XTERM = 'F',
 
 /* These are the special codes assigned by this program to the special keys */
 	KEY_UP = 20,
@@ -196,6 +198,7 @@ static void read_lines(void)
 		terminated = 0;
 		while (1) {
 			char c;
+			/* if no unprocessed chars left, eat more */
 			if (readpos >= readeof) {
 				ndelay_on(0);
 				eof_error = safe_read(0, readbuf, sizeof(readbuf));
@@ -507,6 +510,8 @@ static void buffer_line(int linenum)
 	read_lines();
 	if (linenum + max_displayed_line > max_fline)
 		linenum = max_fline - max_displayed_line + TILDES;
+	if (linenum < 0)
+		linenum = 0;
 	cur_fline = linenum;
 	buffer_fill_and_print();
 }
@@ -607,6 +612,10 @@ static int less_getch(void)
 		i = input[2] - REAL_PAGE_UP;
 		if (i < 4)
 			return 24 + i;
+		if (input[2] == REAL_KEY_HOME_XTERM)
+			return KEY_HOME;
+		if (input[2] == REAL_KEY_END_XTERM)
+			return KEY_END;
 		return 0;
 	}
 	/* Reject almost all control chars */
@@ -735,20 +744,30 @@ static void colon_process(void)
 }
 
 #if ENABLE_FEATURE_LESS_REGEXP
-static int normalize_match_pos(int match)
+static void normalize_match_pos(int match)
 {
-	match_pos = match;
 	if (match >= num_matches)
-		match_pos = num_matches - 1;
+		match = num_matches - 1;
 	if (match < 0)
-		match_pos = 0;
-	return match_pos;
+		match = 0;
+	match_pos = match;
 }
 
 static void goto_match(int match)
 {
-	if (num_matches)
-		buffer_line(match_lines[normalize_match_pos(match)]);
+	if (!pattern_valid)
+		return;
+	if (match < 0)
+		match = 0;
+	/* Try to find next match if eof isn't reached yet */
+	if (match >= num_matches && eof_error > 0) {
+		cur_fline = MAXLINES; /* look as far as needed */
+		read_lines();
+	}
+	if (num_matches) {
+		normalize_match_pos(match);
+		buffer_line(match_lines[match_pos]);
+	}
 }
 
 static void fill_match_lines(unsigned pos)
@@ -817,7 +836,8 @@ static void regex_process(void)
 	}
 	if (option_mask32 & LESS_STATE_MATCH_BACKWARDS)
 		match_pos--;
-	buffer_line(match_lines[normalize_match_pos(match_pos)]);
+	normalize_match_pos(match_pos);
+	buffer_line(match_lines[match_pos]);
 }
 #endif
 
