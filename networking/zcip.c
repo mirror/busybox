@@ -113,12 +113,12 @@ static void arp(int fd, struct sockaddr *saddr, int op,
 	p.arp.arp_pln = 4;
 	p.arp.arp_op = htons(op);
 	memcpy(&p.arp.arp_sha, source_addr, ETH_ALEN);
-	memcpy(&p.arp.arp_spa, &source_ip, sizeof (p.arp.arp_spa));
+	memcpy(&p.arp.arp_spa, &source_ip, sizeof(p.arp.arp_spa));
 	memcpy(&p.arp.arp_tha, target_addr, ETH_ALEN);
-	memcpy(&p.arp.arp_tpa, &target_ip, sizeof (p.arp.arp_tpa));
+	memcpy(&p.arp.arp_tpa, &target_ip, sizeof(p.arp.arp_tpa));
 
 	// send it
-	if (sendto(fd, &p, sizeof (p), 0, saddr, sizeof (*saddr)) < 0) {
+	if (sendto(fd, &p, sizeof(p), 0, saddr, sizeof(*saddr)) < 0) {
 		bb_perror_msg("sendto");
 		//return -errno;
 	}
@@ -240,17 +240,17 @@ int zcip_main(int argc, char *argv[])
 		return EXIT_FAILURE;
 
 	// initialize saddr
-	//memset(&saddr, 0, sizeof (saddr));
-	safe_strncpy(saddr.sa_data, intf, sizeof (saddr.sa_data));
+	//memset(&saddr, 0, sizeof(saddr));
+	safe_strncpy(saddr.sa_data, intf, sizeof(saddr.sa_data));
 
 	// open an ARP socket
 	fd = xsocket(PF_PACKET, SOCK_PACKET, htons(ETH_P_ARP));
 	// bind to the interface's ARP socket
-	xbind(fd, &saddr, sizeof (saddr));
+	xbind(fd, &saddr, sizeof(saddr));
 
 	// get the interface's ethernet address
-	//memset(&ifr, 0, sizeof (ifr));
-	strncpy(ifr.ifr_name, intf, sizeof (ifr.ifr_name));
+	//memset(&ifr, 0, sizeof(ifr));
+	strncpy(ifr.ifr_name, intf, sizeof(ifr.ifr_name));
 	if (ioctl(fd, SIOCGIFHWADDR, &ifr) < 0) {
 		bb_perror_msg_and_die("get ethernet address");
 	}
@@ -271,8 +271,8 @@ int zcip_main(int argc, char *argv[])
 
 	// daemonize now; don't delay system startup
 	if (!FOREGROUND) {
-		setsid();
-		bb_daemonize();
+		/* bb_daemonize(); - bad, will close fd! */
+		xdaemon(0, 0);
 		bb_info_msg("start, interface %s", intf);
 	}
 
@@ -438,7 +438,7 @@ int zcip_main(int argc, char *argv[])
 			}
 
 			// read ARP packet
-			if (recv(fd, &p, sizeof (p), 0) < 0) {
+			if (recv(fd, &p, sizeof(p), 0) < 0) {
 				why = "recv";
 				goto bad;
 			}
