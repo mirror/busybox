@@ -3054,7 +3054,6 @@
        "System logging utility.\n" \
        "Note that this version of syslogd ignores /etc/syslog.conf." \
        "\n\nOptions:" \
-       "\n	-m MIN		Minutes between MARK lines (default=20, 0=off)" \
        "\n	-n		Run as foreground process" \
        "\n	-O FILE		Use an alternate log file (default=/var/log/messages)" \
        "\n	-l n		Sets the local log level of messages to n" \
@@ -3068,6 +3067,7 @@
 	USE_FEATURE_IPC_SYSLOG( \
        "\n	-C[size(KiB)]	Log to a shared mem buffer (read the buffer using logread)")
 	/* NB: -Csize shouldn't have space (because size is optional) */
+/*       "\n	-m MIN		Minutes between MARK lines (default=20, 0=off)" */
 #define syslogd_example_usage \
        "$ syslogd -R masterlog:514\n" \
        "$ syslogd -R 192.168.1.1:601\n"

@@ -28,8 +28,13 @@
 static const char *logFilePath = "/var/log/messages";
 static int logFD = -1;
 
+/* This is not very useful, is bloat, and broken:
+ * can deadlock if alarmed to make MARK while writing to IPC buffer
+ * (semaphores are down but do_mark routine tries to down them again) */
+#ifdef SYSLOGD_MARK
 /* interval between marks in seconds */
 static int markInterval = 20 * 60;
+#endif
 
 /* level of messages to be locally logged */
 static int logLevel = 8;
@@ -448,6 +453,7 @@ static void quit_signal(int sig)
 	exit(1);
 }
 
+#ifdef SYSLOGD_MARK
 static void do_mark(int sig)
 {
 	if (markInterval) {
@@ -455,6 +461,7 @@ static void do_mark(int sig)
 		alarm(markInterval);
 	}
 }
+#endif
 
 static void do_syslogd(void) ATTRIBUTE_NORETURN;
 static void do_syslogd(void)
@@ -473,8 +480,10 @@ static void do_syslogd(void)
 #ifdef SIGCLD
 	signal(SIGCLD, SIG_IGN);
 #endif
+#ifdef SYSLOGD_MARK
 	signal(SIGALRM, do_mark);
 	alarm(markInterval);
+#endif
 
 	memset(&sunx, 0, sizeof(sunx));
 	sunx.sun_family = AF_UNIX;
@@ -558,8 +567,10 @@ int syslogd_main(int argc, char **argv)
 	/* do normal option parsing */
 	opt_complementary = "=0"; /* no non-option params */
 	getopt32(argc, argv, OPTION_STR, OPTION_PARAM);
+#ifdef SYSLOGD_MARK
 	if (option_mask32 & OPT_mark) // -m
 		markInterval = xatou_range(opt_m, 0, INT_MAX/60) * 60;
+#endif
 	//if (option_mask32 & OPT_nofork) // -n
 	//if (option_mask32 & OPT_outfile) // -O
 	if (option_mask32 & OPT_loglevel) // -l
