@@ -1586,21 +1586,19 @@ int dpkg_main(int argc, char **argv)
 		OPT_purge = 0x10,
 		OPT_remove = 0x20,
 		OPT_unpack = 0x40,
-		REQ_package_name = 0x8000,
-		REQ_filename = 0x4000,
 	};
 
 	opt = getopt32(argc, argv, "CF:ilPru", &str_f);
-	if (opt & OPT_configure) opt |= REQ_package_name; // -C
+	//if (opt & OPT_configure) ... // -C
 	if (opt & OPT_force_ignore_depends) { // -F (--force in official dpkg)
 		if (strcmp(str_f, "depends"))
 			opt &= ~OPT_force_ignore_depends;
 	}
-	if (opt & OPT_install) opt |= REQ_filename; // -i
+	//if (opt & OPT_install) ... // -i
 	//if (opt & OPT_list_installed) ... // -l
-	if (opt & OPT_purge) opt |= REQ_package_name; // -P
-	if (opt & OPT_remove) opt |= REQ_package_name; // -r
-	if (opt & OPT_unpack) opt |= REQ_filename; // -u (--unpack in official dpkg)
+	//if (opt & OPT_purge) ... // -P
+	//if (opt & OPT_remove) ... // -r
+	//if (opt & OPT_unpack) ... // -u (--unpack in official dpkg)
 	argc -= optind;
 	argv += optind;
 	/* check for non-option argument if expected  */
@@ -1623,9 +1621,10 @@ int dpkg_main(int argc, char **argv)
 	/* Read arguments and store relevant info in structs */
 	while (*argv) {
 		/* deb_count = nb_elem - 1 and we need nb_elem + 1 to allocate terminal node [NULL pointer] */
-		deb_file = xrealloc(deb_file, sizeof(deb_file_t *) * (deb_count + 2));
-		deb_file[deb_count] = xzalloc(sizeof(deb_file_t));
-		if (opt & REQ_filename) {
+		deb_file = xrealloc(deb_file, sizeof(deb_file[0]) * (deb_count + 2));
+		deb_file[deb_count] = xzalloc(sizeof(deb_file[0][0]));
+		if (opt & (OPT_install | OPT_unpack)) {
+			/* -i/-u: require filename */
 			archive_handle_t *archive_handle;
 			llist_t *control_list = NULL;
 
@@ -1648,7 +1647,7 @@ int dpkg_main(int argc, char **argv)
 			deb_file[deb_count]->package = (unsigned) package_num;
 
 			/* Add the package to the status hashtable */
-			if (opt & (OPT_unpack|OPT_install)) {
+			if (opt & (OPT_unpack | OPT_install)) {
 				/* Try and find a currently installed version of this package */
 				status_num = search_status_hashtable(name_hashtable[package_hashtable[deb_file[deb_count]->package]->name]);
 				/* If no previous entry was found initialise a new entry */
@@ -1666,8 +1665,8 @@ int dpkg_main(int argc, char **argv)
 					set_status(status_num, "reinstreq", 2);
 				}
 			}
-		}
-		else if (opt & REQ_package_name) {
+		} else if (opt & (OPT_configure | OPT_purge | OPT_remove)) {
+			/* -C/-p/-r: require package name */
 			deb_file[deb_count]->package = search_package_hashtable(
 					search_name_hashtable(argv[0]),
 					search_name_hashtable("ANY"), VER_ANY);
@@ -1686,8 +1685,7 @@ int dpkg_main(int argc, char **argv)
 					bb_error_msg_and_die("%s is already removed", name_hashtable[package_hashtable[package_num]->name]);
 				}
 				set_status(status_num, "deinstall", 1);
-			}
-			else if (opt & OPT_purge) {
+			} else if (opt & OPT_purge) {
 				/* if package status is "conf-files" then its ok */
 				if (strcmp(name_hashtable[state_status], "not-installed") == 0) {
 					bb_error_msg_and_die("%s is already purged", name_hashtable[package_hashtable[package_num]->name]);
@@ -1698,6 +1696,8 @@ int dpkg_main(int argc, char **argv)
 		deb_count++;
 		argv++;
 	}
+	if (!deb_count)
+		bb_error_msg_and_die("no package files specified");
 	deb_file[deb_count] = NULL;
 
 	/* Check that the deb file arguments are installable */
