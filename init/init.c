@@ -577,7 +577,7 @@ static int waitfor(const struct init_action *a, pid_t pid)
 
 	runpid = (NULL == a)? pid : run(a);
 	while (1) {
-		wpid = waitpid(runpid,&status,0);
+		wpid = waitpid(runpid, &status, 0);
 		if (wpid == runpid)
 			break;
 		if (wpid == -1 && errno == ECHILD) {
@@ -793,7 +793,7 @@ static void new_init_action(int action, const char *command, const char *cons)
 		/* don't enter action if it's already in the list,
 		 * but do overwrite existing actions */
 		if ((strcmp(a->command, command) == 0) &&
-		    (strcmp(a->terminal, cons) ==0)) {
+		    (strcmp(a->terminal, cons) == 0)) {
 			a->action = action;
 			free(new_action);
 			return;
@@ -855,7 +855,7 @@ static void parse_inittab(void)
 		/* Umount all filesystems on halt/reboot */
 		new_init_action(SHUTDOWN, "umount -a -r", "");
 		/* Swapoff on halt/reboot */
-		if(ENABLE_SWAPONOFF) new_init_action(SHUTDOWN, "swapoff -a", "");
+		if (ENABLE_SWAPONOFF) new_init_action(SHUTDOWN, "swapoff -a", "");
 		/* Prepare to restart init when a HUP is received */
 		new_init_action(RESTART, "init", "");
 		/* Askfirst shell on tty1-4 */
@@ -879,6 +879,7 @@ static void parse_inittab(void)
 			continue;
 
 		/* Trim the trailing \n */
+		//XXX: chomp() ?
 		eol = strrchr(id, '\n');
 		if (eol != NULL)
 			*eol = '\0';
