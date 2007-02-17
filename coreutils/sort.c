@@ -276,7 +276,8 @@ int sort_main(int argc, char **argv)
 {
 	FILE *fp, *outfile = stdout;
 	char *line, **lines = NULL;
-	char *str_ignored, *str_o, *str_k, *str_t;
+	char *str_ignored, *str_o, *str_t;
+	llist_t *lst_k = NULL;
 	int i, flag;
 	int linecount = 0;
 
@@ -284,8 +285,9 @@ int sort_main(int argc, char **argv)
 
 	/* Parse command line options */
 	/* -o and -t can be given at most once */
-	opt_complementary = "?:o--o:t--t";
-	getopt32(argc, argv, OPT_STR, &str_ignored, &str_ignored, &str_o, &str_k, &str_t);
+	opt_complementary = "?:o--o:t--t:" /* -t, -o: maximum one of each */
+			"k::"; /* -k takes list */
+	getopt32(argc, argv, OPT_STR, &str_ignored, &str_ignored, &str_o, &lst_k, &str_t);
 #if ENABLE_FEATURE_SORT_BIG
 	if (option_mask32 & FLAG_o) outfile = xfopen(str_o, "w");
 	if (option_mask32 & FLAG_t) {
@@ -294,7 +296,8 @@ int sort_main(int argc, char **argv)
 		key_separator = str_t[0];
 	}
 	/* parse sort key */
-	if (option_mask32 & FLAG_k) {
+	lst_k = llist_rev(lst_k);
+	while (lst_k) {
 		enum {
 			FLAG_allowed_for_k =
 				FLAG_n | /* Numeric sort */
@@ -308,6 +311,7 @@ int sort_main(int argc, char **argv)
 			0
 		};
 		struct sort_key *key = add_key();
+		char *str_k = lst_k->data;
 		const char *temp2;
 
 		i = 0; /* i==0 before comma, 1 after (-k3,6) */
@@ -337,6 +341,8 @@ int sort_main(int argc, char **argv)
 				str_k++;
 			}
 		}
+		/* leaking lst_k... */
+		lst_k = lst_k->link;
 	}
 #endif
 	/* global b strips leading and trailing spaces */

@@ -66,6 +66,16 @@ testing "sort key range with multiple options" "sort -k2,3rn input" \
 egg	1	2	papyrus
 " "$data" ""
 
+testing "sort key range with two -k options" "sort -k 2,2n -k 1,1r input" "\
+d 2
+b 2
+c 3
+" "\
+c 3
+b 2
+d 2
+" ""
+
 testing "sort with non-default leading delim 1" "sort -n -k2 -t/ input" "\
 /a/2
 /b/1

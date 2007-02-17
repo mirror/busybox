@@ -864,7 +864,7 @@ int tar_main(int argc, char **argv)
 		llist_add_to(&tar_handle->accept, argv[optind]);
 		optind++;
 	}
-	tar_handle->accept = rev_llist(tar_handle->accept);
+	tar_handle->accept = llist_rev(tar_handle->accept);
 
 	if (tar_handle->accept || tar_handle->reject)
 		tar_handle->filter = filter_accept_reject_list;
