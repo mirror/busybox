@@ -38,7 +38,7 @@ int setconsole_main(int argc, char **argv)
 		device = argv[optind];
 	} else {
 		if (flags & OPT_SETCONS_RESET)
-			device = CONSOLE_DEV;
+			device = DEV_CONSOLE;
 	}
 
 	if (-1 == ioctl(xopen(device, O_RDONLY), TIOCCONS)) {

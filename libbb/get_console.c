@@ -8,13 +8,8 @@
  * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  */
 
-#include <stdio.h>
-#include <errno.h>
-#include <fcntl.h>
-#include <unistd.h>
 #include <sys/ioctl.h>
 #include "libbb.h"
-
 
 
 /* From <linux/kd.h> */
@@ -47,18 +42,18 @@ static int open_a_console(const char *fnam)
 
 int get_console_fd(void)
 {
-	int fd;
-
-	static const char * const choise_console_names[] = {
-		CONSOLE_DEV, CURRENT_VC, CURRENT_TTY
+	static const char *const console_names[] = {
+		DEV_CONSOLE, CURRENT_VC, CURRENT_TTY
 	};
+
+	int fd;
 
 	for (fd = 2; fd >= 0; fd--) {
 		int fd4name;
 		int choise_fd;
 		char arg;
 
-		fd4name = open_a_console(choise_console_names[fd]);
+		fd4name = open_a_console(console_names[fd]);
  chk_std:
 		choise_fd = (fd4name >= 0 ? fd4name : fd);
 

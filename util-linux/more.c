@@ -57,8 +57,10 @@ int more_main(int argc, char **argv)
 	/* use input from terminal unless we do "more >outfile" */
 	if (isatty(STDOUT_FILENO)) {
 		cin = fopen(CURRENT_TTY, "r");
+		/* Huh? why not just fail if "/dev/tty" isn't available?
+		 * If user has no ctty, it's his own problem */
 		if (!cin)
-			cin = xfopen(CONSOLE_DEV, "r");
+			cin = xfopen(DEV_CONSOLE, "r");
 		please_display_more_prompt = 2;
 #if ENABLE_FEATURE_USE_TERMIOS
 		cin_fileno = fileno(cin);

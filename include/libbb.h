@@ -846,7 +846,7 @@ extern const char bb_default_login_shell[];
 
 /* The following devices are the same on devfs and non-devfs systems.  */
 #define CURRENT_TTY "/dev/tty"
-#define CONSOLE_DEV "/dev/console"
+#define DEV_CONSOLE "/dev/console"
 
 
 #ifndef RB_POWER_OFF
