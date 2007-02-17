@@ -271,6 +271,7 @@ extern void xdaemon(int nochdir, int noclose);
 /* More clever/thorough xdaemon */
 extern void bb_sanitize_stdio_maybe_daemonize(int daemonize);
 extern void bb_sanitize_stdio(void);
+/* NB: be careful: dont open syslog/network sockets before bb_daemonize */
 extern void bb_daemonize(void);
 extern void xchdir(const char *path);
 extern void xsetenv(const char *key, const char *value);

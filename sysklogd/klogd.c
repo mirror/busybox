@@ -32,12 +32,12 @@ static void klogd_signal(int sig ATTRIBUTE_UNUSED)
 #define OPT_LEVEL        1
 #define OPT_FOREGROUND   2
 
-#define KLOGD_LOGBUF_SIZE 4096
+#define KLOGD_LOGBUF_SIZE BUFSIZ
+#define log_buffer bb_common_bufsiz1
 
 int klogd_main(int argc, char **argv);
 int klogd_main(int argc, char **argv)
 {
-	RESERVE_CONFIG_BUFFER(log_buffer, KLOGD_LOGBUF_SIZE);
 	int i = i; /* silence gcc */
 	char *start;
 
@@ -53,7 +53,7 @@ int klogd_main(int argc, char **argv)
 #ifdef BB_NOMMU
 		vfork_daemon_rexec(0, 1, argc, argv, "-n");
 #else
-		xdaemon(0, 1);
+		bb_daemonize();
 #endif
 	}
 
@@ -68,35 +68,34 @@ int klogd_main(int argc, char **argv)
 	/* "Open the log. Currently a NOP." */
 	klogctl(1, NULL, 0);
 
-	/* Set level of kernel console messaging.. */
+	/* Set level of kernel console messaging. */
 	if (option_mask32 & OPT_LEVEL)
 		klogctl(8, NULL, i);
 
 	syslog(LOG_NOTICE, "klogd started: %s", BB_BANNER);
 
+	/* Note: this code does not detect incomplete messages
+	 * (messages not ending with '\n' or just when kernel
+	 * generates too many messages for us to keep up)
+	 * and will split them in two separate lines */
 	while (1) {
 		int n;
 		int priority;
-		char lastc;
 
-		/* Use kernel syscalls */
-		memset(log_buffer, '\0', KLOGD_LOGBUF_SIZE);
-		/* It will be null-terminted */
 		n = klogctl(2, log_buffer, KLOGD_LOGBUF_SIZE - 1);
 		if (n < 0) {
 			if (errno == EINTR)
 				continue;
 			syslog(LOG_ERR, "klogd: error from klogctl(2): %d - %m",
-				   errno);
+					errno);
 			break;
 		}
-
-		/* klogctl buffer parsing modelled after code in dmesg.c */
-		start = &log_buffer[0];
-		lastc = '\0';
-		priority = LOG_INFO;
-		for (i = 0; i < n; i++) {
-			if (lastc == '\0' && log_buffer[i] == '<') {
+		log_buffer[n] = '\n';
+		i = 0;
+		while (i < n) {
+			priority = LOG_INFO;
+			start = &log_buffer[i];
+			if (log_buffer[i] == '<') {
 				i++;
 				// kernel never ganerates multi-digit prios
 				//priority = 0;
@@ -112,17 +111,13 @@ int klogd_main(int argc, char **argv)
 					i++;
 				start = &log_buffer[i];
 			}
-			if (log_buffer[i] == '\n') {
-				log_buffer[i] = '\0';	/* zero terminate this message */
-				syslog(priority, "%s", start);
-				start = &log_buffer[i + 1];
-				priority = LOG_INFO;
-			}
-			lastc = log_buffer[i];
+			while (log_buffer[i] != '\n')
+				i++;
+			log_buffer[i] = '\0';
+			syslog(priority, "%s", start);
+			i++;
 		}
 	}
-	if (ENABLE_FEATURE_CLEAN_UP)
-		RELEASE_CONFIG_BUFFER(log_buffer);
 
 	return EXIT_FAILURE;
 }
