@@ -553,7 +553,7 @@ int runsv_main(int argc, char **argv)
 				svd[0].pid = 0;
 				pidchanged = 1;
 				svd[0].ctrl &=~C_TERM;
-				if (svd[0].state != S_FINISH)
+				if (svd[0].state != S_FINISH) {
 					fd = open_read("finish");
 					if (fd != -1) {
 						close(fd);
@@ -561,6 +561,7 @@ int runsv_main(int argc, char **argv)
 						update_status(&svd[0]);
 						continue;
 					}
+				}
 				svd[0].state = S_DOWN;
 				taia_uint(&deadline, 1);
 				taia_add(&deadline, &svd[0].start, &deadline);
