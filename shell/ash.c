@@ -342,120 +342,120 @@ struct backcmd {                /* result of evalbackcmd */
 
 
 struct ncmd {
-      int type;
-      union node *assign;
-      union node *args;
-      union node *redirect;
+	int type;
+	union node *assign;
+	union node *args;
+	union node *redirect;
 };
 
 
 struct npipe {
-      int type;
-      int backgnd;
-      struct nodelist *cmdlist;
+	int type;
+	int backgnd;
+	struct nodelist *cmdlist;
 };
 
 
 struct nredir {
-      int type;
-      union node *n;
-      union node *redirect;
+	int type;
+	union node *n;
+	union node *redirect;
 };
 
 
 struct nbinary {
-      int type;
-      union node *ch1;
-      union node *ch2;
+	int type;
+	union node *ch1;
+	union node *ch2;
 };
 
 
 struct nif {
-      int type;
-      union node *test;
-      union node *ifpart;
-      union node *elsepart;
+	int type;
+	union node *test;
+	union node *ifpart;
+	union node *elsepart;
 };
 
 
 struct nfor {
-      int type;
-      union node *args;
-      union node *body;
-      char *var;
+	int type;
+	union node *args;
+	union node *body;
+	char *var;
 };
 
 
 struct ncase {
-      int type;
-      union node *expr;
-      union node *cases;
+	int type;
+	union node *expr;
+	union node *cases;
 };
 
 
 struct nclist {
-      int type;
-      union node *next;
-      union node *pattern;
-      union node *body;
+	int type;
+	union node *next;
+	union node *pattern;
+	union node *body;
 };
 
 
 struct narg {
-      int type;
-      union node *next;
-      char *text;
-      struct nodelist *backquote;
+	int type;
+	union node *next;
+	char *text;
+	struct nodelist *backquote;
 };
 
 
 struct nfile {
-      int type;
-      union node *next;
-      int fd;
-      union node *fname;
-      char *expfname;
+	int type;
+	union node *next;
+	int fd;
+	union node *fname;
+	char *expfname;
 };
 
 
 struct ndup {
-      int type;
-      union node *next;
-      int fd;
-      int dupfd;
-      union node *vname;
+	int type;
+	union node *next;
+	int fd;
+	int dupfd;
+	union node *vname;
 };
 
 
 struct nhere {
-      int type;
-      union node *next;
-      int fd;
-      union node *doc;
+	int type;
+	union node *next;
+	int fd;
+	union node *doc;
 };
 
 
 struct nnot {
-      int type;
-      union node *com;
+	int type;
+	union node *com;
 };
 
 
 union node {
-      int type;
-      struct ncmd ncmd;
-      struct npipe npipe;
-      struct nredir nredir;
-      struct nbinary nbinary;
-      struct nif nif;
-      struct nfor nfor;
-      struct ncase ncase;
-      struct nclist nclist;
-      struct narg narg;
-      struct nfile nfile;
-      struct ndup ndup;
-      struct nhere nhere;
-      struct nnot nnot;
+	int type;
+	struct ncmd ncmd;
+	struct npipe npipe;
+	struct nredir nredir;
+	struct nbinary nbinary;
+	struct nif nif;
+	struct nfor nfor;
+	struct ncase ncase;
+	struct nclist nclist;
+	struct narg narg;
+	struct nfile nfile;
+	struct ndup ndup;
+	struct nhere nhere;
+	struct nnot nnot;
 };
 
 
@@ -732,7 +732,7 @@ static const char *tokname(int tok)
  * (assuming ascii char codes, as the original implementation did)
  */
 #define is_special(c) \
-    ( (((unsigned int)c) - 33 < 32) \
+	( (((unsigned int)c) - 33 < 32) \
 			 && ((0xc1ff920dUL >> (((unsigned int)c) - 33)) & 1))
 
 #define digit_val(c)    ((c) - '0')
@@ -1154,32 +1154,32 @@ static pointer funcblock;              /* block to allocate function from */
 static char   *funcstring;             /* block to allocate strings from */
 
 static const short nodesize[26] = {
-      SHELL_ALIGN(sizeof (struct ncmd)),
-      SHELL_ALIGN(sizeof (struct npipe)),
-      SHELL_ALIGN(sizeof (struct nredir)),
-      SHELL_ALIGN(sizeof (struct nredir)),
-      SHELL_ALIGN(sizeof (struct nredir)),
-      SHELL_ALIGN(sizeof (struct nbinary)),
-      SHELL_ALIGN(sizeof (struct nbinary)),
-      SHELL_ALIGN(sizeof (struct nbinary)),
-      SHELL_ALIGN(sizeof (struct nif)),
-      SHELL_ALIGN(sizeof (struct nbinary)),
-      SHELL_ALIGN(sizeof (struct nbinary)),
-      SHELL_ALIGN(sizeof (struct nfor)),
-      SHELL_ALIGN(sizeof (struct ncase)),
-      SHELL_ALIGN(sizeof (struct nclist)),
-      SHELL_ALIGN(sizeof (struct narg)),
-      SHELL_ALIGN(sizeof (struct narg)),
-      SHELL_ALIGN(sizeof (struct nfile)),
-      SHELL_ALIGN(sizeof (struct nfile)),
-      SHELL_ALIGN(sizeof (struct nfile)),
-      SHELL_ALIGN(sizeof (struct nfile)),
-      SHELL_ALIGN(sizeof (struct nfile)),
-      SHELL_ALIGN(sizeof (struct ndup)),
-      SHELL_ALIGN(sizeof (struct ndup)),
-      SHELL_ALIGN(sizeof (struct nhere)),
-      SHELL_ALIGN(sizeof (struct nhere)),
-      SHELL_ALIGN(sizeof (struct nnot)),
+	SHELL_ALIGN(sizeof(struct ncmd)),
+	SHELL_ALIGN(sizeof(struct npipe)),
+	SHELL_ALIGN(sizeof(struct nredir)),
+	SHELL_ALIGN(sizeof(struct nredir)),
+	SHELL_ALIGN(sizeof(struct nredir)),
+	SHELL_ALIGN(sizeof(struct nbinary)),
+	SHELL_ALIGN(sizeof(struct nbinary)),
+	SHELL_ALIGN(sizeof(struct nbinary)),
+	SHELL_ALIGN(sizeof(struct nif)),
+	SHELL_ALIGN(sizeof(struct nbinary)),
+	SHELL_ALIGN(sizeof(struct nbinary)),
+	SHELL_ALIGN(sizeof(struct nfor)),
+	SHELL_ALIGN(sizeof(struct ncase)),
+	SHELL_ALIGN(sizeof(struct nclist)),
+	SHELL_ALIGN(sizeof(struct narg)),
+	SHELL_ALIGN(sizeof(struct narg)),
+	SHELL_ALIGN(sizeof(struct nfile)),
+	SHELL_ALIGN(sizeof(struct nfile)),
+	SHELL_ALIGN(sizeof(struct nfile)),
+	SHELL_ALIGN(sizeof(struct nfile)),
+	SHELL_ALIGN(sizeof(struct nfile)),
+	SHELL_ALIGN(sizeof(struct ndup)),
+	SHELL_ALIGN(sizeof(struct ndup)),
+	SHELL_ALIGN(sizeof(struct nhere)),
+	SHELL_ALIGN(sizeof(struct nhere)),
+	SHELL_ALIGN(sizeof(struct nnot)),
 };
 
 
@@ -1402,8 +1402,7 @@ struct cmdentry {
 
 static const char *pathopt;     /* set by padvance */
 
-static void shellexec(char **, const char *, int)
-    ATTRIBUTE_NORETURN;
+static void shellexec(char **, const char *, int) ATTRIBUTE_NORETURN;
 static char *padvance(const char **, const char *);
 static void find_command(char *, struct cmdentry *, int, const char *);
 static struct builtincmd *find_builtin(const char *);
@@ -1619,9 +1618,9 @@ static void outcslow(int, FILE *);
 static void flushall(void);
 static void flusherr(void);
 static int  out1fmt(const char *, ...)
-    __attribute__((__format__(__printf__,1,2)));
+	__attribute__((__format__(__printf__,1,2)));
 static int fmtstr(char *, size_t, const char *, ...)
-    __attribute__((__format__(__printf__,3,4)));
+	__attribute__((__format__(__printf__,3,4)));
 
 static int preverrout_fd;   /* save fd2 before print debug if xflag is set. */
 
@@ -1672,40 +1671,40 @@ static void initvar(void)
 static void init(void)
 {
 
-      /* from input.c: */
-      {
-	      basepf.nextc = basepf.buf = basebuf;
-      }
+	/* from input.c: */
+	{
+		basepf.nextc = basepf.buf = basebuf;
+	}
 
-      /* from trap.c: */
-      {
-	      signal(SIGCHLD, SIG_DFL);
-      }
+	/* from trap.c: */
+	{
+		signal(SIGCHLD, SIG_DFL);
+	}
 
-      /* from var.c: */
-      {
-	      char **envp;
-	      char ppid[32];
-	      const char *p;
-	      struct stat st1, st2;
+	/* from var.c: */
+	{
+		char **envp;
+		char ppid[32];
+		const char *p;
+		struct stat st1, st2;
 
-	      initvar();
-	      for (envp = environ ; envp && *envp ; envp++) {
-		      if (strchr(*envp, '=')) {
-			      setvareq(*envp, VEXPORT|VTEXTFIXED);
-		      }
-	      }
+		initvar();
+		for (envp = environ ; envp && *envp ; envp++) {
+			if (strchr(*envp, '=')) {
+				setvareq(*envp, VEXPORT|VTEXTFIXED);
+			}
+		}
 
-	      snprintf(ppid, sizeof(ppid), "%d", (int) getppid());
-	      setvar("PPID", ppid, 0);
+		snprintf(ppid, sizeof(ppid), "%d", (int) getppid());
+		setvar("PPID", ppid, 0);
 
-	      p = lookupvar("PWD");
-	      if (p)
-	      if (*p != '/' || stat(p, &st1) || stat(".", &st2) ||
-		  st1.st_dev != st2.st_dev || st1.st_ino != st2.st_ino)
-		      p = 0;
-	      setpwd(p, 0);
-      }
+		p = lookupvar("PWD");
+		if (p)
+			if (*p != '/' || stat(p, &st1) || stat(".", &st2)
+			 || st1.st_dev != st2.st_dev || st1.st_ino != st2.st_ino)
+				p = 0;
+		setpwd(p, 0);
+	}
 }
 
 /* PEOF (the end of file marker) */
@@ -2070,29 +2069,28 @@ static int is_safe_applet(char *name)
 static void
 reset(void)
 {
-      /* from eval.c: */
-      {
-	      evalskip = 0;
-	      loopnest = 0;
-      }
+	/* from eval.c: */
+	{
+		evalskip = 0;
+		loopnest = 0;
+	}
 
-      /* from input.c: */
-      {
-	      parselleft = parsenleft = 0;      /* clear input buffer */
-	      popallfiles();
-      }
+	/* from input.c: */
+	{
+		parselleft = parsenleft = 0;      /* clear input buffer */
+		popallfiles();
+	}
 
-      /* from parser.c: */
-      {
-	      tokpushback = 0;
-	      checkkwd = 0;
-      }
+	/* from parser.c: */
+	{
+		tokpushback = 0;
+		checkkwd = 0;
+	}
 
-      /* from redir.c: */
-      {
-	      clearredir(0);
-      }
-
+	/* from redir.c: */
+	{
+		clearredir(0);
+	}
 }
 
 #ifdef CONFIG_ASH_ALIAS
@@ -2118,7 +2116,7 @@ setalias(const char *name, const char *val)
 		ap->flag &= ~ALIASDEAD;
 	} else {
 		/* not found */
-		ap = ckmalloc(sizeof (struct alias));
+		ap = ckmalloc(sizeof(struct alias));
 		ap->name = savestr(name);
 		ap->val = savestr(val);
 		ap->flag = 0;
@@ -2534,8 +2532,7 @@ setpwd(const char *val, int setold)
 
 
 
-static void exverror(int, const char *, va_list)
-    ATTRIBUTE_NORETURN;
+static void exverror(int, const char *, va_list) ATTRIBUTE_NORETURN;
 
 /*
  * Called to raise an exception.  Since C doesn't include exceptions, we
@@ -2670,7 +2667,7 @@ sh_warnx(const char *fmt, ...)
 static const char *
 errmsg(int e, const char *em)
 {
-	if(e == ENOENT || e == ENOTDIR) {
+	if (e == ENOENT || e == ENOTDIR) {
 
 		return em;
 	}
@@ -2792,7 +2789,7 @@ evaltree(union node *n, int flags)
 		goto out;
 	}
 	TRACE(("pid %d, evaltree(%p: %d, %d) called\n",
-	    getpid(), n, n->type, flags));
+			getpid(), n, n->type, flags));
 	switch (n->type) {
 	default:
 #if DEBUG
@@ -3297,7 +3294,7 @@ evalcommand(union node *cmd, int flags)
 			argc++;
 	}
 
-	argv = nargv = stalloc(sizeof (char *) * (argc + 1));
+	argv = nargv = stalloc(sizeof(char *) * (argc + 1));
 	for (sp = arglist.list ; sp ; sp = sp->next) {
 		TRACE(("evalcommand arg: %s\n", sp->text));
 		*nargv++ = sp->text;
@@ -3338,11 +3335,11 @@ evalcommand(union node *cmd, int flags)
 		dprintf(preverrout_fd, p, expandstr(ps4val()));
 
 		sp = varlist.list;
-		for(n = 0; n < 2; n++) {
+		for (n = 0; n < 2; n++) {
 			while (sp) {
 				dprintf(preverrout_fd, p, sp->text);
 				sp = sp->next;
-				if(*p == '%') {
+				if (*p == '%') {
 					p--;
 				}
 			}
@@ -3563,10 +3560,8 @@ prehash(union node *n)
 {
 	struct cmdentry entry;
 
-	if (n->type == NCMD && n->ncmd.args)
-		if (goodname(n->ncmd.args->narg.text))
-			find_command(n->ncmd.args->narg.text, &entry, 0,
-				     pathval());
+	if (n->type == NCMD && n->ncmd.args && goodname(n->ncmd.args->narg.text))
+		find_command(n->ncmd.args->narg.text, &entry, 0, pathval());
 }
 
 
@@ -4211,7 +4206,8 @@ clearcmdentry(int firstchange)
 			if ((cmdp->cmdtype == CMDNORMAL &&
 			     cmdp->param.index >= firstchange)
 			 || (cmdp->cmdtype == CMDBUILTIN &&
-			     builtinloc >= firstchange)) {
+			     builtinloc >= firstchange)
+			) {
 				*pp = cmdp->next;
 				ckfree(cmdp);
 			} else {
@@ -4257,7 +4253,7 @@ cmdlookup(const char *name, int add)
 		pp = &cmdp->next;
 	}
 	if (add && cmdp == NULL) {
-		cmdp = *pp = ckmalloc(sizeof (struct tblentry) - ARB
+		cmdp = *pp = ckmalloc(sizeof(struct tblentry) - ARB
 					+ strlen(name) + 1);
 		cmdp->next = NULL;
 		cmdp->cmdtype = CMDUNKNOWN;
@@ -4351,8 +4347,8 @@ unsetfunc(const char *name)
 {
 	struct tblentry *cmdp;
 
-	if ((cmdp = cmdlookup(name, 0)) != NULL &&
-	    cmdp->cmdtype == CMDFUNCTION)
+	cmdp = cmdlookup(name, 0);
+	if (cmdp!= NULL && cmdp->cmdtype == CMDFUNCTION)
 		delete_cmd_entry();
 }
 
@@ -4641,7 +4637,7 @@ expandarg(union node *arg, struct arglist *arglist, int flag)
 	} else {
 		if (flag & EXP_REDIR) /*XXX - for now, just remove escapes */
 			rmescapes(p);
-		sp = (struct strlist *)stalloc(sizeof (struct strlist));
+		sp = (struct strlist *)stalloc(sizeof(struct strlist));
 		sp->text = p;
 		*exparg.lastp = sp;
 		exparg.lastp = &sp->next;
@@ -4985,7 +4981,7 @@ expbackq(union node *cmd, int quoted, int quotes)
 read:
 		if (in.fd < 0)
 			break;
-		i = safe_read(in.fd, buf, sizeof buf);
+		i = safe_read(in.fd, buf, sizeof(buf));
 		TRACE(("expbackq: read returns %d\n", i));
 		if (i <= 0)
 			break;
@@ -5202,8 +5198,7 @@ vsplus:
 
 	if (subtype == VSASSIGN || subtype == VSQUESTION) {
 		if (varlen < 0) {
-			if (subevalvar(p, var, 0, subtype, startloc,
-				       varflags, 0)) {
+			if (subevalvar(p, var, 0, subtype, startloc, varflags, 0)) {
 				varflags &= ~VSNUL;
 				/*
 				 * Remove any recorded regions beyond
@@ -5255,7 +5250,7 @@ record:
 		STPUTC('\0', expdest);
 		patloc = expdest - (char *)stackblock();
 		if (subevalvar(p, NULL, patloc, subtype,
-			       startloc, varflags, quotes) == 0) {
+				startloc, varflags, quotes) == 0) {
 			int amount = expdest - (
 				(char *)stackblock() + patloc - 1
 			);
@@ -5450,7 +5445,7 @@ recordregion(int start, int end, int nulonly)
 		ifsp = &ifsfirst;
 	} else {
 		INTOFF;
-		ifsp = (struct ifsregion *)ckmalloc(sizeof (struct ifsregion));
+		ifsp = (struct ifsregion *)ckmalloc(sizeof(struct ifsregion));
 		ifsp->next = NULL;
 		ifslastp->next = ifsp;
 		INTON;
@@ -5505,7 +5500,7 @@ ifsbreakup(char *string, struct arglist *arglist)
 						continue;
 					}
 					*q = '\0';
-					sp = (struct strlist *)stalloc(sizeof *sp);
+					sp = (struct strlist *)stalloc(sizeof(*sp));
 					sp->text = start;
 					*arglist->lastp = sp;
 					arglist->lastp = &sp->next;
@@ -5546,7 +5541,7 @@ ifsbreakup(char *string, struct arglist *arglist)
 		return;
 
 add:
-	sp = (struct strlist *)stalloc(sizeof *sp);
+	sp = (struct strlist *)stalloc(sizeof(*sp));
 	sp->text = start;
 	*arglist->lastp = sp;
 	arglist->lastp = &sp->next;
@@ -5636,7 +5631,7 @@ addfname(const char *name)
 {
 	struct strlist *sp;
 
-	sp = (struct strlist *)stalloc(sizeof *sp);
+	sp = (struct strlist *)stalloc(sizeof(*sp));
 	sp->text = sstrdup(name);
 	*exparg.lastp = sp;
 	exparg.lastp = &sp->next;
@@ -5743,8 +5738,7 @@ out:
 				scopy(dp->d_name, enddir);
 				addfname(expdir);
 			} else {
-				for (p = enddir, cp = dp->d_name;
-				     (*p++ = *cp++) != '\0';)
+				for (p = enddir, cp = dp->d_name; (*p++ = *cp++) != '\0';)
 					continue;
 				p[-1] = '/';
 				expmeta(p, endname);
@@ -6226,7 +6220,7 @@ pushstring(char *s, void *ap)
 	INTOFF;
 /*dprintf("*** calling pushstring: %s, %d\n", s, len);*/
 	if (parsefile->strpush) {
-		sp = ckmalloc(sizeof (struct strpush));
+		sp = ckmalloc(sizeof(struct strpush));
 		sp->prev = parsefile->strpush;
 		parsefile->strpush = sp;
 	} else
@@ -6357,7 +6351,7 @@ pushfile(void)
 	parsefile->lleft = parselleft;
 	parsefile->nextc = parsenextc;
 	parsefile->linno = plinno;
-	pf = (struct parsefile *)ckmalloc(sizeof (struct parsefile));
+	pf = (struct parsefile *)ckmalloc(sizeof(struct parsefile));
 	pf->prev = parsefile;
 	pf->fd = -1;
 	pf->strpush = NULL;
@@ -7102,10 +7096,10 @@ makejob(union node *node, int nprocs)
 	jp->used = 1;
 	jp->ps = &jp->ps0;
 	if (nprocs > 1) {
-		jp->ps = ckmalloc(nprocs * sizeof (struct procstat));
+		jp->ps = ckmalloc(nprocs * sizeof(struct procstat));
 	}
 	TRACE(("makejob(0x%lx, %d) returns %%%d\n", (long)node, nprocs,
-	    jobno(jp)));
+				jobno(jp)));
 	return jp;
 }
 
@@ -7397,7 +7391,9 @@ dowait(int block, struct job *job)
 		sp = jp->ps;
 		do {
 			if (sp->pid == pid) {
-				TRACE(("Job %d: changing status of proc %d from 0x%x to 0x%x\n", jobno(jp), pid, sp->status, status));
+				TRACE(("Job %d: changing status of proc %d "
+					"from 0x%x to 0x%x\n",
+					jobno(jp), pid, sp->status, status));
 				sp->status = status;
 				thisjob = jp;
 			}
@@ -7427,7 +7423,8 @@ gotjob:
 		thisjob->changed = 1;
 
 		if (thisjob->state != state) {
-			TRACE(("Job %d: changing state from %d to %d\n", jobno(thisjob), thisjob->state, state));
+			TRACE(("Job %d: changing state from %d to %d\n",
+				jobno(thisjob), thisjob->state, state));
 			thisjob->state = state;
 #if JOBS
 			if (state == JOBSTOPPED) {
@@ -7913,7 +7910,7 @@ int ash_main(int argc, char **argv)
 #endif
 
 #if PROFILE
-	monitor(4, etext, profile_buf, sizeof profile_buf, 50);
+	monitor(4, etext, profile_buf, sizeof(profile_buf), 50);
 #endif
 
 #if ENABLE_FEATURE_EDITING
@@ -7966,7 +7963,7 @@ int ash_main(int argc, char **argv)
 
 		if (hp == NULL) {
 			hp = lookupvar("HOME");
-			if(hp != NULL) {
+			if (hp != NULL) {
 				char *defhp = concat_path_file(hp, ".ash_history");
 				setvar("HISTFILE", defhp, 0);
 				free(defhp);
@@ -8584,79 +8581,79 @@ sstrdup(const char *p)
 static void
 calcsize(union node *n)
 {
-      if (n == NULL)
-	    return;
-      funcblocksize += nodesize[n->type];
-      switch (n->type) {
-      case NCMD:
-	    calcsize(n->ncmd.redirect);
-	    calcsize(n->ncmd.args);
-	    calcsize(n->ncmd.assign);
-	    break;
-      case NPIPE:
-	    sizenodelist(n->npipe.cmdlist);
-	    break;
-      case NREDIR:
-      case NBACKGND:
-      case NSUBSHELL:
-	    calcsize(n->nredir.redirect);
-	    calcsize(n->nredir.n);
-	    break;
-      case NAND:
-      case NOR:
-      case NSEMI:
-      case NWHILE:
-      case NUNTIL:
-	    calcsize(n->nbinary.ch2);
-	    calcsize(n->nbinary.ch1);
-	    break;
-      case NIF:
-	    calcsize(n->nif.elsepart);
-	    calcsize(n->nif.ifpart);
-	    calcsize(n->nif.test);
-	    break;
-      case NFOR:
-	    funcstringsize += strlen(n->nfor.var) + 1;
-	    calcsize(n->nfor.body);
-	    calcsize(n->nfor.args);
-	    break;
-      case NCASE:
-	    calcsize(n->ncase.cases);
-	    calcsize(n->ncase.expr);
-	    break;
-      case NCLIST:
-	    calcsize(n->nclist.body);
-	    calcsize(n->nclist.pattern);
-	    calcsize(n->nclist.next);
-	    break;
-      case NDEFUN:
-      case NARG:
-	    sizenodelist(n->narg.backquote);
-	    funcstringsize += strlen(n->narg.text) + 1;
-	    calcsize(n->narg.next);
-	    break;
-      case NTO:
-      case NCLOBBER:
-      case NFROM:
-      case NFROMTO:
-      case NAPPEND:
-	    calcsize(n->nfile.fname);
-	    calcsize(n->nfile.next);
-	    break;
-      case NTOFD:
-      case NFROMFD:
-	    calcsize(n->ndup.vname);
-	    calcsize(n->ndup.next);
-	    break;
-      case NHERE:
-      case NXHERE:
-	    calcsize(n->nhere.doc);
-	    calcsize(n->nhere.next);
-	    break;
-      case NNOT:
-	    calcsize(n->nnot.com);
-	    break;
-      };
+	if (n == NULL)
+		return;
+	funcblocksize += nodesize[n->type];
+	switch (n->type) {
+	case NCMD:
+		calcsize(n->ncmd.redirect);
+		calcsize(n->ncmd.args);
+		calcsize(n->ncmd.assign);
+		break;
+	case NPIPE:
+		sizenodelist(n->npipe.cmdlist);
+		break;
+	case NREDIR:
+	case NBACKGND:
+	case NSUBSHELL:
+		calcsize(n->nredir.redirect);
+		calcsize(n->nredir.n);
+		break;
+	case NAND:
+	case NOR:
+	case NSEMI:
+	case NWHILE:
+	case NUNTIL:
+		calcsize(n->nbinary.ch2);
+		calcsize(n->nbinary.ch1);
+		break;
+	case NIF:
+		calcsize(n->nif.elsepart);
+		calcsize(n->nif.ifpart);
+		calcsize(n->nif.test);
+		break;
+	case NFOR:
+		funcstringsize += strlen(n->nfor.var) + 1;
+		calcsize(n->nfor.body);
+		calcsize(n->nfor.args);
+		break;
+	case NCASE:
+		calcsize(n->ncase.cases);
+		calcsize(n->ncase.expr);
+		break;
+	case NCLIST:
+		calcsize(n->nclist.body);
+		calcsize(n->nclist.pattern);
+		calcsize(n->nclist.next);
+		break;
+	case NDEFUN:
+	case NARG:
+		sizenodelist(n->narg.backquote);
+		funcstringsize += strlen(n->narg.text) + 1;
+		calcsize(n->narg.next);
+		break;
+	case NTO:
+	case NCLOBBER:
+	case NFROM:
+	case NFROMTO:
+	case NAPPEND:
+		calcsize(n->nfile.fname);
+		calcsize(n->nfile.next);
+		break;
+	case NTOFD:
+	case NFROMFD:
+		calcsize(n->ndup.vname);
+		calcsize(n->ndup.next);
+	break;
+	case NHERE:
+	case NXHERE:
+		calcsize(n->nhere.doc);
+		calcsize(n->nhere.next);
+		break;
+	case NNOT:
+		calcsize(n->nnot.com);
+		break;
+	};
 }
 
 
@@ -8674,88 +8671,89 @@ sizenodelist(struct nodelist *lp)
 static union node *
 copynode(union node *n)
 {
-      union node *new;
+	union node *new;
 
-      if (n == NULL)
-	    return NULL;
-      new = funcblock;
-      funcblock = (char *) funcblock + nodesize[n->type];
-      switch (n->type) {
-      case NCMD:
-	    new->ncmd.redirect = copynode(n->ncmd.redirect);
-	    new->ncmd.args = copynode(n->ncmd.args);
-	    new->ncmd.assign = copynode(n->ncmd.assign);
-	    break;
-      case NPIPE:
-	    new->npipe.cmdlist = copynodelist(n->npipe.cmdlist);
-	    new->npipe.backgnd = n->npipe.backgnd;
-	    break;
-      case NREDIR:
-      case NBACKGND:
-      case NSUBSHELL:
-	    new->nredir.redirect = copynode(n->nredir.redirect);
-	    new->nredir.n = copynode(n->nredir.n);
-	    break;
-      case NAND:
-      case NOR:
-      case NSEMI:
-      case NWHILE:
-      case NUNTIL:
-	    new->nbinary.ch2 = copynode(n->nbinary.ch2);
-	    new->nbinary.ch1 = copynode(n->nbinary.ch1);
-	    break;
-      case NIF:
-	    new->nif.elsepart = copynode(n->nif.elsepart);
-	    new->nif.ifpart = copynode(n->nif.ifpart);
-	    new->nif.test = copynode(n->nif.test);
-	    break;
-      case NFOR:
-	    new->nfor.var = nodesavestr(n->nfor.var);
-	    new->nfor.body = copynode(n->nfor.body);
-	    new->nfor.args = copynode(n->nfor.args);
-	    break;
-      case NCASE:
-	    new->ncase.cases = copynode(n->ncase.cases);
-	    new->ncase.expr = copynode(n->ncase.expr);
-	    break;
-      case NCLIST:
-	    new->nclist.body = copynode(n->nclist.body);
-	    new->nclist.pattern = copynode(n->nclist.pattern);
-	    new->nclist.next = copynode(n->nclist.next);
-	    break;
-      case NDEFUN:
-      case NARG:
-	    new->narg.backquote = copynodelist(n->narg.backquote);
-	    new->narg.text = nodesavestr(n->narg.text);
-	    new->narg.next = copynode(n->narg.next);
-	    break;
-      case NTO:
-      case NCLOBBER:
-      case NFROM:
-      case NFROMTO:
-      case NAPPEND:
-	    new->nfile.fname = copynode(n->nfile.fname);
-	    new->nfile.fd = n->nfile.fd;
-	    new->nfile.next = copynode(n->nfile.next);
-	    break;
-      case NTOFD:
-      case NFROMFD:
-	    new->ndup.vname = copynode(n->ndup.vname);
-	    new->ndup.dupfd = n->ndup.dupfd;
-	    new->ndup.fd = n->ndup.fd;
-	    new->ndup.next = copynode(n->ndup.next);
-	    break;
-      case NHERE:
-      case NXHERE:
-	    new->nhere.doc = copynode(n->nhere.doc);
-	    new->nhere.fd = n->nhere.fd;
-	    new->nhere.next = copynode(n->nhere.next);
-	    break;
-      case NNOT:
-	    new->nnot.com = copynode(n->nnot.com);
-	    break;
-      };
-      new->type = n->type;
+	if (n == NULL)
+		return NULL;
+	new = funcblock;
+	funcblock = (char *) funcblock + nodesize[n->type];
+
+	switch (n->type) {
+	case NCMD:
+		new->ncmd.redirect = copynode(n->ncmd.redirect);
+		new->ncmd.args = copynode(n->ncmd.args);
+		new->ncmd.assign = copynode(n->ncmd.assign);
+		break;
+	case NPIPE:
+		new->npipe.cmdlist = copynodelist(n->npipe.cmdlist);
+		new->npipe.backgnd = n->npipe.backgnd;
+		break;
+	case NREDIR:
+	case NBACKGND:
+	case NSUBSHELL:
+		new->nredir.redirect = copynode(n->nredir.redirect);
+		new->nredir.n = copynode(n->nredir.n);
+		break;
+	case NAND:
+	case NOR:
+	case NSEMI:
+	case NWHILE:
+	case NUNTIL:
+		new->nbinary.ch2 = copynode(n->nbinary.ch2);
+		new->nbinary.ch1 = copynode(n->nbinary.ch1);
+		break;
+	case NIF:
+		new->nif.elsepart = copynode(n->nif.elsepart);
+		new->nif.ifpart = copynode(n->nif.ifpart);
+		new->nif.test = copynode(n->nif.test);
+		break;
+	case NFOR:
+		new->nfor.var = nodesavestr(n->nfor.var);
+		new->nfor.body = copynode(n->nfor.body);
+		new->nfor.args = copynode(n->nfor.args);
+		break;
+	case NCASE:
+		new->ncase.cases = copynode(n->ncase.cases);
+		new->ncase.expr = copynode(n->ncase.expr);
+		break;
+	case NCLIST:
+		new->nclist.body = copynode(n->nclist.body);
+		new->nclist.pattern = copynode(n->nclist.pattern);
+		new->nclist.next = copynode(n->nclist.next);
+		break;
+	case NDEFUN:
+	case NARG:
+		new->narg.backquote = copynodelist(n->narg.backquote);
+		new->narg.text = nodesavestr(n->narg.text);
+		new->narg.next = copynode(n->narg.next);
+		break;
+	case NTO:
+	case NCLOBBER:
+	case NFROM:
+	case NFROMTO:
+	case NAPPEND:
+		new->nfile.fname = copynode(n->nfile.fname);
+		new->nfile.fd = n->nfile.fd;
+		new->nfile.next = copynode(n->nfile.next);
+		break;
+	case NTOFD:
+	case NFROMFD:
+		new->ndup.vname = copynode(n->ndup.vname);
+		new->ndup.dupfd = n->ndup.dupfd;
+		new->ndup.fd = n->ndup.fd;
+		new->ndup.next = copynode(n->ndup.next);
+		break;
+	case NHERE:
+	case NXHERE:
+		new->nhere.doc = copynode(n->nhere.doc);
+		new->nhere.fd = n->nhere.fd;
+		new->nhere.next = copynode(n->nhere.next);
+		break;
+	case NNOT:
+		new->nnot.com = copynode(n->nnot.com);
+		break;
+	};
+	new->type = n->type;
 	return new;
 }
 
@@ -8769,8 +8767,7 @@ copynodelist(struct nodelist *lp)
 	lpp = &start;
 	while (lp) {
 		*lpp = funcblock;
-		funcblock = (char *) funcblock +
-		    SHELL_ALIGN(sizeof(struct nodelist));
+		funcblock = (char *) funcblock + SHELL_ALIGN(sizeof(struct nodelist));
 		(*lpp)->n = copynode(lp->n);
 		lp = lp->next;
 		lpp = &(*lpp)->next;
@@ -8981,7 +8978,7 @@ setparam(char **argv)
 	int nparam;
 
 	for (nparam = 0 ; argv[nparam] ; nparam++);
-	ap = newparam = ckmalloc((nparam + 1) * sizeof *ap);
+	ap = newparam = ckmalloc((nparam + 1) * sizeof(*ap));
 	while (*argv) {
 		*ap++ = savestr(*argv++);
 	}
@@ -9096,7 +9093,7 @@ static void change_lc_ctype(const char *value)
 /* Roughly copied from bash.. */
 static void change_random(const char *value)
 {
-	if(value == NULL) {
+	if (value == NULL) {
 		/* "get", generate */
 		char buf[16];
 
@@ -9124,7 +9121,7 @@ getopts(char *optstr, char *optvar, char **optfirst, int *param_optind, int *opt
 	char s[12];
 	char **optnext;
 
-	if(*param_optind < 1)
+	if (*param_optind < 1)
 		return 1;
 	optnext = optfirst + *param_optind - 1;
 
@@ -9233,7 +9230,7 @@ getoptscmd(int argc, char **argv)
 	}
 
 	return getopts(argv[1], argv[2], optbase, &shellparam.optind,
-		       &shellparam.optoff);
+			&shellparam.optoff);
 }
 #endif /* CONFIG_ASH_GETOPTS */
 
@@ -9446,7 +9443,7 @@ list(int nlflag)
 			n1 = n2;
 		}
 		else {
-			n3 = (union node *)stalloc(sizeof (struct nbinary));
+			n3 = (union node *)stalloc(sizeof(struct nbinary));
 			n3->type = NSEMI;
 			n3->nbinary.ch1 = n1;
 			n3->nbinary.ch2 = n2;
@@ -9504,7 +9501,7 @@ andor(void)
 		}
 		checkkwd = CHKNL | CHKKWD | CHKALIAS;
 		n2 = pipeline();
-		n3 = (union node *)stalloc(sizeof (struct nbinary));
+		n3 = (union node *)stalloc(sizeof(struct nbinary));
 		n3->type = t;
 		n3->nbinary.ch1 = n1;
 		n3->nbinary.ch2 = n2;
@@ -9530,15 +9527,15 @@ pipeline(void)
 		tokpushback++;
 	n1 = command();
 	if (readtoken() == TPIPE) {
-		pipenode = (union node *)stalloc(sizeof (struct npipe));
+		pipenode = (union node *)stalloc(sizeof(struct npipe));
 		pipenode->type = NPIPE;
 		pipenode->npipe.backgnd = 0;
-		lp = (struct nodelist *)stalloc(sizeof (struct nodelist));
+		lp = (struct nodelist *)stalloc(sizeof(struct nodelist));
 		pipenode->npipe.cmdlist = lp;
 		lp->n = n1;
 		do {
 			prev = lp;
-			lp = (struct nodelist *)stalloc(sizeof (struct nodelist));
+			lp = (struct nodelist *)stalloc(sizeof(struct nodelist));
 			checkkwd = CHKNL | CHKKWD | CHKALIAS;
 			lp->n = command();
 			prev->next = lp;
@@ -9548,7 +9545,7 @@ pipeline(void)
 	}
 	tokpushback++;
 	if (negate) {
-		n2 = (union node *)stalloc(sizeof (struct nnot));
+		n2 = (union node *)stalloc(sizeof(struct nnot));
 		n2->type = NNOT;
 		n2->nnot.com = n1;
 		return n2;
@@ -9576,7 +9573,7 @@ command(void)
 		synexpect(-1);
 		/* NOTREACHED */
 	case TIF:
-		n1 = (union node *)stalloc(sizeof (struct nif));
+		n1 = (union node *)stalloc(sizeof(struct nif));
 		n1->type = NIF;
 		n1->nif.test = list(0);
 		if (readtoken() != TTHEN)
@@ -9584,7 +9581,7 @@ command(void)
 		n1->nif.ifpart = list(0);
 		n2 = n1;
 		while (readtoken() == TELIF) {
-			n2->nif.elsepart = (union node *)stalloc(sizeof (struct nif));
+			n2->nif.elsepart = (union node *)stalloc(sizeof(struct nif));
 			n2 = n2->nif.elsepart;
 			n2->type = NIF;
 			n2->nif.test = list(0);
@@ -9603,7 +9600,7 @@ command(void)
 	case TWHILE:
 	case TUNTIL: {
 		int got;
-		n1 = (union node *)stalloc(sizeof (struct nbinary));
+		n1 = (union node *)stalloc(sizeof(struct nbinary));
 		n1->type = (lasttoken == TWHILE)? NWHILE : NUNTIL;
 		n1->nbinary.ch1 = list(0);
 		if ((got=readtoken()) != TDO) {
@@ -9617,14 +9614,14 @@ TRACE(("expecting DO got %s %s\n", tokname(got), got == TWORD ? wordtext : ""));
 	case TFOR:
 		if (readtoken() != TWORD || quoteflag || ! goodname(wordtext))
 			synerror("Bad for loop variable");
-		n1 = (union node *)stalloc(sizeof (struct nfor));
+		n1 = (union node *)stalloc(sizeof(struct nfor));
 		n1->type = NFOR;
 		n1->nfor.var = wordtext;
 		checkkwd = CHKKWD | CHKALIAS;
 		if (readtoken() == TIN) {
 			app = &ap;
 			while (readtoken() == TWORD) {
-				n2 = (union node *)stalloc(sizeof (struct narg));
+				n2 = (union node *)stalloc(sizeof(struct narg));
 				n2->type = NARG;
 				n2->narg.text = wordtext;
 				n2->narg.backquote = backquotelist;
@@ -9636,7 +9633,7 @@ TRACE(("expecting DO got %s %s\n", tokname(got), got == TWORD ? wordtext : ""));
 			if (lasttoken != TNL && lasttoken != TSEMI)
 				synexpect(-1);
 		} else {
-			n2 = (union node *)stalloc(sizeof (struct narg));
+			n2 = (union node *)stalloc(sizeof(struct narg));
 			n2->type = NARG;
 			n2->narg.text = (char *)dolatstr;
 			n2->narg.backquote = NULL;
@@ -9656,11 +9653,11 @@ TRACE(("expecting DO got %s %s\n", tokname(got), got == TWORD ? wordtext : ""));
 		t = TDONE;
 		break;
 	case TCASE:
-		n1 = (union node *)stalloc(sizeof (struct ncase));
+		n1 = (union node *)stalloc(sizeof(struct ncase));
 		n1->type = NCASE;
 		if (readtoken() != TWORD)
 			synexpect(TWORD);
-		n1->ncase.expr = n2 = (union node *)stalloc(sizeof (struct narg));
+		n1->ncase.expr = n2 = (union node *)stalloc(sizeof(struct narg));
 		n2->type = NARG;
 		n2->narg.text = wordtext;
 		n2->narg.backquote = backquotelist;
@@ -9674,14 +9671,14 @@ TRACE(("expecting DO got %s %s\n", tokname(got), got == TWORD ? wordtext : ""));
 next_case:
 		checkkwd = CHKNL | CHKKWD;
 		t = readtoken();
-		while(t != TESAC) {
+		while (t != TESAC) {
 			if (lasttoken == TLP)
 				readtoken();
-			*cpp = cp = (union node *)stalloc(sizeof (struct nclist));
+			*cpp = cp = (union node *)stalloc(sizeof(struct nclist));
 			cp->type = NCLIST;
 			app = &cp->nclist.pattern;
 			for (;;) {
-				*app = ap = (union node *)stalloc(sizeof (struct narg));
+				*app = ap = (union node *)stalloc(sizeof(struct narg));
 				ap->type = NARG;
 				ap->narg.text = wordtext;
 				ap->narg.backquote = backquotelist;
@@ -9708,7 +9705,7 @@ next_case:
 		*cpp = NULL;
 		goto redir;
 	case TLP:
-		n1 = (union node *)stalloc(sizeof (struct nredir));
+		n1 = (union node *)stalloc(sizeof(struct nredir));
 		n1->type = NSUBSHELL;
 		n1->nredir.n = list(0);
 		n1->nredir.redirect = NULL;
@@ -9740,7 +9737,7 @@ redir:
 	*rpp = NULL;
 	if (redir) {
 		if (n1->type != NSUBSHELL) {
-			n2 = (union node *)stalloc(sizeof (struct nredir));
+			n2 = (union node *)stalloc(sizeof(struct nredir));
 			n2->type = NREDIR;
 			n2->nredir.n = n1;
 			n1 = n2;
@@ -9772,7 +9769,7 @@ simplecmd(void) {
 		checkkwd = savecheckkwd;
 		switch (readtoken()) {
 		case TWORD:
-			n = (union node *)stalloc(sizeof (struct narg));
+			n = (union node *)stalloc(sizeof(struct narg));
 			n->type = NARG;
 			n->narg.text = wordtext;
 			n->narg.backquote = backquotelist;
@@ -9824,7 +9821,7 @@ out:
 	*app = NULL;
 	*vpp = NULL;
 	*rpp = NULL;
-	n = (union node *)stalloc(sizeof (struct ncmd));
+	n = (union node *)stalloc(sizeof(struct ncmd));
 	n->type = NCMD;
 	n->ncmd.args = args;
 	n->ncmd.assign = vars;
@@ -9837,7 +9834,7 @@ makename(void)
 {
 	union node *n;
 
-	n = (union node *)stalloc(sizeof (struct narg));
+	n = (union node *)stalloc(sizeof(struct narg));
 	n->type = NARG;
 	n->narg.next = NULL;
 	n->narg.text = wordtext;
@@ -9918,7 +9915,7 @@ parseheredoc(void)
 		}
 		readtoken1(pgetc(), here->here->type == NHERE? SQSYNTAX : DQSYNTAX,
 				here->eofmark, here->striptabs);
-		n = (union node *)stalloc(sizeof (struct narg));
+		n = (union node *)stalloc(sizeof(struct narg));
 		n->narg.type = NARG;
 		n->narg.next = NULL;
 		n->narg.text = wordtext;
@@ -9993,9 +9990,9 @@ out:
 	checkkwd = 0;
 #if DEBUG
 	if (!alreadyseen)
-	    TRACE(("token %s %s\n", tokname(t), t == TWORD ? wordtext : ""));
+		TRACE(("token %s %s\n", tokname(t), t == TWORD ? wordtext : ""));
 	else
-	    TRACE(("reread token %s %s\n", tokname(t), t == TWORD ? wordtext : ""));
+		TRACE(("reread token %s %s\n", tokname(t), t == TWORD ? wordtext : ""));
 #endif
 	return t;
 }
@@ -10283,7 +10280,7 @@ readtoken1(int firstc, int syntax, char *eofmark, int striptabs)
 				break;
 			case CSQUOTE:
 				syntax = SQSYNTAX;
-quotemark:
+ quotemark:
 				if (eofmark == NULL) {
 					USTPUTC(CTLQUOTEMARK, out);
 				}
@@ -10293,8 +10290,9 @@ quotemark:
 				dblquote = 1;
 				goto quotemark;
 			case CENDQUOTE:
-				if (eofmark != NULL && arinest == 0 &&
-				    varnest == 0) {
+				if (eofmark != NULL && arinest == 0
+				 && varnest == 0
+				) {
 					USTPUTC(c, out);
 				} else {
 					if (dqvarnest == 0) {
@@ -10369,7 +10367,7 @@ quotemark:
 			c = pgetc_macro();
 		}
 	}
-endword:
+ endword:
 #ifdef CONFIG_ASH_MATH_SUPPORT
 	if (syntax == ARISYNTAX)
 		synerror("Missing '))'");
@@ -10399,7 +10397,8 @@ endword:
 	backquotelist = bqlist;
 	grabstackblock(len);
 	wordtext = out;
-	return lasttoken = TWORD;
+	lasttoken = TWORD;
+	return lasttoken;
 /* end of readtoken routine */
 
 
@@ -10423,7 +10422,7 @@ checkend: {
 			}
 		}
 		if (c == *eofmark) {
-			if (pfgets(line, sizeof line) != NULL) {
+			if (pfgets(line, sizeof(line)) != NULL) {
 				char *p, *q;
 
 				p = line;
@@ -10452,7 +10451,7 @@ parseredir: {
 	char fd = *out;
 	union node *np;
 
-	np = (union node *)stalloc(sizeof (struct nfile));
+	np = (union node *)stalloc(sizeof(struct nfile));
 	if (c == '>') {
 		np->nfile.fd = 1;
 		c = pgetc();
@@ -10470,12 +10469,12 @@ parseredir: {
 		np->nfile.fd = 0;
 		switch (c = pgetc()) {
 		case '<':
-			if (sizeof (struct nfile) != sizeof (struct nhere)) {
-				np = (union node *)stalloc(sizeof (struct nhere));
+			if (sizeof(struct nfile) != sizeof(struct nhere)) {
+				np = (union node *)stalloc(sizeof(struct nhere));
 				np->nfile.fd = 0;
 			}
 			np->type = NHERE;
-			heredoc = (struct heredoc *)stalloc(sizeof (struct heredoc));
+			heredoc = (struct heredoc *)stalloc(sizeof(struct heredoc));
 			heredoc->here = np;
 			if ((c = pgetc()) == '-') {
 				heredoc->striptabs = 1;
@@ -10562,13 +10561,11 @@ parsesub: {
 				STPUTC(c, out);
 				c = pgetc();
 			} while (is_digit(c));
-		}
-		else if (is_special(c)) {
+		} else if (is_special(c)) {
 			USTPUTC(c, out);
 			c = pgetc();
-		}
-		else
-badsub:                 synerror("Bad substitution");
+		} else
+ badsub:		synerror("Bad substitution");
 
 		STPUTC('=', out);
 		flags = 0;
@@ -10589,7 +10586,7 @@ badsub:                 synerror("Bad substitution");
 				{
 					int cc = c;
 					subtype = c == '#' ? VSTRIMLEFT :
-							     VSTRIMRIGHT;
+					                     VSTRIMRIGHT;
 					c = pgetc();
 					if (c == cc)
 						subtype++;
@@ -10686,7 +10683,7 @@ parsebackq: {
 					continue;
 				}
 				if (pc != '\\' && pc != '`' && pc != '$'
-				    && (!dblquote || pc != '"'))
+				 && (!dblquote || pc != '"'))
 					STPUTC('\\', pout);
 				if (pc > PEOA_OR_PEOF) {
 					break;
@@ -10721,7 +10718,7 @@ done:
 	nlpp = &bqlist;
 	while (*nlpp)
 		nlpp = &(*nlpp)->next;
-	*nlpp = (struct nodelist *)stalloc(sizeof (struct nodelist));
+	*nlpp = (struct nodelist *)stalloc(sizeof(struct nodelist));
 	(*nlpp)->next = NULL;
 	parsebackquote = oldstyle;
 
@@ -10776,7 +10773,6 @@ done:
  * Parse an arithmetic expansion (indicate start of one and set state)
  */
 parsearith: {
-
 	if (++arinest == 1) {
 		prevsyntax = syntax;
 		syntax = ARISYNTAX;
@@ -10835,10 +10831,10 @@ endofname(const char *name)
 	char *p;
 
 	p = (char *) name;
-	if (! is_name(*p))
+	if (!is_name(*p))
 		return p;
 	while (*++p) {
-		if (! is_in_name(*p))
+		if (!is_in_name(*p))
 			break;
 	}
 	return p;
@@ -10930,8 +10926,8 @@ static void setprompt(int whichprompt)
 static const char *const *findkwd(const char *s)
 {
 	return bsearch(s, tokname_array + KWDOFFSET,
-		       (sizeof(tokname_array) / sizeof(const char *)) - KWDOFFSET,
-				   sizeof(const char *), pstrcmp);
+			(sizeof(tokname_array) / sizeof(const char *)) - KWDOFFSET,
+			sizeof(const char *), pstrcmp);
 }
 
 /*      redir.c      */
@@ -10994,8 +10990,8 @@ static int noclobberopen(const char *fname)
 	 * revealed that it was a regular file, and the file has not been
 	 * replaced, return the file descriptor.
 	 */
-	 if (fstat(fd, &finfo2) == 0 && !S_ISREG(finfo2.st_mode) &&
-	     finfo.st_dev == finfo2.st_dev && finfo.st_ino == finfo2.st_ino)
+	if (fstat(fd, &finfo2) == 0 && !S_ISREG(finfo2.st_mode)
+	 && finfo.st_dev == finfo2.st_dev && finfo.st_ino == finfo2.st_ino)
 		return fd;
 
 	/* The file has been replaced.  badness. */
@@ -11145,7 +11141,7 @@ redirect(union node *redir, int flags)
 	INTOFF;
 	if (flags & REDIR_PUSH) {
 		struct redirtab *q;
-		q = ckmalloc(sizeof (struct redirtab));
+		q = ckmalloc(sizeof(struct redirtab));
 		q->next = redirlist;
 		redirlist = q;
 		q->nullredirs = nullredirs - 1;
@@ -11157,8 +11153,8 @@ redirect(union node *redir, int flags)
 	n = redir;
 	do {
 		fd = n->nfile.fd;
-		if ((n->nfile.type == NTOFD || n->nfile.type == NFROMFD) &&
-		    n->ndup.dupfd == fd)
+		if ((n->nfile.type == NTOFD || n->nfile.type == NFROMFD)
+		 && n->ndup.dupfd == fd)
 			continue; /* redirect from/to same file descriptor */
 
 		newfd = openredirect(n);
@@ -11458,8 +11454,8 @@ sharg(union node *arg, FILE *fp)
 			}
 			break;
 		case CTLENDVAR:
-		     putc('}', fp);
-		     break;
+			putc('}', fp);
+			break;
 		case CTLBACKQ:
 		case CTLBACKQ|CTLQUOTE:
 			putc('$', fp);
@@ -11776,8 +11772,9 @@ setsignal(int signo)
 			return;
 		}
 		if (act.sa_handler == SIG_IGN) {
-			if (mflag && (signo == SIGTSTP ||
-			     signo == SIGTTIN || signo == SIGTTOU)) {
+			if (mflag && (signo == SIGTSTP || signo == SIGTTIN
+			              || signo == SIGTTOU)
+			) {
 				tsig = S_IGN;   /* don't hard ignore these */
 			} else
 				tsig = S_HARD_IGN;
@@ -11887,11 +11884,11 @@ setinteractive(int on)
 	setsignal(SIGQUIT);
 	setsignal(SIGTERM);
 #if !ENABLE_FEATURE_SH_EXTRA_QUIET
-		if(is_interactive > 1) {
+		if (is_interactive > 1) {
 			/* Looks like they want an interactive shell */
 			static int do_banner;
 
-				if(!do_banner) {
+				if (!do_banner) {
 					out1fmt(
 			"\n\n%s Built-in shell (ash)\n"
 			"Enter 'help' for a list of built-in commands.\n\n",
@@ -12083,7 +12080,7 @@ setvareq(char *s, int flags)
 		if (flags & VNOSET)
 			return;
 		/* not found */
-		vp = ckmalloc(sizeof (*vp));
+		vp = ckmalloc(sizeof(*vp));
 		vp->next = *vpp;
 		vp->func = NULL;
 		*vpp = vp;
@@ -12131,10 +12128,10 @@ lookupvar(const char *name)
 	 * As soon as they're unset, they're no longer dynamic, and dynamic
 	 * lookup will no longer happen at that point. -- PFM.
 	 */
-		if((v->flags & VDYNAMIC))
+		if ((v->flags & VDYNAMIC))
 			(*v->func)(NULL);
 #endif
-		if(!(v->flags & VUNSET))
+		if (!(v->flags & VUNSET))
 			return strchrnul(v->text, '=') + 1;
 	}
 
@@ -12275,7 +12272,7 @@ static void mklocal(char *name)
 	struct var *vp;
 
 	INTOFF;
-	lvp = ckmalloc(sizeof (struct localvar));
+	lvp = ckmalloc(sizeof(struct localvar));
 	if (LONE_DASH(name)) {
 		char *p;
 		p = ckmalloc(sizeof(optlist));
@@ -12568,7 +12565,7 @@ letcmd(int argc, char **argv)
 	arith_t i = 0;
 
 	ap = argv + 1;
-	if(!*ap)
+	if (!*ap)
 		sh_error("expression expected");
 	for (ap = argv + 1; *ap; ap++) {
 		i = dash_arith(*ap);
@@ -12695,11 +12692,11 @@ readcmd(int argc, char **argv)
 		tcgetattr(0, &tty);
 		old_tty = tty;
 		if (nch_flag) {
-		    tty.c_lflag &= ~ICANON;
-		    tty.c_cc[VMIN] = nchars;
+			tty.c_lflag &= ~ICANON;
+			tty.c_cc[VMIN] = nchars;
 		}
 		if (silent) {
-		    tty.c_lflag &= ~(ECHO|ECHOK|ECHONL);
+			tty.c_lflag &= ~(ECHO|ECHOK|ECHONL);
 
 		}
 		tcsetattr(0, TCSANOW, &tty);
@@ -12964,7 +12961,7 @@ ulimitcmd(int argc, char **argv)
 #ifdef RLIMIT_LOCKS
 				"w"
 #endif
-						)) != '\0')
+					)) != '\0')
 		switch (optc) {
 		case 'H':
 			how = HARD;
@@ -12993,8 +12990,7 @@ ulimitcmd(int argc, char **argv)
 		else {
 			val = (rlim_t) 0;
 
-			while ((c = *p++) >= '0' && c <= '9')
-			{
+			while ((c = *p++) >= '0' && c <= '9') {
 				val = (val * 10) + (long)(c - '0');
 				if (val < (rlim_t) 0)
 					break;
@@ -13158,7 +13154,7 @@ typedef unsigned char operator;
 #define TOK_REM_ASSIGN tok_decl(3,2)
 
 /* all assign is right associativity and precedence eq, but (7+3)<<5 > 256 */
-#define convert_prec_is_assing(prec) do { if(prec == 3) prec = 2; } while(0)
+#define convert_prec_is_assing(prec) do { if (prec == 3) prec = 2; } while (0)
 
 /* conditional is right associativity too */
 #define TOK_CONDITIONAL tok_decl(4,0)
@@ -13231,8 +13227,8 @@ static int tok_have_assign(operator op)
 
 static int is_right_associativity(operator prec)
 {
-    return (prec == PREC(TOK_ASSIGN) || prec == PREC(TOK_EXPONENT) ||
-	    prec == PREC(TOK_CONDITIONAL));
+	return (prec == PREC(TOK_ASSIGN) || prec == PREC(TOK_EXPONENT)
+	        || prec == PREC(TOK_CONDITIONAL));
 }
 
 
@@ -13255,38 +13251,37 @@ static chk_var_recursive_looped_t *prev_chk_var_recursive;
 
 static int arith_lookup_val(v_n_t *t)
 {
-    if(t->var) {
-	const char * p = lookupvar(t->var);
+	if (t->var) {
+		const char * p = lookupvar(t->var);
 
-	if(p) {
-	    int errcode;
+		if (p) {
+			int errcode;
 
-	    /* recursive try as expression */
-	    chk_var_recursive_looped_t *cur;
-	    chk_var_recursive_looped_t cur_save;
+			/* recursive try as expression */
+			chk_var_recursive_looped_t *cur;
+			chk_var_recursive_looped_t cur_save;
 
-	    for(cur = prev_chk_var_recursive; cur; cur = cur->next) {
-		if(strcmp(cur->var, t->var) == 0) {
-		    /* expression recursion loop detected */
-		    return -5;
+			for (cur = prev_chk_var_recursive; cur; cur = cur->next) {
+				if (strcmp(cur->var, t->var) == 0) {
+					/* expression recursion loop detected */
+					return -5;
+				}
+			}
+			/* save current lookuped var name */
+			cur = prev_chk_var_recursive;
+			cur_save.var = t->var;
+			cur_save.next = cur;
+			prev_chk_var_recursive = &cur_save;
+
+			t->val = arith (p, &errcode);
+			/* restore previous ptr after recursiving */
+			prev_chk_var_recursive = cur;
+			return errcode;
 		}
-	    }
-	    /* save current lookuped var name */
-	    cur = prev_chk_var_recursive;
-	    cur_save.var = t->var;
-	    cur_save.next = cur;
-	    prev_chk_var_recursive = &cur_save;
-
-	    t->val = arith (p, &errcode);
-	    /* restore previous ptr after recursiving */
-	    prev_chk_var_recursive = cur;
-	    return errcode;
-	} else {
-	    /* allow undefined var as 0 */
-	    t->val = 0;
+		/* allow undefined var as 0 */
+		t->val = 0;
 	}
-    }
-    return 0;
+	return 0;
 }
 
 /* "applying" a token means performing it on the top elements on the integer
@@ -13298,13 +13293,13 @@ static int arith_apply(operator op, v_n_t *numstack, v_n_t **numstackptr)
 	arith_t numptr_val, rez;
 	int ret_arith_lookup_val;
 
-	if (NUMPTR == numstack) goto err; /* There is no operator that can work
-										 without arguments */
+	/* There is no operator that can work without arguments */
+	if (NUMPTR == numstack) goto err;
 	numptr_m1 = NUMPTR - 1;
 
 	/* check operand is var with noninteger value */
 	ret_arith_lookup_val = arith_lookup_val(numptr_m1);
-	if(ret_arith_lookup_val)
+	if (ret_arith_lookup_val)
 		return ret_arith_lookup_val;
 
 	rez = numptr_m1->val;
@@ -13321,102 +13316,102 @@ static int arith_apply(operator op, v_n_t *numstack, v_n_t **numstackptr)
 	else if (op != TOK_UPLUS) {
 		/* Binary operators */
 
-	    /* check and binary operators need two arguments */
-	    if (numptr_m1 == numstack) goto err;
+		/* check and binary operators need two arguments */
+		if (numptr_m1 == numstack) goto err;
 
-	    /* ... and they pop one */
-	    --NUMPTR;
-	    numptr_val = rez;
-	    if (op == TOK_CONDITIONAL) {
-		if(! numptr_m1->contidional_second_val_initialized) {
-		    /* protect $((expr1 ? expr2)) without ": expr" */
-		    goto err;
+		/* ... and they pop one */
+		--NUMPTR;
+		numptr_val = rez;
+		if (op == TOK_CONDITIONAL) {
+			if (! numptr_m1->contidional_second_val_initialized) {
+				/* protect $((expr1 ? expr2)) without ": expr" */
+				goto err;
+			}
+			rez = numptr_m1->contidional_second_val;
+		} else if (numptr_m1->contidional_second_val_initialized) {
+			/* protect $((expr1 : expr2)) without "expr ? " */
+			goto err;
 		}
-		rez = numptr_m1->contidional_second_val;
-	    } else if(numptr_m1->contidional_second_val_initialized) {
-		    /* protect $((expr1 : expr2)) without "expr ? " */
-		    goto err;
-	    }
-	    numptr_m1 = NUMPTR - 1;
-	    if(op != TOK_ASSIGN) {
-		/* check operand is var with noninteger value for not '=' */
-		ret_arith_lookup_val = arith_lookup_val(numptr_m1);
-		if(ret_arith_lookup_val)
-		    return ret_arith_lookup_val;
-	    }
-	    if (op == TOK_CONDITIONAL) {
-		    numptr_m1->contidional_second_val = rez;
-	    }
-	    rez = numptr_m1->val;
-	    if (op == TOK_BOR || op == TOK_OR_ASSIGN)
+		numptr_m1 = NUMPTR - 1;
+		if (op != TOK_ASSIGN) {
+			/* check operand is var with noninteger value for not '=' */
+			ret_arith_lookup_val = arith_lookup_val(numptr_m1);
+			if (ret_arith_lookup_val)
+				return ret_arith_lookup_val;
+		}
+		if (op == TOK_CONDITIONAL) {
+			numptr_m1->contidional_second_val = rez;
+		}
+		rez = numptr_m1->val;
+		if (op == TOK_BOR || op == TOK_OR_ASSIGN)
 			rez |= numptr_val;
-	    else if (op == TOK_OR)
+		else if (op == TOK_OR)
 			rez = numptr_val || rez;
-	    else if (op == TOK_BAND || op == TOK_AND_ASSIGN)
+		else if (op == TOK_BAND || op == TOK_AND_ASSIGN)
 			rez &= numptr_val;
-	    else if (op == TOK_BXOR || op == TOK_XOR_ASSIGN)
+		else if (op == TOK_BXOR || op == TOK_XOR_ASSIGN)
 			rez ^= numptr_val;
-	    else if (op == TOK_AND)
+		else if (op == TOK_AND)
 			rez = rez && numptr_val;
-	    else if (op == TOK_EQ)
+		else if (op == TOK_EQ)
 			rez = (rez == numptr_val);
-	    else if (op == TOK_NE)
+		else if (op == TOK_NE)
 			rez = (rez != numptr_val);
-	    else if (op == TOK_GE)
+		else if (op == TOK_GE)
 			rez = (rez >= numptr_val);
-	    else if (op == TOK_RSHIFT || op == TOK_RSHIFT_ASSIGN)
+		else if (op == TOK_RSHIFT || op == TOK_RSHIFT_ASSIGN)
 			rez >>= numptr_val;
-	    else if (op == TOK_LSHIFT || op == TOK_LSHIFT_ASSIGN)
+		else if (op == TOK_LSHIFT || op == TOK_LSHIFT_ASSIGN)
 			rez <<= numptr_val;
-	    else if (op == TOK_GT)
+		else if (op == TOK_GT)
 			rez = (rez > numptr_val);
-	    else if (op == TOK_LT)
+		else if (op == TOK_LT)
 			rez = (rez < numptr_val);
-	    else if (op == TOK_LE)
+		else if (op == TOK_LE)
 			rez = (rez <= numptr_val);
-	    else if (op == TOK_MUL || op == TOK_MUL_ASSIGN)
+		else if (op == TOK_MUL || op == TOK_MUL_ASSIGN)
 			rez *= numptr_val;
-	    else if (op == TOK_ADD || op == TOK_PLUS_ASSIGN)
+		else if (op == TOK_ADD || op == TOK_PLUS_ASSIGN)
 			rez += numptr_val;
-	    else if (op == TOK_SUB || op == TOK_MINUS_ASSIGN)
+		else if (op == TOK_SUB || op == TOK_MINUS_ASSIGN)
 			rez -= numptr_val;
-	    else if (op == TOK_ASSIGN || op == TOK_COMMA)
+		else if (op == TOK_ASSIGN || op == TOK_COMMA)
 			rez = numptr_val;
-	    else if (op == TOK_CONDITIONAL_SEP) {
+		else if (op == TOK_CONDITIONAL_SEP) {
 			if (numptr_m1 == numstack) {
-			    /* protect $((expr : expr)) without "expr ? " */
-			    goto err;
+				/* protect $((expr : expr)) without "expr ? " */
+				goto err;
 			}
 			numptr_m1->contidional_second_val_initialized = op;
 			numptr_m1->contidional_second_val = numptr_val;
-	    }
-	    else if (op == TOK_CONDITIONAL) {
+		}
+		else if (op == TOK_CONDITIONAL) {
 			rez = rez ?
-			      numptr_val : numptr_m1->contidional_second_val;
-	    }
-	    else if(op == TOK_EXPONENT) {
-			if(numptr_val < 0)
+				numptr_val : numptr_m1->contidional_second_val;
+		}
+		else if (op == TOK_EXPONENT) {
+			if (numptr_val < 0)
 				return -3;      /* exponent less than 0 */
 			else {
 				arith_t c = 1;
 
-				if(numptr_val)
-					while(numptr_val--)
+				if (numptr_val)
+					while (numptr_val--)
 						c *= rez;
 				rez = c;
 			}
-	    }
-	    else if(numptr_val==0)          /* zero divisor check */
+		}
+		else if (numptr_val==0)          /* zero divisor check */
 			return -2;
-	    else if (op == TOK_DIV || op == TOK_DIV_ASSIGN)
+		else if (op == TOK_DIV || op == TOK_DIV_ASSIGN)
 			rez /= numptr_val;
-	    else if (op == TOK_REM || op == TOK_REM_ASSIGN)
+		else if (op == TOK_REM || op == TOK_REM_ASSIGN)
 			rez %= numptr_val;
 	}
-	if(tok_have_assign(op)) {
+	if (tok_have_assign(op)) {
 		char buf[32];
 
-		if(numptr_m1->var == NULL) {
+		if (numptr_m1->var == NULL) {
 			/* Hmm, 1=2 ? */
 			goto err;
 		}
@@ -13428,9 +13423,9 @@ static int arith_apply(operator op, v_n_t *numstack, v_n_t **numstackptr)
 #endif
 		setvar(numptr_m1->var, buf, 0);
 		/* after saving, make previous value for v++ or v-- */
-		if(op == TOK_POST_INC)
+		if (op == TOK_POST_INC)
 			rez--;
-		else if(op == TOK_POST_DEC)
+		else if (op == TOK_POST_DEC)
 			rez++;
 	}
 	numptr_m1->val = rez;
@@ -13491,73 +13486,74 @@ static const char op_tokens[] = {
 
 static arith_t arith(const char *expr, int *perrcode)
 {
-    char arithval; /* Current character under analysis */
-    operator lasttok, op;
-    operator prec;
+	char arithval; /* Current character under analysis */
+	operator lasttok, op;
+	operator prec;
 
-    const char *p = endexpression;
-    int errcode;
+	const char *p = endexpression;
+	int errcode;
 
-    size_t datasizes = strlen(expr) + 2;
+	size_t datasizes = strlen(expr) + 2;
 
-    /* Stack of integers */
-    /* The proof that there can be no more than strlen(startbuf)/2+1 integers
-     * in any given correct or incorrect expression is left as an exercise to
-     * the reader. */
-    v_n_t *numstack = alloca(((datasizes)/2)*sizeof(v_n_t)),
-	    *numstackptr = numstack;
-    /* Stack of operator tokens */
-    operator *stack = alloca((datasizes) * sizeof(operator)),
-	    *stackptr = stack;
+	/* Stack of integers */
+	/* The proof that there can be no more than strlen(startbuf)/2+1 integers
+	 * in any given correct or incorrect expression is left as an exercise to
+	 * the reader. */
+	v_n_t *numstack = alloca(((datasizes)/2)*sizeof(v_n_t)),
+				*numstackptr = numstack;
+	/* Stack of operator tokens */
+	operator *stack = alloca((datasizes) * sizeof(operator)),
+				*stackptr = stack;
 
-    *stackptr++ = lasttok = TOK_LPAREN;     /* start off with a left paren */
-    *perrcode = errcode = 0;
+	*stackptr++ = lasttok = TOK_LPAREN;     /* start off with a left paren */
+	*perrcode = errcode = 0;
 
-    while(1) {
-	if ((arithval = *expr) == 0) {
-		if (p == endexpression) {
-			/* Null expression. */
-			return 0;
+	while (1) {
+		if ((arithval = *expr) == 0) {
+			if (p == endexpression) {
+				/* Null expression. */
+				return 0;
+			}
+
+			/* This is only reached after all tokens have been extracted from the
+			 * input stream. If there are still tokens on the operator stack, they
+			 * are to be applied in order. At the end, there should be a final
+			 * result on the integer stack */
+
+			if (expr != endexpression + 1) {
+				/* If we haven't done so already, */
+				/* append a closing right paren */
+				expr = endexpression;
+				/* and let the loop process it. */
+				continue;
+			}
+			/* At this point, we're done with the expression. */
+			if (numstackptr != numstack+1) {
+				/* ... but if there isn't, it's bad */
+ err:
+				return (*perrcode = -1);
+			}
+			if (numstack->var) {
+				/* expression is $((var)) only, lookup now */
+				errcode = arith_lookup_val(numstack);
+			}
+ ret:
+			*perrcode = errcode;
+			return numstack->val;
 		}
 
-		/* This is only reached after all tokens have been extracted from the
-		 * input stream. If there are still tokens on the operator stack, they
-		 * are to be applied in order. At the end, there should be a final
-		 * result on the integer stack */
-
-		if (expr != endexpression + 1) {
-			/* If we haven't done so already, */
-			/* append a closing right paren */
-			expr = endexpression;
-			/* and let the loop process it. */
-			continue;
-		}
-		/* At this point, we're done with the expression. */
-		if (numstackptr != numstack+1) {
-			/* ... but if there isn't, it's bad */
-		  err:
-			return (*perrcode = -1);
-		}
-		if(numstack->var) {
-		    /* expression is $((var)) only, lookup now */
-		    errcode = arith_lookup_val(numstack);
-		}
-	ret:
-		*perrcode = errcode;
-		return numstack->val;
-	} else {
 		/* Continue processing the expression. */
 		if (arith_isspace(arithval)) {
 			/* Skip whitespace */
 			goto prologue;
 		}
-		if((p = endofname(expr)) != expr) {
+		if ((p = endofname(expr)) != expr) {
 			size_t var_name_size = (p-expr) + 1;  /* trailing zero */
 
 			numstackptr->var = alloca(var_name_size);
 			safe_strncpy(numstackptr->var, expr, var_name_size);
 			expr = p;
-		num:
+ num:
 			numstackptr->contidional_second_val_initialized = 0;
 			numstackptr++;
 			lasttok = TOK_NUM;
@@ -13571,22 +13567,22 @@ static arith_t arith(const char *expr, int *perrcode)
 #endif
 			goto num;
 		}
-		for(p = op_tokens; ; p++) {
+		for (p = op_tokens; ; p++) {
 			const char *o;
 
-			if(*p == 0) {
+			if (*p == 0) {
 				/* strange operator not found */
 				goto err;
 			}
-			for(o = expr; *p && *o == *p; p++)
+			for (o = expr; *p && *o == *p; p++)
 				o++;
-			if(! *p) {
+			if (! *p) {
 				/* found */
 				expr = o - 1;
 				break;
 			}
 			/* skip tail uncompared token */
-			while(*p)
+			while (*p)
 				p++;
 			/* skip zero delim */
 			p++;
@@ -13594,8 +13590,8 @@ static arith_t arith(const char *expr, int *perrcode)
 		op = p[1];
 
 		/* post grammar: a++ reduce to num */
-		if(lasttok == TOK_POST_INC || lasttok == TOK_POST_DEC)
-		    lasttok = TOK_NUM;
+		if (lasttok == TOK_POST_INC || lasttok == TOK_POST_DEC)
+			lasttok = TOK_NUM;
 
 		/* Plus and minus are binary (not unary) _only_ if the last
 		 * token was as number, or a right paren (which pretends to be
@@ -13603,18 +13599,18 @@ static arith_t arith(const char *expr, int *perrcode)
 		 * It makes sense. */
 		if (lasttok != TOK_NUM) {
 			switch (op) {
-				case TOK_ADD:
-				    op = TOK_UPLUS;
-				    break;
-				case TOK_SUB:
-				    op = TOK_UMINUS;
-				    break;
-				case TOK_POST_INC:
-				    op = TOK_PRE_INC;
-				    break;
-				case TOK_POST_DEC:
-				    op = TOK_PRE_DEC;
-				    break;
+			case TOK_ADD:
+				op = TOK_UPLUS;
+				break;
+			case TOK_SUB:
+				op = TOK_UMINUS;
+				break;
+			case TOK_POST_INC:
+				op = TOK_PRE_INC;
+				break;
+			case TOK_POST_DEC:
+				op = TOK_PRE_DEC;
+				break;
 			}
 		}
 		/* We don't want a unary operator to cause recursive descent on the
@@ -13636,30 +13632,30 @@ static arith_t arith(const char *expr, int *perrcode)
 				goto err;
 			}
 			while (stackptr != stack) {
-			    if (op == TOK_RPAREN) {
-				/* The algorithm employed here is simple: while we don't
-				 * hit an open paren nor the bottom of the stack, pop
-				 * tokens and apply them */
-				if (stackptr[-1] == TOK_LPAREN) {
-				    --stackptr;
-				    /* Any operator directly after a */
-				    lasttok = TOK_NUM;
-				    /* close paren should consider itself binary */
-				    goto prologue;
-				}
-			    } else {
-				operator prev_prec = PREC(stackptr[-1]);
+				if (op == TOK_RPAREN) {
+					/* The algorithm employed here is simple: while we don't
+					 * hit an open paren nor the bottom of the stack, pop
+					 * tokens and apply them */
+					if (stackptr[-1] == TOK_LPAREN) {
+						--stackptr;
+						/* Any operator directly after a */
+						lasttok = TOK_NUM;
+						/* close paren should consider itself binary */
+						goto prologue;
+					}
+				} else {
+					operator prev_prec = PREC(stackptr[-1]);
 
-				convert_prec_is_assing(prec);
-				convert_prec_is_assing(prev_prec);
-				if (prev_prec < prec)
-					break;
-				/* check right assoc */
-				if(prev_prec == prec && is_right_associativity(prec))
-					break;
-			    }
-			    errcode = arith_apply(*--stackptr, numstack, &numstackptr);
-			    if(errcode) goto ret;
+					convert_prec_is_assing(prec);
+					convert_prec_is_assing(prev_prec);
+					if (prev_prec < prec)
+						break;
+					/* check right assoc */
+					if (prev_prec == prec && is_right_associativity(prec))
+						break;
+				}
+				errcode = arith_apply(*--stackptr, numstack, &numstackptr);
+				if (errcode) goto ret;
 			}
 			if (op == TOK_RPAREN) {
 				goto err;
@@ -13668,11 +13664,9 @@ static arith_t arith(const char *expr, int *perrcode)
 
 		/* Push this operator to the stack and remember it. */
 		*stackptr++ = lasttok = op;
-
-	  prologue:
+ prologue:
 		++expr;
-	}
-    }
+	} /* while */
 }
 #endif /* CONFIG_ASH_MATH_SUPPORT */
 
