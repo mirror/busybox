@@ -203,7 +203,8 @@ static volatile sig_atomic_t pendingsigs;
 #define RESTOREINT(v) \
 	({ \
 		xbarrier(); \
-		if ((suppressint = (v)) == 0 && intpending) onint(); \
+		suppressint = (v); \
+		if (suppressint == 0 && intpending) onint(); \
 		0; \
 	})
 #define EXSIGON() \
@@ -1570,7 +1571,8 @@ static int varcmp(const char *, const char *);
 static struct var **hashvar(const char *);
 
 
-static int varequal(const char *a, const char *b) {
+static int varequal(const char *a, const char *b)
+{
 	return !varcmp(a, b);
 }
 
@@ -1837,7 +1839,8 @@ static char *stnputs(const char *, size_t, char *);
 static char *stputs(const char *, char *);
 
 
-static char *_STPUTC(int c, char *p) {
+static char *_STPUTC(int c, char *p)
+{
 	if (p == sstrend)
 		p = growstackstr();
 	*p++ = c;
@@ -2049,7 +2052,6 @@ static int is_safe_applet(char *name)
  * This routine is called when an error or an interrupt occurs in an
  * interactive shell and control is returned to the main command loop.
  */
-
 static void
 reset(void)
 {
@@ -2176,8 +2178,10 @@ aliascmd(int argc, char **argv)
 		return 0;
 	}
 	while ((n = *++argv) != NULL) {
-		if ((v = strchr(n+1, '=')) == NULL) { /* n+1: funny ksh stuff */
-			if ((ap = *__lookupalias(n)) == NULL) {
+		v = strchr(n+1, '=');
+		if (v == NULL) { /* n+1: funny ksh stuff */
+			ap = *__lookupalias(n);
+			if (ap == NULL) {
 				fprintf(stderr, "%s: %s not found\n", "alias", n);
 				ret = 1;
 			} else
@@ -2317,7 +2321,7 @@ cdcmd(int argc, char **argv)
 		goto step7;
 	if (*dest == '.') {
 		c = dest[1];
-dotdot:
+ dotdot:
 		switch (c) {
 		case '\0':
 		case '/':
@@ -2330,9 +2334,10 @@ dotdot:
 	}
 	if (!*dest)
 		dest = ".";
-	if (!(path = bltinlookup("CDPATH"))) {
-step6:
-step7:
+	path = bltinlookup("CDPATH");
+	if (!path) {
+ step6:
+ step7:
 		p = dest;
 		goto docd;
 	}
@@ -2342,7 +2347,7 @@ step7:
 		if (stat(p, &statb) >= 0 && S_ISDIR(statb.st_mode)) {
 			if (c && c != ':')
 				flags |= CD_PRINT;
-docd:
+ docd:
 			if (!docd(p, flags))
 				goto out;
 			break;
@@ -2350,7 +2355,7 @@ docd:
 	} while (path);
 	sh_error("can't cd to %s", dest);
 	/* NOTREACHED */
-out:
+ out:
 	if (flags & CD_PRINT)
 		out1fmt(snlfmt, curdir);
 	return 0;
@@ -2361,7 +2366,6 @@ out:
  * Update curdir (the name of the current directory) in response to a
  * cd command.
  */
-
 static const char * updatepwd(const char *dir)
 {
 	char *new;
@@ -2418,11 +2422,11 @@ static const char * updatepwd(const char *dir)
 	return stackblock();
 }
 
+
 /*
  * Actually do the chdir.  We also call hashcd to let the routines in exec.c
  * know that the current directory has changed.
  */
-
 static int
 docd(const char *dest, int flags)
 {
@@ -2442,7 +2446,7 @@ docd(const char *dest, int flags)
 		goto out;
 	setpwd(dir, 1);
 	hashcd();
-out:
+ out:
 	INTON;
 	return err;
 }
@@ -2522,7 +2526,6 @@ static void exverror(int, const char *, va_list) ATTRIBUTE_NORETURN;
  * just do a longjmp to the exception handler.  The type of exception is
  * stored in the global variable "exception".
  */
-
 static void
 exraise(int e)
 {
@@ -2544,7 +2547,6 @@ exraise(int e)
  * are held using the INTOFF macro.  (The test for iflag is just
  * defensive programming.)
  */
-
 static void
 onint(void) {
 	int i;
@@ -2626,10 +2628,10 @@ exerror(int cond, const char *msg, ...)
 	va_end(ap);
 }
 
+
 /*
  * error/warning routines for external builtins
  */
-
 static void
 sh_warnx(const char *fmt, ...)
 {
@@ -2646,7 +2648,6 @@ sh_warnx(const char *fmt, ...)
  * pointer to a static buffer that will be overwritten on the next call.
  * Action describes the operation that got the error.
  */
-
 static const char *
 errmsg(int e, const char *em)
 {
@@ -2694,7 +2695,6 @@ static const struct builtincmd bltin = {
 /*
  * The eval command.
  */
-
 static int
 evalcmd(int argc, char **argv)
 {
@@ -2709,7 +2709,8 @@ evalcmd(int argc, char **argv)
 			ap = argv + 2;
 			for (;;) {
 				concat = stputs(p, concat);
-				if ((p = *ap++) == NULL)
+				p = *ap++;
+				if (p == NULL)
 					break;
 				STPUTC(' ', concat);
 			}
@@ -2726,7 +2727,6 @@ evalcmd(int argc, char **argv)
 /*
  * Execute a command or commands contained in a string.
  */
-
 static int
 evalstring(char *s, int mask)
 {
@@ -2757,7 +2757,6 @@ evalstring(char *s, int mask)
  * Evaluate a parse tree.  The value is left in the global variable
  * exitstatus.
  */
-
 static void
 evaltree(union node *n, int flags)
 {
@@ -2793,7 +2792,7 @@ evaltree(union node *n, int flags)
 		goto setstatus;
 	case NCMD:
 		evalfn = evalcommand;
-checkexit:
+ checkexit:
 		if (eflag && !(flags & EV_TESTED))
 			checkexit = ~0;
 		goto calleval;
@@ -2832,9 +2831,9 @@ checkexit:
 			break;
 		if (!evalskip) {
 			n = n->nbinary.ch2;
-evaln:
+ evaln:
 			evalfn = evaltree;
-calleval:
+ calleval:
 			evalfn(n, flags);
 			break;
 		}
@@ -2853,20 +2852,20 @@ calleval:
 		goto success;
 	case NDEFUN:
 		defun(n->narg.text, n->narg.next);
-success:
+ success:
 		status = 0;
-setstatus:
+ setstatus:
 		exitstatus = status;
 		break;
 	}
-out:
+ out:
 	if ((checkexit & exitstatus))
 		evalskip |= SKIPEVAL;
 	else if (pendingsigs && dotrap())
 		goto exexit;
 
 	if (flags & EV_EXIT) {
-exexit:
+ exexit:
 		exraise(EXEXIT);
 	}
 }
@@ -2891,7 +2890,8 @@ evalloop(union node *n, int flags)
 
 		evaltree(n->nbinary.ch1, EV_TESTED);
 		if (evalskip) {
-skipping:         if (evalskip == SKIPCONT && --skipcount <= 0) {
+ skipping:
+			if (evalskip == SKIPCONT && --skipcount <= 0) {
 				evalskip = 0;
 				continue;
 			}
@@ -2949,10 +2949,9 @@ evalfor(union node *n, int flags)
 		}
 	}
 	loopnest--;
-out:
+ out:
 	popstackmark(&smark);
 }
-
 
 
 static void
@@ -2977,7 +2976,7 @@ evalcase(union node *n, int flags)
 			}
 		}
 	}
-out:
+ out:
 	popstackmark(&smark);
 }
 
@@ -2985,7 +2984,6 @@ out:
 /*
  * Kick off a subshell to evaluate a tree.
  */
-
 static void
 evalsubshell(union node *n, int flags)
 {
@@ -3019,7 +3017,6 @@ nofork:
 /*
  * Compute the names of the files in a redirection list.
  */
-
 static void
 expredir(union node *n)
 {
@@ -3059,7 +3056,6 @@ expredir(union node *n)
  * of the shell, which make the last process in a pipeline the parent
  * of all the rest.)
  */
-
 static void
 evalpipe(union node *n, int flags)
 {
@@ -3121,7 +3117,6 @@ evalpipe(union node *n, int flags)
  * we fork off a subprocess and get the output of the command via a pipe.
  * Should be called with interrupts off.
  */
-
 static void
 evalbackcmd(union node *n, struct backcmd *result)
 {
@@ -3162,7 +3157,7 @@ evalbackcmd(union node *n, struct backcmd *result)
 		result->jp = jp;
 	}
 	herefd = saveherefd;
-out:
+ out:
 	TRACE(("evalbackcmd done: fd=%d buf=0x%x nleft=%d jp=0x%x\n",
 		result->fd, result->buf, result->nleft, result->jp));
 }
@@ -3178,7 +3173,8 @@ static char ** parse_command_args(char **argv, const char **path)
 			return 0;
 		if (*cp++ != '-')
 			break;
-		if (!(c = *cp++))
+		c = *cp++;
+		if (!c)
 			break;
 		if (c == '-' && !*cp) {
 			argv++;
@@ -3216,7 +3212,6 @@ static const char *expandstr(const char *ps);
 /*
  * Execute a simple command.
  */
-
 static void
 evalcommand(union node *cmd, int flags)
 {
@@ -3369,7 +3364,7 @@ evalcommand(union node *cmd, int flags)
 		/* We have a redirection error. */
 		if (spclbltin > 0)
 			exraise(EXERROR);
-bail:
+ bail:
 		exitstatus = status;
 		goto out;
 	}
@@ -3423,7 +3418,7 @@ bail:
 			exitstatus = exit_status;
 
 			if (i == EXINT || spclbltin > 0) {
-raise:
+ raise:
 				longjmp(handler->loc, 1);
 			}
 			FORCEINTON;
@@ -3437,7 +3432,7 @@ raise:
 		break;
 	}
 
-out:
+ out:
 	popredir(cmd_is_exec);
 	if (lastarg)
 		/* dsl: I think this is intended to be used to support
@@ -3449,14 +3444,16 @@ out:
 }
 
 static int
-evalbltin(const struct builtincmd *cmd, int argc, char **argv) {
+evalbltin(const struct builtincmd *cmd, int argc, char **argv)
+{
 	char *volatile savecmdname;
 	struct jmploc *volatile savehandler;
 	struct jmploc jmploc;
 	int i;
 
 	savecmdname = commandname;
-	if ((i = setjmp(jmploc.loc)))
+	i = setjmp(jmploc.loc);
+	if (i)
 		goto cmddone;
 	savehandler = handler;
 	handler = &jmploc;
@@ -3465,7 +3462,7 @@ evalbltin(const struct builtincmd *cmd, int argc, char **argv) {
 	optptr = NULL;                  /* initialize nextopt */
 	exitstatus = (*cmd->builtin)(argc, argv);
 	flushall();
-cmddone:
+ cmddone:
 	exitstatus |= ferror(stdout);
 	clearerr(stdout);
 	commandname = savecmdname;
@@ -3486,7 +3483,8 @@ evalfun(struct funcnode *func, int argc, char **argv, int flags)
 
 	saveparam = shellparam;
 	savelocalvars = localvars;
-	if ((e = setjmp(jmploc.loc))) {
+	e = setjmp(jmploc.loc);
+	if (e) {
 		goto funcdone;
 	}
 	INTOFF;
@@ -3524,13 +3522,13 @@ static int goodname(const char *p)
 	return !*endofname(p);
 }
 
+
 /*
  * Search for a command.  This is called before we fork so that the
  * location of the command will be available in the parent as well as
  * the child.  The check for "goodname" is an overly conservative
  * check that the name will not be subject to expansion.
  */
-
 static void
 prehash(union node *n)
 {
@@ -3550,7 +3548,6 @@ prehash(union node *n)
 /*
  * No command given.
  */
-
 static int
 bltincmd(int argc, char **argv)
 {
@@ -3593,7 +3590,6 @@ breakcmd(int argc, char **argv)
 /*
  * The return command.
  */
-
 static int
 returncmd(int argc, char **argv)
 {
@@ -3646,7 +3642,6 @@ execcmd(int argc, char **argv)
 
 #define CMDTABLESIZE 31         /* should be prime */
 #define ARB 1                   /* actual size determined at run time */
-
 
 
 struct tblentry {
@@ -3750,7 +3745,7 @@ tryexec(char *cmd, char **argv, char **envp)
 	}
 #endif
 
-repeat:
+ repeat:
 #ifdef SYSV
 	do {
 		execve(cmd, argv, envp);
@@ -3779,7 +3774,6 @@ repeat:
 }
 
 
-
 /*
  * Do a path search.  The variable path (passed by reference) should be
  * set to the start of the path before the first call; padvance will update
@@ -3789,7 +3783,6 @@ repeat:
  * pathopt will be set to point to it; otherwise pathopt will be set to
  * NULL.
  */
-
 static char *
 padvance(const char **path, const char *name)
 {
@@ -3868,7 +3861,8 @@ hashcmd(int argc, char **argv)
 	}
 	c = 0;
 	while ((name = *argptr) != NULL) {
-		if ((cmdp = cmdlookup(name, 0)) != NULL
+		cmdp = cmdlookup(name, 0);
+		if (cmdp != NULL
 		 && (cmdp->cmdtype == CMDNORMAL
 		     || (cmdp->cmdtype == CMDBUILTIN && builtinloc >= 0)))
 			delete_cmd_entry();
@@ -3885,7 +3879,6 @@ hashcmd(int argc, char **argv)
  * Resolve a command name.  If you change this routine, you may have to
  * change the shellexec routine as well.
  */
-
 static void
 find_command(char *name, struct cmdentry *entry, int act, const char *path)
 {
@@ -3937,7 +3930,8 @@ find_command(char *name, struct cmdentry *entry, int act, const char *path)
 	}
 
 	/* If name is in the table, check answer will be ok */
-	if ((cmdp = cmdlookup(name, 0)) != NULL) {
+	cmdp = cmdlookup(name, 0);
+	if (cmdp != NULL) {
 		int bit;
 
 		switch (cmdp->cmdtype) {
@@ -3981,7 +3975,7 @@ find_command(char *name, struct cmdentry *entry, int act, const char *path)
 
 	e = ENOENT;
 	idx = -1;
-loop:
+ loop:
 	while ((fullname = padvance(&path, name)) != NULL) {
 		stunalloc(fullname);
 		idx++;
@@ -4020,8 +4014,8 @@ loop:
 		if (pathopt) {          /* this is a %func directory */
 			stalloc(strlen(fullname) + 1);
 			readcmdfile(fullname);
-			if ((cmdp = cmdlookup(name, 0)) == NULL ||
-			    cmdp->cmdtype != CMDFUNCTION)
+			cmdp = cmdlookup(name, 0);
+			if (cmdp == NULL || cmdp->cmdtype != CMDFUNCTION)
 				sh_error("%s not defined in %s", name, fullname);
 			stunalloc(fullname);
 			goto success;
@@ -4048,7 +4042,7 @@ loop:
 	entry->cmdtype = CMDUNKNOWN;
 	return;
 
-builtin_success:
+ builtin_success:
 	if (!updatetbl) {
 		entry->cmdtype = CMDBUILTIN;
 		entry->u.cmd = bcmd;
@@ -4059,7 +4053,7 @@ builtin_success:
 	cmdp->cmdtype = CMDBUILTIN;
 	cmdp->param.cmd = bcmd;
 	INTON;
-success:
+ success:
 	cmdp->rehash = 0;
 	entry->cmdtype = cmdp->cmdtype;
 	entry->u = cmdp->param;
@@ -4074,10 +4068,10 @@ static int pstrcmp(const void *a, const void *b)
 	return strcmp((const char *) a, (*(const char *const *) b) + 1);
 }
 
+
 /*
  * Search the table of builtin commands.
  */
-
 static struct builtincmd *
 find_builtin(const char *name)
 {
@@ -4095,7 +4089,6 @@ find_builtin(const char *name)
  * Called when a cd is done.  Marks all commands so the next time they
  * are executed they will be rehashed.
  */
-
 static void
 hashcd(void)
 {
@@ -4121,7 +4114,6 @@ hashcd(void)
  * pathval() still returns the old value at this point.
  * Called with interrupts off.
  */
-
 static void
 changepath(const char *newval)
 {
@@ -4165,7 +4157,6 @@ changepath(const char *newval)
  * Clear out command entries.  The argument specifies the first entry in
  * PATH which has changed.
  */
-
 static void
 clearcmdentry(int firstchange)
 {
@@ -4193,7 +4184,6 @@ clearcmdentry(int firstchange)
 }
 
 
-
 /*
  * Locate a command in the command hash table.  If "add" is nonzero,
  * add the command to the table if it is not already present.  The
@@ -4203,9 +4193,7 @@ clearcmdentry(int firstchange)
  *
  * Interrupts must be off if called with add != 0.
  */
-
 static struct tblentry **lastcmdentry;
-
 
 static struct tblentry *
 cmdlookup(const char *name, int add)
@@ -4237,10 +4225,10 @@ cmdlookup(const char *name, int add)
 	return cmdp;
 }
 
+
 /*
  * Delete the command entry returned on the last lookup.
  */
-
 static void
 delete_cmd_entry(void)
 {
@@ -4260,7 +4248,6 @@ delete_cmd_entry(void)
  * Add a new command entry, replacing any existing command entry for
  * the same name - except special builtins.
  */
-
 static void addcmdentry(char *name, struct cmdentry *entry)
 {
 	struct tblentry *cmdp;
@@ -4274,10 +4261,10 @@ static void addcmdentry(char *name, struct cmdentry *entry)
 	cmdp->rehash = 0;
 }
 
+
 /*
  * Make a copy of a parse tree.
  */
-
 static struct funcnode * copyfunc(union node *n)
 {
 	struct funcnode *f;
@@ -4295,10 +4282,10 @@ static struct funcnode * copyfunc(union node *n)
 	return f;
 }
 
+
 /*
  * Define a shell function.
  */
-
 static void
 defun(char *name, union node *func)
 {
@@ -4315,7 +4302,6 @@ defun(char *name, union node *func)
 /*
  * Delete a function if it exists.
  */
-
 static void
 unsetfunc(const char *name)
 {
@@ -4329,8 +4315,6 @@ unsetfunc(const char *name)
 /*
  * Locate and print what a word is...
  */
-
-
 #if ENABLE_ASH_CMDCMD
 static int
 describe_command(char *command, int describe_command_verbose)
@@ -4359,7 +4343,8 @@ describe_command(char *command)
 
 #if ENABLE_ASH_ALIAS
 	/* Then look at the aliases */
-	if ((ap = lookupalias(command, 0)) != NULL) {
+	ap = lookupalias(command, 0);
+	if (ap != NULL) {
 		if (describe_command_verbose) {
 			out1fmt(" is an alias for %s", ap->val);
 		} else {
@@ -4371,7 +4356,8 @@ describe_command(char *command)
 	}
 #endif
 	/* Then check if it is a tracked alias */
-	if ((cmdp = cmdlookup(command, 0)) != NULL) {
+	cmdp = cmdlookup(command, 0);
+	if (cmdp != NULL) {
 		entry.cmdtype = cmdp->cmdtype;
 		entry.u = cmdp->param;
 	} else {
@@ -4426,8 +4412,7 @@ describe_command(char *command)
 		}
 		return 127;
 	}
-
-out:
+ out:
 	outstr("\n", stdout);
 	return 0;
 }
@@ -4543,7 +4528,8 @@ static void varunset(const char *, const char *, const char *, int)
  * Returns an stalloced string.
  */
 
-static char * preglob(const char *pattern, int quoted, int flag) {
+static char * preglob(const char *pattern, int quoted, int flag)
+{
 	flag |= RMESCAPE_GLOB;
 	if (quoted) {
 		flag |= RMESCAPE_QUOTED;
@@ -4581,8 +4567,7 @@ static void expandhere(union node *arg, int fd)
  * perform splitting and file name expansion.  When arglist is NULL, perform
  * here document expansion.
  */
-
-void
+static void
 expandarg(union node *arg, struct arglist *arglist, int flag)
 {
 	struct strlist *sp;
@@ -4631,7 +4616,6 @@ expandarg(union node *arg, struct arglist *arglist, int flag)
  * characters to allow for further processing.  Otherwise treat
  * $@ like $* since no splitting will be performed.
  */
-
 static void
 argstr(char *p, int flag)
 {
@@ -4668,14 +4652,14 @@ argstr(char *p, int flag)
 		char *q;
 
 		flag &= ~EXP_TILDE;
-tilde:
+ tilde:
 		q = p;
 		if (*q == CTLESC && (flag & EXP_QWORD))
 			q++;
 		if (*q == '~')
 			p = exptilde(p, q, flag);
 	}
-start:
+ start:
 	startloc = expdest - (char *)stackblock();
 	for (;;) {
 		length += strcspn(p + length, reject);
@@ -4739,7 +4723,7 @@ start:
 				goto start;
 			}
 			inquotes = !inquotes;
-addquote:
+ addquote:
 			if (quotes) {
 				p--;
 				length++;
@@ -4767,7 +4751,7 @@ addquote:
 #endif
 		}
 	}
-breakloop:
+ breakloop:
 	;
 }
 
@@ -4798,12 +4782,13 @@ exptilde(char *startp, char *p, int flag)
 			goto done;
 		}
 	}
-done:
+ done:
 	*p = '\0';
 	if (*name == '\0') {
 		home = lookupvar(homestr);
 	} else {
-		if ((pw = getpwnam(name)) == NULL)
+		pw = getpwnam(name);
+		if (pw == NULL)
 			goto lose;
 		home = pw->pw_dir;
 	}
@@ -4814,7 +4799,7 @@ done:
 	strtodest(home, SQSYNTAX, quotes);
 	recordregion(startloc, expdest - (char *)stackblock(), 0);
 	return p;
-lose:
+ lose:
 	*p = c;
 	return startp;
 }
@@ -4922,10 +4907,10 @@ expari(int quotes)
 }
 #endif
 
+
 /*
  * Expand stuff in backwards quotes.
  */
-
 static void
 expbackq(union node *cmd, int quoted, int quotes)
 {
@@ -4952,7 +4937,7 @@ expbackq(union node *cmd, int quoted, int quotes)
 		goto read;
 	for (;;) {
 		memtodest(p, i, syntax, quotes);
-read:
+ read:
 		if (in.fd < 0)
 			break;
 		i = safe_read(in.fd, buf, sizeof(buf));
@@ -5146,7 +5131,7 @@ evalvar(char *p, int flag)
 	startloc = expdest - (char *)stackblock();
 	p = strchr(p, '=') + 1;
 
-again:
+ again:
 	varlen = varvalue(var, varflags, flag);
 	if (varflags & VSNUL)
 		varlen--;
@@ -5157,7 +5142,7 @@ again:
 	}
 
 	if (subtype == VSMINUS) {
-vsplus:
+ vsplus:
 		if (varlen < 0) {
 			argstr(
 				p, flag | EXP_TILDE |
@@ -5199,7 +5184,7 @@ vsplus:
 	if (subtype == VSNORMAL) {
 		if (!easy)
 			goto end;
-record:
+ record:
 		recordregion(startloc, expdest - (char *)stackblock(), quoted);
 		goto end;
 	}
@@ -5235,11 +5220,12 @@ record:
 		goto record;
 	}
 
-end:
+ end:
 	if (subtype != VSNORMAL) {      /* skip to end of alternative */
 		int nesting = 1;
 		for (;;) {
-			if ((c = *p++) == CTLESC)
+			c = *p++;
+			if (c == CTLESC)
 				p++;
 			else if (c == CTLBACKQ || c == (CTLBACKQ|CTLQUOTE)) {
 				if (varlen >= 0)
@@ -5260,7 +5246,6 @@ end:
 /*
  * Put a string on the stack.
  */
-
 static void
 memtodest(const char *p, size_t len, int syntax, int quotes) {
 	char *q = expdest;
@@ -5290,7 +5275,6 @@ strtodest(const char *p, int syntax, int quotes)
 /*
  * Add the value of a specialized variable to the stack string.
  */
-
 static ssize_t
 varvalue(char *name, int varflags, int flags)
 {
@@ -5324,7 +5308,7 @@ varvalue(char *name, int varflags, int flags)
 		num = backgndpid;
 		if (num == 0)
 			return -1;
-numvar:
+ numvar:
 		len = cvtnum(num);
 		break;
 	case '-':
@@ -5345,8 +5329,9 @@ numvar:
 		sep = ifsset() ? SC2INT(ifsval()[0]) : ' ';
 		if (quotes && (SIT(sep, syntax) == CCTL || SIT(sep, syntax) == CBACK))
 			sepq = 1;
-param:
-		if (!(ap = shellparam.p))
+ param:
+		ap = shellparam.p;
+		if (!ap)
 			return -1;
 		while ((p = *ap++)) {
 			size_t partlen;
@@ -5389,7 +5374,7 @@ param:
 		goto value;
 	default:
 		p = lookupvar(name);
-value:
+ value:
 		if (!p)
 			return -1;
 
@@ -5409,7 +5394,6 @@ value:
  * Record the fact that we have to scan this region of the
  * string for IFS characters.
  */
-
 static void
 recordregion(int start, int end, int nulonly)
 {
@@ -5513,7 +5497,7 @@ ifsbreakup(char *string, struct arglist *arglist)
 	if (!*start)
 		return;
 
-add:
+ add:
 	sp = (struct strlist *)stalloc(sizeof(*sp));
 	sp->text = start;
 	*arglist->lastp = sp;
@@ -5580,7 +5564,7 @@ expandmeta(struct strlist *str, int flag)
 			/*
 			 * no matches
 			 */
-nometa:
+ nometa:
 			*exparg.lastp = str;
 			rmescapes(str->text);
 			exparg.lastp = &str->next;
@@ -5595,10 +5579,10 @@ nometa:
 	}
 }
 
+
 /*
  * Add a file name to the list.
  */
-
 static void
 addfname(const char *name)
 {
@@ -5614,7 +5598,6 @@ addfname(const char *name)
 /*
  * Do metacharacter (i.e. *, ?, [...]) expansion.
  */
-
 static void
 expmeta(char *enddir, char *name)
 {
@@ -5656,7 +5639,7 @@ expmeta(char *enddir, char *name)
 			start = p + 1;
 		}
 	}
-out:
+ out:
 	if (metaflag == 0) {    /* we've reached the end of the file name */
 		if (enddir != expdir)
 			metaflag++;
@@ -5687,7 +5670,8 @@ out:
 		cp = expdir;
 		enddir[-1] = '\0';
 	}
-	if ((dirp = opendir(cp)) == NULL)
+	dirp = opendir(cp);
+	if (dirp == NULL)
 		return;
 	if (enddir != expdir)
 		enddir[-1] = '/';
@@ -5723,12 +5707,12 @@ out:
 		endname[-1] = '/';
 }
 
+
 /*
  * Sort the results of file name expansion.  It calculates the number of
  * strings to sort and then calls msort (short for merge sort) to do the
  * work.
  */
-
 static struct strlist *
 expsort(struct strlist *str)
 {
@@ -5771,14 +5755,16 @@ msort(struct strlist *list, int len)
 						{
 			*lpp = p;
 			lpp = &p->next;
-			if ((p = *lpp) == NULL) {
+			p = *lpp;
+			if (p == NULL) {
 				*lpp = q;
 				break;
 			}
 		} else {
 			*lpp = q;
 			lpp = &q->next;
-			if ((q = *lpp) == NULL) {
+			q = *lpp;
+			if (q == NULL) {
 				*lpp = p;
 				break;
 			}
@@ -5791,7 +5777,6 @@ msort(struct strlist *list, int len)
 /*
  * Returns true if the pattern matches the string.
  */
-
 static int patmatch(char *pattern, const char *string)
 {
 	return pmatch(preglob(pattern, 0, 0), string);
@@ -5801,7 +5786,6 @@ static int patmatch(char *pattern, const char *string)
 /*
  * Remove any CTLESC characters from a string.
  */
-
 static char *
 _rmescapes(char *str, int flag)
 {
@@ -5855,7 +5839,7 @@ _rmescapes(char *str, int flag)
 			}
 		}
 		notescaped = globbing;
-copy:
+ copy:
 		*q++ = *p++;
 	}
 	*q = '\0';
@@ -5870,8 +5854,7 @@ copy:
 /*
  * See if a pattern matches in a case statement.
  */
-
-int
+static int
 casematch(union node *pattern, char *val)
 {
 	struct stackmark smark;
@@ -5888,10 +5871,10 @@ casematch(union node *pattern, char *val)
 	return result;
 }
 
+
 /*
  * Our own itoa().
  */
-
 static int
 cvtnum(arith_t num)
 {
@@ -6043,7 +6026,7 @@ static int preadfd(void)
 	char *buf =  parsefile->buf;
 	parsenextc = buf;
 
-retry:
+ retry:
 #if ENABLE_FEATURE_EDITING
 	if (!iflag || parsefile->fd)
 		nr = safe_read(parsefile->fd, buf, BUFSIZ - 1);
@@ -6095,8 +6078,7 @@ retry:
  * 3) If the is more stuff in this buffer, use it else call read to fill it.
  * 4) Process input up to the next newline, deleting nul characters.
  */
-
-int
+static int
 preadbuffer(void)
 {
 	char *q;
@@ -6120,8 +6102,9 @@ preadbuffer(void)
 
 	more = parselleft;
 	if (more <= 0) {
-again:
-		if ((more = preadfd()) <= 0) {
+ again:
+		more = preadfd();
+		if (more <= 0) {
 			parselleft = parsenleft = EOF_NLEFT;
 			return PEOF;
 		}
@@ -6171,8 +6154,7 @@ again:
  * Undo the last call to pgetc.  Only one character may be pushed back.
  * PEOF may be pushed back.
  */
-
-void
+static void
 pungetc(void)
 {
 	parsenleft++;
@@ -6183,7 +6165,7 @@ pungetc(void)
  * Push a string back onto the input at this current parsefile level.
  * We handle aliases this way.
  */
-void
+static void
 pushstring(char *s, void *ap)
 {
 	struct strpush *sp;
@@ -6212,7 +6194,7 @@ pushstring(char *s, void *ap)
 	INTON;
 }
 
-void
+static void
 popstring(void)
 {
 	struct strpush *sp = parsefile->strpush;
@@ -6241,11 +6223,11 @@ popstring(void)
 	INTON;
 }
 
+
 /*
  * Set the input to take input from a file.  If push is set, push the
  * old input onto the stack first.
  */
-
 static int
 setinputfile(const char *fname, int flags)
 {
@@ -6253,7 +6235,8 @@ setinputfile(const char *fname, int flags)
 	int fd2;
 
 	INTOFF;
-	if ((fd = open(fname, O_RDONLY)) < 0) {
+	fd = open(fname, O_RDONLY);
+	if (fd < 0) {
 		if (flags & INPUT_NOFILE_OK)
 			goto out;
 		sh_error("Can't open %s", fname);
@@ -6266,7 +6249,7 @@ setinputfile(const char *fname, int flags)
 		fd = fd2;
 	}
 	setinputfd(fd, flags & INPUT_PUSH_FILE);
-out:
+ out:
 	INTON;
 	return fd;
 }
@@ -6276,7 +6259,6 @@ out:
  * Like setinputfile, but takes an open file descriptor.  Call this with
  * interrupts off.
  */
-
 static void
 setinputfd(int fd, int push)
 {
@@ -6296,7 +6278,6 @@ setinputfd(int fd, int push)
 /*
  * Like setinputfile, but takes input from a string.
  */
-
 static void
 setinputstring(char *string)
 {
@@ -6314,7 +6295,6 @@ setinputstring(char *string)
  * To handle the "." command, a stack of input files is used.  Pushfile
  * adds a new entry to the stack and popfile restores the previous level.
  */
-
 static void
 pushfile(void)
 {
@@ -6358,7 +6338,6 @@ popfile(void)
 /*
  * Return to top level.
  */
-
 static void
 popallfiles(void)
 {
@@ -6371,7 +6350,6 @@ popallfiles(void)
  * Close the file(s) that the shell is reading commands from.  Called
  * after a fork is done.
  */
-
 static void
 closescript(void)
 {
@@ -6484,8 +6462,7 @@ set_curjob(struct job *jp, unsigned mode)
  *
  * Called with interrupts off.
  */
-
-void
+static void
 setjobctl(int on)
 {
 	int fd;
@@ -6511,8 +6488,9 @@ setjobctl(int on)
 			goto out;
 		fcntl(fd, F_SETFD, FD_CLOEXEC);
 		do { /* while we are in the background */
-			if ((pgrp = tcgetpgrp(fd)) < 0) {
-out:
+			pgrp = tcgetpgrp(fd);
+			if (pgrp < 0) {
+ out:
 				sh_warnx("can't access tty; job control turned off");
 				mflag = on = 0;
 				goto close;
@@ -6538,7 +6516,7 @@ out:
 		setsignal(SIGTSTP);
 		setsignal(SIGTTOU);
 		setsignal(SIGTTIN);
-close:
+ close:
 		close(fd);
 		fd = -1;
 	}
@@ -6556,7 +6534,7 @@ killcmd(int argc, char **argv)
 	struct job *jp;
 
 	if (argc <= 1) {
-usage:
+ usage:
 		sh_error(
 "Usage: kill [-s sigspec | -signum | -sigspec] [pid | job]... or\n"
 "kill -l [exitstatus]"
@@ -6697,7 +6675,7 @@ restartjob(struct job *jp, int mode)
 			ps->status = -1;
 		}
 	} while (ps++, --i);
-out:
+ out:
 	status = (mode == FORK_FG) ? waitforjob(jp) : 0;
 	INTON;
 	return status;
@@ -6738,8 +6716,7 @@ sprint_status(char *s, int status, int sigonly)
 		else
 			col = fmtstr(s, 16, "Done");
 	}
-
-out:
+ out:
 	return col;
 }
 
@@ -6791,8 +6768,7 @@ showjob(FILE *out, struct job *jp, int mode)
 	do {
 		/* for each process */
 		col = fmtstr(s, 48, " |\n%*c%d ", indent, ' ', ps->pid) - 3;
-
-start:
+ start:
 		fprintf(out, "%s%*c%s",
 			s, 33 - col >= 0 ? 33 - col : 0, ' ', ps->cmd
 		);
@@ -6845,7 +6821,6 @@ jobscmd(int argc, char **argv)
  * Print a list of jobs.  If "change" is nonzero, only print jobs whose
  * statuses have changed since the last call to showjobs.
  */
-
 static void
 showjobs(FILE *out, int mode)
 {
@@ -6864,10 +6839,10 @@ showjobs(FILE *out, int mode)
 }
 #endif /* JOBS */
 
+
 /*
  * Mark a job structure as unused.
  */
-
 static void
 freejob(struct job *jp)
 {
@@ -6928,7 +6903,7 @@ waitcmd(int argc, char **argv)
 				if (job->ps[job->nprocs - 1].pid == pid)
 					break;
 				job = job->prev_job;
-start:
+ start:
 				if (!job)
 					goto repeat;
 			} while (1);
@@ -6939,11 +6914,11 @@ start:
 			dowait(DOWAIT_BLOCK, 0);
 		job->waited = 1;
 		retval = getstatus(job);
-repeat:
+ repeat:
 		;
 	} while (*++argv);
 
-out:
+ out:
 	return retval;
 }
 
@@ -6951,7 +6926,6 @@ out:
 /*
  * Convert a job name to a job structure.
  */
-
 static struct job *
 getjob(const char *name, int getctl)
 {
@@ -6977,14 +6951,14 @@ getjob(const char *name, int getctl)
 
 	if (!p[1]) {
 		if (c == '+' || c == '%') {
-currentjob:
+ currentjob:
 			err_msg = "No current job";
 			goto check;
 		} else if (c == '-') {
 			if (jp)
 				jp = jp->prev_job;
 			err_msg = "No previous job";
-check:
+ check:
 			if (!jp)
 				goto err;
 			goto gotit;
@@ -7020,14 +6994,14 @@ check:
 		jp = jp->prev_job;
 	}
 
-gotit:
+ gotit:
 #if JOBS
 	err_msg = "job %s not created under job control";
 	if (getctl && jp->jobctl == 0)
 		goto err;
 #endif
 	return jp;
-err:
+ err:
 	sh_error(err_msg, name);
 }
 
@@ -7136,7 +7110,6 @@ growjobtab(void)
  *
  * Called with interrupts off.
  */
-
 static void forkchild(struct job *jp, union node *n, int mode)
 {
 	int oldlvl;
@@ -7240,6 +7213,7 @@ forkshell(struct job *jp, union node *n, int mode)
 	return pid;
 }
 
+
 /*
  * Wait for job to finish.
  *
@@ -7260,8 +7234,7 @@ forkshell(struct job *jp, union node *n, int mode)
  *
  * Called with interrupts off.
  */
-
-int
+static int
 waitforjob(struct job *jp)
 {
 	int st;
@@ -7320,7 +7293,6 @@ waitforjob(struct job *jp)
  * (as opposed to running a builtin command or just typing return),
  * and the jobs command may give out of date information.
  */
-
 static int waitproc(int block, int *status)
 {
 	int flags = 0;
@@ -7334,10 +7306,10 @@ static int waitproc(int block, int *status)
 	return wait3(status, flags, (struct rusage *)NULL);
 }
 
+
 /*
  * Wait for a process to terminate.
  */
-
 static int
 dowait(int block, struct job *job)
 {
@@ -7391,7 +7363,7 @@ dowait(int block, struct job *job)
 		jobless--;
 	goto out;
 
-gotjob:
+ gotjob:
 	if (state != JOBRUNNING) {
 		thisjob->changed = 1;
 
@@ -7407,7 +7379,7 @@ gotjob:
 		}
 	}
 
-out:
+ out:
 	INTON;
 
 	if (thisjob && thisjob == job) {
@@ -7428,7 +7400,6 @@ out:
 /*
  * return 1 if there are stopped jobs, otherwise 0
  */
-
 int
 stoppedjobs(void)
 {
@@ -7453,7 +7424,6 @@ out:
  * Return a string identifying a command (to be printed by the
  * jobs command).
  */
-
 #if JOBS
 static char *cmdnextc;
 
@@ -7503,7 +7473,7 @@ cmdtxt(union node *n)
 		goto binop;
 	case NOR:
 		p = " || ";
-binop:
+ binop:
 		cmdtxt(n->nbinary.ch1);
 		cmdputs(p);
 		n = n->nbinary.ch2;
@@ -7515,7 +7485,7 @@ binop:
 	case NNOT:
 		cmdputs("!");
 		n = n->nnot.com;
-donode:
+ donode:
 		cmdtxt(n);
 		break;
 	case NIF:
@@ -7540,14 +7510,14 @@ donode:
 		goto until;
 	case NUNTIL:
 		p = "until ";
-until:
+ until:
 		cmdputs(p);
 		cmdtxt(n->nbinary.ch1);
 		n = n->nbinary.ch2;
 		p = "; done";
-dodo:
+ dodo:
 		cmdputs("; do ");
-dotail:
+ dotail:
 		cmdtxt(n);
 		goto dotail2;
 	case NFOR:
@@ -7568,7 +7538,7 @@ dotail:
 		break;
 	case NARG:
 		p = n->narg.text;
-dotail2:
+ dotail2:
 		cmdputs(p);
 		break;
 	case NHERE:
@@ -7607,7 +7577,7 @@ dotail2:
 		goto redir;
 	case NFROMTO:
 		p = "<>";
-redir:
+ redir:
 		s[0] = n->nfile.fd + '0';
 		s[1] = '\0';
 		cmdputs(s);
@@ -7714,10 +7684,10 @@ cmdputs(const char *s)
 			break;
 		}
 		USTPUTC(c, nextc);
-checkstr:
+ checkstr:
 		if (!str)
 			continue;
-dostr:
+ dostr:
 		while ((c = *str++)) {
 			USTPUTC(c, nextc);
 		}
@@ -7793,14 +7763,12 @@ static time_t mailtime[MAXMBOXES];
 static int mail_var_path_changed;
 
 
-
 /*
  * Print appropriate message(s) if mail has arrived.
  * If mail_var_path_changed is set,
  * then the value of MAIL has mail_var_path_changed,
  * so we just update the values.
  */
-
 static void
 chkmail(void)
 {
@@ -7869,7 +7837,6 @@ static void read_profile(const char *);
  * exception occurs.  When an exception occurs the variable "state"
  * is used to figure out how far we had gotten.
  */
-
 int ash_main(int argc, char **argv);
 int ash_main(int argc, char **argv)
 {
@@ -7949,11 +7916,11 @@ int ash_main(int argc, char **argv)
 	if (isloginsh) {
 		state = 1;
 		read_profile("/etc/profile");
-state1:
+ state1:
 		state = 2;
 		read_profile(".profile");
 	}
-state2:
+ state2:
 	state = 3;
 	if (
 #ifndef linux
@@ -7961,11 +7928,12 @@ state2:
 #endif
 		iflag
 	) {
-		if ((shinit = lookupvar("ENV")) != NULL && *shinit != '\0') {
+		shinit = lookupvar("ENV");
+		if (shinit != NULL && *shinit != '\0') {
 			read_profile(shinit);
 		}
 	}
-state3:
+ state3:
 	state = 4;
 	if (minusc)
 		evalstring(minusc, 0);
@@ -8000,7 +7968,6 @@ state3:
  * Read and execute commands.  "Top" is nonzero for the top level command
  * loop; it turns on prompting if the shell is interactive.
  */
-
 static int
 cmdloop(int top)
 {
@@ -8057,7 +8024,6 @@ cmdloop(int top)
 /*
  * Read /etc/profile or .profile.  Return on error.
  */
-
 static void
 read_profile(const char *name)
 {
@@ -8077,7 +8043,6 @@ read_profile(const char *name)
 /*
  * Read a file containing shell functions.
  */
-
 static void
 readcmdfile(char *name)
 {
@@ -8091,7 +8056,6 @@ readcmdfile(char *name)
  * Take commands from a file.  To be compatible we should do a path
  * search for the file, which is necessary to find sub-commands.
  */
-
 static char * find_dot_file(char *name)
 {
 	char *fullname;
@@ -8186,7 +8150,6 @@ testcmd(int argc, char **argv)
 /*
  * Same for malloc, realloc, but returns an error when out of space.
  */
-
 static pointer
 ckrealloc(pointer p, size_t nbytes)
 {
@@ -8205,7 +8168,6 @@ ckmalloc(size_t nbytes)
 /*
  * Make a copy of a string in safe storage.
  */
-
 static char *
 savestr(const char *s)
 {
@@ -8224,8 +8186,6 @@ savestr(const char *s)
  * The size 504 was chosen because the Ultrix malloc handles that size
  * well.
  */
-
-
 static pointer
 stalloc(size_t nbytes)
 {
@@ -8260,7 +8220,7 @@ stalloc(size_t nbytes)
 }
 
 
-void
+static void
 stunalloc(pointer p)
 {
 #if DEBUG
@@ -8274,7 +8234,7 @@ stunalloc(pointer p)
 }
 
 
-void
+static void
 setstackmark(struct stackmark *mark)
 {
 	mark->stackp = stackp;
@@ -8285,7 +8245,7 @@ setstackmark(struct stackmark *mark)
 }
 
 
-void
+static void
 popstackmark(struct stackmark *mark)
 {
 	struct stack_block *sp;
@@ -8313,8 +8273,7 @@ popstackmark(struct stackmark *mark)
  * possibly moving it (like realloc).  Grabstackblock actually allocates the
  * part of the block that has been used.
  */
-
-void
+static void
 growstackblock(void)
 {
 	size_t newlen;
@@ -8374,6 +8333,7 @@ static void grabstackblock(size_t len)
 	stacknleft -= len;
 }
 
+
 /*
  * The following routines are somewhat easier to use than the above.
  * The user declares a variable of type STACKSTR, which may be declared
@@ -8391,8 +8351,7 @@ static void grabstackblock(size_t len)
  * CHECKSTACKSPACE can be called before USTPUTC to ensure that there
  * is space for at least one character.
  */
-
-void *
+static void *
 growstackstr(void)
 {
 	size_t len = stackblocksize();
@@ -8407,8 +8366,7 @@ growstackstr(void)
 /*
  * Called from CHECKSTRSPACE.
  */
-
-char *
+static char *
 makestrspace(size_t newlen, char *p)
 {
 	size_t len = p - stacknxt;
@@ -8426,7 +8384,7 @@ makestrspace(size_t newlen, char *p)
 	return stackblock() + len;
 }
 
-char *
+static char *
 stnputs(const char *s, size_t n, char *p)
 {
 	p = makestrspace(n, p);
@@ -8434,7 +8392,7 @@ stnputs(const char *s, size_t n, char *p)
 	return p;
 }
 
-char *
+static char *
 stputs(const char *s, char *p)
 {
 	return stnputs(s, strlen(s), p);
@@ -8452,8 +8410,7 @@ stputs(const char *s, char *p)
 /*
  * prefix -- see if pfx is a prefix of string.
  */
-
-char *
+static char *
 prefix(const char *string, const char *pfx)
 {
 	while (*pfx) {
@@ -8468,11 +8425,9 @@ prefix(const char *string, const char *pfx)
  * Convert a string of digits to an integer, printing an error message on
  * failure.
  */
-
-int
+static int
 number(const char *s)
 {
-
 	if (! is_number(s))
 		sh_error(illnum, s);
 	return atoi(s);
@@ -8482,8 +8437,7 @@ number(const char *s)
 /*
  * Check for a valid number.  This should be elsewhere.
  */
-
-int
+static int
 is_number(const char *p)
 {
 	do {
@@ -8498,9 +8452,9 @@ is_number(const char *p)
  * Produce a possibly single quoted string suitable as input to the shell.
  * The return string is allocated on the stack.
  */
-
-char *
-single_quote(const char *s) {
+static char *
+single_quote(const char *s)
+{
 	char *p;
 
 	STARTSTACKSTR(p);
@@ -8539,11 +8493,11 @@ single_quote(const char *s) {
 	return stackblock();
 }
 
+
 /*
  * Like strdup but works with the ash stack.
  */
-
-char *
+static char *
 sstrdup(const char *p)
 {
 	size_t len = strlen(p) + 1;
@@ -8764,7 +8718,6 @@ nodesavestr(char *s)
 /*
  * Free a parse tree.
  */
-
 static void
 freefunc(struct funcnode *f)
 {
@@ -8780,8 +8733,7 @@ static void setoption(int, int);
 /*
  * Process the shell command line arguments.
  */
-
-void
+static void
 procargs(int argc, char **argv)
 {
 	int i;
@@ -8820,7 +8772,7 @@ procargs(int argc, char **argv)
 			goto setarg0;
 	} else if (!sflag) {
 		setinputfile(*xargv, 0);
-setarg0:
+ setarg0:
 		arg0 = *xargv++;
 		commandname = arg0;
 	}
@@ -8839,7 +8791,7 @@ setarg0:
 }
 
 
-void
+static void
 optschanged(void)
 {
 #if DEBUG
@@ -8869,11 +8821,11 @@ static void minus_o(char *name, int val)
 	}
 }
 
+
 /*
  * Process shell options.  The global variable argptr contains a pointer
  * to the argument list; we advance it past the options.
  */
-
 static void
 options(int cmdline)
 {
@@ -8885,7 +8837,8 @@ options(int cmdline)
 		minusc = NULL;
 	while ((p = *argptr) != NULL) {
 		argptr++;
-		if ((c = *p++) == '-') {
+		c = *p++;
+		if (c == '-') {
 			val = 1;
 			if (p[0] == '\0' || LONE_DASH(p)) {
 				if (!cmdline) {
@@ -8941,8 +8894,7 @@ setoption(int flag, int val)
 /*
  * Set the shell parameters.
  */
-
-void
+static void
 setparam(char **argv)
 {
 	char **newparam;
@@ -8969,8 +8921,7 @@ setparam(char **argv)
 /*
  * Free the list of positional parameters.
  */
-
-void
+static void
 freeparam(volatile struct shparam *param)
 {
 	char **ap;
@@ -8986,8 +8937,7 @@ freeparam(volatile struct shparam *param)
 /*
  * The shift builtin command.
  */
-
-int
+static int
 shiftcmd(int argc, char **argv)
 {
 	int n;
@@ -9018,8 +8968,7 @@ shiftcmd(int argc, char **argv)
 /*
  * The set command builtin.
  */
-
-int
+static int
 setcmd(int argc, char **argv)
 {
 	if (argc == 1)
@@ -9103,7 +9052,7 @@ getopts(char *optstr, char *optvar, char **optfirst, int *param_optind, int *opt
 		/* Current word is done, advance */
 		p = *optnext;
 		if (p == NULL || *p != '-' || *++p == '\0') {
-atend:
+ atend:
 			p = NULL;
 			done = 1;
 			goto out;
@@ -9152,8 +9101,7 @@ atend:
 		p = NULL;
 	} else
 		err |= setvarsafe("OPTARG", nullstr, 0);
-
-out:
+ out:
 	*optoff = p ? p - *(optnext - 1) : -1;
 	*param_optind = optnext - optfirst + 1;
 	fmtstr(s, sizeof(s), "%d", *param_optind);
@@ -9170,14 +9118,14 @@ out:
 	return done;
 }
 
+
 /*
  * The getopts builtin.  Shellparam.optnext points to the next argument
  * to be processed.  Shellparam.optptr points to the next character to
  * be processed in the current argument.  If shellparam.optnext is NULL,
  * then it's the first time getopts has been called.
  */
-
-int
+static int
 getoptscmd(int argc, char **argv)
 {
 	char **optbase;
@@ -9190,8 +9138,7 @@ getoptscmd(int argc, char **argv)
 			shellparam.optind = 1;
 			shellparam.optoff = -1;
 		}
-	}
-	else {
+	} else {
 		optbase = &argv[3];
 		if (shellparam.optind > argc - 2) {
 			shellparam.optind = 1;
@@ -9214,7 +9161,6 @@ getoptscmd(int argc, char **argv)
  * other arguments are unnecessary.  It return the character, or '\0' on
  * end of input.
  */
-
 static int
 nextopt(const char *optstring)
 {
@@ -9222,7 +9168,8 @@ nextopt(const char *optstring)
 	const char *q;
 	char c;
 
-	if ((p = optptr) == NULL || *p == '\0') {
+	p = optptr;
+	if (p == NULL || *p == '\0') {
 		p = *argptr;
 		if (p == NULL || *p != '-' || *++p == '\0')
 			return '\0';
@@ -9250,7 +9197,7 @@ nextopt(const char *optstring)
 
 /*      output.c     */
 
-void
+static void
 outstr(const char *p, FILE *file)
 {
 	INTOFF;
@@ -9258,7 +9205,7 @@ outstr(const char *p, FILE *file)
 	INTON;
 }
 
-void
+static void
 flushall(void)
 {
 	INTOFF;
@@ -9267,7 +9214,7 @@ flushall(void)
 	INTON;
 }
 
-void
+static void
 flusherr(void)
 {
 	INTOFF;
@@ -9300,7 +9247,7 @@ out1fmt(const char *fmt, ...)
 }
 
 
-int
+static int
 fmtstr(char *outbuf, size_t length, const char *fmt, ...)
 {
 	va_list ap;
@@ -9359,7 +9306,6 @@ static void setprompt(int);
  * Read and parse a command.  Returns NEOF on end of file.  (NULL is a
  * valid parse tree indicating a blank line.)
  */
-
 union node *
 parsecmd(int interact)
 {
@@ -9408,8 +9354,7 @@ list(int nlflag)
 		}
 		if (n1 == NULL) {
 			n1 = n2;
-		}
-		else {
+		} else {
 			n3 = (union node *)stalloc(sizeof(struct nbinary));
 			n3->type = NSEMI;
 			n3->nbinary.ch1 = n1;
@@ -9457,7 +9402,8 @@ andor(void)
 
 	n1 = pipeline();
 	for (;;) {
-		if ((t = readtoken()) == TAND) {
+		t = readtoken();
+		if (t == TAND) {
 			t = NAND;
 		} else if (t == TOR) {
 			t = NOR;
@@ -9633,7 +9579,7 @@ command(void)
 		if (lasttoken != TIN)
 			synexpect(TIN);
 		cpp = &n1->ncase.cases;
-next_case:
+ next_case:
 		checkkwd = CHKNL | CHKKWD;
 		t = readtoken();
 		while (t != TESAC) {
@@ -9660,7 +9606,8 @@ next_case:
 			cpp = &cp->nclist.next;
 
 			checkkwd = CHKNL | CHKKWD;
-			if ((t = readtoken()) != TESAC) {
+			t = readtoken();
+			if (t != TESAC) {
 				if (t != TENDCASE)
 					synexpect(TENDCASE);
 				else
@@ -9689,7 +9636,7 @@ next_case:
 	if (readtoken() != t)
 		synexpect(t);
 
-redir:
+ redir:
 	/* Now check for redirection which may follow command */
 	checkkwd = CHKKWD | CHKALIAS;
 	rpp = rpp2;
@@ -9709,7 +9656,6 @@ redir:
 		}
 		n1->nredir.redirect = redir;
 	}
-
 	return n1;
 }
 
@@ -9782,7 +9728,7 @@ simplecmd(void) {
 			goto out;
 		}
 	}
-out:
+ out:
 	*app = NULL;
 	*vpp = NULL;
 	*rpp = NULL;
@@ -9807,7 +9753,7 @@ makename(void)
 	return n;
 }
 
-void fixredir(union node *n, const char *text, int err)
+static void fixredir(union node *n, const char *text, int err)
 {
 	TRACE(("Fix redir %s %d\n", text, err));
 	if (!err)
@@ -9842,7 +9788,7 @@ parsefname(void)
 		if (quoteflag == 0)
 			n->type = NXHERE;
 		TRACE(("Here document %d\n", n->type));
-		if (! noexpand(wordtext) || (i = strlen(wordtext)) == 0 || i > EOFMARKLEN)
+		if (!noexpand(wordtext) || (i = strlen(wordtext)) == 0 || i > EOFMARKLEN)
 			synerror("Illegal eof marker for << redirection");
 		rmescapes(wordtext);
 		here->eofmark = wordtext;
@@ -9850,7 +9796,7 @@ parsefname(void)
 		if (heredoclist == NULL)
 			heredoclist = here;
 		else {
-			for (p = heredoclist ; p->next ; p = p->next);
+			for (p = heredoclist; p->next; p = p->next);
 			p->next = here;
 		}
 	} else if (n->type == NTOFD || n->type == NFROMFD) {
@@ -9864,7 +9810,6 @@ parsefname(void)
 /*
  * Input any here documents.
  */
-
 static void
 parseheredoc(void)
 {
@@ -9908,7 +9853,7 @@ readtoken(void)
 #endif
 
 #if ENABLE_ASH_ALIAS
-top:
+ top:
 #endif
 
 	t = xxreadtoken();
@@ -9933,7 +9878,8 @@ top:
 	if (checkkwd & CHKKWD) {
 		const char *const *pp;
 
-		if ((pp = findkwd(wordtext))) {
+		pp = findkwd(wordtext);
+		if (pp) {
 			lasttoken = t = pp - tokname_array;
 			TRACE(("keyword %s recognized\n", tokname(t)));
 			goto out;
@@ -9943,7 +9889,8 @@ top:
 	if (checkkwd & CHKALIAS) {
 #if ENABLE_ASH_ALIAS
 		struct alias *ap;
-		if ((ap = lookupalias(wordtext, 1)) != NULL) {
+		ap = lookupalias(wordtext, 1);
+		if (ap != NULL) {
 			if (*ap->val) {
 				pushstring(ap->val, ap);
 			}
@@ -9951,7 +9898,7 @@ top:
 		}
 #endif
 	}
-out:
+ out:
 	checkkwd = 0;
 #if DEBUG
 	if (!alreadyseen)
@@ -10054,11 +10001,10 @@ static int xxreadtoken(void)
 						}
 					}
 				}
-
 				return lasttoken = xxreadtoken_tokens[p - xxreadtoken_chars];
 			}
 		}
-	}
+	} /* for */
 }
 
 
@@ -10128,7 +10074,7 @@ xxreadtoken(void)
 			goto breakloop;
 		}
 	}
-breakloop:
+ breakloop:
 	return readtoken1(c, BASESYNTAX, (char *)NULL, 0);
 #undef RETURN
 }
@@ -10372,7 +10318,6 @@ readtoken1(int firstc, int syntax, char *eofmark, int striptabs)
  * is called, c is set to the first character of the next input line.  If
  * we are at the end of the here document, this routine sets the c to PEOF.
  */
-
 checkend: {
 	if (eofmark) {
 #if ENABLE_ASH_ALIAS
@@ -10410,7 +10355,6 @@ checkend: {
  * specifying the fd to be redirected.  The variable "c" contains the
  * first character of the redirection operator.
  */
-
 parseredir: {
 	char fd = *out;
 	union node *np;
@@ -10431,7 +10375,8 @@ parseredir: {
 		}
 	} else {        /* c == '<' */
 		np->nfile.fd = 0;
-		switch (c = pgetc()) {
+		c = pgetc();
+		switch (c) {
 		case '<':
 			if (sizeof(struct nfile) != sizeof(struct nhere)) {
 				np = (union node *)stalloc(sizeof(struct nhere));
@@ -10440,7 +10385,8 @@ parseredir: {
 			np->type = NHERE;
 			heredoc = (struct heredoc *)stalloc(sizeof(struct heredoc));
 			heredoc->here = np;
-			if ((c = pgetc()) == '-') {
+			c = pgetc();
+			if (c == '-') {
 				heredoc->striptabs = 1;
 			} else {
 				heredoc->striptabs = 0;
@@ -10473,7 +10419,6 @@ parseredir: {
  * Parse a substitution.  At this point, we have read the dollar sign
  * and nothing else.
  */
-
 parsesub: {
 	int subtype;
 	int typeloc;
@@ -10507,12 +10452,12 @@ parsesub: {
 		if (c == '{') {
 			c = pgetc();
 			if (c == '#') {
-				if ((c = pgetc()) == '}')
+				c = pgetc();
+				if (c == '}')
 					c = '#';
 				else
 					subtype = VSLENGTH;
-			}
-			else
+			} else
 				subtype = 0;
 		}
 		if (c > PEOA_OR_PEOF && is_name(c)) {
@@ -10582,7 +10527,6 @@ parsesub: {
  * list of commands (passed by reference), and savelen is the number of
  * characters on the top of the stack which must be preserved.
  */
-
 parsebackq: {
 	struct nodelist **nlpp;
 	int savepbq;
@@ -10629,12 +10573,14 @@ parsebackq: {
 			if (needprompt) {
 				setprompt(2);
 			}
-			switch (pc = pgetc()) {
+			pc = pgetc();
+			switch (pc) {
 			case '`':
 				goto done;
 
 			case '\\':
-				if ((pc = pgetc()) == '\n') {
+				pc = pgetc();
+				if (pc == '\n') {
 					plinno++;
 					if (doprompt)
 						setprompt(2);
@@ -10671,7 +10617,7 @@ parsebackq: {
 			}
 			STPUTC(pc, pout);
 		}
-done:
+ done:
 		STPUTC('\0', pout);
 		psavelen = pout - (char *)stackblock();
 		if (psavelen > 0) {
@@ -10763,7 +10709,6 @@ parsearith: {
  * Returns true if the text contains nothing to expand (no dollar signs
  * or backquotes).
  */
-
 static int
 noexpand(char *text)
 {
@@ -10787,7 +10732,6 @@ noexpand(char *text)
  * Return of a legal variable name (a letter or underscore followed by zero or
  * more letters, underscores, and digits).
  */
-
 static char *
 endofname(const char *name)
 {
@@ -10809,7 +10753,6 @@ endofname(const char *name)
  * is the token that is expected, or -1 if more than one type of token can
  * occur at this point.
  */
-
 static void synexpect(int token)
 {
 	char msg[64];
@@ -10834,7 +10777,6 @@ synerror(const char *msg)
  * called by editline -- any expansions to the prompt
  *    should be added here.
  */
-
 #if ENABLE_ASH_EXPAND_PRMT
 static const char *
 expandstr(const char *ps)
@@ -10963,12 +10905,12 @@ static int noclobberopen(const char *fname)
 	return -1;
 }
 
+
 /*
  * Handle here documents.  Normally we fork off a process to write the
  * data to a pipe.  If the document is short, we can stuff the data in
  * the pipe without forking.
  */
-
 static int openhere(union node *redir)
 {
 	int pip[2];
@@ -10998,7 +10940,7 @@ static int openhere(union node *redir)
 			expandhere(redir->nhere.doc, pip[1]);
 		_exit(0);
 	}
-out:
+ out:
 	close(pip[1]);
 	return pip[0];
 }
@@ -11012,31 +10954,36 @@ openredirect(union node *redir)
 	switch (redir->nfile.type) {
 	case NFROM:
 		fname = redir->nfile.expfname;
-		if ((f = open(fname, O_RDONLY)) < 0)
+		f = open(fname, O_RDONLY);
+		if (f < 0)
 			goto eopen;
 		break;
 	case NFROMTO:
 		fname = redir->nfile.expfname;
-		if ((f = open(fname, O_RDWR|O_CREAT|O_TRUNC, 0666)) < 0)
+		f = open(fname, O_RDWR|O_CREAT|O_TRUNC, 0666);
+		if (f < 0)
 			goto ecreate;
 		break;
 	case NTO:
 		/* Take care of noclobber mode. */
 		if (Cflag) {
 			fname = redir->nfile.expfname;
-			if ((f = noclobberopen(fname)) < 0)
+			f = noclobberopen(fname);
+			if (f < 0)
 				goto ecreate;
 			break;
 		}
 		/* FALLTHROUGH */
 	case NCLOBBER:
 		fname = redir->nfile.expfname;
-		if ((f = open(fname, O_WRONLY|O_CREAT|O_TRUNC, 0666)) < 0)
+		f = open(fname, O_WRONLY|O_CREAT|O_TRUNC, 0666);
+		if (f < 0)
 			goto ecreate;
 		break;
 	case NAPPEND:
 		fname = redir->nfile.expfname;
-		if ((f = open(fname, O_WRONLY|O_CREAT|O_APPEND, 0666)) < 0)
+		f = open(fname, O_WRONLY|O_CREAT|O_APPEND, 0666);
+		if (f < 0)
 			goto ecreate;
 		break;
 	default:
@@ -11055,9 +11002,9 @@ openredirect(union node *redir)
 	}
 
 	return f;
-ecreate:
+ ecreate:
 	sh_error("cannot create %s: %s", fname, errmsg(errno, E_CREAT));
-eopen:
+ eopen:
 	sh_error("cannot open %s: %s", fname, errmsg(errno, E_OPEN));
 }
 
@@ -11078,6 +11025,7 @@ static void dupredirect(union node *redir, int f)
 	}
 }
 
+
 /*
  * Process a list of redirection commands.  If the REDIR_PUSH flag is set,
  * old file descriptors are stashed away so that the redirection can be
@@ -11085,7 +11033,6 @@ static void dupredirect(union node *redir, int f)
  * standard output, and the standard error if it becomes a duplicate of
  * stdout, is saved in memory.
  */
-
 static void
 redirect(union node *redir, int flags)
 {
@@ -11151,8 +11098,7 @@ redirect(union node *redir, int flags)
 /*
  * Undo the effects of the last redirection.
  */
-
-void
+static void
 popredir(int drop)
 {
 	struct redirtab *rp;
@@ -11184,8 +11130,7 @@ popredir(int drop)
 /*
  * Discard all saved file descriptors.
  */
-
-void
+static void
 clearredir(int drop)
 {
 	for (;;) {
@@ -11202,8 +11147,7 @@ clearredir(int drop)
  * if the source file descriptor is closed, EMPTY if there are no unused
  * file descriptors left.
  */
-
-int
+static int
 copyfd(int from, int to)
 {
 	int newfd;
@@ -11219,7 +11163,7 @@ copyfd(int from, int to)
 }
 
 
-int
+static int
 redirectsafe(union node *redir, int flags)
 {
 	int err;
@@ -11228,7 +11172,8 @@ redirectsafe(union node *redir, int flags)
 	struct jmploc jmploc;
 
 	SAVEINT(saveint);
-	if (!(err = setjmp(jmploc.loc) * 2)) {
+	err = setjmp(jmploc.loc) * 2;
+	if (!err) {
 		handler = &jmploc;
 		redirect(redir, flags);
 	}
@@ -11249,7 +11194,7 @@ static void indent(int, char *, FILE *);
 static void trstring(char *);
 
 
-void
+static void
 showtree(union node *n)
 {
 	trputs("showtree called\n");
@@ -11276,7 +11221,7 @@ shtree(union node *n, int ind, char *pfx, FILE *fp)
 		goto binop;
 	case NOR:
 		s = " || ";
-binop:
+ binop:
 		shtree(n->nbinary.ch1, ind, NULL, fp);
 	   /*    if (ind < 0) */
 			fputs(s, fp);
@@ -11450,10 +11395,10 @@ indent(int amount, char *pfx, FILE *fp)
  */
 
 
-FILE *tracefile;
+static FILE *tracefile;
 
 
-void
+static void
 trputc(int c)
 {
 	if (debug != 1)
@@ -11461,7 +11406,7 @@ trputc(int c)
 	putc(c, tracefile);
 }
 
-void
+static void
 trace(const char *fmt, ...)
 {
 	va_list va;
@@ -11473,7 +11418,7 @@ trace(const char *fmt, ...)
 	va_end(va);
 }
 
-void
+static void
 tracev(const char *fmt, va_list va)
 {
 	if (debug != 1)
@@ -11482,7 +11427,7 @@ tracev(const char *fmt, va_list va)
 }
 
 
-void
+static void
 trputs(const char *s)
 {
 	if (debug != 1)
@@ -11512,7 +11457,7 @@ trstring(char *s)
 		case CTLVAR+CTLQUOTE:  c = 'V';  goto backslash;
 		case CTLBACKQ:  c = 'q';  goto backslash;
 		case CTLBACKQ+CTLQUOTE:  c = 'Q';  goto backslash;
-backslash:        putc('\\', tracefile);
+ backslash:        putc('\\', tracefile);
 			putc(c, tracefile);
 			break;
 		default:
@@ -11531,7 +11476,7 @@ backslash:        putc('\\', tracefile);
 }
 
 
-void
+static void
 trargs(char **ap)
 {
 	if (debug != 1)
@@ -11546,7 +11491,7 @@ trargs(char **ap)
 }
 
 
-void
+static void
 opentrace(void)
 {
 	char s[100];
@@ -11568,14 +11513,16 @@ opentrace(void)
 			return;
 		}
 	} else {
-		if ((tracefile = fopen(s, "a")) == NULL) {
+		tracefile = fopen(s, "a");
+		if (tracefile == NULL) {
 			fprintf(stderr, "Can't open %s\n", s);
 			debug = 0;
 			return;
 		}
 	}
 #ifdef O_APPEND
-	if ((flags = fcntl(fileno(tracefile), F_GETFL, 0)) >= 0)
+	flags = fcntl(fileno(tracefile), F_GETFL, 0);
+	if (flags >= 0)
 		fcntl(fileno(tracefile), F_SETFL, flags | O_APPEND);
 #endif
 	setlinebuf(tracefile);
@@ -11602,8 +11549,7 @@ opentrace(void)
 /*
  * The trap builtin.
  */
-
-int
+static int
 trapcmd(int argc, char **argv)
 {
 	char *action;
@@ -11629,7 +11575,8 @@ trapcmd(int argc, char **argv)
 	else
 		action = *ap++;
 	while (*ap) {
-		if ((signo = get_signum(*ap)) < 0)
+		signo = get_signum(*ap);
+		if (signo < 0)
 			sh_error("%s: bad trap", *ap);
 		INTOFF;
 		if (action) {
@@ -11653,8 +11600,7 @@ trapcmd(int argc, char **argv)
 /*
  * Clear traps on a fork.
  */
-
-void
+static void
 clear_traps(void)
 {
 	char **tp;
@@ -11676,15 +11622,15 @@ clear_traps(void)
  * Set the signal handler for the specified signal.  The routine figures
  * out what it should be set to.
  */
-
-void
+static void
 setsignal(int signo)
 {
 	int action;
 	char *t, tsig;
 	struct sigaction act;
 
-	if ((t = trap[signo]) == NULL)
+	t = trap[signo];
+	if (t == NULL)
 		action = S_DFL;
 	else if (*t != '\0')
 		action = S_CATCH;
@@ -11759,11 +11705,11 @@ setsignal(int signo)
 	sigaction(signo, &act, 0);
 }
 
+
 /*
  * Ignore a signal.
  */
-
-void
+static void
 ignoresig(int signo)
 {
 	if (sigmode[signo - 1] != S_IGN && sigmode[signo - 1] != S_HARD_IGN) {
@@ -11776,8 +11722,7 @@ ignoresig(int signo)
 /*
  * Signal handler.
  */
-
-void
+static void
 onsig(int signo)
 {
 	gotsig[signo - 1] = 1;
@@ -11795,8 +11740,7 @@ onsig(int signo)
  * Called to execute a trap.  Perhaps we should avoid entering new trap
  * handlers while we are executing a trap handler.
  */
-
-int
+static int
 dotrap(void)
 {
 	char *p;
@@ -11830,8 +11774,7 @@ dotrap(void)
 /*
  * Controls whether the shell is interactive or not.
  */
-
-void
+static void
 setinteractive(int on)
 {
 	static int is_interactive;
@@ -11889,11 +11832,11 @@ static int helpcmd(int argc, char **argv)
 }
 #endif /* FEATURE_SH_EXTRA_QUIET */
 
+
 /*
  * Called to exit the shell.
  */
-
-void
+static void
 exitshell(void)
 {
 	struct jmploc loc;
@@ -11912,12 +11855,13 @@ exitshell(void)
 		goto out;
 	}
 	handler = &loc;
-	if ((p = trap[0])) {
+	p = trap[0];
+	if (p) {
 		trap[0] = NULL;
 		evalstring(p, 0);
 	}
 	flushall();
-out:
+ out:
 	setjobctl(0);
 	_exit(status);
 	/* NOTREACHED */
@@ -11939,8 +11883,7 @@ static struct var **findvar(struct var **, const char *);
 /*
  * Safe version of setvar, returns 1 on success 0 on failure.
  */
-
-int
+static int
 setvarsafe(const char *name, const char *val, int flags)
 {
 	int err;
@@ -11962,11 +11905,11 @@ setvarsafe(const char *name, const char *val, int flags)
 }
 #endif
 
+
 /*
  * Set the value of a variable.  The flags argument is ored with the
  * flags of the variable.  If val is NULL, the variable is unset.
  */
-
 static void
 setvar(const char *name, const char *val, int flags)
 {
@@ -12006,8 +11949,7 @@ setvar(const char *name, const char *val, int flags)
  * will go away.
  * Called with interrupts off.
  */
-
-void
+static void
 setvareq(char *s, int flags)
 {
 	struct var *vp, **vpp;
@@ -12054,7 +11996,6 @@ setvareq(char *s, int flags)
 /*
  * Process a linked list of variable assignments.
  */
-
 static void
 listsetvar(struct strlist *list_set_var, int flags)
 {
@@ -12073,13 +12014,13 @@ listsetvar(struct strlist *list_set_var, int flags)
 /*
  * Find the value of a variable.  Returns NULL if not set.
  */
-
 static char *
 lookupvar(const char *name)
 {
 	struct var *v;
 
-	if ((v = *findvar(hashvar(name), name))) {
+	v = *findvar(hashvar(name), name);
+	if (v) {
 #ifdef DYNAMIC_VAR
 	/*
 	 * Dynamic variables are implemented roughly the same way they are
@@ -12101,7 +12042,6 @@ lookupvar(const char *name)
 /*
  * Search the environment of a builtin command.
  */
-
 static char *
 bltinlookup(const char *name)
 {
@@ -12118,7 +12058,6 @@ bltinlookup(const char *name)
 /*
  * Generate a list of variables satisfying the given conditions.
  */
-
 static char **
 listvars(int on, int off, char ***end)
 {
@@ -12154,7 +12093,6 @@ listvars(int on, int off, char ***end)
  * instead of hashed lists.
  * For now just roll 'em through qsort for printing...
  */
-
 static int
 showvars(const char *sep_prefix, int on, int off)
 {
@@ -12185,7 +12123,6 @@ showvars(const char *sep_prefix, int on, int off)
 /*
  * The export and readonly commands.
  */
-
 static int
 exportcmd(int argc, char **argv)
 {
@@ -12199,10 +12136,12 @@ exportcmd(int argc, char **argv)
 	notp = nextopt("p") - 'p';
 	if (notp && ((name = *(aptr = argptr)))) {
 		do {
-			if ((p = strchr(name, '=')) != NULL) {
+			p = strchr(name, '=');
+			if (p != NULL) {
 				p++;
 			} else {
-				if ((vp = *findvar(hashvar(name), name))) {
+				vp = *findvar(hashvar(name), name);
+				if (vp) {
 					vp->flags |= flag;
 					continue;
 				}
@@ -12222,7 +12161,6 @@ exportcmd(int argc, char **argv)
  * will be restored when the shell function returns.  We handle the name
  * "-" as a special case.
  */
-
 static void mklocal(char *name)
 {
 	struct localvar *lvp;
@@ -12263,10 +12201,10 @@ static void mklocal(char *name)
 	INTON;
 }
 
+
 /*
  * The "local" command.
  */
-
 static int
 localcmd(int argc, char **argv)
 {
@@ -12284,7 +12222,6 @@ localcmd(int argc, char **argv)
  * Called after a function returns.
  * Interrupts must be off.
  */
-
 static void
 poplocalvars(void)
 {
@@ -12319,8 +12256,7 @@ poplocalvars(void)
  * variable to allow a function to be unset when there is a readonly variable
  * with the same name.
  */
-
-int
+static int
 unsetcmd(int argc, char **argv)
 {
 	char **ap;
@@ -12349,8 +12285,7 @@ unsetcmd(int argc, char **argv)
 /*
  * Unset the specified variable.
  */
-
-int
+static int
 unsetvar(const char *s)
 {
 	struct var **vpp;
@@ -12385,8 +12320,7 @@ unsetvar(const char *s)
 ok:
 		retval = 0;
 	}
-
-out:
+ out:
 	return retval;
 }
 
@@ -12394,7 +12328,6 @@ out:
 /*
  * Find the appropriate entry in the hash table from the name.
  */
-
 static struct var **
 hashvar(const char *p)
 {
@@ -12412,8 +12345,7 @@ hashvar(const char *p)
  * string must be terminated by '='; the second may be terminated by
  * either '=' or '\0'.
  */
-
-int
+static int
 varcmp(const char *p, const char *q)
 {
 	int c, d;
@@ -12428,7 +12360,7 @@ varcmp(const char *p, const char *q)
 		c = 0;
 	if (d == '=')
 		d = 0;
-out:
+ out:
 	return c - d;
 }
 
@@ -12513,7 +12445,6 @@ dash_arith(const char *s)
  *
  *  Copyright (C) 2003 Vladimir Oleynik <dzo@simtreas.ru>
  */
-
 static int
 letcmd(int argc, char **argv)
 {
@@ -12550,7 +12481,6 @@ typedef enum __rlimit_resource rlim_t;
  *
  * This uses unbuffered input, which may be avoidable in some cases.
  */
-
 static int
 readcmd(int argc, char **argv)
 {
@@ -12639,9 +12569,11 @@ readcmd(int argc, char **argv)
 	if (prompt && isatty(0)) {
 		out2str(prompt);
 	}
-	if (*(ap = argptr) == NULL)
+	ap = argptr;
+	if (*ap == NULL)
 		sh_error("arg count");
-	if ((ifs = bltinlookup("IFS")) == NULL)
+	ifs = bltinlookup("IFS");
+	if (ifs == NULL)
 		ifs = defifs;
 #if ENABLE_ASH_READ_NCHARS
 	if (nch_flag || silent) {
@@ -12712,7 +12644,7 @@ readcmd(int argc, char **argv)
 			startword = 1;
 			STARTSTACKSTR(p);
 		} else {
-put:
+ put:
 			STPUTC(c, p);
 		}
 	}
@@ -12756,7 +12688,8 @@ static int umaskcmd(int argc, char **argv)
 	umask(mask);
 	INTON;
 
-	if ((ap = *argptr) == NULL) {
+	ap = *argptr;
+	if (ap == NULL) {
 		if (symbolic_mode) {
 			char buf[18];
 			char *p = buf;
@@ -13465,7 +13398,8 @@ static arith_t arith(const char *expr, int *perrcode)
 	*perrcode = errcode = 0;
 
 	while (1) {
-		if ((arithval = *expr) == 0) {
+		arithval = *expr;
+		if (arithval == 0) {
 			if (p == endexpression) {
 				/* Null expression. */
 				return 0;
@@ -13503,7 +13437,8 @@ static arith_t arith(const char *expr, int *perrcode)
 			/* Skip whitespace */
 			goto prologue;
 		}
-		if ((p = endofname(expr)) != expr) {
+		p = endofname(expr);
+		if (p != expr) {
 			size_t var_name_size = (p-expr) + 1;  /* trailing zero */
 
 			numstackptr->var = alloca(var_name_size);
