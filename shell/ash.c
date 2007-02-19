@@ -168,7 +168,7 @@ static char *arg0; /* value of $0 */
 struct jmploc {
 	jmp_buf loc;
 };
-static struct jmploc *handler;
+static struct jmploc *exception_handler;
 static int exception;
 /* exceptions */
 #define EXINT 0         /* SIGINT received */
@@ -208,12 +208,12 @@ static void
 raise_exception(int e)
 {
 #if DEBUG
-	if (handler == NULL)
+	if (exception_handler == NULL)
 		abort();
 #endif
 	INT_OFF;
 	exception = e;
-	longjmp(handler->loc, 1);
+	longjmp(exception_handler->loc, 1);
 }
 
 /*
@@ -1035,11 +1035,11 @@ static int SIT(int c, int syntax)
 		indx = 0;
 	else
 #endif
-		if (U_C(c) >= U_C(CTLESC) && U_C(c) <= U_C(CTLQUOTEMARK))
-			return CCTL;
+	if (U_C(c) >= U_C(CTLESC) && U_C(c) <= U_C(CTLQUOTEMARK))
+		return CCTL;
 	else {
 		s = strchr(spec_symbls, c);
-		if (s == 0 || *s == 0)
+		if (s == NULL || *s == '\0')
 			return CWORD;
 		indx = syntax_index_table[(s - spec_symbls)];
 	}
@@ -1874,7 +1874,7 @@ static void init(void)
 		struct stat st1, st2;
 
 		initvar();
-		for (envp = environ ; envp && *envp ; envp++) {
+		for (envp = environ; envp && *envp; envp++) {
 			if (strchr(*envp, '=')) {
 				setvareq(*envp, VEXPORT|VTEXTFIXED);
 			}
@@ -2907,7 +2907,7 @@ evalfor(union node *n, int flags)
 
 	setstackmark(&smark);
 	arglist.lastp = &arglist.list;
-	for (argp = n->nfor.args ; argp ; argp = argp->narg.next) {
+	for (argp = n->nfor.args; argp; argp = argp->narg.next) {
 		expandarg(argp, &arglist, EXP_FULL | EXP_TILDE | EXP_RECORD);
 		/* XXX */
 		if (evalskip)
@@ -2918,7 +2918,7 @@ evalfor(union node *n, int flags)
 	exitstatus = 0;
 	loopnest++;
 	flags &= EV_TESTED;
-	for (sp = arglist.list ; sp ; sp = sp->next) {
+	for (sp = arglist.list; sp; sp = sp->next) {
 		setvar(n->nfor.var, sp->text, 0);
 		evaltree(n->nfor.body, flags);
 		if (evalskip) {
@@ -2949,8 +2949,8 @@ evalcase(union node *n, int flags)
 	arglist.lastp = &arglist.list;
 	expandarg(n->ncase.expr, &arglist, EXP_TILDE);
 	exitstatus = 0;
-	for (cp = n->ncase.cases ; cp && evalskip == 0 ; cp = cp->nclist.next) {
-		for (patp = cp->nclist.pattern ; patp ; patp = patp->narg.next) {
+	for (cp = n->ncase.cases; cp && evalskip == 0; cp = cp->nclist.next) {
+		for (patp = cp->nclist.pattern; patp; patp = patp->narg.next) {
 			if (casematch(patp, arglist.list->text)) {
 				if (evalskip == 0) {
 					evaltree(cp->nclist.body, flags);
@@ -3005,9 +3005,10 @@ expredir(union node *n)
 {
 	union node *redir;
 
-	for (redir = n ; redir ; redir = redir->nfile.next) {
+	for (redir = n; redir; redir = redir->nfile.next) {
 		struct arglist fn;
-		memset(&fn, 0, sizeof(struct arglist));
+
+		memset(&fn, 0, sizeof(fn));
 		fn.lastp = &fn.list;
 		switch (redir->type) {
 		case NFROMTO:
@@ -3022,10 +3023,9 @@ expredir(union node *n)
 		case NTOFD:
 			if (redir->ndup.vname) {
 				expandarg(redir->ndup.vname, &fn, EXP_FULL | EXP_TILDE);
-				if (fn.list != NULL)
-					fixredir(redir, fn.list->text, 1);
-				else
+				if (fn.list == NULL)
 					ash_msg_and_raise_error("redir error");
+				fixredir(redir, fn.list->text, 1);
 			}
 			break;
 		}
@@ -3050,13 +3050,13 @@ evalpipe(union node *n, int flags)
 
 	TRACE(("evalpipe(0x%lx) called\n", (long)n));
 	pipelen = 0;
-	for (lp = n->npipe.cmdlist ; lp ; lp = lp->next)
+	for (lp = n->npipe.cmdlist; lp; lp = lp->next)
 		pipelen++;
 	flags |= EV_EXIT;
 	INT_OFF;
 	jp = makejob(n, pipelen);
 	prevfd = -1;
-	for (lp = n->npipe.cmdlist ; lp ; lp = lp->next) {
+	for (lp = n->npipe.cmdlist; lp; lp = lp->next) {
 		prehash(lp->n);
 		pip[1] = -1;
 		if (lp->next) {
@@ -3248,7 +3248,7 @@ evalcommand(union node *cmd, int flags)
 	}
 
 	argv = nargv = stalloc(sizeof(char *) * (argc + 1));
-	for (sp = arglist.list ; sp ; sp = sp->next) {
+	for (sp = arglist.list; sp; sp = sp->next) {
 		TRACE(("evalcommand arg: %s\n", sp->text));
 		*nargv++ = sp->text;
 	}
@@ -3401,7 +3401,7 @@ evalcommand(union node *cmd, int flags)
 
 			if (i == EXINT || spclbltin > 0) {
  raise:
-				longjmp(handler->loc, 1);
+				longjmp(exception_handler->loc, 1);
 			}
 			FORCE_INT_ON;
 		}
@@ -3437,8 +3437,8 @@ evalbltin(const struct builtincmd *cmd, int argc, char **argv)
 	i = setjmp(jmploc.loc);
 	if (i)
 		goto cmddone;
-	savehandler = handler;
-	handler = &jmploc;
+	savehandler = exception_handler;
+	exception_handler = &jmploc;
 	commandname = argv[0];
 	argptr = argv + 1;
 	optptr = NULL;                  /* initialize nextopt */
@@ -3449,7 +3449,7 @@ evalbltin(const struct builtincmd *cmd, int argc, char **argv)
 	clearerr(stdout);
 	commandname = savecmdname;
 	exsig = 0;
-	handler = savehandler;
+	exception_handler = savehandler;
 
 	return i;
 }
@@ -3470,8 +3470,8 @@ evalfun(struct funcnode *func, int argc, char **argv, int flags)
 		goto funcdone;
 	}
 	INT_OFF;
-	savehandler = handler;
-	handler = &jmploc;
+	savehandler = exception_handler;
+	exception_handler = &jmploc;
 	localvars = NULL;
 	shellparam.malloc = 0;
 	func->count++;
@@ -3492,7 +3492,7 @@ funcdone:
 	localvars = savelocalvars;
 	freeparam(&shellparam);
 	shellparam = saveparam;
-	handler = savehandler;
+	exception_handler = savehandler;
 	INT_ON;
 	evalskip &= ~SKIPFUNC;
 	return e;
@@ -3649,7 +3649,7 @@ static void delete_cmd_entry(void);
  * Exec a program.  Never returns.  If you change this routine, you may
  * have to change the find_command routine as well.
  */
-
+static void shellexec(char **, const char *, int) ATTRIBUTE_NORETURN;
 static void
 shellexec(char **argv, const char *path, int idx)
 {
@@ -3776,7 +3776,7 @@ padvance(const char **path, const char *name)
 	if (*path == NULL)
 		return NULL;
 	start = *path;
-	for (p = start ; *p && *p != ':' && *p != '%' ; p++);
+	for (p = start; *p && *p != ':' && *p != '%'; p++);
 	len = p - start + strlen(name) + 2;     /* "2" is for '/' and '\0' */
 	while (stackblocksize() < len)
 		growstackblock();
@@ -3833,8 +3833,8 @@ hashcmd(int argc, char **argv)
 		return 0;
 	}
 	if (*argptr == NULL) {
-		for (pp = cmdtable ; pp < &cmdtable[CMDTABLESIZE] ; pp++) {
-			for (cmdp = *pp ; cmdp ; cmdp = cmdp->next) {
+		for (pp = cmdtable; pp < &cmdtable[CMDTABLESIZE]; pp++) {
+			for (cmdp = *pp; cmdp; cmdp = cmdp->next) {
 				if (cmdp->cmdtype == CMDNORMAL)
 					printentry(cmdp);
 			}
@@ -4077,8 +4077,8 @@ hashcd(void)
 	struct tblentry **pp;
 	struct tblentry *cmdp;
 
-	for (pp = cmdtable ; pp < &cmdtable[CMDTABLESIZE] ; pp++) {
-		for (cmdp = *pp ; cmdp ; cmdp = cmdp->next) {
+	for (pp = cmdtable; pp < &cmdtable[CMDTABLESIZE]; pp++) {
+		for (cmdp = *pp; cmdp; cmdp = cmdp->next) {
 			if (cmdp->cmdtype == CMDNORMAL || (
 				cmdp->cmdtype == CMDBUILTIN &&
 				!(IS_BUILTIN_REGULAR(cmdp->param.cmd)) &&
@@ -4147,7 +4147,7 @@ clearcmdentry(int firstchange)
 	struct tblentry *cmdp;
 
 	INT_OFF;
-	for (tblp = cmdtable ; tblp < &cmdtable[CMDTABLESIZE] ; tblp++) {
+	for (tblp = cmdtable; tblp < &cmdtable[CMDTABLESIZE]; tblp++) {
 		pp = tblp;
 		while ((cmdp = *pp) != NULL) {
 			if ((cmdp->cmdtype == CMDNORMAL &&
@@ -4191,7 +4191,7 @@ cmdlookup(const char *name, int add)
 		hashval += (unsigned char)*p++;
 	hashval &= 0x7FFF;
 	pp = &cmdtable[hashval % CMDTABLESIZE];
-	for (cmdp = *pp ; cmdp ; cmdp = cmdp->next) {
+	for (cmdp = *pp; cmdp; cmdp = cmdp->next) {
 		if (equal(cmdp->cmdname, name))
 			break;
 		pp = &cmdp->next;
@@ -4499,8 +4499,7 @@ static int cvtnum(arith_t);
 static size_t esclen(const char *, const char *);
 static char *scanleft(char *, char *, char *, char *, int, int);
 static char *scanright(char *, char *, char *, char *, int, int);
-static void varunset(const char *, const char *, const char *, int)
-	ATTRIBUTE_NORETURN;
+static void varunset(const char *, const char *, const char *, int) ATTRIBUTE_NORETURN;
 
 
 #define pmatch(a, b) !fnmatch((a), (b), 0)
@@ -5704,7 +5703,7 @@ expsort(struct strlist *str)
 	struct strlist *sp;
 
 	len = 0;
-	for (sp = str ; sp ; sp = sp->next)
+	for (sp = str; sp; sp = sp->next)
 		len++;
 	return msort(str, len);
 }
@@ -5722,7 +5721,7 @@ msort(struct strlist *list, int len)
 		return list;
 	half = len >> 1;
 	p = list;
-	for (n = half ; --n >= 0 ; ) {
+	for (n = half; --n >= 0; ) {
 		q = p;
 		p = p->next;
 	}
@@ -5874,6 +5873,7 @@ cvtnum(arith_t num)
 	return len;
 }
 
+static void varunset(const char *, const char *, const char *, int) ATTRIBUTE_NORETURN;
 static void
 varunset(const char *end, const char *var, const char *umsg, int varflags)
 {
@@ -6573,10 +6573,9 @@ killcmd(int argc, char **argv)
 			return 0;
 		}
 		name = get_signame(signo);
-		if (isdigit(*name))
-			out1fmt(snlfmt, name);
-		else
+		if (!isdigit(*name))
 			ash_msg_and_raise_error("invalid signal number or exit status: %s", *argptr);
+		out1fmt(snlfmt, name);
 		return 0;
 	}
 
@@ -6834,7 +6833,7 @@ freejob(struct job *jp)
 	int i;
 
 	INT_OFF;
-	for (i = jp->nprocs, ps = jp->ps ; --i >= 0 ; ps++) {
+	for (i = jp->nprocs, ps = jp->ps; --i >= 0; ps++) {
 		if (ps->cmd != nullstr)
 			free(ps->cmd);
 	}
@@ -7001,7 +7000,7 @@ makejob(union node *node, int nprocs)
 	int i;
 	struct job *jp;
 
-	for (i = njobs, jp = jobtab ; ; jp++) {
+	for (i = njobs, jp = jobtab; ; jp++) {
 		if (--i < 0) {
 			jp = growjobtab();
 			break;
@@ -7772,7 +7771,7 @@ chkmail(void)
 			break;
 		if (*p == '\0')
 			continue;
-		for (q = p ; *q ; q++);
+		for (q = p; *q; q++);
 #if DEBUG
 		if (q[-1] != '/')
 			abort();
@@ -7869,7 +7868,7 @@ int ash_main(int argc, char **argv)
 		else
 			goto state4;
 	}
-	handler = &jmploc;
+	exception_handler = &jmploc;
 #if DEBUG
 	opentrace();
 	trputs("Shell args:  ");  trargs(argv);
@@ -8413,7 +8412,7 @@ prefix(const char *string, const char *pfx)
 static int
 number(const char *s)
 {
-	if (! is_number(s))
+	if (!is_number(s))
 		ash_msg_and_raise_error(illnum, s);
 	return atoi(s);
 }
@@ -8426,7 +8425,7 @@ static int
 is_number(const char *p)
 {
 	do {
-		if (! is_digit(*p))
+		if (!is_digit(*p))
 			return 0;
 	} while (*++p != '\0');
 	return 1;
@@ -8886,7 +8885,7 @@ setparam(char **argv)
 	char **ap;
 	int nparam;
 
-	for (nparam = 0 ; argv[nparam] ; nparam++);
+	for (nparam = 0; argv[nparam]; nparam++);
 	ap = newparam = ckmalloc((nparam + 1) * sizeof(*ap));
 	while (*argv) {
 		*ap++ = savestr(*argv++);
@@ -8912,7 +8911,7 @@ freeparam(volatile struct shparam *param)
 	char **ap;
 
 	if (param->malloc) {
-		for (ap = param->p ; *ap ; ap++)
+		for (ap = param->p; *ap; ap++)
 			free(*ap);
 		free(param->p);
 	}
@@ -8935,7 +8934,7 @@ shiftcmd(int argc, char **argv)
 		ash_msg_and_raise_error("can't shift that many");
 	INT_OFF;
 	shellparam.nparam -= n;
-	for (ap1 = shellparam.p ; --n >= 0 ; ap1++) {
+	for (ap1 = shellparam.p; --n >= 0; ap1++) {
 		if (shellparam.malloc)
 			free(*ap1);
 	}
@@ -9163,7 +9162,7 @@ nextopt(const char *optstring)
 			return '\0';
 	}
 	c = *p++;
-	for (q = optstring ; *q != c ; ) {
+	for (q = optstring; *q != c; ) {
 		if (*q == '\0')
 			ash_msg_and_raise_error("Illegal option -%c", c);
 		if (*++q == ':')
@@ -9378,8 +9377,8 @@ pipeline(void)
 		n2->type = NNOT;
 		n2->nnot.com = n1;
 		return n2;
-	} else
-		return n1;
+	}
+	return n1;
 }
 
 
@@ -10254,7 +10253,7 @@ checkend: {
 				char *p, *q;
 
 				p = line;
-				for (q = eofmark + 1 ; *q && *p == *q ; p++, q++);
+				for (q = eofmark + 1; *q && *p == *q; p++, q++);
 				if (*p == '\n' && *q == '\0') {
 					c = PEOF;
 					plinno++;
@@ -10464,8 +10463,8 @@ parsebackq: {
 		if (str)
 			free(str);
 		parsebackquote = 0;
-		handler = savehandler;
-		longjmp(handler->loc, 1);
+		exception_handler = savehandler;
+		longjmp(exception_handler->loc, 1);
 	}
 	INT_OFF;
 	str = NULL;
@@ -10474,8 +10473,8 @@ parsebackq: {
 		str = ckmalloc(savelen);
 		memcpy(str, stackblock(), savelen);
 	}
-	savehandler = handler;
-	handler = &jmploc;
+	savehandler = exception_handler;
+	exception_handler = &jmploc;
 	INT_ON;
 	if (oldstyle) {
 		/* We must read until the closing backquote, giving special
@@ -10586,7 +10585,7 @@ parsebackq: {
 		INT_ON;
 	}
 	parsebackquote = savepbq;
-	handler = savehandler;
+	exception_handler = savehandler;
 	if (arinest || dblquote)
 		USTPUTC(CTLBACKQ | CTLQUOTE, out);
 	else
@@ -10933,7 +10932,7 @@ static void dupredirect(union node *redir, int f)
 
 	if (redir->nfile.type == NTOFD || redir->nfile.type == NFROMFD) {
 		if (redir->ndup.dupfd >= 0) {   /* if not ">&-" */
-				copyfd(redir->ndup.dupfd, fd);
+			copyfd(redir->ndup.dupfd, fd);
 		}
 		return;
 	}
@@ -10973,7 +10972,7 @@ redirect(union node *redir, int flags)
 		q->next = redirlist;
 		redirlist = q;
 		q->nullredirs = nullredirs - 1;
-		for (i = 0 ; i < 10 ; i++)
+		for (i = 0; i < 10; i++)
 			q->renamed[i] = EMPTY;
 		nullredirs = 0;
 		sv = q;
@@ -11027,7 +11026,7 @@ popredir(int drop)
 		return;
 	INT_OFF;
 	rp = redirlist;
-	for (i = 0 ; i < 10 ; i++) {
+	for (i = 0; i < 10; i++) {
 		if (rp->renamed[i] != EMPTY) {
 			if (!drop) {
 				close(i);
@@ -11075,8 +11074,7 @@ copyfd(int from, int to)
 	if (newfd < 0) {
 		if (errno == EMFILE)
 			return EMPTY;
-		else
-			ash_msg_and_raise_error("%d: %m", from);
+		ash_msg_and_raise_error("%d: %m", from);
 	}
 	return newfd;
 }
@@ -11087,18 +11085,18 @@ redirectsafe(union node *redir, int flags)
 {
 	int err;
 	volatile int saveint;
-	struct jmploc *volatile savehandler = handler;
+	struct jmploc *volatile savehandler = exception_handler;
 	struct jmploc jmploc;
 
 	SAVE_INT(saveint);
 	err = setjmp(jmploc.loc) * 2;
 	if (!err) {
-		handler = &jmploc;
+		exception_handler = &jmploc;
 		redirect(redir, flags);
 	}
-	handler = savehandler;
+	exception_handler = savehandler;
 	if (err && exception != EXERROR)
-		longjmp(handler->loc, 1);
+		longjmp(exception_handler->loc, 1);
 	RESTORE_INT(saveint);
 	return err;
 }
@@ -11152,7 +11150,7 @@ shtree(union node *n, int ind, char *pfx, FILE *fp)
 			putc('\n', fp);
 		break;
 	case NPIPE:
-		for (lp = n->npipe.cmdlist ; lp ; lp = lp->next) {
+		for (lp = n->npipe.cmdlist; lp; lp = lp->next) {
 			shcmd(lp->n, fp);
 			if (lp->next)
 				fputs(" | ", fp);
@@ -11180,24 +11178,24 @@ shcmd(union node *cmd, FILE *fp)
 	int dftfd;
 
 	first = 1;
-	for (np = cmd->ncmd.args ; np ; np = np->narg.next) {
+	for (np = cmd->ncmd.args; np; np = np->narg.next) {
 		if (! first)
 			putchar(' ');
 		sharg(np, fp);
 		first = 0;
 	}
-	for (np = cmd->ncmd.redirect ; np ; np = np->nfile.next) {
+	for (np = cmd->ncmd.redirect; np; np = np->nfile.next) {
 		if (! first)
 			putchar(' ');
 		switch (np->nfile.type) {
-			case NTO:       s = ">";  dftfd = 1; break;
-			case NCLOBBER:  s = ">|"; dftfd = 1; break;
-			case NAPPEND:   s = ">>"; dftfd = 1; break;
-			case NTOFD:     s = ">&"; dftfd = 1; break;
-			case NFROM:     s = "<";  dftfd = 0; break;
-			case NFROMFD:   s = "<&"; dftfd = 0; break;
-			case NFROMTO:   s = "<>"; dftfd = 0; break;
-			default:        s = "*error*"; dftfd = 0; break;
+		case NTO:       s = ">";  dftfd = 1; break;
+		case NCLOBBER:  s = ">|"; dftfd = 1; break;
+		case NAPPEND:   s = ">>"; dftfd = 1; break;
+		case NTOFD:     s = ">&"; dftfd = 1; break;
+		case NFROM:     s = "<";  dftfd = 0; break;
+		case NFROMFD:   s = "<&"; dftfd = 0; break;
+		case NFROMTO:   s = "<>"; dftfd = 0; break;
+		default:        s = "*error*"; dftfd = 0; break;
 		}
 		if (np->nfile.fd != dftfd)
 			fprintf(fp, "%d", np->nfile.fd);
@@ -11224,7 +11222,7 @@ sharg(union node *arg, FILE *fp)
 		abort();
 	}
 	bqlist = arg->narg.backquote;
-	for (p = arg->narg.text ; *p ; p++) {
+	for (p = arg->narg.text; *p; p++) {
 		switch (*p) {
 		case CTLESC:
 			putc(*++p, fp);
@@ -11301,7 +11299,7 @@ indent(int amount, char *pfx, FILE *fp)
 {
 	int i;
 
-	for (i = 0 ; i < amount ; i++) {
+	for (i = 0; i < amount; i++) {
 		if (pfx && i == amount - 1)
 			fputs(pfx, fp);
 		putc('\t', fp);
@@ -11364,7 +11362,7 @@ trstring(char *s)
 	if (debug != 1)
 		return;
 	putc('"', tracefile);
-	for (p = s ; *p ; p++) {
+	for (p = s; *p; p++) {
 		switch (*p) {
 		case '\n':  c = 'n';  goto backslash;
 		case '\t':  c = 't';  goto backslash;
@@ -11373,10 +11371,11 @@ trstring(char *s)
 		case '\\':  c = '\\';  goto backslash;
 		case CTLESC:  c = 'e';  goto backslash;
 		case CTLVAR:  c = 'v';  goto backslash;
-		case CTLVAR+CTLQUOTE:  c = 'V';  goto backslash;
+		case CTLVAR+CTLQUOTE:  c = 'V'; goto backslash;
 		case CTLBACKQ:  c = 'q';  goto backslash;
-		case CTLBACKQ+CTLQUOTE:  c = 'Q';  goto backslash;
- backslash:        putc('\\', tracefile);
+		case CTLBACKQ+CTLQUOTE:  c = 'Q'; goto backslash;
+ backslash:
+			putc('\\', tracefile);
 			putc(c, tracefile);
 			break;
 		default:
@@ -11478,7 +11477,7 @@ trapcmd(int argc, char **argv)
 	nextopt(nullstr);
 	ap = argptr;
 	if (!*ap) {
-		for (signo = 0 ; signo < NSIG ; signo++) {
+		for (signo = 0; signo < NSIG; signo++) {
 			if (trap[signo] != NULL) {
 				const char *sn;
 
@@ -11524,7 +11523,7 @@ clear_traps(void)
 {
 	char **tp;
 
-	for (tp = trap ; tp < &trap[NSIG] ; tp++) {
+	for (tp = trap; tp < &trap[NSIG]; tp++) {
 		if (*tp && **tp) {      /* trap not NULL or SIG_IGN */
 			INT_OFF;
 			free(*tp);
@@ -11596,8 +11595,8 @@ setsignal(int signo)
 			return;
 		}
 		if (act.sa_handler == SIG_IGN) {
-			if (mflag && (signo == SIGTSTP || signo == SIGTTIN
-			              || signo == SIGTTOU)
+			if (mflag
+			 && (signo == SIGTSTP || signo == SIGTTIN || signo == SIGTTOU)
 			) {
 				tsig = S_IGN;   /* don't hard ignore these */
 			} else
@@ -11675,7 +11674,7 @@ dotrap(void)
 	for (i = 0, q = gotsig; i < NSIG - 1; i++, q++) {
 		if (!*q)
 			continue;
-		*q = 0;
+		*q = '\0';
 
 		p = trap[i + 1];
 		if (!p)
@@ -11705,18 +11704,20 @@ setinteractive(int on)
 	setsignal(SIGQUIT);
 	setsignal(SIGTERM);
 #if !ENABLE_FEATURE_SH_EXTRA_QUIET
-		if (is_interactive > 1) {
-			/* Looks like they want an interactive shell */
-			static int do_banner;
+	if (is_interactive > 1) {
+		/* Looks like they want an interactive shell */
+		static int do_banner;
 
-				if (!do_banner) {
-					out1fmt(
-			"\n\n%s Built-in shell (ash)\n"
-			"Enter 'help' for a list of built-in commands.\n\n",
-					BB_BANNER);
-					do_banner++;
-				}
+		if (!do_banner) {
+			out1fmt(
+				"\n\n"
+				"%s Built-in shell (ash)\n"
+				"Enter 'help' for a list of built-in commands."
+				"\n\n",
+				BB_BANNER);
+			do_banner++;
 		}
+	}
 #endif
 }
 
@@ -11773,7 +11774,7 @@ exitshell(void)
 			status = exitstatus;
 		goto out;
 	}
-	handler = &loc;
+	exception_handler = &loc;
 	p = trap[0];
 	if (p) {
 		trap[0] = NULL;
@@ -11807,18 +11808,18 @@ setvarsafe(const char *name, const char *val, int flags)
 {
 	int err;
 	volatile int saveint;
-	struct jmploc *volatile savehandler = handler;
+	struct jmploc *volatile savehandler = exception_handler;
 	struct jmploc jmploc;
 
 	SAVE_INT(saveint);
 	if (setjmp(jmploc.loc))
 		err = 1;
 	else {
-		handler = &jmploc;
+		exception_handler = &jmploc;
 		setvar(name, val, flags);
 		err = 0;
 	}
-	handler = savehandler;
+	exception_handler = savehandler;
 	RESTORE_INT(saveint);
 	return err;
 }
@@ -11966,7 +11967,7 @@ bltinlookup(const char *name)
 {
 	struct strlist *sp;
 
-	for (sp = cmdenviron ; sp ; sp = sp->next) {
+	for (sp = cmdenviron; sp; sp = sp->next) {
 		if (varequal(sp->text, name))
 			return strchrnul(sp->text, '=') + 1;
 	}
@@ -11989,7 +11990,7 @@ listvars(int on, int off, char ***end)
 	vpp = vartab;
 	mask = on | off;
 	do {
-		for (vp = *vpp ; vp ; vp = vp->next)
+		for (vp = *vpp; vp; vp = vp->next)
 			if ((vp->flags & mask) == on) {
 				if (ep == stackstrend())
 					ep = growstackstr();
@@ -12050,26 +12051,28 @@ exportcmd(int argc, char **argv)
 	const char *p;
 	char **aptr;
 	int flag = argv[0][0] == 'r'? VREADONLY : VEXPORT;
-	int notp;
 
-	notp = nextopt("p") - 'p';
-	if (notp && ((name = *(aptr = argptr)))) {
-		do {
-			p = strchr(name, '=');
-			if (p != NULL) {
-				p++;
-			} else {
-				vp = *findvar(hashvar(name), name);
-				if (vp) {
-					vp->flags |= flag;
-					continue;
+	if (nextopt("p") != 'p') {
+		aptr = argptr;
+		name = *aptr;
+		if (name) {
+			do {
+				p = strchr(name, '=');
+				if (p != NULL) {
+					p++;
+				} else {
+					vp = *findvar(hashvar(name), name);
+					if (vp) {
+						vp->flags |= flag;
+						continue;
+					}
 				}
-			}
-			setvar(name, p, flag);
-		} while ((name = *++aptr) != NULL);
-	} else {
-		showvars(argv[0], flag, 0);
+				setvar(name, p, flag);
+			} while ((name = *++aptr) != NULL);
+			return 0;
+		}
 	}
+	showvars(argv[0], flag, 0);
 	return 0;
 }
 
@@ -12187,7 +12190,7 @@ unsetcmd(int argc, char **argv)
 		flag = i;
 	}
 
-	for (ap = argptr; *ap ; ap++) {
+	for (ap = argptr; *ap; ap++) {
 		if (flag != 'f') {
 			i = unsetvar(*ap);
 			ret |= i;
@@ -13368,7 +13371,8 @@ static arith_t arith(const char *expr, int *perrcode)
 			numstackptr++;
 			lasttok = TOK_NUM;
 			continue;
-		} else if (is_digit(arithval)) {
+		}
+		if (is_digit(arithval)) {
 			numstackptr->var = NULL;
 #if ENABLE_ASH_MATH_SUPPORT_64
 			numstackptr->val = strtoll(expr, (char **) &expr, 0);
