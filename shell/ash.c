@@ -228,7 +228,8 @@ static void sh_warnx(const char *, ...);
 
 #if ENABLE_ASH_OPTIMIZE_FOR_SIZE
 static void
-inton(void) {
+inton(void)
+{
 	if (--suppressint == 0 && intpending) {
 		onint();
 	}
@@ -2217,7 +2218,8 @@ unaliascmd(int argc, char **argv)
 }
 
 static struct alias *
-freealias(struct alias *ap) {
+freealias(struct alias *ap)
+{
 	struct alias *next;
 
 	if (ap->flag & ALIASINUSE) {
@@ -2233,7 +2235,8 @@ freealias(struct alias *ap) {
 }
 
 static void
-printalias(const struct alias *ap) {
+printalias(const struct alias *ap)
+{
 	out1fmt("%s=%s\n", ap->name, single_quote(ap->val));
 }
 
@@ -2548,7 +2551,8 @@ exraise(int e)
  * defensive programming.)
  */
 static void
-onint(void) {
+onint(void)
+{
 	int i;
 
 	intpending = 0;
@@ -4539,7 +4543,8 @@ static char * preglob(const char *pattern, int quoted, int flag)
 
 
 static size_t
-esclen(const char *start, const char *p) {
+esclen(const char *start, const char *p)
+{
 	size_t esc = 0;
 
 	while (p > start && *--p == CTLESC) {
@@ -5247,7 +5252,8 @@ evalvar(char *p, int flag)
  * Put a string on the stack.
  */
 static void
-memtodest(const char *p, size_t len, int syntax, int quotes) {
+memtodest(const char *p, size_t len, int syntax, int quotes)
+{
 	char *q = expdest;
 
 	q = makestrspace(len * 2, q);
@@ -7722,7 +7728,8 @@ xtcsetpgrp(int fd, pid_t pgrp)
 #endif /* JOBS */
 
 static int
-getstatus(struct job *job) {
+getstatus(struct job *job)
+{
 	int status;
 	int retval;
 
@@ -9661,7 +9668,8 @@ command(void)
 
 
 static union node *
-simplecmd(void) {
+simplecmd(void)
+{
 	union node *args, **app;
 	union node *n = NULL;
 	union node *vars, **vpp;
