@@ -3664,7 +3664,6 @@ printalias(const struct alias *ap)
 #define EV_TESTED 02            /* exit status is checked; ignore -e flag */
 #define EV_BACKCMD 04           /* command executing within back quotes */
 
-
 static void evalloop(union node *, int);
 static void evalfor(union node *, int);
 static void evalcase(union node *, int);
@@ -3677,11 +3676,9 @@ static int evalfun(struct funcnode *, int, char **, int);
 static void prehash(union node *);
 static int bltincmd(int, char **);
 
-
 static const struct builtincmd bltin = {
 	"\0\0", bltincmd
 };
-
 
 
 /*
@@ -7277,13 +7274,6 @@ static struct job *curjob;
 /* number of presumed living untracked jobs */
 static int jobless;
 
-#if JOBS
-static char *commandtext(union node *);
-static void cmdlist(union node *, int);
-static void cmdtxt(union node *);
-static void cmdputs(const char *);
-#endif
-
 static void
 set_curjob(struct job *jp, unsigned mode)
 {
@@ -7887,10 +7877,8 @@ showjob(FILE *out, struct job *jp, int mode)
 		col += sizeof("Running") - 1;
 	} else {
 		int status = psend[-1].status;
-#if JOBS
 		if (jp->state == JOBSTOPPED)
 			status = jp->stopstatus;
-#endif
 		col += sprint_status(s + col, status, 0);
 	}
 
@@ -8143,6 +8131,288 @@ makejob(union node *node, int nprocs)
 	return jp;
 }
 
+#if JOBS
+/*
+ * Return a string identifying a command (to be printed by the
+ * jobs command).
+ */
+static char *cmdnextc;
+
+static void
+cmdputs(const char *s)
+{
+	const char *p, *str;
+	char c, cc[2] = " ";
+	char *nextc;
+	int subtype = 0;
+	int quoted = 0;
+	static const char vstype[VSTYPE + 1][4] = {
+		"", "}", "-", "+", "?", "=",
+		"%", "%%", "#", "##"
+	};
+
+	nextc = makestrspace((strlen(s) + 1) * 8, cmdnextc);
+	p = s;
+	while ((c = *p++) != 0) {
+		str = 0;
+		switch (c) {
+		case CTLESC:
+			c = *p++;
+			break;
+		case CTLVAR:
+			subtype = *p++;
+			if ((subtype & VSTYPE) == VSLENGTH)
+				str = "${#";
+			else
+				str = "${";
+			if (!(subtype & VSQUOTE) == !(quoted & 1))
+				goto dostr;
+			quoted ^= 1;
+			c = '"';
+			break;
+		case CTLENDVAR:
+			str = "\"}" + !(quoted & 1);
+			quoted >>= 1;
+			subtype = 0;
+			goto dostr;
+		case CTLBACKQ:
+			str = "$(...)";
+			goto dostr;
+		case CTLBACKQ+CTLQUOTE:
+			str = "\"$(...)\"";
+			goto dostr;
+#if ENABLE_ASH_MATH_SUPPORT
+		case CTLARI:
+			str = "$((";
+			goto dostr;
+		case CTLENDARI:
+			str = "))";
+			goto dostr;
+#endif
+		case CTLQUOTEMARK:
+			quoted ^= 1;
+			c = '"';
+			break;
+		case '=':
+			if (subtype == 0)
+				break;
+			if ((subtype & VSTYPE) != VSNORMAL)
+				quoted <<= 1;
+			str = vstype[subtype & VSTYPE];
+			if (subtype & VSNUL)
+				c = ':';
+			else
+				goto checkstr;
+			break;
+		case '\'':
+		case '\\':
+		case '"':
+		case '$':
+			/* These can only happen inside quotes */
+			cc[0] = c;
+			str = cc;
+			c = '\\';
+			break;
+		default:
+			break;
+		}
+		USTPUTC(c, nextc);
+ checkstr:
+		if (!str)
+			continue;
+ dostr:
+		while ((c = *str++)) {
+			USTPUTC(c, nextc);
+		}
+	}
+	if (quoted & 1) {
+		USTPUTC('"', nextc);
+	}
+	*nextc = 0;
+	cmdnextc = nextc;
+}
+
+/* cmdtxt() and cmdlist() call each other */
+static void cmdtxt(union node *n);
+
+static void
+cmdlist(union node *np, int sep)
+{
+	for (; np; np = np->narg.next) {
+		if (!sep)
+			cmdputs(spcstr);
+		cmdtxt(np);
+		if (sep && np->narg.next)
+			cmdputs(spcstr);
+	}
+}
+
+static void
+cmdtxt(union node *n)
+{
+	union node *np;
+	struct nodelist *lp;
+	const char *p;
+	char s[2];
+
+	if (!n)
+		return;
+	switch (n->type) {
+	default:
+#if DEBUG
+		abort();
+#endif
+	case NPIPE:
+		lp = n->npipe.cmdlist;
+		for (;;) {
+			cmdtxt(lp->n);
+			lp = lp->next;
+			if (!lp)
+				break;
+			cmdputs(" | ");
+		}
+		break;
+	case NSEMI:
+		p = "; ";
+		goto binop;
+	case NAND:
+		p = " && ";
+		goto binop;
+	case NOR:
+		p = " || ";
+ binop:
+		cmdtxt(n->nbinary.ch1);
+		cmdputs(p);
+		n = n->nbinary.ch2;
+		goto donode;
+	case NREDIR:
+	case NBACKGND:
+		n = n->nredir.n;
+		goto donode;
+	case NNOT:
+		cmdputs("!");
+		n = n->nnot.com;
+ donode:
+		cmdtxt(n);
+		break;
+	case NIF:
+		cmdputs("if ");
+		cmdtxt(n->nif.test);
+		cmdputs("; then ");
+		n = n->nif.ifpart;
+		if (n->nif.elsepart) {
+			cmdtxt(n);
+			cmdputs("; else ");
+			n = n->nif.elsepart;
+		}
+		p = "; fi";
+		goto dotail;
+	case NSUBSHELL:
+		cmdputs("(");
+		n = n->nredir.n;
+		p = ")";
+		goto dotail;
+	case NWHILE:
+		p = "while ";
+		goto until;
+	case NUNTIL:
+		p = "until ";
+ until:
+		cmdputs(p);
+		cmdtxt(n->nbinary.ch1);
+		n = n->nbinary.ch2;
+		p = "; done";
+ dodo:
+		cmdputs("; do ");
+ dotail:
+		cmdtxt(n);
+		goto dotail2;
+	case NFOR:
+		cmdputs("for ");
+		cmdputs(n->nfor.var);
+		cmdputs(" in ");
+		cmdlist(n->nfor.args, 1);
+		n = n->nfor.body;
+		p = "; done";
+		goto dodo;
+	case NDEFUN:
+		cmdputs(n->narg.text);
+		p = "() { ... }";
+		goto dotail2;
+	case NCMD:
+		cmdlist(n->ncmd.args, 1);
+		cmdlist(n->ncmd.redirect, 0);
+		break;
+	case NARG:
+		p = n->narg.text;
+ dotail2:
+		cmdputs(p);
+		break;
+	case NHERE:
+	case NXHERE:
+		p = "<<...";
+		goto dotail2;
+	case NCASE:
+		cmdputs("case ");
+		cmdputs(n->ncase.expr->narg.text);
+		cmdputs(" in ");
+		for (np = n->ncase.cases; np; np = np->nclist.next) {
+			cmdtxt(np->nclist.pattern);
+			cmdputs(") ");
+			cmdtxt(np->nclist.body);
+			cmdputs(";; ");
+		}
+		p = "esac";
+		goto dotail2;
+	case NTO:
+		p = ">";
+		goto redir;
+	case NCLOBBER:
+		p = ">|";
+		goto redir;
+	case NAPPEND:
+		p = ">>";
+		goto redir;
+	case NTOFD:
+		p = ">&";
+		goto redir;
+	case NFROM:
+		p = "<";
+		goto redir;
+	case NFROMFD:
+		p = "<&";
+		goto redir;
+	case NFROMTO:
+		p = "<>";
+ redir:
+		s[0] = n->nfile.fd + '0';
+		s[1] = '\0';
+		cmdputs(s);
+		cmdputs(p);
+		if (n->type == NTOFD || n->type == NFROMFD) {
+			s[0] = n->ndup.dupfd + '0';
+			p = s;
+			goto dotail2;
+		}
+		n = n->nfile.fname;
+		goto donode;
+	}
+}
+
+static char *
+commandtext(union node *n)
+{
+	char *name;
+
+	STARTSTACKSTR(cmdnextc);
+	cmdtxt(n);
+	name = stackblock();
+	TRACE(("commandtext: name %p, end %p\n\t\"%s\"\n",
+			name, cmdnextc, cmdnextc));
+	return ckstrdup(name);
+}
+#endif /* JOBS */
+
 /*
  * Fork off a subshell.  If we are doing job control, give the subshell its
  * own process group.  Jp is a job structure that the job is to be added to.
@@ -8332,289 +8602,10 @@ stoppedjobs(void)
 		job_warning = 2;
 		retval++;
 	}
-
-out:
+ out:
 	return retval;
 }
 
-/*
- * Return a string identifying a command (to be printed by the
- * jobs command).
- */
-#if JOBS
-static char *cmdnextc;
-
-static char *
-commandtext(union node *n)
-{
-	char *name;
-
-	STARTSTACKSTR(cmdnextc);
-	cmdtxt(n);
-	name = stackblock();
-	TRACE(("commandtext: name %p, end %p\n\t\"%s\"\n",
-			name, cmdnextc, cmdnextc));
-	return ckstrdup(name);
-}
-
-static void
-cmdtxt(union node *n)
-{
-	union node *np;
-	struct nodelist *lp;
-	const char *p;
-	char s[2];
-
-	if (!n)
-		return;
-	switch (n->type) {
-	default:
-#if DEBUG
-		abort();
-#endif
-	case NPIPE:
-		lp = n->npipe.cmdlist;
-		for (;;) {
-			cmdtxt(lp->n);
-			lp = lp->next;
-			if (!lp)
-				break;
-			cmdputs(" | ");
-		}
-		break;
-	case NSEMI:
-		p = "; ";
-		goto binop;
-	case NAND:
-		p = " && ";
-		goto binop;
-	case NOR:
-		p = " || ";
- binop:
-		cmdtxt(n->nbinary.ch1);
-		cmdputs(p);
-		n = n->nbinary.ch2;
-		goto donode;
-	case NREDIR:
-	case NBACKGND:
-		n = n->nredir.n;
-		goto donode;
-	case NNOT:
-		cmdputs("!");
-		n = n->nnot.com;
- donode:
-		cmdtxt(n);
-		break;
-	case NIF:
-		cmdputs("if ");
-		cmdtxt(n->nif.test);
-		cmdputs("; then ");
-		n = n->nif.ifpart;
-		if (n->nif.elsepart) {
-			cmdtxt(n);
-			cmdputs("; else ");
-			n = n->nif.elsepart;
-		}
-		p = "; fi";
-		goto dotail;
-	case NSUBSHELL:
-		cmdputs("(");
-		n = n->nredir.n;
-		p = ")";
-		goto dotail;
-	case NWHILE:
-		p = "while ";
-		goto until;
-	case NUNTIL:
-		p = "until ";
- until:
-		cmdputs(p);
-		cmdtxt(n->nbinary.ch1);
-		n = n->nbinary.ch2;
-		p = "; done";
- dodo:
-		cmdputs("; do ");
- dotail:
-		cmdtxt(n);
-		goto dotail2;
-	case NFOR:
-		cmdputs("for ");
-		cmdputs(n->nfor.var);
-		cmdputs(" in ");
-		cmdlist(n->nfor.args, 1);
-		n = n->nfor.body;
-		p = "; done";
-		goto dodo;
-	case NDEFUN:
-		cmdputs(n->narg.text);
-		p = "() { ... }";
-		goto dotail2;
-	case NCMD:
-		cmdlist(n->ncmd.args, 1);
-		cmdlist(n->ncmd.redirect, 0);
-		break;
-	case NARG:
-		p = n->narg.text;
- dotail2:
-		cmdputs(p);
-		break;
-	case NHERE:
-	case NXHERE:
-		p = "<<...";
-		goto dotail2;
-	case NCASE:
-		cmdputs("case ");
-		cmdputs(n->ncase.expr->narg.text);
-		cmdputs(" in ");
-		for (np = n->ncase.cases; np; np = np->nclist.next) {
-			cmdtxt(np->nclist.pattern);
-			cmdputs(") ");
-			cmdtxt(np->nclist.body);
-			cmdputs(";; ");
-		}
-		p = "esac";
-		goto dotail2;
-	case NTO:
-		p = ">";
-		goto redir;
-	case NCLOBBER:
-		p = ">|";
-		goto redir;
-	case NAPPEND:
-		p = ">>";
-		goto redir;
-	case NTOFD:
-		p = ">&";
-		goto redir;
-	case NFROM:
-		p = "<";
-		goto redir;
-	case NFROMFD:
-		p = "<&";
-		goto redir;
-	case NFROMTO:
-		p = "<>";
- redir:
-		s[0] = n->nfile.fd + '0';
-		s[1] = '\0';
-		cmdputs(s);
-		cmdputs(p);
-		if (n->type == NTOFD || n->type == NFROMFD) {
-			s[0] = n->ndup.dupfd + '0';
-			p = s;
-			goto dotail2;
-		}
-		n = n->nfile.fname;
-		goto donode;
-	}
-}
-
-static void
-cmdlist(union node *np, int sep)
-{
-	for (; np; np = np->narg.next) {
-		if (!sep)
-			cmdputs(spcstr);
-		cmdtxt(np);
-		if (sep && np->narg.next)
-			cmdputs(spcstr);
-	}
-}
-
-static void
-cmdputs(const char *s)
-{
-	const char *p, *str;
-	char c, cc[2] = " ";
-	char *nextc;
-	int subtype = 0;
-	int quoted = 0;
-	static const char vstype[VSTYPE + 1][4] = {
-		"", "}", "-", "+", "?", "=",
-		"%", "%%", "#", "##"
-	};
-
-	nextc = makestrspace((strlen(s) + 1) * 8, cmdnextc);
-	p = s;
-	while ((c = *p++) != 0) {
-		str = 0;
-		switch (c) {
-		case CTLESC:
-			c = *p++;
-			break;
-		case CTLVAR:
-			subtype = *p++;
-			if ((subtype & VSTYPE) == VSLENGTH)
-				str = "${#";
-			else
-				str = "${";
-			if (!(subtype & VSQUOTE) == !(quoted & 1))
-				goto dostr;
-			quoted ^= 1;
-			c = '"';
-			break;
-		case CTLENDVAR:
-			str = "\"}" + !(quoted & 1);
-			quoted >>= 1;
-			subtype = 0;
-			goto dostr;
-		case CTLBACKQ:
-			str = "$(...)";
-			goto dostr;
-		case CTLBACKQ+CTLQUOTE:
-			str = "\"$(...)\"";
-			goto dostr;
-#if ENABLE_ASH_MATH_SUPPORT
-		case CTLARI:
-			str = "$((";
-			goto dostr;
-		case CTLENDARI:
-			str = "))";
-			goto dostr;
-#endif
-		case CTLQUOTEMARK:
-			quoted ^= 1;
-			c = '"';
-			break;
-		case '=':
-			if (subtype == 0)
-				break;
-			if ((subtype & VSTYPE) != VSNORMAL)
-				quoted <<= 1;
-			str = vstype[subtype & VSTYPE];
-			if (subtype & VSNUL)
-				c = ':';
-			else
-				goto checkstr;
-			break;
-		case '\'':
-		case '\\':
-		case '"':
-		case '$':
-			/* These can only happen inside quotes */
-			cc[0] = c;
-			str = cc;
-			c = '\\';
-			break;
-		default:
-			break;
-		}
-		USTPUTC(c, nextc);
- checkstr:
-		if (!str)
-			continue;
- dostr:
-		while ((c = *str++)) {
-			USTPUTC(c, nextc);
-		}
-	}
-	if (quoted & 1) {
-		USTPUTC('"', nextc);
-	}
-	*nextc = 0;
-	cmdnextc = nextc;
-}
-#endif /* JOBS */
 
 #if ENABLE_ASH_MAIL
 /*      mail.c       */
@@ -11347,8 +11338,6 @@ redirectsafe(union node *redir, int flags)
 
 
 /*      trap.c       */
-
-
 
 /*
  * The trap builtin.
