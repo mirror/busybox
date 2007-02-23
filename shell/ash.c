@@ -66,6 +66,15 @@
 #endif
 
 
+/* ============ Misc helpers */
+
+#define xbarrier() do { __asm__ __volatile__ ("": : :"memory"); } while (0)
+
+/* C99 say: "char" declaration may be signed or unsigned default */
+#define signed_char2int(sc) ((int)((signed char)sc))
+
+
+
 /* ============ Shell options */
 
 static const char *const optletters_optnames[] = {
@@ -192,13 +201,11 @@ static volatile sig_atomic_t pendingsigs;
  * much more efficient and portable.  (But hacking the kernel is so much
  * more fun than worrying about efficiency and portability. :-))
  */
-#define xbarrier() ({ __asm__ __volatile__ ("": : :"memory"); })
 #define INT_OFF \
-	({ \
+	do { \
 		suppressint++; \
 		xbarrier(); \
-		0; \
-	})
+	} while (0)
 
 /*
  * Called to raise an exception.  Since C doesn't include exceptions, we
@@ -263,38 +270,37 @@ force_int_on(void)
 #define FORCE_INT_ON force_int_on()
 #else
 #define INT_ON \
-	({ \
+	do { \
 		xbarrier(); \
-		if (--suppressint == 0 && intpending) raise_interrupt(); \
-		0; \
-	})
+		if (--suppressint == 0 && intpending) \
+			raise_interrupt(); \
+	} while (0)
 #define FORCE_INT_ON \
-	({ \
+	do { \
 		xbarrier(); \
 		suppressint = 0; \
-		if (intpending) raise_interrupt(); \
-		0; \
-	})
+		if (intpending) \
+			raise_interrupt(); \
+	} while (0)
 #endif /* ASH_OPTIMIZE_FOR_SIZE */
 
 #define SAVE_INT(v) ((v) = suppressint)
 
 #define RESTORE_INT(v) \
-	({ \
+	do { \
 		xbarrier(); \
 		suppressint = (v); \
-		if (suppressint == 0 && intpending) raise_interrupt(); \
-		0; \
-	})
+		if (suppressint == 0 && intpending) \
+			raise_interrupt(); \
+	} while (0)
 
 #define EXSIGON \
-	({ \
+	do { \
 		exsig++; \
 		xbarrier(); \
 		if (pendingsigs) \
 			raise_exception(EXSIG); \
-		0; \
-	})
+	} while (0)
 /* EXSIG is turned off by evalbltin(). */
 
 /*
@@ -406,7 +412,7 @@ out2str(const char *p)
 }
 
 
-/* ============ Parsing structures */
+/* ============ Parser structures */
 
 /* control characters in argument strings */
 #define CTLESC '\201'           /* escape next character */
@@ -435,6 +441,8 @@ out2str(const char *p)
 #define VSTRIMLEFT      0x8             /* ${var#pattern} */
 #define VSTRIMLEFTMAX   0x9             /* ${var##pattern} */
 #define VSLENGTH        0xa             /* ${#var} */
+
+static const char dolatstr[] = { CTLVAR, VSNORMAL|VSQUOTE, '@', '=', '\0' };
 
 #define NCMD 0
 #define NPIPE 1
@@ -1361,21 +1369,25 @@ _STPUTC(int c, char *p)
 	return p;
 }
 
-#define STARTSTACKSTR(p) ((p) = stackblock())
-#define STPUTC(c, p) ((p) = _STPUTC((c), (p)))
+#define STARTSTACKSTR(p)        ((p) = stackblock())
+#define STPUTC(c, p)            ((p) = _STPUTC((c), (p)))
 #define CHECKSTRSPACE(n, p) \
-	({ \
+	do { \
 		char *q = (p); \
 		size_t l = (n); \
 		size_t m = sstrend - q; \
 		if (l > m) \
 			(p) = makestrspace(l, q); \
-		0; \
-	})
+	} while (0)
 #define USTPUTC(c, p)           (*p++ = (c))
-#define STACKSTRNUL(p)          ((p) == sstrend ? (p = growstackstr(), *p = '\0') : (*p = '\0'))
+#define STACKSTRNUL(p) \
+	do { \
+		if ((p) == sstrend) \
+			p = growstackstr(); \
+		*p = '\0'; \
+	} while (0)
 #define STUNPUTC(p)             (--p)
-#define STTOPC(p)               p[-1]
+#define STTOPC(p)               (p[-1])
 #define STADJUST(amount, p)     (p += (amount))
 
 #define grabstackstr(p)         stalloc((char *)(p) - (char *)stackblock())
@@ -1519,6 +1531,29 @@ nextopt(const char *optstring)
 }
 
 
+/* ============ Math support definitions */
+
+#if ENABLE_ASH_MATH_SUPPORT_64
+typedef int64_t arith_t;
+#define arith_t_type long long
+#else
+typedef long arith_t;
+#define arith_t_type long
+#endif
+
+#if ENABLE_ASH_MATH_SUPPORT
+static arith_t dash_arith(const char *);
+static arith_t arith(const char *expr, int *perrcode);
+#endif
+
+#if ENABLE_ASH_RANDOM_SUPPORT
+static unsigned long rseed;
+#ifndef DYNAMIC_VAR
+#define DYNAMIC_VAR
+#endif
+#endif
+
+
 /* ============ Shell variables */
 
 /* flags */
@@ -1532,9 +1567,9 @@ nextopt(const char *optstring)
 #define VNOSET          0x80    /* do not set variable - just readonly test */
 #define VNOSAVE         0x100   /* when text is on the heap before setvareq */
 #ifdef DYNAMIC_VAR
-# define VDYNAMIC        0x200   /* dynamic variable */
-# else
-# define VDYNAMIC        0
+# define VDYNAMIC       0x200   /* dynamic variable */
+#else
+# define VDYNAMIC       0
 #endif
 
 static const char defpathvar[] = "PATH=/usr/local/bin:/usr/bin:/sbin:/bin";
@@ -2401,12 +2436,6 @@ pwdcmd(int argc, char **argv)
 #define IBUFSIZ (BUFSIZ + 1)
 #define basebuf bb_common_bufsiz1       /* buffer for top level input file */
 
-
-/*      shell.h   */
-
-static const char spcstr[] = " ";
-static const char dolatstr[] = { CTLVAR, VSNORMAL|VSQUOTE, '@', '=', '\0' };
-
 /* Syntax classes */
 #define CWORD 0                 /* character is nothing special */
 #define CNL 1                   /* newline character */
@@ -2435,76 +2464,71 @@ static const char dolatstr[] = { CTLVAR, VSNORMAL|VSQUOTE, '@', '=', '\0' };
 #define PEOA_OR_PEOF PEOF
 #endif
 
-/* C99 say: "char" declaration may be signed or unsigned default */
-#define SC2INT(chr2may_be_negative_int) (int)((signed char)chr2may_be_negative_int)
-
 /*
  * is_special(c) evaluates to 1 for c in "!#$*-0123456789?@"; 0 otherwise
  * (assuming ascii char codes, as the original implementation did)
  */
 #define is_special(c) \
-	( (((unsigned int)c) - 33 < 32) \
-			 && ((0xc1ff920dUL >> (((unsigned int)c) - 33)) & 1))
+	((((unsigned int)c) - 33 < 32) \
+			&& ((0xc1ff920dUL >> (((unsigned int)c) - 33)) & 1))
+
+/* number syntax index */
+#define BASESYNTAX 0    /* not in quotes */
+#define DQSYNTAX   1    /* in double quotes */
+#define SQSYNTAX   2    /* in single quotes */
+#define ARISYNTAX  3    /* in arithmetic */
 
 #if ENABLE_ASH_OPTIMIZE_FOR_SIZE
 #define USE_SIT_FUNCTION
 #endif
 
-/* number syntax index */
-#define  BASESYNTAX  0  /* not in quotes */
-#define  DQSYNTAX    1  /* in double quotes */
-#define  SQSYNTAX    2  /* in single quotes */
-#define  ARISYNTAX   3  /* in arithmetic */
-
 #if ENABLE_ASH_MATH_SUPPORT
 static const char S_I_T[][4] = {
 #if ENABLE_ASH_ALIAS
-	{CSPCL, CIGN, CIGN, CIGN},              /* 0, PEOA */
+	{ CSPCL, CIGN, CIGN, CIGN },            /* 0, PEOA */
 #endif
-	{CSPCL, CWORD, CWORD, CWORD},           /* 1, ' ' */
-	{CNL, CNL, CNL, CNL},                   /* 2, \n */
-	{CWORD, CCTL, CCTL, CWORD},             /* 3, !*-/:=?[]~ */
-	{CDQUOTE, CENDQUOTE, CWORD, CWORD},     /* 4, '"' */
-	{CVAR, CVAR, CWORD, CVAR},              /* 5, $ */
-	{CSQUOTE, CWORD, CENDQUOTE, CWORD},     /* 6, "'" */
-	{CSPCL, CWORD, CWORD, CLP},             /* 7, ( */
-	{CSPCL, CWORD, CWORD, CRP},             /* 8, ) */
-	{CBACK, CBACK, CCTL, CBACK},            /* 9, \ */
-	{CBQUOTE, CBQUOTE, CWORD, CBQUOTE},     /* 10, ` */
-	{CENDVAR, CENDVAR, CWORD, CENDVAR},     /* 11, } */
+	{ CSPCL, CWORD, CWORD, CWORD },         /* 1, ' ' */
+	{ CNL, CNL, CNL, CNL },                 /* 2, \n */
+	{ CWORD, CCTL, CCTL, CWORD },           /* 3, !*-/:=?[]~ */
+	{ CDQUOTE, CENDQUOTE, CWORD, CWORD },   /* 4, '"' */
+	{ CVAR, CVAR, CWORD, CVAR },            /* 5, $ */
+	{ CSQUOTE, CWORD, CENDQUOTE, CWORD },   /* 6, "'" */
+	{ CSPCL, CWORD, CWORD, CLP },           /* 7, ( */
+	{ CSPCL, CWORD, CWORD, CRP },           /* 8, ) */
+	{ CBACK, CBACK, CCTL, CBACK },          /* 9, \ */
+	{ CBQUOTE, CBQUOTE, CWORD, CBQUOTE },   /* 10, ` */
+	{ CENDVAR, CENDVAR, CWORD, CENDVAR },   /* 11, } */
 #ifndef USE_SIT_FUNCTION
-	{CENDFILE, CENDFILE, CENDFILE, CENDFILE},       /* 12, PEOF */
-	{CWORD, CWORD, CWORD, CWORD},           /* 13, 0-9A-Za-z */
-	{CCTL, CCTL, CCTL, CCTL}                /* 14, CTLESC ... */
+	{ CENDFILE, CENDFILE, CENDFILE, CENDFILE }, /* 12, PEOF */
+	{ CWORD, CWORD, CWORD, CWORD },         /* 13, 0-9A-Za-z */
+	{ CCTL, CCTL, CCTL, CCTL }              /* 14, CTLESC ... */
 #endif
 };
 #else
 static const char S_I_T[][3] = {
 #if ENABLE_ASH_ALIAS
-	{CSPCL, CIGN, CIGN},                    /* 0, PEOA */
+	{ CSPCL, CIGN, CIGN },                  /* 0, PEOA */
 #endif
-	{CSPCL, CWORD, CWORD},                  /* 1, ' ' */
-	{CNL, CNL, CNL},                        /* 2, \n */
-	{CWORD, CCTL, CCTL},                    /* 3, !*-/:=?[]~ */
-	{CDQUOTE, CENDQUOTE, CWORD},            /* 4, '"' */
-	{CVAR, CVAR, CWORD},                    /* 5, $ */
-	{CSQUOTE, CWORD, CENDQUOTE},            /* 6, "'" */
-	{CSPCL, CWORD, CWORD},                  /* 7, ( */
-	{CSPCL, CWORD, CWORD},                  /* 8, ) */
-	{CBACK, CBACK, CCTL},                   /* 9, \ */
-	{CBQUOTE, CBQUOTE, CWORD},              /* 10, ` */
-	{CENDVAR, CENDVAR, CWORD},              /* 11, } */
+	{ CSPCL, CWORD, CWORD },                /* 1, ' ' */
+	{ CNL, CNL, CNL },                      /* 2, \n */
+	{ CWORD, CCTL, CCTL },                  /* 3, !*-/:=?[]~ */
+	{ CDQUOTE, CENDQUOTE, CWORD },          /* 4, '"' */
+	{ CVAR, CVAR, CWORD },                  /* 5, $ */
+	{ CSQUOTE, CWORD, CENDQUOTE },          /* 6, "'" */
+	{ CSPCL, CWORD, CWORD },                /* 7, ( */
+	{ CSPCL, CWORD, CWORD },                /* 8, ) */
+	{ CBACK, CBACK, CCTL },                 /* 9, \ */
+	{ CBQUOTE, CBQUOTE, CWORD },            /* 10, ` */
+	{ CENDVAR, CENDVAR, CWORD },            /* 11, } */
 #ifndef USE_SIT_FUNCTION
-	{CENDFILE, CENDFILE, CENDFILE},         /* 12, PEOF */
-	{CWORD, CWORD, CWORD},                  /* 13, 0-9A-Za-z */
-	{CCTL, CCTL, CCTL}                      /* 14, CTLESC ... */
+	{ CENDFILE, CENDFILE, CENDFILE },       /* 12, PEOF */
+	{ CWORD, CWORD, CWORD },                /* 13, 0-9A-Za-z */
+	{ CCTL, CCTL, CCTL }                    /* 14, CTLESC ... */
 #endif
 };
 #endif /* ASH_MATH_SUPPORT */
 
 #ifdef USE_SIT_FUNCTION
-
-#define U_C(c) ((unsigned char)(c))
 
 static int
 SIT(int c, int syntax)
@@ -2535,9 +2559,13 @@ SIT(int c, int syntax)
 		indx = 0;
 	else
 #endif
-	if (U_C(c) >= U_C(CTLESC) && U_C(c) <= U_C(CTLQUOTEMARK))
+#define U_C(c) ((unsigned char)(c))
+
+	if ((unsigned char)c >= (unsigned char)(CTLESC)
+	 && (unsigned char)c <= (unsigned char)(CTLQUOTEMARK)
+	) {
 		return CCTL;
-	else {
+	} else {
 		s = strchr(spec_symbls, c);
 		if (s == NULL || *s == '\0')
 			return CWORD;
@@ -2546,41 +2574,39 @@ SIT(int c, int syntax)
 	return S_I_T[indx][syntax];
 }
 
-#else   /* USE_SIT_FUNCTION */
-
-#define SIT(c, syntax) S_I_T[(int)syntax_index_table[((int)c)+SYNBASE]][syntax]
+#else   /* !USE_SIT_FUNCTION */
 
 #if ENABLE_ASH_ALIAS
-#define CSPCL_CIGN_CIGN_CIGN                           0
-#define CSPCL_CWORD_CWORD_CWORD                        1
-#define CNL_CNL_CNL_CNL                                2
-#define CWORD_CCTL_CCTL_CWORD                          3
-#define CDQUOTE_CENDQUOTE_CWORD_CWORD                  4
-#define CVAR_CVAR_CWORD_CVAR                           5
-#define CSQUOTE_CWORD_CENDQUOTE_CWORD                  6
-#define CSPCL_CWORD_CWORD_CLP                          7
-#define CSPCL_CWORD_CWORD_CRP                          8
-#define CBACK_CBACK_CCTL_CBACK                         9
-#define CBQUOTE_CBQUOTE_CWORD_CBQUOTE                 10
-#define CENDVAR_CENDVAR_CWORD_CENDVAR                 11
-#define CENDFILE_CENDFILE_CENDFILE_CENDFILE           12
-#define CWORD_CWORD_CWORD_CWORD                       13
-#define CCTL_CCTL_CCTL_CCTL                           14
+#define CSPCL_CIGN_CIGN_CIGN                     0
+#define CSPCL_CWORD_CWORD_CWORD                  1
+#define CNL_CNL_CNL_CNL                          2
+#define CWORD_CCTL_CCTL_CWORD                    3
+#define CDQUOTE_CENDQUOTE_CWORD_CWORD            4
+#define CVAR_CVAR_CWORD_CVAR                     5
+#define CSQUOTE_CWORD_CENDQUOTE_CWORD            6
+#define CSPCL_CWORD_CWORD_CLP                    7
+#define CSPCL_CWORD_CWORD_CRP                    8
+#define CBACK_CBACK_CCTL_CBACK                   9
+#define CBQUOTE_CBQUOTE_CWORD_CBQUOTE           10
+#define CENDVAR_CENDVAR_CWORD_CENDVAR           11
+#define CENDFILE_CENDFILE_CENDFILE_CENDFILE     12
+#define CWORD_CWORD_CWORD_CWORD                 13
+#define CCTL_CCTL_CCTL_CCTL                     14
 #else
-#define CSPCL_CWORD_CWORD_CWORD                        0
-#define CNL_CNL_CNL_CNL                                1
-#define CWORD_CCTL_CCTL_CWORD                          2
-#define CDQUOTE_CENDQUOTE_CWORD_CWORD                  3
-#define CVAR_CVAR_CWORD_CVAR                           4
-#define CSQUOTE_CWORD_CENDQUOTE_CWORD                  5
-#define CSPCL_CWORD_CWORD_CLP                          6
-#define CSPCL_CWORD_CWORD_CRP                          7
-#define CBACK_CBACK_CCTL_CBACK                         8
-#define CBQUOTE_CBQUOTE_CWORD_CBQUOTE                  9
-#define CENDVAR_CENDVAR_CWORD_CENDVAR                 10
-#define CENDFILE_CENDFILE_CENDFILE_CENDFILE           11
-#define CWORD_CWORD_CWORD_CWORD                       12
-#define CCTL_CCTL_CCTL_CCTL                           13
+#define CSPCL_CWORD_CWORD_CWORD                  0
+#define CNL_CNL_CNL_CNL                          1
+#define CWORD_CCTL_CCTL_CWORD                    2
+#define CDQUOTE_CENDQUOTE_CWORD_CWORD            3
+#define CVAR_CVAR_CWORD_CVAR                     4
+#define CSQUOTE_CWORD_CENDQUOTE_CWORD            5
+#define CSPCL_CWORD_CWORD_CLP                    6
+#define CSPCL_CWORD_CWORD_CRP                    7
+#define CBACK_CBACK_CCTL_CBACK                   8
+#define CBQUOTE_CBQUOTE_CWORD_CBQUOTE            9
+#define CENDVAR_CENDVAR_CWORD_CENDVAR           10
+#define CENDFILE_CENDFILE_CENDFILE_CENDFILE     11
+#define CWORD_CWORD_CWORD_CWORD                 12
+#define CCTL_CCTL_CCTL_CCTL                     13
 #endif
 
 static const char syntax_index_table[258] = {
@@ -2847,30 +2873,9 @@ static const char syntax_index_table[258] = {
 	/* 257   127      */ CWORD_CWORD_CWORD_CWORD,
 };
 
+#define SIT(c, syntax) (S_I_T[(int)syntax_index_table[((int)c)+SYNBASE]][syntax])
+
 #endif  /* USE_SIT_FUNCTION */
-
-
-/*      exec.h    */
-
-#if ENABLE_ASH_MATH_SUPPORT_64
-typedef int64_t arith_t;
-#define arith_t_type long long
-#else
-typedef long arith_t;
-#define arith_t_type long
-#endif
-
-#if ENABLE_ASH_MATH_SUPPORT
-static arith_t dash_arith(const char *);
-static arith_t arith(const char *expr, int *perrcode);
-#endif
-
-#if ENABLE_ASH_RANDOM_SUPPORT
-static unsigned long rseed;
-# ifndef DYNAMIC_VAR
-#  define DYNAMIC_VAR
-# endif
-#endif
 
 
 /*      main.h        */
@@ -4244,10 +4249,10 @@ cmdlist(union node *np, int sep)
 {
 	for (; np; np = np->narg.next) {
 		if (!sep)
-			cmdputs(spcstr);
+			cmdputs(" ");
 		cmdtxt(np);
 		if (sep && np->narg.next)
-			cmdputs(spcstr);
+			cmdputs(" ");
 	}
 }
 
@@ -4810,7 +4815,7 @@ memtodest(const char *p, size_t len, int syntax, int quotes)
 	q = makestrspace(len * 2, q);
 
 	while (len--) {
-		int c = SC2INT(*p++);
+		int c = signed_char2int(*p++);
 		if (!c)
 			continue;
 		if (quotes && (SIT(c, syntax) == CCTL || SIT(c, syntax) == CBACK))
@@ -5477,7 +5482,7 @@ varvalue(char *name, int varflags, int flags)
 			goto param;
 		/* fall through */
 	case '*':
-		sep = ifsset() ? SC2INT(ifsval()[0]) : ' ';
+		sep = ifsset() ? signed_char2int(ifsval()[0]) : ' ';
 		if (quotes && (SIT(sep, syntax) == CCTL || SIT(sep, syntax) == CBACK))
 			sepq = 1;
  param:
@@ -8510,7 +8515,7 @@ preadbuffer(void)
 #endif
 		popstring();
 		if (--parsenleft >= 0)
-			return SC2INT(*parsenextc++);
+			return signed_char2int(*parsenextc++);
 	}
 	if (parsenleft == EOF_NLEFT || parsefile->buf == NULL)
 		return PEOF;
@@ -8563,25 +8568,20 @@ preadbuffer(void)
 
 	*q = savec;
 
-	return SC2INT(*parsenextc++);
+	return signed_char2int(*parsenextc++);
 }
 
-#define pgetc_as_macro()   (--parsenleft >= 0? SC2INT(*parsenextc++) : preadbuffer())
-
-#if ENABLE_ASH_OPTIMIZE_FOR_SIZE
-#define pgetc_macro() pgetc()
+#define pgetc_as_macro() (--parsenleft >= 0? signed_char2int(*parsenextc++) : preadbuffer())
 static int
 pgetc(void)
 {
 	return pgetc_as_macro();
 }
+
+#if ENABLE_ASH_OPTIMIZE_FOR_SIZE
+#define pgetc_macro() pgetc()
 #else
-#define pgetc_macro()   pgetc_as_macro()
-static int
-pgetc(void)
-{
-	return pgetc_macro();
-}
+#define pgetc_macro() pgetc_as_macro()
 #endif
 
 /*
@@ -8810,6 +8810,7 @@ setinputstring(char *string)
  *
  * Routines to check for mail.
  */
+
 #if ENABLE_ASH_MAIL
 
 #define MAXMBOXES 10
@@ -8870,6 +8871,7 @@ changemail(const char *val)
 {
 	mail_var_path_changed++;
 }
+
 #endif /* ASH_MAIL */
 
 
@@ -9133,7 +9135,7 @@ showvars(const char *sep_prefix, int on, int off)
 	ep = listvars(on, off, &epend);
 	qsort(ep, epend - ep, sizeof(char *), vpcmp);
 
-	sep = *sep_prefix ? spcstr : sep_prefix;
+	sep = *sep_prefix ? " " : sep_prefix;
 
 	for (; ep < epend; ep++) {
 		const char *p;
@@ -10991,9 +10993,8 @@ readcmdfile(char *name)
 }
 
 
-/* ============ redir.c */
-
-/*
+/* ============ redir.c
+ *
  * Code for dealing with input/output redirection.
  */
 
