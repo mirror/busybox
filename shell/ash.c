@@ -503,6 +503,289 @@ errmsg(int e, const char *em)
 }
 
 
+/* ============ Memory allocation */
+
+/*
+ * It appears that grabstackstr() will barf with such alignments
+ * because stalloc() will return a string allocated in a new stackblock.
+ */
+#define SHELL_ALIGN(nbytes) (((nbytes) + SHELL_SIZE) & ~SHELL_SIZE)
+enum {
+	/* Most machines require the value returned from malloc to be aligned
+	 * in some way.  The following macro will get this right
+	 * on many machines.  */
+	SHELL_SIZE = sizeof(union {int i; char *cp; double d; }) - 1,
+	/* Minimum size of a block */
+	MINSIZE  = SHELL_ALIGN(504),
+};
+
+struct stack_block {
+	struct stack_block *prev;
+	char space[MINSIZE];
+};
+
+struct stackmark {
+	struct stack_block *stackp;
+	char *stacknxt;
+	size_t stacknleft;
+	struct stackmark *marknext;
+};
+
+static struct stack_block stackbase;
+static struct stack_block *stackp = &stackbase;
+static struct stackmark *markp;
+static char *stacknxt = stackbase.space;
+static size_t stacknleft = MINSIZE;
+static char *sstrend = stackbase.space + MINSIZE;
+static int herefd = -1;
+
+#define stackblock() ((void *)stacknxt)
+#define stackblocksize() stacknleft
+
+static void *
+ckrealloc(void * p, size_t nbytes)
+{
+	p = realloc(p, nbytes);
+	if (!p)
+		ash_msg_and_raise_error(bb_msg_memory_exhausted);
+	return p;
+}
+
+static void *
+ckmalloc(size_t nbytes)
+{
+	return ckrealloc(NULL, nbytes);
+}
+
+/*
+ * Make a copy of a string in safe storage.
+ */
+static char *
+ckstrdup(const char *s)
+{
+	char *p = strdup(s);
+	if (!p)
+		ash_msg_and_raise_error(bb_msg_memory_exhausted);
+	return p;
+}
+
+/*
+ * Parse trees for commands are allocated in lifo order, so we use a stack
+ * to make this more efficient, and also to avoid all sorts of exception
+ * handling code to handle interrupts in the middle of a parse.
+ *
+ * The size 504 was chosen because the Ultrix malloc handles that size
+ * well.
+ */
+static void *
+stalloc(size_t nbytes)
+{
+	char *p;
+	size_t aligned;
+
+	aligned = SHELL_ALIGN(nbytes);
+	if (aligned > stacknleft) {
+		size_t len;
+		size_t blocksize;
+		struct stack_block *sp;
+
+		blocksize = aligned;
+		if (blocksize < MINSIZE)
+			blocksize = MINSIZE;
+		len = sizeof(struct stack_block) - MINSIZE + blocksize;
+		if (len < blocksize)
+			ash_msg_and_raise_error(bb_msg_memory_exhausted);
+		INT_OFF;
+		sp = ckmalloc(len);
+		sp->prev = stackp;
+		stacknxt = sp->space;
+		stacknleft = blocksize;
+		sstrend = stacknxt + blocksize;
+		stackp = sp;
+		INT_ON;
+	}
+	p = stacknxt;
+	stacknxt += aligned;
+	stacknleft -= aligned;
+	return p;
+}
+
+static void
+stunalloc(void *p)
+{
+#if DEBUG
+	if (!p || (stacknxt < (char *)p) || ((char *)p < stackp->space)) {
+		write(2, "stunalloc\n", 10);
+		abort();
+	}
+#endif
+	stacknleft += stacknxt - (char *)p;
+	stacknxt = p;
+}
+
+static void
+setstackmark(struct stackmark *mark)
+{
+	mark->stackp = stackp;
+	mark->stacknxt = stacknxt;
+	mark->stacknleft = stacknleft;
+	mark->marknext = markp;
+	markp = mark;
+}
+
+static void
+popstackmark(struct stackmark *mark)
+{
+	struct stack_block *sp;
+
+	INT_OFF;
+	markp = mark->marknext;
+	while (stackp != mark->stackp) {
+		sp = stackp;
+		stackp = sp->prev;
+		free(sp);
+	}
+	stacknxt = mark->stacknxt;
+	stacknleft = mark->stacknleft;
+	sstrend = mark->stacknxt + mark->stacknleft;
+	INT_ON;
+}
+
+/*
+ * When the parser reads in a string, it wants to stick the string on the
+ * stack and only adjust the stack pointer when it knows how big the
+ * string is.  Stackblock (defined in stack.h) returns a pointer to a block
+ * of space on top of the stack and stackblocklen returns the length of
+ * this block.  Growstackblock will grow this space by at least one byte,
+ * possibly moving it (like realloc).  Grabstackblock actually allocates the
+ * part of the block that has been used.
+ */
+static void
+growstackblock(void)
+{
+	size_t newlen;
+
+	newlen = stacknleft * 2;
+	if (newlen < stacknleft)
+		ash_msg_and_raise_error(bb_msg_memory_exhausted);
+	if (newlen < 128)
+		newlen += 128;
+
+	if (stacknxt == stackp->space && stackp != &stackbase) {
+		struct stack_block *oldstackp;
+		struct stackmark *xmark;
+		struct stack_block *sp;
+		struct stack_block *prevstackp;
+		size_t grosslen;
+
+		INT_OFF;
+		oldstackp = stackp;
+		sp = stackp;
+		prevstackp = sp->prev;
+		grosslen = newlen + sizeof(struct stack_block) - MINSIZE;
+		sp = ckrealloc(sp, grosslen);
+		sp->prev = prevstackp;
+		stackp = sp;
+		stacknxt = sp->space;
+		stacknleft = newlen;
+		sstrend = sp->space + newlen;
+
+		/*
+		 * Stack marks pointing to the start of the old block
+		 * must be relocated to point to the new block
+		 */
+		xmark = markp;
+		while (xmark != NULL && xmark->stackp == oldstackp) {
+			xmark->stackp = stackp;
+			xmark->stacknxt = stacknxt;
+			xmark->stacknleft = stacknleft;
+			xmark = xmark->marknext;
+		}
+		INT_ON;
+	} else {
+		char *oldspace = stacknxt;
+		int oldlen = stacknleft;
+		char *p = stalloc(newlen);
+
+		/* free the space we just allocated */
+		stacknxt = memcpy(p, oldspace, oldlen);
+		stacknleft += newlen;
+	}
+}
+
+static void
+grabstackblock(size_t len)
+{
+	len = SHELL_ALIGN(len);
+	stacknxt += len;
+	stacknleft -= len;
+}
+
+/*
+ * The following routines are somewhat easier to use than the above.
+ * The user declares a variable of type STACKSTR, which may be declared
+ * to be a register.  The macro STARTSTACKSTR initializes things.  Then
+ * the user uses the macro STPUTC to add characters to the string.  In
+ * effect, STPUTC(c, p) is the same as *p++ = c except that the stack is
+ * grown as necessary.  When the user is done, she can just leave the
+ * string there and refer to it using stackblock().  Or she can allocate
+ * the space for it using grabstackstr().  If it is necessary to allow
+ * someone else to use the stack temporarily and then continue to grow
+ * the string, the user should use grabstack to allocate the space, and
+ * then call ungrabstr(p) to return to the previous mode of operation.
+ *
+ * USTPUTC is like STPUTC except that it doesn't check for overflow.
+ * CHECKSTACKSPACE can be called before USTPUTC to ensure that there
+ * is space for at least one character.
+ */
+static void *
+growstackstr(void)
+{
+	size_t len = stackblocksize();
+	if (herefd >= 0 && len >= 1024) {
+		full_write(herefd, stackblock(), len);
+		return stackblock();
+	}
+	growstackblock();
+	return stackblock() + len;
+}
+
+/*
+ * Called from CHECKSTRSPACE.
+ */
+static char *
+makestrspace(size_t newlen, char *p)
+{
+	size_t len = p - stacknxt;
+	size_t size = stackblocksize();
+
+	for (;;) {
+		size_t nleft;
+
+		size = stackblocksize();
+		nleft = size - len;
+		if (nleft >= newlen)
+			break;
+		growstackblock();
+	}
+	return stackblock() + len;
+}
+
+static char *
+stack_nputstr(const char *s, size_t n, char *p)
+{
+	p = makestrspace(n, p);
+	p = memcpy(p, s, n) + n;
+	return p;
+}
+
+static char *
+stack_putstr(const char *s, char *p)
+{
+	return stack_nputstr(s, strlen(s), p);
+}
+
+
 /* ============ Unsorted yet */
 
 
@@ -773,9 +1056,7 @@ static union node *redirnode;
 static struct heredoc *heredoc;
 static int quoteflag;                  /* set if (part of) last token was quoted */
 
-static union node *parsecmd(int);
 static void fixredir(union node *, const char *, int);
-static const char *const *findkwd(const char *);
 static char *endofname(const char *);
 
 /*      shell.h   */
@@ -867,7 +1148,8 @@ static const char *const tokname_array[] = {
 	"\1}",
 };
 
-static const char *tokname(int tok)
+static const char *
+tokname(int tok)
 {
 	static char buf[16];
 
@@ -878,24 +1160,20 @@ static const char *tokname(int tok)
 	return buf;
 }
 
-/*      machdep.h    */
+/* Wrapper around strcmp for qsort/bsearch/... */
+static int
+pstrcmp(const void *a, const void *b)
+{
+	return strcmp((const char *) a, (*(const char *const *) b) + 1);
+}
 
-/*
- * Most machines require the value returned from malloc to be aligned
- * in some way.  The following macro will get this right on many machines.
- */
-
-#define SHELL_SIZE (sizeof(union {int i; char *cp; double d; }) - 1)
-/*
- * It appears that grabstackstr() will barf with such alignments
- * because stalloc() will return a string allocated in a new stackblock.
- */
-#define SHELL_ALIGN(nbytes) (((nbytes) + SHELL_SIZE) & ~SHELL_SIZE)
-
-/*
- * This file was generated by the mksyntax program.
- */
-
+static const char *const *
+findkwd(const char *s)
+{
+	return bsearch(s, tokname_array + KWDOFFSET,
+			(sizeof(tokname_array) / sizeof(const char *)) - KWDOFFSET,
+			sizeof(const char *), pstrcmp);
+}
 
 /* Syntax classes */
 #define CWORD 0                 /* character is nothing special */
@@ -1006,7 +1284,8 @@ static const char S_I_T[][3] = {
 
 #define U_C(c) ((unsigned char)(c))
 
-static int SIT(int c, int syntax)
+static int
+SIT(int c, int syntax)
 {
 	static const char spec_symbls[] = "\t\n !\"$&'()*-/:;<=>?[\\]`|}~";
 #if ENABLE_ASH_ALIAS
@@ -1392,13 +1671,8 @@ static void calcsize(union node *);
 static void sizenodelist(struct nodelist *);
 static union node *copynode(union node *);
 static struct nodelist *copynodelist(struct nodelist *);
-static char *nodesavestr(char *);
+static char *nodeckstrdup(char *);
 
-
-static int evalstring(char *, int mask);
-union node;     /* BLETCH for ansi C */
-static void evaltree(union node *, int);
-static void evalbackcmd(union node *, struct backcmd *);
 
 static int evalskip;                   /* set if we are skipping commands */
 static int skipcount;           /* number of levels to skip */
@@ -1637,15 +1911,15 @@ static void change_random(const char *);
 # endif
 #endif
 
-/*      init.h        */
-
-static void reset(void);
-
 /*      var.h     */
 
 /*
  * Shell variables.
  */
+
+#if ENABLE_ASH_GETOPTS
+static void getoptsreset(const char *);
+#endif
 
 /* flags */
 #define VEXPORT         0x01    /* variable is exported */
@@ -1684,11 +1958,6 @@ static struct localvar *localvars;
 /*
  * Shell variables.
  */
-
-#if ENABLE_ASH_GETOPTS
-static void getoptsreset(const char *);
-#endif
-
 #if ENABLE_LOCALE_SUPPORT
 static void change_lc_all(const char *value);
 static void change_lc_ctype(const char *value);
@@ -1950,46 +2219,6 @@ static void showjobs(FILE *, int);
 
 static void readcmdfile(char *);
  
-/*      memalloc.h        */
-
-
-struct stackmark {
-	struct stack_block *stackp;
-	char *stacknxt;
-	size_t stacknleft;
-	struct stackmark *marknext;
-};
-
-/* minimum size of a block */
-#define MINSIZE SHELL_ALIGN(504)
-
-struct stack_block {
-	struct stack_block *prev;
-	char space[MINSIZE];
-};
-
-static struct stack_block stackbase;
-static struct stack_block *stackp = &stackbase;
-static struct stackmark *markp;
-static char *stacknxt = stackbase.space;
-static size_t stacknleft = MINSIZE;
-static char *sstrend = stackbase.space + MINSIZE;
-static int herefd = -1;
-
-
-static void *ckmalloc(size_t);
-static void *ckrealloc(void *, size_t);
-static char *savestr(const char *);
-static void *stalloc(size_t);
-static void stunalloc(void *);
-static void setstackmark(struct stackmark *);
-static void popstackmark(struct stackmark *);
-static void growstackblock(void);
-static void *growstackstr(void);
-static char *makestrspace(size_t, char *);
-static char *stnputs(const char *, size_t, char *);
-static char *stputs(const char *, char *);
-
 
 static char *_STPUTC(int c, char *p)
 {
@@ -1999,8 +2228,6 @@ static char *_STPUTC(int c, char *p)
 	return p;
 }
 
-#define stackblock() ((void *)stacknxt)
-#define stackblocksize() stacknleft
 #define STARTSTACKSTR(p) ((p) = stackblock())
 #define STPUTC(c, p) ((p) = _STPUTC((c), (p)))
 #define CHECKSTRSPACE(n, p) \
@@ -2070,7 +2297,6 @@ static int nextopt(const char *);
 #define REDIR_PUSH 01           /* save previous values of file descriptors */
 #define REDIR_SAVEFD2 03       /* set preverrout */
 
-union node;
 static void redirect(union node *, int);
 static void popredir(int);
 static void clearredir(int);
@@ -2137,29 +2363,6 @@ static int is_safe_applet(char *name)
 }
 
 
-/*
- * This routine is called when an error or an interrupt occurs in an
- * interactive shell and control is returned to the main command loop.
- */
-static void
-reset(void)
-{
-	/* from eval.c: */
-	evalskip = 0;
-	loopnest = 0;
-
-	/* from input.c: */
-	parselleft = parsenleft = 0;      /* clear input buffer */
-	popallfiles();
-
-	/* from parser.c: */
-	tokpushback = 0;
-	checkkwd = 0;
-
-	/* from redir.c: */
-	clearredir(0);
-}
-
 #if ENABLE_ASH_ALIAS
 static struct alias *atab[ATABSIZE];
 
@@ -2179,13 +2382,13 @@ setalias(const char *name, const char *val)
 		if (!(ap->flag & ALIASINUSE)) {
 			free(ap->val);
 		}
-		ap->val = savestr(val);
+		ap->val = ckstrdup(val);
 		ap->flag &= ~ALIASDEAD;
 	} else {
 		/* not found */
 		ap = ckmalloc(sizeof(struct alias));
-		ap->name = savestr(name);
-		ap->val = savestr(val);
+		ap->name = ckstrdup(name);
+		ap->val = ckstrdup(val);
 		ap->flag = 0;
 		ap->next = 0;
 		*app = ap;
@@ -2461,7 +2664,7 @@ static const char * updatepwd(const char *dir)
 	if (*dir != '/') {
 		if (curdir == nullstr)
 			return 0;
-		new = stputs(curdir, new);
+		new = stack_putstr(curdir, new);
 	}
 	new = makestrspace(strlen(dir) + 2, new);
 	lim = stackblock() + 1;
@@ -2494,7 +2697,7 @@ static const char * updatepwd(const char *dir)
 				break;
 			/* fall through */
 		default:
-			new = stputs(p, new);
+			new = stack_putstr(p, new);
 			USTPUTC('/', new);
 		}
 		p = strtok(0, "/");
@@ -2582,7 +2785,7 @@ setpwd(const char *val, int setold)
 		if (!val)
 			dir = s;
 	} else
-		dir = savestr(val);
+		dir = ckstrdup(val);
 	if (oldcur != dir && oldcur != nullstr) {
 		free(oldcur);
 	}
@@ -2620,70 +2823,6 @@ static const struct builtincmd bltin = {
 	"\0\0", bltincmd
 };
 
-
-/*
- * Called to reset things after an exception.
- */
-
-/*
- * The eval command.
- */
-static int
-evalcmd(int argc, char **argv)
-{
-	char *p;
-	char *concat;
-	char **ap;
-
-	if (argc > 1) {
-		p = argv[1];
-		if (argc > 2) {
-			STARTSTACKSTR(concat);
-			ap = argv + 2;
-			for (;;) {
-				concat = stputs(p, concat);
-				p = *ap++;
-				if (p == NULL)
-					break;
-				STPUTC(' ', concat);
-			}
-			STPUTC('\0', concat);
-			p = grabstackstr(concat);
-		}
-		evalstring(p, ~SKIPEVAL);
-
-	}
-	return exitstatus;
-}
-
-
-/*
- * Execute a command or commands contained in a string.
- */
-static int
-evalstring(char *s, int mask)
-{
-	union node *n;
-	struct stackmark smark;
-	int skip;
-
-	setinputstring(s);
-	setstackmark(&smark);
-
-	skip = 0;
-	while ((n = parsecmd(0)) != NEOF) {
-		evaltree(n, 0);
-		popstackmark(&smark);
-		skip = evalskip;
-		if (skip)
-			break;
-	}
-	popfile();
-
-	skip &= mask;
-	evalskip = skip;
-	return skip;
-}
 
 
 /*
@@ -3993,15 +4132,6 @@ find_command(char *name, struct cmdentry *entry, int act, const char *path)
 
 
 /*
- * Wrapper around strcmp for qsort/bsearch/...
- */
-static int pstrcmp(const void *a, const void *b)
-{
-	return strcmp((const char *) a, (*(const char *const *) b) + 1);
-}
-
-
-/*
  * Search the table of builtin commands.
  */
 static struct builtincmd *
@@ -4606,7 +4736,7 @@ argstr(char *p, int flag)
 		}
 		if (length > 0) {
 			int newloc;
-			expdest = stnputs(p, length, expdest);
+			expdest = stack_nputstr(p, length, expdest);
 			newloc = expdest - (char *)stackblock();
 			if (breakall && !inquotes && newloc > startloc) {
 				recordregion(startloc, newloc, 0);
@@ -7370,7 +7500,7 @@ commandtext(union node *n)
 	name = stackblock();
 	TRACE(("commandtext: name %p, end %p\n\t\"%s\"\n",
 		name, cmdnextc, cmdnextc));
-	return savestr(name);
+	return ckstrdup(name);
 }
 
 static void
@@ -7753,79 +7883,11 @@ changemail(const char *val)
 #endif /* ASH_MAIL */
 
 /*
- * Read and execute commands.  "Top" is nonzero for the top level command
- * loop; it turns on prompting if the shell is interactive.
- */
-static int
-cmdloop(int top)
-{
-	union node *n;
-	struct stackmark smark;
-	int inter;
-	int numeof = 0;
-
-	TRACE(("cmdloop(%d) called\n", top));
-	for (;;) {
-		int skip;
-
-		setstackmark(&smark);
-#if JOBS
-		if (jobctl)
-			showjobs(stderr, SHOW_CHANGED);
-#endif
-		inter = 0;
-		if (iflag && top) {
-			inter++;
-#if ENABLE_ASH_MAIL
-			chkmail();
-#endif
-		}
-		n = parsecmd(inter);
-		/* showtree(n); DEBUG */
-		if (n == NEOF) {
-			if (!top || numeof >= 50)
-				break;
-			if (!stoppedjobs()) {
-				if (!Iflag)
-					break;
-				out2str("\nUse \"exit\" to leave shell.\n");
-			}
-			numeof++;
-		} else if (nflag == 0) {
-			job_warning = (job_warning == 2) ? 1 : 0;
-			numeof = 0;
-			evaltree(n, 0);
-		}
-		popstackmark(&smark);
-		skip = evalskip;
-
-		if (skip) {
-			evalskip = 0;
-			return skip & SKIPEVAL;
-		}
-	}
-
-	return 0;
-}
-
-
-/*
- * Read a file containing shell functions.
- */
-static void
-readcmdfile(char *name)
-{
-	setinputfile(name, INPUT_PUSH_FILE);
-	cmdloop(0);
-	popfile();
-}
-
-
-/*
  * Take commands from a file.  To be compatible we should do a path
  * search for the file, which is necessary to find sub-commands.
  */
-static char * find_dot_file(char *name)
+static char *
+find_dot_file(char *name)
 {
 	char *fullname;
 	const char *path = pathval();
@@ -7849,322 +7911,6 @@ static char * find_dot_file(char *name)
 	/* not found in the PATH */
 	ash_msg_and_raise_error("%s: not found", name);
 	/* NOTREACHED */
-}
-
-static int dotcmd(int argc, char **argv)
-{
-	struct strlist *sp;
-	volatile struct shparam saveparam;
-	int status = 0;
-
-	for (sp = cmdenviron; sp; sp = sp->next)
-		setvareq(xstrdup(sp->text), VSTRFIXED | VTEXTFIXED);
-
-	if (argc >= 2) {        /* That's what SVR2 does */
-		char *fullname;
-
-		fullname = find_dot_file(argv[1]);
-
-		if (argc > 2) {
-			saveparam = shellparam;
-			shellparam.malloc = 0;
-			shellparam.nparam = argc - 2;
-			shellparam.p = argv + 2;
-		};
-
-		setinputfile(fullname, INPUT_PUSH_FILE);
-		commandname = fullname;
-		cmdloop(0);
-		popfile();
-
-		if (argc > 2) {
-			freeparam(&shellparam);
-			shellparam = saveparam;
-		};
-		status = exitstatus;
-	}
-	return status;
-}
-
-
-static int
-exitcmd(int argc, char **argv)
-{
-	if (stoppedjobs())
-		return 0;
-	if (argc > 1)
-		exitstatus = number(argv[1]);
-	raise_exception(EXEXIT);
-	/* NOTREACHED */
-}
-
-#if ENABLE_ASH_BUILTIN_ECHO
-static int
-echocmd(int argc, char **argv)
-{
-	return bb_echo(argv);
-}
-#endif
-
-#if ENABLE_ASH_BUILTIN_TEST
-static int
-testcmd(int argc, char **argv)
-{
-	return bb_test(argc, argv);
-}
-#endif
-
-/*      memalloc.c        */
-
-/*
- * Same for malloc, realloc, but returns an error when out of space.
- */
-static void *
-ckrealloc(void * p, size_t nbytes)
-{
-	p = realloc(p, nbytes);
-	if (p == NULL)
-		ash_msg_and_raise_error(bb_msg_memory_exhausted);
-	return p;
-}
-
-static void *
-ckmalloc(size_t nbytes)
-{
-	return ckrealloc(NULL, nbytes);
-}
-
-/*
- * Make a copy of a string in safe storage.
- */
-static char *
-savestr(const char *s)
-{
-	char *p = strdup(s);
-	if (!p)
-		ash_msg_and_raise_error(bb_msg_memory_exhausted);
-	return p;
-}
-
-
-/*
- * Parse trees for commands are allocated in lifo order, so we use a stack
- * to make this more efficient, and also to avoid all sorts of exception
- * handling code to handle interrupts in the middle of a parse.
- *
- * The size 504 was chosen because the Ultrix malloc handles that size
- * well.
- */
-static void *
-stalloc(size_t nbytes)
-{
-	char *p;
-	size_t aligned;
-
-	aligned = SHELL_ALIGN(nbytes);
-	if (aligned > stacknleft) {
-		size_t len;
-		size_t blocksize;
-		struct stack_block *sp;
-
-		blocksize = aligned;
-		if (blocksize < MINSIZE)
-			blocksize = MINSIZE;
-		len = sizeof(struct stack_block) - MINSIZE + blocksize;
-		if (len < blocksize)
-			ash_msg_and_raise_error(bb_msg_memory_exhausted);
-		INT_OFF;
-		sp = ckmalloc(len);
-		sp->prev = stackp;
-		stacknxt = sp->space;
-		stacknleft = blocksize;
-		sstrend = stacknxt + blocksize;
-		stackp = sp;
-		INT_ON;
-	}
-	p = stacknxt;
-	stacknxt += aligned;
-	stacknleft -= aligned;
-	return p;
-}
-
-
-static void
-stunalloc(void *p)
-{
-#if DEBUG
-	if (!p || (stacknxt < (char *)p) || ((char *)p < stackp->space)) {
-		write(2, "stunalloc\n", 10);
-		abort();
-	}
-#endif
-	stacknleft += stacknxt - (char *)p;
-	stacknxt = p;
-}
-
-
-static void
-setstackmark(struct stackmark *mark)
-{
-	mark->stackp = stackp;
-	mark->stacknxt = stacknxt;
-	mark->stacknleft = stacknleft;
-	mark->marknext = markp;
-	markp = mark;
-}
-
-
-static void
-popstackmark(struct stackmark *mark)
-{
-	struct stack_block *sp;
-
-	INT_OFF;
-	markp = mark->marknext;
-	while (stackp != mark->stackp) {
-		sp = stackp;
-		stackp = sp->prev;
-		free(sp);
-	}
-	stacknxt = mark->stacknxt;
-	stacknleft = mark->stacknleft;
-	sstrend = mark->stacknxt + mark->stacknleft;
-	INT_ON;
-}
-
-
-/*
- * When the parser reads in a string, it wants to stick the string on the
- * stack and only adjust the stack pointer when it knows how big the
- * string is.  Stackblock (defined in stack.h) returns a pointer to a block
- * of space on top of the stack and stackblocklen returns the length of
- * this block.  Growstackblock will grow this space by at least one byte,
- * possibly moving it (like realloc).  Grabstackblock actually allocates the
- * part of the block that has been used.
- */
-static void
-growstackblock(void)
-{
-	size_t newlen;
-
-	newlen = stacknleft * 2;
-	if (newlen < stacknleft)
-		ash_msg_and_raise_error(bb_msg_memory_exhausted);
-	if (newlen < 128)
-		newlen += 128;
-
-	if (stacknxt == stackp->space && stackp != &stackbase) {
-		struct stack_block *oldstackp;
-		struct stackmark *xmark;
-		struct stack_block *sp;
-		struct stack_block *prevstackp;
-		size_t grosslen;
-
-		INT_OFF;
-		oldstackp = stackp;
-		sp = stackp;
-		prevstackp = sp->prev;
-		grosslen = newlen + sizeof(struct stack_block) - MINSIZE;
-		sp = ckrealloc(sp, grosslen);
-		sp->prev = prevstackp;
-		stackp = sp;
-		stacknxt = sp->space;
-		stacknleft = newlen;
-		sstrend = sp->space + newlen;
-
-		/*
-		 * Stack marks pointing to the start of the old block
-		 * must be relocated to point to the new block
-		 */
-		xmark = markp;
-		while (xmark != NULL && xmark->stackp == oldstackp) {
-			xmark->stackp = stackp;
-			xmark->stacknxt = stacknxt;
-			xmark->stacknleft = stacknleft;
-			xmark = xmark->marknext;
-		}
-		INT_ON;
-	} else {
-		char *oldspace = stacknxt;
-		int oldlen = stacknleft;
-		char *p = stalloc(newlen);
-
-		/* free the space we just allocated */
-		stacknxt = memcpy(p, oldspace, oldlen);
-		stacknleft += newlen;
-	}
-}
-
-static void grabstackblock(size_t len)
-{
-	len = SHELL_ALIGN(len);
-	stacknxt += len;
-	stacknleft -= len;
-}
-
-
-/*
- * The following routines are somewhat easier to use than the above.
- * The user declares a variable of type STACKSTR, which may be declared
- * to be a register.  The macro STARTSTACKSTR initializes things.  Then
- * the user uses the macro STPUTC to add characters to the string.  In
- * effect, STPUTC(c, p) is the same as *p++ = c except that the stack is
- * grown as necessary.  When the user is done, she can just leave the
- * string there and refer to it using stackblock().  Or she can allocate
- * the space for it using grabstackstr().  If it is necessary to allow
- * someone else to use the stack temporarily and then continue to grow
- * the string, the user should use grabstack to allocate the space, and
- * then call ungrabstr(p) to return to the previous mode of operation.
- *
- * USTPUTC is like STPUTC except that it doesn't check for overflow.
- * CHECKSTACKSPACE can be called before USTPUTC to ensure that there
- * is space for at least one character.
- */
-static void *
-growstackstr(void)
-{
-	size_t len = stackblocksize();
-	if (herefd >= 0 && len >= 1024) {
-		full_write(herefd, stackblock(), len);
-		return stackblock();
-	}
-	growstackblock();
-	return stackblock() + len;
-}
-
-/*
- * Called from CHECKSTRSPACE.
- */
-static char *
-makestrspace(size_t newlen, char *p)
-{
-	size_t len = p - stacknxt;
-	size_t size = stackblocksize();
-
-	for (;;) {
-		size_t nleft;
-
-		size = stackblocksize();
-		nleft = size - len;
-		if (nleft >= newlen)
-			break;
-		growstackblock();
-	}
-	return stackblock() + len;
-}
-
-static char *
-stnputs(const char *s, size_t n, char *p)
-{
-	p = makestrspace(n, p);
-	p = memcpy(p, s, n) + n;
-	return p;
-}
-
-static char *
-stputs(const char *s, char *p)
-{
-	return stnputs(s, strlen(s), p);
 }
 
 /*      mystring.c   */
@@ -8404,7 +8150,7 @@ copynode(union node *n)
 		new->nif.test = copynode(n->nif.test);
 		break;
 	case NFOR:
-		new->nfor.var = nodesavestr(n->nfor.var);
+		new->nfor.var = nodeckstrdup(n->nfor.var);
 		new->nfor.body = copynode(n->nfor.body);
 		new->nfor.args = copynode(n->nfor.args);
 		break;
@@ -8420,7 +8166,7 @@ copynode(union node *n)
 	case NDEFUN:
 	case NARG:
 		new->narg.backquote = copynodelist(n->narg.backquote);
-		new->narg.text = nodesavestr(n->narg.text);
+		new->narg.text = nodeckstrdup(n->narg.text);
 		new->narg.next = copynode(n->narg.next);
 		break;
 	case NTO:
@@ -8474,7 +8220,7 @@ copynodelist(struct nodelist *lp)
 
 
 static char *
-nodesavestr(char *s)
+nodeckstrdup(char *s)
 {
 	char *rtn = funcstring;
 
@@ -8612,7 +8358,7 @@ setparam(char **argv)
 	for (nparam = 0; argv[nparam]; nparam++);
 	ap = newparam = ckmalloc((nparam + 1) * sizeof(*ap));
 	while (*argv) {
-		*ap++ = savestr(*argv++);
+		*ap++ = ckstrdup(*argv++);
 	}
 	*ap = NULL;
 	freeparam(&shellparam);
@@ -9411,7 +9157,8 @@ makename(void)
 	return n;
 }
 
-static void fixredir(union node *n, const char *text, int err)
+static void
+fixredir(union node *n, const char *text, int err)
 {
 	TRACE(("Fix redir %s %d\n", text, err));
 	if (!err)
@@ -9491,7 +9238,8 @@ parseheredoc(void)
 	}
 }
 
-static char peektoken(void)
+static char
+peektoken(void)
 {
 	int t;
 
@@ -10453,12 +10201,194 @@ static void setprompt(int whichprompt)
 }
 
 
-static const char *const *findkwd(const char *s)
+/*
+ * Execute a command or commands contained in a string.
+ */
+static int
+evalstring(char *s, int mask)
 {
-	return bsearch(s, tokname_array + KWDOFFSET,
-			(sizeof(tokname_array) / sizeof(const char *)) - KWDOFFSET,
-			sizeof(const char *), pstrcmp);
+	union node *n;
+	struct stackmark smark;
+	int skip;
+
+	setinputstring(s);
+	setstackmark(&smark);
+
+	skip = 0;
+	while ((n = parsecmd(0)) != NEOF) {
+		evaltree(n, 0);
+		popstackmark(&smark);
+		skip = evalskip;
+		if (skip)
+			break;
+	}
+	popfile();
+
+	skip &= mask;
+	evalskip = skip;
+	return skip;
 }
+
+/*
+ * The eval command.
+ */
+static int
+evalcmd(int argc, char **argv)
+{
+	char *p;
+	char *concat;
+	char **ap;
+
+	if (argc > 1) {
+		p = argv[1];
+		if (argc > 2) {
+			STARTSTACKSTR(concat);
+			ap = argv + 2;
+			for (;;) {
+				concat = stack_putstr(p, concat);
+				p = *ap++;
+				if (p == NULL)
+					break;
+				STPUTC(' ', concat);
+			}
+			STPUTC('\0', concat);
+			p = grabstackstr(concat);
+		}
+		evalstring(p, ~SKIPEVAL);
+
+	}
+	return exitstatus;
+}
+
+/*
+ * Read and execute commands.  "Top" is nonzero for the top level command
+ * loop; it turns on prompting if the shell is interactive.
+ */
+static int
+cmdloop(int top)
+{
+	union node *n;
+	struct stackmark smark;
+	int inter;
+	int numeof = 0;
+
+	TRACE(("cmdloop(%d) called\n", top));
+	for (;;) {
+		int skip;
+
+		setstackmark(&smark);
+#if JOBS
+		if (jobctl)
+			showjobs(stderr, SHOW_CHANGED);
+#endif
+		inter = 0;
+		if (iflag && top) {
+			inter++;
+#if ENABLE_ASH_MAIL
+			chkmail();
+#endif
+		}
+		n = parsecmd(inter);
+		/* showtree(n); DEBUG */
+		if (n == NEOF) {
+			if (!top || numeof >= 50)
+				break;
+			if (!stoppedjobs()) {
+				if (!Iflag)
+					break;
+				out2str("\nUse \"exit\" to leave shell.\n");
+			}
+			numeof++;
+		} else if (nflag == 0) {
+			job_warning = (job_warning == 2) ? 1 : 0;
+			numeof = 0;
+			evaltree(n, 0);
+		}
+		popstackmark(&smark);
+		skip = evalskip;
+
+		if (skip) {
+			evalskip = 0;
+			return skip & SKIPEVAL;
+		}
+	}
+	return 0;
+}
+
+static int
+dotcmd(int argc, char **argv)
+{
+	struct strlist *sp;
+	volatile struct shparam saveparam;
+	int status = 0;
+
+	for (sp = cmdenviron; sp; sp = sp->next)
+		setvareq(xstrdup(sp->text), VSTRFIXED | VTEXTFIXED);
+
+	if (argc >= 2) {        /* That's what SVR2 does */
+		char *fullname;
+
+		fullname = find_dot_file(argv[1]);
+
+		if (argc > 2) {
+			saveparam = shellparam;
+			shellparam.malloc = 0;
+			shellparam.nparam = argc - 2;
+			shellparam.p = argv + 2;
+		};
+
+		setinputfile(fullname, INPUT_PUSH_FILE);
+		commandname = fullname;
+		cmdloop(0);
+		popfile();
+
+		if (argc > 2) {
+			freeparam(&shellparam);
+			shellparam = saveparam;
+		};
+		status = exitstatus;
+	}
+	return status;
+}
+
+static int
+exitcmd(int argc, char **argv)
+{
+	if (stoppedjobs())
+		return 0;
+	if (argc > 1)
+		exitstatus = number(argv[1]);
+	raise_exception(EXEXIT);
+	/* NOTREACHED */
+}
+
+#if ENABLE_ASH_BUILTIN_ECHO
+static int
+echocmd(int argc, char **argv)
+{
+	return bb_echo(argv);
+}
+#endif
+
+#if ENABLE_ASH_BUILTIN_TEST
+static int
+testcmd(int argc, char **argv)
+{
+	return bb_test(argc, argv);
+}
+#endif
+
+/*
+ * Read a file containing shell functions.
+ */
+static void
+readcmdfile(char *name)
+{
+	setinputfile(name, INPUT_PUSH_FILE);
+	cmdloop(0);
+	popfile();
+}
+
 
 /*      redir.c      */
 
@@ -10477,7 +10407,8 @@ static const char *const *findkwd(const char *s)
  * Open a file in noclobber mode.
  * The code was copied from bash.
  */
-static int noclobberopen(const char *fname)
+static int
+noclobberopen(const char *fname)
 {
 	int r, fd;
 	struct stat finfo, finfo2;
@@ -10536,7 +10467,8 @@ static int noclobberopen(const char *fname)
  * data to a pipe.  If the document is short, we can stuff the data in
  * the pipe without forking.
  */
-static int openhere(union node *redir)
+static int
+openhere(union node *redir)
 {
 	int pip[2];
 	size_t len = 0;
@@ -10633,7 +10565,8 @@ openredirect(union node *redir)
 	ash_msg_and_raise_error("cannot open %s: %s", fname, errmsg(errno, "No such file"));
 }
 
-static void dupredirect(union node *redir, int f)
+static void
+dupredirect(union node *redir, int f)
 {
 	int fd = redir->nfile.fd;
 
@@ -11208,7 +11141,7 @@ trapcmd(int argc, char **argv)
 			if (LONE_DASH(action))
 				action = NULL;
 			else
-				action = savestr(action);
+				action = ckstrdup(action);
 		}
 		if (trap[signo])
 			free(trap[signo]);
@@ -11614,7 +11547,7 @@ setvareq(char *s, int flags)
 		*vpp = vp;
 	}
 	if (!(flags & (VTEXTFIXED|VSTACK|VNOSAVE)))
-		s = savestr(s);
+		s = ckstrdup(s);
 	vp->text = s;
 	vp->flags = flags;
 }
@@ -13311,6 +13244,26 @@ read_profile(const char *name)
 		exitshell();
 }
 
+/*
+ * This routine is called when an error or an interrupt occurs in an
+ * interactive shell and control is returned to the main command loop.
+ */
+static void
+reset(void)
+{
+	/* from eval.c: */
+	evalskip = 0;
+	loopnest = 0;
+	/* from input.c: */
+	parselleft = parsenleft = 0;      /* clear input buffer */
+	popallfiles();
+	/* from parser.c: */
+	tokpushback = 0;
+	checkkwd = 0;
+	/* from redir.c: */
+	clearredir(0);
+}
+
 #if PROFILE
 static short profile_buf[16384];
 extern int etext();
@@ -13404,9 +13357,9 @@ int ash_main(int argc, char **argv)
 	state = 3;
 	if (
 #ifndef linux
-		getuid() == geteuid() && getgid() == getegid() &&
+	 getuid() == geteuid() && getgid() == getegid() &&
 #endif
-		iflag
+	 iflag
 	) {
 		shinit = lookupvar("ENV");
 		if (shinit != NULL && *shinit != '\0') {
