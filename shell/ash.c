@@ -2983,6 +2983,7 @@ static int shiftcmd(int, char **);
 static int setcmd(int, char **);
 static int nextopt(const char *);
 
+
 /*      redir.h      */
 
 /* flags passed to redirect */
@@ -2994,13 +2995,6 @@ static void popredir(int);
 static void clearredir(int);
 static int copyfd(int, int);
 static int redirectsafe(union node *, int);
-
-/*      trap.h       */
-
-static void clear_traps(void);
-static void setsignal(int);
-static int dotrap(void);
-
 
 static int is_safe_applet(char *name)
 {
@@ -3038,6 +3032,7 @@ static int is_safe_applet(char *name)
 
 
 /* ============ Alias handling */
+
 #if ENABLE_ASH_ALIAS
 
 #define ALIASINUSE 1
@@ -3232,6 +3227,7 @@ unaliascmd(int argc, char **argv)
 
 	return i;
 }
+
 #endif /* ASH_ALIAS */
 
 
@@ -5653,6 +5649,43 @@ static int evalskip;            /* set if we are skipping commands */
 static int skipcount;           /* number of levels to skip */
 static int funcnest;            /* depth of function calls */
 
+/* forward decl way out to parsing code - dotrap needs it */
+static int evalstring(char *s, int mask);
+
+/*
+ * Called to execute a trap.  Perhaps we should avoid entering new trap
+ * handlers while we are executing a trap handler.
+ */
+static int
+dotrap(void)
+{
+	char *p;
+	char *q;
+	int i;
+	int savestatus;
+	int skip = 0;
+
+	savestatus = exitstatus;
+	pendingsigs = 0;
+	xbarrier();
+
+	for (i = 0, q = gotsig; i < NSIG - 1; i++, q++) {
+		if (!*q)
+			continue;
+		*q = '\0';
+
+		p = trap[i + 1];
+		if (!p)
+			continue;
+		skip = evalstring(p, SKIPEVAL);
+		exitstatus = savestatus;
+		if (skip)
+			break;
+	}
+
+	return skip;
+}
+
 /* forward declarations - evaluation is fairly recursive business... */
 static void evalloop(union node *, int);
 static void evalfor(union node *, int);
@@ -7319,6 +7352,93 @@ setinputstring(char *string)
 
 /* ============ jobs.c */
 
+/*
+ * Set the signal handler for the specified signal.  The routine figures
+ * out what it should be set to.
+ */
+static void
+setsignal(int signo)
+{
+	int action;
+	char *t, tsig;
+	struct sigaction act;
+
+	t = trap[signo];
+	if (t == NULL)
+		action = S_DFL;
+	else if (*t != '\0')
+		action = S_CATCH;
+	else
+		action = S_IGN;
+	if (rootshell && action == S_DFL) {
+		switch (signo) {
+		case SIGINT:
+			if (iflag || minusc || sflag == 0)
+				action = S_CATCH;
+			break;
+		case SIGQUIT:
+#if DEBUG
+			if (debug)
+				break;
+#endif
+			/* FALLTHROUGH */
+		case SIGTERM:
+			if (iflag)
+				action = S_IGN;
+			break;
+#if JOBS
+		case SIGTSTP:
+		case SIGTTOU:
+			if (mflag)
+				action = S_IGN;
+			break;
+#endif
+		}
+	}
+
+	t = &sigmode[signo - 1];
+	tsig = *t;
+	if (tsig == 0) {
+		/*
+		 * current setting unknown
+		 */
+		if (sigaction(signo, 0, &act) == -1) {
+			/*
+			 * Pretend it worked; maybe we should give a warning
+			 * here, but other shells don't. We don't alter
+			 * sigmode, so that we retry every time.
+			 */
+			return;
+		}
+		if (act.sa_handler == SIG_IGN) {
+			if (mflag
+			 && (signo == SIGTSTP || signo == SIGTTIN || signo == SIGTTOU)
+			) {
+				tsig = S_IGN;   /* don't hard ignore these */
+			} else
+				tsig = S_HARD_IGN;
+		} else {
+			tsig = S_RESET; /* force to be set */
+		}
+	}
+	if (tsig == S_HARD_IGN || tsig == action)
+		return;
+	switch (action) {
+	case S_CATCH:
+		act.sa_handler = onsig;
+		break;
+	case S_IGN:
+		act.sa_handler = SIG_IGN;
+		break;
+	default:
+		act.sa_handler = SIG_DFL;
+	}
+	*t = action;
+	act.sa_flags = 0;
+	sigfillset(&act.sa_mask);
+	sigaction(signo, &act, 0);
+}
+
 /* mode flags for set_curjob */
 #define CUR_DELETE 2
 #define CUR_RUNNING 1
@@ -8497,6 +8617,25 @@ commandtext(union node *n)
  *
  * Called with interrupts off.
  */
+/*
+ * Clear traps on a fork.
+ */
+static void
+clear_traps(void)
+{
+	char **tp;
+
+	for (tp = trap; tp < &trap[NSIG]; tp++) {
+		if (*tp && **tp) {      /* trap not NULL or SIG_IGN */
+			INT_OFF;
+			free(*tp);
+			*tp = NULL;
+			if (tp != &trap[0])
+				setsignal(tp - trap);
+			INT_ON;
+		}
+	}
+}
 static void
 forkchild(struct job *jp, union node *n, int mode)
 {
@@ -11262,147 +11401,6 @@ trapcmd(int argc, char **argv)
 		ap++;
 	}
 	return 0;
-}
-
-/*
- * Clear traps on a fork.
- */
-static void
-clear_traps(void)
-{
-	char **tp;
-
-	for (tp = trap; tp < &trap[NSIG]; tp++) {
-		if (*tp && **tp) {      /* trap not NULL or SIG_IGN */
-			INT_OFF;
-			free(*tp);
-			*tp = NULL;
-			if (tp != &trap[0])
-				setsignal(tp - trap);
-			INT_ON;
-		}
-	}
-}
-
-/*
- * Set the signal handler for the specified signal.  The routine figures
- * out what it should be set to.
- */
-static void
-setsignal(int signo)
-{
-	int action;
-	char *t, tsig;
-	struct sigaction act;
-
-	t = trap[signo];
-	if (t == NULL)
-		action = S_DFL;
-	else if (*t != '\0')
-		action = S_CATCH;
-	else
-		action = S_IGN;
-	if (rootshell && action == S_DFL) {
-		switch (signo) {
-		case SIGINT:
-			if (iflag || minusc || sflag == 0)
-				action = S_CATCH;
-			break;
-		case SIGQUIT:
-#if DEBUG
-			if (debug)
-				break;
-#endif
-			/* FALLTHROUGH */
-		case SIGTERM:
-			if (iflag)
-				action = S_IGN;
-			break;
-#if JOBS
-		case SIGTSTP:
-		case SIGTTOU:
-			if (mflag)
-				action = S_IGN;
-			break;
-#endif
-		}
-	}
-
-	t = &sigmode[signo - 1];
-	tsig = *t;
-	if (tsig == 0) {
-		/*
-		 * current setting unknown
-		 */
-		if (sigaction(signo, 0, &act) == -1) {
-			/*
-			 * Pretend it worked; maybe we should give a warning
-			 * here, but other shells don't. We don't alter
-			 * sigmode, so that we retry every time.
-			 */
-			return;
-		}
-		if (act.sa_handler == SIG_IGN) {
-			if (mflag
-			 && (signo == SIGTSTP || signo == SIGTTIN || signo == SIGTTOU)
-			) {
-				tsig = S_IGN;   /* don't hard ignore these */
-			} else
-				tsig = S_HARD_IGN;
-		} else {
-			tsig = S_RESET; /* force to be set */
-		}
-	}
-	if (tsig == S_HARD_IGN || tsig == action)
-		return;
-	switch (action) {
-	case S_CATCH:
-		act.sa_handler = onsig;
-		break;
-	case S_IGN:
-		act.sa_handler = SIG_IGN;
-		break;
-	default:
-		act.sa_handler = SIG_DFL;
-	}
-	*t = action;
-	act.sa_flags = 0;
-	sigfillset(&act.sa_mask);
-	sigaction(signo, &act, 0);
-}
-
-/*
- * Called to execute a trap.  Perhaps we should avoid entering new trap
- * handlers while we are executing a trap handler.
- */
-static int
-dotrap(void)
-{
-	char *p;
-	char *q;
-	int i;
-	int savestatus;
-	int skip = 0;
-
-	savestatus = exitstatus;
-	pendingsigs = 0;
-	xbarrier();
-
-	for (i = 0, q = gotsig; i < NSIG - 1; i++, q++) {
-		if (!*q)
-			continue;
-		*q = '\0';
-
-		p = trap[i + 1];
-		if (!p)
-			continue;
-		skip = evalstring(p, SKIPEVAL);
-		exitstatus = savestatus;
-		if (skip)
-			break;
-	}
-
-	return skip;
 }
 
 
