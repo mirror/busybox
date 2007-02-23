@@ -436,11 +436,6 @@ out2str(const char *p)
 #define VSTRIMLEFTMAX   0x9             /* ${var##pattern} */
 #define VSLENGTH        0xa             /* ${#var} */
 
-/* values of checkkwd variable */
-#define CHKALIAS        0x1
-#define CHKKWD          0x2
-#define CHKNL           0x4
-
 #define NCMD 0
 #define NPIPE 1
 #define NREDIR 2
@@ -2393,47 +2388,14 @@ pwdcmd(int argc, char **argv)
 
 /* ============ ... */
 
-/*
- * NEOF is returned by parsecmd when it encounters an end of file.  It
- * must be distinct from NULL, so we use the address of a variable that
- * happens to be handy.
- */
-static int plinno = 1;                  /* input line number */
-
-/* number of characters left in input buffer */
-static int parsenleft;                  /* copy of parsefile->nleft */
-static int parselleft;                  /* copy of parsefile->lleft */
-
-/* next character in input buffer */
-static char *parsenextc;                /* copy of parsefile->nextc */
-
 #define IBUFSIZ (BUFSIZ + 1)
 #define basebuf bb_common_bufsiz1       /* buffer for top level input file */
-
-static int tokpushback;                 /* last token pushed back */
-#define NEOF ((union node *)&tokpushback)
-static int parsebackquote;             /* nonzero if we are inside backquotes */
-static int lasttoken;                  /* last token read */
-static char *wordtext;                 /* text of last word returned by readtoken */
-static int checkkwd;
-static struct nodelist *backquotelist;
-static union node *redirnode;
-static struct heredoc *heredoc;
-static int quoteflag;                  /* set if (part of) last token was quoted */
-
-static void fixredir(union node *, const char *, int);
 
 
 /*      shell.h   */
 
 static const char spcstr[] = " ";
 static const char dolatstr[] = { CTLVAR, VSNORMAL|VSQUOTE, '@', '=', '\0' };
-
-#if !defined(__GNUC__) || (__GNUC__ == 2 && __GNUC_MINOR__ < 96)
-#define __builtin_expect(x, expected_value) (x)
-#endif
-
-#define xlikely(x)       __builtin_expect((x),1)
 
 /* Syntax classes */
 #define CWORD 0                 /* character is nothing special */
@@ -2995,40 +2957,6 @@ static void popredir(int);
 static void clearredir(int);
 static int copyfd(int, int);
 static int redirectsafe(union node *, int);
-
-static int is_safe_applet(char *name)
-{
-	/* It isn't a bug to have non-existent applet here... */
-	/* ...just a waste of space... */
-	static const char safe_applets[][8] = {
-		"["
-		USE_AWK    (, "awk"    )
-		USE_CAT    (, "cat"    )
-		USE_CHMOD  (, "chmod"  )
-		USE_CHOWN  (, "chown"  )
-		USE_CP     (, "cp"     )
-		USE_CUT    (, "cut"    )
-		USE_DD     (, "dd"     )
-		USE_ECHO   (, "echo"   )
-		USE_FIND   (, "find"   )
-		USE_HEXDUMP(, "hexdump")
-		USE_LN     (, "ln"     )
-		USE_LS     (, "ls"     )
-		USE_MKDIR  (, "mkdir"  )
-		USE_RM     (, "rm"     )
-		USE_SORT   (, "sort"   )
-		USE_TEST   (, "test"   )
-		USE_TOUCH  (, "touch"  )
-		USE_XARGS  (, "xargs"  )
-	};
-	int n = sizeof(safe_applets) / sizeof(safe_applets[0]);
-	int i;
-	for (i = 0; i < n; i++)
-		if (strcmp(safe_applets[i], name) == 0)
-			return 1;
-
-	return 0;
-}
 
 
 /* ============ Alias handling */
@@ -4720,6 +4648,40 @@ casematch(union node *pattern, char *val)
 
 /* ============ find_command */
 
+static int is_safe_applet(char *name)
+{
+	/* It isn't a bug to have non-existent applet here... */
+	/* ...just a waste of space... */
+	static const char safe_applets[][8] = {
+		"["
+		USE_AWK    (, "awk"    )
+		USE_CAT    (, "cat"    )
+		USE_CHMOD  (, "chmod"  )
+		USE_CHOWN  (, "chown"  )
+		USE_CP     (, "cp"     )
+		USE_CUT    (, "cut"    )
+		USE_DD     (, "dd"     )
+		USE_ECHO   (, "echo"   )
+		USE_FIND   (, "find"   )
+		USE_HEXDUMP(, "hexdump")
+		USE_LN     (, "ln"     )
+		USE_LS     (, "ls"     )
+		USE_MKDIR  (, "mkdir"  )
+		USE_RM     (, "rm"     )
+		USE_SORT   (, "sort"   )
+		USE_TEST   (, "test"   )
+		USE_TOUCH  (, "touch"  )
+		USE_XARGS  (, "xargs"  )
+	};
+	int n = sizeof(safe_applets) / sizeof(safe_applets[0]);
+	int i;
+	for (i = 0; i < n; i++)
+		if (strcmp(safe_applets[i], name) == 0)
+			return 1;
+
+	return 0;
+}
+
 struct builtincmd {
 	const char *name;
 	int (*builtin)(int, char **);
@@ -5957,6 +5919,7 @@ evalsubshell(union node *n, int flags)
 /*
  * Compute the names of the files in a redirection list.
  */
+static void fixredir(union node *, const char *, int);
 static void
 expredir(union node *n)
 {
@@ -6943,12 +6906,32 @@ execcmd(int argc, char **argv)
  *
  * This implements the input routines used by the parser.
  */
+
 #define EOF_NLEFT -99           /* value of parsenleft when EOF pushed back */
 
 enum {
 	INPUT_PUSH_FILE = 1,
 	INPUT_NOFILE_OK = 2,
 };
+
+/*
+ * NEOF is returned by parsecmd when it encounters an end of file.  It
+ * must be distinct from NULL, so we use the address of a variable that
+ * happens to be handy.
+ */
+static int plinno = 1;                  /* input line number */
+/* number of characters left in input buffer */
+static int parsenleft;                  /* copy of parsefile->nleft */
+static int parselleft;                  /* copy of parsefile->lleft */
+/* next character in input buffer */
+static char *parsenextc;                /* copy of parsefile->nextc */
+
+static int checkkwd;
+/* values of checkkwd variable */
+#define CHKALIAS        0x1
+#define CHKKWD          0x2
+#define CHKNL           0x4
+
 
 static void
 popstring(void)
@@ -8255,7 +8238,7 @@ growjobtab(void)
 			jq--;
 #define joff(p) ((struct job *)((char *)(p) + l))
 #define jmove(p) (p) = (void *)((char *)(p) + offset)
-			if (xlikely(joff(jp)->ps == &jq->ps0))
+			if (joff(jp)->ps == &jq->ps0)
 				jmove(joff(jp)->ps);
 			if (joff(jp)->prev_job)
 				jmove(joff(jp)->prev_job);
@@ -9335,6 +9318,16 @@ getoptscmd(int argc, char **argv)
 
 /* ============ Shell parser */
 
+static int tokpushback;                /* last token pushed back */
+#define NEOF ((union node *)&tokpushback)
+static int parsebackquote;             /* nonzero if we are inside backquotes */
+static int lasttoken;                  /* last token read */
+static char *wordtext;                 /* text of last word returned by readtoken */
+static struct nodelist *backquotelist;
+static union node *redirnode;
+static struct heredoc *heredoc;
+static int quoteflag;                  /* set if (part of) last token was quoted */
+
 static void raise_error_syntax(const char *) ATTRIBUTE_NORETURN;
 static void
 raise_error_syntax(const char *msg)
@@ -9887,6 +9880,8 @@ parse_command(void)
  * will run code that appears at the end of readtoken1.
  */
 
+static int parsebackquote;             /* nonzero if we are inside backquotes */
+
 #define CHECKEND()      {goto checkend; checkend_return:;}
 #define PARSEREDIR()    {goto parseredir; parseredir_return:;}
 #define PARSESUB()      {goto parsesub; parsesub_return:;}
@@ -10077,7 +10072,7 @@ readtoken1(int firstc, int syntax, char *eofmark, int striptabs)
 	if (syntax == ARISYNTAX)
 		raise_error_syntax("Missing '))'");
 #endif
-	if (syntax != BASESYNTAX && ! parsebackquote && eofmark == NULL)
+	if (syntax != BASESYNTAX && !parsebackquote && eofmark == NULL)
 		raise_error_syntax("Unterminated quoted string");
 	if (varnest != 0) {
 		startlinno = plinno;
