@@ -155,8 +155,9 @@ static char gotsig[NSIG - 1];
 static char *arg0; /* value of $0 */
 
 
-/* ============ Interrupts / exceptions
- *
+/* ============ Interrupts / exceptions */
+
+/*
  * We enclose jmp_buf in a structure so that we can declare pointers to
  * jump locations.  The global variable handler contains the location to
  * jump to when an exception occurs, and the global variable exception
@@ -8045,14 +8046,46 @@ localcmd(int argc, char **argv)
 	return 0;
 }
 
+static int
+falsecmd(int argc, char **argv)
+{
+	return 1;
+}
+
+static int
+truecmd(int argc, char **argv)
+{
+	return 0;
+}
+
+static int
+execcmd(int argc, char **argv)
+{
+	if (argc > 1) {
+		iflag = 0;              /* exit on error */
+		mflag = 0;
+		optschanged();
+		shellexec(argv + 1, pathval(), 0);
+	}
+	return 0;
+}
+
+/*
+ * The return command.
+ */
+static int
+returncmd(int argc, char **argv)
+{
+	/*
+	 * If called outside a function, do what ksh does;
+	 * skip the rest of the file.
+	 */
+	evalskip = funcnest ? SKIPFUNC : SKIPFILE;
+	return argv[1] ? number(argv[1]) : exitstatus;
+}
+
 /* Forward declarations for builtintab[] */
-#if JOBS
-static int fg_bgcmd(int, char **);
-#endif
 static int breakcmd(int, char **);
-#if ENABLE_ASH_CMDCMD
-static int commandcmd(int, char **);
-#endif
 static int dotcmd(int, char **);
 static int evalcmd(int, char **);
 #if ENABLE_ASH_BUILTIN_ECHO
@@ -8061,39 +8094,22 @@ static int echocmd(int, char **);
 #if ENABLE_ASH_BUILTIN_TEST
 static int testcmd(int, char **);
 #endif
-static int execcmd(int, char **);
 static int exitcmd(int, char **);
 static int exportcmd(int, char **);
-static int falsecmd(int, char **);
 #if ENABLE_ASH_GETOPTS
 static int getoptscmd(int, char **);
-#endif
-static int hashcmd(int, char **);
-#if !ENABLE_FEATURE_SH_EXTRA_QUIET
-static int helpcmd(int argc, char **argv);
-#endif
-#if JOBS
-static int jobscmd(int, char **);
 #endif
 #if ENABLE_ASH_MATH_SUPPORT
 static int letcmd(int, char **);
 #endif
-static int pwdcmd(int, char **);
 static int readcmd(int, char **);
-static int returncmd(int, char **);
 static int setcmd(int, char **);
 static int shiftcmd(int, char **);
 static int timescmd(int, char **);
 static int trapcmd(int, char **);
-static int truecmd(int, char **);
-static int typecmd(int, char **);
 static int umaskcmd(int, char **);
 static int unsetcmd(int, char **);
-static int waitcmd(int, char **);
 static int ulimitcmd(int, char **);
-#if JOBS
-static int killcmd(int, char **);
-#endif
 
 #define BUILTIN_NOSPEC          "0"
 #define BUILTIN_SPECIAL         "1"
@@ -8505,9 +8521,10 @@ prehash(union node *n)
 }
 
 
-/*
- * Builtin commands.  Builtin commands whose functions are closely
- * tied to evaluation are implemented here.
+/* ============ Builtin commands
+ *
+ * Builtin commands whose functions are closely tied to evaluation
+ * are implemented here.
  */
 
 /*
@@ -8520,7 +8537,6 @@ prehash(union node *n)
  * be an error to break out of more loops than exist, but it isn't
  * in the standard shell so we don't make it one here.
  */
-
 static int
 breakcmd(int argc, char **argv)
 {
@@ -8531,46 +8547,8 @@ breakcmd(int argc, char **argv)
 	if (n > loopnest)
 		n = loopnest;
 	if (n > 0) {
-		evalskip = (**argv == 'c')? SKIPCONT : SKIPBREAK;
+		evalskip = (**argv == 'c') ? SKIPCONT : SKIPBREAK;
 		skipcount = n;
-	}
-	return 0;
-}
-
-/*
- * The return command.
- */
-static int
-returncmd(int argc, char **argv)
-{
-	/*
-	 * If called outside a function, do what ksh does;
-	 * skip the rest of the file.
-	 */
-	evalskip = funcnest ? SKIPFUNC : SKIPFILE;
-	return argv[1] ? number(argv[1]) : exitstatus;
-}
-
-static int
-falsecmd(int argc, char **argv)
-{
-	return 1;
-}
-
-static int
-truecmd(int argc, char **argv)
-{
-	return 0;
-}
-
-static int
-execcmd(int argc, char **argv)
-{
-	if (argc > 1) {
-		iflag = 0;              /* exit on error */
-		mflag = 0;
-		optschanged();
-		shellexec(argv + 1, pathval(), 0);
 	}
 	return 0;
 }
@@ -10876,8 +10854,7 @@ parseheredoc(void)
 
 
 /*
- * called by editline -- any expansions to the prompt
- *    should be added here.
+ * called by editline -- any expansions to the prompt should be added here.
  */
 #if ENABLE_ASH_EXPAND_PRMT
 static const char *
@@ -10899,7 +10876,6 @@ expandstr(const char *ps)
 	return stackblock();
 }
 #endif
-
 
 /*
  * Execute a command or commands contained in a string.
@@ -11207,10 +11183,16 @@ find_command(char *name, struct cmdentry *entry, int act, const char *path)
 
 	/* If %builtin not in path, check for builtin next */
 	bcmd = find_builtin(name);
-	if (bcmd && (IS_BUILTIN_REGULAR(bcmd) || (
-		act & DO_ALTPATH ? !(act & DO_ALTBLTIN) : builtinloc <= 0
-	)))
-		goto builtin_success;
+	if (bcmd) {
+		if (IS_BUILTIN_REGULAR(bcmd))
+			goto builtin_success;
+		if (act & DO_ALTPATH) {
+			if (!(act & DO_ALTBLTIN))
+				goto builtin_success;
+		} else if (builtinloc <= 0) {
+			goto builtin_success;
+		}			
+	}
 
 	/* We have to search path. */
 	prev = -1;              /* where to start */
