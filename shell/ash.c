@@ -175,6 +175,18 @@ static int exsig;
 static volatile sig_atomic_t pendingsigs;
 
 /*
+ * Sigmode records the current value of the signal handlers for the various
+ * modes.  A value of zero means that the current handler is not known.
+ * S_HARD_IGN indicates that the signal was ignored on entry to the shell,
+ */
+
+#define S_DFL 1                 /* default signal handling (SIG_DFL) */
+#define S_CATCH 2               /* signal is caught */
+#define S_IGN 3                 /* signal is ignored (SIG_IGN) */
+#define S_HARD_IGN 4            /* signal is ignored permenantly */
+#define S_RESET 5               /* temporary - to reset a hard ignored sig */
+
+/*
  * These macros allow the user to suspend the handling of interrupt signals
  * over a period of time.  This is similar to SIGHOLD to or sigblock, but
  * much more efficient and portable.  (But hacking the kernel is so much
@@ -284,6 +296,34 @@ force_int_on(void)
 		0; \
 	})
 /* EXSIG is turned off by evalbltin(). */
+
+/*
+ * Ignore a signal. Only one usage site - in forkchild()
+ */
+static void
+ignoresig(int signo)
+{
+	if (sigmode[signo - 1] != S_IGN && sigmode[signo - 1] != S_HARD_IGN) {
+		signal(signo, SIG_IGN);
+	}
+	sigmode[signo - 1] = S_HARD_IGN;
+}
+
+/*
+ * Signal handler. Only one usage site - in setsignal()
+ */
+static void
+onsig(int signo)
+{
+	gotsig[signo - 1] = 1;
+	pendingsigs = signo;
+
+	if (exsig || (signo == SIGINT && !trap[SIGINT])) {
+		if (!suppressint)
+			raise_interrupt();
+		intpending = 1;
+	}
+}
 
 
 /* ============ stdout/stderr output */
@@ -3244,10 +3284,10 @@ static void unsetfunc(const char *);
 
 #if ENABLE_ASH_MATH_SUPPORT_64
 typedef int64_t arith_t;
-#define arith_t_type (long long)
+#define arith_t_type long long
 #else
 typedef long arith_t;
-#define arith_t_type (long)
+#define arith_t_type long
 #endif
 
 #if ENABLE_ASH_MATH_SUPPORT
@@ -3341,7 +3381,6 @@ static int jobctl;              /* true if doing job control */
 static struct job *makejob(union node *, int);
 static int forkshell(struct job *, union node *, int);
 static int waitforjob(struct job *);
-static int stoppedjobs(void);
 
 #if ! JOBS
 #define setjobctl(on)   /* do nothing */
@@ -3384,8 +3423,6 @@ static int redirectsafe(union node *, int);
 
 static void clear_traps(void);
 static void setsignal(int);
-static void ignoresig(int);
-static void onsig(int);
 static int dotrap(void);
 static void setinteractive(int);
 static void exitshell(void) ATTRIBUTE_NORETURN;
@@ -7226,38 +7263,26 @@ closescript(void)
 #define DOWAIT_NORMAL 0
 #define DOWAIT_BLOCK 1
 
-/* array of jobs */
-static struct job *jobtab;
-/* size of array */
-static unsigned njobs;
 #if JOBS
 /* pgrp of shell on invocation */
 static int initialpgrp;
 static int ttyfd = -1;
 #endif
+/* array of jobs */
+static struct job *jobtab;
+/* size of array */
+static unsigned njobs;
 /* current job */
 static struct job *curjob;
 /* number of presumed living untracked jobs */
 static int jobless;
 
-static void set_curjob(struct job *, unsigned);
 #if JOBS
-static int restartjob(struct job *, int);
-static void xtcsetpgrp(int, pid_t);
 static char *commandtext(union node *);
 static void cmdlist(union node *, int);
 static void cmdtxt(union node *);
 static void cmdputs(const char *);
-static void showpipe(struct job *, FILE *);
 #endif
-static int sprint_status(char *, int, int);
-static void freejob(struct job *);
-static struct job *getjob(const char *, int);
-static struct job *growjobtab(void);
-static void forkchild(struct job *, union node *, int);
-static void forkparent(struct job *, union node *, int, pid_t);
-static int dowait(int, struct job *);
-static int getstatus(struct job *);
 
 static void
 set_curjob(struct job *jp, unsigned mode)
@@ -7307,7 +7332,126 @@ set_curjob(struct job *jp, unsigned mode)
 	}
 }
 
+#if JOBS || DEBUG
+static int
+jobno(const struct job *jp)
+{
+	return jp - jobtab + 1;
+}
+#endif
+
+/*
+ * Convert a job name to a job structure.
+ */
+static struct job *
+getjob(const char *name, int getctl)
+{
+	struct job *jp;
+	struct job *found;
+	const char *err_msg = "No such job: %s";
+	unsigned num;
+	int c;
+	const char *p;
+	char *(*match)(const char *, const char *);
+
+	jp = curjob;
+	p = name;
+	if (!p)
+		goto currentjob;
+
+	if (*p != '%')
+		goto err;
+
+	c = *++p;
+	if (!c)
+		goto currentjob;
+
+	if (!p[1]) {
+		if (c == '+' || c == '%') {
+ currentjob:
+			err_msg = "No current job";
+			goto check;
+		}
+		if (c == '-') {
+			if (jp)
+				jp = jp->prev_job;
+			err_msg = "No previous job";
+ check:
+			if (!jp)
+				goto err;
+			goto gotit;
+		}
+	}
+
+	if (is_number(p)) {
+		num = atoi(p);
+		if (num < njobs) {
+			jp = jobtab + num - 1;
+			if (jp->used)
+				goto gotit;
+			goto err;
+		}
+	}
+
+	match = prefix;
+	if (*p == '?') {
+		match = strstr;
+		p++;
+	}
+
+	found = 0;
+	while (1) {
+		if (!jp)
+			goto err;
+		if (match(jp->ps[0].cmd, p)) {
+			if (found)
+				goto err;
+			found = jp;
+			err_msg = "%s: ambiguous";
+		}
+		jp = jp->prev_job;
+	}
+
+ gotit:
 #if JOBS
+	err_msg = "job %s not created under job control";
+	if (getctl && jp->jobctl == 0)
+		goto err;
+#endif
+	return jp;
+ err:
+	ash_msg_and_raise_error(err_msg, name);
+}
+
+/*
+ * Mark a job structure as unused.
+ */
+static void
+freejob(struct job *jp)
+{
+	struct procstat *ps;
+	int i;
+
+	INT_OFF;
+	for (i = jp->nprocs, ps = jp->ps; --i >= 0; ps++) {
+		if (ps->cmd != nullstr)
+			free(ps->cmd);
+	}
+	if (jp->ps != &jp->ps0)
+		free(jp->ps);
+	jp->used = 0;
+	set_curjob(jp, CUR_DELETE);
+	INT_ON;
+}
+
+#if JOBS
+static void
+xtcsetpgrp(int fd, pid_t pgrp)
+{
+	if (tcsetpgrp(fd, pgrp))
+		ash_msg_and_raise_error("Cannot set tty process group (%m)");
+}
+
 /*
  * Turn job control on and off.
  *
@@ -7401,7 +7545,7 @@ killcmd(int argc, char **argv)
 		if (signo < 0) {
 			int c;
 
-			while ((c = nextopt("ls:")) != '\0')
+			while ((c = nextopt("ls:")) != '\0') {
 				switch (c) {
 				default:
 #if DEBUG
@@ -7420,6 +7564,7 @@ killcmd(int argc, char **argv)
 					}
 					break;
 				}
+			}
 			argv = argptr;
 		} else
 			argv++;
@@ -7467,41 +7612,20 @@ killcmd(int argc, char **argv)
 
 	return i;
 }
-#endif /* JOBS */
 
-#if JOBS || DEBUG
-static int
-jobno(const struct job *jp)
+static void
+showpipe(struct job *jp, FILE *out)
 {
-	return jp - jobtab + 1;
-}
-#endif
+	struct procstat *sp;
+	struct procstat *spend;
 
-#if JOBS
-static int
-fg_bgcmd(int argc, char **argv)
-{
-	struct job *jp;
-	FILE *out;
-	int mode;
-	int retval;
-
-	mode = (**argv == 'f') ? FORK_FG : FORK_BG;
-	nextopt(nullstr);
-	argv = argptr;
-	out = stdout;
-	do {
-		jp = getjob(*argv, 1);
-		if (mode == FORK_BG) {
-			set_curjob(jp, CUR_RUNNING);
-			fprintf(out, "[%d] ", jobno(jp));
-		}
-		outstr(jp->ps->cmd, out);
-		showpipe(jp, out);
-		retval = restartjob(jp, mode);
-	} while (*argv && *++argv);
-	return retval;
+	spend = jp->ps + jp->nprocs;
+	for (sp = jp->ps + 1; sp < spend; sp++)
+		fprintf(out, " | %s", sp->cmd);
+	outcslow('\n', out);
+	flush_stdout_stderr();
 }
+
 
 static int
 restartjob(struct job *jp, int mode)
@@ -7530,6 +7654,31 @@ restartjob(struct job *jp, int mode)
 	status = (mode == FORK_FG) ? waitforjob(jp) : 0;
 	INT_ON;
 	return status;
+}
+
+static int
+fg_bgcmd(int argc, char **argv)
+{
+	struct job *jp;
+	FILE *out;
+	int mode;
+	int retval;
+
+	mode = (**argv == 'f') ? FORK_FG : FORK_BG;
+	nextopt(nullstr);
+	argv = argptr;
+	out = stdout;
+	do {
+		jp = getjob(*argv, 1);
+		if (mode == FORK_BG) {
+			set_curjob(jp, CUR_RUNNING);
+			fprintf(out, "[%d] ", jobno(jp));
+		}
+		outstr(jp->ps->cmd, out);
+		showpipe(jp, out);
+		retval = restartjob(jp, mode);
+	} while (*argv && *++argv);
+	return retval;
 }
 #endif
 
@@ -7570,552 +7719,6 @@ sprint_status(char *s, int status, int sigonly)
  out:
 	return col;
 }
-
-#if JOBS
-static void
-showjob(FILE *out, struct job *jp, int mode)
-{
-	struct procstat *ps;
-	struct procstat *psend;
-	int col;
-	int indent;
-	char s[80];
-
-	ps = jp->ps;
-
-	if (mode & SHOW_PGID) {
-		/* just output process (group) id of pipeline */
-		fprintf(out, "%d\n", ps->pid);
-		return;
-	}
-
-	col = fmtstr(s, 16, "[%d]   ", jobno(jp));
-	indent = col;
-
-	if (jp == curjob)
-		s[col - 2] = '+';
-	else if (curjob && jp == curjob->prev_job)
-		s[col - 2] = '-';
-
-	if (mode & SHOW_PID)
-		col += fmtstr(s + col, 16, "%d ", ps->pid);
-
-	psend = ps + jp->nprocs;
-
-	if (jp->state == JOBRUNNING) {
-		strcpy(s + col, "Running");
-		col += sizeof("Running") - 1;
-	} else {
-		int status = psend[-1].status;
-#if JOBS
-		if (jp->state == JOBSTOPPED)
-			status = jp->stopstatus;
-#endif
-		col += sprint_status(s + col, status, 0);
-	}
-
-	goto start;
-
-	do {
-		/* for each process */
-		col = fmtstr(s, 48, " |\n%*c%d ", indent, ' ', ps->pid) - 3;
- start:
-		fprintf(out, "%s%*c%s",
-			s, 33 - col >= 0 ? 33 - col : 0, ' ', ps->cmd
-		);
-		if (!(mode & SHOW_PID)) {
-			showpipe(jp, out);
-			break;
-		}
-		if (++ps == psend) {
-			outcslow('\n', out);
-			break;
-		}
-	} while (1);
-
-	jp->changed = 0;
-
-	if (jp->state == JOBDONE) {
-		TRACE(("showjob: freeing job %d\n", jobno(jp)));
-		freejob(jp);
-	}
-}
-
-
-static int
-jobscmd(int argc, char **argv)
-{
-	int mode, m;
-	FILE *out;
-
-	mode = 0;
-	while ((m = nextopt("lp"))) {
-		if (m == 'l')
-			mode = SHOW_PID;
-		else
-			mode = SHOW_PGID;
-	}
-
-	out = stdout;
-	argv = argptr;
-	if (*argv) {
-		do
-			showjob(out, getjob(*argv,0), mode);
-		while (*++argv);
-	} else
-		showjobs(out, mode);
-
-	return 0;
-}
-
-
-/*
- * Print a list of jobs.  If "change" is nonzero, only print jobs whose
- * statuses have changed since the last call to showjobs.
- */
-static void
-showjobs(FILE *out, int mode)
-{
-	struct job *jp;
-
-	TRACE(("showjobs(%x) called\n", mode));
-
-	/* If not even one one job changed, there is nothing to do */
-	while (dowait(DOWAIT_NORMAL, NULL) > 0)
-		continue;
-
-	for (jp = curjob; jp; jp = jp->prev_job) {
-		if (!(mode & SHOW_CHANGED) || jp->changed)
-			showjob(out, jp, mode);
-	}
-}
-#endif /* JOBS */
-
-
-/*
- * Mark a job structure as unused.
- */
-static void
-freejob(struct job *jp)
-{
-	struct procstat *ps;
-	int i;
-
-	INT_OFF;
-	for (i = jp->nprocs, ps = jp->ps; --i >= 0; ps++) {
-		if (ps->cmd != nullstr)
-			free(ps->cmd);
-	}
-	if (jp->ps != &jp->ps0)
-		free(jp->ps);
-	jp->used = 0;
-	set_curjob(jp, CUR_DELETE);
-	INT_ON;
-}
-
-
-static int
-waitcmd(int argc, char **argv)
-{
-	struct job *job;
-	int retval;
-	struct job *jp;
-
-	EXSIGON;
-
-	nextopt(nullstr);
-	retval = 0;
-
-	argv = argptr;
-	if (!*argv) {
-		/* wait for all jobs */
-		for (;;) {
-			jp = curjob;
-			while (1) {
-				if (!jp) {
-					/* no running procs */
-					goto out;
-				}
-				if (jp->state == JOBRUNNING)
-					break;
-				jp->waited = 1;
-				jp = jp->prev_job;
-			}
-			dowait(DOWAIT_BLOCK, 0);
-		}
-	}
-
-	retval = 127;
-	do {
-		if (**argv != '%') {
-			pid_t pid = number(*argv);
-			job = curjob;
-			goto start;
-			do {
-				if (job->ps[job->nprocs - 1].pid == pid)
-					break;
-				job = job->prev_job;
- start:
-				if (!job)
-					goto repeat;
-			} while (1);
-		} else
-			job = getjob(*argv, 0);
-		/* loop until process terminated or stopped */
-		while (job->state == JOBRUNNING)
-			dowait(DOWAIT_BLOCK, 0);
-		job->waited = 1;
-		retval = getstatus(job);
- repeat:
-		;
-	} while (*++argv);
-
- out:
-	return retval;
-}
-
-
-/*
- * Convert a job name to a job structure.
- */
-static struct job *
-getjob(const char *name, int getctl)
-{
-	struct job *jp;
-	struct job *found;
-	const char *err_msg = "No such job: %s";
-	unsigned num;
-	int c;
-	const char *p;
-	char *(*match)(const char *, const char *);
-
-	jp = curjob;
-	p = name;
-	if (!p)
-		goto currentjob;
-
-	if (*p != '%')
-		goto err;
-
-	c = *++p;
-	if (!c)
-		goto currentjob;
-
-	if (!p[1]) {
-		if (c == '+' || c == '%') {
- currentjob:
-			err_msg = "No current job";
-			goto check;
-		}
-		if (c == '-') {
-			if (jp)
-				jp = jp->prev_job;
-			err_msg = "No previous job";
- check:
-			if (!jp)
-				goto err;
-			goto gotit;
-		}
-	}
-
-	if (is_number(p)) {
-		num = atoi(p);
-		if (num < njobs) {
-			jp = jobtab + num - 1;
-			if (jp->used)
-				goto gotit;
-			goto err;
-		}
-	}
-
-	match = prefix;
-	if (*p == '?') {
-		match = strstr;
-		p++;
-	}
-
-	found = 0;
-	while (1) {
-		if (!jp)
-			goto err;
-		if (match(jp->ps[0].cmd, p)) {
-			if (found)
-				goto err;
-			found = jp;
-			err_msg = "%s: ambiguous";
-		}
-		jp = jp->prev_job;
-	}
-
- gotit:
-#if JOBS
-	err_msg = "job %s not created under job control";
-	if (getctl && jp->jobctl == 0)
-		goto err;
-#endif
-	return jp;
- err:
-	ash_msg_and_raise_error(err_msg, name);
-}
-
-
-/*
- * Return a new job structure.
- * Called with interrupts off.
- */
-static struct job *
-makejob(union node *node, int nprocs)
-{
-	int i;
-	struct job *jp;
-
-	for (i = njobs, jp = jobtab; ; jp++) {
-		if (--i < 0) {
-			jp = growjobtab();
-			break;
-		}
-		if (jp->used == 0)
-			break;
-		if (jp->state != JOBDONE || !jp->waited)
-			continue;
-#if JOBS
-		if (jobctl)
-			continue;
-#endif
-		freejob(jp);
-		break;
-	}
-	memset(jp, 0, sizeof(*jp));
-#if JOBS
-	if (jobctl)
-		jp->jobctl = 1;
-#endif
-	jp->prev_job = curjob;
-	curjob = jp;
-	jp->used = 1;
-	jp->ps = &jp->ps0;
-	if (nprocs > 1) {
-		jp->ps = ckmalloc(nprocs * sizeof(struct procstat));
-	}
-	TRACE(("makejob(0x%lx, %d) returns %%%d\n", (long)node, nprocs,
-				jobno(jp)));
-	return jp;
-}
-
-static struct job *
-growjobtab(void)
-{
-	size_t len;
-	ptrdiff_t offset;
-	struct job *jp, *jq;
-
-	len = njobs * sizeof(*jp);
-	jq = jobtab;
-	jp = ckrealloc(jq, len + 4 * sizeof(*jp));
-
-	offset = (char *)jp - (char *)jq;
-	if (offset) {
-		/* Relocate pointers */
-		size_t l = len;
-
-		jq = (struct job *)((char *)jq + l);
-		while (l) {
-			l -= sizeof(*jp);
-			jq--;
-#define joff(p) ((struct job *)((char *)(p) + l))
-#define jmove(p) (p) = (void *)((char *)(p) + offset)
-			if (xlikely(joff(jp)->ps == &jq->ps0))
-				jmove(joff(jp)->ps);
-			if (joff(jp)->prev_job)
-				jmove(joff(jp)->prev_job);
-		}
-		if (curjob)
-			jmove(curjob);
-#undef joff
-#undef jmove
-	}
-
-	njobs += 4;
-	jobtab = jp;
-	jp = (struct job *)((char *)jp + len);
-	jq = jp + 3;
-	do {
-		jq->used = 0;
-	} while (--jq >= jp);
-	return jp;
-}
-
-
-/*
- * Fork off a subshell.  If we are doing job control, give the subshell its
- * own process group.  Jp is a job structure that the job is to be added to.
- * N is the command that will be evaluated by the child.  Both jp and n may
- * be NULL.  The mode parameter can be one of the following:
- *      FORK_FG - Fork off a foreground process.
- *      FORK_BG - Fork off a background process.
- *      FORK_NOJOB - Like FORK_FG, but don't give the process its own
- *                   process group even if job control is on.
- *
- * When job control is turned off, background processes have their standard
- * input redirected to /dev/null (except for the second and later processes
- * in a pipeline).
- *
- * Called with interrupts off.
- */
-static void forkchild(struct job *jp, union node *n, int mode)
-{
-	int oldlvl;
-
-	TRACE(("Child shell %d\n", getpid()));
-	oldlvl = shlvl;
-	shlvl++;
-
-	closescript();
-	clear_traps();
-#if JOBS
-	/* do job control only in root shell */
-	jobctl = 0;
-	if (mode != FORK_NOJOB && jp->jobctl && !oldlvl) {
-		pid_t pgrp;
-
-		if (jp->nprocs == 0)
-			pgrp = getpid();
-		else
-			pgrp = jp->ps[0].pid;
-		/* This can fail because we are doing it in the parent also */
-		(void)setpgid(0, pgrp);
-		if (mode == FORK_FG)
-			xtcsetpgrp(ttyfd, pgrp);
-		setsignal(SIGTSTP);
-		setsignal(SIGTTOU);
-	} else
-#endif
-	if (mode == FORK_BG) {
-		ignoresig(SIGINT);
-		ignoresig(SIGQUIT);
-		if (jp->nprocs == 0) {
-			close(0);
-			if (open(bb_dev_null, O_RDONLY) != 0)
-				ash_msg_and_raise_error("Can't open %s", bb_dev_null);
-		}
-	}
-	if (!oldlvl && iflag) {
-		setsignal(SIGINT);
-		setsignal(SIGQUIT);
-		setsignal(SIGTERM);
-	}
-	for (jp = curjob; jp; jp = jp->prev_job)
-		freejob(jp);
-	jobless = 0;
-}
-
-static void forkparent(struct job *jp, union node *n, int mode, pid_t pid)
-{
-	TRACE(("In parent shell: child = %d\n", pid));
-	if (!jp) {
-		while (jobless && dowait(DOWAIT_NORMAL, 0) > 0);
-		jobless++;
-		return;
-	}
-#if JOBS
-	if (mode != FORK_NOJOB && jp->jobctl) {
-		int pgrp;
-
-		if (jp->nprocs == 0)
-			pgrp = pid;
-		else
-			pgrp = jp->ps[0].pid;
-		/* This can fail because we are doing it in the child also */
-		setpgid(pid, pgrp);
-	}
-#endif
-	if (mode == FORK_BG) {
-		backgndpid = pid;               /* set $! */
-		set_curjob(jp, CUR_RUNNING);
-	}
-	if (jp) {
-		struct procstat *ps = &jp->ps[jp->nprocs++];
-		ps->pid = pid;
-		ps->status = -1;
-		ps->cmd = nullstr;
-#if JOBS
-		if (jobctl && n)
-			ps->cmd = commandtext(n);
-#endif
-	}
-}
-
-static int
-forkshell(struct job *jp, union node *n, int mode)
-{
-	int pid;
-
-	TRACE(("forkshell(%%%d, %p, %d) called\n", jobno(jp), n, mode));
-	pid = fork();
-	if (pid < 0) {
-		TRACE(("Fork failed, errno=%d", errno));
-		if (jp)
-			freejob(jp);
-		ash_msg_and_raise_error("Cannot fork");
-	}
-	if (pid == 0)
-		forkchild(jp, n, mode);
-	else
-		forkparent(jp, n, mode, pid);
-	return pid;
-}
-
-
-/*
- * Wait for job to finish.
- *
- * Under job control we have the problem that while a child process is
- * running interrupts generated by the user are sent to the child but not
- * to the shell.  This means that an infinite loop started by an inter-
- * active user may be hard to kill.  With job control turned off, an
- * interactive user may place an interactive program inside a loop.  If
- * the interactive program catches interrupts, the user doesn't want
- * these interrupts to also abort the loop.  The approach we take here
- * is to have the shell ignore interrupt signals while waiting for a
- * foreground process to terminate, and then send itself an interrupt
- * signal if the child process was terminated by an interrupt signal.
- * Unfortunately, some programs want to do a bit of cleanup and then
- * exit on interrupt; unless these processes terminate themselves by
- * sending a signal to themselves (instead of calling exit) they will
- * confuse this approach.
- *
- * Called with interrupts off.
- */
-static int
-waitforjob(struct job *jp)
-{
-	int st;
-
-	TRACE(("waitforjob(%%%d) called\n", jobno(jp)));
-	while (jp->state == JOBRUNNING) {
-		dowait(DOWAIT_BLOCK, jp);
-	}
-	st = getstatus(jp);
-#if JOBS
-	if (jp->jobctl) {
-		xtcsetpgrp(ttyfd, rootpid);
-		/*
-		 * This is truly gross.
-		 * If we're doing job control, then we did a TIOCSPGRP which
-		 * caused us (the shell) to no longer be in the controlling
-		 * session -- so we wouldn't have seen any ^C/SIGINT.  So, we
-		 * intuit from the subprocess exit status whether a SIGINT
-		 * occurred, and if so interrupt ourselves.  Yuck.  - mycroft
-		 */
-		if (jp->sigint)
-			raise(SIGINT);
-	}
-	if (jp->state == JOBDONE)
-#endif
-		freejob(jp);
-	return st;
-}
-
 
 /*
  * Do a wait system call.  If job control is compiled in, we accept
@@ -8158,7 +7761,6 @@ waitproc(int block, int *status)
 		flags |= WNOHANG;
 	return wait3(status, flags, (struct rusage *)NULL);
 }
-
 
 /*
  * Wait for a process to terminate.
@@ -8249,11 +7851,473 @@ dowait(int block, struct job *job)
 	return pid;
 }
 
+#if JOBS
+static void
+showjob(FILE *out, struct job *jp, int mode)
+{
+	struct procstat *ps;
+	struct procstat *psend;
+	int col;
+	int indent;
+	char s[80];
+
+	ps = jp->ps;
+
+	if (mode & SHOW_PGID) {
+		/* just output process (group) id of pipeline */
+		fprintf(out, "%d\n", ps->pid);
+		return;
+	}
+
+	col = fmtstr(s, 16, "[%d]   ", jobno(jp));
+	indent = col;
+
+	if (jp == curjob)
+		s[col - 2] = '+';
+	else if (curjob && jp == curjob->prev_job)
+		s[col - 2] = '-';
+
+	if (mode & SHOW_PID)
+		col += fmtstr(s + col, 16, "%d ", ps->pid);
+
+	psend = ps + jp->nprocs;
+
+	if (jp->state == JOBRUNNING) {
+		strcpy(s + col, "Running");
+		col += sizeof("Running") - 1;
+	} else {
+		int status = psend[-1].status;
+#if JOBS
+		if (jp->state == JOBSTOPPED)
+			status = jp->stopstatus;
+#endif
+		col += sprint_status(s + col, status, 0);
+	}
+
+	goto start;
+
+	do {
+		/* for each process */
+		col = fmtstr(s, 48, " |\n%*c%d ", indent, ' ', ps->pid) - 3;
+ start:
+		fprintf(out, "%s%*c%s",
+			s, 33 - col >= 0 ? 33 - col : 0, ' ', ps->cmd
+		);
+		if (!(mode & SHOW_PID)) {
+			showpipe(jp, out);
+			break;
+		}
+		if (++ps == psend) {
+			outcslow('\n', out);
+			break;
+		}
+	} while (1);
+
+	jp->changed = 0;
+
+	if (jp->state == JOBDONE) {
+		TRACE(("showjob: freeing job %d\n", jobno(jp)));
+		freejob(jp);
+	}
+}
+
+static int
+jobscmd(int argc, char **argv)
+{
+	int mode, m;
+	FILE *out;
+
+	mode = 0;
+	while ((m = nextopt("lp"))) {
+		if (m == 'l')
+			mode = SHOW_PID;
+		else
+			mode = SHOW_PGID;
+	}
+
+	out = stdout;
+	argv = argptr;
+	if (*argv) {
+		do
+			showjob(out, getjob(*argv,0), mode);
+		while (*++argv);
+	} else
+		showjobs(out, mode);
+
+	return 0;
+}
+
+/*
+ * Print a list of jobs.  If "change" is nonzero, only print jobs whose
+ * statuses have changed since the last call to showjobs.
+ */
+static void
+showjobs(FILE *out, int mode)
+{
+	struct job *jp;
+
+	TRACE(("showjobs(%x) called\n", mode));
+
+	/* If not even one one job changed, there is nothing to do */
+	while (dowait(DOWAIT_NORMAL, NULL) > 0)
+		continue;
+
+	for (jp = curjob; jp; jp = jp->prev_job) {
+		if (!(mode & SHOW_CHANGED) || jp->changed)
+			showjob(out, jp, mode);
+	}
+}
+#endif /* JOBS */
+
+static int
+getstatus(struct job *job)
+{
+	int status;
+	int retval;
+
+	status = job->ps[job->nprocs - 1].status;
+	retval = WEXITSTATUS(status);
+	if (!WIFEXITED(status)) {
+#if JOBS
+		retval = WSTOPSIG(status);
+		if (!WIFSTOPPED(status))
+#endif
+		{
+			/* XXX: limits number of signals */
+			retval = WTERMSIG(status);
+#if JOBS
+			if (retval == SIGINT)
+				job->sigint = 1;
+#endif
+		}
+		retval += 128;
+	}
+	TRACE(("getstatus: job %d, nproc %d, status %x, retval %x\n",
+		jobno(job), job->nprocs, status, retval));
+	return retval;
+}
+
+static int
+waitcmd(int argc, char **argv)
+{
+	struct job *job;
+	int retval;
+	struct job *jp;
+
+	EXSIGON;
+
+	nextopt(nullstr);
+	retval = 0;
+
+	argv = argptr;
+	if (!*argv) {
+		/* wait for all jobs */
+		for (;;) {
+			jp = curjob;
+			while (1) {
+				if (!jp) {
+					/* no running procs */
+					goto out;
+				}
+				if (jp->state == JOBRUNNING)
+					break;
+				jp->waited = 1;
+				jp = jp->prev_job;
+			}
+			dowait(DOWAIT_BLOCK, 0);
+		}
+	}
+
+	retval = 127;
+	do {
+		if (**argv != '%') {
+			pid_t pid = number(*argv);
+			job = curjob;
+			goto start;
+			do {
+				if (job->ps[job->nprocs - 1].pid == pid)
+					break;
+				job = job->prev_job;
+ start:
+				if (!job)
+					goto repeat;
+			} while (1);
+		} else
+			job = getjob(*argv, 0);
+		/* loop until process terminated or stopped */
+		while (job->state == JOBRUNNING)
+			dowait(DOWAIT_BLOCK, 0);
+		job->waited = 1;
+		retval = getstatus(job);
+ repeat:
+		;
+	} while (*++argv);
+
+ out:
+	return retval;
+}
+
+static struct job *
+growjobtab(void)
+{
+	size_t len;
+	ptrdiff_t offset;
+	struct job *jp, *jq;
+
+	len = njobs * sizeof(*jp);
+	jq = jobtab;
+	jp = ckrealloc(jq, len + 4 * sizeof(*jp));
+
+	offset = (char *)jp - (char *)jq;
+	if (offset) {
+		/* Relocate pointers */
+		size_t l = len;
+
+		jq = (struct job *)((char *)jq + l);
+		while (l) {
+			l -= sizeof(*jp);
+			jq--;
+#define joff(p) ((struct job *)((char *)(p) + l))
+#define jmove(p) (p) = (void *)((char *)(p) + offset)
+			if (xlikely(joff(jp)->ps == &jq->ps0))
+				jmove(joff(jp)->ps);
+			if (joff(jp)->prev_job)
+				jmove(joff(jp)->prev_job);
+		}
+		if (curjob)
+			jmove(curjob);
+#undef joff
+#undef jmove
+	}
+
+	njobs += 4;
+	jobtab = jp;
+	jp = (struct job *)((char *)jp + len);
+	jq = jp + 3;
+	do {
+		jq->used = 0;
+	} while (--jq >= jp);
+	return jp;
+}
+
+/*
+ * Return a new job structure.
+ * Called with interrupts off.
+ */
+static struct job *
+makejob(union node *node, int nprocs)
+{
+	int i;
+	struct job *jp;
+
+	for (i = njobs, jp = jobtab; ; jp++) {
+		if (--i < 0) {
+			jp = growjobtab();
+			break;
+		}
+		if (jp->used == 0)
+			break;
+		if (jp->state != JOBDONE || !jp->waited)
+			continue;
+#if JOBS
+		if (jobctl)
+			continue;
+#endif
+		freejob(jp);
+		break;
+	}
+	memset(jp, 0, sizeof(*jp));
+#if JOBS
+	if (jobctl)
+		jp->jobctl = 1;
+#endif
+	jp->prev_job = curjob;
+	curjob = jp;
+	jp->used = 1;
+	jp->ps = &jp->ps0;
+	if (nprocs > 1) {
+		jp->ps = ckmalloc(nprocs * sizeof(struct procstat));
+	}
+	TRACE(("makejob(0x%lx, %d) returns %%%d\n", (long)node, nprocs,
+				jobno(jp)));
+	return jp;
+}
+
+/*
+ * Fork off a subshell.  If we are doing job control, give the subshell its
+ * own process group.  Jp is a job structure that the job is to be added to.
+ * N is the command that will be evaluated by the child.  Both jp and n may
+ * be NULL.  The mode parameter can be one of the following:
+ *      FORK_FG - Fork off a foreground process.
+ *      FORK_BG - Fork off a background process.
+ *      FORK_NOJOB - Like FORK_FG, but don't give the process its own
+ *                   process group even if job control is on.
+ *
+ * When job control is turned off, background processes have their standard
+ * input redirected to /dev/null (except for the second and later processes
+ * in a pipeline).
+ *
+ * Called with interrupts off.
+ */
+static void
+forkchild(struct job *jp, union node *n, int mode)
+{
+	int oldlvl;
+
+	TRACE(("Child shell %d\n", getpid()));
+	oldlvl = shlvl;
+	shlvl++;
+
+	closescript();
+	clear_traps();
+#if JOBS
+	/* do job control only in root shell */
+	jobctl = 0;
+	if (mode != FORK_NOJOB && jp->jobctl && !oldlvl) {
+		pid_t pgrp;
+
+		if (jp->nprocs == 0)
+			pgrp = getpid();
+		else
+			pgrp = jp->ps[0].pid;
+		/* This can fail because we are doing it in the parent also */
+		(void)setpgid(0, pgrp);
+		if (mode == FORK_FG)
+			xtcsetpgrp(ttyfd, pgrp);
+		setsignal(SIGTSTP);
+		setsignal(SIGTTOU);
+	} else
+#endif
+	if (mode == FORK_BG) {
+		ignoresig(SIGINT);
+		ignoresig(SIGQUIT);
+		if (jp->nprocs == 0) {
+			close(0);
+			if (open(bb_dev_null, O_RDONLY) != 0)
+				ash_msg_and_raise_error("Can't open %s", bb_dev_null);
+		}
+	}
+	if (!oldlvl && iflag) {
+		setsignal(SIGINT);
+		setsignal(SIGQUIT);
+		setsignal(SIGTERM);
+	}
+	for (jp = curjob; jp; jp = jp->prev_job)
+		freejob(jp);
+	jobless = 0;
+}
+
+static void
+forkparent(struct job *jp, union node *n, int mode, pid_t pid)
+{
+	TRACE(("In parent shell: child = %d\n", pid));
+	if (!jp) {
+		while (jobless && dowait(DOWAIT_NORMAL, 0) > 0);
+		jobless++;
+		return;
+	}
+#if JOBS
+	if (mode != FORK_NOJOB && jp->jobctl) {
+		int pgrp;
+
+		if (jp->nprocs == 0)
+			pgrp = pid;
+		else
+			pgrp = jp->ps[0].pid;
+		/* This can fail because we are doing it in the child also */
+		setpgid(pid, pgrp);
+	}
+#endif
+	if (mode == FORK_BG) {
+		backgndpid = pid;               /* set $! */
+		set_curjob(jp, CUR_RUNNING);
+	}
+	if (jp) {
+		struct procstat *ps = &jp->ps[jp->nprocs++];
+		ps->pid = pid;
+		ps->status = -1;
+		ps->cmd = nullstr;
+#if JOBS
+		if (jobctl && n)
+			ps->cmd = commandtext(n);
+#endif
+	}
+}
+
+static int
+forkshell(struct job *jp, union node *n, int mode)
+{
+	int pid;
+
+	TRACE(("forkshell(%%%d, %p, %d) called\n", jobno(jp), n, mode));
+	pid = fork();
+	if (pid < 0) {
+		TRACE(("Fork failed, errno=%d", errno));
+		if (jp)
+			freejob(jp);
+		ash_msg_and_raise_error("Cannot fork");
+	}
+	if (pid == 0)
+		forkchild(jp, n, mode);
+	else
+		forkparent(jp, n, mode, pid);
+	return pid;
+}
+
+/*
+ * Wait for job to finish.
+ *
+ * Under job control we have the problem that while a child process is
+ * running interrupts generated by the user are sent to the child but not
+ * to the shell.  This means that an infinite loop started by an inter-
+ * active user may be hard to kill.  With job control turned off, an
+ * interactive user may place an interactive program inside a loop.  If
+ * the interactive program catches interrupts, the user doesn't want
+ * these interrupts to also abort the loop.  The approach we take here
+ * is to have the shell ignore interrupt signals while waiting for a
+ * foreground process to terminate, and then send itself an interrupt
+ * signal if the child process was terminated by an interrupt signal.
+ * Unfortunately, some programs want to do a bit of cleanup and then
+ * exit on interrupt; unless these processes terminate themselves by
+ * sending a signal to themselves (instead of calling exit) they will
+ * confuse this approach.
+ *
+ * Called with interrupts off.
+ */
+static int
+waitforjob(struct job *jp)
+{
+	int st;
+
+	TRACE(("waitforjob(%%%d) called\n", jobno(jp)));
+	while (jp->state == JOBRUNNING) {
+		dowait(DOWAIT_BLOCK, jp);
+	}
+	st = getstatus(jp);
+#if JOBS
+	if (jp->jobctl) {
+		xtcsetpgrp(ttyfd, rootpid);
+		/*
+		 * This is truly gross.
+		 * If we're doing job control, then we did a TIOCSPGRP which
+		 * caused us (the shell) to no longer be in the controlling
+		 * session -- so we wouldn't have seen any ^C/SIGINT.  So, we
+		 * intuit from the subprocess exit status whether a SIGINT
+		 * occurred, and if so interrupt ourselves.  Yuck.  - mycroft
+		 */
+		if (jp->sigint)
+			raise(SIGINT);
+	}
+	if (jp->state == JOBDONE)
+#endif
+		freejob(jp);
+	return st;
+}
 
 /*
  * return 1 if there are stopped jobs, otherwise 0
  */
-int
+static int
 stoppedjobs(void)
 {
 	struct job *jp;
@@ -8289,7 +8353,7 @@ commandtext(union node *n)
 	cmdtxt(n);
 	name = stackblock();
 	TRACE(("commandtext: name %p, end %p\n\t\"%s\"\n",
-		name, cmdnextc, cmdnextc));
+			name, cmdnextc, cmdnextc));
 	return ckstrdup(name);
 }
 
@@ -8550,56 +8614,7 @@ cmdputs(const char *s)
 	*nextc = 0;
 	cmdnextc = nextc;
 }
-
-
-static void
-showpipe(struct job *jp, FILE *out)
-{
-	struct procstat *sp;
-	struct procstat *spend;
-
-	spend = jp->ps + jp->nprocs;
-	for (sp = jp->ps + 1; sp < spend; sp++)
-		fprintf(out, " | %s", sp->cmd);
-	outcslow('\n', out);
-	flush_stdout_stderr();
-}
-
-static void
-xtcsetpgrp(int fd, pid_t pgrp)
-{
-	if (tcsetpgrp(fd, pgrp))
-		ash_msg_and_raise_error("Cannot set tty process group (%m)");
-}
 #endif /* JOBS */
-
-static int
-getstatus(struct job *job)
-{
-	int status;
-	int retval;
-
-	status = job->ps[job->nprocs - 1].status;
-	retval = WEXITSTATUS(status);
-	if (!WIFEXITED(status)) {
-#if JOBS
-		retval = WSTOPSIG(status);
-		if (!WIFSTOPPED(status))
-#endif
-		{
-			/* XXX: limits number of signals */
-			retval = WTERMSIG(status);
-#if JOBS
-			if (retval == SIGINT)
-				job->sigint = 1;
-#endif
-		}
-		retval += 128;
-	}
-	TRACE(("getstatus: job %d, nproc %d, status %x, retval %x\n",
-		jobno(job), job->nprocs, status, retval));
-	return retval;
-}
 
 #if ENABLE_ASH_MAIL
 /*      mail.c       */
@@ -11333,17 +11348,6 @@ redirectsafe(union node *redir, int flags)
 
 /*      trap.c       */
 
-/*
- * Sigmode records the current value of the signal handlers for the various
- * modes.  A value of zero means that the current handler is not known.
- * S_HARD_IGN indicates that the signal was ignored on entry to the shell,
- */
-
-#define S_DFL 1                 /* default signal handling (SIG_DFL) */
-#define S_CATCH 2               /* signal is caught */
-#define S_IGN 3                 /* signal is ignored (SIG_IGN) */
-#define S_HARD_IGN 4            /* signal is ignored permenantly */
-#define S_RESET 5               /* temporary - to reset a hard ignored sig */
 
 
 /*
@@ -11507,36 +11511,6 @@ setsignal(int signo)
 
 
 /*
- * Ignore a signal.
- */
-static void
-ignoresig(int signo)
-{
-	if (sigmode[signo - 1] != S_IGN && sigmode[signo - 1] != S_HARD_IGN) {
-		signal(signo, SIG_IGN);
-	}
-	sigmode[signo - 1] = S_HARD_IGN;
-}
-
-
-/*
- * Signal handler.
- */
-static void
-onsig(int signo)
-{
-	gotsig[signo - 1] = 1;
-	pendingsigs = signo;
-
-	if (exsig || (signo == SIGINT && !trap[SIGINT])) {
-		if (!suppressint)
-			raise_interrupt();
-		intpending = 1;
-	}
-}
-
-
-/*
  * Called to execute a trap.  Perhaps we should avoid entering new trap
  * handlers while we are executing a trap handler.
  */
@@ -11587,7 +11561,7 @@ setinteractive(int on)
 #if !ENABLE_FEATURE_SH_EXTRA_QUIET
 	if (is_interactive > 1) {
 		/* Looks like they want an interactive shell */
-		static int do_banner;
+		static smallint do_banner;
 
 		if (!do_banner) {
 			out1fmt(
@@ -11596,15 +11570,16 @@ setinteractive(int on)
 				"Enter 'help' for a list of built-in commands."
 				"\n\n",
 				BB_BANNER);
-			do_banner++;
+			do_banner = 1;
 		}
 	}
 #endif
 }
 
 #if !ENABLE_FEATURE_SH_EXTRA_QUIET
-/*** List the available builtins ***/
-
+/*
+ * Lists available builtins
+ */
 static int
 helpcmd(int argc, char **argv)
 {
@@ -11711,7 +11686,8 @@ exportcmd(int argc, char **argv)
  * will be restored when the shell function returns.  We handle the name
  * "-" as a special case.
  */
-static void mklocal(char *name)
+static void
+mklocal(char *name)
 {
 	struct localvar *lvp;
 	struct var **vpp;
@@ -11811,9 +11787,10 @@ static const unsigned char timescmd_str[] = {
 	0
 };
 
-static int timescmd(int ac, char **av)
+static int
+timescmd(int ac, char **av)
 {
-	long int clk_tck, s, t;
+	long clk_tck, s, t;
 	const unsigned char *p;
 	struct tms buf;
 
@@ -11845,12 +11822,11 @@ dash_arith(const char *s)
 	if (errcode < 0) {
 		if (errcode == -3)
 			ash_msg_and_raise_error("exponent less than 0");
-		else if (errcode == -2)
+		if (errcode == -2)
 			ash_msg_and_raise_error("divide by zero");
-		else if (errcode == -5)
+		if (errcode == -5)
 			ash_msg_and_raise_error("expression recursion loop detected");
-		else
-			raise_error_syntax(s);
+		raise_error_syntax(s);
 	}
 	INT_ON;
 
@@ -12083,7 +12059,8 @@ readcmd(int argc, char **argv)
 }
 
 
-static int umaskcmd(int argc, char **argv)
+static int
+umaskcmd(int argc, char **argv)
 {
 	static const char permuser[3] = "ugo";
 	static const char permmode[3] = "rwx";
@@ -12201,12 +12178,13 @@ static const struct limits limits[] = {
 #ifdef RLIMIT_LOCKS
 	{ "locks",                      RLIMIT_LOCKS,      1, 'w' },
 #endif
-	{ (char *) 0,                   0,                 0,  '\0' }
+	{ NULL,                         0,                 0,  '\0' }
 };
 
 enum limtype { SOFT = 0x1, HARD = 0x2 };
 
-static void printlim(enum limtype how, const struct rlimit *limit,
+static void
+printlim(enum limtype how, const struct rlimit *limit,
 			const struct limits *l)
 {
 	rlim_t val;
@@ -12223,16 +12201,16 @@ static void printlim(enum limtype how, const struct rlimit *limit,
 	}
 }
 
-int
+static int
 ulimitcmd(int argc, char **argv)
 {
-	int     c;
+	int c;
 	rlim_t val = 0;
 	enum limtype how = SOFT | HARD;
-	const struct limits     *l;
-	int             set, all = 0;
-	int             optc, what;
-	struct rlimit   limit;
+	const struct limits *l;
+	int set, all = 0;
+	int optc, what;
+	struct rlimit limit;
 
 	what = 'f';
 	while ((optc = nextopt("HSa"
@@ -12428,10 +12406,8 @@ ulimitcmd(int argc, char **argv)
  * - always use special isspace(), see comment from bash ;-)
  */
 
-
 #define arith_isspace(arithval) \
 	(arithval == ' ' || arithval == '\n' || arithval == '\t')
-
 
 typedef unsigned char operator;
 
@@ -12524,7 +12500,8 @@ typedef unsigned char operator;
 
 #define NUMPTR (*numstackptr)
 
-static int tok_have_assign(operator op)
+static int
+tok_have_assign(operator op)
 {
 	operator prec = PREC(op);
 
@@ -12533,12 +12510,12 @@ static int tok_have_assign(operator op)
 			prec == PREC_PRE || prec == PREC_POST);
 }
 
-static int is_right_associativity(operator prec)
+static int
+is_right_associativity(operator prec)
 {
 	return (prec == PREC(TOK_ASSIGN) || prec == PREC(TOK_EXPONENT)
 	        || prec == PREC(TOK_CONDITIONAL));
 }
-
 
 typedef struct ARITCH_VAR_NUM {
 	arith_t val;
@@ -12548,7 +12525,6 @@ typedef struct ARITCH_VAR_NUM {
 			   else is variable name */
 } v_n_t;
 
-
 typedef struct CHK_VAR_RECURSIVE_LOOPED {
 	const char *var;
 	struct CHK_VAR_RECURSIVE_LOOPED *next;
@@ -12556,8 +12532,8 @@ typedef struct CHK_VAR_RECURSIVE_LOOPED {
 
 static chk_var_recursive_looped_t *prev_chk_var_recursive;
 
-
-static int arith_lookup_val(v_n_t *t)
+static int
+arith_lookup_val(v_n_t *t)
 {
 	if (t->var) {
 		const char * p = lookupvar(t->var);
@@ -12595,7 +12571,8 @@ static int arith_lookup_val(v_n_t *t)
 /* "applying" a token means performing it on the top elements on the integer
  * stack. For a unary operator it will only change the top element, but a
  * binary operator will pop two arguments and push a result */
-static int arith_apply(operator op, v_n_t *numstack, v_n_t **numstackptr)
+static int
+arith_apply(operator op, v_n_t *numstack, v_n_t **numstackptr)
 {
 	v_n_t *numptr_m1;
 	arith_t numptr_val, rez;
@@ -12692,12 +12669,10 @@ static int arith_apply(operator op, v_n_t *numstack, v_n_t **numstackptr)
 			}
 			numptr_m1->contidional_second_val_initialized = op;
 			numptr_m1->contidional_second_val = numptr_val;
-		}
-		else if (op == TOK_CONDITIONAL) {
+		} else if (op == TOK_CONDITIONAL) {
 			rez = rez ?
 				numptr_val : numptr_m1->contidional_second_val;
-		}
-		else if (op == TOK_EXPONENT) {
+		} else if (op == TOK_EXPONENT) {
 			if (numptr_val < 0)
 				return -3;      /* exponent less than 0 */
 			else {
@@ -12708,8 +12683,7 @@ static int arith_apply(operator op, v_n_t *numstack, v_n_t **numstackptr)
 						c *= rez;
 				rez = c;
 			}
-		}
-		else if (numptr_val==0)          /* zero divisor check */
+		} else if (numptr_val==0)          /* zero divisor check */
 			return -2;
 		else if (op == TOK_DIV || op == TOK_DIV_ASSIGN)
 			rez /= numptr_val;
@@ -12717,7 +12691,7 @@ static int arith_apply(operator op, v_n_t *numstack, v_n_t **numstackptr)
 			rez %= numptr_val;
 	}
 	if (tok_have_assign(op)) {
-		char buf[32];
+		char buf[sizeof(arith_t_type)*3 + 2];
 
 		if (numptr_m1->var == NULL) {
 			/* Hmm, 1=2 ? */
@@ -12725,9 +12699,9 @@ static int arith_apply(operator op, v_n_t *numstack, v_n_t **numstackptr)
 		}
 		/* save to shell variable */
 #if ENABLE_ASH_MATH_SUPPORT_64
-		snprintf(buf, sizeof(buf), "%lld", arith_t_type rez);
+		snprintf(buf, sizeof(buf), "%lld", (arith_t_type) rez);
 #else
-		snprintf(buf, sizeof(buf), "%ld", arith_t_type rez);
+		snprintf(buf, sizeof(buf), "%ld", (arith_t_type) rez);
 #endif
 		setvar(numptr_m1->var, buf, 0);
 		/* after saving, make previous value for v++ or v-- */
@@ -12744,7 +12718,7 @@ static int arith_apply(operator op, v_n_t *numstack, v_n_t **numstackptr)
 	return -1;
 }
 
-/* longest must first */
+/* longest must be first */
 static const char op_tokens[] = {
 	'<','<','=',0, TOK_LSHIFT_ASSIGN,
 	'>','>','=',0, TOK_RSHIFT_ASSIGN,
@@ -12792,7 +12766,8 @@ static const char op_tokens[] = {
 #define endexpression &op_tokens[sizeof(op_tokens)-7]
 
 
-static arith_t arith(const char *expr, int *perrcode)
+static arith_t
+arith(const char *expr, int *perrcode)
 {
 	char arithval; /* Current character under analysis */
 	operator lasttok, op;
@@ -12990,8 +12965,8 @@ static arith_t arith(const char *expr, int *perrcode)
  * exception occurs.  When an exception occurs the variable "state"
  * is used to figure out how far we had gotten.
  */
-
-static void init(void)
+static void
+init(void)
 {
 	/* from input.c: */
 	basepf.nextc = basepf.buf = basebuf;
@@ -13002,7 +12977,7 @@ static void init(void)
 	/* from var.c: */
 	{
 		char **envp;
-		char ppid[32];
+		char ppid[sizeof(int)*3 + 1];
 		const char *p;
 		struct stat st1, st2;
 
@@ -13013,7 +12988,7 @@ static void init(void)
 			}
 		}
 
-		snprintf(ppid, sizeof(ppid), "%d", (int) getppid());
+		snprintf(ppid, sizeof(ppid), "%u", (unsigned) getppid());
 		setvar("PPID", ppid, 0);
 
 		p = lookupvar("PWD");
