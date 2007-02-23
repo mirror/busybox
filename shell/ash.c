@@ -932,7 +932,6 @@ static int startlinno;                 /* line # where last token started */
 static char *commandname;              /* currently executing command */
 static struct strlist *cmdenviron;     /* environment for builtin command */
 static int exitstatus;                 /* exit status of last command */
-static int back_exitstatus;            /* exit status of backquoted command */
 
 
 /* ============ Message printing */
@@ -2398,19 +2397,6 @@ static int casematch(union node *, char *);
 static void expari(int);
 #endif
 
-/*      eval.h       */
-
-
-
-struct backcmd {                /* result of evalbackcmd */
-	int fd;                 /* file descriptor to read from */
-	char *buf;              /* buffer */
-	int nleft;              /* number of chars in buffer */
-	struct job *jp;         /* job structure for command */
-};
-
-
-static void freefunc(struct funcnode *);
 /*      parser.h     */
 
 /* control characters in argument strings */
@@ -3160,104 +3146,6 @@ struct builtincmd {
 	/* unsigned flags; */
 };
 
-
-#define COMMANDCMD (builtincmd + 5 + \
-	2 * ENABLE_ASH_BUILTIN_TEST + \
-	ENABLE_ASH_ALIAS + \
-	ENABLE_ASH_JOB_CONTROL)
-#define EXECCMD (builtincmd + 7 + \
-	2 * ENABLE_ASH_BUILTIN_TEST + \
-	ENABLE_ASH_ALIAS + \
-	ENABLE_ASH_JOB_CONTROL + \
-	ENABLE_ASH_CMDCMD + \
-	ENABLE_ASH_BUILTIN_ECHO)
-
-#define BUILTIN_NOSPEC  "0"
-#define BUILTIN_SPECIAL "1"
-#define BUILTIN_REGULAR "2"
-#define BUILTIN_SPEC_REG "3"
-#define BUILTIN_ASSIGN  "4"
-#define BUILTIN_SPEC_ASSG  "5"
-#define BUILTIN_REG_ASSG   "6"
-#define BUILTIN_SPEC_REG_ASSG   "7"
-
-#define IS_BUILTIN_SPECIAL(builtincmd) ((builtincmd)->name[0] & 1)
-#define IS_BUILTIN_REGULAR(builtincmd) ((builtincmd)->name[0] & 2)
-#define IS_BUILTIN_ASSIGN(builtincmd) ((builtincmd)->name[0] & 4)
-
-/* make sure to keep these in proper order since it is searched via bsearch() */
-static const struct builtincmd builtincmd[] = {
-	{ BUILTIN_SPEC_REG      ".", dotcmd },
-	{ BUILTIN_SPEC_REG      ":", truecmd },
-#if ENABLE_ASH_BUILTIN_TEST
-	{ BUILTIN_REGULAR	"[", testcmd },
-	{ BUILTIN_REGULAR	"[[", testcmd },
-#endif
-#if ENABLE_ASH_ALIAS
-	{ BUILTIN_REG_ASSG      "alias", aliascmd },
-#endif
-#if JOBS
-	{ BUILTIN_REGULAR       "bg", fg_bgcmd },
-#endif
-	{ BUILTIN_SPEC_REG      "break", breakcmd },
-	{ BUILTIN_REGULAR       "cd", cdcmd },
-	{ BUILTIN_NOSPEC        "chdir", cdcmd },
-#if ENABLE_ASH_CMDCMD
-	{ BUILTIN_REGULAR       "command", commandcmd },
-#endif
-	{ BUILTIN_SPEC_REG      "continue", breakcmd },
-#if ENABLE_ASH_BUILTIN_ECHO
-	{ BUILTIN_REGULAR       "echo", echocmd },
-#endif
-	{ BUILTIN_SPEC_REG      "eval", evalcmd },
-	{ BUILTIN_SPEC_REG      "exec", execcmd },
-	{ BUILTIN_SPEC_REG      "exit", exitcmd },
-	{ BUILTIN_SPEC_REG_ASSG "export", exportcmd },
-	{ BUILTIN_REGULAR       "false", falsecmd },
-#if JOBS
-	{ BUILTIN_REGULAR       "fg", fg_bgcmd },
-#endif
-#if ENABLE_ASH_GETOPTS
-	{ BUILTIN_REGULAR       "getopts", getoptscmd },
-#endif
-	{ BUILTIN_NOSPEC        "hash", hashcmd },
-#if !ENABLE_FEATURE_SH_EXTRA_QUIET
-	{ BUILTIN_NOSPEC        "help", helpcmd },
-#endif
-#if JOBS
-	{ BUILTIN_REGULAR       "jobs", jobscmd },
-	{ BUILTIN_REGULAR       "kill", killcmd },
-#endif
-#if ENABLE_ASH_MATH_SUPPORT
-	{ BUILTIN_NOSPEC        "let", letcmd },
-#endif
-	{ BUILTIN_ASSIGN        "local", localcmd },
-	{ BUILTIN_NOSPEC        "pwd", pwdcmd },
-	{ BUILTIN_REGULAR       "read", readcmd },
-	{ BUILTIN_SPEC_REG_ASSG "readonly", exportcmd },
-	{ BUILTIN_SPEC_REG      "return", returncmd },
-	{ BUILTIN_SPEC_REG      "set", setcmd },
-	{ BUILTIN_SPEC_REG      "shift", shiftcmd },
-	{ BUILTIN_SPEC_REG      "source", dotcmd },
-#if ENABLE_ASH_BUILTIN_TEST
-	{ BUILTIN_REGULAR	"test", testcmd },
-#endif
-	{ BUILTIN_SPEC_REG      "times", timescmd },
-	{ BUILTIN_SPEC_REG      "trap", trapcmd },
-	{ BUILTIN_REGULAR       "true", truecmd },
-	{ BUILTIN_NOSPEC        "type", typecmd },
-	{ BUILTIN_NOSPEC        "ulimit", ulimitcmd },
-	{ BUILTIN_REGULAR       "umask", umaskcmd },
-#if ENABLE_ASH_ALIAS
-	{ BUILTIN_REGULAR       "unalias", unaliascmd },
-#endif
-	{ BUILTIN_SPEC_REG      "unset", unsetcmd },
-	{ BUILTIN_REGULAR       "wait", waitcmd },
-};
-
-#define NUMBUILTINS (sizeof(builtincmd) / sizeof(builtincmd[0]))
-
-
 struct cmdentry {
 	int cmdtype;
 	union param {
@@ -3266,7 +3154,6 @@ struct cmdentry {
 		struct funcnode *func;
 	} u;
 };
-
 
 /* action to find_command() */
 #define DO_ERR          0x01    /* prints errors */
@@ -3674,12 +3561,6 @@ static void evalcommand(union node *, int);
 static int evalbltin(const struct builtincmd *, int, char **);
 static int evalfun(struct funcnode *, int, char **, int);
 static void prehash(union node *);
-static int bltincmd(int, char **);
-
-static const struct builtincmd bltin = {
-	"\0\0", bltincmd
-};
-
 
 /*
  * Evaluate a parse tree.  The value is left in the global variable
@@ -4039,57 +3920,6 @@ evalpipe(union node *n, int flags)
 }
 
 
-/*
- * Execute a command inside back quotes.  If it's a builtin command, we
- * want to save its output in a block obtained from malloc.  Otherwise
- * we fork off a subprocess and get the output of the command via a pipe.
- * Should be called with interrupts off.
- */
-static void
-evalbackcmd(union node *n, struct backcmd *result)
-{
-	int saveherefd;
-
-	result->fd = -1;
-	result->buf = NULL;
-	result->nleft = 0;
-	result->jp = NULL;
-	if (n == NULL) {
-		goto out;
-	}
-
-	saveherefd = herefd;
-	herefd = -1;
-
-	{
-		int pip[2];
-		struct job *jp;
-
-		if (pipe(pip) < 0)
-			ash_msg_and_raise_error("Pipe call failed");
-		jp = makejob(n, 1);
-		if (forkshell(jp, n, FORK_NOJOB) == 0) {
-			FORCE_INT_ON;
-			close(pip[0]);
-			if (pip[1] != 1) {
-				close(1);
-				copyfd(pip[1], 1);
-				close(pip[1]);
-			}
-			eflag = 0;
-			evaltreenr(n, EV_EXIT);
-			/* NOTREACHED */
-		}
-		close(pip[1]);
-		result->fd = pip[0];
-		result->jp = jp;
-	}
-	herefd = saveherefd;
- out:
-	TRACE(("evalbackcmd done: fd=%d buf=0x%x nleft=%d jp=0x%x\n",
-		result->fd, result->buf, result->nleft, result->jp));
-}
-
 #if ENABLE_ASH_CMDCMD
 static char **
 parse_command_args(char **argv, const char **path)
@@ -4125,20 +3955,127 @@ parse_command_args(char **argv, const char **path)
 }
 #endif
 
-static int isassignment(const char *p)
+#define BUILTIN_NOSPEC  "0"
+#define BUILTIN_SPECIAL "1"
+#define BUILTIN_REGULAR "2"
+#define BUILTIN_SPEC_REG "3"
+#define BUILTIN_ASSIGN  "4"
+#define BUILTIN_SPEC_ASSG  "5"
+#define BUILTIN_REG_ASSG   "6"
+#define BUILTIN_SPEC_REG_ASSG   "7"
+
+#define IS_BUILTIN_SPECIAL(b) ((b)->name[0] & 1)
+#define IS_BUILTIN_REGULAR(b) ((b)->name[0] & 2)
+#define IS_BUILTIN_ASSIGN(b) ((b)->name[0] & 4)
+
+/* make sure to keep these in proper order since it is searched via bsearch() */
+static const struct builtincmd builtintab[] = {
+	{ BUILTIN_SPEC_REG      ".", dotcmd },
+	{ BUILTIN_SPEC_REG      ":", truecmd },
+#if ENABLE_ASH_BUILTIN_TEST
+	{ BUILTIN_REGULAR	"[", testcmd },
+	{ BUILTIN_REGULAR	"[[", testcmd },
+#endif
+#if ENABLE_ASH_ALIAS
+	{ BUILTIN_REG_ASSG      "alias", aliascmd },
+#endif
+#if JOBS
+	{ BUILTIN_REGULAR       "bg", fg_bgcmd },
+#endif
+	{ BUILTIN_SPEC_REG      "break", breakcmd },
+	{ BUILTIN_REGULAR       "cd", cdcmd },
+	{ BUILTIN_NOSPEC        "chdir", cdcmd },
+#if ENABLE_ASH_CMDCMD
+	{ BUILTIN_REGULAR       "command", commandcmd },
+#endif
+	{ BUILTIN_SPEC_REG      "continue", breakcmd },
+#if ENABLE_ASH_BUILTIN_ECHO
+	{ BUILTIN_REGULAR       "echo", echocmd },
+#endif
+	{ BUILTIN_SPEC_REG      "eval", evalcmd },
+	{ BUILTIN_SPEC_REG      "exec", execcmd },
+	{ BUILTIN_SPEC_REG      "exit", exitcmd },
+	{ BUILTIN_SPEC_REG_ASSG "export", exportcmd },
+	{ BUILTIN_REGULAR       "false", falsecmd },
+#if JOBS
+	{ BUILTIN_REGULAR       "fg", fg_bgcmd },
+#endif
+#if ENABLE_ASH_GETOPTS
+	{ BUILTIN_REGULAR       "getopts", getoptscmd },
+#endif
+	{ BUILTIN_NOSPEC        "hash", hashcmd },
+#if !ENABLE_FEATURE_SH_EXTRA_QUIET
+	{ BUILTIN_NOSPEC        "help", helpcmd },
+#endif
+#if JOBS
+	{ BUILTIN_REGULAR       "jobs", jobscmd },
+	{ BUILTIN_REGULAR       "kill", killcmd },
+#endif
+#if ENABLE_ASH_MATH_SUPPORT
+	{ BUILTIN_NOSPEC        "let", letcmd },
+#endif
+	{ BUILTIN_ASSIGN        "local", localcmd },
+	{ BUILTIN_NOSPEC        "pwd", pwdcmd },
+	{ BUILTIN_REGULAR       "read", readcmd },
+	{ BUILTIN_SPEC_REG_ASSG "readonly", exportcmd },
+	{ BUILTIN_SPEC_REG      "return", returncmd },
+	{ BUILTIN_SPEC_REG      "set", setcmd },
+	{ BUILTIN_SPEC_REG      "shift", shiftcmd },
+	{ BUILTIN_SPEC_REG      "source", dotcmd },
+#if ENABLE_ASH_BUILTIN_TEST
+	{ BUILTIN_REGULAR	"test", testcmd },
+#endif
+	{ BUILTIN_SPEC_REG      "times", timescmd },
+	{ BUILTIN_SPEC_REG      "trap", trapcmd },
+	{ BUILTIN_REGULAR       "true", truecmd },
+	{ BUILTIN_NOSPEC        "type", typecmd },
+	{ BUILTIN_NOSPEC        "ulimit", ulimitcmd },
+	{ BUILTIN_REGULAR       "umask", umaskcmd },
+#if ENABLE_ASH_ALIAS
+	{ BUILTIN_REGULAR       "unalias", unaliascmd },
+#endif
+	{ BUILTIN_SPEC_REG      "unset", unsetcmd },
+	{ BUILTIN_REGULAR       "wait", waitcmd },
+};
+
+#define NUMBUILTINS (sizeof(builtintab) / sizeof(builtintab[0]))
+
+#define COMMANDCMD (builtintab + 5 + \
+	2 * ENABLE_ASH_BUILTIN_TEST + \
+	ENABLE_ASH_ALIAS + \
+	ENABLE_ASH_JOB_CONTROL)
+#define EXECCMD (builtintab + 7 + \
+	2 * ENABLE_ASH_BUILTIN_TEST + \
+	ENABLE_ASH_ALIAS + \
+	ENABLE_ASH_JOB_CONTROL + \
+	ENABLE_ASH_CMDCMD + \
+	ENABLE_ASH_BUILTIN_ECHO)
+
+/*
+ * Execute a simple command.
+ */
+static int back_exitstatus; /* exit status of backquoted command */
+static int
+isassignment(const char *p)
 {
 	const char *q = endofname(p);
 	if (p == q)
 		return 0;
 	return *q == '=';
 }
-
-/*
- * Execute a simple command.
- */
+static int
+bltincmd(int argc, char **argv)
+{
+	/* Preserve exitstatus of a previous possible redirection
+	 * as POSIX mandates */
+	return back_exitstatus;
+}
 static void
 evalcommand(union node *cmd, int flags)
 {
+	static const struct builtincmd bltin = {
+		"\0\0", bltincmd
+	};
 	struct stackmark smark;
 	union node *argp;
 	struct arglist arglist;
@@ -4269,7 +4206,6 @@ evalcommand(union node *cmd, int flags)
 				cmd_is_exec++;
 #if ENABLE_ASH_CMDCMD
 			if (cmdentry.u.cmd == COMMANDCMD) {
-
 				path = oldpath;
 				nargv = parse_command_args(argv, &path);
 				if (!nargv)
@@ -4429,6 +4365,16 @@ poplocalvars(void)
 	}
 }
 
+/*
+ * Free a parse tree.
+ */
+static void
+freefunc(struct funcnode *f)
+{
+	if (f && --f->count < 0)
+		free(f);
+}
+
 static int
 evalfun(struct funcnode *func, int argc, char **argv, int flags)
 {
@@ -4497,25 +4443,10 @@ prehash(union node *n)
 }
 
 
-
 /*
  * Builtin commands.  Builtin commands whose functions are closely
  * tied to evaluation are implemented here.
  */
-
-/*
- * No command given.
- */
-static int
-bltincmd(int argc, char **argv)
-{
-	/*
-	 * Preserve exitstatus of a previous possible redirection
-	 * as POSIX mandates
-	 */
-	return back_exitstatus;
-}
-
 
 /*
  * Handle break and continue commands.  Break, continue, and return are
@@ -4544,7 +4475,6 @@ breakcmd(int argc, char **argv)
 	return 0;
 }
 
-
 /*
  * The return command.
  */
@@ -4559,20 +4489,17 @@ returncmd(int argc, char **argv)
 	return argv[1] ? number(argv[1]) : exitstatus;
 }
 
-
 static int
 falsecmd(int argc, char **argv)
 {
 	return 1;
 }
 
-
 static int
 truecmd(int argc, char **argv)
 {
 	return 0;
 }
-
 
 static int
 execcmd(int argc, char **argv)
@@ -4984,7 +4911,7 @@ find_builtin(const char *name)
 	struct builtincmd *bp;
 
 	bp = bsearch(
-		name, builtincmd, NUMBUILTINS, sizeof(struct builtincmd),
+		name, builtintab, NUMBUILTINS, sizeof(builtintab[0]),
 		pstrcmp
 	);
 	return bp;
@@ -5154,7 +5081,8 @@ delete_cmd_entry(void)
  * Add a new command entry, replacing any existing command entry for
  * the same name - except special builtins.
  */
-static void addcmdentry(char *name, struct cmdentry *entry)
+static void
+addcmdentry(char *name, struct cmdentry *entry)
 {
 	struct tblentry *cmdp;
 
@@ -5171,7 +5099,8 @@ static void addcmdentry(char *name, struct cmdentry *entry)
 /*
  * Make a copy of a parse tree.
  */
-static struct funcnode * copyfunc(union node *n)
+static struct funcnode *
+copyfunc(union node *n)
 {
 	struct funcnode *f;
 	size_t blocksize;
@@ -5188,7 +5117,6 @@ static struct funcnode * copyfunc(union node *n)
 	return f;
 }
 
-
 /*
  * Define a shell function.
  */
@@ -5203,7 +5131,6 @@ defun(char *name, union node *func)
 	addcmdentry(name, &entry);
 	INT_ON;
 }
-
 
 /*
  * Delete a function if it exists.
@@ -5432,8 +5359,8 @@ static void varunset(const char *, const char *, const char *, int) ATTRIBUTE_NO
  *
  * Returns an stalloced string.
  */
-
-static char * preglob(const char *pattern, int quoted, int flag)
+static char *
+preglob(const char *pattern, int quoted, int flag)
 {
 	flag |= RMESCAPE_GLOB;
 	if (quoted) {
@@ -5458,8 +5385,8 @@ esclen(const char *start, const char *p)
 /*
  * Expand shell variables and backquotes inside a here document.
  */
-
-static void expandhere(union node *arg, int fd)
+static void
+expandhere(union node *arg, int fd)
 {
 	herefd = fd;
 	expandarg(arg, (struct arglist *)NULL, 0);
@@ -5756,7 +5683,7 @@ removerecordregions(int endoff)
  * Expand arithmetic expression.  Backup to start of expression,
  * evaluate, place result in (backed up) result, adjust string position.
  */
-void
+static void
 expari(int quotes)
 {
 	char *p, *start;
@@ -5815,6 +5742,64 @@ expari(int quotes)
 
 
 /*
+ * Execute a command inside back quotes.  If it's a builtin command, we
+ * want to save its output in a block obtained from malloc.  Otherwise
+ * we fork off a subprocess and get the output of the command via a pipe.
+ * Should be called with interrupts off.
+ */
+struct backcmd {                /* result of evalbackcmd */
+	int fd;                 /* file descriptor to read from */
+	char *buf;              /* buffer */
+	int nleft;              /* number of chars in buffer */
+	struct job *jp;         /* job structure for command */
+};
+
+static void
+evalbackcmd(union node *n, struct backcmd *result)
+{
+	int saveherefd;
+
+	result->fd = -1;
+	result->buf = NULL;
+	result->nleft = 0;
+	result->jp = NULL;
+	if (n == NULL) {
+		goto out;
+	}
+
+	saveherefd = herefd;
+	herefd = -1;
+
+	{
+		int pip[2];
+		struct job *jp;
+
+		if (pipe(pip) < 0)
+			ash_msg_and_raise_error("Pipe call failed");
+		jp = makejob(n, 1);
+		if (forkshell(jp, n, FORK_NOJOB) == 0) {
+			FORCE_INT_ON;
+			close(pip[0]);
+			if (pip[1] != 1) {
+				close(1);
+				copyfd(pip[1], 1);
+				close(pip[1]);
+			}
+			eflag = 0;
+			evaltreenr(n, EV_EXIT);
+			/* NOTREACHED */
+		}
+		close(pip[1]);
+		result->fd = pip[0];
+		result->jp = jp;
+	}
+	herefd = saveherefd;
+ out:
+	TRACE(("evalbackcmd done: fd=%d buf=0x%x nleft=%d jp=0x%x\n",
+		result->fd, result->buf, result->nleft, result->jp));
+}
+
+/*
  * Expand stuff in backwards quotes.
  */
 static void
@@ -5834,7 +5819,7 @@ expbackq(union node *cmd, int quoted, int quotes)
 	dest = expdest;
 	startloc = dest - (char *)stackblock();
 	grabstackstr(dest);
-	evalbackcmd(cmd, (struct backcmd *) &in);
+	evalbackcmd(cmd, &in);
 	popstackmark(&smark);
 
 	p = in.buf;
@@ -8915,17 +8900,6 @@ nodeckstrdup(char *s)
 	strcpy(funcstring, s);
 	funcstring += strlen(s) + 1;
 	return rtn;
-}
-
-
-/*
- * Free a parse tree.
- */
-static void
-freefunc(struct funcnode *f)
-{
-	if (f && --f->count < 0)
-		free(f);
 }
 
 
