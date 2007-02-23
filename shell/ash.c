@@ -65,6 +65,13 @@
 #error "Do not even bother, ash will not run on uClinux"
 #endif
 
+#if DEBUG
+#define TRACE(param)    trace param
+#define TRACEV(param)   tracev param
+#else
+#define TRACE(param)
+#define TRACEV(param)
+#endif
 
 #ifdef __GLIBC__
 /* glibc sucks */
@@ -140,6 +147,11 @@ static char optlist[NOPTS];
 
 
 /* ============ Misc data */
+
+static char nullstr[1];                /* zero length string */
+static const char homestr[] = "HOME";
+static const char snlfmt[] = "%s\n";
+static const char illnum[] = "Illegal number: %s";
 
 static int isloginsh;
 /* pid of main shell */
@@ -379,6 +391,11 @@ out2str(const char *p)
  *
  * ash_vmsg() needs parsefile->fd, hence parsefile definition is moved up.
  */
+
+struct strlist {
+	struct strlist *next;
+	char *text;
+};
 
 struct strpush {
 	struct strpush *prev;   /* preceding string on stack */
@@ -623,6 +640,16 @@ stunalloc(void *p)
 	stacknxt = p;
 }
 
+/*
+ * Like strdup but works with the ash stack.
+ */
+static char *
+ststrdup(const char *p)
+{
+	size_t len = strlen(p) + 1;
+	return memcpy(stalloc(len), p, len);
+}
+
 static void
 setstackmark(struct stackmark *mark)
 {
@@ -785,19 +812,1055 @@ stack_putstr(const char *s, char *p)
 	return stack_nputstr(s, strlen(s), p);
 }
 
+static char *
+_STPUTC(int c, char *p)
+{
+	if (p == sstrend)
+		p = growstackstr();
+	*p++ = c;
+	return p;
+}
+
+#define STARTSTACKSTR(p) ((p) = stackblock())
+#define STPUTC(c, p) ((p) = _STPUTC((c), (p)))
+#define CHECKSTRSPACE(n, p) \
+	({ \
+		char *q = (p); \
+		size_t l = (n); \
+		size_t m = sstrend - q; \
+		if (l > m) \
+			(p) = makestrspace(l, q); \
+		0; \
+	})
+#define USTPUTC(c, p)           (*p++ = (c))
+#define STACKSTRNUL(p)          ((p) == sstrend ? (p = growstackstr(), *p = '\0') : (*p = '\0'))
+#define STUNPUTC(p)             (--p)
+#define STTOPC(p)               p[-1]
+#define STADJUST(amount, p)     (p += (amount))
+
+#define grabstackstr(p)         stalloc((char *)(p) - (char *)stackblock())
+#define ungrabstackstr(s, p)    stunalloc((s))
+#define stackstrend()           ((void *)sstrend)
+
+
+/* ============ String helpers */
+
+/*
+ * prefix -- see if pfx is a prefix of string.
+ */
+static char *
+prefix(const char *string, const char *pfx)
+{
+	while (*pfx) {
+		if (*pfx++ != *string++)
+			return 0;
+	}
+	return (char *) string;
+}
+
+/*
+ * Check for a valid number.  This should be elsewhere.
+ */
+static int
+is_number(const char *p)
+{
+	do {
+		if (!isdigit(*p))
+			return 0;
+	} while (*++p != '\0');
+	return 1;
+}
+
+/*
+ * Convert a string of digits to an integer, printing an error message on
+ * failure.
+ */
+static int
+number(const char *s)
+{
+	if (!is_number(s))
+		ash_msg_and_raise_error(illnum, s);
+	return atoi(s);
+}
+
+/*
+ * Produce a possibly single quoted string suitable as input to the shell.
+ * The return string is allocated on the stack.
+ */
+static char *
+single_quote(const char *s)
+{
+	char *p;
+
+	STARTSTACKSTR(p);
+
+	do {
+		char *q;
+		size_t len;
+
+		len = strchrnul(s, '\'') - s;
+
+		q = p = makestrspace(len + 3, p);
+
+		*q++ = '\'';
+		q = memcpy(q, s, len) + len;
+		*q++ = '\'';
+		s += len;
+
+		STADJUST(q - p, p);
+
+		len = strspn(s, "'");
+		if (!len)
+			break;
+
+		q = p = makestrspace(len + 3, p);
+
+		*q++ = '"';
+		q = memcpy(q, s, len) + len;
+		*q++ = '"';
+		s += len;
+
+		STADJUST(q - p, p);
+	} while (*s);
+
+	USTPUTC(0, p);
+
+	return stackblock();
+}
+
+
+/* ============ ... */
+
+static char **argptr;                  /* argument list for builtin commands */
+static char *optionarg;                /* set by nextopt (like getopt) */
+static char *optptr;                   /* used by nextopt */
+
+/*
+ * XXX - should get rid of.  have all builtins use getopt(3).  the
+ * library getopt must have the BSD extension static variable "optreset"
+ * otherwise it can't be used within the shell safely.
+ *
+ * Standard option processing (a la getopt) for builtin routines.  The
+ * only argument that is passed to nextopt is the option string; the
+ * other arguments are unnecessary.  It return the character, or '\0' on
+ * end of input.
+ */
+static int
+nextopt(const char *optstring)
+{
+	char *p;
+	const char *q;
+	char c;
+
+	p = optptr;
+	if (p == NULL || *p == '\0') {
+		p = *argptr;
+		if (p == NULL || *p != '-' || *++p == '\0')
+			return '\0';
+		argptr++;
+		if (LONE_DASH(p))        /* check for "--" */
+			return '\0';
+	}
+	c = *p++;
+	for (q = optstring; *q != c; ) {
+		if (*q == '\0')
+			ash_msg_and_raise_error("Illegal option -%c", c);
+		if (*++q == ':')
+			q++;
+	}
+	if (*++q == ':') {
+		if (*p == '\0' && (p = *argptr++) == NULL)
+			ash_msg_and_raise_error("No arg for -%c option", c);
+		optionarg = p;
+		p = NULL;
+	}
+	optptr = p;
+	return c;
+}
+
+
+/* ============ Variables */
+
+/* flags */
+#define VEXPORT         0x01    /* variable is exported */
+#define VREADONLY       0x02    /* variable cannot be modified */
+#define VSTRFIXED       0x04    /* variable struct is statically allocated */
+#define VTEXTFIXED      0x08    /* text is statically allocated */
+#define VSTACK          0x10    /* text is allocated on the stack */
+#define VUNSET          0x20    /* the variable is not set */
+#define VNOFUNC         0x40    /* don't call the callback function */
+#define VNOSET          0x80    /* do not set variable - just readonly test */
+#define VNOSAVE         0x100   /* when text is on the heap before setvareq */
+#ifdef DYNAMIC_VAR
+# define VDYNAMIC        0x200   /* dynamic variable */
+# else
+# define VDYNAMIC        0
+#endif
+
+#if ENABLE_LOCALE_SUPPORT
+static void change_lc_all(const char *value);
+static void change_lc_ctype(const char *value);
+#endif
+
+static const char defpathvar[] = "PATH=/usr/local/bin:/usr/bin:/sbin:/bin";
+#ifdef IFS_BROKEN
+static const char defifsvar[] = "IFS= \t\n";
+#define defifs (defifsvar + 4)
+#else
+static const char defifs[] = " \t\n";
+#endif
+
+struct var {
+	struct var *next;               /* next entry in hash list */
+	int flags;                      /* flags are defined above */
+	const char *text;               /* name=value */
+	void (*func)(const char *);     /* function to be called when  */
+					/* the variable gets set/unset */
+};
+
+struct localvar {
+	struct localvar *next;          /* next local variable in list */
+	struct var *vp;                 /* the variable that was made local */
+	int flags;                      /* saved flags */
+	const char *text;               /* saved text */
+};
+
+/* Forward decls for varinit[] */
+#if ENABLE_ASH_MAIL
+static void chkmail(void);
+static void changemail(const char *);
+#endif
+static void changepath(const char *);
+#if ENABLE_ASH_GETOPTS
+static void getoptsreset(const char *);
+#endif
+#if ENABLE_ASH_RANDOM_SUPPORT
+static void change_random(const char *);
+#endif
+
+static struct var varinit[] = {
+#ifdef IFS_BROKEN
+	{ 0,    VSTRFIXED|VTEXTFIXED,           defifsvar,      0 },
+#else
+	{ 0,    VSTRFIXED|VTEXTFIXED|VUNSET,    "IFS\0",        0 },
+#endif
+
+#if ENABLE_ASH_MAIL
+	{ 0,    VSTRFIXED|VTEXTFIXED|VUNSET,    "MAIL\0",       changemail },
+	{ 0,    VSTRFIXED|VTEXTFIXED|VUNSET,    "MAILPATH\0",   changemail },
+#endif
+
+	{ 0,    VSTRFIXED|VTEXTFIXED,           defpathvar,     changepath },
+	{ 0,    VSTRFIXED|VTEXTFIXED,           "PS1=$ ",       0          },
+	{ 0,    VSTRFIXED|VTEXTFIXED,           "PS2=> ",       0          },
+	{ 0,    VSTRFIXED|VTEXTFIXED,           "PS4=+ ",       0          },
+#if ENABLE_ASH_GETOPTS
+	{ 0,    VSTRFIXED|VTEXTFIXED,           "OPTIND=1",     getoptsreset },
+#endif
+#if ENABLE_ASH_RANDOM_SUPPORT
+	{0, VSTRFIXED|VTEXTFIXED|VUNSET|VDYNAMIC, "RANDOM\0", change_random },
+#endif
+#if ENABLE_LOCALE_SUPPORT
+	{0, VSTRFIXED | VTEXTFIXED | VUNSET, "LC_ALL\0", change_lc_all },
+	{0, VSTRFIXED | VTEXTFIXED | VUNSET, "LC_CTYPE\0", change_lc_ctype },
+#endif
+#if ENABLE_FEATURE_EDITING_SAVEHISTORY
+	{0, VSTRFIXED | VTEXTFIXED | VUNSET, "HISTFILE\0", NULL },
+#endif
+};
+
+#define vifs varinit[0]
+#if ENABLE_ASH_MAIL
+#define vmail (&vifs)[1]
+#define vmpath (&vmail)[1]
+#else
+#define vmpath vifs
+#endif
+#define vpath (&vmpath)[1]
+#define vps1 (&vpath)[1]
+#define vps2 (&vps1)[1]
+#define vps4 (&vps2)[1]
+#define voptind (&vps4)[1]
+#if ENABLE_ASH_GETOPTS
+#define vrandom (&voptind)[1]
+#else
+#define vrandom (&vps4)[1]
+#endif
+#define defpath (defpathvar + 5)
+
+/*
+ * The following macros access the values of the above variables.
+ * They have to skip over the name.  They return the null string
+ * for unset variables.
+ */
+#define ifsval()        (vifs.text + 4)
+#define ifsset()        ((vifs.flags & VUNSET) == 0)
+#define mailval()       (vmail.text + 5)
+#define mpathval()      (vmpath.text + 9)
+#define pathval()       (vpath.text + 5)
+#define ps1val()        (vps1.text + 4)
+#define ps2val()        (vps2.text + 4)
+#define ps4val()        (vps4.text + 4)
+#define optindval()     (voptind.text + 7)
+
+#define mpathset()      ((vmpath.flags & VUNSET) == 0)
+
+static struct var **hashvar(const char *);
+
+static int loopnest;            /* current loop nesting level */
+
+/*
+ * The parsefile structure pointed to by the global variable parsefile
+ * contains information about the current file being read.
+ */
+struct redirtab {
+	struct redirtab *next;
+	int renamed[10];
+	int nullredirs;
+};
+
+static struct redirtab *redirlist;
+static int nullredirs;
+
+extern char **environ;
+
+static int preverrout_fd;   /* save fd2 before print debug if xflag is set. */
+
+struct shparam {
+	int nparam;             /* # of positional parameters (without $0) */
+	unsigned char malloc;   /* if parameter list dynamically allocated */
+	char **p;               /* parameter list */
+#if ENABLE_ASH_GETOPTS
+	int optind;             /* next parameter to be processed by getopts */
+	int optoff;             /* used by getopts */
+#endif
+};
+
+static struct shparam shellparam;      /* $@ current positional parameters */
+
+#define VTABSIZE 39
+
+static struct var *vartab[VTABSIZE];
+
+#if ENABLE_ASH_GETOPTS
+static void
+getoptsreset(const char *value)
+{
+	shellparam.optind = number(value);
+	shellparam.optoff = -1;
+}
+#endif
+
+#define is_name(c)      ((c) == '_' || isalpha((unsigned char)(c)))
+#define is_in_name(c)   ((c) == '_' || isalnum((unsigned char)(c)))
+
+/*
+ * Return of a legal variable name (a letter or underscore followed by zero or
+ * more letters, underscores, and digits).
+ */
+static char *
+endofname(const char *name)
+{
+	char *p;
+
+	p = (char *) name;
+	if (!is_name(*p))
+		return p;
+	while (*++p) {
+		if (!is_in_name(*p))
+			break;
+	}
+	return p;
+}
+
+/*
+ * Compares two strings up to the first = or '\0'.  The first
+ * string must be terminated by '='; the second may be terminated by
+ * either '=' or '\0'.
+ */
+static int
+varcmp(const char *p, const char *q)
+{
+	int c, d;
+
+	while ((c = *p) == (d = *q)) {
+		if (!c || c == '=')
+			goto out;
+		p++;
+		q++;
+	}
+	if (c == '=')
+		c = 0;
+	if (d == '=')
+		d = 0;
+ out:
+	return c - d;
+}
+
+static int
+varequal(const char *a, const char *b)
+{
+	return !varcmp(a, b);
+}
+
+/*
+ * Find the appropriate entry in the hash table from the name.
+ */
+static struct var **
+hashvar(const char *p)
+{
+	unsigned hashval;
+
+	hashval = ((unsigned char) *p) << 4;
+	while (*p && *p != '=')
+		hashval += (unsigned char) *p++;
+	return &vartab[hashval % VTABSIZE];
+}
+
+static int
+vpcmp(const void *a, const void *b)
+{
+	return varcmp(*(const char **)a, *(const char **)b);
+}
+
+/*
+ * This routine initializes the builtin variables.
+ */
+static void
+initvar(void)
+{
+	struct var *vp;
+	struct var *end;
+	struct var **vpp;
+
+	/*
+	 * PS1 depends on uid
+	 */
+#if ENABLE_FEATURE_EDITING && ENABLE_FEATURE_EDITING_FANCY_PROMPT
+	vps1.text = "PS1=\\w \\$ ";
+#else
+	if (!geteuid())
+		vps1.text = "PS1=# ";
+#endif
+	vp = varinit;
+	end = vp + sizeof(varinit) / sizeof(varinit[0]);
+	do {
+		vpp = hashvar(vp->text);
+		vp->next = *vpp;
+		*vpp = vp;
+	} while (++vp < end);
+}
+
+static struct var **
+findvar(struct var **vpp, const char *name)
+{
+	for (; *vpp; vpp = &(*vpp)->next) {
+		if (varequal((*vpp)->text, name)) {
+			break;
+		}
+	}
+	return vpp;
+}
+
+/*
+ * Find the value of a variable.  Returns NULL if not set.
+ */
+static char *
+lookupvar(const char *name)
+{
+	struct var *v;
+
+	v = *findvar(hashvar(name), name);
+	if (v) {
+#ifdef DYNAMIC_VAR
+	/*
+	 * Dynamic variables are implemented roughly the same way they are
+	 * in bash. Namely, they're "special" so long as they aren't unset.
+	 * As soon as they're unset, they're no longer dynamic, and dynamic
+	 * lookup will no longer happen at that point. -- PFM.
+	 */
+		if ((v->flags & VDYNAMIC))
+			(*v->func)(NULL);
+#endif
+		if (!(v->flags & VUNSET))
+			return strchrnul(v->text, '=') + 1;
+	}
+	return NULL;
+}
+
+/*
+ * Search the environment of a builtin command.
+ */
+static char *
+bltinlookup(const char *name)
+{
+	struct strlist *sp;
+
+	for (sp = cmdenviron; sp; sp = sp->next) {
+		if (varequal(sp->text, name))
+			return strchrnul(sp->text, '=') + 1;
+	}
+	return lookupvar(name);
+}
+
+/*
+ * Same as setvar except that the variable and value are passed in
+ * the first argument as name=value.  Since the first argument will
+ * be actually stored in the table, it should not be a string that
+ * will go away.
+ * Called with interrupts off.
+ */
+static void
+setvareq(char *s, int flags)
+{
+	struct var *vp, **vpp;
+
+	vpp = hashvar(s);
+	flags |= (VEXPORT & (((unsigned) (1 - aflag)) - 1));
+	vp = *findvar(vpp, s);
+	if (vp) {
+		if ((vp->flags & (VREADONLY|VDYNAMIC)) == VREADONLY) {
+			const char *n;
+
+			if (flags & VNOSAVE)
+				free(s);
+			n = vp->text;
+			ash_msg_and_raise_error("%.*s: is read only", strchrnul(n, '=') - n, n);
+		}
+
+		if (flags & VNOSET)
+			return;
+
+		if (vp->func && (flags & VNOFUNC) == 0)
+			(*vp->func)(strchrnul(s, '=') + 1);
+
+		if ((vp->flags & (VTEXTFIXED|VSTACK)) == 0)
+			free((char*)vp->text);
+
+		flags |= vp->flags & ~(VTEXTFIXED|VSTACK|VNOSAVE|VUNSET);
+	} else {
+		if (flags & VNOSET)
+			return;
+		/* not found */
+		vp = ckmalloc(sizeof(*vp));
+		vp->next = *vpp;
+		vp->func = NULL;
+		*vpp = vp;
+	}
+	if (!(flags & (VTEXTFIXED|VSTACK|VNOSAVE)))
+		s = ckstrdup(s);
+	vp->text = s;
+	vp->flags = flags;
+}
+
+/*
+ * Set the value of a variable.  The flags argument is ored with the
+ * flags of the variable.  If val is NULL, the variable is unset.
+ */
+static void
+setvar(const char *name, const char *val, int flags)
+{
+	char *p, *q;
+	size_t namelen;
+	char *nameeq;
+	size_t vallen;
+
+	q = endofname(name);
+	p = strchrnul(q, '=');
+	namelen = p - name;
+	if (!namelen || p != q)
+		ash_msg_and_raise_error("%.*s: bad variable name", namelen, name);
+	vallen = 0;
+	if (val == NULL) {
+		flags |= VUNSET;
+	} else {
+		vallen = strlen(val);
+	}
+	INT_OFF;
+	nameeq = ckmalloc(namelen + vallen + 2);
+	p = memcpy(nameeq, name, namelen) + namelen;
+	if (val) {
+		*p++ = '=';
+		p = memcpy(p, val, vallen) + vallen;
+	}
+	*p = '\0';
+	setvareq(nameeq, flags | VNOSAVE);
+	INT_ON;
+}
+
+#if ENABLE_ASH_GETOPTS
+/*
+ * Safe version of setvar, returns 1 on success 0 on failure.
+ */
+static int
+setvarsafe(const char *name, const char *val, int flags)
+{
+	int err;
+	volatile int saveint;
+	struct jmploc *volatile savehandler = exception_handler;
+	struct jmploc jmploc;
+
+	SAVE_INT(saveint);
+	if (setjmp(jmploc.loc))
+		err = 1;
+	else {
+		exception_handler = &jmploc;
+		setvar(name, val, flags);
+		err = 0;
+	}
+	exception_handler = savehandler;
+	RESTORE_INT(saveint);
+	return err;
+}
+#endif
+
+/*
+ * Unset the specified variable.
+ */
+static int
+unsetvar(const char *s)
+{
+	struct var **vpp;
+	struct var *vp;
+	int retval;
+
+	vpp = findvar(hashvar(s), s);
+	vp = *vpp;
+	retval = 2;
+	if (vp) {
+		int flags = vp->flags;
+
+		retval = 1;
+		if (flags & VREADONLY)
+			goto out;
+#ifdef DYNAMIC_VAR
+		vp->flags &= ~VDYNAMIC;
+#endif
+		if (flags & VUNSET)
+			goto ok;
+		if ((flags & VSTRFIXED) == 0) {
+			INT_OFF;
+			if ((flags & (VTEXTFIXED|VSTACK)) == 0)
+				free((char*)vp->text);
+			*vpp = vp->next;
+			free(vp);
+			INT_ON;
+		} else {
+			setvar(s, 0, 0);
+			vp->flags &= ~VEXPORT;
+		}
+ ok:
+		retval = 0;
+	}
+ out:
+	return retval;
+}
+
+/*
+ * Process a linked list of variable assignments.
+ */
+static void
+listsetvar(struct strlist *list_set_var, int flags)
+{
+	struct strlist *lp = list_set_var;
+
+	if (!lp)
+		return;
+	INT_OFF;
+	do {
+		setvareq(lp->text, flags);
+	} while ((lp = lp->next));
+	INT_ON;
+}
+
+/*
+ * Generate a list of variables satisfying the given conditions.
+ */
+static char **
+listvars(int on, int off, char ***end)
+{
+	struct var **vpp;
+	struct var *vp;
+	char **ep;
+	int mask;
+
+	STARTSTACKSTR(ep);
+	vpp = vartab;
+	mask = on | off;
+	do {
+		for (vp = *vpp; vp; vp = vp->next) {
+			if ((vp->flags & mask) == on) {
+				if (ep == stackstrend())
+					ep = growstackstr();
+				*ep++ = (char *) vp->text;
+			}
+		}
+	} while (++vpp < vartab + VTABSIZE);
+	if (ep == stackstrend())
+		ep = growstackstr();
+	if (end)
+		*end = ep;
+	*ep++ = NULL;
+	return grabstackstr(ep);
+}
+
+
+/* ============ Path search helper
+ *
+ * The variable path (passed by reference) should be set to the start
+ * of the path before the first call; padvance will update
+ * this value as it proceeds.  Successive calls to padvance will return
+ * the possible path expansions in sequence.  If an option (indicated by
+ * a percent sign) appears in the path entry then the global variable
+ * pathopt will be set to point to it; otherwise pathopt will be set to
+ * NULL.
+ */
+static const char *pathopt;     /* set by padvance */
+
+static char *
+padvance(const char **path, const char *name)
+{
+	const char *p;
+	char *q;
+	const char *start;
+	size_t len;
+
+	if (*path == NULL)
+		return NULL;
+	start = *path;
+	for (p = start; *p && *p != ':' && *p != '%'; p++);
+	len = p - start + strlen(name) + 2;     /* "2" is for '/' and '\0' */
+	while (stackblocksize() < len)
+		growstackblock();
+	q = stackblock();
+	if (p != start) {
+		memcpy(q, start, p - start);
+		q += p - start;
+		*q++ = '/';
+	}
+	strcpy(q, name);
+	pathopt = NULL;
+	if (*p == '%') {
+		pathopt = ++p;
+		while (*p && *p != ':') p++;
+	}
+	if (*p == ':')
+		*path = p + 1;
+	else
+		*path = NULL;
+	return stalloc(len);
+}
+
+
+/* ============ Prompt */
+
+static int doprompt;                   /* if set, prompt the user */
+static int needprompt;                 /* true if interactive and at start of line */
+
+#if ENABLE_FEATURE_EDITING
+static line_input_t *line_input_state;
+static const char *cmdedit_prompt;
+static void
+putprompt(const char *s)
+{
+	if (ENABLE_ASH_EXPAND_PRMT) {
+		free((char*)cmdedit_prompt);
+		cmdedit_prompt = xstrdup(s);
+		return;
+	}
+	cmdedit_prompt = s;
+}
+#else
+static void
+putprompt(const char *s)
+{
+	out2str(s);
+}
+#endif
+
+#if ENABLE_ASH_EXPAND_PRMT
+/* expandstr() needs parsing machinery, so it is far away ahead... */
+static const char *expandstr(const char *ps);
+#else
+#define expandstr(s) s
+#endif
+
+static void
+setprompt(int whichprompt)
+{
+	const char *prompt;
+#if ENABLE_ASH_EXPAND_PRMT
+	struct stackmark smark;
+#endif
+
+	needprompt = 0;
+
+	switch (whichprompt) {
+	case 1:
+		prompt = ps1val();
+		break;
+	case 2:
+		prompt = ps2val();
+		break;
+	default:                        /* 0 */
+		prompt = nullstr;
+	}
+#if ENABLE_ASH_EXPAND_PRMT
+	setstackmark(&smark);
+	stalloc(stackblocksize());
+#endif
+	putprompt(expandstr(prompt));
+#if ENABLE_ASH_EXPAND_PRMT
+	popstackmark(&smark);
+#endif
+}
+
+
+/* ============ The cd and pwd commands */
+
+#define CD_PHYSICAL 1
+#define CD_PRINT 2
+
+static int docd(const char *, int);
+
+static char *curdir = nullstr;          /* current working directory */
+static char *physdir = nullstr;         /* physical working directory */
+
+static int
+cdopt(void)
+{
+	int flags = 0;
+	int i, j;
+
+	j = 'L';
+	while ((i = nextopt("LP"))) {
+		if (i != j) {
+			flags ^= CD_PHYSICAL;
+			j = i;
+		}
+	}
+
+	return flags;
+}
+
+/*
+ * Update curdir (the name of the current directory) in response to a
+ * cd command.
+ */
+static const char *
+updatepwd(const char *dir)
+{
+	char *new;
+	char *p;
+	char *cdcomppath;
+	const char *lim;
+
+	cdcomppath = ststrdup(dir);
+	STARTSTACKSTR(new);
+	if (*dir != '/') {
+		if (curdir == nullstr)
+			return 0;
+		new = stack_putstr(curdir, new);
+	}
+	new = makestrspace(strlen(dir) + 2, new);
+	lim = stackblock() + 1;
+	if (*dir != '/') {
+		if (new[-1] != '/')
+			USTPUTC('/', new);
+		if (new > lim && *lim == '/')
+			lim++;
+	} else {
+		USTPUTC('/', new);
+		cdcomppath++;
+		if (dir[1] == '/' && dir[2] != '/') {
+			USTPUTC('/', new);
+			cdcomppath++;
+			lim++;
+		}
+	}
+	p = strtok(cdcomppath, "/");
+	while (p) {
+		switch (*p) {
+		case '.':
+			if (p[1] == '.' && p[2] == '\0') {
+				while (new > lim) {
+					STUNPUTC(new);
+					if (new[-1] == '/')
+						break;
+				}
+				break;
+			} else if (p[1] == '\0')
+				break;
+			/* fall through */
+		default:
+			new = stack_putstr(p, new);
+			USTPUTC('/', new);
+		}
+		p = strtok(0, "/");
+	}
+	if (new > lim)
+		STUNPUTC(new);
+	*new = 0;
+	return stackblock();
+}
+
+/*
+ * Find out what the current directory is. If we already know the current
+ * directory, this routine returns immediately.
+ */
+static char *
+getpwd(void)
+{
+	char *dir = getcwd(0, 0);
+	return dir ? dir : nullstr;
+}
+
+static void
+setpwd(const char *val, int setold)
+{
+	char *oldcur, *dir;
+
+	oldcur = dir = curdir;
+
+	if (setold) {
+		setvar("OLDPWD", oldcur, VEXPORT);
+	}
+	INT_OFF;
+	if (physdir != nullstr) {
+		if (physdir != oldcur)
+			free(physdir);
+		physdir = nullstr;
+	}
+	if (oldcur == val || !val) {
+		char *s = getpwd();
+		physdir = s;
+		if (!val)
+			dir = s;
+	} else
+		dir = ckstrdup(val);
+	if (oldcur != dir && oldcur != nullstr) {
+		free(oldcur);
+	}
+	curdir = dir;
+	INT_ON;
+	setvar("PWD", dir, VEXPORT);
+}
+
+static void hashcd(void);
+
+/*
+ * Actually do the chdir.  We also call hashcd to let the routines in exec.c
+ * know that the current directory has changed.
+ */
+static int
+docd(const char *dest, int flags)
+{
+	const char *dir = 0;
+	int err;
+
+	TRACE(("docd(\"%s\", %d) called\n", dest, flags));
+
+	INT_OFF;
+	if (!(flags & CD_PHYSICAL)) {
+		dir = updatepwd(dest);
+		if (dir)
+			dest = dir;
+	}
+	err = chdir(dest);
+	if (err)
+		goto out;
+	setpwd(dir, 1);
+	hashcd();
+ out:
+	INT_ON;
+	return err;
+}
+
+static int
+cdcmd(int argc, char **argv)
+{
+	const char *dest;
+	const char *path;
+	const char *p;
+	char c;
+	struct stat statb;
+	int flags;
+
+	flags = cdopt();
+	dest = *argptr;
+	if (!dest)
+		dest = bltinlookup(homestr);
+	else if (LONE_DASH(dest)) {
+		dest = bltinlookup("OLDPWD");
+		flags |= CD_PRINT;
+	}
+	if (!dest)
+		dest = nullstr;
+	if (*dest == '/')
+		goto step7;
+	if (*dest == '.') {
+		c = dest[1];
+ dotdot:
+		switch (c) {
+		case '\0':
+		case '/':
+			goto step6;
+		case '.':
+			c = dest[2];
+			if (c != '.')
+				goto dotdot;
+		}
+	}
+	if (!*dest)
+		dest = ".";
+	path = bltinlookup("CDPATH");
+	if (!path) {
+ step6:
+ step7:
+		p = dest;
+		goto docd;
+	}
+	do {
+		c = *path;
+		p = padvance(&path, dest);
+		if (stat(p, &statb) >= 0 && S_ISDIR(statb.st_mode)) {
+			if (c && c != ':')
+				flags |= CD_PRINT;
+ docd:
+			if (!docd(p, flags))
+				goto out;
+			break;
+		}
+	} while (path);
+	ash_msg_and_raise_error("can't cd to %s", dest);
+	/* NOTREACHED */
+ out:
+	if (flags & CD_PRINT)
+		out1fmt(snlfmt, curdir);
+	return 0;
+}
+
+static int
+pwdcmd(int argc, char **argv)
+{
+	int flags;
+	const char *dir = curdir;
+
+	flags = cdopt();
+	if (flags) {
+		if (physdir == nullstr)
+			setpwd(dir, 0);
+		dir = physdir;
+	}
+	out1fmt(snlfmt, dir);
+	return 0;
+}
+
 
 /* ============ Unsorted yet */
 
 
-static void setpwd(const char *, int);
-
 /*      expand.h     */
-
-struct strlist {
-	struct strlist *next;
-	char *text;
-};
-
 
 struct arglist {
 	struct strlist *list;
@@ -1046,8 +2109,6 @@ static char *parsenextc;                /* copy of parsefile->nextc */
 static int tokpushback;                 /* last token pushed back */
 #define NEOF ((union node *)&tokpushback)
 static int parsebackquote;             /* nonzero if we are inside backquotes */
-static int doprompt;                   /* if set, prompt the user */
-static int needprompt;                 /* true if interactive and at start of line */
 static int lasttoken;                  /* last token read */
 static char *wordtext;                 /* text of last word returned by readtoken */
 static int checkkwd;
@@ -1061,20 +2122,8 @@ static char *endofname(const char *);
 
 /*      shell.h   */
 
-static char nullstr[1];                /* zero length string */
 static const char spcstr[] = " ";
-static const char snlfmt[] = "%s\n";
 static const char dolatstr[] = { CTLVAR, VSNORMAL|VSQUOTE, '@', '=', '\0' };
-static const char illnum[] = "Illegal number: %s";
-static const char homestr[] = "HOME";
-
-#if DEBUG
-#define TRACE(param)    trace param
-#define TRACEV(param)   tracev param
-#else
-#define TRACE(param)
-#define TRACEV(param)
-#endif
 
 #if !defined(__GNUC__) || (__GNUC__ == 2 && __GNUC_MINOR__ < 96)
 #define __builtin_expect(x, expected_value) (x)
@@ -1202,10 +2251,6 @@ findkwd(const char *s)
 #define PEOF -129
 #define PEOA_OR_PEOF PEOF
 #endif
-
-#define is_digit(c)     ((unsigned)((c) - '0') <= 9)
-#define is_name(c)      ((c) == '_' || isalpha((unsigned char)(c)))
-#define is_in_name(c)   ((c) == '_' || isalnum((unsigned char)(c)))
 
 /* C99 say: "char" declaration may be signed or unsigned default */
 #define SC2INT(chr2may_be_negative_int) (int)((signed char)chr2may_be_negative_int)
@@ -1743,13 +2788,6 @@ static int ulimitcmd(int, char **);
 static int killcmd(int, char **);
 #endif
 
-/*      mail.h        */
-
-#if ENABLE_ASH_MAIL
-static void chkmail(void);
-static void changemail(const char *);
-#endif
-
 /*      exec.h    */
 
 /* values of cmdtype */
@@ -1879,14 +2917,10 @@ struct cmdentry {
 #define DO_ALTPATH      0x08    /* using alternate path */
 #define DO_ALTBLTIN     0x20    /* %builtin in alt. path */
 
-static const char *pathopt;     /* set by padvance */
-
 static void shellexec(char **, const char *, int) ATTRIBUTE_NORETURN;
 static char *padvance(const char **, const char *);
 static void find_command(char *, struct cmdentry *, int, const char *);
 static struct builtincmd *find_builtin(const char *);
-static void hashcd(void);
-static void changepath(const char *);
 static void defun(char *, union node *);
 static void unsetfunc(const char *);
 
@@ -1905,221 +2939,10 @@ static arith_t arith(const char *expr, int *perrcode);
 
 #if ENABLE_ASH_RANDOM_SUPPORT
 static unsigned long rseed;
-static void change_random(const char *);
 # ifndef DYNAMIC_VAR
 #  define DYNAMIC_VAR
 # endif
 #endif
-
-/*      var.h     */
-
-/*
- * Shell variables.
- */
-
-#if ENABLE_ASH_GETOPTS
-static void getoptsreset(const char *);
-#endif
-
-/* flags */
-#define VEXPORT         0x01    /* variable is exported */
-#define VREADONLY       0x02    /* variable cannot be modified */
-#define VSTRFIXED       0x04    /* variable struct is statically allocated */
-#define VTEXTFIXED      0x08    /* text is statically allocated */
-#define VSTACK          0x10    /* text is allocated on the stack */
-#define VUNSET          0x20    /* the variable is not set */
-#define VNOFUNC         0x40    /* don't call the callback function */
-#define VNOSET          0x80    /* do not set variable - just readonly test */
-#define VNOSAVE         0x100   /* when text is on the heap before setvareq */
-#ifdef DYNAMIC_VAR
-# define VDYNAMIC        0x200   /* dynamic variable */
-# else
-# define VDYNAMIC        0
-#endif
-
-struct var {
-	struct var *next;               /* next entry in hash list */
-	int flags;                      /* flags are defined above */
-	const char *text;               /* name=value */
-	void (*func)(const char *);     /* function to be called when  */
-					/* the variable gets set/unset */
-};
-
-struct localvar {
-	struct localvar *next;          /* next local variable in list */
-	struct var *vp;                 /* the variable that was made local */
-	int flags;                      /* saved flags */
-	const char *text;               /* saved text */
-};
-
-
-static struct localvar *localvars;
-
-/*
- * Shell variables.
- */
-#if ENABLE_LOCALE_SUPPORT
-static void change_lc_all(const char *value);
-static void change_lc_ctype(const char *value);
-#endif
-
-
-#define VTABSIZE 39
-
-static const char defpathvar[] = "PATH=/usr/local/bin:/usr/bin:/sbin:/bin";
-#ifdef IFS_BROKEN
-static const char defifsvar[] = "IFS= \t\n";
-#define defifs (defifsvar + 4)
-#else
-static const char defifs[] = " \t\n";
-#endif
-
-
-static struct var varinit[] = {
-#ifdef IFS_BROKEN
-	{ 0,    VSTRFIXED|VTEXTFIXED,           defifsvar,      0 },
-#else
-	{ 0,    VSTRFIXED|VTEXTFIXED|VUNSET,    "IFS\0",        0 },
-#endif
-
-#if ENABLE_ASH_MAIL
-	{ 0,    VSTRFIXED|VTEXTFIXED|VUNSET,    "MAIL\0",       changemail },
-	{ 0,    VSTRFIXED|VTEXTFIXED|VUNSET,    "MAILPATH\0",   changemail },
-#endif
-
-	{ 0,    VSTRFIXED|VTEXTFIXED,           defpathvar,     changepath },
-	{ 0,    VSTRFIXED|VTEXTFIXED,           "PS1=$ ",       0          },
-	{ 0,    VSTRFIXED|VTEXTFIXED,           "PS2=> ",       0          },
-	{ 0,    VSTRFIXED|VTEXTFIXED,           "PS4=+ ",       0          },
-#if ENABLE_ASH_GETOPTS
-	{ 0,    VSTRFIXED|VTEXTFIXED,           "OPTIND=1",     getoptsreset },
-#endif
-#if ENABLE_ASH_RANDOM_SUPPORT
-	{0, VSTRFIXED|VTEXTFIXED|VUNSET|VDYNAMIC, "RANDOM\0", change_random },
-#endif
-#if ENABLE_LOCALE_SUPPORT
-	{0, VSTRFIXED | VTEXTFIXED | VUNSET, "LC_ALL\0", change_lc_all },
-	{0, VSTRFIXED | VTEXTFIXED | VUNSET, "LC_CTYPE\0", change_lc_ctype },
-#endif
-#if ENABLE_FEATURE_EDITING_SAVEHISTORY
-	{0, VSTRFIXED | VTEXTFIXED | VUNSET, "HISTFILE\0", NULL },
-#endif
-};
-
-#define vifs varinit[0]
-#if ENABLE_ASH_MAIL
-#define vmail (&vifs)[1]
-#define vmpath (&vmail)[1]
-#else
-#define vmpath vifs
-#endif
-#define vpath (&vmpath)[1]
-#define vps1 (&vpath)[1]
-#define vps2 (&vps1)[1]
-#define vps4 (&vps2)[1]
-#define voptind (&vps4)[1]
-#if ENABLE_ASH_GETOPTS
-#define vrandom (&voptind)[1]
-#else
-#define vrandom (&vps4)[1]
-#endif
-#define defpath (defpathvar + 5)
-
-/*
- * The following macros access the values of the above variables.
- * They have to skip over the name.  They return the null string
- * for unset variables.
- */
-
-#define ifsval()        (vifs.text + 4)
-#define ifsset()        ((vifs.flags & VUNSET) == 0)
-#define mailval()       (vmail.text + 5)
-#define mpathval()      (vmpath.text + 9)
-#define pathval()       (vpath.text + 5)
-#define ps1val()        (vps1.text + 4)
-#define ps2val()        (vps2.text + 4)
-#define ps4val()        (vps4.text + 4)
-#define optindval()     (voptind.text + 7)
-
-#define mpathset()      ((vmpath.flags & VUNSET) == 0)
-
-static void setvar(const char *, const char *, int);
-static void setvareq(char *, int);
-static void listsetvar(struct strlist *, int);
-static char *lookupvar(const char *);
-static char *bltinlookup(const char *);
-static char **listvars(int, int, char ***);
-#define environment() listvars(VEXPORT, VUNSET, 0)
-static int showvars(const char *, int, int);
-static void poplocalvars(void);
-static int unsetvar(const char *);
-#if ENABLE_ASH_GETOPTS
-static int setvarsafe(const char *, const char *, int);
-#endif
-static int varcmp(const char *, const char *);
-static struct var **hashvar(const char *);
-
-
-static int varequal(const char *a, const char *b)
-{
-	return !varcmp(a, b);
-}
-
-
-static int loopnest;            /* current loop nesting level */
-
-/*
- * The parsefile structure pointed to by the global variable parsefile
- * contains information about the current file being read.
- */
-
-
-struct redirtab {
-	struct redirtab *next;
-	int renamed[10];
-	int nullredirs;
-};
-
-static struct redirtab *redirlist;
-static int nullredirs;
-
-extern char **environ;
-
-
-static int preverrout_fd;   /* save fd2 before print debug if xflag is set. */
-
-
-/*
- * Initialization code.
- */
-
-/*
- * This routine initializes the builtin variables.
- */
-
-static void initvar(void)
-{
-	struct var *vp;
-	struct var *end;
-	struct var **vpp;
-
-	/*
-	 * PS1 depends on uid
-	 */
-#if ENABLE_FEATURE_EDITING && ENABLE_FEATURE_EDITING_FANCY_PROMPT
-	vps1.text = "PS1=\\w \\$ ";
-#else
-	if (!geteuid())
-		vps1.text = "PS1=# ";
-#endif
-	vp = varinit;
-	end = vp + sizeof(varinit) / sizeof(varinit[0]);
-	do {
-		vpp = hashvar(vp->text);
-		vp->next = *vpp;
-		*vpp = vp;
-	} while (++vp < end);
-}
 
 /* PEOF (the end of file marker) */
 
@@ -2133,10 +2956,6 @@ enum {
  * and restores it when files are pushed and popped.  The user of this
  * package must set its value.
  */
-
-static int pgetc(void);
-static int pgetc2(void);
-static int preadbuffer(void);
 static void pungetc(void);
 static void pushstring(char *, void *);
 static void popstring(void);
@@ -2145,7 +2964,6 @@ static void setinputstring(char *);
 static void popfile(void);
 static void popallfiles(void);
 static void closescript(void);
-
 
 /*      jobs.h    */
 
@@ -2220,35 +3038,6 @@ static void showjobs(FILE *, int);
 static void readcmdfile(char *);
  
 
-static char *_STPUTC(int c, char *p)
-{
-	if (p == sstrend)
-		p = growstackstr();
-	*p++ = c;
-	return p;
-}
-
-#define STARTSTACKSTR(p) ((p) = stackblock())
-#define STPUTC(c, p) ((p) = _STPUTC((c), (p)))
-#define CHECKSTRSPACE(n, p) \
-	({ \
-		char *q = (p); \
-		size_t l = (n); \
-		size_t m = sstrend - q; \
-		if (l > m) \
-			(p) = makestrspace(l, q); \
-		0; \
-	})
-#define USTPUTC(c, p)   (*p++ = (c))
-#define STACKSTRNUL(p)  ((p) == sstrend? (p = growstackstr(), *p = '\0') : (*p = '\0'))
-#define STUNPUTC(p)     (--p)
-#define STTOPC(p)       p[-1]
-#define STADJUST(amount, p)     (p += (amount))
-
-#define grabstackstr(p) stalloc((char *)(p) - (char *)stackblock())
-#define ungrabstackstr(s, p) stunalloc((s))
-#define stackstrend() ((void *)sstrend)
-
 /*      mystring.h   */
 
 
@@ -2258,28 +3047,11 @@ static char *prefix(const char *, const char *);
 static int number(const char *);
 static int is_number(const char *);
 static char *single_quote(const char *);
-static char *sstrdup(const char *);
 
 #define equal(s1, s2)   (strcmp(s1, s2) == 0)
 #define scopy(s1, s2)   ((void)strcpy(s2, s1))
 
 /*      options.h */
-
-struct shparam {
-	int nparam;             /* # of positional parameters (without $0) */
-	unsigned char malloc;   /* if parameter list dynamically allocated */
-	char **p;               /* parameter list */
-#if ENABLE_ASH_GETOPTS
-	int optind;             /* next parameter to be processed by getopts */
-	int optoff;             /* used by getopts */
-#endif
-};
-
-
-static struct shparam shellparam;      /* $@ current positional parameters */
-static char **argptr;                  /* argument list for builtin commands */
-static char *optionarg;                /* set by nextopt (like getopt) */
-static char *optptr;                   /* used by nextopt */
 
 static char *minusc;                   /* argument to -c option */
 
@@ -2549,250 +3321,6 @@ __lookupalias(const char *name) {
 	return app;
 }
 #endif /* ASH_ALIAS */
-
-
-/*      cd.c      */
-
-/*
- * The cd and pwd commands.
- */
-
-#define CD_PHYSICAL 1
-#define CD_PRINT 2
-
-static int docd(const char *, int);
-static int cdopt(void);
-
-static char *curdir = nullstr;          /* current working directory */
-static char *physdir = nullstr;         /* physical working directory */
-
-static int
-cdopt(void)
-{
-	int flags = 0;
-	int i, j;
-
-	j = 'L';
-	while ((i = nextopt("LP"))) {
-		if (i != j) {
-			flags ^= CD_PHYSICAL;
-			j = i;
-		}
-	}
-
-	return flags;
-}
-
-static int
-cdcmd(int argc, char **argv)
-{
-	const char *dest;
-	const char *path;
-	const char *p;
-	char c;
-	struct stat statb;
-	int flags;
-
-	flags = cdopt();
-	dest = *argptr;
-	if (!dest)
-		dest = bltinlookup(homestr);
-	else if (LONE_DASH(dest)) {
-		dest = bltinlookup("OLDPWD");
-		flags |= CD_PRINT;
-	}
-	if (!dest)
-		dest = nullstr;
-	if (*dest == '/')
-		goto step7;
-	if (*dest == '.') {
-		c = dest[1];
- dotdot:
-		switch (c) {
-		case '\0':
-		case '/':
-			goto step6;
-		case '.':
-			c = dest[2];
-			if (c != '.')
-				goto dotdot;
-		}
-	}
-	if (!*dest)
-		dest = ".";
-	path = bltinlookup("CDPATH");
-	if (!path) {
- step6:
- step7:
-		p = dest;
-		goto docd;
-	}
-	do {
-		c = *path;
-		p = padvance(&path, dest);
-		if (stat(p, &statb) >= 0 && S_ISDIR(statb.st_mode)) {
-			if (c && c != ':')
-				flags |= CD_PRINT;
- docd:
-			if (!docd(p, flags))
-				goto out;
-			break;
-		}
-	} while (path);
-	ash_msg_and_raise_error("can't cd to %s", dest);
-	/* NOTREACHED */
- out:
-	if (flags & CD_PRINT)
-		out1fmt(snlfmt, curdir);
-	return 0;
-}
-
-
-/*
- * Update curdir (the name of the current directory) in response to a
- * cd command.
- */
-static const char * updatepwd(const char *dir)
-{
-	char *new;
-	char *p;
-	char *cdcomppath;
-	const char *lim;
-
-	cdcomppath = sstrdup(dir);
-	STARTSTACKSTR(new);
-	if (*dir != '/') {
-		if (curdir == nullstr)
-			return 0;
-		new = stack_putstr(curdir, new);
-	}
-	new = makestrspace(strlen(dir) + 2, new);
-	lim = stackblock() + 1;
-	if (*dir != '/') {
-		if (new[-1] != '/')
-			USTPUTC('/', new);
-		if (new > lim && *lim == '/')
-			lim++;
-	} else {
-		USTPUTC('/', new);
-		cdcomppath++;
-		if (dir[1] == '/' && dir[2] != '/') {
-			USTPUTC('/', new);
-			cdcomppath++;
-			lim++;
-		}
-	}
-	p = strtok(cdcomppath, "/");
-	while (p) {
-		switch (*p) {
-		case '.':
-			if (p[1] == '.' && p[2] == '\0') {
-				while (new > lim) {
-					STUNPUTC(new);
-					if (new[-1] == '/')
-						break;
-				}
-				break;
-			} else if (p[1] == '\0')
-				break;
-			/* fall through */
-		default:
-			new = stack_putstr(p, new);
-			USTPUTC('/', new);
-		}
-		p = strtok(0, "/");
-	}
-	if (new > lim)
-		STUNPUTC(new);
-	*new = 0;
-	return stackblock();
-}
-
-
-/*
- * Actually do the chdir.  We also call hashcd to let the routines in exec.c
- * know that the current directory has changed.
- */
-static int
-docd(const char *dest, int flags)
-{
-	const char *dir = 0;
-	int err;
-
-	TRACE(("docd(\"%s\", %d) called\n", dest, flags));
-
-	INT_OFF;
-	if (!(flags & CD_PHYSICAL)) {
-		dir = updatepwd(dest);
-		if (dir)
-			dest = dir;
-	}
-	err = chdir(dest);
-	if (err)
-		goto out;
-	setpwd(dir, 1);
-	hashcd();
- out:
-	INT_ON;
-	return err;
-}
-
-/*
- * Find out what the current directory is. If we already know the current
- * directory, this routine returns immediately.
- */
-static char * getpwd(void)
-{
-	char *dir = getcwd(0, 0);
-	return dir ? dir : nullstr;
-}
-
-static int
-pwdcmd(int argc, char **argv)
-{
-	int flags;
-	const char *dir = curdir;
-
-	flags = cdopt();
-	if (flags) {
-		if (physdir == nullstr)
-			setpwd(dir, 0);
-		dir = physdir;
-	}
-	out1fmt(snlfmt, dir);
-	return 0;
-}
-
-static void
-setpwd(const char *val, int setold)
-{
-	char *oldcur, *dir;
-
-	oldcur = dir = curdir;
-
-	if (setold) {
-		setvar("OLDPWD", oldcur, VEXPORT);
-	}
-	INT_OFF;
-	if (physdir != nullstr) {
-		if (physdir != oldcur)
-			free(physdir);
-		physdir = nullstr;
-	}
-	if (oldcur == val || !val) {
-		char *s = getpwd();
-		physdir = s;
-		if (!val)
-			dir = s;
-	} else
-		dir = ckstrdup(val);
-	if (oldcur != dir && oldcur != nullstr) {
-		free(oldcur);
-	}
-	curdir = dir;
-	INT_ON;
-	setvar("PWD", dir, VEXPORT);
-}
 
 /*      eval.c  */
 
@@ -3235,7 +3763,8 @@ evalbackcmd(union node *n, struct backcmd *result)
 }
 
 #if ENABLE_ASH_CMDCMD
-static char ** parse_command_args(char **argv, const char **path)
+static char **
+parse_command_args(char **argv, const char **path)
 {
 	char *cp, c;
 
@@ -3274,12 +3803,6 @@ static int isassignment(const char *p)
 		return 0;
 	return *q == '=';
 }
-
-#if ENABLE_ASH_EXPAND_PRMT
-static const char *expandstr(const char *ps);
-#else
-#define expandstr(s) s
-#endif
 
 /*
  * Execute a simple command.
@@ -3543,6 +4066,40 @@ evalbltin(const struct builtincmd *cmd, int argc, char **argv)
 	return i;
 }
 
+static struct localvar *localvars;
+
+/*
+ * Called after a function returns.
+ * Interrupts must be off.
+ */
+static void
+poplocalvars(void)
+{
+	struct localvar *lvp;
+	struct var *vp;
+
+	while ((lvp = localvars) != NULL) {
+		localvars = lvp->next;
+		vp = lvp->vp;
+		TRACE(("poplocalvar %s", vp ? vp->text : "-"));
+		if (vp == NULL) {       /* $- saved */
+			memcpy(optlist, lvp->text, sizeof(optlist));
+			free((char*)lvp->text);
+			optschanged();
+		} else if ((lvp->flags & (VUNSET|VSTRFIXED)) == VUNSET) {
+			unsetvar(vp->text);
+		} else {
+			if (vp->func)
+				(*vp->func)(strchrnul(lvp->text, '=') + 1);
+			if ((vp->flags & (VTEXTFIXED|VSTACK)) == 0)
+				free((char*)vp->text);
+			vp->flags = lvp->flags;
+			vp->text = lvp->text;
+		}
+		free(lvp);
+	}
+}
+
 static int
 evalfun(struct funcnode *func, int argc, char **argv, int flags)
 {
@@ -3588,7 +4145,8 @@ funcdone:
 }
 
 
-static int goodname(const char *p)
+static int
+goodname(const char *p)
 {
 	return !*endofname(p);
 }
@@ -3738,6 +4296,7 @@ static void delete_cmd_entry(void);
  * Exec a program.  Never returns.  If you change this routine, you may
  * have to change the find_command routine as well.
  */
+#define environment() listvars(VEXPORT, VUNSET, 0)
 static void shellexec(char **, const char *, int) ATTRIBUTE_NORETURN;
 static void
 shellexec(char **argv, const char *path, int idx)
@@ -3842,50 +4401,6 @@ tryexec(char *cmd, char **argv, char **envp)
 		argv = new;
 		goto repeat;
 	}
-}
-
-
-/*
- * Do a path search.  The variable path (passed by reference) should be
- * set to the start of the path before the first call; padvance will update
- * this value as it proceeds.  Successive calls to padvance will return
- * the possible path expansions in sequence.  If an option (indicated by
- * a percent sign) appears in the path entry then the global variable
- * pathopt will be set to point to it; otherwise pathopt will be set to
- * NULL.
- */
-static char *
-padvance(const char **path, const char *name)
-{
-	const char *p;
-	char *q;
-	const char *start;
-	size_t len;
-
-	if (*path == NULL)
-		return NULL;
-	start = *path;
-	for (p = start; *p && *p != ':' && *p != '%'; p++);
-	len = p - start + strlen(name) + 2;     /* "2" is for '/' and '\0' */
-	while (stackblocksize() < len)
-		growstackblock();
-	q = stackblock();
-	if (p != start) {
-		memcpy(q, start, p - start);
-		q += p - start;
-		*q++ = '/';
-	}
-	strcpy(q, name);
-	pathopt = NULL;
-	if (*p == '%') {
-		pathopt = ++p;
-		while (*p && *p != ':')  p++;
-	}
-	if (*p == ':')
-		*path = p + 1;
-	else
-		*path = NULL;
-	return stalloc(len);
 }
 
 
@@ -5652,7 +6167,7 @@ addfname(const char *name)
 	struct strlist *sp;
 
 	sp = stalloc(sizeof(*sp));
-	sp->text = sstrdup(name);
+	sp->text = ststrdup(name);
 	*exparg.lastp = sp;
 	exparg.lastp = &sp->next;
 }
@@ -5987,8 +6502,7 @@ static void pushfile(void);
  * Read a character from the script, returning PEOF on end of file.
  * Nul characters in the input are silently discarded.
  */
-
-
+static int preadbuffer(void);
 #define pgetc_as_macro()   (--parsenleft >= 0? SC2INT(*parsenextc++) : preadbuffer())
 
 #if ENABLE_ASH_OPTIMIZE_FOR_SIZE
@@ -6007,12 +6521,12 @@ pgetc(void)
 }
 #endif
 
-
 /*
  * Same as pgetc(), but ignores PEOA.
  */
 #if ENABLE_ASH_ALIAS
-static int pgetc2(void)
+static int
+pgetc2(void)
 {
 	int c;
 
@@ -6022,7 +6536,8 @@ static int pgetc2(void)
 	return c;
 }
 #else
-static int pgetc2(void)
+static int
+pgetc2(void)
 {
 	return pgetc_macro();
 }
@@ -6031,8 +6546,8 @@ static int pgetc2(void)
 /*
  * Read a line from the script.
  */
-
-static char * pfgets(char *line, int len)
+static char *
+pfgets(char *line, int len)
 {
 	char *p = line;
 	int nleft = len;
@@ -6053,27 +6568,6 @@ static char * pfgets(char *line, int len)
 	return line;
 }
 
-
-#if ENABLE_FEATURE_EDITING
-static line_input_t *line_input_state;
-//static SKIP_ASH_EXPAND_PRMT(const) char *cmdedit_prompt;
-static const char *cmdedit_prompt;
-static void putprompt(const char *s)
-{
-	if (ENABLE_ASH_EXPAND_PRMT) {
-		free((char*)cmdedit_prompt);
-		cmdedit_prompt = xstrdup(s);
-		return;
-	}
-	cmdedit_prompt = s;
-}
-#else
-static void putprompt(const char *s)
-{
-	out2str(s);
-}
-#endif
-
 #if ENABLE_FEATURE_EDITING_VI
 #define setvimode(on) do { \
 	if (on) line_input_state->flags |= VI_MODE; \
@@ -6083,8 +6577,8 @@ static void putprompt(const char *s)
 #define setvimode(on) viflag = 0   /* forcibly keep the option off */
 #endif
 
-
-static int preadfd(void)
+static int
+preadfd(void)
 {
 	int nr;
 	char *buf =  parsefile->buf;
@@ -7913,113 +8407,6 @@ find_dot_file(char *name)
 	/* NOTREACHED */
 }
 
-/*      mystring.c   */
-
-/*
- * String functions.
- *
- *      number(s)               Convert a string of digits to an integer.
- *      is_number(s)            Return true if s is a string of digits.
- */
-
-/*
- * prefix -- see if pfx is a prefix of string.
- */
-static char *
-prefix(const char *string, const char *pfx)
-{
-	while (*pfx) {
-		if (*pfx++ != *string++)
-			return 0;
-	}
-	return (char *) string;
-}
-
-
-/*
- * Convert a string of digits to an integer, printing an error message on
- * failure.
- */
-static int
-number(const char *s)
-{
-	if (!is_number(s))
-		ash_msg_and_raise_error(illnum, s);
-	return atoi(s);
-}
-
-
-/*
- * Check for a valid number.  This should be elsewhere.
- */
-static int
-is_number(const char *p)
-{
-	do {
-		if (!is_digit(*p))
-			return 0;
-	} while (*++p != '\0');
-	return 1;
-}
-
-
-/*
- * Produce a possibly single quoted string suitable as input to the shell.
- * The return string is allocated on the stack.
- */
-static char *
-single_quote(const char *s)
-{
-	char *p;
-
-	STARTSTACKSTR(p);
-
-	do {
-		char *q;
-		size_t len;
-
-		len = strchrnul(s, '\'') - s;
-
-		q = p = makestrspace(len + 3, p);
-
-		*q++ = '\'';
-		q = memcpy(q, s, len) + len;
-		*q++ = '\'';
-		s += len;
-
-		STADJUST(q - p, p);
-
-		len = strspn(s, "'");
-		if (!len)
-			break;
-
-		q = p = makestrspace(len + 3, p);
-
-		*q++ = '"';
-		q = memcpy(q, s, len) + len;
-		*q++ = '"';
-		s += len;
-
-		STADJUST(q - p, p);
-	} while (*s);
-
-	USTPUTC(0, p);
-
-	return stackblock();
-}
-
-
-/*
- * Like strdup but works with the ash stack.
- */
-static char *
-sstrdup(const char *p)
-{
-	size_t len = strlen(p) + 1;
-	return memcpy(stalloc(len), p, len);
-}
-
-
 static void
 calcsize(union node *n)
 {
@@ -8241,9 +8628,6 @@ freefunc(struct funcnode *f)
 }
 
 
-static void setoption(int, int);
-
-
 static void
 optschanged(void)
 {
@@ -8255,7 +8639,8 @@ optschanged(void)
 	setvimode(viflag);
 }
 
-static void minus_o(char *name, int val)
+static void
+minus_o(char *name, int val)
 {
 	int i;
 
@@ -8272,6 +8657,22 @@ static void minus_o(char *name, int val)
 	for (i = 0; i < NOPTS; i++)
 		out1fmt("%-16s%s\n", optnames(i),
 				optlist[i] ? "on" : "off");
+}
+
+
+static void
+setoption(int flag, int val)
+{
+	int i;
+
+	for (i = 0; i < NOPTS; i++) {
+		if (optletters(i) == flag) {
+			optlist[i] = val;
+			return;
+		}
+	}
+	ash_msg_and_raise_error("Illegal option -%c", flag);
+	/* NOTREACHED */
 }
 
 
@@ -8326,22 +8727,6 @@ options(int cmdline)
 			}
 		}
 	}
-}
-
-
-static void
-setoption(int flag, int val)
-{
-	int i;
-
-	for (i = 0; i < NOPTS; i++) {
-		if (optletters(i) == flag) {
-			optlist[i] = val;
-			return;
-		}
-	}
-	ash_msg_and_raise_error("Illegal option -%c", flag);
-	/* NOTREACHED */
 }
 
 
@@ -8420,6 +8805,37 @@ shiftcmd(int argc, char **argv)
 
 
 /*
+ * POSIX requires that 'set' (but not export or readonly) output the
+ * variables in lexicographic order - by the locale's collating order (sigh).
+ * Maybe we could keep them in an ordered balanced binary tree
+ * instead of hashed lists.
+ * For now just roll 'em through qsort for printing...
+ */
+static int
+showvars(const char *sep_prefix, int on, int off)
+{
+	const char *sep;
+	char **ep, **epend;
+
+	ep = listvars(on, off, &epend);
+	qsort(ep, epend - ep, sizeof(char *), vpcmp);
+
+	sep = *sep_prefix ? spcstr : sep_prefix;
+
+	for (; ep < epend; ep++) {
+		const char *p;
+		const char *q;
+
+		p = strchrnul(*ep, '=');
+		q = nullstr;
+		if (*p)
+			q = single_quote(++p);
+		out1fmt("%s%s%.*s%s\n", sep_prefix, sep, (int)(p - *ep), *ep, q);
+	}
+	return 0;
+}
+
+/*
  * The set command builtin.
  */
 static int
@@ -8438,15 +8854,6 @@ setcmd(int argc, char **argv)
 }
 
 
-#if ENABLE_ASH_GETOPTS
-static void
-getoptsreset(const char *value)
-{
-	shellparam.optind = number(value);
-	shellparam.optoff = -1;
-}
-#endif
-
 #if ENABLE_LOCALE_SUPPORT
 static void change_lc_all(const char *value)
 {
@@ -8459,7 +8866,6 @@ static void change_lc_ctype(const char *value)
 	if (value && *value != '\0')
 		setlocale(LC_CTYPE, value);
 }
-
 #endif
 
 #if ENABLE_ASH_RANDOM_SUPPORT
@@ -8525,7 +8931,7 @@ getopts(char *optstr, char *optvar, char **optfirst, int *param_optind, int *opt
 				err |= setvarsafe("OPTARG", s, 0);
 			} else {
 				fprintf(stderr, "Illegal option -%c\n", c);
-				(void) unsetvar("OPTARG");
+				unsetvar("OPTARG");
 			}
 			c = '?';
 			goto out;
@@ -8543,7 +8949,7 @@ getopts(char *optstr, char *optvar, char **optfirst, int *param_optind, int *opt
 				c = ':';
 			} else {
 				fprintf(stderr, "No arg for -%c option\n", c);
-				(void) unsetvar("OPTARG");
+				unsetvar("OPTARG");
 				c = '?';
 			}
 			goto out;
@@ -8586,7 +8992,7 @@ getoptscmd(int argc, char **argv)
 
 	if (argc < 3)
 		ash_msg_and_raise_error("Usage: getopts optstring var [arg]");
-	else if (argc == 3) {
+	if (argc == 3) {
 		optbase = shellparam.p;
 		if (shellparam.optind > shellparam.nparam + 1) {
 			shellparam.optind = 1;
@@ -8605,82 +9011,8 @@ getoptscmd(int argc, char **argv)
 }
 #endif /* ASH_GETOPTS */
 
-/*
- * XXX - should get rid of.  have all builtins use getopt(3).  the
- * library getopt must have the BSD extension static variable "optreset"
- * otherwise it can't be used within the shell safely.
- *
- * Standard option processing (a la getopt) for builtin routines.  The
- * only argument that is passed to nextopt is the option string; the
- * other arguments are unnecessary.  It return the character, or '\0' on
- * end of input.
- */
-static int
-nextopt(const char *optstring)
-{
-	char *p;
-	const char *q;
-	char c;
 
-	p = optptr;
-	if (p == NULL || *p == '\0') {
-		p = *argptr;
-		if (p == NULL || *p != '-' || *++p == '\0')
-			return '\0';
-		argptr++;
-		if (LONE_DASH(p))        /* check for "--" */
-			return '\0';
-	}
-	c = *p++;
-	for (q = optstring; *q != c; ) {
-		if (*q == '\0')
-			ash_msg_and_raise_error("Illegal option -%c", c);
-		if (*++q == ':')
-			q++;
-	}
-	if (*++q == ':') {
-		if (*p == '\0' && (p = *argptr++) == NULL)
-			ash_msg_and_raise_error("No arg for -%c option", c);
-		optionarg = p;
-		p = NULL;
-	}
-	optptr = p;
-	return c;
-}
-
-
-/*      parser.c     */
-
-
-/*
- * Shell command parser.
- */
-
-#define EOFMARKLEN 79
-
-struct heredoc {
-	struct heredoc *next;   /* next here document in list */
-	union node *here;               /* redirection node */
-	char *eofmark;          /* string indicating end of input */
-	int striptabs;          /* if set, strip leading tabs */
-};
-
-static struct heredoc *heredoclist;    /* list of here documents to read */
-
-static union node *list(int);
-static union node *andor(void);
-static union node *pipeline(void);
-static union node *command(void);
-static union node *simplecmd(void);
-static union node *makename(void);
-static void parsefname(void);
-static void parseheredoc(void);
-static char peektoken(void);
-static int readtoken(void);
-static int xxreadtoken(void);
-static int readtoken1(int firstc, int syntax, char *eofmark, int striptabs);
-static int noexpand(char *);
-static void setprompt(int);
+/* ============ Shell parser */
 
 static void raise_error_syntax(const char *) ATTRIBUTE_NORETURN;
 static void
@@ -8709,29 +9041,24 @@ raise_error_unexpected_syntax(int token)
 	/* NOTREACHED */
 }
 
-/*
- * Read and parse a command.  Returns NEOF on end of file.  (NULL is a
- * valid parse tree indicating a blank line.)
- */
-static union node *
-parsecmd(int interact)
-{
-	int t;
+#define EOFMARKLEN 79
 
-	tokpushback = 0;
-	doprompt = interact;
-	if (doprompt)
-		setprompt(doprompt);
-	needprompt = 0;
-	t = readtoken();
-	if (t == TEOF)
-		return NEOF;
-	if (t == TNL)
-		return NULL;
-	tokpushback++;
-	return list(1);
-}
+struct heredoc {
+	struct heredoc *next;   /* next here document in list */
+	union node *here;               /* redirection node */
+	char *eofmark;          /* string indicating end of input */
+	int striptabs;          /* if set, strip leading tabs */
+};
 
+static struct heredoc *heredoclist;    /* list of here documents to read */
+
+/* parsing is heavily cross-recursive, need these forward decls */
+static union node *andor(void);
+static union node *pipeline(void);
+static union node *parse_command(void);
+static void parseheredoc(void);
+static char peektoken(void);
+static int readtoken(void);
 
 static union node *
 list(int nlflag)
@@ -8800,7 +9127,6 @@ list(int nlflag)
 	}
 }
 
-
 static union node *
 andor(void)
 {
@@ -8828,7 +9154,6 @@ andor(void)
 	}
 }
 
-
 static union node *
 pipeline(void)
 {
@@ -8843,7 +9168,7 @@ pipeline(void)
 		checkkwd = CHKKWD | CHKALIAS;
 	} else
 		tokpushback++;
-	n1 = command();
+	n1 = parse_command();
 	if (readtoken() == TPIPE) {
 		pipenode = stalloc(sizeof(struct npipe));
 		pipenode->type = NPIPE;
@@ -8855,7 +9180,7 @@ pipeline(void)
 			prev = lp;
 			lp = stalloc(sizeof(struct nodelist));
 			checkkwd = CHKNL | CHKKWD | CHKALIAS;
-			lp->n = command();
+			lp->n = parse_command();
 			prev->next = lp;
 		} while (readtoken() == TPIPE);
 		lp->next = NULL;
@@ -8871,9 +9196,172 @@ pipeline(void)
 	return n1;
 }
 
+static union node *
+makename(void)
+{
+	union node *n;
+
+	n = stalloc(sizeof(struct narg));
+	n->type = NARG;
+	n->narg.next = NULL;
+	n->narg.text = wordtext;
+	n->narg.backquote = backquotelist;
+	return n;
+}
+
+static void
+fixredir(union node *n, const char *text, int err)
+{
+	TRACE(("Fix redir %s %d\n", text, err));
+	if (!err)
+		n->ndup.vname = NULL;
+
+	if (isdigit(text[0]) && text[1] == '\0')
+		n->ndup.dupfd = digit_val(text[0]);
+	else if (LONE_DASH(text))
+		n->ndup.dupfd = -1;
+	else {
+		if (err)
+			raise_error_syntax("Bad fd number");
+		n->ndup.vname = makename();
+	}
+}
+
+/*
+ * Returns true if the text contains nothing to expand (no dollar signs
+ * or backquotes).
+ */
+static int
+noexpand(char *text)
+{
+	char *p;
+	char c;
+
+	p = text;
+	while ((c = *p++) != '\0') {
+		if (c == CTLQUOTEMARK)
+			continue;
+		if (c == CTLESC)
+			p++;
+		else if (SIT(c, BASESYNTAX) == CCTL)
+			return 0;
+	}
+	return 1;
+}
+
+static void
+parsefname(void)
+{
+	union node *n = redirnode;
+
+	if (readtoken() != TWORD)
+		raise_error_unexpected_syntax(-1);
+	if (n->type == NHERE) {
+		struct heredoc *here = heredoc;
+		struct heredoc *p;
+		int i;
+
+		if (quoteflag == 0)
+			n->type = NXHERE;
+		TRACE(("Here document %d\n", n->type));
+		if (!noexpand(wordtext) || (i = strlen(wordtext)) == 0 || i > EOFMARKLEN)
+			raise_error_syntax("Illegal eof marker for << redirection");
+		rmescapes(wordtext);
+		here->eofmark = wordtext;
+		here->next = NULL;
+		if (heredoclist == NULL)
+			heredoclist = here;
+		else {
+			for (p = heredoclist; p->next; p = p->next);
+			p->next = here;
+		}
+	} else if (n->type == NTOFD || n->type == NFROMFD) {
+		fixredir(n, wordtext, 0);
+	} else {
+		n->nfile.fname = makename();
+	}
+}
 
 static union node *
-command(void)
+simplecmd(void)
+{
+	union node *args, **app;
+	union node *n = NULL;
+	union node *vars, **vpp;
+	union node **rpp, *redir;
+	int savecheckkwd;
+
+	args = NULL;
+	app = &args;
+	vars = NULL;
+	vpp = &vars;
+	redir = NULL;
+	rpp = &redir;
+
+	savecheckkwd = CHKALIAS;
+	for (;;) {
+		checkkwd = savecheckkwd;
+		switch (readtoken()) {
+		case TWORD:
+			n = stalloc(sizeof(struct narg));
+			n->type = NARG;
+			n->narg.text = wordtext;
+			n->narg.backquote = backquotelist;
+			if (savecheckkwd && isassignment(wordtext)) {
+				*vpp = n;
+				vpp = &n->narg.next;
+			} else {
+				*app = n;
+				app = &n->narg.next;
+				savecheckkwd = 0;
+			}
+			break;
+		case TREDIR:
+			*rpp = n = redirnode;
+			rpp = &n->nfile.next;
+			parsefname();   /* read name of redirection file */
+			break;
+		case TLP:
+			if (args && app == &args->narg.next
+			 && !vars && !redir
+			) {
+				struct builtincmd *bcmd;
+				const char *name;
+
+				/* We have a function */
+				if (readtoken() != TRP)
+					raise_error_unexpected_syntax(TRP);
+				name = n->narg.text;
+				if (!goodname(name)
+				 || ((bcmd = find_builtin(name)) && IS_BUILTIN_SPECIAL(bcmd))
+				) {
+					raise_error_syntax("Bad function name");
+				}
+				n->type = NDEFUN;
+				checkkwd = CHKNL | CHKKWD | CHKALIAS;
+				n->narg.next = parse_command();
+				return n;
+			}
+			/* fall through */
+		default:
+			tokpushback++;
+			goto out;
+		}
+	}
+ out:
+	*app = NULL;
+	*vpp = NULL;
+	*rpp = NULL;
+	n = stalloc(sizeof(struct ncmd));
+	n->type = NCMD;
+	n->ncmd.args = args;
+	n->ncmd.assign = vars;
+	n->ncmd.redirect = redir;
+	return n;
+}
+
+static union node *
+parse_command(void)
 {
 	union node *n1, *n2;
 	union node *ap, **app;
@@ -8918,9 +9406,10 @@ command(void)
 	case TUNTIL: {
 		int got;
 		n1 = stalloc(sizeof(struct nbinary));
-		n1->type = (lasttoken == TWHILE)? NWHILE : NUNTIL;
+		n1->type = (lasttoken == TWHILE) ? NWHILE : NUNTIL;
 		n1->nbinary.ch1 = list(0);
-		if ((got=readtoken()) != TDO) {
+		got = readtoken();
+		if (got != TDO) {
 			TRACE(("expecting DO got %s %s\n", tokname(got),
 					got == TWORD ? wordtext : ""));
 			raise_error_unexpected_syntax(TDO);
@@ -9064,421 +9553,6 @@ command(void)
 	}
 	return n1;
 }
-
-
-static union node *
-simplecmd(void)
-{
-	union node *args, **app;
-	union node *n = NULL;
-	union node *vars, **vpp;
-	union node **rpp, *redir;
-	int savecheckkwd;
-
-	args = NULL;
-	app = &args;
-	vars = NULL;
-	vpp = &vars;
-	redir = NULL;
-	rpp = &redir;
-
-	savecheckkwd = CHKALIAS;
-	for (;;) {
-		checkkwd = savecheckkwd;
-		switch (readtoken()) {
-		case TWORD:
-			n = stalloc(sizeof(struct narg));
-			n->type = NARG;
-			n->narg.text = wordtext;
-			n->narg.backquote = backquotelist;
-			if (savecheckkwd && isassignment(wordtext)) {
-				*vpp = n;
-				vpp = &n->narg.next;
-			} else {
-				*app = n;
-				app = &n->narg.next;
-				savecheckkwd = 0;
-			}
-			break;
-		case TREDIR:
-			*rpp = n = redirnode;
-			rpp = &n->nfile.next;
-			parsefname();   /* read name of redirection file */
-			break;
-		case TLP:
-			if (args && app == &args->narg.next
-			 && !vars && !redir
-			) {
-				struct builtincmd *bcmd;
-				const char *name;
-
-				/* We have a function */
-				if (readtoken() != TRP)
-					raise_error_unexpected_syntax(TRP);
-				name = n->narg.text;
-				if (!goodname(name)
-				 || ((bcmd = find_builtin(name)) && IS_BUILTIN_SPECIAL(bcmd))
-				) {
-					raise_error_syntax("Bad function name");
-				}
-				n->type = NDEFUN;
-				checkkwd = CHKNL | CHKKWD | CHKALIAS;
-				n->narg.next = command();
-				return n;
-			}
-			/* fall through */
-		default:
-			tokpushback++;
-			goto out;
-		}
-	}
- out:
-	*app = NULL;
-	*vpp = NULL;
-	*rpp = NULL;
-	n = stalloc(sizeof(struct ncmd));
-	n->type = NCMD;
-	n->ncmd.args = args;
-	n->ncmd.assign = vars;
-	n->ncmd.redirect = redir;
-	return n;
-}
-
-static union node *
-makename(void)
-{
-	union node *n;
-
-	n = stalloc(sizeof(struct narg));
-	n->type = NARG;
-	n->narg.next = NULL;
-	n->narg.text = wordtext;
-	n->narg.backquote = backquotelist;
-	return n;
-}
-
-static void
-fixredir(union node *n, const char *text, int err)
-{
-	TRACE(("Fix redir %s %d\n", text, err));
-	if (!err)
-		n->ndup.vname = NULL;
-
-	if (is_digit(text[0]) && text[1] == '\0')
-		n->ndup.dupfd = digit_val(text[0]);
-	else if (LONE_DASH(text))
-		n->ndup.dupfd = -1;
-	else {
-		if (err)
-			raise_error_syntax("Bad fd number");
-		n->ndup.vname = makename();
-	}
-}
-
-
-static void
-parsefname(void)
-{
-	union node *n = redirnode;
-
-	if (readtoken() != TWORD)
-		raise_error_unexpected_syntax(-1);
-	if (n->type == NHERE) {
-		struct heredoc *here = heredoc;
-		struct heredoc *p;
-		int i;
-
-		if (quoteflag == 0)
-			n->type = NXHERE;
-		TRACE(("Here document %d\n", n->type));
-		if (!noexpand(wordtext) || (i = strlen(wordtext)) == 0 || i > EOFMARKLEN)
-			raise_error_syntax("Illegal eof marker for << redirection");
-		rmescapes(wordtext);
-		here->eofmark = wordtext;
-		here->next = NULL;
-		if (heredoclist == NULL)
-			heredoclist = here;
-		else {
-			for (p = heredoclist; p->next; p = p->next);
-			p->next = here;
-		}
-	} else if (n->type == NTOFD || n->type == NFROMFD) {
-		fixredir(n, wordtext, 0);
-	} else {
-		n->nfile.fname = makename();
-	}
-}
-
-
-/*
- * Input any here documents.
- */
-static void
-parseheredoc(void)
-{
-	struct heredoc *here;
-	union node *n;
-
-	here = heredoclist;
-	heredoclist = 0;
-
-	while (here) {
-		if (needprompt) {
-			setprompt(2);
-		}
-		readtoken1(pgetc(), here->here->type == NHERE? SQSYNTAX : DQSYNTAX,
-				here->eofmark, here->striptabs);
-		n = stalloc(sizeof(struct narg));
-		n->narg.type = NARG;
-		n->narg.next = NULL;
-		n->narg.text = wordtext;
-		n->narg.backquote = backquotelist;
-		here->here->nhere.doc = n;
-		here = here->next;
-	}
-}
-
-static char
-peektoken(void)
-{
-	int t;
-
-	t = readtoken();
-	tokpushback++;
-	return tokname_array[t][0];
-}
-
-static int
-readtoken(void)
-{
-	int t;
-#if DEBUG
-	int alreadyseen = tokpushback;
-#endif
-
-#if ENABLE_ASH_ALIAS
- top:
-#endif
-
-	t = xxreadtoken();
-
-	/*
-	 * eat newlines
-	 */
-	if (checkkwd & CHKNL) {
-		while (t == TNL) {
-			parseheredoc();
-			t = xxreadtoken();
-		}
-	}
-
-	if (t != TWORD || quoteflag) {
-		goto out;
-	}
-
-	/*
-	 * check for keywords
-	 */
-	if (checkkwd & CHKKWD) {
-		const char *const *pp;
-
-		pp = findkwd(wordtext);
-		if (pp) {
-			lasttoken = t = pp - tokname_array;
-			TRACE(("keyword %s recognized\n", tokname(t)));
-			goto out;
-		}
-	}
-
-	if (checkkwd & CHKALIAS) {
-#if ENABLE_ASH_ALIAS
-		struct alias *ap;
-		ap = lookupalias(wordtext, 1);
-		if (ap != NULL) {
-			if (*ap->val) {
-				pushstring(ap->val, ap);
-			}
-			goto top;
-		}
-#endif
-	}
- out:
-	checkkwd = 0;
-#if DEBUG
-	if (!alreadyseen)
-		TRACE(("token %s %s\n", tokname(t), t == TWORD ? wordtext : ""));
-	else
-		TRACE(("reread token %s %s\n", tokname(t), t == TWORD ? wordtext : ""));
-#endif
-	return t;
-}
-
-
-/*
- * Read the next input token.
- * If the token is a word, we set backquotelist to the list of cmds in
- *      backquotes.  We set quoteflag to true if any part of the word was
- *      quoted.
- * If the token is TREDIR, then we set redirnode to a structure containing
- *      the redirection.
- * In all cases, the variable startlinno is set to the number of the line
- *      on which the token starts.
- *
- * [Change comment:  here documents and internal procedures]
- * [Readtoken shouldn't have any arguments.  Perhaps we should make the
- *  word parsing code into a separate routine.  In this case, readtoken
- *  doesn't need to have any internal procedures, but parseword does.
- *  We could also make parseoperator in essence the main routine, and
- *  have parseword (readtoken1?) handle both words and redirection.]
- */
-#define NEW_xxreadtoken
-#ifdef NEW_xxreadtoken
-/* singles must be first! */
-static const char xxreadtoken_chars[7] = { '\n', '(', ')', '&', '|', ';', 0 };
-
-static const char xxreadtoken_tokens[] = {
-	TNL, TLP, TRP,          /* only single occurrence allowed */
-	TBACKGND, TPIPE, TSEMI, /* if single occurrence */
-	TEOF,                   /* corresponds to trailing nul */
-	TAND, TOR, TENDCASE,    /* if double occurrence */
-};
-
-#define xxreadtoken_doubles \
-	(sizeof(xxreadtoken_tokens) - sizeof(xxreadtoken_chars))
-#define xxreadtoken_singles \
-	(sizeof(xxreadtoken_chars) - xxreadtoken_doubles - 1)
-
-static int xxreadtoken(void)
-{
-	int c;
-
-	if (tokpushback) {
-		tokpushback = 0;
-		return lasttoken;
-	}
-	if (needprompt) {
-		setprompt(2);
-	}
-	startlinno = plinno;
-	for (;;) {                      /* until token or start of word found */
-		c = pgetc_macro();
-
-		if ((c != ' ') && (c != '\t')
-#if ENABLE_ASH_ALIAS
-		 && (c != PEOA)
-#endif
-		) {
-			if (c == '#') {
-				while ((c = pgetc()) != '\n' && c != PEOF);
-				pungetc();
-			} else if (c == '\\') {
-				if (pgetc() != '\n') {
-					pungetc();
-					goto READTOKEN1;
-				}
-				startlinno = ++plinno;
-				if (doprompt)
-					setprompt(2);
-			} else {
-				const char *p
-					= xxreadtoken_chars + sizeof(xxreadtoken_chars) - 1;
-
-				if (c != PEOF) {
-					if (c == '\n') {
-						plinno++;
-						needprompt = doprompt;
-					}
-
-					p = strchr(xxreadtoken_chars, c);
-					if (p == NULL) {
- READTOKEN1:
-						return readtoken1(c, BASESYNTAX, (char *) NULL, 0);
-					}
-
-					if (p - xxreadtoken_chars >= xxreadtoken_singles) {
-						if (pgetc() == *p) {    /* double occurrence? */
-							p += xxreadtoken_doubles + 1;
-						} else {
-							pungetc();
-						}
-					}
-				}
-				return lasttoken = xxreadtoken_tokens[p - xxreadtoken_chars];
-			}
-		}
-	} /* for */
-}
-#else
-#define RETURN(token)   return lasttoken = token
-static int
-xxreadtoken(void)
-{
-	int c;
-
-	if (tokpushback) {
-		tokpushback = 0;
-		return lasttoken;
-	}
-	if (needprompt) {
-		setprompt(2);
-	}
-	startlinno = plinno;
-	for (;;) {      /* until token or start of word found */
-		c = pgetc_macro();
-		switch (c) {
-		case ' ': case '\t':
-#if ENABLE_ASH_ALIAS
-		case PEOA:
-#endif
-			continue;
-		case '#':
-			while ((c = pgetc()) != '\n' && c != PEOF);
-			pungetc();
-			continue;
-		case '\\':
-			if (pgetc() == '\n') {
-				startlinno = ++plinno;
-				if (doprompt)
-					setprompt(2);
-				continue;
-			}
-			pungetc();
-			goto breakloop;
-		case '\n':
-			plinno++;
-			needprompt = doprompt;
-			RETURN(TNL);
-		case PEOF:
-			RETURN(TEOF);
-		case '&':
-			if (pgetc() == '&')
-				RETURN(TAND);
-			pungetc();
-			RETURN(TBACKGND);
-		case '|':
-			if (pgetc() == '|')
-				RETURN(TOR);
-			pungetc();
-			RETURN(TPIPE);
-		case ';':
-			if (pgetc() == ';')
-				RETURN(TENDCASE);
-			pungetc();
-			RETURN(TSEMI);
-		case '(':
-			RETURN(TLP);
-		case ')':
-			RETURN(TRP);
-		default:
-			goto breakloop;
-		}
-	}
- breakloop:
-	return readtoken1(c, BASESYNTAX, (char *)NULL, 0);
-#undef RETURN
-}
-#endif /* NEW_xxreadtoken */
-
 
 /*
  * If eofmark is NULL, read a word or a redirection symbol.  If eofmark
@@ -9696,7 +9770,7 @@ readtoken1(int firstc, int syntax, char *eofmark, int striptabs)
 		if ((c == '>' || c == '<')
 		 && quotef == 0
 		 && len <= 2
-		 && (*out == '\0' || is_digit(*out))) {
+		 && (*out == '\0' || isdigit(*out))) {
 			PARSEREDIR();
 			return lasttoken = TREDIR;
 		} else {
@@ -9864,11 +9938,11 @@ parsesub: {
 				STPUTC(c, out);
 				c = pgetc();
 			} while (c > PEOA_OR_PEOF && is_in_name(c));
-		} else if (is_digit(c)) {
+		} else if (isdigit(c)) {
 			do {
 				STPUTC(c, out);
 				c = pgetc();
-			} while (is_digit(c));
+			} while (isdigit(c));
 		} else if (is_special(c)) {
 			USTPUTC(c, out);
 			c = pgetc();
@@ -10040,10 +10114,8 @@ parsebackq: {
 
 	if (oldstyle)
 		doprompt = saveprompt;
-	else {
-		if (readtoken() != TRP)
-			raise_error_unexpected_syntax(TRP);
-	}
+	else if (readtoken() != TRP)
+		raise_error_unexpected_syntax(TRP);
 
 	(*nlpp)->n = n;
 	if (oldstyle) {
@@ -10102,47 +10174,296 @@ parsearith: {
 
 } /* end of readtoken */
 
-
 /*
- * Returns true if the text contains nothing to expand (no dollar signs
- * or backquotes).
+ * Read the next input token.
+ * If the token is a word, we set backquotelist to the list of cmds in
+ *      backquotes.  We set quoteflag to true if any part of the word was
+ *      quoted.
+ * If the token is TREDIR, then we set redirnode to a structure containing
+ *      the redirection.
+ * In all cases, the variable startlinno is set to the number of the line
+ *      on which the token starts.
+ *
+ * [Change comment:  here documents and internal procedures]
+ * [Readtoken shouldn't have any arguments.  Perhaps we should make the
+ *  word parsing code into a separate routine.  In this case, readtoken
+ *  doesn't need to have any internal procedures, but parseword does.
+ *  We could also make parseoperator in essence the main routine, and
+ *  have parseword (readtoken1?) handle both words and redirection.]
  */
-static int
-noexpand(char *text)
-{
-	char *p;
-	char c;
+#define NEW_xxreadtoken
+#ifdef NEW_xxreadtoken
+/* singles must be first! */
+static const char xxreadtoken_chars[7] = { '\n', '(', ')', '&', '|', ';', 0 };
 
-	p = text;
-	while ((c = *p++) != '\0') {
-		if (c == CTLQUOTEMARK)
-			continue;
-		if (c == CTLESC)
-			p++;
-		else if (SIT(c, BASESYNTAX) == CCTL)
-			return 0;
+static const char xxreadtoken_tokens[] = {
+	TNL, TLP, TRP,          /* only single occurrence allowed */
+	TBACKGND, TPIPE, TSEMI, /* if single occurrence */
+	TEOF,                   /* corresponds to trailing nul */
+	TAND, TOR, TENDCASE,    /* if double occurrence */
+};
+
+#define xxreadtoken_doubles \
+	(sizeof(xxreadtoken_tokens) - sizeof(xxreadtoken_chars))
+#define xxreadtoken_singles \
+	(sizeof(xxreadtoken_chars) - xxreadtoken_doubles - 1)
+
+static int
+xxreadtoken(void)
+{
+	int c;
+
+	if (tokpushback) {
+		tokpushback = 0;
+		return lasttoken;
 	}
-	return 1;
+	if (needprompt) {
+		setprompt(2);
+	}
+	startlinno = plinno;
+	for (;;) {                      /* until token or start of word found */
+		c = pgetc_macro();
+
+		if ((c != ' ') && (c != '\t')
+#if ENABLE_ASH_ALIAS
+		 && (c != PEOA)
+#endif
+		) {
+			if (c == '#') {
+				while ((c = pgetc()) != '\n' && c != PEOF);
+				pungetc();
+			} else if (c == '\\') {
+				if (pgetc() != '\n') {
+					pungetc();
+					goto READTOKEN1;
+				}
+				startlinno = ++plinno;
+				if (doprompt)
+					setprompt(2);
+			} else {
+				const char *p
+					= xxreadtoken_chars + sizeof(xxreadtoken_chars) - 1;
+
+				if (c != PEOF) {
+					if (c == '\n') {
+						plinno++;
+						needprompt = doprompt;
+					}
+
+					p = strchr(xxreadtoken_chars, c);
+					if (p == NULL) {
+ READTOKEN1:
+						return readtoken1(c, BASESYNTAX, (char *) NULL, 0);
+					}
+
+					if (p - xxreadtoken_chars >= xxreadtoken_singles) {
+						if (pgetc() == *p) {    /* double occurrence? */
+							p += xxreadtoken_doubles + 1;
+						} else {
+							pungetc();
+						}
+					}
+				}
+				return lasttoken = xxreadtoken_tokens[p - xxreadtoken_chars];
+			}
+		}
+	} /* for */
+}
+#else
+#define RETURN(token)   return lasttoken = token
+static int
+xxreadtoken(void)
+{
+	int c;
+
+	if (tokpushback) {
+		tokpushback = 0;
+		return lasttoken;
+	}
+	if (needprompt) {
+		setprompt(2);
+	}
+	startlinno = plinno;
+	for (;;) {      /* until token or start of word found */
+		c = pgetc_macro();
+		switch (c) {
+		case ' ': case '\t':
+#if ENABLE_ASH_ALIAS
+		case PEOA:
+#endif
+			continue;
+		case '#':
+			while ((c = pgetc()) != '\n' && c != PEOF);
+			pungetc();
+			continue;
+		case '\\':
+			if (pgetc() == '\n') {
+				startlinno = ++plinno;
+				if (doprompt)
+					setprompt(2);
+				continue;
+			}
+			pungetc();
+			goto breakloop;
+		case '\n':
+			plinno++;
+			needprompt = doprompt;
+			RETURN(TNL);
+		case PEOF:
+			RETURN(TEOF);
+		case '&':
+			if (pgetc() == '&')
+				RETURN(TAND);
+			pungetc();
+			RETURN(TBACKGND);
+		case '|':
+			if (pgetc() == '|')
+				RETURN(TOR);
+			pungetc();
+			RETURN(TPIPE);
+		case ';':
+			if (pgetc() == ';')
+				RETURN(TENDCASE);
+			pungetc();
+			RETURN(TSEMI);
+		case '(':
+			RETURN(TLP);
+		case ')':
+			RETURN(TRP);
+		default:
+			goto breakloop;
+		}
+	}
+ breakloop:
+	return readtoken1(c, BASESYNTAX, (char *)NULL, 0);
+#undef RETURN
+}
+#endif /* NEW_xxreadtoken */
+
+static int
+readtoken(void)
+{
+	int t;
+#if DEBUG
+	int alreadyseen = tokpushback;
+#endif
+
+#if ENABLE_ASH_ALIAS
+ top:
+#endif
+
+	t = xxreadtoken();
+
+	/*
+	 * eat newlines
+	 */
+	if (checkkwd & CHKNL) {
+		while (t == TNL) {
+			parseheredoc();
+			t = xxreadtoken();
+		}
+	}
+
+	if (t != TWORD || quoteflag) {
+		goto out;
+	}
+
+	/*
+	 * check for keywords
+	 */
+	if (checkkwd & CHKKWD) {
+		const char *const *pp;
+
+		pp = findkwd(wordtext);
+		if (pp) {
+			lasttoken = t = pp - tokname_array;
+			TRACE(("keyword %s recognized\n", tokname(t)));
+			goto out;
+		}
+	}
+
+	if (checkkwd & CHKALIAS) {
+#if ENABLE_ASH_ALIAS
+		struct alias *ap;
+		ap = lookupalias(wordtext, 1);
+		if (ap != NULL) {
+			if (*ap->val) {
+				pushstring(ap->val, ap);
+			}
+			goto top;
+		}
+#endif
+	}
+ out:
+	checkkwd = 0;
+#if DEBUG
+	if (!alreadyseen)
+		TRACE(("token %s %s\n", tokname(t), t == TWORD ? wordtext : ""));
+	else
+		TRACE(("reread token %s %s\n", tokname(t), t == TWORD ? wordtext : ""));
+#endif
+	return t;
 }
 
+static char
+peektoken(void)
+{
+	int t;
+
+	t = readtoken();
+	tokpushback++;
+	return tokname_array[t][0];
+}
 
 /*
- * Return of a legal variable name (a letter or underscore followed by zero or
- * more letters, underscores, and digits).
+ * Read and parse a command.  Returns NEOF on end of file.  (NULL is a
+ * valid parse tree indicating a blank line.)
  */
-static char *
-endofname(const char *name)
+static union node *
+parsecmd(int interact)
 {
-	char *p;
+	int t;
 
-	p = (char *) name;
-	if (!is_name(*p))
-		return p;
-	while (*++p) {
-		if (!is_in_name(*p))
-			break;
+	tokpushback = 0;
+	doprompt = interact;
+	if (doprompt)
+		setprompt(doprompt);
+	needprompt = 0;
+	t = readtoken();
+	if (t == TEOF)
+		return NEOF;
+	if (t == TNL)
+		return NULL;
+	tokpushback++;
+	return list(1);
+}
+
+/*
+ * Input any here documents.
+ */
+static void
+parseheredoc(void)
+{
+	struct heredoc *here;
+	union node *n;
+
+	here = heredoclist;
+	heredoclist = 0;
+
+	while (here) {
+		if (needprompt) {
+			setprompt(2);
+		}
+		readtoken1(pgetc(), here->here->type == NHERE? SQSYNTAX : DQSYNTAX,
+				here->eofmark, here->striptabs);
+		n = stalloc(sizeof(struct narg));
+		n->narg.type = NARG;
+		n->narg.next = NULL;
+		n->narg.text = wordtext;
+		n->narg.backquote = backquotelist;
+		here->here->nhere.doc = n;
+		here = here->next;
 	}
-	return p;
 }
 
 
@@ -10170,35 +10491,6 @@ expandstr(const char *ps)
 	return stackblock();
 }
 #endif
-
-static void setprompt(int whichprompt)
-{
-	const char *prompt;
-#if ENABLE_ASH_EXPAND_PRMT
-	struct stackmark smark;
-#endif
-
-	needprompt = 0;
-
-	switch (whichprompt) {
-	case 1:
-		prompt = ps1val();
-		break;
-	case 2:
-		prompt = ps2val();
-		break;
-	default:                        /* 0 */
-		prompt = nullstr;
-	}
-#if ENABLE_ASH_EXPAND_PRMT
-	setstackmark(&smark);
-	stalloc(stackblocksize());
-#endif
-	putprompt(expandstr(prompt));
-#if ENABLE_ASH_EXPAND_PRMT
-	popstackmark(&smark);
-#endif
-}
 
 
 /*
@@ -10719,7 +11011,6 @@ copyfd(int from, int to)
 	return newfd;
 }
 
-
 static int
 redirectsafe(union node *redir, int flags)
 {
@@ -10750,14 +11041,12 @@ static void sharg(union node *, FILE *);
 static void indent(int, char *, FILE *);
 static void trstring(char *);
 
-
 static void
 showtree(union node *n)
 {
 	trputs("showtree called\n");
 	shtree(n, 1, NULL, stdout);
 }
-
 
 static void
 shtree(union node *n, int ind, char *pfx, FILE *fp)
@@ -10808,7 +11097,6 @@ shtree(union node *n, int ind, char *pfx, FILE *fp)
 	}
 }
 
-
 static void
 shcmd(union node *cmd, FILE *fp)
 {
@@ -10848,7 +11136,6 @@ shcmd(union node *cmd, FILE *fp)
 		first = 0;
 	}
 }
-
 
 static void
 sharg(union node *arg, FILE *fp)
@@ -11328,7 +11615,6 @@ dotrap(void)
 	return skip;
 }
 
-
 /*
  * Controls whether the shell is interactive or not.
  */
@@ -11361,11 +11647,11 @@ setinteractive(int on)
 #endif
 }
 
-
 #if !ENABLE_FEATURE_SH_EXTRA_QUIET
 /*** List the available builtins ***/
 
-static int helpcmd(int argc, char **argv)
+static int
+helpcmd(int argc, char **argv)
 {
 	int col, i;
 
@@ -11391,7 +11677,6 @@ static int helpcmd(int argc, char **argv)
 	return EXIT_SUCCESS;
 }
 #endif /* FEATURE_SH_EXTRA_QUIET */
-
 
 /*
  * Called to exit the shell.
@@ -11425,258 +11710,6 @@ exitshell(void)
 	setjobctl(0);
 	_exit(status);
 	/* NOTREACHED */
-}
-
-/*      var.c     */
-
-static struct var *vartab[VTABSIZE];
-
-static int vpcmp(const void *, const void *);
-static struct var **findvar(struct var **, const char *);
-
-/*
- * Initialize the variable symbol tables and import the environment
- */
-
-
-#if ENABLE_ASH_GETOPTS
-/*
- * Safe version of setvar, returns 1 on success 0 on failure.
- */
-static int
-setvarsafe(const char *name, const char *val, int flags)
-{
-	int err;
-	volatile int saveint;
-	struct jmploc *volatile savehandler = exception_handler;
-	struct jmploc jmploc;
-
-	SAVE_INT(saveint);
-	if (setjmp(jmploc.loc))
-		err = 1;
-	else {
-		exception_handler = &jmploc;
-		setvar(name, val, flags);
-		err = 0;
-	}
-	exception_handler = savehandler;
-	RESTORE_INT(saveint);
-	return err;
-}
-#endif
-
-
-/*
- * Set the value of a variable.  The flags argument is ored with the
- * flags of the variable.  If val is NULL, the variable is unset.
- */
-static void
-setvar(const char *name, const char *val, int flags)
-{
-	char *p, *q;
-	size_t namelen;
-	char *nameeq;
-	size_t vallen;
-
-	q = endofname(name);
-	p = strchrnul(q, '=');
-	namelen = p - name;
-	if (!namelen || p != q)
-		ash_msg_and_raise_error("%.*s: bad variable name", namelen, name);
-	vallen = 0;
-	if (val == NULL) {
-		flags |= VUNSET;
-	} else {
-		vallen = strlen(val);
-	}
-	INT_OFF;
-	nameeq = ckmalloc(namelen + vallen + 2);
-	p = memcpy(nameeq, name, namelen) + namelen;
-	if (val) {
-		*p++ = '=';
-		p = memcpy(p, val, vallen) + vallen;
-	}
-	*p = '\0';
-	setvareq(nameeq, flags | VNOSAVE);
-	INT_ON;
-}
-
-
-/*
- * Same as setvar except that the variable and value are passed in
- * the first argument as name=value.  Since the first argument will
- * be actually stored in the table, it should not be a string that
- * will go away.
- * Called with interrupts off.
- */
-static void
-setvareq(char *s, int flags)
-{
-	struct var *vp, **vpp;
-
-	vpp = hashvar(s);
-	flags |= (VEXPORT & (((unsigned) (1 - aflag)) - 1));
-	vp = *findvar(vpp, s);
-	if (vp) {
-		if ((vp->flags & (VREADONLY|VDYNAMIC)) == VREADONLY) {
-			const char *n;
-
-			if (flags & VNOSAVE)
-				free(s);
-			n = vp->text;
-			ash_msg_and_raise_error("%.*s: is read only", strchrnul(n, '=') - n, n);
-		}
-
-		if (flags & VNOSET)
-			return;
-
-		if (vp->func && (flags & VNOFUNC) == 0)
-			(*vp->func)(strchrnul(s, '=') + 1);
-
-		if ((vp->flags & (VTEXTFIXED|VSTACK)) == 0)
-			free((char*)vp->text);
-
-		flags |= vp->flags & ~(VTEXTFIXED|VSTACK|VNOSAVE|VUNSET);
-	} else {
-		if (flags & VNOSET)
-			return;
-		/* not found */
-		vp = ckmalloc(sizeof(*vp));
-		vp->next = *vpp;
-		vp->func = NULL;
-		*vpp = vp;
-	}
-	if (!(flags & (VTEXTFIXED|VSTACK|VNOSAVE)))
-		s = ckstrdup(s);
-	vp->text = s;
-	vp->flags = flags;
-}
-
-
-/*
- * Process a linked list of variable assignments.
- */
-static void
-listsetvar(struct strlist *list_set_var, int flags)
-{
-	struct strlist *lp = list_set_var;
-
-	if (!lp)
-		return;
-	INT_OFF;
-	do {
-		setvareq(lp->text, flags);
-	} while ((lp = lp->next));
-	INT_ON;
-}
-
-
-/*
- * Find the value of a variable.  Returns NULL if not set.
- */
-static char *
-lookupvar(const char *name)
-{
-	struct var *v;
-
-	v = *findvar(hashvar(name), name);
-	if (v) {
-#ifdef DYNAMIC_VAR
-	/*
-	 * Dynamic variables are implemented roughly the same way they are
-	 * in bash. Namely, they're "special" so long as they aren't unset.
-	 * As soon as they're unset, they're no longer dynamic, and dynamic
-	 * lookup will no longer happen at that point. -- PFM.
-	 */
-		if ((v->flags & VDYNAMIC))
-			(*v->func)(NULL);
-#endif
-		if (!(v->flags & VUNSET))
-			return strchrnul(v->text, '=') + 1;
-	}
-
-	return NULL;
-}
-
-
-/*
- * Search the environment of a builtin command.
- */
-static char *
-bltinlookup(const char *name)
-{
-	struct strlist *sp;
-
-	for (sp = cmdenviron; sp; sp = sp->next) {
-		if (varequal(sp->text, name))
-			return strchrnul(sp->text, '=') + 1;
-	}
-	return lookupvar(name);
-}
-
-
-/*
- * Generate a list of variables satisfying the given conditions.
- */
-static char **
-listvars(int on, int off, char ***end)
-{
-	struct var **vpp;
-	struct var *vp;
-	char **ep;
-	int mask;
-
-	STARTSTACKSTR(ep);
-	vpp = vartab;
-	mask = on | off;
-	do {
-		for (vp = *vpp; vp; vp = vp->next)
-			if ((vp->flags & mask) == on) {
-				if (ep == stackstrend())
-					ep = growstackstr();
-				*ep++ = (char *) vp->text;
-			}
-	} while (++vpp < vartab + VTABSIZE);
-	if (ep == stackstrend())
-		ep = growstackstr();
-	if (end)
-		*end = ep;
-	*ep++ = NULL;
-	return grabstackstr(ep);
-}
-
-
-/*
- * POSIX requires that 'set' (but not export or readonly) output the
- * variables in lexicographic order - by the locale's collating order (sigh).
- * Maybe we could keep them in an ordered balanced binary tree
- * instead of hashed lists.
- * For now just roll 'em through qsort for printing...
- */
-static int
-showvars(const char *sep_prefix, int on, int off)
-{
-	const char *sep;
-	char **ep, **epend;
-
-	ep = listvars(on, off, &epend);
-	qsort(ep, epend - ep, sizeof(char *), vpcmp);
-
-	sep = *sep_prefix ? spcstr : sep_prefix;
-
-	for (; ep < epend; ep++) {
-		const char *p;
-		const char *q;
-
-		p = strchrnul(*ep, '=');
-		q = nullstr;
-		if (*p)
-			q = single_quote(++p);
-
-		out1fmt("%s%s%.*s%s\n", sep_prefix, sep, (int)(p - *ep), *ep, q);
-	}
-
-	return 0;
 }
 
 
@@ -11781,39 +11814,6 @@ localcmd(int argc, char **argv)
 
 
 /*
- * Called after a function returns.
- * Interrupts must be off.
- */
-static void
-poplocalvars(void)
-{
-	struct localvar *lvp;
-	struct var *vp;
-
-	while ((lvp = localvars) != NULL) {
-		localvars = lvp->next;
-		vp = lvp->vp;
-		TRACE(("poplocalvar %s", vp ? vp->text : "-"));
-		if (vp == NULL) {       /* $- saved */
-			memcpy(optlist, lvp->text, sizeof(optlist));
-			free((char*)lvp->text);
-			optschanged();
-		} else if ((lvp->flags & (VUNSET|VSTRFIXED)) == VUNSET) {
-			unsetvar(vp->text);
-		} else {
-			if (vp->func)
-				(*vp->func)(strchrnul(lvp->text, '=') + 1);
-			if ((vp->flags & (VTEXTFIXED|VSTACK)) == 0)
-				free((char*)vp->text);
-			vp->flags = lvp->flags;
-			vp->text = lvp->text;
-		}
-		free(lvp);
-	}
-}
-
-
-/*
  * The unset builtin command.  We unset the function before we unset the
  * variable to allow a function to be unset when there is a readonly variable
  * with the same name.
@@ -11844,104 +11844,6 @@ unsetcmd(int argc, char **argv)
 }
 
 
-/*
- * Unset the specified variable.
- */
-static int
-unsetvar(const char *s)
-{
-	struct var **vpp;
-	struct var *vp;
-	int retval;
-
-	vpp = findvar(hashvar(s), s);
-	vp = *vpp;
-	retval = 2;
-	if (vp) {
-		int flags = vp->flags;
-
-		retval = 1;
-		if (flags & VREADONLY)
-			goto out;
-#ifdef DYNAMIC_VAR
-		vp->flags &= ~VDYNAMIC;
-#endif
-		if (flags & VUNSET)
-			goto ok;
-		if ((flags & VSTRFIXED) == 0) {
-			INT_OFF;
-			if ((flags & (VTEXTFIXED|VSTACK)) == 0)
-				free((char*)vp->text);
-			*vpp = vp->next;
-			free(vp);
-			INT_ON;
-		} else {
-			setvar(s, 0, 0);
-			vp->flags &= ~VEXPORT;
-		}
- ok:
-		retval = 0;
-	}
- out:
-	return retval;
-}
-
-
-/*
- * Find the appropriate entry in the hash table from the name.
- */
-static struct var **
-hashvar(const char *p)
-{
-	unsigned int hashval;
-
-	hashval = ((unsigned char) *p) << 4;
-	while (*p && *p != '=')
-		hashval += (unsigned char) *p++;
-	return &vartab[hashval % VTABSIZE];
-}
-
-
-/*
- * Compares two strings up to the first = or '\0'.  The first
- * string must be terminated by '='; the second may be terminated by
- * either '=' or '\0'.
- */
-static int
-varcmp(const char *p, const char *q)
-{
-	int c, d;
-
-	while ((c = *p) == (d = *q)) {
-		if (!c || c == '=')
-			goto out;
-		p++;
-		q++;
-	}
-	if (c == '=')
-		c = 0;
-	if (d == '=')
-		d = 0;
- out:
-	return c - d;
-}
-
-static int
-vpcmp(const void *a, const void *b)
-{
-	return varcmp(*(const char **)a, *(const char **)b);
-}
-
-static struct var **
-findvar(struct var **vpp, const char *name)
-{
-	for (; *vpp; vpp = &(*vpp)->next) {
-		if (varequal((*vpp)->text, name)) {
-			break;
-		}
-	}
-	return vpp;
-}
 /*      setmode.c      */
 
 #include <sys/times.h>
@@ -12274,7 +12176,7 @@ static int umaskcmd(int argc, char **argv)
 			out1fmt("%.4o\n", mask);
 		}
 	} else {
-		if (is_digit((unsigned char) *ap)) {
+		if (isdigit((unsigned char) *ap)) {
 			mask = 0;
 			do {
 				if (*ap >= '8' || *ap < '0')
@@ -13012,7 +12914,7 @@ static arith_t arith(const char *expr, int *perrcode)
 			lasttok = TOK_NUM;
 			continue;
 		}
-		if (is_digit(arithval)) {
+		if (isdigit(arithval)) {
 			numstackptr->var = NULL;
 #if ENABLE_ASH_MATH_SUPPORT_64
 			numstackptr->val = strtoll(expr, (char **) &expr, 0);
