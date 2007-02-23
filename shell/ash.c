@@ -65,36 +65,6 @@
 #error "Do not even bother, ash will not run on uClinux"
 #endif
 
-#if DEBUG
-#define TRACE(param)    trace param
-#define TRACEV(param)   tracev param
-#else
-#define TRACE(param)
-#define TRACEV(param)
-#endif
-
-#ifdef __GLIBC__
-/* glibc sucks */
-static int *dash_errno;
-#undef errno
-#define errno (*dash_errno)
-#endif
-
-
-#if ENABLE_ASH_ALIAS
-#define ALIASINUSE 1
-#define ALIASDEAD  2
-struct alias {
-	struct alias *next;
-	char *name;
-	char *val;
-	int flag;
-};
-static int aliascmd(int, char **);
-static int unaliascmd(int, char **);
-static void printalias(const struct alias *);
-#endif
-
 
 /* ============ Shell options */
 
@@ -147,6 +117,13 @@ static char optlist[NOPTS];
 
 
 /* ============ Misc data */
+
+#ifdef __GLIBC__
+/* glibc sucks */
+static int *dash_errno;
+#undef errno
+#define errno (*dash_errno)
+#endif
 
 static char nullstr[1];                /* zero length string */
 static const char homestr[] = "HOME";
@@ -256,14 +233,16 @@ raise_interrupt(void)
 }
 
 #if ENABLE_ASH_OPTIMIZE_FOR_SIZE
-static void int_on(void)
+static void
+int_on(void)
 {
 	if (--suppressint == 0 && intpending) {
 		raise_interrupt();
 	}
 }
 #define INT_ON int_on()
-static void force_int_on(void)
+static void
+force_int_on(void)
 {
 	suppressint = 0;
 	if (intpending)
@@ -387,6 +366,485 @@ out2str(const char *p)
 }
 
 
+/* ============ Parsing structures */
+#define NCMD 0
+#define NPIPE 1
+#define NREDIR 2
+#define NBACKGND 3
+#define NSUBSHELL 4
+#define NAND 5
+#define NOR 6
+#define NSEMI 7
+#define NIF 8
+#define NWHILE 9
+#define NUNTIL 10
+#define NFOR 11
+#define NCASE 12
+#define NCLIST 13
+#define NDEFUN 14
+#define NARG 15
+#define NTO 16
+#define NCLOBBER 17
+#define NFROM 18
+#define NFROMTO 19
+#define NAPPEND 20
+#define NTOFD 21
+#define NFROMFD 22
+#define NHERE 23
+#define NXHERE 24
+#define NNOT 25
+
+union node;
+
+struct ncmd {
+	int type;
+	union node *assign;
+	union node *args;
+	union node *redirect;
+};
+
+struct npipe {
+	int type;
+	int backgnd;
+	struct nodelist *cmdlist;
+};
+
+struct nredir {
+	int type;
+	union node *n;
+	union node *redirect;
+};
+
+struct nbinary {
+	int type;
+	union node *ch1;
+	union node *ch2;
+};
+
+struct nif {
+	int type;
+	union node *test;
+	union node *ifpart;
+	union node *elsepart;
+};
+
+struct nfor {
+	int type;
+	union node *args;
+	union node *body;
+	char *var;
+};
+
+struct ncase {
+	int type;
+	union node *expr;
+	union node *cases;
+};
+
+struct nclist {
+	int type;
+	union node *next;
+	union node *pattern;
+	union node *body;
+};
+
+struct narg {
+	int type;
+	union node *next;
+	char *text;
+	struct nodelist *backquote;
+};
+
+struct nfile {
+	int type;
+	union node *next;
+	int fd;
+	union node *fname;
+	char *expfname;
+};
+
+struct ndup {
+	int type;
+	union node *next;
+	int fd;
+	int dupfd;
+	union node *vname;
+};
+
+struct nhere {
+	int type;
+	union node *next;
+	int fd;
+	union node *doc;
+};
+
+struct nnot {
+	int type;
+	union node *com;
+};
+
+union node {
+	int type;
+	struct ncmd ncmd;
+	struct npipe npipe;
+	struct nredir nredir;
+	struct nbinary nbinary;
+	struct nif nif;
+	struct nfor nfor;
+	struct ncase ncase;
+	struct nclist nclist;
+	struct narg narg;
+	struct nfile nfile;
+	struct ndup ndup;
+	struct nhere nhere;
+	struct nnot nnot;
+};
+
+struct nodelist {
+	struct nodelist *next;
+	union node *n;
+};
+
+struct funcnode {
+	int count;
+	union node n;
+};
+
+
+/* ============ Debugging output */
+
+#if DEBUG
+
+static FILE *tracefile;
+
+static void
+trace_printf(const char *fmt, ...)
+{
+	va_list va;
+
+	if (debug != 1)
+		return;
+	va_start(va, fmt);
+	vfprintf(tracefile, fmt, va);
+	va_end(va);
+}
+
+static void
+trace_vprintf(const char *fmt, va_list va)
+{
+	if (debug != 1)
+		return;
+	vfprintf(tracefile, fmt, va);
+}
+
+static void
+trace_puts(const char *s)
+{
+	if (debug != 1)
+		return;
+	fputs(s, tracefile);
+}
+
+static void
+trace_puts_quoted(char *s)
+{
+	char *p;
+	char c;
+
+	if (debug != 1)
+		return;
+	putc('"', tracefile);
+	for (p = s; *p; p++) {
+		switch (*p) {
+		case '\n':  c = 'n';  goto backslash;
+		case '\t':  c = 't';  goto backslash;
+		case '\r':  c = 'r';  goto backslash;
+		case '"':  c = '"';  goto backslash;
+		case '\\':  c = '\\';  goto backslash;
+		case CTLESC:  c = 'e';  goto backslash;
+		case CTLVAR:  c = 'v';  goto backslash;
+		case CTLVAR+CTLQUOTE:  c = 'V'; goto backslash;
+		case CTLBACKQ:  c = 'q';  goto backslash;
+		case CTLBACKQ+CTLQUOTE:  c = 'Q'; goto backslash;
+ backslash:
+			putc('\\', tracefile);
+			putc(c, tracefile);
+			break;
+		default:
+			if (*p >= ' ' && *p <= '~')
+				putc(*p, tracefile);
+			else {
+				putc('\\', tracefile);
+				putc(*p >> 6 & 03, tracefile);
+				putc(*p >> 3 & 07, tracefile);
+				putc(*p & 07, tracefile);
+			}
+			break;
+		}
+	}
+	putc('"', tracefile);
+}
+
+static void
+trace_puts_args(char **ap)
+{
+	if (debug != 1)
+		return;
+	if (!*ap)
+		return;
+	while (1) {
+		trace_puts_quoted(*ap);
+		if (!*++ap) {
+			putc('\n', tracefile);
+			break;
+		}
+		putc(' ', tracefile);
+	}
+}
+
+static void
+opentrace(void)
+{
+	char s[100];
+#ifdef O_APPEND
+	int flags;
+#endif
+
+	if (debug != 1) {
+		if (tracefile)
+			fflush(tracefile);
+		/* leave open because libedit might be using it */
+		return;
+	}
+	strcpy(s, "./trace");
+	if (tracefile) {
+		if (!freopen(s, "a", tracefile)) {
+			fprintf(stderr, "Can't re-open %s\n", s);
+			debug = 0;
+			return;
+		}
+	} else {
+		tracefile = fopen(s, "a");
+		if (tracefile == NULL) {
+			fprintf(stderr, "Can't open %s\n", s);
+			debug = 0;
+			return;
+		}
+	}
+#ifdef O_APPEND
+	flags = fcntl(fileno(tracefile), F_GETFL, 0);
+	if (flags >= 0)
+		fcntl(fileno(tracefile), F_SETFL, flags | O_APPEND);
+#endif
+	setlinebuf(tracefile);
+	fputs("\nTracing started.\n", tracefile);
+}
+
+static void
+indent(int amount, char *pfx, FILE *fp)
+{
+	int i;
+
+	for (i = 0; i < amount; i++) {
+		if (pfx && i == amount - 1)
+			fputs(pfx, fp);
+		putc('\t', fp);
+	}
+}
+
+/* little circular references here... */
+static void shtree(union node *n, int ind, char *pfx, FILE *fp);
+
+static void
+sharg(union node *arg, FILE *fp)
+{
+	char *p;
+	struct nodelist *bqlist;
+	int subtype;
+
+	if (arg->type != NARG) {
+		out1fmt("<node type %d>\n", arg->type);
+		abort();
+	}
+	bqlist = arg->narg.backquote;
+	for (p = arg->narg.text; *p; p++) {
+		switch (*p) {
+		case CTLESC:
+			putc(*++p, fp);
+			break;
+		case CTLVAR:
+			putc('$', fp);
+			putc('{', fp);
+			subtype = *++p;
+			if (subtype == VSLENGTH)
+				putc('#', fp);
+
+			while (*p != '=')
+				putc(*p++, fp);
+
+			if (subtype & VSNUL)
+				putc(':', fp);
+
+			switch (subtype & VSTYPE) {
+			case VSNORMAL:
+				putc('}', fp);
+				break;
+			case VSMINUS:
+				putc('-', fp);
+				break;
+			case VSPLUS:
+				putc('+', fp);
+				break;
+			case VSQUESTION:
+				putc('?', fp);
+				break;
+			case VSASSIGN:
+				putc('=', fp);
+				break;
+			case VSTRIMLEFT:
+				putc('#', fp);
+				break;
+			case VSTRIMLEFTMAX:
+				putc('#', fp);
+				putc('#', fp);
+				break;
+			case VSTRIMRIGHT:
+				putc('%', fp);
+				break;
+			case VSTRIMRIGHTMAX:
+				putc('%', fp);
+				putc('%', fp);
+				break;
+			case VSLENGTH:
+				break;
+			default:
+				out1fmt("<subtype %d>", subtype);
+			}
+			break;
+		case CTLENDVAR:
+			putc('}', fp);
+			break;
+		case CTLBACKQ:
+		case CTLBACKQ|CTLQUOTE:
+			putc('$', fp);
+			putc('(', fp);
+			shtree(bqlist->n, -1, NULL, fp);
+			putc(')', fp);
+			break;
+		default:
+			putc(*p, fp);
+			break;
+		}
+	}
+}
+
+static void
+shcmd(union node *cmd, FILE *fp)
+{
+	union node *np;
+	int first;
+	const char *s;
+	int dftfd;
+
+	first = 1;
+	for (np = cmd->ncmd.args; np; np = np->narg.next) {
+		if (! first)
+			putchar(' ');
+		sharg(np, fp);
+		first = 0;
+	}
+	for (np = cmd->ncmd.redirect; np; np = np->nfile.next) {
+		if (! first)
+			putchar(' ');
+		switch (np->nfile.type) {
+		case NTO:       s = ">";  dftfd = 1; break;
+		case NCLOBBER:  s = ">|"; dftfd = 1; break;
+		case NAPPEND:   s = ">>"; dftfd = 1; break;
+		case NTOFD:     s = ">&"; dftfd = 1; break;
+		case NFROM:     s = "<";  dftfd = 0; break;
+		case NFROMFD:   s = "<&"; dftfd = 0; break;
+		case NFROMTO:   s = "<>"; dftfd = 0; break;
+		default:        s = "*error*"; dftfd = 0; break;
+		}
+		if (np->nfile.fd != dftfd)
+			fprintf(fp, "%d", np->nfile.fd);
+		fputs(s, fp);
+		if (np->nfile.type == NTOFD || np->nfile.type == NFROMFD) {
+			fprintf(fp, "%d", np->ndup.dupfd);
+		} else {
+			sharg(np->nfile.fname, fp);
+		}
+		first = 0;
+	}
+}
+
+static void
+shtree(union node *n, int ind, char *pfx, FILE *fp)
+{
+	struct nodelist *lp;
+	const char *s;
+
+	if (n == NULL)
+		return;
+
+	indent(ind, pfx, fp);
+	switch (n->type) {
+	case NSEMI:
+		s = "; ";
+		goto binop;
+	case NAND:
+		s = " && ";
+		goto binop;
+	case NOR:
+		s = " || ";
+ binop:
+		shtree(n->nbinary.ch1, ind, NULL, fp);
+		/* if (ind < 0) */
+			fputs(s, fp);
+		shtree(n->nbinary.ch2, ind, NULL, fp);
+		break;
+	case NCMD:
+		shcmd(n, fp);
+		if (ind >= 0)
+			putc('\n', fp);
+		break;
+	case NPIPE:
+		for (lp = n->npipe.cmdlist; lp; lp = lp->next) {
+			shcmd(lp->n, fp);
+			if (lp->next)
+				fputs(" | ", fp);
+		}
+		if (n->npipe.backgnd)
+			fputs(" &", fp);
+		if (ind >= 0)
+			putc('\n', fp);
+		break;
+	default:
+		fprintf(fp, "<node type %d>", n->type);
+		if (ind >= 0)
+			putc('\n', fp);
+		break;
+	}
+}
+
+static void
+showtree(union node *n)
+{
+	trace_puts("showtree called\n");
+	shtree(n, 1, NULL, stdout);
+}
+
+#define TRACE(param)    trace_printf param
+#define TRACEV(param)   trace_vprintf param
+
+#else
+
+#define TRACE(param)
+#define TRACEV(param)
+
+#endif /* DEBUG */
+
+
 /* ============ Parser data
  *
  * ash_vmsg() needs parsefile->fd, hence parsefile definition is moved up.
@@ -396,6 +854,15 @@ struct strlist {
 	struct strlist *next;
 	char *text;
 };
+
+#if ENABLE_ASH_ALIAS
+#define ALIASINUSE 1
+#define ALIASDEAD  2
+struct alias;
+static int aliascmd(int, char **);
+static int unaliascmd(int, char **);
+static void printalias(const struct alias *);
+#endif
 
 struct strpush {
 	struct strpush *prev;   /* preceding string on stack */
@@ -1882,7 +2349,6 @@ struct arglist {
 #define EXP_QWORD       0x100   /* expand word in quoted parameter expansion */
 
 
-union node;
 static void expandarg(union node *, struct arglist *, int);
 #define rmescapes(p) _rmescapes((p), 0)
 static char *_rmescapes(char *, int);
@@ -1901,152 +2367,6 @@ struct backcmd {                /* result of evalbackcmd */
 	char *buf;              /* buffer */
 	int nleft;              /* number of chars in buffer */
 	struct job *jp;         /* job structure for command */
-};
-
-/*
- * This file was generated by the mknodes program.
- */
-
-#define NCMD 0
-#define NPIPE 1
-#define NREDIR 2
-#define NBACKGND 3
-#define NSUBSHELL 4
-#define NAND 5
-#define NOR 6
-#define NSEMI 7
-#define NIF 8
-#define NWHILE 9
-#define NUNTIL 10
-#define NFOR 11
-#define NCASE 12
-#define NCLIST 13
-#define NDEFUN 14
-#define NARG 15
-#define NTO 16
-#define NCLOBBER 17
-#define NFROM 18
-#define NFROMTO 19
-#define NAPPEND 20
-#define NTOFD 21
-#define NFROMFD 22
-#define NHERE 23
-#define NXHERE 24
-#define NNOT 25
-
-
-struct ncmd {
-	int type;
-	union node *assign;
-	union node *args;
-	union node *redirect;
-};
-
-struct npipe {
-	int type;
-	int backgnd;
-	struct nodelist *cmdlist;
-};
-
-struct nredir {
-	int type;
-	union node *n;
-	union node *redirect;
-};
-
-struct nbinary {
-	int type;
-	union node *ch1;
-	union node *ch2;
-};
-
-struct nif {
-	int type;
-	union node *test;
-	union node *ifpart;
-	union node *elsepart;
-};
-
-struct nfor {
-	int type;
-	union node *args;
-	union node *body;
-	char *var;
-};
-
-struct ncase {
-	int type;
-	union node *expr;
-	union node *cases;
-};
-
-struct nclist {
-	int type;
-	union node *next;
-	union node *pattern;
-	union node *body;
-};
-
-struct narg {
-	int type;
-	union node *next;
-	char *text;
-	struct nodelist *backquote;
-};
-
-struct nfile {
-	int type;
-	union node *next;
-	int fd;
-	union node *fname;
-	char *expfname;
-};
-
-struct ndup {
-	int type;
-	union node *next;
-	int fd;
-	int dupfd;
-	union node *vname;
-};
-
-struct nhere {
-	int type;
-	union node *next;
-	int fd;
-	union node *doc;
-};
-
-struct nnot {
-	int type;
-	union node *com;
-};
-
-union node {
-	int type;
-	struct ncmd ncmd;
-	struct npipe npipe;
-	struct nredir nredir;
-	struct nbinary nbinary;
-	struct nif nif;
-	struct nfor nfor;
-	struct ncase ncase;
-	struct nclist nclist;
-	struct narg narg;
-	struct nfile nfile;
-	struct ndup ndup;
-	struct nhere nhere;
-	struct nnot nnot;
-};
-
-struct nodelist {
-	struct nodelist *next;
-	union node *n;
-};
-
-struct funcnode {
-	int count;
-	union node n;
 };
 
 
@@ -2736,7 +3056,7 @@ static int funcnest;                   /* depth of function calls */
  */
 
 #if JOBS
-static int bgcmd(int, char **);
+static int fg_bgcmd(int, char **);
 #endif
 static int breakcmd(int, char **);
 static int cdcmd(int, char **);
@@ -2755,9 +3075,6 @@ static int execcmd(int, char **);
 static int exitcmd(int, char **);
 static int exportcmd(int, char **);
 static int falsecmd(int, char **);
-#if JOBS
-static int fgcmd(int, char **);
-#endif
 #if ENABLE_ASH_GETOPTS
 static int getoptscmd(int, char **);
 #endif
@@ -2840,7 +3157,7 @@ static const struct builtincmd builtincmd[] = {
 	{ BUILTIN_REG_ASSG      "alias", aliascmd },
 #endif
 #if JOBS
-	{ BUILTIN_REGULAR       "bg", bgcmd },
+	{ BUILTIN_REGULAR       "bg", fg_bgcmd },
 #endif
 	{ BUILTIN_SPEC_REG      "break", breakcmd },
 	{ BUILTIN_REGULAR       "cd", cdcmd },
@@ -2858,7 +3175,7 @@ static const struct builtincmd builtincmd[] = {
 	{ BUILTIN_SPEC_REG_ASSG "export", exportcmd },
 	{ BUILTIN_REGULAR       "false", falsecmd },
 #if JOBS
-	{ BUILTIN_REGULAR       "fg", fgcmd },
+	{ BUILTIN_REGULAR       "fg", fg_bgcmd },
 #endif
 #if ENABLE_ASH_GETOPTS
 	{ BUILTIN_REGULAR       "getopts", getoptscmd },
@@ -3033,24 +3350,11 @@ static void setjobctl(int);
 static void showjobs(FILE *, int);
 #endif
 
-/*      main.h        */
 
+/*      main.h        */
 
 static void readcmdfile(char *);
  
-
-/*      mystring.h   */
-
-
-#define DOLATSTRLEN 4
-
-static char *prefix(const char *, const char *);
-static int number(const char *);
-static int is_number(const char *);
-static char *single_quote(const char *);
-
-#define equal(s1, s2)   (strcmp(s1, s2) == 0)
-#define scopy(s1, s2)   ((void)strcpy(s2, s1))
 
 /*      options.h */
 
@@ -3076,21 +3380,7 @@ static void clearredir(int);
 static int copyfd(int, int);
 static int redirectsafe(union node *, int);
 
-/*      show.h     */
-
-
-#if DEBUG
-static void showtree(union node *);
-static void trace(const char *, ...);
-static void tracev(const char *, va_list);
-static void trargs(char **);
-static void trputc(int);
-static void trputs(const char *);
-static void opentrace(void);
-#endif
-
 /*      trap.h       */
-
 
 static void clear_traps(void);
 static void setsignal(int);
@@ -3137,11 +3427,67 @@ static int is_safe_applet(char *name)
 
 
 #if ENABLE_ASH_ALIAS
+struct alias {
+	struct alias *next;
+	char *name;
+	char *val;
+	int flag;
+};
+
 static struct alias *atab[ATABSIZE];
 
-static void setalias(const char *, const char *);
-static struct alias *freealias(struct alias *);
-static struct alias **__lookupalias(const char *);
+static struct alias **
+__lookupalias(const char *name) {
+	unsigned int hashval;
+	struct alias **app;
+	const char *p;
+	unsigned int ch;
+
+	p = name;
+
+	ch = (unsigned char)*p;
+	hashval = ch << 4;
+	while (ch) {
+		hashval += ch;
+		ch = (unsigned char)*++p;
+	}
+	app = &atab[hashval % ATABSIZE];
+
+	for (; *app; app = &(*app)->next) {
+		if (strcmp(name, (*app)->name) == 0) {
+			break;
+		}
+	}
+
+	return app;
+}
+
+static struct alias *
+lookupalias(const char *name, int check)
+{
+	struct alias *ap = *__lookupalias(name);
+
+	if (check && ap && (ap->flag & ALIASINUSE))
+		return NULL;
+	return ap;
+}
+
+static struct alias *
+freealias(struct alias *ap)
+{
+	struct alias *next;
+
+	if (ap->flag & ALIASINUSE) {
+		ap->flag |= ALIASDEAD;
+		return ap;
+	}
+
+	next = ap->next;
+	free(ap->name);
+	free(ap->val);
+	free(ap);
+	return next;
+}
 
 static void
 setalias(const char *name, const char *val)
@@ -3205,16 +3551,6 @@ rmaliases(void)
 	INT_ON;
 }
 
-static struct alias *
-lookupalias(const char *name, int check)
-{
-	struct alias *ap = *__lookupalias(name);
-
-	if (check && ap && (ap->flag & ALIASINUSE))
-		return NULL;
-	return ap;
-}
-
 /*
  * TODO - sort output
  */
@@ -3273,53 +3609,10 @@ unaliascmd(int argc, char **argv)
 	return i;
 }
 
-static struct alias *
-freealias(struct alias *ap)
-{
-	struct alias *next;
-
-	if (ap->flag & ALIASINUSE) {
-		ap->flag |= ALIASDEAD;
-		return ap;
-	}
-
-	next = ap->next;
-	free(ap->name);
-	free(ap->val);
-	free(ap);
-	return next;
-}
-
 static void
 printalias(const struct alias *ap)
 {
 	out1fmt("%s=%s\n", ap->name, single_quote(ap->val));
-}
-
-static struct alias **
-__lookupalias(const char *name) {
-	unsigned int hashval;
-	struct alias **app;
-	const char *p;
-	unsigned int ch;
-
-	p = name;
-
-	ch = (unsigned char)*p;
-	hashval = ch << 4;
-	while (ch) {
-		hashval += ch;
-		ch = (unsigned char)*++p;
-	}
-	app = &atab[hashval % ATABSIZE];
-
-	for (; *app; app = &(*app)->next) {
-		if (equal(name, (*app)->name)) {
-			break;
-		}
-	}
-
-	return app;
 }
 #endif /* ASH_ALIAS */
 
@@ -3602,7 +3895,7 @@ evalsubshell(union node *n, int flags)
 		flags |= EV_EXIT;
 		if (backgnd)
 			flags &=~ EV_TESTED;
-nofork:
+ nofork:
 		redirect(n->nredir.redirect, 0);
 		evaltreenr(n->nredir.n, flags);
 		/* never returns */
@@ -4789,7 +5082,7 @@ cmdlookup(const char *name, int add)
 	hashval &= 0x7FFF;
 	pp = &cmdtable[hashval % CMDTABLESIZE];
 	for (cmdp = *pp; cmdp; cmdp = cmdp->next) {
-		if (equal(cmdp->cmdname, name))
+		if (strcmp(cmdp->cmdname, name) == 0)
 			break;
 		pp = &cmdp->next;
 	}
@@ -5292,7 +5585,7 @@ argstr(char *p, int flag)
 			/* "$@" syntax adherence hack */
 			if (
 				!inquotes &&
-				!memcmp(p, dolatstr, DOLATSTRLEN) &&
+				!memcmp(p, dolatstr, 4) &&
 				(p[4] == CTLQUOTEMARK || (
 					p[4] == CTLENDVAR &&
 					p[5] == CTLQUOTEMARK
@@ -6274,7 +6567,7 @@ expmeta(char *enddir, char *name)
 			continue;
 		if (pmatch(start, dp->d_name)) {
 			if (atend) {
-				scopy(dp->d_name, enddir);
+				strcpy(enddir, dp->d_name);
 				addfname(expdir);
 			} else {
 				for (p = enddir, cp = dp->d_name; (*p++ = *cp++) != '\0';)
@@ -7186,7 +7479,7 @@ jobno(const struct job *jp)
 
 #if JOBS
 static int
-fgcmd(int argc, char **argv)
+fg_bgcmd(int argc, char **argv)
 {
 	struct job *jp;
 	FILE *out;
@@ -7209,9 +7502,6 @@ fgcmd(int argc, char **argv)
 	} while (*argv && *++argv);
 	return retval;
 }
-
-static int bgcmd(int, char **) __attribute__((__alias__("fgcmd")));
-
 
 static int
 restartjob(struct job *jp, int mode)
@@ -7313,8 +7603,8 @@ showjob(FILE *out, struct job *jp, int mode)
 	psend = ps + jp->nprocs;
 
 	if (jp->state == JOBRUNNING) {
-		scopy("Running", s + col);
-		col += strlen("Running");
+		strcpy(s + col, "Running");
+		col += sizeof("Running") - 1;
 	} else {
 		int status = psend[-1].status;
 #if JOBS
@@ -7359,19 +7649,20 @@ jobscmd(int argc, char **argv)
 	FILE *out;
 
 	mode = 0;
-	while ((m = nextopt("lp")))
+	while ((m = nextopt("lp"))) {
 		if (m == 'l')
 			mode = SHOW_PID;
 		else
 			mode = SHOW_PGID;
+	}
 
 	out = stdout;
 	argv = argptr;
-	if (*argv)
+	if (*argv) {
 		do
 			showjob(out, getjob(*argv,0), mode);
 		while (*++argv);
-	else
+	} else
 		showjobs(out, mode);
 
 	return 0;
@@ -7515,7 +7806,8 @@ getjob(const char *name, int getctl)
  currentjob:
 			err_msg = "No current job";
 			goto check;
-		} else if (c == '-') {
+		}
+		if (c == '-') {
 			if (jp)
 				jp = jp->prev_job;
 			err_msg = "No previous job";
@@ -7571,7 +7863,6 @@ getjob(const char *name, int getctl)
  * Return a new job structure.
  * Called with interrupts off.
  */
-
 static struct job *
 makejob(union node *node, int nprocs)
 {
@@ -7720,7 +8011,7 @@ static void forkchild(struct job *jp, union node *n, int mode)
 
 static void forkparent(struct job *jp, union node *n, int mode, pid_t pid)
 {
-	TRACE(("In parent shell:  child = %d\n", pid));
+	TRACE(("In parent shell: child = %d\n", pid));
 	if (!jp) {
 		while (jobless && dowait(DOWAIT_NORMAL, 0) > 0);
 		jobless++;
@@ -7735,7 +8026,7 @@ static void forkparent(struct job *jp, union node *n, int mode, pid_t pid)
 		else
 			pgrp = jp->ps[0].pid;
 		/* This can fail because we are doing it in the child also */
-		(void)setpgid(pid, pgrp);
+		setpgid(pid, pgrp);
 	}
 #endif
 	if (mode == FORK_BG) {
@@ -7854,7 +8145,8 @@ waitforjob(struct job *jp)
  * (as opposed to running a builtin command or just typing return),
  * and the jobs command may give out of date information.
  */
-static int waitproc(int block, int *status)
+static int
+waitproc(int block, int *status)
 {
 	int flags = 0;
 
@@ -8147,10 +8439,9 @@ cmdtxt(union node *n)
 			s[0] = n->ndup.dupfd + '0';
 			p = s;
 			goto dotail2;
-		} else {
-			n = n->nfile.fname;
-			goto donode;
 		}
+		n = n->nfile.fname;
+		goto donode;
 	}
 }
 
@@ -8178,6 +8469,7 @@ cmdputs(const char *s)
 		"", "}", "-", "+", "?", "=",
 		"%", "%%", "#", "##"
 	};
+
 	nextc = makestrspace((strlen(s) + 1) * 8, cmdnextc);
 	p = s;
 	while ((c = *p++) != 0) {
@@ -8192,11 +8484,10 @@ cmdputs(const char *s)
 				str = "${#";
 			else
 				str = "${";
-			if (!(subtype & VSQUOTE) != !(quoted & 1)) {
-				quoted ^= 1;
-				c = '"';
-			} else
+			if (!(subtype & VSQUOTE) == !(quoted & 1))
 				goto dostr;
+			quoted ^= 1;
+			c = '"';
 			break;
 		case CTLENDVAR:
 			str = "\"}" + !(quoted & 1);
@@ -8650,7 +8941,7 @@ minus_o(char *name, int val)
 
 	if (name) {
 		for (i = 0; i < NOPTS; i++) {
-			if (equal(name, optnames(i))) {
+			if (strcmp(name, optnames(i)) == 0) {
 				optlist[i] = val;
 				return;
 			}
@@ -8859,13 +9150,15 @@ setcmd(int argc, char **argv)
 
 
 #if ENABLE_LOCALE_SUPPORT
-static void change_lc_all(const char *value)
+static void
+change_lc_all(const char *value)
 {
 	if (value && *value != '\0')
 		setlocale(LC_ALL, value);
 }
 
-static void change_lc_ctype(const char *value)
+static void
+change_lc_ctype(const char *value)
 {
 	if (value && *value != '\0')
 		setlocale(LC_CTYPE, value);
@@ -8874,7 +9167,8 @@ static void change_lc_ctype(const char *value)
 
 #if ENABLE_ASH_RANDOM_SUPPORT
 /* Roughly copied from bash.. */
-static void change_random(const char *value)
+static void
+change_random(const char *value)
 {
 	if (value == NULL) {
 		/* "get", generate */
@@ -11036,349 +11330,6 @@ redirectsafe(union node *redir, int flags)
 	return err;
 }
 
-/*      show.c    */
-
-#if DEBUG
-static void shtree(union node *, int, char *, FILE*);
-static void shcmd(union node *, FILE *);
-static void sharg(union node *, FILE *);
-static void indent(int, char *, FILE *);
-static void trstring(char *);
-
-static void
-showtree(union node *n)
-{
-	trputs("showtree called\n");
-	shtree(n, 1, NULL, stdout);
-}
-
-static void
-shtree(union node *n, int ind, char *pfx, FILE *fp)
-{
-	struct nodelist *lp;
-	const char *s;
-
-	if (n == NULL)
-		return;
-
-	indent(ind, pfx, fp);
-	switch (n->type) {
-	case NSEMI:
-		s = "; ";
-		goto binop;
-	case NAND:
-		s = " && ";
-		goto binop;
-	case NOR:
-		s = " || ";
- binop:
-		shtree(n->nbinary.ch1, ind, NULL, fp);
-	   /*    if (ind < 0) */
-			fputs(s, fp);
-		shtree(n->nbinary.ch2, ind, NULL, fp);
-		break;
-	case NCMD:
-		shcmd(n, fp);
-		if (ind >= 0)
-			putc('\n', fp);
-		break;
-	case NPIPE:
-		for (lp = n->npipe.cmdlist; lp; lp = lp->next) {
-			shcmd(lp->n, fp);
-			if (lp->next)
-				fputs(" | ", fp);
-		}
-		if (n->npipe.backgnd)
-			fputs(" &", fp);
-		if (ind >= 0)
-			putc('\n', fp);
-		break;
-	default:
-		fprintf(fp, "<node type %d>", n->type);
-		if (ind >= 0)
-			putc('\n', fp);
-		break;
-	}
-}
-
-static void
-shcmd(union node *cmd, FILE *fp)
-{
-	union node *np;
-	int first;
-	const char *s;
-	int dftfd;
-
-	first = 1;
-	for (np = cmd->ncmd.args; np; np = np->narg.next) {
-		if (! first)
-			putchar(' ');
-		sharg(np, fp);
-		first = 0;
-	}
-	for (np = cmd->ncmd.redirect; np; np = np->nfile.next) {
-		if (! first)
-			putchar(' ');
-		switch (np->nfile.type) {
-		case NTO:       s = ">";  dftfd = 1; break;
-		case NCLOBBER:  s = ">|"; dftfd = 1; break;
-		case NAPPEND:   s = ">>"; dftfd = 1; break;
-		case NTOFD:     s = ">&"; dftfd = 1; break;
-		case NFROM:     s = "<";  dftfd = 0; break;
-		case NFROMFD:   s = "<&"; dftfd = 0; break;
-		case NFROMTO:   s = "<>"; dftfd = 0; break;
-		default:        s = "*error*"; dftfd = 0; break;
-		}
-		if (np->nfile.fd != dftfd)
-			fprintf(fp, "%d", np->nfile.fd);
-		fputs(s, fp);
-		if (np->nfile.type == NTOFD || np->nfile.type == NFROMFD) {
-			fprintf(fp, "%d", np->ndup.dupfd);
-		} else {
-			sharg(np->nfile.fname, fp);
-		}
-		first = 0;
-	}
-}
-
-static void
-sharg(union node *arg, FILE *fp)
-{
-	char *p;
-	struct nodelist *bqlist;
-	int subtype;
-
-	if (arg->type != NARG) {
-		out1fmt("<node type %d>\n", arg->type);
-		abort();
-	}
-	bqlist = arg->narg.backquote;
-	for (p = arg->narg.text; *p; p++) {
-		switch (*p) {
-		case CTLESC:
-			putc(*++p, fp);
-			break;
-		case CTLVAR:
-			putc('$', fp);
-			putc('{', fp);
-			subtype = *++p;
-			if (subtype == VSLENGTH)
-				putc('#', fp);
-
-			while (*p != '=')
-				putc(*p++, fp);
-
-			if (subtype & VSNUL)
-				putc(':', fp);
-
-			switch (subtype & VSTYPE) {
-			case VSNORMAL:
-				putc('}', fp);
-				break;
-			case VSMINUS:
-				putc('-', fp);
-				break;
-			case VSPLUS:
-				putc('+', fp);
-				break;
-			case VSQUESTION:
-				putc('?', fp);
-				break;
-			case VSASSIGN:
-				putc('=', fp);
-				break;
-			case VSTRIMLEFT:
-				putc('#', fp);
-				break;
-			case VSTRIMLEFTMAX:
-				putc('#', fp);
-				putc('#', fp);
-				break;
-			case VSTRIMRIGHT:
-				putc('%', fp);
-				break;
-			case VSTRIMRIGHTMAX:
-				putc('%', fp);
-				putc('%', fp);
-				break;
-			case VSLENGTH:
-				break;
-			default:
-				out1fmt("<subtype %d>", subtype);
-			}
-			break;
-		case CTLENDVAR:
-			putc('}', fp);
-			break;
-		case CTLBACKQ:
-		case CTLBACKQ|CTLQUOTE:
-			putc('$', fp);
-			putc('(', fp);
-			shtree(bqlist->n, -1, NULL, fp);
-			putc(')', fp);
-			break;
-		default:
-			putc(*p, fp);
-			break;
-		}
-	}
-}
-
-
-static void
-indent(int amount, char *pfx, FILE *fp)
-{
-	int i;
-
-	for (i = 0; i < amount; i++) {
-		if (pfx && i == amount - 1)
-			fputs(pfx, fp);
-		putc('\t', fp);
-	}
-}
-
-
-/*
- * Debugging stuff.
- */
-
-
-static FILE *tracefile;
-
-
-static void
-trputc(int c)
-{
-	if (debug != 1)
-		return;
-	putc(c, tracefile);
-}
-
-static void
-trace(const char *fmt, ...)
-{
-	va_list va;
-
-	if (debug != 1)
-		return;
-	va_start(va, fmt);
-	(void) vfprintf(tracefile, fmt, va);
-	va_end(va);
-}
-
-static void
-tracev(const char *fmt, va_list va)
-{
-	if (debug != 1)
-		return;
-	(void) vfprintf(tracefile, fmt, va);
-}
-
-
-static void
-trputs(const char *s)
-{
-	if (debug != 1)
-		return;
-	fputs(s, tracefile);
-}
-
-
-static void
-trstring(char *s)
-{
-	char *p;
-	char c;
-
-	if (debug != 1)
-		return;
-	putc('"', tracefile);
-	for (p = s; *p; p++) {
-		switch (*p) {
-		case '\n':  c = 'n';  goto backslash;
-		case '\t':  c = 't';  goto backslash;
-		case '\r':  c = 'r';  goto backslash;
-		case '"':  c = '"';  goto backslash;
-		case '\\':  c = '\\';  goto backslash;
-		case CTLESC:  c = 'e';  goto backslash;
-		case CTLVAR:  c = 'v';  goto backslash;
-		case CTLVAR+CTLQUOTE:  c = 'V'; goto backslash;
-		case CTLBACKQ:  c = 'q';  goto backslash;
-		case CTLBACKQ+CTLQUOTE:  c = 'Q'; goto backslash;
- backslash:
-			putc('\\', tracefile);
-			putc(c, tracefile);
-			break;
-		default:
-			if (*p >= ' ' && *p <= '~')
-				putc(*p, tracefile);
-			else {
-				putc('\\', tracefile);
-				putc(*p >> 6 & 03, tracefile);
-				putc(*p >> 3 & 07, tracefile);
-				putc(*p & 07, tracefile);
-			}
-			break;
-		}
-	}
-	putc('"', tracefile);
-}
-
-
-static void
-trargs(char **ap)
-{
-	if (debug != 1)
-		return;
-	while (*ap) {
-		trstring(*ap++);
-		if (*ap)
-			putc(' ', tracefile);
-		else
-			putc('\n', tracefile);
-	}
-}
-
-
-static void
-opentrace(void)
-{
-	char s[100];
-#ifdef O_APPEND
-	int flags;
-#endif
-
-	if (debug != 1) {
-		if (tracefile)
-			fflush(tracefile);
-		/* leave open because libedit might be using it */
-		return;
-	}
-	scopy("./trace", s);
-	if (tracefile) {
-		if (!freopen(s, "a", tracefile)) {
-			fprintf(stderr, "Can't re-open %s\n", s);
-			debug = 0;
-			return;
-		}
-	} else {
-		tracefile = fopen(s, "a");
-		if (tracefile == NULL) {
-			fprintf(stderr, "Can't open %s\n", s);
-			debug = 0;
-			return;
-		}
-	}
-#ifdef O_APPEND
-	flags = fcntl(fileno(tracefile), F_GETFL, 0);
-	if (flags >= 0)
-		fcntl(fileno(tracefile), F_SETFL, flags | O_APPEND);
-#endif
-	setlinebuf(tracefile);
-	fputs("\nTracing started.\n", tracefile);
-}
-#endif /* DEBUG */
-
 
 /*      trap.c       */
 
@@ -13215,18 +13166,17 @@ int ash_main(int argc, char **argv)
 		FORCE_INT_ON; /* enable interrupts */
 		if (s == 1)
 			goto state1;
-		else if (s == 2)
+		if (s == 2)
 			goto state2;
-		else if (s == 3)
+		if (s == 3)
 			goto state3;
-		else
-			goto state4;
+		goto state4;
 	}
 	exception_handler = &jmploc;
 #if DEBUG
 	opentrace();
-	trputs("Shell args: ");
-	trargs(argv);
+	trace_puts("Shell args: ");
+	trace_puts_args(argv);
 #endif
 	rootpid = getpid();
 
