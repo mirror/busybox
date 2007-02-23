@@ -1190,9 +1190,9 @@ varcmp(const char *p, const char *q)
 		q++;
 	}
 	if (c == '=')
-		c = 0;
+		c = '\0';
 	if (d == '=')
-		d = 0;
+		d = '\0';
  out:
 	return c - d;
 }
@@ -1469,7 +1469,8 @@ listsetvar(struct strlist *list_set_var, int flags)
 	INT_OFF;
 	do {
 		setvareq(lp->text, flags);
-	} while ((lp = lp->next));
+		lp = lp->next;
+	} while (lp);
 	INT_ON;
 }
 
@@ -3790,7 +3791,8 @@ parse_command_args(char **argv, const char **path)
 				/* run 'typecmd' for other options */
 				return 0;
 			}
-		} while ((c = *cp++));
+			c = *cp++;
+		} while (c);
 	}
 	return argv;
 }
@@ -6025,49 +6027,51 @@ ifsbreakup(char *string, struct arglist *arglist)
 				q = p;
 				if (*p == CTLESC)
 					p++;
-				if (strchr(ifs, *p)) {
-					if (!nulonly)
-						ifsspc = (strchr(defifs, *p) != NULL);
-					/* Ignore IFS whitespace at start */
-					if (q == start && ifsspc) {
-						p++;
-						start = p;
-						continue;
-					}
-					*q = '\0';
-					sp = stalloc(sizeof(*sp));
-					sp->text = start;
-					*arglist->lastp = sp;
-					arglist->lastp = &sp->next;
+				if (!strchr(ifs, *p)) {
 					p++;
-					if (!nulonly) {
-						for (;;) {
-							if (p >= string + ifsp->endoff) {
-								break;
-							}
-							q = p;
-							if (*p == CTLESC)
+					continue;
+				}
+				if (!nulonly)
+					ifsspc = (strchr(defifs, *p) != NULL);
+				/* Ignore IFS whitespace at start */
+				if (q == start && ifsspc) {
+					p++;
+					start = p;
+					continue;
+				}
+				*q = '\0';
+				sp = stalloc(sizeof(*sp));
+				sp->text = start;
+				*arglist->lastp = sp;
+				arglist->lastp = &sp->next;
+				p++;
+				if (!nulonly) {
+					for (;;) {
+						if (p >= string + ifsp->endoff) {
+							break;
+						}
+						q = p;
+						if (*p == CTLESC)
+							p++;
+						if (strchr(ifs, *p) == NULL ) {
+							p = q;
+							break;
+						} else if (strchr(defifs, *p) == NULL) {
+							if (ifsspc) {
 								p++;
-							if (strchr(ifs, *p) == NULL ) {
+								ifsspc = 0;
+							} else {
 								p = q;
 								break;
-							} else if (strchr(defifs, *p) == NULL) {
-								if (ifsspc) {
-									p++;
-									ifsspc = 0;
-								} else {
-									p = q;
-									break;
-								}
-							} else
-								p++;
-						}
+							}
+						} else
+							p++;
 					}
-					start = p;
-				} else
-					p++;
-			}
-		} while ((ifsp = ifsp->next) != NULL);
+				}
+				start = p;
+			} /* while */
+			ifsp = ifsp->next;
+		} while (ifsp != NULL);
 		if (nulonly)
 			goto add;
 	}
