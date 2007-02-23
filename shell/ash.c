@@ -74,7 +74,6 @@
 #define signed_char2int(sc) ((int)((signed char)sc))
 
 
-
 /* ============ Shell options */
 
 static const char *const optletters_optnames[] = {
@@ -138,6 +137,8 @@ static char nullstr[1];                /* zero length string */
 static const char homestr[] = "HOME";
 static const char snlfmt[] = "%s\n";
 static const char illnum[] = "Illegal number: %s";
+
+static char *minusc;                   /* argument to -c option */
 
 static int isloginsh;
 /* pid of main shell */
@@ -2464,14 +2465,6 @@ pwdcmd(int argc, char **argv)
 #define PEOA_OR_PEOF PEOF
 #endif
 
-/*
- * is_special(c) evaluates to 1 for c in "!#$*-0123456789?@"; 0 otherwise
- * (assuming ascii char codes, as the original implementation did)
- */
-#define is_special(c) \
-	((((unsigned int)c) - 33 < 32) \
-			&& ((0xc1ff920dUL >> (((unsigned int)c) - 33)) & 1))
-
 /* number syntax index */
 #define BASESYNTAX 0    /* not in quotes */
 #define DQSYNTAX   1    /* in double quotes */
@@ -2878,14 +2871,7 @@ static const char syntax_index_table[258] = {
 #endif  /* USE_SIT_FUNCTION */
 
 
-/*      main.h        */
-
-static void readcmdfile(char *);
- 
-
 /*      options.h */
-
-static char *minusc;                   /* argument to -c option */
 
 static void optschanged(void);
 static void setparam(char **);
@@ -3119,7 +3105,6 @@ unaliascmd(int argc, char **argv)
 #define SHOW_PGID       0x01    /* only show pgid - for jobs -p */
 #define SHOW_PID        0x04    /* include process pid */
 #define SHOW_CHANGED    0x08    /* only jobs whose state has changed */
-
 
 /*
  * A job structure contains information about a job.  A job is either a
@@ -7823,190 +7808,6 @@ find_builtin(const char *name)
 }
 
 /*
- * Resolve a command name.  If you change this routine, you may have to
- * change the shellexec routine as well.
- */
-static void
-find_command(char *name, struct cmdentry *entry, int act, const char *path)
-{
-	struct tblentry *cmdp;
-	int idx;
-	int prev;
-	char *fullname;
-	struct stat statb;
-	int e;
-	int updatetbl;
-	struct builtincmd *bcmd;
-
-	/* If name contains a slash, don't use PATH or hash table */
-	if (strchr(name, '/') != NULL) {
-		entry->u.index = -1;
-		if (act & DO_ABS) {
-			while (stat(name, &statb) < 0) {
-#ifdef SYSV
-				if (errno == EINTR)
-					continue;
-#endif
-				entry->cmdtype = CMDUNKNOWN;
-				return;
-			}
-		}
-		entry->cmdtype = CMDNORMAL;
-		return;
-	}
-
-#if ENABLE_FEATURE_SH_STANDALONE_SHELL
-	if (find_applet_by_name(name)) {
-		entry->cmdtype = CMDNORMAL;
-		entry->u.index = -1;
-		return;
-	}
-#endif
-
-	if (is_safe_applet(name)) {
-		entry->cmdtype = CMDNORMAL;
-		entry->u.index = -1;
-		return;
-	}
-
-	updatetbl = (path == pathval());
-	if (!updatetbl) {
-		act |= DO_ALTPATH;
-		if (strstr(path, "%builtin") != NULL)
-			act |= DO_ALTBLTIN;
-	}
-
-	/* If name is in the table, check answer will be ok */
-	cmdp = cmdlookup(name, 0);
-	if (cmdp != NULL) {
-		int bit;
-
-		switch (cmdp->cmdtype) {
-		default:
-#if DEBUG
-			abort();
-#endif
-		case CMDNORMAL:
-			bit = DO_ALTPATH;
-			break;
-		case CMDFUNCTION:
-			bit = DO_NOFUNC;
-			break;
-		case CMDBUILTIN:
-			bit = DO_ALTBLTIN;
-			break;
-		}
-		if (act & bit) {
-			updatetbl = 0;
-			cmdp = NULL;
-		} else if (cmdp->rehash == 0)
-			/* if not invalidated by cd, we're done */
-			goto success;
-	}
-
-	/* If %builtin not in path, check for builtin next */
-	bcmd = find_builtin(name);
-	if (bcmd && (IS_BUILTIN_REGULAR(bcmd) || (
-		act & DO_ALTPATH ? !(act & DO_ALTBLTIN) : builtinloc <= 0
-	)))
-		goto builtin_success;
-
-	/* We have to search path. */
-	prev = -1;              /* where to start */
-	if (cmdp && cmdp->rehash) {     /* doing a rehash */
-		if (cmdp->cmdtype == CMDBUILTIN)
-			prev = builtinloc;
-		else
-			prev = cmdp->param.index;
-	}
-
-	e = ENOENT;
-	idx = -1;
- loop:
-	while ((fullname = padvance(&path, name)) != NULL) {
-		stunalloc(fullname);
-		idx++;
-		if (pathopt) {
-			if (prefix(pathopt, "builtin")) {
-				if (bcmd)
-					goto builtin_success;
-				continue;
-			} else if (!(act & DO_NOFUNC) &&
-				   prefix(pathopt, "func")) {
-				/* handled below */
-			} else {
-				/* ignore unimplemented options */
-				continue;
-			}
-		}
-		/* if rehash, don't redo absolute path names */
-		if (fullname[0] == '/' && idx <= prev) {
-			if (idx < prev)
-				continue;
-			TRACE(("searchexec \"%s\": no change\n", name));
-			goto success;
-		}
-		while (stat(fullname, &statb) < 0) {
-#ifdef SYSV
-			if (errno == EINTR)
-				continue;
-#endif
-			if (errno != ENOENT && errno != ENOTDIR)
-				e = errno;
-			goto loop;
-		}
-		e = EACCES;     /* if we fail, this will be the error */
-		if (!S_ISREG(statb.st_mode))
-			continue;
-		if (pathopt) {          /* this is a %func directory */
-			stalloc(strlen(fullname) + 1);
-			readcmdfile(fullname);
-			cmdp = cmdlookup(name, 0);
-			if (cmdp == NULL || cmdp->cmdtype != CMDFUNCTION)
-				ash_msg_and_raise_error("%s not defined in %s", name, fullname);
-			stunalloc(fullname);
-			goto success;
-		}
-		TRACE(("searchexec \"%s\" returns \"%s\"\n", name, fullname));
-		if (!updatetbl) {
-			entry->cmdtype = CMDNORMAL;
-			entry->u.index = idx;
-			return;
-		}
-		INT_OFF;
-		cmdp = cmdlookup(name, 1);
-		cmdp->cmdtype = CMDNORMAL;
-		cmdp->param.index = idx;
-		INT_ON;
-		goto success;
-	}
-
-	/* We failed.  If there was an entry for this command, delete it */
-	if (cmdp && updatetbl)
-		delete_cmd_entry();
-	if (act & DO_ERR)
-		ash_msg("%s: %s", name, errmsg(e, "not found"));
-	entry->cmdtype = CMDUNKNOWN;
-	return;
-
- builtin_success:
-	if (!updatetbl) {
-		entry->cmdtype = CMDBUILTIN;
-		entry->u.cmd = bcmd;
-		return;
-	}
-	INT_OFF;
-	cmdp = cmdlookup(name, 1);
-	cmdp->cmdtype = CMDBUILTIN;
-	cmdp->param.cmd = bcmd;
-	INT_ON;
- success:
-	cmdp->rehash = 0;
-	entry->cmdtype = cmdp->cmdtype;
-	entry->u = cmdp->param;
-}
-
-/*
  * Execute a simple command.
  */
 static int back_exitstatus; /* exit status of backquoted command */
@@ -8409,7 +8210,6 @@ static int checkkwd;
 #define CHKALIAS        0x1
 #define CHKKWD          0x2
 #define CHKNL           0x4
-
 
 static void
 popstring(void)
@@ -10096,7 +9896,6 @@ readtoken1(int firstc, int syntax, char *eofmark, int striptabs)
 	return lasttoken;
 /* end of readtoken routine */
 
-
 /*
  * Check to see whether we are at the end of the here document.  When this
  * is called, c is set to the first character of the next input line.  If
@@ -10132,7 +9931,6 @@ checkend: {
 	}
 	goto checkend_return;
 }
-
 
 /*
  * Parse a redirection operator.  The variable "out" points to a string
@@ -10198,11 +9996,16 @@ parseredir: {
 	goto parseredir_return;
 }
 
-
 /*
  * Parse a substitution.  At this point, we have read the dollar sign
  * and nothing else.
  */
+
+/* is_special(c) evaluates to 1 for c in "!#$*-0123456789?@"; 0 otherwise
+ * (assuming ascii char codes, as the original implementation did) */
+#define is_special(c) \
+	((((unsigned int)c) - 33 < 32) \
+			&& ((0xc1ff920dUL >> (((unsigned int)c) - 33)) & 1))
 parsesub: {
 	int subtype;
 	int typeloc;
@@ -10303,7 +10106,6 @@ parsesub: {
 	}
 	goto parsesub_return;
 }
-
 
 /*
  * Called to parse command substitutions.  Newstyle is set if the command
@@ -10993,6 +10795,193 @@ readcmdfile(char *name)
 }
 
 
+/* ============ find_command inplementation */
+
+/*
+ * Resolve a command name.  If you change this routine, you may have to
+ * change the shellexec routine as well.
+ */
+static void
+find_command(char *name, struct cmdentry *entry, int act, const char *path)
+{
+	struct tblentry *cmdp;
+	int idx;
+	int prev;
+	char *fullname;
+	struct stat statb;
+	int e;
+	int updatetbl;
+	struct builtincmd *bcmd;
+
+	/* If name contains a slash, don't use PATH or hash table */
+	if (strchr(name, '/') != NULL) {
+		entry->u.index = -1;
+		if (act & DO_ABS) {
+			while (stat(name, &statb) < 0) {
+#ifdef SYSV
+				if (errno == EINTR)
+					continue;
+#endif
+				entry->cmdtype = CMDUNKNOWN;
+				return;
+			}
+		}
+		entry->cmdtype = CMDNORMAL;
+		return;
+	}
+
+#if ENABLE_FEATURE_SH_STANDALONE_SHELL
+	if (find_applet_by_name(name)) {
+		entry->cmdtype = CMDNORMAL;
+		entry->u.index = -1;
+		return;
+	}
+#endif
+
+	if (is_safe_applet(name)) {
+		entry->cmdtype = CMDNORMAL;
+		entry->u.index = -1;
+		return;
+	}
+
+	updatetbl = (path == pathval());
+	if (!updatetbl) {
+		act |= DO_ALTPATH;
+		if (strstr(path, "%builtin") != NULL)
+			act |= DO_ALTBLTIN;
+	}
+
+	/* If name is in the table, check answer will be ok */
+	cmdp = cmdlookup(name, 0);
+	if (cmdp != NULL) {
+		int bit;
+
+		switch (cmdp->cmdtype) {
+		default:
+#if DEBUG
+			abort();
+#endif
+		case CMDNORMAL:
+			bit = DO_ALTPATH;
+			break;
+		case CMDFUNCTION:
+			bit = DO_NOFUNC;
+			break;
+		case CMDBUILTIN:
+			bit = DO_ALTBLTIN;
+			break;
+		}
+		if (act & bit) {
+			updatetbl = 0;
+			cmdp = NULL;
+		} else if (cmdp->rehash == 0)
+			/* if not invalidated by cd, we're done */
+			goto success;
+	}
+
+	/* If %builtin not in path, check for builtin next */
+	bcmd = find_builtin(name);
+	if (bcmd && (IS_BUILTIN_REGULAR(bcmd) || (
+		act & DO_ALTPATH ? !(act & DO_ALTBLTIN) : builtinloc <= 0
+	)))
+		goto builtin_success;
+
+	/* We have to search path. */
+	prev = -1;              /* where to start */
+	if (cmdp && cmdp->rehash) {     /* doing a rehash */
+		if (cmdp->cmdtype == CMDBUILTIN)
+			prev = builtinloc;
+		else
+			prev = cmdp->param.index;
+	}
+
+	e = ENOENT;
+	idx = -1;
+ loop:
+	while ((fullname = padvance(&path, name)) != NULL) {
+		stunalloc(fullname);
+		idx++;
+		if (pathopt) {
+			if (prefix(pathopt, "builtin")) {
+				if (bcmd)
+					goto builtin_success;
+				continue;
+			} else if (!(act & DO_NOFUNC) &&
+				   prefix(pathopt, "func")) {
+				/* handled below */
+			} else {
+				/* ignore unimplemented options */
+				continue;
+			}
+		}
+		/* if rehash, don't redo absolute path names */
+		if (fullname[0] == '/' && idx <= prev) {
+			if (idx < prev)
+				continue;
+			TRACE(("searchexec \"%s\": no change\n", name));
+			goto success;
+		}
+		while (stat(fullname, &statb) < 0) {
+#ifdef SYSV
+			if (errno == EINTR)
+				continue;
+#endif
+			if (errno != ENOENT && errno != ENOTDIR)
+				e = errno;
+			goto loop;
+		}
+		e = EACCES;     /* if we fail, this will be the error */
+		if (!S_ISREG(statb.st_mode))
+			continue;
+		if (pathopt) {          /* this is a %func directory */
+			stalloc(strlen(fullname) + 1);
+			readcmdfile(fullname);
+			cmdp = cmdlookup(name, 0);
+			if (cmdp == NULL || cmdp->cmdtype != CMDFUNCTION)
+				ash_msg_and_raise_error("%s not defined in %s", name, fullname);
+			stunalloc(fullname);
+			goto success;
+		}
+		TRACE(("searchexec \"%s\" returns \"%s\"\n", name, fullname));
+		if (!updatetbl) {
+			entry->cmdtype = CMDNORMAL;
+			entry->u.index = idx;
+			return;
+		}
+		INT_OFF;
+		cmdp = cmdlookup(name, 1);
+		cmdp->cmdtype = CMDNORMAL;
+		cmdp->param.index = idx;
+		INT_ON;
+		goto success;
+	}
+
+	/* We failed.  If there was an entry for this command, delete it */
+	if (cmdp && updatetbl)
+		delete_cmd_entry();
+	if (act & DO_ERR)
+		ash_msg("%s: %s", name, errmsg(e, "not found"));
+	entry->cmdtype = CMDUNKNOWN;
+	return;
+
+ builtin_success:
+	if (!updatetbl) {
+		entry->cmdtype = CMDBUILTIN;
+		entry->u.cmd = bcmd;
+		return;
+	}
+	INT_OFF;
+	cmdp = cmdlookup(name, 1);
+	cmdp->cmdtype = CMDBUILTIN;
+	cmdp->param.cmd = bcmd;
+	INT_ON;
+ success:
+	cmdp->rehash = 0;
+	entry->cmdtype = cmdp->cmdtype;
+	entry->u = cmdp->param;
+}
+
+
 /* ============ redir.c
  *
  * Code for dealing with input/output redirection.
@@ -11183,7 +11172,6 @@ dupredirect(union node *redir, int f)
 		close(f);
 	}
 }
-
 
 /*
  * Process a list of redirection commands.  If the REDIR_PUSH flag is set,
