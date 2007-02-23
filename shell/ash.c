@@ -1593,6 +1593,21 @@ struct shparam {
 
 static struct shparam shellparam;      /* $@ current positional parameters */
 
+/*
+ * Free the list of positional parameters.
+ */
+static void
+freeparam(volatile struct shparam *param)
+{
+	char **ap;
+
+	if (param->malloc) {
+		for (ap = param->p; *ap; ap++)
+			free(*ap);
+		free(param->p);
+	}
+}
+
 #if ENABLE_ASH_GETOPTS
 static void
 getoptsreset(const char *value)
@@ -2869,29 +2884,6 @@ static const char syntax_index_table[258] = {
 #define SIT(c, syntax) (S_I_T[(int)syntax_index_table[((int)c)+SYNBASE]][syntax])
 
 #endif  /* USE_SIT_FUNCTION */
-
-
-/*      options.h */
-
-static void optschanged(void);
-static void setparam(char **);
-static void freeparam(volatile struct shparam *);
-static int shiftcmd(int, char **);
-static int setcmd(int, char **);
-static int nextopt(const char *);
-
-
-/*      redir.h      */
-
-/* flags passed to redirect */
-#define REDIR_PUSH 01           /* save previous values of file descriptors */
-#define REDIR_SAVEFD2 03       /* set preverrout */
-
-static void redirect(union node *, int);
-static void popredir(int);
-static void clearredir(int);
-static int copyfd(int, int);
-static int redirectsafe(union node *, int);
 
 
 /* ============ Alias handling */
@@ -4619,6 +4611,357 @@ stoppedjobs(void)
 	}
  out:
 	return retval;
+}
+
+
+/* ============ redir.c
+ *
+ * Code for dealing with input/output redirection.
+ */
+
+#define EMPTY -2                /* marks an unused slot in redirtab */
+#ifndef PIPE_BUF
+# define PIPESIZE 4096          /* amount of buffering in a pipe */
+#else
+# define PIPESIZE PIPE_BUF
+#endif
+
+/*
+ * Open a file in noclobber mode.
+ * The code was copied from bash.
+ */
+static int
+noclobberopen(const char *fname)
+{
+	int r, fd;
+	struct stat finfo, finfo2;
+
+	/*
+	 * If the file exists and is a regular file, return an error
+	 * immediately.
+	 */
+	r = stat(fname, &finfo);
+	if (r == 0 && S_ISREG(finfo.st_mode)) {
+		errno = EEXIST;
+		return -1;
+	}
+
+	/*
+	 * If the file was not present (r != 0), make sure we open it
+	 * exclusively so that if it is created before we open it, our open
+	 * will fail.  Make sure that we do not truncate an existing file.
+	 * Note that we don't turn on O_EXCL unless the stat failed -- if the
+	 * file was not a regular file, we leave O_EXCL off.
+	 */
+	if (r != 0)
+		return open(fname, O_WRONLY|O_CREAT|O_EXCL, 0666);
+	fd = open(fname, O_WRONLY|O_CREAT, 0666);
+
+	/* If the open failed, return the file descriptor right away. */
+	if (fd < 0)
+		return fd;
+
+	/*
+	 * OK, the open succeeded, but the file may have been changed from a
+	 * non-regular file to a regular file between the stat and the open.
+	 * We are assuming that the O_EXCL open handles the case where FILENAME
+	 * did not exist and is symlinked to an existing file between the stat
+	 * and open.
+	 */
+
+	/*
+	 * If we can open it and fstat the file descriptor, and neither check
+	 * revealed that it was a regular file, and the file has not been
+	 * replaced, return the file descriptor.
+	 */
+	if (fstat(fd, &finfo2) == 0 && !S_ISREG(finfo2.st_mode)
+	 && finfo.st_dev == finfo2.st_dev && finfo.st_ino == finfo2.st_ino)
+		return fd;
+
+	/* The file has been replaced.  badness. */
+	close(fd);
+	errno = EEXIST;
+	return -1;
+}
+
+/*
+ * Handle here documents.  Normally we fork off a process to write the
+ * data to a pipe.  If the document is short, we can stuff the data in
+ * the pipe without forking.
+ */
+/* openhere needs this forward reference */
+static void expandhere(union node *arg, int fd);
+static int
+openhere(union node *redir)
+{
+	int pip[2];
+	size_t len = 0;
+
+	if (pipe(pip) < 0)
+		ash_msg_and_raise_error("Pipe call failed");
+	if (redir->type == NHERE) {
+		len = strlen(redir->nhere.doc->narg.text);
+		if (len <= PIPESIZE) {
+			full_write(pip[1], redir->nhere.doc->narg.text, len);
+			goto out;
+		}
+	}
+	if (forkshell((struct job *)NULL, (union node *)NULL, FORK_NOJOB) == 0) {
+		close(pip[0]);
+		signal(SIGINT, SIG_IGN);
+		signal(SIGQUIT, SIG_IGN);
+		signal(SIGHUP, SIG_IGN);
+#ifdef SIGTSTP
+		signal(SIGTSTP, SIG_IGN);
+#endif
+		signal(SIGPIPE, SIG_DFL);
+		if (redir->type == NHERE)
+			full_write(pip[1], redir->nhere.doc->narg.text, len);
+		else
+			expandhere(redir->nhere.doc, pip[1]);
+		_exit(0);
+	}
+ out:
+	close(pip[1]);
+	return pip[0];
+}
+
+static int
+openredirect(union node *redir)
+{
+	char *fname;
+	int f;
+
+	switch (redir->nfile.type) {
+	case NFROM:
+		fname = redir->nfile.expfname;
+		f = open(fname, O_RDONLY);
+		if (f < 0)
+			goto eopen;
+		break;
+	case NFROMTO:
+		fname = redir->nfile.expfname;
+		f = open(fname, O_RDWR|O_CREAT|O_TRUNC, 0666);
+		if (f < 0)
+			goto ecreate;
+		break;
+	case NTO:
+		/* Take care of noclobber mode. */
+		if (Cflag) {
+			fname = redir->nfile.expfname;
+			f = noclobberopen(fname);
+			if (f < 0)
+				goto ecreate;
+			break;
+		}
+		/* FALLTHROUGH */
+	case NCLOBBER:
+		fname = redir->nfile.expfname;
+		f = open(fname, O_WRONLY|O_CREAT|O_TRUNC, 0666);
+		if (f < 0)
+			goto ecreate;
+		break;
+	case NAPPEND:
+		fname = redir->nfile.expfname;
+		f = open(fname, O_WRONLY|O_CREAT|O_APPEND, 0666);
+		if (f < 0)
+			goto ecreate;
+		break;
+	default:
+#if DEBUG
+		abort();
+#endif
+		/* Fall through to eliminate warning. */
+	case NTOFD:
+	case NFROMFD:
+		f = -1;
+		break;
+	case NHERE:
+	case NXHERE:
+		f = openhere(redir);
+		break;
+	}
+
+	return f;
+ ecreate:
+	ash_msg_and_raise_error("cannot create %s: %s", fname, errmsg(errno, "Directory nonexistent"));
+ eopen:
+	ash_msg_and_raise_error("cannot open %s: %s", fname, errmsg(errno, "No such file"));
+}
+
+/*
+ * Copy a file descriptor to be >= to.  Returns -1
+ * if the source file descriptor is closed, EMPTY if there are no unused
+ * file descriptors left.
+ */
+static int
+copyfd(int from, int to)
+{
+	int newfd;
+
+	newfd = fcntl(from, F_DUPFD, to);
+	if (newfd < 0) {
+		if (errno == EMFILE)
+			return EMPTY;
+		ash_msg_and_raise_error("%d: %m", from);
+	}
+	return newfd;
+}
+
+static void
+dupredirect(union node *redir, int f)
+{
+	int fd = redir->nfile.fd;
+
+	if (redir->nfile.type == NTOFD || redir->nfile.type == NFROMFD) {
+		if (redir->ndup.dupfd >= 0) {   /* if not ">&-" */
+			copyfd(redir->ndup.dupfd, fd);
+		}
+		return;
+	}
+
+	if (f != fd) {
+		copyfd(f, fd);
+		close(f);
+	}
+}
+
+/*
+ * Process a list of redirection commands.  If the REDIR_PUSH flag is set,
+ * old file descriptors are stashed away so that the redirection can be
+ * undone by calling popredir.  If the REDIR_BACKQ flag is set, then the
+ * standard output, and the standard error if it becomes a duplicate of
+ * stdout, is saved in memory.
+ */
+/* flags passed to redirect */
+#define REDIR_PUSH    01        /* save previous values of file descriptors */
+#define REDIR_SAVEFD2 03        /* set preverrout */
+static void
+redirect(union node *redir, int flags)
+{
+	union node *n;
+	struct redirtab *sv;
+	int i;
+	int fd;
+	int newfd;
+	int *p;
+	nullredirs++;
+	if (!redir) {
+		return;
+	}
+	sv = NULL;
+	INT_OFF;
+	if (flags & REDIR_PUSH) {
+		struct redirtab *q;
+		q = ckmalloc(sizeof(struct redirtab));
+		q->next = redirlist;
+		redirlist = q;
+		q->nullredirs = nullredirs - 1;
+		for (i = 0; i < 10; i++)
+			q->renamed[i] = EMPTY;
+		nullredirs = 0;
+		sv = q;
+	}
+	n = redir;
+	do {
+		fd = n->nfile.fd;
+		if ((n->nfile.type == NTOFD || n->nfile.type == NFROMFD)
+		 && n->ndup.dupfd == fd)
+			continue; /* redirect from/to same file descriptor */
+
+		newfd = openredirect(n);
+		if (fd == newfd)
+			continue;
+		if (sv && *(p = &sv->renamed[fd]) == EMPTY) {
+			i = fcntl(fd, F_DUPFD, 10);
+
+			if (i == -1) {
+				i = errno;
+				if (i != EBADF) {
+					close(newfd);
+					errno = i;
+					ash_msg_and_raise_error("%d: %m", fd);
+					/* NOTREACHED */
+				}
+			} else {
+				*p = i;
+				close(fd);
+			}
+		} else {
+			close(fd);
+		}
+		dupredirect(n, newfd);
+	} while ((n = n->nfile.next));
+	INT_ON;
+	if (flags & REDIR_SAVEFD2 && sv && sv->renamed[2] >= 0)
+		preverrout_fd = sv->renamed[2];
+}
+
+/*
+ * Undo the effects of the last redirection.
+ */
+static void
+popredir(int drop)
+{
+	struct redirtab *rp;
+	int i;
+
+	if (--nullredirs >= 0)
+		return;
+	INT_OFF;
+	rp = redirlist;
+	for (i = 0; i < 10; i++) {
+		if (rp->renamed[i] != EMPTY) {
+			if (!drop) {
+				close(i);
+				copyfd(rp->renamed[i], i);
+			}
+			close(rp->renamed[i]);
+		}
+	}
+	redirlist = rp->next;
+	nullredirs = rp->nullredirs;
+	free(rp);
+	INT_ON;
+}
+
+/*
+ * Undo all redirections.  Called on error or interrupt.
+ */
+
+/*
+ * Discard all saved file descriptors.
+ */
+static void
+clearredir(int drop)
+{
+	for (;;) {
+		nullredirs = 0;
+		if (!redirlist)
+			break;
+		popredir(drop);
+	}
+}
+
+static int
+redirectsafe(union node *redir, int flags)
+{
+	int err;
+	volatile int saveint;
+	struct jmploc *volatile savehandler = exception_handler;
+	struct jmploc jmploc;
+
+	SAVE_INT(saveint);
+	err = setjmp(jmploc.loc) * 2;
+	if (!err) {
+		exception_handler = &jmploc;
+		redirect(redir, flags);
+	}
+	exception_handler = savehandler;
+	if (err && exception != EXERROR)
+		longjmp(exception_handler->loc, 1);
+	RESTORE_INT(saveint);
+	return err;
 }
 
 
@@ -7475,6 +7818,58 @@ evalpipe(union node *n, int flags)
 	INT_ON;
 }
 
+/*
+ * Controls whether the shell is interactive or not.
+ */
+static void
+setinteractive(int on)
+{
+	static int is_interactive;
+
+	if (++on == is_interactive)
+		return;
+	is_interactive = on;
+	setsignal(SIGINT);
+	setsignal(SIGQUIT);
+	setsignal(SIGTERM);
+#if !ENABLE_FEATURE_SH_EXTRA_QUIET
+	if (is_interactive > 1) {
+		/* Looks like they want an interactive shell */
+		static smallint do_banner;
+
+		if (!do_banner) {
+			out1fmt(
+				"\n\n"
+				"%s Built-in shell (ash)\n"
+				"Enter 'help' for a list of built-in commands."
+				"\n\n",
+				BB_BANNER);
+			do_banner = 1;
+		}
+	}
+#endif
+}
+
+#if ENABLE_FEATURE_EDITING_VI
+#define setvimode(on) do { \
+	if (on) line_input_state->flags |= VI_MODE; \
+	else line_input_state->flags &= ~VI_MODE; \
+} while (0)
+#else
+#define setvimode(on) viflag = 0   /* forcibly keep the option off */
+#endif
+
+static void
+optschanged(void)
+{
+#if DEBUG
+	opentrace();
+#endif
+	setinteractive(iflag);
+	setjobctl(mflag);
+	setvimode(viflag);
+}
+
 static struct localvar *localvars;
 
 /*
@@ -7894,7 +8289,7 @@ evalcommand(union node *cmd, int flags)
 
 	preverrout_fd = 2;
 	expredir(cmd->ncmd.redirect);
-	status = redirectsafe(cmd->ncmd.redirect, REDIR_PUSH|REDIR_SAVEFD2);
+	status = redirectsafe(cmd->ncmd.redirect, REDIR_PUSH | REDIR_SAVEFD2);
 
 	path = vpath.text;
 	for (argp = cmd->ncmd.assign; argp; argp = argp->narg.next) {
@@ -8678,88 +9073,35 @@ changemail(const char *val)
 /* ============ ??? */
 
 /*
- * Take commands from a file.  To be compatible we should do a path
- * search for the file, which is necessary to find sub-commands.
+ * Set the shell parameters.
  */
-static char *
-find_dot_file(char *name)
+static void
+setparam(char **argv)
 {
-	char *fullname;
-	const char *path = pathval();
-	struct stat statb;
+	char **newparam;
+	char **ap;
+	int nparam;
 
-	/* don't try this for absolute or relative paths */
-	if (strchr(name, '/'))
-		return name;
-
-	while ((fullname = padvance(&path, name)) != NULL) {
-		if ((stat(fullname, &statb) == 0) && S_ISREG(statb.st_mode)) {
-			/*
-			 * Don't bother freeing here, since it will
-			 * be freed by the caller.
-			 */
-			return fullname;
-		}
-		stunalloc(fullname);
+	for (nparam = 0; argv[nparam]; nparam++);
+	ap = newparam = ckmalloc((nparam + 1) * sizeof(*ap));
+	while (*argv) {
+		*ap++ = ckstrdup(*argv++);
 	}
-
-	/* not found in the PATH */
-	ash_msg_and_raise_error("%s: not found", name);
-	/* NOTREACHED */
+	*ap = NULL;
+	freeparam(&shellparam);
+	shellparam.malloc = 1;
+	shellparam.nparam = nparam;
+	shellparam.p = newparam;
+#if ENABLE_ASH_GETOPTS
+	shellparam.optind = 1;
+	shellparam.optoff = -1;
+#endif
 }
 
 /*
- * Controls whether the shell is interactive or not.
+ * Process shell options.  The global variable argptr contains a pointer
+ * to the argument list; we advance it past the options.
  */
-static void
-setinteractive(int on)
-{
-	static int is_interactive;
-
-	if (++on == is_interactive)
-		return;
-	is_interactive = on;
-	setsignal(SIGINT);
-	setsignal(SIGQUIT);
-	setsignal(SIGTERM);
-#if !ENABLE_FEATURE_SH_EXTRA_QUIET
-	if (is_interactive > 1) {
-		/* Looks like they want an interactive shell */
-		static smallint do_banner;
-
-		if (!do_banner) {
-			out1fmt(
-				"\n\n"
-				"%s Built-in shell (ash)\n"
-				"Enter 'help' for a list of built-in commands."
-				"\n\n",
-				BB_BANNER);
-			do_banner = 1;
-		}
-	}
-#endif
-}
-
-#if ENABLE_FEATURE_EDITING_VI
-#define setvimode(on) do { \
-	if (on) line_input_state->flags |= VI_MODE; \
-	else line_input_state->flags &= ~VI_MODE; \
-} while (0)
-#else
-#define setvimode(on) viflag = 0   /* forcibly keep the option off */
-#endif
-
-static void
-optschanged(void)
-{
-#if DEBUG
-	opentrace();
-#endif
-	setinteractive(iflag);
-	setjobctl(mflag);
-	setvimode(viflag);
-}
-
 static void
 minus_o(char *name, int val)
 {
@@ -8779,7 +9121,6 @@ minus_o(char *name, int val)
 		out1fmt("%-16s%s\n", optnames(i),
 				optlist[i] ? "on" : "off");
 }
-
 static void
 setoption(int flag, int val)
 {
@@ -8794,11 +9135,6 @@ setoption(int flag, int val)
 	ash_msg_and_raise_error("Illegal option -%c", flag);
 	/* NOTREACHED */
 }
-
-/*
- * Process shell options.  The global variable argptr contains a pointer
- * to the argument list; we advance it past the options.
- */
 static void
 options(int cmdline)
 {
@@ -8845,47 +9181,6 @@ options(int cmdline)
 				setoption(c, val);
 			}
 		}
-	}
-}
-
-/*
- * Set the shell parameters.
- */
-static void
-setparam(char **argv)
-{
-	char **newparam;
-	char **ap;
-	int nparam;
-
-	for (nparam = 0; argv[nparam]; nparam++);
-	ap = newparam = ckmalloc((nparam + 1) * sizeof(*ap));
-	while (*argv) {
-		*ap++ = ckstrdup(*argv++);
-	}
-	*ap = NULL;
-	freeparam(&shellparam);
-	shellparam.malloc = 1;
-	shellparam.nparam = nparam;
-	shellparam.p = newparam;
-#if ENABLE_ASH_GETOPTS
-	shellparam.optind = 1;
-	shellparam.optoff = -1;
-#endif
-}
-
-/*
- * Free the list of positional parameters.
- */
-static void
-freeparam(volatile struct shparam *param)
-{
-	char **ap;
-
-	if (param->malloc) {
-		for (ap = param->p; *ap; ap++)
-			free(*ap);
-		free(param->p);
 	}
 }
 
@@ -10720,6 +11015,37 @@ cmdloop(int top)
 	return 0;
 }
 
+/*
+ * Take commands from a file.  To be compatible we should do a path
+ * search for the file, which is necessary to find sub-commands.
+ */
+static char *
+find_dot_file(char *name)
+{
+	char *fullname;
+	const char *path = pathval();
+	struct stat statb;
+
+	/* don't try this for absolute or relative paths */
+	if (strchr(name, '/'))
+		return name;
+
+	while ((fullname = padvance(&path, name)) != NULL) {
+		if ((stat(fullname, &statb) == 0) && S_ISREG(statb.st_mode)) {
+			/*
+			 * Don't bother freeing here, since it will
+			 * be freed by the caller.
+			 */
+			return fullname;
+		}
+		stunalloc(fullname);
+	}
+
+	/* not found in the PATH */
+	ash_msg_and_raise_error("%s: not found", name);
+	/* NOTREACHED */
+}
+
 static int
 dotcmd(int argc, char **argv)
 {
@@ -10979,352 +11305,6 @@ find_command(char *name, struct cmdentry *entry, int act, const char *path)
 	cmdp->rehash = 0;
 	entry->cmdtype = cmdp->cmdtype;
 	entry->u = cmdp->param;
-}
-
-
-/* ============ redir.c
- *
- * Code for dealing with input/output redirection.
- */
-
-#define EMPTY -2                /* marks an unused slot in redirtab */
-#ifndef PIPE_BUF
-# define PIPESIZE 4096          /* amount of buffering in a pipe */
-#else
-# define PIPESIZE PIPE_BUF
-#endif
-
-/*
- * Open a file in noclobber mode.
- * The code was copied from bash.
- */
-static int
-noclobberopen(const char *fname)
-{
-	int r, fd;
-	struct stat finfo, finfo2;
-
-	/*
-	 * If the file exists and is a regular file, return an error
-	 * immediately.
-	 */
-	r = stat(fname, &finfo);
-	if (r == 0 && S_ISREG(finfo.st_mode)) {
-		errno = EEXIST;
-		return -1;
-	}
-
-	/*
-	 * If the file was not present (r != 0), make sure we open it
-	 * exclusively so that if it is created before we open it, our open
-	 * will fail.  Make sure that we do not truncate an existing file.
-	 * Note that we don't turn on O_EXCL unless the stat failed -- if the
-	 * file was not a regular file, we leave O_EXCL off.
-	 */
-	if (r != 0)
-		return open(fname, O_WRONLY|O_CREAT|O_EXCL, 0666);
-	fd = open(fname, O_WRONLY|O_CREAT, 0666);
-
-	/* If the open failed, return the file descriptor right away. */
-	if (fd < 0)
-		return fd;
-
-	/*
-	 * OK, the open succeeded, but the file may have been changed from a
-	 * non-regular file to a regular file between the stat and the open.
-	 * We are assuming that the O_EXCL open handles the case where FILENAME
-	 * did not exist and is symlinked to an existing file between the stat
-	 * and open.
-	 */
-
-	/*
-	 * If we can open it and fstat the file descriptor, and neither check
-	 * revealed that it was a regular file, and the file has not been
-	 * replaced, return the file descriptor.
-	 */
-	if (fstat(fd, &finfo2) == 0 && !S_ISREG(finfo2.st_mode)
-	 && finfo.st_dev == finfo2.st_dev && finfo.st_ino == finfo2.st_ino)
-		return fd;
-
-	/* The file has been replaced.  badness. */
-	close(fd);
-	errno = EEXIST;
-	return -1;
-}
-
-/*
- * Handle here documents.  Normally we fork off a process to write the
- * data to a pipe.  If the document is short, we can stuff the data in
- * the pipe without forking.
- */
-static int
-openhere(union node *redir)
-{
-	int pip[2];
-	size_t len = 0;
-
-	if (pipe(pip) < 0)
-		ash_msg_and_raise_error("Pipe call failed");
-	if (redir->type == NHERE) {
-		len = strlen(redir->nhere.doc->narg.text);
-		if (len <= PIPESIZE) {
-			full_write(pip[1], redir->nhere.doc->narg.text, len);
-			goto out;
-		}
-	}
-	if (forkshell((struct job *)NULL, (union node *)NULL, FORK_NOJOB) == 0) {
-		close(pip[0]);
-		signal(SIGINT, SIG_IGN);
-		signal(SIGQUIT, SIG_IGN);
-		signal(SIGHUP, SIG_IGN);
-#ifdef SIGTSTP
-		signal(SIGTSTP, SIG_IGN);
-#endif
-		signal(SIGPIPE, SIG_DFL);
-		if (redir->type == NHERE)
-			full_write(pip[1], redir->nhere.doc->narg.text, len);
-		else
-			expandhere(redir->nhere.doc, pip[1]);
-		_exit(0);
-	}
- out:
-	close(pip[1]);
-	return pip[0];
-}
-
-static int
-openredirect(union node *redir)
-{
-	char *fname;
-	int f;
-
-	switch (redir->nfile.type) {
-	case NFROM:
-		fname = redir->nfile.expfname;
-		f = open(fname, O_RDONLY);
-		if (f < 0)
-			goto eopen;
-		break;
-	case NFROMTO:
-		fname = redir->nfile.expfname;
-		f = open(fname, O_RDWR|O_CREAT|O_TRUNC, 0666);
-		if (f < 0)
-			goto ecreate;
-		break;
-	case NTO:
-		/* Take care of noclobber mode. */
-		if (Cflag) {
-			fname = redir->nfile.expfname;
-			f = noclobberopen(fname);
-			if (f < 0)
-				goto ecreate;
-			break;
-		}
-		/* FALLTHROUGH */
-	case NCLOBBER:
-		fname = redir->nfile.expfname;
-		f = open(fname, O_WRONLY|O_CREAT|O_TRUNC, 0666);
-		if (f < 0)
-			goto ecreate;
-		break;
-	case NAPPEND:
-		fname = redir->nfile.expfname;
-		f = open(fname, O_WRONLY|O_CREAT|O_APPEND, 0666);
-		if (f < 0)
-			goto ecreate;
-		break;
-	default:
-#if DEBUG
-		abort();
-#endif
-		/* Fall through to eliminate warning. */
-	case NTOFD:
-	case NFROMFD:
-		f = -1;
-		break;
-	case NHERE:
-	case NXHERE:
-		f = openhere(redir);
-		break;
-	}
-
-	return f;
- ecreate:
-	ash_msg_and_raise_error("cannot create %s: %s", fname, errmsg(errno, "Directory nonexistent"));
- eopen:
-	ash_msg_and_raise_error("cannot open %s: %s", fname, errmsg(errno, "No such file"));
-}
-
-static void
-dupredirect(union node *redir, int f)
-{
-	int fd = redir->nfile.fd;
-
-	if (redir->nfile.type == NTOFD || redir->nfile.type == NFROMFD) {
-		if (redir->ndup.dupfd >= 0) {   /* if not ">&-" */
-			copyfd(redir->ndup.dupfd, fd);
-		}
-		return;
-	}
-
-	if (f != fd) {
-		copyfd(f, fd);
-		close(f);
-	}
-}
-
-/*
- * Process a list of redirection commands.  If the REDIR_PUSH flag is set,
- * old file descriptors are stashed away so that the redirection can be
- * undone by calling popredir.  If the REDIR_BACKQ flag is set, then the
- * standard output, and the standard error if it becomes a duplicate of
- * stdout, is saved in memory.
- */
-static void
-redirect(union node *redir, int flags)
-{
-	union node *n;
-	struct redirtab *sv;
-	int i;
-	int fd;
-	int newfd;
-	int *p;
-	nullredirs++;
-	if (!redir) {
-		return;
-	}
-	sv = NULL;
-	INT_OFF;
-	if (flags & REDIR_PUSH) {
-		struct redirtab *q;
-		q = ckmalloc(sizeof(struct redirtab));
-		q->next = redirlist;
-		redirlist = q;
-		q->nullredirs = nullredirs - 1;
-		for (i = 0; i < 10; i++)
-			q->renamed[i] = EMPTY;
-		nullredirs = 0;
-		sv = q;
-	}
-	n = redir;
-	do {
-		fd = n->nfile.fd;
-		if ((n->nfile.type == NTOFD || n->nfile.type == NFROMFD)
-		 && n->ndup.dupfd == fd)
-			continue; /* redirect from/to same file descriptor */
-
-		newfd = openredirect(n);
-		if (fd == newfd)
-			continue;
-		if (sv && *(p = &sv->renamed[fd]) == EMPTY) {
-			i = fcntl(fd, F_DUPFD, 10);
-
-			if (i == -1) {
-				i = errno;
-				if (i != EBADF) {
-					close(newfd);
-					errno = i;
-					ash_msg_and_raise_error("%d: %m", fd);
-					/* NOTREACHED */
-				}
-			} else {
-				*p = i;
-				close(fd);
-			}
-		} else {
-			close(fd);
-		}
-		dupredirect(n, newfd);
-	} while ((n = n->nfile.next));
-	INT_ON;
-	if (flags & REDIR_SAVEFD2 && sv && sv->renamed[2] >= 0)
-		preverrout_fd = sv->renamed[2];
-}
-
-/*
- * Undo the effects of the last redirection.
- */
-static void
-popredir(int drop)
-{
-	struct redirtab *rp;
-	int i;
-
-	if (--nullredirs >= 0)
-		return;
-	INT_OFF;
-	rp = redirlist;
-	for (i = 0; i < 10; i++) {
-		if (rp->renamed[i] != EMPTY) {
-			if (!drop) {
-				close(i);
-				copyfd(rp->renamed[i], i);
-			}
-			close(rp->renamed[i]);
-		}
-	}
-	redirlist = rp->next;
-	nullredirs = rp->nullredirs;
-	free(rp);
-	INT_ON;
-}
-
-/*
- * Undo all redirections.  Called on error or interrupt.
- */
-
-/*
- * Discard all saved file descriptors.
- */
-static void
-clearredir(int drop)
-{
-	for (;;) {
-		nullredirs = 0;
-		if (!redirlist)
-			break;
-		popredir(drop);
-	}
-}
-
-/*
- * Copy a file descriptor to be >= to.  Returns -1
- * if the source file descriptor is closed, EMPTY if there are no unused
- * file descriptors left.
- */
-static int
-copyfd(int from, int to)
-{
-	int newfd;
-
-	newfd = fcntl(from, F_DUPFD, to);
-	if (newfd < 0) {
-		if (errno == EMFILE)
-			return EMPTY;
-		ash_msg_and_raise_error("%d: %m", from);
-	}
-	return newfd;
-}
-
-static int
-redirectsafe(union node *redir, int flags)
-{
-	int err;
-	volatile int saveint;
-	struct jmploc *volatile savehandler = exception_handler;
-	struct jmploc jmploc;
-
-	SAVE_INT(saveint);
-	err = setjmp(jmploc.loc) * 2;
-	if (!err) {
-		exception_handler = &jmploc;
-		redirect(redir, flags);
-	}
-	exception_handler = savehandler;
-	if (err && exception != EXERROR)
-		longjmp(exception_handler->loc, 1);
-	RESTORE_INT(saveint);
-	return err;
 }
 
 
