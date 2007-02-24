@@ -12,34 +12,34 @@
 #include <math.h>
 
 
-#define	MAXVARFMT	240
-#define	MINNVBLOCK	64
+#define	MAXVARFMT       240
+#define	MINNVBLOCK      64
 
 /* variable flags */
-#define	VF_NUMBER	0x0001	/* 1 = primary type is number */
-#define	VF_ARRAY	0x0002	/* 1 = it's an array */
+#define	VF_NUMBER       0x0001	/* 1 = primary type is number */
+#define	VF_ARRAY        0x0002	/* 1 = it's an array */
 
-#define	VF_CACHED	0x0100	/* 1 = num/str value has cached str/num eq */
-#define	VF_USER		0x0200	/* 1 = user input (may be numeric string) */
-#define	VF_SPECIAL	0x0400	/* 1 = requires extra handling when changed */
-#define	VF_WALK		0x0800	/* 1 = variable has alloc'd x.walker list */
-#define	VF_FSTR		0x1000	/* 1 = string points to fstring buffer */
-#define	VF_CHILD	0x2000	/* 1 = function arg; x.parent points to source */
-#define	VF_DIRTY	0x4000	/* 1 = variable was set explicitly */
+#define	VF_CACHED       0x0100	/* 1 = num/str value has cached str/num eq */
+#define	VF_USER         0x0200	/* 1 = user input (may be numeric string) */
+#define	VF_SPECIAL      0x0400	/* 1 = requires extra handling when changed */
+#define	VF_WALK         0x0800	/* 1 = variable has alloc'd x.walker list */
+#define	VF_FSTR         0x1000	/* 1 = var::string points to fstring buffer */
+#define	VF_CHILD        0x2000	/* 1 = function arg; x.parent points to source */
+#define	VF_DIRTY        0x4000	/* 1 = variable was set explicitly */
 
 /* these flags are static, don't change them when value is changed */
-#define	VF_DONTTOUCH (VF_ARRAY | VF_SPECIAL | VF_WALK | VF_CHILD | VF_DIRTY)
+#define	VF_DONTTOUCH    (VF_ARRAY | VF_SPECIAL | VF_WALK | VF_CHILD | VF_DIRTY)
 
 /* Variable */
 typedef struct var_s {
-	unsigned short type;		/* flags */
+	unsigned short type;            /* flags */
 	double number;
 	char *string;
 	union {
-		int aidx;				/* func arg idx (for compilation stage) */
-		struct xhash_s *array;	/* array ptr */
-		struct var_s *parent;	/* for func args, ptr to actual parameter */
-		char **walker;			/* list of array elements (for..in) */
+		int aidx;               /* func arg idx (for compilation stage) */
+		struct xhash_s *array;  /* array ptr */
+		struct var_s *parent;   /* for func args, ptr to actual parameter */
+		char **walker;          /* list of array elements (for..in) */
 	} x;
 } var;
 
@@ -740,7 +740,7 @@ static var *copyvar(var *dest, const var *src)
 {
 	if (dest != src) {
 		clrvar(dest);
-		dest->type |= (src->type & ~VF_DONTTOUCH);
+		dest->type |= (src->type & ~(VF_DONTTOUCH | VF_FSTR));
 		dest->number = src->number;
 		if (src->string)
 			dest->string = xstrdup(src->string);
