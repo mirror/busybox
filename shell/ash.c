@@ -8099,6 +8099,9 @@ static int exportcmd(int, char **);
 #if ENABLE_ASH_GETOPTS
 static int getoptscmd(int, char **);
 #endif
+#if !ENABLE_FEATURE_SH_EXTRA_QUIET
+static int helpcmd(int argc, char **argv);
+#endif
 #if ENABLE_ASH_MATH_SUPPORT
 static int letcmd(int, char **);
 #endif
@@ -11357,7 +11360,7 @@ helpcmd(int argc, char **argv)
 	out1fmt("\nBuilt-in commands:\n-------------------\n");
 	for (col = 0, i = 0; i < NUMBUILTINS; i++) {
 		col += out1fmt("%c%s", ((col == 0) ? '\t' : ' '),
-					  builtincmd[i].name + 1);
+					builtintab[i].name + 1);
 		if (col > 60) {
 			out1fmt("\n");
 			col = 0;
