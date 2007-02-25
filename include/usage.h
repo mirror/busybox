@@ -1073,36 +1073,38 @@
        "	-H login_host	Log login_host into the utmp file as the hostname"
 
 #define grep_trivial_usage \
-       "[-rihHnqvso" \
+       "[-HhrilLnqvso" \
+	USE_DESKTOP("w") \
+	"eF" \
 	USE_FEATURE_GREP_EGREP_ALIAS("E") \
 	USE_FEATURE_GREP_CONTEXT("ABC") \
        "] PATTERN [FILEs...]"
 #define grep_full_usage \
        "Search for PATTERN in each FILE or standard input" \
-       "\n\nOptions:\n" \
-       "	-H	Prefix output lines with filename where match was found\n" \
-       "	-h	Suppress the prefixing filename on output\n" \
-       "	-r	Recurse subdirectories\n" \
-       "	-i	Ignore case distinctions\n" \
-       "	-l	List names of files that match\n" \
-       "	-L	List names of files that do not match\n" \
-       "	-n	Print line number with output lines\n" \
-       "	-q	Be quiet. Returns 0 if PATTERN was found, 1 otherwise\n" \
-       "	-v	Select non-matching lines\n" \
-       "	-s	Suppress file open/read error messages\n" \
-       "	-c	Only print count of matching lines\n" \
-       "	-f	Read PATTERN from file\n" \
-       "	-o	Show only the part of a line that matches PATTERN\n" \
-       "	-e	PATTERN is a regular expression\n" \
-       "	-F	PATTERN is a set of newline-separated strings" \
+       "\n\nOptions:" \
+       "\n	-H	Prefix output lines with filename where match was found" \
+       "\n	-h	Suppress the prefixing filename on output" \
+       "\n	-r	Recurse subdirectories" \
+       "\n	-i	Ignore case distinctions" \
+       "\n	-l	List names of files that match" \
+       "\n	-L	List names of files that do not match" \
+       "\n	-n	Print line number with output lines" \
+       "\n	-q	Be quiet. Returns 0 if PATTERN was found, 1 otherwise" \
+       "\n	-v	Select non-matching lines" \
+       "\n	-s	Suppress file open/read error messages" \
+       "\n	-c	Only print count of matching lines" \
+       "\n	-f	Read PATTERN from file" \
+       "\n	-o	Show only the part of a line that matches PATTERN" \
+	USE_DESKTOP( \
+       "\n	-w	Match whole words only") \
+       "\n	-e	PATTERN is a regular expression" \
+       "\n	-F	PATTERN is a set of newline-separated strings" \
 	USE_FEATURE_GREP_EGREP_ALIAS( \
        "\n	-E	PATTERN is an extended regular expression") \
 	USE_FEATURE_GREP_CONTEXT( \
-       "\n	-A	Print NUM lines of trailing context") \
-	USE_FEATURE_GREP_CONTEXT( \
-       "\n	-B	Print NUM lines of leading context") \
-	USE_FEATURE_GREP_CONTEXT( \
-       "\n	-C	Print NUM lines of output context")
+       "\n	-A	Print NUM lines of trailing context" \
+       "\n	-B	Print NUM lines of leading context" \
+       "\n	-C	Print NUM lines of output context") \
 
 #define grep_example_usage \
        "$ grep root /etc/passwd\n" \

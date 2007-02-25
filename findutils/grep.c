@@ -28,6 +28,9 @@
 	USE_FEATURE_GREP_CONTEXT("A:B:C:") \
 	USE_FEATURE_GREP_EGREP_ALIAS("E") \
 	USE_DESKTOP("w") \
+	"aI"
+/* ignored: -a "assume all files to be text" */
+/* ignored: -I "assume binary files have no matches" */
 
 enum {
 	OPTBIT_l,
