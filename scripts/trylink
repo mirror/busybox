@@ -2,7 +2,7 @@
 
 debug=false
 
-function try {
+try() {
     added="$1"
     shift
     $debug && echo "Trying: $* $added"

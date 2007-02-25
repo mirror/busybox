@@ -6,7 +6,7 @@ PATH=$bindir:$PATH
 
 # Run old-style test.
 
-function run_applet_testcase
+run_applet_testcase()
 {
 	local applet=$1
 	local testcase=$2
@@ -55,7 +55,7 @@ function run_applet_testcase
 	return $status
 }
 
-run_applet_tests ()
+run_applet_tests()
 {
 	local applet=$1
 
@@ -94,10 +94,20 @@ fi
 
 # Populate a directory with links to all busybox applets
 
-LINKSDIR="${bindir}/runtest-tempdir-links"
+LINKSDIR="$bindir/runtest-tempdir-links"
+implemented=$($bindir/busybox 2>&1 |
+	while read line
+	do
+		if test x"$line" = x"Currently defined functions:"
+		then
+			xargs | sed 's/,//g'
+			break
+		fi
+	done
+	)
 rm -rf "$LINKSDIR" 2>/dev/null
 mkdir "$LINKSDIR"
-for i in $(sed 's@/[a-z0-9/\[]*/@@' $bindir/busybox.links 2>/dev/null)
+for i in $implemented
 do
 	ln -s $bindir/busybox "$LINKSDIR"/$i
 done
@@ -127,11 +137,11 @@ for applet in $applets; do
 			continue
 		fi
 		if PATH="$LINKSDIR":$srcdir:$bindir:$PATH \
-			"${srcdir:-.}/$applet".tests
+				"${srcdir:-.}/$applet".tests
 		then
-		  :
+			:
 		else
-		  status=1
+			status=1
 		fi
 	fi
 
