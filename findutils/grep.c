@@ -84,7 +84,7 @@ static int last_line_printed;
 static llist_t *pattern_head;   /* growable list of patterns to match */
 static const char *cur_file;    /* the current file we are reading */
 
-typedef struct GREP_LIST_DATA {
+typedef struct grep_list_data_t {
 	char *pattern;
 	regex_t preg;
 #define PATTERN_MEM_A 1
@@ -162,68 +162,68 @@ static int grep_file(FILE *file)
 			if (BE_QUIET || PRINT_FILES_WITHOUT_MATCHES)
 				return -1;
 
-				/* keep track of matches */
-				nmatches++;
+			/* keep track of matches */
+			nmatches++;
 
-				/* if we're just printing filenames, we stop after the first match */
-				if (PRINT_FILES_WITH_MATCHES)
-					break;
+			/* if we're just printing filenames, we stop after the first match */
+			if (PRINT_FILES_WITH_MATCHES)
+				break;
 
-				/* print the matched line */
-				if (PRINT_MATCH_COUNTS == 0) {
+			/* print the matched line */
+			if (PRINT_MATCH_COUNTS == 0) {
 #if ENABLE_FEATURE_GREP_CONTEXT
-					int prevpos = (curpos == 0) ? lines_before - 1 : curpos - 1;
+				int prevpos = (curpos == 0) ? lines_before - 1 : curpos - 1;
 
-					/* if we were told to print 'before' lines and there is at least
-					 * one line in the circular buffer, print them */
-					if (lines_before && before_buf[prevpos] != NULL) {
-						int first_buf_entry_line_num = linenum - lines_before;
+				/* if we were told to print 'before' lines and there is at least
+				 * one line in the circular buffer, print them */
+				if (lines_before && before_buf[prevpos] != NULL) {
+					int first_buf_entry_line_num = linenum - lines_before;
 
-						/* advance to the first entry in the circular buffer, and
-						 * figure out the line number is of the first line in the
-						 * buffer */
-						idx = curpos;
-						while (before_buf[idx] == NULL) {
-							idx = (idx + 1) % lines_before;
-							first_buf_entry_line_num++;
-						}
-
-						/* now print each line in the buffer, clearing them as we go */
-						while (before_buf[idx] != NULL) {
-							print_line(before_buf[idx], first_buf_entry_line_num, '-');
-							free(before_buf[idx]);
-							before_buf[idx] = NULL;
-							idx = (idx + 1) % lines_before;
-							first_buf_entry_line_num++;
-						}
+					/* advance to the first entry in the circular buffer, and
+					 * figure out the line number is of the first line in the
+					 * buffer */
+					idx = curpos;
+					while (before_buf[idx] == NULL) {
+						idx = (idx + 1) % lines_before;
+						first_buf_entry_line_num++;
 					}
 
-					/* make a note that we need to print 'after' lines */
-					print_n_lines_after = lines_after;
+					/* now print each line in the buffer, clearing them as we go */
+					while (before_buf[idx] != NULL) {
+						print_line(before_buf[idx], first_buf_entry_line_num, '-');
+						free(before_buf[idx]);
+						before_buf[idx] = NULL;
+						idx = (idx + 1) % lines_before;
+						first_buf_entry_line_num++;
+					}
+				}
+
+				/* make a note that we need to print 'after' lines */
+				print_n_lines_after = lines_after;
 #endif
-					if (option_mask32 & GREP_OPT_o) {
-						line[regmatch.rm_eo] = '\0';
-						print_line(line + regmatch.rm_so, linenum, ':');
-					} else {
-						print_line(line, linenum, ':');
-					}
+				if (option_mask32 & GREP_OPT_o) {
+					line[regmatch.rm_eo] = '\0';
+					print_line(line + regmatch.rm_so, linenum, ':');
+				} else {
+					print_line(line, linenum, ':');
 				}
 			}
+		}
 #if ENABLE_FEATURE_GREP_CONTEXT
-			else { /* no match */
-				/* Add the line to the circular 'before' buffer */
-				if (lines_before) {
-					free(before_buf[curpos]);
-					before_buf[curpos] = xstrdup(line);
-					curpos = (curpos + 1) % lines_before;
-				}
+		else { /* no match */
+			/* Add the line to the circular 'before' buffer */
+			if (lines_before) {
+				free(before_buf[curpos]);
+				before_buf[curpos] = xstrdup(line);
+				curpos = (curpos + 1) % lines_before;
 			}
+		}
 
-			/* if we need to print some context lines after the last match, do so */
-			if (print_n_lines_after && (last_line_printed != linenum)) {
-				print_line(line, linenum, '-');
-				print_n_lines_after--;
-			}
+		/* if we need to print some context lines after the last match, do so */
+		if (print_n_lines_after && (last_line_printed != linenum)) {
+			print_line(line, linenum, '-');
+			print_n_lines_after--;
+		}
 #endif /* ENABLE_FEATURE_GREP_CONTEXT */
 		free(line);
 	}
