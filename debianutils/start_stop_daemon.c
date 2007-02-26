@@ -14,12 +14,11 @@
 
 static int signal_nr = 15;
 static int user_id = -1;
-static int quiet;
 static char *userspec;
-static char *chuid;
 static char *cmdname;
 static char *execname;
 static char *pidfile;
+static smallint quiet;
 
 struct pid_list {
 	struct pid_list *next;
@@ -222,20 +221,28 @@ static const struct option long_options[] = {
 enum {
 	CTX_STOP       = 0x1,
 	CTX_START      = 0x2,
-	OPT_BACKGROUND = 0x4,
-	OPT_QUIET      = 0x8,
-	OPT_MAKEPID    = 0x10,
-	OPT_OKNODO     = 0x20 * ENABLE_FEATURE_START_STOP_DAEMON_FANCY,
-	OPT_VERBOSE    = 0x40 * ENABLE_FEATURE_START_STOP_DAEMON_FANCY,
-	OPT_NICELEVEL  = 0x80 * ENABLE_FEATURE_START_STOP_DAEMON_FANCY,
+	OPT_BACKGROUND = 0x4, // -b
+	OPT_QUIET      = 0x8, // -q
+	OPT_MAKEPID    = 0x10, // -m
+	OPT_a          = 0x20, // -a
+	OPT_n          = 0x40, // -n
+	OPT_s          = 0x80, // -s
+	OPT_u          = 0x100, // -u
+	OPT_c          = 0x200, // -c
+	OPT_x          = 0x400, // -x
+	OPT_p          = 0x800, // -p
+	OPT_OKNODO     = 0x1000 * ENABLE_FEATURE_START_STOP_DAEMON_FANCY, // -o
+	OPT_VERBOSE    = 0x2000 * ENABLE_FEATURE_START_STOP_DAEMON_FANCY, // -v
+	OPT_NICELEVEL  = 0x4000 * ENABLE_FEATURE_START_STOP_DAEMON_FANCY, // -N
 };
 
 int start_stop_daemon_main(int argc, char **argv);
 int start_stop_daemon_main(int argc, char **argv)
 {
 	unsigned opt;
-	char *signame = NULL;
-	char *startas = NULL;
+	char *signame;
+	char *startas;
+	char *chuid;
 #if ENABLE_FEATURE_START_STOP_DAEMON_FANCY
 //	char *retry_arg = NULL;
 //	int retries = -1;
@@ -247,22 +254,22 @@ int start_stop_daemon_main(int argc, char **argv)
 
 	/* Check required one context option was given */
 	opt_complementary = "K:S:?:K--S:S--K:m?p:K?xpun:S?xa";
-	opt = getopt32(argc, argv, "KSbqm"
-//		USE_FEATURE_START_STOP_DAEMON_FANCY("ovN:R:")
-		USE_FEATURE_START_STOP_DAEMON_FANCY("ovN:")
-		"a:n:s:u:c:x:p:"
+	opt = getopt32(argc, argv, "KSbqma:n:s:u:c:x:p:"
+		USE_FEATURE_START_STOP_DAEMON_FANCY("ovN:"),
+//		USE_FEATURE_START_STOP_DAEMON_FANCY("ovN:R:"),
+		&startas, &cmdname, &signame, &userspec, &chuid, &execname, &pidfile
 		USE_FEATURE_START_STOP_DAEMON_FANCY(,&opt_N)
 //		USE_FEATURE_START_STOP_DAEMON_FANCY(,&retry_arg)
-		,&startas, &cmdname, &signame, &userspec, &chuid, &execname, &pidfile);
+	);
 
 	quiet = (opt & OPT_QUIET) && !(opt & OPT_VERBOSE);
 
-	if (signame) {
+	if (opt & OPT_s) {
 		signal_nr = get_signum(signame);
 		if (signal_nr < 0) bb_show_usage();
 	}
 
-	if (!startas)
+	if (!(opt & OPT_a))
 		startas = execname;
 
 //	USE_FEATURE_START_STOP_DAEMON_FANCY(
@@ -303,11 +310,11 @@ int start_stop_daemon_main(int argc, char **argv)
 		fprintf(pidf, "%d\n", pidt);
 		fclose(pidf);
 	}
-	if (chuid) {
-		user_id = bb_strtou(chuid, NULL, 10);
-		if (errno)
-			user_id = xuname2uid(chuid);
-		xsetuid(user_id);
+	if (opt & OPT_c) {
+		struct bb_uidgid_t ugid;
+		parse_chown_usergroup_or_die(&ugid, chuid);
+		if (ugid.gid != (gid_t) -1) xsetgid(ugid.gid);
+		if (ugid.uid != (uid_t) -1) xsetuid(ugid.uid);
 	}
 #if ENABLE_FEATURE_START_STOP_DAEMON_FANCY
 	if (opt & OPT_NICELEVEL) {

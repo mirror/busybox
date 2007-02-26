@@ -27,6 +27,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "busybox.h"
 
+/* Always sets uid and gid */
 int get_uidgid(struct bb_uidgid_t *u, const char *ug, int numeric_ok)
 {
 	struct passwd *pwd;
@@ -53,6 +54,7 @@ int get_uidgid(struct bb_uidgid_t *u, const char *ug, int numeric_ok)
 			goto skip;
 		}
 	}
+	/* Either it is not numeric, or caller disallows numeric username */
 	pwd = getpwnam(user);
 	if (!pwd)
 		return 0;
@@ -73,6 +75,40 @@ int get_uidgid(struct bb_uidgid_t *u, const char *ug, int numeric_ok)
 		u->gid = gr->gr_gid;
 	}
 	return 1;
+}
+
+/* chown-like:
+ * "user" sets uid only,
+ * ":group" sets gid only
+ * "user:" sets uid and gid (to user's primary group id)
+ * "user:group" sets uid and gid
+ * ('unset' uid or gid is actually set to -1)
+ */
+void parse_chown_usergroup_or_die(struct bb_uidgid_t *u, char *user_group)
+{
+	char *group;
+
+	u->uid = -1;
+	u->gid = -1;
+
+	/* Check if there is a group name */
+	group = strchr(user_group, '.'); /* deprecated? */
+	if (!group)
+		group = strchr(user_group, ':');
+	else
+		*group = ':'; /* replace '.' with ':' */
+
+	/* Parse "user[:[group]]" */
+	if (!group) { /* "user" */
+		u->uid = get_ug_id(user_group, xuname2uid);
+	} else if (group == user_group) { /* ":group" */
+		u->gid = get_ug_id(group + 1, xgroup2gid);
+	} else {
+		if (!group[1]) /* "user:" */
+			*group = '\0';
+		if (!get_uidgid(u, user_group, 1))
+			bb_error_msg_and_die("unknown user/group %s", user_group);
+	}
 }
 
 #if 0

@@ -2893,7 +2893,7 @@
        "\n	-N|--nicelevel <N>		Add N to process's nice level" \
 	) \
        "\n	-s|--signal <signal>		Signal to send (default TERM)" \
-       "\n	-U|--chuid <username>|<uid>	Start process with this name"
+       "\n	-c|--chuid <user>[:[<group>]]	Change to specified user/group"
 
 #define stat_trivial_usage \
        "[OPTION] FILE..."

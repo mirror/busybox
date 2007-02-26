@@ -443,7 +443,10 @@ struct bb_uidgid_t {
 	uid_t uid;
 	gid_t gid;
 };
+/* always sets uid and gid */
 int get_uidgid(struct bb_uidgid_t*, const char*, int numeric_ok);
+/* chown-like handling of "user[:[group]" */
+void parse_chown_usergroup_or_die(struct bb_uidgid_t *u, char *user_group);
 /* what is this? */
 /*extern char *bb_getug(char *buffer, char *idname, long id, int bufsize, char prefix);*/
 char *bb_getpwuid(char *name, long uid, int bufsize);

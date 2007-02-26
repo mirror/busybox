@@ -56,7 +56,6 @@ static int fileAction(const char *fileName, struct stat *statbuf,
 int chown_main(int argc, char **argv);
 int chown_main(int argc, char **argv)
 {
-	char *groupName;
 	int retval = EXIT_SUCCESS;
 
 	opt_complementary = "-2";
@@ -65,24 +64,7 @@ int chown_main(int argc, char **argv)
 
 	if (OPT_NODEREF) chown_func = lchown;
 
-	/* First, check if there is a group name here */
-	groupName = strchr(*argv, '.'); /* deprecated? */
-	if (!groupName)
-		groupName = strchr(*argv, ':');
-	else
-		*groupName = ':'; /* replace '.' with ':' */
-
-	/* First, try parsing "user[:[group]]" */
-	if (!groupName) { /* "user" */
-		ugid.uid = get_ug_id(*argv, xuname2uid);
-	} else if (groupName == *argv) { /* ":group" */
-		ugid.gid = get_ug_id(groupName + 1, xgroup2gid);
-	} else {
-		if (!groupName[1]) /* "user:" */
-			*groupName = '\0';
-		if (!get_uidgid(&ugid, *argv, 1))
-			bb_error_msg_and_die("unknown user/group %s", *argv);
-	}
+	parse_chown_usergroup_or_die(&ugid, argv[0]);
 
 	/* Ok, ready to do the deed now */
 	argv++;
