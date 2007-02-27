@@ -987,7 +987,8 @@ int init_main(int argc, char **argv)
 		} else if (enforce > 0) {
 			/* SELinux in enforcing mode but load_policy failed */
 			/* At this point, we probably can't open /dev/console, so log() won't work */
-			message(CONSOLE, "Cannot load SELinux Policy. Machine is in enforcing mode. Halting now.");
+			message(L_CONSOLE, "Cannot load SELinux Policy. "
+				"Machine is in enforcing mode. Halting now.");
 			exit(1);
 		}
 	}
@@ -1013,7 +1014,6 @@ int init_main(int argc, char **argv)
 #else
 	signal(SIGHUP, SIG_IGN);
 #endif /* FEATURE_USE_INITTAB */
-
 
 	/* Now run the looping stuff for the rest of forever */
 	while (1) {
