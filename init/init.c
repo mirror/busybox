@@ -316,7 +316,7 @@ static void open_stdio_to_tty(const char* tty_name, int fail)
 		close(0);
 		if ((device_open(tty_name, O_RDWR)) < 0) {
 			dup2(1, 0); /* restore fd #0 - avoid nasty surprises */
-			message(L_LOG | L_CONSOLE, "can't open %s: %s",
+			message(L_LOG | L_CONSOLE, "Can't open %s: %s",
 				tty_name, strerror(errno));
 			if (fail)
 				_exit(1);
@@ -342,178 +342,174 @@ static pid_t run(const struct init_action *a)
 	char *cmd[INIT_BUFFS_SIZE];
 	char buf[INIT_BUFFS_SIZE + 6];	/* INIT_BUFFS_SIZE+strlen("exec ")+1 */
 	sigset_t nmask, omask;
-	static const char press_enter[] =
-#ifdef CUSTOMIZED_BANNER
-#include CUSTOMIZED_BANNER
-#endif
-		"\nPlease press Enter to activate this console. ";
 
 	/* Block sigchild while forking.  */
 	sigemptyset(&nmask);
 	sigaddset(&nmask, SIGCHLD);
 	sigprocmask(SIG_BLOCK, &nmask, &omask);
+	pid = fork();
+	sigprocmask(SIG_SETMASK, &omask, NULL);
 
-	if ((pid = fork()) == 0) {
-		/* Clean up */
-		sigprocmask(SIG_SETMASK, &omask, NULL);
+	if (pid)
+		return pid;
 
-		/* Reset signal handlers that were set by the parent process */
-		signal(SIGUSR1, SIG_DFL);
-		signal(SIGUSR2, SIG_DFL);
-		signal(SIGINT, SIG_DFL);
-		signal(SIGTERM, SIG_DFL);
-		signal(SIGHUP, SIG_DFL);
-		signal(SIGQUIT, SIG_DFL);
-		signal(SIGCONT, SIG_DFL);
-		signal(SIGSTOP, SIG_DFL);
-		signal(SIGTSTP, SIG_DFL);
+	/* Reset signal handlers that were set by the parent process */
+	signal(SIGUSR1, SIG_DFL);
+	signal(SIGUSR2, SIG_DFL);
+	signal(SIGINT, SIG_DFL);
+	signal(SIGTERM, SIG_DFL);
+	signal(SIGHUP, SIG_DFL);
+	signal(SIGQUIT, SIG_DFL);
+	signal(SIGCONT, SIG_DFL);
+	signal(SIGSTOP, SIG_DFL);
+	signal(SIGTSTP, SIG_DFL);
 
-		/* Create a new session and make ourself the process
-		 * group leader */
-		setsid();
+	/* Create a new session and make ourself the process
+	 * group leader */
+	setsid();
 
-		/* Open the new terminal device */
-		open_stdio_to_tty(a->terminal, 1);
+	/* Open the new terminal device */
+	open_stdio_to_tty(a->terminal, 1);
 
-		/* If the init Action requires us to wait, then force the
-		 * supplied terminal to be the controlling tty. */
-		if (a->action & (SYSINIT | WAIT | CTRLALTDEL | SHUTDOWN | RESTART)) {
+	/* If the init Action requires us to wait, then force the
+	 * supplied terminal to be the controlling tty. */
+	if (a->action & (SYSINIT | WAIT | CTRLALTDEL | SHUTDOWN | RESTART)) {
 
-			/* Now fork off another process to just hang around */
+		/* Now fork off another process to just hang around */
+		if ((pid = fork()) < 0) {
+			message(L_LOG | L_CONSOLE, "Can't fork");
+			_exit(1);
+		}
+
+		if (pid > 0) {
+
+			/* We are the parent -- wait till the child is done */
+			signal(SIGINT, SIG_IGN);
+			signal(SIGTSTP, SIG_IGN);
+			signal(SIGQUIT, SIG_IGN);
+			signal(SIGCHLD, SIG_DFL);
+
+			waitfor(NULL, pid);
+			/* See if stealing the controlling tty back is necessary */
+			if (tcgetpgrp(0) != getpid())
+				_exit(0);
+
+			/* Use a temporary process to steal the controlling tty. */
 			if ((pid = fork()) < 0) {
-				message(L_LOG | L_CONSOLE, "can't fork");
+				message(L_LOG | L_CONSOLE, "Can't fork");
 				_exit(1);
 			}
-
-			if (pid > 0) {
-
-				/* We are the parent -- wait till the child is done */
-				signal(SIGINT, SIG_IGN);
-				signal(SIGTSTP, SIG_IGN);
-				signal(SIGQUIT, SIG_IGN);
-				signal(SIGCHLD, SIG_DFL);
-
-				waitfor(NULL, pid);
-				/* See if stealing the controlling tty back is necessary */
-				if (tcgetpgrp(0) != getpid())
-					_exit(0);
-
-				/* Use a temporary process to steal the controlling tty. */
-				if ((pid = fork()) < 0) {
-					message(L_LOG | L_CONSOLE, "can't fork");
-					_exit(1);
-				}
-				if (pid == 0) {
-					setsid();
-					ioctl(0, TIOCSCTTY, 1);
-					_exit(0);
-				}
-				waitfor(NULL, pid);
+			if (pid == 0) {
+				setsid();
+				ioctl(0, TIOCSCTTY, 1);
 				_exit(0);
 			}
-
-			/* Now fall though to actually execute things */
+			waitfor(NULL, pid);
+			_exit(0);
 		}
 
-		/* See if any special /bin/sh requiring characters are present */
-		if (strpbrk(a->command, "~`!$^&*()=|\\{}[];\"'<>?") != NULL) {
-			cmd[0] = (char *)DEFAULT_SHELL;
-			cmd[1] = (char*)"-c";
-			cmd[2] = strcat(strcpy(buf, "exec "), a->command);
-			cmd[3] = NULL;
+		/* Now fall though to actually execute things */
+	}
+
+	/* See if any special /bin/sh requiring characters are present */
+	if (strpbrk(a->command, "~`!$^&*()=|\\{}[];\"'<>?") != NULL) {
+		cmd[0] = (char*)DEFAULT_SHELL;
+		cmd[1] = (char*)"-c";
+		cmd[2] = strcat(strcpy(buf, "exec "), a->command);
+		cmd[3] = NULL;
+	} else {
+		/* Convert command (char*) into cmd (char**, one word per string) */
+		strcpy(buf, a->command);
+		s = buf;
+		for (tmpCmd = buf, i = 0; (tmpCmd = strsep(&s, " \t")) != NULL;) {
+			if (*tmpCmd != '\0') {
+				cmd[i] = tmpCmd;
+				i++;
+			}
+		}
+		cmd[i] = NULL;
+	}
+
+	cmdpath = cmd[0];
+
+	/*
+	 * Interactive shells want to see a dash in argv[0].  This
+	 * typically is handled by login, argv will be setup this
+	 * way if a dash appears at the front of the command path
+	 * (like "-/bin/sh").
+	 */
+	if (*cmdpath == '-') {
+		/* skip over the dash */
+		++cmdpath;
+
+		/* find the last component in the command pathname */
+		s = bb_get_last_path_component(cmdpath);
+
+		/* make a new argv[0] */
+		if ((cmd[0] = malloc(strlen(s) + 2)) == NULL) {
+			message(L_LOG | L_CONSOLE, bb_msg_memory_exhausted);
+			cmd[0] = cmdpath;
 		} else {
-			/* Convert command (char*) into cmd (char**, one word per string) */
-			strcpy(buf, a->command);
-			s = buf;
-			for (tmpCmd = buf, i = 0; (tmpCmd = strsep(&s, " \t")) != NULL;) {
-				if (*tmpCmd != '\0') {
-					cmd[i] = tmpCmd;
-					i++;
-				}
-			}
-			cmd[i] = NULL;
+			cmd[0][0] = '-';
+			strcpy(cmd[0] + 1, s);
 		}
-
-		cmdpath = cmd[0];
-
-		/*
-		 * Interactive shells want to see a dash in argv[0].  This
-		 * typically is handled by login, argv will be setup this
-		 * way if a dash appears at the front of the command path
-		 * (like "-/bin/sh").
-		 */
-		if (*cmdpath == '-') {
-			/* skip over the dash */
-			++cmdpath;
-
-			/* find the last component in the command pathname */
-			s = bb_get_last_path_component(cmdpath);
-
-			/* make a new argv[0] */
-			if ((cmd[0] = malloc(strlen(s) + 2)) == NULL) {
-				message(L_LOG | L_CONSOLE, bb_msg_memory_exhausted);
-				cmd[0] = cmdpath;
-			} else {
-				cmd[0][0] = '-';
-				strcpy(cmd[0] + 1, s);
-			}
 #if ENABLE_FEATURE_INIT_SCTTY
-			/* Establish this process as session leader and
-			 * (attempt) to make the tty (if any) a controlling tty.
-			 */
-			setsid();
-			ioctl(0, TIOCSCTTY, 0 /*don't steal it*/);
+		/* Establish this process as session leader and
+		 * (attempt) to make the tty (if any) a controlling tty.
+		 */
+		setsid();
+		ioctl(0, TIOCSCTTY, 0 /*don't steal it*/);
 #endif
-		}
+	}
 
 #if !defined(__UCLIBC__) || defined(__ARCH_HAS_MMU__)
-		if (a->action & ASKFIRST) {
-			char c;
-			/*
-			 * Save memory by not exec-ing anything large (like a shell)
-			 * before the user wants it. This is critical if swap is not
-			 * enabled and the system has low memory. Generally this will
-			 * be run on the second virtual console, and the first will
-			 * be allowed to start a shell or whatever an init script
-			 * specifies.
-			 */
-			messageD(L_LOG, "Waiting for enter to start '%s'"
-						"(pid %d, tty '%s')\n",
-					  cmdpath, getpid(), a->terminal);
-			full_write(1, press_enter, sizeof(press_enter) - 1);
-			while (read(0, &c, 1) == 1 && c != '\n')
-				;
-		}
+	if (a->action & ASKFIRST) {
+		static const char press_enter[] =
+#ifdef CUSTOMIZED_BANNER
+#include CUSTOMIZED_BANNER
 #endif
-
-		/* Log the process name and args */
-		message(L_LOG, "starting pid %d, tty '%s': '%s'",
-				  getpid(), a->terminal, cmdpath);
+			"\nPlease press Enter to activate this console. ";
+		char c;
+		/*
+		 * Save memory by not exec-ing anything large (like a shell)
+		 * before the user wants it. This is critical if swap is not
+		 * enabled and the system has low memory. Generally this will
+		 * be run on the second virtual console, and the first will
+		 * be allowed to start a shell or whatever an init script
+		 * specifies.
+		 */
+		messageD(L_LOG, "waiting for enter to start '%s'"
+					"(pid %d, tty '%s')\n",
+				  cmdpath, getpid(), a->terminal);
+		full_write(1, press_enter, sizeof(press_enter) - 1);
+		while (read(0, &c, 1) == 1 && c != '\n')
+			;
+	}
+#endif
+	/* Log the process name and args */
+	message(L_LOG, "starting pid %d, tty '%s': '%s'",
+			  getpid(), a->terminal, cmdpath);
 
 #if ENABLE_FEATURE_INIT_COREDUMPS
-		{
-			struct stat sb;
-			if (stat(CORE_ENABLE_FLAG_FILE, &sb) == 0) {
-				struct rlimit limit;
+	{
+		struct stat sb;
+		if (stat(CORE_ENABLE_FLAG_FILE, &sb) == 0) {
+			struct rlimit limit;
 
-				limit.rlim_cur = RLIM_INFINITY;
-				limit.rlim_max = RLIM_INFINITY;
-				setrlimit(RLIMIT_CORE, &limit);
-			}
+			limit.rlim_cur = RLIM_INFINITY;
+			limit.rlim_max = RLIM_INFINITY;
+			setrlimit(RLIMIT_CORE, &limit);
 		}
-#endif
-
-		/* Now run it.  The new program will take over this PID,
-		 * so nothing further in init.c should be run. */
-		BB_EXECVP(cmdpath, cmd);
-
-		/* We're still here?  Some error happened. */
-		message(L_LOG | L_CONSOLE, "Cannot run '%s': %s",
-				cmdpath, strerror(errno));
-		_exit(-1);
 	}
-	sigprocmask(SIG_SETMASK, &omask, NULL);
-	return pid;
+#endif
+	/* Now run it.  The new program will take over this PID,
+	 * so nothing further in init.c should be run. */
+	BB_EXECVP(cmdpath, cmd);
+
+	/* We're still here?  Some error happened. */
+	message(L_LOG | L_CONSOLE, "Cannot run '%s': %s",
+			cmdpath, strerror(errno));
+	_exit(-1);
 }
 
 static int waitfor(const struct init_action *a, pid_t pid)
