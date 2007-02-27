@@ -11,7 +11,7 @@
 
 /* supported options are easily added here */
 const struct dhcp_option dhcp_options[] = {
-	/* name[10]     flags                                   code */
+	/* name[12]     flags                                   code */
 	{"subnet",      OPTION_IP | OPTION_REQ,                 0x01},
 	{"timezone",    OPTION_S32,                             0x02},
 	{"router",      OPTION_IP | OPTION_LIST | OPTION_REQ,   0x03},
@@ -43,6 +43,9 @@ const struct dhcp_option dhcp_options[] = {
 	{"tftp",        OPTION_STRING,                          0x42},
 	{"bootfile",    OPTION_STRING,                          0x43},
 	{"userclass",   OPTION_STRING,                          0x4D},
+#if ENABLE_FEATURE_RFC3397
+	{"search",      OPTION_STR1035 | OPTION_LIST | OPTION_REQ, 0x77},
+#endif
 	/* MSIE's "Web Proxy Autodiscovery Protocol" support */
 	{"wpad",        OPTION_STRING,                          0xfc},
 	{"",            0x00,                                   0x00}
@@ -54,6 +57,9 @@ const unsigned char option_lengths[] = {
 	[OPTION_IP_PAIR] = 8,
 	[OPTION_BOOLEAN] = 1,
 	[OPTION_STRING] =  1,
+#if ENABLE_FEATURE_RFC3397
+	[OPTION_STR1035] = 1,
+#endif
 	[OPTION_U8] =      1,
 	[OPTION_U16] =     2,
 	[OPTION_S16] =     2,

@@ -65,3 +65,11 @@ config FEATURE_UDHCP_DEBUG
 	  the background.
 
 	  See http://udhcp.busybox.net for further details.
+
+config FEATURE_RFC3397
+	bool "Support for RFC3397 domain search (experimental)"
+	default n
+	depends on APP_UDHCPD || APP_UDHCPC
+	help
+	  If selected, both client and server will support passing of domain
+	  search lists via option 119, specified in RFC3397.

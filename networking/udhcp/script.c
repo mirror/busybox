@@ -19,6 +19,9 @@ static const int max_option_length[] = {
 	[OPTION_IP] =		sizeof("255.255.255.255 "),
 	[OPTION_IP_PAIR] =	sizeof("255.255.255.255 ") * 2,
 	[OPTION_STRING] =	1,
+#if ENABLE_FEATURE_RFC3397
+	[OPTION_STR1035] =	1,
+#endif
 	[OPTION_BOOLEAN] =	sizeof("yes "),
 	[OPTION_U8] =		sizeof("255 "),
 	[OPTION_U16] =		sizeof("65535 "),
@@ -53,21 +56,23 @@ static int mton(struct in_addr *mask)
 }
 
 
-/* Fill dest with the text of option 'option'. */
-static void fill_options(char *dest, uint8_t *option,
-			const struct dhcp_option *type_p)
+/* Allocate and fill with the text of option 'option'. */
+static char *alloc_fill_opts(uint8_t *option, const struct dhcp_option *type_p)
 {
-	int type, optlen;
+	int len, type, optlen;
 	uint16_t val_u16;
 	int16_t val_s16;
 	uint32_t val_u32;
 	int32_t val_s32;
-	int len = option[OPT_LEN - 2];
+	char *dest, *ret;
 
-	dest += sprintf(dest, "%s=", type_p->name);
-
+	len = option[OPT_LEN - 2];
 	type = type_p->flags & TYPE_MASK;
 	optlen = option_lengths[type];
+
+	dest = ret = xmalloc(upper_length(len, type) + strlen(type_p->name) + 2);
+	dest += sprintf(ret, "%s=", type_p->name);
+
 	for (;;) {
 		switch (type) {
 		case OPTION_IP_PAIR:
@@ -103,13 +108,21 @@ static void fill_options(char *dest, uint8_t *option,
 		case OPTION_STRING:
 			memcpy(dest, option, len);
 			dest[len] = '\0';
-			return;	 /* Short circuit this case */
+			return ret;	 /* Short circuit this case */
+#if ENABLE_FEATURE_RFC3397
+		case OPTION_STR1035:
+			/* unpack option into dest; use ret for prefix (i.e., "optname=") */
+			dest = dname_dec(option, len, ret);
+			free(ret);
+			return dest;
+#endif
 		}
 		option += optlen;
 		len -= optlen;
 		if (len <= 0) break;
 		dest += sprintf(dest, " ");
 	}
+	return ret;
 }
 
 
@@ -155,9 +168,7 @@ static char **fill_envp(struct dhcpMessage *packet)
 		temp = get_option(packet, dhcp_options[i].code);
 		if (!temp)
 			continue;
-		envp[j] = xmalloc(upper_length(temp[OPT_LEN - 2],
-			dhcp_options[i].flags & TYPE_MASK) + strlen(dhcp_options[i].name) + 2);
-		fill_options(envp[j++], temp, &dhcp_options[i]);
+		envp[j++] = alloc_fill_opts(temp, &dhcp_options[i]);
 
 		/* Fill in a subnet bits option for things like /24 */
 		if (dhcp_options[i].code == DHCP_SUBNET) {

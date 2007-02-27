@@ -6,13 +6,14 @@
 #
 
 lib-y:=
-lib-$(CONFIG_APP_UDHCPC)	+= common.o options.o packet.o pidfile.o \
-				   signalpipe.o socket.o
-lib-$(CONFIG_APP_UDHCPD)	+= common.o options.o packet.o pidfile.o \
-				   signalpipe.o socket.o
-lib-$(CONFIG_APP_UDHCPC)	+= dhcpc.o clientpacket.o clientsocket.o \
-				   script.o
-lib-$(CONFIG_APP_UDHCPD)	+= dhcpd.o arpping.o files.o leases.o \
-				   serverpacket.o static_leases.o
-lib-$(CONFIG_APP_DUMPLEASES)	+= dumpleases.o
+lib-$(CONFIG_APP_UDHCPC)        += common.o options.o packet.o pidfile.o \
+                                   signalpipe.o socket.o
+lib-$(CONFIG_APP_UDHCPD)        += common.o options.o packet.o pidfile.o \
+                                   signalpipe.o socket.o
+lib-$(CONFIG_APP_UDHCPC)        += dhcpc.o clientpacket.o clientsocket.o \
+                                   script.o
+lib-$(CONFIG_APP_UDHCPD)        += dhcpd.o arpping.o files.o leases.o \
+                                   serverpacket.o static_leases.o
+lib-$(CONFIG_APP_DUMPLEASES)    += dumpleases.o
 lib-$(CONFIG_APP_DHCPRELAY)     += dhcprelay.o
+lib-$(CONFIG_FEATURE_RFC3397)   += domain_codec.o

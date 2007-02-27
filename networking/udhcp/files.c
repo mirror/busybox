@@ -104,6 +104,12 @@ static void attach_option(struct option_set **opt_list,
 	if (!existing) {
 		DEBUG("Attaching option %s to list", option->name);
 
+#if ENABLE_FEATURE_RFC3397
+		if ((option->flags & TYPE_MASK) == OPTION_STR1035)
+			/* reuse buffer and length for RFC1035-formatted string */
+			buffer = dname_enc(NULL, 0, buffer, &length);
+#endif
+
 		/* make a new option */
 		new = xmalloc(sizeof(struct option_set));
 		new->data = xmalloc(length + 2);
@@ -117,12 +123,22 @@ static void attach_option(struct option_set **opt_list,
 
 		new->next = *curr;
 		*curr = new;
+#if ENABLE_FEATURE_RFC3397
+		if ((option->flags & TYPE_MASK) == OPTION_STR1035 && buffer != NULL)
+			free(buffer);
+#endif
 		return;
 	}
 
 	/* add it to an existing option */
 	DEBUG("Attaching option %s to existing member of list", option->name);
 	if (option->flags & OPTION_LIST) {
+#if ENABLE_FEATURE_RFC3397
+		if ((option->flags & TYPE_MASK) == OPTION_STR1035)
+			/* reuse buffer and length for RFC1035-formatted string */
+			buffer = dname_enc(existing->data + 2,
+					existing->data[OPT_LEN], buffer, &length);
+#endif
 		if (existing->data[OPT_LEN] + length <= 255) {
 			existing->data = xrealloc(existing->data,
 					existing->data[OPT_LEN] + length + 3);
@@ -137,6 +153,10 @@ static void attach_option(struct option_set **opt_list,
 			memcpy(existing->data + existing->data[OPT_LEN] + 2, buffer, length);
 			existing->data[OPT_LEN] += length;
 		} /* else, ignore the data, we could put this in a second option in the future */
+#if ENABLE_FEATURE_RFC3397
+		if ((option->flags & TYPE_MASK) == OPTION_STR1035 && buffer != NULL)
+			free(buffer);
+#endif
 	} /* else, ignore the new data */
 }
 
@@ -183,6 +203,9 @@ static int read_opt(const char *const_line, void *arg)
 			if (retval) retval = read_ip(val, buffer + 4);
 			break;
 		case OPTION_STRING:
+#if ENABLE_FEATURE_RFC3397
+		case OPTION_STR1035:
+#endif
 			length = strlen(val);
 			if (length > 0) {
 				if (length > 254) length = 254;
