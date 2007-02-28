@@ -156,13 +156,13 @@ enum {
 
 static int status = EXIT_SUCCESS;
 
-static struct dnode *my_stat(char *fullname, char *name)
+static struct dnode *my_stat(char *fullname, char *name, int force_follow)
 {
 	struct stat dstat;
 	struct dnode *cur;
 	USE_SELINUX(security_context_t sid = NULL;)
 
-	if (all_fmt & FOLLOW_LINKS) {
+	if ((all_fmt & FOLLOW_LINKS) || force_follow) {
 #if ENABLE_SELINUX
 		if (is_selinux_enabled())  {
 			 getfilecon(fullname, &sid);
@@ -176,7 +176,7 @@ static struct dnode *my_stat(char *fullname, char *name)
 	} else {
 #if ENABLE_SELINUX
 		if (is_selinux_enabled()) {
-			lgetfilecon(fullname,&sid);
+			lgetfilecon(fullname, &sid);
 		}
 #endif
 		if (lstat(fullname, &dstat)) {
@@ -510,7 +510,7 @@ static struct dnode **list_dir(const char *path)
 				continue;
 		}
 		fullname = concat_path_file(path, entry->d_name);
-		cur = my_stat(fullname, strrchr(fullname, '/') + 1);
+		cur = my_stat(fullname, strrchr(fullname, '/') + 1, 0);
 		if (!cur) {
 			free(fullname);
 			continue;
@@ -819,7 +819,7 @@ int ls_main(int argc, char **argv)
 	if (terminal_width_str)
 		terminal_width = xatou(terminal_width_str);
 #else
-	opt = getopt32(argc, argv, ls_options  USE_FEATURE_LS_COLOR(, &color_opt));
+	opt = getopt32(argc, argv, ls_options USE_FEATURE_LS_COLOR(, &color_opt));
 #endif
 	for (i = 0; opt_flags[i] != (1U<<31); i++) {
 		if (opt & (1 << i)) {
@@ -837,8 +837,9 @@ int ls_main(int argc, char **argv)
 				all_fmt &= ~TIME_MASK;
 			if (flags & LIST_CONTEXT)
 				all_fmt |= STYLE_SINGLE;
-			if (LS_DISP_HR && opt == 'l')
-				all_fmt &= ~LS_DISP_HR;
+			/* huh?? opt cannot be 'l' */
+			//if (LS_DISP_HR && opt == 'l')
+			//	all_fmt &= ~LS_DISP_HR;
 			all_fmt |= flags;
 		}
 	}
@@ -904,7 +905,8 @@ int ls_main(int argc, char **argv)
 	/* stuff the command line file names into a dnode array */
 	dn = NULL;
 	for (oi = 0; oi < ac; oi++) {
-		cur = my_stat(av[oi], av[oi]);
+		/* ls w/o -l follows links on command line */
+		cur = my_stat(av[oi], av[oi], !(all_fmt & STYLE_LONG));
 		if (!cur)
 			continue;
 		cur->allocated = 0;
