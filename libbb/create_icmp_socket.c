@@ -10,8 +10,6 @@
 #include <sys/types.h>
 #include <netdb.h>
 #include <sys/socket.h>
-#include <errno.h>
-#include <unistd.h>
 #include "libbb.h"
 
 int create_icmp_socket(void)
@@ -22,12 +20,12 @@ int create_icmp_socket(void)
 	proto = getprotobyname("icmp");
 	/* if getprotobyname failed, just silently force
 	 * proto->p_proto to have the correct value for "icmp" */
-	if ((sock = socket(AF_INET, SOCK_RAW,
-			(proto ? proto->p_proto : 1))) < 0) {        /* 1 == ICMP */
+	sock = socket(AF_INET, SOCK_RAW,
+			(proto ? proto->p_proto : 1)); /* 1 == ICMP */
+	if (sock < 0) {        
 		if (errno == EPERM)
 			bb_error_msg_and_die(bb_msg_perm_denied_are_you_root);
-		else
-			bb_perror_msg_and_die(bb_msg_can_not_create_raw_socket);
+		bb_perror_msg_and_die(bb_msg_can_not_create_raw_socket);
 	}
 
 	/* drop root privs if running setuid */

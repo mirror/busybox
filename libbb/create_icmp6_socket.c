@@ -10,8 +10,6 @@
 #include <sys/types.h>
 #include <netdb.h>
 #include <sys/socket.h>
-#include <errno.h>
-#include <unistd.h>
 #include "libbb.h"
 
 #ifdef CONFIG_FEATURE_IPV6
@@ -23,12 +21,12 @@ int create_icmp6_socket(void)
 	proto = getprotobyname("ipv6-icmp");
 	/* if getprotobyname failed, just silently force
 	 * proto->p_proto to have the correct value for "ipv6-icmp" */
-	if ((sock = socket(AF_INET6, SOCK_RAW,
-			(proto ? proto->p_proto : IPPROTO_ICMPV6))) < 0) {
+	sock = socket(AF_INET6, SOCK_RAW,
+			(proto ? proto->p_proto : IPPROTO_ICMPV6));
+	if (sock < 0) {
 		if (errno == EPERM)
 			bb_error_msg_and_die(bb_msg_perm_denied_are_you_root);
-		else
-			bb_perror_msg_and_die(bb_msg_can_not_create_raw_socket);
+		bb_perror_msg_and_die(bb_msg_can_not_create_raw_socket);
 	}
 
 	/* drop root privs if running setuid */

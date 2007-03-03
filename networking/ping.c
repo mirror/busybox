@@ -262,7 +262,8 @@ static int if_index;
 
 static unsigned long ntransmitted, nreceived, nrepeats, pingcount;
 static int myid;
-static unsigned long tmin = ULONG_MAX, tmax, tsum;
+static unsigned tmin = UINT_MAX, tmax;
+static unsigned long tsum;
 static char rcvd_tbl[MAX_DUP_CHK / 8];
 
 static const char *hostname;
@@ -278,8 +279,6 @@ static const char *dotted;
 
 static void pingstats(int junk ATTRIBUTE_UNUSED)
 {
-	int status;
-
 	signal(SIGINT, SIG_IGN);
 
 	printf("\n--- %s ping statistics ---\n", hostname);
@@ -290,16 +289,12 @@ static void pingstats(int junk ATTRIBUTE_UNUSED)
 	if (ntransmitted)
 		ntransmitted = (ntransmitted - nreceived) * 100 / ntransmitted;
 	printf("%lu%% packet loss\n", ntransmitted);
-	if (nreceived)
-		printf("round-trip min/avg/max = %lu.%lu/%lu.%lu/%lu.%lu ms\n",
+	if (tmin != UINT_MAX)
+		printf("round-trip min/avg/max = %u.%u/%lu.%lu/%u.%u ms\n",
 			tmin / 10, tmin % 10,
 			(tsum / (nreceived + nrepeats)) / 10,
 			(tsum / (nreceived + nrepeats)) % 10, tmax / 10, tmax % 10);
-	if (nreceived != 0)
-		status = EXIT_SUCCESS;
-	else
-		status = EXIT_FAILURE;
-	exit(status);
+	exit(nreceived == 0); /* (nreceived == 0) is true (1) -- 'failure' */
 }
 
 static void sendping_tail(void (*sp)(int), const void *pkt, int size_pkt)
@@ -406,15 +401,57 @@ static const char *icmp6_type_name(int id)
 }
 #endif
 
+static void unpack_tail(int sz, struct timeval *tp,
+		const char *from_str,
+		uint16_t recv_seq, int ttl)
+{
+	const char *dupmsg = " (DUP!)";
+	unsigned triptime = triptime; /* for gcc */
+
+	++nreceived;
+
+	if (tp) {
+		struct timeval tv;
+
+		gettimeofday(&tv, NULL);
+		tv.tv_usec -= tp->tv_usec;
+		if (tv.tv_usec < 0) {
+			--tv.tv_sec;
+			tv.tv_usec += 1000000;
+		}
+		tv.tv_sec -= tp->tv_sec;
+
+		triptime = tv.tv_sec * 10000 + (tv.tv_usec / 100);
+		tsum += triptime;
+		if (triptime < tmin)
+			tmin = triptime;
+		if (triptime > tmax)
+			tmax = triptime;
+	}
+
+	if (TST(recv_seq % MAX_DUP_CHK)) {
+		++nrepeats;
+		--nreceived;
+	} else {
+		SET(recv_seq % MAX_DUP_CHK);
+		dupmsg += 7;
+	}
+
+	if (option_mask32 & OPT_QUIET)
+		return;
+
+	printf("%d bytes from %s: seq=%u ttl=%d", sz,
+		from_str, recv_seq, ttl);
+	if (tp)
+		printf(" time=%u.%u ms", triptime / 10, triptime % 10);
+	puts(dupmsg);
+	fflush(stdout);
+}
 static void unpack4(char *buf, int sz, struct sockaddr_in *from)
 {
 	struct icmp *icmppkt;
 	struct iphdr *iphdr;
-	struct timeval tv, *tp;
-	int hlen, dupflag;
-	unsigned long triptime;
-
-	gettimeofday(&tv, NULL);
+	int hlen;
 
 	/* discard if too short */
 	if (sz < (datalen + ICMP_MINLEN))
@@ -430,60 +467,24 @@ static void unpack4(char *buf, int sz, struct sockaddr_in *from)
 
 	if (icmppkt->icmp_type == ICMP_ECHOREPLY) {
 		uint16_t recv_seq = ntohs(icmppkt->icmp_seq);
-		++nreceived;
-		tp = (struct timeval *) icmppkt->icmp_data;
+		struct timeval *tp = NULL;
 
-		if ((tv.tv_usec -= tp->tv_usec) < 0) {
-			--tv.tv_sec;
-			tv.tv_usec += 1000000;
-		}
-		tv.tv_sec -= tp->tv_sec;
-
-		triptime = tv.tv_sec * 10000 + (tv.tv_usec / 100);
-		tsum += triptime;
-		if (triptime < tmin)
-			tmin = triptime;
-		if (triptime > tmax)
-			tmax = triptime;
-
-		if (TST(recv_seq % MAX_DUP_CHK)) {
-			++nrepeats;
-			--nreceived;
-			dupflag = 1;
-		} else {
-			SET(recv_seq % MAX_DUP_CHK);
-			dupflag = 0;
-		}
-
-		if (option_mask32 & OPT_QUIET)
-			return;
-
-		printf("%d bytes from %s: icmp_seq=%u", sz,
-			   inet_ntoa(*(struct in_addr *) &from->sin_addr.s_addr),
-			   recv_seq);
-		printf(" ttl=%d", iphdr->ttl);
-		printf(" time=%lu.%lu ms", triptime / 10, triptime % 10);
-		if (dupflag)
-			printf(" (DUP!)");
-		puts("");
-	} else {
-		if (icmppkt->icmp_type != ICMP_ECHO)
-			bb_error_msg("warning: got ICMP %d (%s)",
-					icmppkt->icmp_type,
-					icmp_type_name(icmppkt->icmp_type));
+		if (sz >= ICMP_MINLEN + sizeof(struct timeval))
+			tp = (struct timeval *) icmppkt->icmp_data;
+		unpack_tail(sz, tp,
+			inet_ntoa(*(struct in_addr *) &from->sin_addr.s_addr),
+			recv_seq, iphdr->ttl);
+	} else if (icmppkt->icmp_type != ICMP_ECHO) {
+		bb_error_msg("warning: got ICMP %d (%s)",
+				icmppkt->icmp_type,
+				icmp_type_name(icmppkt->icmp_type));
 	}
-	fflush(stdout);
 }
 #if ENABLE_PING6
 static void unpack6(char *packet, int sz, struct sockaddr_in6 *from, int hoplimit)
 {
 	struct icmp6_hdr *icmppkt;
-	struct timeval tv, *tp;
-	int dupflag;
-	unsigned long triptime;
 	char buf[INET6_ADDRSTRLEN];
-
-	gettimeofday(&tv, NULL);
 
 	/* discard if too short */
 	if (sz < (datalen + sizeof(struct icmp6_hdr)))
@@ -495,50 +496,19 @@ static void unpack6(char *packet, int sz, struct sockaddr_in6 *from, int hoplimi
 
 	if (icmppkt->icmp6_type == ICMP6_ECHO_REPLY) {
 		uint16_t recv_seq = ntohs(icmppkt->icmp6_seq);
-		++nreceived;
-		tp = (struct timeval *) &icmppkt->icmp6_data8[4];
+		struct timeval *tp = NULL;
 
-		if ((tv.tv_usec -= tp->tv_usec) < 0) {
-			--tv.tv_sec;
-			tv.tv_usec += 1000000;
-		}
-		tv.tv_sec -= tp->tv_sec;
-
-		triptime = tv.tv_sec * 10000 + (tv.tv_usec / 100);
-		tsum += triptime;
-		if (triptime < tmin)
-			tmin = triptime;
-		if (triptime > tmax)
-			tmax = triptime;
-
-		if (TST(recv_seq % MAX_DUP_CHK)) {
-			++nrepeats;
-			--nreceived;
-			dupflag = 1;
-		} else {
-			SET(recv_seq % MAX_DUP_CHK);
-			dupflag = 0;
-		}
-
-		if (option_mask32 & OPT_QUIET)
-			return;
-
-		printf("%d bytes from %s: icmp6_seq=%u", sz,
-			   inet_ntop(AF_INET6, &pingaddr.sin6.sin6_addr,
-						 buf, sizeof(buf)),
-			   recv_seq);
-		printf(" ttl=%d time=%lu.%lu ms", hoplimit,
-			   triptime / 10, triptime % 10);
-		if (dupflag)
-			printf(" (DUP!)");
-		puts("");
-	} else {
-		if (icmppkt->icmp6_type != ICMP6_ECHO_REQUEST)
-			bb_error_msg("warning: got ICMP %d (%s)",
-					icmppkt->icmp6_type,
-					icmp6_type_name(icmppkt->icmp6_type));
+		if (sz >= sizeof(struct icmp6_hdr) + sizeof(struct timeval))
+			tp = (struct timeval *) &icmppkt->icmp6_data8[4];
+		unpack_tail(sz, tp,
+			inet_ntop(AF_INET6, &pingaddr.sin6.sin6_addr,
+					buf, sizeof(buf)),
+			recv_seq, hoplimit);
+	} else if (icmppkt->icmp6_type != ICMP6_ECHO_REQUEST) {
+		bb_error_msg("warning: got ICMP %d (%s)",
+				icmppkt->icmp6_type,
+				icmp6_type_name(icmppkt->icmp6_type));
 	}
-	fflush(stdout);
 }
 #endif
 
