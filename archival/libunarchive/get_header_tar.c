@@ -69,7 +69,7 @@ char get_header_tar(archive_handle_t *archive_handle)
 		char padding[12];   /* 500-512 */
 	} tar;
 	char *cp;
-	int sum, i;
+	int i, sum_u, sum_s, sum;
 	int parse_names;
 
 	if (sizeof(tar) != 512)
@@ -110,16 +110,23 @@ char get_header_tar(archive_handle_t *archive_handle)
 #endif
 			bb_error_msg_and_die("invalid tar magic");
 	}
-	/* Do checksum on headers */
-	sum = ' ' * sizeof(tar.chksum);
+
+	/* Do checksum on headers.
+	 * POSIX says that checksum is done on unsigned bytes, but
+	 * Sun and HP-UX fucked it up... more details in
+	 * GNU tar source. */
+	sum_s = sum_u = ' ' * sizeof(tar.chksum);
 	for (i = 0; i < 148 ; i++) {
-		sum += ((char*)&tar)[i];
+		sum_u += ((unsigned char*)&tar)[i];
+		sum_s += ((signed char*)&tar)[i];
 	}
 	for (i = 156; i < 512 ; i++) {
-		sum += ((char*)&tar)[i];
+		sum_u += ((unsigned char*)&tar)[i];
+		sum_s += ((signed char*)&tar)[i];
 	}
 	/* This field does not need special treatment (getOctal) */
-	if (sum != xstrtoul(tar.chksum, 8)) {
+	sum = xstrtoul(tar.chksum, 8);
+	if (sum_u != sum && sum_s != sum) {
 		bb_error_msg_and_die("invalid tar header checksum");
 	}
 

@@ -173,6 +173,9 @@ static void putOctal(char *cp, int len, off_t value)
 
 static void chksum_and_xwrite(int fd, struct TarHeader* hp)
 {
+	/* POSIX says that checksum is done on unsigned bytes
+	 * (Sun and HP-UX fucked it up... more details in
+	 * GNU tar source) */
 	const unsigned char *cp;
 	int chksum, size;
 
