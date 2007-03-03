@@ -6455,7 +6455,9 @@ casematch(union node *pattern, char *val)
 
 /* ============ find_command */
 
-static int is_safe_applet(char *name)
+#if ENABLE_FEATURE_SH_STANDALONE_SHELL
+static int
+is_safe_applet(char *name)
 {
 	/* It isn't a bug to have non-existent applet here... */
 	/* ...just a waste of space... */
@@ -6488,6 +6490,7 @@ static int is_safe_applet(char *name)
 
 	return 0;
 }
+#endif
 
 struct builtincmd {
 	const char *name;
@@ -6551,27 +6554,26 @@ static void
 tryexec(char *cmd, char **argv, char **envp)
 {
 	int repeated = 0;
-	struct BB_applet *a;
-	int argc = 0;
-	char **c;
 
-	if (strchr(cmd, '/') == NULL
-	 && (a = find_applet_by_name(cmd)) != NULL
-	 && is_safe_applet(cmd)
-	) {
-		c = argv;
-		while (*c != NULL) {
-			c++; argc++;
-		}
-		applet_name = cmd;
-		exit(a->main(argc, argv));
-	}
 #if ENABLE_FEATURE_SH_STANDALONE_SHELL
-	if (find_applet_by_name(cmd) != NULL) {
-		/* re-exec ourselves with the new arguments */
-		execve(CONFIG_BUSYBOX_EXEC_PATH, argv, envp);
-		/* If they called chroot or otherwise made the binary no longer
-		 * executable, fall through */
+	if (strchr(cmd, '/') == NULL) {
+		struct BB_applet *a;
+		char **c;
+
+		a = find_applet_by_name(cmd);
+		if (a) {
+			if (is_safe_applet(cmd)) {
+				c = argv;
+				while (*c)
+					c++;
+				applet_name = cmd;
+				exit(a->main(c - argv, argv));
+			}
+			/* re-exec ourselves with the new arguments */
+			execve(CONFIG_BUSYBOX_EXEC_PATH, argv, envp);
+			/* If they called chroot or otherwise made the binary no longer
+			 * executable, fall through */
+		}
 	}
 #endif
 
@@ -6619,7 +6621,7 @@ shellexec(char **argv, const char *path, int idx)
 
 	clearredir(1);
 	envp = environment();
-	if (strchr(argv[0], '/') || is_safe_applet(argv[0])
+	if (strchr(argv[0], '/')
 #if ENABLE_FEATURE_SH_STANDALONE_SHELL
 	 || find_applet_by_name(argv[0])
 #endif
@@ -11141,13 +11143,13 @@ find_command(char *name, struct cmdentry *entry, int act, const char *path)
 		entry->u.index = -1;
 		return;
 	}
-#endif
-
+	/* Already caught above
 	if (is_safe_applet(name)) {
 		entry->cmdtype = CMDNORMAL;
 		entry->u.index = -1;
 		return;
-	}
+	}*/
+#endif
 
 	updatetbl = (path == pathval());
 	if (!updatetbl) {
