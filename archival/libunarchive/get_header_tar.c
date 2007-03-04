@@ -113,7 +113,7 @@ char get_header_tar(archive_handle_t *archive_handle)
 
 	/* Do checksum on headers.
 	 * POSIX says that checksum is done on unsigned bytes, but
-	 * Sun and HP-UX fucked it up... more details in
+	 * Sun and HP-UX gets it wrong... more details in
 	 * GNU tar source. */
 	sum_s = sum_u = ' ' * sizeof(tar.chksum);
 	for (i = 0; i < 148 ; i++) {
