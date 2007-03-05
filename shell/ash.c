@@ -985,9 +985,10 @@ ash_vmsg(const char *msg, va_list ap)
 {
 	fprintf(stderr, "%s: ", arg0);
 	if (commandname) {
-		const char *fmt = (!iflag || parsefile->fd) ?
-					"%s: %d: " : "%s: ";
-		fprintf(stderr, fmt, commandname, startlinno);
+		if (strcmp(arg0, commandname))
+			fprintf(stderr, "%s: ", commandname);
+		if (!iflag || parsefile->fd)
+			fprintf(stderr, "line %d: ", startlinno);
 	}
 	vfprintf(stderr, msg, ap);
 	outcslow('\n', stderr);
@@ -1518,13 +1519,13 @@ nextopt(const char *optstring)
 	c = *p++;
 	for (q = optstring; *q != c; ) {
 		if (*q == '\0')
-			ash_msg_and_raise_error("Illegal option -%c", c);
+			ash_msg_and_raise_error("illegal option -%c", c);
 		if (*++q == ':')
 			q++;
 	}
 	if (*++q == ':') {
 		if (*p == '\0' && (p = *argptr++) == NULL)
-			ash_msg_and_raise_error("No arg for -%c option", c);
+			ash_msg_and_raise_error("no arg for -%c option", c);
 		optionarg = p;
 		p = NULL;
 	}
@@ -3426,7 +3427,7 @@ static void
 xtcsetpgrp(int fd, pid_t pgrp)
 {
 	if (tcsetpgrp(fd, pgrp))
-		ash_msg_and_raise_error("Cannot set tty process group (%m)");
+		ash_msg_and_raise_error("cannot set tty process group (%m)");
 }
 
 /*
@@ -3512,7 +3513,7 @@ killcmd(int argc, char **argv)
 	if (argc <= 1) {
  usage:
 		ash_msg_and_raise_error(
-"Usage: kill [-s sigspec | -signum | -sigspec] [pid | job]... or\n"
+"usage: kill [-s sigspec | -signum | -sigspec] [pid | job]... or\n"
 "kill -l [exitstatus]"
 		);
 	}
@@ -4472,7 +4473,7 @@ forkchild(struct job *jp, union node *n, int mode)
 		if (jp->nprocs == 0) {
 			close(0);
 			if (open(bb_dev_null, O_RDONLY) != 0)
-				ash_msg_and_raise_error("Can't open %s", bb_dev_null);
+				ash_msg_and_raise_error("can't open %s", bb_dev_null);
 		}
 	}
 	if (!oldlvl && iflag) {
@@ -4533,7 +4534,7 @@ forkshell(struct job *jp, union node *n, int mode)
 		TRACE(("Fork failed, errno=%d", errno));
 		if (jp)
 			freejob(jp);
-		ash_msg_and_raise_error("Cannot fork");
+		ash_msg_and_raise_error("cannot fork");
 	}
 	if (pid == 0)
 		forkchild(jp, n, mode);
@@ -4699,7 +4700,7 @@ openhere(union node *redir)
 	size_t len = 0;
 
 	if (pipe(pip) < 0)
-		ash_msg_and_raise_error("Pipe call failed");
+		ash_msg_and_raise_error("pipe call failed");
 	if (redir->type == NHERE) {
 		len = strlen(redir->nhere.doc->narg.text);
 		if (len <= PIPESIZE) {
@@ -4785,9 +4786,9 @@ openredirect(union node *redir)
 
 	return f;
  ecreate:
-	ash_msg_and_raise_error("cannot create %s: %s", fname, errmsg(errno, "Directory nonexistent"));
+	ash_msg_and_raise_error("cannot create %s: %s", fname, errmsg(errno, "nonexistent directory"));
  eopen:
-	ash_msg_and_raise_error("cannot open %s: %s", fname, errmsg(errno, "No such file"));
+	ash_msg_and_raise_error("cannot open %s: %s", fname, errmsg(errno, "no such file"));
 }
 
 /*
@@ -5312,7 +5313,7 @@ evalbackcmd(union node *n, struct backcmd *result)
 		struct job *jp;
 
 		if (pipe(pip) < 0)
-			ash_msg_and_raise_error("Pipe call failed");
+			ash_msg_and_raise_error("pipe call failed");
 		jp = makejob(n, 1);
 		if (forkshell(jp, n, FORK_NOJOB) == 0) {
 			FORCE_INT_ON;
@@ -7790,7 +7791,7 @@ evalpipe(union node *n, int flags)
 		if (lp->next) {
 			if (pipe(pip) < 0) {
 				close(prevfd);
-				ash_msg_and_raise_error("Pipe call failed");
+				ash_msg_and_raise_error("pipe call failed");
 			}
 		}
 		if (forkshell(jp, lp->n, n->npipe.backgnd) == 0) {
@@ -8953,13 +8954,13 @@ setinputfile(const char *fname, int flags)
 	if (fd < 0) {
 		if (flags & INPUT_NOFILE_OK)
 			goto out;
-		ash_msg_and_raise_error("Can't open %s", fname);
+		ash_msg_and_raise_error("can't open %s", fname);
 	}
 	if (fd < 10) {
 		fd2 = copyfd(fd, 10);
 		close(fd);
 		if (fd2 < 0)
-			ash_msg_and_raise_error("Out of file descriptors");
+			ash_msg_and_raise_error("out of file descriptors");
 		fd = fd2;
 	}
 	setinputfd(fd, flags & INPUT_PUSH_FILE);
@@ -9097,7 +9098,7 @@ minus_o(char *name, int val)
 				return;
 			}
 		}
-		ash_msg_and_raise_error("Illegal option -o %s", name);
+		ash_msg_and_raise_error("illegal option -o %s", name);
 	}
 	out1str("Current option settings\n");
 	for (i = 0; i < NOPTS; i++)
@@ -9115,7 +9116,7 @@ setoption(int flag, int val)
 			return;
 		}
 	}
-	ash_msg_and_raise_error("Illegal option -%c", flag);
+	ash_msg_and_raise_error("illegal option -%c", flag);
 	/* NOTREACHED */
 }
 static void
@@ -9368,7 +9369,7 @@ getoptscmd(int argc, char **argv)
 	char **optbase;
 
 	if (argc < 3)
-		ash_msg_and_raise_error("Usage: getopts optstring var [arg]");
+		ash_msg_and_raise_error("usage: getopts optstring var [arg]");
 	if (argc == 3) {
 		optbase = shellparam.p;
 		if (shellparam.optind > shellparam.nparam + 1) {
@@ -9405,7 +9406,7 @@ static void raise_error_syntax(const char *) ATTRIBUTE_NORETURN;
 static void
 raise_error_syntax(const char *msg)
 {
-	ash_msg_and_raise_error("Syntax error: %s", msg);
+	ash_msg_and_raise_error("syntax error: %s", msg);
 	/* NOTREACHED */
 }
 
@@ -11803,7 +11804,7 @@ umaskcmd(int argc, char **argv)
 		} else {
 			mask = ~mask & 0777;
 			if (!bb_parse_mode(ap, &mask)) {
-				ash_msg_and_raise_error("Illegal mode: %s", ap);
+				ash_msg_and_raise_error("illegal mode: %s", ap);
 			}
 			umask(~mask & 0777);
 		}
