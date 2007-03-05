@@ -201,7 +201,7 @@ static void message(int device, const char *fmt, ...)
 }
 
 /* Set terminal settings to reasonable defaults */
-static void set_term(void)
+static void set_sane_term(void)
 {
 	struct termios tty;
 
@@ -313,9 +313,8 @@ static void open_stdio_to_tty(const char* tty_name, int fail)
 {
 	/* empty tty_name means "use init's tty", else... */
 	if (tty_name[0]) {
-		close(0);
-		if ((device_open(tty_name, O_RDWR)) < 0) {
-			dup2(1, 0); /* restore fd #0 - avoid nasty surprises */
+		int fd = device_open(tty_name, O_RDWR);
+		if (fd < 0) {
 			message(L_LOG | L_CONSOLE, "Can't open %s: %s",
 				tty_name, strerror(errno));
 			if (fail)
@@ -325,13 +324,14 @@ static void open_stdio_to_tty(const char* tty_name, int fail)
 #else
 			_exit(2);
 #endif
+		} else {
+			dup2(fd, 0);
+			dup2(fd, 1);
+			dup2(fd, 2);
+			if (fd > 2) close(fd);
 		}
 	}
-	close(1);
-	close(2);
-	set_term();
-	dup(0);
-	dup(0);
+	set_sane_term();
 }
 
 static pid_t run(const struct init_action *a)
@@ -926,7 +926,7 @@ int init_main(int argc, char **argv)
 
 	/* Figure out where the default console should be */
 	console_init();
-	set_term();
+	set_sane_term();
 	chdir("/");
 	setsid();
 	{
