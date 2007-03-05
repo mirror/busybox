@@ -1701,6 +1701,20 @@ static void handleIncoming(void)
 			sendCgi(url, prequest, length, cookie, content_type);
 			break;
 		}
+#if ENABLE_FEATURE_HTTPD_CONFIG_WITH_SCRIPT_INTERPR
+		{
+			char *suffix = strrchr(test, '.');
+			if (suffix) {
+				Htaccess *cur;
+				for (cur = config->script_i; cur; cur = cur->next) {
+					if (strcmp(cur->before_colon + 1, suffix) == 0) {
+						sendCgi(url, prequest, length, cookie, content_type);
+						goto bail_out;
+					}
+				}
+			}
+		}
+#endif
 		if (prequest != request_GET) {
 			sendHeaders(HTTP_NOT_IMPLEMENTED);
 			break;
