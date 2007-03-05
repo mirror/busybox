@@ -16,7 +16,7 @@
 #include <sys/wait.h>
 #include <sys/reboot.h>
 
-#if ENABLE_SYSLOGD
+#if ENABLE_FEATURE_INIT_SYSLOG
 # include <sys/syslog.h>
 #endif
 
@@ -84,7 +84,7 @@ struct init_action {
 /* Static variables */
 static struct init_action *init_action_list = NULL;
 
-#if !ENABLE_SYSLOGD
+#if !ENABLE_FEATURE_INIT_SYSLOG
 static const char *log_console = VC_5;
 #endif
 #if !ENABLE_DEBUG_INIT
@@ -144,7 +144,7 @@ static void message(int device, const char *fmt, ...)
 	__attribute__ ((format(printf, 2, 3)));
 static void message(int device, const char *fmt, ...)
 {
-#if !ENABLE_SYSLOGD
+#if !ENABLE_FEATURE_INIT_SYSLOG
 	static int log_fd = -1;
 #endif
 
@@ -159,7 +159,7 @@ static void message(int device, const char *fmt, ...)
 	msg[sizeof(msg) - 2] = '\0';
 	l = strlen(msg);
 
-#if ENABLE_SYSLOGD
+#if ENABLE_FEATURE_INIT_SYSLOG
 	/* Log the message to syslogd */
 	if (device & L_LOG) {
 		/* don't out "\r" */
@@ -285,7 +285,7 @@ static void console_init(void)
 		 * if TERM is set to linux (the default) */
 		if (!s || strcmp(s, "linux") == 0)
 			putenv((char*)"TERM=vt102");
-#if !ENABLE_SYSLOGD
+#if !ENABLE_FEATURE_INIT_SYSLOG
 		log_console = NULL;
 #endif
 	} else if (!s)
