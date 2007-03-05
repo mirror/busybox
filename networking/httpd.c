@@ -1215,7 +1215,7 @@ static int sendCgi(const char *url,
 
 			/* Are we still buffering CGI output? */
 			if (buf_count >= 0) {
-				static const char HTTP_200[] = "HTTP/1.0 200 OK\r\n\r\n";
+				static const char HTTP_200[] = "HTTP/1.0 200 OK\r\n";
 				/* Must use safe_read, not full_read, because
 				 * CGI may output a few first bytes and then wait
 				 * for POSTDATA without closing stdout.
