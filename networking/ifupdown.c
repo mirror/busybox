@@ -1091,6 +1091,7 @@ int ifupdown_main(int argc, char **argv)
 	llist_t *state_list = NULL;
 	llist_t *target_list = NULL;
 	const char *interfaces = "/etc/network/interfaces";
+	FILE *state_fp;
 	int any_failures = 0;
 
 	cmds = iface_down;
@@ -1116,6 +1117,19 @@ int ifupdown_main(int argc, char **argv)
 
 	startup_PATH = getenv("PATH");
 	if (!startup_PATH) startup_PATH = "";
+
+	/* Read the previous state from the state file */
+	state_fp = fopen_or_warn("/var/run/ifstate", "r");
+	if (state_fp) {
+		char *start, *end_ptr;
+		while ((start = xmalloc_fgets(state_fp)) != NULL) {
+			/* We should only need to check for a single character */
+			end_ptr = start + strcspn(start, " \t\n");
+			*end_ptr = '\0';
+			llist_add_to(&state_list, start);
+		}
+		fclose(state_fp);
+	}
 
 	/* Create a list of interfaces to work on */
 	if (DO_ALL) {
@@ -1166,7 +1180,7 @@ int ifupdown_main(int argc, char **argv)
 				}
 			} else {
 				/* ifdown */
-				if (iface_state) {
+				if (!iface_state) {
 					bb_error_msg("interface %s not configured", iface);
 					continue;
 				}
@@ -1236,7 +1250,8 @@ int ifupdown_main(int argc, char **argv)
 					iface_state->data = newiface;
 				}
 			} else {
-				/* Remove an interface from the linked list */
+				/* Remove an interface from state_list */
+				llist_unlink(&state_list, iface_state);
 				free(llist_pop(&iface_state));
 			}
 		}
@@ -1244,8 +1259,6 @@ int ifupdown_main(int argc, char **argv)
 
 	/* Actually write the new state */
 	if (!NO_ACT) {
-		FILE *state_fp;
-
 		state_fp = xfopen("/var/run/ifstate", "w");
 		while (state_list) {
 			if (state_list->data) {

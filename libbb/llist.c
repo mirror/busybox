@@ -45,19 +45,38 @@ void llist_add_to_end(llist_t ** list_head, void *data)
 /* Remove first element from the list and return it */
 void *llist_pop(llist_t ** head)
 {
-	void *data;
+	void *data, *next;
 
 	if (!*head)
-		data = *head;
-	else {
-		void *next = (*head)->link;
+		return NULL;
 
-		data = (*head)->data;
-		free(*head);
-		*head = next;
-	}
+	data = (*head)->data;
+	next = (*head)->link;
+	free(*head);
+	*head = next;
 
 	return data;
+}
+
+/* Unlink arbitrary given element from the list */
+void llist_unlink(llist_t **head, llist_t *elm)
+{
+	llist_t *crt;
+
+	if (!(elm && *head))
+		return;
+
+	if (elm == *head) {
+		*head = (*head)->link;
+		return;
+	}
+
+	for (crt = *head; crt; crt = crt->link) {
+		if (crt->link == elm) {
+			crt->link = elm->link;
+			return;
+		}
+	}
 }
 
 /* Recursively free all elements in the linked list.  If freeit != NULL

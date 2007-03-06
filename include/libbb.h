@@ -475,6 +475,7 @@ typedef struct llist_s {
 extern void llist_add_to(llist_t **old_head, void *data);
 extern void llist_add_to_end(llist_t **list_head, void *data);
 extern void *llist_pop(llist_t **elm);
+extern void llist_unlink(llist_t **head, llist_t *elm);
 extern void llist_free(llist_t *elm, void (*freeit)(void *data));
 extern llist_t* llist_rev(llist_t *list);
 
