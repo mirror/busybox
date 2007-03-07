@@ -3357,7 +3357,8 @@
 #define umount_full_usage \
        "Unmount file systems" \
        "\n\nOptions:\n" \
-       "\n	-a	Unmount all file systems" USE_FEATURE_MTAB_SUPPORT(" in /etc/mtab") \
+	USE_FEATURE_UMOUNT_ALL( \
+       "\n	-a	Unmount all file systems" USE_FEATURE_MTAB_SUPPORT(" in /etc/mtab")) \
 	USE_FEATURE_MTAB_SUPPORT( \
        "\n	-n	Don't erase /etc/mtab entries") \
        "\n	-r	Try to remount devices as read-only if mount is busy" \
