@@ -30,7 +30,7 @@
 extern char **environ;
 
 int
-main (argc, argv) 
+main (argc, argv)
      int argc;
      char **argv;
 {

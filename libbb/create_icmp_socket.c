@@ -22,7 +22,7 @@ int create_icmp_socket(void)
 	 * proto->p_proto to have the correct value for "icmp" */
 	sock = socket(AF_INET, SOCK_RAW,
 			(proto ? proto->p_proto : 1)); /* 1 == ICMP */
-	if (sock < 0) {        
+	if (sock < 0) {
 		if (errno == EPERM)
 			bb_error_msg_and_die(bb_msg_perm_denied_are_you_root);
 		bb_perror_msg_and_die(bb_msg_can_not_create_raw_socket);

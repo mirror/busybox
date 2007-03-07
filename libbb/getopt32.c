@@ -79,9 +79,9 @@ const struct option *applet_long_options
         (see getopt(3))
 
         static const struct option applet_long_options[] = {
-        	//name,has_arg,flag,val
-        	{ "verbose", 0, 0, 'v' },
-        	{ 0, 0, 0, 0 }
+		//name,has_arg,flag,val
+		{ "verbose", 0, 0, 'v' },
+		{ 0, 0, 0, 0 }
         };
         applet_long_options = applet_long_options;
 

@@ -575,7 +575,7 @@ int bb_execvp(const char *file, char *const argv[]);
 		cmd, __VA_ARGS__)
 #else
 #define BB_EXECVP(prog,cmd)     execvp(prog,cmd)
-#define BB_EXECLP(prog,cmd,...) execlp(prog,cmd, __VA_ARGS__) 
+#define BB_EXECLP(prog,cmd,...) execlp(prog,cmd, __VA_ARGS__)
 #endif
 
 USE_DESKTOP(long long) int uncompress(int fd_in, int fd_out);

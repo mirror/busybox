@@ -542,7 +542,7 @@ check_and_close(void)
 		fmt = SIGNED_DECIMAL;
 		size = INT or LONG; (whichever integral_type_size[4] resolves to)
 		print_function = print_int; (assuming size == INT)
-  		fmt_string = "%011d%c";
+		fmt_string = "%011d%c";
 	}
    S_ORIG is solely for reporting errors.  It should be the full format
    string argument. */
@@ -823,7 +823,7 @@ skip(off_t n_skip)
 				n_bytes_read = fread(buf, 1, n_bytes_to_read, in_stream);
 				n_skip -= n_bytes_read;
 				if (n_bytes_read != n_bytes_to_read)
-		    			break; /* EOF on this file or error */
+					break; /* EOF on this file or error */
 			}
 		}
 		if (n_skip == 0)
@@ -1334,7 +1334,7 @@ int od_main(int argc, char **argv)
 	/* If the --traditional option is used, there may be from
 	 * 0 to 3 remaining command line arguments;  handle each case
 	 * separately.
-	 * 	od [file] [[+]offset[.][b] [[+]label[.][b]]]
+	 * od [file] [[+]offset[.][b] [[+]label[.][b]]]
 	 * The offset and pseudo_start have the same syntax.
 	 *
 	 * FIXME: POSIX 1003.1-2001 with XSI requires support for the

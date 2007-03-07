@@ -522,7 +522,7 @@ void bb_sanitize_stdio_maybe_daemonize(int daemonize)
 			bb_perror_msg_and_die("fork");
 		if (pid) /* parent */
 			exit(0);
-    		/* child */
+		/* child */
 		/* if daemonizing, make sure we detach from stdio */
 		setsid();
 		dup2(fd, 0);

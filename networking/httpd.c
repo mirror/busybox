@@ -873,8 +873,9 @@ static int sendHeaders(HttpResponseNum responseNum)
 
 #if ENABLE_FEATURE_HTTPD_BASIC_AUTH
 	if (responseNum == HTTP_UNAUTHORIZED) {
-		len += sprintf(buf+len, "WWW-Authenticate: Basic realm=\"%s\"\r\n",
-						      		    config->realm);
+		len += sprintf(buf+len,
+				"WWW-Authenticate: Basic realm=\"%s\"\r\n",
+				config->realm);
 	}
 #endif
 	if (responseNum == HTTP_MOVED_TEMPORARILY) {
@@ -2000,7 +2001,7 @@ int httpd_main(int argc, char *argv[])
 		if (opt & OPT_SETUID) {
 			if (ugid.gid != (gid_t)-1) {
 				if (setgroups(1, &ugid.gid) == -1)
-	            			bb_perror_msg_and_die("setgroups");
+					bb_perror_msg_and_die("setgroups");
 				xsetgid(ugid.gid);
 			}
 			xsetuid(ugid.uid);

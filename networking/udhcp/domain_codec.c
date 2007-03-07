@@ -200,6 +200,6 @@ uint8_t *dname_enc(const uint8_t *cstr, int clen, const char *src, int *retlen)
 
 	*retlen = d - dname + 1;
 	return dname;
-}		
+}
 
 #endif /* ENABLE_FEATURE_RFC3397 */

@@ -60,7 +60,7 @@
        "[-vn]	[-H type] [-i if] -a [hostname]\n" \
        "[-v]		  [-i if] -d hostname [pub]\n" \
        "[-v]	[-H type] [-i if] -s hostname hw_addr [temp]\n" \
-       "[-v] 	[-H type] [-i if] -s hostname hw_addr [netmask nm] pub\n" \
+       "[-v]	[-H type] [-i if] -s hostname hw_addr [netmask nm] pub\n" \
        "[-v]	[-H type] [-i if] -Ds hostname ifa [netmask nm] pub\n"
 #define arp_full_usage \
        "Manipulate the system ARP cache" \
@@ -269,7 +269,7 @@
        "Change the process state and run specified program" \
        "\n\nOptions:\n" \
        "	-u user[:grp]	Set uid and gid\n" \
-       "	-U user[:grp] 	Set environment variables UID and GID\n" \
+       "	-U user[:grp]	Set environment variables UID and GID\n" \
        "	-e dir		Set environment variables as specified by files\n" \
        "			in the directory: file=1st_line_of_file\n" \
        "	-/ dir		Chroot to dir\n" \
@@ -1776,7 +1776,7 @@
 
 #define ls_trivial_usage \
        "[-1Aa" USE_FEATURE_LS_TIMESTAMPS("c") "Cd" \
-	USE_FEATURE_LS_TIMESTAMPS("e") 	USE_FEATURE_LS_FILETYPES("F") "iln" \
+	USE_FEATURE_LS_TIMESTAMPS("e") USE_FEATURE_LS_FILETYPES("F") "iln" \
 	USE_FEATURE_LS_FILETYPES("p") USE_FEATURE_LS_FOLLOWLINKS("L") \
 	USE_FEATURE_LS_RECURSIVE("R") USE_FEATURE_LS_SORTFILES("rS") "s" \
 	USE_FEATURE_AUTOWIDTH("T") USE_FEATURE_LS_TIMESTAMPS("tu") \

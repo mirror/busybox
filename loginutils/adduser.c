@@ -101,7 +101,7 @@ static int adduser(struct passwd *p, unsigned long flags)
 			bb_error_msg_and_die("illegal uid or no uids left");
 		case 3:
 			bb_error_msg_and_die("%s: group name already in use", p->pw_name);
- 	}
+	}
 
 	/* add to passwd */
 	if (putpwent(p, file) == -1) {

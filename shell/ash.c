@@ -11197,7 +11197,7 @@ find_command(char *name, struct cmdentry *entry, int act, const char *path)
 				goto builtin_success;
 		} else if (builtinloc <= 0) {
 			goto builtin_success;
-		}			
+		}
 	}
 
 	/* We have to search path. */

@@ -883,13 +883,13 @@ static void number_process(int first_digit)
 		break;
 	case 'g': case '<': case 'G': case '>':
 		cur_fline = num + max_displayed_line;
-	 	read_lines();
+		read_lines();
 		buffer_line(num - 1);
 		break;
 	case 'p': case '%':
 		num = num * (max_fline / 100); /* + max_fline / 2; */
 		cur_fline = num + max_displayed_line;
-	 	read_lines();
+		read_lines();
 		buffer_line(num);
 		break;
 #if ENABLE_FEATURE_LESS_REGEXP

@@ -896,7 +896,7 @@ restart:
 				/* or does this line matches our last address regex */
 				|| (sed_cmd->end_match && old_matched
 				     && (regexec(sed_cmd->end_match,
-				    	         pattern_space, 0, NULL, 0) == 0))
+				                 pattern_space, 0, NULL, 0) == 0))
 			);
 		}
 

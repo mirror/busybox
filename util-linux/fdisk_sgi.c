@@ -356,9 +356,9 @@ sgi_set_swappartition(int i)
 static int
 sgi_check_bootfile(const char* aFile)
 {
- 	if (strlen(aFile) < 3) /* "/a\n" is minimum */ {
- 		printf(_("\nInvalid Bootfile!\n"
- 			"\tThe bootfile must be an absolute non-zero pathname,\n"
+	if (strlen(aFile) < 3) /* "/a\n" is minimum */ {
+		printf(_("\nInvalid Bootfile!\n"
+			"\tThe bootfile must be an absolute non-zero pathname,\n"
 			"\te.g. \"/unix\" or \"/unix.save\".\n"));
 		return 0;
 	} else {

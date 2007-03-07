@@ -84,7 +84,7 @@ enum {
 	S_TO_WS = 2,		// used in skip_thing() for moving "dot"
 	S_OVER_WS = 3,		// used in skip_thing() for moving "dot"
 	S_END_PUNCT = 4,	// used in skip_thing() for moving "dot"
-	S_END_ALNUM = 5 	// used in skip_thing() for moving "dot"
+	S_END_ALNUM = 5,	// used in skip_thing() for moving "dot"
 };
 
 typedef unsigned char Byte;

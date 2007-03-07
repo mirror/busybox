@@ -129,7 +129,7 @@ void *xmalloc_open_read_close(const char *filename, size_t *sizep)
 	buf = xmalloc(size + 1);
 	size = read_close(fd, buf, size);
 	if ((ssize_t)size < 0)
-    		bb_perror_msg_and_die("'%s'", filename);
+		bb_perror_msg_and_die("'%s'", filename);
 	xrealloc(buf, size + 1);
 	buf[size] = '\0';
 	if (sizep) *sizep = size;

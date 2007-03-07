@@ -3723,7 +3723,7 @@ static char *evalstr(char *cp, int f)
 		if (wb == NULL || wb->w_nword == 0
 		 || (cp = wb->w_words[0]) == NULL
 		) {
-// TODO: I suspect that 
+// TODO: I suspect that
 // char *evalstr(char *cp, int f)  is actually
 // const char *evalstr(const char *cp, int f)!
 			cp = (char*)"";
