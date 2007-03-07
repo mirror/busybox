@@ -1175,7 +1175,7 @@ int diff_main(int argc, char **argv)
 		L_arg = L_arg->link;
 	}
 	if (option_mask32 & FLAG_U)
-		context = xatou_range(U_opt, 1, INT_MAX);
+		context = xatoi_u(U_opt);
 
 	/*
 	 * Do sanity checks, fill in stb1 and stb2 and call the appropriate
