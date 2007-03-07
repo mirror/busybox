@@ -42,14 +42,14 @@ int unpack(char **argv,
 {
 	struct stat stat_buf;
 	USE_DESKTOP(long long) int status;
-	char *filename;
-	/* NB: new_name is *possibly* malloc'ed! */
+	char *filename, *new_name;
 	smallint exitcode = 0;
 
 	do {
-		char *new_name = NULL;
-
+		/* NB: new_name is *maybe* malloc'ed! */
+		new_name = NULL;
 		filename = *argv; /* can be NULL - 'streaming' bunzip2 */
+
 		if (filename && LONE_DASH(filename))
 			filename = NULL;
 
@@ -73,22 +73,21 @@ int unpack(char **argv,
 			filename = NULL;
 		}
 
-		/* Open dst unless -c, "-" or called as bzcat */
+		/* Open dst if we are going to unpack to file */
 		if (filename) {
 			new_name = make_new_name(filename);
 			if (!new_name) {
 				bb_error_msg("%s: unknown suffix - ignored", filename);
 				goto err;
 			}
-			/* O_EXCL: "real" bunzip2 doesn't overwrite files too */
-			/* TODO: "real" gunzip goes not bail out, but goes
-			 * to next file */
+			/* O_EXCL: "real" bunzip2 doesn't overwrite files */
+			/* GNU gunzip goes not bail out, but goes to next file */
 			if (open_to_or_warn(STDOUT_FILENO, new_name, O_WRONLY | O_CREAT | O_EXCL,
 					stat_buf.st_mode))
 				goto err;
 		}
 
-		/* Check that the input is sane. */
+		/* Check that the input is sane */
 		if (isatty(STDIN_FILENO) && (option_mask32 & OPT_FORCE) == 0) {
 			bb_error_msg_and_die("compressed data not read from terminal, "
 					"use -f to force it");
@@ -102,14 +101,15 @@ int unpack(char **argv,
 			char *del = new_name;
 			if (status >= 0) {
 				/* TODO: restore user/group/times here? */
-				/* delete _old_ file */
+				/* Delete _compressed_ file */
 				del = filename;
-				/* Restore extension (unless tgz -> tar case) */
+				/* restore extension (unless tgz -> tar case) */
 				if (new_name == filename)
 					filename[strlen(filename)] = '.';
 			}
 			if (unlink(del) < 0)
 				bb_perror_msg_and_die("cannot remove %s", del);
+
 #if 0 /* Currently buggy - wrong name: "a.gz: 261% - replaced with a.gz" */
 			/* Extreme bloat for gunzip compat */
 			if (ENABLE_DESKTOP && (option_mask32 & OPT_VERBOSE) && status >= 0) {
@@ -117,6 +117,7 @@ int unpack(char **argv,
 					filename, (unsigned)(stat_buf.st_size*100 / (status+1)), new_name);
 			}
 #endif
+
  free_name:
 			if (new_name != filename)
 				free(new_name);
@@ -133,8 +134,8 @@ char* make_new_name_bunzip2(char *filename)
 {
 	char *extension = strrchr(filename, '.');
 	if (!extension || strcmp(extension, ".bz2") != 0) {
-		/* Mimic GNU gunzip ("real" bunzip2 tries to */
-		/* unpack file anyway, to file.out) */
+		/* Mimic GNU gunzip - "real" bunzip2 tries to */
+		/* unpack file anyway, to file.out */
 		return NULL;
 	}
 	*extension = '\0';
