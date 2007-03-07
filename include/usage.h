@@ -1286,15 +1286,18 @@
        "	-d STRING	URL decode STRING"
 
 #define hwclock_trivial_usage \
-       "[-r|--show] [-s|--hctosys] [-w|--systohc] [-l|--localtime] [-u|--utc]"
+       "[-r|--show] [-s|--hctosys] [-w|--systohc]" \
+       " [-l|--localtime] [-u|--utc]" \
+       " [-f FILE]"
 #define hwclock_full_usage \
-       "Query and set the hardware clock (RTC)" \
+       "Query and set a hardware clock (RTC)" \
        "\n\nOptions:\n" \
        "	-r	Read hardware clock and print result\n" \
        "	-s	Set the system time from the hardware clock\n" \
        "	-w	Set the hardware clock to the current system time\n" \
        "	-u	The hardware clock is kept in coordinated universal time\n" \
-       "	-l	The hardware clock is kept in local time"
+       "	-l	The hardware clock is kept in local time\n" \
+       "	-f FILE	Use the specified clock (e.g. /dev/rtc2)"
 
 #define id_trivial_usage \
        "[OPTIONS]... [USERNAME]"

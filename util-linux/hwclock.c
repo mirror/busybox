@@ -35,16 +35,22 @@ struct linux_rtc_time {
 # endif
 #endif
 
+static const char *rtcname;
+
 static int xopen_rtc(int flags)
 {
 	int rtc;
-	rtc = open("/dev/rtc", flags);
-	if (rtc < 0) {
-		rtc = open("/dev/misc/rtc", flags);
-		if (rtc < 0)
-			bb_perror_msg_and_die("cannot access RTC");
+
+	if (!rtcname) {
+		rtc = open("/dev/rtc", flags);
+		if (rtc >= 0)
+			return rtc;
+		rtc = open("/dev/rtc0", flags);
+		if (rtc >= 0)
+			return rtc;
+		rtcname = "/dev/misc/rtc";
 	}
-	return rtc;
+	return xopen(rtcname, flags);
 }
 
 static time_t read_rtc(int utc)
@@ -175,6 +181,7 @@ static int check_utc(void)
 #define HWCLOCK_OPT_SHOW        0x04
 #define HWCLOCK_OPT_HCTOSYS     0x08
 #define HWCLOCK_OPT_SYSTOHC     0x10
+#define HWCLOCK_OPT_RTCFILE     0x20
 
 int hwclock_main(int argc, char **argv );
 int hwclock_main(int argc, char **argv )
@@ -189,12 +196,13 @@ int hwclock_main(int argc, char **argv )
 		{ "show",      0, 0, 'r' },
 		{ "hctosys",   0, 0, 's' },
 		{ "systohc",   0, 0, 'w' },
+		{ "file",      1, 0, 'f' },
 		{ 0,           0, 0, 0 }
 	};
 	applet_long_options = hwclock_long_options;
 #endif
 	opt_complementary = "?:r--ws:w--rs:s--wr:l--u:u--l";
-	opt = getopt32(argc, argv, "lursw");
+	opt = getopt32(argc, argv, "lurswf:", &rtcname);
 
 	/* If -u or -l wasn't given check if we are using utc */
 	if (opt & (HWCLOCK_OPT_UTC | HWCLOCK_OPT_LOCALTIME))
