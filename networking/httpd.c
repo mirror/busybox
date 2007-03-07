@@ -977,7 +977,20 @@ static int sendCgi(const char *url,
 	if (pipe(toCgi) != 0)
 		return 0;
 
+/*
+ * Note: We can use vfork() here in the no-mmu case, although
+ * the child modifies the parent's variables, due to:
+ * 1) The parent does not use the child-modified variables.
+ * 2) The allocated memory (in the child) is freed when the process
+ *    exits. This happens instantly after the child finishes,
+ *    since httpd is run from inetd (and it can't run standalone
+ *    in uClinux).
+ */
+#ifdef BB_NOMMU
+	pid = vfork();
+#else
 	pid = fork();
+#endif
 	if (pid < 0)
 		return 0;
 
