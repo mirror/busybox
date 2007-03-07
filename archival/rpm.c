@@ -203,7 +203,7 @@ static void extract_cpio_gz(int fd) {
 	if ((magic[0] != 0x1f) || (magic[1] != 0x8b)) {
 		bb_error_msg_and_die("invalid gzip magic");
 	}
-	check_header_gzip(archive_handle->src_fd);
+	check_header_gzip_or_die(archive_handle->src_fd);
 	xchdir("/"); /* Install RPM's to root */
 
 	archive_handle->src_fd = open_transformer(archive_handle->src_fd, inflate_gunzip);

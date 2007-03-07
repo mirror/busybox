@@ -2,12 +2,11 @@
 /*
  * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  */
-#include <stdlib.h>
-#include <unistd.h>
-#include "libbb.h"
-#include "unarchive.h" /* for external decl of check_header_gzip */
 
-void check_header_gzip(int src_fd)
+#include "libbb.h"
+#include "unarchive.h" /* for external decl of check_header_gzip_or_die */
+
+void check_header_gzip_or_die(int src_fd)
 {
 	union {
 		unsigned char raw[8];
@@ -57,6 +56,4 @@ void check_header_gzip(int src_fd)
 		xread_char(src_fd);
 		xread_char(src_fd);
 	}
-
-	return;
 }
