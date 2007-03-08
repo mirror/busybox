@@ -136,8 +136,8 @@ static int null(VALUE * v)
 {
 	if (v->type == integer)
 		return v->u.i == 0;
-	else				/* string: */
-		return v->u.s[0] == '\0' || LONE_CHAR(v->u.s, '0');
+	/* string: */
+	return v->u.s[0] == '\0' || LONE_CHAR(v->u.s, '0');
 }
 
 /* Coerce V to a string value (can't fail).  */
@@ -194,16 +194,16 @@ static int cmp_common(VALUE * l, VALUE * r, int op)
 		cmpval = l->u.i - r->u.i;
 	if (op == '<')
 		return cmpval < 0;
-	else if (op == ('L' + 'E'))
+	if (op == ('L' + 'E'))
 		return cmpval <= 0;
-	else if (op == '=')
+	if (op == '=')
 		return cmpval == 0;
-	else if (op == '!')
+	if (op == '!')
 		return cmpval != 0;
-	else if (op == '>')
+	if (op == '>')
 		return cmpval > 0;
-	else				/* >= */
-		return cmpval >= 0;
+	/* >= */
+	return cmpval >= 0;
 }
 
 /* The arithmetic operator handling functions.  */

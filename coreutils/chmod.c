@@ -118,10 +118,12 @@ int chmod_main(int argc, char **argv)
 /*
 Security: chmod is too important and too subtle.
 This is a test script (busybox chmod versus coreutils).
-Run it in empty dir. Probably requires bash.
+Run it in empty directory.
 
 #!/bin/sh
-function create() {
+t1="/tmp/busybox chmod"
+t2="/usr/bin/chmod"
+create() {
     rm -rf $1; mkdir $1
     (
     cd $1 || exit 1
@@ -134,17 +136,16 @@ function create() {
     ln -s ../up dir/up
     )
 }
-function tst() {
+tst() {
     (cd test1; $t1 $1)
     (cd test2; $t2 $1)
     (cd test1; ls -lR) >out1
     (cd test2; ls -lR) >out2
     echo "chmod $1" >out.diff
     if ! diff -u out1 out2 >>out.diff; then exit 1; fi
-    mv out.diff out1.diff
+    rm out.diff
 }
-t1="/tmp/busybox chmod"
-t2="/usr/bin/chmod"
+echo "If script produced 'out.diff' file, then at least one testcase failed"
 create test1; create test2
 tst "a+w file"
 tst "a-w dir"
