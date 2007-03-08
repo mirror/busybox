@@ -342,6 +342,23 @@ static void status_print(void)
 	print_hilite(p);
 }
 
+static void cap_cur_fline(int nlines)
+{
+	int diff;
+	if (cur_fline < 0)
+		cur_fline = 0;
+	if (cur_fline + max_displayed_line > max_fline + TILDES) {
+		cur_fline -= nlines;
+		if (cur_fline < 0)
+			cur_fline = 0;
+		diff = max_fline - (cur_fline + max_displayed_line) + TILDES;
+		/* As the number of lines requested was too large, we just move
+		to the end of the file */
+		if (diff > 0)
+			cur_fline += diff;
+	}
+}
+
 static char controls[] =
 	/* NUL: never encountered; TAB: not converted */
 	/**/"\x01\x02\x03\x04\x05\x06\x07\x08"  "\x0a\x0b\x0c\x0d\x0e\x0f"
@@ -479,18 +496,9 @@ static void buffer_fill_and_print(void)
 /* Move the buffer up and down in the file in order to scroll */
 static void buffer_down(int nlines)
 {
-	int diff;
 	cur_fline += nlines;
 	read_lines();
-
-	if (cur_fline + max_displayed_line > max_fline + TILDES) {
-		cur_fline -= nlines;
-		diff = max_fline - (cur_fline + max_displayed_line) + TILDES;
-		/* As the number of lines requested was too large, we just move
-		to the end of the file */
-		if (diff > 0)
-			cur_fline += diff;
-	}
+	cap_cur_fline(nlines);
 	buffer_fill_and_print();
 }
 
@@ -763,6 +771,7 @@ static void goto_match(int match)
 	if (match >= num_matches && eof_error > 0) {
 		cur_fline = MAXLINES; /* look as far as needed */
 		read_lines();
+		cap_cur_fline(cur_fline);
 	}
 	if (num_matches) {
 		normalize_match_pos(match);
