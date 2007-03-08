@@ -21,6 +21,8 @@
  *   redirected input has been read from stdin
  */
 
+#include <sched.h>	/* sched_yield() */
+
 #include "busybox.h"
 #if ENABLE_FEATURE_LESS_REGEXP
 #include "xregex.h"
@@ -200,16 +202,30 @@ static void read_lines(void)
 			char c;
 			/* if no unprocessed chars left, eat more */
 			if (readpos >= readeof) {
+				smallint yielded = 0;
+
 				ndelay_on(0);
+ read_again:
 				eof_error = safe_read(0, readbuf, sizeof(readbuf));
-				ndelay_off(0);
 				readpos = 0;
 				readeof = eof_error;
 				if (eof_error < 0) {
+					if (errno == EAGAIN && !yielded) {
+			/* We can hit EAGAIN while searching for regexp match.
+			 * Yield is not 100% reliable solution in general,
+			 * but for less it should be good enough.
+			 * We give stdin supplier some CPU time to produce more.
+			 * We do it just once. */
+						sched_yield();
+						yielded = 1;
+						goto read_again;
+					}
 					readeof = 0;
 					if (errno != EAGAIN)
 						print_statusline("read error");
 				}
+				ndelay_off(0);
+
 				if (eof_error <= 0) {
 					goto reached_eof;
 				}
