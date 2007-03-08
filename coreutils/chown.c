@@ -7,7 +7,7 @@
  * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  */
 
-/* BB_AUDIT SUSv3 defects - unsupported options -H, -L, and -P. */
+/* BB_AUDIT SUSv3 defects - none? */
 /* BB_AUDIT GNU defects - unsupported long options. */
 /* http://www.opengroup.org/onlinepubs/007904975/utilities/chown.html */
 
@@ -19,9 +19,6 @@ static int (*chown_func)(const char *, uid_t, gid_t) = chown;
 
 #define OPT_STR     ("Rh" USE_DESKTOP("vcfLHP"))
 #define BIT_RECURSE 1
-#define BIT_NODEREF 2
-#define BIT_TRAVERSE 0x20
-#define BIT_TRAVERSETOP (0x20|0x40)
 #define OPT_RECURSE (option_mask32 & 1)
 #define OPT_NODEREF (option_mask32 & 2)
 #define OPT_VERBOSE (USE_DESKTOP(option_mask32 & 0x04) SKIP_DESKTOP(0))
@@ -35,22 +32,24 @@ static int (*chown_func)(const char *, uid_t, gid_t) = chown;
  * "Specifying more than one of -H, -L, and -P is not an error.
  * The last option specified shall determine the behavior of the utility." */
 /* -L */
-#define OPT_TRAVERSE    (USE_DESKTOP(option_mask32 & BIT_TRAVERSE) SKIP_DESKTOP(0))
+#define BIT_TRAVERSE 0x20
+#define OPT_TRAVERSE (USE_DESKTOP(option_mask32 & BIT_TRAVERSE) SKIP_DESKTOP(0))
 /* -H or -L */
-#define OPT_TRAVERSETOP (USE_DESKTOP(option_mask32 & BIT_TRAVERSETOP) SKIP_DESKTOP(0))
+#define BIT_TRAVERSE_TOP (0x20|0x40)
+#define OPT_TRAVERSE_TOP (USE_DESKTOP(option_mask32 & BIT_TRAVERSE_TOP) SKIP_DESKTOP(0))
 
 static int fileAction(const char *fileName, struct stat *statbuf,
 		void ATTRIBUTE_UNUSED *junk, int depth)
 {
-	if (!chown_func(fileName,
-			(ugid.uid == (uid_t)-1) ? statbuf->st_uid : ugid.uid,
-			(ugid.gid == (gid_t)-1) ? statbuf->st_gid : ugid.gid)
-	) {
+	uid_t u = (ugid.uid == (uid_t)-1) ? statbuf->st_uid : ugid.uid;
+	gid_t g = (ugid.gid == (gid_t)-1) ? statbuf->st_gid : ugid.gid;
+
+	if (!chown_func(fileName, u, g)) {
 		if (OPT_VERBOSE
-		 || (OPT_CHANGED && (statbuf->st_uid != ugid.uid || statbuf->st_gid != ugid.gid))
+		 || (OPT_CHANGED && (statbuf->st_uid != u || statbuf->st_gid != g))
 		) {
 			printf("changed ownership of '%s' to %u:%u\n",
-					fileName, ugid.uid, ugid.gid);
+					fileName, (unsigned)u, (unsigned)g);
 		}
 		return TRUE;
 	}
@@ -70,8 +69,8 @@ int chown_main(int argc, char **argv)
 
 	/* This matches coreutils behavior (almost - see below) */
 	if (OPT_NODEREF
-	    /* || (OPT_RECURSE && !OPT_TRAVERSETOP): */
-	    USE_DESKTOP( || (option_mask32 & (BIT_RECURSE|BIT_TRAVERSETOP)) == BIT_RECURSE)
+	    /* || (OPT_RECURSE && !OPT_TRAVERSE_TOP): */
+	    USE_DESKTOP( || (option_mask32 & (BIT_RECURSE|BIT_TRAVERSE_TOP)) == BIT_RECURSE)
 	) {
 		chown_func = lchown;
 	}
@@ -83,7 +82,7 @@ int chown_main(int argc, char **argv)
 	do {
 		char *arg = *argv;
 
-		if (OPT_TRAVERSETOP) {
+		if (OPT_TRAVERSE_TOP) {
 			/* resolves symlink (even recursive) */
 			arg = xmalloc_realpath(arg);
 			if (!arg)
@@ -102,7 +101,7 @@ int chown_main(int argc, char **argv)
 			retval = EXIT_FAILURE;
 		}
 
-		if (OPT_TRAVERSETOP)
+		if (OPT_TRAVERSE_TOP)
 			free(arg);
 	} while (*++argv);
 
