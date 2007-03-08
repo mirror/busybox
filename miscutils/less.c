@@ -845,15 +845,10 @@ static void regex_process(void)
 		free(err);
 		return;
 	}
+
 	pattern_valid = 1;
 	match_pos = 0;
-
 	fill_match_lines(0);
-
-	if (num_matches == 0 || max_fline <= max_displayed_line) {
-		buffer_print();
-		return;
-	}
 	while (match_pos < num_matches) {
 		if (match_lines[match_pos] > cur_fline)
 			break;
@@ -861,8 +856,11 @@ static void regex_process(void)
 	}
 	if (option_mask32 & LESS_STATE_MATCH_BACKWARDS)
 		match_pos--;
-	normalize_match_pos(match_pos);
-	buffer_line(match_lines[match_pos]);
+
+	/* It's possible that no matches are found yet.
+	 * goto_match() will read input looking for match,
+	 * if needed */
+	goto_match(match_pos);
 }
 #endif
 
