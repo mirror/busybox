@@ -1119,7 +1119,7 @@ int ifupdown_main(int argc, char **argv)
 	if (!startup_PATH) startup_PATH = "";
 
 	/* Read the previous state from the state file */
-	state_fp = fopen_or_warn("/var/run/ifstate", "r");
+	state_fp = fopen("/var/run/ifstate", "r");
 	if (state_fp) {
 		char *start, *end_ptr;
 		while ((start = xmalloc_fgets(state_fp)) != NULL) {
