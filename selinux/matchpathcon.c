@@ -36,8 +36,8 @@ int matchpathcon_main(int argc, char **argv)
 	unsigned opts;
 	char *fcontext, *prefix, *path;
 
-	opt_complementary = "-1:" /* at least one param reqd */
-		"f--p:p--f"; /* mutually exclusive */
+	opt_complementary = "-1" /* at least one param reqd */
+		":?:f--p:p--f"; /* mutually exclusive */
 	opts = getopt32(argc, argv, "nNf:p:V", &fcontext, &prefix);
 	argv += optind;
 
