@@ -40,31 +40,29 @@
 
 #include "busybox.h"
 
-static int print_formatted(char *format, int argc, char **argv);
-static void print_direc(char *start, size_t length,
-		int field_width, int precision, const char *argument);
-
 typedef void (*converter)(const char *arg, void *result);
 
 static void multiconvert(const char *arg, void *result, converter convert)
 {
-	char s[16];
+	char s[sizeof(int)*3 + 2];
+
 	if (*arg == '"' || *arg == '\'') {
 		sprintf(s, "%d", (unsigned char)arg[1]);
 		arg = s;
 	}
 	convert(arg, result);
-	if (errno) /* Huh, looks strange... bug? */
+	/* if there was conversion error, print unconverted string */
+	if (errno)
 		fputs(arg, stderr);
 }
 
 static void conv_strtoul(const char *arg, void *result)
 {
-	*(unsigned long*)result = bb_strtoul(arg, NULL, 10);
+	*(unsigned long*)result = bb_strtoul(arg, NULL, 0);
 }
 static void conv_strtol(const char *arg, void *result)
 {
-	*(long*)result = bb_strtol(arg, NULL, 10);
+	*(long*)result = bb_strtol(arg, NULL, 0);
 }
 static void conv_strtod(const char *arg, void *result)
 {
@@ -109,32 +107,82 @@ static void print_esc_string(char *str)
 	}
 }
 
-int printf_main(int argc, char **argv);
-int printf_main(int argc, char **argv)
+static void print_direc(char *start, size_t length, int field_width, int precision,
+		const char *argument)
 {
-	char *format;
-	int args_used;
+	char *p;		/* Null-terminated copy of % directive. */
 
-	if (argc <= 1 || argv[1][0] == '-') {
-		bb_show_usage();
+	p = xmalloc((unsigned) (length + 1));
+	strncpy(p, start, length);
+	p[length] = 0;
+
+	switch (p[length - 1]) {
+	case 'd':
+	case 'i':
+		if (field_width < 0) {
+			if (precision < 0)
+				printf(p, my_xstrtol(argument));
+			else
+				printf(p, precision, my_xstrtol(argument));
+		} else {
+			if (precision < 0)
+				printf(p, field_width, my_xstrtol(argument));
+			else
+				printf(p, field_width, precision, my_xstrtol(argument));
+		}
+		break;
+	case 'o':
+	case 'u':
+	case 'x':
+	case 'X':
+		if (field_width < 0) {
+			if (precision < 0)
+				printf(p, my_xstrtoul(argument));
+			else
+				printf(p, precision, my_xstrtoul(argument));
+		} else {
+			if (precision < 0)
+				printf(p, field_width, my_xstrtoul(argument));
+			else
+				printf(p, field_width, precision, my_xstrtoul(argument));
+		}
+		break;
+	case 'f':
+	case 'e':
+	case 'E':
+	case 'g':
+	case 'G':
+		if (field_width < 0) {
+			if (precision < 0)
+				printf(p, my_xstrtod(argument));
+			else
+				printf(p, precision, my_xstrtod(argument));
+		} else {
+			if (precision < 0)
+				printf(p, field_width, my_xstrtod(argument));
+			else
+				printf(p, field_width, precision, my_xstrtod(argument));
+		}
+		break;
+	case 'c':
+		printf(p, *argument);
+		break;
+	case 's':
+		if (field_width < 0) {
+			if (precision < 0)
+				printf(p, argument);
+			else
+				printf(p, precision, argument);
+		} else {
+			if (precision < 0)
+				printf(p, field_width, argument);
+			else
+				printf(p, field_width, precision, argument);
+		}
+		break;
 	}
 
-	format = argv[1];
-	argc -= 2;
-	argv += 2;
-
-	do {
-		args_used = print_formatted(format, argc, argv);
-		argc -= args_used;
-		argv += args_used;
-	}
-	while (args_used > 0 && argc > 0);
-
-/*	if (argc > 0)
-		fprintf(stderr, "excess args ignored");
-*/
-
-	return EXIT_SUCCESS;
+	free(p);
 }
 
 /* Print the text in FORMAT, using ARGV (with ARGC elements) for
@@ -143,12 +191,12 @@ int printf_main(int argc, char **argv)
 
 static int print_formatted(char *format, int argc, char **argv)
 {
-	int save_argc = argc;		/* Preserve original value.  */
-	char *f;					/* Pointer into 'format'.  */
-	char *direc_start;			/* Start of % directive.  */
-	size_t direc_length;		/* Length of % directive.  */
-	int field_width;			/* Arg to first '*', or -1 if none.  */
-	int precision;				/* Arg to second '*', or -1 if none.  */
+	int save_argc = argc;   /* Preserve original value.  */
+	char *f;                /* Pointer into 'format'.  */
+	char *direc_start;      /* Start of % directive.  */
+	size_t direc_length;    /* Length of % directive.  */
+	int field_width;        /* Arg to first '*', or -1 if none.  */
+	int precision;          /* Arg to second '*', or -1 if none.  */
 
 	for (f = format; *f; ++f) {
 		switch (*f) {
@@ -181,11 +229,12 @@ static int print_formatted(char *format, int argc, char **argv)
 					--argc;
 				} else
 					field_width = 0;
-			} else
+			} else {
 				while (isdigit(*f)) {
 					++f;
 					++direc_length;
 				}
+			}
 			if (*f == '.') {
 				++f;
 				++direc_length;
@@ -222,14 +271,12 @@ static int print_formatted(char *format, int argc, char **argv)
 				print_direc(direc_start, direc_length, field_width,
 							precision, "");
 			break;
-
 		case '\\':
 			if (*++f == 'c')
 				exit(0);
 			putchar(bb_process_escape_sequence((const char **)&f));
 			f--;
 			break;
-
 		default:
 			putchar(*f);
 		}
@@ -238,85 +285,29 @@ static int print_formatted(char *format, int argc, char **argv)
 	return save_argc - argc;
 }
 
-static void
-print_direc(char *start, size_t length, int field_width, int precision,
-		const char *argument)
+int printf_main(int argc, char **argv);
+int printf_main(int argc, char **argv)
 {
-	char *p;		/* Null-terminated copy of % directive. */
+	char *format;
+	int args_used;
 
-	p = xmalloc((unsigned) (length + 1));
-	strncpy(p, start, length);
-	p[length] = 0;
-
-	switch (p[length - 1]) {
-	case 'd':
-	case 'i':
-		if (field_width < 0) {
-			if (precision < 0)
-				printf(p, my_xstrtol(argument));
-			else
-				printf(p, precision, my_xstrtol(argument));
-		} else {
-			if (precision < 0)
-				printf(p, field_width, my_xstrtol(argument));
-			else
-				printf(p, field_width, precision, my_xstrtol(argument));
-		}
-		break;
-
-	case 'o':
-	case 'u':
-	case 'x':
-	case 'X':
-		if (field_width < 0) {
-			if (precision < 0)
-				printf(p, my_xstrtoul(argument));
-			else
-				printf(p, precision, my_xstrtoul(argument));
-		} else {
-			if (precision < 0)
-				printf(p, field_width, my_xstrtoul(argument));
-			else
-				printf(p, field_width, precision, my_xstrtoul(argument));
-		}
-		break;
-
-	case 'f':
-	case 'e':
-	case 'E':
-	case 'g':
-	case 'G':
-		if (field_width < 0) {
-			if (precision < 0)
-				printf(p, my_xstrtod(argument));
-			else
-				printf(p, precision, my_xstrtod(argument));
-		} else {
-			if (precision < 0)
-				printf(p, field_width, my_xstrtod(argument));
-			else
-				printf(p, field_width, precision, my_xstrtod(argument));
-		}
-		break;
-
-	case 'c':
-		printf(p, *argument);
-		break;
-
-	case 's':
-		if (field_width < 0) {
-			if (precision < 0)
-				printf(p, argument);
-			else
-				printf(p, precision, argument);
-		} else {
-			if (precision < 0)
-				printf(p, field_width, argument);
-			else
-				printf(p, field_width, precision, argument);
-		}
-		break;
+	if (argc <= 1 || argv[1][0] == '-') {
+		bb_show_usage();
 	}
 
-	free(p);
+	format = argv[1];
+	argc -= 2;
+	argv += 2;
+
+	do {
+		args_used = print_formatted(format, argc, argv);
+		argc -= args_used;
+		argv += args_used;
+	} while (args_used > 0 && argc > 0);
+
+/*	if (argc > 0)
+		fprintf(stderr, "excess args ignored");
+*/
+
+	return EXIT_SUCCESS;
 }
