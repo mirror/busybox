@@ -13,12 +13,80 @@
  * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  */
 
-#include <setjmp.h>
-#include <sys/times.h>
-#include "busybox.h"
-
+#ifdef STANDALONE
+# ifndef _GNU_SOURCE
+#  define _GNU_SOURCE
+# endif
+# include <setjmp.h>
+# include <sys/times.h>
+# include <sys/types.h>
+# include <sys/stat.h>
+# include <sys/wait.h>
+# include <signal.h>
+# include <stdio.h>
+# include <stdlib.h>
+# include <unistd.h>
+# include <string.h>
+# include <errno.h>
+# include <dirent.h>
+# include <fcntl.h>
+# include <ctype.h>
+# include <assert.h>
+# define bb_dev_null "/dev/null"
+# define DEFAULT_SHELL "/proc/self/exe"
+# define CONFIG_BUSYBOX_EXEC_PATH "/proc/self/exe"
+# define BB_BANNER "busybox standalone"
+# define ENABLE_FEATURE_SH_STANDALONE_SHELL 0
+# define bb_msg_memory_exhausted "memory exhausted"
+# define xmalloc(size) malloc(size)
+# define msh_main(argc,argv) main(argc,argv)
+# define safe_read(fd,buf,count) read(fd,buf,count)
+# define NOT_LONE_DASH(s) ((s)[0] != '-' || (s)[1])
+# define LONE_CHAR(s,c) ((s)[0] == (c) && !(s)[1])
+# define ATTRIBUTE_NORETURN __attribute__ ((__noreturn__))
+static char *find_applet_by_name(const char *applet)
+{
+	return NULL;
+}
+static void utoa_to_buf(unsigned n, char *buf, unsigned buflen)
+{
+    unsigned i, out, res;
+    assert(sizeof(unsigned) == 4);
+    if (buflen) {
+        out = 0;
+        for (i = 1000000000; i; i /= 10) {
+            res = n / i;
+            if (res || out || i == 1) {
+                if (!--buflen) break;
+                out++;
+                n -= res*i;
+                *buf++ = '0' + res;
+            }
+        }
+        *buf = '\0';
+    }
+}
+static void itoa_to_buf(int n, char *buf, unsigned buflen)
+{
+    if (buflen && n<0) {
+        n = -n;
+        *buf++ = '-';
+        buflen--;
+    }
+    utoa_to_buf((unsigned)n, buf, buflen);
+}
+static char local_buf[12];
+static char *itoa(int n)
+{
+    itoa_to_buf(n, local_buf, sizeof(local_buf));
+    return local_buf;
+}
+#else
+# include <setjmp.h>
+# include <sys/times.h>
+# include "busybox.h"
 extern char **environ;
-
+#endif
 
 /*#define MSHDEBUG 1*/
 
