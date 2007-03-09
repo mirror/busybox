@@ -48,8 +48,10 @@ enum {
 	REAL_KEY_LEFT = 'D',
 	REAL_PAGE_UP = '5',
 	REAL_PAGE_DOWN = '6',
-	REAL_KEY_HOME = '7',
+	REAL_KEY_HOME = '7', // vt100? linux vt? or what?
 	REAL_KEY_END = '8',
+	REAL_KEY_HOME_ALT = '1', // ESC [1~ (vt100? linux vt? or what?)
+	REAL_KEY_END_ALT = '4', // ESC [4~ 
 	REAL_KEY_HOME_XTERM = 'H',
 	REAL_KEY_END_XTERM = 'F',
 
@@ -213,9 +215,12 @@ static void read_lines(void)
 					if (errno == EAGAIN && !yielded) {
 			/* We can hit EAGAIN while searching for regexp match.
 			 * Yield is not 100% reliable solution in general,
-			 * but for less it should be good enough.
-			 * We give stdin supplier some CPU time to produce more.
-			 * We do it just once. */
+			 * but for less it should be good enough -
+			 * we give stdin supplier some CPU time to produce
+			 * more input. We do it just once.
+			 * Currently, we do not stop when we found the Nth
+			 * occurrence we were looking for. We read till end
+			 * (or double EAGAIN). TODO? */
 						sched_yield();
 						yielded = 1;
 						goto read_again;
@@ -638,7 +643,11 @@ static int less_getch(void)
 			return 24 + i;
 		if (input[2] == REAL_KEY_HOME_XTERM)
 			return KEY_HOME;
+		if (input[2] == REAL_KEY_HOME_ALT)
+			return KEY_HOME;
 		if (input[2] == REAL_KEY_END_XTERM)
+			return KEY_END;
+		if (input[2] == REAL_KEY_END_ALT)
 			return KEY_END;
 		return 0;
 	}
