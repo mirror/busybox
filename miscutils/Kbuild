@@ -6,9 +6,9 @@
 
 lib-y:=
 lib-$(CONFIG_ADJTIMEX)    += adjtimex.o
+lib-$(CONFIG_BBCONFIG)    += bbconfig.o
 lib-$(CONFIG_CROND)       += crond.o
 lib-$(CONFIG_CRONTAB)     += crontab.o
-lib-$(CONFIG_BBCONFIG)    += bbconfig.o
 lib-$(CONFIG_DC)          += dc.o
 lib-$(CONFIG_DEVFSD)      += devfsd.o
 lib-$(CONFIG_EJECT)       += eject.o
