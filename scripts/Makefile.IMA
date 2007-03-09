@@ -99,6 +99,9 @@ lib-y:=
 include editors/Kbuild
 lib-all-y += $(patsubst %,editors/%,$(sort $(lib-y)))
 lib-y:=
+include selinux/Kbuild
+lib-all-y += $(patsubst %,selinux/%,$(sort $(lib-y)))
+lib-y:=
 include scripts/Kbuild
 lib-all-y += $(patsubst %,scripts/%,$(sort $(lib-y)))
 lib-y:=
