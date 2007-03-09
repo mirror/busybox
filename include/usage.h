@@ -382,6 +382,22 @@
 #define bbsh_full_usage \
        "The bbsh shell (command interpreter)"
 
+#define chrt_trivial_usage \
+	"[OPTION]... [prio] [pid | command [arg]...]"
+#define chrt_full_usage \
+	"manipulate real-time attributes of a process" \
+	"\n\nOptions:\n" \
+	"	-p	operate on pid\n" \
+	"	-r	set scheduling policy to SCHED_RR\n" \
+	"	-f	set scheduling policy to SCHED_FIFO\n" \
+	"	-o	set scheduling policy to SCHED_OTHER\n" \
+	"	-m	show min and max priorities"
+
+#define chrt_example_usage \
+	"$ chrt -r 4 sleep 900 ; x=$!\n" \
+	"$ chrt -f -p 3 $x\n" \
+	"You need CAP_SYS_NICE privileges to set scheduling attributes of a process"
+
 #define cp_trivial_usage \
        "[OPTION]... SOURCE DEST"
 #define cp_full_usage \

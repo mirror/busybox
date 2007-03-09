@@ -19,6 +19,13 @@ config BBCONFIG
 	  The bbconfig applet will print the config file with which
 	  busybox was built.
 
+config CHRT
+	bool "chrt"
+	default n
+	help
+	  manipulate real-time attributes of a process.
+	  This requires sched_{g,s}etparam support in your libc.
+
 config CROND
 	bool "crond"
 	default n
