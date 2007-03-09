@@ -130,7 +130,6 @@ Bernhard Fischer <busybox@busybox.net> suggests to look at these:
     make bb_common_bufsiz1 configurable, size wise.
     make pipesize configurable, size wise.
     Use bb_common_bufsiz1 throughout applets!
-  Add chrt applet. Please CC Bernhard if you suggest a patch.
 
 As yet unclaimed:
 
