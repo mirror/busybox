@@ -7,14 +7,11 @@
  * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  */
 
-/* BB_AUDIT SUSv3 defects - unsupported options -H, -L, and -P. */
+/* BB_AUDIT SUSv3 defects - none? */
 /* BB_AUDIT GNU defects - unsupported long options. */
 /* http://www.opengroup.org/onlinepubs/007904975/utilities/chgrp.html */
 
 #include "busybox.h"
-
-/* FIXME - move to .h */
-extern int chown_main(int argc, char **argv);
 
 int chgrp_main(int argc, char **argv);
 int chgrp_main(int argc, char **argv)

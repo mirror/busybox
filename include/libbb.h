@@ -514,6 +514,7 @@ int bb_test(int argc, char** argv);
 #if ENABLE_ROUTE
 void bb_displayroutes(int noresolve, int netstatfmt);
 #endif
+int chown_main(int argc, char **argv);
 #if ENABLE_GUNZIP
 int gunzip_main(int argc, char **argv);
 #endif
