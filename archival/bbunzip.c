@@ -127,19 +127,25 @@ int unpack(char **argv,
 	return exitcode;
 }
 
-#if ENABLE_BUNZIP2
-
 static
-char* make_new_name_bunzip2(char *filename)
+char* make_new_name_generic(char *filename, const char *expected_ext)
 {
 	char *extension = strrchr(filename, '.');
-	if (!extension || strcmp(extension, ".bz2") != 0) {
+	if (!extension || strcmp(extension + 1, expected_ext) != 0) {
 		/* Mimic GNU gunzip - "real" bunzip2 tries to */
 		/* unpack file anyway, to file.out */
 		return NULL;
 	}
 	*extension = '\0';
 	return filename;
+}
+
+#if ENABLE_BUNZIP2
+
+static
+char* make_new_name_bunzip2(char *filename)
+{
+	return make_new_name_generic(filename, "bz2");
 }
 
 static
@@ -200,13 +206,14 @@ char* make_new_name_gunzip(char *filename)
 	if (!extension)
 		return NULL;
 
-	if (strcmp(extension, ".gz") == 0
+	extension++;
+	if (strcmp(extension, "tgz" + 1) == 0
 #ifdef CONFIG_FEATURE_GUNZIP_UNCOMPRESS
-	 || strcmp(extension, ".Z") == 0
+	 || strcmp(extension, "Z") == 0
 #endif
 	) {
-		*extension = '\0';
-	} else if(strcmp(extension, ".tgz") == 0) {
+		extension[-1] = '\0';
+	} else if(strcmp(extension, "tgz") == 0) {
 		filename = xstrdup(filename);
 		extension = strrchr(filename, '.');
 		extension[2] = 'a';
@@ -275,11 +282,7 @@ int gunzip_main(int argc, char **argv)
 static
 char* make_new_name_unlzma(char *filename)
 {
-	char *extension = strrchr(filename, '.');
-	if (!extension || strcmp(extension, ".lzma") != 0)
-		return NULL;
-	*extension = '\0';
-	return filename;
+	return make_new_name_generic(filename, "lzma");
 }
 
 static
@@ -315,11 +318,7 @@ int unlzma_main(int argc, char **argv)
 static
 char* make_new_name_uncompress(char *filename)
 {
-	char *extension = strrchr(filename, '.');
-	if (!extension || strcmp(extension, ".Z") != 0)
-		return NULL;
-	*extension = '\0';
-	return filename;
+	return make_new_name_generic(filename, "Z");
 }
 
 static
