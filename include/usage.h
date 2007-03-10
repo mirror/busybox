@@ -198,6 +198,24 @@
        "	-R	Recursively list subdirectories\n" \
        "	-v	Set the file's version/generation number"
 
+#define chcon_trivial_usage \
+       "[OPTIONS] CONTEXT FILE...\n" \
+       "	chcon [OPTIONS] [-u USER] [-r ROLE] [-l RANGE] [-t TYPE] FILE...\n" \
+       "	chcon [OPTIONS] --reference=RFILE FILE...\n"
+#define chcon_full_usage \
+       "Change the security context of each FILE to CONTEXT\n\n" \
+       "	-c, --changes		Like verbose but report only when a change is made\n" \
+       "	-h, --no-dereference	Affect symbolic links instead of any referenced file\n" \
+       "				(available only on systems with lchown system call)\n" \
+       "	-f, --silent, --quiet	Suppress most error messages\n" \
+       "	--reference=RFILE	Use RFILE's group instead of using a CONTEXT value\n" \
+       "	-u, --user=USER		Set user USER in the target security context\n" \
+       "	-r, --role=ROLE		Set role ROLE in the target security context\n" \
+       "	-t, --type=TYPE		Set type TYPE in the target security context\n" \
+       "	-l, --range=RANGE	Set range RANGE in the target security context\n" \
+       "	-R, --recursive		Recurse subdirs\n" \
+       "	-v, --verbose		Verbose mode" \
+
 #define chgrp_trivial_usage \
        "[-Rh"USE_DESKTOP("cvf")"]... GROUP FILE..."
 #define chgrp_full_usage \
@@ -404,6 +422,9 @@
        "Copy SOURCE to DEST, or multiple SOURCE(s) to DIRECTORY" \
        "\n\nOptions:\n" \
        "	-a	Same as -dpR\n" \
+	USE_SELINUX( \
+       "	-c	Preserves security context\n" \
+	) \
        "	-d,-P	Preserve links\n" \
        "	-H,-L	Dereference all symlinks (implied by default)\n" \
        "	-p	Preserve file attributes if possible\n" \
@@ -1321,7 +1342,8 @@
        "Print information for USERNAME or the current user" \
        "\n\nOptions:\n" \
 	USE_SELINUX( \
-       "	-c	Prints only the security context\n") \
+       "	-Z	prints only the security context\n" \
+	) \
        "	-g	Prints only the group ID\n" \
        "	-u	Prints only the user ID\n" \
        "	-n	Print a name instead of a number\n" \
@@ -1540,7 +1562,10 @@
        "	-m	Set permission modes\n" \
        "	-o	Set ownership\n" \
        "	-p	Preserve date\n" \
-       "	-s	Strip symbol tables"
+       "	-s	Strip symbol tables" \
+	USE_SELINUX( \
+       "\n	-Z	Set security context of copy" \
+	)
 
 #define ip_trivial_usage \
        "[OPTIONS] {address | link | route | tunnel | rule} {COMMAND}"
@@ -1850,7 +1875,9 @@
 	USE_SELINUX( \
        "\n	-k	Print security context") \
 	USE_SELINUX( \
-       "\n	-K	Print security context in long format")
+       "\n	-K	Print security context in long format") \
+	USE_SELINUX( \
+       "\n	-Z	Print security context and permission")
 
 #define lsattr_trivial_usage \
        "[-Radlv] [files...]"
@@ -1995,7 +2022,11 @@
        "Create the DIRECTORY(ies) if they do not already exist" \
        "\n\nOptions:\n" \
        "	-m	Set permission mode (as in chmod), not rwxrwxrwx - umask\n" \
-       "	-p	No error if existing, make parent directories as needed"
+       "	-p	No error if existing, make parent directories as needed" \
+	USE_SELINUX( \
+       "\n	-Z	Set security context" \
+	)
+
 #define mkdir_example_usage \
        "$ mkdir /tmp/foo\n" \
        "$ mkdir /tmp/foo\n" \
@@ -2040,7 +2071,10 @@
 #define mkfifo_full_usage \
        "Create a named pipe (identical to 'mknod name p')" \
        "\n\nOptions:\n" \
-       "	-m	Create the pipe using the specified mode (default a=rw)"
+       "	-m	Create the pipe using the specified mode (default a=rw)" \
+	USE_SELINUX( \
+       "\n	-Z	Set security context" \
+	)
 
 #define mkfs_minix_trivial_usage \
        "[-c | -l filename] [-nXX] [-iXX] /dev/name [blocks]"
@@ -2062,7 +2096,11 @@
        "\n\nTYPEs include:\n" \
        "	b:	Make a block (buffered) device\n" \
        "	c or u:	Make a character (un-buffered) device\n" \
-       "	p:	Make a named pipe. MAJOR and MINOR are ignored for named pipes"
+       "	p:	Make a named pipe. MAJOR and MINOR are ignored for named pipes" \
+	USE_SELINUX( \
+       "\n	-Z	Set security context" \
+	)
+
 #define mknod_example_usage \
        "$ mknod /dev/fd0 b 2 0\n" \
        "$ mknod -m 644 /tmp/pipe p\n"
@@ -2698,6 +2736,20 @@
 #define rpm2cpio_full_usage \
        "Output a cpio archive of the rpm file"
 
+#define runcon_trivial_usage \
+	"[-c] [-u USER] [-r ROLE] [-t TYPE] [-l RANGE] COMMAND [args]\n" \
+	"       runcon CONTEXT COMMAND [args]"
+#define runcon_full_usage \
+       "runcon [-c] [-u USER] [-r ROLE] [-t TYPE] [-l RANGE] COMMAND [args]\n" \
+       "runcon CONTEXT COMMAND [args]\n" \
+       "Run a program in a different security context\n\n" \
+       "	CONTEXT		Complete security context\n" \
+       "	-c, --compute	Compute process transition context before modifying\n" \
+       "	-t, --type=TYPE	Type (for same role as parent)\n" \
+       "	-u, --user=USER	User identity\n" \
+       "	-r, --role=ROLE	Role\n" \
+       "	-l, --range=RNG	Levelrange" \
+
 #define run_parts_trivial_usage \
        "[-t] [-a ARG] [-u MASK] DIRECTORY"
 #define run_parts_full_usage \
@@ -2924,6 +2976,9 @@
        "	-f	Display filesystem status\n" \
        "	-L,-l	Dereference links\n" \
        "	-t	Display info in terse form" \
+	USE_SELINUX( \
+       "\n	-Z	Print security context" \
+	) \
 	USE_FEATURE_STAT_FORMAT( \
        "\n\nValid format sequences for files:\n" \
        " %a	Access rights in octal\n" \
@@ -2958,6 +3013,9 @@
        " %c	Total file nodes in file system\n" \
        " %d	Free file nodes in file system\n" \
        " %f	Free blocks in file system\n" \
+	USE_SELINUX( \
+       " %C	Security context in SELinux\n" \
+	) \
        " %i	File System ID in hex\n" \
        " %l	Maximum length of filenames\n" \
        " %n	File name\n" \

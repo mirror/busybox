@@ -6,8 +6,10 @@
 # Licensed under the GPL v2, see the file LICENSE in this tarball.
 
 lib-y:=
+lib-$(CONFIG_CHCON)		+= chcon.o
 lib-$(CONFIG_GETENFORCE)	+= getenforce.o
 lib-$(CONFIG_GETSEBOOL)		+= getsebool.o
 lib-$(CONFIG_MATCHPATHCON)	+= matchpathcon.o
+lib-$(CONFIG_RUNCON)		+= runcon.o
 lib-$(CONFIG_SELINUXENABLED)	+= selinuxenabled.o
 lib-$(CONFIG_SETENFORCE)	+= setenforce.o

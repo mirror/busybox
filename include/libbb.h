@@ -742,7 +742,7 @@ void *md5_end(void *resbuf, md5_ctx_t *ctx);
 uint32_t *crc32_filltable(int endian);
 
 
-enum {	/* DO NOT CHANGE THESE VALUES!  cp.c depends on them. */
+enum {	/* DO NOT CHANGE THESE VALUES!  cp.c, mv.c, install.c depend on them. */
 	FILEUTILS_PRESERVE_STATUS = 1,
 	FILEUTILS_DEREFERENCE = 2,
 	FILEUTILS_RECUR = 4,
@@ -750,9 +750,13 @@ enum {	/* DO NOT CHANGE THESE VALUES!  cp.c depends on them. */
 	FILEUTILS_INTERACTIVE = 0x10,
 	FILEUTILS_MAKE_HARDLINK = 0x20,
 	FILEUTILS_MAKE_SOFTLINK = 0x40,
+#if ENABLE_SELINUX
+	FILEUTILS_PRESERVE_SECURITY_CONTEXT = 0x80,
+	FILEUTILS_SET_SECURITY_CONTEXT = 0x100
+#endif
 };
-#define FILEUTILS_CP_OPTSTR "pdRfils"
 
+#define FILEUTILS_CP_OPTSTR "pdRfils" USE_SELINUX("c")
 extern const char *applet_name;
 extern const char BB_BANNER[];
 

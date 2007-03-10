@@ -21,8 +21,47 @@ static const struct option install_long_options[] = {
 	{ "group",               0, NULL, 'g' },
 	{ "mode",                0, NULL, 'm' },
 	{ "owner",               0, NULL, 'o' },
+#if ENABLE_SELINUX
+	{ "context",             1, NULL, 'Z' },
+	{ "preserve_context",    0, NULL, 0xff },
+	{ "preserve-context",    0, NULL, 0xff },
+#endif
 	{ 0, 0, 0, 0 }
 };
+#endif
+
+
+#if ENABLE_SELINUX
+static bool use_default_selinux_context = 1;
+
+static void setdefaultfilecon(const char *path) {
+	struct stat s;
+	security_context_t scontext = NULL;
+
+	if (!is_selinux_enabled()) {
+		return;
+	}	
+	if (lstat(path, &s) != 0) {
+		return;
+	}
+
+	if (matchpathcon(path, s.st_mode, &scontext) < 0) {
+		goto out;
+	}
+	if (strcmp(scontext, "<<none>>") == 0) {
+		goto out;
+	}
+
+	if (lsetfilecon(path, scontext) < 0) {
+		if (errno != ENOTSUP) {
+			bb_perror_msg("warning: failed to change context of %s to %s", path, scontext);
+		}
+	}
+
+ out:
+	freecon(scontext);
+}
+
 #endif
 
 int install_main(int argc, char **argv);
@@ -37,7 +76,9 @@ int install_main(int argc, char **argv)
 	const char *mode_str;
 	int copy_flags = FILEUTILS_DEREFERENCE | FILEUTILS_FORCE;
 	int ret = EXIT_SUCCESS, flags, i, isdir;
-
+#if ENABLE_SELINUX
+	security_context_t scontext;
+#endif
 	enum {
 		OPT_CMD           =  0x1,
 		OPT_DIRECTORY     =  0x2,
@@ -46,14 +87,35 @@ int install_main(int argc, char **argv)
 		OPT_GROUP         = 0x10,
 		OPT_MODE          = 0x20,
 		OPT_OWNER         = 0x40,
+#if ENABLE_SELINUX
+		OPT_SET_SECURITY_CONTEXT = 0x80,
+		OPT_PRESERVE_SECURITY_CONTEXT = 0x100,
+#endif
 	};
 
 #if ENABLE_FEATURE_INSTALL_LONG_OPTIONS
 	applet_long_options = install_long_options;
 #endif
-	opt_complementary = "?:s--d:d--s";
-	/* -c exists for backwards compatibility, its needed */
-	flags = getopt32(argc, argv, "cdpsg:m:o:", &gid_str, &mode_str, &uid_str);
+	opt_complementary = "?:s--d:d--s" USE_SELINUX(":Z--\xff:\xff--Z");
+	/* -c exists for backwards compatibility, it's needed */
+
+	flags = getopt32(argc, argv, "cdpsg:m:o:" USE_SELINUX("Z:"), &gid_str, &mode_str, &uid_str USE_SELINUX(, &scontext));
+	
+#if ENABLE_SELINUX
+	if (flags & OPT_PRESERVE_SECURITY_CONTEXT) {
+		use_default_selinux_context = 0;
+		copy_flags |= FILEUTILS_PRESERVE_SECURITY_CONTEXT;
+		selinux_or_die();
+	}
+	if (flags & OPT_SET_SECURITY_CONTEXT) {
+		selinux_or_die();
+		if (setfscreatecon(scontext) < 0) {
+			bb_error_msg_and_die("setfscreatecon(%s)", scontext); // perror?
+		}
+		use_default_selinux_context = 0;
+		copy_flags |= FILEUTILS_SET_SECURITY_CONTEXT;
+	}
+#endif
 
 	/* preserve access and modification time, this is GNU behaviour, BSD only preserves modification time */
 	if (flags & OPT_PRESERVE_TIME) {
@@ -117,7 +179,10 @@ int install_main(int argc, char **argv)
 			bb_perror_msg("cannot change permissions of %s", dest);
 			ret = EXIT_FAILURE;
 		}
-
+#if ENABLE_SELINUX
+		if (use_default_selinux_context)
+			setdefaultfilecon(dest);
+#endif
 		/* Set the user and group id */
 		if ((flags & (OPT_OWNER|OPT_GROUP))
 		 && lchown(dest, uid, gid) == -1

@@ -3,6 +3,7 @@
  * Mini cp implementation for busybox
  *
  * Copyright (C) 2000 by Matt Kraai <kraai@alumni.carnegiemellon.edu>
+ * SELinux support by Yuichi Nakamura <ynakam@hitachisoft.jp>
  *
  * Licensed under GPL v2 or later, see file LICENSE in this tarball for details.
  */
@@ -49,6 +50,12 @@ int cp_main(int argc, char **argv)
 	if (flags & OPT_L) ...
 	if (flags & OPT_H) ... // deref command-line params only
 	*/
+
+#if ENABLE_SELINUX 
+	if (flags & FILEUTILS_PRESERVE_SECURITY_CONTEXT) {
+		selinux_or_die();
+	}
+#endif
 
 	flags ^= FILEUTILS_DEREFERENCE;		/* The sense of this flag was reversed. */
 

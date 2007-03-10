@@ -6,6 +6,20 @@
 menu "Selinux Utilities"
 	depends on SELINUX
 
+config CHCON
+	bool "chcon"
+	default n
+	depends on SELINUX
+	help
+	  Enable support to change the security context of file.
+
+config FEATURE_CHCON_LONG_OPTIONS
+	bool "Enable long options"
+	default y
+	depends on CHCON && GETOPT_LONG
+	help
+	  Support long options for the chcon applet.
+
 config GETENFORCE
 	bool "getenforce"
 	default n
@@ -27,6 +41,20 @@ config MATCHPATHCON
 	help
 	  Enable support to get default security context of the
 	  specified path from the file contexts configuration.
+
+config RUNCON
+	bool "runcon"
+	default n
+	depends on SELINUX
+	help
+	  Enable support to run command in speficied security context.
+
+config FEATURE_RUNCON_LONG_OPTIONS
+	bool "Enable long options"
+	default y
+	depends on RUNCON && GETOPT_LONG
+	help
+	  Support long options for the runcon applet.
 
 config SELINUXENABLED
 	bool "selinuxenabled"

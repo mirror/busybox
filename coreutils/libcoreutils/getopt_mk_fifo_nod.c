@@ -30,11 +30,25 @@ mode_t getopt_mk_fifo_nod(int argc, char **argv)
 {
 	mode_t mode = 0666;
 	char *smode = NULL;
-
-	getopt32(argc, argv, "m:", &smode);
-	if(smode) {
+#if ENABLE_SELINUX
+	security_context_t scontext;
+#endif
+	int opt;
+	opt = getopt32(argc, argv, "m:" USE_SELINUX("Z:"), &smode USE_SELINUX(,&scontext));
+	if (opt & 1) {
 		if (bb_parse_mode(smode, &mode))
 			umask(0);
 	}
+
+#if ENABLE_SELINUX
+	if (opt & 2) {
+		selinux_or_die();
+		if (setfscreatecon(scontext)) {
+			bb_error_msg_and_die("cannot set default file creation context "
+					      "to %s", scontext);
+		}
+	}
+#endif
+
 	return mode;
 }

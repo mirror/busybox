@@ -10,6 +10,7 @@
 /* BB_AUDIT SUSv3 _NOT_ compliant -- option -G is not currently supported. */
 /* Hacked by Tito Ragusa (C) 2004 to handle usernames of whatever length and to
  * be more similar to GNU id.
+ * -Z option support: by Yuichi Nakamura <ynakam@hitachisoft.jp>
  */
 
 #include "busybox.h"
@@ -17,14 +18,13 @@
 #include <unistd.h>
 #include <sys/types.h>
 
-#ifdef CONFIG_SELINUX
-#include <selinux/selinux.h>          /* for is_selinux_enabled() */
-#endif
-
 #define PRINT_REAL        1
 #define NAME_NOT_NUMBER   2
 #define JUST_USER         4
 #define JUST_GROUP        8
+#if ENABLE_SELINUX
+#define JUST_CONTEXT    16
+#endif
 
 static short printf_full(unsigned int id, const char *arg, const char prefix)
 {
@@ -47,11 +47,13 @@ int id_main(int argc, char **argv)
 	gid_t gid;
 	unsigned long flags;
 	short status;
-
+#if ENABLE_SELINUX
+ 	security_context_t scontext;
+#endif
 	/* Don't allow -n -r -nr -ug -rug -nug -rnug */
 	/* Don't allow more than one username */
-	opt_complementary = "?1:?:u--g:g--u:r?ug:n?ug";
-	flags = getopt32(argc, argv, "rnug");
+	opt_complementary = "?1:?:u--g:g--u:r?ug:n?ug" USE_SELINUX(":u--Z:Z--u:g--Z:Z--g");
+	flags = getopt32(argc, argv, "rnug" USE_SELINUX("Z"));
 
 	/* This values could be overwritten later */
 	uid = geteuid();
@@ -69,14 +71,33 @@ int id_main(int argc, char **argv)
 		/* in this case PRINT_REAL is the same */
 	}
 
-	if (flags & (JUST_GROUP | JUST_USER)) {
+	if (flags & (JUST_GROUP | JUST_USER USE_SELINUX(| JUST_CONTEXT))) {
 		/* JUST_GROUP and JUST_USER are mutually exclusive */
 		if (flags & NAME_NOT_NUMBER) {
 			/* bb_getpwuid and bb_getgrgid exit on failure so puts cannot segfault */
 			puts((flags & JUST_USER) ? bb_getpwuid(NULL, uid, -1 ) : bb_getgrgid(NULL, gid, -1 ));
 		} else {
-			printf("%u\n", (flags & JUST_USER) ? uid : gid);
-		}
+			if (flags & JUST_USER) {
+ 				printf("%u\n", uid);
+ 			}
+ 			if (flags & JUST_GROUP) {
+ 				printf("%u\n", gid);
+ 			}
+  		}
+		
+#if ENABLE_SELINUX
+ 		if (flags & JUST_CONTEXT) {        
+			selinux_or_die();
+ 			if (argc - optind == 1) {
+ 				bb_error_msg_and_die("can't print security context when user specified");
+ 			}
+			
+ 			if (getcon(&scontext)) {
+ 				bb_error_msg_and_die("can't get process context");		
+ 			}
+ 			printf("%s\n", scontext);
+ 		}
+#endif	
 		/* exit */
 		fflush_stdout_and_exit(EXIT_SUCCESS);
 	}
@@ -88,7 +109,7 @@ int id_main(int argc, char **argv)
 	/* bb_getgrgid doesn't exit on failure here */
 	status |= printf_full(gid, bb_getgrgid(NULL, gid, 0), 'g');
 
-#ifdef CONFIG_SELINUX
+#if ENABLE_SELINUX
 	if (is_selinux_enabled()) {
 		security_context_t mysid;
 		const char *context;

@@ -3,6 +3,7 @@
  * Mini copy_file implementation for busybox
  *
  * Copyright (C) 2001 by Matt Kraai <kraai@alumni.carnegiemellon.edu>
+ * SELinux support by Yuichi Nakamura <ynakam@hitachisoft.jp>
  *
  * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  *
@@ -61,6 +62,26 @@ int copy_file(const char *source, const char *dest, int flags)
 		}
 		dest_exists = 1;
 	}
+
+#if ENABLE_SELINUX
+	if ((flags & FILEUTILS_PRESERVE_SECURITY_CONTEXT) && is_selinux_enabled() > 0) {
+		security_context_t con;
+		if (lgetfilecon(source, &con) >= 0) {
+			if (setfscreatecon(con) < 0) {
+				bb_perror_msg("cannot set setfscreatecon %s", con);
+				freecon(con);
+				return -1;
+			}
+		} else {
+			if (errno == ENOTSUP || errno == ENODATA) {
+				setfscreatecon(NULL);
+			} else {
+				bb_perror_msg("cannot lgetfilecon %s", source);
+				return -1;
+			}
+		}
+	}
+#endif
 
 	if (S_ISDIR(source_stat.st_mode)) {
 		DIR *dp;
@@ -204,6 +225,25 @@ int copy_file(const char *source, const char *dest, int flags)
 			}
 		}
 
+#if ENABLE_SELINUX
+		if (((flags & FILEUTILS_PRESERVE_SECURITY_CONTEXT)
+		    || (flags & FILEUTILS_SET_SECURITY_CONTEXT))
+		 && is_selinux_enabled() > 0) {
+			security_context_t con;  
+			if (getfscreatecon(&con) == -1) {
+				bb_perror_msg("getfscreatecon");
+				return -1;
+			}				
+			if (con) {
+				if(setfilecon(dest, con) == -1) {
+					bb_perror_msg("setfilecon:%s,%s", dest, con);
+					freecon(con);
+					return -1;
+				}
+				freecon(con);
+			}
+		}
+#endif
 		if (bb_copyfd_eof(src_fd, dst_fd) == -1)
 			status = -1;
 		if (close(dst_fd) < 0) {

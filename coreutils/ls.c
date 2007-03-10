@@ -716,7 +716,8 @@ static const char ls_options[] = "Cadil1gnsxAk"
 	USE_FEATURE_LS_RECURSIVE("R")
 	USE_FEATURE_HUMAN_READABLE("h")
 	USE_SELINUX("K")
-	USE_FEATURE_AUTOWIDTH("T:w:");
+	USE_FEATURE_AUTOWIDTH("T:w:")
+	USE_SELINUX("Z");
 
 enum {
 	LIST_MASK_TRIGGER	= 0,
@@ -768,6 +769,9 @@ static const unsigned opt_flags[] = {
 #endif
 #if ENABLE_FEATURE_AUTOWIDTH
 	0, 0,                       /* T, w - ignored */
+#endif
+#if ENABLE_SELINUX	
+	LIST_MODEBITS|LIST_ID_NAME|LIST_CONTEXT, /* Z */
 #endif
 	(1U<<31)
 };
