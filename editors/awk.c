@@ -2648,7 +2648,8 @@ int awk_main(int argc, char **argv);
 int awk_main(int argc, char **argv)
 {
 	unsigned opt;
-	char *opt_F, *opt_v, *opt_W;
+	char *opt_F, *opt_W;
+	llist_t *opt_v = NULL;
 	int i, j, flen;
 	var *v;
 	var tv;
@@ -2701,12 +2702,16 @@ int awk_main(int argc, char **argv)
 		}
 		free(s);
 	}
-
+	opt_complementary = "v::";
 	opt = getopt32(argc, argv, "F:v:f:W:", &opt_F, &opt_v, &programname, &opt_W);
 	argv += optind;
 	argc -= optind;
 	if (opt & 0x1) setvar_s(V[FS], opt_F); // -F
-	if (opt & 0x2) if (!is_assignment(opt_v)) bb_show_usage(); // -v
+	opt_v = llist_rev(opt_v);
+	while (opt_v) { /* -v */
+		if (!is_assignment(llist_pop(&opt_v)))
+			bb_show_usage();
+	}
 	if (opt & 0x4) { // -f
 		char *s = s; /* die, gcc, die */
 		FILE *from_file = afopen(programname, "r");
