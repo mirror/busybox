@@ -9,6 +9,8 @@
 /* no options, no getopt */
 #include "busybox.h"
 
+#define ESC "\033"
+
 int resize_main(int argc, char **argv);
 int resize_main(int argc, char **argv)
 {
@@ -27,10 +29,10 @@ int resize_main(int argc, char **argv)
 	 * get_cursor_pos [6n
 	 * restore_cursor_pos 8
 	 */
-	printf("\0337\033[r\033[999;999H\033[6n");
-	scanf("\033[%hu;%huR", &w.ws_row, &w.ws_col);
+	printf(ESC"7" ESC"[r" ESC"[999;999H" ESC"[6n");
+	scanf(ESC"[%hu;%huR", &w.ws_row, &w.ws_col);
 	ret = ioctl(STDOUT_FILENO, TIOCSWINSZ, &w);
-	printf("\0338");
+	printf(ESC"8");
 	tcsetattr(STDOUT_FILENO, TCSANOW, &old);
 	if (ENABLE_FEATURE_RESIZE_PRINT)
 		printf("COLUMNS=%d;LINES=%d;export COLUMNS LINES;\n",

@@ -50,52 +50,46 @@ int more_main(int argc, char **argv)
 	int terminal_width;
 	int terminal_height;
 
-	argc--;
 	argv++;
+	/* Another popular pager, most, detects when stdout
+	 * is not a tty and turns into cat. This makes sense. */
+	if (!isatty(STDOUT_FILENO))
+		return bb_cat(argv);
+	cin = fopen(CURRENT_TTY, "r");
+	if (!cin)
+		return bb_cat(argv);
 
-	cin = stdin;
-	/* use input from terminal unless we do "more >outfile" */
-	if (isatty(STDOUT_FILENO)) {
-		cin = fopen(CURRENT_TTY, "r");
-		/* Huh? why not just fail if "/dev/tty" isn't available?
-		 * If user has no ctty, it's his own problem */
-		if (!cin)
-			cin = xfopen(DEV_CONSOLE, "r");
-		please_display_more_prompt = 2;
 #if ENABLE_FEATURE_USE_TERMIOS
-		cin_fileno = fileno(cin);
-		getTermSettings(cin_fileno, &initial_settings);
-		new_settings = initial_settings;
-		new_settings.c_lflag &= ~ICANON;
-		new_settings.c_lflag &= ~ECHO;
-		new_settings.c_cc[VMIN] = 1;
-		new_settings.c_cc[VTIME] = 0;
-		setTermSettings(cin_fileno, &new_settings);
-		atexit(set_tty_to_initial_mode);
-		signal(SIGINT, gotsig);
-		signal(SIGQUIT, gotsig);
-		signal(SIGTERM, gotsig);
+	cin_fileno = fileno(cin);
+	getTermSettings(cin_fileno, &initial_settings);
+	new_settings = initial_settings;
+	new_settings.c_lflag &= ~ICANON;
+	new_settings.c_lflag &= ~ECHO;
+	new_settings.c_cc[VMIN] = 1;
+	new_settings.c_cc[VTIME] = 0;
+	setTermSettings(cin_fileno, &new_settings);
+	atexit(set_tty_to_initial_mode);
+	signal(SIGINT, gotsig);
+	signal(SIGQUIT, gotsig);
+	signal(SIGTERM, gotsig);
 #endif
-	}
+	please_display_more_prompt = 2;
 
 	do {
 		file = stdin;
-		if (argc != 0) {
+		if (*argv) {
 			file = fopen_or_warn(*argv, "r");
 			if (!file)
-				goto loop;
+				continue;
 		}
-
 		st.st_size = 0;
 		fstat(fileno(file), &st);
 
 		please_display_more_prompt &= ~1;
-
+		/* never returns w, h <= 1 */
 		get_terminal_width_height(fileno(cin), &terminal_width, &terminal_height);
-		if (terminal_height > 4)
-			terminal_height -= 2;
-		if (terminal_width > 0)
-			terminal_width -= 1;
+		terminal_width -= 1;
+		terminal_height -= 1;
 
 		len = 0;
 		lines = 0;
@@ -104,7 +98,7 @@ int more_main(int argc, char **argv)
 
 			if ((please_display_more_prompt & 3) == 3) {
 				len = printf("--More-- ");
-				if (file != stdin && st.st_size > 0) {
+				if (/*file != stdin &&*/ st.st_size > 0) {
 					len += printf("(%d%% of %"OFF_FMT"d bytes)",
 						(int) (ftello(file)*100 / st.st_size),
 						st.st_size);
@@ -123,7 +117,9 @@ int more_main(int argc, char **argv)
 				printf("\r%*s\r", len, "");
 				len = 0;
 				lines = 0;
-				page_height = terminal_height;
+				/* Bottom line on page will become top line
+				 * after one page forward. Thus -1: */
+				page_height = terminal_height - 1;
 				please_display_more_prompt &= ~1;
 
 				if (input == 'q')
@@ -151,12 +147,9 @@ int more_main(int argc, char **argv)
 					int quot, rem;
 					quot = len / terminal_width;
 					rem  = len - (quot * terminal_width);
-					if (quot) {
-						if (rem)
-							page_height -= quot;
-						else
-							page_height -= (quot - 1);
-					}
+					page_height -= (quot - 1);
+					if (rem)
+						page_height--;
 				}
 				if (++lines >= page_height) {
 					please_display_more_prompt |= 1;
@@ -168,13 +161,13 @@ int more_main(int argc, char **argv)
 			 * key other than a return is hit, scroll by one page
 			 */
 			putc(c, stdout);
+			/* My small mind cannot fathom tabs, backspaces,
+			 * and UTF-8 */
 			len++;
 		}
 		fclose(file);
 		fflush(stdout);
- loop:
-		argv++;
-	} while (--argc > 0);
+	} while (*argv && *++argv);
  end:
 	return 0;
 }

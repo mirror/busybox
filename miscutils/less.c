@@ -1251,6 +1251,9 @@ int less_main(int argc, char **argv)
 	 * is not a tty and turns into cat. This makes sense. */
 	if (!isatty(STDOUT_FILENO))
 		return bb_cat(argv);
+	kbd_fd = open(CURRENT_TTY, O_RDONLY);
+	if (kbd_fd < 0)
+		return bb_cat(argv);
 
 	if (!num_files) {
 		if (isatty(STDIN_FILENO)) {
@@ -1260,8 +1263,6 @@ int less_main(int argc, char **argv)
 		}
 	} else
 		filename = xstrdup(files[0]);
-
-	kbd_fd = xopen(CURRENT_TTY, O_RDONLY);
 
 	get_terminal_width_height(kbd_fd, &width, &max_displayed_line);
 	/* 20: two tabstops + 4 */
