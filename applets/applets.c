@@ -321,7 +321,6 @@ static void parse_config_file(void)
 		free(sct_head);
 		sct_head = sct;
 	}
-	return;
 }
 
 #else

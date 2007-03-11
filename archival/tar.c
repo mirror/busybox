@@ -134,7 +134,6 @@ static void freeHardLinkInfo(HardLinkInfo ** hlInfoHeadPtr)
 		}
 		*hlInfoHeadPtr = NULL;
 	}
-	return;
 }
 
 /* Might be faster (and bigger) if the dev/ino were stored in numeric order;) */

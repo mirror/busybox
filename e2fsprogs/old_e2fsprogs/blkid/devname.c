@@ -131,7 +131,6 @@ set_pri:
 		pri = BLKID_PRI_MD;
 	if (dev)
 		dev->bid_pri = pri;
-	return;
 }
 
 #define PROC_PARTITIONS "/proc/partitions"

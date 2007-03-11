@@ -2286,7 +2286,6 @@ err_out:
 	fix_problem(ctx, PR_0_ERR_MOVE_JOURNAL, &pctx);
 	fs->super->s_state &= ~EXT2_VALID_FS;
 	ext2fs_mark_super_dirty(fs);
-	return;
 }
 
 /*
@@ -7328,8 +7327,6 @@ static void fix_dotdot(e2fsck_t ctx, struct dir_info *dir, ext2_ino_t parent)
 		ext2fs_unmark_valid(fs);
 	}
 	dir->dotdot = parent;
-
-	return;
 }
 
 /*
@@ -11969,7 +11966,6 @@ static void check_super_block(e2fsck_t ctx)
 	 * Move the ext3 journal file, if necessary.
 	 */
 	e2fsck_move_ext3_journal(ctx);
-	return;
 }
 
 /*
@@ -12666,7 +12662,6 @@ static void check_mount(e2fsck_t ctx)
 		printf(_("check aborted.\n"));
 		exit (0);
 	}
-	return;
 }
 
 static int is_on_batt(void)

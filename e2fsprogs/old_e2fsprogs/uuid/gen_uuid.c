@@ -117,7 +117,6 @@ static void get_random_bytes(void *buf, int nbytes)
 	 */
 	for (cp = buf, i = 0; i < nbytes; i++)
 		*cp++ ^= (rand() >> 7) & 0xFF;
-	return;
 }
 
 /*

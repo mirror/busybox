@@ -410,7 +410,6 @@ void blkid_read_cache(blkid_cache cache)
 	return;
 errout:
 	close(fd);
-	return;
 }
 
 #ifdef TEST_PROGRAM

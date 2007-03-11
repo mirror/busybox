@@ -583,7 +583,6 @@ read_config_file_err:
 	if(optional ==  0  && errno == ENOENT)
 		msg_logger_and_die(LOG_ERR, "read config file: %s: %m", path);
 	}
-	return;
 }   /*  End Function read_config_file   */
 
 static void process_config_line (const char *line, unsigned long *event_mask)
@@ -969,7 +968,6 @@ static void action_copy (const struct devfsd_notify_struct *info,
 	ret = copy_inode (destination, &dest_stat, new_mode, source, &source_stat);
 	if (ENABLE_DEBUG && ret && (errno != EEXIST))
 		debug_msg_logger(LOG_ERR, "copy_inode: %s to %s: %m", source, destination);
-	return;
 }   /*  End Function action_copy  */
 
 static void action_compat (const struct devfsd_notify_struct *info, unsigned int action)

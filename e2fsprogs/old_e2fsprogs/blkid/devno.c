@@ -122,7 +122,6 @@ static void scan_dir(char *dir_name, dev_t devno, struct dir_list **list,
 		}
 	}
 	closedir(dir);
-	return;
 }
 
 /* Directories where we will try to search for device numbers */

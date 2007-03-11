@@ -5,9 +5,6 @@
 
 #include <sys/types.h>
 
-#include <errno.h>
-#include <unistd.h>
-
 #include "libbb.h"
 #include "unarchive.h"
 
@@ -17,6 +14,4 @@ void data_align(archive_handle_t *archive_handle, const unsigned short boundary)
 
 	archive_handle->seek(archive_handle, skip_amount);
 	archive_handle->offset += skip_amount;
-
-	return;
 }

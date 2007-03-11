@@ -734,7 +734,7 @@ static void colon(Byte * buf)
 		free(cfn);		// free the old name
 		cfn = q;			// remember new cfn
 
-	  vc5:
+ vc5:
 		// delete all the contents of text[]
 		new_text(2 * file_size(fn));
 		screenbegin = dot = end = text;
@@ -1919,7 +1919,6 @@ static void end_cmd_q(void)
 	YDreg = 26;			// go back to default Yank/Delete reg
 #endif
 	adding2q = 0;
-	return;
 }
 #endif /* FEATURE_VI_DOT_CMD */
 
@@ -1994,7 +1993,6 @@ static void check_context(Byte cmd)
 			//loiter= start_loiter= now;
 		}
 	}
-	return;
 }
 
 static inline Byte *swap_context(Byte * p) // goto new context for '' command make this the current context
@@ -2591,8 +2589,6 @@ static void psbs(const char *format, ...)
 	va_end(args);
 
 	have_status_msg = 1 + sizeof(SOs) + sizeof(SOn) - 2;
-
-	return;
 }
 
 // format status buffer
@@ -2605,8 +2601,6 @@ static void psb(const char *format, ...)
 	va_end(args);
 
 	have_status_msg = 1;
-
-	return;
 }
 
 static void ni(Byte * s) // display messages
@@ -3929,6 +3923,5 @@ static void crash_test()
 				totalcmds, M, N, I, D, Y, P, U, end - text + 1);
 		oldtim = tim;
 	}
-	return;
 }
 #endif

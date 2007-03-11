@@ -105,8 +105,6 @@ void ext2fs_set_bitmap_padding(ext2fs_generic_bitmap map)
 
 	for (i=map->end+1, j = i - map->start; i <= map->real_end; i++, j++)
 		ext2fs_set_bit(j, map->bitmap);
-
-	return;
 }
 
 errcode_t ext2fs_allocate_inode_bitmap(ext2_filsys fs,

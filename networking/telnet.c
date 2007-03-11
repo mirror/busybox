@@ -467,8 +467,6 @@ static void to_sga(void)
 		putiac2(DO, TELOPT_SGA);
 	else
 		putiac2(DONT, TELOPT_SGA);
-
-	return;
 }
 
 #ifdef CONFIG_FEATURE_TELNET_TTYPE
@@ -480,8 +478,6 @@ static void to_ttype(void)
 		putiac2(WILL, TELOPT_TTYPE);
 	else
 		putiac2(WONT, TELOPT_TTYPE);
-
-	return;
 }
 #endif
 
@@ -494,8 +490,6 @@ static void to_new_environ(void)
 		putiac2(WILL, TELOPT_NEW_ENVIRON);
 	else
 		putiac2(WONT, TELOPT_NEW_ENVIRON);
-
-	return;
 }
 #endif
 
@@ -504,29 +498,33 @@ static void to_naws(void)
 {
 	/* Tell server we will do NAWS */
 	putiac2(WILL, TELOPT_NAWS);
-	return;
 }
 #endif
 
 static void telopt(byte c)
 {
-	switch (c)
-	{
-		case TELOPT_ECHO:		to_echo();	break;
-		case TELOPT_SGA:		to_sga();	break;
+	switch (c) {
+	case TELOPT_ECHO:
+		to_echo(); break;
+	case TELOPT_SGA:
+		to_sga(); break;
 #ifdef CONFIG_FEATURE_TELNET_TTYPE
-		case TELOPT_TTYPE:		to_ttype();break;
+	case TELOPT_TTYPE:
+		to_ttype(); break;
 #endif
 #ifdef CONFIG_FEATURE_TELNET_AUTOLOGIN
-		case TELOPT_NEW_ENVIRON:	to_new_environ();	break;
+	case TELOPT_NEW_ENVIRON:
+		to_new_environ(); break;
 #endif
 #ifdef CONFIG_FEATURE_AUTOWIDTH
-		case TELOPT_NAWS:		to_naws();
-								putiac_naws(c, win_width, win_height);
-								break;
+	case TELOPT_NAWS:
+		to_naws();
+		putiac_naws(c, win_width, win_height);
+		break;
 #endif
-		default:				to_notsup(c);
-								break;
+	default:
+		to_notsup(c);
+		break;
 	}
 }
 

@@ -164,7 +164,6 @@ static void set_fs_defaults(const char *fs_type,
 static void invalid_block(ext2_filsys fs EXT2FS_ATTR((unused)), blk_t blk)
 {
 	bb_error_msg("Bad block %u out of range; ignored", blk);
-	return;
 }
 
 /*

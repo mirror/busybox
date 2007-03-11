@@ -120,7 +120,6 @@ void fmt_ptime30nul(char *s, struct taia *ta) {
 	/* 4+1 + 2+1 + 2+1 + 2+1 + 2+1 + 2+1 + 9 = */
 	/* 5   + 3   + 3   + 3   + 3   + 3   + 9 = */
 	/* 20 (up to '.' inclusive) + 9 (not including '\0') */
-	return;
 }
 
 unsigned fmt_taia25(char *s, struct taia *t) {

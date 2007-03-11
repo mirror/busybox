@@ -178,7 +178,6 @@ void ext2fs_close_inode_scan(ext2_inode_scan scan)
 	ext2fs_free_mem(&scan->temp_buffer);
 	scan->temp_buffer = NULL;
 	ext2fs_free_mem(&scan);
-	return;
 }
 
 void ext2fs_set_inode_callback(ext2_inode_scan scan,

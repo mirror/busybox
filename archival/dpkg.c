@@ -706,7 +706,6 @@ static void set_status(const unsigned status_node_num, const char *new_value, co
 	new_status = xasprintf("%s %s %s", name_hashtable[want], name_hashtable[flag], name_hashtable[status]);
 	status_hashtable[status_node_num]->status = search_name_hashtable(new_status);
 	free(new_status);
-	return;
 }
 
 static const char *describe_status(int status_num) {
@@ -763,7 +762,6 @@ static void index_status_file(const char *filename)
 		free(control_buffer);
 	}
 	fclose(status_file);
-	return;
 }
 
 static void write_buffer_no_status(FILE *new_status_file, const char *control_buffer)
@@ -780,7 +778,6 @@ static void write_buffer_no_status(FILE *new_status_file, const char *control_bu
 			fprintf(new_status_file, "%s: %s\n", name, value);
 		}
 	}
-	return;
 }
 
 /* This could do with a cleanup */
@@ -1425,8 +1422,6 @@ static void init_archive_deb_control(archive_handle_t *ar_handle)
 
 	/* Assign the tar handle as a subarchive of the ar handle */
 	ar_handle->sub_archive = tar_handle;
-
-	return;
 }
 
 static void init_archive_deb_data(archive_handle_t *ar_handle)
@@ -1447,8 +1442,6 @@ static void init_archive_deb_data(archive_handle_t *ar_handle)
 
 	/* Assign the tar handle as a subarchive of the ar handle */
 	ar_handle->sub_archive = tar_handle;
-
-	return;
 }
 
 static char *deb_extract_control_file_to_buffer(archive_handle_t *ar_handle, llist_t *myaccept)
@@ -1472,7 +1465,6 @@ static void data_extract_all_prefix(archive_handle_t *archive_handle)
 		archive_handle->file_header->name = xasprintf("%s%s", archive_handle->buffer, name_ptr);
 		data_extract_all(archive_handle);
 	}
-	return;
 }
 
 static void unpack_package(deb_file_t *deb_file)

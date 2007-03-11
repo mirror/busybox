@@ -340,7 +340,6 @@ static void add_journal(ext2_filsys fs)
 			fs->flags &= ~EXT2_FLAG_SUPER_ONLY;
 	}
 	print_check_message(fs);
-	return;
 }
 
 /*
