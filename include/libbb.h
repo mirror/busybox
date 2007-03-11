@@ -41,6 +41,7 @@
 
 #if ENABLE_SELINUX
 #include <selinux/selinux.h>
+#include <selinux/context.h>
 #endif
 
 #if ENABLE_LOCALE_SUPPORT
@@ -598,6 +599,8 @@ extern void run_shell(const char *shell, int loginshell, const char *command, co
 #if ENABLE_SELINUX
 extern void renew_current_security_context(void);
 extern void set_current_security_context(security_context_t sid);
+extern context_t set_security_context_component(security_context_t cur_context,
+						char *user, char *role, char *type, char *range);
 #endif
 extern void selinux_or_die(void);
 extern int restricted_shell(const char *shell);

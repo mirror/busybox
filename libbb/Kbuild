@@ -106,6 +106,7 @@ lib-$(CONFIG_SU) += correct_password.o
 lib-$(CONFIG_LOGIN) += correct_password.o
 lib-$(CONFIG_DF) += find_mount_point.o
 lib-$(CONFIG_MKFS_MINIX) += find_mount_point.o
+lib-$(CONFIG_SELINUX) += selinux_common.o
 
 # We shouldn't build xregcomp.c if we don't need it - this ensures we don't
 # require regex.h to be in the include dir even if we don't need it thereby

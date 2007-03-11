@@ -89,7 +89,7 @@ int id_main(int argc, char **argv)
  		if (flags & JUST_CONTEXT) {        
 			selinux_or_die();
  			if (argc - optind == 1) {
- 				bb_error_msg_and_die("can't print security context when user specified");
+ 				bb_error_msg_and_die("user name can't be passed with -Z");
  			}
 			
  			if (getcon(&scontext)) {
