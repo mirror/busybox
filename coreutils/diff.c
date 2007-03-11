@@ -82,7 +82,7 @@ static char *start;
 static const char *label1;
 static const char *label2;
 static struct stat stb1, stb2;
-static char **dl;
+USE_FEATURE_DIFF_DIR(static char **dl;)
 USE_FEATURE_DIFF_DIR(static int dl_count;)
 
 struct cand {
@@ -1051,7 +1051,7 @@ static int add_to_dirlist(const char *filename,
 {
 	/* +2: with space for eventual trailing NULL */
 	dl = xrealloc(dl, (dl_count+2) * sizeof(dl[0]));
-	dl[dl_count] = xstrdup(filename + (int)userdata);
+	dl[dl_count] = xstrdup(filename + (int)(ptrdiff_t)userdata);
 	dl_count++;
 	return TRUE;
 }

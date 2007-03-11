@@ -1,7 +1,6 @@
 /* vi: set sw=4 ts=4: */
 /*
- *  Modified for busybox by Glenn McGrath <bug1@iinet.net.au>
- *  Added support output to stdout by Thomas Lundquist <thomasez@zelow.no>
+ *  Common code for gunzip-like applets
  *
  *  Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  */
@@ -127,6 +126,8 @@ int unpack(char **argv,
 	return exitcode;
 }
 
+#if ENABLE_BUNZIP2 || ENABLE_UNLZMA || ENABLE_UNCOMPRESS
+
 static
 char* make_new_name_generic(char *filename, const char *expected_ext)
 {
@@ -139,6 +140,17 @@ char* make_new_name_generic(char *filename, const char *expected_ext)
 	*extension = '\0';
 	return filename;
 }
+
+#endif
+
+
+/* vi: set sw=4 ts=4: */
+/*
+ *  Modified for busybox by Glenn McGrath <bug1@iinet.net.au>
+ *  Added support output to stdout by Thomas Lundquist <thomasez@zelow.no>
+ *
+ *  Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
+ */
 
 #if ENABLE_BUNZIP2
 
