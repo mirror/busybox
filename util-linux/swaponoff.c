@@ -11,7 +11,6 @@
 #include <mntent.h>
 #include <sys/swap.h>
 
-
 static int swap_enable_disable(char *device)
 {
 	int status;
@@ -19,10 +18,12 @@ static int swap_enable_disable(char *device)
 
 	xstat(device, &st);
 
+#ifdef BLOAT
 	/* test for holes */
 	if (S_ISREG(st.st_mode))
 		if (st.st_blocks * 512 < st.st_size)
 			bb_error_msg_and_die("swap file has holes");
+#endif
 
 	if (applet_name[5] == 'n')
 		status = swapon(device, 0);
@@ -57,8 +58,6 @@ static int do_em_all(void)
 	return err;
 }
 
-#define DO_ALL    0x01
-
 int swap_on_off_main(int argc, char **argv);
 int swap_on_off_main(int argc, char **argv)
 {
@@ -68,10 +67,10 @@ int swap_on_off_main(int argc, char **argv)
 		bb_show_usage();
 
 	ret = getopt32(argc, argv, "a");
-	if (ret & DO_ALL)
+	if (ret)
 		return do_em_all();
 
-	ret = 0;
+	/* ret = 0; redundant */
 	while (*++argv)
 		ret += swap_enable_disable(*argv);
 	return ret;
