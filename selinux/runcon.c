@@ -132,6 +132,6 @@ int runcon_main(int argc, char *argv[])
 
 	execvp(argv[0], argv);
 
-	bb_perror_msg_and_die("cannot execute '%s'", command);
+	bb_perror_msg_and_die("cannot execute '%s'", argv[0]);
 	return 1;
 }

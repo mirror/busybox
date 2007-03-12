@@ -43,10 +43,7 @@ mode_t getopt_mk_fifo_nod(int argc, char **argv)
 #if ENABLE_SELINUX
 	if (opt & 2) {
 		selinux_or_die();
-		if (setfscreatecon(scontext)) {
-			bb_error_msg_and_die("cannot set default file creation context "
-					      "to %s", scontext);
-		}
+		setfscreatecon_or_die(scontext);
 	}
 #endif
 

@@ -62,10 +62,7 @@ int mkdir_main(int argc, char **argv)
 #if ENABLE_SELINUX
 	if (opt & 4) {
 		selinux_or_die();
-		if (setfscreatecon(scontext)) {
-			bb_error_msg_and_die("cannot set default file creation context "
-					      "to %s", scontext);
-		}
+		setfscreatecon_or_die(scontext);
 	}
 #endif
 

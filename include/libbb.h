@@ -601,6 +601,7 @@ extern void renew_current_security_context(void);
 extern void set_current_security_context(security_context_t sid);
 extern context_t set_security_context_component(security_context_t cur_context,
 						char *user, char *role, char *type, char *range);
+extern void setfscreatecon_or_die(security_context_t scontext);
 #endif
 extern void selinux_or_die(void);
 extern int restricted_shell(const char *shell);

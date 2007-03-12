@@ -110,9 +110,7 @@ int install_main(int argc, char **argv)
 	}
 	if (flags & OPT_SET_SECURITY_CONTEXT) {
 		selinux_or_die();
-		if (setfscreatecon(scontext) < 0) {
-			bb_error_msg_and_die("setfscreatecon(%s)", scontext); // perror?
-		}
+		setfscreatecon_or_die(scontext);
 		use_default_selinux_context = 0;
 		copy_flags |= FILEUTILS_SET_SECURITY_CONTEXT;
 	}

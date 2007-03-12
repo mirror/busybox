@@ -74,7 +74,7 @@ int copy_file(const char *source, const char *dest, int flags)
 			}
 		} else {
 			if (errno == ENOTSUP || errno == ENODATA) {
-				setfscreatecon(NULL);
+				setfscreatecon_or_die(NULL);
 			} else {
 				bb_perror_msg("cannot lgetfilecon %s", source);
 				return -1;
