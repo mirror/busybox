@@ -97,11 +97,8 @@ static int change_filedir_context(const char *fname, struct stat *stbuf, void *u
 		rc = TRUE;
 	}
 skip:
-	/* FIXME: aren't these work ok on NULL ptr? Remove if() then */
-	if (context)
-		context_free(context);
-	if (file_context)
-		freecon(file_context);
+	context_free(context);
+	freecon(file_context);
 
 	return rc;
 }
