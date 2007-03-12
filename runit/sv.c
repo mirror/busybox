@@ -117,13 +117,13 @@ static unsigned svstatus_print(const char *m)
 	printf("%lds", (diff < 0 ? 0L : diff));
 	if (pid) {
 		if (!normallyup) printf(", normally down");
+		if (svstatus[16]) printf(", paused");
+		if (svstatus[17] == 'd') printf(", want down");
+		if (svstatus[18]) printf(", got TERM");
 	} else {
 		if (normallyup) printf(", normally up");
+		if (svstatus[17] == 'u') printf(", want up");
 	}
-	if (pid && svstatus[16]) printf(", paused");
-	if (!pid && (svstatus[17] == 'u')) printf(", want up");
-	if (pid && (svstatus[17] == 'd')) printf(", want down");
-	if (pid && svstatus[18]) printf(", got TERM");
 	return pid ? 1 : 2;
 }
 
