@@ -144,7 +144,6 @@ char* make_new_name_generic(char *filename, const char *expected_ext)
 #endif
 
 
-/* vi: set sw=4 ts=4: */
 /*
  *  Modified for busybox by Glenn McGrath <bug1@iinet.net.au>
  *  Added support output to stdout by Thomas Lundquist <thomasez@zelow.no>
@@ -318,7 +317,6 @@ int unlzma_main(int argc, char **argv)
 #endif
 
 
-/* vi: set sw=4 ts=4: */
 /*
  *	Uncompress applet for busybox (c) 2002 Glenn McGrath
  *
