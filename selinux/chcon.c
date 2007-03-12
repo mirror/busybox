@@ -133,9 +133,12 @@ int chcon_main(int argc, char *argv[])
 #if ENABLE_FEATURE_CHCON_LONG_OPTIONS
 	applet_long_options = chcon_options;
 #endif
-	opt_complementary = "-1"    /* at least 1 param */
-		":?:f--v:v--f"      /* 'verbose' and 'quiet' are exclusive */
-		":\xff--urtl:u--\xff:r--\xff:t--\xff:l--\xff";
+	opt_complementary = "-1"  /* at least 1 param */
+		":?"  /* error if exclusivity constraints are violated */
+#if ENABLE_FEATURE_CHCON_LONG_OPTIONS
+		":\xff--urtl:u--\xff:r--\xff:t--\xff:l--\xff"
+#endif
+		":f--v:v--f";  /* 'verbose' and 'quiet' are exclusive */
 	getopt32(argc, argv, "Rchf:u:r:t:l:v",
 		&user, &role, &type, &range, &reference_file);
 	argv += optind;
