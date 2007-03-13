@@ -131,13 +131,19 @@ static int dirsize = 16;
 static int namelen = 14;
 
 static char *inode_buffer;
-//xzalloc?
-static char super_block_buffer[BLOCK_SIZE];
+
+static struct {
+	char super_block_buffer[BLOCK_SIZE];
+	char add_zone_ind_blk[BLOCK_SIZE];
+	char add_zone_dind_blk[BLOCK_SIZE];
+	USE_FEATURE_MINIX2(char add_zone_tind_blk[BLOCK_SIZE];)
+	char check_file_blk[BLOCK_SIZE];
+} *blockbuf;
 
 #define Inode1 (((struct minix1_inode *) inode_buffer)-1)
 #define Inode2 (((struct minix2_inode *) inode_buffer)-1)
 
-#define Super (*(struct minix_super_block *)super_block_buffer)
+#define Super (*(struct minix_super_block *)(blockbuf->super_block_buffer))
 
 #if ENABLE_FEATURE_MINIX2
 # define ZONES    ((unsigned)(version2 ? Super.s_zones : Super.s_nzones))
@@ -544,7 +550,7 @@ static void write_super_block(void)
 
 	if (BLOCK_SIZE != lseek(IN, BLOCK_SIZE, SEEK_SET))
 		die("seek failed in write_super_block");
-	if (BLOCK_SIZE != write(IN, super_block_buffer, BLOCK_SIZE))
+	if (BLOCK_SIZE != write(IN, blockbuf->super_block_buffer, BLOCK_SIZE))
 		die("cannot write super-block");
 }
 
@@ -587,7 +593,7 @@ static void read_superblock(void)
 {
 	if (BLOCK_SIZE != lseek(IN, BLOCK_SIZE, SEEK_SET))
 		die("seek failed");
-	if (BLOCK_SIZE != read(IN, super_block_buffer, BLOCK_SIZE))
+	if (BLOCK_SIZE != read(IN, blockbuf->super_block_buffer, BLOCK_SIZE))
 		die("cannot read super block");
 	/* already initialized to:
 	namelen = 14;
@@ -827,7 +833,7 @@ static int add_zone2(uint32_t *znr, smallint *corrected)
 
 static void add_zone_ind(uint16_t *znr, smallint *corrected)
 {
-	static char blk[BLOCK_SIZE];
+#define blk (blockbuf->add_zone_ind_blk)
 	int i;
 	int block;
 	smallint chg_blk = 0;
@@ -840,12 +846,13 @@ static void add_zone_ind(uint16_t *znr, smallint *corrected)
 		add_zone(i + (uint16_t *) blk, &chg_blk);
 	if (chg_blk)
 		write_block(block, blk);
+#undef blk
 }
 
 #if ENABLE_FEATURE_MINIX2
 static void add_zone_ind2(uint32_t *znr, smallint *corrected)
 {
-	static char blk[BLOCK_SIZE];
+#define blk (blockbuf->add_zone_ind_blk)
 	int i;
 	int block;
 	smallint chg_blk = 0;
@@ -858,12 +865,13 @@ static void add_zone_ind2(uint32_t *znr, smallint *corrected)
 		add_zone2(i + (uint32_t *) blk, &chg_blk);
 	if (chg_blk)
 		write_block(block, blk);
+#undef blk
 }
 #endif
 
 static void add_zone_dind(uint16_t *znr, smallint *corrected)
 {
-	static char blk[BLOCK_SIZE];
+#define blk (blockbuf->add_zone_dind_blk)
 	int i;
 	int block;
 	smallint chg_blk = 0;
@@ -876,12 +884,13 @@ static void add_zone_dind(uint16_t *znr, smallint *corrected)
 		add_zone_ind(i + (uint16_t *) blk, &chg_blk);
 	if (chg_blk)
 		write_block(block, blk);
+#undef blk
 }
 
 #if ENABLE_FEATURE_MINIX2
 static void add_zone_dind2(uint32_t *znr, smallint *corrected)
 {
-	static char blk[BLOCK_SIZE];
+#define blk (blockbuf->add_zone_dind_blk)
 	int i;
 	int block;
 	smallint chg_blk = 0;
@@ -894,11 +903,12 @@ static void add_zone_dind2(uint32_t *znr, smallint *corrected)
 		add_zone_ind2(i + (uint32_t *) blk, &chg_blk);
 	if (chg_blk)
 		write_block(block, blk);
+#undef blk
 }
 
 static void add_zone_tind2(uint32_t *znr, smallint *corrected)
 {
-	static char blk[BLOCK_SIZE];
+#define blk (blockbuf->add_zone_tind_blk)
 	int i;
 	int block;
 	smallint chg_blk = 0;
@@ -911,6 +921,7 @@ static void add_zone_tind2(uint32_t *znr, smallint *corrected)
 		add_zone_dind2(i + (uint32_t *) blk, &chg_blk);
 	if (chg_blk)
 		write_block(block, blk);
+#undef blk
 }
 #endif
 
@@ -954,7 +965,7 @@ static void check_zones2(unsigned i)
 
 static void check_file(struct minix1_inode *dir, unsigned offset)
 {
-	static char blk[BLOCK_SIZE];
+#define blk (blockbuf->check_file_blk)
 	struct minix1_inode *inode;
 	int ino;
 	char *name;
@@ -1000,12 +1011,13 @@ static void check_file(struct minix1_inode *dir, unsigned offset)
 	if (inode && S_ISDIR(inode->i_mode))
 		recursive_check(ino);
 	pop_filename();
+#undef blk
 }
 
 #if ENABLE_FEATURE_MINIX2
 static void check_file2(struct minix2_inode *dir, unsigned offset)
 {
-	static char blk[BLOCK_SIZE];
+#define blk (blockbuf->check_file_blk)
 	struct minix2_inode *inode;
 	int ino;
 	char *name;
@@ -1051,6 +1063,7 @@ static void check_file2(struct minix2_inode *dir, unsigned offset)
 	if (inode && S_ISDIR(inode->i_mode))
 		recursive_check2(ino);
 	pop_filename();
+#undef blk
 }
 #endif
 
@@ -1230,6 +1243,7 @@ int fsck_minix_main(int argc, char **argv)
 	int retcode = 0;
 
 	xfunc_error_retval = 8;
+	blockbuf = xzalloc(sizeof(*blockbuf));
 
 	alloc_current_name();
 #if ENABLE_FEATURE_CLEAN_UP
