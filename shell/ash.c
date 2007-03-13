@@ -1216,6 +1216,9 @@ popstackmark(struct stackmark *mark)
 {
 	struct stack_block *sp;
 
+	if (!mark->stackp)
+		return;
+
 	INT_OFF;
 	markp = mark->marknext;
 	while (stackp != mark->stackp) {
