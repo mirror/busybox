@@ -121,9 +121,10 @@ int fgetspent_r(FILE *__restrict stream, struct spwd *__restrict resultbuf,
 /**********************************************************************/
 /* For the various fget??ent funcs, return NULL on failure and a
  * pointer to the appropriate struct (statically allocated) on success.
- */
+ * TODO: audit & stop using these in bbox, they pull in static buffers */
 /**********************************************************************/
 
+#if 0
 struct passwd *fgetpwent(FILE *stream)
 {
 	static char buffer[PWD_BUFFER_SIZE];
@@ -143,8 +144,10 @@ struct group *fgetgrent(FILE *stream)
 	fgetgrent_r(stream, &resultbuf, buffer, sizeof(buffer), &result);
 	return result;
 }
+#endif
 
 #if ENABLE_USE_BB_SHADOW
+#if 0
 struct spwd *fgetspent(FILE *stream)
 {
 	static char buffer[PWD_BUFFER_SIZE];
@@ -154,6 +157,7 @@ struct spwd *fgetspent(FILE *stream)
 	fgetspent_r(stream, &resultbuf, buffer, sizeof(buffer), &result);
 	return result;
 }
+#endif
 
 int sgetspent_r(const char *string, struct spwd *result_buf,
 				char *buffer, size_t buflen, struct spwd **result)
@@ -230,7 +234,9 @@ int sgetspent_r(const char *string, struct spwd *result_buf,
 #include "pwd_grp_internal.c"
 
 /**********************************************************************/
+/* TODO: audit & stop using these in bbox, they pull in static buffers */
 
+/* This one has many users */
 struct passwd *getpwuid(uid_t uid)
 {
 	static char buffer[PWD_BUFFER_SIZE];
@@ -241,6 +247,7 @@ struct passwd *getpwuid(uid_t uid)
 	return result;
 }
 
+/* This one has many users */
 struct group *getgrgid(gid_t gid)
 {
 	static char buffer[GRP_BUFFER_SIZE];
@@ -286,6 +293,7 @@ struct spwd *getspuid(uid_t uid)
 }
 #endif
 
+/* This one has many users */
 struct passwd *getpwnam(const char *name)
 {
 	static char buffer[PWD_BUFFER_SIZE];
@@ -296,6 +304,7 @@ struct passwd *getpwnam(const char *name)
 	return result;
 }
 
+/* This one has many users */
 struct group *getgrnam(const char *name)
 {
 	static char buffer[GRP_BUFFER_SIZE];
@@ -306,7 +315,7 @@ struct group *getgrnam(const char *name)
 	return result;
 }
 
-#if ENABLE_USE_BB_SHADOW
+#if 0 //ENABLE_USE_BB_SHADOW
 struct spwd *getspnam(const char *name)
 {
 	static char buffer[PWD_BUFFER_SIZE];
@@ -318,6 +327,7 @@ struct spwd *getspnam(const char *name)
 }
 #endif
 
+/* This one doesn't use static buffers */
 int getpw(uid_t uid, char *buf)
 {
 	struct passwd resultbuf;
@@ -325,7 +335,7 @@ int getpw(uid_t uid, char *buf)
 	char buffer[PWD_BUFFER_SIZE];
 
 	if (!buf) {
-		errno=EINVAL;
+		errno = EINVAL;
 	} else if (!getpwuid_r(uid, &resultbuf, buffer, sizeof(buffer), &result)) {
 		if (sprintf(buf, "%s:%s:%lu:%lu:%s:%s:%s\n",
 					resultbuf.pw_name, resultbuf.pw_passwd,
@@ -497,6 +507,7 @@ int getspent_r(struct spwd *resultbuf, char *buffer,
 }
 #endif
 
+#if 0
 struct passwd *getpwent(void)
 {
 	static char line_buff[PWD_BUFFER_SIZE];
@@ -516,8 +527,9 @@ struct group *getgrent(void)
 	getgrent_r(&gr, line_buff, sizeof(line_buff), &result);
 	return result;
 }
+#endif
 
-#if ENABLE_USE_BB_SHADOW
+#if 0 //ENABLE_USE_BB_SHADOW
 struct spwd *getspent(void)
 {
 	static char line_buff[PWD_BUFFER_SIZE];

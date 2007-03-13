@@ -43,6 +43,12 @@ int sulogin_main(int argc, char **argv)
 	const char * const *p;
 	struct passwd *pwd;
 	const char *shell;
+#if ENABLE_FEATURE_SHADOWPASSWDS
+	/* Using _r function to avoid pulling in static buffers */
+	char buffer[256];
+	struct spwd spw;
+	struct spwd *result;
+#endif
 
 	logmode = LOGMODE_BOTH;
 	openlog(applet_name, 0, LOG_AUTH);
@@ -76,13 +82,10 @@ int sulogin_main(int argc, char **argv)
 	}
 
 #if ENABLE_FEATURE_SHADOWPASSWDS
-	{
-		struct spwd *spwd = getspnam(pwd->pw_name);
-		if (!spwd) {
-			goto auth_error;
-		}
-		pwd->pw_passwd = spwd->sp_pwdp;
+	if (getspnam_r(pwd->pw_name, &spw, buffer, sizeof(buffer), &result)) {
+		goto auth_error;
 	}
+	pwd->pw_passwd = spw.sp_pwdp;
 #endif
 
 	while (1) {

@@ -342,15 +342,18 @@ static void username_tab_completion(char *ud, char *with_shash_flg)
 		}
 	} else {
 		/* "~[^/]*" */
-		setpwent();
+		/* Using _r function to avoid pulling in static buffers */
+		char line_buff[PWD_BUFFER_SIZE];
+		struct passwd pwd;
+		struct passwd *result;
 
-		while ((entry = getpwent()) != NULL) {
+		setpwent();
+		while (!getpwent_r(&pwd, line_buff, sizeof(line_buff), &result)) {
 			/* Null usernames should result in all users as possible completions. */
-			if ( /*!userlen || */ !strncmp(ud, entry->pw_name, userlen)) {
-				add_match(xasprintf("~%s/", entry->pw_name));
+			if (/*!userlen || */ strncmp(ud, pwd.pw_name, userlen) == 0) {
+				add_match(xasprintf("~%s/", pwd.pw_name));
 			}
 		}
-
 		endpwent();
 	}
 }

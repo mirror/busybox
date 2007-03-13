@@ -37,19 +37,24 @@
 
 int correct_password(const struct passwd *pw)
 {
-	char *unencrypted, *encrypted, *correct;
-
-#ifdef CONFIG_FEATURE_SHADOWPASSWDS
-	if (LONE_CHAR(pw->pw_passwd, 'x') || LONE_CHAR(pw->pw_passwd, '*')) {
-		struct spwd *sp = getspnam(pw->pw_name);
-
-		if (!sp)
-			bb_error_msg_and_die("no valid shadow password");
-
-		correct = sp->sp_pwdp;
-	} else
+	char *unencrypted, *encrypted;
+	const char *correct;
+#if ENABLE_FEATURE_SHADOWPASSWDS
+	/* Using _r function to avoid pulling in static buffers */
+	struct spwd spw;
+	struct spwd *result;
+	char buffer[256];
 #endif
-		correct = pw->pw_passwd;
+
+	correct = pw->pw_passwd;
+#if ENABLE_FEATURE_SHADOWPASSWDS
+	if (LONE_CHAR(pw->pw_passwd, 'x') || LONE_CHAR(pw->pw_passwd, '*')) {
+		if (getspnam_r(pw->pw_name, &spw, buffer, sizeof(buffer), &result))
+			bb_error_msg("no valid shadow password, checking ordinary one");
+		else
+			correct = spw.sp_pwdp;
+	}
+#endif
 
 	if (!correct || correct[0] == '\0')
 		return 1;
@@ -60,5 +65,5 @@ int correct_password(const struct passwd *pw)
 	}
 	encrypted = crypt(unencrypted, correct);
 	memset(unencrypted, 0, strlen(unencrypted));
-	return (!strcmp(encrypted, correct)) ? 1 : 0;
+	return strcmp(encrypted, correct) == 0;
 }

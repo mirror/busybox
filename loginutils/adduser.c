@@ -10,19 +10,21 @@
 
 #include "busybox.h"
 
-#define DONT_SET_PASS			(1 << 4)
-#define DONT_MAKE_HOME			(1 << 6)
+#define OPT_DONT_SET_PASS  (1 << 4)
+#define OPT_DONT_MAKE_HOME (1 << 6)
 
 
 /* remix */
 /* EDR recoded such that the uid may be passed in *p */
 static int passwd_study(const char *filename, struct passwd *p)
 {
-	struct passwd *pw;
+	enum { min = 500, max = 65000 };
 	FILE *passwd;
-
-	const int min = 500;
-	const int max = 65000;
+	/* We are using reentrant fgetpwent_r() in order to avoid
+	 * pulling in static buffers from libc (think static build here) */
+	char buffer[256];
+	struct passwd pw;
+	struct passwd *result;
 
 	passwd = xfopen(filename, "r");
 
@@ -34,14 +36,14 @@ static int passwd_study(const char *filename, struct passwd *p)
 	 * make sure login isn't taken;
 	 * find free uid and gid;
 	 */
-	while ((pw = fgetpwent(passwd))) {
-		if (strcmp(pw->pw_name, p->pw_name) == 0) {
+	while (!fgetpwent_r(passwd, &pw, buffer, sizeof(buffer), &result)) {
+		if (strcmp(pw.pw_name, p->pw_name) == 0) {
 			/* return 0; */
 			return 1;
 		}
-		if ((pw->pw_uid >= p->pw_uid) && (pw->pw_uid < max)
-			&& (pw->pw_uid >= min)) {
-			p->pw_uid = pw->pw_uid + 1;
+		if ((pw.pw_uid >= p->pw_uid) && (pw.pw_uid < max)
+			&& (pw.pw_uid >= min)) {
+			p->pw_uid = pw.pw_uid + 1;
 		}
 	}
 
@@ -85,7 +87,7 @@ static void passwd_wrapper(const char *login)
 }
 
 /* putpwent(3) remix */
-static int adduser(struct passwd *p, unsigned long flags)
+static int adduser(struct passwd *p)
 {
 	FILE *file;
 	int addgroup = !p->pw_gid;
@@ -130,7 +132,7 @@ static int adduser(struct passwd *p, unsigned long flags)
 	/* Clear the umask for this process so it doesn't
 	 * * screw up the permissions on the mkdir and chown. */
 	umask(0);
-	if (!(flags & DONT_MAKE_HOME)) {
+	if (!(option_mask32 & OPT_DONT_MAKE_HOME)) {
 		/* Set the owner and group so it is owned by the new user,
 		   then fix up the permissions to 2755. Can't do it before
 		   since chown will clear the setgid bit */
@@ -141,7 +143,7 @@ static int adduser(struct passwd *p, unsigned long flags)
 		}
 	}
 
-	if (!(flags & DONT_SET_PASS)) {
+	if (!(option_mask32 & OPT_DONT_SET_PASS)) {
 		/* interactively set passwd */
 		passwd_wrapper(p->pw_name);
 	}
@@ -163,7 +165,6 @@ int adduser_main(int argc, char **argv)
 {
 	struct passwd pw;
 	const char *usegroup = NULL;
-	unsigned long flags;
 
 	/* got root? */
 	if (geteuid()) {
@@ -176,7 +177,7 @@ int adduser_main(int argc, char **argv)
 
 	/* check for min, max and missing args and exit on error */
 	opt_complementary = "-1:?1:?";
-	flags = getopt32(argc, argv, "h:g:s:G:DSH", &pw.pw_dir, &pw.pw_gecos, &pw.pw_shell, &usegroup);
+	getopt32(argc, argv, "h:g:s:G:DSH", &pw.pw_dir, &pw.pw_gecos, &pw.pw_shell, &usegroup);
 
 	/* create string for $HOME if not specified already */
 	if (!pw.pw_dir) {
@@ -191,5 +192,5 @@ int adduser_main(int argc, char **argv)
 	pw.pw_gid = usegroup ? xgroup2gid(usegroup) : 0; /* exits on failure */
 
 	/* grand finale */
-	return adduser(&pw, flags);
+	return adduser(&pw);
 }

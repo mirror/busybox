@@ -252,6 +252,13 @@ int passwd_main(int argc, char **argv)
 	struct rlimit rlimit_fsize;
 	char c;
 
+#if ENABLE_FEATURE_SHADOWPASSWDS
+	/* Using _r function to avoid pulling in static buffers */
+	struct spwd spw;
+	struct spwd *result;
+	char buffer[256];
+#endif
+
 	logmode = LOGMODE_BOTH;
 	openlog(applet_name, LOG_NOWAIT, LOG_AUTH);
 	opt = getopt32(argc, argv, "a:lud", &opt_a);
@@ -278,17 +285,14 @@ int passwd_main(int argc, char **argv)
 
 	filename = bb_path_passwd_file;
 #if ENABLE_FEATURE_SHADOWPASSWDS
-	{
-		struct spwd *sp = getspnam(name);
-		if (!sp) {
-			/* LOGMODE_BOTH */
-			bb_error_msg("no record of %s in %s, using %s",
-					name, bb_path_shadow_file,
-					bb_path_passwd_file);
-		} else {
-			filename = bb_path_shadow_file;
-			pw->pw_passwd = sp->sp_pwdp;
-		}
+	if (getspnam_r(pw->pw_name, &spw, buffer, sizeof(buffer), &result)) {
+		/* LOGMODE_BOTH */
+		bb_error_msg("no record of %s in %s, using %s",
+				name, bb_path_shadow_file,
+				bb_path_passwd_file);
+	} else {
+		filename = bb_path_shadow_file;
+		pw->pw_passwd = spw.sp_pwdp;
 	}
 #endif
 

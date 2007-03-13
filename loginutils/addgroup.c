@@ -15,35 +15,37 @@
  * return 1 on failure */
 static int group_study(struct group *g)
 {
+	enum { max = 65000 };
 	FILE *etc_group;
 	gid_t desired;
-
-	struct group *grp;
-	const int max = 65000;
+	/* Using _r function to avoid static buffers pulled in */
+	char buffer[256];
+	struct group grp;
+	struct group *result;
 
 	etc_group = xfopen(bb_path_group_file, "r");
 
 	/* make sure gr_name isn't taken, make sure gid is kosher */
 	desired = g->gr_gid;
-	while ((grp = fgetgrent(etc_group))) {
-		if ((strcmp(grp->gr_name, g->gr_name)) == 0) {
+	while (!fgetgrent_r(etc_group, &grp, buffer, sizeof(buffer), &result)) {
+		if ((strcmp(grp.gr_name, g->gr_name)) == 0) {
 			bb_error_msg_and_die("%s: group already in use", g->gr_name);
 		}
-		if ((desired) && grp->gr_gid == desired) {
+		if ((desired) && grp.gr_gid == desired) {
 			bb_error_msg_and_die("%d: gid already in use",
 							  desired);
 		}
-		if ((grp->gr_gid > g->gr_gid) && (grp->gr_gid < max)) {
-			g->gr_gid = grp->gr_gid;
+		if ((grp.gr_gid > g->gr_gid) && (grp.gr_gid < max)) {
+			g->gr_gid = grp.gr_gid;
 		}
 	}
-	fclose(etc_group);
+	if (ENABLE_FEATURE_CLEAN_UP)
+		fclose(etc_group);
 
 	/* gid */
+	g->gr_gid++;
 	if (desired) {
 		g->gr_gid = desired;
-	} else {
-		g->gr_gid++;
 	}
 	/* return 1; */
 	return 0;
@@ -65,12 +67,16 @@ static int addgroup(char *group, gid_t gid, const char *user)
 	file = xfopen(bb_path_group_file, "a");
 	/* group:passwd:gid:userlist */
 	fprintf(file, "%s:%s:%d:%s\n", group, "x", gr.gr_gid, user);
-	fclose(file);
+	if (ENABLE_FEATURE_CLEAN_UP)
+		fclose(file);
 
 #if ENABLE_FEATURE_SHADOWPASSWDS
-	file = xfopen(bb_path_gshadow_file, "a");
-	fprintf(file, "%s:!::\n", group);
-	fclose(file);
+	file = fopen_or_warn(bb_path_gshadow_file, "a");
+	if (file) {
+		fprintf(file, "%s:!::\n", group);
+		if (ENABLE_FEATURE_CLEAN_UP)
+			fclose(file);
+	}
 #endif
 
 	/* return 1; */
@@ -80,10 +86,8 @@ static int addgroup(char *group, gid_t gid, const char *user)
 /*
  * addgroup will take a login_name as its first parameter.
  *
- * gid
- *
- * can be customized via command-line parameters.
- * ________________________________________________________________________ */
+ * gid can be customized via command-line parameters.
+ */
 int addgroup_main(int argc, char **argv);
 int addgroup_main(int argc, char **argv)
 {
@@ -103,6 +107,5 @@ int addgroup_main(int argc, char **argv)
 		bb_error_msg_and_die(bb_msg_perm_denied_are_you_root);
 	}
 
-	/* werk */
-	return addgroup(argv[0], gid, (argv[1]) ? argv[1] : "");
+	return addgroup(argv[0], gid, argv[1] ? argv[1] : "");
 }
