@@ -9,12 +9,12 @@
 #include "unarchive.h"
 
 enum {
-	OPT_STDOUT = 1,
-	OPT_FORCE = 2,
+	OPT_STDOUT = 0x1,
+	OPT_FORCE = 0x2,
 /* gunzip only: */
-	OPT_TEST = 4,
-	OPT_DECOMPRESS = 8,
-	OPT_VERBOSE = 0x10,
+	OPT_VERBOSE = 0x4,
+	OPT_DECOMPRESS = 0x8,
+	OPT_TEST = 0x10,
 };
 
 static
@@ -33,8 +33,7 @@ int open_to_or_warn(int to_fd, const char *filename, int flags, int mode)
 	return 0;
 }
 
-static
-int unpack(char **argv,
+int bbunpack(char **argv,
 	char* (*make_new_name)(char *filename),
 	USE_DESKTOP(long long) int (*unpacker)(void)
 )
@@ -173,7 +172,7 @@ int bunzip2_main(int argc, char **argv)
 	if (applet_name[2] == 'c')
 		option_mask32 |= OPT_STDOUT;
 
-	return unpack(argv, make_new_name_bunzip2, unpack_bunzip2);
+	return bbunpack(argv, make_new_name_bunzip2, unpack_bunzip2);
 }
 
 #endif
@@ -267,13 +266,13 @@ USE_DESKTOP(long long) int unpack_gunzip(void)
 int gunzip_main(int argc, char **argv);
 int gunzip_main(int argc, char **argv)
 {
-	getopt32(argc, argv, "cftdv");
+	getopt32(argc, argv, "cfvdt");
 	argv += optind;
 	/* if called as zcat */
 	if (applet_name[1] == 'c')
 		option_mask32 |= OPT_STDOUT;
 
-	return unpack(argv, make_new_name_gunzip, unpack_gunzip);
+	return bbunpack(argv, make_new_name_gunzip, unpack_gunzip);
 }
 
 #endif
@@ -311,7 +310,7 @@ int unlzma_main(int argc, char **argv)
 	if (applet_name[4] == 'c')
 		option_mask32 |= OPT_STDOUT;
 
-	return unpack(argv, make_new_name_unlzma, unpack_unlzma);
+	return bbunpack(argv, make_new_name_unlzma, unpack_unlzma);
 }
 
 #endif
@@ -350,7 +349,7 @@ int uncompress_main(int argc, char **argv)
 	getopt32(argc, argv, "cf");
 	argv += optind;
 
-	return unpack(argv, make_new_name_uncompress, unpack_uncompress);
+	return bbunpack(argv, make_new_name_uncompress, unpack_uncompress);
 }
 
 #endif

@@ -2074,6 +2074,7 @@ static void zip(int in, int out)
 
 
 /* ======================================================================== */
+#if 0
 static void abort_gzip(int ATTRIBUTE_UNUSED ignored)
 {
 	exit(1);
@@ -2082,92 +2083,6 @@ static void abort_gzip(int ATTRIBUTE_UNUSED ignored)
 int gzip_main(int argc, char **argv);
 int gzip_main(int argc, char **argv)
 {
-	enum {
-		OPT_tostdout = 0x1,
-		OPT_force = 0x2,
-	};
-
-	unsigned opt;
-	int inFileNum;
-	int outFileNum;
-	int i;
-	struct stat statBuf;
-
-	opt = getopt32(argc, argv, "cf123456789qv" USE_GUNZIP("d"));
-	//if (opt & 0x1) // -c
-	//if (opt & 0x2) // -f
-	/* Ignore 1-9 (compression level) options */
-	//if (opt & 0x4) // -1
-	//if (opt & 0x8) // -2
-	//if (opt & 0x10) // -3
-	//if (opt & 0x20) // -4
-	//if (opt & 0x40) // -5
-	//if (opt & 0x80) // -6
-	//if (opt & 0x100) // -7
-	//if (opt & 0x200) // -8
-	//if (opt & 0x400) // -9
-	//if (opt & 0x800) // -q
-	//if (opt & 0x1000) // -v
-#if ENABLE_GUNZIP /* gunzip_main may not be visible... */
-	if (opt & 0x2000) { // -d
-		/* FIXME: getopt32 should not depend on optind */
-		optind = 1;
-		return gunzip_main(argc, argv);
-	}
-#endif
-
-	/* Comment?? */
-	if (signal(SIGINT, SIG_IGN) != SIG_IGN) {
-		signal(SIGINT, abort_gzip);
-	}
-#ifdef SIGTERM
-	if (signal(SIGTERM, SIG_IGN) != SIG_IGN) {
-		signal(SIGTERM, abort_gzip);
-	}
-#endif
-#ifdef SIGHUP
-	if (signal(SIGHUP, SIG_IGN) != SIG_IGN) {
-		signal(SIGHUP, abort_gzip);
-	}
-#endif
-
-	ptr_to_globals = xzalloc(sizeof(struct global1) + sizeof(struct global2));
-	ptr_to_globals++;
-	G2.l_desc.dyn_tree    = G2.dyn_ltree;
-	G2.l_desc.static_tree = G2.static_ltree;
-	G2.l_desc.extra_bits  = extra_lbits;
-	G2.l_desc.extra_base  = LITERALS + 1;
-	G2.l_desc.elems       = L_CODES;
-	G2.l_desc.max_length  = MAX_BITS;
-	//G2.l_desc.max_code    = 0;
-
-	G2.d_desc.dyn_tree    = G2.dyn_dtree;
-	G2.d_desc.static_tree = G2.static_dtree;
-	G2.d_desc.extra_bits  = extra_dbits;
-	//G2.d_desc.extra_base  = 0;
-	G2.d_desc.elems       = D_CODES;
-	G2.d_desc.max_length  = MAX_BITS;
-	//G2.d_desc.max_code    = 0;
-
-	G2.bl_desc.dyn_tree    = G2.bl_tree;
-	//G2.bl_desc.static_tree = NULL;
-	G2.bl_desc.extra_bits  = extra_blbits,
-	//G2.bl_desc.extra_base  = 0;
-	G2.bl_desc.elems       = BL_CODES;
-	G2.bl_desc.max_length  = MAX_BL_BITS;
-	//G2.bl_desc.max_code    = 0;
-
-	/* Allocate all global buffers (for DYN_ALLOC option) */
-	ALLOC(uch, G1.l_buf, INBUFSIZ);
-	ALLOC(uch, G1.outbuf, OUTBUFSIZ);
-	ALLOC(ush, G1.d_buf, DIST_BUFSIZE);
-	ALLOC(uch, G1.window, 2L * WSIZE);
-	ALLOC(ush, G1.prev, 1L << BITS);
-
-	/* Initialise the CRC32 table */
-	G1.crc_32_tab = crc32_filltable(0);
-
-	clear_bufs();
 
 	if (optind == argc) {
 		G1.time_stamp = 0;
@@ -2239,4 +2154,88 @@ int gzip_main(int argc, char **argv)
 	}
 
 	return 0; //##G1.exit_code;
+}
+#endif
+
+int bbunpack(char **argv,
+        char* (*make_new_name)(char *filename),
+        USE_DESKTOP(long long) int (*unpacker)(void)
+);
+
+static
+char* make_new_name_gzip(char *filename)
+{
+	return xasprintf("%s.gz", filename);
+}
+
+static
+USE_DESKTOP(long long) int pack_gzip(void)
+{
+	struct stat s;
+	
+	G1.time_stamp = 0;
+	if (!fstat(STDIN_FILENO, &s))
+		G1.time_stamp = s.st_ctime;
+	zip(STDIN_FILENO, STDOUT_FILENO);
+	return 0;
+}
+
+int gzip_main(int argc, char **argv);
+int gzip_main(int argc, char **argv)
+{
+	unsigned opt;
+
+	/* Must match bbunzip's constants OPT_STDOUT, OPT_FORCE! */
+	opt = getopt32(argc, argv, "cfv" USE_GUNZIP("d") "q123456789" );
+	option_mask32 &= 0x7; /* Clear -d, ignore -q, -0..9 */
+	//if (opt & 0x1) // -c
+	//if (opt & 0x2) // -f
+	//if (opt & 0x4) // -v
+#if ENABLE_GUNZIP /* gunzip_main may not be visible... */
+	if (opt & 0x8) { // -d
+		/* FIXME: getopt32 should not depend on optind */
+		optind = 1;
+		return gunzip_main(argc, argv);
+	}
+#endif
+
+	ptr_to_globals = xzalloc(sizeof(struct global1) + sizeof(struct global2));
+	ptr_to_globals++;
+	G2.l_desc.dyn_tree    = G2.dyn_ltree;
+	G2.l_desc.static_tree = G2.static_ltree;
+	G2.l_desc.extra_bits  = extra_lbits;
+	G2.l_desc.extra_base  = LITERALS + 1;
+	G2.l_desc.elems       = L_CODES;
+	G2.l_desc.max_length  = MAX_BITS;
+	//G2.l_desc.max_code    = 0;
+
+	G2.d_desc.dyn_tree    = G2.dyn_dtree;
+	G2.d_desc.static_tree = G2.static_dtree;
+	G2.d_desc.extra_bits  = extra_dbits;
+	//G2.d_desc.extra_base  = 0;
+	G2.d_desc.elems       = D_CODES;
+	G2.d_desc.max_length  = MAX_BITS;
+	//G2.d_desc.max_code    = 0;
+
+	G2.bl_desc.dyn_tree    = G2.bl_tree;
+	//G2.bl_desc.static_tree = NULL;
+	G2.bl_desc.extra_bits  = extra_blbits,
+	//G2.bl_desc.extra_base  = 0;
+	G2.bl_desc.elems       = BL_CODES;
+	G2.bl_desc.max_length  = MAX_BL_BITS;
+	//G2.bl_desc.max_code    = 0;
+
+	/* Allocate all global buffers (for DYN_ALLOC option) */
+	ALLOC(uch, G1.l_buf, INBUFSIZ);
+	ALLOC(uch, G1.outbuf, OUTBUFSIZ);
+	ALLOC(ush, G1.d_buf, DIST_BUFSIZE);
+	ALLOC(uch, G1.window, 2L * WSIZE);
+	ALLOC(ush, G1.prev, 1L << BITS);
+
+	/* Initialise the CRC32 table */
+	G1.crc_32_tab = crc32_filltable(0);
+
+	clear_bufs();
+
+	return bbunpack(argv, make_new_name_gzip, pack_gzip);
 }

@@ -1,0 +1,88 @@
+	Keeping data small
+
+When many applets are compiled into busybox, all rw data and
+bss for each applet are concatenated. Including those from libc,
+if static bbox is built. When bbox is started, _all_ this data
+is allocated, not just that one part for selected applet.
+
+What "allocated" exactly means, depends on arch.
+On nommu it's probably bites the most, actually using real
+RAM for rwdata and bss. On i386, bss is lazily allocated
+by COWed zero pages. Not sure about rwdata - also COW?
+
+Small experiment measures "parasitic" bbox memory consumption.
+Here we start 1000 "busybox sleep 10" in parallel.
+bbox binary is practically allyesconfig static one,
+built against uclibc:
+
+bash-3.2# nmeter '%t %c %b %m %p %[pn]'
+23:17:28 ..........  0  0 168M  0 147
+23:17:29 ..........  0  0 168M  0 147
+23:17:30 U.........  0  0 168M  1 147
+23:17:31 SU........  0 188k 181M 244 391
+23:17:32 SSSSUUU...  0  0 223M 757 1147
+23:17:33 UUU.......  0  0 223M  0 1147
+23:17:34 U.........  0  0 223M  1 1147
+23:17:35 ..........  0  0 223M  0 1147
+23:17:36 ..........  0  0 223M  0 1147
+23:17:37 S.........  0  0 223M  0 1147
+23:17:38 ..........  0  0 223M  1 1147
+23:17:39 ..........  0  0 223M  0 1147
+23:17:40 ..........  0  0 223M  0 1147
+23:17:41 ..........  0  0 210M  0 906
+23:17:42 ..........  0  0 168M  1 147
+23:17:43 ..........  0  0 168M  0 147
+
+This requires 55M of memory. Thus 1 trivial busybox applet
+takes 55k of userspace memory (nmeter doesn't account for kernel-side
+allocations). Definitely can be improved.
+
+Thus we should avoid large global data in our applets,
+and should minimize usage of libc functions which implicitly use
+such structures in libc.
+
+	Example 1
+
+One example how to reduce global data usage is in
+archival/libunarchive/decompress_unzip.c:
+
+/* This is somewhat complex-looking arrangement, but it allows
+ * to place decompressor state either in bss or in
+ * malloc'ed space simply by changing #defines below.
+ * Sizes on i386:
+ * text    data     bss     dec     hex
+ * 5256       0     108    5364    14f4 - bss
+ * 4915       0       0    4915    1333 - malloc
+ */
+#define STATE_IN_BSS 0
+#define STATE_IN_MALLOC 1
+
+This example completely eliminates globals in that module.
+Required memory is allocated in inflate_gunzip() [its main module]
+and then passed down to all subroutines which need to access globals
+as a parameter.
+
+	Example 2
+
+In case you don't want to pass this additional parameter everywhere,
+take a look at archival/gzip.c. Here all global data is replaced by
+singe global pointer (ptr_to_globals) to allocated storage.
+
+In order to not duplicate ptr_to_globals in every applet, you can
+reuse single common one. It is defined in libbb/messages.c
+as void *ptr_to_globals, but is NOT declared in libbb.h.
+You first define a struct:
+
+struct my_globals { int a; char buf[1000]; };
+
+and then declare that ptr_to_globals is a pointer to it:
+
+extern struct my_globals *ptr_to_globals;
+#define G (*ptr_to_globals)
+
+Linker magic enures that these two merge into single pointer object.
+Now initialize it in <applet>_main():
+
+	ptr_to_globals = xzalloc(sizeof(G));
+
+and you can reference "globals" by G.a, G.buf and so on, in any function.
