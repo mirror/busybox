@@ -66,7 +66,9 @@ char get_header_ar(archive_handle_t *archive_handle)
 
 	/* long filenames have '/' as the first character */
 	if (ar.formatted.name[0] == '/') {
-#ifdef CONFIG_FEATURE_AR_LONG_FILENAMES
+		unsigned long_offset;
+
+#if ENABLE_FEATURE_AR_LONG_FILENAMES
 		if (ar.formatted.name[1] == '/') {
 			/* If the second char is a '/' then this entries data section
 			 * stores long filename for multiple entries, they are stored
@@ -78,20 +80,22 @@ char get_header_ar(archive_handle_t *archive_handle)
 			/* This ar entries data section only contained filenames for other records
 			 * they are stored in the static ar_long_names for future reference */
 			return get_header_ar(archive_handle); /* Return next header */
-		} else if (ar.formatted.name[1] == ' ') {
+		}
+
+		if (ar.formatted.name[1] == ' ') {
 			/* This is the index of symbols in the file for compilers */
 			data_skip(archive_handle);
 			archive_handle->offset += typed->size;
 			return get_header_ar(archive_handle); /* Return next header */
-		} else {
-			/* The number after the '/' indicates the offset in the ar data section
-			(saved in variable long_name) that conatains the real filename */
-			const unsigned int long_offset = atoi(&ar.formatted.name[1]);
-			if (long_offset >= ar_long_name_size) {
-				bb_error_msg_and_die("can't resolve long filename");
-			}
-			typed->name = xstrdup(ar_long_names + long_offset);
 		}
+
+		/* The number after the '/' indicates the offset in the ar data section
+		 * (saved in variable long_name) that conatains the real filename */
+		long_offset = atoi(&ar.formatted.name[1]);
+		if (long_offset >= ar_long_name_size) {
+			bb_error_msg_and_die("can't resolve long filename");
+		}
+		typed->name = xstrdup(ar_long_names + long_offset);
 #else
 		bb_error_msg_and_die("long filenames not supported");
 #endif
