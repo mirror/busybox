@@ -82,12 +82,12 @@ struct in6_ifreq {
 #endif
 
 /* Display an Internet socket address. */
-static char *INET_sprint(struct sockaddr *sap, int numeric)
+static const char *INET_sprint(struct sockaddr *sap, int numeric)
 {
 	static char buff[128];
 
 	if (sap->sa_family == 0xFFFF || sap->sa_family == 0)
-		return safe_strncpy(buff, "[NONE SET]", sizeof(buff));
+		return "[NONE SET]";
 
 	if (INET_rresolve(buff, sizeof(buff), (struct sockaddr_in *) sap,
 					  numeric, 0xffffff00) != 0)
@@ -96,6 +96,7 @@ static char *INET_sprint(struct sockaddr *sap, int numeric)
 	return buff;
 }
 
+#ifdef UNUSED_AND_BUGGY
 static int INET_getsock(char *bufp, struct sockaddr *sap)
 {
 	char *sp = bufp, *bp;
@@ -136,9 +137,12 @@ static int INET_getsock(char *bufp, struct sockaddr *sap)
 
 	return (sp - bufp);
 }
+#endif
 
-static int INET_input(int type, char *bufp, struct sockaddr *sap)
+static int INET_input(/*int type,*/ const char *bufp, struct sockaddr *sap)
 {
+	return INET_resolve(bufp, (struct sockaddr_in *) sap, 0);
+/*
 	switch (type) {
 	case 1:
 		return (INET_getsock(bufp, sap));
@@ -147,6 +151,7 @@ static int INET_input(int type, char *bufp, struct sockaddr *sap)
 	default:
 		return (INET_resolve(bufp, (struct sockaddr_in *) sap, 0));
 	}
+*/
 }
 
 static struct aftype inet_aftype = {
@@ -163,17 +168,18 @@ static struct aftype inet_aftype = {
 
 /* Display an Internet socket address. */
 /* dirty! struct sockaddr usually doesn't suffer for inet6 addresses, fst. */
-static char *INET6_sprint(struct sockaddr *sap, int numeric)
+static const char *INET6_sprint(struct sockaddr *sap, int numeric)
 {
 	static char buff[128];
 
 	if (sap->sa_family == 0xFFFF || sap->sa_family == 0)
-		return safe_strncpy(buff, "[NONE SET]", sizeof(buff));
+		return "[NONE SET]";
 	if (INET6_rresolve(buff, sizeof(buff), (struct sockaddr_in6 *) sap, numeric))
-		return safe_strncpy(buff, "[UNKNOWN]", sizeof(buff));
+		return "[UNKNOWN]";
 	return buff;
 }
 
+#ifdef UNUSED
 static int INET6_getsock(char *bufp, struct sockaddr *sap)
 {
 	struct sockaddr_in6 *sin6;
@@ -187,15 +193,19 @@ static int INET6_getsock(char *bufp, struct sockaddr *sap)
 
 	return 16;			/* ?;) */
 }
+#endif
 
-static int INET6_input(int type, char *bufp, struct sockaddr *sap)
+static int INET6_input(/*int type,*/ const char *bufp, struct sockaddr *sap)
 {
+	return INET6_resolve(bufp, (struct sockaddr_in6 *) sap);
+/*
 	switch (type) {
 	case 1:
 		return (INET6_getsock(bufp, sap));
 	default:
 		return (INET6_resolve(bufp, (struct sockaddr_in6 *) sap));
 	}
+*/
 }
 
 static struct aftype inet6_aftype = {
@@ -229,12 +239,10 @@ static char *UNSPEC_print(unsigned char *ptr)
 }
 
 /* Display an UNSPEC socket address. */
-static char *UNSPEC_sprint(struct sockaddr *sap, int numeric)
+static const char *UNSPEC_sprint(struct sockaddr *sap, int numeric)
 {
-	static char buf[64];
-
 	if (sap->sa_family == 0xFFFF || sap->sa_family == 0)
-		return safe_strncpy(buf, "[NONE SET]", sizeof(buf));
+		return "[NONE SET]";
 	return UNSPEC_print((unsigned char *)sap->sa_data);
 }
 
@@ -809,7 +817,7 @@ static char *pr_ether(unsigned char *ptr)
 	return buff;
 }
 
-static int in_ether(char *bufp, struct sockaddr *sap);
+static int in_ether(const char *bufp, struct sockaddr *sap);
 
 static struct hwtype ether_hwtype = {
 	.name =		"ether",
@@ -831,10 +839,10 @@ static unsigned hexchar2int(char c)
 }
 
 /* Input an Ethernet address and convert to binary. */
-static int in_ether(char *bufp, struct sockaddr *sap)
+static int in_ether(const char *bufp, struct sockaddr *sap)
 {
 	unsigned char *ptr;
-	char c, *orig;
+	char c;
 	int i;
 	unsigned val;
 
@@ -842,7 +850,6 @@ static int in_ether(char *bufp, struct sockaddr *sap)
 	ptr = (unsigned char*) sap->sa_data;
 
 	i = 0;
-	orig = bufp;
 	while ((*bufp != '\0') && (i < ETH_ALEN)) {
 		val = hexchar2int(*bufp++) * 0x10;
 		if (val > 0xff) {

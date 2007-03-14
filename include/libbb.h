@@ -129,8 +129,8 @@ struct aftype {
 	int af;
 	int alen;
 	char *(*print) (unsigned char *);
-	char *(*sprint) (struct sockaddr *, int numeric);
-	int (*input) (int type, char *bufp, struct sockaddr *);
+	const char *(*sprint) (struct sockaddr *, int numeric);
+	int (*input) (/*int type,*/ const char *bufp, struct sockaddr *);
 	void (*herror) (char *text);
 	int (*rprint) (int options);
 	int (*rinput) (int typ, int ext, char **argv);
@@ -149,7 +149,7 @@ struct hwtype {
 	int type;
 	int alen;
 	char *(*print) (unsigned char *);
-	int (*input) (char *, struct sockaddr *);
+	int (*input) (const char *, struct sockaddr *);
 	int (*activate) (int fd);
 	int suppress_null_addr;
 };

@@ -27,8 +27,6 @@
 #define DFLT_AF "inet"
 #define DFLT_HW "ether"
 
-#define _PATH_PROCNET_ARP "/proc/net/arp"
-
 #define	ARP_OPT_A (0x1)
 #define	ARP_OPT_p (0x2)
 #define	ARP_OPT_H (0x4)
@@ -64,7 +62,7 @@ static const char *const options[] = {
 /* Called only from main, once */
 static int arp_del(char **args)
 {
-	char host[128];
+	char *host;
 	struct arpreq req;
 	struct sockaddr sa;
 	int flags = 0;
@@ -73,8 +71,8 @@ static int arp_del(char **args)
 	memset(&req, 0, sizeof(req));
 
 	/* Resolve the host name. */
-	safe_strncpy(host, *args, 128);
-	if (ap->input(0, host, &sa) < 0) {
+	host = *args;
+	if (ap->input(host, &sa) < 0) {
 		bb_herror_msg_and_die("%s", host);
 	}
 
@@ -130,8 +128,8 @@ static int arp_del(char **args)
 			if (*++args == NULL)
 				bb_show_usage();
 			if (strcmp(*args, "255.255.255.255") != 0) {
-				safe_strncpy(host, *args, 128);
-				if (ap->input(0, host, &sa) < 0) {
+				host = *args;
+				if (ap->input(host, &sa) < 0) {
 					bb_herror_msg_and_die("%s", host);
 				}
 				memcpy(&req.arp_netmask, &sa, sizeof(struct sockaddr));
@@ -213,15 +211,15 @@ static void arp_getdevhw(char *ifname, struct sockaddr *sa,
 /* Called only from main, once */
 static int arp_set(char **args)
 {
-	char host[128];
+	char *host;
 	struct arpreq req;
 	struct sockaddr sa;
 	int flags;
 
 	memset(&req, 0, sizeof(req));
 
-	safe_strncpy(host, *args++, 128);
-	if (ap->input(0, host, &sa) < 0) {
+	host = *args++;
+	if (ap->input(host, &sa) < 0) {
 		bb_herror_msg_and_die("%s", host);
 	}
 	/* If a host has more than one address, use the correct one! */
@@ -285,8 +283,8 @@ static int arp_set(char **args)
 			if (*++args == NULL)
 				bb_show_usage();
 			if (strcmp(*args, "255.255.255.255") != 0) {
-				safe_strncpy(host, *args++, 128);
-				if (ap->input(0, host, &sa) < 0) {
+				host = *args;
+				if (ap->input(host, &sa) < 0) {
 					bb_herror_msg_and_die("%s", host);
 				}
 				memcpy(&req.arp_netmask, &sa, sizeof(struct sockaddr));
@@ -362,82 +360,82 @@ arp_disp(const char *name, char *ip, int type, int arp_flags,
 /* Called only from main, once */
 static int arp_show(char *name)
 {
-	char host[100];
-	struct sockaddr sa;
-	char ip[100];
-	char hwa[100];
-	char mask[100];
-	char line[200];
-	char dev[100];
-	int type, flags;
-	FILE *fp;
+	const char *host;
 	const char *hostname;
+	FILE *fp;
+	struct sockaddr sa;
+	int type, flags;
 	int num;
 	unsigned entries = 0, shown = 0;
+	char ip[128];
+	char hwa[128];
+	char mask[128];
+	char line[128];
+	char dev[128];
 
-	host[0] = '\0';
-
+	host = NULL;
 	if (name != NULL) {
 		/* Resolve the host name. */
-		safe_strncpy(host, name, (sizeof host));
-		if (ap->input(0, host, &sa) < 0) {
-			bb_herror_msg_and_die("%s", host);
+		if (ap->input(name, &sa) < 0) {
+			bb_herror_msg_and_die("%s", name);
 		}
-		safe_strncpy(host, ap->sprint(&sa, 1), sizeof(host));
+		host = xstrdup(ap->sprint(&sa, 1));
 	}
-	/* Open the PROCps kernel table. */
-	fp = xfopen(_PATH_PROCNET_ARP, "r");
-	/* Bypass header -- read until newline */
-	if (fgets(line, sizeof(line), fp) != (char *) NULL) {
+	fp = xfopen("/proc/net/arp", "r");
+	/* Bypass header -- read one line */
+	fgets(line, sizeof(line), fp);
+
+	/* Read the ARP cache entries. */
+	while (fgets(line, sizeof(line), fp)) {
+
 		mask[0] = '-'; mask[1] = '\0';
 		dev[0] = '-'; dev[1] = '\0';
-		/* Read the ARP cache entries. */
-		for (; fgets(line, sizeof(line), fp);) {
-			num = sscanf(line, "%s 0x%x 0x%x %100s %100s %100s\n",
-						 ip, &type, &flags, hwa, mask, dev);
-			if (num < 4)
-				break;
+		/* All these strings can't overflow
+		 * because fgets above reads limited amount of data */
+		num = sscanf(line, "%s 0x%x 0x%x %s %s %s\n",
+					 ip, &type, &flags, hwa, mask, dev);
+		if (num < 4)
+			break;
 
-			entries++;
-			/* if the user specified hw-type differs, skip it */
-			if (hw_set && (type != hw->type))
-				continue;
+		entries++;
+		/* if the user specified hw-type differs, skip it */
+		if (hw_set && (type != hw->type))
+			continue;
 
-			/* if the user specified address differs, skip it */
-			if (host[0] && strcmp(ip, host) != 0)
-				continue;
+		/* if the user specified address differs, skip it */
+		if (host && strcmp(ip, host) != 0)
+			continue;
 
-			/* if the user specified device differs, skip it */
-			if (device[0] && strcmp(dev, device) != 0)
-				continue;
+		/* if the user specified device differs, skip it */
+		if (device[0] && strcmp(dev, device) != 0)
+			continue;
 
-			shown++;
-			/* This IS ugly but it works -be */
-			if (option_mask32 & ARP_OPT_n)
+		shown++;
+		/* This IS ugly but it works -be */
+		hostname = "?";
+		if (!(option_mask32 & ARP_OPT_n)) {
+			if (ap->input(ip, &sa) < 0)
+				hostname = ip;
+			else
+				hostname = ap->sprint(&sa, (option_mask32 & ARP_OPT_n) | 0x8000);
+			if (strcmp(hostname, ip) == 0)
 				hostname = "?";
-			else {
-				if (ap->input(0, ip, &sa) < 0)
-					hostname = ip;
-				else
-					hostname = ap->sprint(&sa, (option_mask32 & ARP_OPT_n) | 0x8000);
-				if (strcmp(hostname, ip) == 0)
-					hostname = "?";
-			}
-
-			arp_disp(hostname, ip, type, flags, hwa, mask, dev);
 		}
+
+		arp_disp(hostname, ip, type, flags, hwa, mask, dev);
 	}
 	if (option_mask32 & ARP_OPT_v)
 		printf("Entries: %d\tSkipped: %d\tFound: %d\n",
 			   entries, entries - shown, shown);
 
 	if (!shown) {
-		if (hw_set || host[0] || device[0])
+		if (hw_set || host || device[0])
 			printf("No match found in %d entries\n", entries);
 	}
-
-	fclose(fp);
-
+	if (ENABLE_FEATURE_CLEAN_UP) {
+		free((char*)host);
+		fclose(fp);
+	}
 	return 0;
 }
 
