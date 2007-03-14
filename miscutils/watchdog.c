@@ -13,13 +13,12 @@
 #define OPT_FOREGROUND 0x01
 #define OPT_TIMER      0x02
 
-/* Watchdog file descriptor */
-static int fd;
-
-static void watchdog_shutdown(int ATTRIBUTE_UNUSED unused)
+static void watchdog_shutdown(int ATTRIBUTE_UNUSED sig) ATTRIBUTE_NORETURN;
+static void watchdog_shutdown(int ATTRIBUTE_UNUSED sig)
 {
-	write(fd, "V", 1);	/* Magic, see watchdog-api.txt in kernel */
-	close(fd);
+	write(3, "V", 1);	/* Magic, see watchdog-api.txt in kernel */
+	if (ENABLE_FEATURE_CLEAN_UP)
+		close(3);
 	exit(0);
 }
 
@@ -49,18 +48,19 @@ int watchdog_main(int argc, char **argv)
 	signal(SIGHUP, watchdog_shutdown);
 	signal(SIGINT, watchdog_shutdown);
 
-	fd = xopen(argv[argc - 1], O_WRONLY);
+	/* Use known fd # - avoid needing global 'int fd' */
+	dup2(xopen(argv[argc - 1], O_WRONLY), 3);
 
 	while (1) {
 		/*
 		 * Make sure we clear the counter before sleeping, as the counter value
 		 * is undefined at this point -- PFM
 		 */
-		write(fd, "\0", 1);
+		write(3, "", 1);
 		sleep(timer_duration);
 	}
 
 	watchdog_shutdown(0);
 
-	return EXIT_SUCCESS;
+	/* return EXIT_SUCCESS; */
 }
