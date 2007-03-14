@@ -2575,7 +2575,7 @@
        "Report process status\n" \
 	USAGE_PS \
 	USE_SELINUX( \
-       "\n	-c	Show SE Linux context") \
+       "\n	-Z	Show SE Linux context") \
 	USE_FEATURE_PS_WIDE( \
        "\n	w	Wide output")
 
