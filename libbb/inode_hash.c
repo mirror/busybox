@@ -53,7 +53,6 @@ char *is_in_ino_dev_hashtable(const struct stat *statbuf)
 void add_to_ino_dev_hashtable(const struct stat *statbuf, const char *name)
 {
 	int i;
-	size_t s;
 	ino_dev_hashtable_bucket_t *bucket;
 
 	i = hash_inode(statbuf->st_ino);

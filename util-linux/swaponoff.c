@@ -18,11 +18,11 @@ static int swap_enable_disable(char *device)
 
 	xstat(device, &st);
 
-#ifdef BLOAT
+#if ENABLE_DESKTOP
 	/* test for holes */
 	if (S_ISREG(st.st_mode))
 		if (st.st_blocks * 512 < st.st_size)
-			bb_error_msg_and_die("swap file has holes");
+			bb_error_msg("warning: swap file has holes");
 #endif
 
 	if (applet_name[5] == 'n')
