@@ -46,7 +46,6 @@ int get_signum(const char *name)
 const char *get_signame(int number)
 {
 	int i;
-	static char buf[8];
 
 	for (i=0; i < sizeof(signals) / sizeof(struct signal_name); i++) {
 		if (number == signals[i].number) {
@@ -54,6 +53,5 @@ const char *get_signame(int number)
 		}
 	}
 
-	itoa_to_buf(number, buf, 8);
-	return buf;
+	return itoa(number);
 }
