@@ -197,6 +197,9 @@ typedef int32_t lng;
 
 typedef ush Pos;
 typedef unsigned IPos;
+/* A Pos is an index in the character window. We use short instead of int to
+ * save space in the various tables. IPos is used only for parameter passing.
+ */
 
 enum {
 	WINDOW_SIZE = 2 * WSIZE,
@@ -238,11 +241,8 @@ enum {
 };
 
 
-struct G1 {
+struct global1 {
 
-/* A Pos is an index in the character window. We use short instead of int to
- * save space in the various tables. IPos is used only for parameter passing.
- */
 	lng block_start;
 
 /* window position at the beginning of the current output block. Gets
@@ -266,7 +266,6 @@ struct G1 {
 	unsigned strstart;	/* start of string to insert */
 	unsigned match_start;	/* start of matching string */
 	unsigned lookahead;	/* number of valid bytes ahead in window */
-	smallint eofile;		/* flag set at end of input file */
 
 /* ===========================================================================
  */
@@ -318,6 +317,7 @@ struct G1 {
 /* original time stamp (modification time) */
 	ulg time_stamp;		/* only 32 bits stored in .gz file */
 
+//TODO: get rid of this
 	int ifd;			/* input file descriptor */
 	int ofd;			/* output file descriptor */
 #ifdef DEBUG
@@ -325,8 +325,7 @@ struct G1 {
 #endif
 	unsigned outcnt;	/* bytes in output buffer */
 
-	uint32_t *crc_32_tab;
-
+	smallint eofile;		/* flag set at end of input file */
 
 /* ===========================================================================
  * Local data used by the "bit string" routines.
@@ -352,10 +351,12 @@ struct G1 {
 	ulg bits_sent;			/* bit length of the compressed data */
 #endif
 
+	uint32_t *crc_32_tab;
 	uint32_t crc;	/* shift register contents */
 };
 
-static struct G1 G1;
+extern struct global1 *global_ptr;
+#define G1 (*(global_ptr - 1))
 
 
 /* ===========================================================================
@@ -880,7 +881,7 @@ typedef struct tree_desc {
 	int max_code;		/* largest code with non zero frequency */
 } tree_desc;
 
-struct G2 {
+struct global2 {
 
 	ush heap[HEAP_SIZE];     /* heap used to build the Huffman trees */
 	int heap_len;            /* number of elements in the heap */
@@ -971,23 +972,8 @@ struct G2 {
 
 };
 
-static struct G2 *G2ptr;
+#define G2ptr ((struct global2*)(global_ptr))
 #define G2 (*G2ptr)
-/* {
-	.l_desc = {
-		G2.dyn_ltree, G2.static_ltree, extra_lbits,
-		LITERALS + 1, L_CODES, MAX_BITS, 0
-	},
-	.d_desc = {
-		G2.dyn_dtree, G2.static_dtree, extra_dbits,
-		0, D_CODES, MAX_BITS, 0
-	},
-	.bl_desc = {
-		G2.bl_tree, NULL, extra_blbits,
-		0, BL_CODES, MAX_BL_BITS, 0
-	}
-};
-*/
 
 
 /* ===========================================================================
@@ -2045,7 +2031,7 @@ static void ct_init(void) ////ush * attr, int *methodp)
 
 static void zip(int in, int out)
 {
-	uch my_flags = 0;       /* general purpose bit flags */
+////	uch my_flags = 0;       /* general purpose bit flags */
 ////	ush attr = 0;           /* ascii/binary flag */
 	ush deflate_flags = 0;  /* pkzip -es, -en or -ex equivalent */
 ////	int method = DEFLATED;	/* compression method */
@@ -2056,11 +2042,15 @@ static void zip(int in, int out)
 
 	/* Write the header to the gzip file. See algorithm.doc for the format */
 
-	put_header_byte(0x1f); /* magic header for gzip files, 1F 8B */
-	put_header_byte(0x8b);
-	////put_header_byte(DEFLATED); /* compression method */
-	put_header_byte(8); /* compression method */
-	put_header_byte(my_flags); /* general flags */
+	//put_header_byte(0x1f); /* magic header for gzip files, 1F 8B */
+	//put_header_byte(0x8b);
+	//////put_header_byte(DEFLATED); /* compression method */
+	//put_header_byte(8); /* compression method */
+	//put_header_byte(0); /* general flags */
+	/* magic header for gzip files: 1F 8B */
+	/* compression method: 8 */
+	/* general flags: 0 */
+	put_32bit(0x00088b1f);
 	put_32bit(G1.time_stamp);
 
 	/* Write deflated file to zip file */
@@ -2141,19 +2131,31 @@ int gzip_main(int argc, char **argv)
 	}
 #endif
 
-	G2ptr = xzalloc(sizeof(*G2ptr));
-	G2.l_desc = (tree_desc) {
-		G2.dyn_ltree, G2.static_ltree, extra_lbits,
-		LITERALS + 1, L_CODES, MAX_BITS, 0
-	};
-	G2.d_desc = (tree_desc) {
-		G2.dyn_dtree, G2.static_dtree, extra_dbits,
-		0, D_CODES, MAX_BITS, 0
-	};
-	G2.bl_desc = (tree_desc) {
-		G2.bl_tree, NULL, extra_blbits,
-		0, BL_CODES, MAX_BL_BITS, 0
-	};
+	global_ptr = xzalloc(sizeof(struct global1) + sizeof(struct global2));
+	global_ptr++;
+	G2.l_desc.dyn_tree    = G2.dyn_ltree;
+	G2.l_desc.static_tree = G2.static_ltree;
+	G2.l_desc.extra_bits  = extra_lbits;
+	G2.l_desc.extra_base  = LITERALS + 1;
+	G2.l_desc.elems       = L_CODES;
+	G2.l_desc.max_length  = MAX_BITS;
+	//G2.l_desc.max_code    = 0;
+
+	G2.d_desc.dyn_tree    = G2.dyn_dtree;
+	G2.d_desc.static_tree = G2.static_dtree;
+	G2.d_desc.extra_bits  = extra_dbits;
+	//G2.d_desc.extra_base  = 0;
+	G2.d_desc.elems       = D_CODES;
+	G2.d_desc.max_length  = MAX_BITS;
+	//G2.d_desc.max_code    = 0;
+
+	G2.bl_desc.dyn_tree    = G2.bl_tree;
+	//G2.bl_desc.static_tree = NULL;
+	G2.bl_desc.extra_bits  = extra_blbits,
+	//G2.bl_desc.extra_base  = 0;
+	G2.bl_desc.elems       = BL_CODES;
+	G2.bl_desc.max_length  = MAX_BL_BITS;
+	//G2.bl_desc.max_code    = 0;
 
 	/* Allocate all global buffers (for DYN_ALLOC option) */
 	ALLOC(uch, G1.l_buf, INBUFSIZ);

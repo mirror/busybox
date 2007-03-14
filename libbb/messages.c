@@ -55,3 +55,5 @@ WTMP_FILE;
 #endif
 
 char bb_common_bufsiz1[BUFSIZ+1];
+
+void *global_ptr;
