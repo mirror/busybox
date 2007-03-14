@@ -229,6 +229,7 @@ extern void trim(char *s);
 extern char *skip_whitespace(const char *);
 extern char *skip_non_whitespace(const char *);
 
+//TODO: supply a pointer to char[11] buffer (avoid statics)?
 extern const char *bb_mode_string(mode_t mode);
 extern int is_directory(const char *name, int followLinks, struct stat *statBuf);
 extern int remove_file(const char *path, int flags);
@@ -556,9 +557,11 @@ extern int del_loop(const char *device);
 extern int set_loop(char **device, const char *file, unsigned long long offset);
 
 
+//TODO: provide pointer to buf (avoid statics)?
 const char *make_human_readable_str(unsigned long long size,
 		unsigned long block_size, unsigned long display_unit);
 
+//TODO: pass buf pointer or return allocated buf (avoid statics)?
 char *bb_askpass(int timeout, const char * prompt);
 int bb_ask_confirmation(void);
 int klogctl(int type, char * b, int len);
@@ -624,7 +627,7 @@ extern void vfork_daemon_rexec(int nochdir, int noclose,
 #endif
 extern int get_terminal_width_height(const int fd, int *width, int *height);
 
-int is_in_ino_dev_hashtable(const struct stat *statbuf, char **name);
+char *is_in_ino_dev_hashtable(const struct stat *statbuf);
 void add_to_ino_dev_hashtable(const struct stat *statbuf, const char *name);
 void reset_ino_dev_hashtable(void);
 #ifdef __GLIBC__

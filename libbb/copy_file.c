@@ -172,22 +172,21 @@ int copy_file(const char *source, const char *dest, int flags)
 		if (ENABLE_FEATURE_PRESERVE_HARDLINKS) {
 			char *link_name;
 
-			if (!FLAGS_DEREF
-			 && is_in_ino_dev_hashtable(&source_stat, &link_name)
-			) {
-				if (link(link_name, dest) < 0) {
-					ovr = retry_overwrite(dest, flags);
-					if (ovr <= 0)
-						return ovr;
+			if (!FLAGS_DEREF) {
+				link_name = is_in_ino_dev_hashtable(&source_stat);
+				if (link_name) {
 					if (link(link_name, dest) < 0) {
-						bb_perror_msg("cannot create link '%s'", dest);
-						return -1;
+						ovr = retry_overwrite(dest, flags);
+						if (ovr <= 0)
+							return ovr;
+						if (link(link_name, dest) < 0) {
+							bb_perror_msg("cannot create link '%s'", dest);
+							return -1;
+						}
 					}
+					return 0;
 				}
-				return 0;
 			}
-			// TODO: probably is_in_.. and add_to_...
-			// can be combined: find_or_add_...
 			add_to_ino_dev_hashtable(&source_stat, dest);
 		}
 
