@@ -355,8 +355,8 @@ struct global1 {
 	uint32_t crc;	/* shift register contents */
 };
 
-extern struct global1 *global_ptr;
-#define G1 (*(global_ptr - 1))
+extern struct global1 *ptr_to_globals;
+#define G1 (*(ptr_to_globals - 1))
 
 
 /* ===========================================================================
@@ -972,7 +972,7 @@ struct global2 {
 
 };
 
-#define G2ptr ((struct global2*)(global_ptr))
+#define G2ptr ((struct global2*)(ptr_to_globals))
 #define G2 (*G2ptr)
 
 
@@ -2131,8 +2131,8 @@ int gzip_main(int argc, char **argv)
 	}
 #endif
 
-	global_ptr = xzalloc(sizeof(struct global1) + sizeof(struct global2));
-	global_ptr++;
+	ptr_to_globals = xzalloc(sizeof(struct global1) + sizeof(struct global2));
+	ptr_to_globals++;
 	G2.l_desc.dyn_tree    = G2.dyn_ltree;
 	G2.l_desc.static_tree = G2.static_ltree;
 	G2.l_desc.extra_bits  = extra_lbits;

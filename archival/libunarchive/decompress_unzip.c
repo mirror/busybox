@@ -455,6 +455,8 @@ static int huft_build(unsigned *b, const unsigned n,
  * bl, bd: number of bits decoded by tl[] and td[]
  */
 /* called once from inflate_block */
+
+/* map formerly local static variables to globals */
 #define ml inflate_codes_ml
 #define md inflate_codes_md
 #define bb inflate_codes_bb
