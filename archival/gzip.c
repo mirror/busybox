@@ -67,12 +67,6 @@ aa:      85.1% -- replaced with aa.gz
  */
 #define SMALL_MEM
 
-//// /* Compression methods (see algorithm.doc) */
-//// /* Only STORED and DEFLATED are supported by this BusyBox module */
-//// #define STORED      0
-//// /* methods 4 to 7 reserved */
-//// #define DEFLATED    8
-
 #ifndef	INBUFSIZ
 #  ifdef SMALL_MEM
 #    define INBUFSIZ  0x2000	/* input buffer size */
@@ -307,25 +301,19 @@ struct global1 {
 	/* DECLARE(Pos, head, 1<<HASH_BITS); */
 #define head (G1.prev + WSIZE) /* hash head (see deflate.c) */
 
-
 /* number of input bytes */
 	ulg isize;		/* only 32 bits stored in .gz file */
 
-////	int method = DEFLATED;	/* compression method */
-//##	int exit_code;		/* program exit code */
+/* bbox always use stdin/stdout */
+#define ifd STDIN_FILENO	/* input file descriptor */
+#define ofd STDOUT_FILENO	/* output file descriptor */
 
-/* original time stamp (modification time) */
-	ulg time_stamp;		/* only 32 bits stored in .gz file */
-
-//TODO: get rid of this
-	int ifd;			/* input file descriptor */
-	int ofd;			/* output file descriptor */
 #ifdef DEBUG
 	unsigned insize;	/* valid bytes in l_buf */
 #endif
 	unsigned outcnt;	/* bytes in output buffer */
 
-	smallint eofile;		/* flag set at end of input file */
+	smallint eofile;	/* flag set at end of input file */
 
 /* ===========================================================================
  * Local data used by the "bit string" routines.
@@ -368,7 +356,7 @@ static void flush_outbuf(void)
 	if (G1.outcnt == 0)
 		return;
 
-	xwrite(G1.ofd, (char *) G1.outbuf, G1.outcnt);
+	xwrite(ofd, (char *) G1.outbuf, G1.outcnt);
 	G1.outcnt = 0;
 }
 
@@ -441,7 +429,7 @@ static unsigned file_read(void *buf, unsigned size)
 
 	Assert(G1.insize == 0, "l_buf not empty");
 
-	len = safe_read(G1.ifd, buf, size);
+	len = safe_read(ifd, buf, size);
 	if (len == (unsigned)(-1) || len == 0)
 		return len;
 
@@ -743,10 +731,10 @@ static void check_match(IPos start, IPos match, int length)
  *          Addison-Wesley, 1983. ISBN 0-201-06672-6.
  *
  *  INTERFACE
- *      void ct_init() //// ush *attr, int *methodp)
- *          Allocate the match buffer, initialize the various tables and save
+ *      void ct_init()
+ *          Allocate the match buffer, initialize the various tables [and save
  *          the location of the internal file attribute (ascii/binary) and
- *          method (DEFLATE/STORE)
+ *          method (DEFLATE/STORE) -- deleted in bbox]
  *
  *      void ct_tally(int dist, int lc);
  *          Save the match info and tally the frequency counts.
@@ -966,10 +954,6 @@ struct global2 {
 	ulg static_len;          /* bit length of current block with static trees */
 
 	ulg compressed_len;      /* total bit length of compressed file */
-
-////	ush *file_type;          /* pointer to UNKNOWN, BINARY or ASCII */
-////	int *file_method;        /* pointer to DEFLATE or STORE */
-
 };
 
 #define G2ptr ((struct global2*)(ptr_to_globals))
@@ -1495,31 +1479,6 @@ static void send_all_trees(int lcodes, int dcodes, int blcodes)
 }
 
 
-/////* ===========================================================================
-//// * Set the file type to ASCII or BINARY, using a crude approximation:
-//// * binary if more than 20% of the bytes are <= 6 or >= 128, ascii otherwise.
-//// * IN assertion: the fields freq of dyn_ltree are set and the total of all
-//// * frequencies does not exceed 64K (to fit in an int on 16 bit machines).
-//// */
-////static void set_file_type(void)
-////{
-////	int n = 0;
-////	unsigned ascii_freq = 0;
-////	unsigned bin_freq = 0;
-////
-////	while (n < 7)
-////		bin_freq += G2.dyn_ltree[n++].Freq;
-////	while (n < 128)
-////		ascii_freq += G2.dyn_ltree[n++].Freq;
-////	while (n < LITERALS)
-////		bin_freq += G2.dyn_ltree[n++].Freq;
-////	*G2.file_type = (bin_freq > (ascii_freq >> 2)) ? BINARY : ASCII;
-////	if (*G2.file_type == BINARY && translate_eol) {
-////		bb_error_msg("-l used on binary file");
-////	}
-////}
-
-
 /* ===========================================================================
  * Save the match info and tally the frequency counts. Return true if
  * the current block must be flushed.
@@ -1638,10 +1597,6 @@ static ulg flush_block(char *buf, ulg stored_len, int eof)
 
 	G2.flag_buf[G2.last_flags] = G2.flags;   /* Save the flags for the last 8 items */
 
-////	/* Check if the file is ascii or binary */
-////	if (*G2.file_type == (ush) UNKNOWN)
-////		set_file_type();
-
 	/* Construct the literal and distance trees */
 	build_tree(&G2.l_desc);
 	Tracev((stderr, "\nlit data: dyn %ld, stat %ld", G2.opt_len, G2.static_len));
@@ -1680,7 +1635,6 @@ static ulg flush_block(char *buf, ulg stored_len, int eof)
 
 		copy_block(buf, (unsigned) stored_len, 0);	/* without header */
 		G2.compressed_len = stored_len << 3;
-////		*file_method = STORED;
 
 	} else if (stored_len + 4 <= opt_lenb && buf != NULL) {
 		/* 4: two words for the lengths */
@@ -1931,15 +1885,13 @@ static void lm_init(ush * flagsp)
  * (DEFLATE/STORE).
  * One callsite in zip()
  */
-static void ct_init(void) ////ush * attr, int *methodp)
+static void ct_init(void)
 {
 	int n;				/* iterates over tree elements */
 	int length;			/* length value */
 	int code;			/* code value */
 	int dist;			/* distance index */
 
-////	file_type = attr;
-////	file_method = methodp;
 	G2.compressed_len = 0L;
 
 #ifdef NOT_NEEDED
@@ -2022,42 +1974,26 @@ static void ct_init(void) ////ush * attr, int *methodp)
 /* ===========================================================================
  * Deflate in to out.
  * IN assertions: the input and output buffers are cleared.
- *   The variables time_stamp and save_orig_name are initialized.
  */
 
-/* put_header_byte is used for the compressed output
- * - for the initial 4 bytes that can't overflow the buffer. */
-#define put_header_byte(c) G1.outbuf[G1.outcnt++] = (c)
-
-static void zip(int in, int out)
+static void zip(ulg time_stamp)
 {
-////	uch my_flags = 0;       /* general purpose bit flags */
-////	ush attr = 0;           /* ascii/binary flag */
 	ush deflate_flags = 0;  /* pkzip -es, -en or -ex equivalent */
-////	int method = DEFLATED;	/* compression method */
 
-	G1.ifd = in;
-	G1.ofd = out;
 	G1.outcnt = 0;
 
 	/* Write the header to the gzip file. See algorithm.doc for the format */
-
-	//put_header_byte(0x1f); /* magic header for gzip files, 1F 8B */
-	//put_header_byte(0x8b);
-	//////put_header_byte(DEFLATED); /* compression method */
-	//put_header_byte(8); /* compression method */
-	//put_header_byte(0); /* general flags */
 	/* magic header for gzip files: 1F 8B */
-	/* compression method: 8 */
+	/* compression method: 8 (DEFLATED) */
 	/* general flags: 0 */
 	put_32bit(0x00088b1f);
-	put_32bit(G1.time_stamp);
+	put_32bit(time_stamp);
 
 	/* Write deflated file to zip file */
 	G1.crc = ~0;
 
 	bi_init();
-	ct_init(); //// &attr, &method);
+	ct_init();
 	lm_init(&deflate_flags);
 
 	put_8bit(deflate_flags);	/* extra flags */
@@ -2074,94 +2010,6 @@ static void zip(int in, int out)
 
 
 /* ======================================================================== */
-#if 0
-static void abort_gzip(int ATTRIBUTE_UNUSED ignored)
-{
-	exit(1);
-}
-
-int gzip_main(int argc, char **argv);
-int gzip_main(int argc, char **argv)
-{
-
-	if (optind == argc) {
-		G1.time_stamp = 0;
-		zip(STDIN_FILENO, STDOUT_FILENO);
-		return 0; //## G1.exit_code;
-	}
-
-	for (i = optind; i < argc; i++) {
-		char *path = NULL;
-
-		clear_bufs();
-		if (LONE_DASH(argv[i])) {
-			G1.time_stamp = 0;
-			inFileNum = STDIN_FILENO;
-			outFileNum = STDOUT_FILENO;
-		} else {
-			inFileNum = xopen(argv[i], O_RDONLY);
-			if (fstat(inFileNum, &statBuf) < 0)
-				bb_perror_msg_and_die("%s", argv[i]);
-			G1.time_stamp = statBuf.st_ctime;
-
-			if (!(opt & OPT_tostdout)) {
-				path = xasprintf("%s.gz", argv[i]);
-
-				/* Open output file */
-#if defined(__GLIBC__) && __GLIBC__ >= 2 && __GLIBC_MINOR__ >= 1 && defined(O_NOFOLLOW)
-				outFileNum = open(path, O_RDWR | O_CREAT | O_EXCL | O_NOFOLLOW);
-#else
-				outFileNum = open(path, O_RDWR | O_CREAT | O_EXCL);
-#endif
-				if (outFileNum < 0) {
-					bb_perror_msg("%s", path);
-					free(path);
-					continue;
-				}
-
-				/* Set permissions on the file */
-				fchmod(outFileNum, statBuf.st_mode);
-			} else
-				outFileNum = STDOUT_FILENO;
-		}
-
-		if (path == NULL && isatty(outFileNum) && !(opt & OPT_force)) {
-			bb_error_msg("compressed data not written "
-				"to a terminal. Use -f to force compression.");
-			free(path);
-			continue;
-		}
-
-		zip(inFileNum, outFileNum);
-
-		if (path != NULL) {
-			char *delFileName;
-
-			close(inFileNum);
-			close(outFileNum);
-
-			/* Delete the original file */
-			// Pity we don't propagate zip failures to this place...
-			//if (zip_is_ok)
-				delFileName = argv[i];
-			//else
-			//	delFileName = path;
-			if (unlink(delFileName) < 0)
-				bb_perror_msg("%s", delFileName);
-		}
-
-		free(path);
-	}
-
-	return 0; //##G1.exit_code;
-}
-#endif
-
-int bbunpack(char **argv,
-        char* (*make_new_name)(char *filename),
-        USE_DESKTOP(long long) int (*unpacker)(void)
-);
-
 static
 char* make_new_name_gzip(char *filename)
 {
@@ -2173,10 +2021,10 @@ USE_DESKTOP(long long) int pack_gzip(void)
 {
 	struct stat s;
 	
-	G1.time_stamp = 0;
-	if (!fstat(STDIN_FILENO, &s))
-		G1.time_stamp = s.st_ctime;
-	zip(STDIN_FILENO, STDOUT_FILENO);
+	clear_bufs();
+	s.st_ctime = 0;
+	fstat(STDIN_FILENO, &s);
+	zip(s.st_ctime);
 	return 0;
 }
 
@@ -2187,6 +2035,7 @@ int gzip_main(int argc, char **argv)
 
 	/* Must match bbunzip's constants OPT_STDOUT, OPT_FORCE! */
 	opt = getopt32(argc, argv, "cfv" USE_GUNZIP("d") "q123456789" );
+	argv += optind;
 	option_mask32 &= 0x7; /* Clear -d, ignore -q, -0..9 */
 	//if (opt & 0x1) // -c
 	//if (opt & 0x2) // -f
@@ -2234,8 +2083,6 @@ int gzip_main(int argc, char **argv)
 
 	/* Initialise the CRC32 table */
 	G1.crc_32_tab = crc32_filltable(0);
-
-	clear_bufs();
 
 	return bbunpack(argv, make_new_name_gzip, pack_gzip);
 }
