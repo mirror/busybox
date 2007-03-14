@@ -52,15 +52,9 @@ int pidfile_acquire(const char *pidfile)
 
 void pidfile_write_release(int pid_fd)
 {
-	FILE *out;
-
 	if (pid_fd < 0) return;
 
-	out = fdopen(pid_fd, "w");
-	if (out) {
-		fprintf(out, "%d\n", getpid());
-		fclose(out);
-	}
+	fdprintf(pid_fd, "%d\n", getpid());
 	lockf(pid_fd, F_UNLCK, 0);
 	close(pid_fd);
 }
