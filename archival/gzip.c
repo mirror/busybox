@@ -67,11 +67,11 @@ aa:      85.1% -- replaced with aa.gz
  */
 #define SMALL_MEM
 
-/* Compression methods (see algorithm.doc) */
-/* Only STORED and DEFLATED are supported by this BusyBox module */
-#define STORED      0
-/* methods 4 to 7 reserved */
-#define DEFLATED    8
+//// /* Compression methods (see algorithm.doc) */
+//// /* Only STORED and DEFLATED are supported by this BusyBox module */
+//// #define STORED      0
+//// /* methods 4 to 7 reserved */
+//// #define DEFLATED    8
 
 #ifndef	INBUFSIZ
 #  ifdef SMALL_MEM
@@ -195,41 +195,8 @@ typedef uint16_t ush;
 typedef uint32_t ulg;
 typedef int32_t lng;
 
-
-/* ===========================================================================
- */
 typedef ush Pos;
 typedef unsigned IPos;
-
-/* A Pos is an index in the character window. We use short instead of int to
- * save space in the various tables. IPos is used only for parameter passing.
- */
-
-static lng block_start;
-
-/* window position at the beginning of the current output block. Gets
- * negative when the window is moved backwards.
- */
-
-static unsigned ins_h;	/* hash index of string to be inserted */
-
-#define H_SHIFT  ((HASH_BITS+MIN_MATCH-1) / MIN_MATCH)
-/* Number of bits by which ins_h and del_h must be shifted at each
- * input step. It must be such that after MIN_MATCH steps, the oldest
- * byte no longer takes part in the hash key, that is:
- * H_SHIFT * MIN_MATCH >= HASH_BITS
- */
-
-static unsigned int prev_length;
-
-/* Length of the best match at previous step. Matches not greater than this
- * are discarded. This is used in the lazy match evaluation.
- */
-
-static unsigned strstart;	/* start of string to insert */
-static unsigned match_start;	/* start of matching string */
-static int eofile;		/* flag set at end of input file */
-static unsigned lookahead;	/* number of valid bytes ahead in window */
 
 enum {
 	WINDOW_SIZE = 2 * WSIZE,
@@ -271,30 +238,53 @@ enum {
 };
 
 
+struct G1 {
+
+/* A Pos is an index in the character window. We use short instead of int to
+ * save space in the various tables. IPos is used only for parameter passing.
+ */
+	lng block_start;
+
+/* window position at the beginning of the current output block. Gets
+ * negative when the window is moved backwards.
+ */
+	unsigned ins_h;	/* hash index of string to be inserted */
+
+#define H_SHIFT  ((HASH_BITS+MIN_MATCH-1) / MIN_MATCH)
+/* Number of bits by which ins_h and del_h must be shifted at each
+ * input step. It must be such that after MIN_MATCH steps, the oldest
+ * byte no longer takes part in the hash key, that is:
+ * H_SHIFT * MIN_MATCH >= HASH_BITS
+ */
+
+	unsigned prev_length;
+
+/* Length of the best match at previous step. Matches not greater than this
+ * are discarded. This is used in the lazy match evaluation.
+ */
+
+	unsigned strstart;	/* start of string to insert */
+	unsigned match_start;	/* start of matching string */
+	unsigned lookahead;	/* number of valid bytes ahead in window */
+	smallint eofile;		/* flag set at end of input file */
+
 /* ===========================================================================
  */
 #define DECLARE(type, array, size) \
-	static type * array
-
+	type * array
 #define ALLOC(type, array, size) \
-{ \
-	array = xzalloc((size_t)(((size)+1L)/2) * 2*sizeof(type)); \
-}
-
+	array = xzalloc((size_t)(((size)+1L)/2) * 2*sizeof(type));
 #define FREE(array) \
-{ \
-	free(array); \
-	array = NULL; \
-}
+	do { free(array); array = NULL; } while (0)
 
-/* global buffers */
+	/* global buffers */
 
-/* buffer for literals or lengths */
-/* DECLARE(uch, l_buf, LIT_BUFSIZE); */
-DECLARE(uch, l_buf, INBUFSIZ);
+	/* buffer for literals or lengths */
+	/* DECLARE(uch, l_buf, LIT_BUFSIZE); */
+	DECLARE(uch, l_buf, INBUFSIZ);
 
-DECLARE(ush, d_buf, DIST_BUFSIZE);
-DECLARE(uch, outbuf, OUTBUFSIZ);
+	DECLARE(ush, d_buf, DIST_BUFSIZE);
+	DECLARE(uch, outbuf, OUTBUFSIZ);
 
 /* Sliding window. Input bytes are read into the second half of the window,
  * and move to the first half later to keep a dictionary of at least WSIZE
@@ -305,65 +295,67 @@ DECLARE(uch, outbuf, OUTBUFSIZ);
  * To do: limit the window size to WSIZE+BSZ if SMALL_MEM (the code would
  * be less efficient).
  */
-DECLARE(uch, window, 2L * WSIZE);
+	DECLARE(uch, window, 2L * WSIZE);
 
 /* Link to older string with same hash index. To limit the size of this
  * array to 64K, this link is maintained only for the last 32K strings.
  * An index in this array is thus a window index modulo 32K.
  */
-/* DECLARE(Pos, prev, WSIZE); */
-DECLARE(ush, prev, 1L << BITS);
+	/* DECLARE(Pos, prev, WSIZE); */
+	DECLARE(ush, prev, 1L << BITS);
 
 /* Heads of the hash chains or 0. */
-/* DECLARE(Pos, head, 1<<HASH_BITS); */
-#define head (prev+WSIZE) /* hash head (see deflate.c) */
+	/* DECLARE(Pos, head, 1<<HASH_BITS); */
+#define head (G1.prev + WSIZE) /* hash head (see deflate.c) */
 
 
 /* number of input bytes */
-static ulg isize;		/* only 32 bits stored in .gz file */
+	ulg isize;		/* only 32 bits stored in .gz file */
 
-static int foreground;		/* set if program run in foreground */
-static int method = DEFLATED;	/* compression method */
-static int exit_code;		/* program exit code */
+////	int method = DEFLATED;	/* compression method */
+//##	int exit_code;		/* program exit code */
 
 /* original time stamp (modification time) */
-static ulg time_stamp;		/* only 32 bits stored in .gz file */
+	ulg time_stamp;		/* only 32 bits stored in .gz file */
 
-static int ifd;			/* input file descriptor */
-static int ofd;			/* output file descriptor */
+	int ifd;			/* input file descriptor */
+	int ofd;			/* output file descriptor */
 #ifdef DEBUG
-static unsigned insize;	/* valid bytes in l_buf */
+	unsigned insize;	/* valid bytes in l_buf */
 #endif
-static unsigned outcnt;	/* bytes in output buffer */
+	unsigned outcnt;	/* bytes in output buffer */
 
-static uint32_t *crc_32_tab;
+	uint32_t *crc_32_tab;
 
 
 /* ===========================================================================
  * Local data used by the "bit string" routines.
  */
 
-//// static int zfile;	/* output gzip file */
-
-static unsigned short bi_buf;
+	unsigned short bi_buf;
 
 /* Output buffer. bits are inserted starting at the bottom (least significant
  * bits).
  */
 
 #undef BUF_SIZE
-#define BUF_SIZE (8 * sizeof(bi_buf))
+#define BUF_SIZE (8 * sizeof(G1.bi_buf))
 /* Number of bits used within bi_buf. (bi_buf might be implemented on
  * more than 16 bits on some systems.)
  */
 
-static int bi_valid;
+	int bi_valid;
 
 /* Current input function. Set to mem_read for in-memory compression */
 
 #ifdef DEBUG
-static ulg bits_sent;			/* bit length of the compressed data */
+	ulg bits_sent;			/* bit length of the compressed data */
 #endif
+
+	uint32_t crc;	/* shift register contents */
+};
+
+static struct G1 G1;
 
 
 /* ===========================================================================
@@ -372,11 +364,11 @@ static ulg bits_sent;			/* bit length of the compressed data */
  */
 static void flush_outbuf(void)
 {
-	if (outcnt == 0)
+	if (G1.outcnt == 0)
 		return;
 
-	xwrite(ofd, (char *) outbuf, outcnt);
-	outcnt = 0;
+	xwrite(G1.ofd, (char *) G1.outbuf, G1.outcnt);
+	G1.outcnt = 0;
 }
 
 
@@ -384,17 +376,17 @@ static void flush_outbuf(void)
  */
 /* put_8bit is used for the compressed output */
 #define put_8bit(c) \
-{ \
-	outbuf[outcnt++] = (c); \
-	if (outcnt == OUTBUFSIZ) flush_outbuf(); \
-}
+do { \
+	G1.outbuf[G1.outcnt++] = (c); \
+	if (G1.outcnt == OUTBUFSIZ) flush_outbuf(); \
+} while (0)
 
 /* Output a 16 bit value, lsb first */
 static void put_16bit(ush w)
 {
-	if (outcnt < OUTBUFSIZ - 2) {
-		outbuf[outcnt++] = w;
-		outbuf[outcnt++] = w >> 8;
+	if (G1.outcnt < OUTBUFSIZ - 2) {
+		G1.outbuf[G1.outcnt++] = w;
+		G1.outbuf[G1.outcnt++] = w >> 8;
 	} else {
 		put_8bit(w);
 		put_8bit(w >> 8);
@@ -412,11 +404,11 @@ static void put_32bit(ulg n)
  */
 static void clear_bufs(void)
 {
-	outcnt = 0;
+	G1.outcnt = 0;
 #ifdef DEBUG
-	insize = 0;
+	G1.insize = 0;
 #endif
-	isize = 0;
+	G1.isize = 0;
 }
 
 
@@ -425,15 +417,14 @@ static void clear_bufs(void)
  * pointer, then initialize the crc shift register contents instead.
  * Return the current crc in either case.
  */
-static uint32_t crc;	/* shift register contents */
 static uint32_t updcrc(uch * s, unsigned n)
 {
-	uint32_t c = crc;
+	uint32_t c = G1.crc;
 	while (n) {
-		c = crc_32_tab[(uch)(c ^ *s++)] ^ (c >> 8);
+		c = G1.crc_32_tab[(uch)(c ^ *s++)] ^ (c >> 8);
 		n--;
 	}
-	crc = c;
+	G1.crc = c;
 	return c;
 }
 
@@ -447,14 +438,14 @@ static unsigned file_read(void *buf, unsigned size)
 {
 	unsigned len;
 
-	Assert(insize == 0, "l_buf not empty");
+	Assert(G1.insize == 0, "l_buf not empty");
 
-	len = safe_read(ifd, buf, size);
+	len = safe_read(G1.ifd, buf, size);
 	if (len == (unsigned)(-1) || len == 0)
 		return len;
 
 	updcrc(buf, len);
-	isize += len;
+	G1.isize += len;
 	return len;
 }
 
@@ -468,20 +459,20 @@ static void send_bits(int value, int length)
 #ifdef DEBUG
 	Tracev((stderr, " l %2d v %4x ", length, value));
 	Assert(length > 0 && length <= 15, "invalid length");
-	bits_sent += length;
+	G1.bits_sent += length;
 #endif
 	/* If not enough room in bi_buf, use (valid) bits from bi_buf and
 	 * (16 - bi_valid) bits from value, leaving (width - (16-bi_valid))
 	 * unused bits in value.
 	 */
-	if (bi_valid > (int) BUF_SIZE - length) {
-		bi_buf |= (value << bi_valid);
-		put_16bit(bi_buf);
-		bi_buf = (ush) value >> (BUF_SIZE - bi_valid);
-		bi_valid += length - BUF_SIZE;
+	if (G1.bi_valid > (int) BUF_SIZE - length) {
+		G1.bi_buf |= (value << G1.bi_valid);
+		put_16bit(G1.bi_buf);
+		G1.bi_buf = (ush) value >> (BUF_SIZE - G1.bi_valid);
+		G1.bi_valid += length - BUF_SIZE;
 	} else {
-		bi_buf |= value << bi_valid;
-		bi_valid += length;
+		G1.bi_buf |= value << G1.bi_valid;
+		G1.bi_valid += length;
 	}
 }
 
@@ -509,15 +500,15 @@ static unsigned bi_reverse(unsigned code, int len)
  */
 static void bi_windup(void)
 {
-	if (bi_valid > 8) {
-		put_16bit(bi_buf);
-	} else if (bi_valid > 0) {
-		put_8bit(bi_buf);
+	if (G1.bi_valid > 8) {
+		put_16bit(G1.bi_buf);
+	} else if (G1.bi_valid > 0) {
+		put_8bit(G1.bi_buf);
 	}
-	bi_buf = 0;
-	bi_valid = 0;
+	G1.bi_buf = 0;
+	G1.bi_valid = 0;
 #ifdef DEBUG
-	bits_sent = (bits_sent + 7) & ~7;
+	G1.bits_sent = (G1.bits_sent + 7) & ~7;
 #endif
 }
 
@@ -534,11 +525,11 @@ static void copy_block(char *buf, unsigned len, int header)
 		put_16bit(len);
 		put_16bit(~len);
 #ifdef DEBUG
-		bits_sent += 2 * 16;
+		G1.bits_sent += 2 * 16;
 #endif
 	}
 #ifdef DEBUG
-	bits_sent += (ulg) len << 3;
+	G1.bits_sent += (ulg) len << 3;
 #endif
 	while (len--) {
 		put_8bit(*buf++);
@@ -557,7 +548,7 @@ static void copy_block(char *buf, unsigned len, int header)
 static void fill_window(void)
 {
 	unsigned n, m;
-	unsigned more =	WINDOW_SIZE - lookahead - strstart;
+	unsigned more =	WINDOW_SIZE - G1.lookahead - G1.strstart;
 	/* Amount of free space at the end of the window. */
 
 	/* If the window is almost full and there is insufficient lookahead,
@@ -568,25 +559,25 @@ static void fill_window(void)
 		 * and lookahead == 1 (input done one byte at time)
 		 */
 		more--;
-	} else if (strstart >= WSIZE + MAX_DIST) {
+	} else if (G1.strstart >= WSIZE + MAX_DIST) {
 		/* By the IN assertion, the window is not empty so we can't confuse
 		 * more == 0 with more == 64K on a 16 bit machine.
 		 */
 		Assert(WINDOW_SIZE == 2 * WSIZE, "no sliding with BIG_MEM");
 
-		memcpy(window, window + WSIZE, WSIZE);
-		match_start -= WSIZE;
-		strstart -= WSIZE;	/* we now have strstart >= MAX_DIST: */
+		memcpy(G1.window, G1.window + WSIZE, WSIZE);
+		G1.match_start -= WSIZE;
+		G1.strstart -= WSIZE;	/* we now have strstart >= MAX_DIST: */
 
-		block_start -= WSIZE;
+		G1.block_start -= WSIZE;
 
 		for (n = 0; n < HASH_SIZE; n++) {
 			m = head[n];
 			head[n] = (Pos) (m >= WSIZE ? m - WSIZE : 0);
 		}
 		for (n = 0; n < WSIZE; n++) {
-			m = prev[n];
-			prev[n] = (Pos) (m >= WSIZE ? m - WSIZE : 0);
+			m = G1.prev[n];
+			G1.prev[n] = (Pos) (m >= WSIZE ? m - WSIZE : 0);
 			/* If n is not on any hash chain, prev[n] is garbage but
 			 * its value will never be used.
 			 */
@@ -594,12 +585,12 @@ static void fill_window(void)
 		more += WSIZE;
 	}
 	/* At this point, more >= 2 */
-	if (!eofile) {
-		n = file_read(window + strstart + lookahead, more);
+	if (!G1.eofile) {
+		n = file_read(G1.window + G1.strstart + G1.lookahead, more);
 		if (n == 0 || n == (unsigned) -1) {
-			eofile = 1;
+			G1.eofile = 1;
 		} else {
-			lookahead += n;
+			G1.lookahead += n;
 		}
 	}
 }
@@ -621,11 +612,11 @@ static void fill_window(void)
 static int longest_match(IPos cur_match)
 {
 	unsigned chain_length = max_chain_length;	/* max hash chain length */
-	uch *scan = window + strstart;	/* current string */
+	uch *scan = G1.window + G1.strstart;	/* current string */
 	uch *match;	/* matched string */
 	int len;	/* length of current match */
-	int best_len = prev_length;	/* best match length so far */
-	IPos limit = strstart > (IPos) MAX_DIST ? strstart - (IPos) MAX_DIST : 0;
+	int best_len = G1.prev_length;	/* best match length so far */
+	IPos limit = G1.strstart > (IPos) MAX_DIST ? G1.strstart - (IPos) MAX_DIST : 0;
 	/* Stop when cur_match becomes <= limit. To simplify the code,
 	 * we prevent matches with the string of window index 0.
 	 */
@@ -636,19 +627,19 @@ static int longest_match(IPos cur_match)
 #if HASH_BITS < 8 || MAX_MATCH != 258
 #  error Code too clever
 #endif
-	uch *strend = window + strstart + MAX_MATCH;
+	uch *strend = G1.window + G1.strstart + MAX_MATCH;
 	uch scan_end1 = scan[best_len - 1];
 	uch scan_end = scan[best_len];
 
 	/* Do not waste too much time if we already have a good match: */
-	if (prev_length >= good_match) {
+	if (G1.prev_length >= good_match) {
 		chain_length >>= 2;
 	}
-	Assert(strstart <= WINDOW_SIZE - MIN_LOOKAHEAD, "insufficient lookahead");
+	Assert(G1.strstart <= WINDOW_SIZE - MIN_LOOKAHEAD, "insufficient lookahead");
 
 	do {
-		Assert(cur_match < strstart, "no future");
-		match = window + cur_match;
+		Assert(cur_match < G1.strstart, "no future");
+		match = G1.window + cur_match;
 
 		/* Skip to next match if the match length cannot increase
 		 * or if the match length is less than 2:
@@ -679,14 +670,14 @@ static int longest_match(IPos cur_match)
 		scan = strend - MAX_MATCH;
 
 		if (len > best_len) {
-			match_start = cur_match;
+			G1.match_start = cur_match;
 			best_len = len;
 			if (len >= nice_match)
 				break;
 			scan_end1 = scan[best_len - 1];
 			scan_end = scan[best_len];
 		}
-	} while ((cur_match = prev[cur_match & WMASK]) > limit
+	} while ((cur_match = G1.prev[cur_match & WMASK]) > limit
 			 && --chain_length != 0);
 
 	return best_len;
@@ -700,14 +691,14 @@ static int longest_match(IPos cur_match)
 static void check_match(IPos start, IPos match, int length)
 {
 	/* check that the match is indeed a match */
-	if (memcmp(window + match, window + start, length) != 0) {
+	if (memcmp(G1.window + match, G1.window + start, length) != 0) {
 		bb_error_msg(" start %d, match %d, length %d", start, match, length);
 		bb_error_msg("invalid match");
 	}
 	if (verbose > 1) {
 		bb_error_msg("\\[%d,%d]", start - match, length);
 		do {
-			putc(window[start++], stderr);
+			putc(G1.window[start++], stderr);
 		} while (--length != 0);
 	}
 }
@@ -751,7 +742,7 @@ static void check_match(IPos start, IPos match, int length)
  *          Addison-Wesley, 1983. ISBN 0-201-06672-6.
  *
  *  INTERFACE
- *      void ct_init(ush *attr, int *methodp)
+ *      void ct_init() //// ush *attr, int *methodp)
  *          Allocate the match buffer, initialize the various tables and save
  *          the location of the internal file attribute (ascii/binary) and
  *          method (DEFLATE/STORE)
@@ -806,6 +797,10 @@ static const extra_bits_t extra_dbits[D_CODES] = {
 /* extra bits for each bit length code */
 static const extra_bits_t extra_blbits[BL_CODES] = {
 	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 3, 7 };
+
+/* number of codes at each bit length for an optimal tree */
+static const uch bl_order[BL_CODES] = {
+	16, 17, 18, 0, 8, 7, 9, 6, 10, 5, 11, 4, 12, 3, 13, 2, 14, 1, 15 };
 
 #define STORED_BLOCK 0
 #define STATIC_TREES 1
@@ -875,37 +870,6 @@ typedef struct ct_data {
 #define HEAP_SIZE (2*L_CODES + 1)
 /* maximum heap size */
 
-////static int heap[HEAP_SIZE];     /* heap used to build the Huffman trees */
-////let's try this
-static ush heap[HEAP_SIZE];     /* heap used to build the Huffman trees */
-static int heap_len;            /* number of elements in the heap */
-static int heap_max;            /* element of largest frequency */
-
-/* The sons of heap[n] are heap[2*n] and heap[2*n+1]. heap[0] is not used.
- * The same heap array is used to build all trees.
- */
-
-static ct_data dyn_ltree[HEAP_SIZE];	/* literal and length tree */
-static ct_data dyn_dtree[2 * D_CODES + 1];	/* distance tree */
-
-static ct_data static_ltree[L_CODES + 2];
-
-/* The static literal tree. Since the bit lengths are imposed, there is no
- * need for the L_CODES extra codes used during heap construction. However
- * The codes 286 and 287 are needed to build a canonical tree (see ct_init
- * below).
- */
-
-static ct_data static_dtree[D_CODES];
-
-/* The static distance tree. (Actually a trivial tree since all codes use
- * 5 bits.)
- */
-
-static ct_data bl_tree[2 * BL_CODES + 1];
-
-/* Huffman tree for the bit lengths */
-
 typedef struct tree_desc {
 	ct_data *dyn_tree;	/* the dynamic tree */
 	ct_data *static_tree;	/* corresponding static tree or NULL */
@@ -916,79 +880,115 @@ typedef struct tree_desc {
 	int max_code;		/* largest code with non zero frequency */
 } tree_desc;
 
-static tree_desc l_desc = {
-	dyn_ltree, static_ltree, extra_lbits,
-	LITERALS + 1, L_CODES, MAX_BITS, 0
-};
+struct G2 {
 
-static tree_desc d_desc = {
-	dyn_dtree, static_dtree, extra_dbits, 0, D_CODES, MAX_BITS, 0
-};
+	ush heap[HEAP_SIZE];     /* heap used to build the Huffman trees */
+	int heap_len;            /* number of elements in the heap */
+	int heap_max;            /* element of largest frequency */
 
-static tree_desc bl_desc = {
-	bl_tree, NULL, extra_blbits, 0, BL_CODES, MAX_BL_BITS,	0
-};
+/* The sons of heap[n] are heap[2*n] and heap[2*n+1]. heap[0] is not used.
+ * The same heap array is used to build all trees.
+ */
 
+	ct_data dyn_ltree[HEAP_SIZE];	/* literal and length tree */
+	ct_data dyn_dtree[2 * D_CODES + 1];	/* distance tree */
 
-static ush bl_count[MAX_BITS + 1];
+	ct_data static_ltree[L_CODES + 2];
 
-/* number of codes at each bit length for an optimal tree */
+/* The static literal tree. Since the bit lengths are imposed, there is no
+ * need for the L_CODES extra codes used during heap construction. However
+ * The codes 286 and 287 are needed to build a canonical tree (see ct_init
+ * below).
+ */
 
-static const uch bl_order[BL_CODES] = {
-	16, 17, 18, 0, 8, 7, 9, 6, 10, 5, 11, 4, 12, 3, 13, 2, 14, 1, 15
-};
+	ct_data static_dtree[D_CODES];
+
+/* The static distance tree. (Actually a trivial tree since all codes use
+ * 5 bits.)
+ */
+
+	ct_data bl_tree[2 * BL_CODES + 1];
+
+/* Huffman tree for the bit lengths */
+
+	tree_desc l_desc;
+	tree_desc d_desc;
+	tree_desc bl_desc;
+
+	ush bl_count[MAX_BITS + 1];
 
 /* The lengths of the bit length codes are sent in order of decreasing
  * probability, to avoid transmitting the lengths for unused bit length codes.
  */
 
-static uch depth[2 * L_CODES + 1];
+	uch depth[2 * L_CODES + 1];
 
 /* Depth of each subtree used as tie breaker for trees of equal frequency */
 
-static uch length_code[MAX_MATCH - MIN_MATCH + 1];
+	uch length_code[MAX_MATCH - MIN_MATCH + 1];
 
 /* length code for each normalized match length (0 == MIN_MATCH) */
 
-static uch dist_code[512];
+	uch dist_code[512];
 
 /* distance codes. The first 256 values correspond to the distances
  * 3 .. 258, the last 256 values correspond to the top 8 bits of
  * the 15 bit distances.
  */
 
-static int base_length[LENGTH_CODES];
+	int base_length[LENGTH_CODES];
 
 /* First normalized length for each code (0 = MIN_MATCH) */
 
-static int base_dist[D_CODES];
+	int base_dist[D_CODES];
 
 /* First normalized distance for each code (0 = distance of 1) */
 
-static uch flag_buf[LIT_BUFSIZE / 8];
+	uch flag_buf[LIT_BUFSIZE / 8];
 
 /* flag_buf is a bit array distinguishing literals from lengths in
  * l_buf, thus indicating the presence or absence of a distance.
  */
 
-static unsigned last_lit;       /* running index in l_buf */
-static unsigned last_dist;      /* running index in d_buf */
-static unsigned last_flags;     /* running index in flag_buf */
-static uch flags;               /* current flags not yet saved in flag_buf */
-static uch flag_bit;            /* current bit used in flags */
+	unsigned last_lit;       /* running index in l_buf */
+	unsigned last_dist;      /* running index in d_buf */
+	unsigned last_flags;     /* running index in flag_buf */
+	uch flags;               /* current flags not yet saved in flag_buf */
+	uch flag_bit;            /* current bit used in flags */
 
 /* bits are filled in flags starting at bit 0 (least significant).
  * Note: these flags are overkill in the current code since we don't
  * take advantage of DIST_BUFSIZE == LIT_BUFSIZE.
  */
 
-static ulg opt_len;             /* bit length of current block with optimal trees */
-static ulg static_len;          /* bit length of current block with static trees */
+	ulg opt_len;             /* bit length of current block with optimal trees */
+	ulg static_len;          /* bit length of current block with static trees */
 
-static ulg compressed_len;      /* total bit length of compressed file */
+	ulg compressed_len;      /* total bit length of compressed file */
 
-static ush *file_type;          /* pointer to UNKNOWN, BINARY or ASCII */
-static int *file_method;        /* pointer to DEFLATE or STORE */
+////	ush *file_type;          /* pointer to UNKNOWN, BINARY or ASCII */
+////	int *file_method;        /* pointer to DEFLATE or STORE */
+
+};
+
+static struct G2 *G2ptr;
+#define G2 (*G2ptr)
+/* {
+	.l_desc = {
+		G2.dyn_ltree, G2.static_ltree, extra_lbits,
+		LITERALS + 1, L_CODES, MAX_BITS, 0
+	},
+	.d_desc = {
+		G2.dyn_dtree, G2.static_dtree, extra_dbits,
+		0, D_CODES, MAX_BITS, 0
+	},
+	.bl_desc = {
+		G2.bl_tree, NULL, extra_blbits,
+		0, BL_CODES, MAX_BL_BITS, 0
+	}
+};
+*/
+
 
 /* ===========================================================================
  */
@@ -1013,7 +1013,7 @@ static void compress_block(ct_data * ltree, ct_data * dtree);
 #endif
 
 #define D_CODE(dist) \
-	((dist) < 256 ? dist_code[dist] : dist_code[256 + ((dist)>>7)])
+	((dist) < 256 ? G2.dist_code[dist] : G2.dist_code[256 + ((dist)>>7)])
 /* Mapping from a distance to a distance code. dist is the distance - 1 and
  * must not have side effects. dist_code[256] and dist_code[257] are never
  * used.
@@ -1030,17 +1030,17 @@ static void init_block(void)
 
 	/* Initialize the trees. */
 	for (n = 0; n < L_CODES; n++)
-		dyn_ltree[n].Freq = 0;
+		G2.dyn_ltree[n].Freq = 0;
 	for (n = 0; n < D_CODES; n++)
-		dyn_dtree[n].Freq = 0;
+		G2.dyn_dtree[n].Freq = 0;
 	for (n = 0; n < BL_CODES; n++)
-		bl_tree[n].Freq = 0;
+		G2.bl_tree[n].Freq = 0;
 
-	dyn_ltree[END_BLOCK].Freq = 1;
-	opt_len = static_len = 0;
-	last_lit = last_dist = last_flags = 0;
-	flags = 0;
-	flag_bit = 1;
+	G2.dyn_ltree[END_BLOCK].Freq = 1;
+	G2.opt_len = G2.static_len = 0;
+	G2.last_lit = G2.last_dist = G2.last_flags = 0;
+	G2.flags = 0;
+	G2.flag_bit = 1;
 }
 
 
@@ -1055,30 +1055,30 @@ static void init_block(void)
  * the subtrees have equal frequency. This minimizes the worst case length. */
 #define SMALLER(tree, n, m) \
 	(tree[n].Freq < tree[m].Freq \
-	|| (tree[n].Freq == tree[m].Freq && depth[n] <= depth[m]))
+	|| (tree[n].Freq == tree[m].Freq && G2.depth[n] <= G2.depth[m]))
 
 static void pqdownheap(ct_data * tree, int k)
 {
-	int v = heap[k];
+	int v = G2.heap[k];
 	int j = k << 1;		/* left son of k */
 
-	while (j <= heap_len) {
+	while (j <= G2.heap_len) {
 		/* Set j to the smallest of the two sons: */
-		if (j < heap_len && SMALLER(tree, heap[j + 1], heap[j]))
+		if (j < G2.heap_len && SMALLER(tree, G2.heap[j + 1], G2.heap[j]))
 			j++;
 
 		/* Exit if v is smaller than both sons */
-		if (SMALLER(tree, v, heap[j]))
+		if (SMALLER(tree, v, G2.heap[j]))
 			break;
 
 		/* Exchange v with the smallest son */
-		heap[k] = heap[j];
+		G2.heap[k] = G2.heap[j];
 		k = j;
 
 		/* And continue down the tree, setting j to the left son of k */
 		j <<= 1;
 	}
-	heap[k] = v;
+	G2.heap[k] = v;
 }
 
 
@@ -1108,15 +1108,15 @@ static void gen_bitlen(tree_desc * desc)
 	int overflow = 0;	/* number of elements with bit length too large */
 
 	for (bits = 0; bits <= MAX_BITS; bits++)
-		bl_count[bits] = 0;
+		G2.bl_count[bits] = 0;
 
 	/* In a first pass, compute the optimal bit lengths (which may
 	 * overflow in the case of the bit length tree).
 	 */
-	tree[heap[heap_max]].Len = 0;	/* root of the heap */
+	tree[G2.heap[G2.heap_max]].Len = 0;	/* root of the heap */
 
-	for (h = heap_max + 1; h < HEAP_SIZE; h++) {
-		n = heap[h];
+	for (h = G2.heap_max + 1; h < HEAP_SIZE; h++) {
+		n = G2.heap[h];
 		bits = tree[tree[n].Dad].Len + 1;
 		if (bits > max_length) {
 			bits = max_length;
@@ -1128,15 +1128,15 @@ static void gen_bitlen(tree_desc * desc)
 		if (n > max_code)
 			continue;	/* not a leaf node */
 
-		bl_count[bits]++;
+		G2.bl_count[bits]++;
 		xbits = 0;
 		if (n >= base)
 			xbits = extra[n - base];
 		f = tree[n].Freq;
-		opt_len += (ulg) f *(bits + xbits);
+		G2.opt_len += (ulg) f *(bits + xbits);
 
 		if (stree)
-			static_len += (ulg) f * (stree[n].Len + xbits);
+			G2.static_len += (ulg) f * (stree[n].Len + xbits);
 	}
 	if (overflow == 0)
 		return;
@@ -1147,11 +1147,11 @@ static void gen_bitlen(tree_desc * desc)
 	/* Find the first bit length which could increase: */
 	do {
 		bits = max_length - 1;
-		while (bl_count[bits] == 0)
+		while (G2.bl_count[bits] == 0)
 			bits--;
-		bl_count[bits]--;	/* move one leaf down the tree */
-		bl_count[bits + 1] += 2;	/* move one overflow item as its brother */
-		bl_count[max_length]--;
+		G2.bl_count[bits]--;	/* move one leaf down the tree */
+		G2.bl_count[bits + 1] += 2;	/* move one overflow item as its brother */
+		G2.bl_count[max_length]--;
 		/* The brother of the overflow item also moves one step up,
 		 * but this does not affect bl_count[max_length]
 		 */
@@ -1164,14 +1164,14 @@ static void gen_bitlen(tree_desc * desc)
 	 * from 'ar' written by Haruhiko Okumura.)
 	 */
 	for (bits = max_length; bits != 0; bits--) {
-		n = bl_count[bits];
+		n = G2.bl_count[bits];
 		while (n != 0) {
-			m = heap[--h];
+			m = G2.heap[--h];
 			if (m > max_code)
 				continue;
 			if (tree[m].Len != (unsigned) bits) {
 				Trace((stderr, "code %d bits %d->%d\n", m, tree[m].Len, bits));
-				opt_len += ((int32_t) bits - tree[m].Len) * tree[m].Freq;
+				G2.opt_len += ((int32_t) bits - tree[m].Len) * tree[m].Freq;
 				tree[m].Len = bits;
 			}
 			n--;
@@ -1199,12 +1199,12 @@ static void gen_codes(ct_data * tree, int max_code)
 	 * without bit reversal.
 	 */
 	for (bits = 1; bits <= MAX_BITS; bits++) {
-		next_code[bits] = code = (code + bl_count[bits - 1]) << 1;
+		next_code[bits] = code = (code + G2.bl_count[bits - 1]) << 1;
 	}
 	/* Check that the bit counts in bl_count are consistent. The last code
 	 * must be all ones.
 	 */
-	Assert(code + bl_count[MAX_BITS] - 1 == (1 << MAX_BITS) - 1,
+	Assert(code + G2.bl_count[MAX_BITS] - 1 == (1 << MAX_BITS) - 1,
 		   "inconsistent bit counts");
 	Tracev((stderr, "\ngen_codes: max_code %d ", max_code));
 
@@ -1216,7 +1216,7 @@ static void gen_codes(ct_data * tree, int max_code)
 		/* Now reverse the bits */
 		tree[n].Code = bi_reverse(next_code[len]++, len);
 
-		Tracec(tree != static_ltree,
+		Tracec(tree != G2.static_ltree,
 			   (stderr, "\nn %3d %c l %2d c %4x (%x) ", n,
 				(isgraph(n) ? n : ' '), len, tree[n].Code,
 				next_code[len] - 1));
@@ -1240,11 +1240,11 @@ static void gen_codes(ct_data * tree, int max_code)
 /* Index within the heap array of least frequent node in the Huffman tree */
 
 #define PQREMOVE(tree, top) \
-{ \
-	top = heap[SMALLEST]; \
-	heap[SMALLEST] = heap[heap_len--]; \
+do { \
+	top = G2.heap[SMALLEST]; \
+	G2.heap[SMALLEST] = G2.heap[G2.heap_len--]; \
 	pqdownheap(tree, SMALLEST); \
-}
+} while (0)
 
 static void build_tree(tree_desc * desc)
 {
@@ -1259,12 +1259,13 @@ static void build_tree(tree_desc * desc)
 	 * heap[SMALLEST]. The sons of heap[n] are heap[2*n] and heap[2*n+1].
 	 * heap[0] is not used.
 	 */
-	heap_len = 0, heap_max = HEAP_SIZE;
+	G2.heap_len = 0;
+	G2.heap_max = HEAP_SIZE;
 
 	for (n = 0; n < elems; n++) {
 		if (tree[n].Freq != 0) {
-			heap[++heap_len] = max_code = n;
-			depth[n] = 0;
+			G2.heap[++G2.heap_len] = max_code = n;
+			G2.depth[n] = 0;
 		} else {
 			tree[n].Len = 0;
 		}
@@ -1275,14 +1276,14 @@ static void build_tree(tree_desc * desc)
 	 * possible code. So to avoid special checks later on we force at least
 	 * two codes of non zero frequency.
 	 */
-	while (heap_len < 2) {
-		int new = heap[++heap_len] = (max_code < 2 ? ++max_code : 0);
+	while (G2.heap_len < 2) {
+		int new = G2.heap[++G2.heap_len] = (max_code < 2 ? ++max_code : 0);
 
 		tree[new].Freq = 1;
-		depth[new] = 0;
-		opt_len--;
+		G2.depth[new] = 0;
+		G2.opt_len--;
 		if (stree)
-			static_len -= stree[new].Len;
+			G2.static_len -= stree[new].Len;
 		/* new is 0 or 1 so it does not have extra bits */
 	}
 	desc->max_code = max_code;
@@ -1290,7 +1291,7 @@ static void build_tree(tree_desc * desc)
 	/* The elements heap[heap_len/2+1 .. heap_len] are leaves of the tree,
 	 * establish sub-heaps of increasing lengths:
 	 */
-	for (n = heap_len / 2; n >= 1; n--)
+	for (n = G2.heap_len / 2; n >= 1; n--)
 		pqdownheap(tree, n);
 
 	/* Construct the Huffman tree by repeatedly combining the least two
@@ -1298,28 +1299,28 @@ static void build_tree(tree_desc * desc)
 	 */
 	do {
 		PQREMOVE(tree, n);	/* n = node of least frequency */
-		m = heap[SMALLEST];	/* m = node of next least frequency */
+		m = G2.heap[SMALLEST];	/* m = node of next least frequency */
 
-		heap[--heap_max] = n;	/* keep the nodes sorted by frequency */
-		heap[--heap_max] = m;
+		G2.heap[--G2.heap_max] = n;	/* keep the nodes sorted by frequency */
+		G2.heap[--G2.heap_max] = m;
 
 		/* Create a new node father of n and m */
 		tree[node].Freq = tree[n].Freq + tree[m].Freq;
-		depth[node] = MAX(depth[n], depth[m]) + 1;
+		G2.depth[node] = MAX(G2.depth[n], G2.depth[m]) + 1;
 		tree[n].Dad = tree[m].Dad = (ush) node;
 #ifdef DUMP_BL_TREE
-		if (tree == bl_tree) {
+		if (tree == G2.bl_tree) {
 			bb_error_msg("\nnode %d(%d), sons %d(%d) %d(%d)",
 					node, tree[node].Freq, n, tree[n].Freq, m, tree[m].Freq);
 		}
 #endif
 		/* and insert the new node in the heap */
-		heap[SMALLEST] = node++;
+		G2.heap[SMALLEST] = node++;
 		pqdownheap(tree, SMALLEST);
 
-	} while (heap_len >= 2);
+	} while (G2.heap_len >= 2);
 
-	heap[--heap_max] = heap[SMALLEST];
+	G2.heap[--G2.heap_max] = G2.heap[SMALLEST];
 
 	/* At this point, the fields freq and dad are set. We can now
 	 * generate the bit lengths.
@@ -1360,15 +1361,15 @@ static void scan_tree(ct_data * tree, int max_code)
 			continue;
 
 		if (count < min_count) {
-			bl_tree[curlen].Freq += count;
+			G2.bl_tree[curlen].Freq += count;
 		} else if (curlen != 0) {
 			if (curlen != prevlen)
-				bl_tree[curlen].Freq++;
-			bl_tree[REP_3_6].Freq++;
+				G2.bl_tree[curlen].Freq++;
+			G2.bl_tree[REP_3_6].Freq++;
 		} else if (count <= 10) {
-			bl_tree[REPZ_3_10].Freq++;
+			G2.bl_tree[REPZ_3_10].Freq++;
 		} else {
-			bl_tree[REPZ_11_138].Freq++;
+			G2.bl_tree[REPZ_11_138].Freq++;
 		}
 		count = 0;
 		prevlen = curlen;
@@ -1411,21 +1412,21 @@ static void send_tree(ct_data * tree, int max_code)
 			continue;
 		} else if (count < min_count) {
 			do {
-				SEND_CODE(curlen, bl_tree);
+				SEND_CODE(curlen, G2.bl_tree);
 			} while (--count);
 		} else if (curlen != 0) {
 			if (curlen != prevlen) {
-				SEND_CODE(curlen, bl_tree);
+				SEND_CODE(curlen, G2.bl_tree);
 				count--;
 			}
 			Assert(count >= 3 && count <= 6, " 3_6?");
-			SEND_CODE(REP_3_6, bl_tree);
+			SEND_CODE(REP_3_6, G2.bl_tree);
 			send_bits(count - 3, 2);
 		} else if (count <= 10) {
-			SEND_CODE(REPZ_3_10, bl_tree);
+			SEND_CODE(REPZ_3_10, G2.bl_tree);
 			send_bits(count - 3, 3);
 		} else {
-			SEND_CODE(REPZ_11_138, bl_tree);
+			SEND_CODE(REPZ_11_138, G2.bl_tree);
 			send_bits(count - 11, 7);
 		}
 		count = 0;
@@ -1453,11 +1454,11 @@ static int build_bl_tree(void)
 	int max_blindex;	/* index of last bit length code of non zero freq */
 
 	/* Determine the bit length frequencies for literal and distance trees */
-	scan_tree((ct_data *) dyn_ltree, l_desc.max_code);
-	scan_tree((ct_data *) dyn_dtree, d_desc.max_code);
+	scan_tree(G2.dyn_ltree, G2.l_desc.max_code);
+	scan_tree(G2.dyn_dtree, G2.d_desc.max_code);
 
 	/* Build the bit length tree: */
-	build_tree((tree_desc *) &bl_desc);
+	build_tree(&G2.bl_desc);
 	/* opt_len now includes the length of the tree representations, except
 	 * the lengths of the bit lengths codes and the 5+5+4 bits for the counts.
 	 */
@@ -1467,12 +1468,12 @@ static int build_bl_tree(void)
 	 * 3 but the actual value used is 4.)
 	 */
 	for (max_blindex = BL_CODES - 1; max_blindex >= 3; max_blindex--) {
-		if (bl_tree[bl_order[max_blindex]].Len != 0)
+		if (G2.bl_tree[bl_order[max_blindex]].Len != 0)
 			break;
 	}
 	/* Update opt_len to include the bit length tree and counts */
-	opt_len += 3 * (max_blindex + 1) + 5 + 5 + 4;
-	Tracev((stderr, "\ndyn trees: dyn %ld, stat %ld", opt_len, static_len));
+	G2.opt_len += 3 * (max_blindex + 1) + 5 + 5 + 4;
+	Tracev((stderr, "\ndyn trees: dyn %ld, stat %ld", G2.opt_len, G2.static_len));
 
 	return max_blindex;
 }
@@ -1496,41 +1497,41 @@ static void send_all_trees(int lcodes, int dcodes, int blcodes)
 	send_bits(blcodes - 4, 4);	/* not -3 as stated in appnote.txt */
 	for (rank = 0; rank < blcodes; rank++) {
 		Tracev((stderr, "\nbl code %2d ", bl_order[rank]));
-		send_bits(bl_tree[bl_order[rank]].Len, 3);
+		send_bits(G2.bl_tree[bl_order[rank]].Len, 3);
 	}
-	Tracev((stderr, "\nbl tree: sent %ld", bits_sent));
+	Tracev((stderr, "\nbl tree: sent %ld", G1.bits_sent));
 
-	send_tree((ct_data *) dyn_ltree, lcodes - 1);	/* send the literal tree */
-	Tracev((stderr, "\nlit tree: sent %ld", bits_sent));
+	send_tree((ct_data *) G2.dyn_ltree, lcodes - 1);	/* send the literal tree */
+	Tracev((stderr, "\nlit tree: sent %ld", G1.bits_sent));
 
-	send_tree((ct_data *) dyn_dtree, dcodes - 1);	/* send the distance tree */
-	Tracev((stderr, "\ndist tree: sent %ld", bits_sent));
+	send_tree((ct_data *) G2.dyn_dtree, dcodes - 1);	/* send the distance tree */
+	Tracev((stderr, "\ndist tree: sent %ld", G1.bits_sent));
 }
 
 
-/* ===========================================================================
- * Set the file type to ASCII or BINARY, using a crude approximation:
- * binary if more than 20% of the bytes are <= 6 or >= 128, ascii otherwise.
- * IN assertion: the fields freq of dyn_ltree are set and the total of all
- * frequencies does not exceed 64K (to fit in an int on 16 bit machines).
- */
-static void set_file_type(void)
-{
-	int n = 0;
-	unsigned ascii_freq = 0;
-	unsigned bin_freq = 0;
-
-	while (n < 7)
-		bin_freq += dyn_ltree[n++].Freq;
-	while (n < 128)
-		ascii_freq += dyn_ltree[n++].Freq;
-	while (n < LITERALS)
-		bin_freq += dyn_ltree[n++].Freq;
-	*file_type = (bin_freq > (ascii_freq >> 2)) ? BINARY : ASCII;
-	if (*file_type == BINARY && translate_eol) {
-		bb_error_msg("-l used on binary file");
-	}
-}
+/////* ===========================================================================
+//// * Set the file type to ASCII or BINARY, using a crude approximation:
+//// * binary if more than 20% of the bytes are <= 6 or >= 128, ascii otherwise.
+//// * IN assertion: the fields freq of dyn_ltree are set and the total of all
+//// * frequencies does not exceed 64K (to fit in an int on 16 bit machines).
+//// */
+////static void set_file_type(void)
+////{
+////	int n = 0;
+////	unsigned ascii_freq = 0;
+////	unsigned bin_freq = 0;
+////
+////	while (n < 7)
+////		bin_freq += G2.dyn_ltree[n++].Freq;
+////	while (n < 128)
+////		ascii_freq += G2.dyn_ltree[n++].Freq;
+////	while (n < LITERALS)
+////		bin_freq += G2.dyn_ltree[n++].Freq;
+////	*G2.file_type = (bin_freq > (ascii_freq >> 2)) ? BINARY : ASCII;
+////	if (*G2.file_type == BINARY && translate_eol) {
+////		bb_error_msg("-l used on binary file");
+////	}
+////}
 
 
 /* ===========================================================================
@@ -1539,10 +1540,10 @@ static void set_file_type(void)
  */
 static int ct_tally(int dist, int lc)
 {
-	l_buf[last_lit++] = lc;
+	G1.l_buf[G2.last_lit++] = lc;
 	if (dist == 0) {
 		/* lc is the unmatched char */
-		dyn_ltree[lc].Freq++;
+		G2.dyn_ltree[lc].Freq++;
 	} else {
 		/* Here, lc is the match length - MIN_MATCH */
 		dist--;			/* dist = match distance - 1 */
@@ -1551,38 +1552,39 @@ static int ct_tally(int dist, int lc)
 		 && (ush) D_CODE(dist) < (ush) D_CODES, "ct_tally: bad match"
 		);
 
-		dyn_ltree[length_code[lc] + LITERALS + 1].Freq++;
-		dyn_dtree[D_CODE(dist)].Freq++;
+		G2.dyn_ltree[G2.length_code[lc] + LITERALS + 1].Freq++;
+		G2.dyn_dtree[D_CODE(dist)].Freq++;
 
-		d_buf[last_dist++] = dist;
-		flags |= flag_bit;
+		G1.d_buf[G2.last_dist++] = dist;
+		G2.flags |= G2.flag_bit;
 	}
-	flag_bit <<= 1;
+	G2.flag_bit <<= 1;
 
 	/* Output the flags if they fill a byte: */
-	if ((last_lit & 7) == 0) {
-		flag_buf[last_flags++] = flags;
-		flags = 0, flag_bit = 1;
+	if ((G2.last_lit & 7) == 0) {
+		G2.flag_buf[G2.last_flags++] = G2.flags;
+		G2.flags = 0;
+		G2.flag_bit = 1;
 	}
 	/* Try to guess if it is profitable to stop the current block here */
-	if ((last_lit & 0xfff) == 0) {
+	if ((G2.last_lit & 0xfff) == 0) {
 		/* Compute an upper bound for the compressed length */
-		ulg out_length = last_lit * 8L;
-		ulg in_length = (ulg) strstart - block_start;
+		ulg out_length = G2.last_lit * 8L;
+		ulg in_length = (ulg) G1.strstart - G1.block_start;
 		int dcode;
 
 		for (dcode = 0; dcode < D_CODES; dcode++) {
-			out_length += dyn_dtree[dcode].Freq * (5L + extra_dbits[dcode]);
+			out_length += G2.dyn_dtree[dcode].Freq * (5L + extra_dbits[dcode]);
 		}
 		out_length >>= 3;
 		Trace((stderr,
 			   "\nlast_lit %u, last_dist %u, in %ld, out ~%ld(%ld%%) ",
-			   last_lit, last_dist, in_length, out_length,
+			   G2.last_lit, G2.last_dist, in_length, out_length,
 			   100L - out_length * 100L / in_length));
-		if (last_dist < last_lit / 2 && out_length < in_length / 2)
+		if (G2.last_dist < G2.last_lit / 2 && out_length < in_length / 2)
 			return 1;
 	}
-	return (last_lit == LIT_BUFSIZE - 1 || last_dist == DIST_BUFSIZE);
+	return (G2.last_lit == LIT_BUFSIZE - 1 || G2.last_dist == DIST_BUFSIZE);
 	/* We avoid equality with LIT_BUFSIZE because of wraparound at 64K
 	 * on 16 bit machines and because stored blocks are restricted to
 	 * 64K-1 bytes.
@@ -1603,23 +1605,23 @@ static void compress_block(ct_data * ltree, ct_data * dtree)
 	unsigned code;          /* the code to send */
 	int extra;              /* number of extra bits to send */
 
-	if (last_lit != 0) do {
+	if (G2.last_lit != 0) do {
 		if ((lx & 7) == 0)
-			flag = flag_buf[fx++];
-		lc = l_buf[lx++];
+			flag = G2.flag_buf[fx++];
+		lc = G1.l_buf[lx++];
 		if ((flag & 1) == 0) {
 			SEND_CODE(lc, ltree);	/* send a literal byte */
 			Tracecv(isgraph(lc), (stderr, " '%c' ", lc));
 		} else {
 			/* Here, lc is the match length - MIN_MATCH */
-			code = length_code[lc];
+			code = G2.length_code[lc];
 			SEND_CODE(code + LITERALS + 1, ltree);	/* send the length code */
 			extra = extra_lbits[code];
 			if (extra != 0) {
-				lc -= base_length[code];
+				lc -= G2.base_length[code];
 				send_bits(lc, extra);	/* send the extra length bits */
 			}
-			dist = d_buf[dx++];
+			dist = G1.d_buf[dx++];
 			/* Here, dist is the match distance - 1 */
 			code = D_CODE(dist);
 			Assert(code < D_CODES, "bad d_code");
@@ -1627,12 +1629,12 @@ static void compress_block(ct_data * ltree, ct_data * dtree)
 			SEND_CODE(code, dtree);	/* send the distance code */
 			extra = extra_dbits[code];
 			if (extra != 0) {
-				dist -= base_dist[code];
+				dist -= G2.base_dist[code];
 				send_bits(dist, extra);	/* send the extra distance bits */
 			}
 		}			/* literal or match pair ? */
 		flag >>= 1;
-	} while (lx < last_lit);
+	} while (lx < G2.last_lit);
 
 	SEND_CODE(END_BLOCK, ltree);
 }
@@ -1648,18 +1650,18 @@ static ulg flush_block(char *buf, ulg stored_len, int eof)
 	ulg opt_lenb, static_lenb;      /* opt_len and static_len in bytes */
 	int max_blindex;                /* index of last bit length code of non zero freq */
 
-	flag_buf[last_flags] = flags;   /* Save the flags for the last 8 items */
+	G2.flag_buf[G2.last_flags] = G2.flags;   /* Save the flags for the last 8 items */
 
-	/* Check if the file is ascii or binary */
-	if (*file_type == (ush) UNKNOWN)
-		set_file_type();
+////	/* Check if the file is ascii or binary */
+////	if (*G2.file_type == (ush) UNKNOWN)
+////		set_file_type();
 
 	/* Construct the literal and distance trees */
-	build_tree((tree_desc *) &l_desc);
-	Tracev((stderr, "\nlit data: dyn %ld, stat %ld", opt_len, static_len));
+	build_tree(&G2.l_desc);
+	Tracev((stderr, "\nlit data: dyn %ld, stat %ld", G2.opt_len, G2.static_len));
 
-	build_tree((tree_desc *) &d_desc);
-	Tracev((stderr, "\ndist data: dyn %ld, stat %ld", opt_len, static_len));
+	build_tree(&G2.d_desc);
+	Tracev((stderr, "\ndist data: dyn %ld, stat %ld", G2.opt_len, G2.static_len));
 	/* At this point, opt_len and static_len are the total bit lengths of
 	 * the compressed block data, excluding the tree representations.
 	 */
@@ -1670,13 +1672,13 @@ static ulg flush_block(char *buf, ulg stored_len, int eof)
 	max_blindex = build_bl_tree();
 
 	/* Determine the best encoding. Compute first the block length in bytes */
-	opt_lenb = (opt_len + 3 + 7) >> 3;
-	static_lenb = (static_len + 3 + 7) >> 3;
+	opt_lenb = (G2.opt_len + 3 + 7) >> 3;
+	static_lenb = (G2.static_len + 3 + 7) >> 3;
 
 	Trace((stderr,
 		   "\nopt %lu(%lu) stat %lu(%lu) stored %lu lit %u dist %u ",
-		   opt_lenb, opt_len, static_lenb, static_len, stored_len,
-		   last_lit, last_dist));
+		   opt_lenb, G2.opt_len, static_lenb, G2.static_len, stored_len,
+		   G2.last_lit, G2.last_dist));
 
 	if (static_lenb <= opt_lenb)
 		opt_lenb = static_lenb;
@@ -1685,14 +1687,14 @@ static ulg flush_block(char *buf, ulg stored_len, int eof)
 	 * and if the zip file can be seeked (to rewrite the local header),
 	 * the whole file is transformed into a stored file:
 	 */
-	if (stored_len <= opt_lenb && eof && compressed_len == 0L && seekable()) {
+	if (stored_len <= opt_lenb && eof && G2.compressed_len == 0L && seekable()) {
 		/* Since LIT_BUFSIZE <= 2*WSIZE, the input data must be there: */
 		if (buf == NULL)
 			bb_error_msg("block vanished");
 
 		copy_block(buf, (unsigned) stored_len, 0);	/* without header */
-		compressed_len = stored_len << 3;
-		*file_method = STORED;
+		G2.compressed_len = stored_len << 3;
+////		*file_method = STORED;
 
 	} else if (stored_len + 4 <= opt_lenb && buf != NULL) {
 		/* 4: two words for the lengths */
@@ -1703,33 +1705,33 @@ static ulg flush_block(char *buf, ulg stored_len, int eof)
 		 * transform a block into a stored block.
 		 */
 		send_bits((STORED_BLOCK << 1) + eof, 3);	/* send block type */
-		compressed_len = (compressed_len + 3 + 7) & ~7L;
-		compressed_len += (stored_len + 4) << 3;
+		G2.compressed_len = (G2.compressed_len + 3 + 7) & ~7L;
+		G2.compressed_len += (stored_len + 4) << 3;
 
 		copy_block(buf, (unsigned) stored_len, 1);	/* with header */
 
 	} else if (static_lenb == opt_lenb) {
 		send_bits((STATIC_TREES << 1) + eof, 3);
-		compress_block((ct_data *) static_ltree, (ct_data *) static_dtree);
-		compressed_len += 3 + static_len;
+		compress_block((ct_data *) G2.static_ltree, (ct_data *) G2.static_dtree);
+		G2.compressed_len += 3 + G2.static_len;
 	} else {
 		send_bits((DYN_TREES << 1) + eof, 3);
-		send_all_trees(l_desc.max_code + 1, d_desc.max_code + 1,
+		send_all_trees(G2.l_desc.max_code + 1, G2.d_desc.max_code + 1,
 					   max_blindex + 1);
-		compress_block((ct_data *) dyn_ltree, (ct_data *) dyn_dtree);
-		compressed_len += 3 + opt_len;
+		compress_block((ct_data *) G2.dyn_ltree, (ct_data *) G2.dyn_dtree);
+		G2.compressed_len += 3 + G2.opt_len;
 	}
-	Assert(compressed_len == bits_sent, "bad compressed size");
+	Assert(G2.compressed_len == G1.bits_sent, "bad compressed size");
 	init_block();
 
 	if (eof) {
 		bi_windup();
-		compressed_len += 7;	/* align on byte boundary */
+		G2.compressed_len += 7;	/* align on byte boundary */
 	}
-	Tracev((stderr, "\ncomprlen %lu(%lu) ", compressed_len >> 3,
-			compressed_len - 7 * eof));
+	Tracev((stderr, "\ncomprlen %lu(%lu) ", G2.compressed_len >> 3,
+			G2.compressed_len - 7 * eof));
 
-	return compressed_len >> 3;
+	return G2.compressed_len >> 3;
 }
 
 
@@ -1756,10 +1758,10 @@ static ulg flush_block(char *buf, ulg stored_len, int eof)
  * IN assertion: strstart is set to the end of the current match. */
 #define FLUSH_BLOCK(eof) \
 	flush_block( \
-		block_start >= 0L \
-			? (char*)&window[(unsigned)block_start] \
+		G1.block_start >= 0L \
+			? (char*)&G1.window[(unsigned)G1.block_start] \
 			: (char*)NULL, \
-		(ulg)strstart - block_start, \
+		(ulg)G1.strstart - G1.block_start, \
 		(eof) \
 	)
 
@@ -1770,11 +1772,11 @@ static ulg flush_block(char *buf, ulg stored_len, int eof)
  *    input characters and the first MIN_MATCH bytes of s are valid
  *    (except for the last MIN_MATCH-1 bytes of the input file). */
 #define INSERT_STRING(s, match_head) \
-{ \
-	UPDATE_HASH(ins_h, window[(s) + MIN_MATCH-1]); \
-	prev[(s) & WMASK] = match_head = head[ins_h]; \
-	head[ins_h] = (s); \
-}
+do { \
+	UPDATE_HASH(G1.ins_h, G1.window[(s) + MIN_MATCH-1]); \
+	G1.prev[(s) & WMASK] = match_head = head[G1.ins_h]; \
+	head[G1.ins_h] = (s); \
+} while (0)
 
 static ulg deflate(void)
 {
@@ -1785,19 +1787,20 @@ static ulg deflate(void)
 	unsigned match_length = MIN_MATCH - 1;	/* length of best match */
 
 	/* Process the input block. */
-	while (lookahead != 0) {
+	while (G1.lookahead != 0) {
 		/* Insert the string window[strstart .. strstart+2] in the
 		 * dictionary, and set hash_head to the head of the hash chain:
 		 */
-		INSERT_STRING(strstart, hash_head);
+		INSERT_STRING(G1.strstart, hash_head);
 
 		/* Find the longest match, discarding those <= prev_length.
 		 */
-		prev_length = match_length, prev_match = match_start;
+		G1.prev_length = match_length;
+		prev_match = G1.match_start;
 		match_length = MIN_MATCH - 1;
 
-		if (hash_head != 0 && prev_length < max_lazy_match
-		 && strstart - hash_head <= MAX_DIST
+		if (hash_head != 0 && G1.prev_length < max_lazy_match
+		 && G1.strstart - hash_head <= MAX_DIST
 		) {
 			/* To simplify the code, we prevent matches with the string
 			 * of window index 0 (in particular we have to avoid a match
@@ -1805,12 +1808,12 @@ static ulg deflate(void)
 			 */
 			match_length = longest_match(hash_head);
 			/* longest_match() sets match_start */
-			if (match_length > lookahead)
-				match_length = lookahead;
+			if (match_length > G1.lookahead)
+				match_length = G1.lookahead;
 
 			/* Ignore a length 3 match if it is too distant: */
-			if (match_length == MIN_MATCH && strstart - match_start > TOO_FAR) {
-				/* If prev_match is also MIN_MATCH, match_start is garbage
+			if (match_length == MIN_MATCH && G1.strstart - G1.match_start > TOO_FAR) {
+				/* If prev_match is also MIN_MATCH, G1.match_start is garbage
 				 * but we will ignore the current match anyway.
 				 */
 				match_length--;
@@ -1819,63 +1822,63 @@ static ulg deflate(void)
 		/* If there was a match at the previous step and the current
 		 * match is not better, output the previous match:
 		 */
-		if (prev_length >= MIN_MATCH && match_length <= prev_length) {
-			check_match(strstart - 1, prev_match, prev_length);
-			flush = ct_tally(strstart - 1 - prev_match, prev_length - MIN_MATCH);
+		if (G1.prev_length >= MIN_MATCH && match_length <= G1.prev_length) {
+			check_match(G1.strstart - 1, prev_match, G1.prev_length);
+			flush = ct_tally(G1.strstart - 1 - prev_match, G1.prev_length - MIN_MATCH);
 
 			/* Insert in hash table all strings up to the end of the match.
 			 * strstart-1 and strstart are already inserted.
 			 */
-			lookahead -= prev_length - 1;
-			prev_length -= 2;
+			G1.lookahead -= G1.prev_length - 1;
+			G1.prev_length -= 2;
 			do {
-				strstart++;
-				INSERT_STRING(strstart, hash_head);
+				G1.strstart++;
+				INSERT_STRING(G1.strstart, hash_head);
 				/* strstart never exceeds WSIZE-MAX_MATCH, so there are
 				 * always MIN_MATCH bytes ahead. If lookahead < MIN_MATCH
 				 * these bytes are garbage, but it does not matter since the
 				 * next lookahead bytes will always be emitted as literals.
 				 */
-			} while (--prev_length != 0);
+			} while (--G1.prev_length != 0);
 			match_available = 0;
 			match_length = MIN_MATCH - 1;
-			strstart++;
+			G1.strstart++;
 			if (flush) {
 				FLUSH_BLOCK(0);
-				block_start = strstart;
+				G1.block_start = G1.strstart;
 			}
 		} else if (match_available) {
 			/* If there was no match at the previous position, output a
 			 * single literal. If there was a match but the current match
 			 * is longer, truncate the previous match to a single literal.
 			 */
-			Tracevv((stderr, "%c", window[strstart - 1]));
-			if (ct_tally(0, window[strstart - 1])) {
+			Tracevv((stderr, "%c", G1.window[G1.strstart - 1]));
+			if (ct_tally(0, G1.window[G1.strstart - 1])) {
 				FLUSH_BLOCK(0);
-				block_start = strstart;
+				G1.block_start = G1.strstart;
 			}
-			strstart++;
-			lookahead--;
+			G1.strstart++;
+			G1.lookahead--;
 		} else {
 			/* There is no previous match to compare with, wait for
 			 * the next step to decide.
 			 */
 			match_available = 1;
-			strstart++;
-			lookahead--;
+			G1.strstart++;
+			G1.lookahead--;
 		}
-		Assert(strstart <= isize && lookahead <= isize, "a bit too far");
+		Assert(G1.strstart <= G1.isize && lookahead <= G1.isize, "a bit too far");
 
 		/* Make sure that we always have enough lookahead, except
 		 * at the end of the input file. We need MAX_MATCH bytes
 		 * for the next match, plus MIN_MATCH bytes to insert the
 		 * string following the next match.
 		 */
-		while (lookahead < MIN_LOOKAHEAD && !eofile)
+		while (G1.lookahead < MIN_LOOKAHEAD && !G1.eofile)
 			fill_window();
 	}
 	if (match_available)
-		ct_tally(0, window[strstart - 1]);
+		ct_tally(0, G1.window[G1.strstart - 1]);
 
 	return FLUSH_BLOCK(1);	/* eof */
 }
@@ -1884,13 +1887,12 @@ static ulg deflate(void)
 /* ===========================================================================
  * Initialize the bit string routines.
  */
-static void bi_init(void) //// int zipfile)
+static void bi_init(void)
 {
-////	zfile = zipfile;
-	bi_buf = 0;
-	bi_valid = 0;
+	G1.bi_buf = 0;
+	G1.bi_valid = 0;
 #ifdef DEBUG
-	bits_sent = 0L;
+	G1.bits_sent = 0L;
 #endif
 }
 
@@ -1910,27 +1912,27 @@ static void lm_init(ush * flagsp)
 	*flagsp |= 2;	/* FAST 4, SLOW 2 */
 	/* ??? reduce max_chain_length for binary files */
 
-	strstart = 0;
-	block_start = 0L;
+	G1.strstart = 0;
+	G1.block_start = 0L;
 
-	lookahead = file_read(window,
+	G1.lookahead = file_read(G1.window,
 			sizeof(int) <= 2 ? (unsigned) WSIZE : 2 * WSIZE);
 
-	if (lookahead == 0 || lookahead == (unsigned) -1) {
-		eofile = 1;
-		lookahead = 0;
+	if (G1.lookahead == 0 || G1.lookahead == (unsigned) -1) {
+		G1.eofile = 1;
+		G1.lookahead = 0;
 		return;
 	}
-	eofile = 0;
+	G1.eofile = 0;
 	/* Make sure that we always have enough lookahead. This is important
 	 * if input comes from a device such as a tty.
 	 */
-	while (lookahead < MIN_LOOKAHEAD && !eofile)
+	while (G1.lookahead < MIN_LOOKAHEAD && !G1.eofile)
 		fill_window();
 
-	ins_h = 0;
+	G1.ins_h = 0;
 	for (j = 0; j < MIN_MATCH - 1; j++)
-		UPDATE_HASH(ins_h, window[j]);
+		UPDATE_HASH(G1.ins_h, G1.window[j]);
 	/* If lookahead < MIN_MATCH, ins_h is garbage, but this is
 	 * not important since only literal bytes will be emitted.
 	 */
@@ -1943,28 +1945,28 @@ static void lm_init(ush * flagsp)
  * (DEFLATE/STORE).
  * One callsite in zip()
  */
-static void ct_init(ush * attr, int *methodp)
+static void ct_init(void) ////ush * attr, int *methodp)
 {
 	int n;				/* iterates over tree elements */
 	int length;			/* length value */
 	int code;			/* code value */
 	int dist;			/* distance index */
 
-	file_type = attr;
-	file_method = methodp;
-	compressed_len = 0L;
+////	file_type = attr;
+////	file_method = methodp;
+	G2.compressed_len = 0L;
 
 #ifdef NOT_NEEDED
-	if (static_dtree[0].Len != 0)
+	if (G2.static_dtree[0].Len != 0)
 		return;			/* ct_init already called */
 #endif
 
 	/* Initialize the mapping length (0..255) -> length code (0..28) */
 	length = 0;
 	for (code = 0; code < LENGTH_CODES - 1; code++) {
-		base_length[code] = length;
+		G2.base_length[code] = length;
 		for (n = 0; n < (1 << extra_lbits[code]); n++) {
-			length_code[length++] = code;
+			G2.length_code[length++] = code;
 		}
 	}
 	Assert(length == 256, "ct_init: length != 256");
@@ -1972,22 +1974,22 @@ static void ct_init(ush * attr, int *methodp)
 	 * in two different ways: code 284 + 5 bits or code 285, so we
 	 * overwrite length_code[255] to use the best encoding:
 	 */
-	length_code[length - 1] = code;
+	G2.length_code[length - 1] = code;
 
 	/* Initialize the mapping dist (0..32K) -> dist code (0..29) */
 	dist = 0;
 	for (code = 0; code < 16; code++) {
-		base_dist[code] = dist;
+		G2.base_dist[code] = dist;
 		for (n = 0; n < (1 << extra_dbits[code]); n++) {
-			dist_code[dist++] = code;
+			G2.dist_code[dist++] = code;
 		}
 	}
 	Assert(dist == 256, "ct_init: dist != 256");
 	dist >>= 7;			/* from now on, all distances are divided by 128 */
 	for (; code < D_CODES; code++) {
-		base_dist[code] = dist << 7;
+		G2.base_dist[code] = dist << 7;
 		for (n = 0; n < (1 << (extra_dbits[code] - 7)); n++) {
-			dist_code[256 + dist++] = code;
+			G2.dist_code[256 + dist++] = code;
 		}
 	}
 	Assert(dist == 256, "ct_init: 256+dist != 512");
@@ -1995,35 +1997,35 @@ static void ct_init(ush * attr, int *methodp)
 	/* Construct the codes of the static literal tree */
 	/* already zeroed - it's in bss
 	for (n = 0; n <= MAX_BITS; n++)
-		bl_count[n] = 0; */
+		G2.bl_count[n] = 0; */
 
 	n = 0;
 	while (n <= 143) {
-		static_ltree[n++].Len = 8;
-		bl_count[8]++;
+		G2.static_ltree[n++].Len = 8;
+		G2.bl_count[8]++;
 	}
 	while (n <= 255) {
-		static_ltree[n++].Len = 9;
-		bl_count[9]++;
+		G2.static_ltree[n++].Len = 9;
+		G2.bl_count[9]++;
 	}
 	while (n <= 279) {
-		static_ltree[n++].Len = 7;
-		bl_count[7]++;
+		G2.static_ltree[n++].Len = 7;
+		G2.bl_count[7]++;
 	}
 	while (n <= 287) {
-		static_ltree[n++].Len = 8;
-		bl_count[8]++;
+		G2.static_ltree[n++].Len = 8;
+		G2.bl_count[8]++;
 	}
 	/* Codes 286 and 287 do not exist, but we must include them in the
 	 * tree construction to get a canonical Huffman tree (longest code
 	 * all ones)
 	 */
-	gen_codes((ct_data *) static_ltree, L_CODES + 1);
+	gen_codes((ct_data *) G2.static_ltree, L_CODES + 1);
 
 	/* The static distance tree is trivial: */
 	for (n = 0; n < D_CODES; n++) {
-		static_dtree[n].Len = 5;
-		static_dtree[n].Code = bi_reverse(n, 5);
+		G2.static_dtree[n].Len = 5;
+		G2.static_dtree[n].Code = bi_reverse(n, 5);
 	}
 
 	/* Initialize the first block of the first file: */
@@ -2039,32 +2041,33 @@ static void ct_init(ush * attr, int *methodp)
 
 /* put_header_byte is used for the compressed output
  * - for the initial 4 bytes that can't overflow the buffer. */
-#define put_header_byte(c) outbuf[outcnt++] = (c)
+#define put_header_byte(c) G1.outbuf[G1.outcnt++] = (c)
 
 static void zip(int in, int out)
 {
 	uch my_flags = 0;       /* general purpose bit flags */
-	ush attr = 0;           /* ascii/binary flag */
+////	ush attr = 0;           /* ascii/binary flag */
 	ush deflate_flags = 0;  /* pkzip -es, -en or -ex equivalent */
+////	int method = DEFLATED;	/* compression method */
 
-	ifd = in;
-	ofd = out;
-	outcnt = 0;
+	G1.ifd = in;
+	G1.ofd = out;
+	G1.outcnt = 0;
 
 	/* Write the header to the gzip file. See algorithm.doc for the format */
 
-	method = DEFLATED;
 	put_header_byte(0x1f); /* magic header for gzip files, 1F 8B */
 	put_header_byte(0x8b);
-	put_header_byte(DEFLATED); /* compression method */
+	////put_header_byte(DEFLATED); /* compression method */
+	put_header_byte(8); /* compression method */
 	put_header_byte(my_flags); /* general flags */
-	put_32bit(time_stamp);
+	put_32bit(G1.time_stamp);
 
 	/* Write deflated file to zip file */
-	crc = ~0;
+	G1.crc = ~0;
 
-	bi_init(); //// (out);
-	ct_init(&attr, &method);
+	bi_init();
+	ct_init(); //// &attr, &method);
 	lm_init(&deflate_flags);
 
 	put_8bit(deflate_flags);	/* extra flags */
@@ -2073,8 +2076,8 @@ static void zip(int in, int out)
 	deflate();
 
 	/* Write the crc and uncompressed size */
-	put_32bit(~crc);
-	put_32bit(isize);
+	put_32bit(~G1.crc);
+	put_32bit(G1.isize);
 
 	flush_outbuf();
 }
@@ -2123,8 +2126,8 @@ int gzip_main(int argc, char **argv)
 	}
 #endif
 
-	foreground = signal(SIGINT, SIG_IGN) != SIG_IGN;
-	if (foreground) {
+	/* Comment?? */
+	if (signal(SIGINT, SIG_IGN) != SIG_IGN) {
 		signal(SIGINT, abort_gzip);
 	}
 #ifdef SIGTERM
@@ -2138,22 +2141,36 @@ int gzip_main(int argc, char **argv)
 	}
 #endif
 
+	G2ptr = xzalloc(sizeof(*G2ptr));
+	G2.l_desc = (tree_desc) {
+		G2.dyn_ltree, G2.static_ltree, extra_lbits,
+		LITERALS + 1, L_CODES, MAX_BITS, 0
+	};
+	G2.d_desc = (tree_desc) {
+		G2.dyn_dtree, G2.static_dtree, extra_dbits,
+		0, D_CODES, MAX_BITS, 0
+	};
+	G2.bl_desc = (tree_desc) {
+		G2.bl_tree, NULL, extra_blbits,
+		0, BL_CODES, MAX_BL_BITS, 0
+	};
+
 	/* Allocate all global buffers (for DYN_ALLOC option) */
-	ALLOC(uch, l_buf, INBUFSIZ);
-	ALLOC(uch, outbuf, OUTBUFSIZ);
-	ALLOC(ush, d_buf, DIST_BUFSIZE);
-	ALLOC(uch, window, 2L * WSIZE);
-	ALLOC(ush, prev, 1L << BITS);
+	ALLOC(uch, G1.l_buf, INBUFSIZ);
+	ALLOC(uch, G1.outbuf, OUTBUFSIZ);
+	ALLOC(ush, G1.d_buf, DIST_BUFSIZE);
+	ALLOC(uch, G1.window, 2L * WSIZE);
+	ALLOC(ush, G1.prev, 1L << BITS);
 
 	/* Initialise the CRC32 table */
-	crc_32_tab = crc32_filltable(0);
+	G1.crc_32_tab = crc32_filltable(0);
 
 	clear_bufs();
 
 	if (optind == argc) {
-		time_stamp = 0;
+		G1.time_stamp = 0;
 		zip(STDIN_FILENO, STDOUT_FILENO);
-		return exit_code;
+		return 0; //## G1.exit_code;
 	}
 
 	for (i = optind; i < argc; i++) {
@@ -2161,14 +2178,14 @@ int gzip_main(int argc, char **argv)
 
 		clear_bufs();
 		if (LONE_DASH(argv[i])) {
-			time_stamp = 0;
+			G1.time_stamp = 0;
 			inFileNum = STDIN_FILENO;
 			outFileNum = STDOUT_FILENO;
 		} else {
 			inFileNum = xopen(argv[i], O_RDONLY);
 			if (fstat(inFileNum, &statBuf) < 0)
 				bb_perror_msg_and_die("%s", argv[i]);
-			time_stamp = statBuf.st_ctime;
+			G1.time_stamp = statBuf.st_ctime;
 
 			if (!(opt & OPT_tostdout)) {
 				path = xasprintf("%s.gz", argv[i]);
@@ -2219,5 +2236,5 @@ int gzip_main(int argc, char **argv)
 		free(path);
 	}
 
-	return exit_code;
+	return 0; //##G1.exit_code;
 }
