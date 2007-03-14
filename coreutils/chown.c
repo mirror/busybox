@@ -13,10 +13,6 @@
 
 #include "busybox.h"
 
-static struct bb_uidgid_t ugid = { -1, -1 };
-
-static int (*chown_func)(const char *, uid_t, gid_t) = chown;
-
 #define OPT_STR     ("Rh" USE_DESKTOP("vcfLHP"))
 #define BIT_RECURSE 1
 #define OPT_RECURSE (option_mask32 & 1)
@@ -38,13 +34,17 @@ static int (*chown_func)(const char *, uid_t, gid_t) = chown;
 #define BIT_TRAVERSE_TOP (0x20|0x40)
 #define OPT_TRAVERSE_TOP (USE_DESKTOP(option_mask32 & BIT_TRAVERSE_TOP) SKIP_DESKTOP(0))
 
+typedef int (*chown_fptr)(const char *, uid_t, gid_t);
+
+static struct bb_uidgid_t ugid = { -1, -1 };
+
 static int fileAction(const char *fileName, struct stat *statbuf,
-		void ATTRIBUTE_UNUSED *junk, int depth)
+		void *cf, int depth)
 {
 	uid_t u = (ugid.uid == (uid_t)-1) ? statbuf->st_uid : ugid.uid;
 	gid_t g = (ugid.gid == (gid_t)-1) ? statbuf->st_gid : ugid.gid;
 
-	if (!chown_func(fileName, u, g)) {
+	if (!((chown_fptr)cf)(fileName, u, g)) {
 		if (OPT_VERBOSE
 		 || (OPT_CHANGED && (statbuf->st_uid != u || statbuf->st_gid != g))
 		) {
@@ -62,12 +62,14 @@ int chown_main(int argc, char **argv);
 int chown_main(int argc, char **argv)
 {
 	int retval = EXIT_SUCCESS;
+	chown_fptr chown_func;
 
 	opt_complementary = "-2";
 	getopt32(argc, argv, OPT_STR);
 	argv += optind;
 
 	/* This matches coreutils behavior (almost - see below) */
+	chown_func = chown;
 	if (OPT_NODEREF
 	    /* || (OPT_RECURSE && !OPT_TRAVERSE_TOP): */
 	    USE_DESKTOP( || (option_mask32 & (BIT_RECURSE|BIT_TRAVERSE_TOP)) == BIT_RECURSE)
@@ -95,7 +97,7 @@ int chown_main(int argc, char **argv)
 				FALSE,          // depth first
 				fileAction,     // file action
 				fileAction,     // dir action
-				NULL,           // user data
+				chown_func,     // user data
 				0)              // depth
 		) {
 			retval = EXIT_FAILURE;
