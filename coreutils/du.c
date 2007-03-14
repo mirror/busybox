@@ -101,7 +101,7 @@ static long du(const char * const filename)
 
 	if (statbuf.st_nlink > count_hardlinks) {
 		/* Add files/directories with links only once */
-		if (is_in_ino_dev_hashtable(&statbuf, NULL)) {
+		if (is_in_ino_dev_hashtable(&statbuf)) {
 			return 0;
 		}
 		add_to_ino_dev_hashtable(&statbuf, NULL);
