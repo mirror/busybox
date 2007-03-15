@@ -29,7 +29,7 @@ void check_header_gzip_or_die(int src_fd)
 
 	if (header.formatted.flags & 0x04) {
 		/* bit 2 set: extra field present */
-		unsigned char extra_short;
+		unsigned extra_short;
 
 		extra_short = xread_char(src_fd) + (xread_char(src_fd) << 8);
 		while (extra_short > 0) {
