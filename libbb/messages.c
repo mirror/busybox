@@ -57,4 +57,5 @@ WTMP_FILE;
 char bb_common_bufsiz1[BUFSIZ+1];
 
 struct globals;
-struct globals *ptr_to_globals;
+/* Make it reside in R/W memory: */
+struct globals *const ptr_to_globals __attribute__ ((section (".data")));

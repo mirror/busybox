@@ -804,7 +804,10 @@ extern char bb_common_bufsiz1[BUFSIZ+1];
 /* This struct is deliberately not defined. */
 /* See docs/keep_data_small.txt */
 struct globals;
-extern struct globals *ptr_to_globals;
+/* Magic prevents this from going into rodata */
+/* If you want to assign a value, use PTR_TO_GLOBALS = xxx */
+extern struct globals *const ptr_to_globals;
+#define PTR_TO_GLOBALS (*(struct globals**)&ptr_to_globals)
 
 /* You can change LIBBB_DEFAULT_LOGIN_SHELL, but don't use it,
  * use bb_default_login_shell and following defines.
