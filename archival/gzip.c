@@ -235,7 +235,7 @@ enum {
 };
 
 
-struct global1 {
+struct globals {
 
 	lng block_start;
 
@@ -343,7 +343,6 @@ struct global1 {
 	uint32_t crc;	/* shift register contents */
 };
 
-extern struct global1 *ptr_to_globals;
 #define G1 (*(ptr_to_globals - 1))
 
 
@@ -869,7 +868,7 @@ typedef struct tree_desc {
 	int max_code;		/* largest code with non zero frequency */
 } tree_desc;
 
-struct global2 {
+struct globals2 {
 
 	ush heap[HEAP_SIZE];     /* heap used to build the Huffman trees */
 	int heap_len;            /* number of elements in the heap */
@@ -956,7 +955,7 @@ struct global2 {
 	ulg compressed_len;      /* total bit length of compressed file */
 };
 
-#define G2ptr ((struct global2*)(ptr_to_globals))
+#define G2ptr ((struct globals2*)(ptr_to_globals))
 #define G2 (*G2ptr)
 
 
@@ -2048,7 +2047,7 @@ int gzip_main(int argc, char **argv)
 	}
 #endif
 
-	ptr_to_globals = xzalloc(sizeof(struct global1) + sizeof(struct global2));
+	ptr_to_globals = xzalloc(sizeof(struct globals) + sizeof(struct globals2));
 	ptr_to_globals++;
 	G2.l_desc.dyn_tree    = G2.dyn_ltree;
 	G2.l_desc.static_tree = G2.static_ltree;

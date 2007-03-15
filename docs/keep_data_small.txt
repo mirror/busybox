@@ -59,30 +59,33 @@ archival/libunarchive/decompress_unzip.c:
 
 This example completely eliminates globals in that module.
 Required memory is allocated in inflate_gunzip() [its main module]
-and then passed down to all subroutines which need to access globals
+and then passed down to all subroutines which need to access 'globals'
 as a parameter.
 
 	Example 2
 
 In case you don't want to pass this additional parameter everywhere,
 take a look at archival/gzip.c. Here all global data is replaced by
-singe global pointer (ptr_to_globals) to allocated storage.
+single global pointer (ptr_to_globals) to allocated storage.
 
 In order to not duplicate ptr_to_globals in every applet, you can
 reuse single common one. It is defined in libbb/messages.c
-as void *ptr_to_globals, but is NOT declared in libbb.h.
-You first define a struct:
+as struct globals *ptr_to_globals, but the struct globals is
+NOT defined in libbb.h. You first define your own struct:
 
-struct my_globals { int a; char buf[1000]; };
+struct globals { int a; char buf[1000]; };
 
 and then declare that ptr_to_globals is a pointer to it:
 
-extern struct my_globals *ptr_to_globals;
 #define G (*ptr_to_globals)
 
-Linker magic enures that these two merge into single pointer object.
+Linker magic ensures that these two merge into single pointer object.
 Now initialize it in <applet>_main():
 
 	ptr_to_globals = xzalloc(sizeof(G));
 
 and you can reference "globals" by G.a, G.buf and so on, in any function.
+
+The drawback is that now you have to initialize it by hand. xzalloc()
+can be helpful in clearing allocated storage to 0, but anything more
+must be done by hand.

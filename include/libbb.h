@@ -806,6 +806,10 @@ extern const int const_int_1;
 #define BUFSIZ 4096
 #endif
 extern char bb_common_bufsiz1[BUFSIZ+1];
+/* This struct is deliberately not defined. */
+/* See docs/keep_data_small.txt */
+struct globals;
+extern struct globals *ptr_to_globals;
 
 /* You can change LIBBB_DEFAULT_LOGIN_SHELL, but don't use it,
  * use bb_default_login_shell and following defines.

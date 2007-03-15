@@ -56,4 +56,5 @@ WTMP_FILE;
 
 char bb_common_bufsiz1[BUFSIZ+1];
 
-void *ptr_to_globals;
+struct globals;
+struct globals *ptr_to_globals;
