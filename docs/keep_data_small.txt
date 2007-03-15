@@ -1,4 +1,4 @@
-	Keeping data small
+		Keeping data small
 
 When many applets are compiled into busybox, all rw data and
 bss for each applet are concatenated. Including those from libc,
@@ -9,6 +9,11 @@ What "allocated" exactly means, depends on arch.
 On nommu it's probably bites the most, actually using real
 RAM for rwdata and bss. On i386, bss is lazily allocated
 by COWed zero pages. Not sure about rwdata - also COW?
+
+In order to keep bbox NOMMU and small-mem systems friendly
+we should avoid large global data in our applets, and should
+minimize usage of libc functions which implicitly use
+such structures in libc.
 
 Small experiment measures "parasitic" bbox memory consumption.
 Here we start 1000 "busybox sleep 10" in parallel.
@@ -34,14 +39,10 @@ bash-3.2# nmeter '%t %c %b %m %p %[pn]'
 23:17:43 ..........    0    0 168M    0  147
 
 This requires 55M of memory. Thus 1 trivial busybox applet
-takes 55k of userspace memory (nmeter doesn't account for kernel-side
-allocations). Definitely can be improved.
+takes 55k of memory.
 
-Thus we should avoid large global data in our applets,
-and should minimize usage of libc functions which implicitly use
-such structures in libc.
 
-	Example 1
+		Example 1
 
 One example how to reduce global data usage is in
 archival/libunarchive/decompress_unzip.c:
@@ -57,12 +58,15 @@ archival/libunarchive/decompress_unzip.c:
 #define STATE_IN_BSS 0
 #define STATE_IN_MALLOC 1
 
+(see the rest of the file to get the idea)
+
 This example completely eliminates globals in that module.
 Required memory is allocated in inflate_gunzip() [its main module]
 and then passed down to all subroutines which need to access 'globals'
 as a parameter.
 
-	Example 2
+
+		Example 2
 
 In case you don't want to pass this additional parameter everywhere,
 take a look at archival/gzip.c. Here all global data is replaced by
@@ -70,7 +74,7 @@ single global pointer (ptr_to_globals) to allocated storage.
 
 In order to not duplicate ptr_to_globals in every applet, you can
 reuse single common one. It is defined in libbb/messages.c
-as struct globals *ptr_to_globals, but the struct globals is
+as struct globals *const ptr_to_globals, but the struct globals is
 NOT defined in libbb.h. You first define your own struct:
 
 struct globals { int a; char buf[1000]; };
@@ -79,13 +83,45 @@ and then declare that ptr_to_globals is a pointer to it:
 
 #define G (*ptr_to_globals)
 
-Linker magic ensures that these two merge into single pointer object.
-Now initialize it in <applet>_main():
+ptr_to_globals is declared as constant pointer.
+This helps gcc understand that it won't change, resulting in noticeably
+smaller code. In order to assign it, use PTR_TO_GLOBALS macro:
 
-	ptr_to_globals = xzalloc(sizeof(G));
+	PTR_TO_GLOBALS = xzalloc(sizeof(G));
 
-and you can reference "globals" by G.a, G.buf and so on, in any function.
+Typically it is done in <applet>_main().
 
-The drawback is that now you have to initialize it by hand. xzalloc()
-can be helpful in clearing allocated storage to 0, but anything more
-must be done by hand.
+Now you can reference "globals" by G.a, G.buf and so on, in any function.
+
+
+		bb_common_bufsiz1
+
+There is one big common buffer in bss - bb_common_bufsiz1. It is a much
+earlier mechanism to reduce bss usage. Each applet can use it for
+its needs. Library functions are prohibited from using it.
+
+'G.' trick can be done using bb_common_bufsiz1 instead of malloced buffer:
+
+#define G (*(struct globals*)&bb_common_bufsiz1)
+
+Be careful, though, and use it only if
+sizeof(struct globals) <= sizeof(bb_common_bufsiz1).
+
+
+		Drawbacks
+
+You have to initialize it by hand. xzalloc() can be helpful in clearing
+allocated storage to 0, but anything more must be done by hand.
+
+All global variables are prefixed by 'G.' now. If this makes code
+less readable, use #defines:
+
+#define dev_fd (G.dev_fd)
+#define sector (G.sector)
+
+
+		Word of caution
+
+If applet doesn't use much of global data, converting it to using
+one of above methods is not worth resulting code obfuscation.
+If you have less that ~300 bytes of global data - don't bother.

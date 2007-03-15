@@ -85,42 +85,49 @@ enum {
 	TEST_BUFFER_BLOCKS      = 16,
 };
 
-#if ENABLE_FEATURE_MINIX2
-static int version2;
-#else
+#if !ENABLE_FEATURE_MINIX2
 enum { version2 = 0 };
 #endif
 
-static char *device_name;
-static int dev_fd = -1;
-static uint32_t total_blocks;
-static int badblocks;
-/* default (changed to 30, per Linus's suggestion, Sun Nov 21 08:05:07 1993) */
-static int namelen = 30;
-static int dirsize = 32;
-static int magic = MINIX1_SUPER_MAGIC2;
+struct globals {
 
-static char root_block[BLOCK_SIZE];
-static char super_block_buffer[BLOCK_SIZE];
-static char boot_block_buffer[512];
-static char *inode_buffer;
+	int dev_fd;
 
-static char *inode_map;
-static char *zone_map;
+#if ENABLE_FEATURE_MINIX2
+	int version2;
+#define version2 G.version2
+#endif
+	char *device_name;
+	uint32_t total_blocks;
+	int badblocks;
+	int namelen;
+	int dirsize;
+	int magic;
+	char *inode_buffer;
+	char *inode_map;
+	char *zone_map;
+	int used_good_blocks;
+	unsigned long req_nr_inodes;
+	unsigned currently_testing;
 
-static int used_good_blocks;
-static unsigned short good_blocks_table[MAX_GOOD_BLOCKS];
-static unsigned long req_nr_inodes;
+
+	char root_block[BLOCK_SIZE];
+	char super_block_buffer[BLOCK_SIZE];
+	char boot_block_buffer[512];
+	unsigned short good_blocks_table[MAX_GOOD_BLOCKS];
+};
+
+#define G (*ptr_to_globals)
 
 static ATTRIBUTE_ALWAYS_INLINE unsigned div_roundup(unsigned size, unsigned n)
 {
 	return (size + n-1) / n;
 }
 
-#define INODE_BUF1              (((struct minix1_inode*)inode_buffer) - 1)
-#define INODE_BUF2              (((struct minix2_inode*)inode_buffer) - 1)
+#define INODE_BUF1              (((struct minix1_inode*)G.inode_buffer) - 1)
+#define INODE_BUF2              (((struct minix2_inode*)G.inode_buffer) - 1)
 
-#define SB                      (*(struct minix_super_block*)super_block_buffer)
+#define SB                      (*(struct minix_super_block*)G.super_block_buffer)
 
 #define SB_INODES               (SB.s_ninodes)
 #define SB_IMAPS                (SB.s_imap_blocks)
@@ -160,13 +167,13 @@ static void minix_clrbit(char *a, unsigned i)
 }
 
 /* Note: do not assume 0/1, it is 0/nonzero */
-#define zone_in_use(x)  minix_bit(zone_map,(x)-SB_FIRSTZONE+1)
-/*#define inode_in_use(x) minix_bit(inode_map,(x))*/
+#define zone_in_use(x)  minix_bit(G.zone_map,(x)-SB_FIRSTZONE+1)
+/*#define inode_in_use(x) minix_bit(G.inode_map,(x))*/
 
-#define mark_inode(x)   minix_setbit(inode_map,(x))
-#define unmark_inode(x) minix_clrbit(inode_map,(x))
-#define mark_zone(x)    minix_setbit(zone_map,(x)-SB_FIRSTZONE+1)
-#define unmark_zone(x)  minix_clrbit(zone_map,(x)-SB_FIRSTZONE+1)
+#define mark_inode(x)   minix_setbit(G.inode_map,(x))
+#define unmark_inode(x) minix_clrbit(G.inode_map,(x))
+#define mark_zone(x)    minix_setbit(G.zone_map,(x)-SB_FIRSTZONE+1)
+#define unmark_zone(x)  minix_clrbit(G.zone_map,(x)-SB_FIRSTZONE+1)
 
 #ifndef BLKGETSIZE
 # define BLKGETSIZE     _IO(0x12,96)    /* return device size */
@@ -227,51 +234,51 @@ static void write_tables(void)
 	SB.s_state &= ~MINIX_ERROR_FS;
 
 	msg_eol = "seek to 0 failed";
-	xlseek(dev_fd, 0, SEEK_SET);
+	xlseek(G.dev_fd, 0, SEEK_SET);
 
 	msg_eol = "cannot clear boot sector";
-	xwrite(dev_fd, boot_block_buffer, 512);
+	xwrite(G.dev_fd, G.boot_block_buffer, 512);
 
 	msg_eol = "seek to BLOCK_SIZE failed";
-	xlseek(dev_fd, BLOCK_SIZE, SEEK_SET);
+	xlseek(G.dev_fd, BLOCK_SIZE, SEEK_SET);
 
 	msg_eol = "cannot write superblock";
-	xwrite(dev_fd, super_block_buffer, BLOCK_SIZE);
+	xwrite(G.dev_fd, G.super_block_buffer, BLOCK_SIZE);
 
 	msg_eol = "cannot write inode map";
-	xwrite(dev_fd, inode_map, SB_IMAPS * BLOCK_SIZE);
+	xwrite(G.dev_fd, G.inode_map, SB_IMAPS * BLOCK_SIZE);
 
 	msg_eol = "cannot write zone map";
-	xwrite(dev_fd, zone_map, SB_ZMAPS * BLOCK_SIZE);
+	xwrite(G.dev_fd, G.zone_map, SB_ZMAPS * BLOCK_SIZE);
 
 	msg_eol = "cannot write inodes";
-	xwrite(dev_fd, inode_buffer, INODE_BUFFER_SIZE);
+	xwrite(G.dev_fd, G.inode_buffer, INODE_BUFFER_SIZE);
 
 	msg_eol = "\n";
 }
 
 static void write_block(int blk, char *buffer)
 {
-	xlseek(dev_fd, blk * BLOCK_SIZE, SEEK_SET);
-	xwrite(dev_fd, buffer, BLOCK_SIZE);
+	xlseek(G.dev_fd, blk * BLOCK_SIZE, SEEK_SET);
+	xwrite(G.dev_fd, buffer, BLOCK_SIZE);
 }
 
 static int get_free_block(void)
 {
 	int blk;
 
-	if (used_good_blocks + 1 >= MAX_GOOD_BLOCKS)
+	if (G.used_good_blocks + 1 >= MAX_GOOD_BLOCKS)
 		bb_error_msg_and_die("too many bad blocks");
-	if (used_good_blocks)
-		blk = good_blocks_table[used_good_blocks - 1] + 1;
+	if (G.used_good_blocks)
+		blk = G.good_blocks_table[G.used_good_blocks - 1] + 1;
 	else
 		blk = SB_FIRSTZONE;
 	while (blk < SB_ZONES && zone_in_use(blk))
 		blk++;
 	if (blk >= SB_ZONES)
 		bb_error_msg_and_die("not enough good blocks");
-	good_blocks_table[used_good_blocks] = blk;
-	used_good_blocks++;
+	G.good_blocks_table[G.used_good_blocks] = blk;
+	G.used_good_blocks++;
 	return blk;
 }
 
@@ -279,8 +286,8 @@ static void mark_good_blocks(void)
 {
 	int blk;
 
-	for (blk = 0; blk < used_good_blocks; blk++)
-		mark_zone(good_blocks_table[blk]);
+	for (blk = 0; blk < G.used_good_blocks; blk++)
+		mark_zone(G.good_blocks_table[blk]);
 }
 
 static int next(int zone)
@@ -303,7 +310,7 @@ static void make_bad_inode(void)
 
 #define NEXT_BAD (zone = next(zone))
 
-	if (!badblocks)
+	if (!G.badblocks)
 		return;
 	mark_inode(MINIX_BAD_INO);
 	inode->i_nlinks = 1;
@@ -311,7 +318,7 @@ static void make_bad_inode(void)
 	/* it's harder to check for bugs then - diff isn't helpful :(... */
 	inode->i_time = CUR_TIME;
 	inode->i_mode = S_IFREG + 0000;
-	inode->i_size = badblocks * BLOCK_SIZE;
+	inode->i_size = G.badblocks * BLOCK_SIZE;
 	zone = next(0);
 	for (i = 0; i < 7; i++) {
 		inode->i_zone[i] = zone;
@@ -354,13 +361,13 @@ static void make_bad_inode2(void)
 	unsigned long ind_block[BLOCK_SIZE >> 2];
 	unsigned long dind_block[BLOCK_SIZE >> 2];
 
-	if (!badblocks)
+	if (!G.badblocks)
 		return;
 	mark_inode(MINIX_BAD_INO);
 	inode->i_nlinks = 1;
 	inode->i_atime = inode->i_mtime = inode->i_ctime = CUR_TIME;
 	inode->i_mode = S_IFREG + 0000;
-	inode->i_size = badblocks * BLOCK_SIZE;
+	inode->i_size = G.badblocks * BLOCK_SIZE;
 	zone = next(0);
 	for (i = 0; i < 7; i++) {
 		inode->i_zone[i] = zone;
@@ -406,18 +413,18 @@ static void make_root_inode(void)
 	inode->i_zone[0] = get_free_block();
 	inode->i_nlinks = 2;
 	inode->i_time = CUR_TIME;
-	if (badblocks)
-		inode->i_size = 3 * dirsize;
+	if (G.badblocks)
+		inode->i_size = 3 * G.dirsize;
 	else {
-		root_block[2 * dirsize] = '\0';
-		root_block[2 * dirsize + 1] = '\0';
-		inode->i_size = 2 * dirsize;
+		G.root_block[2 * G.dirsize] = '\0';
+		G.root_block[2 * G.dirsize + 1] = '\0';
+		inode->i_size = 2 * G.dirsize;
 	}
 	inode->i_mode = S_IFDIR + 0755;
 	inode->i_uid = GETUID;
 	if (inode->i_uid)
 		inode->i_gid = GETGID;
-	write_block(inode->i_zone[0], root_block);
+	write_block(inode->i_zone[0], G.root_block);
 }
 
 #if ENABLE_FEATURE_MINIX2
@@ -429,22 +436,103 @@ static void make_root_inode2(void)
 	inode->i_zone[0] = get_free_block();
 	inode->i_nlinks = 2;
 	inode->i_atime = inode->i_mtime = inode->i_ctime = CUR_TIME;
-	if (badblocks)
-		inode->i_size = 3 * dirsize;
+	if (G.badblocks)
+		inode->i_size = 3 * G.dirsize;
 	else {
-		root_block[2 * dirsize] = '\0';
-		root_block[2 * dirsize + 1] = '\0';
-		inode->i_size = 2 * dirsize;
+		G.root_block[2 * G.dirsize] = '\0';
+		G.root_block[2 * G.dirsize + 1] = '\0';
+		inode->i_size = 2 * G.dirsize;
 	}
 	inode->i_mode = S_IFDIR + 0755;
 	inode->i_uid = GETUID;
 	if (inode->i_uid)
 		inode->i_gid = GETGID;
-	write_block(inode->i_zone[0], root_block);
+	write_block(inode->i_zone[0], G.root_block);
 }
 #else
 void make_root_inode2(void);
 #endif
+
+/*
+ * Perform a test of a block; return the number of
+ * blocks readable.
+ */
+static size_t do_check(char *buffer, size_t try, unsigned current_block)
+{
+	ssize_t got;
+
+	/* Seek to the correct loc. */
+	msg_eol = "seek failed during testing of blocks";
+	xlseek(G.dev_fd, current_block * BLOCK_SIZE, SEEK_SET);
+	msg_eol = "\n";
+
+	/* Try the read */
+	got = read(G.dev_fd, buffer, try * BLOCK_SIZE);
+	if (got < 0)
+		got = 0;
+	try = ((size_t)got) / BLOCK_SIZE;
+
+	if (got & (BLOCK_SIZE - 1))
+		fprintf(stderr, "Short read at block %u\n", (unsigned)(current_block + try));
+	return try;
+}
+
+static void alarm_intr(int alnum)
+{
+	if (G.currently_testing >= SB_ZONES)
+		return;
+	signal(SIGALRM, alarm_intr);
+	alarm(5);
+	if (!G.currently_testing)
+		return;
+	printf("%d ...", G.currently_testing);
+	fflush(stdout);
+}
+
+static void check_blocks(void)
+{
+	size_t try, got;
+	/* buffer[] was the biggest static in entire bbox */
+	char *buffer = xmalloc(BLOCK_SIZE * TEST_BUFFER_BLOCKS);
+
+	G.currently_testing = 0;
+	signal(SIGALRM, alarm_intr);
+	alarm(5);
+	while (G.currently_testing < SB_ZONES) {
+		msg_eol = "seek failed in check_blocks";
+		xlseek(G.dev_fd, G.currently_testing * BLOCK_SIZE, SEEK_SET);
+		msg_eol = "\n";
+		try = TEST_BUFFER_BLOCKS;
+		if (G.currently_testing + try > SB_ZONES)
+			try = SB_ZONES - G.currently_testing;
+		got = do_check(buffer, try, G.currently_testing);
+		G.currently_testing += got;
+		if (got == try)
+			continue;
+		if (G.currently_testing < SB_FIRSTZONE)
+			bb_error_msg_and_die("bad blocks before data-area: cannot make fs");
+		mark_zone(G.currently_testing);
+		G.badblocks++;
+		G.currently_testing++;
+	}
+	alarm(0);
+	free(buffer);
+	printf("%d bad block(s)\n", G.badblocks);
+}
+
+static void get_list_blocks(char *filename)
+{
+	FILE *listfile;
+	unsigned long blockno;
+
+	listfile = xfopen(filename, "r");
+	while (!feof(listfile)) {
+		fscanf(listfile, "%ld\n", &blockno);
+		mark_zone(blockno);
+		G.badblocks++;
+	}
+	printf("%d bad block(s)\n", G.badblocks);
+}
 
 static void setup_tables(void)
 {
@@ -453,21 +541,21 @@ static void setup_tables(void)
 	unsigned sb_zmaps;
 	unsigned i;
 
-	memset(super_block_buffer, 0, BLOCK_SIZE);
-	memset(boot_block_buffer, 0, 512);
-	SB_MAGIC = magic;
+	/* memset(G.super_block_buffer, 0, BLOCK_SIZE); */
+	/* memset(G.boot_block_buffer, 0, 512); */
+	SB_MAGIC = G.magic;
 	SB_ZONE_SIZE = 0;
 	SB_MAXSIZE = version2 ? 0x7fffffff : (7 + 512 + 512 * 512) * 1024;
 	if (version2)
-		SB.s_zones = total_blocks;
+		SB.s_zones = G.total_blocks;
 	else
-		SB.s_nzones = total_blocks;
+		SB.s_nzones = G.total_blocks;
 
 	/* some magic nrs: 1 inode / 3 blocks */
-	if (req_nr_inodes == 0)
-		inodes = total_blocks / 3;
+	if (G.req_nr_inodes == 0)
+		inodes = G.total_blocks / 3;
 	else
-		inodes = req_nr_inodes;
+		inodes = G.req_nr_inodes;
 	/* Round up inode count to fill block size */
 	if (version2)
 		inodes = (inodes + MINIX2_INODES_PER_BLOCK - 1) &
@@ -492,7 +580,7 @@ static void setup_tables(void)
 	SB_ZMAPS = 0;
 	do {
 		norm_firstzone = NORM_FIRSTZONE;
-		sb_zmaps = div_roundup(total_blocks - norm_firstzone + 1, BITS_PER_BLOCK);
+		sb_zmaps = div_roundup(G.total_blocks - norm_firstzone + 1, BITS_PER_BLOCK);
 		if (SB_ZMAPS == sb_zmaps) goto got_it;
 		SB_ZMAPS = sb_zmaps;
 		/* new SB_ZMAPS, need to recalc NORM_FIRSTZONE */
@@ -501,102 +589,20 @@ static void setup_tables(void)
  got_it:
 
 	SB_FIRSTZONE = norm_firstzone;
-	inode_map = xmalloc(SB_IMAPS * BLOCK_SIZE);
-	zone_map = xmalloc(SB_ZMAPS * BLOCK_SIZE);
-	memset(inode_map, 0xff, SB_IMAPS * BLOCK_SIZE);
-	memset(zone_map, 0xff, SB_ZMAPS * BLOCK_SIZE);
+	G.inode_map = xmalloc(SB_IMAPS * BLOCK_SIZE);
+	G.zone_map = xmalloc(SB_ZMAPS * BLOCK_SIZE);
+	memset(G.inode_map, 0xff, SB_IMAPS * BLOCK_SIZE);
+	memset(G.zone_map, 0xff, SB_ZMAPS * BLOCK_SIZE);
 	for (i = SB_FIRSTZONE; i < SB_ZONES; i++)
 		unmark_zone(i);
 	for (i = MINIX_ROOT_INO; i <= SB_INODES; i++)
 		unmark_inode(i);
-	inode_buffer = xzalloc(INODE_BUFFER_SIZE);
+	G.inode_buffer = xzalloc(INODE_BUFFER_SIZE);
 	printf("%ld inodes\n", (long)SB_INODES);
 	printf("%ld blocks\n", (long)SB_ZONES);
 	printf("Firstdatazone=%ld (%ld)\n", (long)SB_FIRSTZONE, (long)norm_firstzone);
 	printf("Zonesize=%d\n", BLOCK_SIZE << SB_ZONE_SIZE);
 	printf("Maxsize=%ld\n", (long)SB_MAXSIZE);
-}
-
-/*
- * Perform a test of a block; return the number of
- * blocks readable.
- */
-static size_t do_check(char *buffer, size_t try, unsigned current_block)
-{
-	ssize_t got;
-
-	/* Seek to the correct loc. */
-	msg_eol = "seek failed during testing of blocks";
-	xlseek(dev_fd, current_block * BLOCK_SIZE, SEEK_SET);
-	msg_eol = "\n";
-
-	/* Try the read */
-	got = read(dev_fd, buffer, try * BLOCK_SIZE);
-	if (got < 0)
-		got = 0;
-	try = ((size_t)got) / BLOCK_SIZE;
-
-	if (got & (BLOCK_SIZE - 1))
-		fprintf(stderr, "Short read at block %u\n", (unsigned)(current_block + try));
-	return try;
-}
-
-static unsigned currently_testing;
-
-static void alarm_intr(int alnum)
-{
-	if (currently_testing >= SB_ZONES)
-		return;
-	signal(SIGALRM, alarm_intr);
-	alarm(5);
-	if (!currently_testing)
-		return;
-	printf("%d ...", currently_testing);
-	fflush(stdout);
-}
-
-static void check_blocks(void)
-{
-	size_t try, got;
-	/* buffer[] was the biggest static in entire bbox */
-	char *buffer = xmalloc(BLOCK_SIZE * TEST_BUFFER_BLOCKS);
-
-	currently_testing = 0;
-	signal(SIGALRM, alarm_intr);
-	alarm(5);
-	while (currently_testing < SB_ZONES) {
-		msg_eol = "seek failed in check_blocks";
-		xlseek(dev_fd, currently_testing * BLOCK_SIZE, SEEK_SET);
-		msg_eol = "\n";
-		try = TEST_BUFFER_BLOCKS;
-		if (currently_testing + try > SB_ZONES)
-			try = SB_ZONES - currently_testing;
-		got = do_check(buffer, try, currently_testing);
-		currently_testing += got;
-		if (got == try)
-			continue;
-		if (currently_testing < SB_FIRSTZONE)
-			bb_error_msg_and_die("bad blocks before data-area: cannot make fs");
-		mark_zone(currently_testing);
-		badblocks++;
-		currently_testing++;
-	}
-	free(buffer);
-	printf("%d bad block(s)\n", badblocks);
-}
-
-static void get_list_blocks(char *filename)
-{
-	FILE *listfile;
-	unsigned long blockno;
-
-	listfile = xfopen(filename, "r");
-	while (!feof(listfile)) {
-		fscanf(listfile, "%ld\n", &blockno);
-		mark_zone(blockno);
-		badblocks++;
-	}
-	printf("%d bad block(s)\n", badblocks);
 }
 
 int mkfs_minix_main(int argc, char **argv);
@@ -609,6 +615,12 @@ int mkfs_minix_main(int argc, char **argv)
 	char *str_i, *str_n;
 	char *listfile = NULL;
 
+	PTR_TO_GLOBALS = xzalloc(sizeof(G));
+/* default (changed to 30, per Linus's suggestion, Sun Nov 21 08:05:07 1993) */
+	G.namelen = 30;
+	G.dirsize = 32;
+	G.magic = MINIX1_SUPER_MAGIC2;
+
 	if (INODE_SIZE1 * MINIX1_INODES_PER_BLOCK != BLOCK_SIZE)
 		bb_error_msg_and_die("bad inode size");
 #if ENABLE_FEATURE_MINIX2
@@ -619,14 +631,14 @@ int mkfs_minix_main(int argc, char **argv)
 	opt = getopt32(argc, argv, "ci:l:n:v", &str_i, &listfile, &str_n);
 	argv += optind;
 	//if (opt & 1) -c
-	if (opt & 2) req_nr_inodes = xatoul(str_i); // -i
+	if (opt & 2) G.req_nr_inodes = xatoul(str_i); // -i
 	//if (opt & 4) -l
 	if (opt & 8) { // -n
-		namelen = xatoi_u(str_n);
-		if (namelen == 14) magic = MINIX1_SUPER_MAGIC;
-		else if (namelen == 30) magic = MINIX1_SUPER_MAGIC2;
+		G.namelen = xatoi_u(str_n);
+		if (G.namelen == 14) G.magic = MINIX1_SUPER_MAGIC;
+		else if (G.namelen == 30) G.magic = MINIX1_SUPER_MAGIC2;
 		else bb_show_usage();
-		dirsize = namelen + 2;
+		G.dirsize = G.namelen + 2;
 	}
 	if (opt & 0x10) { // -v
 #if ENABLE_FEATURE_MINIX2
@@ -636,34 +648,34 @@ int mkfs_minix_main(int argc, char **argv)
 #endif
 	}
 
-	device_name = *argv++;
-	if (!device_name)
+	G.device_name = *argv++;
+	if (!G.device_name)
 		bb_show_usage();
 	if (*argv)
-		total_blocks = xatou32(*argv);
+		G.total_blocks = xatou32(*argv);
 	else
-		total_blocks = get_size(device_name) / 1024;
+		G.total_blocks = get_size(G.device_name) / 1024;
 
-	if (total_blocks < 10)
+	if (G.total_blocks < 10)
 		bb_error_msg_and_die("must have at least 10 blocks");
 
 	if (version2) {
-		magic = MINIX2_SUPER_MAGIC2;
-		if (namelen == 14)
-			magic = MINIX2_SUPER_MAGIC;
-	} else if (total_blocks > 65535)
-		total_blocks = 65535;
+		G.magic = MINIX2_SUPER_MAGIC2;
+		if (G.namelen == 14)
+			G.magic = MINIX2_SUPER_MAGIC;
+	} else if (G.total_blocks > 65535)
+		G.total_blocks = 65535;
 
 	/* Check if it is mounted */
-	mp = find_mount_point(device_name, NULL);
-	if (mp && strcmp(device_name, mp->mnt_fsname) == 0)
+	mp = find_mount_point(G.device_name, NULL);
+	if (mp && strcmp(G.device_name, mp->mnt_fsname) == 0)
 		bb_error_msg_and_die("%s is mounted on %s; "
 				"refusing to make a filesystem",
-				device_name, mp->mnt_dir);
+				G.device_name, mp->mnt_dir);
 
-	dev_fd = xopen(device_name, O_RDWR);
-	if (fstat(dev_fd, &statbuf) < 0)
-		bb_error_msg_and_die("cannot stat %s", device_name);
+	G.dev_fd = xopen(G.device_name, O_RDWR);
+	if (fstat(G.dev_fd, &statbuf) < 0)
+		bb_error_msg_and_die("cannot stat %s", G.device_name);
 	if (!S_ISBLK(statbuf.st_mode))
 		opt &= ~1; // clear -c (check)
 
@@ -673,16 +685,16 @@ int mkfs_minix_main(int argc, char **argv)
 	else if (statbuf.st_rdev == 0x0300 || statbuf.st_rdev == 0x0340)
 		/* what is this? */
 		bb_error_msg_and_die("will not try "
-			"to make filesystem on '%s'", device_name);
+			"to make filesystem on '%s'", G.device_name);
 #endif
 
-	tmp = root_block;
+	tmp = G.root_block;
 	*(short *) tmp = 1;
 	strcpy(tmp + 2, ".");
-	tmp += dirsize;
+	tmp += G.dirsize;
 	*(short *) tmp = 1;
 	strcpy(tmp + 2, "..");
-	tmp += dirsize;
+	tmp += G.dirsize;
 	*(short *) tmp = 2;
 	strcpy(tmp + 2, ".badblocks");
 
