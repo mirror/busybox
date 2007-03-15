@@ -563,7 +563,7 @@ busybox-all  := $(core-y) $(libs-y)
 # May be overridden by arch/$(ARCH)/Makefile
 quiet_cmd_busybox__ ?= LINK    $@
       cmd_busybox__ ?= $(srctree)/scripts/trylink $(CC) $(LDFLAGS) \
-      -o $@ \
+      -o $@ -Wl,-M \
       -Wl,--warn-common -Wl,--sort-common -Wl,--gc-sections \
       -Wl,--start-group $(busybox-all) -Wl,--end-group
 

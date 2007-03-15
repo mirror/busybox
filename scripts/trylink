@@ -6,7 +6,7 @@ try() {
     added="$1"
     shift
     $debug && echo "Trying: $* $added"
-    "$@" $added >/dev/null 2>&1 \
+    "$@" $added >busybox.map 2>busybox_ld.err \
     && exit 0
 }
 
@@ -14,5 +14,5 @@ try "" "$@"
 try "-lm" "$@"
 try "-lcrypt" "$@"
 try "-Wl,--start-group -lcrypt -lm -Wl,--end-group" "$@"
-# It failed. Rerun & let people see the error messages
-"$@" $added
+# It failed. Let people see the error messages
+cat busybox_ld.err
