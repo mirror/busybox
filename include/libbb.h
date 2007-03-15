@@ -137,9 +137,6 @@ struct aftype {
 
 	/* may modify src */
 	int (*getmask) (char *src, struct sockaddr * mask, char *name);
-
-	int fd;
-	char *flag_file;
 };
 
 /* This structure defines hardware protocols and their handlers. */
@@ -530,11 +527,9 @@ int bbunpack(char **argv,
 int create_icmp_socket(void);
 int create_icmp6_socket(void);
 /* interface.c */
-struct aftype;
-struct hwtype;
 extern int interface_opt_a;
 int display_interfaces(char *ifname);
-struct aftype *get_aftype(const char *name);
+const struct aftype *get_aftype(const char *name);
 const struct hwtype *get_hwtype(const char *name);
 const struct hwtype *get_hwntype(int type);
 
