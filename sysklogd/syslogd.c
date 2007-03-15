@@ -17,46 +17,106 @@
 #include <paths.h>
 #include <sys/un.h>
 
-/* SYSLOG_NAMES defined to pull some extra junk from syslog.h */
+/* SYSLOG_NAMES defined to pull some extra junk from syslog.h: */
+/* prioritynames[] and facilitynames[]. uclibc pulls those in _rwdata_! :( */
+
 #define SYSLOG_NAMES
 #include <sys/syslog.h>
 #include <sys/uio.h>
 
-#define DEBUG 0
-
-/* Path for the file where all log messages are written */
-static const char *logFilePath = "/var/log/messages";
-static int logFD = -1;
-
-/* This is not very useful, is bloat, and broken:
- * can deadlock if alarmed to make MARK while writing to IPC buffer
- * (semaphores are down but do_mark routine tries to down them again) */
-#ifdef SYSLOGD_MARK
-/* interval between marks in seconds */
-static int markInterval = 20 * 60;
+#if ENABLE_FEATURE_REMOTE_LOG
+#include <netinet/in.h>
 #endif
 
-/* level of messages to be locally logged */
-static int logLevel = 8;
+#if ENABLE_FEATURE_IPC_SYSLOG
+#include <sys/ipc.h>
+#include <sys/sem.h>
+#include <sys/shm.h>
+#endif
 
-/* localhost's name */
-static char localHostName[64];
+
+#define DEBUG 0
+
+// Semaphore operation structures
+struct shbuf_ds {
+	int32_t size;   // size of data written
+	int32_t head;   // start of message list
+	int32_t tail;   // end of message list
+	char data[1];   // data/messages
+};                      // shared memory pointer
+
+struct globals {
+
+	const char *logFilePath;
+	int logFD;
+
+	/* This is not very useful, is bloat, and broken:
+	 * can deadlock if alarmed to make MARK while writing to IPC buffer
+	 * (semaphores are down but do_mark routine tries to down them again) */
+#ifdef SYSLOGD_MARK
+	/* interval between marks in seconds */
+	int markInterval;
+#endif
+
+	/* level of messages to be locally logged */
+	int logLevel;
 
 #if ENABLE_FEATURE_ROTATE_LOGFILE
-/* max size of message file before being rotated */
-static unsigned logFileSize = 200 * 1024;
-/* number of rotated message files */
-static unsigned logFileRotate = 1;
-static unsigned curFileSize;
-static smallint isRegular;
+	/* max size of message file before being rotated */
+	unsigned logFileSize;
+	/* number of rotated message files */
+	unsigned logFileRotate;
+	unsigned curFileSize;
+	smallint isRegular;
 #endif
 
 #if ENABLE_FEATURE_REMOTE_LOG
-#include <netinet/in.h>
-/* udp socket for logging to remote host */
-static int remoteFD = -1;
-static len_and_sockaddr* remoteAddr;
+	/* udp socket for logging to remote host */
+	int remoteFD;
+	len_and_sockaddr* remoteAddr;
 #endif
+
+#if ENABLE_FEATURE_IPC_SYSLOG
+	int shmid; // ipc shared memory id
+	int s_semid; // ipc semaphore id
+	int shm_size;
+	struct sembuf SMwup[1];
+	struct sembuf SMwdn[3];
+	struct shbuf_ds *shbuf;
+#endif
+
+	time_t last_log_time;
+	/* localhost's name */
+	char localHostName[64];
+
+}; /* struct globals */
+
+static const struct globals init_globals = {
+	.logFilePath = "/var/log/messages",
+	.logFD = -1,
+#ifdef SYSLOGD_MARK
+	.markInterval = 20 * 60,
+#endif
+	.logLevel = 8,
+#if ENABLE_FEATURE_ROTATE_LOGFILE
+	.logFileSize = 200 * 1024,
+	.logFileRotate = 1,
+#endif
+#if ENABLE_FEATURE_REMOTE_LOG
+	.remoteFD = -1,
+#endif
+#if ENABLE_FEATURE_IPC_SYSLOG
+	.shmid = -1,
+	.s_semid = -1,
+	.shm_size = ((CONFIG_FEATURE_IPC_SYSLOG_BUFFER_SIZE)*1024), // default shm size
+	.SMwup = { {1, -1, IPC_NOWAIT} },
+	.SMwdn = { {0, 0}, {1, 0}, {1, +1} },
+#endif
+	// FIXME: hidden tail with lotsa zeroes is here....
+};
+
+#define G (*ptr_to_globals)
+
 
 /* We are using bb_common_bufsiz1 for buffering: */
 enum { MAX_READ = (BUFSIZ/6) & ~0xf };
@@ -109,7 +169,7 @@ enum {
 	USE_FEATURE_ROTATE_LOGFILE(,*opt_b) \
 	USE_FEATURE_REMOTE_LOG(    ,*opt_R) \
 	USE_FEATURE_IPC_SYSLOG(    ,*opt_C = NULL)
-#define OPTION_PARAM &opt_m, &logFilePath, &opt_l \
+#define OPTION_PARAM &opt_m, &G.logFilePath, &opt_l \
 	USE_FEATURE_ROTATE_LOGFILE(,&opt_s) \
 	USE_FEATURE_ROTATE_LOGFILE(,&opt_b) \
 	USE_FEATURE_REMOTE_LOG(    ,&opt_R) \
@@ -119,68 +179,51 @@ enum {
 /* circular buffer variables/structures */
 #if ENABLE_FEATURE_IPC_SYSLOG
 
-
 #if CONFIG_FEATURE_IPC_SYSLOG_BUFFER_SIZE < 4
 #error Sorry, you must set the syslogd buffer size to at least 4KB.
 #error Please check CONFIG_FEATURE_IPC_SYSLOG_BUFFER_SIZE
 #endif
 
-#include <sys/ipc.h>
-#include <sys/sem.h>
-#include <sys/shm.h>
-
 /* our shared key */
 #define KEY_ID ((long)0x414e4547) /* "GENA" */
 
-// Semaphore operation structures
-static struct shbuf_ds {
-	int32_t size;   // size of data written
-	int32_t head;   // start of message list
-	int32_t tail;   // end of message list
-	char data[1];   // data/messages
-} *shbuf;               // shared memory pointer
-
-static int shmid = -1;   // ipc shared memory id
-static int s_semid = -1; // ipc semaphore id
-static int shm_size = ((CONFIG_FEATURE_IPC_SYSLOG_BUFFER_SIZE)*1024);	// default shm size
-
 static void ipcsyslog_cleanup(void)
 {
-	if (shmid != -1) {
-		shmdt(shbuf);
+	if (G.shmid != -1) {
+		shmdt(G.shbuf);
 	}
-	if (shmid != -1) {
-		shmctl(shmid, IPC_RMID, NULL);
+	if (G.shmid != -1) {
+		shmctl(G.shmid, IPC_RMID, NULL);
 	}
-	if (s_semid != -1) {
-		semctl(s_semid, 0, IPC_RMID, 0);
+	if (G.s_semid != -1) {
+		semctl(G.s_semid, 0, IPC_RMID, 0);
 	}
 }
 
 static void ipcsyslog_init(void)
 {
 	if (DEBUG)
-		printf("shmget(%lx, %d,...)\n", KEY_ID, shm_size);
+		printf("shmget(%lx, %d,...)\n", KEY_ID, G.shm_size);
 
-	shmid = shmget(KEY_ID, shm_size, IPC_CREAT | 1023);
-	if (shmid == -1) {
+	G.shmid = shmget(KEY_ID, G.shm_size, IPC_CREAT | 1023);
+	if (G.shmid == -1) {
 		bb_perror_msg_and_die("shmget");
 	}
 
-	shbuf = shmat(shmid, NULL, 0);
-	if (!shbuf) {
+	G.shbuf = shmat(G.shmid, NULL, 0);
+	if (!G.shbuf) {
 		bb_perror_msg_and_die("shmat");
 	}
 
-	shbuf->size = shm_size - offsetof(struct shbuf_ds, data);
-	shbuf->head = shbuf->tail = 0;
+	G.shbuf->size = G.shm_size - offsetof(struct shbuf_ds, data);
+	G.shbuf->head = G.shbuf->tail = 0;
 
 	// we'll trust the OS to set initial semval to 0 (let's hope)
-	s_semid = semget(KEY_ID, 2, IPC_CREAT | IPC_EXCL | 1023);
-	if (s_semid == -1) {
+	G.s_semid = semget(KEY_ID, 2, IPC_CREAT | IPC_EXCL | 1023);
+	if (G.s_semid == -1) {
 		if (errno == EEXIST) {
-			s_semid = semget(KEY_ID, 2, 0);
-			if (s_semid != -1)
+			G.s_semid = semget(KEY_ID, 2, 0);
+			if (G.s_semid != -1)
 				return;
 		}
 		bb_perror_msg_and_die("semget");
@@ -190,14 +233,10 @@ static void ipcsyslog_init(void)
 /* Write message to shared mem buffer */
 static void log_to_shmem(const char *msg, int len)
 {
-	/* Why libc insists on these being rw? */
-	static struct sembuf SMwup[1] = { {1, -1, IPC_NOWAIT} };
-	static struct sembuf SMwdn[3] = { {0, 0}, {1, 0}, {1, +1} };
-
 	int old_tail, new_tail;
 	char *c;
 
-	if (semop(s_semid, SMwdn, 3) == -1) {
+	if (semop(G.s_semid, G.SMwdn, 3) == -1) {
 		bb_perror_msg_and_die("SMwdn");
 	}
 
@@ -212,53 +251,53 @@ static void log_to_shmem(const char *msg, int len)
 	 */
 	len++; /* length with NUL included */
  again:
-	old_tail = shbuf->tail;
+	old_tail = G.shbuf->tail;
 	new_tail = old_tail + len;
-	if (new_tail < shbuf->size) {
+	if (new_tail < G.shbuf->size) {
 		/* No need to move head if shbuf->head <= old_tail,
 		 * else... */
-		if (old_tail < shbuf->head && shbuf->head <= new_tail) {
+		if (old_tail < G.shbuf->head && G.shbuf->head <= new_tail) {
 			/* ...need to move head forward */
-			c = memchr(shbuf->data + new_tail, '\0',
-					   shbuf->size - new_tail);
+			c = memchr(G.shbuf->data + new_tail, '\0',
+					   G.shbuf->size - new_tail);
 			if (!c) /* no NUL ahead of us, wrap around */
-				c = memchr(shbuf->data, '\0', old_tail);
+				c = memchr(G.shbuf->data, '\0', old_tail);
 			if (!c) { /* still nothing? point to this msg... */
-				shbuf->head = old_tail;
+				G.shbuf->head = old_tail;
 			} else {
 				/* convert pointer to offset + skip NUL */
-				shbuf->head = c - shbuf->data + 1;
+				G.shbuf->head = c - G.shbuf->data + 1;
 			}
 		}
 		/* store message, set new tail */
-		memcpy(shbuf->data + old_tail, msg, len);
-		shbuf->tail = new_tail;
+		memcpy(G.shbuf->data + old_tail, msg, len);
+		G.shbuf->tail = new_tail;
 	} else {
 		/* we need to break up the message and wrap it around */
 		/* k == available buffer space ahead of old tail */
-		int k = shbuf->size - old_tail - 1;
-		if (shbuf->head > old_tail) {
+		int k = G.shbuf->size - old_tail - 1;
+		if (G.shbuf->head > old_tail) {
 			/* we are going to overwrite head, need to
 			 * move it out of the way */
-			c = memchr(shbuf->data, '\0', old_tail);
+			c = memchr(G.shbuf->data, '\0', old_tail);
 			if (!c) { /* nothing? point to this msg... */
-				shbuf->head = old_tail;
+				G.shbuf->head = old_tail;
 			} else { /* convert pointer to offset + skip NUL */
-				shbuf->head = c - shbuf->data + 1;
+				G.shbuf->head = c - G.shbuf->data + 1;
 			}
 		}
 		/* copy what fits to the end of buffer, and repeat */
-		memcpy(shbuf->data + old_tail, msg, k);
+		memcpy(G.shbuf->data + old_tail, msg, k);
 		msg += k;
 		len -= k;
-		shbuf->tail = 0;
+		G.shbuf->tail = 0;
 		goto again;
 	}
-	if (semop(s_semid, SMwup, 1) == -1) {
+	if (semop(G.s_semid, G.SMwup, 1) == -1) {
 		bb_perror_msg_and_die("SMwup");
 	}
 	if (DEBUG)
-		printf("head:%d tail:%d\n", shbuf->head, shbuf->tail);
+		printf("head:%d tail:%d\n", G.shbuf->head, G.shbuf->tail);
 }
 #else
 void ipcsyslog_cleanup(void);
@@ -270,29 +309,28 @@ void log_to_shmem(const char *msg);
 /* Print a message to the log file. */
 static void log_locally(char *msg)
 {
-	static time_t last;
 	struct flock fl;
 	int len = strlen(msg);
 
 #if ENABLE_FEATURE_IPC_SYSLOG
-	if ((option_mask32 & OPT_circularlog) && shbuf) {
+	if ((option_mask32 & OPT_circularlog) && G.shbuf) {
 		log_to_shmem(msg, len);
 		return;
 	}
 #endif
-	if (logFD >= 0) {
+	if (G.logFD >= 0) {
 		time_t cur;
 		time(&cur);
-		if (last != cur) {
-			last = cur; /* reopen log file every second */
-			close(logFD);
+		if (G.last_log_time != cur) {
+			G.last_log_time = cur; /* reopen log file every second */
+			close(G.logFD);
 			goto reopen;
 		}
 	} else {
  reopen:
-		logFD = device_open(logFilePath, O_WRONLY | O_CREAT
+		G.logFD = device_open(G.logFilePath, O_WRONLY | O_CREAT
 					| O_NOCTTY | O_APPEND | O_NONBLOCK);
-		if (logFD < 0) {
+		if (G.logFD < 0) {
 			/* cannot open logfile? - print to /dev/console then */
 			int fd = device_open(_PATH_CONSOLE, O_WRONLY | O_NOCTTY | O_NONBLOCK);
 			if (fd < 0)
@@ -306,9 +344,9 @@ static void log_locally(char *msg)
 		{
 		struct stat statf;
 
-		isRegular = (fstat(logFD, &statf) == 0 && (statf.st_mode & S_IFREG));
+		G.isRegular = (fstat(G.logFD, &statf) == 0 && (statf.st_mode & S_IFREG));
 		/* bug (mostly harmless): can wrap around if file > 4gb */
-		curFileSize = statf.st_size;
+		G.curFileSize = statf.st_size;
 		}
 #endif
 	}
@@ -317,36 +355,36 @@ static void log_locally(char *msg)
 	fl.l_start = 0;
 	fl.l_len = 1;
 	fl.l_type = F_WRLCK;
-	fcntl(logFD, F_SETLKW, &fl);
+	fcntl(G.logFD, F_SETLKW, &fl);
 
 #if ENABLE_FEATURE_ROTATE_LOGFILE
-	if (logFileSize && isRegular && curFileSize > logFileSize) {
-		if (logFileRotate) { /* always 0..99 */
-			int i = strlen(logFilePath) + 3 + 1;
+	if (G.logFileSize && G.isRegular && G.curFileSize > G.logFileSize) {
+		if (G.logFileRotate) { /* always 0..99 */
+			int i = strlen(G.logFilePath) + 3 + 1;
 			char oldFile[i];
 			char newFile[i];
-			i = logFileRotate - 1;
+			i = G.logFileRotate - 1;
 			/* rename: f.8 -> f.9; f.7 -> f.8; ... */
 			while (1) {
-				sprintf(newFile, "%s.%d", logFilePath, i);
+				sprintf(newFile, "%s.%d", G.logFilePath, i);
 				if (i == 0) break;
-				sprintf(oldFile, "%s.%d", logFilePath, --i);
+				sprintf(oldFile, "%s.%d", G.logFilePath, --i);
 				rename(oldFile, newFile);
 			}
 			/* newFile == "f.0" now */
-			rename(logFilePath, newFile);
+			rename(G.logFilePath, newFile);
 			fl.l_type = F_UNLCK;
-			fcntl(logFD, F_SETLKW, &fl);
-			close(logFD);
+			fcntl(G.logFD, F_SETLKW, &fl);
+			close(G.logFD);
 			goto reopen;
 		}
-		ftruncate(logFD, 0);
+		ftruncate(G.logFD, 0);
 	}
-	curFileSize +=
+	G.curFileSize +=
 #endif
-	                full_write(logFD, msg, len);
+	                full_write(G.logFD, msg, len);
 	fl.l_type = F_UNLCK;
-	fcntl(logFD, F_SETLKW, &fl);
+	fcntl(G.logFD, F_SETLKW, &fl);
 }
 
 static void parse_fac_prio_20(int pri, char *res20)
@@ -397,13 +435,13 @@ static void timestamp_and_log(int pri, char *msg, int len)
 
 	/* Log message locally (to file or shared mem) */
 	if (!ENABLE_FEATURE_REMOTE_LOG || (option_mask32 & OPT_locallog)) {
-		if (LOG_PRI(pri) < logLevel) {
+		if (LOG_PRI(pri) < G.logLevel) {
 			if (option_mask32 & OPT_small)
 				sprintf(PRINTBUF, "%s %s\n", timestamp, msg);
 			else {
 				char res[20];
 				parse_fac_prio_20(pri, res);
-				sprintf(PRINTBUF, "%s %s %s %s\n", timestamp, localHostName, res, msg);
+				sprintf(PRINTBUF, "%s %s %s %s\n", timestamp, G.localHostName, res, msg);
 			}
 			log_locally(PRINTBUF);
 		}
@@ -456,9 +494,9 @@ static void quit_signal(int sig)
 #ifdef SYSLOGD_MARK
 static void do_mark(int sig)
 {
-	if (markInterval) {
+	if (G.markInterval) {
 		timestamp_and_log(LOG_SYSLOG | LOG_INFO, (char*)"-- MARK --", 0);
-		alarm(markInterval);
+		alarm(G.markInterval);
 	}
 }
 #endif
@@ -482,7 +520,7 @@ static void do_syslogd(void)
 #endif
 #ifdef SYSLOGD_MARK
 	signal(SIGALRM, do_mark);
-	alarm(markInterval);
+	alarm(G.markInterval);
 #endif
 
 	memset(&sunx, 0, sizeof(sunx));
@@ -541,14 +579,14 @@ static void do_syslogd(void)
 #if ENABLE_FEATURE_REMOTE_LOG
 			/* We are not modifying log messages in any way before send */
 			/* Remote site cannot trust _us_ anyway and need to do validation again */
-			if (remoteAddr) {
-				if (-1 == remoteFD) {
-					remoteFD = socket(remoteAddr->sa.sa_family, SOCK_DGRAM, 0);
+			if (G.remoteAddr) {
+				if (-1 == G.remoteFD) {
+					G.remoteFD = socket(G.remoteAddr->sa.sa_family, SOCK_DGRAM, 0);
 				}
-				if (-1 != remoteFD) {
+				if (-1 != G.remoteFD) {
 					/* send message to remote logger, ignore possible error */
-					sendto(remoteFD, RECVBUF, i, MSG_DONTWAIT,
-						&remoteAddr->sa, remoteAddr->len);
+					sendto(G.remoteFD, RECVBUF, i, MSG_DONTWAIT,
+						&G.remoteAddr->sa, G.remoteAddr->len);
 				}
 			}
 #endif
@@ -564,33 +602,36 @@ int syslogd_main(int argc, char **argv)
 	char OPTION_DECL;
 	char *p;
 
+	PTR_TO_GLOBALS = xzalloc(sizeof(G));
+	memcpy(ptr_to_globals, &init_globals, sizeof(init_globals));
+
 	/* do normal option parsing */
 	opt_complementary = "=0"; /* no non-option params */
 	getopt32(argc, argv, OPTION_STR, OPTION_PARAM);
 #ifdef SYSLOGD_MARK
 	if (option_mask32 & OPT_mark) // -m
-		markInterval = xatou_range(opt_m, 0, INT_MAX/60) * 60;
+		G.markInterval = xatou_range(opt_m, 0, INT_MAX/60) * 60;
 #endif
 	//if (option_mask32 & OPT_nofork) // -n
 	//if (option_mask32 & OPT_outfile) // -O
 	if (option_mask32 & OPT_loglevel) // -l
-		logLevel = xatou_range(opt_l, 1, 8);
+		G.logLevel = xatou_range(opt_l, 1, 8);
 	//if (option_mask32 & OPT_small) // -S
 #if ENABLE_FEATURE_ROTATE_LOGFILE
 	if (option_mask32 & OPT_filesize) // -s
-		logFileSize = xatou_range(opt_s, 0, INT_MAX/1024) * 1024;
+		G.logFileSize = xatou_range(opt_s, 0, INT_MAX/1024) * 1024;
 	if (option_mask32 & OPT_rotatecnt) // -b
-		logFileRotate = xatou_range(opt_b, 0, 99);
+		G.logFileRotate = xatou_range(opt_b, 0, 99);
 #endif
 #if ENABLE_FEATURE_REMOTE_LOG
 	if (option_mask32 & OPT_remotelog) { // -R
-		remoteAddr = xhost2sockaddr(opt_R, 514);
+		G.remoteAddr = xhost2sockaddr(opt_R, 514);
 	}
 	//if (option_mask32 & OPT_locallog) // -L
 #endif
 #if ENABLE_FEATURE_IPC_SYSLOG
 	if (opt_C) // -Cn
-		shm_size = xatoul_range(opt_C, 4, INT_MAX/1024) * 1024;
+		G.shm_size = xatoul_range(opt_C, 4, INT_MAX/1024) * 1024;
 #endif
 
 	/* If they have not specified remote logging, then log locally */
@@ -598,8 +639,8 @@ int syslogd_main(int argc, char **argv)
 		option_mask32 |= OPT_locallog;
 
 	/* Store away localhost's name before the fork */
-	gethostname(localHostName, sizeof(localHostName));
-	p = strchr(localHostName, '.');
+	gethostname(G.localHostName, sizeof(G.localHostName));
+	p = strchr(G.localHostName, '.');
 	if (p) {
 		*p = '\0';
 	}
