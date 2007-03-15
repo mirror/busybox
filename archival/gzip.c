@@ -2041,8 +2041,6 @@ int gzip_main(int argc, char **argv)
 	//if (opt & 0x4) // -v
 #if ENABLE_GUNZIP /* gunzip_main may not be visible... */
 	if (opt & 0x8) { // -d
-		/* FIXME: getopt32 should not depend on optind */
-		optind = 1;
 		return gunzip_main(argc, argv);
 	}
 #endif

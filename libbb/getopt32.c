@@ -454,6 +454,10 @@ getopt32(int argc, char **argv, const char *applet_opts, ...)
 				spec_flgs |= FREE_FIRST_ARGV_IS_OPT;
 		}
 	}
+
+	/* In case getopt32 was already called, reinit some state */
+	optind = 1;
+
 	/* Note: just "getopt() <= 0" will not work good for
 	 * "fake" short options, like this one:
 	 * wget $'-\203' "Test: test" http://kernel.org/
@@ -463,9 +467,9 @@ getopt32(int argc, char **argv, const char *applet_opts, ...)
 				 applet_long_options, NULL)) != -1) {
 #else
 	while ((c = getopt(argc, argv, applet_opts)) != -1) {
-#endif /* ENABLE_GETOPT_LONG */
+#endif
 		c &= 0xff; /* fight libc's sign extends */
-loop_arg_is_opt:
+ loop_arg_is_opt:
 		for (on_off = complementary; on_off->opt != c; on_off++) {
 			/* c==0 if long opt have non NULL flag */
 			if (on_off->opt == 0 && c != 0)
