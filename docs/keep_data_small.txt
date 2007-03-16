@@ -122,6 +122,6 @@ less readable, use #defines:
 
 		Word of caution
 
-If applet doesn't use much of global data, converting it to using
-one of above methods is not worth resulting code obfuscation.
-If you have less that ~300 bytes of global data - don't bother.
+If applet doesn't use much of global data, converting it to use
+one of above methods is not worth the resulting code obfuscation.
+If you have less than ~300 bytes of global data - don't bother.
