@@ -1175,21 +1175,38 @@ restart:
 }
 
 /* It is possible to have a command line argument with embedded
-   newlines.  This counts as multiple command lines. */
+ * newlines.  This counts as multiple command lines.
+ * However, newline can be escaped: 's/e/z\<newline>z/'
+ * We check for this.
+ */
 
 static void add_cmd_block(char *cmdstr)
 {
-	int go = 1;
-	char *temp = xstrdup(cmdstr), *temp2 = temp;
+	char *sv, *eol;
 
-	while (go) {
-		int len = strcspn(temp2, "\n");
-		if (!temp2[len]) go = 0;
-		else temp2[len] = 0;
-		add_cmd(temp2);
-		temp2 += len+1;
-	}
-	free(temp);
+	cmdstr = sv = xstrdup(cmdstr);
+	do {
+		eol = strchr(cmdstr, '\n');
+ next:
+		if (eol) {
+			/* Count preceding slashes */
+			int slashes = 0;
+			char *sl = eol;
+
+			while (sl != cmdstr && *--sl == '\\')
+				slashes++;
+			/* Odd number of preceding slashes - newline is escaped */
+			if (slashes & 1) {
+				strcpy(eol-1, eol);
+				eol = strchr(eol, '\n');
+				goto next;
+			}
+			*eol = '\0';
+		}
+		add_cmd(cmdstr);
+		cmdstr = eol + 1;
+	} while (eol);
+	free(sv);
 }
 
 static void add_cmds_link(llist_t *opt_e)

@@ -146,6 +146,10 @@ rm outputw
 testing "sed trailing NUL" \
 	"sed 's/i/z/' input -" \
 	"a\0b\0\nc" "a\0b\0" "c"
+testing "sed escaped newline in command" \
+	"sed 's/a/z\\
+z/' input" \
+	"z\nz" "a" ""
 
 # Test end-of-file matching behavior
 
