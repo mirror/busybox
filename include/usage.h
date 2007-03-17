@@ -152,16 +152,16 @@
        "[-jy] [[month] year]"
 #define cal_full_usage \
        "Display a calendar" \
-       "\n\nOptions:\n" \
-       "	-j	Use julian dates\n" \
-       "	-y	Display the entire year"
+       "\n\nOptions:" \
+       "\n	-j	Use julian dates" \
+       "\n	-y	Display the entire year"
 
 #define cat_trivial_usage \
        "[-u] [FILE]..."
 #define cat_full_usage \
        "Concatenate FILE(s) and print them to stdout" \
-       "\n\nOptions:\n" \
-       "	-u	Ignored since unbuffered i/o is always used"
+       "\n\nOptions:" \
+       "\n	-u	Ignored since unbuffered i/o is always used"
 #define cat_example_usage \
        "$ cat /proc/uptime\n" \
        "110716.72 17.67"
@@ -203,37 +203,17 @@
        "	chcon [OPTIONS] [-u USER] [-r ROLE] [-l RANGE] [-t TYPE] FILE...\n" \
        "	chcon [OPTIONS] --reference=RFILE FILE...\n"
 #define chcon_full_usage \
-       "Change the security context of each FILE to CONTEXT\n\n" \
-       "	-c, --changes		Like verbose but report only when a change is made\n" \
-       "	-h, --no-dereference	Affect symbolic links instead of any referenced file\n" \
-       "				(available only on systems with lchown system call)\n" \
-       "	-f, --silent, --quiet	Suppress most error messages\n" \
-       "	--reference=RFILE	Use RFILE's group instead of using a CONTEXT value\n" \
-       "	-u, --user=USER		Set user USER in the target security context\n" \
-       "	-r, --role=ROLE		Set role ROLE in the target security context\n" \
-       "	-t, --type=TYPE		Set type TYPE in the target security context\n" \
-       "	-l, --range=RANGE	Set range RANGE in the target security context\n" \
-       "	-R, --recursive		Recurse subdirs\n" \
-       "	-v, --verbose		Verbose mode" \
-
-#define chgrp_trivial_usage \
-       "[-Rh"USE_DESKTOP("cvf")"]... GROUP FILE..."
-#define chgrp_full_usage \
-       "Change the group membership of each FILE to GROUP" \
-       "\n\nOptions:\n" \
-       "	-R	Changes files and directories recursively\n" \
-       "	-h	Do not dereference symbolic links" \
-	USE_DESKTOP( \
-       "\n	-c	List changed files" \
-       "\n	-v	List all files" \
-       "\n	-f	Hide errors" \
-	)
-#define chgrp_example_usage \
-       "$ ls -l /tmp/foo\n" \
-       "-r--r--r--    1 andersen andersen        0 Apr 12 18:25 /tmp/foo\n" \
-       "$ chgrp root /tmp/foo\n" \
-       "$ ls -l /tmp/foo\n" \
-       "-r--r--r--    1 andersen root            0 Apr 12 18:25 /tmp/foo\n"
+       "Change the security context of each FILE to CONTEXT\n" \
+       "\n	-v, --verbose		Verbose" \
+       "\n	-c, --changes		Report changes made" \
+       "\n	-h, --no-dereference	Affect symlinks instead of their targets" \
+       "\n	-f, --silent, --quiet	Suppress most error messages" \
+       "\n	--reference=RFILE	Use RFILE's group instead of using a CONTEXT value" \
+       "\n	-u, --user=USER		Set user USER in the target security context" \
+       "\n	-r, --role=ROLE		Set role ROLE in the target security context" \
+       "\n	-t, --type=TYPE		Set type TYPE in the target security context" \
+       "\n	-l, --range=RANGE	Set range RANGE in the target security context" \
+       "\n	-R, --recursive		Recurse subdirectories" \
 
 #define chmod_trivial_usage \
        "[-R"USE_DESKTOP("cvf")"] MODE[,MODE]... FILE..."
@@ -257,13 +237,38 @@
        "$ ls -l /tmp/foo\n" \
        "-r--r--r--    1 root     root            0 Apr 12 18:25 /tmp/foo\n"
 
+#define chgrp_trivial_usage \
+       "[-RhLHP"USE_DESKTOP("cvf")"]... GROUP FILE..."
+#define chgrp_full_usage \
+       "Change the group membership of each FILE to GROUP" \
+       "\n\nOptions:" \
+       "\n	-R	Recurse directories" \
+       "\n	-h	Affect symlinks instead of symlink targets" \
+       "\n	-L	Traverse all symlinks to directories" \
+       "\n	-H	Traverse symlinks on command line only" \
+       "\n	-P	Do not traverse symlinks (default)" \
+	USE_DESKTOP( \
+       "\n	-c	List changed files" \
+       "\n	-v	Verbose" \
+       "\n	-f	Hide errors" \
+	)
+#define chgrp_example_usage \
+       "$ ls -l /tmp/foo\n" \
+       "-r--r--r--    1 andersen andersen        0 Apr 12 18:25 /tmp/foo\n" \
+       "$ chgrp root /tmp/foo\n" \
+       "$ ls -l /tmp/foo\n" \
+       "-r--r--r--    1 andersen root            0 Apr 12 18:25 /tmp/foo\n"
+
 #define chown_trivial_usage \
-       "[-Rh"USE_DESKTOP("cvf")"]...  OWNER[<.|:>[GROUP]] FILE..."
+       "[-RhLHP"USE_DESKTOP("cvf")"]...  OWNER[<.|:>[GROUP]] FILE..."
 #define chown_full_usage \
        "Change the owner and/or group of each FILE to OWNER and/or GROUP" \
        "\n\nOptions:" \
-       "\n	-R	Changes files and directories recursively" \
-       "\n	-h	Do not dereference symbolic links" \
+       "\n	-R	Recurse directories" \
+       "\n	-h	Affect symlinks instead of symlink targets" \
+       "\n	-L	Traverse all symlinks to directories" \
+       "\n	-H	Traverse symlinks on command line only" \
+       "\n	-P	Do not traverse symlinks (default)" \
 	USE_DESKTOP( \
        "\n	-c	List changed files" \
        "\n	-v	List all files" \
@@ -420,18 +425,18 @@
        "[OPTION]... SOURCE DEST"
 #define cp_full_usage \
        "Copy SOURCE to DEST, or multiple SOURCE(s) to DIRECTORY" \
-       "\n\nOptions:\n" \
-       "	-a	Same as -dpR\n" \
+       "\n\nOptions:" \
+       "\n	-a	Same as -dpR" \
 	USE_SELINUX( \
-       "	-c	Preserves security context\n" \
+       "\n	-c	Preserves security context" \
 	) \
-       "	-d,-P	Preserve links\n" \
-       "	-H,-L	Dereference all symlinks (implied by default)\n" \
-       "	-p	Preserve file attributes if possible\n" \
-       "	-f	Force, overwrite\n" \
-       "	-i	Interactive, prompt before overwrite\n" \
-       "	-R,-r	Copy directories recursively\n" \
-       "	-l,-s	Create (sym)links"
+       "\n	-d,-P	Preserve links" \
+       "\n	-H,-L	Dereference all symlinks (default)" \
+       "\n	-p	Preserve file attributes if possible" \
+       "\n	-f	Force overwrite" \
+       "\n	-i	Prompt before overwrite" \
+       "\n	-R,-r	Recurse directories" \
+       "\n	-l,-s	Create (sym)links"
 
 #define cpio_trivial_usage \
        "-[dimtuv][F cpiofile]"
@@ -717,8 +722,8 @@
        " bytes." \
        "\n\nOptions:\n" \
        "	-a	Show sizes of files in addition to directories\n" \
-       "	-H	Follow symbolic links that are FILE command line args\n" \
-       "	-L	Follow all symbolic links encountered\n" \
+       "	-H	Follow symlinks that are FILE command line args\n" \
+       "	-L	Follow all symlinks encountered\n" \
        "	-d N	Limit output to directories (and files with -a) of depth < N\n" \
        "	-c	Output a grand total\n" \
        "	-l	Count sizes many times if hard linked\n" \
@@ -929,7 +934,7 @@
        "Search for files in a directory hierarchy.  The default PATH is\n" \
        "the current directory; default EXPRESSION is '-print'\n" \
        "\nEXPRESSION may consist of:\n" \
-       "	-follow		Dereference symbolic links\n" \
+       "	-follow		Dereference symlinks\n" \
        "	-name PATTERN	File name (leading directories removed) matches PATTERN\n" \
        "	-print		Print (default and assumed)" \
 	USE_FEATURE_FIND_PRINT0( \
@@ -1743,7 +1748,7 @@
        "Create a link named LINK_NAME or DIRECTORY to the specified TARGET.\n" \
        "You may use '--' to indicate that all following arguments are non-options." \
        "\n\nOptions:\n" \
-       "	-s	Make symbolic links instead of hard links\n" \
+       "	-s	Make symlinks instead of hardlinks\n" \
        "	-f	Remove existing destination files\n" \
        "	-n	No dereference symlinks - treat like normal file\n" \
        "	-b	Make a backup of the target (if exists) before link operation\n" \
@@ -1849,7 +1854,7 @@
 	USE_FEATURE_LS_FILETYPES( \
        "\n	-p	Append indicator (one of /=@|) to entries") \
 	USE_FEATURE_LS_FOLLOWLINKS( \
-       "\n	-L	List entries pointed to by symbolic links") \
+       "\n	-L	List entries pointed to by symlinks") \
 	USE_FEATURE_LS_RECURSIVE( \
        "\n	-R	List subdirectories recursively") \
 	USE_FEATURE_LS_SORTFILES( \
@@ -2627,7 +2632,7 @@
 #define readlink_trivial_usage \
 	USE_FEATURE_READLINK_FOLLOW("[-f] ") "FILE"
 #define readlink_full_usage \
-       "Display the value of a symbolic link" \
+       "Display the value of a symlink" \
 	USE_FEATURE_READLINK_FOLLOW( \
        "\n\nOptions:\n" \
        "	-f	Canonicalize by following all symlinks")
@@ -2994,7 +2999,7 @@
        " %h	Number of hard links\n" \
        " %i	Inode number\n" \
        " %n	File name\n" \
-       " %N	Quoted file name with dereference if symbolic link\n" \
+       " %N	Quoted file name with dereference if symlink\n" \
        " %o	I/O block size\n" \
        " %s	Total size, in bytes\n" \
        " %t	Major device type in hex\n" \
