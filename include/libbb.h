@@ -17,7 +17,6 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <inttypes.h>
-#include <malloc.h>
 #include <netdb.h>
 #include <setjmp.h>
 #include <signal.h>
