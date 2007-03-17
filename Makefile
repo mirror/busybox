@@ -481,7 +481,7 @@ endif
 # The all: target is the default when no target is given on the
 # command line.
 # This allow a user to issue only 'make' to build a kernel including modules
-# Defaults busybox but it is usually overriden in the arch makefile
+# Defaults busybox but it is usually overridden in the arch makefile
 all: busybox
 
 -include $(srctree)/arch/$(ARCH)/Makefile
