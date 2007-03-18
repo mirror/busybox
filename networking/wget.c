@@ -543,7 +543,9 @@ static void parse_url(char *src_url, struct host_info *h)
 	p = strchr(h->host, '?'); if (!sp || (p && sp > p)) sp = p;
 	p = strchr(h->host, '#'); if (!sp || (p && sp > p)) sp = p;
 	if (!sp) {
-		h->path = "";
+		/* must be writable because of bb_get_last_path_component() */
+		static char nullstr[] = "";
+		h->path = nullstr;
 	} else if (*sp == '/') {
 		*sp = '\0';
 		h->path = sp + 1;
