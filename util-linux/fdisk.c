@@ -58,16 +58,6 @@ static unsigned sector_size = DEFAULT_SECTOR_SIZE;
 static unsigned user_set_sector_size;
 static unsigned sector_offset = 1;
 
-/*
- * Raw disk label. For DOS-type partition tables the MBR,
- * with descriptions of the primary partitions.
- */
-#if (MAX_SECTOR_SIZE) > (BUFSIZ+1)
-static char MBRbuffer[MAX_SECTOR_SIZE];
-#else
-# define MBRbuffer bb_common_bufsiz1
-#endif
-
 #if ENABLE_FEATURE_OSF_LABEL
 static int possibly_osf_label;
 #endif
@@ -201,7 +191,6 @@ static int get_boot(enum action what);
 				tolower(_c) + 10 - 'a'; \
 			})
 
-
 #define LINE_LENGTH     80
 #define pt_offset(b, n) ((struct partition *)((b) + 0x1be + \
 				(n) * sizeof(struct partition)))
@@ -210,15 +199,15 @@ static int get_boot(enum action what);
 
 #define hsc2sector(h,s,c) (sector(s) - 1 + sectors * \
 				((h) + heads * cylinder(s,c)))
-#define set_hsc(h,s,c,sector) { \
-				s = sector % sectors + 1;       \
-				sector /= sectors;      \
-				h = sector % heads;     \
-				sector /= heads;        \
-				c = sector & 0xff;      \
-				s |= (sector >> 2) & 0xc0;      \
-			}
-
+#define set_hsc(h,s,c,sector) \
+	do { \
+		s = sector % sectors + 1;  \
+		sector /= sectors;         \
+		h = sector % heads;        \
+		sector /= heads;           \
+		c = sector & 0xff;         \
+		s |= (sector >> 2) & 0xc0; \
+	} while (0)
 
 static unsigned get_start_sect(const struct partition *p);
 static unsigned get_nr_sects(const struct partition *p);
@@ -231,16 +220,27 @@ static unsigned get_nr_sects(const struct partition *p);
  * Each logical partition table entry has two pointers, one for the
  * partition and one link to the next one.
  */
-static struct pte {
+struct pte {
 	struct partition *part_table;   /* points into sectorbuffer */
 	struct partition *ext_pointer;  /* points into sectorbuffer */
 #if ENABLE_FEATURE_FDISK_WRITABLE
 	char changed;           /* boolean */
 #endif
-	off_t offset;            /* disk sector number */
+	off_t offset;           /* disk sector number */
 	char *sectorbuffer;     /* disk sector contents */
-} ptes[MAXIMUM_PARTS];
+};
 
+struct globals {
+	/* Raw disk label. For DOS-type partition tables the MBR,
+	 * with descriptions of the primary partitions. */
+	char MBRbuffer[MAX_SECTOR_SIZE];
+	/* Partition tables */
+	struct pte ptes[MAXIMUM_PARTS];
+};
+
+#define G (*(struct globals*)bb_common_bufsiz1)
+#define MBRbuffer (G.MBRbuffer)
+#define ptes      (G.ptes)
 
 #if ENABLE_FEATURE_FDISK_WRITABLE
 static void
@@ -297,7 +297,7 @@ read_line(const char *prompt)
 {
 	int sz;
 
-	sz = read_line_input(prompt, line_buffer, LINE_LENGTH, NULL);
+	sz = read_line_input(prompt, line_buffer, sizeof(line_buffer), NULL);
 	if (sz <= 0)
 		exit(0); /* Ctrl-D or Ctrl-C */
 
@@ -994,7 +994,8 @@ warn_geometry(void)
 	return 1;
 }
 
-static void update_units(void)
+static void
+update_units(void)
 {
 	int cyl_units = heads * sectors;
 
@@ -2784,6 +2785,8 @@ unknown_command(int c)
 }
 #endif
 
+void BUG_fdisk_globals_overflow(void);
+
 int fdisk_main(int argc, char **argv);
 int fdisk_main(int argc, char **argv)
 {
@@ -2806,6 +2809,10 @@ int fdisk_main(int argc, char **argv)
 		OPT_u = 1 << 5,
 		OPT_s = (1 << 6) * ENABLE_FEATURE_FDISK_BLKSIZE,
 	};
+
+	if (sizeof(G) > sizeof(bb_common_bufsiz1))
+		BUG_fdisk_globals_overflow();
+
 	opt = getopt32(argc, argv, "b:C:H:lS:u" USE_FEATURE_FDISK_BLKSIZE("s"),
 				&str_b, &str_C, &str_H, &str_S);
 	argc -= optind;
