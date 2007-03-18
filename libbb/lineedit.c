@@ -343,7 +343,7 @@ static void username_tab_completion(char *ud, char *with_shash_flg)
 	} else {
 		/* "~[^/]*" */
 		/* Using _r function to avoid pulling in static buffers */
-		char line_buff[PWD_BUFFER_SIZE];
+		char line_buff[256];
 		struct passwd pwd;
 		struct passwd *result;
 
