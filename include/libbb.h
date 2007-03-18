@@ -290,7 +290,7 @@ extern int setsockopt_broadcast(int fd);
 
 /* "new" (ipv4+ipv6) API */
 typedef struct len_and_sockaddr {
-	int len;
+	socklen_t len;
 	union {
 		struct sockaddr sa;
 		struct sockaddr_in sin;

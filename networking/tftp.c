@@ -132,7 +132,7 @@ static int tftp(
 #if ENABLE_FEATURE_TFTP_GET && ENABLE_FEATURE_TFTP_PUT
 		const int cmd,
 #endif
-		const len_and_sockaddr *peer_lsa,
+		len_and_sockaddr *peer_lsa,
 		const char *remotefile, const int localfd,
 		unsigned port, int tftp_bufsize)
 {
@@ -149,6 +149,9 @@ static int tftp(
 
 	USE_FEATURE_TFTP_BLOCKSIZE(int want_option_ack = 0;)
 
+	unsigned org_port;
+	len_and_sockaddr *const from = alloca(offsetof(len_and_sockaddr, sa) + peer_lsa->len);
+
 	/* Can't use RESERVE_CONFIG_BUFFER here since the allocation
 	 * size varies meaning BUFFERS_GO_ON_STACK would fail */
 	/* We must keep the transmit and receive buffers seperate */
@@ -156,7 +159,7 @@ static int tftp(
 	char *xbuf = xmalloc(tftp_bufsize += 4);
 	char *rbuf = xmalloc(tftp_bufsize);
 
-	port = htons(port);
+	port = org_port = htons(port);
 
 	socketfd = xsocket(peer_lsa->sa.sa_family, SOCK_DGRAM, 0);
 
@@ -167,10 +170,10 @@ static int tftp(
 	}
 
 	while (1) {
-
 		cp = xbuf;
 
 		/* first create the opcode part */
+		/* (this 16bit store is aligned) */
 		*((uint16_t*)cp) = htons(opcode);
 		cp += 2;
 
@@ -222,6 +225,7 @@ static int tftp(
 		/* add ack and data */
 
 		if (CMD_GET(cmd) ? (opcode == TFTP_ACK) : (opcode == TFTP_DATA)) {
+			/* TODO: unaligned access! */
 			*((uint16_t*)cp) = htons(block_nr);
 			cp += 2;
 			block_nr++;
@@ -273,28 +277,26 @@ static int tftp(
 			FD_SET(socketfd, &rfds);
 
 			switch (select(socketfd + 1, &rfds, NULL, NULL, &tv)) {
-				struct sockaddr *from;
-				socklen_t fromlen;
-
+				unsigned from_port;
 			case 1:
-				fromlen = peer_lsa->len;
-				from = alloca(fromlen);
-				memset(from, 0, fromlen);
-
+				from->len = peer_lsa->len;
+				memset(&from->sa, 0, peer_lsa->len);
 				len = recvfrom(socketfd, rbuf, tftp_bufsize, 0,
-							from, &fromlen);
+							&from->sa, &from->len);
 				if (len < 0) {
 					bb_perror_msg("recvfrom");
 					break;
 				}
-#if ENABLE_FEATURE_IPV6
-				if (from->sa_family == AF_INET6)
-					if (((struct sockaddr_in6*)from)->sin6_port != port)
-						goto recv_again;
-#endif
-				if (from->sa_family == AF_INET)
-					if (((struct sockaddr_in*)from)->sin_port != port)
-						goto recv_again;
+				from_port = get_nport(from);
+				if (port == org_port) {
+					/* Our first query went to port 69
+					 * but reply will come from different one.
+					 * Remember and use this new port */
+					port = from_port;
+					set_nport(peer_lsa, from_port);
+				}
+				if (port != from_port)
+					goto recv_again;
 				timeout = 0;
 				break;
 			case 0:
@@ -317,6 +319,7 @@ static int tftp(
 		}
 
 		/* process received packet */
+		/* (both accesses seems to be aligned) */
 
 		opcode = ntohs( ((uint16_t*)rbuf)[0] );
 		tmp = ntohs( ((uint16_t*)rbuf)[1] );
