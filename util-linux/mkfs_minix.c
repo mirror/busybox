@@ -115,6 +115,8 @@ struct globals {
 	char super_block_buffer[BLOCK_SIZE];
 	char boot_block_buffer[512];
 	unsigned short good_blocks_table[MAX_GOOD_BLOCKS];
+	/* check_blocks(): buffer[] was the biggest static in entire bbox */
+	char check_blocks_buffer[BLOCK_SIZE * TEST_BUFFER_BLOCKS];
 };
 
 #define G (*ptr_to_globals)
@@ -492,8 +494,6 @@ static void alarm_intr(int alnum)
 static void check_blocks(void)
 {
 	size_t try, got;
-	/* buffer[] was the biggest static in entire bbox */
-	char *buffer = xmalloc(BLOCK_SIZE * TEST_BUFFER_BLOCKS);
 
 	G.currently_testing = 0;
 	signal(SIGALRM, alarm_intr);
@@ -505,7 +505,7 @@ static void check_blocks(void)
 		try = TEST_BUFFER_BLOCKS;
 		if (G.currently_testing + try > SB_ZONES)
 			try = SB_ZONES - G.currently_testing;
-		got = do_check(buffer, try, G.currently_testing);
+		got = do_check(G.check_blocks_buffer, try, G.currently_testing);
 		G.currently_testing += got;
 		if (got == try)
 			continue;
@@ -516,7 +516,6 @@ static void check_blocks(void)
 		G.currently_testing++;
 	}
 	alarm(0);
-	free(buffer);
 	printf("%d bad block(s)\n", G.badblocks);
 }
 
