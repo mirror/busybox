@@ -7,7 +7,7 @@ try() {
     shift
     $debug && echo "Trying: $* $added"
     "$@" $added >busybox.map 2>busybox_ld.err \
-    && exit 0
+    && { rm busybox_ld.err; exit 0; }
 }
 
 try "" "$@"
