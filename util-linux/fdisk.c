@@ -16,6 +16,8 @@
 # define USE_FEATURE_FDISK_BLKSIZE(a)
 #endif
 
+#define SIZE(a) (sizeof(a)/sizeof((a)[0]))
+
 #define DEFAULT_SECTOR_SIZE     512
 #define MAX_SECTOR_SIZE 2048
 #define SECTOR_SIZE     512     /* still used in osf/sgi/sun code */
@@ -31,14 +33,6 @@
 #define LINUX_EXTENDED  0x85
 #define LINUX_LVM       0x8e
 #define LINUX_RAID      0xfd
-
-#define IS_EXTENDED(i) \
-	((i) == EXTENDED || (i) == WIN98_EXTENDED || (i) == LINUX_EXTENDED)
-
-#define SIZE(a) (sizeof(a)/sizeof((a)[0]))
-
-#define cround(n)       (display_in_cyl_units ? ((n)/units_per_sector)+1 : (n))
-#define scround(x)      (((x)+units_per_sector-1)/units_per_sector)
 
 struct hd_geometry {
 	unsigned char heads;
@@ -91,6 +85,7 @@ enum failure {
 enum label_type {
 	label_dos, label_sun, label_sgi, label_aix, label_osf
 };
+
 #define LABEL_IS_DOS	(label_dos == current_label_type)
 
 #if ENABLE_FEATURE_SUN_LABEL
@@ -150,30 +145,6 @@ static int get_boot(enum action what);
 #define PLURAL   0
 #define SINGULAR 1
 
-#define hex_val(c)      ({ \
-				char _c = (c); \
-				isdigit(_c) ? _c - '0' : \
-				tolower(_c) + 10 - 'a'; \
-			})
-
-#define LINE_LENGTH     80
-#define pt_offset(b, n) ((struct partition *)((b) + 0x1be + \
-				(n) * sizeof(struct partition)))
-#define sector(s)       ((s) & 0x3f)
-#define cylinder(s, c)  ((c) | (((s) & 0xc0) << 2))
-
-#define hsc2sector(h,s,c) (sector(s) - 1 + sectors * \
-				((h) + heads * cylinder(s,c)))
-#define set_hsc(h,s,c,sector) \
-	do { \
-		s = sector % sectors + 1;  \
-		sector /= sectors;         \
-		h = sector % heads;        \
-		sector /= heads;           \
-		c = sector & 0xff;         \
-		s |= (sector >> 2) & 0xc0; \
-	} while (0)
-
 static unsigned get_start_sect(const struct partition *p);
 static unsigned get_nr_sects(const struct partition *p);
 
@@ -188,25 +159,190 @@ static unsigned get_nr_sects(const struct partition *p);
 struct pte {
 	struct partition *part_table;   /* points into sectorbuffer */
 	struct partition *ext_pointer;  /* points into sectorbuffer */
+	off_t offset;           /* disk sector number */
+	char *sectorbuffer;     /* disk sector contents */
 #if ENABLE_FEATURE_FDISK_WRITABLE
 	char changed;           /* boolean */
 #endif
-	off_t offset;           /* disk sector number */
-	char *sectorbuffer;     /* disk sector contents */
 };
 
+/* DOS partition types */
+
+static const char *const i386_sys_types[] = {
+	"\x00" "Empty",
+	"\x01" "FAT12",
+	"\x04" "FAT16 <32M",
+	"\x05" "Extended",         /* DOS 3.3+ extended partition */
+	"\x06" "FAT16",            /* DOS 16-bit >=32M */
+	"\x07" "HPFS/NTFS",        /* OS/2 IFS, eg, HPFS or NTFS or QNX */
+	"\x0a" "OS/2 Boot Manager",/* OS/2 Boot Manager */
+	"\x0b" "Win95 FAT32",
+	"\x0c" "Win95 FAT32 (LBA)",/* LBA really is 'Extended Int 13h' */
+	"\x0e" "Win95 FAT16 (LBA)",
+	"\x0f" "Win95 Ext'd (LBA)",
+	"\x11" "Hidden FAT12",
+	"\x12" "Compaq diagnostics",
+	"\x14" "Hidden FAT16 <32M",
+	"\x16" "Hidden FAT16",
+	"\x17" "Hidden HPFS/NTFS",
+	"\x1b" "Hidden Win95 FAT32",
+	"\x1c" "Hidden W95 FAT32 (LBA)",
+	"\x1e" "Hidden W95 FAT16 (LBA)",
+	"\x3c" "Part.Magic recovery",
+	"\x41" "PPC PReP Boot",
+	"\x42" "SFS",
+	"\x63" "GNU HURD or SysV", /* GNU HURD or Mach or Sys V/386 (such as ISC UNIX) */
+	"\x80" "Old Minix",        /* Minix 1.4a and earlier */
+	"\x81" "Minix / old Linux",/* Minix 1.4b and later */
+	"\x82" "Linux swap",       /* also Solaris */
+	"\x83" "Linux",
+	"\x84" "OS/2 hidden C: drive",
+	"\x85" "Linux extended",
+	"\x86" "NTFS volume set",
+	"\x87" "NTFS volume set",
+	"\x8e" "Linux LVM",
+	"\x9f" "BSD/OS",           /* BSDI */
+	"\xa0" "Thinkpad hibernation",
+	"\xa5" "FreeBSD",          /* various BSD flavours */
+	"\xa6" "OpenBSD",
+	"\xa8" "Darwin UFS",
+	"\xa9" "NetBSD",
+	"\xab" "Darwin boot",
+	"\xb7" "BSDI fs",
+	"\xb8" "BSDI swap",
+	"\xbe" "Solaris boot",
+	"\xeb" "BeOS fs",
+	"\xee" "EFI GPT",                    /* Intel EFI GUID Partition Table */
+	"\xef" "EFI (FAT-12/16/32)",         /* Intel EFI System Partition */
+	"\xf0" "Linux/PA-RISC boot",         /* Linux/PA-RISC boot loader */
+	"\xf2" "DOS secondary",              /* DOS 3.3+ secondary */
+	"\xfd" "Linux raid autodetect",      /* New (2.2.x) raid partition with
+						autodetect using persistent
+						superblock */
+#if 0 /* ENABLE_WEIRD_PARTITION_TYPES */
+	"\x02" "XENIX root",
+	"\x03" "XENIX usr",
+	"\x08" "AIX",              /* AIX boot (AIX -- PS/2 port) or SplitDrive */
+	"\x09" "AIX bootable",     /* AIX data or Coherent */
+	"\x10" "OPUS",
+	"\x18" "AST SmartSleep",
+	"\x24" "NEC DOS",
+	"\x39" "Plan 9",
+	"\x40" "Venix 80286",
+	"\x4d" "QNX4.x",
+	"\x4e" "QNX4.x 2nd part",
+	"\x4f" "QNX4.x 3rd part",
+	"\x50" "OnTrack DM",
+	"\x51" "OnTrack DM6 Aux1", /* (or Novell) */
+	"\x52" "CP/M",             /* CP/M or Microport SysV/AT */
+	"\x53" "OnTrack DM6 Aux3",
+	"\x54" "OnTrackDM6",
+	"\x55" "EZ-Drive",
+	"\x56" "Golden Bow",
+	"\x5c" "Priam Edisk",
+	"\x61" "SpeedStor",
+	"\x64" "Novell Netware 286",
+	"\x65" "Novell Netware 386",
+	"\x70" "DiskSecure Multi-Boot",
+	"\x75" "PC/IX",
+	"\x93" "Amoeba",
+	"\x94" "Amoeba BBT",       /* (bad block table) */
+	"\xa7" "NeXTSTEP",
+	"\xbb" "Boot Wizard hidden",
+	"\xc1" "DRDOS/sec (FAT-12)",
+	"\xc4" "DRDOS/sec (FAT-16 < 32M)",
+	"\xc6" "DRDOS/sec (FAT-16)",
+	"\xc7" "Syrinx",
+	"\xda" "Non-FS data",
+	"\xdb" "CP/M / CTOS / ...",/* CP/M or Concurrent CP/M or
+	                              Concurrent DOS or CTOS */
+	"\xde" "Dell Utility",     /* Dell PowerEdge Server utilities */
+	"\xdf" "BootIt",           /* BootIt EMBRM */
+	"\xe1" "DOS access",       /* DOS access or SpeedStor 12-bit FAT
+	                              extended partition */
+	"\xe3" "DOS R/O",          /* DOS R/O or SpeedStor */
+	"\xe4" "SpeedStor",        /* SpeedStor 16-bit FAT extended
+	                              partition < 1024 cyl. */
+	"\xf1" "SpeedStor",
+	"\xf4" "SpeedStor",        /* SpeedStor large partition */
+	"\xfe" "LANstep",          /* SpeedStor >1024 cyl. or LANstep */
+	"\xff" "BBT",              /* Xenix Bad Block Table */
+#endif
+	NULL
+};
+
+
+/* Globals */
+
 struct globals {
+	char *line_ptr;
+	char line_buffer[80];
+	char partname_buffer[80];
+	jmp_buf listingbuf;
 	/* Raw disk label. For DOS-type partition tables the MBR,
 	 * with descriptions of the primary partitions. */
 	char MBRbuffer[MAX_SECTOR_SIZE];
 	/* Partition tables */
 	struct pte ptes[MAXIMUM_PARTS];
 };
+/* bb_common_bufsiz1 is too small for this on 64 bit CPUs */
+#define G (*ptr_to_globals)
 
-#define G (*(struct globals*)bb_common_bufsiz1)
-#define MBRbuffer (G.MBRbuffer)
-#define ptes      (G.ptes)
+#define line_ptr        (G.line_ptr)
+#define listingbuf      (G.listingbuf)
+#define line_buffer     (G.line_buffer)
+#define partname_buffer (G.partname_buffer)
+#define MBRbuffer       (G.MBRbuffer)
+#define ptes            (G.ptes)
 
+
+/* Code */
+
+#define IS_EXTENDED(i) \
+	((i) == EXTENDED || (i) == WIN98_EXTENDED || (i) == LINUX_EXTENDED)
+
+#define cround(n)       (display_in_cyl_units ? ((n)/units_per_sector)+1 : (n))
+
+#define scround(x)      (((x)+units_per_sector-1)/units_per_sector)
+
+#define pt_offset(b, n) \
+	((struct partition *)((b) + 0x1be + (n) * sizeof(struct partition)))
+
+#define sector(s)       ((s) & 0x3f)
+
+#define cylinder(s, c)  ((c) | (((s) & 0xc0) << 2))
+
+#define hsc2sector(h,s,c) \
+	(sector(s) - 1 + sectors * ((h) + heads * cylinder(s,c)))
+
+#define set_hsc(h,s,c,sector) \
+	do { \
+		s = sector % sectors + 1;  \
+		sector /= sectors;         \
+		h = sector % heads;        \
+		sector /= heads;           \
+		c = sector & 0xff;         \
+		s |= (sector >> 2) & 0xc0; \
+	} while (0)
+
+/* read line; return 0 or first printable char */
+static int
+read_line(const char *prompt)
+{
+	int sz;
+
+	sz = read_line_input(prompt, line_buffer, sizeof(line_buffer), NULL);
+	if (sz <= 0)
+		exit(0); /* Ctrl-D or Ctrl-C */
+
+	if (line_buffer[sz-1] == '\n')
+		line_buffer[--sz] = '\0';
+
+	line_ptr = line_buffer;
+	while (*line_ptr && !isgraph(*line_ptr))
+		line_ptr++;
+	return *line_ptr;
+}
 
 /*
  * return partition name - uses static storage
@@ -214,14 +350,13 @@ struct globals {
 static const char *
 partname(const char *dev, int pno, int lth)
 {
-	static char buffer[80];
 	const char *p;
 	int w, wp;
 	int bufsiz;
 	char *bufp;
 
-	bufp = buffer;
-	bufsiz = sizeof(buffer);
+	bufp = partname_buffer;
+	bufsiz = sizeof(partname_buffer);
 
 	w = strlen(dev);
 	p = "";
@@ -290,28 +425,6 @@ write_part_table_flag(char *b)
 {
 	b[510] = 0x55;
 	b[511] = 0xaa;
-}
-
-static char line_buffer[LINE_LENGTH];
-static char *line_ptr;
-
-/* read line; return 0 or first printable char */
-static int
-read_line(const char *prompt)
-{
-	int sz;
-
-	sz = read_line_input(prompt, line_buffer, sizeof(line_buffer), NULL);
-	if (sz <= 0)
-		exit(0); /* Ctrl-D or Ctrl-C */
-
-	if (line_buffer[sz-1] == '\n')
-		line_buffer[--sz] = '\0';
-
-	line_ptr = line_buffer;
-	while (*line_ptr && !isgraph(*line_ptr))
-		line_ptr++;
-	return *line_ptr;
 }
 
 static char
@@ -439,112 +552,6 @@ STATIC_SUN void verify_sun(void);
 STATIC_SUN void sun_write_table(void);
 #include "fdisk_sun.c"
 
-/* DOS partition types */
-
-static const char *const i386_sys_types[] = {
-	"\x00" "Empty",
-	"\x01" "FAT12",
-	"\x04" "FAT16 <32M",
-	"\x05" "Extended",         /* DOS 3.3+ extended partition */
-	"\x06" "FAT16",            /* DOS 16-bit >=32M */
-	"\x07" "HPFS/NTFS",        /* OS/2 IFS, eg, HPFS or NTFS or QNX */
-	"\x0a" "OS/2 Boot Manager",/* OS/2 Boot Manager */
-	"\x0b" "Win95 FAT32",
-	"\x0c" "Win95 FAT32 (LBA)",/* LBA really is 'Extended Int 13h' */
-	"\x0e" "Win95 FAT16 (LBA)",
-	"\x0f" "Win95 Ext'd (LBA)",
-	"\x11" "Hidden FAT12",
-	"\x12" "Compaq diagnostics",
-	"\x14" "Hidden FAT16 <32M",
-	"\x16" "Hidden FAT16",
-	"\x17" "Hidden HPFS/NTFS",
-	"\x1b" "Hidden Win95 FAT32",
-	"\x1c" "Hidden W95 FAT32 (LBA)",
-	"\x1e" "Hidden W95 FAT16 (LBA)",
-	"\x3c" "Part.Magic recovery",
-	"\x41" "PPC PReP Boot",
-	"\x42" "SFS",
-	"\x63" "GNU HURD or SysV", /* GNU HURD or Mach or Sys V/386 (such as ISC UNIX) */
-	"\x80" "Old Minix",        /* Minix 1.4a and earlier */
-	"\x81" "Minix / old Linux",/* Minix 1.4b and later */
-	"\x82" "Linux swap",       /* also Solaris */
-	"\x83" "Linux",
-	"\x84" "OS/2 hidden C: drive",
-	"\x85" "Linux extended",
-	"\x86" "NTFS volume set",
-	"\x87" "NTFS volume set",
-	"\x8e" "Linux LVM",
-	"\x9f" "BSD/OS",           /* BSDI */
-	"\xa0" "Thinkpad hibernation",
-	"\xa5" "FreeBSD",          /* various BSD flavours */
-	"\xa6" "OpenBSD",
-	"\xa8" "Darwin UFS",
-	"\xa9" "NetBSD",
-	"\xab" "Darwin boot",
-	"\xb7" "BSDI fs",
-	"\xb8" "BSDI swap",
-	"\xbe" "Solaris boot",
-	"\xeb" "BeOS fs",
-	"\xee" "EFI GPT",                    /* Intel EFI GUID Partition Table */
-	"\xef" "EFI (FAT-12/16/32)",         /* Intel EFI System Partition */
-	"\xf0" "Linux/PA-RISC boot",         /* Linux/PA-RISC boot loader */
-	"\xf2" "DOS secondary",              /* DOS 3.3+ secondary */
-	"\xfd" "Linux raid autodetect",      /* New (2.2.x) raid partition with
-						autodetect using persistent
-						superblock */
-#if 0 /* ENABLE_WEIRD_PARTITION_TYPES */
-	"\x02" "XENIX root",
-	"\x03" "XENIX usr",
-	"\x08" "AIX",              /* AIX boot (AIX -- PS/2 port) or SplitDrive */
-	"\x09" "AIX bootable",     /* AIX data or Coherent */
-	"\x10" "OPUS",
-	"\x18" "AST SmartSleep",
-	"\x24" "NEC DOS",
-	"\x39" "Plan 9",
-	"\x40" "Venix 80286",
-	"\x4d" "QNX4.x",
-	"\x4e" "QNX4.x 2nd part",
-	"\x4f" "QNX4.x 3rd part",
-	"\x50" "OnTrack DM",
-	"\x51" "OnTrack DM6 Aux1", /* (or Novell) */
-	"\x52" "CP/M",             /* CP/M or Microport SysV/AT */
-	"\x53" "OnTrack DM6 Aux3",
-	"\x54" "OnTrackDM6",
-	"\x55" "EZ-Drive",
-	"\x56" "Golden Bow",
-	"\x5c" "Priam Edisk",
-	"\x61" "SpeedStor",
-	"\x64" "Novell Netware 286",
-	"\x65" "Novell Netware 386",
-	"\x70" "DiskSecure Multi-Boot",
-	"\x75" "PC/IX",
-	"\x93" "Amoeba",
-	"\x94" "Amoeba BBT",       /* (bad block table) */
-	"\xa7" "NeXTSTEP",
-	"\xbb" "Boot Wizard hidden",
-	"\xc1" "DRDOS/sec (FAT-12)",
-	"\xc4" "DRDOS/sec (FAT-16 < 32M)",
-	"\xc6" "DRDOS/sec (FAT-16)",
-	"\xc7" "Syrinx",
-	"\xda" "Non-FS data",
-	"\xdb" "CP/M / CTOS / ...",/* CP/M or Concurrent CP/M or
-	                              Concurrent DOS or CTOS */
-	"\xde" "Dell Utility",     /* Dell PowerEdge Server utilities */
-	"\xdf" "BootIt",           /* BootIt EMBRM */
-	"\xe1" "DOS access",       /* DOS access or SpeedStor 12-bit FAT
-	                              extended partition */
-	"\xe3" "DOS R/O",          /* DOS R/O or SpeedStor */
-	"\xe4" "SpeedStor",        /* SpeedStor 16-bit FAT extended
-	                              partition < 1024 cyl. */
-	"\xf1" "SpeedStor",
-	"\xf4" "SpeedStor",        /* SpeedStor large partition */
-	"\xfe" "LANstep",          /* SpeedStor >1024 cyl. or LANstep */
-	"\xff" "BBT",              /* Xenix Bad Block Table */
-#endif
-	NULL
-};
-
-
 #if ENABLE_FEATURE_FDISK_WRITABLE
 /* start_sect and nr_sects are stored little endian on all machines */
 /* moreover, they are not aligned correctly */
@@ -614,8 +621,6 @@ static off_t extended_offset;            /* offset of link pointers */
 
 static unsigned long long total_number_of_sectors;
 
-
-static jmp_buf listingbuf;
 
 static void fdisk_fatal(enum failure why)
 {
@@ -2379,7 +2384,7 @@ new_partition(void)
 			printf("You must delete some partition and add "
 				 "an extended partition first\n");
 	} else {
-		char c, line[LINE_LENGTH];
+		char c, line[80];
 		snprintf(line, sizeof(line),
 			"Command action\n"
 			"   %s\n"
@@ -2761,8 +2766,6 @@ unknown_command(int c)
 }
 #endif
 
-void BUG_fdisk_globals_overflow(void);
-
 int fdisk_main(int argc, char **argv);
 int fdisk_main(int argc, char **argv)
 {
@@ -2786,8 +2789,7 @@ int fdisk_main(int argc, char **argv)
 		OPT_s = (1 << 6) * ENABLE_FEATURE_FDISK_BLKSIZE,
 	};
 
-	if (sizeof(G) > sizeof(bb_common_bufsiz1))
-		BUG_fdisk_globals_overflow();
+	PTR_TO_GLOBALS = xzalloc(sizeof(G));
 
 	opt = getopt32(argc, argv, "b:C:H:lS:u" USE_FEATURE_FDISK_BLKSIZE("s"),
 				&str_b, &str_C, &str_H, &str_S);
