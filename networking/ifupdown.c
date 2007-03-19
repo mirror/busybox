@@ -1092,7 +1092,7 @@ int ifupdown_main(int argc, char **argv)
 	llist_t *target_list = NULL;
 	const char *interfaces = "/etc/network/interfaces";
 	FILE *state_fp;
-	int any_failures = 0;
+	bool any_failures = 0;
 
 	cmds = iface_down;
 	if (applet_name[2] == 'u') {
@@ -1155,8 +1155,8 @@ int ifupdown_main(int argc, char **argv)
 		char *iface;
 		char *liface;
 		char *pch;
-		int okay = 0;
-		int cmds_ret;
+		bool okay = 0;
+		unsigned cmds_ret;
 
 		iface = xstrdup(target_list->data);
 		target_list = target_list->link;
@@ -1242,7 +1242,7 @@ int ifupdown_main(int argc, char **argv)
 			llist_t *iface_state = find_iface_state(state_list, iface);
 
 			if (cmds == iface_up) {
-				char *newiface = xasprintf("%s=%s", iface, liface);
+				char * const newiface = xasprintf("%s=%s", iface, liface);
 				if (iface_state == NULL) {
 					llist_add_to_end(&state_list, newiface);
 				} else {
