@@ -777,6 +777,9 @@ static const unsigned opt_flags[] = {
 };
 
 
+/* THIS IS A "SAFE" APPLET, main() MAY BE CALLED INTERNALLY FROM SHELL */
+/* BE CAREFUL! */
+
 int ls_main(int argc, char **argv);
 int ls_main(int argc, char **argv)
 {
@@ -796,8 +799,6 @@ int ls_main(int argc, char **argv)
 	USE_FEATURE_AUTOWIDTH(char *tabstops_str = NULL;)
 	USE_FEATURE_AUTOWIDTH(char *terminal_width_str = NULL;)
 	USE_FEATURE_LS_COLOR(char *color_opt;)
-
-	setvbuf(stdout, bb_common_bufsiz1, _IOFBF, BUFSIZ);
 
 #if ENABLE_FEATURE_LS_TIMESTAMPS
 	time(&current_time_t);

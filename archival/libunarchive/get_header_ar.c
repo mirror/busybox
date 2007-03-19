@@ -66,9 +66,9 @@ char get_header_ar(archive_handle_t *archive_handle)
 
 	/* long filenames have '/' as the first character */
 	if (ar.formatted.name[0] == '/') {
+#if ENABLE_FEATURE_AR_LONG_FILENAMES
 		unsigned long_offset;
 
-#if ENABLE_FEATURE_AR_LONG_FILENAMES
 		if (ar.formatted.name[1] == '/') {
 			/* If the second char is a '/' then this entries data section
 			 * stores long filename for multiple entries, they are stored
