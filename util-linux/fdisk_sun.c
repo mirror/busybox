@@ -1,5 +1,8 @@
 #if ENABLE_FEATURE_SUN_LABEL
 
+#define SUNOS_SWAP 3
+#define SUN_WHOLE_DISK 5
+
 #define SUN_LABEL_MAGIC          0xDABE
 #define SUN_LABEL_MAGIC_SWAPPED  0xBEDA
 #define SUN_SSWAP16(x) (sun_other_endian ? fdisk_swap16(x) : (uint16_t)(x))
@@ -57,22 +60,22 @@ guess_device_type(void)
 	}
 }
 
-static const struct systypes sun_sys_types[] = {
-	{ "\x00" "Empty"        }, /* 0            */
-	{ "\x01" "Boot"         }, /* 1            */
-	{ "\x02" "SunOS root"   }, /* 2            */
-	{ "\x03" "SunOS swap"   }, /* SUNOS_SWAP   */
-	{ "\x04" "SunOS usr"    }, /* 4            */
-	{ "\x05" "Whole disk"   }, /* SUN_WHOLE_DISK   */
-	{ "\x06" "SunOS stand"  }, /* 6            */
-	{ "\x07" "SunOS var"    }, /* 7            */
-	{ "\x08" "SunOS home"   }, /* 8            */
-	{ "\x82" "Linux swap"   }, /* LINUX_SWAP   */
-	{ "\x83" "Linux native" }, /* LINUX_NATIVE */
-	{ "\x8e" "Linux LVM"    }, /* 0x8e         */
+static const char *const sun_sys_types[] = {
+	"\x00" "Empty"       , /* 0            */
+	"\x01" "Boot"        , /* 1            */
+	"\x02" "SunOS root"  , /* 2            */
+	"\x03" "SunOS swap"  , /* SUNOS_SWAP   */
+	"\x04" "SunOS usr"   , /* 4            */
+	"\x05" "Whole disk"  , /* SUN_WHOLE_DISK   */
+	"\x06" "SunOS stand" , /* 6            */
+	"\x07" "SunOS var"   , /* 7            */
+	"\x08" "SunOS home"  , /* 8            */
+	"\x82" "Linux swap"  , /* LINUX_SWAP   */
+	"\x83" "Linux native", /* LINUX_NATIVE */
+	"\x8e" "Linux LVM"   , /* 0x8e         */
 /* New (2.2.x) raid partition with autodetect using persistent superblock */
-	{ "\xfd" "Linux raid autodetect" }, /* 0xfd         */
-	{ NULL }
+	"\xfd" "Linux raid autodetect", /* 0xfd         */
+	NULL
 };
 
 
@@ -103,10 +106,10 @@ check_sun_label(void)
 	ush = ((unsigned short *) (sunlabel + 1)) - 1;
 	for (csum = 0; ush >= (unsigned short *)sunlabel;) csum ^= *ush--;
 	if (csum) {
-		fprintf(stderr,_("Detected sun disklabel with wrong checksum.\n"
-				"Probably you'll have to set all the values,\n"
-				"e.g. heads, sectors, cylinders and partitions\n"
-				"or force a fresh label (s command in main menu)\n"));
+		printf("Detected sun disklabel with wrong checksum.\n"
+"Probably you'll have to set all the values,\n"
+"e.g. heads, sectors, cylinders and partitions\n"
+"or force a fresh label (s command in main menu)\n");
 	} else {
 		heads = SUN_SSWAP16(sunlabel->ntrks);
 		cylinders = SUN_SSWAP16(sunlabel->ncyl);
@@ -209,7 +212,7 @@ sun_autoconfigure_scsi(void)
 				continue;
 			if (!strstr(model, sun_drives[i].model))
 				continue;
-			printf(_("Autoconfigure found a %s%s%s\n"),
+			printf("Autoconfigure found a %s%s%s\n",
 					sun_drives[i].vendor,
 					(*sun_drives[i].vendor) ? " " : "",
 					sun_drives[i].model);
@@ -232,17 +235,15 @@ create_sunlabel(void)
 	unsigned char c;
 	const struct sun_predefined_drives *p = NULL;
 
-	fprintf(stderr,
-		_("Building a new sun disklabel. Changes will remain in memory only,\n"
-		"until you decide to write them. After that, of course, the previous\n"
-		"content won't be recoverable.\n\n"));
+	printf(msg_building_new_label, "sun disklabel");
+
 	sun_other_endian = BB_LITTLE_ENDIAN;
 	memset(MBRbuffer, 0, sizeof(MBRbuffer));
 	sunlabel->magic = SUN_SSWAP16(SUN_LABEL_MAGIC);
 	if (!floppy) {
-		puts(_("Drive type\n"
+		puts("Drive type\n"
 		 "   ?   auto configure\n"
-		 "   0   custom (with hardware detected defaults)"));
+		 "   0   custom (with hardware detected defaults)");
 		for (i = 0; i < SIZE(sun_drives); i++) {
 			printf("   %c   %s%s%s\n",
 				i + 'a', sun_drives[i].vendor,
@@ -250,21 +251,23 @@ create_sunlabel(void)
 				sun_drives[i].model);
 		}
 		while (1) {
-			c = read_nonempty(_("Select type (? for auto, 0 for custom): "));
+			c = read_nonempty("Select type (? for auto, 0 for custom): ");
+			if (c == '0') {
+				break;
+			}
 			if (c >= 'a' && c < 'a' + SIZE(sun_drives)) {
 				p = sun_drives + c - 'a';
 				break;
-			} else if (c >= 'A' && c < 'A' + SIZE(sun_drives)) {
+			}
+			if (c >= 'A' && c < 'A' + SIZE(sun_drives)) {
 				p = sun_drives + c - 'A';
 				break;
-			} else if (c == '0') {
-				break;
-			} else if (c == '?' && scsi_disk) {
+			}
+			if (c == '?' && scsi_disk) {
 				p = sun_autoconfigure_scsi();
-				if (!p)
-				printf(_("Autoconfigure failed.\n"));
-				else
-				break;
+				if (p)
+					break;
+				printf("Autoconfigure failed\n");
 			}
 		}
 	}
@@ -285,17 +288,17 @@ create_sunlabel(void)
 			sunlabel->ilfact = SUN_SSWAP16(1);
 			sunlabel->sparecyl = 0;
 		} else {
-			heads = read_int(1,heads,1024,0,_("Heads"));
-			sectors = read_int(1,sectors,1024,0,_("Sectors/track"));
+			heads = read_int(1, heads, 1024, 0, "Heads");
+			sectors = read_int(1, sectors, 1024, 0, "Sectors/track");
 		if (cylinders)
-			cylinders = read_int(1,cylinders-2,65535,0,_("Cylinders"));
+			cylinders = read_int(1, cylinders-2, 65535, 0, "Cylinders");
 		else
-			cylinders = read_int(1,0,65535,0,_("Cylinders"));
-			sunlabel->nacyl = SUN_SSWAP16(read_int(0,2,65535,0, _("Alternate cylinders")));
-			sunlabel->pcylcount = SUN_SSWAP16(read_int(0,cylinders+SUN_SSWAP16(sunlabel->nacyl), 65535,0, _("Physical cylinders")));
-			sunlabel->rspeed = SUN_SSWAP16(read_int(1,5400,100000,0, _("Rotation speed (rpm)")));
-			sunlabel->ilfact = SUN_SSWAP16(read_int(1,1,32,0, _("Interleave factor")));
-			sunlabel->sparecyl = SUN_SSWAP16(read_int(0,0,sectors,0, _("Extra sectors per cylinder")));
+			cylinders = read_int(1, 0, 65535, 0, "Cylinders");
+			sunlabel->nacyl = SUN_SSWAP16(read_int(0, 2, 65535, 0, "Alternate cylinders"));
+			sunlabel->pcylcount = SUN_SSWAP16(read_int(0, cylinders+SUN_SSWAP16(sunlabel->nacyl), 65535, 0, "Physical cylinders"));
+			sunlabel->rspeed = SUN_SSWAP16(read_int(1, 5400, 100000, 0, "Rotation speed (rpm)"));
+			sunlabel->ilfact = SUN_SSWAP16(read_int(1, 1, 32, 0, "Interleave factor"));
+			sunlabel->sparecyl = SUN_SSWAP16(read_int(0, 0, sectors, 0, "Extra sectors per cylinder"));
 		}
 	} else {
 		sunlabel->sparecyl = SUN_SSWAP16(p->sparecyl);
@@ -309,13 +312,13 @@ create_sunlabel(void)
 		cylinders = p->ncyl;
 		heads = p->ntrks;
 		sectors = p->nsect;
-		puts(_("You may change all the disk params from the x menu"));
+		puts("You may change all the disk params from the x menu");
 	}
 
 	snprintf((char *)(sunlabel->info), sizeof(sunlabel->info),
 		"%s%s%s cyl %d alt %d hd %d sec %d",
 		p ? p->vendor : "", (p && *p->vendor) ? " " : "",
-		p ? p->model : (floppy ? _("3,5\" floppy") : _("Linux custom")),
+		p ? p->model : (floppy ? "3,5\" floppy" : "Linux custom"),
 		cylinders, SUN_SSWAP16(sunlabel->nacyl), heads, sectors);
 
 	sunlabel->ntrks = SUN_SSWAP16(heads);
@@ -409,7 +412,7 @@ verify_sun(void)
 	for (k = 0; k < 7; k++) {
 		for (i = 0; i < 8; i++) {
 			if (k && (lens[i] % (heads * sectors))) {
-				printf(_("Partition %d doesn't end on cylinder boundary\n"), i+1);
+				printf("Partition %d doesn't end on cylinder boundary\n", i+1);
 			}
 			if (lens[i]) {
 				for (j = 0; j < i; j++)
@@ -429,8 +432,8 @@ verify_sun(void)
 								endo = starts[i]+lens[i];
 								if (starts[j]+lens[j] < endo)
 									endo = starts[j]+lens[j];
-								printf(_("Partition %d overlaps with others in "
-									"sectors %d-%d\n"), i+1, starto, endo);
+								printf("Partition %d overlaps with others in "
+									"sectors %d-%d\n", i+1, starto, endo);
 							}
 						}
 					}
@@ -446,18 +449,18 @@ verify_sun(void)
 	qsort(array,SIZE(array),sizeof(array[0]),
 		(int (*)(const void *,const void *)) verify_sun_cmp);
 	if (array[0] == -1) {
-		printf(_("No partitions defined\n"));
+		printf("No partitions defined\n");
 		return;
 	}
 	stop = cylinders * heads * sectors;
 	if (starts[array[0]])
-		printf(_("Unused gap - sectors 0-%d\n"),starts[array[0]]);
+		printf("Unused gap - sectors 0-%d\n", starts[array[0]]);
 	for (i = 0; i < 7 && array[i+1] != -1; i++) {
-		printf(_("Unused gap - sectors %d-%d\n"),starts[array[i]]+lens[array[i]],starts[array[i+1]]);
+		printf("Unused gap - sectors %d-%d\n", starts[array[i]]+lens[array[i]], starts[array[i+1]]);
 	}
 	start = starts[array[i]] + lens[array[i]];
 	if (start < stop)
-		printf(_("Unused gap - sectors %d-%d\n"),start,stop);
+		printf("Unused gap - sectors %d-%d\n", start, stop);
 }
 
 static void
@@ -471,8 +474,7 @@ add_sun_partition(int n, int sys)
 	int i, first, last;
 
 	if (sunlabel->partitions[n].num_sectors && sunlabel->infos[n].id) {
-		printf(_("Partition %d is already defined.  Delete "
-			"it before re-adding it.\n"), n + 1);
+		printf(msg_part_already_defined, n + 1);
 		return;
 	}
 
@@ -481,12 +483,12 @@ add_sun_partition(int n, int sys)
 		if (n == 2)
 			whole_disk = 1;
 		else {
-			printf(_("Other partitions already cover the whole disk.\nDelete "
-				   "some/shrink them before retry.\n"));
+			printf("Other partitions already cover the whole disk.\n"
+				"Delete/shrink them before retry.\n");
 			return;
 		}
 	}
-	snprintf(mesg, sizeof(mesg), _("First %s"), str_units(SINGULAR));
+	snprintf(mesg, sizeof(mesg), "First %s", str_units(SINGULAR));
 	while (1) {
 		if (whole_disk)
 			first = read_int(0, 0, 0, 0, mesg);
@@ -501,7 +503,7 @@ add_sun_partition(int n, int sys)
 		if (n == 2 && first != 0)
 			printf("\
 It is highly recommended that the third partition covers the whole disk\n\
-and is of type `Whole disk'\n");
+and is of type 'Whole disk'\n");
 		/* ewt asks to add: "don't start a partition at cyl 0"
 		   However, edmundo@rano.demon.co.uk writes:
 		   "In addition to having a Sun partition table, to be able to
@@ -526,7 +528,7 @@ and is of type `Whole disk'\n");
 				whole_disk = 1;
 				break;
 			}
-			printf(_("Sector %d is already allocated\n"), first);
+			printf("Sector %d is already allocated\n", first);
 		} else
 			break;
 	}
@@ -537,7 +539,7 @@ and is of type `Whole disk'\n");
 			stop = starts[i];
 	}
 	snprintf(mesg, sizeof(mesg),
-		_("Last %s or +size or +sizeM or +sizeK"),
+		"Last %s or +size or +sizeM or +sizeK",
 		str_units(SINGULAR));
 	if (whole_disk)
 		last = read_int(scround(stop2), scround(stop2), scround(stop2),
@@ -555,11 +557,10 @@ and is of type `Whole disk'\n");
 			whole_disk = 1;
 			last = stop2;
 		} else if (last > stop) {
-			printf(_("You haven't covered the whole disk with "
-				"the 3rd partition, but your value\n"
-				"%d %s covers some other partition. "
-				"Your entry has been changed\n"
-				"to %d %s\n"),
+			printf(
+"You haven't covered the whole disk with the 3rd partition,\n"
+"but your value %d %s covers some other partition.\n"
+"Your entry has been changed to %d %s\n",
 				scround(last), str_units(SINGULAR),
 				scround(stop), str_units(SINGULAR));
 			last = stop;
@@ -581,10 +582,10 @@ sun_delete_partition(int i)
 	 && sunlabel->infos[i].id == SUN_WHOLE_DISK
 	 && !sunlabel->partitions[i].start_cylinder
 	 && (nsec = SUN_SSWAP32(sunlabel->partitions[i].num_sectors)) == heads * sectors * cylinders)
-		printf(_("If you want to maintain SunOS/Solaris compatibility, "
+		printf("If you want to maintain SunOS/Solaris compatibility, "
 			"consider leaving this\n"
 			"partition as Whole disk (5), starting at 0, with %u "
-			"sectors\n"), nsec);
+			"sectors\n", nsec);
 	sunlabel->infos[i].id = 0;
 	sunlabel->partitions[i].num_sectors = 0;
 }
@@ -594,12 +595,12 @@ sun_change_sysid(int i, int sys)
 {
 	if (sys == LINUX_SWAP && !sunlabel->partitions[i].start_cylinder) {
 		read_maybe_empty(
-			_("It is highly recommended that the partition at offset 0\n"
+			"It is highly recommended that the partition at offset 0\n"
 			"is UFS, EXT2FS filesystem or SunOS swap. Putting Linux swap\n"
 			"there may destroy your partition table and bootblock.\n"
 			"Type YES if you're very sure you would like that partition\n"
-			"tagged with 82 (Linux swap): "));
-		if (strcmp (line_ptr, _("YES\n")))
+			"tagged with 82 (Linux swap): ");
+		if (strcmp (line_ptr, "YES\n"))
 			return;
 	}
 	switch (sys) {
@@ -625,11 +626,11 @@ sun_list_table(int xtra)
 	w = strlen(disk_device);
 	if (xtra)
 		printf(
-		_("\nDisk %s (Sun disk label): %d heads, %d sectors, %d rpm\n"
+		"\nDisk %s (Sun disk label): %d heads, %d sectors, %d rpm\n"
 		"%d cylinders, %d alternate cylinders, %d physical cylinders\n"
 		"%d extra sects/cyl, interleave %d:1\n"
 		"%s\n"
-		"Units = %s of %d * 512 bytes\n\n"),
+		"Units = %s of %d * 512 bytes\n\n",
 			disk_device, heads, sectors, SUN_SSWAP16(sunlabel->rspeed),
 			cylinders, SUN_SSWAP16(sunlabel->nacyl),
 			SUN_SSWAP16(sunlabel->pcylcount),
@@ -639,13 +640,13 @@ sun_list_table(int xtra)
 			str_units(PLURAL), units_per_sector);
 	else
 		printf(
-	_("\nDisk %s (Sun disk label): %d heads, %d sectors, %d cylinders\n"
-	"Units = %s of %d * 512 bytes\n\n"),
+	"\nDisk %s (Sun disk label): %d heads, %d sectors, %d cylinders\n"
+	"Units = %s of %d * 512 bytes\n\n",
 			disk_device, heads, sectors, cylinders,
 			str_units(PLURAL), units_per_sector);
 
-	printf(_("%*s Flag    Start       End    Blocks   Id  System\n"),
-		w + 1, _("Device"));
+	printf("%*s Flag    Start       End    Blocks   Id  System\n",
+		w + 1, "Device");
 	for (i = 0 ; i < partitions; i++) {
 		if (sunlabel->partitions[i].num_sectors) {
 			uint32_t start = SUN_SSWAP32(sunlabel->partitions[i].start_cylinder) * heads * sectors;
@@ -669,8 +670,8 @@ static void
 sun_set_alt_cyl(void)
 {
 	sunlabel->nacyl =
-		SUN_SSWAP16(read_int(0,SUN_SSWAP16(sunlabel->nacyl), 65535, 0,
-				_("Number of alternate cylinders")));
+		SUN_SSWAP16(read_int(0, SUN_SSWAP16(sunlabel->nacyl), 65535, 0,
+				"Number of alternate cylinders"));
 }
 
 static void
@@ -684,7 +685,7 @@ sun_set_xcyl(void)
 {
 	sunlabel->sparecyl =
 		SUN_SSWAP16(read_int(0, SUN_SSWAP16(sunlabel->sparecyl), sectors, 0,
-				_("Extra sectors per cylinder")));
+				"Extra sectors per cylinder"));
 }
 
 static void
@@ -692,7 +693,7 @@ sun_set_ilfact(void)
 {
 	sunlabel->ilfact =
 		SUN_SSWAP16(read_int(1, SUN_SSWAP16(sunlabel->ilfact), 32, 0,
-				_("Interleave factor")));
+				"Interleave factor"));
 }
 
 static void
@@ -700,7 +701,7 @@ sun_set_rspeed(void)
 {
 	sunlabel->rspeed =
 		SUN_SSWAP16(read_int(1, SUN_SSWAP16(sunlabel->rspeed), 100000, 0,
-				_("Rotation speed (rpm)")));
+				"Rotation speed (rpm)"));
 }
 
 static void
@@ -708,7 +709,7 @@ sun_set_pcylcount(void)
 {
 	sunlabel->pcylcount =
 		SUN_SSWAP16(read_int(0, SUN_SSWAP16(sunlabel->pcylcount), 65535, 0,
-				_("Number of physical cylinders")));
+				"Number of physical cylinders"));
 }
 #endif /* FEATURE_FDISK_ADVANCED */
 

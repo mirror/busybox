@@ -39,18 +39,15 @@ static short aix_volumes = 1;
 static void
 aix_info(void)
 {
-	puts(
-		_("\n\tThere is a valid AIX label on this disk.\n"
-		"\tUnfortunately Linux cannot handle these\n"
-		"\tdisks at the moment.  Nevertheless some\n"
-		"\tadvice:\n"
-		"\t1. fdisk will destroy its contents on write.\n"
-		"\t2. Be sure that this disk is NOT a still vital\n"
-		"\t   part of a volume group. (Otherwise you may\n"
-		"\t   erase the other disks as well, if unmirrored.)\n"
-		"\t3. Before deleting this physical volume be sure\n"
-		"\t   to remove the disk logically from your AIX\n"
-		"\t   machine.  (Otherwise you become an AIXpert).")
+	puts("\n"
+"There is a valid AIX label on this disk.\n"
+"Unfortunately Linux cannot handle these disks at the moment.\n"
+"Nevertheless some advice:\n"
+"1. fdisk will destroy its contents on write.\n"
+"2. Be sure that this disk is NOT a still vital part of a volume group.\n"
+"   (Otherwise you may erase the other disks as well, if unmirrored.)\n"
+"3. Before deleting this physical volume be sure to remove the disk\n"
+"   logically from your AIX machine. (Otherwise you become an AIXpert).\n"
 	);
 }
 
