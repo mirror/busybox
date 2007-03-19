@@ -212,7 +212,6 @@ config FEATURE_IFCONFIG_BROADCAST_PLUS
 config IFUPDOWN
 	bool "ifupdown"
 	default n
-	select RUN_PARTS
 	help
 	  Activate or deactivate the specified interfaces.  This applet makes
 	  use of either "ifconfig" and "route" or the "ip" command to actually
@@ -223,7 +222,8 @@ config IFUPDOWN
 	  against my better judgement (since this will surely result in plenty
 	  of support questions on the mailing list), I do not force you to
 	  enable these additional options.  It is up to you to supply either
-	  "ifconfig" and "route" or the "ip" command, either via busybox or via
+	  "ifconfig", "route" and "run-parts" or the "ip" command, either
+	  via busybox or via
 	  standalone utilities.
 
 config FEATURE_IFUPDOWN_IP
