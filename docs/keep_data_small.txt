@@ -125,3 +125,32 @@ less readable, use #defines:
 If applet doesn't use much of global data, converting it to use
 one of above methods is not worth the resulting code obfuscation.
 If you have less than ~300 bytes of global data - don't bother.
+
+
+		gcc's data alignment problem
+
+The following attribute added in vi.c:
+
+static int tabstop;
+static struct termios term_orig __attribute__ ((aligned (4)));
+static struct termios term_vi __attribute__ ((aligned (4)));
+
+reduced bss size by 32 bytes, because gcc sometimes aligns structures to
+ridiculously large values. asm output diff for above example:
+
+ tabstop:
+        .zero   4
+        .section        .bss.term_orig,"aw",@nobits
+-       .align 32
++       .align 4
+        .type   term_orig, @object
+        .size   term_orig, 60
+ term_orig:
+        .zero   60
+        .section        .bss.term_vi,"aw",@nobits
+-       .align 32
++       .align 4
+        .type   term_vi, @object
+        .size   term_vi, 60
+
+gcc doesn't seem to have options for altering this behaviour.
