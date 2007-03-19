@@ -72,7 +72,8 @@ struct globals {
 	int	win_width, win_height;
 #endif
 	/* same buffer used both for network and console read/write */
-	char    buf[DATABUFSIZE]; /* allocating so static size is smaller */
+	char    buf[DATABUFSIZE];
+	/* buffer to handle telnet negotiations */
 	char    iacbuf[IACBUFSIZE];
 	struct termios termios_def;
 	struct termios termios_raw;
@@ -97,8 +98,7 @@ static void iacflush(void)
 
 #define write_str(fd, str) write(fd, str, sizeof(str) - 1)
 
-static void	/* buffer to handle telnet negotiations */
-doexit(int ev)
+static void doexit(int ev)
 {
 	cookmode();
 	exit(ev);
@@ -151,6 +151,7 @@ static void conescape(void)
 	G.gotsig = 0;
 
 }
+
 static void handlenetoutput(int len)
 {
 	/*	here we could do smart tricks how to handle 0xFF:s in output
@@ -190,7 +191,6 @@ static void handlenetoutput(int len)
 	if (j > 0 )
 		write(G.netfd, outbuf, j);
 }
-
 
 static void handlenetinput(int len)
 {
@@ -266,14 +266,10 @@ static void handlenetinput(int len)
 		write(1, G.buf, len);
 }
 
-
-/* ******************************* */
-
 static void putiac(int c)
 {
 	G.iacbuf[G.iaclen++] = c;
 }
-
 
 static void putiac2(byte wwdd, byte c)
 {
@@ -354,24 +350,17 @@ static void putiac_naws(byte c, int x, int y)
 }
 #endif
 
-/* void putiacstring (subneg strings) */
-
-/* ******************************* */
-
 static char const escapecharis[] = "\r\nEscape character is ";
 
 static void setConMode(void)
 {
-	if (G.telflags & UF_ECHO)
-	{
+	if (G.telflags & UF_ECHO) {
 		if (G.charmode == CHM_TRY) {
 			G.charmode = CHM_ON;
 			printf("\r\nEntering character mode%s'^]'.\r\n", escapecharis);
 			rawmode();
 		}
-	}
-	else
-	{
+	} else {
 		if (G.charmode != CHM_OFF) {
 			G.charmode = CHM_OFF;
 			printf("\r\nEntering line mode%s'^C'.\r\n", escapecharis);
@@ -379,8 +368,6 @@ static void setConMode(void)
 		}
 	}
 }
-
-/* ******************************* */
 
 static void will_charmode(void)
 {
@@ -403,8 +390,6 @@ static void do_linemode(void)
 	putiac2(DONT, TELOPT_SGA);
 	iacflush();
 }
-
-/* ******************************* */
 
 static void to_notsup(char c)
 {
@@ -517,11 +502,7 @@ static void telopt(byte c)
 	}
 }
 
-
-/* ******************************* */
-
 /* subnegotiation -- ignore all (except TTYPE,NAWS) */
-
 static int subneg(byte c)
 {
 	switch (G.telstate) {
@@ -548,8 +529,6 @@ static int subneg(byte c)
 	return FALSE;
 }
 
-/* ******************************* */
-
 static void fgotsig(int sig)
 {
 	G.gotsig = sig;
@@ -558,12 +537,14 @@ static void fgotsig(int sig)
 
 static void rawmode(void)
 {
-	if (G.do_termios) tcsetattr(0, TCSADRAIN, &G.termios_raw);
+	if (G.do_termios)
+		tcsetattr(0, TCSADRAIN, &G.termios_raw);
 }
 
 static void cookmode(void)
 {
-	if (G.do_termios) tcsetattr(0, TCSADRAIN, &G.termios_def);
+	if (G.do_termios)
+		tcsetattr(0, TCSADRAIN, &G.termios_def);
 }
 
 void BUG_telnet_globals_too_big(void);
