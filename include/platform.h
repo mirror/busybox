@@ -139,6 +139,15 @@ typedef int socklen_t;
 # define HAVE_MNTENT_H 1
 #endif /* ___digital__ && __unix__ */
 
+/* linux/loop.h relies on __u64. Make sure we have that as a proper type
+ * until userspace is widely fixed.  */
+#ifndef __GNUC__
+#if defined __INTEL_COMPILER
+__extension__ typedef __signed__ long long __s64;
+__extension__ typedef unsigned long long __u64;
+#endif /* __INTEL_COMPILER */
+#endif /* ifndef __GNUC__ */
+
 /*----- Kernel versioning ------------------------------------*/
 #define KERNEL_VERSION(a,b,c) (((a) << 16) + ((b) << 8) + (c))
 
