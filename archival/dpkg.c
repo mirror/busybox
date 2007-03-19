@@ -643,8 +643,7 @@ static unsigned fill_package_struct(char *control_buffer)
 		return -1;
 	}
 	num = search_package_hashtable(new_node->name, new_node->version, VER_EQUAL);
-	if (package_hashtable[num] != NULL)
-		free_package(package_hashtable[num]);
+	free_package(package_hashtable[num]);
 	package_hashtable[num] = new_node;
 	return num;
 }
@@ -1739,9 +1738,7 @@ int dpkg_main(int argc, char **argv)
 		}
 
 		for (i = 0; i < PACKAGE_HASH_PRIME; i++) {
-			if (package_hashtable[i] != NULL) {
-				free_package(package_hashtable[i]);
-			}
+			free_package(package_hashtable[i]);
 		}
 
 		for (i = 0; i < STATUS_HASH_PRIME; i++) {
