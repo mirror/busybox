@@ -163,14 +163,20 @@ ridiculously large values. asm output diff for above example:
 
 gcc doesn't seem to have options for altering this behaviour.
 
-gcc 3.4.3:
+gcc 3.4.3 and 4.1.1 tested:
+char c = 1;
 // gcc aligns to 32 bytes if sizeof(struct) >= 32
-struct st {
-    int c_iflag,c_oflag,c_cflag,c_lflag;
-    int i1,i2,i3;    // struct will be aligned to 4 bytes
-//  int i1,i2,i3,i4; // struct will be aligned to 32 bytes
-};
-struct st t = { 1 };
+struct {
+    int a,b,c,d;
+    int i1,i2,i3;
+} s28 = { 1 };    // struct will be aligned to 4 bytes
+struct {
+    int a,b,c,d;
+    int i1,i2,i3,i4;
+} s32 = { 1 };    // struct will be aligned to 32 bytes
 // same for arrays
 char vc31[31] = { 1 }; // unaligned
 char vc32[32] = { 1 }; // aligned to 32 bytes
+
+-fpack-struct=1 reduces alignment of s28 to 1 (but probably will break layout
+of many libc structs) but s32 and vc32 are still aligned to 32 bytes.
