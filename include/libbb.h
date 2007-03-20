@@ -518,8 +518,8 @@ int chown_main(int argc, char **argv);
 int gunzip_main(int argc, char **argv);
 #endif
 int bbunpack(char **argv,
-        char* (*make_new_name)(char *filename),
-        USE_DESKTOP(long long) int (*unpacker)(void)
+	char* (*make_new_name)(char *filename),
+	USE_DESKTOP(long long) int (*unpacker)(void)
 );
 
 

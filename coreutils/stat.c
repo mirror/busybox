@@ -416,7 +416,7 @@ static int do_statfs(char const *filename, char const *format)
 	format = (flags & OPT_TERSE
 			? (flags & OPT_SELINUX ? "%n %i %l %t %s %b %f %a %c %d %C\n":
 			"%n %i %l %t %s %b %f %a %c %d\n")
-			: (flags & OPT_SELINUX ? 
+			: (flags & OPT_SELINUX ?
 			"  File: \"%n\"\n"
 			"    ID: %-8i Namelen: %-7l Type: %T\n"
 			"Block size: %-10s\n"
@@ -531,7 +531,7 @@ static int do_stat(char const *filename, char const *format)
 		}
 #else
 		if (flags & OPT_TERSE) {
-			format = (flags & OPT_SELINUX ? 
+			format = (flags & OPT_SELINUX ?
 				  "%n %s %b %f %u %g %D %i %h %t %T %X %Y %Z %o %C\n":
 				  "%n %s %b %f %u %g %D %i %h %t %T %X %Y %Z %o\n");
 		} else {

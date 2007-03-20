@@ -2019,7 +2019,7 @@ static
 USE_DESKTOP(long long) int pack_gzip(void)
 {
 	struct stat s;
-	
+
 	clear_bufs();
 	s.st_ctime = 0;
 	fstat(STDIN_FILENO, &s);

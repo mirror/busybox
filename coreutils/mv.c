@@ -118,7 +118,7 @@ DO_MOVE:
 				copy_flag = FILEUTILS_RECUR | FILEUTILS_PRESERVE_STATUS;
 #if ENABLE_SELINUX
 				copy_flag |= FILEUTILS_PRESERVE_SECURITY_CONTEXT;
-#endif				
+#endif
 				if ((copy_file(*argv, dest, copy_flag) >= 0) &&
 					(remove_file(*argv, FILEUTILS_RECUR | FILEUTILS_FORCE) >= 0)) {
 					goto RET_0;

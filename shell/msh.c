@@ -50,36 +50,36 @@ static char *find_applet_by_name(const char *applet)
 }
 static void utoa_to_buf(unsigned n, char *buf, unsigned buflen)
 {
-    unsigned i, out, res;
-    assert(sizeof(unsigned) == 4);
-    if (buflen) {
-        out = 0;
-        for (i = 1000000000; i; i /= 10) {
-            res = n / i;
-            if (res || out || i == 1) {
-                if (!--buflen) break;
-                out++;
-                n -= res*i;
-                *buf++ = '0' + res;
-            }
-        }
-        *buf = '\0';
-    }
+	unsigned i, out, res;
+	assert(sizeof(unsigned) == 4);
+	if (buflen) {
+		out = 0;
+		for (i = 1000000000; i; i /= 10) {
+			res = n / i;
+			if (res || out || i == 1) {
+	    			if (!--buflen) break;
+	    			out++;
+	    			n -= res*i;
+	    			*buf++ = '0' + res;
+			}
+		}
+		*buf = '\0';
+	}
 }
 static void itoa_to_buf(int n, char *buf, unsigned buflen)
 {
-    if (buflen && n<0) {
-        n = -n;
-        *buf++ = '-';
-        buflen--;
-    }
-    utoa_to_buf((unsigned)n, buf, buflen);
+	if (buflen && n < 0) {
+		n = -n;
+		*buf++ = '-';
+		buflen--;
+	}
+	utoa_to_buf((unsigned)n, buf, buflen);
 }
 static char local_buf[12];
 static char *itoa(int n)
 {
-    itoa_to_buf(n, local_buf, sizeof(local_buf));
-    return local_buf;
+	itoa_to_buf(n, local_buf, sizeof(local_buf));
+	return local_buf;
 }
 #else
 # include <setjmp.h>

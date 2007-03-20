@@ -41,7 +41,7 @@ static void setdefaultfilecon(const char *path) {
 
 	if (!is_selinux_enabled()) {
 		return;
-	}	
+	}
 	if (lstat(path, &s) != 0) {
 		return;
 	}
@@ -101,7 +101,7 @@ int install_main(int argc, char **argv)
 	/* -c exists for backwards compatibility, it's needed */
 
 	flags = getopt32(argc, argv, "cdpsg:m:o:" USE_SELINUX("Z:"), &gid_str, &mode_str, &uid_str USE_SELINUX(, &scontext));
-	
+
 #if ENABLE_SELINUX
 	if (flags & OPT_PRESERVE_SECURITY_CONTEXT) {
 		use_default_selinux_context = 0;

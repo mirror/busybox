@@ -123,7 +123,7 @@ INTERNET-DRAFT             Expires 1 December 1998                    [Page 2]
   </P>
   <P>
   Discussion of this draft occurs on the CGI-WG mailing list; see the
-  project Web page at 
+  project Web page at
   <SAMP>&lt;URL:<A HREF="http://CGI-Spec.Golux.Com/"
                 >http://CGI-Spec.Golux.Com/</A>&gt;</SAMP>
   for details on the mailing list and the status of the project.
@@ -410,17 +410,17 @@ INTERNET-DRAFT             Expires 1 December 1998                    [Page 2]
   </H3>
   <P>
   Together the HTTP [<A HREF="#[3]">3</A>,<A HREF="#[8]">8</A>] server
-  and the CGI script are responsible 
+  and the CGI script are responsible
   for servicing a client
   request by sending back responses. The client
   request comprises a Universal Resource Identifier (URI)
-  [<A HREF="#[1]">1</A>], a 
+  [<A HREF="#[1]">1</A>], a
   request method, and various ancillary
   information about the request
   provided by the transport mechanism.
   </P>
   <P>
-  The CGI defines the abstract parameters, known as 
+  The CGI defines the abstract parameters, known as
   metavariables,
   which describe the client's
   request. Together with a
@@ -435,7 +435,7 @@ INTERNET-DRAFT             Expires 1 December 1998                    [Page 2]
   </H3>
   <P>
   This specification uses the same words as RFC 1123
-  [<A HREF="#[5]">5</A>] to define the 
+  [<A HREF="#[5]">5</A>] to define the
   significance of each particular requirement. These are:
   </P><!--#if expr="! $GUI" -->
   <P></P><!--#endif -->
@@ -478,7 +478,7 @@ INTERNET-DRAFT             Expires 1 December 1998                    [Page 2]
   all of the 'should' requirements for its features is said to be
   'conditionally compliant.'
   </P>
-  
+
   <H3>
    <A NAME="1.3">
     1.3. Specifications
@@ -514,7 +514,7 @@ INTERNET-DRAFT             Expires 1 December 1998                    [Page 2]
     </P>
    </DD>
   </DL>
-  
+
   <H3>
    <A NAME="1.4">
     1.4. Terminology
@@ -523,11 +523,11 @@ INTERNET-DRAFT             Expires 1 December 1998                    [Page 2]
   <P>
   This specification uses many terms defined in the HTTP/1.1
   specification [<A HREF="#[8]">8</A>]; however, the following terms are
-  used here in a 
+  used here in a
   sense which may not accord with their definitions in that document,
   or with their common meaning.
   </P>
-  
+
   <DL>
    <DT><EM>metavariable</EM>
    </DT>
@@ -538,13 +538,13 @@ INTERNET-DRAFT             Expires 1 December 1998                    [Page 2]
     environment, although that is the most common implementation.
     </P>
    </DD>
-  
+
    <DT><EM>script</EM>
    </DT>
    <DD>
     <P>
     The software which is invoked by the server <EM>via</EM> this
-    interface. It 
+    interface. It
     need not be a standalone program, but could be a
     dynamically-loaded or shared library, or even a subroutine in the
     server.  It <EM>may</EM> be a set of statements
@@ -562,7 +562,7 @@ INTERNET-DRAFT             Expires 1 December 1998                    [Page 2]
     </P>
    </DD>
   </DL>
-  
+
   <H2>
    <A NAME="2.0">
     2. Notational Conventions and Generic Grammar
@@ -632,7 +632,7 @@ INTERNET-DRAFT             Expires 1 December 1998                    [Page 2]
     </P>
    </DD>
   </DL>
-  
+
   <H3>
    <A NAME="2.2">
     2.2. Basic Rules
@@ -687,7 +687,7 @@ INTERNET-DRAFT             Expires 1 December 1998                    [Page 2]
   Note that newline (NL) need not be a single character, but can be a
   character sequence.
   </P>
-  
+
   <H2>
    <A NAME="3.0">
     3. Protocol Parameters
@@ -730,7 +730,7 @@ INTERNET-DRAFT             Expires 1 December 1998                    [Page 2]
   2396 [<A HREF="#[4]">4</A>]
   for authoritative treatment of this issue.
   </P>
-  
+
   <H3>
    <A NAME="3.2">
     3.2. The Script-URI
@@ -739,7 +739,7 @@ INTERNET-DRAFT             Expires 1 December 1998                    [Page 2]
   <P>
   The 'Script-URI' is defined as the URI of the resource identified
   by the metavariables.   Often,
-  this URI will be the same as 
+  this URI will be the same as
   the URI requested by the client (the 'Client-URI'); however, it need
   not be. Instead, it could be a URI invented by the server, and so it
   can only be used in the context of the server and its CGI interface.
@@ -747,7 +747,7 @@ INTERNET-DRAFT             Expires 1 December 1998                    [Page 2]
   <P>
   The Script-URI has the syntax of generic-RL as defined in section 2.1
   of RFC 1808 [<A HREF="#[7]">7</A>], with the exception that object
-  parameters and 
+  parameters and
   fragment identifiers are not permitted:
   </P><!--#if expr="! $GUI" -->
   <P></P><!--#endif -->
@@ -783,7 +783,7 @@ INTERNET-DRAFT             Expires 1 December 1998                    [Page 2]
   for the script to reconstruct this, and therefore
   the Script-URI includes the base protocol used.
   </P>
-  
+
   <H2>
    <A NAME="4.0">
     4. Invoking the Script
@@ -795,7 +795,7 @@ INTERNET-DRAFT             Expires 1 December 1998                    [Page 2]
   otherwise, the file containing the script will be invoked as an
   executable program.
   </P>
-  
+
   <H2>
    <A NAME="5.0">
     5. The CGI Script Command Line
@@ -807,7 +807,7 @@ INTERNET-DRAFT             Expires 1 December 1998                    [Page 2]
   This is identified by a "GET" or "HEAD" HTTP request with a URL
   query
   string not containing any unencoded "=" characters. For such a
-  request, 
+  request,
   servers SHOULD parse the search string
   into words, using the following rules:
   </P><!--#if expr="! $GUI" -->
@@ -862,12 +862,12 @@ INTERNET-DRAFT             Expires 1 December 1998                    [Page 2]
   <P>
   Each CGI server
   implementation MUST define a mechanism
-  to pass data about the request from 
+  to pass data about the request from
   the server to the script.
   The metavariables containing these
   data
   are accessed by the script in a system
-  defined manner. 
+  defined manner.
   The
   representation of the characters in the
   metavariables is
@@ -935,7 +935,7 @@ INTERNET-DRAFT             Expires 1 December 1998                    [Page 2]
    </A>
   </H4>
   <P>
-  This variable is specific to requests made 
+  This variable is specific to requests made
   <EM>via</EM> the
   "<CODE>http</CODE>"
   scheme.
@@ -943,10 +943,10 @@ INTERNET-DRAFT             Expires 1 December 1998                    [Page 2]
   <P>
   If the Script-URI
   required access authentication for external
-  access, then the server 
+  access, then the server
   MUST set
   the value of
-  this variable 
+  this variable
   from the '<SAMP>auth-scheme</SAMP>' token in
   the request's "<SAMP>Authorization</SAMP>" header
   field.
@@ -962,7 +962,7 @@ INTERNET-DRAFT             Expires 1 December 1998                    [Page 2]
   <P>
   HTTP access authentication schemes are described in section 11 of the
   HTTP/1.1 specification [<A HREF="#[8]">8</A>]. The auth-scheme is
-  not case-sensitive. 
+  not case-sensitive.
   </P>
   <P>
   Servers
@@ -1018,7 +1018,7 @@ INTERNET-DRAFT             Expires 1 December 1998                    [Page 2]
   entity if the type was provided <EM>via</EM>
   a "<SAMP>Content-type</SAMP>" field in the
   request header, or if the server can determine it in the absence
-  of a supplied "<SAMP>Content-type</SAMP>" field. The syntax is the 
+  of a supplied "<SAMP>Content-type</SAMP>" field. The syntax is the
   same as for the HTTP
   "<SAMP>Content-Type</SAMP>" header field.
   </P><!--#if expr="! $GUI" -->
@@ -1053,7 +1053,7 @@ INTERNET-DRAFT             Expires 1 December 1998                    [Page 2]
   the data received. If the type remains unknown, then
   the script MAY choose to either assume a
   content-type of
-  <SAMP>application/octet-stream</SAMP> 
+  <SAMP>application/octet-stream</SAMP>
   or reject the request with  a 415 ("Unsupported Media Type")
   error.  See <A HREF="#7.2.1.3">section 7.2.1.3</A>
   for more information about returning error status values.
@@ -1091,7 +1091,7 @@ INTERNET-DRAFT             Expires 1 December 1998                    [Page 2]
   </PRE>
   <P>
   Note that the major and minor numbers are treated as separate
-  integers and hence each may be 
+  integers and hence each may be
   more than a single
   digit. Thus CGI/2.4 is a lower version than CGI/2.13 which in turn
   is lower than CGI/12.3. Leading zeros in either
@@ -1114,10 +1114,10 @@ INTERNET-DRAFT             Expires 1 December 1998                    [Page 2]
   </H4>
   <P>
   These metavariables are specific to
-  the protocol 
+  the protocol
   <EM>via</EM> which the request is made.
-  Interpretation of these variables depends on the value of 
-  the 
+  Interpretation of these variables depends on the value of
+  the
   SERVER_PROTOCOL
   metavariable
   (see
@@ -1158,7 +1158,7 @@ INTERNET-DRAFT             Expires 1 December 1998                    [Page 2]
   the request
   header fields that they
   receive. In particular,
-  they MAY 
+  they MAY
   decline to make available any
   header fields carrying authentication information, such as
   "<SAMP>Authorization</SAMP>", or
@@ -1188,7 +1188,7 @@ INTERNET-DRAFT             Expires 1 December 1998                    [Page 2]
   (defined in
   RFC 2396
   [<A HREF="#[4]">4</A>]), with the exception
-  that a PATH_INFO of "/" 
+  that a PATH_INFO of "/"
   represents a single void path segment.
   </P><!--#if expr="! $GUI" -->
   <P></P><!--#endif -->
@@ -1202,7 +1202,7 @@ INTERNET-DRAFT             Expires 1 December 1998                    [Page 2]
   The PATH_INFO string is the trailing part of the &lt;path&gt; component of
   the Script-URI
   (see <A HREF="#3.2">section 3.2</A>)
-  that follows the SCRIPT_NAME 
+  that follows the SCRIPT_NAME
   portion of the path.
   </P>
   <P>
@@ -1285,7 +1285,7 @@ INTERNET-DRAFT             Expires 1 December 1998                    [Page 2]
   case of the original segment through the translation.
   </P>
   <P>
-  The 
+  The
   translation
   algorithm the server uses to derive PATH_TRANSLATED is
   implementation defined; CGI scripts which use this variable may
@@ -1303,7 +1303,7 @@ INTERNET-DRAFT             Expires 1 December 1998                    [Page 2]
    </A>
   </H4>
   <P>
-  A URL-encoded 
+  A URL-encoded
   string; the &lt;query&gt; part of the
   Script-URI.
   (See
@@ -1371,7 +1371,7 @@ INTERNET-DRAFT             Expires 1 December 1998                    [Page 2]
   Servers SHOULD provide this information to
   scripts.
   </P>
-  
+
   <H4>
    <A NAME="6.1.11">
     6.1.11. REMOTE_IDENT
@@ -1398,7 +1398,7 @@ INTERNET-DRAFT             Expires 1 December 1998                    [Page 2]
   Servers MAY supply this information to scripts if the
   RFC1413 [<A HREF="#[11]">11</A>] lookup is performed.
   </P>
-  
+
   <H4>
    <A NAME="6.1.12">
     6.1.12. REMOTE_USER
@@ -1426,7 +1426,7 @@ INTERNET-DRAFT             Expires 1 December 1998                    [Page 2]
   Servers SHOULD provide this metavariable
   to scripts.
   </P>
-  
+
   <H4>
    <A NAME="6.1.13">
     6.1.13. REQUEST_METHOD
@@ -1438,7 +1438,7 @@ INTERNET-DRAFT             Expires 1 December 1998                    [Page 2]
   is set to the
   method with which the request was made, as described in section
   5.1.1 of the HTTP/1.0 specification [<A HREF="#[3]">3</A>] and
-  section 5.1.1 of the 
+  section 5.1.1 of the
   HTTP/1.1 specification [<A HREF="#[8]">8</A>].
   </P><!--#if expr="! $GUI" -->
   <P></P><!--#endif -->
@@ -1449,7 +1449,7 @@ INTERNET-DRAFT             Expires 1 December 1998                    [Page 2]
     extension-method = token
   </PRE>
   <P>
-  The method is case sensitive. 
+  The method is case sensitive.
   CGI/1.1 servers MAY choose to process some methods
   directly rather than passing them to scripts.
   </P>
@@ -1460,7 +1460,7 @@ INTERNET-DRAFT             Expires 1 December 1998                    [Page 2]
   Servers MUST provide this metavariable
   to scripts.
   </P>
-  
+
   <H4>
    <A NAME="6.1.14">
     6.1.14. SCRIPT_NAME
@@ -1494,7 +1494,7 @@ INTERNET-DRAFT             Expires 1 December 1998                    [Page 2]
   Servers MUST provide this metavariable
   to scripts.
   </P>
-  
+
   <H4>
    <A NAME="6.1.15">
     6.1.15. SERVER_NAME
@@ -1505,7 +1505,7 @@ INTERNET-DRAFT             Expires 1 December 1998                    [Page 2]
   metavariable
   is set to the
   name  of the
-  server, as 
+  server, as
   derived from the &lt;host&gt; part of the
   Script-URI
   (see <A HREF="#3.2">section 3.2</A>).
@@ -1544,7 +1544,7 @@ INTERNET-DRAFT             Expires 1 December 1998                    [Page 2]
   Servers MUST provide this metavariable
   to scripts.
   </P>
-  
+
   <H4>
    <A NAME="6.1.17">
     6.1.17. SERVER_PROTOCOL
@@ -1589,7 +1589,7 @@ INTERNET-DRAFT             Expires 1 December 1998                    [Page 2]
   Servers MUST provide this metavariable
   to scripts.
   </P>
-  
+
   <H4>
    <A NAME="6.1.18">
     6.1.18. SERVER_SOFTWARE
@@ -1641,7 +1641,7 @@ INTERNET-DRAFT             Expires 1 December 1998                    [Page 2]
   <P>
   For non-parsed header (NPH) scripts (see
   <A HREF="#7.1">section 7.1</A>
-  below), 
+  below),
   servers SHOULD
   attempt to ensure that the data
   supplied to the script are precisely
@@ -1705,7 +1705,7 @@ INTERNET-DRAFT             Expires 1 December 1998                    [Page 2]
   internal and no transport-visible
   buffering.
   </P>
-  
+
   <H3>
    <A NAME="7.2">
     7.2. Parsed Header Output
@@ -1790,7 +1790,7 @@ INTERNET-DRAFT             Expires 1 December 1998                    [Page 2]
   a member of the "one of these is required" set of header
   fields.
   </P>
-  
+
   <H4>
    <A NAME="7.2.1.2">
     7.2.1.2. Location
@@ -1819,7 +1819,7 @@ INTERNET-DRAFT             Expires 1 December 1998                    [Page 2]
   value is either an absolute URI with optional fragment,
   as defined in RFC 1630 [<A HREF="#[1]">1</A>], or an absolute path
   within the server's URI space (<EM>i.e.</EM>,
-  omitting the scheme and network-related fields) and optional 
+  omitting the scheme and network-related fields) and optional
   query-string. If an absolute URI is returned by the script,
   then the
   server MUST generate a
@@ -1867,7 +1867,7 @@ INTERNET-DRAFT             Expires 1 December 1998                    [Page 2]
   The valid status codes are listed in section 6.1.1 of the HTTP/1.0
   specifications [<A HREF="#[3]">3</A>]. If the SERVER_PROTOCOL is
   "HTTP/1.1", then the status codes defined in the HTTP/1.1
-  specification [<A HREF="#[8]">8</A>] may 
+  specification [<A HREF="#[8]">8</A>] may
   be used. If the script does not return a "<SAMP>Status</SAMP>" header
   field, then "200 OK" SHOULD be assumed by the server.
   </P>
@@ -1879,7 +1879,7 @@ INTERNET-DRAFT             Expires 1 December 1998                    [Page 2]
   SHOULD include a "Status:&nbsp;404&nbsp;Not&nbsp;Found" in the
   header data returned to the server.
   </P>
-  
+
   <H4>
    <A NAME="7.2.1.4">
     7.2.1.4. Extension header fields
@@ -1941,7 +1941,7 @@ INTERNET-DRAFT             Expires 1 December 1998                    [Page 2]
   </H3>
   <P>
   Servers MUST support the standard mechanism (described below) which
-  allows 
+  allows
   script authors to determine
   what URL to use in documents
   which reference the script;
@@ -1951,11 +1951,11 @@ INTERNET-DRAFT             Expires 1 December 1998                    [Page 2]
   mechanism is as follows:
   </P>
   <P>
-  The server 
+  The server
   MUST translate the header data from the CGI header field syntax to
   the HTTP
   header field syntax if these differ. For example, the character
-  sequence for 
+  sequence for
   newline (such as Unix's ASCII NL) used by CGI scripts may not be the
   same as that used by HTTP (ASCII CR followed by LF). The server MUST
   also resolve any conflicts between header fields returned by the script
@@ -2052,7 +2052,7 @@ INTERNET-DRAFT             Expires 1 December 1998                    [Page 2]
    </LI>
    <LI>define the behaviour for <SAMP>"."</SAMP> or <SAMP>".."</SAMP> path
     segments; <EM>i.e.</EM>, whether they are prohibited, treated as
-    ordinary path 
+    ordinary path
     segments or interpreted in accordance with the relative URL
     specification [<A HREF="#[7]">7</A>];
    </LI>
@@ -2143,7 +2143,7 @@ INTERNET-DRAFT             Expires 1 December 1998                    [Page 2]
 
   <H2>
    <A NAME="9.0">
-    9. 
+    9.
     Script Implementation
    </A>
   </H2>
@@ -2219,7 +2219,7 @@ INTERNET-DRAFT             Expires 1 December 1998                    [Page 2]
   Found' if PATH_INFO is not NULL.
   </P>
   <P>
-  If a script is processing the output of a form, it SHOULD 
+  If a script is processing the output of a form, it SHOULD
   verify that the CONTENT_TYPE
   is "<SAMP>application/x-www-form-urlencoded</SAMP>" [<A HREF="#[2]">2</A>]
   or whatever other media type is expected.
@@ -2231,12 +2231,12 @@ INTERNET-DRAFT             Expires 1 December 1998                    [Page 2]
   of void path segments ("<SAMP>//</SAMP>") and special path segments
   (<SAMP>"."</SAMP> and
   <SAMP>".."</SAMP>). They SHOULD either be removed from the path before
-  use in OS 
+  use in OS
   system calls, or the request SHOULD be rejected with
   '404 Not Found'.
   </P>
   <P>
-  As it is impossible for 
+  As it is impossible for
   scripts to determine the client URI that
   initiated  a
   request without knowledge of the specific server in
@@ -2246,7 +2246,7 @@ INTERNET-DRAFT             Expires 1 December 1998                    [Page 2]
   tag in the document.
   </P>
   <P>
-  When returning header fields, 
+  When returning header fields,
   scripts SHOULD try to send the CGI
   header fields (see section
   <A HREF="#7.2">7.2</A>) as soon as possible, and
@@ -2254,7 +2254,7 @@ INTERNET-DRAFT             Expires 1 December 1998                    [Page 2]
   before any HTTP header fields. This may
   help reduce the server's memory requirements.
   </P>
-  
+
   <H2>
    <A NAME="10.0">
     10. System Specifications
@@ -2300,7 +2300,7 @@ INTERNET-DRAFT             Expires 1 December 1998                    [Page 2]
     </P>
    </DD>
   </DL>
-  
+
   <H3>
    <A NAME="10.2">
     10.2. Unix
@@ -2356,7 +2356,7 @@ INTERNET-DRAFT             Expires 1 December 1998                    [Page 2]
     </P>
    </DD>
   </DL>
-  
+
   <H2>
    <A NAME="11.0">
     11. Security Considerations
@@ -2371,7 +2371,7 @@ INTERNET-DRAFT             Expires 1 December 1998                    [Page 2]
   <P>
   As discussed in the security considerations of the HTTP
   specifications [<A HREF="#[3]">3</A>,<A HREF="#[8]">8</A>], the
-  convention has been established that the 
+  convention has been established that the
   GET and HEAD methods should be 'safe'; they should cause no
   side-effects and only have the significance of resource retrieval.
   </P>
@@ -2386,7 +2386,7 @@ INTERNET-DRAFT             Expires 1 December 1998                    [Page 2]
   requests are those that may be repeated an arbitrary number of times
   and produce side effects identical to a single request.
   </P>
-  
+
   <H3>
    <A NAME="11.2">
     11.2. HTTP Header
@@ -2410,7 +2410,7 @@ INTERNET-DRAFT             Expires 1 December 1998                    [Page 2]
   HTTP_PROXY_AUTHORIZATION
   metavariable.
   </P>
-  
+
   <H3>
    <A NAME="11.3">
     11.3. Script
@@ -2429,7 +2429,7 @@ INTERNET-DRAFT             Expires 1 December 1998                    [Page 2]
   SHOULD be taken to protect the core memory of the server, or to
   ensure that untrusted code cannot be executed.
   </P>
-  
+
   <H3>
    <A NAME="11.4">
     11.4. Data Length and Buffering Considerations
@@ -2504,7 +2504,7 @@ INTERNET-DRAFT             Expires 1 December 1998                    [Page 2]
   Patrick M<SUP>c</SUP>Manus, Adam Donahue,
   Ross Patterson, and Harald Alvestrand.
   </P>
-  
+
   <H2>
    <A NAME="13.0">
     13. References
@@ -2554,7 +2554,7 @@ INTERNET-DRAFT             Expires 1 December 1998                    [Page 2]
    </DD>
    <DT><A NAME="[6]">[6]</A>
    </DT>
-   <DD>Crocker, D.H., 'Standard for the Format of ARPA Internet Text 
+   <DD>Crocker, D.H., 'Standard for the Format of ARPA Internet Text
           Messages', STD 11, RFC 822, University of Delaware, August 1982.
        <P>
        </P>
@@ -2614,7 +2614,7 @@ INTERNET-DRAFT             Expires 1 December 1998                    [Page 2]
        </P>
    </DD>
   </DL>
-  
+
   <H2>
    <A NAME="14.0">
     14. Authors' Addresses
@@ -2669,6 +2669,6 @@ INTERNET-DRAFT             Expires 1 December 1998                    [Page 2]
     HREF="mailto:drtr@etrade.co.uk"
    ><SAMP>drtr@etrade.co.uk</SAMP></A>
   </ADDRESS>
-  
+
  </BODY>
 </HTML>

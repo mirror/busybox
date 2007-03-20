@@ -73,7 +73,7 @@ done
 type fx
 fx
 
-# errors 
+# errors
 for (( i=0; "i < 3" ))
 do
 	echo $i

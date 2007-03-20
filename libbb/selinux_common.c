@@ -1,7 +1,7 @@
 /*
  * libbb/selinux_common.c
  *   -- common SELinux utility functions
- * 
+ *
  * Copyright 2007 KaiGai Kohei <kaigai@kaigai.gr.jp>
  */
 #include "busybox.h"

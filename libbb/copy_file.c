@@ -250,11 +250,11 @@ int copy_file(const char *source, const char *dest, int flags)
 		    || (flags & FILEUTILS_SET_SECURITY_CONTEXT))
 		 && is_selinux_enabled() > 0
 		) {
-			security_context_t con;  
+			security_context_t con;
 			if (getfscreatecon(&con) == -1) {
 				bb_perror_msg("getfscreatecon");
 				return -1;
-			}				
+			}
 			if (con) {
 				if(setfilecon(dest, con) == -1) {
 					bb_perror_msg("setfilecon:%s,%s", dest, con);

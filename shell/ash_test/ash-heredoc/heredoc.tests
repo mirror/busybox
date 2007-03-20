@@ -1,6 +1,6 @@
 # check order and content of multiple here docs
 
-cat << EOF1 << EOF2 
+cat << EOF1 << EOF2
 hi
 EOF1
 there

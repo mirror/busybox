@@ -2,7 +2,7 @@
  * chcon -- change security context, based on coreutils-5.97-13
  *
  * Port to busybox: KaiGai Kohei <kaigai@kaigai.gr.jp>
- * 
+ *
  * Copyright (C) 2006 - 2007 KaiGai Kohei <kaigai@kaigai.gr.jp>
  */
 #include "busybox.h"

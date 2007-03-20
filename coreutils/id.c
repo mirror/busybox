@@ -48,7 +48,7 @@ int id_main(int argc, char **argv)
 	unsigned long flags;
 	short status;
 #if ENABLE_SELINUX
- 	security_context_t scontext;
+	security_context_t scontext;
 #endif
 	/* Don't allow -n -r -nr -ug -rug -nug -rnug */
 	/* Don't allow more than one username */
@@ -78,26 +78,26 @@ int id_main(int argc, char **argv)
 			puts((flags & JUST_USER) ? bb_getpwuid(NULL, uid, -1 ) : bb_getgrgid(NULL, gid, -1 ));
 		} else {
 			if (flags & JUST_USER) {
- 				printf("%u\n", uid);
- 			}
- 			if (flags & JUST_GROUP) {
- 				printf("%u\n", gid);
- 			}
-  		}
-		
+				printf("%u\n", uid);
+			}
+			if (flags & JUST_GROUP) {
+				printf("%u\n", gid);
+			}
+		}
+
 #if ENABLE_SELINUX
- 		if (flags & JUST_CONTEXT) {        
+		if (flags & JUST_CONTEXT) {
 			selinux_or_die();
- 			if (argc - optind == 1) {
- 				bb_error_msg_and_die("user name can't be passed with -Z");
- 			}
-			
- 			if (getcon(&scontext)) {
- 				bb_error_msg_and_die("can't get process context");		
- 			}
- 			printf("%s\n", scontext);
- 		}
-#endif	
+			if (argc - optind == 1) {
+				bb_error_msg_and_die("user name can't be passed with -Z");
+			}
+
+			if (getcon(&scontext)) {
+				bb_error_msg_and_die("can't get process context");
+			}
+			printf("%s\n", scontext);
+		}
+#endif
 		/* exit */
 		fflush_stdout_and_exit(EXIT_SUCCESS);
 	}

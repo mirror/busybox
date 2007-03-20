@@ -18,7 +18,7 @@ do_test()
     cd "$1" || { echo "cannot cd $1!"; exit 1; }
     for x in run-*; do
 	test -f "$x" || continue
-	case "$x" in 
+	case "$x" in
 	    "$0"|run-minimal|run-gprof) ;;
 	    *.orig|*~) ;;
 	    #*) echo $x ; sh $x ;;

@@ -284,7 +284,7 @@ struct bsd_globals {
 static struct bsd_globals *bsd_globals_ptr;
 
 #define disklabelbuffer (bsd_globals_ptr->disklabelbuffer)
-#define xbsd_dlabel     (bsd_globals_ptr->xbsd_dlabel) 
+#define xbsd_dlabel     (bsd_globals_ptr->xbsd_dlabel)
 
 
 /* Code */

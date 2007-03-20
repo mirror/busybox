@@ -144,12 +144,12 @@ echo 40 $(( 8 ^ 32 ))
 #ash# echo 10 $(( 32#a ))
 #ash# echo 10 $(( 56#a ))
 #ash# echo 10 $(( 64#a ))
-#ash# 
+#ash#
 #ash# echo 10 $(( 16#A ))
 #ash# echo 10 $(( 32#A ))
 #ash# echo 36 $(( 56#A ))
 #ash# echo 36 $(( 64#A ))
-#ash# 
+#ash#
 #ash# echo 62 $(( 64#@ ))
 #ash# echo 63 $(( 64#_ ))
 

@@ -770,7 +770,7 @@ static const unsigned opt_flags[] = {
 #if ENABLE_FEATURE_AUTOWIDTH
 	0, 0,                       /* T, w - ignored */
 #endif
-#if ENABLE_SELINUX	
+#if ENABLE_SELINUX
 	LIST_MODEBITS|LIST_ID_NAME|LIST_CONTEXT, /* Z */
 #endif
 	(1U<<31)

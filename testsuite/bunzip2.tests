@@ -73,7 +73,7 @@ HELLO
 prep; >t1; check "$unpack: already exists" "${bb}$unpack t1.$ext t2.$ext; echo \$?; cat t1 t2"
 
 
-# From old testsuite 
+# From old testsuite
 expected="HELLO\n0\n"
 prep; check "$unpack: stream unpack" "cat t1.$ext | ${bb}$unpack; echo $?"
 

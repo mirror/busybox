@@ -51,7 +51,7 @@ enum {
 	REAL_KEY_HOME = '7', // vt100? linux vt? or what?
 	REAL_KEY_END = '8',
 	REAL_KEY_HOME_ALT = '1', // ESC [1~ (vt100? linux vt? or what?)
-	REAL_KEY_END_ALT = '4', // ESC [4~ 
+	REAL_KEY_END_ALT = '4', // ESC [4~
 	REAL_KEY_HOME_XTERM = 'H',
 	REAL_KEY_END_XTERM = 'F',
 

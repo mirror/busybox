@@ -11,8 +11,8 @@
 2
 4
 fx is a function
-fx () 
-{ 
+fx ()
+{
     i=0;
     for ((1; i < 3; i++ ))
     do

@@ -51,7 +51,7 @@ int cp_main(int argc, char **argv)
 	if (flags & OPT_H) ... // deref command-line params only
 	*/
 
-#if ENABLE_SELINUX 
+#if ENABLE_SELINUX
 	if (flags & FILEUTILS_PRESERVE_SECURITY_CONTEXT) {
 		selinux_or_die();
 	}
