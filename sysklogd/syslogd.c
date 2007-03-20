@@ -37,61 +37,75 @@
 
 #define DEBUG 0
 
-// Semaphore operation structures
+/* MARK code is not very useful, is bloat, and broken:
+ * can deadlock if alarmed to make MARK while writing to IPC buffer
+ * (semaphores are down but do_mark routine tries to down them again) */
+#undef SYSLOGD_MARK
+
+enum { MAX_READ = 256 };
+
+/* Semaphore operation structures */
 struct shbuf_ds {
-	int32_t size;   // size of data written
-	int32_t head;   // start of message list
-	int32_t tail;   // end of message list
-	char data[1];   // data/messages
-};                      // shared memory pointer
+	int32_t size;   /* size of data written */
+	int32_t head;   /* start of message list */
+	int32_t tail;   /* end of message list */
+	char data[1];   /* data/messages */
+};
+
+/* Allows us to have smaller initializer. Ugly. */
+#define GLOBALS \
+	const char *logFilePath;                \
+	int logFD;                              \
+	/* interval between marks in seconds */ \
+	/*int markInterval;*/                   \
+	/* level of messages to be logged */    \
+	int logLevel;                           \
+USE_FEATURE_ROTATE_LOGFILE( \
+	/* max size of file before rotation */  \
+	unsigned logFileSize;                   \
+	/* number of rotated message files */   \
+	unsigned logFileRotate;                 \
+	unsigned curFileSize;                   \
+	smallint isRegular;                     \
+) \
+USE_FEATURE_REMOTE_LOG( \
+	/* udp socket for remote logging */     \
+	int remoteFD;                           \
+	len_and_sockaddr* remoteAddr;           \
+) \
+USE_FEATURE_IPC_SYSLOG( \
+	int shmid; /* ipc shared memory id */   \
+	int s_semid; /* ipc semaphore id */     \
+	int shm_size;                           \
+	struct sembuf SMwup[1];                 \
+	struct sembuf SMwdn[3];                 \
+)
+
+struct init_globals {
+	GLOBALS
+};
 
 struct globals {
-
-	const char *logFilePath;
-	int logFD;
-
-	/* This is not very useful, is bloat, and broken:
-	 * can deadlock if alarmed to make MARK while writing to IPC buffer
-	 * (semaphores are down but do_mark routine tries to down them again) */
-#ifdef SYSLOGD_MARK
-	/* interval between marks in seconds */
-	int markInterval;
-#endif
-
-	/* level of messages to be locally logged */
-	int logLevel;
-
-#if ENABLE_FEATURE_ROTATE_LOGFILE
-	/* max size of message file before being rotated */
-	unsigned logFileSize;
-	/* number of rotated message files */
-	unsigned logFileRotate;
-	unsigned curFileSize;
-	smallint isRegular;
-#endif
-
-#if ENABLE_FEATURE_REMOTE_LOG
-	/* udp socket for logging to remote host */
-	int remoteFD;
-	len_and_sockaddr* remoteAddr;
-#endif
-
+	GLOBALS
 #if ENABLE_FEATURE_IPC_SYSLOG
-	int shmid; // ipc shared memory id
-	int s_semid; // ipc semaphore id
-	int shm_size;
-	struct sembuf SMwup[1];
-	struct sembuf SMwdn[3];
 	struct shbuf_ds *shbuf;
 #endif
-
 	time_t last_log_time;
 	/* localhost's name */
 	char localHostName[64];
 
-}; /* struct globals */
+	/* We recv into recvbuf... */
+	char recvbuf[MAX_READ];
+	/* ...then copy to parsebuf, escaping control chars */
+	/* (can grow x2 max) */
+	char parsebuf[MAX_READ*2];
+	/* ...then sprintf into printbuf, adding timestamp (15 chars),
+	 * host (64), fac.prio (20) to the message */
+	/* (growth by: 15 + 64 + 20 + delims = ~110) */
+	char printbuf[MAX_READ*2 + 128];
+};
 
-static const struct globals init_globals = {
+static const struct init_globals init_data = {
 	.logFilePath = "/var/log/messages",
 	.logFD = -1,
 #ifdef SYSLOGD_MARK
@@ -112,26 +126,9 @@ static const struct globals init_globals = {
 	.SMwup = { {1, -1, IPC_NOWAIT} },
 	.SMwdn = { {0, 0}, {1, 0}, {1, +1} },
 #endif
-	// FIXME: hidden tail with lotsa zeroes is here....
 };
 
 #define G (*ptr_to_globals)
-
-
-/* We are using bb_common_bufsiz1 for buffering: */
-enum { MAX_READ = (BUFSIZ/6) & ~0xf };
-/* We recv into RECVBUF... (size: MAX_READ ~== BUFSIZ/6) */
-#define RECVBUF  bb_common_bufsiz1
-/* ...then copy to PARSEBUF, escaping control chars */
-/* (can grow x2 max ~== BUFSIZ/3) */
-#define PARSEBUF (bb_common_bufsiz1 + MAX_READ)
-/* ...then sprintf into PRINTBUF, adding timestamp (15 chars),
- * host (64), fac.prio (20) to the message */
-/* (growth by: 15 + 64 + 20 + delims = ~110) */
-#define PRINTBUF (bb_common_bufsiz1 + 3*MAX_READ)
-/* totals: BUFSIZ == BUFSIZ/6 + BUFSIZ/3 + (BUFSIZ/3+BUFSIZ/6)
- * -- we have BUFSIZ/6 extra at the ent of PRINTBUF
- * which covers needed ~110 extra bytes (and much more) */
 
 
 /* Options */
@@ -437,13 +434,13 @@ static void timestamp_and_log(int pri, char *msg, int len)
 	if (!ENABLE_FEATURE_REMOTE_LOG || (option_mask32 & OPT_locallog)) {
 		if (LOG_PRI(pri) < G.logLevel) {
 			if (option_mask32 & OPT_small)
-				sprintf(PRINTBUF, "%s %s\n", timestamp, msg);
+				sprintf(G.printbuf, "%s %s\n", timestamp, msg);
 			else {
 				char res[20];
 				parse_fac_prio_20(pri, res);
-				sprintf(PRINTBUF, "%s %s %s %s\n", timestamp, G.localHostName, res, msg);
+				sprintf(G.printbuf, "%s %s %s %s\n", timestamp, G.localHostName, res, msg);
 			}
-			log_locally(PRINTBUF);
+			log_locally(G.printbuf);
 		}
 	}
 }
@@ -455,7 +452,7 @@ static void split_escape_and_log(char *tmpbuf, int len)
 	tmpbuf += len;
 	while (p < tmpbuf) {
 		char c;
-		char *q = PARSEBUF;
+		char *q = G.parsebuf;
 		int pri = (LOG_USER | LOG_NOTICE);
 
 		if (*p == '<') {
@@ -478,7 +475,7 @@ static void split_escape_and_log(char *tmpbuf, int len)
 		}
 		*q = '\0';
 		/* Now log it */
-		timestamp_and_log(pri, PARSEBUF, q - PARSEBUF);
+		timestamp_and_log(pri, G.parsebuf, q - G.parsebuf);
 	}
 }
 
@@ -572,7 +569,7 @@ static void do_syslogd(void)
 
 		if (FD_ISSET(sock_fd, &fds)) {
 			int i;
-			i = recv(sock_fd, RECVBUF, MAX_READ - 1, 0);
+			i = recv(sock_fd, G.recvbuf, MAX_READ - 1, 0);
 			if (i <= 0)
 				bb_perror_msg_and_die("UNIX socket error");
 			/* TODO: maybe suppress duplicates? */
@@ -585,13 +582,13 @@ static void do_syslogd(void)
 				}
 				if (-1 != G.remoteFD) {
 					/* send message to remote logger, ignore possible error */
-					sendto(G.remoteFD, RECVBUF, i, MSG_DONTWAIT,
+					sendto(G.remoteFD, G.recvbuf, i, MSG_DONTWAIT,
 						&G.remoteAddr->sa, G.remoteAddr->len);
 				}
 			}
 #endif
-			RECVBUF[i] = '\0';
-			split_escape_and_log(RECVBUF, i);
+			G.recvbuf[i] = '\0';
+			split_escape_and_log(G.recvbuf, i);
 		} /* FD_ISSET() */
 	} /* for */
 }
@@ -602,8 +599,7 @@ int syslogd_main(int argc, char **argv)
 	char OPTION_DECL;
 	char *p;
 
-	PTR_TO_GLOBALS = xzalloc(sizeof(G));
-	memcpy(ptr_to_globals, &init_globals, sizeof(init_globals));
+	PTR_TO_GLOBALS = memcpy(xzalloc(sizeof(G)), &init_data, sizeof(init_data));
 
 	/* do normal option parsing */
 	opt_complementary = "=0"; /* no non-option params */
