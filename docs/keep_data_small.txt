@@ -178,5 +178,29 @@ struct {
 char vc31[31] = { 1 }; // unaligned
 char vc32[32] = { 1 }; // aligned to 32 bytes
 
--fpack-struct=1 reduces alignment of s28 to 1 (but probably will break layout
-of many libc structs) but s32 and vc32 are still aligned to 32 bytes.
+-fpack-struct=1 reduces alignment of s28 to 1 (but probably
+will break layout of many libc structs) but s32 and vc32
+are still aligned to 32 bytes.
+
+I will try to cook up a patch to add a gcc option for disabling it.
+Meanwhile, this is where it can be disabled in gcc source:
+
+gcc/config/i386/i386.c
+int
+ix86_data_alignment (tree type, int align)
+{
+#if 0
+  if (AGGREGATE_TYPE_P (type)
+       && TYPE_SIZE (type)
+       && TREE_CODE (TYPE_SIZE (type)) == INTEGER_CST
+       && (TREE_INT_CST_LOW (TYPE_SIZE (type)) >= 256
+           || TREE_INT_CST_HIGH (TYPE_SIZE (type))) && align < 256)
+    return 256;
+#endif
+
+Result (non-static busybox built against glibc):
+
+# size /usr/srcdevel/bbox/fix/busybox.t0/busybox busybox
+   text    data     bss     dec     hex filename
+ 634416    2736   23856  661008   a1610 busybox
+ 632580    2672   22944  658196   a0b14 busybox_noalign
