@@ -28,33 +28,34 @@
 #if ENABLE_LOCALE_SUPPORT
 #define Isprint(c) isprint((c))
 #else
-#define Isprint(c) ( (c) >= ' ' && (c) != 127 && (c) != ((unsigned char)'\233') )
+/* 0x9b is Meta-ESC */
+#define Isprint(c) ((unsigned char)(c) >= ' ' && (c) != 0x7f && (unsigned char)(c) != 0x9b)
 #endif
 
 #define MAX_SCR_COLS		BUFSIZ
 
 // Misc. non-Ascii keys that report an escape sequence
-#define VI_K_UP			128	// cursor key Up
-#define VI_K_DOWN		129	// cursor key Down
-#define VI_K_RIGHT		130	// Cursor Key Right
-#define VI_K_LEFT		131	// cursor key Left
-#define VI_K_HOME		132	// Cursor Key Home
-#define VI_K_END		133	// Cursor Key End
-#define VI_K_INSERT		134	// Cursor Key Insert
-#define VI_K_PAGEUP		135	// Cursor Key Page Up
-#define VI_K_PAGEDOWN		136	// Cursor Key Page Down
-#define VI_K_FUN1		137	// Function Key F1
-#define VI_K_FUN2		138	// Function Key F2
-#define VI_K_FUN3		139	// Function Key F3
-#define VI_K_FUN4		140	// Function Key F4
-#define VI_K_FUN5		141	// Function Key F5
-#define VI_K_FUN6		142	// Function Key F6
-#define VI_K_FUN7		143	// Function Key F7
-#define VI_K_FUN8		144	// Function Key F8
-#define VI_K_FUN9		145	// Function Key F9
-#define VI_K_FUN10		146	// Function Key F10
-#define VI_K_FUN11		147	// Function Key F11
-#define VI_K_FUN12		148	// Function Key F12
+#define VI_K_UP			(char)128	// cursor key Up
+#define VI_K_DOWN		(char)129	// cursor key Down
+#define VI_K_RIGHT		(char)130	// Cursor Key Right
+#define VI_K_LEFT		(char)131	// cursor key Left
+#define VI_K_HOME		(char)132	// Cursor Key Home
+#define VI_K_END		(char)133	// Cursor Key End
+#define VI_K_INSERT		(char)134	// Cursor Key Insert
+#define VI_K_PAGEUP		(char)135	// Cursor Key Page Up
+#define VI_K_PAGEDOWN		(char)136	// Cursor Key Page Down
+#define VI_K_FUN1		(char)137	// Function Key F1
+#define VI_K_FUN2		(char)138	// Function Key F2
+#define VI_K_FUN3		(char)139	// Function Key F3
+#define VI_K_FUN4		(char)140	// Function Key F4
+#define VI_K_FUN5		(char)141	// Function Key F5
+#define VI_K_FUN6		(char)142	// Function Key F6
+#define VI_K_FUN7		(char)143	// Function Key F7
+#define VI_K_FUN8		(char)144	// Function Key F8
+#define VI_K_FUN9		(char)145	// Function Key F9
+#define VI_K_FUN10		(char)146	// Function Key F10
+#define VI_K_FUN11		(char)147	// Function Key F11
+#define VI_K_FUN12		(char)148	// Function Key F12
 
 /* vt102 typical ESC sequence */
 /* terminal standout start/normal ESC sequence */
@@ -840,7 +841,7 @@ static void colon(char * buf)
 			int c_is_no_print;
 
 			c = *q;
-			c_is_no_print = c > 127 && !Isprint(c);
+			c_is_no_print = (c & 0x80) && !Isprint(c);
 			if (c_is_no_print) {
 				c = '.';
 				standout_start();
@@ -1922,7 +1923,7 @@ static inline void print_literal(char * buf, const char * s) // copy s to buf, c
 		int c_is_no_print;
 
 		c = *s;
-		c_is_no_print = c > 127 && !Isprint(c);
+		c_is_no_print = (c & 0x80) && !Isprint(c);
 		if (c_is_no_print) {
 			strcat(buf, SOn);
 			c = '.';
@@ -2735,7 +2736,7 @@ static void format_line(char *dest, char *src, int li)
 	char c;
 
 	for (co = 0; co < MAX_SCR_COLS; co++) {
-		c= ' ';		// assume blank
+		c = ' ';		// assume blank
 		if (li > 0 && co == 0) {
 			c = '~';        // not first line, assume Tilde
 		}
@@ -2745,10 +2746,10 @@ static void format_line(char *dest, char *src, int li)
 		}
 		if (c == '\n')
 			break;
-		if (c > 127 && !Isprint(c)) {
+		if ((c & 0x80) && !Isprint(c)) {
 			c = '.';
 		}
-		if (c < ' ' || c == 127) {
+		if ((unsigned char)(c) < ' ' || c == 0x7f) {
 			if (c == '\t') {
 				c = ' ';
 				//       co %    8     !=     7
@@ -2757,7 +2758,7 @@ static void format_line(char *dest, char *src, int li)
 				}
 			} else {
 				dest[co++] = '^';
-				if (c == 127)
+				if (c == 0x7f)
 					c = '?';
 				else
 					c += '@';       // make it visible
@@ -2939,7 +2940,8 @@ static void do_cmd(char c)
 
 	if (cmd_mode == 2) {
 		//  flip-flop Insert/Replace mode
-		if (c == VI_K_INSERT) goto dc_i;
+		if (c == VI_K_INSERT)
+			goto dc_i;
 		// we are 'R'eplacing the current *dot with new char
 		if (*dot == '\n') {
 			// don't Replace past E-o-l
@@ -3048,7 +3050,7 @@ static void do_cmd(char c)
 	case 'h':			// h- move left
 	case VI_K_LEFT:	// cursor key Left
 	case 8:		// ctrl-H- move left    (This may be ERASE char)
-	case 127:	// DEL- move left   (This may be ERASE char)
+	case 0x7f:	// DEL- move left   (This may be ERASE char)
 		if (cmdcnt-- > 1) {
 			do_cmd(c);
 		}				// repeat cnt
