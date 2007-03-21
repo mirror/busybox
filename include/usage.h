@@ -377,7 +377,7 @@
        "Clear screen"
 
 #define cmp_trivial_usage \
-       "[-l] [-s] FILE1 [FILE2]"
+       "[-l] [-s] FILE1 [FILE2" USE_DESKTOP(" [SKIP1 [SKIP2]") "]]"
 #define cmp_full_usage \
        "Compares FILE1 vs stdin if FILE2 is not specified" \
        "\n\nOptions:\n" \

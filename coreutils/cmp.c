@@ -34,9 +34,9 @@ static FILE *cmp_xfopen_input(const char * const filename)
 }
 
 static const char fmt_eof[] = "cmp: EOF on %s\n";
-static const char fmt_differ[] = "%s %s differ: char %d, line %d\n";
-// This fmt_l_opt uses gnu-isms.  SUSv3 would be "%.0s%.0s%d %o %o\n"
-static const char fmt_l_opt[] = "%.0s%.0s%d %3o %3o\n";
+static const char fmt_differ[] = "%s %s differ: char %"OFF_FMT"d, line %d\n";
+// This fmt_l_opt uses gnu-isms.  SUSv3 would be "%.0s%.0s%"OFF_FMT"d %o %o\n"
+static const char fmt_l_opt[] = "%.0s%.0s%"OFF_FMT"d %3o %3o\n";
 
 static const char opt_chars[] = "sl";
 #define CMP_OPT_s (1<<0)
@@ -47,27 +47,40 @@ int cmp_main(int argc, char **argv)
 {
 	FILE *fp1, *fp2, *outfile = stdout;
 	const char *filename1, *filename2 = "-";
+	USE_DESKTOP(off_t skip1 = 0, skip2 = 0;)
+	off_t char_pos = 0;
+	int line_pos = 1; /* Hopefully won't overflow... */
 	const char *fmt;
-	int c1, c2, char_pos = 0, line_pos = 1;
+	int c1, c2;
 	unsigned opt;
 	int retval = 0;
 
 	xfunc_error_retval = 2;	/* 1 is returned if files are different. */
 
+	opt_complementary = "?:-1"
+			USE_DESKTOP(":?4")
+			SKIP_DESKTOP(":?2")
+			":l--s:s--l";
 	opt = getopt32(argc, argv, opt_chars);
+	argv += optind;
 
-	if (((opt & (CMP_OPT_s|CMP_OPT_l)) == (CMP_OPT_s|CMP_OPT_l))
-			|| (((unsigned int)(--argc - optind)) > 1))
-		bb_show_usage();
-
-	fp1 = cmp_xfopen_input(filename1 = *(argv += optind));
+	filename1 = *argv;
+	fp1 = cmp_xfopen_input(filename1);
 
 	if (*++argv) {
 		filename2 = *argv;
+#if ENABLE_DESKTOP
+		if (*++argv) {
+			skip1 = XATOOFF(*argv);
+			if (*++argv) {
+				skip2 = XATOOFF(*argv);
+			}
+		}
+#endif
 	}
-	fp2 = cmp_xfopen_input(filename2);
 
-	if (fp1 == fp2) {			/* Paranioa check... stdin == stdin? */
+	fp2 = cmp_xfopen_input(filename2);
+	if (fp1 == fp2) {		/* Paranoia check... stdin == stdin? */
 		/* Note that we don't bother reading stdin.  Neither does gnu wc.
 		 * But perhaps we should, so that other apps down the chain don't
 		 * get the input.  Consider 'echo hello | (cmp - - && cat -)'.
@@ -80,6 +93,10 @@ int cmp_main(int argc, char **argv)
 	else
 		fmt = fmt_differ;
 
+#if ENABLE_DESKTOP
+	while (skip1) { getc(fp1); skip1--; }
+	while (skip2) { getc(fp2); skip2--; }
+#endif
 	do {
 		c1 = getc(fp1);
 		c2 = getc(fp2);
