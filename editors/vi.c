@@ -257,6 +257,7 @@ static void crash_dummy();
 static void crash_test();
 static int crashme = 0;
 #endif
+static char *initial_cmds[] = { NULL, NULL , NULL }; // currently 2 entries, NULL terminated
 
 
 static void write1(const char *out)
@@ -300,10 +301,15 @@ int vi_main(int argc, char **argv)
 	modifying_cmds = (Byte *) "aAcCdDiIJoOpPrRsxX<>~";	// cmds modifying text[]
 #endif
 
-	//  1-  process $HOME/.exrc file
+	//  1-  process $HOME/.exrc file (not inplemented yet)
 	//  2-  process EXINIT variable from environment
 	//  3-  process command line args
-	while ((c = getopt(argc, argv, "hCR")) != -1) {
+	{
+		char *p = getenv("EXINIT");
+		if (p && *p)
+			initial_cmds[0] = xstrdup(p);
+	}
+	while ((c = getopt(argc, argv, "hCRc:")) != -1) {
 		switch (c) {
 #if ENABLE_FEATURE_VI_CRASHME
 		case 'C':
@@ -319,6 +325,10 @@ int vi_main(int argc, char **argv)
 			//case 'r':	// recover flag-  ignore- we don't use tmp file
 			//case 'x':	// encryption flag- ignore
 			//case 'c':	// execute command first
+		case 'c':		// cmd line vi command
+			if (*optarg)
+				initial_cmds[initial_cmds[0] != 0] = xstrdup(optarg);
+			break;
 			//case 'h':	// help -- just use default
 		default:
 			show_help();
@@ -418,6 +428,25 @@ static void edit_file(Byte * fn)
 	redraw(FALSE);			// dont force every col re-draw
 	show_status_line();
 
+	{
+		char *p, *q;
+		int n = 0;
+
+		while ((p = initial_cmds[n])) {
+			do {
+				q = p;
+				p = strchr(q,'\n');
+				if (p)
+					while(*p == '\n')
+						*p++ = '\0';
+				if (*q)
+					colon(q);
+			} while (p);
+			free(initial_cmds[n]);
+			initial_cmds[n] = NULL;
+			n++;
+		}
+	}
 	//------This is the main Vi cmd handling loop -----------------------
 	while (editing > 0) {
 #if ENABLE_FEATURE_VI_CRASHME
@@ -902,9 +931,11 @@ static void colon(Byte * buf)
 			editing = 0;
 		}
 #if ENABLE_FEATURE_VI_SET
-	} else if (strncasecmp((char *) cmd, "set", i) == 0) {	// set or clear features
+	} else if (strncasecmp(cmd, "set", i) == 0) {	// set or clear features
+		char *argp;
 		i = 0;			// offset into args
-		if (strlen((char *) args) == 0) {
+		// only blank is regarded as args delmiter. What about tab '\t' ?
+		if (!args[0] || strcasecmp(args, "all") == 0) {
 			// print out values of all options
 			place_cursor(rows - 1, 0, FALSE);	// go to Status line, bottom of screen
 			clear_to_eol();	// clear the line
@@ -927,17 +958,25 @@ static void colon(Byte * buf)
 			printf("\r\n");
 			goto vc2;
 		}
-		if (strncasecmp((char *) args, "no", 2) == 0)
-			i = 2;		// ":set noautoindent"
 #if ENABLE_FEATURE_VI_SETOPTS
-		setops(args, "autoindent ", i, "ai", VI_AUTOINDENT);
-		setops(args, "flash ", i, "fl", VI_ERR_METHOD);
-		setops(args, "ignorecase ", i, "ic", VI_IGNORECASE);
-		setops(args, "showmatch ", i, "ic", VI_SHOWMATCH);
-		if (strncasecmp((char *) args + i, "tabstop=%d ", 7) == 0) {
-			sscanf(strchr((char *) args + i, '='), "=%d", &ch);
-			if (ch > 0 && ch < columns - 1)
-				tabstop = ch;
+		argp = (char *)args;
+		while (*argp) { 
+			if (strncasecmp(argp, "no", 2) == 0)
+				i = 2;		// ":set noautoindent"
+			setops(argp, "autoindent ", i, "ai", VI_AUTOINDENT);
+			setops(argp, "flash ", i, "fl", VI_ERR_METHOD);
+			setops(argp, "ignorecase ", i, "ic", VI_IGNORECASE);
+			setops(argp, "showmatch ", i, "ic", VI_SHOWMATCH);
+			/* tabstopXXXX */
+			if (strncasecmp(argp + i, "tabstop=%d ", 7) == 0) {
+				sscanf(strchr(argp + i, '='), "=%d", &ch);
+				if (ch > 0 && ch < columns - 1)
+					tabstop = ch;
+			}
+			while (*argp && *argp != ' ')
+				argp++; // skip to arg delimiter (i.e. blank)
+			while (*argp && *argp == ' ')
+				argp++; // skip all delimiting blanks
 		}
 #endif /* FEATURE_VI_SETOPTS */
 #endif /* FEATURE_VI_SET */
