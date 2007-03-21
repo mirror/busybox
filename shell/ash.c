@@ -183,7 +183,7 @@ static volatile sig_atomic_t intpending;
 /* do we generate EXSIG events */
 static int exsig;
 /* last pending signal */
-static volatile sig_atomic_t pendingsigs;
+static volatile sig_atomic_t pendingsig;
 
 /*
  * Sigmode records the current value of the signal handlers for the various
@@ -239,8 +239,15 @@ static void
 raise_interrupt(void)
 {
 	int i;
+	sigset_t mask;
 
 	intpending = 0;
+	/* Signal is not automatically re-enabled after it is raised,
+	 * do it ourself */
+	sigemptyset(&mask);
+	sigprocmask(SIG_SETMASK, &mask, 0);
+	/* pendingsig = 0; - now done in onsig() */
+
 	i = EXSIG;
 	if (gotsig[SIGINT - 1] && !trap[SIGINT]) {
 		if (!(rootshell && iflag)) {
@@ -300,7 +307,7 @@ force_int_on(void)
 	do { \
 		exsig++; \
 		xbarrier(); \
-		if (pendingsigs) \
+		if (pendingsig) \
 			raise_exception(EXSIG); \
 	} while (0)
 /* EXSIG is turned off by evalbltin(). */
@@ -324,11 +331,13 @@ static void
 onsig(int signo)
 {
 	gotsig[signo - 1] = 1;
-	pendingsigs = signo;
+	pendingsig = signo;
 
 	if (exsig || (signo == SIGINT && !trap[SIGINT])) {
-		if (!suppressint)
+		if (!suppressint) {
+			pendingsig = 0;
 			raise_interrupt();
+		}
 		intpending = 1;
 	}
 }
@@ -7441,7 +7450,7 @@ dotrap(void)
 	int skip = 0;
 
 	savestatus = exitstatus;
-	pendingsigs = 0;
+	pendingsig = 0;
 	xbarrier();
 
 	for (i = 0, q = gotsig; i < NSIG - 1; i++, q++) {
@@ -7580,7 +7589,7 @@ evaltree(union node *n, int flags)
  out:
 	if ((checkexit & exitstatus))
 		evalskip |= SKIPEVAL;
-	else if (pendingsigs && dotrap())
+	else if (pendingsig && dotrap())
 		goto exexit;
 
 	if (flags & EV_EXIT) {
@@ -8447,7 +8456,7 @@ evalcommand(union node *cmd, int flags)
 			if (i == EXINT)
 				j = SIGINT;
 			if (i == EXSIG)
-				j = pendingsigs;
+				j = pendingsig;
 			if (j)
 				exit_status = j + 128;
 			exitstatus = exit_status;
