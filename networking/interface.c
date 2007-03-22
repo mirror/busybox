@@ -499,7 +499,6 @@ static inline int procnetdev_version(char *buf)
 	return 0;
 }
 
-/* Used only if "/proc/net/dev" isn't available */
 static int if_readconf(void)
 {
 	int numreqs = 30;
@@ -592,7 +591,11 @@ static int if_readlist_proc(char *target)
 
 static int if_readlist(void)
 {
-	return if_readlist_proc(NULL);
+	int err = if_readlist_proc(NULL);
+	/* Needed in order to get ethN:M aliases */
+	if (!err)
+		err = if_readconf();
+	return err;
 }
 
 static int for_all_interfaces(int (*doit) (struct interface *, void *),
