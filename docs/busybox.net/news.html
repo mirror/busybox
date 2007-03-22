@@ -2,6 +2,44 @@
 
 
 <ul>
+  <li><b>23 March, 2007 -- BusyBox 1.5.0 (unstable)</b>
+    <p><a href=http://busybox.net/downloads/busybox-1.5.0.tar.bz2>BusyBox 1.5.0</a>.
+    </p>
+    <p>Since this is a x.x.0 release, it probably does not deserve "stable"
+    label. Please help making 1.5.1 stable by testing 1.5.0.</p>
+    <p>Notable changes since previous release:
+    <ul>
+    <li>find: added support for -user, -not, fixed -mtime, -mmin, -perm
+    <li>[de]archivers: merge common logic into one module
+    <li>ping[6]: unified code for both
+    <li>less: regex search improved
+    <li>ash: more readable code, testsuite added
+    <li>sed: several very obscure bugs fixed
+    <li>chown: -H, -L, -P support (required by POSIX)
+    <li>tar: handle (broken) checksums a-la Sun; tar restores mode again
+    <li>grep: implement -w, "implement" -a and -I by ignoring them
+    <li>cp: more sane behavior when overwriting existing files
+    <li>init: stop doing silly things with the console (-400 bytes)
+    <li>httpd: make httpd usable for NOMMU CPUs; fix POSTDATA handling bugs
+    <li>httpd: run interpreter for configured file extensions in any dir,
+        not only in /cgi-bin/
+    <li>chrt: new applet
+    <li>SELinux: SELinux-related code and -Z option added to several applets,
+        new SELinux-specific applets: chcon, runcon.
+    <li>Build system: produces link map, uses -Wwrite-strings to catch
+        improper usage of string constants.
+    <li>Data and bss section usage audited and reduced - should help NOMMU
+        targets.
+    <li>Applets with bug fixes: gunzip, vi, syslogd, dpkg, ls, adjtimex, resize,
+        sv, printf, diff, awk, sort, dpkg, diff, tftp
+    <li>Applets with usability improvements: swapon, more, ifup/ifdown, hwclock,
+        udhcpd, start_stop_daemon, cmp
+    <li>Applets with code cleaned up: telnet, fdisk, fsck_minix, mkfs_minix,
+        syslogd, swapon, runsv, svlogd, klogd
+    </ul>
+    </p>
+  </li>
+
   <li><b>18 March, 2007 -- BusyBox 1.4.2 (stable)</b>
     <p><a href=http://busybox.net/downloads/busybox-1.4.2.tar.bz2>BusyBox 1.4.2</a>.
     </p>
