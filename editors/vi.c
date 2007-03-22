@@ -260,7 +260,9 @@ static void crash_dummy();
 static void crash_test();
 static int crashme = 0;
 #endif
+#if ENABLE_FEATURE_VI_COLON
 static char *initial_cmds[] = { NULL, NULL , NULL }; // currently 2 entries, NULL terminated
+#endif
 
 
 static void write1(const char *out)
@@ -307,12 +309,14 @@ int vi_main(int argc, char **argv)
 	//  1-  process $HOME/.exrc file (not inplemented yet)
 	//  2-  process EXINIT variable from environment
 	//  3-  process command line args
+#if ENABLE_FEATURE_VI_COLON
 	{
 		char *p = getenv("EXINIT");
 		if (p && *p)
 			initial_cmds[0] = xstrdup(p);
 	}
-	while ((c = getopt(argc, argv, "hCRc:")) != -1) {
+#endif
+	while ((c = getopt(argc, argv, "hCR" USE_FEATURE_VI_COLON("c:"))) != -1) {
 		switch (c) {
 #if ENABLE_FEATURE_VI_CRASHME
 		case 'C':
@@ -328,11 +332,13 @@ int vi_main(int argc, char **argv)
 			//case 'r':	// recover flag-  ignore- we don't use tmp file
 			//case 'x':	// encryption flag- ignore
 			//case 'c':	// execute command first
+#if ENABLE_FEATURE_VI_COLON
 		case 'c':		// cmd line vi command
 			if (*optarg)
 				initial_cmds[initial_cmds[0] != 0] = xstrdup(optarg);
 			break;
 			//case 'h':	// help -- just use default
+#endif
 		default:
 			show_help();
 			return 1;
@@ -431,6 +437,7 @@ static void edit_file(char * fn)
 	redraw(FALSE);			// dont force every col re-draw
 	show_status_line();
 
+#if ENABLE_FEATURE_VI_COLON
 	{
 		char *p, *q;
 		int n = 0;
@@ -450,6 +457,7 @@ static void edit_file(char * fn)
 			n++;
 		}
 	}
+#endif
 	//------This is the main Vi cmd handling loop -----------------------
 	while (editing > 0) {
 #if ENABLE_FEATURE_VI_CRASHME
@@ -938,7 +946,9 @@ static void colon(char * buf)
 		}
 #if ENABLE_FEATURE_VI_SET
 	} else if (strncasecmp(cmd, "set", i) == 0) {	// set or clear features
+#if ENABLE_FEATURE_VI_SETOPTS
 		char *argp;
+#endif
 		i = 0;			// offset into args
 		// only blank is regarded as args delmiter. What about tab '\t' ?
 		if (!args[0] || strcasecmp(args, "all") == 0) {

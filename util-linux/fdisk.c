@@ -325,6 +325,7 @@ struct globals {
 		s |= (sector >> 2) & 0xc0; \
 	} while (0)
 
+#if ENABLE_FEATURE_FDISK_WRITABLE
 /* read line; return 0 or first printable char */
 static int
 read_line(const char *prompt)
@@ -343,6 +344,7 @@ read_line(const char *prompt)
 		line_ptr++;
 	return *line_ptr;
 }
+#endif
 
 /*
  * return partition name - uses static storage

@@ -387,9 +387,10 @@ int ifconfig_main(int argc, char **argv)
 						}
 #endif
 						else {
+							len_and_sockaddr *lsa;
 							if (strcmp(host, "inet") == 0)
 								continue; /* compat stuff */
-							len_and_sockaddr *lsa = xhost2sockaddr(host, 0);
+							lsa = xhost2sockaddr(host, 0);
 #if ENABLE_FEATURE_IPV6
 							if (lsa->sa.sa_family == AF_INET6) {
 								int sockfd6;
