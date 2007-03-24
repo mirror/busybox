@@ -534,7 +534,7 @@ static char *skip(char **cpp) /* int report; */
 		return NULL;
 	}
 
-again:
+ again:
 	while (*cp == ' ' || *cp == '\t')
 		cp++;
 	if (*cp == '\0') {
@@ -687,7 +687,7 @@ static servtab_t *getconfigent(void)
 			*p++ = '\0';
 			l = strtol(p, &ccp, 0);
 			if (ccp == p || l < 0 || l > INT_MAX) {
-			badafterall:
+ badafterall:
 				bb_error_msg("%s/%s: bad rpc version", sep->se_service, p);
 				goto more;
 			}
@@ -823,7 +823,7 @@ static servtab_t *getconfigent(void)
 			}
 		}
 /* XXX BUG?: is this skip: label supposed to remain? */
-	skip:
+ skip:
 		nsep = nsep->se_next;
 	}
 
@@ -1094,7 +1094,7 @@ static void config(int sig ATTRIBUTE_UNUSED)
 			break;
 #endif /* FEATURE_IPV6 */
 		}
-	serv_unknown:
+ serv_unknown:
 		if (cp->se_next != NULL) {
 			servtab_t *tmp = cp;
 
@@ -1509,7 +1509,7 @@ int inetd_main(int argc, char *argv[])
 					sigaction(SIGPIPE, &sapipe, NULL);
 					execv(sep->se_server, sep->se_argv);
 					bb_perror_msg("execv %s", sep->se_server);
-do_exit1:
+ do_exit1:
 					if (sep->se_socktype != SOCK_STREAM)
 						recv(0, buf, sizeof(buf), 0);
 					_exit(1);
