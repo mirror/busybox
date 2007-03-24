@@ -13,12 +13,13 @@
  * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  */
 
+# include <sys/times.h>
+# include <setjmp.h>
+
 #ifdef STANDALONE
 # ifndef _GNU_SOURCE
 #  define _GNU_SOURCE
 # endif
-# include <setjmp.h>
-# include <sys/times.h>
 # include <sys/types.h>
 # include <sys/stat.h>
 # include <sys/wait.h>
@@ -82,8 +83,6 @@ static char *itoa(int n)
 	return local_buf;
 }
 #else
-# include <setjmp.h>
-# include <sys/times.h>
 # include "busybox.h"
 extern char **environ;
 #endif
@@ -162,12 +161,10 @@ int mshdbg_rc = 0;
  */
 typedef void xint;				/* base type of jmp_buf, for not broken compilers */
 
+
 /*
  * shell components
  */
-
-#define	QUOTE	0200
-
 #define	NOBLOCK	((struct op *)NULL)
 #define	NOWORD	((char *)NULL)
 #define	NOWORDS	((char **)NULL)
@@ -297,23 +294,20 @@ static char *flag = flags - 'a';
 static char *null;				/* null value for variable */
 static int intr;				/* interrupt pending */
 
-static char *trap[_NSIG + 1];
-static char ourtrap[_NSIG + 1];
+/* moved to G: static char *trap[_NSIG + 1]; */
+/* moved to G: static char ourtrap[_NSIG + 1]; */
 static int trapset;				/* trap pending */
 
 static int heedint;				/* heed interrupt signals */
 
 static int yynerrs;				/* yacc */
 
-static char line[LINELIM];
-static char *elinep;
+/* moved to G: static char line[LINELIM]; */
 
 #if ENABLE_FEATURE_EDITING
 static char *current_prompt;
 static line_input_t *line_input_state;
 #endif
-
-static int areanum;				/* current allocation area */
 
 
 /*
@@ -483,27 +477,13 @@ struct io {
 #define	INSUB()	(e.iop->task == XGRAVE || e.iop->task == XDOLL)
 
 static struct ioarg temparg = { 0, 0, 0, AFID_NOBUF, 0 };	/* temporary for PUSHIO */
-static struct ioarg ioargstack[NPUSH];
+/* moved to G: static struct ioarg ioargstack[NPUSH]; */
 static struct io iostack[NPUSH];
-static struct iobuf sharedbuf = { AFID_NOBUF };
-static struct iobuf mainbuf = { AFID_NOBUF };
+/* moved to G: static struct iobuf sharedbuf = { AFID_NOBUF }; */
+/* moved to G: static struct iobuf mainbuf = { AFID_NOBUF }; */
 static unsigned bufid = AFID_ID;	/* buffer id counter */
 
-#define	PUSHIO(what,arg,gen) ((temparg.what = (arg)), pushio(&temparg,(gen)))
 #define	RUN(what,arg,gen) ((temparg.what = (arg)), run(&temparg,(gen)))
-
-
-/*
- * parsing & execution environment
- */
-static struct env {
-	char *linep;
-	struct io *iobase;
-	struct io *iop;
-	xint *errpt;				/* void * */
-	int iofd;
-	struct env *oenv;
-} e;
 
 
 /*
@@ -537,6 +517,7 @@ static void ioecho(char c);
  * IO control
  */
 static void pushio(struct ioarg *argp, int (*f) (struct ioarg *));
+#define PUSHIO(what,arg,gen) ((temparg.what = (arg)), pushio(&temparg,(gen)))
 static int remap(int fd);
 static int openpipe(int *pv);
 static void closepipe(int *pv);
@@ -599,7 +580,6 @@ static int xstrcmp(char *p1, char *p2);
 static void glob0(char *a0, unsigned a1, int a2,
 				  int (*a3) (char *, char *));
 static void readhere(char **name, char *s, int ec);
-static void pushio(struct ioarg *argp, int (*f) (struct ioarg *));
 static int xxchar(struct ioarg *ap);
 
 struct here {
@@ -705,9 +685,6 @@ static struct brkcon *brklist;
 static int isbreak;
 static struct wdblock *wdlist;
 static struct wdblock *iolist;
-static char *trap[_NSIG + 1];
-static char ourtrap[_NSIG + 1];
-static int trapset;				/* trap pending */
 
 #ifdef MSHDEBUG
 static struct var *mshdbg_var;
@@ -731,8 +708,7 @@ static int peeksym;
 static int nlseen;
 static int iounit = IODEFAULT;
 static YYSTYPE yylval;
-static char *elinep = line + sizeof(line) - 5;
-
+static char *elinep; /* done in main(): = line + sizeof(line) - 5 */
 
 static struct here *inhere;     /* list of hear docs while parsing */
 static struct here *acthere;    /* list of active here documents */
@@ -742,14 +718,49 @@ static struct region *areanxt;  /* starting point of scan */
 static void *brktop;
 static void *brkaddr;
 
+/*
+ * parsing & execution environment
+ */
+struct env {
+	char *linep;
+	struct io *iobase;
+	struct io *iop;
+	xint *errpt;		/* void * */
+	int iofd;
+	struct env *oenv;
+};
+
 static struct env e = {
-	line,                   /* linep:  char ptr */
+	NULL /* set to line in main() */, /* linep:  char ptr */
 	iostack,                /* iobase:  struct io ptr */
 	iostack - 1,            /* iop:  struct io ptr */
 	(xint *) NULL,          /* errpt:  void ptr for errors? */
 	FDBASE,                 /* iofd:  file desc  */
 	(struct env *) NULL     /* oenv:  struct env ptr */
 };
+
+
+struct globals {
+	char ourtrap[_NSIG + 1];
+	char *trap[_NSIG + 1];
+	struct iobuf sharedbuf; /* in main(): set to { AFID_NOBUF } */
+	struct iobuf mainbuf; /* in main(): set to { AFID_NOBUF } */
+	struct ioarg ioargstack[NPUSH];
+	char filechar_cmdbuf[BUFSIZ];
+	char line[LINELIM];
+	char child_cmd[LINELIM];
+};
+
+#define G (*ptr_to_globals)
+#define ourtrap         (G.ourtrap        )
+#define trap            (G.trap           )
+#define sharedbuf       (G.sharedbuf      )
+#define mainbuf         (G.mainbuf        )
+#define ioargstack      (G.ioargstack     )
+#define filechar_cmdbuf (G.filechar_cmdbuf)
+#define line            (G.line           )
+#define child_cmd       (G.child_cmd      )
+
 
 #ifdef MSHDEBUG
 void print_t(struct op *t)
@@ -1517,7 +1528,7 @@ static void onintr(int s)					/* ANSI C requires a parameter */
 
 #define	CMASK	0377
 #define	QUOTE	0200
-#define	QMASK	(CMASK&~QUOTE)
+#define	QMASK	(CMASK & ~QUOTE)
 #define	NOT	'!'					/* might use ^ */
 
 static const char *cclass(const char *p, int sub)
@@ -4011,11 +4022,12 @@ static int dollar(int quoted)
 
 static int grave(int quoted)
 {
+	/* moved to G: static char child_cmd[LINELIM]; */
+
 	const char *cp;
 	int i;
 	int j;
 	int pf[2];
-	static char child_cmd[LINELIM];
 	const char *src;
 	char *dest;
 	int count;
@@ -4823,15 +4835,15 @@ static int filechar(struct ioarg *ap)
 	}
 #if ENABLE_FEATURE_EDITING
 	if (interactive && isatty(ap->afile)) {
-		static char mycommand[BUFSIZ];
+		/* moved to G: static char filechar_cmdbuf[BUFSIZ]; */
 		static int position = 0, size = 0;
 
 		while (size == 0 || position >= size) {
-			read_line_input(current_prompt, mycommand, BUFSIZ, line_input_state);
-			size = strlen(mycommand);
+			read_line_input(current_prompt, filechar_cmdbuf, BUFSIZ, line_input_state);
+			size = strlen(filechar_cmdbuf);
 			position = 0;
 		}
-		c = mycommand[position];
+		c = filechar_cmdbuf[position];
 		position++;
 		return c;
 	}
@@ -5175,6 +5187,12 @@ int msh_main(int argc, char **argv)
 	int cflag;
 	char *name, **ap;
 	int (*iof) (struct ioarg *);
+
+	PTR_TO_GLOBALS = xzalloc(sizeof(G));
+	sharedbuf.id = AFID_NOBUF;
+	mainbuf.id = AFID_NOBUF;
+	e.linep = line;
+	elinep = line + sizeof(line) - 5;
 
 #if ENABLE_FEATURE_EDITING
 	line_input_state = new_line_input_t(FOR_SHELL);

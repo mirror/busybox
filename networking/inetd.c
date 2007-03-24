@@ -172,7 +172,6 @@
 #include <rpc/pmap_clnt.h>
 #endif
 
-#define _PATH_INETDCONF "/etc/inetd.conf"
 #define _PATH_INETDPID  "/var/run/inetd.pid"
 
 
@@ -327,10 +326,9 @@ static int timingout;
 static struct servent *sp;
 static uid_t uid;
 
-static const char *CONFIG = _PATH_INETDCONF;
+static const char *config_filename = "/etc/inetd.conf";
 
 static FILE *fconfig;
-static char line[1024];
 static char *defhost;
 
 /* xstrdup(NULL) returns NULL, but this one
@@ -350,7 +348,7 @@ static int setconfig(void)
 		fseek(fconfig, 0L, SEEK_SET);
 		return 1;
 	}
-	fconfig = fopen(CONFIG, "r");
+	fconfig = fopen(config_filename, "r");
 	return (fconfig != NULL);
 }
 
@@ -511,6 +509,8 @@ static void setup(servtab_t *sep)
 
 static char *nextline(void)
 {
+#define line bb_common_bufsiz1
+
 	char *cp;
 	FILE *fd = fconfig;
 
@@ -541,10 +541,12 @@ static char *skip(char **cpp) /* int report; */
 		int c;
 
 		c = getc(fconfig);
-		(void) ungetc(c, fconfig);
-		if (c == ' ' || c == '\t')
-			if ((cp = nextline()))
+		ungetc(c, fconfig);
+		if (c == ' ' || c == '\t') {
+			cp = nextline();
+			if (cp)
 				goto again;
+		}
 		*cpp = NULL;
 		/* goto erp; */
 		return NULL;
@@ -924,7 +926,7 @@ static void config(int sig ATTRIBUTE_UNUSED)
 	char protoname[10];
 
 	if (!setconfig()) {
-		bb_perror_msg("%s", CONFIG);
+		bb_perror_msg("%s", config_filename);
 		return;
 	}
 	for (sep = servtab; sep; sep = sep->se_next)
@@ -1281,10 +1283,10 @@ int inetd_main(int argc, char *argv[])
 
 	uid = getuid();
 	if (uid != 0)
-		CONFIG = NULL;
+		config_filename = NULL;
 	if (argc > 0)
-		CONFIG = argv[0];
-	if (CONFIG == NULL)
+		config_filename = argv[0];
+	if (config_filename == NULL)
 		bb_error_msg_and_die("non-root must specify a config file");
 
 #ifdef BB_NOMMU

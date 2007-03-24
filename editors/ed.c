@@ -9,8 +9,12 @@
 
 #include "busybox.h"
 
-#define	USERSIZE	1024	/* max line length typed in by user */
-#define	INITBUF_SIZE	1024	/* initial buffer size */
+enum {
+	USERSIZE = sizeof(bb_common_bufsiz1) > 1024 ? 1024
+	         : sizeof(bb_common_bufsiz1) - 1, /* max line length typed in by user */
+	INITBUF_SIZE = 1024, /* initial buffer size */
+};
+
 typedef struct LINE {
 	struct LINE *next;
 	struct LINE *prev;
@@ -18,9 +22,11 @@ typedef struct LINE {
 	char data[1];
 } LINE;
 
+#define searchString bb_common_bufsiz1
+
 static LINE lines, *curLine;
 static int curNum, lastNum, marks[26], dirty;
-static char *bufBase, *bufPtr, *fileName, searchString[USERSIZE];
+static char *bufBase, *bufPtr, *fileName;
 static int bufUsed, bufSize;
 
 static void doCommands(void);
