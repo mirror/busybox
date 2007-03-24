@@ -9,6 +9,7 @@ lib-y:=
 lib-$(CONFIG_CHCON)		+= chcon.o
 lib-$(CONFIG_GETENFORCE)	+= getenforce.o
 lib-$(CONFIG_GETSEBOOL)		+= getsebool.o
+lib-$(CONFIG_LOAD_POLICY)	+= load_policy.o
 lib-$(CONFIG_MATCHPATHCON)	+= matchpathcon.o
 lib-$(CONFIG_RUNCON)		+= runcon.o
 lib-$(CONFIG_SELINUXENABLED)	+= selinuxenabled.o

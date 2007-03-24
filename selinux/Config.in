@@ -34,6 +34,13 @@ config GETSEBOOL
 	help
 	  Enable support to get SELinux boolean values.
 
+config LOAD_POLICY
+	bool "load_policy"
+	default n
+	depends on SELINUX
+	help
+	  Enable support to load SELinux policy.
+
 config MATCHPATHCON
 	bool "matchpathcon"
 	default n
