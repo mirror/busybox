@@ -4,22 +4,19 @@
  */
 
 #include "busybox.h"
-#include <ctype.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
 #include <math.h>
 
 /* Tiny RPN calculator, because "expr" didn't give me bitwise operations. */
 
-static double stack[100];
+enum { STACK_SIZE = sizeof(bb_common_bufsiz1) / sizeof(double) };
+
+#define stack ((double*)&bb_common_bufsiz1)
 static unsigned int pointer;
 static unsigned char base;
 
 static void push(double a)
 {
-	if (pointer >= (sizeof(stack) / sizeof(*stack)))
+	if (pointer >= STACK_SIZE)
 		bb_error_msg_and_die("stack overflow");
 	stack[pointer++] = a;
 }
@@ -91,10 +88,10 @@ static void not(void)
 
 static void set_output_base(void)
 {
-	base=(unsigned char)pop();
+	base = (unsigned char)pop();
 	if ((base != 10) && (base != 16)) {
-		fprintf(stderr, "Error: base = %d is not supported.\n", base);
-		base=10;
+		bb_error_msg("error, base %d is not supported", base);
+		base = 10;
 	}
 }
 
@@ -103,12 +100,12 @@ static void print_base(double print)
 	if (base == 16)
 		printf("%x\n", (unsigned int)print);
 	else
-	printf("%g\n", print);
+		printf("%g\n", print);
 }
 
 static void print_stack_no_pop(void)
 {
-	unsigned int i=pointer;
+	unsigned int i = pointer;
 	while (i)
 		print_base(stack[--i]);
 }
@@ -119,7 +116,7 @@ static void print_no_pop(void)
 }
 
 struct op {
-	const char *name;
+	const char name[4];
 	void (*function) (void);
 };
 
@@ -145,7 +142,7 @@ static const struct op operators[] = {
 	{"p", print_no_pop},
 	{"f", print_stack_no_pop},
 	{"o", set_output_base},
-	{0,     0}
+	{"", 0}
 };
 
 static void stack_machine(const char *argument)
@@ -164,9 +161,9 @@ static void stack_machine(const char *argument)
 		return;
 	}
 
-	while (o->name != 0) {
+	while (o->name[0]) {
 		if (strcmp(o->name, argument) == 0) {
-			(*(o->function)) ();
+			o->function();
 			return;
 		}
 		o++;
@@ -185,7 +182,9 @@ static char *get_token(char **buffer)
 	current = skip_whitespace(*buffer);
 	if (*current != 0) {
 		start = current;
-		while (!isspace(*current) && *current != 0) { current++; }
+		while (!isspace(*current) && *current != 0) {
+			current++;
+		}
 		*buffer = current;
 	}
 	return start;
@@ -220,7 +219,7 @@ int dc_main(int argc, char **argv)
 			free(line);
 		}
 	} else {
-		if (*argv[1]=='-')
+		if (*argv[1] == '-')
 			bb_show_usage();
 		while (argc >= 2) {
 			stack_machine(argv[1]);

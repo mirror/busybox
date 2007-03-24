@@ -1191,23 +1191,22 @@ static int isassign(const char *s)
 	unsigned char c;
 	DBGPRINTF7(("ISASSIGN: enter, s=%s\n", s));
 
-	/* no isalpha() - we shouldn't use locale */
 	c = *s;
-	if (c != '_'
-	 && (unsigned)((c|0x20) - 'a') > 25 /* not letter */
-	) {
+	/* no isalpha() - we shouldn't use locale */
+	/* c | 0x20 - lowercase (Latin) letters */
+	if (c != '_' && (unsigned)((c|0x20) - 'a') > 25)
+		/* not letter */
 		return 0;
-	}
+
 	while (1) {
 		c = *++s;
-		if (c == '\0')
-			return 0;
 		if (c == '=')
 			return 1;
-		c |= 0x20; /* lowercase letters, doesn't affect numbers */
+		if (c == '\0')
+			return 0;
 		if (c != '_'
 		 && (unsigned)(c - '0') > 9  /* not number */
-		 && (unsigned)(c - 'a') > 25 /* not letter */
+		 && (unsigned)((c|0x20) - 'a') > 25 /* not letter */
 		) {
 			return 0;
 		}

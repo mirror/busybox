@@ -17,6 +17,7 @@
  * the first porting of oao' scdns to busybox also.
  */
 
+#include <syslog.h>
 #include "busybox.h"
 
 //#define DEBUG 1
@@ -114,7 +115,6 @@ static void undot(uint8_t * rip)
  * Presently the dot is copied into name without
  * converting to a length/string substring for that label.
  */
-
 static int getfileentry(FILE * fp, struct dns_entry *s)
 {
 	unsigned int a,b,c,d;
@@ -359,6 +359,7 @@ int dnsd_main(int argc, char **argv)
 #else
 		xdaemon(1, 0);
 #endif
+		openlog(applet_name, LOG_PID, LOG_DAEMON);
 		logmode = LOGMODE_SYSLOG;
 	}
 
