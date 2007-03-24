@@ -109,19 +109,23 @@ static int adduser(struct passwd *p)
 	if (putpwent(p, file) == -1) {
 		bb_perror_nomsg_and_die();
 	}
-	fclose(file);
+	if (ENABLE_FEATURE_CLEAN_UP)
+		fclose(file);
 
 #if ENABLE_FEATURE_SHADOWPASSWDS
 	/* add to shadow if necessary */
-	file = xfopen(bb_path_shadow_file, "a");
-	fseek(file, 0, SEEK_END);
-	fprintf(file, "%s:!:%ld:%d:%d:%d:::\n",
-			p->pw_name,             /* username */
-			time(NULL) / 86400,     /* sp->sp_lstchg */
-			0,                      /* sp->sp_min */
-			99999,                  /* sp->sp_max */
-			7);                     /* sp->sp_warn */
-	fclose(file);
+	file = fopen_or_warn(bb_path_shadow_file, "a");
+	if (file) {
+		fseek(file, 0, SEEK_END);
+		fprintf(file, "%s:!:%ld:%d:%d:%d:::\n",
+				p->pw_name,             /* username */
+				time(NULL) / 86400,     /* sp->sp_lstchg */
+				0,                      /* sp->sp_min */
+				99999,                  /* sp->sp_max */
+				7);                     /* sp->sp_warn */
+		if (ENABLE_FEATURE_CLEAN_UP)
+			fclose(file);
+	}
 #endif
 
 	/* add to group */
