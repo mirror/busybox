@@ -238,12 +238,12 @@ static int process_packet(uint8_t * buf)
 	head = (struct dns_head *)buf;
 	if (head->nquer == 0) {
 		bb_error_msg("no queries");
-		retunr -1;
+		return -1;
 	}
 
 	if (head->flags & 0x8000) {
 		bb_error_msg("ignoring response packet");
-		retunr -1;
+		return -1;
 	}
 
 	from = (void *)&head[1];	//  start of query string
@@ -401,4 +401,5 @@ int dnsd_main(int argc, char **argv)
 			continue;
 		sendto(udps, buf, r, 0, &lsa->sa, fromlen);
 	}
+	return 0;
 }
