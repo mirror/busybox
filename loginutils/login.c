@@ -8,7 +8,7 @@
 #include <sys/resource.h>
 #include <syslog.h>
 
-#ifdef CONFIG_SELINUX
+#if ENABLE_SELINUX
 #include <selinux/selinux.h>  /* for is_selinux_enabled()  */
 #include <selinux/get_context_list.h> /* for get_default_context() */
 #include <selinux/flask.h> /* for security class definitions  */
@@ -22,8 +22,7 @@ enum {
 	TTYNAME_SIZE = 32,
 };
 
-static char full_tty[TTYNAME_SIZE];
-static char* short_tty = full_tty;
+static char* short_tty;
 
 #if ENABLE_FEATURE_UTMP
 /* vv  Taken from tinylogin utmp.c  vv */
@@ -41,9 +40,7 @@ static char* short_tty = full_tty;
  *	command line flags.
  */
 
-static struct utmp utent;
-
-static void read_or_build_utent(int picky)
+static void read_or_build_utent(struct utmp *utptr, int picky)
 {
 	struct utmp *ut;
 	pid_t pid = getpid();
@@ -58,23 +55,23 @@ static void read_or_build_utent(int picky)
 
 	/* If there is one, just use it, otherwise create a new one.  */
 	if (ut) {
-		utent = *ut;
+		*utptr = *ut;
 	} else {
 		if (picky)
 			bb_error_msg_and_die("no utmp entry found");
 
-		memset(&utent, 0, sizeof(utent));
-		utent.ut_type = LOGIN_PROCESS;
-		utent.ut_pid = pid;
-		strncpy(utent.ut_line, short_tty, sizeof(utent.ut_line));
+		memset(utptr, 0, sizeof(*utptr));
+		utptr->ut_type = LOGIN_PROCESS;
+		utptr->ut_pid = pid;
+		strncpy(utptr->ut_line, short_tty, sizeof(utptr->ut_line));
 		/* This one is only 4 chars wide. Try to fit something
 		 * remotely meaningful by skipping "tty"... */
-		strncpy(utent.ut_id, short_tty + 3, sizeof(utent.ut_id));
-		strncpy(utent.ut_user, "LOGIN", sizeof(utent.ut_user));
-		utent.ut_time = time(NULL);
+		strncpy(utptr->ut_id, short_tty + 3, sizeof(utptr->ut_id));
+		strncpy(utptr->ut_user, "LOGIN", sizeof(utptr->ut_user));
+		utptr->ut_time = time(NULL);
 	}
 	if (!picky)	/* root login */
-		memset(utent.ut_host, 0, sizeof(utent.ut_host));
+		memset(utptr->ut_host, 0, sizeof(utptr->ut_host));
 }
 
 /*
@@ -83,25 +80,25 @@ static void read_or_build_utent(int picky)
  *	write_utent changes the type of the current utmp entry to
  *	USER_PROCESS.  the wtmp file will be updated as well.
  */
-static void write_utent(const char *username)
+static void write_utent(struct utmp *utptr, const char *username)
 {
-	utent.ut_type = USER_PROCESS;
-	strncpy(utent.ut_user, username, sizeof(utent.ut_user));
-	utent.ut_time = time(NULL);
+	utptr->ut_type = USER_PROCESS;
+	strncpy(utptr->ut_user, username, sizeof(utptr->ut_user));
+	utptr->ut_time = time(NULL);
 	/* other fields already filled in by read_or_build_utent above */
 	setutent();
-	pututline(&utent);
+	pututline(utptr);
 	endutent();
 #if ENABLE_FEATURE_WTMP
 	if (access(bb_path_wtmp_file, R_OK|W_OK) == -1) {
 		close(creat(bb_path_wtmp_file, 0664));
 	}
-	updwtmp(bb_path_wtmp_file, &utent);
+	updwtmp(bb_path_wtmp_file, utptr);
 #endif
 }
 #else /* !ENABLE_FEATURE_UTMP */
-static inline void read_or_build_utent(int ATTRIBUTE_UNUSED picky) {}
-static inline void write_utent(const char ATTRIBUTE_UNUSED *username) {}
+#define read_or_build_utent(utptr, picky) ((void)0)
+#define write_utent(utptr, username) ((void)0)
 #endif /* !ENABLE_FEATURE_UTMP */
 
 static void die_if_nologin_and_non_root(int amroot)
@@ -195,18 +192,13 @@ static void motd(void)
 	}
 }
 
-static void nonblock(int fd)
-{
-	fcntl(fd, F_SETFL, O_NONBLOCK | fcntl(fd, F_GETFL));
-}
-
 static void alarm_handler(int sig ATTRIBUTE_UNUSED)
 {
 	/* This is the escape hatch!  Poor serial line users and the like
 	 * arrive here when their connection is broken.
 	 * We don't want to block here */
-	nonblock(1);
-	nonblock(2);
+	ndelay_on(1);
+	ndelay_on(2);
 	bb_info_msg("\r\nLogin timed out after %d seconds\r", TIMEOUT);
 	exit(EXIT_SUCCESS);
 }
@@ -228,8 +220,11 @@ int login_main(int argc, char **argv)
 	struct passwd *pw;
 	char *opt_host = NULL;
 	char *opt_user = NULL;
+	char full_tty[TTYNAME_SIZE];
 	USE_SELINUX(security_context_t user_sid = NULL;)
+	USE_FEATURE_UTMP(struct utmp utent;)
 
+	short_tty = full_tty;
 	username[0] = '\0';
 	amroot = (getuid() == 0);
 	signal(SIGALRM, alarm_handler);
@@ -255,7 +250,7 @@ int login_main(int argc, char **argv)
 			short_tty = full_tty + 5;
 	}
 
-	read_or_build_utent(!amroot);
+	read_or_build_utent(&utent, !amroot);
 
 	if (opt_host) {
 		USE_FEATURE_UTMP(
@@ -263,8 +258,7 @@ int login_main(int argc, char **argv)
 		)
 		snprintf(fromhost, sizeof(fromhost)-1, " on '%.100s' from "
 					"'%.200s'", short_tty, opt_host);
-	}
-	else
+	} else
 		snprintf(fromhost, sizeof(fromhost)-1, " on '%.100s'", short_tty);
 
 	bb_setpgrp;
@@ -313,7 +307,7 @@ auth_failed:
 	alarm(0);
 	die_if_nologin_and_non_root(pw->pw_uid == 0);
 
-	write_utent(username);
+	write_utent(&utent, username);
 
 #ifdef CONFIG_SELINUX
 	if (is_selinux_enabled()) {
