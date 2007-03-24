@@ -94,9 +94,11 @@ int arpping(uint32_t yiaddr, uint32_t ip, uint8_t *mac, char *interface)
 		tm.tv_sec = timeout;
 		if (select(s + 1, &fdset, (fd_set *) NULL, (fd_set *) NULL, &tm) < 0) {
 			bb_perror_msg("error on ARPING request");
-			if (errno != EINTR) rv = 0;
+			if (errno != EINTR)
+				rv = 0;
 		} else if (FD_ISSET(s, &fdset)) {
-			if (recv(s, &arp, sizeof(arp), 0) < 0 ) rv = 0;
+			if (recv(s, &arp, sizeof(arp), 0) < 0)
+				rv = 0;
 			if (arp.operation == htons(ARPOP_REPLY) &&
 			    memcmp(arp.tHaddr, mac, 6) == 0 &&
 			    *((uint32_t *) arp.sInaddr) == yiaddr) {

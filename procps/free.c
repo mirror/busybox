@@ -18,10 +18,10 @@ int free_main(int argc, char **argv)
 	sysinfo(&info);
 
 	/* Kernels prior to 2.4.x will return info.mem_unit==0, so cope... */
-	if (info.mem_unit==0) {
+	if (info.mem_unit == 0) {
 		info.mem_unit=1;
 	}
-	if ( info.mem_unit == 1 ) {
+	if (info.mem_unit == 1) {
 		info.mem_unit=1024;
 
 		/* TODO:  Make all this stuff not overflow when mem >= 4 Gib */
@@ -46,7 +46,7 @@ int free_main(int argc, char **argv)
 		info.bufferram*=info.mem_unit;
 	}
 
-	if (argc > 1 && **(argv + 1) == '-')
+	if (argc > 1 && *argv[1] == '-')
 		bb_show_usage();
 
 	printf("%6s%13s%13s%13s%13s%13s\n", "", "total", "used", "free",
@@ -66,4 +66,3 @@ int free_main(int argc, char **argv)
 #endif
 	return EXIT_SUCCESS;
 }
-

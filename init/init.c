@@ -880,8 +880,7 @@ static void reload_signal(int sig ATTRIBUTE_UNUSED)
 	/* remove unused entrys */
 	for (a = init_action_list; a; a = tmp) {
 		tmp = a->next;
-		if (a->action & (ONCE | SYSINIT | WAIT ) &&
-				a->pid == 0 ) {
+		if ((a->action & (ONCE | SYSINIT | WAIT)) && a->pid == 0) {
 			delete_init_action(a);
 		}
 	}

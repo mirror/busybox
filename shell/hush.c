@@ -1095,7 +1095,7 @@ static void pseudo_exec(struct child_prog *child)
 		 * if this is one of those cases.
 		 */
 		for (x = bltins; x->cmd; x++) {
-			if (strcmp(child->argv[0], x->cmd) == 0 ) {
+			if (strcmp(child->argv[0], x->cmd) == 0) {
 				debug_printf("builtin exec %s\n", child->argv[0]);
 				rcode = x->function(child);
 				fflush(stdout);
@@ -1369,7 +1369,7 @@ static int run_pipe_real(struct pipe *pi)
 			return last_return_code;
 		}
 		for (x = bltins; x->cmd; x++) {
-			if (strcmp(child->argv[i], x->cmd) == 0 ) {
+			if (strcmp(child->argv[i], x->cmd) == 0) {
 				int squirrel[] = { -1, -1, -1 };
 				int rcode;
 				if (x->function == builtin_exec && child->argv[i+1] == NULL) {

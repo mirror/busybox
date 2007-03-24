@@ -28,7 +28,7 @@
 /* internal function for bb_getpwuid and bb_getgrgid */
 static char* bb_getug(char *buffer, char *idname, long id, int bufsize, char prefix)
 {
-	if (bufsize > 0 ) {
+	if (bufsize > 0) {
 		assert(buffer != NULL);
 		if (idname) {
 			return safe_strncpy(buffer, idname, bufsize);

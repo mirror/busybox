@@ -1138,7 +1138,7 @@ static int pseudo_exec(struct child_prog *child)
 	 * if this is one of those cases.
 	 */
 	for (x = bltins; x->cmd; x++) {
-		if (strcmp(child->argv[0], x->cmd) == 0 ) {
+		if (strcmp(child->argv[0], x->cmd) == 0) {
 			_exit(x->function(child));
 		}
 	}
@@ -1262,7 +1262,7 @@ static int run_command(struct job *newjob, int inbg, int outpipe[2])
 			}
 
 			for (x = bltins; x->cmd; x++) {
-				if (strcmp(child->argv[0], x->cmd) == 0 ) {
+				if (strcmp(child->argv[0], x->cmd) == 0) {
 					int rcode;
 					int squirrel[] = {-1, -1, -1};
 					setup_redirects(child, squirrel);

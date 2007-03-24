@@ -613,7 +613,7 @@ sgi_gaps(void)
 static void
 sgi_change_sysid(int i, int sys)
 {
-	if (sgi_get_num_sectors(i) == 0 ) { /* caught already before, ... */
+	if (sgi_get_num_sectors(i) == 0) { /* caught already before, ... */
 		printf("Sorry you may change the Tag of non-empty partitions\n");
 		return;
 	}

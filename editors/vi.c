@@ -3393,7 +3393,7 @@ static void do_cmd(char c)
 					editing = 0;
 				}
 			}
-		} else if (strncasecmp(p, "file", cnt) == 0 ) {
+		} else if (strncasecmp(p, "file", cnt) == 0) {
 			last_status_cksum = 0;	// force status update
 		} else if (sscanf(p, "%d", &j) > 0) {
 			dot = find_line(j);		// go to line # j
