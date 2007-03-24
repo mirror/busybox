@@ -19,19 +19,18 @@
 #include "libbb.h"
 
 #ifdef BB_NOMMU
-void vfork_daemon_rexec(int nochdir, int noclose,
-		int argc, char **argv, char *foreground_opt)
+void vfork_daemon_rexec(int nochdir, int noclose, char **argv)
 {
 	int fd;
-	char **vfork_args;
-	int a = 0;
 
 	setsid();
 
 	if (!nochdir)
 		xchdir("/");
 
-	if (!noclose && (fd = open(bb_dev_null, O_RDWR, 0)) != -1) {
+	if (!noclose) {
+		/* if "/dev/null" doesn't exist, bail out! */
+		fd = xopen(bb_dev_null, O_RDWR);
 		dup2(fd, STDIN_FILENO);
 		dup2(fd, STDOUT_FILENO);
 		dup2(fd, STDERR_FILENO);
@@ -39,21 +38,17 @@ void vfork_daemon_rexec(int nochdir, int noclose,
 			close(fd--);
 	}
 
-	vfork_args = xzalloc(sizeof(char *) * (argc + 3));
-	vfork_args[a++] = CONFIG_BUSYBOX_EXEC_PATH;
-	while (*argv) {
-		vfork_args[a++] = *argv;
-		argv++;
-	}
-	vfork_args[a] = foreground_opt;
 	switch (vfork()) {
 	case 0: /* child */
 		/* Make certain we are not a session leader, or else we
 		 * might reacquire a controlling terminal */
 		if (vfork())
 			_exit(0);
-		execv(vfork_args[0], vfork_args);
-		bb_perror_msg_and_die("execv %s", vfork_args[0]);
+		/* High-order bit of first char in argv[0] is a hidden
+		 * "we have (alrealy) re-execed, don't do it again" flag */
+		argv[0][0] |= 0x80;
+		execv(CONFIG_BUSYBOX_EXEC_PATH, argv);
+		bb_perror_msg_and_die("exec %s", CONFIG_BUSYBOX_EXEC_PATH);
 	case -1: /* error */
 		bb_perror_msg_and_die("vfork");
 	default: /* parent */

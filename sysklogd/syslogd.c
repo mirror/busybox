@@ -643,7 +643,8 @@ int syslogd_main(int argc, char **argv)
 
 	if (!(option_mask32 & OPT_nofork)) {
 #ifdef BB_NOMMU
-		vfork_daemon_rexec(0, 1, argc, argv, "-n");
+		if (!re_execed)
+			vfork_daemon_rexec(0, 1, argv);
 #else
 		bb_daemonize();
 #endif

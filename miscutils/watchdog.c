@@ -38,12 +38,14 @@ int watchdog_main(int argc, char **argv)
 	if (optind < argc - 1 || argc == 1)
 		bb_show_usage();
 
+	if (!(opts & OPT_FOREGROUND)) {
 #ifdef BB_NOMMU
-	if (!(opts & OPT_FOREGROUND))
-		vfork_daemon_rexec(0, 1, argc, argv, "-F");
+		if (!re_execed)
+			vfork_daemon_rexec(0, 1, argv);
 #else
-	xdaemon(0, 1);
+		xdaemon(0, 1);
 #endif
+	}
 
 	signal(SIGHUP, watchdog_shutdown);
 	signal(SIGINT, watchdog_shutdown);

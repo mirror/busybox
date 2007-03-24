@@ -7,6 +7,7 @@
 #include "busybox.h"
 
 const char *applet_name ATTRIBUTE_EXTERNALLY_VISIBLE;
+smallint re_execed;
 
 #ifdef CONFIG_FEATURE_INSTALLER
 /*
@@ -58,6 +59,12 @@ static void install_links(const char *busybox, int use_symbolic_links)
 int main(int argc, char **argv)
 {
 	const char *s;
+
+	/* NOMMU re-exec trick sets high-order bit in first byte of name */
+	if (argv[0][0] & 0x80) {
+		re_execed = 1;
+		argv[0][0] &= 0x7f;
+	}
 
 	applet_name = argv[0];
 	if (*applet_name == '-')

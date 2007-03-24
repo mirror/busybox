@@ -9,12 +9,11 @@ const char *applet_name;
 
 #include <stdio.h>
 #include <stdlib.h>
-//Ok to remove? #include "bb_config.h"
 #include "usage.h"
 
 int main(int argc, char *argv[])
 {
-	applet_name=argv[0];
+	applet_name = argv[0];
 
 	return APPLET_main(argc,argv);
 }

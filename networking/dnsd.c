@@ -357,8 +357,8 @@ int dnsd_main(int argc, char **argv)
 	if (OPT_daemon) {
 //FIXME: NOMMU will NOT set LOGMODE_SYSLOG!
 #ifdef BB_NOMMU
-		/* reexec for vfork() do continue parent */
-		vfork_daemon_rexec(1, 0, argc, argv, "-d");
+		if (!re_execed)
+			vfork_daemon_rexec(1, 0, argv);
 #else
 		xdaemon(1, 0);
 #endif

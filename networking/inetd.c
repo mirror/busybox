@@ -1289,8 +1289,8 @@ int inetd_main(int argc, char *argv[])
 
 #ifdef BB_NOMMU
 	if (!(opt & 2)) {
-		/* reexec for vfork() do continue parent */
-		vfork_daemon_rexec(0, 0, argc, argv, "-f");
+		if (!re_execed)
+			vfork_daemon_rexec(0, 0, argv);
 	}
 	bb_sanitize_stdio();
 #else
