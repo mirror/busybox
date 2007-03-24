@@ -673,7 +673,7 @@
        "	-c	Config filename\n" \
        "	-t	TTL in seconds\n" \
        "	-p	Listening port\n" \
-       "	-i	Listening iface ip (default all)\n" \
+       "	-i	Listening ip (default all)\n" \
        "	-d	Daemonize"
 
 #define dos2unix_trivial_usage \

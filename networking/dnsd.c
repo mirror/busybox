@@ -19,13 +19,6 @@
 
 #include "busybox.h"
 
-static const char *fileconf = "/etc/dnsd.conf";
-#define LOCK_FILE       "/var/run/dnsd.lock"
-
-// Must match getopt32 call
-#define OPT_daemon  (option_mask32 & 0x10)
-#define OPT_verbose (option_mask32 & 0x20)
-
 //#define DEBUG 1
 #define DEBUG 0
 
@@ -75,8 +68,15 @@ struct dns_entry {		// element of known name, ip address and reversed ip address
 	char name[MAX_HOST_LEN];
 };
 
-static struct dns_entry *dnsentry = NULL;
+static struct dns_entry *dnsentry;
 static uint32_t ttl = DEFAULT_TTL;
+
+static const char *fileconf = "/etc/dnsd.conf";
+
+// Must match getopt32 call
+#define OPT_daemon  (option_mask32 & 0x10)
+#define OPT_verbose (option_mask32 & 0x20)
+
 
 /*
  * Convert host name from C-string to dns length/string.
@@ -135,12 +135,12 @@ static int getfileentry(FILE * fp, struct dns_entry *s)
 	while (*r != ' ' && *r != '\t')
 		r++;
 	*r++ = '\0';
-	if (sscanf(r, "%u.%u.%u.%u", &a, &b, &c, &d) != 4) {
+	if (sscanf(r, ".%u.%u.%u.%u"+1, &a, &b, &c, &d) != 4) {
 		free(line);
 		goto restart; /* skipping wrong lines */
 	}
 
-	sprintf(s->ip, "%u.%u.%u.%u", a, b, c, d);
+	sprintf(s->ip, ".%u.%u.%u.%u"+1, a, b, c, d);
 	sprintf(s->rip, ".%u.%u.%u.%u", d, c, b, a);
 	undot((uint8_t*)s->rip);
 	convname(s->name, (uint8_t*)name);
@@ -185,7 +185,7 @@ static void dnsentryinit(void)
 static int table_lookup(uint16_t type, uint8_t * as, uint8_t * qs)
 {
 	int i;
-	struct dns_entry *d=dnsentry;
+	struct dns_entry *d = dnsentry;
 
 	do {
 #if DEBUG
@@ -201,17 +201,13 @@ static int table_lookup(uint16_t type, uint8_t * as, uint8_t * qs)
 				if (tolower(qs[i]) != d->name[i])
 					break;
 			if (i > (int)(d->name[0])) {
-#if DEBUG
-				fprintf(stderr, " OK");
-#endif
 				strcpy((char *)as, d->ip);
 #if DEBUG
-				fprintf(stderr, " as:%s\n", as);
+				fprintf(stderr, " OK as:%s\n", as);
 #endif
-					return 0;
+				return 0;
 			}
-		} else
-		if (type == REQ_PTR) { /* search by IP-address */
+		} else if (type == REQ_PTR) { /* search by IP-address */
 			if (!strncmp((char*)&d->rip[1], (char*)&qs[1], strlen(d->rip)-1)) {
 				strcpy((char *)as, d->name);
 				return 0;
@@ -226,7 +222,6 @@ static int table_lookup(uint16_t type, uint8_t * as, uint8_t * qs)
 /*
  * Decode message and generate answer
  */
-#define eret(s) do { fputs(s, stderr); return -1; } while (0)
 static int process_packet(uint8_t * buf)
 {
 	struct dns_head *head;
@@ -241,11 +236,15 @@ static int process_packet(uint8_t * buf)
 	answstr[0] = '\0';
 
 	head = (struct dns_head *)buf;
-	if (head->nquer == 0)
-		eret("no queries\n");
+	if (head->nquer == 0) {
+		bb_error_msg("no queries");
+		retunr -1;
+	}
 
-	if (head->flags & 0x8000)
-		eret("ignoring response packet\n");
+	if (head->flags & 0x8000) {
+		bb_error_msg("ignoring response packet");
+		retunr -1;
+	}
 
 	from = (void *)&head[1];	//  start of query string
 	next = answb = from + strlen((char *)from) + 1 + sizeof(struct dns_prop);   // where to append answer block
@@ -286,8 +285,7 @@ static int process_packet(uint8_t * buf)
 		}
 		memcpy(answstr, &a.s_addr, 4);	// save before a disappears
 		outr.rlen = 4;			// uint32_t IP
-	}
-	else
+	} else
 		outr.rlen = strlen((char *)answstr) + 1;	// a host name
 	outr.r = answstr;			// 32 bit ip or a host name
 	outr.flags |= 0x0400;			/* authority-bit */
@@ -316,7 +314,7 @@ static int process_packet(uint8_t * buf)
 	head->nauth = head->nadd = htons(0);
 	head->nquer = htons(1);
 
-	packet_len = next - (void *)buf;
+	packet_len = (uint8_t *)next - buf;
 	return packet_len;
 }
 
@@ -325,7 +323,7 @@ static int process_packet(uint8_t * buf)
  */
 static void interrupt(int x)
 {
-	unlink(LOCK_FILE);
+	/* unlink("/var/run/dnsd.lock"); */
 	bb_error_msg("interrupt, exiting\n");
 	exit(2);
 }
@@ -333,7 +331,7 @@ static void interrupt(int x)
 int dnsd_main(int argc, char **argv);
 int dnsd_main(int argc, char **argv)
 {
-	char *listen_interface = NULL;
+	const char *listen_interface = "0.0.0.0";
 	char *sttl, *sport;
 	len_and_sockaddr *lsa;
 	int udps;
@@ -346,7 +344,7 @@ int dnsd_main(int argc, char **argv)
 	if (option_mask32 & 0x4) // -t
 		ttl = xatou_range(sttl, 1, 0xffffffff);
 	if (option_mask32 & 0x8) // -p
-		port = xatou_range(sttl, 1, 0xffff);
+		port = xatou_range(sport, 1, 0xffff);
 
 	if (OPT_verbose) {
 		bb_info_msg("listen_interface: %s", listen_interface);
@@ -355,7 +353,6 @@ int dnsd_main(int argc, char **argv)
 	}
 
 	if (OPT_daemon) {
-//FIXME: NOMMU will NOT set LOGMODE_SYSLOG!
 #ifdef BB_NOMMU
 		if (!re_execed)
 			vfork_daemon_rexec(1, 0, argv);
@@ -368,7 +365,7 @@ int dnsd_main(int argc, char **argv)
 	dnsentryinit();
 
 	signal(SIGINT, interrupt);
-	signal(SIGPIPE, SIG_IGN);
+	/* why? signal(SIGPIPE, SIG_IGN); */
 	signal(SIGHUP, SIG_IGN);
 #ifdef SIGTSTP
 	signal(SIGTSTP, SIG_IGN);
@@ -377,50 +374,31 @@ int dnsd_main(int argc, char **argv)
 	signal(SIGURG, SIG_IGN);
 #endif
 
-	lsa = xhost2sockaddr(listen_interface, port);
+	lsa = xdotted2sockaddr(listen_interface, port);
 	udps = xsocket(lsa->sa.sa_family, SOCK_DGRAM, 0);
 	xbind(udps, &lsa->sa, lsa->len);
-	// xlisten(udps, 50); - ?!! DGRAM sockets are never listened on I think?
+	/* xlisten(udps, 50); - ?!! DGRAM sockets are never listened on I think? */
 	bb_info_msg("Accepting UDP packets on %s",
 			xmalloc_sockaddr2dotted(&lsa->sa, lsa->len));
 
 	while (1) {
-		fd_set fdset;
 		int r;
-
-		FD_ZERO(&fdset);
-		FD_SET(udps, &fdset);
-		// Block until a message arrives
-// FIXME: Fantastic. select'ing on just one fd??
-// Why no just block on it doing recvfrom() ?
-		r = select(udps + 1, &fdset, NULL, NULL, NULL);
-		if (r < 0)
-			bb_perror_msg_and_die("select error");
-		if (r == 0)
-			bb_perror_msg_and_die("select spurious return");
-
-		/* Can this test ever be false? - yes */
-		if (FD_ISSET(udps, &fdset)) {
-			socklen_t fromlen = lsa->len;
+		socklen_t fromlen = lsa->len;
 // FIXME: need to get *DEST* address (to which of our addresses
 // this query was directed), and reply from the same address.
 // Or else we can exhibit usual UDP ugliness:
 // [ip1.multihomed.ip2] <=  query to ip1  <= peer
 // [ip1.multihomed.ip2] => reply from ip2 => peer (confused)
-			r = recvfrom(udps, buf, sizeof(buf), 0, &lsa->sa, &fromlen);
-			if (OPT_verbose)
-				bb_info_msg("Got UDP packet");
-
-			if (r < 12 || r > 512) {
-				bb_error_msg("invalid packet size");
-				continue;
-			}
-			if (r <= 0)
-				continue;
-			r = process_packet(buf);
-			if (r <= 0)
-				continue;
-			sendto(udps, buf, r, 0, &lsa->sa, fromlen);
+		r = recvfrom(udps, buf, sizeof(buf), 0, &lsa->sa, &fromlen);
+		if (OPT_verbose)
+			bb_info_msg("Got UDP packet");
+		if (r < 12 || r > 512) {
+			bb_error_msg("invalid packet size");
+			continue;
 		}
+		r = process_packet(buf);
+		if (r <= 0)
+			continue;
+		sendto(udps, buf, r, 0, &lsa->sa, fromlen);
 	}
 }
