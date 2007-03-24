@@ -7,7 +7,9 @@
 #include "busybox.h"
 
 const char *applet_name ATTRIBUTE_EXTERNALLY_VISIBLE;
+#ifdef BB_NOMMU
 smallint re_execed;
+#endif
 
 #ifdef CONFIG_FEATURE_INSTALLER
 /*
@@ -60,11 +62,13 @@ int main(int argc, char **argv)
 {
 	const char *s;
 
+#ifdef BB_NOMMU
 	/* NOMMU re-exec trick sets high-order bit in first byte of name */
 	if (argv[0][0] & 0x80) {
 		re_execed = 1;
 		argv[0][0] &= 0x7f;
 	}
+#endif
 
 	applet_name = argv[0];
 	if (*applet_name == '-')

@@ -617,6 +617,7 @@ extern void print_login_issue(const char *issue_file, const char *tty);
 extern void print_login_prompt(void);
 #ifdef BB_NOMMU
 extern void vfork_daemon_rexec(int nochdir, int noclose, char **argv);
+extern smallint re_execed;
 #endif
 extern int get_terminal_width_height(const int fd, int *width, int *height);
 
@@ -761,7 +762,6 @@ enum {	/* DO NOT CHANGE THESE VALUES!  cp.c, mv.c, install.c depend on them. */
 };
 
 #define FILEUTILS_CP_OPTSTR "pdRfils" USE_SELINUX("c")
-extern smallint re_execed;
 extern const char *applet_name;
 extern const char BB_BANNER[];
 
