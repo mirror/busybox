@@ -251,15 +251,15 @@ void smart_ulltoa5(unsigned long long ul, char buf[5])
 	fmt = " 123456789";
 	if (!idx) {		// 9999 or less: use 1234 format
 		c = buf[0] = " 123456789"[v/10000];
-		if (c!=' ') fmt = "0123456789";
+		if (c != ' ') fmt = "0123456789";
 		c = buf[1] = fmt[v/1000%10];
-		if (c!=' ') fmt = "0123456789";
+		if (c != ' ') fmt = "0123456789";
 		buf[2] = fmt[v/100%10];
 		buf[3] = "0123456789"[v/10%10];
 	} else {
-		if (v>=10*10) {	// scaled value is >=10: use 123M format
+		if (v >= 10*10) {	// scaled value is >=10: use 123M format
 			c = buf[0] = " 123456789"[v/1000];
-			if (c!=' ') fmt = "0123456789";
+			if (c != ' ') fmt = "0123456789";
 			buf[1] = fmt[v/100%10];
 			buf[2] = "0123456789"[v/10%10];
 		} else {	// scaled value is <10: use 1.2M format
@@ -483,10 +483,9 @@ DIR *warn_opendir(const char *path)
 {
 	DIR *dp;
 
-	if ((dp = opendir(path)) == NULL) {
+	dp = opendir(path);
+	if (!dp)
 		bb_perror_msg("cannot open '%s'", path);
-		return NULL;
-	}
 	return dp;
 }
 
@@ -495,7 +494,8 @@ DIR *xopendir(const char *path)
 {
 	DIR *dp;
 
-	if ((dp = opendir(path)) == NULL)
+	dp = opendir(path);
+	if (!dp)
 		bb_perror_msg_and_die("cannot open '%s'", path);
 	return dp;
 }

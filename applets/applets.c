@@ -48,15 +48,13 @@ static const char usage_messages[] =
 
 static struct BB_applet *applet_using;
 
-/* The -1 arises because of the {0,NULL,0,-1} entry above. */
-const unsigned short NUM_APPLETS = (sizeof (applets) / sizeof (struct BB_applet) - 1);
+/* The -1 arises because of the {0,NULL,0,-1} entry. */
+const unsigned short NUM_APPLETS = (sizeof(applets) / sizeof(struct BB_applet) - 1);
 
 
-#ifdef CONFIG_FEATURE_SUID_CONFIG
+#if ENABLE_FEATURE_SUID_CONFIG
 
 #include <ctype.h>
-
-#define CONFIG_FILE "/etc/busybox.conf"
 
 /* applets [] is const, so we have to define this "override" structure */
 static struct BB_suid_config
@@ -114,7 +112,7 @@ static char *get_trimmed_slice(char *s, char *e)
 #define parse_error(x)  do { errmsg = x; goto pe_label; } while(0)
 
 /* Don't depend on the tools to combine strings. */
-static const char config_file[] = CONFIG_FILE;
+static const char config_file[] = "/etc/busybox.conf";
 
 /* There are 4 chars + 1 nul for each of user/group/other. */
 static const char mode_chars[] = "Ssx-\0Ssx-\0Ttx-";
@@ -142,14 +140,14 @@ static void parse_config_file(void)
 	char buffer[256];
 	struct stat st;
 
-	assert(!suid_config);		/* Should be set to NULL by bss init. */
+	assert(!suid_config); /* Should be set to NULL by bss init. */
 
-	if ((stat(config_file, &st) != 0)			/* No config file? */
-		|| !S_ISREG(st.st_mode)					/* Not a regular file? */
-		|| (st.st_uid != 0)						/* Not owned by root? */
-		|| (st.st_mode & (S_IWGRP | S_IWOTH))	/* Writable by non-root? */
-		|| !(f = fopen(config_file, "r"))		/* Cannot open? */
-		) {
+	if ((stat(config_file, &st) != 0)       /* No config file? */
+	 || !S_ISREG(st.st_mode)                /* Not a regular file? */
+	 || (st.st_uid != 0)                    /* Not owned by root? */
+	 || (st.st_mode & (S_IWGRP | S_IWOTH))  /* Writable by non-root? */
+	 || !(f = fopen(config_file, "r"))      /* Cannot open? */
+	) {
 		return;
 	}
 
@@ -185,7 +183,8 @@ static void parse_config_file(void)
 
 		/* Trim leading and trailing whitespace, ignoring comments, and
 		 * check if the resulting string is empty. */
-		if (!*(s = get_trimmed_slice(s, strchrnul(s, '#')))) {
+		s = get_trimmed_slice(s, strchrnul(s, '#'));
+		if (!*s) {
 			continue;
 		}
 
@@ -195,10 +194,11 @@ static void parse_config_file(void)
 			/* Unlike the old code, we ignore leading and trailing
 			 * whitespace for the section name.  We also require that
 			 * there are no stray characters after the closing bracket. */
-			if (!(e = strchr(s, ']'))	/* Missing right bracket? */
-				|| e[1]					/* Trailing characters? */
-				|| !*(s = get_trimmed_slice(s+1, e)) /* Missing name? */
-				) {
+			e = strchr(s, ']');
+			if (!e   /* Missing right bracket? */
+			 || e[1] /* Trailing characters? */
+			 || !*(s = get_trimmed_slice(s+1, e)) /* Missing name? */
+			) {
 				parse_error("section header");
 			}
 			/* Right now we only have one section so just check it.
@@ -224,7 +224,8 @@ static void parse_config_file(void)
 			 * where both key and value could contain inner whitespace. */
 
 			/* First get the key (an applet name in our case). */
-			if (!!(e = strchr(s, '='))) {
+			e = strchr(s, '=');
+			if (e) {
 				s = get_trimmed_slice(s, e);
 			}
 			if (!e || !*s) {	/* Missing '=' or empty key. */
@@ -235,7 +236,8 @@ static void parse_config_file(void)
 			 * applet is currently built in and ignore it otherwise.
 			 * Note: This can hide config file bugs which only pop
 			 * up when the busybox configuration is changed. */
-			if ((applet = find_applet_by_name(s))) {
+			applet = find_applet_by_name(s);
+			if (applet) {
 				/* Note: We currently don't check for duplicates!
 				 * The last config line for each applet will be the
 				 * one used since we insert at the head of the list.
@@ -250,9 +252,10 @@ static void parse_config_file(void)
 
 				e = skip_whitespace(e+1);
 
-				for (i=0 ; i < 3 ; i++) {
+				for (i = 0; i < 3; i++) {
 					const char *q;
-					if (!*(q = strchrnul(mode_chars + 5*i, *e++))) {
+					q = strchrnul(mode_chars + 5*i, *e++);
+					if (!*q) {
 						parse_error("mode");
 					}
 					/* Adjust by -i to account for nul. */
@@ -268,30 +271,27 @@ static void parse_config_file(void)
 				if ((s == e) || !(e = strchr(s, '.'))) {
 					parse_error("<uid>.<gid>");
 				}
-				*e++ = 0;
+				*e++ = '\0';
 
 				/* We can't use get_ug_id here since it would exit()
 				 * if a uid or gid was not found.  Oh well... */
-				{
-					char *e2;
-
-					sct->m_uid = strtoul(s, &e2, 10);
-					if (*e2 || (s == e2)) {
-						struct passwd *pwd = getpwnam(s);
-						if (!pwd) {
-							parse_error("user");
-						}
-						sct->m_uid = pwd->pw_uid;
+				sct->m_uid = bb_strtoul(s, NULL, 10);
+				if (errno) {
+					struct passwd *pwd = getpwnam(s);
+					if (!pwd) {
+						parse_error("user");
 					}
+					sct->m_uid = pwd->pw_uid;
+				}
 
-					sct->m_gid = strtoul(e, &e2, 10);
-					if (*e2 || (e == e2)) {
-						struct group *grp;
-						if (!(grp = getgrnam(e))) {
-							parse_error("group");
-						}
-						sct->m_gid = grp->gr_gid;
+				sct->m_gid = bb_strtoul(e, NULL, 10);
+				if (errno) {
+					struct group *grp;
+					grp = getgrnam(e);
+					if (!grp) {
+						parse_error("group");
 					}
+					sct->m_gid = grp->gr_gid;
 				}
 			}
 			continue;
@@ -327,63 +327,64 @@ static void parse_config_file(void)
 #define parse_config_file() ((void)0)
 #endif /* CONFIG_FEATURE_SUID_CONFIG */
 
-#ifdef CONFIG_FEATURE_SUID
+#if ENABLE_FEATURE_SUID
 static void check_suid(struct BB_applet *applet)
 {
 	uid_t ruid = getuid();               /* real [ug]id */
 	uid_t rgid = getgid();
 
-#ifdef CONFIG_FEATURE_SUID_CONFIG
+#if ENABLE_FEATURE_SUID_CONFIG
 	if (suid_cfg_readable) {
 		struct BB_suid_config *sct;
+		mode_t m;
 
 		for (sct = suid_config; sct; sct = sct->m_next) {
 			if (sct->m_applet == applet)
-				break;
+				goto found;
 		}
-		if (sct) {
-			mode_t m = sct->m_mode;
+		/* default: drop all privileges */
+		xsetgid(rgid);
+		xsetuid(ruid);
+		return;
+ found:
+		m = sct->m_mode;
+		if (sct->m_uid == ruid)
+			/* same uid */
+			m >>= 6;
+		else if ((sct->m_gid == rgid) || ingroup(ruid, sct->m_gid))
+			/* same group / in group */
+			m >>= 3;
 
-			if (sct->m_uid == ruid)
-				/* same uid */
-				m >>= 6;
-			else if ((sct->m_gid == rgid) || ingroup(ruid, sct->m_gid))
-				/* same group / in group */
-				m >>= 3;
+		if (!(m & S_IXOTH))           /* is x bit not set ? */
+			bb_error_msg_and_die("you have no permission to run this applet!");
 
-			if (!(m & S_IXOTH))           /* is x bit not set ? */
-				bb_error_msg_and_die("you have no permission to run this applet!");
-
-			if (sct->m_gid != 0) {
-				/* _both_ have to be set for sgid */
-				if ((sct->m_mode & (S_ISGID | S_IXGRP)) == (S_ISGID | S_IXGRP)) {
-					xsetgid(sct->m_gid);
-				} else xsetgid(rgid); /* no sgid -> drop */
-			}
-			if (sct->m_uid != 0) {
-				if (sct->m_mode & S_ISUID) xsetuid(sct->m_uid);
-				else xsetuid(ruid); /* no suid -> drop */
-			}
-		} else {
-			/* default: drop all privileges */
-			xsetgid(rgid);
-			xsetuid(ruid);
+		if (sct->m_gid != 0) {
+			/* _both_ have to be set for sgid */
+			if ((sct->m_mode & (S_ISGID | S_IXGRP)) == (S_ISGID | S_IXGRP)) {
+				xsetgid(sct->m_gid);
+			} else xsetgid(rgid); /* no sgid -> drop */
+		}
+		if (sct->m_uid != 0) {
+			if (sct->m_mode & S_ISUID) xsetuid(sct->m_uid);
+			else xsetuid(ruid); /* no suid -> drop */
 		}
 		return;
-	} else {
-#ifndef CONFIG_FEATURE_SUID_CONFIG_QUIET
-		static int onetime = 0;
+	}
+#if !ENABLE_FEATURE_SUID_CONFIG_QUIET
+	{
+		static smallint onetime = 0;
 
 		if (!onetime) {
 			onetime = 1;
 			fprintf(stderr, "Using fallback suid method\n");
 		}
-#endif
 	}
+#endif
 #endif
 
 	if (applet->need_suid == _BB_SUID_ALWAYS) {
-		if (geteuid()) bb_error_msg_and_die("applet requires root privileges!");
+		if (geteuid())
+			bb_error_msg_and_die("applet requires root privileges!");
 	} else if (applet->need_suid == _BB_SUID_NEVER) {
 		xsetgid(rgid);                          /* drop all privileges */
 		xsetuid(ruid);
@@ -395,7 +396,7 @@ static void check_suid(struct BB_applet *applet)
 
 
 
-#ifdef CONFIG_FEATURE_COMPRESS_USAGE
+#if ENABLE_FEATURE_COMPRESS_USAGE
 
 #include "usage_compressed.h"
 #include "unarchive.h"
@@ -405,7 +406,7 @@ static const char *unpack_usage_messages(void)
 	int input[2], output[2], pid;
 	char *buf;
 
-	if(pipe(input) < 0 || pipe(output) < 0)
+	if (pipe(input) < 0 || pipe(output) < 0)
 		exit(1);
 
 	pid = fork();
@@ -480,8 +481,6 @@ void run_applet_by_name(const char *name, int argc, char **argv)
 	if (ENABLE_FEATURE_SUID_CONFIG)
 		parse_config_file();
 
-	if (!strncmp(name, "busybox", 7))
-		exit(busybox_main(argc, argv));
 	/* Do a binary search to find the applet entry given the name. */
 	applet_using = find_applet_by_name(name);
 	if (applet_using) {
@@ -492,4 +491,6 @@ void run_applet_by_name(const char *name, int argc, char **argv)
 			check_suid(applet_using);
 		exit(applet_using->main(argc, argv));
 	}
+	if (!strncmp(name, "busybox", 7))
+		exit(busybox_main(argc, argv));
 }
