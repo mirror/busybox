@@ -191,7 +191,7 @@ static int setup_log(void)
 	coe(logpipe[0]);
 	ndelay_on(logpipe[0]);
 	ndelay_on(logpipe[1]);
-	if (fd_copy(2, logpipe[1]) == -1) {
+	if (dup2(logpipe[1], 2) == -1) {
 		warnx("cannot set filedescriptor for log");
 		return -1;
 	}

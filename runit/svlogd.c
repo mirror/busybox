@@ -153,12 +153,10 @@ static unsigned processorstart(struct logdir *ld)
 		if (verbose)
 			bb_error_msg(INFO"processing: %s/%s", ld->name, ld->fnsave);
 		fd = xopen(ld->fnsave, O_RDONLY|O_NDELAY);
-		if (fd_move(0, fd) == -1)
-			bb_perror_msg_and_die(FATAL"cannot %s processor %s", "move filedescriptor for", ld->name);
+		xmove_fd(fd, 0);
 		ld->fnsave[26] = 't';
 		fd = xopen(ld->fnsave, O_WRONLY|O_NDELAY|O_TRUNC|O_CREAT);
-		if (fd_move(1, fd) == -1)
-			bb_perror_msg_and_die(FATAL"cannot %s processor %s", "move filedescriptor for", ld->name);
+		xmove_fd(fd, 1);
 		fd = open_read("state");
 		if (fd == -1) {
 			if (errno != ENOENT)
@@ -166,17 +164,15 @@ static unsigned processorstart(struct logdir *ld)
 			close(xopen("state", O_WRONLY|O_NDELAY|O_TRUNC|O_CREAT));
 			fd = xopen("state", O_RDONLY|O_NDELAY);
 		}
-		if (fd_move(4, fd) == -1)
-			bb_perror_msg_and_die(FATAL"cannot %s processor %s", "move filedescriptor for", ld->name);
+		xmove_fd(fd, 4);
 		fd = xopen("newstate", O_WRONLY|O_NDELAY|O_TRUNC|O_CREAT);
-		if (fd_move(5, fd) == -1)
-			bb_perror_msg_and_die(FATAL"cannot %s processor %s", "move filedescriptor for", ld->name);
+		xmove_fd(fd, 5);
 
 // getenv("SHELL")?
 		prog[0] = (char*)"sh";
 		prog[1] = (char*)"-c";
 		prog[2] = ld->processor;
-		prog[3] = '\0';
+		prog[3] = NULL;
 		execve("/bin/sh", prog, environ);
 		bb_perror_msg_and_die(FATAL"cannot %s processor %s", "run", ld->name);
 	}

@@ -272,6 +272,7 @@ int zcip_main(int argc, char *argv[])
 	// daemonize now; don't delay system startup
 	if (!FOREGROUND) {
 		/* bb_daemonize(); - bad, will close fd! */
+//NOMMU
 		xdaemon(0, 0);
 		bb_info_msg("start, interface %s", intf);
 	}

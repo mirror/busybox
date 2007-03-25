@@ -251,7 +251,7 @@ static unsigned custom(struct svdir *s, char c)
 				return 0;
 			}
 			if (!pid) {
-				if (haslog && fd_copy(1, logpipe[1]) == -1)
+				if (haslog && dup2(logpipe[1], 1) == -1)
 					warn_cannot("setup stdout for control/?");
 				prog[0] = a;
 				prog[1] = NULL;
@@ -312,13 +312,13 @@ static void startservice(struct svdir *s)
 		/* child */
 		if (haslog) {
 			if (s->islog) {
-				if (fd_copy(0, logpipe[0]) == -1)
+				if (dup2(logpipe[0], 0) == -1)
 					fatal_cannot("setup filedescriptor for ./log/run");
 				close(logpipe[1]);
 				if (chdir("./log") == -1)
 					fatal_cannot("change directory to ./log");
 			} else {
-				if (fd_copy(1, logpipe[1]) == -1)
+				if (dup2(logpipe[1], 1) == -1)
 					fatal_cannot("setup filedescriptor for ./run");
 				close(logpipe[0]);
 			}

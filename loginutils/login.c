@@ -337,7 +337,7 @@ auth_failed:
 	fchown(0, pw->pw_uid, pw->pw_gid);
 	fchmod(0, 0600);
 
-	/* TODO: be nommu-friendly, use spawn? */
+/* TODO: be nommu-friendly, use spawn? */
 	if (ENABLE_LOGIN_SCRIPTS) {
 		char *script = getenv("LOGIN_PRE_SUID_SCRIPT");
 		if (script) {

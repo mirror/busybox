@@ -40,12 +40,6 @@ extern int coe(int);
 #define direntry struct dirent
 
 
-/*** fd.h ***/
-
-extern int fd_copy(int,int);
-extern int fd_move(int,int);
-
-
 /*** tai.h ***/
 
 struct tai {

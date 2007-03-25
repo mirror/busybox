@@ -250,8 +250,10 @@ extern char bb_process_escape_sequence(const char **ptr);
 /* TODO: sometimes modifies its parameter, which
  * makes it rather inconvenient at times: */
 extern char *bb_get_last_path_component(char *path);
-extern int ndelay_on(int fd);
-extern int ndelay_off(int fd);
+
+int ndelay_on(int fd);
+int ndelay_off(int fd);
+void xmove_fd(int, int);
 
 
 extern DIR *xopendir(const char *path);
@@ -616,6 +618,8 @@ extern int index_in_substr_array(const char * const string_array[], const char *
 extern void print_login_issue(const char *issue_file, const char *tty);
 extern void print_login_prompt(void);
 #ifdef BB_NOMMU
+extern pid_t BUG_fork_is_unavailable_on_nommu(void);
+#define fork() BUG_fork_is_unavailable_on_nommu()
 extern void vfork_daemon_rexec(int nochdir, int noclose, char **argv);
 extern smallint re_execed;
 #endif

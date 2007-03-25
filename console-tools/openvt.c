@@ -22,8 +22,9 @@ int openvt_main(int argc, char **argv)
 		bb_show_usage();
 	}
 	/* check for illegal vt number: < 1 or > 63 */
-	sprintf(vtname, VC_FORMAT, (int)xatoul_range(argv[1], 1, 63));
+	sprintf(vtname, VC_FORMAT, (int)xatou_range(argv[1], 1, 63));
 
+//FIXME NOMMU
 	if (fork() == 0) {
 		/* child */
 		/* leave current vt (controlling tty) */

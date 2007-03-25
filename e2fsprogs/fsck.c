@@ -667,7 +667,8 @@ static void execute(const char *type, const char *device, const char *mntpt,
 	/* Fork and execute the correct program. */
 	pid = -1;
 	if (!noexecute) {
-		pid = fork(); /* TODO: NOMMU friendly way (vfork)? */
+/* TODO: NOMMU friendly way (vfork)? */
+		pid = fork();
 		if (pid < 0)
 			bb_perror_msg_and_die("fork");
 		if (pid == 0) {
