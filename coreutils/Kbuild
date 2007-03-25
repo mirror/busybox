@@ -60,6 +60,7 @@ lib-$(CONFIG_RMDIR)     += rmdir.o
 lib-$(CONFIG_SEQ)       += seq.o
 lib-$(CONFIG_SHA1SUM)   += md5_sha1_sum.o
 lib-$(CONFIG_SLEEP)     += sleep.o
+lib-$(CONFIG_SPLIT)     += split.o
 lib-$(CONFIG_SORT)      += sort.o
 lib-$(CONFIG_STAT)      += stat.o
 lib-$(CONFIG_STTY)      += stty.o

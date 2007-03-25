@@ -536,6 +536,14 @@ config FEATURE_SORT_BIG
 	  The SuSv3 sort standard is available at:
 	  http://www.opengroup.org/onlinepubs/007904975/utilities/sort.html
 
+config SPLIT
+	bool "split"
+	default n
+	help
+	  split a file into pieces.
+	  
+	  http://www.opengroup.org/onlinepubs/007904975/utilities/split.html
+
 config STAT
 	bool "stat"
 	default n

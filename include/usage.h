@@ -2952,6 +2952,12 @@
 	) \
        ""
 
+#define split_trivial_usage \
+	"[OPTION] [INPUT [PREFIX]]"
+#define split_full_usage \
+	"Options:" \
+	"\n	-blah XXX: Fixme: usage.h"
+
 #define start_stop_daemon_trivial_usage \
        "[OPTIONS] [--start|--stop] ... [-- arguments...]"
 #define start_stop_daemon_full_usage \
