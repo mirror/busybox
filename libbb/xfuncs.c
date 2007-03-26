@@ -192,9 +192,16 @@ int wait4pid(int pid)
 {
 	int status;
 
-	if (pid == -1 || waitpid(pid, &status, 0) == -1) return -1;
-	if (WIFEXITED(status)) return WEXITSTATUS(status);
-	if (WIFSIGNALED(status)) return WTERMSIG(status);
+	if (pid <= 0) {
+		errno = ECHILD;
+		return -1;
+	}
+	if (waitpid(pid, &status, 0) == -1)
+		return -1;
+	if (WIFEXITED(status))
+		return WEXITSTATUS(status);
+	if (WIFSIGNALED(status))
+		return WTERMSIG(status) + 10000;
 	return 0;
 }
 

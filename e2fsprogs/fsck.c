@@ -509,12 +509,7 @@ static struct fsck_instance *wait_one(int flags)
 		goto ret_inst;
 	}
 
-	/*
-	 * gcc -Wall fails saving throw against stupidity
-	 * (inst and prev are thought to be uninitialized variables)
-	 */
-	inst = prev = NULL;
-
+	inst = prev = NULL; /* for gcc */
 	do {
 		pid = waitpid(-1, &status, flags);
 		kill_all_if_cancel_requested();

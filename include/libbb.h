@@ -263,6 +263,13 @@ char *xrealloc_getcwd_or_warn(char *cwd);
 char *xmalloc_readlink_or_warn(const char *path);
 char *xmalloc_realpath(const char *path);
 extern void xstat(const char *filename, struct stat *buf);
+/* Unlike waitpid, waits ONLY for one process,
+ * It's safe to pass negative 'pids' from failed [v]fork -
+ * wait4pid will return -1 and ECHILD in errno.
+ * IOW: rc = wait4pid(spawn(argv));
+ *      if (rc < 0) bb_perror_msg("%s", argv[0]);
+ *      if (rc > 0) bb_error_msg("exit code: %d", rc);
+ */
 extern int wait4pid(int pid);
 extern void xsetgid(gid_t gid);
 extern void xsetuid(uid_t uid);

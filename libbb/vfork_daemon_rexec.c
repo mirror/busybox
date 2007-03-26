@@ -40,11 +40,14 @@ pid_t spawn(char **argv)
 		 * (but don't run atexit() stuff, which would screw up parent.)
 		 */
 		failed = errno;
-		_exit(0);
+		_exit(111);
 	}
 	/* parent */
-	/* Unfortunately, this is not reliable: vfork()
-	 * can be equivalent to fork() according to standards */
+	/* Unfortunately, this is not reliable: according to standards
+	 * vfork() can be equivalent to fork() and we won't see value
+	 * of 'failed'.
+	 * Interested party can wait on pid and learn exit code.
+	 * If 111 - then it (most probably) failed to exec */
 	if (failed) {
 		errno = failed;
 		return -1;
