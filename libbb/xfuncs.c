@@ -187,43 +187,6 @@ void xfflush_stdout(void)
 	}
 }
 
-// This does a fork/exec in one call, using vfork().  Return PID of new child,
-// -1 for failure.  Runs argv[0], searching path if that has no / in it.
-pid_t spawn(char **argv)
-{
-	/* Why static? */
-	static int failed;
-	pid_t pid;
-
-	// Be nice to nommu machines.
-	failed = 0;
-	pid = vfork();
-	if (pid < 0) return pid;
-	if (!pid) {
-		BB_EXECVP(argv[0], argv);
-
-		// We're sharing a stack with blocked parent, let parent know we failed
-		// and then exit to unblock parent (but don't run atexit() stuff, which
-		// would screw up parent.)
-
-		failed = errno;
-		_exit(0);
-	}
-	if (failed) {
-		errno = failed;
-		return -1;
-	}
-	return pid;
-}
-
-// Die with an error message if we can't spawn a child process.
-pid_t xspawn(char **argv)
-{
-	pid_t pid = spawn(argv);
-	if (pid < 0) bb_perror_msg_and_die("%s", *argv);
-	return pid;
-}
-
 // Wait for the specified child PID to exit, returning child's error return.
 int wait4pid(int pid)
 {
@@ -508,47 +471,6 @@ DIR *xopendir(const char *path)
 	if (!dp)
 		bb_perror_msg_and_die("cannot open '%s'", path);
 	return dp;
-}
-
-#ifndef BB_NOMMU
-// Die with an error message if we can't daemonize.
-void xdaemon(int nochdir, int noclose)
-{
-	if (daemon(nochdir, noclose))
-		bb_perror_msg_and_die("daemon");
-}
-#endif
-
-void bb_sanitize_stdio_maybe_daemonize(int daemonize)
-{
-	int fd;
-	/* Mega-paranoid */
-	fd = xopen(bb_dev_null, O_RDWR);
-	while ((unsigned)fd < 2)
-		fd = dup(fd); /* have 0,1,2 open at least to /dev/null */
-	if (daemonize) {
-		pid_t pid = fork();
-		if (pid < 0) /* wtf? */
-			bb_perror_msg_and_die("fork");
-		if (pid) /* parent */
-			exit(0);
-		/* child */
-		/* if daemonizing, make sure we detach from stdio */
-		setsid();
-		dup2(fd, 0);
-		dup2(fd, 1);
-		dup2(fd, 2);
-	}
-	while (fd > 2)
-		close(fd--); /* close everything after fd#2 */
-}
-void bb_sanitize_stdio(void)
-{
-	bb_sanitize_stdio_maybe_daemonize(0);
-}
-void bb_daemonize(void)
-{
-	bb_sanitize_stdio_maybe_daemonize(1);
 }
 
 // Die with an error message if we can't open a new socket.

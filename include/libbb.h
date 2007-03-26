@@ -263,17 +263,9 @@ char *xrealloc_getcwd_or_warn(char *cwd);
 char *xmalloc_readlink_or_warn(const char *path);
 char *xmalloc_realpath(const char *path);
 extern void xstat(const char *filename, struct stat *buf);
-extern pid_t spawn(char **argv);
-extern pid_t xspawn(char **argv);
 extern int wait4pid(int pid);
 extern void xsetgid(gid_t gid);
 extern void xsetuid(uid_t uid);
-extern void xdaemon(int nochdir, int noclose);
-/* More clever/thorough xdaemon */
-extern void bb_sanitize_stdio_maybe_daemonize(int daemonize);
-extern void bb_sanitize_stdio(void);
-/* NB: be careful: dont open syslog/network sockets before bb_daemonize */
-extern void bb_daemonize(void);
 extern void xchdir(const char *path);
 extern void xsetenv(const char *key, const char *value);
 extern int xopen(const char *pathname, int flags);
@@ -460,6 +452,62 @@ void clear_username_cache(void);
 enum { USERNAME_MAX_SIZE = 16 - sizeof(int) };
 
 
+int execable_file(const char *name);
+char *find_execable(const char *filename);
+int exists_execable(const char *filename);
+
+#if ENABLE_FEATURE_EXEC_PREFER_APPLETS
+int bb_execvp(const char *file, char *const argv[]);
+#define BB_EXECVP(prog,cmd) bb_execvp(prog,cmd)
+#define BB_EXECLP(prog,cmd,...) \
+	execlp((find_applet_by_name(prog)) ? CONFIG_BUSYBOX_EXEC_PATH : prog, \
+		cmd, __VA_ARGS__)
+#else
+#define BB_EXECVP(prog,cmd)     execvp(prog,cmd)
+#define BB_EXECLP(prog,cmd,...) execlp(prog,cmd, __VA_ARGS__)
+#endif
+
+/* NOMMU friendy fork+exec */
+pid_t spawn(char **argv);
+pid_t xspawn(char **argv);
+/* Helpers for daemonization.
+ * bb_daemonize(flags) = daemonize, does not compile on NOMMU
+ * bb_daemonize_or_rexec(flags, argv) = daemonizes on MMU (and ignores argv),
+ *      rexec's itself on NOMMU with argv passed as command line.
+ * Thus bb_daemonize_or_rexec may cause your <applet>_main() to be re-executed
+ * from the start. (It will detect it and not reexec again second time).
+ * You have to audit carefully that you don't do something twice as a result
+ * (opening files/sockets, parsing config files etc...)!
+ *
+ * Both of the above will redirect fd 0,1,2 to /dev/null and drop ctty
+ * (will do setsid()).
+ *
+ * Helper for network daemons in foreground mode:
+ * bb_sanitize_stdio() = make sure that fd 0,1,2 are opened by opening them
+ * to /dev/null if they are not.
+ */
+enum {
+	DAEMON_CHDIR_ROOT = 1,
+	DAEMON_DEVNULL_STDIO = /* 2 */ 0, /* no users so far */
+	DAEMON_CLOSE_EXTRA_FDS = 4,
+	DAEMON_ONLY_SANITIZE = 8, /* internal use */
+};
+#ifndef BB_NOMMU
+#define bb_daemonize_or_rexec(flags, argv) bb_daemonize_or_rexec(flags)
+#define bb_daemonize(flags)                bb_daemonize_or_rexec(flags, bogus)
+#else
+extern smallint re_execed;
+pid_t BUG_fork_is_unavailable_on_nommu(void);
+pid_t BUG_daemon_is_unavailable_on_nommu(void);
+pid_t BUG_bb_daemonize_is_unavailable_on_nommu(void);
+#define fork()          BUG_fork_is_unavailable_on_nommu()
+#define daemon(a,b)     BUG_daemon_is_unavailable_on_nommu()
+#define bb_daemonize(a) BUG_bb_daemonize_is_unavailable_on_nommu()
+#endif
+void bb_daemonize_or_rexec(int flags, char **argv);
+void bb_sanitize_stdio(void);
+
+
 enum { BB_GETOPT_ERROR = 0x80000000 };
 extern const char *opt_complementary;
 #if ENABLE_GETOPT_LONG
@@ -569,20 +617,6 @@ char *concat_path_file(const char *path, const char *filename);
 char *concat_subpath_file(const char *path, const char *filename);
 char *last_char_is(const char *s, int c);
 
-int execable_file(const char *name);
-char *find_execable(const char *filename);
-int exists_execable(const char *filename);
-
-#if ENABLE_FEATURE_EXEC_PREFER_APPLETS
-int bb_execvp(const char *file, char *const argv[]);
-#define BB_EXECVP(prog,cmd) bb_execvp(prog,cmd)
-#define BB_EXECLP(prog,cmd,...) \
-	execlp((find_applet_by_name(prog)) ? CONFIG_BUSYBOX_EXEC_PATH : prog, \
-		cmd, __VA_ARGS__)
-#else
-#define BB_EXECVP(prog,cmd)     execvp(prog,cmd)
-#define BB_EXECLP(prog,cmd,...) execlp(prog,cmd, __VA_ARGS__)
-#endif
 
 USE_DESKTOP(long long) int uncompress(int fd_in, int fd_out);
 int inflate(int in, int out);
@@ -617,12 +651,8 @@ extern int index_in_str_array(const char * const string_array[], const char *key
 extern int index_in_substr_array(const char * const string_array[], const char *key);
 extern void print_login_issue(const char *issue_file, const char *tty);
 extern void print_login_prompt(void);
-#ifdef BB_NOMMU
-extern pid_t BUG_fork_is_unavailable_on_nommu(void);
-#define fork() BUG_fork_is_unavailable_on_nommu()
-extern void vfork_daemon_rexec(int nochdir, int noclose, char **argv);
-extern smallint re_execed;
-#endif
+
+
 extern int get_terminal_width_height(const int fd, int *width, int *height);
 
 char *is_in_ino_dev_hashtable(const struct stat *statbuf);
