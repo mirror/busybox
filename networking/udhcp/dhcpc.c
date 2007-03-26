@@ -9,6 +9,7 @@
  */
 
 #include <getopt.h>
+#include <syslog.h>
 
 #include "common.h"
 #include "dhcpd.h"
@@ -103,7 +104,16 @@ static void perform_release(void)
 
 static void client_background(void)
 {
-	udhcp_background(client_config.pidfile);
+#ifdef __uClinux__
+	bb_error_msg("cannot background in uclinux (yet)");
+/* ... mainly because udhcpc calls client_background()
+ * in _the _middle _of _udhcpc _run_, not at the start!
+ * If that will be properly disabled for NOMMU, client_background()
+ * will work on NOMMU too */
+#else
+	bb_daemonize(DAEMON_CHDIR_ROOT);
+	logmode &= ~LOGMODE_STDIO;
+#endif
 	client_config.foreground = 1; /* Do not fork again. */
 	client_config.background_if_no_lease = 0;
 }
@@ -246,12 +256,17 @@ int udhcpc_main(int argc, char *argv[])
 		return 0;
 	}
 
-	/* Start the log, sanitize fd's, and write a pid file */
-	udhcp_start_log_and_pid(client_config.pidfile);
+	if (ENABLE_FEATURE_UDHCP_SYSLOG) {
+		openlog(applet_name, LOG_PID, LOG_LOCAL0);
+		logmode |= LOGMODE_SYSLOG;
+	}
 
 	if (read_interface(client_config.interface, &client_config.ifindex,
 			   NULL, client_config.arp) < 0)
 		return 1;
+
+	/* Sanitize fd's and write pidfile */
+	udhcp_make_pidfile(client_config.pidfile);
 
 	/* if not set, and not suppressed, setup the default client ID */
 	if (!client_config.clientid && !no_clientid) {

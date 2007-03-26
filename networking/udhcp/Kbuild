@@ -6,9 +6,9 @@
 #
 
 lib-y:=
-lib-$(CONFIG_APP_UDHCPC)        += common.o options.o packet.o pidfile.o \
+lib-$(CONFIG_APP_UDHCPC)        += common.o options.o packet.o \
                                    signalpipe.o socket.o
-lib-$(CONFIG_APP_UDHCPD)        += common.o options.o packet.o pidfile.o \
+lib-$(CONFIG_APP_UDHCPD)        += common.o options.o packet.o \
                                    signalpipe.o socket.o
 lib-$(CONFIG_APP_UDHCPC)        += dhcpc.o clientpacket.o clientsocket.o \
                                    script.o

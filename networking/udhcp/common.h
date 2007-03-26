@@ -60,16 +60,12 @@ int udhcp_kernel_packet(struct dhcpMessage *payload,
 
 /**/
 
-void udhcp_background(const char *pidfile);
-void udhcp_start_log_and_pid(const char *pidfile);
+void udhcp_make_pidfile(const char *pidfile);
 
 void udhcp_run_script(struct dhcpMessage *packet, const char *name);
 
 // Still need to clean these up...
 
-/* from pidfile.h */
-#define pidfile_acquire		udhcp_pidfile_acquire
-#define pidfile_write_release	udhcp_pidfile_write_release
 /* from options.h */
 #define get_option		udhcp_get_option
 #define end_option		udhcp_end_option
@@ -91,8 +87,6 @@ int udhcp_sp_read(fd_set *rfds);
 int raw_socket(int ifindex);
 int read_interface(const char *interface, int *ifindex, uint32_t *addr, uint8_t *arp);
 int listen_socket(uint32_t ip, int port, const char *inf);
-int pidfile_acquire(const char *pidfile);
-void pidfile_write_release(int pid_fd);
 int arpping(uint32_t yiaddr, uint32_t ip, uint8_t *arp, char *interface);
 
 #if ENABLE_FEATURE_UDHCP_DEBUG
