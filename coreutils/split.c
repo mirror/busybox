@@ -10,43 +10,42 @@
  * http://www.opengroup.org/onlinepubs/009695399/utilities/split.html
  */
 #include "busybox.h"
-static unsigned suffix_len = 2;
+
 static const struct suffix_mult split_suffices[] = {
-#if ENABLE_FEATURE_SPLIT_FANCY
 	{ "b", 512 },
-#endif
 	{ "k", 1024 },
 	{ "m", 1024*1024 },
-#if ENABLE_FEATURE_SPLIT_FANCY
 	{ "g", 1024*1024*1024 },
-#endif
 	{ NULL, 0 }
 };
 
 /* Increment the suffix part of the filename.
- * Returns 0 on success and 1 on error (if we are out of files)
+ * Returns NULL if we are out of filenames.
  */
-static bool next_file(char **old)
+static char *next_file(char *old, unsigned suffix_len)
 {
-	size_t end = strlen(*old);
+	size_t end = strlen(old);
 	unsigned i = 1;
 	char *curr;
 
 	do {
-		curr = *old + end - i;
+		curr = old + end - i;
 		if (*curr < 'z') {
 			*curr += 1;
 			break;
 		}
 		i++;
 		if (i > suffix_len) {
-			bb_error_msg("Suffices exhausted");
-			return 1;
+			return NULL;
 		}
 		*curr = 'a';
 	} while (1);
-	return 0;
+
+	return old;
 }
+
+#define read_buffer bb_common_bufsiz1
+enum { READ_BUFFER_SIZE = sizeof(bb_common_bufsiz1) - 1 };
 
 #define SPLIT_OPT_l (1<<0)
 #define SPLIT_OPT_b (1<<1)
@@ -55,79 +54,83 @@ static bool next_file(char **old)
 int split_main(int argc, char **argv);
 int split_main(int argc, char **argv)
 {
-	char *pfx, *buf, *input_file;
-	unsigned cnt = 1000, opt;
-	bool ret = EXIT_SUCCESS;
-	FILE *fp;
-	char *count_p, *sfx;
-//XXX: FIXME	opt_complementary = "+2"; /* at most 2 non-option arguments */
+	unsigned suffix_len = 2;
+	char *pfx;
+	char *count_p;
+	const char *sfx;
+	unsigned long cnt = 1000;
+	unsigned long remaining = 0;
+	unsigned opt;
+	int bytes_read, to_write;
+	char *src;
+
+	opt_complementary = "?2";
 	opt = getopt32(argc, argv, "l:b:a:", &count_p, &count_p, &sfx);
 
 	if (opt & SPLIT_OPT_l)
-		cnt = xatoi(count_p);
+		cnt = xatoul(count_p);
 	if (opt & SPLIT_OPT_b)
 		cnt = xatoul_sfx(count_p, split_suffices);
 	if (opt & SPLIT_OPT_a)
-		suffix_len = xatoi(sfx);
+		suffix_len = xatou(sfx);
 	argv += optind;
-	if (!*argv)
-		*--argv = (char*) "-";
-	input_file = *argv;
-	sfx = *++argv;
+	sfx = "x";
+	if (argv[0]) {
+		if (argv[1])
+			sfx = argv[1];
+		xmove_fd(xopen(argv[0], O_RDONLY), 0);
+	} else {
+		argv[0] = (char *) bb_msg_standard_input;
+	}
 
-	if (sfx && (NAME_MAX < strlen(sfx) + suffix_len))
-			bb_error_msg_and_die("Suffix too long");
+	if (NAME_MAX < strlen(sfx) + suffix_len)
+		bb_error_msg_and_die("suffix too long");
 
 	{
-		char *char_p = xzalloc(suffix_len);
+		char *char_p = xzalloc(suffix_len + 1);
 		memset(char_p, 'a', suffix_len);
-		pfx = xasprintf("%s%s", sfx ? sfx : "x", char_p);
+		pfx = xasprintf("%s%s", sfx, char_p);
 		if (ENABLE_FEATURE_CLEAN_UP)
 			free(char_p);
 	}
-	fp = fopen_or_warn_stdin(input_file);
-//XXX:FIXME: unify those two file-handling schemata below (FILE vs fd) !
-	if (opt & SPLIT_OPT_b) {
-		ssize_t i;
-		ssize_t bytes = 0;
-		int inp = fileno(fp);
 
+	while (1) {
+		bytes_read = safe_read(0, read_buffer, READ_BUFFER_SIZE);
+		if (!bytes_read)
+			break;
+		if (bytes_read < 0)
+			bb_perror_msg_and_die("%s", argv[0]);
+		src = read_buffer;
 		do {
-			int out = xopen(pfx, O_WRONLY | O_CREAT | O_TRUNC);
-			lseek(inp, bytes, SEEK_SET);
-			buf = xzalloc(cnt);
-			bytes += i = full_read(inp, buf, cnt);
-			xwrite(out, buf, i);
-			free(buf);
-			close(out);
-			if (next_file(&pfx)) {
-				ret++;
-				goto bail;
+			if (!remaining) {
+				if (!pfx)
+					bb_error_msg_and_die("suffices exhausted");
+				xmove_fd(xopen(pfx, O_WRONLY | O_CREAT | O_TRUNC), 1);
+				pfx = next_file(pfx, suffix_len);
+				remaining = cnt;
 			}
-		} while (i == cnt); /* if we read less than cnt, then nothing is left */
-	} else { /* -l */
-		do {
-			unsigned i = cnt;
-			int out = xopen(pfx, O_WRONLY | O_CREAT | O_TRUNC);
-			buf = NULL;
-			while (i--) {
-			    buf = xmalloc_fgets(fp);
-				if (buf == NULL)
-					break;
-				xwrite(out, buf, strlen(buf));
-				free(buf);
-			};
-			close(out);
-			if (next_file(&pfx)) {
-				ret++;
-				goto bail;
+
+			if (opt & SPLIT_OPT_b) {
+				/* split by bytes */
+				to_write = (bytes_read < remaining) ? bytes_read : remaining;
+				remaining -= to_write;
+			} else {
+				/* split by lines */
+				/* can be sped up by using _memrchr_
+				 * and writing many lines at once... */
+				char *end = memchr(src, '\n', bytes_read);
+				if (end) {
+					--remaining;
+					to_write = end - src + 1;
+				} else {
+					to_write = bytes_read;
+				}
 			}
-		} while (buf);
+
+			xwrite(1, src, to_write);
+			bytes_read -= to_write;
+			src += to_write;
+		} while (bytes_read);
 	}
-bail:
-	if (ENABLE_FEATURE_CLEAN_UP) {
-		free(pfx);
-		fclose_if_not_stdin(fp);
-	}
-	return ret;
+	return 0;
 }
