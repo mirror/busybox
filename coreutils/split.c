@@ -5,7 +5,7 @@
  *
  * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  */
-/* BB_AUDIT: not yet SUSV3 compliant; FIXME: add -bN{k,m}
+/* BB_AUDIT: SUSv3 compliant
  * SUSv3 requirements:
  * http://www.opengroup.org/onlinepubs/009695399/utilities/split.html
  */
@@ -38,13 +38,16 @@ static bool next_file(char **old)
 			*curr += 1;
 			break;
 		}
-		*curr = 'a';
 		i++;
+		if (i > suffix_len) {
+			bb_error_msg("Suffices exhausted");
+			return 1;
+		}
+		*curr = 'a';
 	} while (i <= suffix_len);
-	if ((*curr == 'z') && (i == suffix_len))
-		return 1;
 	return 0;
 }
+
 #define SPLIT_OPT_l (1<<0)
 #define SPLIT_OPT_b (1<<1)
 #define SPLIT_OPT_a (1<<2)
@@ -57,22 +60,28 @@ int split_main(int argc, char **argv)
 	char *sfx_len;
 	unsigned cnt = 1000;
 	char *input_file;
+	bool ret = EXIT_SUCCESS;
+	FILE *fp;
 
 //XXX: FIXME	opt_complementary = "+2"; /* at most 2 non-option arguments */
 	getopt32(argc, argv, "l:b:a:", &count_p, &count_p, &sfx_len);
 	argv += optind;
 
-	if (option_mask32 & (SPLIT_OPT_l|SPLIT_OPT_b))
+	if (option_mask32 & SPLIT_OPT_l)
 		cnt = xatoi(count_p);
+	if (option_mask32 & SPLIT_OPT_b)
+		cnt = xatoul_sfx(count_p, split_suffices);
 	if (option_mask32 & SPLIT_OPT_a)
-		suffix_len = xatoul(sfx_len);
+		suffix_len = xatoi(sfx_len);
 
 	if (!*argv)
 		*--argv = (char*) "-";
 	input_file = *argv;
+
 	if (NAME_MAX < strlen(*argv) + suffix_len)
 		bb_error_msg_and_die("Suffix too long");
 
+	fp = fopen_or_warn_stdin(input_file);
 	{
 		char *char_p = xzalloc(suffix_len);
 		memset(char_p, 'a', suffix_len);
@@ -85,8 +94,9 @@ int split_main(int argc, char **argv)
 		char *buf;
 		ssize_t i;
 		ssize_t bytes = 0;
-		int inp = xopen(input_file, O_RDONLY);
 		int flags = O_WRONLY | O_CREAT | O_TRUNC;
+		int inp = fileno(fp);
+
 		do {
 			int out = xopen(pfx, flags);
 			buf = xzalloc(cnt);
@@ -95,11 +105,12 @@ int split_main(int argc, char **argv)
 			xwrite(out, buf, i);
 			close(out);
 			free(buf);
-			if (next_file(&pfx))
-				flags = O_WRONLY | O_APPEND;
-		} while(i > 0);
+			if (next_file(&pfx)) {
+				ret++;
+				goto bail;
+			}
+		} while (i == cnt); /* if we read less than cnt, then nothing is left */
 	} else { /* -l */
-		FILE *fp = fopen_or_warn_stdin(input_file);
 		char *buf;
 		do {
 			unsigned i = cnt;
@@ -115,15 +126,16 @@ int split_main(int argc, char **argv)
 			};
 			close(out);
 
-			if (next_file(&pfx))
-				flags = O_WRONLY | O_APPEND;
+			if (next_file(&pfx)) {
+				ret++;
+				goto bail;
+			}
 		} while (buf);
-		if (ENABLE_FEATURE_CLEAN_UP)
-			fclose_if_not_stdin(fp);
 	}
-
+bail:
 	if (ENABLE_FEATURE_CLEAN_UP) {
 		free(pfx);
+		fclose_if_not_stdin(fp);
 	}
-	return EXIT_SUCCESS;
+	return ret;
 }
