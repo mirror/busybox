@@ -997,24 +997,30 @@ static void do_diff(char *dir1, char *path1, char *dir2, char *path2)
 {
 	int flags = D_HEADER;
 	int val;
+	char *fullpath1 = NULL; /* if -N */
+	char *fullpath2 = NULL;
 
-	char *fullpath1 = concat_path_file(dir1, path1);
-	char *fullpath2 = concat_path_file(dir2, path2);
+	if (path1)
+		fullpath1 = concat_path_file(dir1, path1);
+	if (path2)
+		fullpath2 = concat_path_file(dir2, path2);
 
-	if (stat(fullpath1, &stb1) != 0) {
+	if (!fullpath1 || stat(fullpath1, &stb1) != 0) {
 		flags |= D_EMPTY1;
 		memset(&stb1, 0, sizeof(stb1));
-		if (ENABLE_FEATURE_CLEAN_UP)
+		if (path2) {
 			free(fullpath1);
-		fullpath1 = concat_path_file(dir1, path2);
+			fullpath1 = concat_path_file(dir1, path2);
+		}
 	}
-	if (stat(fullpath2, &stb2) != 0) {
+	if (!fullpath2 || stat(fullpath2, &stb2) != 0) {
 		flags |= D_EMPTY2;
 		memset(&stb2, 0, sizeof(stb2));
 		stb2.st_mode = stb1.st_mode;
-		if (ENABLE_FEATURE_CLEAN_UP)
+		if (path1) {
 			free(fullpath2);
-		fullpath2 = concat_path_file(dir2, path1);
+			fullpath2 = concat_path_file(dir2, path1);
+		}
 	}
 
 	if (stb1.st_mode == 0)
@@ -1022,7 +1028,7 @@ static void do_diff(char *dir1, char *path1, char *dir2, char *path2)
 
 	if (S_ISDIR(stb1.st_mode) && S_ISDIR(stb2.st_mode)) {
 		printf("Common subdirectories: %s and %s\n", fullpath1, fullpath2);
-		return;
+		goto ret;
 	}
 
 	if (!S_ISREG(stb1.st_mode) && !S_ISDIR(stb1.st_mode))
@@ -1033,6 +1039,9 @@ static void do_diff(char *dir1, char *path1, char *dir2, char *path2)
 		val = diffreg(fullpath1, fullpath2, flags);
 
 	print_status(val, fullpath1, fullpath2, NULL);
+ ret:
+	free(fullpath1);
+	free(fullpath2);
 }
 #endif
 
