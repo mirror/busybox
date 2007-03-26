@@ -642,12 +642,7 @@ int syslogd_main(int argc, char **argv)
 	}
 
 	if (!(option_mask32 & OPT_nofork)) {
-#ifdef BB_NOMMU
-		if (!re_execed)
-			vfork_daemon_rexec(0, 1, argv);
-#else
-		bb_daemonize();
-#endif
+		bb_daemonize_or_rexec(DAEMON_CHDIR_ROOT, argv);
 	}
 	umask(0);
 	do_syslogd();

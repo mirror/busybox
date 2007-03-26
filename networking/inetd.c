@@ -1274,30 +1274,24 @@ int inetd_main(int argc, char *argv[])
 	LastArg = envp[-1] + strlen(envp[-1]);
 #endif
 
-	opt = getopt32(argc, argv, "R:f", &stoomany);
-	if(opt & 1) {
-		toomany = xatoi_u(stoomany);
-	}
-	argc -= optind;
-	argv += optind;
-
 	uid = getuid();
 	if (uid != 0)
 		config_filename = NULL;
-	if (argc > 0)
+
+	opt = getopt32(argc, argv, "R:f", &stoomany);
+	if (opt & 1)
+		toomany = xatoi_u(stoomany);
+	argv += optind;
+	argc -= optind;
+	if (argc)
 		config_filename = argv[0];
 	if (config_filename == NULL)
 		bb_error_msg_and_die("non-root must specify a config file");
 
-#ifdef BB_NOMMU
-	if (!(opt & 2)) {
-		if (!re_execed)
-			vfork_daemon_rexec(0, 0, argv);
-	}
-	bb_sanitize_stdio();
-#else
-	bb_sanitize_stdio_maybe_daemonize(!(opt & 2));
-#endif
+	if (!(opt & 2))
+		bb_daemonize_or_rexec(0, argv - optind);
+	else
+		bb_sanitize_stdio();
 	openlog(applet_name, LOG_PID | LOG_NOWAIT, LOG_DAEMON);
 	logmode = LOGMODE_SYSLOG;
 

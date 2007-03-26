@@ -299,8 +299,7 @@ int start_stop_daemon_main(int argc, char **argv)
 	}
 	*--argv = startas;
 	if (opt & OPT_BACKGROUND) {
-		setsid();
-		bb_daemonize();
+		bb_daemonize(0);
 	}
 	if (opt & OPT_MAKEPID) {
 		/* user wants _us_ to make the pidfile */

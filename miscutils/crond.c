@@ -136,75 +136,43 @@ int crond_main(int ac, char **av)
 {
 	unsigned opt;
 	char *lopt, *Lopt, *copt;
+	USE_DEBUG_CROND_OPTION(char *dopt;)
 
-#if ENABLE_DEBUG_CROND_OPTION
-	char *dopt;
-
-	opt_complementary = "f-b:b-f:S-L:L-S:d-l";
-#else
-	opt_complementary = "f-b:b-f:S-L:L-S";
-#endif
-
+	opt_complementary = "f-b:b-f:S-L:L-S" USE_DEBUG_CROND_OPTION(":d-l");
 	opterr = 0;			/* disable getopt 'errors' message. */
-	opt = getopt32(ac, av, "l:L:fbSc:"
-#if ENABLE_DEBUG_CROND_OPTION
-							"d:"
-#endif
-							, &lopt, &Lopt, &copt
-#if ENABLE_DEBUG_CROND_OPTION
-							, &dopt
-#endif
-		);
-	if (opt & 1) {
+	opt = getopt32(ac, av, "l:L:fbSc:" USE_DEBUG_CROND_OPTION("d:"),
+			&lopt, &Lopt, &copt USE_DEBUG_CROND_OPTION(, &dopt));
+	if (opt & 1) /* -l */
 		LogLevel = xatou(lopt);
-	}
-	if (opt & 2) {
-		if (*Lopt != 0) {
+	if (opt & 2) /* -L */
+		if (*Lopt)
 			LogFile = Lopt;
-		}
-	}
-	if (opt & 32) {
-		if (*copt != 0) {
+	if (opt & 32) /* -c */
+		if (*copt)
 			CDir = copt;
-		}
-	}
 #if ENABLE_DEBUG_CROND_OPTION
-	if (opt & 64) {
+	if (opt & 64) { /* -d */
 		DebugOpt = xatou(dopt);
 		LogLevel = 0;
 	}
 #endif
 
-	/*
-	 * change directory
-	 */
-
-	xchdir(CDir);
-	signal(SIGHUP, SIG_IGN);	/* hmm.. but, if kill -HUP original
-								 * version - his died. ;(
-								 */
-	/*
-	 * close stdin and stdout, stderr.
+	/* close stdin and stdout, stderr.
 	 * close unused descriptors -  don't need.
 	 * optional detach from controlling terminal
 	 */
+	if (!(opt & 4))
+		bb_daemonize_or_rexec(DAEMON_CLOSE_EXTRA_FDS, av);
 
-	if (!(opt & 4)) {
-#ifdef BB_NOMMU
-		if (!re_execed)
-			vfork_daemon_rexec(1, 0, av);
-#else
-		xdaemon(1, 0);
-#endif
-	}
+	xchdir(CDir);
+	signal(SIGHUP, SIG_IGN); /* ? original crond dies on HUP... */
 
-	(void) startlogger();	/* need if syslog mode selected */
+	startlogger();	/* need if syslog mode selected */
 
 	/*
 	 * main loop - synchronize to 1 second after the minute, minimum sleep
 	 *             of 1 second.
 	 */
-
 	crondlog("\011%s " VERSION " dillon, started, log level %d\n",
 			 applet_name, LogLevel);
 

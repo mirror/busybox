@@ -353,12 +353,7 @@ int dnsd_main(int argc, char **argv)
 	}
 
 	if (OPT_daemon) {
-#ifdef BB_NOMMU
-		if (!re_execed)
-			vfork_daemon_rexec(1, 0, argv);
-#else
-		xdaemon(1, 0);
-#endif
+		bb_daemonize_or_rexec(DAEMON_CLOSE_EXTRA_FDS, argv);
 		openlog(applet_name, LOG_PID, LOG_DAEMON);
 		logmode = LOGMODE_SYSLOG;
 	}

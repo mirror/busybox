@@ -2044,6 +2044,6 @@ int httpd_main(int argc, char *argv[])
 		return miniHttpd_inetd();
 
 	if (!(opt & OPT_FOREGROUND))
-		xdaemon(1, 0);     /* don't change current directory */
+		bb_daemonize(0);     /* don't change current directory */
 	return miniHttpd(config->server_socket);
 }
