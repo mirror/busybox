@@ -59,7 +59,7 @@ static void print_outbuf(void)
 {
 	int sz = cur_outbuf - outbuf;
 	if (sz > 0) {
-		write(1, outbuf, sz);
+		xwrite(1, outbuf, sz);
 		cur_outbuf = outbuf;
 	}
 }
