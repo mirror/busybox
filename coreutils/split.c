@@ -11,6 +11,17 @@
  */
 #include "busybox.h"
 static unsigned suffix_len = 2;
+static const struct suffix_mult split_suffices[] = {
+#if ENABLE_FEATURE_SPLIT_FANCY
+	{ "b", 512 },
+#endif
+	{ "k", 1024 },
+	{ "m", 1024*1024 },
+#if ENABLE_FEATURE_SPLIT_FANCY
+	{ "g", 1024*1024*1024 },
+#endif
+	{ NULL, 0 }
+};
 
 /* Increment the suffix part of the filename.
  * Returns 0 on success and 1 on error (if we are out of files)
@@ -22,13 +33,12 @@ static bool next_file(char **old)
 	char *curr;
 
 	do {
-//		if (**(old + end - i) < 'z') {
 		curr = *old + end - i;
 		if (*curr < 'z') {
-			*(*old + end - i) += 1;
+			*curr += 1;
 			break;
 		}
-		*(*old +end - i) = 'a';
+		*curr = 'a';
 		i++;
 	} while (i <= suffix_len);
 	if ((*curr == 'z') && (i == suffix_len))
@@ -37,13 +47,14 @@ static bool next_file(char **old)
 }
 #define SPLIT_OPT_l (1<<0)
 #define SPLIT_OPT_b (1<<1)
+#define SPLIT_OPT_a (1<<2)
 
 int split_main(int argc, char **argv);
 int split_main(int argc, char **argv)
 {
 	char *pfx;
-	char *count_p = NULL;
-	char *sfx_len = NULL;
+	char *count_p;
+	char *sfx_len;
 	unsigned cnt = 1000;
 	char *input_file;
 
@@ -51,9 +62,9 @@ int split_main(int argc, char **argv)
 	getopt32(argc, argv, "l:b:a:", &count_p, &count_p, &sfx_len);
 	argv += optind;
 
-	if (count_p)
+	if (option_mask32 & (SPLIT_OPT_l|SPLIT_OPT_b))
 		cnt = xatoi(count_p);
-	if (sfx_len)
+	if (option_mask32 & SPLIT_OPT_a)
 		suffix_len = xatoul(sfx_len);
 
 	if (!*argv)
