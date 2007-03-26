@@ -44,7 +44,7 @@ static bool next_file(char **old)
 			return 1;
 		}
 		*curr = 'a';
-	} while (i <= suffix_len);
+	} while (1);
 	return 0;
 }
 
@@ -55,77 +55,69 @@ static bool next_file(char **old)
 int split_main(int argc, char **argv);
 int split_main(int argc, char **argv)
 {
-	char *pfx;
-	char *count_p;
-	char *sfx_len;
-	unsigned cnt = 1000;
-	char *input_file;
+	char *pfx, *buf, *input_file;
+	unsigned cnt = 1000, opt;
 	bool ret = EXIT_SUCCESS;
 	FILE *fp;
-
+	char *count_p, *sfx;
 //XXX: FIXME	opt_complementary = "+2"; /* at most 2 non-option arguments */
-	getopt32(argc, argv, "l:b:a:", &count_p, &count_p, &sfx_len);
-	argv += optind;
+	opt = getopt32(argc, argv, "l:b:a:", &count_p, &count_p, &sfx);
 
-	if (option_mask32 & SPLIT_OPT_l)
+	if (opt & SPLIT_OPT_l)
 		cnt = xatoi(count_p);
-	if (option_mask32 & SPLIT_OPT_b)
+	if (opt & SPLIT_OPT_b)
 		cnt = xatoul_sfx(count_p, split_suffices);
-	if (option_mask32 & SPLIT_OPT_a)
-		suffix_len = xatoi(sfx_len);
-
+	if (opt & SPLIT_OPT_a)
+		suffix_len = xatoi(sfx);
+	argv += optind;
 	if (!*argv)
 		*--argv = (char*) "-";
 	input_file = *argv;
+	sfx = *++argv;
 
-	if (NAME_MAX < strlen(*argv) + suffix_len)
-		bb_error_msg_and_die("Suffix too long");
+	if (sfx && (NAME_MAX < strlen(sfx) + suffix_len))
+			bb_error_msg_and_die("Suffix too long");
 
-	fp = fopen_or_warn_stdin(input_file);
 	{
 		char *char_p = xzalloc(suffix_len);
 		memset(char_p, 'a', suffix_len);
-		pfx = xasprintf("%s%s", (argc > optind + 1) ? *++argv : "x", char_p);
+		pfx = xasprintf("%s%s", sfx ? sfx : "x", char_p);
 		if (ENABLE_FEATURE_CLEAN_UP)
 			free(char_p);
 	}
+	fp = fopen_or_warn_stdin(input_file);
 //XXX:FIXME: unify those two file-handling schemata below (FILE vs fd) !
-	if (option_mask32 & SPLIT_OPT_b) {
-		char *buf;
+	if (opt & SPLIT_OPT_b) {
 		ssize_t i;
 		ssize_t bytes = 0;
-		int flags = O_WRONLY | O_CREAT | O_TRUNC;
 		int inp = fileno(fp);
 
 		do {
-			int out = xopen(pfx, flags);
-			buf = xzalloc(cnt);
+			int out = xopen(pfx, O_WRONLY | O_CREAT | O_TRUNC);
 			lseek(inp, bytes, SEEK_SET);
+			buf = xzalloc(cnt);
 			bytes += i = full_read(inp, buf, cnt);
 			xwrite(out, buf, i);
-			close(out);
 			free(buf);
+			close(out);
 			if (next_file(&pfx)) {
 				ret++;
 				goto bail;
 			}
 		} while (i == cnt); /* if we read less than cnt, then nothing is left */
 	} else { /* -l */
-		char *buf;
 		do {
 			unsigned i = cnt;
-			int flags = O_WRONLY | O_CREAT | O_TRUNC;
-			int out = xopen(pfx, flags);
+			int out = xopen(pfx, O_WRONLY | O_CREAT | O_TRUNC);
 			buf = NULL;
 			while (i--) {
 			    buf = xmalloc_fgets(fp);
 				if (buf == NULL)
 					break;
-				xwrite(out, buf, buf ? strlen(buf) : 0);
+				xwrite(out, buf, strlen(buf));
 				free(buf);
 			};
 			close(out);
-
 			if (next_file(&pfx)) {
 				ret++;
 				goto bail;
