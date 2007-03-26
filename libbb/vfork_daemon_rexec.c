@@ -115,7 +115,7 @@ void vfork_daemon_rexec(int nochdir, int noclose, char **argv)
 #endif /* BB_NOMMU */
 
 #ifdef BB_NOMMU
-static void daemon_or_rexec(char **argv)
+void forkexit_or_rexec(char **argv)
 {
 	pid_t pid;
 	/* Maybe we are already re-execed and come here again? */
@@ -135,7 +135,9 @@ static void daemon_or_rexec(char **argv)
 	bb_perror_msg_and_die("exec %s", CONFIG_BUSYBOX_EXEC_PATH);
 }
 #else
-static void daemon_or_rexec(void)
+/* Dance around (void)...*/
+#undef forkexit_or_rexec
+void forkexit_or_rexec(void)
 {
 	pid_t pid;
 	pid = fork();
@@ -145,7 +147,7 @@ static void daemon_or_rexec(void)
 		exit(0);
 	/* child */
 }
-#define daemon_or_rexec(argv) daemon_or_rexec()
+#define forkexit_or_rexec(argv) forkexit_or_rexec()
 #endif
 
 
@@ -170,7 +172,7 @@ void bb_daemonize_or_rexec(int flags, char **argv)
 		fd = dup(fd); /* have 0,1,2 open at least to /dev/null */
 
 	if (!(flags & DAEMON_ONLY_SANITIZE)) {
-		daemon_or_rexec(argv);
+		forkexit_or_rexec(argv);
 		/* if daemonizing, make sure we detach from stdio */
 		setsid();
 		dup2(fd, 0);

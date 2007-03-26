@@ -337,25 +337,24 @@ auth_failed:
 	fchown(0, pw->pw_uid, pw->pw_gid);
 	fchmod(0, 0600);
 
-/* TODO: be nommu-friendly, use spawn? */
 	if (ENABLE_LOGIN_SCRIPTS) {
-		char *script = getenv("LOGIN_PRE_SUID_SCRIPT");
-		if (script) {
-			char *t_argv[2] = { script, NULL };
-			switch (fork()) {
-			case -1: break;
-			case 0: /* child */
-				xchdir("/");
-				setenv("LOGIN_TTY", full_tty, 1);
-				setenv("LOGIN_USER", pw->pw_name, 1);
-				setenv("LOGIN_UID", utoa(pw->pw_uid), 1);
-				setenv("LOGIN_GID", utoa(pw->pw_gid), 1);
-				setenv("LOGIN_SHELL", pw->pw_shell, 1);
-				BB_EXECVP(script, t_argv);
-				exit(1);
-			default: /* parent */
-				wait(NULL);
-			}
+		char *t_argv[2];
+
+		t_argv[0] = getenv("LOGIN_PRE_SUID_SCRIPT");
+		if (t_argv[0]) {
+			t_argv[1] = NULL;
+			setenv("LOGIN_TTY", full_tty, 1);
+			setenv("LOGIN_USER", pw->pw_name, 1);
+			setenv("LOGIN_UID", utoa(pw->pw_uid), 1);
+			setenv("LOGIN_GID", utoa(pw->pw_gid), 1);
+			setenv("LOGIN_SHELL", pw->pw_shell, 1);
+			xspawn(argv); /* NOMMU-friendly */
+			unsetenv("LOGIN_TTY");
+			unsetenv("LOGIN_USER");
+			unsetenv("LOGIN_UID");
+			unsetenv("LOGIN_GID");
+			unsetenv("LOGIN_SHELL");
+			wait(NULL);
 		}
 	}
 

@@ -1938,13 +1938,6 @@ enum {
 	OPT_FOREGROUND  = 1 << p_opt_foreground,
 };
 
-static const char httpd_opts[] = "c:d:h:"
-	USE_FEATURE_HTTPD_ENCODE_URL_STR("e:")
-	USE_FEATURE_HTTPD_BASIC_AUTH("r:")
-	USE_FEATURE_HTTPD_AUTH_MD5("m:")
-	USE_FEATURE_HTTPD_SETUID("u:")
-	"p:if";
-
 
 int httpd_main(int argc, char *argv[]);
 int httpd_main(int argc, char *argv[])
@@ -1970,7 +1963,12 @@ int httpd_main(int argc, char *argv[])
 	config->port = 80;
 	config->ContentLength = -1;
 
-	opt = getopt32(argc, argv, httpd_opts,
+	opt = getopt32(argc, argv, "c:d:h:"
+			USE_FEATURE_HTTPD_ENCODE_URL_STR("e:")
+			USE_FEATURE_HTTPD_BASIC_AUTH("r:")
+			USE_FEATURE_HTTPD_AUTH_MD5("m:")
+			USE_FEATURE_HTTPD_SETUID("u:")
+			"p:if",
 			&(config->configFile), &url_for_decode, &home_httpd
 			USE_FEATURE_HTTPD_ENCODE_URL_STR(, &url_for_encode)
 			USE_FEATURE_HTTPD_BASIC_AUTH(, &(config->realm))

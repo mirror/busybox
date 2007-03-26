@@ -310,21 +310,16 @@ static int checkscript(void)
 		return 0;
 	}
 	/* if (!(s.st_mode & S_IXUSR)) return 1; */
-	if ((pid = fork()) == -1) {
-		bb_perror_msg(WARN"cannot fork for %s/check", *service);
+	prog[0] = (char*)"./check";
+	prog[1] = NULL;
+	pid = spawn(prog);
+	if (pid <= 0) {
+		bb_perror_msg(WARN"cannot %s child %s/check", "run", *service);
 		return 0;
-	}
-	if (!pid) {
-		prog[0] = (char*)"./check";
-		prog[1] = NULL;
-		close(1);
-		execve("check", prog, environ);
-		bb_perror_msg(WARN"cannot run %s/check", *service);
-		_exit(0);
 	}
 	while (wait_pid(&w, pid) == -1) {
 		if (errno == EINTR) continue;
-		bb_perror_msg(WARN"cannot wait for child %s/check", *service);
+		bb_perror_msg(WARN"cannot %s child %s/check", "wait for", *service);
 		return 0;
 	}
 	return !wait_exitcode(w);

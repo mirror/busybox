@@ -471,7 +471,9 @@ int bb_execvp(const char *file, char *const argv[]);
 pid_t spawn(char **argv);
 pid_t xspawn(char **argv);
 /* Helpers for daemonization.
+ *
  * bb_daemonize(flags) = daemonize, does not compile on NOMMU
+ *
  * bb_daemonize_or_rexec(flags, argv) = daemonizes on MMU (and ignores argv),
  *      rexec's itself on NOMMU with argv passed as command line.
  * Thus bb_daemonize_or_rexec may cause your <applet>_main() to be re-executed
@@ -482,7 +484,12 @@ pid_t xspawn(char **argv);
  * Both of the above will redirect fd 0,1,2 to /dev/null and drop ctty
  * (will do setsid()).
  *
+ * forkexit_or_rexec(argv) = bare-bones "fork + parent exits" on MMU,
+ *      "vfork + re-exec ourself" on NOMMU. No fd redirection, no setsid().
+ *      Currently used for openvt. On MMU ignores argv.
+ *
  * Helper for network daemons in foreground mode:
+ *
  * bb_sanitize_stdio() = make sure that fd 0,1,2 are opened by opening them
  * to /dev/null if they are not.
  */
@@ -493,16 +500,16 @@ enum {
 	DAEMON_ONLY_SANITIZE = 8, /* internal use */
 };
 #ifndef BB_NOMMU
-#define bb_daemonize_or_rexec(flags, argv) bb_daemonize_or_rexec(flags)
-#define bb_daemonize(flags)                bb_daemonize_or_rexec(flags, bogus)
+  void forkexit_or_rexec(void);
+# define forkexit_or_rexec(argv)            forkexit_or_rexec()
+# define bb_daemonize_or_rexec(flags, argv) bb_daemonize_or_rexec(flags)
+# define bb_daemonize(flags)                bb_daemonize_or_rexec(flags, bogus)
 #else
-extern smallint re_execed;
-pid_t BUG_fork_is_unavailable_on_nommu(void);
-pid_t BUG_daemon_is_unavailable_on_nommu(void);
-pid_t BUG_bb_daemonize_is_unavailable_on_nommu(void);
-#define fork()          BUG_fork_is_unavailable_on_nommu()
-#define daemon(a,b)     BUG_daemon_is_unavailable_on_nommu()
-#define bb_daemonize(a) BUG_bb_daemonize_is_unavailable_on_nommu()
+  void forkexit_or_rexec(char **argv);
+  extern smallint re_execed;
+# define fork()          BUG_fork_is_unavailable_on_nommu()
+# define daemon(a,b)     BUG_daemon_is_unavailable_on_nommu()
+# define bb_daemonize(a) BUG_bb_daemonize_is_unavailable_on_nommu()
 #endif
 void bb_daemonize_or_rexec(int flags, char **argv);
 void bb_sanitize_stdio(void);

@@ -667,20 +667,9 @@ static void execute(const char *type, const char *device, const char *mntpt,
 	/* Fork and execute the correct program. */
 	pid = -1;
 	if (!noexecute) {
-/* TODO: NOMMU friendly way (vfork)? */
-		pid = fork();
+		pid = spawn(argv);
 		if (pid < 0)
-			bb_perror_msg_and_die("fork");
-		if (pid == 0) {
-			/* Child */
-			if (!interactive) {
-				/* NB: e2fsck will complain because of this!
-				 * Use "fsck -s" to avoid... */
-				close(0);
-			}
-			BB_EXECVP(argv[0], argv);
-			bb_perror_msg_and_die("%s", argv[0]);
-		}
+			bb_perror_msg("%s", argv[0]);
 	}
 
 	for (i = num_args+1; i < argc; i++)

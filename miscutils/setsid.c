@@ -22,21 +22,12 @@ int setsid_main(int argc, char *argv[])
 	if (argc < 2)
 		bb_show_usage();
 
-	if (getpgrp() == getpid()) {
-		switch (fork()) {
-		case -1:
-			bb_perror_msg_and_die("fork");
-		case 0:
-			break;
-		default:	/* parent */
-			exit(0);
-		}
-	}
-	/* child */
+	/* Comment why is this necessary? */
+	if (getpgrp() == getpid())
+		forkexit_or_rexec(argv);
 
 	setsid();  /* no error possible */
 
 	BB_EXECVP(argv[1], argv + 1);
-
 	bb_perror_msg_and_die("%s", argv[1]);
 }
