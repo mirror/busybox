@@ -2956,7 +2956,12 @@
 	"[OPTION] [INPUT [PREFIX]]"
 #define split_full_usage \
 	"Options:" \
-	"\n	-blah XXX: Fixme: usage.h"
+	"\n	-b n[k|m] Split by bytes" \
+	"\n	-l n      Split by lines" \
+	"\n	-a n      Use n letters as suffix"
+#define split_example_usage \
+	"$ split TODO foo\n" \
+	"$ cat TODO | split -a 2 -l 2 TODO_\n"
 
 #define start_stop_daemon_trivial_usage \
        "[OPTIONS] [--start|--stop] ... [-- arguments...]"
