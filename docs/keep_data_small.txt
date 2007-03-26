@@ -112,7 +112,7 @@ Be careful, though, and use it only if globals fit into bb_common_bufsiz1.
 Since bb_common_bufsiz1 is BUFSIZ + 1 bytes long and BUFSIZ can change
 from one libc to another, you have to add compile-time check for it:
 
-if(sizeof(struct globals) > sizeof(bb_common_bufsiz1))
+if (sizeof(struct globals) > sizeof(bb_common_bufsiz1))
 	BUG_<applet>_globals_too_big();
 
 
