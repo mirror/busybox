@@ -257,7 +257,7 @@ void smart_ulltoa5(unsigned long long ul, char buf[5])
 // truncated result is always null terminated (unless buflen is 0), and
 // contains the first few digits of the result ala strncpy.
 void BUG_sizeof_unsigned_not_4(void);
-void utoa_to_buf(unsigned n, char *buf, unsigned buflen)
+char *utoa_to_buf(unsigned n, char *buf, unsigned buflen)
 {
 	unsigned i, out, res;
 	if (sizeof(unsigned) != 4)
@@ -273,19 +273,19 @@ void utoa_to_buf(unsigned n, char *buf, unsigned buflen)
 				*buf++ = '0' + res;
 			}
 		}
-		*buf = '\0';
 	}
+	return buf;
 }
 
 // Convert signed integer to ascii, like utoa_to_buf()
-void itoa_to_buf(int n, char *buf, unsigned buflen)
+char *itoa_to_buf(int n, char *buf, unsigned buflen)
 {
 	if (buflen && n<0) {
 		n = -n;
 		*buf++ = '-';
 		buflen--;
 	}
-	utoa_to_buf((unsigned)n, buf, buflen);
+	return utoa_to_buf((unsigned)n, buf, buflen);
 }
 
 // The following two functions use a static buffer, so calling either one a
@@ -300,7 +300,7 @@ static char local_buf[12];
 // Convert unsigned integer to ascii using a static buffer (returned).
 char *utoa(unsigned n)
 {
-	utoa_to_buf(n, local_buf, sizeof(local_buf));
+	*(utoa_to_buf(n, local_buf, sizeof(local_buf))) = '\0';
 
 	return local_buf;
 }
@@ -308,7 +308,7 @@ char *utoa(unsigned n)
 // Convert signed integer to ascii using a static buffer (returned).
 char *itoa(int n)
 {
-	itoa_to_buf(n, local_buf, sizeof(local_buf));
+	*(itoa_to_buf(n, local_buf, sizeof(local_buf))) = '\0';
 
 	return local_buf;
 }

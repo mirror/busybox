@@ -519,6 +519,7 @@ static void do_syslogd(void)
 	signal(SIGALRM, do_mark);
 	alarm(G.markInterval);
 #endif
+	remove_pidfile("/var/run/syslogd.pid");
 
 	memset(&sunx, 0, sizeof(sunx));
 	sunx.sun_family = AF_UNIX;
@@ -645,6 +646,7 @@ int syslogd_main(int argc, char **argv)
 		bb_daemonize_or_rexec(DAEMON_CHDIR_ROOT, argv);
 	}
 	umask(0);
+	write_pidfile("/var/run/syslogd.pid");
 	do_syslogd();
 	/* return EXIT_SUCCESS; */
 }

@@ -49,7 +49,7 @@ static char *find_applet_by_name(const char *applet)
 {
 	return NULL;
 }
-static void utoa_to_buf(unsigned n, char *buf, unsigned buflen)
+static char *utoa_to_buf(unsigned n, char *buf, unsigned buflen)
 {
 	unsigned i, out, res;
 	assert(sizeof(unsigned) == 4);
@@ -64,22 +64,22 @@ static void utoa_to_buf(unsigned n, char *buf, unsigned buflen)
 	    			*buf++ = '0' + res;
 			}
 		}
-		*buf = '\0';
 	}
+	return buf;
 }
-static void itoa_to_buf(int n, char *buf, unsigned buflen)
+static char *itoa_to_buf(int n, char *buf, unsigned buflen)
 {
 	if (buflen && n < 0) {
 		n = -n;
 		*buf++ = '-';
 		buflen--;
 	}
-	utoa_to_buf((unsigned)n, buf, buflen);
+	return utoa_to_buf((unsigned)n, buf, buflen);
 }
 static char local_buf[12];
 static char *itoa(int n)
 {
-	itoa_to_buf(n, local_buf, sizeof(local_buf));
+	*(itoa_to_buf(n, local_buf, sizeof(local_buf))) = '\0';
 	return local_buf;
 }
 #else

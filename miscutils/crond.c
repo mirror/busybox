@@ -185,6 +185,7 @@ int crond_main(int ac, char **av)
 		int rescan = 60;
 		short sleep_time = 60;
 
+		write_pidfile("/var/run/crond.pid");
 		for (;;) {
 			sleep((sleep_time + 1) - (short) (time(NULL) % sleep_time));
 

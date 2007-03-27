@@ -141,6 +141,13 @@ config FEATURE_CLEAN_UP
 	  Don't enable this unless you have a really good reason to clean
 	  things up manually.
 
+config FEATURE_PIDFILE
+	bool "Support writing pidfiles"
+	default n
+	help
+	  This option makes some applets (crond, syslogd and inetd) write
+	  a pidfile in /var/run. Some applications rely on them
+
 config FEATURE_SUID
 	bool "Support for SUID/SGID handling"
 	default n

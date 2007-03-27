@@ -408,10 +408,11 @@ extern FILE *fopen_or_warn(const char *filename, const char *mode);
 extern FILE *fopen_or_warn_stdin(const char *filename);
 
 
-extern void utoa_to_buf(unsigned n, char *buf, unsigned buflen);
 extern char *utoa(unsigned n);
-extern void itoa_to_buf(int n, char *buf, unsigned buflen);
 extern char *itoa(int n);
+/* Returns a pointer past the formatted number, does NOT null-terminate */
+extern char *utoa_to_buf(unsigned n, char *buf, unsigned buflen);
+extern char *itoa_to_buf(int n, char *buf, unsigned buflen);
 extern void smart_ulltoa5(unsigned long long ul, char buf[5]);
 /* Put a string of hex bytes (ala "1b"), return advanced pointer */
 extern char *bin2hex(char *buf, const char *cp, int count);
@@ -541,6 +542,14 @@ extern void *llist_pop(llist_t **elm);
 extern void llist_unlink(llist_t **head, llist_t *elm);
 extern void llist_free(llist_t *elm, void (*freeit)(void *data));
 extern llist_t* llist_rev(llist_t *list);
+
+#if ENABLE_FEATURE_PIDFILE
+int write_pidfile(const char *path);
+#define remove_pidfile(f) ((void)unlink(f))
+#else
+#define write_pidfile(f)  1
+#define remove_pidfile(f) ((void)0)
+#endif
 
 enum {
 	LOGMODE_NONE = 0,

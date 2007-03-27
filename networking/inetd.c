@@ -1212,7 +1212,7 @@ static void goaway(int sig ATTRIBUTE_UNUSED)
 		}
 		(void) close(sep->se_fd);
 	}
-	(void) unlink(_PATH_INETDPID);
+	remove_pidfile(_PATH_INETDPID);
 	exit(0);
 }
 
@@ -1301,13 +1301,7 @@ int inetd_main(int argc, char *argv[])
 		setgroups(1, &gid);
 	}
 
-	{
-		FILE *fp = fopen(_PATH_INETDPID, "w");
-		if (fp != NULL) {
-			fprintf(fp, "%u\n", getpid());
-			fclose(fp);
-		}
-	}
+	write_pidfile(_PATH_INETDPID);
 
 	if (getrlimit(RLIMIT_NOFILE, &rlim_ofile) < 0) {
 		bb_perror_msg("getrlimit");
