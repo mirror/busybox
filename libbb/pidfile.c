@@ -16,7 +16,7 @@ int write_pidfile(const char *path)
 	char buf[sizeof(int)*3 + 2];
 
 	/* we will overwrite stale pidfile */
-	pid_fd = open(path, O_WRONLY|O_CREAT|O_TRUNC);
+	pid_fd = open(path, O_WRONLY|O_CREAT|O_TRUNC, 0666);
 	if (pid_fd < 0)
 		return 0;
 	/* few bytes larger, but doesn't use stdio */
