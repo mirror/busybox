@@ -1833,7 +1833,7 @@ static void process_dev(char *devname)
 #endif /* FEATURE_HDPARM_HDIO_TRISTATE_HWIF */
 #if ENABLE_FEATURE_HDPARM_GET_IDENTITY
 	if (get_identity) {
-		static struct hd_driveid id;
+		struct hd_driveid id;
 
 		if (!ioctl(fd, HDIO_GET_IDENTITY, &id))	{
 			if (multcount != -1) {
