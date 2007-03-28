@@ -541,8 +541,15 @@ config SPLIT
 	default n
 	help
 	  split a file into pieces.
-	  
-	  http://www.opengroup.org/onlinepubs/007904975/utilities/split.html
+
+config FEATURE_SPLIT_FANCY
+	bool "fancy extensions"
+	default n
+	depends on SPLIT
+	help
+	  Add support for features not required by SUSv3.
+	  Supports additional suffixes 'b' for 512 bytes,
+	  'g' for 1GiB for the -b option.
 
 config STAT
 	bool "stat"

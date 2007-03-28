@@ -12,10 +12,14 @@
 #include "busybox.h"
 
 static const struct suffix_mult split_suffices[] = {
+#if ENABLE_FEATURE_SPLIT_FANCY
 	{ "b", 512 },
+#endif
 	{ "k", 1024 },
 	{ "m", 1024*1024 },
+#if ENABLE_FEATURE_SPLIT_FANCY
 	{ "g", 1024*1024*1024 },
+#endif
 	{ NULL, 0 }
 };
 
@@ -58,10 +62,10 @@ int split_main(int argc, char **argv)
 	char *pfx;
 	char *count_p;
 	const char *sfx;
-	unsigned long cnt = 1000;
-	unsigned long remaining = 0;
+	off_t cnt = 1000;
+	off_t remaining = 0;
 	unsigned opt;
-	int bytes_read, to_write;
+	ssize_t bytes_read, to_write;
 	char *src;
 
 	opt_complementary = "?2";
@@ -73,8 +77,9 @@ int split_main(int argc, char **argv)
 		cnt = xatoul_sfx(count_p, split_suffices);
 	if (opt & SPLIT_OPT_a)
 		suffix_len = xatou(sfx);
-	argv += optind;
 	sfx = "x";
+
+	argv += optind;
 	if (argv[0]) {
 		if (argv[1])
 			sfx = argv[1];
@@ -104,7 +109,7 @@ int split_main(int argc, char **argv)
 		do {
 			if (!remaining) {
 				if (!pfx)
-					bb_error_msg_and_die("suffices exhausted");
+					bb_error_msg_and_die("suffixes exhausted");
 				xmove_fd(xopen(pfx, O_WRONLY | O_CREAT | O_TRUNC), 1);
 				pfx = next_file(pfx, suffix_len);
 				remaining = cnt;
