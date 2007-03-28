@@ -223,8 +223,7 @@ config IFUPDOWN
 	  of support questions on the mailing list), I do not force you to
 	  enable these additional options.  It is up to you to supply either
 	  "ifconfig", "route" and "run-parts" or the "ip" command, either
-	  via busybox or via
-	  standalone utilities.
+	  via busybox or via standalone utilities.
 
 config FEATURE_IFUPDOWN_IP
 	bool "Use ip applet"
