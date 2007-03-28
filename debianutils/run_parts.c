@@ -136,7 +136,7 @@ int run_parts_main(int argc, char **argv)
 	arg_list = llist_rev(arg_list); /* XXX: getopt32 appends them */
 	for (tmp = 1; arg_list; arg_list = arg_list->link, tmp++)
 		G.cmd[tmp] = arg_list->data;
-	G.cmd[tmp] = NULL;
+	/* G.cmd[tmp] = NULL; - G is already zeroed out */
 	if (!recursive_action(argv[argc - 1],
 			TRUE,		/* recurse */
 			TRUE,		/* follow links */
