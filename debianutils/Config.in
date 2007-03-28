@@ -53,6 +53,15 @@ config FEATURE_RUN_PARTS_LONG_OPTIONS
 	help
 	  Support long options for the run-parts applet.
 
+config FEATURE_RUN_PARTS_FANCY
+	bool "Support additional arguments"
+	default n
+	depends on RUN_PARTS
+	help
+	  Support additional options:
+	  -l --list print the names of the all matching files (not
+	            limited to executables), but don't actually run them.
+
 config START_STOP_DAEMON
 	bool "start-stop-daemon"
 	default y

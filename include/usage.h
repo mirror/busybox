@@ -2760,13 +2760,28 @@
        "	-l, --range=RNG	Levelrange" \
 
 #define run_parts_trivial_usage \
-       "[-t] [-a ARG] [-u MASK] DIRECTORY"
+       "[-t] "USE_FEATURE_RUN_PARTS_FANCY("[-l] ")"[-a ARG] [-u MASK] DIRECTORY"
 #define run_parts_full_usage \
        "Run a bunch of scripts in a directory" \
        "\n\nOptions:\n" \
        "	-t	Prints what would be run, but does not actually run anything\n" \
        "	-a ARG	Pass ARG as an argument for every program invoked\n" \
-       "	-u MASK	Set the umask to MASK before executing every program"
+       "	-u MASK	Set the umask to MASK before executing every program" \
+USE_FEATURE_RUN_PARTS_FANCY("\n	-l	Prints names of all matching files even when they are not executable")
+
+#define run_parts_example_usage \
+	"$ run-parts -a start /etc/init.d\n" \
+	"$ run-parts -a stop=now /etc/init.d\n\n" \
+	"Let's assume you have a script foo/dosomething:\n" \
+	"#!/bin/sh\n" \
+	"for i in $*; do eval $i; done ; unset i\n" \
+	"case \"$1\" in\n" \
+	"start*) echo starting something ;;\n" \
+	"stop*) set -x ; shutdown -h $stop ;;\n" \
+	"esac\n\n" \
+	"Running this yields:\n" \
+	"$run-parts -a stop=+4m foo/\n" \
+	"+ shutdown -h +4m"
 
 #define runlevel_trivial_usage \
        "[utmp]"
