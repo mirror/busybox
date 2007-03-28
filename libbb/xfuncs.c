@@ -253,9 +253,9 @@ void smart_ulltoa5(unsigned long long ul, char buf[5])
 	buf[4] = '\0';
 }
 
-// Convert unsigned integer to ascii, writing into supplied buffer.  A
-// truncated result is always null terminated (unless buflen is 0), and
-// contains the first few digits of the result ala strncpy.
+// Convert unsigned integer to ascii, writing into supplied buffer.
+// A truncated result contains the first few digits of the result ala strncpy.
+// Returns a pointer past last generated digit, does _not_ store NUL.
 void BUG_sizeof_unsigned_not_4(void);
 char *utoa_to_buf(unsigned n, char *buf, unsigned buflen)
 {

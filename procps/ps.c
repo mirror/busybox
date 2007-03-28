@@ -262,7 +262,9 @@ int ps_main(int argc, char **argv)
 		parse_o(default_o);
 	post_process();
 
-	terminal_width = INT_MAX;
+	/* Was INT_MAX, but some libc's go belly up with printf("%.*s")
+	 * and such large widths */
+	terminal_width = 30000;
 	if (isatty(1)) {
 		get_terminal_width_height(1, &terminal_width, NULL);
 		terminal_width--;
