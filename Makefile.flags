@@ -58,4 +58,13 @@ endif
 ifeq ($(CONFIG_SELINUX),y)
 LDFLAGS += -lselinux -lsepol
 endif
+
+ifeq ($(CONFIG_EFENCE),y)
+LDFLAGS += -lefence
+endif
+
+ifeq ($(CONFIG_DMALLOC),y)
+LDFLAGS += -ldmalloc
+endif
+
 #LDFLAGS += -nostdlib

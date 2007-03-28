@@ -382,7 +382,6 @@ config WERROR
 choice
 	prompt "Additional debugging library"
 	default NO_DEBUG_LIB
-	depends on DEBUG
 	help
 	  Using an additional debugging library will make BusyBox become
 	  considerable larger and will cause it to run more slowly.  You
