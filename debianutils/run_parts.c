@@ -49,8 +49,8 @@ static const struct option runparts_long_options[] = {
 #endif
 
 struct globals {
-	char *cmd[10]; /* merely arbitrary arg count */
 	smalluint mode;
+	char *cmd[10]; /* merely arbitrary arg count */
 };
 #define G (*(struct globals*)&bb_common_bufsiz1)
 
@@ -101,9 +101,9 @@ static int act(const char *file, struct stat *statbuf, void *args, int depth)
 	G.cmd[0] = (char*)file;
 	ret = wait4pid(spawn(G.cmd));
 	if (ret < 0) {
-		bb_error_msg("failed to exec %s", *G.cmd);
+		bb_perror_msg("failed to exec %s", file);
 	} else if (ret > 0) {
-		bb_perror_msg("%s exited with return code %d", *G.cmd, ret);
+		bb_error_msg("%s exited with return code %d", file, ret);
 	}
 	return !ret;
 }
@@ -129,14 +129,14 @@ int run_parts_main(int argc, char **argv)
 		 * libc is not foolproof; it will take the 8 and 9 digits under
 		 * some circumstances. We'll just have to live with it.
 		 */
-			umask(xstrtoul_range(umask_p, 8, 0, 07777));
+		umask(xstrtoul_range(umask_p, 8, 0, 07777));
 	}
 //XXX: FIXME: reverse the list before handing it over to the user.
 //XXX: FIXME: The common case seems to be to use the order given by the user
 	arg_list = llist_rev(arg_list); /* XXX: getopt32 appends them */
-	G.cmd[0] = (char*)"";
 	for (tmp = 1; arg_list; arg_list = arg_list->link, tmp++)
 		G.cmd[tmp] = arg_list->data;
+	G.cmd[tmp] = NULL;
 	if (!recursive_action(argv[argc - 1],
 			TRUE,		/* recurse */
 			TRUE,		/* follow links */
