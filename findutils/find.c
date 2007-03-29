@@ -56,7 +56,7 @@ typedef int (*action_fp)(const char *fileName, struct stat *statbuf, void *);
 typedef struct {
 	action_fp f;
 #if ENABLE_FEATURE_FIND_NOT
-	smallint invert;
+	bool invert;
 #endif
 } action;
 #define ACTS(name, arg...) typedef struct { action a; arg; } action_##name;
@@ -77,7 +77,7 @@ USE_DESKTOP(            ACTS(size,  off_t size;))
 USE_DESKTOP(            ACTS(prune))
 
 static action ***actions;
-static smalluint need_print = 1;
+static bool need_print = 1;
 
 
 #if ENABLE_FEATURE_FIND_EXEC
@@ -95,7 +95,7 @@ static unsigned int count_subst(const char *str)
 static char* subst(const char *src, unsigned int count, const char* filename)
 {
 	char *buf, *dst, *end;
-	int flen = strlen(filename);
+	size_t flen = strlen(filename);
 	/* we replace each '{}' with filename: growth by strlen-2 */
 	buf = dst = xmalloc(strlen(src) + count*(flen-2) + 1);
 	while ((end = strstr(src, "{}"))) {
@@ -271,23 +271,22 @@ ACTF(size)
 
 static int fileAction(const char *fileName, struct stat *statbuf, void* junk, int depth)
 {
-	int rc;
+	int i;
 #ifdef CONFIG_FEATURE_FIND_XDEV
 	if (S_ISDIR(statbuf->st_mode) && xdev_count) {
-		int i;
 		for (i = 0; i < xdev_count; i++) {
 			if (xdev_dev[i] != statbuf->st_dev)
 				return SKIP;
 		}
 	}
 #endif
-	rc = exec_actions(actions, fileName, statbuf);
+	i = exec_actions(actions, fileName, statbuf);
 	/* Had no explicit -print[0] or -exec? then print */
-	if (rc && need_print)
+	if (i && need_print)
 		puts(fileName);
 	/* Cannot return 0: our caller, recursive_action(),
 	 * will perror() and skip dirs (if called on dir) */
-	return rc == 0 ? TRUE : rc;
+	return i == 0 ? TRUE : i;
 }
 
 
@@ -342,7 +341,7 @@ static action*** parse_params(char **argv)
 	action*** appp;
 	unsigned cur_group = 0;
 	unsigned cur_action = 0;
-	USE_FEATURE_FIND_NOT( smallint invert_flag = 0; )
+	USE_FEATURE_FIND_NOT( bool invert_flag = 0; )
 
 	action* alloc_action(int sizeof_struct, action_fp f)
 	{
@@ -501,7 +500,7 @@ static action*** parse_params(char **argv)
 			ap->exec_argv = ++argv; /* first arg after -exec */
 			ap->exec_argc = 0;
 			while (1) {
-				if (!*argv) /* did not see ';' till end */
+				if (!*argv) /* did not see ';' util end */
 					bb_error_msg_and_die(bb_msg_requires_arg, arg);
 				if (LONE_CHAR(argv[0], ';'))
 					break;
@@ -595,11 +594,11 @@ int find_main(int argc, char **argv)
 		firstopt++;
 	}
 
-// All options always return true. They always take effect,
-// rather than being processed only when their place in the
-// expression is reached
-// We implement: -follow, -xdev
-
+/* All options always return true. They always take effect
+ * rather than being processed only when their place in the
+ * expression is reached.
+ * We implement: -follow, -xdev
+ */
 	/* Process options, and replace then with -a */
 	/* (-a will be ignored by recursive parser later) */
 	argp = &argv[firstopt];
