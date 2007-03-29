@@ -284,11 +284,6 @@ struct IFADDRLIST {
 };
 
 
-static const char route[] = "/proc/net/route";
-
-/* last inbound (icmp) packet */
-static unsigned char packet[512] ATTRIBUTE_ALIGNED(32);
-
 static struct ip *outip;               /* last output (udp) packet */
 static struct udphdr *outudp;          /* last output (udp) packet */
 static struct outdata *outdata;        /* last output (udp) packet */
@@ -297,18 +292,9 @@ static struct outdata *outdata;        /* last output (udp) packet */
 static struct icmp *outicmp;           /* last output (icmp) packet */
 #endif
 
-#if ENABLE_FEATURE_TRACEROUTE_SOURCE_ROUTE
-/* Maximum number of gateways (include room for one noop) */
-#define NGATEWAYS ((int)((MAX_IPOPTLEN - IPOPT_MINOFF - 1) / sizeof(uint32_t)))
-/* loose source route gateway list (including room for final destination) */
-static uint32_t gwlist[NGATEWAYS + 1];
-#endif
-
 static int s;                          /* receive (icmp) socket file descriptor */
 static int sndsock;                    /* send (udp/icmp) socket file descriptor */
 
-static struct sockaddr_storage whereto;        /* Who to try to reach */
-static struct sockaddr_storage wherefrom;      /* Who we are */
 static int packlen;                    /* total length of packet */
 static int minpacket;                  /* min ip packet size */
 static int maxpacket = 32 * 1024;      /* max ip packet size */
@@ -320,7 +306,6 @@ static uint16_t ident;
 static uint16_t port = 32768 + 666;     /* start udp dest port # for probe packets */
 
 static int waittime = 5;               /* time to wait for response (in seconds) */
-static int nflag;                      /* print addresses numerically */
 static int doipcksum = 1;              /* calculate ip checksums by default */
 
 #if ENABLE_FEATURE_TRACEROUTE_SOURCE_ROUTE
@@ -329,12 +314,56 @@ static int optlen;                     /* length of ip options */
 #define optlen 0
 #endif
 
+
+/* Keep in sync with getopt32 call! */
+#define OPT_DONT_FRAGMNT (1<<0)    /* F */
+#define OPT_USE_ICMP     (1<<1)    /* I */
+#define OPT_TTL_FLAG     (1<<2)    /* l */
+#define OPT_ADDR_NUM     (1<<3)    /* n */
+#define OPT_BYPASS_ROUTE (1<<4)    /* r */
+#define OPT_DEBUG        (1<<5)    /* d */
+#define OPT_VERBOSE      (1<<6)    /* v */
+#define OPT_IP_CHKSUM    (1<<7)    /* x */
+#define OPT_TOS          (1<<8)    /* t */
+#define OPT_DEVICE       (1<<9)    /* i */
+#define OPT_MAX_TTL      (1<<10)   /* m */
+#define OPT_PORT         (1<<11)   /* p */
+#define OPT_NPROBES      (1<<12)   /* q */
+#define OPT_SOURCE       (1<<13)   /* s */
+#define OPT_WAITTIME     (1<<14)   /* w */
+#define OPT_PAUSE_MS     (1<<15)   /* z */
+#define OPT_FIRST_TTL    (1<<16)   /* f */
+
 #if ENABLE_FEATURE_TRACEROUTE_USE_ICMP
-static int useicmp;                    /* use icmp echo instead of udp packets */
+/* use icmp echo instead of udp packets */
+#define useicmp (option_mask32 & OPT_USE_ICMP)
 #endif
 #if ENABLE_FEATURE_TRACEROUTE_VERBOSE
-static int verbose;
+#define verbose (option_mask32 & OPT_VERBOSE)
 #endif
+#define nflag   (option_mask32 & OPT_ADDR_NUM)
+
+
+struct globals {
+	/* last inbound (icmp) packet */
+	unsigned char packet[512];
+	struct sockaddr_storage whereto;        /* Who to try to reach */
+	struct sockaddr_storage wherefrom;      /* Who we are */
+#if ENABLE_FEATURE_TRACEROUTE_SOURCE_ROUTE
+	/* Maximum number of gateways (include room for one noop) */
+#define NGATEWAYS ((int)((MAX_IPOPTLEN - IPOPT_MINOFF - 1) / sizeof(uint32_t)))
+	/* loose source route gateway list (including room for final destination) */
+	uint32_t gwlist[NGATEWAYS + 1];
+#endif
+};
+
+#define G (*ptr_to_globals)
+
+#define packet    (G.packet   )
+#define whereto   (G.whereto  )
+#define wherefrom (G.wherefrom)
+#define gwlist    (G.gwlist   )
+
 
 /*
  * Return the interface list
@@ -453,7 +482,7 @@ findsaddr(const struct sockaddr_in *to, struct sockaddr_in *from)
 	struct IFADDRLIST *al;
 	char buf[256], tdevice[256], device[256];
 
-	f = xfopen(route, "r");
+	f = xfopen("/proc/net/route", "r");
 
 	/* Find the appropriate interface */
 	n = 0;
@@ -892,37 +921,40 @@ int traceroute_main(int argc, char *argv[])
 	int code, n;
 	unsigned char *outp;
 	uint32_t *ap;
-	struct sockaddr_in *from = (struct sockaddr_in *)&wherefrom;
-	struct sockaddr_in *to = (struct sockaddr_in *)&whereto;
+	struct sockaddr_in *from;
+	struct sockaddr_in *to;
 	struct hostinfo *hi;
 	int ttl, probe, i;
 	int seq = 0;
 	int tos = 0;
-	char *tos_str = NULL;
-	char *source = NULL;
-	unsigned long op;
-
+	char *tos_str;
+	char *source;
+	unsigned op;
 #if ENABLE_FEATURE_TRACEROUTE_SOURCE_ROUTE
 	int lsrr = 0;
 #endif
 	uint16_t off = 0;
 	struct IFADDRLIST *al;
-	char *device = NULL;
+	char *device;
 	int max_ttl = 30;
-	char *max_ttl_str = NULL;
-	char *port_str = NULL;
+	char *max_ttl_str;
+	char *port_str;
 	int nprobes = 3;
-	char *nprobes_str = NULL;
-	char *waittime_str = NULL;
+	char *nprobes_str;
+	char *waittime_str;
 	unsigned pausemsecs = 0;
-	char *pausemsecs_str = NULL;
+	char *pausemsecs_str;
 	int first_ttl = 1;
-	char *first_ttl_str = NULL;
+	char *first_ttl_str;
 #if ENABLE_FEATURE_TRACEROUTE_SOURCE_ROUTE
 	llist_t *sourse_route_list = NULL;
 #endif
 
-	opterr = 0;
+	PTR_TO_GLOBALS = xzalloc(sizeof(G));
+	from = (struct sockaddr_in *)&wherefrom;
+	to = (struct sockaddr_in *)&whereto;
+
+	//opterr = 0;
 #if ENABLE_FEATURE_TRACEROUTE_SOURCE_ROUTE
 	opt_complementary = "x-x:g::";
 #else
@@ -930,65 +962,51 @@ int traceroute_main(int argc, char *argv[])
 #endif
 
 	op = getopt32(argc, argv, "FIlnrdvxt:i:m:p:q:s:w:z:f:"
-#define USAGE_OP_DONT_FRAGMNT (1<<0)    /* F  */
-#define USAGE_OP_USE_ICMP     (1<<1)    /* I  */
-#define USAGE_OP_TTL_FLAG     (1<<2)    /* l  */
-#define USAGE_OP_ADDR_NUM     (1<<3)    /* n  */
-#define USAGE_OP_BYPASS_ROUTE (1<<4)    /* r  */
-#define USAGE_OP_DEBUG        (1<<5)    /* d */
-#define USAGE_OP_VERBOSE      (1<<6)    /* v */
-#define USAGE_OP_IP_CHKSUM    (1<<7)    /* x */
-
 #if ENABLE_FEATURE_TRACEROUTE_SOURCE_ROUTE
 					"g:"
 #endif
-	, &tos_str, &device, &max_ttl_str, &port_str, &nprobes_str,
-	&source, &waittime_str, &pausemsecs_str, &first_ttl_str
+		, &tos_str, &device, &max_ttl_str, &port_str, &nprobes_str
+		, &source, &waittime_str, &pausemsecs_str, &first_ttl_str
 #if ENABLE_FEATURE_TRACEROUTE_SOURCE_ROUTE
-	, &sourse_route_list
+		, &sourse_route_list
 #endif
 	);
 
-	if (op & USAGE_OP_DONT_FRAGMNT)
+	if (op & OPT_DONT_FRAGMNT)
 		off = IP_DF;
-#if ENABLE_FEATURE_TRACEROUTE_USE_ICMP
-	useicmp = op & USAGE_OP_USE_ICMP;
-#endif
-	nflag = op & USAGE_OP_ADDR_NUM;
-#if ENABLE_FEATURE_TRACEROUTE_VERBOSE
-	verbose = op &  USAGE_OP_VERBOSE;
-#endif
-	if (op & USAGE_OP_IP_CHKSUM) {
+	if (op & OPT_IP_CHKSUM) {
 		doipcksum = 0;
 		bb_error_msg("warning: ip checksums disabled");
 	}
-	if (tos_str)
-		tos = xatoul_range(tos_str, 0, 255);
-	if (max_ttl_str)
-		max_ttl = xatoul_range(max_ttl_str, 1, 255);
-	if (port_str)
+	if (op & OPT_TOS)
+		tos = xatou_range(tos_str, 0, 255);
+	if (op & OPT_MAX_TTL)
+		max_ttl = xatou_range(max_ttl_str, 1, 255);
+	if (op & OPT_PORT)
 		port = xatou16(port_str);
-	if (nprobes_str)
-		nprobes = xatoul_range(nprobes_str, 1, INT_MAX);
-	if (source) {
+	if (op & OPT_NPROBES)
+		nprobes = xatou_range(nprobes_str, 1, INT_MAX);
+	if (op & OPT_SOURCE) {
 		/*
 		 * set the ip source address of the outbound
 		 * probe (e.g., on a multi-homed host).
 		 */
-		if (getuid()) bb_error_msg_and_die("-s %s: permission denied", source);
+		if (getuid())
+			bb_error_msg_and_die("-s %s: permission denied", source);
 	}
-	if (waittime_str)
-		waittime = xatoul_range(waittime_str, 2, 24 * 60 * 60);
-	if (pausemsecs_str)
-		pausemsecs = xatoul_range(pausemsecs_str, 0, 60 * 60 * 1000);
-	if (first_ttl_str)
-		first_ttl = xatoul_range(first_ttl_str, 1, 255);
+	if (op & OPT_WAITTIME)
+		waittime = xatou_range(waittime_str, 2, 24 * 60 * 60);
+	if (op & OPT_PAUSE_MS)
+		pausemsecs = xatou_range(pausemsecs_str, 0, 60 * 60 * 1000);
+	if (op & OPT_FIRST_TTL)
+		first_ttl = xatou_range(first_ttl_str, 1, 255);
 
 #if ENABLE_FEATURE_TRACEROUTE_SOURCE_ROUTE
 	if (sourse_route_list) {
 		llist_t *l_sr;
 
-		for (l_sr = sourse_route_list; l_sr; ) {
+		l_sr = sourse_route_list;
+		while (l_sr) {
 			if (lsrr >= NGATEWAYS)
 				bb_error_msg_and_die("no more than %d gateways", NGATEWAYS);
 			getaddr(gwlist + lsrr, l_sr->data);
@@ -1046,11 +1064,11 @@ int traceroute_main(int argc, char *argv[])
 	s = xsocket(AF_INET, SOCK_RAW, IPPROTO_ICMP);
 
 #if TRACEROUTE_SO_DEBUG
-	if (op & USAGE_OP_DEBUG)
+	if (op & OPT_DEBUG)
 		setsockopt(s, SOL_SOCKET, SO_DEBUG,
 				&const_int_1, sizeof(const_int_1));
 #endif
-	if (op & USAGE_OP_BYPASS_ROUTE)
+	if (op & OPT_BYPASS_ROUTE)
 		setsockopt(s, SOL_SOCKET, SO_DONTROUTE,
 				&const_int_1, sizeof(const_int_1));
 
@@ -1102,11 +1120,11 @@ int traceroute_main(int argc, char *argv[])
 #endif
 #endif
 #if TRACEROUTE_SO_DEBUG
-	if (op & USAGE_OP_DEBUG)
+	if (op & OPT_DEBUG)
 		setsockopt(sndsock, SOL_SOCKET, SO_DEBUG,
 				&const_int_1, sizeof(const_int_1));
 #endif
-	if (op & USAGE_OP_BYPASS_ROUTE)
+	if (op & OPT_BYPASS_ROUTE)
 		setsockopt(sndsock, SOL_SOCKET, SO_DONTROUTE,
 				&const_int_1, sizeof(const_int_1));
 
@@ -1147,22 +1165,21 @@ int traceroute_main(int argc, char *argv[])
 	n = ifaddrlist(&al);
 
 	/* Look for a specific device */
-	if (device != NULL) {
+	if (op & OPT_DEVICE) {
 		for (i = n; i > 0; --i, ++al)
 			if (strcmp(device, al->device) == 0)
-				break;
-		if (i <= 0) {
-			bb_error_msg_and_die("can't find interface %s", device);
-		}
+				goto found_dev;
+		bb_error_msg_and_die("can't find interface %s", device);
 	}
+ found_dev:
 
 	/* Determine our source address */
-	if (source == NULL) {
+	if (!(op & OPT_SOURCE)) {
 		/*
 		 * If a device was specified, use the interface address.
 		 * Otherwise, try to determine our source address.
 		 */
-		if (device != NULL)
+		if (op & OPT_DEVICE)
 			setsin(from, al->addr);
 		findsaddr(to, from);
 	} else {
@@ -1175,21 +1192,19 @@ int traceroute_main(int argc, char *argv[])
 		 * Otherwise, use the first address (and warn if
 		 * there are more than one).
 		 */
-		if (device != NULL) {
+		if (op & OPT_DEVICE) {
 			for (i = hi->n, ap = hi->addrs; i > 0; --i, ++ap)
 				if (*ap == al->addr)
-					break;
-			if (i <= 0) {
-				bb_error_msg_and_die(
-				    "%s is not on interface %s",
-				    source, device);
-			}
+					goto found_dev2;
+			bb_error_msg_and_die("%s is not on interface %s",
+					source, device);
+ found_dev2:
 			setsin(from, *ap);
 		} else {
 			setsin(from, hi->addrs[0]);
 			if (hi->n > 1)
 				bb_error_msg(
-			"Warning: %s has multiple addresses; using %s",
+			"warning: %s has multiple addresses; using %s",
 				    source, inet_ntoa(from->sin_addr));
 		}
 		freehostinfo(hi);
@@ -1200,11 +1215,11 @@ int traceroute_main(int argc, char *argv[])
 	xbind(sndsock, (struct sockaddr *)from, sizeof(*from));
 #endif
 
-	fprintf(stderr, "traceroute to %s (%s)", hostname, inet_ntoa(to->sin_addr));
-	if (source)
-		fprintf(stderr, " from %s", source);
-	fprintf(stderr, ", %d hops max, %d byte packets\n", max_ttl, packlen);
-	(void)fflush(stderr);
+	printf("traceroute to %s (%s)", hostname, inet_ntoa(to->sin_addr));
+	if (op & OPT_SOURCE)
+		printf(" from %s", source);
+	printf(", %d hops max, %d byte packets\n", max_ttl, packlen);
+	fflush(stdout);
 
 	for (ttl = first_ttl; ttl <= max_ttl; ++ttl) {
 		uint32_t lastaddr = 0;
@@ -1239,7 +1254,7 @@ int traceroute_main(int argc, char *argv[])
 				}
 				printf("  %.3f ms", deltaT(&t1, &t2));
 				ip = (struct ip *)packet;
-				if (op & USAGE_OP_TTL_FLAG)
+				if (op & OPT_TTL_FLAG)
 					printf(" (%d)", ip->ip_ttl);
 				if (i == -2) {
 					if (ip->ip_ttl <= 1)
