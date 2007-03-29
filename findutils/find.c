@@ -336,13 +336,81 @@ static const char* plus_minus_num(const char* str)
 }
 #endif
 
+#define PARM_a 0
+#define PARM_o 1
+#define PARM_char_not (PARM_o + ENABLE_FEATURE_FIND_NOT)
+#define PARM_print (PARM_char_not + 1)
+#define PARM_print0 (PARM_print + ENABLE_FEATURE_FIND_PRINT0)
+#define PARM_name (PARM_print0 + 1)
+#define PARM_type (PARM_name + ENABLE_FEATURE_FIND_TYPE)
+#define PARM_perm (PARM_type + ENABLE_FEATURE_FIND_PERM)
+#define PARM_mtime (PARM_perm + ENABLE_FEATURE_FIND_MTIME)
+#define PARM_mmin (PARM_mtime + ENABLE_FEATURE_FIND_MMIN)
+#define PARM_newer (PARM_mmin + ENABLE_FEATURE_FIND_NEWER)
+#define PARM_inum (PARM_newer + ENABLE_FEATURE_FIND_INUM)
+#define PARM_exec (PARM_inum + ENABLE_FEATURE_FIND_EXEC)
+#define PARM_user (PARM_exec + ENABLE_FEATURE_FIND_USER)
+#if ENABLE_DESKTOP
+#define PARM_and (PARM_user + 1)
+#define PARM_or (PARM_and + 1)
+#define PARM_not (PARM_or + ENABLE_FEATURE_FIND_NOT)
+#define PARM_char_brace (PARM_not + 1)
+#define PARM_prune (PARM_char_brace + 1)
+#define PARM_size (PARM_prune + 1)
+#endif
 static action*** parse_params(char **argv)
 {
 	action*** appp;
 	unsigned cur_group = 0;
 	unsigned cur_action = 0;
 	USE_FEATURE_FIND_NOT( bool invert_flag = 0; )
-
+	const char * const params[] = {
+		"-a",
+		"-o",
+#if ENABLE_FEATURE_FIND_NOT
+		"!",
+#endif
+		"-print",
+#if ENABLE_FEATURE_FIND_PRINT0
+		"-print0",
+#endif
+		"-name",
+#if ENABLE_FEATURE_FIND_TYPE
+		"-type",
+#endif
+#if ENABLE_FEATURE_FIND_PERM
+		"-perm",
+#endif
+#if ENABLE_FEATURE_FIND_MTIME
+		"-mtime",
+#endif
+#if ENABLE_FEATURE_FIND_MMIN
+		"-mmin",
+#endif
+#if ENABLE_FEATURE_FIND_NEWER
+		"-newer",
+#endif
+#if ENABLE_FEATURE_FIND_INUM
+		"-inum",
+#endif
+#if ENABLE_FEATURE_FIND_EXEC
+		"-exec",
+#endif
+#if ENABLE_FEATURE_FIND_USER
+		"-user",
+#endif
+#if ENABLE_DESKTOP
+		"-and",
+		"-or",
+#	if ENABLE_FEATURE_FIND_NOT
+		"-not",
+#	endif
+		"(",
+		"-prune",
+		"-size",
+#endif
+		NULL
+	};
 	action* alloc_action(int sizeof_struct, action_fp f)
 	{
 		action *ap;
@@ -358,33 +426,31 @@ static action*** parse_params(char **argv)
 
 	appp = xzalloc(2 * sizeof(appp[0])); /* appp[0],[1] == NULL */
 
-// Actions have side effects and return a true or false value
-// We implement: -print, -print0, -exec
-
-// The rest are tests.
-
-// Tests and actions are grouped by operators
-// ( expr )              Force precedence
-// ! expr                True if expr is false
-// -not expr             Same as ! expr
-// expr1 [-a[nd]] expr2  And; expr2 is not evaluated if expr1 is false
-// expr1 -o[r] expr2     Or; expr2 is not evaluated if expr1 is true
-// expr1 , expr2         List; both expr1 and expr2 are always evaluated
-// We implement: (), -a, -o
-
-//XXX: TODO: Use index_in_str_array here
+/* Actions have side effects and return a true or false value
+ * We implement: -print, -print0, -exec
+ *
+ * The rest are tests.
+ *
+ * Tests and actions are grouped by operators
+ * ( expr )              Force precedence
+ * ! expr                True if expr is false
+ * -not expr             Same as ! expr
+ * expr1 [-a[nd]] expr2  And; expr2 is not evaluated if expr1 is false
+ * expr1 -o[r] expr2     Or; expr2 is not evaluated if expr1 is true
+ * expr1 , expr2         List; both expr1 and expr2 are always evaluated
+ * We implement: (), -a, -o
+ */
 	while (*argv) {
 		const char *arg = argv[0];
 		const char *arg1 = argv[1];
+		int parm = index_in_str_array(params, arg);
 	/* --- Operators --- */
-		if (strcmp(arg, "-a") == 0
-		    USE_DESKTOP(|| strcmp(arg, "-and") == 0)
-		) {
+		if (parm == PARM_a USE_DESKTOP(|| parm == PARM_and))
+		{
 			/* no further special handling required */
 		}
-		else if (strcmp(arg, "-o") == 0
-		         USE_DESKTOP(|| strcmp(arg, "-or") == 0)
-		) {
+		else if (parm == PARM_o USE_DESKTOP(|| parm == PARM_or))
+		{
 			/* start new OR group */
 			cur_group++;
 			appp = xrealloc(appp, (cur_group+2) * sizeof(*appp));
@@ -393,29 +459,31 @@ static action*** parse_params(char **argv)
 			cur_action = 0;
 		}
 #if ENABLE_FEATURE_FIND_NOT
-		else if (LONE_CHAR(arg, '!')
-		         USE_DESKTOP(|| strcmp(arg, "-not") == 0)
-		) {
+		else if (parm == PARM_char_not USE_DESKTOP(|| parm == PARM_not))
+		{
 			/* also handles "find ! ! -name 'foo*'" */
 			invert_flag ^= 1;
 		}
 #endif
 
 	/* --- Tests and actions --- */
-		else if (strcmp(arg, "-print") == 0) {
+		else if (parm == PARM_print)
+		{
 			need_print = 0;
 			/* GNU find ignores '!' here: "find ! -print" */
 			USE_FEATURE_FIND_NOT( invert_flag = 0; )
 			(void) ALLOC_ACTION(print);
 		}
 #if ENABLE_FEATURE_FIND_PRINT0
-		else if (strcmp(arg, "-print0") == 0) {
+		else if (parm == PARM_print0)
+		{
 			need_print = 0;
 			USE_FEATURE_FIND_NOT( invert_flag = 0; )
 			(void) ALLOC_ACTION(print0);
 		}
 #endif
-		else if (strcmp(arg, "-name") == 0) {
+		else if (parm == PARM_name)
+		{
 			action_name *ap;
 			if (!*++argv)
 				bb_error_msg_and_die(bb_msg_requires_arg, arg);
@@ -423,7 +491,8 @@ static action*** parse_params(char **argv)
 			ap->pattern = arg1;
 		}
 #if ENABLE_FEATURE_FIND_TYPE
-		else if (strcmp(arg, "-type") == 0) {
+		else if (parm == PARM_type)
+		{
 			action_type *ap;
 			if (!*++argv)
 				bb_error_msg_and_die(bb_msg_requires_arg, arg);
@@ -438,7 +507,8 @@ static action*** parse_params(char **argv)
  * -perm -mode  All of the permission bits mode are set for the file.
  * -perm +mode  Any of the permission bits mode are set for the file.
  */
-		else if (strcmp(arg, "-perm") == 0) {
+		else if (parm == PARM_perm)
+		{
 			action_perm *ap;
 			if (!*++argv)
 				bb_error_msg_and_die(bb_msg_requires_arg, arg);
@@ -451,7 +521,8 @@ static action*** parse_params(char **argv)
 		}
 #endif
 #if ENABLE_FEATURE_FIND_MTIME
-		else if (strcmp(arg, "-mtime") == 0) {
+		else if (parm == PARM_mtime)
+		{
 			action_mtime *ap;
 			if (!*++argv)
 				bb_error_msg_and_die(bb_msg_requires_arg, arg);
@@ -461,7 +532,8 @@ static action*** parse_params(char **argv)
 		}
 #endif
 #if ENABLE_FEATURE_FIND_MMIN
-		else if (strcmp(arg, "-mmin") == 0) {
+		else if (parm == PARM_mmin)
+		{
 			action_mmin *ap;
 			if (!*++argv)
 				bb_error_msg_and_die(bb_msg_requires_arg, arg);
@@ -471,7 +543,8 @@ static action*** parse_params(char **argv)
 		}
 #endif
 #if ENABLE_FEATURE_FIND_NEWER
-		else if (strcmp(arg, "-newer") == 0) {
+		else if (parm == PARM_newer)
+		{
 			action_newer *ap;
 			struct stat stat_newer;
 			if (!*++argv)
@@ -482,7 +555,8 @@ static action*** parse_params(char **argv)
 		}
 #endif
 #if ENABLE_FEATURE_FIND_INUM
-		else if (strcmp(arg, "-inum") == 0) {
+		else if (parm == PARM_inum)
+		{
 			action_inum *ap;
 			if (!*++argv)
 				bb_error_msg_and_die(bb_msg_requires_arg, arg);
@@ -491,7 +565,8 @@ static action*** parse_params(char **argv)
 		}
 #endif
 #if ENABLE_FEATURE_FIND_EXEC
-		else if (strcmp(arg, "-exec") == 0) {
+		else if (parm == PARM_exec)
+		{
 			int i;
 			action_exec *ap;
 			need_print = 0;
@@ -516,7 +591,8 @@ static action*** parse_params(char **argv)
 		}
 #endif
 #if ENABLE_FEATURE_FIND_USER
-		else if (strcmp(arg, "-user") == 0) {
+		else if (parm == PARM_user)
+		{
 			action_user *ap;
 			if (!*++argv)
 				bb_error_msg_and_die(bb_msg_requires_arg, arg);
@@ -527,7 +603,8 @@ static action*** parse_params(char **argv)
 		}
 #endif
 #if ENABLE_DESKTOP
-		else if (LONE_CHAR(arg, '(')) {
+		else if (parm == PARM_char_brace)
+		{
 			action_paren *ap;
 			char **endarg;
 			unsigned nested = 1;
@@ -548,11 +625,13 @@ static action*** parse_params(char **argv)
 			*endarg = (char*) ")"; /* restore NULLed parameter */
 			argv = endarg;
 		}
-		else if (strcmp(arg, "-prune") == 0) {
+		else if (parm == PARM_prune)
+		{
 			USE_FEATURE_FIND_NOT( invert_flag = 0; )
 			(void) ALLOC_ACTION(prune);
 		}
-		else if (strcmp(arg, "-size") == 0) {
+		else if (parm == PARM_size)
+		{
 			action_size *ap;
 			if (!*++argv)
 				bb_error_msg_and_die(bb_msg_requires_arg, arg);
@@ -564,7 +643,6 @@ static action*** parse_params(char **argv)
 			bb_show_usage();
 		argv++;
 	}
-
 	return appp;
 #undef ALLOC_ACTION
 }
