@@ -295,31 +295,22 @@ static int find_type(const char *type)
 {
 	int mask = 0;
 
-	switch (type[0]) {
-	case 'b':
+	if (*type == 'b')
 		mask = S_IFBLK;
-		break;
-	case 'c':
+	else if (*type == 'c')
 		mask = S_IFCHR;
-		break;
-	case 'd':
+	else if (*type == 'd')
 		mask = S_IFDIR;
-		break;
-	case 'p':
+	else if (*type == 'p')
 		mask = S_IFIFO;
-		break;
-	case 'f':
+	else if (*type == 'f')
 		mask = S_IFREG;
-		break;
-	case 'l':
+	else if (*type == 'l')
 		mask = S_IFLNK;
-		break;
-	case 's':
+	else if (*type == 's')
 		mask = S_IFSOCK;
-		break;
-	}
 
-	if (mask == 0 || type[1] != '\0')
+	if (mask == 0 || *(type + 1) != '\0')
 		bb_error_msg_and_die(bb_msg_invalid_arg, type, "-type");
 
 	return mask;
