@@ -92,13 +92,12 @@ int chown_main(int argc, char **argv)
 		}
 
 		if (!recursive_action(arg,
-				OPT_RECURSE,    // recurse
-				OPT_TRAVERSE,   // follow links if -L
-				FALSE,          // depth first
-				fileAction,     // file action
-				fileAction,     // dir action
-				chown_func,     // user data
-				0)              // depth
+				(OPT_RECURSE ? action_recurse : 0 | /* recurse */
+				 OPT_TRAVERSE ? action_followLinks : 0),/* follow links if -L */
+				fileAction,     /* file action */
+				fileAction,     /* dir action */
+				chown_func,     /* user data */
+				0)              /* depth */
 		) {
 			retval = EXIT_FAILURE;
 		}

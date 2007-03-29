@@ -336,9 +336,9 @@ static int grep_dir(const char *dir)
 {
 	int matched = 0;
 	recursive_action(dir,
-		/* recurse= */ 1,
-		/* followLinks= */ 0,
-		/* depthFirst= */ 1,
+		/* recurse= */ action_recurse |
+		/* followLinks= */ /* no. 0 | */
+		/* depthFirst= */ action_depthFirst,
 		/* fileAction= */ file_action_grep,
 		/* dirAction= */ NULL,
 		/* userData= */ &matched,

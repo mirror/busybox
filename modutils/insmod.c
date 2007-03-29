@@ -4044,7 +4044,7 @@ int insmod_main( int argc, char **argv)
 				module_dir = tmdn;
 			else
 				module_dir = real_module_dir;
-			recursive_action(module_dir, TRUE, FALSE, FALSE,
+			recursive_action(module_dir, action_recurse,
 					check_module_name_match, 0, m_fullName, 0);
 			free(tmdn);
 		}
@@ -4059,7 +4059,7 @@ int insmod_main( int argc, char **argv)
 				strcpy(module_dir, _PATH_MODULES);
 			/* No module found under /lib/modules/`uname -r`, this
 			 * time cast the net a bit wider.  Search /lib/modules/ */
-			if (!recursive_action(module_dir, TRUE, FALSE, FALSE,
+			if (!recursive_action(module_dir, action_recurse,
 						    check_module_name_match, 0, m_fullName, 0)
 			) {
 				if (m_filename == 0

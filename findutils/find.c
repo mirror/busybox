@@ -574,7 +574,7 @@ static action*** parse_params(char **argv)
 int find_main(int argc, char **argv);
 int find_main(int argc, char **argv)
 {
-	int dereference = FALSE;
+	bool dereference = FALSE;
 	char *arg;
 	char **argp;
 	int i, firstopt, status = EXIT_SUCCESS;
@@ -632,13 +632,11 @@ int find_main(int argc, char **argv)
 
 	for (i = 1; i < firstopt; i++) {
 		if (!recursive_action(argv[i],
-				TRUE,           // recurse
-				dereference,    // follow links
-				FALSE,          // depth first
-				fileAction,     // file action
-				fileAction,     // dir action
-				NULL,           // user data
-				0))             // depth
+				action_recurse|(1<<dereference), /* flags */
+				fileAction,     /* file action */
+				fileAction,     /* dir action */
+				NULL,           /* user data */
+				0))             /* depth */
 			status = EXIT_FAILURE;
 	}
 	return status;

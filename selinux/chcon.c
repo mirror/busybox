@@ -163,9 +163,7 @@ int chcon_main(int argc, char *argv[])
 		fname[fname_len] = '\0';
 
 		if (recursive_action(fname,
-				     option_mask32 & OPT_RECURSIVE,
-				     FALSE,	/* followLinks */
-				     FALSE,	/* depthFirst */
+				     1<<option_mask32 & OPT_RECURSIVE,
 				     change_filedir_context,
 				     change_filedir_context,
 				     NULL, 0) != TRUE)

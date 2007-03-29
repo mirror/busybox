@@ -101,8 +101,6 @@ int chmod_main(int argc, char **argv)
 	do {
 		if (!recursive_action(*argv,
 			OPT_RECURSE,    // recurse
-			FALSE,          // follow links: coreutils doesn't
-			FALSE,          // depth first
 			fileAction,     // file action
 			fileAction,     // dir action
 			smode,          // user data

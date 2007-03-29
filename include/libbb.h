@@ -231,11 +231,14 @@ extern const char *bb_mode_string(mode_t mode);
 extern int is_directory(const char *name, int followLinks, struct stat *statBuf);
 extern int remove_file(const char *path, int flags);
 extern int copy_file(const char *source, const char *dest, int flags);
-extern int recursive_action(const char *fileName, int recurse,
-	int followLinks, int depthFirst,
+#define action_recurse		(1<<0)
+#define action_followLinks	(1<<1)
+#define action_depthFirst	(1<<2)
+#define action_reverse		(1<<3)
+extern int recursive_action(const char *fileName, unsigned flags,
 	int (*fileAction) (const char *fileName, struct stat* statbuf, void* userData, int depth),
 	int (*dirAction) (const char *fileName, struct stat* statbuf, void* userData, int depth),
-	void* userData, int depth);
+	void* userData, const unsigned depth);
 extern int device_open(const char *device, int mode);
 extern int get_console_fd(void);
 extern char *find_block_device(const char *path);
