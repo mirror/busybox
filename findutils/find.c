@@ -646,6 +646,11 @@ int find_main(int argc, char **argv)
 	char *arg;
 	char **argp;
 	int i, firstopt, status = EXIT_SUCCESS;
+	const char * const options[] = {
+		"-follow",
+USE_FEATURE_FIND_XDEV( "-xdev", )
+		NULL
+	};
 
 	for (firstopt = 1; firstopt < argc; firstopt++) {
 		if (argv[firstopt][0] == '-')
@@ -672,12 +677,13 @@ int find_main(int argc, char **argv)
 	/* (-a will be ignored by recursive parser later) */
 	argp = &argv[firstopt];
 	while ((arg = argp[0])) {
-		if (strcmp(arg, "-follow") == 0) {
+		i = index_in_str_array(options, arg);
+		if (i == 0) { /* -follow */
 			dereference = TRUE;
 			argp[0] = (char*)"-a";
 		}
 #if ENABLE_FEATURE_FIND_XDEV
-		else if (strcmp(arg, "-xdev") == 0) {
+		else if (i == 1) { /* -xdev */
 			struct stat stbuf;
 			if (!xdev_count) {
 				xdev_count = firstopt - 1;
