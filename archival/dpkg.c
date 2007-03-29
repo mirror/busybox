@@ -1306,14 +1306,12 @@ static void remove_package(const unsigned package_num, int noisy)
 	char **exclude_files;
 	char list_name[package_name_length + 25];
 	char conffile_name[package_name_length + 30];
-	int return_value;
 
 	if (noisy)
 		printf("Removing %s (%s)...\n", package_name, package_version);
 
 	/* run prerm script */
-	return_value = run_package_script(package_name, "prerm");
-	if (return_value == -1) {
+	if (run_package_script(package_name, "prerm") != 0) {
 		bb_error_msg_and_die("script failed, prerm failure");
 	}
 
@@ -1381,8 +1379,8 @@ static void purge_package(const unsigned package_num)
 	free(exclude_files);
 
 	/* run postrm script */
-	if (run_package_script(package_name, "postrm") == -1) {
-		bb_error_msg_and_die("postrm fialure.. set status to what?");
+	if (run_package_script(package_name, "postrm") != 0) {
+		bb_error_msg_and_die("postrm failure.. set status to what?");
 	}
 
 	/* Change package status */
