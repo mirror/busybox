@@ -7,48 +7,40 @@
 #include "common.h"
 #include "dhcpd.h"
 
-
-#define REMAINING 0
-#define ABSOLUTE 1
-
 int dumpleases_main(int argc, char *argv[]);
 int dumpleases_main(int argc, char *argv[])
 {
-	int fp;
-	int i, c, mode = REMAINING;
-	unsigned long expires;
+	int fd;
+	int i;
+	unsigned opt;
+	time_t expires;
 	const char *file = LEASES_FILE;
 	struct dhcpOfferedAddr lease;
 	struct in_addr addr;
 
-	static const struct option options[] = {
-		{"absolute", 0, 0, 'a'},
-		{"remaining", 0, 0, 'r'},
-		{"file", 1, 0, 'f'},
-		{0, 0, 0, 0}
+	enum {
+		OPT_a	= 0x1,	// -a
+		OPT_r	= 0x2,	// -r
+		OPT_f	= 0x4,	// -f
 	};
+#if ENABLE_GETOPT_LONG	
+	static const struct option options[] = {
+		{ "absolute", no_argument, 0, 'a' },
+		{ "remaining", no_argument, 0, 'r' },
+		{ "file", required_argument, 0, 'f' },
+		{ NULL, 0, 0, 0 }
+	};
+	
+	applet_long_options = options;
+#endif
+	opt_complementary = "=0:?:a--r:r--a";
+	opt = getopt32(argc, argv, "arf:", &file);
 
-	while (1) {
-		int option_index = 0;
-		c = getopt_long(argc, argv, "arf:", options, &option_index);
-		if (c == -1) break;
+	fd = xopen(file, O_RDONLY);
 
-		switch (c) {
-		case 'a': mode = ABSOLUTE; break;
-		case 'r': mode = REMAINING; break;
-		case 'f':
-			file = optarg;
-			break;
-		default:
-			bb_show_usage();
-		}
-	}
-
-	fp = xopen(file, O_RDONLY);
-
-	printf("Mac Address       IP-Address      Expires %s\n", mode == REMAINING ? "in" : "at");
+	printf("Mac Address       IP-Address      Expires %s\n", (opt & OPT_a) ? "at" : "in");
 	/*     "00:00:00:00:00:00 255.255.255.255 Wed Jun 30 21:49:08 1993" */
-	while (full_read(fp, &lease, sizeof(lease)) == sizeof(lease)) {
+	while (full_read(fd, &lease, sizeof(lease)) == sizeof(lease)) {
 		printf(":%02x"+1, lease.chaddr[0]);
 		for (i = 1; i < 6; i++) {
 			printf(":%02x", lease.chaddr[i]);
@@ -56,9 +48,9 @@ int dumpleases_main(int argc, char *argv[])
 		addr.s_addr = lease.yiaddr;
 		printf(" %-15s ", inet_ntoa(addr));
 		expires = ntohl(lease.expires);
-		if (mode == REMAINING) {
+		if (!(opt & OPT_a)) { /* no -a */
 			if (!expires)
-				printf("expired\n");
+				puts("expired");
 			else {
 				unsigned d, h, m;
 				d = expires / (24*60*60); expires %= (24*60*60);
@@ -67,9 +59,10 @@ int dumpleases_main(int argc, char *argv[])
 				if (d) printf("%u days ", d);
 				printf("%02u:%02u:%02u\n", h, m, (unsigned)expires);
 			}
-		} else fputs(ctime(&expires), stdout);
+		} else /* -a */
+			fputs(ctime(&expires), stdout);
 	}
-	/* close(fp); */
+	/* close(fd); */
 
 	return 0;
 }
