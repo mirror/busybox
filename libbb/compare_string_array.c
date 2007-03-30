@@ -25,12 +25,11 @@ int index_in_substr_array(const char * const string_array[], const char *key)
 {
 	int i;
 	int len = strlen(key);
-	if (!len)
-		return -1;
-
-	for (i = 0; string_array[i] != 0; i++) {
-		if (strncmp(string_array[i], key, len) == 0) {
-			return i;
+	if (len) {
+		for (i = 0; string_array[i] != 0; i++) {
+			if (strncmp(string_array[i], key, len) == 0) {
+				return i;
+			}
 		}
 	}
 	return -1;

@@ -1,0 +1,4 @@
+echo testing | tr -d '[[:alnum:]]' > logfile.gnu
+echo testing | busybox tr -d '[[:alnum:]]' > logfile.bb
+
+diff -u logfile.gnu logfile.bb

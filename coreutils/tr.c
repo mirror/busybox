@@ -15,64 +15,61 @@
  *
  * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  */
-
+/* http://www.opengroup.org/onlinepubs/009695399/utilities/tr.html
+ * TODO: xdigit, graph, print
+ */
 #include "busybox.h"
-
-// Even with -funsigned-char, gcc still complains about char as an array index.
-
-#define GCC4_IS_STUPID int
 
 #define ASCII 0377
 
+#define TR_OPT_complement	(1<<0)
+#define TR_OPT_delete		(1<<1)
+#define TR_OPT_squeeze_reps	(1<<2)
 /* some "globals" shared across this file */
-static char com_fl, del_fl, sq_fl;
 /* these last are pointers to static buffers declared in tr_main */
 static char *poutput, *pvector, *pinvec, *poutvec;
 
-static void convert(void)
+static void ATTRIBUTE_NORETURN convert(const smalluint flags)
 {
-	int read_chars = 0, in_index = 0, out_index = 0, c, coded, last = -1;
+	size_t read_chars = 0, in_index = 0, out_index = 0, c, coded, last = -1;
 
 	for (;;) {
-		// If we're out of input, flush output and read more input.
-
+		/* If we're out of input, flush output and read more input. */
 		if (in_index == read_chars) {
 			if (out_index) {
-				if (write(1, (char *) poutput, out_index) != out_index)
-					bb_error_msg_and_die(bb_msg_write_error);
+				xwrite(STDOUT_FILENO, (char *)poutput, out_index);
 				out_index = 0;
 			}
-
-			if ((read_chars = read(0, bb_common_bufsiz1, BUFSIZ)) <= 0) {
-				if (write(1, (char *) poutput, out_index) != out_index)
-					bb_error_msg(bb_msg_write_error);
-				exit(0);
+			if ((read_chars = read(STDIN_FILENO, bb_common_bufsiz1, BUFSIZ)) <= 0) {
+				if (write(STDOUT_FILENO, (char *)poutput, out_index) != out_index)
+					bb_perror_msg(bb_msg_write_error);
+				exit(EXIT_SUCCESS);
 			}
 			in_index = 0;
 		}
 		c = bb_common_bufsiz1[in_index++];
 		coded = pvector[c];
-		if (del_fl && pinvec[c])
+		if ((flags & TR_OPT_delete) && pinvec[c])
 			continue;
-		if (sq_fl && last == coded && (pinvec[c] || poutvec[coded]))
+		if ((flags & TR_OPT_squeeze_reps) && last == coded &&
+			(pinvec[c] || poutvec[coded]))
 			continue;
 		poutput[out_index++] = last = coded;
 	}
-
 	/* NOTREACHED */
 }
 
-static void map(char *string1, unsigned int string1_len,
-		char *string2, unsigned int string2_len)
+static void map(unsigned char *string1, unsigned int string1_len,
+		unsigned char *string2, unsigned int string2_len)
 {
 	char last = '0';
 	unsigned int i, j;
 
 	for (j = 0, i = 0; i < string1_len; i++) {
 		if (string2_len <= j)
-			pvector[(GCC4_IS_STUPID)string1[i]] = last;
+			pvector[string1[i]] = last;
 		else
-			pvector[(GCC4_IS_STUPID)string1[i]] = last = string2[j++];
+			pvector[string1[i]] = last = string2[j++];
 	}
 }
 
@@ -84,15 +81,35 @@ static void map(char *string1, unsigned int string1_len,
 static unsigned int expand(const char *arg, char *buffer)
 {
 	char *buffer_start = buffer;
-	int i, ac;
-
+	unsigned i; /* XXX: FIXME: use unsigned char? */
+	unsigned char ac;
+#if ENABLE_FEATURE_TR_CLASSES
+#define CLO ":]"
+	const char * const classes[] = {
+		"alpha"CLO, "alnum"CLO, "digit"CLO, "lower"CLO, "upper"CLO, "space"CLO,
+		"blank"CLO, "punct"CLO, "cntrl"CLO, NULL
+	};
+#define CLASS_invalid 0 /* we increment the retval */
+#define CLASS_alpha 1
+#define CLASS_alnum 2
+#define CLASS_digit 3
+#define CLASS_lower 4
+#define CLASS_upper 5
+#define CLASS_space 6
+#define CLASS_blank 7
+#define CLASS_punct 8
+#define CLASS_cntrl 9
+//#define CLASS_xdigit 10
+//#define CLASS_graph 11
+//#define CLASS_print 12
+#endif
 	while (*arg) {
 		if (*arg == '\\') {
 			arg++;
 			*buffer++ = bb_process_escape_sequence(&arg);
 		} else if (*(arg+1) == '-') {
 			ac = *(arg+2);
-			if(ac == 0) {
+			if (ac == 0) {
 				*buffer++ = *arg++;
 				continue;
 			}
@@ -104,50 +121,42 @@ static unsigned int expand(const char *arg, char *buffer)
 			arg++;
 			i = *arg++;
 			if (ENABLE_FEATURE_TR_CLASSES && i == ':') {
-				if (strncmp(arg, "alpha", 5) == 0) {
-					for (i = 'A'; i <= 'Z'; i++)
-						*buffer++ = i;
-					for (i = 'a'; i <= 'z'; i++)
-						*buffer++ = i;
+				smalluint j;
+				{ /* not really pretty.. */
+				char *tmp = xstrndup(arg, 7); // warning: xdigit needs 8, not 7
+				j = index_in_str_array(classes, tmp) + 1;
+				free(tmp);
 				}
-				else if (strncmp(arg, "alnum", 5) == 0) {
+				if (j == CLASS_alnum || j == CLASS_digit) {
 					for (i = '0'; i <= '9'; i++)
 						*buffer++ = i;
+				}
+				if (j == CLASS_alpha || j == CLASS_alnum || j == CLASS_upper) {
 					for (i = 'A'; i <= 'Z'; i++)
 						*buffer++ = i;
+				}
+				if (j == CLASS_alpha || j == CLASS_alnum || j == CLASS_lower) {
 					for (i = 'a'; i <= 'z'; i++)
 						*buffer++ = i;
 				}
-				else if (strncmp(arg, "digit", 5) == 0)
-					for (i = '0'; i <= '9'; i++)
-						*buffer++ = i;
-				else if (strncmp(arg, "lower", 5) == 0)
-					for (i = 'a'; i <= 'z'; i++)
-						*buffer++ = i;
-				else if (strncmp(arg, "upper", 5) == 0)
-					for (i = 'A'; i <= 'Z'; i++)
-						*buffer++ = i;
-				else if (strncmp(arg, "space", 5) == 0) {
-					const char s[] = "\t\n\v\f\r ";
-					strcat((char*)buffer, s);
-					buffer += sizeof(s) - 1;
-				}
-				else if (strncmp(arg, "blank", 5) == 0) {
+				if (j == CLASS_space || j == CLASS_blank) {
 					*buffer++ = '\t';
+					if (j == CLASS_space) {
+						*buffer++ = '\n';
+						*buffer++ = '\v';
+						*buffer++ = '\f';
+						*buffer++ = '\r';
+					}
 					*buffer++ = ' ';
 				}
-				/* gcc gives a warning if braces aren't used here */
-				else if (strncmp(arg, "punct", 5) == 0) {
+				if (j == CLASS_punct || j == CLASS_cntrl) {
 					for (i = 0; i <= ASCII; i++)
-						if (isprint(i) && (!isalnum(i)) && (!isspace(i)))
+						if ((j == CLASS_punct &&
+							 isprint(i) && (!isalnum(i)) && (!isspace(i))) ||
+							(j == CLASS_cntrl && iscntrl(i)))
 							*buffer++ = i;
 				}
-				else if (strncmp(arg, "cntrl", 5) == 0) {
-					for (i = 0; i <= ASCII; i++)
-						if (iscntrl(i))
-							*buffer++ = i;
-				}
-				else {
+				if (j == CLASS_invalid) {
 					*buffer++ = '[';
 					*buffer++ = ':';
 					continue;
@@ -156,8 +165,7 @@ static unsigned int expand(const char *arg, char *buffer)
 			}
 			if (ENABLE_FEATURE_TR_EQUIV && i == '=') {
 				*buffer++ = *arg;
-				/* skip the closing =] */
-				arg += 3;
+				arg += 3;	/* Skip the closing =] */
 				continue;
 			}
 			if (*arg++ != '-') {
@@ -168,11 +176,10 @@ static unsigned int expand(const char *arg, char *buffer)
 			ac = *arg++;
 			while (i <= ac)
 				*buffer++ = i++;
-			arg++;				/* Skip the assumed ']' */
+			arg++;	/* Skip the assumed ']' */
 		} else
 			*buffer++ = *arg++;
 	}
-
 	return (buffer - buffer_start);
 }
 
@@ -197,10 +204,11 @@ int tr_main(int argc, char **argv);
 int tr_main(int argc, char **argv)
 {
 	unsigned char *ptr;
-	int output_length=0, input_length;
+	int output_length = 0, input_length;
 	int idx = 1;
 	int i;
-	RESERVE_CONFIG_BUFFER(output, BUFSIZ);
+	smalluint flags = 0;
+	RESERVE_CONFIG_UBUFFER(output, BUFSIZ);
 	RESERVE_CONFIG_BUFFER(vector, ASCII+1);
 	RESERVE_CONFIG_BUFFER(invec,  ASCII+1);
 	RESERVE_CONFIG_BUFFER(outvec, ASCII+1);
@@ -213,19 +221,14 @@ int tr_main(int argc, char **argv)
 
 	if (argc > 1 && argv[idx][0] == '-') {
 		for (ptr = (unsigned char *) &argv[idx][1]; *ptr; ptr++) {
-			switch (*ptr) {
-			case 'c':
-				com_fl = TRUE;
-				break;
-			case 'd':
-				del_fl = TRUE;
-				break;
-			case 's':
-				sq_fl = TRUE;
-				break;
-			default:
+			if (*ptr == 'c')
+				flags |= TR_OPT_complement;
+			else if (*ptr == 'd')
+				flags |= TR_OPT_delete;
+			else if (*ptr == 's')
+				flags |= TR_OPT_squeeze_reps;
+			else
 				bb_show_usage();
-			}
 		}
 		idx++;
 	}
@@ -236,7 +239,7 @@ int tr_main(int argc, char **argv)
 
 	if (argv[idx] != NULL) {
 		input_length = expand(argv[idx++], bb_common_bufsiz1);
-		if (com_fl)
+		if (flags & TR_OPT_complement)
 			input_length = complement(bb_common_bufsiz1, input_length);
 		if (argv[idx] != NULL) {
 			if (*argv[idx] == '\0')
@@ -245,10 +248,10 @@ int tr_main(int argc, char **argv)
 			map(bb_common_bufsiz1, input_length, output, output_length);
 		}
 		for (i = 0; i < input_length; i++)
-			invec[(GCC4_IS_STUPID)bb_common_bufsiz1[i]] = TRUE;
+			invec[(unsigned char)bb_common_bufsiz1[i]] = TRUE;
 		for (i = 0; i < output_length; i++)
-			outvec[(GCC4_IS_STUPID)output[i]] = TRUE;
+			outvec[output[i]] = TRUE;
 	}
-	convert();
-	return 0;
+	convert(flags);
+	return EXIT_SUCCESS;
 }

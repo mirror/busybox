@@ -17,8 +17,10 @@ tr_test ()
 	run_tr " 	"	'[:blank:]' 	12
 	run_tr 'a b'		'[= =]' 	X
 	run_tr "[:"		'[:' 		ab
+	run_tr " 	.,:"	'[:punct:]'	12
+	run_tr " 	.,:"	'[:cntrl:]'	12
 }
 
 bb=        tr_test > logfile.gnu
 bb=busybox tr_test > logfile.bb
-cmp logfile.gnu logfile.bb
+diff -u logfile.gnu logfile.bb
