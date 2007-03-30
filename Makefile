@@ -302,6 +302,8 @@ AFLAGS_KERNEL	=
 CFLAGS		:= $(CFLAGS)
 CPPFLAGS	:= $(CPPFLAGS)
 AFLAGS		:= $(AFLAGS)
+LDFLAGS		:= $(LDFLAGS)
+LDLIBS		:=
 
 # Read KERNELRELEASE from .kernelrelease (if it exists)
 KERNELRELEASE = $(shell cat .kernelrelease 2> /dev/null)
@@ -565,7 +567,8 @@ quiet_cmd_busybox__ ?= LINK    $@
       cmd_busybox__ ?= $(srctree)/scripts/trylink $(CC) $(LDFLAGS) \
       -o $@ -Wl,-M \
       -Wl,--warn-common -Wl,--sort-common -Wl,--gc-sections \
-      -Wl,--start-group $(busybox-all) -Wl,--end-group
+      -Wl,--start-group $(busybox-all) -Wl,--end-group \
+      $(LDLIBS)
 
 # Generate System.map
 quiet_cmd_sysmap = SYSMAP

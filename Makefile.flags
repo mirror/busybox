@@ -56,15 +56,15 @@ LDFLAGS += -static
 endif
 
 ifeq ($(CONFIG_SELINUX),y)
-LDFLAGS += -lselinux -lsepol
+LDLIBS += -lselinux -lsepol
 endif
 
 ifeq ($(CONFIG_EFENCE),y)
-LDFLAGS += -lefence
+LDLIBS += -lefence
 endif
 
 ifeq ($(CONFIG_DMALLOC),y)
-LDFLAGS += -ldmalloc
+LDLIBS += -ldmalloc
 endif
 
 #LDFLAGS += -nostdlib
