@@ -83,7 +83,6 @@ static unsigned int expand(const char *arg, char *buffer)
 	char *buffer_start = buffer;
 	unsigned i; /* XXX: FIXME: use unsigned char? */
 	unsigned char ac;
-#if ENABLE_FEATURE_TR_CLASSES
 #define CLO ":]"
 	const char * const classes[] = {
 		"alpha"CLO, "alnum"CLO, "digit"CLO, "lower"CLO, "upper"CLO, "space"CLO,
@@ -102,7 +101,6 @@ static unsigned int expand(const char *arg, char *buffer)
 //#define CLASS_xdigit 10
 //#define CLASS_graph 11
 //#define CLASS_print 12
-#endif
 	while (*arg) {
 		if (*arg == '\\') {
 			arg++;
