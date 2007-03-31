@@ -52,10 +52,10 @@ CFLAGS += $(call cc-option,-g)
 endif
 
 ifeq ($(CONFIG_STATIC),y)
-LDFLAGS += -static
+LDLIBS += -static
 endif
 
 ifeq ($(CONFIG_SELINUX),y)
-LDFLAGS += -lselinux -lsepol
+LDLIBS += -lselinux -lsepol
 endif
 #LDFLAGS += -nostdlib
