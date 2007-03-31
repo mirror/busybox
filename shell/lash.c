@@ -114,7 +114,7 @@ static int builtin_read(struct child_prog *cmd);
 /* function prototypes for shell stuff */
 static void checkjobs(struct jobset *job_list);
 static void remove_job(struct jobset *j_list, struct job *job);
-static int get_command(FILE * source, char *command);
+static int get_command_bufsiz(FILE * source, char *command);
 static int parse_command(char **command_ptr, struct job *job, int *inbg);
 static int run_command(struct job *newjob, int inbg, int outpipe[2]);
 static int pseudo_exec(struct child_prog *cmd) ATTRIBUTE_NORETURN;
@@ -649,15 +649,14 @@ static inline const char* setup_prompt_string(void)
 static line_input_t *line_input_state;
 #endif
 
-static int get_command(FILE * source, char *command)
+static int get_command_bufsiz(FILE * source, char *command)
 {
 	const char *prompt_str;
 
 	if (source == NULL) {
 		if (local_pending_command) {
 			/* a command specified (-c option): return it & mark it done */
-			strcpy(command, local_pending_command);
-			free(local_pending_command);
+			strncpy(command, local_pending_command, BUFSIZ);
 			local_pending_command = NULL;
 			return 0;
 		}
@@ -1363,12 +1362,12 @@ static int busy_loop(FILE * input)
 			checkjobs(&job_list);
 
 			if (!next_command) {
-				if (get_command(input, command))
+				if (get_command_bufsiz(input, command))
 					break;
 				next_command = command;
 			}
 
-			if (! expand_arguments(next_command)) {
+			if (!expand_arguments(next_command)) {
 				free(command);
 				command = xzalloc(BUFSIZ);
 				next_command = NULL;
@@ -1455,8 +1454,6 @@ static void free_memory(void)
 	if (cwd && cwd != bb_msg_unknown) {
 		free((char*)cwd);
 	}
-	if (local_pending_command)
-		free(local_pending_command);
 
 	if (job_list.fg && !job_list.fg->running_progs) {
 		remove_job(&job_list, job_list.fg);
@@ -1538,7 +1535,7 @@ int lash_main(int argc_l, char **argv_l)
 
 	opt = getopt32(argc_l, argv_l, "+ic:", &local_pending_command);
 #define LASH_OPT_i (1<<0)
-#define LASH_OPT_c (1<<2)
+#define LASH_OPT_c (1<<1)
 	if (opt & LASH_OPT_c) {
 		input = NULL;
 		optind++;
