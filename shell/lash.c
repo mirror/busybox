@@ -29,12 +29,14 @@
 /* Always enable for the moment... */
 #define CONFIG_LASH_PIPE_N_REDIRECTS
 #define CONFIG_LASH_JOB_CONTROL
+#define ENABLE_LASH_PIPE_N_REDIRECTS 1
+#define ENABLE_LASH_JOB_CONTROL      1
 
 enum { MAX_READ = 128 }; /* size of input buffer for 'read' builtin */
 #define JOB_STATUS_FORMAT "[%d] %-22s %.40s\n"
 
 
-#ifdef CONFIG_LASH_PIPE_N_REDIRECTS
+#if ENABLE_LASH_PIPE_N_REDIRECTS
 enum redir_type { REDIRECT_INPUT, REDIRECT_OVERWRITE,
 	REDIRECT_APPEND
 };
@@ -51,7 +53,7 @@ enum {
 #define LASH_OPT_DONE (1)
 #define LASH_OPT_SAW_QUOTE (2)
 
-#ifdef CONFIG_LASH_PIPE_N_REDIRECTS
+#if ENABLE_LASH_PIPE_N_REDIRECTS
 struct redir_struct {
 	enum redir_type type;	/* type of redirection */
 	int fd;						/* file descriptor being redirected */
@@ -65,7 +67,7 @@ struct child_prog {
 	int num_redirects;			/* elements in redirection array */
 	int is_stopped;				/* is the program currently running? */
 	struct job *family;			/* pointer back to the child's parent job */
-#ifdef CONFIG_LASH_PIPE_N_REDIRECTS
+#if ENABLE_LASH_PIPE_N_REDIRECTS
 	struct redir_struct *redirects;	/* I/O redirects */
 #endif
 };
@@ -229,7 +231,8 @@ static int builtin_exec(struct child_prog *child)
 	if (child->argv[1] == NULL)
 		return EXIT_SUCCESS;   /* Really? */
 	child->argv++;
-	while(close_me_list) close((long)llist_pop(&close_me_list));
+	while (close_me_list)
+		close((long)llist_pop(&close_me_list));
 	pseudo_exec(child);
 	/* never returns */
 }
@@ -247,7 +250,7 @@ static int builtin_exit(struct child_prog *child)
 static int builtin_fg_bg(struct child_prog *child)
 {
 	int i, jobnum;
-	struct job *job=NULL;
+	struct job *job = NULL;
 
 	/* If they gave us no args, assume they want the last backgrounded task */
 	if (!child->argv[1]) {
@@ -289,7 +292,8 @@ static int builtin_fg_bg(struct child_prog *child)
 
 	job->stopped_progs = 0;
 
-	if ( (i=kill(- job->pgrp, SIGCONT)) < 0) {
+	i = kill(- job->pgrp, SIGCONT);
+	if (i < 0) {
 		if (i == ESRCH) {
 			remove_job(&job_list, job);
 		} else {
@@ -365,16 +369,16 @@ static int builtin_export(struct child_prog *child)
 	res = putenv(v);
 	if (res)
 		bb_perror_msg("export");
-#ifdef CONFIG_FEATURE_EDITING_FANCY_PROMPT
-	if (strncmp(v, "PS1=", 4)==0)
+#if ENABLE_FEATURE_EDITING_FANCY_PROMPT
+	if (strncmp(v, "PS1=", 4) == 0)
 		PS1 = getenv("PS1");
 #endif
 
-#ifdef CONFIG_LOCALE_SUPPORT
+#if ENABLE_LOCALE_SUPPORT
 	// TODO: why getenv? "" would be just as good...
-	if(strncmp(v, "LC_ALL=", 7)==0)
+	if (strncmp(v, "LC_ALL=", 7) == 0)
 		setlocale(LC_ALL, getenv("LC_ALL"));
-	if(strncmp(v, "LC_CTYPE=", 9)==0)
+	if (strncmp(v, "LC_CTYPE=", 9) == 0)
 		setlocale(LC_CTYPE, getenv("LC_CTYPE"));
 #endif
 
@@ -445,7 +449,7 @@ static int builtin_unset(struct child_prog *child)
 	return EXIT_SUCCESS;
 }
 
-#ifdef CONFIG_LASH_JOB_CONTROL
+#if ENABLE_LASH_JOB_CONTROL
 /* free up all memory from a job */
 static void free_job(struct job *cmd)
 {
@@ -454,7 +458,7 @@ static void free_job(struct job *cmd)
 
 	for (i = 0; i < cmd->num_progs; i++) {
 		free(cmd->progs[i].argv);
-#ifdef CONFIG_LASH_PIPE_N_REDIRECTS
+#if ENABLE_LASH_PIPE_N_REDIRECTS
 		if (cmd->progs[i].redirects)
 			free(cmd->progs[i].redirects);
 #endif
@@ -509,7 +513,7 @@ static void checkjobs(struct jobset *j_list)
 		}
 
 		/* This happens on backticked commands */
-		if(job==NULL)
+		if (job == NULL)
 			return;
 
 		if (WIFEXITED(status) || WIFSIGNALED(status)) {
@@ -519,7 +523,7 @@ static void checkjobs(struct jobset *j_list)
 
 			if (!job->running_progs) {
 				printf(JOB_STATUS_FORMAT, job->jobid, "Done", job->text);
-				last_jobid=0;
+				last_jobid = 0;
 				remove_job(j_list, job);
 			}
 		} else {
@@ -544,7 +548,7 @@ static void remove_job(struct jobset *j_list, struct job *job)
 }
 #endif
 
-#ifdef CONFIG_LASH_PIPE_N_REDIRECTS
+#if ENABLE_LASH_PIPE_N_REDIRECTS
 /* squirrel != NULL means we squirrel away copies of stdin, stdout,
  * and stderr if they are redirected. */
 static int setup_redirects(struct child_prog *prog, int squirrel[])
@@ -591,7 +595,7 @@ static int setup_redirects(struct child_prog *prog, int squirrel[])
 static void restore_redirects(int squirrel[])
 {
 	int i, fd;
-	for (i=0; i<3; i++) {
+	for (i = 0; i < 3; i++) {
 		fd = squirrel[i];
 		if (fd != -1) {
 			/* No error checking.  I sure wouldn't know what
@@ -617,7 +621,7 @@ static inline void cmdedit_set_initial_prompt(void)
 	PS1 = NULL;
 #else
 	PS1 = getenv("PS1");
-	if(PS1==0)
+	if (PS1 == 0)
 		PS1 = "\\w \\$ ";
 #endif
 }
@@ -637,7 +641,7 @@ static inline const char* setup_prompt_string(void)
 		return PS2;
 	}
 #else
-	return (shell_context==0)? PS1 : PS2;
+	return (shell_context == 0)? PS1 : PS2;
 #endif
 }
 
@@ -686,10 +690,10 @@ static int get_command(FILE * source, char *command)
 	return 0;
 }
 
-static char * strsep_space( char *string, int * ix)
+static char * strsep_space(char *string, int * ix)
 {
 	/* Short circuit the trivial case */
-	if ( !string || ! string[*ix])
+	if (!string || ! string[*ix])
 		return NULL;
 
 	/* Find the end of the token. */
@@ -713,7 +717,7 @@ static char * strsep_space( char *string, int * ix)
 
 static int expand_arguments(char *command)
 {
-	int total_length=0, length, i, retval, ix = 0;
+	int total_length = 0, length, i, retval, ix = 0;
 	expand_t expand_result;
 	char *tmpcmd, *cmd, *cmd_copy;
 	char *src, *dst, *var;
@@ -731,7 +735,7 @@ static int expand_arguments(char *command)
 	chomp(command);
 
 	/* Fix up escape sequences to be the Real Thing(tm) */
-	while( command && command[ix]) {
+	while (command && command[ix]) {
 		if (command[ix] == '\\') {
 			const char *tmp = command+ix+1;
 			command[ix] = bb_process_escape_sequence(  &tmp );
@@ -750,7 +754,7 @@ static int expand_arguments(char *command)
 	cmd = cmd_copy = xstrdup(command);
 	*command = '\0';
 	for (ix = 0, tmpcmd = cmd;
-			(tmpcmd = strsep_space(cmd, &ix)) != NULL; cmd += ix, ix=0) {
+			(tmpcmd = strsep_space(cmd, &ix)) != NULL; cmd += ix, ix = 0) {
 		if (*tmpcmd == '\0')
 			break;
 		/* we need to trim() the result for glob! */
@@ -771,16 +775,16 @@ static int expand_arguments(char *command)
 		} else {
 			/* Convert from char** (one word per string) to a simple char*,
 			 * but don't overflow command which is BUFSIZ in length */
-			for (i=0; i < expand_result.gl_pathc; i++) {
-				length=strlen(expand_result.gl_pathv[i]);
+			for (i = 0; i < expand_result.gl_pathc; i++) {
+				length = strlen(expand_result.gl_pathv[i]);
 				if (total_length+length+1 >= BUFSIZ) {
 					bb_error_msg(out_of_space);
 					return FALSE;
 				}
 				strcat(command+total_length, " ");
-				total_length+=1;
+				total_length += 1;
 				strcat(command+total_length, expand_result.gl_pathv[i]);
-				total_length+=length;
+				total_length += length;
 			}
 			globfree (&expand_result);
 		}
@@ -791,14 +795,14 @@ static int expand_arguments(char *command)
 	/* Now do the shell variable substitutions which
 	 * wordexp can't do for us, namely $? and $! */
 	src = command;
-	while((dst = strchr(src,'$')) != NULL){
+	while ((dst = strchr(src,'$')) != NULL) {
 		var = NULL;
 		switch (*(dst+1)) {
 			case '?':
 				var = itoa(last_return_code);
 				break;
 			case '!':
-				if (last_bg_pid==-1)
+				if (last_bg_pid == -1)
 					*var = '\0';
 				else
 					var = itoa(last_bg_pid);
@@ -817,9 +821,9 @@ static int expand_arguments(char *command)
 			case '0':case '1':case '2':case '3':case '4':
 			case '5':case '6':case '7':case '8':case '9':
 				{
-					int ixx=*(dst+1)-48+1;
+					int ixx = *(dst+1)-48+1;
 					if (ixx >= argc) {
-						var='\0';
+						var = '\0';
 					} else {
 						var = argv[ixx];
 					}
@@ -830,27 +834,27 @@ static int expand_arguments(char *command)
 		if (var) {
 			/* a single character construction was found, and
 			 * already handled in the case statement */
-			src=dst+2;
+			src = dst + 2;
 		} else {
 			/* Looks like an environment variable */
 			char delim_hold;
-			int num_skip_chars=0;
+			int num_skip_chars = 0;
 			int dstlen = strlen(dst);
 			/* Is this a ${foo} type variable? */
-			if (dstlen >=2 && *(dst+1) == '{') {
-				src=strchr(dst+1, '}');
-				num_skip_chars=1;
+			if (dstlen >= 2 && *(dst+1) == '{') {
+				src = strchr(dst+1, '}');
+				num_skip_chars = 1;
 			} else {
-				src=dst+1;
-				while((isalnum)(*src) || *src=='_') src++;
+				src = dst + 1;
+				while ((isalnum)(*src) || *src == '_') src++;
 			}
 			if (src == NULL) {
 				src = dst+dstlen;
 			}
-			delim_hold=*src;
-			*src='\0';  /* temporary */
+			delim_hold = *src;
+			*src = '\0';  /* temporary */
 			var = getenv(dst + 1 + num_skip_chars);
-			*src=delim_hold;
+			*src = delim_hold;
 			src += num_skip_chars;
 		}
 		if (var == NULL) {
@@ -891,7 +895,7 @@ static int parse_command(char **command_ptr, struct job *job, int *inbg)
 	int argv_alloced;
 	char quote = '\0';
 	struct child_prog *prog;
-#ifdef CONFIG_LASH_PIPE_N_REDIRECTS
+#if ENABLE_LASH_PIPE_N_REDIRECTS
 	int i;
 	char *chptr;
 #endif
@@ -901,7 +905,7 @@ static int parse_command(char **command_ptr, struct job *job, int *inbg)
 
 	/* this handles empty lines or leading '#' characters */
 	if (!**command_ptr || (**command_ptr == '#')) {
-		job->num_progs=0;
+		job->num_progs = 0;
 		return 0;
 	}
 
@@ -923,7 +927,7 @@ static int parse_command(char **command_ptr, struct job *job, int *inbg)
 	prog->num_redirects = 0;
 	prog->is_stopped = 0;
 	prog->family = job;
-#ifdef CONFIG_LASH_PIPE_N_REDIRECTS
+#if ENABLE_LASH_PIPE_N_REDIRECTS
 	prog->redirects = NULL;
 #endif
 
@@ -961,8 +965,7 @@ static int parse_command(char **command_ptr, struct job *job, int *inbg)
 				if ((argc_l + 1) == argv_alloced) {
 					argv_alloced += 5;
 					prog->argv = xrealloc(prog->argv,
-										  sizeof(*prog->argv) *
-										  argv_alloced);
+							sizeof(*prog->argv) * argv_alloced);
 				}
 				prog->argv[argc_l] = buf;
 				flag ^= LASH_OPT_SAW_QUOTE;
@@ -982,13 +985,12 @@ static int parse_command(char **command_ptr, struct job *job, int *inbg)
 					flag |= LASH_OPT_DONE;
 				break;
 
-#ifdef CONFIG_LASH_PIPE_N_REDIRECTS
+#if ENABLE_LASH_PIPE_N_REDIRECTS
 			case '>':			/* redirects */
 			case '<':
 				i = prog->num_redirects++;
 				prog->redirects = xrealloc(prog->redirects,
-											  sizeof(*prog->redirects) *
-											  (i + 1));
+						sizeof(*prog->redirects) * (i + 1));
 
 				prog->redirects[i].fd = -1;
 				if (buf != prog->argv[argc_l]) {
@@ -1027,7 +1029,7 @@ static int parse_command(char **command_ptr, struct job *job, int *inbg)
 				if (!*chptr) {
 					bb_error_msg("file name expected after %c", *(src-1));
 					free_job(job);
-					job->num_progs=0;
+					job->num_progs = 0;
 					return 1;
 				}
 
@@ -1051,7 +1053,7 @@ static int parse_command(char **command_ptr, struct job *job, int *inbg)
 				/* and start the next */
 				job->num_progs++;
 				job->progs = xrealloc(job->progs,
-									  sizeof(*job->progs) * job->num_progs);
+						sizeof(*job->progs) * job->num_progs);
 				prog = job->progs + (job->num_progs - 1);
 				prog->num_redirects = 0;
 				prog->redirects = NULL;
@@ -1070,7 +1072,7 @@ static int parse_command(char **command_ptr, struct job *job, int *inbg)
 empty_command_in_pipe:
 					bb_error_msg("empty command in pipe");
 					free_job(job);
-					job->num_progs=0;
+					job->num_progs = 0;
 					return 1;
 				}
 				src--;			/* we'll ++ it at the end of the loop */
@@ -1078,7 +1080,7 @@ empty_command_in_pipe:
 				break;
 #endif
 
-#ifdef CONFIG_LASH_JOB_CONTROL
+#if ENABLE_LASH_JOB_CONTROL
 			case '&':			/* background */
 				*inbg = 1;
 				/* fallthrough */
@@ -1146,8 +1148,8 @@ static int pseudo_exec(struct child_prog *child)
 	/* Check if the command matches any of the forking builtins. */
 	for (x = bltins_forking; x->cmd; x++) {
 		if (strcmp(child->argv[0], x->cmd) == 0) {
-			applet_name=x->cmd;
-			_exit (x->function(child));
+			applet_name = x->cmd;
+			_exit(x->function(child));
 		}
 	}
 
@@ -1162,12 +1164,11 @@ static int pseudo_exec(struct child_prog *child)
 	 * /bin/foo invocation will fork and exec /bin/foo, even if
 	 * /bin/foo is a symlink to busybox.
 	 */
-
 	if (ENABLE_FEATURE_SH_STANDALONE_SHELL) {
 		char **argv_l = child->argv;
 		int argc_l;
 
-		for (argc_l=0; *argv_l; argv_l++, argc_l++);
+		for (argc_l = 0; *argv_l; argv_l++, argc_l++);
 		optind = 1;
 		run_applet_by_name(child->argv[0], argc_l, child->argv);
 	}
@@ -1183,7 +1184,7 @@ static int pseudo_exec(struct child_prog *child)
 static void insert_job(struct job *newjob, int inbg)
 {
 	struct job *thejob;
-	struct jobset *j_list=newjob->job_list;
+	struct jobset *j_list = newjob->job_list;
 
 	/* find the ID for thejob to use */
 	newjob->jobid = 1;
@@ -1205,14 +1206,14 @@ static void insert_job(struct job *newjob, int inbg)
 	thejob->running_progs = thejob->num_progs;
 	thejob->stopped_progs = 0;
 
-#ifdef CONFIG_LASH_JOB_CONTROL
+#if ENABLE_LASH_JOB_CONTROL
 	if (inbg) {
 		/* we don't wait for background thejobs to return -- append it
 		   to the list of backgrounded thejobs and leave it alone */
 		printf("[%d] %d\n", thejob->jobid,
 			   newjob->progs[newjob->num_progs - 1].pid);
 		last_jobid = newjob->jobid;
-		last_bg_pid=newjob->progs[newjob->num_progs - 1].pid;
+		last_bg_pid = newjob->progs[newjob->num_progs - 1].pid;
 	} else {
 		newjob->job_list->fg = thejob;
 
@@ -1237,10 +1238,11 @@ static int run_command(struct job *newjob, int inbg, int outpipe[2])
 		child = & (newjob->progs[i]);
 
 		if ((i + 1) < newjob->num_progs) {
-			if (pipe(pipefds)<0) bb_perror_msg_and_die("pipe");
+			if (pipe(pipefds) < 0)
+				bb_perror_msg_and_die("pipe");
 			nextout = pipefds[1];
 		} else {
-			if (outpipe[1]!=-1) {
+			if (outpipe[1] != -1) {
 				nextout = outpipe[1];
 			} else {
 				nextout = 1;
@@ -1288,9 +1290,10 @@ static int run_command(struct job *newjob, int inbg, int outpipe[2])
 			signal(SIGCHLD, SIG_DFL);
 
 			/* Close all open filehandles. */
-			while(close_me_list) close((long)llist_pop(&close_me_list));
+			while (close_me_list)
+				close((long)llist_pop(&close_me_list));
 
-			if (outpipe[1]!=-1) {
+			if (outpipe[1] != -1) {
 				close(outpipe[0]);
 			}
 			if (nextin != 0) {
@@ -1310,7 +1313,7 @@ static int run_command(struct job *newjob, int inbg, int outpipe[2])
 
 			pseudo_exec(child);
 		}
-		if (outpipe[1]!=-1) {
+		if (outpipe[1] != -1) {
 			close(outpipe[1]);
 		}
 
@@ -1342,7 +1345,7 @@ static int busy_loop(FILE * input)
 	int i;
 	int inbg = 0;
 	int status;
-#ifdef CONFIG_LASH_JOB_CONTROL
+#if ENABLE_LASH_JOB_CONTROL
 	pid_t  parent_pgrp;
 	/* save current owner of TTY so we can restore it on exit */
 	parent_pgrp = tcgetpgrp(shell_terminal);
@@ -1374,8 +1377,8 @@ static int busy_loop(FILE * input)
 
 			if (!parse_command(&next_command, &newjob, &inbg) &&
 				newjob.num_progs) {
-				int pipefds[2] = {-1,-1};
-				debug_printf( "job=%p fed to run_command by busy_loop()'\n",
+				int pipefds[2] = { -1, -1 };
+				debug_printf("job=%p fed to run_command by busy_loop()'\n",
 						&newjob);
 				run_command(&newjob, inbg, pipefds);
 			}
@@ -1390,9 +1393,9 @@ static int busy_loop(FILE * input)
 			while (!job_list.fg->progs[i].pid ||
 				   job_list.fg->progs[i].is_stopped == 1) i++;
 
-			if (waitpid(job_list.fg->progs[i].pid, &status, WUNTRACED)<0) {
+			if (waitpid(job_list.fg->progs[i].pid, &status, WUNTRACED) < 0) {
 				if (errno != ECHILD) {
-					bb_perror_msg_and_die("waitpid(%d)",job_list.fg->progs[i].pid);
+					bb_perror_msg_and_die("waitpid(%d)", job_list.fg->progs[i].pid);
 				}
 			}
 
@@ -1401,7 +1404,7 @@ static int busy_loop(FILE * input)
 				job_list.fg->running_progs--;
 				job_list.fg->progs[i].pid = 0;
 
-				last_return_code=WEXITSTATUS(status);
+				last_return_code = WEXITSTATUS(status);
 
 				if (!job_list.fg->running_progs) {
 					/* child exited */
@@ -1409,7 +1412,7 @@ static int busy_loop(FILE * input)
 					job_list.fg = NULL;
 				}
 			}
-#ifdef CONFIG_LASH_JOB_CONTROL
+#if ENABLE_LASH_JOB_CONTROL
 			else {
 				/* the child was stopped */
 				job_list.fg->stopped_progs++;
@@ -1433,7 +1436,7 @@ static int busy_loop(FILE * input)
 	}
 	free(command);
 
-#ifdef CONFIG_LASH_JOB_CONTROL
+#if ENABLE_LASH_JOB_CONTROL
 	/* return controlling TTY back to parent process group before exiting */
 	if (tcsetpgrp(shell_terminal, parent_pgrp) && errno != ENOTTY)
 		bb_perror_msg("tcsetpgrp");
@@ -1446,10 +1449,10 @@ static int busy_loop(FILE * input)
 	return 0;
 }
 
-#ifdef CONFIG_FEATURE_CLEAN_UP
+#if ENABLE_FEATURE_CLEAN_UP
 static void free_memory(void)
 {
-	if (cwd && cwd!=bb_msg_unknown) {
+	if (cwd && cwd != bb_msg_unknown) {
 		free((char*)cwd);
 	}
 	if (local_pending_command)
@@ -1463,7 +1466,7 @@ static void free_memory(void)
 void free_memory(void);
 #endif
 
-#ifdef CONFIG_LASH_JOB_CONTROL
+#if ENABLE_LASH_JOB_CONTROL
 /* Make sure we have a controlling tty.  If we get started under a job
  * aware app (like bash for example), make sure we are now in charge so
  * we don't fight over who gets the foreground */
@@ -1519,7 +1522,7 @@ int lash_main(int argc_l, char **argv_l)
 	close_me_list = NULL;
 	job_list.head = NULL;
 	job_list.fg = NULL;
-	last_return_code=1;
+	last_return_code = 1;
 
 	if (argv[0] && argv[0][0] == '-') {
 		FILE *prof_input;
@@ -1548,9 +1551,9 @@ int lash_main(int argc_l, char **argv_l)
 	 *    standard input is a terminal
 	 *    standard output is a terminal
 	 *    Refer to Posix.2, the description of the `sh' utility. */
-	if (argv[optind]==NULL && input==stdin &&
-			isatty(STDIN_FILENO) && isatty(STDOUT_FILENO))
-	{
+	if (argv[optind] == NULL && input == stdin
+	 && isatty(STDIN_FILENO) && isatty(STDOUT_FILENO)
+	) {
 		opt |= LASH_OPT_i;
 	}
 	setup_job_control();
