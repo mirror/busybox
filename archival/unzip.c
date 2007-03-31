@@ -134,7 +134,8 @@ int unzip_main(int argc, char **argv)
 				break;
 
 			case 1 : /* The zip file */
-				src_fn = xstrndup(optarg, strlen(optarg)+4);
+				src_fn = xmalloc(strlen(optarg)+4);
+				strcpy(src_fn, optarg);
 				opt_range++;
 				break;
 
@@ -195,7 +196,7 @@ int unzip_main(int argc, char **argv)
 			src_fd = open(src_fn, O_RDONLY);
 		}
 		if (src_fd == -1) {
-			src_fn[orig_src_fn_len] = 0;
+			src_fn[orig_src_fn_len] = '\0';
 			bb_error_msg_and_die("cannot open %s, %s.zip, %s.ZIP", src_fn, src_fn, src_fn);
 		}
 	}
