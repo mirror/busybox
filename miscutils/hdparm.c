@@ -1577,9 +1577,9 @@ static void process_dev(char *devname)
 	if (set_mult) {
 		print_flag(get_mult, "multcount", mult);
 #ifdef HDIO_DRIVE_CMD
-		bb_ioctl(fd, HDIO_SET_MULTCOUNT, &mult, "HDIO_SET_MULTCOUNT");
+		bb_ioctl(fd, HDIO_SET_MULTCOUNT, (void *)mult, "HDIO_SET_MULTCOUNT");
 #else
-		force_operation |= (!bb_ioctl(fd, HDIO_SET_MULTCOUNT, &mult, "HDIO_SET_MULTCOUNT"));
+		force_operation |= (!bb_ioctl(fd, HDIO_SET_MULTCOUNT, (void *)mult, "HDIO_SET_MULTCOUNT"));
 #endif
 	}
 	if (set_readonly) {
