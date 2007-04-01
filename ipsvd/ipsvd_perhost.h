@@ -1,3 +1,12 @@
+/* Based on ipsvd utilities written by Gerrit Pape <pape@smarden.org>
+ * which are released into public domain by the author.
+ * Homepage: http://smarden.sunsite.dk/ipsvd/
+ *
+ * Copyright (C) 2007 Denis Vlasenko.
+ *
+ * Licensed under GPLv2, see file LICENSE in this tarball for details.
+ */
+
 struct hcc {
         char ip[32 - sizeof(int)];
         int pid;

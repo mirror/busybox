@@ -2,7 +2,7 @@
  * which are released into public domain by the author.
  * Homepage: http://smarden.sunsite.dk/ipsvd/
  *
- * Copyright (C) 2007 by Denis Vlasenko.
+ * Copyright (C) 2007 Denis Vlasenko.
  *
  * Licensed under GPLv2, see file LICENSE in this tarball for details.
  */
@@ -14,8 +14,17 @@
  * Code inside "#ifdef SSLSVD" is for sslsvd and is currently unused.
  * Code inside #if 0" is parts of original tcpsvd which are not implemented
  * for busyboxed version.
+ *
+ * Output of verbose mode matches original (modulo bugs and
+ * unimplemented stuff). Unnatural splitting of IP and PORT
+ * is retained (personally I prefer one-value "IP:PORT" notation -
+ * it is a natural string representation of struct sockaddr_XX).
+ *
+ * TCPORIGDST{IP,PORT} is busybox-specific addition
  */
 
+#include <limits.h>
+#include <linux/netfilter_ipv4.h> /* wants <limits.h> */
 #include "busybox.h"
 #include "ipsvd_perhost.h"
 
@@ -46,7 +55,7 @@ enum {
 	OPT_t = (1 << 10),
 	OPT_v = (1 << 11),
 	OPT_V = (1 << 12),
-	OPT_U = (1 << 13),
+	OPT_U = (1 << 13), /* from here: sslsvd only */
 	OPT_slash = (1 << 14),
 	OPT_Z = (1 << 15),
 	OPT_K = (1 << 16),
@@ -104,7 +113,7 @@ int tcpsvd_main(int argc, char **argv)
 	const char *instructs;
 	char *msg_per_host = NULL;
 	unsigned len_per_host = len_per_host; /* gcc */
-	int need_addresses;
+	int need_hostnames, need_remote_ip;
 	int pid;
 	int sock;
 	int conn;
@@ -171,7 +180,9 @@ int tcpsvd_main(int argc, char **argv)
 	if (!argv[0][0] || LONE_CHAR(argv[0], '0'))
 		argv[0] = (char*)"0.0.0.0";
 
-	need_addresses = verbose || !(option_mask32 & OPT_E);
+	setlinebuf(stdout);
+	need_hostnames = verbose || !(option_mask32 & OPT_E);
+	need_remote_ip = max_per_host || need_hostnames;
 
 #ifdef SSLSVD
 	sslser = user;
@@ -299,7 +310,7 @@ int tcpsvd_main(int argc, char **argv)
 
 	close(sock);
 
-	if (!max_per_host)
+	if (!max_per_host && need_remote_ip)
 		remote_ip = xmalloc_sockaddr2dotted_noport(&sock_adr.sa, sizeof(sock_adr));
 	/* else it is already done */
 
@@ -311,7 +322,7 @@ int tcpsvd_main(int argc, char **argv)
 		printf("%s: info: pid %d from %s\n", applet_name, pid, remote_ip);
 	}
 
-	if (need_addresses && (option_mask32 & OPT_h)) {
+	if (need_hostnames && (option_mask32 & OPT_h)) {
 		remote_hostname = xmalloc_sockaddr2host(&sock_adr.sa, sizeof(sock_adr));
 		if (!remote_hostname) {
 			bb_error_msg("warning: cannot look up hostname for %s", remote_ip);
@@ -324,7 +335,7 @@ int tcpsvd_main(int argc, char **argv)
 	 * which doesn't know local ip) */
 	getsockname(conn, &sock_adr.sa, &sockadr_size);
 
-	if (need_addresses) {
+	if (need_hostnames) {
 		local_ip = xmalloc_sockaddr2dotted_noport(&sock_adr.sa, sockadr_size);
 		local_port = get_nport(&sock_adr.sa);
 		local_port = ntohs(local_port);
@@ -337,6 +348,20 @@ int tcpsvd_main(int argc, char **argv)
 
 	if (!(option_mask32 & OPT_E)) {
 		/* setup ucspi env */
+
+		/* Extract "original" destination addr:port
+		 * from Linux firewall. Useful when you redirect
+		 * an outbond connection to local handler, and it needs
+		 * to know where it originally tried to connect */
+		sockadr_size = sizeof(sock_adr);
+		if (getsockopt(conn, SOL_IP, SO_ORIGINAL_DST, &sock_adr.sa, &sockadr_size) == 0) {
+			char *ip = xmalloc_sockaddr2dotted_noport(&sock_adr.sa, sockadr_size);
+			port = get_nport(&sock_adr.sa);
+			port = ntohs(port);
+			xsetenv("TCPORIGDSTIP", ip);
+			xsetenv("TCPORIGDSTPORT", utoa(port));
+			free(ip);
+		}
 		xsetenv("PROTO", "TCP");
 		xsetenv("TCPLOCALIP", local_ip);
 		xsetenv("TCPLOCALPORT", utoa(local_port));
@@ -431,7 +456,8 @@ int tcpsvd_main(int argc, char **argv)
 }
 
 /*
-tcpsvd [-hpEvv] [-c n] [-C n:msg] [-b n] [-u user] [-l name] [-i dir|-x cdb] [ -t sec] host port prog
+tcpsvd [-hpEvv] [-c n] [-C n:msg] [-b n] [-u user] [-l name]
+	[-i dir|-x cdb] [ -t sec] host port prog
 
 tcpsvd creates a TCP/IP socket, binds it to the address host:port,
 and listens on the socket for incoming connections.
