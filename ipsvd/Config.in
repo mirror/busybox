@@ -9,6 +9,12 @@ config TCPSVD
 	bool "tcpsvd"
 	default n
 	help
-	  tcpsvd listens on a port and runs a program for each new connection
+	  tcpsvd listens on a tcp port and runs a program for each new connection
+
+config UDPSVD
+	bool "udpsvd"
+	default n
+	help
+	  udpsvd listens on a udp port and runs a program for each new connection
 
 endmenu

@@ -126,7 +126,6 @@ int tcpsvd_main(int argc, char **argv)
 	socklen_t sockadr_size;
 	uint16_t local_port = local_port;
 	uint16_t remote_port;
-	unsigned port;
 	char *local_hostname = NULL;
 	char *remote_hostname = (char*)""; /* "" used if no -h */
 	char *local_ip = local_ip;
@@ -221,8 +220,8 @@ int tcpsvd_main(int argc, char **argv)
 	if (max_per_host)
 		ipsvd_perhost_init(cmax);
 
-	port = bb_lookup_port(argv[1], "tcp", 0);
-	sock = create_and_bind_stream_or_die(argv[0], port);
+	local_port = bb_lookup_port(argv[1], "tcp", 0);
+	sock = create_and_bind_stream_or_die(argv[0], local_port);
 	xlisten(sock, backlog);
 	/* ndelay_off(sock); - it is the default I think? */
 
@@ -238,7 +237,7 @@ int tcpsvd_main(int argc, char **argv)
 
 	if (verbose) {
 		/* we do it only for ":port" cosmetics... oh well */
-		len_and_sockaddr *lsa = xhost2sockaddr(argv[0], port);
+		len_and_sockaddr *lsa = xhost2sockaddr(argv[0], local_port);
 		char *addr = xmalloc_sockaddr2dotted(&lsa->sa, lsa->len);
 
 		printf("%s: info: listening on %s", applet_name, addr);
@@ -246,7 +245,7 @@ int tcpsvd_main(int argc, char **argv)
 #ifndef SSLSVD
 		if (option_mask32 & OPT_u)
 			printf(", uid %u, gid %u",
-				(unsigned)ugid.uid, (unsigned)ugid.uid);
+				(unsigned)ugid.uid, (unsigned)ugid.gid);
 #endif
 		puts(", starting");
 	}
@@ -356,7 +355,7 @@ int tcpsvd_main(int argc, char **argv)
 		sockadr_size = sizeof(sock_adr);
 		if (getsockopt(conn, SOL_IP, SO_ORIGINAL_DST, &sock_adr.sa, &sockadr_size) == 0) {
 			char *ip = xmalloc_sockaddr2dotted_noport(&sock_adr.sa, sockadr_size);
-			port = get_nport(&sock_adr.sa);
+			unsigned port = get_nport(&sock_adr.sa);
 			port = ntohs(port);
 			xsetenv("TCPORIGDSTIP", ip);
 			xsetenv("TCPORIGDSTPORT", utoa(port));

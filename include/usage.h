@@ -3348,6 +3348,11 @@ USE_FEATURE_RUN_PARTS_FANCY("\n	-l	Prints names of all matching files even when 
      "\n-E		Do not set up TCP-related environment variables" \
      "\n-v		Verbose"
 
+#define udpsvd_trivial_usage \
+       "TODO"
+#define udpsvd_full_usage \
+       "TODO"
+
 #define tftp_trivial_usage \
        "[OPTION]... HOST [PORT]"
 #define tftp_full_usage \

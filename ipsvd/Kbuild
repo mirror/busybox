@@ -6,3 +6,4 @@
 
 lib-y:=
 lib-$(CONFIG_TCPSVD) += tcpsvd.o ipsvd_perhost.o
+lib-$(CONFIG_UDPSVD) += udpsvd.o
