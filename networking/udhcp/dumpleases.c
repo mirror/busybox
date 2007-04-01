@@ -23,14 +23,14 @@ int dumpleases_main(int argc, char *argv[])
 		OPT_r	= 0x2,	// -r
 		OPT_f	= 0x4,	// -f
 	};
-#if ENABLE_GETOPT_LONG	
+#if ENABLE_GETOPT_LONG
 	static const struct option options[] = {
 		{ "absolute", no_argument, 0, 'a' },
 		{ "remaining", no_argument, 0, 'r' },
 		{ "file", required_argument, 0, 'f' },
 		{ NULL, 0, 0, 0 }
 	};
-	
+
 	applet_long_options = options;
 #endif
 	opt_complementary = "=0:?:a--r:r--a";

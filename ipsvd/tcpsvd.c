@@ -1,15 +1,20 @@
-/*
-# /usr/bin/tcpsvd -v 0 1234 true
-tcpsvd: info: pid 24916 from 127.0.0.1
-tcpsvd: info: start 24916 localhost:127.0.0.1 ::127.0.0.1:47905
-tcpsvd: info: pid 24918 from 127.0.0.1
-tcpsvd: info: start 24918 localhost:127.0.0.1 ::127.0.0.1:47906
-# ./busybox tcpsvd -v 0 1234 true
-tcpsvd: info: pid 24924 from 127.0.0.1
-tcpsvd: info: start 24924 localhost:1234:127.0.0.1:1234 ::127.0.0.1:47908
-tcpsvd: info: pid 24926 from 127.0.0.1
-tcpsvd: info: start 24926 localhost:1234:127.0.0.1:1234 ::127.0.0.1:47909
-*/
+/* Based on ipsvd utilities written by Gerrit Pape <pape@smarden.org>
+ * which are released into public domain by the author.
+ * Homepage: http://smarden.sunsite.dk/ipsvd/
+ *
+ * Copyright (C) 2007 by Denis Vlasenko.
+ *
+ * Licensed under GPLv2, see file LICENSE in this tarball for details.
+ */
+
+/* Based on ipsvd ipsvd-0.12.1. This tcpsvd accepts all options
+ * which are supported by one from ipsvd-0.12.1, but not all are
+ * functional. See help text at the end of this file for details.
+ *
+ * Code inside "#ifdef SSLSVD" is for sslsvd and is currently unused.
+ * Code inside #if 0" is parts of original tcpsvd which are not implemented
+ * for busyboxed version.
+ */
 
 #include "busybox.h"
 #include "ipsvd_perhost.h"
@@ -297,15 +302,15 @@ int tcpsvd_main(int argc, char **argv)
 	if (!max_per_host)
 		remote_ip = xmalloc_sockaddr2dotted_noport(&sock_adr.sa, sizeof(sock_adr));
 	/* else it is already done */
-	
+
 	remote_port = get_nport(&sock_adr.sa);
 	remote_port = ntohs(remote_port);
-	
+
 	if (verbose) {
 		pid = getpid();
 		printf("%s: info: pid %d from %s\n", applet_name, pid, remote_ip);
 	}
-	
+
 	if (need_addresses && (option_mask32 & OPT_h)) {
 		remote_hostname = xmalloc_sockaddr2host(&sock_adr.sa, sizeof(sock_adr));
 		if (!remote_hostname) {
@@ -313,7 +318,7 @@ int tcpsvd_main(int argc, char **argv)
 			remote_hostname = (char*)"";
 		}
 	}
-	
+
 	sockadr_size = sizeof(sock_adr);
 	/* Errors ignored (I'm not paranoid enough to imagine kernel
 	 * which doesn't know local ip) */
@@ -329,7 +334,7 @@ int tcpsvd_main(int argc, char **argv)
 				bb_error_msg_and_die("cannot look up local hostname for %s", local_ip);
 		}
 	}
-	
+
 	if (!(option_mask32 & OPT_E)) {
 		/* setup ucspi env */
 		xsetenv("PROTO", "TCP");
@@ -346,7 +351,7 @@ int tcpsvd_main(int argc, char **argv)
 		if (cur_per_host > 0)
 			xsetenv("TCPCONCURRENCY", utoa(cur_per_host));
 	}
-	
+
 #if 0
 	if (instructs) {
 		ac = ipsvd_check(iscdb, &inst, &match, (char*)instructs,
@@ -356,11 +361,11 @@ int tcpsvd_main(int argc, char **argv)
 	} else
 		ac = IPSVD_DEFAULT;
 #endif
-	
+
 	if (max_per_host && verbose)
 		printf("%s: info: concurrency %u %s %u/%u\n",
 			applet_name, pid, remote_ip, cur_per_host, max_per_host);
-	
+
 	if (verbose) {
 		printf("%s: info: start %u %s:%s :%s:%s:%u\n",
 			applet_name, pid,
@@ -445,6 +450,8 @@ host
     host either is a hostname, or a dotted-decimal IP address,
     or 0. If host is 0, tcpsvd accepts connections to any local
     IP address.
+    * busybox accepts IPv6 addresses and host:port pairs too
+      In this case second parameter is ignored
 port
     tcpsvd accepts connections to host:port. port may be a name
     from /etc/services or a number.
@@ -453,14 +460,16 @@ prog
     tcpsvd normally runs prog, with file descriptor 0 reading from
     the network, and file descriptor 1 writing to the network.
     By default it also sets up TCP-related environment variables,
-    see tcp-environ(5) 
+    see tcp-environ(5)
 -i dir
     read instructions for handling new connections from the instructions
-    directory dir. See ipsvd-instruct(5) for details. 
+    directory dir. See ipsvd-instruct(5) for details.
+    * ignored by busyboxed version
 -x cdb
     read instructions for handling new connections from the constant database
     cdb. The constant database normally is created from an instructions
-    directory by running ipsvd-cdb(8). 
+    directory by running ipsvd-cdb(8).
+    * ignored by busyboxed version
 -t sec
     timeout. This option only takes effect if the -i option is given.
     While checking the instructions directory, check the time of last access
@@ -468,47 +477,50 @@ prog
     and remove the file if it wasn't accessed within the last sec seconds;
     tcpsvd does not discard or remove a file if the user's write permission
     is not set, for those files the timeout is disabled. Default is 0,
-    which means that the timeout is disabled. 
+    which means that the timeout is disabled.
+    * ignored by busyboxed version
 -l name
     local hostname. Do not look up the local hostname in DNS, but use name
     as hostname. This option must be set if tcpsvd listens on port 53
-    to avoid loops. 
+    to avoid loops.
 -u user[:group]
     drop permissions. Switch user ID to user's UID, and group ID to user's
     primary GID after creating and binding to the socket. If user is followed
     by a colon and a group name, the group ID is switched to the GID of group
-    instead. All supplementary groups are removed. 
+    instead. All supplementary groups are removed.
 -c n
     concurrency. Handle up to n connections simultaneously. Default is 30.
     If there are n connections active, tcpsvd defers acceptance of a new
-    connection until an active connection is closed. 
+    connection until an active connection is closed.
 -C n[:msg]
     per host concurrency. Allow only up to n connections from the same IP
-    address simultaneously. If there are n active connections from one IP	
+    address simultaneously. If there are n active connections from one IP
     address, new incoming connections from this IP address are closed
-    immediately. If n is followed by :msg, the message msg is written	
+    immediately. If n is followed by :msg, the message msg is written
     to the client if possible, before closing the connection. By default
     msg is empty. See ipsvd-instruct(5) for supported escape sequences in msg.
 
     For each accepted connection, the current per host concurrency is
     available through the environment variable TCPCONCURRENCY. n and msg
     can be overwritten by ipsvd(7) instructions, see ipsvd-instruct(5).
-    By default tcpsvd doesn't keep track of connections. 
+    By default tcpsvd doesn't keep track of connections.
 -h
-    Look up the client's hostname in DNS. 
+    Look up the client's hostname in DNS.
 -p
     paranoid. After looking up the client's hostname in DNS, look up the IP
     addresses in DNS for that hostname, and forget about the hostname
     if none of the addresses match the client's IP address. You should
     set this option if you use hostname based instructions. The -p option
-    implies the -h option. 
+    implies the -h option.
+    * ignored by busyboxed version
 -b n
     backlog. Allow a backlog of approximately n TCP SYNs. On some systems n
-    is silently limited. Default is 20. 
+    is silently limited. Default is 20.
 -E
-    no special environment. Do not set up TCP-related environment variables. 
+    no special environment. Do not set up TCP-related environment variables.
 -v
-    verbose. Print verbose messsages to standard output. 
+    verbose. Print verbose messsages to standard output.
 -vv
-    more verbose. Print more verbose messages to standard output. 
+    more verbose. Print more verbose messages to standard output.
+    * no difference between -v and -vv in busyboxed version
 */

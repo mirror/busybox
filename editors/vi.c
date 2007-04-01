@@ -976,7 +976,7 @@ static void colon(char * buf)
 		}
 #if ENABLE_FEATURE_VI_SETOPTS
 		argp = args;
-		while (*argp) { 
+		while (*argp) {
 			if (strncasecmp(argp, "no", 2) == 0)
 				i = 2;		// ":set noautoindent"
 			setops(argp, "autoindent ", i, "ai", VI_AUTOINDENT);
