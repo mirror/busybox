@@ -82,15 +82,15 @@ int xconnect_tcp_v4(struct sockaddr_in *s_addr)
 /* "New" networking API */
 
 
-int get_nport(const len_and_sockaddr *lsa)
+int get_nport(const struct sockaddr *sa)
 {
 #if ENABLE_FEATURE_IPV6
-	if (lsa->sa.sa_family == AF_INET6) {
-		return lsa->sin6.sin6_port;
+	if (sa->sa_family == AF_INET6) {
+		return ((struct sockaddr_in6*)sa)->sin6_port;
 	}
 #endif
-	if (lsa->sa.sa_family == AF_INET) {
-		return lsa->sin.sin_port;
+	if (sa->sa_family == AF_INET) {
+		return ((struct sockaddr_in*)sa)->sin_port;
 	}
 	/* What? UNIX socket? IPX?? :) */
 	return -1;
@@ -308,12 +308,10 @@ char* xmalloc_sockaddr2host(const struct sockaddr *sa, socklen_t salen)
 	return sockaddr2str(sa, salen, 0);
 }
 
-/* Unused
 char* xmalloc_sockaddr2host_noport(const struct sockaddr *sa, socklen_t salen)
 {
 	return sockaddr2str(sa, salen, IGNORE_PORT);
 }
-*/
 
 char* xmalloc_sockaddr2hostonly_noport(const struct sockaddr *sa, socklen_t salen)
 {

@@ -97,9 +97,10 @@ static void runsv(int no, const char *name)
 		prog[0] = (char*)"runsv";
 		prog[1] = (char*)name;
 		prog[2] = NULL;
-		sig_uncatch(SIGHUP);
-		sig_uncatch(SIGTERM);
-		if (pgrp) setsid();
+		if (pgrp)
+			setsid();
+		signal(SIGHUP, SIG_DFL);
+		signal(SIGTERM, SIG_DFL);
 		BB_EXECVP(prog[0], prog);
 		//pathexec_run(*prog, prog, (char* const*)environ);
 		fatal2_cannot("start runsv ", name);

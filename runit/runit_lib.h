@@ -123,32 +123,9 @@ extern int open_write(const char *);
 extern unsigned pmatch(const char *, const char *, unsigned);
 
 
-/*** sig.h ***/
-
-extern void sig_catch(int,void (*)(int));
-#define sig_ignore(s) (sig_catch((s), SIG_IGN))
-#define sig_uncatch(s) (sig_catch((s), SIG_DFL))
-
-extern void sig_block(int);
-extern void sig_unblock(int);
-extern void sig_blocknone(void);
-extern void sig_pause(void);
-
-
 /*** str.h ***/
 
 extern unsigned str_chr(const char *,int);  /* never returns NULL */
 
 #define str_diff(s,t) strcmp((s), (t))
 #define str_equal(s,t) (!strcmp((s), (t)))
-
-
-/*** wait.h ***/
-
-extern int wait_pid(int *wstat, int pid);
-extern int wait_nohang(int *wstat);
-
-#define wait_crashed(w) ((w) & 127)
-#define wait_exitcode(w) ((w) >> 8)
-#define wait_stopsig(w) ((w) >> 8)
-#define wait_stopped(w) (((w) & 127) == 127)

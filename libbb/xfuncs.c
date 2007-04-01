@@ -205,6 +205,63 @@ int wait4pid(int pid)
 	return 0;
 }
 
+int wait_nohang(int *wstat)
+{
+	return waitpid(-1, wstat, WNOHANG);
+}
+
+int wait_pid(int *wstat, int pid)
+{
+	int r;
+
+	do
+		r = waitpid(pid, wstat, 0);
+	while ((r == -1) && (errno == EINTR));
+	return r;
+}
+
+void sig_block(int sig)
+{
+	sigset_t ss;
+	sigemptyset(&ss);
+	sigaddset(&ss, sig);
+	sigprocmask(SIG_BLOCK, &ss, NULL);
+}
+
+void sig_unblock(int sig)
+{
+	sigset_t ss;
+	sigemptyset(&ss);
+	sigaddset(&ss, sig);
+	sigprocmask(SIG_UNBLOCK, &ss, NULL);
+}
+
+#if 0
+void sig_blocknone(void)
+{
+	sigset_t ss;
+	sigemptyset(&ss);
+	sigprocmask(SIG_SETMASK, &ss, NULL);
+}
+#endif
+
+void sig_catch(int sig, void (*f)(int))
+{
+	struct sigaction sa;
+	sa.sa_handler = f;
+	sa.sa_flags = 0;
+	sigemptyset(&sa.sa_mask);
+	sigaction(sig, &sa, NULL);
+}
+
+void sig_pause(void)
+{
+	sigset_t ss;
+	sigemptyset(&ss);
+	sigsuspend(&ss);
+}
+
+
 void xsetenv(const char *key, const char *value)
 {
 	if (setenv(key, value, 1))

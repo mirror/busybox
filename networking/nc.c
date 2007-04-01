@@ -106,7 +106,7 @@ int nc_main(int argc, char **argv)
 			if (!lport) {
 				socklen_t addrlen = lsa->len;
 				getsockname(sfd, &lsa->sa, &addrlen);
-				lport = get_nport(lsa);
+				lport = get_nport(&lsa->sa);
 				fdprintf(2, "%d\n", ntohs(lport));
 			}
 			fcntl(sfd, F_SETFD, FD_CLOEXEC);

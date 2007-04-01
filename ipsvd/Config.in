@@ -1,0 +1,14 @@
+#
+# For a description of the syntax of this configuration file,
+# see scripts/kbuild/config-language.txt.
+#
+
+menu "ipsvd utilities"
+
+config TCPSVD
+	bool "tcpsvd"
+	default n
+	help
+	  tcpsvd listens on a port and runs a program for each new connection
+
+endmenu

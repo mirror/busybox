@@ -287,7 +287,7 @@ static int tftp(
 					bb_perror_msg("recvfrom");
 					break;
 				}
-				from_port = get_nport(from);
+				from_port = get_nport(&from->sa);
 				if (port == org_port) {
 					/* Our first query went to port 69
 					 * but reply will come from different one.

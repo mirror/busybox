@@ -434,6 +434,7 @@ libs-y		:= \
 		editors/ \
 		findutils/ \
 		init/ \
+		ipsvd/ \
 		libbb/ \
 		libpwdgrp/ \
 		loginutils/ \

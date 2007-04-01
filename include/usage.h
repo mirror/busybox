@@ -3325,6 +3325,11 @@ USE_FEATURE_RUN_PARTS_FANCY("\n	-l	Prints names of all matching files even when 
        "$ echo $?\n" \
        "1\n"
 
+#define tcpsvd_trivial_usage \
+       "TODO"
+#define tcpsvd_full_usage \
+       "TODO"
+
 #define tftp_trivial_usage \
        "[OPTION]... HOST [PORT]"
 #define tftp_full_usage \

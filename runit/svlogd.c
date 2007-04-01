@@ -143,9 +143,9 @@ static unsigned processorstart(struct logdir *ld)
 		int fd;
 
 		/* child */
-		sig_uncatch(SIGTERM);
-		sig_uncatch(SIGALRM);
-		sig_uncatch(SIGHUP);
+		signal(SIGTERM, SIG_DFL);
+		signal(SIGALRM, SIG_DFL);
+		signal(SIGHUP, SIG_DFL);
 		sig_unblock(SIGTERM);
 		sig_unblock(SIGALRM);
 		sig_unblock(SIGHUP);

@@ -323,11 +323,11 @@ static void startservice(struct svdir *s)
 				close(logpipe[0]);
 			}
 		}
-		sig_uncatch(SIGCHLD);
+		signal(SIGCHLD, SIG_DFL);
+		signal(SIGTERM, SIG_DFL);
 		sig_unblock(SIGCHLD);
-		sig_uncatch(SIGTERM);
 		sig_unblock(SIGTERM);
-		execve(*run, run, environ);
+		execvp(*run, run);
 		fatal2_cannot(s->islog ? "start log/" : "start ", *run);
 	}
 	if (s->state != S_FINISH) {

@@ -266,6 +266,7 @@ char *xrealloc_getcwd_or_warn(char *cwd);
 char *xmalloc_readlink_or_warn(const char *path);
 char *xmalloc_realpath(const char *path);
 extern void xstat(const char *filename, struct stat *buf);
+
 /* Unlike waitpid, waits ONLY for one process,
  * It's safe to pass negative 'pids' from failed [v]fork -
  * wait4pid will return -1 and ECHILD in errno.
@@ -274,6 +275,24 @@ extern void xstat(const char *filename, struct stat *buf);
  *      if (rc > 0) bb_error_msg("exit code: %d", rc);
  */
 extern int wait4pid(int pid);
+extern int wait_pid(int *wstat, int pid);
+extern int wait_nohang(int *wstat);
+//TODO: signal(sid, f) is the same? then why?
+extern void sig_catch(int,void (*)(int));
+//#define sig_ignore(s) (sig_catch((s), SIG_IGN))
+//#define sig_uncatch(s) (sig_catch((s), SIG_DFL))
+extern void sig_block(int);
+extern void sig_unblock(int);
+/* UNUSED: extern void sig_blocknone(void);*/
+extern void sig_pause(void);
+
+#define wait_crashed(w) ((w) & 127)
+#define wait_exitcode(w) ((w) >> 8)
+#define wait_stopsig(w) ((w) >> 8)
+#define wait_stopped(w) (((w) & 127) == 127)
+
+
+
 extern void xsetgid(gid_t gid);
 extern void xsetuid(uid_t uid);
 extern void xchdir(const char *path);
@@ -340,7 +359,7 @@ len_and_sockaddr* xhost_and_af2sockaddr(const char *host, int port, sa_family_t 
  * NB: does NOT do htons() internally, just direct assignment. */
 void set_nport(len_and_sockaddr *lsa, unsigned port);
 /* Retrieve sin[6]_port or return -1 for non-INET[6] lsa's */
-int get_nport(const len_and_sockaddr *lsa);
+int get_nport(const struct sockaddr *sa);
 /* Reverse DNS. Returns NULL on failure. */
 char* xmalloc_sockaddr2host(const struct sockaddr *sa, socklen_t salen);
 /* This one doesn't append :PORTNUM */
