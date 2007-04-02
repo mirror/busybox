@@ -8,12 +8,22 @@
  */
 
 struct hcc {
-        char ip[32 - sizeof(int)];
+        char *ip;
         int pid;
 };
 
 void ipsvd_perhost_init(unsigned);
-unsigned ipsvd_perhost_add(const char *ip, unsigned maxconn, struct hcc **hccpp);
+
+/* Returns number of already opened connects to this ips, including this one.
+ * ip should be a malloc'ed ptr.
+ * If return value is <= maxconn, ip is inserted into the table
+ * and pointer to table entry if stored in *hccpp
+ * (useful for storing pid later).
+ * Else ip is NOT inserted (you must take care of it - free() etc) */
+unsigned ipsvd_perhost_add(char *ip, unsigned maxconn, struct hcc **hccpp);
+
+/* Finds and frees element with pid */
 void ipsvd_perhost_remove(int pid);
+
 //unsigned ipsvd_perhost_setpid(int pid);
 //void ipsvd_perhost_free(void);

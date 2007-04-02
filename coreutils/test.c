@@ -168,9 +168,11 @@ static int binop(void);
 static arith_t primary(enum token n);
 static int filstat(char *nm, enum token mode);
 static arith_t getn(const char *s);
+/* UNUSED
 static int newerf(const char *f1, const char *f2);
 static int olderf(const char *f1, const char *f2);
 static int equalf(const char *f1, const char *f2);
+*/
 static int test_eaccess(char *path, int mode);
 static int is_a_group_member(gid_t gid);
 static void initialize_group_array(void);
@@ -490,6 +492,7 @@ static arith_t getn(const char *s)
 	return r;
 }
 
+/* UNUSED
 static int newerf(const char *f1, const char *f2)
 {
 	struct stat b1, b2;
@@ -514,6 +517,7 @@ static int equalf(const char *f1, const char *f2)
 			stat(f2, &b2) == 0 &&
 			b1.st_dev == b2.st_dev && b1.st_ino == b2.st_ino);
 }
+*/
 
 /* Do the same thing access(2) does, but use the effective uid and gid,
    and don't make the mistake of telling root that any file is

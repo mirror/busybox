@@ -324,11 +324,12 @@ typedef struct len_and_sockaddr {
 /* Create stream socket, and allocated suitable lsa
  * (lsa of correct size and lsa->sa.sa_family (AF_INET/AF_INET6)) */
 int xsocket_stream(len_and_sockaddr **lsap);
-/* Create server TCP socket bound to bindaddr:port. bindaddr can be NULL,
+/* Create server socket bound to bindaddr:port. bindaddr can be NULL,
  * numeric IP ("N.N.N.N") or numeric IPv6 address,
  * and can have ":PORT" suffix (for IPv6 use "[X:X:...:X]:PORT").
  * If there is no suffix, port argument is used */
 int create_and_bind_stream_or_die(const char *bindaddr, int port);
+int create_and_bind_dgram_or_die(const char *bindaddr, int port);
 /* Create client TCP socket connected to peer:port. Peer cannot be NULL.
  * Peer can be numeric IP ("N.N.N.N"), numeric IPv6 address or hostname,
  * and can have ":PORT" suffix (for IPv6 use "[X:X:...:X]:PORT").
@@ -370,9 +371,9 @@ char* xmalloc_sockaddr2hostonly_noport(const struct sockaddr *sa, socklen_t sale
 char* xmalloc_sockaddr2dotted(const struct sockaddr *sa, socklen_t salen);
 char* xmalloc_sockaddr2dotted_noport(const struct sockaddr *sa, socklen_t salen);
 // "old" (ipv4 only) API
-// users: traceroute.c hostname.c
+// users: traceroute.c hostname.c - use _list_ of all IPs
 struct hostent *xgethostbyname(const char *name);
-// Also inetd.c and inetd.c are using gethostbyname(),
+// Also mount.c and inetd.c are using gethostbyname(),
 // + inet_common.c has additional IPv4-only stuff
 
 

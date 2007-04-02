@@ -22,26 +22,26 @@ void ipsvd_perhost_init(unsigned c)
 	cclen = c;
 }
 
-unsigned ipsvd_perhost_add(const char *ip, unsigned maxconn, struct hcc **hccpp)
+unsigned ipsvd_perhost_add(char *ip, unsigned maxconn, struct hcc **hccpp)
 {
 	unsigned i;
 	unsigned conn = 1;
-	int p = -1;
+	int freepos = -1;
 
 	for (i = 0; i < cclen; ++i) {
-		if (cc[i].ip[0] == 0) {
-			if (p == -1) p = i;
+		if (!cc[i].ip) {
+			freepos = i;
     			continue;
 		}
-		if (strncmp(cc[i].ip, ip, sizeof(cc[i].ip)) == 0) {
+		if (strcmp(cc[i].ip, ip) == 0) {
 			conn++;
 			continue;
 		}
 	}
-	if (p == -1) return 0;
+	if (freepos == -1) return 0;
 	if (conn <= maxconn) {
-		strcpy(cc[p].ip, ip);
-		*hccpp = &cc[p];
+		cc[freepos].ip = ip;
+		*hccpp = &cc[freepos];
 	}
 	return conn;
 }
@@ -51,7 +51,8 @@ void ipsvd_perhost_remove(int pid)
 	unsigned i;
 	for (i = 0; i < cclen; ++i) {
 		if (cc[i].pid == pid) {
-			cc[i].ip[0] = 0;
+			free(cc[i].ip);
+			cc[i].ip = NULL;
 			cc[i].pid = 0;
 			return;
 		}

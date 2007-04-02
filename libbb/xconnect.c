@@ -208,7 +208,7 @@ len_and_sockaddr* xdotted2sockaddr(const char *host, int port)
 	return str2sockaddr(host, port, AF_UNSPEC, AI_NUMERICHOST | DIE_ON_ERROR);
 }
 
-int xsocket_stream(len_and_sockaddr **lsap)
+static int xsocket_type(len_and_sockaddr **lsap, int sock_type)
 {
 	len_and_sockaddr *lsa;
 	int fd;
@@ -216,14 +216,14 @@ int xsocket_stream(len_and_sockaddr **lsap)
 	int family = AF_INET;
 
 #if ENABLE_FEATURE_IPV6
-	fd = socket(AF_INET6, SOCK_STREAM, 0);
+	fd = socket(AF_INET6, sock_type, 0);
 	if (fd >= 0) {
 		len = sizeof(struct sockaddr_in6);
 		family = AF_INET6;
 	} else
 #endif
 	{
-		fd = xsocket(AF_INET, SOCK_STREAM, 0);
+		fd = xsocket(AF_INET, sock_type, 0);
 	}
 	lsa = xzalloc(offsetof(len_and_sockaddr, sa) + len);
 	lsa->len = len;
@@ -232,7 +232,12 @@ int xsocket_stream(len_and_sockaddr **lsap)
 	return fd;
 }
 
-int create_and_bind_stream_or_die(const char *bindaddr, int port)
+int xsocket_stream(len_and_sockaddr **lsap)
+{
+	return xsocket_type(lsap, SOCK_STREAM);
+}
+
+static int create_and_bind_or_die(const char *bindaddr, int port, int sock_type)
 {
 	int fd;
 	len_and_sockaddr *lsa;
@@ -240,9 +245,9 @@ int create_and_bind_stream_or_die(const char *bindaddr, int port)
 	if (bindaddr && bindaddr[0]) {
 		lsa = xdotted2sockaddr(bindaddr, port);
 		/* user specified bind addr dictates family */
-		fd = xsocket(lsa->sa.sa_family, SOCK_STREAM, 0);
+		fd = xsocket(lsa->sa.sa_family, sock_type, 0);
 	} else {
-		fd = xsocket_stream(&lsa);
+		fd = xsocket_type(&lsa, sock_type);
 		set_nport(lsa, htons(port));
 	}
 	setsockopt_reuseaddr(fd);
@@ -250,6 +255,17 @@ int create_and_bind_stream_or_die(const char *bindaddr, int port)
 	free(lsa);
 	return fd;
 }
+
+int create_and_bind_stream_or_die(const char *bindaddr, int port)
+{
+	return create_and_bind_or_die(bindaddr, port, SOCK_STREAM);
+}
+
+int create_and_bind_dgram_or_die(const char *bindaddr, int port)
+{
+	return create_and_bind_or_die(bindaddr, port, SOCK_DGRAM);
+}
+
 
 int create_and_connect_stream_or_die(const char *peer, int port)
 {

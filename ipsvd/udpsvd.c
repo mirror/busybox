@@ -42,9 +42,9 @@ int udpsvd_main(int argc, char **argv)
 //	unsigned long timeout = 0;
 
 	char *remote_hostname;
-	char *local_hostname;
+	char *local_hostname = local_hostname; /* gcc */
 	char *remote_ip;
-	char *local_ip;
+	char *local_ip = local_ip; /* gcc */
 	uint16_t local_port, remote_port;
 	union {
 		struct sockaddr sa;
@@ -145,6 +145,11 @@ int udpsvd_main(int argc, char **argv)
 /*	if (recvfrom(sock, 0, 0, MSG_PEEK, (struct sockaddr *)&sock_adr, &sockadr_size) == -1)
 		drop("unable to read from socket");
 */
+	if (verbose) {
+		local_ip = argv[0]; // TODO: recv_from_to!
+		local_hostname = (char*)"localhost";
+	}
+
 	remote_ip = xmalloc_sockaddr2dotted_noport(&sock_adr.sa, sockadr_size);
 	remote_port = get_nport(&sock_adr.sa);
 	remote_port = ntohs(remote_port);

@@ -128,8 +128,8 @@ int tcpsvd_main(int argc, char **argv)
 	uint16_t remote_port;
 	char *local_hostname = NULL;
 	char *remote_hostname = (char*)""; /* "" used if no -h */
-	char *local_ip = local_ip;
-	char *remote_ip = NULL;
+	char *local_ip = local_ip; /* gcc */
+	char *remote_ip = remote_ip; /* gcc */
 	//unsigned iscdb = 0;		/* = option_mask32 & OPT_x (TODO) */
 	//unsigned long timeout = 0;
 #ifndef SSLSVD
@@ -271,10 +271,10 @@ int tcpsvd_main(int argc, char **argv)
 	if (max_per_host) {
 		/* we drop connection immediately if cur_per_host > max_per_host
 		 * (minimizing load under SYN flood) */
-		free(remote_ip);
 		remote_ip = xmalloc_sockaddr2dotted_noport(&sock_adr.sa, sockadr_size);
 		cur_per_host = ipsvd_perhost_add(remote_ip, max_per_host, &hccp);
 		if (cur_per_host > max_per_host) {
+			free(remote_ip);
 			/* ipsvd_perhost_add detected that max is exceeded
 			 * (and did not store us in connection table) */
 			if (msg_per_host) {
