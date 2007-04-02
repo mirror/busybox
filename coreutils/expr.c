@@ -67,38 +67,9 @@ struct globals {
 };
 #define G (*(struct globals*)&bb_common_bufsiz1)
 
-static VALUE *docolon(VALUE * sv, VALUE * pv);
+/* forward declarations */
 static VALUE *eval(void);
-static VALUE *int_value(arith_t i);
-static VALUE *str_value(const char *s);
-static bool nextarg(const char *str);
-static int null(VALUE * v);
-static bool toarith(VALUE * v);
-static void freev(VALUE * v);
-static void tostring(VALUE * v);
 
-int expr_main(int argc, char **argv);
-int expr_main(int argc, char **argv)
-{
-	VALUE *v;
-
-	if (argc == 1) {
-		bb_error_msg_and_die("too few arguments");
-	}
-
-	G.args = argv + 1;
-
-	v = eval();
-	if (*G.args)
-		bb_error_msg_and_die("syntax error");
-
-	if (v->type == integer)
-		printf("%" PF_REZ "d\n", PF_REZ_TYPE v->u.i);
-	else
-		puts(v->u.s);
-
-	fflush_stdout_and_exit(null(v));
-}
 
 /* Return a VALUE for I.  */
 
@@ -509,3 +480,28 @@ static VALUE *eval(void)
 	}
 	return l;
 }
+
+int expr_main(int argc, char **argv);
+int expr_main(int argc, char **argv)
+{
+	VALUE *v;
+
+	if (argc == 1) {
+		bb_error_msg_and_die("too few arguments");
+	}
+
+	G.args = argv + 1;
+
+	v = eval();
+	if (*G.args)
+		bb_error_msg_and_die("syntax error");
+
+	if (v->type == integer)
+		printf("%" PF_REZ "d\n", PF_REZ_TYPE v->u.i);
+	else
+		puts(v->u.s);
+
+	fflush_stdout_and_exit(null(v));
+}
+
+
