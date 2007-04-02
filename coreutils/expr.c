@@ -219,7 +219,7 @@ static VALUE *docolon(VALUE * sv, VALUE * pv)
 	tostring(pv);
 
 	if (pv->u.s[0] == '^') {
-		fprintf(stderr, "\
+		bb_error_msg("\
 warning: unportable BRE: `%s': using `^' as the first character\n\
 of a basic regular expression is not portable; it is being ignored", pv->u.s);
 	}
