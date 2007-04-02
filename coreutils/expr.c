@@ -226,8 +226,7 @@ of a basic regular expression is not portable; it is being ignored", pv->u.s);
 
 	memset(&re_buffer, 0, sizeof(re_buffer));
 	memset(re_regs, 0, sizeof(*re_regs));
-	if (regcomp(&re_buffer, pv->u.s, 0) != 0)
-		bb_error_msg_and_die("invalid regular expression");
+	xregcomp(&re_buffer, pv->u.s, 0);
 
 	/* expr uses an anchored pattern match, so check that there was a
 	 * match and that the match starts at offset 0. */
@@ -246,6 +245,7 @@ of a basic regular expression is not portable; it is being ignored", pv->u.s);
 		else
 			v = int_value(0);
 	}
+//FIXME: sounds like here is a bit missing: regfree(&re_buffer);
 	return v;
 }
 
