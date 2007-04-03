@@ -179,7 +179,10 @@ int tcpsvd_main(int argc, char **argv)
 	if (!argv[0][0] || LONE_CHAR(argv[0], '0'))
 		argv[0] = (char*)"0.0.0.0";
 
+	/* stdout is used for logging, don't buffer */
 	setlinebuf(stdout);
+	bb_sanitize_stdio(); /* fd# 1,2 must be opened */
+
 	need_hostnames = verbose || !(option_mask32 & OPT_E);
 	need_remote_ip = max_per_host || need_hostnames;
 
@@ -232,7 +235,6 @@ int tcpsvd_main(int argc, char **argv)
 		xsetuid(ugid.uid);
 	}
 #endif
-	bb_sanitize_stdio(); /* fd# 1,2 must be opened */
 	close(0);
 
 	if (verbose) {
@@ -439,6 +441,7 @@ int tcpsvd_main(int argc, char **argv)
 
 	xmove_fd(conn, 0);
 	dup2(0, 1);
+
 	signal(SIGTERM, SIG_DFL);
 	signal(SIGPIPE, SIG_DFL);
 	signal(SIGCHLD, SIG_DFL);

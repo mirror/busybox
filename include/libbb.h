@@ -321,6 +321,17 @@ typedef struct len_and_sockaddr {
 #endif
 	};
 } len_and_sockaddr;
+enum {
+	LSA_SIZEOF_SA = sizeof(
+		union {
+			struct sockaddr sa;
+			struct sockaddr_in sin;
+#if ENABLE_FEATURE_IPV6
+			struct sockaddr_in6 sin6;
+#endif
+		}
+	)
+};
 /* Create stream socket, and allocated suitable lsa
  * (lsa of correct size and lsa->sa.sa_family (AF_INET/AF_INET6)) */
 int xsocket_stream(len_and_sockaddr **lsap);

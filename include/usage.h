@@ -3326,32 +3326,41 @@ USE_FEATURE_RUN_PARTS_FANCY("\n	-l	Prints names of all matching files even when 
        "1\n"
 
 #define tcpsvd_trivial_usage \
-       "[-hpEvv] [-c n] [-C n:msg] [-b n] [-u user] [-l name] ip port prog..."
+       "[-hEv] [-c n] [-C n:msg] [-b n] [-u user] [-l name] ip port prog..."
 /* with not-implemented options: */
 /*     "[-hpEvv] [-c n] [-C n:msg] [-b n] [-u user] [-l name] [-i dir|-x cdb] [ -t sec] ip port prog..." */
 #define tcpsvd_full_usage \
-       "tcpsvd creates TCP/IP socket, binds it to host:port\n" \
-       "and listens on in for incoming connections. For each connection\n" \
-       "it runs prog" \
+       "Creates TCP socket, binds it to host:port and listens on in\n" \
+       "for incoming connections. For each connection it runs prog" \
      "\n" \
-     "\nip		IP to listen on. '0' = 'all'" \
+     "\nip		IP to listen on. '0' = all" \
      "\nport		Port to listen on" \
-     "\nprog [arg]	Program to run for each connection" \
+     "\nprog [arg]	Program to run" \
      "\n-l name		Local hostname (else looks up local hostname in DNS)" \
      "\n-u user[:group]	Change to user/group after bind" \
      "\n-c n		Handle up to n connections simultaneously" \
      "\n-C n[:msg]	Allow only up to n connections from the same IP" \
      "\n		New connections from this IP address are closed" \
      "\n		immediately. 'msg' is written to the peer before close" \
-     "\n-h		Look up peer's hostname in DNS" \
+     "\n-h		Look up peer's hostname" \
      "\n-b n		Allow a backlog of approximately n TCP SYNs" \
      "\n-E		Do not set up TCP-related environment variables" \
      "\n-v		Verbose"
 
 #define udpsvd_trivial_usage \
-       "TODO"
+       "[-hv] [-u user] [-l name] host port prog"
 #define udpsvd_full_usage \
-       "TODO"
+       "Creates UDP socket, binds it to host:port and listens on in\n" \
+       "for incoming packets. When packet arrives it runs prog.\n" \
+       "When prog exits, it start to listen on the socket again" \
+     "\n" \
+     "\nip		IP to listen on. '0' = all" \
+     "\nport		Port to listen on" \
+     "\nprog [arg]	Program to run" \
+     "\n-l name		Local hostname (else looks up local hostname in DNS)" \
+     "\n-u user[:group]	Change to user/group after bind" \
+     "\n-h		Look up peer's hostname" \
+     "\n-v		Verbose"
 
 #define tftp_trivial_usage \
        "[OPTION]... HOST [PORT]"
