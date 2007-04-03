@@ -5,5 +5,5 @@
 # Licensed under the GPL v2, see the file LICENSE in this tarball.
 
 lib-y:=
-lib-$(CONFIG_TCPSVD) += tcpsvd.o ipsvd_perhost.o
-lib-$(CONFIG_UDPSVD) += udpsvd.o
+lib-$(CONFIG_TCPSVD) += tcpudp.o ipsvd_perhost.o
+lib-$(CONFIG_UDPSVD) += tcpudp.o ipsvd_perhost.o

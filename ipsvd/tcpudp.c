@@ -7,13 +7,295 @@
  * Licensed under GPLv2, see file LICENSE in this tarball for details.
  */
 
+/* TCP and UDP server are using a lot of same string constants
+ * We reuse them by keeping both in one source file */
+
+#include "busybox.h"
+
+static unsigned verbose;
+
+static void sig_term_handler(int sig)
+{
+	if (verbose)
+		printf("%s: info: sigterm received, exit\n", applet_name);
+	exit(0);
+}
+
+/* Little bloated, but tries to give accurate info how child exited.
+ * Makes easier to spot segfaulting children etc... */
+static void print_waitstat(unsigned pid, int wstat)
+{
+	unsigned e = 0;
+	const char *cause = "?exit";
+
+	if (WIFEXITED(wstat)) {
+		cause++;
+		e = WEXITSTATUS(wstat);
+	} else if (WIFSIGNALED(wstat)) {
+		cause = "signal";
+		e = WTERMSIG(wstat);
+	}
+	printf("%s: info: end %d %s %d\n", applet_name, pid, cause, e);
+}
+
+
+#if ENABLE_UDPSVD
+/* Based on ipsvd ipsvd-0.12.1. This udpsvd accepts all options
+ * which are supported by one from ipsvd-0.12.1, but not all are
+ * functional. See help text at the end of this file for details.
+ *
+ * Output of verbose mode matches original (modulo bugs and
+ * unimplemented stuff). Unnatural splitting of IP and PORT
+ * is retained (personally I prefer one-value "IP:PORT" notation -
+ * it is a natural string representation of struct sockaddr_XX).
+ */
+
+#include "udp_io.c"
+
+int udpsvd_main(int argc, char **argv);
+int udpsvd_main(int argc, char **argv)
+{
+	const char *instructs;
+	char *str_t, *user;
+	unsigned opt;
+
+	char *remote_hostname = (char*)""; /* used if no -h */
+	char *local_hostname = NULL;
+	char *remote_ip;
+	char *local_ip;// = local_ip; /* gcc */
+	uint16_t local_port, remote_port;
+	len_and_sockaddr remote;
+	len_and_sockaddr *localp;
+	int wstat;
+	unsigned pid;
+	struct bb_uidgid_t ugid;
+
+	enum {
+		OPT_v = (1 << 0),
+		OPT_u = (1 << 1),
+		OPT_l = (1 << 2),
+		OPT_h = (1 << 3),
+		OPT_p = (1 << 4),
+		OPT_i = (1 << 5),
+		OPT_x = (1 << 6),
+		OPT_t = (1 << 7),
+	};
+
+	opt_complementary = "-3:ph:vv";
+	opt = getopt32(argc, argv, "vu:l:hpi:x:t:",
+			&user, &local_hostname, &instructs, &instructs, &str_t, &verbose);
+	if (opt & OPT_u) {
+		if (!get_uidgid(&ugid, user, 1))
+			bb_error_msg_and_die("unknown user/group: %s", user);
+	}
+	argv += optind;
+	if (!argv[0][0] || LONE_CHAR(argv[0], '0'))
+		argv[0] = (char*)"0.0.0.0";
+
+	/* stdout is used for logging, don't buffer */
+	setlinebuf(stdout);
+	bb_sanitize_stdio(); /* fd# 1,2 must be opened */
+
+	signal(SIGTERM, sig_term_handler);
+	signal(SIGPIPE, SIG_IGN);
+
+	local_port = bb_lookup_port(argv[1], "udp", 0);
+	localp = xhost2sockaddr(argv[0], local_port);
+	/* fd #0 is the open UDP socket */
+	xmove_fd(xsocket(localp->sa.sa_family, SOCK_DGRAM, 0), 0);
+	setsockopt_reuseaddr(0); /* crucial */
+	xbind(0, &localp->sa, localp->len);
+	socket_want_pktinfo(0); /* needed for recv_from_to to work */
+
+	if (opt & OPT_u) { /* drop permissions */
+		xsetgid(ugid.gid);
+		xsetuid(ugid.uid);
+	}
+
+	if (verbose) {
+		/* we do it only for ":port" cosmetics... oh well */
+		char *addr = xmalloc_sockaddr2dotted(&localp->sa, localp->len);
+
+		printf("%s: info: listening on %s", applet_name, addr);
+		free(addr);
+		if (option_mask32 & OPT_u)
+			printf(", uid %u, gid %u",
+				(unsigned)ugid.uid, (unsigned)ugid.gid);
+		puts(", starting");
+	}
+
+ again:
+	/* if (recvfrom(0, NULL, 0, MSG_PEEK, &remote.sa, &localp->len) < 0) { */
+	if (recv_from_to(0, NULL, 0, MSG_PEEK, &remote.sa, &localp->sa, localp->len) < 0) {
+		bb_perror_msg("recvfrom");
+		goto again;
+	}
+
+	while ((pid = fork()) < 0) {
+		bb_perror_msg("fork failed, sleeping");
+		sleep(5);
+	}
+	if (pid > 0) { /* parent */
+		while (wait_pid(&wstat, pid) < 0)
+			bb_perror_msg("error waiting for child");
+		if (verbose)
+			print_waitstat(pid, wstat);
+		goto again;
+	}
+
+	/* Child */
+
+	if (verbose) {
+		remote_ip = xmalloc_sockaddr2dotted_noport(&remote.sa, localp->len);
+		local_ip = xmalloc_sockaddr2dotted_noport(&localp->sa, localp->len);
+
+		pid = getpid();
+		printf("%s: info: pid %u from %s\n", applet_name, pid, remote_ip);
+
+		if (!local_hostname) {
+			local_hostname = xmalloc_sockaddr2host_noport(&localp->sa, localp->len);
+			if (!local_hostname)
+				bb_error_msg_and_die("cannot look up local hostname for %s", local_ip);
+		}
+		if (opt & OPT_h) {
+			remote_hostname = xmalloc_sockaddr2host(&remote.sa, localp->len);
+			if (!remote_hostname) {
+				bb_error_msg("warning: cannot look up hostname for %s", remote_ip);
+				remote_hostname = (char*)"";
+			}
+		}
+
+		remote_port = get_nport(&remote.sa);
+		remote_port = ntohs(remote_port);
+		printf("%s: info: %u %s:%s :%s:%s:%u\n",
+				applet_name, pid, local_hostname, local_ip,
+				remote_hostname, remote_ip, remote_port);
+	}
+
+	/* Doesn't work:
+	 * we cannot replace fd #0 - we will lose pending packet
+	 * which is already buffered for us! And we cannot use fd #1
+	 * instead - it will "intercept" all following packets, but child
+	 * do not expect data coming *from fd #1*! */
+#if 0
+	/* Make it so that local addr is fixed to localp->sa
+	 * and we don't accidentally accept packets to other local IPs. */
+	/* NB: we possibly bind to the _very_ same_ address & port as the one
+	 * already bound in parent! This seems to work in Linux.
+	 * (otherwise we can move socket to fd #0 only if bind succeeds) */
+	close(0);
+	set_nport(localp, htons(local_port));
+	xmove_fd(xsocket(localp->sa.sa_family, SOCK_DGRAM, 0), 0);
+	setsockopt_reuseaddr(0); /* crucial */
+	xbind(0, &localp->sa, localp->len);
+#endif
+
+	/* Make plain write to fd #1 work for the child by supplying default
+	 * destination address. This also restricts incoming packets
+	 * to ones coming from this remote IP. */
+	xconnect(0, &remote.sa, localp->len);
+	dup2(0 ,1);
+
+	signal(SIGTERM, SIG_DFL);
+	signal(SIGPIPE, SIG_DFL);
+
+	argv += 2;
+	BB_EXECVP(argv[0], argv);
+	bb_perror_msg_and_die("exec '%s'", argv[0]);
+}
+
+
+/*
+udpsvd [-hpvv] [-u user] [-l name] [-i dir|-x cdb] [-t sec] host port prog
+
+udpsvd creates an UDP/IP socket, binds it to the address host:port,
+and listens on the socket for incoming datagrams.
+
+If a datagram is available on the socket, udpsvd conditionally starts
+a program, with standard input reading from the socket, and standard
+output redirected to standard error, to handle this, and possibly
+more datagrams. udpsvd does not start the program if another program
+that it has started before still is running. If the program exits,
+udpsvd again listens to the socket until a new datagram is available.
+If there are still datagrams available on the socket, the program
+is restarted immediately.
+
+udpsvd optionally checks for special intructions depending on
+the IP address or hostname of the client sending the datagram which
+not yet was handled by a running program, see ipsvd-instruct(5)
+for details.
+
+Attention:
+UDP is a connectionless protocol. Most programs that handle user datagrams,
+such as talkd(8), keep running after receiving a datagram, and process
+subsequent datagrams sent to the socket until a timeout is reached.
+udpsvd only checks special instructions for a datagram that causes a startup
+of the program; not if a program handling datagrams already is running.
+It doesn't make much sense to restrict access through special instructions
+when using such a program.
+
+On the other hand, it makes perfectly sense with programs like tftpd(8),
+that fork to establish a separate connection to the client when receiving
+the datagram. In general it's adequate to set up special instructions for
+programs that support being run by tcpwrapper.
+Options
+
+host
+    host either is a hostname, or a dotted-decimal IP address, or 0.
+    If host is 0, udpsvd accepts datagrams to any local IP address.
+port
+    udpsvd accepts datagrams to host:port. port may be a name from
+    /etc/services or a number.
+prog
+    prog consists of one or more arguments. udpsvd normally runs prog
+    to handle a datagram, and possibly more, that is sent to the socket,
+    if there is no program that was started before by udpsvd still running
+    and handling datagrams.
+-i dir
+    read instructions for handling new connections from the instructions
+    directory dir. See ipsvd-instruct(5) for details.
+-x cdb
+    read instructions for handling new connections from the constant
+    database cdb. The constant database normally is created from
+    an instructions directory by running ipsvd-cdb(8).
+-t sec
+    timeout. This option only takes effect if the -i option is given.
+    While checking the instructions directory, check the time of last
+    access of the file that matches the clients address or hostname if any,
+    discard and remove the file if it wasn't accessed within the last
+    sec seconds; udpsvd does not discard or remove a file if the user's
+    write permission is not set, for those files the timeout is disabled.
+    Default is 0, which means that the timeout is disabled.
+-l name
+    local hostname. Do not look up the local hostname in DNS, but use name
+    as hostname. By default udpsvd looks up the local hostname once at startup.
+-u user[:group]
+    drop permissions. Switch user ID to user's UID, and group ID to user's
+    primary GID after creating and binding to the socket. If user
+    is followed by a colon and a group name, the group ID is switched
+    to the GID of group instead. All supplementary groups are removed.
+-h
+    Look up the client's hostname in DNS.
+-p
+    paranoid. After looking up the client's hostname in DNS, look up
+    the IP addresses in DNS for that hostname, and forget the hostname
+    if none of the addresses match the client's IP address. You should
+    set this option if you use hostname based instructions. The -p option
+    implies the -h option.
+-v
+    verbose. Print verbose messages to standard output.
+-vv
+    more verbose. Print more verbose messages to standard output.
+*/
+#endif
+
+
+#if ENABLE_TCPSVD
 /* Based on ipsvd ipsvd-0.12.1. This tcpsvd accepts all options
  * which are supported by one from ipsvd-0.12.1, but not all are
  * functional. See help text at the end of this file for details.
  *
  * Code inside "#ifdef SSLSVD" is for sslsvd and is currently unused.
- * Code inside #if 0" is parts of original tcpsvd which are not implemented
- * for busyboxed version.
  *
  * Output of verbose mode matches original (modulo bugs and
  * unimplemented stuff). Unnatural splitting of IP and PORT
@@ -25,7 +307,6 @@
 
 #include <limits.h>
 #include <linux/netfilter_ipv4.h> /* wants <limits.h> */
-#include "busybox.h"
 #include "ipsvd_perhost.h"
 
 #ifdef SSLSVD
@@ -33,10 +314,8 @@
 #include "ssl_io.h"
 #endif
 
-
 static unsigned max_per_host; /* originally in ipsvd_check.c */
 static unsigned cur_per_host;
-static unsigned verbose;
 static unsigned cnum;
 static unsigned cmax = 30;
 
@@ -66,13 +345,6 @@ static void connection_status(void)
 	printf("%s: info: status %u/%u\n", applet_name, cnum, cmax);
 }
 
-static void sig_term_handler(int sig)
-{
-	if (verbose)
-		printf("%s: info: sigterm received, exit\n", applet_name);
-	exit(0);
-}
-
 static void sig_child_handler(int sig)
 {
 	int wstat;
@@ -83,22 +355,8 @@ static void sig_child_handler(int sig)
 			ipsvd_perhost_remove(pid);
 		if (cnum)
 			cnum--;
-		if (verbose) {
-			/* Little bloated, but tries to give accurate info
-			 * how child exited. Makes easier to spot segfaulting
-			 * children etc... */
-			unsigned e = 0;
-			const char *cause = "?exit";
-			if (WIFEXITED(wstat)) {
-				cause++;
-				e = WEXITSTATUS(wstat);
-			} else if (WIFSIGNALED(wstat)) {
-				cause = "signal";
-				e = WTERMSIG(wstat);
-			}
-			printf("%s: info: end %d %s %d\n",
-					applet_name, pid, cause, e);
-		}
+		if (verbose)
+			print_waitstat(pid, wstat);
 	}
 	if (verbose)
 		connection_status();
@@ -118,20 +376,13 @@ int tcpsvd_main(int argc, char **argv)
 	int sock;
 	int conn;
 	unsigned backlog = 20;
-	union {
-		struct sockaddr sa;
-		struct sockaddr_in sin;
-		USE_FEATURE_IPV6(struct sockaddr_in6 sin6;)
-	} sock_adr;
-	socklen_t sockadr_size;
-	uint16_t local_port = local_port;
-	uint16_t remote_port;
+	len_and_sockaddr *lsa;
+	uint16_t local_port;
+	uint16_t remote_port = remote_port; /* gcc */
 	char *local_hostname = NULL;
 	char *remote_hostname = (char*)""; /* "" used if no -h */
 	char *local_ip = local_ip; /* gcc */
 	char *remote_ip = remote_ip; /* gcc */
-	//unsigned iscdb = 0;		/* = option_mask32 & OPT_x (TODO) */
-	//unsigned long timeout = 0;
 #ifndef SSLSVD
 	struct bb_uidgid_t ugid;
 #endif
@@ -168,7 +419,6 @@ int tcpsvd_main(int argc, char **argv)
 	}
 	if (option_mask32 & OPT_b)
 		backlog = xatou(str_b);
-//	if (option_mask32 & OPT_t) timeout = xatou(str_t);
 #ifdef SSLSVD
 	if (option_mask32 & OPT_U) ssluser = (char*)optarg; break;
 	if (option_mask32 & OPT_slash) root = (char*)optarg; break;
@@ -224,7 +474,10 @@ int tcpsvd_main(int argc, char **argv)
 		ipsvd_perhost_init(cmax);
 
 	local_port = bb_lookup_port(argv[1], "tcp", 0);
-	sock = create_and_bind_stream_or_die(argv[0], local_port);
+	lsa = xhost2sockaddr(argv[0], local_port);
+	sock = xsocket(lsa->sa.sa_family, SOCK_STREAM, 0);
+	setsockopt_reuseaddr(sock); /* desirable */
+	xbind(sock, &lsa->sa, lsa->len);
 	xlisten(sock, backlog);
 	/* ndelay_off(sock); - it is the default I think? */
 
@@ -235,11 +488,9 @@ int tcpsvd_main(int argc, char **argv)
 		xsetuid(ugid.uid);
 	}
 #endif
-	close(0);
 
 	if (verbose) {
 		/* we do it only for ":port" cosmetics... oh well */
-		len_and_sockaddr *lsa = xhost2sockaddr(argv[0], local_port);
 		char *addr = xmalloc_sockaddr2dotted(&lsa->sa, lsa->len);
 
 		printf("%s: info: listening on %s", applet_name, addr);
@@ -260,32 +511,35 @@ int tcpsvd_main(int argc, char **argv)
 	while (cnum >= cmax)
 		sig_pause(); /* wait for any signal (expecting SIGCHLD) */
 
-	sockadr_size = sizeof(sock_adr);
+	/* Accept a connection to fd #0 */
+ again1:
+	close(0);
+ again2:
 	sig_unblock(SIGCHLD);
-	conn = accept(sock, &sock_adr.sa, &sockadr_size);
+	conn = accept(sock, &lsa->sa, &lsa->len);
 	sig_block(SIGCHLD);
-	if (conn == -1) {
+	if (conn < 0) {
 		if (errno != EINTR)
 			bb_perror_msg("accept");
-		goto again;
+		goto again2;
 	}
+	xmove_fd(conn, 0);
 
 	if (max_per_host) {
-		/* we drop connection immediately if cur_per_host > max_per_host
+		/* Drop connection immediately if cur_per_host > max_per_host
 		 * (minimizing load under SYN flood) */
-		remote_ip = xmalloc_sockaddr2dotted_noport(&sock_adr.sa, sockadr_size);
+		remote_ip = xmalloc_sockaddr2dotted_noport(&lsa->sa, lsa->len);
 		cur_per_host = ipsvd_perhost_add(remote_ip, max_per_host, &hccp);
 		if (cur_per_host > max_per_host) {
-			free(remote_ip);
 			/* ipsvd_perhost_add detected that max is exceeded
-			 * (and did not store us in connection table) */
+			 * (and did not store ip in connection table) */
+			free(remote_ip);
 			if (msg_per_host) {
-				ndelay_on(conn);
-				/* don't test for errors */
-				write(conn, msg_per_host, len_per_host);
+				/* don't block or test for errors */
+				ndelay_on(0);
+				write(0, msg_per_host, len_per_host);
 			}
-			close(conn);
-			goto again;
+			goto again1;
 		}
 	}
 
@@ -296,12 +550,10 @@ int tcpsvd_main(int argc, char **argv)
 	pid = fork();
 	if (pid == -1) {
 		bb_perror_msg("fork");
-		close(conn);
 		goto again;
 	}
 	if (pid != 0) {
 		/* parent */
-		close(conn);
 		if (hccp)
 			hccp->pid = pid;
 		goto again;
@@ -309,42 +561,48 @@ int tcpsvd_main(int argc, char **argv)
 
 	/* Child: prepare env, log, and exec prog */
 
-	close(sock);
+	close(sock); /* listening socket */
+	/* Find out local IP peer connected to.
+	 * Errors ignored (I'm not paranoid enough to imagine kernel
+	 * which doesn't know local IP). */
+	getsockname(0, &lsa->sa, &lsa->len);
 
-	if (!max_per_host && need_remote_ip)
-		remote_ip = xmalloc_sockaddr2dotted_noport(&sock_adr.sa, sizeof(sock_adr));
-	/* else it is already done */
-
-	remote_port = get_nport(&sock_adr.sa);
-	remote_port = ntohs(remote_port);
-
-	if (verbose) {
-		pid = getpid();
-		printf("%s: info: pid %d from %s\n", applet_name, pid, remote_ip);
+	if (need_remote_ip) {
+		if (!max_per_host)
+			remote_ip = xmalloc_sockaddr2dotted_noport(&lsa->sa, lsa->len);
+		/* else it is already done */
+		remote_port = get_nport(&lsa->sa);
+		remote_port = ntohs(remote_port);
 	}
-
-	if (need_hostnames && (option_mask32 & OPT_h)) {
-		remote_hostname = xmalloc_sockaddr2host(&sock_adr.sa, sizeof(sock_adr));
-		if (!remote_hostname) {
-			bb_error_msg("warning: cannot look up hostname for %s", remote_ip);
-			remote_hostname = (char*)"";
-		}
-	}
-
-	sockadr_size = sizeof(sock_adr);
-	/* Errors ignored (I'm not paranoid enough to imagine kernel
-	 * which doesn't know local ip) */
-	getsockname(conn, &sock_adr.sa, &sockadr_size);
 
 	if (need_hostnames) {
-		local_ip = xmalloc_sockaddr2dotted_noport(&sock_adr.sa, sockadr_size);
-		local_port = get_nport(&sock_adr.sa);
+		if (option_mask32 & OPT_h) {
+			remote_hostname = xmalloc_sockaddr2host(&lsa->sa, lsa->len);
+			if (!remote_hostname) {
+				bb_error_msg("warning: cannot look up hostname for %s", remote_ip);
+				remote_hostname = (char*)"";
+			}
+		}
+		local_ip = xmalloc_sockaddr2dotted_noport(&lsa->sa, lsa->len);
+		local_port = get_nport(&lsa->sa);
 		local_port = ntohs(local_port);
 		if (!local_hostname) {
-			local_hostname = xmalloc_sockaddr2host_noport(&sock_adr.sa, sockadr_size);
+			local_hostname = xmalloc_sockaddr2host_noport(&lsa->sa, lsa->len);
 			if (!local_hostname)
 				bb_error_msg_and_die("cannot look up local hostname for %s", local_ip);
 		}
+	}
+
+	if (verbose) {
+		pid = getpid();
+		printf("%s: info: pid %u from %s\n", applet_name, pid, remote_ip);
+		if (max_per_host)
+			printf("%s: info: concurrency %u %s %u/%u\n",
+				applet_name, pid, remote_ip, cur_per_host, max_per_host);
+		printf("%s: info: start %u %s:%s :%s:%s:%u\n",
+			applet_name, pid,
+			local_hostname, local_ip,
+			remote_hostname, remote_ip, (unsigned)remote_port);
 	}
 
 	if (!(option_mask32 & OPT_E)) {
@@ -354,10 +612,9 @@ int tcpsvd_main(int argc, char **argv)
 		 * from Linux firewall. Useful when you redirect
 		 * an outbond connection to local handler, and it needs
 		 * to know where it originally tried to connect */
-		sockadr_size = sizeof(sock_adr);
-		if (getsockopt(conn, SOL_IP, SO_ORIGINAL_DST, &sock_adr.sa, &sockadr_size) == 0) {
-			char *ip = xmalloc_sockaddr2dotted_noport(&sock_adr.sa, sockadr_size);
-			unsigned port = get_nport(&sock_adr.sa);
+		if (getsockopt(0, SOL_IP, SO_ORIGINAL_DST, &lsa->sa, &lsa->len) == 0) {
+			char *ip = xmalloc_sockaddr2dotted_noport(&lsa->sa, lsa->len);
+			unsigned port = get_nport(&lsa->sa);
 			port = ntohs(port);
 			xsetenv("TCPORIGDSTIP", ip);
 			xsetenv("TCPORIGDSTPORT", utoa(port));
@@ -378,68 +635,6 @@ int tcpsvd_main(int argc, char **argv)
 			xsetenv("TCPCONCURRENCY", utoa(cur_per_host));
 	}
 
-#if 0
-	if (instructs) {
-		ac = ipsvd_check(iscdb, &inst, &match, (char*)instructs,
-							remote_ip, remote_hostname, timeout);
-		if (ac == -1) drop2("cannot check inst", remote_ip);
-		if (ac == IPSVD_ERR) drop2("cannot read", (char*)instructs);
-	} else
-		ac = IPSVD_DEFAULT;
-#endif
-
-	if (max_per_host && verbose)
-		printf("%s: info: concurrency %u %s %u/%u\n",
-			applet_name, pid, remote_ip, cur_per_host, max_per_host);
-
-	if (verbose) {
-		printf("%s: info: start %u %s:%s :%s:%s:%u\n",
-			applet_name, pid,
-			local_hostname, local_ip,
-			remote_hostname, remote_ip, (unsigned)remote_port);
-#if 0
-		switch(ac) {
-		case IPSVD_DENY:
-			printf("deny "); break;
-		case IPSVD_DEFAULT:
-		case IPSVD_INSTRUCT:
-			printf("start "); break;
-		case IPSVD_EXEC:
-			printf("exec "); break;
-		}
-		...
-		if (instructs) {
-			printf(" ");
-			if (iscdb) {
-				printf((char*)instructs);
-				printf("/");
-			}
-			outfix(match.s);
-			if(inst.s && inst.len && (verbose > 1)) {
-				printf(": ");
-				printf(&inst);
-			}
-		}
-		printf("\n");
-#endif
-	}
-
-#if 0
-	if (ac == IPSVD_DENY) {
-		close(conn);
-		_exit(100);
-	}
-	if (ac == IPSVD_EXEC) {
-		args[0] = "/bin/sh";
-		args[1] = "-c";
-		args[2] = inst.s;
-		args[3] = 0;
-		run = args;
-	} else
-		run = argv + 2; /* below: we use argv+2 (was using run) */
-#endif
-
-	xmove_fd(conn, 0);
 	dup2(0, 1);
 
 	signal(SIGTERM, SIG_DFL);
@@ -552,3 +747,4 @@ prog
     more verbose. Print more verbose messages to standard output.
     * no difference between -v and -vv in busyboxed version
 */
+#endif
