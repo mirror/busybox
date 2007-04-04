@@ -22,9 +22,9 @@
  *
  * udp server is hacked up by reusing TCP code. It has the following
  * limitation inherent in Unix DGRAM sockets implementation:
- * - local IP address is reptrieved (using recvmsg voodoo) but
+ * - local IP address is retrieved (using recvmsg voodoo) but
  *   child's socket is not bound to it (bind cannot be called on
- *   already bound socket). Thus you still can get outgoing packets
+ *   already bound socket). Thus it still can emit outgoing packets
  *   with wrong sorce IP...
  * - don't know how to retrieve ORIGDST for udp.
  */
@@ -100,7 +100,7 @@ enum {
 
 static void connection_status(void)
 {
-	/* UDP and "only 1 client max" TCP don't need this */
+	/* "only 1 client max" don't need this */
 	if (cmax > 1)
 		printf("%s: info: status %u/%u\n", applet_name, cnum, cmax);
 }
@@ -131,34 +131,35 @@ int tcpudpsvd_main(int argc, char **argv)
 	const char *instructs;
 	char *msg_per_host = NULL;
 	unsigned len_per_host = len_per_host; /* gcc */
-	int need_hostnames, need_remote_ip;
-	int tcp;
+#ifndef SSLSVD
+	struct bb_uidgid_t ugid;
+#endif
+	bool need_hostnames, need_remote_ip, tcp;
+	uint16_t local_port;
+	char *local_hostname = NULL;
+	char *remote_hostname = (char*)""; /* "" used if no -h */
+	char *local_addr = local_addr; /* gcc */
+	char *remote_addr = remote_addr; /* gcc */
+	char *remote_ip = remote_addr; /* gcc */
+	len_and_sockaddr *lsa;
+	len_and_sockaddr local, remote;
+	socklen_t sa_len;
 	int pid;
 	int sock;
 	int conn;
 	unsigned backlog = 20;
-	len_and_sockaddr *lsa;
-	len_and_sockaddr local, remote;
-	uint16_t local_port;
-	uint16_t remote_port = remote_port; /* gcc */
-	char *local_hostname = NULL;
-	char *remote_hostname = (char*)""; /* "" used if no -h */
-	char *local_ip = local_ip; /* gcc */
-	char *remote_ip = remote_ip; /* gcc */
-#ifndef SSLSVD
-	struct bb_uidgid_t ugid;
-#endif
+
 	tcp = (applet_name[0] == 't');
 
 	/* 3+ args, -i at most once, -p implies -h, -v is counter */
 	opt_complementary = "-3:?:i--i:ph:vv";
 #ifdef SSLSVD
-	getopt32(argc, argv, "c:C:i:x:u:l:Eb:hpt:vU:/:Z:K:",
+	getopt32(argc, argv, "+c:C:i:x:u:l:Eb:hpt:vU:/:Z:K:",
 		&str_c, &str_C, &instructs, &instructs, &user, &local_hostname,
 		&str_b, &str_t, &ssluser, &root, &cert, &key, &verbose
 	);
 #else
-	getopt32(argc, argv, "c:C:i:x:u:l:Eb:hpt:v",
+	getopt32(argc, argv, "+c:C:i:x:u:l:Eb:hpt:v",
 		&str_c, &str_C, &instructs, &instructs, &user, &local_hostname,
 		&str_b, &str_t, &verbose
 	);
@@ -213,10 +214,8 @@ int tcpudpsvd_main(int argc, char **argv)
 	if (option_mask32 & OPT_u)
 		if (!uidgid_get(&sslugid, ssluser, 1)) {
 			if (errno) {
-				xfunc_exitcode = 100;
 				bb_perror_msg_and_die("fatal: cannot get user/group: %s", ssluser);
 			}
-			xfunc_exitcode = 111;
 			bb_error_msg_and_die("fatal: unknown user/group '%s'", ssluser);
 		}
 	if (!cert) cert = "./cert.pem";
@@ -244,7 +243,8 @@ int tcpudpsvd_main(int argc, char **argv)
 	lsa = xhost2sockaddr(argv[0], local_port);
 	sock = xsocket(lsa->sa.sa_family, tcp ? SOCK_STREAM : SOCK_DGRAM, 0);
 	setsockopt_reuseaddr(sock);
-	xbind(sock, &lsa->sa, lsa->len);
+	sa_len = lsa->len; /* I presume sockaddr len stays the same */
+	xbind(sock, &lsa->sa, sa_len);
 	if (tcp)
 		xlisten(sock, backlog);
 	else /* udp: needed for recv_from_to to work: */
@@ -260,9 +260,7 @@ int tcpudpsvd_main(int argc, char **argv)
 #endif
 
 	if (verbose) {
-		/* we do it only for ":port" cosmetics... oh well */
-		char *addr = xmalloc_sockaddr2dotted(&lsa->sa, lsa->len);
-
+		char *addr = xmalloc_sockaddr2dotted(&lsa->sa, sa_len);
 		printf("%s: info: listening on %s", applet_name, addr);
 		free(addr);
 #ifndef SSLSVD
@@ -287,10 +285,14 @@ int tcpudpsvd_main(int argc, char **argv)
  again2:
 	sig_unblock(SIGCHLD);
 	if (tcp) {
-		remote.len = lsa->len;
+		remote.len = sa_len;
 		conn = accept(sock, &remote.sa, &remote.len);
-	} else
-		conn = recv_from_to(sock, NULL, 0, MSG_PEEK, &remote.sa, &local.sa, lsa->len);
+	} else {
+		/* In case we won't be able to recover local below.
+		 * Also sets port - recv_from_to is unable to do it. */
+		local = *lsa;
+		conn = recv_from_to(sock, NULL, 0, MSG_PEEK, &remote.sa, &local.sa, sa_len);
+	}
 	sig_block(SIGCHLD);
 	if (conn < 0) {
 		if (errno != EINTR)
@@ -302,7 +304,7 @@ int tcpudpsvd_main(int argc, char **argv)
 	if (max_per_host) {
 		/* Drop connection immediately if cur_per_host > max_per_host
 		 * (minimizing load under SYN flood) */
-		remote_ip = xmalloc_sockaddr2dotted_noport(&remote.sa, lsa->len);
+		remote_ip = xmalloc_sockaddr2dotted_noport(&remote.sa, sa_len);
 		cur_per_host = ipsvd_perhost_add(remote_ip, max_per_host, &hccp);
 		if (cur_per_host > max_per_host) {
 			/* ipsvd_perhost_add detected that max is exceeded
@@ -319,16 +321,21 @@ int tcpudpsvd_main(int argc, char **argv)
 
 	if (!tcp) {
 		/* Voodoo magic: making udp sockets each receive its own
-		 * packets is not trivial */
+		 * packets is not trivial, and I still not sure
+		 * I do it 100% right.
+		 * 1) we have to do it before fork()
+		 * 2) order is important - is it right now? */
 
-		/* Make plain write work for this socket by supplying default
+		/* Make plain write/send work for this socket by supplying default
 		 * destination address. This also restricts incoming packets
 		 * to ones coming from this remote IP. */
-		xconnect(0, &remote.sa, lsa->len);
+		xconnect(0, &remote.sa, sa_len);
+	/* hole? at this point we have no wildcard udp socket...
+	 * can this cause clients to get "port unreachable" icmp? */
 		/* Open new non-connected UDP socket for further clients */
 		sock = xsocket(lsa->sa.sa_family, tcp ? SOCK_STREAM : SOCK_DGRAM, 0);
 		setsockopt_reuseaddr(sock);
-		xbind(sock, &lsa->sa, lsa->len);
+		xbind(sock, &lsa->sa, sa_len);
 		socket_want_pktinfo(sock);
 	}
 
@@ -355,50 +362,44 @@ int tcpudpsvd_main(int argc, char **argv)
 	if (tcp)
 		close(sock);
 
-	if (need_remote_ip) {
-		if (!max_per_host)
-			remote_ip = xmalloc_sockaddr2dotted_noport(&remote.sa, lsa->len);
-		/* else it is already done */
-		remote_port = get_nport(&remote.sa);
-		remote_port = ntohs(remote_port);
-	}
+	if (need_remote_ip)
+		remote_addr = xmalloc_sockaddr2dotted(&remote.sa, sa_len);
 
 	if (need_hostnames) {
 		if (option_mask32 & OPT_h) {
-			remote_hostname = xmalloc_sockaddr2host(&remote.sa, lsa->len);
+			remote_hostname = xmalloc_sockaddr2host_noport(&remote.sa, sa_len);
 			if (!remote_hostname) {
-				bb_error_msg("warning: cannot look up hostname for %s", remote_ip);
+				bb_error_msg("warning: cannot look up hostname for %s", remote_addr);
 				remote_hostname = (char*)"";
 			}
 		}
 		/* Find out local IP peer connected to.
 		 * Errors ignored (I'm not paranoid enough to imagine kernel
 		 * which doesn't know local IP). */
-		if (tcp)
+		if (tcp) {
+			local.len = sa_len;
 			getsockname(0, &local.sa, &local.len);
-		local_ip = xmalloc_sockaddr2dotted_noport(&local.sa, lsa->len);
-		local_port = get_nport(&local.sa);
-		local_port = ntohs(local_port);
+		}
+		local_addr = xmalloc_sockaddr2dotted(&local.sa, sa_len);
 		if (!local_hostname) {
-			local_hostname = xmalloc_sockaddr2host_noport(&local.sa, lsa->len);
+			local_hostname = xmalloc_sockaddr2host_noport(&local.sa, sa_len);
 			if (!local_hostname)
-				bb_error_msg_and_die("warning: cannot look up hostname for %s"+9, local_ip);
+				bb_error_msg_and_die("warning: cannot look up hostname for %s"+9, local_addr);
 		}
 	}
 
 	if (verbose) {
 		pid = getpid();
-		printf("%s: info: pid %u from %s\n", applet_name, pid, remote_ip);
+		printf("%s: info: pid %u from %s\n", applet_name, pid, remote_addr);
 		if (max_per_host)
 			printf("%s: info: concurrency %u %s %u/%u\n",
 				applet_name, pid, remote_ip, cur_per_host, max_per_host);
-		printf("%s: info: start %u %s:%s :%s:%s:%u\n",
+		printf("%s: info: start %u %s:%s :%s:%s\n",
 			applet_name, pid,
-			local_hostname, local_ip,
-			remote_hostname, remote_ip, (unsigned)remote_port);
+			local_hostname, local_addr,
+			remote_hostname, remote_addr);
 	}
 
-// TODO: stop splitiing port# from IP?
 	if (!(option_mask32 & OPT_E)) {
 		/* setup ucspi env */
 		const char *proto = tcp ? "TCP" : "UDP";
@@ -408,19 +409,14 @@ int tcpudpsvd_main(int argc, char **argv)
 		 * an outbond connection to local handler, and it needs
 		 * to know where it originally tried to connect */
 		if (tcp && getsockopt(0, SOL_IP, SO_ORIGINAL_DST, &lsa->sa, &lsa->len) == 0) {
-			char *ip = xmalloc_sockaddr2dotted_noport(&lsa->sa, lsa->len);
-			unsigned port = get_nport(&lsa->sa);
-			port = ntohs(port);
-			xsetenv("TCPORIGDSTIP", ip);
-			xsetenv("TCPORIGDSTPORT", utoa(port));
-			free(ip);
+			char *addr = xmalloc_sockaddr2dotted(&lsa->sa, sa_len);
+			xsetenv("TCPORIGDSTADDR", addr);
+			free(addr);
 		}
 		xsetenv("PROTO", proto);
-		xsetenv_proto(proto, "LOCALIP", local_ip);
-		xsetenv_proto(proto, "LOCALPORT", utoa(local_port));
+		xsetenv_proto(proto, "LOCALADDR", local_addr);
 		xsetenv_proto(proto, "LOCALHOST", local_hostname);
-		xsetenv_proto(proto, "REMOTEIP", remote_ip);
-		xsetenv_proto(proto, "REMOTEPORT", utoa(remote_port));
+		xsetenv_proto(proto, "REMOTEADDR", remote_addr);
 		if (option_mask32 & OPT_h) {
 			xsetenv_proto(proto, "REMOTEHOST", remote_hostname);
 		}

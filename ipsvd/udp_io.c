@@ -18,12 +18,13 @@ socket_want_pktinfo(int fd)
 #ifdef IP_PKTINFO
 	setsockopt(fd, IPPROTO_IP, IP_PKTINFO, &const_int_1, sizeof(int));
 #endif
-#ifdef IPV6_PKTINFO
+#if ENABLE_FEATURE_IPV6 && defined(IPV6_PKTINFO)
 	setsockopt(fd, IPPROTO_IPV6, IPV6_PKTINFO, &const_int_1, sizeof(int));
 #endif
 }
 
 
+#ifdef UNUSED
 ssize_t
 send_to_from(int fd, void *buf, size_t len, int flags,
 		const struct sockaddr *from, const struct sockaddr *to,
@@ -34,8 +35,11 @@ send_to_from(int fd, void *buf, size_t len, int flags,
 #else
 	struct iovec iov[1];
 	struct msghdr msg;
-	char cbuf[LSA_SIZEOF_SA];
-	/* actually, max(sizeof(in_pktinfo),sizeof(in6_pktinfo)) */
+	char cbuf[sizeof(struct in_pktinfo)
+#if ENABLE_FEATURE_IPV6 && defined(IPV6_PKTINFO)
+		| sizeof(struct in6_pktinfo) /* (a|b) is poor man's max(a,b) */
+#endif
+	];
 	struct cmsghdr* cmsgptr;
 
 	if (from->sa_family != AF_INET
@@ -73,11 +77,11 @@ send_to_from(int fd, void *buf, size_t len, int flags,
 		/* pktptr->ipi_ifindex = 0; -- already done by memset(cbuf...) */
 		pktptr->ipi_spec_dst = ((struct sockaddr_in*)from)->sin_addr;
 	}
-#if ENABLE_FEATURE_IPV6 && defined(IP6_PKTINFO)
+#if ENABLE_FEATURE_IPV6 && defined(IPV6_PKTINFO)
 	else if (to->sa_family == AF_INET6 && from->sa_family == AF_INET6) {
 		struct in6_pktinfo *pktptr;
 		cmsgptr->cmsg_level = IPPROTO_IPV6;
-		cmsgptr->cmsg_type = IP6_PKTINFO;
+		cmsgptr->cmsg_type = IPV6_PKTINFO;
 		cmsgptr->cmsg_len = CMSG_LEN(sizeof(struct in6_pktinfo));
 		pktptr = (struct in6_pktinfo *)(CMSG_DATA(cmsgptr));
 		/* pktptr->ipi6_ifindex = 0; -- already done by memset(cbuf...) */
@@ -87,8 +91,12 @@ send_to_from(int fd, void *buf, size_t len, int flags,
 	return sendmsg(fd, &msg, flags);
 #endif
 }
+#endif /* UNUSED */
 
-/* NB: this will never set port# in *to! */
+/* NB: this will never set port# in 'to'!
+ * _Only_ IP/IPv6 address part of 'to' is _maybe_ modified.
+ * Typical usage is to preinit it with "default" value
+ * before calling recv_from_to(). */
 ssize_t
 recv_from_to(int fd, void *buf, size_t len, int flags,
 		struct sockaddr *from, struct sockaddr *to,
@@ -123,7 +131,6 @@ recv_from_to(int fd, void *buf, size_t len, int flags,
 		return recv_length;
 
 	/* Here we try to retrieve destination IP and memorize it */
-	memset(to, 0, sa_size);
 	for (cmsgptr = CMSG_FIRSTHDR(&msg);
 			cmsgptr != NULL;
 			cmsgptr = CMSG_NXTHDR(&msg, cmsgptr)
@@ -138,9 +145,9 @@ recv_from_to(int fd, void *buf, size_t len, int flags,
 #undef pktinfo
 			break;
 		}
-#if ENABLE_FEATURE_IPV6 && defined(IP6_PKTINFO)
+#if ENABLE_FEATURE_IPV6 && defined(IPV6_PKTINFO)
 		if (cmsgptr->cmsg_level == IPPROTO_IPV6
-		 && cmsgptr->cmsg_type == IP6_PKTINFO
+		 && cmsgptr->cmsg_type == IPV6_PKTINFO
 		) {
 #define pktinfo(cmsgptr) ( (struct in6_pktinfo*)(CMSG_DATA(cmsgptr)) )
 			to->sa_family = AF_INET6;
