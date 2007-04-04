@@ -958,9 +958,11 @@
 	) USE_FEATURE_FIND_EXEC( \
        "\n	-exec CMD	Execute CMD with all instances of {} replaced by the" \
        "\n			files matching EXPRESSION" \
-	) USE_DESKTOP( \
+	) USE_FEATURE_FIND_SIZE( \
        "\n	-size N		File size is N" \
+	) USE_FEATURE_FIND_PRUNE( \
        "\n	-prune		Stop traversing current subtree" \
+	) USE_FEATURE_FIND_PAREN( \
        "\n	(expr)		Group" \
 	)
 

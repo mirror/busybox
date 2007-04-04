@@ -90,14 +90,50 @@ config FEATURE_FIND_USER
 	help
 	  Support the 'find -user' option for searching by username or uid.
 
+config FEATURE_FIND_GROUP
+	bool "Enable group/gid matching (-group) option"
+	default y
+	depends on FIND
+	help
+	  Support the 'find -group' option for searching by group name or gid.
+
 config FEATURE_FIND_NOT
 	bool "Enable the 'not' (!) operator"
 	default y
 	depends on FIND
 	help
-	  Support the '!' operator to invert the test results. If 'Enable
-	  full-blown desktop' is enabled, then will also support the
-	  non-POSIX notation '-not'.
+	  Support the '!' operator to invert the test results.
+	  If 'Enable full-blown desktop' is enabled, then will also support
+	  the non-POSIX notation '-not'.
+
+config FEATURE_FIND_DEPTH
+	bool "Enable the -depth option"
+	default y
+	depends on FIND
+	help
+	  Process each directory's contents before the directory itself.
+
+config FEATURE_FIND_PAREN
+	bool "Enable parens in options"
+	default y
+	depends on FIND
+	help
+	  Enable usage of parens '(' to specify logical order of arguments.
+
+config FEATURE_FIND_SIZE
+	bool "Enable (-size) option allowing matching for file size"
+	default y
+	depends on FIND
+	help
+	  Support the 'find -size' option for searching by file size.
+
+config FEATURE_FIND_PRUNE
+	bool "Enable (-prune) option allowing to exclude subdirectories"
+	default y
+	depends on FIND
+	help
+	  If the file is a directory, dont descend into it. Useful for
+	  exclusion .svn and CVS directories.
 
 config GREP
 	bool "grep"
