@@ -375,17 +375,22 @@ enum {
 };
 
 /* The width of the screen, for output wrapping */
-static unsigned max_col = 80; /* default */
-/* Current position, to know when to wrap */
-static unsigned current_col;
+unsigned max_col = 80; /* default */
+
+struct globals {
+	/* Current position, to know when to wrap */
+	unsigned current_col;
+	char buf[10];
+};
+#define G (*(struct globals*)&bb_common_bufsiz1)
+
 static const char *device_name = bb_msg_standard_input;
 
 /* Return a string that is the printable representation of character CH */
 /* Adapted from 'cat' by Torbjorn Granlund */
 static const char *visible(unsigned int ch)
 {
-	static char buf[10];
-	char *bpout = buf;
+	char *bpout = G.buf;
 
 	if (ch == _POSIX_VDISABLE)
 		return "<undef>";
@@ -407,7 +412,7 @@ static const char *visible(unsigned int ch)
 	}
 
 	*bpout = '\0';
-	return buf;
+	return G.buf;
 }
 
 static tcflag_t *mode_type_flag(unsigned type, const struct termios *mode)
@@ -466,20 +471,20 @@ static void wrapf(const char *message, ...)
 	   somebody failed to adhere to this assumption just to be sure.  */
 	if (!buflen || buflen >= sizeof(buf)) return;
 
-	if (current_col > 0) {
-		current_col++;
+	if (G.current_col > 0) {
+		G.current_col++;
 		if (buf[0] != '\n') {
-			if (current_col + buflen >= max_col) {
+			if (G.current_col + buflen >= max_col) {
 				putchar('\n');
-				current_col = 0;
+				G.current_col = 0;
 			} else
 				putchar(' ');
 		}
 	}
 	fputs(buf, stdout);
-	current_col += buflen;
+	G.current_col += buflen;
 	if (buf[buflen-1] == '\n')
-		current_col = 0;
+		G.current_col = 0;
 }
 
 static void set_window_size(const int rows, const int cols)
@@ -567,8 +572,8 @@ static int find_param(const char * const name)
 		"ospeed",
 		NULL
 	};
-	int i = index_in_str_array(params, name);
-	if (i < 0)
+	smalluint i = index_in_str_array(params, name) + 1;
+	if (i == 0)
 		return 0;
 	if (!(i == 4 || i == 5))
 		i |= 0x80;
@@ -669,14 +674,14 @@ static void do_display(const struct termios *mode, const int all)
 	if ((mode->c_lflag & ICANON) == 0)
 #endif
 		wrapf("min = %d; time = %d;", mode->c_cc[VMIN], mode->c_cc[VTIME]);
-	if (current_col) wrapf("\n");
+	if (G.current_col) wrapf("\n");
 
 	for (i = 0; i < NUM_mode_info; ++i) {
 		if (mode_info[i].flags & OMIT)
 			continue;
 		if (mode_info[i].type != prev_type) {
 			/* wrapf("\n"); */
-			if (current_col) wrapf("\n");
+			if (G.current_col) wrapf("\n");
 			prev_type = mode_info[i].type;
 		}
 
@@ -692,7 +697,7 @@ static void do_display(const struct termios *mode, const int all)
 				wrapf("-%s", mode_info[i].name);
 		}
 	}
-	if (current_col) wrapf("\n");
+	if (G.current_col) wrapf("\n");
 }
 
 static void sane_mode(struct termios *mode)
