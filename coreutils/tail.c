@@ -33,7 +33,10 @@ static const struct suffix_mult tail_suffixes[] = {
 	{ NULL, 0 }
 };
 
-static int status;
+struct globals {
+	bool status;
+};
+#define G (*(struct globals*)&bb_common_bufsiz1)
 
 static void tail_xprint_header(const char *fmt, const char *filename)
 {
@@ -54,7 +57,7 @@ static ssize_t tail_read(int fd, char *buf, size_t count)
 	r = safe_read(fd, buf, count);
 	if (r < 0) {
 		bb_perror_msg(bb_msg_read_error);
-		status = EXIT_FAILURE;
+		G.status = EXIT_FAILURE;
 	}
 
 	return r;
@@ -64,7 +67,7 @@ static const char header_fmt[] = "\n==> %s <==\n";
 
 static unsigned eat_num(const char *p) {
 	if (*p == '-') p++;
-	else if (*p == '+') { p++; status = 1; }
+	else if (*p == '+') { p++; G.status = EXIT_FAILURE; }
 	return xatou_sfx(p, tail_suffixes);
 }
 
@@ -111,11 +114,12 @@ int tail_main(int argc, char **argv)
 #endif
 	argc -= optind;
 	argv += optind;
-	from_top = status;
+	from_top = G.status;
 
 	/* open all the files */
 	fds = xmalloc(sizeof(int) * (argc + 1));
-	status = nfiles = i = 0;
+	nfiles = i = 0;
+	G.status = EXIT_SUCCESS;
 	if (argc == 0) {
 		struct stat statbuf;
 
@@ -123,23 +127,15 @@ int tail_main(int argc, char **argv)
 			opt &= ~1; /* clear FOLLOW */
 		}
 		*argv = (char *) bb_msg_standard_input;
-		goto DO_STDIN;
 	}
-
 	do {
-		if (NOT_LONE_DASH(argv[i])) {
-			fds[nfiles] = open(argv[i], O_RDONLY);
-			if (fds[nfiles] < 0) {
-				bb_perror_msg("%s", argv[i]);
-				status = EXIT_FAILURE;
-				continue;
-			}
-		} else {
- DO_STDIN:		/* "-" */
-			fds[nfiles] = STDIN_FILENO;
+		FILE* fil = fopen_or_warn_stdin(argv[i]);
+		if (!fil) {
+			G.status = EXIT_FAILURE;
+			continue;
 		}
-		argv[nfiles] = argv[i];
-		++nfiles;
+		fds[nfiles] = fileno(fil);
+		argv[nfiles++] = argv[i];
 	} while (++i < argc);
 
 	if (!nfiles)
@@ -217,13 +213,11 @@ int tail_main(int argc, char **argv)
 					if (newline + nbuf < count) {
 						newline += nbuf;
 						taillen += nread;
-
 					} else {
 						int extra = 0;
-						if (buf[nread-1] != '\n') {
-							extra = 1;
-						}
 
+						if (buf[nread-1] != '\n')
+							extra = 1;
 						k = newline + nbuf + extra - count;
 						s = tailbuf;
 						while (k) {
@@ -232,7 +226,6 @@ int tail_main(int argc, char **argv)
 							}
 							++s;
 						}
-
 						taillen += nread - (s - tailbuf);
 						memmove(tailbuf, s, taillen);
 						newline = count - extra;
@@ -273,6 +266,8 @@ int tail_main(int argc, char **argv)
 			}
 		} while (++i < nfiles);
 	}
-
-	return status;
+	if (ENABLE_FEATURE_CLEAN_UP) {
+		free(fds);
+	}
+	return G.status;
 }
