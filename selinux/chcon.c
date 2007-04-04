@@ -120,8 +120,8 @@ static struct option chcon_options[] = {
 };
 #endif
 
-int chcon_main(int argc, char *argv[]);
-int chcon_main(int argc, char *argv[])
+int chcon_main(int argc, char **argv);
+int chcon_main(int argc, char **argv)
 {
 	char *reference_file;
 	char *fname;

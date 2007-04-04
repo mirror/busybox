@@ -1939,8 +1939,8 @@ enum {
 };
 
 
-int httpd_main(int argc, char *argv[]);
-int httpd_main(int argc, char *argv[])
+int httpd_main(int argc, char **argv);
+int httpd_main(int argc, char **argv)
 {
 	unsigned opt;
 	const char *home_httpd = home;

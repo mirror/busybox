@@ -18,8 +18,8 @@
 #include <time.h>
 #include <stdlib.h>
 
-int runlevel_main(int argc, char *argv[]);
-int runlevel_main(int argc, char *argv[])
+int runlevel_main(int argc, char **argv);
+int runlevel_main(int argc, char **argv)
 {
 	struct utmp *ut;
 	char prev;

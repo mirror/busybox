@@ -132,8 +132,8 @@ static uint8_t* alloc_dhcp_option(int code, const char *str, int extra)
 }
 
 
-int udhcpc_main(int argc, char *argv[]);
-int udhcpc_main(int argc, char *argv[])
+int udhcpc_main(int argc, char **argv);
+int udhcpc_main(int argc, char **argv)
 {
 	uint8_t *temp, *message;
 	char *str_c, *str_V, *str_h, *str_F, *str_r, *str_T, *str_t;

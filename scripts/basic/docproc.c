@@ -331,7 +331,7 @@ void parse_file(FILE *infile)
 }
 
 
-int main(int argc, char *argv[])
+int main(int argc, char **argv)
 {
 	FILE * infile;
 	if (argc != 3) {

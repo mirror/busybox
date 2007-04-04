@@ -13001,7 +13001,7 @@ static void parse_extended_opts(e2fsck_t ctx, const char *opts)
 }
 
 
-static errcode_t PRS(int argc, char *argv[], e2fsck_t *ret_ctx)
+static errcode_t PRS(int argc, char **argv, e2fsck_t *ret_ctx)
 {
 	int             flush = 0;
 	int             c, fd;
@@ -13202,8 +13202,8 @@ static errcode_t PRS(int argc, char *argv[], e2fsck_t *ret_ctx)
 static const char my_ver_string[] = E2FSPROGS_VERSION;
 static const char my_ver_date[] = E2FSPROGS_DATE;
 
-int e2fsck_main (int argc, char *argv[]);
-int e2fsck_main (int argc, char *argv[])
+int e2fsck_main (int argc, char **argv);
+int e2fsck_main (int argc, char **argv)
 {
 	errcode_t       retval;
 	int             exit_value = EXIT_OK;

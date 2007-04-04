@@ -82,8 +82,8 @@ static int convert(char *fn)
 	return 0;
 }
 
-int dos2unix_main(int argc, char *argv[]);
-int dos2unix_main(int argc, char *argv[])
+int dos2unix_main(int argc, char **argv);
+int dos2unix_main(int argc, char **argv)
 {
 	int o;
 

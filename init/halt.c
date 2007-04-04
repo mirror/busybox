@@ -10,8 +10,8 @@
 #include "busybox.h"
 #include <sys/reboot.h>
 
-int halt_main(int argc, char *argv[]);
-int halt_main(int argc, char *argv[])
+int halt_main(int argc, char **argv);
+int halt_main(int argc, char **argv)
 {
 	static const int magic[] = {
 #ifdef RB_HALT_SYSTEM

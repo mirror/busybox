@@ -915,8 +915,8 @@ getaddr(uint32_t *ap, const char *host)
 #endif
 
 
-int traceroute_main(int argc, char *argv[]);
-int traceroute_main(int argc, char *argv[])
+int traceroute_main(int argc, char **argv);
+int traceroute_main(int argc, char **argv)
 {
 	int code, n;
 	unsigned char *outp;

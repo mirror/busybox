@@ -1171,7 +1171,7 @@ static void signal_cancel(int sig FSCK_ATTR((unused)))
 	cancel_requested++;
 }
 
-static void PRS(int argc, char *argv[])
+static void PRS(int argc, char **argv)
 {
 	int     i, j;
 	char    *arg, *dev, *tmp = 0;
@@ -1321,8 +1321,8 @@ static void PRS(int argc, char *argv[])
 	    max_running = atoi(tmp);
 }
 
-int fsck_main(int argc, char *argv[]);
-int fsck_main(int argc, char *argv[])
+int fsck_main(int argc, char **argv);
+int fsck_main(int argc, char **argv)
 {
 	int i, status = 0;
 	int interactive = 0;

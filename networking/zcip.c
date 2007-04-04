@@ -159,8 +159,8 @@ static unsigned ATTRIBUTE_ALWAYS_INLINE ms_rdelay(unsigned secs)
 /**
  * main program
  */
-int zcip_main(int argc, char *argv[]);
-int zcip_main(int argc, char *argv[])
+int zcip_main(int argc, char **argv);
+int zcip_main(int argc, char **argv)
 {
 	int state = PROBE;
 	struct ether_addr eth_addr;

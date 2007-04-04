@@ -5,8 +5,8 @@
  */
 #include "busybox.h"
 
-int load_policy_main(int argc, char *argv[]);
-int load_policy_main(int argc, char *argv[])
+int load_policy_main(int argc, char **argv);
+int load_policy_main(int argc, char **argv)
 {
 	int fd;
 	struct stat st;

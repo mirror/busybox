@@ -1032,7 +1032,7 @@ static void compile_fs_type(char *fs_type)
 	}
 }
 
-static void parse_args(int argc, char *argv[])
+static void parse_args(int argc, char **argv)
 {
 	int i, j;
 	char *arg, *tmp;
@@ -1158,8 +1158,8 @@ static void signal_cancel(int sig ATTRIBUTE_UNUSED)
 	cancel_requested = 1;
 }
 
-int fsck_main(int argc, char *argv[]);
-int fsck_main(int argc, char *argv[])
+int fsck_main(int argc, char **argv);
+int fsck_main(int argc, char **argv)
 {
 	int i, status = 0;
 	int interactive;

@@ -55,7 +55,7 @@ static int alternative; /* 0 is getopt_long, 1 is getopt_long_only */
 
 /* Function prototypes */
 static const char *normalize(const char *arg);
-static int generate_output(char * argv[],int argc,const char *optstr,
+static int generate_output(char **argv,int argc,const char *optstr,
 		const struct option *longopts);
 static void add_long_options(char *options);
 static void add_longopt(const char *name,int has_arg);
@@ -133,7 +133,7 @@ const char *normalize(const char *arg)
  * optstr must contain the short options, and longopts the long options.
  * Other settings are found in global variables.
  */
-int generate_output(char * argv[],int argc,const char *optstr,
+int generate_output(char **argv,int argc,const char *optstr,
 		const struct option *longopts)
 {
 	int exit_code = 0; /* We assume everything will be OK */
@@ -288,8 +288,8 @@ static const struct option longopts[]=
 static const char shortopts[]="+ao:l:n:qQs:Tu";
 
 
-int getopt_main(int argc, char *argv[]);
-int getopt_main(int argc, char *argv[])
+int getopt_main(int argc, char **argv);
+int getopt_main(int argc, char **argv)
 {
 	const char *optstr = NULL;
 	char *name = NULL;

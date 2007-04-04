@@ -8,8 +8,8 @@
 
 #include "busybox.h"
 
-int mkswap_main(int argc, char *argv[]);
-int mkswap_main(int argc, char *argv[])
+int mkswap_main(int argc, char **argv);
+int mkswap_main(int argc, char **argv)
 {
 	int fd, pagesize;
 	off_t len;

@@ -13,8 +13,8 @@
 #include <unistd.h>
 #include <sys/klog.h>
 
-int dmesg_main(int argc, char *argv[]);
-int dmesg_main(int argc, char *argv[])
+int dmesg_main(int argc, char **argv);
+int dmesg_main(int argc, char **argv)
 {
 	char *size, *level;
 	int flags = getopt32(argc, argv, "cs:n:", &size, &level);

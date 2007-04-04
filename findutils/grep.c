@@ -396,7 +396,7 @@ int grep_main(int argc, char **argv)
 	invert_search = ((option_mask32 & OPT_v) != 0); /* 0 | 1 */
 
 	if (pattern_head != NULL) {
-		/* convert char *argv[] to grep_list_data_t */
+		/* convert char **argv to grep_list_data_t */
 		llist_t *cur;
 
 		for (cur = pattern_head; cur; cur = cur->link)

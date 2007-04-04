@@ -719,7 +719,7 @@ static char * const bunzip_errors[]={NULL,"Bad file checksum","Not bzip data",
 		"Out of memory","Obsolete (pre 0.9.5) bzip format not supported."};
 
 /* Dumb little test thing, decompress stdin to stdout */
-int main(int argc, char *argv[])
+int main(int argc, char **argv)
 {
 	int i=uncompressStream(0,1);
 	char c;

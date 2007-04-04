@@ -11,7 +11,7 @@ const char *applet_name;
 #include <stdlib.h>
 #include "usage.h"
 
-int main(int argc, char *argv[])
+int main(int argc, char **argv)
 {
 	applet_name = argv[0];
 

@@ -15,8 +15,8 @@
 #define S_IWGRP_OR_S_IWOTH	(S_IWGRP | S_IWOTH)
 #endif
 
-int mesg_main(int argc, char *argv[]);
-int mesg_main(int argc, char *argv[])
+int mesg_main(int argc, char **argv);
+int mesg_main(int argc, char **argv)
 {
 	struct stat sb;
 	const char *tty;

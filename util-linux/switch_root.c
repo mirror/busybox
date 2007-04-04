@@ -63,8 +63,8 @@ static void delete_contents(const char *directory)
 	} else unlink(directory);
 }
 
-int switch_root_main(int argc, char *argv[]);
-int switch_root_main(int argc, char *argv[])
+int switch_root_main(int argc, char **argv);
+int switch_root_main(int argc, char **argv)
 {
 	char *newroot, *console=NULL;
 	struct stat st1, st2;

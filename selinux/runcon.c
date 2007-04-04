@@ -87,8 +87,8 @@ static const struct option runcon_options[] = {
 #define OPTS_HELP	(1<<5)	/* h */
 #define OPTS_CONTEXT_COMPONENT		(OPTS_ROLE | OPTS_TYPE | OPTS_USER | OPTS_RANGE)
 
-int runcon_main(int argc, char *argv[]);
-int runcon_main(int argc, char *argv[])
+int runcon_main(int argc, char **argv);
+int runcon_main(int argc, char **argv)
 {
 	char *role = NULL;
 	char *range = NULL;
