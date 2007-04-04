@@ -95,7 +95,7 @@ send_to_from(int fd, void *buf, size_t len, int flags,
 
 /* NB: this will never set port# in 'to'!
  * _Only_ IP/IPv6 address part of 'to' is _maybe_ modified.
- * Typical usage is to preinit it with "default" value
+ * Typical usage is to preinit 'to' with "default" value
  * before calling recv_from_to(). */
 ssize_t
 recv_from_to(int fd, void *buf, size_t len, int flags,
