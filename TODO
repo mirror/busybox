@@ -167,15 +167,20 @@ man
 ---
 ar
   Write support?
-----
+---
 stty / catv
   stty's visible() function and catv's guts are identical. Merge them into
   an appropriate libbb function.
-----
+---
 struct suffix_mult
   Several duplicate users of: grep -r "1024\*1024" * -B2 -A1
   Merge to a single size_suffixes[] in libbb.
   Users: head tail od_bloaty hexdump and (partially as it wouldn't hurt) svlogd
+---
+tail
+  ./busybox tail -f foo.c~ TODO
+  should not print fmt=header_fmt for subsequent date >> TODO; i.e. only
+  fmt+ if another (not the current) file did change
 
 Architectural issues:
 
@@ -318,3 +323,10 @@ sigblock(), siggetmask(), sigsetmask(), sigmask() -> sigprocmask et al
 ---
 vdprintf() -> similar sized functionality
 ---
+Wed Apr  4 19:52:04 CEST 2007
+Wed Apr  4 19:52:09 CEST 2007
+Wed Apr  4 19:52:12 CEST 2007
+Wed Apr  4 19:53:25 CEST 2007
+Wed Apr  4 19:53:26 CEST 2007
+Wed Apr  4 19:53:40 CEST 2007
+Wed Apr  4 19:53:41 CEST 2007
