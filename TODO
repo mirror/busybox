@@ -323,10 +323,3 @@ sigblock(), siggetmask(), sigsetmask(), sigmask() -> sigprocmask et al
 ---
 vdprintf() -> similar sized functionality
 ---
-Wed Apr  4 19:52:04 CEST 2007
-Wed Apr  4 19:52:09 CEST 2007
-Wed Apr  4 19:52:12 CEST 2007
-Wed Apr  4 19:53:25 CEST 2007
-Wed Apr  4 19:53:26 CEST 2007
-Wed Apr  4 19:53:40 CEST 2007
-Wed Apr  4 19:53:41 CEST 2007
