@@ -288,7 +288,7 @@ int tcpudpsvd_main(int argc, char **argv)
 		remote.len = sa_len;
 		conn = accept(sock, &remote.sa, &remote.len);
 	} else {
-		/* In case we won't be able to recover local below.
+		/* In case recv_from_to won't be able to recover local addr.
 		 * Also sets port - recv_from_to is unable to do it. */
 		local = *lsa;
 		conn = recv_from_to(sock, NULL, 0, MSG_PEEK, &remote.sa, &local.sa, sa_len);
