@@ -317,6 +317,7 @@ export	VERSION PATCHLEVEL SUBLEVEL KERNELRELEASE KERNELVERSION \
 export CPPFLAGS NOSTDINC_FLAGS LINUXINCLUDE OBJCOPYFLAGS LDFLAGS
 export CFLAGS CFLAGS_KERNEL CFLAGS_MODULE
 export AFLAGS AFLAGS_KERNEL AFLAGS_MODULE
+export FLTFLAGS
 
 # When compiling out-of-tree modules, put MODVERDIR in the module
 # tree rather than in the kernel tree. The kernel tree might
