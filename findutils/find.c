@@ -646,15 +646,16 @@ static action*** parse_params(char **argv)
 int find_main(int argc, char **argv);
 int find_main(int argc, char **argv)
 {
-	bool dereference = FALSE;
-	char *arg;
-	char **argp;
-	int i, firstopt, status = EXIT_SUCCESS;
-	const char * const options[] = {
+	static const char * const options[] = {
 		"-follow",
 USE_FEATURE_FIND_XDEV( "-xdev", )
 		NULL
 	};
+
+	bool dereference = FALSE;
+	char *arg;
+	char **argp;
+	int i, firstopt, status = EXIT_SUCCESS;
 
 	for (firstopt = 1; firstopt < argc; firstopt++) {
 		if (argv[firstopt][0] == '-')
