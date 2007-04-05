@@ -17,6 +17,7 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <inttypes.h>
+#include <mntent.h>
 #include <netdb.h>
 #include <setjmp.h>
 #include <signal.h>
@@ -657,6 +658,7 @@ extern struct BB_applet *find_applet_by_name(const char *name);
 extern void run_applet_by_name(const char *name, int argc, char **argv);
 #endif
 
+extern int match_fstype(const struct mntent *mt, const char *fstypes);
 extern struct mntent *find_mount_point(const char *name, const char *table);
 extern void erase_mtab(const char * name);
 extern unsigned int tty_baud_to_value(speed_t speed);

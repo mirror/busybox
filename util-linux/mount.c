@@ -77,6 +77,7 @@ struct {
 		{"defaults", 0},
 		/* {"quiet", 0}, - do not filter out, vfat wants to see it */
 		{"noauto", MOUNT_NOAUTO},
+		{"sw", MOUNT_SWAP},
 		{"swap", MOUNT_SWAP},
 		USE_DESKTOP({"user",  MOUNT_USERS},)
 		USE_DESKTOP({"users", MOUNT_USERS},)
@@ -1703,9 +1704,7 @@ int mount_main(int argc, char **argv)
 
 		} else {
 			// Do we need to match a filesystem type?
-			// TODO: support "-t type1,type2"; "-t notype1,type2"
-
-			if (fstype && strcmp(mtcur->mnt_type, fstype)) continue;
+			if (fstype && match_fstype(mtcur, fstype)) continue;
 
 			// Skip noauto and swap anyway.
 

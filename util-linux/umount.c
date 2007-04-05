@@ -12,7 +12,7 @@
 #include <mntent.h>
 #include <getopt.h>
 
-#define OPTION_STRING		"flDnravd"
+#define OPTION_STRING		"flDnravdt:"
 #define OPT_FORCE			1
 #define OPT_LAZY			2
 #define OPT_DONTFREELOOP	4
@@ -27,6 +27,7 @@ int umount_main(int argc, char **argv)
 	char path[2*PATH_MAX];
 	struct mntent me;
 	FILE *fp;
+	char *fstype = 0;
 	int status = EXIT_SUCCESS;
 	unsigned opt;
 	struct mtab_list {
@@ -37,7 +38,7 @@ int umount_main(int argc, char **argv)
 
 	/* Parse any options */
 
-	opt = getopt32(argc, argv, OPTION_STRING);
+	opt = getopt32(argc, argv, OPTION_STRING, &fstype);
 
 	argc -= optind;
 	argv += optind;
@@ -61,6 +62,9 @@ int umount_main(int argc, char **argv)
 			bb_error_msg_and_die("cannot open %s", bb_path_mtab_file);
 	} else {
 		while (getmntent_r(fp, &me, path, sizeof(path))) {
+			/* Match fstype if passed */
+			if (fstype && match_fstype(&me, fstype))
+				continue;
 			m = xmalloc(sizeof(struct mtab_list));
 			m->next = mtl;
 			m->device = xstrdup(me.mnt_fsname);
@@ -71,7 +75,7 @@ int umount_main(int argc, char **argv)
 	}
 
 	/* If we're not umounting all, we need at least one argument. */
-	if (!(opt & OPT_ALL)) {
+	if (!(opt & OPT_ALL) && !fstype) {
 		m = 0;
 		if (!argc) bb_show_usage();
 	}
