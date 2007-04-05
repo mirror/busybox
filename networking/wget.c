@@ -120,18 +120,20 @@ int wget_main(int argc, char **argv)
 	 */
 	enum {
 		WGET_OPT_CONTINUE   = 0x1,
-		WGET_OPT_QUIET      = 0x2,
-		WGET_OPT_OUTNAME    = 0x4,
-		WGET_OPT_PREFIX     = 0x8,
-		WGET_OPT_PROXY      = 0x10,
-		WGET_OPT_USER_AGENT = 0x20,
-		WGET_OPT_PASSIVE    = 0x40,
-		WGET_OPT_HEADER     = 0x80,
+		WGET_OPT_SPIDER	    = 0x2,
+		WGET_OPT_QUIET      = 0x4,
+		WGET_OPT_OUTNAME    = 0x8,
+		WGET_OPT_PREFIX     = 0x10,
+		WGET_OPT_PROXY      = 0x20,
+		WGET_OPT_USER_AGENT = 0x40,
+		WGET_OPT_PASSIVE    = 0x80,
+		WGET_OPT_HEADER     = 0x100,
 	};
 #if ENABLE_FEATURE_WGET_LONG_OPTIONS
 	static const struct option wget_long_options[] = {
 		// name, has_arg, flag, val
 		{ "continue",         no_argument, NULL, 'c' },
+		{ "spider",           no_argument, NULL, 's' },
 		{ "quiet",            no_argument, NULL, 'q' },
 		{ "output-document",  required_argument, NULL, 'O' },
 		{ "directory-prefix", required_argument, NULL, 'P' },
@@ -144,7 +146,7 @@ int wget_main(int argc, char **argv)
 	applet_long_options = wget_long_options;
 #endif
 	opt_complementary = "-1" USE_FEATURE_WGET_LONG_OPTIONS(":\xfe::");
-	opt = getopt32(argc, argv, "cqO:P:Y:U:",
+	opt = getopt32(argc, argv, "csqO:P:Y:U:",
 				&fname_out, &dir_prefix,
 				&proxy_flag, &user_agent
 				USE_FEATURE_WGET_LONG_OPTIONS(, &headers_llist)
@@ -437,7 +439,11 @@ int wget_main(int argc, char **argv)
 		if (ftpcmd("RETR ", target.path, sfp, buf) > 150)
 			bb_error_msg_and_die("bad response to RETR: %s", buf);
 	}
-
+	if (opt & WGET_OPT_SPIDER) {
+		if (ENABLE_FEATURE_CLEAN_UP)
+			fclose(sfp);
+		goto done;
+	}
 
 	/*
 	 * Retrieve file
@@ -499,6 +505,7 @@ int wget_main(int argc, char **argv)
 			bb_error_msg_and_die("ftp error: %s", buf+4);
 		ftpcmd("QUIT", NULL, sfp, buf);
 	}
+done:
 	exit(EXIT_SUCCESS);
 }
 

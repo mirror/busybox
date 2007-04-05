@@ -3056,7 +3056,7 @@ USE_FEATURE_RUN_PARTS_FANCY("\n	-l	Prints names of all matching files even when 
        " %i	File System ID in hex\n" \
        " %l	Maximum length of filenames\n" \
        " %n	File name\n" \
-       " %s	Block size (for faster transfers)\n" \
+       " %s	Block size (for faster transfer)\n" \
        " %S	Fundamental block size (for block counts)\n" \
        " %t	Type in hex\n" \
        " %T	Type in human readable form" \
@@ -3686,13 +3686,14 @@ USE_FEATURE_RUN_PARTS_FANCY("\n	-l	Prints names of all matching files even when 
        "     31      46    1365 /etc/passwd\n"
 
 #define wget_trivial_usage \
-       "[-c|--continue] [-q|--quiet] [-O|--output-document file]\n" \
+       "[-c|--continue] [-s|--spider] [-q|--quiet] [-O|--output-document file]\n" \
        "		[--header 'header: value'] [-Y|--proxy on/off] [-P DIR]\n" \
        "		[-U|--user-agent agent] url"
 #define wget_full_usage \
        "Retrieve files via HTTP or FTP" \
        "\n\nOptions:\n" \
-       "	-c	Continue retrieval of aborted transfers\n" \
+       "	-s	Spider mode - only check file existence\n" \
+       "	-c	Continue retrieval of aborted transfer\n" \
        "	-q	Quiet\n" \
        "	-P	Set directory prefix to DIR\n" \
        "	-O	Save to filename ('-' for stdout)\n" \
