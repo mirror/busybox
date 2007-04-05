@@ -260,7 +260,7 @@ ACTF(paren)
 }
 #endif
 
-#if ENABLE_FEATURE_FIND_SIZE
+#if ENABLE_FEATURE_FIND_PRUNE
 /*
  * -prune: if -depth is not given, return true and do not descend
  * current dir; if -depth is given, return false with no effect.
@@ -273,7 +273,7 @@ ACTF(prune)
 }
 #endif
 
-#if ENABLE_FEATURE_FIND_PRUNE
+#if ENABLE_FEATURE_FIND_SIZE
 ACTF(size)
 {
 	return statbuf->st_size == ap->size;
@@ -359,8 +359,8 @@ static action*** parse_params(char **argv)
 	USE_FEATURE_FIND_GROUP( PARM_group     ,)
 	USE_FEATURE_FIND_DEPTH( PARM_depth     ,)
 	USE_FEATURE_FIND_PAREN( PARM_char_brace,)
-	USE_FEATURE_FIND_SIZE(  PARM_prune     ,)
-	USE_FEATURE_FIND_PRUNE( PARM_size      ,)
+	USE_FEATURE_FIND_SIZE(  PARM_size      ,)
+	USE_FEATURE_FIND_PRUNE( PARM_prune     ,)
 #if ENABLE_DESKTOP
 	                        PARM_and       ,
 	                        PARM_or        ,
@@ -386,8 +386,8 @@ static action*** parse_params(char **argv)
 	USE_FEATURE_FIND_GROUP( "-group" ,)
 	USE_FEATURE_FIND_DEPTH( "-depth" ,)
 	USE_FEATURE_FIND_PAREN( "("      ,)
-	USE_FEATURE_FIND_SIZE(  "-prune" ,)
-	USE_FEATURE_FIND_PRUNE( "-size"  ,)
+	USE_FEATURE_FIND_SIZE(  "-size" ,)
+	USE_FEATURE_FIND_PRUNE( "-prune"  ,)
 #if ENABLE_DESKTOP
 	                        "-and"   ,
 	                        "-or"    ,
