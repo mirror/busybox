@@ -59,6 +59,15 @@ config ADDGROUP
 	help
 	  Utility for creating a new group account.
 
+config FEATURE_ADDUSER_TO_GROUP
+	bool "Support for adding users to groups"
+	default n
+	depends on ADDGROUP
+	help
+	  If  called  with two non-option arguments,
+	  addgroup will add an existing user to an
+	  existing group.
+
 config DELGROUP
 	bool "delgroup"
 	default n

@@ -1,9 +1,10 @@
 /* vi: set sw=4 ts=4: */
 /*
- * addgroup - add users to /etc/passwd and /etc/shadow
+ * addgroup - add groups to /etc/group and /etc/gshadow
  *
  * Copyright (C) 1999 by Lineo, inc. and John Beppu
  * Copyright (C) 1999,2000,2001 by John Beppu <beppu@codepoet.org>
+ * Copyright (C) 2007 by Tito Ragusa <farmatito@tiscali.it>
  *
  * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  *
@@ -11,48 +12,40 @@
 
 #include "busybox.h"
 
-/* make sure gr_name isn't taken, make sure gid is kosher
- * return 1 on failure */
-static int group_study(struct group *g)
+static void xgroup_study(struct group *g)
 {
 	enum { max = 65000 };
-	FILE *etc_group;
-	gid_t desired;
-	/* Using _r function to avoid static buffers pulled in */
-	char buffer[256];
-	struct group grp;
-	struct group *result;
+	/* Use a particular gid. */
+	int desired = (g->gr_gid > 0);
 
-	etc_group = xfopen(bb_path_group_file, "r");
-
-	/* make sure gr_name isn't taken, make sure gid is kosher */
-	desired = g->gr_gid;
-	while (!fgetgrent_r(etc_group, &grp, buffer, sizeof(buffer), &result)) {
-		if ((strcmp(grp.gr_name, g->gr_name)) == 0) {
-			bb_error_msg_and_die("%s: group already in use", g->gr_name);
-		}
-		if ((desired) && grp.gr_gid == desired) {
-			bb_error_msg_and_die("%d: gid already in use",
-							  desired);
-		}
-		if ((grp.gr_gid > g->gr_gid) && (grp.gr_gid < max)) {
-			g->gr_gid = grp.gr_gid;
-		}
+	/* Make sure gr_name is unused */
+	if (getgrnam(g->gr_name)) {
+		goto error;
 	}
-	if (ENABLE_FEATURE_CLEAN_UP)
-		fclose(etc_group);
 
-	/* gid */
-	g->gr_gid++;
-	if (desired) {
-		g->gr_gid = desired;
-	}
-	/* return 1; */
-	return 0;
+	/* Check if the desired gid is free or 
+	   find the first free one */
+	do {
+		if (g->gr_gid == max) { /* out of bounds: exit */
+			bb_error_msg_and_die("no gids left");
+		}
+		if (!getgrgid(g->gr_gid)) {
+			return; /* ok */
+		}
+		if (desired) { /* the desired gid is already in use: exit */
+			g->gr_name = itoa(g->gr_gid);
+			goto error;
+		}
+		g->gr_gid++;
+	} while (1);
+
+error:
+	/* exit */
+	bb_error_msg_and_die("%s: already in use", g->gr_name);
 }
 
 /* append a new user to the passwd file */
-static int addgroup(char *group, gid_t gid, const char *user)
+static void new_group(char *group, gid_t gid)
 {
 	FILE *file;
 	struct group gr;
@@ -60,16 +53,14 @@ static int addgroup(char *group, gid_t gid, const char *user)
 	/* make sure gid and group haven't already been allocated */
 	gr.gr_gid = gid;
 	gr.gr_name = group;
-	if (group_study(&gr))
-		return 1;
+	xgroup_study( &gr);
 
 	/* add entry to group */
 	file = xfopen(bb_path_group_file, "a");
 	/* group:passwd:gid:userlist */
-	fprintf(file, "%s:%s:%d:%s\n", group, "x", gr.gr_gid, user);
+	fprintf(file, "%s:x:%d:\n", group, gr.gr_gid);
 	if (ENABLE_FEATURE_CLEAN_UP)
 		fclose(file);
-
 #if ENABLE_FEATURE_SHADOWPASSWDS
 	file = fopen_or_warn(bb_path_gshadow_file, "a");
 	if (file) {
@@ -78,15 +69,60 @@ static int addgroup(char *group, gid_t gid, const char *user)
 			fclose(file);
 	}
 #endif
-
-	/* return 1; */
-	return 0;
 }
+
+#if ENABLE_FEATURE_ADDUSER_TO_GROUP
+static void add_user_to_group(char **args,
+		const char *path,
+		FILE *(*fopen_func)(const char *fileName, const char *mode))
+{
+	char *line;
+	int len = strlen(args[1]);
+	llist_t *plist = NULL;
+	FILE *group_file;
+
+	group_file = fopen_func(path, "r");
+
+	if (!group_file) return;
+
+	while ((line = xmalloc_getline(group_file))) {
+		/* Find the group */
+		if (!strncmp(line, args[1], len)
+		&& line[len] == ':'
+		) {
+			/* Add the new user */
+			line = xasprintf("%s%s%s", line,
+						last_char_is(line, ':') ? "" : ",",
+						args[0]);
+		}
+		llist_add_to_end(&plist, line);
+	}
+
+	if (ENABLE_FEATURE_CLEAN_UP) {
+		fclose(group_file);
+		group_file = fopen_func(path, "w");
+		while ((line = llist_pop(&plist))) {
+			if (group_file)
+				fprintf(group_file, "%s\n", line);
+			free(line);
+		}
+		if (group_file)
+			fclose(group_file);
+	} else {
+		group_file = fopen_func(path, "w");
+		if (group_file)
+			while ((line = llist_pop(&plist)))
+				fprintf(group_file, "%s\n", line);
+	}
+}
+#endif
 
 /*
  * addgroup will take a login_name as its first parameter.
  *
  * gid can be customized via command-line parameters.
+ * If  called with two non-option arguments, addgroup
+ * will add an existing user to an existing group.
  */
 int addgroup_main(int argc, char **argv);
 int addgroup_main(int argc, char **argv)
@@ -101,11 +137,36 @@ int addgroup_main(int argc, char **argv)
 	}
 	/* move past the commandline options */
 	argv += optind;
+	argc -= optind;
 
 	/* need to be root */
 	if (geteuid()) {
 		bb_error_msg_and_die(bb_msg_perm_denied_are_you_root);
 	}
 
-	return addgroup(argv[0], gid, argv[1] ? argv[1] : "");
+#if ENABLE_FEATURE_ADDUSER_TO_GROUP
+	if (argc == 2) {
+		struct group *gr;
+		
+		/* check if group and user exist */
+		xuname2uid(argv[0]); /* unknown user: exit */
+		xgroup2gid(argv[1]); /* unknown group: exit */
+		/* check if user is already in this group */
+		gr = getgrnam(argv[1]);
+		for (; *(gr->gr_mem) != NULL; (gr->gr_mem)++) {
+			if (!strcmp(argv[0], *(gr->gr_mem))) {
+				/* user is already in group: do nothing */
+				return EXIT_SUCCESS;
+			}
+		}
+		add_user_to_group(argv, bb_path_group_file, xfopen);
+#if ENABLE_FEATURE_SHADOWPASSWDS
+		add_user_to_group(argv, bb_path_gshadow_file, fopen_or_warn);
+#endif /* ENABLE_FEATURE_SHADOWPASSWDS */
+	} else
+#endif /* ENABLE_FEATURE_ADDUSER_TO_GROUP */
+		new_group(argv[0], gid);
+
+	/* Reached only on success */
+	return EXIT_SUCCESS;
 }

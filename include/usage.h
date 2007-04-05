@@ -12,9 +12,9 @@
 #define __BB_USAGE_H__
 
 #define addgroup_trivial_usage \
-       "[-g GID] group_name [user_name]"
+       "[-g GID]"USE_FEATURE_ADDUSER_TO_GROUP(" [user_name]")" group_name"
 #define addgroup_full_usage \
-       "Add a group to the system" \
+       "Add a group to the system"USE_FEATURE_ADDUSER_TO_GROUP(" or add an user to a group") \
        "\n\nOptions:\n" \
        "	-g GID	Specify gid"
 
