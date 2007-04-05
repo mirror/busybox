@@ -235,10 +235,8 @@ int du_main(int argc, char **argv)
 		total += du(*argv);
 		slink_depth = slink_depth_save;
 	} while (*++argv);
-#if ENABLE_FEATURE_CLEAN_UP
-	reset_ino_dev_hashtable();
-#endif
-
+	if (ENABLE_FEATURE_CLEAN_UP)
+		reset_ino_dev_hashtable();
 	if (print_final_total) {
 		print(total, "total");
 	}
