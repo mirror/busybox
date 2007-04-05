@@ -105,8 +105,7 @@ int bbunpack(char **argv,
 				if (new_name == filename)
 					filename[strlen(filename)] = '.';
 			}
-			if (unlink(del) < 0)
-				bb_perror_msg_and_die("cannot remove %s", del);
+			xunlink(del);
 
 #if 0 /* Currently buggy - wrong name: "a.gz: 261% - replaced with a.gz" */
 			/* Extreme bloat for gunzip compat */

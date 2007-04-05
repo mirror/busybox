@@ -122,6 +122,12 @@ int xopen3(const char *pathname, int flags, int mode)
 	return ret;
 }
 
+void xunlink(const char *pathname)
+{
+	if (unlink(pathname))
+		bb_perror_msg_and_die("cannot remove file '%s'", pathname);
+}
+
 // Turn on nonblocking I/O on a fd
 int ndelay_on(int fd)
 {

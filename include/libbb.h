@@ -293,14 +293,15 @@ extern void sig_pause(void);
 
 
 
-extern void xsetgid(gid_t gid);
-extern void xsetuid(uid_t uid);
-extern void xchdir(const char *path);
-extern void xsetenv(const char *key, const char *value);
-extern int xopen(const char *pathname, int flags);
-extern int xopen3(const char *pathname, int flags, int mode);
-extern off_t xlseek(int fd, off_t offset, int whence);
-extern off_t fdlength(int fd);
+void xsetgid(gid_t gid);
+void xsetuid(uid_t uid);
+void xchdir(const char *path);
+void xsetenv(const char *key, const char *value);
+void xunlink(const char *pathname);
+int xopen(const char *pathname, int flags);
+int xopen3(const char *pathname, int flags, int mode);
+off_t xlseek(int fd, off_t offset, int whence);
+off_t fdlength(int fd);
 
 
 int xsocket(int domain, int type, int protocol);

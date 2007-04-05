@@ -260,12 +260,9 @@ int patch_main(int argc, char **argv)
 			}
 			if ((dest_cur_line == 0) || (dest_beg_line == 0)) {
 				/* The new patched file is empty, remove it */
-				if (unlink(new_filename) == -1) {
-					bb_perror_msg_and_die("cannot remove file %s", new_filename);
-				}
-				if (unlink(original_filename) == -1) {
-					bb_perror_msg_and_die("cannot remove original file %s", new_filename);
-				}
+				xunlink(new_filename);
+				if (strcmp(new_filename, original_filename) != 0)
+					xunlink(original_filename);
 			}
 		}
 	}
