@@ -1070,7 +1070,7 @@ static int add_to_dirlist(const char *filename,
 static char **get_dir(char *path)
 {
 	dl_count = 0;
-	dl = NULL;
+	dl = xzalloc(sizeof(dl[0]));
 
 	/* If -r has been set, then the recursive_action function will be
 	 * used. Unfortunately, this outputs the root directory along with
