@@ -9,6 +9,10 @@
 
 #include "busybox.h"
 
+#if ENABLE_DESKTOP
+#include "nc_bloaty.c"
+#else
+
 /* Lots of small differences in features
  * when compared to "standard" nc
  */
@@ -195,3 +199,4 @@ int nc_main(int argc, char **argv)
 		}
 	}
 }
+#endif

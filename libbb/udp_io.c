@@ -1,12 +1,13 @@
-/* Thus far used only by udpsvd.c */
+/* vi: set sw=4 ts=4: */
+/*
+ * Utility routines.
+ *
+ * Copyright (C) 2007 Denis Vlasenko
+ *
+ * Licensed under GPL version 2, see file LICENSE in this tarball for details.
+ */
 
-void socket_want_pktinfo(int fd);
-ssize_t send_to_from(int fd, void *buf, size_t len, int flags,
-		const struct sockaddr *from, const struct sockaddr *to,
-		socklen_t tolen);
-ssize_t recv_from_to(int fd, void *buf, size_t len, int flags,
-		struct sockaddr *from, struct sockaddr *to,
-		socklen_t sa_size);
+#include "libbb.h"
 
 /*
  * This asks kernel to let us know dst addr/port of incoming packets

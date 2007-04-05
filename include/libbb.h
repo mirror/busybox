@@ -334,6 +334,7 @@ enum {
 };
 /* Create stream socket, and allocated suitable lsa
  * (lsa of correct size and lsa->sa.sa_family (AF_INET/AF_INET6)) */
+int xsocket_type(len_and_sockaddr **lsap, int sock_type);
 int xsocket_stream(len_and_sockaddr **lsap);
 /* Create server socket bound to bindaddr:port. bindaddr can be NULL,
  * numeric IP ("N.N.N.N") or numeric IPv6 address,
@@ -386,6 +387,15 @@ char* xmalloc_sockaddr2dotted_noport(const struct sockaddr *sa, socklen_t salen)
 struct hostent *xgethostbyname(const char *name);
 // Also mount.c and inetd.c are using gethostbyname(),
 // + inet_common.c has additional IPv4-only stuff
+
+
+void socket_want_pktinfo(int fd);
+ssize_t send_to_from(int fd, void *buf, size_t len, int flags,
+		const struct sockaddr *from, const struct sockaddr *to,
+		socklen_t tolen);
+ssize_t recv_from_to(int fd, void *buf, size_t len, int flags,
+		struct sockaddr *from, struct sockaddr *to,
+		socklen_t sa_size);
 
 
 extern char *xstrdup(const char *s);

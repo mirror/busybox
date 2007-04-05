@@ -208,7 +208,7 @@ len_and_sockaddr* xdotted2sockaddr(const char *host, int port)
 	return str2sockaddr(host, port, AF_UNSPEC, AI_NUMERICHOST | DIE_ON_ERROR);
 }
 
-static int xsocket_type(len_and_sockaddr **lsap, int sock_type)
+int xsocket_type(len_and_sockaddr **lsap, int sock_type)
 {
 	len_and_sockaddr *lsa;
 	int fd;

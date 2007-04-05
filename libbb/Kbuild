@@ -78,6 +78,7 @@ lib-y += skip_whitespace.o
 lib-y += speed_table.o
 lib-y += trim.o
 lib-y += u_signal_names.o
+lib-y += udp_io.o
 lib-y += uuencode.o
 lib-y += vdprintf.o
 lib-y += verror_msg.o

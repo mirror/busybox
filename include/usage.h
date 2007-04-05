@@ -2314,6 +2314,8 @@
        " or\n" \
        "$ nameif -c /etc/my_mactab_file\n" \
 
+#if !ENABLE_DESKTOP
+
 #if ENABLE_NC_SERVER || ENABLE_NC_EXTRA
 #define NC_OPTIONS_STR "\n\nOptions:"
 #else
@@ -2355,6 +2357,35 @@
        "214     NOOP QUIT RSET HELP\n" \
        "quit\n" \
        "221 foobar closing connection\n"
+
+#else /* DESKTOP nc - much more compatible with nc 1.10 */
+
+#define nc_trivial_usage \
+	"[-options] hostname port  - connect" \
+	USE_NC_SERVER("\nnc [-options] -l -p port [hostname] [port]  - listen")
+#define nc_full_usage \
+	USE_NC_SERVER( \
+       "-l		Listen mode, for inbound connects\n" \
+	) \
+       "-n		Do not do DNS resolution" \
+     "\n-s addr		Local address" \
+     "\n-p port		Local port" \
+     "\n-u		UDP mode" \
+     "\n-v		Verbose (cumulative: -vv)" \
+     "\n-w secs		Timeout for connects and final net reads" \
+	USE_NC_EXTRA( \
+     "\n-i sec		Delay interval for lines sent" /* ", ports scanned" */ \
+     "\n-o file		Hex dump of traffic" \
+     "\n-z		Zero-I/O mode (scanning)" \
+	) \
+     "\n-e prog [args]	Program to exec after connect (must be last)" \
+/*   "\n-r		Randomize local and remote ports" */
+/*   "\n-g gateway	Source-routing hop point[s], up to 8" */
+/*   "\n-G num		Source-routing pointer: 4, 8, 12, ..." */
+/*   "\nport numbers can be individual or ranges: lo-hi [inclusive]" */
+
+#endif
+
 
 #define netstat_trivial_usage \
        "[-laenrtuwx]"

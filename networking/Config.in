@@ -467,7 +467,7 @@ config NC
 	  connections.
 
 config NC_SERVER
-	bool "Netcat server options (-lp)"
+	bool "Netcat server options (-l)"
 	default n
 	depends on NC
 	help
