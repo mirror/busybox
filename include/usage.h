@@ -958,12 +958,18 @@
 	) USE_FEATURE_FIND_EXEC( \
        "\n	-exec CMD	Execute CMD with all instances of {} replaced by the" \
        "\n			files matching EXPRESSION" \
+        ) USE_FEATURE_FIND_USER( \
+       "\n	-user NAME	File is owned by user NAME (numeric user ID allowed)" \
+	) USE_FEATURE_FIND_GROUP( \
+       "\n	-group NAME	File belongs to group NAME (numeric group ID allowed)" \
+       ) USE_FEATURE_FIND_DEPTH( \
+       "\n	-depth		Process directory after traversing it" \
 	) USE_FEATURE_FIND_SIZE( \
        "\n	-size N		File size is N" \
 	) USE_FEATURE_FIND_PRUNE( \
        "\n	-prune		Stop traversing current subtree" \
 	) USE_FEATURE_FIND_PAREN( \
-       "\n	(expr)		Group" \
+       "\n	(EXPR)		Group an expression" \
 	)
 
 #define find_example_usage \
