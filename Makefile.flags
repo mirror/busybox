@@ -68,3 +68,6 @@ LDLIBS += -ldmalloc
 endif
 
 #LDFLAGS += -nostdlib
+
+# Busybox is a stack-fatty so make sure we increase default size
+FLTFLAGS += -s 20000
