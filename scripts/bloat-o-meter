@@ -13,6 +13,11 @@ if len(sys.argv) != 3:
     sys.stderr.write("usage: %s file1 file2\n" % sys.argv[0])
     sys.exit(-1)
 
+for f in sys.argv[1], sys.argv[2]:
+    if not os.path.exists(f):
+        sys.stderr.write("Error: file '%s' does not exist\n" % f)
+        sys.exit(-1)
+
 def getsizes(file):
     sym = {}
     for l in os.popen("nm --size-sort " + file).readlines():
