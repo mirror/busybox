@@ -39,22 +39,41 @@
  * - Prog in '-e prog' can have prog's parameters and options.
  *   Because of this -e option must be last.
  * - nc doesn't redirect stderr to the network socket for the -e prog.
+ * - numeric addresses are printed in (), not [] (IPv6 looks better),
+ *   port numbers are inside (): (1.2.3.4:5678)
+ * - network read errors are reported on verbose levels > 1
+ *   (nc 1.10 treats them as EOF)
+ * - TCP connects from wrong ip/ports (if peer ip:port is specified
+ *   on the command line, but accept() says that it came from different addr)
+ *   are closed, but nc doesn't exit - continues to listen/accept.
  */
 
 /* done in nc.c: #include "busybox.h" */
 
-#define SLEAZE_PORT 31337               /* for UDP-scan RTT trick, change if ya want */
-#define BIGSIZ 8192                     /* big buffers */
+enum {
+	SLEAZE_PORT = 31337,               /* for UDP-scan RTT trick, change if ya want */
+	BIGSIZ = 8192,                     /* big buffers */
+
+	netfd = 3,
+	ofd = 4,
+};
 
 struct globals {
-	int netfd;
-	int ofd;                     /* hexdump output fd */
+	/* global cmd flags: */
+	unsigned o_verbose;
+	unsigned o_wait;
+#if ENABLE_NC_EXTRA
+	unsigned o_interval;
+#endif
+
+	/*int netfd;*/
+	/*int ofd;*/                     /* hexdump output fd */
 #if ENABLE_LFS
 #define SENT_N_RECV_M "sent %llu, rcvd %llu\n"
 	unsigned long long wrote_out;          /* total stdout bytes */
 	unsigned long long wrote_net;          /* total net bytes */
 #else
-#define SENT_N_RECV_M "sent %u, rcvd %u"
+#define SENT_N_RECV_M "sent %u, rcvd %u\n"
 	unsigned wrote_out;          /* total stdout bytes */
 	unsigned wrote_net;          /* total net bytes */
 #endif
@@ -68,15 +87,7 @@ struct globals {
 	/* remend is set after connect/recv/accept to the actual ip:port of peer */
 	struct len_and_sockaddr remend;
 
-	/* global cmd flags: */
-	unsigned o_verbose;
-	unsigned o_wait;
-#if ENABLE_NC_EXTRA
-	unsigned o_interval;
-#endif
-
 	jmp_buf jbuf;                /* timer crud */
-	unsigned char *stage;        /* hexdump line buffer */
 
 	/* will malloc up the following globals: */
 	fd_set ding1;                /* for select loop */
@@ -87,15 +98,12 @@ struct globals {
 
 #define G (*ptr_to_globals)
 
-#define netfd      (G.netfd     )
-#define ofd        (G.ofd       )
 #define wrote_out  (G.wrote_out )
 #define wrote_net  (G.wrote_net )
 #define ouraddr    (G.ouraddr   )
 #define themaddr   (G.themaddr  )
 #define remend     (G.remend    )
 #define jbuf       (G.jbuf      )
-#define stage      (G.stage     )
 #define ding1      (G.ding1     )
 #define ding2      (G.ding2     )
 #define bigbuf_in  (G.bigbuf_in )
@@ -125,23 +133,25 @@ enum {
 
 #define o_nflag   (option_mask32 & OPT_n)
 #define o_udpmode (option_mask32 & OPT_u)
-#if ENABLE_NC_EXTRA
-#define o_wfile   (option_mask32 & OPT_o)
+#if ENABLE_NC_SERVER
 #define o_listen  (option_mask32 & OPT_l)
+#else
+#define o_listen  0
+#endif
+#if ENABLE_NC_EXTRA
+#define o_ofile   (option_mask32 & OPT_o)
 #define o_zero    (option_mask32 & OPT_z)
 #else
-#define o_wfile   0
-#define o_listen  0
+#define o_ofile   0
 #define o_zero    0
 #endif
 
-/* Debug macro: squirt whatever message and sleep a bit so we can see it go
- by.  need to call like Debug((stuff)) [with no ; ] so macro args match!
- Beware: writes to stdOUT... */
+/* Debug: squirt whatever message and sleep a bit so we can see it go by. */
+/* Beware: writes to stdOUT... */
 #if 0
-#define Debug(x) printf x; printf("\n"); fflush(stdout); sleep(1);
+#define Debug(...) do { printf(__VA_ARGS__); printf("\n"); fflush(stdout); sleep(1); } while(0)
 #else
-#define Debug(x)        /* nil... */
+#define Debug(...) do { } while(0)
 #endif
 
 #define holler_error(...)  do { if (o_verbose) bb_error_msg(__VA_ARGS__); } while(0)
@@ -196,12 +206,12 @@ static unsigned findline(char *buf, unsigned siz)
 		if (*p == '\n') {
 			x = (int) (p - buf);
 			x++;                        /* 'sokay if it points just past the end! */
-Debug(("findline returning %d", x))
+Debug("findline returning %d", x);
 			return x;
 		}
 		p++;
 	} /* for */
-Debug(("findline returning whole thing: %d", siz))
+Debug("findline returning whole thing: %d", siz);
 	return siz;
 } /* findline */
 
@@ -252,7 +262,6 @@ static int connect_w_timeout(int fd)
 static void dolisten(void)
 {
 	int rr;
-	const char *errmsg = errmsg; /* gcc */
 
 	if (!o_udpmode)
 		xlisten(netfd, 1); /* TCP: gotta listen() before we can get */
@@ -272,7 +281,7 @@ static void dolisten(void)
 		if (rr < 0)
 			bb_perror_msg_and_die("getsockname after bind");
 		addr = xmalloc_sockaddr2dotted(&ouraddr->sa, ouraddr->len);
-		fprintf(stderr, "listening on [%s] ...\n", addr);
+		fprintf(stderr, "listening on %s ...\n", addr);
 		free(addr);
 	}
 
@@ -296,48 +305,67 @@ static void dolisten(void)
 		 Let's try to remember what the "U" is *really* for, eh? */
 
 		/* If peer address is specified, connect to it */
+		remend.len = LSA_SIZEOF_SA;
 		if (themaddr) {
 			remend = *themaddr;
 			xconnect(netfd, &themaddr->sa, themaddr->len);
-			rr = 0;
-		} else { /* peek first packet and remember peer addr */
-			arm(o_wait);                /* might as well timeout this, too */
-			if (setjmp(jbuf) == 0) {       /* do timeout for initial connect */
-				/* (*ouraddr) is prefilled with "default" address */
-				/* and here we block... */
-				rr = recv_from_to(netfd, NULL, 0, MSG_PEEK, /*was bigbuf_net, BIGSIZ*/
-					&remend.sa, &ouraddr->sa, ouraddr->len);
-				if (rr < 0)
-					bb_perror_msg_and_die("recvfrom");
-			} else
-				bb_error_msg_and_die("timeout");
-			unarm();
-			rr = connect(netfd, &remend.sa, ouraddr->len);
-			errmsg = "connect";
 		}
+		/* peek first packet and remember peer addr */
+		arm(o_wait);                /* might as well timeout this, too */
+		if (setjmp(jbuf) == 0) {       /* do timeout for initial connect */
+			/* (*ouraddr) is prefilled with "default" address */
+			/* and here we block... */
+			rr = recv_from_to(netfd, NULL, 0, MSG_PEEK, /*was bigbuf_net, BIGSIZ*/
+				&remend.sa, &ouraddr->sa, ouraddr->len);
+			if (rr < 0)
+				bb_perror_msg_and_die("recvfrom");
+		} else
+			bb_error_msg_and_die("timeout");
+		unarm();
+/* Now we learned *to which IP* peer has connected, and we want to anchor
+our socket on it, so that our outbound packets will have correct local IP.
+Unfortunately, bind() on already bound socket will fail now (EINVAL):
+	xbind(netfd, &ouraddr->sa, ouraddr->len);
+Need to read the packet, save data, close this socket and
+create new one, and bind() it. TODO */
+		if (!themaddr)
+			xconnect(netfd, &remend.sa, ouraddr->len);
 	} else {
 		/* TCP */
 		arm(o_wait); /* wrap this in a timer, too; 0 = forever */
 		if (setjmp(jbuf) == 0) {
+ again:
 			remend.len = LSA_SIZEOF_SA;
 			rr = accept(netfd, &remend.sa, &remend.len);
+			if (rr < 0)
+				bb_perror_msg_and_die("accept");
+			if (themaddr && memcmp(&remend.sa, &themaddr->sa, remend.len) != 0) {
+				/* nc 1.10 bails out instead, and its error message
+				 * is not suppressed by o_verbose */
+				if (o_verbose) {
+					char *remaddr = xmalloc_sockaddr2dotted(&remend.sa, remend.len);
+					bb_error_msg("connect from wrong ip/port %s ignored", remaddr);
+					free(remaddr);
+				}
+				close(rr);
+				goto again;
+			}
+			
 		} else
 			bb_error_msg_and_die("timeout");
 		unarm();
-		errmsg = "accept";
-		if (rr >= 0) {
-			close(netfd); /* dump the old socket */
-			netfd = rr; /* here's our new one */
-			/* find out what address the connection was *to* on our end, in case we're
-			 doing a listen-on-any on a multihomed machine.  This allows one to
-			 offer different services via different alias addresses, such as the
-			 "virtual web site" hack. */
-			rr = getsockname(netfd, &ouraddr->sa, &ouraddr->len);
-			errmsg = "getsockname after accept";
-		}
+		xmove_fd(rr, netfd); /* dump the old socket, here's our new one */
+		/* find out what address the connection was *to* on our end, in case we're
+		 doing a listen-on-any on a multihomed machine.  This allows one to
+		 offer different services via different alias addresses, such as the
+		 "virtual web site" hack. */
+		rr = getsockname(netfd, &ouraddr->sa, &ouraddr->len);
+		if (rr < 0)
+			bb_perror_msg_and_die("getsockname after accept");
 	}
-	if (rr < 0)
-		bb_perror_msg_and_die(errmsg);
+
+	if (o_verbose) {
+		char *lcladdr, *remaddr, *remhostname;
 
 #if ENABLE_NC_EXTRA && defined(IP_OPTIONS)
 	/* If we can, look for any IP options.  Useful for testing the receiving end of
@@ -345,9 +373,9 @@ static void dolisten(void)
 	 the connect message, to ensure that the connect msg is uniformly the LAST
 	 thing to emerge after all the intervening crud.  Doesn't work for UDP on
 	 any machines I've tested, but feel free to surprise me. */
-	if (o_verbose) {
 		char optbuf[40];
 		int x = sizeof(optbuf);
+
 		rr = getsockopt(netfd, IPPROTO_IP, IP_OPTIONS, optbuf, &x);
 		if (rr < 0)
 			bb_perror_msg("getsockopt failed");
@@ -356,7 +384,6 @@ static void dolisten(void)
 			bigbuf_net[2*x] = '\0';
 			fprintf(stderr, "IP options: %s\n", bigbuf_net);
 		}
-	}
 #endif
 
 	/* now check out who it is.  We don't care about mismatched DNS names here,
@@ -369,11 +396,10 @@ static void dolisten(void)
 	 accept the connection and then reject undesireable ones by closing.
 	 In other words, we need a TCP MSG_PEEK. */
 	/* bbox: removed most of it */
-	if (o_verbose) {
-		char *lcladdr = xmalloc_sockaddr2dotted(&ouraddr->sa, ouraddr->len);
-		char *remaddr = xmalloc_sockaddr2dotted(&remend.sa, remend.len);
-		char *remhostname = o_nflag ? remaddr : xmalloc_sockaddr2host(&remend.sa, remend.len);
-		fprintf(stderr, "connect to [%s] from %s [%s]\n",
+		lcladdr = xmalloc_sockaddr2dotted(&ouraddr->sa, ouraddr->len);
+		remaddr = xmalloc_sockaddr2dotted(&remend.sa, remend.len);
+		remhostname = o_nflag ? remaddr : xmalloc_sockaddr2host(&remend.sa, remend.len);
+		fprintf(stderr, "connect to %s from %s (%s)\n",
 				lcladdr, remhostname, remaddr);
 		free(lcladdr);
 		free(remaddr);
@@ -392,6 +418,7 @@ static void dolisten(void)
  Use the time delay between writes if given, otherwise use the "tcp ping"
  trick for getting the RTT.  [I got that idea from pluvius, and warped it.]
  Return either the original fd, or clean up and return -1. */
+#if ENABLE_NC_EXTRA
 static int udptest(void)
 {
 	int rr;
@@ -401,7 +428,7 @@ static int udptest(void)
 		bb_perror_msg("udptest first write");
 
 	if (o_wait)
-		sleep(o_wait);
+		sleep(o_wait); // can be interrupted! while (t) nanosleep(&t)?
 	else {
 	/* use the tcp-ping trick: try connecting to a normally refused port, which
 	 causes us to block for the time that SYN gets there and RST gets back.
@@ -412,14 +439,17 @@ static int udptest(void)
 		rr = xsocket(ouraddr->sa.sa_family, SOCK_STREAM, 0);
 		set_nport(themaddr, htons(SLEAZE_PORT));
 		connect_w_timeout(rr);
-//need to restore port?
+		/* don't need to restore themaddr's port, it's not used anymore */
 		close(rr);
-		o_wait = 0;                     /* reset it */
+		o_wait = 0; /* restore */
 	}
 
 	rr = write(netfd, bigbuf_in, 1);
 	return (rr != 1); /* if rr == 1, return 0 (success) */
 }
+#else
+int udptest(void);
+#endif
 
 /* oprint:
  Hexdump bytes shoveled either way to a running logfile, in the format:
@@ -431,31 +461,25 @@ static int udptest(void)
  a partial line, so be it; we *want* that lockstep indication of who sent
  what when.  Adapted from dgaudet's original example -- but must be ripping
  *fast*, since we don't want to be too disk-bound... */
-static void oprint(int which, char *buf, int n)
+#if ENABLE_NC_EXTRA
+static void oprint(int direction, unsigned char *p, int bc)
 {
-	int bc;                 /* in buffer count */
 	int obc;                /* current "global" offset */
 	int soc;                /* stage write count */
-	unsigned char *p;       /* main buf ptr; m.b. unsigned here */
 	unsigned char *op;      /* out hexdump ptr */
 	unsigned char *a;       /* out asc-dump ptr */
 	int x;
+	unsigned char stage[100];
 
-	if (n == 0)
+	if (bc == 0)
 		return;
 
 	op = stage;
-	if (which) {
-		*op = '<';
-		obc = wrote_out;                /* use the globals! */
-	} else {
-		*op = '>';
-		obc = wrote_net;
-	}
-	op++;                                /* preload "direction" */
+	obc = wrote_net; /* use the globals! */
+	if (direction == '<')
+		obc = wrote_out;
+	*op++ = direction;
 	*op = ' ';
-	p = (unsigned char *) buf;
-	bc = n;
 	stage[59] = '#';                /* preload separator */
 	stage[60] = ' ';
 
@@ -498,6 +522,9 @@ static void oprint(int which, char *buf, int n)
 		xwrite(ofd, stage, soc);
 	} /* while bc */
 }
+#else
+void oprint(int direction, unsigned char *p, int bc);
+#endif
 
 /* readwrite:
  handle stdin/stdout/network I/O.  Bwahaha!! -- the select loop from hell.
@@ -537,9 +564,10 @@ static int readwrite(void)
 			struct timeval tmp_timer;
 			tmp_timer.tv_sec = o_wait;
 			tmp_timer.tv_usec = 0;
-			rr = select(16, &ding2, NULL, NULL, &tmp_timer);
+		/* highest possible fd is netfd (3) */
+			rr = select(netfd+1, &ding2, NULL, NULL, &tmp_timer);
 		} else
-			rr = select(16, &ding2, NULL, NULL, NULL);
+			rr = select(netfd+1, &ding2, NULL, NULL, NULL);
 		if (rr < 0 && errno != EINTR) {                /* might have gotten ^Zed, etc */
 			holler_perror("select");
 			close(netfd);
@@ -564,13 +592,17 @@ static int readwrite(void)
 		if (FD_ISSET(netfd, &ding2)) {                /* net: ding! */
 			rr = read(netfd, bigbuf_net, BIGSIZ);
 			if (rr <= 0) {
+				if (rr < 0 && o_verbose > 1) {
+					/* nc 1.10 doesn't do this */
+					bb_perror_msg("net read");
+				}
 				FD_CLR(netfd, &ding1);                /* net closed, we'll finish up... */
 				rzleft = 0;                        /* can't write anymore: broken pipe */
 			} else {
 				rnleft = rr;
 				np = bigbuf_net;
 			}
-Debug(("got %d from the net, errno %d", rr, errno))
+Debug("got %d from the net, errno %d", rr, errno);
 		} /* net:ding */
 
 	/* if we're in "slowly" mode there's probably still stuff in the stdin
@@ -609,13 +641,13 @@ Debug(("got %d from the net, errno %d", rr, errno))
 		if (rnleft) {
 			rr = write(1, np, rnleft);
 			if (rr > 0) {
-				if (o_wfile)
-					oprint(1, np, rr);                /* log the stdout */
+				if (o_ofile)
+					oprint('<', np, rr);                /* log the stdout */
 				np += rr;                        /* fix up ptrs and whatnot */
 				rnleft -= rr;                        /* will get sanity-checked above */
 				wrote_out += rr;                /* global count */
 			}
-Debug(("wrote %d to stdout, errno %d", rr, errno))
+Debug("wrote %d to stdout, errno %d", rr, errno);
 		} /* rnleft */
 		if (rzleft) {
 			if (o_interval)                        /* in "slowly" mode ?? */
@@ -624,13 +656,13 @@ Debug(("wrote %d to stdout, errno %d", rr, errno))
 				rr = rzleft;
 			rr = write(netfd, zp, rr);        /* one line, or the whole buffer */
 			if (rr > 0) {
-				if (o_wfile)
-					oprint(0, zp, rr);                /* log what got sent */
+				if (o_ofile)
+					oprint('>', zp, rr);                /* log what got sent */
 				zp += rr;
 				rzleft -= rr;
 				wrote_net += rr;                /* global count */
 			}
-Debug(("wrote %d to net, errno %d", rr, errno))
+Debug("wrote %d to net, errno %d", rr, errno);
 		} /* rzleft */
 		if (o_interval) {                        /* cycle between slow lines, or ... */
 			sleep(o_interval);
@@ -657,7 +689,7 @@ int nc_main(int argc, char **argv);
 int nc_main(int argc, char **argv)
 {
 	char *str_p, *str_s, *str_w;
-	USE_NC_EXTRA(char *str_i;)
+	USE_NC_EXTRA(char *str_i, *str_o;)
 	char *themdotted = themdotted; /* gcc */
 	char **proggie;
 	int x;
@@ -694,7 +726,7 @@ int nc_main(int argc, char **argv)
 	getopt32(argc, argv, "hnp:s:uvw:" USE_NC_SERVER("l")
 			USE_NC_EXTRA("i:o:z"),
 			&str_p, &str_s, &str_w
-			USE_NC_EXTRA(, &str_i, &stage, &o_verbose));
+			USE_NC_EXTRA(, &str_i, &str_o, &o_verbose));
 	argv += optind;
 #if ENABLE_NC_EXTRA
 	if (option_mask32 & OPT_i) /* line-interval time */
@@ -716,18 +748,21 @@ int nc_main(int argc, char **argv)
 	}
 	//if (option_mask32 & OPT_z) /* little or no data xfer */
 
-	bb_sanitize_stdio();
+	/* We manage our fd's so that they are never 0,1,2 */
+	/*bb_sanitize_stdio(); - not needed */
 
 	/* create & bind network socket */
+	x = (o_udpmode ? SOCK_DGRAM : SOCK_STREAM);
 	if (option_mask32 & OPT_s) { /* local address */
-		/* if o_port is still 0, then we will use random port */
+		/* if o_lport is still 0, then we will use random port */
 		ouraddr = xhost2sockaddr(str_s, o_lport);
-		netfd = xsocket(ouraddr->sa.sa_family, o_udpmode ? SOCK_DGRAM : SOCK_STREAM, 0); //// 0?
+		x = xsocket(ouraddr->sa.sa_family, x, 0);
 	} else {
-		netfd = xsocket_type(&ouraddr, o_udpmode ? SOCK_DGRAM : SOCK_STREAM);
+		x = xsocket_type(&ouraddr, x);
 		if (o_lport)
 			set_nport(ouraddr, htons(o_lport));
 	}
+	xmove_fd(x, netfd);
 	setsockopt_reuseaddr(netfd);
 	if (o_udpmode)
 		socket_want_pktinfo(netfd);
@@ -737,21 +772,22 @@ int nc_main(int argc, char **argv)
 	setsockopt(netfd, SOL_SOCKET, SO_SNDBUF, &o_sndbuf, sizeof o_sndbuf);
 #endif
 
-	if (o_udpmode) {      /* apparently UDP can listen ON */
-		if (!o_lport) /* "port 0",  but that's not useful */
-			bb_error_msg_and_die("UDP listen needs -p arg");
+	if (OPT_l && (option_mask32 & (OPT_u|OPT_l)) == (OPT_u|OPT_l)) {
+		/* apparently UDP can listen ON "port 0",
+		 but that's not useful */
+		if (!o_lport)
+			bb_error_msg_and_die("UDP listen needs nonzero -p port");
 	}
 
 	FD_SET(0, &ding1);                        /* stdin *is* initially open */
 	if (proggie) {
 		close(0); /* won't need stdin */
 		option_mask32 &= ~OPT_o; /* -o with -e is meaningless! */
-		ofd = 0;
 	}
-	if (o_wfile) {
-		ofd = xopen(stage, O_WRONLY|O_CREAT|O_TRUNC);
-		stage = xzalloc(100);
-	}
+#if ENABLE_NC_EXTRA
+	if (o_ofile)
+		xmove_fd(xopen(str_o, O_WRONLY|O_CREAT|O_TRUNC), ofd);
+#endif
 
 	if (argv[0]) {
 		themaddr = xhost2sockaddr(argv[0],
@@ -781,7 +817,7 @@ int nc_main(int argc, char **argv)
 			x = udptest();
 		if (x == 0) {                        /* Yow, are we OPEN YET?! */
 			if (o_verbose)
-				fprintf(stderr, "%s [%s] open\n", argv[0], themdotted);
+				fprintf(stderr, "%s (%s) open\n", argv[0], themdotted);
 			if (proggie)                        /* exec is valid for outbound, too */
 				doexec(proggie);
 			if (!o_zero)
@@ -791,7 +827,7 @@ int nc_main(int argc, char **argv)
 			/* if we're scanning at a "one -v" verbosity level, don't print refusals.
 			 Give it another -v if you want to see everything. */
 			if (o_verbose > 1 || (o_verbose && errno != ECONNREFUSED))
-				bb_perror_msg("%s [%s]", argv[0], themdotted);
+				bb_perror_msg("%s (%s)", argv[0], themdotted);
 		}
 	}
 	if (o_verbose > 1)                /* normally we don't care */
