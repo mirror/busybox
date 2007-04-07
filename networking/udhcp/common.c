@@ -15,6 +15,8 @@
 #include "common.h"
 
 
+const uint8_t MAC_BCAST_ADDR[6] = { 0xff, 0xff, 0xff, 0xff, 0xff, 0xff };
+
 long uptime(void)
 {
 	struct sysinfo info;

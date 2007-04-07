@@ -112,7 +112,7 @@ uint16_t udhcp_checksum(void *addr, int count)
 void BUG_sizeof_struct_udp_dhcp_packet_must_be_576(void);
 int udhcp_raw_packet(struct dhcpMessage *payload,
 		uint32_t source_ip, int source_port,
-		uint32_t dest_ip, int dest_port, uint8_t *dest_arp, int ifindex)
+		uint32_t dest_ip, int dest_port, const uint8_t *dest_arp, int ifindex)
 {
 	int fd;
 	int result;

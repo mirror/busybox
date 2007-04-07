@@ -8,25 +8,41 @@
 #include "dhcpd.h"
 
 
-uint8_t blank_chaddr[] = {[0 ... 15] = 0};
+/* Find the oldest expired lease, NULL if there are no expired leases */
+static struct dhcpOfferedAddr *oldest_expired_lease(void)
+{
+	struct dhcpOfferedAddr *oldest = NULL;
+	unsigned long oldest_lease = time(0);
+	unsigned i;
+
+
+	for (i = 0; i < server_config.max_leases; i++)
+		if (oldest_lease > leases[i].expires) {
+			oldest_lease = leases[i].expires;
+			oldest = &(leases[i]);
+		}
+	return oldest;
+}
+
 
 /* clear every lease out that chaddr OR yiaddr matches and is nonzero */
-void clear_lease(uint8_t *chaddr, uint32_t yiaddr)
+static void clear_lease(const uint8_t *chaddr, uint32_t yiaddr)
 {
-	unsigned int i, j;
+	unsigned i, j;
 
 	for (j = 0; j < 16 && !chaddr[j]; j++);
 
 	for (i = 0; i < server_config.max_leases; i++)
-		if ((j != 16 && !memcmp(leases[i].chaddr, chaddr, 16)) ||
-		    (yiaddr && leases[i].yiaddr == yiaddr)) {
+		if ((j != 16 && memcmp(leases[i].chaddr, chaddr, 16) != 0)
+		 || (yiaddr && leases[i].yiaddr == yiaddr)
+		) {
 			memset(&(leases[i]), 0, sizeof(struct dhcpOfferedAddr));
 		}
 }
 
 
 /* add a lease into the table, clearing out any old ones */
-struct dhcpOfferedAddr *add_lease(uint8_t *chaddr, uint32_t yiaddr, unsigned long lease)
+struct dhcpOfferedAddr *add_lease(const uint8_t *chaddr, uint32_t yiaddr, unsigned long lease)
 {
 	struct dhcpOfferedAddr *oldest;
 
@@ -52,31 +68,14 @@ int lease_expired(struct dhcpOfferedAddr *lease)
 }
 
 
-/* Find the oldest expired lease, NULL if there are no expired leases */
-struct dhcpOfferedAddr *oldest_expired_lease(void)
-{
-	struct dhcpOfferedAddr *oldest = NULL;
-	unsigned long oldest_lease = time(0);
-	unsigned int i;
-
-
-	for (i = 0; i < server_config.max_leases; i++)
-		if (oldest_lease > leases[i].expires) {
-			oldest_lease = leases[i].expires;
-			oldest = &(leases[i]);
-		}
-	return oldest;
-
-}
-
-
 /* Find the first lease that matches chaddr, NULL if no match */
-struct dhcpOfferedAddr *find_lease_by_chaddr(uint8_t *chaddr)
+struct dhcpOfferedAddr *find_lease_by_chaddr(const uint8_t *chaddr)
 {
-	unsigned int i;
+	unsigned i;
 
 	for (i = 0; i < server_config.max_leases; i++)
-		if (!memcmp(leases[i].chaddr, chaddr, 16)) return &(leases[i]);
+		if (!memcmp(leases[i].chaddr, chaddr, 16))
+			return &(leases[i]);
 
 	return NULL;
 }
@@ -85,10 +84,11 @@ struct dhcpOfferedAddr *find_lease_by_chaddr(uint8_t *chaddr)
 /* Find the first lease that matches yiaddr, NULL is no match */
 struct dhcpOfferedAddr *find_lease_by_yiaddr(uint32_t yiaddr)
 {
-	unsigned int i;
+	unsigned i;
 
 	for (i = 0; i < server_config.max_leases; i++)
-		if (leases[i].yiaddr == yiaddr) return &(leases[i]);
+		if (leases[i].yiaddr == yiaddr)
+			return &(leases[i]);
 
 	return NULL;
 }
@@ -97,6 +97,8 @@ struct dhcpOfferedAddr *find_lease_by_yiaddr(uint32_t yiaddr)
 /* check is an IP is taken, if it is, add it to the lease table */
 static int check_ip(uint32_t addr)
 {
+	static const uint8_t blank_chaddr[16]; /* 16 zero bytes */
+
 	struct in_addr temp;
 
 	if (arpping(addr, server_config.server, server_config.arp, server_config.interface) == 0) {
@@ -105,7 +107,8 @@ static int check_ip(uint32_t addr)
 			inet_ntoa(temp), server_config.conflict_time);
 		add_lease(blank_chaddr, addr, server_config.conflict_time);
 		return 1;
-	} else return 0;
+	}
+	return 0;
 }
 
 
@@ -125,7 +128,7 @@ uint32_t find_address(int check_expired)
 		/* ie, 192.168.55.255 */
 		if ((addr & 0xFF) == 0xFF) continue;
 
-		/* Only do if it isn't an assigned as a static lease */
+		/* Only do if it isn't assigned as a static lease */
 		if (!reservedIp(server_config.static_leases, htonl(addr))) {
 
 			/* lease is not taken */
@@ -133,11 +136,10 @@ uint32_t find_address(int check_expired)
 			lease = find_lease_by_yiaddr(ret);
 
 			/* no lease or it expired and we are checking for expired leases */
-			if ( (!lease || (check_expired && lease_expired(lease)))
+			if ((!lease || (check_expired && lease_expired(lease)))
 			 && /* and it isn't on the network */ !check_ip(ret)
 			) {
 				return ret;
-				break;
 			}
 		}
 	}

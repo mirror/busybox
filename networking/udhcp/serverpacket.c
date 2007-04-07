@@ -38,7 +38,7 @@ static int send_packet_to_relay(struct dhcpMessage *payload)
 /* send a packet to a specific arp address and ip address by creating our own ip packet */
 static int send_packet_to_client(struct dhcpMessage *payload, int force_broadcast)
 {
-	uint8_t *chaddr;
+	const uint8_t *chaddr;
 	uint32_t ciaddr;
 
 	if (force_broadcast) {

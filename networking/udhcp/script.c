@@ -9,7 +9,6 @@
  */
 
 #include "common.h"
-#include "dhcpd.h"
 #include "dhcpc.h"
 #include "options.h"
 
@@ -77,7 +76,7 @@ static char *alloc_fill_opts(uint8_t *option, const struct dhcp_option *type_p)
 		switch (type) {
 		case OPTION_IP_PAIR:
 			dest += sprintip(dest, "", option);
-			*(dest++) = '/';
+			*dest++ = '/';
 			option += 4;
 			optlen = 4;
 		case OPTION_IP:	/* Works regardless of host byte order. */
@@ -132,34 +131,42 @@ static char **fill_envp(struct dhcpMessage *packet)
 	int num_options = 0;
 	int i, j;
 	char **envp;
+	char *var;
 	uint8_t *temp;
 	struct in_addr subnet;
 	char over = 0;
 
-	if (packet == NULL)
-		num_options = 0;
-	else {
-		for (i = 0; dhcp_options[i].code; i++)
+	if (packet) {
+		for (i = 0; dhcp_options[i].code; i++) {
 			if (get_option(packet, dhcp_options[i].code)) {
 				num_options++;
 				if (dhcp_options[i].code == DHCP_SUBNET)
 					num_options++; /* for mton */
 			}
-		if (packet->siaddr) num_options++;
-		if ((temp = get_option(packet, DHCP_OPTION_OVER)))
+		}
+		if (packet->siaddr)
+			num_options++;
+		temp = get_option(packet, DHCP_OPTION_OVER);
+		if (temp)
 			over = *temp;
-		if (!(over & FILE_FIELD) && packet->file[0]) num_options++;
-		if (!(over & SNAME_FIELD) && packet->sname[0]) num_options++;
+		if (!(over & FILE_FIELD) && packet->file[0])
+			num_options++;
+		if (!(over & SNAME_FIELD) && packet->sname[0])
+			num_options++;
 	}
 
 	envp = xzalloc(sizeof(char *) * (num_options + 5));
 	j = 0;
 	envp[j++] = xasprintf("interface=%s", client_config.interface);
-	envp[j++] = xasprintf("PATH=%s",
-		getenv("PATH") ? : "/bin:/usr/bin:/sbin:/usr/sbin");
-	envp[j++] = xasprintf("HOME=%s", getenv("HOME") ? : "/");
+	var = getenv("PATH");
+	if (var)
+		envp[j++] = xasprintf("PATH=%s", var);
+	var = getenv("HOME");
+	if (var)
+		envp[j++] = xasprintf("HOME=%s", var);
 
-	if (packet == NULL) return envp;
+	if (packet == NULL)
+		return envp;
 
 	envp[j] = xmalloc(sizeof("ip=255.255.255.255"));
 	sprintip(envp[j++], "ip=", (uint8_t *) &packet->yiaddr);
@@ -206,19 +213,20 @@ void udhcp_run_script(struct dhcpMessage *packet, const char *name)
 	DEBUG("vfork'ing and execle'ing %s", client_config.script);
 
 	envp = fill_envp(packet);
+
 	/* call script */
+// can we use wait4pid(spawn(...)) here?
 	pid = vfork();
-	if (pid) {
-		waitpid(pid, NULL, 0);
-		for (curr = envp; *curr; curr++) free(*curr);
-		free(envp);
-		return;
-	} else if (pid == 0) {
+	if (pid < 0) return;
+	if (pid == 0) {
 		/* close fd's? */
 		/* exec script */
 		execle(client_config.script, client_config.script,
 		       name, NULL, envp);
-		bb_perror_msg("script %s failed", client_config.script);
-		exit(1);
+		bb_perror_msg_and_die("script %s failed", client_config.script);
 	}
+	waitpid(pid, NULL, 0);
+	for (curr = envp; *curr; curr++)
+		free(*curr);
+	free(envp);
 }

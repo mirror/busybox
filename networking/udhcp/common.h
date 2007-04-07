@@ -14,8 +14,7 @@
 
 #define DEFAULT_SCRIPT  "/usr/share/udhcpc/default.script"
 
-#define COMBINED_BINARY
-
+extern const uint8_t MAC_BCAST_ADDR[6]; /* six all-ones */
 
 /*** packet.h ***/
 
@@ -52,7 +51,8 @@ int udhcp_get_packet(struct dhcpMessage *packet, int fd);
 uint16_t udhcp_checksum(void *addr, int count);
 int udhcp_raw_packet(struct dhcpMessage *payload,
 		uint32_t source_ip, int source_port,
-		uint32_t dest_ip, int dest_port, uint8_t *dest_arp, int ifindex);
+		uint32_t dest_ip, int dest_port,
+		const uint8_t *dest_arp, int ifindex);
 int udhcp_kernel_packet(struct dhcpMessage *payload,
 		uint32_t source_ip, int source_port,
 		uint32_t dest_ip, int dest_port);

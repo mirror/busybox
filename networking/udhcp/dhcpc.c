@@ -17,22 +17,23 @@
 #include "options.h"
 
 
-static int state;
 /* Something is definitely wrong here. IPv4 addresses
  * in variables of type long?? BTW, we use inet_ntoa()
  * in the code. Manpage says that struct in_addr has a member of type long (!)
  * which holds IPv4 address, and the struct is passed by value (!!)
  */
+static unsigned long timeout;
 static unsigned long requested_ip; /* = 0 */
 static uint32_t server_addr;
-static unsigned long timeout;
 static int packet_num; /* = 0 */
-static int fd = -1;
+static int sockfd = -1;
 
 #define LISTEN_NONE 0
 #define LISTEN_KERNEL 1
 #define LISTEN_RAW 2
-static int listen_mode;
+static smallint listen_mode;
+
+static smallint state;
 
 struct client_config_t client_config;
 
@@ -42,8 +43,10 @@ static void change_mode(int new_mode)
 {
 	DEBUG("entering %s listen mode",
 		new_mode ? (new_mode == 1 ? "kernel" : "raw") : "none");
-	if (fd >= 0) close(fd);
-	fd = -1;
+	if (sockfd >= 0) {
+		close(sockfd);
+		sockfd = -1;
+	}
 	listen_mode = new_mode;
 }
 
@@ -111,6 +114,7 @@ static void client_background(void)
  * If that will be properly disabled for NOMMU, client_background()
  * will work on NOMMU too */
 #else
+// chdir(/) is problematic. Imagine that e.g. pidfile name is RELATIVE! what will unlink do then, eh?
 	bb_daemonize(DAEMON_CHDIR_ROOT);
 	logmode &= ~LOGMODE_STDIO;
 #endif
@@ -289,13 +293,13 @@ int udhcpc_main(int argc, char **argv)
 		tv.tv_sec = timeout - uptime();
 		tv.tv_usec = 0;
 
-		if (listen_mode != LISTEN_NONE && fd < 0) {
+		if (listen_mode != LISTEN_NONE && sockfd < 0) {
 			if (listen_mode == LISTEN_KERNEL)
-				fd = listen_socket(INADDR_ANY, CLIENT_PORT, client_config.interface);
+				sockfd = listen_socket(INADDR_ANY, CLIENT_PORT, client_config.interface);
 			else
-				fd = raw_socket(client_config.ifindex);
+				sockfd = raw_socket(client_config.ifindex);
 		}
-		max_fd = udhcp_sp_fd_set(&rfds, fd);
+		max_fd = udhcp_sp_fd_set(&rfds, sockfd);
 
 		if (tv.tv_sec > 0) {
 			DEBUG("Waiting on select...");
@@ -342,7 +346,8 @@ int udhcpc_main(int argc, char **argv)
 					packet_num++;
 				} else {
 					/* timed out, go back to init state */
-					if (state == RENEW_REQUESTED) udhcp_run_script(NULL, "deconfig");
+					if (state == RENEW_REQUESTED)
+						udhcp_run_script(NULL, "deconfig");
 					state = INIT_SELECTING;
 					timeout = now;
 					packet_num = 0;
@@ -393,12 +398,12 @@ int udhcpc_main(int argc, char **argv)
 				timeout = 0x7fffffff;
 				break;
 			}
-		} else if (retval > 0 && listen_mode != LISTEN_NONE && FD_ISSET(fd, &rfds)) {
+		} else if (retval > 0 && listen_mode != LISTEN_NONE && FD_ISSET(sockfd, &rfds)) {
 			/* a packet is ready, read it */
 
 			if (listen_mode == LISTEN_KERNEL)
-				len = udhcp_get_packet(&packet, fd);
-			else len = get_raw_packet(&packet, fd);
+				len = udhcp_get_packet(&packet, sockfd);
+			else len = get_raw_packet(&packet, sockfd);
 
 			if (len == -1 && errno != EINTR) {
 				DEBUG("error on read, %s, reopening socket", strerror(errno));
@@ -418,7 +423,8 @@ int udhcpc_main(int argc, char **argv)
 				continue;
 			}
 
-			if ((message = get_option(&packet, DHCP_MESSAGE_TYPE)) == NULL) {
+			message = get_option(&packet, DHCP_MESSAGE_TYPE);
+			if (message == NULL) {
 				bb_error_msg("cannot get option from packet - ignoring");
 				continue;
 			}
