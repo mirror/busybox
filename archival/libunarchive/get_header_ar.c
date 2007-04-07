@@ -23,9 +23,9 @@ char get_header_ar(archive_handle_t *archive_handle)
 			char magic[2];
 		} formatted;
 	} ar;
-#ifdef CONFIG_FEATURE_AR_LONG_FILENAMES
+#if ENABLE_FEATURE_AR_LONG_FILENAMES
 	static char *ar_long_names;
-	static unsigned int ar_long_name_size;
+	static unsigned ar_long_name_size;
 #endif
 
 	/* dont use xread as we want to handle the error ourself */

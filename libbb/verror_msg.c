@@ -10,7 +10,7 @@
 #include "libbb.h"
 #include <syslog.h>
 
-int logmode = LOGMODE_STDIO;
+smallint logmode = LOGMODE_STDIO;
 const char *msg_eol = "\n";
 
 void bb_verror_msg(const char *s, va_list p, const char* strerr)
