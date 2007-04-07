@@ -24,8 +24,7 @@
 #endif
 
 
-static struct
-{
+typedef struct filter_t {
 	int tb;
 	int flushed;
 	char *flushb;
@@ -45,12 +44,14 @@ static struct
 	inet_prefix mdst;
 	inet_prefix rsrc;
 	inet_prefix msrc;
-} filter;
+} filter_t;
+
+#define filter (*(filter_t*)&bb_common_bufsiz1)
 
 static int flush_update(void)
 {
 	if (rtnl_send(filter.rth, filter.flushb, filter.flushp) < 0) {
-		perror("Failed to send flush request\n");
+		bb_perror_msg("failed to send flush request");
 		return -1;
 	}
 	filter.flushp = 0;
@@ -273,7 +274,7 @@ static int print_route(struct sockaddr_nl *who ATTRIBUTE_UNUSED,
 		}
 		if ((r->rtm_flags & RTM_F_CLONED) || (ci && ci->rta_expires)) {
 			if (r->rtm_flags & RTM_F_CLONED) {
-				fprintf(fp, "%s    cache ", _SL_);
+				fprintf(fp, "%c    cache ", _SL_);
 			}
 			if (ci->rta_expires) {
 				fprintf(fp, " expires %dsec", ci->rta_expires / get_hz());
@@ -289,11 +290,12 @@ static int print_route(struct sockaddr_nl *who ATTRIBUTE_UNUSED,
 	if (tb[RTA_IIF] && filter.iifmask != -1) {
 		fprintf(fp, " iif %s", ll_index_to_name(*(int*)RTA_DATA(tb[RTA_IIF])));
 	}
-	fprintf(fp, "\n");
+	fputc('\n', fp);
 	fflush(fp);
 	return 0;
 }
 
+/* Return value becomes exitcode. It's okay to not return at all */
 static int iproute_modify(int cmd, unsigned flags, int argc, char **argv)
 {
 	struct rtnl_handle rth;
@@ -302,10 +304,10 @@ static int iproute_modify(int cmd, unsigned flags, int argc, char **argv)
 		struct rtmsg		r;
 		char			buf[1024];
 	} req;
-	char  mxbuf[256];
+	char mxbuf[256];
 	struct rtattr * mxrta = (void*)mxbuf;
 	unsigned mxlock = 0;
-	char  *d = NULL;
+	char *d = NULL;
 	int gw_ok = 0;
 	int dst_ok = 0;
 	int proto_ok = 0;
@@ -384,8 +386,9 @@ static int iproute_modify(int cmd, unsigned flags, int argc, char **argv)
 			if (strcmp(*argv, "to") == 0) {
 				NEXT_ARG();
 			}
-			if ((**argv < '0' || **argv > '9') &&
-			    rtnl_rtntype_a2n(&type, *argv) == 0) {
+			if ((**argv < '0' || **argv > '9')
+			 && rtnl_rtntype_a2n(&type, *argv) == 0
+			) {
 				NEXT_ARG();
 				req.r.rtm_type = type;
 				type_ok = 1;
@@ -408,7 +411,7 @@ static int iproute_modify(int cmd, unsigned flags, int argc, char **argv)
 	}
 
 	if (rtnl_open(&rth, 0) < 0) {
-		exit(1);
+		return 1;
 	}
 
 	if (d)  {
@@ -419,8 +422,7 @@ static int iproute_modify(int cmd, unsigned flags, int argc, char **argv)
 		if (d) {
 			idx = ll_name_to_index(d);
 			if (idx == 0) {
-				bb_error_msg("cannot find device \"%s\"", d);
-				return -1;
+				bb_error_msg_and_die("cannot find device \"%s\"", d);
 			}
 			addattr32(&req.n, sizeof(req), RTA_OIF, idx);
 		}
@@ -438,7 +440,7 @@ static int iproute_modify(int cmd, unsigned flags, int argc, char **argv)
 	}
 
 	if (rtnl_talk(&rth, &req.n, 0, 0, NULL, NULL, NULL) < 0) {
-		exit(2);
+		return 2;
 	}
 
 	return 0;
@@ -467,21 +469,21 @@ static int rtnl_rtcache_request(struct rtnl_handle *rth, int family)
 	return sendto(rth->fd, (void*)&req, sizeof(req), 0, (struct sockaddr*)&nladdr, sizeof(nladdr));
 }
 
-static int iproute_flush_cache(void)
+static void iproute_flush_cache(void)
 {
 	static const char fn[] = "/proc/sys/net/ipv4/route/flush";
 	int flush_fd = open(fn, O_WRONLY);
+
 	if (flush_fd < 0) {
 		bb_perror_msg("cannot open '%s'", fn);
-		return -1;
+		return;
 	}
 
 	if (write(flush_fd, "-1", 2) < 2) {
 		bb_perror_msg("cannot flush routing cache");
-		return -1;
+		return;
 	}
 	close(flush_fd);
-	return 0;
 }
 
 static void iproute_reset_filter(void)
@@ -491,6 +493,7 @@ static void iproute_reset_filter(void)
 	filter.msrc.bitlen = -1;
 }
 
+/* Return value becomes exitcode. It's okay to not return at all */
 static int iproute_list_or_flush(int argc, char **argv, int flush)
 {
 	int do_ipv6 = preferred_family;
@@ -501,10 +504,8 @@ static int iproute_list_or_flush(int argc, char **argv, int flush)
 	iproute_reset_filter();
 	filter.tb = RT_TABLE_MAIN;
 
-	if (flush && argc <= 0) {
-		bb_error_msg(bb_msg_requires_arg, "\"ip route flush\"");
-		return -1;
-	}
+	if (flush && argc <= 0)
+		bb_error_msg_and_die(bb_msg_requires_arg, "\"ip route flush\"");
 
 	while (argc > 0) {
 		if (matches(*argv, "protocol") == 0) {
@@ -572,7 +573,8 @@ static int iproute_list_or_flush(int argc, char **argv, int flush)
 				filter.rdst = filter.mdst;
 			}
 		}
-		argc--; argv++;
+		argc--;
+		argv++;
 	}
 
 	if (do_ipv6 == AF_UNSPEC && filter.tb) {
@@ -580,7 +582,7 @@ static int iproute_list_or_flush(int argc, char **argv, int flush)
 	}
 
 	if (rtnl_open(&rth, 0) < 0) {
-		exit(1);
+		return 1;
 	}
 
 	ll_init_map(&rth);
@@ -589,15 +591,16 @@ static int iproute_list_or_flush(int argc, char **argv, int flush)
 		int idx;
 
 		if (id) {
-			if ((idx = ll_name_to_index(id)) == 0) {
-				bb_error_msg("cannot find device \"%s\"", id);
-				return -1;
+			idx = ll_name_to_index(id);
+			if (idx == 0) {
+				bb_error_msg_and_die("cannot find device \"%s\"", id);
 			}
 			filter.iif = idx;
 			filter.iifmask = -1;
 		}
 		if (od) {
-			if ((idx = ll_name_to_index(od)) == 0) {
+			idx = ll_name_to_index(od);
+			if (idx == 0) {
 				bb_error_msg("cannot find device \"%s\"", od);
 			}
 			filter.oif = idx;
@@ -622,20 +625,17 @@ static int iproute_list_or_flush(int argc, char **argv, int flush)
 
 		for (;;) {
 			if (rtnl_wilddump_request(&rth, do_ipv6, RTM_GETROUTE) < 0) {
-				perror("Cannot send dump request");
-				return -1;
+				bb_perror_msg_and_die("cannot send dump request");
 			}
 			filter.flushed = 0;
 			if (rtnl_dump_filter(&rth, print_route, stdout, NULL, NULL) < 0) {
-				bb_error_msg("flush terminated");
-				return -1;
+				bb_error_msg_and_die("flush terminated");
 			}
 			if (filter.flushed == 0) {
-				fflush(stdout);
 				return 0;
 			}
-			if (flush_update() < 0)
-				exit(1);
+			if (flush_update())
+				return 1;
 		}
 	}
 
@@ -653,10 +653,11 @@ static int iproute_list_or_flush(int argc, char **argv, int flush)
 		bb_error_msg_and_die("dump terminated");
 	}
 
-	exit(0);
+	return 0;
 }
 
 
+/* Return value becomes exitcode. It's okay to not return at all */
 static int iproute_get(int argc, char **argv)
 {
 	struct rtnl_handle rth;
@@ -734,7 +735,8 @@ static int iproute_get(int argc, char **argv)
 				}
 				req.r.rtm_dst_len = addr.bitlen;
 			}
-			argc--; argv++;
+			argc--;
+			argv++;
 		}
 	}
 
@@ -743,7 +745,7 @@ static int iproute_get(int argc, char **argv)
 	}
 
 	if (rtnl_open(&rth, 0) < 0)
-		exit(1);
+		return 1;
 
 	ll_init_map(&rth);
 
@@ -751,16 +753,16 @@ static int iproute_get(int argc, char **argv)
 		int idx;
 
 		if (idev) {
-			if ((idx = ll_name_to_index(idev)) == 0) {
-				bb_error_msg("cannot find device \"%s\"", idev);
-				return -1;
+			idx = ll_name_to_index(idev);
+			if (idx == 0) {
+				bb_error_msg_and_die("cannot find device \"%s\"", idev);
 			}
 			addattr32(&req.n, sizeof(req), RTA_IIF, idx);
 		}
 		if (odev) {
-			if ((idx = ll_name_to_index(odev)) == 0) {
-				bb_error_msg("cannot find device \"%s\"", odev);
-				return -1;
+			idx = ll_name_to_index(odev);
+			if (idx == 0) {
+				bb_error_msg_and_die("cannot find device \"%s\"", odev);
 			}
 			addattr32(&req.n, sizeof(req), RTA_OIF, idx);
 		}
@@ -771,7 +773,7 @@ static int iproute_get(int argc, char **argv)
 	}
 
 	if (rtnl_talk(&rth, &req.n, 0, 0, &req.n, NULL, NULL) < 0) {
-		exit(2);
+		return 2;
 	}
 
 	if (connected && !from_ok) {
@@ -784,13 +786,11 @@ static int iproute_get(int argc, char **argv)
 		}
 
 		if (req.n.nlmsg_type != RTM_NEWROUTE) {
-			bb_error_msg("not a route?");
-			return -1;
+			bb_error_msg_and_die("not a route?");
 		}
 		len -= NLMSG_LENGTH(sizeof(*r));
 		if (len < 0) {
-			bb_error_msg("wrong len %d", len);
-			return -1;
+			bb_error_msg_and_die("wrong len %d", len);
 		}
 
 		memset(tb, 0, sizeof(tb));
@@ -800,8 +800,7 @@ static int iproute_get(int argc, char **argv)
 			tb[RTA_PREFSRC]->rta_type = RTA_SRC;
 			r->rtm_src_len = 8*RTA_PAYLOAD(tb[RTA_PREFSRC]);
 		} else if (!tb[RTA_SRC]) {
-			bb_error_msg("failed to connect the route");
-			return -1;
+			bb_error_msg_and_die("failed to connect the route");
 		}
 		if (!odev && tb[RTA_OIF]) {
 			tb[RTA_OIF]->rta_type = 0;
@@ -816,17 +815,19 @@ static int iproute_get(int argc, char **argv)
 		req.n.nlmsg_type = RTM_GETROUTE;
 
 		if (rtnl_talk(&rth, &req.n, 0, 0, &req.n, NULL, NULL) < 0) {
-			exit(2);
+			return 2;
 		}
 	}
 
 	if (print_route(NULL, &req.n, (void*)stdout) < 0) {
+// how is this useful?
 		bb_error_msg_and_die("an error :-)");
 	}
 
-	exit(0);
+	return 0;
 }
 
+/* Return value becomes exitcode. It's okay to not return at all */
 int do_iproute(int argc, char **argv)
 {
 	static const char * const ip_route_commands[] = {

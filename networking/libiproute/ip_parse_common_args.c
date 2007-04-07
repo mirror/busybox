@@ -23,8 +23,8 @@
 
 
 int preferred_family = AF_UNSPEC;
-int oneline = 0;
-const char * _SL_ = NULL;
+smallint oneline;
+char _SL_;
 
 void ip_parse_common_args(int *argcp, char ***argvp)
 {
@@ -73,7 +73,7 @@ void ip_parse_common_args(int *argcp, char ***argvp)
 		argc--;
 		argv++;
 	}
-	_SL_ = oneline ? "\\" : "\n" ;
+	_SL_ = oneline ? '\\' : '\n' ;
 	*argcp = argc;
 	*argvp = argv;
 }

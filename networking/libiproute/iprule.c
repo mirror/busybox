@@ -155,11 +155,12 @@ static int print_rule(struct sockaddr_nl *who ATTRIBUTE_UNUSED,
 	} else if (r->rtm_type != RTN_UNICAST)
 		fprintf(fp, "%s", rtnl_rtntype_n2a(r->rtm_type, b1, sizeof(b1)));
 
-	fprintf(fp, "\n");
+	fputc('\n', fp);
 	fflush(fp);
 	return 0;
 }
 
+/* Return value becomes exitcode. It's okay to not return at all */
 static int iprule_list(int argc, char **argv)
 {
 	struct rtnl_handle rth;
@@ -178,19 +179,18 @@ static int iprule_list(int argc, char **argv)
 		return 1;
 
 	if (rtnl_wilddump_request(&rth, af, RTM_GETRULE) < 0) {
-		bb_perror_msg("Cannot send dump request");
-		return 1;
+		bb_perror_msg_and_die("cannot send dump request");
 	}
 
 	if (rtnl_dump_filter(&rth, print_rule, stdout, NULL, NULL) < 0) {
-		bb_error_msg("Dump terminated");
-		return 1;
+		bb_error_msg_and_die("dump terminated");
 	}
 
 	return 0;
 }
 
 
+/* Return value becomes exitcode. It's okay to not return at all */
 static int iprule_modify(int cmd, int argc, char **argv)
 {
 	int table_ok = 0;
@@ -282,7 +282,8 @@ static int iprule_modify(int cmd, int argc, char **argv)
 			if (matches(*argv, "help") == 0)
 				bb_show_usage();
 			if (rtnl_rtntype_a2n(&type, *argv))
-				invarg("Failed to parse rule type", *argv);
+// bogus-looking error message "invalid argument 'cannot parse rule type' to '<*argv>'"
+				invarg("cannot parse rule type", *argv);
 			req.r.rtm_type = type;
 		}
 		argc--;
@@ -304,6 +305,7 @@ static int iprule_modify(int cmd, int argc, char **argv)
 	return 0;
 }
 
+/* Return value becomes exitcode. It's okay to not return at all */
 int do_iprule(int argc, char **argv)
 {
 	static const char * const ip_rule_commands[] =
@@ -331,4 +333,3 @@ int do_iprule(int argc, char **argv)
 	}
 	return iprule_modify(cmd, argc-1, argv+1);
 }
-

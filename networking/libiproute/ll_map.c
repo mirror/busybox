@@ -54,7 +54,7 @@ int ll_remember_index(struct sockaddr_nl *who, struct nlmsghdr *n, void *arg)
 
 	h = ifi->ifi_index&0xF;
 
-	for (imp=&idxmap[h]; (im=*imp)!=NULL; imp = &im->next)
+	for (imp = &idxmap[h]; (im = *imp) != NULL; imp = &im->next)
 		if (im->index == ifi->ifi_index)
 			break;
 
@@ -87,7 +87,7 @@ const char *ll_idx_n2a(int idx, char *buf)
 
 	if (idx == 0)
 		return "*";
-	for (im = idxmap[idx&0xF]; im; im = im->next)
+	for (im = idxmap[idx & 0xF]; im; im = im->next)
 		if (im->index == idx)
 			return im->name;
 	snprintf(buf, 16, "if%d", idx);
@@ -108,7 +108,7 @@ int ll_index_to_type(int idx)
 
 	if (idx == 0)
 		return -1;
-	for (im = idxmap[idx&0xF]; im; im = im->next)
+	for (im = idxmap[idx & 0xF]; im; im = im->next)
 		if (im->index == idx)
 			return im->type;
 	return -1;
@@ -121,16 +121,18 @@ unsigned ll_index_to_flags(int idx)
 	if (idx == 0)
 		return 0;
 
-	for (im = idxmap[idx&0xF]; im; im = im->next)
+	for (im = idxmap[idx & 0xF]; im; im = im->next)
 		if (im->index == idx)
 			return im->flags;
 	return 0;
 }
 
+// TODO: caching is not warranted - no users which repeatedly call it
 int ll_name_to_index(char *name)
 {
 	static char ncache[16];
 	static int icache;
+
 	struct idxmap *im;
 	int sock_fd;
 	int i;
@@ -139,7 +141,7 @@ int ll_name_to_index(char *name)
 		return 0;
 	if (icache && strcmp(name, ncache) == 0)
 		return icache;
-	for (i=0; i<16; i++) {
+	for (i = 0; i < 16; i++) {
 		for (im = idxmap[i]; im; im = im->next) {
 			if (strcmp(im->name, name) == 0) {
 				icache = im->index;

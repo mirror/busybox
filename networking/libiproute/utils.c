@@ -13,9 +13,6 @@
 
 #include "libbb.h"
 
-#include <string.h>
-#include <unistd.h>
-
 #include "utils.h"
 #include "inet_common.h"
 
@@ -197,7 +194,7 @@ int get_prefix_1(inet_prefix * dst, char *arg, int family)
 			dst->bitlen = plen;
 		}
 	}
-  done:
+ done:
 	if (slash)
 		*slash = '/';
 	return err;

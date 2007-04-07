@@ -26,8 +26,7 @@
 #include "ip_common.h"
 
 
-static struct
-{
+typedef struct filter_t {
 	int ifindex;
 	int family;
 	int oneline;
@@ -42,7 +41,10 @@ static struct
 	int flushp;
 	int flushe;
 	struct rtnl_handle *rth;
-} filter;
+} filter_t;
+
+#define filter (*(filter_t*)&bb_common_bufsiz1)
+
 
 static void print_link_flags(FILE *fp, unsigned flags, unsigned mdown)
 {
@@ -88,7 +90,7 @@ static void print_queuelen(char *name)
 	memset(&ifr, 0, sizeof(ifr));
 	strncpy(ifr.ifr_name, name, sizeof(ifr.ifr_name));
 	if (ioctl(s, SIOCGIFTXQLEN, &ifr) < 0) {
-		perror("SIOCGIFXQLEN");
+		bb_perror_msg("SIOCGIFXQLEN");
 		close(s);
 		return;
 	}
@@ -125,10 +127,12 @@ static int print_linkinfo(struct sockaddr_nl ATTRIBUTE_UNUSED *who,
 		bb_error_msg("nil ifname");
 		return -1;
 	}
-	if (filter.label &&
-	    (!filter.family || filter.family == AF_PACKET) &&
-	    fnmatch(filter.label, RTA_DATA(tb[IFLA_IFNAME]), 0))
+	if (filter.label
+	 && (!filter.family || filter.family == AF_PACKET)
+	 && fnmatch(filter.label, RTA_DATA(tb[IFLA_IFNAME]), 0)
+	) {
 		return 0;
+	}
 
 	if (n->nlmsg_type == RTM_DELLINK)
 		fprintf(fp, "Deleted ");
@@ -166,8 +170,7 @@ static int print_linkinfo(struct sockaddr_nl ATTRIBUTE_UNUSED *who,
 
 	if (!filter.family || filter.family == AF_PACKET) {
 		SPRINT_BUF(b1);
-		fprintf(fp, "%s", _SL_);
-		fprintf(fp, "    link/%s ", ll_type_n2a(ifi->ifi_type, b1, sizeof(b1)));
+		fprintf(fp, "%c    link/%s ", _SL_, ll_type_n2a(ifi->ifi_type, b1, sizeof(b1)));
 
 		if (tb[IFLA_ADDRESS]) {
 			fprintf(fp, "%s", ll_addr_n2a(RTA_DATA(tb[IFLA_ADDRESS]),
@@ -186,7 +189,7 @@ static int print_linkinfo(struct sockaddr_nl ATTRIBUTE_UNUSED *who,
 						      b1, sizeof(b1)));
 		}
 	}
-	fprintf(fp, "\n");
+	fputc('\n', fp);
 	fflush(fp);
 	return 0;
 }
@@ -194,7 +197,7 @@ static int print_linkinfo(struct sockaddr_nl ATTRIBUTE_UNUSED *who,
 static int flush_update(void)
 {
 	if (rtnl_send(filter.rth, filter.flushb, filter.flushp) < 0) {
-		perror("Failed to send flush request\n");
+		bb_perror_msg("failed to send flush request");
 		return -1;
 	}
 	filter.flushp = 0;
@@ -341,7 +344,7 @@ static int print_addrinfo(struct sockaddr_nl ATTRIBUTE_UNUSED *who,
 	if (rta_tb[IFA_CACHEINFO]) {
 		struct ifa_cacheinfo *ci = RTA_DATA(rta_tb[IFA_CACHEINFO]);
 		char buf[128];
-		fprintf(fp, "%s", _SL_);
+		fputc(_SL_, fp);
 		if (ci->ifa_valid == 0xFFFFFFFFU)
 			sprintf(buf, "valid_lft forever");
 		else
@@ -352,7 +355,7 @@ static int print_addrinfo(struct sockaddr_nl ATTRIBUTE_UNUSED *who,
 			sprintf(buf+strlen(buf), " preferred_lft %dsec", ci->ifa_prefered);
 		fprintf(fp, "       %s", buf);
 	}
-	fprintf(fp, "\n");
+	fputc('\n', fp);
 	fflush(fp);
 	return 0;
 }
@@ -366,7 +369,7 @@ struct nlmsg_list
 
 static int print_selected_addrinfo(int ifindex, struct nlmsg_list *ainfo, FILE *fp)
 {
-	for ( ;ainfo ;  ainfo = ainfo->next) {
+	for (; ainfo; ainfo = ainfo->next) {
 		struct nlmsghdr *n = &ainfo->h;
 		struct ifaddrmsg *ifa = NLMSG_DATA(n);
 
@@ -412,6 +415,7 @@ static void ipaddr_reset_filter(int _oneline)
 	filter.oneline = _oneline;
 }
 
+/* Return value becomes exitcode. It's okay to not return at all */
 int ipaddr_list_or_flush(int argc, char **argv, int flush)
 {
 	static const char *const option[] = { "to", "scope", "up", "label", "dev", 0 };
@@ -431,12 +435,10 @@ int ipaddr_list_or_flush(int argc, char **argv, int flush)
 
 	if (flush) {
 		if (argc <= 0) {
-			bb_error_msg(bb_msg_requires_arg, "flush");
-			return -1;
+			bb_error_msg_and_die(bb_msg_requires_arg, "flush");
 		}
 		if (filter.family == AF_PACKET) {
-			bb_error_msg("cannot flush link addresses");
-			return -1;
+			bb_error_msg_and_die("cannot flush link addresses");
 		}
 	}
 
@@ -498,8 +500,7 @@ int ipaddr_list_or_flush(int argc, char **argv, int flush)
 	if (filter_dev) {
 		filter.ifindex = ll_name_to_index(filter_dev);
 		if (filter.ifindex <= 0) {
-			bb_error_msg("device \"%s\" does not exist", filter_dev);
-			return -1;
+			bb_error_msg_and_die("device \"%s\" does not exist", filter_dev);
 		}
 	}
 
@@ -513,20 +514,17 @@ int ipaddr_list_or_flush(int argc, char **argv, int flush)
 
 		for (;;) {
 			if (rtnl_wilddump_request(&rth, filter.family, RTM_GETADDR) < 0) {
-				perror("Cannot send dump request");
-				exit(1);
+				bb_perror_msg_and_die("cannot send dump request");
 			}
 			filter.flushed = 0;
 			if (rtnl_dump_filter(&rth, print_addrinfo, stdout, NULL, NULL) < 0) {
-				fprintf(stderr, "Flush terminated\n");
-				exit(1);
+				bb_error_msg_and_die("flush terminated");
 			}
 			if (filter.flushed == 0) {
-				fflush(stdout);
 				return 0;
 			}
 			if (flush_update() < 0)
-				exit(1);
+				return 1;
 		}
 	}
 
@@ -601,16 +599,16 @@ int ipaddr_list_or_flush(int argc, char **argv, int flush)
 		}
 	}
 
-	for (l=linfo; l; l = l->next) {
+	for (l = linfo; l; l = l->next) {
 		if (no_link || print_linkinfo(NULL, &l->h, stdout) == 0) {
 			struct ifinfomsg *ifi = NLMSG_DATA(&l->h);
 			if (filter.family != AF_PACKET)
 				print_selected_addrinfo(ifi->ifi_index, ainfo, stdout);
 		}
-		fflush(stdout);
+		fflush(stdout); /* why? */
 	}
 
-	exit(0);
+	return 0;
 }
 
 static int default_scope(inet_prefix *lcl)
@@ -622,6 +620,7 @@ static int default_scope(inet_prefix *lcl)
 	return 0;
 }
 
+/* Return value becomes exitcode. It's okay to not return at all */
 static int ipaddr_modify(int cmd, int argc, char **argv)
 {
 	static const char *const option[] = {
@@ -763,8 +762,7 @@ static int ipaddr_modify(int cmd, int argc, char **argv)
 		inet_prefix brd;
 		int i;
 		if (req.ifa.ifa_family != AF_INET) {
-			bb_error_msg("broadcast can be set only for IPv4 addresses");
-			return -1;
+			bb_error_msg_and_die("broadcast can be set only for IPv4 addresses");
 		}
 		brd = peer;
 		if (brd.bitlen <= 30) {
@@ -786,17 +784,18 @@ static int ipaddr_modify(int cmd, int argc, char **argv)
 
 	ll_init_map(&rth);
 
-	if ((req.ifa.ifa_index = ll_name_to_index(d)) == 0) {
-		bb_error_msg("cannot find device \"%s\"", d);
-		return -1;
+	req.ifa.ifa_index = ll_name_to_index(d);
+	if (req.ifa.ifa_index == 0) {
+		bb_error_msg_and_die("cannot find device \"%s\"", d);
 	}
 
 	if (rtnl_talk(&rth, &req.n, 0, 0, NULL, NULL, NULL) < 0)
-		exit(2);
+		return 2;
 
-	exit(0);
+	return 0;
 }
 
+/* Return value becomes exitcode. It's okay to not return at all */
 int do_ipaddr(int argc, char **argv)
 {
 	static const char *const commands[] = {

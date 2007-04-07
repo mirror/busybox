@@ -9,13 +9,12 @@
 #include "rtm_map.h"
 
 extern int preferred_family;
-extern int show_stats;
-extern int show_details;
-extern int show_raw;
-extern int resolve_hosts;
-extern int oneline;
-//FIXME! Appears in two .h files!
-extern const char * _SL_;
+extern smallint show_stats;    /* UNUSED */
+extern smallint show_details;  /* UNUSED */
+extern smallint show_raw;      /* UNUSED */
+extern smallint resolve_hosts; /* UNUSED */
+extern smallint oneline;
+extern char _SL_;
 
 #ifndef IPPROTO_ESP
 #define IPPROTO_ESP	50
@@ -80,7 +79,7 @@ void invarg(const char *, const char *) ATTRIBUTE_NORETURN;
 void duparg(const char *, const char *) ATTRIBUTE_NORETURN;
 void duparg2(const char *, const char *) ATTRIBUTE_NORETURN;
 int matches(const char *arg, const char *pattern);
-extern int inet_addr_match(inet_prefix *a, inet_prefix *b, int bits);
+int inet_addr_match(inet_prefix *a, inet_prefix *b, int bits);
 
 const char *dnet_ntop(int af, const void *addr, char *str, size_t len);
 int dnet_pton(int af, const char *src, void *addr);
