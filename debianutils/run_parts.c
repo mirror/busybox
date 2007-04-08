@@ -138,7 +138,7 @@ int run_parts_main(int argc, char **argv)
 		G.cmd[tmp] = arg_list->data;
 	/* G.cmd[tmp] = NULL; - G is already zeroed out */
 	if (!recursive_action(argv[argc - 1],
-			action_recurse|action_followLinks,
+			ACTION_RECURSE|ACTION_FOLLOWLINKS,
 			act,		/* file action */
 			act,		/* dir action */
 			NULL,		/* user data */

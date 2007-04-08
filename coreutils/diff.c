@@ -1079,7 +1079,7 @@ static char **get_dir(char *path)
 	 * add_to_dirlist then removes root dir prefix. */
 
 	if (option_mask32 & FLAG_r) {
-		recursive_action(path, action_recurse|action_followLinks,
+		recursive_action(path, ACTION_RECURSE|ACTION_FOLLOWLINKS,
 					add_to_dirlist, NULL,
 					(void*)(strlen(path)+1), 0);
 	} else {

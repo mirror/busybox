@@ -92,8 +92,8 @@ int chown_main(int argc, char **argv)
 		}
 
 		if (!recursive_action(arg,
-				(OPT_RECURSE ? action_recurse : 0 | /* recurse */
-				 OPT_TRAVERSE ? action_followLinks : 0),/* follow links if -L */
+				(OPT_RECURSE ? ACTION_RECURSE : 0) | /* recurse */
+				(OPT_TRAVERSE ? ACTION_FOLLOWLINKS : 0),/* follow links if -L */
 				fileAction,     /* file action */
 				fileAction,     /* dir action */
 				chown_func,     /* user data */

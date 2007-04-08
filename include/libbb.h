@@ -178,7 +178,7 @@ struct hwtype {
 
 /* buffer allocation schemes */
 #if ENABLE_FEATURE_BUFFERS_GO_ON_STACK
-#define RESERVE_CONFIG_BUFFER(buffer,len)           char buffer[len]
+#define RESERVE_CONFIG_BUFFER(buffer,len)  char buffer[len]
 #define RESERVE_CONFIG_UBUFFER(buffer,len) unsigned char buffer[len]
 #define RELEASE_CONFIG_BUFFER(buffer)      ((void)0)
 #else
@@ -187,9 +187,9 @@ struct hwtype {
 #define RESERVE_CONFIG_UBUFFER(buffer,len) static unsigned char buffer[len]
 #define RELEASE_CONFIG_BUFFER(buffer)      ((void)0)
 #else
-#define RESERVE_CONFIG_BUFFER(buffer,len)           char *buffer=xmalloc(len)
-#define RESERVE_CONFIG_UBUFFER(buffer,len) unsigned char *buffer=xmalloc(len)
-#define RELEASE_CONFIG_BUFFER(buffer)      free (buffer)
+#define RESERVE_CONFIG_BUFFER(buffer,len)  char *buffer = xmalloc(len)
+#define RESERVE_CONFIG_UBUFFER(buffer,len) unsigned char *buffer = xmalloc(len)
+#define RELEASE_CONFIG_BUFFER(buffer)      free(buffer)
 #endif
 #endif
 
@@ -219,7 +219,7 @@ struct sysinfo {
 	unsigned int mem_unit;		/* Memory unit size in bytes */
 	char _f[20-2*sizeof(long)-sizeof(int)];	/* Padding: libc5 uses this.. */
 };
-extern int sysinfo(struct sysinfo* info);
+int sysinfo(struct sysinfo* info);
 
 
 extern void chomp(char *s);
@@ -232,10 +232,12 @@ extern const char *bb_mode_string(mode_t mode);
 extern int is_directory(const char *name, int followLinks, struct stat *statBuf);
 extern int remove_file(const char *path, int flags);
 extern int copy_file(const char *source, const char *dest, int flags);
-#define action_recurse		(1<<0)
-#define action_followLinks	(1<<1)
-#define action_depthFirst	(1<<2)
-#define action_reverse		(1<<3)
+enum {
+	ACTION_RECURSE     = (1 << 0),
+	ACTION_FOLLOWLINKS = (1 << 1),
+	ACTION_DEPTHFIRST  = (1 << 2),
+	/*ACTION_REVERSE   = (1 << 3), - unused */
+};
 extern int recursive_action(const char *fileName, unsigned flags,
 	int (*fileAction) (const char *fileName, struct stat* statbuf, void* userData, int depth),
 	int (*dirAction) (const char *fileName, struct stat* statbuf, void* userData, int depth),
@@ -260,13 +262,12 @@ int ndelay_off(int fd);
 void xmove_fd(int, int);
 
 
-extern DIR *xopendir(const char *path);
-extern DIR *warn_opendir(const char *path);
+DIR *xopendir(const char *path);
+DIR *warn_opendir(const char *path);
 
 char *xrealloc_getcwd_or_warn(char *cwd);
 char *xmalloc_readlink_or_warn(const char *path);
 char *xmalloc_realpath(const char *path);
-extern void xstat(const char *filename, struct stat *buf);
 
 /* Unlike waitpid, waits ONLY for one process,
  * It's safe to pass negative 'pids' from failed [v]fork -
@@ -299,6 +300,7 @@ void xsetuid(uid_t uid);
 void xchdir(const char *path);
 void xsetenv(const char *key, const char *value);
 void xunlink(const char *pathname);
+void xstat(const char *pathname, struct stat *buf);
 int xopen(const char *pathname, int flags);
 int xopen3(const char *pathname, int flags, int mode);
 off_t xlseek(int fd, off_t offset, int whence);

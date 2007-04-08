@@ -55,12 +55,12 @@ int recursive_action(const char *fileName,
 
 	if (!fileAction) fileAction = true_action;
 	if (!dirAction) dirAction = true_action;
-	status = (flags & action_followLinks ? stat : lstat)(fileName, &statbuf);
+	status = (flags & ACTION_FOLLOWLINKS ? stat : lstat)(fileName, &statbuf);
 
 	if (status < 0) {
 #ifdef DEBUG_RECURS_ACTION
 		bb_error_msg("status=%d followLinks=%d TRUE=%d",
-				status, flags & action_followLinks, TRUE);
+				status, flags & ACTION_FOLLOWLINKS, TRUE);
 #endif
 		goto done_nak_warn;
 	}
@@ -68,7 +68,7 @@ int recursive_action(const char *fileName,
 	/* If S_ISLNK(m), then we know that !S_ISDIR(m).
 	 * Then we can skip checking first part: if it is true, then
 	 * (!dir) is also true! */
-	if ( /* (!(flags & action_followLinks) && S_ISLNK(statbuf.st_mode)) || */
+	if ( /* (!(flags & ACTION_FOLLOWLINKS) && S_ISLNK(statbuf.st_mode)) || */
 	 !S_ISDIR(statbuf.st_mode)
 	) {
 		return fileAction(fileName, &statbuf, userData, depth);
@@ -76,11 +76,11 @@ int recursive_action(const char *fileName,
 
 	/* It's a directory (or a link to one, and followLinks is set) */
 
-	if (!(flags & action_recurse)) {
+	if (!(flags & ACTION_RECURSE)) {
 		return dirAction(fileName, &statbuf, userData, depth);
 	}
 
-	if (!(flags & action_depthFirst)) {
+	if (!(flags & ACTION_DEPTHFIRST)) {
 		status = dirAction(fileName, &statbuf, userData, depth);
 		if (!status) {
 			goto done_nak_warn;
@@ -104,14 +104,14 @@ int recursive_action(const char *fileName,
 		if (nextFile == NULL)
 			continue;
 		/* now descend into it, forcing recursion. */
-		if (!recursive_action(nextFile, flags | action_recurse,
+		if (!recursive_action(nextFile, flags | ACTION_RECURSE,
 				fileAction, dirAction, userData, depth+1)) {
 			status = FALSE;
 		}
 		free(nextFile);
 	}
 	closedir(dir);
-	if (flags & action_depthFirst &&
+	if ((flags & ACTION_DEPTHFIRST) &&
 		!dirAction(fileName, &statbuf, userData, depth)) {
 			goto done_nak_warn;
 	}

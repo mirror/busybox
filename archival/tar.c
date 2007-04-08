@@ -562,8 +562,8 @@ static int writeTarFile(const int tar_fd, const int verboseFlag,
 
 	/* Read the directory/files and iterate over them one at a time */
 	while (include) {
-		if (!recursive_action(include->data, (action_recurse |
-				 dereferenceFlag ? action_followLinks : 0),
+		if (!recursive_action(include->data, ACTION_RECURSE |
+				(dereferenceFlag ? ACTION_FOLLOWLINKS : 0),
 				writeFileToTarball, writeFileToTarball, &tbInfo, 0))
 		{
 			errorFlag = TRUE;

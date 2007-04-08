@@ -70,7 +70,7 @@ USE_FEATURE_FIND_MTIME( ACTS(mtime, char mtime_char; unsigned mtime_days;))
 USE_FEATURE_FIND_MMIN(  ACTS(mmin,  char mmin_char; unsigned mmin_mins;))
 USE_FEATURE_FIND_NEWER( ACTS(newer, time_t newer_mtime;))
 USE_FEATURE_FIND_INUM(  ACTS(inum,  ino_t inode_num;))
-USE_FEATURE_FIND_EXEC(  ACTS(exec,  char **exec_argv; unsigned int *subst_count; int exec_argc;))
+USE_FEATURE_FIND_EXEC(  ACTS(exec,  char **exec_argv; unsigned *subst_count; int exec_argc;))
 USE_FEATURE_FIND_USER(  ACTS(user,  uid_t uid;))
 USE_FEATURE_FIND_GROUP( ACTS(group, gid_t gid;))
 USE_FEATURE_FIND_PAREN( ACTS(paren, action ***subexpr;))
@@ -79,12 +79,12 @@ USE_FEATURE_FIND_PRUNE( ACTS(prune))
 
 static action ***actions;
 static bool need_print = 1;
-static int recurse_flags = action_recurse;
+static int recurse_flags = ACTION_RECURSE;
 
 #if ENABLE_FEATURE_FIND_EXEC
-static unsigned int count_subst(const char *str)
+static unsigned count_subst(const char *str)
 {
-	unsigned int count = 0;
+	unsigned count = 0;
 	while ((str = strstr(str, "{}"))) {
 		count++;
 		str++;
@@ -93,7 +93,7 @@ static unsigned int count_subst(const char *str)
 }
 
 
-static char* subst(const char *src, unsigned int count, const char* filename)
+static char* subst(const char *src, unsigned count, const char* filename)
 {
 	char *buf, *dst, *end;
 	size_t flen = strlen(filename);
@@ -111,6 +111,10 @@ static char* subst(const char *src, unsigned int count, const char* filename)
 }
 #endif
 
+/* Return values of ACTFs ('action functions') are a bit mask:
+ * bit 1=1: prune (use SKIP constant for setting it)
+ * bit 0=1: matched successfully (TRUE)
+ */
 
 static int exec_actions(action ***appp, const char *fileName, struct stat *statbuf)
 {
@@ -121,24 +125,24 @@ static int exec_actions(action ***appp, const char *fileName, struct stat *statb
 
 	cur_group = -1;
 	while ((app = appp[++cur_group])) {
+		/* We invert TRUE bit (bit 0). Now 1 there means 'failure'.
+		 * and bitwise OR in "rc |= TRUE ^ ap->f()" will:
+		 * (1) make SKIP bit stick; and (2) detect 'failure' */
+		rc = 0; /* 'success' so far */
 		cur_action = -1;
 		while (1) {
 			ap = app[++cur_action];
-			if (!ap) {
-				/* all actions in group were successful */
-				return rc;
-			}
-			rc = ap->f(fileName, statbuf, ap);
+			if (!ap) /* all actions in group were successful */
+				return rc ^ TRUE;
+			rc |= TRUE ^ ap->f(fileName, statbuf, ap);
 #if ENABLE_FEATURE_FIND_NOT
-			if (ap->invert) rc = !rc;
+			if (ap->invert) rc ^= TRUE;
 #endif
-			if (!rc) {
-				/* current group failed, try next */
+			if (rc & TRUE) /* current group failed, try next */
 				break;
-			}
 		}
 	}
-	return rc;
+	return rc ^ TRUE; /* straighten things out */
 }
 
 
@@ -147,8 +151,16 @@ ACTF(name)
 	const char *tmp = strrchr(fileName, '/');
 	if (tmp == NULL)
 		tmp = fileName;
-	else
+	else {
 		tmp++;
+		if (!*tmp) { /* "foo/bar/". Oh no... go back to 'b' */
+			tmp--;
+			while (tmp != fileName && *--tmp != '/')
+				continue;
+			if (*tmp == '/')
+				tmp++;
+		}
+	}
 	return fnmatch(ap->pattern, tmp, FNM_PERIOD) == 0;
 }
 #if ENABLE_FEATURE_FIND_TYPE
@@ -269,7 +281,7 @@ ACTF(paren)
  */
 ACTF(prune)
 {
-	return SKIP;
+	return SKIP + TRUE;
 }
 #endif
 
@@ -284,7 +296,7 @@ ACTF(size)
 static int fileAction(const char *fileName, struct stat *statbuf, void* junk, int depth)
 {
 	int i;
-#ifdef CONFIG_FEATURE_FIND_XDEV
+#if ENABLE_FEATURE_FIND_XDEV
 	if (S_ISDIR(statbuf->st_mode) && xdev_count) {
 		for (i = 0; i < xdev_count; i++) {
 			if (xdev_dev[i] != statbuf->st_dev)
@@ -294,11 +306,11 @@ static int fileAction(const char *fileName, struct stat *statbuf, void* junk, in
 #endif
 	i = exec_actions(actions, fileName, statbuf);
 	/* Had no explicit -print[0] or -exec? then print */
-	if (i && need_print)
+	if ((i & TRUE) && need_print)
 		puts(fileName);
 	/* Cannot return 0: our caller, recursive_action(),
 	 * will perror() and skip dirs (if called on dir) */
-	return i == 0 ? TRUE : i;
+	return (i & SKIP) ? SKIP : TRUE;
 }
 
 
@@ -386,8 +398,8 @@ static action*** parse_params(char **argv)
 	USE_FEATURE_FIND_GROUP( "-group" ,)
 	USE_FEATURE_FIND_DEPTH( "-depth" ,)
 	USE_FEATURE_FIND_PAREN( "("      ,)
-	USE_FEATURE_FIND_SIZE(  "-size" ,)
-	USE_FEATURE_FIND_PRUNE( "-prune"  ,)
+	USE_FEATURE_FIND_SIZE(  "-size"  ,)
+	USE_FEATURE_FIND_PRUNE( "-prune" ,)
 #if ENABLE_DESKTOP
 	                        "-and"   ,
 	                        "-or"    ,
@@ -486,8 +498,7 @@ static action*** parse_params(char **argv)
 		}
 #endif
 #if ENABLE_FEATURE_FIND_PERM
-/* TODO:
- * -perm mode   File's permission bits are exactly mode (octal or symbolic).
+/* -perm mode   File's permission bits are exactly mode (octal or symbolic).
  *              Symbolic modes use mode 0 as a point of departure.
  * -perm -mode  All of the permission bits mode are set for the file.
  * -perm +mode  Any of the permission bits mode are set for the file.
@@ -554,7 +565,7 @@ static action*** parse_params(char **argv)
 			ap->exec_argv = ++argv; /* first arg after -exec */
 			ap->exec_argc = 0;
 			while (1) {
-				if (!*argv) /* did not see ';' util end */
+				if (!*argv) /* did not see ';' until end */
 					bb_error_msg_and_die(bb_msg_requires_arg, arg);
 				if (LONE_CHAR(argv[0], ';'))
 					break;
@@ -593,7 +604,7 @@ static action*** parse_params(char **argv)
 #endif
 #if ENABLE_FEATURE_FIND_DEPTH
 		else if (parm == PARM_depth) {
-			recurse_flags |= action_depthFirst;
+			recurse_flags |= ACTION_DEPTHFIRST;
 		}
 #endif
 #if ENABLE_FEATURE_FIND_PAREN
@@ -652,7 +663,6 @@ USE_FEATURE_FIND_XDEV( "-xdev", )
 		NULL
 	};
 
-	bool dereference = FALSE;
 	char *arg;
 	char **argp;
 	int i, firstopt, status = EXIT_SUCCESS;
@@ -684,7 +694,7 @@ USE_FEATURE_FIND_XDEV( "-xdev", )
 	while ((arg = argp[0])) {
 		i = index_in_str_array(options, arg);
 		if (i == 0) { /* -follow */
-			dereference = TRUE;
+			recurse_flags |= ACTION_FOLLOWLINKS;
 			argp[0] = (char*)"-a";
 		}
 #if ENABLE_FEATURE_FIND_XDEV
@@ -711,7 +721,7 @@ USE_FEATURE_FIND_XDEV( "-xdev", )
 
 	for (i = 1; i < firstopt; i++) {
 		if (!recursive_action(argv[i],
-				recurse_flags|(1<<dereference), /* flags */
+				recurse_flags,  /* flags */
 				fileAction,     /* file action */
 				fileAction,     /* dir action */
 				NULL,           /* user data */
