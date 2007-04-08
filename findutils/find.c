@@ -120,20 +120,34 @@ static int exec_actions(action ***appp, const char *fileName, struct stat *statb
 {
 	int cur_group;
 	int cur_action;
-	int rc = TRUE;
+	int rc = 0;
 	action **app, *ap;
+
+	/* "action group" is a set of actions ANDed together.
+	 * groups are ORed together.
+	 * We simply evaluate each group until we find one in which all actions
+	 * succeed. */
+
+	/* -prune is special: if it is encountered, then we won't
+	 * descend into current directory. It doesn't matter whether
+	 * action group (in which -prune sits) will succeed or not:
+	 * find * -prune -name 'f*' -o -name 'm*' -- prunes every dir
+	 * find * -name 'f*' -o -prune -name 'm*' -- prunes all dirs
+	 *     not starting with 'f' */
+
+	/* We invert TRUE bit (bit 0). Now 1 there means 'failure'.
+	 * and bitwise OR in "rc |= TRUE ^ ap->f()" will:
+	 * (1) make SKIP (-prune) bit stick; and (2) detect 'failure'.
+	 * On return, bit is restored.  */
 
 	cur_group = -1;
 	while ((app = appp[++cur_group])) {
-		/* We invert TRUE bit (bit 0). Now 1 there means 'failure'.
-		 * and bitwise OR in "rc |= TRUE ^ ap->f()" will:
-		 * (1) make SKIP bit stick; and (2) detect 'failure' */
-		rc = 0; /* 'success' so far */
+		rc &= ~TRUE; /* 'success' so far, clear TRUE bit */
 		cur_action = -1;
 		while (1) {
 			ap = app[++cur_action];
 			if (!ap) /* all actions in group were successful */
-				return rc ^ TRUE;
+				return rc ^ TRUE; /* restore TRUE bit */
 			rc |= TRUE ^ ap->f(fileName, statbuf, ap);
 #if ENABLE_FEATURE_FIND_NOT
 			if (ap->invert) rc ^= TRUE;
@@ -142,7 +156,7 @@ static int exec_actions(action ***appp, const char *fileName, struct stat *statb
 				break;
 		}
 	}
-	return rc ^ TRUE; /* straighten things out */
+	return rc ^ TRUE; /* restore TRUE bit */
 }
 
 
