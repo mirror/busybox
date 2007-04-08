@@ -253,7 +253,6 @@ int ps_main(int argc, char **argv)
 	opt_complementary = "o::";
 	getopt32(argc, argv, "o:aAdefl", &opt_o);
 	if (opt_o) {
-		opt_o = llist_rev(opt_o);
 		do {
 			parse_o(opt_o->data);
 			opt_o = opt_o->link;

@@ -131,9 +131,6 @@ int run_parts_main(int argc, char **argv)
 		 */
 		umask(xstrtoul_range(umask_p, 8, 0, 07777));
 	}
-//XXX: FIXME: reverse the list before handing it over to the user.
-//XXX: FIXME: The common case seems to be to use the order given by the user
-	arg_list = llist_rev(arg_list); /* XXX: getopt32 appends them */
 	for (tmp = 1; arg_list; arg_list = arg_list->link, tmp++)
 		G.cmd[tmp] = arg_list->data;
 	/* G.cmd[tmp] = NULL; - G is already zeroed out */

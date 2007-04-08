@@ -14,7 +14,7 @@
 #include "libbb.h"
 
 /* Add data to the start of the linked list.  */
-void llist_add_to(llist_t ** old_head, void *data)
+void llist_add_to(llist_t **old_head, void *data)
 {
 	llist_t *new_head = xmalloc(sizeof(llist_t));
 
@@ -24,7 +24,7 @@ void llist_add_to(llist_t ** old_head, void *data)
 }
 
 /* Add data to the end of the linked list.  */
-void llist_add_to_end(llist_t ** list_head, void *data)
+void llist_add_to_end(llist_t **list_head, void *data)
 {
 	llist_t *new_item = xmalloc(sizeof(llist_t));
 
@@ -43,7 +43,7 @@ void llist_add_to_end(llist_t ** list_head, void *data)
 }
 
 /* Remove first element from the list and return it */
-void *llist_pop(llist_t ** head)
+void *llist_pop(llist_t **head)
 {
 	void *data, *next;
 
@@ -81,7 +81,7 @@ void llist_unlink(llist_t **head, llist_t *elm)
 
 /* Recursively free all elements in the linked list.  If freeit != NULL
  * call it on each datum in the list */
-void llist_free(llist_t * elm, void (*freeit) (void *data))
+void llist_free(llist_t *elm, void (*freeit) (void *data))
 {
 	while (elm) {
 		void *data = llist_pop(&elm);
@@ -91,18 +91,19 @@ void llist_free(llist_t * elm, void (*freeit) (void *data))
 	}
 }
 
-/* Reverse list order. Useful since getopt32 saves option params
- * in reverse order */
-llist_t *llist_rev(llist_t * list)
+#ifdef UNUSED
+/* Reverse list order. */
+llist_t *llist_rev(llist_t *list)
 {
-	llist_t *new = NULL;
+	llist_t *rev = NULL;
 
 	while (list) {
 		llist_t *next = list->link;
 
-		list->link = new;
-		new = list;
+		list->link = rev;
+		rev = list;
 		list = next;
 	}
-	return new;
+	return rev;
 }
+#endif

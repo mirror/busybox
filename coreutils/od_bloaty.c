@@ -1312,7 +1312,6 @@ int od_main(int argc, char **argv)
 	if (opt & OPT_l) decode_format_string("d4");
 	if (opt & OPT_o) decode_format_string("o2");
 	//if (opt & OPT_t)...
-	lst_t = llist_rev(lst_t);
 	while (lst_t) {
 		decode_format_string(lst_t->data);
 		lst_t = lst_t->link;

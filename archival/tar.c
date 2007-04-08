@@ -864,10 +864,9 @@ int tar_main(int argc, char **argv)
 		char *cp = last_char_is(argv[optind], '/');
 		if (cp > argv[optind])
 			*cp = '\0';
-		llist_add_to(&tar_handle->accept, argv[optind]);
+		llist_add_to_end(&tar_handle->accept, argv[optind]);
 		optind++;
 	}
-	tar_handle->accept = llist_rev(tar_handle->accept);
 
 	if (tar_handle->accept || tar_handle->reject)
 		tar_handle->filter = filter_accept_reject_list;

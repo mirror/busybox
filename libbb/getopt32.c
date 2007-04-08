@@ -242,7 +242,7 @@ Special characters:
         llist_t *patterns = NULL;
 
         (this pointer must be initializated to NULL if the list is empty
-        as required by *llist_add_to(llist_t *old_head, char *new_item).)
+        as required by llist_add_to_end(llist_t **old_head, char *new_item).)
 
         opt_complementary = "e::";
 
@@ -487,7 +487,7 @@ getopt32(int argc, char **argv, const char *applet_opts, ...)
 		if (on_off->counter)
 			(*(on_off->counter))++;
 		if (on_off->list_flg) {
-			llist_add_to((llist_t **)(on_off->optarg), optarg);
+			llist_add_to_end((llist_t **)(on_off->optarg), optarg);
 		} else if (on_off->optarg) {
 			*(char **)(on_off->optarg) = optarg;
 		}

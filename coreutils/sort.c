@@ -296,7 +296,6 @@ int sort_main(int argc, char **argv)
 		key_separator = str_t[0];
 	}
 	/* parse sort key */
-	lst_k = llist_rev(lst_k);
 	while (lst_k) {
 		enum {
 			FLAG_allowed_for_k =

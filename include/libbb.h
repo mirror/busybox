@@ -285,14 +285,13 @@ extern void sig_catch(int,void (*)(int));
 //#define sig_uncatch(s) (sig_catch((s), SIG_DFL))
 extern void sig_block(int);
 extern void sig_unblock(int);
-/* UNUSED: extern void sig_blocknone(void);*/
+/* UNUSED: extern void sig_blocknone(void); */
 extern void sig_pause(void);
 
 #define wait_crashed(w) ((w) & 127)
 #define wait_exitcode(w) ((w) >> 8)
 #define wait_stopsig(w) ((w) >> 8)
 #define wait_stopped(w) (((w) & 127) == 127)
-
 
 
 void xsetgid(gid_t gid);
@@ -343,7 +342,7 @@ int xsocket_stream(len_and_sockaddr **lsap);
 /* Create server socket bound to bindaddr:port. bindaddr can be NULL,
  * numeric IP ("N.N.N.N") or numeric IPv6 address,
  * and can have ":PORT" suffix (for IPv6 use "[X:X:...:X]:PORT").
- * If there is no suffix, port argument is used */
+ * Only if there is no suffix, port argument is used */
 int create_and_bind_stream_or_die(const char *bindaddr, int port);
 int create_and_bind_dgram_or_die(const char *bindaddr, int port);
 /* Create client TCP socket connected to peer:port. Peer cannot be NULL.
@@ -412,9 +411,9 @@ extern char *xasprintf(const char *format, ...) __attribute__ ((format (printf, 
 //int LONE_DASH(const char *s) { return s[0] == '-' && !s[1]; }
 //static ATTRIBUTE_ALWAYS_INLINE
 //int NOT_LONE_DASH(const char *s) { return s[0] != '-' || s[1]; }
-#define LONE_DASH(s) ((s)[0] == '-' && !(s)[1])
+#define LONE_DASH(s)     ((s)[0] == '-' && !(s)[1])
 #define NOT_LONE_DASH(s) ((s)[0] != '-' || (s)[1])
-#define LONE_CHAR(s,c) ((s)[0] == (c) && !(s)[1])
+#define LONE_CHAR(s,c)     ((s)[0] == (c) && !(s)[1])
 #define NOT_LONE_CHAR(s,c) ((s)[0] != (c) || (s)[1])
 
 /* dmalloc will redefine these to it's own implementation. It is safe
@@ -456,14 +455,17 @@ extern FILE *fopen_or_warn(const char *filename, const char *mode);
 extern FILE *fopen_or_warn_stdin(const char *filename);
 
 
-extern char *utoa(unsigned n);
-extern char *itoa(int n);
+char *utoa(unsigned n);
+char *itoa(int n);
 /* Returns a pointer past the formatted number, does NOT null-terminate */
-extern char *utoa_to_buf(unsigned n, char *buf, unsigned buflen);
-extern char *itoa_to_buf(int n, char *buf, unsigned buflen);
-extern void smart_ulltoa5(unsigned long long ul, char buf[5]);
-/* Put a string of hex bytes (ala "1b"), return advanced pointer */
-extern char *bin2hex(char *buf, const char *cp, int count);
+char *utoa_to_buf(unsigned n, char *buf, unsigned buflen);
+char *itoa_to_buf(int n, char *buf, unsigned buflen);
+void smart_ulltoa5(unsigned long long ul, char buf[5]);
+//TODO: provide pointer to buf (avoid statics)?
+const char *make_human_readable_str(unsigned long long size,
+		unsigned long block_size, unsigned long display_unit);
+/* Put a string of hex bytes ("1b2e66fe"...), return advanced pointer */
+char *bin2hex(char *buf, const char *cp, int count);
 
 struct suffix_mult {
 	const char *suffix;
@@ -580,16 +582,20 @@ extern uint32_t option_mask32;
 extern uint32_t getopt32(int argc, char **argv, const char *applet_opts, ...);
 
 
-typedef struct llist_s {
+typedef struct llist_t {
 	char *data;
-	struct llist_s *link;
+	struct llist_t *link;
 } llist_t;
-extern void llist_add_to(llist_t **old_head, void *data);
-extern void llist_add_to_end(llist_t **list_head, void *data);
-extern void *llist_pop(llist_t **elm);
-extern void llist_unlink(llist_t **head, llist_t *elm);
-extern void llist_free(llist_t *elm, void (*freeit)(void *data));
-extern llist_t* llist_rev(llist_t *list);
+void llist_add_to(llist_t **old_head, void *data);
+void llist_add_to_end(llist_t **list_head, void *data);
+void *llist_pop(llist_t **elm);
+void llist_unlink(llist_t **head, llist_t *elm);
+void llist_free(llist_t *elm, void (*freeit)(void *data));
+llist_t *llist_rev(llist_t *list);
+/* BTW, surprisingly, changing API to 
+ *   llist_t *llist_add_to(llist_t *old_head, void *data)
+ * etc does not result in smaller code... */
+
 
 #if ENABLE_FEATURE_PIDFILE
 int write_pidfile(const char *path);
@@ -674,10 +680,6 @@ extern int del_loop(const char *device);
 extern int set_loop(char **device, const char *file, unsigned long long offset);
 
 
-//TODO: provide pointer to buf (avoid statics)?
-const char *make_human_readable_str(unsigned long long size,
-		unsigned long block_size, unsigned long display_unit);
-
 //TODO: pass buf pointer or return allocated buf (avoid statics)?
 char *bb_askpass(int timeout, const char * prompt);
 int bb_ask_confirmation(void);
@@ -725,14 +727,14 @@ extern void print_login_issue(const char *issue_file, const char *tty);
 extern void print_login_prompt(void);
 
 
-extern int get_terminal_width_height(const int fd, int *width, int *height);
+int get_terminal_width_height(const int fd, int *width, int *height);
 
 char *is_in_ino_dev_hashtable(const struct stat *statbuf);
 void add_to_ino_dev_hashtable(const struct stat *statbuf, const char *name);
 void reset_ino_dev_hashtable(void);
 #ifdef __GLIBC__
 /* At least glibc has horrendously large inline for this, so wrap it */
-extern unsigned long long bb_makedev(unsigned int major, unsigned int minor);
+unsigned long long bb_makedev(unsigned int major, unsigned int minor);
 #undef makedev
 #define makedev(a,b) bb_makedev(a,b)
 #endif
@@ -745,7 +747,7 @@ extern unsigned long long bb_makedev(unsigned int major, unsigned int minor);
 #else
 #define MAX_HISTORY 0
 #endif
-struct line_input_t {
+typedef struct line_input_t {
 	int flags;
 	const char *path_lookup;
 #if MAX_HISTORY
@@ -754,7 +756,7 @@ struct line_input_t {
 	USE_FEATURE_EDITING_SAVEHISTORY(const char *hist_file;)
 	char *history[MAX_HISTORY + 1];
 #endif
-};
+} line_input_t;
 enum {
 	DO_HISTORY = 1 * (MAX_HISTORY > 0),
 	SAVE_HISTORY = 2 * (MAX_HISTORY > 0) * ENABLE_FEATURE_EDITING_SAVEHISTORY,
@@ -764,7 +766,6 @@ enum {
 	WITH_PATH_LOOKUP = 0x20,
 	FOR_SHELL = DO_HISTORY | SAVE_HISTORY | TAB_COMPLETION | USERNAME_COMPLETION,
 };
-typedef struct line_input_t line_input_t;
 line_input_t *new_line_input_t(int flags);
 int read_line_input(const char* prompt, char* command, int maxsize, line_input_t *state);
 #else
@@ -798,7 +799,7 @@ typedef struct {
 	/* sizeof(task_struct.comm) in /usr/include/linux/sched.h */
 	char state[4];
 	char comm[COMM_LEN];
-//	user/group? - use passwd/group parsing functions
+	/* user/group? - use passwd/group parsing functions */
 } procps_status_t;
 enum {
 	PSSCAN_PID      = 1 << 0,
@@ -902,17 +903,21 @@ extern const char bb_dev_null[];
 extern const int const_int_0;
 extern const int const_int_1;
 
+
 #ifndef BUFSIZ
 #define BUFSIZ 4096
 #endif
+// TODO: provide hard guarantees on minimum size of bb_common_bufsiz1
 extern char bb_common_bufsiz1[BUFSIZ+1];
 /* This struct is deliberately not defined. */
 /* See docs/keep_data_small.txt */
 struct globals;
-/* Magic prevents this from going into rodata */
-/* If you want to assign a value, use PTR_TO_GLOBALS = xxx */
+/* '*const' ptr makes gcc optimize code much better.
+ * Magic prevents ptr_to_globals from going into rodata
+ * If you want to assign a value, use PTR_TO_GLOBALS = xxx */
 extern struct globals *const ptr_to_globals;
 #define PTR_TO_GLOBALS (*(struct globals**)&ptr_to_globals)
+
 
 /* You can change LIBBB_DEFAULT_LOGIN_SHELL, but don't use it,
  * use bb_default_login_shell and following defines.

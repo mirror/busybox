@@ -159,7 +159,7 @@ int wget_main(int argc, char **argv)
 	if (headers_llist) {
 		int size = 1;
 		char *cp;
-		llist_t *ll = headers_llist = llist_rev(headers_llist);
+		llist_t *ll = headers_llist;
 		while (ll) {
 			size += strlen(ll->data) + 2;
 			ll = ll->link;

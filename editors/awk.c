@@ -2707,7 +2707,6 @@ int awk_main(int argc, char **argv)
 	argv += optind;
 	argc -= optind;
 	if (opt & 0x1) setvar_s(V[FS], opt_F); // -F
-	opt_v = llist_rev(opt_v);
 	while (opt_v) { /* -v */
 		if (!is_assignment(llist_pop(&opt_v)))
 			bb_show_usage();
