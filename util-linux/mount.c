@@ -891,7 +891,7 @@ static int nfsmount(struct mntent *mp, int vfsflags, char *filteropts)
 	for (opt = strtok(filteropts, ","); opt; opt = strtok(NULL, ",")) {
 		char *opteq = strchr(opt, '=');
 		if (opteq) {
-			const char *const options[] = {
+			static const char *const options[] = {
 				/* 0 */ "rsize",
 				/* 1 */ "wsize",
 				/* 2 */ "timeo",
@@ -996,7 +996,7 @@ static int nfsmount(struct mntent *mp, int vfsflags, char *filteropts)
 			}
 		}
 		else {
-			const char *const options[] = {
+			static const char *const options[] = {
 				"bg",
 				"fg",
 				"soft",

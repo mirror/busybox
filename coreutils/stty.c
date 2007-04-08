@@ -388,7 +388,7 @@ static const char *device_name = bb_msg_standard_input;
 
 /* Return a string that is the printable representation of character CH */
 /* Adapted from 'cat' by Torbjorn Granlund */
-static const char *visible(unsigned int ch)
+static const char *visible(unsigned ch)
 {
 	char *bpout = G.buf;
 
@@ -561,18 +561,18 @@ enum {
 
 static int find_param(const char * const name)
 {
-	const char * const params[] = {
+	static const char * const params[] = {
 		"line",
 		"rows",
 		"cols",
 		"columns",
-		"size",
-		"speed",
+		"size",  /* 4 */
+		"speed", /* 5 */
 		"ispeed",
 		"ospeed",
 		NULL
 	};
-	smalluint i = index_in_str_array(params, name) + 1;
+	int i = index_in_str_array(params, name) + 1;
 	if (i == 0)
 		return 0;
 	if (!(i == 4 || i == 5))
@@ -584,7 +584,7 @@ static int find_param(const char * const name)
 static int recover_mode(const char *arg, struct termios *mode)
 {
 	int i, n;
-	unsigned int chr;
+	unsigned chr;
 	unsigned long iflag, oflag, cflag, lflag;
 
 	/* Scan into temporaries since it is too much trouble to figure out
@@ -612,7 +612,7 @@ static int recover_mode(const char *arg, struct termios *mode)
 }
 
 static void display_recoverable(const struct termios *mode,
-								const int ATTRIBUTE_UNUSED dummy)
+				int ATTRIBUTE_UNUSED dummy)
 {
 	int i;
 	printf("%lx:%lx:%lx:%lx",
@@ -975,7 +975,7 @@ int stty_main(int argc, char **argv)
 					goto invalid_argument;
 				}
 			}
-end_option:
+ end_option:
 			continue;
 		}
 
@@ -1031,7 +1031,7 @@ end_option:
 		default:
 			if (recover_mode(arg, &mode) == 1) break;
 			if (tty_value_to_baud(xatou(arg)) != (speed_t) -1) break;
-invalid_argument:
+ invalid_argument:
 			bb_error_msg_and_die("invalid argument '%s'", arg);
 		}
 		stty_state &= ~STTY_noargs;

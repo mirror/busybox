@@ -68,7 +68,7 @@ static char const *human_time(time_t t)
 static char const *human_fstype(long f_type)
 {
 	int i;
-	const struct types {
+	static const struct types {
 		long type;
 		const char * const fs;
 	} humantypes[] = {
@@ -109,13 +109,13 @@ static char const *human_fstype(long f_type)
 		{ 0x62656572, "sysfs" },
 		{ 0, "UNKNOWN" }
 	};
-	for (i=0; humantypes[i].type; ++i)
+	for (i = 0; humantypes[i].type; ++i)
 		if (humantypes[i].type == f_type)
 			break;
 	return humantypes[i].fs;
 }
 
-#ifdef CONFIG_FEATURE_STAT_FORMAT
+#if ENABLE_FEATURE_STAT_FORMAT
 /* print statfs info */
 static void print_statfs(char *pformat, const size_t buf_len, const char m,
 			 const char * const filename, void const *data
@@ -354,9 +354,9 @@ static bool do_statfs(char const *filename, char const *format)
 		return 0;
 	}
 
-#ifdef CONFIG_FEATURE_STAT_FORMAT
+#if ENABLE_FEATURE_STAT_FORMAT
 	if (format == NULL)
-#ifndef ENABLE_SELINUX
+#if !ENABLE_SELINUX
 		format = (option_mask32 & OPT_TERSE
 			? "%n %i %l %t %s %b %f %a %c %d\n"
 			: "  File: \"%n\"\n"
@@ -460,9 +460,9 @@ static bool do_stat(char const *filename, char const *format)
 		return 0;
 	}
 
-#ifdef CONFIG_FEATURE_STAT_FORMAT
+#if ENABLE_FEATURE_STAT_FORMAT
 	if (format == NULL) {
-#ifndef ENABLE_SELINUX
+#if !ENABLE_SELINUX
 		if (option_mask32 & OPT_TERSE) {
 			format = "%n %s %b %f %u %g %D %i %h %t %T %X %Y %Z %o";
 		} else {

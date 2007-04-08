@@ -75,7 +75,7 @@ int dd_main(int argc, char **argv)
 		trunc_flag   = 1 << 2,
 		twobufs_flag = 1 << 3,
 	};
-	const char * const keywords[] = {
+	static const char * const keywords[] = {
 		"bs=", "count=", "seek=", "skip=", "if=", "of=",
 #if ENABLE_FEATURE_DD_IBS_OBS
 		"ibs=", "obs=", "conv=", "notrunc", "sync", "noerror",

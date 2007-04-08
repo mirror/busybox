@@ -154,7 +154,6 @@ int ipcrm_main(int argc, char **argv)
 
 			if (id < 0) {
 				const char *errmsg;
-				const char *const what = "key";
 
 				error++;
 				switch (errno) {
@@ -171,7 +170,7 @@ int ipcrm_main(int argc, char **argv)
 					errmsg = "unknown error in";
 					break;
 				}
-				bb_error_msg("%s %s (%s)",  errmsg, what, optarg);
+				bb_error_msg("%s %s (%s)", errmsg, "key", optarg);
 				continue;
 			}
 		} else {

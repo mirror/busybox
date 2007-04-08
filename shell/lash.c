@@ -716,11 +716,12 @@ static char * strsep_space(char *string, int * ix)
 
 static int expand_arguments(char *command)
 {
+	static const char out_of_space[] = "out of space during expansion";
+
 	int total_length = 0, length, i, retval, ix = 0;
 	expand_t expand_result;
 	char *tmpcmd, *cmd, *cmd_copy;
 	char *src, *dst, *var;
-	const char * const out_of_space = "out of space during expansion";
 	int flags = GLOB_NOCHECK
 #ifdef GLOB_BRACE
 		| GLOB_BRACE

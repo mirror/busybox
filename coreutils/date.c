@@ -69,15 +69,15 @@ int date_main(int argc, char **argv)
 		if (!isofmt_arg) {
 			ifmt = 0; /* default is date */
 		} else {
-			const char * const isoformats[] =
-				{"date", "hours", "minutes", "seconds"};
+			static const char * const isoformats[] =
+				{ "date", "hours", "minutes", "seconds" };
 
 			for (ifmt = 0; ifmt < 4; ifmt++)
-				if (!strcmp(isofmt_arg, isoformats[ifmt])) {
-					break;
-				}
-			if (ifmt == 4) /* parse error */
-				bb_show_usage();
+				if (!strcmp(isofmt_arg, isoformats[ifmt]))
+					goto found;
+			/* parse error */
+			bb_show_usage();
+ found: ;
 		}
 	}
 
@@ -207,7 +207,7 @@ int date_main(int argc, char **argv)
 					date_fmt[i++] = '%';
 					date_fmt[i++] = 'S';
 				}
-format_utc:
+ format_utc:
 				date_fmt[i++] = '%';
 				date_fmt[i] = (opt & DATE_OPT_UTC) ? 'Z' : 'z';
 			}

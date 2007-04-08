@@ -84,7 +84,7 @@ static unsigned int expand(const char *arg, char *buffer)
 	unsigned i; /* XXX: FIXME: use unsigned char? */
 	unsigned char ac;
 #define CLO ":]"
-	const char * const classes[] = {
+	static const char * const classes[] = {
 		"alpha"CLO, "alnum"CLO, "digit"CLO, "lower"CLO, "upper"CLO, "space"CLO,
 		"blank"CLO, "punct"CLO, "cntrl"CLO, NULL
 	};

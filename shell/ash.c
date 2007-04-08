@@ -6967,6 +6967,11 @@ tokname(int tok)
 {
 	static char buf[16];
 
+//try this:
+//if (tok < TSEMI) return tokname_array[tok] + 1;
+//sprintf(buf, "\"%s\"", tokname_array[tok] + 1);
+//return buf;
+
 	if (tok >= TSEMI)
 		buf[0] = '"';
 	sprintf(buf + (tok >= TSEMI), "%s%c",
@@ -6978,15 +6983,15 @@ tokname(int tok)
 static int
 pstrcmp(const void *a, const void *b)
 {
-	return strcmp((const char *) a, (*(const char *const *) b) + 1);
+	return strcmp((char*) a, (*(char**) b) + 1);
 }
 
 static const char *const *
 findkwd(const char *s)
 {
 	return bsearch(s, tokname_array + KWDOFFSET,
-			(sizeof(tokname_array) / sizeof(const char *)) - KWDOFFSET,
-			sizeof(const char *), pstrcmp);
+			(sizeof(tokname_array) / sizeof(char *)) - KWDOFFSET,
+			sizeof(char *), pstrcmp);
 }
 
 /*

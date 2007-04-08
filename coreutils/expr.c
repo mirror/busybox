@@ -278,7 +278,7 @@ static VALUE *eval7(void)
 static VALUE *eval6(void)
 {
 	VALUE *l, *r, *v = NULL /* silence gcc */, *i1, *i2;
-	const char * const keywords[] = {
+	static const char * const keywords[] = {
 		"quote", "length", "match", "index", "substr", NULL
 	};
 
