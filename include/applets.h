@@ -15,40 +15,49 @@
 #undef APPLET_ODDNAME
 #undef APPLET_NOUSAGE
 
+/*
+name  - applet name as it is typed on command line
+name2 - applet name, converted to C (ether-wake: name2 = ether_wake)
+main  - <applet>_main part (e.g. for bzcat: main = bunzip2)
+l     - location ([/usr]/[s]bin)
+s     - suid type:
+        _BB_SUID_ALWAYS: will complain if busybox isn't suid
+        and is run by non-root (applet_main() will not be called at all)
+        _BB_SUID_NEVER: will drop suid prior to applet_main()
+        _BB_SUID_MAYBE: neither of the above
+*/
+
 #if defined(PROTOTYPES)
-# define APPLET(a,b,c) extern int a##_main(int argc, char **argv);
-# define APPLET_NOUSAGE(a,b,c,d) extern int b##_main(int argc, char **argv);
-# define APPLET_ODDNAME(a,b,c,d,e) extern int b##_main(int argc, char **argv);
-#elif defined(MAKE_USAGE)
-# ifdef CONFIG_FEATURE_VERBOSE_USAGE
-#  define APPLET(a,b,c) a##_trivial_usage "\n\n" a##_full_usage "\0"
-#  define APPLET_NOUSAGE(a,b,c,d) "\b\0"
-#  define APPLET_ODDNAME(a,b,c,d,e) e##_trivial_usage "\n\n" e##_full_usage "\0"
-# else
-#  define APPLET(a,b,c) a##_trivial_usage "\0"
-#  define APPLET_NOUSAGE(a,b,c,d) "\b\0"
-#  define APPLET_ODDNAME(a,b,c,d,e) e##_trivial_usage "\0"
-# endif
+# define APPLET(name,l,s)                    int name##_main(int argc, char **argv);
+# define APPLET_NOUSAGE(name,main,l,s)       int main##_main(int argc, char **argv);
+# define APPLET_ODDNAME(name,main,l,s,name2) int main##_main(int argc, char **argv);
+
+#elif defined(MAKE_USAGE) && ENABLE_FEATURE_VERBOSE_USAGE
+# define APPLET(name,l,s)                    name##_trivial_usage "\n\n" name##_full_usage "\0"
+# define APPLET_NOUSAGE(name,main,l,s)       "\b\0"
+# define APPLET_ODDNAME(name,main,l,s,name2) name2##_trivial_usage "\n\n" name2##_full_usage "\0"
+
+#elif defined(MAKE_USAGE) && !ENABLE_FEATURE_VERBOSE_USAGE
+# define APPLET(name,l,s)                    name##_trivial_usage "\0"
+# define APPLET_NOUSAGE(name,main,l,s)       "\b\0"
+# define APPLET_ODDNAME(name,main,l,s,name2) name2##_trivial_usage "\0"
+
 #elif defined(MAKE_LINKS)
-# define APPLET(a,b,c) LINK b a
-# define APPLET_NOUSAGE(a,b,c,d) LINK c a
-# define APPLET_ODDNAME(a,b,c,d,e) LINK c a
+# define APPLET(name,l,c)                    LINK l name
+# define APPLET_NOUSAGE(name,main,l,s)       LINK l name
+# define APPLET_ODDNAME(name,main,l,s,name2) LINK l name
+
 #else
-  const struct BB_applet applets[] = {
-# define APPLET(a,b,c) {#a,a##_main,b,c},
-# define APPLET_NOUSAGE(a,b,c,d) {#a,b##_main,c,d},
-# define APPLET_ODDNAME(a,b,c,d,e) {#a,b##_main,c,d},
+  const struct BB_applet applets[] = { /*    name,main,location,need_suid */
+# define APPLET(name,l,s)                    {#name,name##_main,l,s},
+# define APPLET_NOUSAGE(name,main,l,s)       {#name,main##_main,l,s},
+# define APPLET_ODDNAME(name,main,l,s,name2) {#name,main##_main,l,s},
 #endif
 
-#ifdef CONFIG_INSTALL_NO_USR
+#if ENABLE_INSTALL_NO_USR
 # define _BB_DIR_USR_BIN _BB_DIR_BIN
 # define _BB_DIR_USR_SBIN _BB_DIR_SBIN
 #endif
-
-// _BB_SUID_ALWAYS: will complain if busybox isn't suid
-// and is run by non-root (applet_main() will not be called at all)
-// _BB_SUID_NEVER: will drop suid prior to applet_main()
-// _BB_SUID_MAYBE: neither of the above
 
 USE_TEST(APPLET_NOUSAGE([, test, _BB_DIR_USR_BIN, _BB_SUID_NEVER))
 USE_TEST(APPLET_NOUSAGE([[, test, _BB_DIR_USR_BIN, _BB_SUID_NEVER))
