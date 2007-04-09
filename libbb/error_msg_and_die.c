@@ -7,18 +7,19 @@
  * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  */
 
-#include <stdio.h>
-#include <errno.h>
-#include <string.h>
-#include <stdlib.h>
 #include "libbb.h"
 
 int die_sleep;
+jmp_buf die_jmp;
 
 void sleep_and_die(void)
 {
-	if (die_sleep)
+	if (die_sleep) {
+		/* Special case: don't die, but jump */
+		if (die_sleep < 0)
+			longjmp(die_jmp, xfunc_error_retval);
 		sleep(die_sleep);
+	}
 	exit(xfunc_error_retval);
 }
 

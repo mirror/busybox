@@ -17,21 +17,16 @@
  * Also, exiting on a failure was a bug.  All args should be processed.
  */
 
-#include <stdio.h>
-#include <sys/types.h>
-#include <fcntl.h>
-#include <utime.h>
-#include <errno.h>
-#include <unistd.h>
-#include <stdlib.h>
 #include "busybox.h"
+
+/* This is a NOFORK applet. Be very careful! */
 
 int touch_main(int argc, char **argv);
 int touch_main(int argc, char **argv)
 {
 	int fd;
 	int status = EXIT_SUCCESS;
-	bool flags = (getopt32(argc, argv, "c") & 1);
+	int flags = getopt32(argc, argv, "c");
 
 	argv += optind;
 
@@ -41,7 +36,7 @@ int touch_main(int argc, char **argv)
 
 	do {
 		if (utime(*argv, NULL)) {
-			if (errno == ENOENT) {	/* no such file*/
+			if (errno == ENOENT) {	/* no such file */
 				if (flags) {	/* Creation is disabled, so ignore. */
 					continue;
 				}

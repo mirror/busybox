@@ -457,6 +457,7 @@ getopt32(int argc, char **argv, const char *applet_opts, ...)
 
 	/* In case getopt32 was already called, reinit some state */
 	optind = 1;
+	/* optarg = NULL; opterr = 0; optopt = 0; ?? */
 
 	/* Note: just "getopt() <= 0" will not work good for
 	 * "fake" short options, like this one:

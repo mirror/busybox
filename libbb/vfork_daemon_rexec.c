@@ -115,11 +115,27 @@ int spawn_and_wait(char **argv)
 			char **pp = argv;
 			while (*++pp)
 				argc++;
-#ifdef BB_NOMMU
-			return a->main(argc, argv);
-#else
+#ifndef BB_NOMMU
 			if (a->nofork)
-				return a->main(argc, argv);
+#endif
+			{
+				int old_sleep = die_sleep;
+				die_sleep = -1; /* special flag */
+				/* sleep_and_die() checks for it */
+				rc = setjmp(die_jmp);
+				if (!rc) {
+					const struct BB_applet *old_a = current_applet;
+					current_applet = a;
+					applet_name = a->name;
+// what else should we save/restore?
+					rc = a->main(argc, argv);
+					current_applet = old_a;
+					applet_name = old_a->name;					
+				}
+				die_sleep = old_sleep;
+				return rc;
+			}
+#ifndef BB_NOMMU	/* MMU only */
 			/* a->noexec is true */
 			rc = fork();
 			if (rc)
@@ -134,6 +150,7 @@ int spawn_and_wait(char **argv)
  w:
 	return wait4pid(rc);
 }
+
 
 #if 0 //ndef BB_NOMMU
 // Die with an error message if we can't daemonize.

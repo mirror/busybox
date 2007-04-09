@@ -462,7 +462,7 @@ void bb_show_usage(void)
 					applet_name, usage_string);
 	}
 
-	exit(xfunc_error_retval);
+	sleep_and_die();
 }
 
 

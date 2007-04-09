@@ -30,7 +30,7 @@ static FILE *cmp_xfopen_input(const char * const filename)
 	fp = fopen_or_warn_stdin(filename);
 	if (fp)
 		return fp;
-	exit(xfunc_error_retval);	/* We already output an error message. */
+	sleep_and_die();	/* We already output an error message. */
 }
 
 static const char fmt_eof[] = "cmp: EOF on %s\n";

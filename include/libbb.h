@@ -620,6 +620,7 @@ extern const char *msg_eol;
 extern smallint logmode;
 extern int die_sleep;
 extern int xfunc_error_retval;
+extern jmp_buf die_jmp;
 extern void sleep_and_die(void) ATTRIBUTE_NORETURN;
 extern void bb_show_usage(void) ATTRIBUTE_NORETURN ATTRIBUTE_EXTERNALLY_VISIBLE;
 extern void bb_error_msg(const char *s, ...) __attribute__ ((format (printf, 1, 2)));
