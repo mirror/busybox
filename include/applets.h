@@ -11,10 +11,6 @@
  * file result in the listing remaining in ascii order. You have been warned.
  */
 
-#undef APPLET
-#undef APPLET_ODDNAME
-#undef APPLET_NOUSAGE
-
 /*
 name  - applet name as it is typed on command line
 name2 - applet name, converted to C (ether-wake: name2 = ether_wake)
@@ -352,3 +348,7 @@ USE_ZCIP(APPLET(zcip, _BB_DIR_SBIN, _BB_SUID_NEVER))
 };
 
 #endif
+
+#undef APPLET
+#undef APPLET_NOUSAGE
+#undef APPLET_ODDNAME

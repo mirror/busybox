@@ -6,7 +6,6 @@
 
 obj-y:=
 obj-y	+= applets.o
-obj-y	+= busybox.o
 
 # Generated file needs additional love
 

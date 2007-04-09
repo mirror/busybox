@@ -663,6 +663,7 @@ const struct hwtype *get_hwntype(int type);
 
 #ifndef BUILD_INDIVIDUAL
 extern struct BB_applet *find_applet_by_name(const char *name);
+/* Returns only if applet is not found. */
 extern void run_applet_by_name(const char *name, int argc, char **argv);
 #endif
 

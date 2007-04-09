@@ -15,11 +15,6 @@
 #include <assert.h>
 #include "busybox.h"
 
-#define PROTOTYPES
-#include "applets.h"
-#undef PROTOTYPES
-
-
 /* Apparently uclibc defines __GLIBC__ (compat trick?). Oh well. */
 #if ENABLE_STATIC && defined(__GLIBC__) && !defined(__UCLIBC__)
 #warning Static linking against glibc produces buggy executables
@@ -30,7 +25,14 @@
 #warning from top-level Makefile and remove this warning.
 #endif
 
+
+/* Declare <applet>_main() */
+#define PROTOTYPES
+#include "applets.h"
+#undef PROTOTYPES
+
 #if ENABLE_SHOW_USAGE && !ENABLE_FEATURE_COMPRESS_USAGE
+/* Define usage_messages[] */
 static const char usage_messages[] =
 #define MAKE_USAGE
 #include "usage.h"
@@ -39,24 +41,25 @@ static const char usage_messages[] =
 #undef MAKE_USAGE
 #else
 #define usage_messages 0
-#endif /* ENABLE_SHOW_USAGE */
+#endif /* SHOW_USAGE */
 
-#undef APPLET
-#undef APPLET_NOUSAGE
-#undef PROTOTYPES
+/* Define struct BB_applet applets[] */
 #include "applets.h"
-
-static struct BB_applet *applet_using;
-
 /* The -1 arises because of the {0,NULL,0,-1} entry. */
-const unsigned short NUM_APPLETS = (sizeof(applets) / sizeof(struct BB_applet) - 1);
+const unsigned short NUM_APPLETS = sizeof(applets) / sizeof(struct BB_applet) - 1;
+
+
+static struct BB_applet *current_applet;
+const char *applet_name ATTRIBUTE_EXTERNALLY_VISIBLE;
+#ifdef BB_NOMMU
+smallint re_execed;
+#endif
+
 
 
 #if ENABLE_FEATURE_SUID_CONFIG
 
-#include <ctype.h>
-
-/* applets [] is const, so we have to define this "override" structure */
+/* applets[] is const, so we have to define this "override" structure */
 static struct BB_suid_config
 {
 	struct BB_applet *m_applet;
@@ -68,7 +71,7 @@ static struct BB_suid_config
 	struct BB_suid_config *m_next;
 } *suid_config;
 
-static int suid_cfg_readable;
+static smallint suid_cfg_readable;
 
 /* check if u is member of group g */
 static int ingroup(uid_t u, gid_t g)
@@ -101,15 +104,12 @@ static char *get_trimmed_slice(char *s, char *e)
 			break;
 		}
 	}
-	e[1] = 0;
+	e[1] = '\0';
 
 	/* Next, advance past all leading space and return a ptr to the
 	 * first non-space char; possibly the terminating nul. */
 	return skip_whitespace(s);
 }
-
-
-#define parse_error(x)  do { errmsg = x; goto pe_label; } while(0)
 
 /* Don't depend on the tools to combine strings. */
 static const char config_file[] = "/etc/busybox.conf";
@@ -121,11 +121,13 @@ static const char mode_chars[] = "Ssx-\0Ssx-\0Ttx-";
  * necessary below.  Also, we use unsigned short here to save some
  * space even though these are really mode_t values. */
 static const unsigned short mode_mask[] = {
-	/*  SST         sst                 xxx   --- */
+	/*  SST     sst                 xxx         --- */
 	S_ISUID,    S_ISUID|S_IXUSR,    S_IXUSR,    0,	/* user */
 	S_ISGID,    S_ISGID|S_IXGRP,    S_IXGRP,    0,	/* group */
 	0,          S_IXOTH,            S_IXOTH,    0	/* other */
 };
+
+#define parse_error(x)  do { errmsg = x; goto pe_label; } while(0)
 
 static void parse_config_file(void)
 {
@@ -155,7 +157,7 @@ static void parse_config_file(void)
 	sct_head = NULL;
 	section = lc = 0;
 
-	do {
+	while (1) {
 		s = buffer;
 
 		if (!fgets(s, sizeof(buffer), f)) { /* Are we done? */
@@ -234,7 +236,7 @@ static void parse_config_file(void)
 
 			/* Ok, we have an applet name.  Process the rhs if this
 			 * applet is currently built in and ignore it otherwise.
-			 * Note: This can hide config file bugs which only pop
+			 * Note: this can hide config file bugs which only pop
 			 * up when the busybox configuration is changed. */
 			applet = find_applet_by_name(s);
 			if (applet) {
@@ -266,7 +268,7 @@ static void parse_config_file(void)
 
 				s = skip_whitespace(e);
 
-				/* Note: We require whitespace between the mode and the
+				/* Note: we require whitespace between the mode and the
 				 * user/group info. */
 				if ((s == e) || !(e = strchr(s, '.'))) {
 					parse_error("<uid>.<gid>");
@@ -308,7 +310,7 @@ static void parse_config_file(void)
 			parse_error("keyword outside section");
 		}
 
-	} while (1);
+	} /* while (1) */
 
  pe_label:
 	fprintf(stderr, "Parse error in %s, line %d: %s\n",
@@ -322,10 +324,10 @@ static void parse_config_file(void)
 		sct_head = sct;
 	}
 }
-
 #else
 #define parse_config_file() ((void)0)
-#endif /* CONFIG_FEATURE_SUID_CONFIG */
+#endif /* FEATURE_SUID_CONFIG */
+
 
 #if ENABLE_FEATURE_SUID
 static void check_suid(struct BB_applet *applet)
@@ -391,9 +393,8 @@ static void check_suid(struct BB_applet *applet)
 	}
 }
 #else
-#define check_suid(x)
-#endif /* CONFIG_FEATURE_SUID */
-
+#define check_suid(x) ((void)0)
+#endif /* FEATURE_SUID */
 
 
 #if ENABLE_FEATURE_COMPRESS_USAGE
@@ -409,6 +410,7 @@ static const char *unpack_usage_messages(void)
 	if (pipe(input) < 0 || pipe(output) < 0)
 		exit(1);
 
+//TODO: not NOMMU friendly!
 	pid = fork();
 	switch (pid) {
 	case -1: /* error */
@@ -438,10 +440,10 @@ static const char *unpack_usage_messages(void)
 	full_read(output[0], buf, SIZEOF_usage_messages);
 	return buf;
 }
-
 #else
 #define unpack_usage_messages() usage_messages
-#endif /* ENABLE_FEATURE_COMPRESS_USAGE */
+#endif /* FEATURE_COMPRESS_USAGE */
+
 
 void bb_show_usage(void)
 {
@@ -450,18 +452,22 @@ void bb_show_usage(void)
 		const char *usage_string = unpack_usage_messages();
 		int i;
 
-		for (i = applet_using - applets; i > 0;)
-			if (!*usage_string++) --i;
+		i = current_applet - applets;
+		while (i) {
+			while (*usage_string++) continue;
+			i--;
+		}
 
 		format_string = "%s\n\nUsage: %s %s\n\n";
 		if (*usage_string == '\b')
 			format_string = "%s\n\nNo help available.\n\n";
 		fprintf(stderr, format_string, bb_msg_full_version,
-			applet_using->name, usage_string);
+					applet_name, usage_string);
 	}
 
 	exit(xfunc_error_retval);
 }
+
 
 static int applet_name_compare(const void *name, const void *vapplet)
 {
@@ -472,25 +478,168 @@ static int applet_name_compare(const void *name, const void *vapplet)
 
 struct BB_applet *find_applet_by_name(const char *name)
 {
+	/* Do a binary search to find the applet entry given the name. */
 	return bsearch(name, applets, NUM_APPLETS, sizeof(struct BB_applet),
 				applet_name_compare);
 }
 
+
+#if ENABLE_FEATURE_INSTALLER
+/*
+ * directory table
+ *		this should be consistent w/ the enum, busybox.h::Location,
+ *		or else...
+ */
+static const char usr_bin [] = "/usr/bin";
+static const char usr_sbin[] = "/usr/sbin";
+
+static const char *const install_dir[] = {
+	&usr_bin [8], /* "", equivalent to "/" for concat_path_file() */
+	&usr_bin [4], /* "/bin" */
+	&usr_sbin[4], /* "/sbin" */
+	usr_bin,
+	usr_sbin
+};
+
+/* create (sym)links for each applet */
+static void install_links(const char *busybox, int use_symbolic_links)
+{
+	int (*lf)(const char *, const char *) = link;
+	char *fpc;
+	int i;
+	int rc;
+
+	if (use_symbolic_links)
+		lf = symlink;
+
+	for (i = 0; applets[i].name != NULL; i++) {
+		fpc = concat_path_file(
+				install_dir[applets[i].location],
+				applets[i].name);
+		rc = lf(busybox, fpc);
+		if (rc != 0 && errno != EEXIST) {
+			bb_perror_msg("%s", fpc);
+		}
+		free(fpc);
+	}
+}
+#else
+#define install_links(x,y) ((void)0)
+#endif /* FEATURE_INSTALLER */
+
+
+/* If we were called as "busybox..." */
+static int busybox_main(int argc, char **argv)
+{
+	if (ENABLE_FEATURE_INSTALLER && argc > 1 && !strcmp(argv[1], "--install")) {
+		int use_symbolic_links = 0;
+		char *busybox;
+
+		/* to use symlinks, or not to use symlinks... */
+		if (argc > 2)
+			if (strcmp(argv[2], "-s") == 0)
+				use_symbolic_links = 1;
+
+		/* link */
+		busybox = xmalloc_readlink_or_warn("/proc/self/exe");
+		if (!busybox)
+			return 1;
+		install_links(busybox, use_symbolic_links);
+		if (ENABLE_FEATURE_CLEAN_UP)
+			free(busybox);
+		return 0;
+	}
+
+	/* Deal with --help. Also print help when called with no arguments */
+
+	if (argc == 1 || !strcmp(argv[1], "--help") ) {
+		if (argc > 2) {
+			/* set name for proper "<name>: applet not found" */
+			applet_name = argv[2];
+			run_applet_by_name(applet_name, 2, argv);
+		} else {
+			const struct BB_applet *a;
+			int col, output_width;
+
+			output_width = 80 - sizeof("start-stop-daemon, ") - 8;
+			if (ENABLE_FEATURE_AUTOWIDTH) {
+				/* Obtain the terminal width.  */
+				get_terminal_width_height(0, &output_width, NULL);
+				/* leading tab and room to wrap */
+				output_width -= sizeof("start-stop-daemon, ") + 8;
+			}
+
+			printf("%s\n"
+			       "Copyright (C) 1998-2006  Erik Andersen, Rob Landley, and others.\n"
+			       "Licensed under GPLv2.  See source distribution for full notice.\n"
+			       "\n"
+			       "Usage: busybox [function] [arguments]...\n"
+			       "   or: [function] [arguments]...\n"
+			       "\n"
+			       "\tBusyBox is a multi-call binary that combines many common Unix\n"
+			       "\tutilities into a single executable.  Most people will create a\n"
+			       "\tlink to busybox for each function they wish to use and BusyBox\n"
+			       "\twill act like whatever it was invoked as!\n"
+			       "\nCurrently defined functions:\n", bb_msg_full_version);
+			col = 0;
+			a = applets;
+			while (a->name) {
+				col += printf("%s%s", (col ? ", " : "\t"), a->name);
+				a++;
+				if (col > output_width && a->name) {
+					puts(",");
+					col = 0;
+				}
+			}
+			puts("\n");
+			return 0;
+		}
+	} else run_applet_by_name(argv[1], argc - 1, argv + 1);
+
+	bb_error_msg_and_die("applet not found");
+}
+
 void run_applet_by_name(const char *name, int argc, char **argv)
 {
-	if (ENABLE_FEATURE_SUID_CONFIG)
-		parse_config_file();
-
-	/* Do a binary search to find the applet entry given the name. */
-	applet_using = find_applet_by_name(name);
-	if (applet_using) {
-		applet_name = applet_using->name;
+	current_applet = find_applet_by_name(name);
+	if (current_applet) {
+		applet_name = current_applet->name;
 		if (argc == 2 && !strcmp(argv[1], "--help"))
 			bb_show_usage();
 		if (ENABLE_FEATURE_SUID)
-			check_suid(applet_using);
-		exit(applet_using->main(argc, argv));
+			check_suid(current_applet);
+		exit(current_applet->main(argc, argv));
 	}
 	if (!strncmp(name, "busybox", 7))
 		exit(busybox_main(argc, argv));
+}
+
+
+int main(int argc, char **argv)
+{
+	const char *s;
+
+	applet_name = argv[0];
+#ifdef BB_NOMMU
+	/* NOMMU re-exec trick sets high-order bit in first byte of name */
+	if (applet_name[0] & 0x80) {
+		re_execed = 1;
+		applet_name[0] &= 0x7f;
+	}
+#endif
+	if (applet_name[0] == '-')
+		applet_name++;
+	s = strrchr(applet_name, '/');
+	if (s)
+		applet_name = s + 1;
+
+	if (ENABLE_FEATURE_SUID_CONFIG)
+		parse_config_file();
+
+	/* Set locale for everybody except 'init' */
+	if (ENABLE_LOCALE_SUPPORT && getpid() != 1)
+		setlocale(LC_ALL, "");
+
+	run_applet_by_name(applet_name, argc, argv);
+	bb_error_msg_and_die("applet not found");
 }
