@@ -61,11 +61,43 @@ pid_t spawn(char **argv)
 pid_t xspawn(char **argv)
 {
 	pid_t pid = spawn(argv);
-	if (pid < 0) bb_perror_msg_and_die("%s", *argv);
+	if (pid < 0)
+		bb_perror_msg_and_die("%s", *argv);
 	return pid;
 }
 
+// Wait for the specified child PID to exit, returning child's error return.
+int wait4pid(int pid)
+{
+	int status;
 
+	if (pid <= 0) {
+		/*errno = ECHILD; -- wrong. we expect errno to be set from failed exec */
+		return -1;
+	}
+	if (waitpid(pid, &status, 0) == -1)
+		return -1;
+	if (WIFEXITED(status))
+		return WEXITSTATUS(status);
+	if (WIFSIGNALED(status))
+		return WTERMSIG(status) + 10000;
+	return 0;
+}
+
+int wait_nohang(int *wstat)
+{
+	return waitpid(-1, wstat, WNOHANG);
+}
+
+int wait_pid(int *wstat, int pid)
+{
+	int r;
+
+	do
+		r = waitpid(pid, wstat, 0);
+	while ((r == -1) && (errno == EINTR));
+	return r;
+}
 
 #if 0 //ndef BB_NOMMU
 // Die with an error message if we can't daemonize.

@@ -193,39 +193,6 @@ void xfflush_stdout(void)
 	}
 }
 
-// Wait for the specified child PID to exit, returning child's error return.
-int wait4pid(int pid)
-{
-	int status;
-
-	if (pid <= 0) {
-		errno = ECHILD;
-		return -1;
-	}
-	if (waitpid(pid, &status, 0) == -1)
-		return -1;
-	if (WIFEXITED(status))
-		return WEXITSTATUS(status);
-	if (WIFSIGNALED(status))
-		return WTERMSIG(status) + 10000;
-	return 0;
-}
-
-int wait_nohang(int *wstat)
-{
-	return waitpid(-1, wstat, WNOHANG);
-}
-
-int wait_pid(int *wstat, int pid)
-{
-	int r;
-
-	do
-		r = waitpid(pid, wstat, 0);
-	while ((r == -1) && (errno == EINTR));
-	return r;
-}
-
 void sig_block(int sig)
 {
 	sigset_t ss;
