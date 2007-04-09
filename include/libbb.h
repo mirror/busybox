@@ -269,17 +269,6 @@ char *xrealloc_getcwd_or_warn(char *cwd);
 char *xmalloc_readlink_or_warn(const char *path);
 char *xmalloc_realpath(const char *path);
 
-/* Unlike waitpid, waits ONLY for one process,
- * It's safe to pass negative 'pids' from failed [v]fork -
- * wait4pid will return -1 and ECHILD in errno.
- * IOW: rc = wait4pid(spawn(argv));
- *      if (rc < 0) bb_perror_msg("%s", argv[0]);
- *      if (rc > 0) bb_error_msg("exit code: %d", rc);
- */
-extern int wait4pid(int pid);
-extern int wait_pid(int *wstat, int pid);
-extern int wait_nohang(int *wstat);
-//TODO: signal(sid, f) is the same? then why?
 extern void sig_catch(int,void (*)(int));
 //#define sig_ignore(s) (sig_catch((s), SIG_IGN))
 //#define sig_uncatch(s) (sig_catch((s), SIG_DFL))
@@ -288,10 +277,6 @@ extern void sig_unblock(int);
 /* UNUSED: extern void sig_blocknone(void); */
 extern void sig_pause(void);
 
-#define wait_crashed(w) ((w) & 127)
-#define wait_exitcode(w) ((w) >> 8)
-#define wait_stopsig(w) ((w) >> 8)
-#define wait_stopped(w) (((w) & 127) == 127)
 
 
 void xsetgid(gid_t gid);
@@ -528,6 +513,25 @@ int bb_execvp(const char *file, char *const argv[]);
 /* NOMMU friendy fork+exec */
 pid_t spawn(char **argv);
 pid_t xspawn(char **argv);
+
+/* Unlike waitpid, waits ONLY for one process,
+ * It's safe to pass negative 'pids' from failed [v]fork -
+ * wait4pid will return -1 and ECHILD in errno.
+ * IOW: rc = wait4pid(spawn(argv));
+ *      if (rc < 0) bb_perror_msg("%s", argv[0]);
+ *      if (rc > 0) bb_error_msg("exit code: %d", rc);
+ */
+int wait_pid(int *wstat, int pid);
+int wait_nohang(int *wstat);
+int wait4pid(int pid);
+//TODO: signal(sid, f) is the same? then why?
+#define wait_crashed(w) ((w) & 127)
+#define wait_exitcode(w) ((w) >> 8)
+#define wait_stopsig(w) ((w) >> 8)
+#define wait_stopped(w) (((w) & 127) == 127)
+/* wait4pid(spawn(argv)) + NOFORK/NOEXEC (if configured) */
+int spawn_and_wait(char **argv);
+
 /* Helpers for daemonization.
  *
  * bb_daemonize(flags) = daemonize, does not compile on NOMMU
@@ -573,6 +577,7 @@ void bb_daemonize_or_rexec(int flags, char **argv);
 void bb_sanitize_stdio(void);
 
 
+// TODO: always error out?
 enum { BB_GETOPT_ERROR = 0x80000000 };
 extern const char *opt_complementary;
 #if ENABLE_GETOPT_LONG

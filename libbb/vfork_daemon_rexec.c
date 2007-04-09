@@ -16,7 +16,7 @@
  */
 
 #include <paths.h>
-#include "libbb.h"
+#include "busybox.h" /* for struct BB_applet */
 
 /* This does a fork/exec in one call, using vfork().  Returns PID of new child,
  * -1 for failure.  Runs argv[0], searching path if that has no / in it. */
@@ -72,7 +72,8 @@ int wait4pid(int pid)
 	int status;
 
 	if (pid <= 0) {
-		/*errno = ECHILD; -- wrong. we expect errno to be set from failed exec */
+		/*errno = ECHILD; -- wrong. */
+		/* we expect errno to be already set from failed [v]fork/exec */
 		return -1;
 	}
 	if (waitpid(pid, &status, 0) == -1)
@@ -80,7 +81,7 @@ int wait4pid(int pid)
 	if (WIFEXITED(status))
 		return WEXITSTATUS(status);
 	if (WIFSIGNALED(status))
-		return WTERMSIG(status) + 10000;
+		return WTERMSIG(status) + 1000;
 	return 0;
 }
 
@@ -97,6 +98,41 @@ int wait_pid(int *wstat, int pid)
 		r = waitpid(pid, wstat, 0);
 	while ((r == -1) && (errno == EINTR));
 	return r;
+}
+
+int spawn_and_wait(char **argv)
+{
+	int rc;
+
+	if (ENABLE_FEATURE_EXEC_PREFER_APPLETS) {
+		const struct BB_applet *a = find_applet_by_name(argv[0]);
+		if (a && (a->nofork
+#ifndef BB_NOMMU
+			 || a->noexec /* NOEXEC cannot be used on NOMMU */
+#endif
+		)) {
+			int argc = 1;
+			char **pp = argv;
+			while (*++pp)
+				argc++;
+#ifdef BB_NOMMU
+			return a->main(argc, argv);
+#else
+			if (a->nofork)
+				return a->main(argc, argv);
+			/* a->noexec is true */
+			rc = fork();
+			if (rc)
+				goto w;
+			/* child */
+			current_applet = a;
+			run_current_applet_and_exit(argc, argv);
+#endif
+		}
+	}
+	rc = spawn(argv);
+ w:
+	return wait4pid(rc);
 }
 
 #if 0 //ndef BB_NOMMU

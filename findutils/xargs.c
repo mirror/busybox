@@ -48,47 +48,32 @@
    This function has special algorithm.
    Don't use fork and include to main!
 */
-static int xargs_exec(char *const *args)
+static int xargs_exec(char **args)
 {
-	pid_t p;
-	volatile int exec_errno = 0;    /* shared vfork stack */
 	int status;
 
-	p = vfork();
-	if (p < 0)
-		bb_perror_msg_and_die("vfork");
-
-	if (p == 0) {
-		/* vfork -- child */
-		BB_EXECVP(args[0], args);
-		exec_errno = errno;     /* set error to shared stack */
-		_exit(1);
-	}
-
-	/* vfork -- parent */
-	while (wait(&status) == (pid_t) -1)
-		if (errno != EINTR)
-			break;
-	if (exec_errno) {
-		errno = exec_errno;
+	status = spawn_and_wait(args);
+	if (status < 0) {
 		bb_perror_msg("%s", args[0]);
-		return exec_errno == ENOENT ? 127 : 126;
+		return errno == ENOENT ? 127 : 126;
 	}
-	if (WEXITSTATUS(status) == 255) {
+	if (status == 255) {
 		bb_error_msg("%s: exited with status 255; aborting", args[0]);
 		return 124;
 	}
+/* Huh? I think we won't see this, ever. We don't wait with WUNTRACED!
 	if (WIFSTOPPED(status)) {
 		bb_error_msg("%s: stopped by signal %d",
 			args[0], WSTOPSIG(status));
 		return 125;
 	}
-	if (WIFSIGNALED(status)) {
+*/
+	if (status >= 1000) {
 		bb_error_msg("%s: terminated by signal %d",
-			args[0], WTERMSIG(status));
+			args[0], status - 1000);
 		return 125;
 	}
-	if (WEXITSTATUS(status))
+	if (status)
 		return 123;
 	return 0;
 }
