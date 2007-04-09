@@ -591,7 +591,11 @@ static int busybox_main(int argc, char **argv)
 			puts("\n");
 			return 0;
 		}
-	} else run_applet_by_name(argv[1], argc - 1, argv + 1);
+	} else {
+		/* we want "<argv[1]>: applet not found", not "busybox: ..." */
+		applet_name = argv[1];
+		run_applet_by_name(argv[1], argc - 1, argv + 1);
+	}
 
 	bb_error_msg_and_die("applet not found");
 }
