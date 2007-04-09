@@ -13,8 +13,8 @@
  * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  */
 
-# include <sys/times.h>
-# include <setjmp.h>
+#include <sys/times.h>
+#include <setjmp.h>
 
 #ifdef STANDALONE
 # ifndef _GNU_SOURCE
@@ -291,14 +291,9 @@ static char flags['z' - 'a' + 1];
 /* this looks weird, but is OK ... we index flag with 'a'...'z' */
 static char *flag = flags - 'a';
 
-static char *null;				/* null value for variable */
-static int intr;				/* interrupt pending */
-
 /* moved to G: static char *trap[_NSIG + 1]; */
 /* moved to G: static char ourtrap[_NSIG + 1]; */
 static int trapset;				/* trap pending */
-
-static int heedint;				/* heed interrupt signals */
 
 static int yynerrs;				/* yacc */
 
@@ -615,55 +610,54 @@ struct res {
 	int r_val;
 };
 static const struct res restab[] = {
-	{"for", FOR},
-	{"case", CASE},
-	{"esac", ESAC},
-	{"while", WHILE},
-	{"do", DO},
-	{"done", DONE},
-	{"if", IF},
-	{"in", IN},
-	{"then", THEN},
-	{"else", ELSE},
-	{"elif", ELIF},
-	{"until", UNTIL},
-	{"fi", FI},
-	{";;", BREAK},
-	{"||", LOGOR},
-	{"&&", LOGAND},
-	{"{", '{'},
-	{"}", '}'},
-	{".", DOT},
-	{0, 0},
+	{ "for"  , FOR    },
+	{ "case" , CASE   },
+	{ "esac" , ESAC   },
+	{ "while", WHILE  },
+	{ "do"   , DO     },
+	{ "done" , DONE   },
+	{ "if"   , IF     },
+	{ "in"   , IN     },
+	{ "then" , THEN   },
+	{ "else" , ELSE   },
+	{ "elif" , ELIF   },
+	{ "until", UNTIL  },
+	{ "fi"   , FI     },
+	{ ";;"   , BREAK  },
+	{ "||"   , LOGOR  },
+	{ "&&"   , LOGAND },
+	{ "{"    , '{'    },
+	{ "}"    , '}'    },
+	{ "."    , DOT    },
+	{ NULL   , 0      },
 };
-
 
 struct builtincmd {
 	const char *name;
-	int (*builtinfunc) (struct op * t);
+	int (*builtinfunc)(struct op *t);
 };
 static const struct builtincmd builtincmds[] = {
-	{".", dodot},
-	{":", dolabel},
-	{"break", dobreak},
-	{"cd", dochdir},
-	{"continue", docontinue},
-	{"eval", doeval},
-	{"exec", doexec},
-	{"exit", doexit},
-	{"export", doexport},
-	{"help", dohelp},
-	{"login", dologin},
-	{"newgrp", dologin},
-	{"read", doread},
-	{"readonly", doreadonly},
-	{"set", doset},
-	{"shift", doshift},
-	{"times", dotimes},
-	{"trap", dotrap},
-	{"umask", doumask},
-	{"wait", dowait},
-	{0, 0}
+	{ "."       , dodot      },
+	{ ":"       , dolabel    },
+	{ "break"   , dobreak    },
+	{ "cd"      , dochdir    },
+	{ "continue", docontinue },
+	{ "eval"    , doeval     },
+	{ "exec"    , doexec     },
+	{ "exit"    , doexit     },
+	{ "export"  , doexport   },
+	{ "help"    , dohelp     },
+	{ "login"   , dologin    },
+	{ "newgrp"  , dologin    },
+	{ "read"    , doread     },
+	{ "readonly", doreadonly },
+	{ "set"     , doset      },
+	{ "shift"   , doshift    },
+	{ "times"   , dotimes    },
+	{ "trap"    , dotrap     },
+	{ "umask"   , doumask    },
+	{ "wait"    , dowait     },
+	{ NULL      , NULL       },
 };
 
 static struct op *scantree(struct op *);
@@ -697,11 +691,11 @@ static struct var *path;		/* search path for commands */
 static struct var *shell;		/* shell to interpret command files */
 static struct var *ifs;			/* field separators */
 
-static int areanum;				/* current allocation area */
-static int intr;
+static int areanum;                     /* current allocation area */
+static int intr;                        /* interrupt pending */
 static int inparse;
-static char *null = (char*)"";
-static int heedint = 1;
+static char *null = (char*)"";          /* null value for variable */
+static int heedint = 1;                 /* heed interrupt signals */
 static void (*qflag) (int) = SIG_IGN;
 static int startl;
 static int peeksym;
@@ -2693,7 +2687,7 @@ typedef int (*builtin_func_ptr)(struct op *);
 static builtin_func_ptr inbuilt(const char *s) {
 	const struct builtincmd *bp;
 
-	for (bp = builtincmds; bp->name != NULL; bp++)
+	for (bp = builtincmds; bp->name; bp++)
 		if (strcmp(bp->name, s) == 0)
 			return bp->builtinfunc;
 
@@ -3191,37 +3185,33 @@ static int dohelp(struct op *t)
 	puts("\nBuilt-in commands:\n"
 	     "-------------------");
 
-	for (col = 0, x = builtincmds; x->builtinfunc != NULL; x++) {
-		if (!x->name)
-			continue;
-		col += printf("%s%s", ((col == 0) ? "\t" : " "), x->name);
+	col = 0;
+	x = builtincmds;
+	while (x->name) {
+		col += printf("%c%s", ((col == 0) ? '\t' : ' '), x->name);
 		if (col > 60) {
 			puts("");
 			col = 0;
 		}
+		x++;
 	}
 #if ENABLE_FEATURE_SH_STANDALONE_SHELL
 	{
-		int i;
-		const struct BB_applet *applet;
+		const struct BB_applet *applet = applets;
 
-		for (i = 0, applet = applets; i < NUM_APPLETS; applet++, i++) {
-			if (!applet->name)
-				continue;
-
-			col += printf("%s%s", ((col == 0) ? "\t" : " "), applet->name);
+		while (applet->name) {
+			col += printf("%c%s", ((col == 0) ? '\t' : ' '), applet->name);
 			if (col > 60) {
 				puts("");
 				col = 0;
 			}
+			applet++;
 		}
 	}
 #endif
 	puts("\n");
 	return EXIT_SUCCESS;
 }
-
-
 
 static int dolabel(struct op *t)
 {
