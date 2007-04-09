@@ -14,8 +14,8 @@
 /*
 name  - applet name as it is typed on command line
 name2 - applet name, converted to C (ether-wake: name2 = ether_wake)
-main  - <applet>_main part (e.g. for bzcat: main = bunzip2)
-l     - location ([/usr]/[s]bin)
+main  - corresponding <applet>_main to call (bzcat: main = bunzip2)
+l     - location to install link to: [/usr]/[s]bin
 s     - suid type:
         _BB_SUID_ALWAYS: will complain if busybox isn't suid
         and is run by non-root (applet_main() will not be called at all)
@@ -363,3 +363,4 @@ USE_ZCIP(APPLET(zcip, _BB_DIR_SBIN, _BB_SUID_NEVER))
 #undef APPLET_NOUSAGE
 #undef APPLET_ODDNAME
 #undef APPLET_NOEXEC
+#undef APPLET_NOFORK

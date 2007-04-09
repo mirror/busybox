@@ -30,17 +30,17 @@
 
 
 #ifdef TEST
-# ifndef CONFIG_FEATURE_XARGS_SUPPORT_CONFIRMATION
-#  define CONFIG_FEATURE_XARGS_SUPPORT_CONFIRMATION
+# ifndef ENABLE_FEATURE_XARGS_SUPPORT_CONFIRMATION
+#  define ENABLE_FEATURE_XARGS_SUPPORT_CONFIRMATION 1
 # endif
-# ifndef CONFIG_FEATURE_XARGS_SUPPORT_QUOTES
-#  define CONFIG_FEATURE_XARGS_SUPPORT_QUOTES
+# ifndef ENABLE_FEATURE_XARGS_SUPPORT_QUOTES
+#  define ENABLE_FEATURE_XARGS_SUPPORT_QUOTES 1
 # endif
-# ifndef CONFIG_FEATURE_XARGS_SUPPORT_TERMOPT
-#  define CONFIG_FEATURE_XARGS_SUPPORT_TERMOPT
+# ifndef ENABLE_FEATURE_XARGS_SUPPORT_TERMOPT
+#  define ENABLE_FEATURE_XARGS_SUPPORT_TERMOPT 1
 # endif
-# ifndef CONFIG_FEATURE_XARGS_SUPPORT_ZERO_TERM
-#  define CONFIG_FEATURE_XARGS_SUPPORT_ZERO_TERM
+# ifndef ENABLE_FEATURE_XARGS_SUPPORT_ZERO_TERM
+#  define ENABLE_FEATURE_XARGS_SUPPORT_ZERO_TERM 1
 # endif
 #endif
 
@@ -94,20 +94,20 @@ static int xargs_exec(char *const *args)
 }
 
 
-typedef struct xlist_s {
+typedef struct xlist_t {
 	char *data;
-	size_t lenght;
-	struct xlist_s *link;
+	size_t length;
+	struct xlist_t *link;
 } xlist_t;
 
-static int eof_stdin_detected;
+static smallint eof_stdin_detected;
 
 #define ISBLANK(c) ((c) == ' ' || (c) == '\t')
 #define ISSPACE(c) (ISBLANK(c) || (c) == '\n' || (c) == '\r' \
 		    || (c) == '\f' || (c) == '\v')
 
-#ifdef CONFIG_FEATURE_XARGS_SUPPORT_QUOTES
-static xlist_t *process_stdin(xlist_t * list_arg,
+#if ENABLE_FEATURE_XARGS_SUPPORT_QUOTES
+static xlist_t *process_stdin(xlist_t *list_arg,
 	const char *eof_str, size_t mc, char *buf)
 {
 #define NORM      0
@@ -125,16 +125,18 @@ static xlist_t *process_stdin(xlist_t * list_arg,
 	xlist_t *cur;
 	xlist_t *prev;
 
-	for (prev = cur = list_arg; cur; cur = cur->link) {
-		line_l += cur->lenght;  /* previous allocated */
-		if (prev != cur)
-			prev = prev->link;
+	cur = list_arg;
+	while (1) {
+		prev = cur;
+		if (!cur) break;
+		line_l += cur->length;
+		cur = cur->link;
 	}
 
 	while (!eof_stdin_detected) {
 		c = getchar();
 		if (c == EOF) {
-			eof_stdin_detected++;
+			eof_stdin_detected = 1;
 			if (s)
 				goto unexpected_eof;
 			break;
@@ -183,22 +185,22 @@ set:
 			}
 			/* word loaded */
 			if (eof_str) {
-				eof_str_detected = strcmp(s, eof_str) == 0;
+				eof_str_detected = (strcmp(s, eof_str) == 0);
 			}
 			if (!eof_str_detected) {
-				size_t lenght = (p - buf);
+				size_t length = (p - buf);
 
-				cur = xmalloc(sizeof(xlist_t) + lenght);
-				cur->data = memcpy(cur + 1, s, lenght);
-				cur->lenght = lenght;
-				cur->link = NULL;
+				cur = xzalloc(sizeof(xlist_t) + length);
+				cur->data = memcpy(cur + 1, s, length);
+				cur->length = length;
+				/*cur->link = NULL;*/
 				if (prev == NULL) {
 					list_arg = cur;
 				} else {
 					prev->link = cur;
 				}
 				prev = cur;
-				line_l += lenght;
+				line_l += length;
 				if (line_l > mc) {
 					/* stop memory usage :-) */
 					break;
@@ -212,28 +214,30 @@ set:
 }
 #else
 /* The variant does not support single quotes, double quotes or backslash */
-static xlist_t *process_stdin(xlist_t * list_arg,
-	const char *eof_str, size_t mc, char *buf)
+static xlist_t *process_stdin(xlist_t *list_arg,
+		const char *eof_str, size_t mc, char *buf)
 {
 
 	int c;                  /* current char */
-	int eof_str_detected = 0;
+	char eof_str_detected = 0;
 	char *s = NULL;         /* start word */
 	char *p = NULL;         /* pointer to end word */
 	size_t line_l = 0;      /* size loaded args line */
 	xlist_t *cur;
 	xlist_t *prev;
 
-	for (prev = cur = list_arg; cur; cur = cur->link) {
-		line_l += cur->lenght;  /* previous allocated */
-		if (prev != cur)
-			prev = prev->link;
+	cur = list_arg;
+	while (1) {
+		prev = cur;
+		if (!cur) break;
+		line_l += cur->length;
+		cur = cur->link;
 	}
 
 	while (!eof_stdin_detected) {
 		c = getchar();
 		if (c == EOF) {
-			eof_stdin_detected++;
+			eof_stdin_detected = 1;
 		}
 		if (eof_str_detected)
 			continue;
@@ -250,22 +254,22 @@ static xlist_t *process_stdin(xlist_t * list_arg,
 		if (c == EOF) { /* word's delimiter or EOF detected */
 			/* word loaded */
 			if (eof_str) {
-				eof_str_detected = strcmp(s, eof_str) == 0;
+				eof_str_detected = (strcmp(s, eof_str) == 0);
 			}
 			if (!eof_str_detected) {
-				size_t lenght = (p - buf);
+				size_t length = (p - buf);
 
-				cur = xmalloc(sizeof(xlist_t) + lenght);
-				cur->data = memcpy(cur + 1, s, lenght);
-				cur->lenght = lenght;
-				cur->link = NULL;
+				cur = xzalloc(sizeof(xlist_t) + length);
+				cur->data = memcpy(cur + 1, s, length);
+				cur->length = length;
+				/*cur->link = NULL;*/
 				if (prev == NULL) {
 					list_arg = cur;
 				} else {
 					prev->link = cur;
 				}
 				prev = cur;
-				line_l += lenght;
+				line_l += length;
 				if (line_l > mc) {
 					/* stop memory usage :-) */
 					break;
@@ -276,39 +280,34 @@ static xlist_t *process_stdin(xlist_t * list_arg,
 	}
 	return list_arg;
 }
-#endif /* CONFIG_FEATURE_XARGS_SUPPORT_QUOTES */
+#endif /* FEATURE_XARGS_SUPPORT_QUOTES */
 
 
-#ifdef CONFIG_FEATURE_XARGS_SUPPORT_CONFIRMATION
+#if ENABLE_FEATURE_XARGS_SUPPORT_CONFIRMATION
 /* Prompt the user for a response, and
    if the user responds affirmatively, return true;
-   otherwise, return false. Used "/dev/tty", not stdin. */
+   otherwise, return false. Uses "/dev/tty", not stdin. */
 static int xargs_ask_confirmation(void)
 {
-	static FILE *tty_stream;
+	FILE *tty_stream;
 	int c, savec;
 
-	if (!tty_stream) {
-		tty_stream = xfopen(CURRENT_TTY, "r");
-		/* pranoidal security by vodz */
-		fcntl(fileno(tty_stream), F_SETFD, FD_CLOEXEC);
-	}
+	tty_stream = xfopen(CURRENT_TTY, "r");
 	fputs(" ?...", stderr);
 	fflush(stderr);
 	c = savec = getc(tty_stream);
 	while (c != EOF && c != '\n')
 		c = getc(tty_stream);
-	if (savec == 'y' || savec == 'Y')
-		return 1;
-	return 0;
+	fclose(tty_stream);
+	return (savec == 'y' || savec == 'Y');
 }
 #else
 # define xargs_ask_confirmation() 1
-#endif /* CONFIG_FEATURE_XARGS_SUPPORT_CONFIRMATION */
+#endif /* FEATURE_XARGS_SUPPORT_CONFIRMATION */
 
-#ifdef CONFIG_FEATURE_XARGS_SUPPORT_ZERO_TERM
-static xlist_t *process0_stdin(xlist_t * list_arg, const char *eof_str ATTRIBUTE_UNUSED,
-							   size_t mc, char *buf)
+#if ENABLE_FEATURE_XARGS_SUPPORT_ZERO_TERM
+static xlist_t *process0_stdin(xlist_t *list_arg,
+		const char *eof_str ATTRIBUTE_UNUSED, size_t mc, char *buf)
 {
 	int c;                  /* current char */
 	char *s = NULL;         /* start word */
@@ -317,16 +316,18 @@ static xlist_t *process0_stdin(xlist_t * list_arg, const char *eof_str ATTRIBUTE
 	xlist_t *cur;
 	xlist_t *prev;
 
-	for (prev = cur = list_arg; cur; cur = cur->link) {
-		line_l += cur->lenght;  /* previous allocated */
-		if (prev != cur)
-			prev = prev->link;
+	cur = list_arg;
+	while (1) {
+		prev = cur;
+		if (!cur) break;
+		line_l += cur->length;
+		cur = cur->link;
 	}
 
 	while (!eof_stdin_detected) {
 		c = getchar();
 		if (c == EOF) {
-			eof_stdin_detected++;
+			eof_stdin_detected = 1;
 			if (s == NULL)
 				break;
 			c = 0;
@@ -338,19 +339,19 @@ static xlist_t *process0_stdin(xlist_t * list_arg, const char *eof_str ATTRIBUTE
 		*p++ = c;
 		if (c == 0) {   /* word's delimiter or EOF detected */
 			/* word loaded */
-			size_t lenght = (p - buf);
+			size_t length = (p - buf);
 
-			cur = xmalloc(sizeof(xlist_t) + lenght);
-			cur->data = memcpy(cur + 1, s, lenght);
-			cur->lenght = lenght;
-			cur->link = NULL;
+			cur = xzalloc(sizeof(xlist_t) + length);
+			cur->data = memcpy(cur + 1, s, length);
+			cur->length = length;
+			/*cur->link = NULL;*/
 			if (prev == NULL) {
 				list_arg = cur;
 			} else {
 				prev->link = cur;
 			}
 			prev = cur;
-			line_l += lenght;
+			line_l += length;
 			if (line_l > mc) {
 				/* stop memory usage :-) */
 				break;
@@ -360,7 +361,7 @@ static xlist_t *process0_stdin(xlist_t * list_arg, const char *eof_str ATTRIBUTE
 	}
 	return list_arg;
 }
-#endif /* CONFIG_FEATURE_XARGS_SUPPORT_ZERO_TERM */
+#endif /* FEATURE_XARGS_SUPPORT_ZERO_TERM */
 
 /* Correct regardless of combination of CONFIG_xxx */
 enum {
@@ -413,8 +414,8 @@ int xargs_main(int argc, char **argv)
 	if (opt & OPT_ZEROTERM)
 		USE_FEATURE_XARGS_SUPPORT_ZERO_TERM(read_args = process0_stdin);
 
-	argc -= optind;
 	argv += optind;
+	argc -= optind;
 	if (!argc) {
 		/* default behavior is to echo all the filenames */
 		*argv = (char*)"echo";
@@ -458,9 +459,9 @@ int xargs_main(int argc, char **argv)
 		opt |= OPT_NO_EMPTY;
 		n = 0;
 		n_chars = 0;
-#ifdef CONFIG_FEATURE_XARGS_SUPPORT_TERMOPT
+#if ENABLE_FEATURE_XARGS_SUPPORT_TERMOPT
 		for (cur = list; cur;) {
-			n_chars += cur->lenght;
+			n_chars += cur->length;
 			n++;
 			cur = cur->link;
 			if (n_chars > n_max_chars || (n == n_max_arg && cur)) {
@@ -471,13 +472,13 @@ int xargs_main(int argc, char **argv)
 		}
 #else
 		for (cur = list; cur; cur = cur->link) {
-			n_chars += cur->lenght;
+			n_chars += cur->length;
 			n++;
 			if (n_chars > n_max_chars || n == n_max_arg) {
 				break;
 			}
 		}
-#endif /* CONFIG_FEATURE_XARGS_SUPPORT_TERMOPT */
+#endif /* FEATURE_XARGS_SUPPORT_TERMOPT */
 
 		/* allocate pointers for execvp:
 		   argc*arg, n*arg from stdin, NULL */
@@ -517,7 +518,8 @@ int xargs_main(int argc, char **argv)
 			break;
 		}
 	}
-	if (ENABLE_FEATURE_CLEAN_UP) free(max_chars);
+	if (ENABLE_FEATURE_CLEAN_UP)
+		free(max_chars);
 	return child_error;
 }
 
