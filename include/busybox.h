@@ -27,8 +27,15 @@ enum SUIDRoot {
 struct BB_applet {
 	const char *name;
 	int (*main) (int argc, char **argv);
-	__extension__ enum Location location:4;
-	__extension__ enum SUIDRoot need_suid:4;
+	__extension__ enum Location location:8;
+	__extension__ enum SUIDRoot need_suid:8;
+	/* true if instead if fork(); exec("applet"); waitpid();
+	 * one can do fork(); exit(applet_main(argc,argv)); waitpid(); */
+	unsigned char noexec;
+	/* Even nicer */
+	/* true if instead if fork(); exec("applet"); waitpid();
+	 * one can simply call applet_main(argc,argv); */
+	unsigned char nofork;
 };
 
 /* Defined in applet.c */

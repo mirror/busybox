@@ -6468,43 +6468,6 @@ casematch(union node *pattern, char *val)
 
 /* ============ find_command */
 
-#if ENABLE_FEATURE_SH_STANDALONE_SHELL
-static int
-is_safe_applet(char *name)
-{
-	/* It isn't a bug to have non-existent applet here... */
-	/* ...just a waste of space... */
-	static const char safe_applets[][8] = {
-		"["
-		USE_AWK    (, "awk"    )
-		USE_CAT    (, "cat"    )
-		USE_CHMOD  (, "chmod"  )
-		USE_CHOWN  (, "chown"  )
-		USE_CP     (, "cp"     )
-		USE_CUT    (, "cut"    )
-		USE_DD     (, "dd"     )
-		USE_ECHO   (, "echo"   )
-		USE_FIND   (, "find"   )
-		USE_HEXDUMP(, "hexdump")
-		USE_LN     (, "ln"     )
-		USE_LS     (, "ls"     )
-		USE_MKDIR  (, "mkdir"  )
-		USE_RM     (, "rm"     )
-		USE_SORT   (, "sort"   )
-		USE_TEST   (, "test"   )
-		USE_TOUCH  (, "touch"  )
-		USE_XARGS  (, "xargs"  )
-	};
-	int n = sizeof(safe_applets) / sizeof(safe_applets[0]);
-	int i;
-	for (i = 0; i < n; i++)
-		if (strcmp(safe_applets[i], name) == 0)
-			return 1;
-
-	return 0;
-}
-#endif
-
 struct builtincmd {
 	const char *name;
 	int (*builtin)(int, char **);
@@ -6570,17 +6533,15 @@ tryexec(char *cmd, char **argv, char **envp)
 
 #if ENABLE_FEATURE_SH_STANDALONE_SHELL
 	if (strchr(cmd, '/') == NULL) {
-		struct BB_applet *a;
-		char **c;
+		const struct BB_applet *a;
 
 		a = find_applet_by_name(cmd);
 		if (a) {
-			if (is_safe_applet(cmd)) {
-				c = argv;
-				while (*c)
-					c++;
-				applet_name = cmd;
-				exit(a->main(c - argv, argv));
+			if (a->noexec) {
+				char **c = argv;
+				while (*c) c++;
+				current_applet = a;
+				run_current_applet_and_exit(c - argv, argv);
 			}
 			/* re-exec ourselves with the new arguments */
 			execve(CONFIG_BUSYBOX_EXEC_PATH, argv, envp);
@@ -6608,7 +6569,7 @@ tryexec(char *cmd, char **argv, char **envp)
 			;
 		ap = new = ckmalloc((ap - argv + 2) * sizeof(char *));
 		ap[1] = cmd;
-		*ap = cmd = (char *)DEFAULT_SHELL;
+		ap[0] = cmd = (char *)DEFAULT_SHELL;
 		ap += 2;
 		argv++;
 		while ((*ap++ = *argv++))
@@ -11161,12 +11122,6 @@ find_command(char *name, struct cmdentry *entry, int act, const char *path)
 		entry->u.index = -1;
 		return;
 	}
-	/* Already caught above
-	if (is_safe_applet(name)) {
-		entry->cmdtype = CMDNORMAL;
-		entry->u.index = -1;
-		return;
-	}*/
 #endif
 
 	updatetbl = (path == pathval());

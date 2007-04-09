@@ -49,7 +49,7 @@ static const char usage_messages[] =
 const unsigned short NUM_APPLETS = sizeof(applets) / sizeof(struct BB_applet) - 1;
 
 
-static struct BB_applet *current_applet;
+const struct BB_applet *current_applet;
 const char *applet_name ATTRIBUTE_EXTERNALLY_VISIBLE;
 #ifdef BB_NOMMU
 smallint re_execed;
@@ -60,14 +60,11 @@ smallint re_execed;
 #if ENABLE_FEATURE_SUID_CONFIG
 
 /* applets[] is const, so we have to define this "override" structure */
-static struct BB_suid_config
-{
-	struct BB_applet *m_applet;
-
+static struct BB_suid_config {
+	const struct BB_applet *m_applet;
 	uid_t m_uid;
 	gid_t m_gid;
 	mode_t m_mode;
-
 	struct BB_suid_config *m_next;
 } *suid_config;
 
@@ -133,7 +130,7 @@ static void parse_config_file(void)
 {
 	struct BB_suid_config *sct_head;
 	struct BB_suid_config *sct;
-	struct BB_applet *applet;
+	const struct BB_applet *applet;
 	FILE *f;
 	const char *errmsg;
 	char *s;
@@ -330,7 +327,7 @@ static void parse_config_file(void)
 
 
 #if ENABLE_FEATURE_SUID
-static void check_suid(struct BB_applet *applet)
+static void check_suid(const struct BB_applet *applet)
 {
 	uid_t ruid = getuid();               /* real [ug]id */
 	uid_t rgid = getgid();
@@ -476,7 +473,7 @@ static int applet_name_compare(const void *name, const void *vapplet)
 	return strcmp(name, applet->name);
 }
 
-struct BB_applet *find_applet_by_name(const char *name)
+const struct BB_applet *find_applet_by_name(const char *name)
 {
 	/* Do a binary search to find the applet entry given the name. */
 	return bsearch(name, applets, NUM_APPLETS, sizeof(struct BB_applet),
@@ -599,17 +596,21 @@ static int busybox_main(int argc, char **argv)
 	bb_error_msg_and_die("applet not found");
 }
 
+void run_current_applet_and_exit(int argc, char **argv)
+{
+	applet_name = current_applet->name;
+	if (argc == 2 && !strcmp(argv[1], "--help"))
+		bb_show_usage();
+	if (ENABLE_FEATURE_SUID)
+		check_suid(current_applet);
+	exit(current_applet->main(argc, argv));
+}
+
 void run_applet_by_name(const char *name, int argc, char **argv)
 {
 	current_applet = find_applet_by_name(name);
-	if (current_applet) {
-		applet_name = current_applet->name;
-		if (argc == 2 && !strcmp(argv[1], "--help"))
-			bb_show_usage();
-		if (ENABLE_FEATURE_SUID)
-			check_suid(current_applet);
-		exit(current_applet->main(argc, argv));
-	}
+	if (current_applet)
+		run_current_applet_and_exit(argc, argv);
 	if (!strncmp(name, "busybox", 7))
 		exit(busybox_main(argc, argv));
 }

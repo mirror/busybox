@@ -662,9 +662,11 @@ const struct hwtype *get_hwntype(int type);
 
 
 #ifndef BUILD_INDIVIDUAL
-extern struct BB_applet *find_applet_by_name(const char *name);
+struct BB_applet;
+extern const struct BB_applet *find_applet_by_name(const char *name);
 /* Returns only if applet is not found. */
 extern void run_applet_by_name(const char *name, int argc, char **argv);
+extern void run_current_applet_and_exit(int argc, char **argv) ATTRIBUTE_NORETURN;
 #endif
 
 extern int match_fstype(const struct mntent *mt, const char *fstypes);
@@ -870,6 +872,7 @@ enum {	/* DO NOT CHANGE THESE VALUES!  cp.c, mv.c, install.c depend on them. */
 };
 
 #define FILEUTILS_CP_OPTSTR "pdRfils" USE_SELINUX("c")
+extern const struct BB_applet *current_applet;
 extern const char *applet_name;
 extern const char BB_BANNER[];
 
