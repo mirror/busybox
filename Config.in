@@ -244,7 +244,8 @@ config FEATURE_EXEC_PREFER_APPLETS
 	help
 	  This is an experimental option which directs applets about to
 	  call 'exec' to try and find an applicable busybox applet before
-	  searching the executable path for a binary or symlink to execute.
+	  searching the PATH. This may affect shell, find -exec, xargs and
+	  similar programs.
 
 config BUSYBOX_EXEC_PATH
 	string "Path to BusyBox executable"

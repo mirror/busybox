@@ -8,9 +8,6 @@
  * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  */
 
-#include <stdio.h>
-#include <limits.h>
-#include <ctype.h>
 #include "libbb.h"
 
 #define WANT_HEX_ESCAPES 1
@@ -46,10 +43,10 @@ char bb_process_escape_sequence(const char **ptr)
 #endif
 
 	do {
-		d = (unsigned int)(*q - '0');
+		d = (unsigned char)(*q) - '0';
 #ifdef WANT_HEX_ESCAPES
 		if (d >= 10) {
-			d = ((unsigned int)(_tolower(*q) - 'a')) + 10;
+			d = (unsigned char)(_tolower(*q)) - 'a' + 10;
 		}
 #endif
 
@@ -80,7 +77,7 @@ char bb_process_escape_sequence(const char **ptr)
 				break;
 			}
 		} while (*++p);
-		n = *(p+(sizeof(charmap)/2));
+		n = *(p + (sizeof(charmap)/2));
 	}
 
 	*ptr = q;

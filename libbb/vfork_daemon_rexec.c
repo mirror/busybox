@@ -26,14 +26,16 @@ pid_t spawn(char **argv)
 	volatile int failed;
 	pid_t pid;
 
-	// Be nice to nommu machines.
+// Ain't it a good place to fflush(NULL)?
+
+	/* Be nice to nommu machines. */
 	failed = 0;
 	pid = vfork();
 	if (pid < 0) /* error */
 		return pid;
 	if (!pid) { /* child */
-		/* Don't use BB_EXECVP tricks here! */
-		execvp(argv[0], argv);
+		/* This macro is ok - it doesn't do NOEXEC/NOFORK tricks */
+		BB_EXECVP(argv[0], argv);
 
 		/* We are (maybe) sharing a stack with blocked parent,
 		 * let parent know we failed and then exit to unblock parent

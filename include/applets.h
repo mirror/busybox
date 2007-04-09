@@ -28,24 +28,28 @@ s     - suid type:
 # define APPLET_NOUSAGE(name,main,l,s)       int main##_main(int argc, char **argv);
 # define APPLET_ODDNAME(name,main,l,s,name2) int main##_main(int argc, char **argv);
 # define APPLET_NOEXEC(name,main,l,s,name2)  int main##_main(int argc, char **argv);
+# define APPLET_NOFORK(name,main,l,s,name2)  int main##_main(int argc, char **argv);
 
 #elif defined(MAKE_USAGE) && ENABLE_FEATURE_VERBOSE_USAGE
 # define APPLET(name,l,s)                    name##_trivial_usage "\n\n" name##_full_usage "\0"
 # define APPLET_NOUSAGE(name,main,l,s)       "\b\0"
 # define APPLET_ODDNAME(name,main,l,s,name2) name2##_trivial_usage "\n\n" name2##_full_usage "\0"
 # define APPLET_NOEXEC(name,main,l,s,name2)  name2##_trivial_usage "\n\n" name2##_full_usage "\0"
+# define APPLET_NOFORK(name,main,l,s,name2)  name2##_trivial_usage "\n\n" name2##_full_usage "\0"
 
 #elif defined(MAKE_USAGE) && !ENABLE_FEATURE_VERBOSE_USAGE
 # define APPLET(name,l,s)                    name##_trivial_usage "\0"
 # define APPLET_NOUSAGE(name,main,l,s)       "\b\0"
 # define APPLET_ODDNAME(name,main,l,s,name2) name2##_trivial_usage "\0"
 # define APPLET_NOEXEC(name,main,l,s,name2)  name2##_trivial_usage "\0"
+# define APPLET_NOFORK(name,main,l,s,name2)  name2##_trivial_usage "\0"
 
 #elif defined(MAKE_LINKS)
 # define APPLET(name,l,c)                    LINK l name
 # define APPLET_NOUSAGE(name,main,l,s)       LINK l name
 # define APPLET_ODDNAME(name,main,l,s,name2) LINK l name
 # define APPLET_NOEXEC(name,main,l,s,name2)  LINK l name
+# define APPLET_NOFORK(name,main,l,s,name2)  LINK l name
 
 #else
   const struct BB_applet applets[] = { /*    name,main,location,need_suid */
@@ -53,6 +57,7 @@ s     - suid type:
 # define APPLET_NOUSAGE(name,main,l,s)       {#name,main##_main,l,s},
 # define APPLET_ODDNAME(name,main,l,s,name2) {#name,main##_main,l,s},
 # define APPLET_NOEXEC(name,main,l,s,name2)  {#name,main##_main,l,s,1},
+# define APPLET_NOFORK(name,main,l,s,name2)  {#name,main##_main,l,s,1,1},
 #endif
 
 #if ENABLE_INSTALL_NO_USR
@@ -118,7 +123,7 @@ USE_DUMPKMAP(APPLET(dumpkmap, _BB_DIR_BIN, _BB_SUID_NEVER))
 USE_APP_DUMPLEASES(APPLET(dumpleases, _BB_DIR_USR_BIN, _BB_SUID_NEVER))
 //USE_E2FSCK(APPLET(e2fsck, _BB_DIR_SBIN, _BB_SUID_NEVER))
 //USE_E2LABEL(APPLET_NOUSAGE(e2label, tune2fs, _BB_DIR_SBIN, _BB_SUID_NEVER))
-USE_ECHO(APPLET_NOEXEC(echo, echo, _BB_DIR_BIN, _BB_SUID_NEVER, echo))
+USE_ECHO(APPLET_NOFORK(echo, echo, _BB_DIR_BIN, _BB_SUID_NEVER, echo))
 USE_ED(APPLET(ed, _BB_DIR_BIN, _BB_SUID_NEVER))
 USE_FEATURE_GREP_EGREP_ALIAS(APPLET_NOUSAGE(egrep, grep, _BB_DIR_BIN, _BB_SUID_NEVER))
 USE_EJECT(APPLET(eject, _BB_DIR_USR_BIN, _BB_SUID_NEVER))

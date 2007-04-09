@@ -242,9 +242,30 @@ ACTF(exec)
 	for (i = 0; i < ap->exec_argc; i++)
 		argv[i] = subst(ap->exec_argv[i], ap->subst_count[i], fileName);
 	argv[i] = NULL; /* terminate the list */
-	rc = wait4pid(spawn(argv));
-	if (rc)
+
+	if (ENABLE_FEATURE_EXEC_PREFER_APPLETS) {
+		const struct BB_applet *a = find_applet_by_name(argv[0]);
+		if (a) {
+			if (a->nofork) {
+				rc = a->main(ap->exec_argc, argv);
+				goto f;
+			}
+#ifndef BB_NOMMU
+			if (a->noexec) {
+				rc = fork();
+				if (rc) goto w;
+				current_applet = a;
+				run_current_applet_and_exit(ap->exec_argc, argv);
+			}
+#endif
+		}
+	}
+	rc = spawn(argv);
+ w:
+	rc = wait4pid(rc);
+	if (rc < 0)
 		bb_perror_msg("%s", argv[0]);
+ f:
 	for (i = 0; i < ap->exec_argc; i++)
 		free(argv[i]);
 	return rc == 0; /* return 1 if success */
