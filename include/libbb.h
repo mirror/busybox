@@ -439,6 +439,8 @@ extern FILE *fopen_or_warn(const char *filename, const char *mode);
 /* "Opens" stdin if filename is special, else just opens file: */
 extern FILE *fopen_or_warn_stdin(const char *filename);
 
+/* Convert each alpha char in str to lower-case */
+extern char* str_tolower(char *str);
 
 char *utoa(unsigned n);
 char *itoa(int n);
