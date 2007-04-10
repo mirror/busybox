@@ -166,7 +166,7 @@ USE_FEATURE_IPV6(sa_family_t af,)
 	if (rc || !result) {
 		bb_error_msg("bad address '%s'", org_host);
 		if (ai_flags & DIE_ON_ERROR)
-			sleep_and_die();
+			xfunc_die();
 		goto ret;
 	}
 	r = xmalloc(offsetof(len_and_sockaddr, sa) + result->ai_addrlen);

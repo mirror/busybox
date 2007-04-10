@@ -3197,7 +3197,7 @@ static int dohelp(struct op *t)
 	}
 #if ENABLE_FEATURE_SH_STANDALONE_SHELL
 	{
-		const struct BB_applet *applet = applets;
+		const struct bb_applet *applet = applets;
 
 		while (applet->name) {
 			col += printf("%c%s", ((col == 0) ? '\t' : ' '), applet->name);

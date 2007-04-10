@@ -476,7 +476,7 @@ void xprint_and_close_file(FILE *file)
 	fflush(stdout);
 	// copyfd outputs error messages for us.
 	if (bb_copyfd_eof(fileno(file), 1) == -1)
-		sleep_and_die();
+		xfunc_die();
 
 	fclose(file);
 }

@@ -35,12 +35,15 @@ DPKG_FILES:= \
 	get_header_tar.o \
 	filter_accept_list_reassign.o
 
-# open_transformer uses fork. Compile it only if absolutely necessary
+# open_transformer uses fork(). Compile it only if absolutely necessary
 lib-$(CONFIG_RPM)                       += open_transformer.o
 lib-$(CONFIG_FEATURE_TAR_BZIP2)	        += open_transformer.o
 lib-$(CONFIG_FEATURE_TAR_LZMA)	        += open_transformer.o
 lib-$(CONFIG_FEATURE_TAR_GZIP)		+= open_transformer.o
 lib-$(CONFIG_FEATURE_TAR_COMPRESS)	+= open_transformer.o
+lib-$(CONFIG_FEATURE_DEB_TAR_GZ)	+= open_transformer.o
+lib-$(CONFIG_FEATURE_DEB_TAR_BZ2)	+= open_transformer.o
+lib-$(CONFIG_FEATURE_DEB_TAR_LZMA)	+= open_transformer.o
 
 lib-$(CONFIG_AR)			+= get_header_ar.o unpack_ar_archive.o
 lib-$(CONFIG_BUNZIP2)			+= decompress_bunzip2.o

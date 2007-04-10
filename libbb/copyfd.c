@@ -74,7 +74,7 @@ void complain_copyfd_and_die(off_t sz)
 	if (sz != -1)
 		bb_error_msg_and_die("short read");
 	/* if sz == -1, bb_copyfd_XX already complained */
-	sleep_and_die();
+	xfunc_die();
 }
 #endif
 
@@ -94,7 +94,7 @@ void bb_copyfd_exact_size(int fd1, int fd2, off_t size)
 	if (sz != -1)
 		bb_error_msg_and_die("short read");
 	/* if sz == -1, bb_copyfd_XX already complained */
-	sleep_and_die();
+	xfunc_die();
 }
 
 off_t bb_copyfd_eof(int fd1, int fd2)

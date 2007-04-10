@@ -43,13 +43,13 @@ static const char usage_messages[] =
 #define usage_messages 0
 #endif /* SHOW_USAGE */
 
-/* Define struct BB_applet applets[] */
+/* Define struct bb_applet applets[] */
 #include "applets.h"
 /* The -1 arises because of the {0,NULL,0,-1} entry. */
-const unsigned short NUM_APPLETS = sizeof(applets) / sizeof(struct BB_applet) - 1;
+const unsigned short NUM_APPLETS = sizeof(applets) / sizeof(applets[0]) - 1;
 
 
-const struct BB_applet *current_applet;
+const struct bb_applet *current_applet;
 const char *applet_name ATTRIBUTE_EXTERNALLY_VISIBLE;
 #ifdef BB_NOMMU
 bool re_execed;
@@ -61,7 +61,7 @@ bool re_execed;
 
 /* applets[] is const, so we have to define this "override" structure */
 static struct BB_suid_config {
-	const struct BB_applet *m_applet;
+	const struct bb_applet *m_applet;
 	uid_t m_uid;
 	gid_t m_gid;
 	mode_t m_mode;
@@ -130,7 +130,7 @@ static void parse_config_file(void)
 {
 	struct BB_suid_config *sct_head;
 	struct BB_suid_config *sct;
-	const struct BB_applet *applet;
+	const struct bb_applet *applet;
 	FILE *f;
 	const char *errmsg;
 	char *s;
@@ -329,7 +329,7 @@ static void parse_config_file(void)
 
 
 #if ENABLE_FEATURE_SUID
-static void check_suid(const struct BB_applet *applet)
+static void check_suid(const struct bb_applet *applet)
 {
 	uid_t ruid = getuid();               /* real [ug]id */
 	uid_t rgid = getgid();
@@ -464,45 +464,42 @@ void bb_show_usage(void)
 					applet_name, usage_string);
 	}
 
-	sleep_and_die();
+	xfunc_die();
 }
 
 
 static int applet_name_compare(const void *name, const void *vapplet)
 {
-	const struct BB_applet *applet = vapplet;
+	const struct bb_applet *applet = vapplet;
 
 	return strcmp(name, applet->name);
 }
 
-const struct BB_applet *find_applet_by_name(const char *name)
+const struct bb_applet *find_applet_by_name(const char *name)
 {
 	/* Do a binary search to find the applet entry given the name. */
-	return bsearch(name, applets, NUM_APPLETS, sizeof(struct BB_applet),
+	return bsearch(name, applets, NUM_APPLETS, sizeof(applets[0]),
 				applet_name_compare);
 }
 
 
 #if ENABLE_FEATURE_INSTALLER
-/*
- * directory table
- *		this should be consistent w/ the enum, busybox.h::Location,
- *		or else...
- */
-static const char usr_bin [] = "/usr/bin";
-static const char usr_sbin[] = "/usr/sbin";
-
-static const char *const install_dir[] = {
-	&usr_bin [8], /* "", equivalent to "/" for concat_path_file() */
-	&usr_bin [4], /* "/bin" */
-	&usr_sbin[4], /* "/sbin" */
-	usr_bin,
-	usr_sbin
-};
-
 /* create (sym)links for each applet */
 static void install_links(const char *busybox, int use_symbolic_links)
 {
+	/* directory table
+	 * this should be consistent w/ the enum,
+	 * busybox.h::bb_install_loc_t, or else... */
+	static const char usr_bin [] = "/usr/bin";
+	static const char usr_sbin[] = "/usr/sbin";
+	static const char *const install_dir[] = {
+		&usr_bin [8], /* "", equivalent to "/" for concat_path_file() */
+		&usr_bin [4], /* "/bin" */
+		&usr_sbin[4], /* "/sbin" */
+		usr_bin,
+		usr_sbin
+	};
+
 	int (*lf)(const char *, const char *) = link;
 	char *fpc;
 	int i;
@@ -513,7 +510,7 @@ static void install_links(const char *busybox, int use_symbolic_links)
 
 	for (i = 0; applets[i].name != NULL; i++) {
 		fpc = concat_path_file(
-				install_dir[applets[i].location],
+				install_dir[applets[i].install_loc],
 				applets[i].name);
 		rc = lf(busybox, fpc);
 		if (rc != 0 && errno != EEXIST) {
@@ -557,7 +554,7 @@ static int busybox_main(int argc, char **argv)
 			applet_name = argv[2];
 			run_applet_by_name(applet_name, 2, argv);
 		} else {
-			const struct BB_applet *a;
+			const struct bb_applet *a;
 			int col, output_width;
 
 			output_width = 80 - sizeof("start-stop-daemon, ") - 8;

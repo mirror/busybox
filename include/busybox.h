@@ -9,26 +9,35 @@
 
 #include "libbb.h"
 
+#if ENABLE_FEATURE_INSTALLER
 /* order matters: used as index into "install_dir[]" in busybox.c */
-enum Location {
+typedef enum bb_install_loc_t {
 	_BB_DIR_ROOT = 0,
 	_BB_DIR_BIN,
 	_BB_DIR_SBIN,
 	_BB_DIR_USR_BIN,
 	_BB_DIR_USR_SBIN
-};
+} bb_install_loc_t;
+#endif
 
-enum SUIDRoot {
+#if ENABLE_FEATURE_SUID
+typedef enum bb_suid_t {
 	_BB_SUID_NEVER = 0,
 	_BB_SUID_MAYBE,
 	_BB_SUID_ALWAYS
-};
+} bb_suid_t;
+#endif
 
-struct BB_applet {
+struct bb_applet {
 	const char *name;
 	int (*main) (int argc, char **argv);
-	__extension__ enum Location location:8;
-	__extension__ enum SUIDRoot need_suid:8;
+#if ENABLE_FEATURE_INSTALLER
+	__extension__ enum bb_install_loc_t install_loc:8;
+#endif
+#if ENABLE_FEATURE_SUID
+	__extension__ enum bb_suid_t need_suid:8;
+#endif
+#if ENABLE_FEATURE_EXEC_PREFER_APPLETS
 	/* true if instead if fork(); exec("applet"); waitpid();
 	 * one can do fork(); exit(applet_main(argc,argv)); waitpid(); */
 	unsigned char noexec;
@@ -36,10 +45,11 @@ struct BB_applet {
 	/* true if instead if fork(); exec("applet"); waitpid();
 	 * one can simply call applet_main(argc,argv); */
 	unsigned char nofork;
+#endif
 };
 
 /* Defined in applet.c */
-extern const struct BB_applet applets[];
+extern const struct bb_applet applets[];
 extern const unsigned short NUM_APPLETS;
 
 #endif	/* _BB_INTERNAL_H_ */

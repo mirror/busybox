@@ -107,7 +107,9 @@ int bb_echo(char **argv)
 		putchar(' ');
 	}
 
+#if ENABLE_FEATURE_FANCY_ECHO
  newline_ret:
+#endif
 	if (nflag) {
 		putchar('\n');
 	}

@@ -51,10 +51,8 @@ enum {
 	OPT_s	= 0x10,	// -s
 	OPT_T	= 0x20,	// -T
 	OPT_u	= 0x40,	// -u
-#if ENABLE_GETOPT_LONG
 	OPT_a	= 0x80,	// -a
 	OPT_l	= 0x100, // -l
-#endif
 	SHELL_IS_TCSH = 0x8000, /* hijack this bit for other purposes */
 };
 

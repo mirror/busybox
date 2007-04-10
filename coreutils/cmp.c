@@ -23,14 +23,14 @@
 
 #include "busybox.h"
 
-static FILE *cmp_xfopen_input(const char * const filename)
+static FILE *cmp_xfopen_input(const char *filename)
 {
 	FILE *fp;
 
 	fp = fopen_or_warn_stdin(filename);
 	if (fp)
 		return fp;
-	sleep_and_die();	/* We already output an error message. */
+	xfunc_die();	/* We already output an error message. */
 }
 
 static const char fmt_eof[] = "cmp: EOF on %s\n";

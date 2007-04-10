@@ -6533,7 +6533,7 @@ tryexec(char *cmd, char **argv, char **envp)
 
 #if ENABLE_FEATURE_SH_STANDALONE_SHELL
 	if (strchr(cmd, '/') == NULL) {
-		const struct BB_applet *a;
+		const struct bb_applet *a;
 
 		a = find_applet_by_name(cmd);
 		if (a) {

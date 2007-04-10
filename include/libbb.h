@@ -608,7 +608,7 @@ llist_t *llist_rev(llist_t *list);
 int write_pidfile(const char *path);
 #define remove_pidfile(f) ((void)unlink(f))
 #else
-#define write_pidfile(f)  1
+#define write_pidfile(f)  TRUE
 #define remove_pidfile(f) ((void)0)
 #endif
 
@@ -623,7 +623,7 @@ extern smallint logmode;
 extern int die_sleep;
 extern int xfunc_error_retval;
 extern jmp_buf die_jmp;
-extern void sleep_and_die(void) ATTRIBUTE_NORETURN;
+extern void xfunc_die(void) ATTRIBUTE_NORETURN;
 extern void bb_show_usage(void) ATTRIBUTE_NORETURN ATTRIBUTE_EXTERNALLY_VISIBLE;
 extern void bb_error_msg(const char *s, ...) __attribute__ ((format (printf, 1, 2)));
 extern void bb_error_msg_and_die(const char *s, ...) __attribute__ ((noreturn, format (printf, 1, 2)));
@@ -670,8 +670,8 @@ const struct hwtype *get_hwntype(int type);
 
 
 #ifndef BUILD_INDIVIDUAL
-struct BB_applet;
-extern const struct BB_applet *find_applet_by_name(const char *name);
+struct bb_applet;
+extern const struct bb_applet *find_applet_by_name(const char *name);
 /* Returns only if applet is not found. */
 extern void run_applet_by_name(const char *name, int argc, char **argv);
 extern void run_current_applet_and_exit(int argc, char **argv) ATTRIBUTE_NORETURN;
@@ -880,7 +880,7 @@ enum {	/* DO NOT CHANGE THESE VALUES!  cp.c, mv.c, install.c depend on them. */
 };
 
 #define FILEUTILS_CP_OPTSTR "pdRfils" USE_SELINUX("c")
-extern const struct BB_applet *current_applet;
+extern const struct bb_applet *current_applet;
 extern const char *applet_name;
 extern const char BB_BANNER[];
 

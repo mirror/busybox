@@ -16,7 +16,7 @@
  */
 
 #include <paths.h>
-#include "busybox.h" /* for struct BB_applet */
+#include "busybox.h" /* for struct bb_applet */
 
 /* This does a fork/exec in one call, using vfork().  Returns PID of new child,
  * -1 for failure.  Runs argv[0], searching path if that has no / in it. */
@@ -104,8 +104,9 @@ int spawn_and_wait(char **argv)
 {
 	int rc;
 
-	if (ENABLE_FEATURE_EXEC_PREFER_APPLETS) {
-		const struct BB_applet *a = find_applet_by_name(argv[0]);
+#if ENABLE_FEATURE_EXEC_PREFER_APPLETS
+	{
+		const struct bb_applet *a = find_applet_by_name(argv[0]);
 		if (a && (a->nofork
 #ifndef BB_NOMMU
 			 || a->noexec /* NOEXEC cannot be used on NOMMU */
@@ -120,19 +121,27 @@ int spawn_and_wait(char **argv)
 #endif
 			{
 				int old_sleep = die_sleep;
+				int old_x = xfunc_error_retval;
 				die_sleep = -1; /* special flag */
-				/* sleep_and_die() checks for it */
+				/* xfunc_die() checks for it */
+
 				rc = setjmp(die_jmp);
 				if (!rc) {
-					const struct BB_applet *old_a = current_applet;
+					const struct bb_applet *old_a = current_applet;
 					current_applet = a;
 					applet_name = a->name;
 // what else should we save/restore?
 					rc = a->main(argc, argv);
 					current_applet = old_a;
 					applet_name = old_a->name;					
+				} else {
+					/* xfunc died in NOFORK applet */
+					if (rc == -111)
+						rc = 0;
 				}
+
 				die_sleep = old_sleep;
+				xfunc_error_retval = old_x;
 				return rc;
 			}
 #ifndef BB_NOMMU	/* MMU only */
@@ -145,9 +154,13 @@ int spawn_and_wait(char **argv)
 			run_current_applet_and_exit(argc, argv);
 #endif
 		}
+
 	}
 	rc = spawn(argv);
  w:
+#else /* !FEATURE_EXEC_PREFER_APPLETS */
+	rc = spawn(argv);
+#endif /* FEATURE_EXEC_PREFER_APPLETS */
 	return wait4pid(rc);
 }
 
