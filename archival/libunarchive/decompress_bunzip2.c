@@ -473,7 +473,7 @@ static int get_next_block(bunzip_data *bd)
 	}
 
 	/* At this point, we've read all the Huffman-coded symbols (and repeated
-       runs) for this block from the input stream, and decoded them into the
+	   runs) for this block from the input stream, and decoded them into the
 	   intermediate buffer.  There are dbufCount many decoded bytes in dbuf[].
 	   Now undo the Burrows-Wheeler transform on dbuf.
 	   See http://dogma.net/markn/articles/bwt/bwt.htm
