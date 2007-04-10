@@ -85,19 +85,22 @@ int dd_main(int argc, char **argv)
 #endif
 		NULL
 	};
-#define OP_bs		0 + 1
-#define OP_count	OP_bs + 1
-#define OP_seek		OP_count + 1
-#define OP_skip		OP_seek + 1
-#define OP_if		OP_skip + 1
-#define OP_of		OP_if + 1
-#define OP_ibs		OP_of + ENABLE_FEATURE_DD_IBS_OBS
-#define OP_obs		OP_ibs + ENABLE_FEATURE_DD_IBS_OBS
-#define OP_conv		OP_obs + ENABLE_FEATURE_DD_IBS_OBS
-#define OP_conv_notrunc	OP_conv + ENABLE_FEATURE_DD_IBS_OBS
-#define OP_conv_sync	OP_conv_notrunc + ENABLE_FEATURE_DD_IBS_OBS
-#define OP_conv_noerror	OP_conv_sync + ENABLE_FEATURE_DD_IBS_OBS
-
+	enum {
+		OP_bs = 1,
+		OP_count,
+		OP_seek,
+		OP_skip,
+		OP_if,
+		OP_of,
+USE_FEATURE_DD_IBS_OBS(
+		OP_ibs,
+		OP_obs,
+		OP_conv,
+		OP_conv_notrunc,
+		OP_conv_sync,
+		OP_conv_noerror,
+)
+	};
 	int flags = trunc_flag;
 	size_t oc = 0, ibs = 512, obs = 512;
 	ssize_t n, w;
@@ -117,7 +120,8 @@ int dd_main(int argc, char **argv)
 	}
 
 	for (n = 1; n < argc; n++) {
-		smalluint key_len, what;
+		smalluint key_len;
+		smalluint what;
 		char *key;
 		char *arg = argv[n];
 
