@@ -22,6 +22,57 @@ static int ATTRIBUTE_NORETURN ip_print_help(int ATTRIBUTE_UNUSED ac, char ATTRIB
 {
 	bb_show_usage();
 }
+
+static int (*ip_func)(int argc, char **argv) = ip_print_help;
+
+static int ip_do(int argc, char **argv)
+{
+	ip_parse_common_args(&argc, &argv);
+	return ip_func(argc-1, argv+1);
+}
+
+#if ENABLE_FEATURE_IP_ADDRESS
+int ipaddr_main(int argc, char **argv);
+int ipaddr_main(int argc, char **argv)
+{
+    ip_func = do_ipaddr;
+    return ip_do(argc, argv);
+}
+#endif
+#if ENABLE_FEATURE_IP_LINK
+int iplink_main(int argc, char **argv);
+int iplink_main(int argc, char **argv)
+{
+    ip_func = do_iplink;
+    return ip_do(argc, argv);
+}
+#endif
+#if ENABLE_FEATURE_IP_ROUTE
+int iproute_main(int argc, char **argv);
+int iproute_main(int argc, char **argv)
+{
+    ip_func = do_iproute;
+    return ip_do(argc, argv);
+}
+#endif
+#if ENABLE_FEATURE_IP_RULE
+int iprule_main(int argc, char **argv);
+int iprule_main(int argc, char **argv)
+{
+    ip_func = do_iprule;
+    return ip_do(argc, argv);
+}
+#endif
+#if ENABLE_FEATURE_IP_TUNNEL
+int iptunnel_main(int argc, char **argv);
+int iptunnel_main(int argc, char **argv)
+{
+    ip_func = do_iptunnel;
+    return ip_do(argc, argv);
+}
+#endif
+
+
 int ip_main(int argc, char **argv);
 int ip_main(int argc, char **argv)
 {
@@ -41,7 +92,6 @@ int ip_main(int argc, char **argv)
 		USE_FEATURE_IP_RULE(IP_rule,)
 		IP_none
 	};
-	int (*ip_func)(int argc, char **argv) = ip_print_help;
 
 	ip_parse_common_args(&argc, &argv);
 	if (argc > 1) {
