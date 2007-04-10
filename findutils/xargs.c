@@ -113,10 +113,10 @@ static xlist_t *process_stdin(xlist_t *list_arg,
 	xlist_t *cur;
 	xlist_t *prev;
 
-	cur = list_arg;
+	prev = cur = list_arg;
 	while (1) {
-		prev = cur;
 		if (!cur) break;
+		prev = cur;
 		line_l += cur->length;
 		cur = cur->link;
 	}
@@ -142,7 +142,6 @@ static xlist_t *process_stdin(xlist_t *list_arg,
 				goto set;
 			}
 		} else { /* if(state == NORM) */
-
 			if (ISSPACE(c)) {
 				if (s) {
 unexpected_eof:
@@ -214,10 +213,10 @@ static xlist_t *process_stdin(xlist_t *list_arg,
 	xlist_t *cur;
 	xlist_t *prev;
 
-	cur = list_arg;
+	prev = cur = list_arg;
 	while (1) {
-		prev = cur;
 		if (!cur) break;
+		prev = cur;
 		line_l += cur->length;
 		cur = cur->link;
 	}
@@ -304,10 +303,10 @@ static xlist_t *process0_stdin(xlist_t *list_arg,
 	xlist_t *cur;
 	xlist_t *prev;
 
-	cur = list_arg;
+	prev = cur = list_arg;
 	while (1) {
-		prev = cur;
 		if (!cur) break;
+		prev = cur;
 		line_l += cur->length;
 		cur = cur->link;
 	}
