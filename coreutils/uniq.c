@@ -75,9 +75,7 @@ int uniq_main(int argc, char **argv)
 			e1 = s1;
 			for (i = skip_fields; i; i--) {
 				e1 = skip_whitespace(e1);
-				while (*e1 && !isspace(*e1)) {
-					++e1;
-				}
+				e1 = skip_non_whitespace(e1);
 			}
 			for (i = skip_chars; *e1 && i; i--) {
 				++e1;

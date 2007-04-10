@@ -90,7 +90,7 @@ static char *parse_word(char *start, struct command **cmd)
 
 	// Grab next word.  (Add dequote and envvar logic here)
 	end = start;
-	while (*end && !isspace(*end)) end++;
+	end = skip_non_whitespace(end);
 	(*cmd)->argv[(*cmd)->argc++] = xstrndup(start, end-start);
 
 	// Allocate more space if there's no room for NULL terminator.

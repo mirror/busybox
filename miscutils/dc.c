@@ -182,9 +182,7 @@ static char *get_token(char **buffer)
 	current = skip_whitespace(*buffer);
 	if (*current != 0) {
 		start = current;
-		while (!isspace(*current) && *current != 0) {
-			current++;
-		}
+		current = skip_non_whitespace(current);
 		*buffer = current;
 	}
 	return start;
