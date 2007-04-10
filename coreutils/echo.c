@@ -29,7 +29,10 @@ int bb_echo(char **argv)
 {
 	const char *arg;
 #if !ENABLE_FEATURE_FANCY_ECHO
-#define eflag '\\'
+	enum {
+		eflag = '\\',
+		nflag = 1,  /* 1 -- print '\n' */
+	};
 	++argv;
 #else
 	const char *p;
@@ -39,7 +42,7 @@ int bb_echo(char **argv)
 	while (1) {
 		arg = *++argv;
 		if (!arg)
-			goto ret;
+			goto newline_ret;
 		if (*arg != '-')
 			break;
 
@@ -68,10 +71,13 @@ int bb_echo(char **argv)
  just_echo:
 #endif
 	while (1) {
-		/* arg is already = *argv and isn't NULL */
+		/* arg is already == *argv and isn't NULL */
 		int c;
 
-		while ((c = *arg++)) {
+		if (!eflag) {
+			/* optimization for very common case */
+			fputs(arg, stdout);
+		} else while ((c = *arg++)) {
 			if (c == eflag) {	/* Check for escape seq. */
 				if (*arg == 'c') {
 					/* '\c' means cancel newline and
@@ -101,13 +107,10 @@ int bb_echo(char **argv)
 		putchar(' ');
 	}
 
-#ifdef CONFIG_FEATURE_FANCY_ECHO
+ newline_ret:
 	if (nflag) {
 		putchar('\n');
 	}
-#else
-	putchar('\n');
-#endif
  ret:
 	return fflush(stdout);
 }
