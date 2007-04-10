@@ -77,6 +77,7 @@ lib-y += sha1.o
 lib-y += simplify_path.o
 lib-y += skip_whitespace.o
 lib-y += speed_table.o
+lib-y += str_tolower.o
 lib-y += trim.o
 lib-y += u_signal_names.o
 lib-y += udp_io.o
