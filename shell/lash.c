@@ -582,7 +582,7 @@ static int setup_redirects(struct child_prog *prog, int squirrel[])
 		if (openfd != redir->fd) {
 			if (squirrel && redir->fd < 3) {
 				squirrel[redir->fd] = dup(redir->fd);
-				fcntl (squirrel[redir->fd], F_SETFD, FD_CLOEXEC);
+				fcntl(squirrel[redir->fd], F_SETFD, FD_CLOEXEC);
 			}
 			dup2(openfd, redir->fd);
 			close(openfd);
@@ -763,7 +763,7 @@ static int expand_arguments(char *command)
 		free(tmpcmd); /* Free mem allocated by strsep_space */
 		if (retval == GLOB_NOSPACE) {
 			/* Mem may have been allocated... */
-			globfree (&expand_result);
+			globfree(&expand_result);
 			bb_error_msg(out_of_space);
 			return FALSE;
 		} else if (retval != 0) {
@@ -786,7 +786,7 @@ static int expand_arguments(char *command)
 				strcat(command+total_length, expand_result.gl_pathv[i]);
 				total_length += length;
 			}
-			globfree (&expand_result);
+			globfree(&expand_result);
 		}
 	}
 	free(cmd_copy);
@@ -1478,7 +1478,7 @@ static void setup_job_control(void)
 		if (status == (shell_pgrp = getpgrp ())) {
 			break;
 		}
-		kill (- shell_pgrp, SIGTTIN);
+		kill(- shell_pgrp, SIGTTIN);
 	}
 
 	/* Ignore interactive and job-control signals.  */

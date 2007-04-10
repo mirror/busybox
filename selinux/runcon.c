@@ -110,7 +110,7 @@ int runcon_main(int argc, char **argv)
 	if (!(opts & OPTS_CONTEXT_COMPONENT)) {
 		context = *argv++;
 		if (!argv[0])
-			bb_error_msg_and_die("no command found");
+			bb_error_msg_and_die("no command given");
 	}
 
 	if (context) {
@@ -133,5 +133,4 @@ int runcon_main(int argc, char **argv)
 	execvp(argv[0], argv);
 
 	bb_perror_msg_and_die("cannot execute '%s'", argv[0]);
-	return 1;
 }

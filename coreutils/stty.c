@@ -70,15 +70,15 @@
 
 /* SunOS 5.3 loses (^Z doesn't work) if 'swtch' is the same as 'susp'.
    So the default is to disable 'swtch.'  */
-#if defined (__sparc__) && defined (__svr4__)
+#if defined(__sparc__) && defined(__svr4__)
 # undef CSWTCH
 # define CSWTCH _POSIX_VDISABLE
 #endif
 
-#if defined(VWERSE) && !defined (VWERASE)       /* AIX-3.2.5 */
+#if defined(VWERSE) && !defined(VWERASE)       /* AIX-3.2.5 */
 # define VWERASE VWERSE
 #endif
-#if defined(VDSUSP) && !defined (CDSUSP)
+#if defined(VDSUSP) && !defined(CDSUSP)
 # define CDSUSP Control('y')
 #endif
 #if !defined(VREPRINT) && defined(VRPRNT)       /* Irix 4.0.5 */

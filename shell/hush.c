@@ -2044,7 +2044,7 @@ static int reserved_word(o_string *dest, struct p_context *ctx)
 				*ctx = *old;   /* physical copy */
 				free(old);
 			}
-			b_reset (dest);
+			b_reset(dest);
 			return 1;
 		}
 	}
@@ -2666,7 +2666,7 @@ static void setup_job_control(void)
 	static pid_t shell_pgrp;
 	/* Loop until we are in the foreground.  */
 	while (tcgetpgrp (shell_terminal) != (shell_pgrp = getpgrp ()))
-		kill (- shell_pgrp, SIGTTIN);
+		kill(- shell_pgrp, SIGTTIN);
 
 	/* Ignore interactive and job-control signals.  */
 	signal(SIGINT, SIG_IGN);

@@ -445,7 +445,7 @@ getopt32(int argc, char **argv, const char *applet_opts, ...)
 		}
 		s--;
 	}
-	va_end (p);
+	va_end(p);
 
 	if (spec_flgs & FIRST_ARGV_IS_OPT) {
 		if (argv[1] && argv[1][0] != '-' && argv[1][0] != '\0') {

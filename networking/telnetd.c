@@ -285,8 +285,6 @@ make_new_session(
 
 	/* make new process group */
 	setsid();
-	tcsetpgrp(0, getpid());
-	/* ^^^ strace says: "ioctl(0, TIOCSPGRP, [pid]) = -1 ENOTTY" -- ??! */
 
 	/* open the child's side of the tty. */
 	/* NB: setsid() disconnects from any previous ctty's. Therefore
@@ -296,6 +294,7 @@ make_new_session(
 	dup2(fd, 1);
 	dup2(fd, 2);
 	while (fd > 2) close(fd--);
+	tcsetpgrp(0, getpid()); /* comment? */
 
 	/* The pseudo-terminal allocated to the client is configured to operate in
 	 * cooked mode, and with XTABS CRMOD enabled (see tty(4)). */

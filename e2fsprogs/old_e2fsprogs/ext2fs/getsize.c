@@ -55,7 +55,7 @@
 #include "ext2_fs.h"
 #include "ext2fs.h"
 
-#if defined(__CYGWIN__) || defined (WIN32)
+#if defined(__CYGWIN__) || defined(WIN32)
 #include <windows.h>
 #include <winioctl.h>
 

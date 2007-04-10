@@ -280,7 +280,7 @@ extern int insmod_ng_main( int argc, char **argv);
 #endif
 
 /* v850e */
-#if defined (__v850e__)
+#if defined(__v850e__)
 #define MATCH_MACHINE(x) ((x) == EM_V850 || (x) == EM_CYGNUS_V850)
 #define SHT_RELM	SHT_RELA
 #define Elf32_RelM	Elf32_Rela
@@ -982,7 +982,7 @@ arch_apply_relocation(struct obj_file *f,
 			*loc += v - got;
 			break;
 
-#elif defined (__microblaze__)
+#elif defined(__microblaze__)
 		case R_MICROBLAZE_NONE:
 		case R_MICROBLAZE_64_NONE:
 		case R_MICROBLAZE_32_SYM_OP_SYM:
@@ -1540,7 +1540,7 @@ arch_apply_relocation(struct obj_file *f,
 			}
 # endif /* __SH5__ */
 
-#elif defined (__v850e__)
+#elif defined(__v850e__)
 
 		case R_V850_NONE:
 			break;
@@ -1663,7 +1663,7 @@ bb_use_plt:
 				ip[2] = 0x7d6903a6;			      /* mtctr r11 */
 				ip[3] = 0x4e800420;			      /* bctr */
 #endif
-#if defined (__v850e__)
+#if defined(__v850e__)
 				/* We have to trash a register, so we assume that any control
 				   transfer more than 21-bits away must be a function call
 				   (so we can use a call-clobbered register).  */
@@ -1676,15 +1676,15 @@ bb_use_plt:
 			/* relative distance to target */
 			v -= dot;
 			/* if the target is too far away.... */
-#if defined (__arm__) || defined (__powerpc__)
+#if defined(__arm__) || defined(__powerpc__)
 			if ((int)v < -0x02000000 || (int)v >= 0x02000000)
-#elif defined (__v850e__)
+#elif defined(__v850e__)
 				if ((ElfW(Sword))v > 0x1fffff || (ElfW(Sword))v < (ElfW(Sword))-0x200000)
 #endif
 					/* go via the plt */
 					v = plt + pe->offset - dot;
 
-#if defined (__v850e__)
+#if defined(__v850e__)
 			if (v & 1)
 #else
 				if (v & 3)
@@ -1701,7 +1701,7 @@ bb_use_plt:
 #if defined(__powerpc__)
 			*loc = (*loc & ~0x03fffffc) | (v & 0x03fffffc);
 #endif
-#if defined (__v850e__)
+#if defined(__v850e__)
 			/* We write two shorts instead of a long because even 32-bit insns
 			   only need half-word alignment, but the 32-bit data write needs
 			   to be long-word aligned.  */
@@ -1895,7 +1895,7 @@ static void arch_create_got(struct obj_file *f)
 				got_needed = 1;
 				continue;
 
-#elif defined (__v850e__)
+#elif defined(__v850e__)
 			case R_V850_22_PCREL:
 				plt_needed = 1;
 				break;

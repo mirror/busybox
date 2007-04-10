@@ -686,8 +686,8 @@ static int check_pattern(const char* pat_src, const char* mod_src) {
 		ret = fnmatch(pat, mod, 0);
 
 		if (ENABLE_FEATURE_CLEAN_UP) {
-			free (pat);
-			free (mod);
+			free(pat);
+			free(mod);
 		}
 
 		return ret;

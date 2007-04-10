@@ -303,7 +303,8 @@ static void startservice(struct svdir *s)
 	}
 	run[1] = NULL;
 
-	if (s->pid != 0) stopservice(s); /* should never happen */
+	if (s->pid != 0)
+		stopservice(s); /* should never happen */
 	while ((p = fork()) == -1) {
 		warn_cannot("fork, sleeping");
 		sleep(5);
