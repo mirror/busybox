@@ -78,7 +78,7 @@ extern const char *rt_addr_n2a(int af, int len, void *addr, char *buf, int bufle
 void invarg(const char *, const char *) ATTRIBUTE_NORETURN;
 void duparg(const char *, const char *) ATTRIBUTE_NORETURN;
 void duparg2(const char *, const char *) ATTRIBUTE_NORETURN;
-int matches(const char *arg, const char *pattern);
+int ATTRIBUTE_DEPRECATED matches(const char *arg, const char *pattern);
 int inet_addr_match(inet_prefix *a, inet_prefix *b, int bits);
 
 const char *dnet_ntop(int af, const void *addr, char *str, size_t len);
