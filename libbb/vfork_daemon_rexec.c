@@ -158,12 +158,15 @@ int spawn_and_wait(char **argv)
 		if (rc)
 			goto w;
 		/* child */
+		xfunc_error_retval = EXIT_FAILURE;
 		current_applet = a;
 		run_current_applet_and_exit(argc, argv);
 #endif
 	}
 	rc = spawn(argv);
+#ifndef BB_NOMMU
  w:
+#endif
 	return wait4pid(rc);
 #else /* !FEATURE_PREFER_APPLETS */
 	return wait4pid(spawn(argv));

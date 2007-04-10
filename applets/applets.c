@@ -612,14 +612,14 @@ int main(int argc, char **argv)
 {
 	const char *s;
 
-	applet_name = argv[0];
 #ifdef BB_NOMMU
 	/* NOMMU re-exec trick sets high-order bit in first byte of name */
-	if (applet_name[0] & 0x80) {
+	if (argv[0][0] & 0x80) {
 		re_execed = 1;
-		applet_name[0] &= 0x7f;
+		argv[0][0] &= 0x7f;
 	}
 #endif
+	applet_name = argv[0];
 	if (applet_name[0] == '-')
 		applet_name++;
 	s = strrchr(applet_name, '/');
