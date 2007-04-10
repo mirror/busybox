@@ -1579,12 +1579,24 @@
 	USE_SELINUX( \
        "\n	-Z	Set security context of copy" \
 	)
-
+/* would need to make the " | " optional depending on more than one selected */
 #define ip_trivial_usage \
-       "[OPTIONS] {address | link | route | tunnel | rule} {COMMAND}"
+       "[OPTIONS] {" \
+	USE_FEATURE_IP_ADDRESS("address | ") \
+	USE_FEATURE_IP_ROUTE("route | ") \
+	USE_FEATURE_IP_LINK("link | ") \
+	USE_FEATURE_IP_TUNNEL("tunnel | ") \
+	USE_FEATURE_IP_RULE("rule") \
+	"} {COMMAND}"
 #define ip_full_usage \
        "ip [OPTIONS] OBJECT {COMMAND}\n" \
-       "where  OBJECT := {link | addr | route | tunnel |rule}\n" \
+       "where  OBJECT := {" \
+	USE_FEATURE_IP_ADDRESS("address | ") \
+	USE_FEATURE_IP_ROUTE("route | ") \
+	USE_FEATURE_IP_LINK("link | ") \
+	USE_FEATURE_IP_TUNNEL("tunnel | ") \
+	USE_FEATURE_IP_RULE("rule") \
+	"}\n" \
        "OPTIONS := { -f[amily] { inet | inet6 | link } | -o[neline] }"
 
 #define ipaddr_trivial_usage \
