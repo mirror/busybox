@@ -2,19 +2,18 @@
 
 /* BB_AUDIT SUSv3 N/A -- Apparently a busybox (obsolete?) extension. */
 
-#include <stdlib.h>
-#include <string.h>
-#include <stdio.h>
 #include "busybox.h"
+
+/* This is a NOFORK applet. Be very careful! */
 
 int length_main(int argc, char **argv);
 int length_main(int argc, char **argv)
 {
-	if ((argc != 2) ||  (**(++argv) == '-')) {
-	    bb_show_usage();
+	if ((argc != 2) || (**(++argv) == '-')) {
+		bb_show_usage();
 	}
 
-	printf("%lu\n", (unsigned long)strlen(*argv));
+	printf("%u\n", (unsigned)strlen(*argv));
 
-	fflush_stdout_and_exit(EXIT_SUCCESS);
+	return fflush(stdout);
 }

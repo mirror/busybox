@@ -13,6 +13,9 @@
 
 #include "busybox.h"
 
+/* This is a NOEXEC applet. Be very careful! */
+
+
 int chgrp_main(int argc, char **argv);
 int chgrp_main(int argc, char **argv)
 {

@@ -9,10 +9,9 @@
 
 /* BB_AUDIT SUSv3 N/A -- Apparently a busybox extension. */
 
-#include <stdlib.h>
-#include <limits.h>
-#include <unistd.h>
 #include "busybox.h"
+
+/* This is a NOFORK applet. Be very careful! */
 
 int usleep_main(int argc, char **argv);
 int usleep_main(int argc, char **argv)

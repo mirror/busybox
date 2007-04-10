@@ -16,25 +16,26 @@
 
 #include "busybox.h"
 
+/* This is a NOFORK applet. Be very careful! */
+
 int yes_main(int argc, char **argv);
 int yes_main(int argc, char **argv)
 {
-	static const char fmt_str[] = " %s";
-	const char *fmt;
 	char **first_arg;
 
-	*argv = (char*)"y";
+	argv[0] = (char*)"y";
 	if (argc != 1) {
 		++argv;
 	}
 
 	first_arg = argv;
 	do {
-		fmt = fmt_str + 1;
-		do {
-			printf(fmt, *argv);
-			fmt = fmt_str;
-		} while (*++argv);
+		while (1) {
+			fputs(*argv, stdout);
+			if (!*++argv)
+				break;
+			putchar(' ');
+		}
 		argv = first_arg;
 	} while (putchar('\n') != EOF);
 

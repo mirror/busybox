@@ -20,10 +20,9 @@
  * 3) Save some space by using strcmp().  Calling strncmp() here was silly.
  */
 
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
 #include "busybox.h"
+
+/* This is a NOFORK applet. Be very careful! */
 
 int basename_main(int argc, char **argv);
 int basename_main(int argc, char **argv)
@@ -47,5 +46,5 @@ int basename_main(int argc, char **argv)
 
 	puts(s);
 
-	fflush_stdout_and_exit(EXIT_SUCCESS);
+	return fflush(stdout);
 }

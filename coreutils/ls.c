@@ -29,8 +29,11 @@
  * 1. requires lstat (BSD) - how do you do it without?
  */
 
-#include "busybox.h"
 #include <getopt.h>
+#include "busybox.h"
+
+/* This is a NOEXEC applet. Be very careful! */
+
 
 enum {
 

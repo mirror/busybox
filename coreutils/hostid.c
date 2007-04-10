@@ -9,9 +9,9 @@
 
 /* BB_AUDIT SUSv3 N/A -- Matches GNU behavior. */
 
-#include <stdlib.h>
-#include <unistd.h>
 #include "busybox.h"
+
+/* This is a NOFORK applet. Be very careful! */
 
 int hostid_main(int argc, char ATTRIBUTE_UNUSED **argv);
 int hostid_main(int argc, char ATTRIBUTE_UNUSED **argv)
@@ -22,5 +22,5 @@ int hostid_main(int argc, char ATTRIBUTE_UNUSED **argv)
 
 	printf("%lx\n", gethostid());
 
-	fflush_stdout_and_exit(EXIT_SUCCESS);
+	return fflush(stdout);
 }

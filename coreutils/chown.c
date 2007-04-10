@@ -13,6 +13,9 @@
 
 #include "busybox.h"
 
+/* This is a NOEXEC applet. Be very careful! */
+
+
 #define OPT_STR     ("Rh" USE_DESKTOP("vcfLHP"))
 #define BIT_RECURSE 1
 #define OPT_RECURSE (option_mask32 & 1)

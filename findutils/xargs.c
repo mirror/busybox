@@ -19,6 +19,9 @@
 
 #include "busybox.h"
 
+/* This is a NOEXEC applet. Be very careful! */
+
+
 /* COMPAT:  SYSV version defaults size (and has a max value of) to 470.
    We try to make it as large as possible. */
 #if !defined(ARG_MAX) && defined(_SC_ARG_MAX)

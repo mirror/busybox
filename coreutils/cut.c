@@ -11,6 +11,9 @@
 
 #include "busybox.h"
 
+/* This is a NOEXEC applet. Be very careful! */
+
+
 /* option vars */
 static const char optstring[] = "b:c:f:d:sn";
 #define CUT_OPT_BYTE_FLGS	(1<<0)

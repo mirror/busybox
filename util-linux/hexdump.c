@@ -9,9 +9,12 @@
  * Licensed under GPLv2 or later, see file License in this tarball for details.
  */
 
-#include "busybox.h"
 #include <getopt.h>
+#include "busybox.h"
 #include "dump.h"
+
+/* This is a NOEXEC applet. Be very careful! */
+
 
 static void bb_dump_addfile(char *name)
 {
@@ -45,10 +48,10 @@ static const char add_first[] = "\"%07.7_Ax\n\"";
 static const char hexdump_opts[] = "bcdoxCe:f:n:s:v";
 
 static const struct suffix_mult suffixes[] = {
-	{"b",  512 },
-	{"k",  1024 },
-	{"m",  1024*1024 },
-	{NULL, 0 }
+	{ "b",  512 },
+	{ "k",  1024 },
+	{ "m",  1024*1024 },
+	{ NULL, 0 }
 };
 
 int hexdump_main(int argc, char **argv);

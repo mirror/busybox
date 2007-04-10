@@ -13,6 +13,10 @@
 
 #include "libbb.h"
 
+// TODO: make it safe to call from NOFORK applets
+// Currently, it can exit(0). Even if it is made to do longjmp trick
+// (see sleep_and_die internals), zero cannot be passed thru this way!
+
 void fflush_stdout_and_exit(int retval)
 {
 	if (fflush(stdout))

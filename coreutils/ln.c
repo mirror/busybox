@@ -13,6 +13,9 @@
 
 #include "busybox.h"
 
+/* This is a NOEXEC applet. Be very careful! */
+
+
 #define LN_SYMLINK          1
 #define LN_FORCE            2
 #define LN_NODEREFERENCE    4

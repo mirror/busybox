@@ -11,6 +11,8 @@
 #include "xregex.h"
 #include <math.h>
 
+/* This is a NOEXEC applet. Be very careful! */
+
 
 #define	MAXVARFMT       240
 #define	MINNVBLOCK      64

@@ -9,9 +9,9 @@
 
 /* BB_AUDIT SUSv3 N/A -- Matches GNU behavior. */
 
-#include <stdlib.h>
-#include <unistd.h>
 #include "busybox.h"
+
+/* This is a NOFORK applet. Be very careful! */
 
 int sync_main(int argc, char **argv);
 int sync_main(int argc, char **argv)

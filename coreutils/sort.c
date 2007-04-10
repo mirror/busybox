@@ -14,6 +14,9 @@
 
 #include "busybox.h"
 
+/* This is a NOEXEC applet. Be very careful! */
+
+
 /*
 	sort [-m][-o output][-bdfinru][-t char][-k keydef]... [file...]
 	sort -c [-bdfinru][-t char][-k keydef][file]

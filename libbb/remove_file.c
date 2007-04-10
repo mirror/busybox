@@ -9,6 +9,8 @@
 
 #include "libbb.h"
 
+/* Used from NOFORK applets. Must not allocate anything */
+
 int remove_file(const char *path, int flags)
 {
 	struct stat path_stat;

@@ -8,8 +8,11 @@
  * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  */
 
-#include "busybox.h"
 #include <signal.h>  /* For FEATURE_DD_SIGNAL_HANDLING */
+#include "busybox.h"
+
+/* This is a NOEXEC applet. Be very careful! */
+
 
 static const struct suffix_mult dd_suffixes[] = {
 	{ "c", 1 },

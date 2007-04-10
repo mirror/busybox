@@ -10,9 +10,6 @@
 /* BB_AUDIT SUSv3 compliant */
 /* http://www.opengroup.org/onlinepubs/007904975/utilities/tty.html */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
 #include "busybox.h"
 
 int tty_main(int argc, char **argv);
@@ -31,7 +28,8 @@ int tty_main(int argc, char **argv)
 
 	retval = 0;
 
-	if ((s = ttyname(0)) == NULL) {
+	s = ttyname(0);
+	if (s == NULL) {
 	/* According to SUSv3, ttyname can on fail with EBADF or ENOTTY.
 	 * We know the file descriptor is good, so failure means not a tty. */
 		s = "not a tty";

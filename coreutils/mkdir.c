@@ -19,19 +19,19 @@
 /* Nov 28, 2006      Yoshinori Sato <ysato@users.sourceforge.jp>: Add SELinux Support.
  */
 
-#include <stdlib.h>
-#include <unistd.h>
 #include <getopt.h> /* struct option */
 #include "busybox.h"
 
+/* This is a NOFORK applet. Be very careful! */
+
 #if ENABLE_FEATURE_MKDIR_LONG_OPTIONS
 static const struct option mkdir_long_options[] = {
-	{ "mode", 1, NULL, 'm' },
+	{ "mode"   , 1, NULL, 'm' },
 	{ "parents", 0, NULL, 'p' },
 #if ENABLE_SELINUX
 	{ "context", 1, NULL, 'Z' },
 #endif
-	{ 0, 0, 0, 0 }
+	{ NULL, 0, NULL, 0 }
 };
 #endif
 

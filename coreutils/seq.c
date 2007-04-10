@@ -7,21 +7,22 @@
  * Licensed under the GPL v2, see the file LICENSE in this tarball.
  */
 
-#include <stdio.h>
-#include <stdlib.h>
 #include "busybox.h"
+
+/* This is a NOFORK applet. Be very careful! */
+
 
 int seq_main(int argc, char **argv);
 int seq_main(int argc, char **argv)
 {
-	double last, first, increment, i;
+	double last, increment, i;
 
-	first = increment = 1;
+	i = increment = 1;
 	switch (argc) {
 		case 4:
 			increment = atof(argv[2]);
 		case 3:
-			first = atof(argv[1]);
+			i = atof(argv[1]);
 		case 2:
 			last = atof(argv[argc-1]);
 			break;
@@ -30,12 +31,10 @@ int seq_main(int argc, char **argv)
 	}
 
 	/* You should note that this is pos-5.0.91 semantics, -- FK. */
-	for (i = first;
-		(increment > 0 && i <= last) || (increment < 0 && i >=last);
-		i += increment)
-	{
+	while ((increment > 0 && i <= last) || (increment < 0 && i >= last)) {
 		printf("%g\n", i);
+		i += increment;
 	}
 
-	return EXIT_SUCCESS;
+	return fflush(stdout);
 }

@@ -9,10 +9,9 @@
 
 /* BB_AUDIT SUSv3 N/A -- Matches GNU behavior. */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
 #include "busybox.h"
+
+/* This is a NOFORK applet. Be very careful! */
 
 int whoami_main(int argc, char **argv);
 int whoami_main(int argc, char **argv)
@@ -21,6 +20,6 @@ int whoami_main(int argc, char **argv)
 		bb_show_usage();
 
 	puts(bb_getpwuid(NULL, geteuid(), -1));
-	/* exits on error */
-	fflush_stdout_and_exit(EXIT_SUCCESS);
+
+	return fflush(stdout);
 }

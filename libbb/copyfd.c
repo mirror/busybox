@@ -7,19 +7,15 @@
  * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  */
 
-#include <errno.h>
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
-
 #include "libbb.h"
-
 
 #if BUFSIZ < 4096
 #undef BUFSIZ
 #define BUFSIZ 4096
 #endif
 
+/* Used by NOFORK applets (e.g. cat) - must be very careful
+ * when calling xfuncs, allocating memory, with signals, termios, etc... */
 
 static off_t bb_full_fd_action(int src_fd, int dst_fd, off_t size)
 {
@@ -27,7 +23,8 @@ static off_t bb_full_fd_action(int src_fd, int dst_fd, off_t size)
 	off_t total = 0;
 	RESERVE_CONFIG_BUFFER(buffer, BUFSIZ);
 
-	if (src_fd < 0) goto out;
+	if (src_fd < 0)
+		goto out;
 
 	if (!size) {
 		size = BUFSIZ;

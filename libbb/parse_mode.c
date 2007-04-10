@@ -11,6 +11,8 @@
 
 #include "libbb.h"
 
+/* This function is used from NOFORK applets. It must not allocate anything */
+
 #define FILEMODEBITS (S_ISUID | S_ISGID | S_ISVTX | S_IRWXU | S_IRWXG | S_IRWXO)
 
 int bb_parse_mode(const char *s, mode_t *current_mode)

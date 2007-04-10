@@ -10,8 +10,9 @@
 /* BB_AUDIT SUSv3 compliant */
 /* http://www.opengroup.org/onlinepubs/007904975/utilities/true.html */
 
-#include <stdlib.h>
 #include "busybox.h"
+
+/* This is a NOFORK applet. Be very careful! */
 
 int true_main(int argc, char **argv);
 int true_main(int argc, char **argv)

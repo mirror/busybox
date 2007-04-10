@@ -12,17 +12,23 @@
 
 #include "busybox.h"
 
+/* This is a NOFORK applet. Be very careful! */
+
+
 int bb_cat(char **argv)
 {
 	static const char *const argv_dash[] = { "-", NULL };
+
 	FILE *f;
 	int retval = EXIT_SUCCESS;
 
-	if (!*argv) argv = (char**) &argv_dash;
+	if (!*argv)
+		argv = (char**) &argv_dash;
 
 	do {
 		f = fopen_or_warn_stdin(*argv);
 		if (f) {
+			/* This is not an xfunc - never exits */
 			off_t r = bb_copyfd_eof(fileno(f), STDOUT_FILENO);
 			fclose_if_not_stdin(f);
 			if (r >= 0)

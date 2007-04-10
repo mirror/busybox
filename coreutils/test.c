@@ -21,11 +21,10 @@
  */
 
 #include "busybox.h"
-#include <unistd.h>
-#include <ctype.h>
-#include <errno.h>
-#include <string.h>
 #include <setjmp.h>
+
+/* This is a NOEXEC applet. Be very careful! */
+
 
 /* test(1) accepts the following grammar:
 	oexpr	::= aexpr | aexpr "-o" oexpr ;

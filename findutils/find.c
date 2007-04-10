@@ -48,6 +48,9 @@
 #include <fnmatch.h>
 #include "busybox.h"
 
+/* This is a NOEXEC applet. Be very careful! */
+
+
 USE_FEATURE_FIND_XDEV(static dev_t *xdev_dev;)
 USE_FEATURE_FIND_XDEV(static int xdev_count;)
 

@@ -10,9 +10,6 @@
 /* BB_AUDIT SUSv3 compliant */
 /* http://www.opengroup.org/onlinepubs/007904975/utilities/mkfifo.html */
 
-#include <stdlib.h>
-#include <unistd.h>
-#include <sys/types.h>
 #include "busybox.h"
 #include "libcoreutils/coreutils.h"
 
@@ -24,7 +21,8 @@ int mkfifo_main(int argc, char **argv)
 
 	mode = getopt_mk_fifo_nod(argc, argv);
 
-	if (!*(argv += optind)) {
+	argv += optind;
+	if (!*argv) {
 		bb_show_usage();
 	}
 
