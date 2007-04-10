@@ -403,9 +403,10 @@ extern char *xasprintf(const char *format, ...) __attribute__ ((format (printf, 
 
 /* dmalloc will redefine these to it's own implementation. It is safe
  * to have the prototypes here unconditionally.  */
+extern void *malloc_or_warn(size_t size);
 extern void *xmalloc(size_t size);
-extern void *xrealloc(void *old, size_t size);
 extern void *xzalloc(size_t size);
+extern void *xrealloc(void *old, size_t size);
 
 extern ssize_t safe_read(int fd, void *buf, size_t count);
 extern ssize_t full_read(int fd, void *buf, size_t count);
@@ -862,7 +863,7 @@ void md5_begin(md5_ctx_t *ctx);
 void md5_hash(const void *data, size_t length, md5_ctx_t *ctx);
 void *md5_end(void *resbuf, md5_ctx_t *ctx);
 
-uint32_t *crc32_filltable(int endian);
+uint32_t *crc32_filltable(uint32_t *tbl256, int endian);
 
 
 enum {	/* DO NOT CHANGE THESE VALUES!  cp.c, mv.c, install.c depend on them. */

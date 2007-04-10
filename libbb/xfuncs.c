@@ -20,6 +20,15 @@
  * Since dmalloc's prototypes overwrite the impls here as they are
  * included after these prototypes in libbb.h, all is well.
  */
+// Warn if we can't allocate size bytes of memory.
+void *malloc_or_warn(size_t size)
+{
+	void *ptr = malloc(size);
+	if (ptr == NULL && size != 0)
+		bb_error_msg(bb_msg_memory_exhausted);
+	return ptr;
+}
+
 // Die if we can't allocate size bytes of memory.
 void *xmalloc(size_t size)
 {

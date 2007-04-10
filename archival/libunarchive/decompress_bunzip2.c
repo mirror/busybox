@@ -62,34 +62,31 @@ struct group_data {
 /* Structure holding all the housekeeping data, including IO buffers and
    memory that persists between calls to bunzip */
 
-typedef struct {
+struct bunzip_data {
 	/* State for interrupting output loop */
-
 	int writeCopies, writePos, writeRunCountdown, writeCount, writeCurrent;
 
 	/* I/O tracking data (file handles, buffers, positions, etc.) */
-
 	int in_fd, out_fd, inbufCount, inbufPos /*, outbufPos*/;
 	unsigned char *inbuf /*,*outbuf*/;
 	unsigned inbufBitCount, inbufBits;
 
 	/* The CRC values stored in the block header and calculated from the data */
-
 	uint32_t headerCRC, totalCRC, writeCRC;
-	uint32_t *crc32Table;
-	/* Intermediate buffer and its size (in bytes) */
 
+	/* Intermediate buffer and its size (in bytes) */
 	unsigned *dbuf, dbufSize;
 
-	/* These things are a bit too big to go on the stack */
+	/* For I/O error handling */
+	jmp_buf jmpbuf;
 
+	/* Big things go last (register-relative addressing can be larger for big offsets */
+	uint32_t crc32Table[256];
 	unsigned char selectors[32768];			/* nSelectors=15 bits */
 	struct group_data groups[MAX_GROUPS];	/* Huffman coding tables */
+};
+/* typedef struct bunzip_data bunzip_data; -- done in .h file */
 
-	/* For I/O error handling */
-
-	jmp_buf jmpbuf;
-} bunzip_data;
 
 /* Return the next nnn bits of input.  All reads from the compressed input
    are done through this function.  All reads are big endian */
@@ -106,6 +103,7 @@ static unsigned get_bits(bunzip_data *bd, char bits_wanted)
 		/* If we need to read more data from file into byte buffer, do so */
 
 		if (bd->inbufPos == bd->inbufCount) {
+			/* if "no input fd" case: in_fd == -1, read fails, we jump */
 			bd->inbufCount = read(bd->in_fd, bd->inbuf, IOBUF_SIZE);
 			if (bd->inbufCount <= 0)
 				longjmp(bd->jmpbuf, RETVAL_UNEXPECTED_INPUT_EOF);
@@ -519,7 +517,7 @@ static int get_next_block(bunzip_data *bd)
    are ignored, data is written to out_fd and return is RETVAL_OK or error.
 */
 
-static int read_bunzip(bunzip_data *bd, char *outbuf, int len)
+int read_bunzip(bunzip_data *bd, char *outbuf, int len)
 {
 	const unsigned *dbuf;
 	int pos, current, previous, gotcount;
@@ -627,11 +625,16 @@ static int read_bunzip(bunzip_data *bd, char *outbuf, int len)
 	goto decode_next_byte;
 }
 
+
 /* Allocate the structure, read file header.  If in_fd==-1, inbuf must contain
    a complete bunzip file (len bytes long).  If in_fd!=-1, inbuf and len are
    ignored, and data is read from file handle into temporary buffer. */
 
-static int start_bunzip(bunzip_data **bdp, int in_fd, unsigned char *inbuf,
+/* Because bunzip2 is used for help text unpacking, and because bb_show_usage()
+   should work for NOFORK applets too, we must be extremely careful to not leak
+   any allocations! */
+
+int start_bunzip(bunzip_data **bdp, int in_fd, const unsigned char *inbuf,
 						int len)
 {
 	bunzip_data *bd;
@@ -653,14 +656,15 @@ static int start_bunzip(bunzip_data **bdp, int in_fd, unsigned char *inbuf,
 
 	bd->in_fd = in_fd;
 	if (-1 == in_fd) {
-		bd->inbuf = inbuf;
+		/* in this case, bd->inbuf is read-only */
+		bd->inbuf = (void*)inbuf; /* cast away const-ness */
 		bd->inbufCount = len;
 	} else
 		bd->inbuf = (unsigned char *)(bd + 1);
 
 	/* Init the CRC32 table (big endian) */
 
-	bd->crc32Table = crc32_filltable(1);
+	crc32_filltable(bd->crc32Table, 1);
 
 	/* Setup for I/O error handling via longjmp */
 
@@ -670,19 +674,30 @@ static int start_bunzip(bunzip_data **bdp, int in_fd, unsigned char *inbuf,
 	/* Ensure that file starts with "BZh['1'-'9']." */
 
 	i = get_bits(bd, 32);
-	if (((unsigned)(i - BZh0 - 1)) >= 9) return RETVAL_NOT_BZIP_DATA;
+	if ((unsigned)(i - BZh0 - 1) >= 9) return RETVAL_NOT_BZIP_DATA;
 
 	/* Fourth byte (ascii '1'-'9'), indicates block size in units of 100k of
 	   uncompressed data.  Allocate intermediate buffer for block. */
 
 	bd->dbufSize = 100000 * (i - BZh0);
 
-	bd->dbuf = xmalloc(bd->dbufSize * sizeof(int));
+	/* Cannot use xmalloc - may leak bd in NOFORK case! */
+	bd->dbuf = malloc_or_warn(bd->dbufSize * sizeof(int));
+	if (!bd->dbuf) {
+		free(bd);
+		xfunc_die();
+	}
 	return RETVAL_OK;
 }
 
-/* Example usage: decompress src_fd to dst_fd.  (Stops at end of bzip data,
-   not end of file.) */
+void dealloc_bunzip(bunzip_data *bd)
+{
+        free(bd->dbuf);
+        free(bd);
+}
+
+
+/* Decompress src_fd to dst_fd.  Stops at end of bzip data, not end of file. */
 
 USE_DESKTOP(long long) int
 uncompressStream(int src_fd, int dst_fd)
@@ -693,7 +708,7 @@ uncompressStream(int src_fd, int dst_fd)
 	int i;
 
 	outbuf = xmalloc(IOBUF_SIZE);
-	i = start_bunzip(&bd, src_fd, 0, 0);
+	i = start_bunzip(&bd, src_fd, NULL, 0);
 	if (!i) {
 		for (;;) {
 			i = read_bunzip(bd, outbuf, IOBUF_SIZE);
@@ -719,8 +734,7 @@ uncompressStream(int src_fd, int dst_fd)
 	} else {
 		bb_error_msg("decompression failed");
 	}
-	free(bd->dbuf);
-	free(bd);
+	dealloc_bunzip(bd);
 	free(outbuf);
 
 	return i ? i : USE_DESKTOP(total_written) + 0;

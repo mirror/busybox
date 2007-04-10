@@ -403,44 +403,32 @@ static void check_suid(const struct bb_applet *applet)
 
 static const char *unpack_usage_messages(void)
 {
-	int input[2], output[2], pid;
-	char *buf;
+	char *outbuf = NULL;
+	bunzip_data *bd;
+	int i;
 
-	if (pipe(input) < 0 || pipe(output) < 0)
-		exit(1);
-
-//TODO: not NOMMU friendly!
-	pid = fork();
-	switch (pid) {
-	case -1: /* error */
-		exit(1);
-	case 0: /* child */
-		close(input[1]);
-		close(output[0]);
-		uncompressStream(input[0], output[1]);
-		exit(0);
+	i = start_bunzip(&bd,
+			/* src_fd: */ -1,
+			/* inbuf:  */ packed_usage,
+			/* len:    */ sizeof(packed_usage));
+	/* read_bunzip can longjmp to start_bunzip, and ultimately
+	 * end up here with i != 0 on read data errors! Not trivial */
+	if (!i) {
+		/* Cannot use xmalloc: will leak bd in NOFORK case! */
+		outbuf = malloc_or_warn(SIZEOF_usage_messages);
+		if (outbuf)
+			read_bunzip(bd, outbuf, SIZEOF_usage_messages);
 	}
-	/* parent */
-
-	close(input[0]);
-	close(output[1]);
-	pid = fork();
-	switch (pid) {
-	case -1: /* error */
-		exit(1);
-	case 0: /* child */
-		full_write(input[1], packed_usage, sizeof(packed_usage));
-		exit(0);
-	}
-	/* parent */
-	close(input[1]);
-
-	buf = xmalloc(SIZEOF_usage_messages);
-	full_read(output[0], buf, SIZEOF_usage_messages);
-	return buf;
+	dealloc_bunzip(bd);
+	return outbuf;
 }
+#define dealloc_usage_messages(s) free(s)
+
 #else
+
 #define unpack_usage_messages() usage_messages
+#define dealloc_usage_messages(s) ((void)(s))
+
 #endif /* FEATURE_COMPRESS_USAGE */
 
 
@@ -448,22 +436,23 @@ void bb_show_usage(void)
 {
 	if (ENABLE_SHOW_USAGE) {
 		const char *format_string;
-		const char *usage_string = unpack_usage_messages();
+		const char *p;
+		const char *usage_string = p = unpack_usage_messages();
 		int i;
 
 		i = current_applet - applets;
 		while (i) {
-			while (*usage_string++) continue;
+			while (*p++) continue;
 			i--;
 		}
 
 		format_string = "%s\n\nUsage: %s %s\n\n";
-		if (*usage_string == '\b')
+		if (*p == '\b')
 			format_string = "%s\n\nNo help available.\n\n";
 		fprintf(stderr, format_string, bb_msg_full_version,
-					applet_name, usage_string);
+					applet_name, p);
+		dealloc_usage_messages((char*)usage_string);
 	}
-
 	xfunc_die();
 }
 

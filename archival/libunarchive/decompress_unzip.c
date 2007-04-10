@@ -1000,7 +1000,7 @@ inflate_unzip_internal(STATE_PARAM int in, int out)
 	gunzip_bb = 0;
 
 	/* Create the crc table */
-	gunzip_crc_table = crc32_filltable(0);
+	gunzip_crc_table = crc32_filltable(NULL, 0);
 	gunzip_crc = ~0;
 
 	/* Allocate space for buffer */

@@ -102,6 +102,11 @@ extern const llist_t *find_list_entry(const llist_t *list, const char *filename)
 extern const llist_t *find_list_entry2(const llist_t *list, const char *filename);
 
 extern USE_DESKTOP(long long) int uncompressStream(int src_fd, int dst_fd);
+/* A bit of bunzip2 internals are exposed for compressed help support: */
+typedef struct bunzip_data bunzip_data;
+int start_bunzip(bunzip_data **bdp, int in_fd, const unsigned char *inbuf, int len);
+int read_bunzip(bunzip_data *bd, char *outbuf, int len);
+void dealloc_bunzip(bunzip_data *bd);
 
 typedef struct inflate_unzip_result {
 	off_t bytes_out;

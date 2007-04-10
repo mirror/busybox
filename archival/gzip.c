@@ -2079,7 +2079,7 @@ int gzip_main(int argc, char **argv)
 	ALLOC(ush, G1.prev, 1L << BITS);
 
 	/* Initialise the CRC32 table */
-	G1.crc_32_tab = crc32_filltable(0);
+	G1.crc_32_tab = crc32_filltable(NULL, 0);
 
 	return bbunpack(argv, make_new_name_gzip, pack_gzip);
 }

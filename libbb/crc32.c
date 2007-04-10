@@ -16,13 +16,14 @@
 
 #include "libbb.h"
 
-uint32_t *crc32_filltable(int endian)
+uint32_t *crc32_filltable(uint32_t *crc_table, int endian)
 {
-
-	uint32_t *crc_table = xmalloc(256 * sizeof(uint32_t));
 	uint32_t polynomial = endian ? 0x04c11db7 : 0xedb88320;
 	uint32_t c;
 	int i, j;
+
+	if (!crc_table)
+		crc_table = xmalloc(256 * sizeof(uint32_t));
 
 	for (i = 0; i < 256; i++) {
 		c = endian ? (i << 24) : i;

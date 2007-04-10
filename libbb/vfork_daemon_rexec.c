@@ -102,120 +102,68 @@ int wait_pid(int *wstat, int pid)
 
 int spawn_and_wait(char **argv)
 {
-	int rc;
-
 #if ENABLE_FEATURE_EXEC_PREFER_APPLETS
-	{
-		const struct bb_applet *a = find_applet_by_name(argv[0]);
-		if (a && (a->nofork
-#ifndef BB_NOMMU
-			 || a->noexec /* NOEXEC cannot be used on NOMMU */
-#endif
-		)) {
-			int argc = 1;
-			char **pp = argv;
-			while (*++pp)
-				argc++;
-#ifndef BB_NOMMU
-			if (a->nofork)
-#endif
-			{
-				int old_sleep = die_sleep;
-				int old_x = xfunc_error_retval;
-				die_sleep = -1; /* special flag */
-				/* xfunc_die() checks for it */
+	int rc;
+	const struct bb_applet *a = find_applet_by_name(argv[0]);
 
-				rc = setjmp(die_jmp);
-				if (!rc) {
-					const struct bb_applet *old_a = current_applet;
-					current_applet = a;
-					applet_name = a->name;
+	if (a && (a->nofork
+#ifndef BB_NOMMU
+		 || a->noexec /* NOEXEC cannot be used on NOMMU */
+#endif
+	)) {
+		int argc = 1;
+		char **pp = argv;
+		while (*++pp)
+			argc++;
+#ifndef BB_NOMMU
+		if (a->nofork)
+#endif
+		{
+			int old_sleep = die_sleep;
+			int old_x = xfunc_error_retval;
+			die_sleep = -1; /* special flag */
+			/* xfunc_die() checks for it */
+
+			rc = setjmp(die_jmp);
+			if (!rc) {
+				const struct bb_applet *old_a = current_applet;
+				current_applet = a;
+				applet_name = a->name;
 // what else should we save/restore?
-					rc = a->main(argc, argv);
-					current_applet = old_a;
-					applet_name = old_a->name;					
-				} else {
-					/* xfunc died in NOFORK applet */
-					if (rc == -111)
-						rc = 0;
-				}
-
-				die_sleep = old_sleep;
-				xfunc_error_retval = old_x;
-				return rc;
+// TODO: what if applet will mangle argv vector?
+// xargs needs argv untouched because it frees the vector!
+// shouldn't we pass a copy?
+				rc = a->main(argc, argv);
+				current_applet = old_a;
+				applet_name = old_a->name;					
+			} else {
+				/* xfunc died in NOFORK applet */
+				if (rc == -111)
+					rc = 0;
 			}
-#ifndef BB_NOMMU	/* MMU only */
-			/* a->noexec is true */
-			rc = fork();
-			if (rc)
-				goto w;
-			/* child */
-			current_applet = a;
-			run_current_applet_and_exit(argc, argv);
-#endif
-		}
 
+			die_sleep = old_sleep;
+			xfunc_error_retval = old_x;
+			return rc;
+		}
+#ifndef BB_NOMMU	/* MMU only */
+		/* a->noexec is true */
+		rc = fork();
+		if (rc)
+			goto w;
+		/* child */
+		current_applet = a;
+		run_current_applet_and_exit(argc, argv);
+#endif
 	}
 	rc = spawn(argv);
  w:
-#else /* !FEATURE_EXEC_PREFER_APPLETS */
-	rc = spawn(argv);
-#endif /* FEATURE_EXEC_PREFER_APPLETS */
 	return wait4pid(rc);
-}
-
-
-#if 0 //ndef BB_NOMMU
-// Die with an error message if we can't daemonize.
-void xdaemon(int nochdir, int noclose)
-{
-	if (daemon(nochdir, noclose))
-		bb_perror_msg_and_die("daemon");
-}
+#else /* !FEATURE_EXEC_PREFER_APPLETS */
+	return wait4pid(spawn(argv));
 #endif
-
-#if 0 // def BB_NOMMU
-void vfork_daemon_rexec(int nochdir, int noclose, char **argv)
-{
-	int fd;
-
-	/* Maybe we are already re-execed and come here again? */
-	if (re_execed)
-		return;
-
-	setsid();
-
-	if (!nochdir)
-		xchdir("/");
-
-	if (!noclose) {
-		/* if "/dev/null" doesn't exist, bail out! */
-		fd = xopen(bb_dev_null, O_RDWR);
-		dup2(fd, STDIN_FILENO);
-		dup2(fd, STDOUT_FILENO);
-		dup2(fd, STDERR_FILENO);
-		while (fd > 2)
-			close(fd--);
-	}
-
-	switch (vfork()) {
-	case 0: /* child */
-		/* Make certain we are not a session leader, or else we
-		 * might reacquire a controlling terminal */
-		if (vfork())
-			_exit(0);
-		/* High-order bit of first char in argv[0] is a hidden
-		 * "we have (alrealy) re-execed, don't do it again" flag */
-		argv[0][0] |= 0x80;
-		execv(CONFIG_BUSYBOX_EXEC_PATH, argv);
-		bb_perror_msg_and_die("exec %s", CONFIG_BUSYBOX_EXEC_PATH);
-	case -1: /* error */
-		bb_perror_msg_and_die("vfork");
-	default: /* parent */
-		exit(0);
-	}
 }
-#endif /* BB_NOMMU */
+
 
 #ifdef BB_NOMMU
 void forkexit_or_rexec(char **argv)
