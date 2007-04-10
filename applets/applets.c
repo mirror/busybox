@@ -52,7 +52,7 @@ const unsigned short NUM_APPLETS = sizeof(applets) / sizeof(struct BB_applet) - 
 const struct BB_applet *current_applet;
 const char *applet_name ATTRIBUTE_EXTERNALLY_VISIBLE;
 #ifdef BB_NOMMU
-smallint re_execed;
+bool re_execed;
 #endif
 
 
@@ -68,7 +68,7 @@ static struct BB_suid_config {
 	struct BB_suid_config *m_next;
 } *suid_config;
 
-static smallint suid_cfg_readable;
+static bool suid_cfg_readable;
 
 /* check if u is member of group g */
 static int ingroup(uid_t u, gid_t g)
@@ -135,7 +135,9 @@ static void parse_config_file(void)
 	const char *errmsg;
 	char *s;
 	char *e;
-	int i, lc, section;
+	int i;
+	unsigned lc;
+	smallint section;
 	char buffer[256];
 	struct stat st;
 
@@ -371,7 +373,7 @@ static void check_suid(const struct BB_applet *applet)
 	}
 #if !ENABLE_FEATURE_SUID_CONFIG_QUIET
 	{
-		static smallint onetime = 0;
+		static bool onetime = 0;
 
 		if (!onetime) {
 			onetime = 1;

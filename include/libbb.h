@@ -570,7 +570,7 @@ enum {
 # define bb_daemonize(flags)                bb_daemonize_or_rexec(flags, bogus)
 #else
   void forkexit_or_rexec(char **argv);
-  extern smallint re_execed;
+  extern bool re_execed;
 # define fork()          BUG_fork_is_unavailable_on_nommu()
 # define daemon(a,b)     BUG_daemon_is_unavailable_on_nommu()
 # define bb_daemonize(a) BUG_bb_daemonize_is_unavailable_on_nommu()
