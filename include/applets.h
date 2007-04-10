@@ -56,8 +56,8 @@ s     - suid type:
 # define APPLET(name,l,s)                    { #name, name##_main USE_FEATURE_INSTALLER(,l) USE_FEATURE_SUID(,s) },
 # define APPLET_NOUSAGE(name,main,l,s)       { #name, main##_main USE_FEATURE_INSTALLER(,l) USE_FEATURE_SUID(,s) },
 # define APPLET_ODDNAME(name,main,l,s,name2) { #name, main##_main USE_FEATURE_INSTALLER(,l) USE_FEATURE_SUID(,s) },
-# define APPLET_NOEXEC(name,main,l,s,name2)  { #name, main##_main USE_FEATURE_INSTALLER(,l) USE_FEATURE_SUID(,s) USE_FEATURE_EXEC_PREFER_APPLETS(,1) },
-# define APPLET_NOFORK(name,main,l,s,name2)  { #name, main##_main USE_FEATURE_INSTALLER(,l) USE_FEATURE_SUID(,s) USE_FEATURE_EXEC_PREFER_APPLETS(,1 ,1) },
+# define APPLET_NOEXEC(name,main,l,s,name2)  { #name, main##_main USE_FEATURE_INSTALLER(,l) USE_FEATURE_SUID(,s) USE_FEATURE_PREFER_APPLETS(,1) },
+# define APPLET_NOFORK(name,main,l,s,name2)  { #name, main##_main USE_FEATURE_INSTALLER(,l) USE_FEATURE_SUID(,s) USE_FEATURE_PREFER_APPLETS(,1 ,1) },
 #endif
 
 #if ENABLE_INSTALL_NO_USR

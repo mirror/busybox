@@ -10,14 +10,14 @@
 #include "libbb.h"
 
 int die_sleep;
-#if ENABLE_FEATURE_EXEC_PREFER_APPLETS
+#if ENABLE_FEATURE_PREFER_APPLETS
 jmp_buf die_jmp;
 #endif
 
 void xfunc_die(void)
 {
 	if (die_sleep) {
-		if (ENABLE_FEATURE_EXEC_PREFER_APPLETS && die_sleep < 0) {
+		if (ENABLE_FEATURE_PREFER_APPLETS && die_sleep < 0) {
 			/* Special case. We arrive here if NOFORK applet
 			 * calls xfunc, which then decides to die.
 			 * We don't die, but jump instead back to caller.

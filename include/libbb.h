@@ -502,7 +502,7 @@ int execable_file(const char *name);
 char *find_execable(const char *filename);
 int exists_execable(const char *filename);
 
-#if ENABLE_FEATURE_EXEC_PREFER_APPLETS
+#if ENABLE_FEATURE_PREFER_APPLETS
 int bb_execvp(const char *file, char *const argv[]);
 #define BB_EXECVP(prog,cmd) bb_execvp(prog,cmd)
 #define BB_EXECLP(prog,cmd,...) \
@@ -609,7 +609,8 @@ llist_t *llist_rev(llist_t *list);
 int write_pidfile(const char *path);
 #define remove_pidfile(f) ((void)unlink(f))
 #else
-#define write_pidfile(f)  TRUE
+/* Why? #defining it to 1 gives "warning: statement with no effect"... */
+static ATTRIBUTE_ALWAYS_INLINE int write_pidfile(const char *path) { return 1; }
 #define remove_pidfile(f) ((void)0)
 #endif
 

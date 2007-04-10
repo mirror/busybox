@@ -6531,7 +6531,7 @@ tryexec(char *cmd, char **argv, char **envp)
 {
 	int repeated = 0;
 
-#if ENABLE_FEATURE_SH_STANDALONE_SHELL
+#if ENABLE_FEATURE_SH_STANDALONE
 	if (strchr(cmd, '/') == NULL) {
 		const struct bb_applet *a;
 
@@ -6596,7 +6596,7 @@ shellexec(char **argv, const char *path, int idx)
 	clearredir(1);
 	envp = environment();
 	if (strchr(argv[0], '/')
-#if ENABLE_FEATURE_SH_STANDALONE_SHELL
+#if ENABLE_FEATURE_SH_STANDALONE
 	 || find_applet_by_name(argv[0])
 #endif
 	) {
@@ -11116,7 +11116,7 @@ find_command(char *name, struct cmdentry *entry, int act, const char *path)
 		return;
 	}
 
-#if ENABLE_FEATURE_SH_STANDALONE_SHELL
+#if ENABLE_FEATURE_SH_STANDALONE
 	if (find_applet_by_name(name)) {
 		entry->cmdtype = CMDNORMAL;
 		entry->u.index = -1;
@@ -11341,7 +11341,7 @@ helpcmd(int argc, char **argv)
 			col = 0;
 		}
 	}
-#if ENABLE_FEATURE_SH_STANDALONE_SHELL
+#if ENABLE_FEATURE_SH_STANDALONE
 	for (i = 0; i < NUM_APPLETS; i++) {
 		col += out1fmt("%c%s", ((col == 0) ? '\t' : ' '), applets[i].name);
 		if (col > 60) {

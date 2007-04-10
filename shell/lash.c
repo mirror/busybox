@@ -1164,7 +1164,7 @@ static int pseudo_exec(struct child_prog *child)
 	 * /bin/foo invocation will fork and exec /bin/foo, even if
 	 * /bin/foo is a symlink to busybox.
 	 */
-	if (ENABLE_FEATURE_SH_STANDALONE_SHELL) {
+	if (ENABLE_FEATURE_SH_STANDALONE) {
 		char **argv_l = child->argv;
 		int argc_l;
 

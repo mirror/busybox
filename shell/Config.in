@@ -216,10 +216,10 @@ config FEATURE_SH_EXTRA_QUIET
 	help
 	  Remove the busybox introduction when starting a shell.
 
-config FEATURE_SH_STANDALONE_SHELL
+config FEATURE_SH_STANDALONE
 	bool "Standalone shell"
 	default n
-	depends on MSH || LASH || HUSH || ASH
+	depends on (MSH || LASH || HUSH || ASH) && FEATURE_PREFER_APPLETS
 	help
 	  This option causes the selected busybox shell to use busybox applets
 	  in preference to executables in the PATH whenever possible.  For

@@ -238,7 +238,7 @@ config SELINUX
 
 	  Most people will leave this set to 'N'.
 
-config FEATURE_EXEC_PREFER_APPLETS
+config FEATURE_PREFER_APPLETS
 	bool "exec prefers applets"
 	default n
 	help
@@ -462,10 +462,10 @@ config INSTALL_APPLET_HARDLINKS
 
 config INSTALL_APPLET_DONT
 	bool "not installed"
-	depends on FEATURE_INSTALLER || FEATURE_SH_STANDALONE_SHELL || FEATURE_EXEC_PREFER_APPLETS
+	depends on FEATURE_INSTALLER || FEATURE_SH_STANDALONE || FEATURE_PREFER_APPLETS
 	help
 	  Do not install applet links. Useful when using the -install feature
-	  or a standalone shell for rescue pruposes.
+	  or a standalone shell for rescue purposes.
 
 endchoice
 

@@ -1112,7 +1112,7 @@ static void pseudo_exec(struct child_prog *child)
 		 * really dislike relying on /proc for things.  We could exec ourself
 		 * from global_argv[0], but if we are in a chroot, we may not be able
 		 * to find ourself... */
-#if ENABLE_FEATURE_SH_STANDALONE_SHELL
+#if ENABLE_FEATURE_SH_STANDALONE
 		{
 			int argc_l;
 			char** argv_l = child->argv;

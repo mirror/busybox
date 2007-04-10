@@ -102,7 +102,7 @@ int wait_pid(int *wstat, int pid)
 
 int spawn_and_wait(char **argv)
 {
-#if ENABLE_FEATURE_EXEC_PREFER_APPLETS
+#if ENABLE_FEATURE_PREFER_APPLETS
 	int rc;
 	const struct bb_applet *a = find_applet_by_name(argv[0]);
 
@@ -121,8 +121,13 @@ int spawn_and_wait(char **argv)
 		{
 			int old_sleep = die_sleep;
 			int old_x = xfunc_error_retval;
-			die_sleep = -1; /* special flag */
-			/* xfunc_die() checks for it */
+			uint32_t old_m = option_mask32;
+
+			xfunc_error_retval = EXIT_FAILURE;
+			/* special flag for xfunc_die(). If xfunc will "die"
+			 * in NOFORK applet, xfunc_die() sees negative
+			 * die_sleep and longjmp here instead. */
+			die_sleep = -1;
 
 			rc = setjmp(die_jmp);
 			if (!rc) {
@@ -144,6 +149,7 @@ int spawn_and_wait(char **argv)
 
 			die_sleep = old_sleep;
 			xfunc_error_retval = old_x;
+			option_mask32 = old_m;
 			return rc;
 		}
 #ifndef BB_NOMMU	/* MMU only */
@@ -159,7 +165,7 @@ int spawn_and_wait(char **argv)
 	rc = spawn(argv);
  w:
 	return wait4pid(rc);
-#else /* !FEATURE_EXEC_PREFER_APPLETS */
+#else /* !FEATURE_PREFER_APPLETS */
 	return wait4pid(spawn(argv));
 #endif
 }

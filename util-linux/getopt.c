@@ -38,8 +38,10 @@
    mode */
 enum {
 	NON_OPT = 1,
+#if ENABLE_GETOPT_LONG
 /* LONG_OPT is the code that is returned when a long option is found. */
 	LONG_OPT = 2
+#endif
 };
 
 /* For finding activated option flags. Must match getopt32 call! */
@@ -51,8 +53,10 @@ enum {
 	OPT_s	= 0x10,	// -s
 	OPT_T	= 0x20,	// -T
 	OPT_u	= 0x40,	// -u
+#if ENABLE_GETOPT_LONG
 	OPT_a	= 0x80,	// -a
 	OPT_l	= 0x100, // -l
+#endif
 	SHELL_IS_TCSH = 0x8000, /* hijack this bit for other purposes */
 };
 
@@ -137,31 +141,45 @@ static const char *normalize(const char *arg)
  * optstr must contain the short options, and longopts the long options.
  * Other settings are found in global variables.
  */
-static int generate_output(char * argv[],int argc,const char *optstr,
-		const struct option *longopts)
+#if !ENABLE_GETOPT_LONG
+#define generate_output(argv,argc,optstr,longopts) generate_output(argv,argc,optstr)
+#endif
+static int generate_output(char **argv, int argc, const char *optstr, const struct option *longopts)
 {
 	int exit_code = 0; /* We assume everything will be OK */
 	unsigned opt;
+#if ENABLE_GETOPT_LONG
 	int longindex;
+#endif
 	const char *charptr;
 
 	if (quiet_errors) /* No error reporting from getopt(3) */
 		opterr = 0;
 	optind = 0; /* Reset getopt(3) */
 
-	while ((opt = (alternative ?
-			getopt_long_only(argc,argv,optstr,longopts,&longindex) :
-			getopt_long(argc,argv,optstr,longopts,&longindex)))
-	       != EOF)
+	while (1) {
+		opt =
+#if ENABLE_GETOPT_LONG
+			alternative ?
+			getopt_long_only(argc, argv, optstr, longopts, &longindex) :
+			getopt_long(argc, argv, optstr, longopts, &longindex);
+#else
+			getopt(argc, argv, optstr);
+#endif
+		if (opt == EOF)
+			break;
 		if (opt == '?' || opt == ':' )
 			exit_code = 1;
 		else if (!quiet_output) {
+#if ENABLE_GETOPT_LONG
 			if (opt == LONG_OPT) {
 				printf(" --%s", longopts[longindex].name);
 				if (longopts[longindex].has_arg)
 					printf(" %s",
 						normalize(optarg ? optarg : ""));
-			} else if (opt == NON_OPT)
+			} else
+#endif
+			if (opt == NON_OPT)
 				printf(" %s", normalize(optarg));
 			else {
 				printf(" -%c", opt);
@@ -171,6 +189,7 @@ static int generate_output(char * argv[],int argc,const char *optstr,
 						normalize(optarg ? optarg : ""));
 			}
 		}
+	}
 
 	if (!quiet_output) {
 		printf(" --");
@@ -181,6 +200,7 @@ static int generate_output(char * argv[],int argc,const char *optstr,
 	return exit_code;
 }
 
+#if ENABLE_GETOPT_LONG
 /*
  * Register several long options. options is a string of long options,
  * separated by commas or whitespace.
@@ -224,6 +244,7 @@ static struct option *add_long_options(struct option *long_options, char *option
 	}
 	return long_options;
 }
+#endif
 
 static void set_shell(const char *new_shell)
 {
@@ -262,13 +283,13 @@ static const struct option longopts[] = {
 int getopt_main(int argc, char *argv[]);
 int getopt_main(int argc, char *argv[])
 {
-	struct option *long_options = NULL;
 	char *optstr = NULL;
 	char *name = NULL;
 	unsigned opt;
 	const char *compatible;
 	char *s_arg; 
 #if ENABLE_GETOPT_LONG
+	struct option *long_options = NULL;
 	llist_t *l_arg = NULL;
 #endif
 

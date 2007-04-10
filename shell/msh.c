@@ -37,7 +37,7 @@
 # define DEFAULT_SHELL "/proc/self/exe"
 # define CONFIG_BUSYBOX_EXEC_PATH "/proc/self/exe"
 # define BB_BANNER "busybox standalone"
-# define ENABLE_FEATURE_SH_STANDALONE_SHELL 0
+# define ENABLE_FEATURE_SH_STANDALONE 0
 # define bb_msg_memory_exhausted "memory exhausted"
 # define xmalloc(size) malloc(size)
 # define msh_main(argc,argv) main(argc,argv)
@@ -3064,7 +3064,7 @@ static const char *rexecve(char *c, char **v, char **envp)
 	int eacces = 0, asis = 0;
 	char *name = c;
 
-	if (ENABLE_FEATURE_SH_STANDALONE_SHELL) {
+	if (ENABLE_FEATURE_SH_STANDALONE) {
 		optind = 1;
 		if (find_applet_by_name(name)) {
 			/* We have to exec here since we vforked.  Running
@@ -3195,7 +3195,7 @@ static int dohelp(struct op *t)
 		}
 		x++;
 	}
-#if ENABLE_FEATURE_SH_STANDALONE_SHELL
+#if ENABLE_FEATURE_SH_STANDALONE
 	{
 		const struct bb_applet *applet = applets;
 

@@ -13,7 +13,6 @@
  * that too seems silly.
  */
 
-#include <stdlib.h>
 #include "libbb.h"
 
 int xfunc_error_retval = EXIT_FAILURE;
