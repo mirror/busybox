@@ -986,7 +986,7 @@ static int sendCgi(const char *url,
  *    since httpd is run from inetd (and it can't run standalone
  *    in uClinux).
  */
-#ifdef BB_NOMMU
+#if !BB_MMU
 	pid = vfork();
 #else
 	pid = fork();

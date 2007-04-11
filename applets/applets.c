@@ -51,7 +51,7 @@ const unsigned short NUM_APPLETS = sizeof(applets) / sizeof(applets[0]) - 1;
 
 const struct bb_applet *current_applet;
 const char *applet_name ATTRIBUTE_EXTERNALLY_VISIBLE;
-#ifdef BB_NOMMU
+#if !BB_MMU
 bool re_execed;
 #endif
 
@@ -612,7 +612,7 @@ int main(int argc, char **argv)
 {
 	const char *s;
 
-#ifdef BB_NOMMU
+#if !BB_MMU
 	/* NOMMU re-exec trick sets high-order bit in first byte of name */
 	if (argv[0][0] & 0x80) {
 		re_execed = 1;

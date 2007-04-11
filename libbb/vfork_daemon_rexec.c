@@ -107,15 +107,15 @@ int spawn_and_wait(char **argv)
 	const struct bb_applet *a = find_applet_by_name(argv[0]);
 
 	if (a && (a->nofork
-#ifndef BB_NOMMU
-		 || a->noexec /* NOEXEC cannot be used on NOMMU */
+#if BB_MMU
+		 || a->noexec /* NOEXEC trick needs fork() */
 #endif
 	)) {
 		int argc = 1;
 		char **pp = argv;
 		while (*++pp)
 			argc++;
-#ifndef BB_NOMMU
+#if BB_MMU
 		if (a->nofork)
 #endif
 		{
@@ -136,7 +136,7 @@ int spawn_and_wait(char **argv)
 				applet_name = a->name;
 // what else should we save/restore?
 // TODO: what if applet will mangle argv vector?
-// xargs needs argv untouched because it frees the vector!
+// xargs needs argv untouched because it frees argv[i]!
 // shouldn't we pass a copy?
 				rc = a->main(argc, argv);
 				current_applet = old_a;
@@ -152,29 +152,25 @@ int spawn_and_wait(char **argv)
 			option_mask32 = old_m;
 			return rc;
 		}
-#ifndef BB_NOMMU	/* MMU only */
+#if BB_MMU
+		/* MMU only */
 		/* a->noexec is true */
 		rc = fork();
-		if (rc)
-			goto w;
+		if (rc) /* parent or error */
+			return wait4pid(rc);
 		/* child */
 		xfunc_error_retval = EXIT_FAILURE;
 		current_applet = a;
 		run_current_applet_and_exit(argc, argv);
 #endif
 	}
+#endif /* FEATURE_PREFER_APPLETS */
 	rc = spawn(argv);
-#ifndef BB_NOMMU
- w:
-#endif
 	return wait4pid(rc);
-#else /* !FEATURE_PREFER_APPLETS */
-	return wait4pid(spawn(argv));
-#endif
 }
 
 
-#ifdef BB_NOMMU
+#if !BB_MMU
 void forkexit_or_rexec(char **argv)
 {
 	pid_t pid;
@@ -209,7 +205,6 @@ void forkexit_or_rexec(void)
 }
 #define forkexit_or_rexec(argv) forkexit_or_rexec()
 #endif
-
 
 /* Due to a #define in libbb.h on MMU systems we actually have 1 argument -
  * char **argv "vanishes" */

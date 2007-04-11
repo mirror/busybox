@@ -269,6 +269,8 @@ char *xrealloc_getcwd_or_warn(char *cwd);
 char *xmalloc_readlink_or_warn(const char *path);
 char *xmalloc_realpath(const char *path);
 
+
+//TODO: signal(sid, f) is the same? then why?
 extern void sig_catch(int,void (*)(int));
 //#define sig_ignore(s) (sig_catch((s), SIG_IGN))
 //#define sig_uncatch(s) (sig_catch((s), SIG_DFL))
@@ -276,7 +278,6 @@ extern void sig_block(int);
 extern void sig_unblock(int);
 /* UNUSED: extern void sig_blocknone(void); */
 extern void sig_pause(void);
-
 
 
 void xsetgid(gid_t gid);
@@ -519,15 +520,14 @@ pid_t xspawn(char **argv);
 
 /* Unlike waitpid, waits ONLY for one process,
  * It's safe to pass negative 'pids' from failed [v]fork -
- * wait4pid will return -1 and ECHILD in errno.
+ * wait4pid will return -1 (and will not clobber [v]fork's errno).
  * IOW: rc = wait4pid(spawn(argv));
  *      if (rc < 0) bb_perror_msg("%s", argv[0]);
  *      if (rc > 0) bb_error_msg("exit code: %d", rc);
  */
+int wait4pid(int pid);
 int wait_pid(int *wstat, int pid);
 int wait_nohang(int *wstat);
-int wait4pid(int pid);
-//TODO: signal(sid, f) is the same? then why?
 #define wait_crashed(w) ((w) & 127)
 #define wait_exitcode(w) ((w) >> 8)
 #define wait_stopsig(w) ((w) >> 8)
@@ -564,7 +564,7 @@ enum {
 	DAEMON_CLOSE_EXTRA_FDS = 4,
 	DAEMON_ONLY_SANITIZE = 8, /* internal use */
 };
-#ifndef BB_NOMMU
+#if BB_MMU
   void forkexit_or_rexec(void);
 # define forkexit_or_rexec(argv)            forkexit_or_rexec()
 # define bb_daemonize_or_rexec(flags, argv) bb_daemonize_or_rexec(flags)

@@ -220,7 +220,7 @@ int zcip_main(int argc, char **argv)
 		}
 	}
 	// On NOMMU reexec early (or else we will rerun things twice)
-#ifdef BB_NOMMU
+#if !BB_MMU
 	if (!FOREGROUND)
 		bb_daemonize_or_rexec(DAEMON_CHDIR_ROOT, argv);
 #endif
@@ -268,7 +268,7 @@ int zcip_main(int argc, char **argv)
 
 	// daemonize now; don't delay system startup
 	if (!FOREGROUND) {
-#ifndef BB_NOMMU
+#if BB_MMU
 		bb_daemonize(DAEMON_CHDIR_ROOT);
 #endif
 		bb_info_msg("start, interface %s", intf);

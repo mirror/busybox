@@ -212,7 +212,15 @@ typedef unsigned smalluint;
  */
 #if defined __UCLIBC__ && __UCLIBC_MAJOR__ >= 0 && __UCLIBC_MINOR__ >= 9 && \
     __UCLIBC_SUBLEVEL__ > 28 && !defined __ARCH_USE_MMU__
-#define BB_NOMMU
+#define BB_MMU 0
+#define BB_NOMMU 1
+#define USE_FOR_NOMMU(...) __VA_ARGS__
+#define USE_FOR_MMU(...)
+#else
+#define BB_MMU 1
+/* BB_NOMMU is not defined in this case! */
+#define USE_FOR_NOMMU(...)
+#define USE_FOR_MMU(...) __VA_ARGS__
 #endif
 
 /* Platforms that haven't got dprintf need to implement fdprintf() in
@@ -232,7 +240,7 @@ static ATTRIBUTE_ALWAYS_INLINE char* strchrnul(const char *s, char c) {
 }
 #endif
 
-/* Don't use lchown with glibc older than 2.1.x ... uC-libc lacks it */
+/* Don't use lchown with glibc older than 2.1.x ... uClibc lacks it */
 #if (defined __GLIBC__ && __GLIBC__ <= 2 && __GLIBC_MINOR__ < 1) || \
     defined __UC_LIBC__
 # define lchown chown
