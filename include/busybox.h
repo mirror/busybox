@@ -38,11 +38,11 @@ struct bb_applet {
 	__extension__ enum bb_suid_t need_suid:8;
 #endif
 #if ENABLE_FEATURE_PREFER_APPLETS
-	/* true if instead if fork(); exec("applet"); waitpid();
+	/* true if instead of fork(); exec("applet"); waitpid();
 	 * one can do fork(); exit(applet_main(argc,argv)); waitpid(); */
 	unsigned char noexec;
 	/* Even nicer */
-	/* true if instead if fork(); exec("applet"); waitpid();
+	/* true if instead of fork(); exec("applet"); waitpid();
 	 * one can simply call applet_main(argc,argv); */
 	unsigned char nofork;
 #endif
