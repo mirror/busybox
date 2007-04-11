@@ -3573,7 +3573,7 @@ killcmd(int argc, char **argv)
 		if (!*argv) {
 			for (i = 1; i < NSIG; i++) {
 				name = get_signame(i);
-				if (isdigit(*name))
+				if (!isdigit(*name))
 					out1fmt(snlfmt, name);
 			}
 			return 0;
