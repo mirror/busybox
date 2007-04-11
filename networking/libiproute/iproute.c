@@ -434,6 +434,18 @@ static int iproute_modify(int cmd, unsigned flags, int argc, char **argv)
 		}
 		addattr_l(&req.n, sizeof(req), RTA_METRICS, RTA_DATA(mxrta), RTA_PAYLOAD(mxrta));
 	}
+	if (req.r.rtm_type == RTN_LOCAL || req.r.rtm_type == RTN_NAT)
+		req.r.rtm_scope = RT_SCOPE_HOST;
+	else if (req.r.rtm_type == RTN_BROADCAST ||
+			req.r.rtm_type == RTN_MULTICAST ||
+			req.r.rtm_type == RTN_ANYCAST)
+		req.r.rtm_scope = RT_SCOPE_LINK;
+	else if (req.r.rtm_type == RTN_UNICAST || req.r.rtm_type == RTN_UNSPEC) {
+		if (cmd == RTM_DELROUTE)
+			req.r.rtm_scope = RT_SCOPE_NOWHERE;
+		else if (!gw_ok)
+			req.r.rtm_scope = RT_SCOPE_LINK;
+	}
 
 	if (req.r.rtm_family == AF_UNSPEC) {
 		req.r.rtm_family = AF_INET;
