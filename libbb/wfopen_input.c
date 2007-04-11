@@ -11,7 +11,7 @@
  * is a command line arg.  Since often that arg is '-' (meaning stdin),
  * we avoid testing everywhere by consolidating things in this routine.
  *
- * Note: We also consider "" to main stdin (for 'cmp' at least).
+ * Note: we also consider "" to mean stdin (for 'cmp' at least).
  */
 
 #include "libbb.h"

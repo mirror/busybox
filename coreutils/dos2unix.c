@@ -30,7 +30,7 @@ static int convert(char *fn)
 		/*
 		   The file is then created with mode read/write and
 		   permissions 0666 for glibc 2.0.6 and earlier or
-		   0600  for glibc  2.0.7 and  later.
+		   0600 for glibc 2.0.7 and later.
 		 */
 		snprintf(bb_common_bufsiz1, sizeof(bb_common_bufsiz1), "%sXXXXXX", fn);
 		/*
@@ -38,8 +38,8 @@ static int convert(char *fn)
 		   hold the full path.  However if the output is truncated the
 		   subsequent call to mkstemp would fail.
 		 */
-		if ((i = mkstemp(&bb_common_bufsiz1[0])) == -1
-			|| chmod(bb_common_bufsiz1, 0600) == -1) {
+		i = mkstemp(&bb_common_bufsiz1[0]);
+		if (i == -1 || chmod(bb_common_bufsiz1, 0600) == -1) {
 			bb_perror_nomsg_and_die();
 		}
 		out = fdopen(i, "w+");

@@ -19,18 +19,21 @@ int bb_cat(char **argv)
 {
 	static const char *const argv_dash[] = { "-", NULL };
 
-	FILE *f;
+	int fd;
 	int retval = EXIT_SUCCESS;
 
 	if (!*argv)
 		argv = (char**) &argv_dash;
 
 	do {
-		f = fopen_or_warn_stdin(*argv);
-		if (f) {
+		fd = STDIN_FILENO;
+		if (!LONE_DASH(*argv))
+			fd = open_or_warn(*argv, O_RDONLY);
+		if (fd >= 0) {
 			/* This is not an xfunc - never exits */
-			off_t r = bb_copyfd_eof(fileno(f), STDOUT_FILENO);
-			fclose_if_not_stdin(f);
+			off_t r = bb_copyfd_eof(fd, STDOUT_FILENO);
+			if (fd != STDIN_FILENO)
+				close(fd);
 			if (r >= 0)
 				continue;
 		}

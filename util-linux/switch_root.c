@@ -111,7 +111,7 @@ int switch_root_main(int argc, char **argv)
 
 	if (console) {
 		close(0);
-		if(open(console, O_RDWR) < 0)
+		if (open(console, O_RDWR) < 0)
 			bb_error_msg_and_die("bad console '%s'", console);
 		dup2(0, 1);
 		dup2(0, 2);

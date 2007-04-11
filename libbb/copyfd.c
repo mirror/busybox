@@ -14,14 +14,13 @@
 #define BUFSIZ 4096
 #endif
 
-/* Used by NOFORK applets (e.g. cat) - must be very careful
- * when calling xfuncs, allocating memory, with signals, termios, etc... */
+/* Used by NOFORK applets (e.g. cat) - must not use xmalloc */
 
 static off_t bb_full_fd_action(int src_fd, int dst_fd, off_t size)
 {
 	int status = -1;
 	off_t total = 0;
-	RESERVE_CONFIG_BUFFER(buffer, BUFSIZ);
+	char buffer[BUFSIZ];
 
 	if (src_fd < 0)
 		goto out;
@@ -63,7 +62,6 @@ static off_t bb_full_fd_action(int src_fd, int dst_fd, off_t size)
 		}
 	}
  out:
-	RELEASE_CONFIG_BUFFER(buffer);
 	return status ? -1 : total;
 }
 

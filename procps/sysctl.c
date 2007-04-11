@@ -202,7 +202,8 @@ int sysctl_write_setting(const char *setting, int output)
 	while ((cptr = strchr(outname, '/')) != NULL)
 		*cptr = '.';
 
-	if ((fd = open(tmpname, O_WRONLY | O_CREAT | O_TRUNC, 0666)) < 0) {
+	fd = open(tmpname, O_WRONLY | O_CREAT | O_TRUNC, 0666);
+	if (fd < 0) {
 		switch (errno) {
 		case ENOENT:
 			bb_error_msg(ERR_INVALID_KEY, outname);

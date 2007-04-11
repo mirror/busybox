@@ -288,6 +288,8 @@ void xunlink(const char *pathname);
 void xstat(const char *pathname, struct stat *buf);
 int xopen(const char *pathname, int flags);
 int xopen3(const char *pathname, int flags, int mode);
+int open_or_warn(const char *pathname, int flags);
+int open3_or_warn(const char *pathname, int flags, int mode);
 off_t xlseek(int fd, off_t offset, int whence);
 off_t fdlength(int fd);
 

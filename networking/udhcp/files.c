@@ -311,9 +311,8 @@ int read_config(const char *file)
 		if (keywords[i].def[0])
 			keywords[i].handler(keywords[i].def, keywords[i].var);
 
-	in = fopen(file, "r");
+	in = fopen_or_warn(file, "r");
 	if (!in) {
-		bb_error_msg("cannot open config file: %s", file);
 		return 0;
 	}
 
@@ -360,9 +359,8 @@ void write_leases(void)
 	time_t curr = time(0);
 	unsigned long tmp_time;
 
-	fp = open(server_config.lease_file, O_WRONLY|O_CREAT|O_TRUNC, 0666);
+	fp = open3_or_warn(server_config.lease_file, O_WRONLY|O_CREAT|O_TRUNC, 0666);
 	if (fp < 0) {
-		bb_error_msg("cannot open %s for writing", server_config.lease_file);
 		return;
 	}
 
@@ -401,9 +399,8 @@ void read_leases(const char *file)
 	unsigned int i = 0;
 	struct dhcpOfferedAddr lease;
 
-	fp = open(file, O_RDONLY);
+	fp = open_or_warn(file, O_RDONLY);
 	if (fp < 0) {
-		bb_error_msg("cannot open %s for reading", file);
 		return;
 	}
 

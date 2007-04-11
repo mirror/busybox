@@ -426,10 +426,9 @@ static void do_tunnels_list(struct ip_tunnel_parm *p)
 	int type;
 	struct ip_tunnel_parm p1;
 	char buf[512];
-	FILE *fp = fopen("/proc/net/dev", "r");
+	FILE *fp = fopen_or_warn("/proc/net/dev", "r");
 
 	if (fp == NULL) {
-		bb_perror_msg("fopen");
 		return;
 	}
 

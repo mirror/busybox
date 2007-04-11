@@ -20,16 +20,11 @@ enum {
 static
 int open_to_or_warn(int to_fd, const char *filename, int flags, int mode)
 {
-	int fd = open(filename, flags, mode);
+	int fd = open3_or_warn(filename, flags, mode);
 	if (fd < 0) {
-		bb_perror_msg("%s", filename);
 		return 1;
 	}
-	if (fd != to_fd) {
-		if (dup2(fd, to_fd) < 0)
-			bb_perror_msg_and_die("cannot dup");
-		close(fd);
-	}
+	xmove_fd(fd, to_fd);
 	return 0;
 }
 

@@ -571,11 +571,10 @@ static int setup_redirects(struct child_prog *prog, int squirrel[])
 			break;
 		}
 
-		openfd = open(redir->filename, mode, 0666);
+		openfd = open3_or_warn(redir->filename, mode, 0666);
 		if (openfd < 0) {
 			/* this could get lost if stderr has been redirected, but
 			   bash and ash both lose it as well (though zsh doesn't!) */
-			bb_perror_msg("error opening %s", redir->filename);
 			return 1;
 		}
 

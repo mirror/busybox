@@ -217,9 +217,8 @@ int copy_file(const char *source, const char *dest, int flags)
 			add_to_ino_dev_hashtable(&source_stat, dest);
 		}
 
-		src_fd = open(source, O_RDONLY);
-		if (src_fd == -1) {
-			bb_perror_msg("cannot open '%s'", source);
+		src_fd = open_or_warn(source, O_RDONLY);
+		if (src_fd < 0) {
 			return -1;
 		}
 
@@ -237,9 +236,8 @@ int copy_file(const char *source, const char *dest, int flags)
 				return ovr;
 			}
 			/* It shouldn't exist. If it exists, do not open (symlink attack?) */
-			dst_fd = open(dest, O_WRONLY|O_CREAT|O_EXCL, source_stat.st_mode);
-			if (dst_fd == -1) {
-				bb_perror_msg("cannot open '%s'", dest);
+			dst_fd = open3_or_warn(dest, O_WRONLY|O_CREAT|O_EXCL, source_stat.st_mode);
+			if (dst_fd < 0) {
 				close(src_fd);
 				return -1;
 			}

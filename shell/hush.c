@@ -1019,11 +1019,10 @@ static int setup_redirects(struct child_prog *prog, int squirrel[])
 		}
 		if (redir->dup == -1) {
 			mode = redir_table[redir->type].mode;
-			openfd = open(redir->word.gl_pathv[0], mode, 0666);
+			openfd = open3_or_warn(redir->word.gl_pathv[0], mode, 0666);
 			if (openfd < 0) {
 			/* this could get lost if stderr has been redirected, but
 			   bash and ash both lose it as well (though zsh doesn't!) */
-				bb_perror_msg("error opening %s", redir->word.gl_pathv[0]);
 				return 1;
 			}
 		} else {

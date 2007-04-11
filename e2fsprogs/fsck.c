@@ -396,7 +396,6 @@ static void load_fs_info(const char *filename)
 
 	f = fopen_or_warn(filename, "r");
 	if (f == NULL) {
-		/*bb_perror_msg("WARNING: cannot open %s", filename);*/
 		return;
 	}
 	while (1) {

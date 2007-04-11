@@ -106,29 +106,44 @@ FILE *xfopen(const char *path, const char *mode)
 {
 	FILE *fp = fopen(path, mode);
 	if (fp == NULL)
-		bb_perror_msg_and_die("%s", path);
+		bb_perror_msg_and_die("cannot open '%s'", path);
 	return fp;
 }
 
-// Die if we can't open an existing file and return an fd.
-int xopen(const char *pathname, int flags)
-{
-	//if (ENABLE_DEBUG && (flags & O_CREAT))
-	//	bb_error_msg_and_die("xopen() with O_CREAT");
-
-	return xopen3(pathname, flags, 0666);
-}
-
-// Die if we can't open a new file and return an fd.
+// Die if we can't open a file and return a fd.
 int xopen3(const char *pathname, int flags, int mode)
 {
 	int ret;
 
 	ret = open(pathname, flags, mode);
 	if (ret < 0) {
-		bb_perror_msg_and_die("%s", pathname);
+		bb_perror_msg_and_die("cannot open '%s'", pathname);
 	}
 	return ret;
+}
+
+// Die if we can't open an existing file and return a fd.
+int xopen(const char *pathname, int flags)
+{
+	return xopen3(pathname, flags, 0666);
+}
+
+// Warn if we can't open a file and return a fd.
+int open3_or_warn(const char *pathname, int flags, int mode)
+{
+	int ret;
+
+	ret = open(pathname, flags, mode);
+	if (ret < 0) {
+		bb_perror_msg("cannot open '%s'", pathname);
+	}
+	return ret;
+}
+
+// Warn if we can't open a file and return a fd.
+int open_or_warn(const char *pathname, int flags)
+{
+	return open3_or_warn(pathname, flags, 0666);
 }
 
 void xunlink(const char *pathname)
@@ -184,6 +199,7 @@ off_t xlseek(int fd, off_t offset, int whence)
 void die_if_ferror(FILE *fp, const char *fn)
 {
 	if (ferror(fp)) {
+		/* doesn't set useful errno */
 		bb_error_msg_and_die("%s: I/O error", fn);
 	}
 }

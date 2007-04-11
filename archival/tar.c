@@ -440,9 +440,8 @@ static int writeFileToTarball(const char *fileName, struct stat *statbuf,
 	/* Is this a regular file? */
 	if (tbInfo->hlInfo == NULL && S_ISREG(statbuf->st_mode)) {
 		/* open the file we want to archive, and make sure all is well */
-		inputFileFd = open(fileName, O_RDONLY);
+		inputFileFd = open_or_warn(fileName, O_RDONLY);
 		if (inputFileFd < 0) {
-			bb_perror_msg("%s: cannot open", fileName);
 			return FALSE;
 		}
 	}
@@ -455,7 +454,7 @@ static int writeFileToTarball(const char *fileName, struct stat *statbuf,
 	/* If it was a regular file, write out the body */
 	if (inputFileFd >= 0) {
 		size_t readSize;
-		/* Wwrite the file to the archive. */
+		/* Write the file to the archive. */
 		/* We record size into header first, */
 		/* and then write out file. If file shrinks in between, */
 		/* tar will be corrupted. So we don't allow for that. */

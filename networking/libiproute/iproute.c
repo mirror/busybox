@@ -484,10 +484,9 @@ static int rtnl_rtcache_request(struct rtnl_handle *rth, int family)
 static void iproute_flush_cache(void)
 {
 	static const char fn[] = "/proc/sys/net/ipv4/route/flush";
-	int flush_fd = open(fn, O_WRONLY);
+	int flush_fd = open_or_warn(fn, O_WRONLY);
 
 	if (flush_fd < 0) {
-		bb_perror_msg("cannot open '%s'", fn);
 		return;
 	}
 
