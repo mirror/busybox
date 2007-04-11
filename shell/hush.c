@@ -489,7 +489,7 @@ static int builtin_exit(struct child_prog *child)
 {
 	if (child->argv[1] == NULL)
 		exit(last_return_code);
-	exit (atoi(child->argv[1]));
+	exit(atoi(child->argv[1]));
 }
 
 /* built-in 'export VAR=value' handler */

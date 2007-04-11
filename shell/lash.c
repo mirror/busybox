@@ -243,7 +243,7 @@ static int builtin_exit(struct child_prog *child)
 	if (child->argv[1] == NULL)
 		exit(EXIT_SUCCESS);
 
-	exit (atoi(child->argv[1]));
+	exit(atoi(child->argv[1]));
 }
 
 /* built-in 'fg' and 'bg' handler */

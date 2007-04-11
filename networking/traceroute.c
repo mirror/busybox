@@ -856,7 +856,7 @@ print(unsigned char *buf, int cc, struct sockaddr_in *from)
 	inetname(from);
 #if ENABLE_FEATURE_TRACEROUTE_VERBOSE
 	if (verbose)
-		printf(" %d bytes to %s", cc, inet_ntoa (ip->ip_dst));
+		printf(" %d bytes to %s", cc, inet_ntoa(ip->ip_dst));
 #endif
 }
 

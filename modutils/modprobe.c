@@ -677,8 +677,8 @@ static int check_pattern(const char* pat_src, const char* mod_src) {
 		char* mod;
 		char* p;
 
-		pat = xstrdup (pat_src);
-		mod = xstrdup (mod_src);
+		pat = xstrdup(pat_src);
+		mod = xstrdup(mod_src);
 
 		for (p = pat; (p = strchr(p, '-')); *p++ = '_');
 		for (p = mod; (p = strchr(p, '-')); *p++ = '_');

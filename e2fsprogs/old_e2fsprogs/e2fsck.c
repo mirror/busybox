@@ -12660,7 +12660,7 @@ static void check_mount(e2fsck_t ctx)
 	cont = ask_yn(_("Do you really want to continue"), -1);
 	if (!cont) {
 		printf(_("check aborted.\n"));
-		exit (0);
+		exit(0);
 	}
 }
 

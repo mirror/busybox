@@ -598,7 +598,7 @@ static unsigned long obj_elf_hash(const char *);
 
 static unsigned long obj_elf_hash_n(const char *, unsigned long len);
 
-static struct obj_symbol *obj_find_symbol (struct obj_file *f,
+static struct obj_symbol *obj_find_symbol(struct obj_file *f,
 					 const char *name);
 
 static ElfW(Addr) obj_symbol_final_value(struct obj_file *f,
@@ -610,23 +610,23 @@ static void obj_set_symbol_compare(struct obj_file *f,
 			    unsigned long (*hash)(const char *));
 #endif
 
-static struct obj_section *obj_find_section (struct obj_file *f,
+static struct obj_section *obj_find_section(struct obj_file *f,
 					   const char *name);
 
-static void obj_insert_section_load_order (struct obj_file *f,
+static void obj_insert_section_load_order(struct obj_file *f,
 				    struct obj_section *sec);
 
-static struct obj_section *obj_create_alloced_section (struct obj_file *f,
+static struct obj_section *obj_create_alloced_section(struct obj_file *f,
 						const char *name,
 						unsigned long align,
 						unsigned long size);
 
-static struct obj_section *obj_create_alloced_section_first (struct obj_file *f,
+static struct obj_section *obj_create_alloced_section_first(struct obj_file *f,
 						      const char *name,
 						      unsigned long align,
 						      unsigned long size);
 
-static void *obj_extend_section (struct obj_section *sec, unsigned long more);
+static void *obj_extend_section(struct obj_section *sec, unsigned long more);
 
 static int obj_string_patch(struct obj_file *f, int secidx, ElfW(Addr) offset,
 		     const char *string);
@@ -638,29 +638,29 @@ static int obj_check_undefineds(struct obj_file *f);
 
 static void obj_allocate_commons(struct obj_file *f);
 
-static unsigned long obj_load_size (struct obj_file *f);
+static unsigned long obj_load_size(struct obj_file *f);
 
-static int obj_relocate (struct obj_file *f, ElfW(Addr) base);
+static int obj_relocate(struct obj_file *f, ElfW(Addr) base);
 
 static struct obj_file *obj_load(FILE *f, int loadprogbits);
 
-static int obj_create_image (struct obj_file *f, char *image);
+static int obj_create_image(struct obj_file *f, char *image);
 
 /* Architecture specific manipulation routines.  */
 
-static struct obj_file *arch_new_file (void);
+static struct obj_file *arch_new_file(void);
 
-static struct obj_section *arch_new_section (void);
+static struct obj_section *arch_new_section(void);
 
-static struct obj_symbol *arch_new_symbol (void);
+static struct obj_symbol *arch_new_symbol(void);
 
-static enum obj_reloc arch_apply_relocation (struct obj_file *f,
+static enum obj_reloc arch_apply_relocation(struct obj_file *f,
 				      struct obj_section *targsec,
 				      struct obj_section *symsec,
 				      struct obj_symbol *sym,
 				      ElfW(RelM) *rel, ElfW(Addr) value);
 
-static void arch_create_got (struct obj_file *f);
+static void arch_create_got(struct obj_file *f);
 #if ENABLE_FEATURE_CHECK_TAINTED_MODULE
 static int obj_gpl_license(struct obj_file *f, const char **license);
 #endif /* FEATURE_CHECK_TAINTED_MODULE */
@@ -2313,13 +2313,13 @@ add_symbols_from( struct obj_file *f,
 		   kernel exports `C names', but module object files
 		   reference `linker names').  */
 		size_t extra = sizeof SYMBOL_PREFIX;
-		size_t name_size = strlen (name) + extra;
+		size_t name_size = strlen(name) + extra;
 		if (name_size > name_alloced_size) {
 			name_alloced_size = name_size * 2;
-			name_buf = alloca (name_alloced_size);
+			name_buf = alloca(name_alloced_size);
 		}
-		strcpy (name_buf, SYMBOL_PREFIX);
-		strcpy (name_buf + extra - 1, name);
+		strcpy(name_buf, SYMBOL_PREFIX);
+		strcpy(name_buf + extra - 1, name);
 		name = name_buf;
 #endif /* SYMBOL_PREFIX */
 
@@ -2327,8 +2327,8 @@ add_symbols_from( struct obj_file *f,
 		if (sym && !(ELF_ST_BIND(sym->info) == STB_LOCAL)) {
 #ifdef SYMBOL_PREFIX
 			/* Put NAME_BUF into more permanent storage.  */
-			name = xmalloc (name_size);
-			strcpy (name, name_buf);
+			name = xmalloc(name_size);
+			strcpy(name, name_buf);
 #endif
 			sym = obj_add_symbol(f, name, -1,
 					ELF_ST_INFO(STB_GLOBAL,
@@ -2351,10 +2351,14 @@ static void add_kernel_symbols(struct obj_file *f)
 
 	/* Add module symbols first.  */
 
-	for (i = 0, m = ext_modules; i < n_ext_modules; ++i, ++m)
+	for (i = 0, m = ext_modules; i < n_ext_modules; ++i, ++m) {
 		if (m->nsyms
-				&& add_symbols_from(f, SHN_HIRESERVE + 2 + i, m->syms,
-					m->nsyms)) m->used = 1, ++nused;
+		 && add_symbols_from(f, SHN_HIRESERVE + 2 + i, m->syms, m->nsyms)
+		) {
+			m->used = 1;
+			++nused;
+		}
+	}
 
 	n_ext_modules_used = nused;
 
@@ -2423,9 +2427,9 @@ new_process_module_arguments(struct obj_file *f, int argc, char **argv)
 		}
 
 #ifdef SYMBOL_PREFIX
-		sym_name = alloca (strlen (key) + sizeof SYMBOL_PREFIX);
-		strcpy (sym_name, SYMBOL_PREFIX);
-		strcat (sym_name, key);
+		sym_name = alloca(strlen(key) + sizeof SYMBOL_PREFIX);
+		strcpy(sym_name, SYMBOL_PREFIX);
+		strcat(sym_name, key);
 #else
 		sym_name = key;
 #endif
@@ -2549,7 +2553,7 @@ new_process_module_arguments(struct obj_file *f, int argc, char **argv)
 					obj_string_patch(f, sym->secidx, loc - contents, str);
 					loc += tgt_sizeof_char_p;
 				} else {
-					/* Array of chars (in fact, matrix !) */
+					/* Array of chars (in fact, matrix!) */
 					unsigned long charssize;	/* size of each member */
 
 					/* Get the size of each member */
