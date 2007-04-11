@@ -106,7 +106,7 @@ function buildit ()
     gcc -Os -o build/$APPLET applets/individual.c $j \
 	`extra_libraries $APPFILT` libbb/libbb.a -Iinclude \
 	-DBUILD_INDIVIDUAL \
-	'-Drun_applet_by_name(...)' '-Dfind_applet_by_name(...)=0' \
+	'-Drun_applet_and_exit(...)' '-Dfind_applet_by_name(...)=0' \
 	-DAPPLET_main=${APPFILT}_main -DAPPLET_full_usage=${HELPNAME}
     if [ $? -ne 0 ];
     then

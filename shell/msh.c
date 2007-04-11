@@ -3068,7 +3068,7 @@ static const char *rexecve(char *c, char **v, char **envp)
 		optind = 1;
 		if (find_applet_by_name(name)) {
 			/* We have to exec here since we vforked.  Running
-			 * run_applet_by_name() won't work and bad things
+			 * run_applet_and_exit() won't work and bad things
 			 * will happen. */
 			execve(CONFIG_BUSYBOX_EXEC_PATH, v, envp);
 		}

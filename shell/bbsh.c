@@ -165,7 +165,7 @@ static int run_pipeline(struct pipeline *line)
 		int status;
 		pid_t pid=fork();
 		if(!pid) {
-			run_applet_by_name(cmd->argv[0],cmd->argc,cmd->argv);
+			run_applet_and_exit(cmd->argv[0],cmd->argc,cmd->argv);
 			execvp(cmd->argv[0],cmd->argv);
 			printf("No %s",cmd->argv[0]);
 			exit(1);

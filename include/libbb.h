@@ -675,7 +675,7 @@ const struct hwtype *get_hwntype(int type);
 struct bb_applet;
 extern const struct bb_applet *find_applet_by_name(const char *name);
 /* Returns only if applet is not found. */
-extern void run_applet_by_name(const char *name, int argc, char **argv);
+extern void run_applet_and_exit(const char *name, int argc, char **argv);
 extern void run_current_applet_and_exit(int argc, char **argv) ATTRIBUTE_NORETURN;
 #endif
 

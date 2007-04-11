@@ -531,7 +531,7 @@ applets.</p>
 
 <p>Busybox execution starts with the main() function in applets/busybox.c,
 which sets the global variable applet_name to argv[0] and calls
-run_applet_by_name() in applets/applets.c.  That uses the applets[] array
+run_applet_and_exit() in applets/applets.c.  That uses the applets[] array
 (defined in include/busybox.h and filled out in include/applets.h) to
 transfer control to the appropriate APPLET_main() function (such as
 cat_main() or sed_main()).  The individual applet takes it from there.</p>

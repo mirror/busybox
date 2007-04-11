@@ -1170,7 +1170,7 @@ static int pseudo_exec(struct child_prog *child)
 
 		for (argc_l = 0; *argv_l; argv_l++, argc_l++);
 		optind = 1;
-		run_applet_by_name(child->argv[0], argc_l, child->argv);
+		run_applet_and_exit(child->argv[0], argc_l, child->argv);
 	}
 
 	execvp(child->argv[0], child->argv);

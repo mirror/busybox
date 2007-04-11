@@ -1123,7 +1123,7 @@ static void pseudo_exec(struct child_prog *child)
 				/**/;
 			optind = 1;
 			debug_printf("running applet %s\n", name);
-			run_applet_by_name(name, argc_l, child->argv);
+			run_applet_and_exit(name, argc_l, child->argv);
 		}
 #endif
 		debug_printf("exec of %s\n", child->argv[0]);

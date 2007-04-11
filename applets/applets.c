@@ -541,7 +541,7 @@ static int busybox_main(int argc, char **argv)
 		if (argc > 2) {
 			/* set name for proper "<name>: applet not found" */
 			applet_name = argv[2];
-			run_applet_by_name(applet_name, 2, argv);
+			run_applet_and_exit(applet_name, 2, argv);
 		} else {
 			const struct bb_applet *a;
 			int col, output_width;
@@ -582,7 +582,7 @@ static int busybox_main(int argc, char **argv)
 	} else {
 		/* we want "<argv[1]>: applet not found", not "busybox: ..." */
 		applet_name = argv[1];
-		run_applet_by_name(argv[1], argc - 1, argv + 1);
+		run_applet_and_exit(argv[1], argc - 1, argv + 1);
 	}
 
 	bb_error_msg_and_die("applet not found");
@@ -598,7 +598,7 @@ void run_current_applet_and_exit(int argc, char **argv)
 	exit(current_applet->main(argc, argv));
 }
 
-void run_applet_by_name(const char *name, int argc, char **argv)
+void run_applet_and_exit(const char *name, int argc, char **argv)
 {
 	current_applet = find_applet_by_name(name);
 	if (current_applet)
@@ -633,6 +633,6 @@ int main(int argc, char **argv)
 	if (ENABLE_LOCALE_SUPPORT && getpid() != 1)
 		setlocale(LC_ALL, "");
 
-	run_applet_by_name(applet_name, argc, argv);
+	run_applet_and_exit(applet_name, argc, argv);
 	bb_error_msg_and_die("applet not found");
 }
