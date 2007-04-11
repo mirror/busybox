@@ -2,7 +2,7 @@
 
 Unix shells traditionally execute some commands internally in the attempt
 to dramatically speed up execution. It will be slow as hell if for every
-"echo blah" shell with fork and exec /bin/echo. For this end, shells
+"echo blah" shell will fork and exec /bin/echo. For this end, shells
 have to _reimplement_ these commands internally.
 
 Busybox is unique in this regard because it already is a collection
