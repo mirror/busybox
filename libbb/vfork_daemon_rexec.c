@@ -102,8 +102,8 @@ int wait_pid(int *wstat, int pid)
 
 int spawn_and_wait(char **argv)
 {
-#if ENABLE_FEATURE_PREFER_APPLETS
 	int rc;
+#if ENABLE_FEATURE_PREFER_APPLETS
 	const struct bb_applet *a = find_applet_by_name(argv[0]);
 
 	if (a && (a->nofork
