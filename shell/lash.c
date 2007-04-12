@@ -153,7 +153,7 @@ static int shell_context;  /* Type prompt trigger (PS1 or PS2) */
 
 
 /* Globals that are static to this file */
-static const char *cwd;
+static char *cwd;
 static char *local_pending_command;
 static struct jobset job_list = { NULL, NULL };
 static int argc;
@@ -207,6 +207,14 @@ So   cmd->text        becomes  child->family->text
      job_list          becomes  child->family->job_list
  */
 
+
+static void update_cwd(void)
+{
+	cwd = xrealloc_getcwd_or_warn(cwd);
+	if (!cwd)
+		cwd = xstrdup(bb_msg_unknown);
+}
+
 /* built-in 'cd <path>' handler */
 static int builtin_cd(struct child_prog *child)
 {
@@ -220,9 +228,7 @@ static int builtin_cd(struct child_prog *child)
 		bb_perror_msg("cd: %s", newdir);
 		return EXIT_FAILURE;
 	}
-	cwd = xrealloc_getcwd_or_warn((char *)cwd);
-	if (!cwd)
-		cwd = bb_msg_unknown;
+	update_cwd();
 	return EXIT_SUCCESS;
 }
 
@@ -347,9 +353,7 @@ static int builtin_jobs(struct child_prog *child)
 /* built-in 'pwd' handler */
 static int builtin_pwd(struct child_prog ATTRIBUTE_UNUSED *dummy)
 {
-	cwd = xrealloc_getcwd_or_warn((char *)cwd);
-	if (!cwd)
-		cwd = bb_msg_unknown;
+	update_cwd();
 	puts(cwd);
 	return EXIT_SUCCESS;
 }
@@ -1452,9 +1456,7 @@ static int busy_loop(FILE * input)
 #if ENABLE_FEATURE_CLEAN_UP
 static void free_memory(void)
 {
-	if (cwd && cwd != bb_msg_unknown) {
-		free((char*)cwd);
-	}
+	free(cwd);
 
 	if (job_list.fg && !job_list.fg->running_progs) {
 		remove_job(&job_list, job_list.fg);
@@ -1571,14 +1573,12 @@ int lash_main(int argc_l, char **argv_l)
 	}
 
 	/* initialize the cwd -- this is never freed...*/
-	cwd = xrealloc_getcwd_or_warn(NULL);
-	if (!cwd)
-		cwd = bb_msg_unknown;
+	update_cwd();
 
 	if (ENABLE_FEATURE_CLEAN_UP) atexit(free_memory);
 
 	if (ENABLE_FEATURE_EDITING) cmdedit_set_initial_prompt();
 	else PS1 = NULL;
 
-	return (busy_loop(input));
+	return busy_loop(input);
 }
