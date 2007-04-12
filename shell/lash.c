@@ -126,27 +126,27 @@ static int busy_loop(FILE * input);
  * can change global variables in the parent shell process but they will not
  * work with pipes and redirects; 'unset foo | whatever' will not work) */
 static const struct built_in_command bltins[] = {
-	{"bg", "Resume a job in the background", builtin_fg_bg},
-	{"cd", "Change working directory", builtin_cd},
-	{"exec", "Exec command, replacing this shell with the exec'd process", builtin_exec},
-	{"exit", "Exit from shell()", builtin_exit},
-	{"fg", "Bring job into the foreground", builtin_fg_bg},
-	{"jobs", "Lists the active jobs", builtin_jobs},
+	{"bg"    , "Resume a job in the background", builtin_fg_bg},
+	{"cd"    , "Change working directory", builtin_cd},
+	{"exec"  , "Exec command, replacing this shell with the exec'd process", builtin_exec},
+	{"exit"  , "Exit from shell()", builtin_exit},
+	{"fg"    , "Bring job into the foreground", builtin_fg_bg},
+	{"jobs"  , "Lists the active jobs", builtin_jobs},
 	{"export", "Set environment variable", builtin_export},
-	{"unset", "Unset environment variable", builtin_unset},
-	{"read", "Input environment variable", builtin_read},
-	{".", "Source-in and run commands in a file", builtin_source},
+	{"unset" , "Unset environment variable", builtin_unset},
+	{"read"  , "Input environment variable", builtin_read},
+	{"."     , "Source-in and run commands in a file", builtin_source},
+	/* These were "forked applets", but distinction was nuked */
+	/* Original comment retained: */
+	/* Table of forking built-in functions (things that fork cannot change global
+	 * variables in the parent process, such as the current working directory) */
+	{"pwd"   , "Print current directory", builtin_pwd},
+	{"help"  , "List shell built-in commands", builtin_help},
 	/* to do: add ulimit */
-	{NULL, NULL, NULL}
 };
 
-/* Table of forking built-in functions (things that fork cannot change global
- * variables in the parent process, such as the current working directory) */
-static struct built_in_command bltins_forking[] = {
-	{"pwd", "Print current directory", builtin_pwd},
-	{"help", "List shell built-in commands", builtin_help},
-	{NULL, NULL, NULL}
-};
+#define VEC_SIZE(v) (sizeof(v)/sizeof(v[0]))
+#define VEC_LAST(v) v[VEC_SIZE(v)-1]
 
 
 static int shell_context;  /* Type prompt trigger (PS1 or PS2) */
@@ -318,12 +318,7 @@ static int builtin_help(struct child_prog ATTRIBUTE_UNUSED *dummy)
 
 	printf("\nBuilt-in commands:\n"
 	       "-------------------\n");
-	for (x = bltins; x->cmd; x++) {
-		if (x->descr == NULL)
-			continue;
-		printf("%s\t%s\n", x->cmd, x->descr);
-	}
-	for (x = bltins_forking; x->cmd; x++) {
+	for (x = bltins; x <= &VEC_LAST(bltins); x++) {
 		if (x->descr == NULL)
 			continue;
 		printf("%s\t%s\n", x->cmd, x->descr);
@@ -963,7 +958,7 @@ static int parse_command(char **command_ptr, struct job *job, int *inbg)
 					   *src == ']') *buf++ = '\\';
 			*buf++ = *src;
 		} else if (isspace(*src)) {
-			if (*prog->argv[argc_l] || flag & LASH_OPT_SAW_QUOTE) {
+			if (*prog->argv[argc_l] || (flag & LASH_OPT_SAW_QUOTE)) {
 				buf++, argc_l++;
 				/* +1 here leaves room for the NULL which ends argv */
 				if ((argc_l + 1) == argv_alloced) {
@@ -1143,19 +1138,13 @@ static int pseudo_exec(struct child_prog *child)
 	 * easier to waste a few CPU cycles than it is to figure out
 	 * if this is one of those cases.
 	 */
-	for (x = bltins; x->cmd; x++) {
+	/* Check if the command matches any of the forking builtins. */
+	for (x = bltins; x <= &VEC_LAST(bltins); x++) {
 		if (strcmp(child->argv[0], x->cmd) == 0) {
 			_exit(x->function(child));
 		}
 	}
 
-	/* Check if the command matches any of the forking builtins. */
-	for (x = bltins_forking; x->cmd; x++) {
-		if (strcmp(child->argv[0], x->cmd) == 0) {
-			applet_name = x->cmd;
-			_exit(x->function(child));
-		}
-	}
 
 	/* Check if the command matches any busybox internal
 	 * commands ("applets") here.  Following discussions from
@@ -1237,22 +1226,18 @@ static int run_command(struct job *newjob, int inbg, int outpipe[2])
 	const struct built_in_command *x;
 	struct child_prog *child;
 
-	nextin = 0, nextout = 1;
+	nextin = 0;
 	for (i = 0; i < newjob->num_progs; i++) {
 		child = &(newjob->progs[i]);
 
+		nextout = 1;
 		if ((i + 1) < newjob->num_progs) {
 			if (pipe(pipefds) < 0)
 				bb_perror_msg_and_die("pipe");
 			nextout = pipefds[1];
-		} else {
-			if (outpipe[1] != -1) {
-				nextout = outpipe[1];
-			} else {
-				nextout = 1;
-			}
+		} else if (outpipe[1] != -1) {
+			nextout = outpipe[1];
 		}
-
 
 		/* Check if the command matches any non-forking builtins,
 		 * but only if this is a simple command.
@@ -1267,7 +1252,7 @@ static int run_command(struct job *newjob, int inbg, int outpipe[2])
 				return builtin_export(child);
 			}
 
-			for (x = bltins; x->cmd; x++) {
+			for (x = bltins; x <= &VEC_LAST(bltins); x++) {
 				if (strcmp(child->argv[0], x->cmd) == 0) {
 					int rcode;
 					int squirrel[] = {-1, -1, -1};
@@ -1279,7 +1264,7 @@ static int run_command(struct job *newjob, int inbg, int outpipe[2])
 			}
 		}
 
-#if !defined(__UCLIBC__) || defined(__ARCH_HAS_MMU__)
+#if BB_MMU
 		child->pid = fork();
 #else
 		child->pid = vfork();
