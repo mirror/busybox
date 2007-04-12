@@ -181,14 +181,13 @@ prompt:
 
 static void motd(void)
 {
-	FILE *fp;
-	int c;
+	int fd;
 
-	fp = fopen(bb_path_motd_file, "r");
-	if (fp) {
-		while ((c = getc(fp)) != EOF)
-			putchar(c);
-		fclose(fp);
+	fd = open(bb_path_motd_file, O_RDONLY);
+	if (fd) {
+		fflush(stdout);
+		bb_copyfd_eof(fd, STDOUT_FILENO);
+		close(fd);
 	}
 }
 
@@ -199,7 +198,7 @@ static void alarm_handler(int sig ATTRIBUTE_UNUSED)
 	 * We don't want to block here */
 	ndelay_on(1);
 	ndelay_on(2);
-	bb_info_msg("\r\nLogin timed out after %d seconds\r", TIMEOUT);
+	printf("\r\nLogin timed out after %d seconds\r\n", TIMEOUT);
 	exit(EXIT_SUCCESS);
 }
 
@@ -229,6 +228,12 @@ int login_main(int argc, char **argv)
 	amroot = (getuid() == 0);
 	signal(SIGALRM, alarm_handler);
 	alarm(TIMEOUT);
+
+	/* Mandatory paranoia for suid applet:
+	 * ensure that fd# 0,1,2 are opened (at least to /dev/null)
+	 * and any extra open fd's are closed.
+	 * (The name of the function is misleading. Not daemonizing here.) */
+	bb_daemonize_or_rexec(DAEMON_ONLY_SANITIZE | DAEMON_CLOSE_EXTRA_FDS, NULL);
 
 	opt = getopt32(argc, argv, "f:h:p", &opt_user, &opt_host);
 	if (opt & LOGIN_OPT_f) {
@@ -261,7 +266,8 @@ int login_main(int argc, char **argv)
 	} else
 		snprintf(fromhost, sizeof(fromhost)-1, " on '%.100s'", short_tty);
 
-	bb_setpgrp;
+	// Was breaking "login <username>" from shell command line:
+	// bb_setpgrp();
 
 	openlog(applet_name, LOG_PID | LOG_CONS | LOG_NOWAIT, LOG_AUTH);
 
@@ -292,7 +298,7 @@ int login_main(int argc, char **argv)
 		if (correct_password(pw))
 			break;
 
-auth_failed:
+ auth_failed:
 		opt &= ~LOGIN_OPT_f;
 		bb_do_delay(FAIL_DELAY);
 		puts("Login incorrect");
@@ -343,17 +349,13 @@ auth_failed:
 		t_argv[0] = getenv("LOGIN_PRE_SUID_SCRIPT");
 		if (t_argv[0]) {
 			t_argv[1] = NULL;
-			setenv("LOGIN_TTY", full_tty, 1);
-			setenv("LOGIN_USER", pw->pw_name, 1);
-			setenv("LOGIN_UID", utoa(pw->pw_uid), 1);
-			setenv("LOGIN_GID", utoa(pw->pw_gid), 1);
-			setenv("LOGIN_SHELL", pw->pw_shell, 1);
+			xsetenv("LOGIN_TTY", full_tty);
+			xsetenv("LOGIN_USER", pw->pw_name);
+			xsetenv("LOGIN_UID", utoa(pw->pw_uid));
+			xsetenv("LOGIN_GID", utoa(pw->pw_gid));
+			xsetenv("LOGIN_SHELL", pw->pw_shell);
 			xspawn(argv); /* NOMMU-friendly */
-			unsetenv("LOGIN_TTY");
-			unsetenv("LOGIN_USER");
-			unsetenv("LOGIN_UID");
-			unsetenv("LOGIN_GID");
-			unsetenv("LOGIN_SHELL");
+			/* All variables are unset by setup_environment */
 			wait(NULL);
 		}
 	}
@@ -379,6 +381,9 @@ auth_failed:
 	// setsid();
 	// /* TIOCSCTTY: steal tty from other process group */
 	// if (ioctl(0, TIOCSCTTY, 1)) error_msg...
+	// BBox login used to do this (see above):
+	// bb_setpgrp();
+	// If this stuff is really needed, add it and explain why!
 
 	/* set signals to defaults */
 	signal(SIGALRM, SIG_DFL);

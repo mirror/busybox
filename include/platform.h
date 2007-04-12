@@ -259,8 +259,8 @@ static ATTRIBUTE_ALWAYS_INLINE char* strchrnul(const char *s, char c) {
 #define HAVE_INTTYPES_H
 #define PRIu32 "u"
 
-/* use legacy setpgrp(pidt_,pid_t) for now.  move to platform.c */
-#define bb_setpgrp do { pid_t __me = getpid(); setpgrp(__me,__me); } while (0)
+/* use legacy setpgrp(pid_t,pid_t) for now.  move to platform.c */
+#define bb_setpgrp() do { pid_t __me = getpid(); setpgrp(__me,__me); } while (0)
 
 #if !defined ADJ_OFFSET_SINGLESHOT && defined MOD_CLKA && defined MOD_OFFSET
 #define ADJ_OFFSET_SINGLESHOT (MOD_CLKA | MOD_OFFSET)
@@ -276,7 +276,7 @@ static ATTRIBUTE_ALWAYS_INLINE char* strchrnul(const char *s, char c) {
 #endif
 
 #else
-#define bb_setpgrp setpgrp()
+#define bb_setpgrp() setpgrp()
 #endif
 
 #if defined(__linux__)

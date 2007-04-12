@@ -28,19 +28,12 @@
  * SUCH DAMAGE.
  */
 
-#include <stdio.h>
-#include <errno.h>
-#include <unistd.h>
-#include <string.h>
-#include <stdlib.h>
-#include <syslog.h>
-#include <ctype.h>
 #include "libbb.h"
 
-
-
-#define DEFAULT_LOGIN_PATH      "/bin:/usr/bin"
-#define DEFAULT_ROOT_LOGIN_PATH "/usr/sbin:/bin:/usr/bin:/sbin"
+/* util-linux manpage says /sbin:/bin:/usr/sbin:/usr/bin,
+ * but I want to save a few bytes here */
+static const char DEFAULT_ROOT_LOGIN_PATH[] = "/sbin:/usr/sbin:/bin:/usr/bin";
+#define DEFAULT_LOGIN_PATH (DEFAULT_ROOT_LOGIN_PATH + sizeof("/sbin:/usr/sbin"))
 
 void setup_environment(const char *shell, int loginshell, int changeenv, const struct passwd *pw)
 {
