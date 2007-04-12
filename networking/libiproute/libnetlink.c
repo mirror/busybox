@@ -28,44 +28,31 @@ void rtnl_close(struct rtnl_handle *rth)
 	close(rth->fd);
 }
 
-int rtnl_open(struct rtnl_handle *rth, unsigned subscriptions)
+int xrtnl_open(struct rtnl_handle *rth/*, unsigned subscriptions*/)
 {
 	socklen_t addr_len;
 
 	memset(rth, 0, sizeof(rth));
 
-	rth->fd = socket(AF_NETLINK, SOCK_RAW, NETLINK_ROUTE);
-	if (rth->fd < 0) {
-		bb_perror_msg("cannot open netlink socket");
-		return -1;
-	}
+	rth->fd = xsocket(AF_NETLINK, SOCK_RAW, NETLINK_ROUTE);
 
 	memset(&rth->local, 0, sizeof(rth->local));
 	rth->local.nl_family = AF_NETLINK;
-	rth->local.nl_groups = subscriptions;
+	/*rth->local.nl_groups = subscriptions;*/
 
-	if (bind(rth->fd, (struct sockaddr*)&rth->local, sizeof(rth->local)) < 0) {
-		bb_perror_msg("cannot bind netlink socket");
-		return -1;
-	}
+	xbind(rth->fd, (struct sockaddr*)&rth->local, sizeof(rth->local));
 	addr_len = sizeof(rth->local);
-	if (getsockname(rth->fd, (struct sockaddr*)&rth->local, &addr_len) < 0) {
-		bb_perror_msg("cannot getsockname");
-		return -1;
-	}
-	if (addr_len != sizeof(rth->local)) {
-		bb_error_msg("wrong address length %d", addr_len);
-		return -1;
-	}
-	if (rth->local.nl_family != AF_NETLINK) {
-		bb_error_msg("wrong address family %d", rth->local.nl_family);
-		return -1;
-	}
+	if (getsockname(rth->fd, (struct sockaddr*)&rth->local, &addr_len) < 0)
+		bb_perror_msg_and_die("cannot getsockname");
+	if (addr_len != sizeof(rth->local))
+		bb_error_msg_and_die("wrong address length %d", addr_len);
+	if (rth->local.nl_family != AF_NETLINK)
+		bb_error_msg_and_die("wrong address family %d", rth->local.nl_family);
 	rth->seq = time(NULL);
 	return 0;
 }
 
-int rtnl_wilddump_request(struct rtnl_handle *rth, int family, int type)
+int xrtnl_wilddump_request(struct rtnl_handle *rth, int family, int type)
 {
 	struct {
 		struct nlmsghdr nlh;
@@ -83,7 +70,8 @@ int rtnl_wilddump_request(struct rtnl_handle *rth, int family, int type)
 	req.nlh.nlmsg_seq = rth->dump = ++rth->seq;
 	req.g.rtgen_family = family;
 
-	return sendto(rth->fd, (void*)&req, sizeof(req), 0, (struct sockaddr*)&nladdr, sizeof(nladdr));
+	return xsendto(rth->fd, (void*)&req, sizeof(req),
+				 (struct sockaddr*)&nladdr, sizeof(nladdr));
 }
 
 int rtnl_send(struct rtnl_handle *rth, char *buf, int len)
@@ -93,7 +81,7 @@ int rtnl_send(struct rtnl_handle *rth, char *buf, int len)
 	memset(&nladdr, 0, sizeof(nladdr));
 	nladdr.nl_family = AF_NETLINK;
 
-	return sendto(rth->fd, buf, len, 0, (struct sockaddr*)&nladdr, sizeof(nladdr));
+	return xsendto(rth->fd, buf, len, (struct sockaddr*)&nladdr, sizeof(nladdr));
 }
 
 int rtnl_dump_request(struct rtnl_handle *rth, int type, void *req, int len)
@@ -120,11 +108,11 @@ int rtnl_dump_request(struct rtnl_handle *rth, int type, void *req, int len)
 	return sendmsg(rth->fd, &msg, 0);
 }
 
-int rtnl_dump_filter(struct rtnl_handle *rth,
+static int rtnl_dump_filter(struct rtnl_handle *rth,
 		int (*filter)(struct sockaddr_nl *, struct nlmsghdr *n, void *),
-		void *arg1,
+		void *arg1/*,
 		int (*junk)(struct sockaddr_nl *, struct nlmsghdr *n, void *),
-		void *arg2)
+		void *arg2*/)
 {
 	char buf[8192];
 	struct sockaddr_nl nladdr;
@@ -164,12 +152,11 @@ int rtnl_dump_filter(struct rtnl_handle *rth,
 			if (nladdr.nl_pid != 0 ||
 			    h->nlmsg_pid != rth->local.nl_pid ||
 			    h->nlmsg_seq != rth->dump) {
-				if (junk) {
+/*				if (junk) {
 					err = junk(&nladdr, h, arg2);
-					if (err < 0) {
+					if (err < 0)
 						return err;
-					}
-				}
+				} */
 				goto skip_it;
 			}
 
@@ -187,9 +174,8 @@ int rtnl_dump_filter(struct rtnl_handle *rth,
 				return -1;
 			}
 			err = filter(&nladdr, h, arg1);
-			if (err < 0) {
+			if (err < 0)
 				return err;
-			}
 
 skip_it:
 			h = NLMSG_NEXT(h, status);
@@ -202,6 +188,16 @@ skip_it:
 			bb_error_msg_and_die("remnant of size %d!", status);
 		}
 	}
+}
+
+int xrtnl_dump_filter(struct rtnl_handle *rth,
+		int (*filter)(struct sockaddr_nl *, struct nlmsghdr *n, void *),
+		void *arg1)
+{
+	int ret = rtnl_dump_filter(rth, filter, arg1/*, NULL, NULL*/);
+	if (ret < 0)
+		bb_error_msg_and_die("dump terminated");
+	return ret;
 }
 
 int rtnl_talk(struct rtnl_handle *rtnl, struct nlmsghdr *n, pid_t peer,

@@ -486,22 +486,13 @@ int ipaddr_list_or_flush(int argc, char **argv, int flush)
 		argc--;
 	}
 
-	if (rtnl_open(&rth, 0) < 0)
-		exit(1);
+	xrtnl_open(&rth);
 
-	if (rtnl_wilddump_request(&rth, preferred_family, RTM_GETLINK) < 0) {
-		bb_perror_msg_and_die("cannot send dump request");
-	}
-
-	if (rtnl_dump_filter(&rth, store_nlmsg, &linfo, NULL, NULL) < 0) {
-		bb_error_msg_and_die("dump terminated");
-	}
+	xrtnl_wilddump_request(&rth, preferred_family, RTM_GETLINK);
+	xrtnl_dump_filter(&rth, store_nlmsg, &linfo);
 
 	if (filter_dev) {
-		filter.ifindex = ll_name_to_index(filter_dev);
-		if (filter.ifindex <= 0) {
-			bb_error_msg_and_die("device \"%s\" does not exist", filter_dev);
-		}
+		filter.ifindex = xll_name_to_index(filter_dev);
 	}
 
 	if (flush) {
@@ -513,13 +504,9 @@ int ipaddr_list_or_flush(int argc, char **argv, int flush)
 		filter.rth = &rth;
 
 		for (;;) {
-			if (rtnl_wilddump_request(&rth, filter.family, RTM_GETADDR) < 0) {
-				bb_perror_msg_and_die("cannot send dump request");
-			}
+			xrtnl_wilddump_request(&rth, filter.family, RTM_GETADDR);
 			filter.flushed = 0;
-			if (rtnl_dump_filter(&rth, print_addrinfo, stdout, NULL, NULL) < 0) {
-				bb_error_msg_and_die("flush terminated");
-			}
+			xrtnl_dump_filter(&rth, print_addrinfo, stdout);
 			if (filter.flushed == 0) {
 				return 0;
 			}
@@ -529,13 +516,8 @@ int ipaddr_list_or_flush(int argc, char **argv, int flush)
 	}
 
 	if (filter.family != AF_PACKET) {
-		if (rtnl_wilddump_request(&rth, filter.family, RTM_GETADDR) < 0) {
-			bb_perror_msg_and_die("cannot send dump request");
-		}
-
-		if (rtnl_dump_filter(&rth, store_nlmsg, &ainfo, NULL, NULL) < 0) {
-			bb_error_msg_and_die("dump terminated");
-		}
+		xrtnl_wilddump_request(&rth, filter.family, RTM_GETADDR);
+		xrtnl_dump_filter(&rth, store_nlmsg, &ainfo);
 	}
 
 
@@ -779,15 +761,11 @@ static int ipaddr_modify(int cmd, int argc, char **argv)
 	if (!scoped && cmd != RTM_DELADDR)
 		req.ifa.ifa_scope = default_scope(&lcl);
 
-	if (rtnl_open(&rth, 0) < 0)
-		exit(1);
+	xrtnl_open(&rth);
 
 	ll_init_map(&rth);
 
-	req.ifa.ifa_index = ll_name_to_index(d);
-	if (req.ifa.ifa_index == 0) {
-		bb_error_msg_and_die("cannot find device \"%s\"", d);
-	}
+	req.ifa.ifa_index = xll_name_to_index(d);
 
 	if (rtnl_talk(&rth, &req.n, 0, 0, NULL, NULL, NULL) < 0)
 		return 2;

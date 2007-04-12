@@ -257,12 +257,7 @@ static int tftp(
 				fprintf(stderr, "%02x ", (unsigned char) *cp);
 			fprintf(stderr, "\n");
 #endif
-			if (sendto(socketfd, xbuf, len, 0,
-					&peer_lsa->sa, peer_lsa->len) < 0) {
-				bb_perror_msg("send");
-				len = -1;
-				break;
-			}
+			xsendto(socketfd, xbuf, len, &peer_lsa->sa, peer_lsa->len);
 
 			if (finished && (opcode == TFTP_ACK)) {
 				break;

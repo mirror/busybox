@@ -102,10 +102,8 @@ static int print_route(struct sockaddr_nl *who ATTRIBUTE_UNUSED,
 	if (filter.flushb && n->nlmsg_type != RTM_NEWROUTE)
 		return 0;
 	len -= NLMSG_LENGTH(sizeof(*r));
-	if (len < 0) {
-		bb_error_msg("wrong nlmsg len %d", len);
-		return -1;
-	}
+	if (len < 0)
+		bb_error_msg_and_die("wrong nlmsg len %d", len);
 
 	if (r->rtm_family == AF_INET6)
 		host_len = 128;
@@ -186,7 +184,7 @@ static int print_route(struct sockaddr_nl *who ATTRIBUTE_UNUSED,
 		struct nlmsghdr *fn;
 		if (NLMSG_ALIGN(filter.flushp) + n->nlmsg_len > filter.flushe) {
 			if (flush_update())
-				return -1;
+				bb_error_msg_and_die("flush");
 		}
 		fn = (struct nlmsghdr*)(filter.flushb + NLMSG_ALIGN(filter.flushp));
 		memcpy(fn, n, n->nlmsg_len);
@@ -410,9 +408,7 @@ static int iproute_modify(int cmd, unsigned flags, int argc, char **argv)
 		argc--; argv++;
 	}
 
-	if (rtnl_open(&rth, 0) < 0) {
-		return 1;
-	}
+	xrtnl_open(&rth);
 
 	if (d)  {
 		int idx;
@@ -420,10 +416,7 @@ static int iproute_modify(int cmd, unsigned flags, int argc, char **argv)
 		ll_init_map(&rth);
 
 		if (d) {
-			idx = ll_name_to_index(d);
-			if (idx == 0) {
-				bb_error_msg_and_die("cannot find device \"%s\"", d);
-			}
+			idx = xll_name_to_index(d);
 			addattr32(&req.n, sizeof(req), RTA_OIF, idx);
 		}
 	}
@@ -478,7 +471,7 @@ static int rtnl_rtcache_request(struct rtnl_handle *rth, int family)
 	req.rtm.rtm_family = family;
 	req.rtm.rtm_flags |= RTM_F_CLONED;
 
-	return sendto(rth->fd, (void*)&req, sizeof(req), 0, (struct sockaddr*)&nladdr, sizeof(nladdr));
+	return xsendto(rth->fd, (void*)&req, sizeof(req), (struct sockaddr*)&nladdr, sizeof(nladdr));
 }
 
 static void iproute_flush_cache(void)
@@ -592,9 +585,7 @@ static int iproute_list_or_flush(int argc, char **argv, int flush)
 		do_ipv6 = AF_INET;
 	}
 
-	if (rtnl_open(&rth, 0) < 0) {
-		return 1;
-	}
+	xrtnl_open(&rth);
 
 	ll_init_map(&rth);
 
@@ -602,18 +593,12 @@ static int iproute_list_or_flush(int argc, char **argv, int flush)
 		int idx;
 
 		if (id) {
-			idx = ll_name_to_index(id);
-			if (idx == 0) {
-				bb_error_msg_and_die("cannot find device \"%s\"", id);
-			}
+			idx = xll_name_to_index(id);
 			filter.iif = idx;
 			filter.iifmask = -1;
 		}
 		if (od) {
-			idx = ll_name_to_index(od);
-			if (idx == 0) {
-				bb_error_msg("cannot find device \"%s\"", od);
-			}
+			idx = xll_name_to_index(od);
 			filter.oif = idx;
 			filter.oifmask = -1;
 		}
@@ -635,13 +620,9 @@ static int iproute_list_or_flush(int argc, char **argv, int flush)
 		filter.rth = &rth;
 
 		for (;;) {
-			if (rtnl_wilddump_request(&rth, do_ipv6, RTM_GETROUTE) < 0) {
-				bb_perror_msg_and_die("cannot send dump request");
-			}
+			xrtnl_wilddump_request(&rth, do_ipv6, RTM_GETROUTE);
 			filter.flushed = 0;
-			if (rtnl_dump_filter(&rth, print_route, stdout, NULL, NULL) < 0) {
-				bb_error_msg_and_die("flush terminated");
-			}
+			xrtnl_dump_filter(&rth, print_route, stdout);
 			if (filter.flushed == 0) {
 				return 0;
 			}
@@ -651,18 +632,13 @@ static int iproute_list_or_flush(int argc, char **argv, int flush)
 	}
 
 	if (filter.tb != -1) {
-		if (rtnl_wilddump_request(&rth, do_ipv6, RTM_GETROUTE) < 0) {
-			bb_perror_msg_and_die("cannot send dump request");
-		}
+		xrtnl_wilddump_request(&rth, do_ipv6, RTM_GETROUTE);
 	} else {
 		if (rtnl_rtcache_request(&rth, do_ipv6) < 0) {
 			bb_perror_msg_and_die("cannot send dump request");
 		}
 	}
-
-	if (rtnl_dump_filter(&rth, print_route, stdout, NULL, NULL) < 0) {
-		bb_error_msg_and_die("dump terminated");
-	}
+	xrtnl_dump_filter(&rth, print_route, stdout);
 
 	return 0;
 }
@@ -755,8 +731,7 @@ static int iproute_get(int argc, char **argv)
 		bb_error_msg_and_die("need at least destination address");
 	}
 
-	if (rtnl_open(&rth, 0) < 0)
-		return 1;
+	xrtnl_open(&rth);
 
 	ll_init_map(&rth);
 
@@ -764,17 +739,11 @@ static int iproute_get(int argc, char **argv)
 		int idx;
 
 		if (idev) {
-			idx = ll_name_to_index(idev);
-			if (idx == 0) {
-				bb_error_msg_and_die("cannot find device \"%s\"", idev);
-			}
+			idx = xll_name_to_index(idev);
 			addattr32(&req.n, sizeof(req), RTA_IIF, idx);
 		}
 		if (odev) {
-			idx = ll_name_to_index(odev);
-			if (idx == 0) {
-				bb_error_msg_and_die("cannot find device \"%s\"", odev);
-			}
+			idx = xll_name_to_index(odev);
 			addattr32(&req.n, sizeof(req), RTA_OIF, idx);
 		}
 	}
@@ -792,9 +761,7 @@ static int iproute_get(int argc, char **argv)
 		int len = req.n.nlmsg_len;
 		struct rtattr * tb[RTA_MAX+1];
 
-		if (print_route(NULL, &req.n, (void*)stdout) < 0) {
-			bb_error_msg_and_die("an error :-)");
-		}
+		print_route(NULL, &req.n, (void*)stdout);
 
 		if (req.n.nlmsg_type != RTM_NEWROUTE) {
 			bb_error_msg_and_die("not a route?");
@@ -829,12 +796,7 @@ static int iproute_get(int argc, char **argv)
 			return 2;
 		}
 	}
-
-	if (print_route(NULL, &req.n, (void*)stdout) < 0) {
-// how is this useful?
-		bb_error_msg_and_die("an error :-)");
-	}
-
+	print_route(NULL, &req.n, (void*)stdout);
 	return 0;
 }
 

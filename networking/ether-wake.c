@@ -199,12 +199,8 @@ int ether_wake_main(int argc, char **argv)
 	whereto.sa_family = 0;
 	strcpy(whereto.sa_data, ifname);
 #endif
-
-	if (sendto(s, outpack, pktsize, 0, (struct sockaddr *)&whereto, sizeof(whereto)) < 0)
-		bb_perror_msg(bb_msg_write_error);
-
+	xsendto(s, outpack, pktsize, (struct sockaddr *)&whereto, sizeof(whereto));
 	close(s);
-
 	return EXIT_SUCCESS;
 }
 

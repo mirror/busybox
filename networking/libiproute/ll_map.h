@@ -4,7 +4,7 @@
 
 extern int ll_remember_index(struct sockaddr_nl *who, struct nlmsghdr *n, void *arg);
 extern int ll_init_map(struct rtnl_handle *rth);
-extern int ll_name_to_index(char *name);
+extern int xll_name_to_index(const char * const name);
 extern const char *ll_index_to_name(int idx);
 extern const char *ll_idx_n2a(int idx, char *buf);
 extern int ll_index_to_type(int idx);

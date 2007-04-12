@@ -128,7 +128,7 @@ unsigned ll_index_to_flags(int idx)
 }
 
 // TODO: caching is not warranted - no users which repeatedly call it
-int ll_name_to_index(char *name)
+int xll_name_to_index(const char * const name)
 {
 	static char ncache[16];
 	static int icache;
@@ -136,17 +136,21 @@ int ll_name_to_index(char *name)
 	struct idxmap *im;
 	int sock_fd;
 	int i;
+	int ret = 0;
 
 	if (name == NULL)
-		return 0;
-	if (icache && strcmp(name, ncache) == 0)
-		return icache;
+		goto out;
+	if (icache && strcmp(name, ncache) == 0) {
+		ret = icache;
+		goto out;
+	}
 	for (i = 0; i < 16; i++) {
 		for (im = idxmap[i]; im; im = im->next) {
 			if (strcmp(im->name, name) == 0) {
 				icache = im->index;
 				strcpy(ncache, name);
-				return im->index;
+				ret = im->index;
+				goto out;
 			}
 		}
 	}
@@ -160,29 +164,26 @@ int ll_name_to_index(char *name)
 	sock_fd = socket(AF_INET, SOCK_DGRAM, 0);
 	if (sock_fd) {
 		struct ifreq ifr;
-		int ret;
+		int tmp;
 		strncpy(ifr.ifr_name, name, IFNAMSIZ);
 		ifr.ifr_ifindex = -1;
-		ret = ioctl(sock_fd, SIOCGIFINDEX, &ifr);
+		tmp = ioctl(sock_fd, SIOCGIFINDEX, &ifr);
 		close(sock_fd);
-		if (ret >= 0)
+		if (tmp >= 0)
 			/* In theory, we should redump the interface list
 			 * to update our cache, this is left as an exercise
 			 * to the reader... Jean II */
-			return ifr.ifr_ifindex;
+			ret = ifr.ifr_ifindex;
 	}
-
-	return 0;
+out:
+	if (ret <= 0)
+		bb_error_msg_and_die("cannot find device \"%s\"", name);
+	return ret;
 }
 
 int ll_init_map(struct rtnl_handle *rth)
 {
-	if (rtnl_wilddump_request(rth, AF_UNSPEC, RTM_GETLINK) < 0) {
-		bb_perror_msg_and_die("cannot send dump request");
-	}
-
-	if (rtnl_dump_filter(rth, ll_remember_index, &idxmap, NULL, NULL) < 0) {
-		bb_error_msg_and_die("dump terminated");
-	}
+	xrtnl_wilddump_request(rth, AF_UNSPEC, RTM_GETLINK);
+	xrtnl_dump_filter(rth, ll_remember_index, &idxmap);
 	return 0;
 }

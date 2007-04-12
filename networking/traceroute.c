@@ -695,14 +695,11 @@ send_probe(int seq, int ttl, struct timeval *tp)
 	}
 #endif
 
-	cc = sendto(sndsock, (char *)outip,
-	    packlen, 0, (struct sockaddr *)&whereto, sizeof(whereto));
-	if (cc < 0 || cc != packlen)  {
-		if (cc < 0)
-			bb_perror_msg_and_die("sendto");
-		printf("%s: wrote %s %d chars, ret=%d\n",
-		    applet_name, hostname, packlen, cc);
-		(void)fflush(stdout);
+	cc = xsendto(sndsock, (char *)outip,
+	    packlen, (struct sockaddr *)&whereto, sizeof(whereto));
+	if (cc != packlen)  {
+		bb_info_msg("wrote %s %d chars, ret=%d", hostname, packlen, cc);
+//		(void)fflush(stdout);
 	}
 }
 

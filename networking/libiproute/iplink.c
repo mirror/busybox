@@ -42,10 +42,7 @@ static int get_ctl_fd(void)
 	fd = socket(PF_PACKET, SOCK_DGRAM, 0);
 	if (fd >= 0)
 		return fd;
-	fd = socket(PF_INET6, SOCK_DGRAM, 0);
-	if (fd >= 0)
-		return fd;
-	bb_perror_msg_and_die("cannot create control socket");
+	return xsocket(PF_INET6, SOCK_DGRAM, 0);
 }
 
 /* Exits on error */
@@ -125,10 +122,7 @@ static int get_address(char *dev, int *htype)
 	socklen_t alen;
 	int s;
 
-	s = socket(PF_PACKET, SOCK_DGRAM, 0);
-	if (s < 0) {
-		bb_perror_msg_and_die("socket(PF_PACKET)");
-	}
+	s = xsocket(PF_PACKET, SOCK_DGRAM, 0);
 
 	memset(&ifr, 0, sizeof(ifr));
 	strncpy(ifr.ifr_name, dev, sizeof(ifr.ifr_name));
@@ -140,9 +134,7 @@ static int get_address(char *dev, int *htype)
 	me.sll_family = AF_PACKET;
 	me.sll_ifindex = ifr.ifr_ifindex;
 	me.sll_protocol = htons(ETH_P_LOOP);
-	if (bind(s, (struct sockaddr*)&me, sizeof(me)) == -1) {
-		bb_perror_msg_and_die("bind");
-	}
+	xbind(s, (struct sockaddr*)&me, sizeof(me));
 
 	alen = sizeof(me);
 	if (getsockname(s, (struct sockaddr*)&me, &alen) == -1) {
@@ -195,54 +187,63 @@ static int do_set(int argc, char **argv)
 	struct ifreq ifr0, ifr1;
 	char *newname = NULL;
 	int htype, halen;
+	static const char * const keywords[] = {
+		"up", "down", "name", "mtu", "multicast", "arp", "addr", "dev",
+		"on", "off", NULL
+	};
+	enum { ARG_up = 1, ARG_down, ARG_name, ARG_mtu, ARG_multicast, ARG_arp,
+		ARG_addr, ARG_dev, PARM_on, PARM_off };
+	smalluint key;
 
 	while (argc > 0) {
-		if (strcmp(*argv, "up") == 0) {
+		key = index_in_str_array(keywords, *argv) + 1;
+		if (key == ARG_up) {
 			mask |= IFF_UP;
 			flags |= IFF_UP;
-		} else if (strcmp(*argv, "down") == 0) {
+		} else if (key == ARG_down) {
 			mask |= IFF_UP;
 			flags &= ~IFF_UP;
-		} else if (strcmp(*argv, "name") == 0) {
+		} else if (key == ARG_name) {
 			NEXT_ARG();
 			newname = *argv;
-		} else if (strcmp(*argv, "mtu") == 0) {
+		} else if (key == ARG_mtu) {
 			NEXT_ARG();
 			if (mtu != -1)
 				duparg("mtu", *argv);
 			if (get_integer(&mtu, *argv, 0))
 				invarg(*argv, "mtu");
-		} else if (strcmp(*argv, "multicast") == 0) {
+		} else if (key == ARG_multicast) {
 			NEXT_ARG();
 			mask |= IFF_MULTICAST;
-			if (strcmp(*argv, "on") == 0) {
+			key = index_in_str_array(keywords, *argv) + 1;
+			if (key == PARM_on) {
 				flags |= IFF_MULTICAST;
-			} else if (strcmp(*argv, "off") == 0) {
+			} else if (key == PARM_off) {
 				flags &= ~IFF_MULTICAST;
 			} else
 				on_off("multicast");
-		} else if (strcmp(*argv, "arp") == 0) {
+		} else if (key == ARG_arp) {
 			NEXT_ARG();
 			mask |= IFF_NOARP;
-			if (strcmp(*argv, "on") == 0) {
+			key = index_in_str_array(keywords, *argv) + 1;
+			if (key == PARM_on) {
 				flags &= ~IFF_NOARP;
-			} else if (strcmp(*argv, "off") == 0) {
+			} else if (key == PARM_off) {
 				flags |= IFF_NOARP;
 			} else
-				on_off("noarp");
-		} else if (strcmp(*argv, "addr") == 0) {
+				on_off("arp");
+		} else if (key == ARG_addr) {
 			NEXT_ARG();
 			newaddr = *argv;
 		} else {
-			if (strcmp(*argv, "dev") == 0) {
+			if (key == ARG_dev) {
 				NEXT_ARG();
 			}
 			if (dev)
 				duparg2("dev", *argv);
 			dev = *argv;
 		}
-		argc--;
-		argv++;
+		argc--; argv++;
 	}
 
 	if (!dev) {
@@ -291,16 +292,18 @@ static int ipaddr_list_link(int argc, char **argv)
 /* Return value becomes exitcode. It's okay to not return at all */
 int do_iplink(int argc, char **argv)
 {
+	static const char * const keywords[] = {
+		"set", "show", "lst", "list", NULL
+	};
+	smalluint key;
 	if (argc <= 0)
 		return ipaddr_list_link(0, NULL);
-
-	if (matches(*argv, "set") == 0)
-		return do_set(argc-1, argv+1);
-
-	if (matches(*argv, "show") == 0 ||
-	    matches(*argv, "lst") == 0 ||
-	    matches(*argv, "list") == 0)
-		return ipaddr_list_link(argc-1, argv+1);
-
-	bb_error_msg_and_die("command \"%s\" is unknown", *argv);
+	key = index_in_substr_array(keywords, *argv) + 1;
+	if (key == 0)
+		bb_error_msg_and_die(bb_msg_invalid_arg, *argv, applet_name);
+	argc--; argv++;
+	if (key == 1) /* set */
+		return do_set(argc, argv);
+	else /* show, lst, list */
+		return ipaddr_list_link(argc, argv);
 }

@@ -557,6 +557,22 @@ void xlisten(int s, int backlog)
 	if (listen(s, backlog)) bb_perror_msg_and_die("listen");
 }
 
+/* Die with an error message if we the sendto failed.
+ * Return bytes sent otherwise
+ */
+
+ssize_t xsendto(int s, const  void *buf, size_t len, const struct sockaddr *to,
+				socklen_t tolen)
+{
+	ssize_t ret = sendto(s, buf, len, 0, to, tolen);
+	if (ret < 0) {
+		if (ENABLE_FEATURE_CLEAN_UP)
+			close(s);
+		bb_perror_msg_and_die("sendto");
+	}
+	return ret;
+}
+
 // xstat() - a stat() which dies on failure with meaningful error message
 void xstat(const char *name, struct stat *stat_buf)
 {

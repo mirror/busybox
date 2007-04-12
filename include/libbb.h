@@ -298,6 +298,8 @@ int xsocket(int domain, int type, int protocol);
 void xbind(int sockfd, struct sockaddr *my_addr, socklen_t addrlen);
 void xlisten(int s, int backlog);
 void xconnect(int s, const struct sockaddr *s_addr, socklen_t addrlen);
+ssize_t xsendto(int s, const  void *buf, size_t len, const struct sockaddr *to,
+				socklen_t tolen);
 int setsockopt_reuseaddr(int fd);
 int setsockopt_broadcast(int fd);
 /* NB: returns port in host byte order */

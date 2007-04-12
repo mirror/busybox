@@ -175,16 +175,10 @@ static int iprule_list(int argc, char **argv)
 		return -1;
 	}
 
-	if (rtnl_open(&rth, 0) < 0)
-		return 1;
+	xrtnl_open(&rth);
 
-	if (rtnl_wilddump_request(&rth, af, RTM_GETRULE) < 0) {
-		bb_perror_msg_and_die("cannot send dump request");
-	}
-
-	if (rtnl_dump_filter(&rth, print_rule, stdout, NULL, NULL) < 0) {
-		bb_error_msg_and_die("dump terminated");
-	}
+	xrtnl_wilddump_request(&rth, af, RTM_GETRULE);
+	xrtnl_dump_filter(&rth, print_rule, stdout);
 
 	return 0;
 }
@@ -296,8 +290,7 @@ static int iprule_modify(int cmd, int argc, char **argv)
 	if (!table_ok && cmd == RTM_NEWRULE)
 		req.r.rtm_table = RT_TABLE_MAIN;
 
-	if (rtnl_open(&rth, 0) < 0)
-		return 1;
+	xrtnl_open(&rth);
 
 	if (rtnl_talk(&rth, &req.n, 0, 0, NULL, NULL, NULL) < 0)
 		return 2;

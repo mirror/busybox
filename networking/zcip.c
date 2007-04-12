@@ -114,10 +114,8 @@ static void arp(int fd, struct sockaddr *saddr, int op,
 	memcpy(&p.arp.arp_tpa, &target_ip, sizeof(p.arp.arp_tpa));
 
 	// send it
-	if (sendto(fd, &p, sizeof(p), 0, saddr, sizeof(*saddr)) < 0) {
-		bb_perror_msg("sendto");
-		//return -errno;
-	}
+	xsendto(fd, &p, sizeof(p), saddr, sizeof(*saddr));
+
 	// Currently all callers ignore errors, that's why returns are
 	// commented out...
 	//return 0;

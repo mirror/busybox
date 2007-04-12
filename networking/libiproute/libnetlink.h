@@ -17,15 +17,13 @@ struct rtnl_handle
 	uint32_t		dump;
 };
 
-extern int rtnl_open(struct rtnl_handle *rth, unsigned subscriptions);
+extern int xrtnl_open(struct rtnl_handle *rth);
 extern void rtnl_close(struct rtnl_handle *rth);
-extern int rtnl_wilddump_request(struct rtnl_handle *rth, int fam, int type);
+extern int xrtnl_wilddump_request(struct rtnl_handle *rth, int fam, int type);
 extern int rtnl_dump_request(struct rtnl_handle *rth, int type, void *req, int len);
-extern int rtnl_dump_filter(struct rtnl_handle *rth,
+extern int xrtnl_dump_filter(struct rtnl_handle *rth,
 			int (*filter)(struct sockaddr_nl*, struct nlmsghdr *n, void*),
-			void *arg1,
-			int (*junk)(struct sockaddr_nl *, struct nlmsghdr *n, void *),
-			void *arg2);
+			void *arg1);
 extern int rtnl_talk(struct rtnl_handle *rtnl, struct nlmsghdr *n, pid_t peer,
 			unsigned groups, struct nlmsghdr *answer,
 			int (*junk)(struct sockaddr_nl *,struct nlmsghdr *n, void *),
