@@ -493,6 +493,7 @@ int grep_main(int argc, char **argv)
 				free(gl->pattern);
 			if ((gl->flg_mem_alocated_compiled & COMPILED))
 				regfree(&(gl->preg));
+			free(gl);
 			free(pattern_head_ptr);
 		}
 	}
