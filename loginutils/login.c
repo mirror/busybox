@@ -354,7 +354,7 @@ int login_main(int argc, char **argv)
 			xsetenv("LOGIN_UID", utoa(pw->pw_uid));
 			xsetenv("LOGIN_GID", utoa(pw->pw_gid));
 			xsetenv("LOGIN_SHELL", pw->pw_shell);
-			xspawn(argv); /* NOMMU-friendly */
+			xspawn(t_argv); /* NOMMU-friendly */
 			/* All variables are unset by setup_environment */
 			wait(NULL);
 		}
