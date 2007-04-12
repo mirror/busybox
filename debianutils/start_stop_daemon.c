@@ -183,7 +183,7 @@ static int do_stop(void)
 	if (!quiet && killed) {
 		printf("stopped %s (pid", what);
 		for (p = found; p; p = p->next)
-			if(p->pid < 0)
+			if (p->pid < 0)
 				printf(" %d", -p->pid);
 		puts(")");
 	}

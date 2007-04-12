@@ -124,7 +124,7 @@ static const unsigned short mode_mask[] = {
 	0,          S_IXOTH,            S_IXOTH,    0	/* other */
 };
 
-#define parse_error(x)  do { errmsg = x; goto pe_label; } while(0)
+#define parse_error(x)  do { errmsg = x; goto pe_label; } while (0)
 
 static void parse_config_file(void)
 {

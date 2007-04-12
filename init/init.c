@@ -843,7 +843,7 @@ static void parse_inittab(void)
 		for (a = actions; a->name != 0; a++) {
 			if (strcmp(a->name, action) == 0) {
 				if (*id != '\0') {
-					if(strncmp(id, "/dev/", 5) == 0)
+					if (strncmp(id, "/dev/", 5) == 0)
 						id += 5;
 					strcpy(tmpConsole, "/dev/");
 					safe_strncpy(tmpConsole + 5, id,

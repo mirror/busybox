@@ -254,7 +254,7 @@ int copy_file(const char *source, const char *dest, int flags)
 				return -1;
 			}
 			if (con) {
-				if(setfilecon(dest, con) == -1) {
+				if (setfilecon(dest, con) == -1) {
 					bb_perror_msg("setfilecon:%s,%s", dest, con);
 					freecon(con);
 					return -1;

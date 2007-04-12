@@ -174,7 +174,7 @@ static void INET_setroute(int action, char **args)
 
 		/* recognize x.x.x.x/mask format. */
 		prefix = strchr(target, '/');
-		if(prefix) {
+		if (prefix) {
 			int prefix_len;
 
 			prefix_len = xatoul_range(prefix+1, 0, 32);
@@ -193,7 +193,7 @@ static void INET_setroute(int action, char **args)
 		if (isnet < 0) {
 			bb_error_msg_and_die("resolving %s", target);
 		}
-		if(prefix) {
+		if (prefix) {
 			/* do not destroy prefix for process args */
 			*prefix = '/';
 		}

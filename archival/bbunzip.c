@@ -217,7 +217,7 @@ char* make_new_name_gunzip(char *filename)
 #endif
 	) {
 		extension[-1] = '\0';
-	} else if(strcmp(extension, "tgz") == 0) {
+	} else if (strcmp(extension, "tgz") == 0) {
 		filename = xstrdup(filename);
 		extension = strrchr(filename, '.');
 		extension[2] = 'a';

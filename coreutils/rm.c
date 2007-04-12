@@ -29,11 +29,11 @@ int rm_main(int argc, char **argv)
 	opt_complementary = "f-i:i-f";
 	opt = getopt32(argc, argv, "fiRr");
 	argv += optind;
-	if(opt & 1)
+	if (opt & 1)
 		flags |= FILEUTILS_FORCE;
-	if(opt & 2)
+	if (opt & 2)
 		flags |= FILEUTILS_INTERACTIVE;
-	if(opt & 12)
+	if (opt & 12)
 		flags |= FILEUTILS_RECUR;
 
 	if (*argv != NULL) {

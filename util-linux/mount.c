@@ -138,7 +138,7 @@ static void append_mount_options(char **oldopts, const char *newopts)
 				 && (p[len]==',' || p[len]==0))
 					goto skip;
 				p = strchr(p,',');
-				if(!p) break;
+				if (!p) break;
 				p++;
 			}
 			p = xasprintf("%s,%.*s", *oldopts, len, newopts);

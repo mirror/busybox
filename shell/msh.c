@@ -92,21 +92,21 @@ extern char **environ;
 #ifdef MSHDEBUG
 int mshdbg = MSHDEBUG;
 
-#define DBGPRINTF(x)	if(mshdbg>0)printf x
-#define DBGPRINTF0(x)	if(mshdbg>0)printf x
-#define DBGPRINTF1(x)	if(mshdbg>1)printf x
-#define DBGPRINTF2(x)	if(mshdbg>2)printf x
-#define DBGPRINTF3(x)	if(mshdbg>3)printf x
-#define DBGPRINTF4(x)	if(mshdbg>4)printf x
-#define DBGPRINTF5(x)	if(mshdbg>5)printf x
-#define DBGPRINTF6(x)	if(mshdbg>6)printf x
-#define DBGPRINTF7(x)	if(mshdbg>7)printf x
-#define DBGPRINTF8(x)	if(mshdbg>8)printf x
-#define DBGPRINTF9(x)	if(mshdbg>9)printf x
+#define DBGPRINTF(x)	if (mshdbg>0) printf x
+#define DBGPRINTF0(x)	if (mshdbg>0) printf x
+#define DBGPRINTF1(x)	if (mshdbg>1) printf x
+#define DBGPRINTF2(x)	if (mshdbg>2) printf x
+#define DBGPRINTF3(x)	if (mshdbg>3) printf x
+#define DBGPRINTF4(x)	if (mshdbg>4) printf x
+#define DBGPRINTF5(x)	if (mshdbg>5) printf x
+#define DBGPRINTF6(x)	if (mshdbg>6) printf x
+#define DBGPRINTF7(x)	if (mshdbg>7) printf x
+#define DBGPRINTF8(x)	if (mshdbg>8) printf x
+#define DBGPRINTF9(x)	if (mshdbg>9) printf x
 
 int mshdbg_rc = 0;
 
-#define RCPRINTF(x)		if(mshdbg_rc)printf x
+#define RCPRINTF(x)	if (mshdbg_rc) printf x
 
 #else
 

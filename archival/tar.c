@@ -676,7 +676,7 @@ static void handle_SIGCHLD(int status)
 		/* child exited with 0 */
 		return;
 	/* Cannot happen?
-	if(!WIFSIGNALED(status) && !WIFEXITED(status)) return; */
+	if (!WIFSIGNALED(status) && !WIFEXITED(status)) return; */
 	child_error = 1;
 }
 #endif

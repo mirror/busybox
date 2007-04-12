@@ -46,11 +46,11 @@ int rmmod_main(int argc, char **argv)
 
 	/* Parse command line. */
 	n = getopt32(argc, argv, "wfa");
-	if((n & 1))	// --wait
+	if (n & 1)	// --wait
 		flags &= ~O_NONBLOCK;
-	if((n & 2))	// --force
+	if (n & 2)	// --force
 		flags |= O_TRUNC;
-	if((n & 4)) {
+	if (n & 4) {
 		/* Unload _all_ unused modules via NULL delete_module() call */
 		/* until the number of modules does not change */
 		size_t nmod = 0; /* number of modules */

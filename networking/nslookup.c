@@ -147,7 +147,7 @@ int nslookup_main(int argc, char **argv)
 	/* (but it also says "may be enabled in /etc/resolv.conf|) */
 	/*_res.options |= RES_USE_INET6;*/
 
-	if(argc == 3)
+	if (argc == 3)
 		set_default_dns(argv[2]);
 
 	server_print();

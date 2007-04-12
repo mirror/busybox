@@ -2145,7 +2145,8 @@ static var *evaluate(node *op, var *res)
 				X.rsm = newfile(R.s);
 				if (! X.rsm->F) {
 					if (opn == '|') {
-						if((X.rsm->F = popen(R.s, "w")) == NULL)
+						X.rsm->F = popen(R.s, "w");
+						if (X.rsm->F == NULL)
 							bb_perror_msg_and_die("popen");
 						X.rsm->is_pipe = 1;
 					} else {

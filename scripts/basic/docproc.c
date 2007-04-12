@@ -178,7 +178,7 @@ void find_export_symbols(char * filename)
 			fprintf(stderr, "docproc: ");
 			perror(real_filename);
 		}
-		while(fgets(line, MAXLINESZ, fp)) {
+		while (fgets(line, MAXLINESZ, fp)) {
 			char *p;
 			char *e;
 			if (((p = strstr(line, "EXPORT_SYMBOL_GPL")) != 0) ||
@@ -291,7 +291,7 @@ void parse_file(FILE *infile)
 {
 	char line[MAXLINESZ];
 	char * s;
-	while(fgets(line, MAXLINESZ, infile)) {
+	while (fgets(line, MAXLINESZ, infile)) {
 		if (line[0] == '!') {
 			s = line + 2;
 			switch (line[1]) {

@@ -48,7 +48,7 @@ int makedevs_main(int argc, char **argv)
 		int sz;
 
 		sz = snprintf(buf, sizeof(buf), "%s%d", basedev, S);
-		if(sz<0 || sz>=sizeof(buf))  /* libc different */
+		if (sz < 0 || sz >= sizeof(buf))  /* libc different */
 			bb_error_msg_and_die("%s too large", basedev);
 
 	/* if mode != S_IFCHR and != S_IFBLK third param in mknod() ignored */

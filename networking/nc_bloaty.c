@@ -149,13 +149,13 @@ enum {
 /* Debug: squirt whatever message and sleep a bit so we can see it go by. */
 /* Beware: writes to stdOUT... */
 #if 0
-#define Debug(...) do { printf(__VA_ARGS__); printf("\n"); fflush(stdout); sleep(1); } while(0)
+#define Debug(...) do { printf(__VA_ARGS__); printf("\n"); fflush(stdout); sleep(1); } while (0)
 #else
-#define Debug(...) do { } while(0)
+#define Debug(...) do { } while (0)
 #endif
 
-#define holler_error(...)  do { if (o_verbose) bb_error_msg(__VA_ARGS__); } while(0)
-#define holler_perror(...) do { if (o_verbose) bb_perror_msg(__VA_ARGS__); } while(0)
+#define holler_error(...)  do { if (o_verbose) bb_error_msg(__VA_ARGS__); } while (0)
+#define holler_perror(...) do { if (o_verbose) bb_perror_msg(__VA_ARGS__); } while (0)
 
 /* catch: no-brainer interrupt handler */
 static void catch(int sig)

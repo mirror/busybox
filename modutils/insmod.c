@@ -3410,7 +3410,7 @@ static struct obj_file *obj_load(FILE * fp, int loadprogbits)
 		sec->header = section_headers[i];
 		sec->idx = i;
 
-		if(sec->header.sh_size) {
+		if (sec->header.sh_size) {
 			switch (sec->header.sh_type) {
 			case SHT_NULL:
 			case SHT_NOTE:
@@ -4219,17 +4219,17 @@ int insmod_main( int argc, char **argv)
 		goto out;
 	}
 
-	if(flag_print_load_map)
+	if (flag_print_load_map)
 		print_load_map(f);
 
 	exit_status = EXIT_SUCCESS;
 
 out:
 #if ENABLE_FEATURE_CLEAN_UP
-	if(fp)
+	if (fp)
 		fclose(fp);
 	free(tmp1);
-	if(!tmp1)
+	if (!tmp1)
 		free(m_name);
 	free(m_filename);
 #endif

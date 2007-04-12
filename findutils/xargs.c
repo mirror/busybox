@@ -141,7 +141,7 @@ static xlist_t *process_stdin(xlist_t *list_arg,
 			} else {
 				goto set;
 			}
-		} else { /* if(state == NORM) */
+		} else { /* if (state == NORM) */
 			if (ISSPACE(c)) {
 				if (s) {
 unexpected_eof:

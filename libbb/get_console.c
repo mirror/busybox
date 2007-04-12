@@ -50,17 +50,17 @@ int get_console_fd(void)
 
 	for (fd = 2; fd >= 0; fd--) {
 		int fd4name;
-		int choise_fd;
+		int choice_fd;
 		char arg;
 
 		fd4name = open_a_console(console_names[fd]);
  chk_std:
-		choise_fd = (fd4name >= 0 ? fd4name : fd);
+		choice_fd = (fd4name >= 0 ? fd4name : fd);
 
 		arg = 0;
-		if (ioctl(choise_fd, KDGKBTYPE, &arg) == 0)
-			return choise_fd;
-		if(fd4name >= 0) {
+		if (ioctl(choice_fd, KDGKBTYPE, &arg) == 0)
+			return choice_fd;
+		if (fd4name >= 0) {
 			close(fd4name);
 			fd4name = -1;
 			goto chk_std;

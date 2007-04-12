@@ -17,7 +17,7 @@
  * end of line.  If end isn't NULL, length of the chunk read is stored in it.
  * Return NULL if EOF/error */
 
-char *bb_get_chunk_from_file(FILE * file, int *end)
+char *bb_get_chunk_from_file(FILE *file, int *end)
 {
 	int ch;
 	int idx = 0;
@@ -27,7 +27,8 @@ char *bb_get_chunk_from_file(FILE * file, int *end)
 	while ((ch = getc(file)) != EOF) {
 		/* grow the line buffer as necessary */
 		if (idx >= linebufsz) {
-			linebuf = xrealloc(linebuf, linebufsz += 80);
+			linebufsz += 80;
+			linebuf = xrealloc(linebuf, linebufsz);
 		}
 		linebuf[idx++] = (char) ch;
 		if (!ch || (end && ch == '\n'))
@@ -49,7 +50,7 @@ char *bb_get_chunk_from_file(FILE * file, int *end)
 }
 
 /* Get line, including trailing \n if any */
-char *xmalloc_fgets(FILE * file)
+char *xmalloc_fgets(FILE *file)
 {
 	int i;
 
@@ -57,7 +58,7 @@ char *xmalloc_fgets(FILE * file)
 }
 
 /* Get line.  Remove trailing \n */
-char *xmalloc_getline(FILE * file)
+char *xmalloc_getline(FILE *file)
 {
 	int i;
 	char *c = bb_get_chunk_from_file(file, &i);

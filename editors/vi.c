@@ -447,7 +447,7 @@ static void edit_file(char * fn)
 				q = p;
 				p = strchr(q,'\n');
 				if (p)
-					while(*p == '\n')
+					while (*p == '\n')
 						*p++ = '\0';
 				if (*q)
 					colon(q);
