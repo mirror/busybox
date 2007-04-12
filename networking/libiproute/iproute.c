@@ -306,10 +306,23 @@ static int iproute_modify(int cmd, unsigned flags, int argc, char **argv)
 	struct rtattr * mxrta = (void*)mxbuf;
 	unsigned mxlock = 0;
 	char *d = NULL;
-	int gw_ok = 0;
-	int dst_ok = 0;
-	int proto_ok = 0;
-	int type_ok = 0;
+	enum { gw_ok = 1<<0, dst_ok = 1<<1, proto_ok = 1<<2, type_ok = 1<<3};
+	smalluint ok = 0;
+	static const char * const keywords[] = {
+		"src", "via", "mtu", "lock", "protocol", "table", "dev", "oif", "to",
+		NULL
+	};
+	enum {
+		ARG_src,
+		ARG_via,
+		ARG_mtu, PARM_lock,
+		ARG_protocol,
+		ARG_table,
+		ARG_dev,
+		ARG_oif,
+		ARG_to
+	};
+	int arg;
 
 	memset(&req, 0, sizeof(req));
 
@@ -330,69 +343,64 @@ static int iproute_modify(int cmd, unsigned flags, int argc, char **argv)
 	mxrta->rta_len = RTA_LENGTH(0);
 
 	while (argc > 0) {
-		if (strcmp(*argv, "src") == 0) {
+		arg = index_in_substr_array(keywords, *argv);
+		if (arg == ARG_src) {
 			inet_prefix addr;
 			NEXT_ARG();
 			get_addr(&addr, *argv, req.r.rtm_family);
-			if (req.r.rtm_family == AF_UNSPEC) {
+			if (req.r.rtm_family == AF_UNSPEC)
 				req.r.rtm_family = addr.family;
-			}
 			addattr_l(&req.n, sizeof(req), RTA_PREFSRC, &addr.data, addr.bytelen);
-		} else if (strcmp(*argv, "via") == 0) {
+		} else if (arg == ARG_via) {
 			inet_prefix addr;
-			gw_ok = 1;
+			ok |= gw_ok;
 			NEXT_ARG();
 			get_addr(&addr, *argv, req.r.rtm_family);
 			if (req.r.rtm_family == AF_UNSPEC) {
 				req.r.rtm_family = addr.family;
 			}
 			addattr_l(&req.n, sizeof(req), RTA_GATEWAY, &addr.data, addr.bytelen);
-		} else if (strcmp(*argv, "mtu") == 0) {
+		} else if (arg == ARG_mtu) {
 			unsigned mtu;
 			NEXT_ARG();
-			if (strcmp(*argv, "lock") == 0) {
+			if (index_in_str_array(keywords, *argv) == PARM_lock) {
 				mxlock |= (1<<RTAX_MTU);
 				NEXT_ARG();
 			}
-			if (get_unsigned(&mtu, *argv, 0)) {
+			if (get_unsigned(&mtu, *argv, 0))
 				invarg(*argv, "mtu");
-			}
 			rta_addattr32(mxrta, sizeof(mxbuf), RTAX_MTU, mtu);
-		} else if (matches(*argv, "protocol") == 0) {
+		} else if (arg == ARG_protocol) {
 			uint32_t prot;
 			NEXT_ARG();
 			if (rtnl_rtprot_a2n(&prot, *argv))
 				invarg(*argv, "protocol");
 			req.r.rtm_protocol = prot;
-			proto_ok =1;
-#if ENABLE_FEATURE_IP_RULE
-		} else if (matches(*argv, "table") == 0) {
+			ok |= proto_ok;
+		} else if (arg == ARG_table) {
 			uint32_t tid;
 			NEXT_ARG();
 			if (rtnl_rttable_a2n(&tid, *argv))
 				invarg(*argv, "table");
 			req.r.rtm_table = tid;
-#endif
-		} else if (strcmp(*argv, "dev") == 0 ||
-			   strcmp(*argv, "oif") == 0) {
+		} else if (arg == ARG_dev || arg == ARG_oif) {
 			NEXT_ARG();
 			d = *argv;
 		} else {
 			int type;
 			inet_prefix dst;
 
-			if (strcmp(*argv, "to") == 0) {
+			if (arg == ARG_to) {
 				NEXT_ARG();
 			}
 			if ((**argv < '0' || **argv > '9')
-			 && rtnl_rtntype_a2n(&type, *argv) == 0
-			) {
+				&& rtnl_rtntype_a2n(&type, *argv) == 0) {
 				NEXT_ARG();
 				req.r.rtm_type = type;
-				type_ok = 1;
+				ok |= type_ok;
 			}
 
-			if (dst_ok) {
+			if (ok & dst_ok) {
 				duparg2("to", *argv);
 			}
 			get_prefix(&dst, *argv, req.r.rtm_family);
@@ -400,7 +408,7 @@ static int iproute_modify(int cmd, unsigned flags, int argc, char **argv)
 				req.r.rtm_family = dst.family;
 			}
 			req.r.rtm_dst_len = dst.bitlen;
-			dst_ok = 1;
+			ok |= dst_ok;
 			if (dst.bytelen) {
 				addattr_l(&req.n, sizeof(req), RTA_DST, &dst.data, dst.bytelen);
 			}
@@ -427,6 +435,7 @@ static int iproute_modify(int cmd, unsigned flags, int argc, char **argv)
 		}
 		addattr_l(&req.n, sizeof(req), RTA_METRICS, RTA_DATA(mxrta), RTA_PAYLOAD(mxrta));
 	}
+
 	if (req.r.rtm_type == RTN_LOCAL || req.r.rtm_type == RTN_NAT)
 		req.r.rtm_scope = RT_SCOPE_HOST;
 	else if (req.r.rtm_type == RTN_BROADCAST ||
@@ -436,7 +445,7 @@ static int iproute_modify(int cmd, unsigned flags, int argc, char **argv)
 	else if (req.r.rtm_type == RTN_UNICAST || req.r.rtm_type == RTN_UNSPEC) {
 		if (cmd == RTM_DELROUTE)
 			req.r.rtm_scope = RT_SCOPE_NOWHERE;
-		else if (!gw_ok)
+		else if (!(ok & gw_ok))
 			req.r.rtm_scope = RT_SCOPE_LINK;
 	}
 
@@ -504,7 +513,21 @@ static int iproute_list_or_flush(int argc, char **argv, int flush)
 	struct rtnl_handle rth;
 	char *id = NULL;
 	char *od = NULL;
-
+	static const char * const keywords[] = {
+		"protocol", "all", "dev", "oif", "iif", "via", "table", "cache",/*all,*/
+		"from", "root", "match", "exact", "to", /*root,match,exact*/ NULL
+	};
+	enum {
+		ARG_proto, PARM_all,
+		ARG_dev,
+		ARG_oif,
+		ARG_iif,
+		ARG_via,
+		ARG_table, PARM_cache, /*PARM_all,*/
+		ARG_from, PARM_root, PARM_match, PARM_exact,
+		ARG_to  /*PARM_root, PARM_match, PARM_exact*/
+	};
+	int arg, parm;
 	iproute_reset_filter();
 	filter.tb = RT_TABLE_MAIN;
 
@@ -512,67 +535,66 @@ static int iproute_list_or_flush(int argc, char **argv, int flush)
 		bb_error_msg_and_die(bb_msg_requires_arg, "\"ip route flush\"");
 
 	while (argc > 0) {
-		if (matches(*argv, "protocol") == 0) {
+		arg = index_in_substr_array(keywords, *argv);
+		if (arg == ARG_proto) {
 			uint32_t prot = 0;
 			NEXT_ARG();
 			filter.protocolmask = -1;
 			if (rtnl_rtprot_a2n(&prot, *argv)) {
-				if (strcmp(*argv, "all") != 0) {
+				if (index_in_str_array(keywords, *argv) != PARM_all)
 					invarg(*argv, "protocol");
-				}
 				prot = 0;
 				filter.protocolmask = 0;
 			}
 			filter.protocol = prot;
-		} else if (strcmp(*argv, "dev") == 0 ||
-			   strcmp(*argv, "oif") == 0) {
+		} else if (arg == ARG_dev || arg == ARG_oif) {
 			NEXT_ARG();
 			od = *argv;
-		} else if (strcmp(*argv, "iif") == 0) {
+		} else if (arg == ARG_iif) {
 			NEXT_ARG();
 			id = *argv;
-		} else if (matches(*argv, "from") == 0) {
+		} else if (arg == ARG_via) {
 			NEXT_ARG();
-			if (matches(*argv, "root") == 0) {
+			get_prefix(&filter.rvia, *argv, do_ipv6);
+		} else if (arg == ARG_table) {
+			NEXT_ARG();
+			parm = index_in_substr_array(keywords, *argv);
+			if (parm == PARM_cache)
+				filter.tb = -1;
+			else if (parm == PARM_all)
+				filter.tb = 0;
+			else
+				invarg(*argv, "table");
+		} else if (arg == ARG_from) {
+			NEXT_ARG();
+			parm = index_in_substr_array(keywords, *argv);
+			if (parm == PARM_root) {
 				NEXT_ARG();
 				get_prefix(&filter.rsrc, *argv, do_ipv6);
-			} else if (matches(*argv, "match") == 0) {
+			} else if (parm == PARM_match) {
 				NEXT_ARG();
 				get_prefix(&filter.msrc, *argv, do_ipv6);
 			} else {
-				if (matches(*argv, "exact") == 0) {
+				if (parm == PARM_exact)
 					NEXT_ARG();
-				}
 				get_prefix(&filter.msrc, *argv, do_ipv6);
 				filter.rsrc = filter.msrc;
 			}
 		} else {
-			if (matches(*argv, "to") == 0) {
+			/* parm = arg; // would be more plausible, we reuse arg here */
+			if (arg == ARG_to) {
 				NEXT_ARG();
+				arg = index_in_substr_array(keywords, *argv);
 			}
-			if (matches(*argv, "root") == 0) {
+			if (arg == PARM_root) {
 				NEXT_ARG();
 				get_prefix(&filter.rdst, *argv, do_ipv6);
-			} else if (matches(*argv, "match") == 0) {
+			} else if (arg == PARM_match) {
 				NEXT_ARG();
 				get_prefix(&filter.mdst, *argv, do_ipv6);
-			} else if (matches(*argv, "table") == 0) {
-				NEXT_ARG();
-				if (matches(*argv, "cache") == 0) {
-					filter.tb = -1;
-#if 0 && ENABLE_FEATURE_IP_RULE
-
-#else
-				} else if (matches(*argv, "main") != 0) {
-					invarg(*argv, "table");
-				}
-#endif
-			} else if (matches(*argv, "cache") == 0) {
-				filter.tb = -1;
 			} else {
-				if (matches(*argv, "exact") == 0) {
+				if (arg == PARM_exact)
 					NEXT_ARG();
-				}
 				get_prefix(&filter.mdst, *argv, do_ipv6);
 				filter.rdst = filter.mdst;
 			}
@@ -655,8 +677,8 @@ static int iproute_get(int argc, char **argv)
 	} req;
 	char  *idev = NULL;
 	char  *odev = NULL;
-	int connected = 0;
-	int from_ok = 0;
+	bool connected = 0;
+	bool from_ok = 0;
 	static const char * const options[] =
 		{ "from", "iif", "oif", "dev", "notify", "connected", "to", 0 };
 
@@ -722,8 +744,7 @@ static int iproute_get(int argc, char **argv)
 				}
 				req.r.rtm_dst_len = addr.bitlen;
 			}
-			argc--;
-			argv++;
+			argc--; argv++;
 		}
 	}
 

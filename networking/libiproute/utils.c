@@ -29,7 +29,7 @@ int get_integer(int *val, char *arg, int base)
 	*val = res;
 	return 0;
 }
-
+//XXX: FIXME: use some libbb function instead
 int get_unsigned(unsigned *val, char *arg, int base)
 {
 	unsigned long res;
