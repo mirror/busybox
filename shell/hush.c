@@ -1119,8 +1119,7 @@ static void pseudo_exec(struct child_prog *child)
 
 			/* Count argc for use in a second... */
 			for (argc_l = 0; *argv_l; argv_l++, argc_l++)
-				/**/;
-			optind = 1;
+				continue;
 			debug_printf("running applet %s\n", name);
 			run_applet_and_exit(name, argc_l, child->argv);
 		}

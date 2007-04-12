@@ -33,7 +33,7 @@
 
 #if ENABLE_SHOW_USAGE && !ENABLE_FEATURE_COMPRESS_USAGE
 /* Define usage_messages[] */
-static const char usage_messages[] =
+static const char usage_messages[] = ""
 #define MAKE_USAGE
 #include "usage.h"
 #include "applets.h"
@@ -590,6 +590,10 @@ static int busybox_main(int argc, char **argv)
 
 void run_current_applet_and_exit(int argc, char **argv)
 {
+	/* Reinit some shared global data */
+	optind = 1;
+	xfunc_error_retval = EXIT_FAILURE;
+
 	applet_name = current_applet->name;
 	if (argc == 2 && !strcmp(argv[1], "--help"))
 		bb_show_usage();

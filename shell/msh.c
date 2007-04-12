@@ -3065,7 +3065,6 @@ static const char *rexecve(char *c, char **v, char **envp)
 	char *name = c;
 
 	if (ENABLE_FEATURE_SH_STANDALONE) {
-		optind = 1;
 		if (find_applet_by_name(name)) {
 			/* We have to exec here since we vforked.  Running
 			 * run_applet_and_exit() won't work and bad things

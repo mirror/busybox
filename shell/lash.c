@@ -32,6 +32,7 @@
 #define ENABLE_LASH_PIPE_N_REDIRECTS 1
 #define ENABLE_LASH_JOB_CONTROL      1
 
+
 enum { MAX_READ = 128 }; /* size of input buffer for 'read' builtin */
 #define JOB_STATUS_FORMAT "[%d] %-22s %.40s\n"
 
@@ -310,7 +311,7 @@ static int builtin_help(struct child_prog ATTRIBUTE_UNUSED *dummy)
 	const struct built_in_command *x;
 
 	printf("\nBuilt-in commands:\n"
-		   "-------------------\n");
+	       "-------------------\n");
 	for (x = bltins; x->cmd; x++) {
 		if (x->descr == NULL)
 			continue;
@@ -408,12 +409,12 @@ static int builtin_read(struct child_prog *child)
 		** the string resides in a static buffer!)
 		*/
 		res = -1;
-		if ((s = strdup(string)))
+		s = strdup(string);
+		if (s)
 			res = putenv(s);
 		if (res)
 			bb_perror_msg("read");
-	}
-	else
+	} else
 		fgets(string, sizeof(string), stdin);
 
 	return res;
@@ -1167,8 +1168,8 @@ static int pseudo_exec(struct child_prog *child)
 		char **argv_l = child->argv;
 		int argc_l;
 
-		for (argc_l = 0; *argv_l; argv_l++, argc_l++);
-		optind = 1;
+		for (argc_l = 0; *argv_l; argv_l++, argc_l++)
+			continue;
 		run_applet_and_exit(child->argv[0], argc_l, child->argv);
 	}
 
@@ -1234,7 +1235,7 @@ static int run_command(struct job *newjob, int inbg, int outpipe[2])
 
 	nextin = 0, nextout = 1;
 	for (i = 0; i < newjob->num_progs; i++) {
-		child = & (newjob->progs[i]);
+		child = &(newjob->progs[i]);
 
 		if ((i + 1) < newjob->num_progs) {
 			if (pipe(pipefds) < 0)
@@ -1275,11 +1276,11 @@ static int run_command(struct job *newjob, int inbg, int outpipe[2])
 		}
 
 #if !defined(__UCLIBC__) || defined(__ARCH_HAS_MMU__)
-		if (!(child->pid = fork()))
+		child->pid = fork();
 #else
-		if (!(child->pid = vfork()))
+		child->pid = vfork();
 #endif
-		{
+		if (!child->pid) {
 			/* Set the handling for job control signals back to the default.  */
 			signal(SIGINT, SIG_DFL);
 			signal(SIGQUIT, SIG_DFL);
@@ -1473,8 +1474,9 @@ static void setup_job_control(void)
 	pid_t shell_pgrp;
 
 	/* Loop until we are in the foreground.  */
-	while ((status = tcgetpgrp (shell_terminal)) >= 0) {
-		if (status == (shell_pgrp = getpgrp ())) {
+	while ((status = tcgetpgrp(shell_terminal)) >= 0) {
+		shell_pgrp = getpgrp();
+		if (status == shell_pgrp) {
 			break;
 		}
 		kill(- shell_pgrp, SIGTTIN);
