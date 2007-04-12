@@ -482,15 +482,15 @@ static void add_cmd(const char *cmdstr)
 	if (G.add_cmd_line) {
 		char *tp = xasprintf("%s\n%s", G.add_cmd_line, cmdstr);
 		free(G.add_cmd_line);
-		G.add_cmd_line = tp;
+		cmdstr = G.add_cmd_line = tp;
 	}
 
 	/* If this line ends with backslash, request next line. */
 	temp = strlen(cmdstr);
-	if (temp && cmdstr[temp-1] == '\\') {
+	if (temp && cmdstr[--temp] == '\\') {
 		if (!G.add_cmd_line)
 			G.add_cmd_line = xstrdup(cmdstr);
-		G.add_cmd_line[temp-1] = 0;
+		G.add_cmd_line[temp] = '\0';
 		return;
 	}
 
@@ -1210,29 +1210,6 @@ static void add_cmd_block(char *cmdstr)
 	free(sv);
 }
 
-static void add_cmds_link(llist_t *opt_e)
-{
-	if (!opt_e) return;
-	add_cmds_link(opt_e->link);
-	add_cmd_block(opt_e->data);
-	free(opt_e);
-}
-
-static void add_files_link(llist_t *opt_f)
-{
-	char *line;
-	FILE *cmdfile;
-	if (!opt_f) return;
-	add_files_link(opt_f->link);
-	cmdfile = xfopen(opt_f->data, "r");
-	while ((line = xmalloc_getline(cmdfile)) != NULL) {
-		add_cmd(line);
-		free(line);
-	}
-	xprint_and_close_file(cmdfile);
-	free(opt_f);
-}
-
 void BUG_sed_globals_too_big(void);
 
 int sed_main(int argc, char **argv);
@@ -1272,13 +1249,22 @@ int sed_main(int argc, char **argv)
 	}
 	if (opt & 0x2) G.regex_type |= REG_EXTENDED; // -r
 	//if (opt & 0x4) G.be_quiet++; // -n
-	if (opt & 0x8) { // -e
-		/* getopt32 reverses order of arguments, handle it */
-		add_cmds_link(opt_e);
+	while (opt_e) { // -e
+		add_cmd_block(opt_e->data);
+		opt_e = opt_e->link;
+		/* we leak opt_e here... */
 	}
-	if (opt & 0x10) { // -f
-		/* getopt32 reverses order of arguments, handle it */
-		add_files_link(opt_f);
+	while (opt_f) { // -f
+		char *line;
+		FILE *cmdfile;
+		cmdfile = xfopen(opt_f->data, "r");
+		while ((line = xmalloc_getline(cmdfile)) != NULL) {
+			add_cmd(line);
+			free(line);
+		}
+		fclose(cmdfile);
+		opt_f = opt_f->link;
+		/* we leak opt_f here... */
 	}
 	/* if we didn't get a pattern from -e or -f, use argv[0] */
 	if (!(opt & 0x18)) {
