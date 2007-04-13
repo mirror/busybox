@@ -104,7 +104,11 @@ typedef enum {
 
 /* The descrip member of this structure is only used to make debugging
  * output pretty */
-static const struct {int mode; int default_fd; const char *descrip;} redir_table[] = {
+static const struct {
+	int mode;
+	int default_fd;
+	const char *descrip;
+} redir_table[] = {
 	{ 0,                         0, "()" },
 	{ O_RDONLY,                  0, "<"  },
 	{ O_CREAT|O_TRUNC|O_WRONLY,  1, ">"  },
@@ -803,7 +807,7 @@ static void b_free(o_string *o)
  */
 static int b_addqchr(o_string *o, int ch, int quote)
 {
-	if (quote && strchr("*?[\\",ch)) {
+	if (quote && strchr("*?[\\", ch)) {
 		int rc;
 		rc = b_addchr(o, '\\');
 		if (rc)
@@ -1574,7 +1578,7 @@ static int run_list_real(struct pipe *pi)
 			continue;
 		save_num_progs = pi->num_progs; /* save number of programs */
 		rcode = run_pipe_real(pi);
-		debug_printf("run_pipe_real returned %d\n",rcode);
+		debug_printf("run_pipe_real returned %d\n", rcode);
 		if (rcode != -1) {
 			/* We only ran a builtin: rcode was set by the return value
 			 * of run_pipe_real(), and we don't need to wait for anything. */
@@ -1596,7 +1600,7 @@ static int run_list_real(struct pipe *pi)
 			} else {
 				rcode = checkjobs(pi);
 			}
-			debug_printf("checkjobs returned %d\n",rcode);
+			debug_printf("checkjobs returned %d\n", rcode);
 		}
 		last_return_code = rcode;
 		pi->num_progs = save_num_progs; /* restore number of programs */
@@ -2010,7 +2014,7 @@ static int reserved_word(o_string *dest, struct p_context *ctx)
 
 	for (r = reserved_list;	r < reserved_list+NRES; r++) {
 		if (strcmp(dest->data, r->literal) == 0) {
-			debug_printf("found reserved word %s, code %d\n",r->literal,r->code);
+			debug_printf("found reserved word %s, code %d\n", r->literal, r->code);
 			if (r->flag & FLAG_START) {
 				struct p_context *new = xmalloc(sizeof(struct p_context));
 				debug_printf("push stack\n");
@@ -2035,7 +2039,7 @@ static int reserved_word(o_string *dest, struct p_context *ctx)
 			if (ctx->old_flag & FLAG_END) {
 				struct p_context *old;
 				debug_printf("pop stack\n");
-				done_pipe(ctx,PIPE_SEQ);
+				done_pipe(ctx, PIPE_SEQ);
 				old = ctx->stack;
 				old->child->group = ctx->list_head;
 				old->child->subshell = 0;
@@ -2070,8 +2074,8 @@ static int done_word(o_string *dest, struct p_context *ctx)
 			return 1;  /* syntax error, groups and arglists don't mix */
 		}
 		if (!child->argv && (ctx->type & FLAG_PARSE_SEMICOLON)) {
-			debug_printf("checking %s for reserved-ness\n",dest->data);
-			if (reserved_word(dest,ctx))
+			debug_printf("checking %s for reserved-ness\n", dest->data);
+			if (reserved_word(dest, ctx))
 				return (ctx->w == RES_SNTX);
 		}
 		glob_target = &child->glob_result;
@@ -2091,8 +2095,8 @@ static int done_word(o_string *dest, struct p_context *ctx)
 		child->argv = glob_target->gl_pathv;
 	}
 	if (ctx->w == RES_FOR) {
-		done_word(dest,ctx);
-		done_pipe(ctx,PIPE_SEQ);
+		done_word(dest, ctx);
+		done_pipe(ctx, PIPE_SEQ);
 	}
 	return 0;
 }
@@ -2116,7 +2120,7 @@ static int done_command(struct p_context *ctx)
 		return 0;
 	} else if (prog) {
 		pi->num_progs++;
-		debug_printf("done_command: num_progs incremented to %d\n",pi->num_progs);
+		debug_printf("done_command: num_progs incremented to %d\n", pi->num_progs);
 	} else {
 		debug_printf("done_command: initializing\n");
 	}
@@ -2228,10 +2232,10 @@ static FILE *generate_stream_from_list(struct pipe *head)
 		}
 		_exit(run_list_real(head));   /* leaks memory */
 	}
-	debug_printf("forked child %d\n",pid);
+	debug_printf("forked child %d\n", pid);
 	close(channel[1]);
 	pf = fdopen(channel[0],"r");
-	debug_printf("pipe on FILE *%p\n",pf);
+	debug_printf("pipe on FILE *%p\n", pf);
 	return pf;
 }
 
@@ -2275,8 +2279,8 @@ static int process_command_subs(o_string *dest, struct p_context *ctx, struct in
 	 * to the KISS philosophy of this program. */
 	mark_closed(fileno(p));
 	retcode = pclose(p);
-	free_pipe_list(inner.list_head,0);
-	debug_printf("pclosed, retcode=%d\n",retcode);
+	free_pipe_list(inner.list_head, 0);
+	debug_printf("pclosed, retcode=%d\n", retcode);
 	/* XXX this process fails to trim a single trailing newline */
 	return retcode;
 }
@@ -2303,8 +2307,8 @@ static int parse_group(o_string *dest, struct p_context *ctx,
 	default:
 		syntax();   /* really logic error */
 	}
-	rcode = parse_stream(dest,&sub,input,endch);
-	done_word(dest,&sub); /* finish off the final word in the subcontext */
+	rcode = parse_stream(dest, &sub, input, endch);
+	done_word(dest, &sub); /* finish off the final word in the subcontext */
 	done_pipe(&sub, PIPE_SEQ);  /* and the final command there, too */
 	child->group = sub.list_head;
 	return rcode;
@@ -2330,13 +2334,13 @@ static int handle_dollar(o_string *dest, struct p_context *ctx, struct in_str *i
 	int i, advance = 0;
 	char sep[] = " ";
 	int ch = input->peek(input);  /* first character after the $ */
-	debug_printf("handle_dollar: ch=%c\n",ch);
+	debug_printf("handle_dollar: ch=%c\n", ch);
 	if (isalpha(ch)) {
 		b_addchr(dest, SPECIAL_VAR_SYMBOL);
 		ctx->child->sp++;
-		while (ch = b_peek(input),isalnum(ch) || ch == '_') {
+		while (ch = b_peek(input), isalnum(ch) || ch == '_') {
 			b_getch(input);
-			b_addchr(dest,ch);
+			b_addchr(dest, ch);
 		}
 		b_addchr(dest, SPECIAL_VAR_SYMBOL);
 	} else if (isdigit(ch)) {
@@ -2347,7 +2351,7 @@ static int handle_dollar(o_string *dest, struct p_context *ctx, struct in_str *i
 		advance = 1;
 	} else switch (ch) {
 		case '$':
-			b_adduint(dest,getpid());
+			b_adduint(dest, getpid());
 			advance = 1;
 			break;
 		case '!':
@@ -2355,11 +2359,11 @@ static int handle_dollar(o_string *dest, struct p_context *ctx, struct in_str *i
 			advance = 1;
 			break;
 		case '?':
-			b_adduint(dest,last_return_code);
+			b_adduint(dest, last_return_code);
 			advance = 1;
 			break;
 		case '#':
-			b_adduint(dest,global_argc ? global_argc-1 : 0);
+			b_adduint(dest, global_argc ? global_argc-1 : 0);
 			advance = 1;
 			break;
 		case '{':
@@ -2371,7 +2375,7 @@ static int handle_dollar(o_string *dest, struct p_context *ctx, struct in_str *i
 				ch = b_getch(input);
 				if (ch == EOF || ch == '}')
 					break;
-				b_addchr(dest,ch);
+				b_addchr(dest, ch);
 			}
 			if (ch != '}') {
 				syntax();
@@ -2395,11 +2399,11 @@ static int handle_dollar(o_string *dest, struct p_context *ctx, struct in_str *i
 		case '-':
 		case '_':
 			/* still unhandled, but should be eventually */
-			bb_error_msg("unhandled syntax: $%c",ch);
+			bb_error_msg("unhandled syntax: $%c", ch);
 			return 1;
 			break;
 		default:
-			b_addqchr(dest,'$',dest->quote);
+			b_addqchr(dest,'$', dest->quote);
 	}
 	/* Eat the character if the flag was set.  If the compiler
 	 * is smart enough, we could substitute "b_getch(input);"
@@ -2430,7 +2434,7 @@ int parse_stream(o_string *dest, struct p_context *ctx,
 	 * A single-quote triggers a bypass of the main loop until its mate is
 	 * found.  When recursing, quote state is passed in via dest->quote. */
 
-	debug_printf("parse_stream, end_trigger=%d\n",end_trigger);
+	debug_printf("parse_stream, end_trigger=%d\n", end_trigger);
 	while ((ch = b_getch(input)) != EOF) {
 		m = map[ch];
 		next = (ch == '\n') ? 0 : b_peek(input);
@@ -2447,7 +2451,7 @@ int parse_stream(o_string *dest, struct p_context *ctx,
 			/* If we aren't performing a substitution, treat a newline as a
 			 * command separator.  */
 			if (end_trigger != '\0' && ch == '\n')
-				done_pipe(ctx,PIPE_SEQ);
+				done_pipe(ctx, PIPE_SEQ);
 		}
 		if (ch == end_trigger && !dest->quote && ctx->w == RES_NONE) {
 			debug_printf("leaving parse_stream (triggered)\n");
@@ -2485,7 +2489,7 @@ int parse_stream(o_string *dest, struct p_context *ctx,
 				ch = b_getch(input);
 				if (ch == EOF || ch == '\'')
 					break;
-				b_addchr(dest,ch);
+				b_addchr(dest, ch);
 			}
 			if (ch == EOF) {
 				syntax();
@@ -2530,22 +2534,22 @@ int parse_stream(o_string *dest, struct p_context *ctx,
 			break;
 		case ';':
 			done_word(dest, ctx);
-			done_pipe(ctx,PIPE_SEQ);
+			done_pipe(ctx, PIPE_SEQ);
 			break;
 		case '&':
 			done_word(dest, ctx);
 			if (next == '&') {
 				b_getch(input);
-				done_pipe(ctx,PIPE_AND);
+				done_pipe(ctx, PIPE_AND);
 			} else {
-				done_pipe(ctx,PIPE_BG);
+				done_pipe(ctx, PIPE_BG);
 			}
 			break;
 		case '|':
 			done_word(dest, ctx);
 			if (next == '|') {
 				b_getch(input);
-				done_pipe(ctx,PIPE_OR);
+				done_pipe(ctx, PIPE_OR);
 			} else {
 				/* we could pick up a file descriptor choice here
 				 * with redirect_opt_num(), but bash doesn't do it.
@@ -2623,7 +2627,7 @@ int parse_stream_outer(struct in_str *inp, int flag)
 		}
 		if (rcode != 1 && ctx.old_flag == 0) {
 			done_word(&temp, &ctx);
-			done_pipe(&ctx,PIPE_SEQ);
+			done_pipe(&ctx, PIPE_SEQ);
 			run_list(ctx.list_head);
 		} else {
 			if (ctx.old_flag != 0) {
@@ -2661,9 +2665,10 @@ static int parse_file_outer(FILE *f)
  * we don't fight over who gets the foreground */
 static void setup_job_control(void)
 {
-	static pid_t shell_pgrp;
+	/*static --why?? */  pid_t shell_pgrp;
+
 	/* Loop until we are in the foreground.  */
-	while (tcgetpgrp (shell_terminal) != (shell_pgrp = getpgrp ()))
+	while (tcgetpgrp(shell_terminal) != (shell_pgrp = getpgrp()))
 		kill(- shell_pgrp, SIGTTIN);
 
 	/* Ignore interactive and job-control signals.  */
@@ -2689,7 +2694,7 @@ int hush_main(int argc, char **argv)
 {
 	int opt;
 	FILE *input;
-	char **e = environ;
+	char **e;
 
 #if ENABLE_FEATURE_EDITING
 	line_input_state = new_line_input_t(FOR_SHELL);
@@ -2720,10 +2725,10 @@ int hush_main(int argc, char **argv)
 
 	/* initialize our shell local variables with the values
 	 * currently living in the environment */
-	if (e) {
-		for (; *e; e++)
-			set_local_var(*e, 2);   /* without call putenv() */
-	}
+	e = environ;
+	if (e)
+		while (*e)
+			set_local_var(*e++, 2);   /* without call putenv() */
 
 	last_return_code = EXIT_SUCCESS;
 
@@ -2741,37 +2746,34 @@ int hush_main(int argc, char **argv)
 
 	while ((opt = getopt(argc, argv, "c:xif")) > 0) {
 		switch (opt) {
-			case 'c':
-				{
-					global_argv = argv+optind;
-					global_argc = argc-optind;
-					opt = parse_string_outer(optarg, FLAG_PARSE_SEMICOLON);
-					goto final_return;
-				}
-				break;
-			case 'i':
-				interactive++;
-				break;
-			case 'f':
-				fake_mode++;
-				break;
-			default:
+		case 'c':
+			global_argv = argv+optind;
+			global_argc = argc-optind;
+			opt = parse_string_outer(optarg, FLAG_PARSE_SEMICOLON);
+			goto final_return;
+		case 'i':
+			interactive++;
+			break;
+		case 'f':
+			fake_mode++;
+			break;
+		default:
 #ifndef BB_VER
-				fprintf(stderr, "Usage: sh [FILE]...\n"
-						"   or: sh -c command [args]...\n\n");
-				exit(EXIT_FAILURE);
+			fprintf(stderr, "Usage: sh [FILE]...\n"
+					"   or: sh -c command [args]...\n\n");
+			exit(EXIT_FAILURE);
 #else
-				bb_show_usage();
+			bb_show_usage();
 #endif
 		}
 	}
-	/* A shell is interactive if the `-i' flag was given, or if all of
+	/* A shell is interactive if the '-i' flag was given, or if all of
 	 * the following conditions are met:
 	 *	  no -c command
 	 *    no arguments remaining or the -s flag given
 	 *    standard input is a terminal
 	 *    standard output is a terminal
-	 *    Refer to Posix.2, the description of the `sh' utility. */
+	 *    Refer to Posix.2, the description of the 'sh' utility. */
 	if (argv[optind] == NULL && input == stdin
 	 && isatty(STDIN_FILENO) && isatty(STDOUT_FILENO)
 	) {
@@ -2802,7 +2804,7 @@ int hush_main(int argc, char **argv)
 
 #if ENABLE_FEATURE_CLEAN_UP
 	fclose(input);
-	if (cwd && cwd != bb_msg_unknown)
+	if (cwd != bb_msg_unknown)
 		free((char*)cwd);
 	{
 		struct variables *cur, *tmp;
@@ -2885,7 +2887,7 @@ static char **make_list_in(char **inp, char *name)
 				len = strlen(p1);
 				p2 = p1 + len;
 			}
-			/* we use n + 2 in realloc for list,because we add
+			/* we use n + 2 in realloc for list, because we add
 			 * new element and then we will add NULL element */
 			list = xrealloc(list, sizeof(*list) * (n + 2));
 			list[n] = xmalloc(2 + name_len + len);
