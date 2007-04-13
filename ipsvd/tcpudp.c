@@ -25,7 +25,7 @@
  * - local IP address is retrieved (using recvmsg voodoo) but
  *   child's socket is not bound to it (bind cannot be called on
  *   already bound socket). Thus it still can emit outgoing packets
- *   with wrong sorce IP...
+ *   with wrong source IP...
  * - don't know how to retrieve ORIGDST for udp.
  */
 
