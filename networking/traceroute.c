@@ -944,7 +944,7 @@ int traceroute_main(int argc, char **argv)
 	int first_ttl = 1;
 	char *first_ttl_str;
 #if ENABLE_FEATURE_TRACEROUTE_SOURCE_ROUTE
-	llist_t *sourse_route_list = NULL;
+	llist_t *source_route_list = NULL;
 #endif
 
 	PTR_TO_GLOBALS = xzalloc(sizeof(G));
@@ -965,7 +965,7 @@ int traceroute_main(int argc, char **argv)
 		, &tos_str, &device, &max_ttl_str, &port_str, &nprobes_str
 		, &source, &waittime_str, &pausemsecs_str, &first_ttl_str
 #if ENABLE_FEATURE_TRACEROUTE_SOURCE_ROUTE
-		, &sourse_route_list
+		, &source_route_list
 #endif
 	);
 
@@ -999,18 +999,18 @@ int traceroute_main(int argc, char **argv)
 		first_ttl = xatou_range(first_ttl_str, 1, 255);
 
 #if ENABLE_FEATURE_TRACEROUTE_SOURCE_ROUTE
-	if (sourse_route_list) {
+	if (source_route_list) {
 		llist_t *l_sr;
 
-		l_sr = sourse_route_list;
+		l_sr = source_route_list;
 		while (l_sr) {
 			if (lsrr >= NGATEWAYS)
 				bb_error_msg_and_die("no more than %d gateways", NGATEWAYS);
 			getaddr(gwlist + lsrr, l_sr->data);
 			++lsrr;
 			l_sr = l_sr->link;
-			free(sourse_route_list);
-			sourse_route_list = l_sr;
+			free(source_route_list);
+			source_route_list = l_sr;
 		}
 		optlen = (lsrr + 1) * sizeof(gwlist[0]);
 	}
