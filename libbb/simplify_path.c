@@ -26,13 +26,16 @@ char *bb_simplify_path(const char *path)
 		if (*p == '/') {
 			if (*s == '/') {	/* skip duplicate (or initial) slash */
 				continue;
-			} else if (*s == '.') {
-				if (s[1] == '/' || s[1] == 0) {	/* remove extra '.' */
+			}
+			if (*s == '.') {
+				if (s[1] == '/' || !s[1]) {	/* remove extra '.' */
 					continue;
-				} else if ((s[1] == '.') && (s[2] == '/' || s[2] == 0)) {
+				}
+				if ((s[1] == '.') && (s[2] == '/' || !s[2])) {
 					++s;
 					if (p > start) {
-						while (*--p != '/');	/* omit previous dir */
+						while (*--p != '/')	/* omit previous dir */
+							continue;
 					}
 					continue;
 				}

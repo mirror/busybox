@@ -405,6 +405,7 @@ extern char *xasprintf(const char *format, ...) __attribute__ ((format (printf, 
 #define NOT_LONE_DASH(s) ((s)[0] != '-' || (s)[1])
 #define LONE_CHAR(s,c)     ((s)[0] == (c) && !(s)[1])
 #define NOT_LONE_CHAR(s,c) ((s)[0] != (c) || (s)[1])
+#define DOT_OR_DOTDOT(s) ((s)[0] == '.' && (!(s)[1] || ((s)[1] == '.' && !(s)[2])))
 
 /* dmalloc will redefine these to it's own implementation. It is safe
  * to have the prototypes here unconditionally.  */

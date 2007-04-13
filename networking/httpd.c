@@ -1573,7 +1573,7 @@ static void handleIncoming(void)
 		}
 
 		/* algorithm stolen from libbb bb_simplify_path(),
-			 but don't strdup and reducing trailing slash and protect out root */
+		 * but don't strdup and reducing trailing slash and protect out root */
 		purl = test = url;
 		do {
 			if (*purl == '/') {
@@ -1583,18 +1583,18 @@ static void handleIncoming(void)
 				}
 				if (*test == '.') {
 					/* skip extra '.' */
-					if (test[1] == '/' || test[1] == 0) {
+					if (test[1] == '/' || !test[1]) {
 						continue;
-					} else
+					}
 					/* '..': be careful */
-					if (test[1] == '.' && (test[2] == '/' || test[2] == 0)) {
+					if (test[1] == '.' && (test[2] == '/' || !test[2])) {
 						++test;
 						if (purl == url) {
 							/* protect out root */
 							goto BAD_REQUEST;
 						}
 						while (*--purl != '/') /* omit previous dir */;
-						continue;
+							continue;
 					}
 				}
 			}

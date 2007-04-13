@@ -1369,7 +1369,7 @@ static void dir_operation(int type, const char * dir_name, int var, unsigned lon
 	while ( (de = readdir (dp) ) != NULL )
 	{
 
-		if(de->d_name && *de->d_name == '.' && (!de->d_name[1] || (de->d_name[1] == '.' && !de->d_name[2])))
+		if(de->d_name && DOT_OR_DOTDOT(de->d_name))
 			continue;
 		snprintf (path, sizeof (path), "%s/%s", dir_name, de->d_name);
 		debug_msg_logger(LOG_ERR, "%s: %s", __FUNCTION__, path);

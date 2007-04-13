@@ -2293,7 +2293,8 @@ updatepwd(const char *dir)
 						break;
 				}
 				break;
-			} else if (p[1] == '\0')
+			}
+			if (p[1] == '\0')
 				break;
 			/* fall through */
 		default:
