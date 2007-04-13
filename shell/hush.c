@@ -629,7 +629,6 @@ static int builtin_jobs(struct child_prog *child ATTRIBUTE_UNUSED)
 	return EXIT_SUCCESS;
 }
 
-
 /* built-in 'pwd' handler */
 static int builtin_pwd(struct child_prog *dummy ATTRIBUTE_UNUSED)
 {
@@ -693,9 +692,8 @@ static int builtin_shift(struct child_prog *child)
 		global_argc -= n;
 		global_argv += n;
 		return EXIT_SUCCESS;
-	} else {
-		return EXIT_FAILURE;
 	}
+	return EXIT_FAILURE;
 }
 
 /* Built-in '.' handler (read-in and execute commands from file) */
@@ -950,13 +948,12 @@ static int file_peek(struct in_str *i)
 {
 	if (i->p && *i->p) {
 		return *i->p;
-	} else {
-		i->peek_buf[0] = fgetc(i->file);
-		i->peek_buf[1] = '\0';
-		i->p = i->peek_buf;
-		debug_printf("b_peek: got a %d\n", *i->p);
-		return *i->p;
 	}
+	i->peek_buf[0] = fgetc(i->file);
+	i->peek_buf[1] = '\0';
+	i->p = i->peek_buf;
+	debug_printf("b_peek: got a %d\n", *i->p);
+	return *i->p;
 }
 
 static void setup_file_in_str(struct in_str *i, FILE *f)
@@ -1019,7 +1016,7 @@ static int setup_redirects(struct child_prog *prog, int squirrel[])
 		}
 		if (redir->dup == -1) {
 			mode = redir_table[redir->type].mode;
-			openfd = open3_or_warn(redir->word.gl_pathv[0], mode, 0666);
+			openfd = open_or_warn(redir->word.gl_pathv[0], mode);
 			if (openfd < 0) {
 			/* this could get lost if stderr has been redirected, but
 			   bash and ash both lose it as well (though zsh doesn't!) */
@@ -1038,7 +1035,7 @@ static int setup_redirects(struct child_prog *prog, int squirrel[])
 			} else {
 				dup2(openfd, redir->fd);
 				if (redir->dup == -1)
-					close (openfd);
+					close(openfd);
 			}
 		}
 	}
@@ -1128,18 +1125,20 @@ static void pseudo_exec(struct child_prog *child)
 		execvp(child->argv[0], child->argv);
 		bb_perror_msg("cannot exec: %s", child->argv[0]);
 		_exit(1);
-	} else if (child->group) {
+	}
+
+	if (child->group) {
 		debug_printf("runtime nesting to group\n");
 		interactive = 0;    /* crucial!!!! */
 		rcode = run_list_real(child->group);
 		/* OK to leak memory by not calling free_pipe_list,
 		 * since this process is about to exit */
 		_exit(rcode);
-	} else {
-		/* Can happen.  See what bash does with ">foo" by itself. */
-		debug_printf("trying to pseudo_exec null command\n");
-		_exit(EXIT_SUCCESS);
 	}
+
+	/* Can happen.  See what bash does with ">foo" by itself. */
+	debug_printf("trying to pseudo_exec null command\n");
+	_exit(EXIT_SUCCESS);
 }
 
 static void insert_bg_job(struct pipe *pi)
@@ -1157,7 +1156,7 @@ static void insert_bg_job(struct pipe *pi)
 		thejob = job_list = xmalloc(sizeof(*thejob));
 	} else {
 		for (thejob = job_list; thejob->next; thejob = thejob->next)
-			/* nothing */;
+			continue;
 		thejob->next = xmalloc(sizeof(*thejob));
 		thejob = thejob->next;
 	}
@@ -1320,9 +1319,11 @@ static int run_pipe_real(struct pipe *pi)
 		rcode = run_list_real(child->group);
 		restore_redirects(squirrel);
 		return rcode;
-	} else if (pi->num_progs == 1 && pi->progs[0].argv != NULL) {
+	}
+
+	if (pi->num_progs == 1 && pi->progs[0].argv != NULL) {
 		for (i = 0; is_assignment(child->argv[i]); i++)
-			/* nothing */;
+			continue;
 		if (i != 0 && child->argv[i] == NULL) {
 			/* assignments, but no command: set the local environment */
 			for (i = 0; child->argv[i] != NULL; i++) {
@@ -1359,7 +1360,7 @@ static int run_pipe_real(struct pipe *pi)
 			}
 		}
 		if (child->sp) {
-			char *str = NULL;
+			char *str;
 
 			str = make_string((child->argv + i));
 			parse_string_outer(str, FLAG_EXIT_FROM_LOOP | FLAG_REPARSING);
@@ -1372,7 +1373,7 @@ static int run_pipe_real(struct pipe *pi)
 				int rcode;
 				if (x->function == builtin_exec && child->argv[i+1] == NULL) {
 					debug_printf("magic exec\n");
-					setup_redirects(child,NULL);
+					setup_redirects(child, NULL);
 					return EXIT_SUCCESS;
 				}
 				debug_printf("builtin inline %s\n", child->argv[0]);
@@ -1404,7 +1405,7 @@ static int run_pipe_real(struct pipe *pi)
 		}
 
 		/* XXX test for failed fork()? */
-#if !defined(__UCLIBC__) || defined(__ARCH_HAS_MMU__)
+#if BB_MMU
 		child->pid = fork();
 #else
 		child->pid = vfork();
@@ -1435,7 +1436,7 @@ static int run_pipe_real(struct pipe *pi)
 
 			/* Like bash, explicit redirects override pipes,
 			 * and the pipe fd is available for dup'ing. */
-			setup_redirects(child,NULL);
+			setup_redirects(child, NULL);
 
 			if (interactive && pi->followup != PIPE_BG) {
 				/* If we (the child) win the race, put ourselves in the process
@@ -1803,11 +1804,12 @@ static int set_local_var(const char *s, int flg_export)
 	 * NAME=VALUE format.  So the first order of business is to
 	 * split 's' on the '=' into 'name' and 'value' */
 	value = strchr(name, '=');
-	if (value == 0 && ++value == 0) {
+	/*if (value == 0 && ++value == 0) ??? -vda */
+	if (value == NULL || value[1] == '\0') {
 		free(name);
 		return -1;
 	}
-	*value++ = 0;
+	*value++ = '\0';
 
 	for (cur = top_vars; cur; cur = cur->next) {
 		if (strcmp(cur->name, name) == 0)
@@ -1820,17 +1822,15 @@ static int set_local_var(const char *s, int flg_export)
 				cur->flg_export = flg_export;
 			else
 				result++;
+		} else if (cur->flg_read_only) {
+			bb_error_msg("%s: readonly variable", name);
+			result = -1;
 		} else {
-			if (cur->flg_read_only) {
-				bb_error_msg("%s: readonly variable", name);
-				result = -1;
-			} else {
-				if (flg_export > 0 || cur->flg_export > 1)
-					cur->flg_export = 1;
-				free((char*)cur->value);
+			if (flg_export > 0 || cur->flg_export > 1)
+				cur->flg_export = 1;
+			free((char*)cur->value);
 
-				cur->value = strdup(value);
-			}
+			cur->value = strdup(value);
 		}
 	} else {
 		cur = malloc(sizeof(struct variables));
@@ -2213,7 +2213,7 @@ static FILE *generate_stream_from_list(struct pipe *head)
 	FILE *pf;
 	int pid, channel[2];
 	if (pipe(channel) < 0) bb_perror_msg_and_die("pipe");
-#if !defined(__UCLIBC__) || defined(__ARCH_HAS_MMU__)
+#if BB_MMU
 	pid = fork();
 #else
 	pid = vfork();
@@ -2576,14 +2576,15 @@ int parse_stream(o_string *dest, struct p_context *ctx,
 	 * one before the EOF.  Can't use the standard "syntax error" return code,
 	 * so that parse_stream_outer can distinguish the EOF and exit smoothly. */
 	debug_printf("leaving parse_stream (EOF)\n");
-	if (end_trigger != '\0') return -1;
+	if (end_trigger != '\0')
+		return -1;
 	return 0;
 }
 
 static void mapset(const char *set, int code)
 {
-	const unsigned char *s;
-	for (s = (const unsigned char *)set; *s; s++) map[(int)*s] = code;
+	while (*s)
+		map[(unsigned char)*s++] = code;
 }
 
 static void update_ifs_map(void)
@@ -2607,7 +2608,6 @@ static void update_ifs_map(void)
  * from builtin_source() */
 int parse_stream_outer(struct in_str *inp, int flag)
 {
-
 	struct p_context ctx;
 	o_string temp = NULL_O_STRING;
 	int rcode;
@@ -2729,7 +2729,8 @@ int hush_main(int argc, char **argv)
 
 	if (argv[0] && argv[0][0] == '-') {
 		debug_printf("\nsourcing /etc/profile\n");
-		if ((input = fopen("/etc/profile", "r")) != NULL) {
+		input = fopen("/etc/profile", "r");
+		if (input != NULL) {
 			mark_open(fileno(input));
 			parse_file_outer(input);
 			mark_closed(fileno(input));
@@ -2816,7 +2817,7 @@ int hush_main(int argc, char **argv)
 	}
 #endif
 
-final_return:
+ final_return:
 	return opt ? opt : last_return_code;
 }
 
@@ -2877,7 +2878,8 @@ static char **make_list_in(char **inp, char *name)
 				p1++;
 				continue;
 			}
-			if ((p2 = strchr(p1, ' '))) {
+			p2 = strchr(p1, ' ');
+			if (p2) {
 				len = p2 - p1;
 			} else {
 				len = strlen(p1);
@@ -2920,7 +2922,7 @@ static char* make_string(char ** inp)
 		if (p != inp[n]) free(p);
 	}
 	len = strlen(str);
-	*(str + len) = '\n';
-	*(str + len + 1) = '\0';
+	str[len] = '\n';
+	str[len+1] = '\0';
 	return str;
 }
