@@ -79,6 +79,8 @@ USE_FEATURE_FIND_GROUP( ACTS(group, gid_t gid;))
 USE_FEATURE_FIND_PAREN( ACTS(paren, action ***subexpr;))
 USE_FEATURE_FIND_SIZE(  ACTS(size,  off_t size;))
 USE_FEATURE_FIND_PRUNE( ACTS(prune))
+USE_FEATURE_FIND_DELETE(ACTS(delete))
+USE_FEATURE_FIND_PATH(  ACTS(path, const char *pattern;))
 
 static action ***actions;
 static bool need_print = 1;
@@ -305,6 +307,28 @@ ACTF(prune)
 }
 #endif
 
+#if ENABLE_FEATURE_FIND_DELETE
+ACTF(delete)
+{
+	int rc;
+	if (S_ISDIR(statbuf->st_mode)) {
+		rc = rmdir(fileName);
+	} else {
+		rc = unlink(fileName);
+	}
+	if (rc < 0)
+		bb_perror_msg("%s", fileName);
+	return TRUE;
+}
+#endif
+
+#if ENABLE_FEATURE_FIND_PATH
+ACTF(path)
+{
+	return fnmatch(ap->pattern, fileName, 0) == 0;
+}
+#endif
+
 #if ENABLE_FEATURE_FIND_SIZE
 ACTF(size)
 {
@@ -393,6 +417,8 @@ static action*** parse_params(char **argv)
 	USE_FEATURE_FIND_PAREN( PARM_char_brace,)
 	USE_FEATURE_FIND_SIZE(  PARM_size      ,)
 	USE_FEATURE_FIND_PRUNE( PARM_prune     ,)
+	USE_FEATURE_FIND_DELETE(PARM_delete    ,)
+	USE_FEATURE_FIND_PATH(  PARM_path      ,)
 #if ENABLE_DESKTOP
 	                        PARM_and       ,
 	                        PARM_or        ,
@@ -420,6 +446,8 @@ static action*** parse_params(char **argv)
 	USE_FEATURE_FIND_PAREN( "("      ,)
 	USE_FEATURE_FIND_SIZE(  "-size"  ,)
 	USE_FEATURE_FIND_PRUNE( "-prune" ,)
+	USE_FEATURE_FIND_DELETE("-delete",)
+	USE_FEATURE_FIND_PATH(  "-path"  ,)
 #if ENABLE_DESKTOP
 	                        "-and"   ,
 	                        "-or"    ,
@@ -654,6 +682,22 @@ static action*** parse_params(char **argv)
 		else if (parm == PARM_prune) {
 			USE_FEATURE_FIND_NOT( invert_flag = 0; )
 			(void) ALLOC_ACTION(prune);
+		}
+#endif
+#if ENABLE_FEATURE_FIND_DELETE
+		else if (parm == PARM_delete) {
+			need_print = 0;
+			recurse_flags |= ACTION_DEPTHFIRST;
+			(void) ALLOC_ACTION(delete);
+		}
+#endif
+#if ENABLE_FEATURE_FIND_PATH
+		else if (parm == PARM_path) {
+			action_path *ap;
+			if (!*++argv)
+				bb_error_msg_and_die(bb_msg_requires_arg, arg);
+			ap = ALLOC_ACTION(path);
+			ap->pattern = arg1;
 		}
 #endif
 #if ENABLE_FEATURE_FIND_SIZE

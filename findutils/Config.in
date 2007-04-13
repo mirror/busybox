@@ -135,6 +135,22 @@ config FEATURE_FIND_PRUNE
 	  If the file is a directory, dont descend into it. Useful for
 	  exclusion .svn and CVS directories.
 
+config FEATURE_FIND_DELETE
+	bool "Enable -delete option allowing to delete files"
+	default n
+	depends on FIND && FEATURE_FIND_DEPTH
+	help
+	  Support the 'find -delete' option for deleting files and direcotries.
+	  WARNING: This option can do much harm if used wrong. Busybox will not
+	  try to protect the user from doing stupid things. Use with care.
+
+config FEATURE_FIND_PATH
+	bool "Enable -path option allowing to match pathname patterns"
+	default y
+	depends on FIND
+	help
+	  The -path option matches whole pathnames instead of just filenames.
+
 config GREP
 	bool "grep"
 	default n

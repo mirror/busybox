@@ -968,6 +968,10 @@
        "\n	-size N		File size is N" \
 	) USE_FEATURE_FIND_PRUNE( \
        "\n	-prune		Stop traversing current subtree" \
+        ) USE_FEATURE_FIND_DELETE( \
+       "\n	-delete		Delete files; Turns on -depth option" \
+        ) USE_FEATURE_FIND_PATH( \
+       "\n	-path		Path matches PATTERN" \
 	) USE_FEATURE_FIND_PAREN( \
        "\n	(EXPR)		Group an expression" \
 	)
