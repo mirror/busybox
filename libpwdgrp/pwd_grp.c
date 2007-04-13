@@ -679,7 +679,7 @@ int putspent(const struct spwd *p, FILE *stream)
 {
 	static const char ld_format[] = "%ld:";
 	const char *f;
-	long int x;
+	long x;
 	int i;
 	int rv = -1;
 
@@ -692,7 +692,7 @@ int putspent(const struct spwd *p, FILE *stream)
 
 	for (i=0 ; i < sizeof(_sp_off) ; i++) {
 		f = ld_format;
-		x = *(const long int *)(((const char *) p) + _sp_off[i]);
+		x = *(const long *)(((const char *) p) + _sp_off[i]);
 		if (x == -1) {
 			f += 3;
 		}

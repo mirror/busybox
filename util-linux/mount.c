@@ -201,17 +201,16 @@ static int parse_mount_options(char *options, char **unrecognized)
 
 static llist_t *get_block_backed_filesystems(void)
 {
-	static const char *const filesystems[] = {
+	static const char filesystems[2][sizeof("/proc/filesystems")] = {
 		"/etc/filesystems",
 		"/proc/filesystems",
-		0
 	};
 	char *fs, *buf;
 	llist_t *list = 0;
 	int i;
 	FILE *f;
 
-	for (i = 0; filesystems[i]; i++) {
+	for (i = 0; i < 2; i++) {
 		f = fopen(filesystems[i], "r");
 		if (!f) continue;
 

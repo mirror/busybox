@@ -133,7 +133,7 @@ static void print_statfs(char *pformat, const size_t buf_len, const char m,
 		printf(pformat, statfsbuf->f_namelen);
 	} else if (m == 't') {
 		strncat(pformat, "lx", buf_len);
-		printf(pformat, (unsigned long int) (statfsbuf->f_type)); /* no equiv */
+		printf(pformat, (unsigned long) (statfsbuf->f_type)); /* no equiv */
 	} else if (m == 'T') {
 		strncat(pformat, "s", buf_len);
 		printf(pformat, human_fstype(statfsbuf->f_type));
@@ -148,7 +148,7 @@ static void print_statfs(char *pformat, const size_t buf_len, const char m,
 		printf(pformat, (intmax_t) (statfsbuf->f_bavail));
 	} else if (m == 's' || m == 'S') {
 		strncat(pformat, "lu", buf_len);
-		printf(pformat, (unsigned long int) (statfsbuf->f_bsize));
+		printf(pformat, (unsigned long) (statfsbuf->f_bsize));
 	} else if (m == 'c') {
 		strncat(pformat, "jd", buf_len);
 		printf(pformat, (intmax_t) (statfsbuf->f_files));
@@ -205,22 +205,22 @@ static void print_stat(char *pformat, const size_t buf_len, const char m,
 		printf(pformat, (uintmax_t) statbuf->st_ino);
 	} else if (m == 'a') {
 		strncat(pformat, "lo", buf_len);
-		printf(pformat, (unsigned long int) (statbuf->st_mode & (S_ISUID|S_ISGID|S_ISVTX|S_IRWXU|S_IRWXG|S_IRWXO)));
+		printf(pformat, (unsigned long) (statbuf->st_mode & (S_ISUID|S_ISGID|S_ISVTX|S_IRWXU|S_IRWXG|S_IRWXO)));
 	} else if (m == 'A') {
 		strncat(pformat, "s", buf_len);
 		printf(pformat, bb_mode_string(statbuf->st_mode));
 	} else if (m == 'f') {
 		strncat(pformat, "lx", buf_len);
-		printf(pformat, (unsigned long int) statbuf->st_mode);
+		printf(pformat, (unsigned long) statbuf->st_mode);
 	} else if (m == 'F') {
 		strncat(pformat, "s", buf_len);
 		printf(pformat, file_type(statbuf));
 	} else if (m == 'h') {
 		strncat(pformat, "lu", buf_len);
-		printf(pformat, (unsigned long int) statbuf->st_nlink);
+		printf(pformat, (unsigned long) statbuf->st_nlink);
 	} else if (m == 'u') {
 		strncat(pformat, "lu", buf_len);
-		printf(pformat, (unsigned long int) statbuf->st_uid);
+		printf(pformat, (unsigned long) statbuf->st_uid);
 	} else if (m == 'U') {
 		strncat(pformat, "s", buf_len);
 		setpwent();
@@ -228,7 +228,7 @@ static void print_stat(char *pformat, const size_t buf_len, const char m,
 		printf(pformat, (pw_ent != 0L) ? pw_ent->pw_name : "UNKNOWN");
 	} else if (m == 'g') {
 		strncat(pformat, "lu", buf_len);
-		printf(pformat, (unsigned long int) statbuf->st_gid);
+		printf(pformat, (unsigned long) statbuf->st_gid);
 	} else if (m == 'G') {
 		strncat(pformat, "s", buf_len);
 		setgrent();
@@ -236,40 +236,40 @@ static void print_stat(char *pformat, const size_t buf_len, const char m,
 		printf(pformat, (gw_ent != 0L) ? gw_ent->gr_name : "UNKNOWN");
 	} else if (m == 't') {
 		strncat(pformat, "lx", buf_len);
-		printf(pformat, (unsigned long int) major(statbuf->st_rdev));
+		printf(pformat, (unsigned long) major(statbuf->st_rdev));
 	} else if (m == 'T') {
 		strncat(pformat, "lx", buf_len);
-		printf(pformat, (unsigned long int) minor(statbuf->st_rdev));
+		printf(pformat, (unsigned long) minor(statbuf->st_rdev));
 	} else if (m == 's') {
 		strncat(pformat, "ju", buf_len);
 		printf(pformat, (uintmax_t) (statbuf->st_size));
 	} else if (m == 'B') {
 		strncat(pformat, "lu", buf_len);
-		printf(pformat, (unsigned long int) 512); //ST_NBLOCKSIZE
+		printf(pformat, (unsigned long) 512); //ST_NBLOCKSIZE
 	} else if (m == 'b') {
 		strncat(pformat, "ju", buf_len);
 		printf(pformat, (uintmax_t) statbuf->st_blocks);
 	} else if (m == 'o') {
 		strncat(pformat, "lu", buf_len);
-		printf(pformat, (unsigned long int) statbuf->st_blksize);
+		printf(pformat, (unsigned long) statbuf->st_blksize);
 	} else if (m == 'x') {
 		strncat(pformat, "s", buf_len);
 		printf(pformat, human_time(statbuf->st_atime));
 	} else if (m == 'X') {
 		strncat(pformat, TYPE_SIGNED(time_t) ? "ld" : "lu", buf_len);
-		printf(pformat, (unsigned long int) statbuf->st_atime);
+		printf(pformat, (unsigned long) statbuf->st_atime);
 	} else if (m == 'y') {
 		strncat(pformat, "s", buf_len);
 		printf(pformat, human_time(statbuf->st_mtime));
 	} else if (m == 'Y') {
 		strncat(pformat, TYPE_SIGNED(time_t) ? "ld" : "lu", buf_len);
-		printf(pformat, (unsigned long int) statbuf->st_mtime);
+		printf(pformat, (unsigned long) statbuf->st_mtime);
 	} else if (m == 'z') {
 		strncat(pformat, "s", buf_len);
 		printf(pformat, human_time(statbuf->st_ctime));
 	} else if (m == 'Z') {
 		strncat(pformat, TYPE_SIGNED(time_t) ? "ld" : "lu", buf_len);
-		printf(pformat, (unsigned long int) statbuf->st_ctime);
+		printf(pformat, (unsigned long) statbuf->st_ctime);
 #if ENABLE_SELINUX
 	} else if (m == 'C' && (option_mask32 & OPT_SELINUX)) {
 		strncat(pformat, "s", buf_len);
@@ -395,7 +395,7 @@ static bool do_statfs(char const *filename, char const *format)
 	       statfsbuf.f_namelen);
 
 	if (option_mask32 & OPT_TERSE)
-		printf("%lx ", (unsigned long int) (statfsbuf.f_type));
+		printf("%lx ", (unsigned long) (statfsbuf.f_type));
 	else
 		printf("Type: %s\n", human_fstype(statfsbuf.f_type));
 
@@ -406,7 +406,7 @@ static bool do_statfs(char const *filename, char const *format)
 		  "Blocks: Total: %-10jd Free: %-10jd Available: %jd\n"
 		  "Inodes: Total: %-10jd Free: %jd\n");
 	printf(format,
-	       (unsigned long int) (statfsbuf.f_bsize),
+	       (unsigned long) (statfsbuf.f_bsize),
 	       (intmax_t) (statfsbuf.f_blocks),
 	       (intmax_t) (statfsbuf.f_bfree),
 	       (intmax_t) (statfsbuf.f_bavail),
@@ -425,7 +425,7 @@ static bool do_statfs(char const *filename, char const *format)
 		"Blocks: Total: %-10jd Free: %-10jd Available: %jd\n"
 		"Inodes: Total: %-10jd Free: %jd\n"));
 	printf(format,
-	       (unsigned long int) (statfsbuf.f_bsize),
+	       (unsigned long) (statfsbuf.f_bsize),
 	       (intmax_t) (statfsbuf.f_blocks),
 	       (intmax_t) (statfsbuf.f_bfree),
 	       (intmax_t) (statfsbuf.f_bavail),
@@ -529,18 +529,18 @@ static bool do_stat(char const *filename, char const *format)
 		       filename,
 		       (uintmax_t) (statbuf.st_size),
 		       (uintmax_t) statbuf.st_blocks,
-		       (unsigned long int) statbuf.st_mode,
-		       (unsigned long int) statbuf.st_uid,
-		       (unsigned long int) statbuf.st_gid,
+		       (unsigned long) statbuf.st_mode,
+		       (unsigned long) statbuf.st_uid,
+		       (unsigned long) statbuf.st_gid,
 		       (uintmax_t) statbuf.st_dev,
 		       (uintmax_t) statbuf.st_ino,
-		       (unsigned long int) statbuf.st_nlink,
-		       (unsigned long int) major(statbuf.st_rdev),
-		       (unsigned long int) minor(statbuf.st_rdev),
-		       (unsigned long int) statbuf.st_atime,
-		       (unsigned long int) statbuf.st_mtime,
-		       (unsigned long int) statbuf.st_ctime,
-		       (unsigned long int) statbuf.st_blksize
+		       (unsigned long) statbuf.st_nlink,
+		       (unsigned long) major(statbuf.st_rdev),
+		       (unsigned long) minor(statbuf.st_rdev),
+		       (unsigned long) statbuf.st_atime,
+		       (unsigned long) statbuf.st_mtime,
+		       (unsigned long) statbuf.st_ctime,
+		       (unsigned long) statbuf.st_blksize
 		);
 #if ENABLE_SELINUX
 		if (option_mask32 & OPT_SELINUX)
@@ -569,24 +569,24 @@ static bool do_stat(char const *filename, char const *format)
 		       "Device: %jxh/%jud\tInode: %-10ju  Links: %-5lu",
 		       (uintmax_t) (statbuf.st_size),
 		       (uintmax_t) statbuf.st_blocks,
-		       (unsigned long int) statbuf.st_blksize,
+		       (unsigned long) statbuf.st_blksize,
 		       file_type(&statbuf),
 		       (uintmax_t) statbuf.st_dev,
 		       (uintmax_t) statbuf.st_dev,
 		       (uintmax_t) statbuf.st_ino,
-		       (unsigned long int) statbuf.st_nlink);
+		       (unsigned long) statbuf.st_nlink);
 		if (S_ISBLK(statbuf.st_mode) || S_ISCHR(statbuf.st_mode))
 			printf(" Device type: %lx,%lx\n",
-			       (unsigned long int) major(statbuf.st_rdev),
-			       (unsigned long int) minor(statbuf.st_rdev));
+			       (unsigned long) major(statbuf.st_rdev),
+			       (unsigned long) minor(statbuf.st_rdev));
 		else
 			putchar('\n');
 		printf("Access: (%04lo/%10.10s)  Uid: (%5lu/%8s)   Gid: (%5lu/%8s)\n",
-		       (unsigned long int) (statbuf.st_mode & (S_ISUID|S_ISGID|S_ISVTX|S_IRWXU|S_IRWXG|S_IRWXO)),
+		       (unsigned long) (statbuf.st_mode & (S_ISUID|S_ISGID|S_ISVTX|S_IRWXU|S_IRWXG|S_IRWXO)),
 		       bb_mode_string(statbuf.st_mode),
-		       (unsigned long int) statbuf.st_uid,
+		       (unsigned long) statbuf.st_uid,
 		       (pw_ent != 0L) ? pw_ent->pw_name : "UNKNOWN",
-		       (unsigned long int) statbuf.st_gid,
+		       (unsigned long) statbuf.st_gid,
 		       (gw_ent != 0L) ? gw_ent->gr_name : "UNKNOWN");
 #if ENABLE_SELINUX
 		printf("   S_Context: %lc\n", *scontext);

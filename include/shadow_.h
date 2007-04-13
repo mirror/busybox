@@ -37,13 +37,13 @@
 struct spwd {
 	char *sp_namp;          /* Login name */
 	char *sp_pwdp;          /* Encrypted password */
-	long int sp_lstchg;     /* Date of last change */
-	long int sp_min;        /* Minimum number of days between changes */
-	long int sp_max;        /* Maximum number of days between changes */
-	long int sp_warn;       /* Number of days to warn user to change the password */
-	long int sp_inact;      /* Number of days the account may be inactive */
-	long int sp_expire;     /* Number of days since 1970-01-01 until account expires */
-	unsigned long int sp_flag;      /* Reserved */
+	long sp_lstchg;         /* Date of last change */
+	long sp_min;            /* Minimum number of days between changes */
+	long sp_max;            /* Maximum number of days between changes */
+	long sp_warn;           /* Number of days to warn user to change the password */
+	long sp_inact;          /* Number of days the account may be inactive */
+	long sp_expire;         /* Number of days since 1970-01-01 until account expires */
+	unsigned long sp_flag;  /* Reserved */
 };
 
 

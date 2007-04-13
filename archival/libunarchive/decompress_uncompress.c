@@ -85,18 +85,18 @@ uncompress(int fd_in, int fd_out)
 {
 	USE_DESKTOP(long long total_written = 0;)
 	unsigned char *stackp;
-	long int code;
+	long code;
 	int finchar;
-	long int oldcode;
-	long int incode;
+	long oldcode;
+	long incode;
 	int inbits;
 	int posbits;
 	int outpos;
 	int insize;
 	int bitmask;
-	long int free_ent;
-	long int maxcode;
-	long int maxmaxcode;
+	long free_ent;
+	long maxcode;
+	long maxmaxcode;
 	int n_bits;
 	int rsize = 0;
 	RESERVE_CONFIG_UBUFFER(inbuf, IBUFSIZ + 64);
@@ -243,7 +243,7 @@ uncompress(int fd_in, int fd_out)
 			}
 
 			/* Generate output characters in reverse order */
-			while ((long int) code >= (long int) 256) {
+			while ((long) code >= (long) 256) {
 				*--stackp = tab_suffixof(code);
 				code = tab_prefixof(code);
 			}

@@ -1219,7 +1219,7 @@ yyparse ()
 
 
       YYDPRINTF ((stderr, "Stack size increased to %lu\n",
-		  (unsigned long int) yystacksize));
+		  (unsigned long) yystacksize));
 
       if (yyss + yystacksize - 1 <= yyssp)
 	YYABORT;

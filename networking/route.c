@@ -478,7 +478,7 @@ static void set_flags(char *flagstr, int flags)
 void bb_displayroutes(int noresolve, int netstatfmt)
 {
 	char devname[64], flags[16], sdest[16], sgw[16];
-	unsigned long int d, g, m;
+	unsigned long d, g, m;
 	int flgs, ref, use, metric, mtu, win, ir;
 	struct sockaddr_in s_addr;
 	struct in_addr mask;

@@ -173,13 +173,13 @@ __extension__ typedef unsigned long long __u64;
 #else
 /* Largest integral types.  */
 #if __BIG_ENDIAN__
-typedef long int                intmax_t;
-typedef unsigned long int       uintmax_t;
+typedef long                intmax_t;
+typedef unsigned long       uintmax_t;
 #else
 __extension__
-typedef long long int           intmax_t;
+typedef long long           intmax_t;
 __extension__
-typedef unsigned long long int  uintmax_t;
+typedef unsigned long long  uintmax_t;
 #endif
 #endif
 
