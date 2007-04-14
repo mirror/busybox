@@ -953,7 +953,7 @@ static void remember_in_history(const char *str)
 	state->history[i++] = xstrdup(str);
 	state->cur_history = i;
 	state->cnt_history = i;
-	if (state->flags & SAVE_HISTORY)
+	if ((state->flags & SAVE_HISTORY) && state->hist_file)
 		save_history(state->hist_file);
 	USE_FEATURE_EDITING_FANCY_PROMPT(num_ok_lines++;)
 }
@@ -1273,7 +1273,7 @@ int read_line_input(const char* prompt, char* command, int maxsize, line_input_t
 	/* With null flags, no other fields are ever used */
 	state = st ? st : (line_input_t*) &const_int_0;
 #if ENABLE_FEATURE_EDITING_SAVEHISTORY
-	if (state->flags & SAVE_HISTORY)
+	if ((state->flags & SAVE_HISTORY) && state->hist_file)
 		load_history(state->hist_file);
 #endif
 
