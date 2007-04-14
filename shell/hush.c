@@ -765,7 +765,7 @@ static int b_check_space(o_string *o, int len)
 	 * in here, such as setting a maximum string length */
 	if (o->length + len > o->maxlen) {
 		char *old_data = o->data;
-		/* assert (data == NULL || o->maxlen != 0); */
+		/* assert(data == NULL || o->maxlen != 0); */
 		o->maxlen += max(2*len, B_CHUNK);
 		o->data = realloc(o->data, 1 + o->maxlen);
 		if (o->data == NULL) {
@@ -1113,17 +1113,10 @@ static void pseudo_exec(struct child_prog *child)
 		 * from global_argv[0], but if we are in a chroot, we may not be able
 		 * to find ourself... */
 #if ENABLE_FEATURE_SH_STANDALONE
-		{
-			int argc_l;
-			char** argv_l = child->argv;
-			char *name = child->argv[0];
-
-			/* Count argc for use in a second... */
-			for (argc_l = 0; *argv_l; argv_l++, argc_l++)
-				continue;
-			debug_printf("running applet %s\n", name);
-			run_applet_and_exit(name, argc_l, child->argv);
-		}
+		debug_printf("running applet %s\n", child->argv[0]);
+		run_applet_and_exit(child->argv[0], child->argv);
+// is it ok that run_applet_and_exit() does exit(), not _exit()?
+// NB: IIRC on NOMMU we are after _vfork_, not fork!
 #endif
 		debug_printf("exec of %s\n", child->argv[0]);
 		execvp(child->argv[0], child->argv);
@@ -1304,6 +1297,9 @@ static int run_pipe_real(struct pipe *pi)
 	struct child_prog *child;
 	const struct built_in_command *x;
 	char *p;
+	/* it is not always needed, but we aim to smaller code */
+	int squirrel[] = { -1, -1, -1 };
+	int rcode;
 
 	nextin = 0;
 	pi->pgrp = -1;
@@ -1314,8 +1310,6 @@ static int run_pipe_real(struct pipe *pi)
 	 */
 	child = &(pi->progs[0]);
 	if (pi->num_progs == 1 && child->group && child->subshell == 0) {
-		int squirrel[] = { -1, -1, -1 };
-		int rcode;
 		debug_printf("non-subshell grouping\n");
 		setup_redirects(child, squirrel);
 		/* XXX could we merge code with following builtin case,
@@ -1366,15 +1360,13 @@ static int run_pipe_real(struct pipe *pi)
 		if (child->sp) {
 			char *str;
 
-			str = make_string((child->argv + i));
+			str = make_string(child->argv + i);
 			parse_string_outer(str, FLAG_EXIT_FROM_LOOP | FLAG_REPARSING);
 			free(str);
 			return last_return_code;
 		}
 		for (x = bltins; x->cmd; x++) {
 			if (strcmp(child->argv[i], x->cmd) == 0) {
-				int squirrel[] = { -1, -1, -1 };
-				int rcode;
 				if (x->function == builtin_exec && child->argv[i+1] == NULL) {
 					debug_printf("magic exec\n");
 					setup_redirects(child, NULL);
@@ -1393,6 +1385,17 @@ static int run_pipe_real(struct pipe *pi)
 				return rcode;
 			}
 		}
+#if ENABLE_FEATURE_SH_STANDALONE
+		{
+			const struct bb_applet *a = find_applet_by_name(child->argv[i]);
+			if (a && a->nofork) {
+				setup_redirects(child, squirrel);
+				rcode = run_nofork_applet(a, child->argv + i);
+				restore_redirects(squirrel);
+				return rcode;
+			}
+		}
+#endif
 	}
 
 	for (i = 0; i < pi->num_progs; i++) {
@@ -2587,8 +2590,8 @@ int parse_stream(o_string *dest, struct p_context *ctx,
 
 static void mapset(const char *set, int code)
 {
-	while (*s)
-		map[(unsigned char)*s++] = code;
+	while (*set)
+		map[(unsigned char)*set++] = code;
 }
 
 static void update_ifs_map(void)

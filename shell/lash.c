@@ -1158,12 +1158,7 @@ static int pseudo_exec(struct child_prog *child)
 	 * /bin/foo is a symlink to busybox.
 	 */
 	if (ENABLE_FEATURE_SH_STANDALONE) {
-		char **argv_l = child->argv;
-		int argc_l;
-
-		for (argc_l = 0; *argv_l; argv_l++, argc_l++)
-			continue;
-		run_applet_and_exit(child->argv[0], argc_l, child->argv);
+		run_applet_and_exit(child->argv[0], child->argv);
 	}
 
 	execvp(child->argv[0], child->argv);

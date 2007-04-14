@@ -514,14 +514,14 @@ static void install_links(const char *busybox, int use_symbolic_links)
 
 
 /* If we were called as "busybox..." */
-static int busybox_main(int argc, char **argv)
+static int busybox_main(char **argv)
 {
-	if (ENABLE_FEATURE_INSTALLER && argc > 1 && !strcmp(argv[1], "--install")) {
+	if (ENABLE_FEATURE_INSTALLER && argv[1] && !strcmp(argv[1], "--install")) {
 		int use_symbolic_links = 0;
 		char *busybox;
 
 		/* to use symlinks, or not to use symlinks... */
-		if (argc > 2)
+		if (argv[2])
 			if (strcmp(argv[2], "-s") == 0)
 				use_symbolic_links = 1;
 
@@ -537,11 +537,12 @@ static int busybox_main(int argc, char **argv)
 
 	/* Deal with --help. Also print help when called with no arguments */
 
-	if (argc == 1 || !strcmp(argv[1], "--help") ) {
-		if (argc > 2) {
+	if (!argv[1] || !strcmp(argv[1], "--help") ) {
+		if (argv[2]) {
 			/* set name for proper "<name>: applet not found" */
 			applet_name = argv[2];
-			run_applet_and_exit(applet_name, 2, argv);
+			argv[2] = NULL;
+			run_applet_and_exit(applet_name, argv);
 		} else {
 			const struct bb_applet *a;
 			int col, output_width;
@@ -582,14 +583,19 @@ static int busybox_main(int argc, char **argv)
 	} else {
 		/* we want "<argv[1]>: applet not found", not "busybox: ..." */
 		applet_name = argv[1];
-		run_applet_and_exit(argv[1], argc - 1, argv + 1);
+		run_applet_and_exit(argv[1], argv + 1);
 	}
 
 	bb_error_msg_and_die("applet not found");
 }
 
-void run_current_applet_and_exit(int argc, char **argv)
+void run_current_applet_and_exit(char **argv)
 {
+	int argc = 1;
+
+	while (argv[argc])
+		argc++;
+
 	/* Reinit some shared global data */
 	optind = 1;
 	xfunc_error_retval = EXIT_FAILURE;
@@ -602,13 +608,13 @@ void run_current_applet_and_exit(int argc, char **argv)
 	exit(current_applet->main(argc, argv));
 }
 
-void run_applet_and_exit(const char *name, int argc, char **argv)
+void run_applet_and_exit(const char *name, char **argv)
 {
 	current_applet = find_applet_by_name(name);
 	if (current_applet)
-		run_current_applet_and_exit(argc, argv);
+		run_current_applet_and_exit(argv);
 	if (!strncmp(name, "busybox", 7))
-		exit(busybox_main(argc, argv));
+		exit(busybox_main(argv));
 }
 
 
@@ -637,6 +643,6 @@ int main(int argc, char **argv)
 	if (ENABLE_LOCALE_SUPPORT && getpid() != 1)
 		setlocale(LC_ALL, "");
 
-	run_applet_and_exit(applet_name, argc, argv);
+	run_applet_and_exit(applet_name, argv);
 	bb_error_msg_and_die("applet not found");
 }

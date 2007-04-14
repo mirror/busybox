@@ -176,7 +176,7 @@ set:
 			}
 			if (!eof_str_detected) {
 				size_t length = (p - buf);
-
+// TODO: smarter llist_t
 				cur = xzalloc(sizeof(xlist_t) + length);
 				cur->data = memcpy(cur + 1, s, length);
 				cur->length = length;
@@ -247,6 +247,7 @@ static xlist_t *process_stdin(xlist_t *list_arg,
 				size_t length = (p - buf);
 
 				cur = xzalloc(sizeof(xlist_t) + length);
+// TODO: smarter llist_t
 				cur->data = memcpy(cur + 1, s, length);
 				cur->length = length;
 				/*cur->link = NULL;*/
@@ -329,6 +330,7 @@ static xlist_t *process0_stdin(xlist_t *list_arg,
 			size_t length = (p - buf);
 
 			cur = xzalloc(sizeof(xlist_t) + length);
+// TODO: smarter llist_t
 			cur->data = memcpy(cur + 1, s, length);
 			cur->length = length;
 			/*cur->link = NULL;*/

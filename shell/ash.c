@@ -6539,10 +6539,8 @@ tryexec(char *cmd, char **argv, char **envp)
 		a = find_applet_by_name(cmd);
 		if (a) {
 			if (a->noexec) {
-				char **c = argv;
-				while (*c) c++;
 				current_applet = a;
-				run_current_applet_and_exit(c - argv, argv);
+				run_current_applet_and_exit(argv);
 			}
 			/* re-exec ourselves with the new arguments */
 			execve(CONFIG_BUSYBOX_EXEC_PATH, argv, envp);

@@ -100,6 +100,52 @@ int wait_pid(int *wstat, int pid)
 	return r;
 }
 
+int run_nofork_applet(const struct bb_applet *a, char **argv)
+{
+	int rc, argc;
+
+	/* Save some shared globals */
+	const struct bb_applet *old_a = current_applet;
+	int old_x = xfunc_error_retval;
+	uint32_t old_m = option_mask32;
+	int old_sleep = die_sleep;
+
+	current_applet = a;
+	applet_name = a->name;
+	xfunc_error_retval = EXIT_FAILURE;
+	/*option_mask32 = 0; - not needed */
+	/* special flag for xfunc_die(). If xfunc will "die"
+	 * in NOFORK applet, xfunc_die() sees negative
+	 * die_sleep and longjmp here instead. */
+	die_sleep = -1;
+
+	argc = 1;
+	while (argv[argc])
+		argc++;
+
+	rc = setjmp(die_jmp);
+	if (!rc) {
+		/* Some callers (xargs)
+		 * need argv untouched because they free argv[i]! */
+		char *tmp_argv[argc+1];
+		memcpy(tmp_argv, argv, (argc+1) * sizeof(tmp_argv[0]));
+		/* Finally we can call NOFORK applet's main() */
+		rc = a->main(argc, tmp_argv);
+	} else { /* xfunc died in NOFORK applet */
+		/* in case they meant to return 0... */
+		if (rc == -111)
+			rc = 0;
+	}
+
+	/* Restoring globals */
+	current_applet = old_a;
+	applet_name = old_a->name;
+	xfunc_error_retval = old_x;
+	option_mask32 = old_m;
+	die_sleep = old_sleep;
+	return rc;
+}
+
 int spawn_and_wait(char **argv)
 {
 	int rc;
@@ -111,50 +157,11 @@ int spawn_and_wait(char **argv)
 		 || a->noexec /* NOEXEC trick needs fork() */
 #endif
 	)) {
-		int argc = 1;
-		char **pp = argv;
-		while (*++pp)
-			argc++;
 #if BB_MMU
 		if (a->nofork)
 #endif
 		{
-			/* Save some shared globals */
-			const struct bb_applet *old_a = current_applet;
-			int old_x = xfunc_error_retval;
-			uint32_t old_m = option_mask32;
-			int old_sleep = die_sleep;
-
-			current_applet = a;
-			applet_name = a->name;
-			xfunc_error_retval = EXIT_FAILURE;
-			/*option_mask32 = 0; - not needed */
-			/* special flag for xfunc_die(). If xfunc will "die"
-			 * in NOFORK applet, xfunc_die() sees negative
-			 * die_sleep and longjmp here instead. */
-			die_sleep = -1;
-
-			rc = setjmp(die_jmp);
-			if (!rc) {
-				/* Some callers (xargs)
-				 * need argv untouched because they free argv[i]! */
-				char *tmp_argv[argc+1];
-				memcpy(tmp_argv, argv, (argc+1) * sizeof(tmp_argv[0]));
-				/* Finally we can call NOFORK applet's main() */
-				rc = a->main(argc, tmp_argv);
-			} else { /* xfunc died in NOFORK applet */
-				/* in case they meant to return 0... */
-				if (rc == -111)
-					rc = 0;
-			}
-
-			/* Restoring globals */
-			current_applet = old_a;
-			applet_name = old_a->name;					
-			xfunc_error_retval = old_x;
-			option_mask32 = old_m;
-			die_sleep = old_sleep;
-			return rc;
+			return run_nofork_applet(a, argv);
 		}
 #if BB_MMU
 		/* MMU only */
@@ -165,7 +172,7 @@ int spawn_and_wait(char **argv)
 		/* child */
 		xfunc_error_retval = EXIT_FAILURE;
 		current_applet = a;
-		run_current_applet_and_exit(argc, argv);
+		run_current_applet_and_exit(argv);
 #endif
 	}
 #endif /* FEATURE_PREFER_APPLETS */

@@ -123,35 +123,6 @@
 /* scary. better ideas? (but do *test* them first!) */
 #define OFF_T_MAX  ((off_t)~((off_t)1 << (sizeof(off_t)*8-1)))
 
-/* This structure defines protocol families and their handlers. */
-struct aftype {
-	const char *name;
-	const char *title;
-	int af;
-	int alen;
-	char *(*print) (unsigned char *);
-	const char *(*sprint) (struct sockaddr *, int numeric);
-	int (*input) (/*int type,*/ const char *bufp, struct sockaddr *);
-	void (*herror) (char *text);
-	int (*rprint) (int options);
-	int (*rinput) (int typ, int ext, char **argv);
-
-	/* may modify src */
-	int (*getmask) (char *src, struct sockaddr * mask, char *name);
-};
-
-/* This structure defines hardware protocols and their handlers. */
-struct hwtype {
-	const char *name;
-	const char *title;
-	int type;
-	int alen;
-	char *(*print) (unsigned char *);
-	int (*input) (const char *, struct sockaddr *);
-	int (*activate) (int fd);
-	int suppress_null_addr;
-};
-
 /* Some useful definitions */
 #undef FALSE
 #define FALSE   ((int) 0)
@@ -504,6 +475,7 @@ void clear_username_cache(void);
 enum { USERNAME_MAX_SIZE = 16 - sizeof(int) };
 
 
+struct bb_applet;
 int execable_file(const char *name);
 char *find_execable(const char *filename);
 int exists_execable(const char *filename);
@@ -537,6 +509,8 @@ int wait_nohang(int *wstat);
 #define wait_exitcode(w) ((w) >> 8)
 #define wait_stopsig(w) ((w) >> 8)
 #define wait_stopped(w) (((w) & 127) == 127)
+/* Does NOT check that applet is NOFORK, just blindly runs it */
+int run_nofork_applet(const struct bb_applet *a, char **argv);
 /* wait4pid(spawn(argv)) + NOFORK/NOEXEC (if configured) */
 int spawn_and_wait(char **argv);
 
@@ -669,6 +643,33 @@ int bbunpack(char **argv,
 int create_icmp_socket(void);
 int create_icmp6_socket(void);
 /* interface.c */
+/* This structure defines protocol families and their handlers. */
+struct aftype {
+	const char *name;
+	const char *title;
+	int af;
+	int alen;
+	char *(*print) (unsigned char *);
+	const char *(*sprint) (struct sockaddr *, int numeric);
+	int (*input) (/*int type,*/ const char *bufp, struct sockaddr *);
+	void (*herror) (char *text);
+	int (*rprint) (int options);
+	int (*rinput) (int typ, int ext, char **argv);
+
+	/* may modify src */
+	int (*getmask) (char *src, struct sockaddr * mask, char *name);
+};
+/* This structure defines hardware protocols and their handlers. */
+struct hwtype {
+	const char *name;
+	const char *title;
+	int type;
+	int alen;
+	char *(*print) (unsigned char *);
+	int (*input) (const char *, struct sockaddr *);
+	int (*activate) (int fd);
+	int suppress_null_addr;
+};
 extern int interface_opt_a;
 int display_interfaces(char *ifname);
 const struct aftype *get_aftype(const char *name);
@@ -677,11 +678,10 @@ const struct hwtype *get_hwntype(int type);
 
 
 #ifndef BUILD_INDIVIDUAL
-struct bb_applet;
 extern const struct bb_applet *find_applet_by_name(const char *name);
 /* Returns only if applet is not found. */
-extern void run_applet_and_exit(const char *name, int argc, char **argv);
-extern void run_current_applet_and_exit(int argc, char **argv) ATTRIBUTE_NORETURN;
+extern void run_applet_and_exit(const char *name, char **argv);
+extern void run_current_applet_and_exit(char **argv) ATTRIBUTE_NORETURN;
 #endif
 
 extern int match_fstype(const struct mntent *mt, const char *fstypes);
