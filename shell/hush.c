@@ -547,7 +547,7 @@ static int builtin_export(struct child_prog *child)
 static int builtin_fg_bg(struct child_prog *child)
 {
 	int i, jobnum;
-	struct pipe *pi = NULL;
+	struct pipe *pi;
 
 	if (!interactive)
 		return EXIT_FAILURE;
@@ -555,29 +555,24 @@ static int builtin_fg_bg(struct child_prog *child)
 	if (!child->argv[1]) {
 		for (pi = job_list; pi; pi = pi->next) {
 			if (pi->jobid == last_jobid) {
-				break;
+				goto found;
 			}
 		}
-		if (!pi) {
-			bb_error_msg("%s: no current job", child->argv[0]);
-			return EXIT_FAILURE;
-		}
-	} else {
-		if (sscanf(child->argv[1], "%%%d", &jobnum) != 1) {
-			bb_error_msg("%s: bad argument '%s'", child->argv[0], child->argv[1]);
-			return EXIT_FAILURE;
-		}
-		for (pi = job_list; pi; pi = pi->next) {
-			if (pi->jobid == jobnum) {
-				break;
-			}
-		}
-		if (!pi) {
-			bb_error_msg("%s: %d: no such job", child->argv[0], jobnum);
-			return EXIT_FAILURE;
+		bb_error_msg("%s: no current job", child->argv[0]);
+		return EXIT_FAILURE;
+	}
+	if (sscanf(child->argv[1], "%%%d", &jobnum) != 1) {
+		bb_error_msg("%s: bad argument '%s'", child->argv[0], child->argv[1]);
+		return EXIT_FAILURE;
+	}
+	for (pi = job_list; pi; pi = pi->next) {
+		if (pi->jobid == jobnum) {
+			goto found;
 		}
 	}
-
+	bb_error_msg("%s: %d: no such job", child->argv[0], jobnum);
+	return EXIT_FAILURE;
+ found:
 	if (*child->argv[0] == 'f') {
 		/* Put the job into the foreground.  */
 		tcsetpgrp(shell_terminal, pi->pgrp);
@@ -589,7 +584,7 @@ static int builtin_fg_bg(struct child_prog *child)
 
 	i = kill(- pi->pgrp, SIGCONT);
 	if (i < 0) {
-		if (i == ESRCH) {
+		if (errno == ESRCH) {
 			remove_bg_job(pi);
 		} else {
 			bb_perror_msg("kill (SIGCONT)");

@@ -257,35 +257,30 @@ static int builtin_exit(struct child_prog *child)
 static int builtin_fg_bg(struct child_prog *child)
 {
 	int i, jobnum;
-	struct job *job = NULL;
+	struct job *job;
 
 	/* If they gave us no args, assume they want the last backgrounded task */
 	if (!child->argv[1]) {
 		for (job = child->family->job_list->head; job; job = job->next) {
 			if (job->jobid == last_jobid) {
-				break;
+				goto found;
 			}
 		}
-		if (!job) {
-			bb_error_msg("%s: no current job", child->argv[0]);
-			return EXIT_FAILURE;
-		}
-	} else {
-		if (sscanf(child->argv[1], "%%%d", &jobnum) != 1) {
-			bb_error_msg(bb_msg_invalid_arg, child->argv[1], child->argv[0]);
-			return EXIT_FAILURE;
-		}
-		for (job = child->family->job_list->head; job; job = job->next) {
-			if (job->jobid == jobnum) {
-				break;
-			}
-		}
-		if (!job) {
-			bb_error_msg("%s: %d: no such job", child->argv[0], jobnum);
-			return EXIT_FAILURE;
+		bb_error_msg("%s: no current job", child->argv[0]);
+		return EXIT_FAILURE;
+	}
+	if (sscanf(child->argv[1], "%%%d", &jobnum) != 1) {
+		bb_error_msg(bb_msg_invalid_arg, child->argv[1], child->argv[0]);
+		return EXIT_FAILURE;
+	}
+	for (job = child->family->job_list->head; job; job = job->next) {
+		if (job->jobid == jobnum) {
+			goto found;
 		}
 	}
-
+	bb_error_msg("%s: %d: no such job", child->argv[0], jobnum);
+	return EXIT_FAILURE;
+ found:
 	if (*child->argv[0] == 'f') {
 		/* Put the job into the foreground.  */
 		tcsetpgrp(shell_terminal, job->pgrp);
@@ -301,7 +296,7 @@ static int builtin_fg_bg(struct child_prog *child)
 
 	i = kill(- job->pgrp, SIGCONT);
 	if (i < 0) {
-		if (i == ESRCH) {
+		if (errno == ESRCH) {
 			remove_job(&job_list, job);
 		} else {
 			bb_perror_msg("kill (SIGCONT)");
@@ -1241,6 +1236,9 @@ static int run_command(struct job *newjob, int inbg, int outpipe[2])
 		 * is doomed to failure, and doesn't work on bash, either.
 		 */
 		if (newjob->num_progs == 1) {
+			int rcode;
+			int squirrel[] = {-1, -1, -1};
+
 			/* Check if the command sets an environment variable. */
 			if (strchr(child->argv[0], '=') != NULL) {
 				child->argv[1] = child->argv[0];
@@ -1249,14 +1247,23 @@ static int run_command(struct job *newjob, int inbg, int outpipe[2])
 
 			for (x = bltins; x <= &VEC_LAST(bltins); x++) {
 				if (strcmp(child->argv[0], x->cmd) == 0) {
-					int rcode;
-					int squirrel[] = {-1, -1, -1};
 					setup_redirects(child, squirrel);
 					rcode = x->function(child);
 					restore_redirects(squirrel);
 					return rcode;
 				}
 			}
+#if ENABLE_FEATURE_SH_STANDALONE
+			{
+				const struct bb_applet *a = find_applet_by_name(child->argv[i]);
+				if (a && a->nofork) {
+					setup_redirects(child, squirrel);
+					rcode = run_nofork_applet(a, child->argv + i);
+					restore_redirects(squirrel);
+					return rcode;
+				}
+			}
+#endif
 		}
 
 #if BB_MMU
