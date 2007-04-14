@@ -1,0 +1,6 @@
+Various bits of what is known about busybox shells, in no particular order.
+
+2007-04-14
+lash, hush: both do setsid() and as a result don't have ctty!
+Ctrl-C doesn't work for any child (try rm -i), etc...
+lash: bare ">file" doesn't create a file (hush works)

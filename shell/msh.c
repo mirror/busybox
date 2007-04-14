@@ -2117,7 +2117,6 @@ static struct op *newtp(void)
 
 static struct op *namelist(struct op *t)
 {
-
 	DBGPRINTF7(("NAMELIST: enter, t=%p, type %s, iolist=%p\n", t,
 				T_CMD_NAMES[t->type], iolist));
 
@@ -2658,7 +2657,7 @@ static int execute(struct op *t, int *pin, int *pout, int act)
 
 	};
 
-  broken:
+ broken:
 	t->words = wp2;
 	isbreak = 0;
 	freehere(areanum);
@@ -2681,13 +2680,13 @@ static int execute(struct op *t, int *pin, int *pout, int act)
 
 typedef int (*builtin_func_ptr)(struct op *);
 
-static builtin_func_ptr inbuilt(const char *s) {
+static builtin_func_ptr inbuilt(const char *s)
+{
 	const struct builtincmd *bp;
 
 	for (bp = builtincmds; bp->name; bp++)
 		if (strcmp(bp->name, s) == 0)
 			return bp->builtinfunc;
-
 	return NULL;
 }
 
@@ -4379,8 +4378,7 @@ static struct wdblock *addword(char *wd, struct wdblock *wb)
 	return wb;
 }
 
-static
-char **getwords(struct wdblock *wb)
+static char **getwords(struct wdblock *wb)
 {
 	char **wd;
 	int nb;
