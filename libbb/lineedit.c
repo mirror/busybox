@@ -85,11 +85,6 @@ static char *user_buf = (char*)"";
 static char *home_pwd_buf = (char*)"";
 #endif
 
-#if ENABLE_FEATURE_TAB_COMPLETION
-static int my_uid;
-static int my_gid;
-#endif
-
 /* Put 'command_ps[cursor]', cursor++.
  * Advance cursor on screen. If we reached right margin, scroll text up
  * and remove terminal margin effect by printing 'next_char' */
@@ -1311,10 +1306,6 @@ int read_line_input(const char* prompt, char* command, int maxsize, line_input_t
 			home_pwd_buf = xstrdup(entry->pw_dir);
 		}
 	}
-#endif
-#if ENABLE_FEATURE_TAB_COMPLETION
-	my_uid = getuid();
-	my_gid = getgid();
 #endif
 	/* Print out the command prompt */
 	parse_prompt(prompt);

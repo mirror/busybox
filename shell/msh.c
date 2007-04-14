@@ -152,15 +152,14 @@ int mshdbg_rc = 0;
 /*
  * values returned by wait
  */
-#define	WAITSIG(s)  ((s)&0177)
-#define	WAITVAL(s)  (((s)>>8)&0377)
-#define	WAITCORE(s) (((s)&0200)!=0)
+#define	WAITSIG(s)  ((s) & 0177)
+#define	WAITVAL(s)  (((s) >> 8) & 0377)
+#define	WAITCORE(s) (((s) & 0200) != 0)
 
 /*
  * library and system definitions
  */
 typedef void xint;				/* base type of jmp_buf, for not broken compilers */
-
 
 /*
  * shell components
@@ -169,7 +168,6 @@ typedef void xint;				/* base type of jmp_buf, for not broken compilers */
 #define	NOWORD	((char *)NULL)
 #define	NOWORDS	((char **)NULL)
 #define	NOPIPE	((int *)NULL)
-
 
 /*
  * redirection
@@ -250,21 +248,20 @@ static const char *const T_CMD_NAMES[] = {
 /*
  * actions determining the environment of a process
  */
-#define	BIT(i)	(1<<(i))
-#define	FEXEC	BIT(0)			/* execute without forking */
+#define FEXEC    1      /* execute without forking */
 
-#define AREASIZE	(90000)
+#define AREASIZE (90000)
 
 /*
  * flags to control evaluation of words
  */
-#define	DOSUB	 1				/* interpret $, `, and quotes */
-#define	DOBLANK	 2				/* perform blank interpretation */
-#define	DOGLOB	 4				/* interpret [?* */
-#define	DOKEY	 8				/* move words with `=' to 2nd arg. list */
-#define	DOTRIM	 16				/* trim resulting string */
+#define DOSUB    1      /* interpret $, `, and quotes */
+#define DOBLANK  2      /* perform blank interpretation */
+#define DOGLOB   4      /* interpret [?* */
+#define DOKEY    8      /* move words with `=' to 2nd arg. list */
+#define DOTRIM   16     /* trim resulting string */
 
-#define	DOALL	(DOSUB|DOBLANK|DOGLOB|DOKEY|DOTRIM)
+#define DOALL    (DOSUB|DOBLANK|DOGLOB|DOKEY|DOTRIM)
 
 
 /* PROTOTYPES */
@@ -333,13 +330,13 @@ static void runtrap(int i);
 
 /* -------- area stuff -------- */
 
-#define	REGSIZE	  sizeof(struct region)
-#define GROWBY	  (256)
-/* #define	SHRINKBY   (64) */
-#undef	SHRINKBY
-#define FREE	  (32767)
-#define BUSY	  (0)
-#define	ALIGN	  (sizeof(int)-1)
+#define REGSIZE   sizeof(struct region)
+#define GROWBY    (256)
+/* #define SHRINKBY (64) */
+#undef  SHRINKBY
+#define FREE      (32767)
+#define BUSY      (0)
+#define ALIGN     (sizeof(int)-1)
 
 
 struct region {
@@ -1313,7 +1310,7 @@ static int newfile(char *s)
 	f = 0;
 	if (NOT_LONE_DASH(s)) {
 		DBGPRINTF(("NEWFILE: s is %s\n", s));
-		f = open(s, 0);
+		f = open(s, O_RDONLY);
 		if (f < 0) {
 			prs(s);
 			err(": cannot open");
@@ -2554,7 +2551,7 @@ static int execute(struct op *t, int *pin, int *pout, int act)
 				interactive = 0;
 				if (pin == NULL) {
 					close(0);
-					open(bb_dev_null, 0);
+					open(bb_dev_null, O_RDONLY);
 				}
 				_exit(execute(t->left, pin, pout, FEXEC));
 			}
@@ -2734,7 +2731,8 @@ static int forkexec(struct op *t, int *pin, int *pout, int act, char **wp)
 	resetsig = 0;
 	rv = -1;					/* system-detected error */
 	if (t->type == TCOM) {
-		while (*wp++ != NULL);
+		while (*wp++ != NULL)
+			continue;
 		cp = *wp;
 
 		/* strip all initial assignments */
@@ -2747,7 +2745,7 @@ static int forkexec(struct op *t, int *pin, int *pout, int act, char **wp)
 
 		if (cp == NULL && t->ioact == NULL) {
 			while ((cp = *owp++) != NULL && assign(cp, COPYV))
-				/**/;
+				continue;
 			DBGPRINTF(("FORKEXEC: returning setstatus()\n"));
 			return setstatus(0);
 		}
@@ -2932,7 +2930,7 @@ static int iosetup(struct ioword *iop, int pipein, int pipeout)
 	}
 	switch (iop->io_flag) {
 	case IOREAD:
-		u = open(cp, 0);
+		u = open(cp, O_RDONLY);
 		break;
 
 	case IOHERE:
@@ -2942,7 +2940,7 @@ static int iosetup(struct ioword *iop, int pipein, int pipeout)
 		break;
 
 	case IOWRITE | IOCAT:
-		u = open(cp, 1);
+		u = open(cp, O_WRONLY);
 		if (u >= 0) {
 			lseek(u, (long) 0, SEEK_END);
 			break;
@@ -3346,7 +3344,7 @@ static int dodot(struct op *t)
 		for (i = 0; (*tp++ = cp[i++]) != '\0';);
 
 		/* Original code */
-		i = open(e.linep, 0);
+		i = open(e.linep, O_RDONLY);
 		if (i >= 0) {
 			exstat = 0;
 			maltmp = remap(i);
@@ -5098,7 +5096,7 @@ static int herein(char *hname, int xdoll)
 
 	DBGPRINTF7(("HEREIN: hname is %s, xdoll=%d\n", hname, xdoll));
 
-	hf = open(hname, 0);
+	hf = open(hname, O_RDONLY);
 	if (hf < 0)
 		return -1;
 
@@ -5122,7 +5120,7 @@ static int herein(char *hname, int xdoll)
 		} else
 			unlink(tname);
 		close(tf);
-		tf = open(tname, 0);
+		tf = open(tname, O_RDONLY);
 		unlink(tname);
 		return tf;
 	}
@@ -5214,10 +5212,11 @@ int msh_main(int argc, char **argv)
 
 	path = lookup("PATH");
 	if (path->value == null) {
+		/* Can be merged with same string elsewhere in bbox */
 		if (geteuid() == 0)
-			setval(path, "/sbin:/bin:/usr/sbin:/usr/bin");
+			setval(path, "/sbin:/usr/sbin:/bin:/usr/bin");
 		else
-			setval(path, "/bin:/usr/bin");
+			setval(path, "/sbin:/usr/sbin:/bin:/usr/bin" + sizeof("/sbin:/usr/sbin"));
 	}
 	export(path);
 
@@ -5329,10 +5328,10 @@ int msh_main(int argc, char **argv)
 	signal(SIGQUIT, qflag);
 	if (name && name[0] == '-') {
 		interactive++;
-		f = open(".profile", 0);
+		f = open(".profile", O_RDONLY);
 		if (f >= 0)
 			next(remap(f));
-		f = open("/etc/profile", 0);
+		f = open("/etc/profile", O_RDONLY);
 		if (f >= 0)
 			next(remap(f));
 	}

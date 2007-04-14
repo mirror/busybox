@@ -48,14 +48,15 @@ static const char usage_messages[] = ""
 /* The -1 arises because of the {0,NULL,0,-1} entry. */
 const unsigned short NUM_APPLETS = sizeof(applets) / sizeof(applets[0]) - 1;
 
-
 const struct bb_applet *current_applet;
 const char *applet_name ATTRIBUTE_EXTERNALLY_VISIBLE;
 #if !BB_MMU
 bool re_execed;
 #endif
 
-
+#if ENABLE_FEATURE_SUID
+static uid_t ruid;  /* real uid */
+#endif
 
 #if ENABLE_FEATURE_SUID_CONFIG
 
@@ -142,6 +143,10 @@ static void parse_config_file(void)
 	struct stat st;
 
 	assert(!suid_config); /* Should be set to NULL by bss init. */
+
+	ruid = getuid();
+	if (ruid == 0) /* run by root - don't need to even read config file */
+		return;
 
 	if ((stat(config_file, &st) != 0)       /* No config file? */
 	 || !S_ISREG(st.st_mode)                /* Not a regular file? */
@@ -324,15 +329,21 @@ static void parse_config_file(void)
 	}
 }
 #else
-#define parse_config_file() ((void)0)
+static inline void parse_config_file(void)
+{
+	ruid = getuid();
+}
 #endif /* FEATURE_SUID_CONFIG */
 
 
 #if ENABLE_FEATURE_SUID
 static void check_suid(const struct bb_applet *applet)
 {
-	uid_t ruid = getuid();               /* real [ug]id */
-	uid_t rgid = getgid();
+	uid_t rgid;  /* real gid */
+
+	if (ruid == 0) /* set by parse_config_file() */
+		return; /* run by root - no need to check more */
+	rgid = getgid();
 
 #if ENABLE_FEATURE_SUID_CONFIG
 	if (suid_cfg_readable) {
@@ -387,7 +398,7 @@ static void check_suid(const struct bb_applet *applet)
 		if (geteuid())
 			bb_error_msg_and_die("applet requires root privileges!");
 	} else if (applet->need_suid == _BB_SUID_NEVER) {
-		xsetgid(rgid);                          /* drop all privileges */
+		xsetgid(rgid);  /* drop all privileges */
 		xsetuid(ruid);
 	}
 }
@@ -636,8 +647,7 @@ int main(int argc, char **argv)
 	if (s)
 		applet_name = s + 1;
 
-	if (ENABLE_FEATURE_SUID_CONFIG)
-		parse_config_file();
+	parse_config_file(); /* ...maybe, if FEATURE_SUID_CONFIG */
 
 	/* Set locale for everybody except 'init' */
 	if (ENABLE_LOCALE_SUPPORT && getpid() != 1)
