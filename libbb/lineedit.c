@@ -948,8 +948,10 @@ static void remember_in_history(const char *str)
 	state->history[i++] = xstrdup(str);
 	state->cur_history = i;
 	state->cnt_history = i;
+#if ENABLE_FEATURE_EDITING_SAVEHISTORY
 	if ((state->flags & SAVE_HISTORY) && state->hist_file)
 		save_history(state->hist_file);
+#endif
 	USE_FEATURE_EDITING_FANCY_PROMPT(num_ok_lines++;)
 }
 
