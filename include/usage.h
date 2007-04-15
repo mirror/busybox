@@ -571,9 +571,10 @@
        "Deallocate unused virtual terminal /dev/ttyN"
 
 #define delgroup_trivial_usage \
-       "GROUP"
+        USE_FEATURE_DEL_USER_FROM_GROUP("[USER] ")"GROUP"
 #define delgroup_full_usage \
-       "Delete group GROUP from the system"
+       "Delete group GROUP from the system" \
+        USE_FEATURE_DEL_USER_FROM_GROUP(" or user USER from group GROUP")
 
 #define deluser_trivial_usage \
        "USER"
