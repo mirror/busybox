@@ -12,11 +12,11 @@
 #define HAVE_EXT2_IOCTLS 1
 
 #if INT_MAX == LONG_MAX
-#define IF_LONG_IS_SAME(x) x
-#define IF_LONG_IS_WIDER(x)
+#define IF_LONG_IS_SAME(...) __VA_ARGS__
+#define IF_LONG_IS_WIDER(...)
 #else
-#define IF_LONG_IS_SAME(x)
-#define IF_LONG_IS_WIDER(x) x
+#define IF_LONG_IS_SAME(...)
+#define IF_LONG_IS_WIDER(...) __VA_ARGS__
 #endif
 
 static void close_silently(int fd)
@@ -147,6 +147,8 @@ struct flags_name {
 	const char	*long_name;
 };
 
+/* TODO: apart from I and (disabled) COMPRESSION flags, this
+ * is a duplicate of a table from chattr. Merge? */
 static const struct flags_name flags_array[] = {
 	{ EXT2_SECRM_FL, 's', "Secure_Deletion" },
 	{ EXT2_UNRM_FL, 'u' , "Undelete" },

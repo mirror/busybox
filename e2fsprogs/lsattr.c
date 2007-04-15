@@ -34,11 +34,11 @@ static void list_attributes(const char *name)
 	unsigned long fsflags;
 	unsigned long generation;
 
-	if (fgetflags(name, &fsflags) == -1)
+	if (fgetflags(name, &fsflags) != 0)
 		goto read_err;
 
 	if (option_mask32 & OPT_GENERATION) {
-		if (fgetversion(name, &generation) == -1)
+		if (fgetversion(name, &generation) != 0)
 			goto read_err;
 		printf("%5lu ", generation);
 	}
@@ -65,14 +65,12 @@ static int lsattr_dir_proc(const char *dir_name, struct dirent *de,
 
 	path = concat_path_file(dir_name, de->d_name);
 
-	if (lstat(path, &st) == -1)
+	if (lstat(path, &st) != 0)
 		bb_perror_msg("stat %s", path);
-
 	else if (de->d_name[0] != '.' || (option_mask32 & OPT_ALL)) {
 		list_attributes(path);
 		if (S_ISDIR(st.st_mode) && (option_mask32 & OPT_RECUR)
-		 && (de->d_name[0] != '.'
-		     || (de->d_name[1] != '\0' && NOT_LONE_CHAR(de->d_name+1, '.')))
+		 && !DOT_OR_DOTDOT(de->d_name)
 		) {
 			printf("\n%s:\n", path);
 			iterate_on_dir(path, lsattr_dir_proc, NULL);
@@ -81,7 +79,6 @@ static int lsattr_dir_proc(const char *dir_name, struct dirent *de,
 	}
 
 	free(path);
-
 	return 0;
 }
 
