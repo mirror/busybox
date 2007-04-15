@@ -20,7 +20,7 @@ in the directory, just your own.
 Declaration Order
 -----------------
 
-Here is the order in which code should be laid out in a file:
+Here is the preferred order in which code should be laid out in a file:
 
  - commented program name and one-line description
  - commented author name and email address(es)
@@ -126,14 +126,15 @@ between it and the opening control block statement. Examples:
 
 		do {
 
-Exceptions:
+If you have long logic statements that need to be wrapped, then uncuddling
+the bracket to improve readability is allowed. Generally, this style makes
+it easier for reader to notice that 2nd and following lines are still
+inside 'if':
 
- - if you have long logic statements that need to be wrapped, then uncuddling
-   the bracket to improve readability is allowed:
-
-		if (some_really_long_checks && some_other_really_long_checks \
-		    && some_more_really_long_checks)
-		{
+		if (some_really_long_checks && some_other_really_long_checks
+		 && some_more_really_long_checks
+		 && even_more_of_long_checks
+		) {
 			do_foo_now;
 
 Spacing around Parentheses
@@ -208,6 +209,23 @@ block. Example:
 	}
 
 
+Labels
+~~~~~~
+
+Labels should start at the beginning of the line, not indented to the block
+level (because they do not "belong" to block scope, only to whole function).
+
+	if (foo) {
+		stmt;
+ label:
+		stmt2;
+		stmt;
+	}
+
+(Putting label at position 1 prevents diff -p from confusing label for function
+name, but it's not a policy of busybox project to enforce such a minor detail).
+
+
 
 Variable and Function Names
 ---------------------------
@@ -234,7 +252,7 @@ because it looks like whitespace; using lower-case is easy on the eyes.
 Exceptions:
 
  - Enums, macros, and constant variables are occasionally written in all
-   upper-case with words optionally seperatedy by underscores (i.e. FIFOTYPE,
+   upper-case with words optionally seperatedy by underscores (i.e. FIFO_TYPE,
    ISBLKDEV()).
 
  - Nobody is going to get mad at you for using 'pvar' as the name of a
@@ -299,22 +317,21 @@ Use 'const <type> var' for declaring constants.
 
 	Don't do this:
 
-		#define var 80
+		#define CONST 80
 
 	Do this instead, when the variable is in a header file and will be used in
 	several source files:
 
-		const int var = 80;
+		enum { CONST = 80 };
 
-	Or do this when the variable is used only in a single source file:
-
-		static const int var = 80;
-
-Declaring variables as '[static] const' gives variables an actual type and
-makes the compiler do type checking for you; the preprocessor does _no_ type
-checking whatsoever, making it much more error prone. Declaring variables with
-'[static] const' also makes debugging programs much easier since the value of
-the variable can be easily queried and displayed.
+Although enum may look ugly to some people, it is better for code size.
+With "const int" compiler may fail to optimize it out and will reserve
+a real storage in rodata for it! (Hopefully, newer gcc will get better
+at it...).  With "define", you have slight risk of polluting namespace
+(#define doesn't allow you to redefine the name in the inner scopes),
+and complex "define" are evaluated each time they uesd, not once
+at declarations like enums. Also, the preprocessor does _no_ type checking
+whatsoever, making it much more error prone.
 
 
 The Folly of Macros
@@ -432,15 +449,16 @@ Unfortunately, the way C handles strings makes them prone to overruns when
 certain library functions are (mis)used. The following table  offers a summary
 of some of the more notorious troublemakers:
 
-function     overflows         preferred
-----------------------------------------
-strcpy       dest string       strncpy
-strcat       dest string       strncat
-gets         string it gets    fgets
-getwd        buf string        getcwd
-[v]sprintf   str buffer        [v]snprintf
-realpath     path buffer       use with pathconf
-[vf]scanf    its arguments     just avoid it
+function     overflows                  preferred
+-------------------------------------------------
+strcpy       dest string                safe_strncpy
+strncpy      may fail to 0-terminate dst safe_strncpy
+strcat       dest string                strncat
+gets         string it gets             fgets
+getwd        buf string                 getcwd
+[v]sprintf   str buffer                 [v]snprintf
+realpath     path buffer                use with pathconf
+[vf]scanf    its arguments              just avoid it
 
 
 The above is by no means a complete list. Be careful out there.
@@ -450,7 +468,7 @@ The above is by no means a complete list. Be careful out there.
 Avoid Big Static Buffers
 ------------------------
 
-First, some background to put this discussion in context: Static buffers look
+First, some background to put this discussion in context: static buffers look
 like this in code:
 
 	/* in a .c file outside any functions */
@@ -500,6 +518,9 @@ between xmalloc() and stack creation, so you can code the line in question as
 
 and the right thing will happen, based on your configuration.
 
+Another relatively new trick of similar nature is explained
+in keep_data_small.txt.
+
 
 
 Miscellaneous Coding Guidelines
@@ -527,7 +548,7 @@ The only time we deviate from emulating the GNU behavior is when:
 	  would be required, lots more memory would be used, etc.)
 	- The difference is minor or cosmetic
 
-A note on the 'cosmetic' case: Output differences might be considered
+A note on the 'cosmetic' case: output differences might be considered
 cosmetic, but if the output is significant enough to break other scripts that
 use the output, it should really be fixed.
 
@@ -577,7 +598,7 @@ like this:
 		if (foo)
 			stmt1;
 			new_line();
-		stmt2
+		stmt2;
 		stmt3;
 
 And the resulting behavior of your program would totally bewilder you. (Don't
@@ -625,7 +646,7 @@ comment too much as well as too little.
 A picture is really worth a thousand words here, the following example
 illustrates how to emphasize logical blocks:
 
-	while (line = get_line_from_file(fp)) {
+	while (line = xmalloc_fgets(fp)) {
 
 		/* eat the newline, if any */
 		chomp(line);
@@ -649,31 +670,38 @@ illustrates how to emphasize logical blocks:
 Processing Options with getopt
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-If your applet needs to process  command-line switches, please use getopt() to
+If your applet needs to process command-line switches, please use getopt32() to
 do so. Numerous examples can be seen in many of the existing applets, but
 basically it boils down to two things: at the top of the .c file, have this
-line in the midst of your #includes:
+line in the midst of your #includes, if you need to parse long options:
 
 	#include <getopt.h>
+
+Then have long options defined:
+
+	static const struct option <applet>_long_options[] = {
+		{ "list",    0, NULL, 't' },
+		{ "extract", 0, NULL, 'x' },
+		{ NULL }
+	};
 
 And a code block similar to the following near the top of your applet_main()
 routine:
 
-    while ((opt = getopt(argc, argv, "abc")) > 0) {
-            switch (opt) {
-            case 'a':
-                do_a_opt = 1;
-                break;
-            case 'b':
-                do_b_opt = 1;
-                break;
-            case 'c':
-                do_c_opt = 1;
-                break;
-            default:
-                show_usage();    /* in utility.c */
-            }
-    }
+	char *str_b;
+
+	opt_complementary = "cryptic_string";
+	applet_long_options = <applet>_long_options; /* if you have them */
+	opt = getopt32(argc, argv, "ab:c", &str_b);
+	if (opt & 1) {
+		handle_option_a();
+	}
+	if (opt & 2) {
+		handle_option_b(str_b);
+	}
+	if (opt & 4) {
+		handle_option_c();
+	}
 
 If your applet takes no options (such as 'init'), there should be a line
 somewhere in the file reads:
@@ -683,7 +711,4 @@ somewhere in the file reads:
 That way, when people go grepping to see which applets need to be converted to
 use getopt, they won't get false positives.
 
-Additional Note: Do not use the getopt_long library function and do not try to
-hand-roll your own long option parsing. Busybox applets should only support
-short options. Explanations and examples of the short options should be
-documented in usage.h.
+For more info and examples, examine getopt32.c, tar.c, wget.c etc.
