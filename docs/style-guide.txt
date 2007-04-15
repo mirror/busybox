@@ -682,7 +682,7 @@ Then have long options defined:
 	static const struct option <applet>_long_options[] = {
 		{ "list",    0, NULL, 't' },
 		{ "extract", 0, NULL, 'x' },
-		{ NULL }
+		{ NULL, 0, NULL, 0 }
 	};
 
 And a code block similar to the following near the top of your applet_main()
