@@ -83,9 +83,9 @@ static int xargs_exec(char **args)
 
 
 typedef struct xlist_t {
-	char *data;
-	size_t length;
 	struct xlist_t *link;
+	size_t length;
+	char xstr[1];
 } xlist_t;
 
 static smallint eof_stdin_detected;
@@ -105,7 +105,7 @@ static xlist_t *process_stdin(xlist_t *list_arg,
 
 	char *s = NULL;         /* start word */
 	char *p = NULL;         /* pointer to end word */
-	char q = 0;             /* quote char */
+	char q = '\0';          /* quote char */
 	char state = NORM;
 	char eof_str_detected = 0;
 	size_t line_l = 0;      /* size loaded args line */
@@ -135,18 +135,16 @@ static xlist_t *process_stdin(xlist_t *list_arg,
 			state = NORM;
 			goto set;
 		} else if (state == QUOTE) {
-			if (c == q) {
-				q = 0;
-				state = NORM;
-			} else {
+			if (c != q)
 				goto set;
-			}
+			q = '\0';
+			state = NORM;
 		} else { /* if (state == NORM) */
 			if (ISSPACE(c)) {
 				if (s) {
-unexpected_eof:
+ unexpected_eof:
 					state = SPACE;
-					c = 0;
+					c = '\0';
 					goto set;
 				}
 			} else {
@@ -158,7 +156,7 @@ unexpected_eof:
 					q = c;
 					state = QUOTE;
 				} else {
-set:
+ set:
 					if ((size_t)(p - buf) >= mc)
 						bb_error_msg_and_die("argument line too long");
 					*p++ = c;
@@ -176,11 +174,11 @@ set:
 			}
 			if (!eof_str_detected) {
 				size_t length = (p - buf);
-// TODO: smarter llist_t
-				cur = xzalloc(sizeof(xlist_t) + length);
-				cur->data = memcpy(cur + 1, s, length);
+				/* Dont xzalloc - it can be quite big */
+				cur = xmalloc(offsetof(xlist_t, xstr) + length);
+				cur->link = NULL;
 				cur->length = length;
-				/*cur->link = NULL;*/
+				memcpy(cur->xstr, s, length);
 				if (prev == NULL) {
 					list_arg = cur;
 				} else {
@@ -237,7 +235,7 @@ static xlist_t *process_stdin(xlist_t *list_arg,
 			s = p = buf;
 		if ((p - buf) >= mc)
 			bb_error_msg_and_die("argument line too long");
-		*p++ = c == EOF ? 0 : c;
+		*p++ = (c == EOF ? '\0' : c);
 		if (c == EOF) { /* word's delimiter or EOF detected */
 			/* word loaded */
 			if (eof_str) {
@@ -245,12 +243,11 @@ static xlist_t *process_stdin(xlist_t *list_arg,
 			}
 			if (!eof_str_detected) {
 				size_t length = (p - buf);
-
-				cur = xzalloc(sizeof(xlist_t) + length);
-// TODO: smarter llist_t
-				cur->data = memcpy(cur + 1, s, length);
+				/* Dont xzalloc - it can be quite big */
+				cur = xmalloc(offsetof(xlist_t, xstr) + length);
+				cur->link = NULL;
 				cur->length = length;
-				/*cur->link = NULL;*/
+				memcpy(cur->xstr, s, length);
 				if (prev == NULL) {
 					list_arg = cur;
 				} else {
@@ -318,22 +315,21 @@ static xlist_t *process0_stdin(xlist_t *list_arg,
 			eof_stdin_detected = 1;
 			if (s == NULL)
 				break;
-			c = 0;
+			c = '\0';
 		}
 		if (s == NULL)
 			s = p = buf;
 		if ((size_t)(p - buf) >= mc)
 			bb_error_msg_and_die("argument line too long");
 		*p++ = c;
-		if (c == 0) {   /* word's delimiter or EOF detected */
+		if (c == '\0') {   /* word's delimiter or EOF detected */
 			/* word loaded */
 			size_t length = (p - buf);
-
-			cur = xzalloc(sizeof(xlist_t) + length);
-// TODO: smarter llist_t
-			cur->data = memcpy(cur + 1, s, length);
+			/* Dont xzalloc - it can be quite big */
+			cur = xmalloc(offsetof(xlist_t, xstr) + length);
+			cur->link = NULL;
 			cur->length = length;
-			/*cur->link = NULL;*/
+			memcpy(cur->xstr, s, length);
 			if (prev == NULL) {
 				list_arg = cur;
 			} else {
@@ -479,7 +475,7 @@ int xargs_main(int argc, char **argv)
 			args[i] = argv[i];
 		/* (taken from stdin) */
 		for (cur = list; n; cur = cur->link) {
-			args[i++] = cur->data;
+			args[i++] = cur->xstr;
 			n--;
 		}
 
