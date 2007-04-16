@@ -92,14 +92,14 @@ int dd_main(int argc, char **argv)
 		OP_skip,
 		OP_if,
 		OP_of,
-USE_FEATURE_DD_IBS_OBS(
+#if ENABLE_FEATURE_DD_IBS_OBS
 		OP_ibs,
 		OP_obs,
 		OP_conv,
 		OP_conv_notrunc,
 		OP_conv_sync,
 		OP_conv_noerror,
-)
+#endif
 	};
 	int flags = trunc_flag;
 	size_t oc = 0, ibs = 512, obs = 512;
@@ -139,7 +139,7 @@ USE_FEATURE_DD_IBS_OBS(
 			bb_show_usage();
 		arg += key_len;
 		/* Must fit into positive ssize_t */
-		if (ENABLE_FEATURE_DD_IBS_OBS) {
+#if ENABLE_FEATURE_DD_IBS_OBS
 			if (what == OP_ibs) {
 				ibs = xatoul_range_sfx(arg, 1, ((size_t)-1L)/2, dd_suffixes);
 				continue;
@@ -172,7 +172,7 @@ USE_FEATURE_DD_IBS_OBS(
 				}
 				continue;
 			}
-		}
+#endif
 		if (what == OP_bs) {
 			ibs = obs = xatoul_range_sfx(arg, 1, ((size_t)-1L)/2, dd_suffixes);
 			continue;
