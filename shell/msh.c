@@ -264,10 +264,6 @@ static const char *const T_CMD_NAMES[] = {
 #define DOALL    (DOSUB|DOBLANK|DOGLOB|DOKEY|DOTRIM)
 
 
-/* PROTOTYPES */
-static int newfile(char *s);
-
-
 struct brkcon {
 	jmp_buf brkpt;
 	struct brkcon *nextlev;
@@ -285,8 +281,8 @@ struct brkcon {
  * -u: unset variables net diagnostic
  */
 static char flags['z' - 'a' + 1];
-/* this looks weird, but is OK ... we index flag with 'a'...'z' */
-static char *flag = flags - 'a';
+/* this looks weird, but is OK ... we index FLAG with 'a'...'z' */
+#define FLAG (flags - 'a')
 
 /* moved to G: static char *trap[_NSIG + 1]; */
 /* moved to G: static char ourtrap[_NSIG + 1]; */
@@ -693,7 +689,7 @@ static int intr;                        /* interrupt pending */
 static int inparse;
 static char *null = (char*)"";          /* null value for variable */
 static int heedint = 1;                 /* heed interrupt signals */
-static void (*qflag) (int) = SIG_IGN;
+static void (*qflag)(int) = SIG_IGN;
 static int startl;
 static int peeksym;
 static int nlseen;
@@ -855,14 +851,14 @@ static void warn(const char *s)
 		exstat = -1;
 	}
 	prs("\n");
-	if (flag['e'])
+	if (FLAG['e'])
 		leave();
 }
 
 static void err(const char *s)
 {
 	warn(s);
-	if (flag['n'])
+	if (FLAG['n'])
 		return;
 	if (!interactive)
 		leave();
@@ -1295,7 +1291,7 @@ static void setdash(void)
 
 	cp = m;
 	for (c = 'a'; c <= 'z'; c++)
-		if (flag[c])
+		if (FLAG[c])
 			*cp++ = c;
 	*cp = '\0';
 	setval(lookup("-"), m);
@@ -1401,7 +1397,7 @@ static void onecommand(void)
 	intr = 0;
 	execflg = 0;
 
-	if (!flag['n']) {
+	if (!FLAG['n']) {
 		DBGPRINTF(("ONECOMMAND: calling execute, t=outtree=%p\n",
 				   outtree));
 		execute(outtree, NOPIPE, NOPIPE, 0);
@@ -2736,7 +2732,7 @@ static int forkexec(struct op *t, int *pin, int *pout, int act, char **wp)
 
 		/* strip all initial assignments */
 		/* not correct wrt PATH=yyy command  etc */
-		if (flag['x']) {
+		if (FLAG['x']) {
 			DBGPRINTF9(("FORKEXEC: echo'ing, cp=%p, wp=%p, owp=%p\n",
 						cp, wp, owp));
 			echo(cp ? wp : owp);
@@ -3598,18 +3594,18 @@ static int doset(struct op *t)
 		/* bad: t->words++; */
 		for (n = 0; (t->words[n] = t->words[n + 1]) != NULL; n++);
 		if (*++cp == 0)
-			flag['x'] = flag['v'] = 0;
+			FLAG['x'] = FLAG['v'] = 0;
 		else {
 			for (; *cp; cp++) {
 				switch (*cp) {
 				case 'e':
 					if (!interactive)
-						flag['e']++;
+						FLAG['e']++;
 					break;
 
 				default:
 					if (*cp >= 'a' && *cp <= 'z')
-						flag[(int) *cp]++;
+						FLAG[(int) *cp]++;
 					break;
 				}
 			}
@@ -3692,14 +3688,14 @@ static char **eval(char **ap, int f)
 	if (newenv(setjmp(errpt)) == 0) {
 		while (*ap && isassign(*ap))
 			expand(*ap++, &wb, f & ~DOGLOB);
-		if (flag['k']) {
+		if (FLAG['k']) {
 			for (wf = ap; *wf; wf++) {
 				if (isassign(*wf))
 					expand(*wf, &wb, f & ~DOGLOB);
 			}
 		}
 		for (wb = addword((char *) 0, wb); *ap; ap++) {
-			if (!flag['k'] || !isassign(*ap))
+			if (!FLAG['k'] || !isassign(*ap))
 				expand(*ap, &wb, f & ~DOKEY);
 		}
 		wb = addword((char *) 0, wb);
@@ -3992,7 +3988,7 @@ static int dollar(int quoted)
 		}
 	} else if (c == '+')
 		dolp = strsave(cp, areanum);
-	if (flag['u'] && dolp == null) {
+	if (FLAG['u'] && dolp == null) {
 		prs("unset variable: ");
 		err(s);
 		gflg++;
@@ -4613,7 +4609,7 @@ static int readc(void)
 
 static void ioecho(char c)
 {
-	if (flag['v'])
+	if (FLAG['v'])
 		write(2, &c, sizeof c);
 }
 
@@ -5278,7 +5274,7 @@ int msh_main(int argc, char **argv)
 					interactive++;
 				default:
 					if (*s >= 'a' && *s <= 'z')
-						flag[(int) *s]++;
+						FLAG[(int) *s]++;
 				}
 		} else {
 			argv--;

@@ -20,7 +20,6 @@
  *      rewrites.
  *
  * Other credits:
- *      simple_itoa() was lifted from boa-0.93.15
  *      b_addchr() derived from similar w_addchar function in glibc-2.2
  *      setup_redirect(), redirect_opt_num(), and big chunks of main()
  *        and many builtins derived from contributions by Erik Andersen
@@ -280,7 +279,7 @@ struct built_in_command {
 /* belongs in busybox.h */
 static int max(int a, int b)
 {
-	return (a>b)?a:b;
+	return (a > b) ? a : b;
 }
 
 /* This should be in utility.c */
@@ -811,23 +810,12 @@ static int b_addqchr(o_string *o, int ch, int quote)
 	return b_addchr(o, ch);
 }
 
-/* belongs in utility.c */
-static char *simple_itoa(unsigned i)
-{
-	static char local[sizeof(int)*3 + 2];
-	char *p = &local[sizeof(int)*3 + 2 - 1];
-	*p-- = '\0';
-	do {
-		*p-- = '0' + i % 10;
-		i /= 10;
-	} while (i > 0);
-	return p + 1;
-}
-
 static int b_adduint(o_string *o, unsigned i)
 {
 	int r;
-	char *p = simple_itoa(i);
+	char buf[sizeof(unsigned)*3 + 1];
+	char *p = buf;
+	*(utoa_to_buf(i, buf, sizeof(buf))) = '\0';
 	/* no escape checking necessary */
 	do r = b_addchr(o, *p++); while (r == 0 && *p);
 	return r;
@@ -2008,8 +1996,8 @@ static int reserved_word(o_string *dest, struct p_context *ctx)
 		{ "do",    RES_DO,    FLAG_DONE },
 		{ "done",  RES_DONE,  FLAG_END  }
 	};
+	enum { NRES = sizeof(reserved_list)/sizeof(reserved_list[0]) };
 	const struct reserved_combo *r;
-#define NRES sizeof(reserved_list)/sizeof(reserved_list[0])
 
 	for (r = reserved_list;	r < reserved_list+NRES; r++) {
 		if (strcmp(dest->data, r->literal) == 0) {
@@ -2113,11 +2101,13 @@ static int done_command(struct p_context *ctx)
 	struct child_prog *prog = ctx->child;
 
 	if (prog && prog->group == NULL
-	         && prog->argv == NULL
-	         && prog->redirects == NULL) {
+	 && prog->argv == NULL
+	 && prog->redirects == NULL
+	) {
 		debug_printf("done_command: skipping null command\n");
 		return 0;
-	} else if (prog) {
+	}
+	if (prog) {
 		pi->num_progs++;
 		debug_printf("done_command: num_progs incremented to %d\n", pi->num_progs);
 	} else {
@@ -2172,7 +2162,7 @@ static int redirect_dup_num(struct in_str *input)
 		return -3;  /* "-" represents "close me" */
 	}
 	while (isdigit(ch)) {
-		d = d*10+(ch-'0');
+		d = d*10 + (ch-'0');
 		ok = 1;
 		b_getch(input);
 		ch = b_peek(input);
@@ -2226,7 +2216,7 @@ static FILE *generate_stream_from_list(struct pipe *head)
 	} else if (pid == 0) {
 		close(channel[0]);
 		if (channel[1] != 1) {
-			dup2(channel[1],1);
+			dup2(channel[1], 1);
 			close(channel[1]);
 		}
 		_exit(run_list_real(head));   /* leaks memory */
