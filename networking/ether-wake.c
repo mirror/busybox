@@ -182,11 +182,10 @@ int ether_wake_main(int argc, char **argv);
 int ether_wake_main(int argc, char **argv)
 {
 	const char *ifname = "eth0";
-	char *pass = NULL;
+	char *pass;
 	unsigned flags;
 	unsigned char wol_passwd[6];
 	int wol_passwd_sz = 0;
-
 	int s;						/* Raw socket */
 	int pktsize;
 	unsigned char outpack[1000];
@@ -195,23 +194,23 @@ int ether_wake_main(int argc, char **argv)
 	struct whereto_t whereto;	/* who to wake up */
 
 	/* handle misc user options */
+	opt_complementary = "=1";
 	flags = getopt32(argc, argv, "bi:p:", &ifname, &pass);
-	if (optind == argc)
-		bb_show_usage();
-	if (pass)
+	if (flags & 4) /* -p */
 		wol_passwd_sz = get_wol_pw(pass, wol_passwd);
+	flags &= 1; /* we further interested only in -b [bcast] flag */
 
 	/* create the raw socket */
 	s = make_socket();
 
 	/* now that we have a raw socket we can drop root */
-	xsetuid(getuid());
+	/* xsetuid(getuid()); - but save on code size... */
 
 	/* look up the dest mac address */
 	get_dest_addr(argv[optind], &eaddr);
 
 	/* fill out the header of the packet */
-	pktsize = get_fill(outpack, &eaddr, flags & 1 /* OPT_BROADCAST */);
+	pktsize = get_fill(outpack, &eaddr, flags /* & 1 OPT_BROADCAST */);
 
 	bb_debug_dump_packet(outpack, pktsize);
 
@@ -249,7 +248,7 @@ int ether_wake_main(int argc, char **argv)
 	bb_debug_dump_packet(outpack, pktsize);
 
 	/* This is necessary for broadcasts to work */
-	if (flags & 1 /* OPT_BROADCAST */) {
+	if (flags /* & 1 OPT_BROADCAST */) {
 		if (setsockopt_broadcast(s) != 0)
 			bb_perror_msg("SO_BROADCAST");
 	}
