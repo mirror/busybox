@@ -54,7 +54,7 @@ const char *applet_name ATTRIBUTE_EXTERNALLY_VISIBLE;
 bool re_execed;
 #endif
 
-static uid_t ruid;  /* real uid */
+USE_FEATURE_SUID(static uid_t ruid;)  /* real uid */
 
 #if ENABLE_FEATURE_SUID_CONFIG
 
@@ -329,7 +329,7 @@ static void parse_config_file(void)
 #else
 static inline void parse_config_file(void)
 {
-	ruid = getuid();
+	USE_FEATURE_SUID(ruid = getuid();)
 }
 #endif /* FEATURE_SUID_CONFIG */
 
