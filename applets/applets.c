@@ -54,9 +54,7 @@ const char *applet_name ATTRIBUTE_EXTERNALLY_VISIBLE;
 bool re_execed;
 #endif
 
-#if ENABLE_FEATURE_SUID
 static uid_t ruid;  /* real uid */
-#endif
 
 #if ENABLE_FEATURE_SUID_CONFIG
 
