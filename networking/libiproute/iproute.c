@@ -309,15 +309,15 @@ static int iproute_modify(int cmd, unsigned flags, int argc, char **argv)
 	enum { gw_ok = 1<<0, dst_ok = 1<<1, proto_ok = 1<<2, type_ok = 1<<3};
 	smalluint ok = 0;
 	static const char * const keywords[] = {
-		"src", "via", "mtu", "lock", "protocol", "table", "dev", "oif", "to",
-		NULL
+		"src", "via", "mtu", "lock", "protocol", USE_FEATURE_IP_RULE("table",)
+		"dev", "oif", "to", NULL
 	};
 	enum {
 		ARG_src,
 		ARG_via,
 		ARG_mtu, PARM_lock,
 		ARG_protocol,
-		ARG_table,
+USE_FEATURE_IP_RULE(ARG_table,)
 		ARG_dev,
 		ARG_oif,
 		ARG_to
@@ -377,12 +377,14 @@ static int iproute_modify(int cmd, unsigned flags, int argc, char **argv)
 				invarg(*argv, "protocol");
 			req.r.rtm_protocol = prot;
 			ok |= proto_ok;
+#if ENABLE_FEATURE_IP_RULE
 		} else if (arg == ARG_table) {
 			uint32_t tid;
 			NEXT_ARG();
 			if (rtnl_rttable_a2n(&tid, *argv))
 				invarg(*argv, "table");
 			req.r.rtm_table = tid;
+#endif
 		} else if (arg == ARG_dev || arg == ARG_oif) {
 			NEXT_ARG();
 			d = *argv;
