@@ -517,7 +517,8 @@ static uint8_t mode_loop(uint16_t mode_sup, uint16_t mode_sel, int cc, uint8_t *
 	return err_dma;
 }
 
-static void print_ascii(uint16_t *p, uint8_t length) {
+static void print_ascii(uint16_t *p, uint8_t length)
+{
 	uint8_t ii;
 	char cl;
 

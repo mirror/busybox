@@ -669,7 +669,8 @@ static int mod_process(const struct mod_list_t *list, int do_insert)
  * Check the matching between a pattern and a module name.
  * We need this as *_* is equivalent to *-*, even in pattern matching.
  */
-static int check_pattern(const char* pat_src, const char* mod_src) {
+static int check_pattern(const char* pat_src, const char* mod_src)
+{
 	int ret;
 
 	if (ENABLE_FEATURE_MODPROBE_FANCY_ALIAS) {

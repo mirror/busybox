@@ -35,7 +35,8 @@ static const struct option install_long_options[] = {
 #if ENABLE_SELINUX
 static bool use_default_selinux_context = 1;
 
-static void setdefaultfilecon(const char *path) {
+static void setdefaultfilecon(const char *path)
+{
 	struct stat s;
 	security_context_t scontext = NULL;
 

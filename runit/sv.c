@@ -183,23 +183,28 @@ static void out(const char *p, const char *m1)
 #define WARN    "warning: "
 #define OK      "ok: "
 
-static void fail(const char *m1) {
+static void fail(const char *m1)
+{
 	++rc;
 	out("fail: ", m1);
 }
-static void failx(const char *m1) {
+static void failx(const char *m1)
+{
 	errno = 0;
 	fail(m1);
 }
-static void warn_cannot(const char *m1) {
+static void warn_cannot(const char *m1)
+{
 	++rc;
 	out("warning: cannot ", m1);
 }
-static void warnx_cannot(const char *m1) {
+static void warnx_cannot(const char *m1)
+{
 	errno = 0;
 	warn_cannot(m1);
 }
-static void ok(const char *m1) {
+static void ok(const char *m1)
+{
 	errno = 0;
 	out(OK, m1);
 }

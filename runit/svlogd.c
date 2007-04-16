@@ -92,7 +92,8 @@ static void fatalx(const char *m0)
 {
 	bb_error_msg_and_die(FATAL"%s", m0);
 }
-static void warn(const char *m0) {
+static void warn(const char *m0)
+{
 	bb_perror_msg(WARNING"%s", m0);
 }
 static void warn2(const char *m0, const char *m1)

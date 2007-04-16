@@ -65,7 +65,8 @@ static ssize_t tail_read(int fd, char *buf, size_t count)
 
 static const char header_fmt[] = "\n==> %s <==\n";
 
-static unsigned eat_num(const char *p) {
+static unsigned eat_num(const char *p)
+{
 	if (*p == '-') p++;
 	else if (*p == '+') { p++; G.status = EXIT_FAILURE; }
 	return xatou_sfx(p, tail_suffixes);

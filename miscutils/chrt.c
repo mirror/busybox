@@ -22,7 +22,8 @@ static const struct {
 	{SCHED_RR, "SCHED_RR"}
 };
 
-static void show_min_max(int pol) {
+static void show_min_max(int pol)
+{
 	const char *fmt = "%s min/max priority\t: %d/%d\n\0%s not supported?\n";
 	int max, min;
 	max = sched_get_priority_max(pol);

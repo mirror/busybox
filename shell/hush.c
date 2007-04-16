@@ -1953,7 +1953,8 @@ static int setup_redirect(struct p_context *ctx, int fd, redir_type style,
 	return 0;
 }
 
-static struct pipe *new_pipe(void) {
+static struct pipe *new_pipe(void)
+{
 	struct pipe *pi;
 	pi = xmalloc(sizeof(struct pipe));
 	pi->num_progs = 0;

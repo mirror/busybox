@@ -185,7 +185,8 @@ int rpm_main(int argc, char **argv)
 	return 0;
 }
 
-static void extract_cpio_gz(int fd) {
+static void extract_cpio_gz(int fd)
+{
 	archive_handle_t *archive_handle;
 	unsigned char magic[2];
 

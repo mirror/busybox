@@ -103,7 +103,8 @@ static int time_sort(top_status_t *P, top_status_t *Q)
 	return Q->ticks != P->ticks; /* 0 if ==, 1 if > */
 }
 
-static int mult_lvl_cmp(void* a, void* b) {
+static int mult_lvl_cmp(void* a, void* b)
+{
 	int i, cmp_val;
 
 	for (i = 0; i < SORT_DEPTH; i++) {

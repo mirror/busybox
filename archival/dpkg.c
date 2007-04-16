@@ -352,7 +352,8 @@ static int search_package_hashtable(const unsigned name, const unsigned version,
  * FIXME: I don't think this is very efficient, but I thought I'd keep
  * it simple for now until it proves to be a problem.
  */
-static int search_for_provides(int needle, int start_at) {
+static int search_for_provides(int needle, int start_at)
+{
 	int i, j;
 	common_node_t *p;
 	for (i = start_at + 1; i < PACKAGE_HASH_PRIME; i++) {

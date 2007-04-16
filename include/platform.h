@@ -234,7 +234,8 @@ typedef unsigned smalluint;
 #endif
 
 #if defined(__dietlibc__)
-static ATTRIBUTE_ALWAYS_INLINE char* strchrnul(const char *s, char c) {
+static ATTRIBUTE_ALWAYS_INLINE char* strchrnul(const char *s, char c)
+{
 	while (*s && *s != c) ++s;
 	return (char*)s;
 }
