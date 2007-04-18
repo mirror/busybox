@@ -525,7 +525,46 @@ static void install_links(const char *busybox, int use_symbolic_links)
 /* If we were called as "busybox..." */
 static int busybox_main(char **argv)
 {
-	if (ENABLE_FEATURE_INSTALLER && argv[1] && !strcmp(argv[1], "--install")) {
+	if (!argv[1]) {
+		/* Called without arguments */
+		const struct bb_applet *a;
+		int col, output_width;
+ help:
+		output_width = 80;
+		if (ENABLE_FEATURE_AUTOWIDTH) {
+			/* Obtain the terminal width.  */
+			get_terminal_width_height(0, &output_width, NULL);
+		}
+		/* leading tab and room to wrap */
+		output_width -= sizeof("start-stop-daemon, ") + 8;
+
+		printf("%s\n"
+		       "Copyright (C) 1998-2006  Erik Andersen, Rob Landley, and others.\n"
+		       "Licensed under GPLv2.  See source distribution for full notice.\n"
+		       "\n"
+		       "Usage: busybox [function] [arguments]...\n"
+		       "   or: [function] [arguments]...\n"
+		       "\n"
+		       "\tBusyBox is a multi-call binary that combines many common Unix\n"
+		       "\tutilities into a single executable.  Most people will create a\n"
+		       "\tlink to busybox for each function they wish to use and BusyBox\n"
+		       "\twill act like whatever it was invoked as!\n"
+		       "\nCurrently defined functions:\n", bb_msg_full_version);
+		col = 0;
+		a = applets;
+		while (a->name) {
+			if (col > output_width) {
+				puts(",");
+				col = 0;
+			}
+			col += printf("%s%s", (col ? ", " : "\t"), a->name);
+			a++;
+		}
+		puts("\n");
+		return 0;
+	}
+
+	if (ENABLE_FEATURE_INSTALLER && strcmp(argv[1], "--install") == 0) {
 		int use_symbolic_links = 0;
 		char *busybox;
 
@@ -544,57 +583,20 @@ static int busybox_main(char **argv)
 		return 0;
 	}
 
-	/* Deal with --help. Also print help when called with no arguments */
-
-	if (!argv[1] || !strcmp(argv[1], "--help") ) {
-		if (argv[2]) {
-			/* set name for proper "<name>: applet not found" */
-			applet_name = argv[2];
-			argv[2] = NULL;
-			run_applet_and_exit(applet_name, argv);
-		} else {
-			const struct bb_applet *a;
-			int col, output_width;
-
-			output_width = 80 - sizeof("start-stop-daemon, ") - 8;
-			if (ENABLE_FEATURE_AUTOWIDTH) {
-				/* Obtain the terminal width.  */
-				get_terminal_width_height(0, &output_width, NULL);
-				/* leading tab and room to wrap */
-				output_width -= sizeof("start-stop-daemon, ") + 8;
-			}
-
-			printf("%s\n"
-			       "Copyright (C) 1998-2006  Erik Andersen, Rob Landley, and others.\n"
-			       "Licensed under GPLv2.  See source distribution for full notice.\n"
-			       "\n"
-			       "Usage: busybox [function] [arguments]...\n"
-			       "   or: [function] [arguments]...\n"
-			       "\n"
-			       "\tBusyBox is a multi-call binary that combines many common Unix\n"
-			       "\tutilities into a single executable.  Most people will create a\n"
-			       "\tlink to busybox for each function they wish to use and BusyBox\n"
-			       "\twill act like whatever it was invoked as!\n"
-			       "\nCurrently defined functions:\n", bb_msg_full_version);
-			col = 0;
-			a = applets;
-			while (a->name) {
-				col += printf("%s%s", (col ? ", " : "\t"), a->name);
-				a++;
-				if (col > output_width && a->name) {
-					puts(",");
-					col = 0;
-				}
-			}
-			puts("\n");
-			return 0;
-		}
+	if (strcmp(argv[1], "--help") == 0) {
+		/* "busybox --help [<applet>]" */
+		if (!argv[2])
+			goto help;
+		/* convert to "<applet> --help" */
+		argv[0] = argv[2];
+		argv[2] = NULL;
 	} else {
-		/* we want "<argv[1]>: applet not found", not "busybox: ..." */
-		applet_name = argv[1];
-		run_applet_and_exit(argv[1], argv + 1);
+		/* "busybox <applet> arg1 arg2 ..." */
+		argv++;
 	}
-
+	/* we want "<argv[0]>: applet not found", not "busybox: ..." */
+	applet_name = argv[0];
+	run_applet_and_exit(argv[0], argv);
 	bb_error_msg_and_die("applet not found");
 }
 
