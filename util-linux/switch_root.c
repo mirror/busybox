@@ -75,14 +75,14 @@ int switch_root_main(int argc, char **argv)
 
 	opt_complementary = "-2";
 	getopt32(argc, argv, "c:", &console);
+	argv += optind;
 
 	// Change to new root directory and verify it's a different fs.
 
-	newroot = argv[optind++];
+	newroot = *argv++;
 
-	if (chdir(newroot) || lstat(".", &st1) || lstat("/", &st2) ||
-		st1.st_dev == st2.st_dev)
-	{
+	xchdir(newroot);
+	if (lstat(".", &st1) || lstat("/", &st2) || st1.st_dev == st2.st_dev) {
 		bb_error_msg_and_die("bad newroot %s", newroot);
 	}
 	rootdev = st2.st_dev;
@@ -105,8 +105,9 @@ int switch_root_main(int argc, char **argv)
 	// Overmount / with newdir and chroot into it.  The chdir is needed to
 	// recalculate "." and ".." links.
 
-	if (mount(".", "/", NULL, MS_MOVE, NULL) || chroot(".") || chdir("/"))
+	if (mount(".", "/", NULL, MS_MOVE, NULL) || chroot("."))
 		bb_error_msg_and_die("error moving root");
+	xchdir("/");
 
 	// If a new console specified, redirect stdin/stdout/stderr to that.
 
@@ -118,6 +119,6 @@ int switch_root_main(int argc, char **argv)
 	}
 
 	// Exec real init.  (This is why we must be pid 1.)
-	execv(argv[optind], argv+optind);
-	bb_error_msg_and_die("bad init '%s'", argv[optind]);
+	execv(argv[0], argv);
+	bb_perror_msg_and_die("bad init %s", argv[0]);
 }
