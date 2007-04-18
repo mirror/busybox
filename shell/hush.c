@@ -22,7 +22,7 @@
  * Other credits:
  *      b_addchr() derived from similar w_addchar function in glibc-2.2
  *      setup_redirect(), redirect_opt_num(), and big chunks of main()
- *        and many builtins derived from contributions by Erik Andersen
+ *      and many builtins derived from contributions by Erik Andersen
  *      miscellaneous bugfixes from Matt Kraai
  *
  * There are two big (and related) architecture differences between
@@ -298,7 +298,7 @@ static char *indenter(int i)
 	return &blanks[sizeof(blanks)-i-1];
 }
 #else
-#define debug_printf(...) do {;} while (0);
+#define debug_printf(...) do {} while (0)
 #endif
 #define final_printf debug_printf
 
@@ -2758,7 +2758,7 @@ int hush_main(int argc, char **argv)
 	}
 	/* A shell is interactive if the '-i' flag was given, or if all of
 	 * the following conditions are met:
-	 *	  no -c command
+	 *    no -c command
 	 *    no arguments remaining or the -s flag given
 	 *    standard input is a terminal
 	 *    standard output is a terminal
