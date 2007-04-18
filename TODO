@@ -36,12 +36,7 @@ Rob Landley <rob@landley.net>:
     modutils. The orig depmod is rather pointless to have to add to a firmware image
     in when we already have a insmod/rmmod and friends.
   Unify base64 handling.
-    There's base64 encoding and decoding going on in:
-      networking/wget.c:base64enc()
-      coreutils/uudecode.c:read_base64()
-      coreutils/uuencode.c:tbl_base64[]
-      networking/httpd.c:decodeBase64()
-    And probably elsewhere.  That needs to be unified into libbb functions.
+    [done]
   Do a SUSv3 audit
     Look at the full Single Unix Specification version 3 (available online at
     "http://www.opengroup.org/onlinepubs/009695399/nfindex.html") and

@@ -765,10 +765,9 @@ static void setenv_long(const char *name, long value)
  ****************************************************************************/
 static void decodeBase64(char *Data)
 {
-
 	const unsigned char *in = (const unsigned char *)Data;
 	// The decoded size will be at most 3/4 the size of the encoded
-	unsigned long ch = 0;
+	unsigned ch = 0;
 	int i = 0;
 
 	while (*in) {
@@ -798,7 +797,7 @@ static void decodeBase64(char *Data)
 			i = 0;
 		}
 	}
-	*Data = 0;
+	*Data = '\0';
 }
 #endif
 
