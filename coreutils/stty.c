@@ -550,24 +550,25 @@ static const struct control_info *find_control(const char *name)
 
 enum {
 	param_need_arg = 0x80,
-	param_line   = 1 | 0x80,
-	param_rows   = 2 | 0x80,
-	param_cols   = 3 | 0x80,
-	param_size   = 4,
-	param_speed  = 5,
-	param_ispeed = 6 | 0x80,
-	param_ospeed = 7 | 0x80,
+	param_line    = 1 | 0x80,
+	param_rows    = 2 | 0x80,
+	param_cols    = 3 | 0x80,
+	param_columns = 4 | 0x80,
+	param_size    = 5,
+	param_speed   = 6,
+	param_ispeed  = 7 | 0x80,
+	param_ospeed  = 8 | 0x80,
 };
 
 static int find_param(const char * const name)
 {
 	static const char * const params[] = {
-		"line",
-		"rows",
-		"cols",
-		"columns",
-		"size",  /* 4 */
-		"speed", /* 5 */
+		"line",     /* 1 */
+		"rows",     /* 2 */
+		"cols",     /* 3 */
+		"columns",  /* 4 */
+		"size",     /* 5 */
+		"ispeed"+1, /* 6 */
 		"ispeed",
 		"ospeed",
 		NULL
@@ -575,9 +576,8 @@ static int find_param(const char * const name)
 	int i = index_in_str_array(params, name) + 1;
 	if (i == 0)
 		return 0;
-	if (!(i == 4 || i == 5))
+	if (i != 5 && i != 6)
 		i |= 0x80;
-
 	return i;
 }
 
@@ -1014,6 +1014,7 @@ int stty_main(int argc, char **argv)
 #ifdef TIOCGWINSZ
 		case param_rows:
 		case param_cols:
+		case param_columns:
 			xatoul_range_sfx(argnext, 1, INT_MAX, stty_suffixes);
 			break;
 		case param_size:
