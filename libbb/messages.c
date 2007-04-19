@@ -54,7 +54,7 @@ WTMP_FILE;
 # error unknown path to wtmp file
 #endif
 
-char bb_common_bufsiz1[BUFSIZ+1];
+char bb_common_bufsiz1[(BUFSIZ > 256*sizeof(void*) ? BUFSIZ : 256*sizeof(void*)) + 1];
 
 struct globals;
 /* Make it reside in R/W memory: */

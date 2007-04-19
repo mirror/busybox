@@ -31,7 +31,7 @@
 #include "busybox.h"
 
 
-typedef struct {
+typedef struct top_status_t {
 	unsigned long vsz;
 #if ENABLE_FEATURE_TOP_CPU_USAGE_PERCENTAGE
 	unsigned long ticks;
@@ -42,23 +42,59 @@ typedef struct {
 	char state[4];
 	char comm[COMM_LEN];
 } top_status_t;
-static top_status_t *top;
-static int ntop;
+
+typedef struct jiffy_counts_t{
+	unsigned long long usr,nic,sys,idle,iowait,irq,softirq,steal;
+	unsigned long long total;
+	unsigned long long busy;
+} jiffy_counts_t;
+
 /* This structure stores some critical information from one frame to
    the next. Used for finding deltas. */
-struct save_hist {
+typedef struct save_hist {
 	unsigned long ticks;
 	unsigned pid;
+} save_hist;
+
+typedef int (*cmp_funcp)(top_status_t *P, top_status_t *Q);
+
+enum { SORT_DEPTH = 3 };
+
+struct globals {
+	top_status_t *top;
+	int ntop;
+#if ENABLE_FEATURE_USE_TERMIOS
+	struct termios initial_settings;
+#endif
+#if !ENABLE_FEATURE_TOP_CPU_USAGE_PERCENTAGE
+	cmp_funcp sort_function;
+#else
+	cmp_funcp sort_function[SORT_DEPTH];
+	struct save_hist *prev_hist;
+	int prev_hist_count;
+	jiffy_counts_t jif, prev_jif;
+	/* int hist_iterations; */
+	unsigned total_pcpu;
+	/* unsigned long total_vsz; */
+#endif
 };
+#define G (*(struct globals*)&bb_common_bufsiz1)
+#define top              (G.top               )
+#define ntop             (G.ntop              )
+#if ENABLE_FEATURE_USE_TERMIOS
+#define initial_settings (G. initial_settings )
+#endif
+#define sort_function    (G.sort_function     )
 #if ENABLE_FEATURE_TOP_CPU_USAGE_PERCENTAGE
-static struct save_hist *prev_hist;
-static int prev_hist_count;
-/* static int hist_iterations; */
-static unsigned total_pcpu;
-/* static unsigned long total_vsz; */
+#define prev_hist        (G.prev_hist         )
+#define prev_hist_count  (G.prev_hist_count   )
+#define jif              (G.jif               )
+#define prev_jif         (G.prev_jif          )
+#define total_pcpu       (G.total_pcpu        )
 #endif
 
 #define OPT_BATCH_MODE (option_mask32 & 0x4)
+
 
 #if ENABLE_FEATURE_USE_TERMIOS
 static int pid_sort(top_status_t *P, top_status_t *Q)
@@ -77,17 +113,7 @@ static int mem_sort(top_status_t *P, top_status_t *Q)
 }
 
 
-typedef int (*cmp_funcp)(top_status_t *P, top_status_t *Q);
-
-#if !ENABLE_FEATURE_TOP_CPU_USAGE_PERCENTAGE
-
-static cmp_funcp sort_function;
-
-#else
-
-enum { SORT_DEPTH = 3 };
-
-static cmp_funcp sort_function[SORT_DEPTH];
+#if ENABLE_FEATURE_TOP_CPU_USAGE_PERCENTAGE
 
 static int pcpu_sort(top_status_t *P, top_status_t *Q)
 {
@@ -116,12 +142,6 @@ static int mult_lvl_cmp(void* a, void* b)
 }
 
 
-typedef struct {
-	unsigned long long usr,nic,sys,idle,iowait,irq,softirq,steal;
-	unsigned long long total;
-	unsigned long long busy;
-} jiffy_counts_t;
-static jiffy_counts_t jif, prev_jif;
 static void get_jiffy_counts(void)
 {
 	FILE* fp = xfopen("stat", "r");
@@ -391,8 +411,6 @@ static void clearmems(void)
 #include <termios.h>
 #include <signal.h>
 
-static struct termios initial_settings;
-
 static void reset_term(void)
 {
 	tcsetattr(0, TCSANOW, (void *) &initial_settings);
@@ -426,8 +444,9 @@ int top_main(int argc, char **argv)
 	unsigned char c;
 #endif /* FEATURE_USE_TERMIOS */
 
-	/* do normal option parsing */
 	interval = 5;
+
+	/* do normal option parsing */
 	opt_complementary = "-";
 	getopt32(argc, argv, "d:n:b", &sinterval, &siterations);
 	if (option_mask32 & 0x1) interval = xatou(sinterval); // -d

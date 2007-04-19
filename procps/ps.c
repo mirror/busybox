@@ -109,7 +109,7 @@ static const ps_out_t out_spec[] = {
 //	{ sizeof("RGROUP" )-1, "rgroup","RGROUP" ,func_rgroup,PSSCAN_UIDGID          },
 //	{ sizeof("RUSER"  )-1, "ruser" ,"RUSER"  ,func_ruser ,PSSCAN_UIDGID          },
 //	{ sizeof("TIME"   )-1, "time"  ,"TIME"   ,func_time  ,PSSCAN_                },
-	{ sizeof("TT"     )-1, "tty"   ,"TT"     ,func_tty   ,PSSCAN_TTY             },
+	{ 6                  , "tty"   ,"TT"     ,func_tty   ,PSSCAN_TTY             },
 	{ 4                  , "vsz"   ,"VSZ"    ,func_vsz   ,PSSCAN_VSZ             },
 // Not mandated by POSIX, but useful:
 	{ 4                  , "rss"   ,"RSS"    ,func_rss   ,PSSCAN_RSS             },
@@ -117,13 +117,25 @@ static const ps_out_t out_spec[] = {
 
 #define VEC_SIZE(v) ( sizeof(v) / sizeof((v)[0]) )
 
-static ps_out_t* out;
-static int out_cnt;
-static int print_header;
-static int ps_flags;
-static char *buffer;
-static unsigned terminal_width;
+#define DEFAULT_O_STR "pid,user" /* TODO: ,vsz,stat */ ",args"
 
+struct globals {
+	ps_out_t* out;
+	int out_cnt;
+	int print_header;
+	int need_flags;
+	char *buffer;
+	unsigned terminal_width;
+	char default_o[sizeof(DEFAULT_O_STR)];
+};
+#define G (*(struct globals*)&bb_common_bufsiz1)
+#define out            (G.out           )
+#define out_cnt        (G.out_cnt       )
+#define print_header   (G.print_header  )
+#define need_flags     (G.need_flags    )
+#define buffer         (G.buffer        )
+#define terminal_width (G.terminal_width)
+#define default_o      (G.default_o     )
 
 static ps_out_t* new_out_t(void)
 {
@@ -186,7 +198,7 @@ static void post_process(void)
 	int i;
 	int width = 0;
 	for (i = 0; i < out_cnt; i++) {
-		ps_flags |= out[i].ps_flags;
+		need_flags |= out[i].ps_flags;
 		if (out[i].header[0]) {
 			print_header = 1;
 		}
@@ -241,14 +253,14 @@ static void format_process(const procps_status_t *ps)
 	printf("%.*s\n", terminal_width, buffer);
 }
 
-/* Cannot be const: parse_o() will choke */
-static char default_o[] = "pid,user" /* TODO: ,vsz,stat */ ",args";
-
 int ps_main(int argc, char **argv);
 int ps_main(int argc, char **argv)
 {
 	procps_status_t *p;
 	llist_t* opt_o = NULL;
+
+	/* Cannot be const: parse_o() will choke */
+	strcpy(default_o, DEFAULT_O_STR);
 
 	// POSIX:
 	// -a  Write information for all processes associated with terminals
@@ -282,7 +294,7 @@ int ps_main(int argc, char **argv)
 	format_header();
 
 	p = NULL;
-	while ((p = procps_scan(p, ps_flags))) {
+	while ((p = procps_scan(p, need_flags))) {
 		format_process(p);
 	}
 
