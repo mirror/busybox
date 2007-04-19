@@ -98,7 +98,7 @@ int dd_main(int argc, char **argv)
 		OP_conv,
 		OP_conv_notrunc,
 		OP_conv_sync,
-		OP_conv_NOERROR,
+		OP_conv_noerror,
 #endif
 	};
 	int flags = TRUNC_FLAG;
@@ -108,6 +108,8 @@ int dd_main(int argc, char **argv)
 	int ifd, ofd;
 	const char *infile = NULL, *outfile = NULL;
 	char *ibuf, *obuf;
+
+	memset(&G, 0, sizeof(G)); /* because of NOEXEC */
 
 	if (ENABLE_FEATURE_DD_SIGNAL_HANDLING) {
 		struct sigaction sa;
@@ -164,7 +166,7 @@ int dd_main(int argc, char **argv)
 						flags &= ~TRUNC_FLAG;
 					if (what == OP_conv_sync)
 						flags |= SYNC_FLAG;
-					if (what == OP_conv_NOERROR)
+					if (what == OP_conv_noerror)
 						flags |= NOERROR;
 					if (!key) /* no ',' left, so this was the last specifier */
 						break;
