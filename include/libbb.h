@@ -805,7 +805,7 @@ typedef struct {
 	DIR *dir;
 /* Fields are set to 0/NULL if failed to determine (or not requested) */
 	char *cmd;
-	unsigned long vsz;
+	unsigned vsz, rss; /* we round it to kbytes */
 	unsigned long stime, utime;
 	unsigned pid;
 	unsigned ppid;
@@ -813,9 +813,10 @@ typedef struct {
 	unsigned sid;
 	unsigned uid;
 	unsigned gid;
-	/* basename of executable file in call to exec(2), size from */
-	/* sizeof(task_struct.comm) in /usr/include/linux/sched.h */
 	char state[4];
+	char tty_str[8]; /* "maj,min" or "?" */
+	/* basename of executable in exec(2), read from /proc/N/stat, */
+	/* size from sizeof(task_struct.comm) in /usr/include/linux/sched.h */
 	char comm[COMM_LEN];
 	/* user/group? - use passwd/group parsing functions */
 } procps_status_t;
@@ -829,12 +830,16 @@ enum {
 	PSSCAN_CMD      = 1 << 6,
 	PSSCAN_STATE    = 1 << 7,
 	PSSCAN_VSZ      = 1 << 8,
-	PSSCAN_STIME    = 1 << 9,
-	PSSCAN_UTIME    = 1 << 10,
+	PSSCAN_RSS      = 1 << 9,
+	PSSCAN_STIME    = 1 << 10,
+	PSSCAN_UTIME    = 1 << 11,
+	PSSCAN_TTY      = 1 << 12,
 	/* These are all retrieved from proc/NN/stat in one go: */
 	PSSCAN_STAT     = PSSCAN_PPID | PSSCAN_PGID | PSSCAN_SID
 	                | PSSCAN_COMM | PSSCAN_STATE
-	                | PSSCAN_VSZ | PSSCAN_STIME | PSSCAN_UTIME,
+	                | PSSCAN_VSZ | PSSCAN_RSS
+			| PSSCAN_STIME | PSSCAN_UTIME
+			| PSSCAN_TTY,
 };
 procps_status_t* alloc_procps_scan(int flags);
 void free_procps_scan(procps_status_t* sp);

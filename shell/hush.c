@@ -306,7 +306,7 @@ static void __syntax(const char *file, int line)
 {
 	bb_error_msg("syntax error %s:%d", file, line);
 }
-// NB: was __FILE__, but that produces full path sometimess, so...
+// NB: was __FILE__, but that produces full path sometimes, so...
 #define syntax() __syntax("hush.c", __LINE__)
 
 /* Index of subroutines: */

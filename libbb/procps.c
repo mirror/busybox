@@ -144,6 +144,9 @@ procps_status_t* procps_scan(procps_status_t* sp, int flags)
 
 		if (flags & PSSCAN_STAT) {
 			char *cp;
+			unsigned long vsz, rss;
+			int tty;
+
 			/* see proc(5) for some details on this */
 			strcpy(filename_tail, "/stat");
 			n = read_to_buf(filename, buf);
@@ -158,33 +161,46 @@ procps_status_t* procps_scan(procps_status_t* sp, int flags)
 			sscanf(buf, "%*s (%15c", sp->comm);
 			n = sscanf(cp+2,
 				"%c %u "               /* state, ppid */
-				"%u %u %*s %*s "       /* pgid, sid, tty, tpgid */
+				"%u %u %d %*s "        /* pgid, sid, tty, tpgid */
 				"%*s %*s %*s %*s %*s " /* flags, min_flt, cmin_flt, maj_flt, cmaj_flt */
 				"%lu %lu "             /* utime, stime */
 				"%*s %*s %*s "         /* cutime, cstime, priority */
 				"%ld "                 /* nice */
 				"%*s %*s %*s "         /* timeout, it_real_value, start_time */
-				"%lu ",                /* vsize */
+				"%lu "                 /* vsize */
+				"%lu "                 /* rss */
+			/*	"%lu %lu %lu %lu %lu %lu " rss_rlim, start_code, end_code, start_stack, kstk_esp, kstk_eip */
+			/*	"%u %u %u %u "         signal, blocked, sigignore, sigcatch */
+			/*	"%lu %lu %lu"          wchan, nswap, cnswap */
+				,
 				sp->state, &sp->ppid,
-				&sp->pgid, &sp->sid,
+				&sp->pgid, &sp->sid, &tty,
 				&sp->utime, &sp->stime,
 				&tasknice,
-				&sp->vsz);
-			if (n != 8)
+				&vsz,
+				&rss);
+			if (n != 10)
 				break;
 
+			sp->tty_str[0] = '?';
+			/* sp->tty_str[1] = '\0'; - done by memset */
+			if (tty >= 0) /* tty field of "-1" means "no tty" */
+				snprintf(sp->tty_str, sizeof(sp->tty_str), "%u,%u",
+					(tty >> 8) & 0xfff, /* major */
+					(tty & 0xff) | ((tty >> 12) & 0xfff00));
 			if (sp->vsz == 0 && sp->state[0] != 'Z')
 				sp->state[1] = 'W';
 			else
 				sp->state[1] = ' ';
 			if (tasknice < 0)
 				sp->state[2] = '<';
-			else if (tasknice > 0)
+			else if (tasknice) /* > 0 */
 				sp->state[2] = 'N';
 			else
 				sp->state[2] = ' ';
 
-			sp->vsz >>= 10; /* vsize is in bytes and we want kb */
+			sp->vsz = vsz >> 10; /* vsize is in bytes and we want kb */
+			sp->rss = rss >> 10;
 		}
 
 		if (flags & PSSCAN_CMD) {
