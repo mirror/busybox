@@ -58,7 +58,7 @@ static bool write_and_stats(int fd, const void *buf, size_t len, size_t obs,
 		return 1;
 	if (n == obs)
 		G.out_full++;
-	else if (n > 0)
+	else if (n) /* > 0 */
 		G.out_part++;
 	return 0;
 }
@@ -73,10 +73,10 @@ int dd_main(int argc, char **argv);
 int dd_main(int argc, char **argv)
 {
 	enum {
-		sync_flag    = 1 << 0,
-		noerror      = 1 << 1,
-		trunc_flag   = 1 << 2,
-		twobufs_flag = 1 << 3,
+		SYNC_FLAG    = 1 << 0,
+		NOERROR      = 1 << 1,
+		TRUNC_FLAG   = 1 << 2,
+		TWOBUFS_FLAG = 1 << 3,
 	};
 	static const char * const keywords[] = {
 		"bs=", "count=", "seek=", "skip=", "if=", "of=",
@@ -98,10 +98,10 @@ int dd_main(int argc, char **argv)
 		OP_conv,
 		OP_conv_notrunc,
 		OP_conv_sync,
-		OP_conv_noerror,
+		OP_conv_NOERROR,
 #endif
 	};
-	int flags = trunc_flag;
+	int flags = TRUNC_FLAG;
 	size_t oc = 0, ibs = 512, obs = 512;
 	ssize_t n, w;
 	off_t seek = 0, skip = 0, count = OFF_T_MAX;
@@ -152,23 +152,23 @@ int dd_main(int argc, char **argv)
 				while (1) {
 					/* find ',', replace them with nil so we can use arg for
 					 * index_in_str_array without copying.
-					 * We rely on arg being non-null, else strstr would fault.
+					 * We rely on arg being non-null, else strchr would fault.
 					 */
-					key = strstr(arg, ",");
+					key = strchr(arg, ',');
 					if (key)
 						*key = '\0';
 					what = index_in_str_array(keywords, arg) + 1;
 					if (what < OP_conv_notrunc)
 						bb_error_msg_and_die(bb_msg_invalid_arg, arg, "conv");
 					if (what == OP_conv_notrunc)
-						flags &= ~trunc_flag;
+						flags &= ~TRUNC_FLAG;
 					if (what == OP_conv_sync)
-						flags |= sync_flag;
-					if (what == OP_conv_noerror)
-						flags |= noerror;
+						flags |= SYNC_FLAG;
+					if (what == OP_conv_NOERROR)
+						flags |= NOERROR;
 					if (!key) /* no ',' left, so this was the last specifier */
 						break;
-					arg += key - arg + 1; /* skip this keyword plus ',' */
+					arg = key + 1; /* skip this keyword and ',' */
 				}
 				continue;
 			}
@@ -186,7 +186,7 @@ int dd_main(int argc, char **argv)
 			seek = XATOU_SFX(arg, dd_suffixes);
 			continue;
 		}
-		if (what == skip) {
+		if (what == OP_skip) {
 			skip = XATOU_SFX(arg, dd_suffixes);
 			continue;
 		}
@@ -200,7 +200,7 @@ int dd_main(int argc, char **argv)
 //XXX:FIXME for huge ibs or obs, malloc'ing them isn't the brightest idea ever
 	ibuf = obuf = xmalloc(ibs);
 	if (ibs != obs) {
-		flags |= twobufs_flag;
+		flags |= TWOBUFS_FLAG;
 		obuf = xmalloc(obs);
 	}
 	if (infile != NULL)
@@ -212,12 +212,12 @@ int dd_main(int argc, char **argv)
 	if (outfile != NULL) {
 		int oflag = O_WRONLY | O_CREAT;
 
-		if (!seek && (flags & trunc_flag))
+		if (!seek && (flags & TRUNC_FLAG))
 			oflag |= O_TRUNC;
 
 		ofd = xopen(outfile, oflag);
 
-		if (seek && (flags & trunc_flag)) {
+		if (seek && (flags & TRUNC_FLAG)) {
 			if (ftruncate(ofd, seek * obs) < 0) {
 				struct stat st;
 
@@ -247,13 +247,13 @@ int dd_main(int argc, char **argv)
 	}
 
 	while (G.in_full + G.in_part != count) {
-		if (flags & noerror) /* Pre-zero the buffer when for noerror */
+		if (flags & NOERROR) /* Pre-zero the buffer when for NOERROR */
 			memset(ibuf, '\0', ibs);
 		n = safe_read(ifd, ibuf, ibs);
 		if (n == 0)
 			break;
 		if (n < 0) {
-			if (flags & noerror) {
+			if (flags & NOERROR) {
 				n = ibs;
 				bb_perror_msg("%s", infile);
 			} else
@@ -263,12 +263,12 @@ int dd_main(int argc, char **argv)
 			G.in_full++;
 		else {
 			G.in_part++;
-			if (flags & sync_flag) {
+			if (flags & SYNC_FLAG) {
 				memset(ibuf + n, '\0', ibs - n);
 				n = ibs;
 			}
 		}
-		if (flags & twobufs_flag) {
+		if (flags & TWOBUFS_FLAG) {
 			char *tmp = ibuf;
 			while (n) {
 				size_t d = obs - oc;
@@ -285,9 +285,8 @@ int dd_main(int argc, char **argv)
 					oc = 0;
 				}
 			}
-		} else
-			if (write_and_stats(ofd, ibuf, n, obs, outfile))
-				goto out_status;
+		} else if (write_and_stats(ofd, ibuf, n, obs, outfile))
+			goto out_status;
 	}
 
 	if (ENABLE_FEATURE_DD_IBS_OBS && oc) {

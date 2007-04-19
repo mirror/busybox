@@ -2,8 +2,12 @@ strace of "sleep 1 | sleep 2" being run from interactive bash 3.0
 
 
 Synopsis:
+open /dev/tty [, if fails, open ttyname(0)]; close /* helps re-establish ctty */
 get current signal mask
-install default handlers for GHLD QUIT TERM
+TCGETS on fd# 0
+TCGETS on fd# 2 /* NB: if returns ENOTTY (2>/dev/null), sh seems to disable job control,
+                   does not show prompt, but still executes cmds from fd# 0 */
+install default handlers for CHLD QUIT TERM
 install common handler for HUP INT ILL TRAP ABRT FPE BUS SEGV SYS PIPE ALRM TERM XCPU XFSZ VTALRM USR1 USR2
 ignore QUIT
 install handler for INT
@@ -34,11 +38,73 @@ get our pprocess group
     signal followed by a SIGCONT signal will be sent to each process
     in the newly-orphaned process group.
 ...
-
+dup stderr to fd# 255
+move ourself to our own process group
+block CHLD TSTP TTIN TTOU
+set tty's (255, stderr's) foreground process group to our group
+allow all signals
+mark 255 CLOEXEC
+set CHLD handler
+get signal mask
+get fd#0 flags
+get signal mask
+set INT handler
+block CHLD TSTP TTIN TTOU
+set fd #255 foreground process group to our group
+allow all signals
+set INT handler
+block all signals
+allow all signals
+block INT
+allow all signals
+lotsa sigactions: set INT,ALRM,WINCH handlers, ignore TERM,QUIT,TSTP,TTOU,TTIN
+block all signals
+allow all signals
+block all signals
+allow all signals
+block all signals
+allow all signals
+read "sleep 1 | sleep 2\n"
+block INT
+TCSETSW on fd# 0
+allow all signals
+lotsa sigactions: set INT,ALRM,WINCH handlers, ignore TERM,QUIT,TSTP,TTOU,TTIN
+block CHLD
+pipe([4, 5])  /* oops seems I lost another pipe() in editing... */
+fork child #1
+put child in it's own process group
+block only CHLD
+close(5)
+block only INT CHLD
+fork child #2
+put child in the same process group as first one
+block only CHLD
+close(4)
+block only CHLD
+block only CHLD TSTP TTIN TTOU
+set fd# 255 foreground process group to first child's one
+block only CHLD
+block only CHLD
+block only CHLD
+wait4 for children to die or stop - first child exits
+wait4 for children to die or stop - second child exits
+block CHLD TSTP TTIN TTOU
+set fd# 255 foreground process group to our own one
+block only CHLD
+block only CHLD
+block nothing
+--- SIGCHLD (Child exited) @ 0 (0) ---
+    wait for it - no child (already waited for)
+    sigreturn()
+read signal mask
+lotsa sigactions...
+read next command
 
 
 execve("/bin/sh", ["sh"], [/* 34 vars */]) = 0
 rt_sigprocmask(SIG_BLOCK, NULL, [], 8) = 0
+ioctl(0, SNDCTL_TMR_TIMEBASE or TCGETS, {B38400 opost isig icanon echo ...}) = 0
+ioctl(2, SNDCTL_TMR_TIMEBASE or TCGETS, {B38400 opost isig icanon echo ...}) = 0
 rt_sigaction(SIGCHLD, {SIG_DFL}, {SIG_DFL}, 8) = 0
 rt_sigaction(SIGQUIT, {SIG_DFL}, {SIG_DFL}, 8) = 0
 rt_sigaction(SIGTERM, {SIG_DFL}, {SIG_DFL}, 8) = 0
