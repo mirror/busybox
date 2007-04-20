@@ -140,19 +140,21 @@ typedef enum {
 	RES_IN    = 12,
 	RES_SNTX  = 13
 } reserved_style;
-#define FLAG_END   (1<<RES_NONE)
-#define FLAG_IF    (1<<RES_IF)
-#define FLAG_THEN  (1<<RES_THEN)
-#define FLAG_ELIF  (1<<RES_ELIF)
-#define FLAG_ELSE  (1<<RES_ELSE)
-#define FLAG_FI    (1<<RES_FI)
-#define FLAG_FOR   (1<<RES_FOR)
-#define FLAG_WHILE (1<<RES_WHILE)
-#define FLAG_UNTIL (1<<RES_UNTIL)
-#define FLAG_DO    (1<<RES_DO)
-#define FLAG_DONE  (1<<RES_DONE)
-#define FLAG_IN    (1<<RES_IN)
-#define FLAG_START (1<<RES_XXXX)
+enum {
+	FLAG_END   = (1 << RES_NONE ),
+	FLAG_IF    = (1 << RES_IF   ),
+	FLAG_THEN  = (1 << RES_THEN ),
+	FLAG_ELIF  = (1 << RES_ELIF ),
+	FLAG_ELSE  = (1 << RES_ELSE ),
+	FLAG_FI    = (1 << RES_FI   ),
+	FLAG_FOR   = (1 << RES_FOR  ),
+	FLAG_WHILE = (1 << RES_WHILE),
+	FLAG_UNTIL = (1 << RES_UNTIL),
+	FLAG_DO    = (1 << RES_DO   ),
+	FLAG_DONE  = (1 << RES_DONE ),
+	FLAG_IN    = (1 << RES_IN   ),
+	FLAG_START = (1 << RES_XXXX ),
+};
 
 /* This holds pointers to the various results of parsing */
 struct p_context {
@@ -468,6 +470,7 @@ static int builtin_cd(struct child_prog *child)
 /* built-in 'env' handler */
 static int builtin_env(struct child_prog *dummy ATTRIBUTE_UNUSED)
 {
+/* TODO: call env applet's code instead */
 	char **e = environ;
 	if (e == NULL)
 		return EXIT_FAILURE;
@@ -490,9 +493,13 @@ static int builtin_exec(struct child_prog *child)
 /* built-in 'exit' handler */
 static int builtin_exit(struct child_prog *child)
 {
+	/* bash prints "exit\n" here, then: */
 	if (child->argv[1] == NULL)
 		exit(last_return_code);
-	exit(atoi(child->argv[1]));
+	/* mimic bash: exit 123abc == exit 255 + error msg */
+	xfunc_error_retval = 255;
+	/* bash: exit -2 == exit 254, no error msg */
+	exit(xatoi(child->argv[1]));
 }
 
 /* built-in 'export VAR=value' handler */
@@ -1217,19 +1224,18 @@ static int checkjobs(struct pipe* fg_pipe)
 
 		for (pi = job_list; pi; pi = pi->next) {
 			prognum = 0;
-			while (prognum < pi->num_progs && pi->progs[prognum].pid != childpid) {
+			while (prognum < pi->num_progs) {
+				if (pi->progs[prognum].pid == childpid)
+					goto found_pi_and_prognum;
 				prognum++;
 			}
-			if (prognum < pi->num_progs)
-				break;
 		}
 
-		if (pi == NULL) {
-			debug_printf("checkjobs: pid %d was not in our list!\n",
-					childpid);
-			continue;
-		}
+		/* Happens when shell is used as init process (init=/bin/sh) */
+		debug_printf("checkjobs: pid %d was not in our list!\n", childpid);
+		continue;
 
+ found_pi_and_prognum:
 		if (WIFEXITED(status) || WIFSIGNALED(status)) {
 			/* child exited */
 			pi->running_progs--;
@@ -1539,13 +1545,12 @@ static int run_list_real(struct pipe *pi)
 				pi->progs->argv[0] = save_name;
 				pi->progs->glob_result.gl_pathv[0] = pi->progs->argv[0];
 				continue;
-			} else {
-				/* insert new value from list for variable */
-				if (pi->progs->argv[0])
-					free(pi->progs->argv[0]);
-				pi->progs->argv[0] = *list++;
-				pi->progs->glob_result.gl_pathv[0] = pi->progs->argv[0];
 			}
+			/* insert new value from list for variable */
+			if (pi->progs->argv[0])
+				free(pi->progs->argv[0]);
+			pi->progs->argv[0] = *list++;
+			pi->progs->glob_result.gl_pathv[0] = pi->progs->argv[0];
 		}
 		if (rmode == RES_IN)
 			continue;
@@ -1553,7 +1558,7 @@ static int run_list_real(struct pipe *pi)
 			if (!flag_rep)
 				continue;
 		}
-		if ((rmode == RES_DONE)) {
+		if (rmode == RES_DONE) {
 			if (flag_rep) {
 				flag_restore = 1;
 			} else {
@@ -1590,7 +1595,7 @@ static int run_list_real(struct pipe *pi)
 		}
 		last_return_code = rcode;
 		pi->num_progs = save_num_progs; /* restore number of programs */
-		if ( rmode == RES_IF || rmode == RES_ELIF )
+		if (rmode == RES_IF || rmode == RES_ELIF)
 			next_if_code = rcode;  /* can be overwritten a number of times */
 		if (rmode == RES_WHILE)
 			flag_rep = !last_return_code;
@@ -1663,7 +1668,7 @@ static int free_pipe_list(struct pipe *head, int indent)
 		rcode = free_pipe(pi, indent);
 		final_printf("%s pipe followup code %d\n", indenter(indent), pi->followup);
 		next = pi->next;
-		pi->next = NULL;
+		/*pi->next = NULL;*/
 		free(pi);
 	}
 	return rcode;
@@ -1700,7 +1705,8 @@ static int globhack(const char *src, int flags, glob_t *pglob)
 		cnt++;
 	}
 	dest = malloc(cnt);
-	if (!dest) return GLOB_NOSPACE;
+	if (!dest)
+		return GLOB_NOSPACE;
 	if (!(flags & GLOB_APPEND)) {
 		pglob->gl_pathv = NULL;
 		pglob->gl_pathc = 0;
@@ -1709,7 +1715,8 @@ static int globhack(const char *src, int flags, glob_t *pglob)
 	}
 	pathc = ++pglob->gl_pathc;
 	pglob->gl_pathv = realloc(pglob->gl_pathv, (pathc+1)*sizeof(*pglob->gl_pathv));
-	if (pglob->gl_pathv == NULL) return GLOB_NOSPACE;
+	if (pglob->gl_pathv == NULL)
+		return GLOB_NOSPACE;
 	pglob->gl_pathv[pathc-1] = dest;
 	pglob->gl_pathv[pathc] = NULL;
 	for (s = src; s && *s; s++, dest++) {
@@ -1857,15 +1864,12 @@ static int set_local_var(const char *s, int flg_export)
 
 static void unset_local_var(const char *name)
 {
-	struct variables *cur;
+	struct variables *cur, *next;
 
-	if (name) {
-		for (cur = top_vars; cur; cur = cur->next) {
-			if (strcmp(cur->name, name) == 0)
-				break;
-		}
-		if (cur != 0) {
-			struct variables *next = top_vars;
+	if (!name)
+		return;
+	for (cur = top_vars; cur; cur = cur->next) {
+		if (strcmp(cur->name, name) == 0) {
 			if (cur->flg_read_only) {
 				bb_error_msg("%s: readonly variable", name);
 				return;
@@ -1874,10 +1878,12 @@ static void unset_local_var(const char *name)
 				unsetenv(cur->name);
 			free((char*)cur->name);
 			free((char*)cur->value);
+			next = top_vars;
 			while (next->next != cur)
 				next = next->next;
 			next->next = cur->next;
 			free(cur);
+			return;
 		}
 	}
 }
@@ -1974,9 +1980,9 @@ static void initialize_context(struct p_context *ctx)
 static int reserved_word(o_string *dest, struct p_context *ctx)
 {
 	struct reserved_combo {
-		const char *literal;
-		int code;
-		long flag;
+		char literal[7];
+		unsigned char code;
+		int flag;
 	};
 	/* Mostly a list of accepted follow-up reserved words.
 	 * FLAG_END means we are done with the sequence, and are ready
@@ -2223,7 +2229,7 @@ static FILE *generate_stream_from_list(struct pipe *head)
 	}
 	debug_printf("forked child %d\n", pid);
 	close(channel[1]);
-	pf = fdopen(channel[0],"r");
+	pf = fdopen(channel[0], "r");
 	debug_printf("pipe on FILE *%p\n", pf);
 	return pf;
 }
@@ -2333,7 +2339,7 @@ static int handle_dollar(o_string *dest, struct p_context *ctx, struct in_str *i
 		}
 		b_addchr(dest, SPECIAL_VAR_SYMBOL);
 	} else if (isdigit(ch)) {
-		i = ch-'0';  /* XXX is $0 special? */
+		i = ch - '0';  /* XXX is $0 special? */
 		if (i < global_argc) {
 			parse_string(dest, ctx, global_argv[i]); /* recursion */
 		}
@@ -2403,7 +2409,7 @@ static int handle_dollar(o_string *dest, struct p_context *ctx, struct in_str *i
 	return 0;
 }
 
-int parse_string(o_string *dest, struct p_context *ctx, const char *src)
+static int parse_string(o_string *dest, struct p_context *ctx, const char *src)
 {
 	struct in_str foo;
 	setup_string_in_str(&foo, src);
@@ -2411,7 +2417,7 @@ int parse_string(o_string *dest, struct p_context *ctx, const char *src)
 }
 
 /* return code is 0 for normal exit, 1 for syntax error */
-int parse_stream(o_string *dest, struct p_context *ctx,
+static int parse_stream(o_string *dest, struct p_context *ctx,
 	struct in_str *input, int end_trigger)
 {
 	int ch, m;
@@ -2599,7 +2605,7 @@ static void update_ifs_map(void)
 
 /* most recursion does not come through here, the exception is
  * from builtin_source() */
-int parse_stream_outer(struct in_str *inp, int flag)
+static int parse_stream_outer(struct in_str *inp, int flag)
 {
 	struct p_context ctx;
 	o_string temp = NULL_O_STRING;
@@ -2736,8 +2742,8 @@ int hush_main(int argc, char **argv)
 	while ((opt = getopt(argc, argv, "c:xif")) > 0) {
 		switch (opt) {
 		case 'c':
-			global_argv = argv+optind;
-			global_argc = argc-optind;
+			global_argv = argv + optind;
+			global_argc = argc - optind;
 			opt = parse_string_outer(optarg, FLAG_PARSE_SEMICOLON);
 			goto final_return;
 		case 'i':

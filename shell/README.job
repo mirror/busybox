@@ -86,6 +86,7 @@ set fd# 255 foreground process group to first child's one
 block only CHLD
 block only CHLD
 block only CHLD
+/* note: because shell is not in foreground now, e.g. Ctrl-C will send INT to children only! */
 wait4 for children to die or stop - first child exits
 wait4 for children to die or stop - second child exits
 block CHLD TSTP TTIN TTOU
