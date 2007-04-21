@@ -503,6 +503,10 @@ static const char *set_cwd(void)
 	return cwd;
 }
 
+// It seems ALL built-ins ever use *only* child->argv in child param.
+// Passing argv directly may make 'child->argv += n' modifications
+// unneeded on vfork codepaths.
+
 /* built-in 'eval' handler */
 static int builtin_eval(struct child_prog *child)
 {
