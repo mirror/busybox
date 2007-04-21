@@ -1,6 +1,11 @@
 Various bits of what is known about busybox shells, in no particular order.
 
 2007-04-21
+hush: "sleep 5 | sleep 6" + Ctrl-Z + fg seems to work.
+"rm -i" + Ctrl-C, "sleep 5" + Ctrl-Z still doesn't work
+for SH_STANDALONE case :(
+
+2007-04-21
 hush: fixed non-backgrounding of "sleep 1 &" and totally broken
 "sleep 1 | sleep 2 &". Noticed a bug where successive jobs
 get numbers 1,2,3 even when job #1 has exited before job# 2 is started.

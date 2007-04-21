@@ -82,7 +82,9 @@
 #include <getopt.h>    /* should be pretty obvious */
 
 /* #include <dmalloc.h> */
-/* #define DEBUG_SHELL */
+//#define DEBUG_SHELL
+/* Finer-grained debug switch */
+//#define DEBUG_SHELL_JOBS
 
 
 #define SPECIAL_VAR_SYMBOL 03
@@ -274,9 +276,9 @@ struct in_str {
 #define JOB_STATUS_FORMAT "[%d] %-22s %.40s\n"
 
 struct built_in_command {
-	const char *cmd;			/* name */
-	const char *descr;			/* description */
-	int (*function) (struct child_prog *);	/* function ptr */
+	const char *cmd;                /* name */
+	const char *descr;              /* description */
+	int (*function) (char **argv);  /* function ptr */
 };
 
 /* belongs in busybox.h */
@@ -285,24 +287,24 @@ static int max(int a, int b)
 	return (a > b) ? a : b;
 }
 
-/* This should be in utility.c */
 #ifdef DEBUG_SHELL
-static void debug_printf(const char *format, ...)
-{
-	va_list args;
-	va_start(args, format);
-	vfprintf(stderr, format, args);
-	va_end(args);
-}
+#define debug_printf(...) fprintf(stderr, __VA_ARGS__)
 /* broken, of course, but OK for testing */
 static char *indenter(int i)
 {
 	static char blanks[] = "                                    ";
-	return &blanks[sizeof(blanks)-i-1];
+	return &blanks[sizeof(blanks) - i - 1];
 }
 #else
 #define debug_printf(...) do {} while (0)
 #endif
+
+#ifdef DEBUG_SHELL_JOBS
+#define debug_jobs_printf(...) fprintf(stderr, __VA_ARGS__)
+#else
+#define debug_jobs_printf(...) do {} while (0)
+#endif
+
 #define final_printf debug_printf
 
 static void __syntax(const char *file, int line)
@@ -314,23 +316,23 @@ static void __syntax(const char *file, int line)
 
 /* Index of subroutines: */
 /*   function prototypes for builtins */
-static int builtin_cd(struct child_prog *child);
-static int builtin_env(struct child_prog *child);
-static int builtin_eval(struct child_prog *child);
-static int builtin_exec(struct child_prog *child);
-static int builtin_exit(struct child_prog *child);
-static int builtin_export(struct child_prog *child);
-static int builtin_fg_bg(struct child_prog *child);
-static int builtin_help(struct child_prog *child);
-static int builtin_jobs(struct child_prog *child);
-static int builtin_pwd(struct child_prog *child);
-static int builtin_read(struct child_prog *child);
-static int builtin_set(struct child_prog *child);
-static int builtin_shift(struct child_prog *child);
-static int builtin_source(struct child_prog *child);
-static int builtin_umask(struct child_prog *child);
-static int builtin_unset(struct child_prog *child);
-static int builtin_not_written(struct child_prog *child);
+static int builtin_cd(char **argv);
+static int builtin_env(char **argv);
+static int builtin_eval(char **argv);
+static int builtin_exec(char **argv);
+static int builtin_exit(char **argv);
+static int builtin_export(char **argv);
+static int builtin_fg_bg(char **argv);
+static int builtin_help(char **argv);
+static int builtin_jobs(char **argv);
+static int builtin_pwd(char **argv);
+static int builtin_read(char **argv);
+static int builtin_set(char **argv);
+static int builtin_shift(char **argv);
+static int builtin_source(char **argv);
+static int builtin_umask(char **argv);
+static int builtin_unset(char **argv);
+static int builtin_not_written(char **argv);
 /*   o_string manipulation: */
 static int b_check_space(o_string *o, int len);
 static int b_addchr(o_string *o, int ch);
@@ -354,6 +356,7 @@ static int free_pipe(struct pipe *pi, int indent);
 /*  really run the final data structures: */
 static int setup_redirects(struct child_prog *prog, int squirrel[]);
 static int run_list_real(struct pipe *pi);
+static void pseudo_exec_argv(char **argv) ATTRIBUTE_NORETURN;
 static void pseudo_exec(struct child_prog *child) ATTRIBUTE_NORETURN;
 static int run_pipe_real(struct pipe *pi);
 /*   extended glob support: */
@@ -387,6 +390,7 @@ static int checkjobs(struct pipe* fg_pipe);
 static int checkjobs_and_fg_shell(struct pipe* fg_pipe);
 static void insert_bg_job(struct pipe *pi);
 static void remove_bg_job(struct pipe *pi);
+static void delete_finished_bg_job(struct pipe *pi);
 /*     local variable support */
 static char **make_list_in(char **inp, char *name);
 static char *insert_var_value(char *inp);
@@ -503,18 +507,14 @@ static const char *set_cwd(void)
 	return cwd;
 }
 
-// It seems ALL built-ins ever use *only* child->argv in child param.
-// Passing argv directly may make 'child->argv += n' modifications
-// unneeded on vfork codepaths.
-
 /* built-in 'eval' handler */
-static int builtin_eval(struct child_prog *child)
+static int builtin_eval(char **argv)
 {
 	char *str = NULL;
 	int rcode = EXIT_SUCCESS;
 
-	if (child->argv[1]) {
-		str = make_string(child->argv + 1);
+	if (argv[1]) {
+		str = make_string(argv + 1);
 		parse_string_outer(str, FLAG_EXIT_FROM_LOOP |
 					FLAG_PARSE_SEMICOLON);
 		free(str);
@@ -524,13 +524,13 @@ static int builtin_eval(struct child_prog *child)
 }
 
 /* built-in 'cd <path>' handler */
-static int builtin_cd(struct child_prog *child)
+static int builtin_cd(char **argv)
 {
 	char *newdir;
-	if (child->argv[1] == NULL)
+	if (argv[1] == NULL)
 		newdir = getenv("HOME");
 	else
-		newdir = child->argv[1];
+		newdir = argv[1];
 	if (chdir(newdir)) {
 		printf("cd: %s: %s\n", newdir, strerror(errno));
 		return EXIT_FAILURE;
@@ -540,7 +540,7 @@ static int builtin_cd(struct child_prog *child)
 }
 
 /* built-in 'env' handler */
-static int builtin_env(struct child_prog *dummy ATTRIBUTE_UNUSED)
+static int builtin_env(char **argv ATTRIBUTE_UNUSED)
 {
 /* TODO: call env applet's code instead */
 	char **e = environ;
@@ -553,37 +553,36 @@ static int builtin_env(struct child_prog *dummy ATTRIBUTE_UNUSED)
 }
 
 /* built-in 'exec' handler */
-static int builtin_exec(struct child_prog *child)
+static int builtin_exec(char **argv)
 {
-	if (child->argv[1] == NULL)
+	if (argv[1] == NULL)
 		return EXIT_SUCCESS;   /* Really? */
-	child->argv++;
-	pseudo_exec(child);
+	pseudo_exec_argv(argv + 1);
 	/* never returns */
 }
 
 /* built-in 'exit' handler */
-static int builtin_exit(struct child_prog *child)
+static int builtin_exit(char **argv)
 {
 // TODO: bash does it ONLY on top-level sh exit (+interacive only?)
 	//puts("exit"); /* bash does it */
 
-	if (child->argv[1] == NULL)
+	if (argv[1] == NULL)
 		hush_exit(last_return_code);
 	/* mimic bash: exit 123abc == exit 255 + error msg */
 	xfunc_error_retval = 255;
 	/* bash: exit -2 == exit 254, no error msg */
-	hush_exit(xatoi(child->argv[1]));
+	hush_exit(xatoi(argv[1]));
 }
 
 /* built-in 'export VAR=value' handler */
-static int builtin_export(struct child_prog *child)
+static int builtin_export(char **argv)
 {
 	int res = 0;
-	char *name = child->argv[1];
+	char *name = argv[1];
 
 	if (name == NULL) {
-		return builtin_env(child);
+		return builtin_env(argv);
 	}
 
 	name = strdup(name);
@@ -624,7 +623,7 @@ static int builtin_export(struct child_prog *child)
 }
 
 /* built-in 'fg' and 'bg' handler */
-static int builtin_fg_bg(struct child_prog *child)
+static int builtin_fg_bg(char **argv)
 {
 	int i, jobnum;
 	struct pipe *pi;
@@ -632,17 +631,17 @@ static int builtin_fg_bg(struct child_prog *child)
 	if (!interactive_fd)
 		return EXIT_FAILURE;
 	/* If they gave us no args, assume they want the last backgrounded task */
-	if (!child->argv[1]) {
+	if (!argv[1]) {
 		for (pi = job_list; pi; pi = pi->next) {
 			if (pi->jobid == last_jobid) {
 				goto found;
 			}
 		}
-		bb_error_msg("%s: no current job", child->argv[0]);
+		bb_error_msg("%s: no current job", argv[0]);
 		return EXIT_FAILURE;
 	}
-	if (sscanf(child->argv[1], "%%%d", &jobnum) != 1) {
-		bb_error_msg("%s: bad argument '%s'", child->argv[0], child->argv[1]);
+	if (sscanf(argv[1], "%%%d", &jobnum) != 1) {
+		bb_error_msg("%s: bad argument '%s'", argv[0], argv[1]);
 		return EXIT_FAILURE;
 	}
 	for (pi = job_list; pi; pi = pi->next) {
@@ -650,37 +649,42 @@ static int builtin_fg_bg(struct child_prog *child)
 			goto found;
 		}
 	}
-	bb_error_msg("%s: %d: no such job", child->argv[0], jobnum);
+	bb_error_msg("%s: %d: no such job", argv[0], jobnum);
 	return EXIT_FAILURE;
  found:
 	// TODO: bash prints a string representation
 	// of job being foregrounded (like "sleep 1 | cat")
-	if (*child->argv[0] == 'f') {
+	if (*argv[0] == 'f') {
 		/* Put the job into the foreground.  */
 		tcsetpgrp(interactive_fd, pi->pgrp);
 	}
 
 	/* Restart the processes in the job */
-	for (i = 0; i < pi->num_progs; i++)
+	debug_jobs_printf("reviving %d procs, pgrp %d\n", pi->num_progs, pi->pgrp);
+	for (i = 0; i < pi->num_progs; i++) {
+		debug_jobs_printf("reviving pid %d\n", pi->progs[i].pid);
 		pi->progs[i].is_stopped = 0;
+	}
+	pi->stopped_progs = 0;
 
 	i = kill(- pi->pgrp, SIGCONT);
-	pi->stopped_progs = 0;
 	if (i < 0) {
 		if (errno == ESRCH) {
-			remove_bg_job(pi);
+			delete_finished_bg_job(pi);
 		} else {
 			bb_perror_msg("kill (SIGCONT)");
 		}
 	}
 
-	if (*child->argv[0] == 'f')
+	if (*argv[0] == 'f') {
+		remove_bg_job(pi);
 		return checkjobs_and_fg_shell(pi);
+	}
 	return EXIT_SUCCESS;
 }
 
 /* built-in 'help' handler */
-static int builtin_help(struct child_prog *dummy ATTRIBUTE_UNUSED)
+static int builtin_help(char **argv ATTRIBUTE_UNUSED)
 {
 	const struct built_in_command *x;
 
@@ -696,7 +700,7 @@ static int builtin_help(struct child_prog *dummy ATTRIBUTE_UNUSED)
 }
 
 /* built-in 'jobs' handler */
-static int builtin_jobs(struct child_prog *child ATTRIBUTE_UNUSED)
+static int builtin_jobs(char **argv ATTRIBUTE_UNUSED)
 {
 	struct pipe *job;
 	const char *status_string;
@@ -713,18 +717,18 @@ static int builtin_jobs(struct child_prog *child ATTRIBUTE_UNUSED)
 }
 
 /* built-in 'pwd' handler */
-static int builtin_pwd(struct child_prog *dummy ATTRIBUTE_UNUSED)
+static int builtin_pwd(char **argv ATTRIBUTE_UNUSED)
 {
 	puts(set_cwd());
 	return EXIT_SUCCESS;
 }
 
 /* built-in 'read VAR' handler */
-static int builtin_read(struct child_prog *child)
+static int builtin_read(char **argv)
 {
 	int res;
 
-	if (child->argv[1]) {
+	if (argv[1]) {
 		char string[BUFSIZ];
 		char *var = NULL;
 
@@ -732,9 +736,9 @@ static int builtin_read(struct child_prog *child)
 		/* read string */
 		fgets(string, sizeof(string), stdin);
 		chomp(string);
-		var = malloc(strlen(child->argv[1]) + strlen(string) + 2);
+		var = malloc(strlen(argv[1]) + strlen(string) + 2);
 		if (var) {
-			sprintf(var, "%s=%s", child->argv[1], string);
+			sprintf(var, "%s=%s", argv[1], string);
 			res = set_local_var(var, 0);
 		} else
 			res = -1;
@@ -748,9 +752,9 @@ static int builtin_read(struct child_prog *child)
 }
 
 /* built-in 'set VAR=value' handler */
-static int builtin_set(struct child_prog *child)
+static int builtin_set(char **argv)
 {
-	char *temp = child->argv[1];
+	char *temp = argv[1];
 	struct variables *e;
 
 	if (temp == NULL)
@@ -764,11 +768,11 @@ static int builtin_set(struct child_prog *child)
 
 
 /* Built-in 'shift' handler */
-static int builtin_shift(struct child_prog *child)
+static int builtin_shift(char **argv)
 {
 	int n = 1;
-	if (child->argv[1]) {
-		n = atoi(child->argv[1]);
+	if (argv[1]) {
+		n = atoi(argv[1]);
 	}
 	if (n >= 0 && n < global_argc) {
 		/* XXX This probably breaks $0 */
@@ -780,25 +784,25 @@ static int builtin_shift(struct child_prog *child)
 }
 
 /* Built-in '.' handler (read-in and execute commands from file) */
-static int builtin_source(struct child_prog *child)
+static int builtin_source(char **argv)
 {
 	FILE *input;
 	int status;
 
-	if (child->argv[1] == NULL)
+	if (argv[1] == NULL)
 		return EXIT_FAILURE;
 
 	/* XXX search through $PATH is missing */
-	input = fopen(child->argv[1], "r");
+	input = fopen(argv[1], "r");
 	if (!input) {
-		bb_error_msg("cannot open '%s'", child->argv[1]);
+		bb_error_msg("cannot open '%s'", argv[1]);
 		return EXIT_FAILURE;
 	}
 
 	/* Now run the file */
 	/* XXX argv and argc are broken; need to save old global_argv
 	 * (pointer only is OK!) on this stack frame,
-	 * set global_argv=child->argv+1, recurse, and restore. */
+	 * set global_argv=argv+1, recurse, and restore. */
 	mark_open(fileno(input));
 	status = parse_file_outer(input);
 	mark_closed(fileno(input));
@@ -806,10 +810,10 @@ static int builtin_source(struct child_prog *child)
 	return status;
 }
 
-static int builtin_umask(struct child_prog *child)
+static int builtin_umask(char **argv)
 {
 	mode_t new_umask;
-	const char *arg = child->argv[1];
+	const char *arg = argv[1];
 	char *end;
 	if (arg) {
 		new_umask = strtoul(arg, &end, 8);
@@ -825,16 +829,16 @@ static int builtin_umask(struct child_prog *child)
 }
 
 /* built-in 'unset VAR' handler */
-static int builtin_unset(struct child_prog *child)
+static int builtin_unset(char **argv)
 {
 	/* bash returned already true */
-	unset_local_var(child->argv[1]);
+	unset_local_var(argv[1]);
 	return EXIT_SUCCESS;
 }
 
-static int builtin_not_written(struct child_prog *child)
+static int builtin_not_written(char **argv)
 {
-	printf("builtin_%s not written\n", child->argv[0]);
+	printf("builtin_%s not written\n", argv[0]);
 	return EXIT_FAILURE;
 }
 
@@ -1132,68 +1136,71 @@ static void restore_redirects(int squirrel[])
 /* XXX no exit() here.  If you don't exec, use _exit instead.
  * The at_exit handlers apparently confuse the calling process,
  * in particular stdin handling.  Not sure why? -- because of vfork! (vda) */
-static void pseudo_exec(struct child_prog *child)
+static void pseudo_exec_argv(char **argv)
 {
 	int i, rcode;
 	char *p;
 	const struct built_in_command *x;
 
-	if (child->argv) {
-		for (i = 0; is_assignment(child->argv[i]); i++) {
-			debug_printf("pid %d environment modification: %s\n",
-					getpid(), child->argv[i]);
-		// FIXME: vfork case??
-			p = insert_var_value(child->argv[i]);
-			putenv(strdup(p));
-			if (p != child->argv[i])
-				free(p);
-		}
-		child->argv += i;  /* XXX this hack isn't so horrible, since we are about
-		                        to exit, and therefore don't need to keep data
-		                        structures consistent for free() use. */
-		// FIXME: ...unless we have _vforked_! Think NOMMU!
+	for (i = 0; is_assignment(argv[i]); i++) {
+		debug_printf("pid %d environment modification: %s\n",
+				getpid(), argv[i]);
+	// FIXME: vfork case??
+		p = insert_var_value(argv[i]);
+		putenv(strdup(p));
+		if (p != argv[i])
+			free(p);
+	}
+	argv += i;
+	/* If a variable is assigned in a forest, and nobody listens,
+	 * was it ever really set?
+	 */
+	if (argv[0] == NULL) {
+		_exit(EXIT_SUCCESS);
+	}
 
-		/* If a variable is assigned in a forest, and nobody listens,
-		 * was it ever really set?
-		 */
-		if (child->argv[0] == NULL) {
-			_exit(EXIT_SUCCESS);
+	/*
+	 * Check if the command matches any of the builtins.
+	 * Depending on context, this might be redundant.  But it's
+	 * easier to waste a few CPU cycles than it is to figure out
+	 * if this is one of those cases.
+	 */
+	for (x = bltins; x->cmd; x++) {
+		if (strcmp(argv[0], x->cmd) == 0) {
+			debug_printf("builtin exec %s\n", argv[0]);
+			rcode = x->function(argv);
+			fflush(stdout);
+			_exit(rcode);
 		}
+	}
 
-		/*
-		 * Check if the command matches any of the builtins.
-		 * Depending on context, this might be redundant.  But it's
-		 * easier to waste a few CPU cycles than it is to figure out
-		 * if this is one of those cases.
-		 */
-		for (x = bltins; x->cmd; x++) {
-			if (strcmp(child->argv[0], x->cmd) == 0) {
-				debug_printf("builtin exec %s\n", child->argv[0]);
-				rcode = x->function(child);
-				fflush(stdout);
-				_exit(rcode);
-			}
-		}
-
-		/* Check if the command matches any busybox internal commands
-		 * ("applets") here.
-		 * FIXME: This feature is not 100% safe, since
-		 * BusyBox is not fully reentrant, so we have no guarantee the things
-		 * from the .bss are still zeroed, or that things from .data are still
-		 * at their defaults.  We could exec ourself from /proc/self/exe, but I
-		 * really dislike relying on /proc for things.  We could exec ourself
-		 * from global_argv[0], but if we are in a chroot, we may not be able
-		 * to find ourself... */
+	/* Check if the command matches any busybox internal commands
+	 * ("applets") here.
+	 * FIXME: This feature is not 100% safe, since
+	 * BusyBox is not fully reentrant, so we have no guarantee the things
+	 * from the .bss are still zeroed, or that things from .data are still
+	 * at their defaults.  We could exec ourself from /proc/self/exe, but I
+	 * really dislike relying on /proc for things.  We could exec ourself
+	 * from global_argv[0], but if we are in a chroot, we may not be able
+	 * to find ourself... */
 #if ENABLE_FEATURE_SH_STANDALONE
-		debug_printf("running applet %s\n", child->argv[0]);
-		run_applet_and_exit(child->argv[0], child->argv);
+	debug_printf("running applet %s\n", argv[0]);
+	run_applet_and_exit(argv[0], argv);
 // is it ok that run_applet_and_exit() does exit(), not _exit()?
 // NB: IIRC on NOMMU we are after _vfork_, not fork!
 #endif
-		debug_printf("exec of %s\n", child->argv[0]);
-		execvp(child->argv[0], child->argv);
-		bb_perror_msg("cannot exec '%s'", child->argv[0]);
-		_exit(1);
+	debug_printf("exec of %s\n", argv[0]);
+	execvp(argv[0], argv);
+	bb_perror_msg("cannot exec '%s'", argv[0]);
+	_exit(1);
+}
+
+static void pseudo_exec(struct child_prog *child)
+{
+	int rcode;
+
+	if (child->argv) {
+		pseudo_exec_argv(child->argv);
 	}
 
 	if (child->group) {
@@ -1233,13 +1240,17 @@ static void insert_bg_job(struct pipe *pi)
 
 	/* physically copy the struct job */
 	memcpy(thejob, pi, sizeof(struct pipe));
+// (pi->num_progs+1) is one-too-many I think?
+	thejob->progs = xmalloc(sizeof(pi->progs[0]) * (pi->num_progs+1));
+	memcpy(thejob->progs, pi->progs, sizeof(pi->progs[0]) * (pi->num_progs+1));
 	thejob->next = NULL;
-	thejob->running_progs = thejob->num_progs;
-	thejob->stopped_progs = 0;
+	/*seems to be wrong:*/
+	/*thejob->running_progs = thejob->num_progs;*/
+	/*thejob->stopped_progs = 0;*/
 	thejob->text = xmalloc(BUFSIZ); /* cmdedit buffer size */
-
 	//if (pi->progs[0] && pi->progs[0].argv && pi->progs[0].argv[0])
 	{
+	// FIXME: overflow check? and also trim the size, BUFSIZ can be 4K!
 		char *bar = thejob->text;
 		char **foo = pi->progs[0].argv;
 		if (foo)
@@ -1254,7 +1265,6 @@ static void insert_bg_job(struct pipe *pi)
 	last_jobid = thejob->jobid;
 }
 
-/* remove a backgrounded job */
 static void remove_bg_job(struct pipe *pi)
 {
 	struct pipe *prev_pipe;
@@ -1271,7 +1281,12 @@ static void remove_bg_job(struct pipe *pi)
 		last_jobid = job_list->jobid;
 	else
 		last_jobid = 0;
+}
 
+/* remove a backgrounded job */
+static void delete_finished_bg_job(struct pipe *pi)
+{
+	remove_bg_job(pi);
 	pi->stopped_progs = 0;
 	free_pipe(pi, 0);
 	free(pi);
@@ -1289,36 +1304,67 @@ static int checkjobs(struct pipe* fg_pipe)
 	int rcode = 0;
 
 	attributes = WUNTRACED;
-//WUNTRACED?? huh, what will happed on Ctrl-Z? fg waiting code
-//doesn't seem to be ready for stopped children! (only exiting ones)...
 	if (fg_pipe == NULL) {
 		attributes |= WNOHANG;
 	}
 
+/* Do we do this right?
+ * bash-3.00# sleep 20 | false
+ * <Ctrl-Z pressed>
+ * [3]+  Stopped          sleep 20 | false
+ * bash-3.00# echo $?
+ * 1   <========== bg pipe is not fully done, but exitcode is already known!
+ */
+
  wait_more:
 	while ((childpid = waitpid(-1, &status, attributes)) > 0) {
+		const int dead = WIFEXITED(status) || WIFSIGNALED(status);
+
+#ifdef DEBUG_SHELL_JOBS
+		if (WIFSTOPPED(status))
+			debug_jobs_printf("pid %d stopped by sig %d (exitcode %d)\n",
+					childpid, WSTOPSIG(status), WEXITSTATUS(status));
+		if (WIFSIGNALED(status))
+			debug_jobs_printf("pid %d killed by sig %d (exitcode %d)\n",
+					childpid, WTERMSIG(status), WEXITSTATUS(status));
+		if (WIFEXITED(status))
+			debug_jobs_printf("pid %d exited, exitcode %d\n",
+					childpid, WEXITSTATUS(status));
+#endif
 		/* Were we asked to wait for fg pipe? */
 		if (fg_pipe) {
 			int i;
 			for (i = 0; i < fg_pipe->num_progs; i++) {
+				debug_jobs_printf("check pid %d\n", fg_pipe->progs[i].pid);
 				if (fg_pipe->progs[i].pid == childpid) {
 					/* printf("process %d exit %d\n", i, WEXITSTATUS(status)); */
-					fg_pipe->progs[i].pid = 0;
-					if (i == fg_pipe->num_progs-1)
-						/* last process gives overall exitstatus */
-						rcode = WEXITSTATUS(status);
-					if (--fg_pipe->running_progs <= 0)
-						/* All processes in fg pipe have exited */
+					if (dead) {
+						fg_pipe->progs[i].pid = 0;
+						fg_pipe->running_progs--;
+						if (i == fg_pipe->num_progs-1)
+							/* last process gives overall exitstatus */
+							rcode = WEXITSTATUS(status);
+					} else {
+						fg_pipe->progs[i].is_stopped = 1;
+						fg_pipe->stopped_progs++;
+					}
+					debug_jobs_printf("fg_pipe: running_progs %d stopped_progs %d\n",
+							fg_pipe->running_progs, fg_pipe->stopped_progs);
+					if (fg_pipe->running_progs - fg_pipe->stopped_progs <= 0) {
+						/* All processes in fg pipe have exited/stopped */
+						if (fg_pipe->running_progs)
+							insert_bg_job(fg_pipe);
 						return rcode;
+					}
 					/* There are still running processes in the fg pipe */
 					goto wait_more;
 				}
 			}
+			/* fall through to searching process in bg pipes */
 		}
 
 		/* We asked to wait for bg or orphaned children */
 		/* No need to remember exitcode in this case */
-
 		for (pi = job_list; pi; pi = pi->next) {
 			prognum = 0;
 			while (prognum < pi->num_progs) {
@@ -1330,18 +1376,17 @@ static int checkjobs(struct pipe* fg_pipe)
 
 		/* Happens when shell is used as init process (init=/bin/sh) */
 		debug_printf("checkjobs: pid %d was not in our list!\n", childpid);
-		continue;
+		goto wait_more;
 
  found_pi_and_prognum:
-		if (WIFEXITED(status) || WIFSIGNALED(status)) {
+		if (dead) {
 			/* child exited */
-			pi->running_progs--;
 			pi->progs[prognum].pid = 0;
-
+			pi->running_progs--;
 			if (!pi->running_progs) {
 				printf(JOB_STATUS_FORMAT, pi->jobid,
 							"Done", pi->text);
-				remove_bg_job(pi);
+				delete_finished_bg_job(pi);
 			}
 		} else {
 			/* child stopped */
@@ -1350,7 +1395,9 @@ static int checkjobs(struct pipe* fg_pipe)
 		}
 	}
 
-	if (childpid == -1 && errno != ECHILD)
+	/* wait found no children or failed */
+
+	if (childpid && errno != ECHILD)
 		bb_perror_msg("waitpid");
 
 	/* move the shell to the foreground */
@@ -1402,6 +1449,8 @@ static int run_pipe_real(struct pipe *pi)
 
 	nextin = 0;
 	pi->pgrp = -1;
+	pi->running_progs = 0;
+	pi->stopped_progs = 0;
 
 	/* Check if this is a simple builtin (not part of a pipe).
 	 * Builtins within pipes have to fork anyway, and are handled in
@@ -1418,12 +1467,14 @@ static int run_pipe_real(struct pipe *pi)
 		return rcode;
 	}
 
-	if (single_fg && pi->progs[0].argv != NULL) {
-		for (i = 0; is_assignment(child->argv[i]); i++)
+	if (single_fg && child->argv != NULL) {
+		char **argv = child->argv;
+
+		for (i = 0; is_assignment(argv[i]); i++)
 			continue;
-		if (i != 0 && child->argv[i] == NULL) {
+		if (i != 0 && argv[i] == NULL) {
 			/* assignments, but no command: set the local environment */
-			for (i = 0; child->argv[i] != NULL; i++) {
+			for (i = 0; argv[i] != NULL; i++) {
 				/* Ok, this case is tricky.  We have to decide if this is a
 				 * local variable, or an already exported variable.  If it is
 				 * already exported, we have to export the new value.  If it is
@@ -1432,7 +1483,7 @@ static int run_pipe_real(struct pipe *pi)
 				 * variable. */
 				int export_me = 0;
 				char *name, *value;
-				name = xstrdup(child->argv[i]);
+				name = xstrdup(argv[i]);
 				debug_printf("Local environment set: %s\n", name);
 				value = strchr(name, '=');
 				if (value)
@@ -1441,17 +1492,17 @@ static int run_pipe_real(struct pipe *pi)
 					export_me = 1;
 				}
 				free(name);
-				p = insert_var_value(child->argv[i]);
+				p = insert_var_value(argv[i]);
 				set_local_var(p, export_me);
-				if (p != child->argv[i])
+				if (p != argv[i])
 					free(p);
 			}
 			return EXIT_SUCCESS;   /* don't worry about errors in set_local_var() yet */
 		}
-		for (i = 0; is_assignment(child->argv[i]); i++) {
-			p = insert_var_value(child->argv[i]);
+		for (i = 0; is_assignment(argv[i]); i++) {
+			p = insert_var_value(argv[i]);
 			putenv(strdup(p));
-			if (p != child->argv[i]) {
+			if (p != argv[i]) {
 				child->sp--;
 				free(p);
 			}
@@ -1459,27 +1510,25 @@ static int run_pipe_real(struct pipe *pi)
 		if (child->sp) {
 			char *str;
 
-			str = make_string(child->argv + i);
+			str = make_string(argv + i);
 			parse_string_outer(str, FLAG_EXIT_FROM_LOOP | FLAG_REPARSING);
 			free(str);
 			return last_return_code;
 		}
 		for (x = bltins; x->cmd; x++) {
-			if (strcmp(child->argv[i], x->cmd) == 0) {
-				if (x->function == builtin_exec && child->argv[i+1] == NULL) {
+			if (strcmp(argv[i], x->cmd) == 0) {
+				if (x->function == builtin_exec && argv[i+1] == NULL) {
 					debug_printf("magic exec\n");
 					setup_redirects(child, NULL);
 					return EXIT_SUCCESS;
 				}
-				debug_printf("builtin inline %s\n", child->argv[0]);
+				debug_printf("builtin inline %s\n", argv[0]);
 				/* XXX setup_redirects acts on file descriptors, not FILEs.
 				 * This is perfect for work that comes after exec().
 				 * Is it really safe for inline use?  Experimentally,
 				 * things seem to work with glibc. */
 				setup_redirects(child, squirrel);
-				child->argv += i;  /* XXX horrible hack */
-				rcode = x->function(child);
-				child->argv -= i;  /* XXX restore hack so free() can work right */
+				rcode = x->function(argv + i);
 				restore_redirects(squirrel);
 				return rcode;
 			}
@@ -1488,10 +1537,10 @@ static int run_pipe_real(struct pipe *pi)
 		{
 // FIXME: applet runs like part of shell - for example, it ignores
 // SIGINT! Try to Ctrl-C out of "rm -i"... doesn't work
-			const struct bb_applet *a = find_applet_by_name(child->argv[i]);
+			const struct bb_applet *a = find_applet_by_name(argv[i]);
 			if (a && a->nofork) {
 				setup_redirects(child, squirrel);
-				rcode = run_nofork_applet(a, child->argv + i);
+				rcode = run_nofork_applet(a, argv + i);
 				restore_redirects(squirrel);
 				return rcode;
 			}
@@ -1503,7 +1552,6 @@ static int run_pipe_real(struct pipe *pi)
 	 * for initial child code after fork */
 	set_jobctrl_sighandler(SIG_IGN);
 
-	pi->running_progs = 0;
 	for (i = 0; i < pi->num_progs; i++) {
 		child = &(pi->progs[i]);
 
