@@ -390,8 +390,8 @@ static void remove_bg_job(struct pipe *pi);
 static char **make_list_in(char **inp, char *name);
 static char *insert_var_value(char *inp);
 static const char *get_local_var(const char *var);
-static void  unset_local_var(const char *name);
 static int set_local_var(const char *s, int flg_export);
+static void unset_local_var(const char *name);
 
 /* Table of built-in functions.  They can be forked or not, depending on
  * context: within pipes, they fork.  As simple commands, they do not.
@@ -440,20 +440,8 @@ static void sigexit(int sig)
 	sigfillset(&block_all);
 	sigprocmask(SIG_SETMASK, &block_all, NULL);
 
-	if (interactive_fd) {
-		if (sig > 0) {
-			enum { KILLED = sizeof("Killed by signal ")-1 };
-			char buf[KILLED + sizeof(int)*3 + 1];
-			char *p;
-
-			/* bash actually says "Illegal instruction" and the like */
-			strcpy(buf, "Killed by signal ");
-			p = utoa_to_buf(sig, buf+KILLED, sizeof(buf)-KILLED);
-			*p++ = '\n';
-			write(interactive_fd, buf, p-buf);
-		}
+	if (interactive_fd)
 		tcsetpgrp(interactive_fd, saved_tty_pgrp);
-	}
 
 	/* Not a signal, just exit */
 	if (sig <= 0)
@@ -1134,16 +1122,18 @@ static void restore_redirects(int squirrel[])
 /* never returns */
 /* XXX no exit() here.  If you don't exec, use _exit instead.
  * The at_exit handlers apparently confuse the calling process,
- * in particular stdin handling.  Not sure why? */
+ * in particular stdin handling.  Not sure why? -- because of vfork! (vda) */
 static void pseudo_exec(struct child_prog *child)
 {
 	int i, rcode;
 	char *p;
 	const struct built_in_command *x;
+
 	if (child->argv) {
 		for (i = 0; is_assignment(child->argv[i]); i++) {
 			debug_printf("pid %d environment modification: %s\n",
 					getpid(), child->argv[i]);
+		// FIXME: vfork case??
 			p = insert_var_value(child->argv[i]);
 			putenv(strdup(p));
 			if (p != child->argv[i])
@@ -1152,6 +1142,8 @@ static void pseudo_exec(struct child_prog *child)
 		child->argv += i;  /* XXX this hack isn't so horrible, since we are about
 		                        to exit, and therefore don't need to keep data
 		                        structures consistent for free() use. */
+		// FIXME: ...unless we have _vforked_! Think NOMMU!
+
 		/* If a variable is assigned in a forest, and nobody listens,
 		 * was it ever really set?
 		 */
@@ -1191,12 +1183,13 @@ static void pseudo_exec(struct child_prog *child)
 #endif
 		debug_printf("exec of %s\n", child->argv[0]);
 		execvp(child->argv[0], child->argv);
-		bb_perror_msg("cannot exec: %s", child->argv[0]);
+		bb_perror_msg("cannot exec '%s'", child->argv[0]);
 		_exit(1);
 	}
 
 	if (child->group) {
 		debug_printf("runtime nesting to group\n");
+	// FIXME: do not modify globals! Think vfork!
 		interactive_fd = 0;    /* crucial!!!! */
 		rcode = run_list_real(child->group);
 		/* OK to leak memory by not calling free_pipe_list,
@@ -1873,6 +1866,86 @@ static int xglob(o_string *dest, int flags, glob_t *pglob)
 	return gr;
 }
 
+static char **make_list_in(char **inp, char *name)
+{
+	int len, i;
+	int name_len = strlen(name);
+	int n = 0;
+	char **list;
+	char *p1, *p2, *p3;
+
+	/* create list of variable values */
+	list = xmalloc(sizeof(*list));
+	for (i = 0; inp[i]; i++) {
+		p3 = insert_var_value(inp[i]);
+		p1 = p3;
+		while (*p1) {
+			if ((*p1 == ' ')) {
+				p1++;
+				continue;
+			}
+			p2 = strchr(p1, ' ');
+			if (p2) {
+				len = p2 - p1;
+			} else {
+				len = strlen(p1);
+				p2 = p1 + len;
+			}
+			/* we use n + 2 in realloc for list, because we add
+			 * new element and then we will add NULL element */
+			list = xrealloc(list, sizeof(*list) * (n + 2));
+			list[n] = xmalloc(2 + name_len + len);
+			strcpy(list[n], name);
+			strcat(list[n], "=");
+			strncat(list[n], p1, len);
+			list[n++][name_len + len + 1] = '\0';
+			p1 = p2;
+		}
+		if (p3 != inp[i]) free(p3);
+	}
+	list[n] = NULL;
+	return list;
+}
+
+static char *insert_var_value(char *inp)
+{
+	int res_str_len = 0;
+	int len;
+	int done = 0;
+	char *p, *res_str = NULL;
+	const char *p1;
+
+	while ((p = strchr(inp, SPECIAL_VAR_SYMBOL))) {
+		if (p != inp) {
+			len = p - inp;
+			res_str = xrealloc(res_str, (res_str_len + len));
+			strncpy((res_str + res_str_len), inp, len);
+			res_str_len += len;
+		}
+		inp = ++p;
+		p = strchr(inp, SPECIAL_VAR_SYMBOL);
+		*p = '\0';
+		p1 = lookup_param(inp);
+		if (p1) {
+			len = res_str_len + strlen(p1);
+			res_str = xrealloc(res_str, (1 + len));
+			strcpy((res_str + res_str_len), p1);
+			res_str_len = len;
+		}
+		*p = SPECIAL_VAR_SYMBOL;
+		inp = ++p;
+		done = 1;
+	}
+	if (done) {
+		res_str = xrealloc(res_str, (1 + res_str_len + strlen(inp)));
+		strcpy((res_str + res_str_len), inp);
+		while ((p = strchr(res_str, '\n'))) {
+			*p = ' ';
+		}
+	}
+	return (res_str == NULL) ? inp : res_str;
+}
+
 /* This is used to get/check local shell variables */
 static const char *get_local_var(const char *s)
 {
@@ -2424,6 +2497,32 @@ static const char *lookup_param(const char *src)
 	return p;
 }
 
+/* Make new string for parser */
+static char* make_string(char ** inp)
+{
+	char *p;
+	char *str = NULL;
+	int n;
+	int len = 2;
+
+	for (n = 0; inp[n]; n++) {
+		p = insert_var_value(inp[n]);
+		str = xrealloc(str, (len + strlen(p)));
+		if (n) {
+			strcat(str, " ");
+		} else {
+			*str = '\0';
+		}
+		strcat(str, p);
+		len = strlen(str) + 3;
+		if (p != inp[n]) free(p);
+	}
+	len = strlen(str);
+	str[len] = '\n';
+	str[len+1] = '\0';
+	return str;
+}
+
 /* return code: 0 for OK, 1 for syntax error */
 static int handle_dollar(o_string *dest, struct p_context *ctx, struct in_str *input)
 {
@@ -2942,110 +3041,4 @@ int hush_main(int argc, char **argv)
 
  final_return:
 	hush_exit(opt ? opt : last_return_code);
-}
-
-static char *insert_var_value(char *inp)
-{
-	int res_str_len = 0;
-	int len;
-	int done = 0;
-	char *p, *res_str = NULL;
-	const char *p1;
-
-	while ((p = strchr(inp, SPECIAL_VAR_SYMBOL))) {
-		if (p != inp) {
-			len = p - inp;
-			res_str = xrealloc(res_str, (res_str_len + len));
-			strncpy((res_str + res_str_len), inp, len);
-			res_str_len += len;
-		}
-		inp = ++p;
-		p = strchr(inp, SPECIAL_VAR_SYMBOL);
-		*p = '\0';
-		p1 = lookup_param(inp);
-		if (p1) {
-			len = res_str_len + strlen(p1);
-			res_str = xrealloc(res_str, (1 + len));
-			strcpy((res_str + res_str_len), p1);
-			res_str_len = len;
-		}
-		*p = SPECIAL_VAR_SYMBOL;
-		inp = ++p;
-		done = 1;
-	}
-	if (done) {
-		res_str = xrealloc(res_str, (1 + res_str_len + strlen(inp)));
-		strcpy((res_str + res_str_len), inp);
-		while ((p = strchr(res_str, '\n'))) {
-			*p = ' ';
-		}
-	}
-	return (res_str == NULL) ? inp : res_str;
-}
-
-static char **make_list_in(char **inp, char *name)
-{
-	int len, i;
-	int name_len = strlen(name);
-	int n = 0;
-	char **list;
-	char *p1, *p2, *p3;
-
-	/* create list of variable values */
-	list = xmalloc(sizeof(*list));
-	for (i = 0; inp[i]; i++) {
-		p3 = insert_var_value(inp[i]);
-		p1 = p3;
-		while (*p1) {
-			if ((*p1 == ' ')) {
-				p1++;
-				continue;
-			}
-			p2 = strchr(p1, ' ');
-			if (p2) {
-				len = p2 - p1;
-			} else {
-				len = strlen(p1);
-				p2 = p1 + len;
-			}
-			/* we use n + 2 in realloc for list, because we add
-			 * new element and then we will add NULL element */
-			list = xrealloc(list, sizeof(*list) * (n + 2));
-			list[n] = xmalloc(2 + name_len + len);
-			strcpy(list[n], name);
-			strcat(list[n], "=");
-			strncat(list[n], p1, len);
-			list[n++][name_len + len + 1] = '\0';
-			p1 = p2;
-		}
-		if (p3 != inp[i]) free(p3);
-	}
-	list[n] = NULL;
-	return list;
-}
-
-/* Make new string for parser */
-static char* make_string(char ** inp)
-{
-	char *p;
-	char *str = NULL;
-	int n;
-	int len = 2;
-
-	for (n = 0; inp[n]; n++) {
-		p = insert_var_value(inp[n]);
-		str = xrealloc(str, (len + strlen(p)));
-		if (n) {
-			strcat(str, " ");
-		} else {
-			*str = '\0';
-		}
-		strcat(str, p);
-		len = strlen(str) + 3;
-		if (p != inp[n]) free(p);
-	}
-	len = strlen(str);
-	str[len] = '\n';
-	str[len+1] = '\0';
-	return str;
 }
