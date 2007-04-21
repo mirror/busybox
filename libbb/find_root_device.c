@@ -41,7 +41,8 @@ static char *find_block_device_in_dir(struct arena *ap)
 
 	while ((entry = readdir(dir)) != NULL) {
 		safe_strncpy(ap->devpath + len, entry->d_name, rem);
-		if (stat(ap->devpath, &ap->st) != 0)
+		/* lstat: do not follow links */
+		if (lstat(ap->devpath, &ap->st) != 0)
 			continue;
 		if (S_ISBLK(ap->st.st_mode) && ap->st.st_rdev == ap->dev) {
 			retpath = xstrdup(ap->devpath);
