@@ -1,6 +1,12 @@
 Various bits of what is known about busybox shells, in no particular order.
 
-2007-04-22
+2007-04-21
+hush: fixed non-backgrounding of "sleep 1 &" and totally broken
+"sleep 1 | sleep 2 &". Noticed a bug where successive jobs
+get numbers 1,2,3 even when job #1 has exited before job# 2 is started.
+(bash reuses #1 in this case)
+
+2007-04-21
 hush: "sleep 1 | exit 3; echo $?" prints 0 because $? is substituted
 _before_ pipe gets executed!! run_list_real() already has "pipe;echo"
 parsed and handed to it for execution, so it sees "pipe"; "echo 0".

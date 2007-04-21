@@ -384,6 +384,7 @@ static int parse_string_outer(const char *s, int flag);
 static int parse_file_outer(FILE *f);
 /*   job management: */
 static int checkjobs(struct pipe* fg_pipe);
+static int checkjobs_and_fg_shell(struct pipe* fg_pipe);
 static void insert_bg_job(struct pipe *pi);
 static void remove_bg_job(struct pipe *pi);
 /*     local variable support */
@@ -648,6 +649,8 @@ static int builtin_fg_bg(struct child_prog *child)
 	bb_error_msg("%s: %d: no such job", child->argv[0], jobnum);
 	return EXIT_FAILURE;
  found:
+	// TODO: bash prints a string representation
+	// of job being foregrounded (like "sleep 1 | cat")
 	if (*child->argv[0] == 'f') {
 		/* Put the job into the foreground.  */
 		tcsetpgrp(interactive_fd, pi->pgrp);
@@ -658,6 +661,7 @@ static int builtin_fg_bg(struct child_prog *child)
 		pi->progs[i].is_stopped = 0;
 
 	i = kill(- pi->pgrp, SIGCONT);
+	pi->stopped_progs = 0;
 	if (i < 0) {
 		if (errno == ESRCH) {
 			remove_bg_job(pi);
@@ -666,7 +670,8 @@ static int builtin_fg_bg(struct child_prog *child)
 		}
 	}
 
-	pi->stopped_progs = 0;
+	if (*child->argv[0] == 'f')
+		return checkjobs_and_fg_shell(pi);
 	return EXIT_SUCCESS;
 }
 
@@ -1350,6 +1355,18 @@ static int checkjobs(struct pipe* fg_pipe)
 	return rcode;
 }
 
+static int checkjobs_and_fg_shell(struct pipe* fg_pipe)
+{
+	pid_t p;
+	int rcode = checkjobs(fg_pipe);
+	/* Job finished, move the shell to the foreground */
+	p = getpgid(0);
+	debug_printf("fg'ing ourself: getpgid(0)=%d\n", (int)p);
+	if (tcsetpgrp(interactive_fd, p) && errno != ENOTTY)
+		bb_perror_msg("tcsetpgrp-4a");
+	return rcode;
+}
+
 /* run_pipe_real() starts all the jobs, but doesn't wait for anything
  * to finish.  See checkjobs().
  *
@@ -1377,6 +1394,7 @@ static int run_pipe_real(struct pipe *pi)
 	/* it is not always needed, but we aim to smaller code */
 	int squirrel[] = { -1, -1, -1 };
 	int rcode;
+	const int single_fg = (pi->num_progs == 1 && pi->followup != PIPE_BG);
 
 	nextin = 0;
 	pi->pgrp = -1;
@@ -1386,7 +1404,7 @@ static int run_pipe_real(struct pipe *pi)
 	 * pseudo_exec.  "echo foo | read bar" doesn't work on bash, either.
 	 */
 	child = &(pi->progs[0]);
-	if (pi->num_progs == 1 && child->group && child->subshell == 0) {
+	if (single_fg && child->group && child->subshell == 0) {
 		debug_printf("non-subshell grouping\n");
 		setup_redirects(child, squirrel);
 		/* XXX could we merge code with following builtin case,
@@ -1396,7 +1414,7 @@ static int run_pipe_real(struct pipe *pi)
 		return rcode;
 	}
 
-	if (pi->num_progs == 1 && pi->progs[0].argv != NULL) {
+	if (single_fg && pi->progs[0].argv != NULL) {
 		for (i = 0; is_assignment(child->argv[i]); i++)
 			continue;
 		if (i != 0 && child->argv[i] == NULL) {
@@ -1675,13 +1693,7 @@ static int run_list_real(struct pipe *pi)
 			rcode = EXIT_SUCCESS;
 		} else {
 			if (interactive_fd) {
-				pid_t p;
-				rcode = checkjobs(pi);
-				/* move the shell to the foreground */
-				p = getpgid(0);
-				if (tcsetpgrp(interactive_fd, p) && errno != ENOTTY)
-					bb_perror_msg("tcsetpgrp-4");
-				debug_printf("getpgid(0)=%d\n", (int)p);
+				rcode = checkjobs_and_fg_shell(pi);
 			} else {
 				rcode = checkjobs(pi);
 			}
