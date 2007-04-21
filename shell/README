@@ -1,5 +1,11 @@
 Various bits of what is known about busybox shells, in no particular order.
 
+2007-04-21
+hush: removed setsid() and made job control sort-of-sometimes-work.
+Ctrl-C in "rm -i" works now except for SH_STANDALONE case.
+"sleep 1 | exit 3" + "echo $?" works, "sleep 1 | exit 3; echo $?"
+shows exitcode 0 (should be 3). "sleep 1 | sleep 2 &" fails horribly.
+
 2007-04-14
 lash, hush: both do setsid() and as a result don't have ctty!
 Ctrl-C doesn't work for any child (try rm -i), etc...

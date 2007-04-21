@@ -81,9 +81,6 @@
 #include <glob.h>      /* glob, of course */
 #include <getopt.h>    /* should be pretty obvious */
 
-//#include <sys/wait.h>
-//#include <signal.h>
-
 /* #include <dmalloc.h> */
 /* #define DEBUG_SHELL */
 
@@ -91,7 +88,7 @@
 #define SPECIAL_VAR_SYMBOL 03
 #define FLAG_EXIT_FROM_LOOP 1
 #define FLAG_PARSE_SEMICOLON (1 << 1)		/* symbol ';' is special for parser */
-#define FLAG_REPARSING		 (1 << 2)		/* >=2nd pass */
+#define FLAG_REPARSING	     (1 << 2)		/* >=2nd pass */
 
 typedef enum {
 	REDIRECT_INPUT     = 1,
@@ -193,7 +190,7 @@ struct child_prog {
 struct pipe {
 	int jobid;                  /* job number */
 	int num_progs;              /* total number of programs in job */
-	int running_progs;          /* number of programs running */
+	int running_progs;          /* number of programs running (not exited) */
 	char *text;                 /* name of job */
 	char *cmdbuf;               /* buffer various argv's point into */
 	pid_t pgrp;                 /* process group ID for the job */
@@ -229,13 +226,17 @@ extern char **environ; /* This is in <unistd.h>, but protected with __USE_GNU */
 static const char *ifs;
 static unsigned char map[256];
 static int fake_mode;
-static int interactive;
 static struct close_me *close_me_head;
 static const char *cwd;
 static struct pipe *job_list;
 static unsigned last_bg_pid;
 static int last_jobid;
-static unsigned shell_terminal;
+/* 'interactive_fd' is a fd# open to ctty, if we have one
+ * _AND_ if we decided to mess with job control */
+static int interactive_fd;
+static pid_t saved_task_pgrp;
+static pid_t saved_tty_pgrp;
+
 static const char *PS1;
 static const char *PS2;
 static struct variables shell_ver = { "HUSH_VERSION", "0.01", 1, 1, 0 };
@@ -308,7 +309,7 @@ static void __syntax(const char *file, int line)
 {
 	bb_error_msg("syntax error %s:%d", file, line);
 }
-// NB: was __FILE__, but that produces full path sometimes, so...
+/* NB: was __FILE__, but that produces full path sometimes, so... */
 #define syntax() __syntax("hush.c", __LINE__)
 
 /* Index of subroutines: */
@@ -425,6 +426,84 @@ static const struct built_in_command bltins[] = {
 	{ NULL, NULL, NULL }
 };
 
+/* Restores tty foreground process group, and exits.
+ * May be called as signal handler for fatal signal
+ * (will faithfully resend signal to itself, producing correct exit state)
+ * or called directly with -EXITCODE.
+ * We also call it if xfunc is exiting. */
+static void sigexit(int sig) ATTRIBUTE_NORETURN;
+static void sigexit(int sig)
+{
+	sigset_t block_all;
+
+	/* Disable all signals: job control, SIGPIPE, etc. */
+	sigfillset(&block_all);
+	sigprocmask(SIG_SETMASK, &block_all, NULL);
+
+	if (interactive_fd) {
+		if (sig > 0) {
+			enum { KILLED = sizeof("Killed by signal ")-1 };
+			char buf[KILLED + sizeof(int)*3 + 1];
+			char *p;
+
+			/* bash actually says "Illegal instruction" and the like */
+			strcpy(buf, "Killed by signal ");
+			p = utoa_to_buf(sig, buf+KILLED, sizeof(buf)-KILLED);
+			*p++ = '\n';
+			write(interactive_fd, buf, p-buf);
+		}
+		tcsetpgrp(interactive_fd, saved_tty_pgrp);
+	}
+
+	/* Not a signal, just exit */
+	if (sig <= 0)
+		_exit(- sig);
+
+	/* Enable only this sig and kill ourself with it */
+	signal(sig, SIG_DFL);
+	sigdelset(&block_all, sig);
+	sigprocmask(SIG_SETMASK, &block_all, NULL);
+	raise(sig);
+	_exit(1); /* Should not reach it */
+}
+
+/* Restores tty foreground process group, and exits. */
+static void hush_exit(int exitcode) ATTRIBUTE_NORETURN;
+static void hush_exit(int exitcode)
+{
+	fflush(NULL); /* flush all streams */
+	sigexit(- (exitcode & 0xff));
+}
+
+/* Signals are grouped, we handle them in batches */
+static void set_fatal_sighandler(void (*handler)(int))
+{
+	signal(SIGILL , handler);
+	signal(SIGTRAP, handler);
+	signal(SIGABRT, handler);
+	signal(SIGFPE , handler);
+	signal(SIGBUS , handler);
+	signal(SIGSEGV, handler);
+	/* bash 3.2 seems to handle these just like 'fatal' ones,
+	 * but _without_ printing signal name. TODO: mimic this too? */
+	signal(SIGHUP , handler);
+	signal(SIGPIPE, handler);
+	signal(SIGALRM, handler);
+}
+static void set_jobctrl_sighandler(void (*handler)(int))
+{
+	signal(SIGTSTP, handler);
+	signal(SIGTTIN, handler);
+	signal(SIGTTOU, handler);
+}
+static void set_misc_sighandler(void (*handler)(int))
+{
+	signal(SIGINT , handler);
+	signal(SIGQUIT, handler);
+	signal(SIGTERM, handler);
+}
+/* SIGCHLD is special and handled separately */
+
 static const char *set_cwd(void)
 {
 	if (cwd == bb_msg_unknown)
@@ -493,13 +572,15 @@ static int builtin_exec(struct child_prog *child)
 /* built-in 'exit' handler */
 static int builtin_exit(struct child_prog *child)
 {
-	/* bash prints "exit\n" here, then: */
+// TODO: bash does it ONLY on top-level sh exit (+interacive only?)
+	//puts("exit"); /* bash does it */
+
 	if (child->argv[1] == NULL)
-		exit(last_return_code);
+		hush_exit(last_return_code);
 	/* mimic bash: exit 123abc == exit 255 + error msg */
 	xfunc_error_retval = 255;
 	/* bash: exit -2 == exit 254, no error msg */
-	exit(xatoi(child->argv[1]));
+	hush_exit(xatoi(child->argv[1]));
 }
 
 /* built-in 'export VAR=value' handler */
@@ -555,7 +636,7 @@ static int builtin_fg_bg(struct child_prog *child)
 	int i, jobnum;
 	struct pipe *pi;
 
-	if (!interactive)
+	if (!interactive_fd)
 		return EXIT_FAILURE;
 	/* If they gave us no args, assume they want the last backgrounded task */
 	if (!child->argv[1]) {
@@ -581,7 +662,7 @@ static int builtin_fg_bg(struct child_prog *child)
  found:
 	if (*child->argv[0] == 'f') {
 		/* Put the job into the foreground.  */
-		tcsetpgrp(shell_terminal, pi->pgrp);
+		tcsetpgrp(interactive_fd, pi->pgrp);
 	}
 
 	/* Restart the processes in the job */
@@ -915,8 +996,8 @@ static int file_get(struct in_str *i)
 	} else {
 		/* need to double check i->file because we might be doing something
 		 * more complicated by now, like sourcing or substituting. */
-		if (i->__promptme && interactive && i->file == stdin) {
-			while (!i->p || !(interactive && strlen(i->p))) {
+		if (i->__promptme && interactive_fd && i->file == stdin) {
+			while (!i->p || !(interactive_fd && strlen(i->p))) {
 				get_user_input(i);
 			}
 			i->promptmode = 2;
@@ -1116,7 +1197,7 @@ static void pseudo_exec(struct child_prog *child)
 
 	if (child->group) {
 		debug_printf("runtime nesting to group\n");
-		interactive = 0;    /* crucial!!!! */
+		interactive_fd = 0;    /* crucial!!!! */
 		rcode = run_list_real(child->group);
 		/* OK to leak memory by not calling free_pipe_list,
 		 * since this process is about to exit */
@@ -1203,24 +1284,38 @@ static int checkjobs(struct pipe* fg_pipe)
 	int prognum = 0;
 	struct pipe *pi;
 	pid_t childpid;
+	int rcode = 0;
 
 	attributes = WUNTRACED;
+//WUNTRACED?? huh, what will happed on Ctrl-Z? fg waiting code
+//doesn't seem to be ready for stopped children! (only exiting ones)...
 	if (fg_pipe == NULL) {
 		attributes |= WNOHANG;
 	}
 
+ wait_more:
 	while ((childpid = waitpid(-1, &status, attributes)) > 0) {
+		/* Were we asked to wait for fg pipe? */
 		if (fg_pipe) {
-			int i, rcode = 0;
+			int i;
 			for (i = 0; i < fg_pipe->num_progs; i++) {
 				if (fg_pipe->progs[i].pid == childpid) {
+					/* printf("process %d exit %d\n", i, WEXITSTATUS(status)); */
+					fg_pipe->progs[i].pid = 0;
 					if (i == fg_pipe->num_progs-1)
+						/* last process gives overall exitstatus */
 						rcode = WEXITSTATUS(status);
-					fg_pipe->num_progs--;
-					return rcode;
+					if (--fg_pipe->running_progs <= 0)
+						/* All processes in fg pipe have exited */
+						return rcode;
+					/* There are still running processes in the fg pipe */
+					goto wait_more;
 				}
 			}
 		}
+
+		/* We asked to wait for bg or orphaned children */
+		/* No need to remember exitcode in this case */
 
 		for (pi = job_list; pi; pi = pi->next) {
 			prognum = 0;
@@ -1257,9 +1352,9 @@ static int checkjobs(struct pipe* fg_pipe)
 		bb_perror_msg("waitpid");
 
 	/* move the shell to the foreground */
-	//if (interactive && tcsetpgrp(shell_terminal, getpgid(0)))
+	//if (interactive_fd && tcsetpgrp(interactive_fd, getpgid(0)))
 	//	bb_perror_msg("tcsetpgrp-2");
-	return -1;
+	return rcode;
 }
 
 /* run_pipe_real() starts all the jobs, but doesn't wait for anything
@@ -1376,6 +1471,8 @@ static int run_pipe_real(struct pipe *pi)
 		}
 #if ENABLE_FEATURE_SH_STANDALONE
 		{
+// FIXME: applet runs like part of shell - for example, it ignores
+// SIGINT! Try to Ctrl-C out of "rm -i"... doesn't work
 			const struct bb_applet *a = find_applet_by_name(child->argv[i]);
 			if (a && a->nofork) {
 				setup_redirects(child, squirrel);
@@ -1387,6 +1484,11 @@ static int run_pipe_real(struct pipe *pi)
 #endif
 	}
 
+	/* Disable job control signals for shell (parent) and
+	 * for initial child code after fork */
+	set_jobctrl_sighandler(SIG_IGN);
+
+	pi->running_progs = 0;
 	for (i = 0; i < pi->num_progs; i++) {
 		child = &(pi->progs[i]);
 
@@ -1406,18 +1508,22 @@ static int run_pipe_real(struct pipe *pi)
 #else
 		child->pid = vfork();
 #endif
-		if (!child->pid) {
-			/* Set the handling for job control signals back to the default.  */
-			signal(SIGINT, SIG_DFL);
-			signal(SIGQUIT, SIG_DFL);
-			signal(SIGTERM, SIG_DFL);
-			signal(SIGTSTP, SIG_DFL);
-			signal(SIGTTIN, SIG_DFL);
-			signal(SIGTTOU, SIG_DFL);
-			signal(SIGCHLD, SIG_DFL);
+		if (!child->pid) { /* child */
+			/* Every child adds itself to new process group
+			 * with pgid == pid of first child in pipe */
+			if (interactive_fd) {
+				if (pi->pgrp < 0) /* true for 1st process only */
+					pi->pgrp = getpid();
+				if (setpgid(0, pi->pgrp) == 0 && pi->followup != PIPE_BG) {
+					/* We do it in *every* child, not just first,
+					 * to avoid races */
+					tcsetpgrp(interactive_fd, pi->pgrp);
+				}
+				/* Don't do pgrp restore anymore on fatal signals */
+				set_fatal_sighandler(SIG_DFL);
+			}
 
 			close_all();
-
 			if (nextin != 0) {
 				dup2(nextin, 0);
 				close(nextin);
@@ -1429,33 +1535,28 @@ static int run_pipe_real(struct pipe *pi)
 			if (pipefds[0] != -1) {
 				close(pipefds[0]);  /* opposite end of our output pipe */
 			}
-
 			/* Like bash, explicit redirects override pipes,
 			 * and the pipe fd is available for dup'ing. */
 			setup_redirects(child, NULL);
 
-			if (interactive && pi->followup != PIPE_BG) {
-				/* If we (the child) win the race, put ourselves in the process
-				 * group whose leader is the first process in this pipe. */
-				if (pi->pgrp < 0) {
-					pi->pgrp = getpid();
-				}
-				if (setpgid(0, pi->pgrp) == 0) {
-					tcsetpgrp(2, pi->pgrp);
-				}
-			}
-
+			/* Restore default handlers just prior to exec */
+			set_jobctrl_sighandler(SIG_DFL);
+			set_misc_sighandler(SIG_DFL);
+			signal(SIGCHLD, SIG_DFL);
 			pseudo_exec(child);
 		}
 
-		/* put our child in the process group whose leader is the
-		   first process in this pipe */
-		if (pi->pgrp < 0) {
+		pi->running_progs++;
+
+		/* Second and next children need to know ipd of first one */
+		if (pi->pgrp < 0)
 			pi->pgrp = child->pid;
-		}
+
 		/* Don't check for errors.  The child may be dead already,
 		 * in which case setpgid returns error code EACCES. */
-		setpgid(child->pid, pi->pgrp);
+		//why we do it at all?? child does it itself
+		//if (interactive_fd)
+		//	setpgid(child->pid, pi->pgrp);
 
 		if (nextin != 0)
 			close(nextin);
@@ -1580,14 +1681,14 @@ static int run_list_real(struct pipe *pi)
 			insert_bg_job(pi);
 			rcode = EXIT_SUCCESS;
 		} else {
-			if (interactive) {
-				/* move the new process group into the foreground */
-				if (tcsetpgrp(shell_terminal, pi->pgrp) && errno != ENOTTY)
-					bb_perror_msg("tcsetpgrp-3");
+			if (interactive_fd) {
+				pid_t p;
 				rcode = checkjobs(pi);
 				/* move the shell to the foreground */
-				if (tcsetpgrp(shell_terminal, getpgid(0)) && errno != ENOTTY)
+				p = getpgid(0);
+				if (tcsetpgrp(interactive_fd, p) && errno != ENOTTY)
 					bb_perror_msg("tcsetpgrp-4");
+				debug_printf("getpgid(0)=%d\n", (int)p);
 			} else {
 				rcode = checkjobs(pi);
 			}
@@ -2660,28 +2761,33 @@ static int parse_file_outer(FILE *f)
  * we don't fight over who gets the foreground */
 static void setup_job_control(void)
 {
-	/*static --why?? */  pid_t shell_pgrp;
+	pid_t shell_pgrp;
+
+	fcntl(interactive_fd, F_SETFD, FD_CLOEXEC);
 
 	/* Loop until we are in the foreground.  */
-	while (tcgetpgrp(shell_terminal) != (shell_pgrp = getpgrp()))
+	while (1) {
+		shell_pgrp = getpgrp();
+		if (tcgetpgrp(interactive_fd) == shell_pgrp)
+			break;
+// and this does... what? need a comment here
 		kill(- shell_pgrp, SIGTTIN);
+	}
 
-	/* Ignore interactive and job-control signals.  */
-	signal(SIGINT, SIG_IGN);
-	signal(SIGQUIT, SIG_IGN);
-	signal(SIGTERM, SIG_IGN);
-	signal(SIGTSTP, SIG_IGN);
-	signal(SIGTTIN, SIG_IGN);
-	signal(SIGTTOU, SIG_IGN);
-	signal(SIGCHLD, SIG_IGN);
+	/* Ignore job-control and misc signals.  */
+	set_jobctrl_sighandler(SIG_IGN);
+	set_misc_sighandler(SIG_IGN);
+//huh?	signal(SIGCHLD, SIG_IGN);
+
+	/* We _must_ do cleanup on fatal signals */
+	set_fatal_sighandler(sigexit);
 
 	/* Put ourselves in our own process group.  */
-	setsid();
 	shell_pgrp = getpid();
-	setpgid(shell_pgrp, shell_pgrp);
+	setpgrp(); /* is the same as setpgid(shell_pgrp, shell_pgrp); */
 
 	/* Grab control of the terminal.  */
-	tcsetpgrp(shell_terminal, shell_pgrp);
+	tcsetpgrp(interactive_fd, shell_pgrp);
 }
 
 int hush_main(int argc, char **argv);
@@ -2705,7 +2811,7 @@ int hush_main(int argc, char **argv)
 	ifs = NULL;
 	/* map[] is taken care of with call to update_ifs_map() */
 	fake_mode = 0;
-	interactive = 0;
+	interactive_fd = 0;
 	close_me_head = NULL;
 	last_bg_pid = 0;
 	job_list = NULL;
@@ -2747,7 +2853,7 @@ int hush_main(int argc, char **argv)
 			opt = parse_string_outer(optarg, FLAG_PARSE_SEMICOLON);
 			goto final_return;
 		case 'i':
-			interactive++;
+			/*interactive_fd++;*/ //huh??
 			break;
 		case 'f':
 			fake_mode++;
@@ -2772,11 +2878,25 @@ int hush_main(int argc, char **argv)
 	if (argv[optind] == NULL && input == stdin
 	 && isatty(STDIN_FILENO) && isatty(STDOUT_FILENO)
 	) {
-		interactive++;
+		saved_tty_pgrp = tcgetpgrp(STDIN_FILENO);
+		debug_printf("saved_tty_pgrp=%d\n", saved_tty_pgrp);
+		if (saved_tty_pgrp >= 0) {
+			saved_task_pgrp = getpgrp();
+			debug_printf("saved_task_pgrp=%d\n", saved_task_pgrp);
+			/* try to dup to high fd#, >= 255 */
+			interactive_fd = fcntl(STDIN_FILENO, F_DUPFD, 255);
+			if (interactive_fd < 0) {
+				/* try to dup to any fd */
+				interactive_fd = dup(STDIN_FILENO);
+				if (interactive_fd < 0)
+					/* give up */
+					interactive_fd = 0;
+			}
+		}
 	}
 
-	debug_printf("\ninteractive=%d\n", interactive);
-	if (interactive) {
+	debug_printf("\ninteractive_fd=%d\n", interactive_fd);
+	if (interactive_fd) {
 		/* Looks like they want an interactive shell */
 #if !ENABLE_FEATURE_SH_EXTRA_QUIET
 		printf( "\n\n%s hush - the humble shell v0.01 (testing)\n",
@@ -2784,6 +2904,12 @@ int hush_main(int argc, char **argv)
 		printf( "Enter 'help' for a list of built-in commands.\n\n");
 #endif
 		setup_job_control();
+		/* Make xfuncs do cleanup on exit */
+		die_sleep = -1; /* flag */
+		if (setjmp(die_jmp)) {
+			/* xfunc has failed! die die die */
+			hush_exit(xfunc_error_retval);
+		}
 	}
 
 	if (argv[optind] == NULL) {
@@ -2815,7 +2941,7 @@ int hush_main(int argc, char **argv)
 #endif
 
  final_return:
-	return opt ? opt : last_return_code;
+	hush_exit(opt ? opt : last_return_code);
 }
 
 static char *insert_var_value(char *inp)
