@@ -1541,7 +1541,7 @@ static int run_pipe_real(struct pipe *pi)
 
 		pi->running_progs++;
 
-		/* Second and next children need to know ipd of first one */
+		/* Second and next children need to know pid of first one */
 		if (pi->pgrp < 0)
 			pi->pgrp = child->pid;
 
@@ -1612,7 +1612,7 @@ static int run_list_real(struct pipe *pi)
 		skip_more_in_this_rmode = RES_XXXX;
 		if (rmode == RES_THEN || rmode == RES_ELSE)
 			if_code = next_if_code;
-		if (rmode == RES_THEN &&  if_code)
+		if (rmode == RES_THEN && if_code)
 			continue;
 		if (rmode == RES_ELSE && !if_code)
 			continue;
@@ -2814,7 +2814,8 @@ static int parse_stream_outer(struct in_str *inp, int flag)
 		ctx.type = flag;
 		initialize_context(&ctx);
 		update_ifs_map();
-		if (!(flag & FLAG_PARSE_SEMICOLON) || (flag & FLAG_REPARSING)) mapset(";$&|", 0);
+		if (!(flag & FLAG_PARSE_SEMICOLON) || (flag & FLAG_REPARSING))
+			 mapset(";$&|", 0);
 		inp->promptmode = 1;
 		rcode = parse_stream(&temp, &ctx, inp, '\n');
 		if (rcode != 1 && ctx.old_flag != 0) {
@@ -2832,7 +2833,7 @@ static int parse_stream_outer(struct in_str *inp, int flag)
 			temp.nonnull = 0;
 			temp.quote = 0;
 			inp->p = NULL;
-			free_pipe_list(ctx.list_head,0);
+			free_pipe_list(ctx.list_head, 0);
 		}
 		b_free(&temp);
 	} while (rcode != -1 && !(flag & FLAG_EXIT_FROM_LOOP));   /* loop on syntax errors, return on EOF */
@@ -2862,6 +2863,8 @@ static void setup_job_control(void)
 {
 	pid_t shell_pgrp;
 
+	saved_task_pgrp = getpgrp();
+	debug_printf("saved_task_pgrp=%d\n", saved_task_pgrp);
 	fcntl(interactive_fd, F_SETFD, FD_CLOEXEC);
 
 	/* Loop until we are in the foreground.  */
@@ -2952,7 +2955,9 @@ int hush_main(int argc, char **argv)
 			opt = parse_string_outer(optarg, FLAG_PARSE_SEMICOLON);
 			goto final_return;
 		case 'i':
-			/*interactive_fd++;*/ //huh??
+			// Well, we cannot just declare interactiveness,
+			// we have to have some stuff (ctty, etc)
+			/*interactive_fd++;*/
 			break;
 		case 'f':
 			fake_mode++;
@@ -2980,8 +2985,6 @@ int hush_main(int argc, char **argv)
 		saved_tty_pgrp = tcgetpgrp(STDIN_FILENO);
 		debug_printf("saved_tty_pgrp=%d\n", saved_tty_pgrp);
 		if (saved_tty_pgrp >= 0) {
-			saved_task_pgrp = getpgrp();
-			debug_printf("saved_task_pgrp=%d\n", saved_task_pgrp);
 			/* try to dup to high fd#, >= 255 */
 			interactive_fd = fcntl(STDIN_FILENO, F_DUPFD, 255);
 			if (interactive_fd < 0) {
@@ -2991,17 +2994,14 @@ int hush_main(int argc, char **argv)
 					/* give up */
 					interactive_fd = 0;
 			}
+			// TODO: track & disallow any attempts of user
+			// to (inadvertently) close/redirect it
 		}
 	}
 
 	debug_printf("\ninteractive_fd=%d\n", interactive_fd);
 	if (interactive_fd) {
 		/* Looks like they want an interactive shell */
-#if !ENABLE_FEATURE_SH_EXTRA_QUIET
-		printf( "\n\n%s hush - the humble shell v0.01 (testing)\n",
-			BB_BANNER);
-		printf( "Enter 'help' for a list of built-in commands.\n\n");
-#endif
 		setup_job_control();
 		/* Make xfuncs do cleanup on exit */
 		die_sleep = -1; /* flag */
@@ -3009,6 +3009,10 @@ int hush_main(int argc, char **argv)
 			/* xfunc has failed! die die die */
 			hush_exit(xfunc_error_retval);
 		}
+#if !ENABLE_FEATURE_SH_EXTRA_QUIET
+		printf("\n\n%s hush - the humble shell v0.02\n", BB_BANNER);
+		printf("Enter 'help' for a list of built-in commands.\n\n");
+#endif
 	}
 
 	if (argv[optind] == NULL) {

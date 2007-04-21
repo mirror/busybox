@@ -1,5 +1,10 @@
 Various bits of what is known about busybox shells, in no particular order.
 
+2007-04-22
+hush: "sleep 1 | exit 3; echo $?" prints 0 because $? is substituted
+_before_ pipe gets executed!! run_list_real() already has "pipe;echo"
+parsed and handed to it for execution, so it sees "pipe"; "echo 0".
+
 2007-04-21
 hush: removed setsid() and made job control sort-of-sometimes-work.
 Ctrl-C in "rm -i" works now except for SH_STANDALONE case.
