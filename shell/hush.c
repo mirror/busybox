@@ -1023,8 +1023,9 @@ static const char* setup_prompt_string(int promptmode)
 static line_input_t *line_input_state;
 #endif
 
-static void get_user_input(struct in_str *i)
+static int get_user_input(struct in_str *i)
 {
+	int r;
 	const char *prompt_str;
 	static char the_command[BUFSIZ];
 
@@ -1036,15 +1037,16 @@ static void get_user_input(struct in_str *i)
 	 ** atexit() handlers and other unwanted stuff to our
 	 ** child processes (rob@sysgo.de)
 	 */
-	read_line_input(prompt_str, the_command, BUFSIZ, line_input_state);
+	r = read_line_input(prompt_str, the_command, BUFSIZ, line_input_state);
 #else
 	fputs(prompt_str, stdout);
 	fflush(stdout);
-	the_command[0] = fgetc(i->file);
+	the_command[0] = r = fgetc(i->file);
 	the_command[1] = '\0';
 #endif
 	fflush(stdout);
 	i->p = the_command;
+	return r; /* < 0 == EOF. Not meaningful otherwise */
 }
 
 /* This is the magic location that prints prompts
@@ -1061,8 +1063,9 @@ static int file_get(struct in_str *i)
 		/* need to double check i->file because we might be doing something
 		 * more complicated by now, like sourcing or substituting. */
 		if (i->__promptme && interactive_fd && i->file == stdin) {
-			while (!i->p || !(interactive_fd && strlen(i->p))) {
-				get_user_input(i);
+			while (!i->p || !(interactive_fd && i->p[0])) {
+				if (get_user_input(i) < 0)
+					return EOF;
 			}
 			i->promptmode = 2;
 			i->__promptme = 0;
