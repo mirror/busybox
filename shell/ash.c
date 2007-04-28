@@ -3501,7 +3501,9 @@ setjobctl(int on)
 		/* turning job control off */
 		fd = ttyfd;
 		pgrp = initialpgrp;
-		xtcsetpgrp(fd, pgrp);
+		/* was xtcsetpgrp, but this can make exiting ash
+		 * with pty already deleted loop forever */
+		tcsetpgrp(fd, pgrp);
 		setpgid(0, pgrp);
 		setsignal(SIGTSTP);
 		setsignal(SIGTTOU);

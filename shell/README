@@ -1,5 +1,10 @@
 Various bits of what is known about busybox shells, in no particular order.
 
+2007-04-28
+hush: Ctrl-C and Ctrl-Z for single NOFORK commands are working.
+Memory and other resource leaks (opendir) are not addressed
+(testcase is "rm -i" interrupted by ctrl-c).
+
 2007-04-21
 hush: "sleep 5 | sleep 6" + Ctrl-Z + fg seems to work.
 "rm -i" + Ctrl-C, "sleep 5" + Ctrl-Z still doesn't work
