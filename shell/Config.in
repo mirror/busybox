@@ -176,6 +176,15 @@ config HUSH
 	  word ), arithmetic expansion, aliases, brace expansion, tilde
 	  expansion, &> and >& redirection of stdout+stderr, etc.
 
+config HUSH_INTERACTIVE
+	bool "Interactive mode"
+	default y
+	depends on HUSH
+	help
+	  Enable interactive mode (Ctrl-Z, Ctrl-C, command editing)
+	  in the hush shell. Without this, hush reads and executes
+	  stdin just like a shell script from the file.
+
 
 config LASH
 	bool "lash"

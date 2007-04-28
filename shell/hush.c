@@ -51,7 +51,7 @@
  *      Here Documents ( << word )
  *      Functions
  * Major bugs:
- *      job handling woefully incomplete and buggy
+ *      job handling woefully incomplete and buggy (improved --vda)
  *      reserved word execution woefully incomplete and buggy
  * to-do:
  *      port selected bugfixes from post-0.49 busybox lash - done?
@@ -86,6 +86,16 @@
 /* Finer-grained debug switch */
 //#define DEBUG_SHELL_JOBS
 
+//TODO: rename HUSH_INTERACTIVE -> HUSH_JOB,
+//create HUSH_INTERACTIVE which controls only prompt + line editing,
+//make HUSH_JOB dependent on it
+
+#if !ENABLE_HUSH_INTERACTIVE
+#undef ENABLE_FEATURE_EDITING
+#define ENABLE_FEATURE_EDITING 0
+#undef ENABLE_FEATURE_EDITING_FANCY_PROMPT
+#define ENABLE_FEATURE_EDITING_FANCY_PROMPT 0
+#endif
 
 #define SPECIAL_VAR_SYMBOL 03
 #define FLAG_EXIT_FROM_LOOP 1
@@ -169,10 +179,10 @@ struct p_context {
 };
 
 struct redir_struct {
+	struct redir_struct *next;  /* pointer to the next redirect in the list */
 	redir_type type;            /* type of redirection */
 	int fd;                     /* file descriptor being redirected */
 	int dup;                    /* -1, or file descriptor being duplicated */
-	struct redir_struct *next;  /* pointer to the next redirect in the list */
 	glob_t word;                /* *word.gl_pathv is the filename */
 };
 
@@ -190,14 +200,16 @@ struct child_prog {
 };
 
 struct pipe {
-	int jobid;                  /* job number */
+	struct pipe *next;
 	int num_progs;              /* total number of programs in job */
 	int running_progs;          /* number of programs running (not exited) */
-	char *cmdtext;              /* name of job */
 	char *cmdbuf;               /* buffer various argv's point into */
+#if ENABLE_HUSH_INTERACTIVE
+	int jobid;                  /* job number */
+	char *cmdtext;              /* name of job */
 	pid_t pgrp;                 /* process group ID for the job */
+#endif
 	struct child_prog *progs;   /* array of commands in pipe */
-	struct pipe *next;          /* to track background commands */
 	int stopped_progs;          /* number of programs alive, but stopped */
 	int job_context;            /* bitmask defining current context */
 	pipe_style followup;        /* PIPE_BG, PIPE_SEQ, PIPE_OR, PIPE_AND */
@@ -205,16 +217,16 @@ struct pipe {
 };
 
 struct close_me {
-	int fd;
 	struct close_me *next;
+	int fd;
 };
 
 struct variables {
+	struct variables *next;
 	const char *name;
 	const char *value;
 	int flg_export;
 	int flg_read_only;
-	struct variables *next;
 };
 
 /* globals, connect us to the outside world
@@ -230,18 +242,22 @@ static unsigned char map[256];
 static int fake_mode;
 static struct close_me *close_me_head;
 static const char *cwd;
-static struct pipe *job_list;
 static unsigned last_bg_pid;
+#if ENABLE_HUSH_INTERACTIVE
 static int last_jobid;
+static struct pipe *job_list;
 /* 'interactive_fd' is a fd# open to ctty, if we have one
  * _AND_ if we decided to mess with job control */
 static int interactive_fd;
 static pid_t saved_task_pgrp;
 static pid_t saved_tty_pgrp;
+#else
+enum { interactive_fd = 0 };
+#endif
 
 static const char *PS1;
 static const char *PS2;
-static struct variables shell_ver = { "HUSH_VERSION", "0.01", 1, 1, 0 };
+static struct variables shell_ver = { NULL, "HUSH_VERSION", "0.01", 1, 1 };
 static struct variables *top_vars = &shell_ver;
 
 
@@ -322,9 +338,11 @@ static int builtin_eval(char **argv);
 static int builtin_exec(char **argv);
 static int builtin_exit(char **argv);
 static int builtin_export(char **argv);
+#if ENABLE_HUSH_INTERACTIVE
 static int builtin_fg_bg(char **argv);
-static int builtin_help(char **argv);
 static int builtin_jobs(char **argv);
+#endif
+static int builtin_help(char **argv);
 static int builtin_pwd(char **argv);
 static int builtin_read(char **argv);
 static int builtin_set(char **argv);
@@ -387,10 +405,14 @@ static int parse_string_outer(const char *s, int flag);
 static int parse_file_outer(FILE *f);
 /*   job management: */
 static int checkjobs(struct pipe* fg_pipe);
+#if ENABLE_HUSH_INTERACTIVE
 static int checkjobs_and_fg_shell(struct pipe* fg_pipe);
 static void insert_bg_job(struct pipe *pi);
 static void remove_bg_job(struct pipe *pi);
 static void delete_finished_bg_job(struct pipe *pi);
+#else
+int checkjobs_and_fg_shell(struct pipe* fg_pipe); /* never called */
+#endif
 /*     local variable support */
 static char **make_list_in(char **inp, char *name);
 static char *insert_var_value(char *inp);
@@ -405,7 +427,9 @@ static void unset_local_var(const char *name);
  * For example, 'unset foo | whatever' will parse and run, but foo will
  * still be set at the end. */
 static const struct built_in_command bltins[] = {
+#if ENABLE_HUSH_INTERACTIVE
 	{ "bg", "Resume a job in the background", builtin_fg_bg },
+#endif
 	{ "break", "Exit for, while or until loop", builtin_not_written },
 	{ "cd", "Change working directory", builtin_cd },
 	{ "continue", "Continue for, while or until loop", builtin_not_written },
@@ -415,8 +439,10 @@ static const struct built_in_command bltins[] = {
 		builtin_exec },
 	{ "exit", "Exit from shell()", builtin_exit },
 	{ "export", "Set environment variable", builtin_export },
+#if ENABLE_HUSH_INTERACTIVE
 	{ "fg", "Bring job into the foreground", builtin_fg_bg },
 	{ "jobs", "Lists the active jobs", builtin_jobs },
+#endif
 	{ "pwd", "Print current directory", builtin_pwd },
 	{ "read", "Input environment variable", builtin_read },
 	{ "return", "Return from a function", builtin_not_written },
@@ -431,6 +457,9 @@ static const struct built_in_command bltins[] = {
 	{ NULL, NULL, NULL }
 };
 
+#if ENABLE_HUSH_INTERACTIVE
+
+#if ENABLE_FEATURE_SH_STANDALONE
 /* move to libbb? */
 static void signal_SA_RESTART(int sig, void (*handler)(int))
 {
@@ -440,6 +469,7 @@ static void signal_SA_RESTART(int sig, void (*handler)(int))
 	sigemptyset(&sa.sa_mask);
 	sigaction(sig, &sa, NULL);
 }
+#endif
 
 /* Signals are grouped, we handle them in batches */
 static void set_fatal_sighandler(void (*handler)(int))
@@ -469,6 +499,7 @@ static void set_misc_sighandler(void (*handler)(int))
 }
 /* SIGCHLD is special and handled separately */
 
+#if ENABLE_FEATURE_SH_STANDALONE
 static void set_every_sighandler(void (*handler)(int))
 {
 	set_fatal_sighandler(handler);
@@ -477,9 +508,9 @@ static void set_every_sighandler(void (*handler)(int))
 	signal(SIGCHLD, handler);
 }
 
+static struct pipe *nofork_pipe;
 struct nofork_save_area nofork_save;
 static sigjmp_buf nofork_jb;
-static struct pipe *nofork_pipe;
 
 static void handler_ctrl_c(int sig)
 {
@@ -522,6 +553,8 @@ static void handler_ctrl_z(int sig)
 	siglongjmp(nofork_jb, 1);
 }
 
+#endif
+
 /* Restores tty foreground process group, and exits.
  * May be called as signal handler for fatal signal
  * (will faithfully resend signal to itself, producing correct exit state)
@@ -558,6 +591,16 @@ static void hush_exit(int exitcode)
 	fflush(NULL); /* flush all streams */
 	sigexit(- (exitcode & 0xff));
 }
+
+#else /* !INTERACTIVE */
+
+#define set_fatal_sighandler(handler)   ((void)0)
+#define set_jobctrl_sighandler(handler) ((void)0)
+#define set_misc_sighandler(handler)    ((void)0)
+#define hush_exit(e)                    exit(-(e))
+
+#endif /* INTERACTIVE */
+
 
 static const char *set_cwd(void)
 {
@@ -684,6 +727,7 @@ static int builtin_export(char **argv)
 	return res;
 }
 
+#if ENABLE_HUSH_INTERACTIVE
 /* built-in 'fg' and 'bg' handler */
 static int builtin_fg_bg(char **argv)
 {
@@ -745,6 +789,7 @@ static int builtin_fg_bg(char **argv)
 	}
 	return EXIT_SUCCESS;
 }
+#endif
 
 /* built-in 'help' handler */
 static int builtin_help(char **argv ATTRIBUTE_UNUSED)
@@ -762,6 +807,7 @@ static int builtin_help(char **argv ATTRIBUTE_UNUSED)
 	return EXIT_SUCCESS;
 }
 
+#if ENABLE_HUSH_INTERACTIVE
 /* built-in 'jobs' handler */
 static int builtin_jobs(char **argv ATTRIBUTE_UNUSED)
 {
@@ -778,6 +824,7 @@ static int builtin_jobs(char **argv ATTRIBUTE_UNUSED)
 	}
 	return EXIT_SUCCESS;
 }
+#endif
 
 /* built-in 'pwd' handler */
 static int builtin_pwd(char **argv ATTRIBUTE_UNUSED)
@@ -1272,7 +1319,9 @@ static void pseudo_exec(struct child_prog *child)
 	if (child->group) {
 		debug_printf("runtime nesting to group\n");
 	// FIXME: do not modify globals! Think vfork!
+#if ENABLE_HUSH_INTERACTIVE
 		interactive_fd = 0;    /* crucial!!!! */
+#endif
 		rcode = run_list_real(child->group);
 		/* OK to leak memory by not calling free_pipe_list,
 		 * since this process is about to exit */
@@ -1284,6 +1333,7 @@ static void pseudo_exec(struct child_prog *child)
 	_exit(EXIT_SUCCESS);
 }
 
+#if ENABLE_HUSH_INTERACTIVE
 static const char *get_cmdtext(struct pipe *pi)
 {
 	char **argv;
@@ -1312,7 +1362,9 @@ static const char *get_cmdtext(struct pipe *pi)
 	p[-1] = '\0';
 	return pi->cmdtext;
 }
+#endif
 
+#if ENABLE_HUSH_INTERACTIVE
 static void insert_bg_job(struct pipe *pi)
 {
 	struct pipe *thejob;
@@ -1376,6 +1428,7 @@ static void delete_finished_bg_job(struct pipe *pi)
 	free_pipe(pi, 0);
 	free(pi);
 }
+#endif
 
 /* Checks to see if any processes have exited -- if they
    have, figure out why and see if a job has completed */
@@ -1383,8 +1436,10 @@ static int checkjobs(struct pipe* fg_pipe)
 {
 	int attributes;
 	int status;
+#if ENABLE_HUSH_INTERACTIVE
 	int prognum = 0;
 	struct pipe *pi;
+#endif
 	pid_t childpid;
 	int rcode = 0;
 
@@ -1400,6 +1455,10 @@ static int checkjobs(struct pipe* fg_pipe)
  * bash-3.00# echo $?
  * 1   <========== bg pipe is not fully done, but exitcode is already known!
  */
+
+//FIXME: non-interactive bash does not continue even if all processes in fg pipe
+//are stopped. Testcase: "cat | cat" in a script (not on command line)
+// + killall -STOP cat
 
  wait_more:
 	while ((childpid = waitpid(-1, &status, attributes)) > 0) {
@@ -1437,8 +1496,10 @@ static int checkjobs(struct pipe* fg_pipe)
 							fg_pipe->running_progs, fg_pipe->stopped_progs);
 					if (fg_pipe->running_progs - fg_pipe->stopped_progs <= 0) {
 						/* All processes in fg pipe have exited/stopped */
+#if ENABLE_HUSH_INTERACTIVE
 						if (fg_pipe->running_progs)
 							insert_bg_job(fg_pipe);
+#endif
 						return rcode;
 					}
 					/* There are still running processes in the fg pipe */
@@ -1448,6 +1509,7 @@ static int checkjobs(struct pipe* fg_pipe)
 			/* fall through to searching process in bg pipes */
 		}
 
+#if ENABLE_HUSH_INTERACTIVE
 		/* We asked to wait for bg or orphaned children */
 		/* No need to remember exitcode in this case */
 		for (pi = job_list; pi; pi = pi->next) {
@@ -1458,11 +1520,13 @@ static int checkjobs(struct pipe* fg_pipe)
 				prognum++;
 			}
 		}
+#endif
 
 		/* Happens when shell is used as init process (init=/bin/sh) */
 		debug_printf("checkjobs: pid %d was not in our list!\n", childpid);
 		goto wait_more;
 
+#if ENABLE_HUSH_INTERACTIVE
  found_pi_and_prognum:
 		if (dead) {
 			/* child exited */
@@ -1478,6 +1542,7 @@ static int checkjobs(struct pipe* fg_pipe)
 			pi->stopped_progs++;
 			pi->progs[prognum].is_stopped = 1;
 		}
+#endif
 	}
 
 	/* wait found no children or failed */
@@ -1491,6 +1556,7 @@ static int checkjobs(struct pipe* fg_pipe)
 	return rcode;
 }
 
+#if ENABLE_HUSH_INTERACTIVE
 static int checkjobs_and_fg_shell(struct pipe* fg_pipe)
 {
 	pid_t p;
@@ -1502,11 +1568,14 @@ static int checkjobs_and_fg_shell(struct pipe* fg_pipe)
 		bb_perror_msg("tcsetpgrp-4a");
 	return rcode;
 }
+#endif
 
+#if ENABLE_FEATURE_SH_STANDALONE
 /* run_pipe_real's helper */
 static int run_single_fg_nofork(struct pipe *pi, const struct bb_applet *a,
 		char **argv)
 {
+#if ENABLE_HUSH_INTERACTIVE
 	int rcode;
 	/* TSTP handler will store pid etc in pi */
 	nofork_pipe = pi;
@@ -1532,7 +1601,11 @@ static int run_single_fg_nofork(struct pipe *pi, const struct bb_applet *a,
 	else
 		putchar('\n'); /* bash does this on Ctrl-C */
 	return 0;
+#else
+	return run_nofork_applet(a, argv);
+#endif
 }
+#endif
 
 /* run_pipe_real() starts all the jobs, but doesn't wait for anything
  * to finish.  See checkjobs().
@@ -1564,7 +1637,9 @@ static int run_pipe_real(struct pipe *pi)
 	const int single_fg = (pi->num_progs == 1 && pi->followup != PIPE_BG);
 
 	nextin = 0;
+#if ENABLE_HUSH_INTERACTIVE
 	pi->pgrp = -1;
+#endif
 	pi->running_progs = 0;
 	pi->stopped_progs = 0;
 
@@ -1691,6 +1766,7 @@ static int run_pipe_real(struct pipe *pi)
 		if (!child->pid) { /* child */
 			/* Every child adds itself to new process group
 			 * with pgid == pid of first child in pipe */
+#if ENABLE_HUSH_INTERACTIVE
 			if (interactive_fd) {
 				/* Don't do pgrp restore anymore on fatal signals */
 				set_fatal_sighandler(SIG_DFL);
@@ -1702,6 +1778,7 @@ static int run_pipe_real(struct pipe *pi)
 					tcsetpgrp(interactive_fd, pi->pgrp);
 				}
 			}
+#endif
 			// in non-interactive case fatal sigs are already SIG_DFL
 			close_all();
 			if (nextin != 0) {
@@ -1728,9 +1805,11 @@ static int run_pipe_real(struct pipe *pi)
 
 		pi->running_progs++;
 
+#if ENABLE_HUSH_INTERACTIVE
 		/* Second and next children need to know pid of first one */
 		if (pi->pgrp < 0)
 			pi->pgrp = child->pid;
+#endif
 
 		/* Don't check for errors.  The child may be dead already,
 		 * in which case setpgid returns error code EACCES. */
@@ -1858,7 +1937,9 @@ static int run_list_real(struct pipe *pi)
 			/* XXX check bash's behavior with nontrivial pipes */
 			/* XXX compute jobid */
 			/* XXX what does bash do with attempts to background builtins? */
+#if ENABLE_HUSH_INTERACTIVE
 			insert_bg_job(pi);
+#endif
 			rcode = EXIT_SUCCESS;
 		} else {
 			if (interactive_fd) {
@@ -1931,8 +2012,10 @@ static int free_pipe(struct pipe *pi, int indent)
 	}
 	free(pi->progs);   /* children are an array, they get freed all at once */
 	pi->progs = NULL;
+#if ENABLE_HUSH_INTERACTIVE
 	free(pi->cmdtext);
 	pi->cmdtext = NULL;
+#endif
 	return ret_code;
 }
 
@@ -3041,6 +3124,7 @@ static int parse_file_outer(FILE *f)
 	return rcode;
 }
 
+#if ENABLE_HUSH_INTERACTIVE
 /* Make sure we have a controlling tty.  If we get started under a job
  * aware app (like bash for example), make sure we are now in charge so
  * we don't fight over who gets the foreground */
@@ -3055,7 +3139,7 @@ static void setup_job_control(void)
 	/* If we were ran as 'hush &',
 	 * sleep until we are in the foreground.  */
 	while (tcgetpgrp(interactive_fd) != shell_pgrp) {
-		/* Send TTIN to ourself (will stop us) */
+		/* Send TTIN to ourself (should stop us) */
 		kill(- shell_pgrp, SIGTTIN);
 		shell_pgrp = getpgrp();
 	}
@@ -3073,6 +3157,7 @@ static void setup_job_control(void)
 	/* Grab control of the terminal.  */
 	tcsetpgrp(interactive_fd, getpid());
 }
+#endif
 
 int hush_main(int argc, char **argv);
 int hush_main(int argc, char **argv)
@@ -3095,11 +3180,13 @@ int hush_main(int argc, char **argv)
 	ifs = NULL;
 	/* map[] is taken care of with call to update_ifs_map() */
 	fake_mode = 0;
-	interactive_fd = 0;
 	close_me_head = NULL;
+#if ENABLE_HUSH_INTERACTIVE
+	interactive_fd = 0;
 	last_bg_pid = 0;
 	job_list = NULL;
 	last_jobid = 0;
+#endif
 
 	/* Initialize some more globals to non-zero values */
 	set_cwd();
@@ -3154,6 +3241,7 @@ int hush_main(int argc, char **argv)
 #endif
 		}
 	}
+#if ENABLE_HUSH_INTERACTIVE
 	/* A shell is interactive if the '-i' flag was given, or if all of
 	 * the following conditions are met:
 	 *    no -c command
@@ -3180,7 +3268,6 @@ int hush_main(int argc, char **argv)
 			// to (inadvertently) close/redirect it
 		}
 	}
-
 	debug_printf("\ninteractive_fd=%d\n", interactive_fd);
 	if (interactive_fd) {
 		/* Looks like they want an interactive shell */
@@ -3196,6 +3283,7 @@ int hush_main(int argc, char **argv)
 		printf("Enter 'help' for a list of built-in commands.\n\n");
 #endif
 	}
+#endif
 
 	if (argv[optind] == NULL) {
 		opt = parse_file_outer(stdin);
