@@ -181,9 +181,21 @@ config HUSH_INTERACTIVE
 	default y
 	depends on HUSH
 	help
-	  Enable interactive mode (Ctrl-Z, Ctrl-C, command editing)
-	  in the hush shell. Without this, hush reads and executes
-	  stdin just like a shell script from the file.
+	  Enable interactive mode (prompt and command editing).
+	  Without this, hush simply reads and executes commands
+	  from stdin just like a shell script from the file.
+	  No prompt, no PS1/PS2 magic shell variables.
+
+config HUSH_JOB
+	bool "Job control"
+	default n
+	depends on HUSH_INTERACTIVE
+	help
+	  Enable job control: Ctrl-Z backgrounds, Ctrl-C interrupts current
+	  command (not entire shell), fg/bg builtins work. Without this option,
+	  "cmd &" still works by simply spawning a process and immediately
+	  prompting for next command (or executing next command in a script),
+	  but no separate process group is formed.
 
 
 config LASH

@@ -86,10 +86,6 @@
 /* Finer-grained debug switch */
 //#define DEBUG_SHELL_JOBS
 
-//TODO: rename HUSH_INTERACTIVE -> HUSH_JOB,
-//create HUSH_INTERACTIVE which controls only prompt + line editing,
-//make HUSH_JOB dependent on it
-
 #if !ENABLE_HUSH_INTERACTIVE
 #undef ENABLE_FEATURE_EDITING
 #define ENABLE_FEATURE_EDITING 0
@@ -204,7 +200,7 @@ struct pipe {
 	int num_progs;              /* total number of programs in job */
 	int running_progs;          /* number of programs running (not exited) */
 	char *cmdbuf;               /* buffer various argv's point into */
-#if ENABLE_HUSH_INTERACTIVE
+#if ENABLE_HUSH_JOB
 	int jobid;                  /* job number */
 	char *cmdtext;              /* name of job */
 	pid_t pgrp;                 /* process group ID for the job */
@@ -243,25 +239,26 @@ static int fake_mode;
 static struct close_me *close_me_head;
 static const char *cwd;
 static unsigned last_bg_pid;
-#if ENABLE_HUSH_INTERACTIVE
-static int last_jobid;
-static struct pipe *job_list;
+#if !ENABLE_HUSH_INTERACTIVE
+enum { interactive_fd = 0 };
+#else
 /* 'interactive_fd' is a fd# open to ctty, if we have one
  * _AND_ if we decided to mess with job control */
 static int interactive_fd;
+#if ENABLE_HUSH_JOB
 static pid_t saved_task_pgrp;
 static pid_t saved_tty_pgrp;
-#else
-enum { interactive_fd = 0 };
+static int last_jobid;
+static struct pipe *job_list;
 #endif
-
 static const char *PS1;
 static const char *PS2;
+#endif
+
 static struct variables shell_ver = { NULL, "HUSH_VERSION", "0.01", 1, 1 };
 static struct variables *top_vars = &shell_ver;
 
-
-#define B_CHUNK (100)
+#define B_CHUNK  100
 #define B_NOSPAC 1
 
 typedef struct {
@@ -280,8 +277,10 @@ typedef struct {
 struct in_str {
 	const char *p;
 	char peek_buf[2];
+#if ENABLE_HUSH_INTERACTIVE
 	int __promptme;
 	int promptmode;
+#endif
 	FILE *file;
 	int (*get) (struct in_str *);
 	int (*peek) (struct in_str *);
@@ -323,12 +322,11 @@ static char *indenter(int i)
 
 #define final_printf debug_printf
 
-static void __syntax(const char *file, int line)
+static void __syntax(int line)
 {
-	bb_error_msg("syntax error %s:%d", file, line);
+	bb_error_msg("syntax error hush.c:%d", line);
 }
-/* NB: was __FILE__, but that produces full path sometimes, so... */
-#define syntax() __syntax("hush.c", __LINE__)
+#define syntax() __syntax(__LINE__)
 
 /* Index of subroutines: */
 /*   function prototypes for builtins */
@@ -338,7 +336,7 @@ static int builtin_eval(char **argv);
 static int builtin_exec(char **argv);
 static int builtin_exit(char **argv);
 static int builtin_export(char **argv);
-#if ENABLE_HUSH_INTERACTIVE
+#if ENABLE_HUSH_JOB
 static int builtin_fg_bg(char **argv);
 static int builtin_jobs(char **argv);
 #endif
@@ -405,7 +403,7 @@ static int parse_string_outer(const char *s, int flag);
 static int parse_file_outer(FILE *f);
 /*   job management: */
 static int checkjobs(struct pipe* fg_pipe);
-#if ENABLE_HUSH_INTERACTIVE
+#if ENABLE_HUSH_JOB
 static int checkjobs_and_fg_shell(struct pipe* fg_pipe);
 static void insert_bg_job(struct pipe *pi);
 static void remove_bg_job(struct pipe *pi);
@@ -427,7 +425,7 @@ static void unset_local_var(const char *name);
  * For example, 'unset foo | whatever' will parse and run, but foo will
  * still be set at the end. */
 static const struct built_in_command bltins[] = {
-#if ENABLE_HUSH_INTERACTIVE
+#if ENABLE_HUSH_JOB
 	{ "bg", "Resume a job in the background", builtin_fg_bg },
 #endif
 	{ "break", "Exit for, while or until loop", builtin_not_written },
@@ -439,7 +437,7 @@ static const struct built_in_command bltins[] = {
 		builtin_exec },
 	{ "exit", "Exit from shell()", builtin_exit },
 	{ "export", "Set environment variable", builtin_export },
-#if ENABLE_HUSH_INTERACTIVE
+#if ENABLE_HUSH_JOB
 	{ "fg", "Bring job into the foreground", builtin_fg_bg },
 	{ "jobs", "Lists the active jobs", builtin_jobs },
 #endif
@@ -457,7 +455,7 @@ static const struct built_in_command bltins[] = {
 	{ NULL, NULL, NULL }
 };
 
-#if ENABLE_HUSH_INTERACTIVE
+#if ENABLE_HUSH_JOB
 
 #if ENABLE_FEATURE_SH_STANDALONE
 /* move to libbb? */
@@ -727,7 +725,7 @@ static int builtin_export(char **argv)
 	return res;
 }
 
-#if ENABLE_HUSH_INTERACTIVE
+#if ENABLE_HUSH_JOB
 /* built-in 'fg' and 'bg' handler */
 static int builtin_fg_bg(char **argv)
 {
@@ -807,7 +805,7 @@ static int builtin_help(char **argv ATTRIBUTE_UNUSED)
 	return EXIT_SUCCESS;
 }
 
-#if ENABLE_HUSH_INTERACTIVE
+#if ENABLE_HUSH_JOB
 /* built-in 'jobs' handler */
 static int builtin_jobs(char **argv ATTRIBUTE_UNUSED)
 {
@@ -1032,6 +1030,7 @@ static int static_peek(struct in_str *i)
 	return *i->p;
 }
 
+#if ENABLE_HUSH_INTERACTIVE
 static void cmdedit_set_initial_prompt(void)
 {
 #if !ENABLE_FEATURE_EDITING_FANCY_PROMPT
@@ -1065,17 +1064,19 @@ static const char* setup_prompt_string(int promptmode)
 	debug_printf("result %s\n", prompt_str);
 	return prompt_str;
 }
+#endif
 
 #if ENABLE_FEATURE_EDITING
 static line_input_t *line_input_state;
 #endif
 
+#if ENABLE_HUSH_INTERACTIVE
 static int get_user_input(struct in_str *i)
 {
+	static char the_command[ENABLE_FEATURE_EDITING ? BUFSIZ : 2];
+
 	int r;
 	const char *prompt_str;
-	static char the_command[BUFSIZ];
-
 	prompt_str = setup_prompt_string(i->promptmode);
 #if ENABLE_FEATURE_EDITING
 	/*
@@ -1095,6 +1096,7 @@ static int get_user_input(struct in_str *i)
 	i->p = the_command;
 	return r; /* < 0 == EOF. Not meaningful otherwise */
 }
+#endif
 
 /* This is the magic location that prints prompts
  * and gets data back from the user */
@@ -1109,7 +1111,8 @@ static int file_get(struct in_str *i)
 	} else {
 		/* need to double check i->file because we might be doing something
 		 * more complicated by now, like sourcing or substituting. */
-		if (i->__promptme && interactive_fd && i->file == stdin) {
+#if ENABLE_HUSH_INTERACTIVE
+		if (interactive_fd && i->__promptme && i->file == stdin) {
 			while (!i->p || !(interactive_fd && i->p[0])) {
 				if (get_user_input(i) < 0)
 					return EOF;
@@ -1119,14 +1122,17 @@ static int file_get(struct in_str *i)
 			if (i->p && *i->p) {
 				ch = *i->p++;
 			}
-		} else {
+		} else
+#endif
+		{
 			ch = fgetc(i->file);
 		}
-
 		debug_printf("b_getch: got a %d\n", ch);
 	}
+#if ENABLE_HUSH_INTERACTIVE
 	if (ch == '\n')
 		i->__promptme = 1;
+#endif
 	return ch;
 }
 
@@ -1149,8 +1155,10 @@ static void setup_file_in_str(struct in_str *i, FILE *f)
 {
 	i->peek = file_peek;
 	i->get = file_get;
+#if ENABLE_HUSH_INTERACTIVE
 	i->__promptme = 1;
 	i->promptmode = 1;
+#endif
 	i->file = f;
 	i->p = NULL;
 }
@@ -1159,8 +1167,10 @@ static void setup_string_in_str(struct in_str *i, const char *s)
 {
 	i->peek = static_peek;
 	i->get = static_get;
+#if ENABLE_HUSH_INTERACTIVE
 	i->__promptme = 1;
 	i->promptmode = 1;
+#endif
 	i->p = s;
 }
 
@@ -1333,7 +1343,7 @@ static void pseudo_exec(struct child_prog *child)
 	_exit(EXIT_SUCCESS);
 }
 
-#if ENABLE_HUSH_INTERACTIVE
+#if ENABLE_HUSH_JOB
 static const char *get_cmdtext(struct pipe *pi)
 {
 	char **argv;
@@ -1364,7 +1374,7 @@ static const char *get_cmdtext(struct pipe *pi)
 }
 #endif
 
-#if ENABLE_HUSH_INTERACTIVE
+#if ENABLE_HUSH_JOB
 static void insert_bg_job(struct pipe *pi)
 {
 	struct pipe *thejob;
@@ -1436,7 +1446,7 @@ static int checkjobs(struct pipe* fg_pipe)
 {
 	int attributes;
 	int status;
-#if ENABLE_HUSH_INTERACTIVE
+#if ENABLE_HUSH_JOB
 	int prognum = 0;
 	struct pipe *pi;
 #endif
@@ -1496,7 +1506,7 @@ static int checkjobs(struct pipe* fg_pipe)
 							fg_pipe->running_progs, fg_pipe->stopped_progs);
 					if (fg_pipe->running_progs - fg_pipe->stopped_progs <= 0) {
 						/* All processes in fg pipe have exited/stopped */
-#if ENABLE_HUSH_INTERACTIVE
+#if ENABLE_HUSH_JOB
 						if (fg_pipe->running_progs)
 							insert_bg_job(fg_pipe);
 #endif
@@ -1509,7 +1519,7 @@ static int checkjobs(struct pipe* fg_pipe)
 			/* fall through to searching process in bg pipes */
 		}
 
-#if ENABLE_HUSH_INTERACTIVE
+#if ENABLE_HUSH_JOB
 		/* We asked to wait for bg or orphaned children */
 		/* No need to remember exitcode in this case */
 		for (pi = job_list; pi; pi = pi->next) {
@@ -1526,7 +1536,7 @@ static int checkjobs(struct pipe* fg_pipe)
 		debug_printf("checkjobs: pid %d was not in our list!\n", childpid);
 		goto wait_more;
 
-#if ENABLE_HUSH_INTERACTIVE
+#if ENABLE_HUSH_JOB
  found_pi_and_prognum:
 		if (dead) {
 			/* child exited */
@@ -1556,7 +1566,7 @@ static int checkjobs(struct pipe* fg_pipe)
 	return rcode;
 }
 
-#if ENABLE_HUSH_INTERACTIVE
+#if ENABLE_HUSH_JOB
 static int checkjobs_and_fg_shell(struct pipe* fg_pipe)
 {
 	pid_t p;
@@ -1575,7 +1585,7 @@ static int checkjobs_and_fg_shell(struct pipe* fg_pipe)
 static int run_single_fg_nofork(struct pipe *pi, const struct bb_applet *a,
 		char **argv)
 {
-#if ENABLE_HUSH_INTERACTIVE
+#if ENABLE_HUSH_JOB
 	int rcode;
 	/* TSTP handler will store pid etc in pi */
 	nofork_pipe = pi;
@@ -1637,7 +1647,7 @@ static int run_pipe_real(struct pipe *pi)
 	const int single_fg = (pi->num_progs == 1 && pi->followup != PIPE_BG);
 
 	nextin = 0;
-#if ENABLE_HUSH_INTERACTIVE
+#if ENABLE_HUSH_JOB
 	pi->pgrp = -1;
 #endif
 	pi->running_progs = 0;
@@ -1766,7 +1776,7 @@ static int run_pipe_real(struct pipe *pi)
 		if (!child->pid) { /* child */
 			/* Every child adds itself to new process group
 			 * with pgid == pid of first child in pipe */
-#if ENABLE_HUSH_INTERACTIVE
+#if ENABLE_HUSH_JOB
 			if (interactive_fd) {
 				/* Don't do pgrp restore anymore on fatal signals */
 				set_fatal_sighandler(SIG_DFL);
@@ -1805,7 +1815,7 @@ static int run_pipe_real(struct pipe *pi)
 
 		pi->running_progs++;
 
-#if ENABLE_HUSH_INTERACTIVE
+#if ENABLE_HUSH_JOB
 		/* Second and next children need to know pid of first one */
 		if (pi->pgrp < 0)
 			pi->pgrp = child->pid;
@@ -1937,14 +1947,17 @@ static int run_list_real(struct pipe *pi)
 			/* XXX check bash's behavior with nontrivial pipes */
 			/* XXX compute jobid */
 			/* XXX what does bash do with attempts to background builtins? */
-#if ENABLE_HUSH_INTERACTIVE
+#if ENABLE_HUSH_JOB
 			insert_bg_job(pi);
 #endif
 			rcode = EXIT_SUCCESS;
 		} else {
+#if ENABLE_HUSH_JOB
 			if (interactive_fd) {
 				rcode = checkjobs_and_fg_shell(pi);
-			} else {
+			} else
+#endif
+			{
 				rcode = checkjobs(pi);
 			}
 			debug_printf("checkjobs returned %d\n", rcode);
@@ -2012,7 +2025,7 @@ static int free_pipe(struct pipe *pi, int indent)
 	}
 	free(pi->progs);   /* children are an array, they get freed all at once */
 	pi->progs = NULL;
-#if ENABLE_HUSH_INTERACTIVE
+#if ENABLE_HUSH_JOB
 	free(pi->cmdtext);
 	pi->cmdtext = NULL;
 #endif
@@ -3084,7 +3097,9 @@ static int parse_stream_outer(struct in_str *inp, int flag)
 		update_ifs_map();
 		if (!(flag & FLAG_PARSE_SEMICOLON) || (flag & FLAG_REPARSING))
 			 mapset(";$&|", 0);
+#if ENABLE_HUSH_INTERACTIVE
 		inp->promptmode = 1;
+#endif
 		rcode = parse_stream(&temp, &ctx, inp, '\n');
 		if (rcode != 1 && ctx.old_flag != 0) {
 			syntax();
@@ -3124,7 +3139,7 @@ static int parse_file_outer(FILE *f)
 	return rcode;
 }
 
-#if ENABLE_HUSH_INTERACTIVE
+#if ENABLE_HUSH_JOB
 /* Make sure we have a controlling tty.  If we get started under a job
  * aware app (like bash for example), make sure we are now in charge so
  * we don't fight over who gets the foreground */
@@ -3183,6 +3198,8 @@ int hush_main(int argc, char **argv)
 	close_me_head = NULL;
 #if ENABLE_HUSH_INTERACTIVE
 	interactive_fd = 0;
+#endif
+#if ENABLE_HUSH_JOB
 	last_bg_pid = 0;
 	job_list = NULL;
 	last_jobid = 0;
@@ -3190,11 +3207,14 @@ int hush_main(int argc, char **argv)
 
 	/* Initialize some more globals to non-zero values */
 	set_cwd();
-	if (ENABLE_FEATURE_EDITING)
-		cmdedit_set_initial_prompt();
-	else PS1 = NULL;
+#if ENABLE_HUSH_INTERACTIVE
+#if ENABLE_FEATURE_EDITING
+	cmdedit_set_initial_prompt();
+#else
+	PS1 = NULL;
+#endif
 	PS2 = "> ";
-
+#endif
 	/* initialize our shell local variables with the values
 	 * currently living in the environment */
 	e = environ;
@@ -3241,7 +3261,7 @@ int hush_main(int argc, char **argv)
 #endif
 		}
 	}
-#if ENABLE_HUSH_INTERACTIVE
+#if ENABLE_HUSH_JOB
 	/* A shell is interactive if the '-i' flag was given, or if all of
 	 * the following conditions are met:
 	 *    no -c command
@@ -3283,6 +3303,21 @@ int hush_main(int argc, char **argv)
 		printf("Enter 'help' for a list of built-in commands.\n\n");
 #endif
 	}
+#elif ENABLE_HUSH_INTERACTIVE
+/* no job control compiled, only prompt/line editing */
+	if (argv[optind] == NULL && input == stdin
+	 && isatty(STDIN_FILENO) && isatty(STDOUT_FILENO)
+	) {
+		interactive_fd = fcntl(STDIN_FILENO, F_DUPFD, 255);
+		if (interactive_fd < 0) {
+			/* try to dup to any fd */
+			interactive_fd = dup(STDIN_FILENO);
+			if (interactive_fd < 0)
+				/* give up */
+				interactive_fd = 0;
+		}
+	}
+
 #endif
 
 	if (argv[optind] == NULL) {
