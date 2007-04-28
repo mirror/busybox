@@ -481,6 +481,13 @@ struct nofork_save_area nofork_save;
 static sigjmp_buf nofork_jb;
 static struct pipe *nofork_pipe;
 
+static void handler_ctrl_c(int sig)
+{
+	debug_jobs_printf("got sig %d\n", sig);
+// as usual we can have all kinds of nasty problems with leaked malloc data here
+	siglongjmp(nofork_jb, 1);
+}
+
 static void handler_ctrl_z(int sig)
 {
 	pid_t pid;
@@ -1503,6 +1510,7 @@ static int run_single_fg_nofork(struct pipe *pi, const struct bb_applet *a,
 	save_nofork_data(&nofork_save);
 	if (sigsetjmp(nofork_jb, 1) == 0) {
 		signal_SA_RESTART(SIGTSTP, handler_ctrl_z);
+		signal(SIGINT, handler_ctrl_c);
 		rcode = run_nofork_applet_prime(&nofork_save, a, argv);
 		if (--nofork_save.saved != 0) {
 			/* Ctrl-Z forked, we are child */
@@ -1510,12 +1518,16 @@ static int run_single_fg_nofork(struct pipe *pi, const struct bb_applet *a,
 		}
 		return rcode;
 	}
-	/* Ctrl-Z forked, we are parent.
+	/* Ctrl-Z forked, we are parent; or Ctrl-C.
 	 * Sighandler has longjmped us here */
+	signal(SIGINT, SIG_IGN);
 	signal(SIGTSTP, SIG_IGN);
 	debug_jobs_printf("Exiting nofork early\n");
 	restore_nofork_data(&nofork_save);
-	insert_bg_job(pi);
+	if (nofork_save.saved == 0) /* Ctrl-Z, not Ctrl-C */
+		insert_bg_job(pi);
+	else
+		putchar('\n'); /* bash does this on Ctrl-C */
 	return 0;
 }
 
@@ -2467,7 +2479,7 @@ static int done_command(struct p_context *ctx)
 	prog = pi->progs + pi->num_progs;
 	memset(prog, 0, sizeof(*prog));
 	/*prog->redirects = NULL;*/
-	/*prog->argv = NULL;
+	/*prog->argv = NULL; */
 	/*prog->is_stopped = 0;*/
 	/*prog->group = NULL;*/
 	/*prog->glob_result.gl_pathv = NULL;*/
