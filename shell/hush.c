@@ -193,7 +193,7 @@ struct pipe {
 	int jobid;                  /* job number */
 	int num_progs;              /* total number of programs in job */
 	int running_progs;          /* number of programs running (not exited) */
-	char *text;                 /* name of job */
+	char *cmdtext;              /* name of job */
 	char *cmdbuf;               /* buffer various argv's point into */
 	pid_t pgrp;                 /* process group ID for the job */
 	struct child_prog *progs;   /* array of commands in pipe */
@@ -441,6 +441,42 @@ static void signal_SA_RESTART(int sig, void (*handler)(int))
 	sigaction(sig, &sa, NULL);
 }
 
+/* Signals are grouped, we handle them in batches */
+static void set_fatal_sighandler(void (*handler)(int))
+{
+	signal(SIGILL , handler);
+	signal(SIGTRAP, handler);
+	signal(SIGABRT, handler);
+	signal(SIGFPE , handler);
+	signal(SIGBUS , handler);
+	signal(SIGSEGV, handler);
+	/* bash 3.2 seems to handle these just like 'fatal' ones */
+	signal(SIGHUP , handler);
+	signal(SIGPIPE, handler);
+	signal(SIGALRM, handler);
+}
+static void set_jobctrl_sighandler(void (*handler)(int))
+{
+	signal(SIGTSTP, handler);
+	signal(SIGTTIN, handler);
+	signal(SIGTTOU, handler);
+}
+static void set_misc_sighandler(void (*handler)(int))
+{
+	signal(SIGINT , handler);
+	signal(SIGQUIT, handler);
+	signal(SIGTERM, handler);
+}
+/* SIGCHLD is special and handled separately */
+
+static void set_every_sighandler(void (*handler)(int))
+{
+	set_fatal_sighandler(handler);
+	set_jobctrl_sighandler(handler);
+	set_misc_sighandler(handler);
+	signal(SIGCHLD, handler);
+}
+
 struct nofork_save_area nofork_save;
 static sigjmp_buf nofork_jb;
 static struct pipe *nofork_pipe;
@@ -460,7 +496,7 @@ static void handler_ctrl_z(int sig)
 	if (!pid) { /* child */
 		debug_jobs_printf("setting pgrp for child\n");
 		setpgrp();
-		signal(SIGTSTP, SIG_DFL); /* make child do default action (stop) */
+		set_every_sighandler(SIG_DFL);
 		raise(SIGTSTP); /* resend TSTP so that child will be stopped */
 		debug_jobs_printf("returning to child\n");
 		/* return to nofork, it will eventually exit now,
@@ -515,35 +551,6 @@ static void hush_exit(int exitcode)
 	fflush(NULL); /* flush all streams */
 	sigexit(- (exitcode & 0xff));
 }
-
-/* Signals are grouped, we handle them in batches */
-static void set_fatal_sighandler(void (*handler)(int))
-{
-	signal(SIGILL , handler);
-	signal(SIGTRAP, handler);
-	signal(SIGABRT, handler);
-	signal(SIGFPE , handler);
-	signal(SIGBUS , handler);
-	signal(SIGSEGV, handler);
-	/* bash 3.2 seems to handle these just like 'fatal' ones,
-	 * but _without_ printing signal name. TODO: mimic this too? */
-	signal(SIGHUP , handler);
-	signal(SIGPIPE, handler);
-	signal(SIGALRM, handler);
-}
-static void set_jobctrl_sighandler(void (*handler)(int))
-{
-	signal(SIGTSTP, handler);
-	signal(SIGTTIN, handler);
-	signal(SIGTTOU, handler);
-}
-static void set_misc_sighandler(void (*handler)(int))
-{
-	signal(SIGINT , handler);
-	signal(SIGQUIT, handler);
-	signal(SIGTERM, handler);
-}
-/* SIGCHLD is special and handled separately */
 
 static const char *set_cwd(void)
 {
@@ -719,6 +726,7 @@ static int builtin_fg_bg(char **argv)
 	if (i < 0) {
 		if (errno == ESRCH) {
 			delete_finished_bg_job(pi);
+			return EXIT_SUCCESS;
 		} else {
 			bb_perror_msg("kill (SIGCONT)");
 		}
@@ -759,7 +767,7 @@ static int builtin_jobs(char **argv ATTRIBUTE_UNUSED)
 		else
 			status_string = "Running";
 
-		printf(JOB_STATUS_FORMAT, job->jobid, status_string, job->text);
+		printf(JOB_STATUS_FORMAT, job->jobid, status_string, job->cmdtext);
 	}
 	return EXIT_SUCCESS;
 }
@@ -1266,6 +1274,35 @@ static void pseudo_exec(struct child_prog *child)
 	_exit(EXIT_SUCCESS);
 }
 
+static const char *get_cmdtext(struct pipe *pi)
+{
+	char **argv;
+	char *p;
+	int len;
+
+	/* This is subtle. ->cmdtext is created only on first backgrounding.
+	 * (Think "cat, <ctrl-z>, fg, <ctrl-z>, fg, <ctrl-z>...." here...)
+	 * On subsequent bg argv can be trashed, but we won't use it */
+	if (pi->cmdtext)
+		return pi->cmdtext;
+	argv = pi->progs[0].argv;
+	if (!argv || !argv[0])
+		return (pi->cmdtext = xzalloc(1));
+
+	len = 0;
+	do len += strlen(*argv) + 1; while (*++argv);
+	pi->cmdtext = p = xmalloc(len);
+	argv = pi->progs[0].argv;
+	do {
+		len = strlen(*argv);
+		memcpy(p, *argv, len);
+		p += len;
+		*p++ = ' ';
+	} while (*++argv);
+	p[-1] = '\0';
+	return pi->cmdtext;
+}
+
 static void insert_bg_job(struct pipe *pi)
 {
 	struct pipe *thejob;
@@ -1288,27 +1325,17 @@ static void insert_bg_job(struct pipe *pi)
 
 	/* physically copy the struct job */
 	memcpy(thejob, pi, sizeof(struct pipe));
-// (pi->num_progs+1) is one-too-many I think?
-	thejob->progs = xmalloc(sizeof(pi->progs[0]) * (pi->num_progs+1));
-	memcpy(thejob->progs, pi->progs, sizeof(pi->progs[0]) * (pi->num_progs+1));
+	thejob->progs = xmalloc(sizeof(pi->progs[0]) * pi->num_progs);
+	memcpy(thejob->progs, pi->progs, sizeof(pi->progs[0]) * pi->num_progs);
 	thejob->next = NULL;
 	/*seems to be wrong:*/
 	/*thejob->running_progs = thejob->num_progs;*/
 	/*thejob->stopped_progs = 0;*/
-	thejob->text = xmalloc(BUFSIZ); /* cmdedit buffer size */
-	//if (pi->progs[0] && pi->progs[0].argv && pi->progs[0].argv[0])
-	{
-	// FIXME: overflow check? and also trim the size, BUFSIZ can be 4K!
-		char *bar = thejob->text;
-		char **foo = pi->progs[0].argv;
-		if (foo)
-			while (*foo)
-				bar += sprintf(bar, "%s ", *foo++);
-	}
+	thejob->cmdtext = xstrdup(get_cmdtext(pi));
 
 	/* we don't wait for background thejobs to return -- append it
 	   to the list of backgrounded thejobs and leave it alone */
-	printf("[%d] %d\n", thejob->jobid, thejob->progs[0].pid);
+	printf("[%d] %d %s\n", thejob->jobid, thejob->progs[0].pid, thejob->cmdtext);
 	last_bg_pid = thejob->progs[0].pid;
 	last_jobid = thejob->jobid;
 }
@@ -1433,7 +1460,7 @@ static int checkjobs(struct pipe* fg_pipe)
 			pi->running_progs--;
 			if (!pi->running_progs) {
 				printf(JOB_STATUS_FORMAT, pi->jobid,
-							"Done", pi->text);
+							"Done", pi->cmdtext);
 				delete_finished_bg_job(pi);
 			}
 		} else {
@@ -1464,6 +1491,32 @@ static int checkjobs_and_fg_shell(struct pipe* fg_pipe)
 	if (tcsetpgrp(interactive_fd, p) && errno != ENOTTY)
 		bb_perror_msg("tcsetpgrp-4a");
 	return rcode;
+}
+
+/* run_pipe_real's helper */
+static int run_single_fg_nofork(struct pipe *pi, const struct bb_applet *a,
+		char **argv)
+{
+	int rcode;
+	/* TSTP handler will store pid etc in pi */
+	nofork_pipe = pi;
+	save_nofork_data(&nofork_save);
+	if (sigsetjmp(nofork_jb, 1) == 0) {
+		signal_SA_RESTART(SIGTSTP, handler_ctrl_z);
+		rcode = run_nofork_applet_prime(&nofork_save, a, argv);
+		if (--nofork_save.saved != 0) {
+			/* Ctrl-Z forked, we are child */
+			exit(rcode);
+		}
+		return rcode;
+	}
+	/* Ctrl-Z forked, we are parent.
+	 * Sighandler has longjmped us here */
+	signal(SIGTSTP, SIG_IGN);
+	debug_jobs_printf("Exiting nofork early\n");
+	restore_nofork_data(&nofork_save);
+	insert_bg_job(pi);
+	return 0;
 }
 
 /* run_pipe_real() starts all the jobs, but doesn't wait for anything
@@ -1575,6 +1628,7 @@ static int run_pipe_real(struct pipe *pi)
 				 * This is perfect for work that comes after exec().
 				 * Is it really safe for inline use?  Experimentally,
 				 * things seem to work with glibc. */
+// TODO: fflush(NULL)?
 				setup_redirects(child, squirrel);
 				rcode = x->function(argv + i);
 				restore_redirects(squirrel);
@@ -1586,31 +1640,15 @@ static int run_pipe_real(struct pipe *pi)
 			const struct bb_applet *a = find_applet_by_name(argv[i]);
 			if (a && a->nofork) {
 				setup_redirects(child, squirrel);
-				/* TSTP handler will store pid etc in pi */
-				nofork_pipe = pi;
-				save_nofork_data(&nofork_save);
-				if (sigsetjmp(nofork_jb, 1) == 0) {
-					signal_SA_RESTART(SIGTSTP, handler_ctrl_z);
-					rcode = run_nofork_applet_prime(&nofork_save, a, argv + i);
-					if (--nofork_save.saved != 0)
-						/* Ctrl-Z! forked, we are child */
-						exit(rcode);
-					restore_redirects(squirrel);
-					return rcode;
-				} else {
-					/* Ctrl-Z, forked, we are parent.
-					 * Sighandler has longjmped us here */
-					signal(SIGTSTP, SIG_IGN);
-					debug_jobs_printf("Exiting nofork early\n");
-					restore_nofork_data(&nofork_save);
-					restore_redirects(squirrel);
-					insert_bg_job(pi);
-					return 0;
-				}
+				rcode = run_single_fg_nofork(pi, a, argv + i);
+				restore_redirects(squirrel);
+				return rcode;
 			}
 		}
 #endif
 	}
+
+	/* Going to fork a child per each pipe member */
 
 	/* Disable job control signals for shell (parent) and
 	 * for initial child code after fork */
@@ -1639,6 +1677,8 @@ static int run_pipe_real(struct pipe *pi)
 			/* Every child adds itself to new process group
 			 * with pgid == pid of first child in pipe */
 			if (interactive_fd) {
+				/* Don't do pgrp restore anymore on fatal signals */
+				set_fatal_sighandler(SIG_DFL);
 				if (pi->pgrp < 0) /* true for 1st process only */
 					pi->pgrp = getpid();
 				if (setpgid(0, pi->pgrp) == 0 && pi->followup != PIPE_BG) {
@@ -1646,8 +1686,6 @@ static int run_pipe_real(struct pipe *pi)
 					 * to avoid races */
 					tcsetpgrp(interactive_fd, pi->pgrp);
 				}
-				/* Don't do pgrp restore anymore on fatal signals */
-				set_fatal_sighandler(SIG_DFL);
 			}
 			// in non-interactive case fatal sigs are already SIG_DFL
 			close_all();
@@ -1878,6 +1916,8 @@ static int free_pipe(struct pipe *pi, int indent)
 	}
 	free(pi->progs);   /* children are an array, they get freed all at once */
 	pi->progs = NULL;
+	free(pi->cmdtext);
+	pi->cmdtext = NULL;
 	return ret_code;
 }
 
@@ -2252,12 +2292,13 @@ static int setup_redirect(struct p_context *ctx, int fd, redir_type style,
 static struct pipe *new_pipe(void)
 {
 	struct pipe *pi;
-	pi = xmalloc(sizeof(struct pipe));
-	pi->num_progs = 0;
-	pi->progs = NULL;
-	pi->next = NULL;
-	pi->followup = 0;  /* invalid */
-	pi->r_mode = RES_NONE;
+	pi = xzalloc(sizeof(struct pipe));
+	/*pi->num_progs = 0;*/
+	/*pi->progs = NULL;*/
+	/*pi->next = NULL;*/
+	/*pi->followup = 0;  invalid */
+	if (RES_NONE)
+		pi->r_mode = RES_NONE;
 	return pi;
 }
 
@@ -2424,13 +2465,14 @@ static int done_command(struct p_context *ctx)
 	pi->progs = xrealloc(pi->progs, sizeof(*pi->progs) * (pi->num_progs+1));
 
 	prog = pi->progs + pi->num_progs;
-	prog->redirects = NULL;
-	prog->argv = NULL;
-	prog->is_stopped = 0;
-	prog->group = NULL;
-	prog->glob_result.gl_pathv = NULL;
+	memset(prog, 0, sizeof(*prog));
+	/*prog->redirects = NULL;*/
+	/*prog->argv = NULL;
+	/*prog->is_stopped = 0;*/
+	/*prog->group = NULL;*/
+	/*prog->glob_result.gl_pathv = NULL;*/
 	prog->family = pi;
-	prog->sp = 0;
+	/*prog->sp = 0;*/
 	ctx->child = prog;
 	prog->type = ctx->type;
 
@@ -3008,15 +3050,13 @@ static void setup_job_control(void)
 	set_misc_sighandler(SIG_IGN);
 //huh?	signal(SIGCHLD, SIG_IGN);
 
-	/* We _must_ do cleanup on fatal signals */
+	/* We _must_ restore tty pgrp fatal signals */
 	set_fatal_sighandler(sigexit);
 
 	/* Put ourselves in our own process group.  */
-	shell_pgrp = getpid();
-	setpgrp(); /* is the same as setpgid(shell_pgrp, shell_pgrp); */
-
+	setpgrp(); /* is the same as setpgid(our_pid, our_pid); */
 	/* Grab control of the terminal.  */
-	tcsetpgrp(interactive_fd, shell_pgrp);
+	tcsetpgrp(interactive_fd, getpid());
 }
 
 int hush_main(int argc, char **argv);
