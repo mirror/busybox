@@ -431,6 +431,56 @@ static const struct built_in_command bltins[] = {
 	{ NULL, NULL, NULL }
 };
 
+/* move to libbb? */
+static void signal_SA_RESTART(int sig, void (*handler)(int))
+{
+	struct sigaction sa;
+	sa.sa_handler = handler;
+	sa.sa_flags = SA_RESTART;
+	sigemptyset(&sa.sa_mask);
+	sigaction(sig, &sa, NULL);
+}
+
+static sigjmp_buf nofork_jb;
+static smallint nofork_flag;
+static struct pipe *nofork_pipe;
+
+static void handler_ctrl_z(int sig)
+{
+	pid_t pid;
+
+	fprintf(stderr, "got tty sig %d\n", sig);
+	if (!nofork_flag)
+		return;
+	pid = fork();
+	if (pid < 0) /* can't fork. Pretend there were no Ctrl-Z */
+		return;
+	fprintf(stderr, "bg'ing nofork\n");
+	nofork_flag = 0;
+	nofork_pipe->running_progs = 1;
+	nofork_pipe->stopped_progs = 0;
+	if (!pid) { /* child */
+		fprintf(stderr, "setting pgrp for child\n");
+		setpgrp();
+		signal(sig, SIG_DFL); /* make child do default action (stop) */
+		raise(sig); /* resend TSTP so that child will be stopped */
+		fprintf(stderr, "returning to child\n");
+		/* return to nofork, it will eventually exit now,
+		 * not return back to shell */
+		return;
+	}
+	/* parent */
+	/* finish filling up pipe info */
+	nofork_pipe->pgrp = pid; /* child is in its own pgrp */
+	nofork_pipe->progs[0].pid = pid;
+	nofork_pipe->running_progs = 1;
+	nofork_pipe->stopped_progs = 0;
+	/* parent needs to longjmp out of running nofork.
+	 * we will "return" exitcode 0, with child put in background */
+// as usual we can have all kinds of nasty problems with leaked malloc data here
+	siglongjmp(nofork_jb, 1);
+}
+
 /* Restores tty foreground process group, and exits.
  * May be called as signal handler for fatal signal
  * (will faithfully resend signal to itself, producing correct exit state)
@@ -1535,14 +1585,32 @@ static int run_pipe_real(struct pipe *pi)
 		}
 #if ENABLE_FEATURE_SH_STANDALONE
 		{
-// FIXME: applet runs like part of shell - for example, it ignores
-// SIGINT! Try to Ctrl-C out of "rm -i"... doesn't work
 			const struct bb_applet *a = find_applet_by_name(argv[i]);
 			if (a && a->nofork) {
 				setup_redirects(child, squirrel);
-				rcode = run_nofork_applet(a, argv + i);
-				restore_redirects(squirrel);
-				return rcode;
+				if (sigsetjmp(nofork_jb, 1) == 0) {
+// enable ctrl_z here, not globally?
+					nofork_flag = 1;
+					/* TSTP handler will store pid there etc */
+					nofork_pipe = pi;
+					rcode = run_nofork_applet(a, argv + i);
+					if (--nofork_flag != 0)
+						/* Ctrl-Z! forked, we are child */
+						exit(rcode);
+					restore_redirects(squirrel);
+					return rcode;
+				} else {
+					fprintf(stderr, "Exiting nofork early\n");
+					/* Ctrl-Z, forked, we are parent.
+					 * Sighandler has longjmped us here */
+//problem: run_nofork_applet did not do the
+// "restore" trick and globals are trashed:
+// for one, applet_name is not "hush" :)
+// need to split run_nofork_applet into setup/run/restore...
+					restore_redirects(squirrel);
+					insert_bg_job(pi);
+					return 0;
+				}
 			}
 		}
 #endif
@@ -1585,7 +1653,7 @@ static int run_pipe_real(struct pipe *pi)
 				/* Don't do pgrp restore anymore on fatal signals */
 				set_fatal_sighandler(SIG_DFL);
 			}
-
+			// in non-interactive case fatal sigs are already SIG_DFL
 			close_all();
 			if (nextin != 0) {
 				dup2(nextin, 0);
@@ -2927,17 +2995,16 @@ static void setup_job_control(void)
 {
 	pid_t shell_pgrp;
 
-	saved_task_pgrp = getpgrp();
+	saved_task_pgrp = shell_pgrp = getpgrp();
 	debug_printf("saved_task_pgrp=%d\n", saved_task_pgrp);
 	fcntl(interactive_fd, F_SETFD, FD_CLOEXEC);
 
-	/* Loop until we are in the foreground.  */
-	while (1) {
-		shell_pgrp = getpgrp();
-		if (tcgetpgrp(interactive_fd) == shell_pgrp)
-			break;
-// and this does... what? need a comment here
+	/* If we were ran as 'hush &',
+	 * sleep until we are in the foreground.  */
+	while (tcgetpgrp(interactive_fd) != shell_pgrp) {
+		/* Send TTIN to ourself (will stop us) */
 		kill(- shell_pgrp, SIGTTIN);
+		shell_pgrp = getpgrp();
 	}
 
 	/* Ignore job-control and misc signals.  */
@@ -2954,6 +3021,8 @@ static void setup_job_control(void)
 
 	/* Grab control of the terminal.  */
 	tcsetpgrp(interactive_fd, shell_pgrp);
+
+	signal_SA_RESTART(SIGTSTP, handler_ctrl_z);
 }
 
 int hush_main(int argc, char **argv);
