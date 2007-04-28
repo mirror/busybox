@@ -509,10 +509,20 @@ int wait_nohang(int *wstat);
 #define wait_exitcode(w) ((w) >> 8)
 #define wait_stopsig(w) ((w) >> 8)
 #define wait_stopped(w) (((w) & 127) == 127)
-/* Does NOT check that applet is NOFORK, just blindly runs it */
-int run_nofork_applet(const struct bb_applet *a, char **argv);
 /* wait4pid(spawn(argv)) + NOFORK/NOEXEC (if configured) */
 int spawn_and_wait(char **argv);
+struct nofork_save_area {
+	const struct bb_applet *current_applet;
+	int xfunc_error_retval;
+	uint32_t option_mask32;
+	int die_sleep;
+	smallint saved;
+};
+void save_nofork_data(struct nofork_save_area *save);
+void restore_nofork_data(struct nofork_save_area *save);
+/* Does NOT check that applet is NOFORK, just blindly runs it */
+int run_nofork_applet(const struct bb_applet *a, char **argv);
+int run_nofork_applet_prime(struct nofork_save_area *old, const struct bb_applet *a, char **argv);
 
 /* Helpers for daemonization.
  *

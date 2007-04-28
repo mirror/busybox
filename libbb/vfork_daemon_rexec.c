@@ -100,15 +100,28 @@ int wait_pid(int *wstat, int pid)
 	return r;
 }
 
-int run_nofork_applet(const struct bb_applet *a, char **argv)
+void save_nofork_data(struct nofork_save_area *save)
+{
+	save->current_applet = current_applet;
+	save->xfunc_error_retval = xfunc_error_retval;
+	save->option_mask32 = option_mask32;
+	save->die_sleep = die_sleep;
+	save->saved = 1;
+}
+
+void restore_nofork_data(struct nofork_save_area *save)
+{
+	current_applet = save->current_applet;
+	xfunc_error_retval = save->xfunc_error_retval;
+	option_mask32 = save->option_mask32;
+	die_sleep = save->die_sleep;
+
+	applet_name = current_applet->name;
+}
+
+int run_nofork_applet_prime(struct nofork_save_area *old, const struct bb_applet *a, char **argv)
 {
 	int rc, argc;
-
-	/* Save some shared globals */
-	const struct bb_applet *old_a = current_applet;
-	int old_x = xfunc_error_retval;
-	uint32_t old_m = option_mask32;
-	int old_sleep = die_sleep;
 
 	current_applet = a;
 	applet_name = a->name;
@@ -138,12 +151,16 @@ int run_nofork_applet(const struct bb_applet *a, char **argv)
 	}
 
 	/* Restoring globals */
-	current_applet = old_a;
-	applet_name = old_a->name;
-	xfunc_error_retval = old_x;
-	option_mask32 = old_m;
-	die_sleep = old_sleep;
+	restore_nofork_data(old);
 	return rc;
+}
+
+int run_nofork_applet(const struct bb_applet *a, char **argv)
+{
+	struct nofork_save_area old;
+	/* Saving globals */
+	save_nofork_data(&old);
+	return run_nofork_applet_prime(&old, a, argv);
 }
 
 int spawn_and_wait(char **argv)

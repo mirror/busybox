@@ -441,30 +441,28 @@ static void signal_SA_RESTART(int sig, void (*handler)(int))
 	sigaction(sig, &sa, NULL);
 }
 
+struct nofork_save_area nofork_save;
 static sigjmp_buf nofork_jb;
-static smallint nofork_flag;
 static struct pipe *nofork_pipe;
 
 static void handler_ctrl_z(int sig)
 {
 	pid_t pid;
 
-	fprintf(stderr, "got tty sig %d\n", sig);
-	if (!nofork_flag)
-		return;
+	debug_jobs_printf("got tty sig %d\n", sig);
 	pid = fork();
 	if (pid < 0) /* can't fork. Pretend there were no Ctrl-Z */
 		return;
-	fprintf(stderr, "bg'ing nofork\n");
-	nofork_flag = 0;
+	debug_jobs_printf("bg'ing nofork\n");
+	nofork_save.saved = 0; /* flag the fact that Ctrl-Z was handled */
 	nofork_pipe->running_progs = 1;
 	nofork_pipe->stopped_progs = 0;
 	if (!pid) { /* child */
-		fprintf(stderr, "setting pgrp for child\n");
+		debug_jobs_printf("setting pgrp for child\n");
 		setpgrp();
-		signal(sig, SIG_DFL); /* make child do default action (stop) */
-		raise(sig); /* resend TSTP so that child will be stopped */
-		fprintf(stderr, "returning to child\n");
+		signal(SIGTSTP, SIG_DFL); /* make child do default action (stop) */
+		raise(SIGTSTP); /* resend TSTP so that child will be stopped */
+		debug_jobs_printf("returning to child\n");
 		/* return to nofork, it will eventually exit now,
 		 * not return back to shell */
 		return;
@@ -1588,25 +1586,23 @@ static int run_pipe_real(struct pipe *pi)
 			const struct bb_applet *a = find_applet_by_name(argv[i]);
 			if (a && a->nofork) {
 				setup_redirects(child, squirrel);
+				/* TSTP handler will store pid etc in pi */
+				nofork_pipe = pi;
+				save_nofork_data(&nofork_save);
 				if (sigsetjmp(nofork_jb, 1) == 0) {
-// enable ctrl_z here, not globally?
-					nofork_flag = 1;
-					/* TSTP handler will store pid there etc */
-					nofork_pipe = pi;
-					rcode = run_nofork_applet(a, argv + i);
-					if (--nofork_flag != 0)
+					signal_SA_RESTART(SIGTSTP, handler_ctrl_z);
+					rcode = run_nofork_applet_prime(&nofork_save, a, argv + i);
+					if (--nofork_save.saved != 0)
 						/* Ctrl-Z! forked, we are child */
 						exit(rcode);
 					restore_redirects(squirrel);
 					return rcode;
 				} else {
-					fprintf(stderr, "Exiting nofork early\n");
 					/* Ctrl-Z, forked, we are parent.
 					 * Sighandler has longjmped us here */
-//problem: run_nofork_applet did not do the
-// "restore" trick and globals are trashed:
-// for one, applet_name is not "hush" :)
-// need to split run_nofork_applet into setup/run/restore...
+					signal(SIGTSTP, SIG_IGN);
+					debug_jobs_printf("Exiting nofork early\n");
+					restore_nofork_data(&nofork_save);
 					restore_redirects(squirrel);
 					insert_bg_job(pi);
 					return 0;
@@ -3021,8 +3017,6 @@ static void setup_job_control(void)
 
 	/* Grab control of the terminal.  */
 	tcsetpgrp(interactive_fd, shell_pgrp);
-
-	signal_SA_RESTART(SIGTSTP, handler_ctrl_z);
 }
 
 int hush_main(int argc, char **argv);
