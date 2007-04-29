@@ -60,14 +60,17 @@ struct globals {
  */
 static bool invalid_name(const char *c)
 {
-	while (*c) {
-		if (!isalnum(*c) && (*c != '_') && (*c != '-' && (*c != '/'))) {
-			return 1;
-		}
-		++c;
-	}
-	return 0;
+	const char *base_name = strrchr(c, '/');
+
+	if (base_name)
+		c = base_name + 1;
+
+	while (*c && (isalnum(*c) || *c == '_' || *c == '-'))
+		c++;
+
+	return *c; /* TRUE (!0) if terminating NUL is not reached */
 }
+
 #define RUN_PARTS_OPT_a (1<<0)
 #define RUN_PARTS_OPT_u (1<<1)
 #define RUN_PARTS_OPT_t (1<<2)
@@ -81,6 +84,7 @@ static bool invalid_name(const char *c)
 #else
 #define list_mode (0)
 #endif
+
 static int act(const char *file, struct stat *statbuf, void *args, int depth)
 {
 	int ret;
