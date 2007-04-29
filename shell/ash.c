@@ -3519,91 +3519,22 @@ setjobctl(int on)
 static int
 killcmd(int argc, char **argv)
 {
-	int signo = -1;
-	int list = 0;
-	int i;
-	pid_t pid;
-	struct job *jp;
-
-	if (argc <= 1) {
- usage:
-		ash_msg_and_raise_error(
-"usage: kill [-s sigspec | -signum | -sigspec] [pid | job]... or\n"
-"kill -l [exitstatus]"
-		);
-	}
-
-	if (**++argv == '-') {
-		signo = get_signum(*argv + 1);
-		if (signo < 0) {
-			int c;
-
-			while ((c = nextopt("ls:")) != '\0') {
-				switch (c) {
-				default:
-#if DEBUG
-					abort();
-#endif
-				case 'l':
-					list = 1;
-					break;
-				case 's':
-					signo = get_signum(optionarg);
-					if (signo < 0) {
-						ash_msg_and_raise_error(
-							"invalid signal number or name: %s",
-							optionarg
-						);
-					}
-					break;
-				}
+	if (argv[1] && strcmp(argv[1], "-l") != 0) {
+		int i = 1;
+		do {
+			if (argv[i][0] == '%') {
+				struct job *jp = getjob(argv[i], 0);
+				unsigned pid = jp->ps[0].pid;
+				/* Enough space for ' -NNN<nul>' */
+				argv[i] = alloca(sizeof(int)*3 + 3);
+				/* kill_main has matching code to expect
+				 * leading space. Needed to not confuse
+				 * negative pids with "kill -SIGNAL_NO" syntax */
+				sprintf(argv[i], " -%u", pid);
 			}
-			argv = argptr;
-		} else
-			argv++;
+		} while (argv[++i]);
 	}
-
-	if (!list && signo < 0)
-		signo = SIGTERM;
-
-	if ((signo < 0 || !*argv) ^ list) {
-		goto usage;
-	}
-
-	if (list) {
-		const char *name;
-
-		if (!*argv) {
-			for (i = 1; i < NSIG; i++) {
-				name = get_signame(i);
-				if (!isdigit(*name))
-					out1fmt(snlfmt, name);
-			}
-			return 0;
-		}
-		name = get_signame(signo);
-		if (!isdigit(*name))
-			ash_msg_and_raise_error("invalid signal number or exit status: %s", *argptr);
-		out1fmt(snlfmt, name);
-		return 0;
-	}
-
-	i = 0;
-	do {
-		if (**argv == '%') {
-			jp = getjob(*argv, 0);
-			pid = -jp->ps[0].pid;
-		} else {
-			pid = **argv == '-' ?
-				-number(*argv + 1) : number(*argv);
-		}
-		if (kill(pid, signo) != 0) {
-			ash_msg("(%d) - %m", pid);
-			i = 1;
-		}
-	} while (*++argv);
-
-	return i;
+	return kill_main(argc, argv);
 }
 
 static void
@@ -3642,7 +3573,8 @@ restartjob(struct job *jp, int mode)
 		if (WIFSTOPPED(ps->status)) {
 			ps->status = -1;
 		}
-	} while (ps++, --i);
+		ps++;
+	} while (--i);
  out:
 	status = (mode == FORK_FG) ? waitforjob(jp) : 0;
 	INT_ON;
@@ -5070,8 +5002,9 @@ esclen(const char *start, const char *p)
 static char *
 _rmescapes(char *str, int flag)
 {
+	static const char qchars[] = { CTLESC, CTLQUOTEMARK, '\0' };
+
 	char *p, *q, *r;
-	static const char qchars[] = { CTLESC, CTLQUOTEMARK, 0 };
 	unsigned inquotes;
 	int notescaped;
 	int globbing;
@@ -11117,13 +11050,7 @@ find_command(char *name, struct cmdentry *entry, int act, const char *path)
 		return;
 	}
 
-#if ENABLE_FEATURE_SH_STANDALONE
-	if (find_applet_by_name(name)) {
-		entry->cmdtype = CMDNORMAL;
-		entry->u.index = -1;
-		return;
-	}
-#endif
+/* #if ENABLE_FEATURE_SH_STANDALONE... moved after builtin check */
 
 	updatetbl = (path == pathval());
 	if (!updatetbl) {
@@ -11172,6 +11099,14 @@ find_command(char *name, struct cmdentry *entry, int act, const char *path)
 			goto builtin_success;
 		}
 	}
+
+#if ENABLE_FEATURE_SH_STANDALONE
+	if (find_applet_by_name(name)) {
+		entry->cmdtype = CMDNORMAL;
+		entry->u.index = -1;
+		return;
+	}
+#endif
 
 	/* We have to search path. */
 	prev = -1;              /* where to start */

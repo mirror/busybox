@@ -7,6 +7,7 @@
 lib-y:=
 lib-$(CONFIG_FREE)	+= free.o
 lib-$(CONFIG_KILL)	+= kill.o
+lib-$(CONFIG_ASH)	+= kill.o  # used for built-in kill by ash
 lib-$(CONFIG_PIDOF)	+= pidof.o
 lib-$(CONFIG_PS)	+= ps.o
 lib-$(CONFIG_RENICE)	+= renice.o

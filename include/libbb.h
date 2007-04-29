@@ -636,6 +636,7 @@ extern void bb_vinfo_msg(const char *s, va_list p);
 int bb_cat(char** argv);
 int bb_echo(char** argv);
 int bb_test(int argc, char** argv);
+int kill_main(int argc, char **argv);
 #if ENABLE_ROUTE
 void bb_displayroutes(int noresolve, int netstatfmt);
 #endif

@@ -10,16 +10,30 @@
 
 #include "busybox.h"
 
+/* Note: kill_main is directly called from shell in order to implement
+ * kill built-in. Shell substitutes job ids with process groups first.
+ *
+ * This brings some complications:
+ *
+ * + we can't use xfunc here
+ * + we can't use applet_name
+ * + we can't use bb_show_usage
+ * (Above doesn't apply for killall[5] cases)
+ *
+ * kill %n gets translated into kill ' -<process group>' by shell (note space!)
+ * This is needed to avoid collision with kill -9 ... syntax
+ */
+
 int kill_main(int argc, char **argv);
 int kill_main(int argc, char **argv)
 {
 	char *arg;
 	pid_t pid;
 	int signo = SIGTERM, errors = 0, quiet = 0;
-	const int killall = (ENABLE_KILLALL && applet_name[4] == 'a'
-	               && (!ENABLE_KILLALL5 || applet_name[7] != '5'));
-	const int killall5 = (ENABLE_KILLALL5 && applet_name[4] == 'a'
-	                  && (!ENABLE_KILLALL || applet_name[7] == '5'));
+	const int killall = (ENABLE_KILLALL && argv[0][4] == 'a'
+	               && (!ENABLE_KILLALL5 || argv[0][7] != '5'));
+	const int killall5 = (ENABLE_KILLALL5 && argv[0][4] == 'a'
+	                  && (!ENABLE_KILLALL || argv[0][7] == '5'));
 
 	/* Parse any options */
 	argc--;
@@ -29,34 +43,38 @@ int kill_main(int argc, char **argv)
 		goto do_it_now;
 	}
 
-	/* The -l option, which prints out signal names. */
+	/* The -l option, which prints out signal names.
+	 * Intended usage in shell:
+	 * echo "Died of SIG`kill -l $?`"
+	 * We try to mimic what kill from coreutils-6.8 does */
 	if (arg[1] == 'l' && arg[2] == '\0') {
-		const char *name;
 		if (argc == 1) {
 			/* Print the whole signal list */
-			int col = 0;
 			for (signo = 1; signo < 32; signo++) {
-				name = get_signame(signo);
-				if (isdigit(name[0])) continue;
-				if (col > 66) {
-					puts("");
-					col = 0;
-				}
-				col += printf("%2d) %-6s", signo, name);
+				puts(get_signame(signo));
 			}
-			puts("");
 		} else { /* -l <sig list> */
 			while ((arg = *++argv)) {
 				if (isdigit(arg[0])) {
-					signo = xatoi_u(arg);
-					name = get_signame(signo);
+					signo = bb_strtou(arg, NULL, 10);
+					if (errno) {
+						bb_error_msg("unknown signal '%s'", arg);
+						return EXIT_FAILURE;
+					}
+					/* Exitcodes >= 0x80 are to be treated
+					 * as "killed by signal (exitcode & 0x7f)" */
+					puts(get_signame(signo & 0x7f));
+					/* TODO: 'bad' signal# - coreutils says:
+					 * kill: 127: invalid signal
+					 * we just print "127" instead */
 				} else {
 					signo = get_signum(arg);
-					if (signo < 0)
-						bb_error_msg_and_die("unknown signal '%s'", arg);
-					name = get_signame(signo);
+					if (signo < 0) {
+						bb_error_msg("unknown signal '%s'", arg);
+						return EXIT_FAILURE;
+					}
+					printf("%d\n", signo);
 				}
-				printf("%2d) %s\n", signo, name);
 			}
 		}
 		/* If they specified -l, we are all done */
@@ -74,8 +92,10 @@ int kill_main(int argc, char **argv)
 
 	/* -SIG */
 	signo = get_signum(&arg[1]);
-	if (signo < 0)
-		bb_error_msg_and_die("bad signal name '%s'", &arg[1]);
+	if (signo < 0) { /* || signo > MAX_SIGNUM ? */
+		bb_error_msg("bad signal name '%s'", &arg[1]);
+		return EXIT_FAILURE;
+	}
 	arg = *++argv;
 	argc--;
 
@@ -85,10 +105,6 @@ do_it_now:
 		pid_t sid;
 		procps_status_t* p = NULL;
 
-// Cannot happen anyway? We don't TERM ourself, we STOP
-//		/* kill(-1, sig) on Linux (at least 2.1.x)
-//		 * might send signal to the calling process too */
-//		signal(SIGTERM, SIG_IGN);
 		/* Now stop all processes */
 		kill(-1, SIGSTOP);
 		/* Find out our own session id */
@@ -104,9 +120,11 @@ do_it_now:
 		return 0;
 	}
 
-	/* Pid or name required for kill/killall */
-	if (argc < 1)
-		bb_show_usage();
+	/* Pid or name is required for kill/killall */
+	if (argc < 1) {
+		puts("You need to specify whom to kill");
+		return EXIT_FAILURE;
+	}
 
 	if (killall) {
 		/* Looks like they want to do a killall.  Do that */
@@ -140,14 +158,15 @@ do_it_now:
 
 	/* Looks like they want to do a kill. Do that */
 	while (arg) {
-		/* Huh?
-		if (!isdigit(arg[0]) && arg[0] != '-')
-			bb_error_msg_and_die("bad pid '%s'", arg);
-		*/
-		pid = xatou(arg);
-		/* FIXME: better overflow check? */
-		if (kill(pid, signo) != 0) {
-			bb_perror_msg("cannot kill pid %u", (unsigned)pid);
+		/* Support shell 'space' trick */
+		if (arg[0] == ' ')
+			arg++;
+		pid = bb_strtoi(arg, NULL, 10);
+		if (errno) {
+			bb_error_msg("bad pid '%s'", arg);
+			errors++;
+		} else if (kill(pid, signo) != 0) {
+			bb_perror_msg("cannot kill pid %d", (int)pid);
 			errors++;
 		}
 		arg = *++argv;
