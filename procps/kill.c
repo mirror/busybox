@@ -51,7 +51,9 @@ int kill_main(int argc, char **argv)
 		if (argc == 1) {
 			/* Print the whole signal list */
 			for (signo = 1; signo < 32; signo++) {
-				puts(get_signame(signo));
+				const char *name = get_signame(signo);
+				if (!isdigit(name[0]))
+					puts(name);
 			}
 		} else { /* -l <sig list> */
 			while ((arg = *++argv)) {

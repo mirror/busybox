@@ -47,18 +47,21 @@ static void func_pgid(char *buf, int size, const procps_status_t *ps)
 	sprintf(buf, "%*u", size, ps->pgid);
 }
 
-static void func_vsz(char *buf, int size, const procps_status_t *ps)
+static void put_u(char *buf, int size, unsigned u)
 {
 	char buf5[5];
-	smart_ulltoa5( ((unsigned long long)ps->vsz) << 10, buf5);
+	smart_ulltoa5( ((unsigned long long)u) << 10, buf5);
 	sprintf(buf, "%.*s", size, buf5);
+}
+
+static void func_vsz(char *buf, int size, const procps_status_t *ps)
+{
+	put_u(buf, size, ps->vsz);
 }
 
 static void func_rss(char *buf, int size, const procps_status_t *ps)
 {
-	char buf5[5];
-	smart_ulltoa5( ((unsigned long long)ps->rss) << 10, buf5);
-	sprintf(buf, "%.*s", size, buf5);
+	put_u(buf, size, ps->rss);
 }
 
 static void func_tty(char *buf, int size, const procps_status_t *ps)
@@ -383,7 +386,7 @@ int ps_main(int argc, char **argv)
 				len = printf("%5u %-8s        %s ",
 					p->pid, user, p->state);
 			else
-				len = printf("%5u %-8s %6ld %s ",
+				len = printf("%5u %-8s %6u %s ",
 					p->pid, user, p->vsz, p->state);
 		}
 

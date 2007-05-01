@@ -9,20 +9,111 @@
 
 #include "libbb.h"
 
-static const struct signal_name {
-	int number;
-	char name[5];
-} signals[] = {
+static const char signals[32][7] = {
 	// SUSv3 says kill must support these, and specifies the numerical values,
 	// http://www.opengroup.org/onlinepubs/009695399/utilities/kill.html
 	// TODO: "[SIG]EXIT" shouldn't work for kill, right?
-	{0, "EXIT"}, {1, "HUP"}, {2, "INT"}, {3, "QUIT"}, {6, "ABRT"}, {9, "KILL"},
-	{14, "ALRM"}, {15, "TERM"},
+	// {0, "EXIT"}, {1, "HUP"}, {2, "INT"}, {3, "QUIT"},
+	// {6, "ABRT"}, {9, "KILL"}, {14, "ALRM"}, {15, "TERM"}
 	// And Posix adds the following:
-	{SIGILL, "ILL"}, {SIGTRAP, "TRAP"}, {SIGFPE, "FPE"}, {SIGUSR1, "USR1"},
-	{SIGSEGV, "SEGV"}, {SIGUSR2, "USR2"}, {SIGPIPE, "PIPE"}, {SIGCHLD, "CHLD"},
-	{SIGCONT, "CONT"}, {SIGSTOP, "STOP"}, {SIGTSTP, "TSTP"}, {SIGTTIN, "TTIN"},
-	{SIGTTOU, "TTOU"}
+	// {SIGILL, "ILL"}, {SIGTRAP, "TRAP"}, {SIGFPE, "FPE"}, {SIGUSR1, "USR1"},
+	// {SIGSEGV, "SEGV"}, {SIGUSR2, "USR2"}, {SIGPIPE, "PIPE"}, {SIGCHLD, "CHLD"},
+	// {SIGCONT, "CONT"}, {SIGSTOP, "STOP"}, {SIGTSTP, "TSTP"}, {SIGTTIN, "TTIN"},
+	// {SIGTTOU, "TTOU"}
+	[0] = "EXIT",
+#ifdef SIGHUP
+	[SIGHUP   ] = "HUP",
+#endif
+#ifdef SIGINT
+	[SIGINT   ] = "INT",
+#endif
+#ifdef SIGQUIT
+	[SIGQUIT  ] = "QUIT",
+#endif
+#ifdef SIGILL
+	[SIGILL   ] = "ILL",
+#endif
+#ifdef SIGTRAP
+	[SIGTRAP  ] = "TRAP",
+#endif
+#ifdef SIGABRT
+	[SIGABRT  ] = "ABRT",
+#endif
+#ifdef SIGBUS
+	[SIGBUS   ] = "BUS",
+#endif
+#ifdef SIGFPE
+	[SIGFPE   ] = "FPE",
+#endif
+#ifdef SIGKILL
+	[SIGKILL  ] = "KILL",
+#endif
+#ifdef SIGUSR1
+	[SIGUSR1  ] = "USR1",
+#endif
+#ifdef SIGSEGV
+	[SIGSEGV  ] = "SEGV",
+#endif
+#ifdef SIGUSR2
+	[SIGUSR2  ] = "USR2",
+#endif
+#ifdef SIGPIPE
+	[SIGPIPE  ] = "PIPE",
+#endif
+#ifdef SIGALRM
+	[SIGALRM  ] = "ALRM",
+#endif
+#ifdef SIGTERM
+	[SIGTERM  ] = "TERM",
+#endif
+#ifdef SIGSTKFLT
+	[SIGSTKFLT] = "STKFLT",
+#endif
+#ifdef SIGCHLD
+	[SIGCHLD  ] = "CHLD",
+#endif
+#ifdef SIGCONT
+	[SIGCONT  ] = "CONT",
+#endif
+#ifdef SIGSTOP
+	[SIGSTOP  ] = "STOP",
+#endif
+#ifdef SIGTSTP
+	[SIGTSTP  ] = "TSTP",
+#endif
+#ifdef SIGTTIN
+	[SIGTTIN  ] = "TTIN",
+#endif
+#ifdef SIGTTOU
+	[SIGTTOU  ] = "TTOU",
+#endif
+#ifdef SIGURG
+	[SIGURG   ] = "URG",
+#endif
+#ifdef SIGXCPU
+	[SIGXCPU  ] = "XCPU",
+#endif
+#ifdef SIGXFSZ
+	[SIGXFSZ  ] = "XFSZ",
+#endif
+#ifdef SIGVTALRM
+	[SIGVTALRM] = "VTALRM",
+#endif
+#ifdef SIGPROF
+	[SIGPROF  ] = "PROF",
+#endif
+#ifdef SIGWINCH
+	[SIGWINCH ] = "WINCH",
+#endif
+#ifdef SIGPOLL
+	[SIGPOLL  ] = "POLL",
+#endif
+#ifdef SIGPWR
+	[SIGPWR   ] = "PWR",
+#endif
+#ifdef SIGSYS
+	[SIGSYS   ] = "SYS",
+#endif
 };
 
 // Convert signal name to number.
@@ -32,12 +123,28 @@ int get_signum(const char *name)
 	int i;
 
 	i = bb_strtou(name, NULL, 10);
-	if (!errno) return i;
-	for (i = 0; i < sizeof(signals) / sizeof(struct signal_name); i++)
-		if (strcasecmp(name, signals[i].name) == 0
-		 || (strncasecmp(name, "SIG", 3) == 0
-		     && strcasecmp(&name[3], signals[i].name) == 0))
-				return signals[i].number;
+	if (!errno)
+		return i;
+	if (strncasecmp(name, "SIG", 3) == 0)
+		name += 3;
+	for (i = 0; i < sizeof(signals) / sizeof(signals[0]); i++)
+		if (strcasecmp(name, signals[i]) == 0)
+			return i;
+
+#if ENABLE_DESKTOP && (defined(SIGIOT) || defined(SIGIO))
+	/* These are aliased to other names */
+	if ((name[0] | 0x20) == 'i' && (name[1] | 0x20) == 'o') {
+#ifdef SIGIO
+		if (!name[2])
+			return SIGIO;
+#endif
+#ifdef SIGIOT
+		if ((name[2] | 0x20) == 't' && !name[3])
+			return SIGIOT;
+#endif
+	}
+#endif
+
 	return -1;
 }
 
@@ -45,12 +152,9 @@ int get_signum(const char *name)
 
 const char *get_signame(int number)
 {
-	int i;
-
-	for (i=0; i < sizeof(signals) / sizeof(struct signal_name); i++) {
-		if (number == signals[i].number) {
-			return signals[i].name;
-		}
+	if ((unsigned)number < sizeof(signals) / sizeof(signals[0])) {
+		if (signals[number][0]) /* if it's not an empty str */
+			return signals[number];
 	}
 
 	return itoa(number);

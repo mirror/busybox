@@ -85,12 +85,12 @@ enum token {
 	RPAREN,
 	OPERAND
 };
-#define __is_int_op(a) (((unsigned char)((a) - INTEQ)) <= 5)
-#define __is_str_op(a) (((unsigned char)((a) - STREZ)) <= 5)
-#define __is_file_op(a) (((unsigned char)((a) - FILNT)) <= 2)
-#define __is_file_access(a) (((unsigned char)((a) - FILRD)) <= 2)
-#define __is_file_type(a) (((unsigned char)((a) - FILREG)) <= 5)
-#define __is_file_bit(a) (((unsigned char)((a) - FILSUID)) <= 2)
+#define is_int_op(a) (((unsigned char)((a) - INTEQ)) <= 5)
+#define is_str_op(a) (((unsigned char)((a) - STREZ)) <= 5)
+#define is_file_op(a) (((unsigned char)((a) - FILNT)) <= 2)
+#define is_file_access(a) (((unsigned char)((a) - FILRD)) <= 2)
+#define is_file_type(a) (((unsigned char)((a) - FILREG)) <= 5)
+#define is_file_bit(a) (((unsigned char)((a) - FILSUID)) <= 2)
 enum token_types {
 	UNOP,
 	BINOP,
@@ -100,64 +100,67 @@ enum token_types {
 };
 
 static const struct t_op {
-	const char * const op_text;
+	char op_text[4];
 	unsigned char op_num, op_type;
 } ops[] = {
-	{
-	"-r", FILRD, UNOP}, {
-	"-w", FILWR, UNOP}, {
-	"-x", FILEX, UNOP}, {
-	"-e", FILEXIST, UNOP}, {
-	"-f", FILREG, UNOP}, {
-	"-d", FILDIR, UNOP}, {
-	"-c", FILCDEV, UNOP}, {
-	"-b", FILBDEV, UNOP}, {
-	"-p", FILFIFO, UNOP}, {
-	"-u", FILSUID, UNOP}, {
-	"-g", FILSGID, UNOP}, {
-	"-k", FILSTCK, UNOP}, {
-	"-s", FILGZ, UNOP}, {
-	"-t", FILTT, UNOP}, {
-	"-z", STREZ, UNOP}, {
-	"-n", STRNZ, UNOP}, {
-	"-h", FILSYM, UNOP},    /* for backwards compat */
-	{
-	"-O", FILUID, UNOP}, {
-	"-G", FILGID, UNOP}, {
-	"-L", FILSYM, UNOP}, {
-	"-S", FILSOCK, UNOP}, {
-	"=", STREQ, BINOP}, {
-	"==", STREQ, BINOP}, {
-	"!=", STRNE, BINOP}, {
-	"<", STRLT, BINOP}, {
-	">", STRGT, BINOP}, {
-	"-eq", INTEQ, BINOP}, {
-	"-ne", INTNE, BINOP}, {
-	"-ge", INTGE, BINOP}, {
-	"-gt", INTGT, BINOP}, {
-	"-le", INTLE, BINOP}, {
-	"-lt", INTLT, BINOP}, {
-	"-nt", FILNT, BINOP}, {
-	"-ot", FILOT, BINOP}, {
-	"-ef", FILEQ, BINOP}, {
-	"!", UNOT, BUNOP}, {
-	"-a", BAND, BBINOP}, {
-	"-o", BOR, BBINOP}, {
-	"(", LPAREN, PAREN}, {
-	")", RPAREN, PAREN}, {
-	0, 0, 0}
+	{ "-r", FILRD   , UNOP   },
+	{ "-w", FILWR   , UNOP   },
+	{ "-x", FILEX   , UNOP   },
+	{ "-e", FILEXIST, UNOP   },
+	{ "-f", FILREG  , UNOP   },
+	{ "-d", FILDIR  , UNOP   },
+	{ "-c", FILCDEV , UNOP   },
+	{ "-b", FILBDEV , UNOP   },
+	{ "-p", FILFIFO , UNOP   },
+	{ "-u", FILSUID , UNOP   },
+	{ "-g", FILSGID , UNOP   },
+	{ "-k", FILSTCK , UNOP   },
+	{ "-s", FILGZ   , UNOP   },
+	{ "-t", FILTT   , UNOP   },
+	{ "-z", STREZ   , UNOP   },
+	{ "-n", STRNZ   , UNOP   },
+	{ "-h", FILSYM  , UNOP   },    /* for backwards compat */
+
+	{ "-O" , FILUID , UNOP   },
+	{ "-G" , FILGID , UNOP   },
+	{ "-L" , FILSYM , UNOP   },
+	{ "-S" , FILSOCK, UNOP   },
+	{ "="  , STREQ  , BINOP  },
+	{ "==" , STREQ  , BINOP  },
+	{ "!=" , STRNE  , BINOP  },
+	{ "<"  , STRLT  , BINOP  },
+	{ ">"  , STRGT  , BINOP  },
+	{ "-eq", INTEQ  , BINOP  },
+	{ "-ne", INTNE  , BINOP  },
+	{ "-ge", INTGE  , BINOP  },
+	{ "-gt", INTGT  , BINOP  },
+	{ "-le", INTLE  , BINOP  },
+	{ "-lt", INTLT  , BINOP  },
+	{ "-nt", FILNT  , BINOP  },
+	{ "-ot", FILOT  , BINOP  },
+	{ "-ef", FILEQ  , BINOP  },
+	{ "!"  , UNOT   , BUNOP  },
+	{ "-a" , BAND   , BBINOP },
+	{ "-o" , BOR    , BBINOP },
+	{ "("  , LPAREN , PAREN  },
+	{ ")"  , RPAREN , PAREN  },
 };
 
-#ifdef CONFIG_FEATURE_TEST_64
+enum { NUM_OPS = sizeof(ops) / sizeof(ops[0]) };
+
+#if ENABLE_FEATURE_TEST_64
 typedef int64_t arith_t;
 #else
 typedef int arith_t;
 #endif
 
+/* Cannot eliminate these static data (do the G trick)
+ * because of bb_test usage from other applets */
 static char **t_wp;
 static struct t_op const *t_wp_op;
 static gid_t *group_array;
 static int ngroups;
+static jmp_buf leaving;
 
 static enum token t_lex(char *s);
 static arith_t oexpr(enum token n);
@@ -175,8 +178,6 @@ static int equalf(const char *f1, const char *f2);
 static int test_eaccess(char *path, int mode);
 static int is_a_group_member(gid_t gid);
 static void initialize_group_array(void);
-
-static jmp_buf leaving;
 
 int bb_test(int argc, char **argv)
 {
@@ -210,7 +211,7 @@ int bb_test(int argc, char **argv)
 	 * isn't likely in the case of a shell.  paranoia
 	 * prevails...
 	 */
-	 ngroups = 0;
+	ngroups = 0;
 
 	/* Implement special cases from POSIX.2, section 4.62.4 */
 	if (argc == 1)
@@ -223,8 +224,9 @@ int bb_test(int argc, char **argv)
 		if (argc == 3)
 			return *argv[2] != '\0';
 		_off = argc - 4;
-		if (t_lex(argv[2+_off]), t_wp_op && t_wp_op->op_type == BINOP) {
-			t_wp = &argv[1+_off];
+		t_lex(argv[2 + _off]);
+		if (t_wp_op && t_wp_op->op_type == BINOP) {
+			t_wp = &argv[1 + _off];
 			return binop() == 0;
 		}
 	}
@@ -238,6 +240,7 @@ int bb_test(int argc, char **argv)
 	return res;
 }
 
+static void syntax(const char *op, const char *msg) ATTRIBUTE_NORETURN;
 static void syntax(const char *op, const char *msg)
 {
 	if (op && *op) {
@@ -296,20 +299,20 @@ static arith_t primary(enum token n)
 		if (*++t_wp == NULL)
 			syntax(t_wp_op->op_text, "argument expected");
 		if (n == STREZ)
-			return strlen(*t_wp) == 0;
-		else if (n == STRNZ)
-			return strlen(*t_wp) != 0;
-		else if (n == FILTT)
+			return t_wp[0][0] == '\0';
+		if (n == STRNZ)
+			return t_wp[0][0] != '\0';
+		if (n == FILTT)
 			return isatty(getn(*t_wp));
-		else
-			return filstat(*t_wp, n);
+		return filstat(*t_wp, n);
 	}
 
-	if (t_lex(t_wp[1]), t_wp_op && t_wp_op->op_type == BINOP) {
+	t_lex(t_wp[1]);
+	if (t_wp_op && t_wp_op->op_type == BINOP) {
 		return binop();
 	}
 
-	return strlen(*t_wp) > 0;
+	return t_wp[0][0] != '\0';
 }
 
 static int binop(void)
@@ -322,10 +325,11 @@ static int binop(void)
 	(void) t_lex(*++t_wp);
 	op = t_wp_op;
 
-	if ((opnd2 = *++t_wp) == (char *) 0)
+	opnd2 = *++t_wp;
+	if (opnd2 == NULL)
 		syntax(op->op_text, "argument expected");
 
-	if (__is_int_op(op->op_num)) {
+	if (is_int_op(op->op_num)) {
 		val1 = getn(opnd1);
 		val2 = getn(opnd2);
 		if (op->op_num == INTEQ)
@@ -341,7 +345,7 @@ static int binop(void)
 		if (op->op_num == INTLT)
 			return val1 <  val2;
 	}
-	if (__is_str_op(op->op_num)) {
+	if (is_str_op(op->op_num)) {
 		val1 = strcmp(opnd1, opnd2);
 		if (op->op_num == STREQ)
 			return val1 == 0;
@@ -355,7 +359,7 @@ static int binop(void)
 	/* We are sure that these three are by now the only binops we didn't check
 	 * yet, so we do not check if the class is correct:
 	 */
-/*	if (__is_file_op(op->op_num)) */
+/*	if (is_file_op(op->op_num)) */
 	{
 		struct stat b1, b2;
 
@@ -390,7 +394,7 @@ static int filstat(char *nm, enum token mode)
 		return 0;
 	if (mode == FILEXIST)
 		return 1;
-	else if (__is_file_access(mode)) {
+	if (is_file_access(mode)) {
 		if (mode == FILRD)
 			i = R_OK;
 		if (mode == FILWR)
@@ -399,7 +403,7 @@ static int filstat(char *nm, enum token mode)
 			i = X_OK;
 		return test_eaccess(nm, i) == 0;
 	}
-	else if (__is_file_type(mode)) {
+	if (is_file_type(mode)) {
 		if (mode == FILREG)
 			i = S_IFREG;
 		if (mode == FILDIR)
@@ -422,10 +426,10 @@ static int filstat(char *nm, enum token mode)
 			return 0;
 #endif
 		}
-filetype:
+ filetype:
 		return ((s.st_mode & S_IFMT) == i);
 	}
-	else if (__is_file_bit(mode)) {
+	if (is_file_bit(mode)) {
 		if (mode == FILSUID)
 			i = S_ISUID;
 		if (mode == FILSGID)
@@ -434,33 +438,33 @@ filetype:
 			i = S_ISVTX;
 		return ((s.st_mode & i) != 0);
 	}
-	else if (mode == FILGZ)
+	if (mode == FILGZ)
 		return s.st_size > 0L;
-	else if (mode == FILUID)
+	if (mode == FILUID)
 		return s.st_uid == geteuid();
-	else if (mode == FILGID)
+	if (mode == FILGID)
 		return s.st_gid == getegid();
-	else
-		return 1; /* NOTREACHED */
-
+	return 1; /* NOTREACHED */
 }
 
 static enum token t_lex(char *s)
 {
-	struct t_op const *op = ops;
+	const struct t_op *op;
 
-	if (s == 0) {
-		t_wp_op = (struct t_op *) 0;
+	t_wp_op = NULL;
+	if (s == NULL) {
 		return EOI;
 	}
-	while (op->op_text) {
+
+	op = ops;
+	do {
 		if (strcmp(s, op->op_text) == 0) {
 			t_wp_op = op;
 			return op->op_num;
 		}
 		op++;
-	}
-	t_wp_op = (struct t_op *) 0;
+	} while (op < ops + NUM_OPS);
+
 	return OPERAND;
 }
 
@@ -469,14 +473,14 @@ static enum token t_lex(char *s)
 static arith_t getn(const char *s)
 {
 	char *p;
-#ifdef CONFIG_FEATURE_TEST_64
+#if ENABLE_FEATURE_TEST_64
 	long long r;
 #else
 	long r;
 #endif
 
 	errno = 0;
-#ifdef CONFIG_FEATURE_TEST_64
+#if ENABLE_FEATURE_TEST_64
 	r = strtoll(s, &p, 10);
 #else
 	r = strtol(s, &p, 10);
@@ -591,4 +595,3 @@ int test_main(int argc, char **argv)
 {
 	return bb_test(argc, argv);
 }
-
