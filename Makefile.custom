@@ -143,3 +143,5 @@ SYN_CPPFLAGS := $(subst $(brace_close),\$(brace_close),$(SYN_CPPFLAGS))
 .PHONY: html
 html: $(syn)
 	synopsis -f HTML -Wf,title="'BusyBox Documentation'" -o $@ $^
+
+-include $(srctree)/Makefile.local
