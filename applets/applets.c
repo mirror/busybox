@@ -110,9 +110,6 @@ static char *get_trimmed_slice(char *s, char *e)
 /* Don't depend on the tools to combine strings. */
 static const char config_file[] = "/etc/busybox.conf";
 
-/* There are 4 chars + 1 nul for each of user/group/other. */
-static const char mode_chars[] = "Ssx-\0Ssx-\0Ttx-";
-
 /* We don't supply a value for the nul, so an index adjustment is
  * necessary below.  Also, we use unsigned short here to save some
  * space even though these are really mode_t values. */
@@ -257,6 +254,9 @@ static void parse_config_file(void)
 				e = skip_whitespace(e+1);
 
 				for (i = 0; i < 3; i++) {
+					/* There are 4 chars + 1 nul for each of user/group/other. */
+					static const char mode_chars[] = "Ssx-\0" "Ssx-\0" "Ttx-";
+
 					const char *q;
 					q = strchrnul(mode_chars + 5*i, *e++);
 					if (!*q) {
@@ -337,7 +337,8 @@ static inline void parse_config_file(void)
 #if ENABLE_FEATURE_SUID
 static void check_suid(const struct bb_applet *applet)
 {
-	uid_t rgid;  /* real gid */
+	uid_t uid;
+	gid_t rgid;  /* real gid */
 
 	if (ruid == 0) /* set by parse_config_file() */
 		return; /* run by root - no need to check more */
@@ -368,16 +369,24 @@ static void check_suid(const struct bb_applet *applet)
 		if (!(m & S_IXOTH))           /* is x bit not set ? */
 			bb_error_msg_and_die("you have no permission to run this applet!");
 
-		if (sct->m_gid != 0) {
-			/* _both_ have to be set for sgid */
-			if ((sct->m_mode & (S_ISGID | S_IXGRP)) == (S_ISGID | S_IXGRP)) {
-				xsetgid(sct->m_gid);
-			} else xsetgid(rgid); /* no sgid -> drop */
-		}
-		if (sct->m_uid != 0) {
-			if (sct->m_mode & S_ISUID) xsetuid(sct->m_uid);
-			else xsetuid(ruid); /* no suid -> drop */
-		}
+		/* _both_ sgid and group_exec have to be set for setegid */
+		if ((sct->m_mode & (S_ISGID | S_IXGRP)) == (S_ISGID | S_IXGRP))
+			rgid = sct->m_gid;
+		/* else (no setegid) we will set egid = rgid */
+
+		/* We set effective AND saved ids. If saved-id is not set
+		 * like we do below, seteiud(0) can still later succeed! */
+		if (setresgid(-1, rgid, rgid))
+			bb_perror_msg_and_die("setresgid");
+
+		/* do we have to set effective uid? */
+		uid = ruid;
+		if (sct->m_mode & S_ISUID)
+			uid = sct->m_uid;
+		/* else (no seteuid) we will set euid = ruid */
+
+		if (setresuid(-1, uid, uid))
+			bb_perror_msg_and_die("setresuid");
 		return;
 	}
 #if !ENABLE_FEATURE_SUID_CONFIG_QUIET
@@ -393,6 +402,8 @@ static void check_suid(const struct bb_applet *applet)
 #endif
 
 	if (applet->need_suid == _BB_SUID_ALWAYS) {
+		/* Real uid is not 0. If euid isn't 0 too, suid bit
+		 * is most probably not set on our executable */
 		if (geteuid())
 			bb_error_msg_and_die("applet requires root privileges!");
 	} else if (applet->need_suid == _BB_SUID_NEVER) {

@@ -386,13 +386,13 @@ char *bin2hex(char *p, const char *cp, int count)
 // setgid() will fail and we'll _still_be_root_, which is bad.)
 void xsetgid(gid_t gid)
 {
-	if (setgid(gid)) bb_error_msg_and_die("setgid");
+	if (setgid(gid)) bb_perror_msg_and_die("setgid");
 }
 
 // Die with an error message if we can't set uid.  (See xsetgid() for why.)
 void xsetuid(uid_t uid)
 {
-	if (setuid(uid)) bb_error_msg_and_die("setuid");
+	if (setuid(uid)) bb_perror_msg_and_die("setuid");
 }
 
 // Return how long the file at fd is, if there's any way to determine it.
