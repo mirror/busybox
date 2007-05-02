@@ -85,6 +85,7 @@
 //#define DEBUG_SHELL
 /* Finer-grained debug switch */
 //#define DEBUG_SHELL_JOBS
+//#define DEBUG_SHELL_EXECUTION
 
 #if !ENABLE_HUSH_INTERACTIVE
 #undef ENABLE_FEATURE_EDITING
@@ -313,6 +314,12 @@ static char *indenter(int i)
 #define debug_jobs_printf(...) fprintf(stderr, __VA_ARGS__)
 #else
 #define debug_jobs_printf(...) do {} while (0)
+#endif
+
+#ifdef DEBUG_SHELL_EXECUTION
+#define debug_exec_printf(...) fprintf(stderr, __VA_ARGS__)
+#else
+#define debug_exec_printf(...) do {} while (0)
 #endif
 
 #define final_printf debug_printf
@@ -1322,11 +1329,11 @@ static void pseudo_exec(struct child_prog *child)
 	}
 
 	if (child->group) {
-		debug_printf("runtime nesting to group\n");
 	// FIXME: do not modify globals! Think vfork!
 #if ENABLE_HUSH_INTERACTIVE
 		interactive_fd = 0;    /* crucial!!!! */
 #endif
+		debug_exec_printf("pseudo_exec: run_list_real\n");
 		rcode = run_list_real(child->group);
 		/* OK to leak memory by not calling free_pipe_list,
 		 * since this process is about to exit */
@@ -1641,6 +1648,8 @@ static int run_pipe_real(struct pipe *pi)
 	int rcode;
 	const int single_fg = (pi->num_progs == 1 && pi->followup != PIPE_BG);
 
+	debug_exec_printf("run_pipe_real start:\n");
+
 	nextin = 0;
 #if ENABLE_HUSH_JOB
 	pi->pgrp = -1;
@@ -1658,8 +1667,10 @@ static int run_pipe_real(struct pipe *pi)
 		setup_redirects(child, squirrel);
 		/* XXX could we merge code with following builtin case,
 		 * by creating a pseudo builtin that calls run_list_real? */
+		debug_exec_printf(": run_list_real\n");
 		rcode = run_list_real(child->group);
 		restore_redirects(squirrel);
+		debug_exec_printf("run_pipe_real return %d\n", rcode);
 		return rcode;
 	}
 
@@ -1707,8 +1718,10 @@ static int run_pipe_real(struct pipe *pi)
 			char *str;
 
 			str = make_string(argv + i);
+			debug_exec_printf(": parse_string_outer '%s'\n", str);
 			parse_string_outer(str, FLAG_EXIT_FROM_LOOP | FLAG_REPARSING);
 			free(str);
+			debug_exec_printf("run_pipe_real return %d\n", last_return_code);
 			return last_return_code;
 		}
 		for (x = bltins; x->cmd; x++) {
@@ -1725,8 +1738,10 @@ static int run_pipe_real(struct pipe *pi)
 				 * things seem to work with glibc. */
 // TODO: fflush(NULL)?
 				setup_redirects(child, squirrel);
+				debug_exec_printf(": builtin '%s' '%s'...\n", x->cmd, argv[i+1]);
 				rcode = x->function(argv + i);
 				restore_redirects(squirrel);
+				debug_exec_printf("run_pipe_real return %d\n", rcode);
 				return rcode;
 			}
 		}
@@ -1735,8 +1750,10 @@ static int run_pipe_real(struct pipe *pi)
 			const struct bb_applet *a = find_applet_by_name(argv[i]);
 			if (a && a->nofork) {
 				setup_redirects(child, squirrel);
+				debug_exec_printf(": run_single_fg_nofork '%s' '%s'...\n", argv[i], argv[i+1]);
 				rcode = run_single_fg_nofork(pi, a, argv + i);
 				restore_redirects(squirrel);
+				debug_exec_printf("run_pipe_real return %d\n", rcode);
 				return rcode;
 			}
 		}
@@ -1751,6 +1768,7 @@ static int run_pipe_real(struct pipe *pi)
 
 	for (i = 0; i < pi->num_progs; i++) {
 		child = &(pi->progs[i]);
+		debug_exec_printf(": pipe member '%s' '%s'...\n", child->argv[0], child->argv[1]);
 
 		/* pipes are inserted between pairs of commands */
 		if ((i + 1) < pi->num_progs) {
@@ -1831,6 +1849,7 @@ static int run_pipe_real(struct pipe *pi)
 		   but it doesn't matter */
 		nextin = pipefds[0];
 	}
+	debug_exec_printf("run_pipe_real return -1\n");
 	return -1;
 }
 
@@ -1846,18 +1865,23 @@ static int run_list_real(struct pipe *pi)
 	int flag_restore = 0;
 	int if_code = 0, next_if_code = 0;  /* need double-buffer to handle elif */
 	reserved_style rmode, skip_more_in_this_rmode = RES_XXXX;
+
+	debug_exec_printf("run_list_real start:\n");
+
 	/* check syntax for "for" */
 	for (rpipe = pi; rpipe; rpipe = rpipe->next) {
 		if ((rpipe->r_mode == RES_IN || rpipe->r_mode == RES_FOR)
 		 && (rpipe->next == NULL)
 		) {
 			syntax();
+			debug_exec_printf("run_list_real return 1\n");
 			return 1;
 		}
 		if ((rpipe->r_mode == RES_IN &&	rpipe->next->r_mode == RES_IN && rpipe->next->progs->argv != NULL)
 		 || (rpipe->r_mode == RES_FOR && rpipe->next->r_mode != RES_IN)
 		) {
 			syntax();
+			debug_exec_printf("run_list_real return 1\n");
 			return 1;
 		}
 	}
@@ -1933,8 +1957,8 @@ static int run_list_real(struct pipe *pi)
 		if (pi->num_progs == 0)
 			continue;
 		save_num_progs = pi->num_progs; /* save number of programs */
+		debug_exec_printf(": run_pipe_real with %d members\n", pi->num_progs);
 		rcode = run_pipe_real(pi);
-		debug_printf("run_pipe_real returned %d\n", rcode);
 		if (rcode != -1) {
 			/* We only ran a builtin: rcode was set by the return value
 			 * of run_pipe_real(), and we don't need to wait for anything. */
@@ -1972,6 +1996,7 @@ static int run_list_real(struct pipe *pi)
 		}
 		checkjobs(NULL);
 	}
+	debug_exec_printf("run_list_real return %d\n", rcode);
 	return rcode;
 }
 
@@ -2047,6 +2072,7 @@ static int run_list(struct pipe *pi)
 {
 	int rcode = 0;
 	if (fake_mode == 0) {
+		debug_exec_printf("run_list: run_list_real with %d members\n", pi->num_progs);
 		rcode = run_list_real(pi);
 	}
 	/* free_pipe_list has the side effect of clearing memory
@@ -3083,6 +3109,10 @@ static void update_ifs_map(void)
  * from builtin_source() */
 static int parse_stream_outer(struct in_str *inp, int flag)
 {
+// FIXME: 'true | exit 3; echo $?' is parsed as a whole,
+// as a result $? is replaced by 0, not 3!
+// Need to stop & execute stuff at ';', not parse till EOL!
+
 	struct p_context ctx;
 	o_string temp = NULL_O_STRING;
 	int rcode;
@@ -3102,6 +3132,7 @@ static int parse_stream_outer(struct in_str *inp, int flag)
 		if (rcode != 1 && ctx.old_flag == 0) {
 			done_word(&temp, &ctx);
 			done_pipe(&ctx, PIPE_SEQ);
+			debug_exec_printf("parse_stream_outer: run_list\n");
 			run_list(ctx.list_head);
 		} else {
 			if (ctx.old_flag != 0) {
