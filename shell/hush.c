@@ -110,8 +110,8 @@ typedef enum {
  * output pretty */
 static const struct {
 	int mode;
-	int default_fd;
-	const char *descrip;
+	signed char default_fd;
+	char descrip[3];
 } redir_table[] = {
 	{ 0,                         0, "()" },
 	{ O_RDONLY,                  0, "<"  },
@@ -255,7 +255,8 @@ static const char *PS1;
 static const char *PS2;
 #endif
 
-static struct variables shell_ver = { NULL, "HUSH_VERSION", "0.01", 1, 1 };
+#define HUSH_VER_STR "0.02"
+static struct variables shell_ver = { NULL, "HUSH_VERSION", HUSH_VER_STR, 1, 1 };
 static struct variables *top_vars = &shell_ver;
 
 #define B_CHUNK  100
@@ -295,12 +296,6 @@ struct built_in_command {
 	const char *descr;              /* description */
 	int (*function) (char **argv);  /* function ptr */
 };
-
-/* belongs in busybox.h */
-static int max(int a, int b)
-{
-	return (a > b) ? a : b;
-}
 
 #ifdef DEBUG_SHELL
 #define debug_printf(...) fprintf(stderr, __VA_ARGS__)
@@ -590,14 +585,14 @@ static void hush_exit(int exitcode)
 	sigexit(- (exitcode & 0xff));
 }
 
-#else /* !INTERACTIVE */
+#else /* !JOB */
 
 #define set_fatal_sighandler(handler)   ((void)0)
 #define set_jobctrl_sighandler(handler) ((void)0)
 #define set_misc_sighandler(handler)    ((void)0)
-#define hush_exit(e)                    exit(-(e))
+#define hush_exit(e)                    exit(e)
 
-#endif /* INTERACTIVE */
+#endif /* JOB */
 
 
 static const char *set_cwd(void)
@@ -957,7 +952,7 @@ static int b_check_space(o_string *o, int len)
 	if (o->length + len > o->maxlen) {
 		char *old_data = o->data;
 		/* assert(data == NULL || o->maxlen != 0); */
-		o->maxlen += max(2*len, B_CHUNK);
+		o->maxlen += (2*len > B_CHUNK ? 2*len : B_CHUNK);
 		o->data = realloc(o->data, 1 + o->maxlen);
 		if (o->data == NULL) {
 			free(old_data);
@@ -3299,7 +3294,7 @@ int hush_main(int argc, char **argv)
 			hush_exit(xfunc_error_retval);
 		}
 #if !ENABLE_FEATURE_SH_EXTRA_QUIET
-		printf("\n\n%s hush - the humble shell v0.02\n", BB_BANNER);
+		printf("\n\n%s hush - the humble shell v"HUSH_VER_STR"\n", BB_BANNER);
 		printf("Enter 'help' for a list of built-in commands.\n\n");
 #endif
 	}
