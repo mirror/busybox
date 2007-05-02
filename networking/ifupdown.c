@@ -1083,15 +1083,33 @@ static llist_t *find_iface_state(llist_t *state_list, const char *iface)
 	return NULL;
 }
 
+/* read the previous state from the state file */
+static llist_t *read_iface_state(void)
+{
+	llist_t *state_list = NULL;
+	FILE *state_fp = fopen("/var/run/ifstate", "r");
+
+	if (state_fp) {
+		char *start, *end_ptr;
+		while ((start = xmalloc_fgets(state_fp)) != NULL) {
+			/* We should only need to check for a single character */
+			end_ptr = start + strcspn(start, " \t\n");
+			*end_ptr = '\0';
+			llist_add_to(&state_list, start);
+		}
+		fclose(state_fp);
+	}
+	return state_list;
+}
+
+
 int ifupdown_main(int argc, char **argv);
 int ifupdown_main(int argc, char **argv)
 {
 	int (*cmds)(struct interface_defn_t *) = NULL;
 	struct interfaces_file_t *defn;
-	llist_t *state_list = NULL;
 	llist_t *target_list = NULL;
 	const char *interfaces = "/etc/network/interfaces";
-	FILE *state_fp;
 	bool any_failures = 0;
 
 	cmds = iface_down;
@@ -1118,32 +1136,9 @@ int ifupdown_main(int argc, char **argv)
 	startup_PATH = getenv("PATH");
 	if (!startup_PATH) startup_PATH = "";
 
-	/* Read the previous state from the state file */
-	state_fp = fopen("/var/run/ifstate", "r");
-	if (state_fp) {
-		char *start, *end_ptr;
-		while ((start = xmalloc_fgets(state_fp)) != NULL) {
-			/* We should only need to check for a single character */
-			end_ptr = start + strcspn(start, " \t\n");
-			*end_ptr = '\0';
-			llist_add_to(&state_list, start);
-		}
-		fclose(state_fp);
-	}
-
 	/* Create a list of interfaces to work on */
 	if (DO_ALL) {
-		if (cmds == iface_up) {
-			target_list = defn->autointerfaces;
-		} else {
-			/* iface_down */
-			const llist_t *list = state_list;
-			while (list) {
-				llist_add_to_end(&target_list, xstrdup(list->data));
-				list = list->link;
-			}
-			target_list = defn->autointerfaces;
-		}
+		target_list = defn->autointerfaces;
 	} else {
 		llist_add_to_end(&target_list, argv[optind]);
 	}
@@ -1170,6 +1165,7 @@ int ifupdown_main(int argc, char **argv)
 		}
 
 		if (!FORCE) {
+			llist_t *state_list = read_iface_state();
 			const llist_t *iface_state = find_iface_state(state_list, iface);
 
 			if (cmds == iface_up) {
@@ -1185,6 +1181,7 @@ int ifupdown_main(int argc, char **argv)
 					continue;
 				}
 			}
+			llist_free(state_list, free);
 		}
 
 #if ENABLE_FEATURE_IFUPDOWN_MAPPING
@@ -1239,6 +1236,8 @@ int ifupdown_main(int argc, char **argv)
 			bb_error_msg("ignoring unknown interface %s", liface);
 			any_failures = 1;
 		} else {
+			/* update the state file */
+			llist_t *state_list = read_iface_state();
 			llist_t *iface_state = find_iface_state(state_list, iface);
 
 			if (cmds == iface_up) {
@@ -1254,19 +1253,21 @@ int ifupdown_main(int argc, char **argv)
 				llist_unlink(&state_list, iface_state);
 				free(llist_pop(&iface_state));
 			}
-		}
-	}
 
-	/* Actually write the new state */
-	if (!NO_ACT) {
-		state_fp = xfopen("/var/run/ifstate", "w");
-		while (state_list) {
-			if (state_list->data) {
-				fprintf(state_fp, "%s\n", state_list->data);
+			/* Actually write the new state */
+			if (!NO_ACT) {
+				FILE *state_fp = xfopen("/var/run/ifstate", "w");
+				llist_t *state = state_list;
+				while (state) {
+					if (state->data) {
+						fprintf(state_fp, "%s\n", state->data);
+					}
+					state = state->link;
+				}
+				fclose(state_fp);
 			}
-			state_list = state_list->link;
+			llist_free(state_list, free);
 		}
-		fclose(state_fp);
 	}
 
 	return any_failures;
