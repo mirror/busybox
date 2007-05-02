@@ -80,12 +80,37 @@
 #include "busybox.h"
 #include <glob.h>      /* glob, of course */
 #include <getopt.h>    /* should be pretty obvious */
-
 /* #include <dmalloc.h> */
-//#define DEBUG_SHELL
+
+
+/* If you comment out one of these below, it will be #defined later
+ * to perform debug printfs to stderr: */
+#define debug_printf(...)      do {} while (0)
 /* Finer-grained debug switch */
-//#define DEBUG_SHELL_JOBS
-//#define DEBUG_SHELL_EXECUTION
+#define debug_printf_jobs(...) do {} while (0)
+#define debug_printf_exec(...) do {} while (0)
+
+
+#ifndef debug_printf
+#define debug_printf(...) fprintf(stderr, __VA_ARGS__)
+/* broken, of course, but OK for testing */
+static const char *indenter(int i)
+{
+	static const char blanks[] = "                                    ";
+	return &blanks[sizeof(blanks) - i - 1];
+}
+#endif
+#define final_printf debug_printf
+
+#ifndef debug_printf_jobs
+#define debug_printf_jobs(...) fprintf(stderr, __VA_ARGS__)
+#define DEBUG_SHELL_JOBS 1
+#endif
+
+#ifndef debug_printf_exec
+#define debug_printf_exec(...) fprintf(stderr, __VA_ARGS__)
+#endif
+
 
 #if !ENABLE_HUSH_INTERACTIVE
 #undef ENABLE_FEATURE_EDITING
@@ -298,32 +323,6 @@ struct built_in_command {
 	int (*function) (char **argv);  /* function ptr */
 };
 
-#ifdef DEBUG_SHELL
-#define debug_printf(...) fprintf(stderr, __VA_ARGS__)
-/* broken, of course, but OK for testing */
-static char *indenter(int i)
-{
-	static char blanks[] = "                                    ";
-	return &blanks[sizeof(blanks) - i - 1];
-}
-#else
-#define debug_printf(...) do {} while (0)
-#endif
-
-#ifdef DEBUG_SHELL_JOBS
-#define debug_jobs_printf(...) fprintf(stderr, __VA_ARGS__)
-#else
-#define debug_jobs_printf(...) do {} while (0)
-#endif
-
-#ifdef DEBUG_SHELL_EXECUTION
-#define debug_exec_printf(...) fprintf(stderr, __VA_ARGS__)
-#else
-#define debug_exec_printf(...) do {} while (0)
-#endif
-
-#define final_printf debug_printf
-
 static void __syntax(int line)
 {
 	bb_error_msg("syntax error hush.c:%d", line);
@@ -514,7 +513,7 @@ static sigjmp_buf nofork_jb;
 
 static void handler_ctrl_c(int sig)
 {
-	debug_jobs_printf("got sig %d\n", sig);
+	debug_printf_jobs("got sig %d\n", sig);
 // as usual we can have all kinds of nasty problems with leaked malloc data here
 	siglongjmp(nofork_jb, 1);
 }
@@ -523,20 +522,20 @@ static void handler_ctrl_z(int sig)
 {
 	pid_t pid;
 
-	debug_jobs_printf("got tty sig %d\n", sig);
+	debug_printf_jobs("got tty sig %d\n", sig);
 	pid = fork();
 	if (pid < 0) /* can't fork. Pretend there were no Ctrl-Z */
 		return;
-	debug_jobs_printf("bg'ing nofork\n");
+	debug_printf_jobs("bg'ing nofork\n");
 	nofork_save.saved = 0; /* flag the fact that Ctrl-Z was handled */
 	nofork_pipe->running_progs = 1;
 	nofork_pipe->stopped_progs = 0;
 	if (!pid) { /* child */
-		debug_jobs_printf("setting pgrp for child\n");
+		debug_printf_jobs("setting pgrp for child\n");
 		setpgrp();
 		set_every_sighandler(SIG_DFL);
 		raise(SIGTSTP); /* resend TSTP so that child will be stopped */
-		debug_jobs_printf("returning to child\n");
+		debug_printf_jobs("returning to child\n");
 		/* return to nofork, it will eventually exit now,
 		 * not return back to shell */
 		return;
@@ -766,9 +765,9 @@ static int builtin_fg_bg(char **argv)
 	}
 
 	/* Restart the processes in the job */
-	debug_jobs_printf("reviving %d procs, pgrp %d\n", pi->num_progs, pi->pgrp);
+	debug_printf_jobs("reviving %d procs, pgrp %d\n", pi->num_progs, pi->pgrp);
 	for (i = 0; i < pi->num_progs; i++) {
-		debug_jobs_printf("reviving pid %d\n", pi->progs[i].pid);
+		debug_printf_jobs("reviving pid %d\n", pi->progs[i].pid);
 		pi->progs[i].is_stopped = 0;
 	}
 	pi->stopped_progs = 0;
@@ -1333,7 +1332,7 @@ static void pseudo_exec(struct child_prog *child)
 #if ENABLE_HUSH_INTERACTIVE
 		interactive_fd = 0;    /* crucial!!!! */
 #endif
-		debug_exec_printf("pseudo_exec: run_list_real\n");
+		debug_printf_exec("pseudo_exec: run_list_real\n");
 		rcode = run_list_real(child->group);
 		/* OK to leak memory by not calling free_pipe_list,
 		 * since this process is about to exit */
@@ -1478,20 +1477,20 @@ static int checkjobs(struct pipe* fg_pipe)
 
 #ifdef DEBUG_SHELL_JOBS
 		if (WIFSTOPPED(status))
-			debug_jobs_printf("pid %d stopped by sig %d (exitcode %d)\n",
+			debug_printf_jobs("pid %d stopped by sig %d (exitcode %d)\n",
 					childpid, WSTOPSIG(status), WEXITSTATUS(status));
 		if (WIFSIGNALED(status))
-			debug_jobs_printf("pid %d killed by sig %d (exitcode %d)\n",
+			debug_printf_jobs("pid %d killed by sig %d (exitcode %d)\n",
 					childpid, WTERMSIG(status), WEXITSTATUS(status));
 		if (WIFEXITED(status))
-			debug_jobs_printf("pid %d exited, exitcode %d\n",
+			debug_printf_jobs("pid %d exited, exitcode %d\n",
 					childpid, WEXITSTATUS(status));
 #endif
 		/* Were we asked to wait for fg pipe? */
 		if (fg_pipe) {
 			int i;
 			for (i = 0; i < fg_pipe->num_progs; i++) {
-				debug_jobs_printf("check pid %d\n", fg_pipe->progs[i].pid);
+				debug_printf_jobs("check pid %d\n", fg_pipe->progs[i].pid);
 				if (fg_pipe->progs[i].pid == childpid) {
 					/* printf("process %d exit %d\n", i, WEXITSTATUS(status)); */
 					if (dead) {
@@ -1504,7 +1503,7 @@ static int checkjobs(struct pipe* fg_pipe)
 						fg_pipe->progs[i].is_stopped = 1;
 						fg_pipe->stopped_progs++;
 					}
-					debug_jobs_printf("fg_pipe: running_progs %d stopped_progs %d\n",
+					debug_printf_jobs("fg_pipe: running_progs %d stopped_progs %d\n",
 							fg_pipe->running_progs, fg_pipe->stopped_progs);
 					if (fg_pipe->running_progs - fg_pipe->stopped_progs <= 0) {
 						/* All processes in fg pipe have exited/stopped */
@@ -1606,7 +1605,7 @@ static int run_single_fg_nofork(struct pipe *pi, const struct bb_applet *a,
 	 * Sighandler has longjmped us here */
 	signal(SIGINT, SIG_IGN);
 	signal(SIGTSTP, SIG_IGN);
-	debug_jobs_printf("Exiting nofork early\n");
+	debug_printf_jobs("Exiting nofork early\n");
 	restore_nofork_data(&nofork_save);
 	if (nofork_save.saved == 0) /* Ctrl-Z, not Ctrl-C */
 		insert_bg_job(pi);
@@ -1648,7 +1647,7 @@ static int run_pipe_real(struct pipe *pi)
 	int rcode;
 	const int single_fg = (pi->num_progs == 1 && pi->followup != PIPE_BG);
 
-	debug_exec_printf("run_pipe_real start:\n");
+	debug_printf_exec("run_pipe_real start:\n");
 
 	nextin = 0;
 #if ENABLE_HUSH_JOB
@@ -1667,10 +1666,10 @@ static int run_pipe_real(struct pipe *pi)
 		setup_redirects(child, squirrel);
 		/* XXX could we merge code with following builtin case,
 		 * by creating a pseudo builtin that calls run_list_real? */
-		debug_exec_printf(": run_list_real\n");
+		debug_printf_exec(": run_list_real\n");
 		rcode = run_list_real(child->group);
 		restore_redirects(squirrel);
-		debug_exec_printf("run_pipe_real return %d\n", rcode);
+		debug_printf_exec("run_pipe_real return %d\n", rcode);
 		return rcode;
 	}
 
@@ -1718,10 +1717,10 @@ static int run_pipe_real(struct pipe *pi)
 			char *str;
 
 			str = make_string(argv + i);
-			debug_exec_printf(": parse_string_outer '%s'\n", str);
+			debug_printf_exec(": parse_string_outer '%s'\n", str);
 			parse_string_outer(str, FLAG_EXIT_FROM_LOOP | FLAG_REPARSING);
 			free(str);
-			debug_exec_printf("run_pipe_real return %d\n", last_return_code);
+			debug_printf_exec("run_pipe_real return %d\n", last_return_code);
 			return last_return_code;
 		}
 		for (x = bltins; x->cmd; x++) {
@@ -1738,10 +1737,10 @@ static int run_pipe_real(struct pipe *pi)
 				 * things seem to work with glibc. */
 // TODO: fflush(NULL)?
 				setup_redirects(child, squirrel);
-				debug_exec_printf(": builtin '%s' '%s'...\n", x->cmd, argv[i+1]);
+				debug_printf_exec(": builtin '%s' '%s'...\n", x->cmd, argv[i+1]);
 				rcode = x->function(argv + i);
 				restore_redirects(squirrel);
-				debug_exec_printf("run_pipe_real return %d\n", rcode);
+				debug_printf_exec("run_pipe_real return %d\n", rcode);
 				return rcode;
 			}
 		}
@@ -1750,10 +1749,10 @@ static int run_pipe_real(struct pipe *pi)
 			const struct bb_applet *a = find_applet_by_name(argv[i]);
 			if (a && a->nofork) {
 				setup_redirects(child, squirrel);
-				debug_exec_printf(": run_single_fg_nofork '%s' '%s'...\n", argv[i], argv[i+1]);
+				debug_printf_exec(": run_single_fg_nofork '%s' '%s'...\n", argv[i], argv[i+1]);
 				rcode = run_single_fg_nofork(pi, a, argv + i);
 				restore_redirects(squirrel);
-				debug_exec_printf("run_pipe_real return %d\n", rcode);
+				debug_printf_exec("run_pipe_real return %d\n", rcode);
 				return rcode;
 			}
 		}
@@ -1768,7 +1767,7 @@ static int run_pipe_real(struct pipe *pi)
 
 	for (i = 0; i < pi->num_progs; i++) {
 		child = &(pi->progs[i]);
-		debug_exec_printf(": pipe member '%s' '%s'...\n", child->argv[0], child->argv[1]);
+		debug_printf_exec(": pipe member '%s' '%s'...\n", child->argv[0], child->argv[1]);
 
 		/* pipes are inserted between pairs of commands */
 		if ((i + 1) < pi->num_progs) {
@@ -1849,7 +1848,7 @@ static int run_pipe_real(struct pipe *pi)
 		   but it doesn't matter */
 		nextin = pipefds[0];
 	}
-	debug_exec_printf("run_pipe_real return -1\n");
+	debug_printf_exec("run_pipe_real return -1\n");
 	return -1;
 }
 
@@ -1866,7 +1865,7 @@ static int run_list_real(struct pipe *pi)
 	int if_code = 0, next_if_code = 0;  /* need double-buffer to handle elif */
 	reserved_style rmode, skip_more_in_this_rmode = RES_XXXX;
 
-	debug_exec_printf("run_list_real start:\n");
+	debug_printf_exec("run_list_real start:\n");
 
 	/* check syntax for "for" */
 	for (rpipe = pi; rpipe; rpipe = rpipe->next) {
@@ -1874,14 +1873,14 @@ static int run_list_real(struct pipe *pi)
 		 && (rpipe->next == NULL)
 		) {
 			syntax();
-			debug_exec_printf("run_list_real return 1\n");
+			debug_printf_exec("run_list_real return 1\n");
 			return 1;
 		}
 		if ((rpipe->r_mode == RES_IN &&	rpipe->next->r_mode == RES_IN && rpipe->next->progs->argv != NULL)
 		 || (rpipe->r_mode == RES_FOR && rpipe->next->r_mode != RES_IN)
 		) {
 			syntax();
-			debug_exec_printf("run_list_real return 1\n");
+			debug_printf_exec("run_list_real return 1\n");
 			return 1;
 		}
 	}
@@ -1957,7 +1956,7 @@ static int run_list_real(struct pipe *pi)
 		if (pi->num_progs == 0)
 			continue;
 		save_num_progs = pi->num_progs; /* save number of programs */
-		debug_exec_printf(": run_pipe_real with %d members\n", pi->num_progs);
+		debug_printf_exec(": run_pipe_real with %d members\n", pi->num_progs);
 		rcode = run_pipe_real(pi);
 		if (rcode != -1) {
 			/* We only ran a builtin: rcode was set by the return value
@@ -1996,7 +1995,7 @@ static int run_list_real(struct pipe *pi)
 		}
 		checkjobs(NULL);
 	}
-	debug_exec_printf("run_list_real return %d\n", rcode);
+	debug_printf_exec("run_list_real return %d\n", rcode);
 	return rcode;
 }
 
@@ -2072,7 +2071,7 @@ static int run_list(struct pipe *pi)
 {
 	int rcode = 0;
 	if (fake_mode == 0) {
-		debug_exec_printf("run_list: run_list_real with %d members\n", pi->num_progs);
+		debug_printf_exec("run_list: run_list_real with %d members\n", pi->num_progs);
 		rcode = run_list_real(pi);
 	}
 	/* free_pipe_list has the side effect of clearing memory
@@ -3132,7 +3131,7 @@ static int parse_stream_outer(struct in_str *inp, int flag)
 		if (rcode != 1 && ctx.old_flag == 0) {
 			done_word(&temp, &ctx);
 			done_pipe(&ctx, PIPE_SEQ);
-			debug_exec_printf("parse_stream_outer: run_list\n");
+			debug_printf_exec("parse_stream_outer: run_list\n");
 			run_list(ctx.list_head);
 		} else {
 			if (ctx.old_flag != 0) {
