@@ -1239,8 +1239,10 @@ int ifupdown_main(int argc, char **argv)
 		if (!okay && !FORCE) {
 			bb_error_msg("ignoring unknown interface %s", liface);
 			any_failures = 1;
-		} else {
+		} else if (!NO_ACT) {
 			/* update the state file */
+			FILE *state_fp;
+			llist_t *state;
 			llist_t *state_list = read_iface_state();
 			llist_t *iface_state = find_iface_state(state_list, iface);
 
@@ -1259,17 +1261,15 @@ int ifupdown_main(int argc, char **argv)
 			}
 
 			/* Actually write the new state */
-			if (!NO_ACT) {
-				FILE *state_fp = xfopen("/var/run/ifstate", "w");
-				llist_t *state = state_list;
-				while (state) {
-					if (state->data) {
-						fprintf(state_fp, "%s\n", state->data);
-					}
-					state = state->link;
+			state_fp = xfopen("/var/run/ifstate", "w");
+			state = state_list;
+			while (state) {
+				if (state->data) {
+					fprintf(state_fp, "%s\n", state->data);
 				}
-				fclose(state_fp);
+				state = state->link;
 			}
+			fclose(state_fp);
 			llist_free(state_list, free);
 		}
 	}
