@@ -266,7 +266,7 @@ config FEATURE_IFUPDOWN_IPV4
 	default y
 	depends on IFUPDOWN
 	help
-	  If you want busybox to talk IPv4, leave this on.
+	  If you want ifup/ifdown to talk IPv4, leave this on.
 
 config FEATURE_IFUPDOWN_IPV6
 	bool "Enable support for IPv6"
@@ -275,13 +275,14 @@ config FEATURE_IFUPDOWN_IPV6
 	help
 	  If you need support for IPv6, turn this option on.
 
-config FEATURE_IFUPDOWN_IPX
-	bool "Enable support for IPX"
-	default n
-	depends on IFUPDOWN
-	help
-	  If this option is selected you can use busybox to work with IPX
-	  networks.
+### UNUSED
+### config FEATURE_IFUPDOWN_IPX
+### 	bool "Enable support for IPX"
+### 	default n
+### 	depends on IFUPDOWN
+### 	help
+### 	  If this option is selected you can use busybox to work with IPX
+### 	  networks.
 
 config FEATURE_IFUPDOWN_MAPPING
 	bool "Enable mapping support"
@@ -290,6 +291,16 @@ config FEATURE_IFUPDOWN_MAPPING
 	help
 	  This enables support for the "mapping" stanza, unless you have
 	  a weird network setup you don't need it.
+
+config FEATURE_IFUPDOWN_EXTERNAL_DHCP
+	bool "Enable support for external dhcp clients"
+	default n
+	depends on IFUPDOWN
+	help
+	  This enables support for the external dhcp clients. Clients are
+	  tried in the following order: dhcpcd, dhclient, pump and udhcpc.
+	  Otherwise, if udhcpc applet is enabled, it is used.
+	  Otherwise, ifup/ifdown will have no support for DHCP.
 
 config INETD
 	bool "inetd"

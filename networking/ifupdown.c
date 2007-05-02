@@ -439,7 +439,7 @@ static int static_down(struct interface_defn_t *ifd, execfn *exec)
 	return ((result == 2) ? 2 : 0);
 }
 
-#if !ENABLE_APP_UDHCPC
+#if ENABLE_FEATURE_IFUPDOWN_EXTERNAL_DHCP
 struct dhcp_client_t
 {
 	const char *name;
@@ -448,32 +448,28 @@ struct dhcp_client_t
 };
 
 static const struct dhcp_client_t ext_dhcp_clients[] = {
-	{ "udhcpc",
-		"udhcpc -R -n -p /var/run/udhcpc.%iface%.pid -i %iface%[[ -H %hostname%]][[ -c %clientid%]][[ -s %script%]]",
-		"kill -TERM `cat /var/run/udhcpc.%iface%.pid` 2>/dev/null",
-	},
-	{ "pump",
-		"pump -i %iface%[[ -h %hostname%]][[ -l %leasehours%]]",
-		"pump -i %iface% -k",
+	{ "dhcpcd",
+		"dhcpcd[[ -h %hostname%]][[ -i %vendor%]][[ -I %clientid%]][[ -l %leasetime%]] %iface%",
+		"dhcpcd -k %iface%",
 	},
 	{ "dhclient",
 		"dhclient -pf /var/run/dhclient.%iface%.pid %iface%",
 		"kill -9 `cat /var/run/dhclient.%iface%.pid` 2>/dev/null",
 	},
-	{ "dhcpcd",
-		"dhcpcd[[ -h %hostname%]][[ -i %vendor%]][[ -I %clientid%]][[ -l %leasetime%]] %iface%",
-		"dhcpcd -k %iface%",
+	{ "pump",
+		"pump -i %iface%[[ -h %hostname%]][[ -l %leasehours%]]",
+		"pump -i %iface% -k",
+	},
+	{ "udhcpc",
+		"udhcpc -R -n -p /var/run/udhcpc.%iface%.pid -i %iface%[[ -H %hostname%]][[ -c %clientid%]][[ -s %script%]]",
+		"kill -TERM `cat /var/run/udhcpc.%iface%.pid` 2>/dev/null",
 	},
 };
-#endif
+#endif /* ENABLE_FEATURE_IFUPDOWN_EXTERNAL_DHCPC */
 
 static int dhcp_up(struct interface_defn_t *ifd, execfn *exec)
 {
-#if ENABLE_APP_UDHCPC
-	return execute("udhcpc -R -n -p /var/run/udhcpc.%iface%.pid "
-			"-i %iface%[[ -H %hostname%]][[ -c %clientid%]][[ -s %script%]]",
-			ifd, exec);
-#else
+#if ENABLE_FEATURE_IFUPDOWN_EXTERNAL_DHCP
 	int i, nclients = sizeof(ext_dhcp_clients) / sizeof(ext_dhcp_clients[0]);
 	for (i = 0; i < nclients; i++) {
 		if (exists_execable(ext_dhcp_clients[i].name))
@@ -481,15 +477,18 @@ static int dhcp_up(struct interface_defn_t *ifd, execfn *exec)
 	}
 	bb_error_msg("no dhcp clients found");
 	return 0;
-#endif
+#elif ENABLE_APP_UDHCPC
+	return execute("udhcpc -R -n -p /var/run/udhcpc.%iface%.pid "
+			"-i %iface%[[ -H %hostname%]][[ -c %clientid%]][[ -s %script%]]",
+			ifd, exec);
+#else
+	return 0; /* no dhcp support */
+#endif 
 }
 
 static int dhcp_down(struct interface_defn_t *ifd, execfn *exec)
 {
-#if ENABLE_APP_UDHCPC
-	return execute("kill -TERM "
-	               "`cat /var/run/udhcpc.%iface%.pid` 2>/dev/null", ifd, exec);
-#else
+#if ENABLE_FEATURE_IFUPDOWN_EXTERNAL_DHCP
 	int i, nclients = sizeof(ext_dhcp_clients) / sizeof(ext_dhcp_clients[0]);
 	for (i = 0; i < nclients; i++) {
 		if (exists_execable(ext_dhcp_clients[i].name))
@@ -497,6 +496,11 @@ static int dhcp_down(struct interface_defn_t *ifd, execfn *exec)
 	}
 	bb_error_msg("no dhcp clients found, using static interface shutdown");
 	return static_down(ifd, exec);
+#elif ENABLE_APP_UDHCPC
+	return execute("kill -TERM "
+	               "`cat /var/run/udhcpc.%iface%.pid` 2>/dev/null", ifd, exec);
+#else
+	return 0; /* no support for dhcp */
 #endif
 }
 
@@ -546,7 +550,7 @@ static const struct method_t methods[] = {
 
 static const struct address_family_t addr_inet = {
 	"inet",
-	sizeof(methods) / sizeof(struct method_t),
+	sizeof(methods) / sizeof(methods[0]),
 	methods
 };
 
@@ -1074,8 +1078,8 @@ static llist_t *find_iface_state(llist_t *state_list, const char *iface)
 	llist_t *search = state_list;
 
 	while (search) {
-		if ((strncmp(search->data, iface, iface_len) == 0) &&
-				(search->data[iface_len] == '=')) {
+		if ((strncmp(search->data, iface, iface_len) == 0)
+		 && (search->data[iface_len] == '=')) {
 			return search;
 		}
 		search = search->link;
