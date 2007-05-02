@@ -88,8 +88,6 @@ config FEATURE_LOGREAD_REDUCED_LOCKING
 config KLOGD
 	bool "klogd"
 	default n
-	depends on SYSLOGD
-	select FEATURE_SYSLOG
 	help
 	  klogd is a utility which intercepts and logs all
 	  messages from the Linux kernel and sends the messages
