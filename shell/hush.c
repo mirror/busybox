@@ -332,7 +332,6 @@ static void __syntax(int line)
 /* Index of subroutines: */
 /*   function prototypes for builtins */
 static int builtin_cd(char **argv);
-static int builtin_env(char **argv);
 static int builtin_eval(char **argv);
 static int builtin_exec(char **argv);
 static int builtin_exit(char **argv);
@@ -432,7 +431,6 @@ static const struct built_in_command bltins[] = {
 	{ "break", "Exit for, while or until loop", builtin_not_written },
 	{ "cd", "Change working directory", builtin_cd },
 	{ "continue", "Continue for, while or until loop", builtin_not_written },
-	{ "env", "Print all environment variables", builtin_env },
 	{ "eval", "Construct and run shell command", builtin_eval },
 	{ "exec", "Exec command, replacing this shell with the exec'd process",
 		builtin_exec },
@@ -643,19 +641,6 @@ static int builtin_cd(char **argv)
 	return EXIT_SUCCESS;
 }
 
-/* built-in 'env' handler */
-static int builtin_env(char **argv ATTRIBUTE_UNUSED)
-{
-/* TODO: call env applet's code instead */
-	char **e = environ;
-	if (e == NULL)
-		return EXIT_FAILURE;
-	while (*e) {
-		puts(*e++);
-	}
-	return EXIT_SUCCESS;
-}
-
 /* built-in 'exec' handler */
 static int builtin_exec(char **argv)
 {
@@ -670,13 +655,15 @@ static int builtin_exit(char **argv)
 {
 // TODO: bash does it ONLY on top-level sh exit (+interacive only?)
 	//puts("exit"); /* bash does it */
+// TODO: warn if we have background jobs: "There are stopped jobs"
+// On second consecutive 'exit', exit anyway.
 
 	if (argv[1] == NULL)
 		hush_exit(last_return_code);
 	/* mimic bash: exit 123abc == exit 255 + error msg */
 	xfunc_error_retval = 255;
 	/* bash: exit -2 == exit 254, no error msg */
-	hush_exit(xatoi(argv[1]));
+	hush_exit(xatoi(argv[1]) & 0xff);
 }
 
 /* built-in 'export VAR=value' handler */
@@ -686,7 +673,15 @@ static int builtin_export(char **argv)
 	char *name = argv[1];
 
 	if (name == NULL) {
-		return builtin_env(argv);
+		// TODO:
+		// ash emits: export VAR='VAL'
+		// bash: declare -x VAR="VAL"
+		// (both also escape as needed (quotes, $, etc))
+		char **e = environ;
+		if (e)
+			while (*e)
+				puts(*e++);
+		return EXIT_SUCCESS;
 	}
 
 	name = strdup(name);
@@ -1321,6 +1316,8 @@ static void pseudo_exec_argv(char **argv)
 
 static void pseudo_exec(struct child_prog *child)
 {
+// FIXME: buggy wrt NOMMU! Must not modify any global data
+// until it does exec/_exit, but currently it does.
 	int rcode;
 
 	if (child->argv) {
@@ -1852,6 +1849,8 @@ static int run_pipe_real(struct pipe *pi)
 	return -1;
 }
 
+// NB: called by pseudo_exec, and therefore must not modify any
+// global data until exec/_exit (we can be a child after vfork!)
 static int run_list_real(struct pipe *pi)
 {
 	char *save_name = NULL;
