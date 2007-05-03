@@ -24,16 +24,6 @@ long uptime(void)
 	return info.uptime;
 }
 
-#if ENABLE_FEATURE_PIDFILE
-static const char *saved_pidfile;
-
-static void pidfile_delete(void)
-{
-	if (saved_pidfile)
-		remove_pidfile(saved_pidfile);
-}
-#endif
-
 static void create_pidfile(const char *pidfile)
 {
 	if (!pidfile)
@@ -43,12 +33,6 @@ static void create_pidfile(const char *pidfile)
 		bb_perror_msg("cannot create pidfile %s", pidfile);
 		return;
 	}
-#if ENABLE_FEATURE_PIDFILE
-	/* lockf(pid_fd, F_LOCK, 0); */
-	if (!saved_pidfile)
-		atexit(pidfile_delete);
-	saved_pidfile = pidfile;
-#endif
 }
 
 void udhcp_make_pidfile(const char *pidfile)

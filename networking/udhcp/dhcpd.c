@@ -53,11 +53,11 @@ int udhcpd_main(int argc, char **argv)
 	udhcp_make_pidfile(server_config.pidfile);
 
 	option = find_option(server_config.options, DHCP_LEASE_TIME);
+	server_config.lease = LEASE_TIME;
 	if (option) {
 		memcpy(&server_config.lease, option->data + 2, 4);
 		server_config.lease = ntohl(server_config.lease);
-	} else
-		server_config.lease = LEASE_TIME;
+	}
 
 	/* Sanity check */
 	num_ips = ntohl(server_config.end) - ntohl(server_config.start) + 1;
@@ -72,8 +72,10 @@ int udhcpd_main(int argc, char **argv)
 	read_leases(server_config.lease_file);
 
 	if (read_interface(server_config.interface, &server_config.ifindex,
-			   &server_config.server, server_config.arp) < 0)
-		return 1;
+			   &server_config.server, server_config.arp) < 0) {
+		retval = 1;
+		goto ret;
+	}
 
 	/* Setup the signal pipe */
 	udhcp_sp_setup();
@@ -82,7 +84,8 @@ int udhcpd_main(int argc, char **argv)
 	while (1) { /* loop until universe collapses */
 
 		if (server_socket < 0) {
-			server_socket = listen_socket(INADDR_ANY, SERVER_PORT, server_config.interface);
+			server_socket = listen_socket(INADDR_ANY, SERVER_PORT,
+					server_config.interface);
 		}
 
 		max_sock = udhcp_sp_fd_set(&rfds, server_socket);
@@ -90,16 +93,17 @@ int udhcpd_main(int argc, char **argv)
 			tv.tv_sec = timeout_end - time(0);
 			tv.tv_usec = 0;
 		}
+		retval = 0;
 		if (!server_config.auto_time || tv.tv_sec > 0) {
 			retval = select(max_sock + 1, &rfds, NULL, NULL,
 					server_config.auto_time ? &tv : NULL);
-		} else retval = 0; /* If we already timed out, fall through */
-
+		}
 		if (retval == 0) {
 			write_leases();
 			timeout_end = time(0) + server_config.auto_time;
 			continue;
-		} else if (retval < 0 && errno != EINTR) {
+		}
+		if (retval < 0 && errno != EINTR) {
 			DEBUG("error on select");
 			continue;
 		}
@@ -113,7 +117,7 @@ int udhcpd_main(int argc, char **argv)
 			continue;
 		case SIGTERM:
 			bb_info_msg("Received a SIGTERM");
-			return 0;
+			goto ret0;
 		case 0: break;		/* no signal */
 		default: continue;	/* signal or error (probably EINTR) */
 		}
@@ -222,7 +226,8 @@ int udhcpd_main(int argc, char **argv)
 			break;
 		case DHCPRELEASE:
 			DEBUG("Received RELEASE");
-			if (lease) lease->expires = time(0);
+			if (lease)
+				lease->expires = time(0);
 			break;
 		case DHCPINFORM:
 			DEBUG("Received INFORM");
@@ -232,6 +237,10 @@ int udhcpd_main(int argc, char **argv)
 			bb_info_msg("Unsupported DHCP message (%02x) - ignoring", state[0]);
 		}
 	}
-
-	return 0;
+ ret0:
+	retval = 0;
+ ret:
+	if (server_config.pidfile)
+		remove_pidfile(server_config.pidfile);
+	return retval;
 }

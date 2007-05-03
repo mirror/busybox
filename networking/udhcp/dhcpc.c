@@ -116,6 +116,9 @@ static void client_background(void)
 #else
 // chdir(/) is problematic. Imagine that e.g. pidfile name is RELATIVE! what will unlink do then, eh?
 	bb_daemonize(DAEMON_CHDIR_ROOT);
+	/* rewrite pidfile, as our pid is different now */
+	if (client_config.pidfile)
+		write_pidfile(client_config.pidfile);
 	logmode &= ~LOGMODE_STDIO;
 #endif
 	client_config.foreground = 1; /* Do not fork again. */
@@ -327,7 +330,8 @@ int udhcpc_main(int argc, char **argv)
 						client_background();
 					} else if (client_config.abort_if_no_lease) {
 						bb_info_msg("No lease, failing");
-						return 1;
+						retval = 1;
+						goto ret;
 					}
 					/* wait to try again */
 					packet_num = 0;
@@ -483,7 +487,7 @@ int udhcpc_main(int argc, char **argv)
 					if (client_config.quit_after_lease) {
 						if (client_config.release_on_quit)
 							perform_release();
-						return 0;
+						goto ret0;
 					}
 					if (!client_config.foreground)
 						client_background();
@@ -516,7 +520,7 @@ int udhcpc_main(int argc, char **argv)
 				bb_info_msg("Received SIGTERM");
 				if (client_config.release_on_quit)
 					perform_release();
-				return 0;
+				goto ret0;
 			}
 		} else if (retval == -1 && errno == EINTR) {
 			/* a signal was caught */
@@ -524,7 +528,11 @@ int udhcpc_main(int argc, char **argv)
 			/* An error occured */
 			bb_perror_msg("select");
 		}
-
-	}
-	return 0;
+	} /* for (;;) */
+ ret0:
+	retval = 0;
+ ret:
+	if (client_config.pidfile)
+		remove_pidfile(client_config.pidfile);
+	return retval;
 }
