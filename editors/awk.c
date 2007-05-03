@@ -2696,7 +2696,8 @@ int awk_main(int argc, char **argv)
 	newfile("/dev/stdout")->F = stdout;
 	newfile("/dev/stderr")->F = stderr;
 
-	for (envp = environ; *envp; envp++) {
+	/* Huh, people report that sometimes environ is NULL. Oh well. */
+	if (environ) for (envp = environ; *envp; envp++) {
 		char *s = xstrdup(*envp);
 		char *s1 = strchr(s, '=');
 		if (s1) {
