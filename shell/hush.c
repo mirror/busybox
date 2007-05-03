@@ -89,6 +89,7 @@
 /* Finer-grained debug switch */
 #define debug_printf_jobs(...) do {} while (0)
 #define debug_printf_exec(...) do {} while (0)
+#define debug_printf_parse(...) do {} while (0)
 
 
 #ifndef debug_printf
@@ -109,6 +110,10 @@ static const char *indenter(int i)
 
 #ifndef debug_printf_exec
 #define debug_printf_exec(...) fprintf(stderr, __VA_ARGS__)
+#endif
+
+#ifndef debug_printf_parse
+#define debug_printf_parse(...) fprintf(stderr, __VA_ARGS__)
 #endif
 
 
@@ -259,8 +264,14 @@ static int last_return_code;
 extern char **environ; /* This is in <unistd.h>, but protected with __USE_GNU */
 
 /* "globals" within this file */
-static const char *ifs;
+enum {
+	MAP_ORDINARY             = 0,
+	MAP_FLOWTROUGH_IF_QUOTED = 1,
+	MAP_IFS_IF_UNQUOTED      = 2, /* flow through if quoted too */
+	MAP_NEVER_FLOWTROUGH     = 3,
+};
 static unsigned char map[256];
+static const char *ifs;
 static int fake_mode;
 static struct close_me *close_me_head;
 static const char *cwd;
@@ -390,13 +401,13 @@ static int done_pipe(struct p_context *ctx, pipe_style type);
 /*   primary string parsing: */
 static int redirect_dup_num(struct in_str *input);
 static int redirect_opt_num(o_string *o);
-static int process_command_subs(o_string *dest, struct p_context *ctx, struct in_str *input, int subst_end);
+static int process_command_subs(o_string *dest, struct p_context *ctx, struct in_str *input, const char *subst_end);
 static int parse_group(o_string *dest, struct p_context *ctx, struct in_str *input, int ch);
 static const char *lookup_param(const char *src);
 static char *make_string(char **inp);
 static int handle_dollar(o_string *dest, struct p_context *ctx, struct in_str *input);
 static int parse_string(o_string *dest, struct p_context *ctx, const char *src);
-static int parse_stream(o_string *dest, struct p_context *ctx, struct in_str *input0, int end_trigger);
+static int parse_stream(o_string *dest, struct p_context *ctx, struct in_str *input0, const char *end_trigger);
 /*   setup: */
 static int parse_stream_outer(struct in_str *inp, int flag);
 static int parse_string_outer(const char *s, int flag);
@@ -1977,8 +1988,9 @@ static int run_list_real(struct pipe *pi)
 			{
 				rcode = checkjobs(pi);
 			}
-			debug_printf("checkjobs returned %d\n", rcode);
+			debug_printf_exec("checkjobs returned %d\n", rcode);
 		}
+		debug_printf_exec("setting last_return_code=%d\n", rcode);
 		last_return_code = rcode;
 		pi->num_progs = save_num_progs; /* restore number of programs */
 		if (rmode == RES_IF || rmode == RES_ELIF)
@@ -2519,7 +2531,7 @@ static int reserved_word(o_string *dest, struct p_context *ctx)
 	return 0;
 }
 
-/* normal return is 0.
+/* Normal return is 0.
  * Syntax or xglob errors return 1. */
 static int done_word(o_string *dest, struct p_context *ctx)
 {
@@ -2527,9 +2539,9 @@ static int done_word(o_string *dest, struct p_context *ctx)
 	glob_t *glob_target;
 	int gr, flags = 0;
 
-	debug_printf("done_word: %s %p\n", dest->data, child);
+	debug_printf_parse("done_word: '%s' %p\n", dest->data, child);
 	if (dest->length == 0 && !dest->nonnull) {
-		debug_printf("  true null, ignored\n");
+		debug_printf_parse("done_word return 0: true null, ignored\n");
 		return 0;
 	}
 	if (ctx->pending_redirect) {
@@ -2537,24 +2549,31 @@ static int done_word(o_string *dest, struct p_context *ctx)
 	} else {
 		if (child->group) {
 			syntax();
-			return 1;  /* syntax error, groups and arglists don't mix */
+			debug_printf_parse("done_word return 1: syntax error, groups and arglists don't mix\n");
+			return 1;
 		}
 		if (!child->argv && (ctx->type & FLAG_PARSE_SEMICOLON)) {
-			debug_printf("checking %s for reserved-ness\n", dest->data);
-			if (reserved_word(dest, ctx))
+			debug_printf_parse(": checking %s for reserved-ness\n", dest->data);
+			if (reserved_word(dest, ctx)) {
+				debug_printf_parse("done_word return %d\n", (ctx->w == RES_SNTX));
 				return (ctx->w == RES_SNTX);
+			}
 		}
 		glob_target = &child->glob_result;
 		if (child->argv) flags |= GLOB_APPEND;
 	}
 	gr = xglob(dest, flags, glob_target);
-	if (gr != 0) return 1;
+	if (gr != 0) {
+		debug_printf_parse("done_word return 1: xglob returned %d\n", gr);
+		return 1;
+	}
 
 	b_reset(dest);
 	if (ctx->pending_redirect) {
 		ctx->pending_redirect = NULL;
 		if (glob_target->gl_pathc != 1) {
 			bb_error_msg("ambiguous redirect");
+			debug_printf_parse("done_word return 1: ambiguous redirect\n");
 			return 1;
 		}
 	} else {
@@ -2564,6 +2583,7 @@ static int done_word(o_string *dest, struct p_context *ctx)
 		done_word(dest, ctx);
 		done_pipe(ctx, PIPE_SEQ);
 	}
+	debug_printf_parse("done_word return 0\n");
 	return 0;
 }
 
@@ -2614,7 +2634,7 @@ static int done_pipe(struct p_context *ctx, pipe_style type)
 {
 	struct pipe *new_p;
 	done_command(ctx);  /* implicit closure of previous command */
-	debug_printf("done_pipe, type %d\n", type);
+	debug_printf_parse("done_pipe, type %d\n", type);
 	ctx->pipe->followup = type;
 	ctx->pipe->r_mode = ctx->w;
 	new_p = new_pipe();
@@ -2710,7 +2730,8 @@ static FILE *generate_stream_from_list(struct pipe *head)
 
 /* this version hacked for testing purposes */
 /* return code is exit status of the process that is run. */
-static int process_command_subs(o_string *dest, struct p_context *ctx, struct in_str *input, int subst_end)
+static int process_command_subs(o_string *dest, struct p_context *ctx,
+	struct in_str *input, const char *subst_end)
 {
 	int retcode;
 	o_string result = NULL_O_STRING;
@@ -2732,7 +2753,7 @@ static int process_command_subs(o_string *dest, struct p_context *ctx, struct in
 	setup_file_in_str(&pipe_str, p);
 
 	/* now send results of command back into original context */
-	retcode = parse_stream(dest, ctx, &pipe_str, '\0');
+	retcode = parse_stream(dest, ctx, &pipe_str, NULL);
 	/* XXX In case of a syntax error, should we try to kill the child?
 	 * That would be tough to do right, so just read until EOF. */
 	if (retcode == 1) {
@@ -2757,21 +2778,25 @@ static int process_command_subs(o_string *dest, struct p_context *ctx, struct in
 static int parse_group(o_string *dest, struct p_context *ctx,
 	struct in_str *input, int ch)
 {
-	int rcode, endch = 0;
+	int rcode;
+	const char *endch = NULL;
 	struct p_context sub;
 	struct child_prog *child = ctx->child;
+
+	debug_printf_parse("parse_group entered\n");
 	if (child->argv) {
 		syntax();
-		return 1;  /* syntax error, groups and arglists don't mix */
+		debug_printf_parse("parse_group return 1: syntax error, groups and arglists don't mix\n");
+		return 1;
 	}
 	initialize_context(&sub);
 	switch (ch) {
 	case '(':
-		endch = ')';
+		endch = ")";
 		child->subshell = 1;
 		break;
 	case '{':
-		endch = '}';
+		endch = "}";
 		break;
 	default:
 		syntax();   /* really logic error */
@@ -2780,6 +2805,8 @@ static int parse_group(o_string *dest, struct p_context *ctx,
 	done_word(dest, &sub); /* finish off the final word in the subcontext */
 	done_pipe(&sub, PIPE_SEQ);  /* and the final command there, too */
 	child->group = sub.list_head;
+
+	debug_printf_parse("parse_group return %d\n", rcode);
 	return rcode;
 	/* child remains "open", available for possible redirects */
 }
@@ -2880,7 +2907,7 @@ static int handle_dollar(o_string *dest, struct p_context *ctx, struct in_str *i
 			break;
 		case '(':
 			b_getch(input);
-			process_command_subs(dest, ctx, input, ')');
+			process_command_subs(dest, ctx, input, ")");
 			break;
 		case '*':
 			sep[0] = ifs[0];
@@ -2913,12 +2940,12 @@ static int parse_string(o_string *dest, struct p_context *ctx, const char *src)
 {
 	struct in_str foo;
 	setup_string_in_str(&foo, src);
-	return parse_stream(dest, ctx, &foo, '\0');
+	return parse_stream(dest, ctx, &foo, NULL);
 }
 
 /* return code is 0 for normal exit, 1 for syntax error */
 static int parse_stream(o_string *dest, struct p_context *ctx,
-	struct in_str *input, int end_trigger)
+	struct in_str *input, const char *end_trigger)
 {
 	int ch, m;
 	int redir_fd;
@@ -2929,30 +2956,38 @@ static int parse_stream(o_string *dest, struct p_context *ctx,
 	 * A single-quote triggers a bypass of the main loop until its mate is
 	 * found.  When recursing, quote state is passed in via dest->quote. */
 
-	debug_printf("parse_stream, end_trigger=%d\n", end_trigger);
+	debug_printf_parse("parse_stream entered, end_trigger='%s'\n", end_trigger);
+
 	while ((ch = b_getch(input)) != EOF) {
 		m = map[ch];
 		next = (ch == '\n') ? 0 : b_peek(input);
-		debug_printf("parse_stream: ch=%c (%d) m=%d quote=%d\n",
+		debug_printf_parse(": ch=%c (%d) m=%d quote=%d\n",
 						ch, ch, m, dest->quote);
-		if (m == 0 || ((m == 1 || m == 2) && dest->quote)) {
+		if (m == MAP_ORDINARY
+		 || (m != MAP_NEVER_FLOWTROUGH && dest->quote)
+		) {
 			b_addqchr(dest, ch, dest->quote);
 			continue;
 		}
-		if (m == 2) {  /* unquoted IFS */
+		if (m == MAP_IFS_IF_UNQUOTED) {
 			if (done_word(dest, ctx)) {
+				debug_printf_parse("parse_stream return 1\n");
 				return 1;
 			}
-			/* If we aren't performing a substitution, treat a newline as a
-			 * command separator.  */
-			if (end_trigger != '\0' && ch == '\n')
+			/* If we aren't performing a substitution, treat
+			 * a newline as a command separator.
+			 * [why we don't handle it exactly like ';'? --vda] */
+			if (end_trigger && ch == '\n') {
 				done_pipe(ctx, PIPE_SEQ);
+			}
 		}
-		if (ch == end_trigger && !dest->quote && ctx->w == RES_NONE) {
-			debug_printf("leaving parse_stream (triggered)\n");
+		if ((end_trigger && strchr(end_trigger, ch))
+		 && !dest->quote && ctx->w == RES_NONE
+		) {
+			debug_printf_parse("parse_stream return 0\n");
 			return 0;
 		}
-		if (m == 2)
+		if (m == MAP_IFS_IF_UNQUOTED)
 			continue;
 		switch (ch) {
 		case '#':
@@ -2970,13 +3005,17 @@ static int parse_stream(o_string *dest, struct p_context *ctx,
 		case '\\':
 			if (next == EOF) {
 				syntax();
+				debug_printf_parse("parse_stream return 1\n");
 				return 1;
 			}
 			b_addqchr(dest, '\\', dest->quote);
 			b_addqchr(dest, b_getch(input), dest->quote);
 			break;
 		case '$':
-			if (handle_dollar(dest, ctx, input) != 0) return 1;
+			if (handle_dollar(dest, ctx, input) != 0) {
+				debug_printf_parse("parse_stream return 1: handle_dollar returned non-0\n");
+				return 1;
+			}
 			break;
 		case '\'':
 			dest->nonnull = 1;
@@ -2988,6 +3027,7 @@ static int parse_stream(o_string *dest, struct p_context *ctx,
 			}
 			if (ch == EOF) {
 				syntax();
+				debug_printf_parse("parse_stream return 1\n");
 				return 1;
 			}
 			break;
@@ -2996,7 +3036,7 @@ static int parse_stream(o_string *dest, struct p_context *ctx,
 			dest->quote = !dest->quote;
 			break;
 		case '`':
-			process_command_subs(dest, ctx, input, '`');
+			process_command_subs(dest, ctx, input, "`");
 			break;
 		case '>':
 			redir_fd = redirect_opt_num(dest);
@@ -3007,6 +3047,7 @@ static int parse_stream(o_string *dest, struct p_context *ctx,
 				b_getch(input);
 			} else if (next == '(') {
 				syntax();   /* until we support >(list) Process Substitution */
+				debug_printf_parse("parse_stream return 1: >(process) not supported\n");
 				return 1;
 			}
 			setup_redirect(ctx, redir_fd, redir_style, input);
@@ -3023,6 +3064,7 @@ static int parse_stream(o_string *dest, struct p_context *ctx,
 				b_getch(input);
 			} else if (next == '(') {
 				syntax();   /* until we support <(list) Process Substitution */
+				debug_printf_parse("parse_stream return 1: <(process) not supported\n");
 				return 1;
 			}
 			setup_redirect(ctx, redir_fd, redir_style, input);
@@ -3054,28 +3096,32 @@ static int parse_stream(o_string *dest, struct p_context *ctx,
 			break;
 		case '(':
 		case '{':
-			if (parse_group(dest, ctx, input, ch) != 0)
+			if (parse_group(dest, ctx, input, ch) != 0) {
+				debug_printf_parse("parse_stream return 1: parse_group returned non-0\n");
 				return 1;
+			}
 			break;
 		case ')':
 		case '}':
-			syntax();   /* Proper use of this character caught by end_trigger */
+			syntax();   /* Proper use of this character is caught by end_trigger */
+			debug_printf_parse("parse_stream return 1: unexpected '}'\n");
 			return 1;
 		default:
 			syntax();   /* this is really an internal logic error */
+			debug_printf_parse("parse_stream return 1: internal logic error\n");
 			return 1;
 		}
 	}
-	/* complain if quote?  No, maybe we just finished a command substitution
+	/* Complain if quote?  No, maybe we just finished a command substitution
 	 * that was quoted.  Example:
 	 * $ echo "`cat foo` plus more"
 	 * and we just got the EOF generated by the subshell that ran "cat foo"
-	 * The only real complaint is if we got an EOF when end_trigger != '\0',
+	 * The only real complaint is if we got an EOF when end_trigger != NULL,
 	 * that is, we were really supposed to get end_trigger, and never got
 	 * one before the EOF.  Can't use the standard "syntax error" return code,
 	 * so that parse_stream_outer can distinguish the EOF and exit smoothly. */
-	debug_printf("leaving parse_stream (EOF)\n");
-	if (end_trigger != '\0')
+	debug_printf_parse("parse_stream return -%d\n", end_trigger != NULL);
+	if (end_trigger)
 		return -1;
 	return 0;
 }
@@ -3097,17 +3143,17 @@ static void update_ifs_map(void)
 	 * The map[] array only really needs two bits each, and on most machines
 	 * that would be faster because of the reduced L1 cache footprint.
 	 */
-	memset(map, 0, sizeof(map)); /* most characters flow through always */
-	mapset("\\$'\"`", 3);        /* never flow through */
-	mapset("<>;&|(){}#", 1);     /* flow through if quoted */
-	mapset(ifs, 2);              /* also flow through if quoted */
+	memset(map, MAP_ORDINARY, sizeof(map)); /* most chars flow through always */
+	mapset("\\$'\"`", MAP_NEVER_FLOWTROUGH);
+	mapset("<>;&|(){}#", MAP_FLOWTROUGH_IF_QUOTED);
+	mapset(ifs, MAP_IFS_IF_UNQUOTED);  /* also flow through if quoted */
 }
 
 /* most recursion does not come through here, the exception is
  * from builtin_source() */
 static int parse_stream_outer(struct in_str *inp, int flag)
 {
-// FIXME: 'true | exit 3; echo $?' is parsed as a whole,
+// FIXME: '{ true | exit 3; echo $? }' is parsed as a whole,
 // as a result $? is replaced by 0, not 3!
 // Need to stop & execute stuff at ';', not parse till EOL!
 
@@ -3119,11 +3165,11 @@ static int parse_stream_outer(struct in_str *inp, int flag)
 		initialize_context(&ctx);
 		update_ifs_map();
 		if (!(flag & FLAG_PARSE_SEMICOLON) || (flag & FLAG_REPARSING))
-			 mapset(";$&|", 0);
+			mapset(";$&|", MAP_ORDINARY);
 #if ENABLE_HUSH_INTERACTIVE
 		inp->promptmode = 1;
 #endif
-		rcode = parse_stream(&temp, &ctx, inp, '\n');
+		rcode = parse_stream(&temp, &ctx, inp, ";\n");
 		if (rcode != 1 && ctx.old_flag != 0) {
 			syntax();
 		}

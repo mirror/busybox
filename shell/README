@@ -1,5 +1,18 @@
 Various bits of what is known about busybox shells, in no particular order.
 
+2007-05-03
+hush: update on "sleep 1 | exit 3; echo $?" bug.
+parse_stream_outer() repeatedly calls parse_stream().
+parse_stream() is now fixed to stop on ';' in this example,
+fixing it (parse_stream_outer() will call parse_stream() 1st time,
+execute the parse tree, call parse_stream() 2nd time and execute the tree).
+But it's not the end of story.
+In more complex situations we _must_ parse way farther before executing.
+Example #2: "{ sleep 1 | exit 3; echo $?; ...few_lines... } >file".
+Because of redirection, we cannot execute 1st pipe before we parse it all.
+We probably need to learn to store $var expressions in parse tree.
+Debug printing of parse tree would be nice too.
+
 2007-04-28
 hush: Ctrl-C and Ctrl-Z for single NOFORK commands are working.
 Memory and other resource leaks (opendir) are not addressed
