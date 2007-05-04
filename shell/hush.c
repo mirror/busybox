@@ -85,11 +85,12 @@
 
 /* If you comment out one of these below, it will be #defined later
  * to perform debug printfs to stderr: */
-#define debug_printf(...)      do {} while (0)
-/* Finer-grained debug switch */
-#define debug_printf_jobs(...) do {} while (0)
-#define debug_printf_exec(...) do {} while (0)
+#define debug_printf(...)       do {} while (0)
+/* Finer-grained debug switches */
+#define debug_printf_jobs(...)  do {} while (0)
+#define debug_printf_exec(...)  do {} while (0)
 #define debug_printf_parse(...) do {} while (0)
+#define debug_print_tree(a, b)  do {} while (0)
 
 
 #ifndef debug_printf
@@ -1860,6 +1861,61 @@ static int run_pipe_real(struct pipe *pi)
 	return -1;
 }
 
+#ifndef debug_print_tree	
+static void debug_print_tree(struct pipe *pi, int lvl)
+{
+	static const char *PIPE[] = {
+	[PIPE_SEQ] = "SEQ",
+	[PIPE_AND] = "AND",
+	[PIPE_OR ] = "OR",
+	[PIPE_BG ] = "BG",
+	};
+	static const char *RES[] = {
+	[RES_NONE ] = "NONE" ,
+	[RES_IF   ] = "IF"   ,
+	[RES_THEN ] = "THEN" ,
+	[RES_ELIF ] = "ELIF" ,
+	[RES_ELSE ] = "ELSE" ,
+	[RES_FI   ] = "FI"   ,
+	[RES_FOR  ] = "FOR"  ,
+	[RES_WHILE] = "WHILE",
+	[RES_UNTIL] = "UNTIL",
+	[RES_DO   ] = "DO"   ,
+	[RES_DONE ] = "DONE" ,
+	[RES_XXXX ] = "XXXX" ,
+	[RES_IN   ] = "IN"   ,
+	[RES_SNTX ] = "SNTX" ,
+	};
+
+	int pin, prn;
+	char **argv;
+	pin = 0;
+	while (pi) {
+		fprintf(stderr, "%*spipe %d r_mode=%s followup=%d %s\n", lvl*2, "",
+				pin, RES[pi->r_mode], pi->followup, PIPE[pi->followup]);
+		prn = 0;
+		while (prn < pi->num_progs) {
+			fprintf(stderr, "%*s prog %d", lvl*2, "", prn);
+			if (pi->progs[prn].group) {
+				fprintf(stderr, " group: (argv=%p)\n", pi->progs[prn].argv);
+				debug_print_tree(pi->progs[prn].group, lvl+1);
+				prn++;
+				continue;
+			}
+			argv = pi->progs[prn].argv;
+			if (argv) while (*argv) {
+				fprintf(stderr, " '%s'", *argv);
+				argv++;
+			}				
+			fprintf(stderr, "\n");
+			prn++;
+		}
+		pi = pi->next;
+		pin++;
+	}
+}
+#endif
+
 // NB: called by pseudo_exec, and therefore must not modify any
 // global data until exec/_exit (we can be a child after vfork!)
 static int run_list_real(struct pipe *pi)
@@ -2088,7 +2144,7 @@ static int run_list(struct pipe *pi)
 	/* free_pipe_list has the side effect of clearing memory
 	 * In the long run that function can be merged with run_list_real,
 	 * but doing that now would hobble the debugging effort. */
-	free_pipe_list(pi,0);
+	free_pipe_list(pi, 0);
 	return rcode;
 }
 
@@ -3177,6 +3233,7 @@ static int parse_stream_outer(struct in_str *inp, int flag)
 			done_word(&temp, &ctx);
 			done_pipe(&ctx, PIPE_SEQ);
 			debug_printf_exec("parse_stream_outer: run_list\n");
+			debug_print_tree(ctx.list_head, 0);
 			run_list(ctx.list_head);
 		} else {
 			if (ctx.old_flag != 0) {

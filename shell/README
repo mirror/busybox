@@ -1,6 +1,10 @@
 Various bits of what is known about busybox shells, in no particular order.
 
 2007-05-03
+hush: new bug spotted: Ctrl-C on "while true; do true; done" kills shell,
+not just the loop.
+
+2007-05-03
 hush: update on "sleep 1 | exit 3; echo $?" bug.
 parse_stream_outer() repeatedly calls parse_stream().
 parse_stream() is now fixed to stop on ';' in this example,
