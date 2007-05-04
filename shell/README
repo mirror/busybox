@@ -1,8 +1,13 @@
 Various bits of what is known about busybox shells, in no particular order.
 
 2007-05-03
-hush: new bug spotted: Ctrl-C on "while true; do true; done" kills shell,
-not just the loop.
+hush: new bug spotted: Ctrl-C on "while true; do true; done" doesn't
+work right:
+# while true; do true; done
+[1] 0 true <-- pressing Ctrl-C several times...
+[2] 0 true
+[3] 0 true
+Segmentation fault
 
 2007-05-03
 hush: update on "sleep 1 | exit 3; echo $?" bug.

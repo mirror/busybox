@@ -337,7 +337,6 @@ static inline void parse_config_file(void)
 #if ENABLE_FEATURE_SUID
 static void check_suid(const struct bb_applet *applet)
 {
-	uid_t uid;
 	gid_t rgid;  /* real gid */
 
 	if (ruid == 0) /* set by parse_config_file() */
@@ -346,6 +345,7 @@ static void check_suid(const struct bb_applet *applet)
 
 #if ENABLE_FEATURE_SUID_CONFIG
 	if (suid_cfg_readable) {
+		uid_t uid;
 		struct BB_suid_config *sct;
 		mode_t m;
 
