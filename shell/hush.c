@@ -468,7 +468,6 @@ static const struct built_in_command bltins[] = {
 
 #if ENABLE_HUSH_JOB
 
-#if ENABLE_FEATURE_SH_STANDALONE
 /* move to libbb? */
 static void signal_SA_RESTART(int sig, void (*handler)(int))
 {
@@ -478,7 +477,6 @@ static void signal_SA_RESTART(int sig, void (*handler)(int))
 	sigemptyset(&sa.sa_mask);
 	sigaction(sig, &sa, NULL);
 }
-#endif
 
 /* Signals are grouped, we handle them in batches */
 static void set_fatal_sighandler(void (*handler)(int))
@@ -508,7 +506,6 @@ static void set_misc_sighandler(void (*handler)(int))
 }
 /* SIGCHLD is special and handled separately */
 
-#if ENABLE_FEATURE_SH_STANDALONE
 static void set_every_sighandler(void (*handler)(int))
 {
 	set_fatal_sighandler(handler);
@@ -517,52 +514,56 @@ static void set_every_sighandler(void (*handler)(int))
 	signal(SIGCHLD, handler);
 }
 
-static struct pipe *nofork_pipe;
+static struct pipe *toplevel_list;
+static sigjmp_buf toplevel_jb;
+smallint ctrl_z_flag;
+#if ENABLE_FEATURE_SH_STANDALONE
 struct nofork_save_area nofork_save;
-static sigjmp_buf nofork_jb;
+#endif
 
 static void handler_ctrl_c(int sig)
 {
 	debug_printf_jobs("got sig %d\n", sig);
 // as usual we can have all kinds of nasty problems with leaked malloc data here
-	siglongjmp(nofork_jb, 1);
+	siglongjmp(toplevel_jb, 1);
 }
 
 static void handler_ctrl_z(int sig)
 {
 	pid_t pid;
 
-	debug_printf_jobs("got tty sig %d\n", sig);
+	debug_printf_jobs("got tty sig %d in pid %d\n", sig, getpid());
 	pid = fork();
-	if (pid < 0) /* can't fork. Pretend there were no Ctrl-Z */
+	if (pid < 0) /* can't fork. Pretend there were no ctrl-Z */
 		return;
-	debug_printf_jobs("bg'ing nofork\n");
-	nofork_save.saved = 0; /* flag the fact that Ctrl-Z was handled */
-	nofork_pipe->running_progs = 1;
-	nofork_pipe->stopped_progs = 0;
+	ctrl_z_flag = 1;
+//vda: wrong!!
+//	toplevel_list->running_progs = 1;
+//	toplevel_list->stopped_progs = 0;
+//
 	if (!pid) { /* child */
-		debug_printf_jobs("setting pgrp for child\n");
 		setpgrp();
+		debug_printf_jobs("set pgrp for child %d ok\n", getpid());
 		set_every_sighandler(SIG_DFL);
 		raise(SIGTSTP); /* resend TSTP so that child will be stopped */
-		debug_printf_jobs("returning to child\n");
+		debug_printf_jobs("returning in child\n");
 		/* return to nofork, it will eventually exit now,
 		 * not return back to shell */
 		return;
 	}
 	/* parent */
 	/* finish filling up pipe info */
-	nofork_pipe->pgrp = pid; /* child is in its own pgrp */
-	nofork_pipe->progs[0].pid = pid;
-	nofork_pipe->running_progs = 1;
-	nofork_pipe->stopped_progs = 0;
+	toplevel_list->pgrp = pid; /* child is in its own pgrp */
+	toplevel_list->progs[0].pid = pid;
+//vda: wrong!!
+//	toplevel_list->running_progs = 1;
+//	toplevel_list->stopped_progs = 0;
 	/* parent needs to longjmp out of running nofork.
 	 * we will "return" exitcode 0, with child put in background */
 // as usual we can have all kinds of nasty problems with leaked malloc data here
-	siglongjmp(nofork_jb, 1);
+	debug_printf_jobs("siglongjmp in parent\n");
+	siglongjmp(toplevel_jb, 1);
 }
-
-#endif
 
 /* Restores tty foreground process group, and exits.
  * May be called as signal handler for fatal signal
@@ -1039,6 +1040,7 @@ static int static_peek(struct in_str *i)
 }
 
 #if ENABLE_HUSH_INTERACTIVE
+#if ENABLE_FEATURE_EDITING
 static void cmdedit_set_initial_prompt(void)
 {
 #if !ENABLE_FEATURE_EDITING_FANCY_PROMPT
@@ -1049,6 +1051,7 @@ static void cmdedit_set_initial_prompt(void)
 		PS1 = "\\w \\$ ";
 #endif
 }
+#endif
 
 static const char* setup_prompt_string(int promptmode)
 {
@@ -1072,7 +1075,7 @@ static const char* setup_prompt_string(int promptmode)
 	debug_printf("result %s\n", prompt_str);
 	return prompt_str;
 }
-#endif
+#endif /* ENABLE_HUSH_INTERACTIVE */
 
 #if ENABLE_FEATURE_EDITING
 static line_input_t *line_input_state;
@@ -1470,7 +1473,7 @@ static int checkjobs(struct pipe* fg_pipe)
 
 /* Do we do this right?
  * bash-3.00# sleep 20 | false
- * <Ctrl-Z pressed>
+ * <ctrl-Z pressed>
  * [3]+  Stopped          sleep 20 | false
  * bash-3.00# echo $?
  * 1   <========== bg pipe is not fully done, but exitcode is already known!
@@ -1590,43 +1593,6 @@ static int checkjobs_and_fg_shell(struct pipe* fg_pipe)
 }
 #endif
 
-#if ENABLE_FEATURE_SH_STANDALONE
-/* run_pipe_real's helper */
-static int run_single_fg_nofork(struct pipe *pi, const struct bb_applet *a,
-		char **argv)
-{
-#if ENABLE_HUSH_JOB
-	int rcode;
-	/* TSTP handler will store pid etc in pi */
-	nofork_pipe = pi;
-	save_nofork_data(&nofork_save);
-	if (sigsetjmp(nofork_jb, 1) == 0) {
-		signal_SA_RESTART(SIGTSTP, handler_ctrl_z);
-		signal(SIGINT, handler_ctrl_c);
-		rcode = run_nofork_applet_prime(&nofork_save, a, argv);
-		if (--nofork_save.saved != 0) {
-			/* Ctrl-Z forked, we are child */
-			exit(rcode);
-		}
-		return rcode;
-	}
-	/* Ctrl-Z forked, we are parent; or Ctrl-C.
-	 * Sighandler has longjmped us here */
-	signal(SIGINT, SIG_IGN);
-	signal(SIGTSTP, SIG_IGN);
-	debug_printf_jobs("Exiting nofork early\n");
-	restore_nofork_data(&nofork_save);
-	if (nofork_save.saved == 0) /* Ctrl-Z, not Ctrl-C */
-		insert_bg_job(pi);
-	else
-		putchar('\n'); /* bash does this on Ctrl-C */
-	return 0;
-#else
-	return run_nofork_applet(a, argv);
-#endif
-}
-#endif
-
 /* run_pipe_real() starts all the jobs, but doesn't wait for anything
  * to finish.  See checkjobs().
  *
@@ -1662,7 +1628,7 @@ static int run_pipe_real(struct pipe *pi)
 #if ENABLE_HUSH_JOB
 	pi->pgrp = -1;
 #endif
-	pi->running_progs = 0;
+	pi->running_progs = 1;
 	pi->stopped_progs = 0;
 
 	/* Check if this is a simple builtin (not part of a pipe).
@@ -1673,8 +1639,6 @@ static int run_pipe_real(struct pipe *pi)
 	if (single_fg && child->group && child->subshell == 0) {
 		debug_printf("non-subshell grouping\n");
 		setup_redirects(child, squirrel);
-		/* XXX could we merge code with following builtin case,
-		 * by creating a pseudo builtin that calls run_list_real? */
 		debug_printf_exec(": run_list_real\n");
 		rcode = run_list_real(child->group);
 		restore_redirects(squirrel);
@@ -1758,8 +1722,9 @@ static int run_pipe_real(struct pipe *pi)
 			const struct bb_applet *a = find_applet_by_name(argv[i]);
 			if (a && a->nofork) {
 				setup_redirects(child, squirrel);
-				debug_printf_exec(": run_single_fg_nofork '%s' '%s'...\n", argv[i], argv[i+1]);
-				rcode = run_single_fg_nofork(pi, a, argv + i);
+				debug_printf_exec(": run_nofork_applet '%s' '%s'...\n", argv[i], argv[i+1]);
+				save_nofork_data(&nofork_save);
+				rcode = run_nofork_applet_prime(&nofork_save, a, argv);
 				restore_redirects(squirrel);
 				debug_printf_exec("run_pipe_real return %d\n", rcode);
 				return rcode;
@@ -1769,6 +1734,7 @@ static int run_pipe_real(struct pipe *pi)
 	}
 
 	/* Going to fork a child per each pipe member */
+	pi->running_progs = 0;
 
 	/* Disable job control signals for shell (parent) and
 	 * for initial child code after fork */
@@ -1865,26 +1831,26 @@ static int run_pipe_real(struct pipe *pi)
 static void debug_print_tree(struct pipe *pi, int lvl)
 {
 	static const char *PIPE[] = {
-	[PIPE_SEQ] = "SEQ",
-	[PIPE_AND] = "AND",
-	[PIPE_OR ] = "OR",
-	[PIPE_BG ] = "BG",
+		[PIPE_SEQ] = "SEQ",
+		[PIPE_AND] = "AND",
+		[PIPE_OR ] = "OR",
+		[PIPE_BG ] = "BG",
 	};
 	static const char *RES[] = {
-	[RES_NONE ] = "NONE" ,
-	[RES_IF   ] = "IF"   ,
-	[RES_THEN ] = "THEN" ,
-	[RES_ELIF ] = "ELIF" ,
-	[RES_ELSE ] = "ELSE" ,
-	[RES_FI   ] = "FI"   ,
-	[RES_FOR  ] = "FOR"  ,
-	[RES_WHILE] = "WHILE",
-	[RES_UNTIL] = "UNTIL",
-	[RES_DO   ] = "DO"   ,
-	[RES_DONE ] = "DONE" ,
-	[RES_XXXX ] = "XXXX" ,
-	[RES_IN   ] = "IN"   ,
-	[RES_SNTX ] = "SNTX" ,
+		[RES_NONE ] = "NONE" ,
+		[RES_IF   ] = "IF"   ,
+		[RES_THEN ] = "THEN" ,
+		[RES_ELIF ] = "ELIF" ,
+		[RES_ELSE ] = "ELSE" ,
+		[RES_FI   ] = "FI"   ,
+		[RES_FOR  ] = "FOR"  ,
+		[RES_WHILE] = "WHILE",
+		[RES_UNTIL] = "UNTIL",
+		[RES_DO   ] = "DO"   ,
+		[RES_DONE ] = "DONE" ,
+		[RES_XXXX ] = "XXXX" ,
+		[RES_IN   ] = "IN"   ,
+		[RES_SNTX ] = "SNTX" ,
 	};
 
 	int pin, prn;
@@ -1897,7 +1863,9 @@ static void debug_print_tree(struct pipe *pi, int lvl)
 		while (prn < pi->num_progs) {
 			fprintf(stderr, "%*s prog %d", lvl*2, "", prn);
 			if (pi->progs[prn].group) {
-				fprintf(stderr, " group: (argv=%p)\n", pi->progs[prn].argv);
+				fprintf(stderr, " group %s: (argv=%p)\n",
+						(pi->subshell ? "()" : "{}"),
+						pi->progs[prn].argv);
 				debug_print_tree(pi->progs[prn].group, lvl+1);
 				prn++;
 				continue;
@@ -1920,18 +1888,25 @@ static void debug_print_tree(struct pipe *pi, int lvl)
 // global data until exec/_exit (we can be a child after vfork!)
 static int run_list_real(struct pipe *pi)
 {
+#if ENABLE_HUSH_JOB
+	static int level;
+#else
+	enum { level = 0 };
+#endif
+
 	char *save_name = NULL;
 	char **list = NULL;
 	char **save_list = NULL;
 	struct pipe *rpipe;
 	int flag_rep = 0;
 	int save_num_progs;
-	int rcode = 0, flag_skip = 1;
+	int flag_skip = 1;
+	int rcode = 0; /* probaly for gcc only */
 	int flag_restore = 0;
 	int if_code = 0, next_if_code = 0;  /* need double-buffer to handle elif */
 	reserved_style rmode, skip_more_in_this_rmode = RES_XXXX;
 
-	debug_printf_exec("run_list_real start:\n");
+	debug_printf_exec("run_list_real start lvl %d\n", level + 1);
 
 	/* check syntax for "for" */
 	for (rpipe = pi; rpipe; rpipe = rpipe->next) {
@@ -1939,17 +1914,60 @@ static int run_list_real(struct pipe *pi)
 		 && (rpipe->next == NULL)
 		) {
 			syntax();
-			debug_printf_exec("run_list_real return 1\n");
+			debug_printf_exec("run_list_real lvl %d return 1\n", level);
 			return 1;
 		}
 		if ((rpipe->r_mode == RES_IN &&	rpipe->next->r_mode == RES_IN && rpipe->next->progs->argv != NULL)
 		 || (rpipe->r_mode == RES_FOR && rpipe->next->r_mode != RES_IN)
 		) {
 			syntax();
-			debug_printf_exec("run_list_real return 1\n");
+			debug_printf_exec("run_list_real lvl %d return 1\n", level);
 			return 1;
 		}
 	}
+
+#if ENABLE_HUSH_JOB
+	/* Example of nested list: "while true; do { sleep 1 | exit 2; } done".
+	 * We are saving state before entering outermost list ("while...done")
+	 * so that ctrl-Z will correctly background _entire_ outermost list,
+	 * not just a part of it (like "sleep 1 | exit 2") */
+	if (++level == 1 && interactive_fd) {
+		if (sigsetjmp(toplevel_jb, 1)) {
+			/* ctrl-Z forked and we are parent; or ctrl-C.
+			 * Sighandler has longjmped us here */
+			signal(SIGINT, SIG_IGN);
+			signal(SIGTSTP, SIG_IGN);
+			/* Restore level (we can be coming from deep inside
+			 * nested levels) */
+			level = 1;
+#if ENABLE_FEATURE_SH_STANDALONE
+			if (nofork_save.saved) { /* if save area is valid */
+				debug_printf_jobs("exiting nofork early\n");
+				restore_nofork_data(&nofork_save);
+			}
+#endif
+			if (ctrl_z_flag) {
+				/* ctrl-Z has forked and stored pid of the child in pi->pid.
+				 * Remember this child as background job */
+				insert_bg_job(pi);
+			} else {
+				/* ctrl-C. We just stop doing whatever we was doing */
+				putchar('\n');
+			}
+			rcode = 0;
+			goto ret;
+		}
+		/* ctrl-Z handler will store pid etc in pi */
+		toplevel_list = pi;
+		ctrl_z_flag = 0;
+#if ENABLE_FEATURE_SH_STANDALONE
+		nofork_save.saved = 0; /* in case we will run a nofork later */
+#endif
+		signal_SA_RESTART(SIGTSTP, handler_ctrl_z);
+		signal(SIGINT, handler_ctrl_c);
+	}
+#endif
+
 	for (; pi; pi = (flag_restore != 0) ? rpipe : pi->next) {
 		if (pi->r_mode == RES_WHILE || pi->r_mode == RES_UNTIL
 		 || pi->r_mode == RES_FOR
@@ -1961,7 +1979,7 @@ static int run_list_real(struct pipe *pi)
 			}
 		}
 		rmode = pi->r_mode;
-		debug_printf("rmode=%d  if_code=%d  next_if_code=%d skip_more=%d\n",
+		debug_printf_exec(": rmode=%d if_code=%d next_if_code=%d skip_more=%d\n",
 				rmode, if_code, next_if_code, skip_more_in_this_rmode);
 		if (rmode == skip_more_in_this_rmode && flag_skip) {
 			if (pi->followup == PIPE_SEQ)
@@ -2044,9 +2062,9 @@ static int run_list_real(struct pipe *pi)
 			{
 				rcode = checkjobs(pi);
 			}
-			debug_printf_exec("checkjobs returned %d\n", rcode);
+			debug_printf_exec(": checkjobs returned %d\n", rcode);
 		}
-		debug_printf_exec("setting last_return_code=%d\n", rcode);
+		debug_printf_exec(": setting last_return_code=%d\n", rcode);
 		last_return_code = rcode;
 		pi->num_progs = save_num_progs; /* restore number of programs */
 		if (rmode == RES_IF || rmode == RES_ELIF)
@@ -2062,7 +2080,17 @@ static int run_list_real(struct pipe *pi)
 		}
 		checkjobs(NULL);
 	}
-	debug_printf_exec("run_list_real return %d\n", rcode);
+
+#if ENABLE_HUSH_JOB
+	if (ctrl_z_flag) {
+		/* ctrl-Z forked somewhere in the past, we are the child,
+		 * and now we completed running the list. Exit. */
+		exit(rcode);
+	}
+ ret:
+	level--;
+#endif
+	debug_printf_exec("run_list_real lvl %d return %d\n", level + 1, rcode);
 	return rcode;
 }
 

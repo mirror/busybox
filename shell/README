@@ -1,5 +1,8 @@
 Various bits of what is known about busybox shells, in no particular order.
 
+2007-05-04
+hush: make ctrl-Z/C work correctly for "while true; do true; done"
+
 2007-05-03
 hush: new bug spotted: Ctrl-C on "while true; do true; done" doesn't
 work right:
