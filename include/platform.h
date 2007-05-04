@@ -54,7 +54,11 @@
 # define ATTRIBUTE_ALIGNED(m) __attribute__ ((__aligned__(m)))
 # if __GNUC_PREREQ (3,0)
 #  define ATTRIBUTE_ALWAYS_INLINE __attribute__ ((always_inline)) inline
-#  define ATTRIBUTE_DEPRECATED __attribute__ ((__deprecated__))
+#  if !ENABLE_WERROR
+#   define ATTRIBUTE_DEPRECATED __attribute__ ((__deprecated__))
+#  else
+#   define ATTRIBUTE_DEPRECATED /* n/a */
+#  endif
 # else
 #  define ATTRIBUTE_ALWAYS_INLINE inline
 #  define ATTRIBUTE_DEPRECATED /* n/a */
