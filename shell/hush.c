@@ -125,10 +125,10 @@ static const char *indenter(int i)
 #define ENABLE_FEATURE_EDITING_FANCY_PROMPT 0
 #endif
 
-#define SPECIAL_VAR_SYMBOL 03
-#define FLAG_EXIT_FROM_LOOP 1
+#define SPECIAL_VAR_SYMBOL   3
+#define FLAG_EXIT_FROM_LOOP  1
 #define FLAG_PARSE_SEMICOLON (1 << 1)		/* symbol ';' is special for parser */
-#define FLAG_REPARSING	     (1 << 2)		/* >=2nd pass */
+#define FLAG_REPARSING	     (1 << 2)		/* >= 2nd pass */
 
 typedef enum {
 	REDIRECT_INPUT     = 1,
@@ -199,10 +199,10 @@ struct p_context {
 	struct pipe *list_head;
 	struct pipe *pipe;
 	struct redir_struct *pending_redirect;
-	reserved_style w;
-	int old_flag;               /* for figuring out valid reserved words */
+	reserved_style res_w;
+	int old_flag;           /* for figuring out valid reserved words */
 	struct p_context *stack;
-	int type;           /* define type of parser : ";$" common or special symbol */
+	int parse_type;         /* define type of parser : ";$" common or special symbol */
 	/* How about quoting status? */
 };
 
@@ -410,8 +410,8 @@ static int handle_dollar(o_string *dest, struct p_context *ctx, struct in_str *i
 static int parse_string(o_string *dest, struct p_context *ctx, const char *src);
 static int parse_stream(o_string *dest, struct p_context *ctx, struct in_str *input0, const char *end_trigger);
 /*   setup: */
-static int parse_stream_outer(struct in_str *inp, int flag);
-static int parse_string_outer(const char *s, int flag);
+static int parse_stream_outer(struct in_str *inp, int parse_flag);
+static int parse_string_outer(const char *s, int parse_flag);
 static int parse_file_outer(FILE *f);
 /*   job management: */
 static int checkjobs(struct pipe* fg_pipe);
@@ -1854,23 +1854,24 @@ static void debug_print_tree(struct pipe *pi, int lvl)
 	};
 
 	int pin, prn;
-	char **argv;
 	pin = 0;
 	while (pi) {
 		fprintf(stderr, "%*spipe %d r_mode=%s followup=%d %s\n", lvl*2, "",
 				pin, RES[pi->r_mode], pi->followup, PIPE[pi->followup]);
 		prn = 0;
 		while (prn < pi->num_progs) {
+			struct child_prog *child = &pi->progs[prn];
+			char **argv = child->argv;
+
 			fprintf(stderr, "%*s prog %d", lvl*2, "", prn);
-			if (pi->progs[prn].group) {
+			if (child->group) {
 				fprintf(stderr, " group %s: (argv=%p)\n",
-						(pi->subshell ? "()" : "{}"),
-						pi->progs[prn].argv);
-				debug_print_tree(pi->progs[prn].group, lvl+1);
+						(child->subshell ? "()" : "{}"),
+						argv);
+				debug_print_tree(child->group, lvl+1);
 				prn++;
 				continue;
 			}
-			argv = pi->progs[prn].argv;
 			if (argv) while (*argv) {
 				fprintf(stderr, " '%s'", *argv);
 				argv++;
@@ -1901,7 +1902,7 @@ static int run_list_real(struct pipe *pi)
 	int flag_rep = 0;
 	int save_num_progs;
 	int flag_skip = 1;
-	int rcode = 0; /* probaly for gcc only */
+	int rcode = 0; /* probably for gcc only */
 	int flag_restore = 0;
 	int if_code = 0, next_if_code = 0;  /* need double-buffer to handle elif */
 	reserved_style rmode, skip_more_in_this_rmode = RES_XXXX;
@@ -1968,17 +1969,15 @@ static int run_list_real(struct pipe *pi)
 	}
 #endif
 
-	for (; pi; pi = (flag_restore != 0) ? rpipe : pi->next) {
-		if (pi->r_mode == RES_WHILE || pi->r_mode == RES_UNTIL
-		 || pi->r_mode == RES_FOR
-		) {
+	for (; pi; pi = flag_restore ? rpipe : pi->next) {
+		rmode = pi->r_mode;
+		if (rmode == RES_WHILE || rmode == RES_UNTIL || rmode == RES_FOR) {
 			flag_restore = 0;
 			if (!rpipe) {
 				flag_rep = 0;
 				rpipe = pi;
 			}
 		}
-		rmode = pi->r_mode;
 		debug_printf_exec(": rmode=%d if_code=%d next_if_code=%d skip_more=%d\n",
 				rmode, if_code, next_if_code, skip_more_in_this_rmode);
 		if (rmode == skip_more_in_this_rmode && flag_skip) {
@@ -2535,7 +2534,7 @@ static void initialize_context(struct p_context *ctx)
 	ctx->child = NULL;
 	ctx->list_head = new_pipe();
 	ctx->pipe = ctx->list_head;
-	ctx->w = RES_NONE;
+	ctx->res_w = RES_NONE;
 	ctx->stack = NULL;
 	ctx->old_flag = 0;
 	done_command(ctx);   /* creates the memory for working child */
@@ -2574,29 +2573,29 @@ static int reserved_word(o_string *dest, struct p_context *ctx)
 	enum { NRES = sizeof(reserved_list)/sizeof(reserved_list[0]) };
 	const struct reserved_combo *r;
 
-	for (r = reserved_list;	r < reserved_list+NRES; r++) {
+	for (r = reserved_list;	r < reserved_list + NRES; r++) {
 		if (strcmp(dest->data, r->literal) == 0) {
 			debug_printf("found reserved word %s, code %d\n", r->literal, r->code);
 			if (r->flag & FLAG_START) {
 				struct p_context *new = xmalloc(sizeof(struct p_context));
 				debug_printf("push stack\n");
-				if (ctx->w == RES_IN || ctx->w == RES_FOR) {
+				if (ctx->res_w == RES_IN || ctx->res_w == RES_FOR) {
 					syntax();
 					free(new);
-					ctx->w = RES_SNTX;
+					ctx->res_w = RES_SNTX;
 					b_reset(dest);
 					return 1;
 				}
 				*new = *ctx;   /* physical copy */
 				initialize_context(ctx);
 				ctx->stack = new;
-			} else if (ctx->w == RES_NONE || !(ctx->old_flag & (1 << r->code))) {
+			} else if (ctx->res_w == RES_NONE || !(ctx->old_flag & (1 << r->code))) {
 				syntax();
-				ctx->w = RES_SNTX;
+				ctx->res_w = RES_SNTX;
 				b_reset(dest);
 				return 1;
 			}
-			ctx->w = r->code;
+			ctx->res_w = r->code;
 			ctx->old_flag = r->flag;
 			if (ctx->old_flag & FLAG_END) {
 				struct p_context *old;
@@ -2623,7 +2622,7 @@ static int done_word(o_string *dest, struct p_context *ctx)
 	glob_t *glob_target;
 	int gr, flags = 0;
 
-	debug_printf_parse("done_word: '%s' %p\n", dest->data, child);
+	debug_printf_parse("done_word entered: '%s' %p\n", dest->data, child);
 	if (dest->length == 0 && !dest->nonnull) {
 		debug_printf_parse("done_word return 0: true null, ignored\n");
 		return 0;
@@ -2636,15 +2635,16 @@ static int done_word(o_string *dest, struct p_context *ctx)
 			debug_printf_parse("done_word return 1: syntax error, groups and arglists don't mix\n");
 			return 1;
 		}
-		if (!child->argv && (ctx->type & FLAG_PARSE_SEMICOLON)) {
-			debug_printf_parse(": checking %s for reserved-ness\n", dest->data);
+		if (!child->argv && (ctx->parse_type & FLAG_PARSE_SEMICOLON)) {
+			debug_printf_parse(": checking '%s' for reserved-ness\n", dest->data);
 			if (reserved_word(dest, ctx)) {
-				debug_printf_parse("done_word return %d\n", (ctx->w == RES_SNTX));
-				return (ctx->w == RES_SNTX);
+				debug_printf_parse("done_word return %d\n", (ctx->res_w == RES_SNTX));
+				return (ctx->res_w == RES_SNTX);
 			}
 		}
 		glob_target = &child->glob_result;
-		if (child->argv) flags |= GLOB_APPEND;
+		if (child->argv)
+			flags |= GLOB_APPEND;
 	}
 	gr = xglob(dest, flags, glob_target);
 	if (gr != 0) {
@@ -2663,7 +2663,7 @@ static int done_word(o_string *dest, struct p_context *ctx)
 	} else {
 		child->argv = glob_target->gl_pathv;
 	}
-	if (ctx->w == RES_FOR) {
+	if (ctx->res_w == RES_FOR) {
 		done_word(dest, ctx);
 		done_pipe(ctx, PIPE_SEQ);
 	}
@@ -2676,56 +2676,63 @@ static int done_word(o_string *dest, struct p_context *ctx)
 static int done_command(struct p_context *ctx)
 {
 	/* The child is really already in the pipe structure, so
-	 * advance the pipe counter and make a new, null child.
-	 * Only real trickiness here is that the uncommitted
-	 * child structure, to which ctx->child points, is not
-	 * counted in pi->num_progs. */
+	 * advance the pipe counter and make a new, null child. */
 	struct pipe *pi = ctx->pipe;
-	struct child_prog *prog = ctx->child;
+	struct child_prog *child = ctx->child;
 
-	if (prog && prog->group == NULL
-	 && prog->argv == NULL
-	 && prog->redirects == NULL
-	) {
-		debug_printf("done_command: skipping null command\n");
-		return 0;
-	}
-	if (prog) {
+	if (child) {
+		if (child->group == NULL
+		 && child->argv == NULL
+		 && child->redirects == NULL
+		) {
+			debug_printf_parse("done_command: skipping null command\n");
+			return 0;
+		}
 		pi->num_progs++;
-		debug_printf("done_command: num_progs incremented to %d\n", pi->num_progs);
+		debug_printf_parse("done_command: ++num_progs=%d\n", pi->num_progs);
 	} else {
-		debug_printf("done_command: initializing\n");
+		debug_printf_parse("done_command: initializing, num_progs=%d\n", pi->num_progs);
 	}
+
+	/* Only real trickiness here is that the uncommitted
+	 * child structure is not counted in pi->num_progs. */
 	pi->progs = xrealloc(pi->progs, sizeof(*pi->progs) * (pi->num_progs+1));
+	child = &pi->progs[pi->num_progs];
 
-	prog = pi->progs + pi->num_progs;
-	memset(prog, 0, sizeof(*prog));
-	/*prog->redirects = NULL;*/
-	/*prog->argv = NULL; */
-	/*prog->is_stopped = 0;*/
-	/*prog->group = NULL;*/
-	/*prog->glob_result.gl_pathv = NULL;*/
-	prog->family = pi;
-	/*prog->sp = 0;*/
-	ctx->child = prog;
-	prog->type = ctx->type;
+	memset(child, 0, sizeof(*child));
+	/*child->redirects = NULL;*/
+	/*child->argv = NULL;*/
+	/*child->is_stopped = 0;*/
+	/*child->group = NULL;*/
+	/*child->glob_result.gl_pathv = NULL;*/
+	child->family = pi;
+	/*child->sp = 0;*/
+	child->type = ctx->parse_type;
 
+	ctx->child = child;
 	/* but ctx->pipe and ctx->list_head remain unchanged */
+
 	return 0;
 }
 
 static int done_pipe(struct p_context *ctx, pipe_style type)
 {
 	struct pipe *new_p;
+
+	debug_printf_parse("done_pipe entered, followup %d\n", type);
 	done_command(ctx);  /* implicit closure of previous command */
-	debug_printf_parse("done_pipe, type %d\n", type);
 	ctx->pipe->followup = type;
-	ctx->pipe->r_mode = ctx->w;
+	ctx->pipe->r_mode = ctx->res_w;
 	new_p = new_pipe();
 	ctx->pipe->next = new_p;
 	ctx->pipe = new_p;
 	ctx->child = NULL;
+// TODO: even just <enter> on command line basically generates
+// tree of three NOPs (!).
+// Can we detect that previous done_command have seen "skipping null command"
+// condition and NOT create new pipe here?
 	done_command(ctx);  /* set up new pipe to accept commands */
+	debug_printf_parse("done_pipe return 0\n");
 	return 0;
 }
 
@@ -3055,7 +3062,7 @@ static int parse_stream(o_string *dest, struct p_context *ctx,
 		}
 		if (m == MAP_IFS_IF_UNQUOTED) {
 			if (done_word(dest, ctx)) {
-				debug_printf_parse("parse_stream return 1\n");
+				debug_printf_parse("parse_stream return 1: done_word!=0\n");
 				return 1;
 			}
 			/* If we aren't performing a substitution, treat
@@ -3066,9 +3073,9 @@ static int parse_stream(o_string *dest, struct p_context *ctx,
 			}
 		}
 		if ((end_trigger && strchr(end_trigger, ch))
-		 && !dest->quote && ctx->w == RES_NONE
+		 && !dest->quote && ctx->res_w == RES_NONE
 		) {
-			debug_printf_parse("parse_stream return 0\n");
+			debug_printf_parse("parse_stream return 0: end_trigger char found\n");
 			return 0;
 		}
 		if (m == MAP_IFS_IF_UNQUOTED)
@@ -3089,7 +3096,7 @@ static int parse_stream(o_string *dest, struct p_context *ctx,
 		case '\\':
 			if (next == EOF) {
 				syntax();
-				debug_printf_parse("parse_stream return 1\n");
+				debug_printf_parse("parse_stream return 1: \\<eof>\n");
 				return 1;
 			}
 			b_addqchr(dest, '\\', dest->quote);
@@ -3111,7 +3118,7 @@ static int parse_stream(o_string *dest, struct p_context *ctx,
 			}
 			if (ch == EOF) {
 				syntax();
-				debug_printf_parse("parse_stream return 1\n");
+				debug_printf_parse("parse_stream return 1: unterminated '\n");
 				return 1;
 			}
 			break;
@@ -3204,7 +3211,7 @@ static int parse_stream(o_string *dest, struct p_context *ctx,
 	 * that is, we were really supposed to get end_trigger, and never got
 	 * one before the EOF.  Can't use the standard "syntax error" return code,
 	 * so that parse_stream_outer can distinguish the EOF and exit smoothly. */
-	debug_printf_parse("parse_stream return -%d\n", end_trigger != NULL);
+	debug_printf_parse("parse_stream return %d\n", -(end_trigger != NULL));
 	if (end_trigger)
 		return -1;
 	return 0;
@@ -3220,7 +3227,8 @@ static void update_ifs_map(void)
 {
 	/* char *ifs and char map[256] are both globals. */
 	ifs = getenv("IFS");
-	if (ifs == NULL) ifs = " \t\n";
+	if (ifs == NULL)
+		ifs = " \t\n";
 	/* Precompute a list of 'flow through' behavior so it can be treated
 	 * quickly up front.  Computation is necessary because of IFS.
 	 * Special case handling of IFS == " \t\n" is not implemented.
@@ -3235,24 +3243,26 @@ static void update_ifs_map(void)
 
 /* most recursion does not come through here, the exception is
  * from builtin_source() */
-static int parse_stream_outer(struct in_str *inp, int flag)
+static int parse_stream_outer(struct in_str *inp, int parse_flag)
 {
 // FIXME: '{ true | exit 3; echo $? }' is parsed as a whole,
 // as a result $? is replaced by 0, not 3!
-// Need to stop & execute stuff at ';', not parse till EOL!
 
 	struct p_context ctx;
 	o_string temp = NULL_O_STRING;
 	int rcode;
 	do {
-		ctx.type = flag;
+		ctx.parse_type = parse_flag;
 		initialize_context(&ctx);
 		update_ifs_map();
-		if (!(flag & FLAG_PARSE_SEMICOLON) || (flag & FLAG_REPARSING))
+		if (!(parse_flag & FLAG_PARSE_SEMICOLON) || (parse_flag & FLAG_REPARSING))
 			mapset(";$&|", MAP_ORDINARY);
 #if ENABLE_HUSH_INTERACTIVE
 		inp->promptmode = 1;
 #endif
+		/* We will stop & execute after each ';' or '\n'.
+		 * Example: "sleep 9999; echo TEST" + ctrl-C:
+		 * TEST should be printed */
 		rcode = parse_stream(&temp, &ctx, inp, ";\n");
 		if (rcode != 1 && ctx.old_flag != 0) {
 			syntax();
@@ -3274,15 +3284,15 @@ static int parse_stream_outer(struct in_str *inp, int flag)
 			free_pipe_list(ctx.list_head, 0);
 		}
 		b_free(&temp);
-	} while (rcode != -1 && !(flag & FLAG_EXIT_FROM_LOOP));   /* loop on syntax errors, return on EOF */
+	} while (rcode != -1 && !(parse_flag & FLAG_EXIT_FROM_LOOP));   /* loop on syntax errors, return on EOF */
 	return 0;
 }
 
-static int parse_string_outer(const char *s, int flag)
+static int parse_string_outer(const char *s, int parse_flag)
 {
 	struct in_str input;
 	setup_string_in_str(&input, s);
-	return parse_stream_outer(&input, flag);
+	return parse_stream_outer(&input, parse_flag);
 }
 
 static int parse_file_outer(FILE *f)
@@ -3303,7 +3313,7 @@ static void setup_job_control(void)
 	pid_t shell_pgrp;
 
 	saved_task_pgrp = shell_pgrp = getpgrp();
-	debug_printf("saved_task_pgrp=%d\n", saved_task_pgrp);
+	debug_printf_jobs("saved_task_pgrp=%d\n", saved_task_pgrp);
 	fcntl(interactive_fd, F_SETFD, FD_CLOEXEC);
 
 	/* If we were ran as 'hush &',
@@ -3319,7 +3329,7 @@ static void setup_job_control(void)
 	set_misc_sighandler(SIG_IGN);
 //huh?	signal(SIGCHLD, SIG_IGN);
 
-	/* We _must_ restore tty pgrp fatal signals */
+	/* We _must_ restore tty pgrp on fatal signals */
 	set_fatal_sighandler(sigexit);
 
 	/* Put ourselves in our own process group.  */
