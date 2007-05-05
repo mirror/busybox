@@ -2685,8 +2685,8 @@ static int done_command(struct p_context *ctx)
 		 && child->argv == NULL
 		 && child->redirects == NULL
 		) {
-			debug_printf_parse("done_command: skipping null command\n");
-			return 0;
+			debug_printf_parse("done_command: skipping null cmd, num_progs=%d\n", pi->num_progs);
+			return pi->num_progs;
 		}
 		pi->num_progs++;
 		debug_printf_parse("done_command: ++num_progs=%d\n", pi->num_progs);
@@ -2712,26 +2712,28 @@ static int done_command(struct p_context *ctx)
 	ctx->child = child;
 	/* but ctx->pipe and ctx->list_head remain unchanged */
 
-	return 0;
+	return pi->num_progs; /* used only for 0/nonzero check */
 }
 
 static int done_pipe(struct p_context *ctx, pipe_style type)
 {
 	struct pipe *new_p;
+	int not_null;
 
 	debug_printf_parse("done_pipe entered, followup %d\n", type);
-	done_command(ctx);  /* implicit closure of previous command */
+	not_null = done_command(ctx);  /* implicit closure of previous command */
 	ctx->pipe->followup = type;
 	ctx->pipe->r_mode = ctx->res_w;
-	new_p = new_pipe();
-	ctx->pipe->next = new_p;
-	ctx->pipe = new_p;
-	ctx->child = NULL;
-// TODO: even just <enter> on command line basically generates
-// tree of three NOPs (!).
-// Can we detect that previous done_command have seen "skipping null command"
-// condition and NOT create new pipe here?
-	done_command(ctx);  /* set up new pipe to accept commands */
+	/* Without this check, even just <enter> on command line generates
+	 * tree of three NOPs (!). Which is harmless but annoying.
+	 * IOW: it is safe to do it unconditionally. */
+	if (not_null) {
+		new_p = new_pipe();
+		ctx->pipe->next = new_p;
+		ctx->pipe = new_p;
+		ctx->child = NULL;
+		done_command(ctx);  /* set up new pipe to accept commands */
+	}
 	debug_printf_parse("done_pipe return 0\n");
 	return 0;
 }
