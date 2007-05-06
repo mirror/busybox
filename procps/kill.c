@@ -36,7 +36,8 @@ int kill_main(int argc, char **argv)
 #else
 /* How to determine who we are? find 3rd char from the end:
  * kill, killall, killall5
- *  ^i       ^a        ^l */
+ *  ^i       ^a        ^l  - it's unique
+ * (checking from the start is complicated by /bin/kill... case) */
 	const char char3 = argv[0][strlen(argv[0]) - 3];
 #define killall (ENABLE_KILLALL && char3 == 'a')
 #define killall5 (ENABLE_KILLALL5 && char3 == 'l')
