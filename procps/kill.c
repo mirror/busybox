@@ -1,6 +1,6 @@
 /* vi: set sw=4 ts=4: */
 /*
- * Mini kill/killall implementation for busybox
+ * Mini kill/killall[5] implementation for busybox
  *
  * Copyright (C) 1995, 1996 by Bruce Perens <bruce@pixar.com>.
  * Copyright (C) 1999-2004 by Erik Andersen <andersen@codepoet.org>
@@ -30,10 +30,17 @@ int kill_main(int argc, char **argv)
 	char *arg;
 	pid_t pid;
 	int signo = SIGTERM, errors = 0, quiet = 0;
-	const int killall = (ENABLE_KILLALL && argv[0][4] == 'a'
-	               && (!ENABLE_KILLALL5 || argv[0][7] != '5'));
-	const int killall5 = (ENABLE_KILLALL5 && argv[0][4] == 'a'
-	                  && (!ENABLE_KILLALL || argv[0][7] == '5'));
+#if !ENABLE_KILLALL && !ENABLE_KILLALL5
+#define killall 0
+#define killall5 0
+#else
+/* How to determine who we are? find 3rd char from the end:
+ * kill, killall, killall5
+ *  ^i       ^a        ^l */
+	const char char3 = argv[0][strlen(argv[0]) - 3];
+#define killall (ENABLE_KILLALL && char3 == 'a')
+#define killall5 (ENABLE_KILLALL5 && char3 == 'l')
+#endif
 
 	/* Parse any options */
 	argc--;
