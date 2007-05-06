@@ -87,34 +87,37 @@
  * to perform debug printfs to stderr: */
 #define debug_printf(...)       do {} while (0)
 /* Finer-grained debug switches */
-#define debug_printf_jobs(...)  do {} while (0)
-#define debug_printf_exec(...)  do {} while (0)
 #define debug_printf_parse(...) do {} while (0)
 #define debug_print_tree(a, b)  do {} while (0)
-
+#define debug_printf_exec(...)  do {} while (0)
+#define debug_printf_jobs(...)  do {} while (0)
+#define debug_printf_clean(...) do {} while (0)
 
 #ifndef debug_printf
 #define debug_printf(...) fprintf(stderr, __VA_ARGS__)
-/* broken, of course, but OK for testing */
-static const char *indenter(int i)
-{
-	static const char blanks[] = "                                    ";
-	return &blanks[sizeof(blanks) - i - 1];
-}
 #endif
-#define final_printf debug_printf
 
-#ifndef debug_printf_jobs
-#define debug_printf_jobs(...) fprintf(stderr, __VA_ARGS__)
-#define DEBUG_SHELL_JOBS 1
+#ifndef debug_printf_parse
+#define debug_printf_parse(...) fprintf(stderr, __VA_ARGS__)
 #endif
 
 #ifndef debug_printf_exec
 #define debug_printf_exec(...) fprintf(stderr, __VA_ARGS__)
 #endif
 
-#ifndef debug_printf_parse
-#define debug_printf_parse(...) fprintf(stderr, __VA_ARGS__)
+#ifndef debug_printf_jobs
+#define debug_printf_jobs(...) fprintf(stderr, __VA_ARGS__)
+#define DEBUG_SHELL_JOBS 1
+#endif
+
+#ifndef debug_printf_clean
+/* broken, of course, but OK for testing */
+static const char *indenter(int i)
+{
+	static const char blanks[] = "                                    ";
+	return &blanks[sizeof(blanks) - i - 1];
+}
+#define debug_printf_clean(...) fprintf(stderr, __VA_ARGS__)
 #endif
 
 
@@ -281,7 +284,7 @@ static unsigned last_bg_pid;
 enum { interactive_fd = 0 };
 #else
 /* 'interactive_fd' is a fd# open to ctty, if we have one
- * _AND_ if we decided to mess with job control */
+ * _AND_ if we decided to act interactively */
 static int interactive_fd;
 #if ENABLE_HUSH_JOB
 static pid_t saved_task_pgrp;
@@ -379,6 +382,7 @@ static void mark_open(int fd);
 static void mark_closed(int fd);
 static void close_all(void);
 /*  "run" the final data structures: */
+//TODO: remove indent argument from non-debug build!
 static int free_pipe_list(struct pipe *head, int indent);
 static int free_pipe(struct pipe *pi, int indent);
 /*  really run the final data structures: */
@@ -537,10 +541,6 @@ static void handler_ctrl_z(int sig)
 	if (pid < 0) /* can't fork. Pretend there were no ctrl-Z */
 		return;
 	ctrl_z_flag = 1;
-//vda: wrong!!
-//	toplevel_list->running_progs = 1;
-//	toplevel_list->stopped_progs = 0;
-//
 	if (!pid) { /* child */
 		setpgrp();
 		debug_printf_jobs("set pgrp for child %d ok\n", getpid());
@@ -555,9 +555,6 @@ static void handler_ctrl_z(int sig)
 	/* finish filling up pipe info */
 	toplevel_list->pgrp = pid; /* child is in its own pgrp */
 	toplevel_list->progs[0].pid = pid;
-//vda: wrong!!
-//	toplevel_list->running_progs = 1;
-//	toplevel_list->stopped_progs = 0;
 	/* parent needs to longjmp out of running nofork.
 	 * we will "return" exitcode 0, with child put in background */
 // as usual we can have all kinds of nasty problems with leaked malloc data here
@@ -1051,7 +1048,7 @@ static void cmdedit_set_initial_prompt(void)
 		PS1 = "\\w \\$ ";
 #endif
 }
-#endif
+#endif /* EDITING */
 
 static const char* setup_prompt_string(int promptmode)
 {
@@ -1075,13 +1072,11 @@ static const char* setup_prompt_string(int promptmode)
 	debug_printf("result %s\n", prompt_str);
 	return prompt_str;
 }
-#endif /* ENABLE_HUSH_INTERACTIVE */
 
 #if ENABLE_FEATURE_EDITING
 static line_input_t *line_input_state;
 #endif
 
-#if ENABLE_HUSH_INTERACTIVE
 static int get_user_input(struct in_str *i)
 {
 	static char the_command[ENABLE_FEATURE_EDITING ? BUFSIZ : 2];
@@ -1096,18 +1091,18 @@ static int get_user_input(struct in_str *i)
 	 ** atexit() handlers and other unwanted stuff to our
 	 ** child processes (rob@sysgo.de)
 	 */
-	r = read_line_input(prompt_str, the_command, BUFSIZ, line_input_state);
+	r = read_line_input(prompt_str, the_command, BUFSIZ-1, line_input_state);
 #else
 	fputs(prompt_str, stdout);
 	fflush(stdout);
 	the_command[0] = r = fgetc(i->file);
-	the_command[1] = '\0';
+	/*the_command[1] = '\0'; - already is and never changed */
 #endif
 	fflush(stdout);
 	i->p = the_command;
 	return r; /* < 0 == EOF. Not meaningful otherwise */
 }
-#endif
+#endif  /* INTERACTIVE */
 
 /* This is the magic location that prints prompts
  * and gets data back from the user */
@@ -1279,7 +1274,7 @@ static void pseudo_exec_argv(char **argv)
 	for (i = 0; is_assignment(argv[i]); i++) {
 		debug_printf("pid %d environment modification: %s\n",
 				getpid(), argv[i]);
-	// FIXME: vfork case??
+// FIXME: vfork case??
 		p = insert_var_value(argv[i]);
 		putenv(strdup(p));
 		if (p != argv[i])
@@ -1342,6 +1337,7 @@ static void pseudo_exec(struct child_prog *child)
 	if (child->group) {
 	// FIXME: do not modify globals! Think vfork!
 #if ENABLE_HUSH_INTERACTIVE
+		debug_printf_exec("pseudo_exec: setting interactive_fd=0\n");
 		interactive_fd = 0;    /* crucial!!!! */
 #endif
 		debug_printf_exec("pseudo_exec: run_list_real\n");
@@ -1365,7 +1361,7 @@ static const char *get_cmdtext(struct pipe *pi)
 
 	/* This is subtle. ->cmdtext is created only on first backgrounding.
 	 * (Think "cat, <ctrl-z>, fg, <ctrl-z>, fg, <ctrl-z>...." here...)
-	 * On subsequent bg argv can be trashed, but we won't use it */
+	 * On subsequent bg argv is trashed, but we won't use it */
 	if (pi->cmdtext)
 		return pi->cmdtext;
 	argv = pi->progs[0].argv;
@@ -1385,12 +1381,11 @@ static const char *get_cmdtext(struct pipe *pi)
 	p[-1] = '\0';
 	return pi->cmdtext;
 }
-#endif
 
-#if ENABLE_HUSH_JOB
 static void insert_bg_job(struct pipe *pi)
 {
 	struct pipe *thejob;
+	int i;
 
 	/* Linear search for the ID of the job to use */
 	pi->jobid = 1;
@@ -1398,7 +1393,7 @@ static void insert_bg_job(struct pipe *pi)
 		if (thejob->jobid >= pi->jobid)
 			pi->jobid = thejob->jobid + 1;
 
-	/* add thejob to the list of running jobs */
+	/* Add thejob to the list of running jobs */
 	if (!job_list) {
 		thejob = job_list = xmalloc(sizeof(*thejob));
 	} else {
@@ -1408,17 +1403,29 @@ static void insert_bg_job(struct pipe *pi)
 		thejob = thejob->next;
 	}
 
-	/* physically copy the struct job */
+	/* Physically copy the struct job */
 	memcpy(thejob, pi, sizeof(struct pipe));
-	thejob->progs = xmalloc(sizeof(pi->progs[0]) * pi->num_progs);
-	memcpy(thejob->progs, pi->progs, sizeof(pi->progs[0]) * pi->num_progs);
+	thejob->progs = xzalloc(sizeof(pi->progs[0]) * pi->num_progs);
+	/* We cannot copy entire pi->progs[] vector! Double free()s will happen */
+	for (i = 0; i < pi->num_progs; i++) {
+// TODO: do we really need to have so many fields which are just dead weight
+// at execution stage?
+		thejob->progs[i].pid = pi->progs[i].pid;
+		//rest:
+		//char **argv;                /* program name and arguments */
+		//struct pipe *group;         /* if non-NULL, first in group or subshell */
+		//int subshell;               /* flag, non-zero if group must be forked */
+		//struct redir_struct *redirects; /* I/O redirections */
+		//glob_t glob_result;         /* result of parameter globbing */
+		//int is_stopped;             /* is the program currently running? */
+		//struct pipe *family;        /* pointer back to the child's parent pipe */
+		//int sp;                     /* number of SPECIAL_VAR_SYMBOL */
+		//int type;
+	}
 	thejob->next = NULL;
-	/*seems to be wrong:*/
-	/*thejob->running_progs = thejob->num_progs;*/
-	/*thejob->stopped_progs = 0;*/
 	thejob->cmdtext = xstrdup(get_cmdtext(pi));
 
-	/* we don't wait for background thejobs to return -- append it
+	/* We don't wait for background thejobs to return -- append it
 	   to the list of backgrounded thejobs and leave it alone */
 	printf("[%d] %d %s\n", thejob->jobid, thejob->progs[0].pid, thejob->cmdtext);
 	last_bg_pid = thejob->progs[0].pid;
@@ -1451,7 +1458,7 @@ static void delete_finished_bg_job(struct pipe *pi)
 	free_pipe(pi, 0);
 	free(pi);
 }
-#endif
+#endif /* JOB */
 
 /* Checks to see if any processes have exited -- if they
    have, figure out why and see if a job has completed */
@@ -1622,7 +1629,7 @@ static int run_pipe_real(struct pipe *pi)
 	int rcode;
 	const int single_fg = (pi->num_progs == 1 && pi->followup != PIPE_BG);
 
-	debug_printf_exec("run_pipe_real start:\n");
+	debug_printf_exec("run_pipe_real start: single_fg=%d\n", single_fg);
 
 	nextin = 0;
 #if ENABLE_HUSH_JOB
@@ -1724,7 +1731,7 @@ static int run_pipe_real(struct pipe *pi)
 				setup_redirects(child, squirrel);
 				debug_printf_exec(": run_nofork_applet '%s' '%s'...\n", argv[i], argv[i+1]);
 				save_nofork_data(&nofork_save);
-				rcode = run_nofork_applet_prime(&nofork_save, a, argv);
+				rcode = run_nofork_applet_prime(&nofork_save, a, argv + i);
 				restore_redirects(squirrel);
 				debug_printf_exec("run_pipe_real return %d\n", rcode);
 				return rcode;
@@ -1742,7 +1749,10 @@ static int run_pipe_real(struct pipe *pi)
 
 	for (i = 0; i < pi->num_progs; i++) {
 		child = &(pi->progs[i]);
-		debug_printf_exec(": pipe member '%s' '%s'...\n", child->argv[0], child->argv[1]);
+		if (child->argv)
+			debug_printf_exec(": pipe member '%s' '%s'...\n", child->argv[0], child->argv[1]);
+		else
+			debug_printf_exec(": pipe member with no argv\n");
 
 		/* pipes are inserted between pairs of commands */
 		if ((i + 1) < pi->num_progs) {
@@ -1833,8 +1843,8 @@ static void debug_print_tree(struct pipe *pi, int lvl)
 	static const char *PIPE[] = {
 		[PIPE_SEQ] = "SEQ",
 		[PIPE_AND] = "AND",
-		[PIPE_OR ] = "OR",
-		[PIPE_BG ] = "BG",
+		[PIPE_OR ] = "OR" ,
+		[PIPE_BG ] = "BG" ,
 	};
 	static const char *RES[] = {
 		[RES_NONE ] = "NONE" ,
@@ -1914,14 +1924,15 @@ static int run_list_real(struct pipe *pi)
 		if ((rpipe->r_mode == RES_IN || rpipe->r_mode == RES_FOR)
 		 && (rpipe->next == NULL)
 		) {
-			syntax();
+			syntax(); /* unterminated FOR (no IN or no commands after IN) */
 			debug_printf_exec("run_list_real lvl %d return 1\n", level);
 			return 1;
 		}
-		if ((rpipe->r_mode == RES_IN &&	rpipe->next->r_mode == RES_IN && rpipe->next->progs->argv != NULL)
+		if ((rpipe->r_mode == RES_IN &&	rpipe->next->r_mode == RES_IN && rpipe->next->progs[0].argv != NULL)
 		 || (rpipe->r_mode == RES_FOR && rpipe->next->r_mode != RES_IN)
 		) {
-			syntax();
+			/* TODO: what is tested in the first condition? */
+			syntax(); /* 2nd: malformed FOR (not followed by IN) */
 			debug_printf_exec("run_list_real lvl %d return 1\n", level);
 			return 1;
 		}
@@ -1952,7 +1963,7 @@ static int run_list_real(struct pipe *pi)
 				 * Remember this child as background job */
 				insert_bg_job(pi);
 			} else {
-				/* ctrl-C. We just stop doing whatever we was doing */
+				/* ctrl-C. We just stop doing whatever we were doing */
 				putchar('\n');
 			}
 			rcode = 0;
@@ -2018,8 +2029,7 @@ static int run_list_real(struct pipe *pi)
 				continue;
 			}
 			/* insert new value from list for variable */
-			if (pi->progs->argv[0])
-				free(pi->progs->argv[0]);
+			free(pi->progs->argv[0]);
 			pi->progs->argv[0] = *list++;
 			pi->progs->glob_result.gl_pathv[0] = pi->progs->argv[0];
 		}
@@ -2045,16 +2055,21 @@ static int run_list_real(struct pipe *pi)
 			/* We only ran a builtin: rcode was set by the return value
 			 * of run_pipe_real(), and we don't need to wait for anything. */
 		} else if (pi->followup == PIPE_BG) {
-			/* XXX check bash's behavior with nontrivial pipes */
-			/* XXX compute jobid */
-			/* XXX what does bash do with attempts to background builtins? */
+			/* What does bash do with attempts to background builtins? */
+
+			/* Even bash 3.2 doesn't do that well with nested bg:
+			 * try "{ { sleep 10; echo DEEP; } & echo HERE; } &".
+			 * I'm considering NOT treating inner bgs as jobs -
+			 * thus maybe "if (level == 1 && pi->followup == PIPE_BG)"
+			 * above? */
 #if ENABLE_HUSH_JOB
 			insert_bg_job(pi);
 #endif
 			rcode = EXIT_SUCCESS;
 		} else {
 #if ENABLE_HUSH_JOB
-			if (interactive_fd) {
+			/* Paranoia, just "interactive_fd" should be enough */
+			if (level == 1 && interactive_fd) {
 				rcode = checkjobs_and_fg_shell(pi);
 			} else
 #endif
@@ -2103,33 +2118,33 @@ static int free_pipe(struct pipe *pi, int indent)
 
 	if (pi->stopped_progs > 0)
 		return ret_code;
-	final_printf("%s run pipe: (pid %d)\n", indenter(indent), getpid());
+	debug_printf_clean("%s run pipe: (pid %d)\n", indenter(indent), getpid());
 	for (i = 0; i < pi->num_progs; i++) {
 		child = &pi->progs[i];
-		final_printf("%s  command %d:\n", indenter(indent), i);
+		debug_printf_clean("%s  command %d:\n", indenter(indent), i);
 		if (child->argv) {
 			for (a = 0, p = child->argv; *p; a++, p++) {
-				final_printf("%s   argv[%d] = %s\n", indenter(indent), a, *p);
+				debug_printf_clean("%s   argv[%d] = %s\n", indenter(indent), a, *p);
 			}
 			globfree(&child->glob_result);
 			child->argv = NULL;
 		} else if (child->group) {
-			final_printf("%s   begin group (subshell:%d)\n", indenter(indent), child->subshell);
+			debug_printf_clean("%s   begin group (subshell:%d)\n", indenter(indent), child->subshell);
 			ret_code = free_pipe_list(child->group, indent+3);
-			final_printf("%s   end group\n", indenter(indent));
+			debug_printf_clean("%s   end group\n", indenter(indent));
 		} else {
-			final_printf("%s   (nil)\n", indenter(indent));
+			debug_printf_clean("%s   (nil)\n", indenter(indent));
 		}
 		for (r = child->redirects; r; r = rnext) {
-			final_printf("%s   redirect %d%s", indenter(indent), r->fd, redir_table[r->type].descrip);
+			debug_printf_clean("%s   redirect %d%s", indenter(indent), r->fd, redir_table[r->type].descrip);
 			if (r->dup == -1) {
 				/* guard against the case >$FOO, where foo is unset or blank */
 				if (r->word.gl_pathv) {
-					final_printf(" %s\n", *r->word.gl_pathv);
+					debug_printf_clean(" %s\n", *r->word.gl_pathv);
 					globfree(&r->word);
 				}
 			} else {
-				final_printf("&%d\n", r->dup);
+				debug_printf_clean("&%d\n", r->dup);
 			}
 			rnext = r->next;
 			free(r);
@@ -2149,10 +2164,11 @@ static int free_pipe_list(struct pipe *head, int indent)
 {
 	int rcode = 0;   /* if list has no members */
 	struct pipe *pi, *next;
+
 	for (pi = head; pi; pi = next) {
-		final_printf("%s pipe reserved mode %d\n", indenter(indent), pi->r_mode);
+		debug_printf_clean("%s pipe reserved mode %d\n", indenter(indent), pi->r_mode);
 		rcode = free_pipe(pi, indent);
-		final_printf("%s pipe followup code %d\n", indenter(indent), pi->followup);
+		debug_printf_clean("%s pipe followup code %d\n", indenter(indent), pi->followup);
 		next = pi->next;
 		/*pi->next = NULL;*/
 		free(pi);
@@ -2164,14 +2180,16 @@ static int free_pipe_list(struct pipe *head, int indent)
 static int run_list(struct pipe *pi)
 {
 	int rcode = 0;
+	debug_printf_exec("run_list entered\n");
 	if (fake_mode == 0) {
-		debug_printf_exec("run_list: run_list_real with %d members\n", pi->num_progs);
+		debug_printf_exec(": run_list_real with %d members\n", pi->num_progs);
 		rcode = run_list_real(pi);
 	}
-	/* free_pipe_list has the side effect of clearing memory
+	/* free_pipe_list has the side effect of clearing memory.
 	 * In the long run that function can be merged with run_list_real,
 	 * but doing that now would hobble the debugging effort. */
 	free_pipe_list(pi, 0);
+	debug_printf_exec("run_list return %d\n", rcode);
 	return rcode;
 }
 
@@ -2201,7 +2219,7 @@ static int globhack(const char *src, int flags, glob_t *pglob)
 		pglob->gl_offs = 0;
 	}
 	pathc = ++pglob->gl_pathc;
-	pglob->gl_pathv = realloc(pglob->gl_pathv, (pathc+1)*sizeof(*pglob->gl_pathv));
+	pglob->gl_pathv = realloc(pglob->gl_pathv, (pathc+1) * sizeof(*pglob->gl_pathv));
 	if (pglob->gl_pathv == NULL)
 		return GLOB_NOSPACE;
 	pglob->gl_pathv[pathc-1] = dest;
@@ -2821,8 +2839,7 @@ static FILE *generate_stream_from_list(struct pipe *head)
 	return pf;
 }
 
-/* this version hacked for testing purposes */
-/* return code is exit status of the process that is run. */
+/* Return code is exit status of the process that is run. */
 static int process_command_subs(o_string *dest, struct p_context *ctx,
 	struct in_str *input, const char *subst_end)
 {
@@ -2843,9 +2860,19 @@ static int process_command_subs(o_string *dest, struct p_context *ctx,
 	p = generate_stream_from_list(inner.list_head);
 	if (p == NULL) return 1;
 	mark_open(fileno(p));
+// FIXME: need to flag pipe_str to somehow discard all trailing newlines.
+// Example: echo "TEST`date;echo;echo`BEST"
+//          must produce one line: TEST<date>BEST
 	setup_file_in_str(&pipe_str, p);
 
 	/* now send results of command back into original context */
+// FIXME: must not do quote parsing of the output!
+// Example: echo "TEST`echo '$(echo ZZ)'`BEST"
+//          must produce TEST$(echo ZZ)BEST, not TESTZZBEST.
+// Example: echo "TEST`echo "'"`BEST"
+//          must produce TEST'BEST
+// (maybe by setting all chars flagged as literals in map[]?)
+
 	retcode = parse_stream(dest, ctx, &pipe_str, NULL);
 	/* XXX In case of a syntax error, should we try to kill the child?
 	 * That would be tough to do right, so just read until EOF. */
@@ -2864,7 +2891,6 @@ static int process_command_subs(o_string *dest, struct p_context *ctx,
 	retcode = pclose(p);
 	free_pipe_list(inner.list_head, 0);
 	debug_printf("pclosed, retcode=%d\n", retcode);
-	/* XXX this process fails to trim a single trailing newline */
 	return retcode;
 }
 
@@ -2904,7 +2930,7 @@ static int parse_group(o_string *dest, struct p_context *ctx,
 	/* child remains "open", available for possible redirects */
 }
 
-/* basically useful version until someone wants to get fancier,
+/* Basically useful version until someone wants to get fancier,
  * see the bash man page under "Parameter Expansion" */
 static const char *lookup_param(const char *src)
 {
@@ -3272,8 +3298,8 @@ static int parse_stream_outer(struct in_str *inp, int parse_flag)
 		if (rcode != 1 && ctx.old_flag == 0) {
 			done_word(&temp, &ctx);
 			done_pipe(&ctx, PIPE_SEQ);
-			debug_printf_exec("parse_stream_outer: run_list\n");
 			debug_print_tree(ctx.list_head, 0);
+			debug_printf_exec("parse_stream_outer: run_list\n");
 			run_list(ctx.list_head);
 		} else {
 			if (ctx.old_flag != 0) {
@@ -3392,7 +3418,7 @@ int hush_main(int argc, char **argv)
 	last_return_code = EXIT_SUCCESS;
 
 	if (argv[0] && argv[0][0] == '-') {
-		debug_printf("\nsourcing /etc/profile\n");
+		debug_printf("sourcing /etc/profile\n");
 		input = fopen("/etc/profile", "r");
 		if (input != NULL) {
 			mark_open(fileno(input));
@@ -3455,12 +3481,13 @@ int hush_main(int argc, char **argv)
 			// to (inadvertently) close/redirect it
 		}
 	}
-	debug_printf("\ninteractive_fd=%d\n", interactive_fd);
+	debug_printf("interactive_fd=%d\n", interactive_fd);
 	if (interactive_fd) {
 		/* Looks like they want an interactive shell */
 		setup_job_control();
 		/* Make xfuncs do cleanup on exit */
 		die_sleep = -1; /* flag */
+// FIXME: should we reset die_sleep = 0 whereever we fork?
 		if (setjmp(die_jmp)) {
 			/* xfunc has failed! die die die */
 			hush_exit(xfunc_error_retval);

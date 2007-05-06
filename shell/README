@@ -1,7 +1,24 @@
 Various bits of what is known about busybox shells, in no particular order.
 
+2006-05-06
+hush: more bugs spotted. Comparison with bash:
+bash-3.2# echo "TEST`date;echo;echo`BEST"
+TESTSun May  6 09:21:05 CEST 2007BEST         [we dont strip eols]
+bash-3.2# echo "TEST`echo '$(echo ZZ)'`BEST"
+TEST$(echo ZZ)BEST                            [we execute inner echo]
+bash-3.2# echo "TEST`echo "'"`BEST"
+TEST'BEST                                     [we totally mess up this one]
+bash-3.2# echo `sleep 5`
+[Ctrl-C should work, Ctrl-Z should do nothing][we totally mess up this one]
+bash-3.2# if true; then
+> [Ctrl-C]
+bash-3.2#                                     [we re-issue "> "]
+bash-3.2# if echo `sleep 5`; then
+> true; fi                                    [we execute sleep before "> "]
+
 2007-05-04
-hush: make ctrl-Z/C work correctly for "while true; do true; done"
+hush: made ctrl-Z/C work correctly for "while true; do true; done"
+(namely, it backgrounds/interrupts entire "while")
 
 2007-05-03
 hush: new bug spotted: Ctrl-C on "while true; do true; done" doesn't
