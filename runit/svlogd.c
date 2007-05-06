@@ -642,9 +642,11 @@ static int buffer_pread(int fd, char *s, unsigned len, struct taia *now)
 				trotate = dir[i].trotate;
 		}
 
-	while (1) {
+	do {
 		sigprocmask(SIG_UNBLOCK, blocked_sigset, NULL);
 		iopause(&input, 1, &trotate, now);
+// TODO: do not unblock/block, but use sigpending after iopause
+// to see whether there was any sig? (one syscall less...)
 		sigprocmask(SIG_BLOCK, blocked_sigset, NULL);
 		i = ndelay_read(fd, s, len);
 		if (i >= 0) break;
@@ -653,7 +655,7 @@ static int buffer_pread(int fd, char *s, unsigned len, struct taia *now)
 			break;
 		}
 		/* else: EAGAIN - normal, repeat silently */
-	}
+	} while (!exitasap);
 
 	if (i > 0) {
 		int cnt;
@@ -784,12 +786,12 @@ int svlogd_main(int argc, char **argv)
 	////if (buflen <= linemax) usage();
 	fdwdir = xopen(".", O_RDONLY|O_NDELAY);
 	coe(fdwdir);
-	dir = xmalloc(dirn * sizeof(struct logdir));
+	dir = xzalloc(dirn * sizeof(struct logdir));
 	for (i = 0; i < dirn; ++i) {
 		dir[i].fddir = -1;
 		dir[i].fdcur = -1;
 		////dir[i].btmp = xmalloc(buflen);
-		dir[i].ppid = 0;
+		/*dir[i].ppid = 0;*/
 	}
 	/* line = xmalloc(linemax + (timestamp ? 26 : 0)); */
 	fndir = argv;
