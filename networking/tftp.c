@@ -36,17 +36,6 @@
 #define TFTP_ERROR 5
 #define TFTP_OACK  6
 
-static const char *const tftp_bb_error_msg[] = {
-	"Undefined error",
-	"File not found",
-	"Access violation",
-	"Disk full or allocation error",
-	"Illegal TFTP operation",
-	"Unknown transfer ID",
-	"File already exists",
-	"No such user"
-};
-
 #if ENABLE_FEATURE_TFTP_GET && !ENABLE_FEATURE_TFTP_PUT
 #define USE_GETPUT(a)
 #define CMD_GET(cmd) 1
@@ -62,7 +51,7 @@ static const char *const tftp_bb_error_msg[] = {
 #define CMD_PUT(cmd) ((cmd) & 2)
 #endif
 /* NB: in the code below
- * CMD_GET(cmd) and CMD_GET(cmd) are mutually exclusive
+ * CMD_GET(cmd) and CMD_PUT(cmd) are mutually exclusive
  */
 
 
@@ -86,7 +75,7 @@ static int tftp_blocksize_check(int blocksize, int bufsize)
 	return blocksize;
 }
 
-static char *tftp_option_get(char *buf, int len, const char * const option)
+static char *tftp_option_get(char *buf, int len, const char *option)
 {
 	int opt_val = 0;
 	int opt_found = 0;
@@ -94,32 +83,24 @@ static char *tftp_option_get(char *buf, int len, const char * const option)
 
 	while (len > 0) {
 		/* Make sure the options are terminated correctly */
-
 		for (k = 0; k < len; k++) {
 			if (buf[k] == '\0') {
-				break;
+				goto nul_found;
 			}
 		}
-
-		if (k >= len) {
-			break;
-		}
-
+		return NULL;
+ nul_found:
 		if (opt_val == 0) {
 			if (strcasecmp(buf, option) == 0) {
 				opt_found = 1;
 			}
-		} else {
-			if (opt_found) {
-				return buf;
-			}
+		} else if (opt_found) {
+			return buf;
 		}
 
 		k++;
-
 		buf += k;
 		len -= k;
-
 		opt_val ^= 1;
 	}
 
@@ -140,14 +121,14 @@ static int tftp(
 	fd_set rfds;
 	int socketfd;
 	int len;
-	int opcode = 0;
-	int finished = 0;
-	int timeout = TFTP_NUM_RETRIES;
+	int send_len;
+	USE_FEATURE_TFTP_BLOCKSIZE(smallint want_option_ack = 0;)
+	smallint finished = 0;
+	uint16_t opcode;
 	uint16_t block_nr = 1;
-	uint16_t tmp;
+	uint16_t recv_blk;
+	int timeout = TFTP_NUM_RETRIES;
 	char *cp;
-
-	USE_FEATURE_TFTP_BLOCKSIZE(int want_option_ack = 0;)
 
 	unsigned org_port;
 	len_and_sockaddr *const from = alloca(offsetof(len_and_sockaddr, sa) + peer_lsa->len);
@@ -168,109 +149,83 @@ static int tftp(
 	if (CMD_GET(cmd)) {
 		opcode = TFTP_RRQ;
 	}
-
-	while (1) {
-		cp = xbuf;
-
-		/* first create the opcode part */
-		/* (this 16bit store is aligned) */
-		*((uint16_t*)cp) = htons(opcode);
-		cp += 2;
-
-		/* add filename and mode */
-		if (CMD_GET(cmd) ? (opcode == TFTP_RRQ) : (opcode == TFTP_WRQ)) {
-			int too_long = 0;
-
-			/* see if the filename fits into xbuf
-			 * and fill in packet.  */
-			len = strlen(remotefile) + 1;
-
-			if ((cp + len) >= &xbuf[tftp_bufsize - 1]) {
-				too_long = 1;
-			} else {
-				safe_strncpy(cp, remotefile, len);
-				cp += len;
-			}
-
-			if (too_long || (&xbuf[tftp_bufsize - 1] - cp) < sizeof("octet")) {
-				bb_error_msg("remote filename too long");
-				break;
-			}
-
-			/* add "mode" part of the package */
-			memcpy(cp, "octet", sizeof("octet"));
-			cp += sizeof("octet");
+	cp = xbuf + 2;
+	/* add filename and mode */
+	/* fill in packet if the filename fits into xbuf */
+	len = strlen(remotefile) + 1;
+	if (2 + len + sizeof("octet") >= tftp_bufsize) {
+		bb_error_msg("remote filename is too long");
+		goto ret;
+	}
+	strcpy(cp, remotefile);
+	cp += len;
+	/* add "mode" part of the package */
+	strcpy(cp, "octet");
+	cp += sizeof("octet");
 
 #if ENABLE_FEATURE_TFTP_BLOCKSIZE
-
-			len = tftp_bufsize - 4;	/* data block size */
-
-			if (len != TFTP_BLOCKSIZE_DEFAULT) {
-
-				if ((&xbuf[tftp_bufsize - 1] - cp) < 15) {
-					bb_error_msg("remote filename too long");
-					break;
-				}
-
-				/* add "blksize" + number of blocks  */
-				memcpy(cp, "blksize", sizeof("blksize"));
-				cp += sizeof("blksize");
-				cp += snprintf(cp, 6, "%d", len) + 1;
-
-				want_option_ack = 1;
-			}
+	len = tftp_bufsize - 4;	/* data block size */
+	if (len != TFTP_BLOCKSIZE_DEFAULT) {
+		/* rfc2348 says that 65464 is a max allowed value */
+		if ((&xbuf[tftp_bufsize - 1] - cp) < sizeof("blksize NNNNN")) {
+			bb_error_msg("remote filename is too long");
+			goto ret;
+		}
+		/* add "blksize", <nul>, blocksize */
+		strcpy(cp, "blksize");
+		cp += sizeof("blksize");
+		cp += snprintf(cp, 6, "%d", len) + 1;
+		want_option_ack = 1;
+	}
 #endif
-		}
+	/* First packet is built, so skip packet generation */
+	goto send_pkt;
 
-		/* add ack and data */
-
-		if (CMD_GET(cmd) ? (opcode == TFTP_ACK) : (opcode == TFTP_DATA)) {
-			/* TODO: unaligned access! */
-			*((uint16_t*)cp) = htons(block_nr);
-			cp += 2;
-			block_nr++;
-
-			if (CMD_PUT(cmd) && (opcode == TFTP_DATA)) {
-				len = full_read(localfd, cp, tftp_bufsize - 4);
-
-				if (len < 0) {
-					bb_perror_msg(bb_msg_read_error);
-					break;
-				}
-
-				if (len != (tftp_bufsize - 4)) {
-					finished++;
-				}
-
-				cp += len;
+	while (1) {
+		/* Build ACK or DATA */
+		cp = xbuf + 2;
+		*((uint16_t*)cp) = htons(block_nr);
+		cp += 2;
+		block_nr++;
+		opcode = TFTP_ACK;
+		if (CMD_PUT(cmd)) {
+			opcode = TFTP_DATA;
+			len = full_read(localfd, cp, tftp_bufsize - 4);
+			if (len < 0) {
+				bb_perror_msg(bb_msg_read_error);
+				goto ret;
 			}
+			if (len != (tftp_bufsize - 4)) {
+				finished = 1;
+			}
+			cp += len;
 		}
-
-		/* send packet */
-
+ send_pkt:
+		/* Send packet */
+		*((uint16_t*)xbuf) = htons(opcode); /* fill in opcode part */
 		timeout = TFTP_NUM_RETRIES;	/* re-initialize */
-		do {
-			len = cp - xbuf;
+		while (1) {
+			send_len = cp - xbuf;
+			/* nb: need to preserve send_len value in code below
+			 * for potential resend! */
+ send_again:
 #if ENABLE_DEBUG_TFTP
-			fprintf(stderr, "sending %u bytes\n", len);
-			for (cp = xbuf; cp < &xbuf[len]; cp++)
+			fprintf(stderr, "sending %u bytes\n", send_len);
+			for (cp = xbuf; cp < &xbuf[send_len]; cp++)
 				fprintf(stderr, "%02x ", (unsigned char) *cp);
 			fprintf(stderr, "\n");
 #endif
-			xsendto(socketfd, xbuf, len, &peer_lsa->sa, peer_lsa->len);
+			xsendto(socketfd, xbuf, send_len, &peer_lsa->sa, peer_lsa->len);
+			/* Was it final ACK? then exit */
+			if (finished && (opcode == TFTP_ACK))
+				goto ret;
 
-			if (finished && (opcode == TFTP_ACK)) {
-				break;
-			}
-
-			/* receive packet */
+			/* Receive packet */
  recv_again:
 			tv.tv_sec = TFTP_TIMEOUT;
 			tv.tv_usec = 0;
-
 			FD_ZERO(&rfds);
 			FD_SET(socketfd, &rfds);
-
 			switch (select(socketfd + 1, &rfds, NULL, NULL, &tv)) {
 				unsigned from_port;
 			case 1:
@@ -280,7 +235,7 @@ static int tftp(
 							&from->sa, &from->len);
 				if (len < 0) {
 					bb_perror_msg("recvfrom");
-					break;
+					goto ret;
 				}
 				from_port = get_nport(&from->sa);
 				if (port == org_port) {
@@ -292,57 +247,57 @@ static int tftp(
 				}
 				if (port != from_port)
 					goto recv_again;
-				timeout = 0;
-				break;
+				goto recvd_good;
 			case 0:
-				bb_error_msg("timeout");
 				timeout--;
 				if (timeout == 0) {
-					len = -1;
 					bb_error_msg("last timeout");
+					goto ret;
 				}
-				break;
+				bb_error_msg("last timeout" + 5);
+				goto send_again; /* resend last sent pkt */
 			default:
 				bb_perror_msg("select");
-				len = -1;
+				goto ret;
 			}
+		} /* while we don't see recv packet with correct port# */
 
-		} while (timeout && (len >= 0));
-
-		if (finished || (len < 0)) {
-			break;
-		}
-
-		/* process received packet */
-		/* (both accesses seems to be aligned) */
-
+		/* Process recv'ed packet */
+ recvd_good:
 		opcode = ntohs( ((uint16_t*)rbuf)[0] );
-		tmp = ntohs( ((uint16_t*)rbuf)[1] );
+		recv_blk = ntohs( ((uint16_t*)rbuf)[1] );
 
 #if ENABLE_DEBUG_TFTP
-		fprintf(stderr, "received %d bytes: %04x %04x\n", len, opcode, tmp);
+		fprintf(stderr, "received %d bytes: %04x %04x\n", len, opcode, recv_blk);
 #endif
 
 		if (opcode == TFTP_ERROR) {
-			const char *msg = NULL;
+			static const char *const errcode_str[] = {
+				"",
+				"file not found",
+				"access violation",
+				"disk full",
+				"illegal TFTP operation",
+				"unknown transfer id",
+				"file already exists",
+				"no such user",
+			};
+			enum { NUM_ERRCODE = sizeof(errcode_str) / sizeof(errcode_str[0]) };
+
+			const char *msg = "";
 
 			if (rbuf[4] != '\0') {
 				msg = &rbuf[4];
 				rbuf[tftp_bufsize - 1] = '\0';
-			} else if (tmp < (sizeof(tftp_bb_error_msg)
-							  / sizeof(char *))) {
-				msg = tftp_bb_error_msg[tmp];
+			} else if (recv_blk < NUM_ERRCODE) {
+				msg = errcode_str[recv_blk];
 			}
-
-			if (msg) {
-				bb_error_msg("server says: %s", msg);
-			}
-
-			break;
+			bb_error_msg("server error: (%u) %s", recv_blk, msg);
+			goto ret;
 		}
+
 #if ENABLE_FEATURE_TFTP_BLOCKSIZE
 		if (want_option_ack) {
-
 			want_option_ack = 0;
 
 			if (opcode == TFTP_OACK) {
@@ -350,87 +305,81 @@ static int tftp(
 				char *res;
 
 				res = tftp_option_get(&rbuf[2], len - 2, "blksize");
-
 				if (res) {
 					int blksize = xatoi_u(res);
-
-					if (tftp_blocksize_check(blksize, tftp_bufsize - 4)) {
-						if (CMD_PUT(cmd)) {
-							opcode = TFTP_DATA;
-						} else {
-							opcode = TFTP_ACK;
-						}
-#if ENABLE_DEBUG_TFTP
-						fprintf(stderr, "using blksize %u\n",
-								blksize);
-#endif
-						tftp_bufsize = blksize + 4;
-						block_nr = 0;
-						continue;
+					if (!tftp_blocksize_check(blksize, tftp_bufsize - 4)) {
+						bb_error_msg("server proposes bad blksize %d, exiting", blksize);
+						// FIXME: must also send ERROR 8 to server...
+						goto ret;
 					}
+#if ENABLE_DEBUG_TFTP
+					fprintf(stderr, "using blksize %u\n",
+							blksize);
+#endif
+					tftp_bufsize = blksize + 4;
+					block_nr = 0; // TODO: explain why???
+					continue;
 				}
-				/* FIXME:
-				 * we should send ERROR 8 */
-				bb_error_msg("bad server option");
-				break;
+				/* rfc2347:
+				 * "An option not acknowledged by the server
+				 *  must be ignored by the client and server
+				 *  as if it were never requested." */
 			}
 
-			bb_error_msg("warning: blksize not supported by server"
-						 " - reverting to 512");
-
+			bb_error_msg("blksize is not supported by server"
+						" - reverting to 512");
 			tftp_bufsize = TFTP_BLOCKSIZE_DEFAULT + 4;
 		}
 #endif
+		/* block_nr is already advanced to next block# we expect
+		 * to get / block# we are about to send next time */
 
 		if (CMD_GET(cmd) && (opcode == TFTP_DATA)) {
-			if (tmp == block_nr) {
+			if (recv_blk == block_nr) {
 				len = full_write(localfd, &rbuf[4], len - 4);
-
 				if (len < 0) {
 					bb_perror_msg(bb_msg_write_error);
-					break;
+					goto ret;
 				}
-
 				if (len != (tftp_bufsize - 4)) {
-					finished++;
+					finished = 1;
 				}
-
-				opcode = TFTP_ACK;
-				continue;
+				continue; /* send ACK */
 			}
-			/* in case the last ack disappeared into the ether */
-			if (tmp == (block_nr - 1)) {
-				--block_nr;
-				opcode = TFTP_ACK;
-				continue;
-// tmp==(block_nr-1) and (tmp+1)==block_nr is always same, I think. wtf?
-			} else if (tmp + 1 == block_nr) {
+			if (recv_blk == (block_nr - 1)) {
 				/* Server lost our TFTP_ACK.  Resend it */
-				block_nr = tmp;
-				opcode = TFTP_ACK;
+				block_nr = recv_blk;
 				continue;
-			}
+			} 
 		}
 
 		if (CMD_PUT(cmd) && (opcode == TFTP_ACK)) {
-			if (tmp == (uint16_t) (block_nr - 1)) {
-				if (finished) {
-					break;
-				}
-
-				opcode = TFTP_DATA;
-				continue;
+			/* did server ACK our last DATA pkt? */
+			if (recv_blk == (uint16_t) (block_nr - 1)) {
+				if (finished)
+					goto ret;
+				continue; /* send next block */
 			}
 		}
+		/* Awww... recv'd packet is not recognized! */
+		goto recv_again;
+		/* why recv_again? - rfc1123 says:
+		 * "The sender (i.e., the side originating the DATA packets)
+		 *  must never resend the current DATA packet on receipt
+		 *  of a duplicate ACK".
+		 * DATA pkts are resent ONLY on timeout.
+		 * Thus "goto send_again" will ba a bad mistake above.
+		 * See:
+		 * http://en.wikipedia.org/wiki/Sorcerer's_Apprentice_Syndrome
+		 */
 	}
-
+ ret:
 	if (ENABLE_FEATURE_CLEAN_UP) {
 		close(socketfd);
 		free(xbuf);
 		free(rbuf);
 	}
-
-	return finished ? EXIT_SUCCESS : EXIT_FAILURE;
+	return finished == 0; /* returns 1 on failure */
 }
 
 int tftp_main(int argc, char **argv);
@@ -458,6 +407,7 @@ int tftp_main(int argc, char **argv)
 				"l:r:" USE_FEATURE_TFTP_BLOCKSIZE("b:"),
 			&localfile, &remotefile
 			USE_FEATURE_TFTP_BLOCKSIZE(, &sblocksize));
+	argv += optind;
 
 	flags = O_RDONLY;
 	if (CMD_GET(cmd))
@@ -472,25 +422,26 @@ int tftp_main(int argc, char **argv)
 	}
 #endif
 
-	if (localfile == NULL)
+	if (!localfile)
 		localfile = remotefile;
-	if (remotefile == NULL)
+	if (!remotefile)
 		remotefile = localfile;
-	if ((localfile == NULL && remotefile == NULL) || (argv[optind] == NULL))
+	/* Error if filename or host is not known */
+	if (!remotefile || !argv[0])
 		bb_show_usage();
 
-	if (localfile == NULL || LONE_DASH(localfile)) {
+	if (LONE_DASH(localfile)) {
 		fd = CMD_GET(cmd) ? STDOUT_FILENO : STDIN_FILENO;
 	} else {
-		fd = xopen3(localfile, flags, 0644);
+		fd = xopen(localfile, flags);
 	}
 
-	port = bb_lookup_port(argv[optind + 1], "udp", 69);
-	peer_lsa = xhost2sockaddr(argv[optind], port);
+	port = bb_lookup_port(argv[1], "udp", 69);
+	peer_lsa = xhost2sockaddr(argv[0], port);
 
 #if ENABLE_DEBUG_TFTP
 	fprintf(stderr, "using server \"%s\", "
-			"remotefile \"%s\", localfile \"%s\".\n",
+			"remotefile \"%s\", localfile \"%s\"\n",
 			xmalloc_sockaddr2dotted(&peer_lsa->sa, peer_lsa->len),
 			remotefile, localfile);
 #endif
@@ -501,11 +452,10 @@ int tftp_main(int argc, char **argv)
 #endif
 		peer_lsa, remotefile, fd, port, blocksize);
 
-	if (fd > 1) {
-		if (ENABLE_FEATURE_CLEAN_UP)
-			close(fd);
-		if (CMD_GET(cmd) && result != EXIT_SUCCESS)
-			unlink(localfile);
+	if (ENABLE_FEATURE_CLEAN_UP)
+		close(fd);
+	if (result != EXIT_SUCCESS && !LONE_DASH(localfile) && CMD_GET(cmd)) {
+		unlink(localfile);
 	}
 	return result;
 }
