@@ -244,8 +244,13 @@ config FEATURE_PREFER_APPLETS
 	help
 	  This is an experimental option which directs applets about to
 	  call 'exec' to try and find an applicable busybox applet before
-	  searching the PATH. This may affect shell, find -exec, xargs and
-	  similar programs.
+	  searching the PATH. This is typically done by exec'ing
+	  /proc/self/exe.
+	  This may affect shell, find -exec, xargs and similar applets.
+	  They will use applets even if /bin/<applet> -> busybox link
+	  is missing (or is not a link to busybox). However, this causes
+	  problems in chroot jails without mounted /proc and with ps/top
+	  (command name can be shown as 'exe' for applets started this way).
 
 config BUSYBOX_EXEC_PATH
 	string "Path to BusyBox executable"

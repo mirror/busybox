@@ -79,7 +79,8 @@ int tail_main(int argc, char **argv)
 	unsigned sleep_period = 1;
 	bool from_top;
 	int header_threshhold = 1;
-	const char *str_c, *str_n, *str_s;
+	const char *str_c, *str_n;
+	USE_FEATURE_FANCY_TAIL(const char *str_s;)
 
 	char *tailbuf;
 	size_t tailbufsize;
@@ -96,13 +97,18 @@ int tail_main(int argc, char **argv)
 	if (argc >= 2 && (argv[1][0] == '+' || argv[1][0] == '-')
 	 && isdigit(argv[1][1])
 	) {
-		argv[0] = (char*)"-n";
-		argv--;
-		argc++;
+		/* replacing arg[0] with "-n" can segfault, so... */
+		argv[1] = xasprintf("-n%s", argv[1]);
+#if 0 /* If we ever decide to make tail NOFORK */
+		char *s = alloca(strlen(argv[1]) + 3);
+		sprintf(s, "-n%s", argv[1]);
+		argv[1] = s;
+#endif
 	}
 #endif
 
-	opt = getopt32(argc, argv, "fc:n:" USE_FEATURE_FANCY_TAIL("qs:v"), &str_c, &str_n, &str_s);
+	opt = getopt32(argc, argv, "fc:n:" USE_FEATURE_FANCY_TAIL("qs:v"),
+			&str_c, &str_n USE_FEATURE_FANCY_TAIL(,&str_s));
 #define FOLLOW (opt & 0x1)
 #define COUNT_BYTES (opt & 0x2)
 	//if (opt & 0x1) // -f

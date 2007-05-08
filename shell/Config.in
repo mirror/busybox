@@ -242,7 +242,7 @@ config FEATURE_SH_STANDALONE
 	default n
 	depends on (MSH || LASH || HUSH || ASH) && FEATURE_PREFER_APPLETS
 	help
-	  This option causes the selected busybox shell to use busybox applets
+	  This option causes busybox shells to use busybox applets
 	  in preference to executables in the PATH whenever possible.  For
 	  example, entering the command 'ifconfig' into the shell would cause
 	  busybox to use the ifconfig busybox applet.  Specifying the fully
@@ -251,14 +251,23 @@ config FEATURE_SH_STANDALONE
 	  is generally used when creating a statically linked version of busybox
 	  for use as a rescue shell, in the event that you screw up your system.
 
-	  Note that this will *also* cause applets to take precedence
-	  over shell builtins of the same name.  So turning this on will
-	  eliminate any performance gained by turning on the builtin "echo"
-	  and "test" commands in ash.
+	  This is implemented by re-execing /proc/self/exe (typically)
+	  with right parameters. Some selected applets ("NOFORK" applets)
+	  can even be executed without creating new process.
+	  Instead, busybox will call <applet>_main() internally.
 
-	  Note that when using this option, the shell will attempt to directly
-	  run '/bin/busybox'.  If you do not have the busybox binary sitting in
-	  that exact location with that exact name, this option will not work at
-	  all.
+	  However, this causes problems in chroot jails without mounted /proc
+	  and with ps/top (command name can be shown as 'exe' for applets
+	  started this way).
+# untrue?
+#	  Note that this will *also* cause applets to take precedence
+#	  over shell builtins of the same name.  So turning this on will
+#	  eliminate any performance gained by turning on the builtin "echo"
+#	  and "test" commands in ash.
+# untrue?
+#	  Note that when using this option, the shell will attempt to directly
+#	  run '/bin/busybox'.  If you do not have the busybox binary sitting in
+#	  that exact location with that exact name, this option will not work at
+#	  all.
 
 endmenu
