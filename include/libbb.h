@@ -718,6 +718,7 @@ extern int bb_parse_mode(const char* s, mode_t* theMode);
 
 char *concat_path_file(const char *path, const char *filename);
 char *concat_subpath_file(const char *path, const char *filename);
+/* NB: can violate const-ness (similarly to strchr) */
 char *last_char_is(const char *s, int c);
 
 
@@ -755,6 +756,7 @@ extern int index_in_substr_array(const char * const string_array[], const char *
 extern void print_login_issue(const char *issue_file, const char *tty);
 extern void print_login_prompt(void);
 
+extern void crypt_make_salt(char *p, int cnt);
 
 int get_terminal_width_height(const int fd, int *width, int *height);
 

@@ -166,6 +166,12 @@ config FEATURE_PASSWD_WEAK_CHECK
 	help
 	  With this option passwd will refuse new passwords which are "weak".
 
+config CRYPTPW
+	bool "cryptpw"
+	default n
+	help
+	  Applet for crypting a string.
+
 config SU
 	bool "su"
 	default n

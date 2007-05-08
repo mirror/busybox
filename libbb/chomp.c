@@ -15,5 +15,5 @@ void chomp(char *s)
 	char *lc = last_char_is(s, '\n');
 
 	if (lc)
-		*lc = 0;
+		*lc = '\0';
 }

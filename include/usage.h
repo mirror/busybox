@@ -474,6 +474,13 @@
        "	-d [user]    delete crontab for user\n" \
        "	-c dir       specify crontab directory"
 
+#define cryptpw_trivial_usage \
+       "[-a des|md5] [string]"
+#define cryptpw_full_usage \
+       "Outputs crypted string.\n" \
+       "If string isn't supplied on cmdline, reads it from stdin.\n" \
+       "\nOptions:" \
+       "\n	-a	Algorithm to use (default: md5)"
 
 #define cut_trivial_usage \
        "[OPTION]... [FILE]..."
