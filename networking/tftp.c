@@ -37,15 +37,15 @@
 #define TFTP_OACK  6
 
 #if ENABLE_FEATURE_TFTP_GET && !ENABLE_FEATURE_TFTP_PUT
-#define USE_GETPUT(a)
+#define USE_GETPUT(...)
 #define CMD_GET(cmd) 1
 #define CMD_PUT(cmd) 0
 #elif !ENABLE_FEATURE_TFTP_GET && ENABLE_FEATURE_TFTP_PUT
-#define USE_GETPUT(a)
+#define USE_GETPUT(...)
 #define CMD_GET(cmd) 0
 #define CMD_PUT(cmd) 1
 #else
-#define USE_GETPUT(a) a
+#define USE_GETPUT(...) __VA_ARGS__
 /* masks coming from getpot32 */
 #define CMD_GET(cmd) ((cmd) & 1)
 #define CMD_PUT(cmd) ((cmd) & 2)
@@ -109,10 +109,7 @@ static char *tftp_option_get(char *buf, int len, const char *option)
 
 #endif
 
-static int tftp(
-#if ENABLE_FEATURE_TFTP_GET && ENABLE_FEATURE_TFTP_PUT
-		const int cmd,
-#endif
+static int tftp( USE_GETPUT(const int cmd,)
 		len_and_sockaddr *peer_lsa,
 		const char *remotefile, const int localfd,
 		unsigned port, int tftp_bufsize)
@@ -181,6 +178,9 @@ static int tftp(
 	/* First packet is built, so skip packet generation */
 	goto send_pkt;
 
+	/* Using mostly goto's - continue/break will be less clear
+	 * in where we actually jump to */
+
 	while (1) {
 		/* Build ACK or DATA */
 		cp = xbuf + 2;
@@ -203,67 +203,64 @@ static int tftp(
  send_pkt:
 		/* Send packet */
 		*((uint16_t*)xbuf) = htons(opcode); /* fill in opcode part */
-		timeout = TFTP_NUM_RETRIES;	/* re-initialize */
-		while (1) {
-			send_len = cp - xbuf;
-			/* nb: need to preserve send_len value in code below
-			 * for potential resend! */
+		send_len = cp - xbuf;
+		/* NB: send_len value is preserved in code below
+		 * for potential resend */
  send_again:
 #if ENABLE_DEBUG_TFTP
-			fprintf(stderr, "sending %u bytes\n", send_len);
-			for (cp = xbuf; cp < &xbuf[send_len]; cp++)
-				fprintf(stderr, "%02x ", (unsigned char) *cp);
-			fprintf(stderr, "\n");
+		fprintf(stderr, "sending %u bytes\n", send_len);
+		for (cp = xbuf; cp < &xbuf[send_len]; cp++)
+			fprintf(stderr, "%02x ", (unsigned char) *cp);
+		fprintf(stderr, "\n");
 #endif
-			xsendto(socketfd, xbuf, send_len, &peer_lsa->sa, peer_lsa->len);
-			/* Was it final ACK? then exit */
-			if (finished && (opcode == TFTP_ACK))
-				goto ret;
+		xsendto(socketfd, xbuf, send_len, &peer_lsa->sa, peer_lsa->len);
+		/* Was it final ACK? then exit */
+		if (finished && (opcode == TFTP_ACK))
+			goto ret;
 
-			/* Receive packet */
+		timeout = TFTP_NUM_RETRIES;	/* re-initialize */
  recv_again:
-			tv.tv_sec = TFTP_TIMEOUT;
-			tv.tv_usec = 0;
-			FD_ZERO(&rfds);
-			FD_SET(socketfd, &rfds);
-			switch (select(socketfd + 1, &rfds, NULL, NULL, &tv)) {
-				unsigned from_port;
-			case 1:
-				from->len = peer_lsa->len;
-				memset(&from->sa, 0, peer_lsa->len);
-				len = recvfrom(socketfd, rbuf, tftp_bufsize, 0,
-							&from->sa, &from->len);
-				if (len < 0) {
-					bb_perror_msg("recvfrom");
-					goto ret;
-				}
-				from_port = get_nport(&from->sa);
-				if (port == org_port) {
-					/* Our first query went to port 69
-					 * but reply will come from different one.
-					 * Remember and use this new port */
-					port = from_port;
-					set_nport(peer_lsa, from_port);
-				}
-				if (port != from_port)
-					goto recv_again;
-				goto recvd_good;
-			case 0:
-				timeout--;
-				if (timeout == 0) {
-					bb_error_msg("last timeout");
-					goto ret;
-				}
-				bb_error_msg("last timeout" + 5);
-				goto send_again; /* resend last sent pkt */
-			default:
-				bb_perror_msg("select");
+		/* Receive packet */
+		tv.tv_sec = TFTP_TIMEOUT;
+		tv.tv_usec = 0;
+		FD_ZERO(&rfds);
+		FD_SET(socketfd, &rfds);
+		switch (select(socketfd + 1, &rfds, NULL, NULL, &tv)) {
+			unsigned from_port;
+		case 1:
+			from->len = peer_lsa->len;
+			memset(&from->sa, 0, peer_lsa->len);
+			len = recvfrom(socketfd, rbuf, tftp_bufsize, 0,
+						&from->sa, &from->len);
+			if (len < 0) {
+				bb_perror_msg("recvfrom");
 				goto ret;
 			}
-		} /* while we don't see recv packet with correct port# */
-
+			from_port = get_nport(&from->sa);
+			if (port == org_port) {
+				/* Our first query went to port 69
+				 * but reply will come from different one.
+				 * Remember and use this new port */
+				port = from_port;
+				set_nport(peer_lsa, from_port);
+			}
+			if (port != from_port)
+				goto recv_again;
+			goto process_pkt;
+		case 0:
+			timeout--;
+			if (timeout == 0) {
+				bb_error_msg("last timeout");
+				goto ret;
+			}
+			bb_error_msg("last timeout" + 5);
+			goto send_again; /* resend last sent pkt */
+		default:
+			bb_perror_msg("select");
+			goto ret;
+		}
+ process_pkt:
 		/* Process recv'ed packet */
- recvd_good:
 		opcode = ntohs( ((uint16_t*)rbuf)[0] );
 		recv_blk = ntohs( ((uint16_t*)rbuf)[1] );
 
@@ -281,9 +278,9 @@ static int tftp(
 				"unknown transfer id",
 				"file already exists",
 				"no such user",
+				"bad option",
 			};
 			enum { NUM_ERRCODE = sizeof(errcode_str) / sizeof(errcode_str[0]) };
-
 			const char *msg = "";
 
 			if (rbuf[4] != '\0') {
@@ -308,8 +305,13 @@ static int tftp(
 				if (res) {
 					int blksize = xatoi_u(res);
 					if (!tftp_blocksize_check(blksize, tftp_bufsize - 4)) {
+						/* send ERROR 8 to server... */
+						/* htons can be impossible to use in const initializer: */
+						/*static const uint16_t error_8[2] = { htons(TFTP_ERROR), htons(8) };*/
+						/* thus we open-code big-endian layout */
+						static const char error_8[4] = { 0,TFTP_ERROR, 0,8 };
+						xsendto(socketfd, error_8, 4, &peer_lsa->sa, peer_lsa->len);
 						bb_error_msg("server proposes bad blksize %d, exiting", blksize);
-						// FIXME: must also send ERROR 8 to server...
 						goto ret;
 					}
 #if ENABLE_DEBUG_TFTP
@@ -317,7 +319,8 @@ static int tftp(
 							blksize);
 #endif
 					tftp_bufsize = blksize + 4;
-					block_nr = 0; // TODO: explain why???
+					/* Send ACK for OACK ("block" no: 0) */
+					block_nr = 0;
 					continue;
 				}
 				/* rfc2347:
@@ -430,9 +433,8 @@ int tftp_main(int argc, char **argv)
 	if (!remotefile || !argv[0])
 		bb_show_usage();
 
-	if (LONE_DASH(localfile)) {
-		fd = CMD_GET(cmd) ? STDOUT_FILENO : STDIN_FILENO;
-	} else {
+	fd = CMD_GET(cmd) ? STDOUT_FILENO : STDIN_FILENO;
+	if (!LONE_DASH(localfile)) {
 		fd = xopen(localfile, flags);
 	}
 
@@ -440,17 +442,12 @@ int tftp_main(int argc, char **argv)
 	peer_lsa = xhost2sockaddr(argv[0], port);
 
 #if ENABLE_DEBUG_TFTP
-	fprintf(stderr, "using server \"%s\", "
-			"remotefile \"%s\", localfile \"%s\"\n",
+	fprintf(stderr, "using server '%s', remotefile '%s', localfile '%s'\n",
 			xmalloc_sockaddr2dotted(&peer_lsa->sa, peer_lsa->len),
 			remotefile, localfile);
 #endif
 
-	result = tftp(
-#if ENABLE_FEATURE_TFTP_GET && ENABLE_FEATURE_TFTP_PUT
-		cmd,
-#endif
-		peer_lsa, remotefile, fd, port, blocksize);
+	result = tftp( USE_GETPUT(cmd,) peer_lsa, remotefile, fd, port, blocksize);
 
 	if (ENABLE_FEATURE_CLEAN_UP)
 		close(fd);
