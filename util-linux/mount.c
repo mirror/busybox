@@ -886,8 +886,7 @@ static int nfsmount(struct mntent *mp, int vfsflags, char *filteropts)
 	nfsvers = 0;
 
 	/* parse options */
-
-	for (opt = strtok(filteropts, ","); opt; opt = strtok(NULL, ",")) {
+	if (filteropts)	for (opt = strtok(filteropts, ","); opt; opt = strtok(NULL, ",")) {
 		char *opteq = strchr(opt, '=');
 		if (opteq) {
 			static const char *const options[] = {
