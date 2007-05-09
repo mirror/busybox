@@ -2546,7 +2546,7 @@ static int execute(struct op *t, int *pin, int *pout, int act)
 				interactive = 0;
 				if (pin == NULL) {
 					close(0);
-					open(bb_dev_null, O_RDONLY);
+					xopen(bb_dev_null, O_RDONLY);
 				}
 				_exit(execute(t->left, pin, pout, FEXEC));
 			}
@@ -2823,12 +2823,12 @@ static int forkexec(struct op *t, int *pin, int *pout, int act, char **wp)
 #endif
 
 	if (pin != NULL) {
-		dup2(pin[0], 0);
-		closepipe(pin);
+		xmove_fd(pin[0], 0);
+		if (pin[1] != 0) close(pin[1]);
 	}
 	if (pout != NULL) {
-		dup2(pout[1], 1);
-		closepipe(pout);
+		xmove_fd(pout[1], 1);
+		if (pout[1] != 1) close(pout[0]);
 	}
 
 	iopp = t->ioact;
@@ -4166,8 +4166,13 @@ static int grave(int quoted)
 		if (ourtrap[j] && signal(j, SIG_IGN) != SIG_IGN)
 			signal(j, SIG_DFL);
 
-	dup2(pf[1], 1);
-	closepipe(pf);
+	/* Testcase where below checks are needed:
+	 * close stdout & run this script:
+	 *  files=`ls`
+	 *  echo "$files" >zz
+	 */
+	xmove_fd(pf[1], 1);
+	if (pf[0] != 1) close(pf[0]);
 
 	argument_list[0] = (char *) DEFAULT_SHELL;
 	argument_list[1] = (char *) "-c";
