@@ -1756,8 +1756,11 @@ static char *awk_printf(node *n)
 		s = f;
 		while (*f && (*f != '%' || *(++f) == '%'))
 			f++;
-		while (*f && !isalpha(*f))
+		while (*f && !isalpha(*f)) {
+			if (*f == '*')
+				syntax_error("%*x formats are not supported");
 			f++;
+		}
 
 		incr = (f - s) + MAXVARFMT;
 		qrealloc(&b, incr + i, &bsize);
