@@ -788,19 +788,25 @@ static void normalize_match_pos(int match)
 
 static void goto_match(int match)
 {
+	int sv;
+
 	if (!pattern_valid)
 		return;
 	if (match < 0)
 		match = 0;
+	sv = cur_fline;
 	/* Try to find next match if eof isn't reached yet */
 	if (match >= num_matches && eof_error > 0) {
 		cur_fline = MAXLINES; /* look as far as needed */
 		read_lines();
-		cap_cur_fline(cur_fline);
 	}
 	if (num_matches) {
+		cap_cur_fline(cur_fline);
 		normalize_match_pos(match);
 		buffer_line(match_lines[match_pos]);
+	} else {
+		cur_fline = sv;
+		print_statusline("No matches found");
 	}
 }
 
