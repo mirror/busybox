@@ -317,8 +317,10 @@ typedef struct {
 /* I can almost use ordinary FILE *.  Is open_memstream() universally
  * available?  Where is it documented? */
 struct in_str {
-	const char *p;
-	char peek_buf[2];
+	union {
+		const char *p;
+		int cached_ch;
+	};
 #if ENABLE_HUSH_INTERACTIVE
 	int __promptme;
 	int promptmode;
@@ -1112,8 +1114,10 @@ static int file_get(struct in_str *i)
 
 	ch = 0;
 	/* If there is data waiting, eat it up */
-	if (i->p && *i->p) {
-		ch = *i->p++;
+	if (i->cached_ch) {
+		ch = i->cached_ch ^ 0x100;
+		if (ch != EOF)
+			i->cached_ch = 0;
 	} else {
 		/* need to double check i->file because we might be doing something
 		 * more complicated by now, like sourcing or substituting. */
@@ -1133,7 +1137,7 @@ static int file_get(struct in_str *i)
 		{
 			ch = fgetc(i->file);
 		}
-		debug_printf("b_getch: got a %d\n", ch);
+		debug_printf("file_get: got a %d\n", ch);
 	}
 #if ENABLE_HUSH_INTERACTIVE
 	if (ch == '\n')
@@ -1147,14 +1151,14 @@ static int file_get(struct in_str *i)
  */
 static int file_peek(struct in_str *i)
 {
-	if (i->p && *i->p) {
-		return *i->p;
+	int ch;
+	if (i->cached_ch) {
+		return i->cached_ch ^ 0x100;
 	}
-	i->peek_buf[0] = fgetc(i->file);
-	i->peek_buf[1] = '\0';
-	i->p = i->peek_buf;
-	debug_printf("b_peek: got a %d\n", *i->p);
-	return *i->p;
+	ch = fgetc(i->file);
+	i->cached_ch = ch ^ 0x100; /* ^ 0x100 so that it is never 0 */
+	debug_printf("file_peek: got a %d '%c'\n", ch, ch);
+	return ch;
 }
 
 static void setup_file_in_str(struct in_str *i, FILE *f)
@@ -1670,10 +1674,10 @@ static int run_pipe_real(struct pipe *pi)
 				int export_me = 0;
 				char *name, *value;
 				name = xstrdup(argv[i]);
-				debug_printf("Local environment set: %s\n", name);
+				debug_printf("local environment set: %s\n", name);
 				value = strchr(name, '=');
 				if (value)
-					*value = 0;
+					*value = '\0';
 				if (get_local_var(name)) {
 					export_me = 1;
 				}
@@ -2364,9 +2368,10 @@ static const char *get_local_var(const char *s)
 
 	if (!s)
 		return NULL;
-	for (cur = top_vars; cur; cur = cur->next)
+	for (cur = top_vars; cur; cur = cur->next) {
 		if (strcmp(cur->name, s) == 0)
 			return cur->value;
+	}
 	return NULL;
 }
 
@@ -2380,7 +2385,7 @@ static int set_local_var(const char *s, int flg_export)
 	int result = 0;
 	struct variables *cur;
 
-	name = strdup(s);
+	name = xstrdup(s);
 
 	/* Assume when we enter this function that we are already in
 	 * NAME=VALUE format.  So the first order of business is to
@@ -2394,48 +2399,46 @@ static int set_local_var(const char *s, int flg_export)
 	*value++ = '\0';
 
 	for (cur = top_vars; cur; cur = cur->next) {
-		if (strcmp(cur->name, name) == 0)
-			break;
-	}
-
-	if (cur) {
-		if (strcmp(cur->value, value) == 0) {
-			if (flg_export > 0 && cur->flg_export == 0)
-				cur->flg_export = flg_export;
-			else
-				result++;
-		} else if (cur->flg_read_only) {
-			bb_error_msg("%s: readonly variable", name);
-			result = -1;
-		} else {
-			if (flg_export > 0 || cur->flg_export > 1)
-				cur->flg_export = 1;
-			free((char*)cur->value);
-
-			cur->value = strdup(value);
-		}
-	} else {
-		cur = malloc(sizeof(struct variables));
-		if (!cur) {
-			result = -1;
-		} else {
-			cur->name = strdup(name);
-			if (!cur->name) {
-				free(cur);
+		if (strcmp(cur->name, name) == 0) {
+			if (strcmp(cur->value, value) == 0) {
+				if (flg_export > 0 && cur->flg_export == 0)
+					cur->flg_export = flg_export;
+				else
+					result++;
+			} else if (cur->flg_read_only) {
+				bb_error_msg("%s: readonly variable", name);
 				result = -1;
 			} else {
-				struct variables *bottom = top_vars;
+				if (flg_export > 0 || cur->flg_export > 1)
+					cur->flg_export = 1;
+				free((char*)cur->value);
 				cur->value = strdup(value);
-				cur->next = 0;
-				cur->flg_export = flg_export;
-				cur->flg_read_only = 0;
-				while (bottom->next)
-					bottom = bottom->next;
-				bottom->next = cur;
 			}
 		}
+		goto skip;
 	}
 
+// TODO: need simpler/generic rollback on malloc failure - see ash
+	cur = malloc(sizeof(*cur));
+	if (!cur) {
+		result = -1;
+	} else {
+		cur->name = strdup(name);
+		if (!cur->name) {
+			free(cur);
+			result = -1;
+		} else {
+			struct variables *bottom = top_vars;
+			cur->value = strdup(value);
+			cur->next = 0;
+			cur->flg_export = flg_export;
+			cur->flg_read_only = 0;
+			while (bottom->next)
+				bottom = bottom->next;
+			bottom->next = cur;
+		}
+	}
+ skip:
 	if (result == 0 && cur->flg_export == 1) {
 		*(value-1) = '=';
 		result = putenv(name);
@@ -2975,11 +2978,16 @@ static int handle_dollar(o_string *dest, struct p_context *ctx, struct in_str *i
 	int i, advance = 0;
 	char sep[] = " ";
 	int ch = input->peek(input);  /* first character after the $ */
-	debug_printf("handle_dollar: ch=%c\n", ch);
+
+	debug_printf_parse("handle_dollar entered: ch='%c'\n", ch);
 	if (isalpha(ch)) {
 		b_addchr(dest, SPECIAL_VAR_SYMBOL);
 		ctx->child->sp++;
-		while (ch = b_peek(input), isalnum(ch) || ch == '_') {
+		while (1) {
+			ch = b_peek(input);
+			if (!isalnum(ch) && ch != '_')
+				break;
+			debug_printf_parse(": '%c'\n", ch);
 			b_getch(input);
 			b_addchr(dest, ch);
 		}
@@ -3014,13 +3022,15 @@ static int handle_dollar(o_string *dest, struct p_context *ctx, struct in_str *i
 			/* XXX maybe someone will try to escape the '}' */
 			while (1) {
 				ch = b_getch(input);
-				if (ch == EOF || ch == '}')
+				if (ch == EOF) {
+					syntax();
+					debug_printf_parse("handle_dollar return 1: unterminated ${name}\n");
+					return 1;
+				}
+				if (ch == '}')
 					break;
+				debug_printf_parse(": '%c'\n", ch);
 				b_addchr(dest, ch);
-			}
-			if (ch != '}') {
-				syntax();
-				return 1;
 			}
 			b_addchr(dest, SPECIAL_VAR_SYMBOL);
 			break;
@@ -3052,6 +3062,7 @@ static int handle_dollar(o_string *dest, struct p_context *ctx, struct in_str *i
 	 * a nice size-optimized program.  Hah!  That'll be the day.
 	 */
 	if (advance) b_getch(input);
+	debug_printf_parse("handle_dollar return 0\n");
 	return 0;
 }
 
@@ -3079,7 +3090,7 @@ static int parse_stream(o_string *dest, struct p_context *ctx,
 
 	while ((ch = b_getch(input)) != EOF) {
 		m = map[ch];
-		next = (ch == '\n') ? 0 : b_peek(input);
+		next = (ch == '\n') ? '\0' : b_peek(input);
 		debug_printf_parse(": ch=%c (%d) m=%d quote=%d\n",
 						ch, ch, m, dest->quote);
 		if (m == MAP_ORDINARY
