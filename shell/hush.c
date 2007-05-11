@@ -317,10 +317,10 @@ typedef struct {
 /* I can almost use ordinary FILE *.  Is open_memstream() universally
  * available?  Where is it documented? */
 struct in_str {
-	union {
-		const char *p;
-		int cached_ch;
-	};
+	const char *p;
+	/* eof_flag=1: last char in ->p is really an EOF */
+	char eof_flag; /* meaningless if ->p == NULL */
+	char peek_buf[2];
 #if ENABLE_HUSH_INTERACTIVE
 	int __promptme;
 	int promptmode;
@@ -976,7 +976,7 @@ static int b_check_space(o_string *o, int len)
 
 static int b_addchr(o_string *o, int ch)
 {
-	debug_printf("b_addchr: %c %d %p\n", ch, o->length, o);
+	debug_printf("b_addchr: '%c' o->lengtt=%d o=%p\n", ch, o->length, o);
 	if (b_check_space(o, 1))
 		return B_NOSPAC;
 	o->data[o->length] = ch;
@@ -1079,12 +1079,13 @@ static const char* setup_prompt_string(int promptmode)
 static line_input_t *line_input_state;
 #endif
 
-static int get_user_input(struct in_str *i)
+static void get_user_input(struct in_str *i)
 {
 	static char the_command[ENABLE_FEATURE_EDITING ? BUFSIZ : 2];
 
 	int r;
 	const char *prompt_str;
+
 	prompt_str = setup_prompt_string(i->promptmode);
 #if ENABLE_FEATURE_EDITING
 	/*
@@ -1094,15 +1095,19 @@ static int get_user_input(struct in_str *i)
 	 ** child processes (rob@sysgo.de)
 	 */
 	r = read_line_input(prompt_str, the_command, BUFSIZ-1, line_input_state);
+	i->eof_flag = (r < 0);
+	if (i->eof_flag) { /* EOF/error detected */
+		the_command[0] = EOF; /* yes, it will be truncated, it's ok */
+		the_command[1] = '\0';
+	}
 #else
 	fputs(prompt_str, stdout);
 	fflush(stdout);
 	the_command[0] = r = fgetc(i->file);
 	/*the_command[1] = '\0'; - already is and never changed */
+	i->eof_flag = (r == EOF);
 #endif
-	fflush(stdout);
 	i->p = the_command;
-	return r; /* < 0 == EOF. Not meaningful otherwise */
 }
 #endif  /* INTERACTIVE */
 
@@ -1112,33 +1117,30 @@ static int file_get(struct in_str *i)
 {
 	int ch;
 
-	ch = 0;
 	/* If there is data waiting, eat it up */
-	if (i->cached_ch) {
-		ch = i->cached_ch ^ 0x100;
-		if (ch != EOF)
-			i->cached_ch = 0;
+	if (i->p && *i->p) {
+ take_cached:
+		ch = *i->p++;
+		if (i->eof_flag && !*i->p)
+			ch = EOF;
 	} else {
 		/* need to double check i->file because we might be doing something
 		 * more complicated by now, like sourcing or substituting. */
 #if ENABLE_HUSH_INTERACTIVE
 		if (interactive_fd && i->__promptme && i->file == stdin) {
-			while (!i->p || !(interactive_fd && i->p[0])) {
-				if (get_user_input(i) < 0)
-					return EOF;
-			}
+			do {
+				get_user_input(i);
+			} while (!*i->p); /* need non-empty line */
 			i->promptmode = 2;
 			i->__promptme = 0;
-			if (i->p && *i->p) {
-				ch = *i->p++;
-			}
+			goto take_cached;
 		} else
 #endif
 		{
 			ch = fgetc(i->file);
 		}
-		debug_printf("file_get: got a %d\n", ch);
 	}
+	debug_printf("file_get: got a '%c' %d\n", ch, ch);
 #if ENABLE_HUSH_INTERACTIVE
 	if (ch == '\n')
 		i->__promptme = 1;
@@ -1152,12 +1154,17 @@ static int file_get(struct in_str *i)
 static int file_peek(struct in_str *i)
 {
 	int ch;
-	if (i->cached_ch) {
-		return i->cached_ch ^ 0x100;
+	if (i->p && *i->p) {
+		if (i->eof_flag && !i->p[1])
+			return EOF;
+		return *i->p;
 	}
 	ch = fgetc(i->file);
-	i->cached_ch = ch ^ 0x100; /* ^ 0x100 so that it is never 0 */
-	debug_printf("file_peek: got a %d '%c'\n", ch, ch);
+	i->eof_flag = (ch == EOF);
+	i->peek_buf[0] = ch;
+	i->peek_buf[1] = '\0';
+	i->p = i->peek_buf;
+	debug_printf("file_peek: got a '%c' %d\n", *i->p, *i->p);
 	return ch;
 }
 
@@ -1182,6 +1189,7 @@ static void setup_string_in_str(struct in_str *i, const char *s)
 	i->promptmode = 1;
 #endif
 	i->p = s;
+	i->eof_flag = 0;
 }
 
 static void mark_open(int fd)
@@ -2846,11 +2854,12 @@ static FILE *generate_stream_from_list(struct pipe *head)
 static int process_command_subs(o_string *dest, struct p_context *ctx,
 	struct in_str *input, const char *subst_end)
 {
-	int retcode;
+	int retcode, ch, eol_cnt;
 	o_string result = NULL_O_STRING;
 	struct p_context inner;
 	FILE *p;
 	struct in_str pipe_str;
+
 	initialize_context(&inner);
 
 	/* recursion to generate command */
@@ -2863,25 +2872,20 @@ static int process_command_subs(o_string *dest, struct p_context *ctx,
 	p = generate_stream_from_list(inner.list_head);
 	if (p == NULL) return 1;
 	mark_open(fileno(p));
-// FIXME: need to flag pipe_str to somehow discard all trailing newlines.
-// Example: echo "TEST`date;echo;echo`BEST"
-//          must produce one line: TEST<date>BEST
 	setup_file_in_str(&pipe_str, p);
 
 	/* now send results of command back into original context */
-// FIXME: must not do quote parsing of the output!
-// Example: echo "TEST`echo '$(echo ZZ)'`BEST"
-//          must produce TEST$(echo ZZ)BEST, not TESTZZBEST.
-// Example: echo "TEST`echo "'"`BEST"
-//          must produce TEST'BEST
-// (maybe by setting all chars flagged as literals in map[]?)
-
-	retcode = parse_stream(dest, ctx, &pipe_str, NULL);
-	/* XXX In case of a syntax error, should we try to kill the child?
-	 * That would be tough to do right, so just read until EOF. */
-	if (retcode == 1) {
-		while (b_getch(&pipe_str) != EOF)
-			/* discard */;
+	eol_cnt = 0;
+	while ((ch = b_getch(&pipe_str)) != EOF) {
+		if (ch == '\n') {
+			eol_cnt++;
+			continue;
+		}
+		while (eol_cnt) {
+			b_addqchr(dest, '\n', dest->quote);
+			eol_cnt--;
+		}
+		b_addqchr(dest, ch, dest->quote);
 	}
 
 	debug_printf("done reading from pipe, pclose()ing\n");
