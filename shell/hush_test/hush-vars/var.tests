@@ -1,0 +1,10 @@
+URL=http://busybox.net
+
+echo $URL
+echo ${URL}_abc
+
+true
+false; echo $?
+true
+# BUG: prints 0, must be 1
+{ false; echo $?; }

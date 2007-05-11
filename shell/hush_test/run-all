@@ -1,0 +1,59 @@
+#!/bin/sh
+
+test -x hush || { echo "No ./hush?!"; exit; }
+
+PATH="$PWD:$PATH" # for hush and recho/zecho/printenv
+export PATH
+
+THIS_SH="$PWD/hush"
+export THIS_SH
+
+do_test()
+{
+    test -d "$1" || return 0
+    (
+    cd "$1" || { echo "cannot cd $1!"; exit 1; }
+    for x in run-*; do
+	test -f "$x" || continue
+	case "$x" in
+	    "$0"|run-minimal|run-gprof) ;;
+	    *.orig|*~) ;;
+	    #*) echo $x ; sh $x ;;
+	    *)
+	    sh "$x" >"../$1-$x.fail" 2>&1 && \
+	    { echo "$1/$x: ok"; rm "../$1-$x.fail"; } || echo "$1/$x: fail";
+	    ;;
+	esac
+    done
+    # Many bash run-XXX scripts just do this,
+    # no point in duplication it all over the place
+    for x in *.tests; do
+	test -x "$x" || continue
+	name="${x%%.tests}"
+	test -f "$name.right" || continue
+	{
+	    "$THIS_SH" "./$x" >"$name.xx" 2>&1
+	    diff -u "$name.xx" "$name.right" >"../$1-$x.fail" && rm -f "$name.xx" "../$1-$x.fail"
+	} && echo "$1/$x: ok" || echo "$1/$x: fail"
+    done
+    )
+}
+
+# Main part of this script
+# Usage: run-all [directories]
+
+if [ $# -lt 1 ]; then
+    # All sub directories
+    modules=`ls -d hush-*`
+
+    for module in $modules; do
+	do_test $module
+    done
+else
+    while [ $# -ge 1 ]; do
+	if [ -d $1 ]; then
+	    do_test $1
+	fi
+	shift
+    done
+fi
