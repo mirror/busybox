@@ -371,7 +371,7 @@ static int b_check_space(o_string *o, int len);
 static int b_addchr(o_string *o, int ch);
 static void b_reset(o_string *o);
 static int b_addqchr(o_string *o, int ch, int quote);
-static int b_adduint(o_string *o, unsigned i);
+//static int b_adduint(o_string *o, unsigned i);
 /*  in_str manipulations: */
 static int static_get(struct in_str *i);
 static int static_peek(struct in_str *i);
@@ -413,7 +413,7 @@ static int parse_group(o_string *dest, struct p_context *ctx, struct in_str *inp
 static const char *lookup_param(const char *src);
 static char *make_string(char **inp);
 static int handle_dollar(o_string *dest, struct p_context *ctx, struct in_str *input);
-static int parse_string(o_string *dest, struct p_context *ctx, const char *src);
+//static int parse_string(o_string *dest, struct p_context *ctx, const char *src);
 static int parse_stream(o_string *dest, struct p_context *ctx, struct in_str *input0, const char *end_trigger);
 /*   setup: */
 static int parse_stream_outer(struct in_str *inp, int parse_flag);
@@ -1015,17 +1015,17 @@ static int b_addqchr(o_string *o, int ch, int quote)
 	return b_addchr(o, ch);
 }
 
-static int b_adduint(o_string *o, unsigned i)
-{
-	int r;
-	char buf[sizeof(unsigned)*3 + 1];
-	char *p = buf;
-	*(utoa_to_buf(i, buf, sizeof(buf))) = '\0';
-	/* no escape checking necessary */
-	do r = b_addchr(o, *p++); while (r == 0 && *p);
-	return r;
-}
-
+//static int b_adduint(o_string *o, unsigned i)
+//{
+//	int r;
+//	char buf[sizeof(unsigned)*3 + 1];
+//	char *p = buf;
+//	*(utoa_to_buf(i, buf, sizeof(buf))) = '\0';
+//	/* no escape checking necessary */
+//	do r = b_addchr(o, *p++); while (r == 0 && *p);
+//	return r;
+//}
+//
 static int static_get(struct in_str *i)
 {
 	int ch = *i->p++;
@@ -1288,9 +1288,7 @@ static void pseudo_exec_argv(char **argv)
 				getpid(), argv[i]);
 // FIXME: vfork case??
 		p = insert_var_value(argv[i]);
-		putenv(strdup(p));
-		if (p != argv[i])
-			free(p);
+		putenv(p == argv[i] ? xstrdup(p) : p);
 	}
 	argv += i;
 	/* If a variable is assigned in a forest, and nobody listens,
@@ -1699,10 +1697,11 @@ static int run_pipe_real(struct pipe *pi)
 		}
 		for (i = 0; is_assignment(argv[i]); i++) {
 			p = insert_var_value(argv[i]);
-			putenv(strdup(p));
 			if (p != argv[i]) {
 				child->sp--;
-				free(p);
+				putenv(p);
+			} else {
+				putenv(xstrdup(p));
 			}
 		}
 		if (child->sp) {
@@ -2292,39 +2291,42 @@ static int xglob(o_string *dest, int flags, glob_t *pglob)
 static char **make_list_in(char **inp, char *name)
 {
 	int len, i;
+#if 0
 	int name_len = strlen(name);
-	int n = 0;
+#endif
+	int n;
 	char **list;
 	char *p1, *p2, *p3;
 
 	/* create list of variable values */
 	list = xmalloc(sizeof(*list));
+	n = 0;
 	for (i = 0; inp[i]; i++) {
 		p3 = insert_var_value(inp[i]);
 		p1 = p3;
 		while (*p1) {
-			if ((*p1 == ' ')) {
+			if (*p1 == ' ') {
 				p1++;
 				continue;
 			}
-			p2 = strchr(p1, ' ');
-			if (p2) {
-				len = p2 - p1;
-			} else {
-				len = strlen(p1);
-				p2 = p1 + len;
-			}
+			p2 = strchrnul(p1, ' ');
+			len = p2 - p1;
 			/* we use n + 2 in realloc for list, because we add
 			 * new element and then we will add NULL element */
 			list = xrealloc(list, sizeof(*list) * (n + 2));
+			list[n] = xasprintf("%s=%.*s", name, len, p1);
+#if 0 /* faster, but more code */
 			list[n] = xmalloc(2 + name_len + len);
 			strcpy(list[n], name);
-			strcat(list[n], "=");
-			strncat(list[n], p1, len);
-			list[n++][name_len + len + 1] = '\0';
+			list[n][name_len] = '=';
+			strncat(&(list[n][name_len + 1]), p1, len);
+			list[n][name_len + len + 1] = '\0';
+#endif
+			n++;
 			p1 = p2;
 		}
-		if (p3 != inp[i]) free(p3);
+		if (p3 != inp[i])
+			free(p3);
 	}
 	list[n] = NULL;
 	return list;
@@ -2335,8 +2337,10 @@ static char *insert_var_value(char *inp)
 	int res_str_len = 0;
 	int len;
 	int done = 0;
-	char *p, *res_str = NULL;
+	int i;
 	const char *p1;
+	char *p, *p2;
+	char *res_str = NULL;
 
 	while ((p = strchr(inp, SPECIAL_VAR_SYMBOL))) {
 		if (p != inp) {
@@ -2348,11 +2352,42 @@ static char *insert_var_value(char *inp)
 		inp = ++p;
 		p = strchr(inp, SPECIAL_VAR_SYMBOL);
 		*p = '\0';
-		p1 = lookup_param(inp);
+
+		switch (inp[0]) {
+		case '$':
+			/* FIXME: (echo $$) should still print pid of main shell */
+			p1 = utoa(getpid());
+			break;
+		case '!':
+			p1 = last_bg_pid ? utoa(last_bg_pid) : (char*)"";
+			break;
+		case '?':
+			p1 = utoa(last_return_code);
+			break;
+		case '#':
+			p1 = utoa(global_argc ? global_argc-1 : 0);
+			break;
+		case '*':
+		case '@': /* FIXME: we treat $@ as $* for now */
+			len = 1;
+			for (i = 1; i < global_argc; i++)
+				len += strlen(global_argv[i]) + 1;
+			p1 = p2 = alloca(--len);
+			for (i = 1; i < global_argc; i++) {
+				strcpy(p2, global_argv[i]);
+				p2 += strlen(global_argv[i]);
+				*p2++ = ifs[0];
+			}
+			*--p2 = '\0';
+			break;
+		default:
+			p1 = lookup_param(inp);
+		}
+
 		if (p1) {
 			len = res_str_len + strlen(p1);
-			res_str = xrealloc(res_str, (1 + len));
-			strcpy((res_str + res_str_len), p1);
+			res_str = xrealloc(res_str, 1 + len);
+			strcpy(res_str + res_str_len, p1);
 			res_str_len = len;
 		}
 		*p = SPECIAL_VAR_SYMBOL;
@@ -2956,21 +2991,20 @@ static char* make_string(char ** inp)
 	char *p;
 	char *str = NULL;
 	int n;
-	int len = 2;
+	int val_len;
+	int len = 0;
 
 	for (n = 0; inp[n]; n++) {
 		p = insert_var_value(inp[n]);
-		str = xrealloc(str, (len + strlen(p)));
-		if (n) {
-			strcat(str, " ");
-		} else {
-			*str = '\0';
-		}
-		strcat(str, p);
-		len = strlen(str) + 3;
+		val_len = strlen(p);
+		str = xrealloc(str, len + val_len + 3); /* +3: space, '\n', <nul>*/
+		str[len++] = ' ';
+		strcpy(str + len, p);
+		len += val_len;
 		if (p != inp[n]) free(p);
 	}
-	len = strlen(str);
+	/* We do not check for case where loop had no iterations at all
+	 * - cannot happen? */
 	str[len] = '\n';
 	str[len+1] = '\0';
 	return str;
@@ -2979,46 +3013,39 @@ static char* make_string(char ** inp)
 /* return code: 0 for OK, 1 for syntax error */
 static int handle_dollar(o_string *dest, struct p_context *ctx, struct in_str *input)
 {
-	int i, advance = 0;
-	char sep[] = " ";
-	int ch = input->peek(input);  /* first character after the $ */
+//	int i;
+//	char sep[] = " ";
+	int ch = b_peek(input);  /* first character after the $ */
 
 	debug_printf_parse("handle_dollar entered: ch='%c'\n", ch);
-	if (isalpha(ch)) {
+	if (isalpha(ch) || ch == '?') {
 		b_addchr(dest, SPECIAL_VAR_SYMBOL);
 		ctx->child->sp++;
 		while (1) {
-			ch = b_peek(input);
-			if (!isalnum(ch) && ch != '_')
-				break;
 			debug_printf_parse(": '%c'\n", ch);
 			b_getch(input);
 			b_addchr(dest, ch);
+			ch = b_peek(input);
+			if (!isalnum(ch) && ch != '_')
+				break;
 		}
 		b_addchr(dest, SPECIAL_VAR_SYMBOL);
 	} else if (isdigit(ch)) {
-		i = ch - '0';  /* XXX is $0 special? */
-		if (i < global_argc) {
-			parse_string(dest, ctx, global_argv[i]); /* recursion */
-		}
-		advance = 1;
+ make_one_char_var:
+		b_addchr(dest, SPECIAL_VAR_SYMBOL);
+		ctx->child->sp++;
+		debug_printf_parse(": '%c'\n", ch);
+		b_getch(input);
+		b_addchr(dest, ch);
+		b_addchr(dest, SPECIAL_VAR_SYMBOL);
 	} else switch (ch) {
-		case '$':
-			b_adduint(dest, getpid());
-			advance = 1;
-			break;
-		case '!':
-			if (last_bg_pid > 0) b_adduint(dest, last_bg_pid);
-			advance = 1;
-			break;
-		case '?':
-			b_adduint(dest, last_return_code);
-			advance = 1;
-			break;
-		case '#':
-			b_adduint(dest, global_argc ? global_argc-1 : 0);
-			advance = 1;
-			break;
+		case '$': /* pid */
+		case '!': /* last bg pid */
+		case '?': /* last exit code */
+		case '#': /* number of args */
+		case '*': /* args */
+		case '@': /* args */
+			goto make_one_char_var;
 		case '{':
 			b_addchr(dest, SPECIAL_VAR_SYMBOL);
 			ctx->child->sp++;
@@ -3042,15 +3069,6 @@ static int handle_dollar(o_string *dest, struct p_context *ctx, struct in_str *i
 			b_getch(input);
 			process_command_subs(dest, ctx, input, ")");
 			break;
-		case '*':
-			sep[0] = ifs[0];
-			for (i = 1; i < global_argc; i++) {
-				parse_string(dest, ctx, global_argv[i]);
-				if (i+1 < global_argc)
-					parse_string(dest, ctx, sep);
-			}
-			break;
-		case '@':
 		case '-':
 		case '_':
 			/* still unhandled, but should be eventually */
@@ -3058,25 +3076,19 @@ static int handle_dollar(o_string *dest, struct p_context *ctx, struct in_str *i
 			return 1;
 			break;
 		default:
-			b_addqchr(dest,'$', dest->quote);
+			b_addqchr(dest, '$', dest->quote);
 	}
-	/* Eat the character if the flag was set.  If the compiler
-	 * is smart enough, we could substitute "b_getch(input);"
-	 * for all the "advance = 1;" above, and also end up with
-	 * a nice size-optimized program.  Hah!  That'll be the day.
-	 */
-	if (advance) b_getch(input);
 	debug_printf_parse("handle_dollar return 0\n");
 	return 0;
 }
 
-static int parse_string(o_string *dest, struct p_context *ctx, const char *src)
-{
-	struct in_str foo;
-	setup_string_in_str(&foo, src);
-	return parse_stream(dest, ctx, &foo, NULL);
-}
-
+//static int parse_string(o_string *dest, struct p_context *ctx, const char *src)
+//{
+//	struct in_str foo;
+//	setup_string_in_str(&foo, src);
+//	return parse_stream(dest, ctx, &foo, NULL);
+//}
+//
 /* return code is 0 for normal exit, 1 for syntax error */
 static int parse_stream(o_string *dest, struct p_context *ctx,
 	struct in_str *input, const char *end_trigger)
