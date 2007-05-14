@@ -85,13 +85,14 @@
 
 /* If you comment out one of these below, it will be #defined later
  * to perform debug printfs to stderr: */
-#define debug_printf(...)       do {} while (0)
+#define debug_printf(...)        do {} while (0)
 /* Finer-grained debug switches */
-#define debug_printf_parse(...) do {} while (0)
-#define debug_print_tree(a, b)  do {} while (0)
-#define debug_printf_exec(...)  do {} while (0)
-#define debug_printf_jobs(...)  do {} while (0)
-#define debug_printf_clean(...) do {} while (0)
+#define debug_printf_parse(...)  do {} while (0)
+#define debug_print_tree(a, b)   do {} while (0)
+#define debug_printf_exec(...)   do {} while (0)
+#define debug_printf_jobs(...)   do {} while (0)
+#define debug_printf_expand(...) do {} while (0)
+#define debug_printf_clean(...)  do {} while (0)
 
 #ifndef debug_printf
 #define debug_printf(...) fprintf(stderr, __VA_ARGS__)
@@ -108,6 +109,11 @@
 #ifndef debug_printf_jobs
 #define debug_printf_jobs(...) fprintf(stderr, __VA_ARGS__)
 #define DEBUG_SHELL_JOBS 1
+#endif
+
+#ifndef debug_printf_expand
+#define debug_printf_expand(...) fprintf(stderr, __VA_ARGS__)
+#define DEBUG_EXPAND 1
 #endif
 
 #ifndef debug_printf_clean
@@ -229,6 +235,12 @@ struct child_prog {
 	int sp;                     /* number of SPECIAL_VAR_SYMBOL */
 	int type;
 };
+// sp counting seems to be broken...
+/* argv vector may contain variable references (^Cvar^C, ^C0^C etc)
+ * and on execution these are substituted with their values.
+ * Substitution can make _several_ words out of one argv[n]!
+ * Example: argv[0]=='.^C*^C.' here: echo .$*.
+ */
 
 struct pipe {
 	struct pipe *next;
@@ -430,7 +442,7 @@ static void delete_finished_bg_job(struct pipe *pi);
 int checkjobs_and_fg_shell(struct pipe* fg_pipe); /* never called */
 #endif
 /*     local variable support */
-static char **make_list_in(char **inp, char *name);
+static char **do_variable_expansion(char **argv);
 static char *insert_var_value(char *inp);
 static const char *get_local_var(const char *var);
 static int set_local_var(const char *s, int flg_export);
@@ -1265,10 +1277,8 @@ static void restore_redirects(int squirrel[])
 	for (i = 0; i < 3; i++) {
 		fd = squirrel[i];
 		if (fd != -1) {
-			/* No error checking.  I sure wouldn't know what
-			 * to do with an error if I found one! */
-			dup2(fd, i);
-			close(fd);
+			/* We simply die on error */
+			xmove_fd(fd, i);
 		}
 	}
 }
@@ -1916,9 +1926,9 @@ static int run_list_real(struct pipe *pi)
 	enum { level = 0 };
 #endif
 
-	char *save_name = NULL;
-	char **list = NULL;
-	char **save_list = NULL;
+	char *for_varname = NULL;
+	char **for_lcur = NULL;
+	char **for_list = NULL;
 	struct pipe *rpipe;
 	int flag_rep = 0;
 	int save_num_progs;
@@ -2018,30 +2028,29 @@ static int run_list_real(struct pipe *pi)
 		if (rmode == RES_ELIF && !if_code)
 			break;
 		if (rmode == RES_FOR && pi->num_progs) {
-			if (!list) {
+			if (!for_lcur) {
 				/* if no variable values after "in" we skip "for" */
 				if (!pi->next->progs->argv)
 					continue;
 				/* create list of variable values */
-				list = make_list_in(pi->next->progs->argv,
-						pi->progs->argv[0]);
-				save_list = list;
-				save_name = pi->progs->argv[0];
+				for_list = do_variable_expansion(pi->next->progs->argv);
+				for_lcur = for_list;
+				for_varname = pi->progs->argv[0];
 				pi->progs->argv[0] = NULL;
 				flag_rep = 1;
 			}
-			if (!*list) {
-				free(pi->progs->argv[0]);
-				free(save_list);
-				list = NULL;
+			free(pi->progs->argv[0]);
+			if (!*for_lcur) {
+				free(for_list);
+				for_lcur = NULL;
 				flag_rep = 0;
-				pi->progs->argv[0] = save_name;
+				pi->progs->argv[0] = for_varname;
 				pi->progs->glob_result.gl_pathv[0] = pi->progs->argv[0];
 				continue;
 			}
-			/* insert new value from list for variable */
-			free(pi->progs->argv[0]);
-			pi->progs->argv[0] = *list++;
+			/* insert next value from for_lcur */
+		//vda: does it need escaping?
+			pi->progs->argv[0] = xasprintf("%s=%s", for_varname, *for_lcur++);
 			pi->progs->glob_result.gl_pathv[0] = pi->progs->argv[0];
 		}
 		if (rmode == RES_IN)
@@ -2288,49 +2297,266 @@ static int xglob(o_string *dest, int flags, glob_t *pglob)
 	return gr;
 }
 
-static char **make_list_in(char **inp, char *name)
-{
-	int len, i;
-#if 0
-	int name_len = strlen(name);
-#endif
-	int n;
-	char **list;
-	char *p1, *p2, *p3;
 
-	/* create list of variable values */
-	list = xmalloc(sizeof(*list));
-	n = 0;
-	for (i = 0; inp[i]; i++) {
-		p3 = insert_var_value(inp[i]);
-		p1 = p3;
-		while (*p1) {
-			if (*p1 == ' ') {
-				p1++;
-				continue;
-			}
-			p2 = strchrnul(p1, ' ');
-			len = p2 - p1;
-			/* we use n + 2 in realloc for list, because we add
-			 * new element and then we will add NULL element */
-			list = xrealloc(list, sizeof(*list) * (n + 2));
-			list[n] = xasprintf("%s=%.*s", name, len, p1);
-#if 0 /* faster, but more code */
-			list[n] = xmalloc(2 + name_len + len);
-			strcpy(list[n], name);
-			list[n][name_len] = '=';
-			strncat(&(list[n][name_len + 1]), p1, len);
-			list[n][name_len + len + 1] = '\0';
-#endif
-			n++;
-			p1 = p2;
-		}
-		if (p3 != inp[i])
-			free(p3);
+/* do_variable_expansion() takes a list of strings, expands
+ * all variable references within and returns a pointer to
+ * a list of expanded strings, possibly with larger number
+ * of strings. (Think VAR="a b"; echo $VAR).
+ * This new list is allocated as a single malloc block.
+ * NULL-terminated list of char* pointers is at the beginning of it,
+ * followed by strings themself.
+ * Caller can deallocate entire list by single free(list). */
+
+/* Helpers first:
+ * count_XXX estimates, how large block do we need. It's okay
+ * to over-estimate sizes a bit, if it makes code simpler */
+static int count_ifs(const char *str)
+{
+	int cnt = 0;
+	debug_printf_expand("count_ifs('%s') ifs='%s'", str, ifs);
+	while (1) {
+		str += strcspn(str, ifs);
+		if (!*str) break;
+		str++; // str += strspn(str, ifs); ?
+		cnt++; // cnt += strspn(str, ifs); ?
 	}
+	debug_printf_expand(" return %d\n", cnt);
+	return cnt;
+}
+
+static void count_var_expansion_space(int *countp, int *lenp, char *arg)
+{
+	char first_ch;
+	int i;
+	int len = *lenp;
+	int count = *countp;
+	const char *val;
+	char *p;
+
+	while ((p = strchr(arg, SPECIAL_VAR_SYMBOL))) {
+		len += p - arg;
+		arg = ++p;
+		p = strchr(p, SPECIAL_VAR_SYMBOL);
+		first_ch = arg[0];
+
+		switch (first_ch & 0x7f) {
+		/* high bit in 1st_ch indicates that var is double-quoted */
+		case '$': /* pid */
+		case '!': /* bg pid */
+		case '?': /* exitcode */
+		case '#': /* argc */
+			len += sizeof(int)*3 + 1; /* enough for int */
+			break;
+		case '*':
+		case '@':
+			for (i = 1; i < global_argc; i++) {
+				len += strlen(global_argv[i]) + 1;
+				count++;
+				if (!(first_ch & 0x80))
+					count += count_ifs(global_argv[i]);
+			}
+			break;
+		default:
+			*p = '\0';
+			arg[0] = first_ch & 0x7f;
+			val = lookup_param(arg);
+			arg[0] = first_ch;
+			*p = SPECIAL_VAR_SYMBOL;
+
+			if (val) {
+				len += strlen(val) + 1;
+				if (!(first_ch & 0x80))
+					count += count_ifs(val);
+			}
+		}
+		arg = ++p;
+	}
+
+	len += strlen(arg) + 1;
+	count++;
+	*lenp = len;
+	*countp = count;
+}
+
+/* Store given string, finalizing the word and starting new one whenever
+ * we encounter ifs char(s). This is used for expanding variable values.
+ * End-of-string does NOT finalize word, because cases like echo -$VAR- */
+static int expand_on_ifs(char **list, int n, char **posp, const char *str)
+{
+	char *pos = *posp;
+	while (1) {
+		int word_len = strcspn(str, ifs);
+		if (word_len) {
+			memcpy(pos, str, word_len); /* store non-ifs chars */
+			pos += word_len;
+			str += word_len;
+			if (!*str) /* EOL - do not finalize word */
+				break;
+			*pos++ = '\0';
+			if (n) debug_printf_expand("expand_on_ifs finalized list[%d]=%p '%s' "
+				"strlen=%d next=%p pos=%p\n", n-1, list[n-1], list[n-1],
+				strlen(list[n-1]), list[n-1] + strlen(list[n-1]) + 1, pos);
+			list[n++] = pos;
+		}
+		if (!*str) break; /* EOL, not ifs char */
+		str += strspn(str, ifs); /* skip ifs chars */
+	}
+	*posp = pos;
+	return n;
+}
+
+/* Expand all variable references in given string, adding words to list[]
+ * at n, n+1,... positions. Return updated n (so that list[n] is next one
+ * to be filled). This routine is extremely tricky: has to deal with
+ * variables/parameters with whitespace, $* and $@, and constructs like
+ * 'echo -$*-'. If you play here, you must run testsuite afterwards! */
+/* NB: support for double-quoted expansion is not used yet (we never set
+ * magic bit 0x80 elsewhere...) */
+/* NB: another bug is that we cannot detect empty strings yet:
+ * "" or $empty"" expands to zero words, has to expand to empty word */
+static int expand_vars_to_list(char **list, int n, char **posp, char *arg)
+{
+	char first_ch, ored_ch;
+	const char *val;
+	char *p;
+	char *pos = *posp;
+
+	ored_ch = 0;
+
+	if (n) debug_printf_expand("expand_vars_to_list finalized list[%d]=%p '%s' "
+		"strlen=%d next=%p pos=%p\n", n-1, list[n-1], list[n-1],
+		strlen(list[n-1]), list[n-1] + strlen(list[n-1]) + 1, pos);
+	list[n++] = pos;
+
+	while ((p = strchr(arg, SPECIAL_VAR_SYMBOL))) {
+		memcpy(pos, arg, p - arg);
+		pos += (p - arg);
+		arg = ++p;
+		p = strchr(p, SPECIAL_VAR_SYMBOL);
+
+		first_ch = arg[0];
+		ored_ch |= first_ch;
+		val = NULL;
+		switch (first_ch & 0x7f) {
+		/* Highest bit in first_ch indicates that var is double-quoted */
+		case '$': /* pid */
+			/* FIXME: (echo $$) should still print pid of main shell */
+			val = utoa(getpid());
+			break;
+		case '!': /* bg pid */
+			val = last_bg_pid ? utoa(last_bg_pid) : (char*)"";
+			break;
+		case '?': /* exitcode */
+			val = utoa(last_return_code);
+			break;
+		case '#': /* argc */
+			val = utoa(global_argc ? global_argc-1 : 0);
+			break;
+		case '*':
+		case '@':
+			if (!(first_ch & 0x80)) { /* unquoted $* or $@ */
+				int i = 1;
+				while (i < global_argc) {
+					n = expand_on_ifs(list, n, &pos, global_argv[i]);
+					debug_printf_expand("expand_vars_to_list: argv %d (last %d)\n", i, global_argc-1);
+					if (global_argv[i++][0] && i < global_argc) {
+						/* this argv[] is not empty and not last:
+						 * put terminating NUL, start new word */
+						*pos++ = '\0';
+						if (n) debug_printf_expand("expand_vars_to_list 2 finalized list[%d]=%p '%s' "
+							"strlen=%d next=%p pos=%p\n", n-1, list[n-1], list[n-1],
+							strlen(list[n-1]), list[n-1] + strlen(list[n-1]) + 1, pos);
+						list[n++] = pos;
+					}
+				}
+			} else if (first_ch == ('@'|0x80)) { /* quoted $@ */
+				/* TODO */
+			} else { /* quoted $* */
+				/* TODO */
+			}
+			break;
+		default:
+			*p = '\0';
+			arg[0] = first_ch & 0x7f;
+			val = lookup_param(arg);
+			arg[0] = first_ch;
+			*p = SPECIAL_VAR_SYMBOL;
+			if (!(first_ch & 0x80)) { /* unquoted var */
+				if (val) {
+					n = expand_on_ifs(list, n, &pos, val);
+					val = NULL;
+				}
+			}
+		}
+		if (val) {
+			strcpy(pos, val);
+			pos += strlen(val);
+		}
+		arg = ++p;
+	}
+	debug_printf_expand("expand_vars_to_list adding tail '%s' at %p\n", arg, pos);
+	strcpy(pos, arg);
+	pos += strlen(arg) + 1;
+	if (pos == list[n-1] + 1) { /* expansion is empty */
+		if (!(ored_ch & 0x80)) { /* all vars were not quoted... */
+			debug_printf_expand("expand_vars_to_list list[%d] empty, going back\n", n);
+			pos--;
+			n--;
+		}
+	}
+
+	*posp = pos;
+	return n;
+}
+
+static char **do_variable_expansion(char **argv)
+{
+	int n;
+	int count = 1;
+	int len = 0;
+	char *pos, **v, **list;
+
+	v = argv;
+	if (!*v) debug_printf_expand("count_var_expansion_space: "
+			"argv[0]=NULL count=%d len=%d alloc_space=%d\n",
+			count, len, sizeof(char*) * count + len);
+	while (*v) {
+		count_var_expansion_space(&count, &len, *v);
+		debug_printf_expand("count_var_expansion_space: "
+			"'%s' count=%d len=%d alloc_space=%d\n",
+			*v, count, len, sizeof(char*) * count + len);
+		v++;
+	}
+	len += sizeof(char*) * count; /* total to alloc */
+	list = xmalloc(len);
+	pos = (char*)(list + count);
+	debug_printf_expand("list=%p, list[0] should be %p\n", list, pos);
+	n = 0;
+	v = argv;
+	while (*v)
+		n = expand_vars_to_list(list, n, &pos, *v++);
+
+	if(n) debug_printf_expand("finalized list[%d]=%p '%s' "
+		"strlen=%d next=%p pos=%p\n", n-1, list[n-1], list[n-1],
+		strlen(list[n-1]), list[n-1] + strlen(list[n-1]) + 1, pos);
 	list[n] = NULL;
+
+#ifdef DEBUG_EXPAND
+	{
+		int m = 0;
+		while (m <= n) {
+			debug_printf_expand("list[%d]=%p '%s'\n", m, list[m], list[m]);
+			m++;
+		}
+		debug_printf_expand("used_space=%d\n", pos - (char*)list);
+	}
+#endif
+	/* To be removed / made conditional later. */
+	if (pos - (char*)list > len)
+		bb_error_msg_and_die("BUG in varexp");
 	return list;
 }
+
 
 static char *insert_var_value(char *inp)
 {
@@ -2403,6 +2629,21 @@ static char *insert_var_value(char *inp)
 	}
 	return (res_str == NULL) ? inp : res_str;
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 /* This is used to get/check local shell variables */
 static const char *get_local_var(const char *s)
@@ -2986,7 +3227,7 @@ static const char *lookup_param(const char *src)
 }
 
 /* Make new string for parser */
-static char* make_string(char ** inp)
+static char* make_string(char **inp)
 {
 	char *p;
 	char *str = NULL;

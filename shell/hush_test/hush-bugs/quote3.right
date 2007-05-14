@@ -1,0 +1,8 @@
+Testing: in $empty""
+..
+Testing: in "$*"
+.abc d e.
+Testing: in "$@"
+.abc.
+.d e.
+Finished
