@@ -1308,6 +1308,8 @@ static void pseudo_exec_argv(char **argv)
 		_exit(EXIT_SUCCESS);
 	}
 
+	argv = do_variable_expansion(argv);
+
 	/*
 	 * Check if the command matches any of the builtins.
 	 * Depending on context, this might be redundant.  But it's
@@ -1316,7 +1318,7 @@ static void pseudo_exec_argv(char **argv)
 	 */
 	for (x = bltins; x->cmd; x++) {
 		if (strcmp(argv[0], x->cmd) == 0) {
-			debug_printf("builtin exec %s\n", argv[0]);
+			debug_printf_exec("running builtin '%s'\n", argv[0]);
 			rcode = x->function(argv);
 			fflush(stdout);
 			_exit(rcode);
@@ -1334,6 +1336,7 @@ static void pseudo_exec_argv(char **argv)
 	 * to find ourself... */
 #if ENABLE_FEATURE_SH_STANDALONE
 	debug_printf("running applet %s\n", argv[0]);
+// FIXME: check NOEXEC bit, and EXEC if not set!
 	run_applet_and_exit(argv[0], argv);
 // is it ok that run_applet_and_exit() does exit(), not _exit()?
 // NB: IIRC on NOMMU we are after _vfork_, not fork!
@@ -1674,6 +1677,7 @@ static int run_pipe_real(struct pipe *pi)
 	}
 
 	if (single_fg && child->argv != NULL) {
+		char **argv_expanded, **free_me;
 		char **argv = child->argv;
 
 		for (i = 0; is_assignment(argv[i]); i++)
@@ -1714,16 +1718,7 @@ static int run_pipe_real(struct pipe *pi)
 				putenv(xstrdup(p));
 			}
 		}
-		if (child->sp) {
-			char *str;
-
-			str = make_string(argv + i);
-			debug_printf_exec(": parse_string_outer '%s'\n", str);
-			parse_string_outer(str, FLAG_EXIT_FROM_LOOP | FLAG_REPARSING);
-			free(str);
-			debug_printf_exec("run_pipe_real return %d\n", last_return_code);
-			return last_return_code;
-		}
+		free_me = NULL;
 		for (x = bltins; x->cmd; x++) {
 			if (strcmp(argv[i], x->cmd) == 0) {
 				if (x->function == builtin_exec && argv[i+1] == NULL) {
@@ -1739,7 +1734,11 @@ static int run_pipe_real(struct pipe *pi)
 // TODO: fflush(NULL)?
 				setup_redirects(child, squirrel);
 				debug_printf_exec(": builtin '%s' '%s'...\n", x->cmd, argv[i+1]);
-				rcode = x->function(argv + i);
+				argv_expanded = argv + i;
+				if (child->sp) /* btw we can do it unconditionally... */
+					free_me = argv_expanded = do_variable_expansion(argv + i);
+				rcode = x->function(argv_expanded);
+				free(free_me);
 				restore_redirects(squirrel);
 				debug_printf_exec("run_pipe_real return %d\n", rcode);
 				return rcode;
@@ -1750,9 +1749,13 @@ static int run_pipe_real(struct pipe *pi)
 			const struct bb_applet *a = find_applet_by_name(argv[i]);
 			if (a && a->nofork) {
 				setup_redirects(child, squirrel);
-				debug_printf_exec(": run_nofork_applet '%s' '%s'...\n", argv[i], argv[i+1]);
 				save_nofork_data(&nofork_save);
-				rcode = run_nofork_applet_prime(&nofork_save, a, argv + i);
+				argv_expanded = argv + i;
+				if (child->sp)
+					free_me = argv_expanded = do_variable_expansion(argv + i);
+				debug_printf_exec(": run_nofork_applet '%s' '%s'...\n", argv_expanded[0], argv_expanded[1]);
+				rcode = run_nofork_applet_prime(&nofork_save, a, argv_expanded);
+				free(free_me);
 				restore_redirects(squirrel);
 				debug_printf_exec("run_pipe_real return %d\n", rcode);
 				return rcode;
@@ -2049,7 +2052,7 @@ static int run_list_real(struct pipe *pi)
 				continue;
 			}
 			/* insert next value from for_lcur */
-		//vda: does it need escaping?
+			/* vda: does it need escaping? */
 			pi->progs->argv[0] = xasprintf("%s=%s", for_varname, *for_lcur++);
 			pi->progs->glob_result.gl_pathv[0] = pi->progs->argv[0];
 		}
@@ -2359,7 +2362,13 @@ static void count_var_expansion_space(int *countp, int *lenp, char *arg)
 		default:
 			*p = '\0';
 			arg[0] = first_ch & 0x7f;
-			val = lookup_param(arg);
+			if (isdigit(arg[0])) {
+				i = xatoi_u(arg);
+				val = NULL;
+				if (i < global_argc)
+					val = global_argv[i];
+			} else
+				val = lookup_param(arg);
 			arg[0] = first_ch;
 			*p = SPECIAL_VAR_SYMBOL;
 
@@ -2380,7 +2389,7 @@ static void count_var_expansion_space(int *countp, int *lenp, char *arg)
 
 /* Store given string, finalizing the word and starting new one whenever
  * we encounter ifs char(s). This is used for expanding variable values.
- * End-of-string does NOT finalize word, because cases like echo -$VAR- */
+ * End-of-string does NOT finalize word: think about 'echo -$VAR-' */
 static int expand_on_ifs(char **list, int n, char **posp, const char *str)
 {
 	char *pos = *posp;
@@ -2390,15 +2399,14 @@ static int expand_on_ifs(char **list, int n, char **posp, const char *str)
 			memcpy(pos, str, word_len); /* store non-ifs chars */
 			pos += word_len;
 			str += word_len;
-			if (!*str) /* EOL - do not finalize word */
-				break;
-			*pos++ = '\0';
-			if (n) debug_printf_expand("expand_on_ifs finalized list[%d]=%p '%s' "
-				"strlen=%d next=%p pos=%p\n", n-1, list[n-1], list[n-1],
-				strlen(list[n-1]), list[n-1] + strlen(list[n-1]) + 1, pos);
-			list[n++] = pos;
 		}
-		if (!*str) break; /* EOL, not ifs char */
+		if (!*str)  /* EOL - do not finalize word */
+			break;
+		*pos++ = '\0';
+		if (n) debug_printf_expand("expand_on_ifs finalized list[%d]=%p '%s' "
+			"strlen=%d next=%p pos=%p\n", n-1, list[n-1], list[n-1],
+			strlen(list[n-1]), list[n-1] + strlen(list[n-1]) + 1, pos);
+		list[n++] = pos;
 		str += strspn(str, ifs); /* skip ifs chars */
 	}
 	*posp = pos;
@@ -2478,7 +2486,13 @@ static int expand_vars_to_list(char **list, int n, char **posp, char *arg)
 		default:
 			*p = '\0';
 			arg[0] = first_ch & 0x7f;
-			val = lookup_param(arg);
+			if (isdigit(arg[0])) {
+				int i = xatoi_u(arg);
+				val = NULL;
+				if (i < global_argc)
+					val = global_argv[i];
+			} else
+				val = lookup_param(arg);
 			arg[0] = first_ch;
 			*p = SPECIAL_VAR_SYMBOL;
 			if (!(first_ch & 0x80)) { /* unquoted var */
@@ -3541,9 +3555,6 @@ static void update_ifs_map(void)
  * from builtin_source() */
 static int parse_stream_outer(struct in_str *inp, int parse_flag)
 {
-// FIXME: '{ true | exit 3; echo $? }' is parsed as a whole,
-// as a result $? is replaced by 0, not 3!
-
 	struct p_context ctx;
 	o_string temp = NULL_O_STRING;
 	int rcode;
