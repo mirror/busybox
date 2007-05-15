@@ -2416,21 +2416,23 @@
 
 #endif
 
-
 #define netstat_trivial_usage \
-       "[-laenrtuwx]"
+       "[-laentuwxr"USE_FEATURE_NETSTAT_WIDE("W")"]"
 #define netstat_full_usage \
        "Display networking information" \
-       "\n\nOptions:\n" \
-       "	-l	Display listening server sockets\n" \
-       "	-a	Display all sockets (default: connected)\n" \
-       "	-e	Display other/more information\n" \
-       "	-n	Don't resolve names\n" \
-       "	-r	Display routing table\n" \
-       "	-t	Tcp sockets\n" \
-       "	-u	Udp sockets\n" \
-       "	-w	Raw sockets\n" \
-       "	-x	Unix sockets"
+     "\n\nOptions:" \
+     "\n	-l	Display listening server sockets" \
+     "\n	-a	Display all sockets (default: connected)" \
+     "\n	-e	Display other/more information" \
+     "\n	-n	Don't resolve names" \
+     "\n	-t	Tcp sockets" \
+     "\n	-u	Udp sockets" \
+     "\n	-w	Raw sockets" \
+     "\n	-x	Unix sockets" \
+     "\n	-r	Display routing table" \
+	USE_FEATURE_NETSTAT_WIDE( \
+     "\n	-W	Display with no column truncation" \
+	)
 
 #define nice_trivial_usage \
        "[-n ADJUST] [COMMAND [ARG] ...]"

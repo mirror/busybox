@@ -499,6 +499,14 @@ config NETSTAT
 	help
 	  netstat prints information about the Linux networking subsystem.
 
+config FEATURE_NETSTAT_WIDE
+	bool "  Enable wide netstat output"
+	default n
+	depends on NETSTAT
+	help
+	  Add support for wide columns. Useful when displaying IPv6 addresses
+	  (-W option).
+
 config NSLOOKUP
 	bool "nslookup"
 	default n

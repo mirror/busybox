@@ -14,6 +14,13 @@
 #include "busybox.h"
 #include "inet_common.h"
 
+enum {
+	OPT_extended = 0x4,
+	OPT_showroute = 0x100,
+	OPT_widedisplay = 0x200 * ENABLE_FEATURE_NETSTAT_WIDE,
+};
+# define NETSTAT_OPTS "laentuwxr"USE_FEATURE_NETSTAT_WIDE("W")
+
 #define NETSTAT_CONNECTED 0x01
 #define NETSTAT_LISTENING 0x02
 #define NETSTAT_NUMERIC   0x04
@@ -24,7 +31,7 @@
 #define NETSTAT_UNIX      0x80
 #define NETSTAT_ALLPROTO  (NETSTAT_TCP|NETSTAT_UDP|NETSTAT_RAW|NETSTAT_UNIX)
 
-static int flags = NETSTAT_CONNECTED | NETSTAT_ALLPROTO;
+static smallint flags = NETSTAT_CONNECTED | NETSTAT_ALLPROTO;
 
 enum {
 	TCP_ESTABLISHED = 1,
@@ -68,6 +75,51 @@ typedef enum {
 #define SO_WAITDATA  (1<<17)	/* wait data to read            */
 #define SO_NOSPACE   (1<<18)	/* no space to write            */
 
+/* Standard printout size */
+#define PRINT_IP_MAX_SIZE           23
+#define PRINT_NET_CONN              "%s   %6ld %6ld %-23s %-23s %-12s\n"
+#define PRINT_NET_CONN_HEADER       "\nProto Recv-Q Send-Q %-23s %-23s State\n"
+
+/* When there are IPv6 connections the IPv6 addresses will be
+ * truncated to none-recognition. The '-W' option makes the
+ * address columns wide enough to accomodate for longest possible
+ * IPv6 addresses, i.e. addresses of the form
+ * xxxx:xxxx:xxxx:xxxx:xxxx:xxxx:ddd.ddd.ddd.ddd
+ */
+#define PRINT_IP_MAX_SIZE_WIDE      51  /* INET6_ADDRSTRLEN + 5 for the port number */
+#define PRINT_NET_CONN_WIDE         "%s   %6ld %6ld %-51s %-51s %-12s\n"
+#define PRINT_NET_CONN_HEADER_WIDE  "\nProto Recv-Q Send-Q %-51s %-51s State\n"
+
+static const char *net_conn_line = PRINT_NET_CONN;
+
+
+#if ENABLE_FEATURE_IPV6
+static void build_ipv6_addr(char* local_addr, struct sockaddr_in6* localaddr)
+{
+	char addr6[INET6_ADDRSTRLEN];
+	struct in6_addr in6;
+		
+	sscanf(local_addr, "%08X%08X%08X%08X",
+		   &in6.s6_addr32[0], &in6.s6_addr32[1],
+		   &in6.s6_addr32[2], &in6.s6_addr32[3]);
+	inet_ntop(AF_INET6, &in6, addr6, sizeof(addr6));
+	inet_pton(AF_INET6, addr6, (struct sockaddr *) &localaddr->sin6_addr);
+		
+	localaddr->sin6_family = AF_INET6;
+}
+#endif
+
+#if ENABLE_FEATURE_IPV6
+static void build_ipv4_addr(char* local_addr, struct sockaddr_in6* localaddr)
+#else
+static void build_ipv4_addr(char* local_addr, struct sockaddr_in* localaddr)
+#endif
+{
+	sscanf(local_addr, "%X",
+		   &((struct sockaddr_in *) localaddr)->sin_addr.s_addr);
+	((struct sockaddr *) localaddr)->sa_family = AF_INET;
+}
+
 static const char *get_sname(int port, const char *proto, int num)
 {
 	/* hummm, we return static buffer here!! */
@@ -86,7 +138,10 @@ static const char *get_sname(int port, const char *proto, int num)
 static void snprint_ip_port(char *ip_port, int size, struct sockaddr *addr, int port, const char *proto, int numeric)
 {
 	const char *port_name;
+	int max_len;
+	int port_name_len;
 
+// TODO: replace by xmalloc_sockaddr2host?
 #if ENABLE_FEATURE_IPV6
 	if (addr->sa_family == AF_INET6) {
 		INET6_rresolve(ip_port, size, (struct sockaddr_in6 *)addr,
@@ -99,23 +154,25 @@ static void snprint_ip_port(char *ip_port, int size, struct sockaddr *addr, int 
 			0xffffffff);
 	}
 	port_name = get_sname(htons(port), proto, numeric);
-	if ((strlen(ip_port) + strlen(port_name)) > 22)
-		ip_port[22 - strlen(port_name)] = '\0';
+	
+	max_len = (option_mask32 & OPT_widedisplay)
+			? (PRINT_IP_MAX_SIZE_WIDE - 1)
+			: (PRINT_IP_MAX_SIZE - 1);
+	port_name_len = strlen(port_name);
+	if ((strlen(ip_port) + port_name_len) > max_len)
+		ip_port[max_len - port_name_len] = '\0';
 	ip_port += strlen(ip_port);
-	strcat(ip_port, ":");
-	strcat(ip_port, port_name);
+	*ip_port++ = ':';
+	strcpy(ip_port, port_name);
 }
 
 static void tcp_do_one(int lnr, const char *line)
 {
 	char local_addr[64], rem_addr[64];
-	const char *state_str;
 	char more[512];
 	int num, local_port, rem_port, d, state, timer_run, uid, timeout;
 #if ENABLE_FEATURE_IPV6
 	struct sockaddr_in6 localaddr, remaddr;
-	char addr6[INET6_ADDRSTRLEN];
-	struct in6_addr in6;
 #else
 	struct sockaddr_in localaddr, remaddr;
 #endif
@@ -126,53 +183,37 @@ static void tcp_do_one(int lnr, const char *line)
 
 	more[0] = '\0';
 	num = sscanf(line,
-				 "%d: %64[0-9A-Fa-f]:%X %64[0-9A-Fa-f]:%X %X %lX:%lX %X:%lX %lX %d %d %ld %512s\n",
-				 &d, local_addr, &local_port,
-				 rem_addr, &rem_port, &state,
-				 &txq, &rxq, &timer_run, &time_len, &retr, &uid, &timeout, &inode, more);
+			"%d: %64[0-9A-Fa-f]:%X %64[0-9A-Fa-f]:%X %X %lX:%lX %X:%lX %lX %d %d %ld %512s\n",
+			&d, local_addr, &local_port,
+			rem_addr, &rem_port, &state,
+			&txq, &rxq, &timer_run, &time_len, &retr, &uid, &timeout, &inode, more);
 
 	if (strlen(local_addr) > 8) {
 #if ENABLE_FEATURE_IPV6
-		sscanf(local_addr, "%08X%08X%08X%08X",
-			   &in6.s6_addr32[0], &in6.s6_addr32[1],
-			   &in6.s6_addr32[2], &in6.s6_addr32[3]);
-		inet_ntop(AF_INET6, &in6, addr6, sizeof(addr6));
-		inet_pton(AF_INET6, addr6, (struct sockaddr *) &localaddr.sin6_addr);
-		sscanf(rem_addr, "%08X%08X%08X%08X",
-			   &in6.s6_addr32[0], &in6.s6_addr32[1],
-			   &in6.s6_addr32[2], &in6.s6_addr32[3]);
-		inet_ntop(AF_INET6, &in6, addr6, sizeof(addr6));
-		inet_pton(AF_INET6, addr6, (struct sockaddr *) &remaddr.sin6_addr);
-		localaddr.sin6_family = AF_INET6;
-		remaddr.sin6_family = AF_INET6;
+		build_ipv6_addr(local_addr, &localaddr);
+		build_ipv6_addr(rem_addr, &remaddr);
 #endif
 	} else {
-		sscanf(local_addr, "%X",
-			   &((struct sockaddr_in *) &localaddr)->sin_addr.s_addr);
-		sscanf(rem_addr, "%X",
-			   &((struct sockaddr_in *) &remaddr)->sin_addr.s_addr);
-		((struct sockaddr *) &localaddr)->sa_family = AF_INET;
-		((struct sockaddr *) &remaddr)->sa_family = AF_INET;
+		build_ipv4_addr(local_addr, &localaddr);
+		build_ipv4_addr(rem_addr, &remaddr);
 	}
 
 	if (num < 10) {
 		bb_error_msg("warning, got bogus tcp line");
 		return;
 	}
-	state_str = tcp_state[state];
+
 	if ((rem_port && (flags & NETSTAT_CONNECTED))
 	 || (!rem_port && (flags & NETSTAT_LISTENING))
 	) {
 		snprint_ip_port(local_addr, sizeof(local_addr),
-						(struct sockaddr *) &localaddr, local_port,
-						"tcp", flags & NETSTAT_NUMERIC);
-
+				(struct sockaddr *) &localaddr, local_port,
+				"tcp", flags & NETSTAT_NUMERIC);
 		snprint_ip_port(rem_addr, sizeof(rem_addr),
-						(struct sockaddr *) &remaddr, rem_port,
-						"tcp", flags & NETSTAT_NUMERIC);
-
-		printf("tcp   %6ld %6ld %-23s %-23s %-12s\n",
-			   rxq, txq, local_addr, rem_addr, state_str);
+				(struct sockaddr *) &remaddr, rem_port,
+				"tcp", flags & NETSTAT_NUMERIC);
+		printf(net_conn_line,
+			"tcp", rxq, txq, local_addr, rem_addr, tcp_state[state]);
 	}
 }
 
@@ -184,8 +225,6 @@ static void udp_do_one(int lnr, const char *line)
 	int num, local_port, rem_port, d, state, timer_run, uid, timeout;
 #if ENABLE_FEATURE_IPV6
 	struct sockaddr_in6 localaddr, remaddr;
-	char addr6[INET6_ADDRSTRLEN];
-	struct in6_addr in6;
 #else
 	struct sockaddr_in localaddr, remaddr;
 #endif
@@ -196,34 +235,20 @@ static void udp_do_one(int lnr, const char *line)
 
 	more[0] = '\0';
 	num = sscanf(line,
-				 "%d: %64[0-9A-Fa-f]:%X %64[0-9A-Fa-f]:%X %X %lX:%lX %X:%lX %lX %d %d %ld %512s\n",
-				 &d, local_addr, &local_port,
-				 rem_addr, &rem_port, &state,
-				 &txq, &rxq, &timer_run, &time_len, &retr, &uid, &timeout, &inode, more);
+			"%d: %64[0-9A-Fa-f]:%X %64[0-9A-Fa-f]:%X %X %lX:%lX %X:%lX %lX %d %d %ld %512s\n",
+			&d, local_addr, &local_port,
+			rem_addr, &rem_port, &state,
+			&txq, &rxq, &timer_run, &time_len, &retr, &uid, &timeout, &inode, more);
 
 	if (strlen(local_addr) > 8) {
 #if ENABLE_FEATURE_IPV6
-	/* Demangle what the kernel gives us */
-		sscanf(local_addr, "%08X%08X%08X%08X",
-			   &in6.s6_addr32[0], &in6.s6_addr32[1],
-			   &in6.s6_addr32[2], &in6.s6_addr32[3]);
-		inet_ntop(AF_INET6, &in6, addr6, sizeof(addr6));
-		inet_pton(AF_INET6, addr6, (struct sockaddr *) &localaddr.sin6_addr);
-		sscanf(rem_addr, "%08X%08X%08X%08X",
-			   &in6.s6_addr32[0], &in6.s6_addr32[1],
-			   &in6.s6_addr32[2], &in6.s6_addr32[3]);
-		inet_ntop(AF_INET6, &in6, addr6, sizeof(addr6));
-		inet_pton(AF_INET6, addr6, (struct sockaddr *) &remaddr.sin6_addr);
-		localaddr.sin6_family = AF_INET6;
-		remaddr.sin6_family = AF_INET6;
+		/* Demangle what the kernel gives us */
+		build_ipv6_addr(local_addr, &localaddr);
+		build_ipv6_addr(rem_addr, &remaddr);
 #endif
 	} else {
-		sscanf(local_addr, "%X",
-			   &((struct sockaddr_in *) &localaddr)->sin_addr.s_addr);
-		sscanf(rem_addr, "%X",
-			   &((struct sockaddr_in *) &remaddr)->sin_addr.s_addr);
-		((struct sockaddr *) &localaddr)->sa_family = AF_INET;
-		((struct sockaddr *) &remaddr)->sa_family = AF_INET;
+		build_ipv4_addr(local_addr, &localaddr);
+		build_ipv4_addr(rem_addr, &remaddr);
 	}
 
 	if (num < 10) {
@@ -234,52 +259,51 @@ static void udp_do_one(int lnr, const char *line)
 		case TCP_ESTABLISHED:
 			state_str = "ESTABLISHED";
 			break;
-
 		case TCP_CLOSE:
 			state_str = "";
 			break;
-
 		default:
 			state_str = "UNKNOWN";
 			break;
 	}
 
 #if ENABLE_FEATURE_IPV6
-# define notnull(A) (((A.sin6_family == AF_INET6) &&            \
-					 ((A.sin6_addr.s6_addr32[0]) ||            \
-					  (A.sin6_addr.s6_addr32[1]) ||            \
-					  (A.sin6_addr.s6_addr32[2]) ||            \
-					  (A.sin6_addr.s6_addr32[3]))) ||          \
-					((A.sin6_family == AF_INET) &&             \
-					 ((struct sockaddr_in *) &A)->sin_addr.s_addr))
+# define notnull(A) ( \
+	( (A.sin6_family == AF_INET6)                               \
+	  && (A.sin6_addr.s6_addr32[0] | A.sin6_addr.s6_addr32[1] | \
+	      A.sin6_addr.s6_addr32[2] | A.sin6_addr.s6_addr32[3])  \
+	) || (                                                      \
+	  (A.sin6_family == AF_INET)                                \
+	  && ((struct sockaddr_in*)&A)->sin_addr.s_addr             \
+	)                                                           \
+)
 #else
 # define notnull(A) (A.sin_addr.s_addr)
 #endif
-	if ((notnull(remaddr) && (flags & NETSTAT_CONNECTED))
-	 || (!notnull(remaddr) && (flags & NETSTAT_LISTENING))
-	) {
-		snprint_ip_port(local_addr, sizeof(local_addr),
-						(struct sockaddr *) &localaddr, local_port,
-						"udp", flags & NETSTAT_NUMERIC);
-
-		snprint_ip_port(rem_addr, sizeof(rem_addr),
-						(struct sockaddr *) &remaddr, rem_port,
-						"udp", flags & NETSTAT_NUMERIC);
-
-		printf("udp   %6ld %6ld %-23s %-23s %-12s\n",
-			   rxq, txq, local_addr, rem_addr, state_str);
+	{
+		int have_remaddr = notnull(remaddr);
+		if ((have_remaddr && (flags & NETSTAT_CONNECTED))
+		 || (!have_remaddr && (flags & NETSTAT_LISTENING))
+		) {
+			snprint_ip_port(local_addr, sizeof(local_addr),
+				(struct sockaddr *) &localaddr, local_port,
+				"udp", flags & NETSTAT_NUMERIC);
+			snprint_ip_port(rem_addr, sizeof(rem_addr),
+				(struct sockaddr *) &remaddr, rem_port,
+				"udp", flags & NETSTAT_NUMERIC);
+			printf(net_conn_line,
+				"udp", rxq, txq, local_addr, rem_addr, state_str);	
+		}
 	}
 }
 
 static void raw_do_one(int lnr, const char *line)
 {
 	char local_addr[64], rem_addr[64];
-	char *state_str, more[512];
+	char more[512];
 	int num, local_port, rem_port, d, state, timer_run, uid, timeout;
 #if ENABLE_FEATURE_IPV6
 	struct sockaddr_in6 localaddr, remaddr;
-	char addr6[INET6_ADDRSTRLEN];
-	struct in6_addr in6;
 #else
 	struct sockaddr_in localaddr, remaddr;
 #endif
@@ -290,73 +314,47 @@ static void raw_do_one(int lnr, const char *line)
 
 	more[0] = '\0';
 	num = sscanf(line,
-				 "%d: %64[0-9A-Fa-f]:%X %64[0-9A-Fa-f]:%X %X %lX:%lX %X:%lX %lX %d %d %ld %512s\n",
-				 &d, local_addr, &local_port,
-				 rem_addr, &rem_port, &state,
-				 &txq, &rxq, &timer_run, &time_len, &retr, &uid, &timeout, &inode, more);
+			"%d: %64[0-9A-Fa-f]:%X %64[0-9A-Fa-f]:%X %X %lX:%lX %X:%lX %lX %d %d %ld %512s\n",
+			&d, local_addr, &local_port,
+			rem_addr, &rem_port, &state,
+			&txq, &rxq, &timer_run, &time_len, &retr, &uid, &timeout, &inode, more);
 
 	if (strlen(local_addr) > 8) {
 #if ENABLE_FEATURE_IPV6
-		sscanf(local_addr, "%08X%08X%08X%08X",
-			   &in6.s6_addr32[0], &in6.s6_addr32[1],
-			   &in6.s6_addr32[2], &in6.s6_addr32[3]);
-		inet_ntop(AF_INET6, &in6, addr6, sizeof(addr6));
-		inet_pton(AF_INET6, addr6, (struct sockaddr *) &localaddr.sin6_addr);
-		sscanf(rem_addr, "%08X%08X%08X%08X",
-			   &in6.s6_addr32[0], &in6.s6_addr32[1],
-			   &in6.s6_addr32[2], &in6.s6_addr32[3]);
-		inet_ntop(AF_INET6, &in6, addr6, sizeof(addr6));
-		inet_pton(AF_INET6, addr6, (struct sockaddr *) &remaddr.sin6_addr);
-		localaddr.sin6_family = AF_INET6;
-		remaddr.sin6_family = AF_INET6;
+		build_ipv6_addr(local_addr, &localaddr);
+		build_ipv6_addr(rem_addr, &remaddr);
 #endif
 	} else {
-		sscanf(local_addr, "%X",
-			   &((struct sockaddr_in *) &localaddr)->sin_addr.s_addr);
-		sscanf(rem_addr, "%X",
-			   &((struct sockaddr_in *) &remaddr)->sin_addr.s_addr);
-		((struct sockaddr *) &localaddr)->sa_family = AF_INET;
-		((struct sockaddr *) &remaddr)->sa_family = AF_INET;
+		build_ipv4_addr(local_addr, &localaddr);
+		build_ipv4_addr(rem_addr, &remaddr);
 	}
 
 	if (num < 10) {
 		bb_error_msg("warning, got bogus raw line");
 		return;
 	}
-	state_str = itoa(state);
 
-#if ENABLE_FEATURE_IPV6
-# define notnull(A) (((A.sin6_family == AF_INET6) &&            \
-					 ((A.sin6_addr.s6_addr32[0]) ||            \
-					  (A.sin6_addr.s6_addr32[1]) ||            \
-					  (A.sin6_addr.s6_addr32[2]) ||            \
-					  (A.sin6_addr.s6_addr32[3]))) ||          \
-					((A.sin6_family == AF_INET) &&             \
-					 ((struct sockaddr_in *) &A)->sin_addr.s_addr))
-#else
-# define notnull(A) (A.sin_addr.s_addr)
-#endif
-	if ((notnull(remaddr) && (flags & NETSTAT_CONNECTED))
-	 || (!notnull(remaddr) && (flags & NETSTAT_LISTENING))
-	) {
-		snprint_ip_port(local_addr, sizeof(local_addr),
-						(struct sockaddr *) &localaddr, local_port,
-						"raw", flags & NETSTAT_NUMERIC);
-
-		snprint_ip_port(rem_addr, sizeof(rem_addr),
-						(struct sockaddr *) &remaddr, rem_port,
-						"raw", flags & NETSTAT_NUMERIC);
-
-		printf("raw   %6ld %6ld %-23s %-23s %-12s\n",
-			   rxq, txq, local_addr, rem_addr, state_str);
+	{
+		int have_remaddr = notnull(remaddr);
+		if ((have_remaddr && (flags & NETSTAT_CONNECTED))
+		 || (!have_remaddr && (flags & NETSTAT_LISTENING))
+		) {
+			snprint_ip_port(local_addr, sizeof(local_addr),
+				(struct sockaddr *) &localaddr, local_port,
+				"raw", flags & NETSTAT_NUMERIC);
+			snprint_ip_port(rem_addr, sizeof(rem_addr),
+				(struct sockaddr *) &remaddr, rem_port,
+				"raw", flags & NETSTAT_NUMERIC);
+			printf(net_conn_line,
+				"raw", rxq, txq, local_addr, rem_addr, itoa(state));
+		}
 	}
 }
 
-#define HAS_INODE 1
-
 static void unix_do_one(int nr, const char *line)
 {
-	static int has = 0;
+	static smallint has_inode = 0;
+
 	char path[PATH_MAX], ss_flags[32];
 	const char *ss_proto, *ss_state, *ss_type;
 	int num, state, type, inode;
@@ -365,18 +363,18 @@ static void unix_do_one(int nr, const char *line)
 
 	if (nr == 0) {
 		if (strstr(line, "Inode"))
-			has |= HAS_INODE;
+			has_inode = 1;
 		return;
 	}
 	path[0] = '\0';
 	num = sscanf(line, "%p: %lX %lX %lX %X %X %d %s",
-				 &d, &refcnt, &proto, &unix_flags, &type, &state, &inode, path);
+			&d, &refcnt, &proto, &unix_flags, &type, &state, &inode, path);
 	if (num < 6) {
 		bb_error_msg("warning, got bogus unix line");
 		return;
 	}
-	if (!(has & HAS_INODE))
-		snprintf(path,sizeof(path),"%d",inode);
+	if (!has_inode)
+		sprintf(path, "%d", inode);
 
 	if ((flags & (NETSTAT_LISTENING|NETSTAT_CONNECTED)) != (NETSTAT_LISTENING|NETSTAT_CONNECTED)) {
 		if ((state == SS_UNCONNECTED) && (unix_flags & SO_ACCEPTCON)) {
@@ -392,7 +390,6 @@ static void unix_do_one(int nr, const char *line)
 		case 0:
 			ss_proto = "unix";
 			break;
-
 		default:
 			ss_proto = "??";
 	}
@@ -401,23 +398,18 @@ static void unix_do_one(int nr, const char *line)
 		case SOCK_STREAM:
 			ss_type = "STREAM";
 			break;
-
 		case SOCK_DGRAM:
 			ss_type = "DGRAM";
 			break;
-
 		case SOCK_RAW:
 			ss_type = "RAW";
 			break;
-
 		case SOCK_RDM:
 			ss_type = "RDM";
 			break;
-
 		case SOCK_SEQPACKET:
 			ss_type = "SEQPACKET";
 			break;
-
 		default:
 			ss_type = "UNKNOWN";
 	}
@@ -426,7 +418,6 @@ static void unix_do_one(int nr, const char *line)
 		case SS_FREE:
 			ss_state = "FREE";
 			break;
-
 		case SS_UNCONNECTED:
 			/*
 			 * Unconnected sockets may be listening
@@ -438,19 +429,15 @@ static void unix_do_one(int nr, const char *line)
 				ss_state = "";
 			}
 			break;
-
 		case SS_CONNECTING:
 			ss_state = "CONNECTING";
 			break;
-
 		case SS_CONNECTED:
 			ss_state = "CONNECTED";
 			break;
-
 		case SS_DISCONNECTING:
 			ss_state = "DISCONNECTING";
 			break;
-
 		default:
 			ss_state = "UNKNOWN";
 	}
@@ -462,13 +449,12 @@ static void unix_do_one(int nr, const char *line)
 		strcat(ss_flags, "W ");
 	if (unix_flags & SO_NOSPACE)
 		strcat(ss_flags, "N ");
-
 	strcat(ss_flags, "]");
 
 	printf("%-5s %-6ld %-11s %-10s %-13s ",
 		   ss_proto, refcnt, ss_flags, ss_type, ss_state);
-	if (has & HAS_INODE)
-		printf("%-6d ",inode);
+	if (has_inode)
+		printf("%-6d ", inode);
 	else
 		printf("-      ");
 	puts(path);
@@ -513,20 +499,16 @@ static void do_info(const char *file, const char *name, void (*proc)(int, const 
 int netstat_main(int argc, char **argv);
 int netstat_main(int argc, char **argv)
 {
-	enum {
-		OPT_extended = 0x4,
-		OPT_showroute = 0x100,
-	};
 	unsigned opt;
 #if ENABLE_FEATURE_IPV6
-	int inet = 1;
-	int inet6 = 1;
+	smallint inet = 1;
+	smallint inet6 = 1;
 #else
 	enum { inet = 1, inet6 = 0 };
 #endif
 
 	/* Option string must match NETSTAT_xxx constants */
-	opt = getopt32(argc, argv, "laentuwxr");
+	opt = getopt32(argc, argv, NETSTAT_OPTS);
 	if (opt & 0x1) { // -l
 		flags &= ~NETSTAT_CONNECTED;
 		flags |= NETSTAT_LISTENING;
@@ -543,8 +525,12 @@ int netstat_main(int argc, char **argv)
 		bb_displayroutes(flags & NETSTAT_NUMERIC, !(opt & OPT_extended));
 		return 0;
 #else
-		bb_error_msg_and_die("-r (display routing table) is not compiled in");
+		bb_show_usage();
 #endif
+	}
+
+	if (opt & OPT_widedisplay) { // -W
+		net_conn_line = PRINT_NET_CONN_WIDE;
 	}
 
 	opt &= NETSTAT_ALLPROTO;
@@ -561,7 +547,8 @@ int netstat_main(int argc, char **argv)
 			printf("(only servers)");
 		else
 			printf("(w/o servers)");
-		printf("\nProto Recv-Q Send-Q Local Address           Foreign Address         State\n");
+		printf((opt & OPT_widedisplay) ? PRINT_NET_CONN_HEADER_WIDE : PRINT_NET_CONN_HEADER,
+			"Local Address", "Foreign Address");
 	}
 	if (inet && flags & NETSTAT_TCP)
 		do_info(_PATH_PROCNET_TCP, "AF INET (tcp)", tcp_do_one);
