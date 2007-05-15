@@ -13,7 +13,7 @@ usage_stuff = include/usage_compressed.h
 endif
 
 # pull in the config stuff
-lib-all-y := applets/applets.o applets/busybox.o
+lib-all-y := applets/applets.o
 lib-y:=
 include procps/Kbuild
 lib-all-y += $(patsubst %,procps/%,$(sort $(lib-y)))
@@ -118,14 +118,15 @@ CPPFLAGS+= -D"KBUILD_STR(s)=\#s" #-Q
 
 HOSTCC = gcc
 CC = gcc
+STRIP = strip
 WHOLE_PROGRAM:=$(call cc-option,-fwhole-program,)
 busybox: $(usage_stuff)
 	$(CC) $(CPPFLAGS) $(CFLAGS) $(EXTRA_CFLAGS) --combine $(WHOLE_PROGRAM) \
 		-funit-at-a-time -Wno-error -std=gnu99  \
 		-o $(@)_unstripped $(lib-all-y:.o=.c) \
 		-Wl,--start-group -lcrypt -lm -Wl,--end-group
-	cp $(@)_unstripped $@
-	-strip -s -R .note -R .comment -R .version $@
+	cp -f $(@)_unstripped $@
+	-$(STRIP) -s -R .note -R .comment -R .version $@
 
 applets/usage:
 	$(HOSTCC) -Wall -Wstrict-prototypes -O2 -fomit-frame-pointer      -I$(srctree)/include -o applets/usage applets/usage.c
