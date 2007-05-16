@@ -71,7 +71,7 @@
  *      memory leak finding and plugging - done?
  *      more testing, especially quoting rules and redirection
  *      document how quoting rules not precisely followed for variable assignments
- *      maybe change map[] to use 2-bit entries
+ *      maybe change charmap[] to use 2-bit entries
  *      (eventually) remove all the printf's
  *
  * Licensed under the GPL v2 or later, see the file LICENSE in this tarball.
@@ -281,12 +281,12 @@ extern char **environ; /* This is in <unistd.h>, but protected with __USE_GNU */
 
 /* "globals" within this file */
 enum {
-	MAP_ORDINARY             = 0,
-	MAP_FLOWTROUGH_IF_QUOTED = 1,
-	MAP_IFS_IF_UNQUOTED      = 2, /* flow through if quoted too */
-	MAP_NEVER_FLOWTROUGH     = 3,
+	CHAR_ORDINARY           = 0,
+	CHAR_ORDINARY_IF_QUOTED = 1, /* example: *, # */
+	CHAR_IFS                = 2, /* treated as ordinary if quoted */
+	CHAR_SPECIAL            = 3, /* example: $ */
 };
-static unsigned char map[256];
+static unsigned char charmap[256];
 static const char *ifs;
 static int fake_mode;
 static struct close_me *close_me_head;
@@ -2311,7 +2311,7 @@ static int xglob(o_string *dest, int flags, glob_t *pglob)
  * Caller can deallocate entire list by single free(list). */
 
 /* Helpers first:
- * count_XXX estimates, how large block do we need. It's okay
+ * count_XXX estimates size of the block we need. It's okay
  * to over-estimate sizes a bit, if it makes code simpler */
 static int count_ifs(const char *str)
 {
@@ -3360,17 +3360,17 @@ static int parse_stream(o_string *dest, struct p_context *ctx,
 	debug_printf_parse("parse_stream entered, end_trigger='%s'\n", end_trigger);
 
 	while ((ch = b_getch(input)) != EOF) {
-		m = map[ch];
+		m = charmap[ch];
 		next = (ch == '\n') ? '\0' : b_peek(input);
 		debug_printf_parse(": ch=%c (%d) m=%d quote=%d\n",
 						ch, ch, m, dest->quote);
-		if (m == MAP_ORDINARY
-		 || (m != MAP_NEVER_FLOWTROUGH && dest->quote)
+		if (m == CHAR_ORDINARY
+		 || (m != CHAR_SPECIAL && dest->quote)
 		) {
 			b_addqchr(dest, ch, dest->quote);
 			continue;
 		}
-		if (m == MAP_IFS_IF_UNQUOTED) {
+		if (m == CHAR_IFS) {
 			if (done_word(dest, ctx)) {
 				debug_printf_parse("parse_stream return 1: done_word!=0\n");
 				return 1;
@@ -3388,7 +3388,7 @@ static int parse_stream(o_string *dest, struct p_context *ctx,
 			debug_printf_parse("parse_stream return 0: end_trigger char found\n");
 			return 0;
 		}
-		if (m == MAP_IFS_IF_UNQUOTED)
+		if (m == CHAR_IFS)
 			continue;
 		switch (ch) {
 		case '#':
@@ -3527,28 +3527,28 @@ static int parse_stream(o_string *dest, struct p_context *ctx,
 	return 0;
 }
 
-static void mapset(const char *set, int code)
+static void set_in_charmap(const char *set, int code)
 {
 	while (*set)
-		map[(unsigned char)*set++] = code;
+		charmap[(unsigned char)*set++] = code;
 }
 
-static void update_ifs_map(void)
+static void update_charmap(void)
 {
-	/* char *ifs and char map[256] are both globals. */
+	/* char *ifs and char charmap[256] are both globals. */
 	ifs = getenv("IFS");
 	if (ifs == NULL)
 		ifs = " \t\n";
 	/* Precompute a list of 'flow through' behavior so it can be treated
 	 * quickly up front.  Computation is necessary because of IFS.
 	 * Special case handling of IFS == " \t\n" is not implemented.
-	 * The map[] array only really needs two bits each, and on most machines
-	 * that would be faster because of the reduced L1 cache footprint.
+	 * The charmap[] array only really needs two bits each,
+	 * and on most machines that would be faster (reduced L1 cache use).
 	 */
-	memset(map, MAP_ORDINARY, sizeof(map)); /* most chars flow through always */
-	mapset("\\$'\"`", MAP_NEVER_FLOWTROUGH);
-	mapset("<>;&|(){}#", MAP_FLOWTROUGH_IF_QUOTED);
-	mapset(ifs, MAP_IFS_IF_UNQUOTED);  /* also flow through if quoted */
+	memset(charmap, CHAR_ORDINARY, sizeof(charmap));
+	set_in_charmap("\\$\"`", CHAR_SPECIAL);
+	set_in_charmap("<>;&|(){}#'", CHAR_ORDINARY_IF_QUOTED);
+	set_in_charmap(ifs, CHAR_IFS);  /* also flow through if quoted */
 }
 
 /* most recursion does not come through here, the exception is
@@ -3561,9 +3561,9 @@ static int parse_stream_outer(struct in_str *inp, int parse_flag)
 	do {
 		ctx.parse_type = parse_flag;
 		initialize_context(&ctx);
-		update_ifs_map();
+		update_charmap();
 		if (!(parse_flag & FLAG_PARSE_SEMICOLON) || (parse_flag & FLAG_REPARSING))
-			mapset(";$&|", MAP_ORDINARY);
+			set_in_charmap(";$&|", CHAR_ORDINARY);
 #if ENABLE_HUSH_INTERACTIVE
 		inp->promptmode = 1;
 #endif
@@ -3665,7 +3665,7 @@ int hush_main(int argc, char **argv)
 	 * hush_main(), therefore we cannot rely on the BSS to zero out this
 	 * stuff.  Reset these to 0 every time. */
 	ifs = NULL;
-	/* map[] is taken care of with call to update_ifs_map() */
+	/* charmap[] is taken care of with call to update_charmap() */
 	fake_mode = 0;
 	close_me_head = NULL;
 #if ENABLE_HUSH_INTERACTIVE
