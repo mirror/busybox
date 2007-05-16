@@ -2425,6 +2425,7 @@ static int expand_on_ifs(char **list, int n, char **posp, const char *str)
 static int expand_vars_to_list(char **list, int n, char **posp, char *arg)
 {
 	char first_ch, ored_ch;
+	int i;
 	const char *val;
 	char *p;
 	char *pos = *posp;
@@ -2462,8 +2463,8 @@ static int expand_vars_to_list(char **list, int n, char **posp, char *arg)
 			break;
 		case '*':
 		case '@':
+			i = 1;
 			if (!(first_ch & 0x80)) { /* unquoted $* or $@ */
-				int i = 1;
 				while (i < global_argc) {
 					n = expand_on_ifs(list, n, &pos, global_argv[i]);
 					debug_printf_expand("expand_vars_to_list: argv %d (last %d)\n", i, global_argc-1);
@@ -2478,16 +2479,33 @@ static int expand_vars_to_list(char **list, int n, char **posp, char *arg)
 					}
 				}
 			} else if (first_ch == ('@'|0x80)) { /* quoted $@ */
-				/* TODO */
-			} else { /* quoted $* */
-				/* TODO */
+				while (1) {
+					strcpy(pos, global_argv[i]);
+					pos += strlen(global_argv[i]);
+					if (++i >= global_argc)
+						break;
+					*pos++ = '\0';
+					if (n) debug_printf_expand("expand_vars_to_list 3 finalized list[%d]=%p '%s' "
+						"strlen=%d next=%p pos=%p\n", n-1, list[n-1], list[n-1],
+							strlen(list[n-1]), list[n-1] + strlen(list[n-1]) + 1, pos);
+					list[n++] = pos;
+				}
+			} else { /* quoted $*: add as one word */
+				while (1) {
+					strcpy(pos, global_argv[i]);
+					pos += strlen(global_argv[i]);
+					if (++i >= global_argc)
+						break;
+					if (ifs[0])
+						*pos++ = ifs[0];
+				}
 			}
 			break;
 		default:
 			*p = '\0';
 			arg[0] = first_ch & 0x7f;
 			if (isdigit(arg[0])) {
-				int i = xatoi_u(arg);
+				i = xatoi_u(arg);
 				val = NULL;
 				if (i < global_argc)
 					val = global_argv[i];
@@ -2495,12 +2513,12 @@ static int expand_vars_to_list(char **list, int n, char **posp, char *arg)
 				val = lookup_param(arg);
 			arg[0] = first_ch;
 			*p = SPECIAL_VAR_SYMBOL;
-			if (!(first_ch & 0x80)) { /* unquoted var */
+			if (!(first_ch & 0x80)) { /* unquoted $VAR */
 				if (val) {
 					n = expand_on_ifs(list, n, &pos, val);
 					val = NULL;
 				}
-			}
+			} /* else: quoted $VAR, val will be appended at pos */
 		}
 		if (val) {
 			strcpy(pos, val);
@@ -3268,18 +3286,18 @@ static char* make_string(char **inp)
 /* return code: 0 for OK, 1 for syntax error */
 static int handle_dollar(o_string *dest, struct p_context *ctx, struct in_str *input)
 {
-//	int i;
-//	char sep[] = " ";
 	int ch = b_peek(input);  /* first character after the $ */
+	unsigned char quote_mask = dest->quote ? 0x80 : 0;
 
 	debug_printf_parse("handle_dollar entered: ch='%c'\n", ch);
-	if (isalpha(ch) || ch == '?') {
+	if (isalpha(ch)) {
 		b_addchr(dest, SPECIAL_VAR_SYMBOL);
 		ctx->child->sp++;
 		while (1) {
 			debug_printf_parse(": '%c'\n", ch);
 			b_getch(input);
-			b_addchr(dest, ch);
+			b_addchr(dest, ch | quote_mask);
+			quote_mask = 0;
 			ch = b_peek(input);
 			if (!isalnum(ch) && ch != '_')
 				break;
@@ -3291,7 +3309,7 @@ static int handle_dollar(o_string *dest, struct p_context *ctx, struct in_str *i
 		ctx->child->sp++;
 		debug_printf_parse(": '%c'\n", ch);
 		b_getch(input);
-		b_addchr(dest, ch);
+		b_addchr(dest, ch | quote_mask);
 		b_addchr(dest, SPECIAL_VAR_SYMBOL);
 	} else switch (ch) {
 		case '$': /* pid */
@@ -3316,7 +3334,8 @@ static int handle_dollar(o_string *dest, struct p_context *ctx, struct in_str *i
 				if (ch == '}')
 					break;
 				debug_printf_parse(": '%c'\n", ch);
-				b_addchr(dest, ch);
+				b_addchr(dest, ch | quote_mask);
+				quote_mask = 0;
 			}
 			b_addchr(dest, SPECIAL_VAR_SYMBOL);
 			break;

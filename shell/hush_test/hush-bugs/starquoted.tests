@@ -1,4 +1,0 @@
-if test $# = 0; then
-    exec "$THIS_SH" starquoted.tests 1 abc 'd e f'
-fi
-for a in "$*"; do echo ".$a."; done
