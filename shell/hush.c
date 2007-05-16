@@ -124,6 +124,7 @@ static const char *indenter(int i)
 	return &blanks[sizeof(blanks) - i - 1];
 }
 #define debug_printf_clean(...) fprintf(stderr, __VA_ARGS__)
+#define DEBUG_CLEAN 1
 #endif
 
 
@@ -232,10 +233,10 @@ struct child_prog {
 	glob_t glob_result;         /* result of parameter globbing */
 	int is_stopped;             /* is the program currently running? */
 	struct pipe *family;        /* pointer back to the child's parent pipe */
-	int sp;                     /* number of SPECIAL_VAR_SYMBOL */
+	//sp counting seems to be broken... so commented out, grep for '//sp:'
+	//sp: int sp;               /* number of SPECIAL_VAR_SYMBOL */
 	int type;
 };
-// sp counting seems to be broken...
 /* argv vector may contain variable references (^Cvar^C, ^C0^C etc)
  * and on execution these are substituted with their values.
  * Substitution can make _several_ words out of one argv[n]!
@@ -383,7 +384,6 @@ static int b_check_space(o_string *o, int len);
 static int b_addchr(o_string *o, int ch);
 static void b_reset(o_string *o);
 static int b_addqchr(o_string *o, int ch, int quote);
-//static int b_adduint(o_string *o, unsigned i);
 /*  in_str manipulations: */
 static int static_get(struct in_str *i);
 static int static_peek(struct in_str *i);
@@ -396,7 +396,10 @@ static void mark_open(int fd);
 static void mark_closed(int fd);
 static void close_all(void);
 /*  "run" the final data structures: */
-//TODO: remove indent argument from non-debug build!
+#if !defined(DEBUG_CLEAN)
+#define free_pipe_list(head, indent) free_pipe_list(head)
+#define free_pipe(pi, indent)        free_pipe(pi)
+#endif
 static int free_pipe_list(struct pipe *head, int indent);
 static int free_pipe(struct pipe *pi, int indent);
 /*  really run the final data structures: */
@@ -425,7 +428,6 @@ static int parse_group(o_string *dest, struct p_context *ctx, struct in_str *inp
 static const char *lookup_param(const char *src);
 static char *make_string(char **inp);
 static int handle_dollar(o_string *dest, struct p_context *ctx, struct in_str *input);
-//static int parse_string(o_string *dest, struct p_context *ctx, const char *src);
 static int parse_stream(o_string *dest, struct p_context *ctx, struct in_str *input0, const char *end_trigger);
 /*   setup: */
 static int parse_stream_outer(struct in_str *inp, int parse_flag);
@@ -708,9 +710,8 @@ static int builtin_export(char **argv)
 		return EXIT_SUCCESS;
 	}
 
-	name = strdup(name);
-
-	if (name) {
+	name = xstrdup(name);
+	{
 		const char *value = strchr(name, '=');
 
 		if (!value) {
@@ -721,13 +722,9 @@ static int builtin_export(char **argv)
 			if (value) {
 				size_t ln = strlen(name);
 
-				tmp = realloc(name, ln+strlen(value)+2);
-				if (tmp == NULL)
-					res = -1;
-				else {
-					sprintf(tmp+ln, "=%s", value);
-					name = tmp;
-				}
+				tmp = xrealloc(name, ln+strlen(value)+2);
+				sprintf(tmp+ln, "=%s", value);
+				name = tmp;
 			} else {
 				/* bash does not return an error when trying to export
 				 * an undefined variable.  Do likewise. */
@@ -967,13 +964,9 @@ static int b_check_space(o_string *o, int len)
 	/* It would be easy to drop a more restrictive policy
 	 * in here, such as setting a maximum string length */
 	if (o->length + len > o->maxlen) {
-		char *old_data = o->data;
 		/* assert(data == NULL || o->maxlen != 0); */
 		o->maxlen += (2*len > B_CHUNK ? 2*len : B_CHUNK);
-		o->data = realloc(o->data, 1 + o->maxlen);
-		if (o->data == NULL) {
-			free(old_data);
-		}
+		o->data = xrealloc(o->data, 1 + o->maxlen);
 	}
 	return o->data == NULL;
 }
@@ -1019,17 +1012,6 @@ static int b_addqchr(o_string *o, int ch, int quote)
 	return b_addchr(o, ch);
 }
 
-//static int b_adduint(o_string *o, unsigned i)
-//{
-//	int r;
-//	char buf[sizeof(unsigned)*3 + 1];
-//	char *p = buf;
-//	*(utoa_to_buf(i, buf, sizeof(buf))) = '\0';
-//	/* no escape checking necessary */
-//	do r = b_addchr(o, *p++); while (r == 0 && *p);
-//	return r;
-//}
-//
 static int static_get(struct in_str *i)
 {
 	int ch = *i->p++;
@@ -1286,7 +1268,7 @@ static void pseudo_exec_argv(char **argv)
 	const struct built_in_command *x;
 
 	for (i = 0; is_assignment(argv[i]); i++) {
-		debug_printf("pid %d environment modification: %s\n",
+		debug_printf_exec("pid %d environment modification: %s\n",
 				getpid(), argv[i]);
 // FIXME: vfork case??
 		p = insert_var_value(argv[i]);
@@ -1317,23 +1299,27 @@ static void pseudo_exec_argv(char **argv)
 		}
 	}
 
-	/* Check if the command matches any busybox internal commands
-	 * ("applets") here.
-	 * FIXME: This feature is not 100% safe, since
-	 * BusyBox is not fully reentrant, so we have no guarantee the things
-	 * from the .bss are still zeroed, or that things from .data are still
-	 * at their defaults.  We could exec ourself from /proc/self/exe, but I
-	 * really dislike relying on /proc for things.  We could exec ourself
-	 * from global_argv[0], but if we are in a chroot, we may not be able
-	 * to find ourself... */
+	/* Check if the command matches any busybox applets */
 #if ENABLE_FEATURE_SH_STANDALONE
-	debug_printf("running applet %s\n", argv[0]);
-// FIXME: check NOEXEC bit, and EXEC if not set!
-	run_applet_and_exit(argv[0], argv);
-// is it ok that run_applet_and_exit() does exit(), not _exit()?
-// NB: IIRC on NOMMU we are after _vfork_, not fork!
+	if (strchr(argv[0], '/') == NULL) {
+		const struct bb_applet *a = find_applet_by_name(argv[0]);
+		if (a) {
+			if (a->noexec) {
+				current_applet = a;
+				debug_printf_exec("running applet '%s'\n", argv[0]);
+// is it ok that run_current_applet_and_exit() does exit(), not _exit()?
+				run_current_applet_and_exit(argv);
+			}
+			/* re-exec ourselves with the new arguments */
+			debug_printf_exec("re-execing applet '%s'\n", argv[0]);
+			execvp(CONFIG_BUSYBOX_EXEC_PATH, argv);
+			/* If they called chroot or otherwise made the binary no longer
+			 * executable, fall through */
+		}
+	}
 #endif
-	debug_printf("exec of %s\n", argv[0]);
+
+	debug_printf_exec("execing '%s'\n", argv[0]);
 	execvp(argv[0], argv);
 	bb_perror_msg("cannot exec '%s'", argv[0]);
 	_exit(1);
@@ -1426,16 +1412,7 @@ static void insert_bg_job(struct pipe *pi)
 // TODO: do we really need to have so many fields which are just dead weight
 // at execution stage?
 		thejob->progs[i].pid = pi->progs[i].pid;
-		//rest:
-		//char **argv;                /* program name and arguments */
-		//struct pipe *group;         /* if non-NULL, first in group or subshell */
-		//int subshell;               /* flag, non-zero if group must be forked */
-		//struct redir_struct *redirects; /* I/O redirections */
-		//glob_t glob_result;         /* result of parameter globbing */
-		//int is_stopped;             /* is the program currently running? */
-		//struct pipe *family;        /* pointer back to the child's parent pipe */
-		//int sp;                     /* number of SPECIAL_VAR_SYMBOL */
-		//int type;
+		/* all other fields are not used and stay zero */
 	}
 	thejob->next = NULL;
 	thejob->cmdtext = xstrdup(get_cmdtext(pi));
@@ -1594,10 +1571,6 @@ static int checkjobs(struct pipe* fg_pipe)
 
 	if (childpid && errno != ECHILD)
 		bb_perror_msg("waitpid");
-
-	/* move the shell to the foreground */
-	//if (interactive_fd && tcsetpgrp(interactive_fd, getpgid(0)))
-	//	bb_perror_msg("tcsetpgrp-2");
 	return rcode;
 }
 
@@ -1669,7 +1642,7 @@ static int run_pipe_real(struct pipe *pi)
 	}
 
 	if (single_fg && child->argv != NULL) {
-		char **argv_expanded, **free_me;
+		char **argv_expanded;
 		char **argv = child->argv;
 
 		for (i = 0; is_assignment(argv[i]); i++)
@@ -1704,13 +1677,12 @@ static int run_pipe_real(struct pipe *pi)
 		for (i = 0; is_assignment(argv[i]); i++) {
 			p = insert_var_value(argv[i]);
 			if (p != argv[i]) {
-				child->sp--;
+				//sp: child->sp--;
 				putenv(p);
 			} else {
 				putenv(xstrdup(p));
 			}
 		}
-		free_me = NULL;
 		for (x = bltins; x->cmd; x++) {
 			if (strcmp(argv[i], x->cmd) == 0) {
 				if (x->function == builtin_exec && argv[i+1] == NULL) {
@@ -1723,14 +1695,12 @@ static int run_pipe_real(struct pipe *pi)
 				 * This is perfect for work that comes after exec().
 				 * Is it really safe for inline use?  Experimentally,
 				 * things seem to work with glibc. */
-// TODO: fflush(NULL)?
 				setup_redirects(child, squirrel);
 				debug_printf_exec(": builtin '%s' '%s'...\n", x->cmd, argv[i+1]);
-				argv_expanded = argv + i;
-				if (child->sp) /* btw we can do it unconditionally... */
-					free_me = argv_expanded = do_variable_expansion(argv + i);
+				//sp: if (child->sp) /* btw we can do it unconditionally... */
+				argv_expanded = do_variable_expansion(argv + i);
 				rcode = x->function(argv_expanded);
-				free(free_me);
+				free(argv_expanded);
 				restore_redirects(squirrel);
 				debug_printf_exec("run_pipe_real return %d\n", rcode);
 				return rcode;
@@ -1743,11 +1713,11 @@ static int run_pipe_real(struct pipe *pi)
 				setup_redirects(child, squirrel);
 				save_nofork_data(&nofork_save);
 				argv_expanded = argv + i;
-				if (child->sp)
-					free_me = argv_expanded = do_variable_expansion(argv + i);
+				//sp: if (child->sp)
+				argv_expanded = do_variable_expansion(argv + i);
 				debug_printf_exec(": run_nofork_applet '%s' '%s'...\n", argv_expanded[0], argv_expanded[1]);
 				rcode = run_nofork_applet_prime(&nofork_save, a, argv_expanded);
-				free(free_me);
+				free(argv_expanded);
 				restore_redirects(squirrel);
 				debug_printf_exec("run_pipe_real return %d\n", rcode);
 				return rcode;
@@ -1802,7 +1772,7 @@ static int run_pipe_real(struct pipe *pi)
 				}
 			}
 #endif
-			// in non-interactive case fatal sigs are already SIG_DFL
+			/* in non-interactive case fatal sigs are already SIG_DFL */
 			close_all();
 			if (nextin != 0) {
 				dup2(nextin, 0);
@@ -1833,13 +1803,6 @@ static int run_pipe_real(struct pipe *pi)
 		if (pi->pgrp < 0)
 			pi->pgrp = child->pid;
 #endif
-
-		/* Don't check for errors.  The child may be dead already,
-		 * in which case setpgid returns error code EACCES. */
-		//why we do it at all?? child does it itself
-		//if (interactive_fd)
-		//	setpgid(child->pid, pi->pgrp);
-
 		if (nextin != 0)
 			close(nextin);
 		if (nextout != 1)
@@ -1911,8 +1874,8 @@ static void debug_print_tree(struct pipe *pi, int lvl)
 }
 #endif
 
-// NB: called by pseudo_exec, and therefore must not modify any
-// global data until exec/_exit (we can be a child after vfork!)
+/* NB: called by pseudo_exec, and therefore must not modify any
+ * global data until exec/_exit (we can be a child after vfork!) */
 static int run_list_real(struct pipe *pi)
 {
 #if ENABLE_HUSH_JOB
@@ -2224,9 +2187,7 @@ static int globhack(const char *src, int flags, glob_t *pglob)
 		if (*s == '\\') s++;
 		cnt++;
 	}
-	dest = malloc(cnt);
-	if (!dest)
-		return GLOB_NOSPACE;
+	dest = xmalloc(cnt);
 	if (!(flags & GLOB_APPEND)) {
 		pglob->gl_pathv = NULL;
 		pglob->gl_pathc = 0;
@@ -2234,9 +2195,7 @@ static int globhack(const char *src, int flags, glob_t *pglob)
 		pglob->gl_offs = 0;
 	}
 	pathc = ++pglob->gl_pathc;
-	pglob->gl_pathv = realloc(pglob->gl_pathv, (pathc+1) * sizeof(*pglob->gl_pathv));
-	if (pglob->gl_pathv == NULL)
-		return GLOB_NOSPACE;
+	pglob->gl_pathv = xrealloc(pglob->gl_pathv, (pathc+1) * sizeof(*pglob->gl_pathv));
 	pglob->gl_pathv[pathc-1] = dest;
 	pglob->gl_pathv[pathc] = NULL;
 	for (s = src; s && *s; s++, dest++) {
@@ -2312,8 +2271,8 @@ static int count_ifs(const char *str)
 	while (1) {
 		str += strcspn(str, ifs);
 		if (!*str) break;
-		str++; // str += strspn(str, ifs); ?
-		cnt++; // cnt += strspn(str, ifs); ?
+		str++; /* str += strspn(str, ifs); */
+		cnt++; /* cnt += strspn(str, ifs); - but this code is larger */
 	}
 	debug_printf_expand(" return %d\n", cnt);
 	return cnt;
@@ -2704,31 +2663,23 @@ static int set_local_var(const char *s, int flg_export)
 				if (flg_export > 0 || cur->flg_export > 1)
 					cur->flg_export = 1;
 				free((char*)cur->value);
-				cur->value = strdup(value);
+				cur->value = xstrdup(value);
 			}
 			goto skip;
 		}
 	}
 
-// TODO: need simpler/generic rollback on malloc failure - see ash
-	cur = malloc(sizeof(*cur));
-	if (!cur) {
-		result = -1;
-	} else {
-		cur->name = strdup(name);
-		if (!cur->name) {
-			free(cur);
-			result = -1;
-		} else {
-			struct variables *bottom = top_vars;
-			cur->value = strdup(value);
-			cur->next = 0;
-			cur->flg_export = flg_export;
-			cur->flg_read_only = 0;
-			while (bottom->next)
-				bottom = bottom->next;
-			bottom->next = cur;
-		}
+	cur = xzalloc(sizeof(*cur));
+	cur->name = xstrdup(name);
+	cur->value = xstrdup(value);
+	/*cur->next = 0;*/
+	cur->flg_export = flg_export;
+	/*cur->flg_read_only = 0;*/
+	{
+		struct variables *bottom = top_vars;
+		while (bottom->next)
+			bottom = bottom->next;
+		bottom->next = cur;
 	}
  skip:
 	if (result == 0 && cur->flg_export == 1) {
@@ -3019,7 +2970,7 @@ static int done_command(struct p_context *ctx)
 	/*child->group = NULL;*/
 	/*child->glob_result.gl_pathv = NULL;*/
 	child->family = pi;
-	/*child->sp = 0;*/
+	//sp: /*child->sp = 0;*/
 	child->type = ctx->parse_type;
 
 	ctx->child = child;
@@ -3268,7 +3219,7 @@ static int handle_dollar(o_string *dest, struct p_context *ctx, struct in_str *i
 	debug_printf_parse("handle_dollar entered: ch='%c'\n", ch);
 	if (isalpha(ch)) {
 		b_addchr(dest, SPECIAL_VAR_SYMBOL);
-		ctx->child->sp++;
+		//sp: ctx->child->sp++;
 		while (1) {
 			debug_printf_parse(": '%c'\n", ch);
 			b_getch(input);
@@ -3282,7 +3233,7 @@ static int handle_dollar(o_string *dest, struct p_context *ctx, struct in_str *i
 	} else if (isdigit(ch)) {
  make_one_char_var:
 		b_addchr(dest, SPECIAL_VAR_SYMBOL);
-		ctx->child->sp++;
+		//sp: ctx->child->sp++;
 		debug_printf_parse(": '%c'\n", ch);
 		b_getch(input);
 		b_addchr(dest, ch | quote_mask);
@@ -3297,7 +3248,7 @@ static int handle_dollar(o_string *dest, struct p_context *ctx, struct in_str *i
 			goto make_one_char_var;
 		case '{':
 			b_addchr(dest, SPECIAL_VAR_SYMBOL);
-			ctx->child->sp++;
+			//sp: ctx->child->sp++;
 			b_getch(input);
 			/* XXX maybe someone will try to escape the '}' */
 			while (1) {
@@ -3332,13 +3283,6 @@ static int handle_dollar(o_string *dest, struct p_context *ctx, struct in_str *i
 	return 0;
 }
 
-//static int parse_string(o_string *dest, struct p_context *ctx, const char *src)
-//{
-//	struct in_str foo;
-//	setup_string_in_str(&foo, src);
-//	return parse_stream(dest, ctx, &foo, NULL);
-//}
-//
 /* return code is 0 for normal exit, 1 for syntax error */
 static int parse_stream(o_string *dest, struct p_context *ctx,
 	struct in_str *input, const char *end_trigger)
@@ -3711,9 +3655,9 @@ int hush_main(int argc, char **argv)
 			opt = parse_string_outer(optarg, FLAG_PARSE_SEMICOLON);
 			goto final_return;
 		case 'i':
-			// Well, we cannot just declare interactiveness,
-			// we have to have some stuff (ctty, etc)
-			/*interactive_fd++;*/
+			/* Well, we cannot just declare interactiveness,
+			 * we have to have some stuff (ctty, etc) */
+			/* interactive_fd++; */
 			break;
 		case 'f':
 			fake_mode++;
