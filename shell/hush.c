@@ -854,32 +854,24 @@ static int builtin_pwd(char **argv ATTRIBUTE_UNUSED)
 /* built-in 'read VAR' handler */
 static int builtin_read(char **argv)
 {
-	int res;
+	char string[BUFSIZ];
+	char *p;
+	const char *name = argv[1] ? argv[1] : "REPLY";
+	int name_len = strlen(name);
 
-	if (argv[1]) {
-		char string[BUFSIZ];
-		char *var = NULL;
-
-		string[0] = '\0';  /* In case stdin has only EOF */
-		/* read string */
-		fgets(string, sizeof(string), stdin);
-		chomp(string);
-		var = malloc(strlen(argv[1]) + strlen(string) + 2);
-		if (var) {
-			sprintf(var, "%s=%s", argv[1], string);
-			res = set_local_var(var, 0);
-		} else
-			res = -1;
-		if (res)
-			bb_perror_msg("read");
-		free(var);      /* So not move up to avoid breaking errno */
-		return res;
-	}
-	do res = getchar(); while (res != '\n' && res != EOF);
-	return 0;
+	if (name_len >= sizeof(string) - 2)
+		return EXIT_FAILURE;
+	strcpy(string, name);
+	p = string + name_len;
+	*p++ = '=';
+	*p = '\0'; /* In case stdin has only EOF */
+	/* read string. name_len+1 chars are already used by 'name=' */
+	fgets(p, sizeof(string) - 1 - name_len, stdin);
+	chomp(p);
+	return set_local_var(string, 0);
 }
 
-/* built-in 'set VAR=value' handler */
+/* built-in 'set [VAR=value]' handler */
 static int builtin_set(char **argv)
 {
 	char *temp = argv[1];
@@ -959,7 +951,7 @@ static int builtin_umask(char **argv)
 /* built-in 'unset VAR' handler */
 static int builtin_unset(char **argv)
 {
-	/* bash returned already true */
+	/* bash always returns true */
 	unset_local_var(argv[1]);
 	return EXIT_SUCCESS;
 }
@@ -2418,8 +2410,6 @@ static int expand_on_ifs(char **list, int n, char **posp, const char *str)
  * to be filled). This routine is extremely tricky: has to deal with
  * variables/parameters with whitespace, $* and $@, and constructs like
  * 'echo -$*-'. If you play here, you must run testsuite afterwards! */
-/* NB: support for double-quoted expansion is not used yet (we never set
- * magic bit 0x80 elsewhere...) */
 /* NB: another bug is that we cannot detect empty strings yet:
  * "" or $empty"" expands to zero words, has to expand to empty word */
 static int expand_vars_to_list(char **list, int n, char **posp, char *arg)
@@ -2663,20 +2653,6 @@ static char *insert_var_value(char *inp)
 }
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 /* This is used to get/check local shell variables */
 static const char *get_local_var(const char *s)
 {
@@ -2717,7 +2693,7 @@ static int set_local_var(const char *s, int flg_export)
 	for (cur = top_vars; cur; cur = cur->next) {
 		if (strcmp(cur->name, name) == 0) {
 			if (strcmp(cur->value, value) == 0) {
-				if (flg_export > 0 && cur->flg_export == 0)
+				if (flg_export && !cur->flg_export)
 					cur->flg_export = flg_export;
 				else
 					result++;
@@ -2730,8 +2706,8 @@ static int set_local_var(const char *s, int flg_export)
 				free((char*)cur->value);
 				cur->value = strdup(value);
 			}
+			goto skip;
 		}
-		goto skip;
 	}
 
 // TODO: need simpler/generic rollback on malloc failure - see ash
