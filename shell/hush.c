@@ -552,7 +552,7 @@ static void handler_ctrl_z(int sig)
 
 	debug_printf_jobs("got tty sig %d in pid %d\n", sig, getpid());
 	pid = fork();
-	if (pid < 0) /* can't fork. Pretend there were no ctrl-Z */
+	if (pid < 0) /* can't fork. Pretend there was no ctrl-Z */
 		return;
 	ctrl_z_flag = 1;
 	if (!pid) { /* child */
