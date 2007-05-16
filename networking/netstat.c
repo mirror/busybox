@@ -499,6 +499,7 @@ static void do_info(const char *file, const char *name, void (*proc)(int, const 
 int netstat_main(int argc, char **argv);
 int netstat_main(int argc, char **argv)
 {
+	const char *net_conn_line_header = PRINT_NET_CONN_HEADER;
 	unsigned opt;
 #if ENABLE_FEATURE_IPV6
 	smallint inet = 1;
@@ -531,6 +532,7 @@ int netstat_main(int argc, char **argv)
 
 	if (opt & OPT_widedisplay) { // -W
 		net_conn_line = PRINT_NET_CONN_WIDE;
+		net_conn_line_header = PRINT_NET_CONN_HEADER_WIDE;
 	}
 
 	opt &= NETSTAT_ALLPROTO;
@@ -547,8 +549,7 @@ int netstat_main(int argc, char **argv)
 			printf("(only servers)");
 		else
 			printf("(w/o servers)");
-		printf((opt & OPT_widedisplay) ? PRINT_NET_CONN_HEADER_WIDE : PRINT_NET_CONN_HEADER,
-			"Local Address", "Foreign Address");
+		printf(net_conn_line_header, "Local Address", "Foreign Address");
 	}
 	if (inet && flags & NETSTAT_TCP)
 		do_info(_PATH_PROCNET_TCP, "AF INET (tcp)", tcp_do_one);
