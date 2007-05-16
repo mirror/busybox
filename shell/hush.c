@@ -980,7 +980,7 @@ static int b_check_space(o_string *o, int len)
 
 static int b_addchr(o_string *o, int ch)
 {
-	debug_printf("b_addchr: '%c' o->lengtt=%d o=%p\n", ch, o->length, o);
+	debug_printf("b_addchr: '%c' o->length=%d o=%p\n", ch, o->length, o);
 	if (b_check_space(o, 1))
 		return B_NOSPAC;
 	o->data[o->length] = ch;
