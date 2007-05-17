@@ -81,6 +81,7 @@
 #include <glob.h>      /* glob, of course */
 #include <getopt.h>    /* should be pretty obvious */
 /* #include <dmalloc.h> */
+extern char **environ; /* This is in <unistd.h>, but protected with __USE_GNU */
 
 
 /* If you comment out one of these below, it will be #defined later
@@ -273,49 +274,6 @@ struct variables {
 	int flg_read_only;
 };
 
-/* globals, connect us to the outside world
- * the first three support $?, $#, and $1 */
-static char **global_argv;
-static int global_argc;
-static int last_return_code;
-extern char **environ; /* This is in <unistd.h>, but protected with __USE_GNU */
-
-/* "globals" within this file */
-enum {
-	CHAR_ORDINARY           = 0,
-	CHAR_ORDINARY_IF_QUOTED = 1, /* example: *, # */
-	CHAR_IFS                = 2, /* treated as ordinary if quoted */
-	CHAR_SPECIAL            = 3, /* example: $ */
-};
-static unsigned char charmap[256];
-static const char *ifs;
-static int fake_mode;
-static struct close_me *close_me_head;
-static const char *cwd;
-static unsigned last_bg_pid;
-#if !ENABLE_HUSH_INTERACTIVE
-enum { interactive_fd = 0 };
-#else
-/* 'interactive_fd' is a fd# open to ctty, if we have one
- * _AND_ if we decided to act interactively */
-static int interactive_fd;
-#if ENABLE_HUSH_JOB
-static pid_t saved_task_pgrp;
-static pid_t saved_tty_pgrp;
-static int last_jobid;
-static struct pipe *job_list;
-#endif
-static const char *PS1;
-static const char *PS2;
-#endif
-
-#define HUSH_VER_STR "0.02"
-static struct variables shell_ver = { NULL, "HUSH_VERSION", HUSH_VER_STR, 1, 1 };
-static struct variables *top_vars = &shell_ver;
-
-#define B_CHUNK  100
-#define B_NOSPAC 1
-
 typedef struct {
 	char *data;
 	int length;
@@ -324,8 +282,7 @@ typedef struct {
 	int nonnull;
 } o_string;
 #define NULL_O_STRING {NULL,0,0,0,0}
-/* used for initialization:
-	o_string foo = NULL_O_STRING; */
+/* used for initialization: o_string foo = NULL_O_STRING; */
 
 /* I can almost use ordinary FILE *.  Is open_memstream() universally
  * available?  Where is it documented? */
@@ -345,13 +302,113 @@ struct in_str {
 #define b_getch(input) ((input)->get(input))
 #define b_peek(input) ((input)->peek(input))
 
-#define JOB_STATUS_FORMAT "[%d] %-22s %.40s\n"
-
-struct built_in_command {
-	const char *cmd;                /* name */
-	const char *descr;              /* description */
-	int (*function) (char **argv);  /* function ptr */
+enum {
+	CHAR_ORDINARY           = 0,
+	CHAR_ORDINARY_IF_QUOTED = 1, /* example: *, # */
+	CHAR_IFS                = 2, /* treated as ordinary if quoted */
+	CHAR_SPECIAL            = 3, /* example: $ */
 };
+
+
+/* "Globals" within this file */
+
+#define HUSH_VER_STR "0.02"
+static const struct variables const_shell_ver = {
+	NULL, "HUSH_VERSION", HUSH_VER_STR, 1, 1
+};
+
+/* Sorted roughly by size (smaller offsets == smaller code) */
+struct globals {
+#if ENABLE_HUSH_INTERACTIVE
+	/* 'interactive_fd' is a fd# open to ctty, if we have one
+	 * _AND_ if we decided to act interactively */
+	int interactive_fd;
+	const char *PS1;
+	const char *PS2;
+#endif
+#if ENABLE_FEATURE_EDITING
+	line_input_t *line_input_state;
+#endif
+#if ENABLE_HUSH_JOB
+	int run_list_level;
+	pid_t saved_task_pgrp;
+	pid_t saved_tty_pgrp;
+	int last_jobid;
+	struct pipe *job_list;
+	struct pipe *toplevel_list;
+	smallint ctrl_z_flag;
+#endif
+	smallint fake_mode;
+	/* these three support $?, $#, and $1 */
+	char **global_argv;
+	int global_argc;
+	int last_return_code;
+	const char *ifs;
+	struct close_me *close_me_head;
+	const char *cwd;
+	unsigned last_bg_pid;
+	struct variables *top_vars; /* = &shell_ver (both are set in main()) */
+	struct variables shell_ver; /* = const_shell_ver */
+#if ENABLE_FEATURE_SH_STANDALONE
+	struct nofork_save_area nofork_save;
+#endif
+#if ENABLE_HUSH_JOB
+	sigjmp_buf toplevel_jb;
+#endif
+	unsigned char charmap[256];
+	char user_input_buf[ENABLE_FEATURE_EDITING ? BUFSIZ : 2];
+};
+
+#define G (*ptr_to_globals)
+
+#if !ENABLE_HUSH_INTERACTIVE
+enum { interactive_fd = 0 };
+#endif
+#if !ENABLE_HUSH_JOB
+enum { run_list_level = 0 };
+#endif
+
+#if ENABLE_HUSH_INTERACTIVE
+#define interactive_fd   (G.interactive_fd  )
+#define PS1              (G.PS1             )
+#define PS2              (G.PS2             )
+#endif
+#if ENABLE_FEATURE_EDITING
+#define line_input_state (G.line_input_state)
+#endif
+#if ENABLE_HUSH_JOB
+#define run_list_level   (G.run_list_level  )
+#define saved_task_pgrp  (G.saved_task_pgrp )
+#define saved_tty_pgrp   (G.saved_tty_pgrp  )
+#define last_jobid       (G.last_jobid      )
+#define job_list         (G.job_list        )
+#define toplevel_list    (G.toplevel_list   )
+#define toplevel_jb      (G.toplevel_jb     )
+#define ctrl_z_flag      (G.ctrl_z_flag     )
+#endif /* JOB */
+#define global_argv      (G.global_argv     )
+#define global_argc      (G.global_argc     )
+#define last_return_code (G.last_return_code)
+#define ifs              (G.ifs             )
+#define fake_mode        (G.fake_mode       )
+#define close_me_head    (G.close_me_head   )
+#define cwd              (G.cwd             )
+#define last_bg_pid      (G.last_bg_pid     )
+#define top_vars         (G.top_vars        )
+#define shell_ver        (G.shell_ver       )
+#if ENABLE_FEATURE_SH_STANDALONE
+#define nofork_save      (G.nofork_save     )
+#endif                     
+#if ENABLE_HUSH_JOB
+#define toplevel_jb      (G.toplevel_jb     )
+#endif
+#define charmap          (G.charmap         )
+#define user_input_buf   (G.user_input_buf  )
+
+
+#define B_CHUNK  100
+#define B_NOSPAC 1
+#define JOB_STATUS_FORMAT "[%d] %-22s %.40s\n"
 
 static void __syntax(int line)
 {
@@ -457,6 +514,12 @@ static void unset_local_var(const char *name);
  * in the parent shell process.  If forked, of course they cannot.
  * For example, 'unset foo | whatever' will parse and run, but foo will
  * still be set at the end. */
+struct built_in_command {
+	const char *cmd;                /* name */
+	const char *descr;              /* description */
+	int (*function) (char **argv);  /* function ptr */
+};
+
 static const struct built_in_command bltins[] = {
 #if ENABLE_HUSH_JOB
 	{ "bg", "Resume a job in the background", builtin_fg_bg },
@@ -486,10 +549,6 @@ static const struct built_in_command bltins[] = {
 	{ "help", "List shell built-in commands", builtin_help },
 	{ NULL, NULL, NULL }
 };
-
-#if ENABLE_FEATURE_SH_STANDALONE
-struct nofork_save_area nofork_save;
-#endif
 
 #if ENABLE_HUSH_JOB
 
@@ -539,9 +598,6 @@ static void set_every_sighandler(void (*handler)(int))
 	signal(SIGCHLD, handler);
 }
 
-static struct pipe *toplevel_list;
-static sigjmp_buf toplevel_jb;
-smallint ctrl_z_flag;
 static void handler_ctrl_c(int sig)
 {
 	debug_printf_jobs("got sig %d\n", sig);
@@ -1062,14 +1118,8 @@ static const char* setup_prompt_string(int promptmode)
 	return prompt_str;
 }
 
-#if ENABLE_FEATURE_EDITING
-static line_input_t *line_input_state;
-#endif
-
 static void get_user_input(struct in_str *i)
 {
-	static char the_command[ENABLE_FEATURE_EDITING ? BUFSIZ : 2];
-
 	int r;
 	const char *prompt_str;
 
@@ -1081,20 +1131,20 @@ static void get_user_input(struct in_str *i)
 	 ** atexit() handlers and other unwanted stuff to our
 	 ** child processes (rob@sysgo.de)
 	 */
-	r = read_line_input(prompt_str, the_command, BUFSIZ-1, line_input_state);
+	r = read_line_input(prompt_str, user_input_buf, BUFSIZ-1, line_input_state);
 	i->eof_flag = (r < 0);
 	if (i->eof_flag) { /* EOF/error detected */
-		the_command[0] = EOF; /* yes, it will be truncated, it's ok */
-		the_command[1] = '\0';
+		user_input_buf[0] = EOF; /* yes, it will be truncated, it's ok */
+		user_input_buf[1] = '\0';
 	}
 #else
 	fputs(prompt_str, stdout);
 	fflush(stdout);
-	the_command[0] = r = fgetc(i->file);
-	/*the_command[1] = '\0'; - already is and never changed */
+	user_input_buf[0] = r = fgetc(i->file);
+	/*user_input_buf[1] = '\0'; - already is and never changed */
 	i->eof_flag = (r == EOF);
 #endif
-	i->p = the_command;
+	i->p = user_input_buf;
 }
 #endif  /* INTERACTIVE */
 
@@ -1879,12 +1929,6 @@ static void debug_print_tree(struct pipe *pi, int lvl)
  * global data until exec/_exit (we can be a child after vfork!) */
 static int run_list_real(struct pipe *pi)
 {
-#if ENABLE_HUSH_JOB
-	static int level;
-#else
-	enum { level = 0 };
-#endif
-
 	char *for_varname = NULL;
 	char **for_lcur = NULL;
 	char **for_list = NULL;
@@ -1897,7 +1941,7 @@ static int run_list_real(struct pipe *pi)
 	int if_code = 0, next_if_code = 0;  /* need double-buffer to handle elif */
 	reserved_style rmode, skip_more_in_this_rmode = RES_XXXX;
 
-	debug_printf_exec("run_list_real start lvl %d\n", level + 1);
+	debug_printf_exec("run_list_real start lvl %d\n", run_list_level + 1);
 
 	/* check syntax for "for" */
 	for (rpipe = pi; rpipe; rpipe = rpipe->next) {
@@ -1905,7 +1949,7 @@ static int run_list_real(struct pipe *pi)
 		 && (rpipe->next == NULL)
 		) {
 			syntax(); /* unterminated FOR (no IN or no commands after IN) */
-			debug_printf_exec("run_list_real lvl %d return 1\n", level);
+			debug_printf_exec("run_list_real lvl %d return 1\n", run_list_level);
 			return 1;
 		}
 		if ((rpipe->r_mode == RES_IN &&	rpipe->next->r_mode == RES_IN && rpipe->next->progs[0].argv != NULL)
@@ -1913,7 +1957,7 @@ static int run_list_real(struct pipe *pi)
 		) {
 			/* TODO: what is tested in the first condition? */
 			syntax(); /* 2nd: malformed FOR (not followed by IN) */
-			debug_printf_exec("run_list_real lvl %d return 1\n", level);
+			debug_printf_exec("run_list_real lvl %d return 1\n", run_list_level);
 			return 1;
 		}
 	}
@@ -1923,7 +1967,7 @@ static int run_list_real(struct pipe *pi)
 	 * We are saving state before entering outermost list ("while...done")
 	 * so that ctrl-Z will correctly background _entire_ outermost list,
 	 * not just a part of it (like "sleep 1 | exit 2") */
-	if (++level == 1 && interactive_fd) {
+	if (++run_list_level == 1 && interactive_fd) {
 		if (sigsetjmp(toplevel_jb, 1)) {
 			/* ctrl-Z forked and we are parent; or ctrl-C.
 			 * Sighandler has longjmped us here */
@@ -1931,7 +1975,7 @@ static int run_list_real(struct pipe *pi)
 			signal(SIGTSTP, SIG_IGN);
 			/* Restore level (we can be coming from deep inside
 			 * nested levels) */
-			level = 1;
+			run_list_level = 1;
 #if ENABLE_FEATURE_SH_STANDALONE
 			if (nofork_save.saved) { /* if save area is valid */
 				debug_printf_jobs("exiting nofork early\n");
@@ -2039,7 +2083,7 @@ static int run_list_real(struct pipe *pi)
 			/* Even bash 3.2 doesn't do that well with nested bg:
 			 * try "{ { sleep 10; echo DEEP; } & echo HERE; } &".
 			 * I'm considering NOT treating inner bgs as jobs -
-			 * thus maybe "if (level == 1 && pi->followup == PIPE_BG)"
+			 * thus maybe "if (run_list_level == 1 && pi->followup == PIPE_BG)"
 			 * above? */
 #if ENABLE_HUSH_JOB
 			insert_bg_job(pi);
@@ -2048,7 +2092,7 @@ static int run_list_real(struct pipe *pi)
 		} else {
 #if ENABLE_HUSH_JOB
 			/* Paranoia, just "interactive_fd" should be enough */
-			if (level == 1 && interactive_fd) {
+			if (run_list_level == 1 && interactive_fd) {
 				rcode = checkjobs_and_fg_shell(pi);
 			} else
 #endif
@@ -2081,9 +2125,9 @@ static int run_list_real(struct pipe *pi)
 		exit(rcode);
 	}
  ret:
-	level--;
+	run_list_level--;
 #endif
-	debug_printf_exec("run_list_real lvl %d return %d\n", level + 1, rcode);
+	debug_printf_exec("run_list_real lvl %d return %d\n", run_list_level + 1, rcode);
 	return rcode;
 }
 
@@ -3544,40 +3588,25 @@ int hush_main(int argc, char **argv)
 	FILE *input;
 	char **e;
 
+	PTR_TO_GLOBALS = xzalloc(sizeof(G));
+	top_vars = &shell_ver;
+	shell_ver = const_shell_ver; /* copying struct here */
+
 #if ENABLE_FEATURE_EDITING
 	line_input_state = new_line_input_t(FOR_SHELL);
 #endif
-
 	/* XXX what should these be while sourcing /etc/profile? */
 	global_argc = argc;
 	global_argv = argv;
-
-	/* (re?) initialize globals.  Sometimes hush_main() ends up calling
-	 * hush_main(), therefore we cannot rely on the BSS to zero out this
-	 * stuff.  Reset these to 0 every time. */
-	ifs = NULL;
-	/* charmap[] is taken care of with call to update_charmap() */
-	fake_mode = 0;
-	close_me_head = NULL;
-#if ENABLE_HUSH_INTERACTIVE
-	interactive_fd = 0;
-#endif
-#if ENABLE_HUSH_JOB
-	last_bg_pid = 0;
-	job_list = NULL;
-	last_jobid = 0;
-#endif
-
 	/* Initialize some more globals to non-zero values */
 	set_cwd();
 #if ENABLE_HUSH_INTERACTIVE
 #if ENABLE_FEATURE_EDITING
 	cmdedit_set_initial_prompt();
-#else
-	PS1 = NULL;
 #endif
 	PS2 = "> ";
 #endif
+
 	/* initialize our shell local variables with the values
 	 * currently living in the environment */
 	e = environ;
@@ -3612,7 +3641,7 @@ int hush_main(int argc, char **argv)
 			/* interactive_fd++; */
 			break;
 		case 'f':
-			fake_mode++;
+			fake_mode = 1;
 			break;
 		default:
 #ifndef BB_VER
