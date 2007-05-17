@@ -100,6 +100,7 @@ int wait_pid(int *wstat, int pid)
 	return r;
 }
 
+#if ENABLE_FEATURE_PREFER_APPLETS
 void save_nofork_data(struct nofork_save_area *save)
 {
 	save->current_applet = current_applet;
@@ -162,6 +163,7 @@ int run_nofork_applet(const struct bb_applet *a, char **argv)
 	save_nofork_data(&old);
 	return run_nofork_applet_prime(&old, a, argv);
 }
+#endif /* FEATURE_PREFER_APPLETS */
 
 int spawn_and_wait(char **argv)
 {

@@ -486,6 +486,10 @@ static const struct built_in_command bltins[] = {
 	{ NULL, NULL, NULL }
 };
 
+#if ENABLE_FEATURE_SH_STANDALONE
+struct nofork_save_area nofork_save;
+#endif
+
 #if ENABLE_HUSH_JOB
 
 /* move to libbb? */
@@ -537,10 +541,6 @@ static void set_every_sighandler(void (*handler)(int))
 static struct pipe *toplevel_list;
 static sigjmp_buf toplevel_jb;
 smallint ctrl_z_flag;
-#if ENABLE_FEATURE_SH_STANDALONE
-struct nofork_save_area nofork_save;
-#endif
-
 static void handler_ctrl_c(int sig)
 {
 	debug_printf_jobs("got sig %d\n", sig);
@@ -1105,7 +1105,9 @@ static int file_get(struct in_str *i)
 
 	/* If there is data waiting, eat it up */
 	if (i->p && *i->p) {
+#if ENABLE_HUSH_INTERACTIVE
  take_cached:
+#endif
 		ch = *i->p++;
 		if (i->eof_flag && !*i->p)
 			ch = EOF;
@@ -1120,11 +1122,9 @@ static int file_get(struct in_str *i)
 			i->promptmode = 2;
 			i->__promptme = 0;
 			goto take_cached;
-		} else
-#endif
-		{
-			ch = fgetc(i->file);
 		}
+#endif
+		ch = fgetc(i->file);
 	}
 	debug_printf("file_get: got a '%c' %d\n", ch, ch);
 #if ENABLE_HUSH_INTERACTIVE
