@@ -172,8 +172,10 @@
 #include <rpc/pmap_clnt.h>
 #endif
 
-#define _PATH_INETDPID  "/var/run/inetd.pid"
+extern char **environ;
 
+
+#define _PATH_INETDPID  "/var/run/inetd.pid"
 
 #define CNT_INTVL       60              /* servers in CNT_INTVL sec. */
 #define RETRYTIME       (60*10)         /* retry after bind or server fail */
@@ -1263,7 +1265,6 @@ int inetd_main(int argc, char **argv)
 	sigset_t omask, wait_mask;
 
 #ifdef INETD_SETPROCTITLE
-	extern char **environ;
 	char **envp = environ;
 
 	Argv = argv;

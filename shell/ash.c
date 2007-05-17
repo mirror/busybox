@@ -60,6 +60,7 @@
 #if JOBS || ENABLE_ASH_READ_NCHARS
 #include <termios.h>
 #endif
+extern char **environ;
 
 #if defined(__uClinux__)
 #error "Do not even bother, ash will not run on uClinux"
@@ -1747,7 +1748,6 @@ struct redirtab {
 
 static struct redirtab *redirlist;
 static int nullredirs;
-extern char **environ;
 static int preverrout_fd;   /* save fd2 before print debug if xflag is set. */
 
 #define VTABSIZE 39

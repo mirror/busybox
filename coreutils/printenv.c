@@ -12,11 +12,11 @@
 #include <string.h>
 #include <stdlib.h>
 #include "busybox.h"
+extern char **environ;
 
 int printenv_main(int argc, char **argv);
 int printenv_main(int argc, char **argv)
 {
-	extern char **environ;
 	int e = 0;
 
 	/* no variables specified, show whole env */

@@ -32,6 +32,7 @@
 #include "busybox.h"
 #include <errno.h>
 #include <getopt.h> /* struct option */
+extern char **environ;
 
 #if ENABLE_FEATURE_ENV_LONG_OPTIONS
 static const struct option env_long_options[] = {
@@ -49,7 +50,6 @@ int env_main(int argc, char** argv)
 	char **ep;
 	unsigned opt;
 	llist_t *unset_env = NULL;
-	extern char **environ;
 
 	opt_complementary = "u::";
 #if ENABLE_FEATURE_ENV_LONG_OPTIONS

@@ -10,6 +10,7 @@
 #include "busybox.h"
 #include "xregex.h"
 #include <math.h>
+extern char **environ;
 
 /* This is a NOEXEC applet. Be very careful! */
 
@@ -392,8 +393,6 @@ static const unsigned PRIMES[] = { 251, 1021, 4093, 16381, 65521 };
 enum { NPRIMES = sizeof(PRIMES) / sizeof(unsigned) };
 
 /* globals */
-
-extern char **environ;
 
 static var * V[_intvarcount_];
 static chain beginseq, mainseq, endseq, *seq;
