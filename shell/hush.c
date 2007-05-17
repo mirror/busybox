@@ -444,8 +444,9 @@ static void delete_finished_bg_job(struct pipe *pi);
 int checkjobs_and_fg_shell(struct pipe* fg_pipe); /* never called */
 #endif
 /*     local variable support */
-static char **do_variable_expansion(char **argv);
-static char *insert_var_value(char *inp);
+static char **expand_variables_to_list(char **argv);
+/* used for expansion of right hand of assignments */
+static char *expand_variables_to_string(const char *str);
 static const char *get_local_var(const char *var);
 static int set_local_var(const char *s, int flg_export);
 static void unset_local_var(const char *name);
@@ -1271,7 +1272,7 @@ static void pseudo_exec_argv(char **argv)
 		debug_printf_exec("pid %d environment modification: %s\n",
 				getpid(), argv[i]);
 // FIXME: vfork case??
-		p = insert_var_value(argv[i]);
+		p = expand_variables_to_string(argv[i]);
 		putenv(p == argv[i] ? xstrdup(p) : p);
 	}
 	argv += i;
@@ -1282,7 +1283,7 @@ static void pseudo_exec_argv(char **argv)
 		_exit(EXIT_SUCCESS);
 	}
 
-	argv = do_variable_expansion(argv);
+	argv = expand_variables_to_list(argv);
 
 	/*
 	 * Check if the command matches any of the builtins.
@@ -1667,7 +1668,7 @@ static int run_pipe_real(struct pipe *pi)
 					export_me = 1;
 				}
 				free(name);
-				p = insert_var_value(argv[i]);
+				p = expand_variables_to_string(argv[i]);
 				set_local_var(p, export_me);
 				if (p != argv[i])
 					free(p);
@@ -1675,7 +1676,7 @@ static int run_pipe_real(struct pipe *pi)
 			return EXIT_SUCCESS;   /* don't worry about errors in set_local_var() yet */
 		}
 		for (i = 0; is_assignment(argv[i]); i++) {
-			p = insert_var_value(argv[i]);
+			p = expand_variables_to_string(argv[i]);
 			if (p != argv[i]) {
 				//sp: child->sp--;
 				putenv(p);
@@ -1698,7 +1699,7 @@ static int run_pipe_real(struct pipe *pi)
 				setup_redirects(child, squirrel);
 				debug_printf_exec(": builtin '%s' '%s'...\n", x->cmd, argv[i+1]);
 				//sp: if (child->sp) /* btw we can do it unconditionally... */
-				argv_expanded = do_variable_expansion(argv + i);
+				argv_expanded = expand_variables_to_list(argv + i);
 				rcode = x->function(argv_expanded);
 				free(argv_expanded);
 				restore_redirects(squirrel);
@@ -1714,7 +1715,7 @@ static int run_pipe_real(struct pipe *pi)
 				save_nofork_data(&nofork_save);
 				argv_expanded = argv + i;
 				//sp: if (child->sp)
-				argv_expanded = do_variable_expansion(argv + i);
+				argv_expanded = expand_variables_to_list(argv + i);
 				debug_printf_exec(": run_nofork_applet '%s' '%s'...\n", argv_expanded[0], argv_expanded[1]);
 				rcode = run_nofork_applet_prime(&nofork_save, a, argv_expanded);
 				free(argv_expanded);
@@ -1991,7 +1992,7 @@ static int run_list_real(struct pipe *pi)
 				if (!pi->next->progs->argv)
 					continue;
 				/* create list of variable values */
-				for_list = do_variable_expansion(pi->next->progs->argv);
+				for_list = expand_variables_to_list(pi->next->progs->argv);
 				for_lcur = for_list;
 				for_varname = pi->progs->argv[0];
 				pi->progs->argv[0] = NULL;
@@ -2251,8 +2252,7 @@ static int xglob(o_string *dest, int flags, glob_t *pglob)
 	return gr;
 }
 
-
-/* do_variable_expansion() takes a list of strings, expands
+/* expand_variables_to_list() takes a list of strings, expands
  * all variable references within and returns a pointer to
  * a list of expanded strings, possibly with larger number
  * of strings. (Think VAR="a b"; echo $VAR).
@@ -2371,8 +2371,11 @@ static int expand_on_ifs(char **list, int n, char **posp, const char *str)
  * 'echo -$*-'. If you play here, you must run testsuite afterwards! */
 /* NB: another bug is that we cannot detect empty strings yet:
  * "" or $empty"" expands to zero words, has to expand to empty word */
-static int expand_vars_to_list(char **list, int n, char **posp, char *arg)
+static int expand_vars_to_list(char **list, int n, char **posp, char *arg, char or_mask)
 {
+	/* or_mask is either 0 (normal case) or 0x80
+	 * (expansion of right-hand side of assignment == 1-element expand) */
+
 	char first_ch, ored_ch;
 	int i;
 	const char *val;
@@ -2392,7 +2395,7 @@ static int expand_vars_to_list(char **list, int n, char **posp, char *arg)
 		arg = ++p;
 		p = strchr(p, SPECIAL_VAR_SYMBOL);
 
-		first_ch = arg[0];
+		first_ch = arg[0] | or_mask; /* forced to "quoted" if or_mask = 0x80 */
 		ored_ch |= first_ch;
 		val = NULL;
 		switch (first_ch & 0x7f) {
@@ -2427,7 +2430,10 @@ static int expand_vars_to_list(char **list, int n, char **posp, char *arg)
 						list[n++] = pos;
 					}
 				}
-			} else if (first_ch == ('@'|0x80)) { /* quoted $@ */
+			} else
+			/* If or_mask is nonzero, we handle assignment 'a=....$@.....'
+			 * and in this case should theat it like '$*' */
+			if (first_ch == ('@'|0x80) && !or_mask) { /* quoted $@ */
 				while (1) {
 					strcpy(pos, global_argv[i]);
 					pos += strlen(global_argv[i]);
@@ -2490,7 +2496,7 @@ static int expand_vars_to_list(char **list, int n, char **posp, char *arg)
 	return n;
 }
 
-static char **do_variable_expansion(char **argv)
+static char **expand_variables(char **argv, char or_mask)
 {
 	int n;
 	int count = 1;
@@ -2515,9 +2521,9 @@ static char **do_variable_expansion(char **argv)
 	n = 0;
 	v = argv;
 	while (*v)
-		n = expand_vars_to_list(list, n, &pos, *v++);
+		n = expand_vars_to_list(list, n, &pos, *v++, or_mask);
 
-	if(n) debug_printf_expand("finalized list[%d]=%p '%s' "
+	if (n) debug_printf_expand("finalized list[%d]=%p '%s' "
 		"strlen=%d next=%p pos=%p\n", n-1, list[n-1], list[n-1],
 		strlen(list[n-1]), list[n-1] + strlen(list[n-1]) + 1, pos);
 	list[n] = NULL;
@@ -2538,79 +2544,25 @@ static char **do_variable_expansion(char **argv)
 	return list;
 }
 
-
-static char *insert_var_value(char *inp)
+static char **expand_variables_to_list(char **argv)
 {
-	int res_str_len = 0;
-	int len;
-	int done = 0;
-	int i;
-	const char *p1;
-	char *p, *p2;
-	char *res_str = NULL;
-
-	while ((p = strchr(inp, SPECIAL_VAR_SYMBOL))) {
-		if (p != inp) {
-			len = p - inp;
-			res_str = xrealloc(res_str, (res_str_len + len));
-			strncpy((res_str + res_str_len), inp, len);
-			res_str_len += len;
-		}
-		inp = ++p;
-		p = strchr(inp, SPECIAL_VAR_SYMBOL);
-		*p = '\0';
-
-		switch (inp[0]) {
-		case '$':
-			/* FIXME: (echo $$) should still print pid of main shell */
-			p1 = utoa(getpid());
-			break;
-		case '!':
-			p1 = last_bg_pid ? utoa(last_bg_pid) : (char*)"";
-			break;
-		case '?':
-			p1 = utoa(last_return_code);
-			break;
-		case '#':
-			p1 = utoa(global_argc ? global_argc-1 : 0);
-			break;
-		case '*':
-		case '@': /* FIXME: we treat $@ as $* for now */
-			len = 1;
-			for (i = 1; i < global_argc; i++)
-				len += strlen(global_argv[i]) + 1;
-			p1 = p2 = alloca(--len);
-			for (i = 1; i < global_argc; i++) {
-				strcpy(p2, global_argv[i]);
-				p2 += strlen(global_argv[i]);
-				*p2++ = ifs[0];
-			}
-			*--p2 = '\0';
-			break;
-		default:
-			p1 = lookup_param(inp);
-		}
-
-		if (p1) {
-			len = res_str_len + strlen(p1);
-			res_str = xrealloc(res_str, 1 + len);
-			strcpy(res_str + res_str_len, p1);
-			res_str_len = len;
-		}
-		*p = SPECIAL_VAR_SYMBOL;
-		inp = ++p;
-		done = 1;
-	}
-	if (done) {
-		res_str = xrealloc(res_str, (1 + res_str_len + strlen(inp)));
-		strcpy((res_str + res_str_len), inp);
-		while ((p = strchr(res_str, '\n'))) {
-			*p = ' ';
-		}
-	}
-	return (res_str == NULL) ? inp : res_str;
+	return expand_variables(argv, 0);
 }
 
+static char *expand_variables_to_string(const char *str)
+{
+	char *argv[2], **list;
+
+	argv[0] = (char*)str;
+	argv[1] = NULL;
+	list = expand_variables(argv, 0x80); /* 0x80: make one-element expansion */
+	/* To be removed / made conditional later. */
+	if (!list[0] || list[1])
+		bb_error_msg_and_die("BUG in varexp");
+	/* actually, just move string 2*sizeof(char*) bytes back */
+	strcpy((char*)list, list[0]);
+	return (char*)list;
+}
 
 /* This is used to get/check local shell variables */
 static const char *get_local_var(const char *s)
@@ -3195,7 +3147,7 @@ static char* make_string(char **inp)
 	int len = 0;
 
 	for (n = 0; inp[n]; n++) {
-		p = insert_var_value(inp[n]);
+		p = expand_variables_to_string(inp[n]);
 		val_len = strlen(p);
 		str = xrealloc(str, len + val_len + 3); /* +3: space, '\n', <nul>*/
 		str[len++] = ' ';
