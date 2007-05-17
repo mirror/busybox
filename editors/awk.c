@@ -89,7 +89,7 @@ typedef struct xhash_s {
 /* Tree node */
 typedef struct node_s {
 	uint32_t info;
-	unsigned short lineno;
+	unsigned lineno;
 	union {
 		struct node_s *n;
 		var *v;
@@ -402,7 +402,7 @@ static node *break_ptr, *continue_ptr;
 static rstream *iF;
 static xhash *vhash, *ahash, *fdhash, *fnhash;
 static const char *programname;
-static short lineno;
+static int lineno;
 static int is_f0_split;
 static int nfields;
 static var *Fields;
@@ -418,9 +418,10 @@ static struct {
 	uint32_t info;
 	char *string;
 	double number;
-	short lineno;
+	int lineno;
 	int rollback;
-} t;
+} ttt;
+/* It had even better name: 't'. Whoever knows what is it, please rename! */
 
 /* function prototypes */
 static void handle_special(var *);
@@ -577,8 +578,13 @@ static void skip_spaces(char **s)
 {
 	char *p = *s;
 
-	while (*p == ' ' || *p == '\t' ||
-			(*p == '\\' && *(p+1) == '\n' && (++p, ++t.lineno))) {
+	while (1) {
+		if (*p == '\\' && p[1] == '\n') {
+			p++;
+			ttt.lineno++;
+		} else if (*p != ' ' && *p != '\t') {
+			break;
+		}
 		p++;
 	}
 	*s = p;
@@ -623,7 +629,7 @@ static xhash *iamarray(var *v)
 	while (a->type & VF_CHILD)
 		a = a->x.parent;
 
-	if (! (a->type & VF_ARRAY)) {
+	if (!(a->type & VF_ARRAY)) {
 		a->type |= VF_ARRAY;
 		a->x.array = hash_init();
 	}
@@ -635,7 +641,7 @@ static void clear_array(xhash *array)
 	unsigned i;
 	hash_item *hi, *thi;
 
-	for (i=0; i<array->csize; i++) {
+	for (i = 0; i < array->csize; i++) {
 		hi = array->items[i];
 		while (hi) {
 			thi = hi;
@@ -834,7 +840,7 @@ static void nvfree(var *v)
 
 /* ------- awk program text parsing ------- */
 
-/* Parse next token pointed by global pos, place results into global t.
+/* Parse next token pointed by global pos, place results into global ttt.
  * If token isn't expected, give away. Return token class
  */
 static uint32_t next_token(uint32_t expected)
@@ -849,31 +855,31 @@ static uint32_t next_token(uint32_t expected)
 	const uint32_t *ti;
 	int l;
 
-	if (t.rollback) {
-		t.rollback = FALSE;
+	if (ttt.rollback) {
+		ttt.rollback = FALSE;
 
 	} else if (concat_inserted) {
 		concat_inserted = FALSE;
-		t.tclass = save_tclass;
-		t.info = save_info;
+		ttt.tclass = save_tclass;
+		ttt.info = save_info;
 
 	} else {
 		p = pos;
  readnext:
 		skip_spaces(&p);
-		lineno = t.lineno;
+		lineno = ttt.lineno;
 		if (*p == '#')
 			while (*p != '\n' && *p != '\0') p++;
 
 		if (*p == '\n')
-			t.lineno++;
+			ttt.lineno++;
 
 		if (*p == '\0') {
 			tc = TC_EOF;
 
 		} else if (*p == '\"') {
 			/* it's a string */
-			t.string = s = ++p;
+			ttt.string = s = ++p;
 			while (*p != '\"') {
 				if (*p == '\0' || *p == '\n')
 					syntax_error(EMSG_UNEXP_EOS);
@@ -885,7 +891,7 @@ static uint32_t next_token(uint32_t expected)
 
 		} else if ((expected & TC_REGEXP) && *p == '/') {
 			/* it's regexp */
-			t.string = s = ++p;
+			ttt.string = s = ++p;
 			while (*p != '/') {
 				if (*p == '\0' || *p == '\n')
 					syntax_error(EMSG_UNEXP_EOS);
@@ -902,7 +908,7 @@ static uint32_t next_token(uint32_t expected)
 
 		} else if (*p == '.' || isdigit(*p)) {
 			/* it's a number */
-			t.number = strtod(p, &p);
+			ttt.number = strtod(p, &p);
 			if (*p == '.')
 				syntax_error(EMSG_UNEXP_TOKEN);
 			tc = TC_NUMBER;
@@ -925,7 +931,7 @@ static uint32_t next_token(uint32_t expected)
 				if ((tc & (expected | TC_WORD | TC_NEWLINE)) &&
 				*tl == *p && strncmp(p, tl, l) == 0 &&
 				!((tc & TC_WORD) && isalnum_(*(p + l)))) {
-					t.info = *ti;
+					ttt.info = *ti;
 					p += l;
 					break;
 				}
@@ -940,7 +946,7 @@ static uint32_t next_token(uint32_t expected)
 				if (!isalnum_(*p))
 					syntax_error(EMSG_UNEXP_TOKEN);
 
-				t.string = --p;
+				ttt.string = --p;
 				while (isalnum_(*(++p))) {
 					*(p-1) = *p;
 				}
@@ -968,14 +974,14 @@ static uint32_t next_token(uint32_t expected)
 		if ((ltclass&TC_CONCAT1) && (tc&TC_CONCAT2) && (expected&TC_BINOP)) {
 			concat_inserted = TRUE;
 			save_tclass = tc;
-			save_info = t.info;
+			save_info = ttt.info;
 			tc = TC_BINOP;
-			t.info = OC_CONCAT | SS | P(35);
+			ttt.info = OC_CONCAT | SS | P(35);
 		}
 
-		t.tclass = tc;
+		ttt.tclass = tc;
 	}
-	ltclass = t.tclass;
+	ltclass = ttt.tclass;
 
 	/* Are we ready for this? */
 	if (! (ltclass & expected))
@@ -985,7 +991,10 @@ static uint32_t next_token(uint32_t expected)
 	return ltclass;
 }
 
-static void rollback_token(void) { t.rollback = TRUE; }
+static void rollback_token(void)
+{
+	ttt.rollback = TRUE;
+}
 
 static node *new_node(uint32_t info)
 {
@@ -1028,8 +1037,8 @@ static node *parse_expr(uint32_t iexp)
 	sn.r.n = glptr = NULL;
 	xtc = TC_OPERAND | TC_UOPPRE | TC_REGEXP | iexp;
 
-	while (! ((tc = next_token(xtc)) & iexp)) {
-		if (glptr && (t.info == (OC_COMPARE|VV|P(39)|2))) {
+	while (!((tc = next_token(xtc)) & iexp)) {
+		if (glptr && (ttt.info == (OC_COMPARE|VV|P(39)|2))) {
 			/* input redirection (<) attached to glptr node */
 			cn = glptr->l.n = new_node(OC_CONCAT|SS|P(37));
 			cn->a.n = glptr;
@@ -1040,17 +1049,17 @@ static node *parse_expr(uint32_t iexp)
 			/* for binary and postfix-unary operators, jump back over
 			 * previous operators with higher priority */
 			vn = cn;
-			while ( ((t.info & PRIMASK) > (vn->a.n->info & PRIMASK2)) ||
-			  ((t.info == vn->info) && ((t.info & OPCLSMASK) == OC_COLON)) )
+			while ( ((ttt.info & PRIMASK) > (vn->a.n->info & PRIMASK2)) ||
+			  ((ttt.info == vn->info) && ((ttt.info & OPCLSMASK) == OC_COLON)) )
 				vn = vn->a.n;
-			if ((t.info & OPCLSMASK) == OC_TERNARY)
-				t.info += P(6);
-			cn = vn->a.n->r.n = new_node(t.info);
+			if ((ttt.info & OPCLSMASK) == OC_TERNARY)
+				ttt.info += P(6);
+			cn = vn->a.n->r.n = new_node(ttt.info);
 			cn->a.n = vn->a.n;
 			if (tc & TC_BINOP) {
 				cn->l.n = vn;
 				xtc = TC_OPERAND | TC_UOPPRE | TC_REGEXP;
-				if ((t.info & OPCLSMASK) == OC_PGETLINE) {
+				if ((ttt.info & OPCLSMASK) == OC_PGETLINE) {
 					/* it's a pipe */
 					next_token(TC_GETLINE);
 					/* give maximum priority to this pipe */
@@ -1067,7 +1076,7 @@ static node *parse_expr(uint32_t iexp)
 			/* for operands and prefix-unary operators, attach them
 			 * to last node */
 			vn = cn;
-			cn = vn->r.n = new_node(t.info);
+			cn = vn->r.n = new_node(ttt.info);
 			cn->a.n = vn;
 			xtc = TC_OPERAND | TC_UOPPRE | TC_REGEXP;
 			if (tc & (TC_OPERAND | TC_REGEXP)) {
@@ -1078,11 +1087,11 @@ static node *parse_expr(uint32_t iexp)
 				case TC_VARIABLE:
 				case TC_ARRAY:
 					cn->info = OC_VAR;
-					if ((v = hash_search(ahash, t.string)) != NULL) {
+					if ((v = hash_search(ahash, ttt.string)) != NULL) {
 						cn->info = OC_FNARG;
 						cn->l.i = v->x.aidx;
 					} else {
-						cn->l.v = newvar(t.string);
+						cn->l.v = newvar(ttt.string);
 					}
 					if (tc & TC_ARRAY) {
 						cn->info |= xS;
@@ -1095,18 +1104,18 @@ static node *parse_expr(uint32_t iexp)
 					cn->info = OC_VAR;
 					v = cn->l.v = xzalloc(sizeof(var));
 					if (tc & TC_NUMBER)
-						setvar_i(v, t.number);
+						setvar_i(v, ttt.number);
 					else
-						setvar_s(v, t.string);
+						setvar_s(v, ttt.string);
 					break;
 
 				case TC_REGEXP:
-					mk_re_node(t.string, cn, xzalloc(sizeof(regex_t)*2));
+					mk_re_node(ttt.string, cn, xzalloc(sizeof(regex_t)*2));
 					break;
 
 				case TC_FUNCTION:
 					cn->info = OC_FUNC;
-					cn->r.f = newfunc(t.string);
+					cn->r.f = newfunc(ttt.string);
 					cn->l.n = condition();
 					break;
 
@@ -1135,7 +1144,7 @@ static node *chain_node(uint32_t info)
 {
 	node *n;
 
-	if (! seq->first)
+	if (!seq->first)
 		seq->first = seq->last = new_node(0);
 
 	if (seq->programname != programname) {
@@ -1157,7 +1166,7 @@ static void chain_expr(uint32_t info)
 
 	n = chain_node(info);
 	n->l.n = parse_expr(TC_OPTERM | TC_GRPTERM);
-	if (t.tclass & TC_GRPTERM)
+	if (ttt.tclass & TC_GRPTERM)
 		rollback_token();
 }
 
@@ -1196,7 +1205,7 @@ static void chain_group(void)
 
 	if (c & TC_GRPSTART) {
 		while (next_token(TC_GRPSEQ | TC_GRPTERM) != TC_GRPTERM) {
-			if (t.tclass & TC_NEWLINE) continue;
+			if (ttt.tclass & TC_NEWLINE) continue;
 			rollback_token();
 			chain_group();
 		}
@@ -1204,7 +1213,7 @@ static void chain_group(void)
 		rollback_token();
 		chain_expr(OC_EXEC | Vx);
 	} else {						/* TC_STATEMNT */
-		switch (t.info & OPCLSMASK) {
+		switch (ttt.info & OPCLSMASK) {
 			case ST_IF:
 				n = chain_node(OC_BR | Vx);
 				n->l.n = condition();
@@ -1236,7 +1245,7 @@ static void chain_group(void)
 			case ST_FOR:
 				next_token(TC_SEQSTART);
 				n2 = parse_expr(TC_SEMICOL | TC_SEQTERM);
-				if (t.tclass & TC_SEQTERM) {	/* for-in */
+				if (ttt.tclass & TC_SEQTERM) {	/* for-in */
 					if ((n2->info & OPCLSMASK) != OC_IN)
 						syntax_error(EMSG_UNEXP_TOKEN);
 					n = chain_node(OC_WALKINIT | VV);
@@ -1259,13 +1268,13 @@ static void chain_group(void)
 
 			case OC_PRINT:
 			case OC_PRINTF:
-				n = chain_node(t.info);
+				n = chain_node(ttt.info);
 				n->l.n = parse_expr(TC_OPTERM | TC_OUTRDR | TC_GRPTERM);
-				if (t.tclass & TC_OUTRDR) {
-					n->info |= t.info;
+				if (ttt.tclass & TC_OUTRDR) {
+					n->info |= ttt.info;
 					n->r.n = parse_expr(TC_OPTERM | TC_GRPTERM);
 				}
-				if (t.tclass & TC_GRPTERM)
+				if (ttt.tclass & TC_GRPTERM)
 					rollback_token();
 				break;
 
@@ -1281,7 +1290,7 @@ static void chain_group(void)
 
 			/* delete, next, nextfile, return, exit */
 			default:
-				chain_expr(t.info);
+				chain_expr(ttt.info);
 		}
 	}
 }
@@ -1294,7 +1303,7 @@ static void parse_program(char *p)
 	var *v;
 
 	pos = p;
-	t.lineno = 1;
+	ttt.lineno = 1;
 	while ((tclass = next_token(TC_EOF | TC_OPSEQ | TC_GRPSTART |
 				TC_OPTERM | TC_BEGIN | TC_END | TC_FUNCDECL)) != TC_EOF) {
 
@@ -1313,11 +1322,11 @@ static void parse_program(char *p)
 		} else if (tclass & TC_FUNCDECL) {
 			next_token(TC_FUNCTION);
 			pos++;
-			f = newfunc(t.string);
+			f = newfunc(ttt.string);
 			f->body.first = NULL;
 			f->nargs = 0;
 			while (next_token(TC_VARIABLE | TC_SEQTERM) & TC_VARIABLE) {
-				v = findvar(ahash, t.string);
+				v = findvar(ahash, ttt.string);
 				v->x.aidx = (f->nargs)++;
 
 				if (next_token(TC_COMMA | TC_SEQTERM) & TC_SEQTERM)
@@ -1331,7 +1340,7 @@ static void parse_program(char *p)
 			rollback_token();
 			cn = chain_node(OC_TEST);
 			cn->l.n = parse_expr(TC_OPTERM | TC_EOF | TC_GRPSTART);
-			if (t.tclass & TC_GRPSTART) {
+			if (ttt.tclass & TC_GRPSTART) {
 				rollback_token();
 				chain_group();
 			} else {
@@ -2087,7 +2096,6 @@ static var *evaluate(node *op, var *res)
 	v1 = nvalloc(2);
 
 	while (op) {
-
 		opinfo = op->info;
 		opn = (short)(opinfo & OPNMASK);
 		lineno = op->lineno;
@@ -2102,9 +2110,9 @@ static var *evaluate(node *op, var *res)
 
 		switch (XC(opinfo & OPCLSMASK)) {
 
-		  /* -- iterative node type -- */
+		/* -- iterative node type -- */
 
-		  /* test pattern */
+		/* test pattern */
 		case XC( OC_TEST ):
 			if ((op1->info & OPCLSMASK) == OC_COMMA) {
 				/* it's range pattern */
@@ -2122,21 +2130,21 @@ static var *evaluate(node *op, var *res)
 			}
 			break;
 
-		  /* just evaluate an expression, also used as unconditional jump */
+		/* just evaluate an expression, also used as unconditional jump */
 		case XC( OC_EXEC ):
 			break;
 
-		  /* branch, used in if-else and various loops */
+		/* branch, used in if-else and various loops */
 		case XC( OC_BR ):
 			op = istrue(L.v) ? op->a.n : op->r.n;
 			break;
 
-		  /* initialize for-in loop */
+		/* initialize for-in loop */
 		case XC( OC_WALKINIT ):
 			hashwalk_init(L.v, iamarray(R.v));
 			break;
 
-		  /* get next array item */
+		/* get next array item */
 		case XC( OC_WALKNEXT ):
 			op = hashwalk_next(L.v) ? op->a.n : op->r.n;
 			break;
@@ -2224,7 +2232,7 @@ static var *evaluate(node *op, var *res)
 		case XC( OC_EXIT ):
 			awk_exit(L.d);
 
-		  /* -- recursive node type -- */
+		/* -- recursive node type -- */
 
 		case XC( OC_VAR ):
 			L.v = op->l.v;
@@ -2333,7 +2341,7 @@ static var *evaluate(node *op, var *res)
 			setvar_i(res, L.i);
 			break;
 
-		  /* simple builtins */
+		/* simple builtins */
 		case XC( OC_FBLTIN ):
 			switch (opn) {
 
@@ -2344,7 +2352,6 @@ static var *evaluate(node *op, var *res)
 			case F_rn:
 				R.d = (double)rand() / (double)RAND_MAX;
 				break;
-
 #if ENABLE_FEATURE_AWK_MATH
 			case F_co:
 				R.d = cos(L.d);
@@ -2374,7 +2381,6 @@ static var *evaluate(node *op, var *res)
 				runtime_error(EMSG_NO_MATH);
 				break;
 #endif
-
 			case F_sr:
 				R.d = (double)seed;
 				seed = op1 ? (unsigned)L.d : (unsigned)time(NULL);
@@ -2474,7 +2480,7 @@ static var *evaluate(node *op, var *res)
 			}
 			break;
 
-		  /* concatenation (" ") and index joining (",") */
+		/* concatenation (" ") and index joining (",") */
 		case XC( OC_CONCAT ):
 		case XC( OC_COMMA ):
 			opn = strlen(L.s) + strlen(R.s) + 2;

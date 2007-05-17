@@ -111,8 +111,6 @@ static int last_file_modified = -1;
 static int fn_start;		// index of first cmd line file name
 static int save_argc;		// how many file names on cmd line
 static int cmdcnt;		// repetition count
-static fd_set rfds;		// use select() for small sleeps
-static struct timeval tv;	// use select() for small sleeps
 static int rows, columns;	// the terminal screen is this size
 static int crow, ccol, offset;	// cursor is on Crow x Ccol with Horz Ofset
 static char *status_buffer;	// mesages to the user
@@ -279,7 +277,7 @@ int vi_main(int argc, char **argv)
 #if ENABLE_FEATURE_VI_YANKMARK
 	int i;
 #endif
-#if defined(CONFIG_FEATURE_VI_USE_SIGNALS) || defined(CONFIG_FEATURE_VI_CRASHME)
+#if ENABLE_FEATURE_VI_USE_SIGNALS || ENABLE_FEATURE_VI_CRASHME
 	my_pid = getpid();
 #endif
 #if ENABLE_FEATURE_VI_CRASHME
@@ -2142,6 +2140,9 @@ static void catch_sig(int sig)
 
 static int mysleep(int hund)	// sleep for 'h' 1/100 seconds
 {
+	fd_set rfds;
+	struct timeval tv;
+
 	// Don't hang- Wait 5/100 seconds-  1 Sec= 1000000
 	fflush(stdout);
 	FD_ZERO(&rfds);
@@ -2228,6 +2229,9 @@ static char readit(void)	// read (maybe cursor) key from stdin
 		if (n <= 0)
 			return 0;       // error
 		if (readbuffer[0] == 27) {
+			fd_set rfds;
+			struct timeval tv;
+
 			// This is an ESC char. Is this Esc sequence?
 			// Could be bare Esc key. See if there are any
 			// more chars to read after the ESC. This would
