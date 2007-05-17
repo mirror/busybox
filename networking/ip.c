@@ -18,6 +18,12 @@
 #include "libiproute/utils.h"
 #include "libiproute/ip_common.h"
 
+#if ENABLE_FEATURE_IP_ADDRESS \
+ || ENABLE_FEATURE_IP_ROUTE \
+ || ENABLE_FEATURE_IP_LINK \
+ || ENABLE_FEATURE_IP_TUNNEL \
+ || ENABLE_FEATURE_IP_RULE
+
 static int ATTRIBUTE_NORETURN ip_print_help(int ATTRIBUTE_UNUSED ac, char ATTRIBUTE_UNUSED **av)
 {
 	bb_show_usage();
@@ -121,3 +127,5 @@ int ip_main(int argc, char **argv)
 	}
 	return (ip_func(argc, argv));
 }
+
+#endif /* any of ENABLE_FEATURE_IP_xxx is 1 */
