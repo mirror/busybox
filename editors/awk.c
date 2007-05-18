@@ -895,7 +895,7 @@ static uint32_t next_token(uint32_t expected)
 			while (*p != '/') {
 				if (*p == '\0' || *p == '\n')
 					syntax_error(EMSG_UNEXP_EOS);
-				*s++ = *p++;
+				*s = *p++;
 				if (*s++ == '\\') {
 					pp = p;
 					*(s-1) = bb_process_escape_sequence((const char **)&p);
