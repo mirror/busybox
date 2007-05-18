@@ -61,8 +61,6 @@ int sleep_main(int argc, char **argv)
 #endif /* FEATURE_FANCY_SLEEP */
 
 	if (sleep(duration)) {
-//for hush debugging:
-sleep(1);
 		bb_perror_nomsg_and_die();
 	}
 
