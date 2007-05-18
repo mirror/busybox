@@ -23,6 +23,7 @@
 #warning Note that glibc is unsuitable for static linking anyway.
 #warning If you still want to do it, remove -Wl,--gc-sections
 #warning from top-level Makefile and remove this warning.
+#error Aborting compilation.
 #endif
 
 
