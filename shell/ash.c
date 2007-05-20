@@ -6892,14 +6892,8 @@ findkwd(const char *s)
 /*
  * Locate and print what a word is...
  */
-#if ENABLE_ASH_CMDCMD
 static int
 describe_command(char *command, int describe_command_verbose)
-#else
-#define describe_command_verbose 1
-static int
-describe_command(char *command)
-#endif
 {
 	struct cmdentry entry;
 	struct tblentry *cmdp;
@@ -6922,13 +6916,12 @@ describe_command(char *command)
 	/* Then look at the aliases */
 	ap = lookupalias(command, 0);
 	if (ap != NULL) {
-		if (describe_command_verbose) {
-			out1fmt(" is an alias for %s", ap->val);
-		} else {
+		if (!describe_command_verbose) {
 			out1str("alias ");
 			printalias(ap);
 			return 0;
 		}
+		out1fmt(" is an alias for %s", ap->val);
 		goto out;
 	}
 #endif
@@ -6997,15 +6990,17 @@ describe_command(char *command)
 static int
 typecmd(int argc, char **argv)
 {
-	int i;
+	int i = 1;
 	int err = 0;
+	int verbose = 1;
 
-	for (i = 1; i < argc; i++) {
-#if ENABLE_ASH_CMDCMD
-		err |= describe_command(argv[i], 1);
-#else
-		err |= describe_command(argv[i]);
-#endif
+	/* type -p ... ? (we don't bother checking for 'p') */
+	if (argv[1][0] == '-') {
+		i++;
+		verbose = 0;
+	}
+	while (i < argc) {
+		err |= describe_command(argv[i++], verbose);
 	}
 	return err;
 }
