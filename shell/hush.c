@@ -1840,7 +1840,7 @@ static int set_local_var(const char *s, int flg_export)
 			result = -1;
 		} else {
 			cur->name = strdup(name);
-			if (cur->name) {
+			if (!cur->name) {
 				free(cur);
 				result = -1;
 			} else {

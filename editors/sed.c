@@ -481,7 +481,7 @@ static void add_cmd(const char *cmdstr)
 	if (bbg.add_cmd_line) {
 		char *tp = xasprintf("%s\n%s", bbg.add_cmd_line, cmdstr);
 		free(bbg.add_cmd_line);
-		bbg.add_cmd_line = tp;
+		cmdstr = bbg.add_cmd_line = tp;
 	}
 
 	/* If this line ends with backslash, request next line. */
