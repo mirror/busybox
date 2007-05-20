@@ -229,14 +229,15 @@ struct child_prog {
 	pid_t pid;                  /* 0 if exited */
 	char **argv;                /* program name and arguments */
 	struct pipe *group;         /* if non-NULL, first in group or subshell */
-	int subshell;               /* flag, non-zero if group must be forked */
+	smallint subshell;          /* flag, non-zero if group must be forked */
+	smallint is_stopped;        /* is the program currently running? */
 	struct redir_struct *redirects; /* I/O redirections */
 	glob_t glob_result;         /* result of parameter globbing */
-	int is_stopped;             /* is the program currently running? */
 	struct pipe *family;        /* pointer back to the child's parent pipe */
 	//sp counting seems to be broken... so commented out, grep for '//sp:'
 	//sp: int sp;               /* number of SPECIAL_VAR_SYMBOL */
-	int type;
+	//seems to be unused, grep for '//pt:'
+	//pt: int parse_type;
 };
 /* argv vector may contain variable references (^Cvar^C, ^C0^C etc)
  * and on execution these are substituted with their values.
@@ -2969,7 +2970,7 @@ static int done_command(struct p_context *ctx)
 	/*child->glob_result.gl_pathv = NULL;*/
 	child->family = pi;
 	//sp: /*child->sp = 0;*/
-	child->type = ctx->parse_type;
+	//pt: child->parse_type = ctx->parse_type;
 
 	ctx->child = child;
 	/* but ctx->pipe and ctx->list_head remain unchanged */
@@ -3125,7 +3126,7 @@ static int process_command_subs(o_string *dest, struct p_context *ctx,
 	debug_printf("done reading from pipe, pclose()ing\n");
 	/* This is the step that wait()s for the child.  Should be pretty
 	 * safe, since we just read an EOF from its stdout.  We could try
-	 * to better, by using wait(), and keeping track of background jobs
+	 * to do better, by using wait(), and keeping track of background jobs
 	 * at the same time.  That would be a lot of work, and contrary
 	 * to the KISS philosophy of this program. */
 	mark_closed(fileno(p));
