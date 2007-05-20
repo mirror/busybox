@@ -197,6 +197,11 @@ config HUSH_JOB
 	  prompting for next command (or executing next command in a script),
 	  but no separate process group is formed.
 
+config HUSH_TICK
+	bool "Process substitution"
+	default n
+	help
+	  Enable process substitution `command` and $(command) in hush.
 
 config LASH
 	bool "lash"

@@ -480,7 +480,9 @@ static int done_pipe(struct p_context *ctx, pipe_style type);
 /*   primary string parsing: */
 static int redirect_dup_num(struct in_str *input);
 static int redirect_opt_num(o_string *o);
+#if ENABLE_HUSH_TICK
 static int process_command_subs(o_string *dest, struct p_context *ctx, struct in_str *input, const char *subst_end);
+#endif
 static int parse_group(o_string *dest, struct p_context *ctx, struct in_str *input, int ch);
 static const char *lookup_param(const char *src);
 static char *make_string(char **inp);
@@ -3054,6 +3056,7 @@ static int redirect_opt_num(o_string *o)
 	return num;
 }
 
+#if ENABLE_HUSH_TICK
 static FILE *generate_stream_from_list(struct pipe *head)
 {
 	FILE *pf;
@@ -3131,6 +3134,7 @@ static int process_command_subs(o_string *dest, struct p_context *ctx,
 	debug_printf("pclosed, retcode=%d\n", retcode);
 	return retcode;
 }
+#endif
 
 static int parse_group(o_string *dest, struct p_context *ctx,
 	struct in_str *input, int ch)
@@ -3262,10 +3266,12 @@ static int handle_dollar(o_string *dest, struct p_context *ctx, struct in_str *i
 			}
 			b_addchr(dest, SPECIAL_VAR_SYMBOL);
 			break;
+#if ENABLE_HUSH_TICK
 		case '(':
 			b_getch(input);
 			process_command_subs(dest, ctx, input, ")");
 			break;
+#endif
 		case '-':
 		case '_':
 			/* still unhandled, but should be eventually */
@@ -3371,9 +3377,11 @@ static int parse_stream(o_string *dest, struct p_context *ctx,
 			dest->nonnull = 1;
 			dest->quote = !dest->quote;
 			break;
+#if ENABLE_HUSH_TICK
 		case '`':
 			process_command_subs(dest, ctx, input, "`");
 			break;
+#endif
 		case '>':
 			redir_fd = redirect_opt_num(dest);
 			done_word(dest, ctx);
@@ -3481,9 +3489,13 @@ static void update_charmap(void)
 	 * and on most machines that would be faster (reduced L1 cache use).
 	 */
 	memset(charmap, CHAR_ORDINARY, sizeof(charmap));
+#if ENABLE_HUSH_TICK
 	set_in_charmap("\\$\"`", CHAR_SPECIAL);
+#else
+	set_in_charmap("\\$\"", CHAR_SPECIAL);
+#endif
 	set_in_charmap("<>;&|(){}#'", CHAR_ORDINARY_IF_QUOTED);
-	set_in_charmap(ifs, CHAR_IFS);  /* also flow through if quoted */
+	set_in_charmap(ifs, CHAR_IFS);  /* are ordinary if quoted */
 }
 
 /* most recursion does not come through here, the exception is
