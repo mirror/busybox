@@ -1,0 +1,6 @@
+if test $# = 0; then
+    exec "$THIS_SH" $0 abc "d e"
+fi
+echo $0 $1 $2
+shift
+echo $0 $1 $2

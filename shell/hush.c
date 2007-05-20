@@ -952,7 +952,7 @@ static int builtin_shift(char **argv)
 		n = atoi(argv[1]);
 	}
 	if (n >= 0 && n < global_argc) {
-		/* XXX This probably breaks $0 */
+		global_argv[n] = global_argv[0];
 		global_argc -= n;
 		global_argv += n;
 		return EXIT_SUCCESS;
