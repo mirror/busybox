@@ -176,6 +176,12 @@ config HUSH
 	  word ), arithmetic expansion, aliases, brace expansion, tilde
 	  expansion, &> and >& redirection of stdout+stderr, etc.
 
+config HUSH_HELP
+	bool "help builtin"
+	default n
+	help
+	  Enable help builtin in hush. Code size + ~1 kbyte.
+
 config HUSH_INTERACTIVE
 	bool "Interactive mode"
 	default y
@@ -202,6 +208,18 @@ config HUSH_TICK
 	default n
 	help
 	  Enable process substitution `command` and $(command) in hush.
+
+config HUSH_IF
+	bool "Support if/then/elif/else/fi"
+	default n
+	help
+	  Enable if/then/elif/else/fi in hush.
+
+config HUSH_LOOPS
+	bool "Support for, while and until loops"
+	default n
+	help
+	  Enable for, while and until loops in hush.
 
 config LASH
 	bool "lash"

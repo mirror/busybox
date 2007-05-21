@@ -175,33 +175,41 @@ typedef enum {
 /* might eventually control execution */
 typedef enum {
 	RES_NONE  = 0,
+#if ENABLE_HUSH_IF
 	RES_IF    = 1,
 	RES_THEN  = 2,
 	RES_ELIF  = 3,
 	RES_ELSE  = 4,
 	RES_FI    = 5,
+#endif
+#if ENABLE_HUSH_LOOPS
 	RES_FOR   = 6,
 	RES_WHILE = 7,
 	RES_UNTIL = 8,
 	RES_DO    = 9,
 	RES_DONE  = 10,
-	RES_XXXX  = 11,
-	RES_IN    = 12,
+	RES_IN    = 11,
+#endif
+	RES_XXXX  = 12,
 	RES_SNTX  = 13
 } reserved_style;
 enum {
 	FLAG_END   = (1 << RES_NONE ),
+#if ENABLE_HUSH_IF
 	FLAG_IF    = (1 << RES_IF   ),
 	FLAG_THEN  = (1 << RES_THEN ),
 	FLAG_ELIF  = (1 << RES_ELIF ),
 	FLAG_ELSE  = (1 << RES_ELSE ),
 	FLAG_FI    = (1 << RES_FI   ),
+#endif
+#if ENABLE_HUSH_LOOPS
 	FLAG_FOR   = (1 << RES_FOR  ),
 	FLAG_WHILE = (1 << RES_WHILE),
 	FLAG_UNTIL = (1 << RES_UNTIL),
 	FLAG_DO    = (1 << RES_DO   ),
 	FLAG_DONE  = (1 << RES_DONE ),
 	FLAG_IN    = (1 << RES_IN   ),
+#endif
 	FLAG_START = (1 << RES_XXXX ),
 };
 
@@ -429,7 +437,9 @@ static int builtin_export(char **argv);
 static int builtin_fg_bg(char **argv);
 static int builtin_jobs(char **argv);
 #endif
+#if ENABLE_HUSH_HELP
 static int builtin_help(char **argv);
+#endif
 static int builtin_pwd(char **argv);
 static int builtin_read(char **argv);
 static int builtin_set(char **argv);
@@ -437,7 +447,7 @@ static int builtin_shift(char **argv);
 static int builtin_source(char **argv);
 static int builtin_umask(char **argv);
 static int builtin_unset(char **argv);
-static int builtin_not_written(char **argv);
+//static int builtin_not_written(char **argv);
 /*   o_string manipulation: */
 static int b_check_space(o_string *o, int len);
 static int b_addchr(o_string *o, int ch);
@@ -520,38 +530,45 @@ static void unset_local_var(const char *name);
  * still be set at the end. */
 struct built_in_command {
 	const char *cmd;                /* name */
-	const char *descr;              /* description */
 	int (*function) (char **argv);  /* function ptr */
+#if ENABLE_HUSH_HELP
+	const char *descr;              /* description */
+#define BLTIN(cmd, func, help) { cmd, func, help }
+#else
+#define BLTIN(cmd, func, help) { cmd, func }
+#endif
 };
 
 static const struct built_in_command bltins[] = {
 #if ENABLE_HUSH_JOB
-	{ "bg", "Resume a job in the background", builtin_fg_bg },
+	BLTIN("bg"    , builtin_fg_bg, "Resume a job in the background"),
 #endif
-	{ "break", "Exit for, while or until loop", builtin_not_written },
-	{ "cd", "Change working directory", builtin_cd },
-	{ "continue", "Continue for, while or until loop", builtin_not_written },
-	{ "eval", "Construct and run shell command", builtin_eval },
-	{ "exec", "Exec command, replacing this shell with the exec'd process",
-		builtin_exec },
-	{ "exit", "Exit from shell()", builtin_exit },
-	{ "export", "Set environment variable", builtin_export },
+//	BLTIN("break" , builtin_not_written, "Exit for, while or until loop"),
+	BLTIN("cd"    , builtin_cd, "Change working directory"),
+//	BLTIN("continue", builtin_not_written, "Continue for, while or until loop"),
+	BLTIN("eval"  , builtin_eval, "Construct and run shell command"),
+	BLTIN("exec"  , builtin_exec, "Exec command, replacing this shell with the exec'd process"),
+	BLTIN("exit"  , builtin_exit, "Exit from shell"),
+	BLTIN("export", builtin_export, "Set environment variable"),
 #if ENABLE_HUSH_JOB
-	{ "fg", "Bring job into the foreground", builtin_fg_bg },
-	{ "jobs", "Lists the active jobs", builtin_jobs },
+	BLTIN("fg"    , builtin_fg_bg, "Bring job into the foreground"),
+	BLTIN("jobs"  , builtin_jobs, "Lists the active jobs"),
 #endif
-	{ "pwd", "Print current directory", builtin_pwd },
-	{ "read", "Input environment variable", builtin_read },
-	{ "return", "Return from a function", builtin_not_written },
-	{ "set", "Set/unset shell local variables", builtin_set },
-	{ "shift", "Shift positional parameters", builtin_shift },
-	{ "trap", "Trap signals", builtin_not_written },
-	{ "ulimit","Controls resource limits", builtin_not_written },
-	{ "umask","Sets file creation mask", builtin_umask },
-	{ "unset", "Unset environment variable", builtin_unset },
-	{ ".", "Source-in and run commands in a file", builtin_source },
-	{ "help", "List shell built-in commands", builtin_help },
-	{ NULL, NULL, NULL }
+// TODO: remove pwd? we have it as an applet...
+	BLTIN("pwd"   , builtin_pwd, "Print current directory"),
+	BLTIN("read"  , builtin_read, "Input environment variable"),
+//	BLTIN("return", builtin_not_written, "Return from a function"),
+	BLTIN("set"   , builtin_set, "Set/unset shell local variables"),
+	BLTIN("shift" , builtin_shift, "Shift positional parameters"),
+//	BLTIN("trap"  , builtin_not_written, "Trap signals"),
+//	BLTIN("ulimit", builtin_not_written, "Controls resource limits"),
+	BLTIN("umask" , builtin_umask, "Sets file creation mask"),
+	BLTIN("unset" , builtin_unset, "Unset environment variable"),
+	BLTIN("."     , builtin_source, "Source-in and run commands in a file"),
+#if ENABLE_HUSH_HELP
+	BLTIN("help"  , builtin_help, "List shell built-in commands"),
+#endif
+	BLTIN(NULL, NULL, NULL)
 };
 
 #if ENABLE_HUSH_JOB
@@ -868,6 +885,7 @@ static int builtin_fg_bg(char **argv)
 #endif
 
 /* built-in 'help' handler */
+#if ENABLE_HUSH_HELP
 static int builtin_help(char **argv ATTRIBUTE_UNUSED)
 {
 	const struct built_in_command *x;
@@ -875,13 +893,12 @@ static int builtin_help(char **argv ATTRIBUTE_UNUSED)
 	printf("\nBuilt-in commands:\n");
 	printf("-------------------\n");
 	for (x = bltins; x->cmd; x++) {
-		if (x->descr == NULL)
-			continue;
 		printf("%s\t%s\n", x->cmd, x->descr);
 	}
 	printf("\n\n");
 	return EXIT_SUCCESS;
 }
+#endif
 
 #if ENABLE_HUSH_JOB
 /* built-in 'jobs' handler */
@@ -1014,11 +1031,11 @@ static int builtin_unset(char **argv)
 	return EXIT_SUCCESS;
 }
 
-static int builtin_not_written(char **argv)
-{
-	printf("builtin_%s not written\n", argv[0]);
-	return EXIT_FAILURE;
-}
+//static int builtin_not_written(char **argv)
+//{
+//	printf("builtin_%s not written\n", argv[0]);
+//	return EXIT_FAILURE;
+//}
 
 static int b_check_space(o_string *o, int len)
 {
@@ -1882,18 +1899,22 @@ static void debug_print_tree(struct pipe *pi, int lvl)
 	};
 	static const char *RES[] = {
 		[RES_NONE ] = "NONE" ,
+#if ENABLE_HUSH_IF
 		[RES_IF   ] = "IF"   ,
 		[RES_THEN ] = "THEN" ,
 		[RES_ELIF ] = "ELIF" ,
 		[RES_ELSE ] = "ELSE" ,
 		[RES_FI   ] = "FI"   ,
+#endif
+#if ENABLE_HUSH_LOOPS
 		[RES_FOR  ] = "FOR"  ,
 		[RES_WHILE] = "WHILE",
 		[RES_UNTIL] = "UNTIL",
 		[RES_DO   ] = "DO"   ,
 		[RES_DONE ] = "DONE" ,
-		[RES_XXXX ] = "XXXX" ,
 		[RES_IN   ] = "IN"   ,
+#endif
+		[RES_XXXX ] = "XXXX" ,
 		[RES_SNTX ] = "SNTX" ,
 	};
 
@@ -1934,21 +1955,28 @@ static void debug_print_tree(struct pipe *pi, int lvl)
  * global data until exec/_exit (we can be a child after vfork!) */
 static int run_list_real(struct pipe *pi)
 {
+	struct pipe *rpipe;
+#if ENABLE_HUSH_LOOPS
 	char *for_varname = NULL;
 	char **for_lcur = NULL;
 	char **for_list = NULL;
-	struct pipe *rpipe;
 	int flag_rep = 0;
+#endif
 	int save_num_progs;
 	int flag_skip = 1;
 	int rcode = 0; /* probably for gcc only */
 	int flag_restore = 0;
+#if ENABLE_HUSH_IF
 	int if_code = 0, next_if_code = 0;  /* need double-buffer to handle elif */
+#else
+	enum { if_code = 0, next_if_code = 0 };
+#endif
 	reserved_style rword;
 	reserved_style skip_more_for_this_rword = RES_XXXX;
 
 	debug_printf_exec("run_list_real start lvl %d\n", run_list_level + 1);
 
+#if ENABLE_HUSH_LOOPS
 	/* check syntax for "for" */
 	for (rpipe = pi; rpipe; rpipe = rpipe->next) {
 		if ((rpipe->res_word == RES_IN || rpipe->res_word == RES_FOR)
@@ -1967,6 +1995,9 @@ static int run_list_real(struct pipe *pi)
 			return 1;
 		}
 	}
+#else
+	rpipe = NULL;
+#endif
 
 #if ENABLE_HUSH_JOB
 	/* Example of nested list: "while true; do { sleep 1 | exit 2; } done".
@@ -2012,6 +2043,7 @@ static int run_list_real(struct pipe *pi)
 
 	for (; pi; pi = flag_restore ? rpipe : pi->next) {
 		rword = pi->res_word;
+#if ENABLE_HUSH_LOOPS
 		if (rword == RES_WHILE || rword == RES_UNTIL || rword == RES_FOR) {
 			flag_restore = 0;
 			if (!rpipe) {
@@ -2019,6 +2051,7 @@ static int run_list_real(struct pipe *pi)
 				rpipe = pi;
 			}
 		}
+#endif
 		debug_printf_exec(": rword=%d if_code=%d next_if_code=%d skip_more=%d\n",
 				rword, if_code, next_if_code, skip_more_for_this_rword);
 		if (rword == skip_more_for_this_rword && flag_skip) {
@@ -2028,6 +2061,7 @@ static int run_list_real(struct pipe *pi)
 		}
 		flag_skip = 1;
 		skip_more_for_this_rword = RES_XXXX;
+#if ENABLE_HUSH_IF
 		if (rword == RES_THEN || rword == RES_ELSE)
 			if_code = next_if_code;
 		if (rword == RES_THEN && if_code)
@@ -2036,6 +2070,8 @@ static int run_list_real(struct pipe *pi)
 			continue;
 		if (rword == RES_ELIF && !if_code)
 			break;
+#endif
+#if ENABLE_HUSH_LOOPS
 		if (rword == RES_FOR && pi->num_progs) {
 			if (!for_lcur) {
 				/* if no variable values after "in" we skip "for" */
@@ -2075,6 +2111,7 @@ static int run_list_real(struct pipe *pi)
 				rpipe = NULL;
 			}
 		}
+#endif
 		if (pi->num_progs == 0)
 			continue;
 		save_num_progs = pi->num_progs; /* save number of programs */
@@ -2110,12 +2147,16 @@ static int run_list_real(struct pipe *pi)
 		debug_printf_exec(": setting last_return_code=%d\n", rcode);
 		last_return_code = rcode;
 		pi->num_progs = save_num_progs; /* restore number of programs */
+#if ENABLE_HUSH_IF
 		if (rword == RES_IF || rword == RES_ELIF)
 			next_if_code = rcode;  /* can be overwritten a number of times */
+#endif
+#if ENABLE_HUSH_LOOPS
 		if (rword == RES_WHILE)
 			flag_rep = !last_return_code;
 		if (rword == RES_UNTIL)
 			flag_rep = last_return_code;
+#endif
 		if ((rcode == EXIT_SUCCESS && pi->followup == PIPE_OR)
 		 || (rcode != EXIT_SUCCESS && pi->followup == PIPE_AND)
 		) {
@@ -2811,6 +2852,7 @@ static void initialize_context(struct p_context *ctx)
  * should handle if, then, elif, else, fi, for, while, until, do, done.
  * case, function, and select are obnoxious, save those for later.
  */
+#if ENABLE_HUSH_IF || ENABLE_HUSH_LOOPS
 static int reserved_word(o_string *dest, struct p_context *ctx)
 {
 	struct reserved_combo {
@@ -2824,17 +2866,21 @@ static int reserved_word(o_string *dest, struct p_context *ctx)
 	 * FLAG_START means the word must start a new compound list.
 	 */
 	static const struct reserved_combo reserved_list[] = {
+#if ENABLE_HUSH_IF
 		{ "if",    RES_IF,    FLAG_THEN | FLAG_START },
 		{ "then",  RES_THEN,  FLAG_ELIF | FLAG_ELSE | FLAG_FI },
 		{ "elif",  RES_ELIF,  FLAG_THEN },
 		{ "else",  RES_ELSE,  FLAG_FI   },
 		{ "fi",    RES_FI,    FLAG_END  },
+#endif
+#if ENABLE_HUSH_LOOPS
 		{ "for",   RES_FOR,   FLAG_IN   | FLAG_START },
 		{ "while", RES_WHILE, FLAG_DO   | FLAG_START },
 		{ "until", RES_UNTIL, FLAG_DO   | FLAG_START },
 		{ "in",    RES_IN,    FLAG_DO   },
 		{ "do",    RES_DO,    FLAG_DONE },
 		{ "done",  RES_DONE,  FLAG_END  }
+#endif
 	};
 	enum { NRES = sizeof(reserved_list)/sizeof(reserved_list[0]) };
 	const struct reserved_combo *r;
@@ -2845,6 +2891,7 @@ static int reserved_word(o_string *dest, struct p_context *ctx)
 			if (r->flag & FLAG_START) {
 				struct p_context *new = xmalloc(sizeof(struct p_context));
 				debug_printf("push stack\n");
+#if ENABLE_HUSH_LOOPS
 				if (ctx->res_w == RES_IN || ctx->res_w == RES_FOR) {
 					syntax();
 					free(new);
@@ -2852,6 +2899,7 @@ static int reserved_word(o_string *dest, struct p_context *ctx)
 					b_reset(dest);
 					return 1;
 				}
+#endif
 				*new = *ctx;   /* physical copy */
 				initialize_context(ctx);
 				ctx->stack = new;
@@ -2879,6 +2927,9 @@ static int reserved_word(o_string *dest, struct p_context *ctx)
 	}
 	return 0;
 }
+#else
+#define reserved_word(dest, ctx) ((int)0)
+#endif
 
 /* Normal return is 0.
  * Syntax or xglob errors return 1. */
@@ -2929,10 +2980,12 @@ static int done_word(o_string *dest, struct p_context *ctx)
 	} else {
 		child->argv = glob_target->gl_pathv;
 	}
+#if ENABLE_HUSH_LOOPS
 	if (ctx->res_w == RES_FOR) {
 		done_word(dest, ctx);
 		done_pipe(ctx, PIPE_SEQ);
 	}
+#endif
 	debug_printf_parse("done_word return 0\n");
 	return 0;
 }
