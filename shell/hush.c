@@ -137,9 +137,10 @@ static const char *indenter(int i)
 #endif
 
 #define SPECIAL_VAR_SYMBOL   3
-#define FLAG_EXIT_FROM_LOOP  1
-#define FLAG_PARSE_SEMICOLON (1 << 1)		/* symbol ';' is special for parser */
-#define FLAG_REPARSING	     (1 << 2)		/* >= 2nd pass */
+
+#define PARSEFLAG_EXIT_FROM_LOOP 1
+#define PARSEFLAG_SEMICOLON      (1 << 1)  /* symbol ';' is special for parser */
+#define PARSEFLAG_REPARSING      (1 << 2)  /* >= 2nd pass */
 
 typedef enum {
 	REDIRECT_INPUT     = 1,
@@ -210,10 +211,10 @@ struct p_context {
 	struct pipe *list_head;
 	struct pipe *pipe;
 	struct redir_struct *pending_redirect;
-	reserved_style res_w;
-	int old_flag;           /* for figuring out valid reserved words */
+	smallint res_w;
+	smallint parse_type;        /* bitmask of PARSEFLAG_xxx, defines type of parser : ";$" common or special symbol */
+	int old_flag;               /* bitmask of FLAG_xxx, for figuring out valid reserved words */
 	struct p_context *stack;
-	int parse_type;         /* define type of parser : ";$" common or special symbol */
 	/* How about quoting status? */
 };
 
@@ -249,17 +250,17 @@ struct pipe {
 	struct pipe *next;
 	int num_progs;              /* total number of programs in job */
 	int running_progs;          /* number of programs running (not exited) */
-	char *cmdbuf;               /* buffer various argv's point into */
+	int stopped_progs;          /* number of programs alive, but stopped */
 #if ENABLE_HUSH_JOB
 	int jobid;                  /* job number */
-	char *cmdtext;              /* name of job */
 	pid_t pgrp;                 /* process group ID for the job */
+	char *cmdtext;              /* name of job */
 #endif
+	char *cmdbuf;               /* buffer various argv's point into */
 	struct child_prog *progs;   /* array of commands in pipe */
-	int stopped_progs;          /* number of programs alive, but stopped */
 	int job_context;            /* bitmask defining current context */
-	pipe_style followup;        /* PIPE_BG, PIPE_SEQ, PIPE_OR, PIPE_AND */
-	reserved_style r_mode;      /* supports if, for, while, until */
+	smallint followup;          /* PIPE_BG, PIPE_SEQ, PIPE_OR, PIPE_AND */
+	smallint res_word;          /* needed for if, for, while, until... */
 };
 
 struct close_me {
@@ -271,8 +272,8 @@ struct variables {
 	struct variables *next;
 	const char *name;
 	const char *value;
-	int flg_export;
-	int flg_read_only;
+	smallint flg_export;
+	smallint flg_read_only;
 };
 
 typedef struct {
@@ -703,8 +704,8 @@ static int builtin_eval(char **argv)
 
 	if (argv[1]) {
 		str = make_string(argv + 1);
-		parse_string_outer(str, FLAG_EXIT_FROM_LOOP |
-					FLAG_PARSE_SEMICOLON);
+		parse_string_outer(str, PARSEFLAG_EXIT_FROM_LOOP |
+					PARSEFLAG_SEMICOLON);
 		free(str);
 		rcode = last_return_code;
 	}
@@ -1897,10 +1898,11 @@ static void debug_print_tree(struct pipe *pi, int lvl)
 	};
 
 	int pin, prn;
+
 	pin = 0;
 	while (pi) {
-		fprintf(stderr, "%*spipe %d r_mode=%s followup=%d %s\n", lvl*2, "",
-				pin, RES[pi->r_mode], pi->followup, PIPE[pi->followup]);
+		fprintf(stderr, "%*spipe %d res_word=%s followup=%d %s\n", lvl*2, "",
+				pin, RES[pi->res_word], pi->followup, PIPE[pi->followup]);
 		prn = 0;
 		while (prn < pi->num_progs) {
 			struct child_prog *child = &pi->progs[prn];
@@ -1942,21 +1944,22 @@ static int run_list_real(struct pipe *pi)
 	int rcode = 0; /* probably for gcc only */
 	int flag_restore = 0;
 	int if_code = 0, next_if_code = 0;  /* need double-buffer to handle elif */
-	reserved_style rmode, skip_more_in_this_rmode = RES_XXXX;
+	reserved_style rword;
+	reserved_style skip_more_for_this_rword = RES_XXXX;
 
 	debug_printf_exec("run_list_real start lvl %d\n", run_list_level + 1);
 
 	/* check syntax for "for" */
 	for (rpipe = pi; rpipe; rpipe = rpipe->next) {
-		if ((rpipe->r_mode == RES_IN || rpipe->r_mode == RES_FOR)
+		if ((rpipe->res_word == RES_IN || rpipe->res_word == RES_FOR)
 		 && (rpipe->next == NULL)
 		) {
 			syntax(); /* unterminated FOR (no IN or no commands after IN) */
 			debug_printf_exec("run_list_real lvl %d return 1\n", run_list_level);
 			return 1;
 		}
-		if ((rpipe->r_mode == RES_IN &&	rpipe->next->r_mode == RES_IN && rpipe->next->progs[0].argv != NULL)
-		 || (rpipe->r_mode == RES_FOR && rpipe->next->r_mode != RES_IN)
+		if ((rpipe->res_word == RES_IN && rpipe->next->res_word == RES_IN && rpipe->next->progs[0].argv != NULL)
+		 || (rpipe->res_word == RES_FOR && rpipe->next->res_word != RES_IN)
 		) {
 			/* TODO: what is tested in the first condition? */
 			syntax(); /* 2nd: malformed FOR (not followed by IN) */
@@ -2008,32 +2011,32 @@ static int run_list_real(struct pipe *pi)
 #endif
 
 	for (; pi; pi = flag_restore ? rpipe : pi->next) {
-		rmode = pi->r_mode;
-		if (rmode == RES_WHILE || rmode == RES_UNTIL || rmode == RES_FOR) {
+		rword = pi->res_word;
+		if (rword == RES_WHILE || rword == RES_UNTIL || rword == RES_FOR) {
 			flag_restore = 0;
 			if (!rpipe) {
 				flag_rep = 0;
 				rpipe = pi;
 			}
 		}
-		debug_printf_exec(": rmode=%d if_code=%d next_if_code=%d skip_more=%d\n",
-				rmode, if_code, next_if_code, skip_more_in_this_rmode);
-		if (rmode == skip_more_in_this_rmode && flag_skip) {
+		debug_printf_exec(": rword=%d if_code=%d next_if_code=%d skip_more=%d\n",
+				rword, if_code, next_if_code, skip_more_for_this_rword);
+		if (rword == skip_more_for_this_rword && flag_skip) {
 			if (pi->followup == PIPE_SEQ)
 				flag_skip = 0;
 			continue;
 		}
 		flag_skip = 1;
-		skip_more_in_this_rmode = RES_XXXX;
-		if (rmode == RES_THEN || rmode == RES_ELSE)
+		skip_more_for_this_rword = RES_XXXX;
+		if (rword == RES_THEN || rword == RES_ELSE)
 			if_code = next_if_code;
-		if (rmode == RES_THEN && if_code)
+		if (rword == RES_THEN && if_code)
 			continue;
-		if (rmode == RES_ELSE && !if_code)
+		if (rword == RES_ELSE && !if_code)
 			continue;
-		if (rmode == RES_ELIF && !if_code)
+		if (rword == RES_ELIF && !if_code)
 			break;
-		if (rmode == RES_FOR && pi->num_progs) {
+		if (rword == RES_FOR && pi->num_progs) {
 			if (!for_lcur) {
 				/* if no variable values after "in" we skip "for" */
 				if (!pi->next->progs->argv)
@@ -2059,13 +2062,13 @@ static int run_list_real(struct pipe *pi)
 			pi->progs->argv[0] = xasprintf("%s=%s", for_varname, *for_lcur++);
 			pi->progs->glob_result.gl_pathv[0] = pi->progs->argv[0];
 		}
-		if (rmode == RES_IN)
+		if (rword == RES_IN)
 			continue;
-		if (rmode == RES_DO) {
+		if (rword == RES_DO) {
 			if (!flag_rep)
 				continue;
 		}
-		if (rmode == RES_DONE) {
+		if (rword == RES_DONE) {
 			if (flag_rep) {
 				flag_restore = 1;
 			} else {
@@ -2107,16 +2110,16 @@ static int run_list_real(struct pipe *pi)
 		debug_printf_exec(": setting last_return_code=%d\n", rcode);
 		last_return_code = rcode;
 		pi->num_progs = save_num_progs; /* restore number of programs */
-		if (rmode == RES_IF || rmode == RES_ELIF)
+		if (rword == RES_IF || rword == RES_ELIF)
 			next_if_code = rcode;  /* can be overwritten a number of times */
-		if (rmode == RES_WHILE)
+		if (rword == RES_WHILE)
 			flag_rep = !last_return_code;
-		if (rmode == RES_UNTIL)
+		if (rword == RES_UNTIL)
 			flag_rep = last_return_code;
 		if ((rcode == EXIT_SUCCESS && pi->followup == PIPE_OR)
 		 || (rcode != EXIT_SUCCESS && pi->followup == PIPE_AND)
 		) {
-			skip_more_in_this_rmode = rmode;
+			skip_more_for_this_rword = rword;
 		}
 		checkjobs(NULL);
 	}
@@ -2192,7 +2195,7 @@ static int free_pipe_list(struct pipe *head, int indent)
 	struct pipe *pi, *next;
 
 	for (pi = head; pi; pi = next) {
-		debug_printf_clean("%s pipe reserved mode %d\n", indenter(indent), pi->r_mode);
+		debug_printf_clean("%s pipe reserved mode %d\n", indenter(indent), pi->res_word);
 		rcode = free_pipe(pi, indent);
 		debug_printf_clean("%s pipe followup code %d\n", indenter(indent), pi->followup);
 		next = pi->next;
@@ -2786,7 +2789,7 @@ static struct pipe *new_pipe(void)
 	/*pi->next = NULL;*/
 	/*pi->followup = 0;  invalid */
 	if (RES_NONE)
-		pi->r_mode = RES_NONE;
+		pi->res_word = RES_NONE;
 	return pi;
 }
 
@@ -2898,7 +2901,7 @@ static int done_word(o_string *dest, struct p_context *ctx)
 			debug_printf_parse("done_word return 1: syntax error, groups and arglists don't mix\n");
 			return 1;
 		}
-		if (!child->argv && (ctx->parse_type & FLAG_PARSE_SEMICOLON)) {
+		if (!child->argv && (ctx->parse_type & PARSEFLAG_SEMICOLON)) {
 			debug_printf_parse(": checking '%s' for reserved-ness\n", dest->data);
 			if (reserved_word(dest, ctx)) {
 				debug_printf_parse("done_word return %d\n", (ctx->res_w == RES_SNTX));
@@ -2986,7 +2989,7 @@ static int done_pipe(struct p_context *ctx, pipe_style type)
 	debug_printf_parse("done_pipe entered, followup %d\n", type);
 	not_null = done_command(ctx);  /* implicit closure of previous command */
 	ctx->pipe->followup = type;
-	ctx->pipe->r_mode = ctx->res_w;
+	ctx->pipe->res_word = ctx->res_w;
 	/* Without this check, even just <enter> on command line generates
 	 * tree of three NOPs (!). Which is harmless but annoying.
 	 * IOW: it is safe to do it unconditionally. */
@@ -3510,7 +3513,7 @@ static int parse_stream_outer(struct in_str *inp, int parse_flag)
 		ctx.parse_type = parse_flag;
 		initialize_context(&ctx);
 		update_charmap();
-		if (!(parse_flag & FLAG_PARSE_SEMICOLON) || (parse_flag & FLAG_REPARSING))
+		if (!(parse_flag & PARSEFLAG_SEMICOLON) || (parse_flag & PARSEFLAG_REPARSING))
 			set_in_charmap(";$&|", CHAR_ORDINARY);
 #if ENABLE_HUSH_INTERACTIVE
 		inp->promptmode = 1;
@@ -3539,7 +3542,7 @@ static int parse_stream_outer(struct in_str *inp, int parse_flag)
 			free_pipe_list(ctx.list_head, 0);
 		}
 		b_free(&temp);
-	} while (rcode != -1 && !(parse_flag & FLAG_EXIT_FROM_LOOP));   /* loop on syntax errors, return on EOF */
+	} while (rcode != -1 && !(parse_flag & PARSEFLAG_EXIT_FROM_LOOP));   /* loop on syntax errors, return on EOF */
 	return 0;
 }
 
@@ -3555,7 +3558,7 @@ static int parse_file_outer(FILE *f)
 	int rcode;
 	struct in_str input;
 	setup_file_in_str(&input, f);
-	rcode = parse_stream_outer(&input, FLAG_PARSE_SEMICOLON);
+	rcode = parse_stream_outer(&input, PARSEFLAG_SEMICOLON);
 	return rcode;
 }
 
@@ -3646,7 +3649,7 @@ int hush_main(int argc, char **argv)
 		case 'c':
 			global_argv = argv + optind;
 			global_argc = argc - optind;
-			opt = parse_string_outer(optarg, FLAG_PARSE_SEMICOLON);
+			opt = parse_string_outer(optarg, PARSEFLAG_SEMICOLON);
 			goto final_return;
 		case 'i':
 			/* Well, we cannot just declare interactiveness,
