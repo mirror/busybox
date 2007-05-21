@@ -1,6 +1,20 @@
 Various bits of what is known about busybox shells, in no particular order.
 
-2006-05-06
+2007-05-21
+hush: environment cannot be handled by libc routines as they are leaky
+(by API design and thus unfixable): hush will leak memory in this script,
+bash does not:
+pid=$$
+while true; do
+    unset t;
+    t=111111111111111111111111111111111111111111111111111111111111111111111111
+    export t
+    ps -o vsz,pid,comm | grep " $pid "
+done
+The fix is to not use setenv/putenv/unsetenv but manipulate env ourself. TODO.
+hush: meanwhile, first three command subst bugs mentioned below are fixed. :)
+
+2007-05-06
 hush: more bugs spotted. Comparison with bash:
 bash-3.2# echo "TEST`date;echo;echo`BEST"
 TESTSun May  6 09:21:05 CEST 2007BEST         [we dont strip eols]
