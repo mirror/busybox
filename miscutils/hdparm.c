@@ -393,26 +393,26 @@ void identify_from_stdin(void);
  */
 
 /* words 89, 90, SECU ERASE TIME */
-#define ERASE_BITS		0x00ff
+#define ERASE_BITS      0x00ff
 
 /* word 92: master password revision */
 /* NOVAL_0 or  NOVAL_1 means no support for master password revision */
 
 /* word 93: hw reset result */
-#define CBLID			0x2000  /* CBLID status */
-#define RST0			0x0001  /* 1=reset to device #0 */
-#define DEV_DET			0x0006  /* how device num determined */
-#define JUMPER_VAL		0x0002  /* device num determined by jumper */
-#define CSEL_VAL		0x0004  /* device num determined by CSEL_VAL */
+#define CBLID           0x2000  /* CBLID status */
+#define RST0            0x0001  /* 1=reset to device #0 */
+#define DEV_DET         0x0006  /* how device num determined */
+#define JUMPER_VAL      0x0002  /* device num determined by jumper */
+#define CSEL_VAL        0x0004  /* device num determined by CSEL_VAL */
 
 /* word 127: removable media status notification feature set support */
-#define RM_STAT_BITS		0x0003
-#define RM_STAT_SUP		0x0001
+#define RM_STAT_BITS    0x0003
+#define RM_STAT_SUP     0x0001
 
 /* word 128: security */
-#define SECU_ENABLED	0x0002
-#define SECU_LEVEL		0x0010
-#define NUM_SECU_STR	6
+#define SECU_ENABLED    0x0002
+#define SECU_LEVEL      0x0010
+#define NUM_SECU_STR    6
 #if ENABLE_FEATURE_HDPARM_GET_IDENTITY
 static const char * const secu_str[] = {
 	"supported",			/* word 128, bit 0 */
@@ -425,22 +425,21 @@ static const char * const secu_str[] = {
 #endif
 
 /* word 160: CFA power mode */
-#define VALID_W160		0x8000  /* 1=word valid */
-#define PWR_MODE_REQ		0x2000  /* 1=CFA power mode req'd by some cmds*/
-#define PWR_MODE_OFF		0x1000  /* 1=CFA power moded disabled */
-#define MAX_AMPS		0x0fff  /* value = max current in ma */
+#define VALID_W160              0x8000  /* 1=word valid */
+#define PWR_MODE_REQ            0x2000  /* 1=CFA power mode req'd by some cmds*/
+#define PWR_MODE_OFF            0x1000  /* 1=CFA power moded disabled */
+#define MAX_AMPS                0x0fff  /* value = max current in ma */
 
 /* word 255: integrity */
-#define SIG			0x00ff  /* signature location */
-#define SIG_VAL			0x00A5  /* signature value */
+#define SIG                     0x00ff  /* signature location */
+#define SIG_VAL                 0x00a5  /* signature value */
 
-#define TIMING_MB		64
-#define TIMING_BUF_MB		1
-#define TIMING_BUF_BYTES	(TIMING_BUF_MB * 1024 * 1024)
-#define TIMING_BUF_COUNT	(timing_MB / TIMING_BUF_MB)
-#define BUFCACHE_FACTOR		2
+#define TIMING_MB               64
+#define TIMING_BUF_MB           1
+#define TIMING_BUF_BYTES        (TIMING_BUF_MB * 1024 * 1024)
+#define BUFCACHE_FACTOR         2
 
-#undef DO_FLUSHCACHE		/* under construction: force cache flush on -W0 */
+#undef DO_FLUSHCACHE            /* under construction: force cache flush on -W0 */
 
 /* Busybox messages and functions */
 static int bb_ioctl(int fd, int request, void *argp, const char *string)
@@ -775,7 +774,7 @@ static void identify(uint16_t *id_supplied)
 			bbbig = (uint64_t)val[LBA_64_MSB] << 48 |
 			        (uint64_t)val[LBA_48_MSB] << 32 |
 			        (uint64_t)val[LBA_MID] << 16 |
-					val[LBA_LSB] ;
+					val[LBA_LSB];
 			printf("\tLBA48  user addressable sectors:%11"PRIu64"\n", bbbig);
 		}
 
@@ -916,7 +915,7 @@ static void identify(uint16_t *id_supplied)
 	 * than n (e.g. 3, 2, 1 and 0).  Print all the modes. */
 	if ((val[WHATS_VALID] & OK_W64_70) && (val[ADV_PIO_MODES] & PIO_SUP)) {
 		jj = ((val[ADV_PIO_MODES] & PIO_SUP) << 3) | 0x0007;
-		for (ii = 0; ii <= PIO_MODE_MAX ; ii++) {
+		for (ii = 0; ii <= PIO_MODE_MAX; ii++) {
 			if (jj & 0x0001) printf("pio%d ", ii);
 			jj >>=1;
 		}
@@ -1246,7 +1245,7 @@ static void dump_identity(const struct hd_driveid *id)
 static void flush_buffer_cache(int fd)
 {
 	fsync(fd);				/* flush buffers */
-	bb_ioctl(fd, BLKFLSBUF, NULL, "BLKFLSBUF") ;/* do it again, big time */
+	bb_ioctl(fd, BLKFLSBUF, NULL, "BLKFLSBUF"); /* do it again, big time */
 #ifdef HDIO_DRIVE_CMD
 	sleep(1);
 	if (ioctl(fd, HDIO_DRIVE_CMD, NULL) && errno != EINVAL)	/* await completion */
@@ -1276,14 +1275,6 @@ static int read_big_block(int fd, char *buf)
 	return 0;
 }
 
-static void print_timing(int t, double e)
-{
-	if (t >= e)  /* more than 1MB/s */
-		printf("%2d MB in %5.2f seconds =%6.2f %cB/sec\n", t, e, t / e, 'M');
-	else
-		printf("%2d MB in %5.2f seconds =%6.2f %cB/sec\n", t, e, t / e * 1024, 'k');
-}
-
 static int do_blkgetsize(int fd, unsigned long long *blksize64)
 {
 	int rc;
@@ -1300,17 +1291,22 @@ static int do_blkgetsize(int fd, unsigned long long *blksize64)
 	return rc;
 }
 
+static void print_timing(unsigned t, double e)
+{
+	if (t >= e)  /* more than 1MB/s */
+		printf("%4d MB in %.2f seconds = %.2f %cB/sec\n", t, e, t / e, 'M');
+	else
+		printf("%4d MB in %.2f seconds = %.2f %cB/sec\n", t, e, t / e * 1024, 'k');
+}
+
 static void do_time(int flag, int fd)
-/*
-	flag = 0 time_cache
-	flag = 1 time_device
-*/
+/* flag = 0 time_cache, 1 time_device */
 {
 	static const struct itimerval thousand = {{1000, 0}, {1000, 0}};
 
-	struct itimerval e1, e2;
-	double elapsed, elapsed2;
-	unsigned max_iterations = 1024, total_MB, iterations;
+	struct itimerval itv;
+	unsigned elapsed, elapsed2;
+	unsigned max_iterations, total_MB, iterations;
 	unsigned long long blksize;
 	RESERVE_CONFIG_BUFFER(buf, TIMING_BUF_BYTES);
 
@@ -1319,78 +1315,60 @@ static void do_time(int flag, int fd)
 		goto quit2;
 	}
 
+	max_iterations = 1024;
 	if (0 == do_blkgetsize(fd, &blksize)) {
 		max_iterations = blksize / (2 * 1024) / TIMING_BUF_MB;
 	}
 
 	/* Clear out the device request queues & give them time to complete */
 	sync();
-	sleep(3);
-
+	sleep(2);
+	if (flag == 0) { /* Time cache */
+		if (seek_to_zero(fd))
+			goto quit;
+		if (read_big_block(fd, buf))
+			goto quit;
+		printf(" Timing buffer-cache reads:  ");
+	} else { /* Time device */
+		printf(" Timing buffered disk reads: ");
+	}
+	fflush(stdout);
+	iterations = 0;
+	/*
+	 * getitimer() is used rather than gettimeofday() because
+	 * it is much more consistent (on my machine, at least).
+	 */
 	setitimer(ITIMER_REAL, &thousand, NULL);
-
-	if (flag  == 0) {
-		/* Time cache */
-
-		if (seek_to_zero(fd)) return;
-		if (read_big_block(fd, buf)) return;
-		printf(" Timing cached reads:   ");
-		fflush(stdout);
-
-		/* Now do the timing */
-		iterations = 0;
-		getitimer(ITIMER_REAL, &e1);
-		do {
-			++iterations;
-			if (seek_to_zero(fd) || read_big_block(fd, buf))
-				goto quit;
-			getitimer(ITIMER_REAL, &e2);
-			elapsed = (e1.it_value.tv_sec - e2.it_value.tv_sec)
-				+ ((e1.it_value.tv_usec - e2.it_value.tv_usec) / 1000000.0);
-		} while (elapsed < 2.0);
-		total_MB = iterations * TIMING_BUF_MB;
-
+	/* Now do the timing */
+	do {
+		++iterations;
+		if ((flag == 0) && seek_to_zero(fd))
+			goto quit;
+		if (read_big_block(fd, buf))
+			goto quit;
+		getitimer(ITIMER_REAL, &itv);
+		elapsed = (1000 - itv.it_value.tv_sec) * 1000000
+				- itv.it_value.tv_usec;
+	} while (elapsed < 3000000 && iterations < max_iterations);
+	total_MB = iterations * TIMING_BUF_MB;
+	if (flag == 0) {
 		/* Now remove the lseek() and getitimer() overheads from the elapsed time */
-		getitimer(ITIMER_REAL, &e1);
+		setitimer(ITIMER_REAL, &thousand, NULL);
 		do {
 			if (seek_to_zero(fd))
 				goto quit;
-			getitimer(ITIMER_REAL, &e2);
-			elapsed2 = (e1.it_value.tv_sec - e2.it_value.tv_sec)
-				+ ((e1.it_value.tv_usec - e2.it_value.tv_usec) / 1000000.0);
+			getitimer(ITIMER_REAL, &itv);
+			elapsed2 = (1000 - itv.it_value.tv_sec) * 1000000
+					- itv.it_value.tv_usec;
 		} while (--iterations);
-
 		elapsed -= elapsed2;
-		print_timing(BUFCACHE_FACTOR * total_MB, elapsed);
+		total_MB *= BUFCACHE_FACTOR;
 		flush_buffer_cache(fd);
-		sleep(1);
-	} else {
-		/* Time device */
-
-		printf(" Timing buffered disk reads:  ");
-		fflush(stdout);
-		/*
-		* getitimer() is used rather than gettimeofday() because
-		* it is much more consistent (on my machine, at least).
-		*/
-		/* Now do the timings for real */
-		iterations = 0;
-		getitimer(ITIMER_REAL, &e1);
-		do {
-			++iterations;
-			if (read_big_block(fd, buf))
-				goto quit;
-			getitimer(ITIMER_REAL, &e2);
-			elapsed = (e1.it_value.tv_sec - e2.it_value.tv_sec)
-				+ ((e1.it_value.tv_usec - e2.it_value.tv_usec) / 1000000.0);
-		} while (elapsed < 3.0 && iterations < max_iterations);
-
-		total_MB = iterations * TIMING_BUF_MB;
-		print_timing(total_MB, elapsed);
 	}
-quit:
+	print_timing(total_MB, elapsed / 1000000.0);
+ quit:
 	munlock(buf, TIMING_BUF_BYTES);
-quit2:
+ quit2:
 	RELEASE_CONFIG_BUFFER(buf);
 }
 
