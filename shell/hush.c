@@ -423,11 +423,20 @@ enum { run_list_level = 0 };
 #define B_NOSPAC 1
 #define JOB_STATUS_FORMAT "[%d] %-22s %.40s\n"
 
-static void __syntax(int line)
+#if 1
+/* Normal */
+static void syntax(const char *msg)
+{
+	bb_error_msg(msg ? "%s: %s" : "syntax error", "syntax error", msg);
+}
+#else
+/* Debug */
+static void syntax_lineno(int line)
 {
 	bb_error_msg("syntax error hush.c:%d", line);
 }
-#define syntax() __syntax(__LINE__)
+#define syntax(str) syntax_lineno(__LINE__)
+#endif
 
 /* Index of subroutines: */
 /*   function prototypes for builtins */
@@ -1981,7 +1990,7 @@ static int run_list_real(struct pipe *pi)
 		if ((rpipe->res_word == RES_IN || rpipe->res_word == RES_FOR)
 		 && (rpipe->next == NULL)
 		) {
-			syntax(); /* unterminated FOR (no IN or no commands after IN) */
+			syntax("malformed for"); /* no IN or no commands after IN */
 			debug_printf_exec("run_list_real lvl %d return 1\n", run_list_level);
 			return 1;
 		}
@@ -1989,7 +1998,7 @@ static int run_list_real(struct pipe *pi)
 		 || (rpipe->res_word == RES_FOR && rpipe->next->res_word != RES_IN)
 		) {
 			/* TODO: what is tested in the first condition? */
-			syntax(); /* 2nd: malformed FOR (not followed by IN) */
+			syntax("malformed for"); /* 2nd condition: not followed by IN */
 			debug_printf_exec("run_list_real lvl %d return 1\n", run_list_level);
 			return 1;
 		}
@@ -2914,7 +2923,7 @@ static int reserved_word(o_string *dest, struct p_context *ctx)
 			debug_printf("push stack\n");
 #if ENABLE_HUSH_LOOPS
 			if (ctx->res_w == RES_IN || ctx->res_w == RES_FOR) {
-				syntax();
+				syntax("malformed for"); /* example: 'for if' */
 				ctx->res_w = RES_SNTX;
 				b_reset(dest);
 				return 1;
@@ -2925,7 +2934,7 @@ static int reserved_word(o_string *dest, struct p_context *ctx)
 			initialize_context(ctx);
 			ctx->stack = new;
 		} else if (ctx->res_w == RES_NONE || !(ctx->old_flag & (1 << r->code))) {
-			syntax();
+			syntax(NULL);
 			ctx->res_w = RES_SNTX;
 			b_reset(dest);
 			return 1;
@@ -2968,7 +2977,7 @@ static int done_word(o_string *dest, struct p_context *ctx)
 		glob_target = &ctx->pending_redirect->word;
 	} else {
 		if (child->group) {
-			syntax();
+			syntax(NULL);
 			debug_printf_parse("done_word return 1: syntax error, groups and arglists don't mix\n");
 			return 1;
 		}
@@ -3224,21 +3233,15 @@ static int parse_group(o_string *dest, struct p_context *ctx,
 
 	debug_printf_parse("parse_group entered\n");
 	if (child->argv) {
-		syntax();
+		syntax(NULL);
 		debug_printf_parse("parse_group return 1: syntax error, groups and arglists don't mix\n");
 		return 1;
 	}
 	initialize_context(&sub);
-	switch (ch) {
-	case '(':
+	endch = "}";
+	if (ch == '(') {
 		endch = ")";
 		child->subshell = 1;
-		break;
-	case '{':
-		endch = "}";
-		break;
-	default:
-		syntax();   /* really logic error */
 	}
 	rcode = parse_stream(dest, &sub, input, endch);
 	done_word(dest, &sub); /* finish off the final word in the subcontext */
@@ -3307,7 +3310,7 @@ static int handle_dollar(o_string *dest, struct p_context *ctx, struct in_str *i
 			while (1) {
 				ch = b_getch(input);
 				if (ch == EOF) {
-					syntax();
+					syntax("unterminated ${name}");
 					debug_printf_parse("handle_dollar return 1: unterminated ${name}\n");
 					return 1;
 				}
@@ -3368,7 +3371,7 @@ static int parse_stream(o_string *dest, struct p_context *ctx,
 		 || (m != CHAR_SPECIAL && dest->quote)
 		) {
 			if (ch == EOF) {
-				syntax();
+				syntax("unterminated \"");
 				debug_printf_parse("parse_stream return 1: unterminated \"\n");
 				return 1;
 			}
@@ -3412,7 +3415,7 @@ static int parse_stream(o_string *dest, struct p_context *ctx,
 			break;
 		case '\\':
 			if (next == EOF) {
-				syntax();
+				syntax("\\<eof>");
 				debug_printf_parse("parse_stream return 1: \\<eof>\n");
 				return 1;
 			}
@@ -3434,7 +3437,7 @@ static int parse_stream(o_string *dest, struct p_context *ctx,
 				b_addchr(dest, ch);
 			}
 			if (ch == EOF) {
-				syntax();
+				syntax("unterminated '");
 				debug_printf_parse("parse_stream return 1: unterminated '\n");
 				return 1;
 			}
@@ -3455,11 +3458,14 @@ static int parse_stream(o_string *dest, struct p_context *ctx,
 			if (next == '>') {
 				redir_style = REDIRECT_APPEND;
 				b_getch(input);
-			} else if (next == '(') {
-				syntax();   /* until we support >(list) Process Substitution */
+			}
+#if 0
+			else if (next == '(') {
+				syntax(">(process) not supported");
 				debug_printf_parse("parse_stream return 1: >(process) not supported\n");
 				return 1;
 			}
+#endif
 			setup_redirect(ctx, redir_fd, redir_style, input);
 			break;
 		case '<':
@@ -3472,11 +3478,14 @@ static int parse_stream(o_string *dest, struct p_context *ctx,
 			} else if (next == '>') {
 				redir_style = REDIRECT_IO;
 				b_getch(input);
-			} else if (next == '(') {
-				syntax();   /* until we support <(list) Process Substitution */
+			}
+#if 0
+			else if (next == '(') {
+				syntax("<(process) not supported");
 				debug_printf_parse("parse_stream return 1: <(process) not supported\n");
 				return 1;
 			}
+#endif
 			setup_redirect(ctx, redir_fd, redir_style, input);
 			break;
 		case ';':
@@ -3513,13 +3522,12 @@ static int parse_stream(o_string *dest, struct p_context *ctx,
 			break;
 		case ')':
 		case '}':
-			syntax();   /* Proper use of this character is caught by end_trigger */
+			syntax("unexpected }");   /* Proper use of this character is caught by end_trigger */
 			debug_printf_parse("parse_stream return 1: unexpected '}'\n");
 			return 1;
 		default:
-			syntax();   /* this is really an internal logic error */
-			debug_printf_parse("parse_stream return 1: internal logic error\n");
-			return 1;
+			if (ENABLE_HUSH_DEBUG)
+				bb_error_msg_and_die("BUG: unexpected %c\n", ch);
 		}
 	}
 	/* Complain if quote?  No, maybe we just finished a command substitution
@@ -3585,7 +3593,7 @@ static int parse_and_run_stream(struct in_str *inp, int parse_flag)
 		 * TEST should be printed */
 		rcode = parse_stream(&temp, &ctx, inp, ";\n");
 		if (rcode != 1 && ctx.old_flag != 0) {
-			syntax();
+			syntax(NULL);
 		}
 		if (rcode != 1 && ctx.old_flag == 0) {
 			done_word(&temp, &ctx);
