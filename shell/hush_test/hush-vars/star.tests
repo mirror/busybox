@@ -4,5 +4,5 @@ fi
 # 'd e f' should be split into 3 separate args:
 for a in $*; do echo ".$a."; done
 
-# must produce .1 abc d e f. Currently does not
-#for a in "$*"; do echo ".$a."; done
+# must produce .1 abc d e f.
+for a in "$*"; do echo ".$a."; done

@@ -2836,14 +2836,13 @@ static struct pipe *new_pipe(void)
 
 static void initialize_context(struct p_context *ctx)
 {
-	ctx->pipe = NULL;
-	ctx->pending_redirect = NULL;
 	ctx->child = NULL;
-	ctx->list_head = new_pipe();
-	ctx->pipe = ctx->list_head;
+	ctx->pipe = ctx->list_head = new_pipe();
+	ctx->pending_redirect = NULL;
 	ctx->res_w = RES_NONE;
-	ctx->stack = NULL;
+	//only ctx->parse_type is not touched... is this intentional?
 	ctx->old_flag = 0;
+	ctx->stack = NULL;
 	done_command(ctx);   /* creates the memory for working child */
 }
 
@@ -2886,44 +2885,44 @@ static int reserved_word(o_string *dest, struct p_context *ctx)
 	const struct reserved_combo *r;
 
 	for (r = reserved_list;	r < reserved_list + NRES; r++) {
-		if (strcmp(dest->data, r->literal) == 0) {
-			debug_printf("found reserved word %s, code %d\n", r->literal, r->code);
-			if (r->flag & FLAG_START) {
-				struct p_context *new = xmalloc(sizeof(struct p_context));
-				debug_printf("push stack\n");
+		if (strcmp(dest->data, r->literal) != 0)
+			continue;
+		debug_printf("found reserved word %s, code %d\n", r->literal, r->code);
+		if (r->flag & FLAG_START) {
+			struct p_context *new;
+			debug_printf("push stack\n");
 #if ENABLE_HUSH_LOOPS
-				if (ctx->res_w == RES_IN || ctx->res_w == RES_FOR) {
-					syntax();
-					free(new);
-					ctx->res_w = RES_SNTX;
-					b_reset(dest);
-					return 1;
-				}
-#endif
-				*new = *ctx;   /* physical copy */
-				initialize_context(ctx);
-				ctx->stack = new;
-			} else if (ctx->res_w == RES_NONE || !(ctx->old_flag & (1 << r->code))) {
+			if (ctx->res_w == RES_IN || ctx->res_w == RES_FOR) {
 				syntax();
 				ctx->res_w = RES_SNTX;
 				b_reset(dest);
 				return 1;
 			}
-			ctx->res_w = r->code;
-			ctx->old_flag = r->flag;
-			if (ctx->old_flag & FLAG_END) {
-				struct p_context *old;
-				debug_printf("pop stack\n");
-				done_pipe(ctx, PIPE_SEQ);
-				old = ctx->stack;
-				old->child->group = ctx->list_head;
-				old->child->subshell = 0;
-				*ctx = *old;   /* physical copy */
-				free(old);
-			}
+#endif
+			new = xmalloc(sizeof(*new));
+			*new = *ctx;   /* physical copy */
+			initialize_context(ctx);
+			ctx->stack = new;
+		} else if (ctx->res_w == RES_NONE || !(ctx->old_flag & (1 << r->code))) {
+			syntax();
+			ctx->res_w = RES_SNTX;
 			b_reset(dest);
 			return 1;
 		}
+		ctx->res_w = r->code;
+		ctx->old_flag = r->flag;
+		if (ctx->old_flag & FLAG_END) {
+			struct p_context *old;
+			debug_printf("pop stack\n");
+			done_pipe(ctx, PIPE_SEQ);
+			old = ctx->stack;
+			old->child->group = ctx->list_head;
+			old->child->subshell = 0;
+			*ctx = *old;   /* physical copy */
+			free(old);
+		}
+		b_reset(dest);
+		return 1;
 	}
 	return 0;
 }
@@ -3155,7 +3154,8 @@ static int process_command_subs(o_string *dest, struct p_context *ctx,
 
 	/* recursion to generate command */
 	retcode = parse_stream(&result, &inner, input, subst_end);
-	if (retcode != 0) return retcode;  /* syntax error or EOF */
+	if (retcode != 0)
+		return retcode;  /* syntax error or EOF */
 	done_word(&result, &inner);
 	done_pipe(&inner, PIPE_SEQ);
 	b_free(&result);
@@ -3357,9 +3357,15 @@ static int parse_stream(o_string *dest, struct p_context *ctx,
 
 	debug_printf_parse("parse_stream entered, end_trigger='%s'\n", end_trigger);
 
-	while ((ch = b_getch(input)) != EOF) {
-		m = charmap[ch];
-		next = (ch == '\n') ? '\0' : b_peek(input);
+	while (1) {
+		ch = b_getch(input);
+		m = CHAR_IFS;
+		next = '\0';
+		if (ch != EOF) {
+			m = charmap[ch];
+			if (ch != '\n')
+				next = b_peek(input);
+		}
 		debug_printf_parse(": ch=%c (%d) m=%d quote=%d\n",
 						ch, ch, m, dest->quote);
 		if (m == CHAR_ORDINARY
@@ -3373,6 +3379,8 @@ static int parse_stream(o_string *dest, struct p_context *ctx,
 				debug_printf_parse("parse_stream return 1: done_word!=0\n");
 				return 1;
 			}
+			if (ch == EOF)
+				break;
 			/* If we aren't performing a substitution, treat
 			 * a newline as a command separator.
 			 * [why we don't handle it exactly like ';'? --vda] */
