@@ -117,6 +117,9 @@ extern char **environ; /* This is in <unistd.h>, but protected with __USE_GNU */
 #define DEBUG_EXPAND 1
 #endif
 
+/* Keep unconditionally on for now */
+#define ENABLE_HUSH_DEBUG 1
+
 #ifndef debug_printf_clean
 /* broken, of course, but OK for testing */
 static const char *indenter(int i)
@@ -497,13 +500,12 @@ static int process_command_subs(o_string *dest, struct p_context *ctx, struct in
 #endif
 static int parse_group(o_string *dest, struct p_context *ctx, struct in_str *input, int ch);
 static const char *lookup_param(const char *src);
-static char *make_string(char **inp);
 static int handle_dollar(o_string *dest, struct p_context *ctx, struct in_str *input);
 static int parse_stream(o_string *dest, struct p_context *ctx, struct in_str *input0, const char *end_trigger);
 /*   setup: */
-static int parse_stream_outer(struct in_str *inp, int parse_flag);
-static int parse_string_outer(const char *s, int parse_flag);
-static int parse_file_outer(FILE *f);
+static int parse_and_run_stream(struct in_str *inp, int parse_flag);
+static int parse_and_run_string(const char *s, int parse_flag);
+static int parse_and_run_file(FILE *f);
 /*   job management: */
 static int checkjobs(struct pipe* fg_pipe);
 #if ENABLE_HUSH_JOB
@@ -515,9 +517,11 @@ static void delete_finished_bg_job(struct pipe *pi);
 int checkjobs_and_fg_shell(struct pipe* fg_pipe); /* never called */
 #endif
 /*     local variable support */
-static char **expand_variables_to_list(char **argv);
+static char **expand_strvec_to_strvec(char **argv);
+/* used for eval */
+static char *expand_strvec_to_string(char **argv);
 /* used for expansion of right hand of assignments */
-static char *expand_variables_to_string(const char *str);
+static char *expand_string_to_string(const char *str);
 static const char *get_local_var(const char *var);
 static int set_local_var(const char *s, int flg_export);
 static void unset_local_var(const char *name);
@@ -716,12 +720,11 @@ static const char *set_cwd(void)
 /* built-in 'eval' handler */
 static int builtin_eval(char **argv)
 {
-	char *str = NULL;
 	int rcode = EXIT_SUCCESS;
 
 	if (argv[1]) {
-		str = make_string(argv + 1);
-		parse_string_outer(str, PARSEFLAG_EXIT_FROM_LOOP |
+		char *str = expand_strvec_to_string(argv + 1);
+		parse_and_run_string(str, PARSEFLAG_EXIT_FROM_LOOP |
 					PARSEFLAG_SEMICOLON);
 		free(str);
 		rcode = last_return_code;
@@ -732,9 +735,9 @@ static int builtin_eval(char **argv)
 /* built-in 'cd <path>' handler */
 static int builtin_cd(char **argv)
 {
-	char *newdir;
+	const char *newdir;
 	if (argv[1] == NULL)
-		newdir = getenv("HOME");
+		newdir = getenv("HOME") ? : "/";
 	else
 		newdir = argv[1];
 	if (chdir(newdir)) {
@@ -999,7 +1002,7 @@ static int builtin_source(char **argv)
 	 * (pointer only is OK!) on this stack frame,
 	 * set global_argv=argv+1, recurse, and restore. */
 	mark_open(fileno(input));
-	status = parse_file_outer(input);
+	status = parse_and_run_file(input);
 	mark_closed(fileno(input));
 	fclose(input);
 	return status;
@@ -1146,12 +1149,10 @@ static void get_user_input(struct in_str *i)
 
 	prompt_str = setup_prompt_string(i->promptmode);
 #if ENABLE_FEATURE_EDITING
-	/*
-	 ** enable command line editing only while a command line
-	 ** is actually being read; otherwise, we'll end up bequeathing
-	 ** atexit() handlers and other unwanted stuff to our
-	 ** child processes (rob@sysgo.de)
-	 */
+	/* Enable command line editing only while a command line
+	 * is actually being read; otherwise, we'll end up bequeathing
+	 * atexit() handlers and other unwanted stuff to our
+	 * child processes (rob@sysgo.de) */
 	r = read_line_input(prompt_str, user_input_buf, BUFSIZ-1, line_input_state);
 	i->eof_flag = (r < 0);
 	if (i->eof_flag) { /* EOF/error detected */
@@ -1343,8 +1344,8 @@ static void pseudo_exec_argv(char **argv)
 		debug_printf_exec("pid %d environment modification: %s\n",
 				getpid(), argv[i]);
 // FIXME: vfork case??
-		p = expand_variables_to_string(argv[i]);
-		putenv(p == argv[i] ? xstrdup(p) : p);
+		p = expand_string_to_string(argv[i]);
+		putenv(p);
 	}
 	argv += i;
 	/* If a variable is assigned in a forest, and nobody listens,
@@ -1354,7 +1355,7 @@ static void pseudo_exec_argv(char **argv)
 		_exit(EXIT_SUCCESS);
 	}
 
-	argv = expand_variables_to_list(argv);
+	argv = expand_strvec_to_strvec(argv);
 
 	/*
 	 * Check if the command matches any of the builtins.
@@ -1652,8 +1653,8 @@ static int checkjobs_and_fg_shell(struct pipe* fg_pipe)
 	pid_t p;
 	int rcode = checkjobs(fg_pipe);
 	/* Job finished, move the shell to the foreground */
-	p = getpgid(0);
-	debug_printf("fg'ing ourself: getpgid(0)=%d\n", (int)p);
+	p = getpgid(0); /* pgid of our process */
+	debug_printf_jobs("fg'ing ourself: getpgid(0)=%d\n", (int)p);
 	if (tcsetpgrp(interactive_fd, p) && errno != ENOTTY)
 		bb_perror_msg("tcsetpgrp-4a");
 	return rcode;
@@ -1675,6 +1676,9 @@ static int checkjobs_and_fg_shell(struct pipe* fg_pipe)
  * subshell, when that is in fact necessary.  The subshell process
  * now has its stdout directed to the input of the appropriate pipe,
  * so this routine is noticeably simpler.
+ *
+ * Returns -1 only if started some children. IOW: we have to
+ * mask out retvals of builtins etc with 0xff!
  */
 static int run_pipe_real(struct pipe *pi)
 {
@@ -1710,7 +1714,7 @@ static int run_pipe_real(struct pipe *pi)
 		rcode = run_list_real(child->group);
 		restore_redirects(squirrel);
 		debug_printf_exec("run_pipe_real return %d\n", rcode);
-		return rcode;
+		return rcode; // do we need to add '... & 0xff' ?
 	}
 
 	if (single_fg && child->argv != NULL) {
@@ -1739,21 +1743,16 @@ static int run_pipe_real(struct pipe *pi)
 					export_me = 1;
 				}
 				free(name);
-				p = expand_variables_to_string(argv[i]);
+				p = expand_string_to_string(argv[i]);
 				set_local_var(p, export_me);
-				if (p != argv[i])
-					free(p);
+				free(p);
 			}
 			return EXIT_SUCCESS;   /* don't worry about errors in set_local_var() yet */
 		}
 		for (i = 0; is_assignment(argv[i]); i++) {
-			p = expand_variables_to_string(argv[i]);
-			if (p != argv[i]) {
-				//sp: child->sp--;
-				putenv(p);
-			} else {
-				putenv(xstrdup(p));
-			}
+			p = expand_string_to_string(argv[i]);
+			//sp: child->sp--;
+			putenv(p);
 		}
 		for (x = bltins; x->cmd; x++) {
 			if (strcmp(argv[i], x->cmd) == 0) {
@@ -1770,8 +1769,8 @@ static int run_pipe_real(struct pipe *pi)
 				setup_redirects(child, squirrel);
 				debug_printf_exec(": builtin '%s' '%s'...\n", x->cmd, argv[i+1]);
 				//sp: if (child->sp) /* btw we can do it unconditionally... */
-				argv_expanded = expand_variables_to_list(argv + i);
-				rcode = x->function(argv_expanded);
+				argv_expanded = expand_strvec_to_strvec(argv + i);
+				rcode = x->function(argv_expanded) & 0xff;
 				free(argv_expanded);
 				restore_redirects(squirrel);
 				debug_printf_exec("run_pipe_real return %d\n", rcode);
@@ -1786,9 +1785,9 @@ static int run_pipe_real(struct pipe *pi)
 				save_nofork_data(&nofork_save);
 				argv_expanded = argv + i;
 				//sp: if (child->sp)
-				argv_expanded = expand_variables_to_list(argv + i);
+				argv_expanded = expand_strvec_to_strvec(argv + i);
 				debug_printf_exec(": run_nofork_applet '%s' '%s'...\n", argv_expanded[0], argv_expanded[1]);
-				rcode = run_nofork_applet_prime(&nofork_save, a, argv_expanded);
+				rcode = run_nofork_applet_prime(&nofork_save, a, argv_expanded) & 0xff;
 				free(argv_expanded);
 				restore_redirects(squirrel);
 				debug_printf_exec("run_pipe_real return %d\n", rcode);
@@ -1832,7 +1831,7 @@ static int run_pipe_real(struct pipe *pi)
 			/* Every child adds itself to new process group
 			 * with pgid == pid of first child in pipe */
 #if ENABLE_HUSH_JOB
-			if (interactive_fd) {
+			if (run_list_level == 1 && interactive_fd) {
 				/* Don't do pgrp restore anymore on fatal signals */
 				set_fatal_sighandler(SIG_DFL);
 				if (pi->pgrp < 0) /* true for 1st process only */
@@ -2078,7 +2077,7 @@ static int run_list_real(struct pipe *pi)
 				if (!pi->next->progs->argv)
 					continue;
 				/* create list of variable values */
-				for_list = expand_variables_to_list(pi->next->progs->argv);
+				for_list = expand_strvec_to_strvec(pi->next->progs->argv);
 				for_lcur = for_list;
 				for_varname = pi->progs->argv[0];
 				pi->progs->argv[0] = NULL;
@@ -2122,24 +2121,24 @@ static int run_list_real(struct pipe *pi)
 			 * of run_pipe_real(), and we don't need to wait for anything. */
 		} else if (pi->followup == PIPE_BG) {
 			/* What does bash do with attempts to background builtins? */
-
 			/* Even bash 3.2 doesn't do that well with nested bg:
 			 * try "{ { sleep 10; echo DEEP; } & echo HERE; } &".
-			 * I'm considering NOT treating inner bgs as jobs -
-			 * thus maybe "if (run_list_level == 1 && pi->followup == PIPE_BG)"
-			 * above? */
+			 * I'm NOT treating inner &'s as jobs */
 #if ENABLE_HUSH_JOB
-			insert_bg_job(pi);
+			if (run_list_level == 1) 
+				insert_bg_job(pi);
 #endif
 			rcode = EXIT_SUCCESS;
 		} else {
 #if ENABLE_HUSH_JOB
-			/* Paranoia, just "interactive_fd" should be enough */
+			/* Paranoia, just "interactive_fd" should be enough? */
 			if (run_list_level == 1 && interactive_fd) {
+				/* waits for completion, then fg's main shell */
 				rcode = checkjobs_and_fg_shell(pi);
 			} else
 #endif
 			{
+				/* this one just waits for completion */
 				rcode = checkjobs(pi);
 			}
 			debug_printf_exec(": checkjobs returned %d\n", rcode);
@@ -2343,7 +2342,7 @@ static int xglob(o_string *dest, int flags, glob_t *pglob)
 	return gr;
 }
 
-/* expand_variables_to_list() takes a list of strings, expands
+/* expand_strvec_to_strvec() takes a list of strings, expands
  * all variable references within and returns a pointer to
  * a list of expanded strings, possibly with larger number
  * of strings. (Think VAR="a b"; echo $VAR).
@@ -2629,29 +2628,51 @@ static char **expand_variables(char **argv, char or_mask)
 		debug_printf_expand("used_space=%d\n", pos - (char*)list);
 	}
 #endif
-	/* To be removed / made conditional later. */
-	if (pos - (char*)list > len)
-		bb_error_msg_and_die("BUG in varexp");
+	if (ENABLE_HUSH_DEBUG)
+		if (pos - (char*)list > len)
+			bb_error_msg_and_die("BUG in varexp");
 	return list;
 }
 
-static char **expand_variables_to_list(char **argv)
+static char **expand_strvec_to_strvec(char **argv)
 {
 	return expand_variables(argv, 0);
 }
 
-static char *expand_variables_to_string(const char *str)
+static char *expand_string_to_string(const char *str)
 {
 	char *argv[2], **list;
 
 	argv[0] = (char*)str;
 	argv[1] = NULL;
 	list = expand_variables(argv, 0x80); /* 0x80: make one-element expansion */
-	/* To be removed / made conditional later. */
-	if (!list[0] || list[1])
-		bb_error_msg_and_die("BUG in varexp");
+	if (ENABLE_HUSH_DEBUG)
+		if (!list[0] || list[1])
+			bb_error_msg_and_die("BUG in varexp2");
 	/* actually, just move string 2*sizeof(char*) bytes back */
 	strcpy((char*)list, list[0]);
+	debug_printf_expand("string_to_string='%s'\n", (char*)list);
+	return (char*)list;
+}
+
+static char* expand_strvec_to_string(char **argv)
+{
+	char **list;
+
+	list = expand_variables(argv, 0x80);
+	/* Convert all NULs to spaces */
+	if (list[0]) {
+		int n = 1;
+		while (list[n]) {
+			if (ENABLE_HUSH_DEBUG)
+				if (list[n-1] + strlen(list[n-1]) + 1 != list[n])
+					bb_error_msg_and_die("BUG in varexp3");
+			list[n][-1] = ' '; /* TODO: or to ifs[0]? */
+			n++;
+		}
+	}
+	strcpy((char*)list, list[0]);
+	debug_printf_expand("strvec_to_string='%s'\n", (char*)list);
 	return (char*)list;
 }
 
@@ -2713,9 +2734,9 @@ static int set_local_var(const char *s, int flg_export)
 	}
 
 	cur = xzalloc(sizeof(*cur));
+	/*cur->next = 0;*/
 	cur->name = xstrdup(name);
 	cur->value = xstrdup(value);
-	/*cur->next = 0;*/
 	cur->flg_export = flg_export;
 	/*cur->flg_read_only = 0;*/
 	{
@@ -3242,31 +3263,6 @@ static const char *lookup_param(const char *src)
 	return p;
 }
 
-/* Make new string for parser */
-static char* make_string(char **inp)
-{
-	char *p;
-	char *str = NULL;
-	int n;
-	int val_len;
-	int len = 0;
-
-	for (n = 0; inp[n]; n++) {
-		p = expand_variables_to_string(inp[n]);
-		val_len = strlen(p);
-		str = xrealloc(str, len + val_len + 3); /* +3: space, '\n', <nul>*/
-		str[len++] = ' ';
-		strcpy(str + len, p);
-		len += val_len;
-		if (p != inp[n]) free(p);
-	}
-	/* We do not check for case where loop had no iterations at all
-	 * - cannot happen? */
-	str[len] = '\n';
-	str[len+1] = '\0';
-	return str;
-}
-
 /* return code: 0 for OK, 1 for syntax error */
 static int handle_dollar(o_string *dest, struct p_context *ctx, struct in_str *input)
 {
@@ -3358,9 +3354,9 @@ static int parse_stream(o_string *dest, struct p_context *ctx,
 	debug_printf_parse("parse_stream entered, end_trigger='%s'\n", end_trigger);
 
 	while (1) {
-		ch = b_getch(input);
 		m = CHAR_IFS;
 		next = '\0';
+		ch = b_getch(input);
 		if (ch != EOF) {
 			m = charmap[ch];
 			if (ch != '\n')
@@ -3371,6 +3367,11 @@ static int parse_stream(o_string *dest, struct p_context *ctx,
 		if (m == CHAR_ORDINARY
 		 || (m != CHAR_SPECIAL && dest->quote)
 		) {
+			if (ch == EOF) {
+				syntax();
+				debug_printf_parse("parse_stream return 1: unterminated \"\n");
+				return 1;
+			}
 			b_addqchr(dest, ch, dest->quote);
 			continue;
 		}
@@ -3564,8 +3565,8 @@ static void update_charmap(void)
 }
 
 /* most recursion does not come through here, the exception is
- * from builtin_source() */
-static int parse_stream_outer(struct in_str *inp, int parse_flag)
+ * from builtin_source() and builtin_eval() */
+static int parse_and_run_stream(struct in_str *inp, int parse_flag)
 {
 	struct p_context ctx;
 	o_string temp = NULL_O_STRING;
@@ -3607,19 +3608,19 @@ static int parse_stream_outer(struct in_str *inp, int parse_flag)
 	return 0;
 }
 
-static int parse_string_outer(const char *s, int parse_flag)
+static int parse_and_run_string(const char *s, int parse_flag)
 {
 	struct in_str input;
 	setup_string_in_str(&input, s);
-	return parse_stream_outer(&input, parse_flag);
+	return parse_and_run_stream(&input, parse_flag);
 }
 
-static int parse_file_outer(FILE *f)
+static int parse_and_run_file(FILE *f)
 {
 	int rcode;
 	struct in_str input;
 	setup_file_in_str(&input, f);
-	rcode = parse_stream_outer(&input, PARSEFLAG_SEMICOLON);
+	rcode = parse_and_run_stream(&input, PARSEFLAG_SEMICOLON);
 	return rcode;
 }
 
@@ -3698,7 +3699,7 @@ int hush_main(int argc, char **argv)
 		input = fopen("/etc/profile", "r");
 		if (input != NULL) {
 			mark_open(fileno(input));
-			parse_file_outer(input);
+			parse_and_run_file(input);
 			mark_closed(fileno(input));
 			fclose(input);
 		}
@@ -3710,7 +3711,7 @@ int hush_main(int argc, char **argv)
 		case 'c':
 			global_argv = argv + optind;
 			global_argc = argc - optind;
-			opt = parse_string_outer(optarg, PARSEFLAG_SEMICOLON);
+			opt = parse_and_run_string(optarg, PARSEFLAG_SEMICOLON);
 			goto final_return;
 		case 'i':
 			/* Well, we cannot just declare interactiveness,
@@ -3791,7 +3792,7 @@ int hush_main(int argc, char **argv)
 #endif
 
 	if (argv[optind] == NULL) {
-		opt = parse_file_outer(stdin);
+		opt = parse_and_run_file(stdin);
 		goto final_return;
 	}
 
@@ -3799,7 +3800,7 @@ int hush_main(int argc, char **argv)
 	global_argv = argv + optind;
 	global_argc = argc - optind;
 	input = xfopen(argv[optind], "r");
-	opt = parse_file_outer(input);
+	opt = parse_and_run_file(input);
 
 #if ENABLE_FEATURE_CLEAN_UP
 	fclose(input);
