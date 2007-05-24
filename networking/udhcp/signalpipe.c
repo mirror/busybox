@@ -36,7 +36,9 @@ static void signal_handler(int sig)
  * and installs the signal handler */
 void udhcp_sp_setup(void)
 {
-	socketpair(AF_UNIX, SOCK_STREAM, 0, signal_pipe);
+// BTW, why socketpair and not just pipe?
+	if (socketpair(AF_UNIX, SOCK_STREAM, 0, signal_pipe))
+		bb_perror_msg_and_die("socketpair");
 	fcntl(signal_pipe[0], F_SETFD, FD_CLOEXEC);
 	fcntl(signal_pipe[1], F_SETFD, FD_CLOEXEC);
 	signal(SIGUSR1, signal_handler);
