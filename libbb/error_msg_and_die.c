@@ -27,9 +27,9 @@ void xfunc_die(void)
 			 * p = xmalloc(10);
 			 * q = xmalloc(10); // BUG! if this dies, we leak p!
 			 */
-			/* -111 means "zero" (longjmp can't pass 0)
-			 * spawn_and_wait() catches -111. */
-			longjmp(die_jmp, xfunc_error_retval ? xfunc_error_retval : -111);
+			/* -2222 means "zero" (longjmp can't pass 0)
+			 * run_nofork_applet() catches -2222. */
+			longjmp(die_jmp, xfunc_error_retval ? xfunc_error_retval : -2222);
 		}
 		sleep(die_sleep);
 	}

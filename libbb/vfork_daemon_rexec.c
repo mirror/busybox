@@ -103,6 +103,7 @@ int wait_pid(int *wstat, int pid)
 #if ENABLE_FEATURE_PREFER_APPLETS
 void save_nofork_data(struct nofork_save_area *save)
 {
+	memcpy(&save->die_jmp, &die_jmp, sizeof(die_jmp));
 	save->current_applet = current_applet;
 	save->xfunc_error_retval = xfunc_error_retval;
 	save->option_mask32 = option_mask32;
@@ -112,6 +113,7 @@ void save_nofork_data(struct nofork_save_area *save)
 
 void restore_nofork_data(struct nofork_save_area *save)
 {
+	memcpy(&die_jmp, &save->die_jmp, sizeof(die_jmp));
 	current_applet = save->current_applet;
 	xfunc_error_retval = save->xfunc_error_retval;
 	option_mask32 = save->option_mask32;
@@ -147,7 +149,7 @@ int run_nofork_applet_prime(struct nofork_save_area *old, const struct bb_applet
 		rc = a->main(argc, tmp_argv);
 	} else { /* xfunc died in NOFORK applet */
 		/* in case they meant to return 0... */
-		if (rc == -111)
+		if (rc == -2222)
 			rc = 0;
 	}
 
@@ -159,6 +161,7 @@ int run_nofork_applet_prime(struct nofork_save_area *old, const struct bb_applet
 int run_nofork_applet(const struct bb_applet *a, char **argv)
 {
 	struct nofork_save_area old;
+
 	/* Saving globals */
 	save_nofork_data(&old);
 	return run_nofork_applet_prime(&old, a, argv);

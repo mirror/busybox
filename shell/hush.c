@@ -427,13 +427,15 @@ enum { run_list_level = 0 };
 /* Normal */
 static void syntax(const char *msg)
 {
-	bb_error_msg(msg ? "%s: %s" : "syntax error", "syntax error", msg);
+	(interactive_fd ? bb_error_msg : bb_error_msg_and_die)
+		(msg ? "%s: %s" : "syntax error", "syntax error", msg);
 }
 #else
 /* Debug */
 static void syntax_lineno(int line)
 {
-	bb_error_msg("syntax error hush.c:%d", line);
+	(interactive_fd ? bb_error_msg : bb_error_msg_and_die)
+		("syntax error hush.c:%d", line);
 }
 #define syntax(str) syntax_lineno(__LINE__)
 #endif
@@ -3309,13 +3311,13 @@ static int handle_dollar(o_string *dest, struct p_context *ctx, struct in_str *i
 			/* XXX maybe someone will try to escape the '}' */
 			while (1) {
 				ch = b_getch(input);
-				if (ch == EOF) {
+				if (ch == '}')
+					break;
+				if (!isalnum(ch) && ch != '_') {
 					syntax("unterminated ${name}");
 					debug_printf_parse("handle_dollar return 1: unterminated ${name}\n");
 					return 1;
 				}
-				if (ch == '}')
-					break;
 				debug_printf_parse(": '%c'\n", ch);
 				b_addchr(dest, ch | quote_mask);
 				quote_mask = 0;
