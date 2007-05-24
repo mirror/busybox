@@ -1,5 +1,10 @@
 Various bits of what is known about busybox shells, in no particular order.
 
+2007-05-24
+hush: '( echo ${name )' will show syntax error message, but prompt
+doesn't return (need to press <enter>). Pressing Ctrl-C, <enter>,
+'( echo ${name )' again, Ctrl-C segfaults.
+
 2007-05-21
 hush: environment cannot be handled by libc routines as they are leaky
 (by API design and thus unfixable): hush will leak memory in this script,
