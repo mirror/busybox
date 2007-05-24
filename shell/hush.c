@@ -305,8 +305,8 @@ struct in_str {
 	char eof_flag; /* meaningless if ->p == NULL */
 	char peek_buf[2];
 #if ENABLE_HUSH_INTERACTIVE
-	int __promptme;
-	int promptmode;
+	smallint promptme;
+	smallint promptmode; /* 0: PS1, 1: PS2 */
 #endif
 	FILE *file;
 	int (*get) (struct in_str *);
@@ -427,15 +427,23 @@ enum { run_list_level = 0 };
 /* Normal */
 static void syntax(const char *msg)
 {
-	(interactive_fd ? bb_error_msg : bb_error_msg_and_die)
-		(msg ? "%s: %s" : "syntax error", "syntax error", msg);
+	/* Was using fancy stuff:
+	 * (interactive_fd ? bb_error_msg : bb_error_msg_and_die)(...params...)
+	 * but it SEGVs. ?! Oh well... explicit temp ptr works around that */
+	void (*fp)(const char *s, ...);
+
+	fp = (interactive_fd ? bb_error_msg : bb_error_msg_and_die);
+	fp(msg ? "%s: %s" : "syntax error", "syntax error", msg);
 }
+
 #else
 /* Debug */
 static void syntax_lineno(int line)
 {
-	(interactive_fd ? bb_error_msg : bb_error_msg_and_die)
-		("syntax error hush.c:%d", line);
+	void (*fp)(const char *s, ...);
+
+	fp = (interactive_fd ? bb_error_msg : bb_error_msg_and_die);
+	fp("syntax error hush.c:%d", line);
 }
 #define syntax(str) syntax_lineno(__LINE__)
 #endif
@@ -1136,20 +1144,17 @@ static const char* setup_prompt_string(int promptmode)
 	debug_printf("setup_prompt_string %d ", promptmode);
 #if !ENABLE_FEATURE_EDITING_FANCY_PROMPT
 	/* Set up the prompt */
-	if (promptmode == 1) {
-		char *ns;
+	if (promptmode == 0) { /* PS1 */
 		free((char*)PS1);
-		ns = xmalloc(strlen(cwd)+4);
-		sprintf(ns, "%s %s", cwd, (geteuid() != 0) ? "$ " : "# ");
-		prompt_str = ns;
-		PS1 = ns;
+		PS1 = xasprintf("%s %c ", cwd, (geteuid() != 0) ? '$' : '#');
+		prompt_str = PS1;
 	} else {
 		prompt_str = PS2;
 	}
 #else
-	prompt_str = (promptmode == 1) ? PS1 : PS2;
+	prompt_str = (promptmode == 0) ? PS1 : PS2;
 #endif
-	debug_printf("result %s\n", prompt_str);
+	debug_printf("result '%s'\n", prompt_str);
 	return prompt_str;
 }
 
@@ -1199,12 +1204,12 @@ static int file_get(struct in_str *i)
 		/* need to double check i->file because we might be doing something
 		 * more complicated by now, like sourcing or substituting. */
 #if ENABLE_HUSH_INTERACTIVE
-		if (interactive_fd && i->__promptme && i->file == stdin) {
+		if (interactive_fd && i->promptme && i->file == stdin) {
 			do {
 				get_user_input(i);
 			} while (!*i->p); /* need non-empty line */
-			i->promptmode = 2;
-			i->__promptme = 0;
+			i->promptmode = 1; /* PS2 */
+			i->promptme = 0;
 			goto take_cached;
 		}
 #endif
@@ -1213,7 +1218,7 @@ static int file_get(struct in_str *i)
 	debug_printf("file_get: got a '%c' %d\n", ch, ch);
 #if ENABLE_HUSH_INTERACTIVE
 	if (ch == '\n')
-		i->__promptme = 1;
+		i->promptme = 1;
 #endif
 	return ch;
 }
@@ -1243,8 +1248,8 @@ static void setup_file_in_str(struct in_str *i, FILE *f)
 	i->peek = file_peek;
 	i->get = file_get;
 #if ENABLE_HUSH_INTERACTIVE
-	i->__promptme = 1;
-	i->promptmode = 1;
+	i->promptme = 1;
+	i->promptmode = 0; /* PS1 */
 #endif
 	i->file = f;
 	i->p = NULL;
@@ -1255,8 +1260,8 @@ static void setup_string_in_str(struct in_str *i, const char *s)
 	i->peek = static_peek;
 	i->get = static_get;
 #if ENABLE_HUSH_INTERACTIVE
-	i->__promptme = 1;
-	i->promptmode = 1;
+	i->promptme = 1;
+	i->promptmode = 0; /* PS1 */
 #endif
 	i->p = s;
 	i->eof_flag = 0;
@@ -3246,6 +3251,7 @@ static int parse_group(o_string *dest, struct p_context *ctx,
 		child->subshell = 1;
 	}
 	rcode = parse_stream(dest, &sub, input, endch);
+//vda: err chk?
 	done_word(dest, &sub); /* finish off the final word in the subcontext */
 	done_pipe(&sub, PIPE_SEQ);  /* and the final command there, too */
 	child->group = sub.list_head;
@@ -3588,7 +3594,7 @@ static int parse_and_run_stream(struct in_str *inp, int parse_flag)
 		if (!(parse_flag & PARSEFLAG_SEMICOLON) || (parse_flag & PARSEFLAG_REPARSING))
 			set_in_charmap(";$&|", CHAR_ORDINARY);
 #if ENABLE_HUSH_INTERACTIVE
-		inp->promptmode = 1;
+		inp->promptmode = 0; /* PS1 */
 #endif
 		/* We will stop & execute after each ';' or '\n'.
 		 * Example: "sleep 9999; echo TEST" + ctrl-C:
