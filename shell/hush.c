@@ -329,16 +329,6 @@ enum {
 
 #define HUSH_VER_STR "0.02"
 
-static const char version_str[] = "HUSH_VERSION="HUSH_VER_STR;
-
-static const struct variable const_shell_ver = {
-	.next = NULL,
-	.varstr = (char*)version_str,
-	.max_len = 1, /* 0 can provoke free(name) */
-	.flg_export = 1,
-	.flg_read_only = 1,
-};
-
 /* "Globals" within this file */
 
 /* Sorted roughly by size (smaller offsets == smaller code) */
@@ -371,8 +361,8 @@ struct globals {
 	struct close_me *close_me_head;
 	const char *cwd;
 	unsigned last_bg_pid;
-	struct variable *top_var; /* = &shell_ver (both are set in main()) */
-	struct variable shell_ver; /* = const_shell_ver */
+	struct variable *top_var; /* = &shell_ver (set in main()) */
+	struct variable shell_ver;
 #if ENABLE_FEATURE_SH_STANDALONE
 	struct nofork_save_area nofork_save;
 #endif
@@ -3661,6 +3651,15 @@ static void setup_job_control(void)
 int hush_main(int argc, char **argv);
 int hush_main(int argc, char **argv)
 {
+	static const char version_str[] = "HUSH_VERSION="HUSH_VER_STR;
+	static const struct variable const_shell_ver = {
+		.next = NULL,
+		.varstr = (char*)version_str,
+		.max_len = 1, /* 0 can provoke free(name) */
+		.flg_export = 1,
+		.flg_read_only = 1,
+	};
+
 	int opt;
 	FILE *input;
 	char **e;
@@ -3668,12 +3667,14 @@ int hush_main(int argc, char **argv)
 
 	PTR_TO_GLOBALS = xzalloc(sizeof(G));
 
+	/* Deal with HUSH_VERSION */
 	shell_ver = const_shell_ver; /* copying struct here */
 	top_var = &shell_ver;
-	/* initialize our shell local variables with the values
+	unsetenv("HUSH_VERSION"); /* in case it exists in initial env */
+	/* Initialize our shell local variables with the values
 	 * currently living in the environment */
-	e = environ;
 	cur_var = top_var;
+	e = environ;
 	if (e) while (*e) {
 		char *value = strchr(*e, '=');
 		if (value) { /* paranoia */
@@ -3685,7 +3686,7 @@ int hush_main(int argc, char **argv)
 		}
 		e++;
 	}
-	putenv(shell_ver.varstr);
+	putenv((char *)version_str); /* reinstate HUSH_VERSION */
 
 #if ENABLE_FEATURE_EDITING
 	line_input_state = new_line_input_t(FOR_SHELL);
