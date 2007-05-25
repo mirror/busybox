@@ -2158,7 +2158,10 @@ static int run_list_real(struct pipe *pi)
 		exit(rcode);
 	}
  ret:
-	run_list_level--;
+	if (!--run_list_level && interactive_fd) {
+		signal(SIGTSTP, SIG_IGN);
+		signal(SIGINT, SIG_IGN);
+	}
 #endif
 	debug_printf_exec("run_list_real lvl %d return %d\n", run_list_level + 1, rcode);
 	return rcode;
@@ -3130,7 +3133,9 @@ static FILE *generate_stream_from_list(struct pipe *head)
 {
 	FILE *pf;
 	int pid, channel[2];
-	if (pipe(channel) < 0) bb_perror_msg_and_die("pipe");
+
+	if (pipe(channel) < 0)
+		bb_perror_msg_and_die("pipe");
 #if BB_MMU
 	pid = fork();
 #else
@@ -3144,12 +3149,19 @@ static FILE *generate_stream_from_list(struct pipe *head)
 			dup2(channel[1], 1);
 			close(channel[1]);
 		}
+		/* Prevent it from trying to handle ctrl-z etc */
+		run_list_level = 1;
+		/* Process substitution is not considered to be usual
+		 * 'command execution'.
+		 * SUSv3 says ctrl-Z should be ignored, ctrl-C should not. */
+		/* Not needed, we are relying on it being disabled
+		 * everywhere outside actual command execution. */
+		/*set_jobctrl_sighandler(SIG_IGN);*/
+		set_misc_sighandler(SIG_DFL);
 		_exit(run_list_real(head));   /* leaks memory */
 	}
-	debug_printf("forked child %d\n", pid);
 	close(channel[1]);
 	pf = fdopen(channel[0], "r");
-	debug_printf("pipe on FILE *%p\n", pf);
 	return pf;
 }
 
@@ -3199,9 +3211,9 @@ static int process_command_subs(o_string *dest, struct p_context *ctx,
 	 * at the same time.  That would be a lot of work, and contrary
 	 * to the KISS philosophy of this program. */
 	mark_closed(fileno(p));
-	retcode = pclose(p);
+	retcode = fclose(p);
 	free_pipe_list(inner.list_head, 0);
-	debug_printf("pclosed, retcode=%d\n", retcode);
+	debug_printf("closed FILE from child, retcode=%d\n", retcode);
 	return retcode;
 }
 #endif
