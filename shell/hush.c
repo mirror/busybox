@@ -286,8 +286,7 @@ struct close_me {
 #define setenv(...) setenv_is_leaky_dont_use()
 struct variable {
 	struct variable *next;
-	char *name;          /* points to "name=" portion */
-	char *value;         /* points directly after "=" */
+	char *varstr;        /* points to "name=" portion */
 	int max_len;         /* if > 0, name is part of initial env; else name is malloced */
 	smallint flg_export; /* putenv should be done on this var */
 	smallint flg_read_only;
@@ -334,8 +333,7 @@ static const char version_str[] = "HUSH_VERSION="HUSH_VER_STR;
 
 static const struct variable const_shell_ver = {
 	.next = NULL,
-	.name = (char*)version_str,
-	.value = (char*)version_str + sizeof("HUSH_VERSION=")-1,
+	.varstr = (char*)version_str,
 	.max_len = 1, /* 0 can provoke free(name) */
 	.flg_export = 1,
 	.flg_read_only = 1,
@@ -554,8 +552,8 @@ static char **expand_strvec_to_strvec(char **argv);
 static char *expand_strvec_to_string(char **argv);
 /* used for expansion of right hand of assignments */
 static char *expand_string_to_string(const char *str);
-static struct variable *get_local_var(const char *var);
-static int set_local_var(char *s, int flg_export);
+static struct variable *get_local_var(const char *name);
+static int set_local_var(char *str, int flg_export);
 static void unset_local_var(const char *name);
 
 /* Table of built-in functions.  They can be forked or not, depending on
@@ -831,7 +829,7 @@ static int builtin_export(char **argv)
 		var = get_local_var(name);
 		if (var) {
 			var->flg_export = 1;
-			putenv(var->name);
+			putenv(var->varstr);
 		}
 		/* bash does not return an error when trying to export
 		 * an undefined variable.  Do likewise. */
@@ -976,7 +974,7 @@ static int builtin_set(char **argv)
 
 	if (temp == NULL)
 		for (e = top_var; e; e = e->next)
-			puts(e->name);
+			puts(e->varstr);
 	else
 		set_local_var(xstrdup(temp), 0);
 
@@ -2676,39 +2674,39 @@ static char* expand_strvec_to_string(char **argv)
 }
 
 /* This is used to get/check local shell variables */
-static struct variable *get_local_var(const char *s)
+static struct variable *get_local_var(const char *name)
 {
 	struct variable *cur;
 	int len;
 
-	if (!s)
+	if (!name)
 		return NULL;
-	len = strlen(s);
+	len = strlen(name);
 	for (cur = top_var; cur; cur = cur->next) {
-		if (strncmp(cur->name, s, len) == 0 && cur->name[len] == '=')
+		if (strncmp(cur->varstr, name, len) == 0 && cur->varstr[len] == '=')
 			return cur;
 	}
 	return NULL;
 }
 
-/* name holds "NAME=VAL" and is expected to be malloced.
+/* str holds "NAME=VAL" and is expected to be malloced.
  * We take ownership of it. */
-static int set_local_var(char *name, int flg_export)
+static int set_local_var(char *str, int flg_export)
 {
 	struct variable *cur;
 	char *value;
 	int name_len;
 
-	value = strchr(name, '=');
+	value = strchr(str, '=');
 	if (!value) { /* not expected to ever happen? */
-		free(name);
+		free(str);
 		return -1;
 	}
 
-	name_len = value - name;
+	name_len = value - str;
 	cur = top_var; /* cannot be NULL (we have HUSH_VERSION and it's RO) */
 	while (1) {
-		if (strncmp(cur->name, name, name_len) != 0 || cur->name[name_len] != '=') {
+		if (strncmp(cur->varstr, str, name_len) != 0 || cur->varstr[name_len] != '=') {
 			if (!cur->next) {
 				/* cur points to last var in linked list */
 				break;
@@ -2716,45 +2714,44 @@ static int set_local_var(char *name, int flg_export)
 			cur = cur->next;
 			continue;
 		}
-		/* We already have a var with this name */
+		/* We found an existing var with this name */
+		*value = '\0';
 		if (cur->flg_read_only) {
-			bb_error_msg("%s: readonly variable", name);
-			free(name);
+			bb_error_msg("%s: readonly variable", str);
+			free(str);
 			return -1;
 		}
-		*value = '\0';
-		unsetenv(name); /* just in case */
-		*value++ = '=';
-		if (strcmp(cur->value, value) == 0) {
+		unsetenv(str); /* just in case */
+		*value = '=';
+		if (strcmp(cur->varstr, str) == 0) {
  free_and_exp:
-			free(name);
+			free(str);
 			goto exp;
 		}
-		if (cur->max_len >= strlen(name)) {
+		if (cur->max_len >= strlen(str)) {
 			/* This one is from startup env, reuse space */
-			strcpy(cur->name, name);
+			strcpy(cur->varstr, str);
 			goto free_and_exp;
 		}
 		/* max_len == 0 signifies "malloced" var, which we can
 		 * (and has to) free */
 		if (!cur->max_len)
-			free(cur->name);
+			free(cur->varstr);
 		cur->max_len = 0;
-		goto set_name_and_exp;
+		goto set_str_and_exp;
 	}
 
 	/* Not found - create next variable struct */
 	cur->next = xzalloc(sizeof(*cur));
 	cur = cur->next;
 
- set_name_and_exp:
-	cur->name = name;
+ set_str_and_exp:
+	cur->varstr = str;
  exp:
-	cur->value = cur->name + name_len + 1;
 	if (flg_export)
 		cur->flg_export = 1;
 	if (cur->flg_export)
-		return putenv(cur->name);
+		return putenv(cur->varstr);
 	return 0;
 }
 
@@ -2769,7 +2766,7 @@ static void unset_local_var(const char *name)
 	name_len = strlen(name);
 	cur = top_var;
 	while (cur) {
-		if (strncmp(cur->name, name, name_len) == 0 && cur->name[name_len] == '=') {
+		if (strncmp(cur->varstr, name, name_len) == 0 && cur->varstr[name_len] == '=') {
 			if (cur->flg_read_only) {
 				bb_error_msg("%s: readonly variable", name);
 				return;
@@ -2777,9 +2774,9 @@ static void unset_local_var(const char *name)
 		/* prev is ok to use here because 1st variable, HUSH_VERSION,
 		 * is ro, and we cannot reach this code on the 1st pass */
 			prev->next = cur->next;
-			unsetenv(cur->name);
+			unsetenv(cur->varstr);
 			if (!cur->max_len)
-				free(cur->name);
+				free(cur->varstr);
 			free(cur);
 			return;
 		}
@@ -3256,7 +3253,7 @@ static const char *lookup_param(const char *src)
 {
 	struct variable *var = get_local_var(src);
 	if (var)
-		return var->value;
+		return strchr(var->varstr, '=') + 1;
 	return NULL;
 }
 
@@ -3682,14 +3679,13 @@ int hush_main(int argc, char **argv)
 		if (value) { /* paranoia */
 			cur_var->next = xzalloc(sizeof(*cur_var));
 			cur_var = cur_var->next;
-			cur_var->name = *e;
-			cur_var->value = value + 1;
+			cur_var->varstr = *e;
 			cur_var->max_len = strlen(*e);
 			cur_var->flg_export = 1;
 		}
 		e++;
 	}
-	putenv(shell_ver.name);
+	putenv(shell_ver.varstr);
 
 #if ENABLE_FEATURE_EDITING
 	line_input_state = new_line_input_t(FOR_SHELL);
@@ -3827,7 +3823,7 @@ int hush_main(int argc, char **argv)
 	while (cur_var) {
 		struct variable *tmp = cur_var;
 		if (!cur_var->max_len)
-			free(cur_var->name);
+			free(cur_var->varstr);
 		cur_var = cur_var->next;
 		free(tmp);
 	}
