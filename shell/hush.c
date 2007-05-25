@@ -2703,12 +2703,13 @@ static int set_local_var(char *str, int flg_export)
 		return -1;
 	}
 
-	name_len = value - str;
+	name_len = value - str + 1; /* including '=' */
 	cur = top_var; /* cannot be NULL (we have HUSH_VERSION and it's RO) */
 	while (1) {
-		if (strncmp(cur->varstr, str, name_len) != 0 || cur->varstr[name_len] != '=') {
+		if (strncmp(cur->varstr, str, name_len) != 0) {
 			if (!cur->next) {
-				/* cur points to last var in linked list */
+				/* Bail out. Note that now cur points
+				 * to last var in linked list */
 				break;
 			}
 			cur = cur->next;
@@ -2837,8 +2838,7 @@ static int setup_redirect(struct p_context *ctx, int fd, redir_type style,
 		/* We do _not_ try to open the file that src points to,
 		 * since we need to return and let src be expanded first.
 		 * Set ctx->pending_redirect, so we know what to do at the
-		 * end of the next parsed word.
-		 */
+		 * end of the next parsed word. */
 		ctx->pending_redirect = redir;
 	}
 	return 0;
