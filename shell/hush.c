@@ -37,7 +37,6 @@
  * across continuation lines.
  *
  * Bash grammar not implemented: (how many of these were in original sh?)
- *      $@ (those sure look like weird quoting rules)
  *      $_
  *      ! negation operator for pipes
  *      &> and >& redirection of stdout+stderr
@@ -279,11 +278,18 @@ struct close_me {
 	int fd;
 };
 
-struct variables {
-	struct variables *next;
-	const char *name;
-	const char *value;
-	smallint flg_export;
+/* On program start, environ points to initial environment.
+ * putenv adds new pointers into it, unsetenv removes them.
+ * Neither of these (de)allocates the strings.
+ * setenv allocates new strings in malloc space and does putenv,
+ * and thus setenv is unusable (leaky) for shell's purposes */
+#define setenv(...) setenv_is_leaky_dont_use()
+struct variable {
+	struct variable *next;
+	char *name;          /* points to "name=" portion */
+	char *value;         /* points directly after "=" */
+	int max_len;         /* if > 0, name is part of initial env; else name is malloced */
+	smallint flg_export; /* putenv should be done on this var */
 	smallint flg_read_only;
 };
 
@@ -322,13 +328,20 @@ enum {
 	CHAR_SPECIAL            = 3, /* example: $ */
 };
 
+#define HUSH_VER_STR "0.02"
+
+static const char version_str[] = "HUSH_VERSION="HUSH_VER_STR;
+
+static const struct variable const_shell_ver = {
+	.next = NULL,
+	.name = (char*)version_str,
+	.value = (char*)version_str + sizeof("HUSH_VERSION=")-1,
+	.max_len = 1, /* 0 can provoke free(name) */
+	.flg_export = 1,
+	.flg_read_only = 1,
+};
 
 /* "Globals" within this file */
-
-#define HUSH_VER_STR "0.02"
-static const struct variables const_shell_ver = {
-	NULL, "HUSH_VERSION", HUSH_VER_STR, 1, 1
-};
 
 /* Sorted roughly by size (smaller offsets == smaller code) */
 struct globals {
@@ -360,8 +373,8 @@ struct globals {
 	struct close_me *close_me_head;
 	const char *cwd;
 	unsigned last_bg_pid;
-	struct variables *top_vars; /* = &shell_ver (both are set in main()) */
-	struct variables shell_ver; /* = const_shell_ver */
+	struct variable *top_var; /* = &shell_ver (both are set in main()) */
+	struct variable shell_ver; /* = const_shell_ver */
 #if ENABLE_FEATURE_SH_STANDALONE
 	struct nofork_save_area nofork_save;
 #endif
@@ -407,7 +420,7 @@ enum { run_list_level = 0 };
 #define close_me_head    (G.close_me_head   )
 #define cwd              (G.cwd             )
 #define last_bg_pid      (G.last_bg_pid     )
-#define top_vars         (G.top_vars        )
+#define top_var          (G.top_var         )
 #define shell_ver        (G.shell_ver       )
 #if ENABLE_FEATURE_SH_STANDALONE
 #define nofork_save      (G.nofork_save     )
@@ -541,8 +554,8 @@ static char **expand_strvec_to_strvec(char **argv);
 static char *expand_strvec_to_string(char **argv);
 /* used for expansion of right hand of assignments */
 static char *expand_string_to_string(const char *str);
-static const char *get_local_var(const char *var);
-static int set_local_var(const char *s, int flg_export);
+static struct variable *get_local_var(const char *var);
+static int set_local_var(char *s, int flg_export);
 static void unset_local_var(const char *name);
 
 /* Table of built-in functions.  They can be forked or not, depending on
@@ -795,7 +808,7 @@ static int builtin_exit(char **argv)
 /* built-in 'export VAR=value' handler */
 static int builtin_export(char **argv)
 {
-	int res = 0;
+	const char *value;
 	char *name = argv[1];
 
 	if (name == NULL) {
@@ -810,36 +823,23 @@ static int builtin_export(char **argv)
 		return EXIT_SUCCESS;
 	}
 
-	name = xstrdup(name);
-	{
-		const char *value = strchr(name, '=');
+	value = strchr(name, '=');
+	if (!value) {
+		/* They are exporting something without a =VALUE */
+		struct variable *var;
 
-		if (!value) {
-			char *tmp;
-			/* They are exporting something without an =VALUE */
-
-			value = get_local_var(name);
-			if (value) {
-				size_t ln = strlen(name);
-
-				tmp = xrealloc(name, ln+strlen(value)+2);
-				sprintf(tmp+ln, "=%s", value);
-				name = tmp;
-			} else {
-				/* bash does not return an error when trying to export
-				 * an undefined variable.  Do likewise. */
-				res = 1;
-			}
+		var = get_local_var(name);
+		if (var) {
+			var->flg_export = 1;
+			putenv(var->name);
 		}
+		/* bash does not return an error when trying to export
+		 * an undefined variable.  Do likewise. */
+		return EXIT_SUCCESS;
 	}
-	if (res < 0)
-		bb_perror_msg("export");
-	else if (res == 0)
-		res = set_local_var(name, 1);
-	else
-		res = 0;
-	free(name);
-	return res;
+
+	set_local_var(xstrdup(name), 1);
+	return EXIT_SUCCESS;
 }
 
 #if ENABLE_HUSH_JOB
@@ -965,20 +965,20 @@ static int builtin_read(char **argv)
 	/* read string. name_len+1 chars are already used by 'name=' */
 	fgets(p, sizeof(string) - 1 - name_len, stdin);
 	chomp(p);
-	return set_local_var(string, 0);
+	return set_local_var(xstrdup(string), 0);
 }
 
 /* built-in 'set [VAR=value]' handler */
 static int builtin_set(char **argv)
 {
 	char *temp = argv[1];
-	struct variables *e;
+	struct variable *e;
 
 	if (temp == NULL)
-		for (e = top_vars; e; e = e->next)
-			printf("%s=%s\n", e->name, e->value);
+		for (e = top_var; e; e = e->next)
+			puts(e->name);
 	else
-		set_local_var(temp, 0);
+		set_local_var(xstrdup(temp), 0);
 
 	return EXIT_SUCCESS;
 }
@@ -1742,26 +1742,9 @@ static int run_pipe_real(struct pipe *pi)
 		if (i != 0 && argv[i] == NULL) {
 			/* assignments, but no command: set the local environment */
 			for (i = 0; argv[i] != NULL; i++) {
-				/* Ok, this case is tricky.  We have to decide if this is a
-				 * local variable, or an already exported variable.  If it is
-				 * already exported, we have to export the new value.  If it is
-				 * not exported, we need only set this as a local variable.
-				 * This junk is all to decide whether or not to export this
-				 * variable. */
-				int export_me = 0;
-				char *name, *value;
-				name = xstrdup(argv[i]);
-				debug_printf("local environment set: %s\n", name);
-				value = strchr(name, '=');
-				if (value)
-					*value = '\0';
-				if (get_local_var(name)) {
-					export_me = 1;
-				}
-				free(name);
+				debug_printf("local environment set: %s\n", argv[i]);
 				p = expand_string_to_string(argv[i]);
-				set_local_var(p, export_me);
-				free(p);
+				set_local_var(p, 0);
 			}
 			return EXIT_SUCCESS;   /* don't worry about errors in set_local_var() yet */
 		}
@@ -2693,109 +2676,115 @@ static char* expand_strvec_to_string(char **argv)
 }
 
 /* This is used to get/check local shell variables */
-static const char *get_local_var(const char *s)
+static struct variable *get_local_var(const char *s)
 {
-	struct variables *cur;
+	struct variable *cur;
+	int len;
 
 	if (!s)
 		return NULL;
-	for (cur = top_vars; cur; cur = cur->next) {
-		if (strcmp(cur->name, s) == 0)
-			return cur->value;
+	len = strlen(s);
+	for (cur = top_var; cur; cur = cur->next) {
+		if (strncmp(cur->name, s, len) == 0 && cur->name[len] == '=')
+			return cur;
 	}
 	return NULL;
 }
 
-/* This is used to set local shell variables
-   flg_export == 0 if only local (not exporting) variable
-   flg_export == 1 if "new" exporting environ
-   flg_export > 1  if current startup environ (not call putenv()) */
-static int set_local_var(const char *s, int flg_export)
+/* name holds "NAME=VAL" and is expected to be malloced.
+ * We take ownership of it. */
+static int set_local_var(char *name, int flg_export)
 {
-	char *name, *value;
-	int result = 0;
-	struct variables *cur;
+	struct variable *cur;
+	char *value;
+	int name_len;
 
-	name = xstrdup(s);
-
-	/* Assume when we enter this function that we are already in
-	 * NAME=VALUE format.  So the first order of business is to
-	 * split 's' on the '=' into 'name' and 'value' */
 	value = strchr(name, '=');
-	/*if (value == 0 && ++value == 0) ??? -vda */
-	if (value == NULL || value[1] == '\0') {
+	if (!value) { /* not expected to ever happen? */
 		free(name);
 		return -1;
 	}
-	*value++ = '\0';
 
-	for (cur = top_vars; cur; cur = cur->next) {
-		if (strcmp(cur->name, name) == 0) {
-			if (strcmp(cur->value, value) == 0) {
-				if (flg_export && !cur->flg_export)
-					cur->flg_export = flg_export;
-				else
-					result++;
-			} else if (cur->flg_read_only) {
-				bb_error_msg("%s: readonly variable", name);
-				result = -1;
-			} else {
-				if (flg_export > 0 || cur->flg_export > 1)
-					cur->flg_export = 1;
-				free((char*)cur->value);
-				cur->value = xstrdup(value);
+	name_len = value - name;
+	cur = top_var; /* cannot be NULL (we have HUSH_VERSION and it's RO) */
+	while (1) {
+		if (strncmp(cur->name, name, name_len) != 0 || cur->name[name_len] != '=') {
+			if (!cur->next) {
+				/* cur points to last var in linked list */
+				break;
 			}
-			goto skip;
+			cur = cur->next;
+			continue;
 		}
+		/* We already have a var with this name */
+		if (cur->flg_read_only) {
+			bb_error_msg("%s: readonly variable", name);
+			free(name);
+			return -1;
+		}
+		*value = '\0';
+		unsetenv(name); /* just in case */
+		*value++ = '=';
+		if (strcmp(cur->value, value) == 0) {
+ free_and_exp:
+			free(name);
+			goto exp;
+		}
+		if (cur->max_len >= strlen(name)) {
+			/* This one is from startup env, reuse space */
+			strcpy(cur->name, name);
+			goto free_and_exp;
+		}
+		/* max_len == 0 signifies "malloced" var, which we can
+		 * (and has to) free */
+		if (!cur->max_len)
+			free(cur->name);
+		cur->max_len = 0;
+		goto set_name_and_exp;
 	}
 
-	cur = xzalloc(sizeof(*cur));
-	/*cur->next = 0;*/
-	cur->name = xstrdup(name);
-	cur->value = xstrdup(value);
-	cur->flg_export = flg_export;
-	/*cur->flg_read_only = 0;*/
-	{
-		struct variables *bottom = top_vars;
-		while (bottom->next)
-			bottom = bottom->next;
-		bottom->next = cur;
-	}
- skip:
-	if (result == 0 && cur->flg_export == 1) {
-		*(value-1) = '=';
-		result = putenv(name);
-	} else {
-		free(name);
-		if (result > 0)            /* equivalent to previous set */
-			result = 0;
-	}
-	return result;
+	/* Not found - create next variable struct */
+	cur->next = xzalloc(sizeof(*cur));
+	cur = cur->next;
+
+ set_name_and_exp:
+	cur->name = name;
+ exp:
+	cur->value = cur->name + name_len + 1;
+	if (flg_export)
+		cur->flg_export = 1;
+	if (cur->flg_export)
+		return putenv(cur->name);
+	return 0;
 }
 
 static void unset_local_var(const char *name)
 {
-	struct variables *cur, *next;
+	struct variable *cur;
+	struct variable *prev = prev; /* for gcc */
+	int name_len;
 
 	if (!name)
 		return;
-	for (cur = top_vars; cur; cur = cur->next) {
-		if (strcmp(cur->name, name) == 0) {
+	name_len = strlen(name);
+	cur = top_var;
+	while (cur) {
+		if (strncmp(cur->name, name, name_len) == 0 && cur->name[name_len] == '=') {
 			if (cur->flg_read_only) {
 				bb_error_msg("%s: readonly variable", name);
 				return;
 			}
-			if (cur->flg_export)
-				unsetenv(cur->name);
-			free((char*)cur->name);
-			free((char*)cur->value);
-			next = top_vars;
-			while (next->next != cur)
-				next = next->next;
-			next->next = cur->next;
+		/* prev is ok to use here because 1st variable, HUSH_VERSION,
+		 * is ro, and we cannot reach this code on the 1st pass */
+			prev->next = cur->next;
+			unsetenv(cur->name);
+			if (!cur->max_len)
+				free(cur->name);
 			free(cur);
 			return;
 		}
+		prev = cur;
+		cur = cur->next;
 	}
 }
 
@@ -3265,13 +3254,10 @@ static int parse_group(o_string *dest, struct p_context *ctx,
  * see the bash man page under "Parameter Expansion" */
 static const char *lookup_param(const char *src)
 {
-	const char *p = NULL;
-	if (src) {
-		p = getenv(src);
-		if (!p)
-			p = get_local_var(src);
-	}
-	return p;
+	struct variable *var = get_local_var(src);
+	if (var)
+		return var->value;
+	return NULL;
 }
 
 /* return code: 0 for OK, 1 for syntax error */
@@ -3681,10 +3667,29 @@ int hush_main(int argc, char **argv)
 	int opt;
 	FILE *input;
 	char **e;
+	struct variable *cur_var;
 
 	PTR_TO_GLOBALS = xzalloc(sizeof(G));
-	top_vars = &shell_ver;
+
 	shell_ver = const_shell_ver; /* copying struct here */
+	top_var = &shell_ver;
+	/* initialize our shell local variables with the values
+	 * currently living in the environment */
+	e = environ;
+	cur_var = top_var;
+	if (e) while (*e) {
+		char *value = strchr(*e, '=');
+		if (value) { /* paranoia */
+			cur_var->next = xzalloc(sizeof(*cur_var));
+			cur_var = cur_var->next;
+			cur_var->name = *e;
+			cur_var->value = value + 1;
+			cur_var->max_len = strlen(*e);
+			cur_var->flg_export = 1;
+		}
+		e++;
+	}
+	putenv(shell_ver.name);
 
 #if ENABLE_FEATURE_EDITING
 	line_input_state = new_line_input_t(FOR_SHELL);
@@ -3701,14 +3706,8 @@ int hush_main(int argc, char **argv)
 	PS2 = "> ";
 #endif
 
-	/* initialize our shell local variables with the values
-	 * currently living in the environment */
-	e = environ;
-	if (e)
-		while (*e)
-			set_local_var(*e++, 2);   /* without call putenv() */
-
-	last_return_code = EXIT_SUCCESS;
+	if (EXIT_SUCCESS) /* otherwise is already done */
+		last_return_code = EXIT_SUCCESS;
 
 	if (argv[0] && argv[0][0] == '-') {
 		debug_printf("sourcing /etc/profile\n");
@@ -3818,23 +3817,20 @@ int hush_main(int argc, char **argv)
 	input = xfopen(argv[optind], "r");
 	opt = parse_and_run_file(input);
 
+ final_return:
+
 #if ENABLE_FEATURE_CLEAN_UP
 	fclose(input);
 	if (cwd != bb_msg_unknown)
 		free((char*)cwd);
-	{
-		struct variables *cur, *tmp;
-		for (cur = top_vars; cur; cur = tmp) {
-			tmp = cur->next;
-			if (!cur->flg_read_only) {
-				free((char*)cur->name);
-				free((char*)cur->value);
-				free(cur);
-			}
-		}
+	cur_var = top_var->next;
+	while (cur_var) {
+		struct variable *tmp = cur_var;
+		if (!cur_var->max_len)
+			free(cur_var->name);
+		cur_var = cur_var->next;
+		free(tmp);
 	}
 #endif
-
- final_return:
 	hush_exit(opt ? opt : last_return_code);
 }
