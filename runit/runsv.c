@@ -420,7 +420,7 @@ int runsv_main(int argc, char **argv)
 	if (!argv[1] || argv[2]) usage();
 	dir = argv[1];
 
-	if (pipe(selfpipe) == -1) fatal_cannot("create selfpipe");
+	xpipe(selfpipe);
 	coe(selfpipe[0]);
 	coe(selfpipe[1]);
 	ndelay_on(selfpipe[0]);
@@ -456,8 +456,7 @@ int runsv_main(int argc, char **argv)
 			taia_now(&svd[1].start);
 			if (stat("log/down", &s) != -1)
 				svd[1].want = W_DOWN;
-			if (pipe(logpipe) == -1)
-				fatal_cannot("create log pipe");
+			xpipe(logpipe);
 			coe(logpipe[0]);
 			coe(logpipe[1]);
 		}

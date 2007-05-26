@@ -27,7 +27,8 @@ static int signal_pipe[2];
 
 static void signal_handler(int sig)
 {
-	if (send(signal_pipe[1], &sig, sizeof(sig), MSG_DONTWAIT) < 0)
+	unsigned char ch = sig; /* use char, avoid dealing with partial writes */
+	if (write(signal_pipe[1], &ch, 1) != 1)
 		bb_perror_msg("cannot send signal");
 }
 
@@ -36,11 +37,11 @@ static void signal_handler(int sig)
  * and installs the signal handler */
 void udhcp_sp_setup(void)
 {
-// BTW, why socketpair and not just pipe?
-	if (socketpair(AF_UNIX, SOCK_STREAM, 0, signal_pipe))
-		bb_perror_msg_and_die("socketpair");
+	/* was socketpair, but it needs AF_UNIX in kernel */
+	xpipe(signal_pipe);
 	fcntl(signal_pipe[0], F_SETFD, FD_CLOEXEC);
 	fcntl(signal_pipe[1], F_SETFD, FD_CLOEXEC);
+	fcntl(signal_pipe[1], F_SETFL, O_NONBLOCK);
 	signal(SIGUSR1, signal_handler);
 	signal(SIGUSR2, signal_handler);
 	signal(SIGTERM, signal_handler);
@@ -67,12 +68,12 @@ int udhcp_sp_fd_set(fd_set *rfds, int extra_fd)
  * your signal on success */
 int udhcp_sp_read(fd_set *rfds)
 {
-	int sig;
+	unsigned char sig;
 
 	if (!FD_ISSET(signal_pipe[0], rfds))
 		return 0;
 
-	if (read(signal_pipe[0], &sig, sizeof(sig)) < 0)
+	if (read(signal_pipe[0], &sig, 1) != 1)
 		return -1;
 
 	return sig;

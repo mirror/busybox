@@ -261,9 +261,9 @@ int xopen(const char *pathname, int flags);
 int xopen3(const char *pathname, int flags, int mode);
 int open_or_warn(const char *pathname, int flags);
 int open3_or_warn(const char *pathname, int flags, int mode);
+void xpipe(int filedes[2]);
 off_t xlseek(int fd, off_t offset, int whence);
 off_t fdlength(int fd);
-
 
 int xsocket(int domain, int type, int protocol);
 void xbind(int sockfd, struct sockaddr *my_addr, socklen_t addrlen);

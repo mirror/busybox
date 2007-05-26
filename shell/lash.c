@@ -1222,8 +1222,7 @@ static int run_command(struct job *newjob, int inbg, int outpipe[2])
 
 		nextout = 1;
 		if ((i + 1) < newjob->num_progs) {
-			if (pipe(pipefds) < 0)
-				bb_perror_msg_and_die("pipe");
+			xpipe(pipefds);
 			nextout = pipefds[1];
 		} else if (outpipe[1] != -1) {
 			nextout = outpipe[1];

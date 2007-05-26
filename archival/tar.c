@@ -507,8 +507,8 @@ static int writeTarFile(const int tar_fd, const int verboseFlag,
 		volatile int vfork_exec_errno = 0;
 		const char *zip_exec = (gzip == 1) ? "gzip" : "bzip2";
 
-		if (pipe(gzipDataPipe) < 0 || pipe(gzipStatusPipe) < 0)
-			bb_perror_msg_and_die("pipe");
+		xpipe(gzipDataPipe);
+		xpipe(gzipStatusPipe);
 
 		signal(SIGPIPE, SIG_IGN); /* we only want EPIPE on errors */
 

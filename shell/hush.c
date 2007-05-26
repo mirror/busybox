@@ -1800,8 +1800,7 @@ static int run_pipe_real(struct pipe *pi)
 
 		/* pipes are inserted between pairs of commands */
 		if ((i + 1) < pi->num_progs) {
-			if (pipe(pipefds) < 0)
-				bb_perror_msg_and_die("pipe");
+			pipe(pipefds);
 			nextout = pipefds[1];
 		} else {
 			nextout = 1;
@@ -3134,8 +3133,7 @@ static FILE *generate_stream_from_list(struct pipe *head)
 	FILE *pf;
 	int pid, channel[2];
 
-	if (pipe(channel) < 0)
-		bb_perror_msg_and_die("pipe");
+	xpipe(channel);
 #if BB_MMU
 	pid = fork();
 #else

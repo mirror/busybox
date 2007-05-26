@@ -184,7 +184,7 @@ static int setup_log(void)
 		warnx("log must have at least seven characters");
 		return 0;
 	}
-	if (pipe(logpipe) == -1) {
+	if (pipe(logpipe)) {
 		warnx("cannot create pipe for log");
 		return -1;
 	}

@@ -106,7 +106,7 @@ FILE *xfopen(const char *path, const char *mode)
 {
 	FILE *fp = fopen(path, mode);
 	if (fp == NULL)
-		bb_perror_msg_and_die("cannot open '%s'", path);
+		bb_perror_msg_and_die("can't open '%s'", path);
 	return fp;
 }
 
@@ -117,7 +117,7 @@ int xopen3(const char *pathname, int flags, int mode)
 
 	ret = open(pathname, flags, mode);
 	if (ret < 0) {
-		bb_perror_msg_and_die("cannot open '%s'", pathname);
+		bb_perror_msg_and_die("can't open '%s'", pathname);
 	}
 	return ret;
 }
@@ -135,7 +135,7 @@ int open3_or_warn(const char *pathname, int flags, int mode)
 
 	ret = open(pathname, flags, mode);
 	if (ret < 0) {
-		bb_perror_msg("cannot open '%s'", pathname);
+		bb_perror_msg("can't open '%s'", pathname);
 	}
 	return ret;
 }
@@ -146,21 +146,27 @@ int open_or_warn(const char *pathname, int flags)
 	return open3_or_warn(pathname, flags, 0666);
 }
 
+void xpipe(int filedes[2])
+{
+	if (pipe(filedes))
+		bb_perror_msg_and_die("can't create pipe");
+}
+
 void xunlink(const char *pathname)
 {
 	if (unlink(pathname))
-		bb_perror_msg_and_die("cannot remove file '%s'", pathname);
+		bb_perror_msg_and_die("can't remove file '%s'", pathname);
 }
 
 // Turn on nonblocking I/O on a fd
 int ndelay_on(int fd)
 {
-	return fcntl(fd,F_SETFL,fcntl(fd,F_GETFL,0) | O_NONBLOCK);
+	return fcntl(fd, F_SETFL, fcntl(fd,F_GETFL,0) | O_NONBLOCK);
 }
 
 int ndelay_off(int fd)
 {
-	return fcntl(fd,F_SETFL,fcntl(fd,F_GETFL,0) & ~O_NONBLOCK);
+	return fcntl(fd, F_SETFL, fcntl(fd,F_GETFL,0) & ~O_NONBLOCK);
 }
 
 // "Renumber" opened fd
@@ -169,7 +175,7 @@ void xmove_fd(int from, int to)
 	if (from == to)
 		return;
 	if (dup2(from, to) != to)
-		bb_perror_msg_and_die("cannot duplicate file descriptor");
+		bb_perror_msg_and_die("can't duplicate file descriptor");
 	close(from);
 }
 
@@ -199,7 +205,7 @@ off_t xlseek(int fd, off_t offset, int whence)
 void die_if_ferror(FILE *fp, const char *fn)
 {
 	if (ferror(fp)) {
-		/* doesn't set useful errno */
+		/* ferror doesn't set useful errno */
 		bb_error_msg_and_die("%s: I/O error", fn);
 	}
 }
@@ -520,7 +526,7 @@ DIR *warn_opendir(const char *path)
 
 	dp = opendir(path);
 	if (!dp)
-		bb_perror_msg("cannot open '%s'", path);
+		bb_perror_msg("can't open '%s'", path);
 	return dp;
 }
 
@@ -531,7 +537,7 @@ DIR *xopendir(const char *path)
 
 	dp = opendir(path);
 	if (!dp)
-		bb_perror_msg_and_die("cannot open '%s'", path);
+		bb_perror_msg_and_die("can't open '%s'", path);
 	return dp;
 }
 
@@ -568,10 +574,8 @@ void xlisten(int s, int backlog)
 	if (listen(s, backlog)) bb_perror_msg_and_die("listen");
 }
 
-/* Die with an error message if we the sendto failed.
- * Return bytes sent otherwise
- */
-
+/* Die with an error message if sendto failed.
+ * Return bytes sent otherwise  */
 ssize_t xsendto(int s, const  void *buf, size_t len, const struct sockaddr *to,
 				socklen_t tolen)
 {
