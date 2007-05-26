@@ -24,13 +24,13 @@ config ARP
 	bool "arp"
 	default n
 	help
-	  Manipulate the system ARP cache
+	  Manipulate the system ARP cache.
 
 config ARPING
 	bool "arping"
 	default n
 	help
-	  Ping hosts by ARP packets
+	  Ping hosts by ARP packets.
 
 config DNSD
 	bool "dnsd"
@@ -75,7 +75,7 @@ config HOSTNAME
 	bool "hostname"
 	default n
 	help
-	  Show or set the system's host name
+	  Show or set the system's host name.
 
 config HTTPD
 	bool "httpd"
@@ -140,7 +140,7 @@ config FEATURE_HTTPD_CONFIG_WITH_SCRIPT_INTERPR
 	help
 	  This option enables support for running scripts through an
 	  interpreter. Turn this on if you want PHP scripts to work
-	  properly. You need to supply an addition line in your httpd
+	  properly. You need to supply an additional line in your httpd
 	  config file:
 	  *.php:/path/to/your/php
 
