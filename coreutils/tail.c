@@ -24,7 +24,7 @@
  * 7) lseek attempted when count==0 even if arg was +0 (from top)
  */
 
-#include "busybox.h"
+#include "libbb.h"
 
 static const struct suffix_mult tail_suffixes[] = {
 	{ "b", 512 },

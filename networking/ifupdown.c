@@ -15,10 +15,11 @@
  * Licensed under the GPL v2 or later, see the file LICENSE in this tarball.
  */
 
-#include "busybox.h"
 #include <sys/utsname.h>
 #include <fnmatch.h>
 #include <getopt.h>
+
+#include "libbb.h"
 
 #define MAX_OPT_DEPTH 10
 #define EUNBALBRACK 10001

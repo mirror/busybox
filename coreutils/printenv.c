@@ -11,7 +11,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
-#include "busybox.h"
+#include "libbb.h"
 extern char **environ;
 
 int printenv_main(int argc, char **argv);

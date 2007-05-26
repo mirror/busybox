@@ -11,7 +11,7 @@
 /* BB_AUDIT GNU defects - unsupported long options. */
 /* http://www.opengroup.org/onlinepubs/007904975/utilities/chgrp.html */
 
-#include "busybox.h"
+#include "libbb.h"
 
 /* This is a NOEXEC applet. Be very careful! */
 

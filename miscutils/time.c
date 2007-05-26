@@ -9,7 +9,7 @@
    Heavily modified for busybox by Erik Andersen <andersen@codepoet.org>
 */
 
-#include "busybox.h"
+#include "libbb.h"
 
 #define TV_MSEC tv_usec / 1000
 

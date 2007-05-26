@@ -9,7 +9,7 @@
 
 /* BB_AUDIT SUSv3 N/A -- Matches GNU behavior. */
 
-#include "busybox.h"
+#include "libbb.h"
 
 int chroot_main(int argc, char **argv);
 int chroot_main(int argc, char **argv)

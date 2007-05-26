@@ -32,7 +32,7 @@
 #include <limits.h>
 #include <linux/netfilter_ipv4.h> /* wants <limits.h> */
 
-#include "busybox.h"
+#include "libbb.h"
 #include "ipsvd_perhost.h"
 
 #ifdef SSLSVD

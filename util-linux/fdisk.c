@@ -8,7 +8,7 @@
  */
 
 #include <assert.h>             /* assert */
-#include "busybox.h"
+#include "libbb.h"
 
 /* Looks like someone forgot to add this to config system */
 #ifndef ENABLE_FEATURE_FDISK_BLKSIZE

@@ -9,7 +9,7 @@
  * Licensed under the GPL v2 or later, see the file LICENSE in this tarball.
  */
 
-#include "busybox.h"
+#include "libbb.h"
 #include <stdio.h>
 #include <errno.h>
 #include <string.h>

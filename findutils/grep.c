@@ -19,7 +19,7 @@
  * (C) 2006 Jac Goudsmit added -o option
  */
 
-#include "busybox.h"
+#include "libbb.h"
 #include "xregex.h"
 
 /* options */

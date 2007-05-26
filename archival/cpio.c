@@ -16,7 +16,7 @@
 #include <string.h>
 #include <unistd.h>
 #include "unarchive.h"
-#include "busybox.h"
+#include "libbb.h"
 
 #define CPIO_OPT_EXTRACT			0x01
 #define CPIO_OPT_TEST				0x02

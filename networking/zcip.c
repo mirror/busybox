@@ -23,7 +23,7 @@
 // - avoid silent script failures, especially under load...
 // - link status monitoring (restart on link-up; stop on link-down)
 
-#include "busybox.h"
+#include "libbb.h"
 #include <syslog.h>
 #include <poll.h>
 #include <sys/wait.h>

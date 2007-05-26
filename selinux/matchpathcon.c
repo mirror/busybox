@@ -4,7 +4,7 @@
  * Port to busybox: KaiGai Kohei <kaigai@kaigai.gr.jp>
  *
  */
-#include "busybox.h"
+#include "libbb.h"
 
 static int print_matchpathcon(char *path, int noprint)
 {

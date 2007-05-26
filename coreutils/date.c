@@ -10,7 +10,7 @@
  * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
 */
 
-#include "busybox.h"
+#include "libbb.h"
 
 /* This 'date' command supports only 2 time setting formats,
    all the GNU strftime stuff (its in libc, lets use it),

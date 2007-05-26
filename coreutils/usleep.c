@@ -9,7 +9,7 @@
 
 /* BB_AUDIT SUSv3 N/A -- Apparently a busybox extension. */
 
-#include "busybox.h"
+#include "libbb.h"
 
 /* This is a NOFORK applet. Be very careful! */
 

@@ -36,7 +36,7 @@
   echo `echo hello#comment " woot` and more
 */
 
-#include "busybox.h"
+#include "libbb.h"
 
 // A single executable, its arguments, and other information we know about it.
 #define BBSH_FLAG_EXIT    1

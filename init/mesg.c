@@ -7,7 +7,7 @@
  * Licensed under the GPL v2 or later, see the file LICENSE in this tarball.
  */
 
-#include "busybox.h"
+#include "libbb.h"
 
 #ifdef USE_TTY_GROUP
 #define S_IWGRP_OR_S_IWOTH	S_IWGRP

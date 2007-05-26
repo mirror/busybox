@@ -11,7 +11,7 @@
 #include <sys/ioctl.h>
 #include <sys/utsname.h>
 #include <getopt.h>
-#include "busybox.h"
+#include "libbb.h"
 
 /* Copied from linux/rtc.h to eliminate the kernel dependency */
 struct linux_rtc_time {

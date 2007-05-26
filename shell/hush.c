@@ -76,11 +76,14 @@
  * Licensed under the GPL v2 or later, see the file LICENSE in this tarball.
  */
 
-#include "busybox.h"
+
 #include <glob.h>      /* glob, of course */
 #include <getopt.h>    /* should be pretty obvious */
 /* #include <dmalloc.h> */
+
 extern char **environ; /* This is in <unistd.h>, but protected with __USE_GNU */
+
+#include "busybox.h" /* for struct bb_applet */
 
 
 /* If you comment out one of these below, it will be #defined later

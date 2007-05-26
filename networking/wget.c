@@ -10,8 +10,8 @@
 /* http://www.unix.org/version2/whatsnew/lfs20mar.html */
 #define _LARGEFILE64_SOURCE 1
 
-#include "busybox.h"
 #include <getopt.h>	/* for struct option */
+#include "libbb.h"
 
 struct host_info {
 	// May be used if we ever will want to free() all xstrdup()s...

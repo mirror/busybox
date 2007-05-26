@@ -17,7 +17,7 @@
  *----------------------------------------------------------------------
  */
 
-#include "busybox.h"
+#include "libbb.h"
 #include <utmp.h>
 #include <time.h>
 

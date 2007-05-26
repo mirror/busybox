@@ -8,9 +8,8 @@
  */
 
 #include <getopt.h>
-#include <stdlib.h>
 
-#include "busybox.h"
+#include "libbb.h"
 
 int losetup_main(int argc, char **argv);
 int losetup_main(int argc, char **argv)

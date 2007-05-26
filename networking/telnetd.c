@@ -24,7 +24,7 @@
 /*#define DEBUG 1 */
 #define DEBUG 0
 
-#include "busybox.h"
+#include "libbb.h"
 
 #if DEBUG
 #define TELCMDS

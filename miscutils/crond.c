@@ -12,7 +12,7 @@
 
 #define VERSION "2.3.2"
 
-#include "busybox.h"
+#include "libbb.h"
 #include <sys/syslog.h>
 
 #define arysize(ary)    (sizeof(ary)/sizeof((ary)[0]))

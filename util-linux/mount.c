@@ -18,7 +18,7 @@
    mount_it_now() does the actual mount.
 */
 
-#include "busybox.h"
+#include "libbb.h"
 #include <mntent.h>
 
 /* Needed for nfs support only... */

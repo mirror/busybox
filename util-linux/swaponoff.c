@@ -7,7 +7,7 @@
  * Licensed under the GPL version 2, see the file LICENSE in this tarball.
  */
 
-#include "busybox.h"
+#include "libbb.h"
 #include <mntent.h>
 #include <sys/swap.h>
 

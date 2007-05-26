@@ -7,11 +7,9 @@
  * Licensed under the GPL v2 or later, see the file LICENSE in this tarball.
  */
 
-#include "busybox.h"
-#include <stdio.h>
-#include <stdlib.h>
 #include <getopt.h>
-#include <ctype.h>
+
+#include "libbb.h"
 
 #define WHOLE_FILE		1
 #define PRINT_NAME		2

@@ -9,7 +9,7 @@
  * Licensed under GPLv2, see file LICENSE in this tarball for details.
  */
 
-#include "busybox.h"
+#include "libbb.h"
 
 /* From <linux/fd.h> */
 #define FDFLUSH  _IO(2,0x4b)

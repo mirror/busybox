@@ -58,7 +58,7 @@
 	Reference http://www.opengroup.org/onlinepubs/007904975/utilities/sed.html
 */
 
-#include "busybox.h"
+#include "libbb.h"
 #include "xregex.h"
 
 /* Each sed command turns into one of these structures. */

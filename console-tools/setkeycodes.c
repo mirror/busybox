@@ -10,7 +10,7 @@
  */
 
 #include <sys/ioctl.h>
-#include "busybox.h"
+#include "libbb.h"
 
 
 /* From <linux/kd.h> */

@@ -23,7 +23,7 @@
  * 4) Fixed busybox bug #1284 involving long overflow with human_readable.
  */
 
-#include "busybox.h"
+#include "libbb.h"
 
 #if ENABLE_FEATURE_HUMAN_READABLE
 # if ENABLE_FEATURE_DU_DEFAULT_BLOCKSIZE_1K

@@ -19,7 +19,7 @@
  *   following IDs (if any).  Multiple switches are allowed.
  */
 
-#include "busybox.h"
+#include "libbb.h"
 #include <sys/resource.h>
 
 void BUG_bad_PRIO_PROCESS(void);

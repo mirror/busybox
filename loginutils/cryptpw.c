@@ -5,7 +5,7 @@
  * Cooked from passwd.c by Thomas Lundquist <thomasez@zelow.no>
  */
 
-#include "busybox.h"
+#include "libbb.h"
 
 int cryptpw_main(int argc, char **argv);
 int cryptpw_main(int argc, char **argv)

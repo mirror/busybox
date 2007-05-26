@@ -48,7 +48,7 @@
  *   are closed, but nc doesn't exit - continues to listen/accept.
  */
 
-/* done in nc.c: #include "busybox.h" */
+/* done in nc.c: #include "libbb.h" */
 
 enum {
 	SLEAZE_PORT = 31337,               /* for UDP-scan RTT trick, change if ya want */

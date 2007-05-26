@@ -7,7 +7,7 @@
  * Licensed under GPLv2, see file LICENSE in this tarball for details.
  */
 
-#include "busybox.h"
+#include "libbb.h"
 #include "ipsvd_perhost.h"
 
 static struct hcc *cc;

@@ -17,7 +17,7 @@
  * Major size reduction... over 50% (>1.5k) on i386.
  */
 
-#include "busybox.h"
+#include "libbb.h"
 
 #define	THURSDAY		4		/* for reformation */
 #define	SATURDAY		6		/* 1 Jan 1 was a Saturday */

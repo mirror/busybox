@@ -14,7 +14,7 @@
  *
  */
 
-#include "busybox.h"
+#include "libbb.h"
 
 /*
  *    Function Prototypes

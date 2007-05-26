@@ -13,7 +13,7 @@
  * -Z option support: by Yuichi Nakamura <ynakam@hitachisoft.jp>
  */
 
-#include "busybox.h"
+#include "libbb.h"
 #include <stdio.h>
 #include <unistd.h>
 #include <sys/types.h>

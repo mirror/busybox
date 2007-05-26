@@ -12,7 +12,7 @@
  * initially busyboxified by Bernhard Fischer
  */
 
-#include "busybox.h"
+#include "libbb.h"
 #include <stdio.h>
 #include <utmp.h>
 #include <time.h>

@@ -15,7 +15,7 @@
 
 /* getopt not needed */
 
-#include "busybox.h"
+#include "libbb.h"
 
 #ifndef FSHIFT
 # define FSHIFT 16              /* nr of bits of precision */

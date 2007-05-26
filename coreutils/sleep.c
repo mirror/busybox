@@ -18,7 +18,7 @@
  * time suffixes for seconds, minutes, hours, and days.
  */
 
-#include "busybox.h"
+#include "libbb.h"
 
 /* This is a NOFORK applet. Be very careful! */
 

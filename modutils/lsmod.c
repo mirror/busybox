@@ -11,7 +11,7 @@
  * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  */
 
-#include "busybox.h"
+#include "libbb.h"
 
 
 #ifndef CONFIG_FEATURE_CHECK_TAINTED_MODULE

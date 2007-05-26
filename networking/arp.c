@@ -13,7 +13,7 @@
  * modified for getopt32 by Arne Bernin <arne [at] alamut.de>
  */
 
-#include "busybox.h"
+#include "libbb.h"
 #include "inet_common.h"
 
 #include <arpa/inet.h>

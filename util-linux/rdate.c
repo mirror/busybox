@@ -8,7 +8,7 @@
  * Licensed under GPL v2 or later, see file License for details.
 */
 
-#include "busybox.h"
+#include "libbb.h"
 
 enum { RFC_868_BIAS = 2208988800UL };
 

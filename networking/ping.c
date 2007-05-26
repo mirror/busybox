@@ -27,7 +27,7 @@
 
 #include <net/if.h>
 #include <netinet/ip_icmp.h>
-#include "busybox.h"
+#include "libbb.h"
 
 #if ENABLE_PING6
 #include <netinet/icmp6.h>

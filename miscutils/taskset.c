@@ -6,9 +6,9 @@
  * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  */
 
-#include "busybox.h"
 #include <sched.h>
 #include <getopt.h> /* optind */
+#include "libbb.h"
 
 #if ENABLE_FEATURE_TASKSET_FANCY
 #define TASKSET_PRINTF_MASK "%s"

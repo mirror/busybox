@@ -38,7 +38,7 @@
 
 //   19990508 Busy Boxed! Dave Cinege
 
-#include "busybox.h"
+#include "libbb.h"
 
 typedef void (*converter)(const char *arg, void *result);
 

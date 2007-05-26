@@ -9,7 +9,7 @@
  * Licensed under GPL version 2, see file LICENSE in this tarball for details.
  */
 
-#include "busybox.h"
+#include "libbb.h"
 
 /* All the functions starting with "x" call bb_error_msg_and_die() if they
  * fail, so callers never need to check for errors.  If it returned, it

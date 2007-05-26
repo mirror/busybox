@@ -14,7 +14,7 @@
  * Size reductions and removed redundant applet name prefix from error messages.
  */
 
-#include "busybox.h"
+#include "libbb.h"
 
 /* This is a NOFORK applet. Be very careful! */
 

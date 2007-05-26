@@ -7,7 +7,7 @@
  * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  */
 /* no options, no getopt */
-#include "busybox.h"
+#include "libbb.h"
 
 #define ESC "\033"
 

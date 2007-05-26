@@ -9,7 +9,7 @@
  * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  */
 
-#include "busybox.h"
+#include "libbb.h"
 
 int setlogcons_main(int argc, char **argv);
 int setlogcons_main(int argc, char **argv)

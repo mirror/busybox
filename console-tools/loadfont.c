@@ -7,7 +7,7 @@
  * Loads the console font, and possibly the corresponding screen map(s).
  * (Adapted for busybox by Matej Vela.)
  */
-#include "busybox.h"
+#include "libbb.h"
 #include <sys/kd.h>
 
 enum {

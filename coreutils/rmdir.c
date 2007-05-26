@@ -11,7 +11,7 @@
 /* http://www.opengroup.org/onlinepubs/007904975/utilities/rmdir.html */
 
 #include <libgen.h>
-#include "busybox.h"
+#include "libbb.h"
 
 /* This is a NOFORK applet. Be very careful! */
 

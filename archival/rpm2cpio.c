@@ -6,7 +6,7 @@
  *
  * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  */
-#include "busybox.h"
+#include "libbb.h"
 #include "unarchive.h"
 
 #define RPM_MAGIC "\355\253\356\333"

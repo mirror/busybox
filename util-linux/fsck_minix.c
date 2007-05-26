@@ -87,7 +87,7 @@
  * enforced (but it's not much fun on a character device :-).
  */
 
-#include "busybox.h"
+#include "libbb.h"
 #include <mntent.h>
 
 #include "minix.h"

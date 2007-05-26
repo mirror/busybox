@@ -13,7 +13,7 @@
  * Bernhard Fischer rewrote to use index_in_substr_array
  */
 
-#include "busybox.h"
+#include "libbb.h"
 
 #include "libiproute/utils.h"
 #include "libiproute/ip_common.h"

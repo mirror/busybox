@@ -13,8 +13,8 @@
  * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  */
 
-#include "busybox.h"
 #include <getopt.h>
+#include "libbb.h"
 
 typedef struct ftp_host_info_s {
 	const char *user;

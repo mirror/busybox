@@ -28,7 +28,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 /* Busyboxed by Denis Vlasenko <vda.linux@googlemail.com> */
 /* Dependencies on runit_lib.c removed */
 
-#include "busybox.h"
+#include "libbb.h"
 
 #include <dirent.h>
 

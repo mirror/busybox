@@ -2,7 +2,7 @@
 #ifndef _IP_COMMON_H
 #define _IP_COMMON_H 1
 
-#include "busybox.h"
+#include "libbb.h"
 #include <asm/types.h>
 #include <linux/netlink.h>
 #include <linux/rtnetlink.h>

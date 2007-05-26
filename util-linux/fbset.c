@@ -12,7 +12,7 @@
  *     Geert Uytterhoeven (Geert.Uytterhoeven@cs.kuleuven.ac.be)
  */
 
-#include "busybox.h"
+#include "libbb.h"
 
 #define DEFAULTFBDEV  FB_0
 #define DEFAULTFBMODE "/etc/fb.modes"

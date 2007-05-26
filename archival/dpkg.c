@@ -24,7 +24,7 @@
  *
  */
 
-#include "busybox.h"
+#include "libbb.h"
 #include "unarchive.h"
 
 /* note: if you vary hash_prime sizes be aware,

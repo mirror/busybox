@@ -20,10 +20,11 @@
 //For debugging/development on the shell only...
 //#define DEBUG_SHELL
 
-
-#include "busybox.h"
 #include <getopt.h>
 #include <glob.h>
+
+#include "busybox.h" /* for struct bb_applet */
+
 #define expand_t	glob_t
 
 /* Always enable for the moment... */

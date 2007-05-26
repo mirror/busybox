@@ -10,7 +10,7 @@
 #ifndef _COMMON_H
 #define _COMMON_H
 
-#include "busybox.h"
+#include "libbb.h"
 
 #define DEFAULT_SCRIPT  "/usr/share/udhcpc/default.script"
 

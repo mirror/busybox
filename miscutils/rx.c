@@ -19,7 +19,7 @@
  *
  */
 
-#include "busybox.h"
+#include "libbb.h"
 
 #define SOH 0x01
 #define STX 0x02

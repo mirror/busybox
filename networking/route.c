@@ -25,11 +25,12 @@
  * remove ridiculous amounts of bloat.
  */
 
-#include "busybox.h"
-#include "inet_common.h"
 #include <getopt.h>
 #include <net/route.h>
 #include <net/if.h>
+
+#include "libbb.h"
+#include "inet_common.h"
 
 
 #ifndef RTF_UP

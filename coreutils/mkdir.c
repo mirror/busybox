@@ -20,7 +20,7 @@
  */
 
 #include <getopt.h> /* struct option */
-#include "busybox.h"
+#include "libbb.h"
 
 /* This is a NOFORK applet. Be very careful! */
 

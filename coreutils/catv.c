@@ -10,7 +10,7 @@
 /* See "Cat -v considered harmful" at
  * http://cm.bell-labs.com/cm/cs/doc/84/kp.ps.gz */
 
-#include "busybox.h"
+#include "libbb.h"
 
 int catv_main(int argc, char **argv);
 int catv_main(int argc, char **argv)

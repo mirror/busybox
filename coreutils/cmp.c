@@ -21,7 +21,7 @@
  *    in the '-l' case.
  */
 
-#include "busybox.h"
+#include "libbb.h"
 
 static FILE *cmp_xfopen_input(const char *filename)
 {

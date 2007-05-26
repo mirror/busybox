@@ -6,7 +6,7 @@
  *
  */
 
-#include "busybox.h"
+#include "libbb.h"
 
 int getsebool_main(int argc, char **argv);
 int getsebool_main(int argc, char **argv)

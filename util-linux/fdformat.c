@@ -9,7 +9,7 @@
  * 5 July 2003 -- modified for Busybox by Erik Andersen
  */
 
-#include "busybox.h"
+#include "libbb.h"
 
 
 /* Stuff extracted from linux/fd.h */

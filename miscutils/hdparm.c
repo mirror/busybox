@@ -12,7 +12,7 @@
  *          - by Mark Lord (C) 1994-2002 -- freely distributable
  */
 
-#include "busybox.h"
+#include "libbb.h"
 #include <linux/hdreg.h>
 
 /* device types */

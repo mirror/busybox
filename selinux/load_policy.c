@@ -3,7 +3,7 @@
  * This implementation is based on old load_policy to be small.
  * Author: Yuichi Nakamura <ynakam@hitachisoft.jp>
  */
-#include "busybox.h"
+#include "libbb.h"
 
 int load_policy_main(int argc, char **argv);
 int load_policy_main(int argc, char **argv)

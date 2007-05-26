@@ -16,7 +16,7 @@
 #include <netinet/ether.h>
 #include <netpacket/packet.h>
 
-#include "busybox.h"
+#include "libbb.h"
 
 static struct in_addr src;
 static struct in_addr dst;

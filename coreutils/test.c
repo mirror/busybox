@@ -20,7 +20,7 @@
  *     "This program is in the Public Domain."
  */
 
-#include "busybox.h"
+#include "libbb.h"
 #include <setjmp.h>
 
 /* This is a NOEXEC applet. Be very careful! */

@@ -8,7 +8,7 @@
  *
  */
 
-#include "busybox.h"
+#include "libbb.h"
 
 /* From <linux/kd.h> */
 struct kbentry {

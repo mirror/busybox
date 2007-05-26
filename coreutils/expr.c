@@ -25,7 +25,7 @@
 
 /* no getopt needed */
 
-#include "busybox.h"
+#include "libbb.h"
 #include "xregex.h"
 
 /* The kinds of value we can have.  */

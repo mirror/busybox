@@ -153,7 +153,7 @@ Exit Codes
 
 #include <sys/poll.h>
 #include <sys/file.h>
-#include "busybox.h"
+#include "libbb.h"
 #include "runit_lib.h"
 
 static const char *acts;

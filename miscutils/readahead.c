@@ -10,7 +10,7 @@
  * Licensed under GPLv2 or later, see file License in this tarball for details.
  */
 
-#include "busybox.h"
+#include "libbb.h"
 
 int readahead_main(int argc, char **argv);
 int readahead_main(int argc, char **argv)

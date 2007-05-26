@@ -9,7 +9,7 @@
  * Licensed under GPL version 2, see file LICENSE in this tarball for details.
  */
 
-#include "busybox.h"
+#include "libbb.h"
 #include "xregex.h"
 
 #define DEV_PATH	"/dev"

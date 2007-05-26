@@ -23,7 +23,7 @@
 
 #include <sched.h>	/* sched_yield() */
 
-#include "busybox.h"
+#include "libbb.h"
 #if ENABLE_FEATURE_LESS_REGEXP
 #include "xregex.h"
 #endif

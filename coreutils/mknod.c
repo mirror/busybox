@@ -11,7 +11,7 @@
 
 #include <sys/sysmacros.h>  // For makedev
 
-#include "busybox.h"
+#include "libbb.h"
 #include "libcoreutils/coreutils.h"
 
 static const char modes_chars[] = { 'p', 'c', 'u', 'b', 0, 1, 1, 2 };

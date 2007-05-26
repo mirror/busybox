@@ -12,7 +12,7 @@
  */
 
 #include <resolv.h>
-#include "busybox.h"
+#include "libbb.h"
 
 /*
  *  I'm only implementing non-interactive mode;

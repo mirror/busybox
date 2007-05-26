@@ -46,7 +46,7 @@
 
 #include "e2fsbb.h"
 
-#include "busybox.h"
+#include "libbb.h"
 
 #ifndef _PATH_MNTTAB
 #define _PATH_MNTTAB    "/etc/fstab"

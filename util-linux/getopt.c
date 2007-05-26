@@ -31,8 +31,8 @@
  *
  */
 
-#include "busybox.h"
 #include <getopt.h>
+#include "libbb.h"
 
 /* NON_OPT is the code that is returned when a non-option is found in '+'
    mode */

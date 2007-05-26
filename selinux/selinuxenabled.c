@@ -5,7 +5,7 @@
  * Port to BusyBox  Hiroshi Shinji <shiroshi@my.email.ne.jp>
  *
  */
-#include "busybox.h"
+#include "libbb.h"
 
 int selinuxenabled_main(int argc, char **argv);
 int selinuxenabled_main(int argc, char **argv)

@@ -10,7 +10,7 @@
 /* BB_AUDIT SUSv3 compliant */
 /* http://www.opengroup.org/onlinepubs/007904975/utilities/mkfifo.html */
 
-#include "busybox.h"
+#include "libbb.h"
 #include "libcoreutils/coreutils.h"
 
 int mkfifo_main(int argc, char **argv);

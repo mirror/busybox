@@ -37,7 +37,7 @@
  * It doesn't guess filesystem types from on-disk format.
  */
 
-#include "busybox.h"
+#include "libbb.h"
 
 #define EXIT_OK          0
 #define EXIT_NONDESTRUCT 1

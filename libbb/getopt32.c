@@ -7,8 +7,8 @@
  * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  */
 
-#include "libbb.h"
 #include <getopt.h>
+#include "libbb.h"
 
 /*      Documentation
 

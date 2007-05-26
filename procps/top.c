@@ -28,7 +28,7 @@
  * GNU Library General Public License
  */
 
-#include "busybox.h"
+#include "libbb.h"
 
 
 typedef struct top_status_t {

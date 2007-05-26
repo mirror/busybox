@@ -53,7 +53,7 @@
 #if DEBUG
 #define _GNU_SOURCE
 #endif
-#include "busybox.h"
+#include "busybox.h" /* for struct bb_applet */
 #include <paths.h>
 #include <setjmp.h>
 #include <fnmatch.h>

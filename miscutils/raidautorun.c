@@ -8,7 +8,7 @@
  *
  */
 
-#include "busybox.h"
+#include "libbb.h"
 
 #include <linux/major.h>
 #include <linux/raid/md_u.h>

@@ -7,7 +7,7 @@
 
 #include <syslog.h>
 
-#include "busybox.h"
+#include "libbb.h"
 
 static const char * const forbid[] = {
 	"ENV",

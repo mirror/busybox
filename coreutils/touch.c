@@ -17,7 +17,7 @@
  * Also, exiting on a failure was a bug.  All args should be processed.
  */
 
-#include "busybox.h"
+#include "libbb.h"
 
 /* This is a NOFORK applet. Be very careful! */
 

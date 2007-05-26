@@ -20,7 +20,7 @@
  * 3) Save some space by using strcmp().  Calling strncmp() here was silly.
  */
 
-#include "busybox.h"
+#include "libbb.h"
 
 /* This is a NOFORK applet. Be very careful! */
 

@@ -8,7 +8,7 @@
  */
 
 #include <syslog.h>
-#include "busybox.h"
+#include "libbb.h"
 #include "isrv.h"
 
 enum { TIMEOUT = 20 };

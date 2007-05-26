@@ -25,7 +25,7 @@
 
 #include <fnmatch.h>
 #include <getopt.h>
-#include "busybox.h"
+#include "libbb.h"
 #include "unarchive.h"
 
 #if ENABLE_FEATURE_TAR_CREATE

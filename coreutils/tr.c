@@ -18,7 +18,7 @@
 /* http://www.opengroup.org/onlinepubs/009695399/utilities/tr.html
  * TODO: xdigit, graph, print
  */
-#include "busybox.h"
+#include "libbb.h"
 
 #define ASCII 0377
 

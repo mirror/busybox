@@ -17,7 +17,7 @@
  *
  */
 
-#include "busybox.h"
+#include "libbb.h"
 
 /* This is a NOEXEC applet. Be very careful! */
 

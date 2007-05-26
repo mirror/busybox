@@ -91,7 +91,7 @@
  *
 */
 
-#include "busybox.h"
+#include "libbb.h"
 
 /* amount of buffering in a pipe */
 #ifndef PIPE_BUF

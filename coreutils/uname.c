@@ -37,7 +37,7 @@
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/utsname.h>
-#include "busybox.h"
+#include "libbb.h"
 
 typedef struct {
 	struct utsname name;

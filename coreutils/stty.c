@@ -21,7 +21,7 @@
 
    */
 
-#include "busybox.h"
+#include "libbb.h"
 
 #ifndef _POSIX_VDISABLE
 # define _POSIX_VDISABLE ((unsigned char) 0)

@@ -4,7 +4,7 @@
  *
  * Copyright 2007 KaiGai Kohei <kaigai@kaigai.gr.jp>
  */
-#include "busybox.h"
+#include "libbb.h"
 #include <selinux/context.h>
 
 context_t set_security_context_component(security_context_t cur_context,

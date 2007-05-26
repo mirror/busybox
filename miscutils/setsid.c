@@ -14,7 +14,7 @@
  * - busyboxed
  */
 
-#include "busybox.h"
+#include "libbb.h"
 
 int setsid_main(int argc, char **argv);
 int setsid_main(int argc, char **argv)

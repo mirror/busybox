@@ -24,7 +24,7 @@
  * - central directory
  */
 
-#include "busybox.h"
+#include "libbb.h"
 #include "unarchive.h"
 
 #define ZIP_FILEHEADER_MAGIC		SWAP_LE32(0x04034b50)

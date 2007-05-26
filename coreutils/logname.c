@@ -20,7 +20,7 @@
  * a diagnostic message and an error return.
  */
 
-#include "busybox.h"
+#include "libbb.h"
 
 /* This is a NOFORK applet. Be very careful! */
 

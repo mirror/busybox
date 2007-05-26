@@ -10,7 +10,7 @@
 /* BB_AUDIT SUSv3 compliant */
 /* http://www.opengroup.org/onlinepubs/007904975/utilities/tty.html */
 
-#include "busybox.h"
+#include "libbb.h"
 
 int tty_main(int argc, char **argv);
 int tty_main(int argc, char **argv)

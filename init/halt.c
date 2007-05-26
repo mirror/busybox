@@ -7,7 +7,7 @@
  * Licensed under GPL version 2, see file LICENSE in this tarball for details.
  */
 
-#include "busybox.h"
+#include "libbb.h"
 #include <sys/reboot.h>
 
 int halt_main(int argc, char **argv);

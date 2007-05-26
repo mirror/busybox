@@ -7,7 +7,7 @@
  * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  */
 
-#include "busybox.h"
+#include "libbb.h"
 
 #define COMM_OPT_1 (1 << 0)
 #define COMM_OPT_2 (1 << 1)

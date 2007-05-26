@@ -6,7 +6,7 @@
  *
  */
 
-#include "busybox.h"
+#include "libbb.h"
 
 /* These strings are arranged so that odd ones
  * result in security_setenforce(1) being done,

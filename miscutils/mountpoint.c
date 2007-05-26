@@ -9,7 +9,7 @@
  * Based on sysvinit's mountpoint
  */
 
-#include "busybox.h"
+#include "libbb.h"
 
 int mountpoint_main(int argc, char **argv);
 int mountpoint_main(int argc, char **argv)

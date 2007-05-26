@@ -37,7 +37,7 @@
 #include <netinet/if_ether.h>
 #endif
 #include "inet_common.h"
-#include "busybox.h"
+#include "libbb.h"
 
 #if ENABLE_FEATURE_IFCONFIG_SLIP
 # include <net/if_slip.h>

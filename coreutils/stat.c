@@ -13,7 +13,7 @@
  * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  */
 
-#include "busybox.h"
+#include "libbb.h"
 
 /* vars to control behavior */
 #define OPT_FILESYS		(1<<0)

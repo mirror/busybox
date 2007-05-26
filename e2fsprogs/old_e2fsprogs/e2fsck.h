@@ -39,7 +39,7 @@
 #include "blkid/blkid.h"
 #include "ext2fs/ext2_ext_attr.h"
 #include "uuid/uuid.h"
-#include "busybox.h"
+#include "libbb.h"
 
 #ifdef HAVE_CONIO_H
 #undef HAVE_TERMIOS_H

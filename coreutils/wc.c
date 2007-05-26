@@ -41,7 +41,7 @@
  * for which 'wc -c' should output '0'.
  */
 
-#include "busybox.h"
+#include "libbb.h"
 
 #ifdef CONFIG_LOCALE_SUPPORT
 #define isspace_given_isprint(c) isspace(c)

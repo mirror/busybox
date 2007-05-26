@@ -5,9 +5,10 @@
  *
  * Copyright (C) 2006 - 2007 KaiGai Kohei <kaigai@kaigai.gr.jp>
  */
-#include "busybox.h"
 #include <getopt.h>
 #include <selinux/context.h>
+
+#include "libbb.h"
 
 #define OPT_RECURSIVE		(1<<0)	/* 'R' */
 #define OPT_CHANHES		(1<<1)	/* 'c' */

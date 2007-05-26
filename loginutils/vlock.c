@@ -16,7 +16,7 @@
 /* Fixed by Erik Andersen to do passwords the tinylogin way...
  * It now works with md5, sha1, etc passwords. */
 
-#include "busybox.h"
+#include "libbb.h"
 #include <sys/vt.h>
 
 static struct passwd *pw;

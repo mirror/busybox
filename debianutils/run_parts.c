@@ -30,9 +30,9 @@
  * -u MASK		umask. Set the umask of the program executed to MASK.
  */
 
-
-#include "busybox.h"
 #include <getopt.h>
+
+#include "libbb.h"
 
 #if ENABLE_FEATURE_RUN_PARTS_LONG_OPTIONS
 static const struct option runparts_long_options[] = {

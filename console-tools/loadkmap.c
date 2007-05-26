@@ -8,7 +8,7 @@
  *
  */
 
-#include "busybox.h"
+#include "libbb.h"
 
 #define BINARY_KEYMAP_MAGIC "bkeymap"
 

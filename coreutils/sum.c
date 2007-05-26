@@ -13,7 +13,7 @@
  * Licensed under the GPL v2 or later, see the file LICENSE in this tarball.
  */
 
-#include "busybox.h"
+#include "libbb.h"
 
 enum { SUM_BSD, PRINT_NAME, SUM_SYSV };
 

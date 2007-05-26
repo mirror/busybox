@@ -11,7 +11,7 @@
 /* BB_AUDIT GNU compatible -c, -q, and -v options in 'fancy' configuration. */
 /* http://www.opengroup.org/onlinepubs/007904975/utilities/head.html */
 
-#include "busybox.h"
+#include "libbb.h"
 
 static const char head_opts[] =
 	"n:"

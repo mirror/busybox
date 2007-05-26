@@ -10,7 +10,7 @@
 /* BB_AUDIT SUSv3 compliant */
 /* http://www.opengroup.org/onlinepubs/007904975/utilities/uniq.html */
 
-#include "busybox.h"
+#include "libbb.h"
 
 static const char uniq_opts[] = "cdu" "f:s:" "cdu\0\1\2\4";
 

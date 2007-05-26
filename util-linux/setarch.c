@@ -14,7 +14,7 @@
 #include <stdio.h>
 #include <sys/personality.h>
 
-#include "busybox.h"
+#include "libbb.h"
 
 int setarch_main(int ATTRIBUTE_UNUSED argc, char **argv);
 int setarch_main(int ATTRIBUTE_UNUSED argc, char **argv)

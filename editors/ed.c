@@ -7,7 +7,7 @@
  * The "ed" built-in command (much simplified)
  */
 
-#include "busybox.h"
+#include "libbb.h"
 
 enum {
 	USERSIZE = sizeof(bb_common_bufsiz1) > 1024 ? 1024

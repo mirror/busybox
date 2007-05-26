@@ -10,7 +10,7 @@
  * Based on which from debianutils
  */
 
-#include "busybox.h"
+#include "libbb.h"
 
 int which_main(int argc, char **argv);
 int which_main(int argc, char **argv)

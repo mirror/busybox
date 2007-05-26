@@ -23,7 +23,7 @@
  *    The previous version did not allow 4-digit octals.
  */
 
-#include "busybox.h"
+#include "libbb.h"
 
 int bb_echo(char **argv)
 {

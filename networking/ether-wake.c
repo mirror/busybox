@@ -70,7 +70,7 @@
 #include <netinet/ether.h>
 #include <linux/if.h>
 
-#include "busybox.h"
+#include "libbb.h"
 
 /* Note: PF_INET, SOCK_DGRAM, IPPROTO_UDP would allow SIOCGIFHWADDR to
  * work as non-root, but we need SOCK_PACKET to specify the Ethernet

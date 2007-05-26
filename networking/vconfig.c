@@ -9,7 +9,7 @@
 
 /* BB_AUDIT SUSv3 N/A */
 
-#include "busybox.h"
+#include "libbb.h"
 #include <net/if.h>
 
 /* Stuff from linux/if_vlan.h, kernel version 2.4.23 */

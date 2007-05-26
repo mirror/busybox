@@ -10,7 +10,7 @@
  */
 
 #include <getopt.h>
-#include "busybox.h"
+#include "libbb.h"
 #include "dump.h"
 
 /* This is a NOEXEC applet. Be very careful! */

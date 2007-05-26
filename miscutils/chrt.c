@@ -6,10 +6,10 @@
  * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  */
 
-#include "busybox.h"
 #include <unistd.h>
 #include <sched.h>
 #include <getopt.h> /* optind */
+#include "libbb.h"
 #ifndef _POSIX_PRIORITY_SCHEDULING
 #warning your system may be foobared
 #endif

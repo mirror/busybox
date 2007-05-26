@@ -6,7 +6,7 @@
  *
  * Licensed under GPLv2 or later, see file LICENSE in this tarball for details. */
 
-#include "busybox.h"
+#include "libbb.h"
 
 int cksum_main(int argc, char **argv);
 int cksum_main(int argc, char **argv)

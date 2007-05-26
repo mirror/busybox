@@ -20,10 +20,8 @@
  */
 
 #include <getopt.h>
-#include <string.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include "busybox.h"
+
+#include "libbb.h"
 
 static unsigned int copy_lines(FILE *src_stream, FILE *dest_stream, const unsigned int lines_count)
 {

@@ -9,7 +9,7 @@
  * SUSv3 requirements:
  * http://www.opengroup.org/onlinepubs/009695399/utilities/split.html
  */
-#include "busybox.h"
+#include "libbb.h"
 
 static const struct suffix_mult split_suffices[] = {
 #if ENABLE_FEATURE_SPLIT_FANCY

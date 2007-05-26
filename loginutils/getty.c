@@ -16,7 +16,7 @@
  *
  */
 
-#include "busybox.h"
+#include "libbb.h"
 #include <syslog.h>
 
 #if ENABLE_FEATURE_UTMP

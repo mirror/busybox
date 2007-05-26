@@ -32,7 +32,7 @@
  * Paul Mundt <lethal@linux-sh.org>.
  */
 
-#include "busybox.h"
+#include "libbb.h"
 #include <sys/utsname.h>
 
 #define S_LEN 128

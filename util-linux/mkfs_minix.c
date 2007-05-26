@@ -62,7 +62,7 @@
  *	removed getopt based parser and added a hand rolled one.
  */
 
-#include "busybox.h"
+#include "libbb.h"
 #include <mntent.h>
 
 #include "minix.h"

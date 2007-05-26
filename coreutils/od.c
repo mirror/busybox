@@ -12,7 +12,7 @@
  */
 
 
-#include "busybox.h"
+#include "libbb.h"
 #if ENABLE_DESKTOP
 /* This one provides -t (busybox's own build script needs it) */
 #include "od_bloaty.c"

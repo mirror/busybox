@@ -8,7 +8,7 @@
  * Licensed under the GPL v2 or later, see the file LICENSE in this tarball.
  */
 
-#include "busybox.h"
+#include "libbb.h"
 
 /* Note: kill_main is directly called from shell in order to implement
  * kill built-in. Shell substitutes job ids with process groups first.

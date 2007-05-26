@@ -10,7 +10,7 @@
  *
  */
 
-#include "busybox.h"
+#include "libbb.h"
 
 static void xgroup_study(struct group *g)
 {

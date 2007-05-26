@@ -18,7 +18,7 @@
  * 98/12/29	- Display version info only when -V specified (G M Sipe)
  */
 
-#include "busybox.h"
+#include "libbb.h"
 #include "e2fs_lib.h"
 
 enum {

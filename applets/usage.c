@@ -2,7 +2,6 @@
 #include <unistd.h>
 
 #include "../include/autoconf.h"
-#include "../include/busybox.h"
 
 static const char usage_messages[] = ""
 #define MAKE_USAGE

@@ -9,10 +9,11 @@
  *           owner/group, will probably modify bb_make_directory(...)
  */
 
-#include "busybox.h"
-#include "libcoreutils/coreutils.h"
 #include <libgen.h>
 #include <getopt.h> /* struct option */
+
+#include "libbb.h"
+#include "libcoreutils/coreutils.h"
 
 #if ENABLE_FEATURE_INSTALL_LONG_OPTIONS
 static const struct option install_long_options[] = {

@@ -39,7 +39,7 @@ gzip: bogus: No such file or directory
 aa:      85.1% -- replaced with aa.gz
 */
 
-#include "busybox.h"
+#include "libbb.h"
 
 
 /* ===========================================================================

@@ -10,7 +10,7 @@
 
 /* no options, no getopt */
 
-#include "busybox.h"
+#include "libbb.h"
 
 /* From <linux/vt.h> */
 enum { VT_DISALLOCATE = 0x5608 }; /* free memory associated to vt */

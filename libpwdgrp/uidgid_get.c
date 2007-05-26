@@ -25,7 +25,7 @@ OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
 ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#include "busybox.h"
+#include "libbb.h"
 
 /* Always sets uid and gid */
 int get_uidgid(struct bb_uidgid_t *u, const char *ug, int numeric_ok)

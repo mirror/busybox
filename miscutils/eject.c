@@ -13,7 +13,7 @@
  * Most of the dirty work blatantly ripped off from cat.c =)
  */
 
-#include "busybox.h"
+#include "libbb.h"
 
 /* various defines swiped from linux/cdrom.h */
 #define CDROMCLOSETRAY            0x5319  /* pendant of CDROMEJECT  */

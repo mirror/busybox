@@ -10,7 +10,7 @@
 /* BB_AUDIT SUSv3 compliant */
 /* http://www.opengroup.org/onlinepubs/007904975/utilities/tee.html */
 
-#include "busybox.h"
+#include "libbb.h"
 #include <signal.h>
 
 int tee_main(int argc, char **argv);

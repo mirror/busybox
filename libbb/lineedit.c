@@ -29,7 +29,7 @@
  */
 
 #include <sys/ioctl.h>
-#include "busybox.h"
+#include "libbb.h"
 
 
 /* FIXME: obsolete CONFIG item? */

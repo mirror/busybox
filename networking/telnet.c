@@ -24,7 +24,7 @@
 #include <termios.h>
 #include <arpa/telnet.h>
 #include <netinet/in.h>
-#include "busybox.h"
+#include "libbb.h"
 
 #ifdef DOTRACE
 #define TRACE(x, y) do { if (x) printf y; } while (0)

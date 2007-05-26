@@ -8,7 +8,7 @@
  * GNU Library General Public License
  */
 
-#include "busybox.h"
+#include "libbb.h"
 
 #define FUSER_PROC_DIR "/proc"
 #define FUSER_MAX_LINE 255

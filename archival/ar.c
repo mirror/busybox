@@ -14,7 +14,7 @@
  * http://www.unix-systems.org/single_unix_specification_v2/xcu/ar.html
  */
 
-#include "busybox.h"
+#include "libbb.h"
 #include "unarchive.h"
 
 static void header_verbose_list_ar(const file_header_t *file_header)

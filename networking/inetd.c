@@ -155,7 +155,7 @@
  *                      setuid()
  */
 
-#include "busybox.h"
+#include "libbb.h"
 #include <syslog.h>
 #include <sys/un.h>
 

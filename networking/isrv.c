@@ -8,7 +8,7 @@
  * Licensed under GPL version 2, see file LICENSE in this tarball for details.
  */
 
-#include "busybox.h"
+#include "libbb.h"
 #include "isrv.h"
 
 #define DEBUG 0

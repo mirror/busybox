@@ -8,9 +8,9 @@
  * Licensed under GPL version 2, see file LICENSE in this tarball for details.
  */
 
-#include "busybox.h"
 #include <mntent.h>
 #include <getopt.h>
+#include "libbb.h"
 
 #define OPTION_STRING		"flDnravdt:"
 #define OPT_FORCE			1

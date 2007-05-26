@@ -8,9 +8,10 @@
  * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  */
 
-#include "busybox.h"
 #include <getopt.h>
 #include <sys/resource.h>
+
+#include "libbb.h"
 
 static int signal_nr = 15;
 static int user_id = -1;

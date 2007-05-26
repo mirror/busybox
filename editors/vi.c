@@ -21,7 +21,7 @@
  *	An "ex" line oriented mode- maybe using "cmdedit"
  */
 
-#include "busybox.h"
+#include "libbb.h"
 
 #define ENABLE_FEATURE_VI_CRASHME 0
 

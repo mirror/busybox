@@ -11,7 +11,7 @@
 /* BB_AUDIT SUSv3 N/A */
 /* BB_AUDIT GNU defects -- only option -n is supported. */
 
-#include "busybox.h"
+#include "libbb.h"
 
 // procps 2.0.18:
 // watch [-d] [-n seconds]

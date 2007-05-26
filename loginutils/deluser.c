@@ -10,7 +10,7 @@
  *
  */
 
-#include "busybox.h"
+#include "libbb.h"
 
 /* Status */
 #define STATUS_OK            0

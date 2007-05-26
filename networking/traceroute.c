@@ -215,7 +215,7 @@
 #include <netinet/ip.h>
 #include <netinet/ip_icmp.h>
 
-#include "busybox.h"
+#include "libbb.h"
 #include "inet_common.h"
 
 

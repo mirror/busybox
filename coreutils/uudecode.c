@@ -12,7 +12,7 @@
  */
 
 
-#include "busybox.h"
+#include "libbb.h"
 
 static void read_stduu(FILE *src_stream, FILE *dst_stream)
 {
