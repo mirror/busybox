@@ -249,7 +249,7 @@ static unsigned datalen; /* intentionally uninitialized to work around gcc bug *
 static int if_index;
 
 static unsigned long ntransmitted, nreceived, nrepeats, pingcount;
-static int myid;
+static uint16_t myid;
 static unsigned tmin = UINT_MAX, tmax;
 static unsigned long tsum;
 static char rcvd_tbl[MAX_DUP_CHK / 8];
@@ -667,7 +667,7 @@ int ping_main(int argc, char **argv)
 			source_lsa = xdotted2sockaddr(opt_I, 0);
 		}
 	}
-	myid = (int16_t) getpid();
+	myid = (uint16_t) getpid();
 	hostname = argv[optind];
 #if ENABLE_PING6
 	if (option_mask32 & OPT_IPV4)
