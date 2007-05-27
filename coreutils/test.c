@@ -246,7 +246,7 @@ static void syntax(const char *op, const char *msg)
 	if (op && *op) {
 		bb_error_msg("%s: %s", op, msg);
 	} else {
-		bb_error_msg("%s", msg);
+		bb_error_msg("%s: %s"+4, msg);
 	}
 	longjmp(leaving, 2);
 }
@@ -319,7 +319,7 @@ static int binop(void)
 {
 	const char *opnd1, *opnd2;
 	struct t_op const *op;
-	smallint val1, val2;
+	arith_t val1, val2;
 
 	opnd1 = *t_wp;
 	(void) t_lex(*++t_wp);
@@ -363,8 +363,8 @@ static int binop(void)
 	{
 		struct stat b1, b2;
 
-		if (!(!stat(opnd1, &b1) && !stat(opnd2, &b2)))
-			return 0; /* false, since stat failed */
+		if (stat(opnd1, &b1) || stat(opnd2, &b2))
+			return 0; /* false, since at least one stat failed */
 		if (op->op_num == FILNT)
 			return b1.st_mtime > b2.st_mtime;
 		if (op->op_num == FILOT)
@@ -559,7 +559,12 @@ static void initialize_group_array(void)
 {
 	ngroups = getgroups(0, NULL);
 	if (ngroups > 0) {
-		group_array = xmalloc(ngroups * sizeof(gid_t));
+		/* FIXME: ash tries so hard to not die on OOM,
+		 * and we spoil it with just one xrealloc here */
+		/* We realloc, because bb_test can be entered repeatedly by shell.
+		 * Testcase (ash): 'while true; do test -x some_file; done'
+		 * and watch top. (some_file must have owner != you) */
+		group_array = xrealloc(group_array, ngroups * sizeof(gid_t));
 		getgroups(ngroups, group_array);
 	}
 }
