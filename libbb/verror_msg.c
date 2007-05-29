@@ -20,6 +20,9 @@ void bb_verror_msg(const char *s, va_list p, const char* strerr)
 	va_list p2;
 	va_copy(p2, p);
 
+	if (!s) /* nomsg[_and_die] uses NULL fmt */
+		s = ""; /* some libc don't like printf(NULL) */
+
 	if (logmode & LOGMODE_STDIO) {
 		fflush(stdout);
 		fprintf(stderr, "%s: ", applet_name);
@@ -28,7 +31,7 @@ void bb_verror_msg(const char *s, va_list p, const char* strerr)
 			fputs(msg_eol, stderr);
 		else
 			fprintf(stderr, "%s%s%s",
-					s ? ": " : "",
+					s[0] ? ": " : "",
 					strerr, msg_eol);
 	}
 	if (ENABLE_FEATURE_SYSLOG && (logmode & LOGMODE_SYSLOG)) {
@@ -36,8 +39,10 @@ void bb_verror_msg(const char *s, va_list p, const char* strerr)
 			vsyslog(LOG_ERR, s, p2);
 		else  {
 			char *msg;
-			if (vasprintf(&msg, s, p2) < 0)
-				bb_error_msg_and_die(bb_msg_memory_exhausted);
+			if (vasprintf(&msg, s, p2) < 0) {
+				fprintf(stderr, "%s: %s\n", applet_name, bb_msg_memory_exhausted);
+				xfunc_die();
+			}
 			syslog(LOG_ERR, "%s: %s", msg, strerr);
 			free(msg);
 		}
