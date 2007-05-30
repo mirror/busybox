@@ -17,33 +17,67 @@
 
 typedef unsigned long long ullong;
 
-enum { proc_file_size = 4096 };
+enum { PROC_FILE_SIZE = 4096 };
 
 typedef struct proc_file {
-	const char *name;
-	int gen;
 	char *file;
+	//const char *name;
+	smallint last_gen;
 } proc_file;
 
-static proc_file proc_stat = { "/proc/stat", -1 };
-static proc_file proc_loadavg = { "/proc/loadavg", -1 };
-static proc_file proc_net_dev = { "/proc/net/dev", -1 };
-static proc_file proc_meminfo = { "/proc/meminfo", -1 };
-static proc_file proc_diskstats = { "/proc/diskstats", -1 };
-// Sample #
-static int gen = -1;
-// Linux 2.6? (otherwise assumes 2.4)
-static int is26 = 0;
-static struct timeval tv;
-static int delta = 1000000;
-static int deltanz = 1000000;
-static int need_seconds = 0;
-static const char *final_str = "\n";
+static const char *const proc_name[] = {
+	"stat",		// Must match the order of proc_file's!
+	"loadavg",
+	"net/dev",
+	"meminfo",
+	"diskstats",
+	"sys/fs/file-nr",
+};
+
+struct globals {
+	// Sample generation flip-flop
+	smallint gen;
+	// Linux 2.6? (otherwise assumes 2.4)
+	smallint is26;
+	// 1 if sample delay is not an integer fraction of a second
+	smallint need_seconds;
+	char *cur_outbuf;
+	const char *final_str;
+	int delta;
+	int deltanz;
+	struct timeval tv;
+#define first_proc_file proc_stat
+	proc_file proc_stat;	// Must match the order of proc_name's!
+	proc_file proc_loadavg;
+	proc_file proc_net_dev;
+	proc_file proc_meminfo;
+	proc_file proc_diskstats;
+	proc_file proc_sys_fs_filenr;
+};
+#define G (*ptr_to_globals)
+#define gen                (G.gen               )
+#define is26               (G.is26              )
+#define need_seconds       (G.need_seconds      )
+#define cur_outbuf         (G.cur_outbuf        )
+#define final_str          (G.final_str         )
+#define delta              (G.delta             )
+#define deltanz            (G.deltanz           )
+#define tv                 (G.tv                )
+#define proc_stat          (G.proc_stat         )
+#define proc_loadavg       (G.proc_loadavg      )
+#define proc_net_dev       (G.proc_net_dev      )
+#define proc_meminfo       (G.proc_meminfo      )
+#define proc_diskstats     (G.proc_diskstats    )
+#define proc_sys_fs_filenr (G.proc_sys_fs_filenr)
 
 // We depend on this being a char[], not char* - we take sizeof() of it
 #define outbuf bb_common_bufsiz1
-static char *cur_outbuf = outbuf;
 
+#define INIT_G() do { \
+		cur_outbuf = outbuf; \
+		final_str = "\n"; \
+		deltanz = delta = 1000000; \
+	} while (0)
 
 static inline void reset_outbuf(void)
 {
@@ -85,27 +119,31 @@ static void put_question_marks(int count)
 		put_c('?');
 }
 
-static int readfile_z(char *buf, int sz, const char* fname)
+static void readfile_z(char *buf, int sz, const char* fname)
 {
-	sz = open_read_close(fname, buf, sz-1);
-	if (sz < 0) {
-		buf[0] = '\0';
-		return 1;
+// open_read_close() will do two reads in order to be sure we are at EOF,
+// and we don't need/want that.
+//	sz = open_read_close(fname, buf, sz-1);
+
+	int fd = xopen(fname, O_RDONLY);
+	buf[0] = '\0';
+	if (fd >= 0) {
+		sz = read(fd, buf, sz-1);
+		if (sz > 0) buf[sz] = '\0';
+		close(fd);
 	}
-	buf[sz] = '\0';
-	return 0;
 }
 
 static const char* get_file(proc_file *pf)
 {
-	if (pf->gen != gen) {
-		pf->gen = gen;
-		// We allocate proc_file_size bytes. This wastes memory,
+	if (pf->last_gen != gen) {
+		pf->last_gen = gen;
+		// We allocate PROC_FILE_SIZE bytes. This wastes memory,
 		// but allows us to allocate only once (at first sample)
 		// per proc file, and reuse buffer for each sample
 		if (!pf->file)
-			pf->file = xmalloc(proc_file_size);
-		readfile_z(pf->file, proc_file_size, pf->name);
+			pf->file = xmalloc(PROC_FILE_SIZE);
+		readfile_z(pf->file, PROC_FILE_SIZE, proc_name[pf - &first_proc_file]);
 	}
 	return pf->file;
 }
@@ -242,10 +280,10 @@ static s_stat* init_literal(void)
 
 static s_stat* init_delay(const char *param)
 {
-	delta = strtol(param, NULL, 0)*1000;
+	delta = bb_strtoi(param, NULL, 0) * 1000;
 	deltanz = delta > 0 ? delta : 1;
 	need_seconds = (1000000%deltanz) != 0;
-	return (s_stat*)0;
+	return NULL;
 }
 
 static s_stat* init_cr(const char *param)
@@ -281,7 +319,7 @@ static void collect_cpu(cpu_stat *s)
 		return;
 	}
 
-	for (i=0; i<CPU_FIELDCNT; i++) {
+	for (i = 0; i < CPU_FIELDCNT; i++) {
 		ullong old = s->old[i];
 		if (data[i] < old) old = data[i];		//sanitize
 		s->old[i] = data[i];
@@ -289,7 +327,7 @@ static void collect_cpu(cpu_stat *s)
 	}
 
 	if (all) {
-		for (i=0; i<CPU_FIELDCNT; i++) {
+		for (i = 0; i < CPU_FIELDCNT; i++) {
 			ullong t = bar_sz * data[i];
 			norm_all += data[i] = t / all;
 			frac[i] = t % all;
@@ -298,7 +336,7 @@ static void collect_cpu(cpu_stat *s)
 		while (norm_all < bar_sz) {
 			unsigned max = frac[0];
 			int pos = 0;
-			for (i=1; i<CPU_FIELDCNT; i++) {
+			for (i = 1; i < CPU_FIELDCNT; i++) {
 				if (frac[i] > max) max = frac[i], pos = i;
 			}
 			frac[pos] = 0;	//avoid bumping up same value twice
@@ -640,11 +678,9 @@ S_STAT_END(fd_stat)
 
 static void collect_fd(fd_stat *s)
 {
-	char file[4096];
 	ullong data[2];
 
-	readfile_z(file, sizeof(file), "/proc/sys/fs/file-nr");
-	if (rdval(file, "", data, 1, 2)) {
+	if (rdval(get_file(&proc_sys_fs_filenr), "", data, 1, 2)) {
 		put_question_marks(4);
 		return;
 	}
@@ -702,7 +738,7 @@ static s_stat* init_time(const char *param)
 
 static void collect_info(s_stat *s)
 {
-	gen++;
+	gen ^= 1;
 	while (s) {
 		put(s->label);
 		s->collect(s);
@@ -714,7 +750,7 @@ static void collect_info(s_stat *s)
 typedef s_stat* init_func(const char *param);
 
 static const char options[] = "ncmsfixptbdr";
-static init_func* init_functions[] = {
+static init_func *const init_functions[] = {
 	init_if,
 	init_cpu,
 	init_mem,
@@ -738,10 +774,15 @@ int nmeter_main(int argc, char **argv)
 	s_stat *s;
 	char *cur, *prev;
 
+	PTR_TO_GLOBALS = xzalloc(sizeof(G));
+	INIT_G();
+
+	xchdir("/proc");
+
 	if (argc != 2)
 		bb_show_usage();
 
-	if (open_read_close("/proc/version", buf, sizeof(buf)) > 0)
+	if (open_read_close("version", buf, sizeof(buf)) > 0)
 		is26 = (strstr(buf, " 2.4.")==NULL);
 
 	// Can use argv[1] directly, but this will mess up
@@ -750,11 +791,11 @@ int nmeter_main(int argc, char **argv)
 	while (1) {
 		char *param, *p;
 		prev = cur;
-again:
+ again:
 		cur = strchr(cur, '%');
 		if (!cur)
 			break;
-		if (cur[1]=='%') {	// %%
+		if (cur[1] == '%') {	// %%
 			strcpy(cur, cur+1);
 			cur++;
 			goto again;
@@ -813,12 +854,12 @@ again:
 	collect_info(first);
 	reset_outbuf();
 	if (delta >= 0) {
-		gettimeofday(&tv, 0);
+		gettimeofday(&tv, NULL);
 		usleep(delta > 1000000 ? 1000000 : delta - tv.tv_usec%deltanz);
 	}
 
 	while (1) {
-		gettimeofday(&tv, 0);
+		gettimeofday(&tv, NULL);
 		collect_info(first);
 		put(final_str);
 		print_outbuf();
@@ -831,9 +872,9 @@ again:
 		if (delta >= 0) {
 			int rem;
 			// can be commented out, will sacrifice sleep time precision a bit
-			gettimeofday(&tv, 0);
+			gettimeofday(&tv, NULL);
 			if (need_seconds)
-				rem = delta - ((ullong)tv.tv_sec*1000000+tv.tv_usec)%deltanz;
+				rem = delta - ((ullong)tv.tv_sec*1000000 + tv.tv_usec) % deltanz;
 			else
 				rem = delta - tv.tv_usec%deltanz;
 			// Sometimes kernel wakes us up just a tiny bit earlier than asked
@@ -845,5 +886,5 @@ again:
 		}
 	}
 
-	return 0;
+	/*return 0;*/
 }
