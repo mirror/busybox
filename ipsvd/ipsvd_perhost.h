@@ -8,8 +8,8 @@
  */
 
 struct hcc {
-        char *ip;
-        int pid;
+	char *ip;
+	int pid;
 };
 
 void ipsvd_perhost_init(unsigned);

@@ -19,7 +19,7 @@ int match_fstype(const struct mntent *mt, const char *fstype)
 
 	if (!mt)
 		return -1;
-		  
+
 	if (!fstype)
 		return 0;
 

@@ -484,7 +484,7 @@ static int dhcp_up(struct interface_defn_t *ifd, execfn *exec)
 			ifd, exec);
 #else
 	return 0; /* no dhcp support */
-#endif 
+#endif
 }
 
 static int dhcp_down(struct interface_defn_t *ifd, execfn *exec)

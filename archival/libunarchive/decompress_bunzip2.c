@@ -692,8 +692,8 @@ int start_bunzip(bunzip_data **bdp, int in_fd, const unsigned char *inbuf,
 
 void dealloc_bunzip(bunzip_data *bd)
 {
-        free(bd->dbuf);
-        free(bd);
+	free(bd->dbuf);
+	free(bd);
 }
 
 

@@ -39,7 +39,7 @@
 #define LENGTH_FW_REV		 4  /*  4 words (8 bytes or characters) */
 #define START_MODEL		27  /* ASCII model number */
 #define LENGTH_MODEL		20  /* 20 words (40 bytes or characters) */
-#define SECTOR_XFER_MAX	        47  /* r/w multiple: max sectors xfered */
+#define SECTOR_XFER_MAX		47  /* r/w multiple: max sectors xfered */
 #define DWORD_IO		48  /* can do double-word IO (ATA-1 only) */
 #define CAPAB_0			49  /* capabilities */
 #define CAPAB_1			50
@@ -48,7 +48,7 @@
 #define WHATS_VALID		53  /* what fields are valid */
 #define LCYLS_CUR		54  /* current logical cylinders */
 #define LHEADS_CUR		55  /* current logical heads */
-#define LSECTS_CUR	        56  /* current logical sectors/track */
+#define LSECTS_CUR		56  /* current logical sectors/track */
 #define CAPACITY_LSB		57  /* current capacity in sectors */
 #define CAPACITY_MSB		58
 #define SECTOR_XFER_CUR		59  /* r/w multiple: current sectors xfered */

@@ -79,7 +79,7 @@ config FEATURE_DEL_USER_FROM_GROUP
 	default n
 	depends on DELGROUP
 	help
-	  If called with two non-option arguments, deluser 
+	  If called with two non-option arguments, deluser
 	  or delgroup will remove an user from a specified group.
 
 config ADDUSER

@@ -590,7 +590,7 @@ void *llist_pop(llist_t **elm);
 void llist_unlink(llist_t **head, llist_t *elm);
 void llist_free(llist_t *elm, void (*freeit)(void *data));
 llist_t *llist_rev(llist_t *list);
-/* BTW, surprisingly, changing API to 
+/* BTW, surprisingly, changing API to
  *   llist_t *llist_add_to(llist_t *old_head, void *data)
  * etc does not result in smaller code... */
 

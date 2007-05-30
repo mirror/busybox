@@ -350,7 +350,7 @@ create new one, and bind() it. TODO */
 				close(rr);
 				goto again;
 			}
-			
+
 		} else
 			bb_error_msg_and_die("timeout");
 		unarm();
@@ -720,7 +720,7 @@ int nc_main(int argc, char **argv)
 	}
 	proggie = NULL;
  e_found:
-		
+
 	// -g -G -t -r deleted, unimplemented -a deleted too
 	opt_complementary = "?2:vv"; /* max 2 params, -v is a counter */
 	getopt32(argc, argv, "hnp:s:uvw:" USE_NC_SERVER("l")

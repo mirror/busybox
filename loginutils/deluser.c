@@ -96,14 +96,14 @@ static void del_line_matching(char **args,
 int deluser_main(int argc, char **argv);
 int deluser_main(int argc, char **argv)
 {
-	if (argc == 2 
-	 || (ENABLE_FEATURE_DEL_USER_FROM_GROUP 
+	if (argc == 2
+	 || (ENABLE_FEATURE_DEL_USER_FROM_GROUP
 	    && (applet_name[3] == 'g' && argc == 3))
 	) {
 		if (geteuid())
 			bb_error_msg_and_die(bb_msg_perm_denied_are_you_root);
-		
-		if ((ENABLE_FEATURE_DEL_USER_FROM_GROUP && argc != 3) 
+
+		if ((ENABLE_FEATURE_DEL_USER_FROM_GROUP && argc != 3)
 		 || ENABLE_DELUSER
 		 || (ENABLE_DELGROUP && ENABLE_DESKTOP)
 		) {

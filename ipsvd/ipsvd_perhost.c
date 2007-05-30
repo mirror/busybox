@@ -31,7 +31,7 @@ unsigned ipsvd_perhost_add(char *ip, unsigned maxconn, struct hcc **hccpp)
 	for (i = 0; i < cclen; ++i) {
 		if (!cc[i].ip) {
 			freepos = i;
-    			continue;
+			continue;
 		}
 		if (strcmp(cc[i].ip, ip) == 0) {
 			conn++;

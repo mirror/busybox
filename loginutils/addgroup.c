@@ -23,7 +23,7 @@ static void xgroup_study(struct group *g)
 		goto error;
 	}
 
-	/* Check if the desired gid is free or 
+	/* Check if the desired gid is free or
 	   find the first free one */
 	do {
 		if (g->gr_gid == max) { /* out of bounds: exit */
@@ -147,7 +147,7 @@ int addgroup_main(int argc, char **argv)
 #if ENABLE_FEATURE_ADDUSER_TO_GROUP
 	if (argc == 2) {
 		struct group *gr;
-		
+
 		/* check if group and user exist */
 		xuname2uid(argv[0]); /* unknown user: exit */
 		xgroup2gid(argv[1]); /* unknown group: exit */

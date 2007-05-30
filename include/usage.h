@@ -578,10 +578,10 @@
        "Deallocate unused virtual terminal /dev/ttyN"
 
 #define delgroup_trivial_usage \
-        USE_FEATURE_DEL_USER_FROM_GROUP("[USER] ")"GROUP"
+	USE_FEATURE_DEL_USER_FROM_GROUP("[USER] ")"GROUP"
 #define delgroup_full_usage \
        "Delete group GROUP from the system" \
-        USE_FEATURE_DEL_USER_FROM_GROUP(" or user USER from group GROUP")
+	USE_FEATURE_DEL_USER_FROM_GROUP(" or user USER from group GROUP")
 
 #define deluser_trivial_usage \
        "USER"
@@ -966,7 +966,7 @@
 	) USE_FEATURE_FIND_EXEC( \
        "\n	-exec CMD	Execute CMD with all instances of {} replaced by the" \
        "\n			files matching EXPRESSION" \
-        ) USE_FEATURE_FIND_USER( \
+	) USE_FEATURE_FIND_USER( \
        "\n	-user NAME	File is owned by user NAME (numeric user ID allowed)" \
 	) USE_FEATURE_FIND_GROUP( \
        "\n	-group NAME	File belongs to group NAME (numeric group ID allowed)" \
@@ -976,9 +976,9 @@
        "\n	-size N		File size is N" \
 	) USE_FEATURE_FIND_PRUNE( \
        "\n	-prune		Stop traversing current subtree" \
-        ) USE_FEATURE_FIND_DELETE( \
+	) USE_FEATURE_FIND_DELETE( \
        "\n	-delete		Delete files; Turns on -depth option" \
-        ) USE_FEATURE_FIND_PATH( \
+	) USE_FEATURE_FIND_PATH( \
        "\n	-path		Path matches PATTERN" \
 	) USE_FEATURE_FIND_PAREN( \
        "\n	(EXPR)		Group an expression" \

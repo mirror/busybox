@@ -123,7 +123,7 @@ int symfilecnt = 0;
 void add_new_symbol(struct symfile *sym, char * symname)
 {
 	sym->symbollist =
-          realloc(sym->symbollist, (sym->symbolcnt + 1) * sizeof(char *));
+	  realloc(sym->symbollist, (sym->symbolcnt + 1) * sizeof(char *));
 	sym->symbollist[sym->symbolcnt++].name = strdup(symname);
 }
 
@@ -182,7 +182,7 @@ void find_export_symbols(char * filename)
 			char *p;
 			char *e;
 			if (((p = strstr(line, "EXPORT_SYMBOL_GPL")) != 0) ||
-                            ((p = strstr(line, "EXPORT_SYMBOL")) != 0)) {
+			    ((p = strstr(line, "EXPORT_SYMBOL")) != 0)) {
 				/* Skip EXPORT_SYMBOL{_GPL} */
 				while (isalnum(*p) || *p == '_')
 					p++;
@@ -256,24 +256,24 @@ void extfunc(char * filename) { docfunctions(filename, FUNCTION);   }
 void singfunc(char * filename, char * line)
 {
 	char *vec[200]; /* Enough for specific functions */
-        int i, idx = 0;
-        int startofsym = 1;
+	int i, idx = 0;
+	int startofsym = 1;
 	vec[idx++] = KERNELDOC;
 	vec[idx++] = DOCBOOK;
 
-        /* Split line up in individual parameters preceeded by FUNCTION */
-        for (i=0; line[i]; i++) {
-                if (isspace(line[i])) {
-                        line[i] = '\0';
-                        startofsym = 1;
-                        continue;
-                }
-                if (startofsym) {
-                        startofsym = 0;
-                        vec[idx++] = FUNCTION;
-                        vec[idx++] = &line[i];
-                }
-        }
+	/* Split line up in individual parameters preceeded by FUNCTION */
+	for (i=0; line[i]; i++) {
+		if (isspace(line[i])) {
+			line[i] = '\0';
+			startofsym = 1;
+			continue;
+		}
+		if (startofsym) {
+			startofsym = 0;
+			vec[idx++] = FUNCTION;
+			vec[idx++] = &line[i];
+		}
+	}
 	vec[idx++] = filename;
 	vec[idx] = NULL;
 	exec_kernel_doc(vec);
@@ -307,14 +307,14 @@ void parse_file(FILE *infile)
 					break;
 				case 'D':
 					while (*s && !isspace(*s)) s++;
-                                        *s = '\0';
-                                        symbolsonly(line+2);
-                                        break;
+					*s = '\0';
+					symbolsonly(line+2);
+					break;
 				case 'F':
 					/* filename */
 					while (*s && !isspace(*s)) s++;
 					*s++ = '\0';
-                                        /* function names */
+					/* function names */
 					while (isspace(*s))
 						s++;
 					singlefunctions(line +2, s);
@@ -340,11 +340,11 @@ int main(int argc, char **argv)
 	}
 	/* Open file, exit on error */
 	infile = fopen(argv[2], "r");
-        if (infile == NULL) {
-                fprintf(stderr, "docproc: ");
-                perror(argv[2]);
-                exit(2);
-        }
+	if (infile == NULL) {
+		fprintf(stderr, "docproc: ");
+		perror(argv[2]);
+		exit(2);
+	}
 
 	if (strcmp("doc", argv[1]) == 0)
 	{

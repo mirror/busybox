@@ -415,7 +415,7 @@ enum { run_list_level = 0 };
 #define shell_ver        (G.shell_ver       )
 #if ENABLE_FEATURE_SH_STANDALONE
 #define nofork_save      (G.nofork_save     )
-#endif                     
+#endif
 #if ENABLE_HUSH_JOB
 #define toplevel_jb      (G.toplevel_jb     )
 #endif
@@ -1876,7 +1876,7 @@ static int run_pipe_real(struct pipe *pi)
 	return -1;
 }
 
-#ifndef debug_print_tree	
+#ifndef debug_print_tree
 static void debug_print_tree(struct pipe *pi, int lvl)
 {
 	static const char *PIPE[] = {
@@ -1929,7 +1929,7 @@ static void debug_print_tree(struct pipe *pi, int lvl)
 			if (argv) while (*argv) {
 				fprintf(stderr, " '%s'", *argv);
 				argv++;
-			}				
+			}
 			fprintf(stderr, "\n");
 			prn++;
 		}
@@ -2114,7 +2114,7 @@ static int run_list_real(struct pipe *pi)
 			 * try "{ { sleep 10; echo DEEP; } & echo HERE; } &".
 			 * I'm NOT treating inner &'s as jobs */
 #if ENABLE_HUSH_JOB
-			if (run_list_level == 1) 
+			if (run_list_level == 1)
 				insert_bg_job(pi);
 #endif
 			rcode = EXIT_SUCCESS;

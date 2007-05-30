@@ -632,7 +632,7 @@ static void display_speed(const struct termios *mode, int fancy)
 	ospeed = ispeed = cfgetispeed(mode);
 	if (ispeed == 0 || ispeed == (ospeed = cfgetospeed(mode))) {
 		ispeed = ospeed;                /* in case ispeed was 0 */
-	                 //0123 4 5 6 7 8 9
+		         //0123 4 5 6 7 8 9
 		fmt_str = "%lu\n\0\0\0\0\0speed %lu baud;";
 	}
 	if (fancy) fmt_str += 9;

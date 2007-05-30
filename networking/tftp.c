@@ -353,7 +353,7 @@ static int tftp( USE_GETPUT(const int cmd,)
 				/* Server lost our TFTP_ACK.  Resend it */
 				block_nr = recv_blk;
 				continue;
-			} 
+			}
 		}
 
 		if (CMD_PUT(cmd) && (opcode == TFTP_ACK)) {

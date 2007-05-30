@@ -51,7 +51,7 @@ send_to_from(int fd, void *buf, size_t len, int flags,
 		/* ANY local address */
 		return sendto(fd, buf, len, flags, to, tolen);
 	}
-	
+
 	/* man recvmsg and man cmsg is needed to make sense of code below */
 
 	iov[0].iov_base = buf;

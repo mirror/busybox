@@ -1,7 +1,7 @@
 /* vi: set sw=4 ts=4: */
 /*
  * cryptpw.c
- * 
+ *
  * Cooked from passwd.c by Thomas Lundquist <thomasez@zelow.no>
  */
 

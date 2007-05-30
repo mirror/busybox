@@ -37,8 +37,8 @@ int udhcpd_main(int argc, char **argv)
 //Huh, dhcpd don't have --foreground, --syslog options?? TODO
 
 	if (!ENABLE_FEATURE_UDHCP_DEBUG) {
-    		bb_daemonize_or_rexec(DAEMON_CHDIR_ROOT, argv);
-    		logmode &= ~LOGMODE_STDIO;
+		bb_daemonize_or_rexec(DAEMON_CHDIR_ROOT, argv);
+		logmode &= ~LOGMODE_STDIO;
 	}
 
 	if (ENABLE_FEATURE_UDHCP_SYSLOG) {

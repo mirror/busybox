@@ -1223,7 +1223,7 @@ int sed_main(int argc, char **argv)
 	int status = EXIT_SUCCESS;
 
 	if (sizeof(struct globals) > sizeof(bb_common_bufsiz1))
-	        BUG_sed_globals_too_big();
+		BUG_sed_globals_too_big();
 
 	G.sed_cmd_tail = &G.sed_cmd_head;
 

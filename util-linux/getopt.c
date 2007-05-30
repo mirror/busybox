@@ -287,7 +287,7 @@ int getopt_main(int argc, char *argv[])
 	char *name = NULL;
 	unsigned opt;
 	const char *compatible;
-	char *s_arg; 
+	char *s_arg;
 #if ENABLE_GETOPT_LONG
 	struct option *long_options = NULL;
 	llist_t *l_arg = NULL;

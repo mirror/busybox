@@ -97,15 +97,15 @@ int function(char *a)
 
 ----end example code------
 
-Add <function_name>.o in the right alphabetically sorted place 
-in libbb/Kbuild. You should look at the conditional part of 
+Add <function_name>.o in the right alphabetically sorted place
+in libbb/Kbuild. You should look at the conditional part of
 libbb/Kbuild aswell.
 
-You should also try to find a suitable place in include/libbb.h for 
+You should also try to find a suitable place in include/libbb.h for
 the function declaration. If not, add it somewhere anyway, with or without
 ifdefs to include or not.
 
-You can look at libbb/Config.in and try to find out if the function is 
+You can look at libbb/Config.in and try to find out if the function is
 tuneable and add it there if it is.
 
 
@@ -170,10 +170,10 @@ The Grand Announcement
 
 Then create a diff by adding the new files with svn (remember your libbb files)
 	svn add <where you put it>/mu.c
-eventually also: 
+eventually also:
 	svn add libbb/function.c
 then
-	svn diff 
+	svn diff
 and send it to the mailing list:
 	busybox@busybox.net
 	http://busybox.net/mailman/listinfo/busybox

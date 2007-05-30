@@ -58,10 +58,10 @@ static char *utoa_to_buf(unsigned n, char *buf, unsigned buflen)
 		for (i = 1000000000; i; i /= 10) {
 			res = n / i;
 			if (res || out || i == 1) {
-	    			if (!--buflen) break;
-	    			out++;
-	    			n -= res*i;
-	    			*buf++ = '0' + res;
+				if (!--buflen) break;
+				out++;
+				n -= res*i;
+				*buf++ = '0' + res;
 			}
 		}
 	}

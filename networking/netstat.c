@@ -98,13 +98,13 @@ static void build_ipv6_addr(char* local_addr, struct sockaddr_in6* localaddr)
 {
 	char addr6[INET6_ADDRSTRLEN];
 	struct in6_addr in6;
-		
+
 	sscanf(local_addr, "%08X%08X%08X%08X",
 		   &in6.s6_addr32[0], &in6.s6_addr32[1],
 		   &in6.s6_addr32[2], &in6.s6_addr32[3]);
 	inet_ntop(AF_INET6, &in6, addr6, sizeof(addr6));
 	inet_pton(AF_INET6, addr6, (struct sockaddr *) &localaddr->sin6_addr);
-		
+
 	localaddr->sin6_family = AF_INET6;
 }
 #endif
@@ -154,7 +154,7 @@ static void snprint_ip_port(char *ip_port, int size, struct sockaddr *addr, int 
 			0xffffffff);
 	}
 	port_name = get_sname(htons(port), proto, numeric);
-	
+
 	max_len = (option_mask32 & OPT_widedisplay)
 			? (PRINT_IP_MAX_SIZE_WIDE - 1)
 			: (PRINT_IP_MAX_SIZE - 1);
@@ -292,7 +292,7 @@ static void udp_do_one(int lnr, const char *line)
 				(struct sockaddr *) &remaddr, rem_port,
 				"udp", flags & NETSTAT_NUMERIC);
 			printf(net_conn_line,
-				"udp", rxq, txq, local_addr, rem_addr, state_str);	
+				"udp", rxq, txq, local_addr, rem_addr, state_str);
 		}
 	}
 }
