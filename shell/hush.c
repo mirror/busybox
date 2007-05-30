@@ -3151,7 +3151,9 @@ static FILE *generate_stream_from_list(struct pipe *head)
 			close(channel[1]);
 		}
 		/* Prevent it from trying to handle ctrl-z etc */
+#if ENABLE_HUSH_JOB
 		run_list_level = 1;
+#endif
 		/* Process substitution is not considered to be usual
 		 * 'command execution'.
 		 * SUSv3 says ctrl-Z should be ignored, ctrl-C should not. */
