@@ -104,61 +104,87 @@ static int vi_setops;
 #define err_method (vi_setops & VI_ERR_METHOD)
 
 
-static int editing;		// >0 while we are editing a file
-static int cmd_mode;		// 0=command  1=insert 2=replace
-static int file_modified;	// buffer contents changed
-static int last_file_modified = -1;
-static int fn_start;		// index of first cmd line file name
-static int save_argc;		// how many file names on cmd line
-static int cmdcnt;		// repetition count
-static int rows, columns;	// the terminal screen is this size
-static int crow, ccol, offset;	// cursor is on Crow x Ccol with Horz Ofset
-static char *status_buffer;	// mesages to the user
+static smallint editing;        // >0 while we are editing a file
+                                // [code audit says "can be 0 or 1 only"]
+static smallint cmd_mode;       // 0=command  1=insert 2=replace
+static smallint file_modified;  // buffer contents changed
+static smallint last_file_modified = -1;
+static int fn_start;            // index of first cmd line file name
+static int save_argc;           // how many file names on cmd line
+static int cmdcnt;              // repetition count
+static int rows, columns;       // the terminal screen is this size
+static int crow, ccol, offset;  // cursor is on Crow x Ccol with Horz Ofset
+static char *status_buffer;     // mesages to the user
 #define STATUS_BUFFER_LEN  200
 static int have_status_msg;     // is default edit status needed?
+                                // [don't make smallint!]
 static int last_status_cksum;   // hash of current status line
-static char *cfn;		// previous, current, and next file name
-static char *text, *end;	// pointers to the user data in memory
-static char *screen;		// pointer to the virtual screen buffer
-static int screensize;		//            and its size
-static char *screenbegin;	// index into text[], of top line on the screen
-static char *dot;		// where all the action takes place
+static char *cfn;               // previous, current, and next file name
+//static char *text, *end;        // pointers to the user data in memory
+static char *screen;            // pointer to the virtual screen buffer
+static int screensize;          //            and its size
+static char *screenbegin;       // index into text[], of top line on the screen
+//static char *dot;               // where all the action takes place
 static int tabstop;
-static struct termios term_orig, term_vi;	// remember what the cooked mode was
 static char erase_char;         // the users erase character
 static char last_input_char;    // last char read from user
 static char last_forward_char;  // last char searched for with 'f'
 
+#if ENABLE_FEATURE_VI_READONLY
+static smallint vi_readonly, readonly;
+#endif
+#if ENABLE_FEATURE_VI_DOT_CMD
+static smallint adding2q;		// are we currently adding user input to q
+static char *last_modifying_cmd;	// last modifying cmd for "."
+static char *ioq, *ioq_start;           // pointer to string for get_one_char to "read"
+#endif
 #if ENABLE_FEATURE_VI_OPTIMIZE_CURSOR
 static int last_row;		// where the cursor was last moved to
-#endif
-#if ENABLE_FEATURE_VI_USE_SIGNALS
-static jmp_buf restart;		// catch_sig()
 #endif
 #if ENABLE_FEATURE_VI_USE_SIGNALS || ENABLE_FEATURE_VI_CRASHME
 static int my_pid;
 #endif
-#if ENABLE_FEATURE_VI_DOT_CMD
-static int adding2q;		// are we currently adding user input to q
-static char *last_modifying_cmd;	// last modifying cmd for "."
-static char *ioq, *ioq_start;	// pointer to string for get_one_char to "read"
-#endif
 #if ENABLE_FEATURE_VI_DOT_CMD || ENABLE_FEATURE_VI_YANKMARK
-static char *modifying_cmds;	// cmds that modify text[]
-#endif
-#if ENABLE_FEATURE_VI_READONLY
-static int vi_readonly, readonly;
-#endif
-#if ENABLE_FEATURE_VI_YANKMARK
-static char *reg[28];		// named register a-z, "D", and "U" 0-25,26,27
-static int YDreg, Ureg;		// default delete register and orig line for "U"
-static char *mark[28];		// user marks points somewhere in text[]-  a-z and previous context ''
-static char *context_start, *context_end;
+static char *modifying_cmds;            // cmds that modify text[]
 #endif
 #if ENABLE_FEATURE_VI_SEARCH
 static char *last_search_pattern;	// last pattern from a '/' or '?' search
 #endif
 
+/* Moving biggest data to malloced space... */
+struct globals {
+	/* many references - keep near the top of globals */
+	char *text, *end;       // pointers to the user data in memory
+	char *dot;              // where all the action takes place
+#if ENABLE_FEATURE_VI_YANKMARK
+	char *reg[28];          // named register a-z, "D", and "U" 0-25,26,27
+	int YDreg, Ureg;        // default delete register and orig line for "U"
+	char *mark[28];         // user marks points somewhere in text[]-  a-z and previous context ''
+	char *context_start, *context_end;
+#endif
+	/* a few references only */
+#if ENABLE_FEATURE_VI_USE_SIGNALS
+	jmp_buf restart;		// catch_sig()
+#endif
+	struct termios term_orig, term_vi;	// remember what the cooked mode was
+#if ENABLE_FEATURE_VI_COLON
+	char *initial_cmds[3];  // currently 2 entries, NULL terminated
+#endif
+};
+#define G (*ptr_to_globals)
+#define text           (G.text          )
+#define end            (G.end           )
+#define dot            (G.dot           )
+#define reg            (G.reg           )
+#define YDreg          (G.YDreg         )
+#define Ureg           (G.Ureg          )
+#define mark           (G.mark          )
+#define context_start  (G.context_start )
+#define context_end    (G.context_end   )
+#define restart        (G.restart       )
+#define term_orig      (G.term_orig     )
+#define term_vi        (G.term_vi       )
+#define initial_cmds   (G.initial_cmds  )
 
 static void edit_file(char *);	// edit one file
 static void do_cmd(char);	// execute a command
@@ -258,9 +284,6 @@ static void crash_dummy();
 static void crash_test();
 static int crashme = 0;
 #endif
-#if ENABLE_FEATURE_VI_COLON
-static char *initial_cmds[] = { NULL, NULL , NULL }; // currently 2 entries, NULL terminated
-#endif
 
 
 static void write1(const char *out)
@@ -280,6 +303,9 @@ int vi_main(int argc, char **argv)
 #if ENABLE_FEATURE_VI_USE_SIGNALS || ENABLE_FEATURE_VI_CRASHME
 	my_pid = getpid();
 #endif
+
+	PTR_TO_GLOBALS = xzalloc(sizeof(G));
+
 #if ENABLE_FEATURE_VI_CRASHME
 	srand((long) my_pid);
 #endif
@@ -350,11 +376,11 @@ int vi_main(int argc, char **argv)
 
 	//----- This is the main file handling loop --------------
 	if (optind >= argc) {
-		editing = 1;	// 0= exit,  1= one file,  2= multiple files
+		editing = 1;	// 0= exit,  1= one file,  2 = multiple files
 		edit_file(0);
 	} else {
 		for (; optind < argc; optind++) {
-			editing = 1;	// 0=exit, 1=one file, 2+ =many files
+			editing = 1;	// 0=exit, 1=one file, 2+ = many files
 			free(cfn);
 			cfn = xstrdup(argv[optind]);
 			edit_file(cfn);
@@ -913,7 +939,7 @@ static void colon(char * buf)
 #endif
 		ch = file_insert(fn, q, file_size(fn));
 #if ENABLE_FEATURE_VI_READONLY
-		readonly= l;
+		readonly = l;
 #endif
 		if (ch < 0)
 			goto vc1;	// nothing was inserted
@@ -1054,7 +1080,7 @@ static void colon(char * buf)
 			fn = args;
 		}
 #if ENABLE_FEATURE_VI_READONLY
-		if ((vi_readonly || readonly) && ! useforce) {
+		if ((vi_readonly || readonly) && !useforce) {
 			psbs("\"%s\" File is read only", fn);
 			goto vc3;
 		}
