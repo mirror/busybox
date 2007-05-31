@@ -209,6 +209,8 @@ static void fill_match_lines(unsigned pos);
  * Has to deal with EOF and EPIPE on input,
  * with line wrapping, with last line not ending in '\n'
  * (possibly not ending YET!), with backspace and tabs.
+ * It reads input again if last time we got an EOF (thus supporting
+ * growing files) or EPIPE (watching output of slow process like make).
  *
  * Variables used:
  * flines[] - array of lines already read. Linewrap may cause

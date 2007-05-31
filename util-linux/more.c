@@ -15,26 +15,39 @@
  */
 
 #include "libbb.h"
+#if ENABLE_FEATURE_USE_TERMIOS
+#include <termios.h>
+#endif /* FEATURE_USE_TERMIOS */
 
 
 #if ENABLE_FEATURE_USE_TERMIOS
-static int cin_fileno;
-#include <termios.h>
+
+struct globals {
+	int cin_fileno;
+	struct termios initial_settings;
+	struct termios new_settings;
+};
+#define G (*(struct globals*)bb_common_bufsiz1)
+//#define G (*ptr_to_globals)
+#define initial_settings (G.initial_settings)
+#define new_settings     (G.new_settings    )
+#define cin_fileno       (G.cin_fileno      )
+#define INIT_G() ((void)0)
+//#define INIT_G() PTR_TO_GLOBALS = xzalloc(sizeof(G))
+
 #define setTermSettings(fd, argp) tcsetattr(fd, TCSANOW, argp)
-#define getTermSettings(fd, argp) tcgetattr(fd, argp);
-
-static struct termios initial_settings, new_settings;
-
-static void set_tty_to_initial_mode(void)
-{
-	setTermSettings(cin_fileno, &initial_settings);
-}
+#define getTermSettings(fd, argp) tcgetattr(fd, argp)
 
 static void gotsig(int sig)
 {
 	putchar('\n');
+	setTermSettings(cin_fileno, &initial_settings);
 	exit(EXIT_FAILURE);
 }
+
+#else /* !FEATURE_USE_TERMIOS */
+#define INIT_G() ((void)0)
+#define setTermSettings(fd, argp) ((void)0)
 #endif /* FEATURE_USE_TERMIOS */
 
 
@@ -49,6 +62,8 @@ int more_main(int argc, char **argv)
 	int len, page_height;
 	int terminal_width;
 	int terminal_height;
+
+	INIT_G();
 
 	argv++;
 	/* Another popular pager, most, detects when stdout
@@ -68,7 +83,6 @@ int more_main(int argc, char **argv)
 	new_settings.c_cc[VMIN] = 1;
 	new_settings.c_cc[VTIME] = 0;
 	setTermSettings(cin_fileno, &new_settings);
-	atexit(set_tty_to_initial_mode);
 	signal(SIGINT, gotsig);
 	signal(SIGQUIT, gotsig);
 	signal(SIGTERM, gotsig);
@@ -95,7 +109,6 @@ int more_main(int argc, char **argv)
 		lines = 0;
 		page_height = terminal_height;
 		while ((c = getc(file)) != EOF) {
-
 			if ((please_display_more_prompt & 3) == 3) {
 				len = printf("--More-- ");
 				if (/*file != stdin &&*/ st.st_size > 0) {
@@ -129,8 +142,8 @@ int more_main(int argc, char **argv)
 			/*
 			 * There are two input streams to worry about here:
 			 *
-			 * c     : the character we are reading from the file being "mored"
-			 * input : a character received from the keyboard
+			 * c    : the character we are reading from the file being "mored"
+			 * input: a character received from the keyboard
 			 *
 			 * If we hit a newline in the _file_ stream, we want to test and
 			 * see if any characters have been hit in the _input_ stream. This
@@ -169,5 +182,6 @@ int more_main(int argc, char **argv)
 		fflush(stdout);
 	} while (*argv && *++argv);
  end:
+	setTermSettings(cin_fileno, &initial_settings);
 	return 0;
 }
