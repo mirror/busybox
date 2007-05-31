@@ -10,11 +10,9 @@
  * Authors:	Alexey Kuznetsov, <kuznet@ms2.inr.ac.ru>
  */
 
-#include "libbb.h"
-
-#include <string.h>
 #include <net/if_arp.h>
 
+#include "libbb.h"
 #include "rt_names.h"
 #include "utils.h"
 

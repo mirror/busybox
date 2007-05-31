@@ -28,7 +28,7 @@
    - not true viewing if length prompt less terminal width
  */
 
-#include <sys/ioctl.h>
+//#include <sys/ioctl.h>
 #include "libbb.h"
 
 

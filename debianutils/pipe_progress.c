@@ -8,10 +8,6 @@
  */
 
 #include "libbb.h"
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <time.h>
 
 #define PIPE_PROGRESS_SIZE 4096
 

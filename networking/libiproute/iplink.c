@@ -7,20 +7,16 @@
  * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  */
 
-#include "libbb.h"
-
-#include <sys/ioctl.h>
-#include <sys/socket.h>
-
+//#include <sys/ioctl.h>
+//#include <sys/socket.h>
 #include <net/if.h>
 #include <net/if_packet.h>
 #include <netpacket/packet.h>
-
 #include <net/ethernet.h>
 
+#include "ip_common.h"  /* #include "libbb.h" is inside */
 #include "rt_names.h"
 #include "utils.h"
-#include "ip_common.h"
 
 /* taken from linux/sockios.h */
 #define SIOCSIFNAME	0x8923		/* set interface name */

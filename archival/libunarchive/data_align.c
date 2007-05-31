@@ -3,7 +3,7 @@
  * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  */
 
-#include <sys/types.h>
+//#include <sys/types.h>
 
 #include "libbb.h"
 #include "unarchive.h"

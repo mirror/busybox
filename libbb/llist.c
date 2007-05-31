@@ -10,7 +10,6 @@
  * Licensed under the GPL v2 or later, see the file LICENSE in this tarball.
  */
 
-#include <stdlib.h>
 #include "libbb.h"
 
 /* Add data to the start of the linked list.  */

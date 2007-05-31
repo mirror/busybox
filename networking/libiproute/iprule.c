@@ -16,16 +16,16 @@
  * initially integrated into busybox by Bernhard Fischer
  */
 
-#include "libbb.h"
 #include <syslog.h>
-#include <sys/socket.h>
+//#include <sys/socket.h>
 #include <netinet/in.h>
 #include <netinet/ip.h>
 #include <arpa/inet.h>
 
+#include "ip_common.h"  /* #include "libbb.h" is inside */
 #include "rt_names.h"
 #include "utils.h"
-#include "ip_common.h"
+
 /*
 static void usage(void) __attribute__((noreturn));
 
@@ -41,6 +41,7 @@ static void usage(void)
 	exit(-1);
 }
 */
+
 static int print_rule(struct sockaddr_nl *who ATTRIBUTE_UNUSED,
 					struct nlmsghdr *n, void *arg)
 {

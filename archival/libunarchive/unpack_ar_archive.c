@@ -2,11 +2,9 @@
 /*
  * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  */
-#include <fcntl.h>
-#include <stdlib.h>
-#include <string.h>
-#include "unarchive.h"
+
 #include "libbb.h"
+#include "unarchive.h"
 
 void unpack_ar_archive(archive_handle_t *ar_archive)
 {

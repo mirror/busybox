@@ -11,15 +11,13 @@
  *
  */
 
-#include "libbb.h"
-#include <string.h>
+//#include <sys/socket.h>	/* socket() */
+#include <net/if.h>	/* struct ifreq and co. */
+//#include <sys/ioctl.h>	/* ioctl() & SIOCGIFINDEX */
 
+#include "libbb.h"
 #include "libnetlink.h"
 #include "ll_map.h"
-
-#include <sys/socket.h>	/* socket() */
-#include <net/if.h>	/* struct ifreq and co. */
-#include <sys/ioctl.h>	/* ioctl() & SIOCGIFINDEX */
 
 struct idxmap {
 	struct idxmap * next;

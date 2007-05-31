@@ -10,10 +10,7 @@
 
 /* no options, no getopt */
 
-#include <stdio.h>
-#include <stdlib.h>
 #include "libbb.h"
-
 
 int clear_main(int argc, char **argv);
 int clear_main(int argc, char **argv)

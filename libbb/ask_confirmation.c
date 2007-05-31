@@ -11,8 +11,6 @@
  * return 1.  Otherwise return 0.
  */
 
-#include <stdio.h>
-#include <ctype.h>
 #include "libbb.h"
 
 int bb_ask_confirmation(void)

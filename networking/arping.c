@@ -8,8 +8,8 @@
  * Busybox port: Nick Fedchik <nick@fedchik.org.ua>
  */
 
-#include <sys/ioctl.h>
-#include <signal.h>
+//#include <sys/ioctl.h>
+//#include <signal.h>
 
 #include <arpa/inet.h>
 #include <net/if.h>

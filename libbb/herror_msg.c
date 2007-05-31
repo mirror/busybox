@@ -7,9 +7,6 @@
  * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  */
 
-#include <stdarg.h>
-#include <stdlib.h>
-
 #include "libbb.h"
 
 void bb_herror_msg(const char *s, ...)

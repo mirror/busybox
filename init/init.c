@@ -11,9 +11,9 @@
 
 #include "libbb.h"
 #include <paths.h>
-#include <signal.h>
-#include <sys/ioctl.h>
-#include <sys/wait.h>
+//#include <signal.h>
+//#include <sys/ioctl.h>
+//#include <sys/wait.h>
 #include <sys/reboot.h>
 
 #if ENABLE_FEATURE_INIT_SYSLOG

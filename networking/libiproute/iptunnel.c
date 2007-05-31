@@ -14,24 +14,20 @@
  * Phil Karn <karn@ka9q.ampr.org>	990408:	"pmtudisc" flag
  */
 
-#include "libbb.h"
-#include <sys/socket.h>
-#include <sys/ioctl.h>
-
+//#include <sys/socket.h>
+//#include <sys/ioctl.h>
 #include <netinet/ip.h>
-
 #include <net/if.h>
 #include <net/if_arp.h>
-
 #include <asm/types.h>
 #ifndef __constant_htons
 #define __constant_htons htons
 #endif
 #include <linux/if_tunnel.h>
 
+#include "ip_common.h"  /* #include "libbb.h" is inside */
 #include "rt_names.h"
 #include "utils.h"
-#include "ip_common.h"
 
 
 /* Dies on error */

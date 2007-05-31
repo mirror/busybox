@@ -6,6 +6,7 @@
  * Licensed under GPL v2, see file LICENSE in this tarball for details.
  */
 
+#include "libbb.h"
 #include "unarchive.h"
 
 char get_header_tar_lzma(archive_handle_t * archive_handle)

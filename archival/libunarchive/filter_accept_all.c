@@ -5,7 +5,7 @@
  * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  */
 
-#include <stdlib.h>
+#include "libbb.h"
 #include "unarchive.h"
 
 /* Accept any non-null name, its not really a filter at all */

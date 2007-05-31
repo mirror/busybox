@@ -6,7 +6,7 @@
  */
 
 #include <fnmatch.h>
-#include <stdlib.h>
+#include "libbb.h"
 #include "unarchive.h"
 
 /* Find a string in a shell pattern list */

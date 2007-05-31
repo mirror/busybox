@@ -6,7 +6,6 @@
  * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  */
 
-#include <unistd.h>
 #include <sched.h>
 #include <getopt.h> /* optind */
 #include "libbb.h"

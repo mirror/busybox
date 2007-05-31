@@ -14,9 +14,6 @@
  */
 
 #include "libbb.h"
-#include <stdio.h>
-#include <unistd.h>
-#include <sys/types.h>
 
 #define PRINT_REAL        1
 #define NAME_NOT_NUMBER   2

@@ -7,10 +7,7 @@
  * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  */
 
-#include <string.h>
 #include "libbb.h"
-
-
 
 /* Like strncpy but make sure the resulting string is always 0 terminated. */
 char * safe_strncpy(char *dst, const char *src, size_t size)

@@ -15,12 +15,8 @@
  * Rani Assaf <rani@magic.metawire.com> 980929:	resolve addresses
  */
 
-#include <string.h>
-
-#include "libbb.h"
+#include "ip_common.h"  /* #include "libbb.h" is inside */
 #include "utils.h"
-#include "ip_common.h"
-
 
 int preferred_family = AF_UNSPEC;
 smallint oneline;

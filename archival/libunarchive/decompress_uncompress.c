@@ -26,9 +26,6 @@
  * [... History snipped ...]
  *
  */
-#include <stdio.h>
-#include <string.h>
-#include <unistd.h>
 
 /* Default input buffer size */
 #define	IBUFSIZ	2048

@@ -7,9 +7,7 @@
  * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  */
 
-#include <stdio.h>
 #include "libbb.h"
-
 
 /* Busybox mount uses either /proc/mounts or /etc/mtab to
  * get the list of currently mounted filesystems */

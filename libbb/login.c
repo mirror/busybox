@@ -10,12 +10,8 @@
  */
 
 #include <sys/param.h>  /* MAXHOSTNAMELEN */
-#include <stdio.h>
-#include <unistd.h>
-#include "libbb.h"
-
 #include <sys/utsname.h>
-#include <time.h>
+#include "libbb.h"
 
 #define LOGIN " login: "
 

@@ -10,20 +10,15 @@
  *	Laszlo Valko <valko@linux.karinthy.hu> 990223: address label must be zero terminated
  */
 
-#include "libbb.h"
-#include <sys/socket.h>
-#include <sys/ioctl.h>
-
+//#include <sys/socket.h>
+//#include <sys/ioctl.h>
 #include <fnmatch.h>
-#include <string.h>
-#include <unistd.h>
-
 #include <net/if.h>
 #include <net/if_arp.h>
 
+#include "ip_common.h"  /* #include "libbb.h" is inside */
 #include "rt_names.h"
 #include "utils.h"
-#include "ip_common.h"
 
 
 typedef struct filter_t {

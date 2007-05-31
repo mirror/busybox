@@ -3,6 +3,7 @@
  * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  */
 
+#include "libbb.h"
 #include "unarchive.h"
 
 void data_extract_to_stdout(archive_handle_t *archive_handle)

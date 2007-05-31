@@ -3,11 +3,7 @@
  * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  */
 
-#include <stdlib.h>
-#include <unistd.h>
-
 #include "libbb.h"
-
 #include "unarchive.h"
 
 /* transformer(), more than meets the eye */

@@ -8,13 +8,8 @@
  * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  */
 
-#include <stdio.h>
-#include <string.h>
-#include <unistd.h>
-#include <fcntl.h>
-#include <signal.h>
 #include <termios.h>
-#include <sys/ioctl.h>
+//#include <sys/ioctl.h>
 
 #include "libbb.h"
 

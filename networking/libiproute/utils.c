@@ -12,7 +12,6 @@
  */
 
 #include "libbb.h"
-
 #include "utils.h"
 #include "inet_common.h"
 

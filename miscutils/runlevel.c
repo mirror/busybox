@@ -12,11 +12,8 @@
  * initially busyboxified by Bernhard Fischer
  */
 
-#include "libbb.h"
-#include <stdio.h>
 #include <utmp.h>
-#include <time.h>
-#include <stdlib.h>
+#include "libbb.h"
 
 int runlevel_main(int argc, char **argv);
 int runlevel_main(int argc, char **argv)
@@ -32,12 +29,15 @@ int runlevel_main(int argc, char **argv)
 			prev = ut->ut_pid / 256;
 			if (prev == 0) prev = 'N';
 			printf("%c %c\n", prev, ut->ut_pid % 256);
-			endutent();
+			if (ENABLE_FEATURE_CLEAN_UP)
+				endutent();
 			return 0;
 		}
 	}
 
 	puts("unknown");
-	endutent();
+	
+	if (ENABLE_FEATURE_CLEAN_UP)
+		endutent();
 	return 1;
 }

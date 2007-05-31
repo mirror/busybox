@@ -11,20 +11,16 @@
  *		Only supports new ASCII and CRC formats
  *
  */
-#include <fcntl.h>
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
-#include "unarchive.h"
 #include "libbb.h"
+#include "unarchive.h"
 
-#define CPIO_OPT_EXTRACT			0x01
-#define CPIO_OPT_TEST				0x02
-#define CPIO_OPT_UNCONDITIONAL		0x04
-#define CPIO_OPT_VERBOSE			0x08
-#define CPIO_OPT_FILE				0x10
-#define CPIO_OPT_CREATE_LEADING_DIR	0x20
-#define CPIO_OPT_PRESERVE_MTIME		0x40
+#define CPIO_OPT_EXTRACT                0x01
+#define CPIO_OPT_TEST                   0x02
+#define CPIO_OPT_UNCONDITIONAL          0x04
+#define CPIO_OPT_VERBOSE                0x08
+#define CPIO_OPT_FILE                   0x10
+#define CPIO_OPT_CREATE_LEADING_DIR     0x20
+#define CPIO_OPT_PRESERVE_MTIME         0x40
 
 int cpio_main(int argc, char **argv);
 int cpio_main(int argc, char **argv)

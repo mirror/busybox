@@ -16,14 +16,6 @@
  *  stored in memory. It runs at 22 cycles per byte on a Pentium P4 processor
  */
 
-#include <fcntl.h>
-#include <limits.h>
-#include <stdio.h>
-#include <stdint.h>
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
-
 #include "libbb.h"
 
 #define SHA1_BLOCK_SIZE  64

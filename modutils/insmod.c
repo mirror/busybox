@@ -496,7 +496,6 @@ int delete_module(const char *);
 
 /* The relocatable object is manipulated using elfin types.  */
 
-#include <stdio.h>
 #include <elf.h>
 #include <endian.h>
 

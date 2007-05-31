@@ -26,7 +26,6 @@
  *      and "#if 0"'d below.
  */
 
-#include <stdio.h>
 #include "libbb.h"
 
 const char *make_human_readable_str(unsigned long long size,

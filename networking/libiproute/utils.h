@@ -2,8 +2,6 @@
 #ifndef __UTILS_H__
 #define __UTILS_H__ 1
 
-#include "libbb.h"
-
 #include "libnetlink.h"
 #include "ll_map.h"
 #include "rtm_map.h"
