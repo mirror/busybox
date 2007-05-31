@@ -7,12 +7,7 @@
  * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  */
 
-#include <stdio.h>
-#include <errno.h>
-#include <unistd.h>
 #include "libbb.h"
-
-
 
 ssize_t safe_write(int fd, const void *buf, size_t count)
 {

@@ -28,19 +28,12 @@
  * SUCH DAMAGE.
  */
 
-#include <stdio.h>
-#include <errno.h>
-#include <unistd.h>
-#include <string.h>
-#include <stdlib.h>
-#include <syslog.h>
-#include <ctype.h>
 #include "libbb.h"
-#ifdef CONFIG_SELINUX
+#if ENABLE_SELINUX
 #include <selinux/selinux.h>  /* for setexeccon  */
 #endif
 
-#ifdef CONFIG_SELINUX
+#if ENABLE_SELINUX
 static security_context_t current_sid;
 
 void
@@ -90,7 +83,7 @@ void run_shell(const char *shell, int loginshell, const char *command, const cha
 			args[argno++] = *additional_args;
 	}
 	args[argno] = NULL;
-#ifdef CONFIG_SELINUX
+#if ENABLE_SELINUX
 	if (current_sid && !setexeccon(current_sid)) {
 		freecon(current_sid);
 		execve(shell, (char **) args, environ);

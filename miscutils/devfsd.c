@@ -56,23 +56,12 @@
 
 #include "libbb.h"
 #include "xregex.h"
-#include <unistd.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <stdarg.h>
-#include <string.h>
-#include <ctype.h>
-#include <sys/stat.h>
-#include <sys/types.h>
 #include <sys/wait.h>
 #include <sys/ioctl.h>
 #include <sys/socket.h>
 #include <sys/un.h>
 #include <dirent.h>
-#include <fcntl.h>
 #include <syslog.h>
-#include <signal.h>
-#include <errno.h>
 #include <sys/sysmacros.h>
 
 

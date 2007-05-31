@@ -12,7 +12,6 @@
 #include <selinux/selinux.h>  /* for is_selinux_enabled()  */
 #include <selinux/get_context_list.h> /* for get_default_context() */
 #include <selinux/flask.h> /* for security class definitions  */
-#include <errno.h>
 #endif
 
 enum {

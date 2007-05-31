@@ -127,13 +127,6 @@ static char optlist[NOPTS];
 
 /* ============ Misc data */
 
-#ifdef __GLIBC__
-/* glibc sucks */
-static int *dash_errno;
-#undef errno
-#define errno (*dash_errno)
-#endif
-
 static char nullstr[1];                /* zero length string */
 static const char homestr[] = "HOME";
 static const char snlfmt[] = "%s\n";
@@ -12733,10 +12726,6 @@ int ash_main(int argc, char **argv)
 	volatile int state;
 	struct jmploc jmploc;
 	struct stackmark smark;
-
-#ifdef __GLIBC__
-	dash_errno = __errno_location();
-#endif
 
 #if PROFILE
 	monitor(4, etext, profile_buf, sizeof(profile_buf), 50);

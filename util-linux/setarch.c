@@ -7,11 +7,6 @@
  * Licensed under GPL v2 or later, see file License for details.
 */
 
-#include <stdlib.h>
-#include <unistd.h>
-#include <string.h>
-#include <errno.h>
-#include <stdio.h>
 #include <sys/personality.h>
 
 #include "libbb.h"

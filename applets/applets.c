@@ -641,9 +641,18 @@ void run_applet_and_exit(const char *name, char **argv)
 }
 
 
+#ifdef __GLIBC__
+/* Make it reside in R/W memory: */
+int *const bb_errno __attribute__ ((section (".data")));
+#endif
+
 int main(int argc, char **argv)
 {
 	const char *s;
+
+#ifdef __GLIBC__
+	(*(int **)&bb_errno) = __errno_location();
+#endif
 
 #if !BB_MMU
 	/* NOMMU re-exec trick sets high-order bit in first byte of name */

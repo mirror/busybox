@@ -11,16 +11,10 @@
  *
  */
 
-#include "libbb.h"
 #include <sys/socket.h>
-
-#include <errno.h>
-#include <string.h>
-#include <time.h>
-#include <unistd.h>
-
 #include <sys/uio.h>
 
+#include "libbb.h"
 #include "libnetlink.h"
 
 void rtnl_close(struct rtnl_handle *rth)
