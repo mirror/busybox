@@ -204,7 +204,27 @@ static void fill_match_lines(unsigned pos);
 #define fill_match_lines(pos) ((void)0)
 #endif
 
-
+/* Devilishly complex routine.
+ *
+ * Has to deal with EOF and EPIPE on input,
+ * with line wrapping, with last line not ending in '\n'
+ * (possibly not ending YET!), with backspace and tabs.
+ *
+ * Variables used:
+ * flines[] - array of lines already read. Linewrap may cause
+ *      one source file line to occupy several flines[n].
+ * flines[max_fline] - last line, possibly incomplete.
+ * terminated - 1 if flines[max_fline] is 'terminated'
+ *      (if there was '\n' [which isn't stored itself, we just remember
+ *      that it was seen])
+ * max_lineno - last line's number, this one doesn't increment
+ *      on line wrap, only on "real" new lines.
+ * readbuf[0..readeof-1] - small preliminary buffer.
+ * readbuf[readpos] - next character to add to current line.
+ * linepos - screen line position of next char to be read
+ *      (takes into account tabs and backspaces)
+ * eof_error - < 0 error, == 0 EOF, > 0 not EOF/error
+ */
 static void read_lines(void)
 {
 #define readbuf bb_common_bufsiz1
@@ -225,6 +245,7 @@ static void read_lines(void)
 			cp += 8;
 		strcpy(current_line, cp);
 		p += strlen(current_line);
+		/* linepos is still valid from previous read_lines() */
 	} else {
 		linepos = 0;
 	}
@@ -275,17 +296,27 @@ static void read_lines(void)
 			if (c == '\x8' && linepos && p[-1] != '\t') {
 				readpos++; /* eat it */
 				linepos--;
+			/* was buggy (p could end up <= current_line)... */
 				*--p = '\0';
 				continue;
 			}
-			if (c == '\t')
-				linepos += (linepos^7) & 7;
-			linepos++;
-			if (linepos >= w)
-				break;
+			{
+				size_t new_linepos = linepos + 1;
+				if (c == '\t') {
+					new_linepos += 7;
+					new_linepos &= (~7);
+				}
+				if (new_linepos >= w)
+					break;
+				linepos = new_linepos;
+			}
 			/* ok, we will eat this char */
 			readpos++;
-			if (c == '\n') { terminated = 1; break; }
+			if (c == '\n') {
+				terminated = 1;
+				linepos = 0;
+				break;
+			}
 			/* NUL is substituted by '\n'! */
 			if (c == '\0') c = '\n';
 			*p++ = c;
