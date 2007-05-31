@@ -140,11 +140,13 @@ struct globals {
 #define files               (G.files             )
 #define num_marks           (G.num_marks         )
 #define mark_lines          (G.mark_lines        )
+#if ENABLE_FEATURE_LESS_REGEXP
 #define match_lines         (G.match_lines       )
 #define match_pos           (G.match_pos         )
 #define num_matches         (G.num_matches       )
 #define pattern             (G.pattern           )
 #define pattern_valid       (G.pattern_valid     )
+#endif
 #define terminated          (G.terminated        )
 #define term_orig           (G.term_orig         )
 #define term_less           (G.term_less         )
