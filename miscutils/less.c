@@ -347,8 +347,10 @@ static void read_lines(void)
 		} else {
 			flines[max_fline] = xrealloc(current_line, strlen(current_line)+1);
 		}
-		if (max_fline >= MAXLINES)
+		if (max_fline >= MAXLINES) {
+			eof_error = 0; /* Pretend we saw EOF */
 			break;
+		}
 		if (max_fline > cur_fline + max_displayed_line)
 			break;
 		if (eof_error <= 0) {
