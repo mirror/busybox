@@ -11,15 +11,14 @@
 
 #define ESC "\033"
 
-struct termios old;
+#define old_termios (*(struct termios*)&bb_common_bufsiz1)
 
 static void
 onintr(int sig ATTRIBUTE_UNUSED)
 {
-	tcsetattr(STDERR_FILENO, TCSANOW, &old);
+	tcsetattr(STDERR_FILENO, TCSANOW, &old_termios);
 	exit(1);
 }
-
 
 int resize_main(int argc, char **argv);
 int resize_main(int argc, char **argv)
@@ -34,8 +33,8 @@ int resize_main(int argc, char **argv)
 	 * and operate on it - should we do the same?
 	 */
 
-	tcgetattr(STDERR_FILENO, &old); /* fiddle echo */
-	new = old;
+	tcgetattr(STDERR_FILENO, &old_termios); /* fiddle echo */
+	new = old_termios;
 	new.c_cflag |= (CLOCAL | CREAD);
 	new.c_lflag &= ~(ICANON | ECHO | ECHOE | ISIG);
 	signal(SIGINT, onintr);
@@ -60,7 +59,7 @@ int resize_main(int argc, char **argv)
 	 * (gotten via TIOCGWINSZ) and recomputing *pixel values */
 	ret = ioctl(STDERR_FILENO, TIOCSWINSZ, &w);
 
-	tcsetattr(STDERR_FILENO, TCSANOW, &old);
+	tcsetattr(STDERR_FILENO, TCSANOW, &old_termios);
 
 	if (ENABLE_FEATURE_RESIZE_PRINT)
 		printf("COLUMNS=%d;LINES=%d;export COLUMNS LINES;\n",

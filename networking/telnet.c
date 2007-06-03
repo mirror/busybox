@@ -79,7 +79,7 @@ struct globals {
 	struct termios termios_raw;
 };
 
-#define G (*(struct globals*)bb_common_bufsiz1)
+#define G (*(struct globals*)&bb_common_bufsiz1)
 
 
 /* Function prototypes */

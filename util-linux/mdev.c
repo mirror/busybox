@@ -12,14 +12,12 @@
 #include "libbb.h"
 #include "xregex.h"
 
-#define DEV_PATH	"/dev"
-
-struct mdev_globals
-{
+struct globals {
 	int root_major, root_minor;
-} mdev_globals;
-
-#define bbg mdev_globals
+};
+#define G (*(struct globals*)&bb_common_bufsiz1)
+#define root_major (G.root_major)
+#define root_minor (G.root_minor)
 
 /* mknod in /dev based on a path like "/sys/block/hda/hda1" */
 static void make_device(char *path, int delete)
@@ -174,7 +172,7 @@ static void make_device(char *path, int delete)
 		if (mknod(device_name, mode | type, makedev(major, minor)) && errno != EEXIST)
 			bb_perror_msg_and_die("mknod %s", device_name);
 
-		if (major == bbg.root_major && minor == bbg.root_minor)
+		if (major == root_major && minor == root_minor)
 			symlink(device_name, "root");
 
 		if (ENABLE_FEATURE_MDEV_CONF) chown(device_name, uid, gid);
@@ -237,7 +235,7 @@ int mdev_main(int argc, char **argv)
 	char *env_path;
 	RESERVE_CONFIG_BUFFER(temp,PATH_MAX);
 
-	xchdir(DEV_PATH);
+	xchdir("/dev");
 
 	/* Scan */
 
@@ -245,8 +243,8 @@ int mdev_main(int argc, char **argv)
 		struct stat st;
 
 		xstat("/", &st);
-		bbg.root_major = major(st.st_dev);
-		bbg.root_minor = minor(st.st_dev);
+		root_major = major(st.st_dev);
+		root_minor = minor(st.st_dev);
 		strcpy(temp,"/sys/block");
 		find_dev(temp);
 		strcpy(temp,"/sys/class");
