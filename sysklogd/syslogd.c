@@ -17,10 +17,10 @@
 #include <paths.h>
 #include <sys/un.h>
 
-/* SYSLOG_NAMES defined to pull some extra junk from syslog.h: */
-/* prioritynames[] and facilitynames[]. uclibc pulls those in _rwdata_! :( */
-
+/* SYSLOG_NAMES defined to pull prioritynames[] and facilitynames[]
+ * from syslog.h. Grrrr - glibc puts those in _rwdata_! :( */
 #define SYSLOG_NAMES
+#define SYSLOG_NAMES_CONST /* uclibc is saner :) */
 #include <sys/syslog.h>
 #include <sys/uio.h>
 
@@ -386,7 +386,7 @@ static void log_locally(char *msg)
 
 static void parse_fac_prio_20(int pri, char *res20)
 {
-	CODE *c_pri, *c_fac;
+	const CODE *c_pri, *c_fac;
 
 	if (pri != 0) {
 		c_fac = facilitynames;
