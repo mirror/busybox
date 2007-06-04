@@ -27,8 +27,9 @@ int cksum_main(int argc, char **argv)
 		crc = 0;
 		length = 0;
 
-		while ((bytes_read = fread(bb_common_bufsiz1, 1, BUFSIZ, fp)) > 0) {
-			cp = bb_common_bufsiz1;
+#define read_buf bb_common_bufsiz1
+		while ((bytes_read = fread(read_buf, 1, BUFSIZ, fp)) > 0) {
+			cp = read_buf;
 			length += bytes_read;
 			while (bytes_read--)
 				crc = (crc << 8) ^ crc32_table[((crc >> 24) ^ (*cp++)) & 0xffL];

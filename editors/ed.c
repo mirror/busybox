@@ -9,9 +9,11 @@
 
 #include "libbb.h"
 
+#define searchString bb_common_bufsiz1
+
 enum {
-	USERSIZE = sizeof(bb_common_bufsiz1) > 1024 ? 1024
-	         : sizeof(bb_common_bufsiz1) - 1, /* max line length typed in by user */
+	USERSIZE = sizeof(searchString) > 1024 ? 1024
+	         : sizeof(searchString) - 1, /* max line length typed in by user */
 	INITBUF_SIZE = 1024, /* initial buffer size */
 };
 
@@ -21,8 +23,6 @@ typedef struct LINE {
 	int len;
 	char data[1];
 } LINE;
-
-#define searchString bb_common_bufsiz1
 
 static LINE lines, *curLine;
 static int curNum, lastNum, marks[26], dirty;

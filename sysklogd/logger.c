@@ -106,12 +106,13 @@ int logger_main(int argc, char **argv)
 	argc -= optind;
 	argv += optind;
 	if (!argc) {
-		while (fgets(bb_common_bufsiz1, BUFSIZ, stdin)) {
-			if (bb_common_bufsiz1[0]
-			 && NOT_LONE_CHAR(bb_common_bufsiz1, '\n')
+#define strbuf bb_common_bufsiz1
+		while (fgets(strbuf, BUFSIZ, stdin)) {
+			if (strbuf[0]
+			 && NOT_LONE_CHAR(strbuf, '\n')
 			) {
 				/* Neither "" nor "\n" */
-				syslog(i, "%s", bb_common_bufsiz1);
+				syslog(i, "%s", strbuf);
 			}
 		}
 	} else {

@@ -52,7 +52,6 @@ enum {
 
 typedef unsigned char byte;
 
-
 struct globals {
 	int	netfd; /* console fd:s are 0 and 1 (and 2) */
 	short	iaclen; /* could even use byte */
@@ -78,9 +77,13 @@ struct globals {
 	struct termios termios_def;
 	struct termios termios_raw;
 };
-
 #define G (*(struct globals*)&bb_common_bufsiz1)
-
+void BUG_telnet_globals_too_big(void);
+#define INIT_G() do { \
+	if (sizeof(G) > COMMON_BUFSIZE) \
+		BUG_telnet_globals_too_big(); \
+	/* memset(&G, 0, sizeof G); - already is */ \
+} while (0)
 
 /* Function prototypes */
 static void rawmode(void);
@@ -547,8 +550,6 @@ static void cookmode(void)
 		tcsetattr(0, TCSADRAIN, &G.termios_def);
 }
 
-void BUG_telnet_globals_too_big(void);
-
 int telnet_main(int argc, char** argv);
 int telnet_main(int argc, char** argv)
 {
@@ -562,9 +563,7 @@ int telnet_main(int argc, char** argv)
 	int maxfd;
 #endif
 
-	if (sizeof(G) > sizeof(bb_common_bufsiz1))
-		BUG_telnet_globals_too_big();
-	/* memset(&G, 0, sizeof G); - already is */
+	INIT_G();
 
 #if ENABLE_FEATURE_AUTOWIDTH
 	get_terminal_width_height(0, &G.win_width, &G.win_height);

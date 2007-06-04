@@ -33,13 +33,14 @@ int catv_main(int argc, char **argv)
 		else for (;;) {
 			int i, res;
 
-			res = read(fd, bb_common_bufsiz1, sizeof(bb_common_bufsiz1));
+#define read_buf bb_common_bufsiz1
+			res = read(fd, read_buf, COMMON_BUFSIZE);
 			if (res < 0)
 				retval = EXIT_FAILURE;
 			if (res < 1)
 				break;
 			for (i = 0; i < res; i++) {
-				char c = bb_common_bufsiz1[i];
+				char c = read_buf[i];
 
 				if (c > 126 && (flags & CATV_OPT_v)) {
 					if (c == 127) {

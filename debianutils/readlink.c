@@ -43,7 +43,7 @@ int readlink_main(int argc, char **argv)
 		return EXIT_FAILURE;
 	puts(buf);
 
-	if (ENABLE_FEATURE_CLEAN_UP && buf != bb_common_bufsiz1)
+	if (ENABLE_FEATURE_CLEAN_UP && !opt)
 		free(buf);
 
 	fflush_stdout_and_exit(EXIT_SUCCESS);

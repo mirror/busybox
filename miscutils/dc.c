@@ -8,7 +8,7 @@
 
 /* Tiny RPN calculator, because "expr" didn't give me bitwise operations. */
 
-enum { STACK_SIZE = sizeof(bb_common_bufsiz1) / sizeof(double) };
+enum { STACK_SIZE = COMMON_BUFSIZE / sizeof(double) };
 
 #define stack ((double*)&bb_common_bufsiz1)
 static unsigned int pointer;

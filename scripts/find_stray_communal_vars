@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# Communal variables are elusize, then don't show in size output!
+# Communal variables are elusive, they don't show up in size output!
 # This script will show all communals in *.o, sorted by size
 
 find -name '*.o' \

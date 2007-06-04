@@ -28,6 +28,8 @@
 #include "libbb.h"
 #include "unarchive.h"
 
+#define block_buf bb_common_bufsiz1
+
 #if ENABLE_FEATURE_TAR_CREATE
 
 /* Tar file constants  */
@@ -475,8 +477,8 @@ static int writeFileToTarball(const char *fileName, struct stat *statbuf,
 		/* Pad the file up to the tar block size */
 		/* (a few tricks here in the name of code size) */
 		readSize = (-(int)statbuf->st_size) & (TAR_BLOCK_SIZE-1);
-		memset(bb_common_bufsiz1, 0, readSize);
-		xwrite(tbInfo->tarFd, bb_common_bufsiz1, readSize);
+		memset(block_buf, 0, readSize);
+		xwrite(tbInfo->tarFd, block_buf, readSize);
 	}
 
 	return TRUE;
@@ -570,8 +572,8 @@ static int writeTarFile(const int tar_fd, const int verboseFlag,
 		include = include->link;
 	}
 	/* Write two empty blocks to the end of the archive */
-	memset(bb_common_bufsiz1, 0, 2*TAR_BLOCK_SIZE);
-	xwrite(tbInfo.tarFd, bb_common_bufsiz1, 2*TAR_BLOCK_SIZE);
+	memset(block_buf, 0, 2*TAR_BLOCK_SIZE);
+	xwrite(tbInfo.tarFd, block_buf, 2*TAR_BLOCK_SIZE);
 
 	/* To be pedantically correct, we would check if the tarball
 	 * is smaller than 20 tar blocks, and pad it if it was smaller,

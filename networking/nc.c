@@ -174,11 +174,10 @@ int nc_main(int argc, char **argv)
 		if (select(FD_SETSIZE, &testfds, NULL, NULL, NULL) < 0)
 			bb_perror_msg_and_die("select");
 
+#define iobuf bb_common_bufsiz1
 		for (fd = 0; fd < FD_SETSIZE; fd++) {
 			if (FD_ISSET(fd, &testfds)) {
-				nread = safe_read(fd, bb_common_bufsiz1,
-							sizeof(bb_common_bufsiz1));
-
+				nread = safe_read(fd, iobuf, sizeof(iobuf));
 				if (fd == cfd) {
 					if (nread < 1)
 						exit(0);
@@ -192,8 +191,7 @@ int nc_main(int argc, char **argv)
 					}
 					ofd = cfd;
 				}
-
-				xwrite(ofd, bb_common_bufsiz1, nread);
+				xwrite(ofd, iobuf, nread);
 				if (delay > 0) sleep(delay);
 			}
 		}

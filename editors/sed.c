@@ -118,8 +118,14 @@ struct globals {
 		int len;	/* Space allocated */
 	} pipeline;
 };
-
 #define G (*(struct globals*)&bb_common_bufsiz1)
+void BUG_sed_globals_too_big(void);
+#define INIT_G() do { \
+	if (sizeof(struct globals) > COMMON_BUFSIZE) \
+		BUG_sed_globals_too_big(); \
+	G.sed_cmd_tail = &G.sed_cmd_head; \
+} while (0)
+
 
 #if ENABLE_FEATURE_CLEAN_UP
 static void sed_free_and_close_stuff(void)
@@ -1210,8 +1216,6 @@ static void add_cmd_block(char *cmdstr)
 	free(sv);
 }
 
-void BUG_sed_globals_too_big(void);
-
 int sed_main(int argc, char **argv);
 int sed_main(int argc, char **argv)
 {
@@ -1222,10 +1226,7 @@ int sed_main(int argc, char **argv)
 	llist_t *opt_e, *opt_f;
 	int status = EXIT_SUCCESS;
 
-	if (sizeof(struct globals) > sizeof(bb_common_bufsiz1))
-		BUG_sed_globals_too_big();
-
-	G.sed_cmd_tail = &G.sed_cmd_head;
+	INIT_G();
 
 	/* destroy command strings on exit */
 	if (ENABLE_FEATURE_CLEAN_UP) atexit(sed_free_and_close_stuff);

@@ -182,15 +182,14 @@ int adduser_main(int argc, char **argv)
 	/* check for min, max and missing args and exit on error */
 	opt_complementary = "-1:?1:?";
 	getopt32(argc, argv, "h:g:s:G:DSH", &pw.pw_dir, &pw.pw_gecos, &pw.pw_shell, &usegroup);
-
-	/* create string for $HOME if not specified already */
-	if (!pw.pw_dir) {
-		snprintf(bb_common_bufsiz1, BUFSIZ, "/home/%s", argv[optind]);
-		pw.pw_dir = bb_common_bufsiz1;
-	}
+	argv += optind;
 
 	/* create a passwd struct */
-	pw.pw_name = argv[optind];
+	pw.pw_name = argv[0];
+	if (!pw.pw_dir) {
+		/* create string for $HOME if not specified already */
+		pw.pw_dir = xasprintf("/home/%s", argv[0]);
+	}
 	pw.pw_passwd = (char *)"x";
 	pw.pw_uid = 0;
 	pw.pw_gid = usegroup ? xgroup2gid(usegroup) : 0; /* exits on failure */

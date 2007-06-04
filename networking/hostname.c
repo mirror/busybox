@@ -29,12 +29,13 @@ static void do_sethostname(char *s, int isfile)
 		}
 	} else {
 		f = xfopen(s, "r");
-		while (fgets(bb_common_bufsiz1, sizeof(bb_common_bufsiz1), f) != NULL) {
-			if (bb_common_bufsiz1[0] == '#') {
+#define strbuf bb_common_bufsiz1
+		while (fgets(strbuf, sizeof(strbuf), f) != NULL) {
+			if (strbuf[0] == '#') {
 				continue;
 			}
-			chomp(bb_common_bufsiz1);
-			do_sethostname(bb_common_bufsiz1, 0);
+			chomp(strbuf);
+			do_sethostname(strbuf, 0);
 		}
 		if (ENABLE_FEATURE_CLEAN_UP)
 			fclose(f);

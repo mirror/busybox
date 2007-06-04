@@ -25,41 +25,9 @@
 #define TR_OPT_complement	(1<<0)
 #define TR_OPT_delete		(1<<1)
 #define TR_OPT_squeeze_reps	(1<<2)
-/* some "globals" shared across this file */
-/* these last are pointers to static buffers declared in tr_main */
-static char *poutput, *pvector, *pinvec, *poutvec;
 
-static void ATTRIBUTE_NORETURN convert(const smalluint flags)
-{
-	size_t read_chars = 0, in_index = 0, out_index = 0, c, coded, last = -1;
-
-	for (;;) {
-		/* If we're out of input, flush output and read more input. */
-		if (in_index == read_chars) {
-			if (out_index) {
-				xwrite(STDOUT_FILENO, (char *)poutput, out_index);
-				out_index = 0;
-			}
-			if ((read_chars = read(STDIN_FILENO, bb_common_bufsiz1, BUFSIZ)) <= 0) {
-				if (write(STDOUT_FILENO, (char *)poutput, out_index) != out_index)
-					bb_perror_msg(bb_msg_write_error);
-				exit(EXIT_SUCCESS);
-			}
-			in_index = 0;
-		}
-		c = bb_common_bufsiz1[in_index++];
-		coded = pvector[c];
-		if ((flags & TR_OPT_delete) && pinvec[c])
-			continue;
-		if ((flags & TR_OPT_squeeze_reps) && last == coded &&
-			(pinvec[c] || poutvec[coded]))
-			continue;
-		poutput[out_index++] = last = coded;
-	}
-	/* NOTREACHED */
-}
-
-static void map(unsigned char *string1, unsigned int string1_len,
+static void map(char *pvector,
+		unsigned char *string1, unsigned int string1_len,
 		unsigned char *string2, unsigned int string2_len)
 {
 	char last = '0';
@@ -121,9 +89,9 @@ static unsigned int expand(const char *arg, char *buffer)
 			if (ENABLE_FEATURE_TR_CLASSES && i == ':') {
 				smalluint j;
 				{ /* not really pretty.. */
-				char *tmp = xstrndup(arg, 7); // warning: xdigit needs 8, not 7
-				j = index_in_str_array(classes, tmp) + 1;
-				free(tmp);
+					char *tmp = xstrndup(arg, 7); // warning: xdigit needs 8, not 7
+					j = index_in_str_array(classes, tmp) + 1;
+					free(tmp);
 				}
 				if (j == CLASS_alnum || j == CLASS_digit) {
 					for (i = '0'; i <= '9'; i++)
@@ -183,7 +151,7 @@ static unsigned int expand(const char *arg, char *buffer)
 
 static int complement(char *buffer, int buffer_len)
 {
-	short i, j, ix;
+	int i, j, ix;
 	char conv[ASCII + 2];
 
 	ix = 0;
@@ -206,16 +174,11 @@ int tr_main(int argc, char **argv)
 	int idx = 1;
 	int i;
 	smalluint flags = 0;
+	size_t read_chars = 0, in_index = 0, out_index = 0, c, coded, last = -1;
 	RESERVE_CONFIG_UBUFFER(output, BUFSIZ);
 	RESERVE_CONFIG_BUFFER(vector, ASCII+1);
 	RESERVE_CONFIG_BUFFER(invec,  ASCII+1);
 	RESERVE_CONFIG_BUFFER(outvec, ASCII+1);
-
-	/* ... but make them available globally */
-	poutput = output;
-	pvector = vector;
-	pinvec  = invec;
-	poutvec = outvec;
 
 	if (argc > 1 && argv[idx][0] == '-') {
 		for (ptr = (unsigned char *) &argv[idx][1]; *ptr; ptr++) {
@@ -235,21 +198,47 @@ int tr_main(int argc, char **argv)
 		invec[i] = outvec[i] = FALSE;
 	}
 
+#define tr_buf bb_common_bufsiz1
 	if (argv[idx] != NULL) {
-		input_length = expand(argv[idx++], bb_common_bufsiz1);
+		input_length = expand(argv[idx++], tr_buf);
 		if (flags & TR_OPT_complement)
-			input_length = complement(bb_common_bufsiz1, input_length);
+			input_length = complement(tr_buf, input_length);
 		if (argv[idx] != NULL) {
 			if (*argv[idx] == '\0')
 				bb_error_msg_and_die("STRING2 cannot be empty");
 			output_length = expand(argv[idx], output);
-			map(bb_common_bufsiz1, input_length, output, output_length);
+			map(vector, tr_buf, input_length, output, output_length);
 		}
 		for (i = 0; i < input_length; i++)
-			invec[(unsigned char)bb_common_bufsiz1[i]] = TRUE;
+			invec[(unsigned char)tr_buf[i]] = TRUE;
 		for (i = 0; i < output_length; i++)
 			outvec[output[i]] = TRUE;
 	}
-	convert(flags);
+
+	for (;;) {
+		/* If we're out of input, flush output and read more input. */
+		if (in_index == read_chars) {
+			if (out_index) {
+				xwrite(STDOUT_FILENO, (char *)output, out_index);
+				out_index = 0;
+			}
+			read_chars = read(STDIN_FILENO, tr_buf, BUFSIZ);
+			if (read_chars <= 0) {
+				if (write(STDOUT_FILENO, (char *)output, out_index) != out_index)
+					bb_perror_msg(bb_msg_write_error);
+				exit(EXIT_SUCCESS);
+			}
+			in_index = 0;
+		}
+		c = tr_buf[in_index++];
+		coded = vector[c];
+		if ((flags & TR_OPT_delete) && invec[c])
+			continue;
+		if ((flags & TR_OPT_squeeze_reps) && last == coded &&
+			(invec[c] || outvec[coded]))
+			continue;
+		output[out_index++] = last = coded;
+	}
+	/* NOTREACHED */
 	return EXIT_SUCCESS;
 }

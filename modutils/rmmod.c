@@ -44,6 +44,8 @@ int rmmod_main(int argc, char **argv)
 	int n, ret = EXIT_SUCCESS;
 	unsigned int flags = O_NONBLOCK|O_EXCL;
 
+#define misc_buf bb_common_bufsiz1
+
 	/* Parse command line. */
 	n = getopt32(argc, argv, "wfa");
 	if (n & 1)	// --wait
@@ -65,7 +67,7 @@ int rmmod_main(int argc, char **argv)
 			pnmod = nmod;
 			// the 1 here is QM_MODULES.
 			if (ENABLE_FEATURE_QUERY_MODULE_INTERFACE && query_module(NULL,
-					1, bb_common_bufsiz1, sizeof(bb_common_bufsiz1),
+					1, misc_buf, sizeof(misc_buf),
 					&nmod))
 			{
 				bb_perror_msg_and_die("QM_MODULES");
@@ -84,10 +86,10 @@ int rmmod_main(int argc, char **argv)
 			afterslash = strrchr(argv[n], '/');
 			if (!afterslash) afterslash = argv[n];
 			else afterslash++;
-			filename2modname(bb_common_bufsiz1, afterslash);
+			filename2modname(misc_buf, afterslash);
 		}
 
-		if (syscall(__NR_delete_module, ENABLE_FEATURE_2_6_MODULES ? bb_common_bufsiz1 : argv[n], flags)) {
+		if (syscall(__NR_delete_module, ENABLE_FEATURE_2_6_MODULES ? misc_buf : argv[n], flags)) {
 			bb_perror_msg("%s", argv[n]);
 			ret = EXIT_FAILURE;
 		}

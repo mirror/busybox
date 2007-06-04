@@ -954,7 +954,8 @@ extern const int const_int_1;
 #define BUFSIZ 4096
 #endif
 /* Providing hard guarantee on minimum size (think of BUFSIZ == 128) */
-extern char bb_common_bufsiz1[(BUFSIZ > 256*sizeof(void*) ? BUFSIZ : 256*sizeof(void*)) + 1];
+enum { COMMON_BUFSIZE = (BUFSIZ >= 256*sizeof(void*) ? BUFSIZ+1 : 256*sizeof(void*)) };
+extern char bb_common_bufsiz1[COMMON_BUFSIZE];
 /* This struct is deliberately not defined. */
 /* See docs/keep_data_small.txt */
 struct globals;

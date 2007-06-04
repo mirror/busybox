@@ -222,9 +222,10 @@ int date_main(int argc, char **argv)
 			date_fmt = (char*)"%a %b %e %H:%M:%S %Z %Y";
 	}
 
+#define date_buf bb_common_bufsiz1
 	if (*date_fmt == '\0') {
 		/* With no format string, just print a blank line */
-		*bb_common_bufsiz1 = 0;
+		date_buf[0] = '\0';
 	} else {
 		/* Handle special conversions */
 
@@ -233,9 +234,9 @@ int date_main(int argc, char **argv)
 		}
 
 		/* Generate output string */
-		strftime(bb_common_bufsiz1, 200, date_fmt, &tm_time);
+		strftime(date_buf, sizeof(date_buf), date_fmt, &tm_time);
 	}
-	puts(bb_common_bufsiz1);
+	puts(date_buf);
 
 	return EXIT_SUCCESS;
 }
