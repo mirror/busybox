@@ -235,27 +235,51 @@ enum {
 };
 
 
-static union {
-	struct sockaddr sa;
-	struct sockaddr_in sin;
+struct globals {
+	int pingsock;
+	len_and_sockaddr *source_lsa;
+	unsigned datalen;
+	int if_index;
+	unsigned long ntransmitted, nreceived, nrepeats, pingcount;
+	uint16_t myid;
+	unsigned tmin, tmax;
+	unsigned long tsum;
+	const char *hostname;
+	const char *dotted;
+	union {
+		struct sockaddr sa;
+		struct sockaddr_in sin;
 #if ENABLE_PING6
-	struct sockaddr_in6 sin6;
+		struct sockaddr_in6 sin6;
 #endif
-} pingaddr;
-static len_and_sockaddr *source_lsa;
-static int pingsock = -1;
-static unsigned datalen; /* intentionally uninitialized to work around gcc bug */
+	} pingaddr;
+	char rcvd_tbl[MAX_DUP_CHK / 8];
+};
+#define G (*(struct globals*)&bb_common_bufsiz1)
+#define pingsock     (G.pingsock    )
+#define source_lsa   (G.source_lsa  )
+#define datalen      (G.datalen     )
+#define if_index     (G.if_index    )
+#define ntransmitted (G.ntransmitted)
+#define nreceived    (G.nreceived   )
+#define nrepeats     (G.nrepeats    )
+#define pingcount    (G.pingcount   )
+#define myid         (G.myid        )
+#define tmin         (G.tmin        )
+#define tmax         (G.tmax        )
+#define tsum         (G.tsum        )
+#define hostname     (G.hostname    )
+#define dotted       (G.dotted      )
+#define pingaddr     (G.pingaddr    )
+#define rcvd_tbl     (G.rcvd_tbl    )
+void BUG_ping_globals_too_big(void);
+#define INIT_G() do { \
+        if (sizeof(G) > COMMON_BUFSIZE) \
+                BUG_ping_globals_too_big(); \
+	pingsock = -1; \
+	tmin = UINT_MAX; \
+} while (0)
 
-static int if_index;
-
-static unsigned long ntransmitted, nreceived, nrepeats, pingcount;
-static uint16_t myid;
-static unsigned tmin = UINT_MAX, tmax;
-static unsigned long tsum;
-static char rcvd_tbl[MAX_DUP_CHK / 8];
-
-static const char *hostname;
-static const char *dotted;
 
 #define	A(bit)		rcvd_tbl[(bit)>>3]	/* identify byte in array */
 #define	B(bit)		(1 << ((bit) & 0x07))	/* identify bit in byte */
@@ -651,6 +675,8 @@ int ping_main(int argc, char **argv)
 	len_and_sockaddr *lsa;
 	char *opt_c, *opt_s, *opt_I;
 	USE_PING6(sa_family_t af = AF_UNSPEC;)
+
+	INIT_G();
 
 	datalen = DEFDATALEN; /* initialized here rather than in global scope to work around gcc bug */
 
