@@ -28,7 +28,7 @@ int uuencode_main(int argc, char **argv)
 	RESERVE_CONFIG_BUFFER(dst_buf, DST_BUF_SIZE + 1);
 
 	tbl = bb_uuenc_tbl_std;
-	if (getopt32(argc, argv, "m") & 1) {
+	if (getopt32(argc, argv, "m")) {
 		tbl = bb_uuenc_tbl_base64;
 	}
 
@@ -37,9 +37,6 @@ int uuencode_main(int argc, char **argv)
 			src_stream = xfopen(argv[optind], "r");
 			xstat(argv[optind], &stat_buf);
 			mode = stat_buf.st_mode & (S_IRWXU | S_IRWXG | S_IRWXO);
-			if (src_stream == stdout) {
-				puts("NULL");
-			}
 			break;
 		case 1:
 			mode = 0666 & ~umask(0666);

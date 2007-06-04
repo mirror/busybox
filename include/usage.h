@@ -3664,20 +3664,19 @@ USE_FEATURE_RUN_PARTS_FANCY("\n	-l	Prints names of all matching files even when 
        "[pauses for 1 second]\n"
 
 #define uudecode_trivial_usage \
-       "[FILE]..."
+       "[-o outfile] [infile]"
 #define uudecode_full_usage \
-       "Uudecode a file" \
-       "\n\nOptions:\n" \
-       "	-o FILE	Direct output to FILE"
+       "Uudecode a file\n" \
+       "NB: finds outfile name in uuencoded source unless -o is given"
 #define uudecode_example_usage \
        "$ uudecode -o busybox busybox.uu\n" \
        "$ ls -l busybox\n" \
        "-rwxr-xr-x   1 ams      ams        245264 Jun  7 21:35 busybox\n"
 
 #define uuencode_trivial_usage \
-       "[OPTION] [INFILE] REMOTEFILE"
+       "[-m] [infile] stored_filename"
 #define uuencode_full_usage \
-       "Uuencode a file" \
+       "Uuencode a file to stdout" \
        "\n\nOptions:\n" \
        "	-m	Use base64 encoding per RFC1521"
 #define uuencode_example_usage \
