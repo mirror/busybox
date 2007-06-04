@@ -316,9 +316,12 @@ const char *format_host(int af, int len, void *addr, char *buf, int buflen)
 			default:;
 			}
 		}
-		if (len > 0 && (h_ent = gethostbyaddr(addr, len, af)) != NULL) {
-			snprintf(buf, buflen - 1, "%s", h_ent->h_name);
-			return buf;
+		if (len > 0) {
+			h_ent = gethostbyaddr(addr, len, af);
+			if (h_ent != NULL) {
+				safe_strncpy(buf, h_ent->h_name, buflen);
+				return buf;
+			}
 		}
 	}
 #endif
