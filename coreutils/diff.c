@@ -65,36 +65,16 @@
 #define FLAG_U	(1<<12)
 #define	FLAG_w	(1<<13)
 
-/* The following variables should be static, but gcc currently
- * creates a much bigger object if we do this. [which version of gcc? --vda] */
-/* 4.x, IIRC also 3.x --bernhard */
-/* Works for gcc 3.4.3. Sizes without and with "static":
-   # size busybox.t[34]/coreutils/diff.o
-   text    data     bss     dec     hex filename
-   6969       8     305    7282    1c72 busybox.t3/coreutils/diff.o
-   6969       8     305    7282    1c72 busybox.t4/coreutils/diff.o
-   --vda
- */
-/* This is the default number of lines of context. */
-static int context = 3;
-static int status;
-static char *start;
-static const char *label1;
-static const char *label2;
-static struct stat stb1, stb2;
-USE_FEATURE_DIFF_DIR(static char **dl;)
-USE_FEATURE_DIFF_DIR(static int dl_count;)
-
 struct cand {
 	int x;
 	int y;
 	int pred;
 };
 
-static struct line {
+struct line {
 	int serial;
 	int value;
-} *file[2];
+};
 
 /*
  * The following struct is used to record change information
@@ -102,29 +82,79 @@ static struct line {
  * understand the highly mnemonic field names)
  */
 struct context_vec {
-	int a;				/* start line in old file */
-	int b;				/* end line in old file */
-	int c;				/* start line in new file */
-	int d;				/* end line in new file */
+	int a;          /* start line in old file */
+	int b;          /* end line in old file */
+	int c;          /* start line in new file */
+	int d;          /* end line in new file */
 };
 
-static int *J;			/* will be overlaid on class */
-static int *class;		/* will be overlaid on file[0] */
-static int *klist;		/* will be overlaid on file[0] after class */
-static int *member;		/* will be overlaid on file[1] */
-static int clen;
-static int len[2];
-static int pref, suff;	/* length of prefix and suffix */
-static int slen[2];
-static bool anychange;
-static long *ixnew;		/* will be overlaid on file[1] */
-static long *ixold;		/* will be overlaid on klist */
-static struct cand *clist;	/* merely a free storage pot for candidates */
-static int clistlen;	/* the length of clist */
-static struct line *sfile[2];	/* shortened by pruning common prefix/suffix */
-static struct context_vec *context_vec_start;
-static struct context_vec *context_vec_end;
-static struct context_vec *context_vec_ptr;
+struct globals {
+	USE_FEATURE_DIFF_DIR(char **dl;)
+	USE_FEATURE_DIFF_DIR(int dl_count;)
+	/* This is the default number of lines of context. */
+	int context;
+	size_t max_context;
+	int status;
+	char *start;
+	const char *label1;
+	const char *label2;
+	struct line *file[2];
+	int *J;          /* will be overlaid on class */
+	int *class;      /* will be overlaid on file[0] */
+	int *klist;      /* will be overlaid on file[0] after class */
+	int *member;     /* will be overlaid on file[1] */
+	int clen;
+	int len[2];
+	int pref, suff;  /* length of prefix and suffix */
+	int slen[2];
+	bool anychange;
+	long *ixnew;     /* will be overlaid on file[1] */
+	long *ixold;     /* will be overlaid on klist */
+	struct cand *clist;  /* merely a free storage pot for candidates */
+	int clistlen;    /* the length of clist */
+	struct line *sfile[2];   /* shortened by pruning common prefix/suffix */
+	struct context_vec *context_vec_start;
+	struct context_vec *context_vec_end;
+	struct context_vec *context_vec_ptr;
+	struct stat stb1, stb2;
+};
+#define G (*ptr_to_globals)
+#define dl                 (G.dl                )
+#define dl_count           (G.dl_count          )
+#define context            (G.context           )
+#define max_context        (G.max_context       )
+#define status             (G.status            )
+#define start              (G.start             )
+#define label1             (G.label1            )
+#define label2             (G.label2            )
+#define file               (G.file              )
+#define J                  (G.J                 )
+#define class              (G.class             )
+#define klist              (G.klist             )
+#define member             (G.member            )
+#define clen               (G.clen              )
+#define len                (G.len               )
+#define pref               (G.pref              )
+#define suff               (G.suff              )
+#define slen               (G.slen              )
+#define anychange          (G.anychange         )
+#define ixnew              (G.ixnew             )
+#define ixold              (G.ixold             )
+#define clist              (G.clist             )
+#define clistlen           (G.clistlen          )
+#define sfile              (G.sfile             )
+#define context_vec_start  (G.context_vec_start )
+#define context_vec_end    (G.context_vec_end   )
+#define context_vec_ptr    (G.context_vec_ptr   )
+#define stb1               (G.stb1              )
+#define stb2               (G.stb2              )
+#define INIT_G() do { \
+	PTR_TO_GLOBALS = xzalloc(sizeof(G)); \
+	context = 3; \
+	max_context = 64; \
+} while (0)
+
+
 
 
 static void print_only(const char *path, size_t dirlen, const char *entry)
@@ -761,8 +791,6 @@ static void print_header(const char *file1, const char *file2)
 static void change(char *file1, FILE * f1, char *file2, FILE * f2, int a,
 				   int b, int c, int d)
 {
-	static size_t max_context = 64;
-
 	if ((a > b && c > d) || (option_mask32 & FLAG_q)) {
 		anychange = 1;
 		return;
@@ -1169,6 +1197,8 @@ int diff_main(int argc, char **argv)
 	char *U_opt;
 	char *f1, *f2;
 	llist_t *L_arg = NULL;
+
+	INIT_G();
 
 	/* exactly 2 params; collect multiple -L <label> */
 	opt_complementary = "=2:L::";

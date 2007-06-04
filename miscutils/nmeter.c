@@ -69,15 +69,15 @@ struct globals {
 #define proc_meminfo       (G.proc_meminfo      )
 #define proc_diskstats     (G.proc_diskstats    )
 #define proc_sys_fs_filenr (G.proc_sys_fs_filenr)
-
-// We depend on this being a char[], not char* - we take sizeof() of it
-#define outbuf bb_common_bufsiz1
-
 #define INIT_G() do { \
+		PTR_TO_GLOBALS = xzalloc(sizeof(G)); \
 		cur_outbuf = outbuf; \
 		final_str = "\n"; \
 		deltanz = delta = 1000000; \
 	} while (0)
+
+// We depend on this being a char[], not char* - we take sizeof() of it
+#define outbuf bb_common_bufsiz1
 
 static inline void reset_outbuf(void)
 {
@@ -774,7 +774,6 @@ int nmeter_main(int argc, char **argv)
 	s_stat *s;
 	char *cur, *prev;
 
-	PTR_TO_GLOBALS = xzalloc(sizeof(G));
 	INIT_G();
 
 	xchdir("/proc");
