@@ -413,7 +413,7 @@ static void add_split_dependencies(common_node_t *parent_node, const char *whole
 			or_edge = xmalloc(sizeof(edge_t));
 			or_edge->type = edge_type + 1;
 			or_edge->name = search_name_hashtable(field);
-			or_edge->version = 0; // tracks the number of altenatives
+			or_edge->version = 0; // tracks the number of alternatives
 			add_edge_to_node(parent_node, or_edge);
 		}
 
@@ -432,7 +432,7 @@ static void add_split_dependencies(common_node_t *parent_node, const char *whole
 				edge->version = search_name_hashtable("ANY");
 			} else {
 				/* Skip leading ' ' or '(' */
-				version += strspn(field2, " (");
+				version += strspn(version, " (");
 				/* Calculate length of any operator characters */
 				offset_ch = strspn(version, "<=>");
 				/* Determine operator */
