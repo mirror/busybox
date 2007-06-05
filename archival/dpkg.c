@@ -1550,7 +1550,7 @@ static void configure_package(deb_file_t *deb_file)
 	/* Run the postinst script */
 	if (run_package_script(package_name, "postinst") != 0) {
 		/* TODO: handle failure gracefully */
-		bb_error_msg_and_die("postrm failure.. set status to what?");
+		bb_error_msg_and_die("postinst failure.. set status to what?");
 	}
 	/* Change status to reflect success */
 	set_status(status_num, "install", 1);
