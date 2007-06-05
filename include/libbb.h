@@ -304,9 +304,12 @@ enum {
 		}
 	)
 };
-/* Create stream socket, and allocated suitable lsa
- * (lsa of correct size and lsa->sa.sa_family (AF_INET/AF_INET6)) */
-int xsocket_type(len_and_sockaddr **lsap, int sock_type);
+/* Create stream socket, and allocate suitable lsa.
+ * (lsa of correct size and lsa->sa.sa_family (AF_INET/AF_INET6))
+ * af == AF_UNSPEC will result in trying to create IPv6, and
+ * if kernel doesn't support it, IPv4.
+ */
+int xsocket_type(len_and_sockaddr **lsap, USE_FEATURE_IPV6(int af,) int sock_type);
 int xsocket_stream(len_and_sockaddr **lsap);
 /* Create server socket bound to bindaddr:port. bindaddr can be NULL,
  * numeric IP ("N.N.N.N") or numeric IPv6 address,

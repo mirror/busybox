@@ -208,23 +208,31 @@ len_and_sockaddr* xdotted2sockaddr(const char *host, int port)
 	return str2sockaddr(host, port, AF_UNSPEC, AI_NUMERICHOST | DIE_ON_ERROR);
 }
 
-int xsocket_type(len_and_sockaddr **lsap, int sock_type)
+int xsocket_type(len_and_sockaddr **lsap, USE_FEATURE_IPV6(int family,) int sock_type)
 {
+	SKIP_FEATURE_IPV6(enum { family = AF_INET };)
 	len_and_sockaddr *lsa;
 	int fd;
-	int len = sizeof(struct sockaddr_in);
-	int family = AF_INET;
+	int len;
 
 #if ENABLE_FEATURE_IPV6
-	fd = socket(AF_INET6, sock_type, 0);
-	if (fd >= 0) {
-		len = sizeof(struct sockaddr_in6);
-		family = AF_INET6;
-	} else
-#endif
-	{
-		fd = xsocket(AF_INET, sock_type, 0);
+	if (family == AF_UNSPEC) {
+		fd = socket(AF_INET6, sock_type, 0);
+		if (fd >= 0) {
+			family = AF_INET6;
+			goto done;
+		}
+		family = AF_INET;
 	}
+#endif
+	fd = xsocket(family, sock_type, 0);
+	len = sizeof(struct sockaddr_in);
+#if ENABLE_FEATURE_IPV6
+	if (family == AF_INET6) {
+ done:
+		len = sizeof(struct sockaddr_in6);
+	}
+#endif
 	lsa = xzalloc(offsetof(len_and_sockaddr, sa) + len);
 	lsa->len = len;
 	lsa->sa.sa_family = family;
@@ -234,7 +242,7 @@ int xsocket_type(len_and_sockaddr **lsap, int sock_type)
 
 int xsocket_stream(len_and_sockaddr **lsap)
 {
-	return xsocket_type(lsap, SOCK_STREAM);
+	return xsocket_type(lsap, USE_FEATURE_IPV6(AF_UNSPEC,) SOCK_STREAM);
 }
 
 static int create_and_bind_or_die(const char *bindaddr, int port, int sock_type)
@@ -247,7 +255,7 @@ static int create_and_bind_or_die(const char *bindaddr, int port, int sock_type)
 		/* user specified bind addr dictates family */
 		fd = xsocket(lsa->sa.sa_family, sock_type, 0);
 	} else {
-		fd = xsocket_type(&lsa, sock_type);
+		fd = xsocket_type(&lsa, USE_FEATURE_IPV6(AF_UNSPEC,) sock_type);
 		set_nport(lsa, htons(port));
 	}
 	setsockopt_reuseaddr(fd);

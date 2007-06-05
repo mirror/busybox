@@ -751,6 +751,13 @@ int nc_main(int argc, char **argv)
 	/* We manage our fd's so that they are never 0,1,2 */
 	/*bb_sanitize_stdio(); - not needed */
 
+	if (argv[0]) {
+		themaddr = xhost2sockaddr(argv[0],
+			argv[1]
+			? bb_lookup_port(argv[1], o_udpmode ? "udp" : "tcp", 0)
+			: 0);
+	}
+
 	/* create & bind network socket */
 	x = (o_udpmode ? SOCK_DGRAM : SOCK_STREAM);
 	if (option_mask32 & OPT_s) { /* local address */
@@ -758,7 +765,11 @@ int nc_main(int argc, char **argv)
 		ouraddr = xhost2sockaddr(str_s, o_lport);
 		x = xsocket(ouraddr->sa.sa_family, x, 0);
 	} else {
-		x = xsocket_type(&ouraddr, x);
+		/* We try IPv6, then IPv4, unless addr family is
+		 * implicitly set by way of remote addr/port spec */
+		x = xsocket_type(&ouraddr,
+				USE_FEATURE_IPV6((themaddr ? themaddr->sa.sa_family : AF_UNSPEC),)
+				x);
 		if (o_lport)
 			set_nport(ouraddr, htons(o_lport));
 	}
@@ -788,14 +799,6 @@ int nc_main(int argc, char **argv)
 	if (o_ofile)
 		xmove_fd(xopen(str_o, O_WRONLY|O_CREAT|O_TRUNC), ofd);
 #endif
-
-	if (argv[0]) {
-		themaddr = xhost2sockaddr(argv[0],
-			argv[1]
-			? bb_lookup_port(argv[1], o_udpmode ? "udp" : "tcp", 0)
-			: 0);
-///what if sa_family won't match??
-	}
 
 	if (o_listen) {
 		dolisten();
