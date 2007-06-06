@@ -33,7 +33,7 @@ int bb_echo(char **argv)
 		eflag = '\\',
 		nflag = 1,  /* 1 -- print '\n' */
 	};
-	++argv;
+	arg = ++argv;
 #else
 	const char *p;
 	char nflag = 1;
