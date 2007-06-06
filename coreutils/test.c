@@ -227,7 +227,7 @@ int bb_test(int argc, char **argv)
 		t_lex(argv[2 + _off]);
 		if (t_wp_op && t_wp_op->op_type == BINOP) {
 			t_wp = &argv[1 + _off];
-			return binop() == 0;
+			return binop() == 1;
 		}
 	}
 	t_wp = &argv[1];
