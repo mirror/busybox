@@ -830,6 +830,9 @@ typedef struct {
 	DIR *dir;
 /* Fields are set to 0/NULL if failed to determine (or not requested) */
 	char *cmd;
+	USE_SELINUX(char *context;)
+	/* Everything below must contain no ptrs to malloc'ed data:
+	 * it is memset(0) for each process in procps_scan() */
 	unsigned vsz, rss; /* we round it to kbytes */
 	unsigned long stime, utime;
 	unsigned pid;
@@ -859,6 +862,7 @@ enum {
 	PSSCAN_STIME    = 1 << 10,
 	PSSCAN_UTIME    = 1 << 11,
 	PSSCAN_TTY      = 1 << 12,
+	USE_SELINUX(PSSCAN_CONTEXT  = 1 << 13,)
 	/* These are all retrieved from proc/NN/stat in one go: */
 	PSSCAN_STAT     = PSSCAN_PPID | PSSCAN_PGID | PSSCAN_SID
 	                | PSSCAN_COMM | PSSCAN_STATE

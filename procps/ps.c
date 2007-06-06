@@ -3,6 +3,8 @@
  * Mini ps implementation(s) for busybox
  *
  * Copyright (C) 1999-2004 by Erik Andersen <andersen@codepoet.org>
+ * Fix for SELinux Support:(c)2007 Hiroshi Shinji <shiroshi@my.email.ne.jp>
+                           (c)2007 Yuichi Nakamura <ynakam@hitachisoft.jp>
  *
  * Licensed under the GPL version 2, see the file LICENSE in this tarball.
  */
@@ -68,6 +70,14 @@ static void func_tty(char *buf, int size, const procps_status_t *ps)
 {
 	safe_strncpy(buf, ps->tty_str, size+1);
 }
+
+#if ENABLE_SELINUX
+static void func_label(char *buf, int size, const procps_status_t *ps)
+{
+	safe_strncpy(buf, ps->context ? ps->context : "unknown", size+1);
+}
+#endif
+
 /*
 static void func_nice(char *buf, int size, const procps_status_t *ps)
 {
@@ -116,11 +126,19 @@ static const ps_out_t out_spec[] = {
 	{ 4                  , "vsz"   ,"VSZ"    ,func_vsz   ,PSSCAN_VSZ             },
 // Not mandated by POSIX, but useful:
 	{ 4                  , "rss"   ,"RSS"    ,func_rss   ,PSSCAN_RSS             },
+#if ENABLE_SELINUX
+	{ 35                 , "label" ,"LABEL"  ,func_label ,PSSCAN_CONTEXT         },
+#endif
 };
 
 #define VEC_SIZE(v) ( sizeof(v) / sizeof((v)[0]) )
 
-#define DEFAULT_O_STR "pid,user" /* TODO: ,vsz,stat */ ",args"
+#if ENABLE_SELINUX
+#define SELINIX_O_PREFIX "label,"
+#define DEFAULT_O_STR    SELINIX_O_PREFIX "pid,user" /* TODO: ,vsz,stat */ ",args"
+#else
+#define DEFAULT_O_STR    "pid,user" /* TODO: ,vsz,stat */ ",args"
+#endif
 
 struct globals {
 	ps_out_t* out;
@@ -207,6 +225,10 @@ static void post_process(void)
 		}
 		width += out[i].width + 1; /* "FIELD " */
 	}
+#if ENABLE_SELINUX
+	if (!is_selinux_enabled())
+		need_flags &= ~PSSCAN_CONTEXT;
+#endif
 	buffer = xmalloc(width + 1); /* for trailing \0 */
 }
 
@@ -261,9 +283,7 @@ int ps_main(int argc, char **argv)
 {
 	procps_status_t *p;
 	llist_t* opt_o = NULL;
-
-	/* Cannot be const: parse_o() will choke */
-	strcpy(default_o, DEFAULT_O_STR);
+	USE_SELINUX(int opt;)
 
 	// POSIX:
 	// -a  Write information for all processes associated with terminals
@@ -277,14 +297,25 @@ int ps_main(int argc, char **argv)
 	//     Select which columns to display
 	/* We allow (and ignore) most of the above. FIXME */
 	opt_complementary = "o::";
-	getopt32(argc, argv, "o:aAdefl", &opt_o);
+	USE_SELINUX(opt =) getopt32(argc, argv, "Zo:aAdefl", &opt_o);
 	if (opt_o) {
 		do {
 			parse_o(opt_o->data);
 			opt_o = opt_o->link;
 		} while (opt_o);
-	} else
+	} else {
+		/* Below: parse_o() needs char*, NOT const char*... */
+#if ENABLE_SELINUX
+		if (!(opt & 1) || !is_selinux_enabled()) {
+			/* no -Z or no SELinux: do not show LABEL */
+			strcpy(default_o, DEFAULT_O_STR + sizeof(SELINIX_O_PREFIX)-1);
+		} else
+#endif
+		{
+			strcpy(default_o, DEFAULT_O_STR);
+		}
 		parse_o(default_o);
+	}
 	post_process();
 
 	/* Was INT_MAX, but some libc's go belly up with printf("%.*s")
@@ -314,7 +345,6 @@ int ps_main(int argc, char **argv)
 	procps_status_t *p = NULL;
 	int i, len;
 	SKIP_SELINUX(const) int use_selinux = 0;
-	USE_SELINUX(security_context_t sid = NULL;)
 #if !ENABLE_FEATURE_PS_WIDE
 	enum { terminal_width = 79 };
 #else
@@ -341,7 +371,7 @@ int ps_main(int argc, char **argv)
 #endif
 #if ENABLE_SELINUX
 	if ((i & 1) && is_selinux_enabled())
-		use_selinux = 1;
+		use_selinux = PSSCAN_CONTEXT;
 #endif
 #endif /* ENABLE_FEATURE_PS_WIDE || ENABLE_SELINUX */
 
@@ -356,28 +386,15 @@ int ps_main(int argc, char **argv)
 			| PSSCAN_STATE
 			| PSSCAN_VSZ
 			| PSSCAN_CMD
+			| use_selinux
 	))) {
 		char *namecmd = p->cmd;
 #if ENABLE_SELINUX
 		if (use_selinux) {
-			char sbuf[128];
-			len = sizeof(sbuf);
-
-			if (is_selinux_enabled()) {
-				if (getpidcon(p->pid, &sid) < 0)
-					sid = NULL;
-			}
-
-			if (sid) {
-				/* I assume sid initialized with NULL */
-				len = strlen(sid) + 1;
-				safe_strncpy(sbuf, sid, len);
-				freecon(sid);
-				sid = NULL;
-			} else {
-				safe_strncpy(sbuf, "unknown", 7);
-			}
-			len = printf("%5u %-32s %s ", p->pid, sbuf, p->state);
+			len = printf("%5u %-32s %s ",
+					p->pid,
+					p->context ? p->context : "unknown",
+					p->state);
 		} else
 #endif
 		{
@@ -396,14 +413,14 @@ int ps_main(int argc, char **argv)
 			if (i < 0)
 				i = 0;
 			if (strlen(namecmd) > (size_t)i)
-				namecmd[i] = 0;
+				namecmd[i] = '\0';
 			puts(namecmd);
 		} else {
 			namecmd = p->comm;
 			if (i < 2)
 				i = 2;
 			if (strlen(namecmd) > ((size_t)i-2))
-				namecmd[i-2] = 0;
+				namecmd[i-2] = '\0';
 			printf("[%s]\n", namecmd);
 		}
 	}

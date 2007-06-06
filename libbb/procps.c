@@ -4,7 +4,8 @@
  *
  * Copyright 1998 by Albert Cahalan; all rights reserved.
  * Copyright (C) 2002 by Vladimir Oleynik <dzo@simtreas.ru>
- *
+ * SELinux support: (c) 2007 by Yuichi Nakamura <ynakam@hitachisoft.jp>
+ * 
  * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  */
 
@@ -95,6 +96,7 @@ void free_procps_scan(procps_status_t* sp)
 {
 	closedir(sp->dir);
 	free(sp->cmd);
+	USE_SELINUX(free(sp->context);)
 	free(sp);
 }
 
@@ -131,6 +133,13 @@ procps_status_t* procps_scan(procps_status_t* sp, int flags)
 
 		sp->pid = pid;
 		if (!(flags & ~PSSCAN_PID)) break;
+
+#if ENABLE_SELINUX
+		if (flags & PSSCAN_CONTEXT) {
+			if (getpidcon(sp->pid, &sp->context) < 0)
+				sp->context = NULL;
+		}	
+#endif	
 
 		filename_tail = filename + sprintf(filename, "/proc/%d", pid);
 
