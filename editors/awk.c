@@ -35,7 +35,7 @@ extern char **environ;
 
 /* Variable */
 typedef struct var_s {
-	unsigned short type;            /* flags */
+	unsigned type;            /* flags */
 	double number;
 	char *string;
 	union {
@@ -55,7 +55,7 @@ typedef struct chain_s {
 
 /* Function */
 typedef struct func_s {
-	unsigned short nargs;
+	unsigned nargs;
 	struct chain_s body;
 } func;
 
@@ -66,7 +66,7 @@ typedef struct rstream_s {
 	int adv;
 	int size;
 	int pos;
-	unsigned short is_pipe;
+	smallint is_pipe;
 } rstream;
 
 typedef struct hash_item_s {
@@ -394,34 +394,101 @@ enum { NPRIMES = sizeof(PRIMES) / sizeof(PRIMES[0]) };
 
 /* globals */
 
-static var *intvar[NUM_INTERNAL_VARS];
-static chain beginseq, mainseq, endseq, *seq;
-static int nextrec, nextfile;
-static node *break_ptr, *continue_ptr;
-static rstream *iF;
-static xhash *vhash, *ahash, *fdhash, *fnhash;
-static const char *programname;
-static int lineno;
-static int is_f0_split;
-static int nfields;
-static var *Fields;
-static tsplitter fsplitter, rsplitter;
-static nvblock *cb;
-static char *pos;
-static char *buf;
-static int icase;
-static int exiting;
+struct globals {
+	/* former 'struct t' */
+	uint32_t t_info; /* often used */
+	uint32_t t_tclass;
+	char *t_string;
+	double t_double;
+	int t_lineno;
+	int t_rollback;
 
-static struct {
-	uint32_t tclass;
-	uint32_t info;
-	char *string;
-	double number;
-	int lineno;
-	int rollback;
-} ttt;
-/* It had even better name: 't'. Whoever knows what is it, please rename! */
-/* (actually it looks like unrelated stuff lumped together...) */
+	/* the rest */
+	smallint icase;
+	smallint exiting;
+	smallint nextrec;
+	smallint nextfile;
+	smallint is_f0_split;
+	chain beginseq, mainseq, endseq, *seq;
+	node *break_ptr, *continue_ptr;
+	rstream *iF;
+	xhash *vhash, *ahash, *fdhash, *fnhash;
+	const char *g_progname;
+	int g_lineno;
+	int nfields;
+	int maxfields; /* used in fsrealloc() only */
+	var *Fields;
+	nvblock *g_cb;
+	char *g_pos;
+	char *g_buf;
+
+	/* former statics from various functions */
+	char *split_f0__fstrings;
+
+	rstream next_input_file__rsm;
+	smallint next_input_file__files_happen;
+
+        smallint next_token__concat_inserted;
+	uint32_t next_token__save_tclass;
+	uint32_t next_token__save_info;
+	uint32_t next_token__ltclass;
+
+	var *evaluate__fnargs;
+	unsigned evaluate__seed;
+	regex_t evaluate__sreg;
+
+	var ptest__v;
+
+	tsplitter exec_builtin__tspl;
+
+	/* biggest members go last */
+	var *intvar[NUM_INTERNAL_VARS];
+	tsplitter fsplitter, rsplitter;
+};
+#define G (*ptr_to_globals)
+/* for debug */
+/* char Gsize[sizeof(G)];  ~0x240 */
+/* Trying to keep most of members accessible with short offsets: */
+/* char Gofs_seed[offsetof(struct globals, evaluate__seed)];  ~0xc0 */
+#define t_info       (G.t_info      )
+#define t_tclass     (G.t_tclass    )
+#define t_string     (G.t_string    )
+#define t_double     (G.t_double    )
+#define t_lineno     (G.t_lineno    )
+#define t_rollback   (G.t_rollback  )
+#define icase        (G.icase       )
+#define exiting      (G.exiting     )
+#define nextrec      (G.nextrec     )
+#define nextfile     (G.nextfile    )
+#define is_f0_split  (G.is_f0_split )
+#define beginseq     (G.beginseq    )
+#define mainseq      (G.mainseq     )
+#define endseq       (G.endseq      )
+#define seq          (G.seq         )
+#define break_ptr    (G.break_ptr   )
+#define continue_ptr (G.continue_ptr)
+#define iF           (G.iF          )
+#define vhash        (G.vhash       )
+#define ahash        (G.ahash       )
+#define fdhash       (G.fdhash      )
+#define fnhash       (G.fnhash      )
+#define g_progname   (G.g_progname  )
+#define g_lineno     (G.g_lineno    )
+#define nfields      (G.nfields     )
+#define maxfields    (G.maxfields   )
+#define Fields       (G.Fields      )
+#define g_cb         (G.g_cb        )
+#define g_pos        (G.g_pos       )
+#define g_buf        (G.g_buf       )
+#define intvar       (G.intvar      )
+#define fsplitter    (G.fsplitter   )
+#define rsplitter    (G.rsplitter   )
+#define INIT_G() do { \
+	PTR_TO_GLOBALS = xzalloc(sizeof(G)); \
+	G.next_token__ltclass = TC_OPTERM; \
+	G.evaluate__seed = 1; \
+} while (0)
+
 
 /* function prototypes */
 static void handle_special(var *);
@@ -455,11 +522,8 @@ static void zero_out_var(var * vp)
 static void syntax_error(const char * const message) ATTRIBUTE_NORETURN;
 static void syntax_error(const char * const message)
 {
-	bb_error_msg_and_die("%s:%i: %s", programname, lineno, message);
+	bb_error_msg_and_die("%s:%i: %s", g_progname, g_lineno, message);
 }
-
-#define runtime_error(x) syntax_error(x)
-
 
 /* ---- hash stuff ---- */
 
@@ -581,7 +645,7 @@ static void skip_spaces(char **s)
 	while (1) {
 		if (*p == '\\' && p[1] == '\n') {
 			p++;
-			ttt.lineno++;
+			t_lineno++;
 		} else if (*p != ' ' && *p != '\t') {
 			break;
 		}
@@ -714,8 +778,8 @@ static const char *getvar_s(var *v)
 {
 	/* if v is numeric and has no cached string, convert it to string */
 	if ((v->type & (VF_NUMBER | VF_CACHED)) == VF_NUMBER) {
-		fmt_num(buf, MAXVARFMT, getvar_s(intvar[CONVFMT]), v->number, TRUE);
-		v->string = xstrdup(buf);
+		fmt_num(g_buf, MAXVARFMT, getvar_s(intvar[CONVFMT]), v->number, TRUE);
+		v->string = xstrdup(g_buf);
 		v->type |= VF_CACHED;
 	}
 	return (v->string == NULL) ? "" : v->string;
@@ -773,8 +837,7 @@ static int istrue(var *v)
 {
 	if (is_numeric(v))
 		return (v->number == 0) ? 0 : 1;
-	else
-		return (v->string && *(v->string)) ? 1 : 0;
+	return (v->string && *(v->string)) ? 1 : 0;
 }
 
 /* temporary variables allocator. Last allocated should be first freed */
@@ -784,26 +847,26 @@ static var *nvalloc(int n)
 	var *v, *r;
 	int size;
 
-	while (cb) {
-		pb = cb;
-		if ((cb->pos - cb->nv) + n <= cb->size) break;
-		cb = cb->next;
+	while (g_cb) {
+		pb = g_cb;
+		if ((g_cb->pos - g_cb->nv) + n <= g_cb->size) break;
+		g_cb = g_cb->next;
 	}
 
-	if (! cb) {
+	if (!g_cb) {
 		size = (n <= MINNVBLOCK) ? MINNVBLOCK : n;
-		cb = xmalloc(sizeof(nvblock) + size * sizeof(var));
-		cb->size = size;
-		cb->pos = cb->nv;
-		cb->prev = pb;
-		cb->next = NULL;
-		if (pb) pb->next = cb;
+		g_cb = xmalloc(sizeof(nvblock) + size * sizeof(var));
+		g_cb->size = size;
+		g_cb->pos = g_cb->nv;
+		g_cb->prev = pb;
+		g_cb->next = NULL;
+		if (pb) pb->next = g_cb;
 	}
 
-	v = r = cb->pos;
-	cb->pos += n;
+	v = r = g_cb->pos;
+	g_cb->pos += n;
 
-	while (v < cb->pos) {
+	while (v < g_cb->pos) {
 		v->type = 0;
 		v->string = NULL;
 		v++;
@@ -816,10 +879,10 @@ static void nvfree(var *v)
 {
 	var *p;
 
-	if (v < cb->nv || v >= cb->pos)
-		runtime_error(EMSG_INTERNAL_ERROR);
+	if (v < g_cb->nv || v >= g_cb->pos)
+		syntax_error(EMSG_INTERNAL_ERROR);
 
-	for (p = v; p < cb->pos; p++) {
+	for (p = v; p < g_cb->pos; p++) {
 		if ((p->type & (VF_ARRAY | VF_CHILD)) == VF_ARRAY) {
 			clear_array(iamarray(p));
 			free(p->x.array->items);
@@ -831,9 +894,9 @@ static void nvfree(var *v)
 		clrvar(p);
 	}
 
-	cb->pos = v;
-	while (cb->prev && cb->pos == cb->nv) {
-		cb = cb->prev;
+	g_cb->pos = v;
+	while (g_cb->prev && g_cb->pos == g_cb->nv) {
+		g_cb = g_cb->prev;
 	}
 }
 
@@ -844,9 +907,11 @@ static void nvfree(var *v)
  */
 static uint32_t next_token(uint32_t expected)
 {
-	static int concat_inserted;
-	static uint32_t save_tclass, save_info;
-	static uint32_t ltclass = TC_OPTERM;
+#define concat_inserted (G.next_token__concat_inserted)
+#define save_tclass     (G.next_token__save_tclass)
+#define save_info       (G.next_token__save_info)
+/* Initialized to TC_OPTERM: */
+#define ltclass         (G.next_token__ltclass)
 
 	char *p, *pp, *s;
 	const char *tl;
@@ -854,32 +919,32 @@ static uint32_t next_token(uint32_t expected)
 	const uint32_t *ti;
 	int l;
 
-	if (ttt.rollback) {
-		ttt.rollback = FALSE;
+	if (t_rollback) {
+		t_rollback = FALSE;
 
 	} else if (concat_inserted) {
 		concat_inserted = FALSE;
-		ttt.tclass = save_tclass;
-		ttt.info = save_info;
+		t_tclass = save_tclass;
+		t_info = save_info;
 
 	} else {
-		p = pos;
+		p = g_pos;
  readnext:
 		skip_spaces(&p);
-		lineno = ttt.lineno;
+		g_lineno = t_lineno;
 		if (*p == '#')
 			while (*p != '\n' && *p != '\0')
 				p++;
 
 		if (*p == '\n')
-			ttt.lineno++;
+			t_lineno++;
 
 		if (*p == '\0') {
 			tc = TC_EOF;
 
 		} else if (*p == '\"') {
 			/* it's a string */
-			ttt.string = s = ++p;
+			t_string = s = ++p;
 			while (*p != '\"') {
 				if (*p == '\0' || *p == '\n')
 					syntax_error(EMSG_UNEXP_EOS);
@@ -891,7 +956,7 @@ static uint32_t next_token(uint32_t expected)
 
 		} else if ((expected & TC_REGEXP) && *p == '/') {
 			/* it's regexp */
-			ttt.string = s = ++p;
+			t_string = s = ++p;
 			while (*p != '/') {
 				if (*p == '\0' || *p == '\n')
 					syntax_error(EMSG_UNEXP_EOS);
@@ -911,7 +976,7 @@ static uint32_t next_token(uint32_t expected)
 
 		} else if (*p == '.' || isdigit(*p)) {
 			/* it's a number */
-			ttt.number = strtod(p, &p);
+			t_double = strtod(p, &p);
 			if (*p == '.')
 				syntax_error(EMSG_UNEXP_TOKEN);
 			tc = TC_NUMBER;
@@ -935,7 +1000,7 @@ static uint32_t next_token(uint32_t expected)
 				 && *tl == *p && strncmp(p, tl, l) == 0
 				 && !((tc & TC_WORD) && isalnum_(p[l]))
 				) {
-					ttt.info = *ti;
+					t_info = *ti;
 					p += l;
 					break;
 				}
@@ -950,7 +1015,7 @@ static uint32_t next_token(uint32_t expected)
 				if (!isalnum_(*p))
 					syntax_error(EMSG_UNEXP_TOKEN);
 
-				ttt.string = --p;
+				t_string = --p;
 				while (isalnum_(*(++p))) {
 					*(p-1) = *p;
 				}
@@ -969,7 +1034,7 @@ static uint32_t next_token(uint32_t expected)
 				}
 			}
 		}
-		pos = p;
+		g_pos = p;
 
 		/* skipping newlines in some cases */
 		if ((ltclass & TC_NOTERM) && (tc & TC_NEWLINE))
@@ -979,14 +1044,14 @@ static uint32_t next_token(uint32_t expected)
 		if ((ltclass & TC_CONCAT1) && (tc & TC_CONCAT2) && (expected & TC_BINOP)) {
 			concat_inserted = TRUE;
 			save_tclass = tc;
-			save_info = ttt.info;
+			save_info = t_info;
 			tc = TC_BINOP;
-			ttt.info = OC_CONCAT | SS | P(35);
+			t_info = OC_CONCAT | SS | P(35);
 		}
 
-		ttt.tclass = tc;
+		t_tclass = tc;
 	}
-	ltclass = ttt.tclass;
+	ltclass = t_tclass;
 
 	/* Are we ready for this? */
 	if (!(ltclass & expected))
@@ -994,11 +1059,15 @@ static uint32_t next_token(uint32_t expected)
 				EMSG_UNEXP_EOS : EMSG_UNEXP_TOKEN);
 
 	return ltclass;
+#undef concat_inserted
+#undef save_tclass
+#undef save_info
+#undef ltclass
 }
 
 static void rollback_token(void)
 {
-	ttt.rollback = TRUE;
+	t_rollback = TRUE;
 }
 
 static node *new_node(uint32_t info)
@@ -1007,7 +1076,7 @@ static node *new_node(uint32_t info)
 
 	n = xzalloc(sizeof(node));
 	n->info = info;
-	n->lineno = lineno;
+	n->lineno = g_lineno;
 	return n;
 }
 
@@ -1043,7 +1112,7 @@ static node *parse_expr(uint32_t iexp)
 	xtc = TC_OPERAND | TC_UOPPRE | TC_REGEXP | iexp;
 
 	while (!((tc = next_token(xtc)) & iexp)) {
-		if (glptr && (ttt.info == (OC_COMPARE | VV | P(39) | 2))) {
+		if (glptr && (t_info == (OC_COMPARE | VV | P(39) | 2))) {
 			/* input redirection (<) attached to glptr node */
 			cn = glptr->l.n = new_node(OC_CONCAT | SS | P(37));
 			cn->a.n = glptr;
@@ -1054,17 +1123,17 @@ static node *parse_expr(uint32_t iexp)
 			/* for binary and postfix-unary operators, jump back over
 			 * previous operators with higher priority */
 			vn = cn;
-			while ( ((ttt.info & PRIMASK) > (vn->a.n->info & PRIMASK2))
-			 || ((ttt.info == vn->info) && ((ttt.info & OPCLSMASK) == OC_COLON)) )
+			while ( ((t_info & PRIMASK) > (vn->a.n->info & PRIMASK2))
+			 || ((t_info == vn->info) && ((t_info & OPCLSMASK) == OC_COLON)) )
 				vn = vn->a.n;
-			if ((ttt.info & OPCLSMASK) == OC_TERNARY)
-				ttt.info += P(6);
-			cn = vn->a.n->r.n = new_node(ttt.info);
+			if ((t_info & OPCLSMASK) == OC_TERNARY)
+				t_info += P(6);
+			cn = vn->a.n->r.n = new_node(t_info);
 			cn->a.n = vn->a.n;
 			if (tc & TC_BINOP) {
 				cn->l.n = vn;
 				xtc = TC_OPERAND | TC_UOPPRE | TC_REGEXP;
-				if ((ttt.info & OPCLSMASK) == OC_PGETLINE) {
+				if ((t_info & OPCLSMASK) == OC_PGETLINE) {
 					/* it's a pipe */
 					next_token(TC_GETLINE);
 					/* give maximum priority to this pipe */
@@ -1081,7 +1150,7 @@ static node *parse_expr(uint32_t iexp)
 			/* for operands and prefix-unary operators, attach them
 			 * to last node */
 			vn = cn;
-			cn = vn->r.n = new_node(ttt.info);
+			cn = vn->r.n = new_node(t_info);
 			cn->a.n = vn;
 			xtc = TC_OPERAND | TC_UOPPRE | TC_REGEXP;
 			if (tc & (TC_OPERAND | TC_REGEXP)) {
@@ -1092,12 +1161,12 @@ static node *parse_expr(uint32_t iexp)
 				case TC_VARIABLE:
 				case TC_ARRAY:
 					cn->info = OC_VAR;
-					v = hash_search(ahash, ttt.string);
+					v = hash_search(ahash, t_string);
 					if (v != NULL) {
 						cn->info = OC_FNARG;
 						cn->l.i = v->x.aidx;
 					} else {
-						cn->l.v = newvar(ttt.string);
+						cn->l.v = newvar(t_string);
 					}
 					if (tc & TC_ARRAY) {
 						cn->info |= xS;
@@ -1110,18 +1179,18 @@ static node *parse_expr(uint32_t iexp)
 					cn->info = OC_VAR;
 					v = cn->l.v = xzalloc(sizeof(var));
 					if (tc & TC_NUMBER)
-						setvar_i(v, ttt.number);
+						setvar_i(v, t_double);
 					else
-						setvar_s(v, ttt.string);
+						setvar_s(v, t_string);
 					break;
 
 				case TC_REGEXP:
-					mk_re_node(ttt.string, cn, xzalloc(sizeof(regex_t)*2));
+					mk_re_node(t_string, cn, xzalloc(sizeof(regex_t)*2));
 					break;
 
 				case TC_FUNCTION:
 					cn->info = OC_FUNC;
-					cn->r.f = newfunc(ttt.string);
+					cn->r.f = newfunc(t_string);
 					cn->l.n = condition();
 					break;
 
@@ -1153,10 +1222,10 @@ static node *chain_node(uint32_t info)
 	if (!seq->first)
 		seq->first = seq->last = new_node(0);
 
-	if (seq->programname != programname) {
-		seq->programname = programname;
+	if (seq->programname != g_progname) {
+		seq->programname = g_progname;
 		n = chain_node(OC_NEWSOURCE);
-		n->l.s = xstrdup(programname);
+		n->l.s = xstrdup(g_progname);
 	}
 
 	n = seq->last;
@@ -1172,7 +1241,7 @@ static void chain_expr(uint32_t info)
 
 	n = chain_node(info);
 	n->l.n = parse_expr(TC_OPTERM | TC_GRPTERM);
-	if (ttt.tclass & TC_GRPTERM)
+	if (t_tclass & TC_GRPTERM)
 		rollback_token();
 }
 
@@ -1211,7 +1280,7 @@ static void chain_group(void)
 
 	if (c & TC_GRPSTART) {
 		while (next_token(TC_GRPSEQ | TC_GRPTERM) != TC_GRPTERM) {
-			if (ttt.tclass & TC_NEWLINE) continue;
+			if (t_tclass & TC_NEWLINE) continue;
 			rollback_token();
 			chain_group();
 		}
@@ -1219,7 +1288,7 @@ static void chain_group(void)
 		rollback_token();
 		chain_expr(OC_EXEC | Vx);
 	} else {						/* TC_STATEMNT */
-		switch (ttt.info & OPCLSMASK) {
+		switch (t_info & OPCLSMASK) {
 		case ST_IF:
 			n = chain_node(OC_BR | Vx);
 			n->l.n = condition();
@@ -1251,7 +1320,7 @@ static void chain_group(void)
 		case ST_FOR:
 			next_token(TC_SEQSTART);
 			n2 = parse_expr(TC_SEMICOL | TC_SEQTERM);
-			if (ttt.tclass & TC_SEQTERM) {	/* for-in */
+			if (t_tclass & TC_SEQTERM) {	/* for-in */
 				if ((n2->info & OPCLSMASK) != OC_IN)
 					syntax_error(EMSG_UNEXP_TOKEN);
 				n = chain_node(OC_WALKINIT | VV);
@@ -1274,13 +1343,13 @@ static void chain_group(void)
 
 		case OC_PRINT:
 		case OC_PRINTF:
-			n = chain_node(ttt.info);
+			n = chain_node(t_info);
 			n->l.n = parse_expr(TC_OPTERM | TC_OUTRDR | TC_GRPTERM);
-			if (ttt.tclass & TC_OUTRDR) {
-				n->info |= ttt.info;
+			if (t_tclass & TC_OUTRDR) {
+				n->info |= t_info;
 				n->r.n = parse_expr(TC_OPTERM | TC_GRPTERM);
 			}
-			if (ttt.tclass & TC_GRPTERM)
+			if (t_tclass & TC_GRPTERM)
 				rollback_token();
 			break;
 
@@ -1296,7 +1365,7 @@ static void chain_group(void)
 
 		/* delete, next, nextfile, return, exit */
 		default:
-			chain_expr(ttt.info);
+			chain_expr(t_info);
 		}
 	}
 }
@@ -1308,8 +1377,8 @@ static void parse_program(char *p)
 	func *f;
 	var *v;
 
-	pos = p;
-	ttt.lineno = 1;
+	g_pos = p;
+	t_lineno = 1;
 	while ((tclass = next_token(TC_EOF | TC_OPSEQ | TC_GRPSTART |
 			TC_OPTERM | TC_BEGIN | TC_END | TC_FUNCDECL)) != TC_EOF) {
 
@@ -1327,12 +1396,12 @@ static void parse_program(char *p)
 
 		} else if (tclass & TC_FUNCDECL) {
 			next_token(TC_FUNCTION);
-			pos++;
-			f = newfunc(ttt.string);
+			g_pos++;
+			f = newfunc(t_string);
 			f->body.first = NULL;
 			f->nargs = 0;
 			while (next_token(TC_VARIABLE | TC_SEQTERM) & TC_VARIABLE) {
-				v = findvar(ahash, ttt.string);
+				v = findvar(ahash, t_string);
 				v->x.aidx = (f->nargs)++;
 
 				if (next_token(TC_COMMA | TC_SEQTERM) & TC_SEQTERM)
@@ -1346,7 +1415,7 @@ static void parse_program(char *p)
 			rollback_token();
 			cn = chain_node(OC_TEST);
 			cn->l.n = parse_expr(TC_OPTERM | TC_EOF | TC_GRPSTART);
-			if (ttt.tclass & TC_GRPSTART) {
+			if (t_tclass & TC_GRPSTART) {
 				rollback_token();
 				chain_group();
 			} else {
@@ -1414,7 +1483,6 @@ static void qrealloc(char **b, int n, int *size)
 /* resize field storage space */
 static void fsrealloc(int size)
 {
-	static int maxfields; /* = 0;*/
 	int i;
 
 	if (size >= maxfields) {
@@ -1504,7 +1572,7 @@ static int awk_split(const char *s, node *spl, char **slist)
 
 static void split_f0(void)
 {
-	static char *fstrings = NULL;
+#define fstrings (G.split_f0__fstrings)
 
 	int i, n;
 	char *s;
@@ -1527,6 +1595,7 @@ static void split_f0(void)
 	clrvar(intvar[NF]);
 	intvar[NF]->type = VF_NUMBER | VF_SPECIAL;
 	intvar[NF]->number = nfields;
+#undef fstrings
 }
 
 /* perform additional actions when some internal variables changed */
@@ -1636,9 +1705,8 @@ static int hashwalk_next(var *v)
 /* evaluate node, return 1 when result is true, 0 otherwise */
 static int ptest(node *pattern)
 {
-	static var v; /* static: to save stack space? */
-
-	return istrue(evaluate(pattern, &v));
+	/* ptest__v is "static": to save stack space? */
+	return istrue(evaluate(pattern, &G.ptest__v));
 }
 
 /* read next record from stream rsm into a variable v */
@@ -1750,7 +1818,7 @@ static int fmt_num(char *b, int size, const char *format, double n, int int_as_i
 		} else if (strchr("eEfgG", c)) {
 			r = snprintf(b, size, format, n);
 		} else {
-			runtime_error(EMSG_INV_FMT);
+			syntax_error(EMSG_INV_FMT);
 		}
 	}
 	return r;
@@ -1888,6 +1956,8 @@ static int awk_sub(node *rn, const char *repl, int nm, var *src, var *dest, int 
 
 static var *exec_builtin(node *op, var *res)
 {
+#define tspl (G.exec_builtin__tspl)
+
 	int (*to_xxx)(int);
 	var *tv;
 	node *an[4];
@@ -1895,7 +1965,6 @@ static var *exec_builtin(node *op, var *res)
 	const char *as[4];
 	regmatch_t pmatch[2];
 	regex_t sreg, *re;
-	static tsplitter tspl;
 	node *spl;
 	uint32_t isr, info;
 	int nargs;
@@ -1917,7 +1986,7 @@ static var *exec_builtin(node *op, var *res)
 
 	nargs = i;
 	if (nargs < (info >> 30))
-		runtime_error(EMSG_TOO_FEW_ARGS);
+		syntax_error(EMSG_TOO_FEW_ARGS);
 
 	switch (info & OPNMASK) {
 
@@ -1925,7 +1994,7 @@ static var *exec_builtin(node *op, var *res)
 #if ENABLE_FEATURE_AWK_MATH
 		setvar_i(res, atan2(getvar_i(av[i]), getvar_i(av[1])));
 #else
-		runtime_error(EMSG_NO_MATH);
+		syntax_error(EMSG_NO_MATH);
 #endif
 		break;
 
@@ -2003,7 +2072,7 @@ static var *exec_builtin(node *op, var *res)
 		ll = strlen(as[1]);
 		l = strlen(as[0]) - ll;
 		if (ll > 0 && l >= 0) {
-			if (! icase) {
+			if (!icase) {
 				s = strstr(as[0], as[1]);
 				if (s) n = (s - as[0]) + 1;
 			} else {
@@ -2027,11 +2096,11 @@ static var *exec_builtin(node *op, var *res)
 		else
 			time(&tt);
 		//s = (nargs > 0) ? as[0] : "%a %b %d %H:%M:%S %Z %Y";
-		i = strftime(buf, MAXVARFMT,
+		i = strftime(g_buf, MAXVARFMT,
 			((nargs > 0) ? as[0] : "%a %b %d %H:%M:%S %Z %Y"),
 			localtime(&tt));
-		buf[i] = '\0';
-		setvar_s(res, buf);
+		g_buf[i] = '\0';
+		setvar_s(res, g_buf);
 		break;
 
 	case B_ma:
@@ -2065,6 +2134,7 @@ static var *exec_builtin(node *op, var *res)
 
 	nvfree(tv);
 	return res;
+#undef tspl
 }
 
 /*
@@ -2075,10 +2145,11 @@ static var *exec_builtin(node *op, var *res)
 
 static var *evaluate(node *op, var *res)
 {
-	/* This procedure is recursive so we should count every byte */
-	static var *fnargs = NULL;
-	static unsigned seed = 1;
-	static regex_t sreg;
+/* This procedure is recursive so we should count every byte */
+#define fnargs (G.evaluate__fnargs)
+/* seed is initialized to 1 */
+#define seed   (G.evaluate__seed)
+#define	sreg   (G.evaluate__sreg)
 
 	node *op1;
 	var *v1;
@@ -2089,7 +2160,7 @@ static var *evaluate(node *op, var *res)
 		int i;
 	} L, R;
 	uint32_t opinfo;
-	short opn;
+	int opn;
 	union {
 		char *s;
 		rstream *rsm;
@@ -2106,8 +2177,8 @@ static var *evaluate(node *op, var *res)
 
 	while (op) {
 		opinfo = op->info;
-		opn = (short)(opinfo & OPNMASK);
-		lineno = op->lineno;
+		opn = (opinfo & OPNMASK);
+		g_lineno = op->lineno;
 
 		/* execute inevitable things */
 		op1 = op->l.n;
@@ -2163,7 +2234,7 @@ static var *evaluate(node *op, var *res)
 			X.F = stdout;
 			if (op->r.n) {
 				X.rsm = newfile(R.s);
-				if (! X.rsm->F) {
+				if (!X.rsm->F) {
 					if (opn == '|') {
 						X.rsm->F = popen(R.s, "w");
 						if (X.rsm->F == NULL)
@@ -2177,15 +2248,15 @@ static var *evaluate(node *op, var *res)
 			}
 
 			if ((opinfo & OPCLSMASK) == OC_PRINT) {
-				if (! op1) {
+				if (!op1) {
 					fputs(getvar_s(intvar[F0]), X.F);
 				} else {
 					while (op1) {
 						L.v = evaluate(nextarg(&op1), v1);
 						if (L.v->type & VF_NUMBER) {
-							fmt_num(buf, MAXVARFMT, getvar_s(intvar[OFMT]),
+							fmt_num(g_buf, MAXVARFMT, getvar_s(intvar[OFMT]),
 									getvar_i(L.v), TRUE);
-							fputs(buf, X.F);
+							fputs(g_buf, X.F);
 						} else {
 							fputs(getvar_s(L.v), X.F);
 						}
@@ -2210,7 +2281,7 @@ static var *evaluate(node *op, var *res)
 			} else if (X.info == OC_FNARG) {
 				R.v = &fnargs[op1->l.i];
 			} else {
-				runtime_error(EMSG_NOT_ARRAY);
+				syntax_error(EMSG_NOT_ARRAY);
 			}
 
 			if (op1->r.n) {
@@ -2223,7 +2294,7 @@ static var *evaluate(node *op, var *res)
 			break;
 
 		case XC( OC_NEWSOURCE ):
-			programname = op->l.s;
+			g_progname = op->l.s;
 			break;
 
 		case XC( OC_RETURN ):
@@ -2285,13 +2356,13 @@ static var *evaluate(node *op, var *res)
 
 		case XC( OC_TERNARY ):
 			if ((op->r.n->info & OPCLSMASK) != OC_COLON)
-				runtime_error(EMSG_POSSIBLE_ERROR);
+				syntax_error(EMSG_POSSIBLE_ERROR);
 			res = evaluate(istrue(L.v) ? op->r.n->l.n : op->r.n->r.n, res);
 			break;
 
 		case XC( OC_FUNC ):
 			if (!op->r.f->body.first)
-				runtime_error(EMSG_UNDEF_FUNC);
+				syntax_error(EMSG_UNDEF_FUNC);
 
 			X.v = R.v = nvalloc(op->r.f->nargs+1);
 			while (op1) {
@@ -2306,9 +2377,9 @@ static var *evaluate(node *op, var *res)
 			R.v = fnargs;
 			fnargs = X.v;
 
-			L.s = programname;
+			L.s = g_progname;
 			res = evaluate(op->r.f->body.first, res);
-			programname = L.s;
+			g_progname = L.s;
 
 			nvfree(fnargs);
 			fnargs = R.v;
@@ -2387,7 +2458,7 @@ static var *evaluate(node *op, var *res)
 			case F_lg:
 			case F_si:
 			case F_sq:
-				runtime_error(EMSG_NO_MATH);
+				syntax_error(EMSG_NO_MATH);
 				break;
 #endif
 			case F_sr:
@@ -2525,18 +2596,18 @@ static var *evaluate(node *op, var *res)
 				L.d *= R.d;
 				break;
 			case '/':
-				if (R.d == 0) runtime_error(EMSG_DIV_BY_ZERO);
+				if (R.d == 0) syntax_error(EMSG_DIV_BY_ZERO);
 				L.d /= R.d;
 				break;
 			case '&':
 #if ENABLE_FEATURE_AWK_MATH
 				L.d = pow(L.d, R.d);
 #else
-				runtime_error(EMSG_NO_MATH);
+				syntax_error(EMSG_NO_MATH);
 #endif
 				break;
 			case '%':
-				if (R.d == 0) runtime_error(EMSG_DIV_BY_ZERO);
+				if (R.d == 0) syntax_error(EMSG_DIV_BY_ZERO);
 				L.d -= (int)(L.d / R.d) * R.d;
 				break;
 			}
@@ -2566,7 +2637,7 @@ static var *evaluate(node *op, var *res)
 			break;
 
 		default:
-			runtime_error(EMSG_POSSIBLE_ERROR);
+			syntax_error(EMSG_POSSIBLE_ERROR);
 		}
 		if ((opinfo & OPCLSMASK) <= SHIFT_TIL_THIS)
 			op = op->a.n;
@@ -2577,6 +2648,9 @@ static var *evaluate(node *op, var *res)
 	}
 	nvfree(v1);
 	return res;
+#undef fnargs
+#undef seed
+#undef sreg
 }
 
 
@@ -2635,8 +2709,8 @@ static int is_assignment(const char *expr)
 /* switch to next input file */
 static rstream *next_input_file(void)
 {
-	static rstream rsm;
-	static int files_happen = FALSE;
+#define rsm          (G.next_input_file__rsm)
+#define files_happen (G.next_input_file__files_happen)
 
 	FILE *F = NULL;
 	const char *fname, *ind;
@@ -2663,6 +2737,8 @@ static rstream *next_input_file(void)
 	setvar_s(intvar[FILENAME], fname);
 	rsm.F = F;
 	return &rsm;
+#undef rsm
+#undef files_happen
 }
 
 int awk_main(int argc, char **argv);
@@ -2678,6 +2754,8 @@ int awk_main(int argc, char **argv)
 	char *vnames = (char *)vNames; /* cheat */
 	char *vvalues = (char *)vValues;
 
+	INIT_G();
+
 	/* Undo busybox.c, or else strtod may eat ','! This breaks parsing:
 	 * $1,$2 == '$1,' '$2', NOT '$1' ',' '$2' */
 	if (ENABLE_LOCALE_SUPPORT)
@@ -2686,7 +2764,7 @@ int awk_main(int argc, char **argv)
 	zero_out_var(&tv);
 
 	/* allocate global buffer */
-	buf = xmalloc(MAXVARFMT + 1);
+	g_buf = xmalloc(MAXVARFMT + 1);
 
 	vhash = hash_init();
 	ahash = hash_init();
@@ -2725,7 +2803,7 @@ int awk_main(int argc, char **argv)
 		free(s);
 	}
 	opt_complementary = "v::";
-	opt = getopt32(argc, argv, "F:v:f:W:", &opt_F, &opt_v, &programname, &opt_W);
+	opt = getopt32(argc, argv, "F:v:f:W:", &opt_F, &opt_v, &g_progname, &opt_W);
 	argv += optind;
 	argc -= optind;
 	if (opt & 0x1)
@@ -2736,7 +2814,7 @@ int awk_main(int argc, char **argv)
 	}
 	if (opt & 0x4) { // -f
 		char *s = s; /* die, gcc, die */
-		FILE *from_file = afopen(programname, "r");
+		FILE *from_file = afopen(g_progname, "r");
 		/* one byte is reserved for some trick in next_token */
 		if (fseek(from_file, 0, SEEK_END) == 0) {
 			flen = ftell(from_file);
@@ -2756,7 +2834,7 @@ int awk_main(int argc, char **argv)
 	} else { // no -f: take program from 1st parameter
 		if (!argc)
 			bb_show_usage();
-		programname = "cmd. line";
+		g_progname = "cmd. line";
 		parse_program(*argv++);
 		argc--;
 	}
@@ -2793,7 +2871,7 @@ int awk_main(int argc, char **argv)
 		}
 
 		if (i < 0)
-			runtime_error(strerror(errno));
+			syntax_error(strerror(errno));
 
 		iF = next_input_file();
 	}

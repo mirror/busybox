@@ -155,15 +155,12 @@ struct globals {
 } while (0)
 
 
-
-
 static void print_only(const char *path, size_t dirlen, const char *entry)
 {
 	if (dirlen > 1)
 		dirlen--;
 	printf("Only in %.*s: %s\n", (int) dirlen, path, entry);
 }
-
 
 static void print_status(int val, char *path1, char *path2, char *entry)
 {
