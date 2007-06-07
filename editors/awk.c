@@ -392,23 +392,10 @@ static const char vValues[] =
 static const unsigned PRIMES[] = { 251, 1021, 4093, 16381, 65521 };
 enum { NPRIMES = sizeof(PRIMES) / sizeof(PRIMES[0]) };
 
-/* globals */
 
+/* Globals. Split in two parts so that first one is addressed
+ * with (mostly short) negative offsets */
 struct globals {
-	/* former 'struct t' */
-	uint32_t t_info; /* often used */
-	uint32_t t_tclass;
-	char *t_string;
-	double t_double;
-	int t_lineno;
-	int t_rollback;
-
-	/* the rest */
-	smallint icase;
-	smallint exiting;
-	smallint nextrec;
-	smallint nextfile;
-	smallint is_f0_split;
 	chain beginseq, mainseq, endseq, *seq;
 	node *break_ptr, *continue_ptr;
 	rstream *iF;
@@ -421,17 +408,31 @@ struct globals {
 	nvblock *g_cb;
 	char *g_pos;
 	char *g_buf;
+	smallint icase;
+	smallint exiting;
+	smallint nextrec;
+	smallint nextfile;
+	smallint is_f0_split;
+};
+struct globals2 {
+	uint32_t t_info; /* often used */
+	uint32_t t_tclass;
+	char *t_string;
+	int t_lineno;
+	int t_rollback;
+
+	var *intvar[NUM_INTERNAL_VARS]; /* often used */
 
 	/* former statics from various functions */
 	char *split_f0__fstrings;
 
-	rstream next_input_file__rsm;
-	smallint next_input_file__files_happen;
-
-        smallint next_token__concat_inserted;
 	uint32_t next_token__save_tclass;
 	uint32_t next_token__save_info;
 	uint32_t next_token__ltclass;
+	smallint next_token__concat_inserted;
+
+	smallint next_input_file__files_happen;
+	rstream next_input_file__rsm;
 
 	var *evaluate__fnargs;
 	unsigned evaluate__seed;
@@ -441,50 +442,52 @@ struct globals {
 
 	tsplitter exec_builtin__tspl;
 
-	/* biggest members go last */
-	var *intvar[NUM_INTERNAL_VARS];
+	/* biggest and least used members go last */
+	double t_double;
 	tsplitter fsplitter, rsplitter;
 };
-#define G (*ptr_to_globals)
-/* for debug */
-/* char Gsize[sizeof(G)];  ~0x240 */
+#define G1 (ptr_to_globals[-1])
+#define G (*(struct globals2 *const)ptr_to_globals)
+/* For debug. nm --size-sort awk.o | grep -vi ' [tr] ' */
+/* char G1size[sizeof(G1)]; - 0x6c */
+/* char Gsize[sizeof(G)]; - 0x1cc */
 /* Trying to keep most of members accessible with short offsets: */
-/* char Gofs_seed[offsetof(struct globals, evaluate__seed)];  ~0xc0 */
+/* char Gofs_seed[offsetof(struct globals2, evaluate__seed)]; - 0x90 */
+#define beginseq     (G1.beginseq    )
+#define mainseq      (G1.mainseq     )
+#define endseq       (G1.endseq      )
+#define seq          (G1.seq         )
+#define break_ptr    (G1.break_ptr   )
+#define continue_ptr (G1.continue_ptr)
+#define iF           (G1.iF          )
+#define vhash        (G1.vhash       )
+#define ahash        (G1.ahash       )
+#define fdhash       (G1.fdhash      )
+#define fnhash       (G1.fnhash      )
+#define g_progname   (G1.g_progname  )
+#define g_lineno     (G1.g_lineno    )
+#define nfields      (G1.nfields     )
+#define maxfields    (G1.maxfields   )
+#define Fields       (G1.Fields      )
+#define g_cb         (G1.g_cb        )
+#define g_pos        (G1.g_pos       )
+#define g_buf        (G1.g_buf       )
+#define icase        (G1.icase       )
+#define exiting      (G1.exiting     )
+#define nextrec      (G1.nextrec     )
+#define nextfile     (G1.nextfile    )
+#define is_f0_split  (G1.is_f0_split )
 #define t_info       (G.t_info      )
 #define t_tclass     (G.t_tclass    )
 #define t_string     (G.t_string    )
 #define t_double     (G.t_double    )
 #define t_lineno     (G.t_lineno    )
 #define t_rollback   (G.t_rollback  )
-#define icase        (G.icase       )
-#define exiting      (G.exiting     )
-#define nextrec      (G.nextrec     )
-#define nextfile     (G.nextfile    )
-#define is_f0_split  (G.is_f0_split )
-#define beginseq     (G.beginseq    )
-#define mainseq      (G.mainseq     )
-#define endseq       (G.endseq      )
-#define seq          (G.seq         )
-#define break_ptr    (G.break_ptr   )
-#define continue_ptr (G.continue_ptr)
-#define iF           (G.iF          )
-#define vhash        (G.vhash       )
-#define ahash        (G.ahash       )
-#define fdhash       (G.fdhash      )
-#define fnhash       (G.fnhash      )
-#define g_progname   (G.g_progname  )
-#define g_lineno     (G.g_lineno    )
-#define nfields      (G.nfields     )
-#define maxfields    (G.maxfields   )
-#define Fields       (G.Fields      )
-#define g_cb         (G.g_cb        )
-#define g_pos        (G.g_pos       )
-#define g_buf        (G.g_buf       )
 #define intvar       (G.intvar      )
 #define fsplitter    (G.fsplitter   )
 #define rsplitter    (G.rsplitter   )
 #define INIT_G() do { \
-	PTR_TO_GLOBALS = xzalloc(sizeof(G)); \
+	PTR_TO_GLOBALS = xzalloc(sizeof(G1) + sizeof(G)) + sizeof(G1); \
 	G.next_token__ltclass = TC_OPTERM; \
 	G.evaluate__seed = 1; \
 } while (0)
