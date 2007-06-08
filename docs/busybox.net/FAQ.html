@@ -10,6 +10,7 @@ have additions to this FAQ document, we would love to add them,
 <ol>
 <li><a href="#getting_started">How can I get started using BusyBox?</a></li>
 <li><a href="#configure">How do I configure busybox?</a></li>
+<li><a href="#build">How do I build BusyBox with a cross-compiler?</a></li>
 <li><a href="#build_system">How do I build a BusyBox-based system?</a></li>
 <li><a href="#kernel">Which Linux kernel versions are supported?</a></li>
 <li><a href="#arch">Which architectures does BusyBox run on?</a></li>
@@ -164,6 +165,21 @@ within each applet.  More build coverage testing.</p></li>
 </p>
 <hr/>
 <p/>
+<h2><a name="build">How do I build BusyBox with a cross-compiler?</a></h2>
+<p>
+   To build busybox with a cross-compiler, specify CROSS_COMPILE=&lt;prefix&gt;.
+</p>
+<p>
+   CROSS_COMPILE specifies the prefix used for all executables used
+   during compilation. Only gcc and related binutils executables
+   are prefixed with $(CROSS_COMPILE) in the makefiles.
+   CROSS_COMPILE can be set on the command line:
+<pre>
+   make CROSS_COMPILE=arm-linux-uclibcgnueabi-
+</pre>
+   Alternatively CROSS_COMPILE can be set in the environment.
+   Default value for CROSS_COMPILE is not to prefix executables.
+</p>
 <h2><a name="build_system">How do I build a BusyBox-based system?</a></h2>
 <p>
     BusyBox is a package that replaces a dozen standard packages, but it is
