@@ -178,17 +178,15 @@ static void make_device(char *path, int delete)
 		if (ENABLE_FEATURE_MDEV_CONF) chown(device_name, uid, gid);
 	}
 	if (command) {
-		int rc;
-		char *s;
-
-		s = xasprintf("MDEV=%s", device_name);
+		/* setenv will leak memory, so use putenv */
+		char *s = xasprintf("MDEV=%s", device_name);
 		putenv(s);
-		rc = system(command);
-		s[4] = 0;
-		putenv(s);
+		if (system(command) == -1)
+			bb_perror_msg_and_die("cannot run %s", command);
+		s[4] = '\0';
+		unsetenv(s);
 		free(s);
 		free(command);
-		if (rc == -1) bb_perror_msg_and_die("cannot run %s", command);
 	}
 	if (delete) unlink(device_name);
 }
