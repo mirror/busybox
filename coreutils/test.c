@@ -182,21 +182,26 @@ static void initialize_group_array(void);
 int bb_test(int argc, char **argv)
 {
 	int res;
+	char *arg0;
 
-	if (LONE_CHAR(argv[0], '[')) {
-		--argc;
-		if (NOT_LONE_CHAR(argv[argc], ']')) {
-			bb_error_msg("missing ]");
-			return 2;
+	arg0 = strrchr(argv[0], '/');
+	if (!arg0++) arg0 = argv[0];
+	if (arg0[0] == '[') {
+		if (!arg0[1]) { /* "[" ? */
+			--argc;
+			if (NOT_LONE_CHAR(argv[argc], ']')) {
+				bb_error_msg("missing ]");
+				return 2;
+			}
+			argv[argc] = NULL;
+		} else if (LONE_CHAR(arg0, '[') == 0) { /* "[[" ? */
+			--argc;
+			if (strcmp(argv[argc], "]]") != 0) {
+				bb_error_msg("missing ]]");
+				return 2;
+			}
+			argv[argc] = NULL;
 		}
-		argv[argc] = NULL;
-	} else if (strcmp(argv[0], "[[") == 0) {
-		--argc;
-		if (strcmp(argv[argc], "]]")) {
-			bb_error_msg("missing ]]");
-			return 2;
-		}
-		argv[argc] = NULL;
 	}
 
 	res = setjmp(leaving);
