@@ -981,7 +981,7 @@ static int inflate_get_next_window(STATE_PARAM_ONLY)
 }
 
 
-/* Called from inflate_gunzip() and inflate_unzip() */
+/* Called from unpack_gz_stream() and inflate_unzip() */
 /* NB: bytebuffer is allocated here but freeing it is left to the caller! */
 static USE_DESKTOP(long long) int
 inflate_unzip_internal(STATE_PARAM int in, int out)
@@ -1056,7 +1056,7 @@ inflate_unzip(inflate_unzip_result *res, unsigned bufsize, int in, int out)
 
 
 USE_DESKTOP(long long) int
-inflate_gunzip(int in, int out)
+unpack_gz_stream(int in, int out)
 {
 	uint32_t stored_crc = 0;
 	unsigned count;

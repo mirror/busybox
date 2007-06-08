@@ -187,10 +187,11 @@ int rpm_main(int argc, char **argv)
 
 static void extract_cpio_gz(int fd)
 {
+	USE_DESKTOP(long long) int (*xformer)(int src_fd, int dst_fd);
 	archive_handle_t *archive_handle;
 	unsigned char magic[2];
 
-	/* Initialise */
+	/* Initialize */
 	archive_handle = init_handle();
 	archive_handle->seek = seek_by_read;
 	//archive_handle->action_header = header_list;
@@ -201,16 +202,26 @@ static void extract_cpio_gz(int fd)
 	archive_handle->offset = 0;
 
 	xread(archive_handle->src_fd, &magic, 2);
+	xformer = unpack_gz_stream;
 	if ((magic[0] != 0x1f) || (magic[1] != 0x8b)) {
-		bb_error_msg_and_die("invalid gzip magic");
-	}
-	check_header_gzip_or_die(archive_handle->src_fd);
-	xchdir("/"); /* Install RPM's to root */
+		if (ENABLE_FEATURE_RPM_BZ2
+		 && (magic[0] == 0x42) && (magic[1] == 0x5a)) {
+			xformer = unpack_bz2_stream;
+	/* We can do better, need modifying unpack_bz2_stream to not require
+	 * first 2 bytes. Not very hard to do... I mean, TODO :) */
+			xlseek(archive_handle->src_fd, -2, SEEK_CUR);
+		} else
+			bb_error_msg_and_die("no gzip"
+				USE_FEATURE_RPM_BZ2("/bzip")
+				" magic");
+	} else
+		check_header_gzip_or_die(archive_handle->src_fd);
 
-	archive_handle->src_fd = open_transformer(archive_handle->src_fd, inflate_gunzip);
+	xchdir("/"); /* Install RPM's to root */
+	archive_handle->src_fd = open_transformer(archive_handle->src_fd, xformer);
 	archive_handle->offset = 0;
 	while (get_header_cpio(archive_handle) == EXIT_SUCCESS)
-		/* loop */;
+		continue;
 }
 
 

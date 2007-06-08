@@ -228,7 +228,7 @@ enum {
 
 
 USE_DESKTOP(long long) int
-unlzma(int src_fd, int dst_fd)
+unpack_lzma_stream(int src_fd, int dst_fd)
 {
 	USE_DESKTOP(long long total_written = 0;)
 	lzma_header_t header;

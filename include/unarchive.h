@@ -101,7 +101,6 @@ extern void data_align(archive_handle_t *archive_handle, const unsigned short bo
 extern const llist_t *find_list_entry(const llist_t *list, const char *filename);
 extern const llist_t *find_list_entry2(const llist_t *list, const char *filename);
 
-extern USE_DESKTOP(long long) int uncompressStream(int src_fd, int dst_fd);
 /* A bit of bunzip2 internals are exposed for compressed help support: */
 typedef struct bunzip_data bunzip_data;
 int start_bunzip(bunzip_data **bdp, int in_fd, const unsigned char *inbuf, int len);
@@ -113,9 +112,10 @@ typedef struct inflate_unzip_result {
 	uint32_t crc;
 } inflate_unzip_result;
 
-extern USE_DESKTOP(long long) int inflate_unzip(inflate_unzip_result *res, unsigned bufsize, int in, int out);
-extern USE_DESKTOP(long long) int inflate_gunzip(int in, int out);
-extern USE_DESKTOP(long long) int unlzma(int src_fd, int dst_fd);
+extern USE_DESKTOP(long long) int unpack_bz2_stream(int src_fd, int dst_fd);
+extern USE_DESKTOP(long long) int inflate_unzip(inflate_unzip_result *res, unsigned bufsize, int src_fd, int dst_fd);
+extern USE_DESKTOP(long long) int unpack_gz_stream(int src_fd, int dst_fd);
+extern USE_DESKTOP(long long) int unpack_lzma_stream(int src_fd, int dst_fd);
 
 extern int open_transformer(int src_fd,
 	USE_DESKTOP(long long) int (*transformer)(int src_fd, int dst_fd));

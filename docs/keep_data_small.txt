@@ -65,7 +65,7 @@ archival/libunarchive/decompress_unzip.c:
 (see the rest of the file to get the idea)
 
 This example completely eliminates globals in that module.
-Required memory is allocated in inflate_gunzip() [its main module]
+Required memory is allocated in unpack_gz_stream() [its main module]
 and then passed down to all subroutines which need to access 'globals'
 as a parameter.
 

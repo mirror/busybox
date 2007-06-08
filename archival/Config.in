@@ -133,6 +133,13 @@ config RPM
 	help
 	  Mini RPM applet - queries and extracts RPM packages.
 
+config FEATURE_RPM_BZ2
+	bool "Enable handling of rpms with bzip2-compressed data inside"
+	default n
+	depends on RPM
+	help
+	  Enable handling of rpms with bzip2-compressed data inside.
+
 config TAR
 	bool "tar"
 	default n

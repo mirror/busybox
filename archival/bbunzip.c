@@ -155,7 +155,7 @@ char* make_new_name_bunzip2(char *filename)
 static
 USE_DESKTOP(long long) int unpack_bunzip2(void)
 {
-	return uncompressStream(STDIN_FILENO, STDOUT_FILENO);
+	return unpack_bz2_stream(STDIN_FILENO, STDOUT_FILENO);
 }
 
 int bunzip2_main(int argc, char **argv);
@@ -242,7 +242,7 @@ USE_DESKTOP(long long) int unpack_gunzip(void)
 			status = uncompress(STDIN_FILENO, STDOUT_FILENO);
 		} else if (magic2 == 0x8b) {
 			check_header_gzip_or_die(STDIN_FILENO);
-			status = inflate_gunzip(STDIN_FILENO, STDOUT_FILENO);
+			status = unpack_gz_stream(STDIN_FILENO, STDOUT_FILENO);
 		} else {
 			goto bad_magic;
 		}
@@ -292,7 +292,7 @@ char* make_new_name_unlzma(char *filename)
 static
 USE_DESKTOP(long long) int unpack_unlzma(void)
 {
-	return unlzma(STDIN_FILENO, STDOUT_FILENO);
+	return unpack_lzma_stream(STDIN_FILENO, STDOUT_FILENO);
 }
 
 int unlzma_main(int argc, char **argv);

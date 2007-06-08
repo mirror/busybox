@@ -700,7 +700,7 @@ void dealloc_bunzip(bunzip_data *bd)
 /* Decompress src_fd to dst_fd.  Stops at end of bzip data, not end of file. */
 
 USE_DESKTOP(long long) int
-uncompressStream(int src_fd, int dst_fd)
+unpack_bz2_stream(int src_fd, int dst_fd)
 {
 	USE_DESKTOP(long long total_written = 0;)
 	char *outbuf;
@@ -751,7 +751,7 @@ static char *const bunzip_errors[] = {
 /* Dumb little test thing, decompress stdin to stdout */
 int main(int argc, char **argv)
 {
-	int i = uncompressStream(0, 1);
+	int i = unpack_bz2_stream(0, 1);
 	char c;
 
 	if (i < 0)
