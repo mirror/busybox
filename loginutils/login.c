@@ -276,8 +276,8 @@ int login_main(int argc, char **argv)
 
 		pw = getpwnam(username);
 		if (!pw) {
-			safe_strncpy(username, "UNKNOWN", sizeof(username));
-			goto auth_failed;
+			strcpy(username, "UNKNOWN");
+			goto fake_it;
 		}
 
 		if (pw->pw_passwd[0] == '!' || pw->pw_passwd[0] == '*')
@@ -292,11 +292,10 @@ int login_main(int argc, char **argv)
 		/* Don't check the password if password entry is empty (!) */
 		if (!pw->pw_passwd[0])
 			break;
-
+ fake_it:
 		/* authorization takes place here */
 		if (correct_password(pw))
 			break;
-
  auth_failed:
 		opt &= ~LOGIN_OPT_f;
 		bb_do_delay(FAIL_DELAY);

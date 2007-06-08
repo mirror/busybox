@@ -31,9 +31,10 @@
 #include "libbb.h"
 
 /* Ask the user for a password.
-   Return 1 if the user gives the correct password for entry PW,
-   0 if not.  Return 1 without asking for a password if run by UID 0
-   or if PW has an empty password.  */
+ * Return 1 if the user gives the correct password for entry PW,
+ * 0 if not.  Return 1 without asking if PW has an empty password.
+ *
+ * NULL pw means "just fake it for login with bad username" */
 
 int correct_password(const struct passwd *pw)
 {
@@ -46,6 +47,9 @@ int correct_password(const struct passwd *pw)
 	char buffer[256];
 #endif
 
+	correct = "aa"; /* fake salt. crypt() can choke otherwise */
+	if (!pw)
+		goto fake_it; /* "aa" will never match */
 	correct = pw->pw_passwd;
 #if ENABLE_FEATURE_SHADOWPASSWDS
 	if (LONE_CHAR(pw->pw_passwd, 'x') || LONE_CHAR(pw->pw_passwd, '*')) {
@@ -59,6 +63,7 @@ int correct_password(const struct passwd *pw)
 	if (!correct || correct[0] == '\0')
 		return 1;
 
+ fake_it:
 	unencrypted = bb_askpass(0, "Password: ");
 	if (!unencrypted) {
 		return 0;
