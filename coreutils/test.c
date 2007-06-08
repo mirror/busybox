@@ -194,7 +194,7 @@ int bb_test(int argc, char **argv)
 				return 2;
 			}
 			argv[argc] = NULL;
-		} else if (LONE_CHAR(arg0, '[') == 0) { /* "[[" ? */
+		} else if (LONE_CHAR(arg0+1, '[') == 0) { /* "[[" ? */
 			--argc;
 			if (strcmp(argv[argc], "]]") != 0) {
 				bb_error_msg("missing ]]");
