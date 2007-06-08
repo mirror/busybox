@@ -577,21 +577,13 @@ static int busybox_main(char **argv)
 	}
 
 	if (ENABLE_FEATURE_INSTALLER && strcmp(argv[1], "--install") == 0) {
-		int use_symbolic_links = 0;
-		char *busybox;
-
-		/* to use symlinks, or not to use symlinks... */
-		if (argv[2])
-			if (strcmp(argv[2], "-s") == 0)
-				use_symbolic_links = 1;
-
-		/* link */
-		busybox = xmalloc_readlink_or_warn("/proc/self/exe");
+		const char *busybox;
+		busybox = xmalloc_readlink_or_warn(bb_busybox_exec_path);
 		if (!busybox)
-			return 1;
-		install_links(busybox, use_symbolic_links);
-		if (ENABLE_FEATURE_CLEAN_UP)
-			free(busybox);
+			busybox = bb_busybox_exec_path;
+		/* -s makes symlinks */
+		install_links(busybox,
+				 argv[2] && strcmp(argv[2], "-s") == 0);
 		return 0;
 	}
 

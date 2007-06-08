@@ -37,8 +37,9 @@ const char bb_path_gshadow_file[] = "/etc/gshadow";
 const char bb_path_nologin_file[] = "/etc/nologin";
 const char bb_path_securetty_file[] = "/etc/securetty";
 const char bb_path_motd_file[] = "/etc/motd";
-const char bb_default_login_shell[] = LIBBB_DEFAULT_LOGIN_SHELL;
 const char bb_dev_null[] = "/dev/null";
+const char bb_busybox_exec_path[] = CONFIG_BUSYBOX_EXEC_PATH;
+const char bb_default_login_shell[] = LIBBB_DEFAULT_LOGIN_SHELL;
 
 const int const_int_0;
 const int const_int_1 = 1;

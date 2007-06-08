@@ -6471,7 +6471,7 @@ tryexec(char *cmd, char **argv, char **envp)
 				run_current_applet_and_exit(argv);
 			}
 			/* re-exec ourselves with the new arguments */
-			execve(CONFIG_BUSYBOX_EXEC_PATH, argv, envp);
+			execve(bb_busybox_exec_path, argv, envp);
 			/* If they called chroot or otherwise made the binary no longer
 			 * executable, fall through */
 		}

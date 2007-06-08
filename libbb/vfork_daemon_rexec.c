@@ -220,8 +220,8 @@ void forkexit_or_rexec(char **argv)
 	/* high-order bit of first char in argv[0] is a hidden
 	 * "we have (alrealy) re-execed, don't do it again" flag */
 	argv[0][0] |= 0x80;
-	execv(CONFIG_BUSYBOX_EXEC_PATH, argv);
-	bb_perror_msg_and_die("exec %s", CONFIG_BUSYBOX_EXEC_PATH);
+	execv(bb_busybox_exec_path, argv);
+	bb_perror_msg_and_die("exec %s", bb_busybox_exec_path);
 }
 #else
 /* Dance around (void)...*/

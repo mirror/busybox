@@ -1392,7 +1392,7 @@ static void pseudo_exec_argv(char **argv)
 			}
 			/* re-exec ourselves with the new arguments */
 			debug_printf_exec("re-execing applet '%s'\n", argv[0]);
-			execvp(CONFIG_BUSYBOX_EXEC_PATH, argv);
+			execvp(bb_busybox_exec_path, argv);
 			/* If they called chroot or otherwise made the binary no longer
 			 * executable, fall through */
 		}

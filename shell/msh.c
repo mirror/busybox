@@ -3062,7 +3062,7 @@ static const char *rexecve(char *c, char **v, char **envp)
 			/* We have to exec here since we vforked.  Running
 			 * run_applet_and_exit() won't work and bad things
 			 * will happen. */
-			execve(CONFIG_BUSYBOX_EXEC_PATH, v, envp);
+			execve(bb_busybox_exec_path, v, envp);
 		}
 	}
 

@@ -952,6 +952,7 @@ extern const char bb_path_securetty_file[];
 extern const char bb_path_motd_file[];
 extern const char bb_path_wtmp_file[];
 extern const char bb_dev_null[];
+extern const char bb_busybox_exec_path[];
 
 extern const int const_int_0;
 extern const int const_int_1;
