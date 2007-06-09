@@ -48,11 +48,11 @@ enum {
 	OPTBIT_L,
 	OPTBIT_o,
 	OPTBIT_r,
-	USE_FEATURE_GREP_CONTEXT(OPTBIT_A ,)
-	USE_FEATURE_GREP_CONTEXT(OPTBIT_B ,)
-	USE_FEATURE_GREP_CONTEXT(OPTBIT_C ,)
-	USE_FEATURE_GREP_CONTEXT(OPTBIT_E ,)
-	USE_DESKTOP(             OPTBIT_w ,)
+	USE_FEATURE_GREP_CONTEXT(    OPTBIT_A ,)
+	USE_FEATURE_GREP_CONTEXT(    OPTBIT_B ,)
+	USE_FEATURE_GREP_CONTEXT(    OPTBIT_C ,)
+	USE_FEATURE_GREP_EGREP_ALIAS(OPTBIT_E ,)
+	USE_DESKTOP(                 OPTBIT_w ,)
 	OPT_l = 1 << OPTBIT_l,
 	OPT_n = 1 << OPTBIT_n,
 	OPT_q = 1 << OPTBIT_q,
@@ -68,19 +68,19 @@ enum {
 	OPT_L = 1 << OPTBIT_L,
 	OPT_o = 1 << OPTBIT_o,
 	OPT_r = 1 << OPTBIT_r,
-	OPT_A = USE_FEATURE_GREP_CONTEXT((1 << OPTBIT_A)) + 0,
-	OPT_B = USE_FEATURE_GREP_CONTEXT((1 << OPTBIT_B)) + 0,
-	OPT_C = USE_FEATURE_GREP_CONTEXT((1 << OPTBIT_C)) + 0,
-	OPT_E = USE_FEATURE_GREP_CONTEXT((1 << OPTBIT_E)) + 0,
-	OPT_w = USE_DESKTOP(             (1 << OPTBIT_w)) + 0,
+	OPT_A = USE_FEATURE_GREP_CONTEXT(    (1 << OPTBIT_A)) + 0,
+	OPT_B = USE_FEATURE_GREP_CONTEXT(    (1 << OPTBIT_B)) + 0,
+	OPT_C = USE_FEATURE_GREP_CONTEXT(    (1 << OPTBIT_C)) + 0,
+	OPT_E = USE_FEATURE_GREP_EGREP_ALIAS((1 << OPTBIT_E)) + 0,
+	OPT_w = USE_DESKTOP(                 (1 << OPTBIT_w)) + 0,
 };
 
-#define PRINT_FILES_WITH_MATCHES (option_mask32 & OPT_l)
-#define PRINT_LINE_NUM (option_mask32 & OPT_n)
-#define BE_QUIET (option_mask32 & OPT_q)
-#define SUPPRESS_ERR_MSGS (option_mask32 & OPT_s)
-#define PRINT_MATCH_COUNTS (option_mask32 & OPT_c)
-#define FGREP_FLAG (option_mask32 & OPT_F)
+#define PRINT_FILES_WITH_MATCHES    (option_mask32 & OPT_l)
+#define PRINT_LINE_NUM              (option_mask32 & OPT_n)
+#define BE_QUIET                    (option_mask32 & OPT_q)
+#define SUPPRESS_ERR_MSGS           (option_mask32 & OPT_s)
+#define PRINT_MATCH_COUNTS          (option_mask32 & OPT_c)
+#define FGREP_FLAG                  (option_mask32 & OPT_F)
 #define PRINT_FILES_WITHOUT_MATCHES (option_mask32 & OPT_L)
 
 typedef unsigned char byte_t;
