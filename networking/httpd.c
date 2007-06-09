@@ -98,10 +98,8 @@
 # define PIPE_BUF 4096
 #endif
 
-static const char httpdVersion[] = "busybox httpd/1.35 6-Oct-2004";
 static const char default_path_httpd_conf[] = "/etc";
 static const char httpd_conf[] = "httpd.conf";
-static const char home[] = "./";
 
 #define TIMEOUT 60
 
@@ -122,55 +120,85 @@ typedef struct HT_ACCESS {
 } Htaccess;
 
 typedef struct HT_ACCESS_IP {
-	unsigned int ip;
-	unsigned int mask;
+	unsigned ip;
+	unsigned mask;
 	int allow_deny;
 	struct HT_ACCESS_IP *next;
 } Htaccess_IP;
 
-typedef struct {
-	char buf[MAX_MEMORY_BUFF];
+struct globals {
+	int server_socket;
+	int accepted_socket;
+	volatile smallint alarm_signaled;
+	smallint flg_deny_all;
+	const char *g_query;
+	const char *configFile;
+	const char *home_httpd;
+	unsigned rmt_ip;
 
-	USE_FEATURE_HTTPD_BASIC_AUTH(const char *realm;)
+	const char *found_mime_type;
+	const char *found_moved_temporarily;
+	off_t ContentLength;          /* -1 - unknown */
+	time_t last_mod;
+	Htaccess_IP *ip_a_d;          /* config allow/deny lines */
+
+	USE_FEATURE_HTTPD_BASIC_AUTH(const char *g_realm;)
 	USE_FEATURE_HTTPD_BASIC_AUTH(char *remoteuser;)
-
-	const char *query;
-
 	USE_FEATURE_HTTPD_CGI(char *referer;)
 
-	const char *configFile;
-
-	unsigned int rmt_ip;
 #if ENABLE_FEATURE_HTTPD_CGI || DEBUG
 	char *rmt_ip_str;        /* for set env REMOTE_ADDR */
 #endif
-	unsigned port;           /* server initial port and for
-						      set env REMOTE_PORT */
-	const char *found_mime_type;
-	const char *found_moved_temporarily;
-
-	off_t ContentLength;          /* -1 - unknown */
-	time_t last_mod;
-
-	Htaccess_IP *ip_a_d;          /* config allow/deny lines */
-	int flg_deny_all;
+	unsigned tcp_port;       /* server initial port and for
+	                            set env REMOTE_PORT */
 #if ENABLE_FEATURE_HTTPD_BASIC_AUTH
-	Htaccess *auth;               /* config user:password lines */
+	Htaccess *g_auth;        /* config user:password lines */
 #endif
 #if ENABLE_FEATURE_HTTPD_CONFIG_WITH_MIME_TYPES
 	Htaccess *mime_a;             /* config mime types */
 #endif
-
-	int server_socket;
-	int accepted_socket;
-	volatile int alarm_signaled;
-
 #if ENABLE_FEATURE_HTTPD_CONFIG_WITH_SCRIPT_INTERPR
 	Htaccess *script_i;           /* config script interpreters */
 #endif
-} HttpdConfig;
-
-static HttpdConfig *config;
+	char iobuf[MAX_MEMORY_BUFF];
+};
+#define G (*ptr_to_globals)
+#define server_socket   (G.server_socket  )
+#define accepted_socket (G.accepted_socket)
+#define alarm_signaled  (G.alarm_signaled )
+#define flg_deny_all    (G.flg_deny_all   )
+#define g_query         (G.g_query        )
+#define configFile      (G.configFile     )
+#define home_httpd      (G.home_httpd     )
+#define rmt_ip          (G.rmt_ip         )
+#define found_mime_type (G.found_mime_type)
+#define found_moved_temporarily (G.found_moved_temporarily)
+#define ContentLength   (G.ContentLength  )
+#define last_mod        (G.last_mod       )
+#define ip_a_d          (G.ip_a_d         )
+#define g_realm         (G.g_realm        )
+#define remoteuser      (G.remoteuser     )
+#define referer         (G.referer        )
+#if ENABLE_FEATURE_HTTPD_CGI || DEBUG
+#define rmt_ip_str      (G.rmt_ip_str     )
+#endif
+#define tcp_port        (G.tcp_port       )
+#if ENABLE_FEATURE_HTTPD_BASIC_AUTH
+#define g_auth          (G.g_auth         )
+#endif
+#if ENABLE_FEATURE_HTTPD_CONFIG_WITH_MIME_TYPES
+#define mime_a          (G.mime_a         )
+#endif
+#if ENABLE_FEATURE_HTTPD_CONFIG_WITH_SCRIPT_INTERPR
+#define script_i        (G.script_i       )
+#endif
+#define iobuf           (G.iobuf          )
+#define INIT_G() do { \
+	PTR_TO_GLOBALS = xzalloc(sizeof(G)); \
+	USE_FEATURE_HTTPD_BASIC_AUTH(g_realm = "Web Server Authentication";) \
+	tcp_port = 80; \
+	ContentLength = -1; \
+} while (0)
 
 static const char request_GET[] = "GET";    /* size algorithmic optimize */
 
@@ -264,7 +292,7 @@ static const char RFC1123FMT[] = "%a, %d %b %Y %H:%M:%S GMT";
 #define STRNCASECMP(a, str) strncasecmp((a), (str), sizeof(str)-1)
 
 
-static int scan_ip(const char **ep, unsigned int *ip, unsigned char endc)
+static int scan_ip(const char **ep, unsigned *ip, unsigned char endc)
 {
 	const char *p = *ep;
 	int auto_mask = 8;
@@ -272,7 +300,7 @@ static int scan_ip(const char **ep, unsigned int *ip, unsigned char endc)
 
 	*ip = 0;
 	for (j = 0; j < 4; j++) {
-		unsigned int octet;
+		unsigned octet;
 
 		if ((*p < '0' || *p > '9') && (*p != '/' || j == 0) && *p != 0)
 			return -auto_mask;
@@ -301,10 +329,10 @@ static int scan_ip(const char **ep, unsigned int *ip, unsigned char endc)
 	return auto_mask;
 }
 
-static int scan_ip_mask(const char *ipm, unsigned int *ip, unsigned int *mask)
+static int scan_ip_mask(const char *ipm, unsigned *ip, unsigned *mask)
 {
 	int i;
-	unsigned int msk;
+	unsigned msk;
 
 	i = scan_ip(&ipm, ip, '/');
 	if (i < 0)
@@ -397,13 +425,13 @@ static void parse_conf(const char *path, int flag)
 	Htaccess *cur;
 #endif
 
-	const char *cf = config->configFile;
+	const char *cf = configFile;
 	char buf[160];
 	char *p0 = NULL;
 	char *c, *p;
 
 	/* free previous ip setup if present */
-	Htaccess_IP *pip = config->ip_a_d;
+	Htaccess_IP *pip = ip_a_d;
 
 	while (pip) {
 		Htaccess_IP *cur_ipl = pip;
@@ -411,9 +439,9 @@ static void parse_conf(const char *path, int flag)
 		pip = cur_ipl->next;
 		free(cur_ipl);
 	}
-	config->ip_a_d = NULL;
+	ip_a_d = NULL;
 
-	config->flg_deny_all = 0;
+	flg_deny_all = 0;
 
 #if ENABLE_FEATURE_HTTPD_BASIC_AUTH \
  || ENABLE_FEATURE_HTTPD_CONFIG_WITH_MIME_TYPES \
@@ -421,13 +449,13 @@ static void parse_conf(const char *path, int flag)
 	/* retain previous auth and mime config only for subdir parse */
 	if (flag != SUBDIR_PARSE) {
 #if ENABLE_FEATURE_HTTPD_BASIC_AUTH
-		free_config_lines(&config->auth);
+		free_config_lines(&g_auth);
 #endif
 #if ENABLE_FEATURE_HTTPD_CONFIG_WITH_MIME_TYPES
-		free_config_lines(&config->mime_a);
+		free_config_lines(&mime_a);
 #endif
 #if ENABLE_FEATURE_HTTPD_CONFIG_WITH_SCRIPT_INTERPR
-		free_config_lines(&config->script_i);
+		free_config_lines(&script_i);
 #endif
 	}
 #endif
@@ -447,16 +475,16 @@ static void parse_conf(const char *path, int flag)
 			/* config file not found, no changes to config */
 			return;
 		}
-		if (config->configFile && flag == FIRST_PARSE) /* if -c option given */
+		if (configFile && flag == FIRST_PARSE) /* if -c option given */
 			bb_perror_msg_and_die("%s", cf);
 		flag = FIND_FROM_HTTPD_ROOT;
 		cf = httpd_conf;
 	}
 
 #if ENABLE_FEATURE_HTTPD_BASIC_AUTH
-		prev = config->auth;
+	prev = g_auth;
 #endif
-		/* This could stand some work */
+	/* This could stand some work */
 	while ((p0 = fgets(buf, sizeof(buf), f)) != NULL) {
 		c = NULL;
 		for (p = p0; *p0 != 0 && *p0 != '#'; p0++) {
@@ -477,7 +505,7 @@ static void parse_conf(const char *path, int flag)
 		if (*c == '*') {
 			if (*p0 == 'D') {
 				/* memorize deny all */
-				config->flg_deny_all++;
+				flg_deny_all = 1;
 			}
 			/* skip default other "word:*" config lines */
 			continue;
@@ -509,14 +537,14 @@ static void parse_conf(const char *path, int flag)
 				pip->allow_deny = *p0;
 				if (*p0 == 'D') {
 					/* Deny:form_IP move top */
-					pip->next = config->ip_a_d;
-					config->ip_a_d = pip;
+					pip->next = ip_a_d;
+					ip_a_d = pip;
 				} else {
 					/* add to bottom A:form_IP config line */
-					Htaccess_IP *prev_IP = config->ip_a_d;
+					Htaccess_IP *prev_IP = ip_a_d;
 
 					if (prev_IP == NULL) {
-						config->ip_a_d = pip;
+						ip_a_d = pip;
 					} else {
 						while (prev_IP->next)
 							prev_IP = prev_IP->next;
@@ -579,16 +607,16 @@ static void parse_conf(const char *path, int flag)
 #if ENABLE_FEATURE_HTTPD_CONFIG_WITH_MIME_TYPES
 			if (*cf == '.') {
 				/* config .mime line move top for overwrite previous */
-				cur->next = config->mime_a;
-				config->mime_a = cur;
+				cur->next = mime_a;
+				mime_a = cur;
 				continue;
 			}
 #endif
 #if ENABLE_FEATURE_HTTPD_CONFIG_WITH_SCRIPT_INTERPR
 			if (*cf == '*' && cf[1] == '.') {
 				/* config script interpreter line move top for overwrite previous */
-				cur->next = config->script_i;
-				config->script_i = cur;
+				cur->next = script_i;
+				script_i = cur;
 				continue;
 			}
 #endif
@@ -596,10 +624,10 @@ static void parse_conf(const char *path, int flag)
 			free(p0);
 			if (prev == NULL) {
 				/* first line */
-				config->auth = prev = cur;
+				g_auth = prev = cur;
 			} else {
 				/* sort path, if current lenght eq or bigger then move up */
-				Htaccess *prev_hti = config->auth;
+				Htaccess *prev_hti = g_auth;
 				size_t l = strlen(cf);
 				Htaccess *hti;
 
@@ -611,7 +639,7 @@ static void parse_conf(const char *path, int flag)
 							prev_hti->next = cur;
 						} else {
 							/* insert as top */
-							config->auth = cur;
+							g_auth = cur;
 						}
 						break;
 					}
@@ -818,7 +846,7 @@ static int openServer(void)
 	int fd;
 
 	/* create the socket right now */
-	fd = create_and_bind_stream_or_die(NULL, config->port);
+	fd = create_and_bind_stream_or_die(NULL, tcp_port);
 	xlisten(fd, 9);
 	return fd;
 }
@@ -840,7 +868,7 @@ static int openServer(void)
  ****************************************************************************/
 static int sendHeaders(HttpResponseNum responseNum)
 {
-	char *buf = config->buf;
+	char *buf = iobuf;
 	const char *responseString = "";
 	const char *infoString = 0;
 	const char *mime_type;
@@ -861,7 +889,7 @@ static int sendHeaders(HttpResponseNum responseNum)
 	}
 	/* error message is HTML */
 	mime_type = responseNum == HTTP_OK ?
-				config->found_mime_type : "text/html";
+				found_mime_type : "text/html";
 
 	/* emit the current date */
 	strftime(timeStr, sizeof(timeStr), RFC1123FMT, gmtime(&timer));
@@ -874,20 +902,20 @@ static int sendHeaders(HttpResponseNum responseNum)
 	if (responseNum == HTTP_UNAUTHORIZED) {
 		len += sprintf(buf+len,
 				"WWW-Authenticate: Basic realm=\"%s\"\r\n",
-				config->realm);
+				g_realm);
 	}
 #endif
 	if (responseNum == HTTP_MOVED_TEMPORARILY) {
 		len += sprintf(buf+len, "Location: %s/%s%s\r\n",
-				config->found_moved_temporarily,
-				(config->query ? "?" : ""),
-				(config->query ? config->query : ""));
+				found_moved_temporarily,
+				(g_query ? "?" : ""),
+				(g_query ? g_query : ""));
 	}
 
-	if (config->ContentLength != -1) {    /* file */
-		strftime(timeStr, sizeof(timeStr), RFC1123FMT, gmtime(&config->last_mod));
+	if (ContentLength != -1) {    /* file */
+		strftime(timeStr, sizeof(timeStr), RFC1123FMT, gmtime(&last_mod));
 		len += sprintf(buf+len, "Last-Modified: %s\r\n%s %"OFF_FMT"d\r\n",
-			timeStr, "Content-length:", config->ContentLength);
+			timeStr, "Content-length:", ContentLength);
 	}
 	strcat(buf, "\r\n");
 	len += 2;
@@ -900,7 +928,7 @@ static int sendHeaders(HttpResponseNum responseNum)
 	}
 	if (DEBUG)
 		fprintf(stderr, "headers: '%s'\n", buf);
-	i = config->accepted_socket;
+	i = accepted_socket;
 	if (i == 0) i++; /* write to fd# 1 in inetd mode */
 	return full_write(i, buf, len);
 }
@@ -919,9 +947,9 @@ static int sendHeaders(HttpResponseNum responseNum)
 static int getLine(void)
 {
 	int count = 0;
-	char *buf = config->buf;
+	char *buf = iobuf;
 
-	while (read(config->accepted_socket, buf + count, 1) == 1) {
+	while (read(accepted_socket, buf + count, 1) == 1) {
 		if (buf[count] == '\r') continue;
 		if (buf[count] == '\n') {
 			buf[count] = 0;
@@ -962,8 +990,8 @@ static int sendCgi(const char *url,
 {
 	int fromCgi[2];  /* pipe for reading data from CGI */
 	int toCgi[2];    /* pipe for sending data to CGI */
-
-	static char * argp[] = { 0, 0 };
+	char *fullpath;
+	char *argp[] = { NULL, NULL };
 	int pid = 0;
 	int inFd;
 	int outFd;
@@ -985,7 +1013,14 @@ static int sendCgi(const char *url,
  *    since httpd is run from inetd (and it can't run standalone
  *    in uClinux).
  */
+
+// FIXME: setenv leaks memory! (old values of env vars are leaked)
+// Thus we have a bug on NOMMU.
+// Need to use this instead:
+// [malloc +] putenv + (in child: exec) + (in parent: unsetenv [+ free])
+
 #if !BB_MMU
+	fullpath = NULL;
 	pid = vfork();
 #else
 	pid = fork();
@@ -997,25 +1032,19 @@ static int sendCgi(const char *url,
 		/* child process */
 		char *script;
 		char *purl;
-		char realpath_buff[MAXPATHLEN];
 
-		if (config->accepted_socket > 1)
-			close(config->accepted_socket);
-		if (config->server_socket > 1)
-			close(config->server_socket);
+		if (accepted_socket > 1)
+			close(accepted_socket);
+		if (server_socket > 1)
+			close(server_socket);
 
-		dup2(toCgi[0], 0);  // replace stdin with the pipe
-		dup2(fromCgi[1], 1);  // replace stdout with the pipe
-		/* Huh? User seeing stderr can be a security problem...
-		 * and if CGI really wants that, it can always dup2(1,2)...
-		if (!DEBUG)
-			dup2(fromCgi[1], 2);  // replace stderr with the pipe
-		*/
-		/* I think we cannot inadvertently close 0, 1 here... */
-		close(toCgi[0]);
-		close(toCgi[1]);
+		xmove_fd(toCgi[0], 0);  /* replace stdin with the pipe */
+		xmove_fd(fromCgi[1], 1);  /* replace stdout with the pipe */
 		close(fromCgi[0]);
 		close(fromCgi[1]);
+		/* Huh? User seeing stderr can be a security problem...
+		 * and if CGI really wants that, it can always dup2(1,2)...
+		 * dup2(fromCgi[1], 2); */
 
 		/*
 		 * Find PATH_INFO.
@@ -1036,22 +1065,21 @@ static int sendCgi(const char *url,
 			*script = '/';          /* is directory, find next '/' */
 		}
 		setenv1("PATH_INFO", script);   /* set /PATH_INFO or "" */
-		/* setenv1("PATH", getenv("PATH")); redundant */
 		setenv1("REQUEST_METHOD", request);
-		if (config->query) {
-			char *uri = alloca(strlen(purl) + 2 + strlen(config->query));
+		if (g_query) {
+			char *uri = alloca(strlen(purl) + 2 + strlen(g_query));
 			if (uri)
-				sprintf(uri, "%s?%s", purl, config->query);
+				sprintf(uri, "%s?%s", purl, g_query);
 			setenv1("REQUEST_URI", uri);
 		} else {
 			setenv1("REQUEST_URI", purl);
 		}
 		if (script != NULL)
 			*script = '\0';         /* cut off /PATH_INFO */
-		 /* SCRIPT_FILENAME required by PHP in CGI mode */
-		if (!realpath(purl + 1, realpath_buff))
-			goto error_execing_cgi;
-		setenv1("SCRIPT_FILENAME", realpath_buff);
+
+		/* SCRIPT_FILENAME required by PHP in CGI mode */
+		fullpath = concat_path_file(home_httpd, purl);
+		setenv1("SCRIPT_FILENAME", fullpath);
 		/* set SCRIPT_NAME as full path: /cgi-bin/dirs/script.cgi */
 		setenv1("SCRIPT_NAME", purl);
 		/* http://hoohoo.ncsa.uiuc.edu/cgi/env.html:
@@ -1061,8 +1089,8 @@ static int sendCgi(const char *url,
 		 * should always be set when there is query information,
 		 * regardless of command line decoding. */
 		/* (Older versions of bbox seem to do some decoding) */
-		setenv1("QUERY_STRING", config->query);
-		setenv1("SERVER_SOFTWARE", httpdVersion);
+		setenv1("QUERY_STRING", g_query);
+		putenv((char*)"SERVER_SOFTWARE=busybox httpd/"BB_VER);
 		putenv((char*)"SERVER_PROTOCOL=HTTP/1.0");
 		putenv((char*)"GATEWAY_INTERFACE=CGI/1.1");
 		/* Having _separate_ variables for IP and port defeats
@@ -1071,15 +1099,16 @@ static int sendCgi(const char *url,
 		 * IOW - REMOTE_PEER="1.2.3.4:56" makes much more sense.
 		 * Oh well... */
 		{
-			char *p = config->rmt_ip_str ? : (char*)"";
+			char *p = rmt_ip_str ? : (char*)"";
 			char *cp = strrchr(p, ':');
 			if (ENABLE_FEATURE_IPV6 && cp && strchr(cp, ']'))
 				cp = NULL;
 			if (cp) *cp = '\0'; /* delete :PORT */
 			setenv1("REMOTE_ADDR", p);
+			if (cp) *cp = ':';
 		}
 #if ENABLE_FEATURE_HTTPD_SET_REMOTE_PORT_TO_ENV
-		setenv_long("REMOTE_PORT", config->port);
+		setenv_long("REMOTE_PORT", tcp_port);
 #endif
 		if (bodyLen)
 			setenv_long("CONTENT_LENGTH", bodyLen);
@@ -1088,22 +1117,22 @@ static int sendCgi(const char *url,
 		if (content_type)
 			setenv1("CONTENT_TYPE", content_type);
 #if ENABLE_FEATURE_HTTPD_BASIC_AUTH
-		if (config->remoteuser) {
-			setenv1("REMOTE_USER", config->remoteuser);
+		if (remoteuser) {
+			setenv1("REMOTE_USER", remoteuser);
 			putenv((char*)"AUTH_TYPE=Basic");
 		}
 #endif
-		if (config->referer)
-			setenv1("HTTP_REFERER", config->referer);
+		if (referer)
+			setenv1("HTTP_REFERER", referer);
 
 		/* set execve argp[0] without path */
 		argp[0] = strrchr(purl, '/') + 1;
 		/* but script argp[0] must have absolute path and chdiring to this */
-		script = strrchr(realpath_buff, '/');
+		script = strrchr(fullpath, '/');
 		if (!script)
 			goto error_execing_cgi;
 		*script = '\0';
-		if (chdir(realpath_buff) == 0) {
+		if (chdir(fullpath) == 0) {
 			// Now run the program.  If it fails,
 			// use _exit() so no destructors
 			// get called and make a mess.
@@ -1113,7 +1142,7 @@ static int sendCgi(const char *url,
 
 			if (suffix) {
 				Htaccess *cur;
-				for (cur = config->script_i; cur; cur = cur->next) {
+				for (cur = script_i; cur; cur = cur->next) {
 					if (strcmp(cur->before_colon + 1, suffix) == 0) {
 						interpr = cur->after_colon;
 						break;
@@ -1127,16 +1156,19 @@ static int sendCgi(const char *url,
 				execv(interpr, argp);
 			else
 #endif
-				execv(realpath_buff, argp);
+				execv(fullpath, argp);
 		}
  error_execing_cgi:
 		/* send to stdout (even if we are not from inetd) */
-		config->accepted_socket = 1;
+		accepted_socket = 1;
 		sendHeaders(HTTP_NOT_FOUND);
 		_exit(242);
 	} /* end child */
 
 	/* parent process */
+#if !BB_MMU
+	free(fullpath);
+#endif
 
 	buf_count = 0;
 	post_read_size = 0;
@@ -1161,9 +1193,9 @@ static int sendCgi(const char *url,
 			FD_SET(outFd, &writeSet);
 			nfound = outFd > inFd ? outFd : inFd;
 			if (post_read_size == 0) {
-				FD_SET(config->accepted_socket, &readSet);
-				if (nfound < config->accepted_socket)
-					nfound = config->accepted_socket;
+				FD_SET(accepted_socket, &readSet);
+				if (nfound < accepted_socket)
+					nfound = accepted_socket;
 			}
 			/* Now wait on the set of sockets! */
 			nfound = select(nfound + 1, &readSet, &writeSet, NULL, NULL);
@@ -1201,13 +1233,13 @@ static int sendCgi(const char *url,
 				post_read_size = bodyLen = 0; /* broken pipe to CGI */
 			}
 		} else if (bodyLen > 0 && post_read_size == 0
-		 && FD_ISSET(config->accepted_socket, &readSet)
+		 && FD_ISSET(accepted_socket, &readSet)
 		) {
 			/* We expect data, prev data portion is eaten by CGI
 			 * and there *is* data to read from the peer
 			 * (POSTDATA?) */
 			count = bodyLen > (int)sizeof(wbuf) ? (int)sizeof(wbuf) : bodyLen;
-			count = safe_read(config->accepted_socket, wbuf, count);
+			count = safe_read(accepted_socket, wbuf, count);
 			if (count > 0) {
 				post_read_size = count;
 				post_read_idx = 0;
@@ -1223,8 +1255,8 @@ static int sendCgi(const char *url,
 #endif
 		if (FD_ISSET(inFd, &readSet)) {
 			/* There is something to read from CGI */
-			int s = config->accepted_socket;
-			char *rbuf = config->buf;
+			int s = accepted_socket;
+			char *rbuf = iobuf;
 
 			/* Are we still buffering CGI output? */
 			if (buf_count >= 0) {
@@ -1306,14 +1338,14 @@ static int sendFile(const char *url)
 				break;
 		}
 	/* also, if not found, set default as "application/octet-stream";  */
-	config->found_mime_type = table[1];
+	found_mime_type = table[1];
 #if ENABLE_FEATURE_HTTPD_CONFIG_WITH_MIME_TYPES
 	if (suffix) {
 		Htaccess * cur;
 
-		for (cur = config->mime_a; cur; cur = cur->next) {
+		for (cur = mime_a; cur; cur = cur->next) {
 			if (strcmp(cur->before_colon, suffix) == 0) {
-				config->found_mime_type = cur->after_colon;
+				found_mime_type = cur->after_colon;
 				break;
 			}
 		}
@@ -1322,17 +1354,17 @@ static int sendFile(const char *url)
 
 	if (DEBUG)
 		fprintf(stderr, "sending file '%s' content-type: %s\n",
-			url, config->found_mime_type);
+			url, found_mime_type);
 
 	f = open(url, O_RDONLY);
 	if (f >= 0) {
 		int count;
-		char *buf = config->buf;
+		char *buf = iobuf;
 
 		sendHeaders(HTTP_OK);
 		/* TODO: sendfile() */
 		while ((count = full_read(f, buf, MAX_MEMORY_BUFF)) > 0) {
-			int fd = config->accepted_socket;
+			int fd = accepted_socket;
 			if (fd == 0) fd++; /* write to fd# 1 in inetd mode */
 			if (full_write(fd, buf, count) != count)
 				break;
@@ -1352,9 +1384,9 @@ static int checkPermIP(void)
 	Htaccess_IP * cur;
 
 	/* This could stand some work */
-	for (cur = config->ip_a_d; cur; cur = cur->next) {
+	for (cur = ip_a_d; cur; cur = cur->next) {
 #if ENABLE_FEATURE_HTTPD_CGI && DEBUG
-		fprintf(stderr, "checkPermIP: '%s' ? ", config->rmt_ip_str);
+		fprintf(stderr, "checkPermIP: '%s' ? ", rmt_ip_str);
 #endif
 #if DEBUG
 		fprintf(stderr, "'%u.%u.%u.%u/%u.%u.%u.%u'\n",
@@ -1368,12 +1400,12 @@ static int checkPermIP(void)
 			(unsigned char)(cur->mask)
 		);
 #endif
-		if ((config->rmt_ip & cur->mask) == cur->ip)
+		if ((rmt_ip & cur->mask) == cur->ip)
 			return cur->allow_deny == 'A';   /* Allow/Deny */
 	}
 
 	/* if unconfigured, return 1 - access from all */
-	return !config->flg_deny_all;
+	return !flg_deny_all;
 }
 
 /****************************************************************************
@@ -1403,7 +1435,7 @@ static int checkPerm(const char *path, const char *request)
 	const char *prev = NULL;
 
 	/* This could stand some work */
-	for (cur = config->auth; cur; cur = cur->next) {
+	for (cur = g_auth; cur; cur = cur->next) {
 		size_t l;
 
 		p0 = cur->before_colon;
@@ -1449,9 +1481,9 @@ static int checkPerm(const char *path, const char *request)
 
 			if (strcmp(p, request) == 0) {
 set_remoteuser_var:
-				config->remoteuser = strdup(request);
-				if (config->remoteuser)
-					config->remoteuser[(u - request)] = 0;
+				remoteuser = strdup(request);
+				if (remoteuser)
+					remoteuser[(u - request)] = 0;
 				return 1;   /* Ok */
 			}
 			/* unauthorized */
@@ -1474,7 +1506,7 @@ set_remoteuser_var:
 static void handle_sigalrm(int sig)
 {
 	sendHeaders(HTTP_REQUEST_TIMEOUT);
-	config->alarm_signaled = sig;
+	alarm_signaled = 1;
 }
 
 /****************************************************************************
@@ -1486,7 +1518,7 @@ static void handle_sigalrm(int sig)
  ****************************************************************************/
 static void handleIncoming(void)
 {
-	char *buf = config->buf;
+	char *buf = iobuf;
 	char *url;
 	char *purl;
 	int  blank = -1;
@@ -1556,10 +1588,10 @@ static void handleIncoming(void)
 		strcpy(url, buf);
 		/* extract url args if present */
 		test = strchr(url, '?');
-		config->query = NULL;
+		g_query = NULL;
 		if (test) {
 			*test++ = '\0';
-			config->query = test;
+			g_query = test;
 		}
 
 		test = decodeString(url, 0);
@@ -1605,11 +1637,11 @@ static void handleIncoming(void)
 		/* If URL is directory, adding '/' */
 		if (test[-1] != '/') {
 			if (is_directory(url + 1, 1, &sb)) {
-				config->found_moved_temporarily = url;
+				found_moved_temporarily = url;
 			}
 		}
 		if (DEBUG)
-			fprintf(stderr, "url='%s', args=%s\n", url, config->query);
+			fprintf(stderr, "url='%s', args=%s\n", url, g_query);
 
 		test = url;
 		ip_allowed = checkPermIP();
@@ -1656,7 +1688,7 @@ static void handleIncoming(void)
 				} else if ((STRNCASECMP(buf, "Content-Type:") == 0)) {
 					content_type = strdup(skip_whitespace(buf + sizeof("Content-Type:")-1));
 				} else if ((STRNCASECMP(buf, "Referer:") == 0)) {
-					config->referer = strdup(skip_whitespace(buf + sizeof("Referer:")-1));
+					referer = strdup(skip_whitespace(buf + sizeof("Referer:")-1));
 				}
 #endif
 
@@ -1679,7 +1711,7 @@ static void handleIncoming(void)
 			} /* while extra header reading */
 		}
 		alarm(0);
-		if (config->alarm_signaled)
+		if (alarm_signaled)
 			break;
 
 		if (strcmp(strrchr(url, '/') + 1, httpd_conf) == 0 || ip_allowed == 0) {
@@ -1698,10 +1730,10 @@ static void handleIncoming(void)
 		}
 #endif
 
-		if (config->found_moved_temporarily) {
+		if (found_moved_temporarily) {
 			sendHeaders(HTTP_MOVED_TEMPORARILY);
 			/* clear unforked memory flag */
-			config->found_moved_temporarily = NULL;
+			found_moved_temporarily = NULL;
 			break;
 		}
 
@@ -1719,7 +1751,7 @@ static void handleIncoming(void)
 			char *suffix = strrchr(test, '.');
 			if (suffix) {
 				Htaccess *cur;
-				for (cur = config->script_i; cur; cur = cur->next) {
+				for (cur = script_i; cur; cur = cur->next) {
 					if (strcmp(cur->before_colon + 1, suffix) == 0) {
 						sendCgi(url, prequest, length, cookie, content_type);
 						goto bail_out;
@@ -1737,8 +1769,8 @@ static void handleIncoming(void)
 			strcpy(purl, "index.html");
 		if (stat(test, &sb) == 0) {
 			/* It's a dir URL and there is index.html */
-			config->ContentLength = sb.st_size;
-			config->last_mod = sb.st_mtime;
+			ContentLength = sb.st_size;
+			last_mod = sb.st_mtime;
 		}
 #if ENABLE_FEATURE_HTTPD_CGI
 		else if (purl[-1] == '/') {
@@ -1746,14 +1778,14 @@ static void handleIncoming(void)
 			 * Try cgi-bin/index.cgi */
 			if (access("/cgi-bin/index.cgi"+1, X_OK) == 0) {
 				purl[0] = '\0';
-				config->query = url;
+				g_query = url;
 				sendCgi("/cgi-bin/index.cgi", prequest, length, cookie, content_type);
 				break;
 			}
 		}
 #endif  /* FEATURE_HTTPD_CGI */
 		sendFile(test);
-		config->ContentLength = -1;
+		ContentLength = -1;
 	} while (0);
 
 #if ENABLE_FEATURE_HTTPD_CGI
@@ -1765,28 +1797,28 @@ static void handleIncoming(void)
 #if ENABLE_FEATURE_HTTPD_CGI
 	free(cookie);
 	free(content_type);
-	free(config->referer);
-	config->referer = NULL;
+	free(referer);
+	referer = NULL;
 # if ENABLE_FEATURE_HTTPD_BASIC_AUTH
-	free(config->remoteuser);
-	config->remoteuser = NULL;
+	free(remoteuser);
+	remoteuser = NULL;
 # endif
 #endif
-	shutdown(config->accepted_socket, SHUT_WR);
+	shutdown(accepted_socket, SHUT_WR);
 
 	/* Properly wait for remote to closed */
 	FD_ZERO(&s_fd);
-	FD_SET(config->accepted_socket, &s_fd);
+	FD_SET(accepted_socket, &s_fd);
 
 	do {
 		tv.tv_sec = 2;
 		tv.tv_usec = 0;
-		retval = select(config->accepted_socket + 1, &s_fd, NULL, NULL, &tv);
-	} while (retval > 0 && read(config->accepted_socket, buf, sizeof(config->buf) > 0));
+		retval = select(accepted_socket + 1, &s_fd, NULL, NULL, &tv);
+	} while (retval > 0 && read(accepted_socket, buf, sizeof(iobuf) > 0));
 
-	shutdown(config->accepted_socket, SHUT_RD);
+	shutdown(accepted_socket, SHUT_RD);
 	/* In inetd case, we close fd 1 (stdout) here. We will exit soon anyway */
-	close(config->accepted_socket);
+	close(accepted_socket);
 }
 
 /****************************************************************************
@@ -1830,24 +1862,24 @@ static int miniHttpd(int server)
 		s = accept(server, &fromAddr.sa, &fromAddrLen);
 		if (s < 0)
 			continue;
-		config->accepted_socket = s;
-		config->rmt_ip = 0;
-		config->port = 0;
+		accepted_socket = s;
+		rmt_ip = 0;
+		tcp_port = 0;
 #if ENABLE_FEATURE_HTTPD_CGI || DEBUG
-		free(config->rmt_ip_str);
-		config->rmt_ip_str = xmalloc_sockaddr2dotted(&fromAddr.sa, fromAddrLen);
+		free(rmt_ip_str);
+		rmt_ip_str = xmalloc_sockaddr2dotted(&fromAddr.sa, fromAddrLen);
 #if DEBUG
-		bb_error_msg("connection from '%s'", config->rmt_ip_str);
+		bb_error_msg("connection from '%s'", rmt_ip_str);
 #endif
 #endif /* FEATURE_HTTPD_CGI */
 		if (fromAddr.sa.sa_family == AF_INET) {
-			config->rmt_ip = ntohl(fromAddr.sin.sin_addr.s_addr);
-			config->port = ntohs(fromAddr.sin.sin_port);
+			rmt_ip = ntohl(fromAddr.sin.sin_addr.s_addr);
+			tcp_port = ntohs(fromAddr.sin.sin_port);
 		}
 #if ENABLE_FEATURE_IPV6
 		if (fromAddr.sa.sa_family == AF_INET6) {
-			//config->rmt_ip = ntohl(fromAddr.sin.sin_addr.s_addr);
-			config->port = ntohs(fromAddr.sin6.sin6_port);
+			//rmt_ip = ntohl(fromAddr.sin.sin_addr.s_addr);
+			tcp_port = ntohs(fromAddr.sin6.sin6_port);
 		}
 #endif
 
@@ -1880,20 +1912,20 @@ static int miniHttpd_inetd(void)
 	socklen_t fromAddrLen = sizeof(fromAddr);
 
 	getpeername(0, &fromAddr.sa, &fromAddrLen);
-	config->rmt_ip = 0;
-	config->port = 0;
+	rmt_ip = 0;
+	tcp_port = 0;
 #if ENABLE_FEATURE_HTTPD_CGI || DEBUG
-	free(config->rmt_ip_str);
-	config->rmt_ip_str = xmalloc_sockaddr2dotted(&fromAddr.sa, fromAddrLen);
+	free(rmt_ip_str);
+	rmt_ip_str = xmalloc_sockaddr2dotted(&fromAddr.sa, fromAddrLen);
 #endif
 	if (fromAddr.sa.sa_family == AF_INET) {
-		config->rmt_ip = ntohl(fromAddr.sin.sin_addr.s_addr);
-		config->port = ntohs(fromAddr.sin.sin_port);
+		rmt_ip = ntohl(fromAddr.sin.sin_addr.s_addr);
+		tcp_port = ntohs(fromAddr.sin.sin_port);
 	}
 #if ENABLE_FEATURE_IPV6
 	if (fromAddr.sa.sa_family == AF_INET6) {
-		//config->rmt_ip = ntohl(fromAddr.sin.sin_addr.s_addr);
-		config->port = ntohs(fromAddr.sin6.sin6_port);
+		//rmt_ip = ntohl(fromAddr.sin.sin_addr.s_addr);
+		tcp_port = ntohs(fromAddr.sin6.sin6_port);
 	}
 #endif
 	handleIncoming();
@@ -1942,7 +1974,6 @@ int httpd_main(int argc, char **argv);
 int httpd_main(int argc, char **argv)
 {
 	unsigned opt;
-	const char *home_httpd = home;
 	char *url_for_decode;
 	USE_FEATURE_HTTPD_ENCODE_URL_STR(const char *url_for_encode;)
 	const char *s_port;
@@ -1955,22 +1986,20 @@ int httpd_main(int argc, char **argv)
 	setlocale(LC_TIME, "C");
 #endif
 
-	config = xzalloc(sizeof(*config));
-#if ENABLE_FEATURE_HTTPD_BASIC_AUTH
-	config->realm = "Web Server Authentication";
-#endif
-	config->port = 80;
-	config->ContentLength = -1;
-
+	INIT_G();
+	home_httpd = xrealloc_getcwd_or_warn(NULL);
+	/* We do not "absolutize" path given by -h (home) opt.
+	 * If user gives relative path in -h, $SCRIPT_FILENAME can end up
+	 * relative too. */
 	opt = getopt32(argc, argv, "c:d:h:"
 			USE_FEATURE_HTTPD_ENCODE_URL_STR("e:")
 			USE_FEATURE_HTTPD_BASIC_AUTH("r:")
 			USE_FEATURE_HTTPD_AUTH_MD5("m:")
 			USE_FEATURE_HTTPD_SETUID("u:")
 			"p:if",
-			&(config->configFile), &url_for_decode, &home_httpd
+			&(configFile), &url_for_decode, &home_httpd
 			USE_FEATURE_HTTPD_ENCODE_URL_STR(, &url_for_encode)
-			USE_FEATURE_HTTPD_BASIC_AUTH(, &(config->realm))
+			USE_FEATURE_HTTPD_BASIC_AUTH(, &g_realm)
 			USE_FEATURE_HTTPD_AUTH_MD5(, &pass)
 			USE_FEATURE_HTTPD_SETUID(, &s_ugid)
 			, &s_port
@@ -1992,7 +2021,7 @@ int httpd_main(int argc, char **argv)
 	}
 #endif
 	if (opt & OPT_PORT)
-		config->port = xatou16(s_port);
+		tcp_port = xatou16(s_port);
 
 #if ENABLE_FEATURE_HTTPD_SETUID
 	if (opt & OPT_SETUID) {
@@ -2005,7 +2034,7 @@ int httpd_main(int argc, char **argv)
 	xchdir(home_httpd);
 	if (!(opt & OPT_INETD)) {
 		signal(SIGCHLD, SIG_IGN);
-		config->server_socket = openServer();
+		server_socket = openServer();
 #if ENABLE_FEATURE_HTTPD_SETUID
 		/* drop privileges */
 		if (opt & OPT_SETUID) {
@@ -2022,12 +2051,12 @@ int httpd_main(int argc, char **argv)
 #if ENABLE_FEATURE_HTTPD_CGI
 	{
 		char *p = getenv("PATH");
-		p = xstrdup(p); /* if gets NULL, returns NULL */
+		/* env strings themself are not freed, no need to strdup(p): */
 		clearenv();
 		if (p)
-			setenv1("PATH", p);
+			putenv(p - 5);
 		if (!(opt & OPT_INETD))
-			setenv_long("SERVER_PORT", config->port);
+			setenv_long("SERVER_PORT", tcp_port);
 	}
 #endif
 
@@ -2042,5 +2071,5 @@ int httpd_main(int argc, char **argv)
 
 	if (!(opt & OPT_FOREGROUND))
 		bb_daemonize(0);     /* don't change current directory */
-	return miniHttpd(config->server_socket);
+	return miniHttpd(server_socket);
 }
