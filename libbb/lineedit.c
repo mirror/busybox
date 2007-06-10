@@ -28,7 +28,6 @@
    - not true viewing if length prompt less terminal width
  */
 
-//#include <sys/ioctl.h>
 #include "libbb.h"
 
 
@@ -59,6 +58,7 @@
 #define ENABLE_FEATURE_GETUSERNAME_AND_HOMEDIR \
 (ENABLE_FEATURE_USERNAME_COMPLETION || ENABLE_FEATURE_EDITING_FANCY_PROMPT)
 
+enum { MAX_LINELEN = CONFIG_FEATURE_EDITING_MAX_LEN };
 
 static line_input_t *state;
 
@@ -327,8 +327,8 @@ static void username_tab_completion(char *ud, char *with_shash_flg)
 				home = entry->pw_dir;
 		}
 		if (home) {
-			if ((userlen + strlen(home) + 1) < BUFSIZ) {
-				char temp2[BUFSIZ];     /* argument size */
+			if ((userlen + strlen(home) + 1) < MAX_LINELEN) {
+				char temp2[MAX_LINELEN];     /* argument size */
 
 				/* /home/user/... */
 				sprintf(temp2, "%s%s", home, ud);
@@ -410,7 +410,7 @@ static void exe_n_cwd_tab_completion(char *command, int type)
 {
 	DIR *dir;
 	struct dirent *next;
-	char dirbuf[BUFSIZ];
+	char dirbuf[MAX_LINELEN];
 	struct stat st;
 	char *path1[1];
 	char **paths = path1;
@@ -496,16 +496,16 @@ static void exe_n_cwd_tab_completion(char *command, int type)
 #define QUOT (UCHAR_MAX+1)
 
 #define collapse_pos(is, in) { \
-	memmove(int_buf+(is), int_buf+(in), (BUFSIZ+1-(is)-(in))*sizeof(int)); \
-	memmove(pos_buf+(is), pos_buf+(in), (BUFSIZ+1-(is)-(in))*sizeof(int)); }
+	memmove(int_buf+(is), int_buf+(in), (MAX_LINELEN+1-(is)-(in))*sizeof(int)); \
+	memmove(pos_buf+(is), pos_buf+(in), (MAX_LINELEN+1-(is)-(in))*sizeof(int)); }
 
 static int find_match(char *matchBuf, int *len_with_quotes)
 {
 	int i, j;
 	int command_mode;
 	int c, c2;
-	int int_buf[BUFSIZ + 1];
-	int pos_buf[BUFSIZ + 1];
+	int int_buf[MAX_LINELEN + 1];
+	int pos_buf[MAX_LINELEN + 1];
 
 	/* set to integer dimension characters and own positions */
 	for (i = 0;; i++) {
@@ -731,7 +731,7 @@ static void input_tab(int *lastWasTab)
 	if (!*lastWasTab) {
 		char *tmp, *tmp1;
 		int len_found;
-		char matchBuf[BUFSIZ];
+		char matchBuf[MAX_LINELEN];
 		int find_type;
 		int recalc_pos;
 
@@ -781,6 +781,7 @@ static void input_tab(int *lastWasTab)
 			if (!matches)
 				return;         /* not found */
 			/* find minimal match */
+		// ash: yet another failure in trying to achieve "we don't die on OOM"
 			tmp1 = xstrdup(matches[0]);
 			for (tmp = tmp1; *tmp; tmp++)
 				for (len_found = 1; len_found < num_matches; len_found++)
@@ -807,7 +808,7 @@ static void input_tab(int *lastWasTab)
 		}
 		len_found = strlen(tmp);
 		/* have space to placed match? */
-		if ((len_found - strlen(matchBuf) + command_len) < BUFSIZ) {
+		if ((len_found - strlen(matchBuf) + command_len) < MAX_LINELEN) {
 			/* before word for match   */
 			command_ps[cursor - recalc_pos] = 0;
 			/* save   tail line        */
@@ -888,14 +889,14 @@ static void load_history(const char *fromfile)
 	fp = fopen(fromfile, "r");
 	if (fp) {
 		for (hi = 0; hi < MAX_HISTORY;) {
-			char * hl = xmalloc_getline(fp);
+			char *hl = xmalloc_getline(fp);
 			int l;
 
 			if (!hl)
 				break;
 			l = strlen(hl);
-			if (l >= BUFSIZ)
-				hl[BUFSIZ-1] = 0;
+			if (l >= MAX_LINELEN)
+				hl[MAX_LINELEN-1] = '\0';
 			if (l == 0 || hl[0] == ' ') {
 				free(hl);
 				continue;
@@ -1264,8 +1265,8 @@ int read_line_input(const char* prompt, char* command, int maxsize, line_input_t
 #endif
 
 // FIXME: audit & improve this
-	if (maxsize > BUFSIZ)
-		maxsize = BUFSIZ;
+	if (maxsize > MAX_LINELEN)
+		maxsize = MAX_LINELEN;
 
 	/* With null flags, no other fields are ever used */
 	state = st ? st : (line_input_t*) &const_int_0;
@@ -1646,14 +1647,14 @@ int read_line_input(const char* prompt, char* command, int maxsize, line_input_t
 				/* Delete */
 				input_delete(0);
 				break;
-			case '1':
-			case 'H':
-				/* <Home> */
+			case '1': // vt100? linux vt? or what?
+			case '7': // vt100? linux vt? or what?
+			case 'H': /* xterm's <Home> */
 				input_backward(cursor);
 				break;
-			case '4':
-			case 'F':
-				/* <End> */
+			case '4': // vt100? linux vt? or what?
+			case '8': // vt100? linux vt? or what?
+			case 'F': /* xterm's <End> */
 				input_end();
 				break;
 			default:
@@ -1766,7 +1767,7 @@ const char *applet_name = "debug stuff usage";
 
 int main(int argc, char **argv)
 {
-	char buff[BUFSIZ];
+	char buff[MAX_LINELEN];
 	char *prompt =
 #if ENABLE_FEATURE_EDITING_FANCY_PROMPT
 		"\\[\\033[32;1m\\]\\u@\\[\\x1b[33;1m\\]\\h:"

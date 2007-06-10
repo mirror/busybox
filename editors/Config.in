@@ -50,6 +50,16 @@ config VI
 	  learning curve.  If you are not already comfortable with 'vi'
 	  you may wish to use something else.
 
+config FEATURE_VI_MAX_LEN
+	int "Maximum line length in vi"
+	range 256 16384
+	default 1024
+	depends on VI
+	help
+	  vi uses on-stack buffers for intermediate line buffers.
+	  You may want to decrease this parameter if your target machine
+	  benefits from smaller stack usage.
+
 config FEATURE_VI_COLON
 	bool "Enable \":\" colon commands (no \"ex\" mode)"
 	default y

@@ -32,7 +32,10 @@
 #define Isprint(c) ((unsigned char)(c) >= ' ' && (c) != 0x7f && (unsigned char)(c) != 0x9b)
 #endif
 
-#define MAX_SCR_COLS		BUFSIZ
+enum {
+	MAX_LINELEN = CONFIG_FEATURE_VI_MAX_LEN,
+	MAX_SCR_COLS = CONFIG_FEATURE_VI_MAX_LEN,
+};
 
 // Misc. non-Ascii keys that report an escape sequence
 #define VI_K_UP			(char)128	// cursor key Up
@@ -545,7 +548,7 @@ static char *get_one_address(char * p, int *addr)	// get colon addr, if present
 	char c;
 #endif
 #if ENABLE_FEATURE_VI_SEARCH
-	char *pat, buf[BUFSIZ];
+	char *pat, buf[MAX_LINELEN];
 #endif
 
 	*addr = -1;			// assume no addr
@@ -648,7 +651,7 @@ static void setops(const char *args, const char *opname, int flg_no,
 static void colon(char * buf)
 {
 	char c, *orig_buf, *buf1, *q, *r;
-	char *fn, cmd[BUFSIZ], args[BUFSIZ];
+	char *fn, cmd[MAX_LINELEN], args[MAX_LINELEN];
 	int i, l, li, ch, b, e;
 	int useforce = FALSE, forced = FALSE;
 	struct stat st_buf;
@@ -679,8 +682,8 @@ static void colon(char * buf)
 	r = end - 1;
 	li = count_lines(text, end - 1);
 	fn = cfn;			// default to current file
-	memset(cmd, '\0', BUFSIZ);	// clear cmd[]
-	memset(args, '\0', BUFSIZ);	// clear args[]
+	memset(cmd, '\0', MAX_LINELEN);	// clear cmd[]
+	memset(args, '\0', MAX_LINELEN);	// clear args[]
 
 	// look for optional address(es)  :.  :1  :1,9   :'q,'a   :%
 	buf = get_address(buf, &b, &e);
@@ -763,10 +766,10 @@ static void colon(char * buf)
 		}
 		if (args[0]) {
 			// the user supplied a file name
-			fn= args;
+			fn = args;
 		} else if (cfn && cfn[0]) {
 			// no user supplied name- use the current filename
-			fn= cfn;
+			fn = cfn;
 			goto vc5;
 		} else {
 			// no user file name, no current name- punt
@@ -1984,8 +1987,7 @@ static void start_new_cmd_q(char c)
 	// release old cmd
 	free(last_modifying_cmd);
 	// get buffer for new cmd
-	last_modifying_cmd = xmalloc(BUFSIZ);
-	memset(last_modifying_cmd, '\0', BUFSIZ);	// clear new cmd queue
+	last_modifying_cmd = xzalloc(MAX_LINELEN);
 	// if there is a current cmd count put it in the buffer first
 	if (cmdcnt > 0)
 		sprintf(last_modifying_cmd, "%d%c", cmdcnt, c);
@@ -2238,7 +2240,7 @@ static char readit(void)	// read (maybe cursor) key from stdin
 	if (n <= 0) {
  ri0:
 		// the Q is empty, wait for a typed char
-		n = read(0, readbuffer, BUFSIZ - 1);
+		n = read(0, readbuffer, MAX_LINELEN - 1);
 		if (n < 0) {
 			if (errno == EINTR)
 				goto ri0;	// interrupted sys call
@@ -2268,9 +2270,9 @@ static char readit(void)	// read (maybe cursor) key from stdin
 			tv.tv_usec = 50000;	// Wait 5/100 seconds- 1 Sec=1000000
 
 			// keep reading while there are input chars and room in buffer
-			while (select(1, &rfds, NULL, NULL, &tv) > 0 && n <= (BUFSIZ - 5)) {
+			while (select(1, &rfds, NULL, NULL, &tv) > 0 && n <= (MAX_LINELEN - 5)) {
 				// read the rest of the ESC string
-				int r = read(0, (void *) (readbuffer + n), BUFSIZ - n);
+				int r = read(0, (void *) (readbuffer + n), MAX_LINELEN - n);
 				if (r > 0) {
 					n += r;
 				}
@@ -2305,7 +2307,7 @@ static char readit(void)	// read (maybe cursor) key from stdin
 	}
 	// remove key sequence from Q
 	readed_for_parse -= n;
-	memmove(readbuffer, readbuffer + n, BUFSIZ - n);
+	memmove(readbuffer, readbuffer + n, MAX_LINELEN - n);
 	alarm(3);	// we are done waiting for input, turn alarm ON
 	return c;
 }
@@ -2340,7 +2342,7 @@ static char get_one_char(void)
 		c = readit();	// get the users input
 		if (last_modifying_cmd != 0) {
 			int len = strlen(last_modifying_cmd);
-			if (len + 1 >= BUFSIZ) {
+			if (len >= MAX_LINELEN - 1) {
 				psbs("last_modifying_cmd overrun");
 			} else {
 				// add new char to q
@@ -2358,7 +2360,7 @@ static char *get_input_line(const char * prompt) // get input line- use "status 
 {
 	static char *obufp;
 
-	char buf[BUFSIZ];
+	char buf[MAX_LINELEN];
 	char c;
 	int i;
 
@@ -2369,7 +2371,7 @@ static char *get_input_line(const char * prompt) // get input line- use "status 
 	write1(prompt);      // write out the :, /, or ? prompt
 
 	i = strlen(buf);
-	while (i < BUFSIZ) {
+	while (i < MAX_LINELEN) {
 		c = get_one_char();	// read user input
 		if (c == '\n' || c == '\r' || c == 27)
 			break;		// is this end of input
@@ -2514,16 +2516,16 @@ static int file_write(char * fn, char * first, char * last)
 //----- Move the cursor to row x col (count from 0, not 1) -------
 static void place_cursor(int row, int col, int opti)
 {
-	char cm1[BUFSIZ];
+	char cm1[MAX_LINELEN];
 	char *cm;
 #if ENABLE_FEATURE_VI_OPTIMIZE_CURSOR
-	char cm2[BUFSIZ];
+	char cm2[MAX_LINELEN];
 	char *screenp;
-	// char cm3[BUFSIZ];
+	// char cm3[MAX_LINELEN];
 	int Rrow = last_row;
 #endif
 
-	memset(cm1, '\0', BUFSIZ - 1);  // clear the buffer
+	memset(cm1, '\0', MAX_LINELEN);  // clear the buffer
 
 	if (row < 0) row = 0;
 	if (row >= rows) row = rows - 1;
@@ -2539,7 +2541,7 @@ static void place_cursor(int row, int col, int opti)
 #if ENABLE_FEATURE_VI_OPTIMIZE_CURSOR
 	//----- find the minimum # of chars to move cursor -------------
 	//----- 2.  Try moving with discreet chars (Newline, [back]space, ...)
-	memset(cm2, '\0', BUFSIZ - 1);  // clear the buffer
+	memset(cm2, '\0', MAX_LINELEN);  // clear the buffer
 
 	// move to the correct row
 	while (row < Rrow) {
@@ -2696,7 +2698,7 @@ static void psb(const char *format, ...)
 
 static void ni(const char * s) // display messages
 {
-	char buf[BUFSIZ];
+	char buf[MAX_LINELEN];
 
 	print_literal(buf, s);
 	psbs("\'%s\' is not implemented", buf);
@@ -3900,7 +3902,7 @@ static void crash_dummy()
  cd0:
 	startrbi = rbi = 0;
 	sleeptime = 0;          // how long to pause between commands
-	memset(readbuffer, '\0', BUFSIZ);   // clear the read buffer
+	memset(readbuffer, '\0', MAX_LINELEN);   // clear the read buffer
 	// generate a command by percentages
 	percent = (int) lrand48() % 100;        // get a number from 0-99
 	if (percent < Mp) {     //  Movement commands
@@ -3985,7 +3987,7 @@ static void crash_test()
 	static time_t oldtim;
 
 	time_t tim;
-	char d[2], msg[BUFSIZ];
+	char d[2], msg[MAX_LINELEN];
 
 	msg[0] = '\0';
 	if (end < text) {

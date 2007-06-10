@@ -70,4 +70,5 @@ endif
 #LDFLAGS += -nostdlib
 
 # Busybox is a stack-fatty so make sure we increase default size
+# (TODO: use "make stksizes" to find & fix big stack users)
 FLTFLAGS += -s 20000

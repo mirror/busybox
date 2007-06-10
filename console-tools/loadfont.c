@@ -21,43 +21,27 @@ enum {
 };
 
 struct psf_header {
-	unsigned char magic1, magic2;	/* Magic number */
-	unsigned char mode;			/* PSF font mode */
-	unsigned char charsize;		/* Character size */
+	unsigned char magic1, magic2;   /* Magic number */
+	unsigned char mode;             /* PSF font mode */
+	unsigned char charsize;         /* Character size */
 };
 
 #define PSF_MAGIC_OK(x)	((x).magic1 == PSF_MAGIC1 && (x).magic2 == PSF_MAGIC2)
 
-static void loadnewfont(int fd);
-
-int loadfont_main(int argc, char **argv);
-int loadfont_main(int argc, char **argv)
-{
-	int fd;
-
-	if (argc != 1)
-		bb_show_usage();
-
-	fd = xopen(CURRENT_VC, O_RDWR);
-	loadnewfont(fd);
-
-	return EXIT_SUCCESS;
-}
-
 static void do_loadfont(int fd, unsigned char *inbuf, int unit, int fontsize)
 {
-	char buf[16384];
+	char *buf;
 	int i;
-
-	memset(buf, 0, sizeof(buf));
 
 	if (unit < 1 || unit > 32)
 		bb_error_msg_and_die("bad character size %d", unit);
 
+	buf = xzalloc(16 * 1024);
+	/*memset(buf, 0, 16 * 1024);*/
 	for (i = 0; i < fontsize; i++)
 		memcpy(buf + (32 * i), inbuf + (unit * i), unit);
 
-#if defined( PIO_FONTX ) && !defined( __sparc__ )
+#if defined(PIO_FONTX) && !defined(__sparc__)
 	{
 		struct consolefontdesc cfd;
 
@@ -66,12 +50,14 @@ static void do_loadfont(int fd, unsigned char *inbuf, int unit, int fontsize)
 		cfd.chardata = buf;
 
 		if (ioctl(fd, PIO_FONTX, &cfd) == 0)
-			return;				/* success */
-		bb_perror_msg("PIO_FONTX ioctl error (trying PIO_FONT)");
+			goto ret;			/* success */
+		bb_perror_msg("PIO_FONTX ioctl (will try PIO_FONT)");
 	}
 #endif
 	if (ioctl(fd, PIO_FONT, buf))
-		bb_perror_msg_and_die("PIO_FONT ioctl error");
+		bb_perror_msg_and_die("PIO_FONT ioctl");
+ ret:
+	free(buf);
 }
 
 static void
@@ -124,31 +110,30 @@ do_loadtable(int fd, unsigned char *inbuf, int tailsz, int fontsize)
 
 static void loadnewfont(int fd)
 {
+	enum { INBUF_SIZE = 32*1024 + 1 };
+
 	int unit;
-	unsigned char inbuf[32768];			/* primitive */
-	unsigned int inputlth, offset;
+	unsigned inputlth, offset;
+	/* Was on stack, but 32k is a bit too much: */
+	unsigned char *inbuf = xmalloc(INBUF_SIZE);
 
 	/*
 	 * We used to look at the length of the input file
 	 * with stat(); now that we accept compressed files,
 	 * just read the entire file.
 	 */
-	inputlth = fread(inbuf, 1, sizeof(inbuf), stdin);
-	if (ferror(stdin))
+	inputlth = full_read(STDIN_FILENO, inbuf, INBUF_SIZE);
+	if (inputlth < 0)
 		bb_perror_msg_and_die("error reading input font");
-	/* use malloc/realloc in case of giant files;
-	   maybe these do not occur: 16kB for the font,
-	   and 16kB for the map leaves 32 unicode values
-	   for each font position */
-	if (!feof(stdin))
-		bb_perror_msg_and_die("font too large");
+	if (inputlth >= INBUF_SIZE)
+		bb_error_msg_and_die("font too large");
 
 	/* test for psf first */
 	{
 		struct psf_header psfhdr;
 		int fontsize;
 		int hastable;
-		unsigned int head0, head;
+		unsigned head0, head;
 
 		if (inputlth < sizeof(struct psf_header))
 			goto no_psf;
@@ -161,7 +146,7 @@ static void loadnewfont(int fd)
 		if (psfhdr.mode > PSF_MAXMODE)
 			bb_error_msg_and_die("unsupported psf file mode");
 		fontsize = ((psfhdr.mode & PSF_MODE512) ? 512 : 256);
-#if !defined( PIO_FONTX ) || defined( __sparc__ )
+#if !defined(PIO_FONTX) || defined(__sparc__)
 		if (fontsize != 256)
 			bb_error_msg_and_die("only fontsize 256 supported");
 #endif
@@ -177,8 +162,8 @@ static void loadnewfont(int fd)
 			do_loadtable(fd, inbuf + head, inputlth - head, fontsize);
 		return;
 	}
-  no_psf:
 
+ no_psf:
 	/* file with three code pages? */
 	if (inputlth == 9780) {
 		offset = 40;
@@ -191,4 +176,18 @@ static void loadnewfont(int fd)
 		unit = inputlth / 256;
 	}
 	do_loadfont(fd, inbuf + offset, unit, 256);
+}
+
+int loadfont_main(int argc, char **argv);
+int loadfont_main(int argc, char **argv)
+{
+	int fd;
+
+	if (argc != 1)
+		bb_show_usage();
+
+	fd = xopen(CURRENT_VC, O_RDWR);
+	loadnewfont(fd);
+
+	return EXIT_SUCCESS;
 }

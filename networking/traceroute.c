@@ -371,6 +371,8 @@ struct globals {
 static int
 ifaddrlist(struct IFADDRLIST **ipaddrp)
 {
+	enum { IFREQ_BUFSIZE = (32 * 1024) / sizeof(struct ifreq) };
+
 	int fd, nipaddr;
 #ifdef HAVE_SOCKADDR_SA_LEN
 	int n;
@@ -379,22 +381,24 @@ ifaddrlist(struct IFADDRLIST **ipaddrp)
 	struct sockaddr_in *addr_sin;
 	struct IFADDRLIST *al;
 	struct ifconf ifc;
-	struct ifreq ibuf[(32 * 1024) / sizeof(struct ifreq)], ifr;
+	struct ifreq ifr;
+	/* Was on stack, but 32k is a bit too much: */
+	struct ifreq *ibuf = xmalloc(IFREQ_BUFSIZE * sizeof(ibuf[0]));
 	struct IFADDRLIST *st_ifaddrlist;
 
 	fd = xsocket(AF_INET, SOCK_DGRAM, 0);
 
-	ifc.ifc_len = sizeof(ibuf);
+	ifc.ifc_len = IFREQ_BUFSIZE * sizeof(ibuf[0]);
 	ifc.ifc_buf = (caddr_t)ibuf;
 
-	if (ioctl(fd, SIOCGIFCONF, (char *)&ifc) < 0 ||
-	    ifc.ifc_len < sizeof(struct ifreq)) {
+	if (ioctl(fd, SIOCGIFCONF, (char *)&ifc) < 0
+	 || ifc.ifc_len < sizeof(struct ifreq)
+	) {
 		if (errno == EINVAL)
 			bb_error_msg_and_die(
 			    "SIOCGIFCONF: ifreq struct too small (%d bytes)",
-			    (int)sizeof(ibuf));
-		else
-			bb_perror_msg_and_die("SIOCGIFCONF");
+			    IFREQ_BUFSIZE * sizeof(ibuf[0]));
+		bb_perror_msg_and_die("SIOCGIFCONF");
 	}
 	ifrp = ibuf;
 	ifend = (struct ifreq *)((char *)ibuf + ifc.ifc_len);
@@ -449,9 +453,10 @@ ifaddrlist(struct IFADDRLIST **ipaddrp)
 		++nipaddr;
 	}
 	if (nipaddr == 0)
-		bb_error_msg_and_die ("can't find any network interfaces");
-	(void)close(fd);
+		bb_error_msg_and_die("can't find any network interfaces");
 
+	free(ibuf);
+	close(fd);
 	*ipaddrp = st_ifaddrlist;
 	return nipaddr;
 }
@@ -492,11 +497,13 @@ findsaddr(const struct sockaddr_in *to, struct sockaddr_in *from)
 		++n;
 		if (n == 1 && strncmp(buf, "Iface", 5) == 0)
 			continue;
-		if ((i = sscanf(buf, "%255s %x %*s %*s %*s %*s %*s %x",
-		    tdevice, &dest, &tmask)) != 3)
-			bb_error_msg_and_die ("junk in buffer");
-		if ((to->sin_addr.s_addr & tmask) == dest &&
-		    (tmask > mask || mask == 0)) {
+		i = sscanf(buf, "%255s %x %*s %*s %*s %*s %*s %x",
+					tdevice, &dest, &tmask);
+		if (i != 3)
+			bb_error_msg_and_die("junk in buffer");
+		if ((to->sin_addr.s_addr & tmask) == dest
+		 && (tmask > mask || mask == 0)
+		) {
 			mask = tmask;
 			strcpy(device, tdevice);
 		}
@@ -504,7 +511,7 @@ findsaddr(const struct sockaddr_in *to, struct sockaddr_in *from)
 	fclose(f);
 
 	if (device[0] == '\0')
-		bb_error_msg_and_die ("can't find interface");
+		bb_error_msg_and_die("can't find interface");
 
 	/* Get the interface address list */
 	n = ifaddrlist(&al);
@@ -808,7 +815,7 @@ packet_ok(unsigned char *buf, int cc, struct sockaddr_in *from, int seq)
 		       "%s: icmp type %d (%s) code %d\n",
 		    cc, inet_ntoa(from->sin_addr),
 		    inet_ntoa(ip->ip_dst), type, pr_type(type), icp->icmp_code);
-		for (i = 4; i < cc ; i += sizeof(*lp))
+		for (i = 4; i < cc; i += sizeof(*lp))
 			printf("%2d: x%8.8x\n", i, *lp++);
 	}
 #endif
