@@ -109,11 +109,11 @@ config FEATURE_TOP_CPU_USAGE_PERCENTAGE
 	  Make top display CPU usage for each process.
 
 config FEATURE_TOP_CPU_GLOBAL_PERCENTS
-	bool "Show CPU global usage percentage (adds 1k byte)"
+	bool "Show CPU global usage percentage (adds 0.5k byte)"
 	default y
 	depends on FEATURE_TOP_CPU_USAGE_PERCENTAGE
 	help
-	  Makes top display "CPU:  n.n% us  n.n% sy  n.n% ni..." line.
+	  Makes top display "CPU: NN% usr NN% sys..." line.
 
 config UPTIME
 	bool "uptime"

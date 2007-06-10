@@ -292,8 +292,15 @@ static unsigned long display_generic(int scr_width)
 		/*
 		 * xxx% = (jif.xxx - prev_jif.xxx) / (jif.total - prev_jif.total) * 100%
 		 */
-#define CALC_STAT(xxx)	div_t xxx = div(1000 * (jif.xxx - prev_jif.xxx) / total_diff, 10)
-#define SHOW_STAT(xxx)	xxx.quot, '0'+xxx.rem
+		/* using (unsigned) cast to make multiplication cheaper: */
+#define CALC_STAT(xxx) unsigned xxx = 100 * (unsigned)(jif.xxx - prev_jif.xxx) / total_diff
+#define SHOW_STAT(xxx) xxx
+#define FMT "%3u%%"
+// We can display fractional percents, but at least in glibc div() is a _function_
+// and generated code is really awful and big (+0.5k more code):
+//#define CALC_STAT(xxx) div_t xxx = div(1000 * (unsigned)(jif.xxx - prev_jif.xxx) / total_diff, 10)
+//#define SHOW_STAT(xxx) xxx.quot, '0'+xxx.rem
+//#define FMT "%3u.%c%%"
 		unsigned total_diff = (jif.total - prev_jif.total ? : 1);
 		CALC_STAT(usr);
 		CALC_STAT(sys);
@@ -305,10 +312,10 @@ static unsigned long display_generic(int scr_width)
 		//CALC_STAT(steal);
 
 		snprintf(scrbuf, scr_width,
-			/* %3u.%c in practice almost never displays "100.0"
-			 * and thus has implicit leading space: " 99.6" */
-			"CPU:%3u.%c%% us%3u.%c%% sy%3u.%c%% ni%3u.%c%% id%3u.%c%% wa%3u.%c%% hi%3u.%c%% si",
-			// %3u.%c%%st", - what is this 'steal' thing?
+			/* %3u in practice almost never displays "100"
+			 * and thus has implicit leading space:  " 99" */
+			"CPU:"FMT" usr"FMT" sys"FMT" nice"FMT" idle"FMT" wait"FMT" irq"FMT" softirq",
+			// FMT" steal", - what is this 'steal' thing?
 			// I doubt anyone needs to know it
 			SHOW_STAT(usr), SHOW_STAT(sys), SHOW_STAT(nic), SHOW_STAT(idle),
 			SHOW_STAT(iowait), SHOW_STAT(irq), SHOW_STAT(softirq)
@@ -317,6 +324,7 @@ static unsigned long display_generic(int scr_width)
 		puts(scrbuf);
 #undef SHOW_STAT
 #undef CALC_STAT
+#undef FMT
 	}
 
 	snprintf(scrbuf, scr_width, "Load average: %s", buf);
