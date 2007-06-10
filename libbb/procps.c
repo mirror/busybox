@@ -79,8 +79,15 @@ const char* get_cached_groupname(gid_t gid)
 
 static int read_to_buf(const char *filename, void *buf)
 {
-	ssize_t ret;
-	ret = open_read_close(filename, buf, PROCPS_BUFSIZE-1);
+	int fd;
+	/* open_read_close() would do two reads, checking for EOF.
+	 * When you have 10000 /proc/$NUM/stat to read, it isn't desirable */
+	ssize_t ret = -1;
+	fd = open(filename, O_RDONLY);
+	if (fd >= 0) {
+		ret = read(fd, buf, PROCPS_BUFSIZE-1);
+		close(fd);
+	}
 	((char *)buf)[ret > 0 ? ret : 0] = '\0';
 	return ret;
 }

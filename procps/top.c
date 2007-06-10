@@ -221,7 +221,6 @@ static unsigned long display_generic(int scr_width)
 	char scrbuf[80];
 	char *end;
 	unsigned long total, used, mfree, shared, buffers, cached;
-	unsigned int needs_conversion = 1;
 
 	/* read memory info */
 	fp = xfopen("meminfo", "r");
@@ -240,14 +239,20 @@ static unsigned long display_generic(int scr_width)
 		fgets(buf, sizeof(buf), fp);    /* skip first line */
 
 		fscanf(fp, "Mem: %lu %lu %lu %lu %lu %lu",
-		   &total, &used, &mfree, &shared, &buffers, &cached);
+			&total, &used, &mfree, &shared, &buffers, &cached);
+		/* convert to kilobytes */
+		used /= 1024;
+		mfree /= 1024;
+		shared /= 1024;
+		buffers /= 1024;
+		cached /= 1024;
+		total /= 1024;
 	} else {
 		/*
 		 * Revert to manual parsing, which incidentally already has the
 		 * sizes in kilobytes. This should be safe for both 2.4 and
 		 * 2.6.
 		 */
-		needs_conversion = 0;
 
 		fscanf(fp, "MemFree: %lu %s\n", &mfree, buf);
 
@@ -273,16 +278,6 @@ static unsigned long display_generic(int scr_width)
 	if (end) end = strchr(end+1, ' ');
 	if (end) *end = '\0';
 
-	if (needs_conversion) {
-		/* convert to kilobytes */
-		used /= 1024;
-		mfree /= 1024;
-		shared /= 1024;
-		buffers /= 1024;
-		cached /= 1024;
-		total /= 1024;
-	}
-
 	/* output memory info and load average */
 	/* clear screen & go to top */
 	if (scr_width > sizeof(scrbuf))
@@ -293,8 +288,39 @@ static unsigned long display_generic(int scr_width)
 
 	printf(OPT_BATCH_MODE ? "%s\n" : "\e[H\e[J%s\n", scrbuf);
 
+	if (ENABLE_FEATURE_TOP_CPU_GLOBAL_PERCENTS) {
+		/*
+		 * xxx% = (jif.xxx - prev_jif.xxx) / (jif.total - prev_jif.total) * 100%
+		 */
+#define CALC_STAT(xxx)	div_t xxx = div(1000 * (jif.xxx - prev_jif.xxx) / total_diff, 10)
+#define SHOW_STAT(xxx)	xxx.quot, '0'+xxx.rem
+		unsigned total_diff = (jif.total - prev_jif.total ? : 1);
+		CALC_STAT(usr);
+		CALC_STAT(sys);
+		CALC_STAT(nic);
+		CALC_STAT(idle);
+		CALC_STAT(iowait);
+		CALC_STAT(irq);
+		CALC_STAT(softirq);
+		//CALC_STAT(steal);
+
+		snprintf(scrbuf, scr_width,
+			/* %3u.%c in practice almost never displays "100.0"
+			 * and thus has implicit leading space: " 99.6" */
+			"CPU:%3u.%c%% us%3u.%c%% sy%3u.%c%% ni%3u.%c%% id%3u.%c%% wa%3u.%c%% hi%3u.%c%% si",
+			// %3u.%c%%st", - what is this 'steal' thing?
+			// I doubt anyone needs to know it
+			SHOW_STAT(usr), SHOW_STAT(sys), SHOW_STAT(nic), SHOW_STAT(idle),
+			SHOW_STAT(iowait), SHOW_STAT(irq), SHOW_STAT(softirq)
+			//, SHOW_STAT(steal)
+		);
+		puts(scrbuf);
+#undef SHOW_STAT
+#undef CALC_STAT
+	}
+
 	snprintf(scrbuf, scr_width, "Load average: %s", buf);
-	printf("%s\n", scrbuf);
+	puts(scrbuf);
 
 	return total;
 }
@@ -479,7 +505,7 @@ int top_main(int argc, char **argv)
 		procps_status_t *p = NULL;
 
 		/* Default to 25 lines - 5 lines for status */
-		lines = 24 - 3;
+		lines = 24 - 3 USE_FEATURE_TOP_CPU_GLOBAL_PERCENTS( - 1);
 		col = 79;
 #if ENABLE_FEATURE_USE_TERMIOS
 		get_terminal_width_height(0, &col, &lines);
@@ -487,7 +513,7 @@ int top_main(int argc, char **argv)
 			sleep(interval);
 			continue;
 		}
-		lines -= 3;
+		lines -= 3 USE_FEATURE_TOP_CPU_GLOBAL_PERCENTS( + 1);
 #endif /* FEATURE_USE_TERMIOS */
 
 		/* read process IDs & status for all the processes */

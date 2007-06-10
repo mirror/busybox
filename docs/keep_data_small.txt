@@ -43,6 +43,16 @@ takes 55k of memory on 64-bit x86 kernel.
 
 On 32-bit kernel we need ~26k per applet.
 
+Script:
+
+i=1000; while test $i != 0; do
+        echo -n .
+        busybox sleep 30 &
+        i=$((i - 1))
+done
+echo
+wait
+
 (Data from NOMMU arches are sought. Provide 'size busybox' output too)
 
 
