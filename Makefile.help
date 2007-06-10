@@ -39,4 +39,6 @@ help:
 	@echo '  release		- create a distribution tarball'
 	@echo '  sizes			- show size of all enabled busybox symbols'
 	@echo '  objsizes		- show size of each .o object built'
+	@echo '  bigdata		- show data objects, biggest first'
+	@echo '  stksizes		- show stack users, biggest first'
 	@echo

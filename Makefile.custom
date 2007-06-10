@@ -79,9 +79,13 @@ baseline: busybox_unstripped
 objsizes: busybox_unstripped
 	$(srctree)/scripts/objsizes
 
+.PHONY: stksizes
+stksizes: busybox_unstripped
+	$(CROSS_COMPILE)objdump -d busybox_unstripped | $(srctree)/scripts/checkstack.pl $(ARCH)
+
 .PHONY: bigdata
 bigdata: busybox_unstripped
-	nm --size-sort busybox_unstripped | grep -vi ' [tr] ' | tail -20
+	$(CROSS_COMPILE)nm --size-sort busybox_unstripped | grep -vi ' [tr] '
 
 # Documentation Targets
 .PHONY: doc
