@@ -21,7 +21,7 @@
  */
 
 #include "libbb.h"
-//#include "coreutils.h"
+#include "coreutils.h"
 
 mode_t getopt_mk_fifo_nod(int argc, char **argv)
 {
