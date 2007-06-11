@@ -293,14 +293,16 @@ static unsigned long display_generic(int scr_width)
 		 * xxx% = (jif.xxx - prev_jif.xxx) / (jif.total - prev_jif.total) * 100%
 		 */
 		/* using (unsigned) cast to make multiplication cheaper: */
+#if ENABLE_FEATURE_TOP_DECIMALS
+/* Generated code is approx +0.5k */
+#define CALC_STAT(xxx) div_t xxx = div(1000 * (unsigned)(jif.xxx - prev_jif.xxx) / total_diff, 10)
+#define SHOW_STAT(xxx) xxx.quot, '0'+xxx.rem
+#define FMT "%3u.%c%%"
+#else
 #define CALC_STAT(xxx) unsigned xxx = 100 * (unsigned)(jif.xxx - prev_jif.xxx) / total_diff
 #define SHOW_STAT(xxx) xxx
 #define FMT "%3u%%"
-// We can display fractional percents, but at least in glibc div() is a _function_
-// and generated code is really awful and big (+0.5k more code):
-//#define CALC_STAT(xxx) div_t xxx = div(1000 * (unsigned)(jif.xxx - prev_jif.xxx) / total_diff, 10)
-//#define SHOW_STAT(xxx) xxx.quot, '0'+xxx.rem
-//#define FMT "%3u.%c%%"
+#endif
 		unsigned total_diff = (jif.total - prev_jif.total ? : 1);
 		CALC_STAT(usr);
 		CALC_STAT(sys);
@@ -312,14 +314,14 @@ static unsigned long display_generic(int scr_width)
 		//CALC_STAT(steal);
 
 		snprintf(scrbuf, scr_width,
-			/* %3u in practice almost never displays "100"
+			/* Barely fits in 79 chars when in "decimals" mode.
+			 * %3u in practice almost never displays "100"
 			 * and thus has implicit leading space:  " 99" */
-			"CPU:"FMT" usr"FMT" sys"FMT" nice"FMT" idle"FMT" wait"FMT" irq"FMT" softirq",
-			// FMT" steal", - what is this 'steal' thing?
-			// I doubt anyone needs to know it
+			"CPU:"FMT" usr"FMT" sys"FMT" nice"FMT" idle"FMT" io"FMT" irq"FMT" softirq",
 			SHOW_STAT(usr), SHOW_STAT(sys), SHOW_STAT(nic), SHOW_STAT(idle),
 			SHOW_STAT(iowait), SHOW_STAT(irq), SHOW_STAT(softirq)
-			//, SHOW_STAT(steal)
+			//, SHOW_STAT(steal) - what is this 'steal' thing?
+			// I doubt anyone wants to know it
 		);
 		puts(scrbuf);
 #undef SHOW_STAT
@@ -333,45 +335,59 @@ static unsigned long display_generic(int scr_width)
 	return total;
 }
 
-
+#if ENABLE_FEATURE_TOP_DECIMALS
+#define UPSCALE 1000
+#define CALC_STAT(name, val) div_t name = div((val), 10)
+#define SHOW_STAT(name) name.quot, '0'+name.rem
+#define FMT "%3u.%c"
+#else
+#define UPSCALE 100
+#define CALC_STAT(name, val) unsigned name = (val)
+#define SHOW_STAT(name) name
+#define FMT " %3u%%"
+#endif
 /* display process statuses */
 static void display_status(int count, int scr_width)
 {
 	enum {
-		bits_per_int = sizeof(int)*8
+		BITS_PER_INT = sizeof(int)*8
 	};
 
 	top_status_t *s = top;
 	char vsz_str_buf[8];
 	unsigned long total_memory = display_generic(scr_width); /* or use total_vsz? */
-	unsigned pmem_shift, pmem_scale;
-
+	/* xxx_shift and xxx_scale variables allow us to replace
+	 * expensive divides with multiply and shift */
+	unsigned pmem_shift, pmem_scale, pmem_half;
 #if ENABLE_FEATURE_TOP_CPU_USAGE_PERCENTAGE
-	unsigned pcpu_shift, pcpu_scale;
+	unsigned pcpu_shift, pcpu_scale, pcpu_half;
 	unsigned busy_jifs;
 
 	/* what info of the processes is shown */
 	printf(OPT_BATCH_MODE ? "%.*s" : "\e[7m%.*s\e[0m", scr_width,
-		"  PID USER     STATUS   VSZ  PPID %CPU %MEM COMMAND");
+		"  PID  PPID USER     STAT   VSZ %MEM %CPU COMMAND");
 #define MIN_WIDTH \
-	sizeof( "  PID USER     STATUS   VSZ  PPID %CPU %MEM C")
+	sizeof( "  PID  PPID USER     STAT   VSZ %MEM %CPU C")
 #else
+
+	/* !CPU_USAGE_PERCENTAGE */
 	printf(OPT_BATCH_MODE ? "%.*s" : "\e[7m%.*s\e[0m", scr_width,
-		"  PID USER     STATUS   VSZ  PPID %MEM COMMAND");
+		"  PID  PPID USER     STAT   VSZ %MEM COMMAND");
 #define MIN_WIDTH \
-	sizeof( "  PID USER     STATUS   VSZ  PPID %MEM C")
+	sizeof( "  PID  PPID USER     STAT   VSZ %MEM C")
 #endif
 
 	/*
 	 * MEM% = s->vsz/MemTotal
 	 */
-	pmem_shift = bits_per_int-11;
-	pmem_scale = 1000*(1U<<(bits_per_int-11)) / total_memory;
+	pmem_shift = BITS_PER_INT-11;
+	pmem_scale = UPSCALE*(1U<<(BITS_PER_INT-11)) / total_memory;
 	/* s->vsz is in kb. we want (s->vsz * pmem_scale) to never overflow */
 	while (pmem_scale >= 512) {
 		pmem_scale /= 4;
 		pmem_shift -= 2;
 	}
+	pmem_half = (1U << pmem_shift) / (ENABLE_FEATURE_TOP_DECIMALS? 20 : 2);
 #if ENABLE_FEATURE_TOP_CPU_USAGE_PERCENTAGE
 	busy_jifs = jif.busy - prev_jif.busy;
 	/* This happens if there were lots of short-lived processes
@@ -387,8 +403,8 @@ static void display_status(int count, int scr_width)
 	 * we assume that unsigned is at least 32-bit.
 	 */
 	pcpu_shift = 6;
-	pcpu_scale = (1000*64*(uint16_t)busy_jifs ? : 1);
-	while (pcpu_scale < (1U<<(bits_per_int-2))) {
+	pcpu_scale = (UPSCALE*64*(uint16_t)busy_jifs ? : 1);
+	while (pcpu_scale < (1U<<(BITS_PER_INT-2))) {
 		pcpu_scale *= 4;
 		pcpu_shift += 2;
 	}
@@ -398,28 +414,35 @@ static void display_status(int count, int scr_width)
 		pcpu_scale /= 4;
 		pcpu_shift -= 2;
 	}
+	pcpu_half = (1U << pcpu_shift) / (ENABLE_FEATURE_TOP_DECIMALS? 20 : 2);
 	/* printf(" pmem_scale=%u pcpu_scale=%u ", pmem_scale, pcpu_scale); */
 #endif
+
+	/* Ok, all prelim data is ready, go thru the list */
 	while (count-- > 0) {
-		div_t pmem = div((s->vsz*pmem_scale) >> pmem_shift, 10);
 		int col = scr_width+1;
-		USE_FEATURE_TOP_CPU_USAGE_PERCENTAGE(div_t pcpu;)
+		CALC_STAT(pmem, (s->vsz*pmem_scale + pmem_half) >> pmem_shift);
+#if ENABLE_FEATURE_TOP_CPU_USAGE_PERCENTAGE
+		CALC_STAT(pcpu, (s->pcpu*pcpu_scale + pcpu_half) >> pcpu_shift);
+#endif
 
 		if (s->vsz >= 100*1024)
 			sprintf(vsz_str_buf, "%6ldM", s->vsz/1024);
 		else
 			sprintf(vsz_str_buf, "%7ld", s->vsz);
-		USE_FEATURE_TOP_CPU_USAGE_PERCENTAGE(
-		pcpu = div((s->pcpu*pcpu_scale) >> pcpu_shift, 10);
-		)
-		col -= printf("\n%5u %-8s %s  "
-				"%s%6u"
-				USE_FEATURE_TOP_CPU_USAGE_PERCENTAGE("%3u.%c")
-				"%3u.%c ",
-				s->pid, get_cached_username(s->uid), s->state,
-				vsz_str_buf, s->ppid,
-				USE_FEATURE_TOP_CPU_USAGE_PERCENTAGE(pcpu.quot, '0'+pcpu.rem,)
-				pmem.quot, '0'+pmem.rem);
+		// PID PPID USER STAT VSZ %MEM [%CPU] COMMAND
+		col -= printf("\n" "%5u%6u %-8s %s%s" FMT
+#if ENABLE_FEATURE_TOP_CPU_USAGE_PERCENTAGE
+				FMT
+#endif
+				" ",
+				s->pid, s->ppid, get_cached_username(s->uid),
+				s->state, vsz_str_buf,
+				SHOW_STAT(pmem)
+#if ENABLE_FEATURE_TOP_CPU_USAGE_PERCENTAGE
+				, SHOW_STAT(pcpu)
+#endif
+		);
 		if (col > 0)
 			printf("%.*s", col, s->comm);
 		/* printf(" %d/%d %lld/%lld", s->pcpu, total_pcpu,
@@ -430,6 +453,9 @@ static void display_status(int count, int scr_width)
 	putchar(OPT_BATCH_MODE ? '\n' : '\r');
 	fflush(stdout);
 }
+#undef SHOW_STAT
+#undef CALC_STAT
+#undef FMT
 
 
 static void clearmems(void)
@@ -549,7 +575,7 @@ int top_main(int argc, char **argv)
 			strcpy(top[n].comm, p->comm);
 		}
 		if (ntop == 0) {
-			bb_error_msg_and_die("can't find process info in /proc");
+			bb_error_msg_and_die("no process info in /proc");
 		}
 #if ENABLE_FEATURE_TOP_CPU_USAGE_PERCENTAGE
 		if (!prev_hist_count) {
