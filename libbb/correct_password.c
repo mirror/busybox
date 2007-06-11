@@ -47,9 +47,9 @@ int correct_password(const struct passwd *pw)
 	char buffer[256];
 #endif
 
-	correct = "aa"; /* fake salt. crypt() can choke otherwise */
+	correct = bb_msg_full_version; /* fake salt. crypt() can choke otherwise */
 	if (!pw)
-		goto fake_it; /* "aa" will never match */
+		goto fake_it; /* The content of 'correct' will never match */
 	correct = pw->pw_passwd;
 #if ENABLE_FEATURE_SHADOWPASSWDS
 	if (LONE_CHAR(pw->pw_passwd, 'x') || LONE_CHAR(pw->pw_passwd, '*')) {
