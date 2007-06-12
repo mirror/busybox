@@ -100,15 +100,16 @@ static void write_utent(struct utmp *utptr, const char *username)
 #define write_utent(utptr, username) ((void)0)
 #endif /* !ENABLE_FEATURE_UTMP */
 
+#if ENABLE_FEATURE_NOLOGIN
 static void die_if_nologin_and_non_root(int amroot)
 {
 	FILE *fp;
 	int c;
 
-	if (access(bb_path_nologin_file, F_OK))
+	if (access("/etc/nologin", F_OK))
 		return;
 
-	fp = fopen(bb_path_nologin_file, "r");
+	fp = fopen("/etc/nologin", "r");
 	if (fp) {
 		while ((c = getc(fp)) != EOF)
 			putchar((c=='\n') ? '\r' : c);
@@ -118,28 +119,31 @@ static void die_if_nologin_and_non_root(int amroot)
 		puts("\r\nSystem closed for routine maintenance\r");
 	if (!amroot)
 		exit(1);
-	puts("\r\n[Disconnect bypassed -- root login allowed.]\r");
+	puts("\r\n[Disconnect bypassed -- root login allowed]\r");
 }
+#else
+static ALWAYS_INLINE void die_if_nologin_and_non_root(int amroot) {}
+#endif
 
 #if ENABLE_FEATURE_SECURETTY
 static int check_securetty(void)
 {
 	FILE *fp;
 	int i;
-	char buf[BUFSIZ];
+	char buf[256];
 
-	fp = fopen(bb_path_securetty_file, "r");
+	fp = fopen("/etc/securetty", "r");
 	if (!fp) {
 		/* A missing securetty file is not an error. */
 		return 1;
 	}
 	while (fgets(buf, sizeof(buf)-1, fp)) {
-		for (i = strlen(buf)-1; i>=0; --i) {
+		for (i = strlen(buf)-1; i >= 0; --i) {
 			if (!isspace(buf[i]))
 				break;
 		}
 		buf[++i] = '\0';
-		if ((buf[0]=='\0') || (buf[0]=='#'))
+		if (!buf[0] || (buf[0] == '#'))
 			continue;
 		if (strcmp(buf, short_tty) == 0) {
 			fclose(fp);
@@ -150,7 +154,7 @@ static int check_securetty(void)
 	return 0;
 }
 #else
-static inline int check_securetty(void) { return 1; }
+static ALWAYS_INLINE int check_securetty(void) { return 1; }
 #endif
 
 static void get_username_or_die(char *buf, int size_buf)
@@ -313,7 +317,7 @@ int login_main(int argc, char **argv)
 
 	write_utent(&utent, username);
 
-#ifdef CONFIG_SELINUX
+#if ENABLE_SELINUX
 	if (is_selinux_enabled()) {
 		security_context_t old_tty_sid, new_tty_sid;
 
@@ -368,7 +372,7 @@ int login_main(int argc, char **argv)
 
 	if (pw->pw_uid == 0)
 		syslog(LOG_INFO, "root login%s", fromhost);
-#ifdef CONFIG_SELINUX
+#if ENABLE_SELINUX
 	/* well, a simple setexeccon() here would do the job as well,
 	 * but let's play the game for now */
 	set_current_security_context(user_sid);

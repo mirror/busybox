@@ -943,12 +943,10 @@ extern const char bb_str_default[];
 extern const char bb_hexdigits_upcase[];
 
 extern const char bb_path_mtab_file[];
-extern const char bb_path_nologin_file[];
 extern const char bb_path_passwd_file[];
 extern const char bb_path_shadow_file[];
 extern const char bb_path_gshadow_file[];
 extern const char bb_path_group_file[];
-extern const char bb_path_securetty_file[];
 extern const char bb_path_motd_file[];
 extern const char bb_path_wtmp_file[];
 extern const char bb_dev_null[];

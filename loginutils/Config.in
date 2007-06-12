@@ -136,12 +136,20 @@ config LOGIN_SCRIPTS
 	  Enable this if you want login to execute $LOGIN_PRE_SUID_SCRIPT
 	  just prior to switching from root to logged-in user.
 
+config FEATURE_NOLOGIN
+	bool "Support for /etc/nologin"
+	default y
+	depends on LOGIN
+	help
+	  The file /etc/nologin is used by (some versions of) login(1).
+	  If it exists, non-root logins are prohibited.
+
 config FEATURE_SECURETTY
 	bool "Support for /etc/securetty"
 	default y
 	depends on LOGIN
 	help
-	  The file  /etc/securetty  is used by (some versions of) login(1).
+	  The file /etc/securetty is used by (some versions of) login(1).
 	  The file contains the device names of tty lines (one per line,
 	  without leading /dev/) on which root is allowed to login.
 
