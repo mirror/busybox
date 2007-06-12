@@ -8,7 +8,7 @@
 #include "libbb.h"
 
 /* Conversion table.  for base 64 */
-const char bb_uuenc_tbl_base64[65] = {
+const char bb_uuenc_tbl_base64[65 + 2] = {
 	'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H',
 	'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P',
 	'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X',
@@ -17,7 +17,8 @@ const char bb_uuenc_tbl_base64[65] = {
 	'o', 'p', 'q', 'r', 's', 't', 'u', 'v',
 	'w', 'x', 'y', 'z', '0', '1', '2', '3',
 	'4', '5', '6', '7', '8', '9', '+', '/',
-	'=' /* termination character */
+	'=' /* termination character */,
+	'\n', '\0' /* needed for uudecode.c */
 };
 
 const char bb_uuenc_tbl_std[65] = {

@@ -68,8 +68,6 @@ static void read_stduu(FILE *src_stream, FILE *dst_stream)
 
 static void read_base64(FILE *src_stream, FILE *dst_stream)
 {
-	static const char base64_table[] =
-		"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=\n";
 	int term_count = 1;
 
 	while (1) {
@@ -80,17 +78,20 @@ static void read_base64(FILE *src_stream, FILE *dst_stream)
 			char *table_ptr;
 			int ch;
 
-			/* Get next _valid_ character */
+			/* Get next _valid_ character.
+			 * global vector bb_uuenc_tbl_base64[] contains this string:
+			 * "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=\n"
+			 */
 			do {
 				ch = fgetc(src_stream);
 				if (ch == EOF) {
 					bb_error_msg_and_die("short file");
 				}
-				table_ptr = strchr(base64_table, ch);
+				table_ptr = strchr(bb_uuenc_tbl_base64, ch);
 			} while (table_ptr == NULL);
 
-			/* Convert encoded charcter to decimal */
-			ch = table_ptr - base64_table;
+			/* Convert encoded character to decimal */
+			ch = table_ptr - bb_uuenc_tbl_base64;
 
 			if (*table_ptr == '=') {
 				if (term_count == 0) {
