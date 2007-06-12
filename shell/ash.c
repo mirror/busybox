@@ -1581,7 +1581,6 @@ static unsigned long rseed;
 # define VDYNAMIC       0
 #endif
 
-static const char defpathvar[] = "PATH=/usr/local/bin:/usr/bin:/sbin:/bin";
 #ifdef IFS_BROKEN
 static const char defifsvar[] = "IFS= \t\n";
 #define defifs (defifsvar + 4)
@@ -1674,7 +1673,7 @@ static struct var varinit[] = {
 	{ NULL, VSTRFIXED|VTEXTFIXED|VUNSET,    "MAIL\0",       changemail },
 	{ NULL, VSTRFIXED|VTEXTFIXED|VUNSET,    "MAILPATH\0",   changemail },
 #endif
-	{ NULL, VSTRFIXED|VTEXTFIXED,           defpathvar,     changepath },
+	{ NULL, VSTRFIXED|VTEXTFIXED,           bb_PATH_root_path, changepath },
 	{ NULL, VSTRFIXED|VTEXTFIXED,           "PS1=$ ",       NULL },
 	{ NULL, VSTRFIXED|VTEXTFIXED,           "PS2=> ",       NULL },
 	{ NULL, VSTRFIXED|VTEXTFIXED,           "PS4=+ ",       NULL },
@@ -1710,7 +1709,6 @@ static struct var varinit[] = {
 #else
 #define vrandom (&vps4)[1]
 #endif
-#define defpath (defpathvar + 5)
 
 /*
  * The following macros access the values of the above variables.
@@ -7874,7 +7872,7 @@ parse_command_args(char **argv, const char **path)
 		do {
 			switch (c) {
 			case 'p':
-				*path = defpath;
+				*path = bb_default_path;
 				break;
 			default:
 				/* run 'typecmd' for other options */

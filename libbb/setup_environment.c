@@ -56,7 +56,7 @@ void setup_environment(const char *shell, int loginshell, int changeenv, const s
 		xsetenv("SHELL",   shell);
 		xsetenv("USER",    pw->pw_name);
 		xsetenv("LOGNAME", pw->pw_name);
-		xsetenv("PATH",   (pw->pw_uid ? bb_default_login_path : bb_default_root_login_path));
+		xsetenv("PATH",   (pw->pw_uid ? bb_default_path : bb_default_root_path));
 	}
 	else if (changeenv) {
 		/* Set HOME, SHELL, and if not becoming a super-user,

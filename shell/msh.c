@@ -5213,9 +5213,9 @@ int msh_main(int argc, char **argv)
 	if (path->value == null) {
 		/* Can be merged with same string elsewhere in bbox */
 		if (geteuid() == 0)
-			setval(path, bb_default_root_login_path);
+			setval(path, bb_default_root_path);
 		else
-			setval(path, bb_default_login_path);
+			setval(path, bb_default_path);
 	}
 	export(path);
 

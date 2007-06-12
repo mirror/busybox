@@ -24,10 +24,6 @@
 #define CONSOLE_NAME_SIZE 32
 #define MAXENV	16		/* Number of env. vars */
 
-#ifndef _PATH_STDPATH
-#define _PATH_STDPATH	"/usr/bin:/bin:/usr/sbin:/sbin"
-#endif
-
 #if ENABLE_FEATURE_INIT_COREDUMPS
 /*
  * When a file named CORE_ENABLE_FLAG_FILE exists, setrlimit is called
@@ -112,7 +108,7 @@ enum {
 
 static const char * const environment[] = {
 	"HOME=/",
-	"PATH=" _PATH_STDPATH,
+	bb_PATH_root_path,
 	"SHELL=/bin/sh",
 	"USER=root",
 	NULL

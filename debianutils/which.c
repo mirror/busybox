@@ -22,9 +22,11 @@ int which_main(int argc, char **argv)
 		bb_show_usage();
 	}
 
+/* We shouldn't do this. Ever. Not our business.
 	if (!getenv("PATH")) {
-		setenv("PATH", "/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin", 1);
+		putenv((char*)bb_PATH_root_path);
 	}
+*/
 
 	while (--argc > 0) {
 		argv++;
