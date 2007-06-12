@@ -23,14 +23,20 @@ int catv_main(int argc, char **argv)
 #define CATV_OPT_t (1<<1)
 #define CATV_OPT_v (1<<2)
 	flags ^= CATV_OPT_v;
-
 	argv += optind;
+
+	/* Read from stdin if there's nothing else to do. */
+	fd = 0;
+	if (!argv[0])
+		goto jump_in;
 	do {
-		/* Read from stdin if there's nothing else to do. */
-		fd = 0;
-		if (*argv && 0 > (fd = xopen(*argv, O_RDONLY)))
+		fd = open_or_warn(*argv, O_RDONLY);
+		if (fd < 0) {
 			retval = EXIT_FAILURE;
-		else for (;;) {
+			continue;
+		}
+ jump_in:
+		for (;;) {
 			int i, res;
 
 #define read_buf bb_common_bufsiz1
@@ -46,10 +52,9 @@ int catv_main(int argc, char **argv)
 					if (c == 127) {
 						printf("^?");
 						continue;
-					} else {
-						printf("M-");
-						c -= 128;
 					}
+					printf("M-");
+					c -= 128;
 				}
 				if (c < 32) {
 					if (c == 10) {
