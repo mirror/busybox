@@ -224,7 +224,7 @@ int bb_test(int argc, char **argv)
 	if (argc == 2)
 		return *argv[1] == '\0';
 //assert(argc);
-	if (LONE_CHAR(argv[1], '!')) {
+	{
 		bool _off;
 		if (argc == 3)
 			return *argv[2] != '\0';
@@ -232,7 +232,7 @@ int bb_test(int argc, char **argv)
 		t_lex(argv[2 + _off]);
 		if (t_wp_op && t_wp_op->op_type == BINOP) {
 			t_wp = &argv[1 + _off];
-			return binop() == 1;
+			return binop() == (LONE_CHAR(argv[1], '!'));
 		}
 	}
 	t_wp = &argv[1];
