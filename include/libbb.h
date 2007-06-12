@@ -379,9 +379,9 @@ extern char *safe_strncpy(char *dst, const char *src, size_t size);
 extern char *xasprintf(const char *format, ...) __attribute__ ((format (printf, 1, 2)));
 // gcc-4.1.1 still isn't good enough at optimizing it
 // (+200 bytes compared to macro)
-//static ATTRIBUTE_ALWAYS_INLINE
+//static ALWAYS_INLINE
 //int LONE_DASH(const char *s) { return s[0] == '-' && !s[1]; }
-//static ATTRIBUTE_ALWAYS_INLINE
+//static ALWAYS_INLINE
 //int NOT_LONE_DASH(const char *s) { return s[0] != '-' || s[1]; }
 #define LONE_DASH(s)     ((s)[0] == '-' && !(s)[1])
 #define NOT_LONE_DASH(s) ((s)[0] != '-' || (s)[1])
@@ -611,7 +611,7 @@ int write_pidfile(const char *path);
 #define remove_pidfile(f) ((void)unlink(f))
 #else
 /* Why? #defining it to 1 gives "warning: statement with no effect"... */
-static ATTRIBUTE_ALWAYS_INLINE int write_pidfile(const char *path) { return 1; }
+static ALWAYS_INLINE int write_pidfile(const char *path) { return 1; }
 #define remove_pidfile(f) ((void)0)
 #endif
 

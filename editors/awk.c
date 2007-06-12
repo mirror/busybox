@@ -677,7 +677,7 @@ static char nextchar(char **s)
 	return c;
 }
 
-static int ATTRIBUTE_ALWAYS_INLINE isalnum_(int c)
+static int ALWAYS_INLINE isalnum_(int c)
 {
 	return (isalnum(c) || c == '_');
 }

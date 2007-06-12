@@ -13,7 +13,7 @@
 #include "unarchive.h"
 
 #ifdef CONFIG_FEATURE_LZMA_FAST
-#  define speed_inline ATTRIBUTE_ALWAYS_INLINE
+#  define speed_inline ALWAYS_INLINE
 #else
 #  define speed_inline
 #endif
@@ -78,7 +78,7 @@ static rc_t* rc_init(int fd) /*, int buffer_size) */
 }
 
 /* Called once  */
-static ATTRIBUTE_ALWAYS_INLINE void rc_free(rc_t * rc)
+static ALWAYS_INLINE void rc_free(rc_t * rc)
 {
 	if (ENABLE_FEATURE_CLEAN_UP)
 		free(rc);
@@ -92,7 +92,7 @@ static void rc_do_normalize(rc_t * rc)
 	rc->range <<= 8;
 	rc->code = (rc->code << 8) | *rc->ptr++;
 }
-static ATTRIBUTE_ALWAYS_INLINE void rc_normalize(rc_t * rc)
+static ALWAYS_INLINE void rc_normalize(rc_t * rc)
 {
 	if (rc->range < (1 << RC_TOP_BITS)) {
 		rc_do_normalize(rc);
@@ -109,7 +109,7 @@ static speed_inline uint32_t rc_is_bit_0_helper(rc_t * rc, uint16_t * p)
 	rc->bound = *p * (rc->range >> RC_MODEL_TOTAL_BITS);
 	return rc->bound;
 }
-static ATTRIBUTE_ALWAYS_INLINE int rc_is_bit_0(rc_t * rc, uint16_t * p)
+static ALWAYS_INLINE int rc_is_bit_0(rc_t * rc, uint16_t * p)
 {
 	uint32_t t = rc_is_bit_0_helper(rc, p);
 	return rc->code < t;
@@ -143,7 +143,7 @@ static int rc_get_bit(rc_t * rc, uint16_t * p, int *symbol)
 }
 
 /* Called once */
-static ATTRIBUTE_ALWAYS_INLINE int rc_direct_bit(rc_t * rc)
+static ALWAYS_INLINE int rc_direct_bit(rc_t * rc)
 {
 	rc_normalize(rc);
 	rc->range >>= 1;

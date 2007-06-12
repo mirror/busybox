@@ -34,7 +34,7 @@
 #endif
 
 #if UINT_MAX != ULONG_MAX
-static ATTRIBUTE_ALWAYS_INLINE
+static ALWAYS_INLINE
 unsigned bb_strtoui(const char *str, char **end, int b)
 {
 	unsigned long v = strtoul(str, end, b);

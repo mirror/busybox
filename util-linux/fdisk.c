@@ -402,14 +402,14 @@ set_all_unchanged(void)
 		ptes[i].changed = 0;
 }
 
-static ATTRIBUTE_ALWAYS_INLINE void
+static ALWAYS_INLINE void
 set_changed(int i)
 {
 	ptes[i].changed = 1;
 }
 #endif /* FEATURE_FDISK_WRITABLE */
 
-static ATTRIBUTE_ALWAYS_INLINE struct partition *
+static ALWAYS_INLINE struct partition *
 get_part_table(int i)
 {
 	return ptes[i].part_table;
@@ -430,7 +430,7 @@ valid_part_table_flag(const char *mbuffer)
 }
 
 #if ENABLE_FEATURE_FDISK_WRITABLE
-static ATTRIBUTE_ALWAYS_INLINE void
+static ALWAYS_INLINE void
 write_part_table_flag(char *b)
 {
 	b[510] = 0x55;

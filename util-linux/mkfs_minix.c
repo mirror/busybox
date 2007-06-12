@@ -121,7 +121,7 @@ struct globals {
 
 #define G (*ptr_to_globals)
 
-static ATTRIBUTE_ALWAYS_INLINE unsigned div_roundup(unsigned size, unsigned n)
+static ALWAYS_INLINE unsigned div_roundup(unsigned size, unsigned n)
 {
 	return (size + n-1) / n;
 }

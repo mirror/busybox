@@ -65,6 +65,8 @@
 #define FLAG_U	(1<<12)
 #define	FLAG_w	(1<<13)
 
+#define g_read_buf bb_common_bufsiz1
+
 struct cand {
 	int x;
 	int y;
@@ -208,14 +210,14 @@ static void print_status(int val, char *path1, char *path2, char *entry)
 		free(_path2);
 	}
 }
-static void fiddle_sum(int *sum, int t)
+static ALWAYS_INLINE int fiddle_sum(int sum, int t)
 {
-	*sum = (int)(*sum * 127 + t);
+	return sum * 127 + t;
 }
 /*
  * Hash function taken from Robert Sedgewick, Algorithms in C, 3d ed., p 578.
  */
-static int readhash(FILE * f)
+static int readhash(FILE *fp)
 {
 	int i, t, space;
 	int sum;
@@ -223,17 +225,17 @@ static int readhash(FILE * f)
 	sum = 1;
 	space = 0;
 	if (!(option_mask32 & (FLAG_b | FLAG_w))) {
-		for (i = 0; (t = getc(f)) != '\n'; i++) {
+		for (i = 0; (t = getc(fp)) != '\n'; i++) {
 			if (t == EOF) {
 				if (i == 0)
 					return 0;
 				break;
 			}
-			fiddle_sum(&sum, t);
+			sum = fiddle_sum(sum, t);
 		}
 	} else {
 		for (i = 0;;) {
-			switch (t = getc(f)) {
+			switch (t = getc(fp)) {
 			case '\t':
 			case '\r':
 			case '\v':
@@ -246,7 +248,7 @@ static int readhash(FILE * f)
 					i++;
 					space = 0;
 				}
-				fiddle_sum(&sum, t);
+				sum = fiddle_sum(sum, t);
 				i++;
 				continue;
 			case EOF:
@@ -271,7 +273,7 @@ static int readhash(FILE * f)
  * Check to see if the given files differ.
  * Returns 0 if they are the same, 1 if different, and -1 on error.
  */
-static int files_differ(FILE * f1, FILE * f2, int flags)
+static int files_differ(FILE *f1, FILE *f2, int flags)
 {
 	size_t i, j;
 
@@ -281,37 +283,37 @@ static int files_differ(FILE * f1, FILE * f2, int flags)
 		return 1;
 	}
 	while (1) {
-		i = fread(bb_common_bufsiz1,            1, BUFSIZ/2, f1);
-		j = fread(bb_common_bufsiz1 + BUFSIZ/2, 1, BUFSIZ/2, f2);
+		i = fread(g_read_buf,                    1, COMMON_BUFSIZE/2, f1);
+		j = fread(g_read_buf + COMMON_BUFSIZE/2, 1, COMMON_BUFSIZE/2, f2);
 		if (i != j)
 			return 1;
 		if (i == 0)
 			return (ferror(f1) || ferror(f2));
-		if (memcmp(bb_common_bufsiz1,
-		           bb_common_bufsiz1 + BUFSIZ/2, i) != 0)
+		if (memcmp(g_read_buf,
+		           g_read_buf + COMMON_BUFSIZE/2, i) != 0)
 			return 1;
 	}
 }
 
 
-static void prepare(int i, FILE * fd, off_t filesize)
+static void prepare(int i, FILE *fp /*, off_t filesize*/)
 {
 	struct line *p;
 	int h;
 	size_t j, sz;
 
-	rewind(fd);
+	rewind(fp);
 
-	sz = (filesize <= FSIZE_MAX ? filesize : FSIZE_MAX) / 25;
-	if (sz < 100)
-		sz = 100;
+	/*sz = (filesize <= FSIZE_MAX ? filesize : FSIZE_MAX) / 25;*/
+	/*if (sz < 100)*/
+	sz = 100;
 
-	p = xmalloc((sz + 3) * sizeof(struct line));
+	p = xmalloc((sz + 3) * sizeof(p[0]));
 	j = 0;
-	while ((h = readhash(fd))) {
+	while ((h = readhash(fp))) {
 		if (j == sz) {
 			sz = sz * 3 / 2;
-			p = xrealloc(p, (sz + 3) * sizeof(struct line));
+			p = xrealloc(p, (sz + 3) * sizeof(p[0]));
 		}
 		p[++j].value = h;
 	}
@@ -694,10 +696,10 @@ static int asciifile(FILE * f)
 
 #if ENABLE_FEATURE_DIFF_BINARY
 	rewind(f);
-	cnt = fread(bb_common_bufsiz1, 1, BUFSIZ, f);
+	cnt = fread(g_read_buf, 1, COMMON_BUFSIZE, f);
 	for (i = 0; i < cnt; i++) {
-		if (!isprint(bb_common_bufsiz1[i])
-		 && !isspace(bb_common_bufsiz1[i])) {
+		if (!isprint(g_read_buf[i])
+		 && !isspace(g_read_buf[i])) {
 			return 0;
 		}
 	}
@@ -937,7 +939,7 @@ static void output(char *file1, FILE * f1, char *file2, FILE * f2)
  * 3*(number of k-candidates installed),  typically about
  * 6n words for files of length n.
  */
-static unsigned diffreg(char * ofile1, char * ofile2, int flags)
+static unsigned diffreg(char *ofile1, char *ofile2, int flags)
 {
 	char *file1 = ofile1;
 	char *file2 = ofile2;
@@ -987,8 +989,8 @@ static unsigned diffreg(char * ofile1, char * ofile2, int flags)
 		goto closem;
 	}
 
-	prepare(0, f1, stb1.st_size);
-	prepare(1, f2, stb2.st_size);
+	prepare(0, f1 /*, stb1.st_size*/);
+	prepare(1, f2 /*, stb2.st_size*/);
 	prune();
 	sort(sfile[0], slen[0]);
 	sort(sfile[1], slen[1]);

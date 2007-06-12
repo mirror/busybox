@@ -53,14 +53,14 @@
 # define ATTRIBUTE_PACKED __attribute__ ((__packed__))
 # define ATTRIBUTE_ALIGNED(m) __attribute__ ((__aligned__(m)))
 # if __GNUC_PREREQ (3,0)
-#  define ATTRIBUTE_ALWAYS_INLINE __attribute__ ((always_inline)) inline
+#  define ALWAYS_INLINE __attribute__ ((always_inline)) inline
 #  if !ENABLE_WERROR
 #   define ATTRIBUTE_DEPRECATED __attribute__ ((__deprecated__))
 #  else
 #   define ATTRIBUTE_DEPRECATED /* n/a */
 #  endif
 # else
-#  define ATTRIBUTE_ALWAYS_INLINE inline
+#  define ALWAYS_INLINE inline
 #  define ATTRIBUTE_DEPRECATED /* n/a */
 # endif
 
@@ -238,7 +238,7 @@ typedef unsigned smalluint;
 #endif
 
 #if defined(__dietlibc__)
-static ATTRIBUTE_ALWAYS_INLINE char* strchrnul(const char *s, char c)
+static ALWAYS_INLINE char* strchrnul(const char *s, char c)
 {
 	while (*s && *s != c) ++s;
 	return (char*)s;

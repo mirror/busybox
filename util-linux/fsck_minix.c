@@ -159,7 +159,7 @@ static struct {
 #define MAGIC     (Super.s_magic)
 
 /* gcc likes this more (code is smaller) than macro variant */
-static ATTRIBUTE_ALWAYS_INLINE unsigned div_roundup(unsigned size, unsigned n)
+static ALWAYS_INLINE unsigned div_roundup(unsigned size, unsigned n)
 {
 	return (size + n-1) / n;
 }
