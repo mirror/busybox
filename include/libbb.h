@@ -953,6 +953,10 @@ extern const char bb_path_motd_file[];
 extern const char bb_path_wtmp_file[];
 extern const char bb_dev_null[];
 extern const char bb_busybox_exec_path[];
+/* util-linux manpage says /sbin:/bin:/usr/sbin:/usr/bin,
+ * but I want to save a few bytes here */
+extern const char bb_default_root_login_path[]; /* "/sbin:/usr/sbin:/bin:/usr/bin" */
+#define bb_default_login_path (bb_default_root_login_path + sizeof("/sbin:/usr/sbin"))
 
 extern const int const_int_0;
 extern const int const_int_1;

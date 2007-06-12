@@ -30,11 +30,6 @@
 
 #include "libbb.h"
 
-/* util-linux manpage says /sbin:/bin:/usr/sbin:/usr/bin,
- * but I want to save a few bytes here */
-static const char DEFAULT_ROOT_LOGIN_PATH[] = "/sbin:/usr/sbin:/bin:/usr/bin";
-#define DEFAULT_LOGIN_PATH (DEFAULT_ROOT_LOGIN_PATH + sizeof("/sbin:/usr/sbin"))
-
 void setup_environment(const char *shell, int loginshell, int changeenv, const struct passwd *pw)
 {
 	if (loginshell) {
@@ -61,7 +56,7 @@ void setup_environment(const char *shell, int loginshell, int changeenv, const s
 		xsetenv("SHELL",   shell);
 		xsetenv("USER",    pw->pw_name);
 		xsetenv("LOGNAME", pw->pw_name);
-		xsetenv("PATH",   (pw->pw_uid ? DEFAULT_LOGIN_PATH : DEFAULT_ROOT_LOGIN_PATH));
+		xsetenv("PATH",   (pw->pw_uid ? bb_default_login_path : bb_default_root_login_path));
 	}
 	else if (changeenv) {
 		/* Set HOME, SHELL, and if not becoming a super-user,

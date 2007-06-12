@@ -714,7 +714,7 @@ static const char *describe_status(int status_num)
 {
 	int status_want, status_state ;
 	if (status_hashtable[status_num] == NULL || status_hashtable[status_num]->status == 0)
-		return "is not installed or flagged to be installed\n";
+		return "is not installed or flagged to be installed";
 
 	status_want = get_status(status_num, 1);
 	status_state = get_status(status_num, 3);

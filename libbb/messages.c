@@ -40,6 +40,10 @@ const char bb_path_motd_file[] = "/etc/motd";
 const char bb_dev_null[] = "/dev/null";
 const char bb_busybox_exec_path[] = CONFIG_BUSYBOX_EXEC_PATH;
 const char bb_default_login_shell[] = LIBBB_DEFAULT_LOGIN_SHELL;
+/* util-linux manpage says /sbin:/bin:/usr/sbin:/usr/bin,
+ * but I want to save a few bytes here. Check libbb.h before changing! */
+const char bb_default_root_login_path[] = "/sbin:/usr/sbin:/bin:/usr/bin";
+
 
 const int const_int_0;
 const int const_int_1 = 1;

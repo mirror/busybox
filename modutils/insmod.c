@@ -4112,18 +4112,13 @@ int insmod_main( int argc, char **argv)
 		}
 
 		if (strncmp(uts_info.release, m_strversion, STRVERSIONLEN) != 0) {
-			if (flag_force_load) {
-				bb_error_msg("warning: kernel-module version mismatch\n"
-						"\t%s was compiled for kernel version %s\n"
-						"\twhile this kernel is version %s",
-						m_filename, m_strversion, uts_info.release);
-			} else {
-				bb_error_msg("kernel-module version mismatch\n"
-						"\t%s was compiled for kernel version %s\n"
-						"\twhile this kernel is version %s.",
-						m_filename, m_strversion, uts_info.release);
+			bb_error_msg("%skernel-module version mismatch\n"
+				"\t%s was compiled for kernel version %s\n"
+				"\twhile this kernel is version %s",
+				flag_force_load ? "warning: " : "",
+				m_filename, m_strversion, uts_info.release);
+			if (!flag_force_load)
 				goto out;
-			}
 		}
 	}
 	k_crcs = 0;
