@@ -5,9 +5,8 @@
 # Licensed under the GPL v2, see the file LICENSE in this tarball.
 
 lib-y:=
-lib-$(CONFIG_MKTEMP)		+= mktemp.o
-lib-$(CONFIG_PIPE_PROGRESS)	+= pipe_progress.o
-lib-$(CONFIG_READLINK)		+= readlink.o
-lib-$(CONFIG_RUN_PARTS)		+= run_parts.o
-lib-$(CONFIG_START_STOP_DAEMON)	+= start_stop_daemon.o
-lib-$(CONFIG_WHICH)		+= which.o
+lib-$(CONFIG_MKTEMP)            += mktemp.o
+lib-$(CONFIG_PIPE_PROGRESS)     += pipe_progress.o
+lib-$(CONFIG_RUN_PARTS)         += run_parts.o
+lib-$(CONFIG_START_STOP_DAEMON) += start_stop_daemon.o
+lib-$(CONFIG_WHICH)             += which.o

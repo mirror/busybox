@@ -43,6 +43,12 @@ config KILLALL5
 	default n
 	depends on KILL
 
+config NMETER
+	bool "nmeter"
+	default n
+	help
+	  Prints selected system stats continuously, one line per update.
+
 config PIDOF
 	bool "pidof"
 	default n
@@ -129,6 +135,14 @@ config UPTIME
 	  uptime gives a one line display of the current time, how long
 	  the system has been running, how many users are currently logged
 	  on, and the system load averages for the past 1, 5, and 15 minutes.
+
+config WATCH
+	bool "watch"
+	default n
+	#huh?? select DATE
+	help
+	  watch is used to execute a program periodically, showing
+	  output to the screen.
 
 
 endmenu

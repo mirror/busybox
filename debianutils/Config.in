@@ -17,20 +17,6 @@ config PIPE_PROGRESS
 	help
 	  Display a dot to indicate pipe activity.
 
-config READLINK
-	bool "readlink"
-	default n
-	help
-	  This program reads a symbolic link and returns the name
-	  of the file it points to
-
-config FEATURE_READLINK_FOLLOW
-	bool "Enable canonicalization by following all symlinks (-f)"
-	default n
-	depends on READLINK
-	help
-	  Enable the readlink option (-f).
-
 config RUN_PARTS
 	bool "run-parts"
 	default n

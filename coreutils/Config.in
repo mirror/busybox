@@ -65,13 +65,6 @@ config CKSUM
 	help
 	  cksum is used to calculate the CRC32 checksum of a file.
 
-config CMP
-	bool "cmp"
-	default n
-	help
-	  cmp is used to compare two files and returns the result
-	  to standard output.
-
 config COMM
 	bool "comm"
 	default n
@@ -141,38 +134,6 @@ config DF
 	help
 	  df reports the amount of disk space used and available
 	  on filesystems.
-
-config DIFF
-	bool "diff"
-	default n
-	help
-	  diff compares two files or directories and outputs the
-	  differences between them in a form that can be given to
-	  the patch command.
-
-config FEATURE_DIFF_BINARY
-	bool "Enable checks for binary files"
-	default y
-	depends on DIFF
-	help
-	  This option enables support for checking for binary files
-	  before a comparison is carried out.
-
-config FEATURE_DIFF_DIR
-	bool "Enable directory support"
-	default y
-	depends on DIFF
-	help
-	  This option enables support for directory and subdirectory
-	  comparison.
-
-config FEATURE_DIFF_MINIMAL
-	bool "Enable -d option to find smaller sets of changes"
-	default n
-	depends on DIFF
-	help
-	  Enabling this option allows the use of -d to make diff
-	  try hard to find the smallest possible set of changes.
 
 config DIRNAME
 	bool "dirname"
@@ -474,6 +435,20 @@ config PWD
 	help
 	  pwd is used to print the current directory.
 
+config READLINK
+	bool "readlink"
+	default n
+	help
+	  This program reads a symbolic link and returns the name
+	  of the file it points to
+
+config FEATURE_READLINK_FOLLOW
+	bool "Enable canonicalization by following all symlinks (-f)"
+	default n
+	depends on READLINK
+	help
+	  Enable the readlink option (-f).
+
 config REALPATH
 	bool "realpath"
 	default n
@@ -703,14 +678,6 @@ config UUENCODE
 	default n
 	help
 	  uuencode is used to uuencode a file.
-
-config WATCH
-	bool "watch"
-	default n
-	select DATE
-	help
-	  watch is used to execute a program periodically, showing
-	  output to the screen.
 
 config WC
 	bool "wc"
