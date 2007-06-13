@@ -74,3 +74,25 @@ enum {
 	MINIX2_INODES_PER_BLOCK = BLOCK_SIZE / sizeof(struct minix2_inode),
 };
 
+/*
+Basic test script for regressions in mkfs/fsck.
+Copies current dir into image (typically bbox build tree).
+
+#!/bin/sh
+tmpdir=/tmp/minixtest-$$
+tmpimg=/tmp/minix-img-$$
+
+mkdir $tmpdir
+dd if=/dev/zero of=$tmpimg bs=1M count=20 || exit
+./busybox mkfs.minix $tmpimg || exit
+mount -o loop $tmpimg $tmpdir || exit
+cp -a "$PWD" $tmpdir
+umount $tmpdir || exit
+./busybox fsck.minix -vfm $tmpimg || exit
+echo "Continue?"
+read junk
+./busybox fsck.minix -vfml $tmpimg || exit
+rmdir $tmpdir
+rm $tmpimg
+
+*/
