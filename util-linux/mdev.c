@@ -19,6 +19,8 @@ struct globals {
 #define root_major (G.root_major)
 #define root_minor (G.root_minor)
 
+#define MAX_SYSFS_DEPTH 3 /* prevent infinite loops in /sys symlinks */
+
 /* mknod in /dev based on a path like "/sys/block/hda/hda1" */
 static void make_device(char *path, int delete)
 {
@@ -191,39 +193,28 @@ static void make_device(char *path, int delete)
 	if (delete) unlink(device_name);
 }
 
-/* Recursive search of /sys/block or /sys/class.  path must be a writeable
- * buffer of size PATH_MAX containing the directory string to start at. */
-
-static void find_dev(char *path)
+/* File callback for /sys/ traversal */
+static int fileAction(const char *fileName, struct stat *statbuf,
+                      void *userData, int depth)
 {
-	DIR *dir;
-	size_t len = strlen(path);
-	struct dirent *entry;
+	size_t len = strlen(fileName) - 4;
+	char *scratch = userData;
 
-	dir = opendir(path);
-	if (dir == NULL)
-		return;
+	if (strcmp(fileName + len, "/dev"))
+		return FALSE;
 
-	while ((entry = readdir(dir)) != NULL) {
-		struct stat st;
+	strcpy(scratch, fileName);
+	scratch[len] = 0;
+	make_device(scratch, 0);
 
-		/* Skip "." and ".." (also skips hidden files, which is ok) */
+	return TRUE;
+}
 
-		if (entry->d_name[0] == '.')
-			continue;
-
-		// uClibc doesn't fill out entry->d_type reliably. so we use lstat().
-
-		snprintf(path+len, PATH_MAX-len, "/%s", entry->d_name);
-		if (!lstat(path, &st) && S_ISDIR(st.st_mode)) find_dev(path);
-		path[len] = 0;
-
-		/* If there's a dev entry, mknod it */
-
-		if (!strcmp(entry->d_name, "dev")) make_device(path, 0);
-	}
-
-	closedir(dir);
+/* Directory callback for /sys/ traversal */
+static int dirAction(const char *fileName, struct stat *statbuf,
+                      void *userData, int depth)
+{
+	return (depth >= MAX_SYSFS_DEPTH ? SKIP : TRUE);
 }
 
 /* For the full gory details, see linux/Documentation/firmware_class/README
@@ -308,10 +299,14 @@ int mdev_main(int argc, char **argv)
 		xstat("/", &st);
 		root_major = major(st.st_dev);
 		root_minor = minor(st.st_dev);
-		strcpy(temp,"/sys/block");
-		find_dev(temp);
-		strcpy(temp,"/sys/class");
-		find_dev(temp);
+
+		recursive_action("/sys/block",
+			ACTION_RECURSE | ACTION_FOLLOWLINKS,
+			fileAction, dirAction, temp, 0);
+
+		recursive_action("/sys/class",
+			ACTION_RECURSE | ACTION_FOLLOWLINKS,
+			fileAction, dirAction, temp, 0);
 
 	/* Hotplug */
 
