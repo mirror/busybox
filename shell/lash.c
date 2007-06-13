@@ -1548,9 +1548,9 @@ int lash_main(int argc_l, char **argv_l)
 	if (opt & LASH_OPT_i) {
 		/* Looks like they want an interactive shell */
 		if (!ENABLE_FEATURE_SH_EXTRA_QUIET) {
-			printf("\n\n%s Built-in shell (lash)\n"
+			printf("\n\n%s built-in shell (lash)\n"
 					"Enter 'help' for a list of built-in commands.\n\n",
-					BB_BANNER);
+					bb_banner);
 		}
 	} else if (!local_pending_command && argv[optind]) {
 		//printf( "optind=%d  argv[optind]='%s'\n", optind, argv[optind]);

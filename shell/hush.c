@@ -3787,7 +3787,7 @@ int hush_main(int argc, char **argv)
 			hush_exit(xfunc_error_retval);
 		}
 #if !ENABLE_FEATURE_SH_EXTRA_QUIET
-		printf("\n\n%s hush - the humble shell v"HUSH_VER_STR"\n", BB_BANNER);
+		printf("\n\n%s hush - the humble shell v"HUSH_VER_STR"\n", bb_banner);
 		printf("Enter 'help' for a list of built-in commands.\n\n");
 #endif
 	}

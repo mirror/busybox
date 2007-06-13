@@ -94,7 +94,7 @@ struct globals {
 	int dev_fd;
 
 #if ENABLE_FEATURE_MINIX2
-	int version2;
+	smallint version2;
 #define version2 G.version2
 #endif
 	char *device_name;

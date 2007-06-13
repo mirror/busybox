@@ -47,9 +47,14 @@ int correct_password(const struct passwd *pw)
 	char buffer[256];
 #endif
 
-	correct = bb_msg_full_version; /* fake salt. crypt() can choke otherwise */
-	if (!pw)
-		goto fake_it; /* The content of 'correct' will never match */
+	/* fake salt. crypt() can choke otherwise.
+	 * (bb_banner's first two chars are letters and thus are valid salt) */
+	correct = bb_banner;
+	if (!pw) {
+		/* bb_banner will never match, it contains () which is never
+		 * generated in valid encrypted passwords. */
+		goto fake_it;
+	}
 	correct = pw->pw_passwd;
 #if ENABLE_FEATURE_SHADOWPASSWDS
 	if (LONE_CHAR(pw->pw_passwd, 'x') || LONE_CHAR(pw->pw_passwd, '*')) {

@@ -467,11 +467,11 @@ void bb_show_usage(void)
 			i--;
 		}
 
-		format_string = "%s\n\nUsage: %s %s\n\n";
+		fprintf(stderr, "%s multi-call binary\n", bb_banner);
+		format_string = "\nUsage: %s %s\n\n";
 		if (*p == '\b')
-			format_string = "%s\n\nNo help available.\n\n";
-		fprintf(stderr, format_string, bb_msg_full_version,
-					applet_name, p);
+			format_string = "\nNo help available.\n\n";
+		fprintf(stderr, format_string, applet_name, p);
 		dealloc_usage_messages((char*)usage_string);
 	}
 	xfunc_die();
@@ -550,8 +550,8 @@ static int busybox_main(char **argv)
 		/* leading tab and room to wrap */
 		output_width -= sizeof("start-stop-daemon, ") + 8;
 
-		printf("%s\n"
-		       "Copyright (C) 1998-2006  Erik Andersen, Rob Landley, and others.\n"
+		printf("%s multi-call binary\n", bb_banner); /* reuse const string... */
+		printf("Copyright (C) 1998-2006  Erik Andersen, Rob Landley, and others.\n"
 		       "Licensed under GPLv2.  See source distribution for full notice.\n"
 		       "\n"
 		       "Usage: busybox [function] [arguments]...\n"
@@ -561,7 +561,7 @@ static int busybox_main(char **argv)
 		       "\tutilities into a single executable.  Most people will create a\n"
 		       "\tlink to busybox for each function they wish to use and BusyBox\n"
 		       "\twill act like whatever it was invoked as!\n"
-		       "\nCurrently defined functions:\n", bb_msg_full_version);
+		       "\nCurrently defined functions:\n");
 		col = 0;
 		a = applets;
 		while (a->name) {

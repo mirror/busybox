@@ -12,8 +12,7 @@
 #else
 #define BANNER "BusyBox v" BB_VER " (" BB_EXTRA_VERSION ")"
 #endif
-const char BB_BANNER[] = BANNER;
-const char bb_msg_full_version[] = BANNER " multi-call binary";
+const char bb_banner[] = BANNER;
 
 const char bb_msg_memory_exhausted[] = "memory exhausted";
 const char bb_msg_invalid_date[] = "invalid date '%s'";

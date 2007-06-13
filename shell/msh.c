@@ -36,7 +36,7 @@
 # define bb_dev_null "/dev/null"
 # define DEFAULT_SHELL "/proc/self/exe"
 # define CONFIG_BUSYBOX_EXEC_PATH "/proc/self/exe"
-# define BB_BANNER "busybox standalone"
+# define bb_banner "busybox standalone"
 # define ENABLE_FEATURE_SH_STANDALONE 0
 # define bb_msg_memory_exhausted "memory exhausted"
 # define xmalloc(size) malloc(size)
@@ -5315,9 +5315,9 @@ int msh_main(int argc, char **argv)
 			interactive++;
 #if !ENABLE_FEATURE_SH_EXTRA_QUIET
 #ifdef MSHDEBUG
-			printf("\n\n%s Built-in shell (msh with debug)\n", BB_BANNER);
+			printf("\n\n%s built-in shell (msh with debug)\n", bb_banner);
 #else
-			printf("\n\n%s Built-in shell (msh)\n", BB_BANNER);
+			printf("\n\n%s built-in shell (msh)\n", bb_banner);
 #endif
 			printf("Enter 'help' for a list of built-in commands.\n\n");
 #endif

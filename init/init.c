@@ -934,7 +934,7 @@ int init_main(int argc, char **argv)
 	if (argc > 1) setenv("RUNLEVEL", argv[1], 1);
 
 	/* Hello world */
-	message(MAYBE_CONSOLE | L_LOG, "init started: %s", bb_msg_full_version);
+	message(MAYBE_CONSOLE | L_LOG, "init started: %s", bb_banner);
 
 	/* Make sure there is enough memory to do something useful. */
 	if (ENABLE_SWAPONOFF) {

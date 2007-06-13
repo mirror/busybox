@@ -114,7 +114,6 @@ static smallint version2;
 enum { version2 = 0 };
 #endif
 
-#define PROGRAM_VERSION "1.2 - 11/11/96"
 static smallint repair, automatic, verbose, list, show, warn_mode, force;
 static smallint changed;  /* is filesystem modified? */
 static smallint errors_uncorrected;  /* flag if some error was not corrected */
@@ -1315,7 +1314,7 @@ int fsck_minix_main(int argc, char **argv)
 	 * flags and whether or not the -f switch was specified on the
 	 * command line.
 	 */
-	printf("%s, "PROGRAM_VERSION"\n", applet_name);
+	printf("%s: %s\n", applet_name, bb_banner);
 
 	if (!(Super.s_state & MINIX_ERROR_FS)
 	 && (Super.s_state & MINIX_VALID_FS) && !force

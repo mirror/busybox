@@ -68,7 +68,7 @@ int klogd_main(int argc, char **argv)
 	if (option_mask32 & OPT_LEVEL)
 		klogctl(8, NULL, i);
 
-	syslog(LOG_NOTICE, "klogd started: %s", BB_BANNER);
+	syslog(LOG_NOTICE, "klogd started: %s", bb_banner);
 
 	/* Note: this code does not detect incomplete messages
 	 * (messages not ending with '\n' or just when kernel

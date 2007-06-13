@@ -7737,16 +7737,16 @@ setinteractive(int on)
 #if !ENABLE_FEATURE_SH_EXTRA_QUIET
 	if (is_interactive > 1) {
 		/* Looks like they want an interactive shell */
-		static smallint do_banner;
+		static smallint did_banner;
 
-		if (!do_banner) {
+		if (!did_banner) {
 			out1fmt(
 				"\n\n"
-				"%s Built-in shell (ash)\n"
+				"%s built-in shell (ash)\n"
 				"Enter 'help' for a list of built-in commands."
 				"\n\n",
-				BB_BANNER);
-			do_banner = 1;
+				bb_banner);
+			did_banner = 1;
 		}
 	}
 #endif
