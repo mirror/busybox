@@ -38,10 +38,8 @@ ssize_t full_read(int fd, void *buf, size_t len)
 
 		if (cc < 0)
 			return cc;	/* read() returns -1 on failure. */
-
 		if (cc == 0)
 			break;
-
 		buf = ((char *)buf) + cc;
 		total += cc;
 		len -= cc;
@@ -64,9 +62,7 @@ void xread(int fd, void *buf, size_t count)
 unsigned char xread_char(int fd)
 {
 	char tmp;
-
 	xread(fd, &tmp, 1);
-
 	return tmp;
 }
 
@@ -95,6 +91,37 @@ char *reads(int fd, char *buffer, size_t size)
 	return buffer;
 }
 
+// Read one line a-la fgets. Reads byte-by-byte.
+// Useful when it is important to not read ahead.
+char *xmalloc_reads(int fd, char *buf)
+{
+	char *p;
+	int sz = buf ? strlen(buf) : 0;
+
+	goto jump_in;
+	while (1) {
+		if (p - buf == sz) {
+ jump_in:
+			buf = xrealloc(buf, sz + 128);
+			p = buf + sz;
+			sz += 128;
+		}
+		if (safe_read(fd, p, 1) != 1) { /* EOF/error */
+			if (p == buf) {
+				/* we read nothing [and buf was NULL initially] */
+				free(buf);
+				return NULL;
+			}
+			break;
+		}
+		if (*p == '\n')
+			break;
+		p++;
+	}
+	*p++ = '\0';
+	return xrealloc(buf, p - buf);
+}
+
 ssize_t read_close(int fd, void *buf, size_t size)
 {
 	int e;
@@ -113,25 +140,29 @@ ssize_t open_read_close(const char *filename, void *buf, size_t size)
 	return read_close(fd, buf, size);
 }
 
+// Read (potentially big) files in one go. File size is estimated by
+// lseek to end.
 void *xmalloc_open_read_close(const char *filename, size_t *sizep)
 {
 	char *buf;
 	size_t size = sizep ? *sizep : INT_MAX;
-	int fd = xopen(filename, O_RDONLY);
+	int fd;
+	off_t len;
+
+	fd = xopen(filename, O_RDONLY);
 	/* /proc/N/stat files report len 0 here */
 	/* In order to make such files readable, we add small const */
-	off_t len = xlseek(fd, 0, SEEK_END) + 256;
+	len = xlseek(fd, 0, SEEK_END) | 0x3ff; /* + up to 1k */
 	xlseek(fd, 0, SEEK_SET);
-
-	if (len > size)
-		bb_error_msg_and_die("file '%s' is too big", filename);
-	size = len;
+	if (len < size)
+		size = len;
 	buf = xmalloc(size + 1);
 	size = read_close(fd, buf, size);
 	if ((ssize_t)size < 0)
 		bb_perror_msg_and_die("'%s'", filename);
 	xrealloc(buf, size + 1);
 	buf[size] = '\0';
-	if (sizep) *sizep = size;
+	if (sizep)
+		*sizep = size;
 	return buf;
 }

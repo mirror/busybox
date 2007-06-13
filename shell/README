@@ -1,5 +1,8 @@
 Various bits of what is known about busybox shells, in no particular order.
 
+2007-06-13
+hush: exec <"$1" doesn't do parameter subst
+
 2007-05-24
 hush: environment-related memory leak plugged, with net code size
 decrease.

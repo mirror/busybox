@@ -234,7 +234,7 @@ static void include_conf(struct dep_t **first, struct dep_t **current, char *buf
 {
 	int continuation_line = 0;
 
-	// alias parsing is not 100% correct (no correct handling of continuation lines within an alias) !
+	// alias parsing is not 100% correct (no correct handling of continuation lines within an alias)!
 
 	while (reads(fd, buffer, buflen)) {
 		int l;

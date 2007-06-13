@@ -99,7 +99,7 @@ int readprofile_main(int argc, char **argv)
 	/*
 	 * Use an fd for the profiling buffer, to skip stdio overhead
 	 */
-	len = INT_MAX;
+	len = MAXINT(ssize_t);
 	buf = xmalloc_open_read_close(proFile, &len);
 	if (!optNative) {
 		int entries = len/sizeof(*buf);

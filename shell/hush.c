@@ -942,21 +942,11 @@ static int builtin_pwd(char **argv ATTRIBUTE_UNUSED)
 /* built-in 'read VAR' handler */
 static int builtin_read(char **argv)
 {
-	char string[BUFSIZ];
-	char *p;
+	char *string;
 	const char *name = argv[1] ? argv[1] : "REPLY";
-	int name_len = strlen(name);
 
-	if (name_len >= sizeof(string) - 2)
-		return EXIT_FAILURE;
-	strcpy(string, name);
-	p = string + name_len;
-	*p++ = '=';
-	*p = '\0'; /* In case stdin has only EOF */
-	/* read string. name_len+1 chars are already used by 'name=' */
-	fgets(p, sizeof(string) - 1 - name_len, stdin);
-	chomp(p);
-	return set_local_var(xstrdup(string), 0);
+	string = xmalloc_reads(STDIN_FILENO, xasprintf("%s=", name));
+	return set_local_var(string, 0);
 }
 
 /* built-in 'set [VAR=value]' handler */

@@ -4262,6 +4262,7 @@ int insmod_ng_main(int argc, char **argv)
 {
 	long ret;
 	size_t len;
+	int optlen;
 	void *map;
 	char *filename, *options;
 
@@ -4270,12 +4271,12 @@ int insmod_ng_main(int argc, char **argv)
 		bb_show_usage();
 
 	/* Rest is options */
-	options = xstrdup("");
+	options = xzalloc(1);
+	optlen = 0;
 	while (*++argv) {
-		int optlen = strlen(options);
 		options = xrealloc(options, optlen + 2 + strlen(*argv) + 2);
 		/* Spaces handled by "" pairs, but no way of escaping quotes */
-		sprintf(options + optlen, (strchr(*argv,' ') ? "\"%s\" " : "%s "), *argv);
+		optlen += sprintf(options + optlen, (strchr(*argv,' ') ? "\"%s\" " : "%s "), *argv);
 	}
 
 #if 0

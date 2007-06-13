@@ -11567,8 +11567,8 @@ readcmd(int argc, char **argv)
 #endif
 #if ENABLE_ASH_READ_TIMEOUT
 	if (ts.tv_sec || ts.tv_usec) {
-		FD_ZERO (&set);
-		FD_SET (0, &set);
+		FD_ZERO(&set);
+		FD_SET(0, &set);
 
 		i = select(FD_SETSIZE, &set, NULL, NULL, &ts);
 		if (!i) {
