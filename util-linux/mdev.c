@@ -226,6 +226,71 @@ static void find_dev(char *path)
 	closedir(dir);
 }
 
+/* For the full gory details, see linux/Documentation/firmware_class/README
+ *
+ * Firmware loading works like this:
+ * - kernel sets FIRMWARE env var
+ * - userspace checks /lib/firmware/$FIRMWARE
+ * - userspace waits for /sys/$DEVPATH/loading to appear
+ * - userspace writes "1" to /sys/$DEVPATH/loading
+ * - userspace copies /lib/firmware/$FIRMWARE into /sys/$DEVPATH/data
+ * - userspace writes "0" (worked) or "-1" (failed) to /sys/$DEVPATH/loading
+ * - kernel loads firmware into device
+ */
+static inline void load_firmware(const char * const firmware, const char * const sysfs_path)
+{
+	int cnt;
+	int firmware_fd, loading_fd, data_fd;
+
+	/* check for $FIRMWARE from kernel */
+	/* XXX: dont bother: open(NULL) works same as open("no-such-file")
+	 * if (!firmware)
+	 *	return;
+	 */
+
+	/* check for /lib/firmware/$FIRMWARE */
+	xchdir("/lib/firmware");
+	firmware_fd = xopen(firmware, O_WRONLY);
+
+	/* in case we goto out ... */
+	data_fd = -1;
+
+	/* check for /sys/$DEVPATH/loading ... give 30 seconds to appear */
+	xchdir(sysfs_path);
+	for (cnt = 0; cnt < 30; ++cnt) {
+		loading_fd = open("loading", O_WRONLY);
+		if (loading_fd == -1)
+			sleep(1);
+		else
+			break;
+	}
+	if (loading_fd == -1)
+		goto out;
+
+	/* tell kernel we're loading by `echo 1 > /sys/$DEVPATH/loading` */
+	if (write(loading_fd, "1", 1) != 1)
+		goto out;
+
+	/* load firmware by `cat /lib/firmware/$FIRMWARE > /sys/$DEVPATH/data */
+	data_fd = open("data", O_WRONLY);
+	if (data_fd == -1)
+		goto out;
+	cnt = bb_copyfd_eof(firmware_fd, data_fd);
+
+	/* tell kernel result by `echo [0|-1] > /sys/$DEVPATH/loading` */
+	if (cnt > 0)
+		write(loading_fd, "0", 1);
+	else
+		write(loading_fd, "-1", 2);
+
+ out:
+	if (ENABLE_FEATURE_CLEAN_UP) {
+		close(firmware_fd);
+		close(loading_fd);
+		close(data_fd);
+	}
+}
+
 int mdev_main(int argc, char **argv);
 int mdev_main(int argc, char **argv)
 {
@@ -257,8 +322,14 @@ int mdev_main(int argc, char **argv)
 			bb_show_usage();
 
 		sprintf(temp, "/sys%s", env_path);
-		if (!strcmp(action, "add")) make_device(temp,0);
-		else if (!strcmp(action, "remove")) make_device(temp,1);
+		if (!strcmp(action, "remove"))
+			make_device(temp, 1);
+		else if (!strcmp(action, "add")) {
+			make_device(temp, 0);
+
+			if (ENABLE_FEATURE_MDEV_LOAD_FIRMWARE)
+				load_firmware(getenv("FIRMWARE"), temp);
+		}
 	}
 
 	if (ENABLE_FEATURE_CLEAN_UP) RELEASE_CONFIG_BUFFER(temp);

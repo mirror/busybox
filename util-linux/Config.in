@@ -294,6 +294,17 @@ config FEATURE_MDEV_EXEC
 
 	  For more information, please see docs/mdev.txt
 
+config FEATURE_MDEV_LOAD_FIRMWARE
+	bool "Support loading of firmwares"
+	default n
+	depends on MDEV
+	help
+	  Some devices need to load firmware before they can be usable.
+
+	  These devices will request userspace look up the files in
+	  /lib/firmware/ and if it exists, send it to the kernel for
+	  loading into the hardware.
+
 config MKSWAP
 	bool "mkswap"
 	default n
