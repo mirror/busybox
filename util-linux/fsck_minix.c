@@ -190,6 +190,7 @@ struct globals {
 #define check_file_blk     (G.check_file_blk     )
 #define current_name       (G.current_name       )
 #define INIT_G() do { \
+	PTR_TO_GLOBALS = xzalloc(sizeof(G)); \
 	dirsize = 16; \
 	namelen = 14; \
 	current_name[0] = '/'; \
