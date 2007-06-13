@@ -90,7 +90,6 @@ enum { version2 = 0 };
 #endif
 
 struct globals {
-
 	int dev_fd;
 
 #if ENABLE_FEATURE_MINIX2
