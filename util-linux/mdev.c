@@ -241,7 +241,7 @@ static inline void load_firmware(const char * const firmware, const char * const
 
 	/* check for /lib/firmware/$FIRMWARE */
 	xchdir("/lib/firmware");
-	firmware_fd = xopen(firmware, O_WRONLY);
+	firmware_fd = xopen(firmware, O_RDONLY);
 
 	/* in case we goto out ... */
 	data_fd = -1;
