@@ -710,16 +710,6 @@ send_probe(int seq, int ttl, struct timeval *tp)
 	}
 }
 
-static inline double
-deltaT(struct timeval *t1p, struct timeval *t2p)
-{
-	double dt;
-
-	dt = (double)(t2p->tv_sec - t1p->tv_sec) * 1000.0 +
-	     (double)(t2p->tv_usec - t1p->tv_usec) / 1000.0;
-	return dt;
-}
-
 #if ENABLE_FEATURE_TRACEROUTE_VERBOSE
 /*
  * Convert an ICMP "type" field to a printable string.
@@ -901,9 +891,8 @@ static void
 freehostinfo(struct hostinfo *hi)
 {
 	free(hi->name);
-	hi->name = NULL;
-	free((char *)hi->addrs);
-	free((char *)hi);
+	free(hi->addrs);
+	free(hi);
 }
 
 #if ENABLE_FEATURE_TRACEROUTE_SOURCE_ROUTE
@@ -918,6 +907,12 @@ getaddr(uint32_t *ap, const char *host)
 }
 #endif
 
+static void
+print_delta_ms(struct timeval *t1p, struct timeval *t2p)
+{
+	unsigned tt = (t2p->tv_sec - t1p->tv_sec) * 1000000 + (t2p->tv_usec - t1p->tv_usec);
+	printf("  %u.%03u ms", tt/1000, tt%1000);
+}
 
 int traceroute_main(int argc, char **argv);
 int traceroute_main(int argc, char **argv)
@@ -1256,7 +1251,7 @@ int traceroute_main(int argc, char **argv)
 					lastaddr = from->sin_addr.s_addr;
 					++gotlastaddr;
 				}
-				printf("  %.3f ms", deltaT(&t1, &t2));
+				print_delta_ms(&t1, &t2);
 				ip = (struct ip *)packet;
 				if (op & OPT_TTL_FLAG)
 					printf(" (%d)", ip->ip_ttl);
