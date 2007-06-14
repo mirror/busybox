@@ -202,7 +202,6 @@ int spawn_and_wait(char **argv)
 	return wait4pid(rc);
 }
 
-
 #if !BB_MMU
 void forkexit_or_rexec(char **argv)
 {
@@ -261,17 +260,18 @@ void bb_daemonize_or_rexec(int flags, char **argv)
 
 	if (!(flags & DAEMON_ONLY_SANITIZE)) {
 		forkexit_or_rexec(argv);
-		/* if daemonizing, make sure we detach from stdio */
+		/* if daemonizing, make sure we detach from stdio & ctty */
 		setsid();
 		dup2(fd, 0);
 		dup2(fd, 1);
 		dup2(fd, 2);
 	}
-	if (fd > 2)
+	while (fd > 2) {
 		close(fd--);
-	if (flags & DAEMON_CLOSE_EXTRA_FDS)
-		while (fd > 2)
-			close(fd--); /* close everything after fd#2 */
+		if (!(flags & DAEMON_CLOSE_EXTRA_FDS))
+			return;
+		/* else close everything after fd#2 */
+	}
 }
 
 void bb_sanitize_stdio(void)

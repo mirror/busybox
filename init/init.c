@@ -273,6 +273,9 @@ static void console_init(void)
 			while (fd > 2) close(fd--);
 		}
 		messageD(L_LOG, "console='%s'", s);
+	} else {
+		/* Make sure fd 0,1,2 are not closed */
+		bb_sanitize_stdio();
 	}
 
 	s = getenv("TERM");
@@ -288,20 +291,14 @@ static void console_init(void)
 		putenv((char*)"TERM=linux");
 }
 
-static void fixup_argv(int argc, char **argv, const char *new_argv0)
+static void fixup_argv(char **argv)
 {
-	int len;
-
 	/* Fix up argv[0] to be certain we claim to be init */
-	len = strlen(argv[0]);
-	strncpy(argv[0], new_argv0, len);
+	strncpy(argv[0], "init", strlen(argv[0]));
 
 	/* Wipe argv[1]-argv[N] so they don't clutter the ps listing */
-	len = 1;
-	while (argc > len) {
-		memset(argv[len], 0, strlen(argv[len]));
-		len++;
-	}
+	while (*++argv)
+		memset(*argv, 0, strlen(*argv));
 }
 
 /* Open the new terminal device */
@@ -919,6 +916,7 @@ int init_main(int argc, char **argv)
 	init_reboot(RB_DISABLE_CAD);
 #endif
 
+
 	/* Figure out where the default console should be */
 	console_init();
 	set_sane_term();
@@ -972,7 +970,7 @@ int init_main(int argc, char **argv)
 	if (getenv("SELINUX_INIT") == NULL) {
 		int enforce = 0;
 
-		putenv("SELINUX_INIT=YES");
+		putenv((char*)"SELINUX_INIT=YES");
 		if (selinux_init_load_policy(&enforce) == 0) {
 			BB_EXECVP(argv[0], argv);
 		} else if (enforce > 0) {
@@ -986,7 +984,7 @@ int init_main(int argc, char **argv)
 #endif /* CONFIG_SELINUX */
 
 	/* Make the command line just say "init"  -- thats all, nothing else */
-	fixup_argv(argc, argv, "init");
+	fixup_argv(argv);
 
 	/* Now run everything that needs to be run */
 

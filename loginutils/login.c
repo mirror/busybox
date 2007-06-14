@@ -160,10 +160,11 @@ static ALWAYS_INLINE int check_securetty(void) { return 1; }
 static void get_username_or_die(char *buf, int size_buf)
 {
 	int c, cntdown;
+
 	cntdown = EMPTY_USERNAME_COUNT;
-prompt:
-	/* skip whitespace */
+ prompt:
 	print_login_prompt();
+	/* skip whitespace */
 	do {
 		c = getchar();
 		if (c == EOF) exit(1);
