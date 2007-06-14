@@ -5,18 +5,21 @@
 # Licensed under the GPL v2, see the file LICENSE in this tarball.
 
 obj-y:=
-obj-y	+= applets.o
+obj-y	    += applets.o
 
-# Generated file needs additional love
-
-applets/usage:     .config
-applets/applets.o: .config include/usage_compressed.h
-
+hostprogs-y:=
 hostprogs-y += usage
-always := $(hostprogs-y)
-HOSTCFLAGS_usage.o = -I$(srctree)/include
+
+always:=    $(hostprogs-y)
+
+# Generated files need additional love
 
 quiet_cmd_gen_usage_compressed = GEN     include/usage_compressed.h
       cmd_gen_usage_compressed = $(srctree)/applets/usage_compressed include/usage_compressed.h applets
-include/usage_compressed.h: .config $(srctree)/include/usage.h applets/usage
+
+HOSTCFLAGS_usage.o = -I$(srctree)/include
+
+applets/applets.o:          include/usage_compressed.h
+applets/usage:              .config
+include/usage_compressed.h: applets/usage
 	$(call cmd,gen_usage_compressed)

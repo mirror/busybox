@@ -1,7 +1,7 @@
 /* vi: set sw=4 ts=4: */
 #include <unistd.h>
 
-#include "../include/autoconf.h"
+#include "autoconf.h"
 
 static const char usage_messages[] = ""
 #define MAKE_USAGE
