@@ -940,48 +940,48 @@
        "[PATH...] [EXPRESSION]"
 #define find_full_usage \
        "Search for files in a directory hierarchy.  The default PATH is\n" \
-       "the current directory; default EXPRESSION is '-print'\n" \
-       "\nEXPRESSION may consist of:\n" \
-       "	-follow		Dereference symlinks\n" \
-       "	-name PATTERN	File name (leading directories removed) matches PATTERN\n" \
-       "	-print		Print (default and assumed)" \
+       "the current directory, default EXPRESSION is '-print'\n" \
+     "\nEXPRESSION may consist of:" \
+     "\n	-follow		Dereference symlinks" \
+     "\n	-name PATTERN	File name (leading directories removed) matches PATTERN" \
+     "\n	-print		Print (default and assumed)" \
 	USE_FEATURE_FIND_PRINT0( \
-       "\n	-print0		Delimit output with null characters rather than" \
-       "\n			newlines" \
+     "\n	-print0		Delimit output with null characters rather than" \
+     "\n			newlines" \
 	) USE_FEATURE_FIND_TYPE( \
-       "\n	-type X		Filetype matches X (where X is one of: f,d,l,b,c,...)" \
+     "\n	-type X		Filetype matches X (where X is one of: f,d,l,b,c,...)" \
 	) USE_FEATURE_FIND_PERM( \
-       "\n	-perm PERMS	Permissions match any of (+NNN); all of (-NNN);" \
-       "\n			or exactly (NNN)" \
+     "\n	-perm PERMS	Permissions match any of (+NNN), all of (-NNN)," \
+     "\n			or exactly (NNN)" \
 	) USE_FEATURE_FIND_MTIME( \
-       "\n	-mtime DAYS	Modified time is greater than (+N); less than (-N);" \
-       "\n			Or exactly (N) days" \
+     "\n	-mtime DAYS	Modified time is greater than (+N), less than (-N)," \
+     "\n			or exactly (N) days" \
 	) USE_FEATURE_FIND_MMIN( \
-       "\n	-mmin MINS	Modified time is greater than (+N); less than (-N);" \
-       "\n			or exactly (N) minutes" \
+     "\n	-mmin MINS	Modified time is greater than (+N), less than (-N)," \
+     "\n			or exactly (N) minutes" \
 	) USE_FEATURE_FIND_NEWER( \
-       "\n	-newer FILE	Modified time is more recent than FILE's" \
+     "\n	-newer FILE	Modified time is more recent than FILE's" \
 	) USE_FEATURE_FIND_INUM( \
-       "\n	-inum N		File has inode number N" \
+     "\n	-inum N		File has inode number N" \
 	) USE_FEATURE_FIND_EXEC( \
-       "\n	-exec CMD	Execute CMD with all instances of {} replaced by the" \
-       "\n			files matching EXPRESSION" \
+     "\n	-exec CMD	Execute CMD with all instances of {} replaced by the" \
+     "\n			files matching EXPRESSION" \
 	) USE_FEATURE_FIND_USER( \
-       "\n	-user NAME	File is owned by user NAME (numeric user ID allowed)" \
+     "\n	-user NAME	File is owned by user NAME (numeric user ID allowed)" \
 	) USE_FEATURE_FIND_GROUP( \
-       "\n	-group NAME	File belongs to group NAME (numeric group ID allowed)" \
+     "\n	-group NAME	File belongs to group NAME (numeric group ID allowed)" \
        ) USE_FEATURE_FIND_DEPTH( \
-       "\n	-depth		Process directory after traversing it" \
+     "\n	-depth		Process directory after traversing it" \
 	) USE_FEATURE_FIND_SIZE( \
-       "\n	-size N		File size is N" \
+     "\n	-size N		File size is N" \
 	) USE_FEATURE_FIND_PRUNE( \
-       "\n	-prune		Stop traversing current subtree" \
+     "\n	-prune		Stop traversing current subtree" \
 	) USE_FEATURE_FIND_DELETE( \
-       "\n	-delete		Delete files; Turns on -depth option" \
+     "\n	-delete		Delete files, turns on -depth option" \
 	) USE_FEATURE_FIND_PATH( \
-       "\n	-path		Path matches PATTERN" \
+     "\n	-path		Path matches PATTERN" \
 	) USE_FEATURE_FIND_PAREN( \
-       "\n	(EXPR)		Group an expression" \
+     "\n	(EXPR)		Group an expression" \
 	)
 
 #define find_example_usage \
