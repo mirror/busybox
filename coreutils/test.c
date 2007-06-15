@@ -183,6 +183,7 @@ int bb_test(int argc, char **argv)
 {
 	int res;
 	char *arg0;
+	bool _off;
 
 	arg0 = strrchr(argv[0], '/');
 	if (!arg0++) arg0 = argv[0];
@@ -224,15 +225,19 @@ int bb_test(int argc, char **argv)
 	if (argc == 2)
 		return *argv[1] == '\0';
 //assert(argc);
+	/* remember if we saw argc==4 which wants *no* '!' test */
+	_off = argc - 4;
+	if (_off ?
+		(LONE_CHAR(argv[1], '!'))
+		: (argv[1][0] != '!' || argv[1][1] != '\0'))
 	{
-		bool _off;
 		if (argc == 3)
 			return *argv[2] != '\0';
-		_off = argc - 4;
+
 		t_lex(argv[2 + _off]);
 		if (t_wp_op && t_wp_op->op_type == BINOP) {
 			t_wp = &argv[1 + _off];
-			return binop() == (LONE_CHAR(argv[1], '!'));
+			return binop() == _off;
 		}
 	}
 	t_wp = &argv[1];
