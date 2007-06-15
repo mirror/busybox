@@ -47,6 +47,9 @@
 
 #include <fnmatch.h>
 #include "libbb.h"
+#if ENABLE_FEATURE_FIND_REGEX
+#include "xregex.h"
+#endif
 
 /* This is a NOEXEC applet. Be very careful! */
 
@@ -66,6 +69,8 @@ typedef struct {
 #define ACTF(name)         static int func_##name(const char *fileName, struct stat *statbuf, action_##name* ap)
                         ACTS(print)
                         ACTS(name,  const char *pattern;)
+USE_FEATURE_FIND_PATH(  ACTS(path,  const char *pattern;))
+USE_FEATURE_FIND_REGEX( ACTS(regex, regex_t compiled_pattern;))
 USE_FEATURE_FIND_PRINT0(ACTS(print0))
 USE_FEATURE_FIND_TYPE(  ACTS(type,  int type_mask;))
 USE_FEATURE_FIND_PERM(  ACTS(perm,  char perm_char; mode_t perm_mask;))
@@ -80,7 +85,6 @@ USE_FEATURE_FIND_PAREN( ACTS(paren, action ***subexpr;))
 USE_FEATURE_FIND_SIZE(  ACTS(size,  off_t size;))
 USE_FEATURE_FIND_PRUNE( ACTS(prune))
 USE_FEATURE_FIND_DELETE(ACTS(delete))
-USE_FEATURE_FIND_PATH(  ACTS(path, const char *pattern;))
 
 static action ***actions;
 static bool need_print = 1;
@@ -182,6 +186,25 @@ ACTF(name)
 	}
 	return fnmatch(ap->pattern, tmp, FNM_PERIOD) == 0;
 }
+#if ENABLE_FEATURE_FIND_PATH
+ACTF(path)
+{
+	return fnmatch(ap->pattern, fileName, 0) == 0;
+}
+#endif
+#if ENABLE_FEATURE_FIND_REGEX
+ACTF(regex)
+{
+	regmatch_t match;
+	if (regexec(&ap->compiled_pattern, fileName, 1, &match, 0 /*eflags*/))
+		return 0; /* no match */
+	if (match.rm_so)
+		return 0; /* match doesn't start at pos 0 */
+	if (fileName[match.rm_eo])
+		return 0; /* match doesn't end exactly at end of pathname */
+	return 1;
+}
+#endif
 #if ENABLE_FEATURE_FIND_TYPE
 ACTF(type)
 {
@@ -258,21 +281,18 @@ ACTF(exec)
 	return rc == 0; /* return 1 if exitcode 0 */
 }
 #endif
-
 #if ENABLE_FEATURE_FIND_USER
 ACTF(user)
 {
 	return (statbuf->st_uid == ap->uid);
 }
 #endif
-
 #if ENABLE_FEATURE_FIND_GROUP
 ACTF(group)
 {
 	return (statbuf->st_gid == ap->gid);
 }
 #endif
-
 #if ENABLE_FEATURE_FIND_PRINT0
 ACTF(print0)
 {
@@ -280,20 +300,23 @@ ACTF(print0)
 	return TRUE;
 }
 #endif
-
 ACTF(print)
 {
 	puts(fileName);
 	return TRUE;
 }
-
 #if ENABLE_FEATURE_FIND_PAREN
 ACTF(paren)
 {
 	return exec_actions(ap->subexpr, fileName, statbuf);
 }
 #endif
-
+#if ENABLE_FEATURE_FIND_SIZE
+ACTF(size)
+{
+	return statbuf->st_size == ap->size;
+}
+#endif
 #if ENABLE_FEATURE_FIND_PRUNE
 /*
  * -prune: if -depth is not given, return true and do not descend
@@ -306,7 +329,6 @@ ACTF(prune)
 	return SKIP + TRUE;
 }
 #endif
-
 #if ENABLE_FEATURE_FIND_DELETE
 ACTF(delete)
 {
@@ -322,24 +344,16 @@ ACTF(delete)
 }
 #endif
 
-#if ENABLE_FEATURE_FIND_PATH
-ACTF(path)
-{
-	return fnmatch(ap->pattern, fileName, 0) == 0;
-}
-#endif
 
-#if ENABLE_FEATURE_FIND_SIZE
-ACTF(size)
-{
-	return statbuf->st_size == ap->size;
-}
-#endif
-
-
-static int fileAction(const char *fileName, struct stat *statbuf, void* junk, int depth)
+static int fileAction(const char *fileName, struct stat *statbuf, void *userData, int depth)
 {
 	int i;
+#if ENABLE_FEATURE_FIND_MAXDEPTH
+	int maxdepth = (int)(ptrdiff_t)userData;
+
+	if (depth > maxdepth) return SKIP;
+#endif
+
 #if ENABLE_FEATURE_FIND_XDEV
 	if (S_ISDIR(statbuf->st_mode) && xdev_count) {
 		for (i = 0; i < xdev_count; i++) {
@@ -404,6 +418,8 @@ static action*** parse_params(char **argv)
 	                        PARM_print     ,
 	USE_FEATURE_FIND_PRINT0(PARM_print0    ,)
 	                        PARM_name      ,
+	USE_FEATURE_FIND_PATH(  PARM_path      ,)
+	USE_FEATURE_FIND_REGEX( PARM_regex     ,)
 	USE_FEATURE_FIND_TYPE(  PARM_type      ,)
 	USE_FEATURE_FIND_PERM(  PARM_perm      ,)
 	USE_FEATURE_FIND_MTIME( PARM_mtime     ,)
@@ -418,7 +434,6 @@ static action*** parse_params(char **argv)
 	USE_FEATURE_FIND_SIZE(  PARM_size      ,)
 	USE_FEATURE_FIND_PRUNE( PARM_prune     ,)
 	USE_FEATURE_FIND_DELETE(PARM_delete    ,)
-	USE_FEATURE_FIND_PATH(  PARM_path      ,)
 #if ENABLE_DESKTOP
 	                        PARM_and       ,
 	                        PARM_or        ,
@@ -433,6 +448,8 @@ static action*** parse_params(char **argv)
 	                        "-print" ,
 	USE_FEATURE_FIND_PRINT0("-print0",)
 	                        "-name"  ,
+	USE_FEATURE_FIND_PATH(  "-path"  ,)
+	USE_FEATURE_FIND_REGEX( "-regex" ,)
 	USE_FEATURE_FIND_TYPE(  "-type"  ,)
 	USE_FEATURE_FIND_PERM(  "-perm"  ,)
 	USE_FEATURE_FIND_MTIME( "-mtime" ,)
@@ -447,7 +464,6 @@ static action*** parse_params(char **argv)
 	USE_FEATURE_FIND_SIZE(  "-size"  ,)
 	USE_FEATURE_FIND_PRUNE( "-prune" ,)
 	USE_FEATURE_FIND_DELETE("-delete",)
-	USE_FEATURE_FIND_PATH(  "-path"  ,)
 #if ENABLE_DESKTOP
 	                        "-and"   ,
 	                        "-or"    ,
@@ -536,6 +552,24 @@ static action*** parse_params(char **argv)
 			ap = ALLOC_ACTION(name);
 			ap->pattern = arg1;
 		}
+#if ENABLE_FEATURE_FIND_PATH
+		else if (parm == PARM_path) {
+			action_path *ap;
+			if (!*++argv)
+				bb_error_msg_and_die(bb_msg_requires_arg, arg);
+			ap = ALLOC_ACTION(path);
+			ap->pattern = arg1;
+		}
+#endif
+#if ENABLE_FEATURE_FIND_REGEX
+		else if (parm == PARM_regex) {
+			action_regex *ap;
+			if (!*++argv)
+				bb_error_msg_and_die(bb_msg_requires_arg, arg);
+			ap = ALLOC_ACTION(regex);
+			xregcomp(&ap->compiled_pattern, arg1, 0 /*cflags*/);
+		}
+#endif
 #if ENABLE_FEATURE_FIND_TYPE
 		else if (parm == PARM_type) {
 			action_type *ap;
@@ -678,6 +712,15 @@ static action*** parse_params(char **argv)
 			argv = endarg;
 		}
 #endif
+#if ENABLE_FEATURE_FIND_SIZE
+		else if (parm == PARM_size) {
+			action_size *ap;
+			if (!*++argv)
+				bb_error_msg_and_die(bb_msg_requires_arg, arg);
+			ap = ALLOC_ACTION(size);
+			ap->size = XATOOFF(arg1);
+		}
+#endif
 #if ENABLE_FEATURE_FIND_PRUNE
 		else if (parm == PARM_prune) {
 			USE_FEATURE_FIND_NOT( invert_flag = 0; )
@@ -691,26 +734,10 @@ static action*** parse_params(char **argv)
 			(void) ALLOC_ACTION(delete);
 		}
 #endif
-#if ENABLE_FEATURE_FIND_PATH
-		else if (parm == PARM_path) {
-			action_path *ap;
-			if (!*++argv)
-				bb_error_msg_and_die(bb_msg_requires_arg, arg);
-			ap = ALLOC_ACTION(path);
-			ap->pattern = arg1;
-		}
-#endif
-#if ENABLE_FEATURE_FIND_SIZE
-		else if (parm == PARM_size) {
-			action_size *ap;
-			if (!*++argv)
-				bb_error_msg_and_die(bb_msg_requires_arg, arg);
-			ap = ALLOC_ACTION(size);
-			ap->size = XATOOFF(arg1);
-		}
-#endif
-		else
+		else {
+			bb_error_msg("unrecognized: %s", arg);
 			bb_show_usage();
+		}
 		argv++;
 	}
 	return appp;
@@ -721,15 +748,24 @@ static action*** parse_params(char **argv)
 int find_main(int argc, char **argv);
 int find_main(int argc, char **argv)
 {
-	static const char * const options[] = {
+	static const char *const options[] = {
 		"-follow",
-USE_FEATURE_FIND_XDEV( "-xdev", )
+USE_FEATURE_FIND_XDEV(    "-xdev"    ,)
+USE_FEATURE_FIND_MAXDEPTH("-maxdepth",)
 		NULL
+	};
+	enum {
+		OPT_FOLLOW,
+USE_FEATURE_FIND_XDEV(    OPT_XDEV    ,)
+USE_FEATURE_FIND_MAXDEPTH(OPT_MAXDEPTH,)
 	};
 
 	char *arg;
 	char **argp;
 	int i, firstopt, status = EXIT_SUCCESS;
+#if ENABLE_FEATURE_FIND_MAXDEPTH
+	int maxdepth = INT_MAX;
+#endif
 
 	for (firstopt = 1; firstopt < argc; firstopt++) {
 		if (argv[firstopt][0] == '-')
@@ -750,19 +786,19 @@ USE_FEATURE_FIND_XDEV( "-xdev", )
 /* All options always return true. They always take effect
  * rather than being processed only when their place in the
  * expression is reached.
- * We implement: -follow, -xdev
+ * We implement: -follow, -xdev, -maxdepth
  */
 	/* Process options, and replace then with -a */
 	/* (-a will be ignored by recursive parser later) */
 	argp = &argv[firstopt];
 	while ((arg = argp[0])) {
-		i = index_in_str_array(options, arg);
-		if (i == 0) { /* -follow */
+		int opt = index_in_str_array(options, arg);
+		if (opt == OPT_FOLLOW) {
 			recurse_flags |= ACTION_FOLLOWLINKS;
 			argp[0] = (char*)"-a";
 		}
 #if ENABLE_FEATURE_FIND_XDEV
-		else if (i == 1) { /* -xdev */
+		if (opt == OPT_XDEV) {
 			struct stat stbuf;
 			if (!xdev_count) {
 				xdev_count = firstopt - 1;
@@ -778,6 +814,16 @@ USE_FEATURE_FIND_XDEV( "-xdev", )
 			argp[0] = (char*)"-a";
 		}
 #endif
+#if ENABLE_FEATURE_FIND_MAXDEPTH
+		if (opt == OPT_MAXDEPTH) {
+			if (!argp[1])
+				bb_show_usage();
+			maxdepth = xatoi_u(argp[1]);
+			argp[0] = (char*)"-a";
+			argp[1] = (char*)"-a";
+			argp++;
+		}
+#endif
 		argp++;
 	}
 
@@ -788,7 +834,11 @@ USE_FEATURE_FIND_XDEV( "-xdev", )
 				recurse_flags,  /* flags */
 				fileAction,     /* file action */
 				fileAction,     /* dir action */
+#if ENABLE_FEATURE_FIND_MAXDEPTH
+				(void*)maxdepth,/* user data */
+#else
 				NULL,           /* user data */
+#endif
 				0))             /* depth */
 			status = EXIT_FAILURE;
 	}

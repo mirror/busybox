@@ -57,8 +57,14 @@ config FEATURE_FIND_XDEV
 	default y
 	depends on FIND
 	help
-	  This option will allow find to restrict searches to a single
-	  filesystem.
+	  This option allows find to restrict searches to a single filesystem.
+
+config FEATURE_FIND_MAXDEPTH
+	bool "Enable -maxdepth N option"
+	default y
+	depends on FIND
+	help
+	  This option enables -maxdepth N option.
 
 config FEATURE_FIND_NEWER
 	bool "Enable -newer option for comparing file mtimes"
@@ -149,7 +155,14 @@ config FEATURE_FIND_PATH
 	default y
 	depends on FIND
 	help
-	  The -path option matches whole pathnames instead of just filenames.
+	  The -path option matches whole pathname instead of just filename.
+
+config FEATURE_FIND_REGEX
+	bool "Enable -regex: match pathname to regex"
+	default y
+	depends on FIND
+	help
+	  The -regex option matches whole pathname against regular expression.
 
 config GREP
 	bool "grep"
