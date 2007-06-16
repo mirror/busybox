@@ -527,6 +527,12 @@ config PING6
 	help
 	  This will give you a ping that can talk IPv6.
 
+config PSCAN
+	bool "pscan"
+	default n
+	help
+	  Simple network port scanner.
+
 config FEATURE_FANCY_PING
 	bool "Enable fancy ping output"
 	default y

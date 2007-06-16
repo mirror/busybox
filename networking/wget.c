@@ -693,16 +693,15 @@ progressmeter(int flag)
 	struct timeval now, td, tvwait;
 	off_t abbrevsize;
 	int elapsed, ratio, barlength, i;
-	char buf[256];
 
 	if (flag == -1) { /* first call to progressmeter */
-		gettimeofday(&start, (struct timezone *) 0);
+		gettimeofday(&start, NULL);
 		lastupdate = start;
 		lastsize = 0;
 		totalsize = content_len + beg_range; /* as content_len changes.. */
 	}
 
-	gettimeofday(&now, (struct timezone *) 0);
+	gettimeofday(&now, NULL);
 	ratio = 100;
 	if (totalsize != 0 && !chunked) {
 		/* long long helps to have working ETA even if !LFS */
@@ -713,7 +712,9 @@ progressmeter(int flag)
 	fprintf(stderr, "\r%-20.20s%4d%% ", curfile, ratio);
 
 	barlength = getttywidth() - 51;
-	if (barlength > 0 && barlength < sizeof(buf)) {
+	if (barlength > 0) {
+		/* god bless gcc for variable arrays :) */
+		char buf[barlength+1];
 		i = barlength * ratio / 100;
 		memset(buf, '*', i);
 		memset(buf + i, ' ', barlength - i);

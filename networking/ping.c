@@ -341,7 +341,12 @@ static void sendping4(int junk ATTRIBUTE_UNUSED)
 	pkt->icmp_cksum = 0;
 	pkt->icmp_seq = htons(ntransmitted); /* don't ++ here, it can be a macro */
 	pkt->icmp_id = myid;
+
+// I can't fucking believe someone thought it's okay to do it like this...
+// where's hton? Where is a provision for different word size, structure padding, etc??
+// FIXME!
 	gettimeofday((struct timeval *) &pkt->icmp_dun, NULL);
+
 	pkt->icmp_cksum = in_cksum((unsigned short *) pkt, datalen + ICMP_MINLEN);
 
 	sendping_tail(sendping4, pkt, datalen + ICMP_MINLEN);
@@ -356,6 +361,8 @@ static void sendping6(int junk ATTRIBUTE_UNUSED)
 	pkt->icmp6_cksum = 0;
 	pkt->icmp6_seq = htons(ntransmitted); /* don't ++ here, it can be a macro */
 	pkt->icmp6_id = myid;
+
+// FIXME!
 	gettimeofday((struct timeval *) &pkt->icmp6_data8[4], NULL);
 
 	sendping_tail(sendping6, pkt, datalen + sizeof(struct icmp6_hdr));
