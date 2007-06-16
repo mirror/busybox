@@ -30,7 +30,7 @@ config FEATURE_FIND_MTIME
 	  files, in days.
 
 config FEATURE_FIND_MMIN
-	bool "Enable modified time matching (-min) option"
+	bool "Enable modified time matching (-mmin) option"
 	default y
 	depends on FIND
 	help

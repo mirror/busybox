@@ -45,6 +45,14 @@
  * (no output)
  */
 
+/* Testing script
+ * ./busybox find "$@" | tee /tmp/bb_find
+ * echo ==================
+ * /path/to/gnu/find "$@" | tee /tmp/std_find
+ * echo ==================
+ * diff -u /tmp/std_find /tmp/bb_find && echo Identical
+ */
+
 #include <fnmatch.h>
 #include "libbb.h"
 #if ENABLE_FEATURE_FIND_REGEX
@@ -82,7 +90,7 @@ USE_FEATURE_FIND_EXEC(  ACTS(exec,  char **exec_argv; unsigned *subst_count; int
 USE_FEATURE_FIND_USER(  ACTS(user,  uid_t uid;))
 USE_FEATURE_FIND_GROUP( ACTS(group, gid_t gid;))
 USE_FEATURE_FIND_PAREN( ACTS(paren, action ***subexpr;))
-USE_FEATURE_FIND_SIZE(  ACTS(size,  off_t size;))
+USE_FEATURE_FIND_SIZE(  ACTS(size,  char size_char; off_t size;))
 USE_FEATURE_FIND_PRUNE( ACTS(prune))
 USE_FEATURE_FIND_DELETE(ACTS(delete))
 
@@ -314,6 +322,10 @@ ACTF(paren)
 #if ENABLE_FEATURE_FIND_SIZE
 ACTF(size)
 {
+	if (ap->size_char == '+')
+		return statbuf->st_size > ap->size;
+	if (ap->size_char == '-')
+		return statbuf->st_size < ap->size;
 	return statbuf->st_size == ap->size;
 }
 #endif
@@ -714,11 +726,31 @@ static action*** parse_params(char **argv)
 #endif
 #if ENABLE_FEATURE_FIND_SIZE
 		else if (parm == PARM_size) {
+/* -size n[bckw]: file uses n units of space
+ * b (default): units are 512-byte blocks
+ * c: 1 byte
+ * k: kilobytes
+ * w: 2-byte words
+ */
+#if ENABLE_LFS
+#define XATOU_SFX xatoull_sfx
+#else
+#define XATOU_SFX xatoul_sfx
+#endif
+			static const struct suffix_mult find_suffixes[] = {
+			        { "c", 1 },
+			        { "w", 2 },
+			        { "b"+1, 512 },
+			        { "b", 512 },
+			        { "k", 1024 },
+			        { NULL, 0 }
+			};
 			action_size *ap;
 			if (!*++argv)
 				bb_error_msg_and_die(bb_msg_requires_arg, arg);
 			ap = ALLOC_ACTION(size);
-			ap->size = XATOOFF(arg1);
+			ap->size_char = arg1[0];
+			ap->size = XATOU_SFX(plus_minus_num(arg1), find_suffixes);
 		}
 #endif
 #if ENABLE_FEATURE_FIND_PRUNE
