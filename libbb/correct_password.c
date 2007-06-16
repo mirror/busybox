@@ -47,8 +47,7 @@ int correct_password(const struct passwd *pw)
 	char buffer[256];
 #endif
 
-	/* fake salt. crypt() can choke otherwise.
-	 * (bb_banner's first two chars are letters and thus are valid salt) */
+	/* fake salt. crypt() can choke otherwise. */
 	correct = "aa";
 	if (!pw) {
 		/* "aa" will never match */
