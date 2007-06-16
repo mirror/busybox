@@ -347,7 +347,8 @@ config FEATURE_INETD_SUPPORT_BUILTIN_CHARGEN
 config FEATURE_INETD_RPC
 	bool "Support RPC services"
 	default n
-	depends on INETD && FEATURE_HAVE_RPC
+	depends on INETD
+	select FEATURE_HAVE_RPC
 	help
 	  Support Sun-RPC based services
 
