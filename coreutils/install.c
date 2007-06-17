@@ -102,7 +102,8 @@ int install_main(int argc, char **argv)
 	opt_complementary = "?:s--d:d--s" USE_SELINUX(":Z--\xff:\xff--Z");
 	/* -c exists for backwards compatibility, it's needed */
 
-	flags = getopt32(argc, argv, "cdpsg:m:o:" USE_SELINUX("Z:"), &gid_str, &mode_str, &uid_str USE_SELINUX(, &scontext));
+	flags = getopt32(argc, argv, "cdpsg:m:o:" USE_SELINUX("Z:"),
+			&gid_str, &mode_str, &uid_str USE_SELINUX(, &scontext));
 
 #if ENABLE_SELINUX
 	if (flags & OPT_PRESERVE_SECURITY_CONTEXT) {
@@ -165,7 +166,8 @@ int install_main(int argc, char **argv)
 		return ret;
 	}
 
-	isdir = lstat(argv[argc - 1], &statbuf) < 0 ? 0 : S_ISDIR(statbuf.st_mode);
+	/* coreutils install resolves link in this case, don't use lstat */
+	isdir = stat(argv[argc - 1], &statbuf) < 0 ? 0 : S_ISDIR(statbuf.st_mode);
 
 	for (i = optind; i < argc - 1; i++) {
 		char *dest;
@@ -192,7 +194,11 @@ int install_main(int argc, char **argv)
 			ret = EXIT_FAILURE;
 		}
 		if (flags & OPT_STRIP) {
-			if (BB_EXECLP("strip", "strip", dest, NULL) == -1) {
+			char *args[3];
+			args[0] = (char*)"strip";
+			args[1] = dest;
+			args[2] = NULL;
+			if (spawn_and_wait(args)) {
 				bb_perror_msg("strip");
 				ret = EXIT_FAILURE;
 			}

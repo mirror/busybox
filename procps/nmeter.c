@@ -11,9 +11,14 @@
 // /proc/stat:
 // disk_io: (3,0):(22272,17897,410702,4375,54750)
 // btime 1059401962
+//TODO: use sysinfo libc call/syscall, if appropriate
+// (faster than open/read/close):
+// sysinfo({uptime=15017, loads=[5728, 15040, 16480]
+//  totalram=2107416576, freeram=211525632, sharedram=0, bufferram=157204480}
+//  totalswap=134209536, freeswap=134209536, procs=157})
 
-#include "libbb.h"
 #include <time.h>
+#include "libbb.h"
 
 typedef unsigned long long ullong;
 
