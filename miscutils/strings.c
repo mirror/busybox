@@ -19,9 +19,10 @@
 int strings_main(int argc, char **argv);
 int strings_main(int argc, char **argv)
 {
-	int n, c, i = 0, status = EXIT_SUCCESS;
+	int n, c, status = EXIT_SUCCESS;
 	unsigned opt;
-	unsigned long count;
+	unsigned count;
+	off_t offset;
 	FILE *file = stdin;
 	char *string;
 	const char *fmt = "%s: ";
@@ -29,56 +30,56 @@ int strings_main(int argc, char **argv)
 
 	opt = getopt32(argc, argv, "afon:", &n_arg);
 	/* -a is our default behaviour */
-
-	argc -= optind;
+	/*argc -= optind;*/
 	argv += optind;
 
-	n = xatoul_range(n_arg, 1, INT_MAX);
+	n = xatou_range(n_arg, 1, INT_MAX);
 	string = xzalloc(n + 1);
 	n--;
 
-	if (argc == 0) {
+	if (!*argv) {
 		fmt = "{%s}: ";
-		*argv = (char *)bb_msg_standard_input;
+		*--argv = (char *)bb_msg_standard_input;
 		goto PIPE;
 	}
 
 	do {
 		file = fopen_or_warn(*argv, "r");
-		if (file) {
-PIPE:
-			count = 0;
-			do {
-				c = fgetc(file);
-				if (isprint(c) || c == '\t') {
-					if (i <= n) {
-						string[i] = c;
-					} else {
-						putchar(c);
-					}
-					if (i == n) {
+		if (!file) {
+			status = EXIT_FAILURE;
+			continue;
+		}
+ PIPE:
+		offset = 0;
+		count = 0;
+		do {
+			c = fgetc(file);
+			if (isprint(c) || c == '\t') {
+				if (count > n) {
+					putchar(c);
+				} else {
+					string[count] = c;
+					if (count == n) {
 						if (opt & PRINT_NAME) {
 							printf(fmt, *argv);
 						}
 						if (opt & PRINT_OFFSET) {
-							printf("%7lo ", count - n);
+							printf("%7"OFF_FMT"o ", offset - n);
 						}
-						printf("%s", string);
+						fputs(string, stdout);
 					}
-					i++;
-				} else {
-					if (i > n) {
-						putchar('\n');
-					}
-					i = 0;
+					count++;
 				}
-				count++;
-			} while (c != EOF);
-			fclose_if_not_stdin(file);
-		} else {
-			status = EXIT_FAILURE;
-		}
-	} while (--argc > 0);
+			} else {
+				if (count > n) {
+					putchar('\n');
+				}
+				count = 0;
+			}
+			offset++;
+		} while (c != EOF);
+		fclose_if_not_stdin(file);
+	} while (*++argv);
 
 	if (ENABLE_FEATURE_CLEAN_UP)
 		free(string);
