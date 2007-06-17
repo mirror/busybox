@@ -705,7 +705,7 @@ progressmeter(int flag)
 	ratio = 100;
 	if (totalsize != 0 && !chunked) {
 		/* long long helps to have working ETA even if !LFS */
-		ratio = (int) (100 * (unsigned long long)(transferred+beg_range) / totalsize);
+		ratio = (int) (100ULL * (transferred+beg_range) / totalsize);
 		ratio = MIN(ratio, 100);
 	}
 

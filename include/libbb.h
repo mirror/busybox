@@ -200,6 +200,7 @@ struct sysinfo {
 };
 int sysinfo(struct sysinfo* info);
 
+unsigned long long monotonic_us(void);
 
 extern void chomp(char *s);
 extern void trim(char *s);

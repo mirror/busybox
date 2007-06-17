@@ -95,4 +95,14 @@ config FEATURE_EDITING_FANCY_PROMPT
 	  Setting this option allows for prompts to use things like \w and
 	  \$ and escape codes.
 
+config MONOTONIC_SYSCALL
+	bool "Use clock_gettime(CLOCK_MONOTONIC) syscall"
+	default y
+	help
+	  Use clock_gettime(CLOCK_MONOTONIC) syscall for measuring
+	  time intervals (time, ping, traceroute etc need this).
+	  Probably requires Linux 2.6+. If not selected, gettimeofday
+	  will be used instead (which gives wrong results if date/time
+	  is reset).
+
 endmenu

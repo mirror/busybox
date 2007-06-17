@@ -11,27 +11,15 @@
 
 #include "libbb.h"
 
-#define TV_MSEC tv_usec / 1000
-
 /* Information on the resources used by a child process.  */
 typedef struct {
 	int waitstatus;
 	struct rusage ru;
-	struct timeval start, elapsed;	/* Wallclock time of process.  */
+	unsigned elapsed_ms;	/* Wallclock time of process.  */
 } resource_t;
 
 /* msec = milliseconds = 1/1,000 (1*10e-3) second.
    usec = microseconds = 1/1,000,000 (1*10e-6) second.  */
-
-#ifndef TICKS_PER_SEC
-#define TICKS_PER_SEC 100
-#endif
-
-/* The number of milliseconds in one `tick' used by the `rusage' structure.  */
-#define MSEC_PER_TICK (1000 / TICKS_PER_SEC)
-
-/* Return the number of clock ticks that occur in M milliseconds.  */
-#define MSEC_TO_TICKS(m) ((m) / MSEC_PER_TICK)
 
 #define UL unsigned long
 
@@ -76,7 +64,6 @@ static const char long_format[] =
 static int resuse_end(pid_t pid, resource_t * resp)
 {
 	int status;
-
 	pid_t caught;
 
 	/* Ignore signals, but don't ignore the children.  When wait3
@@ -85,18 +72,8 @@ static int resuse_end(pid_t pid, resource_t * resp)
 		if (caught == -1)
 			return 0;
 	}
-
-	gettimeofday(&resp->elapsed, (struct timezone *) 0);
-	resp->elapsed.tv_sec -= resp->start.tv_sec;
-	if (resp->elapsed.tv_usec < resp->start.tv_usec) {
-		/* Manually carry a one from the seconds field.  */
-		resp->elapsed.tv_usec += 1000000;
-		--resp->elapsed.tv_sec;
-	}
-	resp->elapsed.tv_usec -= resp->start.tv_usec;
-
+	resp->elapsed_ms = (monotonic_us() / 1000) - resp->elapsed_ms;
 	resp->waitstatus = status;
-
 	return 1;
 }
 
@@ -181,30 +158,30 @@ static unsigned long ptok(unsigned long pages)
    COMMAND is the command and args that are being summarized.
    RESP is resource information on the command.  */
 
+#ifndef TICKS_PER_SEC
+#define TICKS_PER_SEC 100
+#endif
+
 static void summarize(const char *fmt, char **command, resource_t * resp)
 {
-	unsigned long r;	/* Elapsed real milliseconds.  */
-	unsigned long v;	/* Elapsed virtual (CPU) milliseconds.  */
+	unsigned vv_ms;     /* Elapsed virtual (CPU) milliseconds */
+	unsigned cpu_ticks; /* Same, in "CPU ticks" */
 
 	if (WIFSTOPPED(resp->waitstatus))
-		printf("Command stopped by signal %d\n",
+		printf("Command stopped by signal %u\n",
 				WSTOPSIG(resp->waitstatus));
 	else if (WIFSIGNALED(resp->waitstatus))
-		printf("Command terminated by signal %d\n",
+		printf("Command terminated by signal %u\n",
 				WTERMSIG(resp->waitstatus));
 	else if (WIFEXITED(resp->waitstatus) && WEXITSTATUS(resp->waitstatus))
-		printf("Command exited with non-zero status %d\n",
+		printf("Command exited with non-zero status %u\n",
 				WEXITSTATUS(resp->waitstatus));
 
-	/* Convert all times to milliseconds.  Occasionally, one of these values
-	   comes out as zero.  Dividing by zero causes problems, so we first
-	   check the time value.  If it is zero, then we take `evasive action'
-	   instead of calculating a value.  */
+	vv_ms = (resp->ru.ru_utime.tv_sec + resp->ru.ru_stime.tv_sec) * 1000
+	      + (resp->ru.ru_utime.tv_usec + resp->ru.ru_stime.tv_usec) / 1000;
 
-	r = resp->elapsed.tv_sec * 1000 + resp->elapsed.tv_usec / 1000;
-
-	v = resp->ru.ru_utime.tv_sec * 1000 + resp->ru.ru_utime.TV_MSEC +
-		resp->ru.ru_stime.tv_sec * 1000 + resp->ru.ru_stime.TV_MSEC;
+	cpu_ticks = vv_ms * TICKS_PER_SEC / 1000;
+	if (!cpu_ticks) cpu_ticks = 1; /* we divide by it, must be nonzero */
 
 	/* putchar() != putc(stdout) in glibc! */
 
@@ -245,127 +222,122 @@ static void summarize(const char *fmt, char **command, resource_t * resp)
 				break;
 			case 'D':	/* Average unshared data size.  */
 				printf("%lu",
-						MSEC_TO_TICKS(v) == 0 ? 0 :
-						ptok((UL) resp->ru.ru_idrss) / MSEC_TO_TICKS(v) +
-						ptok((UL) resp->ru.ru_isrss) / MSEC_TO_TICKS(v));
+						ptok((UL) resp->ru.ru_idrss) / cpu_ticks +
+						ptok((UL) resp->ru.ru_isrss) / cpu_ticks);
 				break;
-			case 'E':	/* Elapsed real (wall clock) time.  */
-				if (resp->elapsed.tv_sec >= 3600)	/* One hour -> h:m:s.  */
-					printf("%ldh %ldm %02lds",
-							resp->elapsed.tv_sec / 3600,
-							(resp->elapsed.tv_sec % 3600) / 60,
-							resp->elapsed.tv_sec % 60);
+			case 'E': {	/* Elapsed real (wall clock) time.  */
+				unsigned seconds = resp->elapsed_ms / 1000;
+				if (seconds >= 3600)	/* One hour -> h:m:s.  */
+					printf("%uh %um %02us",
+							seconds / 3600,
+							(seconds % 3600) / 60,
+							seconds % 60);
 				else
-					printf("%ldm %ld.%02lds",	/* -> m:s.  */
-							resp->elapsed.tv_sec / 60,
-							resp->elapsed.tv_sec % 60,
-							resp->elapsed.tv_usec / 10000);
+					printf("%um %u.%02us",	/* -> m:s.  */
+							seconds / 60,
+							seconds % 60,
+							(unsigned)(resp->elapsed_ms / 10) % 100);
 				break;
+			}
 			case 'F':	/* Major page faults.  */
-				printf("%ld", resp->ru.ru_majflt);
+				printf("%lu", resp->ru.ru_majflt);
 				break;
 			case 'I':	/* Inputs.  */
-				printf("%ld", resp->ru.ru_inblock);
+				printf("%lu", resp->ru.ru_inblock);
 				break;
 			case 'K':	/* Average mem usage == data+stack+text.  */
 				printf("%lu",
-						MSEC_TO_TICKS(v) == 0 ? 0 :
-						ptok((UL) resp->ru.ru_idrss) / MSEC_TO_TICKS(v) +
-						ptok((UL) resp->ru.ru_isrss) / MSEC_TO_TICKS(v) +
-						ptok((UL) resp->ru.ru_ixrss) / MSEC_TO_TICKS(v));
+						ptok((UL) resp->ru.ru_idrss) / cpu_ticks +
+						ptok((UL) resp->ru.ru_isrss) / cpu_ticks +
+						ptok((UL) resp->ru.ru_ixrss) / cpu_ticks);
 				break;
 			case 'M':	/* Maximum resident set size.  */
 				printf("%lu", ptok((UL) resp->ru.ru_maxrss));
 				break;
 			case 'O':	/* Outputs.  */
-				printf("%ld", resp->ru.ru_oublock);
+				printf("%lu", resp->ru.ru_oublock);
 				break;
 			case 'P':	/* Percent of CPU this job got.  */
 				/* % cpu is (total cpu time)/(elapsed time).  */
-				if (r > 0)
-					printf("%lu%%", (v * 100 / r));
+				if (resp->elapsed_ms > 0)
+					printf("%u%%", (unsigned)(vv_ms * 100 / resp->elapsed_ms));
 				else
 					printf("?%%");
 				break;
 			case 'R':	/* Minor page faults (reclaims).  */
-				printf("%ld", resp->ru.ru_minflt);
+				printf("%lu", resp->ru.ru_minflt);
 				break;
 			case 'S':	/* System time.  */
-				printf("%ld.%02ld",
-						resp->ru.ru_stime.tv_sec,
-						resp->ru.ru_stime.TV_MSEC / 10);
+				printf("%u.%02u",
+						(unsigned)resp->ru.ru_stime.tv_sec,
+						(unsigned)(resp->ru.ru_stime.tv_usec / 10000));
 				break;
 			case 'T':	/* System time.  */
 				if (resp->ru.ru_stime.tv_sec >= 3600) /* One hour -> h:m:s.  */
-					printf("%ldh %ldm %02lds",
-							resp->ru.ru_stime.tv_sec / 3600,
-							(resp->ru.ru_stime.tv_sec % 3600) / 60,
-							resp->ru.ru_stime.tv_sec % 60);
+					printf("%uh %um %02us",
+							(unsigned)(resp->ru.ru_stime.tv_sec / 3600),
+							(unsigned)(resp->ru.ru_stime.tv_sec % 3600) / 60,
+							(unsigned)(resp->ru.ru_stime.tv_sec % 60));
 				else
-					printf("%ldm %ld.%02lds",	/* -> m:s.  */
-							resp->ru.ru_stime.tv_sec / 60,
-							resp->ru.ru_stime.tv_sec % 60,
-							resp->ru.ru_stime.tv_usec / 10000);
+					printf("%um %u.%02us",	/* -> m:s.  */
+							(unsigned)(resp->ru.ru_stime.tv_sec / 60),
+							(unsigned)(resp->ru.ru_stime.tv_sec % 60),
+							(unsigned)(resp->ru.ru_stime.tv_usec / 10000));
 				break;
 			case 'U':	/* User time.  */
-				printf("%ld.%02ld",
-						resp->ru.ru_utime.tv_sec,
-						resp->ru.ru_utime.TV_MSEC / 10);
+				printf("%u.%02u",
+						(unsigned)resp->ru.ru_utime.tv_sec,
+						(unsigned)(resp->ru.ru_utime.tv_usec / 10000));
 				break;
 			case 'u':	/* User time.  */
 				if (resp->ru.ru_utime.tv_sec >= 3600) /* One hour -> h:m:s.  */
-					printf("%ldh %ldm %02lds",
-							resp->ru.ru_utime.tv_sec / 3600,
-							(resp->ru.ru_utime.tv_sec % 3600) / 60,
-							resp->ru.ru_utime.tv_sec % 60);
+					printf("%uh %um %02us",
+							(unsigned)(resp->ru.ru_utime.tv_sec / 3600),
+							(unsigned)(resp->ru.ru_utime.tv_sec % 3600) / 60,
+							(unsigned)(resp->ru.ru_utime.tv_sec % 60));
 				else
-					printf("%ldm %ld.%02lds",	/* -> m:s.  */
-							resp->ru.ru_utime.tv_sec / 60,
-							resp->ru.ru_utime.tv_sec % 60,
-							resp->ru.ru_utime.tv_usec / 10000);
+					printf("%um %u.%02us",	/* -> m:s.  */
+							(unsigned)(resp->ru.ru_utime.tv_sec / 60),
+							(unsigned)(resp->ru.ru_utime.tv_sec % 60),
+							(unsigned)(resp->ru.ru_utime.tv_usec / 10000));
 				break;
 			case 'W':	/* Times swapped out.  */
-				printf("%ld", resp->ru.ru_nswap);
+				printf("%lu", resp->ru.ru_nswap);
 				break;
 			case 'X':	/* Average shared text size.  */
-				printf("%lu",
-						MSEC_TO_TICKS(v) == 0 ? 0 :
-						ptok((UL) resp->ru.ru_ixrss) / MSEC_TO_TICKS(v));
+				printf("%lu", ptok((UL) resp->ru.ru_ixrss) / cpu_ticks);
 				break;
 			case 'Z':	/* Page size.  */
-				printf("%d", getpagesize());
+				printf("%u", getpagesize());
 				break;
 			case 'c':	/* Involuntary context switches.  */
-				printf("%ld", resp->ru.ru_nivcsw);
+				printf("%lu", resp->ru.ru_nivcsw);
 				break;
 			case 'e':	/* Elapsed real time in seconds.  */
-				printf("%ld.%02ld",
-						resp->elapsed.tv_sec, resp->elapsed.tv_usec / 10000);
+				printf("%u.%02u",
+						(unsigned)resp->elapsed_ms / 1000,
+						(unsigned)(resp->elapsed_ms / 10) % 100);
 				break;
 			case 'k':	/* Signals delivered.  */
-				printf("%ld", resp->ru.ru_nsignals);
+				printf("%lu", resp->ru.ru_nsignals);
 				break;
 			case 'p':	/* Average stack segment.  */
-				printf("%lu",
-						MSEC_TO_TICKS(v) == 0 ? 0 :
-						ptok((UL) resp->ru.ru_isrss) / MSEC_TO_TICKS(v));
+				printf("%lu", ptok((UL) resp->ru.ru_isrss) / cpu_ticks);
 				break;
 			case 'r':	/* Incoming socket messages received.  */
-				printf("%ld", resp->ru.ru_msgrcv);
+				printf("%lu", resp->ru.ru_msgrcv);
 				break;
 			case 's':	/* Outgoing socket messages sent.  */
-				printf("%ld", resp->ru.ru_msgsnd);
+				printf("%lu", resp->ru.ru_msgsnd);
 				break;
 			case 't':	/* Average resident set size.  */
-				printf("%lu",
-						MSEC_TO_TICKS(v) == 0 ? 0 :
-						ptok((UL) resp->ru.ru_idrss) / MSEC_TO_TICKS(v));
+				printf("%lu", ptok((UL) resp->ru.ru_idrss) / cpu_ticks);
 				break;
 			case 'w':	/* Voluntary context switches.  */
-				printf("%ld", resp->ru.ru_nvcsw);
+				printf("%lu", resp->ru.ru_nvcsw);
 				break;
 			case 'x':	/* Exit status.  */
-				printf("%d", WEXITSTATUS(resp->waitstatus));
+				printf("%u", WEXITSTATUS(resp->waitstatus));
 				break;
 			}
 			break;
@@ -403,7 +375,7 @@ static void run_command(char *const *cmd, resource_t * resp)
 	pid_t pid;			/* Pid of child.  */
 	__sighandler_t interrupt_signal, quit_signal;
 
-	gettimeofday(&resp->start, (struct timezone *) 0);
+	resp->elapsed_ms = monotonic_us() / 1000;
 	pid = vfork();		/* Run CMD as child process.  */
 	if (pid < 0)
 		bb_error_msg_and_die("cannot fork");

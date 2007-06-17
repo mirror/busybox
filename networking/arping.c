@@ -8,9 +8,6 @@
  * Busybox port: Nick Fedchik <nick@fedchik.org.ua>
  */
 
-//#include <sys/ioctl.h>
-//#include <signal.h>
-
 #include <arpa/inet.h>
 #include <net/if.h>
 #include <netinet/ether.h>
@@ -18,42 +15,42 @@
 
 #include "libbb.h"
 
+/* We don't expect to see 1000+ seconds delay, unsigned is enough */
+#define MONOTONIC_US() ((unsigned)monotonic_us())
+
 static struct in_addr src;
 static struct in_addr dst;
 static struct sockaddr_ll me;
 static struct sockaddr_ll he;
-static struct timeval last;
+static unsigned last;
 
-enum cfg_e {
-	dad = 1,
-	unsolicited = 2,
-	advert = 4,
-	quiet = 8,
-	quit_on_reply = 16,
-	broadcast_only = 32,
-	unicasting = 64
+enum {
+	DAD = 1,
+	UNSOLICITED = 2,
+	ADVERT = 4,
+	QUIET = 8,
+	QUIT_ON_REPLY = 16,
+	BCAST_ONLY = 32,
+	UNICASTING = 64
 };
 static int cfg;
 
 static int s;
 static unsigned count = UINT_MAX;
-static unsigned timeout;
+static unsigned timeout_us;
 static int sent;
 static int brd_sent;
 static int received;
 static int brd_recv;
 static int req_recv;
 
-#define MS_TDIFF(tv1,tv2) ( ((tv1).tv_sec-(tv2).tv_sec)*1000 + \
-			((tv1).tv_usec-(tv2).tv_usec)/1000 )
-
 static int send_pack(int sock, struct in_addr *src_addr,
 			struct in_addr *dst_addr, struct sockaddr_ll *ME,
 			struct sockaddr_ll *HE)
 {
 	int err;
-	struct timeval now;
-	RESERVE_CONFIG_UBUFFER(buf, 256);
+	unsigned now;
+	unsigned char buf[256];
 	struct arphdr *ah = (struct arphdr *) buf;
 	unsigned char *p = (unsigned char *) (ah + 1);
 
@@ -62,7 +59,7 @@ static int send_pack(int sock, struct in_addr *src_addr,
 	ah->ar_pro = htons(ETH_P_IP);
 	ah->ar_hln = ME->sll_halen;
 	ah->ar_pln = 4;
-	ah->ar_op = cfg & advert ? htons(ARPOP_REPLY) : htons(ARPOP_REQUEST);
+	ah->ar_op = cfg & ADVERT ? htons(ARPOP_REPLY) : htons(ARPOP_REQUEST);
 
 	memcpy(p, &ME->sll_addr, ah->ar_hln);
 	p += ME->sll_halen;
@@ -70,7 +67,7 @@ static int send_pack(int sock, struct in_addr *src_addr,
 	memcpy(p, src_addr, 4);
 	p += 4;
 
-	if (cfg & advert)
+	if (cfg & ADVERT)
 		memcpy(p, &ME->sll_addr, ah->ar_hln);
 	else
 		memcpy(p, &HE->sll_addr, ah->ar_hln);
@@ -79,21 +76,21 @@ static int send_pack(int sock, struct in_addr *src_addr,
 	memcpy(p, dst_addr, 4);
 	p += 4;
 
-	gettimeofday(&now, NULL);
+	now = MONOTONIC_US();
 	err = sendto(sock, buf, p - buf, 0, (struct sockaddr *) HE, sizeof(*HE));
 	if (err == p - buf) {
 		last = now;
 		sent++;
-		if (!(cfg & unicasting))
+		if (!(cfg & UNICASTING))
 			brd_sent++;
 	}
-	RELEASE_CONFIG_BUFFER(buf);
 	return err;
 }
 
+static void finish(void) ATTRIBUTE_NORETURN;
 static void finish(void)
 {
-	if (!(cfg & quiet)) {
+	if (!(cfg & QUIET)) {
 		printf("Sent %d probe(s) (%d broadcast(s))\n"
 			"Received %d repl%s"
 			" (%d request(s), %d broadcast(s))\n",
@@ -101,30 +98,31 @@ static void finish(void)
 			received, (received == 1) ? "ies" : "y",
 			req_recv, brd_recv);
 	}
-	if (cfg & dad)
+	if (cfg & DAD)
 		exit(!!received);
-	if (cfg & unsolicited)
+	if (cfg & UNSOLICITED)
 		exit(0);
 	exit(!received);
 }
 
 static void catcher(void)
 {
-	struct timeval tv;
-	static struct timeval start;
+	static unsigned start;
 
-	gettimeofday(&tv, NULL);
+	unsigned now;
 
-	if (start.tv_sec == 0)
-		start = tv;
+	now = MONOTONIC_US();
+	if (start == 0)
+		start = now;
 
-	if (count-- == 0
-	 || (timeout && MS_TDIFF(tv, start) > timeout * 1000 + 500))
+	if (count == 0 || (timeout_us && (now - start) > (timeout_us + 500000)))
 		finish();
 
-	if (last.tv_sec == 0 || MS_TDIFF(tv, last) > 500) {
+	count--;
+
+	if (last == 0 || (now - last) > 500000) {
 		send_pack(s, &src, &dst, &me, &he);
-		if (count == 0 && (cfg & unsolicited))
+		if (count == 0 && (cfg & UNSOLICITED))
 			finish();
 	}
 	alarm(1);
@@ -162,7 +160,7 @@ static int recv_pack(unsigned char *buf, int len, struct sockaddr_ll *FROM)
 		return 0;
 	memcpy(&src_ip, p + ah->ar_hln, 4);
 	memcpy(&dst_ip, p + ah->ar_hln + 4 + ah->ar_hln, 4);
-	if (!(cfg & dad)) {
+	if (!(cfg & DAD)) {
 		if (src_ip.s_addr != dst.s_addr)
 			return 0;
 		if (src.s_addr != dst_ip.s_addr)
@@ -190,11 +188,8 @@ static int recv_pack(unsigned char *buf, int len, struct sockaddr_ll *FROM)
 		if (src.s_addr && src.s_addr != dst_ip.s_addr)
 			return 0;
 	}
-	if (!(cfg & quiet)) {
+	if (!(cfg & QUIET)) {
 		int s_printed = 0;
-		struct timeval tv;
-
-		gettimeofday(&tv, NULL);
 
 		printf("%scast re%s from %s [%s]",
 			FROM->sll_pkttype == PACKET_HOST ? "Uni" : "Broad",
@@ -212,13 +207,8 @@ static int recv_pack(unsigned char *buf, int len, struct sockaddr_ll *FROM)
 				ether_ntoa((struct ether_addr *) p + ah->ar_hln + 4));
 		}
 
-		if (last.tv_sec) {
-			long usecs = (tv.tv_sec - last.tv_sec) * 1000000 +
-				tv.tv_usec - last.tv_usec;
-			long msecs = (usecs + 500) / 1000;
-
-			usecs -= msecs * 1000 - 500;
-			printf(" %ld.%03ldms\n", msecs, usecs);
+		if (last) {
+			printf(" %u.%03ums\n", last / 1000, last % 1000);
 		} else {
 			printf(" UNSOLICITED?\n");
 		}
@@ -229,11 +219,11 @@ static int recv_pack(unsigned char *buf, int len, struct sockaddr_ll *FROM)
 		brd_recv++;
 	if (ah->ar_op == htons(ARPOP_REQUEST))
 		req_recv++;
-	if (cfg & quit_on_reply)
+	if (cfg & QUIT_ON_REPLY)
 		finish();
-	if (!(cfg & broadcast_only)) {
+	if (!(cfg & BCAST_ONLY)) {
 		memcpy(he.sll_addr, p, me.sll_halen);
-		cfg |= unicasting;
+		cfg |= UNICASTING;
 	}
 	return 1;
 }
@@ -245,6 +235,7 @@ int arping_main(int argc, char **argv)
 	int ifindex;
 	char *source = NULL;
 	char *target;
+	unsigned char *packet;
 
 	s = xsocket(PF_PACKET, SOCK_DGRAM, 0);
 
@@ -258,28 +249,23 @@ int arping_main(int argc, char **argv)
 		/* Dad also sets quit_on_reply.
 		 * Advert also sets unsolicited.
 		 */
-		opt_complementary = "Df:AU";
+		opt_complementary = "=1:Df:AU";
 		opt = getopt32(argc, argv, "DUAqfbc:w:I:s:",
 					&_count, &_timeout, &device, &source);
 		cfg |= opt & 0x3f; /* set respective flags */
 		if (opt & 0x40) /* -c: count */
 			count = xatou(_count);
 		if (opt & 0x80) /* -w: timeout */
-			timeout = xatoul_range(_timeout, 0, INT_MAX/2000);
-		//if (opt & 0x100) /* -i: interface */
-		if (strlen(device) > IF_NAMESIZE) {
+			timeout_us = xatou_range(_timeout, 0, INT_MAX/2000000) * 1000000;
+		//if (opt & 0x100) /* -I: interface */
+		if (strlen(device) >= IF_NAMESIZE) {
 			bb_error_msg_and_die("interface name '%s' is too long",
 							device);
 		}
 		//if (opt & 0x200) /* -s: source */
 	}
-	argc -= optind;
-	argv += optind;
 
-	if (argc != 1)
-		bb_show_usage();
-
-	target = *argv;
+	target = argv[optind];
 
 	xfunc_error_retval = 2;
 
@@ -301,7 +287,7 @@ int arping_main(int argc, char **argv)
 		}
 		if (ifr.ifr_flags & (IFF_NOARP | IFF_LOOPBACK)) {
 			bb_error_msg("interface %s is not ARPable", device);
-			return (cfg & dad ? 0 : 2);
+			return (cfg & DAD ? 0 : 2);
 		}
 	}
 
@@ -317,10 +303,10 @@ int arping_main(int argc, char **argv)
 		bb_error_msg_and_die("invalid source address %s", source);
 	}
 
-	if (!(cfg & dad) && (cfg & unsolicited) && src.s_addr == 0)
+	if (!(cfg & DAD) && (cfg & UNSOLICITED) && src.s_addr == 0)
 		src = dst;
 
-	if (!(cfg & dad) || src.s_addr) {
+	if (!(cfg & DAD) || src.s_addr) {
 		struct sockaddr_in saddr;
 		int probe_fd = xsocket(AF_INET, SOCK_DGRAM, 0);
 
@@ -333,7 +319,7 @@ int arping_main(int argc, char **argv)
 		if (src.s_addr) {
 			saddr.sin_addr = src;
 			xbind(probe_fd, (struct sockaddr *) &saddr, sizeof(saddr));
-		} else if (!(cfg & dad)) {
+		} else if (!(cfg & DAD)) {
 			socklen_t alen = sizeof(saddr);
 
 			saddr.sin_port = htons(1025);
@@ -364,18 +350,18 @@ int arping_main(int argc, char **argv)
 	}
 	if (me.sll_halen == 0) {
 		bb_error_msg("interface \"%s\" is not ARPable (no ll address)", device);
-		return (cfg & dad ? 0 : 2);
+		return (cfg & DAD ? 0 : 2);
 	}
 	he = me;
 	memset(he.sll_addr, -1, he.sll_halen);
 
-	if (!(cfg & quiet)) {
+	if (!(cfg & QUIET)) {
 		printf("ARPING to %s from %s via %s\n",
 			inet_ntoa(dst), inet_ntoa(src),
 			device ? device : "unknown");
 	}
 
-	if (!src.s_addr && !(cfg & dad)) {
+	if (!src.s_addr && !(cfg & DAD)) {
 		bb_error_msg_and_die("no src address in the non-DAD mode");
 	}
 
@@ -394,9 +380,9 @@ int arping_main(int argc, char **argv)
 
 	catcher();
 
+	packet = xmalloc(4096);
 	while (1) {
 		sigset_t sset, osset;
-		RESERVE_CONFIG_UBUFFER(packet, 4096);
 		struct sockaddr_ll from;
 		socklen_t alen = sizeof(from);
 		int cc;
@@ -412,6 +398,5 @@ int arping_main(int argc, char **argv)
 		sigprocmask(SIG_BLOCK, &sset, &osset);
 		recv_pack(packet, cc, &from);
 		sigprocmask(SIG_SETMASK, &osset, NULL);
-		RELEASE_CONFIG_BUFFER(packet);
 	}
 }

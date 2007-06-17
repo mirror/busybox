@@ -17,19 +17,6 @@
 #define DERR(...) ((void)0)
 #endif
 
-/* return time in usec */
-// TODO: move to libbb and use in traceroute, zcip, arping etc
-// (maybe also use absolute monotonic clock - no time warps
-// due to admin resetting date/time?)
-static unsigned gettimeofday_us(void)
-{
-	struct timeval now;
-	
-	if (gettimeofday(&now, NULL))
-		return 0;
-	return (now.tv_sec * 1000000 + now.tv_usec);
-}
-
 static const char *port_name(unsigned port)
 {
 	struct servent *server;
@@ -39,6 +26,9 @@ static const char *port_name(unsigned port)
 		return server->s_name;
 	return "unknown";
 }
+
+/* We don't expect to see 1000+ seconds delay, unsigned is enough */
+#define MONOTONIC_US() ((unsigned)monotonic_us())
 
 int pscan_main(int argc, char **argv);
 int pscan_main(int argc, char **argv)
@@ -91,7 +81,7 @@ int pscan_main(int argc, char **argv)
 		/* Nonblocking connect typically "fails" with errno == EINPROGRESS */
 		ndelay_on(s);
 		DMSG("connect to port %u", port);
-		start = gettimeofday_us();
+		start = MONOTONIC_US();
 		if (connect(s, &lsap->sa, lsap->len) == 0) {
 			/* Unlikely, for me even localhost fails :) */
 			DMSG("connect succeeded");
@@ -110,15 +100,15 @@ int pscan_main(int argc, char **argv)
 				closed_ports++;
 				break;
 			}
-			DERR("port %u errno %d @%u", port, errno, gettimeofday_us() - start);
-			if ((gettimeofday_us() - start) > rtt_4)
+			DERR("port %u errno %d @%u", port, errno, MONOTONIC_US() - start);
+			if ((MONOTONIC_US() - start) > rtt_4)
 				break;
 			/* Can sleep (much) longer than specified delay.
 			 * We check rtt BEFORE we usleep, otherwise
 			 * on localhost we'll do zero writes done (!)
 			 * before we exceed (rather small) rtt */
 			usleep(rtt_4/8);
-			DMSG("write to port %u @%u", port, gettimeofday_us() - start);
+			DMSG("write to port %u @%u", port, MONOTONIC_US() - start);
 			if (write(s, " ", 1) >= 0) { /* We were able to write to the socket */
  open:
 				open_ports++;
@@ -126,13 +116,13 @@ int pscan_main(int argc, char **argv)
 				break;
 			}
 		}
-		DMSG("out of loop @%u", gettimeofday_us() - start);
+		DMSG("out of loop @%u", MONOTONIC_US() - start);
 
 		/* Estimate new rtt - we don't want to wait entire timeout
 		 * for each port. *4 allows for rise in net delay.
 		 * We increase rtt quickly (*4), decrease slowly (4/8 == 1/2)
 		 * because we don't want to accidentally miss ports. */
-		rtt_4 = (gettimeofday_us() - start) * 4;
+		rtt_4 = (MONOTONIC_US() - start) * 4;
 		if (rtt_4 < min_rtt)
 			rtt_4 = min_rtt;
 		if (rtt_4 > timeout)

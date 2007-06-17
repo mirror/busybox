@@ -275,7 +275,8 @@ struct hostinfo {
 struct outdata {
 	unsigned char seq;             /* sequence number of this packet */
 	unsigned char ttl;             /* ttl packet left with */
-	struct timeval tv ATTRIBUTE_PACKED; /* time packet left */
+// UNUSED. Retaining to have the same packet size.
+	struct timeval tv_UNUSED ATTRIBUTE_PACKED; /* time packet left */
 };
 
 struct IFADDRLIST {
@@ -533,37 +534,19 @@ findsaddr(const struct sockaddr_in *to, struct sockaddr_in *from)
 
 */
 
-/*
- * Subtract 2 timeval structs:  out = out - in.
- * Out is assumed to be >= in.
- */
-static inline void
-tvsub(struct timeval *out, struct timeval *in)
-{
-
-	if ((out->tv_usec -= in->tv_usec) < 0)   {
-		--out->tv_sec;
-		out->tv_usec += 1000000;
-	}
-	out->tv_sec -= in->tv_sec;
-}
-
 static int
-wait_for_reply(int sock, struct sockaddr_in *fromp, const struct timeval *tp)
+wait_for_reply(int sock, struct sockaddr_in *fromp)
 {
 	fd_set fds;
-	struct timeval now, tvwait;
-	struct timezone tz;
+	struct timeval tvwait;
 	int cc = 0;
 	socklen_t fromlen = sizeof(*fromp);
 
 	FD_ZERO(&fds);
 	FD_SET(sock, &fds);
 
-	tvwait.tv_sec = tp->tv_sec + waittime;
-	tvwait.tv_usec = tp->tv_usec;
-	(void)gettimeofday(&now, &tz);
-	tvsub(&tvwait, &now);
+	tvwait.tv_sec = waittime;
+	tvwait.tv_usec = 0;
 
 	if (select(sock + 1, &fds, NULL, NULL, &tvwait) > 0)
 		cc = recvfrom(sock, (char *)packet, sizeof(packet), 0,
@@ -609,7 +592,7 @@ in_cksum(uint16_t *addr, int len)
 
 
 static void
-send_probe(int seq, int ttl, struct timeval *tp)
+send_probe(int seq, int ttl)
 {
 	int cc;
 	struct udpiphdr *ui, *oui;
@@ -633,7 +616,8 @@ send_probe(int seq, int ttl, struct timeval *tp)
 	/* Payload */
 	outdata->seq = seq;
 	outdata->ttl = ttl;
-	memcpy(&outdata->tv, tp, sizeof(outdata->tv));
+// UNUSED: was storing gettimeofday's result there, but never ever checked it
+	/*memcpy(&outdata->tv, tp, sizeof(outdata->tv));*/
 
 #if ENABLE_FEATURE_TRACEROUTE_USE_ICMP
 	if (useicmp)
@@ -706,7 +690,6 @@ send_probe(int seq, int ttl, struct timeval *tp)
 	    packlen, (struct sockaddr *)&whereto, sizeof(whereto));
 	if (cc != packlen)  {
 		bb_info_msg("wrote %s %d chars, ret=%d", hostname, packlen, cc);
-//		(void)fflush(stdout);
 	}
 }
 
@@ -908,9 +891,9 @@ getaddr(uint32_t *ap, const char *host)
 #endif
 
 static void
-print_delta_ms(struct timeval *t1p, struct timeval *t2p)
+print_delta_ms(unsigned t1p, unsigned t2p)
 {
-	unsigned tt = (t2p->tv_sec - t1p->tv_sec) * 1000000 + (t2p->tv_usec - t1p->tv_usec);
+	unsigned tt = t2p - t1p;
 	printf("  %u.%03u ms", tt/1000, tt%1000);
 }
 
@@ -1230,17 +1213,17 @@ int traceroute_main(int argc, char **argv)
 		printf("%2d ", ttl);
 		for (probe = 0; probe < nprobes; ++probe) {
 			int cc;
-			struct timeval t1, t2;
-			struct timezone tz;
+			unsigned t1;
+			unsigned t2;
 			struct ip *ip;
 
 			if (sentfirst && pausemsecs > 0)
 				usleep(pausemsecs * 1000);
-			(void)gettimeofday(&t1, &tz);
-			send_probe(++seq, ttl, &t1);
+			t1 = monotonic_us();
+			send_probe(++seq, ttl);
 			++sentfirst;
-			while ((cc = wait_for_reply(s, from, &t1)) != 0) {
-				(void)gettimeofday(&t2, &tz);
+			while ((cc = wait_for_reply(s, from)) != 0) {
+				t2 = monotonic_us();
 				i = packet_ok(packet, cc, from, seq);
 				/* Skip short packet */
 				if (i == 0)
@@ -1251,7 +1234,7 @@ int traceroute_main(int argc, char **argv)
 					lastaddr = from->sin_addr.s_addr;
 					++gotlastaddr;
 				}
-				print_delta_ms(&t1, &t2);
+				print_delta_ms(t1, t2);
 				ip = (struct ip *)packet;
 				if (op & OPT_TTL_FLAG)
 					printf(" (%d)", ip->ip_ttl);
