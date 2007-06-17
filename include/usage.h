@@ -88,7 +88,7 @@
        "	-A		ARP answer mode, update your neighbours\n" \
        "	-c count	Stop after sending count ARP request packets\n" \
        "	-w timeout	Time to wait for ARP reply, in seconds\n" \
-       "	-i device	Outgoing interface name, default is eth0\n" \
+       "	-I device	Outgoing interface name, default is eth0\n" \
        "	-s sender	Set specific sender IP address\n" \
        "	target		Target IP address of ARP request"
 
