@@ -38,7 +38,6 @@ static bool chunked;                     /* chunked transfer encoding */
 #if ENABLE_FEATURE_WGET_STATUSBAR
 static void progressmeter(int flag);
 static const char *curfile;             /* Name of current file being transferred */
-static struct timeval start;            /* Time a transfer started */
 enum {
 	STALLTIME = 5                   /* Seconds when xfer considered "stalled" */
 };
@@ -683,30 +682,30 @@ static void alarmtimer(int iwait)
 	setitimer(ITIMER_REAL, &itv, NULL);
 }
 
-
 static void
 progressmeter(int flag)
 {
-	static struct timeval lastupdate;
+	static unsigned lastupdate_sec;
+	static unsigned start_sec;
 	static off_t lastsize, totalsize;
 
-	struct timeval now, td, tvwait;
 	off_t abbrevsize;
-	int elapsed, ratio, barlength, i;
+	unsigned since_last_update, elapsed;
+	unsigned ratio;
+	int barlength, i;
 
 	if (flag == -1) { /* first call to progressmeter */
-		gettimeofday(&start, NULL);
-		lastupdate = start;
+		start_sec = monotonic_sec();
+		lastupdate_sec = start_sec;
 		lastsize = 0;
 		totalsize = content_len + beg_range; /* as content_len changes.. */
 	}
 
-	gettimeofday(&now, NULL);
 	ratio = 100;
 	if (totalsize != 0 && !chunked) {
-		/* long long helps to have working ETA even if !LFS */
-		ratio = (int) (100ULL * (transferred+beg_range) / totalsize);
-		ratio = MIN(ratio, 100);
+		/* long long helps to have it working even if !LFS */
+		ratio = (unsigned) (100ULL * (transferred+beg_range) / totalsize);
+		if (ratio > 100) ratio = 100;
 	}
 
 	fprintf(stderr, "\r%-20.20s%4d%% ", curfile, ratio);
@@ -714,12 +713,13 @@ progressmeter(int flag)
 	barlength = getttywidth() - 51;
 	if (barlength > 0) {
 		/* god bless gcc for variable arrays :) */
-		char buf[barlength+1];
 		i = barlength * ratio / 100;
-		memset(buf, '*', i);
-		memset(buf + i, ' ', barlength - i);
-		buf[barlength] = '\0';
-		fprintf(stderr, "|%s|", buf);
+		{
+			char buf[i+1];
+			memset(buf, '*', i);
+			buf[i] = '\0';
+			fprintf(stderr, "|%s%*s|", buf, barlength - i, "");
+		}
 	}
 	i = 0;
 	abbrevsize = transferred + beg_range;
@@ -730,22 +730,28 @@ progressmeter(int flag)
 	/* see http://en.wikipedia.org/wiki/Tera */
 	fprintf(stderr, "%6d %c%c ", (int)abbrevsize, " KMGTPEZY"[i], i?'B':' ');
 
-	timersub(&now, &lastupdate, &tvwait);
-	if (transferred > lastsize) {
-		lastupdate = now;
-		lastsize = transferred;
-		if (tvwait.tv_sec >= STALLTIME)
-			timeradd(&start, &tvwait, &start);
-		tvwait.tv_sec = 0;
-	}
-	timersub(&now, &start, &td);
-	elapsed = td.tv_sec;
+// Nuts! Ain't it easier to update progress meter ONLY when we transferred++?
+// FIXME: get rid of alarmtimer + updateprogressmeter mess
 
-	if (tvwait.tv_sec >= STALLTIME) {
+	elapsed = monotonic_sec();
+	since_last_update = elapsed - lastupdate_sec;
+	if (transferred > lastsize) {
+		lastupdate_sec = elapsed;
+		lastsize = transferred;
+		if (since_last_update >= STALLTIME) {
+			/* We "cut off" these seconds from elapsed time
+			 * by adjusting start time */
+			start_sec += since_last_update;
+		}
+		since_last_update = 0; /* we are un-stalled now */
+	}
+	elapsed -= start_sec; /* now it's "elapsed since start" */
+
+	if (since_last_update >= STALLTIME) {
 		fprintf(stderr, " - stalled -");
 	} else {
 		off_t to_download = totalsize - beg_range;
-		if (transferred <= 0 || elapsed <= 0 || transferred > to_download || chunked) {
+		if (transferred <= 0 || (int)elapsed <= 0 || transferred > to_download || chunked) {
 			fprintf(stderr, "--:--:-- ETA");
 		} else {
 			/* to_download / (transferred/elapsed) - elapsed: */

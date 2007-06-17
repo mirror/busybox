@@ -33,18 +33,17 @@ enum {
 	BCAST_ONLY = 32,
 	UNICASTING = 64
 };
-static int cfg;
 
-static int s;
+static int sock;
 static unsigned count = UINT_MAX;
 static unsigned timeout_us;
-static int sent;
-static int brd_sent;
-static int received;
-static int brd_recv;
-static int req_recv;
+static unsigned sent;
+static unsigned brd_sent;
+static unsigned received;
+static unsigned brd_recv;
+static unsigned req_recv;
 
-static int send_pack(int sock, struct in_addr *src_addr,
+static int send_pack(struct in_addr *src_addr,
 			struct in_addr *dst_addr, struct sockaddr_ll *ME,
 			struct sockaddr_ll *HE)
 {
@@ -59,7 +58,7 @@ static int send_pack(int sock, struct in_addr *src_addr,
 	ah->ar_pro = htons(ETH_P_IP);
 	ah->ar_hln = ME->sll_halen;
 	ah->ar_pln = 4;
-	ah->ar_op = cfg & ADVERT ? htons(ARPOP_REPLY) : htons(ARPOP_REQUEST);
+	ah->ar_op = option_mask32 & ADVERT ? htons(ARPOP_REPLY) : htons(ARPOP_REQUEST);
 
 	memcpy(p, &ME->sll_addr, ah->ar_hln);
 	p += ME->sll_halen;
@@ -67,7 +66,7 @@ static int send_pack(int sock, struct in_addr *src_addr,
 	memcpy(p, src_addr, 4);
 	p += 4;
 
-	if (cfg & ADVERT)
+	if (option_mask32 & ADVERT)
 		memcpy(p, &ME->sll_addr, ah->ar_hln);
 	else
 		memcpy(p, &HE->sll_addr, ah->ar_hln);
@@ -81,7 +80,7 @@ static int send_pack(int sock, struct in_addr *src_addr,
 	if (err == p - buf) {
 		last = now;
 		sent++;
-		if (!(cfg & UNICASTING))
+		if (!(option_mask32 & UNICASTING))
 			brd_sent++;
 	}
 	return err;
@@ -90,17 +89,17 @@ static int send_pack(int sock, struct in_addr *src_addr,
 static void finish(void) ATTRIBUTE_NORETURN;
 static void finish(void)
 {
-	if (!(cfg & QUIET)) {
-		printf("Sent %d probe(s) (%d broadcast(s))\n"
-			"Received %d repl%s"
-			" (%d request(s), %d broadcast(s))\n",
+	if (!(option_mask32 & QUIET)) {
+		printf("Sent %u probe(s) (%u broadcast(s))\n"
+			"Received %u repl%s"
+			" (%u request(s), %u broadcast(s))\n",
 			sent, brd_sent,
 			received, (received == 1) ? "ies" : "y",
 			req_recv, brd_recv);
 	}
-	if (cfg & DAD)
+	if (option_mask32 & DAD)
 		exit(!!received);
-	if (cfg & UNSOLICITED)
+	if (option_mask32 & UNSOLICITED)
 		exit(0);
 	exit(!received);
 }
@@ -121,8 +120,8 @@ static void catcher(void)
 	count--;
 
 	if (last == 0 || (now - last) > 500000) {
-		send_pack(s, &src, &dst, &me, &he);
-		if (count == 0 && (cfg & UNSOLICITED))
+		send_pack(&src, &dst, &me, &he);
+		if (count == 0 && (option_mask32 & UNSOLICITED))
 			finish();
 	}
 	alarm(1);
@@ -160,7 +159,7 @@ static int recv_pack(unsigned char *buf, int len, struct sockaddr_ll *FROM)
 		return 0;
 	memcpy(&src_ip, p + ah->ar_hln, 4);
 	memcpy(&dst_ip, p + ah->ar_hln + 4 + ah->ar_hln, 4);
-	if (!(cfg & DAD)) {
+	if (!(option_mask32 & DAD)) {
 		if (src_ip.s_addr != dst.s_addr)
 			return 0;
 		if (src.s_addr != dst_ip.s_addr)
@@ -188,7 +187,7 @@ static int recv_pack(unsigned char *buf, int len, struct sockaddr_ll *FROM)
 		if (src.s_addr && src.s_addr != dst_ip.s_addr)
 			return 0;
 	}
-	if (!(cfg & QUIET)) {
+	if (!(option_mask32 & QUIET)) {
 		int s_printed = 0;
 
 		printf("%scast re%s from %s [%s]",
@@ -219,11 +218,11 @@ static int recv_pack(unsigned char *buf, int len, struct sockaddr_ll *FROM)
 		brd_recv++;
 	if (ah->ar_op == htons(ARPOP_REQUEST))
 		req_recv++;
-	if (cfg & QUIT_ON_REPLY)
+	if (option_mask32 & QUIT_ON_REPLY)
 		finish();
-	if (!(cfg & BCAST_ONLY)) {
+	if (!(option_mask32 & BCAST_ONLY)) {
 		memcpy(he.sll_addr, p, me.sll_halen);
-		cfg |= UNICASTING;
+		option_mask32 |= UNICASTING;
 	}
 	return 1;
 }
@@ -237,32 +236,32 @@ int arping_main(int argc, char **argv)
 	char *target;
 	unsigned char *packet;
 
-	s = xsocket(PF_PACKET, SOCK_DGRAM, 0);
+	sock = xsocket(PF_PACKET, SOCK_DGRAM, 0);
 
 	// Drop suid root privileges
 	xsetuid(getuid());
 
 	{
 		unsigned opt;
-		char *_count, *_timeout;
+		char *str_count, *str_timeout;
 
 		/* Dad also sets quit_on_reply.
 		 * Advert also sets unsolicited.
 		 */
 		opt_complementary = "=1:Df:AU";
 		opt = getopt32(argc, argv, "DUAqfbc:w:I:s:",
-					&_count, &_timeout, &device, &source);
-		cfg |= opt & 0x3f; /* set respective flags */
+				&str_count, &str_timeout, &device, &source);
 		if (opt & 0x40) /* -c: count */
-			count = xatou(_count);
+			count = xatou(str_count);
 		if (opt & 0x80) /* -w: timeout */
-			timeout_us = xatou_range(_timeout, 0, INT_MAX/2000000) * 1000000;
+			timeout_us = xatou_range(str_timeout, 0, INT_MAX/2000000) * 1000000;
 		//if (opt & 0x100) /* -I: interface */
 		if (strlen(device) >= IF_NAMESIZE) {
 			bb_error_msg_and_die("interface name '%s' is too long",
 							device);
 		}
 		//if (opt & 0x200) /* -s: source */
+		option_mask32 &= 0x3f; /* set respective flags */
 	}
 
 	target = argv[optind];
@@ -274,12 +273,12 @@ int arping_main(int argc, char **argv)
 
 		memset(&ifr, 0, sizeof(ifr));
 		strncpy(ifr.ifr_name, device, IFNAMSIZ - 1);
-		if (ioctl(s, SIOCGIFINDEX, &ifr) < 0) {
+		if (ioctl(sock, SIOCGIFINDEX, &ifr) < 0) {
 			bb_error_msg_and_die("interface %s not found", device);
 		}
 		ifindex = ifr.ifr_ifindex;
 
-		if (ioctl(s, SIOCGIFFLAGS, (char *) &ifr)) {
+		if (ioctl(sock, SIOCGIFFLAGS, (char *) &ifr)) {
 			bb_error_msg_and_die("SIOCGIFFLAGS");
 		}
 		if (!(ifr.ifr_flags & IFF_UP)) {
@@ -287,7 +286,7 @@ int arping_main(int argc, char **argv)
 		}
 		if (ifr.ifr_flags & (IFF_NOARP | IFF_LOOPBACK)) {
 			bb_error_msg("interface %s is not ARPable", device);
-			return (cfg & DAD ? 0 : 2);
+			return (option_mask32 & DAD ? 0 : 2);
 		}
 	}
 
@@ -303,10 +302,10 @@ int arping_main(int argc, char **argv)
 		bb_error_msg_and_die("invalid source address %s", source);
 	}
 
-	if (!(cfg & DAD) && (cfg & UNSOLICITED) && src.s_addr == 0)
+	if (!(option_mask32 & DAD) && (option_mask32 & UNSOLICITED) && src.s_addr == 0)
 		src = dst;
 
-	if (!(cfg & DAD) || src.s_addr) {
+	if (!(option_mask32 & DAD) || src.s_addr) {
 		struct sockaddr_in saddr;
 		int probe_fd = xsocket(AF_INET, SOCK_DGRAM, 0);
 
@@ -319,7 +318,7 @@ int arping_main(int argc, char **argv)
 		if (src.s_addr) {
 			saddr.sin_addr = src;
 			xbind(probe_fd, (struct sockaddr *) &saddr, sizeof(saddr));
-		} else if (!(cfg & DAD)) {
+		} else if (!(option_mask32 & DAD)) {
 			socklen_t alen = sizeof(saddr);
 
 			saddr.sin_port = htons(1025);
@@ -339,29 +338,29 @@ int arping_main(int argc, char **argv)
 	me.sll_family = AF_PACKET;
 	me.sll_ifindex = ifindex;
 	me.sll_protocol = htons(ETH_P_ARP);
-	xbind(s, (struct sockaddr *) &me, sizeof(me));
+	xbind(sock, (struct sockaddr *) &me, sizeof(me));
 
 	{
 		socklen_t alen = sizeof(me);
 
-		if (getsockname(s, (struct sockaddr *) &me, &alen) == -1) {
+		if (getsockname(sock, (struct sockaddr *) &me, &alen) == -1) {
 			bb_error_msg_and_die("getsockname");
 		}
 	}
 	if (me.sll_halen == 0) {
 		bb_error_msg("interface \"%s\" is not ARPable (no ll address)", device);
-		return (cfg & DAD ? 0 : 2);
+		return (option_mask32 & DAD ? 0 : 2);
 	}
 	he = me;
 	memset(he.sll_addr, -1, he.sll_halen);
 
-	if (!(cfg & QUIET)) {
+	if (!(option_mask32 & QUIET)) {
 		printf("ARPING to %s from %s via %s\n",
 			inet_ntoa(dst), inet_ntoa(src),
 			device ? device : "unknown");
 	}
 
-	if (!src.s_addr && !(cfg & DAD)) {
+	if (!src.s_addr && !(option_mask32 & DAD)) {
 		bb_error_msg_and_die("no src address in the non-DAD mode");
 	}
 
@@ -387,7 +386,7 @@ int arping_main(int argc, char **argv)
 		socklen_t alen = sizeof(from);
 		int cc;
 
-		cc = recvfrom(s, packet, 4096, 0, (struct sockaddr *) &from, &alen);
+		cc = recvfrom(sock, packet, 4096, 0, (struct sockaddr *) &from, &alen);
 		if (cc < 0) {
 			bb_perror_msg("recvfrom");
 			continue;

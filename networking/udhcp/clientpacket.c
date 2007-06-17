@@ -25,19 +25,13 @@
 
 
 /* Create a random xid */
-unsigned long random_xid(void)
+unsigned random_xid(void)
 {
-	static int initialized;
-	if (!initialized) {
-		unsigned long seed;
+	static smallint initialized;
 
-		if (open_read_close("/dev/urandom", &seed, sizeof(seed)) < 0) {
-			bb_info_msg("Cannot load seed "
-				"from /dev/urandom: %s", strerror(errno));
-			seed = time(0);
-		}
-		srand(seed);
-		initialized++;
+	if (!initialized) {
+		srand(monotonic_us());
+		initialized = 1;
 	}
 	return rand();
 }

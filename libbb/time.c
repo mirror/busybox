@@ -21,12 +21,23 @@ unsigned long long monotonic_us(void)
 		bb_error_msg_and_die("clock_gettime(MONOTONIC) failed");
 	return ts.tv_sec * 1000000ULL + ts.tv_nsec/1000;
 }
+unsigned monotonic_sec(void)
+{
+	struct timespec ts;
+	if (syscall(__NR_clock_gettime, CLOCK_MONOTONIC, &ts))
+		bb_error_msg_and_die("clock_gettime(MONOTONIC) failed");
+	return ts.tv_sec;
+}
 #else
 unsigned long long monotonic_us(void)
 {
 	struct timeval tv;
-	if (gettimeofday(&tv, NULL))
-		bb_error_msg_and_die("gettimeofday failed");
+	gettimeofday(&tv, NULL);
 	return tv.tv_sec * 1000000ULL + tv_usec;
+}
+
+unsigned monotonic_sec(void)
+{
+	return time(NULL);
 }
 #endif

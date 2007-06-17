@@ -23,7 +23,6 @@
 // - avoid silent script failures, especially under load...
 // - link status monitoring (restart on link-up; stop on link-down)
 
-#include "libbb.h"
 #include <syslog.h>
 #include <poll.h>
 #include <sys/wait.h>
@@ -31,10 +30,13 @@
 #include <net/ethernet.h>
 #include <net/if.h>
 #include <net/if_arp.h>
-
 #include <linux/if_packet.h>
 #include <linux/sockios.h>
 
+#include "libbb.h"
+
+/* We don't need more than 32 bits of the counter */
+#define MONOTONIC_US() ((unsigned)monotonic_us())
 
 struct arp_packet {
 	struct ether_header hdr;
@@ -78,14 +80,11 @@ static void pick(struct in_addr *ip)
 {
 	unsigned tmp;
 
-	/* use cheaper math than lrand48() mod N */
 	do {
-		tmp = (lrand48() >> 16) & IN_CLASSB_HOST;
+		tmp = rand() & IN_CLASSB_HOST;
 	} while (tmp > (IN_CLASSB_HOST - 0x0200));
 	ip->s_addr = htonl((LINKLOCAL_ADDR + 0x0100) + tmp);
 }
-
-/* TODO: we need a flag to direct bb_[p]error_msg output to stderr. */
 
 /**
  * Broadcast an ARP packet.
@@ -151,7 +150,7 @@ static int run(char *argv[3], const char *intf, struct in_addr *ip)
  */
 static unsigned ALWAYS_INLINE ms_rdelay(unsigned secs)
 {
-	return lrand48() % (secs * 1000);
+	return rand() % (secs * 1000);
 }
 
 /**
@@ -176,28 +175,30 @@ int zcip_main(int argc, char **argv)
 		struct ifreq ifr;
 		char *intf;
 		char *script_av[3];
-		suseconds_t timeout; // milliseconds
+		int timeout_ms; /* must be signed */
 		unsigned conflicts;
 		unsigned nprobes;
 		unsigned nclaims;
 		int ready;
 		int verbose;
 	} L;
-#define null_ip   (L.null_ip  )
-#define null_addr (L.null_addr)
-#define saddr     (L.saddr    )
-#define ip        (L.ip       )
-#define ifr       (L.ifr      )
-#define intf      (L.intf     )
-#define script_av (L.script_av)
-#define timeout   (L.timeout  )
-#define conflicts (L.conflicts)
-#define nprobes   (L.nprobes  )
-#define nclaims   (L.nclaims  )
-#define ready     (L.ready    )
-#define verbose   (L.verbose  )
+#define null_ip    (L.null_ip   )
+#define null_addr  (L.null_addr )
+#define saddr      (L.saddr     )
+#define ip         (L.ip        )
+#define ifr        (L.ifr       )
+#define intf       (L.intf      )
+#define script_av  (L.script_av )
+#define timeout_ms (L.timeout_ms)
+#define conflicts  (L.conflicts )
+#define nprobes    (L.nprobes   )
+#define nclaims    (L.nclaims   )
+#define ready      (L.ready     )
+#define verbose    (L.verbose   )
 
 	memset(&L, 0, sizeof(L));
+
+	srand(MONOTONIC_US());
 
 #define FOREGROUND (opts & 1)
 #define QUIT       (opts & 2)
@@ -282,7 +283,7 @@ int zcip_main(int argc, char **argv)
 	//  - defend it, within limits
 	while (1) {
 		struct pollfd fds[1];
-		struct timeval tv1;
+		unsigned deadline_us;
 		struct arp_packet p;
 
 		int source_ip_conflict = 0;
@@ -293,24 +294,18 @@ int zcip_main(int argc, char **argv)
 		fds[0].revents = 0;
 
 		// poll, being ready to adjust current timeout
-		if (!timeout) {
-			timeout = ms_rdelay(PROBE_WAIT);
+		if (!timeout_ms) {
+			timeout_ms = ms_rdelay(PROBE_WAIT);
 			// FIXME setsockopt(fd, SO_ATTACH_FILTER, ...) to
 			// make the kernel filter out all packets except
 			// ones we'd care about.
 		}
-		// set tv1 to the point in time when we timeout
-		gettimeofday(&tv1, NULL);
-		tv1.tv_usec += (timeout % 1000) * 1000;
-		while (tv1.tv_usec > 1000000) {
-			tv1.tv_usec -= 1000000;
-			tv1.tv_sec++;
-		}
-		tv1.tv_sec += timeout / 1000;
+		// set deadline_us to the point in time when we timeout
+		deadline_us = MONOTONIC_US() + timeout_ms * 1000;
 
-		VDBG("...wait %ld %s nprobes=%d, nclaims=%d\n",
-				timeout, intf, nprobes, nclaims);
-		switch (poll(fds, 1, timeout)) {
+		VDBG("...wait %d %s nprobes=%u, nclaims=%u\n",
+				timeout_ms, intf, nprobes, nclaims);
+		switch (poll(fds, 1, timeout_ms)) {
 
 		// timeout
 		case 0:
@@ -321,25 +316,24 @@ int zcip_main(int argc, char **argv)
 				// have been received, so we can progress through the states
 				if (nprobes < PROBE_NUM) {
 					nprobes++;
-					VDBG("probe/%d %s@%s\n",
+					VDBG("probe/%u %s@%s\n",
 							nprobes, intf, inet_ntoa(ip));
 					arp(fd, &saddr, ARPOP_REQUEST,
 							&eth_addr, null_ip,
 							&null_addr, ip);
-					timeout = PROBE_MIN * 1000;
-					timeout += ms_rdelay(PROBE_MAX
-							- PROBE_MIN);
+					timeout_ms = PROBE_MIN * 1000;
+					timeout_ms += ms_rdelay(PROBE_MAX - PROBE_MIN);
 				}
 				else {
 					// Switch to announce state.
 					state = ANNOUNCE;
 					nclaims = 0;
-					VDBG("announce/%d %s@%s\n",
+					VDBG("announce/%u %s@%s\n",
 							nclaims, intf, inet_ntoa(ip));
 					arp(fd, &saddr, ARPOP_REQUEST,
 							&eth_addr, ip,
 							&eth_addr, ip);
-					timeout = ANNOUNCE_INTERVAL * 1000;
+					timeout_ms = ANNOUNCE_INTERVAL * 1000;
 				}
 				break;
 			case RATE_LIMIT_PROBE:
@@ -347,24 +341,24 @@ int zcip_main(int argc, char **argv)
 				// have been received, so we can move immediately to the announce state
 				state = ANNOUNCE;
 				nclaims = 0;
-				VDBG("announce/%d %s@%s\n",
+				VDBG("announce/%u %s@%s\n",
 						nclaims, intf, inet_ntoa(ip));
 				arp(fd, &saddr, ARPOP_REQUEST,
 						&eth_addr, ip,
 						&eth_addr, ip);
-				timeout = ANNOUNCE_INTERVAL * 1000;
+				timeout_ms = ANNOUNCE_INTERVAL * 1000;
 				break;
 			case ANNOUNCE:
 				// timeouts in the ANNOUNCE state mean no conflicting ARP packets
 				// have been received, so we can progress through the states
 				if (nclaims < ANNOUNCE_NUM) {
 					nclaims++;
-					VDBG("announce/%d %s@%s\n",
+					VDBG("announce/%u %s@%s\n",
 							nclaims, intf, inet_ntoa(ip));
 					arp(fd, &saddr, ARPOP_REQUEST,
 							&eth_addr, ip,
 							&eth_addr, ip);
-					timeout = ANNOUNCE_INTERVAL * 1000;
+					timeout_ms = ANNOUNCE_INTERVAL * 1000;
 				}
 				else {
 					// Switch to monitor state.
@@ -375,7 +369,7 @@ int zcip_main(int argc, char **argv)
 					run(script_av, intf, &ip);
 					ready = 1;
 					conflicts = 0;
-					timeout = -1; // Never timeout in the monitor state.
+					timeout_ms = -1; // Never timeout in the monitor state.
 
 					// NOTE: all other exit paths
 					// should deconfig ...
@@ -386,14 +380,14 @@ int zcip_main(int argc, char **argv)
 			case DEFEND:
 				// We won!  No ARP replies, so just go back to monitor.
 				state = MONITOR;
-				timeout = -1;
+				timeout_ms = -1;
 				conflicts = 0;
 				break;
 			default:
 				// Invalid, should never happen.  Restart the whole protocol.
 				state = PROBE;
 				pick(&ip);
-				timeout = 0;
+				timeout_ms = 0;
 				nprobes = 0;
 				nclaims = 0;
 				break;
@@ -403,20 +397,17 @@ int zcip_main(int argc, char **argv)
 		case 1:
 			// We need to adjust the timeout in case we didn't receive
 			// a conflicting packet.
-			if (timeout > 0) {
-				struct timeval tv2;
-
-				gettimeofday(&tv2, NULL);
-				if (timercmp(&tv1, &tv2, <)) {
+			if (timeout_ms > 0) {
+				unsigned diff = deadline_us - MONOTONIC_US();
+				if ((int)(diff) < 0) {
 					// Current time is greater than the expected timeout time.
 					// Should never happen.
 					VDBG("missed an expected timeout\n");
-					timeout = 0;
+					timeout_ms = 0;
 				} else {
 					VDBG("adjusting timeout\n");
-					timersub(&tv1, &tv2, &tv1);
-					timeout = 1000 * tv1.tv_sec
-							+ tv1.tv_usec / 1000;
+					timeout_ms = diff / 1000;
+					if (!timeout_ms) timeout_ms = 1;
 				}
 			}
 
@@ -484,13 +475,13 @@ int zcip_main(int argc, char **argv)
 					conflicts++;
 					if (conflicts >= MAX_CONFLICTS) {
 						VDBG("%s ratelimit\n", intf);
-						timeout = RATE_LIMIT_INTERVAL * 1000;
+						timeout_ms = RATE_LIMIT_INTERVAL * 1000;
 						state = RATE_LIMIT_PROBE;
 					}
 
 					// restart the whole protocol
 					pick(&ip);
-					timeout = 0;
+					timeout_ms = 0;
 					nprobes = 0;
 					nclaims = 0;
 				}
@@ -500,7 +491,7 @@ int zcip_main(int argc, char **argv)
 				if (source_ip_conflict) {
 					VDBG("monitor conflict -- defending\n");
 					state = DEFEND;
-					timeout = DEFEND_INTERVAL * 1000;
+					timeout_ms = DEFEND_INTERVAL * 1000;
 					arp(fd, &saddr,
 							ARPOP_REQUEST,
 							&eth_addr, ip,
@@ -518,7 +509,7 @@ int zcip_main(int argc, char **argv)
 
 					// restart the whole protocol
 					pick(&ip);
-					timeout = 0;
+					timeout_ms = 0;
 					nprobes = 0;
 					nclaims = 0;
 				}
@@ -528,7 +519,7 @@ int zcip_main(int argc, char **argv)
 				VDBG("invalid state -- starting over\n");
 				state = PROBE;
 				pick(&ip);
-				timeout = 0;
+				timeout_ms = 0;
 				nprobes = 0;
 				nclaims = 0;
 				break;

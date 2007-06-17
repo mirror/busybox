@@ -180,7 +180,12 @@ static void summarize(const char *fmt, char **command, resource_t * resp)
 	vv_ms = (resp->ru.ru_utime.tv_sec + resp->ru.ru_stime.tv_sec) * 1000
 	      + (resp->ru.ru_utime.tv_usec + resp->ru.ru_stime.tv_usec) / 1000;
 
-	cpu_ticks = vv_ms * TICKS_PER_SEC / 1000;
+#if (1000 / TICKS_PER_SEC) * TICKS_PER_SEC == 1000
+	/* 1000 is exactly divisible by TICKS_PER_SEC */
+	cpu_ticks = vv_ms / (1000 / TICKS_PER_SEC);
+#else
+	cpu_ticks = vv_ms * (unsigned long long)TICKS_PER_SEC / 1000;
+#endif
 	if (!cpu_ticks) cpu_ticks = 1; /* we divide by it, must be nonzero */
 
 	/* putchar() != putc(stdout) in glibc! */
