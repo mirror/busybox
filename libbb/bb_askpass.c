@@ -9,7 +9,6 @@
  */
 
 #include <termios.h>
-//#include <sys/ioctl.h>
 
 #include "libbb.h"
 
@@ -20,17 +19,21 @@ static void askpass_timeout(int ATTRIBUTE_UNUSED ignore)
 
 char *bb_askpass(int timeout, const char * prompt)
 {
-	static char passwd[64];
+	/* Was static char[BIGNUM] */
+	enum { sizeof_passwd = 128 };
+	static char *passwd;
 
 	char *ret;
 	int i;
 	struct sigaction sa;
 	struct termios old, new;
 
+	if (!passwd)
+		passwd = xmalloc(sizeof_passwd);
+	memset(passwd, 0, sizeof_passwd);
+
 	tcgetattr(STDIN_FILENO, &old);
 	tcflush(STDIN_FILENO, TCIFLUSH);
-
-	memset(passwd, 0, sizeof(passwd));
 
 	fputs(prompt, stdout);
 	fflush(stdout);
@@ -48,7 +51,9 @@ char *bb_askpass(int timeout, const char * prompt)
 	}
 
 	ret = NULL;
-	if (read(STDIN_FILENO, passwd, sizeof(passwd)-1) > 0) {
+	/* On timeout, read will hopefully be interrupted by SIGALRM,
+	 * and we return NULL */
+	if (read(STDIN_FILENO, passwd, sizeof_passwd-1) > 0) {
 		ret = passwd;
 		i = 0;
 		/* Last byte is guaranteed to be 0
@@ -64,7 +69,7 @@ char *bb_askpass(int timeout, const char * prompt)
 	}
 
 	tcsetattr(STDIN_FILENO, TCSANOW, &old);
-	puts("");
+	putchar('\n');
 	fflush(stdout);
 	return ret;
 }

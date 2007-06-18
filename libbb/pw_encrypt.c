@@ -12,18 +12,16 @@
 
 char *pw_encrypt(const char *clear, const char *salt)
 {
-	static char cipher[128];
-	char *cp;
+	/* Was static char[BIGNUM]. Malloced thing works as well */
+	static char *cipher;
 
 #if 0 /* was CONFIG_FEATURE_SHA1_PASSWORDS, but there is no such thing??? */
 	if (strncmp(salt, "$2$", 3) == 0) {
 		return sha1_crypt(clear);
 	}
 #endif
-	cp = (char *) crypt(clear, salt);
-	/* if crypt (a nonstandard crypt) returns a string too large,
-	   truncate it so we don't overrun buffers and hope there is
-	   enough security in what's left */
-	safe_strncpy(cipher, cp, sizeof(cipher));
+
+	free(cipher);
+	cipher = xstrdup(crypt(clear, salt));
 	return cipher;
 }
