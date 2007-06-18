@@ -33,7 +33,7 @@ unsigned long long monotonic_us(void)
 {
 	struct timeval tv;
 	gettimeofday(&tv, NULL);
-	return tv.tv_sec * 1000000ULL + tv_usec;
+	return tv.tv_sec * 1000000ULL + tv.tv_usec;
 }
 
 unsigned monotonic_sec(void)
