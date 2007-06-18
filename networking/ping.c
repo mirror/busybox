@@ -242,8 +242,8 @@ struct globals {
 	int if_index;
 	unsigned long ntransmitted, nreceived, nrepeats, pingcount;
 	uint16_t myid;
-	unsigned tmin, tmax;
-	unsigned long tsum;
+	unsigned tmin, tmax; /* in us */
+	unsigned long long tsum; /* in us, sum of all times */
 	const char *hostname;
 	const char *dotted;
 	union {
@@ -301,11 +301,13 @@ static void pingstats(int junk ATTRIBUTE_UNUSED)
 	if (ntransmitted)
 		ntransmitted = (ntransmitted - nreceived) * 100 / ntransmitted;
 	printf("%lu%% packet loss\n", ntransmitted);
-	if (tmin != UINT_MAX)
-		printf("round-trip min/avg/max = %u.%u/%lu.%lu/%u.%u ms\n",
-			tmin / 10, tmin % 10,
-			(tsum / (nreceived + nrepeats)) / 10,
-			(tsum / (nreceived + nrepeats)) % 10, tmax / 10, tmax % 10);
+	if (tmin != UINT_MAX) {
+		unsigned tavg = tsum / (nreceived + nrepeats);
+		printf("round-trip min/avg/max = %u.%03u/%u.%03u/%u.%03u ms\n",
+			tmin / 1000, tmin % 1000,
+			tavg / 1000, tavg % 1000,
+			tmax / 1000, tmax % 1000);
+	}
 	exit(nreceived == 0); /* (nreceived == 0) is true (1) -- 'failure' */
 }
 
@@ -334,7 +336,9 @@ static void sendping_tail(void (*sp)(int), const void *pkt, int size_pkt)
 
 static void sendping4(int junk ATTRIBUTE_UNUSED)
 {
-	struct icmp *pkt = alloca(datalen + ICMP_MINLEN);
+	/* +4 reserves a place for timestamp, which may end up sitting
+	 * *after* packet. Saves one if() */
+	struct icmp *pkt = alloca(datalen + ICMP_MINLEN + 4);
 
 	pkt->icmp_type = ICMP_ECHO;
 	pkt->icmp_code = 0;
@@ -342,10 +346,9 @@ static void sendping4(int junk ATTRIBUTE_UNUSED)
 	pkt->icmp_seq = htons(ntransmitted); /* don't ++ here, it can be a macro */
 	pkt->icmp_id = myid;
 
-// I can't fucking believe someone thought it's okay to do it like this...
-// where's hton? Where is a provision for different word size, structure padding, etc??
-// FIXME!
-	gettimeofday((struct timeval *) &pkt->icmp_dun, NULL);
+	/* We don't do hton, because we will read it back on the same machine */
+	/*if (datalen >= 4)*/
+		*(uint32_t*)&pkt->icmp_dun = monotonic_us();
 
 	pkt->icmp_cksum = in_cksum((unsigned short *) pkt, datalen + ICMP_MINLEN);
 
@@ -354,7 +357,7 @@ static void sendping4(int junk ATTRIBUTE_UNUSED)
 #if ENABLE_PING6
 static void sendping6(int junk ATTRIBUTE_UNUSED)
 {
-	struct icmp6_hdr *pkt = alloca(datalen + sizeof(struct icmp6_hdr));
+	struct icmp6_hdr *pkt = alloca(datalen + sizeof(struct icmp6_hdr) + 4);
 
 	pkt->icmp6_type = ICMP6_ECHO_REQUEST;
 	pkt->icmp6_code = 0;
@@ -362,8 +365,8 @@ static void sendping6(int junk ATTRIBUTE_UNUSED)
 	pkt->icmp6_seq = htons(ntransmitted); /* don't ++ here, it can be a macro */
 	pkt->icmp6_id = myid;
 
-// FIXME!
-	gettimeofday((struct timeval *) &pkt->icmp6_data8[4], NULL);
+	/*if (datalen >= 4)*/
+		*(uint32_t*)(&pkt->icmp6_data8[4]) = monotonic_us();
 
 	sendping_tail(sendping6, pkt, datalen + sizeof(struct icmp6_hdr));
 }
@@ -417,7 +420,7 @@ static const char *icmp6_type_name(int id)
 }
 #endif
 
-static void unpack_tail(int sz, struct timeval *tp,
+static void unpack_tail(int sz, uint32_t *tp,
 		const char *from_str,
 		uint16_t recv_seq, int ttl)
 {
@@ -427,17 +430,9 @@ static void unpack_tail(int sz, struct timeval *tp,
 	++nreceived;
 
 	if (tp) {
-		struct timeval tv;
-
-		gettimeofday(&tv, NULL);
-		tv.tv_usec -= tp->tv_usec;
-		if (tv.tv_usec < 0) {
-			--tv.tv_sec;
-			tv.tv_usec += 1000000;
-		}
-		tv.tv_sec -= tp->tv_sec;
-
-		triptime = tv.tv_sec * 10000 + (tv.tv_usec / 100);
+		/* (int32_t) cast is for hypothetical 64-bit unsigned */
+		/* (doesn't hurt 32-bit real-world anyway) */
+		triptime = (int32_t) ((uint32_t)monotonic_us() - *tp);
 		tsum += triptime;
 		if (triptime < tmin)
 			tmin = triptime;
@@ -459,7 +454,7 @@ static void unpack_tail(int sz, struct timeval *tp,
 	printf("%d bytes from %s: seq=%u ttl=%d", sz,
 		from_str, recv_seq, ttl);
 	if (tp)
-		printf(" time=%u.%u ms", triptime / 10, triptime % 10);
+		printf(" time=%u.%03u ms", triptime / 1000, triptime % 1000);
 	puts(dupmsg);
 	fflush(stdout);
 }
@@ -483,10 +478,10 @@ static void unpack4(char *buf, int sz, struct sockaddr_in *from)
 
 	if (icmppkt->icmp_type == ICMP_ECHOREPLY) {
 		uint16_t recv_seq = ntohs(icmppkt->icmp_seq);
-		struct timeval *tp = NULL;
+		uint32_t *tp = NULL;
 
-		if (sz >= ICMP_MINLEN + sizeof(struct timeval))
-			tp = (struct timeval *) icmppkt->icmp_data;
+		if (sz >= ICMP_MINLEN + sizeof(uint32_t))
+			tp = (uint32_t *) icmppkt->icmp_data;
 		unpack_tail(sz, tp,
 			inet_ntoa(*(struct in_addr *) &from->sin_addr.s_addr),
 			recv_seq, iphdr->ttl);
@@ -512,10 +507,10 @@ static void unpack6(char *packet, int sz, struct sockaddr_in6 *from, int hoplimi
 
 	if (icmppkt->icmp6_type == ICMP6_ECHO_REPLY) {
 		uint16_t recv_seq = ntohs(icmppkt->icmp6_seq);
-		struct timeval *tp = NULL;
+		uint32_t *tp = NULL;
 
-		if (sz >= sizeof(struct icmp6_hdr) + sizeof(struct timeval))
-			tp = (struct timeval *) &icmppkt->icmp6_data8[4];
+		if (sz >= sizeof(struct icmp6_hdr) + sizeof(uint32_t))
+			tp = (uint32_t *) &icmppkt->icmp6_data8[4];
 		unpack_tail(sz, tp,
 			inet_ntop(AF_INET6, &pingaddr.sin6.sin6_addr,
 					buf, sizeof(buf)),

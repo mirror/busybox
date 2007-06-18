@@ -8,7 +8,7 @@
 
 /* We want libc to give us xxx64 functions also */
 /* http://www.unix.org/version2/whatsnew/lfs20mar.html */
-#define _LARGEFILE64_SOURCE 1
+//#define _LARGEFILE64_SOURCE 1
 
 #include <getopt.h>	/* for struct option */
 #include "libbb.h"
@@ -710,7 +710,7 @@ progressmeter(int flag)
 
 	fprintf(stderr, "\r%-20.20s%4d%% ", curfile, ratio);
 
-	barlength = getttywidth() - 51;
+	barlength = getttywidth() - 49;
 	if (barlength > 0) {
 		/* god bless gcc for variable arrays :) */
 		i = barlength * ratio / 100;
@@ -728,7 +728,7 @@ progressmeter(int flag)
 		abbrevsize >>= 10;
 	}
 	/* see http://en.wikipedia.org/wiki/Tera */
-	fprintf(stderr, "%6d %c%c ", (int)abbrevsize, " KMGTPEZY"[i], i?'B':' ');
+	fprintf(stderr, "%6d%c ", (int)abbrevsize, " kMGTPEZY"[i]);
 
 // Nuts! Ain't it easier to update progress meter ONLY when we transferred++?
 // FIXME: get rid of alarmtimer + updateprogressmeter mess
