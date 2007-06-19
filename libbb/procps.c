@@ -225,30 +225,18 @@ procps_status_t* procps_scan(procps_status_t* sp, int flags)
 				break;
 			sp->vsz = vsz >> 10; /* vsize is in bytes and we want kb */
 			sp->rss = rss >> 10;
-
-			sp->tty_str[0] = '?';
-			/* sp->tty_str[1] = '\0'; - done by memset */
-			if (tty) /* tty field of "0" means "no tty" */
-				snprintf(sp->tty_str, sizeof(sp->tty_str), "%u,%u",
-					(tty >> 8) & 0xfff, /* major */
-					(tty & 0xff) | ((tty >> 12) & 0xfff00));
+			sp->tty_major = (tty >> 8) & 0xfff;
+			sp->tty_minor = (tty & 0xff) | ((tty >> 12) & 0xfff00));
 #else
 /* This costs ~100 bytes more but makes top faster by 20%
  * If you run 10000 processes, this may be important for you */
-			cp += 2;
-			sp->state[0] = *cp++; cp++;
-			sp->ppid = fast_strtoul_10(cp, &cp);
+			sp->state[0] = cp[2];
+			sp->ppid = fast_strtoul_10(cp + 4, &cp);
 			sp->pgid = fast_strtoul_10(cp, &cp);
 			sp->sid = fast_strtoul_10(cp, &cp);
-			sp->tty_str[0] = '?';
-			/* sp->tty_str[1] = '\0'; - done by memset */
 			tty = fast_strtoul_10(cp, &cp);
-			if (tty && (flags & PSSCAN_TTY)) {
-				/* tty field of "0" means "no tty" */
-				snprintf(sp->tty_str, sizeof(sp->tty_str), "%u,%u",
-					(tty >> 8) & 0xfff, /* major */
-					(tty & 0xff) | ((tty >> 12) & 0xfff00));
-			}
+			sp->tty_major = (tty >> 8) & 0xfff;
+			sp->tty_minor = (tty & 0xff) | ((tty >> 12) & 0xfff00);
 			cp = skip_fields(cp, 6); /* tpgid, flags, min_flt, cmin_flt, maj_flt, cmaj_flt */
 			sp->utime = fast_strtoul_10(cp, &cp);
 			sp->stime = fast_strtoul_10(cp, &cp);

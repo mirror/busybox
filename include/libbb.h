@@ -847,10 +847,9 @@ typedef struct {
 	unsigned sid;
 	unsigned uid;
 	unsigned gid;
+	unsigned tty_major,tty_minor;
 	char state[4];
-	char tty_str[8]; /* "maj,min" or "?" */
-	/* basename of executable in exec(2), read from /proc/N/stat, */
-	/* size from sizeof(task_struct.comm) in /usr/include/linux/sched.h */
+	/* basename of executable in exec(2), read from /proc/N/stat */
 	char comm[COMM_LEN];
 	/* user/group? - use passwd/group parsing functions */
 } procps_status_t;

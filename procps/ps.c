@@ -68,7 +68,10 @@ static void func_rss(char *buf, int size, const procps_status_t *ps)
 
 static void func_tty(char *buf, int size, const procps_status_t *ps)
 {
-	safe_strncpy(buf, ps->tty_str, size+1);
+	buf[0] = '?';
+	buf[1] = '\0';
+	if (ps->tty_major) /* tty field of "0" means "no tty" */
+		snprintf(buf, size+1, "%u,%u", ps->tty_major, ps->tty_minor);
 }
 
 #if ENABLE_SELINUX
