@@ -699,7 +699,7 @@ struct hwtype {
 	int (*activate) (int fd);
 	int suppress_null_addr;
 };
-extern int interface_opt_a;
+extern smallint interface_opt_a;
 int display_interfaces(char *ifname);
 const struct aftype *get_aftype(const char *name);
 const struct hwtype *get_hwtype(const char *name);

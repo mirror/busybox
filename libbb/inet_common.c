@@ -98,7 +98,7 @@ int INET_rresolve(char *name, size_t len, struct sockaddr_in *s_in,
 	/* Grmpf. -FvK */
 	if (s_in->sin_family != AF_INET) {
 #ifdef DEBUG
-		bb_error_msg("rresolve: unsupport address family %d !",
+		bb_error_msg("rresolve: unsupported address family %d!",
 				  s_in->sin_family);
 #endif
 		errno = EAFNOSUPPORT;

@@ -12,14 +12,15 @@
 /* hostfirst!=0 If we expect this to be a hostname,
    try hostname database first
  */
-extern int INET_resolve(const char *name, struct sockaddr_in *s_in, int hostfirst);
+int INET_resolve(const char *name, struct sockaddr_in *s_in, int hostfirst);
 
 /* numeric: & 0x8000: "default" instead of "*",
  *          & 0x4000: host instead of net,
  *          & 0x0fff: don't resolve
  */
-extern int INET_rresolve(char *name, size_t len, struct sockaddr_in *s_in,
-			 int numeric, unsigned int netmask);
+int INET_rresolve(char *name, size_t len, struct sockaddr_in *s_in,
+	int numeric, unsigned int netmask);
 
-extern int INET6_resolve(const char *name, struct sockaddr_in6 *sin6);
-extern int INET6_rresolve(char *name, size_t len, struct sockaddr_in6 *sin6, int numeric);
+
+int INET6_resolve(const char *name, struct sockaddr_in6 *sin6);
+int INET6_rresolve(char *name, size_t len, struct sockaddr_in6 *sin6, int numeric);
