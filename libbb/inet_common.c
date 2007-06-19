@@ -14,7 +14,9 @@
 int INET_resolve(const char *name, struct sockaddr_in *s_in, int hostfirst)
 {
 	struct hostent *hp;
+#if ENABLE_FEATURE_ETC_NETWORKS
 	struct netent *np;
+#endif
 
 	/* Grmpf. -FvK */
 	s_in->sin_family = AF_INET;
@@ -43,6 +45,7 @@ int INET_resolve(const char *name, struct sockaddr_in *s_in, int hostfirst)
 			return 0;
 		}
 	}
+#if ENABLE_FEATURE_ETC_NETWORKS
 	/* Try the NETWORKS database to see if this is a known network. */
 #ifdef DEBUG
 	bb_error_msg("getnetbyname(%s)", name);
@@ -52,6 +55,7 @@ int INET_resolve(const char *name, struct sockaddr_in *s_in, int hostfirst)
 		s_in->sin_addr.s_addr = htonl(np->n_net);
 		return 1;
 	}
+#endif
 	if (hostfirst) {
 		/* Don't try again */
 		return -1;
@@ -140,10 +144,7 @@ char *INET_rresolve(struct sockaddr_in *s_in, int numeric, uint32_t netmask)
 		ent = gethostbyaddr((char *) &ad, 4, AF_INET);
 		if (ent)
 			name = xstrdup(ent->h_name);
-	} else {
-		/* Hmmm... this is very rare to have named nets,
-		 * and this getnetbyaddr() call is the only one in bbox.
-		 * Maybe get rid of or make configurable? */
+	} else if (ENABLE_FEATURE_ETC_NETWORKS) {
 		struct netent *np;
 #ifdef DEBUG
 		bb_error_msg("getnetbyaddr (%08x)", (unsigned)host_ad);

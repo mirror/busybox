@@ -26,6 +26,14 @@ config MD5_SIZE_VS_SPEED
 	  2                   3.0                5088
 	  3 (smallest)        5.1                4912
 
+config FEATURE_ETC_NETWORKS
+	bool "Support for /etc/networks"
+	default n
+	help
+	  Enable support for network names in /etc/networks. This is
+	  a rarely used feature which allows you to use names
+	  instead of IP/mask pairs in route command.
+
 config FEATURE_EDITING
 	bool "Command line editing"
 	default n
