@@ -478,7 +478,7 @@ static void set_flags(char *flagstr, int flags)
 /* also used in netstat */
 void bb_displayroutes(int noresolve, int netstatfmt)
 {
-	char devname[64], flags[16], sdest[16], sgw[16];
+	char devname[64], flags[16], *sdest, *sgw;
 	unsigned long d, g, m;
 	int flgs, ref, use, metric, mtu, win, ir;
 	struct sockaddr_in s_addr;
@@ -520,15 +520,14 @@ void bb_displayroutes(int noresolve, int netstatfmt)
 		memset(&s_addr, 0, sizeof(struct sockaddr_in));
 		s_addr.sin_family = AF_INET;
 		s_addr.sin_addr.s_addr = d;
-		INET_rresolve(sdest, sizeof(sdest), &s_addr,
-					  (noresolve | 0x8000), m);	/* Default instead of *. */
-
+		sdest = INET_rresolve(&s_addr, (noresolve | 0x8000), m); /* 'default' instead of '*' */
 		s_addr.sin_addr.s_addr = g;
-		INET_rresolve(sgw, sizeof(sgw), &s_addr,
-					  (noresolve | 0x4000), m);	/* Host instead of net. */
-
+		sgw = INET_rresolve(&s_addr, (noresolve | 0x4000), m); /* Host instead of net */
 		mask.s_addr = m;
-		printf("%-16s%-16s%-16s%-6s", sdest, sgw, inet_ntoa(mask), flags);
+		/* "%15.15s" truncates hostnames, do we really want that? */
+		printf("%-15.15s %-15.15s %-16s%-6s", sdest, sgw, inet_ntoa(mask), flags);
+		free(sdest);
+		free(sgw);
 		if (netstatfmt) {
 			printf("%5d %-5d %6d %s\n", mtu, win, ir, devname);
 		} else {
@@ -541,7 +540,7 @@ void bb_displayroutes(int noresolve, int netstatfmt)
 
 static void INET6_displayroutes(int noresolve)
 {
-	char addr6[128], naddr6[128];
+	char addr6[128], *naddr6;
 	/* In addr6x, we store both 40-byte ':'-delimited ipv6 addresses.
 	 * We read the non-delimited strings into the tail of the buffer
 	 * using fscanf and then modify the buffer by shifting forward
@@ -581,7 +580,7 @@ static void INET6_displayroutes(int noresolve)
 
 			do {
 				if (!*p) {
-					if (i==40) { /* nul terminator for 1st address? */
+					if (i == 40) { /* nul terminator for 1st address? */
 						addr6x[39] = 0;	/* Fixup... need 0 instead of ':'. */
 						++p;	/* Skip and continue. */
 						continue;
@@ -606,18 +605,19 @@ static void INET6_displayroutes(int noresolve)
 			inet_pton(AF_INET6, addr6x + r,
 					  (struct sockaddr *) &snaddr6.sin6_addr);
 			snaddr6.sin6_family = AF_INET6;
-			INET6_rresolve(naddr6, sizeof(naddr6),
-						   (struct sockaddr_in6 *) &snaddr6,
+			naddr6 = INET6_rresolve((struct sockaddr_in6 *) &snaddr6,
 						   0x0fff /* Apparently, upstream never resolves. */
 						   );
 
 			if (!r) {			/* 1st pass */
 				snprintf(addr6, sizeof(addr6), "%s/%d", naddr6, prefix_len);
 				r += 40;
+				free(naddr6);
 			} else {			/* 2nd pass */
 				/* Print the info. */
 				printf("%-43s %-39s %-5s %-6d %-2d %7d %-8s\n",
-						  addr6, naddr6, flags, metric, refcnt, use, iface);
+						addr6, naddr6, flags, metric, refcnt, use, iface);
+				free(naddr6);
 				break;
 			}
 		} while (1);

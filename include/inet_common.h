@@ -18,9 +18,9 @@ int INET_resolve(const char *name, struct sockaddr_in *s_in, int hostfirst);
  *          & 0x4000: host instead of net,
  *          & 0x0fff: don't resolve
  */
-int INET_rresolve(char *name, size_t len, struct sockaddr_in *s_in,
-	int numeric, unsigned int netmask);
-
 
 int INET6_resolve(const char *name, struct sockaddr_in6 *sin6);
-int INET6_rresolve(char *name, size_t len, struct sockaddr_in6 *sin6, int numeric);
+
+/* These return malloced string */
+char *INET_rresolve(struct sockaddr_in *s_in, int numeric, uint32_t netmask);
+char *INET6_rresolve(struct sockaddr_in6 *sin6, int numeric);

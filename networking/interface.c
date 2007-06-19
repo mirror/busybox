@@ -84,13 +84,12 @@ struct in6_ifreq {
 /* Display an Internet socket address. */
 static const char *INET_sprint(struct sockaddr *sap, int numeric)
 {
-	static char buff[128];
+	static char *buff;
 
+	free(buff);
 	if (sap->sa_family == 0xFFFF || sap->sa_family == 0)
 		return "[NONE SET]";
-	if (INET_rresolve(buff, sizeof(buff), (struct sockaddr_in *) sap,
-					  numeric, 0xffffff00) != 0)
-		return NULL;
+	buff = INET_rresolve((struct sockaddr_in *) sap, numeric, 0xffffff00);
 	return buff;
 }
 
@@ -167,12 +166,12 @@ static const struct aftype inet_aftype = {
 /* dirty! struct sockaddr usually doesn't suffer for inet6 addresses, fst. */
 static const char *INET6_sprint(struct sockaddr *sap, int numeric)
 {
-	static char buff[128];
+	static char *buff;
 
+	free(buff);
 	if (sap->sa_family == 0xFFFF || sap->sa_family == 0)
 		return "[NONE SET]";
-	if (INET6_rresolve(buff, sizeof(buff), (struct sockaddr_in6 *) sap, numeric))
-		return "[UNKNOWN]";
+	buff = INET6_rresolve((struct sockaddr_in6 *) sap, numeric);
 	return buff;
 }
 

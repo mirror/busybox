@@ -120,50 +120,33 @@ static void build_ipv4_addr(char* local_addr, struct sockaddr_in* localaddr)
 	((struct sockaddr *) localaddr)->sa_family = AF_INET;
 }
 
-static const char *get_sname(int port, const char *proto, int num)
+static const char *get_sname(int port, const char *proto, int numeric)
 {
-	/* hummm, we return static buffer here!! */
-	const char *str = itoa(ntohs(port));
-	if (!num) {
+	if (!port)
+		return "*";
+	if (!numeric) {
 		struct servent *se = getservbyport(port, proto);
 		if (se)
-			str = se->s_name;
+			return se->s_name;
 	}
-	if (!port) {
-		str = "*";
-	}
-	return str;
+	/* hummm, we may return static buffer here!! */
+	return itoa(ntohs(port));
 }
 
-static void snprint_ip_port(char *ip_port, int size, struct sockaddr *addr, int port, const char *proto, int numeric)
+static char *ip_port_str(struct sockaddr *addr, int port, const char *proto, int numeric)
 {
-	const char *port_name;
-	int max_len;
-	int port_name_len;
+	enum { salen = USE_FEATURE_IPV6(sizeof(struct sockaddr_in6)) SKIP_FEATURE_IPV6(sizeof(struct sockaddr_in)) };
+	char *host, *host_port;
 
-// TODO: replace by xmalloc_sockaddr2host?
-#if ENABLE_FEATURE_IPV6
-	if (addr->sa_family == AF_INET6) {
-		INET6_rresolve(ip_port, size, (struct sockaddr_in6 *)addr,
-			(numeric & NETSTAT_NUMERIC) ? 0x0fff : 0);
-	} else
-#endif
-	{
-		INET_rresolve(ip_port, size, (struct sockaddr_in *)addr,
-			0x4000 | ((numeric & NETSTAT_NUMERIC) ? 0x0fff : 0),
-			0xffffffff);
-	}
-	port_name = get_sname(htons(port), proto, numeric);
+	/* Code which used "*" for INADDR_ANY is removed: it's ambiguous in IPv6,
+	 * while "0.0.0.0" is not. */
 
-	max_len = (option_mask32 & OPT_widedisplay)
-			? (PRINT_IP_MAX_SIZE_WIDE - 1)
-			: (PRINT_IP_MAX_SIZE - 1);
-	port_name_len = strlen(port_name);
-	if ((strlen(ip_port) + port_name_len) > max_len)
-		ip_port[max_len - port_name_len] = '\0';
-	ip_port += strlen(ip_port);
-	*ip_port++ = ':';
-	strcpy(ip_port, port_name);
+	host = numeric ? xmalloc_sockaddr2dotted_noport(addr, salen)
+	               : xmalloc_sockaddr2host_noport(addr, salen);
+
+	host_port = xasprintf("%s:%s", host, get_sname(htons(port), proto, numeric));
+	free(host);
+	return host_port;
 }
 
 static void tcp_do_one(int lnr, const char *line)
@@ -206,14 +189,16 @@ static void tcp_do_one(int lnr, const char *line)
 	if ((rem_port && (flags & NETSTAT_CONNECTED))
 	 || (!rem_port && (flags & NETSTAT_LISTENING))
 	) {
-		snprint_ip_port(local_addr, sizeof(local_addr),
+		char *l = ip_port_str(
 				(struct sockaddr *) &localaddr, local_port,
 				"tcp", flags & NETSTAT_NUMERIC);
-		snprint_ip_port(rem_addr, sizeof(rem_addr),
+		char *r = ip_port_str(
 				(struct sockaddr *) &remaddr, rem_port,
 				"tcp", flags & NETSTAT_NUMERIC);
 		printf(net_conn_line,
-			"tcp", rxq, txq, local_addr, rem_addr, tcp_state[state]);
+			"tcp", rxq, txq, l, r, tcp_state[state]);
+		free(l);
+		free(r);
 	}
 }
 
@@ -285,14 +270,16 @@ static void udp_do_one(int lnr, const char *line)
 		if ((have_remaddr && (flags & NETSTAT_CONNECTED))
 		 || (!have_remaddr && (flags & NETSTAT_LISTENING))
 		) {
-			snprint_ip_port(local_addr, sizeof(local_addr),
+			char *l = ip_port_str(
 				(struct sockaddr *) &localaddr, local_port,
 				"udp", flags & NETSTAT_NUMERIC);
-			snprint_ip_port(rem_addr, sizeof(rem_addr),
+			char *r = ip_port_str(
 				(struct sockaddr *) &remaddr, rem_port,
 				"udp", flags & NETSTAT_NUMERIC);
 			printf(net_conn_line,
-				"udp", rxq, txq, local_addr, rem_addr, state_str);
+				"udp", rxq, txq, l, r, state_str);
+			free(l);
+			free(r);
 		}
 	}
 }
@@ -339,14 +326,16 @@ static void raw_do_one(int lnr, const char *line)
 		if ((have_remaddr && (flags & NETSTAT_CONNECTED))
 		 || (!have_remaddr && (flags & NETSTAT_LISTENING))
 		) {
-			snprint_ip_port(local_addr, sizeof(local_addr),
+			char *l = ip_port_str(
 				(struct sockaddr *) &localaddr, local_port,
 				"raw", flags & NETSTAT_NUMERIC);
-			snprint_ip_port(rem_addr, sizeof(rem_addr),
+			char *r = ip_port_str(
 				(struct sockaddr *) &remaddr, rem_port,
 				"raw", flags & NETSTAT_NUMERIC);
 			printf(net_conn_line,
-				"raw", rxq, txq, local_addr, rem_addr, itoa(state));
+				"raw", rxq, txq, l, r, itoa(state));
+			free(l);
+			free(r);
 		}
 	}
 }

@@ -802,22 +802,20 @@ packet_ok(unsigned char *buf, int cc, struct sockaddr_in *from, int seq)
  * numeric value, otherwise try for symbolic name.
  */
 static inline void
-inetname(struct sockaddr_in *from)
+print_inetname(struct sockaddr_in *from)
 {
-	const char *n = NULL;
 	const char *ina;
-	char name[257];
 
-	if (!nflag && from->sin_addr.s_addr != INADDR_ANY) {
-		if (INET_rresolve(name, sizeof(name), from, 0x4000,
-						0xffffffff) >= 0)
-			n = name;
-	}
 	ina = inet_ntoa(from->sin_addr);
 	if (nflag)
 		printf(" %s", ina);
-	else
+	else {
+		char *n = NULL;
+		if (from->sin_addr.s_addr != INADDR_ANY)
+			n = xmalloc_sockaddr2host_noport((struct sockaddr*)from, sizeof(*from));
 		printf(" %s (%s)", (n ? n : ina), ina);
+		free(n);
+	}
 }
 
 static inline void
@@ -830,7 +828,7 @@ print(unsigned char *buf, int cc, struct sockaddr_in *from)
 	hlen = ip->ip_hl << 2;
 	cc -= hlen;
 
-	inetname(from);
+	print_inetname(from);
 #if ENABLE_FEATURE_TRACEROUTE_VERBOSE
 	if (verbose)
 		printf(" %d bytes to %s", cc, inet_ntoa(ip->ip_dst));
