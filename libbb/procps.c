@@ -243,10 +243,12 @@ procps_status_t* procps_scan(procps_status_t* sp, int flags)
 			sp->tty_str[0] = '?';
 			/* sp->tty_str[1] = '\0'; - done by memset */
 			tty = fast_strtoul_10(cp, &cp);
-			if (tty) /* tty field of "0" means "no tty" */
+			if (tty && (flags & PSSCAN_TTY)) {
+				/* tty field of "0" means "no tty" */
 				snprintf(sp->tty_str, sizeof(sp->tty_str), "%u,%u",
 					(tty >> 8) & 0xfff, /* major */
 					(tty & 0xff) | ((tty >> 12) & 0xfff00));
+			}
 			cp = skip_fields(cp, 6); /* tpgid, flags, min_flt, cmin_flt, maj_flt, cmaj_flt */
 			sp->utime = fast_strtoul_10(cp, &cp);
 			sp->stime = fast_strtoul_10(cp, &cp);
