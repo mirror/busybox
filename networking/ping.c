@@ -530,8 +530,12 @@ static void ping4(len_and_sockaddr *lsa)
 
 	pingsock = create_icmp_socket();
 	pingaddr.sin = lsa->sin;
-	if (source_lsa)
-		xbind(pingsock, &lsa->sa, lsa->len);
+	if (source_lsa) {
+		if (setsockopt(pingsock, IPPROTO_IP, IP_MULTICAST_IF,
+				&source_lsa->sa, source_lsa->len))
+			bb_error_msg_and_die("can't set multicast source interface");
+		xbind(pingsock, &source_lsa->sa, source_lsa->len);
+	}
 
 	/* enable broadcast pings */
 	setsockopt_broadcast(pingsock);
@@ -578,7 +582,7 @@ static void ping6(len_and_sockaddr *lsa)
 	pingaddr.sin6 = lsa->sin6;
 	/* untested whether "-I addr" really works for IPv6: */
 	if (source_lsa)
-		xbind(pingsock, &lsa->sa, lsa->len);
+		xbind(pingsock, &source_lsa->sa, source_lsa->len);
 
 #ifdef ICMP6_FILTER
 	{
@@ -659,7 +663,7 @@ static void ping(len_and_sockaddr *lsa)
 	printf("PING %s (%s)", hostname, dotted);
 	if (source_lsa) {
 		printf(" from %s",
-			xmalloc_sockaddr2dotted_noport(&lsa->sa, lsa->len));
+			xmalloc_sockaddr2dotted_noport(&source_lsa->sa, source_lsa->len));
 	}
 	printf(": %d data bytes\n", datalen);
 
@@ -691,7 +695,6 @@ int ping_main(int argc, char **argv)
 		if_index = if_nametoindex(opt_I);
 		if (!if_index) {
 			/* TODO: I'm not sure it takes IPv6 unless in [XX:XX..] format */
-			/* (ping doesn't support source IPv6 addresses yet anyway) */
 			source_lsa = xdotted2sockaddr(opt_I, 0);
 		}
 	}
