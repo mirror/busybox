@@ -107,6 +107,28 @@ void free_procps_scan(procps_status_t* sp)
 	free(sp);
 }
 
+#if ENABLE_FEATURE_FAST_TOP
+/* We cut a lot of corners here for speed */
+static unsigned long fast_strtoul_10(char *str, char **endptr)
+{
+	char c;
+	unsigned long n = *str - '0';
+
+	while ((c = *++str) != ' ')
+		n = n*10 + (c - '0');
+
+	*endptr = str + 1; /* We skip trailing space! */
+	return n;
+}
+static char *skip_fields(char *str, int count)
+{
+	do {
+		str = skip_non_whitespace(str); str++;
+	} while (--count);
+	return str;
+}
+#endif
+
 void BUG_comm_size(void);
 procps_status_t* procps_scan(procps_status_t* sp, int flags)
 {
@@ -160,7 +182,9 @@ procps_status_t* procps_scan(procps_status_t* sp, int flags)
 
 		if (flags & PSSCAN_STAT) {
 			char *cp;
+#if !ENABLE_FEATURE_FAST_TOP
 			unsigned long vsz, rss;
+#endif
 			int tty;
 
 			/* see proc(5) for some details on this */
@@ -175,6 +199,8 @@ procps_status_t* procps_scan(procps_status_t* sp, int flags)
 			if (sizeof(sp->comm) < 16)
 				BUG_comm_size();
 			sscanf(buf, "%*s (%15c", sp->comm);
+
+#if !ENABLE_FEATURE_FAST_TOP
 			n = sscanf(cp+2,
 				"%c %u "               /* state, ppid */
 				"%u %u %d %*s "        /* pgid, sid, tty, tpgid */
@@ -197,6 +223,8 @@ procps_status_t* procps_scan(procps_status_t* sp, int flags)
 				&rss);
 			if (n != 10)
 				break;
+			sp->vsz = vsz >> 10; /* vsize is in bytes and we want kb */
+			sp->rss = rss >> 10;
 
 			sp->tty_str[0] = '?';
 			/* sp->tty_str[1] = '\0'; - done by memset */
@@ -204,6 +232,31 @@ procps_status_t* procps_scan(procps_status_t* sp, int flags)
 				snprintf(sp->tty_str, sizeof(sp->tty_str), "%u,%u",
 					(tty >> 8) & 0xfff, /* major */
 					(tty & 0xff) | ((tty >> 12) & 0xfff00));
+#else
+/* This costs ~100 bytes more but makes top faster by 20%
+ * If you run 10000 processes, this may be important for you */
+			cp += 2;
+			sp->state[0] = *cp++; cp++;
+			sp->ppid = fast_strtoul_10(cp, &cp);
+			sp->pgid = fast_strtoul_10(cp, &cp);
+			sp->sid = fast_strtoul_10(cp, &cp);
+			sp->tty_str[0] = '?';
+			/* sp->tty_str[1] = '\0'; - done by memset */
+			tty = fast_strtoul_10(cp, &cp);
+			if (tty) /* tty field of "0" means "no tty" */
+				snprintf(sp->tty_str, sizeof(sp->tty_str), "%u,%u",
+					(tty >> 8) & 0xfff, /* major */
+					(tty & 0xff) | ((tty >> 12) & 0xfff00));
+			cp = skip_fields(cp, 6); /* tpgid, flags, min_flt, cmin_flt, maj_flt, cmaj_flt */
+			sp->utime = fast_strtoul_10(cp, &cp);
+			sp->stime = fast_strtoul_10(cp, &cp);
+			cp = skip_fields(cp, 3); /* cutime, cstime, priority */
+			tasknice = fast_strtoul_10(cp, &cp);
+			cp = skip_fields(cp, 3); /* timeout, it_real_value, start_time */
+			sp->vsz = fast_strtoul_10(cp, &cp) >> 10; /* vsize is in bytes and we want kb */
+			sp->rss = fast_strtoul_10(cp, &cp) >> 10;
+#endif
+
 			if (sp->vsz == 0 && sp->state[0] != 'Z')
 				sp->state[1] = 'W';
 			else
@@ -215,8 +268,6 @@ procps_status_t* procps_scan(procps_status_t* sp, int flags)
 			else
 				sp->state[2] = ' ';
 
-			sp->vsz = vsz >> 10; /* vsize is in bytes and we want kb */
-			sp->rss = rss >> 10;
 		}
 
 		if (flags & PSSCAN_CMD) {
