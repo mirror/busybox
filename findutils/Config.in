@@ -164,6 +164,13 @@ config FEATURE_FIND_REGEX
 	help
 	  The -regex option matches whole pathname against regular expression.
 
+config FEATURE_FIND_CONTEXT
+	bool "Enable (-context) option for matching security context"
+	default n
+	depends on FIND && SELINUX
+	help
+	  Support the 'find -context' option for matching security context.
+
 config GREP
 	bool "grep"
 	default n

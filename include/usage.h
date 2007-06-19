@@ -981,6 +981,8 @@
 	USE_FEATURE_FIND_PRINT0( \
      "\n	-print0		Delimit output with null characters rather than" \
      "\n			newlines") \
+	USE_FEATURE_FIND_CONTEXT ( \
+     "\n	-context	File has specified security context") \
 	USE_FEATURE_FIND_EXEC( \
      "\n	-exec CMD ARG ;	Execute CMD with all instances of {} replaced by the" \
      "\n			matching files") \
