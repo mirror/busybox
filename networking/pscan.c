@@ -35,13 +35,13 @@ int pscan_main(int argc, char **argv)
 {
 	const char *opt_max_port = "1024";      /* -P: default max port */
 	const char *opt_min_port = "1";         /* -p: default min port */
-	const char *opt_timeout = "5000";       /* -t: default timeout */
+	const char *opt_timeout = "5000";       /* -t: default timeout in msec */
 	/* We estimate rtt and wait rtt*4 before concluding that port is 
 	 * totally blocked. min rtt of 5 ms may be too low if you are
 	 * scanning an Internet host behind saturated/traffic shaped link.
 	 * Rule of thumb: with min_rtt of N msec, scanning 1000 ports
 	 * will take N seconds at absolute minimum */
-	const char *opt_min_rtt = "5";          /* -T: default min rtt */
+	const char *opt_min_rtt = "5";          /* -T: default min rtt in msec */
 	len_and_sockaddr *lsap;
 	int s;
 	unsigned port, max_port, nports;
@@ -57,10 +57,8 @@ int pscan_main(int argc, char **argv)
 	getopt32(argc, argv, "p:P:t:T:", &opt_min_port, &opt_max_port, &opt_timeout, &opt_min_rtt);
 	argv += optind;
 	max_port = xatou_range(opt_max_port, 1, 65535);
-	port = xatou_range(opt_min_port, 1, 65535);
+	port = xatou_range(opt_min_port, 1, max_port);
 	nports = max_port - port + 1;
-	if ((int)nports <= 0)
-		bb_show_usage();
 	rtt_4 = timeout = xatou_range(opt_timeout, 1, INT_MAX/1000 / 4) * 1000;
 	min_rtt = xatou_range(opt_min_rtt, 1, INT_MAX/1000 / 4) * 1000;
 
