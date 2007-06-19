@@ -33,7 +33,7 @@ int bb_echo(char **argv)
 		eflag = '\\',
 		nflag = 1,  /* 1 -- print '\n' */
 	};
-	arg = ++argv;
+	arg = *++argv;
 	if (!arg)
 		goto newline_ret;
 #else
