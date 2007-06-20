@@ -26,6 +26,20 @@ void ip_parse_common_args(int *argcp, char ***argvp)
 {
 	int argc = *argcp;
 	char **argv = *argvp;
+	static const char * const ip_common_commands[] =
+		{"-family", "inet", "inet6", "link",
+		 "-4", "-6", "-0", "-oneline", 0};
+	enum {
+		ARG_family,
+		ARG_inet,
+		ARG_inet6,
+		ARG_link,
+		ARG_IPv4,
+		ARG_IPv6,
+		ARG_packet,
+		ARG_oneline
+	};
+	smalluint arg;
 
 	while (argc > 1) {
 		char *opt = argv[1];
@@ -35,33 +49,32 @@ void ip_parse_common_args(int *argcp, char ***argvp)
 			argv++;
 			break;
 		}
-
 		if (opt[0] != '-')
 			break;
-
 		if (opt[1] == '-')
 			opt++;
-
-		if (matches(opt, "-family") == 0) {
+		arg = index_in_str_array(ip_common_commands, opt) + 1;
+		if (arg == ARG_family) {
 			argc--;
 			argv++;
 			if (!argv[1])
 				bb_show_usage();
-			if (strcmp(argv[1], "inet") == 0)
+			arg = index_in_str_array(ip_common_commands, argv[1]) + 1;
+			if (arg == ARG_inet)
 				preferred_family = AF_INET;
-			else if (strcmp(argv[1], "inet6") == 0)
+			else if (arg == ARG_inet6)
 				preferred_family = AF_INET6;
-			else if (strcmp(argv[1], "link") == 0)
+			else if (arg == ARG_link)
 				preferred_family = AF_PACKET;
 			else
 				invarg(argv[1], "protocol family");
-		} else if (strcmp(opt, "-4") == 0) {
+		} else if (arg == ARG_IPv4) {
 			preferred_family = AF_INET;
-		} else if (strcmp(opt, "-6") == 0) {
+		} else if (arg == ARG_IPv6) {
 			preferred_family = AF_INET6;
-		} else if (strcmp(opt, "-0") == 0) {
+		} else if (arg == ARG_packet) {
 			preferred_family = AF_PACKET;
-		} else if (matches(opt, "-oneline") == 0) {
+		} else if (arg == ARG_oneline) {
 			++oneline;
 		} else {
 			bb_show_usage();
