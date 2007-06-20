@@ -183,11 +183,6 @@ CONFIG_SHELL := $(shell if [ -x "$$BASH" ]; then echo $$BASH; \
 	  else if [ -x /bin/bash ]; then echo /bin/bash; \
 	  else echo sh; fi ; fi)
 
-HOSTCC  	= gcc
-HOSTCXX  	= g++
-HOSTCFLAGS	= -Wall -Wstrict-prototypes -O2 -fomit-frame-pointer
-HOSTCXXFLAGS	= -O2
-
 # 	Decide whether to build built-in, modular, or both.
 #	Normally, just do built-in.
 
@@ -262,8 +257,15 @@ export quiet Q KBUILD_VERBOSE
 # Look for make include files relative to root of kernel src
 MAKEFLAGS += --include-dir=$(srctree)
 
+HOSTCC  	= gcc
+HOSTCXX  	= g++
+HOSTCFLAGS	:=
+HOSTCXXFLAGS	:=
 # We need some generic definitions
 include $(srctree)/scripts/Kbuild.include
+
+HOSTCFLAGS	+= $(call hostcc-option,-Wall -Wstrict-prototypes -O2 -fomit-frame-pointer,)
+HOSTCXXFLAGS	+= -O2
 
 # For maximum performance (+ possibly random breakage, uncomment
 # the following)
