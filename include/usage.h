@@ -2991,6 +2991,20 @@ USE_FEATURE_RUN_PARTS_FANCY("\n	-l	Prints names of all matching files even when 
        "	-s	Don't output anything, status code shows success\n" \
        "	-w	Warn about improperly formatted SHA1 checksum lines")
 
+#define slattach_trivial_usage \
+       "[-cehmLF] [-s speed] [-p protocol] DEVICEs"
+#define slattach_full_usage \
+       "Attach network interface(s) to serial line(s)\n" \
+     "\nOptions:" \
+     "\n	-p	Set protocol (slip, cslip, slip6, clisp6 or adaptive)" \
+     "\n	-s	Set line speed" \
+     "\n	-e	Exit after initializing device" \
+     "\n	-h	Exit when the carrier is lost" \
+     "\n	-c	Execute a command when the line is hung up" \
+     "\n	-m	Do NOT initialize the line in raw 8 bits mode" \
+     "\n	-L	Enable 3-wire operation" \
+     "\n	-F	Disable RTS/CTS flow control" \
+ 
 #define sleep_trivial_usage \
 	USE_FEATURE_FANCY_SLEEP("[") "N" USE_FEATURE_FANCY_SLEEP("]...")
 #define sleep_full_usage \
