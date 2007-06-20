@@ -604,7 +604,6 @@ static int ipaddr_modify(int cmd, int argc, char **argv)
 		"peer", "remote", "broadcast", "brd",
 		"anycast", "scope", "dev", "label", "local", 0
 	};
-
 	struct rtnl_handle rth;
 	struct {
 		struct nlmsghdr		n;
@@ -619,7 +618,7 @@ static int ipaddr_modify(int cmd, int argc, char **argv)
 	int peer_len = 0;
 	int brd_len = 0;
 	int any_len = 0;
-	int scoped = 0;
+	bool scoped = 0;
 
 	memset(&req, 0, sizeof(req));
 
@@ -724,7 +723,7 @@ static int ipaddr_modify(int cmd, int argc, char **argv)
 		bb_error_msg(bb_msg_requires_arg,"\"dev\"");
 		return -1;
 	}
-	if (l && matches(d, l) != 0) {
+	if (l && strncmp(d, l, strlen(d)) != 0) {
 		bb_error_msg_and_die("\"dev\" (%s) must match \"label\" (%s)", d, l);
 	}
 
@@ -775,22 +774,21 @@ int do_ipaddr(int argc, char **argv)
 		"add", "delete", "list", "show", "lst", "flush", 0
 	};
 
-	int command_num = 2;
+	int command_num = 2; /* default command is list */
 
 	if (*argv) {
 		command_num = index_in_substr_array(commands, *argv);
 	}
-	switch (command_num) {
-		case 0: /* add */
-			return ipaddr_modify(RTM_NEWADDR, argc-1, argv+1);
-		case 1: /* delete */
-			return ipaddr_modify(RTM_DELADDR, argc-1, argv+1);
-		case 2: /* list */
-		case 3: /* show */
-		case 4: /* lst */
-			return ipaddr_list_or_flush(argc-1, argv+1, 0);
-		case 5: /* flush */
-			return ipaddr_list_or_flush(argc-1, argv+1, 1);
-	}
-	bb_error_msg_and_die("unknown command %s", *argv);
+	if (command_num < 0 || command_num > 5)
+		bb_error_msg_and_die("unknown command %s", *argv);
+	--argc;
+	++argv;
+	if (command_num == 0) /* add */
+		return ipaddr_modify(RTM_NEWADDR, argc, argv);
+	else if (command_num == 1) /* delete */
+		return ipaddr_modify(RTM_DELADDR, argc, argv);
+	else if (command_num == 5) /* flush */
+		return ipaddr_list_or_flush(argc, argv, 1);
+	else /* 2 == list, 3 == show, 4 == lst */
+		return ipaddr_list_or_flush(argc, argv, 0);
 }

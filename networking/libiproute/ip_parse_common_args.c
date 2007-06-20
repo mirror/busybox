@@ -30,7 +30,7 @@ void ip_parse_common_args(int *argcp, char ***argvp)
 		{"-family", "inet", "inet6", "link",
 		 "-4", "-6", "-0", "-oneline", 0};
 	enum {
-		ARG_family,
+		ARG_family = 1,
 		ARG_inet,
 		ARG_inet6,
 		ARG_link,

@@ -184,17 +184,24 @@ static int iprule_list(int argc, char **argv)
 	return 0;
 }
 
-
 /* Return value becomes exitcode. It's okay to not return at all */
 static int iprule_modify(int cmd, int argc, char **argv)
 {
-	int table_ok = 0;
+	bool table_ok = 0;
 	struct rtnl_handle rth;
 	struct {
 		struct nlmsghdr	n;
 		struct rtmsg	r;
 		char		buf[1024];
 	} req;
+	static const char * const keywords[] =
+	{ "from", "to", "preference", "order", "priority", "tos", "fwmark",
+	"realms", "table", "lookup", "dev", "iif", "nat", "map-to", "type",
+	"help", NULL};
+	enum { ARG_from = 1, ARG_to, ARG_preference, ARG_order, ARG_priority,
+	ARG_tos, ARG_fwmark, ARG_realms, ARG_table, ARG_lookup, ARG_dev,
+	ARG_iif, ARG_nat, ARG_map_to, ARG_type, ARG_help };
+	smalluint key;
 
 	memset(&req, 0, sizeof(req));
 
@@ -213,72 +220,74 @@ static int iprule_modify(int cmd, int argc, char **argv)
 	}
 
 	while (argc > 0) {
-		if (strcmp(*argv, "from") == 0) {
+		key = index_in_substr_array(keywords, *argv) + 1;
+		if (key == 0) /* no match found in keywords array, bail out. */
+			bb_error_msg_and_die(bb_msg_invalid_arg, *argv, applet_name);
+		if (key == ARG_from) {
 			inet_prefix dst;
 			NEXT_ARG();
 			get_prefix(&dst, *argv, req.r.rtm_family);
 			req.r.rtm_src_len = dst.bitlen;
 			addattr_l(&req.n, sizeof(req), RTA_SRC, &dst.data, dst.bytelen);
-		} else if (strcmp(*argv, "to") == 0) {
+		} else if (key == ARG_to) {
 			inet_prefix dst;
 			NEXT_ARG();
 			get_prefix(&dst, *argv, req.r.rtm_family);
 			req.r.rtm_dst_len = dst.bitlen;
 			addattr_l(&req.n, sizeof(req), RTA_DST, &dst.data, dst.bytelen);
-		} else if (matches(*argv, "preference") == 0 ||
-			   matches(*argv, "order") == 0 ||
-			   matches(*argv, "priority") == 0) {
+		} else if (key == ARG_preference ||
+			   key == ARG_order ||
+			   key == ARG_priority) {
 			uint32_t pref;
 			NEXT_ARG();
 			if (get_u32(&pref, *argv, 0))
-				invarg("preference value", *argv);
+				invarg(*argv, "preference");
 			addattr32(&req.n, sizeof(req), RTA_PRIORITY, pref);
-		} else if (strcmp(*argv, "tos") == 0) {
+		} else if (key == ARG_tos) {
 			uint32_t tos;
 			NEXT_ARG();
 			if (rtnl_dsfield_a2n(&tos, *argv))
-				invarg("TOS value", *argv);
+				invarg(*argv, "TOS");
 			req.r.rtm_tos = tos;
-		} else if (strcmp(*argv, "fwmark") == 0) {
+		} else if (key == ARG_fwmark) {
 			uint32_t fwmark;
 			NEXT_ARG();
 			if (get_u32(&fwmark, *argv, 0))
-				invarg("fwmark value", *argv);
+				invarg(*argv, "fwmark");
 			addattr32(&req.n, sizeof(req), RTA_PROTOINFO, fwmark);
-		} else if (matches(*argv, "realms") == 0) {
+		} else if (key == ARG_realms) {
 			uint32_t realm;
 			NEXT_ARG();
 			if (get_rt_realms(&realm, *argv))
-				invarg("realms", *argv);
+				invarg(*argv, "realms");
 			addattr32(&req.n, sizeof(req), RTA_FLOW, realm);
-		} else if (matches(*argv, "table") == 0 ||
-			   strcmp(*argv, "lookup") == 0) {
+		} else if (key == ARG_table ||
+			   key == ARG_lookup) {
 			uint32_t tid;
 			NEXT_ARG();
 			if (rtnl_rttable_a2n(&tid, *argv))
-				invarg("table ID", *argv);
+				invarg(*argv, "table ID");
 			req.r.rtm_table = tid;
 			table_ok = 1;
-		} else if (strcmp(*argv, "dev") == 0 ||
-			   strcmp(*argv, "iif") == 0) {
+		} else if (key == ARG_dev ||
+			   key == ARG_iif) {
 			NEXT_ARG();
 			addattr_l(&req.n, sizeof(req), RTA_IIF, *argv, strlen(*argv)+1);
-		} else if (strcmp(*argv, "nat") == 0 ||
-			   matches(*argv, "map-to") == 0) {
+		} else if (key == ARG_nat ||
+			   key == ARG_map_to) {
 			NEXT_ARG();
 			addattr32(&req.n, sizeof(req), RTA_GATEWAY, get_addr32(*argv));
 			req.r.rtm_type = RTN_NAT;
 		} else {
 			int type;
 
-			if (strcmp(*argv, "type") == 0) {
+			if (key == ARG_type) {
 				NEXT_ARG();
 			}
-			if (matches(*argv, "help") == 0)
+			if (key == ARG_help)
 				bb_show_usage();
 			if (rtnl_rtntype_a2n(&type, *argv))
-// bogus-looking error message "invalid argument 'cannot parse rule type' to '<*argv>'"
-				invarg("cannot parse rule type", *argv);
+				invarg(*argv, "type");
 			req.r.rtm_type = type;
 		}
 		argc--;
