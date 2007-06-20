@@ -25,7 +25,8 @@ void data_extract_all(archive_handle_t *archive_handle)
 		 && (unlink(file_header->name) == -1)
 		 && (errno != ENOENT)
 		) {
-			bb_perror_msg_and_die("cannot remove old file");
+			bb_perror_msg_and_die("cannot remove old file %s",
+					file_header->name);
 		}
 	}
 	else if (archive_handle->flags & ARCHIVE_EXTRACT_NEWER) {
@@ -52,13 +53,16 @@ void data_extract_all(archive_handle_t *archive_handle)
 
 	/* Handle hard links separately
 	 * We identified hard links as regular files of size 0 with a symlink */
-	if (S_ISREG(file_header->mode) && (file_header->link_name)
+	if (S_ISREG(file_header->mode) && (file_header->link_target)
 	 && (file_header->size == 0)
 	) {
 		/* hard link */
-		res = link(file_header->link_name, file_header->name);
+		res = link(file_header->link_target, file_header->name);
 		if ((res == -1) && !(archive_handle->flags & ARCHIVE_EXTRACT_QUIET)) {
-			bb_perror_msg("cannot create hard link");
+			bb_perror_msg("cannot create %slink "
+					"from %s to %s", "hard",
+					file_header->name,
+					file_header->link_target);
 		}
 	} else {
 		/* Create the filesystem entry */
@@ -73,22 +77,22 @@ void data_extract_all(archive_handle_t *archive_handle)
 		}
 		case S_IFDIR:
 			res = mkdir(file_header->name, file_header->mode);
-			if ((errno != EISDIR) && (res == -1)
+			if ((res == -1) && (errno != EISDIR)
 			 && !(archive_handle->flags & ARCHIVE_EXTRACT_QUIET)
 			) {
-				bb_perror_msg("extract_archive: %s", file_header->name);
+				bb_perror_msg("cannot make dir %s", file_header->name);
 			}
 			break;
 		case S_IFLNK:
 			/* Symlink */
-			res = symlink(file_header->link_name, file_header->name);
+			res = symlink(file_header->link_target, file_header->name);
 			if ((res == -1)
 			 && !(archive_handle->flags & ARCHIVE_EXTRACT_QUIET)
 			) {
-				bb_perror_msg("cannot create symlink "
-					"from %s to '%s'",
+				bb_perror_msg("cannot create %slink "
+					"from %s to %s", "sym",
 					file_header->name,
-					file_header->link_name);
+					file_header->link_target);
 			}
 			break;
 		case S_IFSOCK:
@@ -110,18 +114,18 @@ void data_extract_all(archive_handle_t *archive_handle)
 	if (!(archive_handle->flags & ARCHIVE_NOPRESERVE_OWN)) {
 		lchown(file_header->name, file_header->uid, file_header->gid);
 	}
-	/* uclibc has no lchmod, glibc is even stranger -
-	 * it has lchmod which seems to do nothing!
-	 * so we use chmod... */
-	if (!(archive_handle->flags & ARCHIVE_NOPRESERVE_PERM)
-	 && (file_header->mode & S_IFMT) != S_IFLNK
-	) {
-		chmod(file_header->name, file_header->mode);
-	}
-
-	if (archive_handle->flags & ARCHIVE_PRESERVE_DATE) {
-		struct utimbuf t;
-		t.actime = t.modtime = file_header->mtime;
-		utime(file_header->name, &t);
+	if ((file_header->mode & S_IFMT) != S_IFLNK) {
+		/* uclibc has no lchmod, glibc is even stranger -
+		 * it has lchmod which seems to do nothing!
+		 * so we use chmod... */
+		if (!(archive_handle->flags & ARCHIVE_NOPRESERVE_PERM)) {
+			chmod(file_header->name, file_header->mode);
+		}
+		/* same for utime */
+		if (archive_handle->flags & ARCHIVE_PRESERVE_DATE) {
+			struct utimbuf t;
+			t.actime = t.modtime = file_header->mtime;
+			utime(file_header->name, &t);
+		}
 	}
 }

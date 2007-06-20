@@ -197,16 +197,16 @@ int copy_file(const char *source, const char *dest, int flags)
 		int src_fd;
 		int dst_fd;
 		if (ENABLE_FEATURE_PRESERVE_HARDLINKS) {
-			char *link_name;
+			char *link_target;
 
 			if (!FLAGS_DEREF) {
-				link_name = is_in_ino_dev_hashtable(&source_stat);
-				if (link_name) {
-					if (link(link_name, dest) < 0) {
+				link_target = is_in_ino_dev_hashtable(&source_stat);
+				if (link_target) {
+					if (link(link_target, dest) < 0) {
 						ovr = ask_and_unlink(dest, flags);
 						if (ovr <= 0)
 							return ovr;
-						if (link(link_name, dest) < 0) {
+						if (link(link_target, dest) < 0) {
 							bb_perror_msg("cannot create link '%s'", dest);
 							return -1;
 						}

@@ -141,13 +141,13 @@ char get_header_tar(archive_handle_t *archive_handle)
 		unsigned major = GET_OCTAL(tar.devmajor);
 		file_header->device = makedev(major, minor);
 	}
-	file_header->link_name = NULL;
+	file_header->link_target = NULL;
 	if (!linkname && parse_names && tar.linkname[0]) {
 		/* we trash magic[0] here, it's ok */
 		tar.linkname[sizeof(tar.linkname)] = '\0';
-		file_header->link_name = xstrdup(tar.linkname);
-		/* FIXME: what if we have non-link object with link_name? */
-		/* Will link_name be free()ed? */
+		file_header->link_target = xstrdup(tar.linkname);
+		/* FIXME: what if we have non-link object with link_target? */
+		/* Will link_target be free()ed? */
 	}
 	file_header->mtime = GET_OCTAL(tar.mtime);
 	file_header->size = GET_OCTAL(tar.size);
@@ -248,7 +248,7 @@ char get_header_tar(archive_handle_t *archive_handle)
 		longname = NULL;
 	}
 	if (linkname) {
-		file_header->link_name = linkname;
+		file_header->link_target = linkname;
 		linkname = NULL;
 	}
 #endif
@@ -277,7 +277,7 @@ char get_header_tar(archive_handle_t *archive_handle)
 	}
 	archive_handle->offset += file_header->size;
 
-	free(file_header->link_name);
+	free(file_header->link_target);
 	/* Do not free(file_header->name)! */
 
 	return EXIT_SUCCESS;

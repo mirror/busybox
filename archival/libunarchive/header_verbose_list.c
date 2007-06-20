@@ -23,8 +23,8 @@ void header_verbose_list(const file_header_t *file_header)
 		mtime->tm_sec,
 		file_header->name);
 
-	if (file_header->link_name) {
-		printf(" -> %s", file_header->link_name);
+	if (file_header->link_target) {
+		printf(" -> %s", file_header->link_target);
 	}
 	/* putchar isnt used anywhere else i dont think */
 	puts("");
