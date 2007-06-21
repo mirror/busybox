@@ -10985,7 +10985,7 @@ echocmd(int argc, char **argv)
 static int
 testcmd(int argc, char **argv)
 {
-	return bb_test(argc, argv);
+	return test_main(argc, argv);
 }
 #endif
 

@@ -155,7 +155,7 @@ typedef int arith_t;
 #endif
 
 /* Cannot eliminate these static data (do the G trick)
- * because of bb_test usage from other applets */
+ * because of test_main usage from other applets */
 static char **t_wp;
 static struct t_op const *t_wp_op;
 static gid_t *group_array;
@@ -179,7 +179,7 @@ static int test_eaccess(char *path, int mode);
 static int is_a_group_member(gid_t gid);
 static void initialize_group_array(void);
 
-int bb_test(int argc, char **argv)
+int test_main(int argc, char **argv)
 {
 	int res;
 	char *arg0;
@@ -188,21 +188,19 @@ int bb_test(int argc, char **argv)
 	arg0 = strrchr(argv[0], '/');
 	if (!arg0++) arg0 = argv[0];
 	if (arg0[0] == '[') {
+		--argc;
 		if (!arg0[1]) { /* "[" ? */
-			--argc;
 			if (NOT_LONE_CHAR(argv[argc], ']')) {
 				bb_error_msg("missing ]");
 				return 2;
 			}
-			argv[argc] = NULL;
-		} else if (LONE_CHAR(arg0+1, '[') == 0) { /* "[[" ? */
-			--argc;
+		} else { /* assuming "[[" */
 			if (strcmp(argv[argc], "]]") != 0) {
 				bb_error_msg("missing ]]");
 				return 2;
 			}
-			argv[argc] = NULL;
 		}
+		argv[argc] = NULL;
 	}
 
 	res = setjmp(leaving);
@@ -571,7 +569,7 @@ static void initialize_group_array(void)
 	if (ngroups > 0) {
 		/* FIXME: ash tries so hard to not die on OOM,
 		 * and we spoil it with just one xrealloc here */
-		/* We realloc, because bb_test can be entered repeatedly by shell.
+		/* We realloc, because test_main can be entered repeatedly by shell.
 		 * Testcase (ash): 'while true; do test -x some_file; done'
 		 * and watch top. (some_file must have owner != you) */
 		group_array = xrealloc(group_array, ngroups * sizeof(gid_t));
@@ -600,13 +598,4 @@ static int is_a_group_member(gid_t gid)
 			return 1;
 
 	return 0;
-}
-
-
-/* applet entry point */
-
-int test_main(int argc, char **argv);
-int test_main(int argc, char **argv)
-{
-	return bb_test(argc, argv);
 }
