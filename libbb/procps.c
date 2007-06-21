@@ -226,7 +226,7 @@ procps_status_t* procps_scan(procps_status_t* sp, int flags)
 			sp->vsz = vsz >> 10; /* vsize is in bytes and we want kb */
 			sp->rss = rss >> 10;
 			sp->tty_major = (tty >> 8) & 0xfff;
-			sp->tty_minor = (tty & 0xff) | ((tty >> 12) & 0xfff00));
+			sp->tty_minor = (tty & 0xff) | ((tty >> 12) & 0xfff00);
 #else
 /* This costs ~100 bytes more but makes top faster by 20%
  * If you run 10000 processes, this may be important for you */
