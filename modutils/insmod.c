@@ -3656,16 +3656,18 @@ static int obj_gpl_license(struct obj_file *f, const char **license)
 static void set_tainted(struct obj_file *f, int fd, char *m_name,
 		int kernel_has_tainted, int taint, const char *text1, const char *text2)
 {
+	static smallint printed_info;
+
 	char buf[80];
 	int oldval;
-	static int first = 1;
+
 	if (fd < 0 && !kernel_has_tainted)
 		return;		/* New modutils on old kernel */
 	printf("Warning: loading %s will taint the kernel: %s%s\n",
 			m_name, text1, text2);
-	if (first) {
+	if (!printed_info) {
 		printf("  See %s for information about tainted modules\n", TAINT_URL);
-		first = 0;
+		printed_info = 1;
 	}
 	if (fd >= 0) {
 		read(fd, buf, sizeof(buf)-1);

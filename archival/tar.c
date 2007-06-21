@@ -417,11 +417,11 @@ static int writeFileToTarball(const char *fileName, struct stat *statbuf,
 
 	header_name = fileName;
 	while (header_name[0] == '/') {
-		static int alreadyWarned = FALSE;
+		static smallint warned;
 
-		if (alreadyWarned == FALSE) {
+		if (!warned) {
 			bb_error_msg("removing leading '/' from member names");
-			alreadyWarned = TRUE;
+			warned = 1;
 		}
 		header_name++;
 	}

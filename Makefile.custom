@@ -67,6 +67,7 @@ sizes: busybox_unstripped
 .PHONY: bloatcheck
 bloatcheck: busybox_old busybox_unstripped
 	@$(srctree)/scripts/bloat-o-meter busybox_old busybox_unstripped
+	@$(CROSS_COMPILE)size busybox_old busybox_unstripped
 
 .PHONY: baseline
 baseline: busybox_unstripped

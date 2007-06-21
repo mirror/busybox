@@ -317,7 +317,8 @@ static void do_skip(const char *fname, int statok)
 
 static int next(char **argv)
 {
-	static int done;
+	static smallint done;
+
 	int statok;
 
 	if (argv) {
@@ -332,10 +333,11 @@ static int next(char **argv)
 				++_argv;
 				continue;
 			}
-			statok = done = 1;
+			done = statok = 1;
 		} else {
-			if (done++)
+			if (done)
 				return 0;
+			done = 1;
 			statok = 0;
 		}
 		if (bb_dump_skip)
@@ -350,8 +352,9 @@ static int next(char **argv)
 
 static unsigned char *get(void)
 {
-	static int ateof = 1;
-	static unsigned char *curp=NULL, *savp; /*DBU:[dave@cray.com]initialize curp */
+	static smallint ateof = 1;
+	static unsigned char *curp = NULL, *savp; /*DBU:[dave@cray.com]initialize curp */
+
 	int n;
 	int need, nread;
 	unsigned char *tmpp;
@@ -399,7 +402,8 @@ static unsigned char *get(void)
 		if (bb_dump_length != -1) {
 			bb_dump_length -= n;
 		}
-		if (!(need -= n)) {
+		need -= n;
+		if (!need) {
 			if (bb_dump_vflag == ALL || bb_dump_vflag == FIRST
 				|| memcmp(curp, savp, bb_dump_blocksize)) {
 				if (bb_dump_vflag == DUP || bb_dump_vflag == FIRST) {

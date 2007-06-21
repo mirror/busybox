@@ -41,6 +41,8 @@ static int adjust_column(int column, char c)
 int fold_main(int argc, char **argv);
 int fold_main(int argc, char **argv)
 {
+	char *line_out = NULL;
+	int allocated_out = 0;
 	char *w_opt;
 	int width = 80;
 	int i;
@@ -75,8 +77,6 @@ int fold_main(int argc, char **argv)
 		int c;
 		int column = 0;		/* Screen column where next char will go. */
 		int offset_out = 0;	/* Index in `line_out' for next char. */
-		static char *line_out = NULL;
-		static int allocated_out = 0;
 
 		if (istream == NULL) {
 			errs |= EXIT_FAILURE;
@@ -95,8 +95,7 @@ int fold_main(int argc, char **argv)
 				column = offset_out = 0;
 				continue;
 			}
-
-rescan:
+ rescan:
 			column = adjust_column(column, c);
 
 			if (column > width) {
