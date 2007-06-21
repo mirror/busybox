@@ -467,7 +467,7 @@ static void split_escape_and_log(char *tmpbuf, int len)
 		while ((c = *p++)) {
 			if (c == '\n')
 				c = ' ';
-			if (!(c & ~0x1f)) {
+			if (!(c & ~0x1f) && c != '\t') {
 				*q++ = '^';
 				c += '@'; /* ^@, ^A, ^B... */
 			}
