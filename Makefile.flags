@@ -28,6 +28,9 @@ CFLAGS += $(call cc-option,-Wundef -Wstrict-prototypes,)
 
 ifeq ($(CONFIG_WERROR),y)
 CFLAGS += $(call cc-option,-Werror,)
+else
+# for development, warn a little bit about unused results..
+CPPFLAGS += -D_FORTIFY_SOURCE=2
 endif
 # gcc 3.x emits bogus "old style proto" warning on find.c:alloc_action()
 CFLAGS += $(call cc-ifversion, -ge, 0400, -Wold-style-definition)
