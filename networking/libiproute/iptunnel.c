@@ -137,6 +137,23 @@ static void parse_args(int argc, char **argv, int cmd, struct ip_tunnel_parm *p)
 {
 	int count = 0;
 	char medium[IFNAMSIZ];
+	static const char * const keywords[] = {
+		"mode", "ipip", "ip/ip", "gre", "gre/ip", "sit", "ipv6/ip",
+		"key", "ikey", "okey", "seq", "iseq", "oseq",
+		"csum", "icsum", "ocsum", "nopmtudisc", "pmtudisc",
+		"remote", "any", "local", "dev",
+		"ttl", "inherit", "tos", "dsfield",
+		"name", NULL
+	};
+	enum {
+		ARG_mode, ARG_ipip, ARG_ip_ip, ARG_gre, ARG_gre_ip, ARG_sit, ARG_ip6_ip,
+		ARG_key, ARG_ikey, ARG_okey, ARG_seq, ARG_iseq, ARG_oseq,
+		ARG_csum, ARG_icsum, ARG_ocsum, ARG_nopmtudisc, ARG_pmtudisc,
+		ARG_remote, ARG_any, ARG_local, ARG_dev,
+		ARG_ttl, ARG_inherit, ARG_tos, ARG_dsfield,
+		ARG_name
+	};
+	int key;
 	memset(p, 0, sizeof(*p));
 	memset(&medium, 0, sizeof(medium));
 
@@ -148,22 +165,24 @@ static void parse_args(int argc, char **argv, int cmd, struct ip_tunnel_parm *p)
 	p->iph.frag_off = htons(IP_DF);
 
 	while (argc > 0) {
-		if (strcmp(*argv, "mode") == 0) {
+		key = index_in_str_array(keywords, *argv);
+		if (key == ARG_mode) {
 			NEXT_ARG();
-			if (strcmp(*argv, "ipip") == 0 ||
-			    strcmp(*argv, "ip/ip") == 0) {
+			key = index_in_str_array(keywords, *argv);
+			if (key == ARG_ipip ||
+			    key == ARG_ip_ip) {
 				if (p->iph.protocol && p->iph.protocol != IPPROTO_IPIP) {
 					bb_error_msg_and_die("you managed to ask for more than one tunnel mode");
 				}
 				p->iph.protocol = IPPROTO_IPIP;
-			} else if (strcmp(*argv, "gre") == 0 ||
-				   strcmp(*argv, "gre/ip") == 0) {
+			} else if (key == ARG_gre ||
+				   key == ARG_gre_ip) {
 				if (p->iph.protocol && p->iph.protocol != IPPROTO_GRE) {
 					bb_error_msg_and_die("you managed to ask for more than one tunnel mode");
 				}
 				p->iph.protocol = IPPROTO_GRE;
-			} else if (strcmp(*argv, "sit") == 0 ||
-				   strcmp(*argv, "ipv6/ip") == 0) {
+			} else if (key == ARG_sit ||
+				   key == ARG_ip6_ip) {
 				if (p->iph.protocol && p->iph.protocol != IPPROTO_IPV6) {
 					bb_error_msg_and_die("you managed to ask for more than one tunnel mode");
 				}
@@ -171,7 +190,7 @@ static void parse_args(int argc, char **argv, int cmd, struct ip_tunnel_parm *p)
 			} else {
 				bb_error_msg_and_die("cannot guess tunnel mode");
 			}
-		} else if (strcmp(*argv, "key") == 0) {
+		} else if (key == ARG_key) {
 			unsigned uval;
 			NEXT_ARG();
 			p->i_flags |= GRE_KEY;
@@ -184,7 +203,7 @@ static void parse_args(int argc, char **argv, int cmd, struct ip_tunnel_parm *p)
 				}
 				p->i_key = p->o_key = htonl(uval);
 			}
-		} else if (strcmp(*argv, "ikey") == 0) {
+		} else if (key == ARG_ikey) {
 			unsigned uval;
 			NEXT_ARG();
 			p->i_flags |= GRE_KEY;
@@ -196,7 +215,7 @@ static void parse_args(int argc, char **argv, int cmd, struct ip_tunnel_parm *p)
 				}
 				p->i_key = htonl(uval);
 			}
-		} else if (strcmp(*argv, "okey") == 0) {
+		} else if (key == ARG_okey) {
 			unsigned uval;
 			NEXT_ARG();
 			p->o_flags |= GRE_KEY;
@@ -208,57 +227,61 @@ static void parse_args(int argc, char **argv, int cmd, struct ip_tunnel_parm *p)
 				}
 				p->o_key = htonl(uval);
 			}
-		} else if (strcmp(*argv, "seq") == 0) {
+		} else if (key == ARG_seq) {
 			p->i_flags |= GRE_SEQ;
 			p->o_flags |= GRE_SEQ;
-		} else if (strcmp(*argv, "iseq") == 0) {
+		} else if (key == ARG_iseq) {
 			p->i_flags |= GRE_SEQ;
-		} else if (strcmp(*argv, "oseq") == 0) {
+		} else if (key == ARG_oseq) {
 			p->o_flags |= GRE_SEQ;
-		} else if (strcmp(*argv, "csum") == 0) {
+		} else if (key == ARG_csum) {
 			p->i_flags |= GRE_CSUM;
 			p->o_flags |= GRE_CSUM;
-		} else if (strcmp(*argv, "icsum") == 0) {
+		} else if (key == ARG_icsum) {
 			p->i_flags |= GRE_CSUM;
-		} else if (strcmp(*argv, "ocsum") == 0) {
+		} else if (key == ARG_ocsum) {
 			p->o_flags |= GRE_CSUM;
-		} else if (strcmp(*argv, "nopmtudisc") == 0) {
+		} else if (key == ARG_nopmtudisc) {
 			p->iph.frag_off = 0;
-		} else if (strcmp(*argv, "pmtudisc") == 0) {
+		} else if (key == ARG_pmtudisc) {
 			p->iph.frag_off = htons(IP_DF);
-		} else if (strcmp(*argv, "remote") == 0) {
+		} else if (key == ARG_remote) {
 			NEXT_ARG();
-			if (strcmp(*argv, "any"))
+			key = index_in_str_array(keywords, *argv);
+			if (key == ARG_any)
 				p->iph.daddr = get_addr32(*argv);
-		} else if (strcmp(*argv, "local") == 0) {
+		} else if (key == ARG_local) {
 			NEXT_ARG();
-			if (strcmp(*argv, "any"))
+			key = index_in_str_array(keywords, *argv);
+			if (key == ARG_any)
 				p->iph.saddr = get_addr32(*argv);
-		} else if (strcmp(*argv, "dev") == 0) {
+		} else if (key == ARG_dev) {
 			NEXT_ARG();
 			strncpy(medium, *argv, IFNAMSIZ-1);
-		} else if (strcmp(*argv, "ttl") == 0) {
+		} else if (key == ARG_ttl) {
 			unsigned uval;
 			NEXT_ARG();
-			if (strcmp(*argv, "inherit") != 0) {
+			key = index_in_str_array(keywords, *argv);
+			if (key != ARG_inherit) {
 				if (get_unsigned(&uval, *argv, 0))
 					invarg(*argv, "TTL");
 				if (uval > 255)
 					invarg(*argv, "TTL must be <=255");
 				p->iph.ttl = uval;
 			}
-		} else if (strcmp(*argv, "tos") == 0 ||
-			   matches(*argv, "dsfield") == 0) {
+		} else if (key == ARG_tos ||
+			   key == ARG_dsfield) {
 			uint32_t uval;
 			NEXT_ARG();
-			if (strcmp(*argv, "inherit") != 0) {
+			key = index_in_str_array(keywords, *argv);
+			if (key != ARG_inherit) {
 				if (rtnl_dsfield_a2n(&uval, *argv))
 					invarg(*argv, "TOS");
 				p->iph.tos = uval;
 			} else
 				p->iph.tos = 1;
 		} else {
-			if (strcmp(*argv, "name") == 0) {
+			if (key == ARG_name) {
 				NEXT_ARG();
 			}
 			if (p->name[0])
@@ -438,7 +461,7 @@ static void do_tunnels_list(struct ip_tunnel_parm *p)
 		ptr = strchr(buf, ':');
 		if (ptr == NULL ||
 		    (*ptr++ = 0, sscanf(buf, "%s", name) != 1)) {
-			bb_error_msg("wrong format of /proc/net/dev. Sorry");
+			bb_error_msg("wrong format of /proc/net/dev");
 			return;
 		}
 		if (sscanf(ptr, "%lu%lu%lu%lu%lu%lu%lu%*d%lu%lu%lu%lu%lu%lu%lu",
@@ -503,19 +526,29 @@ static int do_show(int argc, char **argv)
 /* Return value becomes exitcode. It's okay to not return at all */
 int do_iptunnel(int argc, char **argv)
 {
+	static const char * const keywords[] = {
+		"add", "change", "delete", "show", "list", "lst", NULL
+	};
+	enum {ARG_add = 1, ARG_change, ARG_del, ARG_show, ARG_list, ARG_lst};
+	smalluint key = 4; /* show */
 	if (argc > 0) {
-		if (matches(*argv, "add") == 0)
-			return do_add(SIOCADDTUNNEL, argc-1, argv+1);
-		if (matches(*argv, "change") == 0)
-			return do_add(SIOCCHGTUNNEL, argc-1, argv+1);
-		if (matches(*argv, "del") == 0)
-			return do_del(argc-1, argv+1);
-		if (matches(*argv, "show") == 0 ||
-		    matches(*argv, "lst") == 0 ||
-		    matches(*argv, "list") == 0)
-			return do_show(argc-1, argv+1);
+		key = index_in_substr_array(keywords, *argv) +1;
+		--argc;
+		++argv;
 	} else
 		return do_show(0, NULL);
+	if (key < ARG_add)
+ bail:
+		bb_error_msg_and_die(bb_msg_invalid_arg, *argv, applet_name);
 
-	bb_error_msg_and_die("command \"%s\" is unknown", *argv);
+	if (key == ARG_add)
+		return do_add(SIOCADDTUNNEL, argc, argv);
+	if (key == ARG_change)
+		return do_add(SIOCCHGTUNNEL, argc, argv);
+	if (key == ARG_del)
+		return do_del(argc, argv);
+	if (key == ARG_show || key == ARG_list || key == ARG_lst)
+		return do_show(argc, argv);
+	/* be gentle to gcc; avoid warning about non returning */
+	goto bail; /* never reached */
 }

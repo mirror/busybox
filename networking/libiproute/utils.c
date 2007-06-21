@@ -251,13 +251,6 @@ void duparg2(const char *key, const char *arg)
 	bb_error_msg_and_die("either \"%s\" is duplicate, or \"%s\" is garbage", key, arg);
 }
 
-int matches(const char *cmd, const char *pattern)
-{
-	int len = strlen(cmd);
-
-	return strncmp(pattern, cmd, len);
-}
-
 int inet_addr_match(inet_prefix * a, inet_prefix * b, int bits)
 {
 	uint32_t *a1 = a->data;
