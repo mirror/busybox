@@ -25,10 +25,7 @@ const char conf_def_filename[] = ".config";
 const char conf_defname[] = "scripts/defconfig";
 
 const char *conf_confnames[] = {
-	".config",
-	"/lib/modules/$UNAME_RELEASE/.config",
-	"/etc/busybox-config",
-	"/boot/config-$UNAME_RELEASE",
+	conf_def_filename,
 	conf_defname,
 	NULL,
 };
