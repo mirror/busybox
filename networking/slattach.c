@@ -1,3 +1,4 @@
+/* vi: set sw=4 ts=4: */
 /*
  * Stripped down version of net-tools for busybox.
  *
@@ -13,12 +14,13 @@
  */
 
 #include "libbb.h"
+#include "libiproute/utils.h" /* invarg() */
 
 /* Line discipline code table */
 static const char *const proto_names[] = {
-	"slip",		/* 0 */
+	"cslip"+1,	/* 0 */
 	"cslip",	/* 1 */
-	"slip6",	/* 2 */
+	"cslip6"+1,	/* 2 */
 	"cslip6",	/* 3 */
 	"adaptive",	/* 8 */
 	NULL
@@ -52,6 +54,18 @@ static void save_state(void)
 		bb_perror_msg_and_die("get discipline");
 }
 
+static int set_termios_state_and_warn(struct termios *state)
+{
+	int ret;
+
+	ret = tcsetattr(handle, TCSANOW, state);
+	if (ret < 0) {
+		bb_perror_msg("set state");
+		return 1; /* used as exitcode */
+	}
+	return 0;
+}
+
 /*
  * Restore state and line discipline for ALL managed ttys
  *
@@ -76,18 +90,13 @@ static void restore_state_and_exit(int exitcode)
 	memcpy(&state, &saved_state, sizeof(state));
 	cfsetispeed(&state, B0);
 	cfsetospeed(&state, B0);
-	if (tcsetattr(handle, TCSANOW, &state) < 0) {
-		bb_perror_msg("set state");
+	if (set_termios_state_and_warn(&state))
 		exitcode = 1;
-	}
-
 	sleep(1);
 
 	/* Restore line status */
-	if (tcsetattr(handle, TCSANOW, &saved_state) < 0) {
-		bb_perror_msg_and_die("set state");
-	}
-
+	if (set_termios_state_and_warn(&saved_state))
+		exit(EXIT_FAILURE);
 	if (ENABLE_FEATURE_CLEAN_UP)
 		close(handle);
 
@@ -102,11 +111,8 @@ static void set_state(struct termios *state, int encap)
 	int disc;
 
 	/* Set line status */
-	if (tcsetattr(handle, TCSANOW, state) < 0) {
-		bb_perror_msg("set state");
+	if (set_termios_state_and_warn(state))
 		goto bad;
-	}
-
 	/* Set line discliple (N_SLIP always) */
 	disc = N_SLIP;
 	if (ioctl(handle, TIOCSETD, &disc) < 0) {
@@ -145,7 +151,7 @@ int slattach_main(int argc, char **argv)
 		OPT_h_watch  = 1 << 4,
 		OPT_m_nonraw = 1 << 5,
 		OPT_L_local  = 1 << 6,
-		OPT_F_noflow = 1 << 7,
+		OPT_F_noflow = 1 << 7
 	};
 
 	INIT_G();
@@ -161,7 +167,7 @@ int slattach_main(int argc, char **argv)
 	encap = index_in_str_array(proto_names, proto);
 
 	if (encap < 0)
-		bb_error_msg_and_die("invalid protocol %s", proto);
+		invarg(proto, "protocol");
 	if (encap > 3)
 		encap = 8;
 
@@ -169,7 +175,7 @@ int slattach_main(int argc, char **argv)
 	if (opt & OPT_s_baud) {
 		baud_code = tty_value_to_baud(xatoi(baud_str));
 		if (baud_code < 0)
-			bb_error_msg_and_die("invalid baud rate");
+			invarg(baud_str, "baud rate");
 	}
 
 	/* Trap signals in order to restore tty states upon exit */
@@ -180,10 +186,10 @@ int slattach_main(int argc, char **argv)
 		signal(SIGTERM, sig_handler);
 	}
 
-	/* Open tty */ 
+	/* Open tty */
 	handle = open(*argv, O_RDWR | O_NDELAY);
 	if (handle < 0) {
-		char *buf = xasprintf("/dev/%s", *argv);
+		char *buf = concat_path_file("/dev", *argv);
 		handle = xopen(buf, O_RDWR | O_NDELAY);
 		/* maybe if (ENABLE_FEATURE_CLEAN_UP) ?? */
 		free(buf);
@@ -192,7 +198,7 @@ int slattach_main(int argc, char **argv)
 	/* Save current tty state */
 	save_state();
 
-	/* Confgure tty */
+	/* Configure tty */
 	memcpy(&state, &saved_state, sizeof(state));
 	if (!(opt & OPT_m_nonraw)) { /* raw not suppressed */
 		memset(&state.c_cc, 0, sizeof(state.c_cc));
@@ -217,7 +223,7 @@ int slattach_main(int argc, char **argv)
 		return 0;
 
 	/* If we're not requested to watch, just keep descriptor open
-	 * till we are killed */
+	 * until we are killed */
 	if (!(opt & OPT_h_watch))
 		while (1)
 			sleep(24*60*60);
