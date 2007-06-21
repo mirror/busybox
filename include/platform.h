@@ -56,12 +56,15 @@
 #  define ALWAYS_INLINE __attribute__ ((always_inline)) inline
 #  if !ENABLE_WERROR
 #   define ATTRIBUTE_DEPRECATED __attribute__ ((__deprecated__))
+#   define ATTRIBUTE_UNUSED_RESULT __attribute__ ((warn_unused_result))
 #  else
 #   define ATTRIBUTE_DEPRECATED /* n/a */
+#   define ATTRIBUTE_UNUSED_RESULT /* n/a */
 #  endif
 # else
 #  define ALWAYS_INLINE inline
 #  define ATTRIBUTE_DEPRECATED /* n/a */
+#  define ATTRIBUTE_UNUSED_RESULT /* n/a */
 # endif
 
 /* -fwhole-program makes all symbols local. The attribute externally_visible
