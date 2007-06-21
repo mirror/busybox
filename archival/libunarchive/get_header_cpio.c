@@ -16,8 +16,9 @@ typedef struct hardlinks_s {
 char get_header_cpio(archive_handle_t *archive_handle)
 {
 	static hardlinks_t *saved_hardlinks = NULL;
-	static unsigned short pending_hardlinks = 0;
+	static unsigned pending_hardlinks = 0;
 	static int inode;
+
 	file_header_t *file_header = archive_handle->file_header;
 	char cpio_header[110];
 	int namesize;

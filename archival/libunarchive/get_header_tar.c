@@ -36,7 +36,7 @@ static unsigned long long getOctal(char *str, int len)
 	*/
 	str[len] = '\0';
 	v = strtoull(str, &str, 8);
-	if (*str)
+	if (*str && (!ENABLE_FEATURE_TAR_OLDGNU_COMPATIBILITY || *str != ' '))
 		bb_error_msg_and_die("corrupted octal value in tar header");
 	return v;
 }
@@ -45,7 +45,7 @@ static unsigned long long getOctal(char *str, int len)
 void BUG_tar_header_size(void);
 char get_header_tar(archive_handle_t *archive_handle)
 {
-	static int end;
+	static smallint end;
 
 	file_header_t *file_header = archive_handle->file_header;
 	struct {
@@ -69,7 +69,10 @@ char get_header_tar(archive_handle_t *archive_handle)
 		char padding[12];   /* 500-512 */
 	} tar;
 	char *cp;
-	int i, sum_u, sum_s, sum;
+	int i, sum_u, sum;
+#if ENABLE_FEATURE_TAR_OLDSUN_COMPATIBILITY
+	int sum_s;
+#endif
 	int parse_names;
 
 	if (sizeof(tar) != 512)
@@ -115,20 +118,36 @@ char get_header_tar(archive_handle_t *archive_handle)
 	 * POSIX says that checksum is done on unsigned bytes, but
 	 * Sun and HP-UX gets it wrong... more details in
 	 * GNU tar source. */
-	sum_s = sum_u = ' ' * sizeof(tar.chksum);
+#if ENABLE_FEATURE_TAR_OLDSUN_COMPATIBILITY
+	sum_s = ' ' * sizeof(tar.chksum);
+#endif
+	sum_u = ' ' * sizeof(tar.chksum);
 	for (i = 0; i < 148 ; i++) {
 		sum_u += ((unsigned char*)&tar)[i];
+#if ENABLE_FEATURE_TAR_OLDSUN_COMPATIBILITY
 		sum_s += ((signed char*)&tar)[i];
+#endif
 	}
 	for (i = 156; i < 512 ; i++) {
 		sum_u += ((unsigned char*)&tar)[i];
+#if ENABLE_FEATURE_TAR_OLDSUN_COMPATIBILITY
 		sum_s += ((signed char*)&tar)[i];
+#endif
 	}
-	/* This field does not need special treatment (getOctal) */
-	sum = xstrtoul(tar.chksum, 8);
-	if (sum_u != sum && sum_s != sum) {
+#if ENABLE_FEATURE_TAR_OLDGNU_COMPATIBILITY
+	sum = strtoul(tar.chksum, &cp, 8);
+	if ((*cp && *cp != ' ')
+	 || (sum_u != sum USE_FEATURE_TAR_OLDSUN_COMPATIBILITY(&& sum_s != sum))
+	) {
 		bb_error_msg_and_die("invalid tar header checksum");
 	}
+#else
+	/* This field does not need special treatment (getOctal) */
+	sum = xstrtoul(tar.chksum, 8);
+	if (sum_u != sum USE_FEATURE_TAR_OLDSUN_COMPATIBILITY(&& sum_s != sum)) {
+		bb_error_msg_and_die("invalid tar header checksum");
+	}
+#endif
 
 	/* 0 is reserved for high perf file, treat as normal file */
 	if (!tar.typeflag) tar.typeflag = '0';
