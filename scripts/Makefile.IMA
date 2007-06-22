@@ -117,8 +117,16 @@ endif
 CPPFLAGS+= -D"KBUILD_STR(s)=\#s" #-Q
 
 HOSTCC = gcc
-CC = gcc
-STRIP = strip
+AS              = $(CROSS_COMPILE)as
+CC              = $(CROSS_COMPILE)gcc
+LD              = $(CC) -nostdlib
+CPP             = $(CC) -E
+AR              = $(CROSS_COMPILE)ar
+NM              = $(CROSS_COMPILE)nm
+STRIP           = $(CROSS_COMPILE)strip
+OBJCOPY         = $(CROSS_COMPILE)objcopy
+OBJDUMP         = $(CROSS_COMPILE)objdump
+
 WHOLE_PROGRAM:=$(call cc-option,-fwhole-program,)
 busybox: $(usage_stuff)
 	$(CC) $(CPPFLAGS) $(CFLAGS) $(EXTRA_CFLAGS) --combine $(WHOLE_PROGRAM) \
