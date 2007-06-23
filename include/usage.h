@@ -2544,7 +2544,7 @@
 	USE_FEATURE_PIDOF_SINGLE( \
        "\n	-s	Display only a single PID") \
 	USE_FEATURE_PIDOF_OMIT( \
-       "\n	-o	Omit given pid") \
+       "\n	-o PID	Omit given pid") \
 	USE_FEATURE_PIDOF_OMIT( \
        "\n		Use %PPID to omit the parent pid of pidof itself")
 #define pidof_example_usage \
