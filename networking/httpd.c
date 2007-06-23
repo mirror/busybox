@@ -841,6 +841,7 @@ static void decodeBase64(char *Data)
  * $Errors: None
  *
  ****************************************************************************/
+#if BB_MMU
 static int openServer(void)
 {
 	int fd;
@@ -850,6 +851,7 @@ static int openServer(void)
 	xlisten(fd, 9);
 	return fd;
 }
+#endif
 
 /****************************************************************************
  *
@@ -1821,6 +1823,7 @@ static void handleIncoming(void)
 	close(accepted_socket);
 }
 
+#if BB_MMU
 /****************************************************************************
  *
  > $Function: miniHttpd()
@@ -1900,6 +1903,7 @@ static int miniHttpd(int server)
 	} /* while (1) */
 	return 0;
 }
+#endif
 
 /* from inetd */
 static int miniHttpd_inetd(void)
@@ -2033,6 +2037,7 @@ int httpd_main(int argc, char **argv)
 
 	xchdir(home_httpd);
 	if (!(opt & OPT_INETD)) {
+#if BB_MMU
 		signal(SIGCHLD, SIG_IGN);
 		server_socket = openServer();
 #if ENABLE_FEATURE_HTTPD_SETUID
@@ -2045,6 +2050,9 @@ int httpd_main(int argc, char **argv)
 			}
 			xsetuid(ugid.uid);
 		}
+#endif
+#else	/* BB_MMU */
+		bb_error_msg_and_die("-i is required");
 #endif
 	}
 
@@ -2069,7 +2077,11 @@ int httpd_main(int argc, char **argv)
 	if (opt & OPT_INETD)
 		return miniHttpd_inetd();
 
+#if BB_MMU
 	if (!(opt & OPT_FOREGROUND))
 		bb_daemonize(0);     /* don't change current directory */
 	return miniHttpd(server_socket);
+#else
+	return 0;				/* not reached */
+#endif
 }
