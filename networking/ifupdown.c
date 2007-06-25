@@ -375,7 +375,7 @@ static const struct method_t methods6[] = {
 
 static const struct address_family_t addr_inet6 = {
 	"inet6",
-	sizeof(methods6) / sizeof(struct method_t),
+	ARRAY_SIZE(methods6),
 	methods6
 };
 #endif /* FEATURE_IFUPDOWN_IPV6 */
@@ -471,8 +471,8 @@ static const struct dhcp_client_t ext_dhcp_clients[] = {
 static int dhcp_up(struct interface_defn_t *ifd, execfn *exec)
 {
 #if ENABLE_FEATURE_IFUPDOWN_EXTERNAL_DHCP
-	int i, nclients = sizeof(ext_dhcp_clients) / sizeof(ext_dhcp_clients[0]);
-	for (i = 0; i < nclients; i++) {
+	int i ;
+	for (i = 0; i < ARRAY_SIZE(ext_dhcp_clients); i++) {
 		if (exists_execable(ext_dhcp_clients[i].name))
 			return execute(ext_dhcp_clients[i].startcmd, ifd, exec);
 	}
@@ -490,8 +490,8 @@ static int dhcp_up(struct interface_defn_t *ifd, execfn *exec)
 static int dhcp_down(struct interface_defn_t *ifd, execfn *exec)
 {
 #if ENABLE_FEATURE_IFUPDOWN_EXTERNAL_DHCP
-	int i, nclients = sizeof(ext_dhcp_clients) / sizeof(ext_dhcp_clients[0]);
-	for (i = 0; i < nclients; i++) {
+	int i ;
+	for (i = 0; i < ARRAY_SIZE(ext_dhcp_clients); i++) {
 		if (exists_execable(ext_dhcp_clients[i].name))
 			return execute(ext_dhcp_clients[i].stopcmd, ifd, exec);
 	}
@@ -551,7 +551,7 @@ static const struct method_t methods[] = {
 
 static const struct address_family_t addr_inet = {
 	"inet",
-	sizeof(methods) / sizeof(methods[0]),
+	ARRAY_SIZE(methods),
 	methods
 };
 

@@ -15,7 +15,6 @@
 #include "libbb.h"
 #include <sys/syslog.h>
 
-#define arysize(ary)    (sizeof(ary)/sizeof((ary)[0]))
 
 #ifndef CRONTABS
 #define CRONTABS        "/var/spool/cron/crontabs"
@@ -468,13 +467,13 @@ static void FixDayDow(CronLine * line)
 	int weekUsed = 0;
 	int daysUsed = 0;
 
-	for (i = 0; i < (int)(arysize(line->cl_Dow)); ++i) {
+	for (i = 0; i < (int)(ARRAY_SIZE(line->cl_Dow)); ++i) {
 		if (line->cl_Dow[i] == 0) {
 			weekUsed = 1;
 			break;
 		}
 	}
-	for (i = 0; i < (int)(arysize(line->cl_Days)); ++i) {
+	for (i = 0; i < (int)(ARRAY_SIZE(line->cl_Days)); ++i) {
 		if (line->cl_Days[i] == 0) {
 			daysUsed = 1;
 			break;

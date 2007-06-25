@@ -1071,4 +1071,7 @@ extern const char bb_default_login_shell[];
 #include <dmalloc.h>
 #endif
 
+
+#define ARRAY_SIZE(x) (sizeof(x) / sizeof((x)[0]))
+
 #endif /* __LIBBUSYBOX_H__ */

@@ -20,8 +20,6 @@
 # define USE_FEATURE_FDISK_BLKSIZE(a)
 #endif
 
-#define SIZE(a) (sizeof(a)/sizeof((a)[0]))
-
 #define DEFAULT_SECTOR_SIZE     512
 #define MAX_SECTOR_SIZE 2048
 #define SECTOR_SIZE     512     /* still used in osf/sgi/sun code */

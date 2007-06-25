@@ -54,7 +54,7 @@ static const struct speed_map speeds[] = {
 #endif
 };
 
-enum { NUM_SPEEDS = (sizeof(speeds) / sizeof(struct speed_map)) };
+enum { NUM_SPEEDS = ARRAY_SIZE(speeds) };
 
 unsigned int tty_baud_to_value(speed_t speed)
 {

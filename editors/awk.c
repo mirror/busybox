@@ -390,7 +390,7 @@ static const char vValues[] =
 /* hash size may grow to these values */
 #define FIRST_PRIME 61;
 static const unsigned PRIMES[] = { 251, 1021, 4093, 16381, 65521 };
-enum { NPRIMES = sizeof(PRIMES) / sizeof(PRIMES[0]) };
+
 
 
 /* Globals. Split in two parts so that first one is addressed
@@ -570,7 +570,7 @@ static void hash_rebuild(xhash *hash)
 	unsigned newsize, i, idx;
 	hash_item **newitems, *hi, *thi;
 
-	if (hash->nprime == NPRIMES)
+	if (hash->nprime == ARRAY_SIZE(PRIMES))
 		return;
 
 	newsize = PRIMES[hash->nprime++];

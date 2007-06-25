@@ -596,7 +596,7 @@ static const char * const signame[] = {
 	"Terminated",
 };
 
-#define	NSIGNAL (sizeof(signame)/sizeof(signame[0]))
+
 
 struct res {
 	const char *r_name;
@@ -2997,7 +2997,7 @@ static int waitfor(int lastpid, int canintr)
 		} else {
 			rv = WAITSIG(s);
 			if (rv != 0) {
-				if (rv < NSIGNAL) {
+				if (rv < ARRAY_SIZE(signame)) {
 					if (signame[rv] != NULL) {
 						if (pid != lastpid) {
 							prn(pid);
@@ -3016,7 +3016,7 @@ static int waitfor(int lastpid, int canintr)
 				}
 				if (WAITCORE(s))
 					prs(" - core dumped");
-				if (rv >= NSIGNAL || signame[rv])
+				if (rv >= ARRAY_SIZE(signame) || signame[rv])
 					prs("\n");
 				rv = -1;
 			} else

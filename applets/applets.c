@@ -47,7 +47,6 @@ static const char usage_messages[] = ""
 /* Define struct bb_applet applets[] */
 #include "applets.h"
 /* The -1 arises because of the {0,NULL,0,-1} entry. */
-const unsigned short NUM_APPLETS = sizeof(applets) / sizeof(applets[0]) - 1;
 
 const struct bb_applet *current_applet;
 const char *applet_name ATTRIBUTE_EXTERNALLY_VISIBLE;
@@ -488,7 +487,7 @@ static int applet_name_compare(const void *name, const void *vapplet)
 const struct bb_applet *find_applet_by_name(const char *name)
 {
 	/* Do a binary search to find the applet entry given the name. */
-	return bsearch(name, applets, NUM_APPLETS, sizeof(applets[0]),
+	return bsearch(name, applets, ARRAY_SIZE(applets)-1, sizeof(applets[0]),
 				applet_name_compare);
 }
 

@@ -101,7 +101,7 @@ static const char *const optletters_optnames[] = {
 #define optletters(n) optletters_optnames[(n)][0]
 #define optnames(n) (&optletters_optnames[(n)][1])
 
-#define NOPTS (sizeof(optletters_optnames)/sizeof(optletters_optnames[0]))
+enum { NOPTS = ARRAY_SIZE(optletters_optnames) };
 
 static char optlist[NOPTS];
 
@@ -1837,7 +1837,7 @@ initvar(void)
 		vps1.text = "PS1=# ";
 #endif
 	vp = varinit;
-	end = vp + sizeof(varinit) / sizeof(varinit[0]);
+	end = vp + ARRAY_SIZE(varinit);
 	do {
 		vpp = hashvar(vp->text);
 		vp->next = *vpp;
@@ -6876,8 +6876,8 @@ static const char *const *
 findkwd(const char *s)
 {
 	return bsearch(s, tokname_array + KWDOFFSET,
-			(sizeof(tokname_array) / sizeof(char *)) - KWDOFFSET,
-			sizeof(char *), pstrcmp);
+			ARRAY_SIZE(tokname_array) - KWDOFFSET,
+			sizeof(tokname_array[0]), pstrcmp);
 }
 
 /*
@@ -8094,7 +8094,6 @@ static const struct builtincmd builtintab[] = {
 	{ BUILTIN_REGULAR       "wait", waitcmd },
 };
 
-#define NUMBUILTINS (sizeof(builtintab) / sizeof(builtintab[0]))
 
 #define COMMANDCMD (builtintab + 5 + \
 	2 * ENABLE_ASH_BUILTIN_TEST + \
@@ -8116,7 +8115,7 @@ find_builtin(const char *name)
 	struct builtincmd *bp;
 
 	bp = bsearch(
-		name, builtintab, NUMBUILTINS, sizeof(builtintab[0]),
+		name, builtintab, ARRAY_SIZE(builtintab), sizeof(builtintab[0]),
 		pstrcmp
 	);
 	return bp;
@@ -11255,7 +11254,7 @@ helpcmd(int argc, char **argv)
 	int col, i;
 
 	out1fmt("\nBuilt-in commands:\n-------------------\n");
-	for (col = 0, i = 0; i < NUMBUILTINS; i++) {
+	for (col = 0, i = 0; i < ARRAY_SIZE(builtintab) ; i++) {
 		col += out1fmt("%c%s", ((col == 0) ? '\t' : ' '),
 					builtintab[i].name + 1);
 		if (col > 60) {

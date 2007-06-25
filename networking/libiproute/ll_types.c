@@ -108,7 +108,7 @@ __PF(VOID,void)
 #undef __PF
 
 	int i;
-	for (i = 0; i < sizeof(arphrd_names)/sizeof(arphrd_names[0]); i++) {
+	for (i = 0; i < ARRAY_SIZE(arphrd_names); i++) {
 		 if (arphrd_names[i].type == type)
 			return arphrd_names[i].name;
 	}

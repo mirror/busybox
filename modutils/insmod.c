@@ -3632,7 +3632,7 @@ static int obj_gpl_license(struct obj_file *f, const char **license)
 				int i;
 				if (license)
 					*license = value+1;
-				for (i = 0; i < sizeof(gpl_licenses)/sizeof(gpl_licenses[0]); ++i) {
+				for (i = 0; i < ARRAY_SIZE(gpl_licenses); ++i) {
 					if (strcmp(value+1, gpl_licenses[i]) == 0)
 						return 0;
 				}
@@ -3833,7 +3833,7 @@ add_ksymoops_symbols(struct obj_file *f, const char *filename,
 #endif /* _NOT_SUPPORTED_ */
 	/* tag the desired sections if size is non-zero */
 
-	for (i = 0; i < sizeof(section_names)/sizeof(section_names[0]); ++i) {
+	for (i = 0; i < ARRAY_SIZE(section_names); ++i) {
 		sec = obj_find_section(f, section_names[i]);
 		if (sec && sec->header.sh_size) {
 			l = sizeof(symprefix)+		/* "__insmod_" */

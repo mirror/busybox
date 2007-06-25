@@ -280,13 +280,13 @@ static int tftp( USE_GETPUT(const int cmd,)
 				"no such user",
 				"bad option",
 			};
-			enum { NUM_ERRCODE = sizeof(errcode_str) / sizeof(errcode_str[0]) };
+
 			const char *msg = "";
 
 			if (rbuf[4] != '\0') {
 				msg = &rbuf[4];
 				rbuf[tftp_bufsize - 1] = '\0';
-			} else if (recv_blk < NUM_ERRCODE) {
+			} else if (recv_blk < ARRAY_SIZE(errcode_str)) {
 				msg = errcode_str[recv_blk];
 			}
 			bb_error_msg("server error: (%u) %s", recv_blk, msg);

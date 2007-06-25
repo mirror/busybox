@@ -2230,8 +2230,7 @@ static char readit(void)	// read (maybe cursor) key from stdin
 		{"[13~", VI_K_FUN3},   // Function Key F3
 		{"[14~", VI_K_FUN4},   // Function Key F4
 	};
-
-#define ESCCMDS_COUNT (sizeof(esccmds)/sizeof(struct esc_cmds))
+	enum { ESCCMDS_COUNT = ARRAY_SIZE(esccmds) };
 
 	alarm(0);	// turn alarm OFF while we wait for input
 	fflush(stdout);

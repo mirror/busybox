@@ -2889,10 +2889,10 @@ static int reserved_word(o_string *dest, struct p_context *ctx)
 		{ "done",  RES_DONE,  FLAG_END  }
 #endif
 	};
-	enum { NRES = sizeof(reserved_list)/sizeof(reserved_list[0]) };
+
 	const struct reserved_combo *r;
 
-	for (r = reserved_list;	r < reserved_list + NRES; r++) {
+	for (r = reserved_list;	r < reserved_list + ARRAY_SIZE(reserved_list); r++) {
 		if (strcmp(dest->data, r->literal) != 0)
 			continue;
 		debug_printf("found reserved word %s, code %d\n", r->literal, r->code);

@@ -134,8 +134,6 @@ static const ps_out_t out_spec[] = {
 #endif
 };
 
-#define VEC_SIZE(v) ( sizeof(v) / sizeof((v)[0]) )
-
 #if ENABLE_SELINUX
 #define SELINIX_O_PREFIX "label,"
 #define DEFAULT_O_STR    SELINIX_O_PREFIX "pid,user" /* TODO: ,vsz,stat */ ",args"
@@ -171,7 +169,7 @@ static ps_out_t* new_out_t(void)
 static const ps_out_t* find_out_spec(const char *name)
 {
 	int i;
-	for (i = 0; i < VEC_SIZE(out_spec); i++) {
+	for (i = 0; i < ARRAY_SIZE(out_spec); i++) {
 		if (!strcmp(name, out_spec[i].name))
 			return &out_spec[i];
 	}

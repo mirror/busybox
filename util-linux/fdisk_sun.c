@@ -207,7 +207,7 @@ sun_autoconfigure_scsi(void)
 		if (!q)
 			break;
 		*q = '\0';
-		for (i = 0; i < SIZE(sun_drives); i++) {
+		for (i = 0; i < ARRAY_SIZE(sun_drives); i++) {
 			if (*sun_drives[i].vendor && strcasecmp(sun_drives[i].vendor, vendor))
 				continue;
 			if (!strstr(model, sun_drives[i].model))
@@ -244,7 +244,7 @@ create_sunlabel(void)
 		puts("Drive type\n"
 		 "   ?   auto configure\n"
 		 "   0   custom (with hardware detected defaults)");
-		for (i = 0; i < SIZE(sun_drives); i++) {
+		for (i = 0; i < ARRAY_SIZE(sun_drives); i++) {
 			printf("   %c   %s%s%s\n",
 				i + 'a', sun_drives[i].vendor,
 				(*sun_drives[i].vendor) ? " " : "",
@@ -255,11 +255,11 @@ create_sunlabel(void)
 			if (c == '0') {
 				break;
 			}
-			if (c >= 'a' && c < 'a' + SIZE(sun_drives)) {
+			if (c >= 'a' && c < 'a' + ARRAY_SIZE(sun_drives)) {
 				p = sun_drives + c - 'a';
 				break;
 			}
-			if (c >= 'A' && c < 'A' + SIZE(sun_drives)) {
+			if (c >= 'A' && c < 'A' + ARRAY_SIZE(sun_drives)) {
 				p = sun_drives + c - 'A';
 				break;
 			}
@@ -446,7 +446,7 @@ verify_sun(void)
 		else
 			array[i] = -1;
 	}
-	qsort(array,SIZE(array),sizeof(array[0]),
+	qsort(array, ARRAY_SIZE(array), sizeof(array[0]),
 		(int (*)(const void *,const void *)) verify_sun_cmp);
 	if (array[0] == -1) {
 		printf("No partitions defined\n");

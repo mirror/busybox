@@ -319,7 +319,7 @@ static const struct mode_info mode_info[] = {
 };
 
 enum {
-	NUM_mode_info = (sizeof(mode_info) / sizeof(mode_info[0]))
+	NUM_mode_info = ARRAY_SIZE(mode_info)
 };
 
 /* Control character settings */
@@ -371,7 +371,7 @@ static const struct control_info control_info[] = {
 };
 
 enum {
-	NUM_control_info = (sizeof(control_info) / sizeof(control_info[0]))
+	NUM_control_info = ARRAY_SIZE(control_info)
 };
 
 /* The width of the screen, for output wrapping */

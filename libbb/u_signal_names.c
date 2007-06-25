@@ -127,7 +127,7 @@ int get_signum(const char *name)
 		return i;
 	if (strncasecmp(name, "SIG", 3) == 0)
 		name += 3;
-	for (i = 0; i < sizeof(signals) / sizeof(signals[0]); i++)
+	for (i = 0; i < ARRAY_SIZE(signals); i++)
 		if (strcasecmp(name, signals[i]) == 0)
 			return i;
 
@@ -152,7 +152,7 @@ int get_signum(const char *name)
 
 const char *get_signame(int number)
 {
-	if ((unsigned)number < sizeof(signals) / sizeof(signals[0])) {
+	if ((unsigned)number < ARRAY_SIZE(signals)) {
 		if (signals[number][0]) /* if it's not an empty str */
 			return signals[number];
 	}

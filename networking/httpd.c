@@ -878,11 +878,8 @@ static int sendHeaders(HttpResponseNum responseNum)
 	time_t timer = time(0);
 	char timeStr[80];
 	int len;
-	enum {
-		numNames = sizeof(httpResponseNames) / sizeof(httpResponseNames[0])
-	};
 
-	for (i = 0; i < numNames; i++) {
+	for (i = 0; i < ARRAY_SIZE(httpResponseNames); i++) {
 		if (httpResponseNames[i].type == responseNum) {
 			responseString = httpResponseNames[i].name;
 			infoString = httpResponseNames[i].info;

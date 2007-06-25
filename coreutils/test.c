@@ -146,7 +146,6 @@ static const struct t_op {
 	{ ")"  , RPAREN , PAREN  },
 };
 
-enum { NUM_OPS = sizeof(ops) / sizeof(ops[0]) };
 
 #if ENABLE_FEATURE_TEST_64
 typedef int64_t arith_t;
@@ -471,7 +470,7 @@ static enum token t_lex(char *s)
 			return op->op_num;
 		}
 		op++;
-	} while (op < ops + NUM_OPS);
+	} while (op < ops + ARRAY_SIZE(ops));
 
 	return OPERAND;
 }

@@ -120,7 +120,6 @@ struct {
 	{"remount", MS_REMOUNT},  // action flag
 };
 
-#define VECTOR_SIZE(v) (sizeof(v) / sizeof((v)[0]))
 
 /* Append mount options to string */
 static void append_mount_options(char **oldopts, const char *newopts)
@@ -168,7 +167,7 @@ static int parse_mount_options(char *options, char **unrecognized)
 		if (comma) *comma = 0;
 
 		// Find this option in mount_options
-		for (i = 0; i < VECTOR_SIZE(mount_options); i++) {
+		for (i = 0; i < ARRAY_SIZE(mount_options); i++) {
 			if (!strcasecmp(mount_options[i].name, options)) {
 				long fl = mount_options[i].flags;
 				if (fl < 0) flags &= fl;
@@ -177,7 +176,7 @@ static int parse_mount_options(char *options, char **unrecognized)
 			}
 		}
 		// If unrecognized not NULL, append unrecognized mount options */
-		if (unrecognized && i == VECTOR_SIZE(mount_options)) {
+		if (unrecognized && i == ARRAY_SIZE(mount_options)) {
 			// Add it to strflags, to pass on to kernel
 			i = *unrecognized ? strlen(*unrecognized) : 0;
 			*unrecognized = xrealloc(*unrecognized, i+strlen(options)+2);

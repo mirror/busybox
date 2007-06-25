@@ -146,8 +146,8 @@ static const struct built_in_command bltins[] = {
 	/* to do: add ulimit */
 };
 
-#define VEC_SIZE(v) (sizeof(v)/sizeof(v[0]))
-#define VEC_LAST(v) v[VEC_SIZE(v)-1]
+
+#define VEC_LAST(v) v[ARRAY_SIZE(v)-1]
 
 
 static int shell_context;  /* Type prompt trigger (PS1 or PS2) */

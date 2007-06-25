@@ -337,7 +337,7 @@ int ifconfig_main(int argc, char **argv)
 		}
 
 		/* We fell through, so treat as possible hostname. */
-		a1op = Arg1Opt + (sizeof(Arg1Opt) / sizeof(Arg1Opt[0])) - 1;
+		a1op = Arg1Opt + ARRAY_SIZE(Arg1Opt) - 1;
 		mask = op->arg_flags;
 		goto HOSTNAME;
 

@@ -163,7 +163,7 @@ static const char * const xbsd_dktypenames[] = {
 	"floppy",
 	0
 };
-#define BSD_DKMAXTYPES  (sizeof(xbsd_dktypenames) / sizeof(xbsd_dktypenames[0]) - 1)
+
 
 /*
  * Filesystem type and version.
@@ -219,7 +219,6 @@ static const char *const xbsd_fstypes[] = {
 	"\x10" "AdvFS",             /* BSD_FS_ADVFS   */
 	NULL
 };
-#define BSD_FSMAXTYPES (SIZE(xbsd_fstypes)-1)
 
 
 /*
@@ -509,7 +508,7 @@ xbsd_print_disklabel(int show_all)
 #else
 		printf("# %s:\n", partname(disk_device, xbsd_part_index+1, 0));
 #endif
-		if ((unsigned) lp->d_type < BSD_DKMAXTYPES)
+		if ((unsigned) lp->d_type < ARRAY_SIZE(xbsd_dktypenames)-1)
 			printf("type: %s\n", xbsd_dktypenames[lp->d_type]);
 		else
 			printf("type: %d\n", lp->d_type);
@@ -571,7 +570,7 @@ xbsd_print_disklabel(int show_all)
 				);
 			}
 
-			if ((unsigned) pp->p_fstype < BSD_FSMAXTYPES)
+			if ((unsigned) pp->p_fstype < ARRAY_SIZE(xbsd_fstypes)-1)
 				printf("%8.8s", xbsd_fstypes[pp->p_fstype]);
 			else
 				printf("%8x", pp->p_fstype);

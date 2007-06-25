@@ -158,7 +158,7 @@ static const signed char width_bytes[] = {
    initializer in the width_bytes array.  */
 struct dummy {
 	int assert_width_bytes_matches_size_spec_decl
-		[sizeof width_bytes / sizeof width_bytes[0] == N_SIZE_SPECS ? 1 : -1];
+		[ARRAY_SIZE(width_bytes) == N_SIZE_SPECS ? 1 : -1];
 };
 
 static size_t string_min;
