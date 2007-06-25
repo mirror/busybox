@@ -182,19 +182,23 @@ static void initialize_group_array(void);
 int bb_test(int argc, char **argv)
 {
 	int res;
+	char *arg0;
+	bool _off;
 
-	if (LONE_CHAR(argv[0], '[')) {
+	arg0 = strrchr(argv[0], '/');
+	if (!arg0++) arg0 = argv[0];
+	if (arg0[0] == '[') {
 		--argc;
-		if (NOT_LONE_CHAR(argv[argc], ']')) {
-			bb_error_msg("missing ]");
-			return 2;
-		}
-		argv[argc] = NULL;
-	} else if (strcmp(argv[0], "[[") == 0) {
-		--argc;
-		if (strcmp(argv[argc], "]]")) {
-			bb_error_msg("missing ]]");
-			return 2;
+		if (!arg0[1]) { /* "[" ? */
+			if (NOT_LONE_CHAR(argv[argc], ']')) {
+				bb_error_msg("missing ]");
+				return 2;
+			}
+		} else { /* assuming "[[" */
+			if (strcmp(argv[argc], "]]") != 0) {
+				bb_error_msg("missing ]]");
+				return 2;
+			}
 		}
 		argv[argc] = NULL;
 	}
@@ -219,15 +223,19 @@ int bb_test(int argc, char **argv)
 	if (argc == 2)
 		return *argv[1] == '\0';
 //assert(argc);
-	if (LONE_CHAR(argv[1], '!')) {
-		bool _off;
+	/* remember if we saw argc==4 which wants *no* '!' test */
+	_off = argc - 4;
+	if (_off ?
+		(LONE_CHAR(argv[1], '!'))
+		: (argv[1][0] != '!' || argv[1][1] != '\0'))
+	{
 		if (argc == 3)
 			return *argv[2] != '\0';
-		_off = argc - 4;
+
 		t_lex(argv[2 + _off]);
 		if (t_wp_op && t_wp_op->op_type == BINOP) {
 			t_wp = &argv[1 + _off];
-			return binop() == 1;
+			return binop() == _off;
 		}
 	}
 	t_wp = &argv[1];
@@ -378,7 +386,7 @@ static int binop(void)
 static int filstat(char *nm, enum token mode)
 {
 	struct stat s;
-	int i;
+	int i = i; /* gcc 3.x thinks it can be used uninitialized */
 
 	if (mode == FILSYM) {
 #ifdef S_IFLNK
