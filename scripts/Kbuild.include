@@ -79,7 +79,7 @@ cc-option-align = $(subst -functions=0,,\
 
 # cc-version
 # Usage gcc-ver := $(call cc-version, $(CC))
-cc-version = $(shell $(CONFIG_SHELL) $(srctree)/scripts/gcc-version.sh \
+cc-version = $(shell PATH="$(PATH)" $(CONFIG_SHELL) $(srctree)/scripts/gcc-version.sh \
               $(if $(1), $(1), $(CC)))
 
 # cc-ifversion
