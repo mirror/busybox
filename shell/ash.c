@@ -6986,7 +6986,7 @@ typecmd(int argc, char **argv)
 	int verbose = 1;
 
 	/* type -p ... ? (we don't bother checking for 'p') */
-	if (argv[1][0] == '-') {
+	if (argv[1] && argv[1][0] == '-') {
 		i++;
 		verbose = 0;
 	}
