@@ -21,7 +21,6 @@
  *     Set process group corrections, initial busybox port
  */
 
-/*#define DEBUG 1 */
 #define DEBUG 0
 
 #include "libbb.h"
@@ -34,8 +33,6 @@
 #include <sys/syslog.h>
 
 
-#define BUFSIZE 4000
-
 #if ENABLE_LOGIN
 static const char *loginpath = "/bin/login";
 #else
@@ -43,10 +40,6 @@ static const char *loginpath = DEFAULT_SHELL;
 #endif
 
 static const char *issuefile = "/etc/issue.net";
-
-/* shell name and arguments */
-
-static const char *argv_init[2];
 
 /* structure that describes a session */
 
@@ -59,6 +52,10 @@ struct tsession {
 	int rdidx1, wridx1, size1;
 	int rdidx2, wridx2, size2;
 };
+
+/* Two buffers are directly after tsession in malloced memory.
+ * Make whole thing fit in 4k */
+enum { BUFSIZE = (4*1024 - sizeof(struct tsession)) / 2 };
 
 /*
    This is how the buffers are used. The arrows indicate the movement
@@ -231,6 +228,7 @@ make_new_session(
 		USE_FEATURE_TELNETD_STANDALONE(int sock_r, int sock_w)
 		SKIP_FEATURE_TELNETD_STANDALONE(void)
 ) {
+	const char *login_argv[2];
 	struct termios termbuf;
 	int fd, pid;
 	char tty_name[32];
@@ -283,7 +281,7 @@ make_new_session(
 
 	/* child */
 
-	/* make new process group */
+	/* make new session and process group */
 	setsid();
 
 	/* open the child's side of the tty. */
@@ -294,7 +292,7 @@ make_new_session(
 	dup2(fd, 1);
 	dup2(fd, 2);
 	while (fd > 2) close(fd--);
-	tcsetpgrp(0, getpid()); /* comment? */
+	tcsetpgrp(0, getpid()); /* switch this tty's process group to us */
 
 	/* The pseudo-terminal allocated to the client is configured to operate in
 	 * cooked mode, and with XTABS CRMOD enabled (see tty(4)). */
@@ -308,9 +306,12 @@ make_new_session(
 
 	print_login_issue(issuefile, NULL);
 
-	/* exec shell, with correct argv and env */
-	execv(loginpath, (char *const *)argv_init);
-	bb_perror_msg_and_die("execv");
+	/* exec shell / login /whatever */
+	login_argv[0] = loginpath;
+	login_argv[1] = NULL;
+	execv(loginpath, (char **)login_argv);
+	/* Hmmm... this gets sent to the client thru fd#2! Is it ok?? */
+	bb_perror_msg_and_die("execv %s", loginpath);
 }
 
 #if ENABLE_FEATURE_TELNETD_STANDALONE
@@ -405,7 +406,6 @@ int telnetd_main(int argc, char **argv)
 
 	/* Used to check access(loginpath, X_OK) here. Pointless.
 	 * exec will do this for us for free later. */
-	argv_init[0] = loginpath;
 
 #if ENABLE_FEATURE_TELNETD_STANDALONE
 	if (IS_INETD) {
