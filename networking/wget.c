@@ -76,9 +76,9 @@ static char *safe_fgets(char *s, int size, FILE *stream)
 
 #if ENABLE_FEATURE_WGET_AUTHENTICATION
 /* Base64-encode character string and return the string.  */
-static char *base64enc(unsigned char *p, char *buf, int len)
+static char *base64enc(const unsigned char *p, char *buf, int len)
 {
-	bb_uuencode(p, buf, len, bb_uuenc_tbl_base64);
+	bb_uuencode(buf, p, len, bb_uuenc_tbl_base64);
 	return buf;
 }
 #endif

@@ -34,14 +34,15 @@ const char bb_uuenc_tbl_std[65] = {
 };
 
 /*
- * Encode the string S of length LENGTH to base64 format and place it
+ * Encode bytes at S of length LENGTH to uuencode or base64 format and place it
  * to STORE.  STORE will be 0-terminated, and must point to a writable
  * buffer of at least 1+BASE64_LENGTH(length) bytes.
  * where BASE64_LENGTH(len) = (4 * ((LENGTH + 2) / 3))
  */
-void bb_uuencode(const unsigned char *s, char *store, const int length, const char *tbl)
+void bb_uuencode(char *store, const void *src, int length, const char *tbl)
 {
 	int i;
+	const unsigned char *s = src;
 	char *p = store;
 
 	/* Transform the 3x8 bits to 4x6 bits, as required by base64.  */
