@@ -42,25 +42,27 @@ enum {
 	STALLTIME = 5                   /* Seconds when xfer considered "stalled" */
 };
 #else
-static void progressmeter(int flag) {}
+static ALWAYS_INLINE void progressmeter(int flag) {}
 #endif
 
-/* Read NMEMB elements of SIZE bytes into PTR from STREAM.  Returns the
- * number of elements read, and a short count if an eof or non-interrupt
- * error is encountered.  */
-static size_t safe_fread(void *ptr, size_t size, size_t nmemb, FILE *stream)
+/* Read NMEMB bytes into PTR from STREAM.  Returns the number of bytes read,
+ * and a short count if an eof or non-interrupt error is encountered.  */
+static size_t safe_fread(void *ptr, size_t nmemb, FILE *stream)
 {
-	size_t ret = 0;
+	size_t ret;
+	char *p = (char*)ptr;
 
 	do {
 		clearerr(stream);
-		ret += fread((char *)ptr + (ret * size), size, nmemb - ret, stream);
-	} while (ret < nmemb && ferror(stream) && errno == EINTR);
+		ret = fread(p, 1, nmemb, stream);
+		p += ret;
+		nmemb -= ret;
+	} while (nmemb && ferror(stream) && errno == EINTR);
 
-	return ret;
+	return p - (char*)ptr;
 }
 
-/* Read a line or SIZE - 1 bytes into S, whichever is less, from STREAM.
+/* Read a line or SIZE-1 bytes into S, whichever is less, from STREAM.
  * Returns S, or NULL if an eof or non-interrupt error is encountered.  */
 static char *safe_fgets(char *s, int size, FILE *stream)
 {
@@ -75,10 +77,13 @@ static char *safe_fgets(char *s, int size, FILE *stream)
 }
 
 #if ENABLE_FEATURE_WGET_AUTHENTICATION
-/* Base64-encode character string and return the string.  */
-static char *base64enc(const unsigned char *p, char *buf, int len)
+/* Base64-encode character string. buf is assumed to be char buf[512]. */
+static char *base64enc_512(char buf[512], const char *str)
 {
-	bb_uuencode(buf, p, len, bb_uuenc_tbl_base64);
+	unsigned len = strlen(str);
+	if (len > 512/4*3 - 10) /* paranoia */
+		len = 512/4*3 - 10;
+	bb_uuencode(buf, str, len, bb_uuenc_tbl_base64);
 	return buf;
 }
 #endif
@@ -265,12 +270,12 @@ int wget_main(int argc, char **argv)
 
 #if ENABLE_FEATURE_WGET_AUTHENTICATION
 			if (target.user) {
-				fprintf(sfp, "Authorization: Basic %s\r\n",
-					base64enc((unsigned char*)target.user, buf, sizeof(buf)));
+				fprintf(sfp, "Proxy-Authorization: Basic %s\r\n"+6,
+					base64enc_512(buf, target.user));
 			}
 			if (use_proxy && server.user) {
 				fprintf(sfp, "Proxy-Authorization: Basic %s\r\n",
-					base64enc((unsigned char*)server.user, buf, sizeof(buf)));
+					base64enc_512(buf, server.user));
 			}
 #endif
 
@@ -459,7 +464,7 @@ int wget_main(int argc, char **argv)
 			unsigned rdsz = sizeof(buf);
 			if (content_len < sizeof(buf) && (chunked || got_clen))
 				rdsz = (unsigned)content_len;
-			n = safe_fread(buf, 1, rdsz, dfp);
+			n = safe_fread(buf, rdsz, dfp);
 			if (n <= 0)
 				break;
 			if (full_write(output_fd, buf, n) != n) {
@@ -775,7 +780,7 @@ progressmeter(int flag)
 		putc('\n', stderr);
 	}
 }
-#endif
+#endif /* FEATURE_WGET_STATUSBAR */
 
 /* Original copyright notice which applies to the CONFIG_FEATURE_WGET_STATUSBAR stuff,
  * much of which was blatantly stolen from openssh.  */
