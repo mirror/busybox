@@ -397,8 +397,8 @@ ifaddrlist(struct IFADDRLIST **ipaddrp)
 	) {
 		if (errno == EINVAL)
 			bb_error_msg_and_die(
-			    "SIOCGIFCONF: ifreq struct too small (%d bytes)",
-			    IFREQ_BUFSIZE * sizeof(ibuf[0]));
+			    "SIOCGIFCONF: ifreq struct too small (%u bytes)",
+			    (unsigned)(IFREQ_BUFSIZE * sizeof(ibuf[0])));
 		bb_perror_msg_and_die("SIOCGIFCONF");
 	}
 	ifrp = ibuf;

@@ -322,13 +322,7 @@ static void msg_logger_and_die(int pri, const char* fmt, ...)
 #define devfsd_error_msg(fmt, args...)                bb_error_msg(fmt, ## args)
 #define devfsd_perror_msg_and_die(fmt, args...)       bb_perror_msg_and_die(fmt, ## args)
 #define devfsd_error_msg_and_die(fmt, args...)        bb_error_msg_and_die(fmt, ## args)
-#if defined(CONFIG_DEBUG)
-#define debug_msg_logger(x, fmt, args...)             msg_logger(x, fmt, ## args)
 #else
-#define debug_msg_logger(x, fmt, args...)
-#endif
-#else
-#define debug_msg_logger(x, fmt, args...)
 #define msg_logger(p, fmt, args...)
 #define msg_logger_and_die(p, fmt, args...)           exit(1)
 #define devfsd_perror_msg_and_die(fmt, args...)       exit(1)
@@ -448,8 +442,7 @@ int devfsd_main(int argc, char **argv)
 
 	mount_point = argv[1];
 
-	if (chdir(mount_point) != 0)
-		devfsd_perror_msg_and_die(mount_point);
+	xchdir(mount_point);
 
 	fd = xopen(".devfsd", O_RDONLY);
 
@@ -509,7 +502,7 @@ int devfsd_main(int argc, char **argv)
 		free_config();
 		read_config_file((char*)CONFIG_FILE, FALSE, &event_mask);
 		if (do_scan)
-			dir_operation(SERVICE,mount_point,0,NULL);
+			dir_operation(SERVICE, mount_point, 0, NULL);
 	}
 }   /*  End Function main  */
 
@@ -529,8 +522,6 @@ static void read_config_file(char *path, int optional, unsigned long *event_mask
 	FILE *fp;
 	char buf[STRING_LENGTH];
 	char *line = NULL;
-
-	debug_msg_logger(LOG_INFO, "%s: %s", __FUNCTION__, path);
 
 	if (stat(path, &statbuf) == 0) {
 		/* Don't read 0 length files: ignored */
@@ -588,9 +579,8 @@ static void process_config_line(const char *line, unsigned long *event_mask)
 		"RMOLDCOMPAT", "RMNEWCOMPAT", 0
 	};
 
-	debug_msg_logger(LOG_INFO, __FUNCTION__);
-
-	for (count = 0; count < MAX_ARGS; ++count) p[count][0] = '\0';
+	for (count = 0; count < MAX_ARGS; ++count)
+		p[count][0] = '\0';
 	num_args = sscanf(line, "%s %s %s %s %s %s %s %s %s %s",
 			when, name, what,
 			p[0], p[1], p[2], p[3], p[4], p[5], p[6]);
@@ -616,14 +606,13 @@ static void process_config_line(const char *line, unsigned long *event_mask)
 	}
 	/* "RESTORE" */
 	if (i == 3) {
-		dir_operation(RESTORE,name, strlen(name),NULL);
+		dir_operation(RESTORE, name, strlen(name),NULL);
 		return;
 	}
 	if (num_args < 3)
 		goto process_config_line_err;
 
-	new = xmalloc(sizeof *new);
-	memset(new, 0, sizeof *new);
+	new = xzalloc(sizeof *new);
 
 	for (count = 0; event_types[count].config_name != NULL; ++count) {
 		if (strcasecmp(when, event_types[count].config_name) != 0)
@@ -632,7 +621,7 @@ static void process_config_line(const char *line, unsigned long *event_mask)
 		break;
 	}
 	if (event_types[count].config_name == NULL) {
-		msg="WHEN in";
+		msg = "WHEN in";
 		goto process_config_line_err;
 	}
 
@@ -643,7 +632,7 @@ static void process_config_line(const char *line, unsigned long *event_mask)
 			new->action.what = AC_PERMISSIONS;
 			/*  Get user and group  */
 			if ((ptr = strchr(p[0], '.')) == NULL) {
-				msg="UID.GID";
+				msg = "UID.GID";
 				goto process_config_line_err; /*"missing '.' in UID.GID"*/
 			}
 
@@ -695,7 +684,7 @@ static void process_config_line(const char *line, unsigned long *event_mask)
 			new->action.what = i - 2;
 			break;
 		default:
-			msg ="WHAT in";
+			msg = "WHAT in";
 			goto process_config_line_err;
 		/*esac*/
 	} /* switch (i) */
@@ -724,8 +713,6 @@ static int do_servicing(int fd, unsigned long event_mask)
 	ssize_t bytes;
 	struct devfsd_notify_struct info;
 	unsigned long tmp_event_mask;
-
-	debug_msg_logger(LOG_INFO, __FUNCTION__);
 
 	/*  Tell devfs what events we care about  */
 	tmp_event_mask = event_mask;
@@ -761,9 +748,8 @@ static void service_name(const struct devfsd_notify_struct *info)
 	regmatch_t mbuf[MAX_SUBEXPR];
 	struct config_entry_struct *entry;
 
-	debug_msg_logger(LOG_INFO, __FUNCTION__);
 	if (ENABLE_DEBUG && info->overrun_count > 0)
-		debug_msg_logger(LOG_ERR, "lost %u events", info->overrun_count);
+		msg_logger(LOG_ERR, "lost %u events", info->overrun_count);
 
 	/*  Discard lookups on "/dev/log" and "/dev/initctl"  */
 	if (info->type == DEVFSD_NOTIFY_LOOKUP 
@@ -783,8 +769,6 @@ static void service_name(const struct devfsd_notify_struct *info)
 			continue;
 		for (n = 0;(n < MAX_SUBEXPR) && (mbuf[n].rm_so != -1); ++n)
 			/* VOID */;
-
-		debug_msg_logger(LOG_INFO, "%s: action.what %d", __FUNCTION__, entry->action.what);
 
 		switch (entry->action.what) {
 			case AC_PERMISSIONS:
@@ -825,13 +809,11 @@ static void action_permissions(const struct devfsd_notify_struct *info,
 {
 	struct stat statbuf;
 
-	debug_msg_logger(LOG_INFO, __FUNCTION__);
-
 	if (stat(info->devname, &statbuf) != 0	||
 		 chmod(info->devname,(statbuf.st_mode & S_IFMT) |(entry->u.permissions.mode & ~S_IFMT)) != 0 ||
-		 chown(info->devname, entry->u.permissions.uid, entry->u.permissions.gid) != 0) {
-		msg_logger(LOG_ERR, "Can't chmod or chown: %s: %m",info->devname);
-	}
+		chown(info->devname, entry->u.permissions.uid, entry->u.permissions.gid) != 0
+	)
+		msg_logger(LOG_ERR, "Can't chmod or chown: %s: %m", info->devname);
 }   /*  End Function action_permissions  */
 
 static void action_modload(const struct devfsd_notify_struct *info,
@@ -843,18 +825,16 @@ static void action_modload(const struct devfsd_notify_struct *info,
 */
 {
 	char *argv[6];
-	char device[STRING_LENGTH];
 
 	argv[0] =(char*)MODPROBE;
 	argv[1] =(char*)MODPROBE_SWITCH_1; /* "-k" */
 	argv[2] =(char*)MODPROBE_SWITCH_2; /* "-C" */
 	argv[3] =(char*)CONFIG_MODULES_DEVFS;
-	argv[4] = device;
+	argv[4] = concat_path_file("/dev", info->devname); /* device */
 	argv[5] = NULL;
 
-	snprintf(device, sizeof(device), "/dev/%s", info->devname);
-	debug_msg_logger(LOG_INFO, "%s: %s %s %s %s %s",__FUNCTION__, argv[0],argv[1],argv[2],argv[3],argv[4]);
 	fork_and_execute(DIE, argv[0], argv);
+	free(argv[4]);
 }  /*  End Function action_modload  */
 
 static void action_execute(const struct devfsd_notify_struct *info,
@@ -874,7 +854,6 @@ static void action_execute(const struct devfsd_notify_struct *info,
 	char *argv[MAX_ARGS + 1];
 	char largv[MAX_ARGS + 1][STRING_LENGTH];
 
-	debug_msg_logger(LOG_INFO ,__FUNCTION__);
 	gv_info.info = info;
 	gv_info.devname = info->devname;
 	snprintf(gv_info.devpath, sizeof(gv_info.devpath), "%s/%s", mount_point, info->devname);
@@ -908,8 +887,6 @@ static void action_copy(const struct devfsd_notify_struct *info,
 	char source[STRING_LENGTH], destination[STRING_LENGTH];
 	int ret = 0;
 
-	debug_msg_logger(LOG_INFO, __FUNCTION__);
-
 	dest_stat.st_mode = 0;
 
 	if ((info->type == DEVFSD_NOTIFY_CHANGE) && S_ISLNK(info->mode))
@@ -935,8 +912,8 @@ static void action_copy(const struct devfsd_notify_struct *info,
 	else if ((info->type == DEVFSD_NOTIFY_CHANGE) &&(dest_stat.st_mode & S_ISVTX))
 		new_mode |= S_ISVTX;
 	ret = copy_inode(destination, &dest_stat, new_mode, source, &source_stat);
-	if (ENABLE_DEBUG && ret &&(errno != EEXIST))
-		debug_msg_logger(LOG_ERR, "copy_inode: %s to %s: %m", source, destination);
+	if (ENABLE_DEBUG && ret && (errno != EEXIST))
+		msg_logger(LOG_ERR, "copy_inode: %s to %s: %m", source, destination);
 }   /*  End Function action_copy  */
 
 static void action_compat(const struct devfsd_notify_struct *info, unsigned int action)
@@ -978,16 +955,14 @@ static void action_compat(const struct devfsd_notify_struct *info, unsigned int 
 		case AC_MKNEWCOMPAT:
 		case AC_RMNEWCOMPAT:
 			ptr = strrchr(info->devname, '/') + 1;
-			i=scan_dev_name(info->devname, info->namelen, ptr);
-
-			debug_msg_logger(LOG_INFO, "%s: scan_dev_name = %d", __FUNCTION__, i);
+			i = scan_dev_name(info->devname, info->namelen, ptr);
 
 			/* nothing found */
-			if (i==0 || i > 9)
+			if (i == 0 || i > 9)
 				return;
 
-			sscanf(info->devname +((i<6)?5:4), "host%d/bus%d/target%d/lun%d/", &host, &bus, &target, &lun);
-			snprintf(dest_buf, sizeof(dest_buf), "../%s", info->devname +((i>5)?4:0));
+			sscanf(info->devname + ((i < 6) ? 5 : 4), "host%d/bus%d/target%d/lun%d/", &host, &bus, &target, &lun);
+			snprintf(dest_buf, sizeof(dest_buf), "../%s", info->devname + (( i > 5) ? 4 : 0));
 			dest_name = dest_buf;
 			compat_name = compat_buf;
 
@@ -1010,7 +985,7 @@ static void action_compat(const struct devfsd_notify_struct *info, unsigned int 
 					mode = ptr[2] - 107; /* 1 or 2 */
 				if (ptr[2] ==  'a')
 					mode = 3;
-				sprintf(compat_buf, fmt [i], host, bus, target, lun, mode, rewind_);
+				sprintf(compat_buf, fmt[i], host, bus, target, lun, mode, rewind_);
 			}
 
 			/* 9 == ide/host/mt */
@@ -1022,8 +997,6 @@ static void action_compat(const struct devfsd_notify_struct *info, unsigned int 
 	if (compat_name == NULL)
 		return;
 
-	debug_msg_logger(LOG_INFO, "%s: %s", __FUNCTION__, compat_name);
-
 	/*  Now decide what to do with it  */
 	switch (action) {
 		case AC_MKOLDCOMPAT:
@@ -1034,7 +1007,7 @@ static void action_compat(const struct devfsd_notify_struct *info, unsigned int 
 		case AC_RMNEWCOMPAT:
 			ret = unlink(compat_name);
 			if (ENABLE_DEBUG && ret)
-				debug_msg_logger(LOG_ERR, "unlink: %s: %m", compat_name);
+				msg_logger(LOG_ERR, "unlink: %s: %m", compat_name);
 			break;
 		/*esac*/
 	} /* switch (action) */
@@ -1042,15 +1015,13 @@ static void action_compat(const struct devfsd_notify_struct *info, unsigned int 
 
 static void restore(char *spath, struct stat source_stat, int rootlen)
 {
-	char dpath[STRING_LENGTH];
+	char *dpath;
 	struct stat dest_stat;
 
-	debug_msg_logger(LOG_INFO, __FUNCTION__);
-
 	dest_stat.st_mode = 0;
-	snprintf(dpath, sizeof dpath, "%s%s", mount_point, spath + rootlen);
+	dpath = concat_path_file(mount_point, spath + rootlen);
 	lstat(dpath, &dest_stat);
-
+	free(dpath);
 	if (S_ISLNK(source_stat.st_mode) ||(source_stat.st_mode & S_ISVTX))
 		copy_inode(dpath, &dest_stat,(source_stat.st_mode & ~S_ISVTX) , spath, &source_stat);
 
@@ -1076,8 +1047,6 @@ static int copy_inode(const char *destpath, const struct stat *dest_stat,
 	int fd, val;
 	struct sockaddr_un un_addr;
 	char symlink_val[STRING_LENGTH];
-
-	debug_msg_logger(LOG_INFO, __FUNCTION__);
 
 	if ((source_stat->st_mode & S_IFMT) ==(dest_stat->st_mode & S_IFMT)) {
 		/*  Same type  */
@@ -1150,8 +1119,6 @@ static void free_config(void)
 	struct config_entry_struct *c_entry;
 	void *next;
 
-	debug_msg_logger(LOG_INFO, __FUNCTION__);
-
 	for (c_entry = first_config; c_entry != NULL; c_entry = next) {
 		unsigned int count;
 
@@ -1184,11 +1151,6 @@ static int get_uid_gid(int flag, const char *string)
 	if (ENABLE_DEVFSD_VERBOSE)
 		msg = "user";
 
-	debug_msg_logger(LOG_INFO, __FUNCTION__);
-
-	if (ENABLE_DEBUG && flag != UID && flag != GID)
-		msg_logger_and_die(LOG_ERR,"%s: flag != UID && flag != GID", __FUNCTION__);
-
 	if (isdigit(string[0]) ||((string[0] == '-') && isdigit(string[1])))
 		return atoi(string);
 
@@ -1214,8 +1176,6 @@ static mode_t get_mode(const char *string)
 	mode_t mode;
 	int i;
 
-	debug_msg_logger(LOG_INFO, __FUNCTION__);
-
 	if (isdigit(string[0]))
 		return strtoul(string, NULL, 8);
 	if (strlen(string) != 9)
@@ -1226,7 +1186,7 @@ static mode_t get_mode(const char *string)
 	while (i > 0) {
 		if (string[0] == 'r' || string[0] == 'w' || string[0] == 'x')
 			mode += i;
-		i = i/2;
+		i = i / 2;
 		string++;
 	}
 	return mode;
@@ -1234,8 +1194,6 @@ static mode_t get_mode(const char *string)
 
 static void signal_handler(int sig)
 {
-	debug_msg_logger(LOG_INFO, __FUNCTION__);
-
 	caught_signal = TRUE;
 	if (sig == SIGHUP)
 		caught_sighup = TRUE;
@@ -1252,8 +1210,6 @@ static const char *get_variable(const char *variable, void *info)
 								   gv_info->devpath, gv_info->devname, 0 };
 	int i;
 
-	debug_msg_logger(LOG_INFO, __FUNCTION__);
-
 	if (gethostname(hostname, STRING_LENGTH - 1) != 0)
 		msg_logger_and_die(LOG_ERR, "gethostname: %m");
 
@@ -1266,7 +1222,6 @@ static const char *get_variable(const char *variable, void *info)
 	if (i > 6 || i < 0 || (i > 1 && gv_info == NULL))
 			return NULL;
 	if (i >= 0 && i <= 3) {
-		debug_msg_logger(LOG_INFO, "%s: i=%d %s", __FUNCTION__, i, field_names[i + 7]);
 		return field_names[i + 7];
 	}
 
@@ -1276,17 +1231,12 @@ static const char *get_variable(const char *variable, void *info)
 		sprintf(sbuf, "%u", gv_info->info->gid);
 	else if (i == 6)
 		sprintf(sbuf, "%o", gv_info->info->mode);
-
-	debug_msg_logger(LOG_INFO, "%s: %s", __FUNCTION__, sbuf);
-
 	return sbuf;
 }   /*  End Function get_variable  */
 
 static void service(struct stat statbuf, char *path)
 {
 	struct devfsd_notify_struct info;
-
-	debug_msg_logger(LOG_INFO, __FUNCTION__);
 
 	memset(&info, 0, sizeof info);
 	info.type = DEVFSD_NOTIFY_REGISTERED;
@@ -1314,37 +1264,30 @@ static void dir_operation(int type, const char * dir_name, int var, unsigned lon
 	struct stat statbuf;
 	DIR *dp;
 	struct dirent *de;
-	char path[STRING_LENGTH];
+	char *path;
 
-	debug_msg_logger(LOG_INFO, __FUNCTION__);
-
-	if ((dp = opendir(dir_name))==NULL) {
-		debug_msg_logger(LOG_ERR, "opendir: %s: %m", dir_name);
+	if ((dp = warn_opendir(dir_name)) == NULL)
 		return;
-	}
 
 	while ((de = readdir(dp)) != NULL) {
 
 		if (de->d_name && DOT_OR_DOTDOT(de->d_name))
 			continue;
-		snprintf(path, sizeof(path), "%s/%s", dir_name, de->d_name);
-		debug_msg_logger(LOG_ERR, "%s: %s", __FUNCTION__, path);
-
-		if (lstat(path, &statbuf) != 0) {
-			debug_msg_logger(LOG_ERR, "%s: %s: %m", __FUNCTION__, path);
-			continue;
+		path = concat_path_file(dir_name, de->d_name);
+		if (lstat(path, &statbuf) == 0) {
+			switch (type) {
+				case SERVICE:
+					service(statbuf, path);
+					break;
+				case RESTORE:
+					restore(path, statbuf, var);
+					break;
+				case READ_CONFIG:
+					read_config_file(path, var, event_mask);
+					break;
+			}
 		}
-		switch (type) {
-			case SERVICE:
-				service(statbuf, path);
-				break;
-			case RESTORE:
-				restore(path, statbuf, var);
-				break;
-			case READ_CONFIG:
-				read_config_file(path, var, event_mask);
-				break;
-		}
+		free(path);
 	}
 	closedir(dp);
 }   /*  End Function do_scan_and_service  */
@@ -1356,16 +1299,12 @@ static int mksymlink(const char *oldpath, const char *newpath)
     [RETURNS] 0 on success, else -1.
 */
 {
-	debug_msg_logger(LOG_INFO, __FUNCTION__);
-
 	if (!make_dir_tree(newpath))
 		return -1;
 
 	if (symlink(oldpath, newpath) != 0) {
-		if (errno != EEXIST) {
-			debug_msg_logger(LOG_ERR, "%s: %s to %s: %m", __FUNCTION__, oldpath, newpath);
+		if (errno != EEXIST)
 			return -1;
-		}
 	}
 	return 0;
 }   /*  End Function mksymlink  */
@@ -1377,12 +1316,8 @@ static int make_dir_tree(const char *path)
     [RETURNS] TRUE on success, else FALSE.
 */
 {
-	debug_msg_logger(LOG_INFO, __FUNCTION__);
-
-	if (bb_make_directory(dirname((char *)path), -1, FILEUTILS_RECUR) == -1) {
-		debug_msg_logger(LOG_ERR, "%s: %s: %m",__FUNCTION__, path);
+	if (bb_make_directory(dirname((char *)path), -1, FILEUTILS_RECUR) == -1)
 		return FALSE;
-	}
 	return TRUE;
 } /*  End Function make_dir_tree  */
 
@@ -1408,8 +1343,6 @@ static int expand_expression(char *output, unsigned int outsize,
 */
 {
 	char temp[STRING_LENGTH];
-
-	debug_msg_logger(LOG_INFO, __FUNCTION__);
 
 	if (!st_expr_expand(temp, STRING_LENGTH, input, get_variable_func, info))
 		return FALSE;
@@ -1437,8 +1370,6 @@ static void expand_regexp(char *output, size_t outsize, const char *input,
 {
 	const char last_exp = '0' - 1 + numex;
 	int c = -1;
-
-	debug_msg_logger(LOG_INFO, __FUNCTION__);
 
 	/*  Guarantee NULL termination by writing an explicit '\0' character into
 	the very last byte  */
@@ -1555,8 +1486,6 @@ const char *get_old_name(const char *devname, unsigned int namelen,
 		NULL
 	};
 
-	debug_msg_logger(LOG_INFO, __FUNCTION__);
-
 	for (trans = translate_table; trans->match != NULL; ++trans) {
 		 len = strlen(trans->match);
 
@@ -1576,15 +1505,13 @@ const char *get_old_name(const char *devname, unsigned int namelen,
 	else
 		return NULL;
 
-	debug_msg_logger(LOG_INFO, "%s: scan_dev_name = %d", __FUNCTION__, i);
-
 	/* 1 == scsi/generic, 3 == scsi/cd, 10 == sbp/ */
 	if (i == 1 || i == 3 || i == 10)
 		sprintf(buffer, fmt[i], minor);
 
 	/* 2 ==scsi/disc, 4 == scsi/part */
 	if (i == 2 || i == 4)
-		compat_name = write_old_sd_name(buffer, major, minor,((i == 2)?"":(ptr + 4)));
+		compat_name = write_old_sd_name(buffer, major, minor,((i == 2) ? "" : (ptr + 4)));
 
 	/* 5 == scsi/mt */
 	if (i == 5) {
@@ -1617,10 +1544,6 @@ const char *get_old_name(const char *devname, unsigned int namelen,
 		indexx = atoi(devname + 5);
 		sprintf(buffer, fmt[i], (devname[4] == 'm') ? 'p' : 't', pty1[indexx >> 4], pty2[indexx & 0x0f]);
 	}
-
-	if (ENABLE_DEBUG && compat_name != NULL)
-		msg_logger(LOG_INFO, "%s: compat_name  %s", __FUNCTION__, compat_name);
-
 	return compat_name;
 }   /*  End Function get_old_name  */
 
@@ -1634,8 +1557,6 @@ static char get_old_ide_name(unsigned int major, unsigned int minor)
 	char letter = 'y';	/* 121 */
 	char c = 'a';		/*  97 */
 	int i = IDE0_MAJOR;
-
-	debug_msg_logger(LOG_INFO, __FUNCTION__);
 
 	/* I hope it works like the previous code as it saves a few bytes. Tito ;P */
 	do {
@@ -1670,8 +1591,6 @@ static char *write_old_sd_name(char *buffer,
 */
 {
 	unsigned int disc_index;
-
-	debug_msg_logger(LOG_INFO, __FUNCTION__);
 
 	if (major == 8) {
 		sprintf(buffer, "sd%c%s", 'a' + (minor >> 4), part);
@@ -1715,8 +1634,6 @@ int st_expr_expand(char *output, unsigned int length, const char *input,
 	const char *ptr;
 	struct passwd *pwent;
 	char buffer[BUFFER_SIZE], tmp[STRING_LENGTH];
-
-	debug_msg_logger(LOG_INFO, __FUNCTION__);
 
 	if (length > BUFFER_SIZE)
 		length = BUFFER_SIZE;
@@ -1808,8 +1725,6 @@ static const char *expand_variable(char *buffer, unsigned int length,
 	unsigned int open_braces;
 	const char *env, *ptr;
 	char tmp[STRING_LENGTH];
-
-	debug_msg_logger(LOG_INFO, __FUNCTION__);
 
 	ch = input[0];
 	if (ch == '$') {
@@ -1942,8 +1857,6 @@ static const char *get_variable_v2(const char *variable,
 */
 {
 	const char *value;
-
-	debug_msg_logger(LOG_INFO, __FUNCTION__);
 
 	if (func != NULL) {
 		value = (*func)(variable, info);
