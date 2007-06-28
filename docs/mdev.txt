@@ -66,3 +66,15 @@ command to the shell), so make sure you have a shell installed at /bin/sh.
 
 For your convenience, the shell env var $MDEV is set to the device name.  So if
 the device 'hdc' was matched, MDEV would be set to "hdc".
+
+----------
+ FIRMWARE
+----------
+
+Some kernel device drivers need to request firmware at runtime in order to
+properly initialize a device.  Place all such firmware files into the
+/lib/firmware/ directory.  At runtime, the kernel will invoke mdev with the
+filename of the firmware which mdev will load out of /lib/firmware/ and into
+the kernel via the sysfs interface.  The exact filename is hardcoded in the
+kernel, so look there if you need to want to know what to name the file in
+userspace.
