@@ -124,11 +124,11 @@ char *xmalloc_reads(int fd, char *buf)
 
 ssize_t read_close(int fd, void *buf, size_t size)
 {
-	int e;
+	/*int e;*/
 	size = full_read(fd, buf, size);
-	e = errno;
+	/*e = errno;*/
 	close(fd);
-	errno = e;
+	/*errno = e;*/
 	return size;
 }
 

@@ -836,7 +836,7 @@ enum { COMM_LEN = 16 };
 typedef struct {
 	DIR *dir;
 /* Fields are set to 0/NULL if failed to determine (or not requested) */
-	char *cmd;
+	/*char *cmd;*/
 	char *argv0;
 	/*char *exe;*/
 	USE_SELINUX(char *context;)
@@ -852,7 +852,9 @@ typedef struct {
 	unsigned gid;
 	unsigned tty_major,tty_minor;
 	char state[4];
-	/* basename of executable in exec(2), read from /proc/N/stat */
+	/* basename of executable in exec(2), read from /proc/N/stat
+	 * (if executable is symlink or script, it is NOT replaced
+	 * by link target or interpreter name) */
 	char comm[COMM_LEN];
 	/* user/group? - use passwd/group parsing functions */
 } procps_status_t;
@@ -863,9 +865,9 @@ enum {
 	PSSCAN_SID      = 1 << 3,
 	PSSCAN_UIDGID   = 1 << 4,
 	PSSCAN_COMM     = 1 << 5,
-	PSSCAN_CMD      = 1 << 6,
+	/* PSSCAN_CMD      = 1 << 6, - use read_cmdline instead */
 	PSSCAN_ARGV0    = 1 << 7,
-	PSSCAN_EXE      = 1 << 8, /* not implemented yet */
+	/* PSSCAN_EXE      = 1 << 8, - not implemented */
 	PSSCAN_STATE    = 1 << 9,
 	PSSCAN_VSZ      = 1 << 10,
 	PSSCAN_RSS      = 1 << 11,
@@ -883,6 +885,9 @@ enum {
 procps_status_t* alloc_procps_scan(int flags);
 void free_procps_scan(procps_status_t* sp);
 procps_status_t* procps_scan(procps_status_t* sp, int flags);
+/* Format cmdline (up to col chars) into char buf[col+1] */
+/* Puts [comm] if cmdline is empty (-> process is a kernel thread) */
+void read_cmdline(char *buf, int col, unsigned pid, const char *comm);
 pid_t *find_pid_by_name(const char* procName);
 pid_t *pidlist_reverse(pid_t *pidList);
 

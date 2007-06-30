@@ -102,7 +102,7 @@ procps_status_t *alloc_procps_scan(int flags)
 void free_procps_scan(procps_status_t* sp)
 {
 	closedir(sp->dir);
-	free(sp->cmd);
+	free(sp->argv0);
 	USE_SELINUX(free(sp->context);)
 	free(sp);
 }
@@ -266,6 +266,7 @@ procps_status_t *procps_scan(procps_status_t* sp, int flags)
 
 		}
 
+#if 0 /* PSSCAN_CMD is not used */
 		if (flags & (PSSCAN_CMD|PSSCAN_ARGV0)) {
 			if (sp->argv0) {
 				free(sp->argv0);
@@ -292,10 +293,42 @@ procps_status_t *procps_scan(procps_status_t* sp, int flags)
 				sp->cmd = xstrdup(buf);
 			}
 		}
+#else
+		if (flags & PSSCAN_ARGV0) {
+			if (sp->argv0) {
+				free(sp->argv0);
+				sp->argv0 = NULL;
+			}
+			strcpy(filename_tail, "/cmdline");
+			n = read_to_buf(filename, buf);
+			if (n <= 0)
+				break;
+			if (flags & PSSCAN_ARGV0)
+				sp->argv0 = xstrdup(buf);
+		}
+#endif
 		break;
 	}
 	return sp;
 }
+
+void read_cmdline(char *buf, int col, unsigned pid, const char *comm)
+{
+	ssize_t sz;
+	char filename[sizeof("/proc//cmdline") + sizeof(int)*3];
+
+	sprintf(filename, "/proc/%u/cmdline", pid);
+	sz = open_read_close(filename, buf, col);
+	if (sz > 0) {
+		buf[sz] = '\0';
+		while (--sz >= 0)
+			if ((unsigned char)(buf[sz]) < ' ')
+				buf[sz] = ' ';
+	} else {
+		snprintf(buf, col, "[%s]", comm);
+	}
+}
+
 /* from kernel:
 	//             pid comm S ppid pgid sid tty_nr tty_pgrp flg
 	sprintf(buffer,"%d (%s) %c %d  %d   %d  %d     %d       %lu %lu \

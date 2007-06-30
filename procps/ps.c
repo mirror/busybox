@@ -27,11 +27,7 @@ static void func_comm(char *buf, int size, const procps_status_t *ps)
 
 static void func_args(char *buf, int size, const procps_status_t *ps)
 {
-	buf[0] = '\0';
-	if (ps->cmd)
-		safe_strncpy(buf, ps->cmd, size+1);
-	else if (size >= 2)
-		sprintf(buf, "[%.*s]", size-2, ps->comm);
+	read_cmdline(buf, size, ps->pid, ps->comm);
 }
 
 static void func_pid(char *buf, int size, const procps_status_t *ps)
@@ -112,25 +108,25 @@ typedef struct {
 
 static const ps_out_t out_spec[] = {
 // Mandated by POSIX:
-	{ 8                  , "user"  ,"USER"   ,func_user  ,PSSCAN_UIDGID          },
-	{ 16                 , "comm"  ,"COMMAND",func_comm  ,PSSCAN_COMM            },
-	{ 256                , "args"  ,"COMMAND",func_args  ,PSSCAN_CMD|PSSCAN_COMM },
-	{ 5                  , "pid"   ,"PID"    ,func_pid   ,PSSCAN_PID             },
-	{ 5                  , "ppid"  ,"PPID"   ,func_ppid  ,PSSCAN_PPID            },
-	{ 5                  , "pgid"  ,"PGID"   ,func_pgid  ,PSSCAN_PGID            },
-//	{ sizeof("ELAPSED")-1, "etime" ,"ELAPSED",func_etime ,PSSCAN_                },
-//	{ sizeof("GROUP"  )-1, "group" ,"GROUP"  ,func_group ,PSSCAN_UIDGID          },
-//	{ sizeof("NI"     )-1, "nice"  ,"NI"     ,func_nice  ,PSSCAN_                },
-//	{ sizeof("%CPU"   )-1, "pcpu"  ,"%CPU"   ,func_pcpu  ,PSSCAN_                },
-//	{ sizeof("RGROUP" )-1, "rgroup","RGROUP" ,func_rgroup,PSSCAN_UIDGID          },
-//	{ sizeof("RUSER"  )-1, "ruser" ,"RUSER"  ,func_ruser ,PSSCAN_UIDGID          },
-//	{ sizeof("TIME"   )-1, "time"  ,"TIME"   ,func_time  ,PSSCAN_                },
-	{ 6                  , "tty"   ,"TT"     ,func_tty   ,PSSCAN_TTY             },
-	{ 4                  , "vsz"   ,"VSZ"    ,func_vsz   ,PSSCAN_VSZ             },
+	{ 8                  , "user"  ,"USER"   ,func_user  ,PSSCAN_UIDGID  },
+	{ 16                 , "comm"  ,"COMMAND",func_comm  ,PSSCAN_COMM    },
+	{ 256                , "args"  ,"COMMAND",func_args  ,PSSCAN_COMM    },
+	{ 5                  , "pid"   ,"PID"    ,func_pid   ,PSSCAN_PID     },
+	{ 5                  , "ppid"  ,"PPID"   ,func_ppid  ,PSSCAN_PPID    },
+	{ 5                  , "pgid"  ,"PGID"   ,func_pgid  ,PSSCAN_PGID    },
+//	{ sizeof("ELAPSED")-1, "etime" ,"ELAPSED",func_etime ,PSSCAN_        },
+//	{ sizeof("GROUP"  )-1, "group" ,"GROUP"  ,func_group ,PSSCAN_UIDGID  },
+//	{ sizeof("NI"     )-1, "nice"  ,"NI"     ,func_nice  ,PSSCAN_        },
+//	{ sizeof("%CPU"   )-1, "pcpu"  ,"%CPU"   ,func_pcpu  ,PSSCAN_        },
+//	{ sizeof("RGROUP" )-1, "rgroup","RGROUP" ,func_rgroup,PSSCAN_UIDGID  },
+//	{ sizeof("RUSER"  )-1, "ruser" ,"RUSER"  ,func_ruser ,PSSCAN_UIDGID  },
+//	{ sizeof("TIME"   )-1, "time"  ,"TIME"   ,func_time  ,PSSCAN_        },
+	{ 6                  , "tty"   ,"TT"     ,func_tty   ,PSSCAN_TTY     },
+	{ 4                  , "vsz"   ,"VSZ"    ,func_vsz   ,PSSCAN_VSZ     },
 // Not mandated by POSIX, but useful:
-	{ 4                  , "rss"   ,"RSS"    ,func_rss   ,PSSCAN_RSS             },
+	{ 4                  , "rss"   ,"RSS"    ,func_rss   ,PSSCAN_RSS     },
 #if ENABLE_SELINUX
-	{ 35                 , "label" ,"LABEL"  ,func_label ,PSSCAN_CONTEXT         },
+	{ 35                 , "label" ,"LABEL"  ,func_label ,PSSCAN_CONTEXT },
 #endif
 };
 
@@ -386,10 +382,9 @@ int ps_main(int argc, char **argv)
 			| PSSCAN_UIDGID
 			| PSSCAN_STATE
 			| PSSCAN_VSZ
-			| PSSCAN_CMD
+			| PSSCAN_COMM
 			| use_selinux
 	))) {
-		char *namecmd = p->cmd;
 #if ENABLE_SELINUX
 		if (use_selinux) {
 			len = printf("%5u %-32s %s ",
@@ -408,21 +403,11 @@ int ps_main(int argc, char **argv)
 					p->pid, user, p->vsz, p->state);
 		}
 
-		i = terminal_width-len;
-
-		if (namecmd && namecmd[0]) {
-			if (i < 0)
-				i = 0;
-			if (strlen(namecmd) > (size_t)i)
-				namecmd[i] = '\0';
-			puts(namecmd);
-		} else {
-			namecmd = p->comm;
-			if (i < 2)
-				i = 2;
-			if (strlen(namecmd) > ((size_t)i-2))
-				namecmd[i-2] = '\0';
-			printf("[%s]\n", namecmd);
+		{
+			char sz = terminal_width - len;
+			char buf[sz + 1];
+			read_cmdline(buf, sz, p->pid, p->comm);
+			puts(buf);
 		}
 	}
 	if (ENABLE_FEATURE_CLEAN_UP)

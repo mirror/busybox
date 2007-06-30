@@ -40,11 +40,10 @@ typedef struct top_status_t {
 	unsigned pid, ppid;
 	unsigned uid;
 	char state[4];
-/* TODO: read /proc/$PID/cmdline only for processes which are displayed */
-	char cmd[64];
+	char comm[COMM_LEN];
 } top_status_t;
 
-typedef struct jiffy_counts_t{
+typedef struct jiffy_counts_t {
 	unsigned long long usr,nic,sys,idle,iowait,irq,softirq,steal;
 	unsigned long long total;
 	unsigned long long busy;
@@ -421,7 +420,7 @@ static void display_status(int count, int scr_width)
 
 	/* Ok, all prelim data is ready, go thru the list */
 	while (count-- > 0) {
-		int col = scr_width+1;
+		int col = scr_width;
 		CALC_STAT(pmem, (s->vsz*pmem_scale + pmem_half) >> pmem_shift);
 #if ENABLE_FEATURE_TOP_CPU_USAGE_PERCENTAGE
 		CALC_STAT(pcpu, (s->pcpu*pcpu_scale + pcpu_half) >> pcpu_shift);
@@ -444,8 +443,11 @@ static void display_status(int count, int scr_width)
 				, SHOW_STAT(pcpu)
 #endif
 		);
-		if (col > 0)
-			printf("%.*s", col, s->cmd);
+		if (col > 0) {
+			char buf[col + 1];
+			read_cmdline(buf, col, s->pid, s->comm);
+			fputs(buf, stdout);
+		}
 		/* printf(" %d/%d %lld/%lld", s->pcpu, total_pcpu,
 			jif.busy - prev_jif.busy, jif.total - prev_jif.total); */
 		s++;
@@ -560,12 +562,11 @@ int top_main(int argc, char **argv)
 				| PSSCAN_UTIME
 				| PSSCAN_STATE
 				| PSSCAN_COMM
-				| PSSCAN_CMD
 				| PSSCAN_SID
 				| PSSCAN_UIDGID
 		))) {
 			int n = ntop;
-			top = xrealloc(top, (++ntop)*sizeof(top_status_t));
+			top = xrealloc(top, (++ntop) * sizeof(*top));
 			top[n].pid = p->pid;
 			top[n].ppid = p->ppid;
 			top[n].vsz = p->vsz;
@@ -574,10 +575,7 @@ int top_main(int argc, char **argv)
 #endif
 			top[n].uid = p->uid;
 			strcpy(top[n].state, p->state);
-			if (p->cmd)
-				safe_strncpy(top[n].cmd, p->cmd, sizeof(top[n].cmd));
-			else /* mimic ps */
-				sprintf(top[n].cmd, "[%s]", p->comm);
+			strcpy(top[n].comm, p->comm);
 		}
 		if (ntop == 0) {
 			bb_error_msg_and_die("no process info in /proc");
