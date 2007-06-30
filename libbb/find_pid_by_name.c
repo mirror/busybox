@@ -38,14 +38,6 @@ execXXX("/proc/self/exe", applet_name, params....)
 and therefore comm field contains "exe".
 */
 
-static const char *bb_basename(const char *name)
-{
-	const char *cp = strrchr(name, '/');
-	if (cp)
-		return cp + 1;
-	return name;
-}
-
 /* find_pid_by_name()
  *
  *  Modified by Vladimir Oleynik for use with libbb/procps.c

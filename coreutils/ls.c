@@ -132,8 +132,8 @@ enum { show_color = 0 };
  * a directory entry and its stat info are stored here
  */
 struct dnode {                  /* the basic node */
-	char *name;             /* the dir entry name */
-	char *fullname;         /* the dir entry name */
+	const char *name;             /* the dir entry name */
+	const char *fullname;         /* the dir entry name */
 	int   allocated;
 	struct stat dstat;      /* the file stat info */
 	USE_SELINUX(security_context_t sid;)
@@ -159,7 +159,7 @@ enum {
 
 static int status = EXIT_SUCCESS;
 
-static struct dnode *my_stat(char *fullname, char *name, int force_follow)
+static struct dnode *my_stat(const char *fullname, const char *name, int force_follow)
 {
 	struct stat dstat;
 	struct dnode *cur;
@@ -241,7 +241,7 @@ static int count_dirs(struct dnode **dn, int nfiles, int notsubdirs)
 		return 0;
 	dirs = 0;
 	for (i = 0; i < nfiles; i++) {
-		char *name;
+		const char *name;
 		if (!S_ISDIR(dn[i]->dstat.st_mode))
 			continue;
 		name = dn[i]->name;
@@ -288,7 +288,7 @@ static void dfree(struct dnode **dnp, int nfiles)
 	for (i = 0; i < nfiles; i++) {
 		struct dnode *cur = dnp[i];
 		if (cur->allocated)
-			free(cur->fullname);	/* free the filename */
+			free((char*)cur->fullname);	/* free the filename */
 		free(cur);		/* free the dnode */
 	}
 	free(dnp);			/* free the array holding the dnode pointers */
@@ -320,7 +320,7 @@ static struct dnode **splitdnarray(struct dnode **dn, int nfiles, int which)
 	/* copy the entrys into the file or dir array */
 	for (d = i = 0; i < nfiles; i++) {
 		if (S_ISDIR(dn[i]->dstat.st_mode)) {
-			char *name;
+			const char *name;
 			if (!(which & (SPLIT_DIR|SPLIT_SUBDIR)))
 				continue;
 			name = dn[i]->name;
@@ -513,7 +513,7 @@ static struct dnode **list_dir(const char *path)
 				continue;
 		}
 		fullname = concat_path_file(path, entry->d_name);
-		cur = my_stat(fullname, strrchr(fullname, '/') + 1, 0);
+		cur = my_stat(fullname, bb_basename(fullname), 0);
 		if (!cur) {
 			free(fullname);
 			continue;

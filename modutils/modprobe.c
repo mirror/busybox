@@ -376,18 +376,13 @@ static struct dep_t *build_dep(void)
 
 			if (col) {
 				/* This line is a dep description */
-				char *mods;
+				const char *mods;
 				char *modpath;
 				char *mod;
 
 				/* Find the beginning of the module file name */
 				*col = 0;
-				mods = strrchr(buffer, '/');
-
-				if (!mods)
-					mods = buffer; /* no path for this module */
-				else
-					mods++; /* there was a path for this module... */
+				mods = bb_basename(buffer);
 
 				/* find the path of the module */
 				modpath = strchr(buffer, '/'); /* ... and this is the path */
@@ -433,7 +428,7 @@ static struct dep_t *build_dep(void)
 		/* p points to the first dependable module; if NULL, no dependable module */
 		if (p && *p) {
 			char *end = &buffer[l-1];
-			char *deps;
+			const char *deps;
 			char *dep;
 			char *next;
 			int ext = 0;
@@ -451,15 +446,11 @@ static struct dep_t *build_dep(void)
 					next = end;
 
 				/* find the beginning of the module file name */
-				deps = strrchr(p, '/');
-
-				if (!deps || (deps < p)) {
-					deps = p;
-
+				deps = bb_basename(p);
+				if (deps == p) {
 					while (isblank(*deps))
 						deps++;
-				} else
-					deps++;
+				}
 
 				/* find the end of the module name in the file name */
 				if (ENABLE_FEATURE_2_6_MODULES

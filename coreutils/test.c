@@ -181,11 +181,10 @@ static void initialize_group_array(void);
 int test_main(int argc, char **argv)
 {
 	int res;
-	char *arg0;
+	const char *arg0;
 	bool _off;
 
-	arg0 = strrchr(argv[0], '/');
-	if (!arg0++) arg0 = argv[0];
+	arg0 = bb_basename(argv[0]);
 	if (arg0[0] == '[') {
 		--argc;
 		if (!arg0[1]) { /* "[" ? */

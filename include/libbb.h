@@ -736,6 +736,7 @@ extern int bb_parse_mode(const char* s, mode_t* theMode);
 
 char *concat_path_file(const char *path, const char *filename);
 char *concat_subpath_file(const char *path, const char *filename);
+const char *bb_basename(const char *name);
 /* NB: can violate const-ness (similarly to strchr) */
 char *last_char_is(const char *s, int c);
 

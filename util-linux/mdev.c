@@ -24,7 +24,7 @@ struct globals {
 /* mknod in /dev based on a path like "/sys/block/hda/hda1" */
 static void make_device(char *path, int delete)
 {
-	char *device_name;
+	const char *device_name;
 	int major, minor, type, len;
 	int mode = 0660;
 	uid_t uid = 0;
@@ -46,7 +46,7 @@ static void make_device(char *path, int delete)
 
 	/* Determine device name, type, major and minor */
 
-	device_name = strrchr(path, '/') + 1;
+	device_name = bb_basename(path);
 	type = path[5]=='c' ? S_IFCHR : S_IFBLK;
 
 	/* If we have a config file, look up permissions for this device */

@@ -240,8 +240,8 @@ static void do_ioctl_and_die(int fd, int request, unsigned long event_mask_flag)
 static void fork_and_execute(int die, char *arg0, char **arg);
 static int get_uid_gid(int, const char *);
 static void safe_memcpy(char * dest, const char * src, int len);
-static unsigned int scan_dev_name_common(const char *d, unsigned int n, int addendum, char *ptr);
-static unsigned int scan_dev_name(const char *d, unsigned int n, char *ptr);
+static unsigned int scan_dev_name_common(const char *d, unsigned int n, int addendum, const char *ptr);
+static unsigned int scan_dev_name(const char *d, unsigned int n, const char *ptr);
 
 /* Structs and vars */
 static struct config_entry_struct *first_config = NULL;
@@ -369,7 +369,7 @@ static void safe_memcpy(char *dest, const char *src, int len)
 	dest[len] = '\0';
 }
 
-static unsigned int scan_dev_name_common(const char *d, unsigned int n, int addendum, char *ptr)
+static unsigned int scan_dev_name_common(const char *d, unsigned int n, int addendum, const char *ptr)
 {
 	if (d[n - 4] == 'd' && d[n - 3] == 'i' && d[n - 2] == 's' && d[n - 1] == 'c')
 		return 2 + addendum;
@@ -382,7 +382,7 @@ static unsigned int scan_dev_name_common(const char *d, unsigned int n, int adde
 	return 0;
 }
 
-static unsigned int scan_dev_name(const char *d, unsigned int n, char *ptr)
+static unsigned int scan_dev_name(const char *d, unsigned int n, const char *ptr)
 {
 	if (d[0] == 's' && d[1] == 'c' && d[2] == 's' && d[3] == 'i' && d[4] == '/') {
 		if (d[n - 7] == 'g' && d[n - 6] == 'e' && d[n - 5] == 'n'
@@ -926,7 +926,7 @@ static void action_compat(const struct devfsd_notify_struct *info, unsigned int 
 	int ret;
 	const char *compat_name = NULL;
 	const char *dest_name = info->devname;
-	char *ptr=NULL;
+	const char *ptr;
 	char compat_buf[STRING_LENGTH], dest_buf[STRING_LENGTH];
 	int mode, host, bus, target, lun;
 	unsigned int i;
@@ -954,7 +954,7 @@ static void action_compat(const struct devfsd_notify_struct *info, unsigned int 
 			break;
 		case AC_MKNEWCOMPAT:
 		case AC_RMNEWCOMPAT:
-			ptr = strrchr(info->devname, '/') + 1;
+			ptr = bb_basename(info->devname);
 			i = scan_dev_name(info->devname, info->namelen, ptr);
 
 			/* nothing found */
@@ -1460,7 +1460,7 @@ const char *get_old_name(const char *devname, unsigned int namelen,
 */
 {
 	const char *compat_name = NULL;
-	char *ptr;
+	const char *ptr;
 	struct translate_struct *trans;
 	unsigned int i;
 	char mode;
@@ -1497,7 +1497,7 @@ const char *get_old_name(const char *devname, unsigned int namelen,
 		}
 	}
 
-	ptr = (strrchr(devname, '/') + 1);
+	ptr = bb_basename(devname);
 	i = scan_dev_name(devname, namelen, ptr);
 
 	if (i > 0 && i < 13)

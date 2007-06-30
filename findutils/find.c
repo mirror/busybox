@@ -180,18 +180,13 @@ static int exec_actions(action ***appp, const char *fileName, struct stat *statb
 
 ACTF(name)
 {
-	const char *tmp = strrchr(fileName, '/');
-	if (tmp == NULL)
-		tmp = fileName;
-	else {
-		tmp++;
-		if (!*tmp) { /* "foo/bar/". Oh no... go back to 'b' */
-			tmp--;
-			while (tmp != fileName && *--tmp != '/')
-				continue;
-			if (*tmp == '/')
-				tmp++;
-		}
+	const char *tmp = bb_basename(fileName);
+	if (tmp != fileName && !*tmp) { /* "foo/bar/". Oh no... go back to 'b' */
+		tmp--;
+		while (tmp != fileName && *--tmp != '/')
+			continue;
+		if (*tmp == '/')
+			tmp++;
 	}
 	return fnmatch(ap->pattern, tmp, FNM_PERIOD) == 0;
 }

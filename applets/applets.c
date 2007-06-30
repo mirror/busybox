@@ -639,8 +639,6 @@ int *const bb_errno __attribute__ ((section (".data")));
 
 int main(int argc, char **argv)
 {
-	const char *s;
-
 #ifdef __GLIBC__
 	(*(int **)&bb_errno) = __errno_location();
 #endif
@@ -655,9 +653,7 @@ int main(int argc, char **argv)
 	applet_name = argv[0];
 	if (applet_name[0] == '-')
 		applet_name++;
-	s = strrchr(applet_name, '/');
-	if (s)
-		applet_name = s + 1;
+	applet_name = bb_basename(applet_name);
 
 	parse_config_file(); /* ...maybe, if FEATURE_SUID_CONFIG */
 

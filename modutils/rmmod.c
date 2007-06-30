@@ -81,12 +81,7 @@ int rmmod_main(int argc, char **argv)
 
 	for (n = optind; n < argc; n++) {
 		if (ENABLE_FEATURE_2_6_MODULES) {
-			const char *afterslash;
-
-			afterslash = strrchr(argv[n], '/');
-			if (!afterslash) afterslash = argv[n];
-			else afterslash++;
-			filename2modname(misc_buf, afterslash);
+			filename2modname(misc_buf, bb_basename(argv[n]));
 		}
 
 		if (syscall(__NR_delete_module, ENABLE_FEATURE_2_6_MODULES ? misc_buf : argv[n], flags)) {

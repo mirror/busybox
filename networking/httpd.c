@@ -1125,7 +1125,7 @@ static int sendCgi(const char *url,
 			setenv1("HTTP_REFERER", referer);
 
 		/* set execve argp[0] without path */
-		argp[0] = strrchr(purl, '/') + 1;
+		argp[0] = (char*)bb_basename(purl);
 		/* but script argp[0] must have absolute path and chdiring to this */
 		script = strrchr(fullpath, '/');
 		if (!script)
@@ -1713,7 +1713,7 @@ static void handleIncoming(void)
 		if (alarm_signaled)
 			break;
 
-		if (strcmp(strrchr(url, '/') + 1, httpd_conf) == 0 || ip_allowed == 0) {
+		if (strcmp(bb_basename(url), httpd_conf) == 0 || ip_allowed == 0) {
 			/* protect listing [/path]/httpd_conf or IP deny */
 #if ENABLE_FEATURE_HTTPD_CGI
  FORBIDDEN:		/* protect listing /cgi-bin */

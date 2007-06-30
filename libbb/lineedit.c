@@ -1156,7 +1156,7 @@ static void parse_prompt(const char *prmt_ptr)
 #endif
 				case 'W':
 					pbuf = pwd_buf;
-					cp = strrchr(pbuf,'/');
+					cp = strrchr(pbuf, '/');
 					if (cp != NULL && cp != pbuf)
 						pbuf += (cp-pbuf) + 1;
 					break;

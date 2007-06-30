@@ -60,10 +60,7 @@ struct globals {
  */
 static bool invalid_name(const char *c)
 {
-	const char *base_name = strrchr(c, '/');
-
-	if (base_name)
-		c = base_name + 1;
+	c = bb_basename(c);
 
 	while (*c && (isalnum(*c) || *c == '_' || *c == '-'))
 		c++;
