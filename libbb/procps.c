@@ -109,9 +109,10 @@ void free_procps_scan(procps_status_t* sp)
 
 #if ENABLE_FEATURE_FAST_TOP
 /* We cut a lot of corners here for speed */
-static unsigned long fast_strtoul_10(char *str, char **endptr)
+static unsigned long fast_strtoul_10(char **endptr)
 {
 	char c;
+	char *str = *endptr;
 	unsigned long n = *str - '0';
 
 	while ((c = *++str) != ' ')
@@ -123,7 +124,9 @@ static unsigned long fast_strtoul_10(char *str, char **endptr)
 static char *skip_fields(char *str, int count)
 {
 	do {
-		str = skip_non_whitespace(str); str++;
+		while (*str++ != ' ')
+			continue;
+		/* we found a space char, str points after it */
 	} while (--count);
 	return str;
 }
@@ -181,11 +184,11 @@ procps_status_t* procps_scan(procps_status_t* sp, int flags)
 		}
 
 		if (flags & PSSCAN_STAT) {
-			char *cp;
+			char *cp, *comm1;
+			int tty;
 #if !ENABLE_FEATURE_FAST_TOP
 			unsigned long vsz, rss;
 #endif
-			int tty;
 
 			/* see proc(5) for some details on this */
 			strcpy(filename_tail, "/stat");
@@ -193,12 +196,14 @@ procps_status_t* procps_scan(procps_status_t* sp, int flags)
 			if (n < 0)
 				break;
 			cp = strrchr(buf, ')'); /* split into "PID (cmd" and "<rest>" */
-			if (!cp || cp[1] != ' ')
-				break;
+			/*if (!cp || cp[1] != ' ')
+				break;*/
 			cp[0] = '\0';
 			if (sizeof(sp->comm) < 16)
 				BUG_comm_size();
-			sscanf(buf, "%*s (%15c", sp->comm);
+			comm1 = strchr(buf, '(');
+			/*if (comm1)*/
+				safe_strncpy(sp->comm, comm1 + 1, sizeof(sp->comm));
 
 #if !ENABLE_FEATURE_FAST_TOP
 			n = sscanf(cp+2,
@@ -231,20 +236,21 @@ procps_status_t* procps_scan(procps_status_t* sp, int flags)
 /* This costs ~100 bytes more but makes top faster by 20%
  * If you run 10000 processes, this may be important for you */
 			sp->state[0] = cp[2];
-			sp->ppid = fast_strtoul_10(cp + 4, &cp);
-			sp->pgid = fast_strtoul_10(cp, &cp);
-			sp->sid = fast_strtoul_10(cp, &cp);
-			tty = fast_strtoul_10(cp, &cp);
+			cp += 4;
+			sp->ppid = fast_strtoul_10(&cp);
+			sp->pgid = fast_strtoul_10(&cp);
+			sp->sid = fast_strtoul_10(&cp);
+			tty = fast_strtoul_10(&cp);
 			sp->tty_major = (tty >> 8) & 0xfff;
 			sp->tty_minor = (tty & 0xff) | ((tty >> 12) & 0xfff00);
 			cp = skip_fields(cp, 6); /* tpgid, flags, min_flt, cmin_flt, maj_flt, cmaj_flt */
-			sp->utime = fast_strtoul_10(cp, &cp);
-			sp->stime = fast_strtoul_10(cp, &cp);
+			sp->utime = fast_strtoul_10(&cp);
+			sp->stime = fast_strtoul_10(&cp);
 			cp = skip_fields(cp, 3); /* cutime, cstime, priority */
-			tasknice = fast_strtoul_10(cp, &cp);
+			tasknice = fast_strtoul_10(&cp);
 			cp = skip_fields(cp, 3); /* timeout, it_real_value, start_time */
-			sp->vsz = fast_strtoul_10(cp, &cp) >> 10; /* vsize is in bytes and we want kb */
-			sp->rss = fast_strtoul_10(cp, &cp) >> 10;
+			sp->vsz = fast_strtoul_10(&cp) >> 10; /* vsize is in bytes and we want kb */
+			sp->rss = fast_strtoul_10(&cp) >> 10;
 #endif
 
 			if (sp->vsz == 0 && sp->state[0] != 'Z')
