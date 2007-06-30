@@ -267,11 +267,11 @@ int wget_main(int argc, char **argv)
 #if ENABLE_FEATURE_WGET_AUTHENTICATION
 			if (target.user) {
 				fprintf(sfp, "Authorization: Basic %s\r\n",
-					base64enc((unsigned char*)target.user, buf, sizeof(buf)));
+					base64enc((unsigned char*)target.user, buf, strlen(target.user)));
 			}
 			if (use_proxy && server.user) {
 				fprintf(sfp, "Proxy-Authorization: Basic %s\r\n",
-					base64enc((unsigned char*)server.user, buf, sizeof(buf)));
+					base64enc((unsigned char*)server.user, buf, strlen(server.user)));
 			}
 #endif
 
