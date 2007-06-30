@@ -92,7 +92,7 @@ static int read_to_buf(const char *filename, void *buf)
 	return ret;
 }
 
-procps_status_t* alloc_procps_scan(int flags)
+procps_status_t *alloc_procps_scan(int flags)
 {
 	procps_status_t* sp = xzalloc(sizeof(procps_status_t));
 	sp->dir = xopendir("/proc");
@@ -133,7 +133,7 @@ static char *skip_fields(char *str, int count)
 #endif
 
 void BUG_comm_size(void);
-procps_status_t* procps_scan(procps_status_t* sp, int flags)
+procps_status_t *procps_scan(procps_status_t* sp, int flags)
 {
 	struct dirent *entry;
 	char buf[PROCPS_BUFSIZE];
@@ -266,24 +266,31 @@ procps_status_t* procps_scan(procps_status_t* sp, int flags)
 
 		}
 
-		if (flags & PSSCAN_CMD) {
-			free(sp->cmd);
-			sp->cmd = NULL;
+		if (flags & (PSSCAN_CMD|PSSCAN_ARGV0)) {
+			if (sp->argv0) {
+				free(sp->argv0);
+				sp->argv0 = NULL;
+			}
+			if (sp->cmd) {
+				free(sp->cmd);
+				sp->cmd = NULL;
+			}
 			strcpy(filename_tail, "/cmdline");
+			/* TODO: to get rid of size limits, read into malloc buf,
+			 * then realloc it down to real size. */
 			n = read_to_buf(filename, buf);
 			if (n <= 0)
 				break;
-			if (buf[n-1] == '\n') {
-				if (!--n)
-					break;
-				buf[n] = '\0';
+			if (flags & PSSCAN_ARGV0)
+				sp->argv0 = xstrdup(buf);
+			if (flags & PSSCAN_CMD) {
+				do {
+					n--;
+					if ((unsigned char)(buf[n]) < ' ')
+						buf[n] = ' ';
+				} while (n);
+				sp->cmd = xstrdup(buf);
 			}
-			do {
-				n--;
-				if ((unsigned char)(buf[n]) < ' ')
-					buf[n] = ' ';
-			} while (n);
-			sp->cmd = xstrdup(buf);
 		}
 		break;
 	}

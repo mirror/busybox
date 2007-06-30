@@ -40,7 +40,8 @@ typedef struct top_status_t {
 	unsigned pid, ppid;
 	unsigned uid;
 	char state[4];
-	char comm[COMM_LEN];
+/* TODO: read /proc/$PID/cmdline only for processes which are displayed */
+	char cmd[64];
 } top_status_t;
 
 typedef struct jiffy_counts_t{
@@ -444,7 +445,7 @@ static void display_status(int count, int scr_width)
 #endif
 		);
 		if (col > 0)
-			printf("%.*s", col, s->comm);
+			printf("%.*s", col, s->cmd);
 		/* printf(" %d/%d %lld/%lld", s->pcpu, total_pcpu,
 			jif.busy - prev_jif.busy, jif.total - prev_jif.total); */
 		s++;
@@ -559,6 +560,7 @@ int top_main(int argc, char **argv)
 				| PSSCAN_UTIME
 				| PSSCAN_STATE
 				| PSSCAN_COMM
+				| PSSCAN_CMD
 				| PSSCAN_SID
 				| PSSCAN_UIDGID
 		))) {
@@ -572,7 +574,10 @@ int top_main(int argc, char **argv)
 #endif
 			top[n].uid = p->uid;
 			strcpy(top[n].state, p->state);
-			strcpy(top[n].comm, p->comm);
+			if (p->cmd)
+				safe_strncpy(top[n].cmd, p->cmd, sizeof(top[n].cmd));
+			else /* mimic ps */
+				sprintf(top[n].cmd, "[%s]", p->comm);
 		}
 		if (ntop == 0) {
 			bb_error_msg_and_die("no process info in /proc");
@@ -585,6 +590,7 @@ int top_main(int argc, char **argv)
 			continue;
 		}
 		do_stats();
+/* TODO: we don't need to sort all 10000 processes, we need to find top 24! */
 		qsort(top, ntop, sizeof(top_status_t), (void*)mult_lvl_cmp);
 #else
 		qsort(top, ntop, sizeof(top_status_t), (void*)sort_function);

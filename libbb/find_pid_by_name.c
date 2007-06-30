@@ -38,6 +38,14 @@ execXXX("/proc/self/exe", applet_name, params....)
 and therefore comm field contains "exe".
 */
 
+static const char *bb_basename(const char *name)
+{
+	const char *cp = strrchr(name, '/');
+	if (cp)
+		return cp + 1;
+	return name;
+}
+
 /* find_pid_by_name()
  *
  *  Modified by Vladimir Oleynik for use with libbb/procps.c
@@ -55,8 +63,16 @@ pid_t* find_pid_by_name(const char* procName)
 	procps_status_t* p = NULL;
 
 	pidList = xmalloc(sizeof(*pidList));
-	while ((p = procps_scan(p, PSSCAN_PID|PSSCAN_COMM))) {
-		if (strncmp(p->comm, procName, sizeof(p->comm)-1) == 0) {
+	while ((p = procps_scan(p, PSSCAN_PID|PSSCAN_COMM|PSSCAN_ARGV0))) {
+		if (
+		/* we require comm to match and to not be truncated */
+		/* in Linux, if comm is 15 chars, it may be a truncated
+		 * name, so we don't allow that to match */
+		    (!p->comm[sizeof(p->comm)-2] && strcmp(p->comm, procName) == 0)
+		/* or we require argv0 to match (essential for matching reexeced /proc/self/exe)*/
+		 || (p->argv0 && strcmp(bb_basename(p->argv0), procName) == 0)
+		/* TOOD: we can also try exe, do we want that? */
+		) {
 			pidList = xrealloc(pidList, sizeof(*pidList) * (i+2));
 			pidList[i++] = p->pid;
 		}
