@@ -758,12 +758,12 @@ static action*** parse_params(char **argv)
 #define XATOU_SFX xatoul_sfx
 #endif
 			static const struct suffix_mult find_suffixes[] = {
-			        { "c", 1 },
-			        { "w", 2 },
-			        { "b"+1, 512 },
-			        { "b", 512 },
-			        { "k", 1024 },
-			        { NULL, 0 }
+				{ "c", 1 },
+				{ "w", 2 },
+				{ "b"+1, 512 },
+				{ "b", 512 },
+				{ "k", 1024 },
+				{ NULL, 0 }
 			};
 			action_size *ap;
 			ap = ALLOC_ACTION(size);
