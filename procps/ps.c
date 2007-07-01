@@ -368,7 +368,7 @@ int ps_main(int argc, char **argv)
 	i = getopt32(argc, argv, "Z");
 #endif
 #if ENABLE_SELINUX
-	if (i && is_selinux_enabled())
+	if ((i & 1) && is_selinux_enabled())
 		use_selinux = PSSCAN_CONTEXT;
 #endif
 #endif /* ENABLE_FEATURE_PS_WIDE || ENABLE_SELINUX */
