@@ -340,8 +340,9 @@ int ps_main(int argc, char **argv);
 int ps_main(int argc, char **argv)
 {
 	procps_status_t *p = NULL;
-	int i, len;
+	int len;
 	SKIP_SELINUX(const) int use_selinux = 0;
+	USE_SELINUX(int i;)
 #if !ENABLE_FEATURE_PS_WIDE
 	enum { terminal_width = 79 };
 #else
@@ -367,7 +368,7 @@ int ps_main(int argc, char **argv)
 	i = getopt32(argc, argv, "Z");
 #endif
 #if ENABLE_SELINUX
-	if ((i & 1) && is_selinux_enabled())
+	if (i && is_selinux_enabled())
 		use_selinux = PSSCAN_CONTEXT;
 #endif
 #endif /* ENABLE_FEATURE_PS_WIDE || ENABLE_SELINUX */
@@ -404,7 +405,7 @@ int ps_main(int argc, char **argv)
 		}
 
 		{
-			char sz = terminal_width - len;
+			int sz = terminal_width - len;
 			char buf[sz + 1];
 			read_cmdline(buf, sz, p->pid, p->comm);
 			puts(buf);
