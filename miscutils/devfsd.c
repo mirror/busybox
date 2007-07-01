@@ -234,11 +234,8 @@ static char get_old_ide_name(unsigned , unsigned);
 static char *write_old_sd_name(char *, unsigned, unsigned, const char *);
 
 /* busybox functions */
-static void msg_logger(int pri, const char * fmt, ...)__attribute__((format(printf, 2, 3)));
-static void msg_logger_and_die(int pri, const char * fmt, ...)__attribute__((noreturn, format(printf, 2, 3)));
-static void do_ioctl_and_die(int fd, int request, unsigned long event_mask_flag);
-static void fork_and_execute(int die, char *arg0, char **arg);
-static int get_uid_gid(int, const char *);
+static void do_ioctl_or_die(int fd, int request, unsigned long event_mask_flag);
+static int get_uid_gid(int flag, const char *string);
 static void safe_memcpy(char * dest, const char * src, int len);
 static unsigned int scan_dev_name_common(const char *d, unsigned int n, int addendum, const char *ptr);
 static unsigned int scan_dev_name(const char *d, unsigned int n, const char *ptr);
@@ -246,7 +243,7 @@ static unsigned int scan_dev_name(const char *d, unsigned int n, const char *ptr
 /* Structs and vars */
 static struct config_entry_struct *first_config = NULL;
 static struct config_entry_struct *last_config = NULL;
-static const char *mount_point = NULL;
+static char *mount_point = NULL;
 static volatile int caught_signal = FALSE;
 static volatile int caught_sighup = FALSE;
 static struct initial_symlink_struct
@@ -286,81 +283,25 @@ static const char * const bb_msg_bad_config		= "bad %s config file: %s";
 static const char * const bb_msg_small_buffer		= "buffer too small";
 static const char * const bb_msg_variable_not_found = "variable: %s not found";
 
-/* Busybox functions  */
-static void msg_logger(int pri, const char * fmt, ...)
-{
-	va_list ap;
-	int ret;
-
-	va_start(ap, fmt);
-	ret = access("/dev/log", F_OK);
-	if (ret == 0) {
-		openlog(applet_name, 0, LOG_DAEMON);
-		vsyslog(pri , fmt, ap);
-		/* Man: A trailing newline is added when needed. */
-		closelog();
-	}
-	/* ENABLE_DEVFSD_VERBOSE is always enabled if msg_logger is used */
-	if ((ENABLE_DEVFSD_VERBOSE && ret) || ENABLE_DEBUG) {
-		bb_error_msg(fmt, ap);
-	}
-	va_end(ap);
-}
-
-static void msg_logger_and_die(int pri, const char* fmt, ...)
-{
-	va_list ap;
-
-	va_start(ap, fmt);
-	msg_logger(pri, fmt, ap);
-	va_end(ap);
-	exit(EXIT_FAILURE);
-}
-
 /* Busybox stuff */
-#if defined(CONFIG_DEVFSD_VERBOSE) || defined(CONFIG_DEBUG)
-#define devfsd_error_msg(fmt, args...)                bb_error_msg(fmt, ## args)
-#define devfsd_perror_msg_and_die(fmt, args...)       bb_perror_msg_and_die(fmt, ## args)
-#define devfsd_error_msg_and_die(fmt, args...)        bb_error_msg_and_die(fmt, ## args)
+#if ENABLE_DEVFSD_VERBOSE || ENABLE_DEBUG
+#define info_logger(p, fmt, args...)                 bb_info_msg(fmt, ## args)
+#define msg_logger(p, fmt, args...)                  bb_error_msg(fmt, ## args)
+#define msg_logger_and_die(p, fmt, args...)          bb_error_msg_and_die(fmt, ## args)
+#define error_logger(p, fmt, args...)                bb_perror_msg(fmt, ## args)
+#define error_logger_and_die(p, fmt, args...)        bb_perror_msg_and_die(fmt, ## args)
 #else
+#define info_logger(p, fmt, args...)
 #define msg_logger(p, fmt, args...)
 #define msg_logger_and_die(p, fmt, args...)           exit(1)
-#define devfsd_perror_msg_and_die(fmt, args...)       exit(1)
-#define devfsd_error_msg_and_die(fmt, args...)        exit(1)
-#define devfsd_error_msg(fmt, args...)
+#define error_logger(p, fmt, args...)
+#define error_logger_and_die(p, fmt, args...)         exit(1)
 #endif
 
-static void do_ioctl_and_die(int fd, int request, unsigned long event_mask_flag)
+static void do_ioctl_or_die(int fd, int request, unsigned long event_mask_flag)
 {
 	if (ioctl(fd, request, event_mask_flag) == -1)
 		msg_logger_and_die(LOG_ERR, "ioctl");
-}
-
-static void fork_and_execute(int die, char *arg0, char **arg)
-{
-	switch (fork()) {
-		case 0:
-			/*  Child  */
-			break;
-		case -1:
-			/*  Parent: Error  : die or return */
-			msg_logger(LOG_ERR,(char *)bb_msg_memory_exhausted);
-			if (die)
-				exit(EXIT_FAILURE);
-			return;
-		default:
-			/*  Parent : ok : return or exit  */
-			if (arg0 != NULL) {
-				wait(NULL);
-				return;
-			}
-			exit(EXIT_SUCCESS);
-	}
-	 /* Child : if arg0 != NULL do execvp */
-	if (arg0 != NULL) {
-		BB_EXECVP(arg0, arg);
-		msg_logger_and_die(LOG_ERR, "execvp");
-	}
 }
 
 static void safe_memcpy(char *dest, const char *src, int len)
@@ -436,21 +377,17 @@ int devfsd_main(int argc, char **argv)
 		}
 	}
 
-	/* strip last / from mount point, so we don't need to check for it later */
-	while (argv[1][1] != '\0' && argv[1][strlen(argv[1]) - 1] == '/')
-		argv[1][strlen(argv[1]) - 1] = '\0';
-
-	mount_point = argv[1];
+	mount_point = bb_simplify_path(argv[1]);
 
 	xchdir(mount_point);
 
 	fd = xopen(".devfsd", O_RDONLY);
 
 	if (fcntl(fd, F_SETFD, FD_CLOEXEC) != 0)
-		devfsd_perror_msg_and_die("FD_CLOEXEC");
+		bb_perror_msg_and_die("FD_CLOEXEC");
 
 	if (ioctl(fd, DEVFSDIOC_GET_PROTO_REV, &proto_rev) == -1)
-		msg_logger_and_die(LOG_ERR, "ioctl");
+		bb_perror_msg_and_die("ioctl");
 
 	/*setup initial entries */
 	for (curr = initial_symlinks; curr->dest != NULL; ++curr)
@@ -467,7 +404,7 @@ int devfsd_main(int argc, char **argv)
 		exit(EXIT_SUCCESS); /* -v */
 	}
 	/*  Tell kernel we are special(i.e. we get to see hidden entries)  */
-	do_ioctl_and_die(fd, DEVFSDIOC_SET_EVENT_MASK, 0);
+	do_ioctl_or_die(fd, DEVFSDIOC_SET_EVENT_MASK, 0);
 
 	sigemptyset(&new_action.sa_mask);
 	new_action.sa_flags = 0;
@@ -475,7 +412,7 @@ int devfsd_main(int argc, char **argv)
 	/*  Set up SIGHUP and SIGUSR1 handlers  */
 	new_action.sa_handler = signal_handler;
 	if (sigaction(SIGHUP, &new_action, NULL) != 0 || sigaction(SIGUSR1, &new_action, NULL) != 0)
-		devfsd_error_msg_and_die("sigaction");
+		bb_error_msg_and_die("sigaction");
 
 	printf("%s v%s  started for %s\n",applet_name, DEVFSD_VERSION, mount_point);
 
@@ -487,15 +424,23 @@ int devfsd_main(int argc, char **argv)
 
 	if (ENABLE_DEVFSD_FG_NP && no_polling)
 		exit(0);
+	
+	if (ENABLE_DEVFSD_VERBOSE || ENABLE_DEBUG)
+		logmode = LOGMODE_BOTH;
+	else if (do_daemon == TRUE)
+		logmode = LOGMODE_SYSLOG;
+	/* This is the default */
+	/*else
+		logmode = LOGMODE_STDIO; */
+
 	if (do_daemon) {
 		/*  Release so that the child can grab it  */
-		do_ioctl_and_die(fd, DEVFSDIOC_RELEASE_EVENT_QUEUE, 0);
-		fork_and_execute(DIE, NULL, NULL);
-		setsid();        /*  Prevent hangups and become pgrp leader         */
+		do_ioctl_or_die(fd, DEVFSDIOC_RELEASE_EVENT_QUEUE, 0);
+		bb_daemonize_or_rexec(0, argv);
 	} else if (ENABLE_DEVFSD_FG_NP) {
 		setpgid(0, 0);  /*  Become process group leader                    */
 	}
-
+	
 	while (TRUE) {
 		do_scan = do_servicing(fd, event_mask);
 
@@ -504,6 +449,7 @@ int devfsd_main(int argc, char **argv)
 		if (do_scan)
 			dir_operation(SERVICE, mount_point, 0, NULL);
 	}
+	if (ENABLE_FEATURE_CLEAN_UP) free(mount_point);
 }   /*  End Function main  */
 
 
@@ -522,24 +468,23 @@ static void read_config_file(char *path, int optional, unsigned long *event_mask
 	FILE *fp;
 	char buf[STRING_LENGTH];
 	char *line = NULL;
+	char *p;
 
 	if (stat(path, &statbuf) == 0) {
 		/* Don't read 0 length files: ignored */
 		/*if (statbuf.st_size == 0)
 				return;*/
 		if (S_ISDIR(statbuf.st_mode)) {
-			/* strip last / from dirname so we don't need to check for it later */
-			while (path && path[1] != '\0' && path[strlen(path) - 1] == '/')
-				path[strlen(path) - 1] = '\0';
-
-			dir_operation(READ_CONFIG, path, 0, event_mask);
+			p = bb_simplify_path(path);
+			dir_operation(READ_CONFIG, p, 0, event_mask);
+			free(p);
 			return;
 		}
 		if ((fp = fopen(path, "r")) != NULL) {
 			while (fgets(buf, STRING_LENGTH, fp) != NULL) {
 				/*  Skip whitespace  */
-				for (line = buf; isspace(*line); ++line)
-					/*VOID*/;
+				line = buf;
+				line = skip_whitespace(line);
 				if (line[0] == '\0' || line[0] == '#')
 					continue;
 				process_config_line(line, event_mask);
@@ -550,8 +495,8 @@ static void read_config_file(char *path, int optional, unsigned long *event_mask
 		}
 	} else {
 read_config_file_err:
-	if (optional ==  0  && errno == ENOENT)
-		msg_logger_and_die(LOG_ERR, "read config file: %s: %m", path);
+		if (optional == 0 && errno == ENOENT)
+			error_logger_and_die(LOG_ERR, "read config file: %s", path);
 	}
 }   /*  End Function read_config_file   */
 
@@ -600,7 +545,7 @@ static void process_config_line(const char *line, unsigned long *event_mask)
 	/* "INCLUDE" & "OPTIONAL_INCLUDE" */
 	if (i == 1 || i == 2) {
 		st_expr_expand(name, STRING_LENGTH, name, get_variable, NULL);
-		msg_logger(LOG_INFO, "%sinclude: %s", (toupper(when[0]) == 'I') ? "": "optional_", name);
+		info_logger(LOG_INFO, "%sinclude: %s", (toupper(when[0]) == 'I') ? "": "optional_", name);
 		read_config_file(name, (toupper(when[0]) == 'I') ? FALSE : TRUE, event_mask);
 		return;
 	}
@@ -716,7 +661,7 @@ static int do_servicing(int fd, unsigned long event_mask)
 
 	/*  Tell devfs what events we care about  */
 	tmp_event_mask = event_mask;
-	do_ioctl_and_die(fd, DEVFSDIOC_SET_EVENT_MASK, tmp_event_mask);
+	do_ioctl_or_die(fd, DEVFSDIOC_SET_EVENT_MASK, tmp_event_mask);
 	while (!caught_signal) {
 		errno = 0;
 		bytes = read(fd,(char *) &info, sizeof info);
@@ -809,11 +754,11 @@ static void action_permissions(const struct devfsd_notify_struct *info,
 {
 	struct stat statbuf;
 
-	if (stat(info->devname, &statbuf) != 0	||
-		 chmod(info->devname,(statbuf.st_mode & S_IFMT) |(entry->u.permissions.mode & ~S_IFMT)) != 0 ||
-		chown(info->devname, entry->u.permissions.uid, entry->u.permissions.gid) != 0
+	if (stat(info->devname, &statbuf) != 0
+	 || chmod(info->devname, (statbuf.st_mode & S_IFMT) | (entry->u.permissions.mode & ~S_IFMT)) != 0
+	 || chown(info->devname, entry->u.permissions.uid, entry->u.permissions.gid) != 0
 	)
-		msg_logger(LOG_ERR, "Can't chmod or chown: %s: %m", info->devname);
+		error_logger(LOG_ERR, "Can't chmod or chown: %s", info->devname);
 }   /*  End Function action_permissions  */
 
 static void action_modload(const struct devfsd_notify_struct *info,
@@ -826,14 +771,14 @@ static void action_modload(const struct devfsd_notify_struct *info,
 {
 	char *argv[6];
 
-	argv[0] =(char*)MODPROBE;
-	argv[1] =(char*)MODPROBE_SWITCH_1; /* "-k" */
-	argv[2] =(char*)MODPROBE_SWITCH_2; /* "-C" */
-	argv[3] =(char*)CONFIG_MODULES_DEVFS;
+	argv[0] = (char*)MODPROBE;
+	argv[1] = (char*)MODPROBE_SWITCH_1; /* "-k" */
+	argv[2] = (char*)MODPROBE_SWITCH_2; /* "-C" */
+	argv[3] = (char*)CONFIG_MODULES_DEVFS;
 	argv[4] = concat_path_file("/dev", info->devname); /* device */
 	argv[5] = NULL;
 
-	fork_and_execute(DIE, argv[0], argv);
+	wait4pid(xspawn(argv));
 	free(argv[4]);
 }  /*  End Function action_modload  */
 
@@ -865,7 +810,7 @@ static void action_execute(const struct devfsd_notify_struct *info,
 		argv[count] = largv[count];
 	}
 	argv[count] = NULL;
-	fork_and_execute(NO_DIE, argv[0], argv);
+	wait4pid(spawn(argv));
 }   /*  End Function action_execute  */
 
 
@@ -913,7 +858,7 @@ static void action_copy(const struct devfsd_notify_struct *info,
 		new_mode |= S_ISVTX;
 	ret = copy_inode(destination, &dest_stat, new_mode, source, &source_stat);
 	if (ENABLE_DEBUG && ret && (errno != EEXIST))
-		msg_logger(LOG_ERR, "copy_inode: %s to %s: %m", source, destination);
+		error_logger(LOG_ERR, "copy_inode: %s to %s", source, destination);
 }   /*  End Function action_copy  */
 
 static void action_compat(const struct devfsd_notify_struct *info, unsigned int action)
@@ -1007,7 +952,7 @@ static void action_compat(const struct devfsd_notify_struct *info, unsigned int 
 		case AC_RMNEWCOMPAT:
 			ret = unlink(compat_name);
 			if (ENABLE_DEBUG && ret)
-				msg_logger(LOG_ERR, "unlink: %s: %m", compat_name);
+				error_logger(LOG_ERR, "unlink: %s", compat_name);
 			break;
 		/*esac*/
 	} /* switch (action) */
@@ -1022,7 +967,7 @@ static void restore(char *spath, struct stat source_stat, int rootlen)
 	dpath = concat_path_file(mount_point, spath + rootlen);
 	lstat(dpath, &dest_stat);
 	free(dpath);
-	if (S_ISLNK(source_stat.st_mode) ||(source_stat.st_mode & S_ISVTX))
+	if (S_ISLNK(source_stat.st_mode) || (source_stat.st_mode & S_ISVTX))
 		copy_inode(dpath, &dest_stat,(source_stat.st_mode & ~S_ISVTX) , spath, &source_stat);
 
 	if (S_ISDIR(source_stat.st_mode))
@@ -1198,7 +1143,7 @@ static void signal_handler(int sig)
 	if (sig == SIGHUP)
 		caught_sighup = TRUE;
 
-	msg_logger(LOG_INFO, "Caught signal %d", sig);
+	info_logger(LOG_INFO, "Caught signal %d", sig);
 }   /*  End Function signal_handler  */
 
 static const char *get_variable(const char *variable, void *info)
@@ -1211,7 +1156,7 @@ static const char *get_variable(const char *variable, void *info)
 	int i;
 
 	if (gethostname(hostname, STRING_LENGTH - 1) != 0)
-		msg_logger_and_die(LOG_ERR, "gethostname: %m");
+		error_logger_and_die(LOG_ERR, "gethostname");
 
 		/* Here on error we should do exit(RV_SYS_ERROR), instead we do exit(EXIT_FAILURE) */
 		hostname[STRING_LENGTH - 1] = '\0';
@@ -1651,7 +1596,7 @@ int st_expr_expand(char *output, unsigned int length, const char *input,
 				if (isspace(ch) ||(ch == '/') ||(ch == '\0')) {
 					/* User's own home directory: leave separator for next time */
 					if ((env = getenv("HOME")) == NULL) {
-						msg_logger(LOG_INFO, bb_msg_variable_not_found, "HOME");
+						info_logger(LOG_INFO, bb_msg_variable_not_found, "HOME");
 						return FALSE;
 					}
 					len = strlen(env);
@@ -1670,7 +1615,7 @@ int st_expr_expand(char *output, unsigned int length, const char *input,
 				safe_memcpy(tmp, input, len);
 				input = ptr - 1;
 				if ((pwent = getpwnam(tmp)) == NULL) {
-					msg_logger(LOG_INFO, "no pwent for: %s", tmp);
+					info_logger(LOG_INFO, "no pwent for: %s", tmp);
 					return FALSE;
 				}
 				len = strlen(pwent->pw_dir);
@@ -1695,7 +1640,7 @@ int st_expr_expand(char *output, unsigned int length, const char *input,
 	}
 	return FALSE;
 st_expr_expand_out:
-	msg_logger(LOG_INFO, bb_msg_small_buffer);
+	info_logger(LOG_INFO, bb_msg_small_buffer);
 	return FALSE;
 }   /*  End Function st_expr_expand  */
 
@@ -1750,7 +1695,7 @@ static const char *expand_variable(char *buffer, unsigned int length,
 		safe_memcpy(tmp, input, len);
 		input = ptr - 1;
 		if ((env = get_variable_v2(tmp, func, info)) == NULL) {
-			msg_logger(LOG_INFO, bb_msg_variable_not_found, tmp);
+			info_logger(LOG_INFO, bb_msg_variable_not_found, tmp);
 			return NULL;
 		}
 		len = strlen(env);
@@ -1778,7 +1723,7 @@ static const char *expand_variable(char *buffer, unsigned int length,
 		return input + len;
 	}
 	if (ch != ':' || ptr[1] != '-') {
-		msg_logger(LOG_INFO, "illegal char in var name");
+		info_logger(LOG_INFO, "illegal char in var name");
 		return NULL;
 	}
 	/*  It's that handy "${var:-word}" expression. Check if var is defined  */
@@ -1801,7 +1746,7 @@ static const char *expand_variable(char *buffer, unsigned int length,
 				--open_braces;
 				break;
 			case '\0':
-				msg_logger(LOG_INFO,"\"}\" not found in: %s", input);
+				info_logger(LOG_INFO,"\"}\" not found in: %s", input);
 				return NULL;
 			default:
 				break;
@@ -1840,7 +1785,7 @@ static const char *expand_variable(char *buffer, unsigned int length,
 	*out_pos += len;
 	return input;
 expand_variable_out:
-	msg_logger(LOG_INFO, bb_msg_small_buffer);
+	info_logger(LOG_INFO, bb_msg_small_buffer);
 	return NULL;
 }   /*  End Function expand_variable  */
 
