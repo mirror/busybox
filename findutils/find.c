@@ -425,8 +425,9 @@ static int find_type(const char *type)
 }
 #endif
 
-#if ENABLE_FEATURE_FIND_PERM || ENABLE_FEATURE_FIND_MTIME \
- || ENABLE_FEATURE_FIND_MMIN
+#if ENABLE_FEATURE_FIND_PERM \
+ || ENABLE_FEATURE_FIND_MTIME || ENABLE_FEATURE_FIND_MMIN \
+ || ENABLE_FEATURE_FIND_SIZE
 static const char* plus_minus_num(const char* str)
 {
 	if (*str == '-' || *str == '+')
