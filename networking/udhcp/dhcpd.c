@@ -214,7 +214,8 @@ int udhcpd_main(int argc, char **argv)
 					) {
 						sendNAK(&packet);
 					}
-				} /* else remain silent */
+					/* else remain silent */
+				}
 
 			} else {
 				/* RENEWING or REBINDING State */
