@@ -114,8 +114,7 @@ static void client_background(void)
  * If that will be properly disabled for NOMMU, client_background()
  * will work on NOMMU too */
 #else
-// chdir(/) is problematic. Imagine that e.g. pidfile name is RELATIVE! what will unlink do then, eh?
-	bb_daemonize(DAEMON_CHDIR_ROOT);
+	bb_daemonize(0);
 	/* rewrite pidfile, as our pid is different now */
 	if (client_config.pidfile)
 		write_pidfile(client_config.pidfile);

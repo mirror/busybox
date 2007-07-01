@@ -122,19 +122,18 @@ int sendOffer(struct dhcpMessage *oldpacket)
 			if (!lease_expired(lease))
 				lease_time_align = lease->expires - time(0);
 			packet.yiaddr = lease->yiaddr;
-
 		/* Or the client has a requested ip */
 		} else if ((req = get_option(oldpacket, DHCP_REQUESTED_IP))
-			/* Don't look here (ugly hackish thing to do) */
-			&& memcpy(&req_align, req, 4)
-			/* and the ip is in the lease range */
-			&& ntohl(req_align) >= ntohl(server_config.start)
-			&& ntohl(req_align) <= ntohl(server_config.end)
-			&& !static_lease_ip /* Check that its not a static lease */
-			/* and is not already taken/offered */
-			&& (!(lease = find_lease_by_yiaddr(req_align))
-				/* or its taken, but expired */ /* ADDME: or maybe in here */
-				|| lease_expired(lease))
+		 /* Don't look here (ugly hackish thing to do) */
+		 && memcpy(&req_align, req, 4)
+		 /* and the ip is in the lease range */
+		 && ntohl(req_align) >= server_config.start_ip
+		 && ntohl(req_align) <= server_config.end_ip
+		 && !static_lease_ip /* Check that its not a static lease */
+		 /* and is not already taken/offered */
+		 && (!(lease = find_lease_by_yiaddr(req_align))
+			/* or its taken, but expired */ /* ADDME: or maybe in here */
+			|| lease_expired(lease))
 		) {
 			packet.yiaddr = req_align; /* FIXME: oh my, is there a host using this IP? */
 			/* otherwise, find a free IP */
@@ -142,7 +141,8 @@ int sendOffer(struct dhcpMessage *oldpacket)
 			/* Is it a static lease? (No, because find_address skips static lease) */
 			packet.yiaddr = find_address(0);
 			/* try for an expired lease */
-			if (!packet.yiaddr) packet.yiaddr = find_address(1);
+			if (!packet.yiaddr)
+				packet.yiaddr = find_address(1);
 		}
 
 		if (!packet.yiaddr) {
@@ -209,7 +209,8 @@ int sendACK(struct dhcpMessage *oldpacket, uint32_t yiaddr)
 	init_packet(&packet, oldpacket, DHCPACK);
 	packet.yiaddr = yiaddr;
 
-	if ((lease_time = get_option(oldpacket, DHCP_LEASE_TIME))) {
+	lease_time = get_option(oldpacket, DHCP_LEASE_TIME);
+	if (lease_time) {
 		memcpy(&lease_time_align, lease_time, 4);
 		lease_time_align = ntohl(lease_time_align);
 		if (lease_time_align > server_config.lease)
@@ -236,6 +237,10 @@ int sendACK(struct dhcpMessage *oldpacket, uint32_t yiaddr)
 		return -1;
 
 	add_lease(packet.chaddr, packet.yiaddr, lease_time_align);
+	if (ENABLE_FEATURE_UDHCPD_WRITE_LEASES_EARLY) {
+		/* rewrite the file with leases at every new acceptance */
+		write_leases();
+	}
 
 	return 0;
 }

@@ -3575,7 +3575,8 @@ USE_FEATURE_RUN_PARTS_FANCY("\n	-l	Prints names of all matching files even when 
        "Adjust filesystem options on ext[23] filesystems"
 
 #define udhcpc_trivial_usage \
-       "[-Cfbnqtv] [-c CID] [-V VCLS] [-H HOSTNAME] [-i INTERFACE]\n[-p pidfile] [-r IP] [-s script]"
+       "[-Cfbnqtv] [-c CID] [-V VCLS] [-H HOSTNAME] [-i INTERFACE]\n" \
+       "	[-p pidfile] [-r IP] [-s script]"
 #define udhcpc_full_usage \
        "	-V,--vendorclass=CLASSID	Set vendor class identifier\n" \
        "	-i,--interface=INTERFACE	Interface to use (default: eth0)\n" \
@@ -3594,7 +3595,7 @@ USE_FEATURE_RUN_PARTS_FANCY("\n	-l	Prints names of all matching files even when 
        "	-v,--version	Display version" \
 
 #define udhcpd_trivial_usage \
-       "[configfile]\n" \
+       "[configfile]" \
 
 #define udhcpd_full_usage \
        ""

@@ -43,7 +43,7 @@ int read_interface(const char *interface, int *ifindex, uint32_t *addr, uint8_t 
 	struct ifreq ifr;
 	struct sockaddr_in *our_ip;
 
-	memset(&ifr, 0, sizeof(struct ifreq));
+	memset(&ifr, 0, sizeof(ifr));
 	fd = socket(AF_INET, SOCK_RAW, IPPROTO_RAW);
 	if (fd < 0) {
 		bb_perror_msg("socket failed");
@@ -54,7 +54,8 @@ int read_interface(const char *interface, int *ifindex, uint32_t *addr, uint8_t 
 	strncpy(ifr.ifr_name, interface, sizeof(ifr.ifr_name));
 	if (addr) {
 		if (ioctl(fd, SIOCGIFADDR, &ifr) != 0) {
-			bb_perror_msg("SIOCGIFADDR failed, is the interface up and configured?");
+			bb_perror_msg("SIOCGIFADDR failed (is interface %s "
+					"up and configured?)", interface);
 			close(fd);
 			return -1;
 		}
@@ -117,7 +118,7 @@ int listen_socket(uint32_t ip, int port, const char *inf)
 		return -1;
 	}
 
-	if (bind(fd, (struct sockaddr *)&addr, sizeof(struct sockaddr)) == -1) {
+	if (bind(fd, (struct sockaddr *)&addr, sizeof(addr)) == -1) {
 		close(fd);
 		return -1;
 	}

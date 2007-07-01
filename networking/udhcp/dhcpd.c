@@ -37,7 +37,7 @@ int udhcpd_main(int argc, char **argv)
 //Huh, dhcpd don't have --foreground, --syslog options?? TODO
 
 	if (!ENABLE_FEATURE_UDHCP_DEBUG) {
-		bb_daemonize_or_rexec(DAEMON_CHDIR_ROOT, argv);
+		bb_daemonize_or_rexec(0, argv);
 		logmode &= ~LOGMODE_STDIO;
 	}
 
@@ -60,15 +60,15 @@ int udhcpd_main(int argc, char **argv)
 	}
 
 	/* Sanity check */
-	num_ips = ntohl(server_config.end) - ntohl(server_config.start) + 1;
+	num_ips = server_config.end_ip - server_config.start_ip + 1;
 	if (server_config.max_leases > num_ips) {
-		bb_error_msg("max_leases value (%lu) not sane, "
-			"setting to %lu instead",
+		bb_error_msg("max_leases=%lu is too big, "
+			"setting to %lu",
 			server_config.max_leases, num_ips);
 		server_config.max_leases = num_ips;
 	}
 
-	leases = xzalloc(server_config.max_leases * sizeof(struct dhcpOfferedAddr));
+	leases = xzalloc(server_config.max_leases * sizeof(*leases));
 	read_leases(server_config.lease_file);
 
 	if (read_interface(server_config.interface, &server_config.ifindex,
@@ -207,10 +207,13 @@ int udhcpd_main(int argc, char **argv)
 					/* make some contention for this address */
 					} else
 						sendNAK(&packet);
-				} else if (requested_align < server_config.start
-				        || requested_align > server_config.end
-				) {
-					sendNAK(&packet);
+				} else {
+					uint32_t r = ntohl(requested_align);
+					if (r < server_config.start_ip
+				         || r > server_config.end_ip
+					) {
+						sendNAK(&packet);
+					}
 				} /* else remain silent */
 
 			} else {
