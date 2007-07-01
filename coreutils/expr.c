@@ -277,12 +277,15 @@ static VALUE *eval7(void)
 
 static VALUE *eval6(void)
 {
-	VALUE *l, *r, *v = NULL /* silence gcc */, *i1, *i2;
 	static const char * const keywords[] = {
 		"quote", "length", "match", "index", "substr", NULL
 	};
 
-	smalluint key = *G.args ? index_in_str_array(keywords, *G.args) + 1 : 0;
+	VALUE *r, *i1, *i2;
+	VALUE *l = l; /* silence gcc */
+	VALUE *v = v; /* silence gcc */
+	int key = *G.args ? index_in_str_array(keywords, *G.args) + 1 : 0;
+
 	if (key == 0) /* not a keyword */
 		return eval7();
 	G.args++; /* We have a valid token, so get the next argument.  */
@@ -320,8 +323,8 @@ static VALUE *eval6(void)
 		i2 = eval6();
 		tostring(l);
 		if (!toarith(i1) || !toarith(i2)
-			|| i1->u.i > (arith_t) strlen(l->u.s)
-			|| i1->u.i <= 0 || i2->u.i <= 0)
+		 || i1->u.i > (arith_t) strlen(l->u.s)
+		 || i1->u.i <= 0 || i2->u.i <= 0)
 			v = str_value("");
 		else {
 			v = xmalloc(sizeof(VALUE));
