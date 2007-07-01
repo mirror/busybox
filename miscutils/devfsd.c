@@ -424,13 +424,13 @@ int devfsd_main(int argc, char **argv)
 	for (count = 2; count < argc; ++count) {
 		if (argv[count][0] == '-') {
 			if (argv[count][1] == 'v' && !argv[count][2]) /* -v */
-					print_version = TRUE;
+				print_version = TRUE;
 			else if (ENABLE_DEVFSD_FG_NP && argv[count][1] == 'f'
-					&& argv[count][2] == 'g' && !argv[count][3]) /* -fg */
-					do_daemon = FALSE;
+			 && argv[count][2] == 'g' && !argv[count][3]) /* -fg */
+				do_daemon = FALSE;
 			else if (ENABLE_DEVFSD_FG_NP && argv[count][1] == 'n'
-					&& argv[count][2] == 'p' && !argv[count][3]) /* -np */
-					no_polling = TRUE;
+			 && argv[count][2] == 'p' && !argv[count][3]) /* -np */
+				no_polling = TRUE;
 			else
 				bb_show_usage();
 		}
@@ -453,7 +453,7 @@ int devfsd_main(int argc, char **argv)
 		msg_logger_and_die(LOG_ERR, "ioctl");
 
 	/*setup initial entries */
-    for (curr = initial_symlinks; curr->dest != NULL; ++curr)
+	for (curr = initial_symlinks; curr->dest != NULL; ++curr)
 		symlink(curr->dest, curr->name);
 
 	/* NB: The check for CONFIG_FILE is done in read_config_file() */
