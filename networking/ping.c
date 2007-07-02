@@ -179,7 +179,8 @@ int ping_main(int argc, char **argv)
 	len_and_sockaddr *lsa;
 #if ENABLE_PING6
 	sa_family_t af = AF_UNSPEC;
-	while (++argv[0][0] == '-') {
+
+	while ((++argv)[0] && argv[0][0] == '-') {
 		if (argv[0][1] == '4') {
 			af = AF_INET;
 			continue;
