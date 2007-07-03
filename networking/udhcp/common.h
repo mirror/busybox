@@ -80,14 +80,14 @@ void udhcp_run_script(struct dhcpMessage *packet, const char *name);
 /* from dhcpd.h */
 #define server_config		udhcp_server_config
 
-long uptime(void);
 void udhcp_sp_setup(void);
 int udhcp_sp_fd_set(fd_set *rfds, int extra_fd);
 int udhcp_sp_read(fd_set *rfds);
 int raw_socket(int ifindex);
 int read_interface(const char *interface, int *ifindex, uint32_t *addr, uint8_t *arp);
 int listen_socket(uint32_t ip, int port, const char *inf);
-int arpping(uint32_t yiaddr, uint32_t ip, uint8_t *arp, char *interface);
+/* Returns 1 if no reply received */
+int arpping(uint32_t test_ip, uint32_t from_ip, uint8_t *from_mac, const char *interface);
 
 #if ENABLE_FEATURE_UDHCP_DEBUG
 # define DEBUG(str, args...) bb_info_msg(str, ## args)

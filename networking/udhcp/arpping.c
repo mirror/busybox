@@ -15,44 +15,36 @@
 
 struct arpMsg {
 	/* Ethernet header */
-	uint8_t  h_dest[6];			/* destination ether addr */
-	uint8_t  h_source[6];			/* source ether addr */
-	uint16_t h_proto;			/* packet type ID field */
+	uint8_t  h_dest[6];     /* 00 destination ether addr */
+	uint8_t  h_source[6];   /* 06 source ether addr */
+	uint16_t h_proto;       /* 0c packet type ID field */
 
 	/* ARP packet */
-	uint16_t htype;				/* hardware type (must be ARPHRD_ETHER) */
-	uint16_t ptype;				/* protocol type (must be ETH_P_IP) */
-	uint8_t  hlen;				/* hardware address length (must be 6) */
-	uint8_t  plen;				/* protocol address length (must be 4) */
-	uint16_t operation;			/* ARP opcode */
-	uint8_t  sHaddr[6];			/* sender's hardware address */
-	uint8_t  sInaddr[4];			/* sender's IP address */
-	uint8_t  tHaddr[6];			/* target's hardware address */
-	uint8_t  tInaddr[4];			/* target's IP address */
-	uint8_t  pad[18];			/* pad for min. Ethernet payload (60 bytes) */
+	uint16_t htype;         /* 0e hardware type (must be ARPHRD_ETHER) */
+	uint16_t ptype;         /* 10 protocol type (must be ETH_P_IP) */
+	uint8_t  hlen;          /* 12 hardware address length (must be 6) */
+	uint8_t  plen;          /* 13 protocol address length (must be 4) */
+	uint16_t operation;     /* 14 ARP opcode */
+	uint8_t  sHaddr[6];     /* 16 sender's hardware address */
+	uint8_t  sInaddr[4];    /* 1c sender's IP address */
+	uint8_t  tHaddr[6];     /* 20 target's hardware address */
+	uint8_t  tInaddr[4];    /* 26 target's IP address */
+	uint8_t  pad[18];       /* 2a pad for min. ethernet payload (60 bytes) */
 } ATTRIBUTE_PACKED;
 
-/* args:	yiaddr - what IP to ping
- *		ip - our ip
- *		mac - our arp address
- *		interface - interface to use
- * retn:	1 addr free
- *		0 addr used
- *		-1 error
- */
 
-/* FIXME: match response against chaddr */
-int arpping(uint32_t yiaddr, uint32_t ip, uint8_t *mac, char *interface)
+/* Returns 1 if no reply received */
+
+int arpping(uint32_t test_ip, uint32_t from_ip, uint8_t *from_mac, const char *interface)
 {
-	int	timeout = 2;
-	int	s;			/* socket */
-	int	rv = 1;			/* return value */
-	struct sockaddr addr;		/* for interface name */
-	struct arpMsg	arp;
-	fd_set		fdset;
-	struct timeval	tm;
-	time_t		prevTime;
-
+	int timeout = 2;
+	int s;                  /* socket */
+	int rv = 1;             /* "no reply received" yet */
+	struct sockaddr addr;   /* for interface name */
+	struct arpMsg arp;
+	fd_set fdset;
+	struct timeval tm;
+	unsigned prevTime;
 
 	s = socket(PF_PACKET, SOCK_PACKET, htons(ETH_P_ARP));
 	if (s == -1) {
@@ -62,55 +54,58 @@ int arpping(uint32_t yiaddr, uint32_t ip, uint8_t *mac, char *interface)
 
 	if (setsockopt_broadcast(s) == -1) {
 		bb_perror_msg("cannot setsocketopt on raw socket");
-		close(s);
-		return -1;
+		goto ret;
 	}
 
 	/* send arp request */
 	memset(&arp, 0, sizeof(arp));
-	memcpy(arp.h_dest, MAC_BCAST_ADDR, 6);		/* MAC DA */
-	memcpy(arp.h_source, mac, 6);			/* MAC SA */
-	arp.h_proto = htons(ETH_P_ARP);			/* protocol type (Ethernet) */
-	arp.htype = htons(ARPHRD_ETHER);		/* hardware type */
-	arp.ptype = htons(ETH_P_IP);			/* protocol type (ARP message) */
-	arp.hlen = 6;					/* hardware address length */
-	arp.plen = 4;					/* protocol address length */
-	arp.operation = htons(ARPOP_REQUEST);		/* ARP op code */
-	memcpy(arp.sInaddr, &ip, sizeof(ip));		/* source IP address */
-	memcpy(arp.sHaddr, mac, 6);			/* source hardware address */
-	memcpy(arp.tInaddr, &yiaddr, sizeof(yiaddr));	/* target IP address */
+	memset(arp.h_dest, 0xff, 6);                    /* MAC DA */
+	memcpy(arp.h_source, from_mac, 6);              /* MAC SA */
+	arp.h_proto = htons(ETH_P_ARP);                 /* protocol type (Ethernet) */
+	arp.htype = htons(ARPHRD_ETHER);                /* hardware type */
+	arp.ptype = htons(ETH_P_IP);                    /* protocol type (ARP message) */
+	arp.hlen = 6;                                   /* hardware address length */
+	arp.plen = 4;                                   /* protocol address length */
+	arp.operation = htons(ARPOP_REQUEST);           /* ARP op code */
+	memcpy(arp.sHaddr, from_mac, 6);                /* source hardware address */
+	memcpy(arp.sInaddr, &from_ip, sizeof(from_ip)); /* source IP address */
+	/* tHaddr */                                    /* target hardware address */
+	memcpy(arp.tInaddr, &test_ip, sizeof(test_ip)); /* target IP address */
 
 	memset(&addr, 0, sizeof(addr));
-	strcpy(addr.sa_data, interface);
+	safe_strncpy(addr.sa_data, interface, sizeof(addr.sa_data));
 	if (sendto(s, &arp, sizeof(arp), 0, &addr, sizeof(addr)) < 0)
-		rv = 0;
+		goto ret;
 
-	/* wait arp reply, and check it */
-	tm.tv_usec = 0;
-	prevTime = uptime();
-	while (timeout > 0) {
+	/* wait for arp reply, and check it */
+	do {
+		int r;
+		prevTime = monotonic_sec();
 		FD_ZERO(&fdset);
 		FD_SET(s, &fdset);
 		tm.tv_sec = timeout;
-		if (select(s + 1, &fdset, (fd_set *) NULL, (fd_set *) NULL, &tm) < 0) {
+		tm.tv_usec = 0;
+		r = select(s + 1, &fdset, NULL, NULL, &tm);
+		if (r < 0) {
 			bb_perror_msg("error on ARPING request");
 			if (errno != EINTR)
-				rv = 0;
-		} else if (FD_ISSET(s, &fdset)) {
+				break;
+		} else if (r) {
 			if (recv(s, &arp, sizeof(arp), 0) < 0)
-				rv = 0;
-			if (arp.operation == htons(ARPOP_REPLY) &&
-			    memcmp(arp.tHaddr, mac, 6) == 0 &&
-			    *((uint32_t *) arp.sInaddr) == yiaddr) {
-				DEBUG("Valid arp reply received for this address");
+				break;
+			if (arp.operation == htons(ARPOP_REPLY)
+			 && memcmp(arp.tHaddr, from_mac, 6) == 0
+			 && *((uint32_t *) arp.sInaddr) == test_ip
+			) {
 				rv = 0;
 				break;
 			}
 		}
-		timeout -= uptime() - prevTime;
-		prevTime = uptime();
-	}
+		timeout -= monotonic_sec() - prevTime;
+	} while (timeout > 0);
+
+ ret:
 	close(s);
-	DEBUG("%salid arp replies for this address", rv ? "No v" : "V");
+	DEBUG("%srp reply received for this address", rv ? "No a" : "A");
 	return rv;
 }

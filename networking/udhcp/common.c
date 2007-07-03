@@ -10,30 +10,9 @@
  * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  */
 
-#include <syslog.h>
-
 #include "common.h"
 
-
 const uint8_t MAC_BCAST_ADDR[6] = { 0xff, 0xff, 0xff, 0xff, 0xff, 0xff };
-
-long uptime(void)
-{
-	struct sysinfo info;
-	sysinfo(&info);
-	return info.uptime;
-}
-
-static void create_pidfile(const char *pidfile)
-{
-	if (!pidfile)
-		return;
-
-	if (!write_pidfile(pidfile)) {
-		bb_perror_msg("cannot create pidfile %s", pidfile);
-		return;
-	}
-}
 
 void udhcp_make_pidfile(const char *pidfile)
 {
@@ -44,7 +23,8 @@ void udhcp_make_pidfile(const char *pidfile)
 	setlinebuf(stdout);
 
 	/* Create pidfile */
-	create_pidfile(pidfile);
+	if (pidfile && !write_pidfile(pidfile))
+		bb_perror_msg("cannot create pidfile %s", pidfile);
 
 	bb_info_msg("%s (v%s) started", applet_name, BB_VER);
 }

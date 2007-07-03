@@ -20,37 +20,37 @@ struct option_set {
 };
 
 struct static_lease {
+	struct static_lease *next;
 	uint8_t *mac;
 	uint32_t *ip;
-	struct static_lease *next;
 };
 
 struct server_config_t {
-	uint32_t server;		/* Our IP, in network order */
+	uint32_t server;                /* Our IP, in network order */
 	/* start,end are in host order: we need to compare start <= ip <= end */
-	uint32_t start_ip;		/* Start address of leases, in host order */
-	uint32_t end_ip;		/* End of leases, in host order */
-	struct option_set *options;	/* List of DHCP options loaded from the config file */
-	char *interface;		/* The name of the interface to use */
-	int ifindex;			/* Index number of the interface to use */
-	uint8_t arp[6];			/* Our arp address */
-	char remaining;			/* should the lease file be interpreted as lease time remaining, or
-					 * as the time the lease expires */
-	unsigned long lease;		/* lease time in seconds (host order) */
-	unsigned long max_leases;	/* maximum number of leases (including reserved address) */
-	unsigned long auto_time;	/* how long should udhcpd wait before writing a config file.
-					 * if this is zero, it will only write one on SIGUSR1 */
-	unsigned long decline_time;	/* how long an address is reserved if a client returns a
-					 * decline message */
-	unsigned long conflict_time;	/* how long an arp conflict offender is leased for */
-	unsigned long offer_time;	/* how long an offered address is reserved */
-	unsigned long min_lease;	/* minimum lease a client can request */
+	uint32_t start_ip;              /* Start address of leases, in host order */
+	uint32_t end_ip;                /* End of leases, in host order */
+	struct option_set *options;     /* List of DHCP options loaded from the config file */
+	char *interface;                /* The name of the interface to use */
+	int ifindex;                    /* Index number of the interface to use */
+	uint8_t arp[6];                 /* Our arp address */
+	char remaining;                 /* should the lease file be interpreted as lease time remaining, or
+	                                 * as the time the lease expires */
+	uint32_t lease;	                /* lease time in seconds (host order) */
+	uint32_t max_leases;            /* maximum number of leases (including reserved address) */
+	uint32_t auto_time;             /* how long should udhcpd wait before writing a config file.
+	                                 * if this is zero, it will only write one on SIGUSR1 */
+	uint32_t decline_time;          /* how long an address is reserved if a client returns a
+	                                 * decline message */
+	uint32_t conflict_time;         /* how long an arp conflict offender is leased for */
+	uint32_t offer_time;            /* how long an offered address is reserved */
+	uint32_t min_lease;             /* minimum lease a client can request */
 	char *lease_file;
 	char *pidfile;
-	char *notify_file;		/* What to run whenever leases are written */
-	uint32_t siaddr;		/* next server bootp option */
-	char *sname;			/* bootp server name */
-	char *boot_file;		/* bootp boot file option */
+	char *notify_file;              /* What to run whenever leases are written */
+	uint32_t siaddr;                /* next server bootp option */
+	char *sname;                    /* bootp server name */
+	char *boot_file;                /* bootp boot file option */
 	struct static_lease *static_leases; /* List of ip/mac pairs to assign static leases */
 };
 

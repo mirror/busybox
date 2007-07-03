@@ -17,12 +17,11 @@ static int read_ip(const char *line, void *arg)
 	len_and_sockaddr *lsa;
 
 	lsa = host_and_af2sockaddr(line, 0, AF_INET);
-	if (lsa) {
-		*(uint32_t*)arg = lsa->sin.sin_addr.s_addr;
-		free(lsa);
-		return 1;
-	}
-	return 0;
+	if (!lsa)
+		return 0;
+	*(uint32_t*)arg = lsa->sin.sin_addr.s_addr;
+	free(lsa);
+	return 1;
 }
 
 static int read_mac(const char *line, void *arg)

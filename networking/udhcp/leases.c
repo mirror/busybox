@@ -95,24 +95,26 @@ struct dhcpOfferedAddr *find_lease_by_yiaddr(uint32_t yiaddr)
 
 
 /* check is an IP is taken, if it is, add it to the lease table */
-static int check_ip(uint32_t addr)
+static int nobody_responds_to_arp(uint32_t addr)
 {
 	static const uint8_t blank_chaddr[16]; /* 16 zero bytes */
 
 	struct in_addr temp;
+	int r;
 
-	if (arpping(addr, server_config.server, server_config.arp, server_config.interface) == 0) {
-		temp.s_addr = addr;
-		bb_info_msg("%s belongs to someone, reserving it for %ld seconds",
-			inet_ntoa(temp), server_config.conflict_time);
-		add_lease(blank_chaddr, addr, server_config.conflict_time);
-		return 1;
-	}
+	r = arpping(addr, server_config.server, server_config.arp, server_config.interface);
+	if (r)
+		return r;
+
+	temp.s_addr = addr;
+	bb_info_msg("%s belongs to someone, reserving it for %u seconds",
+		inet_ntoa(temp), (unsigned)server_config.conflict_time);
+	add_lease(blank_chaddr, addr, server_config.conflict_time);
 	return 0;
 }
 
 
-/* find an assignable address, it check_expired is true, we check all the expired leases as well.
+/* find an assignable address, if check_expired is true, we check all the expired leases as well.
  * Maybe this should try expired leases by age... */
 uint32_t find_address(int check_expired)
 {
@@ -129,15 +131,14 @@ uint32_t find_address(int check_expired)
 		if ((addr & 0xFF) == 0xFF) continue;
 
 		/* Only do if it isn't assigned as a static lease */
-		if (!reservedIp(server_config.static_leases, htonl(addr))) {
-
+		ret = htonl(addr);
+		if (!reservedIp(server_config.static_leases, ret)) {
 			/* lease is not taken */
-			ret = htonl(addr);
 			lease = find_lease_by_yiaddr(ret);
 
 			/* no lease or it expired and we are checking for expired leases */
 			if ((!lease || (check_expired && lease_expired(lease)))
-			 && /* and it isn't on the network */ !check_ip(ret)
+			 && nobody_responds_to_arp(ret) /* it isn't used on the network */ 
 			) {
 				return ret;
 			}

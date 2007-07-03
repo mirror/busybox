@@ -22,8 +22,8 @@
  * in the code. Manpage says that struct in_addr has a member of type long (!)
  * which holds IPv4 address, and the struct is passed by value (!!)
  */
-static unsigned long timeout;
-static unsigned long requested_ip; /* = 0 */
+static unsigned timeout;
+static uint32_t requested_ip; /* = 0 */
 static uint32_t server_addr;
 static int packet_num; /* = 0 */
 static int sockfd = -1;
@@ -84,13 +84,13 @@ static void perform_renew(void)
 /* perform a release */
 static void perform_release(void)
 {
-	char buffer[16];
+	char buffer[sizeof("255.255.255.255")];
 	struct in_addr temp_addr;
 
 	/* send release packet */
 	if (state == BOUND || state == RENEWING || state == REBINDING) {
 		temp_addr.s_addr = server_addr;
-		sprintf(buffer, "%s", inet_ntoa(temp_addr));
+		strcpy(buffer, inet_ntoa(temp_addr));
 		temp_addr.s_addr = requested_ip;
 		bb_info_msg("Unicasting a release of %s to %s",
 				inet_ntoa(temp_addr), buffer);
@@ -101,7 +101,7 @@ static void perform_release(void)
 
 	change_mode(LISTEN_NONE);
 	state = RELEASED;
-	timeout = 0x7fffffff;
+	timeout = INT_MAX;
 }
 
 
@@ -115,12 +115,13 @@ static void client_background(void)
  * will work on NOMMU too */
 #else
 	bb_daemonize(0);
+	logmode &= ~LOGMODE_STDIO;
 	/* rewrite pidfile, as our pid is different now */
 	if (client_config.pidfile)
 		write_pidfile(client_config.pidfile);
-	logmode &= ~LOGMODE_STDIO;
 #endif
-	client_config.foreground = 1; /* Do not fork again. */
+	/* Do not fork again. */
+	client_config.foreground = 1;
 	client_config.background_if_no_lease = 0;
 }
 
@@ -143,9 +144,11 @@ int udhcpc_main(int argc, char **argv)
 {
 	uint8_t *temp, *message;
 	char *str_c, *str_V, *str_h, *str_F, *str_r, *str_T, *str_t;
-	unsigned long t1 = 0, t2 = 0, xid = 0;
-	unsigned long start = 0, lease = 0;
-	long now;
+	uint32_t xid = 0;
+	uint32_t lease = 0; /* can be given as 32-bit quantity */
+	unsigned t1 = 0, t2 = 0;
+	unsigned start = 0;
+	unsigned now;
 	unsigned opt;
 	int max_fd;
 	int sig;
@@ -292,7 +295,7 @@ int udhcpc_main(int argc, char **argv)
 	change_mode(LISTEN_RAW);
 
 	for (;;) {
-		tv.tv_sec = timeout - uptime();
+		tv.tv_sec = timeout - monotonic_sec();
 		tv.tv_usec = 0;
 
 		if (listen_mode != LISTEN_NONE && sockfd < 0) {
@@ -308,7 +311,7 @@ int udhcpc_main(int argc, char **argv)
 			retval = select(max_fd + 1, &rfds, NULL, NULL, &tv);
 		} else retval = 0; /* If we already timed out, fall through */
 
-		now = uptime();
+		now = monotonic_sec();
 		if (retval == 0) {
 			/* timeout dropped to zero */
 			switch (state) {
@@ -398,7 +401,7 @@ int udhcpc_main(int argc, char **argv)
 				break;
 			case RELEASED:
 				/* yah, I know, *you* say it would never happen */
-				timeout = 0x7fffffff;
+				timeout = INT_MAX;
 				break;
 			}
 		} else if (retval > 0 && listen_mode != LISTEN_NONE && FD_ISSET(sockfd, &rfds)) {
@@ -415,8 +418,8 @@ int udhcpc_main(int argc, char **argv)
 			if (len < 0) continue;
 
 			if (packet.xid != xid) {
-				DEBUG("Ignoring XID %lx (our xid is %lx)",
-					(unsigned long) packet.xid, xid);
+				DEBUG("Ignoring XID %x (our xid is %x)",
+					(unsigned)packet.xid, (unsigned)xid);
 				continue;
 			}
 
@@ -471,10 +474,10 @@ int udhcpc_main(int argc, char **argv)
 					t1 = lease / 2;
 
 					/* little fixed point for n * .875 */
-					t2 = (lease * 0x7) >> 3;
+					t2 = (lease * 7) >> 3;
 					temp_addr.s_addr = packet.yiaddr;
-					bb_info_msg("Lease of %s obtained, lease time %ld",
-						inet_ntoa(temp_addr), lease);
+					bb_info_msg("Lease of %s obtained, lease time %u",
+						inet_ntoa(temp_addr), (unsigned)lease);
 					start = now;
 					timeout = t1 + start;
 					requested_ip = packet.yiaddr;

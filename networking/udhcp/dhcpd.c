@@ -30,7 +30,8 @@ int udhcpd_main(int argc, char **argv)
 	struct dhcpMessage packet;
 	uint8_t *state, *server_id, *requested;
 	uint32_t server_id_align, requested_align, static_lease_ip;
-	unsigned long timeout_end, num_ips;
+	unsigned timeout_end;
+	unsigned num_ips;
 	struct option_set *option;
 	struct dhcpOfferedAddr *lease, static_lease;
 
@@ -48,7 +49,7 @@ int udhcpd_main(int argc, char **argv)
 
 	/* Would rather not do read_config before daemonization -
 	 * otherwise NOMMU machines will parse config twice */
-	read_config(argc < 2 ? DHCPD_CONF_FILE : argv[1]);
+	read_config(argv[1] ? argv[1] : DHCPD_CONF_FILE);
 
 	udhcp_make_pidfile(server_config.pidfile);
 
@@ -62,9 +63,8 @@ int udhcpd_main(int argc, char **argv)
 	/* Sanity check */
 	num_ips = server_config.end_ip - server_config.start_ip + 1;
 	if (server_config.max_leases > num_ips) {
-		bb_error_msg("max_leases=%lu is too big, "
-			"setting to %lu",
-			server_config.max_leases, num_ips);
+		bb_error_msg("max_leases=%u is too big, setting to %u",
+			(unsigned)server_config.max_leases, num_ips);
 		server_config.max_leases = num_ips;
 	}
 
@@ -80,7 +80,7 @@ int udhcpd_main(int argc, char **argv)
 	/* Setup the signal pipe */
 	udhcp_sp_setup();
 
-	timeout_end = time(0) + server_config.auto_time;
+	timeout_end = monotonic_sec() + server_config.auto_time;
 	while (1) { /* loop until universe collapses */
 
 		if (server_socket < 0) {
@@ -90,7 +90,7 @@ int udhcpd_main(int argc, char **argv)
 
 		max_sock = udhcp_sp_fd_set(&rfds, server_socket);
 		if (server_config.auto_time) {
-			tv.tv_sec = timeout_end - time(0);
+			tv.tv_sec = timeout_end - monotonic_sec();
 			tv.tv_usec = 0;
 		}
 		retval = 0;
@@ -100,7 +100,7 @@ int udhcpd_main(int argc, char **argv)
 		}
 		if (retval == 0) {
 			write_leases();
-			timeout_end = time(0) + server_config.auto_time;
+			timeout_end = monotonic_sec() + server_config.auto_time;
 			continue;
 		}
 		if (retval < 0 && errno != EINTR) {
@@ -113,7 +113,7 @@ int udhcpd_main(int argc, char **argv)
 			bb_info_msg("Received a SIGUSR1");
 			write_leases();
 			/* why not just reset the timeout, eh */
-			timeout_end = time(0) + server_config.auto_time;
+			timeout_end = monotonic_sec() + server_config.auto_time;
 			continue;
 		case SIGTERM:
 			bb_info_msg("Received a SIGTERM");
@@ -244,7 +244,7 @@ int udhcpd_main(int argc, char **argv)
  ret0:
 	retval = 0;
  ret:
-	if (server_config.pidfile)
+	/*if (server_config.pidfile) - server_config.pidfile is never NULL */
 		remove_pidfile(server_config.pidfile);
 	return retval;
 }
