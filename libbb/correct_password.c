@@ -54,13 +54,11 @@ int correct_password(const struct passwd *pw)
 		struct spwd spw;
 		struct spwd *result;
 		char buffer[256];
-		if (getspnam_r(pw->pw_name, &spw, buffer, sizeof(buffer), &result) == 0)
-			correct = spw.sp_pwdp;
-		/* else: no valid shadow password, checking ordinary one */
+		correct = (getspnam_r(pw->pw_name, &spw, buffer, sizeof(buffer), &result)) ? "aa" : spw.sp_pwdp;
 	}
 #endif
 
-	if (!correct || correct[0] == '\0')
+	if (!correct[0]) /* empty password field? */
 		return 1;
 
  fake_it:
