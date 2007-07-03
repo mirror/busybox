@@ -104,31 +104,6 @@ static const char *startup_PATH;
 
 #if ENABLE_FEATURE_IFUPDOWN_IPV4 || ENABLE_FEATURE_IFUPDOWN_IPV6
 
-#if ENABLE_FEATURE_IFUPDOWN_IP
-
-static unsigned count_bits(unsigned a)
-{
-	unsigned result;
-	result = (a & 0x55) + ((a >> 1) & 0x55);
-	result = (result & 0x33) + ((result >> 2) & 0x33);
-	return (result & 0x0F) + ((result >> 4) & 0x0F);
-}
-
-static int count_netmask_bits(char *dotted_quad)
-{
-	unsigned result, a, b, c, d;
-	/* Found a netmask...  Check if it is dotted quad */
-	if (sscanf(dotted_quad, "%u.%u.%u.%u", &a, &b, &c, &d) != 4)
-		return -1;
-	// FIXME: will be confused by e.g. 255.0.255.0
-	result = count_bits(a);
-	result += count_bits(b);
-	result += count_bits(c);
-	result += count_bits(d);
-	return (int)result;
-}
-#endif
-
 static void addstr(char **bufp, const char *str, size_t str_length)
 {
 	/* xasprintf trick will be smaller, but we are often
@@ -176,6 +151,39 @@ static char *get_var(const char *id, size_t idlen, struct interface_defn_t *ifd)
 	}
 	return NULL;
 }
+
+#if ENABLE_FEATURE_IFUPDOWN_IP
+static int count_netmask_bits(const char *dotted_quad)
+{
+//	int result;
+//	unsigned a, b, c, d;
+//	/* Found a netmask...  Check if it is dotted quad */
+//	if (sscanf(dotted_quad, "%u.%u.%u.%u", &a, &b, &c, &d) != 4)
+//		return -1;
+//	if ((a|b|c|d) >> 8)
+//		return -1; /* one of numbers is >= 256 */
+//	d |= (a << 24) | (b << 16) | (c << 8); /* IP */
+//	d = ~d; /* 11110000 -> 00001111 */
+
+	/* Shorter version */
+	int result;
+	struct in_addr ip;
+	unsigned d;
+
+	if (inet_aton(dotted_quad, &ip) == 0)
+		return -1; /* malformed dotted IP */
+	d = ntohl(ip.s_addr); /* IP in host order */
+	d = ~d; /* 11110000 -> 00001111 */
+	if (d & (d+1)) /* check that it is in 00001111 form */
+		return -1; /* no it is not */
+	result = 32;
+	while (d) {
+		d >>= 1;
+		result--;
+	}
+	return result;
+}
+#endif
 
 static char *parse(const char *command, struct interface_defn_t *ifd)
 {
@@ -246,11 +254,14 @@ static char *parse(const char *command, struct interface_defn_t *ifd)
 					if (strncmp(command, "bnmask", 6) == 0) {
 						unsigned res;
 						varvalue = get_var("netmask", 7, ifd);
-						if (varvalue && (res = count_netmask_bits(varvalue)) > 0) {
-							const char *argument = utoa(res);
-							addstr(&result, argument, strlen(argument));
-							command = nextpercent + 1;
-							break;
+						if (varvalue) {
+							res = count_netmask_bits(varvalue);
+							if (res > 0) {
+								const char *argument = utoa(res);
+								addstr(&result, argument, strlen(argument));
+								command = nextpercent + 1;
+								break;
+							}
 						}
 					}
 #endif
@@ -463,7 +474,7 @@ static const struct dhcp_client_t ext_dhcp_clients[] = {
 	},
 	{ "udhcpc",
 		"udhcpc -R -n -p /var/run/udhcpc.%iface%.pid -i %iface%[[ -H %hostname%]][[ -c %clientid%]][[ -s %script%]]",
-		"kill -TERM `cat /var/run/udhcpc.%iface%.pid` 2>/dev/null",
+		"kill `cat /var/run/udhcpc.%iface%.pid` 2>/dev/null",
 	},
 };
 #endif /* ENABLE_FEATURE_IFUPDOWN_EXTERNAL_DHCPC */
@@ -498,10 +509,10 @@ static int dhcp_down(struct interface_defn_t *ifd, execfn *exec)
 	bb_error_msg("no dhcp clients found, using static interface shutdown");
 	return static_down(ifd, exec);
 #elif ENABLE_APP_UDHCPC
-	return execute("kill -TERM "
+	return execute("kill "
 	               "`cat /var/run/udhcpc.%iface%.pid` 2>/dev/null", ifd, exec);
 #else
-	return 0; /* no support for dhcp */
+	return 0; /* no dhcp support */
 #endif
 }
 
@@ -834,7 +845,8 @@ static struct interfaces_file_t *read_interfaces(const char *filename)
 		free(buf);
 	}
 	if (ferror(f) != 0) {
-		bb_perror_msg_and_die("%s", filename);
+		/* ferror does NOT set errno! */
+		bb_error_msg_and_die("%s: I/O error", filename);
 	}
 	fclose(f);
 
@@ -884,9 +896,10 @@ static void set_environ(struct interface_defn_t *iface, const char *mode)
 
 	for (i = 0; i < iface->n_options; i++) {
 		if (strcmp(iface->option[i].name, "up") == 0
-				|| strcmp(iface->option[i].name, "down") == 0
-				|| strcmp(iface->option[i].name, "pre-up") == 0
-				|| strcmp(iface->option[i].name, "post-down") == 0) {
+		 || strcmp(iface->option[i].name, "down") == 0
+		 || strcmp(iface->option[i].name, "pre-up") == 0
+		 || strcmp(iface->option[i].name, "post-down") == 0
+		) {
 			continue;
 		}
 		*(environend++) = setlocalenv("IF_%s=%s", iface->option[i].name, iface->option[i].value);
