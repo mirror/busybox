@@ -40,12 +40,6 @@ int correct_password(const struct passwd *pw)
 {
 	char *unencrypted, *encrypted;
 	const char *correct;
-#if ENABLE_FEATURE_SHADOWPASSWDS
-	/* Using _r function to avoid pulling in static buffers */
-	struct spwd spw;
-	struct spwd *result;
-	char buffer[256];
-#endif
 
 	/* fake salt. crypt() can choke otherwise. */
 	correct = "aa";
@@ -55,11 +49,14 @@ int correct_password(const struct passwd *pw)
 	}
 	correct = pw->pw_passwd;
 #if ENABLE_FEATURE_SHADOWPASSWDS
-	if (LONE_CHAR(pw->pw_passwd, 'x') || LONE_CHAR(pw->pw_passwd, '*')) {
-		if (getspnam_r(pw->pw_name, &spw, buffer, sizeof(buffer), &result))
-			bb_error_msg("no valid shadow password, checking ordinary one");
-		else
+	if ((correct[0] == 'x' || correct[0] == '*') && !correct[1]) {
+		/* Using _r function to avoid pulling in static buffers */
+		struct spwd spw;
+		struct spwd *result;
+		char buffer[256];
+		if (getspnam_r(pw->pw_name, &spw, buffer, sizeof(buffer), &result) == 0)
 			correct = spw.sp_pwdp;
+		/* else: no valid shadow password, checking ordinary one */
 	}
 #endif
 
