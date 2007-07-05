@@ -84,7 +84,7 @@ int md5_sha1_sum_main(int argc, char **argv)
 	uint8_t *hash_value;
 	unsigned flags;
 	hash_algo_t hash_algo = ENABLE_MD5SUM
-		? (ENABLE_SHA1SUM ? (**argv=='m' ? HASH_MD5 : HASH_SHA1) : HASH_MD5)
+		? (ENABLE_SHA1SUM ? (applet_name[0] == 'm' ? HASH_MD5 : HASH_SHA1) : HASH_MD5)
 		: HASH_SHA1;
 
 	if (ENABLE_FEATURE_MD5_SHA1_SUM_CHECK)

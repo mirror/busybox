@@ -46,7 +46,7 @@ int recursive_action(const char *fileName,
 		int (*fileAction)(const char *fileName, struct stat *statbuf, void* userData, int depth),
 		int (*dirAction)(const char *fileName, struct stat *statbuf, void* userData, int depth),
 		void* userData,
-		const unsigned depth)
+		unsigned depth)
 {
 	struct stat statbuf;
 	int status;
@@ -55,12 +55,13 @@ int recursive_action(const char *fileName,
 
 	if (!fileAction) fileAction = true_action;
 	if (!dirAction) dirAction = true_action;
-	status = (flags & ACTION_FOLLOWLINKS ? stat : lstat)(fileName, &statbuf);
 
+	status = ACTION_FOLLOWLINKS; /* hijack a variable for bitmask... */
+	if (!depth) status = ACTION_FOLLOWLINKS | ACTION_FOLLOWLINKS_L0;
+	status = ((flags & status) ? stat : lstat)(fileName, &statbuf);
 	if (status < 0) {
 #ifdef DEBUG_RECURS_ACTION
-		bb_error_msg("status=%d followLinks=%d TRUE=%d",
-				status, flags & ACTION_FOLLOWLINKS, TRUE);
+		bb_error_msg("status=%d flags=%x", status, flags);
 #endif
 		goto done_nak_warn;
 	}
@@ -82,9 +83,8 @@ int recursive_action(const char *fileName,
 
 	if (!(flags & ACTION_DEPTHFIRST)) {
 		status = dirAction(fileName, &statbuf, userData, depth);
-		if (!status) {
+		if (!status)
 			goto done_nak_warn;
-		}
 		if (status == SKIP)
 			return TRUE;
 	}
@@ -103,23 +103,23 @@ int recursive_action(const char *fileName,
 		nextFile = concat_subpath_file(fileName, next->d_name);
 		if (nextFile == NULL)
 			continue;
-		/* now descend into it, forcing recursion. */
-		if (!recursive_action(nextFile, flags | ACTION_RECURSE,
-				fileAction, dirAction, userData, depth+1)) {
+		/* now descend into it (NB: ACTION_RECURSE is set in flags) */
+		if (!recursive_action(nextFile, flags, fileAction, dirAction, userData, depth+1))
 			status = FALSE;
-		}
 		free(nextFile);
 	}
 	closedir(dir);
-	if ((flags & ACTION_DEPTHFIRST) &&
-		!dirAction(fileName, &statbuf, userData, depth)) {
+
+	if (flags & ACTION_DEPTHFIRST) {
+		if (!dirAction(fileName, &statbuf, userData, depth))
 			goto done_nak_warn;
 	}
 
 	if (!status)
 		return FALSE;
 	return TRUE;
-done_nak_warn:
+
+ done_nak_warn:
 	bb_perror_msg("%s", fileName);
 	return FALSE;
 }

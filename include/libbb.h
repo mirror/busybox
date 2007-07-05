@@ -214,15 +214,16 @@ extern int is_directory(const char *name, int followLinks, struct stat *statBuf)
 extern int remove_file(const char *path, int flags);
 extern int copy_file(const char *source, const char *dest, int flags);
 enum {
-	ACTION_RECURSE     = (1 << 0),
-	ACTION_FOLLOWLINKS = (1 << 1),
-	ACTION_DEPTHFIRST  = (1 << 2),
-	/*ACTION_REVERSE   = (1 << 3), - unused */
+	ACTION_RECURSE        = (1 << 0),
+	ACTION_FOLLOWLINKS    = (1 << 1),
+	ACTION_FOLLOWLINKS_L0 = (1 << 2),
+	ACTION_DEPTHFIRST     = (1 << 3),
+	/*ACTION_REVERSE      = (1 << 4), - unused */
 };
 extern int recursive_action(const char *fileName, unsigned flags,
 	int (*fileAction) (const char *fileName, struct stat* statbuf, void* userData, int depth),
 	int (*dirAction) (const char *fileName, struct stat* statbuf, void* userData, int depth),
-	void* userData, const unsigned depth);
+	void* userData, unsigned depth);
 extern int device_open(const char *device, int mode);
 extern int get_console_fd(void);
 extern char *find_block_device(const char *path);
