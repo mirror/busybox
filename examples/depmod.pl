@@ -22,6 +22,7 @@ my $kdir="";
 my $basedir="";
 my $kernel="";
 my $kernelsyms="";
+my $symprefix="";
 my $stdout=0;
 my $verbose=0;
 my $help=0;
@@ -36,22 +37,24 @@ my $mod = {};
 my $usage = <<TXT;
 $0 -b basedir { -k <vmlinux> | -F <System.map> } [options]...
   Where:
-   -h --help         : Show this help screen
-   -b --basedir      : Modules base directory (e.g /lib/modules/<2.x.y>)
-   -k --kernel       : Kernel binary for the target (e.g. vmlinux)
-   -F --kernelsyms   : Kernel symbol file (e.g. System.map)
-   -n --stdout       : Write to stdout instead of <basedir>/modules.dep
-   -v --verbose      : Print out lots of debugging stuff
+   -h --help          : Show this help screen
+   -b --basedir       : Modules base directory (e.g /lib/modules/<2.x.y>)
+   -k --kernel        : Kernel binary for the target (e.g. vmlinux)
+   -F --kernelsyms    : Kernel symbol file (e.g. System.map)
+   -n --stdout        : Write to stdout instead of <basedir>/modules.dep
+   -v --verbose       : Print out lots of debugging stuff
+   -P --symbol-prefix : Symbol prefix
 TXT
 
 # get command-line options
 GetOptions(
-	"help|h"         => \$help,
-	"basedir|b=s"    => \$basedir,
-	"kernel|k=s"     => \$kernel,
-	"kernelsyms|F=s" => \$kernelsyms,
-	"stdout|n"       => \$stdout,
-	"verbose|v"      => \$verbose,
+	"help|h"            => \$help,
+	"basedir|b=s"       => \$basedir,
+	"kernel|k=s"        => \$kernel,
+	"kernelsyms|F=s"    => \$kernelsyms,
+	"stdout|n"          => \$stdout,
+	"verbose|v"         => \$verbose,
+	"symbol-prefix|P=s" => \$symprefix,
 );
 
 die $usage if $help;
@@ -182,7 +185,7 @@ sub build_ref_tables
 	}
 
     # this takes makes sure modules with no dependencies get listed
-    push @{$dep->{$name}}, 'printk' unless $name eq 'vmlinux';
+    push @{$dep->{$name}}, $symprefix . 'printk' unless $name eq 'vmlinux';
 
     # gather the unresolved symbols
     foreach ( @$sym_ar ) {
