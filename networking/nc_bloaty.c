@@ -160,18 +160,23 @@ enum {
 /* catch: no-brainer interrupt handler */
 static void catch(int sig)
 {
-	errno = 0;
 	if (o_verbose > 1)                /* normally we don't care */
 		fprintf(stderr, SENT_N_RECV_M, wrote_net, wrote_out);
 	fprintf(stderr, "punt!\n");
 	exit(1);
 }
 
-/* timeout and other signal handling cruft */
-static void tmtravel(int sig)
+/* unarm  */
+static void unarm(void)
 {
 	signal(SIGALRM, SIG_IGN);
 	alarm(0);
+}
+
+/* timeout and other signal handling cruft */
+static void tmtravel(int sig)
+{
+	unarm();
 	longjmp(jbuf, 1);
 }
 
@@ -180,13 +185,6 @@ static void arm(unsigned secs)
 {
 	signal(SIGALRM, tmtravel);
 	alarm(secs);
-}
-
-/* unarm  */
-static void unarm(void)
-{
-	signal(SIGALRM, SIG_IGN);
-	alarm(0);
 }
 
 /* findline:
@@ -246,11 +244,11 @@ static int connect_w_timeout(int fd)
 	arm(o_wait);
 	if (setjmp(jbuf) == 0) {
 		rr = connect(fd, &themaddr->sa, themaddr->len);
+		unarm();
 	} else { /* setjmp: connect failed... */
 		rr = -1;
 		errno = ETIMEDOUT; /* fake it */
 	}
-	unarm();
 	return rr;
 }
 
@@ -319,9 +317,9 @@ static void dolisten(void)
 				&remend.sa, &ouraddr->sa, ouraddr->len);
 			if (rr < 0)
 				bb_perror_msg_and_die("recvfrom");
+			unarm();
 		} else
 			bb_error_msg_and_die("timeout");
-		unarm();
 /* Now we learned *to which IP* peer has connected, and we want to anchor
 our socket on it, so that our outbound packets will have correct local IP.
 Unfortunately, bind() on already bound socket will fail now (EINVAL):
@@ -350,10 +348,9 @@ create new one, and bind() it. TODO */
 				close(rr);
 				goto again;
 			}
-
+			unarm();
 		} else
 			bb_error_msg_and_die("timeout");
-		unarm();
 		xmove_fd(rr, netfd); /* dump the old socket, here's our new one */
 		/* find out what address the connection was *to* on our end, in case we're
 		 doing a listen-on-any on a multihomed machine.  This allows one to
@@ -462,68 +459,54 @@ int udptest(void);
  what when.  Adapted from dgaudet's original example -- but must be ripping
  *fast*, since we don't want to be too disk-bound... */
 #if ENABLE_NC_EXTRA
-static void oprint(int direction, unsigned char *p, int bc)
+static void oprint(int direction, unsigned char *p, unsigned bc)
 {
-	int obc;                /* current "global" offset */
-	int soc;                /* stage write count */
+	unsigned obc;           /* current "global" offset */
+	unsigned x;
 	unsigned char *op;      /* out hexdump ptr */
-	unsigned char *a;       /* out asc-dump ptr */
-	int x;
+	unsigned char *ap;      /* out asc-dump ptr */
 	unsigned char stage[100];
 
 	if (bc == 0)
 		return;
 
-	op = stage;
 	obc = wrote_net; /* use the globals! */
 	if (direction == '<')
 		obc = wrote_out;
-	*op++ = direction;
-	*op = ' ';
-	stage[59] = '#';                /* preload separator */
+	stage[0] = direction;
+	stage[59] = '#'; /* preload separator */
 	stage[60] = ' ';
 
-	while (bc) {                        /* for chunk-o-data ... */
+	do {    /* for chunk-o-data ... */
 		x = 16;
-		soc = 78;                        /* len of whole formatted line */
-		if (bc < x) {
-			soc = soc - 16 + bc;        /* fiddle for however much is left */
-			x = (bc * 3) + 11;        /* 2 digits + space per, after D & offset */
-			op = &stage[x];
-			x = 16 - bc;
-			while (x) {
-				*op++ = ' ';                /* preload filler spaces */
-				*op++ = ' ';
-				*op++ = ' ';
-				x--;
-			}
-			x = bc;                        /* re-fix current linecount */
-		} /* if bc < x */
+		if (bc < 16) {
+			/* memset(&stage[bc*3 + 11], ' ', 16*3 - bc*3); */
+			memset(&stage[11], ' ', 16*3);
+			x = bc;
+		}
+		sprintf(&stage[1], " %8.8x ", obc);  /* xxx: still slow? */
+		bc -= x;          /* fix current count */
+		obc += x;         /* fix current offset */
+		op = &stage[11];  /* where hex starts */
+		ap = &stage[61];  /* where ascii starts */
 
-		bc -= x;                        /* fix wrt current line size */
-		sprintf(&stage[2], "%8.8x ", obc);                /* xxx: still slow? */
-		obc += x;                        /* fix current offset */
-		op = &stage[11];                /* where hex starts */
-		a = &stage[61];                /* where ascii starts */
-
-		while (x) {  /* for line of dump, however long ... */
+		do {  /* for line of dump, however long ... */
 			*op++ = 0x20 | bb_hexdigits_upcase[*p >> 4];
 			*op++ = 0x20 | bb_hexdigits_upcase[*p & 0x0f];
 			*op++ = ' ';
 			if ((*p > 31) && (*p < 127))
-				*a = *p;                /* printing */
+				*ap = *p;   /* printing */
 			else
-				*a = '.';                /* nonprinting, loose def */
-			a++;
+				*ap = '.';  /* nonprinting, loose def */
+			ap++;
 			p++;
-			x--;
-		} /* while x */
-		*a = '\n';                        /* finish the line */
-		xwrite(ofd, stage, soc);
-	} /* while bc */
+		} while (--x);
+		*ap++ = '\n';  /* finish the line */
+		xwrite(ofd, stage, ap - stage);
+	} while (bc);
 }
 #else
-void oprint(int direction, unsigned char *p, int bc);
+void oprint(int direction, unsigned char *p, unsigned bc);
 #endif
 
 /* readwrite:
