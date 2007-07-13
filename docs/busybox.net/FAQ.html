@@ -31,6 +31,11 @@ have additions to this FAQ document, we would love to add them,
 <li><a href="#job_control">Why do I keep getting "sh: can't access tty; job control turned off" errors?  Why doesn't Control-C work within my shell?</a></li>
 </ol>
 
+<h2>Misc. questions</h2>
+<ol>
+  <li><a href="#tz">How do I change the time zone in busybox?</a></li>
+</ol>
+
 <h2>Programming questions</h2>
 <ol>
   <li><a href="#goals">What are the goals of busybox?</a></li>
@@ -52,17 +57,17 @@ have additions to this FAQ document, we would love to add them,
     <li><a href="#tips_memory">Memory used by relocatable code, PIC, and static linking.</a></li>
     <li><a href="#tips_kernel_headers">Including Linux kernel headers.</a></li>
   </ul>
-  <li><a href="#who">Who are the BusyBox developers?</a></li>
-</ul>
-
-
+    <li><a href="#who">Who are the BusyBox developers?</a></li>
+  </ul>
 </ol>
 
+
+<hr />
 <h1>General questions</h1>
 
 <hr />
-<p>
 <h2><a name="getting_started">How can I get started using BusyBox?</a></h2>
+
 <p> If you just want to try out busybox without installing it, download the
     tarball, extract it, run "make defconfig", and then run "make".
 </p>
@@ -107,9 +112,10 @@ $ /bin/echo $PATH
 $ echo $PATH
 /bin/sh: echo: not found
 </pre>
+
 <hr />
-<p>
 <h2><a name="configure">How do I configure busybox?</a></h2>
+
 <p> Busybox is configured similarly to the linux kernel.  Create a default
     configuration and then run "make menuconfig" to modify it.  The end
     result is a .config file that tells the busybox build process what features
@@ -155,17 +161,16 @@ within each applet.  More build coverage testing.</p></li>
 <p> Menuconfig modifies your .config file through an interactive menu where you can enable or disable
     busybox features, and get help about each feature.
 
-
-
 <p>
     To build a smaller busybox binary, run "make menuconfig" and disable the
     features you don't need.  (Or run "make allnoconfig" and then use
     menuconfig to add just the features you need.  Don't forget to recompile
     with "make" once you've finished configuring.)
 </p>
-<hr/>
-<p/>
+
+<hr />
 <h2><a name="build">How do I build BusyBox with a cross-compiler?</a></h2>
+
 <p>
    To build busybox with a cross-compiler, specify CROSS_COMPILE=&lt;prefix&gt;.
 </p>
@@ -180,7 +185,10 @@ within each applet.  More build coverage testing.</p></li>
    Alternatively CROSS_COMPILE can be set in the environment.
    Default value for CROSS_COMPILE is not to prefix executables.
 </p>
+
+<hr />
 <h2><a name="build_system">How do I build a BusyBox-based system?</a></h2>
+
 <p>
     BusyBox is a package that replaces a dozen standard packages, but it is
     not by itself a complete bootable system.  Building an entire Linux
@@ -221,8 +229,8 @@ within each applet.  More build coverage testing.</p></li>
 </p>
 
 <hr />
-<p>
 <h2><a name="kernel">Which Linux kernel versions are supported?</a></h2>
+
 <p>
     Full functionality requires Linux 2.4.x or better.  (Earlier versions may
     still work, but are no longer regularly tested.)  A large fraction of the
@@ -231,9 +239,10 @@ within each applet.  More build coverage testing.</p></li>
     to support, say, FreeBSD or Solaris, or Mac OS X, or even Windows (if you
     are into that sort of thing).
 </p>
+
 <hr />
-<p>
 <h2><a name="arch">Which architectures does BusyBox run on?</a></h2>
+
 <p>
     BusyBox in general will build on any architecture supported by gcc.
     Kernel module loading for 2.4 Linux kernels is currently
@@ -243,9 +252,10 @@ within each applet.  More build coverage testing.</p></li>
 <p>
     With 2.6.x kernels, module loading support should work on all architectures.
 </p>
+
 <hr />
-<p>
 <h2><a name="libc">Which C libraries are supported?</a></h2>
+
 <p>
     On Linux, BusyBox releases are tested against uClibc (0.9.27 or later) and
     glibc (2.2 or later).  Both should provide full functionality with busybox,
@@ -265,9 +275,7 @@ within each applet.  More build coverage testing.</p></li>
 </p>
 
 <hr />
-<p>
 <h2><a name="commercial">Can I include BusyBox as part of the software on my device?</a></h2>
-<p>
 
 <p>
     Yes.  As long as you <a href="http://busybox.net/license.html">fully comply
@@ -276,29 +284,26 @@ within each applet.  More build coverage testing.</p></li>
 </p>
 
 <hr />
-<p>
-<h2><a name="external">where can i find other small utilities since busybox
+<h2><a name="external">Where can I find other small utilities since busybox
 	does not include the features i want?</a></h2>
+
 <p>
 	we maintain such a <a href="tinyutils.html">list</a> on this site!
 </p>
 
 <hr />
-<p>
 <h2><a name="demanding">I demand that you to add &lt;favorite feature&gt; right now!   How come you don't answer all my questions on the mailing list instantly?  I demand that you help me with all of my problems <em>Right Now</em>!</a></h2>
-<p>
 
+<p>
     You have not paid us a single cent and yet you still have the product of
     many years of our work.  We are not your slaves!  We work on BusyBox
     because we find it useful and interesting.  If you go off flaming us, we
     will ignore you.
 
-
 <hr />
-<p>
 <h2><a name="helpme">I need help with BusyBox!  What should I do?</a></h2>
-<p>
 
+<p>
     If you find that you need help with BusyBox, you can ask for help on the
     BusyBox mailing list at busybox@busybox.net.</p>
 
@@ -326,9 +331,7 @@ within each applet.  More build coverage testing.</p></li>
 </p>
 
 <hr />
-<p>
 <h2><a name="contracts">I need you to add &lt;favorite feature&gt;!  Are the BusyBox developers willing to be paid in order to fix bugs or add in &lt;favorite feature&gt;?  Are you willing to provide support contracts?</a></h2>
-</p>
 
 <p>
     Yes we are.  The easy way to sponsor a new feature is to post an offer on
@@ -346,14 +349,11 @@ within each applet.  More build coverage testing.</p></li>
 </p>
 
 
-
-
+<hr />
 <h1>Troubleshooting</h1>
 
 <hr />
-<p></p>
 <h2><a name="bugs">I think I found a bug in BusyBox!  What should I do?</a></h2>
-<p></p>
 
 <p>
     If you simply need help with using or configuring BusyBox, please submit a
@@ -386,7 +386,6 @@ within each applet.  More build coverage testing.</p></li>
 </p>
 
 <hr />
-<p></p>
 <h2><a name="backporting">I'm using an ancient version from the dawn of time and something's broken.  Can you backport fixes for free?</h2>
 
 <p>Variants of this one get asked a lot.</p>
@@ -427,8 +426,8 @@ your problem, and you can always ask on the list if any of the developers
 have consulting rates.</p>
 
 <hr />
-<p>
 <h2><a name="init">Busybox init isn't working!</a></h2>
+
 <p>
     Init is the first program that runs, so it might be that no programs are
     working on your new system because of a problem with your cross-compiler,
@@ -461,8 +460,8 @@ int main(int argc, char *argv)
 </p>
 
 <hr />
-<p>
 <h2><a name="sed">I can't configure busybox on my system.</a></h2>
+
 <p>
     Configuring Busybox depends on a recent version of sed.  Older
     distributions (Red Hat 7.2, Debian 3.0) may not come with a
@@ -489,10 +488,9 @@ int main(int argc, char *argv)
 <p>Then you can run "make defconfig" or "make menuconfig" normally.</p>
 
 <hr />
-<p>
 <h2><a name="job_control">Why do I keep getting "sh: can't access tty; job control turned off" errors?  Why doesn't Control-C work within my shell?</a></h2>
-<p>
 
+<p>
     Job control will be turned off since your shell can not obtain a controlling
     terminal.  This typically happens when you run your shell on /dev/console.
     The kernel will not provide a controlling terminal on the /dev/console
@@ -504,9 +502,20 @@ int main(int argc, char *argv)
     run your shell on a real console...
 </p>
 
+<hr />
+<h1>Misc. questions</h1>
+
+<hr />
+<h2><a name="tz">How do I change the time zone in busybox?</a></h2>
+
+<p>Busybox has nothing to do with the timezone. Please consult your libc
+documentation. (<a href='http://google.com/search?q=uclibc+glibc+timezone'>http://google.com/search?q=uclibc+glibc+timezone</a>).</p>
+
+<hr />
 <h1>Development</h1>
 
-<h2><b><a name="goals">What are the goals of busybox?</a></b></h2>
+<hr />
+<h2><a name="goals">What are the goals of busybox?</a></h2>
 
 <p>Busybox aims to be the smallest and simplest correct implementation of the
 standard Linux command line tools.  First and foremost, this means the
@@ -515,7 +524,8 @@ and cleanest implementation we can manage, be <a href="#standards">standards
 compliant</a>, minimize run-time memory usage (heap and stack), run fast, and
 take over the world.</p>
 
-<h2><b><a name="design">What is the design of busybox?</a></b></h2>
+<hr />
+<h2><a name="design">What is the design of busybox?</a></h2>
 
 <p>Busybox is like a swiss army knife: one thing with many functions.
 The busybox executable can act like many different programs depending on
@@ -539,7 +549,8 @@ writing.</p>
 
 <a name="source"></a>
 
-<h2><a name="source_applets"><b>The applet directories</b></a></h2>
+<hr />
+<h2><a name="source_applets">The applet directories</a></h2>
 
 <p>The directory "applets" contains the busybox startup code (applets.c and
 busybox.c), and several subdirectories containing the code for the individual
@@ -579,6 +590,7 @@ html, txt, and man page formats) in the docs directory.  See
 <a href="#adding">adding an applet to busybox</a> for more
 information.</p>
 
+<hr />
 <h2><a name="source_libbb"><b>libbb</b></a></h2>
 
 <p>Most non-setup code shared between busybox applets lives in the libbb
@@ -595,8 +607,8 @@ and/or retry automatically, linked list management functions (llist.c),
 command line argument parsing (getopt32.c), and a whole lot more.</p>
 
 <hr />
-<p>
 <h2><a name="optimize">I want to make busybox even smaller, how do I go about it?</a></h2>
+
 <p>
 	To conserve bytes it's good to know where they're being used, and the
 	size of the final executable isn't always a reliable indicator of
@@ -647,11 +659,9 @@ command line argument parsing (getopt32.c), and a whole lot more.</p>
         "scripts/showasm busybox_unstripped symbolname" to see the assembly
         for a sepecific symbol.
 </p>
+
 <hr />
-
-
-
-<h2><a name="adding"><b>Adding an applet to busybox</b></a></h2>
+<h2><a name="adding">Adding an applet to busybox</a></h2>
 
 <p>To add a new applet to busybox, first pick a name for the applet and
 a corresponding CONFIG_NAME.  Then do this:</p>
@@ -692,6 +702,7 @@ bugs.  Be sure to try both "allyesconfig" and "allnoconfig" (and
 
 </ul>
 
+<hr />
 <h2><a name="standards">What standards does busybox adhere to?</a></h2>
 
 <p>The standard we're paying attention to is the "Shell and Utilities"
@@ -721,6 +732,7 @@ applet is otherwise finished.  When polishing and testing a busybox applet,
 we ensure we have at least the option of full standards compliance, or else
 document where we (intentionally) fall short.</p>
 
+<hr />
 <h2><a name="portability">Portability.</a></h2>
 
 <p>Busybox is a Linux project, but that doesn't mean we don't have to worry
@@ -797,11 +809,13 @@ support that can be cleanly separated into a separate conditionally compiled
 file is at least worth a look.  Special-case code in the body of an applet is
 something we're trying to avoid.</p>
 
+<hr />
 <h2><a name="tips" />Programming tips and tricks.</a></h2>
 
 <p>Various things busybox uses that aren't particularly well documented
 elsewhere.</p>
 
+<hr />
 <h2><a name="tips_encrypted_passwords">Encrypted Passwords</a></h2>
 
 <p>Password fields in /etc/passwd and /etc/shadow are in a special format.
@@ -853,6 +867,7 @@ password, generate a random 8 character salt string, put it in the right
 format with sprintf(buffer, "$%c$%s", type, salt), and feed buffer as the
 second argument to pw_encrypt(text,buffer).</p>
 
+<hr />
 <h2><a name="tips_vfork">Fork and vfork</a></h2>
 
 <p>On systems that haven't got a Memory Management Unit, fork() is unreasonably
@@ -931,6 +946,7 @@ each other while traversing the free memory lists).  The thing about vfork is
 that it's a big red flag warning "there be dragons here" rather than
 something subtle and thus even more dangerous.)</p>
 
+<hr />
 <h2><a name="tips_sort_read">Short reads and writes</a></h2>
 
 <p>Busybox has special functions, bb_full_read() and bb_full_write(), to
@@ -964,6 +980,7 @@ data comes in that can be merged into the same packet.  (In case you were
 wondering why action games that use TCP/IP set TCP_NODELAY to lower the latency
 on their their sockets, now you know.)</p>
 
+<hr />
 <h2><a name="tips_memory">Memory used by relocatable code, PIC, and static linking.</a></h2>
 
 <p>The downside of standard dynamic linking is that it results in self-modifying
@@ -1028,6 +1045,7 @@ above factors seem to mostly account for it (but some were difficult
 to measure).</p>
 </blockquote>
 
+<hr />
 <h2><a name="tips_kernel_headers"></a>Including kernel headers</h2>
 
 <p>The "linux" or "asm" directories of /usr/include contain Linux kernel
@@ -1065,6 +1083,7 @@ unavoidable doesn't me we should include them when there's a better
 way to do it.  However, block copying information out of the kernel headers
 is not a better way.</p>
 
+<hr />
 <h2><a name="who">Who are the BusyBox developers?</a></h2>
 
 <p>The following login accounts currently exist on busybox.net.  (I.E. these
