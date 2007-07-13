@@ -254,5 +254,3 @@ Tito Ragusa <farmatito@tiscali.it>
 
 =cut
 
-# $LastChangedDate$
-
