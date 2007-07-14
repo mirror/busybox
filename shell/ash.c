@@ -134,7 +134,6 @@ static const char illnum[] = "Illegal number: %s";
 
 static char *minusc;                   /* argument to -c option */
 
-static int isloginsh;
 /* pid of main shell */
 static int rootpid;
 /* shell level: 0 for the main shell, 1 for its children, and so on */
@@ -142,6 +141,7 @@ static int shlvl;
 #define rootshell (!shlvl)
 /* trap handler commands */
 static char *trap[NSIG];
+static smallint isloginsh;
 /* current value of signal */
 static char sigmode[NSIG - 1];
 /* indicates specified signal received */
@@ -9027,8 +9027,11 @@ options(int cmdline)
 	if (cmdline)
 		minusc = NULL;
 	while ((p = *argptr) != NULL) {
-		argptr++;
 		c = *p++;
+		if (c != '-' && c != '+')
+			break;
+		argptr++;
+		val = 0; /* val = 0 if c == '+' */
 		if (c == '-') {
 			val = 1;
 			if (p[0] == '\0' || LONE_DASH(p)) {
@@ -9042,20 +9045,20 @@ options(int cmdline)
 				}
 				break;    /* "-" or  "--" terminates options */
 			}
-		} else if (c == '+') {
-			val = 0;
-		} else {
-			argptr--;
-			break;
 		}
+		/* first char was + or - */
 		while ((c = *p++) != '\0') {
+			/* bash 3.2 indeed handles -c CMD and +c CMD the same */
 			if (c == 'c' && cmdline) {
-				minusc = p;     /* command is after shell args*/
+				minusc = p;     /* command is after shell args */
 			} else if (c == 'o') {
 				minus_o(*argptr, val);
 				if (*argptr)
 					argptr++;
-			} else if (cmdline && (c == '-')) {     // long options
+			} else if (cmdline && (c == 'l')) { /* -l or +l == --login */
+				isloginsh = 1;
+			/* bash does not accept +-login, we also won't */
+			} else if (cmdline && val && (c == '-')) { /* long options */
 				if (strcmp(p, "login") == 0)
 					isloginsh = 1;
 				break;
