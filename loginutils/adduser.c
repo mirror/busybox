@@ -109,8 +109,9 @@ static int adduser(struct passwd *p)
 	if (putpwent(p, file) == -1) {
 		bb_perror_nomsg_and_die();
 	}
-	if (ENABLE_FEATURE_CLEAN_UP)
-		fclose(file);
+	/* Do fclose even if !ENABLE_FEATURE_CLEAN_UP.
+	 * We will exec passwd, files must be flushed & closed before that! */
+	fclose(file);
 
 #if ENABLE_FEATURE_SHADOWPASSWDS
 	/* add to shadow if necessary */
@@ -123,8 +124,7 @@ static int adduser(struct passwd *p)
 				0,                      /* sp->sp_min */
 				99999,                  /* sp->sp_max */
 				7);                     /* sp->sp_warn */
-		if (ENABLE_FEATURE_CLEAN_UP)
-			fclose(file);
+		fclose(file);
 	}
 #endif
 
@@ -134,7 +134,7 @@ static int adduser(struct passwd *p)
 	if (addgroup) addgroup_wrapper(p);
 
 	/* Clear the umask for this process so it doesn't
-	 * * screw up the permissions on the mkdir and chown. */
+	 * screw up the permissions on the mkdir and chown. */
 	umask(0);
 	if (!(option_mask32 & OPT_DONT_MAKE_HOME)) {
 		/* Set the owner and group so it is owned by the new user,
