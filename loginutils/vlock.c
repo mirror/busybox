@@ -62,9 +62,7 @@ int vlock_main(int argc, char **argv)
 
 	vfd = xopen(CURRENT_TTY, O_RDWR);
 
-	if (ioctl(vfd, VT_GETMODE, &vtm) < 0) {
-		bb_perror_msg_and_die("VT_GETMODE");
-	}
+	xioctl(vfd, VT_GETMODE, &vtm);
 
 	/* mask a bunch of signals */
 	sigprocmask(SIG_SETMASK, NULL, &sig);

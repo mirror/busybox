@@ -157,9 +157,8 @@ int vconfig_main(int argc, char **argv)
 	}
 
 	fd = xsocket(AF_INET, SOCK_STREAM, 0);
-	if (ioctl(fd, SIOCSIFVLAN, &ifr) < 0) {
-		bb_perror_msg_and_die("ioctl error for %s", *argv);
-	}
+	ioctl_or_perror_and_die(fd, SIOCSIFVLAN, &ifr,
+						"ioctl error for %s", *argv);
 
 	return 0;
 }

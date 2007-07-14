@@ -188,9 +188,8 @@ static void arp_getdevhw(char *ifname, struct sockaddr *sa,
 	const struct hwtype *xhw;
 
 	strcpy(ifr.ifr_name, ifname);
-	if (ioctl(sockfd, SIOCGIFHWADDR, &ifr) < 0) {
-		bb_perror_msg_and_die("cant get HW-Address for '%s'", ifname);
-	}
+	ioctl_or_perror_and_die(sockfd, SIOCGIFHWADDR, &ifr,
+					"cant get HW-Address for '%s'", ifname);
 	if (hwt && (ifr.ifr_hwaddr.sa_family != hw->type)) {
 		bb_error_msg_and_die("protocol type mismatch");
 	}
@@ -306,9 +305,7 @@ static int arp_set(char **args)
 	/* Call the kernel. */
 	if (option_mask32 & ARP_OPT_v)
 		bb_error_msg("SIOCSARP()");
-	if (ioctl(sockfd, SIOCSARP, &req) < 0) {
-		bb_perror_msg_and_die("SIOCSARP");
-	}
+	xioctl(sockfd, SIOCSARP, &req);
 	return 0;
 }
 

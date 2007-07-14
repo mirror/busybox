@@ -445,8 +445,8 @@ ifaddrlist(struct IFADDRLIST **ipaddrp)
 		if (strchr(al->device, ':') != NULL)
 			continue;
 #endif
-		if (ioctl(fd, SIOCGIFADDR, (char *)&ifr) < 0)
-			bb_perror_msg_and_die("SIOCGIFADDR: %s", al->device);
+		ioctl_or_perror_and_die(fd, SIOCGIFADDR, (char *)&ifr,
+				"SIOCGIFADDR: %s", al->device);
 
 		addr_sin = (struct sockaddr_in *)&ifr.ifr_addr;
 		al->addr = addr_sin->sin_addr.s_addr;

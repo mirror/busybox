@@ -521,8 +521,7 @@ static int if_readconf(void)
 		ifc.ifc_len = sizeof(struct ifreq) * numreqs;
 		ifc.ifc_buf = xrealloc(ifc.ifc_buf, ifc.ifc_len);
 
-		if (ioctl(skfd, SIOCGIFCONF, &ifc) < 0) {
-			bb_perror_msg("SIOCGIFCONF");
+		if (ioctl_or_warn(skfd, SIOCGIFCONF, &ifc) < 0) {
 			goto out;
 		}
 		if (ifc.ifc_len == sizeof(struct ifreq) * numreqs) {

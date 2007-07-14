@@ -106,14 +106,12 @@ int mt_main(int argc, char **argv)
 
 	switch (code->value) {
 		case MTTELL:
-			if (ioctl(fd, MTIOCPOS, &position) < 0)
-				bb_perror_msg_and_die("%s", file);
+			ioctl_or_perror_and_die(fd, MTIOCPOS, &position, "%s", file);
 			printf("At block %d.\n", (int) position.mt_blkno);
 			break;
 
 		default:
-			if (ioctl(fd, MTIOCTOP, &op) != 0)
-				bb_perror_msg_and_die("%s", file);
+			ioctl_or_perror_and_die(fd, MTIOCTOP, &op, "%s", file);
 			break;
 	}
 

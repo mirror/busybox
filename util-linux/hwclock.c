@@ -59,25 +59,23 @@ static time_t read_rtc(int utc)
 	int rtc = xopen_rtc(O_RDONLY);
 
 	memset(&tm, 0, sizeof(struct tm));
-	if (ioctl(rtc, RTC_RD_TIME, &tm) < 0)
-		bb_perror_msg_and_die("cannot read time from RTC");
+	xioctl(rtc, RTC_RD_TIME, &tm);
 	tm.tm_isdst = -1; /* not known */
 
 	close(rtc);
 
 	if (utc) {
 		oldtz = getenv("TZ");
-		setenv("TZ", "UTC 0", 1);
+		putenv((char*)"TZ=UTC0");
 		tzset();
 	}
 
 	t = mktime(&tm);
 
 	if (utc) {
+		unsetenv("TZ");
 		if (oldtz)
-			setenv("TZ", oldtz, 1);
-		else
-			unsetenv("TZ");
+			putenv(oldtz - 3);
 		tzset();
 	}
 	return t;
@@ -91,8 +89,7 @@ static void write_rtc(time_t t, int utc)
 	tm = *(utc ? gmtime(&t) : localtime(&t));
 	tm.tm_isdst = 0;
 
-	if (ioctl(rtc, RTC_SET_TIME, &tm) < 0)
-		bb_perror_msg_and_die("cannot set the RTC time");
+	xioctl(rtc, RTC_SET_TIME, &tm);
 
 	close(rtc);
 }

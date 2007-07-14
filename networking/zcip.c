@@ -247,9 +247,7 @@ int zcip_main(int argc, char **argv)
 	// get the interface's ethernet address
 	//memset(&ifr, 0, sizeof(ifr));
 	strncpy(ifr.ifr_name, intf, sizeof(ifr.ifr_name));
-	if (ioctl(fd, SIOCGIFHWADDR, &ifr) < 0) {
-		bb_perror_msg_and_die("get ethernet address");
-	}
+	xioctl(fd, SIOCGIFHWADDR, &ifr);
 	memcpy(&eth_addr, &ifr.ifr_hwaddr.sa_data, ETH_ALEN);
 
 	// start with some stable ip address, either a function of

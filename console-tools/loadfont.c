@@ -49,13 +49,11 @@ static void do_loadfont(int fd, unsigned char *inbuf, int unit, int fontsize)
 		cfd.charheight = unit;
 		cfd.chardata = buf;
 
-		if (ioctl(fd, PIO_FONTX, &cfd) == 0)
+		if (!ioctl_or_perror(fd, PIO_FONTX, &cfd, "PIO_FONTX ioctl failed (will try PIO_FONT)"))
 			goto ret;			/* success */
-		bb_perror_msg("PIO_FONTX ioctl (will try PIO_FONT)");
 	}
 #endif
-	if (ioctl(fd, PIO_FONT, buf))
-		bb_perror_msg_and_die("PIO_FONT ioctl");
+	xioctl(fd, PIO_FONT, buf);
  ret:
 	free(buf);
 }
@@ -92,20 +90,10 @@ do_loadtable(int fd, unsigned char *inbuf, int tailsz, int fontsize)
 	advice.advised_hashsize = 0;
 	advice.advised_hashstep = 0;
 	advice.advised_hashlevel = 0;
-	if (ioctl(fd, PIO_UNIMAPCLR, &advice)) {
-#ifdef ENOIOCTLCMD
-		if (errno == ENOIOCTLCMD) {
-			bb_error_msg("it seems this kernel is older than 1.1.92");
-			bb_error_msg_and_die("no Unicode mapping table loaded");
-		} else
-#endif
-			bb_perror_msg_and_die("PIO_UNIMAPCLR");
-	}
+	xioctl(fd, PIO_UNIMAPCLR, &advice);
 	ud.entry_ct = ct;
 	ud.entries = up;
-	if (ioctl(fd, PIO_UNIMAP, &ud)) {
-		bb_perror_msg_and_die("PIO_UNIMAP");
-	}
+	xioctl(fd, PIO_UNIMAP, &ud);
 }
 
 static void loadnewfont(int fd)

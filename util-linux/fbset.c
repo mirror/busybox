@@ -385,8 +385,7 @@ int fbset_main(int argc, char **argv)
 	}
 
 	fh = xopen(fbdev, O_RDONLY);
-	if (ioctl(fh, FBIOGET_VSCREENINFO, &var))
-		bb_perror_msg_and_die("ioctl(%sT_VSCREENINFO)", "GE");
+	xioctl(fh, FBIOGET_VSCREENINFO, &var);
 	if (g_options & OPT_READMODE) {
 		if (!readmode(&var, modefile, mode)) {
 			bb_error_msg_and_die("unknown video mode '%s'", mode);
@@ -397,8 +396,7 @@ int fbset_main(int argc, char **argv)
 	if (g_options & OPT_CHANGE) {
 		if (g_options & OPT_ALL)
 			var.activate = FB_ACTIVATE_ALL;
-		if (ioctl(fh, FBIOPUT_VSCREENINFO, &var))
-			bb_perror_msg_and_die("ioctl(%sT_VSCREENINFO)", "PU");
+		xioctl(fh, FBIOPUT_VSCREENINFO, &var);
 	}
 	showmode(&var);
 	/* Don't close the file, as exiting will take care of that */

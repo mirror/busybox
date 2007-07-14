@@ -639,3 +639,61 @@ int get_terminal_width_height(const int fd, int *width, int *height)
 
 	return ret;
 }
+
+void ioctl_or_perror_and_die(int fd, int request, void *argp, const char *fmt,...)
+{
+	va_list p;
+
+	if (ioctl(fd, request, argp) < 0) {
+		va_start(p, fmt);
+		bb_vperror_msg(fmt, p);
+		/* xfunc_die can actually longjmp, so be nice */
+		va_end(p);
+		xfunc_die();
+	}
+}
+
+int ioctl_or_perror(int fd, int request, void *argp, const char *fmt,...)
+{
+	va_list p;
+	int ret = ioctl(fd, request, argp);
+
+	if (ret < 0) {
+		va_start(p, fmt);
+		bb_vperror_msg(fmt, p);
+		va_end(p);
+	}
+	return ret;
+}
+
+#if ENABLE_IOCTL_HEX2STR_ERROR
+int bb_ioctl_or_warn(int fd, int request, void *argp, const char *ioctl_name)
+{
+	int ret;
+	
+	ret = ioctl(fd, request, argp);
+	if (ret < 0)
+		bb_perror_msg("%s", ioctl_name);
+	return ret;
+}
+void bb_xioctl(int fd, int request, void *argp, const char *ioctl_name)
+{
+	if (ioctl(fd, request, argp) < 0)
+		bb_perror_msg_and_die("%s", ioctl_name);
+}
+#else
+int bb_ioctl_or_warn(int fd, int request, void *argp)
+{
+	int ret;
+	
+	ret = ioctl(fd, request, argp);
+	if (ret < 0)
+		bb_perror_msg("ioctl %#x failed", request);
+	return ret;
+}
+void bb_xioctl(int fd, int request, void *argp)
+{
+	if (ioctl(fd, request, argp) < 0)
+		bb_perror_msg_and_die("ioctl %#x failed", request);
+}
+#endif

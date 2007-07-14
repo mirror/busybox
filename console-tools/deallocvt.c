@@ -31,8 +31,6 @@ int deallocvt_main(int argc, char **argv)
 		bb_show_usage();
 	}
 
-	if (-1 == ioctl(get_console_fd(), VT_DISALLOCATE, num)) {
-		bb_perror_msg_and_die("VT_DISALLOCATE");
-	}
+	xioctl(get_console_fd(), VT_DISALLOCATE, (void *)num);
 	return EXIT_SUCCESS;
 }

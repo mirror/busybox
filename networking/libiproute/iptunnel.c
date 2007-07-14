@@ -14,8 +14,6 @@
  * Phil Karn <karn@ka9q.ampr.org>	990408:	"pmtudisc" flag
  */
 
-//#include <sys/socket.h>
-//#include <sys/ioctl.h>
 #include <netinet/ip.h>
 #include <net/if.h>
 #include <net/if_arp.h>
@@ -38,9 +36,7 @@ static int do_ioctl_get_ifindex(char *dev)
 
 	strncpy(ifr.ifr_name, dev, sizeof(ifr.ifr_name));
 	fd = xsocket(AF_INET, SOCK_DGRAM, 0);
-	if (ioctl(fd, SIOCGIFINDEX, &ifr)) {
-		bb_perror_msg_and_die("SIOCGIFINDEX");
-	}
+	xioctl(fd, SIOCGIFINDEX, &ifr);
 	close(fd);
 	return ifr.ifr_ifindex;
 }
@@ -49,30 +45,26 @@ static int do_ioctl_get_iftype(char *dev)
 {
 	struct ifreq ifr;
 	int fd;
+	int err;
 
 	strncpy(ifr.ifr_name, dev, sizeof(ifr.ifr_name));
 	fd = xsocket(AF_INET, SOCK_DGRAM, 0);
-	if (ioctl(fd, SIOCGIFHWADDR, &ifr)) {
-		bb_perror_msg("SIOCGIFHWADDR");
-		return -1;
-	}
+	err = ioctl_or_warn(fd, SIOCGIFHWADDR, &ifr);
 	close(fd);
-	return ifr.ifr_addr.sa_family;
+	return err ? -1 : ifr.ifr_addr.sa_family;
 }
 
 static char *do_ioctl_get_ifname(int idx)
 {
 	struct ifreq ifr;
 	int fd;
+	int err;
 
 	ifr.ifr_ifindex = idx;
 	fd = xsocket(AF_INET, SOCK_DGRAM, 0);
-	if (ioctl(fd, SIOCGIFNAME, &ifr)) {
-		bb_perror_msg("SIOCGIFNAME");
-		return NULL;
-	}
+	err = ioctl_or_warn(fd, SIOCGIFNAME, &ifr);
 	close(fd);
-	return xstrndup(ifr.ifr_name, sizeof(ifr.ifr_name));
+	return err ? NULL : xstrndup(ifr.ifr_name, sizeof(ifr.ifr_name));
 }
 
 static int do_get_ioctl(const char *basedev, struct ip_tunnel_parm *p)
@@ -84,10 +76,7 @@ static int do_get_ioctl(const char *basedev, struct ip_tunnel_parm *p)
 	strncpy(ifr.ifr_name, basedev, sizeof(ifr.ifr_name));
 	ifr.ifr_ifru.ifru_data = (void*)p;
 	fd = xsocket(AF_INET, SOCK_DGRAM, 0);
-	err = ioctl(fd, SIOCGETTUNNEL, &ifr);
-	if (err) {
-		bb_perror_msg("SIOCGETTUNNEL");
-	}
+	err = ioctl_or_warn(fd, SIOCGETTUNNEL, &ifr);
 	close(fd);
 	return err;
 }
@@ -105,9 +94,15 @@ static int do_add_ioctl(int cmd, const char *basedev, struct ip_tunnel_parm *p)
 	}
 	ifr.ifr_ifru.ifru_data = (void*)p;
 	fd = xsocket(AF_INET, SOCK_DGRAM, 0);
-	if (ioctl(fd, cmd, &ifr)) {
-		bb_perror_msg_and_die("ioctl");
-	}
+#if ENABLE_IOCTL_HEX2STR_ERROR
+	/* #define magic will turn ioctl# into string */
+	if (cmd == SIOCCHGTUNNEL)
+		xioctl(fd, SIOCCHGTUNNEL, &ifr);
+	else
+		xioctl(fd, SIOCADDTUNNEL, &ifr);
+#else
+	xioctl(fd, cmd, &ifr);
+#endif
 	close(fd);
 	return 0;
 }
@@ -125,9 +120,7 @@ static int do_del_ioctl(const char *basedev, struct ip_tunnel_parm *p)
 	}
 	ifr.ifr_ifru.ifru_data = (void*)p;
 	fd = xsocket(AF_INET, SOCK_DGRAM, 0);
-	if (ioctl(fd, SIOCDELTUNNEL, &ifr)) {
-		bb_perror_msg_and_die("SIOCDELTUNNEL");
-	}
+	xioctl(fd, SIOCDELTUNNEL, &ifr);
 	close(fd);
 	return 0;
 }
@@ -526,29 +519,24 @@ static int do_show(int argc, char **argv)
 /* Return value becomes exitcode. It's okay to not return at all */
 int do_iptunnel(int argc, char **argv)
 {
-	static const char * const keywords[] = {
+	static const char *const keywords[] = {
 		"add", "change", "delete", "show", "list", "lst", NULL
 	};
-	enum {ARG_add = 1, ARG_change, ARG_del, ARG_show, ARG_list, ARG_lst};
-	smalluint key = 4; /* show */
-	if (argc > 0) {
-		key = index_in_substr_array(keywords, *argv) +1;
+	enum { ARG_add = 0, ARG_change, ARG_del, ARG_show, ARG_list, ARG_lst };
+	int key;
+
+	if (argc) {
+		key = index_in_substr_array(keywords, *argv);
+		if (key < 0)
+			bb_error_msg_and_die(bb_msg_invalid_arg, *argv, applet_name);
 		--argc;
 		++argv;
-	} else
-		return do_show(0, NULL);
-	if (key < ARG_add)
- bail:
-		bb_error_msg_and_die(bb_msg_invalid_arg, *argv, applet_name);
-
-	if (key == ARG_add)
-		return do_add(SIOCADDTUNNEL, argc, argv);
-	if (key == ARG_change)
-		return do_add(SIOCCHGTUNNEL, argc, argv);
-	if (key == ARG_del)
-		return do_del(argc, argv);
-	if (key == ARG_show || key == ARG_list || key == ARG_lst)
-		return do_show(argc, argv);
-	/* be gentle to gcc; avoid warning about non returning */
-	goto bail; /* never reached */
+		if (key == ARG_add)
+			return do_add(SIOCADDTUNNEL, argc, argv);
+		if (key == ARG_change)
+			return do_add(SIOCCHGTUNNEL, argc, argv);
+		if (key == ARG_del)
+			return do_del(argc, argv);
+	}
+	return do_show(argc, argv);
 }

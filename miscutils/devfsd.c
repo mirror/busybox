@@ -234,7 +234,6 @@ static char get_old_ide_name(unsigned , unsigned);
 static char *write_old_sd_name(char *, unsigned, unsigned, const char *);
 
 /* busybox functions */
-static void do_ioctl_or_die(int fd, int request, unsigned long event_mask_flag);
 static int get_uid_gid(int flag, const char *string);
 static void safe_memcpy(char * dest, const char * src, int len);
 static unsigned int scan_dev_name_common(const char *d, unsigned int n, int addendum, const char *ptr);
@@ -297,12 +296,6 @@ static const char * const bb_msg_variable_not_found = "variable: %s not found";
 #define error_logger(p, fmt, args...)
 #define error_logger_and_die(p, fmt, args...)         exit(1)
 #endif
-
-static void do_ioctl_or_die(int fd, int request, unsigned long event_mask_flag)
-{
-	if (ioctl(fd, request, event_mask_flag) == -1)
-		msg_logger_and_die(LOG_ERR, "ioctl");
-}
 
 static void safe_memcpy(char *dest, const char *src, int len)
 {
@@ -386,8 +379,7 @@ int devfsd_main(int argc, char **argv)
 	if (fcntl(fd, F_SETFD, FD_CLOEXEC) != 0)
 		bb_perror_msg_and_die("FD_CLOEXEC");
 
-	if (ioctl(fd, DEVFSDIOC_GET_PROTO_REV, &proto_rev) == -1)
-		bb_perror_msg_and_die("ioctl");
+	xioctl(fd, DEVFSDIOC_GET_PROTO_REV, &proto_rev);
 
 	/*setup initial entries */
 	for (curr = initial_symlinks; curr->dest != NULL; ++curr)
@@ -404,7 +396,7 @@ int devfsd_main(int argc, char **argv)
 		exit(EXIT_SUCCESS); /* -v */
 	}
 	/*  Tell kernel we are special(i.e. we get to see hidden entries)  */
-	do_ioctl_or_die(fd, DEVFSDIOC_SET_EVENT_MASK, 0);
+	xioctl(fd, DEVFSDIOC_SET_EVENT_MASK, 0);
 
 	sigemptyset(&new_action.sa_mask);
 	new_action.sa_flags = 0;
@@ -435,7 +427,7 @@ int devfsd_main(int argc, char **argv)
 
 	if (do_daemon) {
 		/*  Release so that the child can grab it  */
-		do_ioctl_or_die(fd, DEVFSDIOC_RELEASE_EVENT_QUEUE, 0);
+		xioctl(fd, DEVFSDIOC_RELEASE_EVENT_QUEUE, 0);
 		bb_daemonize_or_rexec(0, argv);
 	} else if (ENABLE_DEVFSD_FG_NP) {
 		setpgid(0, 0);  /*  Become process group leader                    */
@@ -661,7 +653,7 @@ static int do_servicing(int fd, unsigned long event_mask)
 
 	/*  Tell devfs what events we care about  */
 	tmp_event_mask = event_mask;
-	do_ioctl_or_die(fd, DEVFSDIOC_SET_EVENT_MASK, tmp_event_mask);
+	xioctl(fd, DEVFSDIOC_SET_EVENT_MASK, tmp_event_mask);
 	while (!caught_signal) {
 		errno = 0;
 		bytes = read(fd,(char *) &info, sizeof info);

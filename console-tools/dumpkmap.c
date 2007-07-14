@@ -50,12 +50,12 @@ int dumpkmap_main(int argc, char **argv)
 			for (j = 0; j < NR_KEYS; j++) {
 				ke.kb_index = j;
 				ke.kb_table = i;
-				if (ioctl(fd, KDGKBENT, &ke) < 0) {
-					bb_perror_msg("ioctl failed with %s, %s, %p",
+				if (!ioctl_or_perror(fd, KDGKBENT, &ke,
+						"ioctl failed with %s, %s, %p",
 						(char *)&ke.kb_index,
 						(char *)&ke.kb_table,
-						&ke.kb_value);
-				} else {
+						&ke.kb_value)
+				) {
 					write(1, (void*)&ke.kb_value, 2);
 				}
 			}

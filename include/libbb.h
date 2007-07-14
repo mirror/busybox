@@ -780,6 +780,20 @@ extern void crypt_make_salt(char *p, int cnt);
 
 int get_terminal_width_height(const int fd, int *width, int *height);
 
+int ioctl_or_perror(int fd, int request, void *argp, const char *fmt,...) __attribute__ ((format (printf, 4, 5)));
+void ioctl_or_perror_and_die(int fd, int request, void *argp, const char *fmt,...) __attribute__ ((format (printf, 4, 5)));
+#if ENABLE_IOCTL_HEX2STR_ERROR
+int bb_ioctl_or_warn(int fd, int request, void *argp, const char *ioctl_name);
+void bb_xioctl(int fd, int request, void *argp, const char *ioctl_name);
+#define ioctl_or_warn(fd,request,argp) bb_ioctl_or_warn(fd,request,argp,#request)
+#define xioctl(fd,request,argp)        bb_xioctl(fd,request,argp,#request)
+#else
+int bb_ioctl_or_warn(int fd, int request, void *argp);
+void bb_xioctl(int fd, int request, void *argp);
+#define ioctl_or_warn(fd,request,argp) bb_ioctl_or_warn(fd,request,argp)
+#define xioctl(fd,request,argp)        bb_xioctl(fd,request,argp)
+#endif
+
 char *is_in_ino_dev_hashtable(const struct stat *statbuf);
 void add_to_ino_dev_hashtable(const struct stat *statbuf, const char *name);
 void reset_ino_dev_hashtable(void);

@@ -45,13 +45,6 @@ struct format_descr {
 #define FDGETPRM _IOR(2, 0x04, struct floppy_struct)
 #define FD_FILL_BYTE 0xF6 /* format fill byte. */
 
-static void xioctl(int fd, int request, void *argp, const char *string)
-{
-	if (ioctl(fd, request, argp) < 0) {
-		bb_perror_msg_and_die(string);
-	}
-}
-
 int fdformat_main(int argc,char **argv);
 int fdformat_main(int argc,char **argv)
 {
@@ -77,7 +70,7 @@ int fdformat_main(int argc,char **argv)
 	fd = xopen(*argv, O_RDWR);
 
 	/* original message was: "Could not determine current format type" */
-	xioctl(fd, FDGETPRM, &param, "FDGETPRM");
+	xioctl(fd, FDGETPRM, &param);
 
 	printf("%s-sided, %d tracks, %d sec/track. Total capacity %d kB\n",
 		(param.head == 2) ? "Double" : "Single",
@@ -85,21 +78,21 @@ int fdformat_main(int argc,char **argv)
 
 	/* FORMAT */
 	printf("Formatting... ");
-	xioctl(fd, FDFMTBEG, NULL, "FDFMTBEG");
+	xioctl(fd, FDFMTBEG, NULL);
 
 	/* n == track */
 	for (n = 0; n < param.track; n++) {
 		descr.head = 0;
 		descr.track = n;
-		xioctl(fd, FDFMTTRK, &descr, "FDFMTTRK");
+		xioctl(fd, FDFMTTRK, &descr);
 		printf("%3d\b\b\b", n);
 		if (param.head == 2) {
 			descr.head = 1;
-			xioctl(fd, FDFMTTRK, &descr, "FDFMTTRK");
+			xioctl(fd, FDFMTTRK, &descr);
 		}
 	}
 
-	xioctl(fd, FDFMTEND, NULL, "FDFMTEND");
+	xioctl(fd, FDFMTEND, NULL);
 	printf("done\n");
 
 	/* VERIFY */

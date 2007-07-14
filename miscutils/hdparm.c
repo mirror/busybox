@@ -200,8 +200,7 @@ static const char * const ata1_cfg_str[] = {			/* word 0 in ATA-1 mode */
 #define MULTIPLE_SETTING_VALID  0x0100  /* 1=multiple sector setting is valid */
 
 /* word 49: capabilities 0 */
-#define STD_STBY		0x2000  /* 1=standard values supported (ATA);
-					   0=vendor specific values */
+#define STD_STBY		0x2000  /* 1=standard values supported (ATA); 0=vendor specific values */
 #define IORDY_SUP		0x0800  /* 1=support; 0=may be supported */
 #define IORDY_OFF		0x0400  /* 1=may be disabled */
 #define LBA_SUP			0x0200  /* 1=Logical Block Address support */
@@ -442,25 +441,29 @@ static const char * const secu_str[] = {
 #undef DO_FLUSHCACHE            /* under construction: force cache flush on -W0 */
 
 /* Busybox messages and functions */
-static int bb_ioctl(int fd, int request, void *argp, const char *string)
-{
-	int e = ioctl(fd, request, argp);
-	if (e && string)
-		bb_perror_msg(" %s", string);
-	return e;
-}
-
-static int bb_ioctl_alt(int fd, int cmd, unsigned char *args, int alt, const char *string)
+#if ENABLE_IOCTL_HEX2STR_ERROR
+static int ioctl_alt_func(int fd, int cmd, unsigned char *args, int alt, const char *string)
 {
 	if (!ioctl(fd, cmd, args))
 		return 0;
 	args[0] = alt;
-	return bb_ioctl(fd, cmd, args, string);
+	return bb_ioctl_or_warn(fd, cmd, args, string);
 }
+#define ioctl_alt_or_warn(fd,cmd,args,alt) ioctl_alt_func(fd,cmd,args,alt,#cmd)
+#else
+static int ioctl_alt_func(int fd, int cmd, unsigned char *args, int alt)
+{
+	if (!ioctl(fd, cmd, args))
+		return 0;
+	args[0] = alt;
+	return bb_ioctl_or_warn(fd, cmd, args);
+}
+#define ioctl_alt_or_warn(fd,cmd,args,alt) ioctl_alt_func(fd,cmd,args,alt)
+#endif
 
 static void on_off(int value)
 {
-	printf(value ? " (on)\n" : " (off)\n");
+	puts(value ? " (on)" : " (off)");
 }
 
 static void print_flag_on_off(int get_arg, const char *s, unsigned long arg)
@@ -471,15 +474,10 @@ static void print_flag_on_off(int get_arg, const char *s, unsigned long arg)
 	}
 }
 
-static void bb_ioctl_on_off(int fd, int request, void *argp, const char *string,
-							 const char * str)
+static void print_value_on_off(const char *str, unsigned long argp)
 {
-	if (ioctl(fd, request, &argp) != 0)
-		bb_perror_msg(" %s", string);
-	else {
-		printf(" %s\t= %2ld", str, (unsigned long) argp);
-		on_off(((unsigned long) argp) != 0);
-	}
+	printf(" %s\t= %2ld", str, argp);
+	on_off(argp != 0);
 }
 
 #if ENABLE_FEATURE_HDPARM_GET_IDENTITY
@@ -1245,11 +1243,15 @@ static void dump_identity(const struct hd_driveid *id)
 static void flush_buffer_cache(int fd)
 {
 	fsync(fd);				/* flush buffers */
-	bb_ioctl(fd, BLKFLSBUF, NULL, "BLKFLSBUF"); /* do it again, big time */
+	ioctl_or_warn(fd, BLKFLSBUF, NULL); /* do it again, big time */
 #ifdef HDIO_DRIVE_CMD
 	sleep(1);
-	if (ioctl(fd, HDIO_DRIVE_CMD, NULL) && errno != EINVAL)	/* await completion */
-		bb_perror_msg("HDIO_DRIVE_CMD");
+	if (ioctl(fd, HDIO_DRIVE_CMD, NULL) && errno != EINVAL) {	/* await completion */
+		if (ENABLE_IOCTL_HEX2STR_ERROR) /* To be coherent with ioctl_or_warn */
+			bb_perror_msg("HDIO_DRIVE_CMD");
+		else
+			bb_perror_msg("ioctl %#x failed", HDIO_DRIVE_CMD);
+	}
 #endif
 }
 
@@ -1284,9 +1286,7 @@ static int do_blkgetsize(int fd, unsigned long long *blksize64)
 		*blksize64 /= 512;
 		return 0;
 	}
-	rc = ioctl(fd, BLKGETSIZE, &blksize32);	// returns sectors
-	if (rc)
-		bb_perror_msg("BLKGETSIZE");
+	rc = ioctl_or_warn(fd, BLKGETSIZE, &blksize32);	// returns sectors
 	*blksize64 = blksize32;
 	return rc;
 }
@@ -1516,12 +1516,12 @@ static void process_dev(char *devname)
 
 	if (set_readahead) {
 		print_flag(get_readahead, "fs readahead", Xreadahead);
-		bb_ioctl(fd, BLKRASET, (int *)Xreadahead, "BLKRASET");
+		ioctl_or_warn(fd, BLKRASET, (int *)Xreadahead);
 	}
 #if ENABLE_FEATURE_HDPARM_HDIO_UNREGISTER_HWIF
 	if (unregister_hwif) {
 		printf(" attempting to unregister hwif#%lu\n", hwif);
-		bb_ioctl(fd, HDIO_UNREGISTER_HWIF, (int *)(unsigned long)hwif, "HDIO_UNREGISTER_HWIF");
+		ioctl_or_warn(fd, HDIO_UNREGISTER_HWIF, (int *)(unsigned long)hwif);
 	}
 #endif
 #if ENABLE_FEATURE_HDPARM_HDIO_SCAN_HWIF
@@ -1530,7 +1530,7 @@ static void process_dev(char *devname)
 		args[0] = hwif_data;
 		args[1] = hwif_ctrl;
 		args[2] = hwif_irq;
-		bb_ioctl(fd, HDIO_SCAN_HWIF, args, "HDIO_SCAN_HWIF");
+		ioctl_or_warn(fd, HDIO_SCAN_HWIF, args);
 		args[0] = WIN_SETFEATURES;
 		args[1] = 0;
 	}
@@ -1547,70 +1547,70 @@ static void process_dev(char *devname)
 			else
 				printf("set UDMA mode to %d\n", (piomode-200));
 		}
-		bb_ioctl(fd, HDIO_SET_PIO_MODE, (int *)(unsigned long)piomode, "HDIO_SET_PIO_MODE");
+		ioctl_or_warn(fd, HDIO_SET_PIO_MODE, (int *)(unsigned long)piomode);
 	}
 	if (set_io32bit) {
 		print_flag(get_io32bit, "32-bit IO_support flag", io32bit);
-		bb_ioctl(fd, HDIO_SET_32BIT, (int *)io32bit, "HDIO_SET_32BIT");
+		ioctl_or_warn(fd, HDIO_SET_32BIT, (int *)io32bit);
 	}
 	if (set_mult) {
 		print_flag(get_mult, "multcount", mult);
 #ifdef HDIO_DRIVE_CMD
-		bb_ioctl(fd, HDIO_SET_MULTCOUNT, (void *)mult, "HDIO_SET_MULTCOUNT");
+		ioctl_or_warn(fd, HDIO_SET_MULTCOUNT, (void *)mult);
 #else
-		force_operation |= (!bb_ioctl(fd, HDIO_SET_MULTCOUNT, (void *)mult, "HDIO_SET_MULTCOUNT"));
+		force_operation |= (!ioctl_or_warn(fd, HDIO_SET_MULTCOUNT, (void *)mult));
 #endif
 	}
 	if (set_readonly) {
 		print_flag_on_off(get_readonly, "readonly", readonly);
-		bb_ioctl(fd, BLKROSET, &readonly, "BLKROSET");
+		ioctl_or_warn(fd, BLKROSET, &readonly);
 	}
 	if (set_unmask) {
 		print_flag_on_off(get_unmask, "unmaskirq", unmask);
-		bb_ioctl(fd, HDIO_SET_UNMASKINTR, (int *)unmask, "HDIO_SET_UNMASKINTR");
+		ioctl_or_warn(fd, HDIO_SET_UNMASKINTR, (int *)unmask);
 	}
 #if ENABLE_FEATURE_HDPARM_HDIO_GETSET_DMA
 	if (set_dma) {
 		print_flag_on_off(get_dma, "using_dma", dma);
-		bb_ioctl(fd, HDIO_SET_DMA, (int *)dma, "HDIO_SET_DMA");
+		ioctl_or_warn(fd, HDIO_SET_DMA, (int *)dma);
 	}
 #endif /* FEATURE_HDPARM_HDIO_GETSET_DMA */
 	if (set_dma_q) {
 		print_flag_on_off(get_dma_q, "DMA queue_depth", dma_q);
-		bb_ioctl(fd, HDIO_SET_QDMA, (int *)dma_q, "HDIO_SET_QDMA");
+		ioctl_or_warn(fd, HDIO_SET_QDMA, (int *)dma_q);
 	}
 	if (set_nowerr) {
 		print_flag_on_off(get_nowerr, "nowerr", nowerr);
-		bb_ioctl(fd, HDIO_SET_NOWERR, (int *)nowerr, "HDIO_SET_NOWERR");
+		ioctl_or_warn(fd, HDIO_SET_NOWERR, (int *)nowerr);
 	}
 	if (set_keep) {
 		print_flag_on_off(get_keep, "keep_settings", keep);
-		bb_ioctl(fd, HDIO_SET_KEEPSETTINGS, (int *)keep, "HDIO_SET_KEEPSETTINGS");
+		ioctl_or_warn(fd, HDIO_SET_KEEPSETTINGS, (int *)keep);
 	}
 #ifdef HDIO_DRIVE_CMD
 	if (set_doorlock) {
 		args[0] = doorlock ? WIN_DOORLOCK : WIN_DOORUNLOCK;
 		args[2] = 0;
 		print_flag_on_off(get_doorlock, "drive doorlock", doorlock);
-		bb_ioctl(fd, HDIO_DRIVE_CMD, &args, "HDIO_DRIVE_CMD(doorlock)");
+		ioctl_or_warn(fd, HDIO_DRIVE_CMD, &args);
 		args[0] = WIN_SETFEATURES;
 	}
 	if (set_dkeep) {
 		/* lock/unlock the drive's "feature" settings */
 		print_flag_on_off(get_dkeep, "drive keep features", dkeep);
 		args[2] = dkeep ? 0x66 : 0xcc;
-		bb_ioctl(fd, HDIO_DRIVE_CMD, &args, "HDIO_DRIVE_CMD(keepsettings)");
+		ioctl_or_warn(fd, HDIO_DRIVE_CMD, &args);
 	}
 	if (set_defects) {
 		args[2] = defects ? 0x04 : 0x84;
 		print_flag(get_defects, "drive defect-mgmt", defects);
-		bb_ioctl(fd, HDIO_DRIVE_CMD, &args, "HDIO_DRIVE_CMD(defectmgmt)");
+		ioctl_or_warn(fd, HDIO_DRIVE_CMD, &args);
 	}
 	if (set_prefetch) {
 		args[1] = prefetch;
 		args[2] = 0xab;
 		print_flag(get_prefetch, "drive prefetch", prefetch);
-		bb_ioctl(fd, HDIO_DRIVE_CMD, &args, "HDIO_DRIVE_CMD(setprefetch)");
+		ioctl_or_warn(fd, HDIO_DRIVE_CMD, &args);
 		args[1] = 0;
 	}
 	if (set_xfermode) {
@@ -1620,20 +1620,20 @@ static void process_dev(char *devname)
 			print_flag(1, "xfermode", xfermode_requested);
 			interpret_xfermode(xfermode_requested);
 		}
-		bb_ioctl(fd, HDIO_DRIVE_CMD, &args, "HDIO_DRIVE_CMD(setxfermode)");
+		ioctl_or_warn(fd, HDIO_DRIVE_CMD, &args);
 		args[1] = 0;
 	}
 	if (set_lookahead) {
 		args[2] = lookahead ? 0xaa : 0x55;
 		print_flag_on_off(get_lookahead, "drive read-lookahead", lookahead);
-		bb_ioctl(fd, HDIO_DRIVE_CMD, &args, "HDIO_DRIVE_CMD(setreadahead)");
+		ioctl_or_warn(fd, HDIO_DRIVE_CMD, &args);
 	}
 	if (set_apmmode) {
 		args[2] = (apmmode == 255) ? 0x85 /* disable */ : 0x05 /* set */; /* feature register */
 		args[1] = apmmode; /* sector count register 1-255 */
 		if (get_apmmode)
 			printf(" setting APM level to %s 0x%02lX (%ld)\n", (apmmode == 255) ? "disabled" : "", apmmode, apmmode);
-		bb_ioctl(fd, HDIO_DRIVE_CMD, &args, "HDIO_DRIVE_CMD");
+		ioctl_or_warn(fd, HDIO_DRIVE_CMD, &args);
 		args[1] = 0;
 	}
 	if (set_wcache)	{
@@ -1647,12 +1647,12 @@ static void process_dev(char *devname)
 		print_flag_on_off(get_wcache, "drive write-caching", wcache);
 #ifdef DO_FLUSHCACHE
 		if (!wcache)
-			bb_ioctl(fd, HDIO_DRIVE_CMD, &flushcache, "HDIO_DRIVE_CMD(flushcache)");
+			ioctl_or_warn(fd, HDIO_DRIVE_CMD, &flushcache);
 #endif /* DO_FLUSHCACHE */
-		bb_ioctl(fd, HDIO_DRIVE_CMD, &args, "HDIO_DRIVE_CMD(setcache)");
+		ioctl_or_warn(fd, HDIO_DRIVE_CMD, &args);
 #ifdef DO_FLUSHCACHE
 		if (!wcache)
-			bb_ioctl(fd, HDIO_DRIVE_CMD, &flushcache, "HDIO_DRIVE_CMD(flushcache)");
+			ioctl_or_warn(fd, HDIO_DRIVE_CMD, &flushcache);
 #endif /* DO_FLUSHCACHE */
 	}
 
@@ -1669,7 +1669,7 @@ static void process_dev(char *devname)
 #endif
 		if (get_standbynow) printf(" issuing standby command\n");
 		args[0] = WIN_STANDBYNOW1;
-		bb_ioctl_alt(fd, HDIO_DRIVE_CMD, args, WIN_STANDBYNOW2, "HDIO_DRIVE_CMD(standby)");
+		ioctl_alt_or_warn(fd, HDIO_DRIVE_CMD, args, WIN_STANDBYNOW2);
 	}
 	if (set_sleepnow) {
 #ifndef WIN_SLEEPNOW1
@@ -1680,12 +1680,12 @@ static void process_dev(char *devname)
 #endif
 		if (get_sleepnow) printf(" issuing sleep command\n");
 		args[0] = WIN_SLEEPNOW1;
-		bb_ioctl_alt(fd, HDIO_DRIVE_CMD, args, WIN_SLEEPNOW2, "HDIO_DRIVE_CMD(sleep)");
+		ioctl_alt_or_warn(fd, HDIO_DRIVE_CMD, args, WIN_SLEEPNOW2);
 	}
 	if (set_seagate) {
 		args[0] = 0xfb;
 		if (get_seagate) printf(" disabling Seagate auto powersaving mode\n");
-		bb_ioctl(fd, HDIO_DRIVE_CMD, &args, "HDIO_DRIVE_CMD(seagatepwrsave)");
+		ioctl_or_warn(fd, HDIO_DRIVE_CMD, &args);
 	}
 	if (set_standby) {
 		args[0] = WIN_SETIDLE1;
@@ -1694,7 +1694,7 @@ static void process_dev(char *devname)
 			print_flag(1, "standby", standby_requested);
 			interpret_standby(standby_requested);
 		}
-		bb_ioctl(fd, HDIO_DRIVE_CMD, &args, "HDIO_DRIVE_CMD(setidle1)");
+		ioctl_or_warn(fd, HDIO_DRIVE_CMD, &args);
 		args[1] = 0;
 	}
 #else	/* HDIO_DRIVE_CMD */
@@ -1709,15 +1709,17 @@ static void process_dev(char *devname)
 	if (get_mult || get_identity) {
 		multcount = -1;
 		if (ioctl(fd, HDIO_GET_MULTCOUNT, &multcount)) {
-			if (get_mult)
+			if (get_mult && ENABLE_IOCTL_HEX2STR_ERROR) /* To be coherent with ioctl_or_warn. */
 				bb_perror_msg("HDIO_GET_MULTCOUNT");
+			else
+				bb_perror_msg("ioctl %#x failed", HDIO_GET_MULTCOUNT);
 		} else if (get_mult) {
 			printf(fmt, "multcount", multcount);
 			on_off(multcount != 0);
 		}
 	}
 	if (get_io32bit) {
-		if (!bb_ioctl(fd, HDIO_GET_32BIT, &parm, "HDIO_GET_32BIT")) {
+		if (!ioctl_or_warn(fd, HDIO_GET_32BIT, &parm)) {
 			printf(" IO_support\t=%3ld (", parm);
 			if (parm == 0)
 				printf("default 16-bit)\n");
@@ -1734,14 +1736,14 @@ static void process_dev(char *devname)
 		}
 	}
 	if (get_unmask) {
-		bb_ioctl_on_off(fd, HDIO_GET_UNMASKINTR, (unsigned long *)parm,
-					"HDIO_GET_UNMASKINTR", "unmaskirq");
+		if(!ioctl_or_warn(fd, HDIO_GET_UNMASKINTR, (unsigned long *)parm))
+			print_value_on_off("unmaskirq", parm);
 	}
 
 
 #if ENABLE_FEATURE_HDPARM_HDIO_GETSET_DMA
 	if (get_dma) {
-		if (!bb_ioctl(fd, HDIO_GET_DMA, &parm, "HDIO_GET_DMA")) {
+		if (!ioctl_or_warn(fd, HDIO_GET_DMA, &parm)) {
 			printf(fmt, "using_dma", parm);
 			if (parm == 8)
 				printf(" (DMA-Assisted-PIO)\n");
@@ -1751,31 +1753,31 @@ static void process_dev(char *devname)
 	}
 #endif
 	if (get_dma_q) {
-		bb_ioctl_on_off(fd, HDIO_GET_QDMA, (unsigned long *)parm,
-						"HDIO_GET_QDMA", "queue_depth");
+		if(!ioctl_or_warn(fd, HDIO_GET_QDMA, (unsigned long *)parm))
+			print_value_on_off("queue_depth", parm);
 	}
 	if (get_keep) {
-		bb_ioctl_on_off(fd, HDIO_GET_KEEPSETTINGS, (unsigned long *)parm,
-						"HDIO_GET_KEEPSETTINGS", "keepsettings");
+		if(!ioctl_or_warn(fd, HDIO_GET_KEEPSETTINGS, (unsigned long *)parm))
+			print_value_on_off("keepsettings", parm);
 	}
 
 	if (get_nowerr) {
-		bb_ioctl_on_off(fd, HDIO_GET_NOWERR, (unsigned long *)&parm,
-						"HDIO_GET_NOWERR", "nowerr");
+		if(!ioctl_or_warn(fd, HDIO_GET_NOWERR, (unsigned long *)parm))
+			print_value_on_off("nowerr", parm);
 	}
 	if (get_readonly) {
-		bb_ioctl_on_off(fd, BLKROGET, (unsigned long *)parm,
-						"BLKROGET", "readonly");
+		if(!ioctl_or_warn(fd, BLKROGET, (unsigned long *)parm))
+			print_value_on_off("readonly", parm);
 	}
 	if (get_readahead) {
-		bb_ioctl_on_off(fd, BLKRAGET, (unsigned long *) parm,
-						"BLKRAGET", "readahead");
+		if(!ioctl_or_warn(fd, BLKRAGET, (unsigned long *)parm))
+			print_value_on_off("readahead", parm);
 	}
 	if (get_geom) {
-		if (!bb_ioctl(fd, BLKGETSIZE, &parm, "BLKGETSIZE")) {
+		if (!ioctl_or_warn(fd, BLKGETSIZE, &parm)) {
 			struct hd_geometry g;
 
-			if (!bb_ioctl(fd, HDIO_GETGEO, &g, "HDIO_GETGEO"))
+			if (!ioctl_or_warn(fd, HDIO_GETGEO, &g))
 				printf(" geometry\t= %u/%u/%u, sectors = %ld, start = %ld\n",
 						g.cylinders, g.heads, g.sectors, parm, g.start);
 		}
@@ -1791,7 +1793,7 @@ static void process_dev(char *devname)
 		const char *state;
 
 		args[0] = WIN_CHECKPOWERMODE1;
-		if (bb_ioctl_alt(fd, HDIO_DRIVE_CMD, args, WIN_CHECKPOWERMODE2, 0)) {
+		if (ioctl_alt_or_warn(fd, HDIO_DRIVE_CMD, args, WIN_CHECKPOWERMODE2)) {
 			if (errno != EIO || args[0] != 0 || args[1] != 0)
 				state = "unknown";
 			else
@@ -1805,14 +1807,14 @@ static void process_dev(char *devname)
 #endif
 #if ENABLE_FEATURE_HDPARM_HDIO_DRIVE_RESET
 	if (perform_reset) {
-		bb_ioctl(fd, HDIO_DRIVE_RESET, NULL, "HDIO_DRIVE_RESET");
+		ioctl_or_warn(fd, HDIO_DRIVE_RESET, NULL);
 	}
 #endif /* FEATURE_HDPARM_HDIO_DRIVE_RESET */
 #if ENABLE_FEATURE_HDPARM_HDIO_TRISTATE_HWIF
 	if (perform_tristate) {
 		args[0] = 0;
 		args[1] = tristate;
-		bb_ioctl(fd, HDIO_TRISTATE_HWIF, &args, "HDIO_TRISTATE_HWIF");
+		ioctl_or_warn(fd, HDIO_TRISTATE_HWIF, &args);
 	}
 #endif /* FEATURE_HDPARM_HDIO_TRISTATE_HWIF */
 #if ENABLE_FEATURE_HDPARM_GET_IDENTITY
@@ -1828,8 +1830,10 @@ static void process_dev(char *devname)
 			dump_identity(&id);
 		} else if (errno == -ENOMSG)
 			printf(" no identification info available\n");
+		else if (ENABLE_IOCTL_HEX2STR_ERROR)  /* To be coherent with ioctl_or_warn */
+			bb_perror_msg("HDIO_GET_IDENTITY"); 
 		else
-			bb_perror_msg("HDIO_GET_IDENTITY");
+			bb_perror_msg("ioctl %#x failed", HDIO_GET_IDENTITY);
 	}
 
 	if (get_IDentity) {
@@ -1838,7 +1842,7 @@ static void process_dev(char *devname)
 		memset(args1, 0, sizeof(args1));
 		args1[0] = WIN_IDENTIFY;
 		args1[3] = 1;
-		if (!bb_ioctl_alt(fd, HDIO_DRIVE_CMD, args1, WIN_PIDENTIFY, "HDIO_DRIVE_CMD(identify)"))
+		if (!ioctl_alt_or_warn(fd, HDIO_DRIVE_CMD, args1, WIN_PIDENTIFY))
 			identify((void *)(args1 + 4));
 	}
 #endif
@@ -1848,17 +1852,17 @@ static void process_dev(char *devname)
 			print_flag(1, "bus state", busstate);
 			bus_state_value(busstate);
 		}
-		bb_ioctl(fd, HDIO_SET_BUSSTATE, (int *)(unsigned long)busstate, "HDIO_SET_BUSSTATE");
+		ioctl_or_warn(fd, HDIO_SET_BUSSTATE, (int *)(unsigned long)busstate);
 	}
 	if (get_busstate) {
-		if (!bb_ioctl(fd, HDIO_GET_BUSSTATE, &parm, "HDIO_GET_BUSSTATE")) {
+		if (!ioctl_or_warn(fd, HDIO_GET_BUSSTATE, &parm)) {
 			printf(fmt, "bus state", parm);
 			bus_state_value(parm);
 		}
 	}
 #endif
 	if (reread_partn)
-		bb_ioctl(fd, BLKRRPART, NULL, "BLKRRPART");
+		ioctl_or_warn(fd, BLKRRPART, NULL);
 
 	if (do_ctimings)
 		do_time(0, fd); /* time cache */

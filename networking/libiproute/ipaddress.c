@@ -84,8 +84,7 @@ static void print_queuelen(char *name)
 
 	memset(&ifr, 0, sizeof(ifr));
 	strncpy(ifr.ifr_name, name, sizeof(ifr.ifr_name));
-	if (ioctl(s, SIOCGIFTXQLEN, &ifr) < 0) {
-		bb_perror_msg("SIOCGIFXQLEN");
+	if (ioctl_or_warn(s, SIOCGIFTXQLEN, &ifr) < 0) {
 		close(s);
 		return;
 	}

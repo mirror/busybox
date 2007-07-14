@@ -169,7 +169,7 @@ static void invalid_block(ext2_filsys fs EXT2FS_ATTR((unused)), blk_t blk)
 /*
  * Busybox stuff
  */
-static void mke2fs_error_msg_and_die(int retval, const char *fmt, ...)__attribute__ ((format (printf, 2, 3)));
+static void mke2fs_error_msg_and_die(int retval, const char *fmt, ...) __attribute__ ((format (printf, 2, 3)));
 static void mke2fs_error_msg_and_die(int retval, const char *fmt, ...)
 {
 	va_list ap;
@@ -184,7 +184,7 @@ static void mke2fs_error_msg_and_die(int retval, const char *fmt, ...)
 	}
 }
 
-static void mke2fs_verbose(const char *fmt, ...)__attribute__ ((format (printf, 1, 2)));
+static void mke2fs_verbose(const char *fmt, ...) __attribute__ ((format (printf, 1, 2)));
 static void mke2fs_verbose(const char *fmt, ...)
 {
 	va_list ap;
@@ -202,7 +202,7 @@ static void mke2fs_verbose_done(void)
 	mke2fs_verbose("done\n");
 }
 
-static void mke2fs_warning_msg(int retval, char *fmt, ... )__attribute__ ((format (printf, 2, 3)));
+static void mke2fs_warning_msg(int retval, char *fmt, ... ) __attribute__ ((format (printf, 2, 3)));
 static void mke2fs_warning_msg(int retval, char *fmt, ... )
 {
 	va_list ap;

@@ -120,4 +120,11 @@ config MONOTONIC_SYSCALL
 	  will be used instead (which gives wrong results if date/time
 	  is reset).
 
+config IOCTL_HEX2STR_ERROR
+	bool "Use ioctl names rather than hex values in error messages"
+	default y
+	help
+	  Use ioctl names rather than hex values in error messages
+	  (e.g. VT_DISALLOCATE rather than 0x5608). If disabled this
+	  saves about 1400 bytes.
 endmenu

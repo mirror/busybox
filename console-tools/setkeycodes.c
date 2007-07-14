@@ -39,9 +39,9 @@ int setkeycodes_main(int argc, char** argv)
 			a.scancode -= 0xe000;
 			a.scancode += 128;
 		}
-		if (ioctl(fd, KDSETKEYCODE, &a)) {
-			bb_perror_msg_and_die("failed to set SCANCODE %x to KEYCODE %d", sc, a.keycode);
-		}
+		ioctl_or_perror_and_die(fd, KDSETKEYCODE, &a,
+			"failed to set SCANCODE %x to KEYCODE %d",
+			sc, a.keycode);
 		argc -= 2;
 		argv += 2;
 	}

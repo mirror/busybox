@@ -42,8 +42,6 @@ int setconsole_main(int argc, char **argv)
 			device = DEV_CONSOLE;
 	}
 
-	if (-1 == ioctl(xopen(device, O_RDONLY), TIOCCONS)) {
-		bb_perror_msg_and_die("TIOCCONS");
-	}
+	xioctl(xopen(device, O_RDONLY), TIOCCONS, NULL);
 	return EXIT_SUCCESS;
 }

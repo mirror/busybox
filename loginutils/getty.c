@@ -281,8 +281,7 @@ static void open_tty(const char *tty, struct termios *tp, int local)
 	 * 5 seconds seems to be a good value.
 	 */
 
-	if (ioctl(0, TCGETS, tp) < 0)
-		bb_perror_msg_and_die("%s: ioctl(TCGETS)", tty);
+	ioctl_or_perror_and_die(0, TCGETS, tp, "%s: TCGETS", tty);
 
 	/*
 	 * It seems to be a terminal. Set proper protections and ownership. Mode
@@ -647,8 +646,7 @@ static void termios_final(struct options *op, struct termios *tp, struct chardat
 
 	/* Finally, make the new settings effective */
 
-	if (ioctl(0, TCSETS, tp) < 0)
-		bb_perror_msg_and_die("%s: ioctl(TCSETS)", op->tty);
+	ioctl_or_perror_and_die(0, TCSETS, tp, "%s: TCSETS", op->tty);
 }
 
 

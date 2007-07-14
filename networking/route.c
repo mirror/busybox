@@ -327,9 +327,10 @@ static void INET_setroute(int action, char **args)
 	/* Create a socket to the INET kernel. */
 	skfd = xsocket(AF_INET, SOCK_DGRAM, 0);
 
-	if (ioctl(skfd, ((action==RTACTION_ADD) ? SIOCADDRT : SIOCDELRT), &rt)<0) {
-		bb_perror_msg_and_die("SIOC[ADD|DEL]RT");
-	}
+	if (action == RTACTION_ADD)
+		xioctl(skfd, SIOCADDRT, &rt);
+	else
+		xioctl(skfd, SIOCDELRT, &rt);
 
 	if (ENABLE_FEATURE_CLEAN_UP) close(skfd);
 }
@@ -423,17 +424,15 @@ static void INET6_setroute(int action, char **args)
 		struct ifreq ifr;
 		memset(&ifr, 0, sizeof(ifr));
 		strncpy(ifr.ifr_name, devname, sizeof(ifr.ifr_name));
-
-		if (ioctl(skfd, SIOGIFINDEX, &ifr) < 0) {
-			bb_perror_msg_and_die("SIOGIFINDEX");
-		}
+		xioctl(skfd, SIOGIFINDEX, &ifr);
 		rt.rtmsg_ifindex = ifr.ifr_ifindex;
 	}
 
 	/* Tell the kernel to accept this route. */
-	if (ioctl(skfd, ((action==RTACTION_ADD) ? SIOCADDRT : SIOCDELRT), &rt)<0) {
-		bb_perror_msg_and_die("SIOC[ADD|DEL]RT");
-	}
+	if (action == RTACTION_ADD)
+		xioctl(skfd, SIOCADDRT, &rt);
+	else
+		xioctl(skfd, SIOCDELRT, &rt);
 
 	if (ENABLE_FEATURE_CLEAN_UP) close(skfd);
 }

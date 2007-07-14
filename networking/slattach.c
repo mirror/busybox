@@ -50,8 +50,7 @@ static void save_state(void)
 		bb_perror_msg_and_die("get state");
 
 	/* Save line discipline */
-	if (ioctl(handle, TIOCGETD, &saved_disc) < 0)
-		bb_perror_msg_and_die("get discipline");
+	xioctl(handle, TIOCGETD, &saved_disc);
 }
 
 static int set_termios_state_and_warn(struct termios *state)
@@ -81,8 +80,7 @@ static void restore_state_and_exit(int exitcode)
 	struct termios state;
 
 	/* Restore line discipline */
-	if (ioctl(handle, TIOCSETD, &saved_disc) < 0) {
-		bb_perror_msg("set discipline");
+	if (ioctl_or_warn(handle, TIOCSETD, &saved_disc) < 0) {
 		exitcode = 1;
 	}
 
@@ -115,14 +113,12 @@ static void set_state(struct termios *state, int encap)
 		goto bad;
 	/* Set line discliple (N_SLIP always) */
 	disc = N_SLIP;
-	if (ioctl(handle, TIOCSETD, &disc) < 0) {
-		bb_perror_msg("set discipline");
+	if (ioctl_or_warn(handle, TIOCSETD, &disc) < 0) {
 		goto bad;
 	}
 
 	/* Set encapsulation (SLIP, CSLIP, etc) */
-	if (ioctl(handle, SIOCSIFENCAP, &encap) < 0) {
-		bb_perror_msg("set encapsulation");
+	if (ioctl_or_warn(handle, SIOCSIFENCAP, &encap) < 0) {
  bad:
 		restore_state_and_exit(1);
 	}

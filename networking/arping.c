@@ -273,14 +273,11 @@ int arping_main(int argc, char **argv)
 
 		memset(&ifr, 0, sizeof(ifr));
 		strncpy(ifr.ifr_name, device, IFNAMSIZ - 1);
-		if (ioctl(sock, SIOCGIFINDEX, &ifr) < 0) {
-			bb_error_msg_and_die("interface %s not found", device);
-		}
+		ioctl_or_perror_and_die(sock, SIOCGIFINDEX, &ifr, "interface %s not found", device);
 		ifindex = ifr.ifr_ifindex;
 
-		if (ioctl(sock, SIOCGIFFLAGS, (char *) &ifr)) {
-			bb_error_msg_and_die("SIOCGIFFLAGS");
-		}
+		xioctl(sock, SIOCGIFFLAGS, (char *) &ifr);
+
 		if (!(ifr.ifr_flags & IFF_UP)) {
 			bb_error_msg_and_die("interface %s is down", device);
 		}

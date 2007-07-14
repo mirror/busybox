@@ -2434,23 +2434,9 @@ reread_partition_table(int leave)
 	printf("Calling ioctl() to re-read partition table\n");
 	sync();
 	/* sleep(2); Huh? */
-	i = ioctl(fd, BLKRRPART);
-#if 0
-	else {
-		/* some kernel versions (1.2.x) seem to have trouble
-		   rereading the partition table, but if asked to do it
-		   twice, the second time works. - biro@yggdrasil.com */
-		sync();
-		sleep(2);
-		i = ioctl(fd, BLKRRPART);
-	}
-#endif
-
-	if (i) {
-		bb_perror_msg("WARNING: rereading partition table "
+	i = ioctl_or_perror(fd, BLKRRPART, NULL,
+			"WARNING: rereading partition table "
 			"failed, kernel still uses old table");
-	}
-
 #if 0
 	if (dos_changed)
 		printf(

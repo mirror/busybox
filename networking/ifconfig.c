@@ -402,12 +402,10 @@ int ifconfig_main(int argc, char **argv)
 
 								/* Create a channel to the NET kernel. */
 								sockfd6 = xsocket(AF_INET6, SOCK_DGRAM, 0);
-								if (ioctl(sockfd6, SIOGIFINDEX, &ifr) < 0)
-									bb_perror_msg_and_die("SIOGIFINDEX");
+								xioctl(sockfd6, SIOGIFINDEX, &ifr);
 								ifr6.ifr6_ifindex = ifr.ifr_ifindex;
 								ifr6.ifr6_prefixlen = prefix_len;
-								if (ioctl(sockfd6, a1op->selector, &ifr6) < 0)
-									bb_perror_msg_and_die(a1op->name);
+								ioctl_or_perror_and_die(sockfd6, a1op->selector, &ifr6, "%s", a1op->name);
 								if (ENABLE_FEATURE_CLEAN_UP)
 									free(lsa);
 								continue;
@@ -444,8 +442,7 @@ int ifconfig_main(int argc, char **argv)
 					p = ((char *)&ifr) + a1op->ifr_offset;
 #if ENABLE_FEATURE_IFCONFIG_MEMSTART_IOADDR_IRQ
 					if (mask & A_MAP_TYPE) {
-						if (ioctl(sockfd, SIOCGIFMAP, &ifr) < 0)
-							bb_perror_msg_and_die("SIOCGIFMAP");
+						xioctl(sockfd, SIOCGIFMAP, &ifr);
 						if ((mask & A_MAP_UCHAR) == A_MAP_UCHAR)
 							*((unsigned char *) p) = i;
 						else if (mask & A_MAP_USHORT)
@@ -460,8 +457,7 @@ int ifconfig_main(int argc, char **argv)
 						*((int *) p) = i;
 				}
 
-				if (ioctl(sockfd, a1op->selector, &ifr) < 0)
-					bb_perror_msg_and_die(a1op->name);
+				ioctl_or_perror_and_die(sockfd, a1op->selector, &ifr, "%s", a1op->name);
 #ifdef QUESTIONABLE_ALIAS_CASE
 				if (mask & A_COLON_CHK) {
 					/*
@@ -486,15 +482,13 @@ int ifconfig_main(int argc, char **argv)
 			mask = N_SET;
 		}
 
-		if (ioctl(sockfd, SIOCGIFFLAGS, &ifr) < 0)
-			bb_perror_msg_and_die("SIOCGIFFLAGS");
+		xioctl(sockfd, SIOCGIFFLAGS, &ifr);
 		selector = op->selector;
 		if (mask & SET_MASK)
 			ifr.ifr_flags |= selector;
 		else
 			ifr.ifr_flags &= ~selector;
-		if (ioctl(sockfd, SIOCSIFFLAGS, &ifr) < 0)
-			bb_perror_msg_and_die("SIOCSIFFLAGS");
+		xioctl(sockfd, SIOCSIFFLAGS, &ifr);
 	} /* while () */
 
 	if (ENABLE_FEATURE_CLEAN_UP)

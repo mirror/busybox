@@ -17,7 +17,6 @@
 int freeramdisk_main(int argc, char **argv);
 int freeramdisk_main(int argc, char **argv)
 {
-	int result;
 	int fd;
 
 	if (argc != 2) bb_show_usage();
@@ -25,11 +24,10 @@ int freeramdisk_main(int argc, char **argv)
 	fd = xopen(argv[1], O_RDWR);
 
 	// Act like freeramdisk, fdflush, or both depending on configuration.
-	result = ioctl(fd, (ENABLE_FREERAMDISK && applet_name[1]=='r')
-			|| !ENABLE_FDFLUSH ? BLKFLSBUF : FDFLUSH);
+	ioctl_or_perror_and_die(fd, (ENABLE_FREERAMDISK && applet_name[1]=='r')
+			|| !ENABLE_FDFLUSH ? BLKFLSBUF : FDFLUSH, NULL, "%s", argv[1]);
 
 	if (ENABLE_FEATURE_CLEAN_UP) close(fd);
 
-	if (result) bb_perror_msg_and_die("%s", argv[1]);
 	return EXIT_SUCCESS;
 }

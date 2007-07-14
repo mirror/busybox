@@ -50,9 +50,8 @@ int eject_main(int argc, char **argv)
 	if (flags & FLAG_CLOSE
 	 || (flags & FLAG_SMART && ioctl(dev, CDROM_DRIVE_STATUS) == CDS_TRAY_OPEN))
 		cmd = CDROMCLOSETRAY;
-	if (ioctl(dev, cmd)) {
-		bb_perror_msg_and_die("%s", device);
-	}
+
+	ioctl_or_perror_and_die(dev, cmd, NULL, "%s", device);
 
 	if (ENABLE_FEATURE_CLEAN_UP)
 		close(dev);

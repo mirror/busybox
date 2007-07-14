@@ -220,8 +220,7 @@ int ether_wake_main(int argc, char **argv)
 		struct ifreq if_hwaddr;
 
 		strncpy(if_hwaddr.ifr_name, ifname, sizeof(if_hwaddr.ifr_name));
-		if (ioctl(s, SIOCGIFHWADDR, &if_hwaddr) != 0)
-			bb_perror_msg_and_die("SIOCGIFHWADDR on %s failed", ifname);
+		ioctl_or_perror_and_die(s, SIOCGIFHWADDR, &if_hwaddr, "SIOCGIFHWADDR on %s failed", ifname);
 
 		memcpy(outpack+6, if_hwaddr.ifr_hwaddr.sa_data, 6);
 
@@ -257,8 +256,7 @@ int ether_wake_main(int argc, char **argv)
 	{
 		struct ifreq ifr;
 		strncpy(ifr.ifr_name, ifname, sizeof(ifr.ifr_name));
-		if (ioctl(s, SIOCGIFINDEX, &ifr) != 0)
-			bb_perror_msg_and_die("SIOCGIFINDEX");
+		xioctl(s, SIOCGIFINDEX, &ifr);
 		memset(&whereto, 0, sizeof(whereto));
 		whereto.sll_family = AF_PACKET;
 		whereto.sll_ifindex = ifr.ifr_ifindex;

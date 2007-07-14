@@ -26,9 +26,7 @@ int chvt_main(int argc, char **argv)
 
 	fd = get_console_fd();
 	num = xatoul_range(argv[1], 1, 63);
-	if ((-1 == ioctl(fd, VT_ACTIVATE, num))
-	|| (-1 == ioctl(fd, VT_WAITACTIVE, num))) {
-		bb_perror_msg_and_die("ioctl");
-	}
+	xioctl(fd, VT_ACTIVATE, (void *)num);
+	xioctl(fd, VT_WAITACTIVE, (void *)num);
 	return EXIT_SUCCESS;
 }
