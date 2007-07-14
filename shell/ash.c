@@ -3141,20 +3141,18 @@ struct job {
 };
 
 static pid_t backgndpid;        /* pid of last background process */
-static int job_warning;         /* user was warned about stopped jobs */
-#if JOBS
-static int jobctl;              /* true if doing job control */
-#endif
+static smallint job_warning;    /* user was warned about stopped jobs (can be 2, 1 or 0). */
 
 static struct job *makejob(union node *, int);
 static int forkshell(struct job *, union node *, int);
 static int waitforjob(struct job *);
 
-#if ! JOBS
-#define setjobctl(on)   /* do nothing */
+#if !JOBS
+enum { jobctl = 0 };
+#define setjobctl(on) do {} while (0)
 #else
+static smallint jobctl;              /* true if doing job control */
 static void setjobctl(int);
-static void showjobs(FILE *, int);
 #endif
 
 /*
@@ -3836,32 +3834,6 @@ showjob(FILE *out, struct job *jp, int mode)
 	}
 }
 
-static int
-jobscmd(int argc, char **argv)
-{
-	int mode, m;
-	FILE *out;
-
-	mode = 0;
-	while ((m = nextopt("lp"))) {
-		if (m == 'l')
-			mode = SHOW_PID;
-		else
-			mode = SHOW_PGID;
-	}
-
-	out = stdout;
-	argv = argptr;
-	if (*argv) {
-		do
-			showjob(out, getjob(*argv,0), mode);
-		while (*++argv);
-	} else
-		showjobs(out, mode);
-
-	return 0;
-}
-
 /*
  * Print a list of jobs.  If "change" is nonzero, only print jobs whose
  * statuses have changed since the last call to showjobs.
@@ -3878,9 +3850,34 @@ showjobs(FILE *out, int mode)
 		continue;
 
 	for (jp = curjob; jp; jp = jp->prev_job) {
-		if (!(mode & SHOW_CHANGED) || jp->changed)
+		if (!(mode & SHOW_CHANGED) || jp->changed) {
 			showjob(out, jp, mode);
+		}
 	}
+}
+
+static int
+jobscmd(int argc, char **argv)
+{
+	int mode, m;
+
+	mode = 0;
+	while ((m = nextopt("lp"))) {
+		if (m == 'l')
+			mode = SHOW_PID;
+		else
+			mode = SHOW_PGID;
+	}
+
+	argv = argptr;
+	if (*argv) {
+		do
+			showjob(stdout, getjob(*argv,0), mode);
+		while (*++argv);
+	} else
+		showjobs(stdout, mode);
+
+	return 0;
 }
 #endif /* JOBS */
 
@@ -4043,6 +4040,8 @@ makejob(union node *node, int nprocs)
 	}
 	memset(jp, 0, sizeof(*jp));
 #if JOBS
+	/* jp->jobctl is a bitfield.
+	 * "jp->jobctl |= jobctl" likely to give awful code */
 	if (jobctl)
 		jp->jobctl = 1;
 #endif
@@ -10883,7 +10882,8 @@ cmdloop(int top)
 			}
 			numeof++;
 		} else if (nflag == 0) {
-			job_warning = (job_warning == 2) ? 1 : 0;
+			/* job_warning can only be 2,1,0. Here 2->1, 1/0->0 */
+			job_warning >>= 1;
 			numeof = 0;
 			evaltree(n, 0);
 		}
