@@ -840,23 +840,24 @@ shcmd(union node *cmd, FILE *fp)
 
 	first = 1;
 	for (np = cmd->ncmd.args; np; np = np->narg.next) {
-		if (! first)
-			putchar(' ');
+		if (!first)
+			putc(' ', fp);
 		sharg(np, fp);
 		first = 0;
 	}
 	for (np = cmd->ncmd.redirect; np; np = np->nfile.next) {
-		if (! first)
-			putchar(' ');
+		if (!first)
+			putc(' ', fp);
+		dftfd = 0;
 		switch (np->nfile.type) {
-		case NTO:       s = ">";  dftfd = 1; break;
-		case NCLOBBER:  s = ">|"; dftfd = 1; break;
-		case NAPPEND:   s = ">>"; dftfd = 1; break;
-		case NTOFD:     s = ">&"; dftfd = 1; break;
-		case NFROM:     s = "<";  dftfd = 0; break;
-		case NFROMFD:   s = "<&"; dftfd = 0; break;
-		case NFROMTO:   s = "<>"; dftfd = 0; break;
-		default:        s = "*error*"; dftfd = 0; break;
+		case NTO:      s = ">>"+1; dftfd = 1; break;
+		case NCLOBBER: s = ">|"; dftfd = 1; break;
+		case NAPPEND:  s = ">>"; dftfd = 1; break;
+		case NTOFD:    s = ">&"; dftfd = 1; break;
+		case NFROM:    s = "<";  break;
+		case NFROMFD:  s = "<&"; break;
+		case NFROMTO:  s = "<>"; break;
+		default:       s = "*error*"; break;
 		}
 		if (np->nfile.fd != dftfd)
 			fprintf(fp, "%d", np->nfile.fd);
@@ -3774,7 +3775,7 @@ showjob(FILE *out, struct job *jp, int mode)
 	struct procstat *ps;
 	struct procstat *psend;
 	int col;
-	int indent;
+	int indent_col;
 	char s[80];
 
 	ps = jp->ps;
@@ -3786,7 +3787,7 @@ showjob(FILE *out, struct job *jp, int mode)
 	}
 
 	col = fmtstr(s, 16, "[%d]   ", jobno(jp));
-	indent = col;
+	indent_col = col;
 
 	if (jp == curjob)
 		s[col - 2] = '+';
@@ -3812,7 +3813,7 @@ showjob(FILE *out, struct job *jp, int mode)
 
 	do {
 		/* for each process */
-		col = fmtstr(s, 48, " |\n%*c%d ", indent, ' ', ps->pid) - 3;
+		col = fmtstr(s, 48, " |\n%*c%d ", indent_col, ' ', ps->pid) - 3;
  start:
 		fprintf(out, "%s%*c%s",
 			s, 33 - col >= 0 ? 33 - col : 0, ' ', ps->cmd
