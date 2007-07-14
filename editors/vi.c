@@ -229,7 +229,12 @@ static int mysleep(int);	// sleep for 'h' 1/100 seconds
 static char readit(void);	// read (maybe cursor) key from stdin
 static char get_one_char(void);	// read 1 char from stdin
 static int file_size(const char *);   // what is the byte size of "fn"
-static int file_insert(char *, char *, int);
+static int file_insert(char *, char *);
+#if ENABLE_FEATURE_VI_READONLY
+static void update_ro_status(const char *);
+#else
+static ALWAYS_INLINE void update_ro_status(const char *name) {}
+#endif
 static int file_write(char *, char *, char *);
 static void place_cursor(int, int, int);
 static void screen_erase(void);
@@ -419,8 +424,9 @@ static void edit_file(char * fn)
 	new_text(size);		// get a text[] buffer
 	screenbegin = dot = end = text;
 	if (fn != 0) {
-		ch = file_insert(fn, text, cnt);
-	}
+		ch = file_insert(fn, text);
+		update_ro_status(fn);
+	} 
 	if (ch < 1) {
 		char_insert(text, '\n');	// start empty buf with dummy line
 	}
@@ -654,7 +660,6 @@ static void colon(char * buf)
 	char *fn, cmd[MAX_LINELEN], args[MAX_LINELEN];
 	int i, l, li, ch, b, e;
 	int useforce = FALSE, forced = FALSE;
-	struct stat st_buf;
 
 	// :3154	// if (-e line 3154) goto it  else stay put
 	// :4,33w! foo	// write a portion of buffer to file "foo"
@@ -758,6 +763,7 @@ static void colon(char * buf)
 		dot_skip_over_ws();
 	} else if (strncasecmp(cmd, "edit", i) == 0) {	// Edit a file
 		int sr;
+		struct stat st_buf;
 		sr= 0;
 		// don't edit, if the current file has been modified
 		if (file_modified && ! useforce) {
@@ -809,7 +815,8 @@ static void colon(char * buf)
 		screenbegin = dot = end = text;
 
 		// insert new file
-		ch = file_insert(fn, text, file_size(fn));
+		ch = file_insert(fn, text);
+		update_ro_status(fn);
 
 		if (ch < 1) {
 			// start empty buf with dummy line
@@ -937,25 +944,15 @@ static void colon(char * buf)
 		// read after current line- unless user said ":0r foo"
 		if (b != 0)
 			q = next_line(q);
-#if ENABLE_FEATURE_VI_READONLY
-		l = readonly;			// remember current files' status
-#endif
-		ch = file_insert(fn, q, file_size(fn));
-#if ENABLE_FEATURE_VI_READONLY
-		readonly = l;
-#endif
+		ch = file_insert(fn, q);
 		if (ch < 0)
 			goto vc1;	// nothing was inserted
 		// how many lines in text[]?
 		li = count_lines(q, q + ch - 1);
 		psb("\"%s\""
-#if ENABLE_FEATURE_VI_READONLY
-			"%s"
-#endif
+			USE_FEATURE_VI_READONLY("%s")
 			" %dL, %dC", fn,
-#if ENABLE_FEATURE_VI_READONLY
-			((vi_readonly || readonly) ? " [Read only]" : ""),
-#endif
+			USE_FEATURE_VI_READONLY(((vi_readonly || readonly) ? " [Read only]" : ""),)
 			li, ch);
 		if (ch > 0) {
 			// if the insert is before "dot" then we need to update
@@ -2399,37 +2396,22 @@ static char *get_input_line(const char * prompt) // get input line- use "status 
 static int file_size(const char * fn) // what is the byte size of "fn"
 {
 	struct stat st_buf;
-	int cnt, sr;
+	int cnt;
 
-	if (!fn || !fn[0])
-		return -1;
 	cnt = -1;
-	sr = stat(fn, &st_buf);	// see if file exists
-	if (sr >= 0) {
+	if (fn && fn[0] && stat(fn, &st_buf) == 0)	// see if file exists
 		cnt = (int) st_buf.st_size;
-	}
 	return cnt;
 }
 
-static int file_insert(char * fn, char * p, int size)
+static int file_insert(char * fn, char * p) 
 {
-	int fd, cnt;
-
-	cnt = -1;
-#if ENABLE_FEATURE_VI_READONLY
-	readonly = FALSE;
-#endif
-	if (!fn || !fn[0]) {
-		psbs("No filename given");
-		goto fi0;
-	}
-	if (size == 0) {
-		// OK- this is just a no-op
-		cnt = 0;
-		goto fi0;
-	}
+	int cnt = -1;
+	int fd, size;
+	
+	size = file_size(fn);
 	if (size < 0) {
-		psbs("Trying to insert a negative number (%d) of characters", size);
+		psbs("File does not exist");
 		goto fi0;
 	}
 	if (p < text || p > end) {
@@ -2437,25 +2419,11 @@ static int file_insert(char * fn, char * p, int size)
 		goto fi0;
 	}
 
-	// see if we can open the file
-#if ENABLE_FEATURE_VI_READONLY
-	if (vi_readonly) goto fi1;		// do not try write-mode
-#endif
-	fd = open(fn, O_RDWR);			// assume read & write
+	// read file to buffer
+	fd = open(fn, O_RDONLY);
 	if (fd < 0) {
-		// could not open for writing- maybe file is read only
-#if ENABLE_FEATURE_VI_READONLY
- fi1:
-#endif
-		fd = open(fn, O_RDONLY);	// try read-only
-		if (fd < 0) {
-			psbs("\"%s\" %s", fn, "cannot open file");
-			goto fi0;
-		}
-#if ENABLE_FEATURE_VI_READONLY
-		// got the file- read-only
-		readonly = TRUE;
-#endif
+		psbs("\"%s\" %s", fn, "cannot open file");
+		goto fi0;
 	}
 	p = text_hole_make(p, size);
 	cnt = read(fd, p, size);
@@ -2474,6 +2442,19 @@ static int file_insert(char * fn, char * p, int size)
  fi0:
 	return cnt;
 }
+
+#if ENABLE_FEATURE_VI_READONLY
+static void update_ro_status(const char *fn)
+{
+	struct stat sb;
+	if (stat(fn, &sb) == 0) {
+		readonly = vi_readonly || (access(fn, W_OK) < 0) ||
+			/* root will always have access()
+			 * so we check fileperms too */
+			!(sb.st_mode & (S_IWUSR | S_IWGRP | S_IWOTH));
+	}
+}
+#endif
 
 static int file_write(char * fn, char * first, char * last)
 {
