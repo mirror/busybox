@@ -212,30 +212,6 @@ static void do_stats(void)
 }
 #endif /* FEATURE_TOP_CPU_USAGE_PERCENTAGE */
 
-#if ENABLE_FEATURE_TOP_DECIMALS
-/* formats 7 char string (8 with terminating NUL) */
-static char *fmt_100percent_8(char buf[8], unsigned value_10)
-{
-	unsigned  t;
-	if (value_10 >= 1000) {
-		strcpy(buf, "  100% ");
-		return buf;
-	}
-	/* else generate " [N/space]N.N% " string */
-	t = value_10 / 100;
-	value_10 = value_10 % 100;
-	buf[0] = ' ';
-	buf[1] = t ? t + '0' : ' ';
-	buf[2] = '0' + (value_10 / 10);
-	buf[3] = '.';
-	buf[4] = '0' + (value_10 % 10);
-	buf[5] = '%';
-	buf[6] = ' ';
-	buf[7] = '\0';
-	return buf;
-}
-#endif
-		
 /* display generic info (meminfo / loadavg) */
 static unsigned long display_generic(int scr_width)
 {
@@ -243,6 +219,34 @@ static unsigned long display_generic(int scr_width)
 	char buf[80];
 	char scrbuf[80];
 	unsigned long total, used, mfree, shared, buffers, cached;
+	unsigned total_diff;
+
+#if ENABLE_FEATURE_TOP_DECIMALS
+	/* formats 7 char string (8 with terminating NUL) */
+	/* using GCCism (nested function) - we need to access total_diff */
+	/* This produces more than 100 bytes smaller code */
+	char *fmt_100percent_8(char pbuf[8], unsigned value)
+	{
+		unsigned t;
+		if (value >= total_diff) { /* 100% ? */
+			strcpy(pbuf, "  100% ");
+			return pbuf;
+		}
+		/* else generate " [N/space]N.N% " string */
+		value = 1000 * value / total_diff;
+		t = value / 100;
+		value = value % 100;
+		pbuf[0] = ' ';
+		pbuf[1] = t ? t + '0' : ' ';
+		pbuf[2] = '0' + (value / 10);
+		pbuf[3] = '.';
+		pbuf[4] = '0' + (value % 10);
+		pbuf[5] = '%';
+		pbuf[6] = ' ';
+		pbuf[7] = '\0';
+		return pbuf;
+	}
+#endif
 
 	/* read memory info */
 	fp = xfopen("meminfo", "r");
@@ -292,60 +296,60 @@ static unsigned long display_generic(int scr_width)
 	}
 	fclose(fp);
 
-	/* read load average as a string */
-	buf[0] = '\0';
-	open_read_close("loadavg", buf, sizeof("N.NN N.NN N.NN")-1);
-	buf[sizeof("N.NN N.NN N.NN")-1] = '\0';
-
-	/* output memory info and load average */
-	/* clear screen & go to top */
+	/* output memory info */
 	if (scr_width > sizeof(scrbuf))
 		scr_width = sizeof(scrbuf);
 	snprintf(scrbuf, scr_width,
 		"Mem: %luK used, %luK free, %luK shrd, %luK buff, %luK cached",
 		used, mfree, shared, buffers, cached);
-
+	/* clear screen & go to top */
 	printf(OPT_BATCH_MODE ? "%s\n" : "\e[H\e[J%s\n", scrbuf);
 
 	if (ENABLE_FEATURE_TOP_CPU_GLOBAL_PERCENTS) {
 		/*
 		 * xxx% = (jif.xxx - prev_jif.xxx) / (jif.total - prev_jif.total) * 100%
 		 */
-		/* using (unsigned) casts to make operations cheaper cheaper */
-		unsigned total_diff = ((unsigned)(jif.total - prev_jif.total) ? : 1);
+		/* using (unsigned) casts to make operations cheaper */
+		total_diff = ((unsigned)(jif.total - prev_jif.total) ? : 1);
 #if ENABLE_FEATURE_TOP_DECIMALS
-/* Generated code is approx +0.5k */
+/* Generated code is approx +0.3k */
 #define CALC_STAT(xxx) char xxx[8]
-#define SHOW_STAT(xxx) fmt_100percent_8(xxx, 1000 * (unsigned)(jif.xxx - prev_jif.xxx) / total_diff)
+#define SHOW_STAT(xxx) fmt_100percent_8(xxx, (unsigned)(jif.xxx - prev_jif.xxx))
 #define FMT "%s"
 #else
 #define CALC_STAT(xxx) unsigned xxx = 100 * (unsigned)(jif.xxx - prev_jif.xxx) / total_diff
 #define SHOW_STAT(xxx) xxx
 #define FMT "%4u%% "
 #endif
-		CALC_STAT(usr);
-		CALC_STAT(sys);
-		CALC_STAT(nic);
-		CALC_STAT(idle);
-		CALC_STAT(iowait);
-		CALC_STAT(irq);
-		CALC_STAT(softirq);
-		//CALC_STAT(steal);
+		{ /* need block: CALC_STAT are declarations */
+			CALC_STAT(usr);
+			CALC_STAT(sys);
+			CALC_STAT(nic);
+			CALC_STAT(idle);
+			CALC_STAT(iowait);
+			CALC_STAT(irq);
+			CALC_STAT(softirq);
+			//CALC_STAT(steal);
 
-		snprintf(scrbuf, scr_width,
-			/* Barely fits in 79 chars when in "decimals" mode. */
-			"CPU:"FMT"usr"FMT"sys"FMT"nice"FMT"idle"FMT"io"FMT"irq"FMT"softirq",
-			SHOW_STAT(usr), SHOW_STAT(sys), SHOW_STAT(nic), SHOW_STAT(idle),
-			SHOW_STAT(iowait), SHOW_STAT(irq), SHOW_STAT(softirq)
-			//, SHOW_STAT(steal) - what is this 'steal' thing?
-			// I doubt anyone wants to know it
-		);
+			snprintf(scrbuf, scr_width,
+				/* Barely fits in 79 chars when in "decimals" mode. */
+				"CPU:"FMT"usr"FMT"sys"FMT"nice"FMT"idle"FMT"io"FMT"irq"FMT"softirq",
+				SHOW_STAT(usr), SHOW_STAT(sys), SHOW_STAT(nic), SHOW_STAT(idle),
+				SHOW_STAT(iowait), SHOW_STAT(irq), SHOW_STAT(softirq)
+				//, SHOW_STAT(steal) - what is this 'steal' thing?
+				// I doubt anyone wants to know it
+			);
+		}
 		puts(scrbuf);
 #undef SHOW_STAT
 #undef CALC_STAT
 #undef FMT
 	}
 
+	/* read load average as a string */
+	buf[0] = '\0';
+	open_read_close("loadavg", buf, sizeof("N.NN N.NN N.NN")-1);
+	buf[sizeof("N.NN N.NN N.NN")-1] = '\0';
 	snprintf(scrbuf, scr_width, "Load average: %s", buf);
 	puts(scrbuf);
 

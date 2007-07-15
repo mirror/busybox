@@ -122,7 +122,7 @@ config FEATURE_TOP_CPU_GLOBAL_PERCENTS
 	  Makes top display "CPU: NN% usr NN% sys..." line.
 
 config FEATURE_TOP_DECIMALS
-	bool "Show 1/10th of a percent in CPU/mem statistics (adds 0.5k bytes)"
+	bool "Show 1/10th of a percent in CPU/mem statistics (adds 0.3k bytes)"
 	default n
 	depends on FEATURE_TOP_CPU_USAGE_PERCENTAGE
 	help
