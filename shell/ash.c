@@ -4374,8 +4374,10 @@ clear_traps(void)
 		}
 	}
 }
-/* lives far away from here, needed for forkchild */
+
+/* Lives far away from here, needed for forkchild */
 static void closescript(void);
+/* Called after fork(), in child */
 static void
 forkchild(struct job *jp, union node *n, int mode)
 {
@@ -4419,11 +4421,18 @@ forkchild(struct job *jp, union node *n, int mode)
 		setsignal(SIGQUIT);
 		setsignal(SIGTERM);
 	}
+#if JOBS
+	/* For "jobs | cat" to work like in bash, we must retain list of jobs
+	 * in child, but we do need to remove ourself */
+	freejob(jp);
+#else
 	for (jp = curjob; jp; jp = jp->prev_job)
 		freejob(jp);
+#endif
 	jobless = 0;
 }
 
+/* Called after fork(), in parent */
 static void
 forkparent(struct job *jp, union node *n, int mode, pid_t pid)
 {
