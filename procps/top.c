@@ -212,7 +212,30 @@ static void do_stats(void)
 }
 #endif /* FEATURE_TOP_CPU_USAGE_PERCENTAGE */
 
-
+#if ENABLE_FEATURE_TOP_DECIMALS
+/* formats 7 char string (8 with terminating NUL) */
+static char *fmt_100percent_8(char buf[8], unsigned value_10)
+{
+	unsigned  t;
+	if (value_10 >= 1000) {
+		strcpy(buf, "  100% ");
+		return buf;
+	}
+	/* else generate " [N/space]N.N% " string */
+	t = value_10 / 100;
+	value_10 = value_10 % 100;
+	buf[0] = ' ';
+	buf[1] = t ? t + '0' : ' ';
+	buf[2] = '0' + (value_10 / 10);
+	buf[3] = '.';
+	buf[4] = '0' + (value_10 % 10);
+	buf[5] = '%';
+	buf[6] = ' ';
+	buf[7] = '\0';
+	return buf;
+}
+#endif
+		
 /* display generic info (meminfo / loadavg) */
 static unsigned long display_generic(int scr_width)
 {
@@ -288,19 +311,17 @@ static unsigned long display_generic(int scr_width)
 		/*
 		 * xxx% = (jif.xxx - prev_jif.xxx) / (jif.total - prev_jif.total) * 100%
 		 */
-		/* using (unsigned) casts to make multiplication cheaper: */
+		/* using (unsigned) casts to make operations cheaper cheaper */
 		unsigned total_diff = ((unsigned)(jif.total - prev_jif.total) ? : 1);
 #if ENABLE_FEATURE_TOP_DECIMALS
 /* Generated code is approx +0.5k */
-#define CALC_STAT(xxx) div_t xxx = div(1000 * (unsigned)(jif.xxx - prev_jif.xxx) / total_diff, 10)
-#define SHOW_STAT(xxx) xxx.quot, '0'+xxx.rem
-/* %3u in practice almost never displays "100"
- * and thus has implicit leading space:  " 99" */
-#define FMT "%3u.%c%%"
+#define CALC_STAT(xxx) char xxx[8]
+#define SHOW_STAT(xxx) fmt_100percent_8(xxx, 1000 * (unsigned)(jif.xxx - prev_jif.xxx) / total_diff)
+#define FMT "%s"
 #else
 #define CALC_STAT(xxx) unsigned xxx = 100 * (unsigned)(jif.xxx - prev_jif.xxx) / total_diff
 #define SHOW_STAT(xxx) xxx
-#define FMT "%4u%%"
+#define FMT "%4u%% "
 #endif
 		CALC_STAT(usr);
 		CALC_STAT(sys);
@@ -313,7 +334,7 @@ static unsigned long display_generic(int scr_width)
 
 		snprintf(scrbuf, scr_width,
 			/* Barely fits in 79 chars when in "decimals" mode. */
-			"CPU:"FMT" usr"FMT" sys"FMT" nice"FMT" idle"FMT" io"FMT" irq"FMT" softirq",
+			"CPU:"FMT"usr"FMT"sys"FMT"nice"FMT"idle"FMT"io"FMT"irq"FMT"softirq",
 			SHOW_STAT(usr), SHOW_STAT(sys), SHOW_STAT(nic), SHOW_STAT(idle),
 			SHOW_STAT(iowait), SHOW_STAT(irq), SHOW_STAT(softirq)
 			//, SHOW_STAT(steal) - what is this 'steal' thing?
@@ -331,17 +352,6 @@ static unsigned long display_generic(int scr_width)
 	return total;
 }
 
-#if ENABLE_FEATURE_TOP_DECIMALS
-#define UPSCALE 1000
-#define CALC_STAT(name, val) div_t name = div((val), 10)
-#define SHOW_STAT(name) name.quot, '0'+name.rem
-#define FMT "%3u.%c"
-#else
-#define UPSCALE 100
-#define CALC_STAT(name, val) unsigned name = (val)
-#define SHOW_STAT(name) name
-#define FMT "%4u%%"
-#endif
 /* display process statuses */
 static void display_status(int count, int scr_width)
 {
@@ -373,6 +383,17 @@ static void display_status(int count, int scr_width)
 	sizeof( "  PID  PPID USER     STAT   VSZ %MEM C")
 #endif
 
+#if ENABLE_FEATURE_TOP_DECIMALS
+#define UPSCALE 1000
+#define CALC_STAT(name, val) div_t name = div((val), 10)
+#define SHOW_STAT(name) name.quot, '0'+name.rem
+#define FMT "%3u.%c"
+#else
+#define UPSCALE 100
+#define CALC_STAT(name, val) unsigned name = (val)
+#define SHOW_STAT(name) name
+#define FMT "%4u%%"
+#endif
 	/*
 	 * MEM% = s->vsz/MemTotal
 	 */
@@ -452,6 +473,7 @@ static void display_status(int count, int scr_width)
 	putchar(OPT_BATCH_MODE ? '\n' : '\r');
 	fflush(stdout);
 }
+#undef UPSCALE
 #undef SHOW_STAT
 #undef CALC_STAT
 #undef FMT
