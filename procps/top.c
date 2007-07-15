@@ -219,7 +219,6 @@ static unsigned long display_generic(int scr_width)
 	FILE *fp;
 	char buf[80];
 	char scrbuf[80];
-	char *end;
 	unsigned long total, used, mfree, shared, buffers, cached;
 
 	/* read memory info */
@@ -272,18 +271,15 @@ static unsigned long display_generic(int scr_width)
 
 	/* read load average as a string */
 	buf[0] = '\0';
-	open_read_close("loadavg", buf, sizeof(buf));
-	end = strchr(buf, ' ');
-	if (end) end = strchr(end+1, ' ');
-	if (end) end = strchr(end+1, ' ');
-	if (end) *end = '\0';
+	open_read_close("loadavg", buf, sizeof("N.NN N.NN N.NN")-1);
+	buf[sizeof("N.NN N.NN N.NN")-1] = '\0';
 
 	/* output memory info and load average */
 	/* clear screen & go to top */
 	if (scr_width > sizeof(scrbuf))
 		scr_width = sizeof(scrbuf);
 	snprintf(scrbuf, scr_width,
-		"Mem: %ldK used, %ldK free, %ldK shrd, %ldK buff, %ldK cached",
+		"Mem: %luK used, %luK free, %luK shrd, %luK buff, %luK cached",
 		used, mfree, shared, buffers, cached);
 
 	printf(OPT_BATCH_MODE ? "%s\n" : "\e[H\e[J%s\n", scrbuf);
@@ -292,18 +288,20 @@ static unsigned long display_generic(int scr_width)
 		/*
 		 * xxx% = (jif.xxx - prev_jif.xxx) / (jif.total - prev_jif.total) * 100%
 		 */
-		/* using (unsigned) cast to make multiplication cheaper: */
+		/* using (unsigned) casts to make multiplication cheaper: */
+		unsigned total_diff = ((unsigned)(jif.total - prev_jif.total) ? : 1);
 #if ENABLE_FEATURE_TOP_DECIMALS
 /* Generated code is approx +0.5k */
 #define CALC_STAT(xxx) div_t xxx = div(1000 * (unsigned)(jif.xxx - prev_jif.xxx) / total_diff, 10)
 #define SHOW_STAT(xxx) xxx.quot, '0'+xxx.rem
+/* %3u in practice almost never displays "100"
+ * and thus has implicit leading space:  " 99" */
 #define FMT "%3u.%c%%"
 #else
 #define CALC_STAT(xxx) unsigned xxx = 100 * (unsigned)(jif.xxx - prev_jif.xxx) / total_diff
 #define SHOW_STAT(xxx) xxx
-#define FMT "%3u%%"
+#define FMT "%4u%%"
 #endif
-		unsigned total_diff = (jif.total - prev_jif.total ? : 1);
 		CALC_STAT(usr);
 		CALC_STAT(sys);
 		CALC_STAT(nic);
@@ -314,9 +312,7 @@ static unsigned long display_generic(int scr_width)
 		//CALC_STAT(steal);
 
 		snprintf(scrbuf, scr_width,
-			/* Barely fits in 79 chars when in "decimals" mode.
-			 * %3u in practice almost never displays "100"
-			 * and thus has implicit leading space:  " 99" */
+			/* Barely fits in 79 chars when in "decimals" mode. */
 			"CPU:"FMT" usr"FMT" sys"FMT" nice"FMT" idle"FMT" io"FMT" irq"FMT" softirq",
 			SHOW_STAT(usr), SHOW_STAT(sys), SHOW_STAT(nic), SHOW_STAT(idle),
 			SHOW_STAT(iowait), SHOW_STAT(irq), SHOW_STAT(softirq)
@@ -344,7 +340,7 @@ static unsigned long display_generic(int scr_width)
 #define UPSCALE 100
 #define CALC_STAT(name, val) unsigned name = (val)
 #define SHOW_STAT(name) name
-#define FMT " %3u%%"
+#define FMT "%4u%%"
 #endif
 /* display process statuses */
 static void display_status(int count, int scr_width)
