@@ -91,6 +91,7 @@ static byte_t print_filename;
 static byte_t open_errors;
 
 #if ENABLE_FEATURE_GREP_CONTEXT
+static byte_t did_print_line;
 static int lines_before;
 static int lines_after;
 static char **before_buf;
@@ -112,11 +113,17 @@ typedef struct grep_list_data_t {
 static void print_line(const char *line, int linenum, char decoration)
 {
 #if ENABLE_FEATURE_GREP_CONTEXT
+	/* Happens when we go to next file, immediately hit match
+	 * and try to print prev context... from prev file! Don't do it */
+	if (linenum < 1)
+		return;
 	/* possibly print the little '--' separator */
-	if ((lines_before || lines_after) && last_line_printed &&
-			last_line_printed < linenum - 1) {
+	if ((lines_before || lines_after) && did_print_line &&
+			last_line_printed != linenum - 1) {
 		puts("--");
 	}
+	/* guard against printing "--" before first line of first file */
+	did_print_line = 1;
 	last_line_printed = linenum;
 #endif
 	if (print_filename)
@@ -124,7 +131,7 @@ static void print_line(const char *line, int linenum, char decoration)
 	if (PRINT_LINE_NUM)
 		printf("%i%c", linenum, decoration);
 	/* Emulate weird GNU grep behavior with -ov */
-	if ((option_mask32 & (OPT_v+OPT_o)) != (OPT_v+OPT_o))
+	if ((option_mask32 & (OPT_v|OPT_o)) != (OPT_v|OPT_o))
 		puts(line);
 }
 
@@ -183,19 +190,27 @@ static int grep_file(FILE *file)
 		} /* while (pattern_ptr) */
 
 		if (ret ^ invert_search) {
-			if (PRINT_FILES_WITH_MATCHES || BE_QUIET)
-				free(line);
-
-			/* if we found a match but were told to be quiet, stop here */
-			if (BE_QUIET || PRINT_FILES_WITHOUT_MATCHES)
-				return -1;
-
 			/* keep track of matches */
 			nmatches++;
 
-			/* if we're just printing filenames, we stop after the first match */
-			if (PRINT_FILES_WITH_MATCHES)
-				break;
+			/* quiet/print (non)matching file names only? */
+			if (option_mask32 & (OPT_q|OPT_l|OPT_L)) {
+				free(line); /* we don't need line anymore */
+				if (BE_QUIET) {
+					/* manpage says about -q:
+					 * "exit immediately with zero status
+					 * if any match is found,
+					 * even if errors were detected" */
+					exit(0);
+				}
+				/* if we're just printing filenames, we stop after the first match */
+				if (PRINT_FILES_WITH_MATCHES) {
+					puts(cur_file);
+					/* fall thru to "return 1" */
+				}
+				/* OPT_L aka PRINT_FILES_WITHOUT_MATCHES: return early */
+				return 1; /* one match */
+			}
 
 			/* print the matched line */
 			if (PRINT_MATCH_COUNTS == 0) {
@@ -239,19 +254,20 @@ static int grep_file(FILE *file)
 		}
 #if ENABLE_FEATURE_GREP_CONTEXT
 		else { /* no match */
-			/* Add the line to the circular 'before' buffer */
-			if (lines_before) {
+			/* if we need to print some context lines after the last match, do so */
+			if (print_n_lines_after /* && (last_line_printed != linenum) */ ) {
+				print_line(line, linenum, '-');
+				print_n_lines_after--;
+			} else if (lines_before) {
+				/* Add the line to the circular 'before' buffer */
 				free(before_buf[curpos]);
-				before_buf[curpos] = xstrdup(line);
+				before_buf[curpos] = line;
 				curpos = (curpos + 1) % lines_before;
+				/* avoid free(line) - we took line */
+				continue;
 			}
 		}
 
-		/* if we need to print some context lines after the last match, do so */
-		if (print_n_lines_after && (last_line_printed != linenum)) {
-			print_line(line, linenum, '-');
-			print_n_lines_after--;
-		}
 #endif /* ENABLE_FEATURE_GREP_CONTEXT */
 		free(line);
 	}
@@ -266,13 +282,11 @@ static int grep_file(FILE *file)
 		printf("%d\n", nmatches);
 	}
 
-	/* grep -l: print just the filename, but only if we grepped the line in the file  */
-	if (PRINT_FILES_WITH_MATCHES && nmatches > 0) {
-		puts(cur_file);
-	}
-
-	/* grep -L: print just the filename, but only if we didn't grep the line in the file  */
-	if (PRINT_FILES_WITHOUT_MATCHES && nmatches == 0) {
+	/* grep -L: print just the filename */
+	if (PRINT_FILES_WITHOUT_MATCHES) {
+		/* nmatches is zero, no need to check it:
+		 * we return 1 early if we detected a match
+		 * and PRINT_FILES_WITHOUT_MATCHES is set */
 		puts(cur_file);
 	}
 
