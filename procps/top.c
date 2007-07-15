@@ -431,7 +431,7 @@ static void display_status(int count, int scr_width)
 		else
 			sprintf(vsz_str_buf, "%7ld", s->vsz);
 		// PID PPID USER STAT VSZ %MEM [%CPU] COMMAND
-		col -= printf("\n" "%5u%6u %-8s %s%s" FMT
+		col -= printf("\n" "%5u%6u %-8.8s %s%s" FMT
 #if ENABLE_FEATURE_TOP_CPU_USAGE_PERCENTAGE
 				FMT
 #endif
