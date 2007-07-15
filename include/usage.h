@@ -1164,14 +1164,15 @@
        "\n	-v	Select non-matching lines" \
        "\n	-s	Suppress file open/read error messages" \
        "\n	-c	Only print count of matching lines" \
-       "\n	-f	Read PATTERN from file" \
        "\n	-o	Show only the part of a line that matches PATTERN" \
+       "\n	-m MAX	Match up to MAX times per file" \
 	USE_DESKTOP( \
        "\n	-w	Match whole words only") \
-       "\n	-e	PATTERN is a regular expression" \
        "\n	-F	PATTERN is a set of newline-separated strings" \
 	USE_FEATURE_GREP_EGREP_ALIAS( \
        "\n	-E	PATTERN is an extended regular expression") \
+       "\n	-e PTRN	Pattern to match" \
+       "\n	-f FILE	Read pattern from file" \
 	USE_FEATURE_GREP_CONTEXT( \
        "\n	-A	Print NUM lines of trailing context" \
        "\n	-B	Print NUM lines of leading context" \
