@@ -1134,7 +1134,8 @@ static void Hit_Return(void)
 	redraw(TRUE);		// force redraw all
 }
 
-static int next_tabstop(int col) { //vda
+static int next_tabstop(int col)
+{
 	return col + ((tabstop - 1) - (col % tabstop));
 }
 
