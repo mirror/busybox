@@ -426,7 +426,7 @@ static void edit_file(char * fn)
 	if (fn != 0) {
 		ch = file_insert(fn, text);
 		update_ro_status(fn);
-	} 
+	}
 	if (ch < 1) {
 		char_insert(text, '\n');	// start empty buf with dummy line
 	}
@@ -2404,7 +2404,7 @@ static int file_size(const char * fn) // what is the byte size of "fn"
 	return cnt;
 }
 
-static int file_insert(char * fn, char * p) 
+static int file_insert(char *fn, char *p)
 {
 	int cnt = -1;
 	int fd, size;

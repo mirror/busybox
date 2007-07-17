@@ -53,7 +53,7 @@ int read_interface(const char *interface, int *ifindex, uint32_t *addr, uint8_t 
 	ifr.ifr_addr.sa_family = AF_INET;
 	strncpy(ifr.ifr_name, interface, sizeof(ifr.ifr_name));
 	if (addr) {
-		if (ioctl_or_perror(fd, SIOCGIFADDR, &ifr, 
+		if (ioctl_or_perror(fd, SIOCGIFADDR, &ifr,
 			"is interface %s up and configured?", interface)
 		) {
 			close(fd);

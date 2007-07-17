@@ -3005,7 +3005,7 @@ USE_FEATURE_RUN_PARTS_FANCY("\n	-l	Prints names of all matching files even when 
      "\n	-m	Do NOT initialize the line in raw 8 bits mode" \
      "\n	-L	Enable 3-wire operation" \
      "\n	-F	Disable RTS/CTS flow control" \
- 
+
 #define sleep_trivial_usage \
 	USE_FEATURE_FANCY_SLEEP("[") "N" USE_FEATURE_FANCY_SLEEP("]...")
 #define sleep_full_usage \

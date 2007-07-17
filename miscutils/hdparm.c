@@ -1831,7 +1831,7 @@ static void process_dev(char *devname)
 		} else if (errno == -ENOMSG)
 			printf(" no identification info available\n");
 		else if (ENABLE_IOCTL_HEX2STR_ERROR)  /* To be coherent with ioctl_or_warn */
-			bb_perror_msg("HDIO_GET_IDENTITY"); 
+			bb_perror_msg("HDIO_GET_IDENTITY");
 		else
 			bb_perror_msg("ioctl %#x failed", HDIO_GET_IDENTITY);
 	}

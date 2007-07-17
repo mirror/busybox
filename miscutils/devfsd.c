@@ -689,9 +689,9 @@ static void service_name(const struct devfsd_notify_struct *info)
 		msg_logger(LOG_ERR, "lost %u events", info->overrun_count);
 
 	/*  Discard lookups on "/dev/log" and "/dev/initctl"  */
-	if (info->type == DEVFSD_NOTIFY_LOOKUP 
+	if (info->type == DEVFSD_NOTIFY_LOOKUP
 		&& ((info->devname[0] == 'l' && info->devname[1] == 'o'
-		&& info->devname[2] == 'g' && !info->devname[3]) 
+		&& info->devname[2] == 'g' && !info->devname[3])
 		|| (info->devname[0] == 'i' && info->devname[1] == 'n'
 		&& info->devname[2] == 'i' && info->devname[3] == 't'
 		&& info->devname[4] == 'c' && info->devname[5] == 't'
@@ -701,7 +701,7 @@ static void service_name(const struct devfsd_notify_struct *info)
 
 	for (entry = first_config; entry != NULL; entry = entry->next) {
 		/*  First check if action matches the type, then check if name matches */
-		if (info->type != entry->action.when 
+		if (info->type != entry->action.when
 		|| regexec(&entry->preg, info->devname, MAX_SUBEXPR, mbuf, 0) != 0)
 			continue;
 		for (n = 0;(n < MAX_SUBEXPR) && (mbuf[n].rm_so != -1); ++n)

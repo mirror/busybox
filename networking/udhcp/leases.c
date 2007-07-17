@@ -138,7 +138,7 @@ uint32_t find_address(int check_expired)
 
 			/* no lease or it expired and we are checking for expired leases */
 			if ((!lease || (check_expired && lease_expired(lease)))
-			 && nobody_responds_to_arp(ret) /* it isn't used on the network */ 
+			 && nobody_responds_to_arp(ret) /* it isn't used on the network */
 			) {
 				return ret;
 			}

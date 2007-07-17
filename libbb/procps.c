@@ -5,7 +5,7 @@
  * Copyright 1998 by Albert Cahalan; all rights reserved.
  * Copyright (C) 2002 by Vladimir Oleynik <dzo@simtreas.ru>
  * SELinux support: (c) 2007 by Yuichi Nakamura <ynakam@hitachisoft.jp>
- * 
+ *
  * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  */
 

@@ -36,7 +36,7 @@ int pscan_main(int argc, char **argv)
 	const char *opt_max_port = "1024";      /* -P: default max port */
 	const char *opt_min_port = "1";         /* -p: default min port */
 	const char *opt_timeout = "5000";       /* -t: default timeout in msec */
-	/* We estimate rtt and wait rtt*4 before concluding that port is 
+	/* We estimate rtt and wait rtt*4 before concluding that port is
 	 * totally blocked. min rtt of 5 ms may be too low if you are
 	 * scanning an Internet host behind saturated/traffic shaped link.
 	 * Rule of thumb: with min_rtt of N msec, scanning 1000 ports
