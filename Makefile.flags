@@ -59,17 +59,24 @@ ifeq ($(CONFIG_STATIC),y)
 LDFLAGS += -static
 endif
 
+BBOX_LIB_LIST = m crypt
 ifeq ($(CONFIG_SELINUX),y)
-LDLIBS += -lselinux -lsepol
+#LDLIBS += -lselinux -lsepol
+BBOX_LIB_LIST += selinux sepol
 endif
 
 ifeq ($(CONFIG_EFENCE),y)
-LDLIBS += -lefence
+#LDLIBS += -lefence
+BBOX_LIB_LIST += efence
 endif
 
 ifeq ($(CONFIG_DMALLOC),y)
-LDLIBS += -ldmalloc
+#LDLIBS += -ldmalloc
+BBOX_LIB_LIST += dmalloc
 endif
+
+# For scripts/trylink
+export BBOX_LIB_LIST
 
 #LDFLAGS += -nostdlib
 

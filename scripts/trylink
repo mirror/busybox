@@ -6,13 +6,49 @@ try() {
     added="$1"
     shift
     $debug && echo "Trying: $* $added"
-    "$@" $added >busybox.map 2>busybox_ld.err \
-    && { rm busybox_ld.err; exit 0; }
+    "$@" $added >busybox.map 2>busybox_ld.err
 }
 
-try "" "$@"
-try "-lm" "$@"
-try "-lcrypt" "$@"
-try "-Wl,--start-group -lcrypt -lm -Wl,--end-group" "$@"
-# It failed. Let people see the error messages
-cat busybox_ld.err
+# Sanitize lib list (dups, extra spaces etc)
+#echo "BBOX_LIB_LIST=$BBOX_LIB_LIST"
+BBOX_LIB_LIST=`echo "$BBOX_LIB_LIST" | xargs -n1 | sort | uniq | xargs`
+
+# First link with all libs. If it fails, bail out
+l_list=`echo "$BBOX_LIB_LIST" | sed -e 's/ / -l/g' -e 's/^/-l/'`
+echo "Trying libraries: $BBOX_LIB_LIST"
+try "-Wl,--start-group $l_list -Wl,--end-group" "$@" \
+|| {
+    echo "Failed: $* -Wl,--start-group $l_list -Wl,--end-group"
+    cat busybox_ld.err
+    exit 1
+}
+
+# Now try to remove each lib and build without.
+# Stop when no lib can be removed.
+while test "$BBOX_LIB_LIST"; do
+    $debug && echo "Trying libraries: $BBOX_LIB_LIST"
+    all_needed=true
+    for one in $BBOX_LIB_LIST; do
+	without_one=`echo " $BBOX_LIB_LIST " | sed "s/ $one / /g" | xargs`
+	l_list=`echo "$without_one" | sed -e 's/ / -l/g' -e 's/^/-l/'`
+	$debug && echo "Trying -l options: $l_list"
+	if try "-Wl,--start-group $l_list -Wl,--end-group" "$@"; then
+		echo "Library $one is not needed"
+		BBOX_LIB_LIST="$without_one"
+		all_needed=false
+	else
+		echo "Library $one is needed"
+	fi
+    done
+    # All libs were needed, can't remove any
+    $all_needed && break
+    # If there is no space, the list has just one lib.
+    # I'm not sure that in this case lib really is 100% needed.
+    # Let's try linking without it anyway... thus commented out.
+    #echo "$BBOX_LIB_LIST" | grep -q ' ' || break
+done
+
+# Ok, make the binary
+echo "Final link with: $BBOX_LIB_LIST"
+l_list=`echo "$BBOX_LIB_LIST" | sed -e 's/ / -l/g' -e 's/^/-l/'`
+try "-Wl,--start-group $l_list -Wl,--end-group" "$@"
