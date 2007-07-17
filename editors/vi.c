@@ -95,7 +95,7 @@ enum {
 /* busybox build system provides that, but it's better */
 /* to audit and fix the source */
 
-static int vi_setops;
+static smallint vi_setops;
 #define VI_AUTOINDENT 1
 #define VI_SHOWMATCH  2
 #define VI_IGNORECASE 4
@@ -122,7 +122,7 @@ static char *status_buffer;     // mesages to the user
 static int have_status_msg;     // is default edit status needed?
                                 // [don't make smallint!]
 static int last_status_cksum;   // hash of current status line
-static char *cfn;               // previous, current, and next file name
+static char *current_filename;               // current file name
 //static char *text, *end;        // pointers to the user data in memory
 static char *screen;            // pointer to the virtual screen buffer
 static int screensize;          //            and its size
@@ -134,8 +134,18 @@ static char last_input_char;    // last char read from user
 static char last_forward_char;  // last char searched for with 'f'
 
 #if ENABLE_FEATURE_VI_READONLY
-static smallint vi_readonly, readonly;
+//static smallint vi_readonly, readonly;
+static smallint readonly_mode = 0;
+#define SET_READONLY_FILE(flags) 	((flags) |= 0x01)
+#define SET_READONLY_MODE(flags) 	((flags) |= 0x02)
+#define UNSET_READONLY_FILE(flags)	((flags) &= 0xfe)
+#else
+#define readonly_mode 0
+#define SET_READONLY_FILE(flags)
+#define SET_READONLY_MODE(flags)
+#define UNSET_READONLY_FILE(flags)
 #endif
+
 #if ENABLE_FEATURE_VI_DOT_CMD
 static smallint adding2q;		// are we currently adding user input to q
 static char *last_modifying_cmd;	// last modifying cmd for "."
@@ -158,6 +168,7 @@ static char *last_search_pattern;	// last pattern from a '/' or '?' search
 struct globals {
 	/* many references - keep near the top of globals */
 	char *text, *end;       // pointers to the user data in memory
+	int text_size;		// size of the allocated buffer
 	char *dot;              // where all the action takes place
 #if ENABLE_FEATURE_VI_YANKMARK
 	char *reg[28];          // named register a-z, "D", and "U" 0-25,26,27
@@ -176,6 +187,7 @@ struct globals {
 };
 #define G (*ptr_to_globals)
 #define text           (G.text          )
+#define text_size      (G.text_size     )
 #define end            (G.end           )
 #define dot            (G.dot           )
 #define reg            (G.reg           )
@@ -189,8 +201,10 @@ struct globals {
 #define term_vi        (G.term_vi       )
 #define initial_cmds   (G.initial_cmds  )
 
+static int init_text_buffer(char *); // init from file or create new
 static void edit_file(char *);	// edit one file
 static void do_cmd(char);	// execute a command
+static int next_tabstop(int);
 static void sync_cursor(char *, int *, int *);	// synchronize the screen cursor to dot
 static char *begin_line(char *);	// return pointer to cur line B-o-l
 static char *end_line(char *);	// return pointer to cur line E-o-l
@@ -200,7 +214,6 @@ static char *end_screen(void);	// get pointer to last char on screen
 static int count_lines(char *, char *);	// count line from start to stop
 static char *find_line(int);	// find begining of line #li
 static char *move_to_col(char *, int);	// move "p" to column l
-static int isblnk(char);	// is the char a blank or tab
 static void dot_left(void);	// move dot left- dont leave line
 static void dot_right(void);	// move dot right- dont leave line
 static void dot_begin(void);	// move dot to B-o-l
@@ -212,7 +225,6 @@ static void dot_skip_over_ws(void);	// move dot pat WS
 static void dot_delete(void);	// delete the char at 'dot'
 static char *bound_dot(char *);	// make sure  text[0] <= P < "end"
 static char *new_screen(int, int);	// malloc virtual screen memory
-static char *new_text(int);	// malloc memory for text[] buffer
 static char *char_insert(char *, char);	// insert the char c at 'p'
 static char *stupid_insert(char *, char);	// stupidly insert the char c at 'p'
 static char find_range(char **, char **, char);	// return pointers for an object
@@ -229,11 +241,10 @@ static int mysleep(int);	// sleep for 'h' 1/100 seconds
 static char readit(void);	// read (maybe cursor) key from stdin
 static char get_one_char(void);	// read 1 char from stdin
 static int file_size(const char *);   // what is the byte size of "fn"
-static int file_insert(char *, char *);
 #if ENABLE_FEATURE_VI_READONLY
-static void update_ro_status(const char *);
+static int file_insert(const char *, char *, int);
 #else
-static ALWAYS_INLINE void update_ro_status(const char *name) {}
+static int file_insert(const char *, char *);
 #endif
 static int file_write(char *, char *, char *);
 static void place_cursor(int, int, int);
@@ -305,9 +316,6 @@ int vi_main(int argc, char **argv)
 	int c;
 	RESERVE_CONFIG_BUFFER(STATUS_BUFFER, STATUS_BUFFER_LEN);
 
-#if ENABLE_FEATURE_VI_YANKMARK
-	int i;
-#endif
 #if ENABLE_FEATURE_VI_USE_SIGNALS || ENABLE_FEATURE_VI_CRASHME
 	my_pid = getpid();
 #endif
@@ -320,19 +328,18 @@ int vi_main(int argc, char **argv)
 
 	status_buffer = STATUS_BUFFER;
 	last_status_cksum = 0;
+	text = NULL;
 
-#if ENABLE_FEATURE_VI_READONLY
-	vi_readonly = readonly = FALSE;
-	if (strncmp(argv[0], "view", 4) == 0) {
-		readonly = TRUE;
-		vi_readonly = TRUE;
+	if (ENABLE_FEATURE_VI_READONLY && strncmp(argv[0], "view", 4) == 0) {
+		SET_READONLY_MODE(readonly_mode);
 	}
-#endif
+
 	vi_setops = VI_AUTOINDENT | VI_SHOWMATCH | VI_IGNORECASE | VI_ERR_METHOD;
 #if ENABLE_FEATURE_VI_YANKMARK
-	for (i = 0; i < 28; i++) {
-		reg[i] = 0;
-	}					// init the yank regs
+	//for (i = 0; i < 28; i++) {
+	//	reg[i] = 0;
+	//}					// init the yank regs
+	memset(reg, 0, sizeof(reg));
 #endif
 #if ENABLE_FEATURE_VI_DOT_CMD || ENABLE_FEATURE_VI_YANKMARK
 	modifying_cmds = (char *) "aAcCdDiIJoOpPrRsxX<>~";	// cmds modifying text[]
@@ -357,8 +364,7 @@ int vi_main(int argc, char **argv)
 #endif
 #if ENABLE_FEATURE_VI_READONLY
 		case 'R':		// Read-only flag
-			readonly = TRUE;
-			vi_readonly = TRUE;
+			SET_READONLY_MODE(readonly_mode);
 			break;
 #endif
 			//case 'r':	// recover flag-  ignore- we don't use tmp file
@@ -384,14 +390,10 @@ int vi_main(int argc, char **argv)
 
 	//----- This is the main file handling loop --------------
 	if (optind >= argc) {
-		editing = 1;	// 0= exit,  1= one file,  2 = multiple files
 		edit_file(0);
 	} else {
 		for (; optind < argc; optind++) {
-			editing = 1;	// 0=exit, 1=one file, 2+ = many files
-			free(cfn);
-			cfn = xstrdup(argv[optind]);
-			edit_file(cfn);
+			edit_file(argv[optind]);
 		}
 	}
 	//-----------------------------------------------------------
@@ -399,10 +401,45 @@ int vi_main(int argc, char **argv)
 	return 0;
 }
 
+/* read text from file or create an empty buf */
+/* will also update current_filename */
+static int init_text_buffer(char *fn)
+{
+	int rc;
+	int size = file_size(fn);	// file size. -1 means does not exist.
+
+	/* allocate/reallocate text buffer */
+	free(text);
+	text_size = size * 2;
+	if (text_size < 10240)
+		text_size = 10240;	// have a minimum size for new files
+	screenbegin = dot = end = text = xzalloc(text_size);
+	
+	if (fn != current_filename) {
+		free(current_filename);
+		current_filename = xstrdup(fn);
+	}
+	if (size < 0) {
+		// file dont exist. Start empty buf with dummy line
+		char_insert(text, '\n');
+		rc = 0;
+	} else {
+		rc = file_insert(fn, text
+			USE_FEATURE_VI_READONLY(, 1));
+	}
+	file_modified = 0;
+	last_file_modified = -1;
+#if ENABLE_FEATURE_VI_YANKMARK
+	/* init the marks. */
+	memset(mark, 0, sizeof(mark));
+#endif
+	return rc;
+}	
+
 static void edit_file(char * fn)
 {
 	char c;
-	int cnt, size, ch;
+	int size;
 
 #if ENABLE_FEATURE_VI_USE_SIGNALS
 	int sig;
@@ -411,33 +448,19 @@ static void edit_file(char * fn)
 	static char *cur_line;
 #endif
 
+	editing = 1;	// 0= exit,  1= one file, 2= multiple files
 	rawmode();
 	rows = 24;
 	columns = 80;
-	ch = -1;
+	size = 0;
 	if (ENABLE_FEATURE_VI_WIN_RESIZE)
 		get_terminal_width_height(0, &columns, &rows);
 	new_screen(rows, columns);	// get memory for virtual screen
+	init_text_buffer(fn);
 
-	cnt = file_size(fn);	// file size
-	size = 2 * cnt;		// 200% of file size
-	new_text(size);		// get a text[] buffer
-	screenbegin = dot = end = text;
-	if (fn != 0) {
-		ch = file_insert(fn, text);
-		update_ro_status(fn);
-	}
-	if (ch < 1) {
-		char_insert(text, '\n');	// start empty buf with dummy line
-	}
-	file_modified = 0;
-	last_file_modified = -1;
 #if ENABLE_FEATURE_VI_YANKMARK
 	YDreg = 26;			// default Yank/Delete reg
 	Ureg = 27;			// hold orig line for "U" cmd
-	for (cnt = 0; cnt < 28; cnt++) {
-		mark[cnt] = 0;
-	}					// init the marks
 	mark[26] = mark[27] = text;	// init "previous context"
 #endif
 
@@ -455,7 +478,6 @@ static void edit_file(char * fn)
 	}
 #endif
 
-	editing = 1;
 	cmd_mode = 0;		// 0=command  1=insert  2='R'eplace
 	cmdcnt = 0;
 	tabstop = 8;
@@ -468,7 +490,6 @@ static void edit_file(char * fn)
 	adding2q = 0;
 #endif
 	redraw(FALSE);			// dont force every col re-draw
-	show_status_line();
 
 #if ENABLE_FEATURE_VI_COLON
 	{
@@ -612,7 +633,7 @@ static char *get_address(char *p, int *b, int *e)	// get two colon addrs, if pre
 {
 	//----- get the address' i.e., 1,3   'a,'b  -----
 	// get FIRST addr, if present
-	while (isblnk(*p))
+	while (isblank(*p))
 		p++;				// skip over leading spaces
 	if (*p == '%') {			// alias for 1,$
 		p++;
@@ -621,17 +642,17 @@ static char *get_address(char *p, int *b, int *e)	// get two colon addrs, if pre
 		goto ga0;
 	}
 	p = get_one_address(p, b);
-	while (isblnk(*p))
+	while (isblank(*p))
 		p++;
 	if (*p == ',') {			// is there a address separator
 		p++;
-		while (isblnk(*p))
+		while (isblank(*p))
 			p++;
 		// get SECOND addr, if present
 		p = get_one_address(p, e);
 	}
  ga0:
-	while (isblnk(*p))
+	while (isblank(*p))
 		p++;				// skip over trailing spaces
 	return p;
 }
@@ -686,7 +707,7 @@ static void colon(char * buf)
 	q = text;			// assume 1,$ for the range
 	r = end - 1;
 	li = count_lines(text, end - 1);
-	fn = cfn;			// default to current file
+	fn = current_filename;			// default to current file
 	memset(cmd, '\0', MAX_LINELEN);	// clear cmd[]
 	memset(args, '\0', MAX_LINELEN);	// clear args[]
 
@@ -704,7 +725,7 @@ static void colon(char * buf)
 		*buf1++ = *buf++;
 	}
 	// get any ARGuments
-	while (isblnk(*buf))
+	while (isblank(*buf))
 		buf++;
 	strcpy(args, buf);
 	buf1 = last_char_is(cmd, '!');
@@ -738,12 +759,15 @@ static void colon(char * buf)
 	}
 #if ENABLE_FEATURE_ALLOW_EXEC
 	else if (strncmp(cmd, "!", 1) == 0) {	// run a cmd
+		int retcode;
 		// :!ls   run the <cmd>
 		alarm(0);		// wait for input- no alarms
 		place_cursor(rows - 1, 0, FALSE);	// go to Status line
 		clear_to_eol();			// clear the line
 		cookmode();
-		system(orig_buf + 1);		// run the cmd
+		retcode = system(orig_buf + 1);	// run the cmd
+		if (retcode)
+			printf("\nshell returned %i\n\n", retcode);
 		rawmode();
 		Hit_Return();			// let user see results
 		alarm(3);		// done waiting for input
@@ -762,9 +786,6 @@ static void colon(char * buf)
 		dot = yank_delete(q, r, 1, YANKDEL);	// save, then delete lines
 		dot_skip_over_ws();
 	} else if (strncasecmp(cmd, "edit", i) == 0) {	// Edit a file
-		int sr;
-		struct stat st_buf;
-		sr= 0;
 		// don't edit, if the current file has been modified
 		if (file_modified && ! useforce) {
 			psbs("No write since last change (:edit! overrides)");
@@ -773,58 +794,18 @@ static void colon(char * buf)
 		if (args[0]) {
 			// the user supplied a file name
 			fn = args;
-		} else if (cfn && cfn[0]) {
+		} else if (current_filename && current_filename[0]) {
 			// no user supplied name- use the current filename
-			fn = cfn;
-			goto vc5;
+			// fn = current_filename;  was set by default
 		} else {
 			// no user file name, no current name- punt
 			psbs("No current filename");
 			goto vc1;
 		}
 
-		// see if file exists- if not, its just a new file request
-		sr = stat(fn, &st_buf);
-		if (sr < 0) {
-			// This is just a request for a new file creation.
-			// The file_insert below will fail but we get
-			// an empty buffer with a file name.  Then the "write"
-			// command can do the create.
-		} else {
-			if ((st_buf.st_mode & S_IFREG) == 0) {
-				// This is not a regular file
-				psbs("\"%s\" is not a regular file", fn);
-				goto vc1;
-			}
-			if ((st_buf.st_mode & (S_IRUSR | S_IRGRP | S_IROTH)) == 0) {
-				// dont have any read permissions
-				psbs("\"%s\" is not readable", fn);
-				goto vc1;
-			}
-		}
+		if (init_text_buffer(fn) < 0)
+			goto vc1;
 
-		// There is a read-able regular file
-		// make this the current file
-		q = xstrdup(fn);	// save the cfn
-		free(cfn);		// free the old name
-		cfn = q;			// remember new cfn
-
- vc5:
-		// delete all the contents of text[]
-		new_text(2 * file_size(fn));
-		screenbegin = dot = end = text;
-
-		// insert new file
-		ch = file_insert(fn, text);
-		update_ro_status(fn);
-
-		if (ch < 1) {
-			// start empty buf with dummy line
-			char_insert(text, '\n');
-			ch = 1;
-		}
-		file_modified = 0;
-		last_file_modified = -1;
 #if ENABLE_FEATURE_VI_YANKMARK
 		if (Ureg >= 0 && Ureg < 28 && reg[Ureg] != 0) {
 			free(reg[Ureg]);	//   free orig line reg- for 'U'
@@ -834,21 +815,16 @@ static void colon(char * buf)
 			free(reg[YDreg]);	//   free default yank/delete register
 			reg[YDreg]= 0;
 		}
-		for (li = 0; li < 28; li++) {
-			mark[li] = 0;
-		}				// init the marks
 #endif
 		// how many lines in text[]?
 		li = count_lines(text, end - 1);
 		psb("\"%s\"%s"
-#if ENABLE_FEATURE_VI_READONLY
-			"%s"
-#endif
-			" %dL, %dC", cfn,
-			(sr < 0 ? " [New file]" : ""),
-#if ENABLE_FEATURE_VI_READONLY
-			((vi_readonly || readonly) ? " [Read only]" : ""),
-#endif
+			USE_FEATURE_VI_READONLY("%s")
+			" %dL, %dC", current_filename,
+			(file_size(fn) < 0 ? " [New file]" : ""),
+			USE_FEATURE_VI_READONLY(
+				((readonly_mode) ? " [Readonly]" : ""),
+			)
 			li, ch);
 	} else if (strncasecmp(cmd, "file", i) == 0) {	// what File is this
 		if (b != -1 || e != -1) {
@@ -857,8 +833,8 @@ static void colon(char * buf)
 		}
 		if (args[0]) {
 			// user wants a new filename
-			free(cfn);
-			cfn = xstrdup(args);
+			free(current_filename);
+			current_filename = xstrdup(args);
 		} else {
 			// user wants file status info
 			last_status_cksum = 0;	// force status update
@@ -944,7 +920,7 @@ static void colon(char * buf)
 		// read after current line- unless user said ":0r foo"
 		if (b != 0)
 			q = next_line(q);
-		ch = file_insert(fn, q);
+		ch = file_insert(fn, q  USE_FEATURE_VI_READONLY(, 0));
 		if (ch < 0)
 			goto vc1;	// nothing was inserted
 		// how many lines in text[]?
@@ -952,7 +928,7 @@ static void colon(char * buf)
 		psb("\"%s\""
 			USE_FEATURE_VI_READONLY("%s")
 			" %dL, %dC", fn,
-			USE_FEATURE_VI_READONLY(((vi_readonly || readonly) ? " [Read only]" : ""),)
+			USE_FEATURE_VI_READONLY((readonly_mode ? " [Readonly]" : ""),)
 			li, ch);
 		if (ch > 0) {
 			// if the insert is before "dot" then we need to update
@@ -1080,7 +1056,7 @@ static void colon(char * buf)
 			fn = args;
 		}
 #if ENABLE_FEATURE_VI_READONLY
-		if ((vi_readonly || readonly) && !useforce) {
+		if (readonly_mode && !useforce) {
 			psbs("\"%s\" File is read only", fn);
 			goto vc3;
 		}
@@ -1104,7 +1080,7 @@ static void colon(char * buf)
 		}
 		if (l < 0) {
 			if (l == -1)
-				psbs("Write error: %s", strerror(errno));
+				psbs("\"%s\" %s", fn, strerror(errno));
 		} else {
 			psb("\"%s\" %dL, %dC", fn, li, l);
 			if (q == text && r == end - 1 && l == ch) {
@@ -1156,6 +1132,10 @@ static void Hit_Return(void)
 	while ((c = get_one_char()) != '\n' && c != '\r')	/*do nothing */
 		;
 	redraw(TRUE);		// force redraw all
+}
+
+static int next_tabstop(int col) { //vda
+	return col + ((tabstop - 1) - (col % tabstop));
 }
 
 //----- Synchronize the cursor to Dot --------------------------
@@ -1210,8 +1190,11 @@ static void sync_cursor(char * d, int *row, int *col)
 		if (*tp == '\n' || *tp == '\0')
 			break;
 		if (*tp == '\t') {
-			//         7       - (co %    8  )
-			co += ((tabstop - 1) - (co % tabstop));
+			if (d == tp && cmd_mode) { /* handle tabs like real vi */
+				break;
+			} else {
+				co = next_tabstop(co);
+			}
 		} else if (*tp < ' ' || *tp == 127) {
 			co++;		// display as ^X, use 2 columns
 		}
@@ -1365,8 +1348,7 @@ static char *move_to_col(char * p, int l)
 		if (*p == '\n' || *p == '\0')
 			break;
 		if (*p == '\t') {
-			//         7       - (co %    8  )
-			co += ((tabstop - 1) - (co % tabstop));
+			co = next_tabstop(co);
 		} else if (*p < ' ' || *p == 127) {
 			co++;		// display as ^X, use 2 columns
 		}
@@ -1462,28 +1444,15 @@ static char *new_screen(int ro, int co)
 	return screen;
 }
 
-static char *new_text(int size)
-{
-	if (size < 10240)
-		size = 10240;	// have a minimum size for new files
-	free(text);
-	text = xmalloc(size + 8);
-	memset(text, '\0', size);	// clear new text[]
-	//text += 4;		// leave some room for "oops"
-	return text;
-}
-
 #if ENABLE_FEATURE_VI_SEARCH
 static int mycmp(const char * s1, const char * s2, int len)
 {
 	int i;
 
 	i = strncmp(s1, s2, len);
-#if ENABLE_FEATURE_VI_SETOPTS
-	if (ignorecase) {
+	if (ENABLE_FEATURE_VI_SETOPTS && ignorecase) {
 		i = strncasecmp(s1, s2, len);
 	}
-#endif
 	return i;
 }
 
@@ -1621,7 +1590,7 @@ static char *char_insert(char * p, char c) // insert the char c at 'p'
 			char *q;
 
 			q = prev_line(p);	// use prev line as templet
-			for (; isblnk(*q); q++) {
+			for (; isblank(*q); q++) {
 				p = stupid_insert(p, *q);	// insert the char
 			}
 		}
@@ -1828,11 +1797,14 @@ static char *text_hole_make(char * p, int size)	// at "p", make a 'size' byte ho
 	src = p;
 	dest = p + size;
 	cnt = end - src;	// the rest of buffer
-	if (memmove(dest, src, cnt) != dest) {
+	if ( ((end + size) >= (text + text_size)) // TODO: realloc here
+			|| memmove(dest, src, cnt) != dest) {
 		psbs("can't create room for new characters");
+		p = NULL;
+		goto thm0;
 	}
 	memset(p, ' ', size);	// clear new hole
-	end = end + size;	// adjust the new END
+	end += size;		// adjust the new END
 	file_modified++;	// has the file been modified
  thm0:
 	return p;
@@ -2010,15 +1982,16 @@ static char *string_insert(char * p, char * s) // insert the string at 'p'
 	int cnt, i;
 
 	i = strlen(s);
-	p = text_hole_make(p, i);
-	strncpy(p, s, i);
-	for (cnt = 0; *s != '\0'; s++) {
-		if (*s == '\n')
-			cnt++;
-	}
+	if (text_hole_make(p, i)) {
+		strncpy(p, s, i);
+		for (cnt = 0; *s != '\0'; s++) {
+			if (*s == '\n')
+				cnt++;
+		}
 #if ENABLE_FEATURE_VI_YANKMARK
-	psb("Put %d lines (%d chars) from [%c]", cnt, i, what_reg());
+		psb("Put %d lines (%d chars) from [%c]", cnt, i, what_reg());
 #endif
+	}
 	return p;
 }
 #endif
@@ -2093,11 +2066,6 @@ static inline char *swap_context(char * p) // goto new context for '' command ma
 	return p;
 }
 #endif /* FEATURE_VI_YANKMARK */
-
-static int isblnk(char c) // is the char a blank or tab
-{
-	return (c == ' ' || c == '\t');
-}
 
 //----- Set terminal attributes --------------------------------
 static void rawmode(void)
@@ -2240,13 +2208,8 @@ static char readit(void)	// read (maybe cursor) key from stdin
 		if (n < 0) {
 			if (errno == EINTR)
 				goto ri0;	// interrupted sys call
-			if (errno == EBADF)
-				editing = 0;
-			if (errno == EFAULT)
-				editing = 0;
-			if (errno == EINVAL)
-				editing = 0;
-			if (errno == EIO)
+			if (errno == EBADF || errno == EFAULT || errno == EINVAL
+					|| errno == EIO)	
 				editing = 0;
 			errno = 0;
 		}
@@ -2393,7 +2356,7 @@ static char *get_input_line(const char * prompt) // get input line- use "status 
 	return obufp;
 }
 
-static int file_size(const char * fn) // what is the byte size of "fn"
+static int file_size(const char *fn) // what is the byte size of "fn"
 {
 	struct stat st_buf;
 	int cnt;
@@ -2404,16 +2367,30 @@ static int file_size(const char * fn) // what is the byte size of "fn"
 	return cnt;
 }
 
-static int file_insert(char *fn, char *p)
+static int file_insert(const char * fn, char *p
+		USE_FEATURE_VI_READONLY(, int update_ro_status))
 {
 	int cnt = -1;
 	int fd, size;
-	
-	size = file_size(fn);
-	if (size < 0) {
-		psbs("File does not exist");
+	struct stat statbuf;
+
+	/* Validate file */
+	if (stat(fn, &statbuf) < 0) {
+		psbs("\"%s\" %s", fn, strerror(errno));
 		goto fi0;
 	}
+	if ((statbuf.st_mode & S_IFREG) == 0) {
+		// This is not a regular file
+		psbs("\"%s\" Not a regular file", fn);
+		goto fi0;
+	}
+	/* // this check is done by open()
+	if ((statbuf.st_mode & (S_IRUSR | S_IRGRP | S_IROTH)) == 0) {
+		// dont have any read permissions
+		psbs("\"%s\" Not readable", fn);
+		goto fi0;
+	}
+	*/
 	if (p < text || p > end) {
 		psbs("Trying to insert file outside of memory");
 		goto fi0;
@@ -2422,16 +2399,17 @@ static int file_insert(char *fn, char *p)
 	// read file to buffer
 	fd = open(fn, O_RDONLY);
 	if (fd < 0) {
-		psbs("\"%s\" %s", fn, "cannot open file");
+		psbs("\"%s\" %s", fn, strerror(errno));
 		goto fi0;
 	}
+	size = statbuf.st_size;
 	p = text_hole_make(p, size);
+	if (p == NULL)
+		goto fi0;
 	cnt = read(fd, p, size);
-	close(fd);
 	if (cnt < 0) {
-		cnt = -1;
+		psbs("\"%s\" %s", fn, strerror(errno));
 		p = text_hole_delete(p, p + size - 1);	// un-do buffer insert
-		psbs("cannot read file \"%s\"", fn);
 	} else if (cnt < size) {
 		// There was a partial read, shrink unused space text[]
 		p = text_hole_delete(p + cnt, p + (size - cnt) - 1);	// un-do buffer insert
@@ -2439,22 +2417,19 @@ static int file_insert(char *fn, char *p)
 	}
 	if (cnt >= size)
 		file_modified++;
+	close(fd);
  fi0:
+	if (ENABLE_FEATURE_VI_READONLY && update_ro_status
+			&& ((access(fn, W_OK) < 0) ||
+			/* root will always have access()
+			 * so we check fileperms too */
+			!(statbuf.st_mode & (S_IWUSR | S_IWGRP | S_IWOTH))))
+	{
+		SET_READONLY_FILE(readonly_mode);	
+	}
 	return cnt;
 }
 
-#if ENABLE_FEATURE_VI_READONLY
-static void update_ro_status(const char *fn)
-{
-	struct stat sb;
-	if (stat(fn, &sb) == 0) {
-		readonly = vi_readonly || (access(fn, W_OK) < 0) ||
-			/* root will always have access()
-			 * so we check fileperms too */
-			!(sb.st_mode & (S_IWUSR | S_IWGRP | S_IWOTH));
-	}
-}
-#endif
 
 static int file_write(char * fn, char * first, char * last)
 {
@@ -2687,7 +2662,7 @@ static void ni(const char * s) // display messages
 static int format_edit_status(void)	// show file status on status line
 {
 	static int tot;
-
+	static const char cmd_mode_indicator[] = "-IR-";
 	int cur, percent, ret, trunc_at;
 
 	// file_modified is now a counter rather than a flag.  this
@@ -2726,12 +2701,12 @@ static int format_edit_status(void)	// show file status on status line
 #else
 		"%c %s%s %d/%d %d%%",
 #endif
-		(cmd_mode ? (cmd_mode == 2 ? 'R':'I'):'-'),
-		(cfn != 0 ? cfn : "No file"),
+		cmd_mode_indicator[cmd_mode & 3],
+		(current_filename != NULL ? current_filename : "No file"),
 #if ENABLE_FEATURE_VI_READONLY
-		((vi_readonly || readonly) ? " [Read-only]" : ""),
+		(readonly_mode ? " [Readonly]" : ""),
 #endif
-		(file_modified ? " [modified]" : ""),
+		(file_modified ? " [Modified]" : ""),
 		cur, tot, percent);
 
 	if (ret >= 0 && ret < trunc_at)
@@ -3391,14 +3366,14 @@ static void do_cmd(char c)
 		        || strncasecmp(p, "wn", cnt) == 0
 		        || strncasecmp(p, "x", cnt) == 0
 		) {
-			cnt = file_write(cfn, text, end - 1);
+			cnt = file_write(current_filename, text, end - 1);
 			if (cnt < 0) {
 				if (cnt == -1)
 					psbs("Write error: %s", strerror(errno));
 			} else {
 				file_modified = 0;
 				last_file_modified = -1;
-				psb("\"%s\" %dL, %dC", cfn, count_lines(text, end - 1), cnt);
+				psb("\"%s\" %dL, %dC", current_filename, count_lines(text, end - 1), cnt);
 				if (p[0] == 'x' || p[1] == 'q' || p[1] == 'n'
 				 || p[0] == 'X' || p[1] == 'Q' || p[1] == 'N'
 				) {
@@ -3516,7 +3491,7 @@ static void do_cmd(char c)
 		if (dot < end - 1) {	// make sure not last char in text[]
 			*dot++ = ' ';	// replace NL with space
 			file_modified++;
-			while (isblnk(*dot)) {	// delete leading WS
+			while (isblank(*dot)) {	// delete leading WS
 				dot_delete();
 			}
 		}
@@ -3583,13 +3558,11 @@ static void do_cmd(char c)
 			break;
 		}
 		if (file_modified) {
-#if ENABLE_FEATURE_VI_READONLY
-			if (vi_readonly || readonly) {
-				psbs("\"%s\" File is read only", cfn);
+			if (ENABLE_FEATURE_VI_READONLY && readonly_mode) {
+				psbs("\"%s\" File is read only", current_filename);
 				break;
 			}
-#endif
-			cnt = file_write(cfn, text, end - 1);
+			cnt = file_write(current_filename, text, end - 1);
 			if (cnt < 0) {
 				if (cnt == -1)
 					psbs("Write error: %s", strerror(errno));
@@ -3644,7 +3617,7 @@ static void do_cmd(char c)
 		} else if (strchr("wW", c1)) {
 			if (c == 'c') {
 				// don't include trailing WS as part of word
-				while (isblnk(*q)) {
+				while (isblank(*q)) {
 					if (q <= text || q[-1] == '\n')
 						break;
 					q--;
