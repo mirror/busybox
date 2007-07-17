@@ -330,7 +330,7 @@ int vi_main(int argc, char **argv)
 	last_status_cksum = 0;
 	text = NULL;
 
-	if (ENABLE_FEATURE_VI_READONLY && strncmp(argv[0], "view", 4) == 0) {
+	if (ENABLE_FEATURE_VI_READONLY && strncmp(appliet_name, "view", 4) == 0) {
 		SET_READONLY_MODE(readonly_mode);
 	}
 
