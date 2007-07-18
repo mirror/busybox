@@ -330,16 +330,16 @@ int vi_main(int argc, char **argv)
 	last_status_cksum = 0;
 	text = NULL;
 
-	if (ENABLE_FEATURE_VI_READONLY && strncmp(applet_name, "view", 4) == 0) {
+#ifdef NO_SUCH_APPLET_YET
+	/* If we aren't "vi", we are "view" */
+	if (ENABLE_FEATURE_VI_READONLY && applet_name[2]) {
 		SET_READONLY_MODE(readonly_mode);
 	}
+#endif
 
 	vi_setops = VI_AUTOINDENT | VI_SHOWMATCH | VI_IGNORECASE | VI_ERR_METHOD;
 #if ENABLE_FEATURE_VI_YANKMARK
-	//for (i = 0; i < 28; i++) {
-	//	reg[i] = 0;
-	//}					// init the yank regs
-	memset(reg, 0, sizeof(reg));
+	memset(reg, 0, sizeof(reg)); // init the yank regs
 #endif
 #if ENABLE_FEATURE_VI_DOT_CMD || ENABLE_FEATURE_VI_YANKMARK
 	modifying_cmds = (char *) "aAcCdDiIJoOpPrRsxX<>~";	// cmds modifying text[]
