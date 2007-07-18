@@ -4424,7 +4424,8 @@ forkchild(struct job *jp, union node *n, int mode)
 #if JOBS
 	/* For "jobs | cat" to work like in bash, we must retain list of jobs
 	 * in child, but we do need to remove ourself */
-	freejob(jp);
+	if (jp)
+		freejob(jp);
 #else
 	for (jp = curjob; jp; jp = jp->prev_job)
 		freejob(jp);
