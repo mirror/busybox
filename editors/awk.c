@@ -1522,9 +1522,12 @@ static int awk_split(const char *s, node *spl, char **slist)
 	if (*getvar_s(intvar[RS]) == '\0')
 		c[2] = '\n';
 
-	if ((spl->info & OPCLSMASK) == OC_REGEXP) {		/* regex split */
-		while (*s) {
-			l = strcspn(s, c+2);
+	if ((spl->info & OPCLSMASK) == OC_REGEXP) {  /* regex split */
+		if (!*s)
+			return n; /* "": zero fields */
+		n++; /* at least one field will be there */
+		do {
+			l = strcspn(s, c+2); /* len till next NUL or \n */
 			if (regexec(icase ? spl->r.ire : spl->l.re, s, 1, pmatch, 0) == 0
 			 && pmatch[0].rm_so <= l
 			) {
@@ -1533,24 +1536,27 @@ static int awk_split(const char *s, node *spl, char **slist)
 					l++;
 					pmatch[0].rm_eo++;
 				}
+				n++; /* we saw yet another delimiter */
 			} else {
 				pmatch[0].rm_eo = l;
 				if (s[l]) pmatch[0].rm_eo++;
 			}
-
 			memcpy(s1, s, l);
 			s1[l] = '\0';
 			nextword(&s1);
 			s += pmatch[0].rm_eo;
-			n++;
-		}
-	} else if (c[0] == '\0') {		/* null split */
+		} while (*s);
+		return n;
+	}
+	if (c[0] == '\0') {  /* null split */
 		while (*s) {
 			*s1++ = *s++;
 			*s1++ = '\0';
 			n++;
 		}
-	} else if (c[0] != ' ') {		/* single-character split */
+		return n;
+	}
+	if (c[0] != ' ') {  /* single-character split */
 		if (icase) {
 			c[0] = toupper(c[0]);
 			c[1] = tolower(c[1]);
@@ -1560,21 +1566,23 @@ static int awk_split(const char *s, node *spl, char **slist)
 			*s1++ = '\0';
 			n++;
 		}
-	} else {				/* space split */
-		while (*s) {
-			s = skip_whitespace(s);
-			if (!*s) break;
-			n++;
-			while (*s && !isspace(*s))
-				*s1++ = *s++;
-			*s1++ = '\0';
-		}
+		return n;
+	}
+	/* space split */
+	while (*s) {
+		s = skip_whitespace(s);
+		if (!*s) break;
+		n++;
+		while (*s && !isspace(*s))
+			*s1++ = *s++;
+		*s1++ = '\0';
 	}
 	return n;
 }
 
 static void split_f0(void)
 {
+/* static char *fstrings; */
 #define fstrings (G.split_f0__fstrings)
 
 	int i, n;
