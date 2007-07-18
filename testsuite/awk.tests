@@ -1,0 +1,20 @@
+#!/bin/sh
+
+# awk tests.
+# Copyright 2007 by Denys Vlasenko <vda.linux@googlemail.com>
+# Licensed under GPL v2, see file LICENSE for details.
+
+. testing.sh
+
+# testing "description" "arguments" "result" "infile" "stdin"
+
+testing "awk -F case 0" "awk -F '[#]' '{ print NF }'" ""    "" ""
+testing "awk -F case 1" "awk -F '[#]' '{ print NF }'" "0\n" "" "\n"
+testing "awk -F case 2" "awk -F '[#]' '{ print NF }'" "2\n" "" "#\n"
+testing "awk -F case 3" "awk -F '[#]' '{ print NF }'" "3\n" "" "#abc#\n"
+testing "awk -F case 4" "awk -F '[#]' '{ print NF }'" "3\n" "" "#abc#zz\n"
+testing "awk -F case 5" "awk -F '[#]' '{ print NF }'" "4\n" "" "#abc##zz\n"
+testing "awk -F case 6" "awk -F '[#]' '{ print NF }'" "4\n" "" "z#abc##zz\n"
+testing "awk -F case 7" "awk -F '[#]' '{ print NF }'" "5\n" "" "z##abc##zz\n"
+
+exit $FAILCOUNT
