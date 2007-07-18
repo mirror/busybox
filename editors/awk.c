@@ -600,7 +600,7 @@ static void *hash_find(xhash *hash, const char *name)
 	int l;
 
 	hi = hash_search(hash, name);
-	if (! hi) {
+	if (!hi) {
 		if (++hash->nel / hash->csize > 10)
 			hash_rebuild(hash);
 
@@ -1339,7 +1339,7 @@ static void chain_group(void)
 				n3 = parse_expr(TC_SEQTERM);
 				n = chain_loop(n3);
 				n->l.n = n2;
-				if (! n2)
+				if (!n2)
 					n->info = OC_EXEC;
 			}
 			break;
@@ -1446,7 +1446,7 @@ static node *mk_splitter(const char *s, tsplitter *spl)
 	n = &spl->n;
 	if ((n->info & OPCLSMASK) == OC_REGEXP) {
 		regfree(re);
-		regfree(ire);
+		regfree(ire); // TODO: nuke ire, use re+1?
 	}
 	if (strlen(s) > 1) {
 		mk_re_node(s, n, re);
@@ -1511,7 +1511,7 @@ static int awk_split(const char *s, node *spl, char **slist)
 	int l, n = 0;
 	char c[4];
 	char *s1;
-	regmatch_t pmatch[2];
+	regmatch_t pmatch[2]; // TODO: why [2]? [1] is enough...
 
 	/* in worst case, each char would be a separate field */
 	*slist = s1 = xzalloc(strlen(s) * 2 + 3);
@@ -1732,7 +1732,7 @@ static int awk_getline(rstream *rsm, var *v)
 	c = (char) rsplitter.n.info;
 	rp = 0;
 
-	if (! m) qrealloc(&m, 256, &size);
+	if (!m) qrealloc(&m, 256, &size);
 	do {
 		b = m + a;
 		so = eo = p;
@@ -1748,7 +1748,7 @@ static int awk_getline(rstream *rsm, var *v)
 				}
 			} else if (c != '\0') {
 				s = strchr(b+pp, c);
-				if (! s) s = memchr(b+pp, '\0', p - pp);
+				if (!s) s = memchr(b+pp, '\0', p - pp);
 				if (s) {
 					so = eo = s-b;
 					eo++;
@@ -1900,8 +1900,8 @@ static int awk_sub(node *rn, const char *repl, int nm, var *src, var *dest, int 
 	regex_t sreg, *re;
 
 	re = as_regex(rn, &sreg);
-	if (! src) src = intvar[F0];
-	if (! dest) dest = intvar[F0];
+	if (!src) src = intvar[F0];
+	if (!dest) dest = intvar[F0];
 
 	i = di = 0;
 	sp = getvar_s(src);
@@ -1946,7 +1946,8 @@ static int awk_sub(node *rn, const char *repl, int nm, var *src, var *dest, int 
 		sp += eo;
 		if (i == nm) break;
 		if (eo == so) {
-			if (! (ds[di++] = *sp++)) break;
+			ds[di] = *sp++;
+			if (!ds[di++]) break;
 		}
 	}
 
@@ -2797,13 +2798,16 @@ int awk_main(int argc, char **argv)
 
 	/* Huh, people report that sometimes environ is NULL. Oh well. */
 	if (environ) for (envp = environ; *envp; envp++) {
-		char *s = xstrdup(*envp);
+		/* environ is writable, thus we don't strdup it needlessly */
+		char *s = *envp;
 		char *s1 = strchr(s, '=');
 		if (s1) {
-			*s1++ = '\0';
-			setvar_u(findvar(iamarray(intvar[ENVIRON]), s), s1);
+			*s1 = '\0';
+			/* Both findvar and setvar_u take const char*
+			 * as 2nd arg -> environment is not trashed */
+			setvar_u(findvar(iamarray(intvar[ENVIRON]), s), s1 + 1);
+			*s1 = '=';
 		}
-		free(s);
 	}
 	opt_complementary = "v::";
 	opt = getopt32(argc, argv, "F:v:f:W:", &opt_F, &opt_v, &g_progname, &opt_W);
