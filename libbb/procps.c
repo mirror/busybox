@@ -170,8 +170,8 @@ procps_status_t *procps_scan(procps_status_t* sp, int flags)
 		if (flags & PSSCAN_CONTEXT) {
 			if (getpidcon(sp->pid, &sp->context) < 0)
 				sp->context = NULL;
-		}	
-#endif	
+		}
+#endif
 
 		filename_tail = filename + sprintf(filename, "/proc/%d", pid);
 

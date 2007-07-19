@@ -670,7 +670,7 @@ int ioctl_or_perror(int fd, int request, void *argp, const char *fmt,...)
 int bb_ioctl_or_warn(int fd, int request, void *argp, const char *ioctl_name)
 {
 	int ret;
-	
+
 	ret = ioctl(fd, request, argp);
 	if (ret < 0)
 		bb_perror_msg("%s", ioctl_name);
@@ -685,7 +685,7 @@ void bb_xioctl(int fd, int request, void *argp, const char *ioctl_name)
 int bb_ioctl_or_warn(int fd, int request, void *argp)
 {
 	int ret;
-	
+
 	ret = ioctl(fd, request, argp);
 	if (ret < 0)
 		bb_perror_msg("ioctl %#x failed", request);

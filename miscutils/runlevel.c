@@ -36,7 +36,7 @@ int runlevel_main(int argc, char **argv)
 	}
 
 	puts("unknown");
-	
+
 	if (ENABLE_FEATURE_CLEAN_UP)
 		endutent();
 	return 1;

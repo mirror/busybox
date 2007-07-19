@@ -416,7 +416,7 @@ int devfsd_main(int argc, char **argv)
 
 	if (ENABLE_DEVFSD_FG_NP && no_polling)
 		exit(0);
-	
+
 	if (ENABLE_DEVFSD_VERBOSE || ENABLE_DEBUG)
 		logmode = LOGMODE_BOTH;
 	else if (do_daemon == TRUE)
@@ -432,7 +432,7 @@ int devfsd_main(int argc, char **argv)
 	} else if (ENABLE_DEVFSD_FG_NP) {
 		setpgid(0, 0);  /*  Become process group leader                    */
 	}
-	
+
 	while (TRUE) {
 		do_scan = do_servicing(fd, event_mask);
 

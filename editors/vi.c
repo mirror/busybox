@@ -414,7 +414,7 @@ static int init_text_buffer(char *fn)
 	if (text_size < 10240)
 		text_size = 10240;	// have a minimum size for new files
 	screenbegin = dot = end = text = xzalloc(text_size);
-	
+
 	if (fn != current_filename) {
 		free(current_filename);
 		current_filename = xstrdup(fn);
@@ -434,7 +434,7 @@ static int init_text_buffer(char *fn)
 	memset(mark, 0, sizeof(mark));
 #endif
 	return rc;
-}	
+}
 
 static void edit_file(char * fn)
 {
@@ -2210,7 +2210,7 @@ static char readit(void)	// read (maybe cursor) key from stdin
 			if (errno == EINTR)
 				goto ri0;	// interrupted sys call
 			if (errno == EBADF || errno == EFAULT || errno == EINVAL
-					|| errno == EIO)	
+					|| errno == EIO)
 				editing = 0;
 			errno = 0;
 		}
@@ -2426,7 +2426,7 @@ static int file_insert(const char * fn, char *p
 			 * so we check fileperms too */
 			!(statbuf.st_mode & (S_IWUSR | S_IWGRP | S_IWOTH))))
 	{
-		SET_READONLY_FILE(readonly_mode);	
+		SET_READONLY_FILE(readonly_mode);
 	}
 	return cnt;
 }
