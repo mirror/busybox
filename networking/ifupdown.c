@@ -10,7 +10,9 @@
  *  Changes to upstream version
  *  Remove checks for kernel version, assume kernel version 2.2.0 or better.
  *  Lines in the interfaces file cannot wrap.
- *  To adhere to the FHS, the default state file is /var/run/ifstate.
+ *  To adhere to the FHS, the default state file is /var/run/ifstate
+ *  (defined via CONFIG_IFUPDOWN_IFSTATE_PATH) and can be overridden by build
+ *  configuration.
  *
  * Licensed under the GPL v2 or later, see the file LICENSE in this tarball.
  */
@@ -1105,7 +1107,7 @@ static llist_t *find_iface_state(llist_t *state_list, const char *iface)
 static llist_t *read_iface_state(void)
 {
 	llist_t *state_list = NULL;
-	FILE *state_fp = fopen("/var/run/ifstate", "r");
+	FILE *state_fp = fopen(CONFIG_IFUPDOWN_IFSTATE_PATH, "r");
 
 	if (state_fp) {
 		char *start, *end_ptr;
@@ -1275,7 +1277,7 @@ int ifupdown_main(int argc, char **argv)
 			}
 
 			/* Actually write the new state */
-			state_fp = xfopen("/var/run/ifstate", "w");
+			state_fp = xfopen(CONFIG_IFUPDOWN_IFSTATE_PATH, "w");
 			state = state_list;
 			while (state) {
 				if (state->data) {

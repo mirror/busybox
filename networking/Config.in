@@ -225,6 +225,16 @@ config IFUPDOWN
 	  "ifconfig", "route" and "run-parts" or the "ip" command, either
 	  via busybox or via standalone utilities.
 
+config IFUPDOWN_IFSTATE_PATH
+	string "Absolute path to ifstate file"
+	default "/var/run/ifstate"
+	help
+	  ifupdown keeps state information in a file called ifstate.
+	  Typically it is located in /var/run/ifstate, however
+	  some distributions tend to put it in other places
+	  (debian, for example, uses /etc/network/run/ifstate).
+	  This config option defines location of ifstate.
+
 config FEATURE_IFUPDOWN_IP
 	bool "Use ip applet"
 	default n
