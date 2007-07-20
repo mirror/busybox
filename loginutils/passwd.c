@@ -52,10 +52,10 @@ static char* new_password(const struct passwd *pw, uid_t myuid, int algo)
 	}
 
 	/*memset(salt, 0, sizeof(salt)); - why?*/
-	crypt_make_salt(salt, 1); /* des */
+	crypt_make_salt(salt, 1, 0); /* des */
 	if (algo) { /* MD5 */
 		strcpy(salt, "$1$");
-		crypt_make_salt(salt + 3, 4);
+		crypt_make_salt(salt + 3, 4, 0);
 	}
 	ret = xstrdup(pw_encrypt(newp, salt)); /* returns ptr to static */
 	/* whee, success! */
@@ -70,115 +70,6 @@ static char* new_password(const struct passwd *pw, uid_t myuid, int algo)
 	return ret;
 }
 
-
-static int update_passwd(const char *filename, const char *username,
-			const char *new_pw)
-{
-	struct stat sb;
-	struct flock lock;
-	FILE *old_fp;
-	FILE *new_fp;
-	char *new_name;
-	char *last_char;
-	unsigned user_len;
-	int old_fd;
-	int new_fd;
-	int i;
-	int ret = 1; /* failure */
-
-	logmode = LOGMODE_STDIO;
-	/* New passwd file, "/etc/passwd+" for now */
-	new_name = xasprintf("%s+", filename);
-	last_char = &new_name[strlen(new_name)-1];
-	username = xasprintf("%s:", username);
-	user_len = strlen(username);
-
-	old_fp = fopen(filename, "r+");
-	if (!old_fp)
-		goto free_mem;
-	old_fd = fileno(old_fp);
-
-	/* Try to create "/etc/passwd+". Wait if it exists. */
-	i = 30;
-	do {
-		// FIXME: on last iteration try w/o O_EXCL but with O_TRUNC?
-		new_fd = open(new_name, O_WRONLY|O_CREAT|O_EXCL,0600);
-		if (new_fd >= 0) goto created;
-		if (errno != EEXIST) break;
-		usleep(100000); /* 0.1 sec */
-	} while (--i);
-	bb_perror_msg("cannot create '%s'", new_name);
-	goto close_old_fp;
- created:
-	if (!fstat(old_fd, &sb)) {
-		fchmod(new_fd, sb.st_mode & 0777); /* ignore errors */
-		fchown(new_fd, sb.st_uid, sb.st_gid);
-	}
-	new_fp = fdopen(new_fd, "w");
-	if (!new_fp) {
-		close(new_fd);
-		goto unlink_new;
-	}
-
-	/* Backup file is "/etc/passwd-" */
-	last_char[0] = '-';
-	/* Delete old one, create new as a hardlink to current */
-	i = (unlink(new_name) && errno != ENOENT);
-	if (i || link(filename, new_name))
-		bb_perror_msg("warning: cannot create backup copy '%s'", new_name);
-	last_char[0] = '+';
-
-	/* Lock the password file before updating */
-	lock.l_type = F_WRLCK;
-	lock.l_whence = SEEK_SET;
-	lock.l_start = 0;
-	lock.l_len = 0;
-	if (fcntl(old_fd, F_SETLK, &lock) < 0)
-		bb_perror_msg("warning: cannot lock '%s'", filename);
-	lock.l_type = F_UNLCK;
-
-	/* Read current password file, write updated one */
-	while (1) {
-		char *line = xmalloc_fgets(old_fp);
-		if (!line) break; /* EOF/error */
-		if (strncmp(username, line, user_len) == 0) {
-			/* we have a match with "username:"... */
-			const char *cp = line + user_len;
-			/* now cp -> old passwd, skip it: */
-			cp = strchr(cp, ':');
-			if (!cp) cp = "";
-			/* now cp -> ':' after old passwd or -> "" */
-			fprintf(new_fp, "%s%s%s", username, new_pw, cp);
-			/* Erase password in memory */
-		} else
-			fputs(line, new_fp);
-		free(line);
-	}
-	fcntl(old_fd, F_SETLK, &lock);
-
-	/* We do want all of them to execute, thus | instead of || */
-	if ((ferror(old_fp) | fflush(new_fp) | fsync(new_fd) | fclose(new_fp))
-	 || rename(new_name, filename)
-	) {
-		/* At least one of those failed */
-		goto unlink_new;
-	}
-	ret = 0; /* whee, success! */
-
- unlink_new:
-	if (ret) unlink(new_name);
-
- close_old_fp:
-	fclose(old_fp);
-
- free_mem:
-	if (ENABLE_FEATURE_CLEAN_UP) free(new_name);
-	if (ENABLE_FEATURE_CLEAN_UP) free((char*)username);
-	logmode = LOGMODE_BOTH;
-	return ret;
-}
-
-
 int passwd_main(int argc, char **argv);
 int passwd_main(int argc, char **argv)
 {
@@ -192,6 +83,7 @@ int passwd_main(int argc, char **argv)
 		/*STATE_ALGO_des = 0x20, not needed yet */
 	};
 	unsigned opt;
+	int rc;
 	const char *opt_a = "";
 	const char *filename;
 	char *myname;
@@ -278,12 +170,11 @@ int passwd_main(int argc, char **argv)
 	signal(SIGQUIT, SIG_IGN);
 	umask(077);
 	xsetuid(0);
-	if (update_passwd(filename, name, newp) != 0) {
-		/* LOGMODE_BOTH */
+	rc = update_passwd(filename, name, newp);
+	logmode = LOGMODE_BOTH;
+	if (rc < 0)
 		bb_error_msg_and_die("cannot update password file %s",
 				filename);
-	}
-	/* LOGMODE_BOTH */
 	bb_info_msg("Password for %s changed by %s", name, myname);
 
 	if (ENABLE_FEATURE_CLEAN_UP) free(newp);

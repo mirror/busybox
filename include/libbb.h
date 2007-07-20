@@ -769,6 +769,7 @@ extern void selinux_or_die(void);
 extern int restricted_shell(const char *shell);
 extern void setup_environment(const char *shell, int loginshell, int changeenv, const struct passwd *pw);
 extern int correct_password(const struct passwd *pw);
+/* Returns a ptr to static storage */
 extern char *pw_encrypt(const char *clear, const char *salt);
 extern int obscure(const char *old, const char *newval, const struct passwd *pwdp);
 extern int index_in_str_array(const char * const string_array[], const char *key);
@@ -776,7 +777,18 @@ extern int index_in_substr_array(const char * const string_array[], const char *
 extern void print_login_issue(const char *issue_file, const char *tty);
 extern void print_login_prompt(void);
 
-extern void crypt_make_salt(char *p, int cnt);
+/* rnd is additional random input. New one is returned.
+ * Useful if you call crypt_make_salt many times in a row:
+ * rnd = crypt_make_salt(buf1, 4, 0);
+ * rnd = crypt_make_salt(buf2, 4, rnd);
+ * rnd = crypt_make_salt(buf3, 4, rnd);
+ * (otherwise we risk having same salt generated)
+ */
+extern int crypt_make_salt(char *p, int cnt, int rnd);
+
+/* Returns number of lines changed, or -1 on error */
+extern int update_passwd(const char *filename, const char *username,
+			const char *new_pw);
 
 int get_terminal_width_height(const int fd, int *width, int *height);
 

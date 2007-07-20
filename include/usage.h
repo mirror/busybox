@@ -452,7 +452,7 @@
        "	F	Input from file"
 
 #define crond_trivial_usage \
-       "-d[#] -c <crondir> -f -b"
+       "-d[#] -c crondir -f -b"
 #define crond_full_usage \
        "	-d [#] -l [#] -S -L logfile -f -b -c dir\n" \
        "	-d num	Debug level\n" \
@@ -466,8 +466,8 @@
 #define crontab_trivial_usage \
        "[-c dir] {file|-}|[-u|-l|-e|-d user]"
 #define crontab_full_usage \
-       "	file <opts>	Replace crontab from file\n" \
-       "	- <opts>	Replace crontab from stdin\n" \
+       "	file [opts]	Replace crontab from file\n" \
+       "	- [opts]	Replace crontab from stdin\n" \
        "	-u user		Specify user\n" \
        "	-l [user]	List crontab for user\n" \
        "	-e [user]	Edit crontab for user\n" \
@@ -1216,7 +1216,7 @@
        "-rw-rw-r--    1 andersen andersen   554058 Apr 14 17:49 /tmp/busybox.tar.gz\n"
 
 #define halt_trivial_usage \
-       "[-d<delay>] [-n<nosync>] [-f<force>]"
+       "[-d delay] [-n] [-f]"
 #define halt_full_usage \
        "Halt the system" \
        "\n\nOptions:\n" \
@@ -1332,14 +1332,14 @@
        "sage\n"
 
 #define httpd_trivial_usage \
-       "[-c <conf file>]" \
-       " [-p <port>]" \
+       "[-c conffile]" \
+       " [-p port]" \
        " [-i] [-f]" \
 	USE_FEATURE_HTTPD_SETUID(" [-u user[:grp]]") \
-	USE_FEATURE_HTTPD_BASIC_AUTH(" [-r <realm>]") \
+	USE_FEATURE_HTTPD_BASIC_AUTH(" [-r realm]") \
 	USE_FEATURE_HTTPD_AUTH_MD5(" [-m pass]") \
        " [-h home]" \
-       " [-d/-e <string>]"
+       " [-d/-e string]"
 #define httpd_full_usage \
        "Listen for incoming http server requests" \
        "\n\nOptions:\n" \
@@ -1388,27 +1388,27 @@
        "uid=1000(andersen) gid=1000(andersen)\n"
 
 #define ifconfig_trivial_usage \
-	USE_FEATURE_IFCONFIG_STATUS("[-a]") " <interface> [<address>]"
+	USE_FEATURE_IFCONFIG_STATUS("[-a]") " interface [address]"
 #define ifconfig_full_usage \
        "Configure a network interface" \
        "\n\nOptions:\n" \
 	USE_FEATURE_IPV6( \
-       "	[add <address>[/<prefixlen>]]\n") \
+       "	[add ADDRESS[/PREFIXLEN]]\n") \
 	USE_FEATURE_IPV6( \
-       "	[del <address>[/<prefixlen>]]\n") \
-       "	[[-]broadcast [<address>]] [[-]pointopoint [<address>]]\n" \
-       "	[netmask <address>] [dstaddr <address>]\n" \
+       "	[del ADDRESS[/PREFIXLEN]]\n") \
+       "	[[-]broadcast [ADDRESS]] [[-]pointopoint [ADDRESS]]\n" \
+       "	[netmask ADDRESS] [dstaddr ADDRESS]\n" \
 	USE_FEATURE_IFCONFIG_SLIP( \
-       "	[outfill <NN>] [keepalive <NN>]\n") \
-       "	" USE_FEATURE_IFCONFIG_HW("[hw ether <address>] ") "[metric <NN>] [mtu <NN>]\n" \
+       "	[outfill NN] [keepalive NN]\n") \
+       "	" USE_FEATURE_IFCONFIG_HW("[hw ether ADDRESS] ") "[metric NN] [mtu NN]\n" \
        "	[[-]trailers] [[-]arp] [[-]allmulti]\n" \
-       "	[multicast] [[-]promisc] [txqueuelen <NN>] [[-]dynamic]\n" \
+       "	[multicast] [[-]promisc] [txqueuelen NN] [[-]dynamic]\n" \
 	USE_FEATURE_IFCONFIG_MEMSTART_IOADDR_IRQ( \
-       "	[mem_start <NN>] [io_addr <NN>] [irq <NN>]\n") \
+       "	[mem_start NN] [io_addr NN] [irq NN]\n") \
        "	[up|down] ..."
 
 #define ifup_trivial_usage \
-       "<-ahinv> <ifaces...>"
+       "[-ahinv] ifaces..."
 #define ifup_full_usage \
        "Options:\n" \
        "	-a	De/configure all interfaces automatically\n" \
@@ -1420,7 +1420,7 @@
        "	-f	Force de/configuration"
 
 #define ifdown_trivial_usage \
-       "<-ahinv> <ifaces...>"
+       "[-ahinv] ifaces..."
 #define ifdown_full_usage \
        "Options:\n" \
        "	-a	De/configure all interfaces automatically\n" \
@@ -1587,7 +1587,7 @@
        "	-x	Do not export externs"
 
 #define install_trivial_usage \
-       "[-cgmops] [sources] <dest|directory>"
+       "[-cgmops] [sources] dest|directory"
 #define install_full_usage \
        "Copy files and set attributes" \
        "\n\nOptions:\n" \
@@ -1634,7 +1634,7 @@
        "	SCOPE-ID := [host | link | global | NUMBER]"
 
 #define ipcalc_trivial_usage \
-       "[OPTION]... <ADDRESS>[[/]<NETMASK>] [NETMASK]"
+       "[OPTION]... ADDRESS[[/]NETMASK] [NETMASK]"
 #define ipcalc_full_usage \
        "Calculate IP network settings from a IP address" \
        "\n\nOptions:" \
@@ -1778,7 +1778,7 @@
        "		reached"
 
 #define setarch_trivial_usage \
-       "<personality> <program> [args ...]"
+       "personality program [args ...]"
 #define setarch_full_usage \
        "Personality may be:\n" \
        "	linux32		Set 32bit uname emulation\n" \
@@ -2502,7 +2502,7 @@
        "to standard output. With no FILE, or when FILE is -, read standard input."
 
 #define openvt_trivial_usage \
-       "<vtnum> <COMMAND> [ARGS...]"
+       "VTNUM COMMAND [ARGS...]"
 #define openvt_full_usage \
        "Start a command on a new virtual terminal"
 #define openvt_example_usage \
@@ -2520,8 +2520,17 @@
        "	-l	Locks (disables) the specified user account\n" \
        "	-u	Unlocks (re-enables) the specified user account"
 
+#define chpasswd_trivial_usage \
+       "[--md5|--encrypt]"
+#define chpasswd_full_usage \
+       "Read user:password information from stdin\n" \
+       "and update /etc/passwd accordingly." \
+       "\n\nOptions:" \
+       "\n	-e, --encrypt	Supplied passwords are in encrypted form" \
+       "\n	-m, --md5	Use MD5 encryption instead of DES"
+
 #define patch_trivial_usage \
-       "[-p<num>] [-i <diff>]"
+       "[-p num] [-i diff]"
 #define patch_full_usage \
        "	-p NUM	Strip NUM leading components from file names\n" \
        "	-i DIFF	Read DIFF instead of stdin"
@@ -2612,7 +2621,7 @@
        "the new root file system"
 
 #define poweroff_trivial_usage \
-       "[-d<delay>] [-n<nosync>] [-f<force>]"
+       "[-d delay] [-n] [-f]"
 #define poweroff_full_usage \
        "Halt and shut off power" \
        "\n\nOptions:\n" \
@@ -2729,9 +2738,9 @@
        "[OPTIONS]..."
 #define readprofile_full_usage \
        "Options:\n" \
-       "	-m <mapfile>	(Default: /boot/System.map)\n" \
-       "	-p <profile>	(Default: /proc/profile)\n" \
-       "	-M <mult>	Set the profiling multiplier to <mult>\n" \
+       "	-m mapfile	(Default: /boot/System.map)\n" \
+       "	-p profile	(Default: /proc/profile)\n" \
+       "	-M mult		Set the profiling multiplier to mult\n" \
        "	-i		Print only info about the sampling step\n" \
        "	-v		Verbose\n" \
        "	-a		Print all symbols, even if count is 0\n" \
@@ -2746,7 +2755,7 @@
        "Return the absolute pathnames of given argument"
 
 #define reboot_trivial_usage \
-       "[-d<delay>] [-n<nosync>] [-f<force>]"
+       "[-d delay] [-n] [-f]"
 #define reboot_full_usage \
        "Reboot the system" \
        "\n\nOptions:\n" \
@@ -3083,21 +3092,21 @@ USE_FEATURE_RUN_PARTS_FANCY("\n	-l	Prints names of all matching files even when 
        "\n\nOptions:" \
        "\n	-S|--start			Start" \
        "\n	-K|--stop			Stop" \
-       "\n	-a|--startas <pathname>		Starts process specified by pathname" \
+       "\n	-a|--startas pathname		Starts process specified by pathname" \
        "\n	-b|--background			Force process into background" \
-       "\n	-u|--user <username>|<uid>	Stop this user's processes" \
-       "\n	-x|--exec <executable>		Program to either start or check" \
+       "\n	-u|--user username|uid		Stop this user's processes" \
+       "\n	-x|--exec executable		Program to either start or check" \
        "\n	-m|--make-pidfile		Create the -p file and enter pid in it" \
-       "\n	-n|--name <process-name>	Stop processes with this name" \
-       "\n	-p|--pidfile <pid-file>		Save or load pid using a pid-file" \
+       "\n	-n|--name process-name		Stop processes with this name" \
+       "\n	-p|--pidfile pid-file		Save or load pid using a pid-file" \
        "\n	-q|--quiet			Quiet" \
 	USE_FEATURE_START_STOP_DAEMON_FANCY( \
        "\n	-o|--oknodo			Exit status 0 if nothing done" \
        "\n	-v|--verbose			Verbose" \
-       "\n	-N|--nicelevel <N>		Add N to process's nice level" \
+       "\n	-N|--nicelevel N		Add N to process's nice level" \
 	) \
-       "\n	-s|--signal <signal>		Signal to send (default TERM)" \
-       "\n	-c|--chuid <user>[:[<group>]]	Change to specified user/group"
+       "\n	-s|--signal signal		Signal to send (default TERM)" \
+       "\n	-c|--chuid user[:[group]]	Change to specified user/group"
 
 #define stat_trivial_usage \
        "[OPTION] FILE..."
@@ -3257,7 +3266,7 @@ USE_FEATURE_RUN_PARTS_FANCY("\n	-l	Prints names of all matching files even when 
        "sysctl [-n] variable ...\n" \
        "sysctl [-n] -w variable=value ...\n" \
        "sysctl [-n] -a\n" \
-       "sysctl [-n] -p <file>	(default /etc/sysctl.conf)\n" \
+       "sysctl [-n] -p file	(default /etc/sysctl.conf)\n" \
        "sysctl [-n] -A\n"
 
 #define syslogd_trivial_usage \
@@ -3747,7 +3756,7 @@ USE_FEATURE_RUN_PARTS_FANCY("\n	-l	Prints names of all matching files even when 
        "	-a	Lock all VTs"
 
 #define watch_trivial_usage \
-       "[-n <seconds>] [-t] COMMAND..."
+       "[-n seconds] [-t] COMMAND..."
 #define watch_full_usage \
        "Execute a program periodically" \
        "\n\nOptions:\n" \
@@ -3760,7 +3769,7 @@ USE_FEATURE_RUN_PARTS_FANCY("\n	-l	Prints names of all matching files even when 
        "Mon Dec 17 10:31:44 GMT 2000"
 
 #define watchdog_trivial_usage \
-       "[-t <seconds>] [-F] DEV"
+       "[-t seconds] [-F] DEV"
 #define watchdog_full_usage \
        "Periodically write to watchdog device DEV" \
        "\n\nOptions:\n" \

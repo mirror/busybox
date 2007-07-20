@@ -22,9 +22,11 @@ try "-Wl,--start-group $l_list -Wl,--end-group" "$@" \
     cat busybox_ld.err
     exit 1
 }
+mv busybox_unstripped busybox_unstripped.tmp
 
 # Now try to remove each lib and build without.
 # Stop when no lib can be removed.
+ever_discarded=false
 while test "$BBOX_LIB_LIST"; do
     $debug && echo "Trying libraries: $BBOX_LIB_LIST"
     all_needed=true
@@ -36,6 +38,7 @@ while test "$BBOX_LIB_LIST"; do
 		echo "Library $one is not needed"
 		BBOX_LIB_LIST="$without_one"
 		all_needed=false
+		ever_discarded=true
 	else
 		echo "Library $one is needed"
 	fi
@@ -48,7 +51,11 @@ while test "$BBOX_LIB_LIST"; do
     #echo "$BBOX_LIB_LIST" | grep -q ' ' || break
 done
 
-# Ok, make the binary
-echo "Final link with: $BBOX_LIB_LIST"
-l_list=`echo "$BBOX_LIB_LIST" | sed -e 's/ / -l/g' -e 's/^/-l/'`
-try "-Wl,--start-group $l_list -Wl,--end-group" "$@"
+mv busybox_unstripped.tmp busybox_unstripped
+$ever_discarded && {
+    # Ok, make the binary
+    echo "Final link with: $BBOX_LIB_LIST"
+    l_list=`echo "$BBOX_LIB_LIST" | sed -e 's/ / -l/g' -e 's/^/-l/'`
+    try "-Wl,--start-group $l_list -Wl,--end-group" "$@"
+}
+exit 0  # Ensure "success" exit code

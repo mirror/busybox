@@ -24,12 +24,9 @@ static int i64c(int i)
 	return ('a' - 38 + i);
 }
 
-
-void crypt_make_salt(char *p, int cnt)
+int crypt_make_salt(char *p, int cnt, int x)
 {
-	unsigned x = x; /* it's pointless to initialize it anyway :) */
-
-	x += getpid() + time(NULL) + clock();
+	x += getpid() + time(NULL);
 	do {
 		/* x = (x*1664525 + 1013904223) % 2^32 generator is lame
 		 * (low-order bit is not "random", etc...),
@@ -44,5 +41,5 @@ void crypt_make_salt(char *p, int cnt)
 		*p++ = i64c(x >> 22);
 	} while (--cnt);
 	*p = '\0';
+	return x;
 }
-

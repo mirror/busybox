@@ -8,6 +8,7 @@ lib-y:=
 lib-$(CONFIG_ADDGROUP)	+= addgroup.o
 lib-$(CONFIG_ADDUSER)	+= adduser.o
 lib-$(CONFIG_CRYPTPW)	+= cryptpw.o
+lib-$(CONFIG_CHPASSWD)	+= chpasswd.o
 lib-$(CONFIG_GETTY)	+= getty.o
 lib-$(CONFIG_LOGIN)	+= login.o
 lib-$(CONFIG_PASSWD)	+= passwd.o
