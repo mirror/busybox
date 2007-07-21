@@ -56,7 +56,7 @@ int chpasswd_main(int argc, char **argv)
 		/* This is rather complex: if user is not found in /etc/shadow,
 		 * we try to find & change his passwd in /etc/passwd */
 #if ENABLE_FEATURE_SHADOWPASSWDS
-			rc = update_passwd(bb_path_shadow_file, name, pass);
+		rc = update_passwd(bb_path_shadow_file, name, pass);
 		if (rc == 0) /* no lines updated, no errors detected */
 #endif
 			rc = update_passwd(bb_path_passwd_file, name, pass);
