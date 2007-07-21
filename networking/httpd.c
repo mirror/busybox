@@ -145,6 +145,7 @@ struct globals {
 	USE_FEATURE_HTTPD_BASIC_AUTH(const char *g_realm;)
 	USE_FEATURE_HTTPD_BASIC_AUTH(char *remoteuser;)
 	USE_FEATURE_HTTPD_CGI(char *referer;)
+	USE_FEATURE_HTTPD_CGI(char *user_agent;)
 
 #if ENABLE_FEATURE_HTTPD_CGI || DEBUG
 	char *rmt_ip_str;        /* for set env REMOTE_ADDR */
@@ -179,6 +180,7 @@ struct globals {
 #define g_realm         (G.g_realm        )
 #define remoteuser      (G.remoteuser     )
 #define referer         (G.referer        )
+#define user_agent      (G.user_agent     )
 #if ENABLE_FEATURE_HTTPD_CGI || DEBUG
 #define rmt_ip_str      (G.rmt_ip_str     )
 #endif
@@ -1106,6 +1108,7 @@ static int sendCgi(const char *url,
 			setenv1("REMOTE_ADDR", p);
 			if (cp) *cp = ':';
 		}
+ 		setenv1("HTTP_USER_AGENT", user_agent);
 #if ENABLE_FEATURE_HTTPD_SET_REMOTE_PORT_TO_ENV
 		setenv_long("REMOTE_PORT", tcp_port);
 #endif
@@ -1682,12 +1685,14 @@ static void handleIncoming(void)
 						if (test[0] || errno || length > INT_MAX)
 							goto bail_out;
 					}
-				} else if ((STRNCASECMP(buf, "Cookie:") == 0)) {
+				} else if (STRNCASECMP(buf, "Cookie:") == 0) {
 					cookie = strdup(skip_whitespace(buf + sizeof("Cookie:")-1));
-				} else if ((STRNCASECMP(buf, "Content-Type:") == 0)) {
+				} else if (STRNCASECMP(buf, "Content-Type:") == 0)) {
 					content_type = strdup(skip_whitespace(buf + sizeof("Content-Type:")-1));
-				} else if ((STRNCASECMP(buf, "Referer:") == 0)) {
+				} else if (STRNCASECMP(buf, "Referer:") == 0) {
 					referer = strdup(skip_whitespace(buf + sizeof("Referer:")-1));
+				} else if (STRNCASECMP(buf, "User-Agent:") == 0) {
+					user_agent = strdup(skip_whitespace(buf + sizeof("User-Agent:")-1));
 				}
 #endif
 

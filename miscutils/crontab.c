@@ -296,7 +296,9 @@ static void EditFile(const char *user, const char *file)
 		if (ChangeUser(user, 1) < 0)
 			exit(0);
 		ptr = getenv("VISUAL");
-		if (ptr == NULL || strlen(ptr) > 256)
+		if (ptr == NULL)
+			ptr = getenv("EDITOR");
+		if (ptr == NULL)
 			ptr = PATH_VI;
 
 		ptr = xasprintf("%s %s", ptr, file);

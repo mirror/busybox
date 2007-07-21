@@ -484,7 +484,12 @@ static const struct dhcp_client_t ext_dhcp_clients[] = {
 static int dhcp_up(struct interface_defn_t *ifd, execfn *exec)
 {
 #if ENABLE_FEATURE_IFUPDOWN_EXTERNAL_DHCP
-	int i ;
+#if ENABLE_FEATURE_IFUPDOWN_IP
+	/* ip doesn't up iface when it configures it (unlike ifconfig) */
+	if (!execute("ip link set %iface% up", ifd, exec))
+		return 0;
+#endif
+	int i;
 	for (i = 0; i < ARRAY_SIZE(ext_dhcp_clients); i++) {
 		if (exists_execable(ext_dhcp_clients[i].name))
 			return execute(ext_dhcp_clients[i].startcmd, ifd, exec);
@@ -492,6 +497,11 @@ static int dhcp_up(struct interface_defn_t *ifd, execfn *exec)
 	bb_error_msg("no dhcp clients found");
 	return 0;
 #elif ENABLE_APP_UDHCPC
+#if ENABLE_FEATURE_IFUPDOWN_IP
+	/* ip doesn't up iface when it configures it (unlike ifconfig) */
+	if (!execute("ip link set %iface% up", ifd, exec))
+		return 0;
+#endif
 	return execute("udhcpc -R -n -p /var/run/udhcpc.%iface%.pid "
 			"-i %iface%[[ -H %hostname%]][[ -c %clientid%]][[ -s %script%]]",
 			ifd, exec);
@@ -503,7 +513,7 @@ static int dhcp_up(struct interface_defn_t *ifd, execfn *exec)
 static int dhcp_down(struct interface_defn_t *ifd, execfn *exec)
 {
 #if ENABLE_FEATURE_IFUPDOWN_EXTERNAL_DHCP
-	int i ;
+	int i;
 	for (i = 0; i < ARRAY_SIZE(ext_dhcp_clients); i++) {
 		if (exists_execable(ext_dhcp_clients[i].name))
 			return execute(ext_dhcp_clients[i].stopcmd, ifd, exec);
