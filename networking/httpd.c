@@ -1687,7 +1687,7 @@ static void handleIncoming(void)
 					}
 				} else if (STRNCASECMP(buf, "Cookie:") == 0) {
 					cookie = strdup(skip_whitespace(buf + sizeof("Cookie:")-1));
-				} else if (STRNCASECMP(buf, "Content-Type:") == 0)) {
+				} else if (STRNCASECMP(buf, "Content-Type:") == 0) {
 					content_type = strdup(skip_whitespace(buf + sizeof("Content-Type:")-1));
 				} else if (STRNCASECMP(buf, "Referer:") == 0) {
 					referer = strdup(skip_whitespace(buf + sizeof("Referer:")-1));
