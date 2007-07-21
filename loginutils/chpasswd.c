@@ -26,13 +26,13 @@ int chpasswd_main(int argc, char **argv)
 {
 	char *name, *pass;
 	char salt[sizeof("$N$XXXXXXXX")];
-	int opt;
+	int opt, rc;
 	int rnd = rnd; /* we *want* it to be non-initialized! */
 
 	if (getuid())
 		bb_error_msg_and_die(bb_msg_perm_denied_are_you_root);
 
- 	opt_complementary = "?m--e:e--m";
+ 	opt_complementary = "m--e:e--m";
 	USE_GETOPT_LONG(applet_long_options = chpasswd_opts;)
 	opt = getopt32(argc, argv, "em");
 
@@ -53,17 +53,19 @@ int chpasswd_main(int argc, char **argv)
 			pass = pw_encrypt(pass, salt);
 		}
 
-		/* LOGMODE_BOTH logs to syslog */
+		/* This is rather complex: if user is not found in /etc/shadow,
+		 * we try to find & change his passwd in /etc/passwd */
+#if ENABLE_FEATURE_SHADOWPASSWDS
+			rc = update_passwd(bb_path_shadow_file, name, pass);
+		if (rc == 0) /* no lines updated, no errors detected */
+#endif
+			rc = update_passwd(bb_path_passwd_file, name, pass);
+		/* LOGMODE_BOTH logs to syslog also */
 		logmode = LOGMODE_BOTH;
-
-		if ((ENABLE_FEATURE_SHADOWPASSWDS 
-			&& !update_passwd(bb_path_shadow_file, name, pass))
-			|| !update_passwd(bb_path_passwd_file, name, pass)
-		) {
+		if (rc < 0)
 			bb_error_msg_and_die("an error occurred updating password for %s", name);
-		} else {
+		if (rc)
 			bb_info_msg("Password for '%s' changed", name);
-		}
 		logmode = LOGMODE_STDIO;
 		free(name);
 	}
