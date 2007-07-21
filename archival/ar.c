@@ -50,7 +50,7 @@ int ar_main(int argc, char **argv)
 	archive_handle = init_handle();
 
 	/* Prepend '-' to the first argument if required */
-	opt_complementary = "--:p:t:x:-1:?:p--tx:t--px:x--pt";
+	opt_complementary = "--:p:t:x:-1:p--tx:t--px:x--pt";
 	opt = getopt32(argc, argv, "ptxovcr");
 
 	if (opt & AR_CTX_PRINT) {

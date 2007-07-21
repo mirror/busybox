@@ -217,19 +217,11 @@ Special characters:
         -b, -c and -f are mutally exclusive and should raise an error
         if specified together.  In this case you must set
         opt_complementary = "b--cf:c--bf:f--bc".  If two of the
-        mutually exclusive options are found, getopt32's
-        return value will have the error flag set (BB_GETOPT_ERROR) so
-        that we can check for it:
-
-        if (flags & BB_GETOPT_ERROR)
-        	bb_show_usage();
+        mutually exclusive options are found, getopt32 will call
+	bb_show_usage() and die.
 
  "x--x" Variation of the above, it means that -x option should occur
         at most once.
-
- "?"    A "?" as the first char in a opt_complementary group means:
-        if BB_GETOPT_ERROR is detected, don't return, call bb_show_usage
-        and exit instead. Next char after '?' can't be a digit.
 
  "::"   A double colon after a char in opt_complementary means that the
         option can occur multiple times. Each occurrence will be saved as
@@ -476,11 +468,8 @@ getopt32(int argc, char **argv, const char *applet_opts, ...)
 			if (on_off->opt == 0 && c != 0)
 				bb_show_usage();
 		}
-		if (flags & on_off->incongruously) {
-			if ((spec_flgs & SHOW_USAGE_IF_ERROR))
-				bb_show_usage();
-			flags |= BB_GETOPT_ERROR;
-		}
+		if (flags & on_off->incongruously)
+			bb_show_usage();
 		trigger = on_off->switch_on & on_off->switch_off;
 		flags &= ~(on_off->switch_off ^ trigger);
 		flags |= on_off->switch_on ^ trigger;

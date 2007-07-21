@@ -176,8 +176,6 @@ int cut_main(int argc, char **argv)
 	argv += optind;
 	if (!(option_mask32 & (CUT_OPT_BYTE_FLGS | CUT_OPT_CHAR_FLGS | CUT_OPT_FIELDS_FLGS)))
 		bb_error_msg_and_die("expected a list of bytes, characters, or fields");
-	if (option_mask32 & BB_GETOPT_ERROR)
-		bb_error_msg_and_die("only one type of list may be specified");
 
 	if (option_mask32 & CUT_OPT_DELIM_FLGS) {
 		if (strlen(ltok) > 1) {

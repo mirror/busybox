@@ -32,7 +32,7 @@ int eject_main(int argc, char **argv)
 	const char *device;
 	int dev, cmd;
 
-	opt_complementary = "?:?1:t--T:T--t";
+	opt_complementary = "?1:t--T:T--t";
 	flags = getopt32(argc, argv, "tT");
 	device = argv[optind] ? : "/dev/cdrom";
 

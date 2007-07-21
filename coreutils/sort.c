@@ -288,7 +288,7 @@ int sort_main(int argc, char **argv)
 
 	/* Parse command line options */
 	/* -o and -t can be given at most once */
-	opt_complementary = "?:o--o:t--t:" /* -t, -o: maximum one of each */
+	opt_complementary = "o--o:t--t:" /* -t, -o: maximum one of each */
 			"k::"; /* -k takes list */
 	getopt32(argc, argv, OPT_STR, &str_ignored, &str_ignored, &str_o, &lst_k, &str_t);
 #if ENABLE_FEATURE_SORT_BIG

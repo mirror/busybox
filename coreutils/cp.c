@@ -44,7 +44,7 @@ int cp_main(int argc, char **argv)
 	// -P and -d are the same (-P is POSIX, -d is GNU)
 	// -r and -R are the same
 	// -a = -pdR
-	opt_complementary = "?:l--s:s--l:Pd:rR:apdR";
+	opt_complementary = "l--s:s--l:Pd:rR:apdR";
 	flags = getopt32(argc, argv, FILEUTILS_CP_OPTSTR "arPHL");
 	/* Default behavior of cp is to dereference, so we don't have to do
 	 * anything special when we are given -L.

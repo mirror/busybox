@@ -210,7 +210,7 @@ int udhcpc_main(int argc, char **argv)
 	client_config.timeout = 3;
 
 	/* Parse command line */
-	opt_complementary = "?:c--C:C--c" // mutually exclusive
+	opt_complementary = "c--C:C--c" // mutually exclusive
 	                    ":hH:Hh"; // -h and -H are the same
 #if ENABLE_GETOPT_LONG
 	applet_long_options = arg_options;

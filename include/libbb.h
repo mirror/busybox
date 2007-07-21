@@ -588,8 +588,6 @@ void bb_daemonize_or_rexec(int flags, char **argv);
 void bb_sanitize_stdio(void);
 
 
-// TODO: always error out?
-enum { BB_GETOPT_ERROR = 0x80000000 };
 extern const char *opt_complementary;
 #if ENABLE_GETOPT_LONG
 extern const struct option *applet_long_options;

@@ -99,7 +99,7 @@ int install_main(int argc, char **argv)
 #if ENABLE_FEATURE_INSTALL_LONG_OPTIONS
 	applet_long_options = install_long_options;
 #endif
-	opt_complementary = "?:s--d:d--s" USE_SELINUX(":Z--\xff:\xff--Z");
+	opt_complementary = "s--d:d--s" USE_SELINUX(":Z--\xff:\xff--Z");
 	/* -c exists for backwards compatibility, it's needed */
 
 	flags = getopt32(argc, argv, "cdpsg:m:o:" USE_SELINUX("Z:"),

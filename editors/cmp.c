@@ -57,7 +57,7 @@ int cmp_main(int argc, char **argv)
 
 	xfunc_error_retval = 2;	/* 1 is returned if files are different. */
 
-	opt_complementary = "?:-1"
+	opt_complementary = "-1"
 			USE_DESKTOP(":?4")
 			SKIP_DESKTOP(":?2")
 			":l--s:s--l";

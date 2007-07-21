@@ -33,7 +33,7 @@ int dumpleases_main(int argc, char **argv)
 
 	applet_long_options = options;
 #endif
-	opt_complementary = "=0:?:a--r:r--a";
+	opt_complementary = "=0:a--r:r--a";
 	opt = getopt32(argc, argv, "arf:", &file);
 
 	fd = xopen(file, O_RDONLY);

@@ -254,7 +254,7 @@ int start_stop_daemon_main(int argc, char **argv)
 #endif
 
 	/* Check required one context option was given */
-	opt_complementary = "K:S:?:K--S:S--K:m?p:K?xpun:S?xa";
+	opt_complementary = "K:S:K--S:S--K:m?p:K?xpun:S?xa";
 	opt = getopt32(argc, argv, "KSbqma:n:s:u:c:x:p:"
 		USE_FEATURE_START_STOP_DAEMON_FANCY("ovN:"),
 //		USE_FEATURE_START_STOP_DAEMON_FANCY("ovN:R:"),

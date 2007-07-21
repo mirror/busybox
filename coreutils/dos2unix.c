@@ -20,7 +20,7 @@ enum {
 };
 
 /* if fn is NULL then input is stdin and output is stdout */
-static int convert(char *fn, int ConvType)
+static int convert(char *fn, int conv_type)
 {
 	FILE *in, *out;
 	int i;
@@ -52,7 +52,7 @@ static int convert(char *fn, int ConvType)
 		if (i == '\r')
 			continue;
 		if (i == '\n') {
-			if (ConvType == CT_UNIX2DOS)
+			if (conv_type == CT_UNIX2DOS)
 				fputc('\r', out);
 			fputc('\n', out);
 			continue;
@@ -81,29 +81,27 @@ static int convert(char *fn, int ConvType)
 int dos2unix_main(int argc, char **argv);
 int dos2unix_main(int argc, char **argv)
 {
-	int o, ConvType;
+	int o, conv_type;
 
 	/* See if we are supposed to be doing dos2unix or unix2dos */
 	if (applet_name[0] == 'd') {
-		ConvType = CT_DOS2UNIX;	/* 2 */
+		conv_type = CT_DOS2UNIX;	/* 2 */
 	} else {
-		ConvType = CT_UNIX2DOS;	/* 1 */
+		conv_type = CT_UNIX2DOS;	/* 1 */
 	}
-	/* -u and -d are mutally exclusive */
-	opt_complementary = "?:u--d:d--u";
-	/* process parameters */
-	/* -u convert to unix */
-	/* -d convert to dos  */
+	
+	/* -u convert to unix, -d convert to dos */
+	opt_complementary = "u--d:d--u"; /* mutally exclusive */
 	o = getopt32(argc, argv, "du");
 
 	/* Do the conversion requested by an argument else do the default
 	 * conversion depending on our name.  */
 	if (o)
-		ConvType = o;
+		conv_type = o;
 
 	do {
 		/* might be convert(NULL) if there is no filename given */
-		o = convert(argv[optind], ConvType);
+		o = convert(argv[optind], conv_type);
 		if (o < 0)
 			break;
 		optind++;
