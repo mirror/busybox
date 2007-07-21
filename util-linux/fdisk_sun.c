@@ -647,7 +647,7 @@ sun_list_table(int xtra)
 
 	printf("%*s Flag    Start       End    Blocks   Id  System\n",
 		w + 1, "Device");
-	for (i = 0 ; i < partitions; i++) {
+	for (i = 0; i < partitions; i++) {
 		if (sunlabel->partitions[i].num_sectors) {
 			uint32_t start = SUN_SSWAP32(sunlabel->partitions[i].start_cylinder) * heads * sectors;
 			uint32_t len = SUN_SSWAP32(sunlabel->partitions[i].num_sectors);

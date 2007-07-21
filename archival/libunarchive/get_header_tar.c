@@ -122,13 +122,13 @@ char get_header_tar(archive_handle_t *archive_handle)
 	sum_s = ' ' * sizeof(tar.chksum);
 #endif
 	sum_u = ' ' * sizeof(tar.chksum);
-	for (i = 0; i < 148 ; i++) {
+	for (i = 0; i < 148; i++) {
 		sum_u += ((unsigned char*)&tar)[i];
 #if ENABLE_FEATURE_TAR_OLDSUN_COMPATIBILITY
 		sum_s += ((signed char*)&tar)[i];
 #endif
 	}
-	for (i = 156; i < 512 ; i++) {
+	for (i = 156; i < 512; i++) {
 		sum_u += ((unsigned char*)&tar)[i];
 #if ENABLE_FEATURE_TAR_OLDSUN_COMPATIBILITY
 		sum_s += ((signed char*)&tar)[i];

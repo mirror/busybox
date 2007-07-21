@@ -803,7 +803,7 @@ static const struct hwtype sit_hwtype = {
 	.type =			ARPHRD_SIT,
 	.print =		UNSPEC_print,
 	.suppress_null_addr =	1
-} ;
+};
 #endif
 
 static const struct hwtype *const hwtypes[] = {

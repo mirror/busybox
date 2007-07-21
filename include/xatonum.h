@@ -18,7 +18,7 @@ unsigned type xato##UT##_range_sfx(const char *str, unsigned type l, unsigned ty
 unsigned type xato##UT##_range(const char *str, unsigned type l, unsigned type u); \
 unsigned type xato##UT##_sfx(const char *str, const struct suffix_mult *sfx); \
 unsigned type xato##UT(const char *str); \
-type xstrto##T##_range_sfx(const char *str, int b, type l, type u, const struct suffix_mult *sfx) ;\
+type xstrto##T##_range_sfx(const char *str, int b, type l, type u, const struct suffix_mult *sfx); \
 type xstrto##T##_range(const char *str, int b, type l, type u); \
 type xato##T##_range_sfx(const char *str, type l, type u, const struct suffix_mult *sfx); \
 type xato##T##_range(const char *str, type l, type u); \

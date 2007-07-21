@@ -75,7 +75,7 @@ const char *make_human_readable_str(unsigned long long size,
 			if (frac >= 5) {
 				++val;
 			}
-			f = "%llu%*c" /* fmt_no_tenths */ ;
+			f = "%llu%*c" /* fmt_no_tenths */;
 			frac = 1;
 		}
 #endif

@@ -1357,7 +1357,7 @@ int fsck_main(int argc, char **argv)
 		interactive++;
 		return check_all();
 	}
-	for (i = 0 ; i < num_devices; i++) {
+	for (i = 0; i < num_devices; i++) {
 		if (cancel_requested) {
 			if (!kill_sent) {
 				kill_all(SIGTERM);

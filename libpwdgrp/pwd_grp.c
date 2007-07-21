@@ -642,7 +642,7 @@ int initgroups(const char *user, gid_t gid)
 		while (!bb__pgsreader(bb__parsegrent, &group, buff, sizeof(buff), grfile)) {
 			assert(group.gr_mem); /* Must have at least a NULL terminator. */
 			if (group.gr_gid != gid) {
-				for (m=group.gr_mem ; *m ; m++) {
+				for (m = group.gr_mem; *m; m++) {
 					if (!strcmp(*m, user)) {
 						if (!(num_groups & 7)) {
 							gid_t *tmp = (gid_t *)
@@ -759,7 +759,7 @@ int putspent(const struct spwd *p, FILE *stream)
 		goto DO_UNLOCK;
 	}
 
-	for (i=0 ; i < sizeof(_sp_off) ; i++) {
+	for (i = 0; i < sizeof(_sp_off); i++) {
 		f = ld_format;
 		x = *(const long *)(((const char *) p) + _sp_off[i]);
 		if (x == -1) {

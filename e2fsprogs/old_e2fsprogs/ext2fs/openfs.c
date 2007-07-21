@@ -273,7 +273,7 @@ errcode_t ext2fs_open2(const char *name, const char *io_options,
 		group_block = fs->super->s_first_data_block;
 	dest = (char *) fs->group_desc;
 	groups_per_block = fs->blocksize / sizeof(struct ext2_group_desc);
-	for (i=0 ; i < fs->desc_blocks; i++) {
+	for (i = 0; i < fs->desc_blocks; i++) {
 		blk = ext2fs_descriptor_block_loc(fs, group_block, i);
 		retval = io_channel_read_blk(fs->io, blk, 1, dest);
 		if (retval)

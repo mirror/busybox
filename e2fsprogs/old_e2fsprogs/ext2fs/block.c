@@ -343,7 +343,7 @@ errcode_t ext2fs_block_iterate2(ext2_filsys fs,
 	/*
 	 * Iterate over normal data blocks
 	 */
-	for (i = 0; i < EXT2_NDIR_BLOCKS ; i++, ctx.bcount++) {
+	for (i = 0; i < EXT2_NDIR_BLOCKS; i++, ctx.bcount++) {
 		if (blocks[i] || (flags & BLOCK_FLAG_APPEND)) {
 			ret |= (*ctx.func)(fs, &blocks[i],
 					    ctx.bcount, 0, i, priv_data);

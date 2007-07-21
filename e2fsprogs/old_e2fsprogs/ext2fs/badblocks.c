@@ -223,7 +223,7 @@ int ext2fs_u32_list_del(ext2_u32_list bb, __u32 blk)
 	if (remloc < 0)
 		return -1;
 
-	for (i = remloc ; i < bb->num-1; i++)
+	for (i = remloc; i < bb->num - 1; i++)
 		bb->list[i] = bb->list[i+1];
 	bb->num--;
 	return 0;

@@ -49,10 +49,10 @@ aa:      85.1% -- replaced with aa.gz
 #ifdef DEBUG
 #  define Assert(cond,msg) { if (!(cond)) bb_error_msg(msg); }
 #  define Trace(x) fprintf x
-#  define Tracev(x) {if (verbose) fprintf x ;}
-#  define Tracevv(x) {if (verbose > 1) fprintf x ;}
-#  define Tracec(c,x) {if (verbose && (c)) fprintf x ;}
-#  define Tracecv(c,x) {if (verbose > 1 && (c)) fprintf x ;}
+#  define Tracev(x) {if (verbose) fprintf x; }
+#  define Tracevv(x) {if (verbose > 1) fprintf x; }
+#  define Tracec(c,x) {if (verbose && (c)) fprintf x; }
+#  define Tracecv(c,x) {if (verbose > 1 && (c)) fprintf x; }
 #else
 #  define Assert(cond,msg)
 #  define Trace(x)

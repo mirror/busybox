@@ -4701,7 +4701,7 @@ static void add_dupe(e2fsck_t ctx, ext2_ino_t ino, blk_t blk,
 	else {
 		di = (struct dup_inode *) e2fsck_allocate_memory(ctx,
 			 sizeof(struct dup_inode), "duplicate inode header");
-		di->dir = (ino == EXT2_ROOT_INO) ? EXT2_ROOT_INO : 0 ;
+		di->dir = (ino == EXT2_ROOT_INO) ? EXT2_ROOT_INO : 0;
 		di->num_dupblocks = 0;
 		di->block_list = 0;
 		di->inode = *inode;
@@ -12490,7 +12490,7 @@ blk_t get_backup_sb(e2fsck_t ctx, ext2_filsys fs, const char *name,
 	sb = (struct ext2_super_block *) buf;
 
 	for (blocksize = EXT2_MIN_BLOCK_SIZE;
-	     blocksize <= EXT2_MAX_BLOCK_SIZE ; blocksize *= 2) {
+	     blocksize <= EXT2_MAX_BLOCK_SIZE; blocksize *= 2) {
 		superblock = blocksize*8;
 		if (blocksize == 1024)
 			superblock++;

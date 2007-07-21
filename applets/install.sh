@@ -43,7 +43,7 @@ if [ "$cleanup" = "1" ] && [ -e "$prefix/bin/busybox" ]; then
 	inode=`ls -i "$prefix/bin/busybox" | awk '{print $1}'`
 	sub_shell_it=`
 	cd "$prefix"
-	for d in usr/sbin usr/bin sbin bin ; do
+	for d in usr/sbin usr/bin sbin bin; do
 		pd=$PWD
 		if [ -d "$d" ]; then
 			cd $d
@@ -58,7 +58,7 @@ rm -f $prefix/bin/busybox || exit 1
 mkdir -p $prefix/bin || exit 1
 install -m 755 busybox $prefix/bin/busybox || exit 1
 
-for i in $h ; do
+for i in $h; do
 	appdir=`dirname $i`
 	mkdir -p $prefix/$appdir || exit 1
 	if [ "$2" = "--hardlinks" ]; then

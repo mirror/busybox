@@ -712,7 +712,7 @@ static void set_status(const unsigned status_node_num, const char *new_value, co
 
 static const char *describe_status(int status_num)
 {
-	int status_want, status_state ;
+	int status_want, status_state;
 	if (status_hashtable[status_num] == NULL || status_hashtable[status_num]->status == 0)
 		return "is not installed or flagged to be installed";
 

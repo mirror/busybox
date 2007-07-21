@@ -59,14 +59,14 @@ static char *creator_os;
 static char *volume_label;
 static char *mount_dir;
 static char *journal_device = NULL;
-static int	sync_kludge; /* Set using the MKE2FS_SYNC env. option */
+static int   sync_kludge; /* Set using the MKE2FS_SYNC env. option */
 
 static int sys_page_size = 4096;
 static int linux_version_code = 0;
 
 static int int_log2(int arg)
 {
-	int	l = 0;
+	int l = 0;
 
 	arg >>= 1;
 	while (arg) {
@@ -80,7 +80,7 @@ static int int_log10(unsigned int arg)
 {
 	int	l;
 
-	for (l=0; arg ; l++)
+	for (l = 0; arg; l++)
 		arg = arg / 10;
 	return l;
 }
@@ -1226,7 +1226,7 @@ int mke2fs_main (int argc, char **argv)
 	 * don't check all the filesystems at the same time.  We use a
 	 * kludgy hack of using the UUID to derive a random jitter value.
 	 */
-	for (i = 0, val = 0 ; i < sizeof(fs->super->s_uuid); i++)
+	for (i = 0, val = 0; i < sizeof(fs->super->s_uuid); i++)
 		val += fs->super->s_uuid[i];
 	fs->super->s_max_mnt_count += val % EXT2_DFL_MAX_MNT_COUNT;
 

@@ -46,7 +46,7 @@ static void print_link_flags(FILE *fp, unsigned flags, unsigned mdown)
 	fprintf(fp, "<");
 	flags &= ~IFF_RUNNING;
 #define _PF(f) if (flags&IFF_##f) { \
-		  flags &= ~IFF_##f ; \
+		  flags &= ~IFF_##f; \
 		  fprintf(fp, #f "%s", flags ? "," : ""); }
 	_PF(LOOPBACK);
 	_PF(BROADCAST);

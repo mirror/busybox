@@ -1823,7 +1823,7 @@ wrong_p_order(int *prev)
 	ullong last_p_start_pos = 0, p_start_pos;
 	int i, last_i = 0;
 
-	for (i = 0 ; i < partitions; i++) {
+	for (i = 0; i < partitions; i++) {
 		if (i == 4) {
 			last_i = 4;
 			last_p_start_pos = 0;
@@ -2041,7 +2041,7 @@ x_list_table(int extend)
 	printf("\nDisk %s: %d heads, %d sectors, %d cylinders\n\n",
 		disk_device, heads, sectors, cylinders);
 	printf("Nr AF  Hd Sec  Cyl  Hd Sec  Cyl      Start       Size ID\n");
-	for (i = 0 ; i < partitions; i++) {
+	for (i = 0; i < partitions; i++) {
 		pe = &ptes[i];
 		p = (extend ? pe->ext_pointer : pe->part_table);
 		if (p != NULL) {

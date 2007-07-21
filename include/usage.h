@@ -417,7 +417,7 @@
 	"	-m	show min and max priorities"
 
 #define chrt_example_usage \
-	"$ chrt -r 4 sleep 900 ; x=$!\n" \
+	"$ chrt -r 4 sleep 900; x=$!\n" \
 	"$ chrt -f -p 3 $x\n" \
 	"You need CAP_SYS_NICE privileges to set scheduling attributes of a process"
 
@@ -1105,19 +1105,19 @@
        "#!/bin/sh\n" \
        "GETOPT=`getopt -o ab:c:: --long a-long,b-long:,c-long:: \\\n" \
        "       -n 'example.busybox' -- \"$@\"`\n" \
-       "if [ $? != 0 ] ; then  exit 1 ; fi\n" \
+       "if [ $? != 0 ]; then  exit 1; fi\n" \
        "eval set -- \"$GETOPT\"\n" \
-       "while true ; do\n" \
+       "while true; do\n" \
        " case $1 in\n" \
-       "   -a|--a-long) echo \"Option a\" ; shift ;;\n" \
-       "   -b|--b-long) echo \"Option b, argument '$2'\" ; shift 2 ;;\n" \
+       "   -a|--a-long) echo \"Option a\"; shift;;\n" \
+       "   -b|--b-long) echo \"Option b, argument '$2'\"; shift 2;;\n" \
        "   -c|--c-long)\n" \
        "     case \"$2\" in\n" \
-       "       \"\") echo \"Option c, no argument\"; shift 2 ;;\n" \
-       "       *)  echo \"Option c, argument '$2'\" ; shift 2 ;;\n" \
-       "     esac ;;\n" \
-       "   --) shift ; break ;;\n" \
-       "   *) echo \"Internal error!\" ; exit 1 ;;\n" \
+       "       \"\") echo \"Option c, no argument\"; shift 2;;\n" \
+       "       *)  echo \"Option c, argument '$2'\"; shift 2;;\n" \
+       "     esac;;\n" \
+       "   --) shift; break;;\n" \
+       "   *) echo \"Internal error!\"; exit 1;;\n" \
        " esac\n" \
        "done\n"
 
@@ -2867,10 +2867,10 @@ USE_FEATURE_RUN_PARTS_FANCY("\n	-l	Prints names of all matching files even when 
 	"$ run-parts -a stop=now /etc/init.d\n\n" \
 	"Let's assume you have a script foo/dosomething:\n" \
 	"#!/bin/sh\n" \
-	"for i in $*; do eval $i; done ; unset i\n" \
+	"for i in $*; do eval $i; done; unset i\n" \
 	"case \"$1\" in\n" \
-	"start*) echo starting something ;;\n" \
-	"stop*) set -x ; shutdown -h $stop ;;\n" \
+	"start*) echo starting something;;\n" \
+	"stop*) set -x; shutdown -h $stop;;\n" \
 	"esac\n\n" \
 	"Running this yields:\n" \
 	"$run-parts -a stop=+4m foo/\n" \

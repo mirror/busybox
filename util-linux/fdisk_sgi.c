@@ -142,7 +142,7 @@ static void
 add2freelist(unsigned int f, unsigned int l)
 {
 	int i;
-	for (i = 0; i < 17 ; i++)
+	for (i = 0; i < 17; i++)
 		if (freelist[i].last == 0)
 			break;
 	setfreelist(i, f, l);
@@ -153,7 +153,7 @@ clearfreelist(void)
 {
 	int i;
 
-	for (i = 0; i < 17 ; i++)
+	for (i = 0; i < 17; i++)
 		setfreelist(i, 0, 0);
 }
 
@@ -162,7 +162,7 @@ isinfreelist(unsigned int b)
 {
 	int i;
 
-	for (i = 0; i < 17 ; i++)
+	for (i = 0; i < 17; i++)
 		if (freelist[i].first <= b && freelist[i].last >= b)
 			return freelist[i].last;
 	return 0;
@@ -317,7 +317,7 @@ sgi_list_table(int xtra)
 	printf("----- partitions -----\n"
 		"Pt# %*s  Info     Start       End   Sectors  Id  System\n",
 		w + 2, "Device");
-	for (i = 0 ; i < partitions; i++) {
+	for (i = 0; i < partitions; i++) {
 		if (sgi_get_num_sectors(i) || debug ) {
 			uint32_t start = sgi_get_start_sector(i);
 			uint32_t len = sgi_get_num_sectors(i);
@@ -338,7 +338,7 @@ sgi_list_table(int xtra)
 	printf("----- Bootinfo -----\nBootfile: %s\n"
 		"----- Directory Entries -----\n",
 		sgilabel->boot_file);
-	for (i = 0 ; i < sgi_volumes; i++) {
+	for (i = 0; i < sgi_volumes; i++) {
 		if (sgilabel->directory[i].vol_file_size) {
 			uint32_t start = SGI_SSWAP32(sgilabel->directory[i].vol_file_start);
 			uint32_t len = SGI_SSWAP32(sgilabel->directory[i].vol_file_size);

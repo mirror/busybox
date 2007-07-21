@@ -36,7 +36,7 @@
  * (adapted from example in gnu wc.c)
  *
  *      echo hello > /tmp/testfile &&
- *      (dd ibs=1k skip=1 count=0 &> /dev/null ; wc -c) < /tmp/testfile
+ *      (dd ibs=1k skip=1 count=0 &> /dev/null; wc -c) < /tmp/testfile
  *
  * for which 'wc -c' should output '0'.
  */

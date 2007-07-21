@@ -228,7 +228,7 @@ errcode_t ext2fs_file_read(ext2_file_t file, void *buf,
 		c = fs->blocksize - start;
 		if (c > wanted)
 			c = wanted;
-		left = EXT2_I_SIZE(&file->inode) - file->pos ;
+		left = EXT2_I_SIZE(&file->inode) - file->pos;
 		if (c > left)
 			c = left;
 

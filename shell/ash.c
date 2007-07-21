@@ -11268,7 +11268,7 @@ helpcmd(int argc, char **argv)
 	int col, i;
 
 	out1fmt("\nBuilt-in commands:\n-------------------\n");
-	for (col = 0, i = 0; i < ARRAY_SIZE(builtintab) ; i++) {
+	for (col = 0, i = 0; i < ARRAY_SIZE(builtintab); i++) {
 		col += out1fmt("%c%s", ((col == 0) ? '\t' : ' '),
 					builtintab[i].name + 1);
 		if (col > 60) {

@@ -2800,7 +2800,7 @@ static void refresh(int full_screen)
 		format_line(buf, tp, li);
 
 		// skip to the end of the current text[] line
-		while (tp < end && *tp++ != '\n') /*no-op*/ ;
+		while (tp < end && *tp++ != '\n') /*no-op*/;
 
 		// see if there are any changes between vitual screen and buf
 		changed = FALSE;	// assume no change

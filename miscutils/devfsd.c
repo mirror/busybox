@@ -1600,7 +1600,7 @@ int st_expr_expand(char *output, unsigned int length, const char *input,
 				}
 				/*  Someone else's home directory  */
 				for (ptr = ++input; !isspace(ch) && (ch != '/') && (ch != '\0'); ch = *++ptr)
-					/* VOID */ ;
+					/* VOID */;
 				len = ptr - input;
 				if (len >= sizeof tmp)
 					goto st_expr_expand_out;
@@ -1679,7 +1679,7 @@ static const char *expand_variable(char *buffer, unsigned int length,
 	if (ch != '{') {
 		/*  Simple variable expansion  */
 		for (ptr = input; isalnum(ch) || (ch == '_') || (ch == ':'); ch = *++ptr)
-			/* VOID */ ;
+			/* VOID */;
 		len = ptr - input;
 		if ((size_t)len >= sizeof tmp)
 			goto expand_variable_out;

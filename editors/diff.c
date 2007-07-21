@@ -328,11 +328,11 @@ static void prune(void)
 
 	for (pref = 0; pref < len[0] && pref < len[1] &&
 		 file[0][pref + 1].value == file[1][pref + 1].value; pref++)
-		 ;
+		continue;
 	for (suff = 0; suff < len[0] - pref && suff < len[1] - pref &&
 		 file[0][len[0] - suff].value == file[1][len[1] - suff].value;
 		 suff++)
-		 ;
+		continue;
 	for (j = 0; j < 2; j++) {
 		sfile[j] = file[j] + pref;
 		slen[j] = len[j] - pref - suff;

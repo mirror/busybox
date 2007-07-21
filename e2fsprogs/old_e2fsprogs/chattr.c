@@ -101,7 +101,7 @@ static int decode_arg(char *arg)
 	} else
 		return EOF;
 
-	for (; *arg ; ++arg)
+	for (; *arg; ++arg)
 		(*fl) |= get_flag(*arg);
 
 	return 1;
