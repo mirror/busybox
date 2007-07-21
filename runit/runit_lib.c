@@ -382,7 +382,6 @@ int seek_set(int fd,seek_pos pos)
 {
 	if (lseek(fd,(off_t) pos,SEEK_SET) == -1) return -1; return 0;
 }
-#endif
 
 
 /*** str_chr.c ***/
@@ -402,3 +401,4 @@ unsigned str_chr(const char *s,int c)
 	}
 	return t - s;
 }
+#endif

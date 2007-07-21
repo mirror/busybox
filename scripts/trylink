@@ -22,6 +22,8 @@ try "-Wl,--start-group $l_list -Wl,--end-group" "$@" \
     cat busybox_ld.err
     exit 1
 }
+# Hack: we are not supposed to know executable name,
+# but this hack cuts down link time
 mv busybox_unstripped busybox_unstripped.tmp
 
 # Now try to remove each lib and build without.

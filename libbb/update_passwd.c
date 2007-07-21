@@ -18,18 +18,18 @@ int update_passwd(const char *filename, const char *username,
 	struct flock lock;
 	FILE *old_fp;
 	FILE *new_fp;
-	char *new_name;
-	char *last_char;
+	char *fnamesfx;
+	char *sfx_char;
 	unsigned user_len;
 	int old_fd;
 	int new_fd;
 	int i;
 	int cnt = 0;
-	int ret = 1; /* failure */
+	int ret = -1; /* failure */
 
 	/* New passwd file, "/etc/passwd+" for now */
-	new_name = xasprintf("%s+", filename);
-	last_char = &new_name[strlen(new_name)-1];
+	fnamesfx = xasprintf("%s+", filename);
+	sfx_char = &fnamesfx[strlen(fnamesfx)-1];
 	username = xasprintf("%s:", username);
 	user_len = strlen(username);
 
@@ -42,12 +42,12 @@ int update_passwd(const char *filename, const char *username,
 	i = 30;
 	do {
 		// FIXME: on last iteration try w/o O_EXCL but with O_TRUNC?
-		new_fd = open(new_name, O_WRONLY|O_CREAT|O_EXCL,0600);
+		new_fd = open(fnamesfx, O_WRONLY|O_CREAT|O_EXCL, 0600);
 		if (new_fd >= 0) goto created;
 		if (errno != EEXIST) break;
 		usleep(100000); /* 0.1 sec */
 	} while (--i);
-	bb_perror_msg("cannot create '%s'", new_name);
+	bb_perror_msg("cannot create '%s'", fnamesfx);
 	goto close_old_fp;
 
  created:
@@ -62,12 +62,13 @@ int update_passwd(const char *filename, const char *username,
 	}
 
 	/* Backup file is "/etc/passwd-" */
-	last_char[0] = '-';
-	/* Delete old one, create new as a hardlink to current */
-	i = (unlink(new_name) && errno != ENOENT);
-	if (i || link(filename, new_name))
-		bb_perror_msg("warning: cannot create backup copy '%s'", new_name);
-	last_char[0] = '+';
+	*sfx_char = '-';
+	/* Delete old backup */
+	i = (unlink(fnamesfx) && errno != ENOENT);
+	/* Create backup as a hardlink to current */
+	if (i || link(filename, fnamesfx))
+		bb_perror_msg("warning: cannot create backup copy '%s'", fnamesfx);
+	*sfx_char = '+';
 
 	/* Lock the password file before updating */
 	lock.l_type = F_WRLCK;
@@ -78,7 +79,7 @@ int update_passwd(const char *filename, const char *username,
 		bb_perror_msg("warning: cannot lock '%s'", filename);
 	lock.l_type = F_UNLCK;
 
-	/* Read current password file, write updated one */
+	/* Read current password file, write updated /etc/passwd+ */
 	while (1) {
 		char *line = xmalloc_fgets(old_fp);
 		if (!line) break; /* EOF/error */
@@ -86,8 +87,7 @@ int update_passwd(const char *filename, const char *username,
 			/* we have a match with "username:"... */
 			const char *cp = line + user_len;
 			/* now cp -> old passwd, skip it: */
-			cp = strchr(cp, ':');
-			if (!cp) cp = "";
+			cp = strchrnul(cp, ':');
 			/* now cp -> ':' after old passwd or -> "" */
 			fprintf(new_fp, "%s%s%s", username, new_pw, cp);
 			cnt++;
@@ -99,7 +99,7 @@ int update_passwd(const char *filename, const char *username,
 
 	/* We do want all of them to execute, thus | instead of || */
 	if ((ferror(old_fp) | fflush(new_fp) | fsync(new_fd) | fclose(new_fp))
-	 || rename(new_name, filename)
+	 || rename(fnamesfx, filename)
 	) {
 		/* At least one of those failed */
 		goto unlink_new;
@@ -107,13 +107,13 @@ int update_passwd(const char *filename, const char *username,
 	ret = cnt; /* whee, success! */
 
  unlink_new:
-	if (ret) unlink(new_name);
+	if (ret < 0) unlink(fnamesfx);
 
  close_old_fp:
 	fclose(old_fp);
 
  free_mem:
-	if (ENABLE_FEATURE_CLEAN_UP) free(new_name);
-	if (ENABLE_FEATURE_CLEAN_UP) free((char*)username);
+	free(fnamesfx);
+	free((char*)username);
 	return ret;
 }

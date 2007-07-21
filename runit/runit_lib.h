@@ -125,7 +125,7 @@ extern unsigned pmatch(const char *, const char *, unsigned);
 
 /*** str.h ***/
 
-extern unsigned str_chr(const char *,int);  /* never returns NULL */
+//extern unsigned str_chr(const char *,int);  /* never returns NULL */
 
 #define str_diff(s,t) strcmp((s), (t))
 #define str_equal(s,t) (!strcmp((s), (t)))

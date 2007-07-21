@@ -26,19 +26,13 @@ int chpasswd_main(int argc, char **argv)
 {
 	char *name, *pass;
 	char salt[sizeof("$N$XXXXXXXX")];
-	int opt, rc;
+	int opt;
 	int rnd = rnd; /* we *want* it to be non-initialized! */
-	const char *pwfile = bb_path_passwd_file;
 
-	if (getuid() != 0)
+	if (getuid())
 		bb_error_msg_and_die(bb_msg_perm_denied_are_you_root);
 
-#if ENABLE_FEATURE_SHADOWPASSWDS
-	if (access(bb_path_shadow_file, F_OK) == 0)
-		pwfile = bb_path_shadow_file;
-#endif
-
- 	opt_complementary = "m--e";
+ 	opt_complementary = "?m--e:e--m";
 	USE_GETOPT_LONG(applet_long_options = chpasswd_opts;)
 	opt = getopt32(argc, argv, "em");
 
@@ -48,8 +42,7 @@ int chpasswd_main(int argc, char **argv)
 			bb_error_msg_and_die("missing new password");
 		*pass++ = '\0';
 
-		//if (!getpwnam(name))
-		//	bb_error_msg_and_die("unknown user %s", name);
+		xuname2uid(name); /* dies if there is no such user */
 
 		if (!(opt & OPT_ENC)) {
 			rnd = crypt_make_salt(salt, 1, rnd);
@@ -60,15 +53,17 @@ int chpasswd_main(int argc, char **argv)
 			pass = pw_encrypt(pass, salt);
 		}
 
-		rc = update_passwd(pwfile, name, pass);
 		/* LOGMODE_BOTH logs to syslog */
 		logmode = LOGMODE_BOTH;
-		if (rc < 0)
-			bb_error_msg_and_die("an error occurred updating %s", pwfile);
-		if (rc > 0)
+
+		if ((ENABLE_FEATURE_SHADOWPASSWDS 
+			&& !update_passwd(bb_path_shadow_file, name, pass))
+			|| !update_passwd(bb_path_passwd_file, name, pass)
+		) {
+			bb_error_msg_and_die("an error occurred updating password for %s", name);
+		} else {
 			bb_info_msg("Password for '%s' changed", name);
-		else
-			bb_info_msg("User '%s' not found", name);
+		}
 		logmode = LOGMODE_STDIO;
 		free(name);
 	}
