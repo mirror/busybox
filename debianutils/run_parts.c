@@ -35,17 +35,16 @@
 #include "libbb.h"
 
 #if ENABLE_FEATURE_RUN_PARTS_LONG_OPTIONS
-static const struct option runparts_long_options[] = {
-	{ "arg",        1,      NULL,   'a' },
-	{ "umask",      1,      NULL,   'u' },
-	{ "test",       0,      NULL,   't' },
+static const char runparts_longopts[] =
+	"arg\0"     Required_argument "a"
+	"umask\0"   Required_argument "u"
+	"test\0"    No_argument       "t"
 #if ENABLE_FEATURE_RUN_PARTS_FANCY
-	{ "list",       0,      NULL,   'l' },
-//XXX:TODO:	{ "reverse",       0,      NULL,   'r' },
-//XXX:TODO:	{ "verbose",       0,      NULL,   'v' },
+	"list\0"    No_argument       "l"
+//TODO: "reverse\0" No_argument       "r"
+//TODO: "verbose\0" No_argument       "v"
 #endif
-	{ 0,            0,      0,      0   }
-};
+	"\0";
 #endif
 
 struct globals {
@@ -120,7 +119,7 @@ int run_parts_main(int argc, char **argv)
 	/* We require exactly one argument: the directory name */
 	opt_complementary = "=1:a::";
 #if ENABLE_FEATURE_RUN_PARTS_LONG_OPTIONS
-	applet_long_options = runparts_long_options;
+	applet_long_options = runparts_longopts;
 #endif
 	tmp = getopt32(argc, argv, "a:u:t"USE_FEATURE_RUN_PARTS_FANCY("l"), &arg_list, &umask_p);
 	G.mode = tmp &~ (RUN_PARTS_OPT_a|RUN_PARTS_OPT_u);

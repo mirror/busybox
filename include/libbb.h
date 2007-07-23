@@ -590,7 +590,10 @@ void bb_sanitize_stdio(void);
 
 extern const char *opt_complementary;
 #if ENABLE_GETOPT_LONG
-extern const struct option *applet_long_options;
+#define No_argument "\0"
+#define Required_argument "\001"
+#define Optional_argument "\002"
+extern const char *applet_long_options;
 #endif
 extern uint32_t option_mask32;
 extern uint32_t getopt32(int argc, char **argv, const char *applet_opts, ...);

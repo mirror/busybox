@@ -105,20 +105,19 @@ skip:
 }
 
 #if ENABLE_FEATURE_CHCON_LONG_OPTIONS
-static struct option chcon_options[] = {
-	{ "recursive",      0, NULL, 'R' },
-	{ "changes",        0, NULL, 'c' },
-	{ "no-dereference", 0, NULL, 'h' },
-	{ "silent",         0, NULL, 'f' },
-	{ "quiet",          0, NULL, 'f' },
-	{ "user",           1, NULL, 'u' },
-	{ "role",           1, NULL, 'r' },
-	{ "type",           1, NULL, 't' },
-	{ "range",          1, NULL, 'l' },
-	{ "verbose",        0, NULL, 'v' },
-	{ "reference",      1, NULL, 0xff }, /* no short option */
-	{ NULL,             0, NULL, 0 },
-};
+static const char chcon_longopts[] =
+	"recursive\0"      No_argument       "R"
+	"changes\0"        No_argument       "c"
+	"no-dereference\0" No_argument       "h"
+	"silent\0"         No_argument       "f"
+	"quiet\0"          No_argument       "f"
+	"user\0"           Required_argument "u"
+	"role\0"           Required_argument "r"
+	"type\0"           Required_argument "t"
+	"range\0"          Required_argument "l"
+	"verbose\0"        No_argument       "v"
+	"reference\0"      Required_argument "\xff" /* no short option */
+	"\0";
 #endif
 
 int chcon_main(int argc, char **argv);
@@ -129,7 +128,7 @@ int chcon_main(int argc, char **argv)
 	int i, errors = 0;
 
 #if ENABLE_FEATURE_CHCON_LONG_OPTIONS
-	applet_long_options = chcon_options;
+	applet_long_options = chcon_longopts;
 #endif
 	opt_complementary = "-1"  /* at least 1 param */
 		":?"  /* error if exclusivity constraints are violated */

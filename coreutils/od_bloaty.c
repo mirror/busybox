@@ -1242,17 +1242,16 @@ int od_main(int argc, char **argv)
 		OPT_traditional = (1 << 18) * ENABLE_GETOPT_LONG,
 	};
 #if ENABLE_GETOPT_LONG
-	static const struct option long_options[] = {
-		{ "skip-bytes",    required_argument, NULL, 'j' },
-		{ "address-radix", required_argument, NULL, 'A' },
-		{ "read-bytes",    required_argument, NULL, 'N' },
-		{ "format",        required_argument, NULL, 't' },
-		{ "output-duplicates", no_argument,   NULL, 'v' },
-		{ "strings",       optional_argument, NULL, 'S' },
-		{ "width",         optional_argument, NULL, 'w' },
-		{ "traditional",   no_argument,       NULL, 0xff },
-		{ NULL, 0, NULL, 0 }
-	};
+	static const char od_longopts[] =
+		"skip-bytes\0"        Required_argument "j"
+		"address-radix\0"     Required_argument "A"
+		"read-bytes\0"        Required_argument "N"
+		"format\0"            Required_argument "t"
+		"output-duplicates\0" No_argument       "v"
+		"strings\0"           Optional_argument "S"
+		"width\0"             Optional_argument "w"
+		"traditional\0"       No_argument       "\xff"
+		"\0";
 #endif
 	char *str_A, *str_N, *str_j, *str_S;
 	char *str_w = NULL;
@@ -1267,7 +1266,7 @@ int od_main(int argc, char **argv)
 	/* Parse command line */
 	opt_complementary = "t::"; // list
 #if ENABLE_GETOPT_LONG
-	applet_long_options = long_options;
+	applet_long_options = od_longopts;
 #endif
 	opt = getopt32(argc, argv, "A:N:abcdfhij:lot:vxsS:"
 		"w::", // -w with optional param

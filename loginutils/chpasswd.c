@@ -11,11 +11,10 @@
 #if ENABLE_GETOPT_LONG
 #include <getopt.h>
 
-static const struct option chpasswd_opts[] = {
-	{ "encrypted", no_argument, NULL, 'e' },
-	{ "md5", no_argument, NULL, 'm' },
-	{ NULL, 0, NULL, 0 }
-};
+static const char chpasswd_opts[] =
+	"encrypted\0" No_argument "e"
+	"md5\0"       No_argument "m"
+	"\0";
 #endif
 
 #define OPT_ENC		1

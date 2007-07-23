@@ -72,24 +72,21 @@ getopt32(int argc, char **argv, const char *applet_opts, ...)
         env -i ls -d /
         Here we want env to process just the '-i', not the '-d'.
 
-const struct option *applet_long_options
+const char *applet_long_options
 
-        This struct allows you to define long options.  The syntax for
-        declaring the array is just like that of getopt's longopts.
-        (see getopt(3))
+        This struct allows you to define long options:
 
-        static const struct option applet_long_options[] = {
-		//name,has_arg,flag,val
-		{ "verbose", 0, 0, 'v' },
-		{ 0, 0, 0, 0 }
-        };
-        applet_long_options = applet_long_options;
+        static const char applet_longopts[] =
+		//"name\0" has_arg val
+		"verbose\0" No_argument "v"
+		"\0";
+        applet_long_options = applet_longopts;
 
         The last member of struct option (val) typically is set to
         matching short option from applet_opts. If there is no matching
         char in applet_opts, then:
         - return bit have next position after short options
-        - if has_arg is not "no_argument", use ptr for arg also
+        - if has_arg is not "No_argument", use ptr for arg also
         - opt_complementary affects it too
 
         Note: a good applet will make long options configurable via the
@@ -290,12 +287,10 @@ typedef struct {
 
 /* You can set applet_long_options for parse called long options */
 #if ENABLE_GETOPT_LONG
-static const struct option bb_default_long_options[] = {
-/*      { "help", 0, NULL, '?' }, */
+static const struct option bb_null_long_options[1] = {
 	{ 0, 0, 0, 0 }
 };
-
-const struct option *applet_long_options = bb_default_long_options;
+const char *applet_long_options;
 #endif
 
 uint32_t option_mask32;
@@ -312,6 +307,7 @@ getopt32(int argc, char **argv, const char *applet_opts, ...)
 	va_list p;
 #if ENABLE_GETOPT_LONG
 	const struct option *l_o;
+	struct option *long_options = NULL;
 #endif
 	unsigned trigger;
 	char **pargv = NULL;
@@ -347,19 +343,42 @@ getopt32(int argc, char **argv, const char *applet_opts, ...)
 	}
 
 #if ENABLE_GETOPT_LONG
-	for (l_o = applet_long_options; l_o->name; l_o++) {
-		if (l_o->flag)
-			continue;
-		for (on_off = complementary; on_off->opt != 0; on_off++)
-			if (on_off->opt == l_o->val)
-				goto next_long;
-		if (c >= 32) break;
-		on_off->opt = l_o->val;
-		on_off->switch_on = (1 << c);
-		if (l_o->has_arg != no_argument)
-			on_off->optarg = va_arg(p, void **);
-		c++;
+	if (applet_long_options) {
+		const char *optstr;
+		unsigned i, count;
+
+		count = 1;
+		optstr = applet_long_options;
+		while (optstr[0]) {
+			optstr += strlen(optstr) + 3; /* skip \0, has_arg, val */
+			count++;
+		}
+		/* count == no. of longopts + 1 */
+		long_options = xzalloc(count * sizeof(*long_options));
+		i = 0;
+		optstr = applet_long_options;
+		while (--count) {
+			long_options[i].name = optstr;
+			optstr += strlen(optstr) + 1;
+			long_options[i].has_arg = (unsigned char)(*optstr++);
+			/* long_options[i].flag = NULL; */
+			long_options[i].val = (unsigned char)(*optstr++);
+			i++;
+		}
+		for (l_o = long_options; l_o->name; l_o++) {
+			if (l_o->flag)
+				continue;
+			for (on_off = complementary; on_off->opt != 0; on_off++)
+				if (on_off->opt == l_o->val)
+					goto next_long;
+			if (c >= 32) break;
+			on_off->opt = l_o->val;
+			on_off->switch_on = (1 << c);
+			if (l_o->has_arg != no_argument)
+				on_off->optarg = va_arg(p, void **);
+			c++;
  next_long: ;
+		}
 	}
 #endif /* ENABLE_GETOPT_LONG */
 	for (s = (const unsigned char *)opt_complementary; s && *s; s++) {
@@ -457,7 +476,7 @@ getopt32(int argc, char **argv, const char *applet_opts, ...)
 	 * (supposed to act as --header, but doesn't) */
 #if ENABLE_GETOPT_LONG
 	while ((c = getopt_long(argc, argv, applet_opts,
-				 applet_long_options, NULL)) != -1) {
+			long_options ? long_options : bb_null_long_options, NULL)) != -1) {
 #else
 	while ((c = getopt(argc, argv, applet_opts)) != -1) {
 #endif
@@ -516,6 +535,9 @@ getopt32(int argc, char **argv, const char *applet_opts, ...)
 	if (argc < min_arg || (max_arg >= 0 && argc > max_arg))
 		bb_show_usage();
 
+#if ENABLE_GETOPT_LONG
+	free(long_options);
+#endif
 	option_mask32 = flags;
 	return flags;
 }

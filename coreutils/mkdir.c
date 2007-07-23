@@ -25,14 +25,13 @@
 /* This is a NOFORK applet. Be very careful! */
 
 #if ENABLE_FEATURE_MKDIR_LONG_OPTIONS
-static const struct option mkdir_long_options[] = {
-	{ "mode"   , 1, NULL, 'm' },
-	{ "parents", 0, NULL, 'p' },
+static const char mkdir_longopts[] =
+	"mode\0"    Required_argument "m"
+	"parents\0" No_argument       "p"
 #if ENABLE_SELINUX
-	{ "context", 1, NULL, 'Z' },
+	"context\0" Required_argument "Z"
 #endif
-	{ NULL, 0, NULL, 0 }
-};
+	"\0";
 #endif
 
 int mkdir_main(int argc, char **argv);
@@ -48,7 +47,7 @@ int mkdir_main(int argc, char **argv)
 #endif
 
 #if ENABLE_FEATURE_MKDIR_LONG_OPTIONS
-	applet_long_options = mkdir_long_options;
+	applet_long_options = mkdir_longopts;
 #endif
 	opt = getopt32(argc, argv, "m:p" USE_SELINUX("Z:"), &smode USE_SELINUX(,&scontext));
 	if (opt & 1) {

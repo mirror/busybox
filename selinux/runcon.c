@@ -69,15 +69,14 @@ static context_t runcon_compute_new_context(char *user, char *role, char *type, 
 }
 
 #if ENABLE_FEATURE_RUNCON_LONG_OPTIONS
-static const struct option runcon_options[] = {
-	{ "user",       1, NULL, 'u' },
-	{ "role",       1, NULL, 'r' },
-	{ "type",       1, NULL, 't' },
-	{ "range",      1, NULL, 'l' },
-	{ "compute",    0, NULL, 'c' },
-	{ "help",       0, NULL, 'h' },
-	{ NULL,         0, NULL, 0 },
-};
+static const char runcon_options[] =
+	"user\0"    Required_argument "u"
+	"role\0"    Required_argument "r"
+	"type\0"    Required_argument "t"
+	"range\0"   Required_argument "l"
+	"compute\0" No_argument "c"
+	"help\0"    No_argument "h"      
+	"\0";
 #endif
 
 #define OPTS_ROLE	(1<<0)	/* r */

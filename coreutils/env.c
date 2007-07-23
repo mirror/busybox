@@ -35,11 +35,10 @@ extern char **environ;
 #include "libbb.h"
 
 #if ENABLE_FEATURE_ENV_LONG_OPTIONS
-static const struct option env_long_options[] = {
-	{ "ignore-environment", 0, NULL, 'i' },
-	{ "unset", 1, NULL, 'u' },
-	{ 0, 0, 0, 0 }
-};
+static const char env_longopts[] =
+	"ignore-environment\0" No_argument       "i"
+	"unset\0"              Required_argument "u"
+	"\0";
 #endif
 
 int env_main(int argc, char** argv);
@@ -53,7 +52,7 @@ int env_main(int argc, char** argv)
 
 	opt_complementary = "u::";
 #if ENABLE_FEATURE_ENV_LONG_OPTIONS
-	applet_long_options = env_long_options;
+	applet_long_options = env_longopts;
 #endif
 	opt = getopt32(argc, argv, "+iu:", &unset_env);
 	argv += optind;

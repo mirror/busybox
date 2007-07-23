@@ -11,10 +11,9 @@
 #include "libbb.h"
 
 #if ENABLE_FEATURE_SETCONSOLE_LONG_OPTIONS
-static const struct option setconsole_long_options[] = {
-	{ "reset", 0, NULL, 'r' },
-	{ 0, 0, 0, 0 }
-};
+static const char setconsole_longopts[] =
+	"reset\0" No_argument "r"
+	"\0";
 #endif
 
 #define OPT_SETCONS_RESET 1
@@ -26,7 +25,7 @@ int setconsole_main(int argc, char **argv)
 	const char *device = CURRENT_TTY;
 
 #if ENABLE_FEATURE_SETCONSOLE_LONG_OPTIONS
-	applet_long_options = setconsole_long_options;
+	applet_long_options = setconsole_longopts;
 #endif
 	flags = getopt32(argc, argv, "r");
 

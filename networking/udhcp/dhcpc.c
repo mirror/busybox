@@ -181,27 +181,26 @@ int udhcpc_main(int argc, char **argv)
 		OPT_v = 1 << 17,
 	};
 #if ENABLE_GETOPT_LONG
-	static const struct option arg_options[] = {
-		{ "clientid",   required_argument,      0, 'c' },
-		{ "clientid-none", no_argument,         0, 'C' },
-		{ "vendorclass", required_argument,     0, 'V' },
-		{ "foreground", no_argument,            0, 'f' },
-		{ "background", no_argument,            0, 'b' },
-		{ "hostname",   required_argument,      0, 'H' },
-		{ "hostname",   required_argument,      0, 'h' },
-		{ "fqdn",       required_argument,      0, 'F' },
-		{ "interface",  required_argument,      0, 'i' },
-		{ "now",        no_argument,            0, 'n' },
-		{ "pidfile",    required_argument,      0, 'p' },
-		{ "quit",       no_argument,            0, 'q' },
-		{ "release",    no_argument,            0, 'R' },
-		{ "request",    required_argument,      0, 'r' },
-		{ "script",     required_argument,      0, 's' },
-		{ "timeout",    required_argument,      0, 'T' },
-		{ "version",    no_argument,            0, 'v' },
-		{ "retries",    required_argument,      0, 't' },
-		{ 0, 0, 0, 0 }
-	};
+	static const char udhcpc_longopts[] =
+		"clientid\0"      Required_argument "c"
+		"clientid-none\0" No_argument       "C"
+		"vendorclass\0"   Required_argument "V"
+		"foreground\0"    No_argument       "f"
+		"background\0"    No_argument       "b"
+		"hostname\0"      Required_argument "H"
+		"hostname\0"      Required_argument "h"
+		"fqdn\0"          Required_argument "F"
+		"interface\0"     Required_argument "i"
+		"now\0"           No_argument       "n"
+		"pidfile\0"       Required_argument "p"
+		"quit\0"          No_argument       "q"
+		"release\0"       No_argument       "R"
+		"request\0"       Required_argument "r"
+		"script\0"        Required_argument "s"
+		"timeout\0"       Required_argument "T"
+		"version\0"       No_argument       "v"
+		"retries\0"       Required_argument "t"
+		"\0";
 #endif
 	/* Default options. */
 	client_config.interface = "eth0";
@@ -213,7 +212,7 @@ int udhcpc_main(int argc, char **argv)
 	opt_complementary = "c--C:C--c" // mutually exclusive
 	                    ":hH:Hh"; // -h and -H are the same
 #if ENABLE_GETOPT_LONG
-	applet_long_options = arg_options;
+	applet_long_options = udhcpc_longopts;
 #endif
 	opt = getopt32(argc, argv, "c:CV:fbH:h:F:i:np:qRr:s:T:t:v",
 		&str_c, &str_V, &str_h, &str_h, &str_F,

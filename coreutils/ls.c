@@ -117,13 +117,12 @@ SPLIT_SUBDIR    = 2,
 
 /* colored LS support by JaWi, janwillem.janssen@lxtreme.nl */
 #if ENABLE_FEATURE_LS_COLOR
-static int show_color;
+static smallint show_color;
 /* long option entry used only for --color, which has no short option
  * equivalent */
-static const struct option ls_color_opt[] = {
-	{ "color", optional_argument, NULL, 1 },
-	{ NULL, 0, NULL, 0 }
-};
+static const char ls_color_opt[] =
+	"color\0" Optional_argument "\xff" /* no short equivalent */
+	"\0";
 #else
 enum { show_color = 0 };
 #endif

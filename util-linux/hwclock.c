@@ -178,16 +178,15 @@ int hwclock_main(int argc, char **argv)
 	int utc;
 
 #if ENABLE_FEATURE_HWCLOCK_LONG_OPTIONS
-	static const struct option hwclock_long_options[] = {
-		{ "localtime", 0, 0, 'l' },
-		{ "utc",       0, 0, 'u' },
-		{ "show",      0, 0, 'r' },
-		{ "hctosys",   0, 0, 's' },
-		{ "systohc",   0, 0, 'w' },
-		{ "file",      1, 0, 'f' },
-		{ 0,           0, 0, 0 }
-	};
-	applet_long_options = hwclock_long_options;
+	static const char hwclock_longopts[] =
+		"localtime\0" No_argument "l"
+		"utc\0"       No_argument "u"
+		"show\0"      No_argument "r"
+		"hctosys\0"   No_argument "s"
+		"systohc\0"   No_argument "w"
+		"file\0"      Required_argument "f"
+		"\0";
+	applet_long_options = hwclock_longopts;
 #endif
 	opt_complementary = "r--ws:w--rs:s--wr:l--u:u--l";
 	opt = getopt32(argc, argv, "lurswf:", &rtcname);

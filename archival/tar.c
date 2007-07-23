@@ -715,45 +715,44 @@ enum {
 	OPT_NOPRESERVE_PERM = 1 << OPTBIT_NOPRESERVE_PERM, // no-same-permissions
 };
 #if ENABLE_FEATURE_TAR_LONG_OPTIONS
-static const struct option tar_long_options[] = {
-	{ "list",               0,  NULL,   't' },
-	{ "extract",            0,  NULL,   'x' },
-	{ "directory",          1,  NULL,   'C' },
-	{ "file",               1,  NULL,   'f' },
-	{ "to-stdout",          0,  NULL,   'O' },
-	{ "same-permissions",   0,  NULL,   'p' },
-	{ "verbose",            0,  NULL,   'v' },
-	{ "keep-old",           0,  NULL,   'k' },
+static const char tar_longopts[] =
+	"list\0"                No_argument       "t"
+	"extract\0"             No_argument       "x"
+	"directory\0"           Required_argument "C"
+	"file\0"                Required_argument "f"
+	"to-stdout\0"           No_argument       "O"
+	"same-permissions\0"    No_argument       "p"
+	"verbose\0"             No_argument       "v"
+	"keep-old\0"            No_argument       "k"
 # if ENABLE_FEATURE_TAR_CREATE
-	{ "create",             0,  NULL,   'c' },
-	{ "dereference",        0,  NULL,   'h' },
+	"create\0"              No_argument       "c"
+	"dereference\0"         No_argument       "h"
 # endif
 # if ENABLE_FEATURE_TAR_BZIP2
-	{ "bzip2",              0,  NULL,   'j' },
+	"bzip2\0"               No_argument       "j"
 # endif
 # if ENABLE_FEATURE_TAR_LZMA
-	{ "lzma",               0,  NULL,   'a' },
+	"lzma\0"                No_argument       "a"
 # endif
 # if ENABLE_FEATURE_TAR_FROM
-	{ "files-from",         1,  NULL,   'T' },
-	{ "exclude-from",       1,  NULL,   'X' },
+	"files-from\0"          Required_argument "T"
+	"exclude-from\0"        Required_argument "X"
 # endif
 # if ENABLE_FEATURE_TAR_GZIP
-	{ "gzip",               0,  NULL,   'z' },
+	"gzip\0"                No_argument       "z"
 # endif
 # if ENABLE_FEATURE_TAR_COMPRESS
-	{ "compress",           0,  NULL,   'Z' },
+	"compress\0"            No_argument       "Z"
 # endif
-	{ "no-same-owner",      0,  NULL,   0xfd },
-	{ "no-same-permissions",0,  NULL,   0xfe },
+	"no-same-owner\0"       No_argument       "\xfd"
+	"no-same-permissions\0" No_argument       "\xfe"
 	/* --exclude takes next bit position in option mask, */
 	/* therefore we have to either put it _after_ --no-same-perm */
 	/* or add OPT[BIT]_EXCLUDE before OPT[BIT]_NOPRESERVE_OWN */
 # if ENABLE_FEATURE_TAR_FROM
-	{ "exclude",            1,  NULL,   0xff },
+	"exclude\0"             Required_argument "\xff"
 # endif
-	{ 0,                    0, 0, 0 }
-};
+	"\0";
 #endif
 
 int tar_main(int argc, char **argv);
@@ -787,7 +786,7 @@ int tar_main(int argc, char **argv)
 		USE_FEATURE_TAR_CREATE("c--tx:t--cx:x--ct") // mutually exclusive
 		SKIP_FEATURE_TAR_CREATE("t--x:x--t"); // mutually exclusive
 #if ENABLE_FEATURE_TAR_LONG_OPTIONS
-	applet_long_options = tar_long_options;
+	applet_long_options = tar_longopts;
 #endif
 	opt = getopt32(argc, argv,
 		"txC:f:Opvk"

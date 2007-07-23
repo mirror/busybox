@@ -194,29 +194,28 @@ static int do_stop(void)
 }
 
 #if ENABLE_FEATURE_START_STOP_DAEMON_LONG_OPTIONS
-static const struct option long_options[] = {
-	{ "stop",               0,      NULL,   'K' },
-	{ "start",              0,      NULL,   'S' },
-	{ "background",         0,      NULL,   'b' },
-	{ "quiet",              0,      NULL,   'q' },
-	{ "make-pidfile",       0,      NULL,   'm' },
+static const char start_stop_daemon_longopts[] =
+	"stop\0"         No_argument       "K"
+	"start\0"        No_argument       "S"
+	"background\0"   No_argument       "b"
+	"quiet\0"        No_argument       "q"
+	"make-pidfile\0" No_argument       "m"
 #if ENABLE_FEATURE_START_STOP_DAEMON_FANCY
-	{ "oknodo",             0,      NULL,   'o' },
-	{ "verbose",            0,      NULL,   'v' },
-	{ "nicelevel",          1,      NULL,   'N' },
+	"oknodo\0"       No_argument       "o"
+	"verbose\0"      No_argument       "v"
+	"nicelevel\0"    Required_argument "N"
 #endif
-	{ "startas",            1,      NULL,   'a' },
-	{ "name",               1,      NULL,   'n' },
-	{ "signal",             1,      NULL,   's' },
-	{ "user",               1,      NULL,   'u' },
-	{ "chuid",              1,      NULL,   'c' },
-	{ "exec",               1,      NULL,   'x' },
-	{ "pidfile",            1,      NULL,   'p' },
+	"startas\0"      Required_argument "a"
+	"name\0"         Required_argument "n"
+	"signal\0"       Required_argument "s"
+	"user\0"         Required_argument "u"
+	"chuid\0"        Required_argument "c"
+	"exec\0"         Required_argument "x"
+	"pidfile\0"      Required_argument "p"
 #if ENABLE_FEATURE_START_STOP_DAEMON_FANCY
-	{ "retry",              1,      NULL,   'R' },
+	"retry\0"        Required_argument "R"
 #endif
-	{ 0,                    0,      0,      0 }
-};
+	"\0";
 #endif
 
 enum {
@@ -250,7 +249,7 @@ int start_stop_daemon_main(int argc, char **argv)
 	char *opt_N;
 #endif
 #if ENABLE_FEATURE_START_STOP_DAEMON_LONG_OPTIONS
-	applet_long_options = long_options;
+	applet_long_options = start_stop_daemon_longopts;
 #endif
 
 	/* Check required one context option was given */

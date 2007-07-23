@@ -132,20 +132,19 @@ int wget_main(int argc, char **argv)
 		WGET_OPT_HEADER     = 0x100,
 	};
 #if ENABLE_FEATURE_WGET_LONG_OPTIONS
-	static const struct option wget_long_options[] = {
-		/* name, has_arg, flag, val */
-		{ "continue",         no_argument, NULL, 'c' },
-		{ "spider",           no_argument, NULL, 's' },
-		{ "quiet",            no_argument, NULL, 'q' },
-		{ "output-document",  required_argument, NULL, 'O' },
-		{ "directory-prefix", required_argument, NULL, 'P' },
-		{ "proxy",            required_argument, NULL, 'Y' },
-		{ "user-agent",       required_argument, NULL, 'U' },
-		{ "passive-ftp",      no_argument, NULL, 0xff },
-		{ "header",           required_argument, NULL, 0xfe },
-		{ 0, 0, 0, 0 }
-	};
-	applet_long_options = wget_long_options;
+	static const char wget_longopts[] =
+		/* name, has_arg, val */
+		"continue\0"         No_argument       "c"
+		"spider\0"           No_argument       "s"
+		"quiet\0"            No_argument       "q"
+		"output-document\0"  Required_argument "O"
+		"directory-prefix\0" Required_argument "P"
+		"proxy\0"            Required_argument "Y"
+		"user-agent\0"       Required_argument "U"
+		"passive-ftp\0"      No_argument       "\xff"
+		"header\0"           Required_argument "\xfe"
+		"\0";
+	applet_long_options = wget_longopts;
 #endif
 	/* server.allocated = target.allocated = NULL; */
 	opt_complementary = "-1" USE_FEATURE_WGET_LONG_OPTIONS(":\xfe::");

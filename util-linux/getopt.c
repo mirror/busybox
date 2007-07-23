@@ -266,18 +266,17 @@ static void set_shell(const char *new_shell)
  */
 
 #if ENABLE_GETOPT_LONG
-static const struct option longopts[] = {
-	{ "options",      required_argument, NULL, 'o' },
-	{ "longoptions",  required_argument, NULL, 'l' },
-	{ "quiet",        no_argument,       NULL, 'q' },
-	{ "quiet-output", no_argument,       NULL, 'Q' },
-	{ "shell",        required_argument, NULL, 's' },
-	{ "test",         no_argument,       NULL, 'T' },
-	{ "unquoted",     no_argument,       NULL, 'u' },
-	{ "alternative",  no_argument,       NULL, 'a' },
-	{ "name",         required_argument, NULL, 'n' },
-	{ NULL, 0, NULL, 0 }
-};
+static const char getopt_longopts[] =
+	"options\0"      Required_argument "o"
+	"longoptions\0"  Required_argument "l"
+	"quiet\0"        No_argument       "q"
+	"quiet-output\0" No_argument       "Q"
+	"shell\0"        Required_argument "s"
+	"test\0"         No_argument       "T"
+	"unquoted\0"     No_argument       "u"
+	"alternative\0"  No_argument       "a"
+	"name\0"         Required_argument "n"
+	"\0";
 #endif
 
 int getopt_main(int argc, char *argv[]);
@@ -317,7 +316,7 @@ int getopt_main(int argc, char *argv[])
 #if !ENABLE_GETOPT_LONG
 	opt = getopt32(argc, argv, "+o:n:qQs:Tu", &optstr, &name, &s_arg);
 #else
-	applet_long_options = longopts;
+	applet_long_options = getopt_longopts;
 	opt_complementary = "l::";
 	opt = getopt32(argc, argv, "+o:n:qQs:Tual:",
 					&optstr, &name, &s_arg, &l_arg);
