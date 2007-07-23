@@ -11,7 +11,7 @@
 #if ENABLE_GETOPT_LONG
 #include <getopt.h>
 
-static const char chpasswd_opts[] =
+static const char chpasswd_longopts[] =
 	"encrypted\0" No_argument "e"
 	"md5\0"       No_argument "m"
 	"\0";
@@ -32,7 +32,7 @@ int chpasswd_main(int argc, char **argv)
 		bb_error_msg_and_die(bb_msg_perm_denied_are_you_root);
 
  	opt_complementary = "m--e:e--m";
-	USE_GETOPT_LONG(applet_long_options = chpasswd_opts;)
+	USE_GETOPT_LONG(applet_long_options = chpasswd_longopts;)
 	opt = getopt32(argc, argv, "em");
 
 	while ((name = xmalloc_getline(stdin)) != NULL) {
