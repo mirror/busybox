@@ -307,7 +307,7 @@ getopt32(int argc, char **argv, const char *applet_opts, ...)
 	va_list p;
 #if ENABLE_GETOPT_LONG
 	const struct option *l_o;
-	struct option *long_options = NULL;
+	struct option *long_options = (struct option *) &bb_null_long_options;
 #endif
 	unsigned trigger;
 	char **pargv = NULL;
@@ -350,11 +350,11 @@ getopt32(int argc, char **argv, const char *applet_opts, ...)
 		count = 1;
 		optstr = applet_long_options;
 		while (optstr[0]) {
-			optstr += strlen(optstr) + 3; /* skip \0, has_arg, val */
+			optstr += strlen(optstr) + 3; /* skip NUL, has_arg, val */
 			count++;
 		}
 		/* count == no. of longopts + 1 */
-		long_options = xzalloc(count * sizeof(*long_options));
+		long_options = alloca(count * sizeof(*long_options));
 		i = 0;
 		optstr = applet_long_options;
 		while (--count) {
@@ -476,7 +476,7 @@ getopt32(int argc, char **argv, const char *applet_opts, ...)
 	 * (supposed to act as --header, but doesn't) */
 #if ENABLE_GETOPT_LONG
 	while ((c = getopt_long(argc, argv, applet_opts,
-			long_options ? long_options : bb_null_long_options, NULL)) != -1) {
+			long_options, NULL)) != -1) {
 #else
 	while ((c = getopt(argc, argv, applet_opts)) != -1) {
 #endif
@@ -535,9 +535,6 @@ getopt32(int argc, char **argv, const char *applet_opts, ...)
 	if (argc < min_arg || (max_arg >= 0 && argc > max_arg))
 		bb_show_usage();
 
-#if ENABLE_GETOPT_LONG
-	free(long_options);
-#endif
 	option_mask32 = flags;
 	return flags;
 }
