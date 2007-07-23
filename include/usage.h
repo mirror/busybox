@@ -2783,6 +2783,22 @@
 #define resize_full_usage \
        "Resize the screen"
 
+#define restorecon_trivial_usage \
+       "[-iFnrRv] [-e excludedir]... [-o filename] [-f filename | pathname]"
+#define restorecon_full_usage \
+       "Reset security contexts of files in pathname\n" \
+       "\n	-i		Ignore files that do not exist" \
+       "\n	-f filename	File with list of files to process. Use - for stdin" \
+       "\n	-e directory	Directory to exclude" \
+       "\n	-R,-r		Recurse directories" \
+       "\n	-n		Don't change any file labels" \
+       "\n	-o filename	Save list of files with incorrect context" \
+       "\n	-v		Verbose" \
+       "\n	-vv		Show changed labels" \
+       "\n	-F		Force reset of context to match file_context" \
+       "\n			for customizable files, or the user section," \
+       "\n			if it has changed"
+
 #define rm_trivial_usage \
        "[OPTION]... FILE..."
 #define rm_full_usage \
@@ -2946,6 +2962,31 @@ USE_FEATURE_RUN_PARTS_FANCY("\n	-l	Prints names of all matching files even when 
 #define setenforce_trivial_usage \
        "[Enforcing | Permissive | 1 | 0]"
 #define setenforce_full_usage
+
+#define setfiles_trivial_usage \
+       "[-dnpqsvW] [-e dir]... [-o filename] [-r alt_root_path]" \
+	USE_FEATURE_SETFILES_CHECK_OPTION( \
+       " [-c policyfile] spec_file" \
+	) \
+       " pathname"
+
+#define setfiles_full_usage \
+       "Reset file contexts under pathname according to spec_file" \
+	USE_FEATURE_SETFILES_CHECK_OPTION( \
+       "\n	-c file	Check the validity of the contexts against the specified binary policy" \
+	) \
+       "\n	-d	Show which specification matched each file" \
+       "\n	-l	Log changes in file labels to syslog" \
+       "\n	-n	Don't change any file labels" \
+       "\n	-q	Suppress no-error output" \
+       "\n	-r dir	Use an altenate root path" \
+       "\n	-e dir	Exclude directory" \
+       "\n	-F	Force reset of context to match file_context for customizable files" \
+       "\n	-o file	Save list of files with incorrect context" \
+       "\n	-s	Take a list of files from standard input (instead of command line)" \
+       "\n	-v	Show changes in file labels, if type or role are changing" \
+	"\n	-vv	Show changes in file labels, if type, role, or user are changing" \
+	"\n	-W	Display warnings about entries that had no matching files"
 
 #define setkeycodes_trivial_usage \
        "SCANCODE KEYCODE ..."

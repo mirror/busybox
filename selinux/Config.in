@@ -49,6 +49,14 @@ config MATCHPATHCON
 	  Enable support to get default security context of the
 	  specified path from the file contexts configuration.
 
+config RESTORECON
+	bool "restorecon"
+	default n
+	depends on SELINUX
+	help
+	  Enable support to relabel files. The feature is almost
+	  the same as setfiles, but usage is a little different.
+
 config RUNCON
 	bool "runcon"
 	default n
@@ -77,6 +85,24 @@ config SETENFORCE
 	depends on SELINUX
 	help
 	  Enable support to modify the mode SELinux is running in.
+
+config SETFILES
+	bool "setfiles"
+	default n
+	depends on SELINUX
+	help
+	  Enable support to modify to relabel files.
+	  Notice: If you built libselinux with -D_FILE_OFFSET_BITS=64,
+	  (It is default in libselinux's Makefile), you _must_ enable
+	  CONFIG_LFS.
+
+config FEATURE_SETFILES_CHECK_OPTION
+	bool "Enable check option"
+	default n
+	depends on SETFILES
+	help
+	  Support "-c" option (check the validity of the contexts against
+	  the specified binary policy) for setfiles. Requires libsepol.
 
 endmenu
 
