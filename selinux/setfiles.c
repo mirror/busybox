@@ -1,7 +1,7 @@
 /*
   setfiles: based on policycoreutils 2.0.19
   policycoreutils was released under GPL 2.
-  Port to BusyBox by 2007 Yuichi Nakamura <ynakam@hitachisoft.jp>
+  Port to BusyBox (c) 2007 by Yuichi Nakamura <ynakam@hitachisoft.jp>
 */
 
 #include "libbb.h"
@@ -182,10 +182,8 @@ static int match(const char *name, struct stat *sb, char **con)
 	char path[PATH_MAX + 1];
 	char *tmp_path = xstrdup(name);
 
-	if (excludeCtr > 0) {
-		if (exclude(name)) {
-			goto err;
-		}
+	if (excludeCtr > 0 && exclude(name)) {
+		goto err;
 	}
 	ret = lstat(name, sb);
 	if (ret) {
