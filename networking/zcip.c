@@ -198,8 +198,6 @@ int zcip_main(int argc, char **argv)
 
 	memset(&L, 0, sizeof(L));
 
-	srand(MONOTONIC_US());
-
 #define FOREGROUND (opts & 1)
 #define QUIT       (opts & 2)
 	// parse commandline: prog [options] ifname script
@@ -254,8 +252,7 @@ int zcip_main(int argc, char **argv)
 	// the hardware address or else the last address we used.
 	// NOTE: the sequence of addresses we try changes only
 	// depending on when we detect conflicts.
-	// (SVID 3 bogon: who says that "short" is always 16 bits?)
-	seed48( (unsigned short*)&ifr.ifr_hwaddr.sa_data );
+	srand(*(unsigned*)&ifr.ifr_hwaddr.sa_data);
 	if (ip.s_addr == 0)
 		pick(&ip);
 
