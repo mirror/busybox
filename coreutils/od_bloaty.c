@@ -153,7 +153,6 @@ static const signed char width_bytes[] = {
 	sizeof(double),
 	sizeof(longdouble_t)
 };
-
 /* Ensure that for each member of 'enum size_spec' there is an
    initializer in the width_bytes array.  */
 struct dummy {
@@ -161,41 +160,36 @@ struct dummy {
 		[ARRAY_SIZE(width_bytes) == N_SIZE_SPECS ? 1 : -1];
 };
 
-static size_t string_min;
-static int flag_dump_strings;
-
+static smallint flag_dump_strings;
 /* Non-zero if an old-style 'pseudo-address' was specified.  */
-static int flag_pseudo_start;
-
-/* The difference between the old-style pseudo starting address and
-   the number of bytes to skip.  */
-static off_t pseudo_offset;
-
-/* Function that accepts an address and an optional following char,
-   and prints the address and char to stdout.  */
-static void (*format_address) (off_t, char);
-
-/* The number of input bytes to skip before formatting and writing.  */
-static off_t n_bytes_to_skip; // = 0;
-
-/* When zero, MAX_BYTES_TO_FORMAT and END_OFFSET are ignored, and all
-   input is formatted.  */
-static int limit_bytes_to_format; // = 0;
-
-/* The maximum number of bytes that will be formatted.  */
-static off_t max_bytes_to_format;
-
-/* The offset of the first byte after the last byte to be formatted.  */
-static off_t end_offset;
-
-/* When nonzero and two or more consecutive blocks are equal, format
+static smallint flag_pseudo_start;
+static smallint limit_bytes_to_format;
+/* When zero and two or more consecutive blocks are equal, format
    only the first block and output an asterisk alone on the following
    line to indicate that identical blocks have been elided.  */
-static int abbreviate_duplicate_blocks = 1;
+static smallint verbose;
+static smallint ioerror;
+
+static size_t string_min;
 
 /* An array of specs describing how to format each input block.  */
 static size_t n_specs;
 static struct tspec *spec;
+
+/* Function that accepts an address and an optional following char,
+   and prints the address and char to stdout.  */
+static void (*format_address)(off_t, char);
+/* The difference between the old-style pseudo starting address and
+   the number of bytes to skip.  */
+static off_t pseudo_offset;
+/* The number of input bytes to skip before formatting and writing.  */
+static off_t n_bytes_to_skip;
+/* When zero, MAX_BYTES_TO_FORMAT and END_OFFSET are ignored, and all
+   input is formatted.  */
+/* The maximum number of bytes that will be formatted.  */
+static off_t max_bytes_to_format;
+/* The offset of the first byte after the last byte to be formatted.  */
+static off_t end_offset;
 
 /* The number of input bytes formatted per output line.  It must be
    a multiple of the least common multiple of the sizes associated with
@@ -216,8 +210,6 @@ static char const *const default_file_list[] = { "-", NULL };
 
 /* The input stream associated with the current file.  */
 static FILE *in_stream;
-
-static int ioerror;
 
 #define MAX_INTEGRAL_TYPE_SIZE sizeof(ulonglong_t)
 static unsigned char integral_type_size[MAX_INTEGRAL_TYPE_SIZE + 1] = {
@@ -907,8 +899,7 @@ write_block(off_t current_offset, size_t n_bytes,
 	static char prev_pair_equal = 0;
 	size_t i;
 
-	if (abbreviate_duplicate_blocks
-	 && !first
+	if (!verbose && !first
 	 && n_bytes == bytes_per_block
 	 && memcmp(prev_block, curr_block, bytes_per_block) == 0
 	) {
@@ -1261,7 +1252,7 @@ int od_main(int argc, char **argv)
 	format_address = format_address_std;
 	address_base_char = 'o';
 	address_pad_len_char = '7';
-	flag_dump_strings = 0;
+	/* flag_dump_strings = 0; - already is */
 
 	/* Parse command line */
 	opt_complementary = "t::"; // list
@@ -1314,7 +1305,7 @@ int od_main(int argc, char **argv)
 		decode_format_string(lst_t->data);
 		lst_t = lst_t->link;
 	}
-	if (opt & OPT_v) abbreviate_duplicate_blocks = 0;
+	if (opt & OPT_v) verbose = 1;
 	if (opt & OPT_x) decode_format_string("x2");
 	if (opt & OPT_s) decode_format_string("d2");
 	if (opt & OPT_S) {
@@ -1458,5 +1449,5 @@ int od_main(int argc, char **argv)
 	if (fclose(stdin) == EOF)
 		bb_perror_msg_and_die(bb_msg_standard_input);
 
-	return (ioerror != 0); /* err != 0 - return 1 (failure) */
+	return ioerror;
 }
