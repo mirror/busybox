@@ -46,17 +46,15 @@ static int sockfd;              /* active socket descriptor     */
 static smallint hw_set;         /* flag if hw-type was set (-H) */
 static const char *device = ""; /* current device               */
 
-static const char *const options[] = {
-	"pub",
-	"priv",
-	"temp",
-	"trail",
-	"dontpub",
-	"auto",
-	"dev",
-	"netmask",
-	NULL
-};
+static const char options[] =
+	"pub\0"
+	"priv\0"
+	"temp\0"
+	"trail\0"
+	"dontpub\0"
+	"auto\0"
+	"dev\0"
+	"netmask\0";
 
 /* Delete an entry from the ARP cache. */
 /* Called only from main, once */
@@ -85,7 +83,7 @@ static int arp_del(char **args)
 	req.arp_flags = ATF_PERM;
 	args++;
 	while (*args != NULL) {
-		switch (index_in_str_array(options, *args)) {
+		switch (index_in_strings(options, *args)) {
 		case 0: /* "pub" */
 			flags |= 1;
 			args++;
@@ -239,7 +237,7 @@ static int arp_set(char **args)
 	/* Check out any modifiers. */
 	flags = ATF_PERM | ATF_COM;
 	while (*args != NULL) {
-		switch (index_in_str_array(options, *args)) {
+		switch (index_in_strings(options, *args)) {
 		case 0: /* "pub" */
 			flags |= ATF_PUBL;
 			args++;

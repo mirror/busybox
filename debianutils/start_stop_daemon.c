@@ -215,7 +215,7 @@ static const char start_stop_daemon_longopts[] =
 #if ENABLE_FEATURE_START_STOP_DAEMON_FANCY
 	"retry\0"        Required_argument "R"
 #endif
-	"\0";
+	;
 #endif
 
 enum {

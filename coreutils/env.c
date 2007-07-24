@@ -38,7 +38,7 @@ extern char **environ;
 static const char env_longopts[] =
 	"ignore-environment\0" No_argument       "i"
 	"unset\0"              Required_argument "u"
-	"\0";
+	;
 #endif
 
 int env_main(int argc, char** argv);

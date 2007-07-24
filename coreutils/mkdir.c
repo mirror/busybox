@@ -31,7 +31,7 @@ static const char mkdir_longopts[] =
 #if ENABLE_SELINUX
 	"context\0" Required_argument "Z"
 #endif
-	"\0";
+	;
 #endif
 
 int mkdir_main(int argc, char **argv);

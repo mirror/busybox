@@ -13,7 +13,7 @@
 #if ENABLE_FEATURE_SETCONSOLE_LONG_OPTIONS
 static const char setconsole_longopts[] =
 	"reset\0" No_argument "r"
-	"\0";
+	;
 #endif
 
 #define OPT_SETCONS_RESET 1

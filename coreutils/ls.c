@@ -122,7 +122,7 @@ static smallint show_color;
  * equivalent */
 static const char ls_color_opt[] =
 	"color\0" Optional_argument "\xff" /* no short equivalent */
-	"\0";
+	;
 #else
 enum { show_color = 0 };
 #endif

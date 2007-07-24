@@ -79,29 +79,25 @@ struct fsck_instance {
 	char	*base_device; /* /dev/hda for /dev/hdaN etc */
 };
 
-static const char *const ignored_types[] = {
-	"ignore",
-	"iso9660",
-	"nfs",
-	"proc",
-	"sw",
-	"swap",
-	"tmpfs",
-	"devpts",
-	NULL
-};
+static const char ignored_types[] =
+	"ignore\0"
+	"iso9660\0"
+	"nfs\0"
+	"proc\0"
+	"sw\0"
+	"swap\0"
+	"tmpfs\0"
+	"devpts\0";
 
 #if 0
-static const char *const really_wanted[] = {
-	"minix",
-	"ext2",
-	"ext3",
-	"jfs",
-	"reiserfs",
-	"xiafs",
-	"xfs",
-	NULL
-};
+static const char really_wanted[] =
+	"minix\0"
+	"ext2\0"
+	"ext3\0"
+	"jfs\0"
+	"reiserfs\0"
+	"xiafs\0"
+	"xfs\0";
 #endif
 
 #define BASE_MD "/dev/md"
@@ -847,7 +843,7 @@ static int ignore(struct fs_info *fs)
 		return 1;
 
 	/* Are we ignoring this type? */
-	if (index_in_str_array(ignored_types, fs->type) >= 0)
+	if (index_in_strings(ignored_types, fs->type) >= 0)
 		return 1;
 
 	/* We can and want to check this file system type. */

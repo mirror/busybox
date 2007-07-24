@@ -128,16 +128,13 @@ static int do_del_ioctl(const char *basedev, struct ip_tunnel_parm *p)
 /* Dies on error */
 static void parse_args(int argc, char **argv, int cmd, struct ip_tunnel_parm *p)
 {
-	int count = 0;
-	char medium[IFNAMSIZ];
-	static const char * const keywords[] = {
-		"mode", "ipip", "ip/ip", "gre", "gre/ip", "sit", "ipv6/ip",
-		"key", "ikey", "okey", "seq", "iseq", "oseq",
-		"csum", "icsum", "ocsum", "nopmtudisc", "pmtudisc",
-		"remote", "any", "local", "dev",
-		"ttl", "inherit", "tos", "dsfield",
-		"name", NULL
-	};
+	static const char keywords[] =
+		"mode\0""ipip\0""ip/ip\0""gre\0""gre/ip\0""sit\0""ipv6/ip\0"
+		"key\0""ikey\0""okey\0""seq\0""iseq\0""oseq\0"
+		"csum\0""icsum\0""ocsum\0""nopmtudisc\0""pmtudisc\0"
+		"remote\0""any\0""local\0""dev\0"
+		"ttl\0""inherit\0""tos\0""dsfield\0"
+		"name\0";
 	enum {
 		ARG_mode, ARG_ipip, ARG_ip_ip, ARG_gre, ARG_gre_ip, ARG_sit, ARG_ip6_ip,
 		ARG_key, ARG_ikey, ARG_okey, ARG_seq, ARG_iseq, ARG_oseq,
@@ -146,22 +143,25 @@ static void parse_args(int argc, char **argv, int cmd, struct ip_tunnel_parm *p)
 		ARG_ttl, ARG_inherit, ARG_tos, ARG_dsfield,
 		ARG_name
 	};
+	int count = 0;
+	char medium[IFNAMSIZ];
 	int key;
+
 	memset(p, 0, sizeof(*p));
 	memset(&medium, 0, sizeof(medium));
 
 	p->iph.version = 4;
 	p->iph.ihl = 5;
 #ifndef IP_DF
-#define IP_DF		0x4000		/* Flag: "Don't Fragment"	*/
+#define IP_DF 0x4000  /* Flag: "Don't Fragment" */
 #endif
 	p->iph.frag_off = htons(IP_DF);
 
 	while (argc > 0) {
-		key = index_in_str_array(keywords, *argv);
+		key = index_in_strings(keywords, *argv);
 		if (key == ARG_mode) {
 			NEXT_ARG();
-			key = index_in_str_array(keywords, *argv);
+			key = index_in_strings(keywords, *argv);
 			if (key == ARG_ipip ||
 			    key == ARG_ip_ip) {
 				if (p->iph.protocol && p->iph.protocol != IPPROTO_IPIP) {
@@ -240,12 +240,12 @@ static void parse_args(int argc, char **argv, int cmd, struct ip_tunnel_parm *p)
 			p->iph.frag_off = htons(IP_DF);
 		} else if (key == ARG_remote) {
 			NEXT_ARG();
-			key = index_in_str_array(keywords, *argv);
+			key = index_in_strings(keywords, *argv);
 			if (key == ARG_any)
 				p->iph.daddr = get_addr32(*argv);
 		} else if (key == ARG_local) {
 			NEXT_ARG();
-			key = index_in_str_array(keywords, *argv);
+			key = index_in_strings(keywords, *argv);
 			if (key == ARG_any)
 				p->iph.saddr = get_addr32(*argv);
 		} else if (key == ARG_dev) {
@@ -254,7 +254,7 @@ static void parse_args(int argc, char **argv, int cmd, struct ip_tunnel_parm *p)
 		} else if (key == ARG_ttl) {
 			unsigned uval;
 			NEXT_ARG();
-			key = index_in_str_array(keywords, *argv);
+			key = index_in_strings(keywords, *argv);
 			if (key != ARG_inherit) {
 				if (get_unsigned(&uval, *argv, 0))
 					invarg(*argv, "TTL");
@@ -266,7 +266,7 @@ static void parse_args(int argc, char **argv, int cmd, struct ip_tunnel_parm *p)
 			   key == ARG_dsfield) {
 			uint32_t uval;
 			NEXT_ARG();
-			key = index_in_str_array(keywords, *argv);
+			key = index_in_strings(keywords, *argv);
 			if (key != ARG_inherit) {
 				if (rtnl_dsfield_a2n(&uval, *argv))
 					invarg(*argv, "TOS");
@@ -519,14 +519,13 @@ static int do_show(int argc, char **argv)
 /* Return value becomes exitcode. It's okay to not return at all */
 int do_iptunnel(int argc, char **argv)
 {
-	static const char *const keywords[] = {
-		"add", "change", "delete", "show", "list", "lst", NULL
-	};
+	static const char keywords[] =
+		"add\0""change\0""delete\0""show\0""list\0""lst\0";
 	enum { ARG_add = 0, ARG_change, ARG_del, ARG_show, ARG_list, ARG_lst };
 	int key;
 
 	if (argc) {
-		key = index_in_substr_array(keywords, *argv);
+		key = index_in_substrings(keywords, *argv);
 		if (key < 0)
 			bb_error_msg_and_die(bb_msg_invalid_arg, *argv, applet_name);
 		--argc;

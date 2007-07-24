@@ -44,7 +44,7 @@ static const char runparts_longopts[] =
 //TODO: "reverse\0" No_argument       "r"
 //TODO: "verbose\0" No_argument       "v"
 #endif
-	"\0";
+	;
 #endif
 
 struct globals {

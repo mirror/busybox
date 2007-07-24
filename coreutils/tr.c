@@ -51,11 +51,10 @@ static unsigned int expand(const char *arg, char *buffer)
 	char *buffer_start = buffer;
 	unsigned i; /* XXX: FIXME: use unsigned char? */
 	unsigned char ac;
-#define CLO ":]"
-	static const char * const classes[] = {
-		"alpha"CLO, "alnum"CLO, "digit"CLO, "lower"CLO, "upper"CLO, "space"CLO,
-		"blank"CLO, "punct"CLO, "cntrl"CLO, NULL
-	};
+#define CLO ":]\0"
+	static const char classes[] =
+		"alpha"CLO "alnum"CLO "digit"CLO "lower"CLO "upper"CLO "space"CLO
+		"blank"CLO "punct"CLO "cntrl"CLO;
 #define CLASS_invalid 0 /* we increment the retval */
 #define CLASS_alpha 1
 #define CLASS_alnum 2
@@ -90,7 +89,7 @@ static unsigned int expand(const char *arg, char *buffer)
 				smalluint j;
 				{ /* not really pretty.. */
 					char *tmp = xstrndup(arg, 7); // warning: xdigit needs 8, not 7
-					j = index_in_str_array(classes, tmp) + 1;
+					j = index_in_strings(classes, tmp) + 1;
 					free(tmp);
 				}
 				if (j == CLASS_alnum || j == CLASS_digit) {

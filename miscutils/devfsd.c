@@ -509,12 +509,11 @@ static void process_config_line(const char *line, unsigned long *event_mask)
 	int i;
 
 	/* !!!! Only Uppercase Keywords in devsfd.conf */
-	static const char *const options[] = {
-		"CLEAR_CONFIG", "INCLUDE", "OPTIONAL_INCLUDE",
-		"RESTORE", "PERMISSIONS", "MODLOAD", "EXECUTE",
-		"COPY", "IGNORE", "MKOLDCOMPAT", "MKNEWCOMPAT",
-		"RMOLDCOMPAT", "RMNEWCOMPAT", 0
-	};
+	static const char options[] =
+		"CLEAR_CONFIG\0""INCLUDE\0""OPTIONAL_INCLUDE\0"
+		"RESTORE\0""PERMISSIONS\0""MODLOAD\0""EXECUTE\0"
+		"COPY\0""IGNORE\0""MKOLDCOMPAT\0""MKNEWCOMPAT\0"
+		"RMOLDCOMPAT\0""RMNEWCOMPAT\0";
 
 	for (count = 0; count < MAX_ARGS; ++count)
 		p[count][0] = '\0';
@@ -522,9 +521,9 @@ static void process_config_line(const char *line, unsigned long *event_mask)
 			when, name, what,
 			p[0], p[1], p[2], p[3], p[4], p[5], p[6]);
 
-	i = index_in_str_array(options, when);
+	i = index_in_strings(options, when);
 
-	/*"CLEAR_CONFIG"*/
+	/* "CLEAR_CONFIG" */
 	if (i == 0) {
 		free_config();
 		*event_mask = 0;
@@ -562,7 +561,7 @@ static void process_config_line(const char *line, unsigned long *event_mask)
 		goto process_config_line_err;
 	}
 
-	i = index_in_str_array(options, what);
+	i = index_in_strings(options, what);
 
 	switch (i) {
 		case 4:	/* "PERMISSIONS" */
@@ -1140,27 +1139,30 @@ static void signal_handler(int sig)
 
 static const char *get_variable(const char *variable, void *info)
 {
+	static char sbuf[sizeof(int)*3 + 2]; /* sign and NUL */
+
+	char hostname[STRING_LENGTH];
 	struct get_variable_info *gv_info = info;
-	static char hostname[STRING_LENGTH], sbuf[STRING_LENGTH];
-	const char *field_names[] = { "hostname", "mntpt", "devpath", "devname",
-								   "uid", "gid", "mode", hostname, mount_point,
-								   gv_info->devpath, gv_info->devname, 0 };
+	const char *field_names[] = {
+			"hostname", "mntpt", "devpath", "devname",
+			"uid", "gid", "mode", hostname, mount_point,
+			gv_info->devpath, gv_info->devname, NULL
+	};
 	int i;
 
 	if (gethostname(hostname, STRING_LENGTH - 1) != 0)
+		/* Here on error we should do exit(RV_SYS_ERROR), instead we do exit(EXIT_FAILURE) */
 		error_logger_and_die(LOG_ERR, "gethostname");
 
-		/* Here on error we should do exit(RV_SYS_ERROR), instead we do exit(EXIT_FAILURE) */
-		hostname[STRING_LENGTH - 1] = '\0';
+	hostname[STRING_LENGTH - 1] = '\0';
 
 	/* index_in_str_array returns i>=0  */
 	i = index_in_str_array(field_names, variable);
 
 	if (i > 6 || i < 0 || (i > 1 && gv_info == NULL))
-			return NULL;
-	if (i >= 0 && i <= 3) {
+		return NULL;
+	if (i >= 0 && i <= 3)
 		return field_names[i + 7];
-	}
 
 	if (i == 4)
 		sprintf(sbuf, "%u", gv_info->info->uid);

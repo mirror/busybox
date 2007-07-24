@@ -470,38 +470,37 @@ static action*** parse_params(char **argv)
 	USE_FEATURE_FIND_CONTEXT(PARM_context   ,)
 	};
 
-	static const char *const params[] = {
-	                         "-a"      ,
-	                         "-o"      ,
-	USE_FEATURE_FIND_NOT(    "!"       ,)
+	static const char params[] =
+	                         "-a\0"
+	                         "-o\0"
+	USE_FEATURE_FIND_NOT(    "!\0"       )
 #if ENABLE_DESKTOP
-	                         "-and"    ,
-	                         "-or"     ,
-	USE_FEATURE_FIND_NOT(	 "-not"    ,)
+	                         "-and\0"  
+	                         "-or\0"   
+	USE_FEATURE_FIND_NOT(	 "-not\0"    )
 #endif
-	                         "-print"  ,
-	USE_FEATURE_FIND_PRINT0( "-print0" ,)
-	USE_FEATURE_FIND_DEPTH(  "-depth"  ,)
-	USE_FEATURE_FIND_PRUNE(  "-prune"  ,)
-	USE_FEATURE_FIND_DELETE( "-delete" ,)
-	USE_FEATURE_FIND_EXEC(   "-exec"   ,)
-	USE_FEATURE_FIND_PAREN(  "("       ,)
+	                         "-print\0"
+	USE_FEATURE_FIND_PRINT0( "-print0\0" )
+	USE_FEATURE_FIND_DEPTH(  "-depth\0"  )
+	USE_FEATURE_FIND_PRUNE(  "-prune\0"  )
+	USE_FEATURE_FIND_DELETE( "-delete\0" )
+	USE_FEATURE_FIND_EXEC(   "-exec\0"   )
+	USE_FEATURE_FIND_PAREN(  "(\0"       )
 	/* All options starting from here require argument */
-	                         "-name"   ,
-	USE_FEATURE_FIND_PATH(   "-path"   ,)
-	USE_FEATURE_FIND_REGEX(  "-regex"  ,)
-	USE_FEATURE_FIND_TYPE(   "-type"   ,)
-	USE_FEATURE_FIND_PERM(   "-perm"   ,)
-	USE_FEATURE_FIND_MTIME(  "-mtime"  ,)
-	USE_FEATURE_FIND_MMIN(   "-mmin"   ,)
-	USE_FEATURE_FIND_NEWER(  "-newer"  ,)
-	USE_FEATURE_FIND_INUM(   "-inum"   ,)
-	USE_FEATURE_FIND_USER(   "-user"   ,)
-	USE_FEATURE_FIND_GROUP(  "-group"  ,)
-	USE_FEATURE_FIND_SIZE(   "-size"   ,)
-	USE_FEATURE_FIND_CONTEXT("-context",)
-		NULL
-	};
+	                         "-name\0" 
+	USE_FEATURE_FIND_PATH(   "-path\0"   )
+	USE_FEATURE_FIND_REGEX(  "-regex\0"  )
+	USE_FEATURE_FIND_TYPE(   "-type\0"   )
+	USE_FEATURE_FIND_PERM(   "-perm\0"   )
+	USE_FEATURE_FIND_MTIME(  "-mtime\0"  )
+	USE_FEATURE_FIND_MMIN(   "-mmin\0"   )
+	USE_FEATURE_FIND_NEWER(  "-newer\0"  )
+	USE_FEATURE_FIND_INUM(   "-inum\0"   )
+	USE_FEATURE_FIND_USER(   "-user\0"   )
+	USE_FEATURE_FIND_GROUP(  "-group\0"  )
+	USE_FEATURE_FIND_SIZE(   "-size\0"   )
+	USE_FEATURE_FIND_CONTEXT("-context\0")
+	                         ;
 
 	action*** appp;
 	unsigned cur_group = 0;
@@ -541,7 +540,7 @@ static action*** parse_params(char **argv)
  */
 	while (*argv) {
 		const char *arg = argv[0];
-		int parm = index_in_str_array(params, arg);
+		int parm = index_in_strings(params, arg);
 		const char *arg1 = argv[1];
 
 		if (parm >= PARM_name) {
@@ -795,14 +794,13 @@ static action*** parse_params(char **argv)
 int find_main(int argc, char **argv);
 int find_main(int argc, char **argv)
 {
-	static const char *const options[] = {
-		"-follow",
-USE_FEATURE_FIND_XDEV(    "-xdev"    ,)
-USE_FEATURE_FIND_MAXDEPTH("-maxdepth",)
-		NULL
-	};
+	static const char options[] =
+	                  "-follow\0"
+USE_FEATURE_FIND_XDEV(    "-xdev\0"    )
+USE_FEATURE_FIND_MAXDEPTH("-maxdepth\0")
+	                  ;
 	enum {
-		OPT_FOLLOW,
+	                  OPT_FOLLOW,
 USE_FEATURE_FIND_XDEV(    OPT_XDEV    ,)
 USE_FEATURE_FIND_MAXDEPTH(OPT_MAXDEPTH,)
 	};
@@ -839,7 +837,7 @@ USE_FEATURE_FIND_MAXDEPTH(OPT_MAXDEPTH,)
 	/* (-a will be ignored by recursive parser later) */
 	argp = &argv[firstopt];
 	while ((arg = argp[0])) {
-		int opt = index_in_str_array(options, arg);
+		int opt = index_in_strings(options, arg);
 		if (opt == OPT_FOLLOW) {
 			recurse_flags |= ACTION_FOLLOWLINKS;
 			argp[0] = (char*)"-a";

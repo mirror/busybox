@@ -82,14 +82,13 @@ int iptunnel_main(int argc, char **argv)
 int ip_main(int argc, char **argv);
 int ip_main(int argc, char **argv)
 {
-	const char * const keywords[] = {
-		USE_FEATURE_IP_ADDRESS("address",)
-		USE_FEATURE_IP_ROUTE("route",)
-		USE_FEATURE_IP_LINK("link",)
-		USE_FEATURE_IP_TUNNEL("tunnel", "tunl",)
-		USE_FEATURE_IP_RULE("rule",)
-		NULL
-	};
+	static const char keywords[] =
+		USE_FEATURE_IP_ADDRESS("address\0")
+		USE_FEATURE_IP_ROUTE("route\0")
+		USE_FEATURE_IP_LINK("link\0")
+		USE_FEATURE_IP_TUNNEL("tunnel\0" "tunl\0")
+		USE_FEATURE_IP_RULE("rule\0")
+		;
 	enum {
 		USE_FEATURE_IP_ADDRESS(IP_addr,)
 		USE_FEATURE_IP_ROUTE(IP_route,)
@@ -101,7 +100,7 @@ int ip_main(int argc, char **argv)
 
 	ip_parse_common_args(&argc, &argv);
 	if (argc > 1) {
-		int key = index_in_substr_array(keywords, argv[1]);
+		int key = index_in_substrings(keywords, argv[1]);
 		argc -= 2;
 		argv += 2;
 #if ENABLE_FEATURE_IP_ADDRESS
@@ -125,7 +124,7 @@ int ip_main(int argc, char **argv)
 			ip_func = do_iprule;
 #endif
 	}
-	return (ip_func(argc, argv));
+	return ip_func(argc, argv);
 }
 
 #endif /* any of ENABLE_FEATURE_IP_xxx is 1 */

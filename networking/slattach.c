@@ -16,16 +16,6 @@
 #include "libbb.h"
 #include "libiproute/utils.h" /* invarg() */
 
-/* Line discipline code table */
-static const char *const proto_names[] = {
-	"cslip"+1,	/* 0 */
-	"cslip",	/* 1 */
-	"cslip6"+1,	/* 2 */
-	"cslip6",	/* 3 */
-	"adaptive",	/* 8 */
-	NULL
-};
-
 struct globals {
 	int handle;
 	int saved_disc;
@@ -132,6 +122,15 @@ static void sig_handler(int signo)
 int slattach_main(int argc, char **argv);
 int slattach_main(int argc, char **argv)
 {
+	/* Line discipline code table */
+	static const char proto_names[] =
+		"slip\0"        /* 0 */
+		"cslip\0"       /* 1 */
+		"slip6\0"       /* 2 */
+		"cslip6\0"      /* 3 */
+		"adaptive\0"    /* 8 */
+		;
+
 	int i, encap, opt;
 	struct termios state;
 	const char *proto = "cslip";
@@ -160,7 +159,7 @@ int slattach_main(int argc, char **argv)
 	if (!*argv)
 		bb_show_usage();
 
-	encap = index_in_str_array(proto_names, proto);
+	encap = index_in_strings(proto_names, proto);
 
 	if (encap < 0)
 		invarg(proto, "protocol");

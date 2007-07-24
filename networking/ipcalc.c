@@ -72,7 +72,7 @@ int get_prefix(unsigned long netmask);
 		"hostname\0"  No_argument "h"
 		"silent\0"    No_argument "s"
 # endif
-		"\0";
+		;
 #endif
 
 int ipcalc_main(int argc, char **argv);

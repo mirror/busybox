@@ -187,6 +187,15 @@ static int iprule_list(int argc, char **argv)
 /* Return value becomes exitcode. It's okay to not return at all */
 static int iprule_modify(int cmd, int argc, char **argv)
 {
+	static const char keywords[] =
+		"from\0""to\0""preference\0""order\0""priority\0"
+		"tos\0""fwmark\0""realms\0""table\0""lookup\0""dev\0"
+		"iif\0""nat\0""map-to\0""type\0""help\0";
+	enum {
+		ARG_from = 1, ARG_to, ARG_preference, ARG_order, ARG_priority,
+		ARG_tos, ARG_fwmark, ARG_realms, ARG_table, ARG_lookup, ARG_dev,
+		ARG_iif, ARG_nat, ARG_map_to, ARG_type, ARG_help
+	};
 	bool table_ok = 0;
 	struct rtnl_handle rth;
 	struct {
@@ -194,13 +203,6 @@ static int iprule_modify(int cmd, int argc, char **argv)
 		struct rtmsg	r;
 		char		buf[1024];
 	} req;
-	static const char * const keywords[] =
-	{ "from", "to", "preference", "order", "priority", "tos", "fwmark",
-	"realms", "table", "lookup", "dev", "iif", "nat", "map-to", "type",
-	"help", NULL};
-	enum { ARG_from = 1, ARG_to, ARG_preference, ARG_order, ARG_priority,
-	ARG_tos, ARG_fwmark, ARG_realms, ARG_table, ARG_lookup, ARG_dev,
-	ARG_iif, ARG_nat, ARG_map_to, ARG_type, ARG_help };
 	smalluint key;
 
 	memset(&req, 0, sizeof(req));
@@ -220,7 +222,7 @@ static int iprule_modify(int cmd, int argc, char **argv)
 	}
 
 	while (argc > 0) {
-		key = index_in_substr_array(keywords, *argv) + 1;
+		key = index_in_substrings(keywords, *argv) + 1;
 		if (key == 0) /* no match found in keywords array, bail out. */
 			bb_error_msg_and_die(bb_msg_invalid_arg, *argv, applet_name);
 		if (key == ARG_from) {
@@ -311,14 +313,14 @@ static int iprule_modify(int cmd, int argc, char **argv)
 /* Return value becomes exitcode. It's okay to not return at all */
 int do_iprule(int argc, char **argv)
 {
-	static const char * const ip_rule_commands[] =
-		{"add", "delete", "list", "show", 0};
+	static const char ip_rule_commands[] =
+		"add\0""delete\0""list\0""show\0";
 	int cmd = 2; /* list */
 
 	if (argc < 1)
 		return iprule_list(0, NULL);
 	if (*argv)
-		cmd = index_in_substr_array(ip_rule_commands, *argv);
+		cmd = index_in_substrings(ip_rule_commands, *argv);
 
 	switch (cmd) {
 		case 0: /* add */

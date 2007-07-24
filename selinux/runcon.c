@@ -76,7 +76,7 @@ static const char runcon_options[] =
 	"range\0"   Required_argument "l"
 	"compute\0" No_argument "c"
 	"help\0"    No_argument "h"      
-	"\0";
+	;
 #endif
 
 #define OPTS_ROLE	(1<<0)	/* r */

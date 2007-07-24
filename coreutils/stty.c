@@ -562,18 +562,16 @@ enum {
 
 static int find_param(const char * const name)
 {
-	static const char * const params[] = {
-		"line",     /* 1 */
-		"rows",     /* 2 */
-		"cols",     /* 3 */
-		"columns",  /* 4 */
-		"size",     /* 5 */
-		"ispeed"+1, /* 6 */
-		"ispeed",
-		"ospeed",
-		NULL
-	};
-	int i = index_in_str_array(params, name) + 1;
+	static const char params[] =
+		"line\0"    /* 1 */
+		"rows\0"    /* 2 */
+		"cols\0"    /* 3 */
+		"columns\0" /* 4 */
+		"size\0"    /* 5 */
+		"speed\0"   /* 6 */
+		"ispeed\0"
+		"ospeed\0";
+	int i = index_in_strings(params, name) + 1;
 	if (i == 0)
 		return 0;
 	if (i != 5 && i != 6)

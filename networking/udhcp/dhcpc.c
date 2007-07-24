@@ -200,7 +200,7 @@ int udhcpc_main(int argc, char **argv)
 		"timeout\0"       Required_argument "T"
 		"version\0"       No_argument       "v"
 		"retries\0"       Required_argument "t"
-		"\0";
+		;
 #endif
 	/* Default options. */
 	client_config.interface = "eth0";

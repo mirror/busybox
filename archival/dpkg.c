@@ -582,10 +582,9 @@ static int read_package_field(const char *package_buffer, char **field_name, cha
 
 static unsigned fill_package_struct(char *control_buffer)
 {
-	static const char *const field_names[] = { "Package", "Version",
-		"Pre-Depends", "Depends","Replaces", "Provides",
-		"Conflicts", "Suggests", "Recommends", "Enhances", NULL
-	};
+	static const char field_names[] = "Package\0""Version\0"
+		"Pre-Depends\0""Depends\0""Replaces\0""Provides\0"
+		"Conflicts\0""Suggests\0""Recommends\0""Enhances\0";
 
 	common_node_t *new_node = xzalloc(sizeof(common_node_t));
 	char *field_name;
@@ -602,10 +601,10 @@ static unsigned fill_package_struct(char *control_buffer)
 				&field_name, &field_value);
 
 		if (field_name == NULL) {
-			goto fill_package_struct_cleanup; /* Oh no, the dreaded goto statement ! */
+			goto fill_package_struct_cleanup; /* Oh no, the dreaded goto statement! */
 		}
 
-		field_num = index_in_str_array(field_names, field_name);
+		field_num = index_in_strings(field_names, field_name);
 		switch (field_num) {
 		case 0: /* Package */
 			new_node->name = search_name_hashtable(field_value);

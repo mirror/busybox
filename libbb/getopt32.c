@@ -79,7 +79,7 @@ const char *applet_long_options
         static const char applet_longopts[] =
 		//"name\0" has_arg val
 		"verbose\0" No_argument "v"
-		"\0";
+		;
         applet_long_options = applet_longopts;
 
         The last member of struct option (val) typically is set to

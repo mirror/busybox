@@ -26,9 +26,9 @@ void ip_parse_common_args(int *argcp, char ***argvp)
 {
 	int argc = *argcp;
 	char **argv = *argvp;
-	static const char * const ip_common_commands[] =
-		{"-family", "inet", "inet6", "link",
-		 "-4", "-6", "-0", "-oneline", 0};
+	static const char ip_common_commands[] =
+		"-family\0""inet\0""inet6\0""link\0"
+		"-4\0""-6\0""-0\0""-oneline\0";
 	enum {
 		ARG_family = 1,
 		ARG_inet,
@@ -53,13 +53,13 @@ void ip_parse_common_args(int *argcp, char ***argvp)
 			break;
 		if (opt[1] == '-')
 			opt++;
-		arg = index_in_str_array(ip_common_commands, opt) + 1;
+		arg = index_in_strings(ip_common_commands, opt) + 1;
 		if (arg == ARG_family) {
 			argc--;
 			argv++;
 			if (!argv[1])
 				bb_show_usage();
-			arg = index_in_str_array(ip_common_commands, argv[1]) + 1;
+			arg = index_in_strings(ip_common_commands, argv[1]) + 1;
 			if (arg == ARG_inet)
 				preferred_family = AF_INET;
 			else if (arg == ARG_inet6)

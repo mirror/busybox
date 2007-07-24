@@ -117,7 +117,7 @@ static const char chcon_longopts[] =
 	"range\0"          Required_argument "l"
 	"verbose\0"        No_argument       "v"
 	"reference\0"      Required_argument "\xff" /* no short option */
-	"\0";
+	;
 #endif
 
 int chcon_main(int argc, char **argv);

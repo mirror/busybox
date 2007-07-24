@@ -294,22 +294,9 @@ static int print_route(struct sockaddr_nl *who ATTRIBUTE_UNUSED,
 /* Return value becomes exitcode. It's okay to not return at all */
 static int iproute_modify(int cmd, unsigned flags, int argc, char **argv)
 {
-	struct rtnl_handle rth;
-	struct {
-		struct nlmsghdr		n;
-		struct rtmsg		r;
-		char			buf[1024];
-	} req;
-	char mxbuf[256];
-	struct rtattr * mxrta = (void*)mxbuf;
-	unsigned mxlock = 0;
-	char *d = NULL;
-	enum { gw_ok = 1<<0, dst_ok = 1<<1, proto_ok = 1<<2, type_ok = 1<<3};
-	smalluint ok = 0;
-	static const char * const keywords[] = {
-		"src", "via", "mtu", "lock", "protocol", USE_FEATURE_IP_RULE("table",)
-		"dev", "oif", "to", NULL
-	};
+	static const char keywords[] =
+		"src\0""via\0""mtu\0""lock\0""protocol\0"USE_FEATURE_IP_RULE("table\0")
+		"dev\0""oif\0""to\0";
 	enum {
 		ARG_src,
 		ARG_via,
@@ -320,6 +307,23 @@ USE_FEATURE_IP_RULE(ARG_table,)
 		ARG_oif,
 		ARG_to
 	};
+	enum {
+		gw_ok = 1 << 0,
+		dst_ok = 1 << 1,
+		proto_ok = 1 << 2,
+		type_ok = 1 << 3
+	};
+	struct rtnl_handle rth;
+	struct {
+		struct nlmsghdr		n;
+		struct rtmsg		r;
+		char			buf[1024];
+	} req;
+	char mxbuf[256];
+	struct rtattr * mxrta = (void*)mxbuf;
+	unsigned mxlock = 0;
+	char *d = NULL;
+	smalluint ok = 0;
 	int arg;
 
 	memset(&req, 0, sizeof(req));
@@ -341,7 +345,7 @@ USE_FEATURE_IP_RULE(ARG_table,)
 	mxrta->rta_len = RTA_LENGTH(0);
 
 	while (argc > 0) {
-		arg = index_in_substr_array(keywords, *argv);
+		arg = index_in_substrings(keywords, *argv);
 		if (arg == ARG_src) {
 			inet_prefix addr;
 			NEXT_ARG();
@@ -361,7 +365,7 @@ USE_FEATURE_IP_RULE(ARG_table,)
 		} else if (arg == ARG_mtu) {
 			unsigned mtu;
 			NEXT_ARG();
-			if (index_in_str_array(keywords, *argv) == PARM_lock) {
+			if (index_in_strings(keywords, *argv) == PARM_lock) {
 				mxlock |= (1<<RTAX_MTU);
 				NEXT_ARG();
 			}
@@ -513,10 +517,9 @@ static int iproute_list_or_flush(int argc, char **argv, int flush)
 	struct rtnl_handle rth;
 	char *id = NULL;
 	char *od = NULL;
-	static const char * const keywords[] = {
-		"protocol", "all", "dev", "oif", "iif", "via", "table", "cache",/*all,*/
-		"from", "root", "match", "exact", "to", /*root,match,exact*/ NULL
-	};
+	static const char keywords[] =
+		"protocol\0""all\0""dev\0""oif\0""iif\0""via\0""table\0""cache\0" /*all*/
+		"from\0""root\0""match\0""exact\0""to\0"/*root match exact*/;
 	enum {
 		ARG_proto, PARM_all,
 		ARG_dev,
@@ -535,13 +538,13 @@ static int iproute_list_or_flush(int argc, char **argv, int flush)
 		bb_error_msg_and_die(bb_msg_requires_arg, "\"ip route flush\"");
 
 	while (argc > 0) {
-		arg = index_in_substr_array(keywords, *argv);
+		arg = index_in_substrings(keywords, *argv);
 		if (arg == ARG_proto) {
 			uint32_t prot = 0;
 			NEXT_ARG();
 			filter.protocolmask = -1;
 			if (rtnl_rtprot_a2n(&prot, *argv)) {
-				if (index_in_str_array(keywords, *argv) != PARM_all)
+				if (index_in_strings(keywords, *argv) != PARM_all)
 					invarg(*argv, "protocol");
 				prot = 0;
 				filter.protocolmask = 0;
@@ -558,7 +561,7 @@ static int iproute_list_or_flush(int argc, char **argv, int flush)
 			get_prefix(&filter.rvia, *argv, do_ipv6);
 		} else if (arg == ARG_table) {
 			NEXT_ARG();
-			parm = index_in_substr_array(keywords, *argv);
+			parm = index_in_substrings(keywords, *argv);
 			if (parm == PARM_cache)
 				filter.tb = -1;
 			else if (parm == PARM_all)
@@ -567,7 +570,7 @@ static int iproute_list_or_flush(int argc, char **argv, int flush)
 				invarg(*argv, "table");
 		} else if (arg == ARG_from) {
 			NEXT_ARG();
-			parm = index_in_substr_array(keywords, *argv);
+			parm = index_in_substrings(keywords, *argv);
 			if (parm == PARM_root) {
 				NEXT_ARG();
 				get_prefix(&filter.rsrc, *argv, do_ipv6);
@@ -584,7 +587,7 @@ static int iproute_list_or_flush(int argc, char **argv, int flush)
 			/* parm = arg; // would be more plausible, we reuse arg here */
 			if (arg == ARG_to) {
 				NEXT_ARG();
-				arg = index_in_substr_array(keywords, *argv);
+				arg = index_in_substrings(keywords, *argv);
 			}
 			if (arg == PARM_root) {
 				NEXT_ARG();
@@ -645,9 +648,8 @@ static int iproute_list_or_flush(int argc, char **argv, int flush)
 			xrtnl_wilddump_request(&rth, do_ipv6, RTM_GETROUTE);
 			filter.flushed = 0;
 			xrtnl_dump_filter(&rth, print_route, stdout);
-			if (filter.flushed == 0) {
+			if (filter.flushed == 0)
 				return 0;
-			}
 			if (flush_update())
 				return 1;
 		}
@@ -655,10 +657,8 @@ static int iproute_list_or_flush(int argc, char **argv, int flush)
 
 	if (filter.tb != -1) {
 		xrtnl_wilddump_request(&rth, do_ipv6, RTM_GETROUTE);
-	} else {
-		if (rtnl_rtcache_request(&rth, do_ipv6) < 0) {
-			bb_perror_msg_and_die("cannot send dump request");
-		}
+	} else if (rtnl_rtcache_request(&rth, do_ipv6) < 0) {
+		bb_perror_msg_and_die("cannot send dump request");
 	}
 	xrtnl_dump_filter(&rth, print_route, stdout);
 
@@ -671,16 +671,16 @@ static int iproute_get(int argc, char **argv)
 {
 	struct rtnl_handle rth;
 	struct {
-		struct nlmsghdr		n;
-		struct rtmsg		r;
-		char			buf[1024];
+		struct nlmsghdr n;
+		struct rtmsg    r;
+		char            buf[1024];
 	} req;
-	char  *idev = NULL;
-	char  *odev = NULL;
+	char *idev = NULL;
+	char *odev = NULL;
 	bool connected = 0;
 	bool from_ok = 0;
-	static const char * const options[] =
-		{ "from", "iif", "oif", "dev", "notify", "connected", "to", 0 };
+	static const char options[] =
+		"from\0""iif\0""oif\0""dev\0""notify\0""connected\0""to\0";
 
 	memset(&req, 0, sizeof(req));
 
@@ -699,7 +699,7 @@ static int iproute_get(int argc, char **argv)
 	req.r.rtm_tos = 0;
 
 	while (argc > 0) {
-		switch (index_in_str_array(options, *argv)) {
+		switch (index_in_strings(options, *argv)) {
 			case 0: /* from */
 			{
 				inet_prefix addr;
@@ -824,19 +824,18 @@ static int iproute_get(int argc, char **argv)
 /* Return value becomes exitcode. It's okay to not return at all */
 int do_iproute(int argc, char **argv)
 {
-	static const char * const ip_route_commands[] = {
-	/*0-3*/	"add", "append", "change", "chg",
-	/*4-7*/	"delete", "get", "list", "show",
-	/*8..*/	"prepend", "replace", "test", "flush", 0
-	};
+	static const char ip_route_commands[] =
+	/*0-3*/	"add\0""append\0""change\0""chg\0"
+	/*4-7*/	"delete\0""get\0""list\0""show\0"
+	/*8..*/	"prepend\0""replace\0""test\0""flush\0";
 	int command_num = 6;
-	unsigned int flags = 0;
+	unsigned flags = 0;
 	int cmd = RTM_NEWROUTE;
 
 	/* "Standard" 'ip r a' treats 'a' as 'add', not 'append' */
 	/* It probably means that it is using "first match" rule */
 	if (*argv) {
-		command_num = index_in_substr_array(ip_route_commands, *argv);
+		command_num = index_in_substrings(ip_route_commands, *argv);
 	}
 	switch (command_num) {
 		case 0: /* add */

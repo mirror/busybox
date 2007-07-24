@@ -276,7 +276,7 @@ static const char getopt_longopts[] =
 	"unquoted\0"     No_argument       "u"
 	"alternative\0"  No_argument       "a"
 	"name\0"         Required_argument "n"
-	"\0";
+	;
 #endif
 
 int getopt_main(int argc, char *argv[]);

@@ -293,7 +293,7 @@ static const char ftpgetput_longopts[] =
 	"username\0" Required_argument "u"
 	"password\0" Required_argument "p"
 	"port\0"     Required_argument "P"
-	"\0";
+	;
 #endif
 
 int ftpgetput_main(int argc, char **argv);

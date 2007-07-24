@@ -14,7 +14,7 @@
 static const char chpasswd_longopts[] =
 	"encrypted\0" No_argument "e"
 	"md5\0"       No_argument "m"
-	"\0";
+	;
 #endif
 
 #define OPT_ENC		1

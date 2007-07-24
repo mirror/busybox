@@ -185,7 +185,7 @@ int hwclock_main(int argc, char **argv)
 		"hctosys\0"   No_argument "s"
 		"systohc\0"   No_argument "w"
 		"file\0"      Required_argument "f"
-		"\0";
+		;
 	applet_long_options = hwclock_longopts;
 #endif
 	opt_complementary = "r--ws:w--rs:s--wr:l--u:u--l";

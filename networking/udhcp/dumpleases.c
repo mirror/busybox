@@ -28,7 +28,7 @@ int dumpleases_main(int argc, char **argv)
 		"absolute\0"  No_argument       "a"
 		"remaining\0" No_argument       "r"
 		"file\0"      Required_argument "f"
-		"\0";
+		;
 
 	applet_long_options = dumpleases_longopts;
 #endif

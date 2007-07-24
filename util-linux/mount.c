@@ -888,33 +888,31 @@ static int nfsmount(struct mntent *mp, int vfsflags, char *filteropts)
 	if (filteropts)	for (opt = strtok(filteropts, ","); opt; opt = strtok(NULL, ",")) {
 		char *opteq = strchr(opt, '=');
 		if (opteq) {
-			static const char *const options[] = {
-				/* 0 */ "rsize",
-				/* 1 */ "wsize",
-				/* 2 */ "timeo",
-				/* 3 */ "retrans",
-				/* 4 */ "acregmin",
-				/* 5 */ "acregmax",
-				/* 6 */ "acdirmin",
-				/* 7 */ "acdirmax",
-				/* 8 */ "actimeo",
-				/* 9 */ "retry",
-				/* 10 */ "port",
-				/* 11 */ "mountport",
-				/* 12 */ "mounthost",
-				/* 13 */ "mountprog",
-				/* 14 */ "mountvers",
-				/* 15 */ "nfsprog",
-				/* 16 */ "nfsvers",
-				/* 17 */ "vers",
-				/* 18 */ "proto",
-				/* 19 */ "namlen",
-				/* 20 */ "addr",
-				NULL
-			};
+			static const char options[] =
+				/* 0 */ "rsize\0"
+				/* 1 */ "wsize\0"
+				/* 2 */ "timeo\0"
+				/* 3 */ "retrans\0"
+				/* 4 */ "acregmin\0"
+				/* 5 */ "acregmax\0"
+				/* 6 */ "acdirmin\0"
+				/* 7 */ "acdirmax\0"
+				/* 8 */ "actimeo\0"
+				/* 9 */ "retry\0"
+				/* 10 */ "port\0"
+				/* 11 */ "mountport\0"
+				/* 12 */ "mounthost\0"
+				/* 13 */ "mountprog\0"
+				/* 14 */ "mountvers\0"
+				/* 15 */ "nfsprog\0"
+				/* 16 */ "nfsvers\0"
+				/* 17 */ "vers\0"
+				/* 18 */ "proto\0"
+				/* 19 */ "namlen\0"
+				/* 20 */ "addr\0";
 			int val = xatoi_u(opteq + 1);
 			*opteq = '\0';
-			switch (index_in_str_array(options, opt)) {
+			switch (index_in_strings(options, opt)) {
 			case 0: // "rsize"
 				data.rsize = val;
 				break;
@@ -993,26 +991,24 @@ static int nfsmount(struct mntent *mp, int vfsflags, char *filteropts)
 			}
 		}
 		else {
-			static const char *const options[] = {
-				"bg",
-				"fg",
-				"soft",
-				"hard",
-				"intr",
-				"posix",
-				"cto",
-				"ac",
-				"tcp",
-				"udp",
-				"lock",
-				NULL
-			};
+			static const char options[] =
+				"bg\0"
+				"fg\0"
+				"soft\0"
+				"hard\0"
+				"intr\0"
+				"posix\0"
+				"cto\0"
+				"ac\0"
+				"tcp\0"
+				"udp\0"
+				"lock\0";
 			int val = 1;
 			if (!strncmp(opt, "no", 2)) {
 				val = 0;
 				opt += 2;
 			}
-			switch (index_in_str_array(options, opt)) {
+			switch (index_in_strings(options, opt)) {
 			case 0: // "bg"
 				bg = val;
 				break;

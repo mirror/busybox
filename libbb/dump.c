@@ -449,7 +449,7 @@ static const char conv_str[] =
 	"\r\\r\0"
 	"\t\\t\0"
 	"\v\\v\0"
-	"\0";
+	;
 
 
 static void conv_c(PR * pr, unsigned char * p)

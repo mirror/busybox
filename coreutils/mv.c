@@ -24,7 +24,7 @@
 static const char mv_longopts[] =
 	"interactive\0" No_argument "i"
 	"force\0"       No_argument "f"
-	"\0";
+	;
 #endif
 
 #define OPT_FILEUTILS_FORCE       1

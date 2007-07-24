@@ -28,7 +28,7 @@ static const char install_longopts[] =
 	"preserve_context\0"    No_argument       "\xff"
 	"preserve-context\0"    No_argument       "\xff"
 #endif
-	"\0";
+	;
 #endif
 
 

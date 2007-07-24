@@ -1242,7 +1242,7 @@ int od_main(int argc, char **argv)
 		"strings\0"           Optional_argument "S"
 		"width\0"             Optional_argument "w"
 		"traditional\0"       No_argument       "\xff"
-		"\0";
+		;
 #endif
 	char *str_A, *str_N, *str_j, *str_S;
 	char *str_w = NULL;

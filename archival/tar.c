@@ -752,7 +752,7 @@ static const char tar_longopts[] =
 # if ENABLE_FEATURE_TAR_FROM
 	"exclude\0"             Required_argument "\xff"
 # endif
-	"\0";
+	;
 #endif
 
 int tar_main(int argc, char **argv);

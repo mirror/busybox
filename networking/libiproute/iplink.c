@@ -171,16 +171,15 @@ static int do_set(int argc, char **argv)
 	struct ifreq ifr0, ifr1;
 	char *newname = NULL;
 	int htype, halen;
-	static const char * const keywords[] = {
-		"up", "down", "name", "mtu", "multicast", "arp", "addr", "dev",
-		"on", "off", NULL
-	};
+	static const char keywords[] =
+		"up\0""down\0""name\0""mtu\0""multicast\0""arp\0""addr\0""dev\0"
+		"on\0""off\0";
 	enum { ARG_up = 1, ARG_down, ARG_name, ARG_mtu, ARG_multicast, ARG_arp,
 		ARG_addr, ARG_dev, PARM_on, PARM_off };
 	smalluint key;
 
 	while (argc > 0) {
-		key = index_in_str_array(keywords, *argv) + 1;
+		key = index_in_strings(keywords, *argv) + 1;
 		if (key == ARG_up) {
 			mask |= IFF_UP;
 			flags |= IFF_UP;
@@ -199,7 +198,7 @@ static int do_set(int argc, char **argv)
 		} else if (key == ARG_multicast) {
 			NEXT_ARG();
 			mask |= IFF_MULTICAST;
-			key = index_in_str_array(keywords, *argv) + 1;
+			key = index_in_strings(keywords, *argv) + 1;
 			if (key == PARM_on) {
 				flags |= IFF_MULTICAST;
 			} else if (key == PARM_off) {
@@ -209,7 +208,7 @@ static int do_set(int argc, char **argv)
 		} else if (key == ARG_arp) {
 			NEXT_ARG();
 			mask |= IFF_NOARP;
-			key = index_in_str_array(keywords, *argv) + 1;
+			key = index_in_strings(keywords, *argv) + 1;
 			if (key == PARM_on) {
 				flags &= ~IFF_NOARP;
 			} else if (key == PARM_off) {
@@ -276,13 +275,12 @@ static int ipaddr_list_link(int argc, char **argv)
 /* Return value becomes exitcode. It's okay to not return at all */
 int do_iplink(int argc, char **argv)
 {
-	static const char * const keywords[] = {
-		"set", "show", "lst", "list", NULL
-	};
+	static const char keywords[] =
+		"set\0""show\0""lst\0""list\0";
 	smalluint key;
 	if (argc <= 0)
 		return ipaddr_list_link(0, NULL);
-	key = index_in_substr_array(keywords, *argv) + 1;
+	key = index_in_substrings(keywords, *argv) + 1;
 	if (key == 0)
 		bb_error_msg_and_die(bb_msg_invalid_arg, *argv, applet_name);
 	argc--; argv++;

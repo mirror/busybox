@@ -277,14 +277,13 @@ static VALUE *eval7(void)
 
 static VALUE *eval6(void)
 {
-	static const char * const keywords[] = {
-		"quote", "length", "match", "index", "substr", NULL
-	};
+	static const char keywords[] =
+		"quote\0""length\0""match\0""index\0""substr\0";
 
 	VALUE *r, *i1, *i2;
 	VALUE *l = l; /* silence gcc */
 	VALUE *v = v; /* silence gcc */
-	int key = *G.args ? index_in_str_array(keywords, *G.args) + 1 : 0;
+	int key = *G.args ? index_in_strings(keywords, *G.args) + 1 : 0;
 
 	if (key == 0) /* not a keyword */
 		return eval7();

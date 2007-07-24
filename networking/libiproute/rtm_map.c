@@ -51,16 +51,16 @@ const char *rtnl_rtntype_n2a(int id, char *buf, int len)
 
 int rtnl_rtntype_a2n(int *id, char *arg)
 {
-	static const char * const keywords[] = {
-		"local", "nat", "broadcast", "brd", "anycast",
-		"multicast", "prohibit", "unreachable", "blackhole",
-		"xresolve", "unicast", "throw", NULL
-	};
-	enum { ARG_local = 1, ARG_nat, ARG_broadcast, ARG_brd, ARG_anycast,
+	static const char keywords[] =
+		"local\0""nat\0""broadcast\0""brd\0""anycast\0"
+		"multicast\0""prohibit\0""unreachable\0""blackhole\0"
+		"xresolve\0""unicast\0""throw\0";
+	enum {
+		ARG_local = 1, ARG_nat, ARG_broadcast, ARG_brd, ARG_anycast,
 		ARG_multicast, ARG_prohibit, ARG_unreachable, ARG_blackhole,
 		ARG_xresolve, ARG_unicast, ARG_throw
 	};
-	const smalluint key = index_in_substr_array(keywords, arg) + 1;
+	const smalluint key = index_in_substrings(keywords, arg) + 1;
 	char *end;
 	unsigned long res;
 

@@ -114,9 +114,8 @@ int wget_main(int argc, char **argv)
 	bool use_proxy = 1;              /* Use proxies if env vars are set  */
 	const char *proxy_flag = "on";  /* Use proxies if env vars are set  */
 	const char *user_agent = "Wget";/* "User-Agent" header field        */
-	static const char * const keywords[] = {
-		"content-length", "transfer-encoding", "chunked", "location", NULL
-	};
+	static const char keywords[] =
+		"content-length\0""transfer-encoding\0""chunked\0""location\0";
 	enum {
 		KEY_content_length = 1, KEY_transfer_encoding, KEY_chunked, KEY_location
 	};
@@ -143,7 +142,7 @@ int wget_main(int argc, char **argv)
 		"user-agent\0"       Required_argument "U"
 		"passive-ftp\0"      No_argument       "\xff"
 		"header\0"           Required_argument "\xfe"
-		"\0";
+		;
 	applet_long_options = wget_longopts;
 #endif
 	/* server.allocated = target.allocated = NULL; */
@@ -327,7 +326,7 @@ int wget_main(int argc, char **argv)
 			 */
 			while ((str = gethdr(buf, sizeof(buf), sfp, &n)) != NULL) {
 				/* gethdr did already convert the "FOO:" string to lowercase */
-				smalluint key = index_in_str_array(keywords, *&buf) + 1;
+				smalluint key = index_in_strings(keywords, *&buf) + 1;
 				if (key == KEY_content_length) {
 					content_len = BB_STRTOOFF(str, NULL, 10);
 					if (errno || content_len < 0) {
@@ -337,7 +336,7 @@ int wget_main(int argc, char **argv)
 					continue;
 				}
 				if (key == KEY_transfer_encoding) {
-					if (index_in_str_array(keywords, str_tolower(str)) + 1 != KEY_chunked)
+					if (index_in_strings(keywords, str_tolower(str)) + 1 != KEY_chunked)
 						bb_error_msg_and_die("server wants to do %s transfer encoding", str);
 					chunked = got_clen = 1;
 				}

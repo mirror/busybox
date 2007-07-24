@@ -51,7 +51,7 @@ static ssize_t full_write_or_warn(int fd, const void *buf, size_t len,
 }
 
 static bool write_and_stats(int fd, const void *buf, size_t len, size_t obs,
-	const char * const filename)
+	const char *filename)
 {
 	ssize_t n = full_write_or_warn(fd, buf, len, filename);
 	if (n < 0)
@@ -78,13 +78,12 @@ int dd_main(int argc, char **argv)
 		TRUNC_FLAG   = 1 << 2,
 		TWOBUFS_FLAG = 1 << 3,
 	};
-	static const char * const keywords[] = {
-		"bs=", "count=", "seek=", "skip=", "if=", "of=",
+	static const char keywords[] =
+		"bs=\0""count=\0""seek=\0""skip=\0""if=\0""of=\0"
 #if ENABLE_FEATURE_DD_IBS_OBS
-		"ibs=", "obs=", "conv=", "notrunc", "sync", "noerror",
+		"ibs=\0""obs=\0""conv=\0""notrunc\0""sync\0""noerror\0"
 #endif
-		NULL
-	};
+		;
 	enum {
 		OP_bs = 1,
 		OP_count,
@@ -134,7 +133,7 @@ int dd_main(int argc, char **argv)
 			bb_show_usage();
 		key_len = key - arg + 1;
 		key = xstrndup(arg, key_len);
-		what = index_in_str_array(keywords, key) + 1;
+		what = index_in_strings(keywords, key) + 1;
 		if (ENABLE_FEATURE_CLEAN_UP)
 			free(key);
 		if (what == 0)
@@ -153,13 +152,13 @@ int dd_main(int argc, char **argv)
 			if (what == OP_conv) {
 				while (1) {
 					/* find ',', replace them with nil so we can use arg for
-					 * index_in_str_array without copying.
+					 * index_in_strings() without copying.
 					 * We rely on arg being non-null, else strchr would fault.
 					 */
 					key = strchr(arg, ',');
 					if (key)
 						*key = '\0';
-					what = index_in_str_array(keywords, arg) + 1;
+					what = index_in_strings(keywords, arg) + 1;
 					if (what < OP_conv_notrunc)
 						bb_error_msg_and_die(bb_msg_invalid_arg, arg, "conv");
 					if (what == OP_conv_notrunc)
@@ -298,15 +297,15 @@ int dd_main(int argc, char **argv)
 			G.out_part++;
 	}
 	if (close(ifd) < 0) {
-die_infile:
+ die_infile:
 		bb_perror_msg_and_die("%s", infile);
 	}
 
 	if (close(ofd) < 0) {
-die_outfile:
+ die_outfile:
 		bb_perror_msg_and_die("%s", outfile);
 	}
-out_status:
+ out_status:
 	dd_output_status(0);
 
 	return EXIT_SUCCESS;

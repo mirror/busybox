@@ -412,7 +412,7 @@ static void ipaddr_reset_filter(int _oneline)
 /* Return value becomes exitcode. It's okay to not return at all */
 int ipaddr_list_or_flush(int argc, char **argv, int flush)
 {
-	static const char *const option[] = { "to", "scope", "up", "label", "dev", 0 };
+	static const char option[] = "to\0""scope\0""up\0""label\0""dev\0";
 
 	struct nlmsg_list *linfo = NULL;
 	struct nlmsg_list *ainfo = NULL;
@@ -437,7 +437,7 @@ int ipaddr_list_or_flush(int argc, char **argv, int flush)
 	}
 
 	while (argc > 0) {
-		const int option_num = index_in_str_array(option, *argv);
+		const int option_num = index_in_strings(option, *argv);
 		switch (option_num) {
 			case 0: /* to */
 				NEXT_ARG();
@@ -599,18 +599,17 @@ static int default_scope(inet_prefix *lcl)
 /* Return value becomes exitcode. It's okay to not return at all */
 static int ipaddr_modify(int cmd, int argc, char **argv)
 {
-	static const char *const option[] = {
-		"peer", "remote", "broadcast", "brd",
-		"anycast", "scope", "dev", "label", "local", 0
-	};
+	static const char option[] =
+		"peer\0""remote\0""broadcast\0""brd\0"
+		"anycast\0""scope\0""dev\0""label\0""local\0";
 	struct rtnl_handle rth;
 	struct {
-		struct nlmsghdr		n;
-		struct ifaddrmsg	ifa;
-		char			buf[256];
+		struct nlmsghdr  n;
+		struct ifaddrmsg ifa;
+		char             buf[256];
 	} req;
-	char  *d = NULL;
-	char  *l = NULL;
+	char *d = NULL;
+	char *l = NULL;
 	inet_prefix lcl;
 	inet_prefix peer;
 	int local_len = 0;
@@ -627,7 +626,7 @@ static int ipaddr_modify(int cmd, int argc, char **argv)
 	req.ifa.ifa_family = preferred_family;
 
 	while (argc > 0) {
-		const int option_num = index_in_str_array(option, *argv);
+		const int option_num = index_in_strings(option, *argv);
 		switch (option_num) {
 			case 0: /* peer */
 			case 1: /* remote */
@@ -769,14 +768,13 @@ static int ipaddr_modify(int cmd, int argc, char **argv)
 /* Return value becomes exitcode. It's okay to not return at all */
 int do_ipaddr(int argc, char **argv)
 {
-	static const char *const commands[] = {
-		"add", "delete", "list", "show", "lst", "flush", 0
-	};
+	static const char commands[] =
+		"add\0""delete\0""list\0""show\0""lst\0""flush\0";
 
 	int command_num = 2; /* default command is list */
 
 	if (*argv) {
-		command_num = index_in_substr_array(commands, *argv);
+		command_num = index_in_substrings(commands, *argv);
 	}
 	if (command_num < 0 || command_num > 5)
 		bb_error_msg_and_die("unknown command %s", *argv);
