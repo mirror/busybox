@@ -2978,7 +2978,7 @@ USE_FEATURE_RUN_PARTS_FANCY("\n	-l	Prints names of all matching files even when 
        "\n	-d	Show which specification matched each file" \
        "\n	-l	Log changes in file labels to syslog" \
        "\n	-n	Don't change any file labels" \
-       "\n	-q	Suppress no-error output" \
+       "\n	-q	Suppress warnings" \
        "\n	-r dir	Use an altenate root path" \
        "\n	-e dir	Exclude directory" \
        "\n	-F	Force reset of context to match file_context for customizable files" \

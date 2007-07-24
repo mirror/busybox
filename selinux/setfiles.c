@@ -128,10 +128,10 @@ static void inc_err(void)
 	}
 }
 
-static int add_exclude(const char *directory)
+static bool add_exclude(const char *const directory)
 {
 	struct stat sb;
-	size_t len = 0;
+	size_t len;
 
 	if (directory == NULL || directory[0] != '/') {
 		bb_error_msg("full path required for exclude: %s", directory);
@@ -161,7 +161,7 @@ static int add_exclude(const char *directory)
 	return 0;
 }
 
-static int exclude(const char *file)
+static bool exclude(const char *file)
 {
 	int i = 0;
 	for (i = 0; i < excludeCtr; i++) {
@@ -268,7 +268,7 @@ static int match(const char *name, struct stat *sb, char **con)
 
 /* Compare two contexts to see if their differences are "significant",
  * or whether the only difference is in the user. */
-static int only_changed_user(const char *a, const char *b)
+static bool only_changed_user(const char *a, const char *b)
 {
 	if (FLAG_F_force)
 		return 0;
@@ -289,7 +289,7 @@ static int restore(const char *file)
 	int i, j, ret;
 	char *context = NULL;
 	char *newcon = NULL;
-	int user_only_changed = 0;
+	bool user_only_changed = 0;
 	size_t len = strlen(my_file);
 	int retval = 0;
 
@@ -561,7 +561,7 @@ int setfiles_main(int argc, char **argv)
 
 	set_matchpathcon_flags(matchpathcon_flags);
 
-	opt_complementary = "e::vv:v--p:p--v";
+	opt_complementary = "e::vv:v--p:p--v:v--q:q--v";
 	/* Option order must match OPT_x definitions! */
 	if (applet_name[0] == 'r') { /* restorecon */
 		flags = getopt32(argc, argv, "de:f:ilnpqrsvo:FWR",
