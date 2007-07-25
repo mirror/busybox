@@ -11,6 +11,9 @@
 
 #include "libbb.h"
 
+/* Absolute maximum on output line length */
+enum { MAX_WIDTH = 2*1024 };
+
 #if ENABLE_DESKTOP
 
 /* Print value to buf, max size+1 chars (including trailing '\0') */
@@ -317,10 +320,11 @@ int ps_main(int argc, char **argv)
 
 	/* Was INT_MAX, but some libc's go belly up with printf("%.*s")
 	 * and such large widths */
-	terminal_width = 30000;
+	terminal_width = MAX_WIDTH;
 	if (isatty(1)) {
 		get_terminal_width_height(1, &terminal_width, NULL);
-		terminal_width--;
+		if (--terminal_width > MAX_WIDTH)
+			terminal_width = MAX_WIDTH;
 	}
 	format_header();
 
@@ -358,11 +362,12 @@ int ps_main(int argc, char **argv)
 	 * if w is given more than once, it is "unlimited"
 	 */
 	if (w_count) {
-		terminal_width = (w_count==1) ? 132 : INT_MAX;
+		terminal_width = (w_count==1) ? 132 : MAX_WIDTH;
 	} else {
 		get_terminal_width_height(1, &terminal_width, NULL);
 		/* Go one less... */
-		terminal_width--;
+		if (--terminal_width > MAX_WIDTH)
+			terminal_width = MAX_WIDTH;
 	}
 #else /* only ENABLE_SELINUX */
 	i = getopt32(argc, argv, "Z");
