@@ -355,6 +355,7 @@ getopt32(int argc, char **argv, const char *applet_opts, ...)
 		}
 		/* count == no. of longopts + 1 */
 		long_options = alloca(count * sizeof(*long_options));
+		memset(long_options, 0, count * sizeof(*long_options));
 		i = 0;
 		optstr = applet_long_options;
 		while (--count) {
