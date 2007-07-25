@@ -25,14 +25,6 @@ struct globals {
 	int excludeCtr;
 	int errors;
 	int verbose; /* getopt32 uses it, has to be int */
-	//smallint force;
-	//smallint progress;
-	//smallint debug;
-	//smallint dry_run;
-	//smallint quiet;
-	//smallint ignore_enoent;
-	//smallint take_log;
-	//smallint warn_no_match;
 	smallint recurse; /* Recursive descent */
 	smallint follow_mounts;
 	/* Behavior flags determined based on setfiles vs. restorecon */
@@ -60,14 +52,6 @@ void BUG_setfiles_globals_too_big(void);
 #define excludeCtr         (G.excludeCtr        )
 #define errors             (G.errors            )
 #define verbose            (G.verbose           )
-//#define force              (G.force             )
-//#define progress           (G.progress          )
-//#define debug              (G.debug             )
-//#define dry_run            (G.dry_run           )
-//#define quiet              (G.quiet             )
-//#define ignore_enoent      (G.ignore_enoent     )
-//#define take_log           (G.take_log          )
-//#define warn_no_match      (G.warn_no_match     )
 #define recurse            (G.recurse           )
 #define follow_mounts      (G.follow_mounts     )
 #define expand_realpath    (G.expand_realpath   )
@@ -128,27 +112,26 @@ static void inc_err(void)
 	}
 }
 
-static bool add_exclude(const char *const directory)
+static void add_exclude(const char *const directory)
 {
 	struct stat sb;
 	size_t len;
 
 	if (directory == NULL || directory[0] != '/') {
-		bb_error_msg("full path required for exclude: %s", directory);
-		return 1;
+		bb_error_msg_and_die("full path required for exclude: %s", directory);
+
 	}
 	if (lstat(directory, &sb)) {
 		bb_error_msg("directory \"%s\" not found, ignoring", directory);
-		return 0;
+		return;
 	}
 	if ((sb.st_mode & S_IFDIR) == 0) {
 		bb_error_msg("\"%s\" is not a directory: mode %o, ignoring",
 			directory, sb.st_mode);
-		return 0;
+		return;
 	}
 	if (excludeCtr == MAX_EXCLUDES) {
-		bb_error_msg("maximum excludes %d exceeded", MAX_EXCLUDES);
-		return 1;
+		bb_error_msg_and_die("maximum excludes %d exceeded", MAX_EXCLUDES);
 	}
 
 	len = strlen(directory);
@@ -157,8 +140,6 @@ static bool add_exclude(const char *const directory)
 	}
 	excludeArray[excludeCtr].directory = xstrndup(directory, len);
 	excludeArray[excludeCtr++].size = len;
-
-	return 0;
 }
 
 static bool exclude(const char *file)
@@ -593,39 +574,15 @@ int setfiles_main(int argc, char **argv)
 	}
 #endif
 
-	//if (flags & OPT_d) {
-	//	debug = 1;
-	//}
-	if (flags & OPT_e) {
-		if (exclude_dir == NULL) {
-			bb_show_usage();
-		}
-		while (exclude_dir) {
-			if (add_exclude(llist_pop(&exclude_dir)))
-				exit(1);
-		}
-	}
-	//if (flags & OPT_i) {
-	//	ignore_enoent = 1;
-	//}
-	//if (flags & OPT_l) {
-	//	take_log = 1;
-	//}
-	//if (flags & OPT_F) {
-	//	force = 1;
-	//}
-	//if (flags & OPT_n) {
-	//	dry_run = 1;
-	//}
+	while (exclude_dir)
+		add_exclude(llist_pop(&exclude_dir));
+
 	if (flags & OPT_o) {
 		outfile = stdout;
 		if (NOT_LONE_CHAR(out_filename, '-')) {
 			outfile = xfopen(out_filename, "w");
 		}
 	}
-	//if (flags & OPT_q) {
-	//	quiet = 1;
-	//}
 	if (applet_name[0] == 'r') { /* restorecon */
 		if (flags & (OPT_r | OPT_R))
 			recurse = 1;
@@ -638,12 +595,6 @@ int setfiles_main(int argc, char **argv)
 		input_filename = "-";
 		add_assoc = 0;
 	}
-	//if (flags & OPT_p) {
-	//	progress = 1;
-	//}
-	//if (flags & OPT_W) {
-	//	warn_no_match = 1;
-	//}
 
 	if (applet_name[0] == 's') { /* setfiles */
 		/* Use our own invalid context checking function so that
