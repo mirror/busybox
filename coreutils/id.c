@@ -20,13 +20,13 @@
 #define JUST_USER         4
 #define JUST_GROUP        8
 #if ENABLE_SELINUX
-#define JUST_CONTEXT    16
+#define JUST_CONTEXT     16
 #endif
 
-static short printf_full(unsigned int id, const char *arg, const char prefix)
+static int printf_full(unsigned int id, const char *arg, const char prefix)
 {
 	const char *fmt = "%cid=%u";
-	short status = EXIT_FAILURE;
+	int status = EXIT_FAILURE;
 
 	if (arg) {
 		fmt = "%cid=%u(%s)";
@@ -71,8 +71,8 @@ int id_main(int argc, char **argv)
 	if (flags & (JUST_GROUP | JUST_USER USE_SELINUX(| JUST_CONTEXT))) {
 		/* JUST_GROUP and JUST_USER are mutually exclusive */
 		if (flags & NAME_NOT_NUMBER) {
-			/* bb_getpwuid and bb_getgrgid exit on failure so puts cannot segfault */
-			puts((flags & JUST_USER) ? bb_getpwuid(NULL, uid, -1 ) : bb_getgrgid(NULL, gid, -1 ));
+			/* bb_getXXXid(-1) exit on failure, puts cannot segfault */
+			puts((flags & JUST_USER) ? bb_getpwuid(NULL, -1, uid) : bb_getgrgid(NULL, -1, gid));
 		} else {
 			if (flags & JUST_USER) {
 				printf("%u\n", uid);
@@ -100,11 +100,10 @@ int id_main(int argc, char **argv)
 	}
 
 	/* Print full info like GNU id */
-	/* bb_getpwuid doesn't exit on failure here */
-	status = printf_full(uid, bb_getpwuid(NULL, uid, 0), 'u');
+	/* bb_getpwuid(0) doesn't exit on failure (returns NULL) */
+	status = printf_full(uid, bb_getpwuid(NULL, 0, uid), 'u');
 	putchar(' ');
-	/* bb_getgrgid doesn't exit on failure here */
-	status |= printf_full(gid, bb_getgrgid(NULL, gid, 0), 'g');
+	status |= printf_full(gid, bb_getgrgid(NULL, 0, gid), 'g');
 
 #if ENABLE_SELINUX
 	if (is_selinux_enabled()) {

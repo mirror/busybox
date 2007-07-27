@@ -51,13 +51,13 @@ static char* new_password(const struct passwd *pw, uid_t myuid, int algo)
 		goto err_ret;
 	}
 
-	/*memset(salt, 0, sizeof(salt)); - why?*/
 	crypt_make_salt(salt, 1, 0); /* des */
 	if (algo) { /* MD5 */
 		strcpy(salt, "$1$");
 		crypt_make_salt(salt + 3, 4, 0);
 	}
-	ret = xstrdup(pw_encrypt(newp, salt)); /* returns ptr to static */
+	/* pw_encrypt returns ptr to static */
+	ret = xstrdup(pw_encrypt(newp, salt));
 	/* whee, success! */
 
  err_ret:
@@ -80,7 +80,7 @@ int passwd_main(int argc, char **argv)
 		OPT_delete = 0x8, /* -d - delete password */
 		OPT_lud = 0xe,
 		STATE_ALGO_md5 = 0x10,
-		/*STATE_ALGO_des = 0x20, not needed yet */
+		//STATE_ALGO_des = 0x20, not needed yet
 	};
 	unsigned opt;
 	int rc;
@@ -104,7 +104,7 @@ int passwd_main(int argc, char **argv)
 	logmode = LOGMODE_BOTH;
 	openlog(applet_name, LOG_NOWAIT, LOG_AUTH);
 	opt = getopt32(argc, argv, "a:lud", &opt_a);
-	argc -= optind;
+	//argc -= optind;
 	argv += optind;
 
 	if (strcasecmp(opt_a, "des") != 0) /* -a */
@@ -112,11 +112,13 @@ int passwd_main(int argc, char **argv)
 	//else
 	//	opt |= STATE_ALGO_des;
 	myuid = getuid();
-	if ((opt & OPT_lud) && (!argc || myuid))
+	/* -l, -u, -d require root priv and username argument */
+	if ((opt & OPT_lud) && (myuid || !argv[0]))
 		bb_show_usage();
 
-	myname = xstrdup(bb_getpwuid(NULL, myuid, -1));
-	name = argc ? argv[0] : myname;
+	/* Will complain and die if username not found */
+	myname = xstrdup(bb_getpwuid(NULL, -1, myuid));
+	name = argv[0] ? argv[0] : myname;
 
 	pw = getpwnam(name);
 	if (!pw) bb_error_msg_and_die("unknown user %s", name);
@@ -158,9 +160,12 @@ int passwd_main(int argc, char **argv)
 		newp = xasprintf("!%s", pw->pw_passwd);
 	} else if (opt & OPT_unlock) {
 		if (c) goto skip; /* not '!' */
+		/* pw->pw_passwd pints to static storage,
+		 * strdup'ing to avoid nasty surprizes */
 		newp = xstrdup(&pw->pw_passwd[1]);
 	} else if (opt & OPT_delete) {
-		newp = xstrdup("");
+		//newp = xstrdup("");
+		newp = (char*)"";
 	}
 
 	rlimit_fsize.rlim_cur = rlimit_fsize.rlim_max = 512L * 30000;
@@ -177,8 +182,8 @@ int passwd_main(int argc, char **argv)
 				filename);
 	bb_info_msg("Password for %s changed by %s", name, myname);
 
-	if (ENABLE_FEATURE_CLEAN_UP) free(newp);
-skip:
+	//if (ENABLE_FEATURE_CLEAN_UP) free(newp);
+ skip:
 	if (!newp) {
 		bb_error_msg_and_die("password for %s is already %slocked",
 			name, (opt & OPT_unlock) ? "un" : "");

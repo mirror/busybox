@@ -19,7 +19,8 @@ int whoami_main(int argc, char **argv)
 	if (argc > 1)
 		bb_show_usage();
 
-	puts(bb_getpwuid(NULL, geteuid(), -1));
+	/* Will complain and die if username not found */
+	puts(bb_getpwuid(NULL, -1, geteuid()));
 
 	return fflush(stdout);
 }

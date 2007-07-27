@@ -89,7 +89,7 @@ int logger_main(int argc, char **argv)
 	char name[80];
 
 	/* Fill out the name string early (may be overwritten later) */
-	bb_getpwuid(name, geteuid(), sizeof(name));
+	bb_getpwuid(name, sizeof(name), geteuid());
 	str_t = name;
 
 	/* Parse any options */

@@ -11,22 +11,20 @@
 
 #define assert(x) ((void)0)
 
-/*
- * if bufsize is > 0 char *buffer cannot be set to NULL.
- *                   If idname is not NULL it is written on the static
- *                   allocated buffer (and a pointer to it is returned).
- *                   if idname is NULL, id as string is written to the static
- *                   allocated buffer and NULL is returned.
- * if bufsize is = 0 char *buffer can be set to NULL.
- *                   If idname exists a pointer to it is returned,
- *                   else NULL is returned.
- * if bufsize is < 0 char *buffer can be set to NULL.
- *                   If idname exists a pointer to it is returned,
- *                   else an error message is printed and the program exits.
- */
-
 /* internal function for bb_getpwuid and bb_getgrgid */
-static char* bb_getug(char *buffer, char *idname, long id, int bufsize, char prefix)
+/* Hacked by Tito Ragusa (c) 2004 <farmatito@tiscali.it> to make it more
+ * flexible:
+ *
+ * bufsize > 0:      If idname is not NULL it is copied to buffer,
+ *                   and buffer is returned. Else id as string is written
+ *                   to buffer, and NULL is returned.
+ *
+ * bufsize == 0:     idname is returned.
+ *
+ * bufsize < 0:      If idname is not NULL it is returned.
+ *                   Else an error message is printed and the program exits.
+ */
+static char* bb_getug(char *buffer, int bufsize, char *idname, long id, char prefix)
 {
 	if (bufsize > 0) {
 		assert(buffer != NULL);
@@ -40,31 +38,29 @@ static char* bb_getug(char *buffer, char *idname, long id, int bufsize, char pre
 	return idname;
 }
 
-/* Hacked by Tito Ragusa (c) 2004 <farmatito@tiscali.it> to make it more
- * flexible :
- *
- * if bufsize is > 0 char *group cannot be set to NULL.
- *                   On success groupname is written on static allocated buffer
- *                   group (and a pointer to it is returned).
- *                   On failure gid as string is written to static allocated
- *                   buffer group and NULL is returned.
- * if bufsize is = 0 char *group can be set to NULL.
- *                   On success groupname is returned.
- *                   On failure NULL is returned.
- * if bufsize is < 0 char *group can be set to NULL.
- *                   On success groupname is returned.
- *                   On failure an error message is printed and
- *                   the program exits.
+/* bb_getpwuid, bb_getgrgid:
+ * bb_getXXXid(buf, bufsz, id) - copy user/group name or id
+ *               as a string to buf, return user/group name or NULL
+ * bb_getXXXid(NULL, 0, id) - return user/group name or NULL
+ * bb_getXXXid(NULL, -1, id) - return user/group name or exit
  */
+/* gets a username given a uid */
+char* bb_getpwuid(char *name, int bufsize, long uid)
+{
+	struct passwd *myuser = getpwuid(uid);
 
+	return bb_getug(name, bufsize,
+			(myuser ? myuser->pw_name : (char*)myuser),
+			uid, 'u');
+}
 /* gets a groupname given a gid */
-char* bb_getgrgid(char *group, long gid, int bufsize)
+char* bb_getgrgid(char *group, int bufsize, long gid)
 {
 	struct group *mygroup = getgrgid(gid);
 
-	return bb_getug(group,
-			mygroup ? mygroup->gr_name : (char *)mygroup,
-			gid, bufsize, 'g');
+	return bb_getug(group, bufsize,
+			(mygroup ? mygroup->gr_name : (char*)mygroup),
+			gid, 'g');
 }
 
 /* returns a gid given a group name */
@@ -89,32 +85,6 @@ long xuname2uid(const char *name)
 		bb_error_msg_and_die("unknown user name: %s", name);
 
 	return myuser->pw_uid;
-}
-
-/* Hacked by Tito Ragusa (c) 2004 <farmatito@tiscali.it> to make it more
- * flexible :
- *
- * if bufsize is > 0 char *name cannot be set to NULL.
- *                   On success username is written on the static allocated
- *                   buffer name (and a pointer to it is returned).
- *                   On failure uid as string is written to the static
- *                   allocated buffer name and NULL is returned.
- * if bufsize is = 0 char *name can be set to NULL.
- *                   On success username is returned.
- *                   On failure NULL is returned.
- * if bufsize is < 0 char *name can be set to NULL
- *                   On success username is returned.
- *                   On failure an error message is printed and
- *                   the program exits.
- */
-
-/* gets a username given a uid */
-char* bb_getpwuid(char *name, long uid, int bufsize)
-{
-	struct passwd *myuser = getpwuid(uid);
-
-	return bb_getug(name, myuser ? myuser->pw_name : (char *)myuser,
-				uid, bufsize, 'u');
 }
 
 unsigned long get_ug_id(const char *s,

@@ -52,7 +52,7 @@ static int get_cached(cache_t *cp, unsigned id)
 }
 #endif
 
-typedef char* ug_func(char *name, long uid, int bufsize);
+typedef char* ug_func(char *name, int bufsize, long uid);
 static char* get_cached(cache_t *cp, unsigned id, ug_func* fp)
 {
 	int i;
@@ -62,7 +62,8 @@ static char* get_cached(cache_t *cp, unsigned id, ug_func* fp)
 	i = cp->size++;
 	cp->cache = xrealloc(cp->cache, cp->size * sizeof(*cp->cache));
 	cp->cache[i].id = id;
-	fp(cp->cache[i].name, id, sizeof(cp->cache[i].name));
+	/* Never fails. Generates numeric string if name isn't found */
+	fp(cp->cache[i].name, sizeof(cp->cache[i].name), id);
 	return cp->cache[i].name;
 }
 const char* get_cached_username(uid_t uid)

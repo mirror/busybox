@@ -481,10 +481,14 @@ struct bb_uidgid_t {
 int get_uidgid(struct bb_uidgid_t*, const char*, int numeric_ok);
 /* chown-like handling of "user[:[group]" */
 void parse_chown_usergroup_or_die(struct bb_uidgid_t *u, char *user_group);
-/* what is this? */
-/*extern char *bb_getug(char *buffer, char *idname, long id, int bufsize, char prefix);*/
-char *bb_getpwuid(char *name, long uid, int bufsize);
-char *bb_getgrgid(char *group, long gid, int bufsize);
+/* bb_getpwuid, bb_getgrgid:
+bb_getXXXid(buf, bufsz, id) - copy user/group name or id
+                as a string to buf, return user/group name or NULL
+bb_getXXXid(NULL, 0, id) - return user/group name or NULL
+bb_getXXXid(NULL, -1, id) - return user/group name or exit
+*/
+char *bb_getpwuid(char *name, int bufsize, long uid);
+char *bb_getgrgid(char *group, int bufsize, long gid);
 /* versions which cache results (useful for ps, ls etc) */
 const char* get_cached_username(uid_t uid);
 const char* get_cached_groupname(gid_t gid);
@@ -596,6 +600,7 @@ extern const char *opt_complementary;
 extern const char *applet_long_options;
 #endif
 extern uint32_t option_mask32;
+/* TODO: don't pass argc, determine it by looking at argv */
 extern uint32_t getopt32(int argc, char **argv, const char *applet_opts, ...);
 
 
