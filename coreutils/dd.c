@@ -32,6 +32,9 @@ struct globals {
 	off_t out_full, out_part, in_full, in_part;
 };
 #define G (*(struct globals*)&bb_common_bufsiz1)
+/* We have to zero it out because of NOEXEC */
+#define INIT_G() memset(&G, 0, sizeof(G))
+
 
 static void dd_output_status(int ATTRIBUTE_UNUSED cur_signal)
 {
@@ -73,10 +76,11 @@ int dd_main(int argc, char **argv);
 int dd_main(int argc, char **argv)
 {
 	enum {
-		SYNC_FLAG    = 1 << 0,
-		NOERROR      = 1 << 1,
-		TRUNC_FLAG   = 1 << 2,
-		TWOBUFS_FLAG = 1 << 3,
+		FLAG_SYNC    = 1 << 0,
+		FLAG_NOERROR = 1 << 1,
+		FLAG_NOTRUNC = 1 << 2,
+		FLAG_TWOBUFS = 1 << 3,
+		FLAG_COUNT   = 1 << 4,
 	};
 	static const char keywords[] =
 		"bs=\0""count=\0""seek=\0""skip=\0""if=\0""of=\0"
@@ -100,25 +104,41 @@ int dd_main(int argc, char **argv)
 		OP_conv_noerror,
 #endif
 	};
-	int flags = TRUNC_FLAG;
-	size_t oc = 0, ibs = 512, obs = 512;
+	size_t ibs = 512, obs = 512;
 	ssize_t n, w;
-	off_t seek = 0, skip = 0, count = OFF_T_MAX;
-	int ifd, ofd;
-	const char *infile = NULL, *outfile = NULL;
 	char *ibuf, *obuf;
+	/* And these are all zeroed at once! */
+	struct {
+		int flags;
+		int ifd, ofd;
+		size_t oc;
+		off_t count;
+		off_t seek, skip;
+		const char *infile, *outfile;
+#if ENABLE_FEATURE_DD_SIGNAL_HANDLING
+		struct sigaction sigact;
+#endif
+	} Z;
+#define flags   (Z.flags  )
+#define ifd     (Z.ifd    )
+#define ofd     (Z.ofd    )
+#define oc      (Z.oc     )
+#define count   (Z.count  )
+#define seek    (Z.seek   )
+#define skip    (Z.skip   )
+#define infile  (Z.infile )
+#define outfile (Z.outfile)
+#define sigact  (Z.sigact )
 
-	memset(&G, 0, sizeof(G)); /* because of NOEXEC */
+	memset(&Z, 0, sizeof(Z));
+	INIT_G();
 
-	if (ENABLE_FEATURE_DD_SIGNAL_HANDLING) {
-		struct sigaction sa;
-
-		memset(&sa, 0, sizeof(sa));
-		sa.sa_handler = dd_output_status;
-		sa.sa_flags = SA_RESTART;
-		sigemptyset(&sa.sa_mask);
-		sigaction(SIGUSR1, &sa, 0);
-	}
+#if ENABLE_FEATURE_DD_SIGNAL_HANDLING
+	sigact.sa_handler = dd_output_status;
+	sigact.sa_flags = SA_RESTART;
+	sigemptyset(&sigact.sa_mask);
+	sigaction(SIGUSR1, &sigact, NULL);
+#endif
 
 	for (n = 1; n < argc; n++) {
 		smalluint key_len;
@@ -162,11 +182,11 @@ int dd_main(int argc, char **argv)
 					if (what < OP_conv_notrunc)
 						bb_error_msg_and_die(bb_msg_invalid_arg, arg, "conv");
 					if (what == OP_conv_notrunc)
-						flags &= ~TRUNC_FLAG;
+						flags |= FLAG_NOTRUNC;
 					if (what == OP_conv_sync)
-						flags |= SYNC_FLAG;
+						flags |= FLAG_SYNC;
 					if (what == OP_conv_noerror)
-						flags |= NOERROR;
+						flags |= FLAG_NOERROR;
 					if (!key) /* no ',' left, so this was the last specifier */
 						break;
 					arg = key + 1; /* skip this keyword and ',' */
@@ -180,6 +200,7 @@ int dd_main(int argc, char **argv)
 		}
 		/* These can be large: */
 		if (what == OP_count) {
+			flags |= FLAG_COUNT;
 			count = XATOU_SFX(arg, dd_suffixes);
 			continue;
 		}
@@ -201,24 +222,24 @@ int dd_main(int argc, char **argv)
 //XXX:FIXME for huge ibs or obs, malloc'ing them isn't the brightest idea ever
 	ibuf = obuf = xmalloc(ibs);
 	if (ibs != obs) {
-		flags |= TWOBUFS_FLAG;
+		flags |= FLAG_TWOBUFS;
 		obuf = xmalloc(obs);
 	}
 	if (infile != NULL)
 		ifd = xopen(infile, O_RDONLY);
 	else {
-		ifd = STDIN_FILENO;
+		/* ifd = STDIN_FILENO; - it's zero and it's already there */
 		infile = bb_msg_standard_input;
 	}
 	if (outfile != NULL) {
 		int oflag = O_WRONLY | O_CREAT;
 
-		if (!seek && (flags & TRUNC_FLAG))
+		if (!seek && !(flags & FLAG_NOTRUNC))
 			oflag |= O_TRUNC;
 
 		ofd = xopen(outfile, oflag);
 
-		if (seek && (flags & TRUNC_FLAG)) {
+		if (seek && !(flags & FLAG_NOTRUNC)) {
 			if (ftruncate(ofd, seek * obs) < 0) {
 				struct stat st;
 
@@ -247,14 +268,14 @@ int dd_main(int argc, char **argv)
 			goto die_outfile;
 	}
 
-	while (G.in_full + G.in_part != count) {
-		if (flags & NOERROR) /* Pre-zero the buffer when for NOERROR */
-			memset(ibuf, '\0', ibs);
+	while ((flags & FLAG_COUNT) && (G.in_full + G.in_part != count)) {
+		if (flags & FLAG_NOERROR) /* Pre-zero the buffer if conv=noerror */
+			memset(ibuf, 0, ibs);
 		n = safe_read(ifd, ibuf, ibs);
 		if (n == 0)
 			break;
 		if (n < 0) {
-			if (flags & NOERROR) {
+			if (flags & FLAG_NOERROR) {
 				n = ibs;
 				bb_perror_msg("%s", infile);
 			} else
@@ -264,12 +285,12 @@ int dd_main(int argc, char **argv)
 			G.in_full++;
 		else {
 			G.in_part++;
-			if (flags & SYNC_FLAG) {
+			if (flags & FLAG_SYNC) {
 				memset(ibuf + n, '\0', ibs - n);
 				n = ibs;
 			}
 		}
-		if (flags & TWOBUFS_FLAG) {
+		if (flags & FLAG_TWOBUFS) {
 			char *tmp = ibuf;
 			while (n) {
 				size_t d = obs - oc;
