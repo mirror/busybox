@@ -29,7 +29,7 @@ static const struct suffix_mult sfx[] = {
 	{ "m", 60 },
 	{ "h", 60*60 },
 	{ "d", 24*60*60 },
-	{ NULL, 0 }
+	{ }
 };
 #endif
 

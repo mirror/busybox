@@ -451,7 +451,7 @@ const char *make_human_readable_str(unsigned long long size,
 char *bin2hex(char *buf, const char *cp, int count);
 
 struct suffix_mult {
-	const char *suffix;
+	char suffix[4];
 	unsigned mult;
 };
 #include "xatonum.h"

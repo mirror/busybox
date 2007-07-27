@@ -488,9 +488,9 @@ static unsigned logdir_open(struct logdir *ld, const char *fn)
 				break;
 			case 's': {
 				static const struct suffix_mult km_suffixes[] = {
-						{ "k", 1024 },
-						{ "m", 1024*1024 },
-						{ NULL, 0 }
+					{ "k", 1024 },
+					{ "m", 1024*1024 },
+					{ }
 				};
 				ld->sizemax = xatou_sfx(&s[1], km_suffixes);
 				break;
@@ -503,10 +503,10 @@ static unsigned logdir_open(struct logdir *ld, const char *fn)
 				break;
 			case 't': {
 				static const struct suffix_mult mh_suffixes[] = {
-						{ "m", 60 },
-						{ "h", 60*60 },
-						/*{ "d", 24*60*60 },*/
-						{ NULL, 0 }
+					{ "m", 60 },
+					{ "h", 60*60 },
+					/*{ "d", 24*60*60 },*/
+					{ }
 				};
 				ld->tmax = xatou_sfx(&s[1], mh_suffixes);
 				if (ld->tmax) {

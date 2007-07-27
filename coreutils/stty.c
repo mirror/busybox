@@ -524,10 +524,10 @@ static void display_window_size(const int fancy)
 }
 
 static const struct suffix_mult stty_suffixes[] = {
-	{"b",  512 },
-	{"k",  1024},
-	{"B",  1024},
-	{NULL, 0   }
+	{ "b",  512 },
+	{ "k", 1024 },
+	{ "B", 1024 },
+	{ }
 };
 
 static const struct mode_info *find_mode(const char *name)

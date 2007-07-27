@@ -20,7 +20,7 @@ static const struct suffix_mult split_suffices[] = {
 #if ENABLE_FEATURE_SPLIT_FANCY
 	{ "g", 1024*1024*1024 },
 #endif
-	{ NULL, 0 }
+	{ }
 };
 
 /* Increment the suffix part of the filename.

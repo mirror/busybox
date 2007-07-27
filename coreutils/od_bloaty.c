@@ -981,7 +981,7 @@ parse_old_offset(const char *s, off_t *offset)
 	static const struct suffix_mult Bb[] = {
 		{ "B", 1024 },
 		{ "b", 512 },
-		{ NULL, 0 }
+		{ }
 	};
 	char *p;
 	int radix;
@@ -1204,7 +1204,7 @@ int od_main(int argc, char **argv)
 		{ "b", 512 },
 		{ "k", 1024 },
 		{ "m", 1024*1024 },
-		{ NULL, 0 }
+		{ }
 	};
 	unsigned opt;
 	int l_c_m;

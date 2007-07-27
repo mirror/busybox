@@ -48,10 +48,10 @@ static const char add_first[] = "\"%07.7_Ax\n\"";
 static const char hexdump_opts[] = "bcdoxCe:f:n:s:v";
 
 static const struct suffix_mult suffixes[] = {
-	{ "b",  512 },
-	{ "k",  1024 },
-	{ "m",  1024*1024 },
-	{ NULL, 0 }
+	{ "b", 512 },
+	{ "k", 1024 },
+	{ "m", 1024*1024 },
+	{ }
 };
 
 int hexdump_main(int argc, char **argv);

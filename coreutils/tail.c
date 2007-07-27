@@ -30,7 +30,7 @@ static const struct suffix_mult tail_suffixes[] = {
 	{ "b", 512 },
 	{ "k", 1024 },
 	{ "m", 1024*1024 },
-	{ NULL, 0 }
+	{ }
 };
 
 struct globals {
