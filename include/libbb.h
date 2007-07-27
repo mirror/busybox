@@ -450,6 +450,7 @@ const char *make_human_readable_str(unsigned long long size,
 /* Put a string of hex bytes ("1b2e66fe"...), return advanced pointer */
 char *bin2hex(char *buf, const char *cp, int count);
 
+/* Last element is marked by mult == 0 */
 struct suffix_mult {
 	char suffix[4];
 	unsigned mult;

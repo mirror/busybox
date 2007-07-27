@@ -45,7 +45,7 @@ unsigned type xstrtou(_range_sfx)(const char *numstr, int base,
 	 * Note that we also allow nul suffixes with associated multipliers,
 	 * to allow for scaling of the numstr by some default multiplier. */
 	if (suffixes) {
-		while (suffixes->suffix) {
+		while (suffixes->mult) {
 			if (strcmp(suffixes->suffix, e) == 0) {
 				if (XSTR_UTYPE_MAX / suffixes->mult < r)
 					goto range; /* overflow! */
