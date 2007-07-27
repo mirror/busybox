@@ -127,15 +127,16 @@ int passwd_main(int argc, char **argv)
 		bb_error_msg_and_die("%s can't change password for %s", myname, name);
 	}
 
-	filename = bb_path_passwd_file;
 #if ENABLE_FEATURE_SHADOWPASSWDS
-	if (getspnam_r(pw->pw_name, &spw, buffer, sizeof(buffer), &result)) {
+	/* getspnam_r() can lie! Even if user isn't in shadow, it can
+	 * return success (pwd field was seen set to "!" in this case) */
+	if (getspnam_r(pw->pw_name, &spw, buffer, sizeof(buffer), &result)
+	 || LONE_CHAR(spw.sp_pwdp, '!')) {
 		/* LOGMODE_BOTH */
 		bb_error_msg("no record of %s in %s, using %s",
 				name, bb_path_shadow_file,
 				bb_path_passwd_file);
 	} else {
-		filename = bb_path_shadow_file;
 		pw->pw_passwd = spw.sp_pwdp;
 	}
 #endif
@@ -175,8 +176,17 @@ int passwd_main(int argc, char **argv)
 	signal(SIGQUIT, SIG_IGN);
 	umask(077);
 	xsetuid(0);
-	rc = update_passwd(filename, name, newp);
-	logmode = LOGMODE_BOTH;
+
+#if ENABLE_FEATURE_SHADOWPASSWDS
+	filename = bb_path_shadow_file;
+	rc = update_passwd(bb_path_shadow_file, name, newp);
+	if (rc == 0) /* no lines updated, no errors detected */
+#endif
+	{
+		filename = bb_path_passwd_file;
+		rc = update_passwd(bb_path_passwd_file, name, newp);
+	}
+	/* LOGMODE_BOTH */
 	if (rc < 0)
 		bb_error_msg_and_die("cannot update password file %s",
 				filename);
