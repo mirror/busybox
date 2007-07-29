@@ -896,45 +896,6 @@ static void print_bytes_scaled(unsigned long long ull, const char *end)
 	printf("X bytes:%llu (%llu.%u %sB)%s", ull, int_part, frac_part, ext, end);
 }
 
-static const char *const ife_print_flags_strs[] = {
-	"UP ",
-	"BROADCAST ",
-	"DEBUG ",
-	"LOOPBACK ",
-	"POINTOPOINT ",
-	"NOTRAILERS ",
-	"RUNNING ",
-	"NOARP ",
-	"PROMISC ",
-	"ALLMULTI ",
-	"SLAVE ",
-	"MASTER ",
-	"MULTICAST ",
-#ifdef HAVE_DYNAMIC
-	"DYNAMIC "
-#endif
-};
-
-static const unsigned short ife_print_flags_mask[] = {
-	IFF_UP,
-	IFF_BROADCAST,
-	IFF_DEBUG,
-	IFF_LOOPBACK,
-	IFF_POINTOPOINT,
-	IFF_NOTRAILERS,
-	IFF_RUNNING,
-	IFF_NOARP,
-	IFF_PROMISC,
-	IFF_ALLMULTI,
-	IFF_SLAVE,
-	IFF_MASTER,
-	IFF_MULTICAST,
-#ifdef HAVE_DYNAMIC
-	IFF_DYNAMIC
-#endif
-	0
-};
-
 static void ife_print(struct interface *ptr)
 {
 	const struct aftype *ap;
@@ -1059,12 +1020,51 @@ static void ife_print(struct interface *ptr)
 	if (ptr->flags == 0) {
 		printf("[NO FLAGS] ");
 	} else {
-		int i = 0;
+		static const char ife_print_flags_strs[] =
+			"UP\0"
+			"BROADCAST\0"
+			"DEBUG\0"
+			"LOOPBACK\0"
+			"POINTOPOINT\0"
+			"NOTRAILERS\0"
+			"RUNNING\0"
+			"NOARP\0"
+			"PROMISC\0"
+			"ALLMULTI\0"
+			"SLAVE\0"
+			"MASTER\0"
+			"MULTICAST\0"
+#ifdef HAVE_DYNAMIC
+			"DYNAMIC\0"
+#endif
+			;
+		static const unsigned short ife_print_flags_mask[] = {
+			IFF_UP,
+			IFF_BROADCAST,
+			IFF_DEBUG,
+			IFF_LOOPBACK,
+			IFF_POINTOPOINT,
+			IFF_NOTRAILERS,
+			IFF_RUNNING,
+			IFF_NOARP,
+			IFF_PROMISC,
+			IFF_ALLMULTI,
+			IFF_SLAVE,
+			IFF_MASTER,
+			IFF_MULTICAST,
+#ifdef HAVE_DYNAMIC
+			IFF_DYNAMIC,
+#endif
+		};
+		const unsigned short *mask = ife_print_flags_mask;
+		const char *str = ife_print_flags_strs;
 		do {
-			if (ptr->flags & ife_print_flags_mask[i]) {
-				printf(ife_print_flags_strs[i]);
+			if (ptr->flags & *mask) {
+				printf("%s ", str);
 			}
-		} while (ife_print_flags_mask[++i]);
+			mask++;
+			str += strlen(str) + 1;
+		} while (*str);
 	}
 
 	/* DONT FORGET TO ADD THE FLAGS IN ife_print_short */
