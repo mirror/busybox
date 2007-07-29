@@ -11121,14 +11121,16 @@ find_command(char *name, struct cmdentry *entry, int act, const char *path)
  loop:
 	while ((fullname = padvance(&path, name)) != NULL) {
 		stunalloc(fullname);
+		/* NB: code below will still use fullname
+		 * despite it being "unallocated" */
 		idx++;
 		if (pathopt) {
 			if (prefix(pathopt, "builtin")) {
 				if (bcmd)
 					goto builtin_success;
 				continue;
-			} else if (!(act & DO_NOFUNC) &&
-				   prefix(pathopt, "func")) {
+			} else if (!(act & DO_NOFUNC)
+			 && prefix(pathopt, "func")) {
 				/* handled below */
 			} else {
 				/* ignore unimplemented options */
@@ -11156,6 +11158,9 @@ find_command(char *name, struct cmdentry *entry, int act, const char *path)
 			continue;
 		if (pathopt) {          /* this is a %func directory */
 			stalloc(strlen(fullname) + 1);
+			/* NB: stalloc will return space pointed by fullname
+			 * (because we don't have any intervening allocations
+			 * between stunalloc above and this stalloc) */
 			readcmdfile(fullname);
 			cmdp = cmdlookup(name, 0);
 			if (cmdp == NULL || cmdp->cmdtype != CMDFUNCTION)
