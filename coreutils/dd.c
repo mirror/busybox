@@ -268,7 +268,7 @@ int dd_main(int argc, char **argv)
 			goto die_outfile;
 	}
 
-	while ((flags & FLAG_COUNT) && (G.in_full + G.in_part != count)) {
+	while (!(flags & FLAG_COUNT) || (G.in_full + G.in_part != count)) {
 		if (flags & FLAG_NOERROR) /* Pre-zero the buffer if conv=noerror */
 			memset(ibuf, 0, ibs);
 		n = safe_read(ifd, ibuf, ibs);
