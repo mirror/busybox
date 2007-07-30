@@ -14,34 +14,32 @@
 
 static void xgroup_study(struct group *g)
 {
-	enum { max = 65000 };
-	/* Use a particular gid. */
-	int desired = (g->gr_gid > 0);
-
 	/* Make sure gr_name is unused */
 	if (getgrnam(g->gr_name)) {
 		goto error;
 	}
 
-	/* Check if the desired gid is free or
-	   find the first free one */
-	do {
-		if (g->gr_gid == max) { /* out of bounds: exit */
-			bb_error_msg_and_die("no gids left");
-		}
+	/* Check if the desired gid is free
+	 * or find the first free one */
+	while (1) {
 		if (!getgrgid(g->gr_gid)) {
-			return; /* ok */
+			return; /* found free group: return */
 		}
-		if (desired) { /* the desired gid is already in use: exit */
+		if (option_mask32) {
+			/* -g N, cannot pick gid other than N: error */
 			g->gr_name = itoa(g->gr_gid);
 			goto error;
 		}
 		g->gr_gid++;
-	} while (1);
+		if (g->gr_gid <= 0) {
+			/* overflowed: error */
+			bb_error_msg_and_die("no gids left");
+		}
+	}
 
-error:
+ error:
 	/* exit */
-	bb_error_msg_and_die("%s: already in use", g->gr_name);
+	bb_error_msg_and_die("group %s already exists", g->gr_name);
 }
 
 /* append a new user to the passwd file */
@@ -53,7 +51,7 @@ static void new_group(char *group, gid_t gid)
 	/* make sure gid and group haven't already been allocated */
 	gr.gr_gid = gid;
 	gr.gr_name = group;
-	xgroup_study( &gr);
+	xgroup_study(&gr);
 
 	/* add entry to group */
 	file = xfopen(bb_path_group_file, "a");
@@ -88,7 +86,7 @@ static void add_user_to_group(char **args,
 	while ((line = xmalloc_getline(group_file))) {
 		/* Find the group */
 		if (!strncmp(line, args[1], len)
-		&& line[len] == ':'
+		 && line[len] == ':'
 		) {
 			/* Add the new user */
 			line = xasprintf("%s%s%s", line,
@@ -121,7 +119,7 @@ static void add_user_to_group(char **args,
  * addgroup will take a login_name as its first parameter.
  *
  * gid can be customized via command-line parameters.
- * If  called with two non-option arguments, addgroup
+ * If called with two non-option arguments, addgroup
  * will add an existing user to an existing group.
  */
 int addgroup_main(int argc, char **argv);
@@ -130,23 +128,33 @@ int addgroup_main(int argc, char **argv)
 	char *group;
 	gid_t gid = 0;
 
-	/* check for min, max and missing args and exit on error */
-	opt_complementary = "-1:?2:?";
-	if (getopt32(argc, argv, "g:", &group)) {
-		gid = xatoul_range(group, 0, (gid_t)ULONG_MAX);
-	}
-	/* move past the commandline options */
-	argv += optind;
-	argc -= optind;
-
 	/* need to be root */
 	if (geteuid()) {
 		bb_error_msg_and_die(bb_msg_perm_denied_are_you_root);
 	}
 
+	/* Syntax:
+	 *  addgroup group
+	 *  addgroup -g num group
+	 *  addgroup user group
+	 * Check for min, max and missing args */
+	opt_complementary = "-1:?2";
+	if (getopt32(argc, argv, "g:", &group)) {
+		gid = xatoul_range(group, 0, ((unsigned long)(gid_t)ULONG_MAX) >> 1);
+	}
+	/* move past the commandline options */
+	argv += optind;
+	argc -= optind;
+
 #if ENABLE_FEATURE_ADDUSER_TO_GROUP
 	if (argc == 2) {
 		struct group *gr;
+
+		if (option_mask32) {
+			/* -g was there, but "addgroup -g num user group"
+			 * is a no-no */
+			bb_show_usage();
+		}
 
 		/* check if group and user exist */
 		xuname2uid(argv[0]); /* unknown user: exit */

@@ -179,8 +179,8 @@ int adduser_main(int argc, char **argv)
 	pw.pw_shell = (char *)DEFAULT_SHELL;
 	pw.pw_dir = NULL;
 
-	/* check for min, max and missing args and exit on error */
-	opt_complementary = "-1:?1:?";
+	/* exactly one non-option arg */
+	opt_complementary = "=1";
 	getopt32(argc, argv, "h:g:s:G:DSH", &pw.pw_dir, &pw.pw_gecos, &pw.pw_shell, &usegroup);
 	argv += optind;
 
