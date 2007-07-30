@@ -38,8 +38,9 @@ struct globals {
 
 static void dd_output_status(int ATTRIBUTE_UNUSED cur_signal)
 {
-	fprintf(stderr, "%"OFF_FMT"d+%"OFF_FMT"d records in\n"
-			"%"OFF_FMT"d+%"OFF_FMT"d records out\n",
+	/* Deliberately using %u, not %d */
+	fprintf(stderr, "%"OFF_FMT"u+%"OFF_FMT"u records in\n"
+			"%"OFF_FMT"u+%"OFF_FMT"u records out\n",
 			G.in_full, G.in_part,
 			G.out_full, G.out_part);
 }
