@@ -244,8 +244,6 @@ void bb_daemonize_or_rexec(int flags, char **argv)
 {
 	int fd;
 
-	fd = xopen(bb_dev_null, O_RDWR);
-
 	if (flags & DAEMON_CHDIR_ROOT)
 		xchdir("/");
 
@@ -254,6 +252,8 @@ void bb_daemonize_or_rexec(int flags, char **argv)
 		close(1);
 		close(2);
 	}
+
+	fd = xopen(bb_dev_null, O_RDWR);
 
 	while ((unsigned)fd < 2)
 		fd = dup(fd); /* have 0,1,2 open at least to /dev/null */

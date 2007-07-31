@@ -8,6 +8,9 @@
  * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  */
 
+/* NB: we have a problem here with /proc/NN/exe usage, similar to
+ * one fixed in killall/pidof */
+
 #include <getopt.h>
 #include <sys/resource.h>
 
@@ -28,33 +31,22 @@ struct pid_list {
 
 static struct pid_list *found;
 
-static inline void push(pid_t pid)
-{
-	struct pid_list *p;
-
-	p = xmalloc(sizeof(*p));
-	p->next = found;
-	p->pid = pid;
-	found = p;
-}
-
 static int pid_is_exec(pid_t pid, const char *name)
 {
 	char buf[sizeof("/proc//exe") + sizeof(int)*3];
 	char *execbuf;
-	int sz;
-	int equal;
+	int n;
 
-	sprintf(buf, "/proc/%d/exe", pid);
-	sz = strlen(name) + 1;
-	execbuf = xzalloc(sz);
-	readlink(buf, execbuf, sz);
+	sprintf(buf, "/proc/%u/exe", pid);
+	n = strlen(name) + 1;
+	execbuf = xzalloc(n + 1);
+	readlink(buf, execbuf, n);
 
 	/* if readlink fails, execbuf still contains "" */
-	equal = !strcmp(execbuf, name);
+	n = strcmp(execbuf, name);
 	if (ENABLE_FEATURE_CLEAN_UP)
 		free(execbuf);
-	return equal;
+	return ~n; /* nonzero (true) if execbuf == name */
 }
 
 static int pid_is_user(int pid, int uid)
@@ -90,9 +82,10 @@ static int pid_is_cmd(pid_t pid, const char *name)
 	return r;
 }
 
-
 static void check(int pid)
 {
+	struct pid_list *p;
+
 	if (execname && !pid_is_exec(pid, execname)) {
 		return;
 	}
@@ -102,14 +95,16 @@ static void check(int pid)
 	if (cmdname && !pid_is_cmd(pid, cmdname)) {
 		return;
 	}
-	push(pid);
+	p = xmalloc(sizeof(*p));
+	p->next = found;
+	p->pid = pid;
+	found = p;
 }
-
 
 static void do_pidfile(void)
 {
 	FILE *f;
-	pid_t pid;
+	unsigned pid;
 
 	f = fopen(pidfile, "r");
 	if (f) {
@@ -143,9 +138,8 @@ static void do_procinit(void)
 	}
 	closedir(procdir);
 	if (!foundany)
-		bb_error_msg_and_die ("nothing in /proc - not mounted?");
+		bb_error_msg_and_die("nothing in /proc - not mounted?");
 }
-
 
 static int do_stop(void)
 {
@@ -155,11 +149,13 @@ static int do_stop(void)
 
 	do_procinit();
 
-	if (cmdname)
-		what = xstrdup(cmdname);
-	else if (execname)
-		what = xstrdup(execname);
-	else if (pidfile)
+	if (cmdname) {
+		if (ENABLE_FEATURE_CLEAN_UP) what = xstrdup(cmdname);
+		if (!ENABLE_FEATURE_CLEAN_UP) what = cmdname;
+	} else if (execname) {
+		if (ENABLE_FEATURE_CLEAN_UP) what = xstrdup(execname);
+		if (!ENABLE_FEATURE_CLEAN_UP) what = execname;
+	} else if (pidfile)
 		what = xasprintf("process in pidfile '%s'", pidfile);
 	else if (userspec)
 		what = xasprintf("process(es) owned by '%s'", userspec);
@@ -169,25 +165,25 @@ static int do_stop(void)
 	if (!found) {
 		if (!quiet)
 			printf("no %s found; none killed\n", what);
-		if (ENABLE_FEATURE_CLEAN_UP)
-			free(what);
-		return -1;
+		killed = -1;
+		goto ret;
 	}
 	for (p = found; p; p = p->next) {
 		if (kill(p->pid, signal_nr) == 0) {
-			p->pid = -p->pid;
+			p->pid = - p->pid;
 			killed++;
 		} else {
-			bb_perror_msg("warning: failed to kill %d", p->pid);
+			bb_perror_msg("warning: killing process %u", p->pid);
 		}
 	}
 	if (!quiet && killed) {
 		printf("stopped %s (pid", what);
 		for (p = found; p; p = p->next)
 			if (p->pid < 0)
-				printf(" %d", -p->pid);
+				printf(" %u", - p->pid);
 		puts(")");
 	}
+ ret:
 	if (ENABLE_FEATURE_CLEAN_UP)
 		free(what);
 	return killed;
@@ -287,7 +283,7 @@ int start_stop_daemon_main(int argc, char **argv)
 
 	if (opt & CTX_STOP) {
 		int i = do_stop();
-		return (opt & OPT_OKNODO) ? 0 : (i<=0);
+		return (opt & OPT_OKNODO) ? 0 : (i <= 0);
 	}
 
 	do_procinit();
@@ -299,7 +295,24 @@ int start_stop_daemon_main(int argc, char **argv)
 	}
 	*--argv = startas;
 	if (opt & OPT_BACKGROUND) {
+#if BB_MMU
 		bb_daemonize(0);
+#else
+		pid_t pid = vfork();
+		if (pid < 0) /* error */
+			bb_perror_msg_and_die("vfork");
+		if (pid == 0) /* parent */
+			return 0;
+		}
+		/* child */
+		/* Redirect stdio to /dev/null, close extra FDs.
+		 * We do not actually daemonize because of DAEMON_ONLY_SANITIZE */
+		bb_daemonize_or_rexec(
+			DAEMON_DEVNULL_STDIO
+			+ DAEMON_CLOSE_EXTRA_FDS
+			+ DAEMON_ONLY_SANITIZE,
+			NULL /* argv, unused */ );
+#endif
 	}
 	if (opt & OPT_MAKEPID) {
 		/* user wants _us_ to make the pidfile */

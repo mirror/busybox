@@ -573,7 +573,7 @@ int run_nofork_applet_prime(struct nofork_save_area *old, const struct bb_applet
  */
 enum {
 	DAEMON_CHDIR_ROOT = 1,
-	DAEMON_DEVNULL_STDIO = /* 2 */ 0, /* no users so far */
+	DAEMON_DEVNULL_STDIO = 2,
 	DAEMON_CLOSE_EXTRA_FDS = 4,
 	DAEMON_ONLY_SANITIZE = 8, /* internal use */
 };
