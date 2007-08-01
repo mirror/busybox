@@ -96,7 +96,7 @@ int patch_main(int argc, char **argv)
 		ret = 0;
 	}
 
-	patch_line = xmalloc_fgets(patch_file);
+	patch_line = xmalloc_getline(patch_file);
 	while (patch_line) {
 		FILE *src_stream;
 		FILE *dst_stream;
@@ -115,7 +115,7 @@ int patch_main(int argc, char **argv)
 		 */
 		while (patch_line && strncmp(patch_line, "--- ", 4) != 0) {
 			free(patch_line);
-			patch_line = xmalloc_fgets(patch_file);
+			patch_line = xmalloc_getline(patch_file);
 		}
 		/* FIXME: patch_line NULL check?? */
 
@@ -123,7 +123,7 @@ int patch_main(int argc, char **argv)
 		original_filename = extract_filename(patch_line, patch_level);
 		free(patch_line);
 
-		patch_line = xmalloc_fgets(patch_file);
+		patch_line = xmalloc_getline(patch_file);
 		/* FIXME: NULL check?? */
 		if (strncmp(patch_line, "+++ ", 4) != 0) {
 			ret = 2;
