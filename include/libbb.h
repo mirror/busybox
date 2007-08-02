@@ -619,8 +619,9 @@ llist_t *llist_rev(llist_t *list);
  *   llist_t *llist_add_to(llist_t *old_head, void *data)
  * etc does not result in smaller code... */
 
-
-#if ENABLE_FEATURE_PIDFILE
+/* start_stop_daemon and (udhcpc with ifupdown) are special - they want to
+ * create pidfiles regardless of FEATURE_PIDFILE. */
+#if ENABLE_FEATURE_PIDFILE || defined(WANT_PIDFILE)
 int write_pidfile(const char *path);
 #define remove_pidfile(f) ((void)unlink(f))
 #else

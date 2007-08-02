@@ -6,9 +6,11 @@
  *
  * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  */
+
+/* Override ENABLE_FEATURE_PIDFILE */
+#define WANT_PIDFILE 1
 #include "libbb.h"
 
-#if ENABLE_FEATURE_PIDFILE
 int write_pidfile(const char *path)
 {
 	int pid_fd;
@@ -26,4 +28,3 @@ int write_pidfile(const char *path)
 	close(pid_fd);
 	return 1;
 }
-#endif

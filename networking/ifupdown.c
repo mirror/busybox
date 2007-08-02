@@ -536,8 +536,8 @@ static int manual_up_down(struct interface_defn_t *ifd, execfn *exec)
 static int bootp_up(struct interface_defn_t *ifd, execfn *exec)
 {
 	return execute("bootpc[[ --bootfile %bootfile%]] --dev %iface%"
-			"[[ --server %server%]][[ --hwaddr %hwaddr%]] "
-			"--returniffail --serverbcast", ifd, exec);
+			"[[ --server %server%]][[ --hwaddr %hwaddr%]]"
+			" --returniffail --serverbcast", ifd, exec);
 }
 
 static int ppp_up(struct interface_defn_t *ifd, execfn *exec)

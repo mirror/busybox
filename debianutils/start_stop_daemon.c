@@ -14,6 +14,8 @@
 #include <getopt.h>
 #include <sys/resource.h>
 
+/* Override ENABLE_FEATURE_PIDFILE */
+#define WANT_PIDFILE 1
 #include "libbb.h"
 
 static int signal_nr = 15;
@@ -46,7 +48,7 @@ static int pid_is_exec(pid_t pid, const char *name)
 	n = strcmp(execbuf, name);
 	if (ENABLE_FEATURE_CLEAN_UP)
 		free(execbuf);
-	return ~n; /* nonzero (true) if execbuf == name */
+	return !n; /* nonzero (true) if execbuf == name */
 }
 
 static int pid_is_user(int pid, int uid)
@@ -301,10 +303,14 @@ int start_stop_daemon_main(int argc, char **argv)
 		pid_t pid = vfork();
 		if (pid < 0) /* error */
 			bb_perror_msg_and_die("vfork");
-		if (pid == 0) /* parent */
-			return 0;
+		if (pid != 0) {
+			/* parent */
+			/* why _exit? the child may have changed the stack,
+			 * so "return 0" may do bad things */
+			_exit(0);
 		}
 		/* child */
+		setsid(); /* detach from controlling tty */
 		/* Redirect stdio to /dev/null, close extra FDs.
 		 * We do not actually daemonize because of DAEMON_ONLY_SANITIZE */
 		bb_daemonize_or_rexec(
@@ -316,11 +322,7 @@ int start_stop_daemon_main(int argc, char **argv)
 	}
 	if (opt & OPT_MAKEPID) {
 		/* user wants _us_ to make the pidfile */
-		FILE *pidf = xfopen(pidfile, "w");
-
-		pid_t pidt = getpid();
-		fprintf(pidf, "%d\n", pidt);
-		fclose(pidf);
+		write_pidfile(pidfile);
 	}
 	if (opt & OPT_c) {
 		struct bb_uidgid_t ugid;

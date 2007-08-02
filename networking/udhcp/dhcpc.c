@@ -11,6 +11,8 @@
 #include <getopt.h>
 #include <syslog.h>
 
+/* Override ENABLE_FEATURE_PIDFILE - ifupdown needs our pidfile to always exist */
+#define WANT_PIDFILE 1
 #include "common.h"
 #include "dhcpd.h"
 #include "dhcpc.h"
