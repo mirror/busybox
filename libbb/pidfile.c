@@ -17,13 +17,15 @@ int write_pidfile(const char *path)
 	char *end;
 	char buf[sizeof(int)*3 + 2];
 
+	if (!path)
+		return 1;
 	/* we will overwrite stale pidfile */
 	pid_fd = open(path, O_WRONLY|O_CREAT|O_TRUNC, 0666);
 	if (pid_fd < 0)
 		return 0;
 	/* few bytes larger, but doesn't use stdio */
 	end = utoa_to_buf(getpid(), buf, sizeof(buf));
-	end[0] = '\n';
+	*end = '\n';
 	full_write(pid_fd, buf, end - buf + 1);
 	close(pid_fd);
 	return 1;

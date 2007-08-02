@@ -51,7 +51,16 @@ int udhcpd_main(int argc, char **argv)
 	 * otherwise NOMMU machines will parse config twice */
 	read_config(argv[1] ? argv[1] : DHCPD_CONF_FILE);
 
-	udhcp_make_pidfile(server_config.pidfile);
+	/* Make sure fd 0,1,2 are open */
+	bb_sanitize_stdio();
+	/* Equivalent of doing a fflush after every \n */
+	setlinebuf(stdout);
+
+	/* Create pidfile */
+	write_pidfile(server_config.pidfile);
+	/* if (!..) bb_perror_msg("cannot create pidfile %s", pidfile); */
+
+	bb_info_msg("%s (v%s) started", applet_name, BB_VER);
 
 	option = find_option(server_config.options, DHCP_LEASE_TIME);
 	server_config.lease = LEASE_TIME;
@@ -72,7 +81,7 @@ int udhcpd_main(int argc, char **argv)
 	read_leases(server_config.lease_file);
 
 	if (read_interface(server_config.interface, &server_config.ifindex,
-			   &server_config.server, server_config.arp) < 0) {
+			   &server_config.server, server_config.arp)) {
 		retval = 1;
 		goto ret;
 	}

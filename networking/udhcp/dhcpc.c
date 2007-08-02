@@ -109,7 +109,7 @@ static void perform_release(void)
 
 static void client_background(void)
 {
-#ifdef __uClinux__
+#if !BB_MMU
 	bb_error_msg("cannot background in uclinux (yet)");
 /* ... mainly because udhcpc calls client_background()
  * in _the _middle _of _udhcpc _run_, not at the start!
@@ -119,8 +119,7 @@ static void client_background(void)
 	bb_daemonize(0);
 	logmode &= ~LOGMODE_STDIO;
 	/* rewrite pidfile, as our pid is different now */
-	if (client_config.pidfile)
-		write_pidfile(client_config.pidfile);
+	write_pidfile(client_config.pidfile);
 #endif
 	/* Do not fork again. */
 	client_config.foreground = 1;
@@ -148,19 +147,17 @@ int udhcpc_main(int argc, char **argv)
 	char *str_c, *str_V, *str_h, *str_F, *str_r, *str_T, *str_t;
 	uint32_t xid = 0;
 	uint32_t lease = 0; /* can be given as 32-bit quantity */
-	unsigned t1 = 0, t2 = 0;
+	unsigned t1 = 0, t2 = 0; /* what a wonderful names */
 	unsigned start = 0;
 	unsigned now;
 	unsigned opt;
 	int max_fd;
-	int sig;
 	int retval;
 	int len;
-	int no_clientid = 0;
-	fd_set rfds;
 	struct timeval tv;
-	struct dhcpMessage packet;
 	struct in_addr temp_addr;
+	struct dhcpMessage packet;
+	fd_set rfds;
 
 	enum {
 		OPT_c = 1 << 0,
@@ -224,8 +221,7 @@ int udhcpc_main(int argc, char **argv)
 
 	if (opt & OPT_c)
 		client_config.clientid = alloc_dhcp_option(DHCP_CLIENT_ID, str_c, 0);
-	if (opt & OPT_C)
-		no_clientid = 1;
+	//if (opt & OPT_C)
 	if (opt & OPT_V)
 		client_config.vendorclass = alloc_dhcp_option(DHCP_VENDOR, str_V, 0);
 	if (opt & OPT_f)
@@ -262,7 +258,7 @@ int udhcpc_main(int argc, char **argv)
 	if (opt & OPT_t)
 		client_config.retries = xatoi_u(str_t);
 	if (opt & OPT_v) {
-		printf("version %s\n\n", BB_VER);
+		printf("version %s\n", BB_VER);
 		return 0;
 	}
 
@@ -272,14 +268,23 @@ int udhcpc_main(int argc, char **argv)
 	}
 
 	if (read_interface(client_config.interface, &client_config.ifindex,
-			   NULL, client_config.arp) < 0)
+			   NULL, client_config.arp))
 		return 1;
 
-	/* Sanitize fd's and write pidfile */
-	udhcp_make_pidfile(client_config.pidfile);
+	/* Make sure fd 0,1,2 are open */
+	bb_sanitize_stdio();
+	/* Equivalent of doing a fflush after every \n */
+	setlinebuf(stdout);
+
+	/* Create pidfile */
+	write_pidfile(client_config.pidfile);
+	/* if (!..) bb_perror_msg("cannot create pidfile %s", pidfile); */
+
+	/* Goes to stdout and possibly syslog */
+	bb_info_msg("%s (v%s) started", applet_name, BB_VER);
 
 	/* if not set, and not suppressed, setup the default client ID */
-	if (!client_config.clientid && !no_clientid) {
+	if (!client_config.clientid && !(opt & OPT_C)) {
 		client_config.clientid = alloc_dhcp_option(DHCP_CLIENT_ID, "", 7);
 		client_config.clientid[OPT_DATA] = 1;
 		memcpy(client_config.clientid + OPT_DATA+1, client_config.arp, 6);
@@ -294,9 +299,12 @@ int udhcpc_main(int argc, char **argv)
 	state = INIT_SELECTING;
 	udhcp_run_script(NULL, "deconfig");
 	change_mode(LISTEN_RAW);
+	tv.tv_sec = 0;
+	goto jump_in;
 
 	for (;;) {
 		tv.tv_sec = timeout - monotonic_sec();
+ jump_in:
 		tv.tv_usec = 0;
 
 		if (listen_mode != LISTEN_NONE && sockfd < 0) {
@@ -307,13 +315,20 @@ int udhcpc_main(int argc, char **argv)
 		}
 		max_fd = udhcp_sp_fd_set(&rfds, sockfd);
 
+		retval = 0; /* If we already timed out, fall through, else... */
 		if (tv.tv_sec > 0) {
 			DEBUG("Waiting on select...");
 			retval = select(max_fd + 1, &rfds, NULL, NULL, &tv);
-		} else retval = 0; /* If we already timed out, fall through */
+		}
 
 		now = monotonic_sec();
-		if (retval == 0) {
+		if (retval < 0) {
+			/* EINTR? signal was caught, don't panic */
+			if (errno != EINTR) {
+				/* Else: an error occured, panic! */
+				bb_perror_msg_and_die("select");
+			}
+		} else if (retval == 0) {
 			/* timeout dropped to zero */
 			switch (state) {
 			case INIT_SELECTING:
@@ -377,9 +392,8 @@ int udhcpc_main(int argc, char **argv)
 				} else {
 					/* send a request packet */
 					send_renew(xid, server_addr, requested_ip); /* unicast */
-
 					t1 = (t2 - t1) / 2 + t1;
-					timeout = t1 + start;
+					timeout = start + t1;
 				}
 				break;
 			case REBINDING:
@@ -395,9 +409,8 @@ int udhcpc_main(int argc, char **argv)
 				} else {
 					/* send a request packet */
 					send_renew(xid, 0, requested_ip); /* broadcast */
-
 					t2 = (lease - t2) / 2 + t2;
-					timeout = t2 + start;
+					timeout = start + t2;
 				}
 				break;
 			case RELEASED:
@@ -405,7 +418,7 @@ int udhcpc_main(int argc, char **argv)
 				timeout = INT_MAX;
 				break;
 			}
-		} else if (retval > 0 && listen_mode != LISTEN_NONE && FD_ISSET(sockfd, &rfds)) {
+		} else if (listen_mode != LISTEN_NONE && FD_ISSET(sockfd, &rfds)) {
 			/* a packet is ready, read it */
 
 			if (listen_mode == LISTEN_KERNEL)
@@ -480,7 +493,7 @@ int udhcpc_main(int argc, char **argv)
 					bb_info_msg("Lease of %s obtained, lease time %u",
 						inet_ntoa(temp_addr), (unsigned)lease);
 					start = now;
-					timeout = t1 + start;
+					timeout = start + t1;
 					requested_ip = packet.yiaddr;
 					udhcp_run_script(&packet,
 						   ((state == RENEWING || state == REBINDING) ? "renew" : "bound"));
@@ -511,8 +524,9 @@ int udhcpc_main(int argc, char **argv)
 				break;
 			/* case BOUND, RELEASED: - ignore all packets */
 			}
-		} else if (retval > 0 && (sig = udhcp_sp_read(&rfds))) {
-			switch (sig) {
+		} else {
+			int signo = udhcp_sp_read(&rfds);
+			switch (signo) {
 			case SIGUSR1:
 				perform_renew();
 				break;
@@ -525,11 +539,6 @@ int udhcpc_main(int argc, char **argv)
 					perform_release();
 				goto ret0;
 			}
-		} else if (retval == -1 && errno == EINTR) {
-			/* a signal was caught */
-		} else {
-			/* An error occured */
-			bb_perror_msg("select");
 		}
 	} /* for (;;) */
  ret0:

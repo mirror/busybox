@@ -60,8 +60,6 @@ int udhcp_kernel_packet(struct dhcpMessage *payload,
 
 /**/
 
-void udhcp_make_pidfile(const char *pidfile);
-
 void udhcp_run_script(struct dhcpMessage *packet, const char *name);
 
 // Still need to clean these up...

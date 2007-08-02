@@ -44,11 +44,11 @@ int read_interface(const char *interface, int *ifindex, uint32_t *addr, uint8_t 
 	struct sockaddr_in *our_ip;
 
 	memset(&ifr, 0, sizeof(ifr));
-	fd = socket(AF_INET, SOCK_RAW, IPPROTO_RAW);
-	if (fd < 0) {
-		bb_perror_msg("socket failed");
-		return -1;
-	}
+	fd = xsocket(AF_INET, SOCK_RAW, IPPROTO_RAW);
+//	if (fd < 0) {
+//		bb_perror_msg("socket failed");
+//		return -1;
+//	}
 
 	ifr.ifr_addr.sa_family = AF_INET;
 	strncpy(ifr.ifr_name, interface, sizeof(ifr.ifr_name));
@@ -83,6 +83,7 @@ int read_interface(const char *interface, int *ifindex, uint32_t *addr, uint8_t 
 			arp[0], arp[1], arp[2], arp[3], arp[4], arp[5]);
 	}
 
+	close(fd);
 	return 0;
 }
 

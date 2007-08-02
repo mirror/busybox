@@ -30,7 +30,7 @@ static struct xid_item {
 } dhcprelay_xid_list = {0, {0}, 0, 0, NULL};
 
 
-static struct xid_item * xid_add(uint32_t xid, struct sockaddr_in *ip, int client)
+static struct xid_item *xid_add(uint32_t xid, struct sockaddr_in *ip, int client)
 {
 	struct xid_item *item;
 
@@ -48,7 +48,6 @@ static struct xid_item * xid_add(uint32_t xid, struct sockaddr_in *ip, int clien
 	return item;
 }
 
-
 static void xid_expire(void)
 {
 	struct xid_item *item = dhcprelay_xid_list.next;
@@ -56,7 +55,7 @@ static void xid_expire(void)
 	time_t current_time = time(NULL);
 
 	while (item != NULL) {
-		if ((current_time-item->timestamp) > MAX_LIFETIME) {
+		if ((current_time - item->timestamp) > MAX_LIFETIME) {
 			last->next = item->next;
 			free(item);
 			item = last->next;
@@ -67,7 +66,7 @@ static void xid_expire(void)
 	}
 }
 
-static struct xid_item * xid_find(uint32_t xid)
+static struct xid_item *xid_find(uint32_t xid)
 {
 	struct xid_item *item = dhcprelay_xid_list.next;
 	while (item != NULL) {
@@ -95,7 +94,6 @@ static void xid_del(uint32_t xid)
 	}
 }
 
-
 /**
  * get_dhcp_packet_type - gets the message type of a dhcp packet
  * p - pointer to the dhcp packet
@@ -119,7 +117,8 @@ static int get_dhcp_packet_type(struct dhcpMessage *p)
  * signal_handler - handles signals ;-)
  * sig - sent signal
  */
-static int dhcprelay_stopflag;
+static smallint dhcprelay_stopflag;
+
 static void dhcprelay_signal_handler(int sig)
 {
 	dhcprelay_stopflag = 1;
@@ -130,7 +129,7 @@ static void dhcprelay_signal_handler(int sig)
  * dev_list - comma separated list of devices
  * returns array
  */
-static char ** get_client_devices(char *dev_list, int *client_number)
+static char **get_client_devices(char *dev_list, int *client_number)
 {
 	char *s, *list, **client_dev;
 	int i, cn;
@@ -286,7 +285,7 @@ static void dhcprelay_loop(int *fds, int num_sockets, int max_socket, char **cli
 							(struct sockaddr *)(&client_addr), &addr_size);
 				if (packlen <= 0)
 					continue;
-				if (read_interface(clients[i-1], NULL, &dhcp_msg.giaddr, NULL) < 0)
+				if (read_interface(clients[i-1], NULL, &dhcp_msg.giaddr, NULL))
 					dhcp_msg.giaddr = gw_ip;
 				pass_on(&dhcp_msg, packlen, i, fds, &client_addr, server_addr);
 			}
@@ -322,7 +321,7 @@ int dhcprelay_main(int argc, char **argv)
 
 	num_sockets = init_sockets(clients, num_sockets, argv[2], fds, &max_socket);
 
-	if (read_interface(argv[2], NULL, &gw_ip, NULL) == -1)
+	if (read_interface(argv[2], NULL, &gw_ip, NULL))
 		return 1;
 
 	dhcprelay_loop(fds, num_sockets, max_socket, clients, &server_addr, gw_ip);
