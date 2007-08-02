@@ -3606,13 +3606,18 @@ USE_FEATURE_RUN_PARTS_FANCY("\n	-l	Prints names of all matching files even when 
 #define tty_trivial_usage \
        ""
 #define tty_full_usage \
-       "Print the file name of the terminal connected to standard input" \
+       "Print file name of standard input's terminal" \
 	USE_INCLUDE_SUSv2( \
        "\n\nOptions:\n" \
-       "	-s	Print nothing, only return an exit status")
+       "	-s	Print nothing, only return exit status")
 #define tty_example_usage \
        "$ tty\n" \
        "/dev/tty2\n"
+
+#define ttysize_trivial_usage \
+       "[w] [h]"
+#define ttysize_full_usage \
+       "Print dimension(s) of standard input's terminal, on error return 80x25"
 
 #define tune2fs_trivial_usage \
        "[-c max-mounts-count] [-e errors-behavior] [-g group] " \

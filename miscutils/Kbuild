@@ -27,4 +27,5 @@ lib-$(CONFIG_SETSID)      += setsid.o
 lib-$(CONFIG_STRINGS)     += strings.o
 lib-$(CONFIG_TASKSET)     += taskset.o
 lib-$(CONFIG_TIME)        += time.o
+lib-$(CONFIG_TTYSIZE)     += ttysize.o
 lib-$(CONFIG_WATCHDOG)    += watchdog.o

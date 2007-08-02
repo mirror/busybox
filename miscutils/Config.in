@@ -366,6 +366,14 @@ config TIME
 	  When the command finishes, time writes a message to standard output
 	  giving timing statistics about this program run.
 
+config TTYSIZE
+	bool "ttysize"
+	default n
+	help
+	  A replacement for "stty size". Unlike stty, can report only width,
+	  only height, or both, in any order. It also does not complain on error,
+	  but returns default 80x24. Usage in shell scripts: width=`ttysize w`.
+
 config WATCHDOG
 	bool "watchdog"
 	default n
