@@ -465,8 +465,8 @@ static unsigned logdir_open(struct logdir *ld, const char *fn)
 
 	/* read config */
 	i = open_read_close("config", buf, sizeof(buf));
-	if (i < 0)
-		warn2("cannot read config", ld->name);
+	if (i < 0 && errno != ENOENT)
+		bb_perror_msg(WARNING": %s/config", ld->name);
 	if (i > 0) {
 		if (verbose) bb_error_msg(INFO"read: %s/config", ld->name);
 		s = buf;
@@ -835,19 +835,8 @@ int svlogd_main(int argc, char **argv)
 		char ch;
 
 		lineptr = line;
-		taia_now(&now);
-		/* Prepare timestamp if needed */
-		if (timestamp) {
-			switch (timestamp) {
-			case 1:
-				fmt_taia25(stamp, &now);
-				break;
-			default: /* case 2: */
-				fmt_ptime30nul(stamp, &now);
-				break;
-			}
+		if (timestamp)
 			lineptr += 26;
-		}
 
 		/* lineptr[0..linemax-1] - buffer for stdin */
 		/* (possibly has some unprocessed data from prev loop) */
@@ -857,6 +846,7 @@ int svlogd_main(int argc, char **argv)
 		if (!np && !exitasap) {
 			i = linemax - stdin_cnt; /* avail. bytes at tail */
 			if (i >= 128) {
+				taia_now(&now);
 				i = buffer_pread(0, lineptr + stdin_cnt, i, &now);
 				if (i <= 0) /* EOF or error on stdin */
 					exitasap = 1;
@@ -889,6 +879,11 @@ int svlogd_main(int argc, char **argv)
 		printlen = linelen;
 		printptr = lineptr;
 		if (timestamp) {
+			taia_now(&now);
+			if (timestamp == 1)
+				fmt_taia25(stamp, &now);
+			else /* 2: */
+				fmt_ptime30nul(stamp, &now);
 			printlen += 26;
 			printptr -= 26;
 			memcpy(printptr, stamp, 25);

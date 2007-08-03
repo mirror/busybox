@@ -36,7 +36,7 @@ The sv program reports the current status and controls the state of services
 monitored by the runsv(8) supervisor.
 
 services consists of one or more arguments, each argument naming a directory
-service used by runsv(8). If service doesn?t start with a dot or slash,
+service used by runsv(8). If service doesn't start with a dot or slash,
 it is searched in the default services directory /var/service/, otherwise
 relative to the current directory.
 
@@ -72,6 +72,8 @@ exit
 
 sv actually looks only at the first character of above commands.
 
+Commands compatible to LSB init script actions:
+
 status
     Same as status.
 start
@@ -104,7 +106,7 @@ force-restart
     7 seconds for the service to restart. Then report the status, and
     on timeout send the service the kill command. If the script ./check
     exists in the service directory, sv runs this script to check whether
-    the service is up and available again; it?s considered to be available
+    the service is up and available again; it's considered to be available
     if ./check exits with 0.
 force-shutdown
     Same as exit, but wait up to 7 seconds for the runsv(8) process to

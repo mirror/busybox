@@ -3256,8 +3256,18 @@ USE_FEATURE_RUN_PARTS_FANCY("\n	-l	Prints names of all matching files even when 
 #define sv_trivial_usage \
        "[-v] [-w sec] command service..."
 #define sv_full_usage \
-       "Report the current status and control the state of services " \
-       "monitored by the runsv supervisor"
+       "Control services monitored by runsv supervisor.\n" \
+       "Commands (only first character is enough):\n" \
+       "\n" \
+       "status: query service status\n" \
+       "up: if service isn't running, start it. If service stops, restart it\n" \
+       "once: like 'up', but if service stops, don't restart it\n" \
+       "down: send TERM and CONT signals. If ./run exits, start ./finish\n" \
+       "    if it exists. After it stops, do not restart service\n" \
+       "exit: send TERM and CONT signals to service and log service. If they exit,\n" \
+       "    runsv exits too\n" \
+       "pause, cont, hup, alarm, interrupt, quit, 1, 2, term, kill: send\n" \
+       "STOP, CONT, HUP, ALRM, INT, QUIT, USR1, USR2, TERM, KILL signal to service"
 
 #define svlogd_trivial_usage \
        "[-ttv] [-r c] [-R abc] [-l len] [-b buflen] dir..."
