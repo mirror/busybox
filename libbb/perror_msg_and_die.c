@@ -14,7 +14,11 @@ void bb_perror_msg_and_die(const char *s, ...)
 	va_list p;
 
 	va_start(p, s);
-	bb_vperror_msg(s, p);
+	/* Guard against "<error message>: Success" */
+	if (!errno)
+		bb_verror_msg(s, p, NULL);
+	else
+		bb_vperror_msg(s, p);
 	va_end(p);
 	xfunc_die();
 }

@@ -1439,7 +1439,7 @@ static int singlemount(struct mntent *mp, int ignore_busy)
 	// Might this be an NFS filesystem?
 
 	if (ENABLE_FEATURE_MOUNT_NFS
-	 && (!mp->mnt_type || !strcmp(mp->mnt_type,"nfs"))
+	 && (!mp->mnt_type || !strcmp(mp->mnt_type, "nfs"))
 	 && strchr(mp->mnt_fsname, ':') != NULL
 	) {
 		rc = nfsmount(mp, vfsflags, filteropts);
@@ -1458,15 +1458,12 @@ static int singlemount(struct mntent *mp, int ignore_busy)
 
 		if (ENABLE_FEATURE_MOUNT_LOOP && S_ISREG(st.st_mode)) {
 			loopFile = bb_simplify_path(mp->mnt_fsname);
-			mp->mnt_fsname = 0;
-			switch (set_loop(&(mp->mnt_fsname), loopFile, 0)) {
-			case 0:
-			case 1:
-				break;
-			default:
-				bb_error_msg( errno == EPERM || errno == EACCES
-					? bb_msg_perm_denied_are_you_root
-					: "cannot setup loop device");
+			mp->mnt_fsname = NULL; /* will receive malloced loop dev name */
+			if (set_loop(&(mp->mnt_fsname), loopFile, 0) < 0) {
+				if (errno == EPERM || errno == EACCES)
+					bb_error_msg(bb_msg_perm_denied_are_you_root);
+				else
+					bb_perror_msg("cannot setup loop device");
 				return errno;
 			}
 
@@ -1516,10 +1513,10 @@ static int singlemount(struct mntent *mp, int ignore_busy)
 	if (ENABLE_FEATURE_CLEAN_UP)
 		free(filteropts);
 
-	if (rc && errno == EBUSY && ignore_busy) rc = 0;
+	if (rc && errno == EBUSY && ignore_busy)
+		rc = 0;
 	if (rc < 0)
-		/* perror here sometimes says "mounting ... on ... failed: Success" */
-		bb_error_msg("mounting %s on %s failed", mp->mnt_fsname, mp->mnt_dir);
+		bb_perror_msg("mounting %s on %s failed", mp->mnt_fsname, mp->mnt_dir);
 
 	return rc;
 }
@@ -1527,7 +1524,7 @@ static int singlemount(struct mntent *mp, int ignore_busy)
 // Parse options, if necessary parse fstab/mtab, and call singlemount for
 // each directory to be mounted.
 
-const char must_be_root[] = "you must be root";
+static const char must_be_root[] = "you must be root";
 
 int mount_main(int argc, char **argv);
 int mount_main(int argc, char **argv)

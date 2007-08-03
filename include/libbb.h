@@ -733,7 +733,10 @@ extern int get_linux_version_code(void);
 
 extern char *query_loop(const char *device);
 extern int del_loop(const char *device);
-extern int set_loop(char **device, const char *file, unsigned long long offset);
+/* If *devname is not NULL, use that name, otherwise try to find free one,
+ * malloc and return it in *devname.
+ * return value: 1: read-only loopdev was setup, 0: rw, < 0: error */
+extern int set_loop(char **devname, const char *file, unsigned long long offset);
 
 
 //TODO: pass buf pointer or return allocated buf (avoid statics)?
@@ -1061,6 +1064,7 @@ extern const char bb_default_login_shell[];
 #endif
 # define VC_FORMAT "/dev/vc/%d"
 # define LOOP_FORMAT "/dev/loop/%d"
+# define LOOP_NAMESIZE (sizeof("/dev/loop/") + sizeof(int)*3 + 1)
 # define LOOP_NAME "/dev/loop/"
 # define FB_0 "/dev/fb/0"
 #else
@@ -1081,6 +1085,7 @@ extern const char bb_default_login_shell[];
 #endif
 # define VC_FORMAT "/dev/tty%d"
 # define LOOP_FORMAT "/dev/loop%d"
+# define LOOP_NAMESIZE (sizeof("/dev/loop") + sizeof(int)*3 + 1)
 # define LOOP_NAME "/dev/loop"
 # define FB_0 "/dev/fb0"
 #endif

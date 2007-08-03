@@ -81,7 +81,8 @@ int del_loop(const char *device)
  */
 int set_loop(char **device, const char *file, unsigned long long offset)
 {
-	char dev[20], *try;
+	char dev[LOOP_NAMESIZE];
+	char *try;
 	bb_loop_info loopinfo;
 	struct stat statbuf;
 	int i, dfd, ffd, mode, rc = -1;
@@ -140,14 +141,14 @@ int set_loop(char **device, const char *file, unsigned long long offset)
 			rc = -1;
 		}
 		close(dfd);
-try_again:
+ try_again:
 		if (*device) break;
 	}
 	close(ffd);
 	if (!rc) {
 		if (!*device)
 			*device = xstrdup(dev);
-		return (mode == O_RDONLY) ? 1 : 0;
+		return (mode == O_RDONLY); /* 1:ro, 0:rw */
 	}
 	return rc;
 }
