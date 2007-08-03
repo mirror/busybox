@@ -699,10 +699,11 @@ static int less_getch(void)
 	char input[16];
 	unsigned i;
  again:
+	memset(input, 0, sizeof(input));
 	getch_nowait(input, sizeof(input));
+
 	/* Detect escape sequences (i.e. arrow keys) and handle
 	 * them accordingly */
-
 	if (input[0] == '\033' && input[1] == '[') {
 		set_tty_cooked();
 		i = input[2] - REAL_KEY_UP;
@@ -740,6 +741,7 @@ static char* less_gets(int sz)
 		 * but it is needed. Is it because of stdio? */
 		tcsetattr(kbd_fd, TCSANOW, &term_less);
 
+		c = '\0';
 		read(kbd_fd, &c, 1);
 		if (c == 0x0d)
 			return result;
