@@ -1,8 +1,13 @@
+/* vi: set sw=4 ts=4: */
 /*
  * Replacement for "stty size", which is awkward for shell script use.
  * - Allows to request width, height, or both, in any order.
- * - Does not complain on error, but returns default 80x24.
+ * - Does not complain on error, but returns width 80, height 24.
  * - Size: less than 200 bytes
+ *
+ * Copyright (C) 2007 by Denys Vlasenko <vda.linux@googlemail.com>
+ *
+ * Licensed under the GPL v2, see the file LICENSE in this tarball.
  */
 #include "libbb.h"
 
