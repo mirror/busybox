@@ -50,9 +50,9 @@ void bb_uuencode(char *p, const void *src, int length, const char *tbl)
 		/* Are s[1], s[2] valid or should be assumed 0? */
 		s1 = s2 = 0;
 		length -= 3; /* can be >=0, -1, -2 */
-		if (length != -2) {
+		if (length >= -1) {
 			s1 = s[1];
-			if (length != -1)
+			if (length >= 0)
 				s2 = s[2];
 		}
 		*p++ = tbl[s[0] >> 2];
