@@ -836,6 +836,14 @@ static void puts_maybe_newline(char *s, FILE *file, char *last_puts_char, char l
 
 #define sed_puts(s, n) (puts_maybe_newline(s, G.nonstdout, &last_puts_char, n))
 
+static int beg_match(sed_cmd_t *sed_cmd, const char *pattern_space)
+{
+	int retval = sed_cmd->beg_match && !regexec(sed_cmd->beg_match, pattern_space, 0, NULL, 0);
+	if (retval)
+		G.previous_regex_ptr = sed_cmd->beg_match;
+	return retval;
+}
+
 /* Process all the lines in all the files */
 
 static void process_files(void)
@@ -880,8 +888,7 @@ restart:
 			/* Or did we match the start of a numerical range? */
 			|| (sed_cmd->beg_line > 0 && (sed_cmd->beg_line == linenum))
 			/* Or does this line match our begin address regex? */
-			|| (sed_cmd->beg_match &&
-			    !regexec(sed_cmd->beg_match, pattern_space, 0, NULL, 0))
+			|| (beg_match(sed_cmd, pattern_space))
 			/* Or did we match last line of input? */
 			|| (sed_cmd->beg_line == -1 && next_line == NULL);
 

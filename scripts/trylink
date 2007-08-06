@@ -25,8 +25,9 @@ try "-Wl,--start-group $l_list -Wl,--end-group" "$@" \
 # Hack: we are not supposed to know executable name,
 # but this hack cuts down link time
 mv busybox_unstripped busybox_unstripped.tmp
+mv busybox.map        busybox.map.tmp
 
-# Now try to remove each lib and build without.
+# Now try to remove each lib and build without it.
 # Stop when no lib can be removed.
 ever_discarded=false
 while test "$BBOX_LIB_LIST"; do
@@ -47,17 +48,19 @@ while test "$BBOX_LIB_LIST"; do
     done
     # All libs were needed, can't remove any
     $all_needed && break
-    # If there is no space, the list has just one lib.
+    # If there is no space char, the list has just one lib.
     # I'm not sure that in this case lib really is 100% needed.
     # Let's try linking without it anyway... thus commented out.
-    #echo "$BBOX_LIB_LIST" | grep -q ' ' || break
+    #{ echo "$BBOX_LIB_LIST" | grep -q ' '; } || break
 done
 
 mv busybox_unstripped.tmp busybox_unstripped
+mv busybox.map.tmp        busybox.map
 $ever_discarded && {
-    # Ok, make the binary
+    # Make the binary with final, minimal list of libs
     echo "Final link with: $BBOX_LIB_LIST"
     l_list=`echo "$BBOX_LIB_LIST" | sed -e 's/ / -l/g' -e 's/^/-l/'`
-    try "-Wl,--start-group $l_list -Wl,--end-group" "$@"
+    try "-Wl,--start-group $l_list -Wl,--end-group" "$@" && exit 1
 }
+rm busybox_ld.err
 exit 0  # Ensure "success" exit code
