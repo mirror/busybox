@@ -264,27 +264,20 @@ static bool only_changed_user(const char *a, const char *b)
 
 static int restore(const char *file)
 {
-	char *my_file = xstrdup(file);
-	char *my_file_orig = my_file;
+	char *my_file;	
 	struct stat my_sb;
 	int i, j, ret;
 	char *context = NULL;
 	char *newcon = NULL;
 	bool user_only_changed = 0;
-	size_t len = strlen(my_file);
 	int retval = 0;
-
-	/* Skip the extra slashes at the beginning and end, if present. */
-	if (file[0] == '/' && file[1] == '/')
-		my_file++;
-	if (len > 1 && my_file[len - 1] == '/')
-		my_file[len - 1] = '\0';
+	
+	my_file = bb_simplify_path(file);	
 
 	i = match(my_file, &my_sb, &newcon);
 
 	if (i < 0) /* No matching specification. */
 		goto out;
-
 
 	if (FLAG_p_progress) {
 		count++;
@@ -386,7 +379,7 @@ static int restore(const char *file)
  out:
 	freecon(context);
 	freecon(newcon);
-	free(my_file_orig);
+	free(my_file);
 	return retval;
  err:
 	retval--; /* -1 */
@@ -499,7 +492,6 @@ int setfiles_main(int argc, char **argv)
 	struct stat sb;
 	int rc, i = 0;
 	const char *input_filename = NULL;
-	int use_input_file = 0;
 	char *buf = NULL;
 	size_t buf_len;
 	int flags;
@@ -591,7 +583,6 @@ int setfiles_main(int argc, char **argv)
 			rootpathlen = strlen(rootpath);
 	}
 	if (flags & OPT_s) {
-		use_input_file = 1;
 		input_filename = "-";
 		add_assoc = 0;
 	}
@@ -621,7 +612,7 @@ int setfiles_main(int argc, char **argv)
 			exit(1);
 	}
 
-	if (use_input_file) {
+	if (input_filename) {
 		ssize_t len;
 		FILE *f = stdin;
 
