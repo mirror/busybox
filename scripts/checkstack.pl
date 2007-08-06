@@ -39,6 +39,9 @@ my (@stack, $re, $x, $xs);
 	if ($arch eq 'arm') {
 		#c0008ffc:	e24dd064	sub	sp, sp, #100	; 0x64
 		$re = qr/.*sub.*sp, sp, #(([0-9]{2}|[3-9])[0-9]{2})/o;
+	} elsif ($arch eq 'blackfin') {
+		#      52:       00 e8 03 00     LINK 0xc;
+		$re = qr/.*LINK (0x$x{1,5});$/o;
 	} elsif ($arch =~ /^i[3456]86$/) {
 		#c0105234:       81 ec ac 05 00 00       sub    $0x5ac,%esp
 		$re = qr/^.*[as][du][db]    \$(0x$x{1,8}),\%esp$/o;

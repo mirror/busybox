@@ -55,10 +55,12 @@ static char *extract_filename(char *line, int patch_level)
 	int i;
 
 	/* Terminate string at end of source filename */
-	temp = strchr(filename_start_ptr, '\t');
-	if (temp) *temp = 0;
+	temp = strchrnul(filename_start_ptr, '\t');
+	*temp = '\0';
 
-	/* skip over (patch_level) number of leading directories */
+	/* Skip over (patch_level) number of leading directories */
+	if (patch_level == -1)
+		patch_level = INT_MAX;
 	for (i = 0; i < patch_level; i++) {
 		temp = strchr(filename_start_ptr, '/');
 		if (!temp)
