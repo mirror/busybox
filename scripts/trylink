@@ -60,7 +60,7 @@ $ever_discarded && {
     # Make the binary with final, minimal list of libs
     echo "Final link with: $BBOX_LIB_LIST"
     l_list=`echo "$BBOX_LIB_LIST" | sed -e 's/ / -l/g' -e 's/^/-l/'`
-    try "-Wl,--start-group $l_list -Wl,--end-group" "$@" && exit 1
+    try "-Wl,--start-group $l_list -Wl,--end-group" "$@" || exit 1
 }
 rm busybox_ld.err
 exit 0  # Ensure "success" exit code
