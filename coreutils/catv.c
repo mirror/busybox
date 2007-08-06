@@ -15,7 +15,8 @@
 int catv_main(int argc, char **argv);
 int catv_main(int argc, char **argv)
 {
-	int retval = EXIT_SUCCESS, fd;
+	int retval = EXIT_SUCCESS;
+	int fd;
 	unsigned flags;
 
 	flags = getopt32(argc, argv, "etv");
@@ -27,8 +28,10 @@ int catv_main(int argc, char **argv)
 
 	/* Read from stdin if there's nothing else to do. */
 	fd = 0;
-	if (!argv[0])
+	if (!argv[0]) {
+		argv--;
 		goto jump_in;
+	}
 	do {
 		fd = open_or_warn(*argv, O_RDONLY);
 		if (fd < 0) {
@@ -46,7 +49,7 @@ int catv_main(int argc, char **argv)
 			if (res < 1)
 				break;
 			for (i = 0; i < res; i++) {
-				char c = read_buf[i];
+				unsigned char c = read_buf[i];
 
 				if (c > 126 && (flags & CATV_OPT_v)) {
 					if (c == 127) {
