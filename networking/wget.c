@@ -109,9 +109,9 @@ int wget_main(int argc, char **argv)
 	FILE *sfp = NULL;               /* socket to web/ftp server         */
 	FILE *dfp = NULL;               /* socket to ftp server (data)      */
 	char *fname_out = NULL;         /* where to direct output (-O)      */
-	bool got_clen = 0;               /* got content-length: from server  */
+	bool got_clen = 0;              /* got content-length: from server  */
 	int output_fd = -1;
-	bool use_proxy = 1;              /* Use proxies if env vars are set  */
+	bool use_proxy = 1;             /* Use proxies if env vars are set  */
 	const char *proxy_flag = "on";  /* Use proxies if env vars are set  */
 	const char *user_agent = "Wget";/* "User-Agent" header field        */
 	static const char keywords[] =
