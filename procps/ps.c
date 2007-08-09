@@ -322,7 +322,7 @@ int ps_main(int argc, char **argv)
 	 * and such large widths */
 	terminal_width = MAX_WIDTH;
 	if (isatty(1)) {
-		get_terminal_width_height(1, &terminal_width, NULL);
+		get_terminal_width_height(0, &terminal_width, NULL);
 		if (--terminal_width > MAX_WIDTH)
 			terminal_width = MAX_WIDTH;
 	}
@@ -364,7 +364,7 @@ int ps_main(int argc, char **argv)
 	if (w_count) {
 		terminal_width = (w_count==1) ? 132 : MAX_WIDTH;
 	} else {
-		get_terminal_width_height(1, &terminal_width, NULL);
+		get_terminal_width_height(0, &terminal_width, NULL);
 		/* Go one less... */
 		if (--terminal_width > MAX_WIDTH)
 			terminal_width = MAX_WIDTH;

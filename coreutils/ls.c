@@ -811,7 +811,7 @@ int ls_main(int argc, char **argv)
 
 #if ENABLE_FEATURE_AUTOWIDTH
 	/* Obtain the terminal width */
-	get_terminal_width_height(STDOUT_FILENO, &terminal_width, NULL);
+	get_terminal_width_height(STDIN_FILENO, &terminal_width, NULL);
 	/* Go one less... */
 	terminal_width--;
 #endif

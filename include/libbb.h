@@ -803,7 +803,8 @@ extern int crypt_make_salt(char *p, int cnt, int rnd);
 extern int update_passwd(const char *filename, const char *username,
 			const char *new_pw);
 
-int get_terminal_width_height(const int fd, int *width, int *height);
+/* NB: typically you want to pass fd 0, not 1. Think 'applet | grep something' */
+int get_terminal_width_height(int fd, int *width, int *height);
 
 int ioctl_or_perror(int fd, int request, void *argp, const char *fmt,...) __attribute__ ((format (printf, 4, 5)));
 void ioctl_or_perror_and_die(int fd, int request, void *argp, const char *fmt,...) __attribute__ ((format (printf, 4, 5)));

@@ -612,7 +612,7 @@ void selinux_or_die(void)
 
 /* It is perfectly ok to pass in a NULL for either width or for
  * height, in which case that value will not be set.  */
-int get_terminal_width_height(const int fd, int *width, int *height)
+int get_terminal_width_height(int fd, int *width, int *height)
 {
 	struct winsize win = { 0, 0, 0, 0 };
 	int ret = ioctl(fd, TIOCGWINSZ, &win);
