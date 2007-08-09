@@ -342,8 +342,11 @@ static bool do_statfs(char const *filename, char const *format)
 	security_context_t scontext = NULL;
 
 	if (option_mask32 & OPT_SELINUX) {
-		if ((option_mask32 & OPT_DEREFERENCE ? lgetfilecon(filename, scontext):
-		     getfilecon(filename, scontext))< 0) {
+		if ((option_mask32 & OPT_DEREFERENCE
+		     ? lgetfilecon(filename, &scontext)
+		     : getfilecon(filename, &scontext)
+		    ) < 0
+		) {
 			bb_perror_msg(filename);
 			return 0;
 		}
@@ -448,9 +451,12 @@ static bool do_stat(char const *filename, char const *format)
 	security_context_t scontext = NULL;
 
 	if (option_mask32 & OPT_SELINUX) {
-		if ((option_mask32 & OPT_DEREFERENCE ? lgetfilecon(filename, scontext):
-		     getfilecon(filename, scontext))< 0) {
-			bb_perror_msg (filename);
+		if ((option_mask32 & OPT_DEREFERENCE
+		     ? lgetfilecon(filename, &scontext)
+		     : getfilecon(filename, &scontext)
+		    ) < 0
+		) {
+			bb_perror_msg(filename);
 			return 0;
 		}
 	}
