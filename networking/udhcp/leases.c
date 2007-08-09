@@ -12,9 +12,9 @@
 static struct dhcpOfferedAddr *oldest_expired_lease(void)
 {
 	struct dhcpOfferedAddr *oldest = NULL;
+// TODO: use monotonic_sec()
 	unsigned long oldest_lease = time(0);
 	unsigned i;
-
 
 	for (i = 0; i < server_config.max_leases; i++)
 		if (oldest_lease > leases[i].expires) {
@@ -30,13 +30,14 @@ static void clear_lease(const uint8_t *chaddr, uint32_t yiaddr)
 {
 	unsigned i, j;
 
-	for (j = 0; j < 16 && !chaddr[j]; j++);
+	for (j = 0; j < 16 && !chaddr[j]; j++)
+		continue;
 
 	for (i = 0; i < server_config.max_leases; i++)
-		if ((j != 16 && memcmp(leases[i].chaddr, chaddr, 16) != 0)
+		if ((j != 16 && memcmp(leases[i].chaddr, chaddr, 16) == 0)
 		 || (yiaddr && leases[i].yiaddr == yiaddr)
 		) {
-			memset(&(leases[i]), 0, sizeof(struct dhcpOfferedAddr));
+			memset(&(leases[i]), 0, sizeof(leases[i]));
 		}
 }
 
@@ -122,20 +123,18 @@ uint32_t find_address(int check_expired)
 	struct dhcpOfferedAddr *lease = NULL;
 
 	addr = server_config.start_ip; /* addr is in host order here */
-	for (;addr <= server_config.end_ip; addr++) {
-
+	for (; addr <= server_config.end_ip; addr++) {
 		/* ie, 192.168.55.0 */
-		if (!(addr & 0xFF)) continue;
-
+		if (!(addr & 0xFF))
+			continue;
 		/* ie, 192.168.55.255 */
-		if ((addr & 0xFF) == 0xFF) continue;
-
+		if ((addr & 0xFF) == 0xFF)
+			continue;
 		/* Only do if it isn't assigned as a static lease */
 		ret = htonl(addr);
 		if (!reservedIp(server_config.static_leases, ret)) {
 			/* lease is not taken */
 			lease = find_lease_by_yiaddr(ret);
-
 			/* no lease or it expired and we are checking for expired leases */
 			if ((!lease || (check_expired && lease_expired(lease)))
 			 && nobody_responds_to_arp(ret) /* it isn't used on the network */
