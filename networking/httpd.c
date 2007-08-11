@@ -1043,9 +1043,9 @@ static int sendCgi(const char *url,
 		xmove_fd(fromCgi.wr, 1);  /* replace stdout with the pipe */
 		close(fromCgi.rd);
 		close(toCgi.wr);
-		/* Huh? User seeing stderr can be a security problem...
-		 * and if CGI really wants that, it can always dup2(1,2)...
-		 * dup2(fromCgi.wr, 2); */
+		/* Huh? User seeing stderr can be a security problem.
+		 * If CGI really wants that, it can always dup2(1,2). */
+		/* dup2(1, 2); */
 
 		/*
 		 * Find PATH_INFO.
@@ -1247,7 +1247,7 @@ static int sendCgi(const char *url,
 				post_read_idx = 0;
 				bodyLen -= count;
 			} else {
-				bodyLen = 0;    /* closed */
+				bodyLen = 0; /* closed */
 			}
 		}
 
@@ -1274,32 +1274,43 @@ static int sendCgi(const char *url,
 				 * CGI may output a few first bytes and then wait
 				 * for POSTDATA without closing stdout.
 				 * With full_read we may wait here forever. */
-				count = safe_read(inFd, rbuf + buf_count, PIPESIZE - 4);
+				count = safe_read(inFd, rbuf + buf_count, PIPESIZE - 8);
 				if (count <= 0) {
 					/* eof (or error) and there was no "HTTP",
-					 * so add one and write out the received data */
+					 * so write it, then write received data */
 					if (buf_count) {
 						full_write(s, HTTP_200, sizeof(HTTP_200)-1);
 						full_write(s, rbuf, buf_count);
 					}
-					break;  /* closed */
+					break; /* closed */
 				}
 				buf_count += count;
 				count = 0;
-				if (buf_count >= 4) {
-					/* check to see if CGI added "HTTP" */
+				/* "Status" header format is: "Status: 302 Redirected\r\n" */
+				if (buf_count >= 8) {
+					if (memcmp(rbuf, "Status: ", 8) == 0) {
+						/* send "HTTP/1.0 " */
+						if (full_write(s, HTTP_200, 9) != 9)
+							break;
+						rbuf += 8; /* skip "Status: " */
+						count -= 8;
+						buf_count = -1; /* buffering off */
+					}
+				} else if (buf_count >= 4) {
+					/* Did CGI add "HTTP"? */
 					if (memcmp(rbuf, HTTP_200, 4) != 0) {
 						/* there is no "HTTP", do it ourself */
 						if (full_write(s, HTTP_200, sizeof(HTTP_200)-1) != sizeof(HTTP_200)-1)
 							break;
 					}
-					/* example of valid CGI without "Content-type:"
-					 * echo -en "HTTP/1.0 302 Found\r\n"
-					 * echo -en "Location: http://www.busybox.net\r\n"
-					 * echo -en "\r\n"
+					/* Commented out:
 					if (!strstr(rbuf, "ontent-")) {
 						full_write(s, "Content-type: text/plain\r\n\r\n", 28);
 					}
+					 * Counter-example of valid CGI without Content-type:
+					 * echo -en "HTTP/1.0 302 Found\r\n"
+					 * echo -en "Location: http://www.busybox.net\r\n"
+					 * echo -en "\r\n"
 					 */
 					count = buf_count;
 					buf_count = -1; /* buffering off */
