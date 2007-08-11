@@ -1287,15 +1287,13 @@ static int sendCgi(const char *url,
 				buf_count += count;
 				count = 0;
 				/* "Status" header format is: "Status: 302 Redirected\r\n" */
-				if (buf_count >= 8) {
-					if (memcmp(rbuf, "Status: ", 8) == 0) {
-						/* send "HTTP/1.0 " */
-						if (full_write(s, HTTP_200, 9) != 9)
-							break;
-						rbuf += 8; /* skip "Status: " */
-						count -= 8;
-						buf_count = -1; /* buffering off */
-					}
+				if (buf_count >= 8 && memcmp(rbuf, "Status: ", 8) == 0) {
+					/* send "HTTP/1.0 " */
+					if (full_write(s, HTTP_200, 9) != 9)
+						break;
+					rbuf += 8; /* skip "Status: " */
+					count = buf_count - 8;
+					buf_count = -1; /* buffering off */
 				} else if (buf_count >= 4) {
 					/* Did CGI add "HTTP"? */
 					if (memcmp(rbuf, HTTP_200, 4) != 0) {
