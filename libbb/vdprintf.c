@@ -15,7 +15,7 @@ int vdprintf(int d, const char *format, va_list ap)
 	char buf[BUF_SIZE];
 	int len;
 
-	len = vsprintf(buf, format, ap);
+	len = vsnprintf(buf, BUF_SIZE, format, ap);
 	return write(d, buf, len);
 }
 #endif

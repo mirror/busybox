@@ -989,8 +989,8 @@ static int sendCgi(const char *url,
 		const char *request, int bodyLen, const char *cookie,
 		const char *content_type)
 {
-	int fromCgi[2];  /* pipe for reading data from CGI */
-	int toCgi[2];    /* pipe for sending data to CGI */
+	struct { int rd; int wr; } fromCgi;  /* CGI -> httpd pipe */
+	struct { int rd; int wr; } toCgi;    /* httpd -> CGI pipe */
 	char *fullpath;
 	char *argp[] = { NULL, NULL };
 	int pid = 0;
@@ -1000,9 +1000,9 @@ static int sendCgi(const char *url,
 	int status;
 	size_t post_read_size, post_read_idx;
 
-	if (pipe(fromCgi) != 0)
+	if (pipe(&fromCgi.rd) != 0)
 		return 0;
-	if (pipe(toCgi) != 0)
+	if (pipe(&toCgi.rd) != 0)
 		return 0;
 
 /*
@@ -1039,13 +1039,13 @@ static int sendCgi(const char *url,
 		if (server_socket > 1)
 			close(server_socket);
 
-		xmove_fd(toCgi[0], 0);  /* replace stdin with the pipe */
-		xmove_fd(fromCgi[1], 1);  /* replace stdout with the pipe */
-		close(fromCgi[0]);
-		close(fromCgi[1]);
+		xmove_fd(toCgi.rd, 0);  /* replace stdin with the pipe */
+		xmove_fd(fromCgi.wr, 1);  /* replace stdout with the pipe */
+		close(fromCgi.rd);
+		close(toCgi.wr);
 		/* Huh? User seeing stderr can be a security problem...
 		 * and if CGI really wants that, it can always dup2(1,2)...
-		 * dup2(fromCgi[1], 2); */
+		 * dup2(fromCgi.wr, 2); */
 
 		/*
 		 * Find PATH_INFO.
@@ -1175,10 +1175,10 @@ static int sendCgi(const char *url,
 	buf_count = 0;
 	post_read_size = 0;
 	post_read_idx = 0; /* for gcc */
-	inFd = fromCgi[0];
-	outFd = toCgi[1];
-	close(fromCgi[1]);
-	close(toCgi[0]);
+	inFd = fromCgi.rd;
+	outFd = toCgi.wr;
+	close(fromCgi.wr);
+	close(toCgi.rd);
 	signal(SIGPIPE, SIG_IGN);
 
 	while (1) {
@@ -1262,7 +1262,14 @@ static int sendCgi(const char *url,
 
 			/* Are we still buffering CGI output? */
 			if (buf_count >= 0) {
+				/* According to http://hoohoo.ncsa.uiuc.edu/cgi/out.html,
+				 * CGI scripts MUST send their own header terminated by
+				 * empty line, then data. That's why we have only one
+				 * <cr><lf> pair here. We will output "200 OK" line
+				 * if needed, but CGI still has to provide blank line
+				 * between header and body */
 				static const char HTTP_200[] = "HTTP/1.0 200 OK\r\n";
+
 				/* Must use safe_read, not full_read, because
 				 * CGI may output a few first bytes and then wait
 				 * for POSTDATA without closing stdout.
