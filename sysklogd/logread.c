@@ -19,11 +19,10 @@
 enum { KEY_ID = 0x414e4547 }; /* "GENA" */
 
 static struct shbuf_ds {
-	int32_t size;           // size of data written
-	int32_t head;           // start of message list
+	int32_t size;           // size of data - 1
 	int32_t tail;           // end of message list
-	char data[1];           // data/messages
-} *buf;                         // shared memory pointer
+	char data[1];           // messages
+} *shbuf;
 
 // Semaphore operation structures
 static struct sembuf SMrup[1] = {{0, -1, IPC_NOWAIT | SEM_UNDO}}; // set SMrup
@@ -34,7 +33,7 @@ static void error_exit(const char *str) ATTRIBUTE_NORETURN;
 static void error_exit(const char *str)
 {
 	//release all acquired resources
-	shmdt(buf);
+	shmdt(shbuf);
 	bb_perror_msg_and_die(str);
 }
 
@@ -50,7 +49,7 @@ static void sem_up(int semid)
 static void interrupted(int sig ATTRIBUTE_UNUSED)
 {
 	signal(SIGINT, SIG_IGN);
-	shmdt(buf);
+	shmdt(shbuf);
 	exit(0);
 }
 
@@ -66,79 +65,105 @@ int logread_main(int argc, char **argv)
 	if (log_shmid == -1)
 		bb_perror_msg_and_die("can't find syslogd buffer");
 
-	// Attach shared memory to our char*
-	buf = shmat(log_shmid, NULL, SHM_RDONLY);
-	if (buf == NULL)
+	/* Attach shared memory to our char* */
+	shbuf = shmat(log_shmid, NULL, SHM_RDONLY);
+	if (shbuf == NULL)
 		bb_perror_msg_and_die("can't access syslogd buffer");
 
 	log_semid = semget(KEY_ID, 0, 0);
 	if (log_semid == -1)
 		error_exit("can't get access to semaphores for syslogd buffer");
 
-	// attempt to redefine ^C signal
 	signal(SIGINT, interrupted);
 
-	// Suppose atomic memory move
-	cur = follow ? buf->tail : buf->head;
+	/* Suppose atomic memory read */
+	/* Max possible value for tail is shbuf->size - 1 */
+	cur = shbuf->tail;
 
+	/* Loop for logread -f, one pass if there was no -f */
 	do {
+		unsigned shbuf_size;
+		unsigned shbuf_tail;
+		const char *shbuf_data;
 #if ENABLE_FEATURE_LOGREAD_REDUCED_LOCKING
-		char *buf_data;
-		int log_len, j;
+		int i;
+		int len_first_part;
+		int len_total = len_total; /* for gcc */
+		char *copy = copy; /* for gcc */
 #endif
 		if (semop(log_semid, SMrdn, 2) == -1)
 			error_exit("semop[SMrdn]");
 
-		if (DEBUG)
-			printf("head:%i cur:%d tail:%i size:%i\n",
-					buf->head, cur, buf->tail, buf->size);
+		/* Copy the info, helps gcc to realize that it doesn't change */
+		shbuf_size = shbuf->size;
+		shbuf_tail = shbuf->tail;
+		shbuf_data = shbuf->data; /* pointer! */
 
-		if (buf->head == buf->tail || cur == buf->tail) {
-			if (follow) {
+		if (DEBUG)
+			printf("cur:%d tail:%i size:%i\n",
+					cur, shbuf_tail, shbuf_size);
+
+		if (!follow) {
+			/* advance to oldest complete message */
+			/* find NUL */
+			cur += strlen(shbuf_data + cur);
+			if (cur >= shbuf_size) { /* last byte in buffer? */
+				cur = strnlen(shbuf_data, shbuf_tail);
+				if (cur == shbuf_tail)
+					goto unlock; /* no complete messages */
+			}
+			/* advance to first byte of the message */
+			cur++;
+			if (cur >= shbuf_size) /* last byte in buffer? */
+				cur = 0;
+		} else { /* logread -f */
+			if (cur == shbuf_tail) {
 				sem_up(log_semid);
 				fflush(stdout);
 				sleep(1); /* TODO: replace me with a sleep_on */
 				continue;
 			}
-			puts("<empty syslog>");
 		}
 
-		// Read Memory
+		/* Read from cur to tail */
 #if ENABLE_FEATURE_LOGREAD_REDUCED_LOCKING
-		log_len = buf->tail - cur;
-		if (log_len < 0)
-			log_len += buf->size;
-		buf_data = xmalloc(log_len);
-
-		if (buf->tail >= cur)
-			j = log_len;
-		else
-			j = buf->size - cur;
-		memcpy(buf_data, buf->data + cur, j);
-
-		if (buf->tail < cur)
-			memcpy(buf_data + buf->size - cur, buf->data, buf->tail);
-		cur = buf->tail;
+		len_first_part = len_total = shbuf_tail - cur;
+		if (len_total < 0) {
+			/* message wraps: */
+			/* [SECOND PART.........FIRST PART] */
+			/*  ^data      ^tail    ^cur      ^size */
+			len_total += shbuf_size;
+		}
+		copy = xmalloc(len_total + 1);
+		if (len_first_part < 0) {
+			/* message wraps (see above) */
+			len_first_part = shbuf_size - cur;
+			memcpy(copy + len_first_part, shbuf_data, shbuf_tail);
+		}
+		memcpy(copy, shbuf_data + cur, len_first_part);
+		copy[len_total] = '\0';
+		cur = shbuf_tail;
 #else
-		while (cur != buf->tail) {
-			fputs(buf->data + cur, stdout);
-			cur += strlen(buf->data + cur) + 1;
-			if (cur >= buf->size)
+		while (cur != shbuf_tail) {
+			fputs(shbuf_data + cur, stdout);
+			cur += strlen(shbuf_data + cur) + 1;
+			if (cur >= shbuf_size)
 				cur = 0;
 		}
 #endif
-		// release the lock on the log chain
+ unlock:
+		/* release the lock on the log chain */
 		sem_up(log_semid);
 
 #if ENABLE_FEATURE_LOGREAD_REDUCED_LOCKING
-		for (j = 0; j < log_len; j += strlen(buf_data+j) + 1) {
-			fputs(buf_data + j, stdout);
+		for (i = 0; i < len_total; i += strlen(copy + i) + 1) {
+			fputs(copy + i, stdout);
 		}
-		free(buf_data);
+		free(copy);
 #endif
 	} while (follow);
 
-	shmdt(buf);
+	shmdt(shbuf);
 
 	fflush_stdout_and_exit(EXIT_SUCCESS);
 }

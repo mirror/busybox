@@ -3327,17 +3327,17 @@ USE_FEATURE_RUN_PARTS_FANCY("\n	-l	Prints names of all matching files even when 
        "Note that this version of syslogd ignores /etc/syslog.conf." \
        "\n\nOptions:" \
        "\n	-n		Run as foreground process" \
-       "\n	-O FILE		Use an alternate log file (default=/var/log/messages)" \
-       "\n	-l n		Sets the local log level of messages to n" \
-       "\n	-S		Make logging output smaller" \
+       "\n	-O FILE		Log to given file (default=/var/log/messages)" \
+       "\n	-l n		Set local log level" \
+       "\n	-S		Smaller logging output" \
 	USE_FEATURE_ROTATE_LOGFILE( \
        "\n	-s SIZE		Max size (KB) before rotate (default=200KB, 0=off)" \
        "\n	-b NUM		Number of rotated logs to keep (default=1, max=99, 0=purge)") \
 	USE_FEATURE_REMOTE_LOG( \
        "\n	-R HOST[:PORT]	Log to IP or hostname on PORT (default PORT=514/UDP)" \
-       "\n	-L		Log locally and via network logging (default is network only)") \
+       "\n	-L		Log locally and via network (default is network only if -R)") \
 	USE_FEATURE_IPC_SYSLOG( \
-       "\n	-C[size(KiB)]	Log to a shared mem buffer (read the buffer using logread)")
+       "\n	-C[size(KiB)]	Log to shared mem buffer (read it using logread)")
 	/* NB: -Csize shouldn't have space (because size is optional) */
 /*     "\n	-m MIN		Minutes between MARK lines (default=20, 0=off)" */
 #define syslogd_example_usage \
