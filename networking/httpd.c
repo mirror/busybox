@@ -92,6 +92,9 @@
 */
 
 #include "libbb.h"
+#if ENABLE_FEATURE_HTTPD_USE_SENDFILE
+#include <sys/sendfile.h>
+#endif
 
 /* amount of buffering in a pipe */
 #ifndef PIPE_BUF
@@ -922,15 +925,15 @@ static int sendHeaders(HttpResponseNum responseNum)
 	len += 2;
 	if (infoString) {
 		len += sprintf(buf+len,
-				"<HEAD><TITLE>%d %s</TITLE></HEAD>\n"
-				"<BODY><H1>%d %s</H1>\n%s\n</BODY>\n",
+				"<HTML><HEAD><TITLE>%d %s</TITLE></HEAD>\n"
+				"<BODY><H1>%d %s</H1>\n%s\n</BODY></HTML>\n",
 				responseNum, responseString,
 				responseNum, responseString, infoString);
 	}
 	if (DEBUG)
 		fprintf(stderr, "headers: '%s'\n", buf);
 	i = accepted_socket;
-	if (i == 0) i++; /* write to fd# 1 in inetd mode */
+	if (i == 0) i++; /* write to fd #1 in inetd mode */
 	return full_write(i, buf, len);
 }
 
@@ -1342,10 +1345,15 @@ static int sendCgi(const char *url,
  ****************************************************************************/
 static int sendFile(const char *url)
 {
-	char * suffix;
+	char *suffix;
 	int f;
+	int fd;
 	const char *const *table;
 	const char *try_suffix;
+	ssize_t count;
+#if ENABLE_FEATURE_HTTPD_USE_SENDFILE
+	off_t offset = 0;
+#endif
 
 	suffix = strrchr(url, '.');
 
@@ -1360,7 +1368,6 @@ static int sendFile(const char *url)
 #if ENABLE_FEATURE_HTTPD_CONFIG_WITH_MIME_TYPES
 	if (suffix) {
 		Htaccess * cur;
-
 		for (cur = mime_a; cur; cur = cur->next) {
 			if (strcmp(cur->before_colon, suffix) == 0) {
 				found_mime_type = cur->after_colon;
@@ -1375,25 +1382,36 @@ static int sendFile(const char *url)
 			url, found_mime_type);
 
 	f = open(url, O_RDONLY);
-	if (f >= 0) {
-		int count;
-		char *buf = iobuf;
-
-		sendHeaders(HTTP_OK);
-		/* TODO: sendfile() */
-		while ((count = full_read(f, buf, MAX_MEMORY_BUFF)) > 0) {
-			int fd = accepted_socket;
-			if (fd == 0) fd++; /* write to fd# 1 in inetd mode */
-			if (full_write(fd, buf, count) != count)
-				break;
-		}
-		close(f);
-	} else {
+	if (f < 0) {
 		if (DEBUG)
 			bb_perror_msg("cannot open '%s'", url);
 		sendHeaders(HTTP_NOT_FOUND);
+		return 0;
 	}
 
+	sendHeaders(HTTP_OK);
+	fd = accepted_socket;
+	if (fd == 0)
+		fd++; /* write to fd #1 in inetd mode */
+#if ENABLE_FEATURE_HTTPD_USE_SENDFILE
+	do {
+		count = sendfile(fd, f, &offset, MAXINT(ssize_t));
+		if (count < 0) {
+			if (offset == 0)
+				goto fallback;
+			bb_perror_msg("sendfile '%s'", url);
+		}
+	} while (count > 0);
+	close(f);
+	return 0;
+
+ fallback:
+#endif
+	while ((count = full_read(f, iobuf, MAX_MEMORY_BUFF)) > 0) {
+		if (full_write(fd, iobuf, count) != count)
+			break;
+	}
+	close(f);
 	return 0;
 }
 
@@ -1689,11 +1707,11 @@ static void handleIncoming(void)
 				if ((STRNCASECMP(buf, "Content-length:") == 0)) {
 					/* extra read only for POST */
 					if (prequest != request_GET) {
-						test = buf + sizeof("Content-length:")-1;
+						test = buf + sizeof("Content-length:") - 1;
 						if (!test[0])
 							goto bail_out;
 						errno = 0;
-						/* not using strtoul: it ignores leading munis! */
+						/* not using strtoul: it ignores leading minus! */
 						length = strtol(test, &test, 10);
 						/* length is "ulong", but we need to pass it to int later */
 						/* so we check for negative or too large values in one go: */

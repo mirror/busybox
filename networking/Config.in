@@ -83,6 +83,14 @@ config HTTPD
 	help
 	  Serve web pages via an HTTP server.
 
+config FEATURE_HTTPD_USE_SENDFILE
+	bool "Use sendfile system call"
+	default n
+	depends on HTTPD
+	help
+	  When enabled, httpd will use the kernel sendfile() function
+	  instead of read/write loop.
+
 config FEATURE_HTTPD_RELOAD_CONFIG_SIGHUP
 	bool "Support reloading the global config file using hup signal"
 	default n
