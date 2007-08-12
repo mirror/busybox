@@ -38,8 +38,8 @@
 #define S_LEN 128
 
 /* These are the defaults */
-static const char defaultmap[] = "/boot/System.map";
-static const char defaultpro[] = "/proc/profile";
+static const char defaultmap[] ALIGN1 = "/boot/System.map";
+static const char defaultpro[] ALIGN1 = "/proc/profile";
 
 int readprofile_main(int argc, char **argv);
 int readprofile_main(int argc, char **argv)

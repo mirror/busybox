@@ -23,15 +23,15 @@ typedef struct {
 
 #define UL unsigned long
 
-static const char default_format[] = "real\t%E\nuser\t%u\nsys\t%T";
+static const char default_format[] ALIGN1 = "real\t%E\nuser\t%u\nsys\t%T";
 
 /* The output format for the -p option .*/
-static const char posix_format[] = "real %e\nuser %U\nsys %S";
+static const char posix_format[] ALIGN1 = "real %e\nuser %U\nsys %S";
 
 
 /* Format string for printing all statistics verbosely.
    Keep this output to 24 lines so users on terminals can see it all.*/
-static const char long_format[] =
+static const char long_format[] ALIGN1 =
 	"\tCommand being timed: \"%C\"\n"
 	"\tUser time (seconds): %U\n"
 	"\tSystem time (seconds): %S\n"

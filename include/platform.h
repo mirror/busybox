@@ -169,7 +169,7 @@ __extension__ typedef unsigned long long __u64;
 # error "Sorry, this libc version is not supported :("
 #endif
 
-// Don't perpetuate e2fsck crap into the headers.  Clean up e2fsck instead.
+/* Don't perpetuate e2fsck crap into the headers.  Clean up e2fsck instead. */
 
 #if defined __GLIBC__ || defined __UCLIBC__ \
 	|| defined __dietlibc__ || defined _NEWLIB_VERSION
@@ -208,6 +208,16 @@ typedef unsigned smalluint;
 #else
 /* modern system, so use it */
 #include <stdbool.h>
+#endif
+
+/* Try to defeat gcc's alignment of "char message[]"-like data */
+#if 1 /* if needed: !defined(arch1) && !defined(arch2) */
+#define ALIGN1 __attribute__((aligned(1)))
+#define ALIGN2 __attribute__((aligned(2)))
+#else
+/* Arches which MUST have 2 or 4 byte alignment for everything are here */
+#define ALIGN1
+#define ALIGN2
 #endif
 
 
@@ -289,7 +299,7 @@ static ALWAYS_INLINE char* strchrnul(const char *s, char c)
 
 #if defined(__linux__)
 #include <sys/mount.h>
-// Make sure we have all the new mount flags we actually try to use.
+/* Make sure we have all the new mount flags we actually try to use. */
 #ifndef MS_BIND
 #define MS_BIND        (1<<12)
 #endif
@@ -303,7 +313,7 @@ static ALWAYS_INLINE char* strchrnul(const char *s, char c)
 #define MS_SILENT      (1<<15)
 #endif
 
-// The shared subtree stuff, which went in around 2.6.15
+/* The shared subtree stuff, which went in around 2.6.15. */
 #ifndef MS_UNBINDABLE
 #define MS_UNBINDABLE  (1<<17)
 #endif

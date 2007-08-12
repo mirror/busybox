@@ -192,7 +192,7 @@ static int do_stop(void)
 }
 
 #if ENABLE_FEATURE_START_STOP_DAEMON_LONG_OPTIONS
-static const char start_stop_daemon_longopts[] =
+static const char start_stop_daemon_longopts[] ALIGN1 =
 	"stop\0"         No_argument       "K"
 	"start\0"        No_argument       "S"
 	"background\0"   No_argument       "b"

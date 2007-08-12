@@ -266,7 +266,7 @@ static void set_shell(const char *new_shell)
  */
 
 #if ENABLE_GETOPT_LONG
-static const char getopt_longopts[] =
+static const char getopt_longopts[] ALIGN1 =
 	"options\0"      Required_argument "o"
 	"longoptions\0"  Required_argument "l"
 	"quiet\0"        No_argument       "q"

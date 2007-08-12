@@ -69,7 +69,7 @@ static context_t runcon_compute_new_context(char *user, char *role, char *type, 
 }
 
 #if ENABLE_FEATURE_RUNCON_LONG_OPTIONS
-static const char runcon_options[] =
+static const char runcon_longopts[] ALIGN1 =
 	"user\0"    Required_argument "u"
 	"role\0"    Required_argument "r"
 	"type\0"    Required_argument "t"
@@ -101,7 +101,7 @@ int runcon_main(int argc, char **argv)
 	selinux_or_die();
 
 #if ENABLE_FEATURE_RUNCON_LONG_OPTIONS
-	applet_long_options = runcon_options;
+	applet_long_options = runcon_longopts;
 #endif
 	opt_complementary = "-1";
 	opts = getopt32(argc, argv, "r:t:u:l:ch", &role, &type, &user, &range);

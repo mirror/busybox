@@ -46,7 +46,7 @@ static void dd_output_status(int ATTRIBUTE_UNUSED cur_signal)
 }
 
 static ssize_t full_write_or_warn(int fd, const void *buf, size_t len,
-	const char * const filename)
+	const char *const filename)
 {
 	ssize_t n = full_write(fd, buf, len);
 	if (n < 0)
@@ -83,7 +83,7 @@ int dd_main(int argc, char **argv)
 		FLAG_TWOBUFS = 1 << 3,
 		FLAG_COUNT   = 1 << 4,
 	};
-	static const char keywords[] =
+	static const char keywords[] ALIGN1 =
 		"bs=\0""count=\0""seek=\0""skip=\0""if=\0""of=\0"
 #if ENABLE_FEATURE_DD_IBS_OBS
 		"ibs=\0""obs=\0""conv=\0""notrunc\0""sync\0""noerror\0"

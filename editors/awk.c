@@ -263,7 +263,7 @@ enum {
 
 #define	OC_B	OC_BUILTIN
 
-static const char tokenlist[] =
+static const char tokenlist[] ALIGN1 =
 	"\1("       NTC
 	"\1)"       NTC
 	"\1/"       NTC                                 /* REGEXP */
@@ -373,7 +373,7 @@ enum {
 	ENVIRON,    F0,         NUM_INTERNAL_VARS
 };
 
-static const char vNames[] =
+static const char vNames[] ALIGN1 =
 	"CONVFMT\0" "OFMT\0"    "FS\0*"     "OFS\0"
 	"ORS\0"     "RS\0*"     "RT\0"      "FILENAME\0"
 	"SUBSEP\0"  "ARGIND\0"  "ARGC\0"    "ARGV\0"
@@ -381,16 +381,15 @@ static const char vNames[] =
 	"NR\0"      "NF\0*"     "IGNORECASE\0*"
 	"ENVIRON\0" "$\0*"      "\0";
 
-static const char vValues[] =
+static const char vValues[] ALIGN1 =
 	"%.6g\0"    "%.6g\0"    " \0"       " \0"
 	"\n\0"      "\n\0"      "\0"        "\0"
 	"\034\0"
 	"\377";
 
 /* hash size may grow to these values */
-#define FIRST_PRIME 61;
-static const unsigned PRIMES[] = { 251, 1021, 4093, 16381, 65521 };
-
+#define FIRST_PRIME 61
+static const uint16_t PRIMES[] ALIGN2 = { 251, 1021, 4093, 16381, 65521 };
 
 
 /* Globals. Split in two parts so that first one is addressed
@@ -504,17 +503,17 @@ static int awk_exit(int) ATTRIBUTE_NORETURN;
 
 /* ---- error handling ---- */
 
-static const char EMSG_INTERNAL_ERROR[] = "Internal error";
-static const char EMSG_UNEXP_EOS[] = "Unexpected end of string";
-static const char EMSG_UNEXP_TOKEN[] = "Unexpected token";
-static const char EMSG_DIV_BY_ZERO[] = "Division by zero";
-static const char EMSG_INV_FMT[] = "Invalid format specifier";
-static const char EMSG_TOO_FEW_ARGS[] = "Too few arguments for builtin";
-static const char EMSG_NOT_ARRAY[] = "Not an array";
-static const char EMSG_POSSIBLE_ERROR[] = "Possible syntax error";
-static const char EMSG_UNDEF_FUNC[] = "Call to undefined function";
+static const char EMSG_INTERNAL_ERROR[] ALIGN1 = "Internal error";
+static const char EMSG_UNEXP_EOS[] ALIGN1 = "Unexpected end of string";
+static const char EMSG_UNEXP_TOKEN[] ALIGN1 = "Unexpected token";
+static const char EMSG_DIV_BY_ZERO[] ALIGN1 = "Division by zero";
+static const char EMSG_INV_FMT[] ALIGN1 = "Invalid format specifier";
+static const char EMSG_TOO_FEW_ARGS[] ALIGN1 = "Too few arguments for builtin";
+static const char EMSG_NOT_ARRAY[] ALIGN1 = "Not an array";
+static const char EMSG_POSSIBLE_ERROR[] ALIGN1 = "Possible syntax error";
+static const char EMSG_UNDEF_FUNC[] ALIGN1 = "Call to undefined function";
 #if !ENABLE_FEATURE_AWK_MATH
-static const char EMSG_NO_MATH[] = "Math support is not compiled in";
+static const char EMSG_NO_MATH[] ALIGN1 = "Math support is not compiled in";
 #endif
 
 static void zero_out_var(var * vp)
@@ -522,8 +521,8 @@ static void zero_out_var(var * vp)
 	memset(vp, 0, sizeof(*vp));
 }
 
-static void syntax_error(const char * const message) ATTRIBUTE_NORETURN;
-static void syntax_error(const char * const message)
+static void syntax_error(const char *const message) ATTRIBUTE_NORETURN;
+static void syntax_error(const char *const message)
 {
 	bb_error_msg_and_die("%s:%i: %s", g_progname, g_lineno, message);
 }
@@ -825,7 +824,7 @@ static var *copyvar(var *dest, const var *src)
 
 static var *incvar(var *v)
 {
-	return setvar_i(v, getvar_i(v)+1.);
+	return setvar_i(v, getvar_i(v) + 1.);
 }
 
 /* return true if v is number or numeric string */

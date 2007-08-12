@@ -715,7 +715,7 @@ enum {
 	OPT_NOPRESERVE_PERM = 1 << OPTBIT_NOPRESERVE_PERM, // no-same-permissions
 };
 #if ENABLE_FEATURE_TAR_LONG_OPTIONS
-static const char tar_longopts[] =
+static const char tar_longopts[] ALIGN1 =
 	"list\0"                No_argument       "t"
 	"extract\0"             No_argument       "x"
 	"directory\0"           Required_argument "C"

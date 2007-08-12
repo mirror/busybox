@@ -126,7 +126,8 @@ extern char **environ; /* This is in <unistd.h>, but protected with __USE_GNU */
 /* broken, of course, but OK for testing */
 static const char *indenter(int i)
 {
-	static const char blanks[] = "                                    ";
+	static const char blanks[] ALIGN1 =
+		"                                    ";
 	return &blanks[sizeof(blanks) - i - 1];
 }
 #define debug_printf_clean(...) fprintf(stderr, __VA_ARGS__)
@@ -3656,7 +3657,7 @@ static void setup_job_control(void)
 int hush_main(int argc, char **argv);
 int hush_main(int argc, char **argv)
 {
-	static const char version_str[] = "HUSH_VERSION="HUSH_VER_STR;
+	static const char version_str[] ALIGN1 = "HUSH_VERSION="HUSH_VER_STR;
 	static const struct variable const_shell_ver = {
 		.next = NULL,
 		.varstr = (char*)version_str,

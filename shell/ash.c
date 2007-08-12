@@ -91,10 +91,10 @@ static const char *const optletters_optnames[] = {
 	"a"   "allexport",
 	"b"   "notify",
 	"u"   "nounset",
-	"\0"  "vi",
+	"\0"  "vi"
 #if DEBUG
-	"\0"  "nolog",
-	"\0"  "debug",
+	,"\0"  "nolog"
+	,"\0"  "debug"
 #endif
 };
 
@@ -103,7 +103,7 @@ static const char *const optletters_optnames[] = {
 
 enum { NOPTS = ARRAY_SIZE(optletters_optnames) };
 
-static char optlist[NOPTS];
+static char optlist[NOPTS] ALIGN1;
 
 #define eflag optlist[0]
 #define fflag optlist[1]
@@ -127,12 +127,12 @@ static char optlist[NOPTS];
 
 /* ============ Misc data */
 
-static char nullstr[1];                /* zero length string */
-static const char homestr[] = "HOME";
-static const char snlfmt[] = "%s\n";
-static const char illnum[] = "Illegal number: %s";
+static char nullstr[1] ALIGN1;  /* zero length string */
+static const char homestr[] ALIGN1 = "HOME";
+static const char snlfmt[] ALIGN1 = "%s\n";
+static const char illnum[] ALIGN1 = "Illegal number: %s";
 
-static char *minusc;                   /* argument to -c option */
+static char *minusc;  /* argument to -c option */
 
 /* pid of main shell */
 static int rootpid;
@@ -447,7 +447,9 @@ out2str(const char *p)
 #define VSTRIMLEFTMAX   0x9             /* ${var##pattern} */
 #define VSLENGTH        0xa             /* ${#var} */
 
-static const char dolatstr[] = { CTLVAR, VSNORMAL|VSQUOTE, '@', '=', '\0' };
+static const char dolatstr[] ALIGN1 = {
+	CTLVAR, VSNORMAL|VSQUOTE, '@', '=', '\0'
+};
 
 #define NCMD 0
 #define NPIPE 1
@@ -1583,10 +1585,10 @@ static unsigned long rseed;
 #endif
 
 #ifdef IFS_BROKEN
-static const char defifsvar[] = "IFS= \t\n";
+static const char defifsvar[] ALIGN1 = "IFS= \t\n";
 #define defifs (defifsvar + 4)
 #else
-static const char defifs[] = " \t\n";
+static const char defifs[] ALIGN1 = " \t\n";
 #endif
 
 struct shparam {
@@ -2548,16 +2550,16 @@ static const char S_I_T[][3] = {
 static int
 SIT(int c, int syntax)
 {
-	static const char spec_symbls[] = "\t\n !\"$&'()*-/:;<=>?[\\]`|}~";
+	static const char spec_symbls[] ALIGN1 = "\t\n !\"$&'()*-/:;<=>?[\\]`|}~";
 #if ENABLE_ASH_ALIAS
-	static const char syntax_index_table[] = {
+	static const char syntax_index_table[] ALIGN1 = {
 		1, 2, 1, 3, 4, 5, 1, 6,         /* "\t\n !\"$&'" */
 		7, 8, 3, 3, 3, 3, 1, 1,         /* "()*-/:;<" */
 		3, 1, 3, 3, 9, 3, 10, 1,        /* "=>?[\\]`|" */
 		11, 3                           /* "}~" */
 	};
 #else
-	static const char syntax_index_table[] = {
+	static const char syntax_index_table[] ALIGN1 = {
 		0, 1, 0, 2, 3, 4, 0, 5,         /* "\t\n !\"$&'" */
 		6, 7, 2, 2, 2, 2, 0, 0,         /* "()*-/:;<" */
 		2, 0, 2, 2, 8, 2, 9, 0,         /* "=>?[\\]`|" */
@@ -5003,7 +5005,7 @@ esclen(const char *start, const char *p)
 static char *
 _rmescapes(char *str, int flag)
 {
-	static const char qchars[] = { CTLESC, CTLQUOTEMARK, '\0' };
+	static const char qchars[] ALIGN1 = { CTLESC, CTLQUOTEMARK, '\0' };
 
 	char *p, *q, *r;
 	unsigned inquotes;
@@ -5420,7 +5422,7 @@ static char *evalvar(char *p, int flag);
 static void
 argstr(char *p, int flag)
 {
-	static const char spclchars[] = {
+	static const char spclchars[] ALIGN1 = {
 		'=',
 		':',
 		CTLQUOTEMARK,
@@ -6266,7 +6268,7 @@ expsort(struct strlist *str)
 static void
 expandmeta(struct strlist *str, int flag)
 {
-	static const char metachars[] = {
+	static const char metachars[] ALIGN1 = {
 		'*', '?', '[', 0
 	};
 	/* TODO - EXP_REDIR */
@@ -10200,7 +10202,7 @@ parsesub: {
 	int typeloc;
 	int flags;
 	char *p;
-	static const char types[] = "}-+?=";
+	static const char types[] ALIGN1 = "}-+?=";
 
 	c = pgetc();
 	if (
@@ -10496,13 +10498,15 @@ parsearith: {
 #define NEW_xxreadtoken
 #ifdef NEW_xxreadtoken
 /* singles must be first! */
-static const char xxreadtoken_chars[7] = { '\n', '(', ')', '&', '|', ';', 0 };
+static const char xxreadtoken_chars[7] ALIGN1 = {
+	'\n', '(', ')', '&', '|', ';', 0
+};
 
-static const char xxreadtoken_tokens[] = {
+static const char xxreadtoken_tokens[] ALIGN1 = {
 	TNL, TLP, TRP,          /* only single occurrence allowed */
 	TBACKGND, TPIPE, TSEMI, /* if single occurrence */
 	TEOF,                   /* corresponds to trailing nul */
-	TAND, TOR, TENDCASE,    /* if double occurrence */
+	TAND, TOR, TENDCASE     /* if double occurrence */
 };
 
 #define xxreadtoken_doubles \
@@ -11379,7 +11383,7 @@ unsetcmd(int argc, char **argv)
 
 #include <sys/times.h>
 
-static const unsigned char timescmd_str[] = {
+static const unsigned char timescmd_str[] ALIGN1 = {
 	' ',  offsetof(struct tms, tms_utime),
 	'\n', offsetof(struct tms, tms_stime),
 	' ',  offsetof(struct tms, tms_cutime),
@@ -11659,9 +11663,9 @@ readcmd(int argc, char **argv)
 static int
 umaskcmd(int argc, char **argv)
 {
-	static const char permuser[3] = "ugo";
-	static const char permmode[3] = "rwx";
-	static const short int permmask[] = {
+	static const char permuser[3] ALIGN1 = "ugo";
+	static const char permmode[3] ALIGN1 = "rwx";
+	static const short permmask[] ALIGN2 = {
 		S_IRUSR, S_IWUSR, S_IXUSR,
 		S_IRGRP, S_IWGRP, S_IXGRP,
 		S_IROTH, S_IWOTH, S_IXOTH
@@ -12318,7 +12322,7 @@ arith_apply(operator op, v_n_t *numstack, v_n_t **numstackptr)
 }
 
 /* longest must be first */
-static const char op_tokens[] = {
+static const char op_tokens[] ALIGN1 = {
 	'<','<','=',0, TOK_LSHIFT_ASSIGN,
 	'>','>','=',0, TOK_RSHIFT_ASSIGN,
 	'<','<',    0, TOK_LSHIFT,

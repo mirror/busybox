@@ -79,7 +79,7 @@ struct fsck_instance {
 	char	*base_device; /* /dev/hda for /dev/hdaN etc */
 };
 
-static const char ignored_types[] =
+static const char ignored_types[] ALIGN1 =
 	"ignore\0"
 	"iso9660\0"
 	"nfs\0"
@@ -90,7 +90,7 @@ static const char ignored_types[] =
 	"devpts\0";
 
 #if 0
-static const char really_wanted[] =
+static const char really_wanted[] ALIGN1 =
 	"minix\0"
 	"ext2\0"
 	"ext3\0"

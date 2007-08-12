@@ -16,7 +16,7 @@
 #include "libcoreutils/coreutils.h"
 
 #if ENABLE_FEATURE_INSTALL_LONG_OPTIONS
-static const char install_longopts[] =
+static const char install_longopts[] ALIGN1 =
 	"directory\0"           No_argument       "d"
 	"preserve-timestamps\0" No_argument       "p"
 	"strip\0"               No_argument       "s"

@@ -149,7 +149,7 @@ struct xbsd_disklabel {
 #define BSD_DSTYPE_DOSPART(s)   ((s) & 3)       /* dos partition number */
 #define BSD_DSTYPE_GEOMETRY     0x10            /* drive params in label */
 
-static const char * const xbsd_dktypenames[] = {
+static const char *const xbsd_dktypenames[] = {
 	"unknown",
 	"SMD",
 	"MSCP",

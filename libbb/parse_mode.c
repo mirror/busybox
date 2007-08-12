@@ -31,8 +31,8 @@ int bb_parse_mode(const char *s, mode_t *current_mode)
 		S_ISUID | S_ISGID,           /* s */
 		S_ISVTX                      /* t */
 	};
-	static const char who_chars[] = "augo";
-	static const char perm_chars[] = "rwxXst";
+	static const char who_chars[] ALIGN1 = "augo";
+	static const char perm_chars[] ALIGN1 = "rwxXst";
 
 	const char *p;
 	mode_t wholist;

@@ -63,8 +63,9 @@ int date_main(int argc, char **argv)
 		if (!isofmt_arg) {
 			ifmt = 0; /* default is date */
 		} else {
-			static const char * const isoformats[] =
-				{ "date", "hours", "minutes", "seconds" };
+			static const char *const isoformats[] = {
+				"date", "hours", "minutes", "seconds"
+			};
 
 			for (ifmt = 0; ifmt < 4; ifmt++)
 				if (!strcmp(isofmt_arg, isoformats[ifmt]))

@@ -280,7 +280,7 @@ struct brkcon {
  * -x: trace
  * -u: unset variables net diagnostic
  */
-static char flags['z' - 'a' + 1];
+static char flags['z' - 'a' + 1] ALIGN1;
 /* this looks weird, but is OK ... we index FLAG with 'a'...'z' */
 #define FLAG (flags - 'a')
 
@@ -577,7 +577,7 @@ struct here {
 	struct here *h_next;
 };
 
-static const char * const signame[] = {
+static const char *const signame[] = {
 	"Signal 0",
 	"Hangup",
 	NULL,  /* interrupt */
@@ -593,9 +593,8 @@ static const char * const signame[] = {
 	"SIGUSR2",
 	NULL,  /* broken pipe */
 	"Alarm clock",
-	"Terminated",
+	"Terminated"
 };
-
 
 
 struct res {
@@ -4209,7 +4208,7 @@ static char *unquote(char *as)
 #define	NDENT	((BLKSIZ+sizeof(struct dirent)-1)/sizeof(struct dirent))
 
 static struct wdblock *cl, *nl;
-static char spcl[] = "[?*";
+static const char spcl[] ALIGN1= "[?*";
 
 static struct wdblock *glob(char *cp, struct wdblock *wb)
 {

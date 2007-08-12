@@ -115,7 +115,7 @@ struct fsck_instance {
  * Required for the uber-silly devfs /dev/ide/host1/bus2/target3/lun3
  * pathames.
  */
-static const char * const devfs_hier[] = {
+static const char *const devfs_hier[] = {
 	"host", "bus", "target", "lun", 0
 };
 #endif
@@ -124,7 +124,7 @@ static char *base_device(const char *device)
 {
 	char *str, *cp;
 #ifdef CONFIG_FEATURE_DEVFS
-	const char * const *hier;
+	const char *const *hier;
 	const char *disk;
 	int len;
 #endif
@@ -226,7 +226,7 @@ errout:
 }
 
 
-static const char * const ignored_types[] = {
+static const char *const ignored_types[] = {
 	"ignore",
 	"iso9660",
 	"nfs",
@@ -238,7 +238,7 @@ static const char * const ignored_types[] = {
 	NULL
 };
 
-static const char * const really_wanted[] = {
+static const char *const really_wanted[] = {
 	"minix",
 	"ext2",
 	"ext3",

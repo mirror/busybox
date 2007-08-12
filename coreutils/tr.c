@@ -52,7 +52,7 @@ static unsigned int expand(const char *arg, char *buffer)
 	unsigned i; /* XXX: FIXME: use unsigned char? */
 	unsigned char ac;
 #define CLO ":]\0"
-	static const char classes[] =
+	static const char classes[] ALIGN1 =
 		"alpha"CLO "alnum"CLO "digit"CLO "lower"CLO "upper"CLO "space"CLO
 		"blank"CLO "punct"CLO "cntrl"CLO;
 #define CLASS_invalid 0 /* we increment the retval */

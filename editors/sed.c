@@ -89,7 +89,7 @@ typedef struct sed_cmd_s {
 	char cmd;               /* The command char: abcdDgGhHilnNpPqrstwxy:={} */
 } sed_cmd_t;
 
-static const char semicolon_whitespace[] = "; \n\r\t\v";
+static const char semicolon_whitespace[] ALIGN1 = "; \n\r\t\v";
 
 struct globals {
 	/* options */

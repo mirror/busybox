@@ -23,7 +23,7 @@
 */
 
 /* These are sort types */
-static const char OPT_STR[] = "ngMucszbrdfimS:T:o:k:t:";
+static const char OPT_STR[] ALIGN1 = "ngMucszbrdfimS:T:o:k:t:";
 enum {
 	FLAG_n  = 1,            /* Numeric sort */
 	FLAG_g  = 2,            /* Sort using strtod() */

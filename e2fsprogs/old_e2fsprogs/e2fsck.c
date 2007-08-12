@@ -2168,7 +2168,7 @@ static int e2fsck_run_ext3_journal(e2fsck_t ctx)
  * This function will move the journal inode from a visible file in
  * the filesystem directory hierarchy to the reserved inode if necessary.
  */
-static const char * const journal_names[] = {
+static const char *const journal_names[] = {
 	".journal", "journal", ".journal.dat", "journal.dat", 0 };
 
 static void e2fsck_move_ext3_journal(e2fsck_t ctx)
@@ -2179,7 +2179,7 @@ static void e2fsck_move_ext3_journal(e2fsck_t ctx)
 	ext2_filsys             fs = ctx->fs;
 	ext2_ino_t              ino;
 	errcode_t               retval;
-	const char * const *    cpp;
+	const char *const *    cpp;
 	int                     group, mount_flags;
 
 	clear_problem_context(&pctx);
@@ -2372,7 +2372,7 @@ err_out:
  * abbreviation of the form '@<i>' is expanded by looking up the index
  * letter <i> in the table below.
  */
-static const char * const abbrevs[] = {
+static const char *const abbrevs[] = {
 	N_("aextended attribute"),
 	N_("Aerror allocating"),
 	N_("bblock"),
@@ -2410,7 +2410,7 @@ static const char * const abbrevs[] = {
  * Give more user friendly names to the "special" inodes.
  */
 #define num_special_inodes      11
-static const char * const special_inode_name[] =
+static const char *const special_inode_name[] =
 {
 	N_("<The NULL inode>"),                 /* 0 */
 	N_("<The bad blocks inode>"),           /* 1 */
@@ -2485,7 +2485,7 @@ static void expand_at_expression(e2fsck_t ctx, char ch,
 					  struct problem_context *pctx,
 					  int *first)
 {
-	const char * const *cpp;
+	const char *const *cpp;
 	const char *str;
 
 	/* Search for the abbreviation */
@@ -8178,7 +8178,7 @@ struct latch_descr {
  * These are the prompts which are used to ask the user if they want
  * to fix a problem.
  */
-static const char * const prompt[] = {
+static const char *const prompt[] = {
 	N_("(no prompt)"),      /* 0 */
 	N_("Fix"),              /* 1 */
 	N_("Clear"),            /* 2 */
@@ -8206,7 +8206,7 @@ static const char * const prompt[] = {
  * These messages are printed when we are preen mode and we will be
  * automatically fixing the problem.
  */
-static const char * const preen_msg[] = {
+static const char *const preen_msg[] = {
 	N_("(NONE)"),           /* 0 */
 	N_("FIXED"),            /* 1 */
 	N_("CLEARED"),          /* 2 */

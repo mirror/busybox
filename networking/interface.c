@@ -871,7 +871,7 @@ static int hw_null_address(const struct hwtype *hw, void *ap)
 	return 1;
 }
 
-static const char TRext[] = "\0\0\0Ki\0Mi\0Gi\0Ti";
+static const char TRext[] ALIGN1 = "\0\0\0Ki\0Mi\0Gi\0Ti";
 
 static void print_bytes_scaled(unsigned long long ull, const char *end)
 {
@@ -1020,7 +1020,7 @@ static void ife_print(struct interface *ptr)
 	if (ptr->flags == 0) {
 		printf("[NO FLAGS] ");
 	} else {
-		static const char ife_print_flags_strs[] =
+		static const char ife_print_flags_strs[] ALIGN1 =
 			"UP\0"
 			"BROADCAST\0"
 			"DEBUG\0"
@@ -1038,7 +1038,7 @@ static void ife_print(struct interface *ptr)
 			"DYNAMIC\0"
 #endif
 			;
-		static const unsigned short ife_print_flags_mask[] = {
+		static const unsigned short ife_print_flags_mask[] ALIGN2 = {
 			IFF_UP,
 			IFF_BROADCAST,
 			IFF_DEBUG,
@@ -1051,9 +1051,9 @@ static void ife_print(struct interface *ptr)
 			IFF_ALLMULTI,
 			IFF_SLAVE,
 			IFF_MASTER,
-			IFF_MULTICAST,
+			IFF_MULTICAST
 #ifdef HAVE_DYNAMIC
-			IFF_DYNAMIC,
+			,IFF_DYNAMIC
 #endif
 		};
 		const unsigned short *mask = ife_print_flags_mask;

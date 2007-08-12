@@ -35,7 +35,7 @@
 #include "libbb.h"
 
 #if ENABLE_FEATURE_RUN_PARTS_LONG_OPTIONS
-static const char runparts_longopts[] =
+static const char runparts_longopts[] ALIGN1 =
 	"arg\0"     Required_argument "a"
 	"umask\0"   Required_argument "u"
 	"test\0"    No_argument       "t"

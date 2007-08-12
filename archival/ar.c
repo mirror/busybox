@@ -41,10 +41,11 @@ static void header_verbose_list_ar(const file_header_t *file_header)
 int ar_main(int argc, char **argv);
 int ar_main(int argc, char **argv)
 {
+	static const char msg_unsupported_err[] ALIGN1 =
+		"archive %s is not supported";
+
 	archive_handle_t *archive_handle;
 	unsigned opt;
-	static const char msg_unsupported_err[] =
-			"Archive %s not supported.  Install binutils 'ar'.";
 	char magic[8];
 
 	archive_handle = init_handle();
@@ -88,7 +89,8 @@ int ar_main(int argc, char **argv)
 	}
 	archive_handle->offset += 7;
 
-	while (get_header_ar(archive_handle) == EXIT_SUCCESS) /* repeat */;
+	while (get_header_ar(archive_handle) == EXIT_SUCCESS)
+		continue;
 
 	return EXIT_SUCCESS;
 }

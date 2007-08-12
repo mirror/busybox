@@ -695,7 +695,8 @@ int putpwent(const struct passwd *__restrict p, FILE *__restrict f)
 
 int putgrent(const struct group *__restrict p, FILE *__restrict f)
 {
-	static const char format[] = ",%s";
+	static const char format[] ALIGN1 = ",%s";
+
 	char **m;
 	const char *fmt;
 	int rv = -1;
@@ -735,18 +736,19 @@ int putgrent(const struct group *__restrict p, FILE *__restrict f)
 }
 
 #if ENABLE_USE_BB_SHADOW
-static const unsigned char _sp_off[] = {
-	offsetof(struct spwd, sp_lstchg),	/* 2 - not a char ptr */
-	offsetof(struct spwd, sp_min),		/* 3 - not a char ptr */
-	offsetof(struct spwd, sp_max),		/* 4 - not a char ptr */
-	offsetof(struct spwd, sp_warn),		/* 5 - not a char ptr */
-	offsetof(struct spwd, sp_inact),	/* 6 - not a char ptr */
-	offsetof(struct spwd, sp_expire),	/* 7 - not a char ptr */
+static const unsigned char _sp_off[] ALIGN1 = {
+	offsetof(struct spwd, sp_lstchg),       /* 2 - not a char ptr */
+	offsetof(struct spwd, sp_min),          /* 3 - not a char ptr */
+	offsetof(struct spwd, sp_max),          /* 4 - not a char ptr */
+	offsetof(struct spwd, sp_warn),         /* 5 - not a char ptr */
+	offsetof(struct spwd, sp_inact),        /* 6 - not a char ptr */
+	offsetof(struct spwd, sp_expire)        /* 7 - not a char ptr */
 };
 
 int putspent(const struct spwd *p, FILE *stream)
 {
-	static const char ld_format[] = "%ld:";
+	static const char ld_format[] ALIGN1 = "%ld:";
+
 	const char *f;
 	long x;
 	int i;
@@ -787,14 +789,14 @@ DO_UNLOCK:
 /* Internal uClibc functions.                                         */
 /**********************************************************************/
 
-static const unsigned char pw_off[] = {
-	offsetof(struct passwd, pw_name),	/* 0 */
-	offsetof(struct passwd, pw_passwd),	/* 1 */
-	offsetof(struct passwd, pw_uid),	/* 2 - not a char ptr */
-	offsetof(struct passwd, pw_gid),	/* 3 - not a char ptr */
-	offsetof(struct passwd, pw_gecos),	/* 4 */
-	offsetof(struct passwd, pw_dir),	/* 5 */
-	offsetof(struct passwd, pw_shell)	/* 6 */
+static const unsigned char pw_off[] ALIGN1 = {
+	offsetof(struct passwd, pw_name),       /* 0 */
+	offsetof(struct passwd, pw_passwd),     /* 1 */
+	offsetof(struct passwd, pw_uid),        /* 2 - not a char ptr */
+	offsetof(struct passwd, pw_gid),        /* 3 - not a char ptr */
+	offsetof(struct passwd, pw_gecos),      /* 4 */
+	offsetof(struct passwd, pw_dir),        /* 5 */
+	offsetof(struct passwd, pw_shell)       /* 6 */
 };
 
 static int bb__parsepwent(void *data, char *line)
@@ -845,10 +847,10 @@ static int bb__parsepwent(void *data, char *line)
 
 /**********************************************************************/
 
-static const unsigned char gr_off[] = {
-	offsetof(struct group, gr_name),	/* 0 */
-	offsetof(struct group, gr_passwd),	/* 1 */
-	offsetof(struct group, gr_gid)		/* 2 - not a char ptr */
+static const unsigned char gr_off[] ALIGN1 = {
+	offsetof(struct group, gr_name),        /* 0 */
+	offsetof(struct group, gr_passwd),      /* 1 */
+	offsetof(struct group, gr_gid)          /* 2 - not a char ptr */
 };
 
 static int bb__parsegrent(void *data, char *line)
@@ -943,16 +945,16 @@ static int bb__parsegrent(void *data, char *line)
 /**********************************************************************/
 
 #if ENABLE_USE_BB_SHADOW
-static const unsigned char sp_off[] = {
-	offsetof(struct spwd, sp_namp),		/* 0 */
-	offsetof(struct spwd, sp_pwdp),		/* 1 */
-	offsetof(struct spwd, sp_lstchg),	/* 2 - not a char ptr */
-	offsetof(struct spwd, sp_min),		/* 3 - not a char ptr */
-	offsetof(struct spwd, sp_max),		/* 4 - not a char ptr */
-	offsetof(struct spwd, sp_warn),		/* 5 - not a char ptr */
-	offsetof(struct spwd, sp_inact),	/* 6 - not a char ptr */
-	offsetof(struct spwd, sp_expire),	/* 7 - not a char ptr */
-	offsetof(struct spwd, sp_flag)		/* 8 - not a char ptr */
+static const unsigned char sp_off[] ALIGN1 = {
+	offsetof(struct spwd, sp_namp),         /* 0 */
+	offsetof(struct spwd, sp_pwdp),         /* 1 */
+	offsetof(struct spwd, sp_lstchg),       /* 2 - not a char ptr */
+	offsetof(struct spwd, sp_min),          /* 3 - not a char ptr */
+	offsetof(struct spwd, sp_max),          /* 4 - not a char ptr */
+	offsetof(struct spwd, sp_warn),         /* 5 - not a char ptr */
+	offsetof(struct spwd, sp_inact),        /* 6 - not a char ptr */
+	offsetof(struct spwd, sp_expire),       /* 7 - not a char ptr */
+	offsetof(struct spwd, sp_flag)          /* 8 - not a char ptr */
 };
 
 static int bb__parsespent(void *data, char * line)

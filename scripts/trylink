@@ -6,7 +6,7 @@ try() {
     added="$1"
     shift
     $debug && echo "Trying: $* $added"
-    "$@" $added >busybox.map 2>busybox_ld.err
+    "$@" $added 2>busybox_ld.err
 }
 
 # Sanitize lib list (dups, extra spaces etc)
@@ -22,14 +22,17 @@ try "-Wl,--start-group $l_list -Wl,--end-group" "$@" \
     cat busybox_ld.err
     exit 1
 }
-# Hack: we are not supposed to know executable name,
-# but this hack cuts down link time
-mv busybox_unstripped busybox_unstripped.tmp
-mv busybox.map        busybox.map.tmp
+
+#### Hack disabled: conflicts with ld --verbose flag in last link phase
+
+##### Hack: we are not supposed to know executable name,
+##### but this hack cuts down link time
+####mv busybox_unstripped busybox_unstripped.tmp
+####mv busybox.map        busybox.map.tmp
 
 # Now try to remove each lib and build without it.
 # Stop when no lib can be removed.
-ever_discarded=false
+####ever_discarded=false
 while test "$BBOX_LIB_LIST"; do
     $debug && echo "Trying libraries: $BBOX_LIB_LIST"
     all_needed=true
@@ -41,7 +44,7 @@ while test "$BBOX_LIB_LIST"; do
 		echo "Library $one is not needed"
 		BBOX_LIB_LIST="$without_one"
 		all_needed=false
-		ever_discarded=true
+####		ever_discarded=true
 	else
 		echo "Library $one is needed"
 	fi
@@ -54,13 +57,23 @@ while test "$BBOX_LIB_LIST"; do
     #{ echo "$BBOX_LIB_LIST" | grep -q ' '; } || break
 done
 
-mv busybox_unstripped.tmp busybox_unstripped
-mv busybox.map.tmp        busybox.map
-$ever_discarded && {
+####mv busybox_unstripped.tmp busybox_unstripped
+####mv busybox.map.tmp        busybox.map
+####$ever_discarded && {
     # Make the binary with final, minimal list of libs
     echo "Final link with: $BBOX_LIB_LIST"
     l_list=`echo "$BBOX_LIB_LIST" | sed -e 's/ / -l/g' -e 's/^/-l/'`
-    try "-Wl,--start-group $l_list -Wl,--end-group" "$@" || exit 1
-}
-rm busybox_ld.err
-exit 0  # Ensure "success" exit code
+    # --verbose gives us gobs of info to stdout (e.g. linker script used)
+    try "-Wl,--start-group $l_list -Wl,--end-group -Wl,--verbose" "$@" >busybox_ld.out ####|| exit 1
+    #
+    # Add SORT_BY_ALIGNMENT to linker script (found in busybox_ld.out):
+    #  .rodata         : { *(.rodata SORT_BY_ALIGNMENT(.rodata.*) .gnu.linkonce.r.*) }
+    #  *(.data SORT_BY_ALIGNMENT(.data.*) .gnu.linkonce.d.*)
+    #  *(.bss SORT_BY_ALIGNMENT(.bss.*) .gnu.linkonce.b.*)
+    # This will eliminate most of the data padding. Use linker script
+    # by commenting "try" above and uncommenting this one (tested on i386):
+    #try "-Wl,--start-group $l_list -Wl,--end-group -Wl,--verbose -Wl,-T -Wl,busybox_ldscript" "$@" >busybox_ld.out
+    #
+####}
+####rm busybox_ld.err
+####exit 0  # Ensure "success" exit code

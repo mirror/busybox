@@ -73,7 +73,7 @@
 #define HOST_FLAG 2
 
 /* We remap '-' to '#' to avoid problems with getopt. */
-static const char tbl_hash_net_host[] =
+static const char tbl_hash_net_host[] ALIGN1 =
 	"\007\001#net\0"
 /*	"\010\002#host\0" */
 	"\007\002#host"				/* Since last, we can save a byte. */
@@ -96,7 +96,7 @@ static const char tbl_hash_net_host[] =
 #define KW_IPVx_DYN             042
 #define KW_IPVx_REINSTATE       043
 
-static const char tbl_ipvx[] =
+static const char tbl_ipvx[] ALIGN1 =
 	/* 020 is the "takes an arg" bit */
 #if HAVE_NEW_ADDRT
 	"\011\020metric\0"
@@ -438,7 +438,7 @@ static void INET6_setroute(int action, char **args)
 }
 #endif
 
-static const unsigned int flagvals[] = { /* Must agree with flagchars[]. */
+static const unsigned flagvals[] = { /* Must agree with flagchars[]. */
 	RTF_GATEWAY,
 	RTF_HOST,
 	RTF_REINSTATE,
@@ -454,7 +454,8 @@ static const unsigned int flagvals[] = { /* Must agree with flagchars[]. */
 #define IPV4_MASK (RTF_GATEWAY|RTF_HOST|RTF_REINSTATE|RTF_DYNAMIC|RTF_MODIFIED)
 #define IPV6_MASK (RTF_GATEWAY|RTF_HOST|RTF_DEFAULT|RTF_ADDRCONF|RTF_CACHE)
 
-static const char flagchars[] =		/* Must agree with flagvals[]. */
+/* Must agree with flagvals[]. */
+static const char flagchars[] ALIGN1 =
 	"GHRDM"
 #if ENABLE_FEATURE_IPV6
 	"DAC"
@@ -631,11 +632,12 @@ static void INET6_displayroutes(int noresolve)
 #define ROUTE_OPT_INET6 0x08 /* Not an actual option. See below. */
 
 /* 1st byte is offset to next entry offset.  2nd byte is return value. */
-static const char tbl_verb[] =	/* 2nd byte matches RTACTION_* code */
+/* 2nd byte matches RTACTION_* code */
+static const char tbl_verb[] ALIGN1 =
 	"\006\001add\0"
 	"\006\002del\0"
 /*	"\011\002delete\0" */
-	"\010\002delete"			/* Since last, we can save a byte. */
+	"\010\002delete"  /* Since it's last, we can save a byte. */
 ;
 
 int route_main(int argc, char **argv);

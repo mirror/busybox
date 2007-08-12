@@ -82,7 +82,7 @@ int iptunnel_main(int argc, char **argv)
 int ip_main(int argc, char **argv);
 int ip_main(int argc, char **argv)
 {
-	static const char keywords[] =
+	static const char keywords[] ALIGN1 =
 		USE_FEATURE_IP_ADDRESS("address\0")
 		USE_FEATURE_IP_ROUTE("route\0")
 		USE_FEATURE_IP_LINK("link\0")

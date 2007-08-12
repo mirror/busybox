@@ -129,20 +129,20 @@ struct tspec {
    10	unsigned decimal
    8	unsigned hexadecimal  */
 
-static const uint8_t bytes_to_oct_digits[] =
+static const uint8_t bytes_to_oct_digits[] ALIGN1 =
 {0, 3, 6, 8, 11, 14, 16, 19, 22, 25, 27, 30, 32, 35, 38, 41, 43};
 
-static const uint8_t bytes_to_signed_dec_digits[] =
+static const uint8_t bytes_to_signed_dec_digits[] ALIGN1 =
 {1, 4, 6, 8, 11, 13, 16, 18, 20, 23, 25, 28, 30, 33, 35, 37, 40};
 
-static const uint8_t bytes_to_unsigned_dec_digits[] =
+static const uint8_t bytes_to_unsigned_dec_digits[] ALIGN1 =
 {0, 3, 5, 8, 10, 13, 15, 17, 20, 22, 25, 27, 29, 32, 34, 37, 39};
 
-static const uint8_t bytes_to_hex_digits[] =
+static const uint8_t bytes_to_hex_digits[] ALIGN1 =
 {0, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28, 30, 32};
 
 /* Convert enum size_spec to the size of the named type.  */
-static const signed char width_bytes[] = {
+static const signed char width_bytes[] ALIGN1 = {
 	-1,
 	sizeof(char),
 	sizeof(short),
@@ -212,7 +212,7 @@ static char const *const default_file_list[] = { "-", NULL };
 static FILE *in_stream;
 
 #define MAX_INTEGRAL_TYPE_SIZE sizeof(ulonglong_t)
-static unsigned char integral_type_size[MAX_INTEGRAL_TYPE_SIZE + 1] = {
+static unsigned char integral_type_size[MAX_INTEGRAL_TYPE_SIZE + 1] ALIGN1 = {
 	[sizeof(char)] = CHAR,
 #if USHRT_MAX != UCHAR_MAX
 	[sizeof(short)] = SHORT,
@@ -229,11 +229,11 @@ static unsigned char integral_type_size[MAX_INTEGRAL_TYPE_SIZE + 1] = {
 };
 
 #define MAX_FP_TYPE_SIZE sizeof(longdouble_t)
-static unsigned char fp_type_size[MAX_FP_TYPE_SIZE + 1] = {
+static unsigned char fp_type_size[MAX_FP_TYPE_SIZE + 1] ALIGN1 = {
 	/* gcc seems to allow repeated indexes. Last one stays */
 	[sizeof(longdouble_t)] = FLOAT_LONG_DOUBLE,
 	[sizeof(double)] = FLOAT_DOUBLE,
-	[sizeof(float)] = FLOAT_SINGLE,
+	[sizeof(float)] = FLOAT_SINGLE
 };
 
 
@@ -383,7 +383,7 @@ print_named_ascii(size_t n_bytes, const char *block,
 		const char *unused_fmt_string ATTRIBUTE_UNUSED)
 {
 	/* Names for some non-printing characters.  */
-	static const char charname[33][3] = {
+	static const char charname[33][3] ALIGN1 = {
 		"nul", "soh", "stx", "etx", "eot", "enq", "ack", "bel",
 		" bs", " ht", " nl", " vt", " ff", " cr", " so", " si",
 		"dle", "dc1", "dc2", "dc3", "dc4", "nak", "syn", "etb",
@@ -560,7 +560,7 @@ decode_one_format(const char *s_orig, const char *s, const char **next,
 	case 'o':
 	case 'u':
 	case 'x': {
-		static const char CSIL[] = "CSIL";
+		static const char CSIL[] ALIGN1 = "CSIL";
 
 		c = *s++;
 		p = strchr(CSIL, *s);
@@ -596,7 +596,7 @@ decode_one_format(const char *s_orig, const char *s, const char **next,
 		size_spec = integral_type_size[size];
 
 		{
-			static const char doux[] = "doux";
+			static const char doux[] ALIGN1 = "doux";
 			static const char doux_fmt_letter[][4] = {
 				"lld", "llo", "llu", "llx"
 			};
@@ -653,7 +653,7 @@ decode_one_format(const char *s_orig, const char *s, const char **next,
 	}
 
 	case 'f': {
-		static const char FDL[] = "FDL";
+		static const char FDL[] ALIGN1 = "FDL";
 
 		fmt = FLOATING_POINT;
 		++s;
@@ -836,7 +836,7 @@ format_address_none(off_t address ATTRIBUTE_UNUSED, char c ATTRIBUTE_UNUSED)
 {
 }
 
-static char address_fmt[] = "%0n"OFF_FMT"xc";
+static char address_fmt[] ALIGN1 = "%0n"OFF_FMT"xc";
 /* Corresponds to 'x' above */
 #define address_base_char address_fmt[sizeof(address_fmt)-3]
 /* Corresponds to 'n' above */
@@ -1233,7 +1233,7 @@ int od_main(int argc, char **argv)
 		OPT_traditional = (1 << 18) * ENABLE_GETOPT_LONG,
 	};
 #if ENABLE_GETOPT_LONG
-	static const char od_longopts[] =
+	static const char od_longopts[] ALIGN1 =
 		"skip-bytes\0"        Required_argument "j"
 		"address-radix\0"     Required_argument "A"
 		"read-bytes\0"        Required_argument "N"
@@ -1268,11 +1268,11 @@ int od_main(int argc, char **argv)
 	argc -= optind;
 	argv += optind;
 	if (opt & OPT_A) {
-		static const char doxn[] = "doxn";
-		static const char doxn_address_base_char[] = {
+		static const char doxn[] ALIGN1 = "doxn";
+		static const char doxn_address_base_char[] ALIGN1 = {
 			'u', 'o', 'x', /* '?' fourth one is not important */
 		};
-		static const uint8_t doxn_address_pad_len_char[] = {
+		static const uint8_t doxn_address_pad_len_char[] ALIGN1 = {
 			'7', '7', '6', /* '?' */
 		};
 		char *p;

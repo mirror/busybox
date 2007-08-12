@@ -48,12 +48,12 @@ struct hd_geometry {
 
 #define HDIO_GETGEO     0x0301  /* get device geometry */
 
-static const char msg_building_new_label[] =
+static const char msg_building_new_label[] ALIGN1 =
 "Building a new %s. Changes will remain in memory only,\n"
 "until you decide to write them. After that the previous content\n"
 "won't be recoverable.\n\n";
 
-static const char msg_part_already_defined[] =
+static const char msg_part_already_defined[] ALIGN1 =
 "Partition %d is already defined, delete it before re-adding\n";
 
 
@@ -82,11 +82,11 @@ struct partition {
 	unsigned char size4[4];         /* nr of sectors in partition */
 } ATTRIBUTE_PACKED;
 
-static const char unable_to_open[] = "cannot open %s";
-static const char unable_to_read[] = "cannot read from %s";
-static const char unable_to_seek[] = "cannot seek on %s";
-static const char unable_to_write[] = "cannot write to %s";
-static const char ioctl_error[] = "BLKGETSIZE ioctl failed on %s";
+static const char unable_to_open[] ALIGN1 = "cannot open %s";
+static const char unable_to_read[] ALIGN1 = "cannot read from %s";
+static const char unable_to_seek[] ALIGN1 = "cannot seek on %s";
+static const char unable_to_write[] ALIGN1 = "cannot write to %s";
+static const char ioctl_error[] ALIGN1 = "BLKGETSIZE ioctl failed on %s";
 static void fdisk_fatal(const char *why) ATTRIBUTE_NORETURN;
 
 enum label_type {

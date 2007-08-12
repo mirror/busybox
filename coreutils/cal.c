@@ -30,11 +30,11 @@
 #define	MAXDAYS			42		/* max slots in a month array */
 #define	SPACE			-1		/* used in day array */
 
-static const unsigned char days_in_month[] = {
+static const unsigned char days_in_month[] ALIGN1 = {
 	0, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31
 };
 
-static const unsigned char sep1752[] = {
+static const unsigned char sep1752[] ALIGN1 = {
 		 1,	2,	14,	15,	16,
 	17,	18,	19,	20,	21,	22,	23,
 	24,	25,	26,	27,	28,	29,	30

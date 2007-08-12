@@ -46,7 +46,7 @@ static int sockfd;              /* active socket descriptor     */
 static smallint hw_set;         /* flag if hw-type was set (-H) */
 static const char *device = ""; /* current device               */
 
-static const char options[] =
+static const char options[] ALIGN1 =
 	"pub\0"
 	"priv\0"
 	"temp\0"

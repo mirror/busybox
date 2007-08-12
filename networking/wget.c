@@ -114,7 +114,7 @@ int wget_main(int argc, char **argv)
 	bool use_proxy = 1;             /* Use proxies if env vars are set  */
 	const char *proxy_flag = "on";  /* Use proxies if env vars are set  */
 	const char *user_agent = "Wget";/* "User-Agent" header field        */
-	static const char keywords[] =
+	static const char keywords[] ALIGN1 =
 		"content-length\0""transfer-encoding\0""chunked\0""location\0";
 	enum {
 		KEY_content_length = 1, KEY_transfer_encoding, KEY_chunked, KEY_location
@@ -131,7 +131,7 @@ int wget_main(int argc, char **argv)
 		WGET_OPT_HEADER     = 0x100,
 	};
 #if ENABLE_FEATURE_WGET_LONG_OPTIONS
-	static const char wget_longopts[] =
+	static const char wget_longopts[] ALIGN1 =
 		/* name, has_arg, val */
 		"continue\0"         No_argument       "c"
 		"spider\0"           No_argument       "s"
@@ -539,7 +539,7 @@ static void parse_url(char *src_url, struct host_info *h)
 	p = strchr(h->host, '#'); if (!sp || (p && sp > p)) sp = p;
 	if (!sp) {
 		/* must be writable because of bb_get_last_path_component() */
-		static char nullstr[] = "";
+		static char nullstr[] ALIGN1 = "";
 		h->path = nullstr;
 	} else if (*sp == '/') {
 		*sp = '\0';

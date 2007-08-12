@@ -21,7 +21,7 @@
 #define OPT_DEREFERENCE	(1<<2)
 #define OPT_SELINUX		(1<<3)
 
-static char buf[sizeof("YYYY-MM-DD HH:MM:SS.000000000")];
+static char buf[sizeof("YYYY-MM-DD HH:MM:SS.000000000")] ALIGN1;
 
 static char const * file_type(struct stat const *st)
 {
@@ -70,7 +70,7 @@ static char const *human_fstype(long f_type)
 	int i;
 	static const struct types {
 		long type;
-		const char * const fs;
+		const char *const fs;
 	} humantypes[] = {
 		{ 0xADFF,     "affs" },
 		{ 0x1Cd1,     "devpts" },
@@ -118,7 +118,7 @@ static char const *human_fstype(long f_type)
 #if ENABLE_FEATURE_STAT_FORMAT
 /* print statfs info */
 static void print_statfs(char *pformat, const size_t buf_len, const char m,
-			 const char * const filename, void const *data
+			 const char *const filename, void const *data
 			 USE_SELINUX(, security_context_t scontext))
 {
 	struct statfs const *statfsbuf = data;
@@ -168,7 +168,7 @@ static void print_statfs(char *pformat, const size_t buf_len, const char m,
 
 /* print stat info */
 static void print_stat(char *pformat, const size_t buf_len, const char m,
-		       const char * const filename, void const *data
+		       const char *const filename, void const *data
 			   USE_SELINUX(, security_context_t scontext))
 {
 #define TYPE_SIGNED(t) (! ((t) 0 < (t) -1))

@@ -35,7 +35,7 @@ static void bb_dump_addfile(char *name)
 	fclose(fp);
 }
 
-static const char * const add_strings[] = {
+static const char *const add_strings[] = {
 	"\"%07.7_ax \" 16/1 \"%03o \" \"\\n\"",		/* b */
 	"\"%07.7_ax \" 16/1 \"%3_c \" \"\\n\"",		/* c */
 	"\"%07.7_ax \" 8/2 \"  %05u \" \"\\n\"",	/* d */
@@ -43,9 +43,9 @@ static const char * const add_strings[] = {
 	"\"%07.7_ax \" 8/2 \"   %04x \" \"\\n\"",	/* x */
 };
 
-static const char add_first[] = "\"%07.7_Ax\n\"";
+static const char add_first[] ALIGN1 = "\"%07.7_Ax\n\"";
 
-static const char hexdump_opts[] = "bcdoxCe:f:n:s:v";
+static const char hexdump_opts[] ALIGN1 = "bcdoxCe:f:n:s:v";
 
 static const struct suffix_mult suffixes[] = {
 	{ "b", 512 },

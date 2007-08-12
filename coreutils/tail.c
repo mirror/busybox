@@ -63,7 +63,7 @@ static ssize_t tail_read(int fd, char *buf, size_t count)
 	return r;
 }
 
-static const char header_fmt[] = "\n==> %s <==\n";
+static const char header_fmt[] ALIGN1 = "\n==> %s <==\n";
 
 static unsigned eat_num(const char *p)
 {

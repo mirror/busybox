@@ -35,7 +35,7 @@ extern char **environ;
 #include "libbb.h"
 
 #if ENABLE_FEATURE_ENV_LONG_OPTIONS
-static const char env_longopts[] =
+static const char env_longopts[] ALIGN1 =
 	"ignore-environment\0" No_argument       "i"
 	"unset\0"              Required_argument "u"
 	;

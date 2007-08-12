@@ -700,7 +700,7 @@ send_probe(int seq, int ttl)
 static inline const char *
 pr_type(unsigned char t)
 {
-	static const char * const ttab[] = {
+	static const char *const ttab[] = {
 	"Echo Reply",   "ICMP 1",       "ICMP 2",       "Dest Unreachable",
 	"Source Quench", "Redirect",    "ICMP 6",       "ICMP 7",
 	"Echo",         "Router Advert", "Router Solicit", "Time Exceeded",

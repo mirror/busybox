@@ -12,7 +12,7 @@
 
 #include "libbb.h"
 
-static const char uniq_opts[] = "cdu" "f:s:" "cdu\0\1\2\4";
+static const char uniq_opts[] ALIGN1 = "cdu" "f:s:" "cdu\0\1\2\4";
 
 static FILE *xgetoptfile_uniq_s(char **argv, int read0write2)
 {

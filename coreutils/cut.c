@@ -15,7 +15,7 @@
 
 
 /* option vars */
-static const char optstring[] = "b:c:f:d:sn";
+static const char optstring[] ALIGN1 = "b:c:f:d:sn";
 #define CUT_OPT_BYTE_FLGS	(1<<0)
 #define CUT_OPT_CHAR_FLGS	(1<<1)
 #define CUT_OPT_FIELDS_FLGS	(1<<2)
@@ -163,7 +163,7 @@ static void cut_file(FILE * file)
 	}
 }
 
-static const char _op_on_field[] = " only when operating on fields";
+static const char _op_on_field[] ALIGN1 = " only when operating on fields";
 
 int cut_main(int argc, char **argv);
 int cut_main(int argc, char **argv)

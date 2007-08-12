@@ -52,7 +52,7 @@ const struct dhcp_option dhcp_options[] = {
 };
 
 /* Lengths of the different option types */
-const unsigned char option_lengths[] = {
+const unsigned char option_lengths[] ALIGN1 = {
 	[OPTION_IP] =      4,
 	[OPTION_IP_PAIR] = 8,
 	[OPTION_BOOLEAN] = 1,

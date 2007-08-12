@@ -24,7 +24,7 @@ int dumpleases_main(int argc, char **argv)
 		OPT_f	= 0x4,	// -f
 	};
 #if ENABLE_GETOPT_LONG
-	static const char dumpleases_longopts[] =
+	static const char dumpleases_longopts[] ALIGN1 =
 		"absolute\0"  No_argument       "a"
 		"remaining\0" No_argument       "r"
 		"file\0"      Required_argument "f"

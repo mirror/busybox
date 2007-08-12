@@ -278,7 +278,7 @@ static int tftp( USE_GETPUT(const int cmd,)
 				"unknown transfer id",
 				"file already exists",
 				"no such user",
-				"bad option",
+				"bad option"
 			};
 
 			const char *msg = "";
@@ -309,7 +309,7 @@ static int tftp( USE_GETPUT(const int cmd,)
 						/* htons can be impossible to use in const initializer: */
 						/*static const uint16_t error_8[2] = { htons(TFTP_ERROR), htons(8) };*/
 						/* thus we open-code big-endian layout */
-						static const char error_8[4] = { 0,TFTP_ERROR, 0,8 };
+						static const uint8_t error_8[4] = { 0,TFTP_ERROR, 0,8 };
 						xsendto(socketfd, error_8, 4, &peer_lsa->sa, peer_lsa->len);
 						bb_error_msg("server proposes bad blksize %d, exiting", blksize);
 						goto ret;

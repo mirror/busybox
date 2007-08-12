@@ -9,7 +9,7 @@
 
 #include "libbb.h"
 
-static const char * const forbid[] = {
+static const char *const forbid[] = {
 	"ENV",
 	"BASH_ENV",
 	"HOME",
@@ -40,7 +40,7 @@ int sulogin_main(int argc, char **argv)
 	char *cp;
 	int timeout = 0;
 	char *timeout_arg;
-	const char * const *p;
+	const char *const *p;
 	struct passwd *pwd;
 	const char *shell;
 #if ENABLE_FEATURE_SHADOWPASSWDS

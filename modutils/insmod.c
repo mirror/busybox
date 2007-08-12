@@ -3613,12 +3613,12 @@ static int obj_gpl_license(struct obj_file *f, const char **license)
 	 * linux/include/linux/module.h.  Checking for leading "GPL" will not
 	 * work, somebody will use "GPL sucks, this is proprietary".
 	 */
-	static const char * const gpl_licenses[] = {
+	static const char *const gpl_licenses[] = {
 		"GPL",
 		"GPL v2",
 		"GPL and additional rights",
 		"Dual BSD/GPL",
-		"Dual MPL/GPL",
+		"Dual MPL/GPL"
 	};
 
 	sec = obj_find_section(f, ".modinfo");
@@ -3681,7 +3681,8 @@ static void set_tainted(struct obj_file *f, int fd, char *m_name,
 /* Check if loading this module will taint the kernel. */
 static void check_tainted_module(struct obj_file *f, char *m_name)
 {
-	static const char tainted_file[] = TAINT_FILENAME;
+	static const char tainted_file[] ALIGN1 = TAINT_FILENAME;
+
 	int fd, kernel_has_tainted;
 	const char *ptr;
 
@@ -3750,7 +3751,8 @@ static void
 add_ksymoops_symbols(struct obj_file *f, const char *filename,
 				 const char *m_name)
 {
-	static const char symprefix[] = "__insmod_";
+	static const char symprefix[] ALIGN1 = "__insmod_";
+
 	struct obj_section *sec;
 	struct obj_symbol *sym;
 	char *name, *absolute_filename;

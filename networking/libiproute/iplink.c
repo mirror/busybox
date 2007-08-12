@@ -171,7 +171,7 @@ static int do_set(int argc, char **argv)
 	struct ifreq ifr0, ifr1;
 	char *newname = NULL;
 	int htype, halen;
-	static const char keywords[] =
+	static const char keywords[] ALIGN1 =
 		"up\0""down\0""name\0""mtu\0""multicast\0""arp\0""addr\0""dev\0"
 		"on\0""off\0";
 	enum { ARG_up = 1, ARG_down, ARG_name, ARG_mtu, ARG_multicast, ARG_arp,
@@ -275,7 +275,7 @@ static int ipaddr_list_link(int argc, char **argv)
 /* Return value becomes exitcode. It's okay to not return at all */
 int do_iplink(int argc, char **argv)
 {
-	static const char keywords[] =
+	static const char keywords[] ALIGN1 =
 		"set\0""show\0""lst\0""list\0";
 	smalluint key;
 	if (argc <= 0)

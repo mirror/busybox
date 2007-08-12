@@ -34,7 +34,7 @@
 
 #if ENABLE_SHOW_USAGE && !ENABLE_FEATURE_COMPRESS_USAGE
 /* Define usage_messages[] */
-static const char usage_messages[] = ""
+static const char usage_messages[] ALIGN1 = ""
 #define MAKE_USAGE
 #include "usage.h"
 #include "applets.h"
@@ -108,12 +108,12 @@ static char *get_trimmed_slice(char *s, char *e)
 }
 
 /* Don't depend on the tools to combine strings. */
-static const char config_file[] = "/etc/busybox.conf";
+static const char config_file[] ALIGN1 = "/etc/busybox.conf";
 
 /* We don't supply a value for the nul, so an index adjustment is
  * necessary below.  Also, we use unsigned short here to save some
  * space even though these are really mode_t values. */
-static const unsigned short mode_mask[] = {
+static const unsigned short mode_mask[] ALIGN2 = {
 	/*  SST     sst                 xxx         --- */
 	S_ISUID,    S_ISUID|S_IXUSR,    S_IXUSR,    0,	/* user */
 	S_ISGID,    S_ISGID|S_IXGRP,    S_IXGRP,    0,	/* group */
@@ -255,7 +255,7 @@ static void parse_config_file(void)
 
 				for (i = 0; i < 3; i++) {
 					/* There are 4 chars + 1 nul for each of user/group/other. */
-					static const char mode_chars[] = "Ssx-\0" "Ssx-\0" "Ttx-";
+					static const char mode_chars[] ALIGN1 = "Ssx-\0" "Ssx-\0" "Ttx-";
 
 					const char *q;
 					q = strchrnul(mode_chars + 5*i, *e++);
@@ -499,8 +499,8 @@ static void install_links(const char *busybox, int use_symbolic_links)
 	/* directory table
 	 * this should be consistent w/ the enum,
 	 * busybox.h::bb_install_loc_t, or else... */
-	static const char usr_bin [] = "/usr/bin";
-	static const char usr_sbin[] = "/usr/sbin";
+	static const char usr_bin [] ALIGN1 = "/usr/bin";
+	static const char usr_sbin[] ALIGN1 = "/usr/sbin";
 	static const char *const install_dir[] = {
 		&usr_bin [8], /* "", equivalent to "/" for concat_path_file() */
 		&usr_bin [4], /* "/bin" */

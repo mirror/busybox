@@ -106,7 +106,7 @@ enum {
 #endif
 };
 
-static const char * const environment[] = {
+static const char *const environment[] = {
 	"HOME=/",
 	bb_PATH_root_path,
 	"SHELL=/bin/sh",
@@ -457,7 +457,7 @@ static pid_t run(const struct init_action *a)
 
 #if !defined(__UCLIBC__) || defined(__ARCH_HAS_MMU__)
 	if (a->action & ASKFIRST) {
-		static const char press_enter[] =
+		static const char press_enter[] ALIGN1 =
 #ifdef CUSTOMIZED_BANNER
 #include CUSTOMIZED_BANNER
 #endif
@@ -923,7 +923,7 @@ int init_main(int argc, char **argv)
 	chdir("/");
 	setsid();
 	{
-		const char * const *e;
+		const char *const *e;
 		/* Make sure environs is set to something sane */
 		for (e = environment; *e; e++)
 			putenv((char *) *e);

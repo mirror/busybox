@@ -93,7 +93,7 @@ struct options {
 	int speeds[MAX_SPEED];          /* baud rates to be tried */
 };
 
-static const char opt_string[] = "I:LH:f:hil:mt:wn";
+static const char opt_string[] ALIGN1 = "I:LH:f:hil:mt:wn";
 #define F_INITSTRING    (1<<0)          /* initstring is set */
 #define F_LOCAL         (1<<1)          /* force local */
 #define F_FAKEHOST      (1<<2)          /* force fakehost */

@@ -178,7 +178,7 @@ int hwclock_main(int argc, char **argv)
 	int utc;
 
 #if ENABLE_FEATURE_HWCLOCK_LONG_OPTIONS
-	static const char hwclock_longopts[] =
+	static const char hwclock_longopts[] ALIGN1 =
 		"localtime\0" No_argument "l"
 		"utc\0"       No_argument "u"
 		"show\0"      No_argument "r"

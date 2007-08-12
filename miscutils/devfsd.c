@@ -245,12 +245,10 @@ static struct config_entry_struct *last_config = NULL;
 static char *mount_point = NULL;
 static volatile int caught_signal = FALSE;
 static volatile int caught_sighup = FALSE;
-static struct initial_symlink_struct
-{
+static struct initial_symlink_struct {
 	const char *dest;
 	const char *name;
-} initial_symlinks[] =
-{
+} initial_symlinks[] = {
 	{"/proc/self/fd", "fd"},
 	{"fd/0", "stdin"},
 	{"fd/1", "stdout"},
@@ -258,12 +256,10 @@ static struct initial_symlink_struct
 	{NULL, NULL},
 };
 
-static struct event_type
-{
+static struct event_type {
 	unsigned int type;        /*  The DEVFSD_NOTIFY_* value                  */
 	const char *config_name;  /*  The name used in the config file           */
-} event_types[] =
-{
+} event_types[] = {
 	{DEVFSD_NOTIFY_REGISTERED,   "REGISTER"},
 	{DEVFSD_NOTIFY_UNREGISTERED, "UNREGISTER"},
 	{DEVFSD_NOTIFY_ASYNC_OPEN,   "ASYNC_OPEN"},
@@ -277,10 +273,10 @@ static struct event_type
 
 /* Busybox messages */
 
-static const char * const bb_msg_proto_rev			= "protocol revision";
-static const char * const bb_msg_bad_config		= "bad %s config file: %s";
-static const char * const bb_msg_small_buffer		= "buffer too small";
-static const char * const bb_msg_variable_not_found = "variable: %s not found";
+static const char bb_msg_proto_rev[] ALIGN1          = "protocol revision";
+static const char bb_msg_bad_config[] ALIGN1         = "bad %s config file: %s";
+static const char bb_msg_small_buffer[] ALIGN1       = "buffer too small";
+static const char bb_msg_variable_not_found[] ALIGN1 = "variable: %s not found";
 
 /* Busybox stuff */
 #if ENABLE_DEVFSD_VERBOSE || ENABLE_DEBUG
@@ -387,10 +383,10 @@ int devfsd_main(int argc, char **argv)
 
 	/* NB: The check for CONFIG_FILE is done in read_config_file() */
 
-	if (print_version ||(DEVFSD_PROTOCOL_REVISION_DAEMON != proto_rev)) {
+	if (print_version || (DEVFSD_PROTOCOL_REVISION_DAEMON != proto_rev)) {
 		printf("%s v%s\nDaemon %s:\t%d\nKernel-side %s:\t%d\n",
 				applet_name, DEVFSD_VERSION, bb_msg_proto_rev,
-				DEVFSD_PROTOCOL_REVISION_DAEMON,bb_msg_proto_rev, proto_rev);
+				DEVFSD_PROTOCOL_REVISION_DAEMON, bb_msg_proto_rev, proto_rev);
 		if (DEVFSD_PROTOCOL_REVISION_DAEMON != proto_rev)
 			bb_error_msg_and_die("%s mismatch!", bb_msg_proto_rev);
 		exit(EXIT_SUCCESS); /* -v */
@@ -509,7 +505,7 @@ static void process_config_line(const char *line, unsigned long *event_mask)
 	int i;
 
 	/* !!!! Only Uppercase Keywords in devsfd.conf */
-	static const char options[] =
+	static const char options[] ALIGN1 =
 		"CLEAR_CONFIG\0""INCLUDE\0""OPTIONAL_INCLUDE\0"
 		"RESTORE\0""PERMISSIONS\0""MODLOAD\0""EXECUTE\0"
 		"COPY\0""IGNORE\0""MKOLDCOMPAT\0""MKNEWCOMPAT\0"

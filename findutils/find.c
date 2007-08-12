@@ -470,7 +470,7 @@ static action*** parse_params(char **argv)
 	USE_FEATURE_FIND_CONTEXT(PARM_context   ,)
 	};
 
-	static const char params[] =
+	static const char params[] ALIGN1 =
 	                         "-a\0"
 	                         "-o\0"
 	USE_FEATURE_FIND_NOT(    "!\0"       )
@@ -794,7 +794,7 @@ static action*** parse_params(char **argv)
 int find_main(int argc, char **argv);
 int find_main(int argc, char **argv)
 {
-	static const char options[] =
+	static const char options[] ALIGN1 =
 	                  "-follow\0"
 USE_FEATURE_FIND_XDEV(    "-xdev\0"    )
 USE_FEATURE_FIND_MAXDEPTH("-maxdepth\0")

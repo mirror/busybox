@@ -27,24 +27,27 @@ static int sysctl_display_all(const char *path, int output, int show_table);
 /*
  *    Globals...
  */
-static const char PROC_PATH[] = "/proc/sys/";
-static const char DEFAULT_PRELOAD[] = "/etc/sysctl.conf";
+static const char PROC_PATH[] ALIGN1 = "/proc/sys/";
+static const char DEFAULT_PRELOAD[] ALIGN1 = "/etc/sysctl.conf";
 
 /* error messages */
-static const char ERR_UNKNOWN_PARAMETER[] = "error: Unknown parameter '%s'\n";
-static const char ERR_MALFORMED_SETTING[] = "error: Malformed setting '%s'\n";
-static const char ERR_NO_EQUALS[] =
+static const char ERR_UNKNOWN_PARAMETER[] ALIGN1 =
+	"error: Unknown parameter '%s'\n";
+static const char ERR_MALFORMED_SETTING[] ALIGN1 =
+	"error: Malformed setting '%s'\n";
+static const char ERR_NO_EQUALS[] ALIGN1 =
 	"error: '%s' must be of the form name=value\n";
-static const char ERR_INVALID_KEY[] = "error: '%s' is an unknown key\n";
-static const char ERR_UNKNOWN_WRITING[] =
+static const char ERR_INVALID_KEY[] ALIGN1 =
+	"error: '%s' is an unknown key\n";
+static const char ERR_UNKNOWN_WRITING[] ALIGN1 =
 	"error: unknown error %d setting key '%s'\n";
-static const char ERR_UNKNOWN_READING[] =
+static const char ERR_UNKNOWN_READING[] ALIGN1 =
 	"error: unknown error %d reading key '%s'\n";
-static const char ERR_PERMISSION_DENIED[] =
+static const char ERR_PERMISSION_DENIED[] ALIGN1 =
 	"error: permission denied on key '%s'\n";
-static const char ERR_PRELOAD_FILE[] =
+static const char ERR_PRELOAD_FILE[] ALIGN1 =
 	"error: cannot open preload file '%s'\n";
-static const char WARN_BAD_LINE[] =
+static const char WARN_BAD_LINE[] ALIGN1 =
 	"warning: %s(%d): invalid syntax, continuing...\n";
 
 

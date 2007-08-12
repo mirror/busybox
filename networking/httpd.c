@@ -98,8 +98,8 @@
 # define PIPE_BUF 4096
 #endif
 
-static const char default_path_httpd_conf[] = "/etc";
-static const char httpd_conf[] = "httpd.conf";
+static const char default_path_httpd_conf[] ALIGN1 = "/etc";
+static const char httpd_conf[] ALIGN1 = "httpd.conf";
 
 #define TIMEOUT 60
 
@@ -202,9 +202,9 @@ struct globals {
 	ContentLength = -1; \
 } while (0)
 
-static const char request_GET[] = "GET";    /* size algorithmic optimize */
+static const char request_GET[] ALIGN1 = "GET";    /* size algorithmic optimize */
 
-static const char* const suffixTable [] = {
+static const char *const suffixTable[] = {
 /* Warning: shorted equivalent suffix in one line must be first */
 	".htm.html", "text/html",
 	".jpg.jpeg", "image/jpeg",
@@ -288,7 +288,7 @@ static const HttpEnumString httpResponseNames[] = {
 };
 
 
-static const char RFC1123FMT[] = "%a, %d %b %Y %H:%M:%S GMT";
+static const char RFC1123FMT[] ALIGN1 = "%a, %d %b %Y %H:%M:%S GMT";
 
 
 #define STRNCASECMP(a, str) strncasecmp((a), (str), sizeof(str)-1)
@@ -1268,7 +1268,7 @@ static int sendCgi(const char *url,
 				 * <cr><lf> pair here. We will output "200 OK" line
 				 * if needed, but CGI still has to provide blank line
 				 * between header and body */
-				static const char HTTP_200[] = "HTTP/1.0 200 OK\r\n";
+				static const char HTTP_200[] ALIGN1 = "HTTP/1.0 200 OK\r\n";
 
 				/* Must use safe_read, not full_read, because
 				 * CGI may output a few first bytes and then wait
@@ -1343,9 +1343,9 @@ static int sendCgi(const char *url,
 static int sendFile(const char *url)
 {
 	char * suffix;
-	int  f;
-	const char * const * table;
-	const char * try_suffix;
+	int f;
+	const char *const *table;
+	const char *try_suffix;
 
 	suffix = strrchr(url, '.');
 

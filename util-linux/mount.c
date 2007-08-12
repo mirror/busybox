@@ -888,7 +888,7 @@ static int nfsmount(struct mntent *mp, int vfsflags, char *filteropts)
 	if (filteropts)	for (opt = strtok(filteropts, ","); opt; opt = strtok(NULL, ",")) {
 		char *opteq = strchr(opt, '=');
 		if (opteq) {
-			static const char options[] =
+			static const char options[] ALIGN1 =
 				/* 0 */ "rsize\0"
 				/* 1 */ "wsize\0"
 				/* 2 */ "timeo\0"
@@ -991,7 +991,7 @@ static int nfsmount(struct mntent *mp, int vfsflags, char *filteropts)
 			}
 		}
 		else {
-			static const char options[] =
+			static const char options[] ALIGN1 =
 				"bg\0"
 				"fg\0"
 				"soft\0"
@@ -1524,7 +1524,7 @@ static int singlemount(struct mntent *mp, int ignore_busy)
 // Parse options, if necessary parse fstab/mtab, and call singlemount for
 // each directory to be mounted.
 
-static const char must_be_root[] = "you must be root";
+static const char must_be_root[] ALIGN1 = "you must be root";
 
 int mount_main(int argc, char **argv);
 int mount_main(int argc, char **argv)

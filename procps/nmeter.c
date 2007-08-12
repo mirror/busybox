@@ -36,7 +36,7 @@ static const char *const proc_name[] = {
 	"net/dev",
 	"meminfo",
 	"diskstats",
-	"sys/fs/file-nr",
+	"sys/fs/file-nr"
 };
 
 struct globals {
@@ -754,7 +754,7 @@ static void collect_info(s_stat *s)
 
 typedef s_stat* init_func(const char *param);
 
-static const char options[] = "ncmsfixptbdr";
+static const char options[] ALIGN1 = "ncmsfixptbdr";
 static init_func *const init_functions[] = {
 	init_if,
 	init_cpu,
@@ -767,7 +767,7 @@ static init_func *const init_functions[] = {
 	init_time,
 	init_blk,
 	init_delay,
-	init_cr,
+	init_cr
 };
 
 int nmeter_main(int argc, char **argv);

@@ -63,7 +63,7 @@ int get_prefix(unsigned long netmask);
 #define SILENT    0x20
 
 #if ENABLE_FEATURE_IPCALC_LONG_OPTIONS
-	static const char ipcalc_longopts[] =
+	static const char ipcalc_longopts[] ALIGN1 =
 		"netmask\0"   No_argument "m"
 		"broadcast\0" No_argument "b"
 		"network\0"   No_argument "n"

@@ -127,28 +127,28 @@ enum {
 	control, input, output, local, combination
 };
 
-static const char evenp     [] = "evenp";
-static const char raw       [] = "raw";
-static const char stty_min  [] = "min";
-static const char stty_time [] = "time";
-static const char stty_swtch[] = "swtch";
-static const char stty_eol  [] = "eol";
-static const char stty_eof  [] = "eof";
-static const char parity    [] = "parity";
-static const char stty_oddp [] = "oddp";
-static const char stty_nl   [] = "nl";
-static const char stty_ek   [] = "ek";
-static const char stty_sane [] = "sane";
-static const char cbreak    [] = "cbreak";
-static const char stty_pass8[] = "pass8";
-static const char litout    [] = "litout";
-static const char cooked    [] = "cooked";
-static const char decctlq   [] = "decctlq";
-static const char stty_tabs [] = "tabs";
-static const char stty_lcase[] = "lcase";
-static const char stty_LCASE[] = "LCASE";
-static const char stty_crt  [] = "crt";
-static const char stty_dec  [] = "dec";
+static const char evenp     [] ALIGN1 = "evenp";
+static const char raw       [] ALIGN1 = "raw";
+static const char stty_min  [] ALIGN1 = "min";
+static const char stty_time [] ALIGN1 = "time";
+static const char stty_swtch[] ALIGN1 = "swtch";
+static const char stty_eol  [] ALIGN1 = "eol";
+static const char stty_eof  [] ALIGN1 = "eof";
+static const char parity    [] ALIGN1 = "parity";
+static const char stty_oddp [] ALIGN1 = "oddp";
+static const char stty_nl   [] ALIGN1 = "nl";
+static const char stty_ek   [] ALIGN1 = "ek";
+static const char stty_sane [] ALIGN1 = "sane";
+static const char cbreak    [] ALIGN1 = "cbreak";
+static const char stty_pass8[] ALIGN1 = "pass8";
+static const char litout    [] ALIGN1 = "litout";
+static const char cooked    [] ALIGN1 = "cooked";
+static const char decctlq   [] ALIGN1 = "decctlq";
+static const char stty_tabs [] ALIGN1 = "tabs";
+static const char stty_lcase[] ALIGN1 = "lcase";
+static const char stty_LCASE[] ALIGN1 = "LCASE";
+static const char stty_crt  [] ALIGN1 = "crt";
+static const char stty_dec  [] ALIGN1 = "dec";
 
 /* Flags for 'struct mode_info' */
 #define SANE_SET 1              /* Set in 'sane' mode                  */
@@ -158,7 +158,7 @@ static const char stty_dec  [] = "dec";
 
 /* Each mode */
 struct mode_info {
-	const char * const name;      /* Name given on command line           */
+	const char *const name;      /* Name given on command line           */
 	const unsigned char type;     /* Which structure element to change    */
 	const unsigned char flags;    /* Setting and display options          */
 	/* were using short here, but ppc32 was unhappy: */
@@ -324,7 +324,7 @@ enum {
 
 /* Control character settings */
 struct control_info {
-	const char * const name;               /* Name given on command line */
+	const char *const name;               /* Name given on command line */
 	const unsigned char saneval;          /* Value to set for 'stty sane' */
 	const unsigned char offset;           /* Offset in c_cc */
 };
@@ -417,11 +417,11 @@ static const char *visible(unsigned ch)
 
 static tcflag_t *mode_type_flag(unsigned type, const struct termios *mode)
 {
-	static const unsigned char tcflag_offsets[] = {
+	static const unsigned char tcflag_offsets[] ALIGN1 = {
 		offsetof(struct termios, c_cflag), /* control */
 		offsetof(struct termios, c_iflag), /* input */
 		offsetof(struct termios, c_oflag), /* output */
-		offsetof(struct termios, c_lflag), /* local */
+		offsetof(struct termios, c_lflag)  /* local */
 	};
 
 	if (type <= local) {
@@ -430,7 +430,7 @@ static tcflag_t *mode_type_flag(unsigned type, const struct termios *mode)
 	return NULL;
 }
 
-static void set_speed_or_die(enum speed_setting type, const char * const arg,
+static void set_speed_or_die(enum speed_setting type, const char *const arg,
 					struct termios * const mode)
 {
 	speed_t baud;
@@ -560,9 +560,9 @@ enum {
 	param_ospeed  = 8 | 0x80,
 };
 
-static int find_param(const char * const name)
+static int find_param(const char *const name)
 {
-	static const char params[] =
+	static const char params[] ALIGN1 =
 		"line\0"    /* 1 */
 		"rows\0"    /* 2 */
 		"cols\0"    /* 3 */

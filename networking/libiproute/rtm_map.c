@@ -51,7 +51,7 @@ const char *rtnl_rtntype_n2a(int id, char *buf, int len)
 
 int rtnl_rtntype_a2n(int *id, char *arg)
 {
-	static const char keywords[] =
+	static const char keywords[] ALIGN1 =
 		"local\0""nat\0""broadcast\0""brd\0""anycast\0"
 		"multicast\0""prohibit\0""unreachable\0""blackhole\0"
 		"xresolve\0""unicast\0""throw\0";

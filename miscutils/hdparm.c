@@ -128,7 +128,7 @@
 #define CDROM 0x0005
 
 #if ENABLE_FEATURE_HDPARM_GET_IDENTITY
-static const char * const pkt_str[] = {
+static const char *const pkt_str[] = {
 	"Direct-access device",			/* word 0, bits 12-8 = 00 */
 	"Sequential-access device",		/* word 0, bits 12-8 = 01 */
 	"Printer",				/* word 0, bits 12-8 = 02 */
@@ -163,7 +163,7 @@ static const char * const pkt_str[] = {
 	"Unknown",			/* word 0, bits 12-8 = 1f */
 };
 
-static const char * const ata1_cfg_str[] = {			/* word 0 in ATA-1 mode */
+static const char *const ata1_cfg_str[] = {			/* word 0 in ATA-1 mode */
 	"Reserved",				/* bit 0 */
 	"hard sectored",			/* bit 1 */
 	"soft sectored",			/* bit 2 */
@@ -326,7 +326,7 @@ static const char actual_ver[MINOR_MAX+2] = {
 #define NUM_CMD_FEAT_STR	48
 
 #if ENABLE_FEATURE_HDPARM_GET_IDENTITY
-static const char * const cmd_feat_str[] = {
+static const char *const cmd_feat_str[] = {
 	"",					/* word 82 bit 15: obsolete  */
 	"NOP cmd",				/* word 82 bit 14 */
 	"READ BUFFER cmd",			/* word 82 bit 13 */
@@ -413,7 +413,7 @@ void identify_from_stdin(void);
 #define SECU_LEVEL      0x0010
 #define NUM_SECU_STR    6
 #if ENABLE_FEATURE_HDPARM_GET_IDENTITY
-static const char * const secu_str[] = {
+static const char *const secu_str[] = {
 	"supported",			/* word 128, bit 0 */
 	"enabled",			/* word 128, bit 1 */
 	"locked",			/* word 128, bit 2 */
@@ -1096,14 +1096,16 @@ static unsigned long hwif_irq;
 // Too bad, really.
 
 #if ENABLE_FEATURE_HDPARM_GET_IDENTITY
-static const char * const cfg_str[] =
-{	"",	     "HardSect",   "SoftSect",   "NotMFM",
+static const char *const cfg_str[] = {
+	"",	     "HardSect",   "SoftSect",   "NotMFM",
 	"HdSw>15uSec", "SpinMotCtl", "Fixed",     "Removeable",
 	"DTR<=5Mbs",   "DTR>5Mbs",   "DTR>10Mbs", "RotSpdTol>.5%",
 	"dStbOff",     "TrkOff",     "FmtGapReq", "nonMagnetic"
 };
 
-static const char * const BuffType[] = {"Unknown", "1Sect", "DualPort", "DualPortCache"};
+static const char *const BuffType[] = {
+	"Unknown", "1Sect", "DualPort", "DualPortCache"
+};
 
 static void dump_identity(const struct hd_driveid *id)
 {
@@ -1930,7 +1932,8 @@ static void parse_xfermode(int flag, smallint *get, smallint *set, int *value)
 }
 
 /*------- getopt short options --------*/
-static const char hdparm_options[] = "gfu::n::p:r::m::c::k::a::B:tTh"
+static const char hdparm_options[] ALIGN1 =
+	"gfu::n::p:r::m::c::k::a::B:tTh"
 	USE_FEATURE_HDPARM_GET_IDENTITY("iI")
 	USE_FEATURE_HDPARM_HDIO_GETSET_DMA("d::")
 #ifdef HDIO_DRIVE_CMD

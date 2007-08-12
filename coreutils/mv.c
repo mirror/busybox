@@ -21,7 +21,7 @@
 #include "libcoreutils/coreutils.h"
 
 #if ENABLE_FEATURE_MV_LONG_OPTIONS
-static const char mv_longopts[] =
+static const char mv_longopts[] ALIGN1 =
 	"interactive\0" No_argument "i"
 	"force\0"       No_argument "f"
 	;
@@ -30,7 +30,8 @@ static const char mv_longopts[] =
 #define OPT_FILEUTILS_FORCE       1
 #define OPT_FILEUTILS_INTERACTIVE 2
 
-static const char fmt[] = "cannot overwrite %sdirectory with %sdirectory";
+static const char fmt[] ALIGN1 =
+	"cannot overwrite %sdirectory with %sdirectory";
 
 int mv_main(int argc, char **argv);
 int mv_main(int argc, char **argv)

@@ -409,7 +409,7 @@ static int apply_spec(const char *file,
 
 static int canoncon(const char *path, unsigned lineno, char **contextp)
 {
-	static const char err_msg[] = "%s: line %u has invalid context %s";
+	static const char err_msg[] ALIGN1 = "%s: line %u has invalid context %s";
 
 	char *tmpcon;
 	char *context = *contextp;

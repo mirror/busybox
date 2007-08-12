@@ -131,7 +131,7 @@ unsigned ll_index_to_flags(int idx)
 	return 0;
 }
 
-int xll_name_to_index(const char * const name)
+int xll_name_to_index(const char *const name)
 {
 	int ret = 0;
 	int sock_fd;

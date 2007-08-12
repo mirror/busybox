@@ -128,7 +128,7 @@ static int do_del_ioctl(const char *basedev, struct ip_tunnel_parm *p)
 /* Dies on error */
 static void parse_args(int argc, char **argv, int cmd, struct ip_tunnel_parm *p)
 {
-	static const char keywords[] =
+	static const char keywords[] ALIGN1 =
 		"mode\0""ipip\0""ip/ip\0""gre\0""gre/ip\0""sit\0""ipv6/ip\0"
 		"key\0""ikey\0""okey\0""seq\0""iseq\0""oseq\0"
 		"csum\0""icsum\0""ocsum\0""nopmtudisc\0""pmtudisc\0"
@@ -519,7 +519,7 @@ static int do_show(int argc, char **argv)
 /* Return value becomes exitcode. It's okay to not return at all */
 int do_iptunnel(int argc, char **argv)
 {
-	static const char keywords[] =
+	static const char keywords[] ALIGN1 =
 		"add\0""change\0""delete\0""show\0""list\0""lst\0";
 	enum { ARG_add = 0, ARG_change, ARG_del, ARG_show, ARG_list, ARG_lst };
 	int key;

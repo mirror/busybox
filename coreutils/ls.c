@@ -120,7 +120,7 @@ SPLIT_SUBDIR    = 2,
 static smallint show_color;
 /* long option entry used only for --color, which has no short option
  * equivalent */
-static const char ls_color_opt[] =
+static const char ls_color_opt[] ALIGN1 =
 	"color\0" Optional_argument "\xff" /* no short equivalent */
 	;
 #else
@@ -710,7 +710,8 @@ static int list_single(struct dnode *dn)
 /* "[-]SXvThw", GNU options, busybox optionally supports */
 /* "[-]K", SELinux mandated options, busybox optionally supports */
 /* "[-]e", I think we made this one up */
-static const char ls_options[] = "Cadil1gnsxAk"
+static const char ls_options[] ALIGN1 =
+	"Cadil1gnsxAk"
 	USE_FEATURE_LS_TIMESTAMPS("cetu")
 	USE_FEATURE_LS_SORTFILES("SXrv")
 	USE_FEATURE_LS_FILETYPES("Fp")

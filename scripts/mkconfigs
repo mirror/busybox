@@ -44,7 +44,7 @@ echo "\
  * Do not edit.
  *
  */
-static const char * const bbconfig_config ="
+static const char *const bbconfig_config ="
 
 sed 's/\"/\\\"/g' $config | grep "^#\? \?CONFIG_" | awk '{print "\"" $0 "\\n\"";}'
 

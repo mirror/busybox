@@ -187,7 +187,7 @@ static int iprule_list(int argc, char **argv)
 /* Return value becomes exitcode. It's okay to not return at all */
 static int iprule_modify(int cmd, int argc, char **argv)
 {
-	static const char keywords[] =
+	static const char keywords[] ALIGN1 =
 		"from\0""to\0""preference\0""order\0""priority\0"
 		"tos\0""fwmark\0""realms\0""table\0""lookup\0""dev\0"
 		"iif\0""nat\0""map-to\0""type\0""help\0";
@@ -313,7 +313,7 @@ static int iprule_modify(int cmd, int argc, char **argv)
 /* Return value becomes exitcode. It's okay to not return at all */
 int do_iprule(int argc, char **argv)
 {
-	static const char ip_rule_commands[] =
+	static const char ip_rule_commands[] ALIGN1 =
 		"add\0""delete\0""list\0""show\0";
 	int cmd = 2; /* list */
 

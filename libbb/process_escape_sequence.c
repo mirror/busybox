@@ -18,7 +18,7 @@
 
 char bb_process_escape_sequence(const char **ptr)
 {
-	static const char charmap[] = {
+	static const char charmap[] ALIGN1 = {
 		'a',  'b',  'f',  'n',  'r',  't',  'v',  '\\', 0,
 		'\a', '\b', '\f', '\n', '\r', '\t', '\v', '\\', '\\' };
 

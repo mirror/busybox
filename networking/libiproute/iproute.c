@@ -294,7 +294,7 @@ static int print_route(struct sockaddr_nl *who ATTRIBUTE_UNUSED,
 /* Return value becomes exitcode. It's okay to not return at all */
 static int iproute_modify(int cmd, unsigned flags, int argc, char **argv)
 {
-	static const char keywords[] =
+	static const char keywords[] ALIGN1 =
 		"src\0""via\0""mtu\0""lock\0""protocol\0"USE_FEATURE_IP_RULE("table\0")
 		"dev\0""oif\0""to\0";
 	enum {
@@ -489,7 +489,7 @@ static int rtnl_rtcache_request(struct rtnl_handle *rth, int family)
 
 static void iproute_flush_cache(void)
 {
-	static const char fn[] = "/proc/sys/net/ipv4/route/flush";
+	static const char fn[] ALIGN1 = "/proc/sys/net/ipv4/route/flush";
 	int flush_fd = open_or_warn(fn, O_WRONLY);
 
 	if (flush_fd < 0) {
@@ -517,7 +517,7 @@ static int iproute_list_or_flush(int argc, char **argv, int flush)
 	struct rtnl_handle rth;
 	char *id = NULL;
 	char *od = NULL;
-	static const char keywords[] =
+	static const char keywords[] ALIGN1 =
 		"protocol\0""all\0""dev\0""oif\0""iif\0""via\0""table\0""cache\0" /*all*/
 		"from\0""root\0""match\0""exact\0""to\0"/*root match exact*/;
 	enum {
@@ -679,7 +679,7 @@ static int iproute_get(int argc, char **argv)
 	char *odev = NULL;
 	bool connected = 0;
 	bool from_ok = 0;
-	static const char options[] =
+	static const char options[] ALIGN1 =
 		"from\0""iif\0""oif\0""dev\0""notify\0""connected\0""to\0";
 
 	memset(&req, 0, sizeof(req));
@@ -824,7 +824,7 @@ static int iproute_get(int argc, char **argv)
 /* Return value becomes exitcode. It's okay to not return at all */
 int do_iproute(int argc, char **argv)
 {
-	static const char ip_route_commands[] =
+	static const char ip_route_commands[] ALIGN1 =
 	/*0-3*/	"add\0""append\0""change\0""chg\0"
 	/*4-7*/	"delete\0""get\0""list\0""show\0"
 	/*8..*/	"prepend\0""replace\0""test\0""flush\0";

@@ -62,18 +62,18 @@ enum {
 
 /* vt102 typical ESC sequence */
 /* terminal standout start/normal ESC sequence */
-static const char SOs[] = "\033[7m";
-static const char SOn[] = "\033[0m";
+static const char SOs[] ALIGN1 = "\033[7m";
+static const char SOn[] ALIGN1 = "\033[0m";
 /* terminal bell sequence */
-static const char bell[] = "\007";
+static const char bell[] ALIGN1 = "\007";
 /* Clear-end-of-line and Clear-end-of-screen ESC sequence */
-static const char Ceol[] = "\033[0K";
-static const char Ceos [] = "\033[0J";
+static const char Ceol[] ALIGN1 = "\033[0K";
+static const char Ceos[] ALIGN1 = "\033[0J";
 /* Cursor motion arbitrary destination ESC sequence */
-static const char CMrc[] = "\033[%d;%dH";
+static const char CMrc[] ALIGN1 = "\033[%d;%dH";
 /* Cursor motion up and down ESC sequence */
-static const char CMup[] = "\033[A";
-static const char CMdown[] = "\n";
+static const char CMup[] ALIGN1 = "\033[A";
+static const char CMdown[] ALIGN1 = "\n";
 
 
 enum {
@@ -2663,7 +2663,7 @@ static void ni(const char * s) // display messages
 static int format_edit_status(void)	// show file status on status line
 {
 	static int tot;
-	static const char cmd_mode_indicator[] = "-IR-";
+	static const char cmd_mode_indicator[] ALIGN1 = "-IR-";
 	int cur, percent, ret, trunc_at;
 
 	// file_modified is now a counter rather than a flag.  this

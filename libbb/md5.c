@@ -75,7 +75,7 @@ static void md5_hash_block(const void *buffer, md5_ctx_t *ctx)
 		0xf7537e82, 0xbd3af235, 0x2ad7d2bb, 0xeb86d391
 	};
 
-	static const char P_array[] = {
+	static const char P_array[] ALIGN1 = {
 #  if MD5_SIZE_VS_SPEED > 1
 		0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15,	/* 1 */
 #  endif	/* MD5_SIZE_VS_SPEED > 1 */
@@ -85,7 +85,7 @@ static void md5_hash_block(const void *buffer, md5_ctx_t *ctx)
 	};
 
 #  if MD5_SIZE_VS_SPEED > 1
-	static const char S_array[] = {
+	static const char S_array[] ALIGN1 = {
 		7, 12, 17, 22,
 		5, 9, 14, 20,
 		4, 11, 16, 23,

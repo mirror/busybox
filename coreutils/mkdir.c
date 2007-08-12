@@ -25,7 +25,7 @@
 /* This is a NOFORK applet. Be very careful! */
 
 #if ENABLE_FEATURE_MKDIR_LONG_OPTIONS
-static const char mkdir_longopts[] =
+static const char mkdir_longopts[] ALIGN1 =
 	"mode\0"    Required_argument "m"
 	"parents\0" No_argument       "p"
 #if ENABLE_SELINUX

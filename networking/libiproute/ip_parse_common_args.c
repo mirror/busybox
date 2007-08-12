@@ -26,7 +26,7 @@ void ip_parse_common_args(int *argcp, char ***argvp)
 {
 	int argc = *argcp;
 	char **argv = *argvp;
-	static const char ip_common_commands[] =
+	static const char ip_common_commands[] ALIGN1 =
 		"-family\0""inet\0""inet6\0""link\0"
 		"-4\0""-6\0""-0\0""-oneline\0";
 	enum {

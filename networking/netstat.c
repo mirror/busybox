@@ -47,8 +47,7 @@ enum {
 	TCP_CLOSING /* now a valid state */
 };
 
-static const char * const tcp_state[] =
-{
+static const char *const tcp_state[] = {
 	"",
 	"ESTABLISHED",
 	"SYN_SENT",

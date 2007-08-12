@@ -38,7 +38,7 @@ struct globals {
 static unsigned long get_flag(char c)
 {
 	/* Two separate vectors take less space than vector of structs */
-	static const char flags_letter[] = "ASDacdijsutT";
+	static const char flags_letter[] ALIGN1 = "ASDacdijsutT";
 	static const unsigned long flags_val[] = {
 		/* A */ EXT2_NOATIME_FL,
 		/* S */ EXT2_SYNC_FL,

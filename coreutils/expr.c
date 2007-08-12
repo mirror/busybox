@@ -277,7 +277,7 @@ static VALUE *eval7(void)
 
 static VALUE *eval6(void)
 {
-	static const char keywords[] =
+	static const char keywords[] ALIGN1 =
 		"quote\0""length\0""match\0""index\0""substr\0";
 
 	VALUE *r, *i1, *i2;

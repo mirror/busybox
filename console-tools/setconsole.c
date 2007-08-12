@@ -11,7 +11,7 @@
 #include "libbb.h"
 
 #if ENABLE_FEATURE_SETCONSOLE_LONG_OPTIONS
-static const char setconsole_longopts[] =
+static const char setconsole_longopts[] ALIGN1 =
 	"reset\0" No_argument "r"
 	;
 #endif

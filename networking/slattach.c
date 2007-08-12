@@ -123,7 +123,7 @@ int slattach_main(int argc, char **argv);
 int slattach_main(int argc, char **argv)
 {
 	/* Line discipline code table */
-	static const char proto_names[] =
+	static const char proto_names[] ALIGN1 =
 		"slip\0"        /* 0 */
 		"cslip\0"       /* 1 */
 		"slip6\0"       /* 2 */

@@ -31,12 +31,12 @@
 const char *make_human_readable_str(unsigned long long size,
 	unsigned long block_size, unsigned long display_unit)
 {
-	/* The code will adjust for additional (appended) units. */
-	static const char zero_and_units[] = { '0', 0, 'k', 'M', 'G', 'T' };
-	static const char fmt[] = "%llu";
-	static const char fmt_tenths[] = "%llu.%d%c";
+	/* The code will adjust for additional (appended) units */
+	static const char zero_and_units[] ALIGN1 = { '0', 0, 'k', 'M', 'G', 'T' };
+	static const char fmt[] ALIGN1 = "%llu";
+	static const char fmt_tenths[] ALIGN1 = "%llu.%d%c";
 
-	static char str[21];		/* Sufficient for 64 bit unsigned integers. */
+	static char str[21] ALIGN1;  /* Sufficient for 64 bit unsigned integers */
 
 	unsigned long long val;
 	int frac;
@@ -53,7 +53,7 @@ const char *make_human_readable_str(unsigned long long size,
 	}
 
 	if (display_unit) {
-		val += display_unit/2;	/* Deal with rounding. */
+		val += display_unit/2;	/* Deal with rounding */
 		val /= display_unit;	/* Don't combine with the line above!!! */
 	} else {
 		++u;

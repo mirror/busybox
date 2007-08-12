@@ -105,7 +105,7 @@ skip:
 }
 
 #if ENABLE_FEATURE_CHCON_LONG_OPTIONS
-static const char chcon_longopts[] =
+static const char chcon_longopts[] ALIGN1 =
 	"recursive\0"      No_argument       "R"
 	"changes\0"        No_argument       "c"
 	"no-dereference\0" No_argument       "h"

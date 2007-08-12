@@ -63,7 +63,7 @@ static const char *xfind_str(const char *table, const char *str)
 	return table - 1;
 }
 
-static const char cmds[] = {
+static const char cmds[] ALIGN1 = {
 	4, ADD_VLAN_CMD, 7,
 	'a', 'd', 'd', 0,
 	3, DEL_VLAN_CMD, 7,
@@ -85,7 +85,7 @@ static const char cmds[] = {
 	'm', 'a', 'p', 0,
 };
 
-static const char name_types[] = {
+static const char name_types[] ALIGN1 = {
 	VLAN_NAME_TYPE_PLUS_VID, 16,
 	'V', 'L', 'A', 'N',
 	'_', 'P', 'L', 'U', 'S', '_', 'V', 'I', 'D',
@@ -104,7 +104,7 @@ static const char name_types[] = {
 	'_', 'N', 'O', '_', 'P', 'A', 'D', 0,
 };
 
-static const char conf_file_name[] = "/proc/net/vlan/config";
+static const char conf_file_name[] ALIGN1 = "/proc/net/vlan/config";
 
 int vconfig_main(int argc, char **argv);
 int vconfig_main(int argc, char **argv)

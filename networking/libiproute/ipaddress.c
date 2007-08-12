@@ -412,7 +412,7 @@ static void ipaddr_reset_filter(int _oneline)
 /* Return value becomes exitcode. It's okay to not return at all */
 int ipaddr_list_or_flush(int argc, char **argv, int flush)
 {
-	static const char option[] = "to\0""scope\0""up\0""label\0""dev\0";
+	static const char option[] ALIGN1 = "to\0""scope\0""up\0""label\0""dev\0";
 
 	struct nlmsg_list *linfo = NULL;
 	struct nlmsg_list *ainfo = NULL;
@@ -599,7 +599,7 @@ static int default_scope(inet_prefix *lcl)
 /* Return value becomes exitcode. It's okay to not return at all */
 static int ipaddr_modify(int cmd, int argc, char **argv)
 {
-	static const char option[] =
+	static const char option[] ALIGN1 =
 		"peer\0""remote\0""broadcast\0""brd\0"
 		"anycast\0""scope\0""dev\0""label\0""local\0";
 	struct rtnl_handle rth;
@@ -768,7 +768,7 @@ static int ipaddr_modify(int cmd, int argc, char **argv)
 /* Return value becomes exitcode. It's okay to not return at all */
 int do_ipaddr(int argc, char **argv)
 {
-	static const char commands[] =
+	static const char commands[] ALIGN1 =
 		"add\0""delete\0""list\0""show\0""lst\0""flush\0";
 
 	int command_num = 2; /* default command is list */

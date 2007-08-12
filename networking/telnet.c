@@ -353,7 +353,7 @@ static void putiac_naws(byte c, int x, int y)
 }
 #endif
 
-static char const escapecharis[] = "\r\nEscape character is ";
+static char const escapecharis[] ALIGN1 = "\r\nEscape character is ";
 
 static void setConMode(void)
 {

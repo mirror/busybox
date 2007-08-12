@@ -180,7 +180,7 @@ int udhcpc_main(int argc, char **argv)
 		OPT_v = 1 << 17,
 	};
 #if ENABLE_GETOPT_LONG
-	static const char udhcpc_longopts[] =
+	static const char udhcpc_longopts[] ALIGN1 =
 		"clientid\0"      Required_argument "c"
 		"clientid-none\0" No_argument       "C"
 		"vendorclass\0"   Required_argument "V"

@@ -7,7 +7,7 @@
 
 /* returns the array index of the string */
 /* (index of first match is returned, or -1) */
-int index_in_str_array(const char * const string_array[], const char *key)
+int index_in_str_array(const char *const string_array[], const char *key)
 {
 	int i;
 
@@ -36,7 +36,7 @@ int index_in_strings(const char *strings, const char *key)
 /* returns the array index of the string, even if it matches only a beginning */
 /* (index of first match is returned, or -1) */
 #ifdef UNUSED
-int index_in_substr_array(const char * const string_array[], const char *key)
+int index_in_substr_array(const char *const string_array[], const char *key)
 {
 	int i;
 	int len = strlen(key);

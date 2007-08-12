@@ -131,7 +131,7 @@ odoffset(int argc, char ***argvp)
 	}
 }
 
-static const char * const add_strings[] = {
+static const char *const add_strings[] = {
 	"16/1 \"%3_u \" \"\\n\"",				/* a */
 	"8/2 \" %06o \" \"\\n\"",				/* B, o */
 	"16/1 \"%03o \" \"\\n\"",				/* b */
@@ -147,9 +147,9 @@ static const char * const add_strings[] = {
 	"4/4 \"    %011o \" \"\\n\"",			/* O */
 };
 
-static const char od_opts[] = "aBbcDdeFfHhIiLlOoXxv";
+static const char od_opts[] ALIGN1 = "aBbcDdeFfHhIiLlOoXxv";
 
-static const char od_o2si[] = {
+static const char od_o2si[] ALIGN1 = {
 	0, 1, 2, 3, 5,
 	4, 6, 6, 7, 8,
 	9, 0xa, 0xb, 0xa, 0xa,

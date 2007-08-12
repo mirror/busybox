@@ -33,12 +33,12 @@ static FILE *cmp_xfopen_input(const char *filename)
 	xfunc_die();	/* We already output an error message. */
 }
 
-static const char fmt_eof[] = "cmp: EOF on %s\n";
-static const char fmt_differ[] = "%s %s differ: char %"OFF_FMT"d, line %d\n";
+static const char fmt_eof[] ALIGN1 = "cmp: EOF on %s\n";
+static const char fmt_differ[] ALIGN1 = "%s %s differ: char %"OFF_FMT"d, line %d\n";
 // This fmt_l_opt uses gnu-isms.  SUSv3 would be "%.0s%.0s%"OFF_FMT"d %o %o\n"
-static const char fmt_l_opt[] = "%.0s%.0s%"OFF_FMT"d %3o %3o\n";
+static const char fmt_l_opt[] ALIGN1 = "%.0s%.0s%"OFF_FMT"d %3o %3o\n";
 
-static const char opt_chars[] = "sl";
+static const char opt_chars[] ALIGN1 = "sl";
 #define CMP_OPT_s (1<<0)
 #define CMP_OPT_l (1<<1)
 

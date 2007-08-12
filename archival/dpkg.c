@@ -582,7 +582,8 @@ static int read_package_field(const char *package_buffer, char **field_name, cha
 
 static unsigned fill_package_struct(char *control_buffer)
 {
-	static const char field_names[] = "Package\0""Version\0"
+	static const char field_names[] ALIGN1 =
+		"Package\0""Version\0"
 		"Pre-Depends\0""Depends\0""Replaces\0""Provides\0"
 		"Conflicts\0""Suggests\0""Recommends\0""Enhances\0";
 
@@ -1226,7 +1227,7 @@ static int run_package_script(const char *package_name, const char *script_type)
 	return result;
 }
 
-static const char *all_control_files[] = {
+static const char *const all_control_files[] = {
 	"preinst", "postinst", "prerm", "postrm",
 	"list", "md5sums", "shlibs", "conffiles",
 	"config", "templates", NULL

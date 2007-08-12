@@ -166,7 +166,7 @@ static void print_only(const char *path, size_t dirlen, const char *entry)
 
 static void print_status(int val, char *path1, char *path2, char *entry)
 {
-	const char * const _entry = entry ? entry : "";
+	const char *const _entry = entry ? entry : "";
 	char * const _path1 = entry ? concat_path_file(path1, _entry) : path1;
 	char * const _path2 = entry ? concat_path_file(path2, _entry) : path2;
 

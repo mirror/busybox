@@ -768,26 +768,24 @@ static void check_match(IPos start, IPos match, int length)
 #define BL_CODES  19
 /* number of codes used to transfer the bit lengths */
 
-typedef uch extra_bits_t;
-
 /* extra bits for each length code */
-static const extra_bits_t extra_lbits[LENGTH_CODES]= {
+static const uint8_t extra_lbits[LENGTH_CODES] ALIGN1 = {
 	0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 4, 4,
 	4, 4, 5, 5, 5, 5, 0
 };
 
 /* extra bits for each distance code */
-static const extra_bits_t extra_dbits[D_CODES] = {
+static const uint8_t extra_dbits[D_CODES] ALIGN1 = {
 	0, 0, 0, 0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6, 7, 7, 8, 8, 9, 9,
 	10, 10, 11, 11, 12, 12, 13, 13
 };
 
 /* extra bits for each bit length code */
-static const extra_bits_t extra_blbits[BL_CODES] = {
+static const uint8_t extra_blbits[BL_CODES] ALIGN1 = {
 	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 3, 7 };
 
 /* number of codes at each bit length for an optimal tree */
-static const uch bl_order[BL_CODES] = {
+static const uint8_t bl_order[BL_CODES] ALIGN1 = {
 	16, 17, 18, 0, 8, 7, 9, 6, 10, 5, 11, 4, 12, 3, 13, 2, 14, 1, 15 };
 
 #define STORED_BLOCK 0
@@ -861,7 +859,7 @@ typedef struct ct_data {
 typedef struct tree_desc {
 	ct_data *dyn_tree;	/* the dynamic tree */
 	ct_data *static_tree;	/* corresponding static tree or NULL */
-	const extra_bits_t *extra_bits;	/* extra bits for each code or NULL */
+	const uint8_t *extra_bits;	/* extra bits for each code or NULL */
 	int extra_base;		/* base index for extra_bits */
 	int elems;			/* max number of elements in the tree */
 	int max_length;		/* max bit length for the codes */
@@ -1064,7 +1062,7 @@ static void pqdownheap(ct_data * tree, int k)
 static void gen_bitlen(tree_desc * desc)
 {
 	ct_data *tree = desc->dyn_tree;
-	const extra_bits_t *extra = desc->extra_bits;
+	const uint8_t *extra = desc->extra_bits;
 	int base = desc->extra_base;
 	int max_code = desc->max_code;
 	int max_length = desc->max_length;

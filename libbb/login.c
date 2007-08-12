@@ -15,8 +15,8 @@
 
 #define LOGIN " login: "
 
-static const char fmtstr_d[] = "%A, %d %B %Y";
-static const char fmtstr_t[] = "%H:%M:%S";
+static const char fmtstr_d[] ALIGN1 = "%A, %d %B %Y";
+static const char fmtstr_t[] ALIGN1 = "%H:%M:%S";
 
 void print_login_issue(const char *issue_file, const char *tty)
 {

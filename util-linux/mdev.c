@@ -233,7 +233,7 @@ static int dirAction(const char *fileName, struct stat *statbuf,
  * - userspace writes "0" (worked) or "-1" (failed) to /sys/$DEVPATH/loading
  * - kernel loads firmware into device
  */
-static inline void load_firmware(const char * const firmware, const char * const sysfs_path)
+static void load_firmware(const char *const firmware, const char *const sysfs_path)
 {
 	int cnt;
 	int firmware_fd, loading_fd, data_fd;

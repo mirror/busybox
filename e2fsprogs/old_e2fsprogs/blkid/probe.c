@@ -379,7 +379,7 @@ static int probe_udf(int fd, blkid_cache cache __BLKID_ATTR((unused)),
 {
 	int j, bs;
 	struct iso_volume_descriptor isosb;
-	const char * const * m;
+	const char *const *m;
 
 	/* determine the block size by scanning in 2K increments
 	   (block sizes larger than 2K will be null padded) */

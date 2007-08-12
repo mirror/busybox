@@ -14,7 +14,10 @@
 #include "libbb.h"
 #include <sys/timex.h>
 
-static const struct {int bit; const char *name;} statlist[] = {
+static const struct {
+	int bit;
+	const char *name;
+} statlist[] = {
 	{ STA_PLL,       "PLL"       },
 	{ STA_PPSFREQ,   "PPSFREQ"   },
 	{ STA_PPSTIME,   "PPSTIME"   },
@@ -28,15 +31,17 @@ static const struct {int bit; const char *name;} statlist[] = {
 	{ STA_PPSWANDER, "PPSWANDER" },
 	{ STA_PPSERROR,  "PPSERROR"  },
 	{ STA_CLOCKERR,  "CLOCKERR"  },
-	{ 0, NULL } };
+	{ 0, NULL }
+};
 
-static const char * const ret_code_descript[] = {
+static const char *const ret_code_descript[] = {
 	"clock synchronized",
 	"insert leap second",
 	"delete leap second",
 	"leap second in progress",
 	"leap second has occurred",
-	"clock not synchronized" };
+	"clock not synchronized"
+};
 
 int adjtimex_main(int argc, char **argv);
 int adjtimex_main(int argc, char **argv)

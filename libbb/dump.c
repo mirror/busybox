@@ -26,12 +26,12 @@ static int exitval;			/* final exit value */
 int bb_dump_blocksize;			/* data block size */
 int bb_dump_length = -1;		/* max bytes to read */
 
-static const char index_str[] = ".#-+ 0123456789";
+static const char index_str[] ALIGN1 = ".#-+ 0123456789";
 
-static const char size_conv_str[] =
+static const char size_conv_str[] ALIGN1 =
 "\x1\x4\x4\x4\x4\x4\x4\x8\x8\x8\x8\010cdiouxXeEfgG";
 
-static const char lcc[] = "diouxX";
+static const char lcc[] ALIGN1 = "diouxX";
 
 int bb_dump_size(FS * fs)
 {
@@ -440,7 +440,7 @@ static void bpad(PR * pr)
 	while ((*p2++ = *p1++) != 0);
 }
 
-static const char conv_str[] =
+static const char conv_str[] ALIGN1 =
 	"\0\\0\0"
 	"\007\\a\0"				/* \a */
 	"\b\\b\0"
@@ -479,7 +479,7 @@ static void conv_c(PR * pr, unsigned char * p)
 
 static void conv_u(PR * pr, unsigned char * p)
 {
-	static const char list[] =
+	static const char list[] ALIGN1 =
 		"nul\0soh\0stx\0etx\0eot\0enq\0ack\0bel\0"
 		"bs\0_ht\0_lf\0_vt\0_ff\0_cr\0_so\0_si\0_"
 		"dle\0dcl\0dc2\0dc3\0dc4\0nak\0syn\0etb\0"

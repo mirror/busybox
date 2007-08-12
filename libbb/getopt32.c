@@ -76,7 +76,7 @@ const char *applet_long_options
 
         This struct allows you to define long options:
 
-        static const char applet_longopts[] =
+        static const char applet_longopts[] ALIGN1 =
 		//"name\0" has_arg val
 		"verbose\0" No_argument "v"
 		;

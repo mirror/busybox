@@ -287,7 +287,7 @@ int ftp_send(ftp_host_info_t *server, FILE *control_stream,
 #define FTPGETPUT_OPT_PORT	16
 
 #if ENABLE_FEATURE_FTPGETPUT_LONG_OPTIONS
-static const char ftpgetput_longopts[] =
+static const char ftpgetput_longopts[] ALIGN1 =
 	"continue\0" Required_argument "c"
 	"verbose\0"  No_argument       "v"
 	"username\0" Required_argument "u"
