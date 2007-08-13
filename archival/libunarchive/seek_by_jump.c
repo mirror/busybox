@@ -9,7 +9,7 @@
 void seek_by_jump(const archive_handle_t *archive_handle, const unsigned int amount)
 {
 	if (lseek(archive_handle->src_fd, (off_t) amount, SEEK_CUR) == (off_t) -1) {
-#ifdef CONFIG_FEATURE_UNARCHIVE_TAPE
+#if ENABLE_FEATURE_UNARCHIVE_TAPE
 		if (errno == ESPIPE) {
 			seek_by_read(archive_handle, amount);
 		} else

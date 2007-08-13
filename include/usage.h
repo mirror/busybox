@@ -1946,7 +1946,7 @@
 #define lsmod_full_usage \
        "List the currently loaded kernel modules"
 
-#ifdef CONFIG_FEATURE_MAKEDEVS_LEAF
+#if ENABLE_FEATURE_MAKEDEVS_LEAF
 #define makedevs_trivial_usage \
        "NAME TYPE MAJOR MINOR FIRST LAST [s]"
 #define makedevs_full_usage \
@@ -1969,7 +1969,7 @@
        "[creates hda,hda1-hda8]\n"
 #endif
 
-#ifdef CONFIG_FEATURE_MAKEDEVS_TABLE
+#if ENABLE_FEATURE_MAKEDEVS_TABLE
 #define makedevs_trivial_usage \
        "[-d device_table] rootdir"
 #define makedevs_full_usage \
@@ -2565,7 +2565,7 @@
 	USE_FEATURE_PIDOF_OMIT( \
        "$ pidof /bin/sh -o %PPID\n20351 5950")
 
-#ifndef CONFIG_FEATURE_FANCY_PING
+#if !ENABLE_FEATURE_FANCY_PING
 #define ping_trivial_usage \
        "host"
 #define ping_full_usage \
@@ -3430,7 +3430,7 @@ USE_FEATURE_RUN_PARTS_FANCY("\n	-l	Prints names of all matching files even when 
        "$ cat /tmp/foo\n" \
        "Hello\n"
 
-#ifdef CONFIG_FEATURE_TELNET_AUTOLOGIN
+#if ENABLE_FEATURE_TELNET_AUTOLOGIN
 #define telnet_trivial_usage \
        "[-a] [-l USER] HOST [PORT]"
 #define telnet_full_usage \

@@ -377,13 +377,13 @@ used in the code.
 
 	(in .h header file)
 
-		#ifdef CONFIG_FEATURE_FUNKY
-		static inline void maybe_do_funky_stuff (int bar, int baz)
+		#if ENABLE_FEATURE_FUNKY
+		static inline void maybe_do_funky_stuff(int bar, int baz)
 		{
 			/* lotsa code in here */
 		}
 		#else
-		static inline void maybe_do_funky_stuff (int bar, int baz) {}
+		static inline void maybe_do_funky_stuff(int bar, int baz) {}
 		#endif
 
 	(in the .c source file)

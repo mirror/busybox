@@ -212,7 +212,7 @@ char* make_new_name_gunzip(char *filename)
 
 	extension++;
 	if (strcmp(extension, "tgz" + 1) == 0
-#ifdef CONFIG_FEATURE_GUNZIP_UNCOMPRESS
+#if  ENABLE_FEATURE_GUNZIP_UNCOMPRESS
 	 || strcmp(extension, "Z") == 0
 #endif
 	) {

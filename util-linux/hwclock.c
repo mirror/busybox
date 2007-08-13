@@ -132,7 +132,7 @@ static void from_sys_clock(int utc)
 	write_rtc(tv.tv_sec, utc);
 }
 
-#ifdef CONFIG_FEATURE_HWCLOCK_ADJTIME_FHS
+#if ENABLE_FEATURE_HWCLOCK_ADJTIME_FHS
 # define ADJTIME_PATH "/var/lib/hwclock/adjtime"
 #else
 # define ADJTIME_PATH "/etc/adjtime"

@@ -12,7 +12,7 @@
 #include "libbb.h"
 #include "unarchive.h"
 
-#ifdef CONFIG_FEATURE_LZMA_FAST
+#if ENABLE_FEATURE_LZMA_FAST
 #  define speed_inline ALWAYS_INLINE
 #else
 #  define speed_inline
@@ -99,9 +99,11 @@ static ALWAYS_INLINE void rc_normalize(rc_t * rc)
 	}
 }
 
-/* Called 9 times */
+/* rc_is_bit_0 is called 9 times */
 /* Why rc_is_bit_0_helper exists?
- * Because we want to always expose (rc->code < rc->bound) to optimizer
+ * Because we want to always expose (rc->code < rc->bound) to optimizer.
+ * Thus rc_is_bit_0 is always inlined, and rc_is_bit_0_helper is inlined
+ * only if we compile for speed.
  */
 static speed_inline uint32_t rc_is_bit_0_helper(rc_t * rc, uint16_t * p)
 {

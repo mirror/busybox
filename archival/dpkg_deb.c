@@ -31,12 +31,12 @@ int dpkg_deb_main(int argc, char **argv)
 	ar_archive->sub_archive = tar_archive;
 	ar_archive->filter = filter_accept_list_reassign;
 
-#ifdef CONFIG_FEATURE_DEB_TAR_GZ
+#if ENABLE_FEATURE_DEB_TAR_GZ
 	llist_add_to(&(ar_archive->accept), (char*)"data.tar.gz");
 	llist_add_to(&control_tar_llist, (char*)"control.tar.gz");
 #endif
 
-#ifdef CONFIG_FEATURE_DEB_TAR_BZ2
+#if ENABLE_FEATURE_DEB_TAR_BZ2
 	llist_add_to(&(ar_archive->accept), (char*)"data.tar.bz2");
 	llist_add_to(&control_tar_llist, (char*)"control.tar.bz2");
 #endif

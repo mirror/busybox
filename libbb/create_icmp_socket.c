@@ -7,9 +7,9 @@
  *
  */
 
-#include <sys/types.h>
-#include <netdb.h>
-#include <sys/socket.h>
+//#include <sys/types.h>
+//#include <netdb.h>
+//#include <sys/socket.h>
 #include "libbb.h"
 
 int create_icmp_socket(void)

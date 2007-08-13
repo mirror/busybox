@@ -164,7 +164,7 @@ char *INET_rresolve(struct sockaddr_in *s_in, int numeric, uint32_t netmask)
 	return name;
 }
 
-#ifdef CONFIG_FEATURE_IPV6
+#if ENABLE_FEATURE_IPV6
 
 int INET6_resolve(const char *name, struct sockaddr_in6 *sin6)
 {

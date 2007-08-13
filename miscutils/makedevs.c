@@ -9,7 +9,7 @@
 
 #include "libbb.h"
 
-#ifdef CONFIG_FEATURE_MAKEDEVS_LEAF
+#if ENABLE_FEATURE_MAKEDEVS_LEAF
 int makedevs_main(int argc, char **argv);
 int makedevs_main(int argc, char **argv)
 {
@@ -65,7 +65,7 @@ int makedevs_main(int argc, char **argv)
 	return 0;
 }
 
-#elif defined CONFIG_FEATURE_MAKEDEVS_TABLE
+#elif ENABLE_FEATURE_MAKEDEVS_TABLE
 
 /* Licensed under the GPL v2 or later, see the file LICENSE in this tarball. */
 
@@ -162,8 +162,7 @@ int makedevs_main(int argc, char **argv)
 				ret = EXIT_FAILURE;
 				goto loop;
 			}
-		} else
-		{
+		} else {
 			dev_t rdev;
 
 			if (type == 'p') {

@@ -10,7 +10,7 @@
 #include "libbb.h"
 #include <sys/syscall.h>
 
-#ifdef CONFIG_FEATURE_2_6_MODULES
+#if ENABLE_FEATURE_2_6_MODULES
 static inline void filename2modname(char *modname, const char *afterslash)
 {
 	unsigned int i;

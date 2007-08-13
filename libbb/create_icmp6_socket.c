@@ -7,12 +7,12 @@
  *
  */
 
-#include <sys/types.h>
-#include <netdb.h>
-#include <sys/socket.h>
+//#include <sys/types.h>
+//#include <netdb.h>
+//#include <sys/socket.h>
 #include "libbb.h"
 
-#ifdef CONFIG_FEATURE_IPV6
+#if ENABLE_FEATURE_IPV6
 int create_icmp6_socket(void)
 {
 	struct protoent *proto;

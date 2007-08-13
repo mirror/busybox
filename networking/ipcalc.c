@@ -36,7 +36,7 @@ static unsigned long get_netmask(unsigned long ipaddr)
 		return 0;
 }
 
-#ifdef CONFIG_FEATURE_IPCALC_FANCY
+#if ENABLE_FEATURE_IPCALC_FANCY
 static int get_prefix(unsigned long netmask)
 {
 	unsigned long msk = 0x80000000;

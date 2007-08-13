@@ -29,7 +29,10 @@ union semun {
 };
 #endif
 
-#ifndef CONFIG_IPCRM_DROP_LEGACY
+#define IPCRM_LEGACY 1
+
+
+#if IPCRM_LEGACY
 
 typedef enum type_id {
 	SHM,
@@ -70,7 +73,7 @@ static int remove_ids(type_id type, int argc, char **argv)
 
 	return nb_errors;
 }
-#endif /* #ifndef CONFIG_IPCRM_DROP_LEGACY */
+#endif /* IPCRM_LEGACY */
 
 
 int ipcrm_main(int argc, char **argv);
@@ -82,7 +85,7 @@ int ipcrm_main(int argc, char **argv)
 	/* if the command is executed without parameters, do nothing */
 	if (argc == 1)
 		return 0;
-#ifndef CONFIG_IPCRM_DROP_LEGACY
+#if IPCRM_LEGACY
 	/* check to see if the command is being invoked in the old way if so
 	   then run the old code. Valid commands are msg, shm, sem. */
 	{
@@ -113,7 +116,7 @@ int ipcrm_main(int argc, char **argv)
 			return 0;
 		}
 	}
-#endif /* #ifndef CONFIG_IPCRM_DROP_LEGACY */
+#endif /* IPCRM_LEGACY */
 
 	/* process new syntax to conform with SYSV ipcrm */
 	while ((c = getopt(argc, argv, "q:m:s:Q:M:S:h?")) != -1) {

@@ -14,7 +14,7 @@
 #include "libbb.h"
 
 
-#ifndef CONFIG_FEATURE_CHECK_TAINTED_MODULE
+#if !ENABLE_FEATURE_CHECK_TAINTED_MODULE
 static void check_tainted(void) { puts(""); }
 #else
 #define TAINT_FILENAME                  "/proc/sys/kernel/tainted"
@@ -44,7 +44,7 @@ static void check_tainted(void)
 }
 #endif
 
-#ifdef CONFIG_FEATURE_QUERY_MODULE_INTERFACE
+#if ENABLE_FEATURE_QUERY_MODULE_INTERFACE
 
 struct module_info
 {
@@ -131,7 +131,7 @@ int lsmod_main(int argc, char **argv)
 		puts("");
 	}
 
-#ifdef CONFIG_FEATURE_CLEAN_UP
+#if ENABLE_FEATURE_CLEAN_UP
 	free(module_names);
 #endif
 

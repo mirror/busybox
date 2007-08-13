@@ -37,7 +37,7 @@ enum {
 	CMD_INFO = 12,
 	CMD_CHANGE = 13,
 
-#ifdef CONFIG_FEATURE_FBSET_FANCY
+#if ENABLE_FEATURE_FBSET_FANCY
 	CMD_XRES = 100,
 	CMD_YRES = 101,
 	CMD_VXRES = 102,
@@ -130,7 +130,7 @@ static const struct cmdoptions_t {
 	{ "-laced", 1, CMD_LACED },
 	{ "-double", 1, CMD_DOUBLE },
 	{ "-n", 0, CMD_CHANGE },
-#ifdef CONFIG_FEATURE_FBSET_FANCY
+#if ENABLE_FEATURE_FBSET_FANCY
 	{ "-all", 0, CMD_ALL },
 	{ "-xres", 1, CMD_XRES },
 	{ "-yres", 1, CMD_YRES },
@@ -158,7 +158,7 @@ static const struct cmdoptions_t {
 	{ "", 0, 0 }
 };
 
-#ifdef CONFIG_FEATURE_FBSET_READMODE
+#if ENABLE_FEATURE_FBSET_READMODE
 /* taken from linux/fb.h */
 enum {
 	FB_VMODE_INTERLACED = 1,	/* interlaced	*/
@@ -173,7 +173,7 @@ enum {
 static int readmode(struct fb_var_screeninfo *base, const char *fn,
 					const char *mode)
 {
-#ifdef CONFIG_FEATURE_FBSET_READMODE
+#if ENABLE_FEATURE_FBSET_READMODE
 	FILE *f;
 	char buf[256];
 	char *p = buf;
@@ -286,7 +286,7 @@ static inline void showmode(struct fb_var_screeninfo *v)
 		vrate = hrate / (v->upper_margin + v->yres + v->lower_margin + v->vsync_len);
 	}
 	printf("\nmode \"%ux%u-%u\"\n"
-#ifdef CONFIG_FEATURE_FBSET_FANCY
+#if ENABLE_FEATURE_FBSET_FANCY
 	"\t# D: %.3f MHz, H: %.3f kHz, V: %.3f Hz\n"
 #endif
 	"\tgeometry %u %u %u %u %u\n"
@@ -295,7 +295,7 @@ static inline void showmode(struct fb_var_screeninfo *v)
 	"\trgba %u/%u,%u/%u,%u/%u,%u/%u\n"
 	"endmode\n\n",
 		v->xres, v->yres, (int) (vrate + 0.5),
-#ifdef CONFIG_FEATURE_FBSET_FANCY
+#if ENABLE_FEATURE_FBSET_FANCY
 		drate / 1e6, hrate / 1e3, vrate,
 #endif
 		v->xres, v->yres, v->xres_virtual, v->yres_virtual, v->bits_per_pixel,
@@ -360,7 +360,7 @@ int fbset_main(int argc, char **argv)
 			case CMD_CHANGE:
 				g_options |= OPT_CHANGE;
 				break;
-#ifdef CONFIG_FEATURE_FBSET_FANCY
+#if ENABLE_FEATURE_FBSET_FANCY
 			case CMD_XRES:
 				varset.xres = xatou32(argv[1]);
 				break;

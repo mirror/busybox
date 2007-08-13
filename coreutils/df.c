@@ -22,7 +22,7 @@
 #include <sys/vfs.h>
 #include "libbb.h"
 
-#ifndef CONFIG_FEATURE_HUMAN_READABLE
+#if !ENABLE_FEATURE_HUMAN_READABLE
 static long kscale(long b, long bs)
 {
 	return ( b * (long long) bs + 1024/2 ) / 1024;
@@ -34,7 +34,7 @@ int df_main(int argc, char **argv)
 {
 	long blocks_used;
 	long blocks_percent_used;
-#ifdef CONFIG_FEATURE_HUMAN_READABLE
+#if  ENABLE_FEATURE_HUMAN_READABLE
 	unsigned long df_disp_hr = 1024;
 #endif
 	int status = EXIT_SUCCESS;
@@ -46,7 +46,7 @@ int df_main(int argc, char **argv)
 	static const char hdr_1k[] ALIGN1 = "1k-blocks";
 	const char *disp_units_hdr = hdr_1k;
 
-#ifdef CONFIG_FEATURE_HUMAN_READABLE
+#if  ENABLE_FEATURE_HUMAN_READABLE
 	opt_complementary = "h-km:k-hm:m-hk";
 	opt = getopt32(argc, argv, "hmk");
 	if (opt & 1) {
@@ -125,7 +125,7 @@ int df_main(int argc, char **argv)
 				}
 			}
 
-#ifdef CONFIG_FEATURE_HUMAN_READABLE
+#if ENABLE_FEATURE_HUMAN_READABLE
 			printf("%-20s %9s ", device,
 				make_human_readable_str(s.f_blocks, s.f_bsize, df_disp_hr));
 
