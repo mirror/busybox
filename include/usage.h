@@ -607,12 +607,13 @@
        "[-" USE_FEATURE_HUMAN_READABLE("hm") "k] [FILESYSTEM ...]"
 #define df_full_usage \
        "Print the filesystem space used and space available" \
-       "\n\nOptions:\n" \
 	USE_FEATURE_HUMAN_READABLE( \
-       "\n	-h	Print sizes in human readable format (e.g., 1K 243M 2G )\n" \
-       "	-m	Print sizes in megabytes\n" \
-       "	-k	Print sizes in kilobytes(default)") \
+       "\n\nOptions control size display:" \
+       "\n	-h	Human readable (e.g. 1K 243M 2G)" \
+       "\n	-m	1024*1024 blocks" \
+       "\n	-k	1024 blocks") \
 	SKIP_FEATURE_HUMAN_READABLE( \
+       "\n\nOptions:" \
        "\n	-k	Ignored")
 #define df_example_usage \
        "$ df\n" \
