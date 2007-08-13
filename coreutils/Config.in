@@ -200,6 +200,19 @@ config FEATURE_ENV_LONG_OPTIONS
 	help
 	  Support long options for the env applet.
 
+config EXPAND
+	bool "expand"
+	default n
+	help
+	  By default, convert all tabs to spaces.
+
+config FEATURE_EXPAND_LONG_OPTIONS
+	bool "Enable long options"
+	default n
+	depends on EXPAND && GETOPT_LONG
+	help
+	  Support long options for the expand applet.
+
 config EXPR
 	bool "expr"
 	default n
@@ -654,6 +667,19 @@ config UNAME
 	default n
 	help
 	  uname is used to print system information.
+
+config UNEXPAND
+	bool "unexpand"
+	default n
+	help
+	  By default, convert only leading sequences of blanks to tabs.
+
+config FEATURE_UNEXPAND_LONG_OPTIONS
+	bool "Enable long options"
+	default n
+	depends on UNEXPAND && GETOPT_LONG
+	help
+	  Support long options for the unexpand applet.
 
 config UNIQ
 	bool "uniq"

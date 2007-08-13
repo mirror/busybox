@@ -16,7 +16,7 @@
 void fflush_stdout_and_exit(int retval)
 {
 	if (fflush(stdout))
-		xfunc_die();
+		bb_perror_msg_and_die(bb_msg_standard_output);
 
 	if (ENABLE_FEATURE_PREFER_APPLETS && die_sleep < 0) {
 		/* We are in NOFORK applet. Do not exit() directly,

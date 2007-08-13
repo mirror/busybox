@@ -1,0 +1,18 @@
+rm -f foo bar
+echo -e "\ty" | expand -t 3 ../../busybox > foo
+echo -e "\ty" | busybox unexpand -t 3 ../../busybox > bar
+set +e
+test ! -f foo -a -f bar
+if [ $? = 0 ] ; then
+	set -e
+	diff -q foo bar
+fi
+rm -f foo bar
+echo -e "\ty\tx" | expand -it 3 ../../busybox > foo
+echo -e "\ty\tx" | busybox unexpand -it 3 ../../busybox > bar
+set +e
+test ! -f foo -a -f bar
+if [ $? = 0 ] ; then
+	set -e
+	diff -q foo bar
+fi

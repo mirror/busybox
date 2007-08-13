@@ -505,5 +505,3 @@ int expr_main(int argc, char **argv)
 
 	fflush_stdout_and_exit(null(v));
 }
-
-

@@ -844,6 +844,16 @@
        "	-i iface	Use interface ifname instead of the default \"eth0\"\n" \
        "	-p pass		Append the four or six byte password PW to the packet"
 
+#define expand_trivial_usage \
+       "[-i] [-t NUM] [FILE|-]"
+#define expand_full_usage \
+       "Convert tabs to spaces, writing to standard output." \
+       "\n\nOptions:" \
+       "\n	-i" USE_FEATURE_EXPAND_LONG_OPTIONS(",--initial") \
+       "	Do not convert tabs after non blanks" \
+       "\n	-t" USE_FEATURE_EXPAND_LONG_OPTIONS(",--tabs=N") \
+       "	Tabstops every N chars"
+
 #define expr_trivial_usage \
        "EXPRESSION"
 #define expr_full_usage \
@@ -3706,6 +3716,18 @@ USE_FEATURE_RUN_PARTS_FANCY("\n	-l	Prints names of all matching files even when 
        "\n\nOptions:\n" \
        "	-c	Extract to stdout\n" \
        "	-f	Force overwrite an existing file"
+
+#define unexpand_trivial_usage \
+       "[-f][-a][-t NUM] [FILE|-]"
+#define unexpand_full_usage \
+       "Convert spaces to tabs, writing to standard output." \
+       "\n\nOptions:" \
+       "\n	-a" USE_FEATURE_UNEXPAND_LONG_OPTIONS(",--all") \
+       "	Convert all blanks" \
+       "\n	-f" USE_FEATURE_UNEXPAND_LONG_OPTIONS(",--first-only") \
+       "	Convert only leading sequences of blanks" \
+       "\n	-t" USE_FEATURE_UNEXPAND_LONG_OPTIONS(",--tabs=N") \
+       "	Tabstops every N chars"
 
 #define uniq_trivial_usage \
        "[-fscdu]... [INPUT [OUTPUT]]"
