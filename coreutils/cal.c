@@ -45,7 +45,7 @@ static unsigned julian;
 /* leap year -- account for Gregorian reformation in 1752 */
 static int leap_year(unsigned yr)
 {
-	if (yr <= 1752) 
+	if (yr <= 1752)
 		return !(yr % 4);
 	return (!(yr % 4) && (yr % 100)) || !(yr % 400);
 }

@@ -475,8 +475,8 @@ static action*** parse_params(char **argv)
 	                         "-o\0"
 	USE_FEATURE_FIND_NOT(    "!\0"       )
 #if ENABLE_DESKTOP
-	                         "-and\0"  
-	                         "-or\0"   
+	                         "-and\0"
+	                         "-or\0"
 	USE_FEATURE_FIND_NOT(	 "-not\0"    )
 #endif
 	                         "-print\0"
@@ -487,7 +487,7 @@ static action*** parse_params(char **argv)
 	USE_FEATURE_FIND_EXEC(   "-exec\0"   )
 	USE_FEATURE_FIND_PAREN(  "(\0"       )
 	/* All options starting from here require argument */
-	                         "-name\0" 
+	                         "-name\0"
 	USE_FEATURE_FIND_PATH(   "-path\0"   )
 	USE_FEATURE_FIND_REGEX(  "-regex\0"  )
 	USE_FEATURE_FIND_TYPE(   "-type\0"   )

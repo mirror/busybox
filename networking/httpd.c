@@ -1395,7 +1395,8 @@ static int sendFile(const char *url)
 		fd++; /* write to fd #1 in inetd mode */
 #if ENABLE_FEATURE_HTTPD_USE_SENDFILE
 	do {
-		count = sendfile(fd, f, &offset, MAXINT(ssize_t));
+		/* byte count is rounded down to 64k */
+		count = sendfile(fd, f, &offset, MAXINT(ssize_t) - 0xffff);
 		if (count < 0) {
 			if (offset == 0)
 				goto fallback;

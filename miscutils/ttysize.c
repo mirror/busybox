@@ -16,7 +16,7 @@ int ttysize_main(int argc, char **argv)
 {
 	unsigned w,h;
 	struct winsize wsz;
-    
+
 	w = 80;
 	h = 24;
 	if (!ioctl(0, TIOCGWINSZ, &wsz)) {
