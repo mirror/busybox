@@ -406,20 +406,20 @@
        "The bbsh shell (command interpreter)"
 
 #define chrt_trivial_usage \
-	"[OPTION]... [prio] [pid | command [arg]...]"
+       "[OPTION]... [prio] [pid | command [arg]...]"
 #define chrt_full_usage \
-	"manipulate real-time attributes of a process" \
-	"\n\nOptions:\n" \
-	"	-p	operate on pid\n" \
-	"	-r	set scheduling policy to SCHED_RR\n" \
-	"	-f	set scheduling policy to SCHED_FIFO\n" \
-	"	-o	set scheduling policy to SCHED_OTHER\n" \
-	"	-m	show min and max priorities"
+       "manipulate real-time attributes of a process" \
+       "\n\nOptions:\n" \
+       "	-p	operate on pid\n" \
+       "	-r	set scheduling policy to SCHED_RR\n" \
+       "	-f	set scheduling policy to SCHED_FIFO\n" \
+       "	-o	set scheduling policy to SCHED_OTHER\n" \
+       "	-m	show min and max priorities"
 
 #define chrt_example_usage \
-	"$ chrt -r 4 sleep 900; x=$!\n" \
-	"$ chrt -f -p 3 $x\n" \
-	"You need CAP_SYS_NICE privileges to set scheduling attributes of a process"
+       "$ chrt -r 4 sleep 900; x=$!\n" \
+       "$ chrt -f -p 3 $x\n" \
+       "You need CAP_SYS_NICE privileges to set scheduling attributes of a process"
 
 #define cp_trivial_usage \
        "[OPTION]... SOURCE DEST"
@@ -1146,7 +1146,7 @@
 #define grep_trivial_usage \
        "[-HhrilLnqvso" \
 	USE_DESKTOP("w") \
-	"eF" \
+       "eF" \
 	USE_FEATURE_GREP_EGREP_ALIAS("E") \
 	USE_FEATURE_GREP_CONTEXT("ABC") \
        "] PATTERN [FILEs...]"
@@ -1609,7 +1609,7 @@
 	USE_FEATURE_IP_LINK("link | ") \
 	USE_FEATURE_IP_TUNNEL("tunnel | ") \
 	USE_FEATURE_IP_RULE("rule") \
-	"} {COMMAND}"
+       "} {COMMAND}"
 #define ip_full_usage \
        "ip [OPTIONS] OBJECT {COMMAND}\n" \
        "where OBJECT := {" \
@@ -1618,7 +1618,7 @@
 	USE_FEATURE_IP_LINK("link | ") \
 	USE_FEATURE_IP_TUNNEL("tunnel | ") \
 	USE_FEATURE_IP_RULE("rule") \
-	"}\n" \
+       "}\n" \
        "OPTIONS := { -f[amily] { inet | inet6 | link } | -o[neline] }"
 
 #define ipaddr_trivial_usage \
@@ -2401,7 +2401,7 @@
 #else /* DESKTOP nc - much more compatible with nc 1.10 */
 
 #define nc_trivial_usage \
-	"[-options] hostname port  - connect" \
+       "[-options] hostname port  - connect" \
 	USE_NC_SERVER("\nnc [-options] -l -p port [hostname] [port]  - listen")
 #define nc_full_usage \
 	USE_NC_SERVER( \
@@ -2879,18 +2879,18 @@
 USE_FEATURE_RUN_PARTS_FANCY("\n	-l	Prints names of all matching files even when they are not executable")
 
 #define run_parts_example_usage \
-	"$ run-parts -a start /etc/init.d\n" \
-	"$ run-parts -a stop=now /etc/init.d\n\n" \
-	"Let's assume you have a script foo/dosomething:\n" \
-	"#!/bin/sh\n" \
-	"for i in $*; do eval $i; done; unset i\n" \
-	"case \"$1\" in\n" \
-	"start*) echo starting something;;\n" \
-	"stop*) set -x; shutdown -h $stop;;\n" \
-	"esac\n\n" \
-	"Running this yields:\n" \
-	"$run-parts -a stop=+4m foo/\n" \
-	"+ shutdown -h +4m"
+       "$ run-parts -a start /etc/init.d\n" \
+       "$ run-parts -a stop=now /etc/init.d\n\n" \
+       "Let's assume you have a script foo/dosomething:\n" \
+       "#!/bin/sh\n" \
+       "for i in $*; do eval $i; done; unset i\n" \
+       "case \"$1\" in\n" \
+       "start*) echo starting something;;\n" \
+       "stop*) set -x; shutdown -h $stop;;\n" \
+       "esac\n\n" \
+       "Running this yields:\n" \
+       "$run-parts -a stop=+4m foo/\n" \
+       "+ shutdown -h +4m"
 
 #define runlevel_trivial_usage \
        "[utmp]"
@@ -2985,8 +2985,8 @@ USE_FEATURE_RUN_PARTS_FANCY("\n	-l	Prints names of all matching files even when 
        "\n	-o file	Save list of files with incorrect context" \
        "\n	-s	Take a list of files from standard input (instead of command line)" \
        "\n	-v	Show changes in file labels, if type or role are changing" \
-	"\n	-vv	Show changes in file labels, if type, role, or user are changing" \
-	"\n	-W	Display warnings about entries that had no matching files"
+       "\n	-vv	Show changes in file labels, if type, role, or user are changing" \
+       "\n	-W	Display warnings about entries that had no matching files"
 
 #define setkeycodes_trivial_usage \
        "SCANCODE KEYCODE ..."
@@ -3116,15 +3116,15 @@ USE_FEATURE_RUN_PARTS_FANCY("\n	-l	Prints names of all matching files even when 
        ""
 
 #define split_trivial_usage \
-	"[OPTION] [INPUT [PREFIX]]"
+       "[OPTION] [INPUT [PREFIX]]"
 #define split_full_usage \
-	"Options:" \
-	"\n	-b n[k|m]	Split by bytes" \
-	"\n	-l n		Split by lines" \
-	"\n	-a n		Use n letters as suffix"
+       "Options:" \
+       "\n	-b n[k|m]	Split by bytes" \
+       "\n	-l n		Split by lines" \
+       "\n	-a n		Use n letters as suffix"
 #define split_example_usage \
-	"$ split TODO foo\n" \
-	"$ cat TODO | split -a 2 -l 2 TODO_\n"
+       "$ split TODO foo\n" \
+       "$ cat TODO | split -a 2 -l 2 TODO_\n"
 
 #define start_stop_daemon_trivial_usage \
        "[OPTIONS] [--start|--stop] ... [-- arguments...]"
