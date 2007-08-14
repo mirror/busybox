@@ -1352,21 +1352,21 @@
        " [-h home]" \
        " [-d/-e string]"
 #define httpd_full_usage \
-       "Listen for incoming http server requests" \
-       "\n\nOptions:\n" \
-       "	-c FILE		Specifies configuration file. (default httpd.conf)\n" \
-       "	-p PORT		Server port (default 80)\n" \
-       "	-i		Assume that we are started from inetd\n" \
-       "	-f		Do not daemonize\n" \
+       "Listen for incoming HTTP requests" \
+       "\n\nOptions:" \
+       "\n	-c FILE		Configuration file (default httpd.conf)" \
+       "\n	-p PORT		Server port (default 80)" \
+       "\n	-i		Inetd mode" \
+       "\n	-f		Do not daemonize" \
 	USE_FEATURE_HTTPD_SETUID( \
-       "	-u USER[:GRP]	Set uid/gid after binding to port\n") \
+       "\n	-u USER[:GRP]	Set uid/gid after binding to port") \
 	USE_FEATURE_HTTPD_BASIC_AUTH( \
-       "	-r REALM	Authentication Realm for Basic Authentication\n") \
+       "\n	-r REALM	Authentication Realm for Basic Authentication") \
 	USE_FEATURE_HTTPD_AUTH_MD5( \
-       "	-m PASS		Crypt PASS with md5 algorithm\n") \
-       "	-h HOME		Specifies http HOME directory (default ./)\n" \
-       "	-e STRING	HTML encode STRING\n" \
-       "	-d STRING	URL decode STRING"
+       "\n	-m PASS		Crypt PASS with md5 algorithm") \
+       "\n	-h HOME		Home directory (default .)" \
+       "\n	-e STRING	HTML encode STRING" \
+       "\n	-d STRING	URL decode STRING"
 
 #define hwclock_trivial_usage \
        "[-r|--show] [-s|--hctosys] [-w|--systohc]" \

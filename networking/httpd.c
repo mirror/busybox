@@ -114,19 +114,19 @@ static const char httpd_conf[] ALIGN1 = "httpd.conf";
 //#define DEBUG 1
 #define DEBUG 0
 
-#define MAX_MEMORY_BUFF 8192    /* IO buffer */
+#define MAX_MEMORY_BUF 8192    /* IO buffer */
 
-typedef struct HT_ACCESS {
+typedef struct Htaccess {
 	char *after_colon;
-	struct HT_ACCESS *next;
-	char before_colon[1];         /* really bigger, must last */
+	struct Htaccess *next;
+	char before_colon[1];  /* really bigger, must be last */
 } Htaccess;
 
-typedef struct HT_ACCESS_IP {
+typedef struct Htaccess_IP {
 	unsigned ip;
 	unsigned mask;
 	int allow_deny;
-	struct HT_ACCESS_IP *next;
+	struct Htaccess_IP *next;
 } Htaccess_IP;
 
 struct globals {
@@ -153,8 +153,9 @@ struct globals {
 #if ENABLE_FEATURE_HTTPD_CGI || DEBUG
 	char *rmt_ip_str;        /* for set env REMOTE_ADDR */
 #endif
-	unsigned tcp_port;       /* server initial port and for
-	                            set env REMOTE_PORT */
+	const char *bind_addr_or_port;
+	unsigned tcp_port;       /* for set env REMOTE_PORT */
+
 #if ENABLE_FEATURE_HTTPD_BASIC_AUTH
 	Htaccess *g_auth;        /* config user:password lines */
 #endif
@@ -164,7 +165,7 @@ struct globals {
 #if ENABLE_FEATURE_HTTPD_CONFIG_WITH_SCRIPT_INTERPR
 	Htaccess *script_i;           /* config script interpreters */
 #endif
-	char iobuf[MAX_MEMORY_BUFF];
+	char iobuf[MAX_MEMORY_BUF];
 };
 #define G (*ptr_to_globals)
 #define server_socket   (G.server_socket  )
@@ -187,6 +188,7 @@ struct globals {
 #if ENABLE_FEATURE_HTTPD_CGI || DEBUG
 #define rmt_ip_str      (G.rmt_ip_str     )
 #endif
+#define bind_addr_or_port (G.bind_addr_or_port)
 #define tcp_port        (G.tcp_port       )
 #if ENABLE_FEATURE_HTTPD_BASIC_AUTH
 #define g_auth          (G.g_auth         )
@@ -201,7 +203,7 @@ struct globals {
 #define INIT_G() do { \
 	PTR_TO_GLOBALS = xzalloc(sizeof(G)); \
 	USE_FEATURE_HTTPD_BASIC_AUTH(g_realm = "Web Server Authentication";) \
-	tcp_port = 80; \
+	bind_addr_or_port = "80"; \
 	ContentLength = -1; \
 } while (0)
 
@@ -771,7 +773,7 @@ static void setenv1(const char *name, const char *value)
 }
 static void setenv_long(const char *name, long value)
 {
-	char buf[sizeof(value)*3 + 1];
+	char buf[sizeof(value)*3 + 2];
 	sprintf(buf, "%ld", value);
 	setenv(name, buf, 1);
 }
@@ -849,33 +851,27 @@ static void decodeBase64(char *Data)
 #if BB_MMU
 static int openServer(void)
 {
-	int fd;
-
-	/* create the socket right now */
-	fd = create_and_bind_stream_or_die(NULL, tcp_port);
-	xlisten(fd, 9);
-	return fd;
+	int n = bb_strtou(bind_addr_or_port, NULL, 10);
+	if (!errno && n && n <= 0xffff)
+		n = create_and_bind_stream_or_die(NULL, n);
+	else
+		n = create_and_bind_stream_or_die(bind_addr_or_port, 80);
+	xlisten(n, 9);
+	return n;
 }
 #endif
 
-/****************************************************************************
- *
- > $Function: sendHeaders()
- *
- * $Description: Create and send HTTP response headers.
- *   The arguments are combined and sent as one write operation.  Note that
- *   IE will puke big-time if the headers are not sent in one packet and the
- *   second packet is delayed for any reason.
- *
- * $Parameter:
- *      (HttpResponseNum) responseNum . . . The result code to send.
- *
- * $Return: (int)  . . . . writing errors
- *
- ****************************************************************************/
+/*
+ * Create and send HTTP response headers.
+ * The arguments are combined and sent as one write operation.  Note that
+ * IE will puke big-time if the headers are not sent in one packet and the
+ * second packet is delayed for any reason.
+ * responseNum - the result code to send.
+ * Return result of write().
+ */
 static int sendHeaders(HttpResponseNum responseNum)
 {
-	char *buf = iobuf;
+	char *const buf = iobuf; // dont really need it?
 	const char *responseString = "";
 	const char *infoString = 0;
 	const char *mime_type;
@@ -937,33 +933,29 @@ static int sendHeaders(HttpResponseNum responseNum)
 	return full_write(i, buf, len);
 }
 
-/****************************************************************************
- *
- > $Function: getLine()
- *
- * $Description: Read from the socket until an end of line char found.
- *
- *   Characters are read one at a time until an eol sequence is found.
- *
- * $Return: (int) . . . . number of characters read.  -1 if error.
- *
- ****************************************************************************/
+/*
+ * Read from the socket until '\n' or EOF. '\r' chars are removed.
+ * Return number of characters read or -1 if nothing is read.
+ * Data is returned in iobuf.
+ */
 static int getLine(void)
 {
 	int count = 0;
-	char *buf = iobuf;
 
-	while (read(accepted_socket, buf + count, 1) == 1) {
-		if (buf[count] == '\r') continue;
-		if (buf[count] == '\n') {
-			buf[count] = 0;
+	/* We must not read extra chars. Reading byte-by-byte... */
+	while (read(accepted_socket, iobuf + count, 1) == 1) {
+		if (iobuf[count] == '\r')
+			continue;
+		if (iobuf[count] == '\n') {
+			iobuf[count] = '\0';
 			return count;
 		}
-		if (count < (MAX_MEMORY_BUFF-1))      /* check overflow */
+		if (count < (MAX_MEMORY_BUF - 1))      /* check overflow */
 			count++;
 	}
-	if (count) return count;
-	else return -1;
+	if (count)
+		return count;
+	return -1;
 }
 
 #if ENABLE_FEATURE_HTTPD_CGI
@@ -1255,8 +1247,8 @@ static int sendCgi(const char *url,
 		}
 
 #define PIPESIZE PIPE_BUF
-#if PIPESIZE >= MAX_MEMORY_BUFF
-# error "PIPESIZE >= MAX_MEMORY_BUFF"
+#if PIPESIZE >= MAX_MEMORY_BUF
+# error "PIPESIZE >= MAX_MEMORY_BUF"
 #endif
 		if (FD_ISSET(inFd, &readSet)) {
 			/* There is something to read from CGI */
@@ -1408,7 +1400,7 @@ static int sendFile(const char *url)
 
  fallback:
 #endif
-	while ((count = full_read(f, iobuf, MAX_MEMORY_BUFF)) > 0) {
+	while ((count = full_read(f, iobuf, MAX_MEMORY_BUF)) > 0) {
 		if (full_write(fd, iobuf, count) != count)
 			break;
 	}
@@ -1532,33 +1524,25 @@ set_remoteuser_var:
 
 #endif  /* FEATURE_HTTPD_BASIC_AUTH */
 
-/****************************************************************************
- *
- > $Function: handle_sigalrm()
- *
- * $Description: Handle timeouts
- *
- ****************************************************************************/
-
+/*
+ * Handle timeouts
+ */
 static void handle_sigalrm(int sig)
 {
 	sendHeaders(HTTP_REQUEST_TIMEOUT);
 	alarm_signaled = 1;
 }
 
-/****************************************************************************
- *
- > $Function: handleIncoming()
- *
- * $Description: Handle an incoming http request.
- *
- ****************************************************************************/
-static void handleIncoming(void)
+/*
+ * Handle an incoming http request and exit.
+ */
+static void handle_incoming_and_exit(void) ATTRIBUTE_NORETURN;
+static void handle_incoming_and_exit(void)
 {
 	char *buf = iobuf;
 	char *url;
 	char *purl;
-	int  blank = -1;
+	int blank = -1;
 	char *test;
 	struct stat sb;
 	int ip_allowed;
@@ -1568,9 +1552,6 @@ static void handleIncoming(void)
 	char *cookie = 0;
 	char *content_type = 0;
 #endif
-	fd_set s_fd;
-	struct timeval tv;
-	int retval;
 	struct sigaction sa;
 
 #if ENABLE_FEATURE_HTTPD_BASIC_AUTH
@@ -1582,10 +1563,12 @@ static void handleIncoming(void)
 	sa.sa_flags = 0; /* no SA_RESTART */
 	sigaction(SIGALRM, &sa, NULL);
 
+	/* It's not a real loop (it ends with while(0)).
+	 * Break from this "loop" jumps to exit(0) */
 	do {
 		int count;
 
-		(void) alarm(TIMEOUT);
+		alarm(TIMEOUT);
 		if (getLine() <= 0)
 			break;  /* closed */
 
@@ -1696,8 +1679,7 @@ static void handleIncoming(void)
 			/* read until blank line for HTTP version specified, else parse immediate */
 			while (1) {
 				alarm(TIMEOUT);
-				count = getLine();
-				if (count <= 0)
+				if (getLine() <= 0)
 					break;
 
 				if (DEBUG)
@@ -1831,52 +1813,48 @@ static void handleIncoming(void)
  bail_out:
 #endif
 
+	exit(0);
+
+#if 0 /* Is this needed? Why? */
 	if (DEBUG)
-		fprintf(stderr, "closing socket\n\n");
+		fprintf(stderr, "closing socket\n");
 #if ENABLE_FEATURE_HTTPD_CGI
 	free(cookie);
 	free(content_type);
 	free(referer);
 	referer = NULL;
-# if ENABLE_FEATURE_HTTPD_BASIC_AUTH
+#if ENABLE_FEATURE_HTTPD_BASIC_AUTH
 	free(remoteuser);
 	remoteuser = NULL;
-# endif
 #endif
-	shutdown(accepted_socket, SHUT_WR);
-
+#endif
 	/* Properly wait for remote to closed */
-	FD_ZERO(&s_fd);
-	FD_SET(accepted_socket, &s_fd);
-
+	int retval;
+	shutdown(accepted_socket, SHUT_WR);
 	do {
+		fd_set s_fd;
+		struct timeval tv;
+		FD_ZERO(&s_fd);
+		FD_SET(accepted_socket, &s_fd);
 		tv.tv_sec = 2;
 		tv.tv_usec = 0;
 		retval = select(accepted_socket + 1, &s_fd, NULL, NULL, &tv);
 	} while (retval > 0 && read(accepted_socket, buf, sizeof(iobuf) > 0));
-
 	shutdown(accepted_socket, SHUT_RD);
-	/* In inetd case, we close fd 1 (stdout) here. We will exit soon anyway */
 	close(accepted_socket);
+	exit(0);
+#endif
 }
 
 #if BB_MMU
-/****************************************************************************
- *
- > $Function: miniHttpd()
- *
- * $Description: The main http server function.
- *
- *   Given an open socket fildes, listen for new connections and farm out
- *   the processing as a forked process.
- *
- * $Parameters:
- *      (int) server. . . The server socket fildes.
- *
- * $Return: (int) . . . . Always 0.
- *
- ****************************************************************************/
-static int miniHttpd(int server)
+/*
+ * The main http server function.
+ * Given an open socket, listen for new connections and farm out
+ * the processing as a forked process.
+ * Never returns.
+ */
+static void mini_httpd(int server) ATTRIBUTE_NORETURN;
+static void mini_httpd(int server)
 {
 	fd_set readfd, portfd;
 
@@ -1926,24 +1904,23 @@ static int miniHttpd(int server)
 		/* set the KEEPALIVE option to cull dead connections */
 		setsockopt(s, SOL_SOCKET, SO_KEEPALIVE, &const_int_1, sizeof(const_int_1));
 
-		if (DEBUG || fork() == 0) {
+		if (fork() == 0) {
 			/* child */
 #if ENABLE_FEATURE_HTTPD_RELOAD_CONFIG_SIGHUP
-			/* protect reload config, may be confuse checking */
+			/* Do not reload config on HUP */
 			signal(SIGHUP, SIG_IGN);
 #endif
-			handleIncoming();
-			if (!DEBUG)
-				exit(0);
+			handle_incoming_and_exit();
 		}
 		close(s);
 	} /* while (1) */
-	return 0;
+	/* return 0; - never reached */
 }
 #endif
 
 /* from inetd */
-static int miniHttpd_inetd(void)
+static void mini_httpd_inetd(void) ATTRIBUTE_NORETURN;
+static void mini_httpd_inetd(void)
 {
 	union {
 		struct sockaddr sa;
@@ -1969,8 +1946,7 @@ static int miniHttpd_inetd(void)
 		tcp_port = ntohs(fromAddr.sin6.sin6_port);
 	}
 #endif
-	handleIncoming();
-	return 0;
+	handle_incoming_and_exit();
 }
 
 #if ENABLE_FEATURE_HTTPD_RELOAD_CONFIG_SIGHUP
@@ -2017,7 +1993,6 @@ int httpd_main(int argc, char **argv)
 	unsigned opt;
 	char *url_for_decode;
 	USE_FEATURE_HTTPD_ENCODE_URL_STR(const char *url_for_encode;)
-	const char *s_port;
 	USE_FEATURE_HTTPD_SETUID(const char *s_ugid = NULL;)
 	USE_FEATURE_HTTPD_SETUID(struct bb_uidgid_t ugid;)
 	USE_FEATURE_HTTPD_AUTH_MD5(const char *pass;)
@@ -2043,7 +2018,7 @@ int httpd_main(int argc, char **argv)
 			USE_FEATURE_HTTPD_BASIC_AUTH(, &g_realm)
 			USE_FEATURE_HTTPD_AUTH_MD5(, &pass)
 			USE_FEATURE_HTTPD_SETUID(, &s_ugid)
-			, &s_port
+			, &bind_addr_or_port
 		);
 	if (opt & OPT_DECODE_URL) {
 		printf("%s", decodeString(url_for_decode, 1));
@@ -2061,8 +2036,6 @@ int httpd_main(int argc, char **argv)
 		return 0;
 	}
 #endif
-	if (opt & OPT_PORT)
-		tcp_port = xatou16(s_port);
 
 #if ENABLE_FEATURE_HTTPD_SETUID
 	if (opt & OPT_SETUID) {
@@ -2111,14 +2084,14 @@ int httpd_main(int argc, char **argv)
 	parse_conf(default_path_httpd_conf, FIRST_PARSE);
 #endif
 
-	if (opt & OPT_INETD)
-		return miniHttpd_inetd();
-
 #if BB_MMU
+	if (opt & OPT_INETD)
+		mini_httpd_inetd();
 	if (!(opt & OPT_FOREGROUND))
-		bb_daemonize(0);     /* don't change current directory */
-	return miniHttpd(server_socket);
+		bb_daemonize(0); /* don't change current directory */
+	mini_httpd(server_socket); /* never returns */
 #else
-	return 0;				/* not reached */
+	mini_httpd_inetd(); /* never returns */
+	/* return 0; */
 #endif
 }
