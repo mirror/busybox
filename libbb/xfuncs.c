@@ -484,12 +484,14 @@ int fdprintf(int fd, const char *format, ...)
 #else
 	// Bloat for systems that haven't got the GNU extension.
 	va_start(p, format);
-	r = vsnprintf(NULL, 0, format, p);
+	r = vsnprintf(NULL, 0, format, p) + 1;
 	va_end(p);
-	string_ptr = xmalloc(r+1);
-	va_start(p, format);
-	r = vsnprintf(string_ptr, r+1, format, p);
-	va_end(p);
+	string_ptr = malloc(r);
+	if (string_ptr) {
+		va_start(p, format);
+		r = vsnprintf(string_ptr, r, format, p);
+		va_end(p);
+	}
 #endif
 
 	if (r >= 0) {

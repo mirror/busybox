@@ -1344,8 +1344,8 @@
 
 #define httpd_trivial_usage \
        "[-c conffile]" \
-       " [-p port]" \
-       " [-i] [-f]" \
+       " [-p [ip:]port]" \
+       " [-i] [-f] [-v[v]]" \
 	USE_FEATURE_HTTPD_SETUID(" [-u user[:grp]]") \
 	USE_FEATURE_HTTPD_BASIC_AUTH(" [-r realm]") \
 	USE_FEATURE_HTTPD_AUTH_MD5(" [-m pass]") \
@@ -1355,9 +1355,10 @@
        "Listen for incoming HTTP requests" \
        "\n\nOptions:" \
        "\n	-c FILE		Configuration file (default httpd.conf)" \
-       "\n	-p PORT		Server port (default 80)" \
+       "\n	-p [IP:]PORT	Bind to ip:port (default *:80)" \
        "\n	-i		Inetd mode" \
        "\n	-f		Do not daemonize" \
+       "\n	-v[v]		Verbose" \
 	USE_FEATURE_HTTPD_SETUID( \
        "\n	-u USER[:GRP]	Set uid/gid after binding to port") \
 	USE_FEATURE_HTTPD_BASIC_AUTH( \
@@ -1366,7 +1367,7 @@
        "\n	-m PASS		Crypt PASS with md5 algorithm") \
        "\n	-h HOME		Home directory (default .)" \
        "\n	-e STRING	HTML encode STRING" \
-       "\n	-d STRING	URL decode STRING"
+       "\n	-d STRING	URL decode STRING" \
 
 #define hwclock_trivial_usage \
        "[-r|--show] [-s|--hctosys] [-w|--systohc]" \
