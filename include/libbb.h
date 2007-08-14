@@ -280,7 +280,7 @@ int xsocket(int domain, int type, int protocol);
 void xbind(int sockfd, struct sockaddr *my_addr, socklen_t addrlen);
 void xlisten(int s, int backlog);
 void xconnect(int s, const struct sockaddr *s_addr, socklen_t addrlen);
-ssize_t xsendto(int s, const  void *buf, size_t len, const struct sockaddr *to,
+ssize_t xsendto(int s, const void *buf, size_t len, const struct sockaddr *to,
 				socklen_t tolen);
 int setsockopt_reuseaddr(int fd);
 int setsockopt_broadcast(int fd);
@@ -656,7 +656,6 @@ extern void bb_info_msg(const char *s, ...) __attribute__ ((format (printf, 1, 2
 /* These are used internally -- you shouldn't need to use them */
 extern void bb_verror_msg(const char *s, va_list p, const char *strerr);
 extern void bb_vperror_msg(const char *s, va_list p);
-extern void bb_vinfo_msg(const char *s, va_list p);
 
 
 /* applets which are useful from another applets */

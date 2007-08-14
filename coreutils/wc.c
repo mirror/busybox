@@ -43,7 +43,7 @@
 
 #include "libbb.h"
 
-#if  ENABLE_LOCALE_SUPPORT
+#if ENABLE_LOCALE_SUPPORT
 #define isspace_given_isprint(c) isspace(c)
 #else
 #undef isspace

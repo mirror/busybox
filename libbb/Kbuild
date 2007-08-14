@@ -88,7 +88,6 @@ lib-y += vdprintf.o
 lib-y += verror_msg.o
 lib-y += vfork_daemon_rexec.o
 lib-y += vherror_msg.o
-lib-y += vinfo_msg.o
 lib-y += vperror_msg.o
 lib-y += warn_ignoring_args.o
 lib-y += wfopen.o

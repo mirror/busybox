@@ -1412,10 +1412,10 @@ static void init_archive_deb_control(archive_handle_t *ar_handle)
 	tar_handle->src_fd = ar_handle->src_fd;
 
 	/* We don't care about data.tar.* or debian-binary, just control.tar.* */
-#if  ENABLE_FEATURE_DEB_TAR_GZ
+#if ENABLE_FEATURE_DEB_TAR_GZ
 	llist_add_to(&(ar_handle->accept), (char*)"control.tar.gz");
 #endif
-#if  ENABLE_FEATURE_DEB_TAR_BZ2
+#if ENABLE_FEATURE_DEB_TAR_BZ2
 	llist_add_to(&(ar_handle->accept), (char*)"control.tar.bz2");
 #endif
 
@@ -1432,10 +1432,10 @@ static void init_archive_deb_data(archive_handle_t *ar_handle)
 	tar_handle->src_fd = ar_handle->src_fd;
 
 	/* We don't care about control.tar.* or debian-binary, just data.tar.* */
-#if  ENABLE_FEATURE_DEB_TAR_GZ
+#if ENABLE_FEATURE_DEB_TAR_GZ
 	llist_add_to(&(ar_handle->accept), (char*)"data.tar.gz");
 #endif
-#if  ENABLE_FEATURE_DEB_TAR_BZ2
+#if ENABLE_FEATURE_DEB_TAR_BZ2
 	llist_add_to(&(ar_handle->accept), (char*)"data.tar.bz2");
 #endif
 

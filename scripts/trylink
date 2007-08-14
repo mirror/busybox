@@ -64,16 +64,18 @@ done
     echo "Final link with: $BBOX_LIB_LIST"
     l_list=`echo "$BBOX_LIB_LIST" | sed -e 's/ / -l/g' -e 's/^/-l/'`
     # --verbose gives us gobs of info to stdout (e.g. linker script used)
-    try "-Wl,--start-group $l_list -Wl,--end-group -Wl,--verbose" "$@" >busybox_ld.out ####|| exit 1
-    #
-    # Add SORT_BY_ALIGNMENT to linker script (found in busybox_ld.out):
-    #  .rodata         : { *(.rodata SORT_BY_ALIGNMENT(.rodata.*) .gnu.linkonce.r.*) }
-    #  *(.data SORT_BY_ALIGNMENT(.data.*) .gnu.linkonce.d.*)
-    #  *(.bss SORT_BY_ALIGNMENT(.bss.*) .gnu.linkonce.b.*)
-    # This will eliminate most of the data padding. Use linker script
-    # by commenting "try" above and uncommenting this one (tested on i386):
-    #try "-Wl,--start-group $l_list -Wl,--end-group -Wl,--verbose -Wl,-T -Wl,busybox_ldscript" "$@" >busybox_ld.out
-    #
+    if ! test -f busybox_ldscript; then
+	try "-Wl,--start-group $l_list -Wl,--end-group -Wl,--verbose" "$@" >busybox_ld.out ####|| exit 1
+    else
+	echo "Custom linker script 'busybox_ldscript' found, using it"
+	# Add SORT_BY_ALIGNMENT to linker script (found in busybox_ld.out):
+	#  .rodata         : { *(.rodata SORT_BY_ALIGNMENT(.rodata.*) .gnu.linkonce.r.*) }
+	#  *(.data SORT_BY_ALIGNMENT(.data.*) .gnu.linkonce.d.*)
+	#  *(.bss SORT_BY_ALIGNMENT(.bss.*) .gnu.linkonce.b.*)
+	# This will eliminate most of the data padding. Use linker script
+	# by commenting "try" above and uncommenting this one (tested on i386):
+	try "-Wl,--start-group $l_list -Wl,--end-group -Wl,--verbose -Wl,-T -Wl,busybox_ldscript" "$@" >busybox_ld.out
+    fi
 ####}
 ####rm busybox_ld.err
 ####exit 0  # Ensure "success" exit code
