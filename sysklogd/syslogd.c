@@ -201,7 +201,7 @@ static void ipcsyslog_init(void)
 	if (DEBUG)
 		printf("shmget(%lx, %d,...)\n", KEY_ID, G.shm_size);
 
-	G.shmid = shmget(KEY_ID, G.shm_size, IPC_CREAT | 1023);
+	G.shmid = shmget(KEY_ID, G.shm_size, IPC_CREAT | 0644);
 	if (G.shmid == -1) {
 		bb_perror_msg_and_die("shmget");
 	}
