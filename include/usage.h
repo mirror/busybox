@@ -3654,27 +3654,29 @@ USE_FEATURE_RUN_PARTS_FANCY("\n	-l	Prints names of all matching files even when 
        "[-Cfbnqtv] [-c CID] [-V VCLS] [-H HOSTNAME] [-i INTERFACE]\n" \
        "	[-p pidfile] [-r IP] [-s script]"
 #define udhcpc_full_usage \
-       "	-V,--vendorclass=CLASSID	Set vendor class identifier\n" \
-       "	-i,--interface=INTERFACE	Interface to use (default: eth0)\n" \
-       "	-H,-h,--hostname=HOSTNAME	Client hostname\n" \
-       "	-c,--clientid=CLIENTID	Set client identifier\n" \
-       "	-C,--clientid-none	Suppress default client identifier\n" \
-       "	-p,--pidfile=file	Store process ID of daemon in file\n" \
-       "	-r,--request=IP		IP address to request (default: none)\n" \
-       "	-s,--script=file	Run file at dhcp events (default: /usr/share/udhcpc/default.script)\n" \
-       "	-t,--retries=NUM	Send up to NUM request packets\n"\
-       "	-f,--foreground	Do not fork after getting lease\n" \
-       "	-b,--background	Fork to background if lease cannot be immediately negotiated\n" \
-       "	-n,--now	Exit with failure if lease cannot be immediately negotiated\n" \
-       "	-q,--quit	Quit after obtaining lease\n" \
-       "	-R,--release	Release IP on quit\n" \
-       "	-v,--version	Display version" \
+       "\n	-V,--vendorclass=CLASSID	Set vendor class identifier" \
+       "\n	-i,--interface=INTERFACE	Interface to use (default: eth0)" \
+       "\n	-H,-h,--hostname=HOSTNAME	Client hostname" \
+       "\n	-c,--clientid=CLIENTID	Set client identifier" \
+       "\n	-C,--clientid-none	Suppress default client identifier" \
+       "\n	-p,--pidfile=file	Store process ID of daemon in file" \
+       "\n	-r,--request=IP		IP address to request" \
+       "\n	-s,--script=file	Run file at dhcp events (default: /usr/share/udhcpc/default.script)" \
+       "\n	-t,--retries=N		Send up to N request packets"\
+       "\n	-f,--foreground	Stay in foreground" \
+       "\n	-b,--background	Background if lease cannot be immediately negotiated" \
+       "\n	-S,--syslog	Log to syslog too" \
+       "\n	-n,--now	Exit with failure if lease cannot be immediately negotiated" \
+       "\n	-q,--quit	Quit after obtaining lease" \
+       "\n	-R,--release	Release IP on quit" \
+       "\n	-v,--version	Display version" \
 
 #define udhcpd_trivial_usage \
-       "[configfile]" \
+       "[-fS] [configfile]" \
 
 #define udhcpd_full_usage \
-       ""
+       "\n	-f	Stay in foreground" \
+       "\n	-S	Log to syslog too"
 
 #define umount_trivial_usage \
        "[flags] FILESYSTEM|DIRECTORY"

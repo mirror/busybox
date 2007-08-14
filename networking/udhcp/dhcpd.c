@@ -32,17 +32,18 @@ int udhcpd_main(int argc, char **argv)
 	uint32_t server_id_align, requested_align, static_lease_ip;
 	unsigned timeout_end;
 	unsigned num_ips;
+	unsigned opt;
 	struct option_set *option;
 	struct dhcpOfferedAddr *lease, static_lease;
 
-//Huh, dhcpd don't have --foreground, --syslog options?? TODO
+	opt = getopt32(argc, argv, "fS");
 
-	if (!ENABLE_FEATURE_UDHCP_DEBUG) {
+	if (!(opt & 1)) { /* no -f */
 		bb_daemonize_or_rexec(0, argv);
 		logmode &= ~LOGMODE_STDIO;
 	}
 
-	if (ENABLE_FEATURE_UDHCP_SYSLOG) {
+	if (opt & 2) { /* -S */
 		openlog(applet_name, LOG_PID, LOG_LOCAL0);
 		logmode |= LOGMODE_SYSLOG;
 	}

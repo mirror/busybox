@@ -178,6 +178,7 @@ int udhcpc_main(int argc, char **argv)
 		OPT_T = 1 << 15,
 		OPT_t = 1 << 16,
 		OPT_v = 1 << 17,
+		OPT_S = 1 << 18,
 	};
 #if ENABLE_GETOPT_LONG
 	static const char udhcpc_longopts[] ALIGN1 =
@@ -199,6 +200,7 @@ int udhcpc_main(int argc, char **argv)
 		"timeout\0"       Required_argument "T"
 		"version\0"       No_argument       "v"
 		"retries\0"       Required_argument "t"
+		"syslog\0"        No_argument       "S"
 		;
 #endif
 	/* Default options. */
@@ -213,7 +215,7 @@ int udhcpc_main(int argc, char **argv)
 #if ENABLE_GETOPT_LONG
 	applet_long_options = udhcpc_longopts;
 #endif
-	opt = getopt32(argc, argv, "c:CV:fbH:h:F:i:np:qRr:s:T:t:v",
+	opt = getopt32(argc, argv, "c:CV:fbH:h:F:i:np:qRr:s:T:t:vS",
 		&str_c, &str_V, &str_h, &str_h, &str_F,
 		&client_config.interface, &client_config.pidfile, &str_r,
 		&client_config.script, &str_T, &str_t
@@ -262,7 +264,7 @@ int udhcpc_main(int argc, char **argv)
 		return 0;
 	}
 
-	if (ENABLE_FEATURE_UDHCP_SYSLOG) {
+	if (opt & OPT_S) {
 		openlog(applet_name, LOG_PID, LOG_LOCAL0);
 		logmode |= LOGMODE_SYSLOG;
 	}
