@@ -3676,6 +3676,7 @@ USE_FEATURE_RUN_PARTS_FANCY("\n	-l	Prints names of all matching files even when 
        "[-fS] [configfile]" \
 
 #define udhcpd_full_usage \
+       "DHCP server" \
        "\n	-f	Stay in foreground" \
        "\n	-S	Log to syslog too"
 

@@ -37,6 +37,7 @@ int udhcpd_main(int argc, char **argv)
 	struct dhcpOfferedAddr *lease, static_lease;
 
 	opt = getopt32(argc, argv, "fS");
+	argv += optind;
 
 	if (!(opt & 1)) { /* no -f */
 		bb_daemonize_or_rexec(0, argv);
@@ -50,7 +51,7 @@ int udhcpd_main(int argc, char **argv)
 
 	/* Would rather not do read_config before daemonization -
 	 * otherwise NOMMU machines will parse config twice */
-	read_config(argv[1] ? argv[1] : DHCPD_CONF_FILE);
+	read_config(argv[0] ? argv[0] : DHCPD_CONF_FILE);
 
 	/* Make sure fd 0,1,2 are open */
 	bb_sanitize_stdio();
