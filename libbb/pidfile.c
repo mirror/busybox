@@ -11,22 +11,30 @@
 #define WANT_PIDFILE 1
 #include "libbb.h"
 
-int write_pidfile(const char *path)
+smallint wrote_pidfile;
+
+void write_pidfile(const char *path)
 {
 	int pid_fd;
 	char *end;
 	char buf[sizeof(int)*3 + 2];
+	struct stat sb;
 
 	if (!path)
-		return 1;
+		return;
 	/* we will overwrite stale pidfile */
 	pid_fd = open(path, O_WRONLY|O_CREAT|O_TRUNC, 0666);
 	if (pid_fd < 0)
-		return 0;
-	/* few bytes larger, but doesn't use stdio */
-	end = utoa_to_buf(getpid(), buf, sizeof(buf));
-	*end = '\n';
-	full_write(pid_fd, buf, end - buf + 1);
+		return;
+
+	/* path can be "/dev/null"! Test for such cases */
+	wrote_pidfile = (fstat(pid_fd, &sb) == 0) && S_ISREG(sb.st_mode);
+
+	if (wrote_pidfile) {
+		/* few bytes larger, but doesn't use stdio */
+		end = utoa_to_buf(getpid(), buf, sizeof(buf));
+		*end = '\n';
+		full_write(pid_fd, buf, end - buf + 1);
+	}
 	close(pid_fd);
-	return 1;
 }

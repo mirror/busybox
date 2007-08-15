@@ -546,7 +546,7 @@ int udhcpc_main(int argc, char **argv)
  ret0:
 	retval = 0;
  ret:
-	if (client_config.pidfile)
+	/*if (client_config.pidfile) - remove_pidfile has it's own check */
 		remove_pidfile(client_config.pidfile);
 	return retval;
 }

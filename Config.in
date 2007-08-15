@@ -144,7 +144,7 @@ config FEATURE_PIDFILE
 	bool "Support writing pidfiles"
 	default n
 	help
-	  This option makes some applets (crond, syslogd and inetd) write
+	  This option makes some applets (e.g. crond, syslogd, inetd) write
 	  a pidfile in /var/run. Some applications rely on them.
 
 config FEATURE_SUID

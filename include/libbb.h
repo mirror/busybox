@@ -622,12 +622,14 @@ llist_t *llist_rev(llist_t *list);
 /* start_stop_daemon and udhcpc are special - they want
  * to create pidfiles regardless of FEATURE_PIDFILE */
 #if ENABLE_FEATURE_PIDFILE || defined(WANT_PIDFILE)
-int write_pidfile(const char *path);
-#define remove_pidfile(f) ((void)unlink(f))
+/* True only if we created pidfile which is *file*, not /dev/null etc */
+extern smallint wrote_pidfile;
+void write_pidfile(const char *path);
+#define remove_pidfile(path) do { if (wrote_pidfile) unlink(path); } while (0)
 #else
-/* Why? #defining it to 1 gives "warning: statement with no effect"... */
-static ALWAYS_INLINE int write_pidfile(const char *path) { return 1; }
-#define remove_pidfile(f) ((void)0)
+enum { wrote_pidfile = 0 };
+#define write_pidfile(path)  ((void)0)
+#define remove_pidfile(path) ((void)0)
 #endif
 
 enum {
