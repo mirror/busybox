@@ -14,7 +14,7 @@ void bb_herror_msg_and_die(const char *s, ...)
 	va_list p;
 
 	va_start(p, s);
-	bb_vherror_msg(s, p);
+	bb_verror_msg(s, p, hstrerror(h_errno));
 	va_end(p);
 	xfunc_die();
 }

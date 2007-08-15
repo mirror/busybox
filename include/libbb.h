@@ -649,15 +649,12 @@ extern void bb_error_msg(const char *s, ...) __attribute__ ((format (printf, 1, 
 extern void bb_error_msg_and_die(const char *s, ...) __attribute__ ((noreturn, format (printf, 1, 2)));
 extern void bb_perror_msg(const char *s, ...) __attribute__ ((format (printf, 1, 2)));
 extern void bb_perror_msg_and_die(const char *s, ...) __attribute__ ((noreturn, format (printf, 1, 2)));
-extern void bb_vherror_msg(const char *s, va_list p);
 extern void bb_herror_msg(const char *s, ...) __attribute__ ((format (printf, 1, 2)));
 extern void bb_herror_msg_and_die(const char *s, ...) __attribute__ ((noreturn, format (printf, 1, 2)));
 extern void bb_perror_nomsg_and_die(void) ATTRIBUTE_NORETURN;
 extern void bb_perror_nomsg(void);
 extern void bb_info_msg(const char *s, ...) __attribute__ ((format (printf, 1, 2)));
-/* These are used internally -- you shouldn't need to use them */
 extern void bb_verror_msg(const char *s, va_list p, const char *strerr);
-extern void bb_vperror_msg(const char *s, va_list p);
 
 
 /* applets which are useful from another applets */

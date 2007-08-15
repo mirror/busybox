@@ -648,7 +648,7 @@ void ioctl_or_perror_and_die(int fd, int request, void *argp, const char *fmt,..
 
 	if (ioctl(fd, request, argp) < 0) {
 		va_start(p, fmt);
-		bb_vperror_msg(fmt, p);
+		bb_verror_msg(fmt, p, strerror(errno));
 		/* xfunc_die can actually longjmp, so be nice */
 		va_end(p);
 		xfunc_die();
@@ -662,7 +662,7 @@ int ioctl_or_perror(int fd, int request, void *argp, const char *fmt,...)
 
 	if (ret < 0) {
 		va_start(p, fmt);
-		bb_vperror_msg(fmt, p);
+		bb_verror_msg(fmt, p, strerror(errno));
 		va_end(p);
 	}
 	return ret;
