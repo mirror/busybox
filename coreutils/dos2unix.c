@@ -91,7 +91,7 @@ int dos2unix_main(int argc, char **argv)
 	}
 
 	/* -u convert to unix, -d convert to dos */
-	opt_complementary = "u--d:d--u"; /* mutally exclusive */
+	opt_complementary = "u--d:d--u"; /* mutually exclusive */
 	o = getopt32(argc, argv, "du");
 
 	/* Do the conversion requested by an argument else do the default

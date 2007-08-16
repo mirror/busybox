@@ -211,7 +211,7 @@ Special characters:
 
         For example:
         The cut applet must have only one type of list specified, so
-        -b, -c and -f are mutally exclusive and should raise an error
+        -b, -c and -f are mutually exclusive and should raise an error
         if specified together.  In this case you must set
         opt_complementary = "b--cf:c--bf:f--bc".  If two of the
         mutually exclusive options are found, getopt32 will call

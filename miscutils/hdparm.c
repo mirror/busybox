@@ -1416,62 +1416,33 @@ static void interpret_standby(unsigned standby)
 	printf(")\n");
 }
 
-struct xfermode_entry {
-	int val;
-	const char *name;
+static const uint8_t xfermode_val[] ALIGN1 = {
+	 8,      9,     10,     11,     12,     13,     14,     15,
+	16,     17,     18,     19,     20,     21,     22,     23,
+	32,     33,     34,     35,     36,     37,     38,     39,
+	64,     65,     66,     67,     68,     69,     70,     71
+};
+/* NB: we save size by _not_ storing terninating NUL! */
+static const char xfermode_name[][5] ALIGN1 = {
+	"pio0", "pio1", "pio2", "pio3", "pio4", "pio5", "pio6", "pio7",
+	"sdma0","sdma1","sdma2","sdma3","sdma4","sdma5","sdma6","sdma7",
+	"mdma0","mdma1","mdma2","mdma3","mdma4","mdma5","mdma6","mdma7",
+	"udma0","udma1","udma2","udma3","udma4","udma5","udma6","udma7"
 };
 
-static const struct xfermode_entry xfermode_table[] = {
-	{ 8,    "pio0" },
-	{ 9,    "pio1" },
-	{ 10,   "pio2" },
-	{ 11,   "pio3" },
-	{ 12,   "pio4" },
-	{ 13,   "pio5" },
-	{ 14,   "pio6" },
-	{ 15,   "pio7" },
-	{ 16,   "sdma0" },
-	{ 17,   "sdma1" },
-	{ 18,   "sdma2" },
-	{ 19,   "sdma3" },
-	{ 20,   "sdma4" },
-	{ 21,   "sdma5" },
-	{ 22,   "sdma6" },
-	{ 23,   "sdma7" },
-	{ 32,   "mdma0" },
-	{ 33,   "mdma1" },
-	{ 34,   "mdma2" },
-	{ 35,   "mdma3" },
-	{ 36,   "mdma4" },
-	{ 37,   "mdma5" },
-	{ 38,   "mdma6" },
-	{ 39,   "mdma7" },
-	{ 64,   "udma0" },
-	{ 65,   "udma1" },
-	{ 66,   "udma2" },
-	{ 67,   "udma3" },
-	{ 68,   "udma4" },
-	{ 69,   "udma5" },
-	{ 70,   "udma6" },
-	{ 71,   "udma7" },
-	{ 0, NULL }
-};
-
-static int translate_xfermode(char * name)
+static int translate_xfermode(const char *name)
 {
-	const struct xfermode_entry *tmp;
-	char *endptr;
-	int val = -1;
+	int val, i;
 
-	for (tmp = xfermode_table; tmp->name != NULL; ++tmp) {
-		if (!strcmp(name, tmp->name))
-			return tmp->val;
+	for (i = 0; i < ARRAY_SIZE(xfermode_val); i++) {
+		if (!strncmp(name, xfermode_name[i], 5))
+			if (strlen(name) <= 5)
+				return xfermode_val[i];
 	}
-
-	val = strtol(name, &endptr, 10);
-	if (*endptr == '\0')
+	/* Negative numbers are invalid and are caught later */
+	val = bb_strtoi(name, NULL, 10);
+	if (!errno)
 		return val;
-
 	return -1;
 }
 
@@ -1483,13 +1454,13 @@ static void interpret_xfermode(unsigned xfermode)
 	else if (xfermode == 1)
 		printf("default PIO mode, disable IORDY");
 	else if (xfermode >= 8 && xfermode <= 15)
-		printf("PIO flow control mode%u", xfermode-8);
+		printf("PIO flow control mode%u", xfermode - 8);
 	else if (xfermode >= 16 && xfermode <= 23)
-		printf("singleword DMA mode%u", xfermode-16);
+		printf("singleword DMA mode%u", xfermode - 16);
 	else if (xfermode >= 32 && xfermode <= 39)
-		printf("multiword DMA mode%u", xfermode-32);
+		printf("multiword DMA mode%u", xfermode - 32);
 	else if (xfermode >= 64 && xfermode <= 71)
-		printf("UltraDMA mode%u", xfermode-64);
+		printf("UltraDMA mode%u", xfermode - 64);
 	else
 		printf("Unknown");
 	printf(")\n");
