@@ -15,7 +15,7 @@
  */
 
 #include <string.h>
-#include <strings.h>
+//#include <strings.h>
 
 extern int ext2fs_set_bit(unsigned int nr,void * addr);
 extern int ext2fs_clear_bit(unsigned int nr, void * addr);
