@@ -53,8 +53,8 @@ getopt32(int argc, char **argv, const char *applet_opts, ...)
         char *pointer_to_arg_for_d;
 
         flags = getopt32(argc, argv, "a:b:c:d:",
-        		&pointer_to_arg_for_a, &pointer_to_arg_for_b,
-        		&pointer_to_arg_for_c, &pointer_to_arg_for_d);
+                        &pointer_to_arg_for_a, &pointer_to_arg_for_b,
+                        &pointer_to_arg_for_c, &pointer_to_arg_for_d);
 
         The type of the pointer (char* or llist_t*) may be controlled
         by the "::" special separator that is set in the external string
@@ -121,9 +121,9 @@ const char *opt_complementary
         opt_complementary = "ww";
         getopt32(argc, argv, "w", &w_counter);
         if (w_counter)
-        	width = (w_counter == 1) ? 132 : INT_MAX;
+                width = (w_counter == 1) ? 132 : INT_MAX;
         else
-        	get_terminal_width(...&width...);
+                get_terminal_width(...&width...);
 
         w_counter is a pointer to an integer. It has to be passed to
         getopt32() after all other option argument sinks.
@@ -137,9 +137,9 @@ const char *opt_complementary
         opt_complementary = "vv:b::b-c:c-b";
         f = getopt32(argc, argv, "vb:c", &my_b, &verbose_level);
         if (f & 2)       // -c after -b unsets -b flag
-        	while (my_b) { dosomething_with(my_b->data); my_b = my_b->link; }
+                while (my_b) { dosomething_with(my_b->data); my_b = my_b->link; }
         if (my_b)        // but llist is stored if -b is specified
-        	free_llist(my_b);
+                free_llist(my_b);
         if (verbose_level) printf("verbose level is %d\n", verbose_level);
 
 Special characters:
@@ -200,9 +200,9 @@ Special characters:
         opt = getopt32(argc, argv, "sd:x", &smax_print_depth);
 
         if (opt & 2)
-        	max_print_depth = atoi(smax_print_depth);
+                max_print_depth = atoi(smax_print_depth);
         if (opt & 4)
-        	printf("Detected odd -x usage\n");
+                printf("Detected odd -x usage\n");
 
  "--"   A double dash between two options, or between an option and a group
         of options, means that they are mutually exclusive.  Unlike

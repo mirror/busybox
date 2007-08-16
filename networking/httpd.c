@@ -1090,7 +1090,7 @@ static int sendCgi(const char *url,
 			setenv1("REMOTE_ADDR", p);
 			if (cp) *cp = ':';
 		}
- 		setenv1("HTTP_USER_AGENT", user_agent);
+		setenv1("HTTP_USER_AGENT", user_agent);
 #if ENABLE_FEATURE_HTTPD_SET_REMOTE_PORT_TO_ENV
 		setenv_long("REMOTE_PORT", tcp_port);
 #endif

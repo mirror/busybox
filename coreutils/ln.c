@@ -54,7 +54,8 @@ int ln_main(int argc, char **argv)
 
 		if (is_directory(src,
 		                (flag & LN_NODEREFERENCE) ^ LN_NODEREFERENCE,
-		            	NULL)) {
+		                NULL)
+		) {
 			src_name = xstrdup(*argv);
 			src = concat_path_file(src, bb_get_last_path_component(src_name));
 			free(src_name);

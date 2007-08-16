@@ -89,7 +89,7 @@ int dos2unix_main(int argc, char **argv)
 	} else {
 		conv_type = CT_UNIX2DOS;	/* 1 */
 	}
-	
+
 	/* -u convert to unix, -d convert to dos */
 	opt_complementary = "u--d:d--u"; /* mutally exclusive */
 	o = getopt32(argc, argv, "du");

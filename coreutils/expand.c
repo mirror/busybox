@@ -196,7 +196,7 @@ int expand_main(int argc, char **argv)
 			exit_status = EXIT_FAILURE;
 		}
 		/* If stdin also clear EOF */
-		if (file == stdin) 
+		if (file == stdin)
 			clearerr(file);
 	} while (*++argv);
 

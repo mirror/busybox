@@ -239,83 +239,84 @@ static const char *const ata1_cfg_str[] = {			/* word 0 in ATA-1 mode */
 /* word 81: minor version number */
 #define MINOR_MAX		0x22
 #if ENABLE_FEATURE_HDPARM_GET_IDENTITY
-static const char *minor_str[MINOR_MAX+2] = {			/* word 81 value: */
-	"Unspecified",					/* 0x0000	*/
-	"ATA-1 X3T9.2 781D prior to rev.4",	/* 0x0001	*/
-	"ATA-1 published, ANSI X3.221-1994",		/* 0x0002	*/
-	"ATA-1 X3T9.2 781D rev.4",			/* 0x0003	*/
-	"ATA-2 published, ANSI X3.279-1996",		/* 0x0004	*/
-	"ATA-2 X3T10 948D prior to rev.2k",	/* 0x0005	*/
-	"ATA-3 X3T10 2008D rev.1",			/* 0x0006	*/
-	"ATA-2 X3T10 948D rev.2k",			/* 0x0007	*/
-	"ATA-3 X3T10 2008D rev.0",			/* 0x0008	*/
-	"ATA-2 X3T10 948D rev.3",			/* 0x0009	*/
-	"ATA-3 published, ANSI X3.298-199x",		/* 0x000a	*/
-	"ATA-3 X3T10 2008D rev.6",			/* 0x000b	*/
-	"ATA-3 X3T13 2008D rev.7 and 7a",		/* 0x000c	*/
-	"ATA/ATAPI-4 X3T13 1153D rev.6",		/* 0x000d	*/
-	"ATA/ATAPI-4 T13 1153D rev.13",		/* 0x000e	*/
-	"ATA/ATAPI-4 X3T13 1153D rev.7",		/* 0x000f	*/
-	"ATA/ATAPI-4 T13 1153D rev.18",		/* 0x0010	*/
-	"ATA/ATAPI-4 T13 1153D rev.15",		/* 0x0011	*/
-	"ATA/ATAPI-4 published, ANSI INCITS 317-1998",	/* 0x0012	*/
-	"ATA/ATAPI-5 T13 1321D rev.3",
-	"ATA/ATAPI-4 T13 1153D rev.14",		/* 0x0014	*/
-	"ATA/ATAPI-5 T13 1321D rev.1",		/* 0x0015	*/
-	"ATA/ATAPI-5 published, ANSI INCITS 340-2000",	/* 0x0016	*/
-	"ATA/ATAPI-4 T13 1153D rev.17",		/* 0x0017	*/
-	"ATA/ATAPI-6 T13 1410D rev.0",		/* 0x0018	*/
-	"ATA/ATAPI-6 T13 1410D rev.3a",		/* 0x0019	*/
-	"ATA/ATAPI-7 T13 1532D rev.1",		/* 0x001a	*/
-	"ATA/ATAPI-6 T13 1410D rev.2",		/* 0x001b	*/
-	"ATA/ATAPI-6 T13 1410D rev.1",		/* 0x001c	*/
-	"ATA/ATAPI-7 published, ANSI INCITS 397-2005",	/* 0x001d	*/
-	"ATA/ATAPI-7 T13 1532D rev.0",		/* 0x001e	*/
-	"Reserved"					/* 0x001f	*/
-	"Reserved"					/* 0x0020	*/
-	"ATA/ATAPI-7 T13 1532D rev.4a",		/* 0x0021	*/
-	"ATA/ATAPI-6 published, ANSI INCITS 361-2002",	/* 0x0022	*/
-	"Reserved"					/* 0x0023-0xfffe*/
+static const char *const minor_str[MINOR_MAX + 2] = {
+	/* word 81 value: */
+	"Unspecified",                                  /* 0x0000 */
+	"ATA-1 X3T9.2 781D prior to rev.4",             /* 0x0001 */
+	"ATA-1 published, ANSI X3.221-1994",            /* 0x0002 */
+	"ATA-1 X3T9.2 781D rev.4",                      /* 0x0003 */
+	"ATA-2 published, ANSI X3.279-1996",            /* 0x0004 */
+	"ATA-2 X3T10 948D prior to rev.2k",             /* 0x0005 */
+	"ATA-3 X3T10 2008D rev.1",                      /* 0x0006 */
+	"ATA-2 X3T10 948D rev.2k",                      /* 0x0007 */
+	"ATA-3 X3T10 2008D rev.0",                      /* 0x0008 */
+	"ATA-2 X3T10 948D rev.3",                       /* 0x0009 */
+	"ATA-3 published, ANSI X3.298-199x",            /* 0x000a */
+	"ATA-3 X3T10 2008D rev.6",                      /* 0x000b */
+	"ATA-3 X3T13 2008D rev.7 and 7a",               /* 0x000c */
+	"ATA/ATAPI-4 X3T13 1153D rev.6",                /* 0x000d */
+	"ATA/ATAPI-4 T13 1153D rev.13",                 /* 0x000e */
+	"ATA/ATAPI-4 X3T13 1153D rev.7",                /* 0x000f */
+	"ATA/ATAPI-4 T13 1153D rev.18",                 /* 0x0010 */
+	"ATA/ATAPI-4 T13 1153D rev.15",                 /* 0x0011 */
+	"ATA/ATAPI-4 published, ANSI INCITS 317-1998",  /* 0x0012 */
+	"ATA/ATAPI-5 T13 1321D rev.3",                  /* 0x0013 */
+	"ATA/ATAPI-4 T13 1153D rev.14",                 /* 0x0014 */
+	"ATA/ATAPI-5 T13 1321D rev.1",                  /* 0x0015 */
+	"ATA/ATAPI-5 published, ANSI INCITS 340-2000",  /* 0x0016 */
+	"ATA/ATAPI-4 T13 1153D rev.17",                 /* 0x0017 */
+	"ATA/ATAPI-6 T13 1410D rev.0",                  /* 0x0018 */
+	"ATA/ATAPI-6 T13 1410D rev.3a",                 /* 0x0019 */
+	"ATA/ATAPI-7 T13 1532D rev.1",                  /* 0x001a */
+	"ATA/ATAPI-6 T13 1410D rev.2",                  /* 0x001b */
+	"ATA/ATAPI-6 T13 1410D rev.1",                  /* 0x001c */
+	"ATA/ATAPI-7 published, ANSI INCITS 397-2005",  /* 0x001d */
+	"ATA/ATAPI-7 T13 1532D rev.0",                  /* 0x001e */
+	"Reserved"                                      /* 0x001f */
+	"Reserved"                                      /* 0x0020 */
+	"ATA/ATAPI-7 T13 1532D rev.4a",                 /* 0x0021 */
+	"ATA/ATAPI-6 published, ANSI INCITS 361-2002",  /* 0x0022 */
+	"Reserved"                                      /* 0x0023-0xfffe */
 };
 #endif
-static const char actual_ver[MINOR_MAX+2] = {
-			/* word 81 value: */
-	0,		/* 0x0000	WARNING:	*/
-	1,		/* 0x0001	WARNING:	*/
-	1,		/* 0x0002	WARNING:	*/
-	1,		/* 0x0003	WARNING:	*/
-	2,		/* 0x0004	WARNING:   This array		*/
-	2,		/* 0x0005	WARNING:   corresponds		*/
-	3,		/* 0x0006	WARNING:   *exactly*		*/
-	2,		/* 0x0007	WARNING:   to the ATA/		*/
-	3,		/* 0x0008	WARNING:   ATAPI version	*/
-	2,		/* 0x0009	WARNING:   listed in		*/
-	3,		/* 0x000a	WARNING:   the			*/
-	3,		/* 0x000b	WARNING:   minor_str		*/
-	3,		/* 0x000c	WARNING:   array		*/
-	4,		/* 0x000d	WARNING:   above.		*/
-	4,		/* 0x000e	WARNING:			*/
-	4,		/* 0x000f	WARNING:   if you change	*/
-	4,		/* 0x0010	WARNING:   that one,		*/
-	4,		/* 0x0011	WARNING:   change this one	*/
-	4,		/* 0x0012	WARNING:   too!!!		*/
-	5,		/* 0x0013	WARNING:	*/
-	4,		/* 0x0014	WARNING:	*/
-	5,		/* 0x0015	WARNING:	*/
-	5,		/* 0x0016	WARNING:	*/
-	4,		/* 0x0017	WARNING:	*/
-	6,		/* 0x0018	WARNING:	*/
-	6,		/* 0x0019	WARNING:	*/
-	7,		/* 0x001a	WARNING:	*/
-	6,		/* 0x001b	WARNING:	*/
-	6,		/* 0x001c	WARNING:	*/
-	7,		/* 0x001d	WARNING:	*/
-	7,		/* 0x001e	WARNING:	*/
-	0,		/* 0x001f	WARNING:	*/
-	0,		/* 0x0020	WARNING:	*/
-	7,		/* 0x0021	WARNING:	*/
-	6,		/* 0x0022	WARNING:	*/
-	0		/* 0x0023-0xfffe    	*/
+static const char actual_ver[MINOR_MAX + 2] ALIGN1 = {
+	   /* word 81 value: */
+	0, /* 0x0000 WARNING: actual_ver[] array */
+	1, /* 0x0001 WARNING: corresponds        */
+	1, /* 0x0002 WARNING: *exactly*          */
+	1, /* 0x0003 WARNING: to the ATA/        */
+	2, /* 0x0004 WARNING: ATAPI version      */
+	2, /* 0x0005 WARNING: listed in          */
+	3, /* 0x0006 WARNING: the                */
+	2, /* 0x0007 WARNING: minor_str          */
+	3, /* 0x0008 WARNING: array              */
+	2, /* 0x0009 WARNING: above.             */
+	3, /* 0x000a WARNING:                    */
+	3, /* 0x000b WARNING: If you change      */
+	3, /* 0x000c WARNING: that one,          */
+	4, /* 0x000d WARNING: change this one    */
+	4, /* 0x000e WARNING: too!!!             */
+	4, /* 0x000f */
+	4, /* 0x0010 */
+	4, /* 0x0011 */
+	4, /* 0x0012 */
+	5, /* 0x0013 */
+	4, /* 0x0014 */
+	5, /* 0x0015 */
+	5, /* 0x0016 */
+	4, /* 0x0017 */
+	6, /* 0x0018 */
+	6, /* 0x0019 */
+	7, /* 0x001a */
+	6, /* 0x001b */
+	6, /* 0x001c */
+	7, /* 0x001d */
+	7, /* 0x001e */
+	0, /* 0x001f */
+	0, /* 0x0020 */
+	7, /* 0x0021 */
+	6, /* 0x0022 */
+	0  /* 0x0023-0xfffe */
 };
 
 /* words 82-84: cmds/feats supported */
@@ -343,11 +344,11 @@ static const char *const cmd_feat_str[] = {
 	"Removable Media feature set",		/* word 82 bit  2 */
 	"Security Mode feature set",		/* word 82 bit  1 */
 	"SMART feature set",			/* word 82 bit  0 */
-						/* --------------*/
+						/* -------------- */
 	"",					/* word 83 bit 15: !valid bit */
 	"",					/* word 83 bit 14:  valid bit */
-	"FLUSH CACHE EXT cmd",		/* word 83 bit 13 */
-	"Mandatory FLUSH CACHE cmd ",	/* word 83 bit 12 */
+	"FLUSH CACHE EXT cmd",			/* word 83 bit 13 */
+	"Mandatory FLUSH CACHE cmd ",		/* word 83 bit 12 */
 	"Device Configuration Overlay feature set ",
 	"48-bit Address feature set ",		/* word 83 bit 10 */
 	"",
@@ -356,11 +357,11 @@ static const char *const cmd_feat_str[] = {
 	"SET FEATURES subcommand required to spinup after power up",
 	"Power-Up In Standby feature set",	/* word 83 bit  5 */
 	"Removable Media Status Notification feature set",
-	"Adv. Power Management feature set",/* word 83 bit  3 */
+	"Adv. Power Management feature set",	/* word 83 bit  3 */
 	"CFA feature set",			/* word 83 bit  2 */
 	"READ/WRITE DMA QUEUED",		/* word 83 bit  1 */
 	"DOWNLOAD MICROCODE cmd",		/* word 83 bit  0 */
-						/* --------------*/
+						/* -------------- */
 	"",					/* word 84 bit 15: !valid bit */
 	"",					/* word 84 bit 14:  valid bit */
 	"",					/* word 84 bit 13:  reserved */

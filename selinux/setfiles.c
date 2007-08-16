@@ -264,15 +264,15 @@ static bool only_changed_user(const char *a, const char *b)
 
 static int restore(const char *file)
 {
-	char *my_file;	
+	char *my_file;
 	struct stat my_sb;
 	int i, j, ret;
 	char *context = NULL;
 	char *newcon = NULL;
 	bool user_only_changed = 0;
 	int retval = 0;
-	
-	my_file = bb_simplify_path(file);	
+
+	my_file = bb_simplify_path(file);
 
 	i = match(my_file, &my_sb, &newcon);
 

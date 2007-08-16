@@ -136,9 +136,9 @@ static char last_forward_char;  // last char searched for with 'f'
 #if ENABLE_FEATURE_VI_READONLY
 //static smallint vi_readonly, readonly;
 static smallint readonly_mode = 0;
-#define SET_READONLY_FILE(flags) 	((flags) |= 0x01)
-#define SET_READONLY_MODE(flags) 	((flags) |= 0x02)
-#define UNSET_READONLY_FILE(flags)	((flags) &= 0xfe)
+#define SET_READONLY_FILE(flags)        ((flags) |= 0x01)
+#define SET_READONLY_MODE(flags)        ((flags) |= 0x02)
+#define UNSET_READONLY_FILE(flags)      ((flags) &= 0xfe)
 #else
 #define readonly_mode 0
 #define SET_READONLY_FILE(flags)
