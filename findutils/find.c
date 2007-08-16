@@ -776,7 +776,8 @@ static action*** parse_params(char **argv)
 			action_context *ap;
 			ap = ALLOC_ACTION(context);
 			ap->context = NULL;
-			if (selinux_raw_to_trans_context(arg1, &ap->context))
+			/* SELinux headers erroneously declare non-const parameter */
+			if (selinux_raw_to_trans_context((char*)arg1, &ap->context))
 				bb_perror_msg("%s", arg1);
 		}
 #endif
