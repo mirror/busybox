@@ -282,6 +282,13 @@ void xlisten(int s, int backlog);
 void xconnect(int s, const struct sockaddr *s_addr, socklen_t addrlen);
 ssize_t xsendto(int s, const void *buf, size_t len, const struct sockaddr *to,
 				socklen_t tolen);
+/* SO_REUSEADDR allows a server to rebind to an address that is already
+ * "in use" by old connections to e.g. previous server instance which is
+ * killed or crashed. Without it bind will fail until all such connections
+ * time out. Linux does not allow multiple live binds on same ip:port
+ * regardless of SO_REUSEADDR (unlike some other flavors of Unix).
+ * Turn it on before you call bind(). */
+//TODO: it seems like in Linux this never fails. Change to void, eliminate error checks
 int setsockopt_reuseaddr(int fd);
 int setsockopt_broadcast(int fd);
 /* NB: returns port in host byte order */
@@ -318,6 +325,7 @@ int xsocket_stream(len_and_sockaddr **lsap);
  * numeric IP ("N.N.N.N") or numeric IPv6 address,
  * and can have ":PORT" suffix (for IPv6 use "[X:X:...:X]:PORT").
  * Only if there is no suffix, port argument is used */
+/* NB: these set SO_REUSEADDR before bind */
 int create_and_bind_stream_or_die(const char *bindaddr, int port);
 int create_and_bind_dgram_or_die(const char *bindaddr, int port);
 /* Create client TCP socket connected to peer:port. Peer cannot be NULL.
@@ -345,7 +353,7 @@ len_and_sockaddr* xhost_and_af2sockaddr(const char *host, int port, sa_family_t 
 #define host_and_af2sockaddr(host, port, af) ((void)(af), host2sockaddr((host), (port)))
 #define xhost_and_af2sockaddr(host, port, af) ((void)(af), xhost2sockaddr((host), (port)))
 #endif
-/* Assign sin[6]_port member if the socket is of corresponding type,
+/* Assign sin[6]_port member if the socket is an AF_INET[6] one,
  * otherwise no-op. Useful for ftp.
  * NB: does NOT do htons() internally, just direct assignment. */
 void set_nport(len_and_sockaddr *lsa, unsigned port);
