@@ -504,12 +504,27 @@ static struct dep_t *build_dep(void)
 
 	/* Only 2.6 has a modules.alias file */
 	if (ENABLE_FEATURE_2_6_MODULES) {
-		/* Parse kernel-declared aliases */
+		/* Parse kernel-declared module aliases */
 		filename = xasprintf("/lib/modules/%s/modules.alias", un.release);
 		fd = open(filename, O_RDONLY);
 		if (fd < 0) {
 			/* Ok, that didn't work.  Fall back to looking in /lib/modules */
 			fd = open("/lib/modules/modules.alias", O_RDONLY);
+		}
+		if (ENABLE_FEATURE_CLEAN_UP)
+			free(filename);
+
+		if (fd >= 0) {
+			include_conf(&first, &current, buffer, sizeof(buffer), fd);
+			close(fd);
+		}
+
+		/* Parse kernel-declared symbol aliases */
+		filename = xasprintf("/lib/modules/%s/modules.symbols", un.release);
+		fd = open(filename, O_RDONLY);
+		if (fd < 0) {
+			/* Ok, that didn't work.  Fall back to looking in /lib/modules */
+			fd = open("/lib/modules/modules.symbols", O_RDONLY);
 		}
 		if (ENABLE_FEATURE_CLEAN_UP)
 			free(filename);
