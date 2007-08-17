@@ -934,43 +934,108 @@ static void send_cgi_and_exit(
 {
 	struct { int rd; int wr; } fromCgi;  /* CGI -> httpd pipe */
 	struct { int rd; int wr; } toCgi;    /* httpd -> CGI pipe */
-	char *argp[] = { NULL, NULL };
-	int pid = 0;
+	char *fullpath;
+	char *script;
+	char *purl;
+	size_t post_read_size, post_read_idx;
 	int buf_count;
 	int status;
-	size_t post_read_size, post_read_idx;
+	int pid = 0;
+	int sv_accepted_socket = accepted_socket;
+
+	/*
+	 * We are mucking with environment _first_ and then vfork/exec,
+	 * this allows us to use vfork safely. Parent don't care about
+	 * these environment changes anyway.
+	 */
+
+	/*
+	 * Find PATH_INFO.
+	 */
+	purl = xstrdup(url);
+	script = purl;
+	while ((script = strchr(script + 1, '/')) != NULL) {
+		/* have script.cgi/PATH_INFO or dirs/script.cgi[/PATH_INFO] */
+		struct stat sb;
+
+		*script = '\0';
+		if (!is_directory(purl + 1, 1, &sb)) {
+			/* not directory, found script.cgi/PATH_INFO */
+			*script = '/';
+			break;
+		}
+		*script = '/';          /* is directory, find next '/' */
+	}
+	setenv1("PATH_INFO", script);   /* set /PATH_INFO or "" */
+	setenv1("REQUEST_METHOD", request);
+	if (g_query) {
+		putenv(xasprintf("%s=%s?%s", "REQUEST_URI", purl, g_query));
+	} else {
+		setenv1("REQUEST_URI", purl);
+	}
+	if (script != NULL)
+		*script = '\0';         /* cut off /PATH_INFO */
+
+	/* SCRIPT_FILENAME required by PHP in CGI mode */
+	fullpath = concat_path_file(home_httpd, purl);
+	setenv1("SCRIPT_FILENAME", fullpath);
+	/* set SCRIPT_NAME as full path: /cgi-bin/dirs/script.cgi */
+	setenv1("SCRIPT_NAME", purl);
+	/* http://hoohoo.ncsa.uiuc.edu/cgi/env.html:
+	 * QUERY_STRING: The information which follows the ? in the URL
+	 * which referenced this script. This is the query information.
+	 * It should not be decoded in any fashion. This variable
+	 * should always be set when there is query information,
+	 * regardless of command line decoding. */
+	/* (Older versions of bbox seem to do some decoding) */
+	setenv1("QUERY_STRING", g_query);
+	putenv((char*)"SERVER_SOFTWARE=busybox httpd/"BB_VER);
+	putenv((char*)"SERVER_PROTOCOL=HTTP/1.0");
+	putenv((char*)"GATEWAY_INTERFACE=CGI/1.1");
+	/* Having _separate_ variables for IP and port defeats
+	 * the purpose of having socket abstraction. Which "port"
+	 * are you using on Unix domain socket?
+	 * IOW - REMOTE_PEER="1.2.3.4:56" makes much more sense.
+	 * Oh well... */
+	{
+		char *p = rmt_ip_str ? rmt_ip_str : (char*)"";
+		char *cp = strrchr(p, ':');
+		if (ENABLE_FEATURE_IPV6 && cp && strchr(cp, ']'))
+			cp = NULL;
+		if (cp) *cp = '\0'; /* delete :PORT */
+		setenv1("REMOTE_ADDR", p);
+		if (cp) *cp = ':';
+	}
+	setenv1("HTTP_USER_AGENT", user_agent);
+#if ENABLE_FEATURE_HTTPD_SET_REMOTE_PORT_TO_ENV
+	setenv_long("REMOTE_PORT", tcp_port);
+#endif
+	if (bodyLen)
+		setenv_long("CONTENT_LENGTH", bodyLen);
+	if (cookie)
+		setenv1("HTTP_COOKIE", cookie);
+	if (content_type)
+		setenv1("CONTENT_TYPE", content_type);
+#if ENABLE_FEATURE_HTTPD_BASIC_AUTH
+	if (remoteuser) {
+		setenv1("REMOTE_USER", remoteuser);
+		putenv((char*)"AUTH_TYPE=Basic");
+	}
+#endif
+	if (referer)
+		setenv1("HTTP_REFERER", referer);
 
 	xpipe(&fromCgi.rd);
 	xpipe(&toCgi.rd);
 
-/*
- * Note: We can use vfork() here in the no-mmu case, although
- * the child modifies the parent's variables, due to:
- * 1) The parent does not use the child-modified variables.
- * 2) The allocated memory (in the child) is freed when the process
- *    exits. This happens instantly after the child finishes,
- *    since httpd is run from inetd (and it can't run standalone
- *    in uClinux).
- * TODO: we can muck with environment _first_ and then fork/exec,
- * that will be more understandable, and safer wrt vfork!
- */
-
-#if !BB_MMU
 	pid = vfork();
-#else
-	pid = fork();
-#endif
 	if (pid < 0) {
 		/* TODO: log perror? */
 		log_and_exit();
 	}
 
 	if (!pid) {
-		/* child process */
-		char *fullpath;
-		char *script;
-		char *purl;
-
+		/* Child process */
 		xfunc_error_retval = 242;
 
 		if (accepted_socket > 1)
@@ -982,95 +1047,18 @@ static void send_cgi_and_exit(
 		xmove_fd(fromCgi.wr, 1);  /* replace stdout with the pipe */
 		close(fromCgi.rd);
 		close(toCgi.wr);
-		/* Huh? User seeing stderr can be a security problem.
+		/* User seeing stderr output can be a security problem.
 		 * If CGI really wants that, it can always do dup itself. */
 		/* dup2(1, 2); */
 
-		/*
-		 * Find PATH_INFO.
-		 */
-		purl = xstrdup(url);
-		script = purl;
-		while ((script = strchr(script + 1, '/')) != NULL) {
-			/* have script.cgi/PATH_INFO or dirs/script.cgi[/PATH_INFO] */
-			struct stat sb;
-
-			*script = '\0';
-			if (!is_directory(purl + 1, 1, &sb)) {
-				/* not directory, found script.cgi/PATH_INFO */
-				*script = '/';
-				break;
-			}
-			*script = '/';          /* is directory, find next '/' */
-		}
-		setenv1("PATH_INFO", script);   /* set /PATH_INFO or "" */
-		setenv1("REQUEST_METHOD", request);
-		if (g_query) {
-			putenv(xasprintf("%s=%s?%s", "REQUEST_URI", purl, g_query));
-		} else {
-			setenv1("REQUEST_URI", purl);
-		}
-		if (script != NULL)
-			*script = '\0';         /* cut off /PATH_INFO */
-
-		/* SCRIPT_FILENAME required by PHP in CGI mode */
-		fullpath = concat_path_file(home_httpd, purl);
-		setenv1("SCRIPT_FILENAME", fullpath);
-		/* set SCRIPT_NAME as full path: /cgi-bin/dirs/script.cgi */
-		setenv1("SCRIPT_NAME", purl);
-		/* http://hoohoo.ncsa.uiuc.edu/cgi/env.html:
-		 * QUERY_STRING: The information which follows the ? in the URL
-		 * which referenced this script. This is the query information.
-		 * It should not be decoded in any fashion. This variable
-		 * should always be set when there is query information,
-		 * regardless of command line decoding. */
-		/* (Older versions of bbox seem to do some decoding) */
-		setenv1("QUERY_STRING", g_query);
-		putenv((char*)"SERVER_SOFTWARE=busybox httpd/"BB_VER);
-		putenv((char*)"SERVER_PROTOCOL=HTTP/1.0");
-		putenv((char*)"GATEWAY_INTERFACE=CGI/1.1");
-		/* Having _separate_ variables for IP and port defeats
-		 * the purpose of having socket abstraction. Which "port"
-		 * are you using on Unix domain socket?
-		 * IOW - REMOTE_PEER="1.2.3.4:56" makes much more sense.
-		 * Oh well... */
-		{
-			char *p = rmt_ip_str ? rmt_ip_str : (char*)"";
-			char *cp = strrchr(p, ':');
-			if (ENABLE_FEATURE_IPV6 && cp && strchr(cp, ']'))
-				cp = NULL;
-			if (cp) *cp = '\0'; /* delete :PORT */
-			setenv1("REMOTE_ADDR", p);
-			if (cp) *cp = ':';
-		}
-		setenv1("HTTP_USER_AGENT", user_agent);
-#if ENABLE_FEATURE_HTTPD_SET_REMOTE_PORT_TO_ENV
-		setenv_long("REMOTE_PORT", tcp_port);
-#endif
-		if (bodyLen)
-			setenv_long("CONTENT_LENGTH", bodyLen);
-		if (cookie)
-			setenv1("HTTP_COOKIE", cookie);
-		if (content_type)
-			setenv1("CONTENT_TYPE", content_type);
-#if ENABLE_FEATURE_HTTPD_BASIC_AUTH
-		if (remoteuser) {
-			setenv1("REMOTE_USER", remoteuser);
-			putenv((char*)"AUTH_TYPE=Basic");
-		}
-#endif
-		if (referer)
-			setenv1("HTTP_REFERER", referer);
-
-		/* set execve argp[0] without path */
-		argp[0] = (char*)bb_basename(purl);
-		/* but script argp[0] must have absolute path */
+		/* script must have absolute path */
 		script = strrchr(fullpath, '/');
 		if (!script)
 			goto error_execing_cgi;
 		*script = '\0';
 		/* chdiring to script's dir */
 		if (chdir(fullpath) == 0) {
+			char *argv[2];
 #if ENABLE_FEATURE_HTTPD_CONFIG_WITH_SCRIPT_INTERPR
 			char *interpr = NULL;
 			char *suffix = strrchr(purl, '.');
@@ -1086,12 +1074,15 @@ static void send_cgi_and_exit(
 			}
 #endif
 			*script = '/';
+			/* set argv[0] to name without path */
+			argv[0] = (char*)bb_basename(purl);
+			argv[1] = NULL;
 #if ENABLE_FEATURE_HTTPD_CONFIG_WITH_SCRIPT_INTERPR
 			if (interpr)
-				execv(interpr, argp);
+				execv(interpr, argv);
 			else
 #endif
-				execv(fullpath, argp);
+				execv(fullpath, argv);
 		}
  error_execing_cgi:
 		/* send to stdout
@@ -1100,7 +1091,13 @@ static void send_cgi_and_exit(
 		send_headers_and_exit(HTTP_NOT_FOUND);
 	} /* end child */
 
-	/* parent process */
+	/* Parent process */
+
+	/* First, restore variables possibly changed by child */
+	xfunc_error_retval = 0;
+	accepted_socket = sv_accepted_socket;
+
+	/* Prepare for pumping data */
 	buf_count = 0;
 	post_read_size = 0;
 	post_read_idx = 0; /* for gcc */
