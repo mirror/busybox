@@ -1506,7 +1506,7 @@ static int checkPerm(const char *path, const char *request)
 			}
 			/* unauthorized */
 		}
-	}   /* for */
+	} /* for */
 
 	return prev == NULL;
 }
@@ -1542,7 +1542,6 @@ static void handle_incoming_and_exit(void)
 	char *content_type = 0;
 #endif
 	struct sigaction sa;
-
 #if ENABLE_FEATURE_HTTPD_BASIC_AUTH
 	int credentials = -1;  /* if not required this is Ok */
 #endif
@@ -1552,229 +1551,226 @@ static void handle_incoming_and_exit(void)
 	sa.sa_flags = 0; /* no SA_RESTART */
 	sigaction(SIGALRM, &sa, NULL);
 
-	/* It's not a real loop (it ends with while(0)).
-	 * Break from this "loop" jumps to exit(0) */
-	do {
-		alarm(TIMEOUT);
-		if (!get_line())
-			_exit(0);  /* EOF or error or empty line */
+	alarm(TIMEOUT);
+	if (!get_line())
+		_exit(0);  /* EOF or error or empty line */
 
-		purl = strpbrk(iobuf, " \t");
-		if (purl == NULL) {
-			send_headers_and_exit(HTTP_BAD_REQUEST);
-		}
-		*purl = '\0';
+	purl = strpbrk(iobuf, " \t");
+	if (purl == NULL) {
+		send_headers_and_exit(HTTP_BAD_REQUEST);
+	}
+	*purl = '\0';
 #if ENABLE_FEATURE_HTTPD_CGI
+	if (strcasecmp(iobuf, prequest) != 0) {
+		prequest = "POST";
 		if (strcasecmp(iobuf, prequest) != 0) {
-			prequest = "POST";
-			if (strcasecmp(iobuf, prequest) != 0) {
-				send_headers_and_exit(HTTP_NOT_IMPLEMENTED);
-			}
-		}
-#else
-		if (strcasecmp(iobuf, request_GET) != 0) {
 			send_headers_and_exit(HTTP_NOT_IMPLEMENTED);
 		}
+	}
+#else
+	if (strcasecmp(iobuf, request_GET) != 0) {
+		send_headers_and_exit(HTTP_NOT_IMPLEMENTED);
+	}
 #endif
-		*purl = ' ';
-		count = sscanf(purl, " %[^ ] HTTP/%d.%*d", iobuf, &blank);
+	*purl = ' ';
+	count = sscanf(purl, " %[^ ] HTTP/%d.%*d", iobuf, &blank);
 
-		if (count < 1 || iobuf[0] != '/') {
-			/* Garbled request/URL */
-			send_headers_and_exit(HTTP_BAD_REQUEST);
-		}
-		url = alloca(strlen(iobuf) + sizeof("/index.html"));
-		if (url == NULL) {
-			send_headers_and_exit(HTTP_INTERNAL_SERVER_ERROR);
-		}
-		strcpy(url, iobuf);
-		/* extract url args if present */
-		test = strchr(url, '?');
-		g_query = NULL;
-		if (test) {
-			*test++ = '\0';
-			g_query = test;
-		}
+	if (count < 1 || iobuf[0] != '/') {
+		/* Garbled request/URL */
+		send_headers_and_exit(HTTP_BAD_REQUEST);
+	}
+	url = alloca(strlen(iobuf) + sizeof("/index.html"));
+	if (url == NULL) {
+		send_headers_and_exit(HTTP_INTERNAL_SERVER_ERROR);
+	}
+	strcpy(url, iobuf);
+	/* extract url args if present */
+	test = strchr(url, '?');
+	g_query = NULL;
+	if (test) {
+		*test++ = '\0';
+		g_query = test;
+	}
 
-		test = decodeString(url, 0);
-		if (test == NULL)
-			send_headers_and_exit(HTTP_BAD_REQUEST);
-		if (test == url + 1) {
-			/* '/' or NUL is encoded */
-			send_headers_and_exit(HTTP_NOT_FOUND);
-		}
+	test = decodeString(url, 0);
+	if (test == NULL)
+		send_headers_and_exit(HTTP_BAD_REQUEST);
+	if (test == url + 1) {
+		/* '/' or NUL is encoded */
+		send_headers_and_exit(HTTP_NOT_FOUND);
+	}
 
-		/* algorithm stolen from libbb bb_simplify_path(),
-		 * but don't strdup and reducing trailing slash and protect out root */
-		purl = test = url;
-		do {
-			if (*purl == '/') {
-				/* skip duplicate (or initial) slash */
-				if (*test == '/') {
+	/* algorithm stolen from libbb bb_simplify_path(),
+	 * but don't strdup and reducing trailing slash and protect out root */
+	purl = test = url;
+	do {
+		if (*purl == '/') {
+			/* skip duplicate (or initial) slash */
+			if (*test == '/') {
+				continue;
+			}
+			if (*test == '.') {
+				/* skip extra '.' */
+				if (test[1] == '/' || !test[1]) {
 					continue;
 				}
-				if (*test == '.') {
-					/* skip extra '.' */
-					if (test[1] == '/' || !test[1]) {
+				/* '..': be careful */
+				if (test[1] == '.' && (test[2] == '/' || !test[2])) {
+					++test;
+					if (purl == url) {
+						/* protect root */
+						send_headers_and_exit(HTTP_BAD_REQUEST);
+					}
+					while (*--purl != '/') /* omit previous dir */;
 						continue;
-					}
-					/* '..': be careful */
-					if (test[1] == '.' && (test[2] == '/' || !test[2])) {
-						++test;
-						if (purl == url) {
-							/* protect root */
-							send_headers_and_exit(HTTP_BAD_REQUEST);
-						}
-						while (*--purl != '/') /* omit previous dir */;
-							continue;
-					}
 				}
 			}
-			*++purl = *test;
-		} while (*++test);
-		*++purl = '\0';       /* so keep last character */
-		test = purl;          /* end ptr */
-
-		/* If URL is directory, adding '/' */
-		if (test[-1] != '/') {
-			if (is_directory(url + 1, 1, &sb)) {
-				found_moved_temporarily = url;
-			}
 		}
-		if (verbose > 1)
-			bb_error_msg("url:%s", url);
+		*++purl = *test;
+	} while (*++test);
+	*++purl = '\0';       /* so keep last character */
+	test = purl;          /* end ptr */
 
-		test = url;
-		ip_allowed = checkPermIP();
-		while (ip_allowed && (test = strchr(test + 1, '/')) != NULL) {
-			/* have path1/path2 */
-			*test = '\0';
-			if (is_directory(url + 1, 1, &sb)) {
-				/* may be having subdir config */
-				parse_conf(url + 1, SUBDIR_PARSE);
-				ip_allowed = checkPermIP();
-			}
-			*test = '/';
+	/* If URL is directory, adding '/' */
+	if (test[-1] != '/') {
+		if (is_directory(url + 1, 1, &sb)) {
+			found_moved_temporarily = url;
 		}
-		if (blank >= 0) {
-			/* read until blank line for HTTP version specified, else parse immediate */
-			while (1) {
-				alarm(TIMEOUT);
-				if (!get_line())
-					break; /* EOF or error or empty line */
+	}
 
-				if (DEBUG)
-					bb_error_msg("header: '%s'", iobuf);
+	if (verbose > 1)
+		bb_error_msg("url:%s", url);
+
+	test = url;
+	ip_allowed = checkPermIP();
+	while (ip_allowed && (test = strchr(test + 1, '/')) != NULL) {
+		/* have path1/path2 */
+		*test = '\0';
+		if (is_directory(url + 1, 1, &sb)) {
+			/* may be having subdir config */
+			parse_conf(url + 1, SUBDIR_PARSE);
+			ip_allowed = checkPermIP();
+		}
+		*test = '/';
+	}
+	if (blank >= 0) {
+		/* read until blank line for HTTP version specified, else parse immediate */
+		while (1) {
+			alarm(TIMEOUT);
+			if (!get_line())
+				break; /* EOF or error or empty line */
+
+			if (DEBUG)
+				bb_error_msg("header: '%s'", iobuf);
 #if ENABLE_FEATURE_HTTPD_CGI
-				/* try and do our best to parse more lines */
-				if ((STRNCASECMP(iobuf, "Content-length:") == 0)) {
-					/* extra read only for POST */
-					if (prequest != request_GET) {
-						test = iobuf + sizeof("Content-length:") - 1;
-						if (!test[0])
-							_exit(0);
-						errno = 0;
-						/* not using strtoul: it ignores leading minus! */
-						length = strtol(test, &test, 10);
-						/* length is "ulong", but we need to pass it to int later */
-						/* so we check for negative or too large values in one go: */
-						/* (long -> ulong conv caused negatives to be seen as > INT_MAX) */
-						if (test[0] || errno || length > INT_MAX)
-							_exit(0);
-					}
-				} else if (STRNCASECMP(iobuf, "Cookie:") == 0) {
-					cookie = strdup(skip_whitespace(iobuf + sizeof("Cookie:")-1));
-				} else if (STRNCASECMP(iobuf, "Content-Type:") == 0) {
-					content_type = strdup(skip_whitespace(iobuf + sizeof("Content-Type:")-1));
-				} else if (STRNCASECMP(iobuf, "Referer:") == 0) {
-					referer = strdup(skip_whitespace(iobuf + sizeof("Referer:")-1));
-				} else if (STRNCASECMP(iobuf, "User-Agent:") == 0) {
-					user_agent = strdup(skip_whitespace(iobuf + sizeof("User-Agent:")-1));
+			/* try and do our best to parse more lines */
+			if ((STRNCASECMP(iobuf, "Content-length:") == 0)) {
+				/* extra read only for POST */
+				if (prequest != request_GET) {
+					test = iobuf + sizeof("Content-length:") - 1;
+					if (!test[0])
+						_exit(0);
+					errno = 0;
+					/* not using strtoul: it ignores leading minus! */
+					length = strtol(test, &test, 10);
+					/* length is "ulong", but we need to pass it to int later */
+					/* so we check for negative or too large values in one go: */
+					/* (long -> ulong conv caused negatives to be seen as > INT_MAX) */
+					if (test[0] || errno || length > INT_MAX)
+						_exit(0);
 				}
+			} else if (STRNCASECMP(iobuf, "Cookie:") == 0) {
+				cookie = strdup(skip_whitespace(iobuf + sizeof("Cookie:")-1));
+			} else if (STRNCASECMP(iobuf, "Content-Type:") == 0) {
+				content_type = strdup(skip_whitespace(iobuf + sizeof("Content-Type:")-1));
+			} else if (STRNCASECMP(iobuf, "Referer:") == 0) {
+				referer = strdup(skip_whitespace(iobuf + sizeof("Referer:")-1));
+			} else if (STRNCASECMP(iobuf, "User-Agent:") == 0) {
+				user_agent = strdup(skip_whitespace(iobuf + sizeof("User-Agent:")-1));
+			}
 #endif
 #if ENABLE_FEATURE_HTTPD_BASIC_AUTH
-				if (STRNCASECMP(iobuf, "Authorization:") == 0) {
-					/* We only allow Basic credentials.
-					 * It shows up as "Authorization: Basic <userid:password>" where
-					 * the userid:password is base64 encoded.
-					 */
-					test = skip_whitespace(iobuf + sizeof("Authorization:")-1);
-					if (STRNCASECMP(test, "Basic") != 0)
-						continue;
-					test += sizeof("Basic")-1;
-					/* decodeBase64() skips whitespace itself */
-					decodeBase64(test);
-					credentials = checkPerm(url, test);
-				}
+			if (STRNCASECMP(iobuf, "Authorization:") == 0) {
+				/* We only allow Basic credentials.
+				 * It shows up as "Authorization: Basic <userid:password>" where
+				 * the userid:password is base64 encoded.
+				 */
+				test = skip_whitespace(iobuf + sizeof("Authorization:")-1);
+				if (STRNCASECMP(test, "Basic") != 0)
+					continue;
+				test += sizeof("Basic")-1;
+				/* decodeBase64() skips whitespace itself */
+				decodeBase64(test);
+				credentials = checkPerm(url, test);
+			}
 #endif          /* FEATURE_HTTPD_BASIC_AUTH */
-			} /* while extra header reading */
-		}
-		alarm(0);
+		} /* while extra header reading */
+	}
 
-		if (strcmp(bb_basename(url), httpd_conf) == 0 || ip_allowed == 0) {
-			/* protect listing [/path]/httpd_conf or IP deny */
+	alarm(0);
+
+	if (strcmp(bb_basename(url), httpd_conf) == 0 || ip_allowed == 0) {
+		/* protect listing [/path]/httpd_conf or IP deny */
+		send_headers_and_exit(HTTP_FORBIDDEN);
+	}
+
+#if ENABLE_FEATURE_HTTPD_BASIC_AUTH
+	if (credentials <= 0 && checkPerm(url, ":") == 0) {
+		send_headers_and_exit(HTTP_UNAUTHORIZED);
+	}
+#endif
+
+	if (found_moved_temporarily) {
+		send_headers_and_exit(HTTP_MOVED_TEMPORARILY);
+	}
+
+	test = url + 1;      /* skip first '/' */
+
+#if ENABLE_FEATURE_HTTPD_CGI
+	if (strncmp(test, "cgi-bin", 7) == 0) {
+		if (test[7] == '/' && test[8] == '\0') {
+			/* protect listing cgi-bin/ */
 			send_headers_and_exit(HTTP_FORBIDDEN);
 		}
-
-#if ENABLE_FEATURE_HTTPD_BASIC_AUTH
-		if (credentials <= 0 && checkPerm(url, ":") == 0) {
-			send_headers_and_exit(HTTP_UNAUTHORIZED);
-		}
-#endif
-
-		if (found_moved_temporarily) {
-			send_headers_and_exit(HTTP_MOVED_TEMPORARILY);
-		}
-
-		test = url + 1;      /* skip first '/' */
-
-#if ENABLE_FEATURE_HTTPD_CGI
-		if (strncmp(test, "cgi-bin", 7) == 0) {
-			if (test[7] == '/' && test[8] == '\0') {
-				/* protect listing cgi-bin/ */
-				send_headers_and_exit(HTTP_FORBIDDEN);
-			}
-			send_cgi_and_exit(url, prequest, length, cookie, content_type);
-		}
+		send_cgi_and_exit(url, prequest, length, cookie, content_type);
+	}
 #if ENABLE_FEATURE_HTTPD_CONFIG_WITH_SCRIPT_INTERPR
-		{
-			char *suffix = strrchr(test, '.');
-			if (suffix) {
-				Htaccess *cur;
-				for (cur = script_i; cur; cur = cur->next) {
-					if (strcmp(cur->before_colon + 1, suffix) == 0) {
-						send_cgi_and_exit(url, prequest, length, cookie, content_type);
-					}
+	{
+		char *suffix = strrchr(test, '.');
+		if (suffix) {
+			Htaccess *cur;
+			for (cur = script_i; cur; cur = cur->next) {
+				if (strcmp(cur->before_colon + 1, suffix) == 0) {
+					send_cgi_and_exit(url, prequest, length, cookie, content_type);
 				}
 			}
 		}
+	}
 #endif
-		if (prequest != request_GET) {
-			send_headers_and_exit(HTTP_NOT_IMPLEMENTED);
-		}
+	if (prequest != request_GET) {
+		send_headers_and_exit(HTTP_NOT_IMPLEMENTED);
+	}
 #endif  /* FEATURE_HTTPD_CGI */
-		if (purl[-1] == '/')
-			strcpy(purl, "index.html");
-		if (stat(test, &sb) == 0) {
-			/* It's a dir URL and there is index.html */
-			ContentLength = sb.st_size;
-			last_mod = sb.st_mtime;
-		}
+	if (purl[-1] == '/')
+		strcpy(purl, "index.html");
+	if (stat(test, &sb) == 0) {
+		/* It's a dir URL and there is index.html */
+		ContentLength = sb.st_size;
+		last_mod = sb.st_mtime;
+	}
 #if ENABLE_FEATURE_HTTPD_CGI
-		else if (purl[-1] == '/') {
-			/* It's a dir URL and there is no index.html
-			 * Try cgi-bin/index.cgi */
-			if (access("/cgi-bin/index.cgi"+1, X_OK) == 0) {
-				purl[0] = '\0';
-				g_query = url;
-				send_cgi_and_exit("/cgi-bin/index.cgi", prequest, length, cookie, content_type);
-			}
+	else if (purl[-1] == '/') {
+		/* It's a dir URL and there is no index.html
+		 * Try cgi-bin/index.cgi */
+		if (access("/cgi-bin/index.cgi"+1, X_OK) == 0) {
+			purl[0] = '\0';
+			g_query = url;
+			send_cgi_and_exit("/cgi-bin/index.cgi", prequest, length, cookie, content_type);
 		}
+	}
 #endif  /* FEATURE_HTTPD_CGI */
-		send_file_and_exit(test);
-	} while (0);
 
-	_exit(0);
+	send_file_and_exit(test);
 
 #if 0 /* Is this needed? Why? */
 	if (DEBUG)
@@ -1817,7 +1813,6 @@ static void handle_incoming_and_exit(void)
 static void mini_httpd(int server) ATTRIBUTE_NORETURN;
 static void mini_httpd(int server)
 {
-	/* copy the ports we are watching to the readfd set */
 	while (1) {
 		int n;
 		len_and_sockaddr fromAddr;
