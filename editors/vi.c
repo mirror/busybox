@@ -2420,14 +2420,17 @@ static int file_insert(const char * fn, char *p
 		file_modified++;
 	close(fd);
  fi0:
-	if (ENABLE_FEATURE_VI_READONLY && update_ro_status
-			&& ((access(fn, W_OK) < 0) ||
-			/* root will always have access()
-			 * so we check fileperms too */
-			!(statbuf.st_mode & (S_IWUSR | S_IWGRP | S_IWOTH))))
-	{
+#if ENABLE_FEATURE_VI_READONLY
+	if (update_ro_status
+	 && ((access(fn, W_OK) < 0) ||
+		/* root will always have access()
+		 * so we check fileperms too */
+		!(statbuf.st_mode & (S_IWUSR | S_IWGRP | S_IWOTH))
+	    )
+	) {
 		SET_READONLY_FILE(readonly_mode);
 	}
+#endif
 	return cnt;
 }
 

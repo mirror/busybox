@@ -48,6 +48,9 @@ static const char usage_messages[] ALIGN1 = ""
 #include "applets.h"
 /* The -1 arises because of the {0,NULL,0,-1} entry. */
 
+#if ENABLE_FEATURE_SH_STANDALONE
+const unsigned short NUM_APPLETS = ARRAY_SIZE(applets);
+#endif
 const struct bb_applet *current_applet;
 const char *applet_name ATTRIBUTE_EXTERNALLY_VISIBLE;
 #if !BB_MMU

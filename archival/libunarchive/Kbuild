@@ -58,6 +58,7 @@ lib-$(CONFIG_GUNZIP)			+= $(GUNZIP_FILES)
 lib-$(CONFIG_FEATURE_GUNZIP_UNCOMPRESS)	+= decompress_uncompress.o
 lib-$(CONFIG_RPM2CPIO)			+= $(GUNZIP_FILES) get_header_cpio.o
 lib-$(CONFIG_RPM)			+= $(GUNZIP_FILES) get_header_cpio.o
+lib-$(CONFIG_FEATURE_RPM_BZ2)		+= decompress_bunzip2.o
 lib-$(CONFIG_TAR)			+= get_header_tar.o
 lib-$(CONFIG_FEATURE_TAR_BZIP2)		+= decompress_bunzip2.o get_header_tar_bz2.o
 lib-$(CONFIG_FEATURE_TAR_LZMA)		+= decompress_unlzma.o get_header_tar_lzma.o
@@ -66,3 +67,4 @@ lib-$(CONFIG_FEATURE_TAR_COMPRESS)	+= decompress_uncompress.o
 lib-$(CONFIG_UNCOMPRESS)		+= decompress_uncompress.o
 lib-$(CONFIG_UNZIP)			+= $(GUNZIP_FILES)
 lib-$(CONFIG_FEATURE_COMPRESS_USAGE)	+= decompress_bunzip2.o
+

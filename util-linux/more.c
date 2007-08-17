@@ -154,8 +154,10 @@ int more_main(int argc, char **argv)
 
 				/* The user may have resized the terminal.
 				 * Re-read the dimensions. */
+#if ENABLE_FEATURE_USE_TERMIOS
 				get_terminal_width_height(cin_fileno, &terminal_width, &terminal_height);
 				terminal_height -= 1;
+#endif
 			}
 
 			/* Crudely convert tabs into spaces, which are

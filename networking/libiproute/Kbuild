@@ -6,6 +6,10 @@
 #
 
 lib-y:=
+
+lib-$(CONFIG_SLATTACH) += \
+	utils.o
+
 lib-$(CONFIG_IP) += \
 	ip_parse_common_args.o \
 	libnetlink.o \

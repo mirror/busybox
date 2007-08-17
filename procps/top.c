@@ -219,7 +219,9 @@ static unsigned long display_generic(int scr_width)
 	char buf[80];
 	char scrbuf[80];
 	unsigned long total, used, mfree, shared, buffers, cached;
+#if ENABLE_FEATURE_TOP_DECIMALS || ENABLE_FEATURE_TOP_CPU_GLOBAL_PERCENTS
 	unsigned total_diff;
+#endif
 
 #if ENABLE_FEATURE_TOP_DECIMALS
 	/* formats 7 char string (8 with terminating NUL) */
@@ -305,12 +307,12 @@ static unsigned long display_generic(int scr_width)
 	/* clear screen & go to top */
 	printf(OPT_BATCH_MODE ? "%s\n" : "\e[H\e[J%s\n", scrbuf);
 
-	if (ENABLE_FEATURE_TOP_CPU_GLOBAL_PERCENTS) {
-		/*
-		 * xxx% = (jif.xxx - prev_jif.xxx) / (jif.total - prev_jif.total) * 100%
-		 */
-		/* using (unsigned) casts to make operations cheaper */
-		total_diff = ((unsigned)(jif.total - prev_jif.total) ? : 1);
+#if ENABLE_FEATURE_TOP_CPU_GLOBAL_PERCENTS
+	/*
+	 * xxx% = (jif.xxx - prev_jif.xxx) / (jif.total - prev_jif.total) * 100%
+	 */
+	/* using (unsigned) casts to make operations cheaper */
+	total_diff = ((unsigned)(jif.total - prev_jif.total) ? : 1);
 #if ENABLE_FEATURE_TOP_DECIMALS
 /* Generated code is approx +0.3k */
 #define CALC_STAT(xxx) char xxx[8]
@@ -321,30 +323,30 @@ static unsigned long display_generic(int scr_width)
 #define SHOW_STAT(xxx) xxx
 #define FMT "%4u%% "
 #endif
-		{ /* need block: CALC_STAT are declarations */
-			CALC_STAT(usr);
-			CALC_STAT(sys);
-			CALC_STAT(nic);
-			CALC_STAT(idle);
-			CALC_STAT(iowait);
-			CALC_STAT(irq);
-			CALC_STAT(softirq);
-			//CALC_STAT(steal);
+	{ /* need block: CALC_STAT are declarations */
+		CALC_STAT(usr);
+		CALC_STAT(sys);
+		CALC_STAT(nic);
+		CALC_STAT(idle);
+		CALC_STAT(iowait);
+		CALC_STAT(irq);
+		CALC_STAT(softirq);
+		//CALC_STAT(steal);
 
-			snprintf(scrbuf, scr_width,
-				/* Barely fits in 79 chars when in "decimals" mode. */
-				"CPU:"FMT"usr"FMT"sys"FMT"nice"FMT"idle"FMT"io"FMT"irq"FMT"softirq",
-				SHOW_STAT(usr), SHOW_STAT(sys), SHOW_STAT(nic), SHOW_STAT(idle),
-				SHOW_STAT(iowait), SHOW_STAT(irq), SHOW_STAT(softirq)
-				//, SHOW_STAT(steal) - what is this 'steal' thing?
-				// I doubt anyone wants to know it
-			);
-		}
-		puts(scrbuf);
+		snprintf(scrbuf, scr_width,
+			/* Barely fits in 79 chars when in "decimals" mode. */
+			"CPU:"FMT"usr"FMT"sys"FMT"nice"FMT"idle"FMT"io"FMT"irq"FMT"softirq",
+			SHOW_STAT(usr), SHOW_STAT(sys), SHOW_STAT(nic), SHOW_STAT(idle),
+			SHOW_STAT(iowait), SHOW_STAT(irq), SHOW_STAT(softirq)
+			//, SHOW_STAT(steal) - what is this 'steal' thing?
+			// I doubt anyone wants to know it
+		);
+	}
+	puts(scrbuf);
 #undef SHOW_STAT
 #undef CALC_STAT
 #undef FMT
-	}
+#endif
 
 	/* read load average as a string */
 	buf[0] = '\0';

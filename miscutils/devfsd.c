@@ -631,7 +631,8 @@ static void process_config_line(const char *line, unsigned long *event_mask)
 		last_config->next = new;
 	last_config = new;
 	return;
-process_config_line_err:
+
+ process_config_line_err:
 	msg_logger_and_die(LOG_ERR, bb_msg_bad_config, msg , line);
 }  /*  End Function process_config_line   */
 
@@ -644,11 +645,9 @@ static int do_servicing(int fd, unsigned long event_mask)
 {
 	ssize_t bytes;
 	struct devfsd_notify_struct info;
-	unsigned long tmp_event_mask;
 
-	/*  Tell devfs what events we care about  */
-	tmp_event_mask = event_mask;
-	xioctl(fd, DEVFSDIOC_SET_EVENT_MASK, tmp_event_mask);
+	/* (void*) cast is only in order to match prototype */
+	xioctl(fd, DEVFSDIOC_SET_EVENT_MASK, (void*)event_mask);
 	while (!caught_signal) {
 		errno = 0;
 		bytes = read(fd,(char *) &info, sizeof info);
