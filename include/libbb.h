@@ -642,8 +642,8 @@ enum { wrote_pidfile = 0 };
 
 enum {
 	LOGMODE_NONE = 0,
-	LOGMODE_STDIO = 1<<0,
-	LOGMODE_SYSLOG = 1<<1,
+	LOGMODE_STDIO = (1 << 0),
+	LOGMODE_SYSLOG = (1 << 1) * ENABLE_FEATURE_SYSLOG,
 	LOGMODE_BOTH = LOGMODE_SYSLOG + LOGMODE_STDIO,
 };
 extern const char *msg_eol;
