@@ -299,7 +299,7 @@ static int scan_ip(const char **ep, unsigned *ip, unsigned char endc)
 	for (j = 0; j < 4; j++) {
 		unsigned octet;
 
-		if ((*p < '0' || *p > '9') && (*p != '/' || j == 0) && *p != 0)
+		if ((*p < '0' || *p > '9') && (*p != '/' || j == 0) && *p != '\0')
 			return -auto_mask;
 		octet = 0;
 		while (*p >= '0' && *p <= '9') {
@@ -311,15 +311,15 @@ static int scan_ip(const char **ep, unsigned *ip, unsigned char endc)
 		}
 		if (*p == '.')
 			p++;
-		if (*p != '/' && *p != 0)
+		if (*p != '/' && *p != '\0')
 			auto_mask += 8;
 		*ip = ((*ip) << 8) | octet;
 	}
-	if (*p != 0) {
+	if (*p != '\0') {
 		if (*p != endc)
 			return -auto_mask;
 		p++;
-		if (*p == 0)
+		if (*p == '\0')
 			return -auto_mask;
 	}
 	*ep = p;
@@ -782,6 +782,17 @@ static int openServer(void)
 #endif
 
 /*
+ * Log the connection closure and exit.
+ */
+static void log_and_exit(void) ATTRIBUTE_NORETURN;
+static void log_and_exit(void)
+{
+	if (verbose > 2)
+		bb_error_msg("closed");
+	_exit(xfunc_error_retval);
+}
+
+/*
  * Create and send HTTP response headers.
  * The arguments are combined and sent as one write operation.  Note that
  * IE will puke big-time if the headers are not sent in one packet and the
@@ -789,7 +800,7 @@ static int openServer(void)
  * responseNum - the result code to send.
  * Return result of write().
  */
-static int sendHeaders(HttpResponseNum responseNum)
+static void send_headers(HttpResponseNum responseNum)
 {
 	static const char RFC1123FMT[] ALIGN1 = "%a, %d %b %Y %H:%M:%S GMT";
 
@@ -841,8 +852,8 @@ static int sendHeaders(HttpResponseNum responseNum)
 		len += sprintf(iobuf + len, "Last-Modified: %s\r\n%s %"OFF_FMT"d\r\n",
 			tmp_str, "Content-length:", ContentLength);
 	}
-	strcat(iobuf, "\r\n");
-	len += 2;
+	iobuf[len++] = '\r';
+	iobuf[len++] = '\n';
 	if (infoString) {
 		len += sprintf(iobuf + len,
 				"<HTML><HEAD><TITLE>%d %s</TITLE></HEAD>\n"
@@ -855,14 +866,18 @@ static int sendHeaders(HttpResponseNum responseNum)
 	i = accepted_socket;
 	if (i == 0)
 		i++; /* write to fd #1 in inetd mode */
-	return full_write(i, iobuf, len);
+	if (full_write(i, iobuf, len) != len) {
+		if (verbose > 1)
+			bb_perror_msg("error");
+		log_and_exit();
+	}
 }
 
 static void send_headers_and_exit(HttpResponseNum responseNum) ATTRIBUTE_NORETURN;
 static void send_headers_and_exit(HttpResponseNum responseNum)
 {
-	sendHeaders(responseNum);
-	_exit(0);
+	send_headers(responseNum);
+	log_and_exit();
 }
 
 /*
@@ -945,8 +960,10 @@ static void send_cgi_and_exit(
 #else
 	pid = fork();
 #endif
-	if (pid < 0)
-		_exit(0);
+	if (pid < 0) {
+		/* TODO: log perror? */
+		log_and_exit();
+	}
 
 	if (!pid) {
 		/* child process */
@@ -1054,9 +1071,6 @@ static void send_cgi_and_exit(
 		*script = '\0';
 		/* chdiring to script's dir */
 		if (chdir(fullpath) == 0) {
-			/* Now run the program.  If it fails,
-			 * use _exit() so no destructors
-			 * get called and make a mess. */
 #if ENABLE_FEATURE_HTTPD_CONFIG_WITH_SCRIPT_INTERPR
 			char *interpr = NULL;
 			char *suffix = strrchr(purl, '.');
@@ -1083,8 +1097,7 @@ static void send_cgi_and_exit(
 		/* send to stdout
 		 * (we are CGI here, our stdout is pumped to the net) */
 		accepted_socket = 1;
-		sendHeaders(HTTP_NOT_FOUND);
-		_exit(242);
+		send_headers_and_exit(HTTP_NOT_FOUND);
 	} /* end child */
 
 	/* parent process */
@@ -1248,7 +1261,7 @@ static void send_cgi_and_exit(
 				fprintf(stderr, "cgi read %d bytes: '%.*s'\n", count, count, rbuf);
 		} /* if (FD_ISSET(fromCgi.rd)) */
 	} /* while (1) */
-	_exit(0);
+	log_and_exit();
 }
 #endif          /* FEATURE_HTTPD_CGI */
 
@@ -1329,14 +1342,14 @@ static void send_file_and_exit(const char *url)
 		send_headers_and_exit(HTTP_NOT_FOUND);
 	}
 
-	sendHeaders(HTTP_OK);
+	send_headers(HTTP_OK);
 	fd = accepted_socket;
 	if (fd == 0)
 		fd++; /* write to fd #1 in inetd mode */
 
 	/* If you want to know about EPIPE below
 	 * (happens if you abort downloads from local httpd): */
-	/* signal(SIGPIPE, SIG_IGN); */
+	signal(SIGPIPE, SIG_IGN);
 
 #if ENABLE_FEATURE_HTTPD_USE_SENDFILE
 	do {
@@ -1348,7 +1361,7 @@ static void send_file_and_exit(const char *url)
 			goto fin;
 		}
 	} while (count > 0);
-	_exit(0);
+	log_and_exit();
 
  fallback:
 #endif
@@ -1363,12 +1376,12 @@ static void send_file_and_exit(const char *url)
 #endif
 	if (count < 0 && verbose > 1)
 		bb_perror_msg("error");
-	_exit(0);
+	log_and_exit();
 }
 
 static int checkPermIP(void)
 {
-	Htaccess_IP * cur;
+	Htaccess_IP *cur;
 
 	/* This could stand some work */
 	for (cur = ip_a_d; cur; cur = cur->next) {
@@ -1517,8 +1530,10 @@ static void handle_incoming_and_exit(void)
 	sigaction(SIGALRM, &sa, NULL);
 	alarm(HEADER_READ_TIMEOUT);
 
-	if (!get_line())
-		_exit(0);  /* EOF or error or empty line */
+	if (!get_line()) {
+		/* EOF or error or empty line */
+		send_headers_and_exit(HTTP_BAD_REQUEST);
+	}
 
 	/* Determine type of request (GET/POST) */
 	purl = strpbrk(iobuf, " \t");
@@ -1644,7 +1659,7 @@ static void handle_incoming_and_exit(void)
 				if (prequest != request_GET) {
 					test = iobuf + sizeof("Content-length:") - 1;
 					if (!test[0])
-						_exit(0);
+						send_headers_and_exit(HTTP_BAD_REQUEST);
 					errno = 0;
 					/* not using strtoul: it ignores leading minus! */
 					length = strtol(test, &test, 10);
@@ -1652,7 +1667,7 @@ static void handle_incoming_and_exit(void)
 					/* so we check for negative or too large values in one go: */
 					/* (long -> ulong conv caused negatives to be seen as > INT_MAX) */
 					if (test[0] || errno || length > INT_MAX)
-						_exit(0);
+						send_headers_and_exit(HTTP_BAD_REQUEST);
 				}
 			} else if (STRNCASECMP(iobuf, "Cookie:") == 0) {
 				cookie = strdup(skip_whitespace(iobuf + sizeof("Cookie:")-1));
@@ -1682,7 +1697,7 @@ static void handle_incoming_and_exit(void)
 		} /* while extra header reading */
 	}
 
-	/* We read everything, disable peer timeout */
+	/* We read headers, disable peer timeout */
 	alarm(0);
 
 	if (strcmp(bb_basename(url), httpd_conf) == 0 || ip_allowed == 0) {
@@ -1779,7 +1794,7 @@ static void handle_incoming_and_exit(void)
 	} while (retval > 0 && read(accepted_socket, iobuf, sizeof(iobuf) > 0));
 	shutdown(accepted_socket, SHUT_RD);
 	close(accepted_socket);
-	_exit(0);
+	log_and_exit();
 #endif
 }
 
@@ -2003,12 +2018,14 @@ int httpd_main(int argc, char **argv)
 #else
 	parse_conf(default_path_httpd_conf, FIRST_PARSE);
 #endif
+	xfunc_error_retval = 0;
 	if (opt & OPT_INETD)
 		mini_httpd_inetd();
 	if (!(opt & OPT_FOREGROUND))
 		bb_daemonize(0); /* don't change current directory */
 	mini_httpd(server_socket); /* never returns */
 #else
+	xfunc_error_retval = 0;
 	mini_httpd_inetd(); /* never returns */
 	/* return 0; */
 #endif
