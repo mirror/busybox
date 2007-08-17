@@ -107,9 +107,9 @@ static const char httpd_conf[] ALIGN1 = "httpd.conf";
 #define TIMEOUT 60
 
 // Note: busybox xfuncs are not used because we want the server to keep running
-//       if something bad happens due to a malformed user request.
-//       As a result, all memory allocation after daemonize
-//       is checked rigorously
+// if something bad happens due to a malformed user request.
+// As a result, all memory allocations after daemonize
+// are checked rigorously
 
 //#define DEBUG 1
 #define DEBUG 0
@@ -875,7 +875,7 @@ static int sendHeaders(HttpResponseNum responseNum)
 				found_mime_type : "text/html";
 
 	if (verbose)
-		write(2, iobuf, sprintf(iobuf, "%s response:%u\n", rmt_ip_str, responseNum));
+		bb_error_msg("response:%u", responseNum);
 
 	/* emit the current date */
 	strftime(tmp_str, sizeof(tmp_str), RFC1123FMT, gmtime(&timer));
@@ -946,34 +946,34 @@ static int get_line(void)
 }
 
 #if ENABLE_FEATURE_HTTPD_CGI
-/****************************************************************************
+/*
+ * Spawn CGI script, forward CGI's stdin/out <=> network
  *
- > $Function: sendCgi()
+ * Environment variables are set up and the script is invoked with pipes
+ * for stdin/stdout.  If a post is being done the script is fed the POST
+ * data in addition to setting the QUERY_STRING variable (for GETs or POSTs).
  *
- * $Description: Execute a CGI script and send it's stdout back
- *
- *   Environment variables are set up and the script is invoked with pipes
- *   for stdin/stdout.  If a post is being done the script is fed the POST
- *   data in addition to setting the QUERY_STRING variable (for GETs or POSTs).
- *
- * $Parameters:
- *      (const char *) url . . . . . . The requested URL (with leading /).
- *      (int bodyLen)  . . . . . . . . Length of the post body.
- *      (const char *cookie) . . . . . For set HTTP_COOKIE.
- *      (const char *content_type) . . For set CONTENT_TYPE.
- *
- * $Return: (char *)  . . . . A pointer to the decoded string (same as input).
- *
- * $Errors: None
- *
- ****************************************************************************/
-static int sendCgi(const char *url,
-		const char *request, int bodyLen, const char *cookie,
+ * Parameters:
+ * const char *url              The requested URL (with leading /).
+ * int bodyLen                  Length of the post body.
+ * const char *cookie           For set HTTP_COOKIE.
+ * const char *content_type     For set CONTENT_TYPE.
+ */
+static void send_cgi_and_exit(
+		const char *url,
+		const char *request,
+		int bodyLen,
+		const char *cookie,
+		const char *content_type) ATTRIBUTE_NORETURN;
+static void send_cgi_and_exit(
+		const char *url,
+		const char *request,
+		int bodyLen,
+		const char *cookie,
 		const char *content_type)
 {
 	struct { int rd; int wr; } fromCgi;  /* CGI -> httpd pipe */
 	struct { int rd; int wr; } toCgi;    /* httpd -> CGI pipe */
-	char *fullpath;
 	char *argp[] = { NULL, NULL };
 	int pid = 0;
 	int inFd;
@@ -982,10 +982,8 @@ static int sendCgi(const char *url,
 	int status;
 	size_t post_read_size, post_read_idx;
 
-	if (pipe(&fromCgi.rd) != 0)
-		return 0;
-	if (pipe(&toCgi.rd) != 0)
-		return 0;
+	xpipe(&fromCgi.rd);
+	xpipe(&toCgi.rd);
 
 /*
  * Note: We can use vfork() here in the no-mmu case, although
@@ -995,26 +993,25 @@ static int sendCgi(const char *url,
  *    exits. This happens instantly after the child finishes,
  *    since httpd is run from inetd (and it can't run standalone
  *    in uClinux).
+ * TODO: we can muck with environment _first_ and then fork/exec,
+ * that will be more understandable, and safer wrt vfork!
  */
 
-// FIXME: setenv leaks memory! (old values of env vars are leaked)
-// Thus we have a bug on NOMMU.
-// Need to use this instead:
-// [malloc +] putenv + (in child: exec) + (in parent: unsetenv [+ free])
-
 #if !BB_MMU
-	fullpath = NULL;
 	pid = vfork();
 #else
 	pid = fork();
 #endif
 	if (pid < 0)
-		return 0;
+		_exit(0);
 
 	if (!pid) {
 		/* child process */
+		char *fullpath;
 		char *script;
 		char *purl;
+
+		xfunc_error_retval = 242;
 
 		if (accepted_socket > 1)
 			close(accepted_socket);
@@ -1026,13 +1023,12 @@ static int sendCgi(const char *url,
 		close(fromCgi.rd);
 		close(toCgi.wr);
 		/* Huh? User seeing stderr can be a security problem.
-		 * If CGI really wants that, it can always dup2(1,2). */
+		 * If CGI really wants that, it can always do dup itself. */
 		/* dup2(1, 2); */
 
 		/*
 		 * Find PATH_INFO.
 		 */
-		xfunc_error_retval = 242;
 		purl = xstrdup(url);
 		script = purl;
 		while ((script = strchr(script + 1, '/')) != NULL) {
@@ -1040,7 +1036,7 @@ static int sendCgi(const char *url,
 			struct stat sb;
 
 			*script = '\0';
-			if (is_directory(purl + 1, 1, &sb) == 0) {
+			if (!is_directory(purl + 1, 1, &sb)) {
 				/* not directory, found script.cgi/PATH_INFO */
 				*script = '/';
 				break;
@@ -1050,10 +1046,7 @@ static int sendCgi(const char *url,
 		setenv1("PATH_INFO", script);   /* set /PATH_INFO or "" */
 		setenv1("REQUEST_METHOD", request);
 		if (g_query) {
-			char *uri = alloca(strlen(purl) + 2 + strlen(g_query));
-			if (uri)
-				sprintf(uri, "%s?%s", purl, g_query);
-			setenv1("REQUEST_URI", uri);
+			putenv(xasprintf("%s=%s?%s", "REQUEST_URI", purl, g_query));
 		} else {
 			setenv1("REQUEST_URI", purl);
 		}
@@ -1082,7 +1075,7 @@ static int sendCgi(const char *url,
 		 * IOW - REMOTE_PEER="1.2.3.4:56" makes much more sense.
 		 * Oh well... */
 		{
-			char *p = rmt_ip_str ? : (char*)"";
+			char *p = rmt_ip_str ? rmt_ip_str : (char*)"";
 			char *cp = strrchr(p, ':');
 			if (ENABLE_FEATURE_IPV6 && cp && strchr(cp, ']'))
 				cp = NULL;
@@ -1150,10 +1143,6 @@ static int sendCgi(const char *url,
 	} /* end child */
 
 	/* parent process */
-#if !BB_MMU
-	free(fullpath);
-#endif
-
 	buf_count = 0;
 	post_read_size = 0;
 	post_read_idx = 0; /* for gcc */
@@ -1306,23 +1295,15 @@ static int sendCgi(const char *url,
 				fprintf(stderr, "cgi read %d bytes: '%.*s'\n", count, count, rbuf);
 		} /* if (FD_ISSET(inFd)) */
 	} /* while (1) */
-	return 0;
+	_exit(0);
 }
 #endif          /* FEATURE_HTTPD_CGI */
 
-/****************************************************************************
- *
- > $Function: sendFile()
- *
- * $Description: Send a file response to a HTTP request
- *
- * $Parameter:
- *      (const char *) url . . The URL requested.
- *
- * $Return: (int)  . . . . . . Always 0.
- *
- ****************************************************************************/
-static int sendFile(const char *url)
+/*
+ * Send a file response to a HTTP request, and exit
+ */
+static void send_file_and_exit(const char *url) ATTRIBUTE_NORETURN;
+static void send_file_and_exit(const char *url)
 {
 	char *suffix;
 	int f;
@@ -1365,13 +1346,18 @@ static int sendFile(const char *url)
 		if (DEBUG)
 			bb_perror_msg("cannot open '%s'", url);
 		sendHeaders(HTTP_NOT_FOUND);
-		return 0;
+		_exit(0);
 	}
 
 	sendHeaders(HTTP_OK);
 	fd = accepted_socket;
 	if (fd == 0)
 		fd++; /* write to fd #1 in inetd mode */
+
+	/* If you want to know about EPIPEs below
+	 * (happen if you abort downloads from local httpd) */
+	/*signal(SIGPIPE, SIG_IGN);*/
+
 #if ENABLE_FEATURE_HTTPD_USE_SENDFILE
 	do {
 		/* byte count is rounded down to 64k */
@@ -1379,20 +1365,26 @@ static int sendFile(const char *url)
 		if (count < 0) {
 			if (offset == 0)
 				goto fallback;
-			bb_perror_msg("sendfile '%s'", url);
+			goto fin;
 		}
 	} while (count > 0);
-	close(f);
-	return 0;
+	_exit(0);
 
  fallback:
 #endif
+	/* TODO: why full_read? safe_read maybe? */
 	while ((count = full_read(f, iobuf, MAX_MEMORY_BUF)) > 0) {
-		if (full_write(fd, iobuf, count) != count)
+		ssize_t n = count;
+		count = full_write(fd, iobuf, count);
+		if (count != n)
 			break;
 	}
-	close(f);
-	return 0;
+#if ENABLE_FEATURE_HTTPD_USE_SENDFILE
+ fin:
+#endif
+	if (count < 0)
+		bb_perror_msg("error:%u", errno);
+	_exit(0);
 }
 
 static int checkPermIP(void)
@@ -1645,11 +1637,8 @@ static void handle_incoming_and_exit(void)
 				found_moved_temporarily = url;
 			}
 		}
-		if (verbose > 1) {
-			/* Hopefully does it with single write[v] */
-			/* (uclibc does, glibc: ?) */
-			fdprintf(2, "%s url:%s\n", rmt_ip_str, url);
-		}
+		if (verbose > 1)
+			bb_error_msg("url:%s", url);
 
 		test = url;
 		ip_allowed = checkPermIP();
@@ -1671,8 +1660,7 @@ static void handle_incoming_and_exit(void)
 					break; /* EOF or error or empty line */
 
 				if (DEBUG)
-					fprintf(stderr, "header: '%s'\n", iobuf);
-
+					bb_error_msg("header: '%s'", iobuf);
 #if ENABLE_FEATURE_HTTPD_CGI
 				/* try and do our best to parse more lines */
 				if ((STRNCASECMP(iobuf, "Content-length:") == 0)) {
@@ -1700,7 +1688,6 @@ static void handle_incoming_and_exit(void)
 					user_agent = strdup(skip_whitespace(iobuf + sizeof("User-Agent:")-1));
 				}
 #endif
-
 #if ENABLE_FEATURE_HTTPD_BASIC_AUTH
 				if (STRNCASECMP(iobuf, "Authorization:") == 0) {
 					/* We only allow Basic credentials.
@@ -1716,7 +1703,6 @@ static void handle_incoming_and_exit(void)
 					credentials = checkPerm(url, test);
 				}
 #endif          /* FEATURE_HTTPD_BASIC_AUTH */
-
 			} /* while extra header reading */
 		}
 		alarm(0);
@@ -1752,8 +1738,7 @@ static void handle_incoming_and_exit(void)
 		if (strncmp(test, "cgi-bin", 7) == 0) {
 			if (test[7] == '/' && test[8] == '\0')
 				goto FORBIDDEN;     /* protect listing cgi-bin/ */
-			sendCgi(url, prequest, length, cookie, content_type);
-			break;
+			send_cgi_and_exit(url, prequest, length, cookie, content_type);
 		}
 #if ENABLE_FEATURE_HTTPD_CONFIG_WITH_SCRIPT_INTERPR
 		{
@@ -1762,8 +1747,7 @@ static void handle_incoming_and_exit(void)
 				Htaccess *cur;
 				for (cur = script_i; cur; cur = cur->next) {
 					if (strcmp(cur->before_colon + 1, suffix) == 0) {
-						sendCgi(url, prequest, length, cookie, content_type);
-						goto bail_out;
+						send_cgi_and_exit(url, prequest, length, cookie, content_type);
 					}
 				}
 			}
@@ -1788,20 +1772,18 @@ static void handle_incoming_and_exit(void)
 			if (access("/cgi-bin/index.cgi"+1, X_OK) == 0) {
 				purl[0] = '\0';
 				g_query = url;
-				sendCgi("/cgi-bin/index.cgi", prequest, length, cookie, content_type);
-				break;
+				send_cgi_and_exit("/cgi-bin/index.cgi", prequest, length, cookie, content_type);
 			}
 		}
 #endif  /* FEATURE_HTTPD_CGI */
-		sendFile(test);
-		ContentLength = -1;
+		send_file_and_exit(test);
 	} while (0);
 
 #if ENABLE_FEATURE_HTTPD_CGI
  bail_out:
 #endif
 
-	exit(0);
+	_exit(0);
 
 #if 0 /* Is this needed? Why? */
 	if (DEBUG)
@@ -1830,7 +1812,7 @@ static void handle_incoming_and_exit(void)
 	} while (retval > 0 && read(accepted_socket, iobuf, sizeof(iobuf) > 0));
 	shutdown(accepted_socket, SHUT_RD);
 	close(accepted_socket);
-	exit(0);
+	_exit(0);
 #endif
 }
 
@@ -1844,6 +1826,7 @@ static void handle_incoming_and_exit(void)
 static void mini_httpd(int server) ATTRIBUTE_NORETURN;
 static void mini_httpd(int server)
 {
+// TODO: use accept WITHOUT select, it will just block there
 	fd_set readfd, portfd;
 
 	FD_ZERO(&portfd);
@@ -1857,9 +1840,10 @@ static void mini_httpd(int server)
 			struct sockaddr_in sin;
 			USE_FEATURE_IPV6(struct sockaddr_in6 sin6;)
 		} fromAddr;
+// TODO: this looks like lsa to me
 		socklen_t fromAddrLen = sizeof(fromAddr);
 
-		/* Now wait INDEFINITELY on the set of sockets! */
+		/* Now wait INDEFINITELY on the set of sockets */
 		readfd = portfd;
 		if (select(server + 1, &readfd, 0, 0, 0) <= 0)
 			continue;
@@ -1871,7 +1855,7 @@ static void mini_httpd(int server)
 		accepted_socket = s;
 		rmt_ip = 0;
 		tcp_port = 0;
-		if (verbose || ENABLE_FEATURE_HTTPD_CGI || DEBUG) {
+		if (ENABLE_FEATURE_HTTPD_CGI || DEBUG || verbose) {
 			free(rmt_ip_str);
 			rmt_ip_str = xmalloc_sockaddr2dotted(&fromAddr.sa, fromAddrLen);
 			if (DEBUG)
@@ -1879,6 +1863,7 @@ static void mini_httpd(int server)
 		}
 		if (fromAddr.sa.sa_family == AF_INET) {
 			rmt_ip = ntohl(fromAddr.sin.sin_addr.s_addr);
+// TODO: use get_nport?
 			tcp_port = ntohs(fromAddr.sin.sin_port);
 		}
 #if ENABLE_FEATURE_IPV6
@@ -1897,11 +1882,15 @@ static void mini_httpd(int server)
 			/* Do not reload config on HUP */
 			signal(SIGHUP, SIG_IGN);
 #endif
+			if (verbose) {
+				/* this trick makes -v logging much simpler */
+				applet_name = rmt_ip_str;
+			}
 			handle_incoming_and_exit();
 		}
 		close(s);
 	} /* while (1) */
-	/* return 0; - never reached */
+	/* never reached */
 }
 #endif
 
@@ -1914,6 +1903,7 @@ static void mini_httpd_inetd(void)
 		struct sockaddr_in sin;
 		USE_FEATURE_IPV6(struct sockaddr_in6 sin6;)
 	} fromAddr;
+// TODO: this looks like lsa to me
 	socklen_t fromAddrLen = sizeof(fromAddr);
 
 	getpeername(0, &fromAddr.sa, &fromAddrLen);
