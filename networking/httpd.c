@@ -133,7 +133,6 @@ struct globals {
 	int server_socket;
 	int accepted_socket;
 	int verbose;
-	volatile smallint alarm_signaled;
 	smallint flg_deny_all;
 
 	unsigned rmt_ip;
@@ -172,7 +171,6 @@ struct globals {
 #define server_socket     (G.server_socket    )
 #define accepted_socket   (G.accepted_socket  )
 #define verbose           (G.verbose          )
-#define alarm_signaled    (G.alarm_signaled   )
 #define flg_deny_all      (G.flg_deny_all     )
 #define rmt_ip            (G.rmt_ip           )
 #define tcp_port          (G.tcp_port         )
@@ -920,6 +918,13 @@ static int sendHeaders(HttpResponseNum responseNum)
 	return full_write(i, iobuf, len);
 }
 
+static void send_headers_and_exit(HttpResponseNum responseNum) ATTRIBUTE_NORETURN;
+static void send_headers_and_exit(HttpResponseNum responseNum)
+{
+	sendHeaders(responseNum);
+	_exit(0);
+}
+
 /*
  * Read from the socket until '\n' or EOF. '\r' chars are removed.
  * '\n' is replaced with NUL.
@@ -976,8 +981,6 @@ static void send_cgi_and_exit(
 	struct { int rd; int wr; } toCgi;    /* httpd -> CGI pipe */
 	char *argp[] = { NULL, NULL };
 	int pid = 0;
-	int inFd;
-	int outFd;
 	int buf_count;
 	int status;
 	size_t post_read_size, post_read_idx;
@@ -1104,15 +1107,16 @@ static void send_cgi_and_exit(
 
 		/* set execve argp[0] without path */
 		argp[0] = (char*)bb_basename(purl);
-		/* but script argp[0] must have absolute path and chdiring to this */
+		/* but script argp[0] must have absolute path */
 		script = strrchr(fullpath, '/');
 		if (!script)
 			goto error_execing_cgi;
 		*script = '\0';
+		/* chdiring to script's dir */
 		if (chdir(fullpath) == 0) {
-			// Now run the program.  If it fails,
-			// use _exit() so no destructors
-			// get called and make a mess.
+			/* Now run the program.  If it fails,
+			 * use _exit() so no destructors
+			 * get called and make a mess. */
 #if ENABLE_FEATURE_HTTPD_CONFIG_WITH_SCRIPT_INTERPR
 			char *interpr = NULL;
 			char *suffix = strrchr(purl, '.');
@@ -1136,7 +1140,8 @@ static void send_cgi_and_exit(
 				execv(fullpath, argp);
 		}
  error_execing_cgi:
-		/* send to stdout (even if we are not from inetd) */
+		/* send to stdout
+		 * (we are CGI here, our stdout is pumped to the net) */
 		accepted_socket = 1;
 		sendHeaders(HTTP_NOT_FOUND);
 		_exit(242);
@@ -1146,10 +1151,11 @@ static void send_cgi_and_exit(
 	buf_count = 0;
 	post_read_size = 0;
 	post_read_idx = 0; /* for gcc */
-	inFd = fromCgi.rd;
-	outFd = toCgi.wr;
 	close(fromCgi.wr);
 	close(toCgi.rd);
+
+	/* If CGI dies, we still want to correctly finish reading its output
+	 * and send it to the peer. So please no SIGPIPEs! */
 	signal(SIGPIPE, SIG_IGN);
 
 	while (1) {
@@ -1159,12 +1165,17 @@ static void send_cgi_and_exit(
 		int nfound;
 		int count;
 
+		/* This loop still looks messy. What is an exit criteria?
+		 * "CGI's output closed"? Or "CGI has exited"?
+		 * What to do if CGI has closed both input and output, but
+		 * didn't exit? etc... */
+
 		FD_ZERO(&readSet);
 		FD_ZERO(&writeSet);
-		FD_SET(inFd, &readSet);
+		FD_SET(fromCgi.rd, &readSet);
 		if (bodyLen > 0 || post_read_size > 0) {
-			FD_SET(outFd, &writeSet);
-			nfound = outFd > inFd ? outFd : inFd;
+			FD_SET(toCgi.wr, &writeSet);
+			nfound = toCgi.wr > fromCgi.rd ? toCgi.wr : fromCgi.rd;
 			if (post_read_size == 0) {
 				FD_SET(accepted_socket, &readSet);
 				if (nfound < accepted_socket)
@@ -1174,10 +1185,10 @@ static void send_cgi_and_exit(
 			nfound = select(nfound + 1, &readSet, &writeSet, NULL, NULL);
 		} else {
 			if (!bodyLen) {
-				close(outFd); /* no more POST data to CGI */
+				close(toCgi.wr); /* no more POST data to CGI */
 				bodyLen = -1;
 			}
-			nfound = select(inFd + 1, &readSet, NULL, NULL, NULL);
+			nfound = select(fromCgi.rd + 1, &readSet, NULL, NULL, NULL);
 		}
 
 		if (nfound <= 0) {
@@ -1186,24 +1197,26 @@ static void send_cgi_and_exit(
 				 * are ready, yet select returned?! */
 				continue;
 			}
-			close(inFd);
+			close(fromCgi.rd);
 			if (DEBUG && WIFEXITED(status))
-				bb_error_msg("piped has exited with status=%d", WEXITSTATUS(status));
+				bb_error_msg("CGI exited, status=%d", WEXITSTATUS(status));
 			if (DEBUG && WIFSIGNALED(status))
-				bb_error_msg("piped has exited with signal=%d", WTERMSIG(status));
+				bb_error_msg("CGI killed, signal=%d", WTERMSIG(status));
 			break;
 		}
 
-		if (post_read_size > 0 && FD_ISSET(outFd, &writeSet)) {
+		if (post_read_size > 0 && FD_ISSET(toCgi.wr, &writeSet)) {
 			/* Have data from peer and can write to CGI */
-		// huh? why full_write? what if we will block?
-		// (imagine that CGI does not read its stdin...)
-			count = full_write(outFd, wbuf + post_read_idx, post_read_size);
+			count = safe_write(toCgi.wr, wbuf + post_read_idx, post_read_size);
+			/* Doesn't happen, we dont use nonblocking IO here
+			 *if (count < 0 && errno == EAGAIN) {
+			 *	...
+			 *} else */
 			if (count > 0) {
 				post_read_idx += count;
 				post_read_size -= count;
 			} else {
-				post_read_size = bodyLen = 0; /* broken pipe to CGI */
+				post_read_size = bodyLen = 0; /* EOF/broken pipe to CGI */
 			}
 		} else if (bodyLen > 0 && post_read_size == 0
 		 && FD_ISSET(accepted_socket, &readSet)
@@ -1226,7 +1239,7 @@ static void send_cgi_and_exit(
 #if PIPESIZE >= MAX_MEMORY_BUF
 # error "PIPESIZE >= MAX_MEMORY_BUF"
 #endif
-		if (FD_ISSET(inFd, &readSet)) {
+		if (FD_ISSET(fromCgi.rd, &readSet)) {
 			/* There is something to read from CGI */
 			int s = accepted_socket;
 			char *rbuf = iobuf;
@@ -1245,7 +1258,7 @@ static void send_cgi_and_exit(
 				 * CGI may output a few first bytes and then wait
 				 * for POSTDATA without closing stdout.
 				 * With full_read we may wait here forever. */
-				count = safe_read(inFd, rbuf + buf_count, PIPESIZE - 8);
+				count = safe_read(fromCgi.rd, rbuf + buf_count, PIPESIZE - 8);
 				if (count <= 0) {
 					/* eof (or error) and there was no "HTTP",
 					 * so write it, then write received data */
@@ -1285,7 +1298,7 @@ static void send_cgi_and_exit(
 					buf_count = -1; /* buffering off */
 				}
 			} else {
-				count = safe_read(inFd, rbuf, PIPESIZE);
+				count = safe_read(fromCgi.rd, rbuf, PIPESIZE);
 				if (count <= 0)
 					break;  /* eof (or error) */
 			}
@@ -1293,7 +1306,7 @@ static void send_cgi_and_exit(
 				break;
 			if (DEBUG)
 				fprintf(stderr, "cgi read %d bytes: '%.*s'\n", count, count, rbuf);
-		} /* if (FD_ISSET(inFd)) */
+		} /* if (FD_ISSET(fromCgi.rd)) */
 	} /* while (1) */
 	_exit(0);
 }
@@ -1338,15 +1351,14 @@ static void send_file_and_exit(const char *url)
 #endif  /* FEATURE_HTTPD_CONFIG_WITH_MIME_TYPES */
 
 	if (DEBUG)
-		fprintf(stderr, "sending file '%s' content-type: %s\n",
+		bb_error_msg("sending file '%s' content-type: %s",
 			url, found_mime_type);
 
 	f = open(url, O_RDONLY);
 	if (f < 0) {
 		if (DEBUG)
 			bb_perror_msg("cannot open '%s'", url);
-		sendHeaders(HTTP_NOT_FOUND);
-		_exit(0);
+		send_headers_and_exit(HTTP_NOT_FOUND);
 	}
 
 	sendHeaders(HTTP_OK);
@@ -1354,13 +1366,13 @@ static void send_file_and_exit(const char *url)
 	if (fd == 0)
 		fd++; /* write to fd #1 in inetd mode */
 
-	/* If you want to know about EPIPEs below
-	 * (happen if you abort downloads from local httpd) */
-	/*signal(SIGPIPE, SIG_IGN);*/
+	/* If you want to know about EPIPE below
+	 * (happens if you abort downloads from local httpd): */
+	/* signal(SIGPIPE, SIG_IGN); */
 
 #if ENABLE_FEATURE_HTTPD_USE_SENDFILE
 	do {
-		/* byte count is rounded down to 64k */
+		/* byte count (3rd arg) is rounded down to 64k */
 		count = sendfile(fd, f, &offset, MAXINT(ssize_t) - 0xffff);
 		if (count < 0) {
 			if (offset == 0)
@@ -1372,8 +1384,7 @@ static void send_file_and_exit(const char *url)
 
  fallback:
 #endif
-	/* TODO: why full_read? safe_read maybe? */
-	while ((count = full_read(f, iobuf, MAX_MEMORY_BUF)) > 0) {
+	while ((count = safe_read(f, iobuf, MAX_MEMORY_BUF)) > 0) {
 		ssize_t n = count;
 		count = full_write(fd, iobuf, count);
 		if (count != n)
@@ -1382,8 +1393,8 @@ static void send_file_and_exit(const char *url)
 #if ENABLE_FEATURE_HTTPD_USE_SENDFILE
  fin:
 #endif
-	if (count < 0)
-		bb_perror_msg("error:%u", errno);
+	if (count < 0 && verbose > 1)
+		bb_perror_msg("error");
 	_exit(0);
 }
 
@@ -1487,10 +1498,10 @@ static int checkPerm(const char *path, const char *request)
 			}
 
 			if (strcmp(p, request) == 0) {
-set_remoteuser_var:
+ set_remoteuser_var:
 				remoteuser = strdup(request);
 				if (remoteuser)
-					remoteuser[(u - request)] = 0;
+					remoteuser[(u - request)] = '\0';
 				return 1;   /* Ok */
 			}
 			/* unauthorized */
@@ -1505,10 +1516,10 @@ set_remoteuser_var:
 /*
  * Handle timeouts
  */
-static void handle_sigalrm(int sig)
+static void exit_on_signal(int sig) ATTRIBUTE_NORETURN;
+static void exit_on_signal(int sig)
 {
-	sendHeaders(HTTP_REQUEST_TIMEOUT);
-	alarm_signaled = 1;
+	send_headers_and_exit(HTTP_REQUEST_TIMEOUT);
 }
 
 /*
@@ -1519,6 +1530,7 @@ static void handle_incoming_and_exit(void)
 {
 	char *url;
 	char *purl;
+	int count;
 	int blank = -1;
 	char *test;
 	struct stat sb;
@@ -1535,7 +1547,7 @@ static void handle_incoming_and_exit(void)
 	int credentials = -1;  /* if not required this is Ok */
 #endif
 
-	sa.sa_handler = handle_sigalrm;
+	sa.sa_handler = exit_on_signal;
 	sigemptyset(&sa.sa_mask);
 	sa.sa_flags = 0; /* no SA_RESTART */
 	sigaction(SIGALRM, &sa, NULL);
@@ -1543,31 +1555,25 @@ static void handle_incoming_and_exit(void)
 	/* It's not a real loop (it ends with while(0)).
 	 * Break from this "loop" jumps to exit(0) */
 	do {
-		int count;
-
 		alarm(TIMEOUT);
 		if (!get_line())
-			break;  /* EOF or error or empty line */
+			_exit(0);  /* EOF or error or empty line */
 
 		purl = strpbrk(iobuf, " \t");
 		if (purl == NULL) {
- BAD_REQUEST:
-			sendHeaders(HTTP_BAD_REQUEST);
-			break;
+			send_headers_and_exit(HTTP_BAD_REQUEST);
 		}
 		*purl = '\0';
 #if ENABLE_FEATURE_HTTPD_CGI
 		if (strcasecmp(iobuf, prequest) != 0) {
 			prequest = "POST";
 			if (strcasecmp(iobuf, prequest) != 0) {
-				sendHeaders(HTTP_NOT_IMPLEMENTED);
-				break;
+				send_headers_and_exit(HTTP_NOT_IMPLEMENTED);
 			}
 		}
 #else
 		if (strcasecmp(iobuf, request_GET) != 0) {
-			sendHeaders(HTTP_NOT_IMPLEMENTED);
-			break;
+			send_headers_and_exit(HTTP_NOT_IMPLEMENTED);
 		}
 #endif
 		*purl = ' ';
@@ -1575,12 +1581,11 @@ static void handle_incoming_and_exit(void)
 
 		if (count < 1 || iobuf[0] != '/') {
 			/* Garbled request/URL */
-			goto BAD_REQUEST;
+			send_headers_and_exit(HTTP_BAD_REQUEST);
 		}
 		url = alloca(strlen(iobuf) + sizeof("/index.html"));
 		if (url == NULL) {
-			sendHeaders(HTTP_INTERNAL_SERVER_ERROR);
-			break;
+			send_headers_and_exit(HTTP_INTERNAL_SERVER_ERROR);
 		}
 		strcpy(url, iobuf);
 		/* extract url args if present */
@@ -1593,11 +1598,10 @@ static void handle_incoming_and_exit(void)
 
 		test = decodeString(url, 0);
 		if (test == NULL)
-			goto BAD_REQUEST;
-		if (test == url+1) {
+			send_headers_and_exit(HTTP_BAD_REQUEST);
+		if (test == url + 1) {
 			/* '/' or NUL is encoded */
-			sendHeaders(HTTP_NOT_FOUND);
-			break;
+			send_headers_and_exit(HTTP_NOT_FOUND);
 		}
 
 		/* algorithm stolen from libbb bb_simplify_path(),
@@ -1619,7 +1623,7 @@ static void handle_incoming_and_exit(void)
 						++test;
 						if (purl == url) {
 							/* protect root */
-							goto BAD_REQUEST;
+							send_headers_and_exit(HTTP_BAD_REQUEST);
 						}
 						while (*--purl != '/') /* omit previous dir */;
 							continue;
@@ -1668,7 +1672,7 @@ static void handle_incoming_and_exit(void)
 					if (prequest != request_GET) {
 						test = iobuf + sizeof("Content-length:") - 1;
 						if (!test[0])
-							goto bail_out;
+							_exit(0);
 						errno = 0;
 						/* not using strtoul: it ignores leading minus! */
 						length = strtol(test, &test, 10);
@@ -1676,7 +1680,7 @@ static void handle_incoming_and_exit(void)
 						/* so we check for negative or too large values in one go: */
 						/* (long -> ulong conv caused negatives to be seen as > INT_MAX) */
 						if (test[0] || errno || length > INT_MAX)
-							goto bail_out;
+							_exit(0);
 					}
 				} else if (STRNCASECMP(iobuf, "Cookie:") == 0) {
 					cookie = strdup(skip_whitespace(iobuf + sizeof("Cookie:")-1));
@@ -1706,38 +1710,30 @@ static void handle_incoming_and_exit(void)
 			} /* while extra header reading */
 		}
 		alarm(0);
-		if (alarm_signaled)
-			break;
 
 		if (strcmp(bb_basename(url), httpd_conf) == 0 || ip_allowed == 0) {
 			/* protect listing [/path]/httpd_conf or IP deny */
-#if ENABLE_FEATURE_HTTPD_CGI
- FORBIDDEN:		/* protect listing /cgi-bin */
-#endif
-			sendHeaders(HTTP_FORBIDDEN);
-			break;
+			send_headers_and_exit(HTTP_FORBIDDEN);
 		}
 
 #if ENABLE_FEATURE_HTTPD_BASIC_AUTH
 		if (credentials <= 0 && checkPerm(url, ":") == 0) {
-			sendHeaders(HTTP_UNAUTHORIZED);
-			break;
+			send_headers_and_exit(HTTP_UNAUTHORIZED);
 		}
 #endif
 
 		if (found_moved_temporarily) {
-			sendHeaders(HTTP_MOVED_TEMPORARILY);
-			/* clear unforked memory flag */
-			found_moved_temporarily = NULL;
-			break;
+			send_headers_and_exit(HTTP_MOVED_TEMPORARILY);
 		}
 
 		test = url + 1;      /* skip first '/' */
 
 #if ENABLE_FEATURE_HTTPD_CGI
 		if (strncmp(test, "cgi-bin", 7) == 0) {
-			if (test[7] == '/' && test[8] == '\0')
-				goto FORBIDDEN;     /* protect listing cgi-bin/ */
+			if (test[7] == '/' && test[8] == '\0') {
+				/* protect listing cgi-bin/ */
+				send_headers_and_exit(HTTP_FORBIDDEN);
+			}
 			send_cgi_and_exit(url, prequest, length, cookie, content_type);
 		}
 #if ENABLE_FEATURE_HTTPD_CONFIG_WITH_SCRIPT_INTERPR
@@ -1754,8 +1750,7 @@ static void handle_incoming_and_exit(void)
 		}
 #endif
 		if (prequest != request_GET) {
-			sendHeaders(HTTP_NOT_IMPLEMENTED);
-			break;
+			send_headers_and_exit(HTTP_NOT_IMPLEMENTED);
 		}
 #endif  /* FEATURE_HTTPD_CGI */
 		if (purl[-1] == '/')
@@ -1778,10 +1773,6 @@ static void handle_incoming_and_exit(void)
 #endif  /* FEATURE_HTTPD_CGI */
 		send_file_and_exit(test);
 	} while (0);
-
-#if ENABLE_FEATURE_HTTPD_CGI
- bail_out:
-#endif
 
 	_exit(0);
 
@@ -1826,55 +1817,31 @@ static void handle_incoming_and_exit(void)
 static void mini_httpd(int server) ATTRIBUTE_NORETURN;
 static void mini_httpd(int server)
 {
-// TODO: use accept WITHOUT select, it will just block there
-	fd_set readfd, portfd;
-
-	FD_ZERO(&portfd);
-	FD_SET(server, &portfd);
-
 	/* copy the ports we are watching to the readfd set */
 	while (1) {
-		int s;
-		union {
-			struct sockaddr sa;
-			struct sockaddr_in sin;
-			USE_FEATURE_IPV6(struct sockaddr_in6 sin6;)
-		} fromAddr;
-// TODO: this looks like lsa to me
-		socklen_t fromAddrLen = sizeof(fromAddr);
+		int n;
+		len_and_sockaddr fromAddr;
+		
+		/* Wait for connections... */
+		fromAddr.len = LSA_SIZEOF_SA;
+		n = accept(server, &fromAddr.sa, &fromAddr.len);
 
-		/* Now wait INDEFINITELY on the set of sockets */
-		readfd = portfd;
-		if (select(server + 1, &readfd, 0, 0, 0) <= 0)
+		if (n < 0)
 			continue;
-		if (!FD_ISSET(server, &readfd))
-			continue;
-		s = accept(server, &fromAddr.sa, &fromAddrLen);
-		if (s < 0)
-			continue;
-		accepted_socket = s;
+		/* set the KEEPALIVE option to cull dead connections */
+		setsockopt(n, SOL_SOCKET, SO_KEEPALIVE, &const_int_1, sizeof(const_int_1));
+		accepted_socket = n;
+
+		n = get_nport(&fromAddr.sa);
+		tcp_port = ntohs(n);
 		rmt_ip = 0;
-		tcp_port = 0;
-		if (ENABLE_FEATURE_HTTPD_CGI || DEBUG || verbose) {
-			free(rmt_ip_str);
-			rmt_ip_str = xmalloc_sockaddr2dotted(&fromAddr.sa, fromAddrLen);
-			if (DEBUG)
-				bb_error_msg("connection from '%s'", rmt_ip_str);
-		}
 		if (fromAddr.sa.sa_family == AF_INET) {
 			rmt_ip = ntohl(fromAddr.sin.sin_addr.s_addr);
-// TODO: use get_nport?
-			tcp_port = ntohs(fromAddr.sin.sin_port);
 		}
-#if ENABLE_FEATURE_IPV6
-		if (fromAddr.sa.sa_family == AF_INET6) {
-			//rmt_ip = ntohl(fromAddr.sin.sin_addr.s_addr);
-			tcp_port = ntohs(fromAddr.sin6.sin6_port);
+		if (ENABLE_FEATURE_HTTPD_CGI || DEBUG || verbose) {
+			free(rmt_ip_str);
+			rmt_ip_str = xmalloc_sockaddr2dotted(&fromAddr.sa, fromAddr.len);
 		}
-#endif
-
-		/* set the KEEPALIVE option to cull dead connections */
-		setsockopt(s, SOL_SOCKET, SO_KEEPALIVE, &const_int_1, sizeof(const_int_1));
 
 		if (fork() == 0) {
 			/* child */
@@ -1885,10 +1852,13 @@ static void mini_httpd(int server)
 			if (verbose) {
 				/* this trick makes -v logging much simpler */
 				applet_name = rmt_ip_str;
+				if (verbose > 2)
+					bb_error_msg("connected");
 			}
 			handle_incoming_and_exit();
 		}
-		close(s);
+		/* parent, or fork failed */
+		close(accepted_socket);
 	} /* while (1) */
 	/* never reached */
 }
@@ -1898,31 +1868,20 @@ static void mini_httpd(int server)
 static void mini_httpd_inetd(void) ATTRIBUTE_NORETURN;
 static void mini_httpd_inetd(void)
 {
-	union {
-		struct sockaddr sa;
-		struct sockaddr_in sin;
-		USE_FEATURE_IPV6(struct sockaddr_in6 sin6;)
-	} fromAddr;
-// TODO: this looks like lsa to me
-	socklen_t fromAddrLen = sizeof(fromAddr);
+	int n;
+	len_and_sockaddr fromAddr;
 
-	getpeername(0, &fromAddr.sa, &fromAddrLen);
+	fromAddr.len = LSA_SIZEOF_SA;
+	getpeername(0, &fromAddr.sa, &fromAddr.len);
+	n = get_nport(&fromAddr.sa);
+	tcp_port = ntohs(n);
 	rmt_ip = 0;
-	tcp_port = 0;
-	if (verbose || ENABLE_FEATURE_HTTPD_CGI || DEBUG) {
-		free(rmt_ip_str);
-		rmt_ip_str = xmalloc_sockaddr2dotted(&fromAddr.sa, fromAddrLen);
-	}
 	if (fromAddr.sa.sa_family == AF_INET) {
 		rmt_ip = ntohl(fromAddr.sin.sin_addr.s_addr);
-		tcp_port = ntohs(fromAddr.sin.sin_port);
 	}
-#if ENABLE_FEATURE_IPV6
-	if (fromAddr.sa.sa_family == AF_INET6) {
-		//rmt_ip = ntohl(fromAddr.sin.sin_addr.s_addr);
-		tcp_port = ntohs(fromAddr.sin6.sin6_port);
+	if (ENABLE_FEATURE_HTTPD_CGI || DEBUG || verbose) {
+		rmt_ip_str = xmalloc_sockaddr2dotted(&fromAddr.sa, fromAddr.len);
 	}
-#endif
 	handle_incoming_and_exit();
 }
 
