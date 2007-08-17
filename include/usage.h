@@ -3655,7 +3655,7 @@ USE_FEATURE_RUN_PARTS_FANCY("\n	-l	Prints names of all matching files even when 
        "[-Cfbnqtv] [-c CID] [-V VCLS] [-H HOSTNAME] [-i INTERFACE]\n" \
        "	[-p pidfile] [-r IP] [-s script]"
 #define udhcpc_full_usage \
-       "\n	-V,--vendorclass=CLASSID	Set vendor class identifier" \
+       "	-V,--vendorclass=CLASSID	Set vendor class identifier" \
        "\n	-i,--interface=INTERFACE	Interface to use (default: eth0)" \
        "\n	-H,-h,--hostname=HOSTNAME	Client hostname" \
        "\n	-c,--clientid=CLIENTID	Set client identifier" \
