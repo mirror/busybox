@@ -169,13 +169,18 @@ int ndelay_off(int fd)
 	return fcntl(fd, F_SETFL, fcntl(fd,F_GETFL,0) & ~O_NONBLOCK);
 }
 
+void xdup2(int from, int to)
+{
+	if (dup2(from, to) != to)
+		bb_perror_msg_and_die("can't duplicate file descriptor");
+}
+
 // "Renumber" opened fd
 void xmove_fd(int from, int to)
 {
 	if (from == to)
 		return;
-	if (dup2(from, to) != to)
-		bb_perror_msg_and_die("can't duplicate file descriptor");
+	xdup2(from, to);
 	close(from);
 }
 

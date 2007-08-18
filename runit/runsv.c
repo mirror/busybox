@@ -313,14 +313,11 @@ static void startservice(struct svdir *s)
 		/* child */
 		if (haslog) {
 			if (s->islog) {
-				if (dup2(logpipe[0], 0) == -1)
-					fatal_cannot("setup filedescriptor for ./log/run");
+				xdup2(logpipe[0], 0);
 				close(logpipe[1]);
-				if (chdir("./log") == -1)
-					fatal_cannot("change directory to ./log");
+				xchdir("./log");
 			} else {
-				if (dup2(logpipe[1], 1) == -1)
-					fatal_cannot("setup filedescriptor for ./run");
+				xdup2(logpipe[1], 1);
 				close(logpipe[0]);
 			}
 		}

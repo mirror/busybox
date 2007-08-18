@@ -226,12 +226,6 @@ static void parse_args(int argc, char **argv, struct options *op)
 	debug("exiting parseargs\n");
 }
 
-static void xdup2(int srcfd, int dstfd, const char *tty)
-{
-	if (dup2(srcfd, dstfd) == -1)
-		bb_perror_msg_and_die("%s: dup", tty);
-}
-
 /* open_tty - set up tty as standard { input, output, error } */
 static void open_tty(const char *tty, struct termios *tp, int local)
 {
@@ -255,7 +249,7 @@ static void open_tty(const char *tty, struct termios *tp, int local)
 
 		debug("open(2)\n");
 		fd = xopen(tty, O_RDWR | O_NONBLOCK);
-		xdup2(fd, 0, tty);
+		xdup2(fd, 0);
 		while (fd > 2) close(fd--);
 	} else {
 		/*
@@ -269,8 +263,8 @@ static void open_tty(const char *tty, struct termios *tp, int local)
 
 	/* Replace current standard output/error fd's with new ones */
 	debug("duping\n");
-	xdup2(0, 1, tty);
-	xdup2(0, 2, tty);
+	xdup2(0, 1);
+	xdup2(0, 2);
 
 	/*
 	 * The following ioctl will fail if stdin is not a tty, but also when

@@ -278,7 +278,7 @@ static void dolisten(void)
 		rr = getsockname(netfd, &ouraddr->sa, &ouraddr->len);
 		if (rr < 0)
 			bb_perror_msg_and_die("getsockname after bind");
-		addr = xmalloc_sockaddr2dotted(&ouraddr->sa, ouraddr->len);
+		addr = xmalloc_sockaddr2dotted(&ouraddr->sa);
 		fprintf(stderr, "listening on %s ...\n", addr);
 		free(addr);
 	}
@@ -341,7 +341,7 @@ create new one, and bind() it. TODO */
 				/* nc 1.10 bails out instead, and its error message
 				 * is not suppressed by o_verbose */
 				if (o_verbose) {
-					char *remaddr = xmalloc_sockaddr2dotted(&remend.sa, remend.len);
+					char *remaddr = xmalloc_sockaddr2dotted(&remend.sa);
 					bb_error_msg("connect from wrong ip/port %s ignored", remaddr);
 					free(remaddr);
 				}
@@ -393,9 +393,9 @@ create new one, and bind() it. TODO */
 	 accept the connection and then reject undesireable ones by closing.
 	 In other words, we need a TCP MSG_PEEK. */
 	/* bbox: removed most of it */
-		lcladdr = xmalloc_sockaddr2dotted(&ouraddr->sa, ouraddr->len);
-		remaddr = xmalloc_sockaddr2dotted(&remend.sa, remend.len);
-		remhostname = o_nflag ? remaddr : xmalloc_sockaddr2host(&remend.sa, remend.len);
+		lcladdr = xmalloc_sockaddr2dotted(&ouraddr->sa);
+		remaddr = xmalloc_sockaddr2dotted(&remend.sa);
+		remhostname = o_nflag ? remaddr : xmalloc_sockaddr2host(&remend.sa);
 		fprintf(stderr, "connect to %s from %s (%s)\n",
 				lcladdr, remhostname, remaddr);
 		free(lcladdr);
@@ -796,7 +796,7 @@ int nc_main(int argc, char **argv)
 
 		remend = *themaddr;
 		if (o_verbose)
-			themdotted = xmalloc_sockaddr2dotted(&themaddr->sa, themaddr->len);
+			themdotted = xmalloc_sockaddr2dotted(&themaddr->sa);
 
 		x = connect_w_timeout(netfd);
 		if (o_zero && x == 0 && o_udpmode)        /* if UDP scanning... */

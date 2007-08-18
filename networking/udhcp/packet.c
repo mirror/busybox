@@ -194,17 +194,14 @@ int udhcp_kernel_packet(struct dhcpMessage *payload,
 	if (fd < 0)
 		return -1;
 
-	if (setsockopt_reuseaddr(fd) == -1) {
-		close(fd);
-		return -1;
-	}
+	setsockopt_reuseaddr(fd);
 
 	memset(&client, 0, sizeof(client));
 	client.sin_family = AF_INET;
 	client.sin_port = htons(source_port);
 	client.sin_addr.s_addr = source_ip;
 
-	if (bind(fd, (struct sockaddr *)&client, sizeof(struct sockaddr)) == -1) {
+	if (bind(fd, (struct sockaddr *)&client, sizeof(client)) == -1) {
 		close(fd);
 		return -1;
 	}

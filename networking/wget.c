@@ -236,7 +236,7 @@ int wget_main(int argc, char **argv)
 	lsa = xhost2sockaddr(server.host, server.port);
 	if (!(opt & WGET_OPT_QUIET)) {
 		fprintf(stderr, "Connecting to %s (%s)\n", server.host,
-				xmalloc_sockaddr2dotted(&lsa->sa, lsa->len));
+				xmalloc_sockaddr2dotted(&lsa->sa));
 		/* We leak result of xmalloc_sockaddr2dotted */
 	}
 

@@ -72,8 +72,8 @@ static int print_host(const char *hostname, const char *header)
 		// printf("%s\n", cur->ai_canonname); ?
 		while (cur) {
 			char *dotted, *revhost;
-			dotted = xmalloc_sockaddr2dotted_noport(cur->ai_addr, cur->ai_addrlen);
-			revhost = xmalloc_sockaddr2hostonly_noport(cur->ai_addr, cur->ai_addrlen);
+			dotted = xmalloc_sockaddr2dotted_noport(cur->ai_addr);
+			revhost = xmalloc_sockaddr2hostonly_noport(cur->ai_addr);
 
 			printf("Address %u: %s%c", ++cnt, dotted, revhost ? ' ' : '\n');
 			if (revhost) {
@@ -102,8 +102,7 @@ static void server_print(void)
 {
 	char *server;
 
-	server = xmalloc_sockaddr2dotted_noport((struct sockaddr*)&_res.nsaddr_list[0],
-			sizeof(struct sockaddr_in));
+	server = xmalloc_sockaddr2dotted_noport((struct sockaddr*)&_res.nsaddr_list[0]);
 	/* I honestly don't know what to do if DNS server has _IPv6 address_.
 	 * Probably it is listed in
 	 * _res._u._ext_.nsaddrs[MAXNS] (of type "struct sockaddr_in6*" each)

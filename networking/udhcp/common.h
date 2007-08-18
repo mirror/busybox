@@ -83,7 +83,7 @@ int udhcp_sp_fd_set(fd_set *rfds, int extra_fd);
 int udhcp_sp_read(fd_set *rfds);
 int raw_socket(int ifindex);
 int read_interface(const char *interface, int *ifindex, uint32_t *addr, uint8_t *arp);
-int listen_socket(uint32_t ip, int port, const char *inf);
+int listen_socket(/*uint32_t ip,*/ int port, const char *inf);
 /* Returns 1 if no reply received */
 int arpping(uint32_t test_ip, uint32_t from_ip, uint8_t *from_mac, const char *interface);
 

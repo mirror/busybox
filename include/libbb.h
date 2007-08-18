@@ -241,6 +241,7 @@ extern char *bb_get_last_path_component(char *path);
 
 int ndelay_on(int fd);
 int ndelay_off(int fd);
+void xdup2(int, int);
 void xmove_fd(int, int);
 
 
@@ -288,8 +289,7 @@ ssize_t xsendto(int s, const void *buf, size_t len, const struct sockaddr *to,
  * time out. Linux does not allow multiple live binds on same ip:port
  * regardless of SO_REUSEADDR (unlike some other flavors of Unix).
  * Turn it on before you call bind(). */
-//TODO: it seems like in Linux this never fails. Change to void, eliminate error checks
-int setsockopt_reuseaddr(int fd);
+void setsockopt_reuseaddr(int fd); /* On Linux this never fails. */
 int setsockopt_broadcast(int fd);
 /* NB: returns port in host byte order */
 unsigned bb_lookup_port(const char *port, const char *protocol, unsigned default_port);
@@ -360,14 +360,14 @@ void set_nport(len_and_sockaddr *lsa, unsigned port);
 /* Retrieve sin[6]_port or return -1 for non-INET[6] lsa's */
 int get_nport(const struct sockaddr *sa);
 /* Reverse DNS. Returns NULL on failure. */
-char* xmalloc_sockaddr2host(const struct sockaddr *sa, socklen_t salen);
+char* xmalloc_sockaddr2host(const struct sockaddr *sa);
 /* This one doesn't append :PORTNUM */
-char* xmalloc_sockaddr2host_noport(const struct sockaddr *sa, socklen_t salen);
+char* xmalloc_sockaddr2host_noport(const struct sockaddr *sa);
 /* This one also doesn't fall back to dotted IP (returns NULL) */
-char* xmalloc_sockaddr2hostonly_noport(const struct sockaddr *sa, socklen_t salen);
+char* xmalloc_sockaddr2hostonly_noport(const struct sockaddr *sa);
 /* inet_[ap]ton on steroids */
-char* xmalloc_sockaddr2dotted(const struct sockaddr *sa, socklen_t salen);
-char* xmalloc_sockaddr2dotted_noport(const struct sockaddr *sa, socklen_t salen);
+char* xmalloc_sockaddr2dotted(const struct sockaddr *sa);
+char* xmalloc_sockaddr2dotted_noport(const struct sockaddr *sa);
 // "old" (ipv4 only) API
 // users: traceroute.c hostname.c - use _list_ of all IPs
 struct hostent *xgethostbyname(const char *name);

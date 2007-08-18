@@ -258,7 +258,7 @@ int tcpudpsvd_main(int argc, char **argv)
 #endif
 
 	if (verbose) {
-		char *addr = xmalloc_sockaddr2dotted(&lsa->sa, sa_len);
+		char *addr = xmalloc_sockaddr2dotted(&lsa->sa);
 		printf("%s: info: listening on %s", applet_name, addr);
 		free(addr);
 #ifndef SSLSVD
@@ -302,7 +302,7 @@ int tcpudpsvd_main(int argc, char **argv)
 	if (max_per_host) {
 		/* Drop connection immediately if cur_per_host > max_per_host
 		 * (minimizing load under SYN flood) */
-		remote_ip = xmalloc_sockaddr2dotted_noport(&remote.sa, sa_len);
+		remote_ip = xmalloc_sockaddr2dotted_noport(&remote.sa);
 		cur_per_host = ipsvd_perhost_add(remote_ip, max_per_host, &hccp);
 		if (cur_per_host > max_per_host) {
 			/* ipsvd_perhost_add detected that max is exceeded
@@ -380,11 +380,11 @@ int tcpudpsvd_main(int argc, char **argv)
 		close(sock);
 
 	if (need_remote_ip)
-		remote_addr = xmalloc_sockaddr2dotted(&remote.sa, sa_len);
+		remote_addr = xmalloc_sockaddr2dotted(&remote.sa);
 
 	if (need_hostnames) {
 		if (option_mask32 & OPT_h) {
-			remote_hostname = xmalloc_sockaddr2host_noport(&remote.sa, sa_len);
+			remote_hostname = xmalloc_sockaddr2host_noport(&remote.sa);
 			if (!remote_hostname) {
 				bb_error_msg("warning: cannot look up hostname for %s", remote_addr);
 				remote_hostname = (char*)"";
@@ -397,9 +397,9 @@ int tcpudpsvd_main(int argc, char **argv)
 			local.len = sa_len;
 			getsockname(0, &local.sa, &local.len);
 		}
-		local_addr = xmalloc_sockaddr2dotted(&local.sa, sa_len);
+		local_addr = xmalloc_sockaddr2dotted(&local.sa);
 		if (!local_hostname) {
-			local_hostname = xmalloc_sockaddr2host_noport(&local.sa, sa_len);
+			local_hostname = xmalloc_sockaddr2host_noport(&local.sa);
 			if (!local_hostname)
 				bb_error_msg_and_die("warning: cannot look up hostname for %s"+9, local_addr);
 		}
@@ -426,7 +426,7 @@ int tcpudpsvd_main(int argc, char **argv)
 		 * an outbond connection to local handler, and it needs
 		 * to know where it originally tried to connect */
 		if (tcp && getsockopt(0, SOL_IP, SO_ORIGINAL_DST, &lsa->sa, &lsa->len) == 0) {
-			char *addr = xmalloc_sockaddr2dotted(&lsa->sa, sa_len);
+			char *addr = xmalloc_sockaddr2dotted(&lsa->sa);
 			xsetenv("TCPORIGDSTADDR", addr);
 			free(addr);
 		}

@@ -443,7 +443,7 @@ int tftp_main(int argc, char **argv)
 
 #if ENABLE_DEBUG_TFTP
 	fprintf(stderr, "using server '%s', remotefile '%s', localfile '%s'\n",
-			xmalloc_sockaddr2dotted(&peer_lsa->sa, peer_lsa->len),
+			xmalloc_sockaddr2dotted(&peer_lsa->sa),
 			remotefile, localfile);
 #endif
 

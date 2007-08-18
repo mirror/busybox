@@ -167,16 +167,17 @@ static int init_sockets(char **client, int num_clients,
 	int i;
 
 	/* talk to real server on bootps */
-	fds[0] = listen_socket(htonl(INADDR_ANY), 67, server);
+	fds[0] = listen_socket(/*INADDR_ANY,*/ 67, server);
 	*max_socket = fds[0];
 
 	/* array starts at 1 since server is 0 */
 	num_clients++;
 
-	for (i=1; i < num_clients; i++) {
+	for (i = 1; i < num_clients; i++) {
 		/* listen for clients on bootps */
-		fds[i] = listen_socket(htonl(INADDR_ANY), 67, client[i-1]);
-		if (fds[i] > *max_socket) *max_socket = fds[i];
+		fds[i] = listen_socket(/*NADDR_ANY,*/ 67, client[i-1]);
+		if (fds[i] > *max_socket)
+			*max_socket = fds[i];
 	}
 
 	return i;

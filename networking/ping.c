@@ -664,7 +664,7 @@ static void ping(len_and_sockaddr *lsa)
 	printf("PING %s (%s)", hostname, dotted);
 	if (source_lsa) {
 		printf(" from %s",
-			xmalloc_sockaddr2dotted_noport(&source_lsa->sa, source_lsa->len));
+			xmalloc_sockaddr2dotted_noport(&source_lsa->sa));
 	}
 	printf(": %d data bytes\n", datalen);
 
@@ -715,7 +715,7 @@ int ping_main(int argc, char **argv)
 		/* leaking it here... */
 		source_lsa = NULL;
 
-	dotted = xmalloc_sockaddr2dotted_noport(&lsa->sa, lsa->len);
+	dotted = xmalloc_sockaddr2dotted_noport(&lsa->sa);
 	ping(lsa);
 	pingstats(0);
 	return EXIT_SUCCESS;

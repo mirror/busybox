@@ -95,7 +95,7 @@ int udhcpd_main(int argc, char **argv)
 	while (1) { /* loop until universe collapses */
 
 		if (server_socket < 0) {
-			server_socket = listen_socket(INADDR_ANY, SERVER_PORT,
+			server_socket = listen_socket(/*INADDR_ANY,*/ SERVER_PORT,
 					server_config.interface);
 		}
 

@@ -812,7 +812,7 @@ print_inetname(struct sockaddr_in *from)
 	else {
 		char *n = NULL;
 		if (from->sin_addr.s_addr != INADDR_ANY)
-			n = xmalloc_sockaddr2host_noport((struct sockaddr*)from, sizeof(*from));
+			n = xmalloc_sockaddr2host_noport((struct sockaddr*)from);
 		printf(" %s (%s)", (n ? n : ina), ina);
 		free(n);
 	}

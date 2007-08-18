@@ -375,7 +375,7 @@ int dnsd_main(int argc, char **argv)
 	xbind(udps, &lsa->sa, lsa->len);
 	/* xlisten(udps, 50); - ?!! DGRAM sockets are never listened on I think? */
 	bb_info_msg("Accepting UDP packets on %s",
-			xmalloc_sockaddr2dotted(&lsa->sa, lsa->len));
+			xmalloc_sockaddr2dotted(&lsa->sa));
 
 	while (1) {
 		int r;

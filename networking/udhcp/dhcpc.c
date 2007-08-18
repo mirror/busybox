@@ -311,7 +311,7 @@ int udhcpc_main(int argc, char **argv)
 
 		if (listen_mode != LISTEN_NONE && sockfd < 0) {
 			if (listen_mode == LISTEN_KERNEL)
-				sockfd = listen_socket(INADDR_ANY, CLIENT_PORT, client_config.interface);
+				sockfd = listen_socket(/*INADDR_ANY,*/ CLIENT_PORT, client_config.interface);
 			else
 				sockfd = raw_socket(client_config.ifindex);
 		}
