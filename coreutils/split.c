@@ -69,7 +69,7 @@ int split_main(int argc, char **argv)
 	char *src;
 
 	opt_complementary = "?2";
-	opt = getopt32(argc, argv, "l:b:a:", &count_p, &count_p, &sfx);
+	opt = getopt32(argv, "l:b:a:", &count_p, &count_p, &sfx);
 
 	if (opt & SPLIT_OPT_l)
 		cnt = xatoul(count_p);

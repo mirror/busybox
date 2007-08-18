@@ -67,7 +67,7 @@ int readprofile_main(int argc, char **argv)
 	mapFile = defaultmap;
 
 	opt_complementary = "nn:aa:bb:ss:ii:rr:vv";
-	getopt32(argc, argv, "M:m:p:nabsirv",
+	getopt32(argv, "M:m:p:nabsirv",
 			&mult, &mapFile, &proFile,
 			&optNative, &optAll, &optBins, &optSub,
 			&optInfo, &optReset, &optVerbose);

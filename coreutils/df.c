@@ -47,7 +47,7 @@ int df_main(int argc, char **argv)
 
 #if ENABLE_FEATURE_HUMAN_READABLE
 	opt_complementary = "h-km:k-hm:m-hk";
-	opt = getopt32(argc, argv, "hmk");
+	opt = getopt32(argv, "hmk");
 	if (opt & 1) {
 		df_disp_hr = 0;
 		disp_units_hdr = "     Size";
@@ -57,7 +57,7 @@ int df_main(int argc, char **argv)
 		disp_units_hdr = "1M-blocks";
 	}
 #else
-	opt = getopt32(argc, argv, "k");
+	opt = getopt32(argv, "k");
 #endif
 
 	printf("Filesystem%11s%-15sUsed Available Use%% Mounted on\n",

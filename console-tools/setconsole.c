@@ -27,7 +27,7 @@ int setconsole_main(int argc, char **argv)
 #if ENABLE_FEATURE_SETCONSOLE_LONG_OPTIONS
 	applet_long_options = setconsole_longopts;
 #endif
-	flags = getopt32(argc, argv, "r");
+	flags = getopt32(argv, "r");
 
 	if (argc - optind > 1)
 		bb_show_usage();

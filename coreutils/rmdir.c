@@ -24,7 +24,7 @@ int rmdir_main(int argc, char **argv)
 	int do_dot;
 	char *path;
 
-	flags = getopt32(argc, argv, "p");
+	flags = getopt32(argv, "p");
 	argv += optind;
 
 	if (!*argv) {

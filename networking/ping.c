@@ -689,7 +689,7 @@ int ping_main(int argc, char **argv)
 
 	/* exactly one argument needed, -v and -q don't mix */
 	opt_complementary = "=1:q--v:v--q";
-	getopt32(argc, argv, OPT_STRING, &opt_c, &opt_s, &opt_I);
+	getopt32(argv, OPT_STRING, &opt_c, &opt_s, &opt_I);
 	if (option_mask32 & OPT_c) pingcount = xatoul(opt_c); // -c
 	if (option_mask32 & OPT_s) datalen = xatou16(opt_s); // -s
 	if (option_mask32 & OPT_I) { // -I

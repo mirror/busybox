@@ -28,7 +28,7 @@ int pidof_main(int argc, char **argv)
 #endif
 
 	/* do unconditional option parsing */
-	opt = getopt32(argc, argv, ""
+	opt = getopt32(argv, ""
 			USE_FEATURE_PIDOF_SINGLE ("s")
 			USE_FEATURE_PIDOF_OMIT("o:", &omits));
 

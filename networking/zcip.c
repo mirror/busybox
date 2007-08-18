@@ -203,7 +203,7 @@ int zcip_main(int argc, char **argv)
 	// parse commandline: prog [options] ifname script
 	// exactly 2 args; -v accumulates and implies -f
 	opt_complementary = "=2:vv:vf";
-	opts = getopt32(argc, argv, "fqr:v", &r_opt, &verbose);
+	opts = getopt32(argv, "fqr:v", &r_opt, &verbose);
 	if (!FOREGROUND) {
 		/* Do it early, before all bb_xx_msg calls */
 		openlog(applet_name, 0, LOG_DAEMON);

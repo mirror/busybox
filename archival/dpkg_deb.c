@@ -42,7 +42,7 @@ int dpkg_deb_main(int argc, char **argv)
 #endif
 
 	opt_complementary = "?c--efXx:e--cfXx:f--ceXx:X--cefx:x--cefX";
-	opt = getopt32(argc, argv, "cefXx");
+	opt = getopt32(argv, "cefXx");
 
 	if (opt & DPKG_DEB_OPT_CONTENTS) {
 		tar_archive->action_header = header_verbose_list;

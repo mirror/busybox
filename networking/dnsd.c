@@ -338,7 +338,7 @@ int dnsd_main(int argc, char **argv)
 	uint16_t port = 53;
 	uint8_t buf[MAX_PACK_LEN];
 
-	getopt32(argc, argv, "i:c:t:p:dv", &listen_interface, &fileconf, &sttl, &sport);
+	getopt32(argv, "i:c:t:p:dv", &listen_interface, &fileconf, &sttl, &sport);
 	//if (option_mask32 & 0x1) // -i
 	//if (option_mask32 & 0x2) // -c
 	if (option_mask32 & 0x4) // -t

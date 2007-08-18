@@ -16,7 +16,7 @@ int dmesg_main(int argc, char **argv);
 int dmesg_main(int argc, char **argv)
 {
 	char *size, *level;
-	int flags = getopt32(argc, argv, "cs:n:", &size, &level);
+	int flags = getopt32(argv, "cs:n:", &size, &level);
 
 	if (flags & 4) {
 		if (klogctl(8, NULL, xatoul_range(level, 0, 10)))

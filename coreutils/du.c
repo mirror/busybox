@@ -170,7 +170,7 @@ int du_main(int argc, char **argv)
 	 */
 #if ENABLE_FEATURE_HUMAN_READABLE
 	opt_complementary = "h-km:k-hm:m-hk:H-L:L-H:s-d:d-s";
-	opt = getopt32(argc, argv, "aHkLsx" "d:" "lc" "hm", &smax_print_depth);
+	opt = getopt32(argv, "aHkLsx" "d:" "lc" "hm", &smax_print_depth);
 	if (opt & (1 << 9)) {
 		/* -h opt */
 		disp_hr = 0;
@@ -185,7 +185,7 @@ int du_main(int argc, char **argv)
 	}
 #else
 	opt_complementary = "H-L:L-H:s-d:d-s";
-	opt = getopt32(argc, argv, "aHkLsx" "d:" "lc", &smax_print_depth);
+	opt = getopt32(argv, "aHkLsx" "d:" "lc", &smax_print_depth);
 #if !ENABLE_FEATURE_DU_DEFAULT_BLOCKSIZE_1K
 	if (opt & (1 << 2)) {
 		/* -k opt */

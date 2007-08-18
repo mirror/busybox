@@ -19,7 +19,7 @@ int catv_main(int argc, char **argv)
 	int fd;
 	unsigned flags;
 
-	flags = getopt32(argc, argv, "etv");
+	flags = getopt32(argv, "etv");
 #define CATV_OPT_e (1<<0)
 #define CATV_OPT_t (1<<1)
 #define CATV_OPT_v (1<<2)

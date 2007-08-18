@@ -152,12 +152,12 @@ int tcpudpsvd_main(int argc, char **argv)
 	/* 3+ args, -i at most once, -p implies -h, -v is counter */
 	opt_complementary = "-3:i--i:ph:vv";
 #ifdef SSLSVD
-	getopt32(argc, argv, "+c:C:i:x:u:l:Eb:hpt:vU:/:Z:K:",
+	getopt32(argv, "+c:C:i:x:u:l:Eb:hpt:vU:/:Z:K:",
 		&str_c, &str_C, &instructs, &instructs, &user, &local_hostname,
 		&str_b, &str_t, &ssluser, &root, &cert, &key, &verbose
 	);
 #else
-	getopt32(argc, argv, "+c:C:i:x:u:l:Eb:hpt:v",
+	getopt32(argv, "+c:C:i:x:u:l:Eb:hpt:v",
 		&str_c, &str_C, &instructs, &instructs, &user, &local_hostname,
 		&str_b, &str_t, &verbose
 	);

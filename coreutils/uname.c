@@ -58,7 +58,7 @@ int uname_main(int argc, char **argv)
 	const unsigned short int *delta;
 	char toprint;
 
-	toprint = getopt32(argc, argv, options);
+	toprint = getopt32(argv, options);
 
 	if (argc != optind) {
 		bb_show_usage();

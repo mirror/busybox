@@ -59,7 +59,7 @@ int logread_main(int argc, char **argv)
 	int cur;
 	int log_semid; /* ipc semaphore id */
 	int log_shmid; /* ipc shared memory id */
-	smallint follow = getopt32(argc, argv, "f");
+	smallint follow = getopt32(argv, "f");
 
 	log_shmid = shmget(KEY_ID, 0, 0);
 	if (log_shmid == -1)

@@ -87,7 +87,7 @@ int patch_main(int argc, char **argv)
 
 	{
 		char *p, *i;
-		ret = getopt32(argc, argv, "p:i:", &p, &i);
+		ret = getopt32(argv, "p:i:", &p, &i);
 		if (ret & 1)
 			patch_level = xatol_range(p, -1, USHRT_MAX);
 		if (ret & 2) {

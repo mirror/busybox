@@ -614,7 +614,7 @@ int stat_main(int argc, char **argv)
 	int ok = 1;
 	bool (*statfunc)(char const *, char const *) = do_stat;
 
-	getopt32(argc, argv, "ftL"
+	getopt32(argv, "ftL"
 		USE_SELINUX("Z")
 		USE_FEATURE_STAT_FORMAT("c:", &format)
 	);

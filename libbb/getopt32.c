@@ -13,12 +13,12 @@
 /*      Documentation
 
 uint32_t
-getopt32(int argc, char **argv, const char *applet_opts, ...)
+getopt32(char **argv, const char *applet_opts, ...)
 
         The command line options must be declared in const char
         *applet_opts as a string of chars, for example:
 
-        flags = getopt32(argc, argv, "rnug");
+        flags = getopt32(argv, "rnug");
 
         If one of the given options is found, a flag value is added to
         the return value (an unsigned long).
@@ -26,7 +26,7 @@ getopt32(int argc, char **argv, const char *applet_opts, ...)
         The flag value is determined by the position of the char in
         applet_opts string.  For example, in the above case:
 
-        flags = getopt32(argc, argv, "rnug");
+        flags = getopt32(argv, "rnug");
 
         "r" will add 1    (bit 0)
         "n" will add 2    (bit 1)
@@ -52,7 +52,7 @@ getopt32(int argc, char **argv, const char *applet_opts, ...)
         char *pointer_to_arg_for_c;
         char *pointer_to_arg_for_d;
 
-        flags = getopt32(argc, argv, "a:b:c:d:",
+        flags = getopt32(argv, "a:b:c:d:",
                         &pointer_to_arg_for_a, &pointer_to_arg_for_b,
                         &pointer_to_arg_for_c, &pointer_to_arg_for_d);
 
@@ -105,7 +105,7 @@ const char *opt_complementary
         if they are not specifed on the command line.  For example:
 
         opt_complementary = "abc";
-        flags = getopt32(argc, argv, "abcd")
+        flags = getopt32(argv, "abcd")
 
         If getopt() finds "-a" on the command line, then
         getopt32's return value will be as if "-a -b -c" were
@@ -119,7 +119,7 @@ const char *opt_complementary
 
         int w_counter = 0;
         opt_complementary = "ww";
-        getopt32(argc, argv, "w", &w_counter);
+        getopt32(argv, "w", &w_counter);
         if (w_counter)
                 width = (w_counter == 1) ? 132 : INT_MAX;
         else
@@ -135,7 +135,7 @@ const char *opt_complementary
         llist_t *my_b = NULL;
         int verbose_level = 0;
         opt_complementary = "vv:b::b-c:c-b";
-        f = getopt32(argc, argv, "vb:c", &my_b, &verbose_level);
+        f = getopt32(argv, "vb:c", &my_b, &verbose_level);
         if (f & 2)       // -c after -b unsets -b flag
                 while (my_b) { dosomething_with(my_b->data); my_b = my_b->link; }
         if (my_b)        // but llist is stored if -b is specified
@@ -150,7 +150,7 @@ Special characters:
         use ':' or end of line. For example:
 
         opt_complementary = "-:w-x:x-w";
-        getopt32(argc, argv, "wx");
+        getopt32(argv, "wx");
 
         Allows any arguments to be given without a dash (./program w x)
         as well as with a dash (./program -x).
@@ -197,7 +197,7 @@ Special characters:
         char *smax_print_depth;
 
         opt_complementary = "s-d:d-s:x-x";
-        opt = getopt32(argc, argv, "sd:x", &smax_print_depth);
+        opt = getopt32(argv, "sd:x", &smax_print_depth);
 
         if (opt & 2)
                 max_print_depth = atoi(smax_print_depth);
@@ -235,7 +235,7 @@ Special characters:
 
         opt_complementary = "e::";
 
-        getopt32(argc, argv, "e:", &patterns);
+        getopt32(argv, "e:", &patterns);
         $ grep -e user -e root /etc/passwd
         root:x:0:0:root:/root:/bin/bash
         user:x:500:500::/home/user:/bin/bash
@@ -248,7 +248,7 @@ Special characters:
 
         // Don't allow -n -r -rn -ug -rug -nug -rnug
         opt_complementary = "r?ug:n?ug:?u--g:g--u";
-        flags = getopt32(argc, argv, "rnug");
+        flags = getopt32(argv, "rnug");
 
         This example allowed only:
         $ id; id -u; id -g; id -ru; id -nu; id -rg; id -ng; id -rnu; id -rng
@@ -260,7 +260,7 @@ Special characters:
 
         // Don't allow -KS -SK, but -S or -K is required
         opt_complementary = "K:S:?K--S:S--K";
-        flags = getopt32(argc, argv, "KS...);
+        flags = getopt32(argv, "KS...);
 
 
         Don't forget to use ':'. For example, "?322-22-23X-x-a"
@@ -296,8 +296,9 @@ const char *applet_long_options;
 uint32_t option_mask32;
 
 uint32_t
-getopt32(int argc, char **argv, const char *applet_opts, ...)
+getopt32(char **argv, const char *applet_opts, ...)
 {
+	int argc;
 	unsigned flags = 0;
 	unsigned requires = 0;
 	t_complementary complementary[33];
@@ -319,6 +320,10 @@ getopt32(int argc, char **argv, const char *applet_opts, ...)
 #define FIRST_ARGV_IS_OPT       4
 #define FREE_FIRST_ARGV_IS_OPT  8
 	int spec_flgs = 0;
+
+	argc = 0;
+	while (argv[argc])
+		argc++;
 
 	va_start(p, applet_opts);
 

@@ -49,7 +49,7 @@ int mkdir_main(int argc, char **argv)
 #if ENABLE_FEATURE_MKDIR_LONG_OPTIONS
 	applet_long_options = mkdir_longopts;
 #endif
-	opt = getopt32(argc, argv, "m:p" USE_SELINUX("Z:"), &smode USE_SELINUX(,&scontext));
+	opt = getopt32(argv, "m:p" USE_SELINUX("Z:"), &smode USE_SELINUX(,&scontext));
 	if (opt & 1) {
 		mode = 0777;
 		if (!bb_parse_mode(smode, &mode)) {

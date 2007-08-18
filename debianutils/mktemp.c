@@ -14,7 +14,7 @@
 int mktemp_main(int argc, char **argv);
 int mktemp_main(int argc, char **argv)
 {
-	unsigned long flags = getopt32(argc, argv, "dqt");
+	unsigned long flags = getopt32(argv, "dqt");
 	char *chp;
 
 	if (optind + 1 != argc)

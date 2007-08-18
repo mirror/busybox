@@ -12,7 +12,7 @@ int cryptpw_main(int argc, char **argv)
 {
 	char salt[sizeof("$N$XXXXXXXX")];
 
-	if (!getopt32(argc, argv, "a:", NULL) || argv[optind - 1][0] != 'd') {
+	if (!getopt32(argv, "a:", NULL) || argv[optind - 1][0] != 'd') {
 		strcpy(salt, "$1$");
 		/* Too ugly, and needs even more magic to handle endianness: */
 		//((uint32_t*)&salt)[0] = '$' + '1'*0x100 + '$'*0x10000;

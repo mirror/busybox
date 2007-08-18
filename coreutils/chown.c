@@ -69,7 +69,7 @@ int chown_main(int argc, char **argv)
 	chown_fptr chown_func;
 
 	opt_complementary = "-2";
-	getopt32(argc, argv, OPT_STR);
+	getopt32(argv, OPT_STR);
 	argv += optind;
 
 	/* This matches coreutils behavior (almost - see below) */

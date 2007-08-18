@@ -394,7 +394,7 @@ int xargs_main(int argc, char **argv)
 #define read_args process_stdin
 #endif
 
-	opt = getopt32(argc, argv, OPTION_STR, &max_args, &max_chars, &eof_str);
+	opt = getopt32(argv, OPTION_STR, &max_args, &max_chars, &eof_str);
 
 	if (opt & OPT_ZEROTERM)
 		USE_FEATURE_XARGS_SUPPORT_ZERO_TERM(read_args = process0_stdin);

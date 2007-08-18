@@ -1248,7 +1248,7 @@ int sed_main(int argc, char **argv)
 	opt_e = opt_f = NULL;
 	opt_complementary = "e::f::" /* can occur multiple times */
 	                    "nn"; /* count -n */
-	opt = getopt32(argc, argv, "irne:f:", &opt_e, &opt_f,
+	opt = getopt32(argv, "irne:f:", &opt_e, &opt_f,
 			    &G.be_quiet); /* counter for -n */
 	argc -= optind;
 	argv += optind;

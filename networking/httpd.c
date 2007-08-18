@@ -1975,7 +1975,7 @@ int httpd_main(int argc, char **argv)
 	/* We do not "absolutize" path given by -h (home) opt.
 	 * If user gives relative path in -h, $SCRIPT_FILENAME can end up
 	 * relative too. */
-	opt = getopt32(argc, argv, "c:d:h:"
+	opt = getopt32(argv, "c:d:h:"
 			USE_FEATURE_HTTPD_ENCODE_URL_STR("e:")
 			USE_FEATURE_HTTPD_BASIC_AUTH("r:")
 			USE_FEATURE_HTTPD_AUTH_MD5("m:")

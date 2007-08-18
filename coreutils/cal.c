@@ -86,7 +86,7 @@ int cal_main(int argc, char **argv)
 	char day_headings[28];	/* 28 for julian, 21 for nonjulian */
 	char buf[40];
 
-	flags = getopt32(argc, argv, "jy");
+	flags = getopt32(argv, "jy");
 	julian = flags & 1;
 	month = 0;
 	argv += optind;

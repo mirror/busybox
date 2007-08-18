@@ -36,7 +36,7 @@ int udhcpd_main(int argc, char **argv)
 	struct option_set *option;
 	struct dhcpOfferedAddr *lease, static_lease;
 
-	opt = getopt32(argc, argv, "fS");
+	opt = getopt32(argv, "fS");
 	argv += optind;
 
 	if (!(opt & 1)) { /* no -f */

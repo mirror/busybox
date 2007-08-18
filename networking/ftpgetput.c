@@ -331,7 +331,7 @@ int ftpgetput_main(int argc, char **argv)
 	applet_long_options = ftpgetput_longopts;
 #endif
 	opt_complementary = "=3"; /* must have 3 params */
-	opt = getopt32(argc, argv, "cvu:p:P:", &server->user, &server->password, &port);
+	opt = getopt32(argv, "cvu:p:P:", &server->user, &server->password, &port);
 	argv += optind;
 
 	/* Process the non-option command line arguments */

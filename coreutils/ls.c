@@ -820,14 +820,14 @@ int ls_main(int argc, char **argv)
 	/* process options */
 	USE_FEATURE_LS_COLOR(applet_long_options = ls_color_opt;)
 #if ENABLE_FEATURE_AUTOWIDTH
-	opt = getopt32(argc, argv, ls_options, &tabstops_str, &terminal_width_str
+	opt = getopt32(argv, ls_options, &tabstops_str, &terminal_width_str
 				USE_FEATURE_LS_COLOR(, &color_opt));
 	if (tabstops_str)
 		tabstops = xatou(tabstops_str);
 	if (terminal_width_str)
 		terminal_width = xatou(terminal_width_str);
 #else
-	opt = getopt32(argc, argv, ls_options USE_FEATURE_LS_COLOR(, &color_opt));
+	opt = getopt32(argv, ls_options USE_FEATURE_LS_COLOR(, &color_opt));
 #endif
 	for (i = 0; opt_flags[i] != (1U<<31); i++) {
 		if (opt & (1 << i)) {

@@ -427,7 +427,7 @@ int sv_main(int argc, char **argv)
 	x = getenv("SVWAIT");
 	if (x) waitsec = xatoul(x);
 
-	opt = getopt32(argc, argv, "w:v", &x);
+	opt = getopt32(argv, "w:v", &x);
 	if (opt & 1) waitsec = xatoul(x); // -w
 	if (opt & 2) verbose = 1; // -v
 	argc -= optind;

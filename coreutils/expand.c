@@ -153,12 +153,12 @@ int expand_main(int argc, char **argv)
 
 	if (ENABLE_EXPAND && (!ENABLE_UNEXPAND || applet_name[0] == 'e')) {
 		USE_FEATURE_EXPAND_LONG_OPTIONS(applet_long_options = expand_longopts);
-		opt = getopt32(argc, argv, "it:", &opt_t);
+		opt = getopt32(argv, "it:", &opt_t);
 	} else if (ENABLE_UNEXPAND) {
 		USE_FEATURE_UNEXPAND_LONG_OPTIONS(applet_long_options = unexpand_longopts);
 		/* -t NUM sets also -a */
 		opt_complementary = "ta";
-		opt = getopt32(argc, argv, "ft:a", &opt_t);
+		opt = getopt32(argv, "ft:a", &opt_t);
 		/* -f --first-only is the default */
 		if (!(opt & OPT_ALL)) opt |= OPT_INITIAL;
 	}

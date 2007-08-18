@@ -52,7 +52,7 @@ int chrt_main(int argc, char** argv)
 	int prio = 0, policy = SCHED_RR;
 
 	opt_complementary = "r--fo:f--ro:r--fo"; /* only one policy accepted */
-	opt = getopt32(argc, argv, "+mp:rfo", &p_opt);
+	opt = getopt32(argv, "+mp:rfo", &p_opt);
 	if (opt & OPT_r)
 		policy = SCHED_RR;
 	if (opt & OPT_f)

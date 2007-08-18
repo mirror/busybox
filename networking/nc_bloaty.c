@@ -706,7 +706,7 @@ int nc_main(int argc, char **argv)
 
 	// -g -G -t -r deleted, unimplemented -a deleted too
 	opt_complementary = "?2:vv"; /* max 2 params, -v is a counter */
-	getopt32(argc, argv, "hnp:s:uvw:" USE_NC_SERVER("l")
+	getopt32(argv, "hnp:s:uvw:" USE_NC_SERVER("l")
 			USE_NC_EXTRA("i:o:z"),
 			&str_p, &str_s, &str_w
 			USE_NC_EXTRA(, &str_i, &str_o, &o_verbose));

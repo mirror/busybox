@@ -189,7 +189,7 @@ int hwclock_main(int argc, char **argv)
 	applet_long_options = hwclock_longopts;
 #endif
 	opt_complementary = "r--ws:w--rs:s--wr:l--u:u--l";
-	opt = getopt32(argc, argv, "lurswf:", &rtcname);
+	opt = getopt32(argv, "lurswf:", &rtcname);
 
 	/* If -u or -l wasn't given check if we are using utc */
 	if (opt & (HWCLOCK_OPT_UTC | HWCLOCK_OPT_LOCALTIME))

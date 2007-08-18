@@ -3980,7 +3980,7 @@ int insmod_main( int argc, char **argv)
 	struct utsname myuname;
 
 	/* Parse any options */
-	getopt32(argc, argv, OPTION_STR, &opt_o);
+	getopt32(argv, OPTION_STR, &opt_o);
 	arg1 = argv[optind];
 	if (option_mask32 & OPT_o) { // -o /* name the output module */
 		free(m_name);

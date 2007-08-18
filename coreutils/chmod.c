@@ -93,7 +93,7 @@ int chmod_main(int argc, char **argv)
 
 	/* Parse options */
 	opt_complementary = "-2";
-	getopt32(argc, argv, ("-"OPT_STR) + 1); /* Reuse string */
+	getopt32(argv, ("-"OPT_STR) + 1); /* Reuse string */
 	argv += optind;
 
 	/* Restore option-like mode if needed */

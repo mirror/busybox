@@ -60,7 +60,7 @@ int hostname_main(int argc, char **argv)
 	if (argc < 1)
 		bb_show_usage();
 
-	getopt32(argc, argv, "dfisF:", &hostname_str);
+	getopt32(argv, "dfisF:", &hostname_str);
 
 	/* Output in desired format */
 	if (option_mask32 & OPT_dfis) {

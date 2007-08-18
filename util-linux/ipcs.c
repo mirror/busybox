@@ -574,7 +574,7 @@ int ipcs_main(int argc, char **argv)
 #define flag_sem	(1<<2)
 #define flag_shm	(1<<3)
 
-	opt = getopt32(argc, argv, "i:aqsmtcplu", &opt_i);
+	opt = getopt32(argv, "i:aqsmtcplu", &opt_i);
 	if (opt & 0x1) { // -i
 		id = xatoi(opt_i);
 		flags |= flag_print;

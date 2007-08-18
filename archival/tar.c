@@ -788,7 +788,7 @@ int tar_main(int argc, char **argv)
 #if ENABLE_FEATURE_TAR_LONG_OPTIONS
 	applet_long_options = tar_longopts;
 #endif
-	opt = getopt32(argc, argv,
+	opt = getopt32(argv,
 		"txC:f:Opvk"
 		USE_FEATURE_TAR_CREATE(  "ch"  )
 		USE_FEATURE_TAR_BZIP2(   "j"   )

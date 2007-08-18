@@ -445,7 +445,7 @@ int arp_main(int argc, char **argv)
 	if (!ap)
 		bb_error_msg_and_die("%s: %s not supported", DFLT_AF, "address family");
 
-	getopt32(argc, argv, "A:p:H:t:i:adnDsv", &protocol, &protocol,
+	getopt32(argv, "A:p:H:t:i:adnDsv", &protocol, &protocol,
 				 &hw_type, &hw_type, &device);
 	argv += optind;
 	if (option_mask32 & ARP_OPT_A || option_mask32 & ARP_OPT_p) {

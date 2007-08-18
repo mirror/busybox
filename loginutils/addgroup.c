@@ -139,7 +139,7 @@ int addgroup_main(int argc, char **argv)
 	 *  addgroup user group
 	 * Check for min, max and missing args */
 	opt_complementary = "-1:?2";
-	if (getopt32(argc, argv, "g:", &group)) {
+	if (getopt32(argv, "g:", &group)) {
 		gid = xatoul_range(group, 0, ((unsigned long)(gid_t)ULONG_MAX) >> 1);
 	}
 	/* move past the commandline options */

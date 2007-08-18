@@ -405,7 +405,7 @@ int tftp_main(int argc, char **argv)
 	opt_complementary = "" USE_FEATURE_TFTP_GET("g:") USE_FEATURE_TFTP_PUT("p:")
 			USE_GETPUT("?g--p:p--g");
 
-	USE_GETPUT(cmd =) getopt32(argc, argv,
+	USE_GETPUT(cmd =) getopt32(argv,
 			USE_FEATURE_TFTP_GET("g") USE_FEATURE_TFTP_PUT("p")
 				"l:r:" USE_FEATURE_TFTP_BLOCKSIZE("b:"),
 			&localfile, &remotefile

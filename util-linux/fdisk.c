@@ -2752,7 +2752,7 @@ int fdisk_main(int argc, char **argv)
 
 	PTR_TO_GLOBALS = xzalloc(sizeof(G));
 
-	opt = getopt32(argc, argv, "b:C:H:lS:u" USE_FEATURE_FDISK_BLKSIZE("s"),
+	opt = getopt32(argv, "b:C:H:lS:u" USE_FEATURE_FDISK_BLKSIZE("s"),
 				&str_b, &str_C, &str_H, &str_S);
 	argc -= optind;
 	argv += optind;

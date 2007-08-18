@@ -48,7 +48,7 @@ int mv_main(int argc, char **argv)
 	applet_long_options = mv_longopts;
 #endif
 	opt_complementary = "f-i:i-f";
-	flags = getopt32(argc, argv, "fi");
+	flags = getopt32(argv, "fi");
 	if (optind + 2 > argc) {
 		bb_show_usage();
 	}

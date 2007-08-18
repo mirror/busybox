@@ -54,7 +54,7 @@ int pscan_main(int argc, char **argv)
 	unsigned start;
 
 	opt_complementary = "=1"; /* exactly one non-option */
-	getopt32(argc, argv, "p:P:t:T:", &opt_min_port, &opt_max_port, &opt_timeout, &opt_min_rtt);
+	getopt32(argv, "p:P:t:T:", &opt_min_port, &opt_max_port, &opt_timeout, &opt_min_rtt);
 	argv += optind;
 	max_port = xatou_range(opt_max_port, 1, 65535);
 	port = xatou_range(opt_min_port, 1, max_port);

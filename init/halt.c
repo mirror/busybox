@@ -35,7 +35,7 @@ RB_AUTOBOOT
 	for (which = 0; "hpr"[which] != *applet_name; which++);
 
 	/* Parse and handle arguments */
-	flags = getopt32(argc, argv, "d:nf", &delay);
+	flags = getopt32(argv, "d:nf", &delay);
 	if (flags & 1) sleep(xatou(delay));
 	if (!(flags & 2)) sync();
 

@@ -21,7 +21,7 @@ int readlink_main(int argc, char **argv)
 		unsigned opt;
 		/* We need exactly one non-option argument.  */
 		opt_complementary = "=1";
-		opt = getopt32(argc, argv, "f");
+		opt = getopt32(argv, "f");
 		fname = argv[optind];
 	)
 	SKIP_FEATURE_READLINK_FOLLOW(

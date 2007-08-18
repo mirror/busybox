@@ -58,7 +58,7 @@ int vlock_main(int argc, char **argv)
 		bb_show_usage();
 	}
 
-	o_lock_all = getopt32(argc, argv, "a");
+	o_lock_all = getopt32(argv, "a");
 
 	vfd = xopen(CURRENT_TTY, O_RDWR);
 

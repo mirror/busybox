@@ -54,7 +54,7 @@ int env_main(int argc, char** argv)
 #if ENABLE_FEATURE_ENV_LONG_OPTIONS
 	applet_long_options = env_longopts;
 #endif
-	opt = getopt32(argc, argv, "+iu:", &unset_env);
+	opt = getopt32(argv, "+iu:", &unset_env);
 	argv += optind;
 	if (*argv && LONE_DASH(argv[0])) {
 		opt |= 1;

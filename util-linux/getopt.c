@@ -314,11 +314,11 @@ int getopt_main(int argc, char *argv[])
 	}
 
 #if !ENABLE_GETOPT_LONG
-	opt = getopt32(argc, argv, "+o:n:qQs:Tu", &optstr, &name, &s_arg);
+	opt = getopt32(argv, "+o:n:qQs:Tu", &optstr, &name, &s_arg);
 #else
 	applet_long_options = getopt_longopts;
 	opt_complementary = "l::";
-	opt = getopt32(argc, argv, "+o:n:qQs:Tual:",
+	opt = getopt32(argv, "+o:n:qQs:Tual:",
 					&optstr, &name, &s_arg, &l_arg);
 	/* Effectuate the read options for the applet itself */
 	while (l_arg) {

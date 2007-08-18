@@ -266,7 +266,7 @@ int chpst_main(int argc, char **argv)
 
 	{
 		char *m,*d,*o,*p,*f,*c,*r,*t,*n;
-		getopt32(argc, argv, "+u:U:e:m:d:o:p:f:c:r:t:/:n:vP012",
+		getopt32(argv, "+u:U:e:m:d:o:p:f:c:r:t:/:n:vP012",
 				&set_user,&env_user,&env_dir,
 				&m,&d,&o,&p,&f,&c,&r,&t,&root,&n);
 		// if (option_mask32 & 0x1) // -u
@@ -353,7 +353,7 @@ static void envdir(int argc, char **argv)
 static void softlimit(int argc, char **argv)
 {
 	char *a,*c,*d,*f,*l,*m,*o,*p,*r,*s,*t;
-	getopt32(argc, argv, "+a:c:d:f:l:m:o:p:r:s:t:",
+	getopt32(argv, "+a:c:d:f:l:m:o:p:r:s:t:",
 			&a,&c,&d,&f,&l,&m,&o,&p,&r,&s,&t);
 	if (option_mask32 & 0x001) limita = xatoul(a); // -a
 	if (option_mask32 & 0x002) limitc = xatoul(c); // -c

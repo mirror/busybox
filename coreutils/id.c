@@ -50,7 +50,7 @@ int id_main(int argc, char **argv)
 	/* Don't allow -n -r -nr -ug -rug -nug -rnug */
 	/* Don't allow more than one username */
 	opt_complementary = "?1:u--g:g--u:r?ug:n?ug" USE_SELINUX(":u--Z:Z--u:g--Z:Z--g");
-	flags = getopt32(argc, argv, "rnug" USE_SELINUX("Z"));
+	flags = getopt32(argv, "rnug" USE_SELINUX("Z"));
 
 	/* This values could be overwritten later */
 	uid = geteuid();

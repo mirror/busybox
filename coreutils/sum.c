@@ -80,7 +80,7 @@ int sum_main(int argc, char **argv)
 	unsigned n;
 	unsigned type = SUM_BSD;
 
-	n = getopt32(argc, argv, "sr");
+	n = getopt32(argv, "sr");
 	if (n & 1) type = SUM_SYSV;
 	/* give the bsd priority over sysv func */
 	if (n & 2) type = SUM_BSD;

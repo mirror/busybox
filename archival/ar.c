@@ -52,7 +52,7 @@ int ar_main(int argc, char **argv)
 
 	/* Prepend '-' to the first argument if required */
 	opt_complementary = "--:p:t:x:-1:p--tx:t--px:x--pt";
-	opt = getopt32(argc, argv, "ptxovcr");
+	opt = getopt32(argv, "ptxovcr");
 
 	if (opt & AR_CTX_PRINT) {
 		archive_handle->action_data = data_extract_to_stdout;

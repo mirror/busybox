@@ -249,7 +249,7 @@ int arping_main(int argc, char **argv)
 		 * Advert also sets unsolicited.
 		 */
 		opt_complementary = "=1:Df:AU";
-		opt = getopt32(argc, argv, "DUAqfbc:w:I:s:",
+		opt = getopt32(argv, "DUAqfbc:w:I:s:",
 				&str_count, &str_timeout, &device, &source);
 		if (opt & 0x40) /* -c: count */
 			count = xatou(str_count);

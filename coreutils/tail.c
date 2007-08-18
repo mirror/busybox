@@ -107,7 +107,7 @@ int tail_main(int argc, char **argv)
 	}
 #endif
 
-	opt = getopt32(argc, argv, "fc:n:" USE_FEATURE_FANCY_TAIL("qs:v"),
+	opt = getopt32(argv, "fc:n:" USE_FEATURE_FANCY_TAIL("qs:v"),
 			&str_c, &str_n USE_FEATURE_FANCY_TAIL(,&str_s));
 #define FOLLOW (opt & 0x1)
 #define COUNT_BYTES (opt & 0x2)

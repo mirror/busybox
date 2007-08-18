@@ -33,7 +33,7 @@ int chpasswd_main(int argc, char **argv)
 
 	opt_complementary = "m--e:e--m";
 	USE_GETOPT_LONG(applet_long_options = chpasswd_longopts;)
-	opt = getopt32(argc, argv, "em");
+	opt = getopt32(argv, "em");
 
 	while ((name = xmalloc_getline(stdin)) != NULL) {
 		pass = strchr(name, ':');

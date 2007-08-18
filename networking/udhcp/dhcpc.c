@@ -215,7 +215,7 @@ int udhcpc_main(int argc, char **argv)
 #if ENABLE_GETOPT_LONG
 	applet_long_options = udhcpc_longopts;
 #endif
-	opt = getopt32(argc, argv, "c:CV:fbH:h:F:i:np:qRr:s:T:t:vS",
+	opt = getopt32(argv, "c:CV:fbH:h:F:i:np:qRr:s:T:t:vS",
 		&str_c, &str_V, &str_h, &str_h, &str_F,
 		&client_config.interface, &client_config.pidfile, &str_r,
 		&client_config.script, &str_T, &str_t

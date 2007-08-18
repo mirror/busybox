@@ -53,7 +53,7 @@ int date_main(int argc, char **argv)
 
 	opt_complementary = "d--s:s--d"
 		USE_FEATURE_DATE_ISOFMT(":R--I:I--R");
-	opt = getopt32(argc, argv, "Rs:ud:r:"
+	opt = getopt32(argv, "Rs:ud:r:"
 			USE_FEATURE_DATE_ISOFMT("I::D:"),
 			&date_str, &date_str, &filename
 			USE_FEATURE_DATE_ISOFMT(, &isofmt_arg, &hintfmt_arg));

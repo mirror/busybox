@@ -93,7 +93,7 @@ int logger_main(int argc, char **argv)
 	str_t = name;
 
 	/* Parse any options */
-	getopt32(argc, argv, "p:st:", &str_p, &str_t);
+	getopt32(argv, "p:st:", &str_p, &str_t);
 
 	if (option_mask32 & 0x2) /* -s */
 		i |= LOG_PERROR;

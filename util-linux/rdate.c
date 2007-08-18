@@ -49,7 +49,7 @@ int rdate_main(int argc, char **argv)
 	unsigned long flags;
 
 	opt_complementary = "-1";
-	flags = getopt32(argc, argv, "sp");
+	flags = getopt32(argv, "sp");
 
 	remote_time = askremotedate(argv[optind]);
 

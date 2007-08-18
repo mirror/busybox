@@ -497,7 +497,7 @@ int netstat_main(int argc, char **argv)
 #endif
 
 	/* Option string must match NETSTAT_xxx constants */
-	opt = getopt32(argc, argv, NETSTAT_OPTS);
+	opt = getopt32(argv, NETSTAT_OPTS);
 	if (opt & 0x1) { // -l
 		flags &= ~NETSTAT_CONNECTED;
 		flags |= NETSTAT_LISTENING;

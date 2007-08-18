@@ -50,7 +50,7 @@ int taskset_main(int argc, char** argv)
 	const char *state = "current\0new";
 	char *p_opt = NULL, *aff = NULL;
 
-	opt = getopt32(argc, argv, "+p:", &p_opt);
+	opt = getopt32(argv, "+p:", &p_opt);
 
 	if (opt & OPT_p) {
 		if (argc == optind+1) { /* -p <aff> <pid> */

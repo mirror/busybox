@@ -21,7 +21,7 @@ int tty_main(int argc, char **argv)
 
 	xfunc_error_retval = 2;	/* SUSv3 requires > 1 for error. */
 
-	USE_INCLUDE_SUSv2(silent = getopt32(argc, argv, "s");)
+	USE_INCLUDE_SUSv2(silent = getopt32(argv, "s");)
 
 	/* gnu tty outputs a warning that it is ignoring all args. */
 	bb_warn_ignoring_args(argc - optind);

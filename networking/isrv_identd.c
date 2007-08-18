@@ -107,7 +107,7 @@ int fakeidentd_main(int argc, char **argv)
 	unsigned opt;
 	int fd;
 
-	opt = getopt32(argc, argv, "fiwb:", &bind_address);
+	opt = getopt32(argv, "fiwb:", &bind_address);
 	strcpy(bogouser, "nobody");
 	if (argv[optind])
 		strncpy(bogouser, argv[optind], sizeof(bogouser));

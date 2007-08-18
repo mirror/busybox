@@ -1321,7 +1321,7 @@ int less_main(int argc, char **argv)
 	/* TODO: -x: do not interpret backspace, -xx: tab also */
 	/* -xxx: newline also */
 	/* -w N: assume width N (-xxx -w 32: hex viewer of sorts) */
-	getopt32(argc, argv, "EMmN~");
+	getopt32(argv, "EMmN~");
 	argc -= optind;
 	argv += optind;
 	num_files = argc;

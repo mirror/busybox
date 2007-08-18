@@ -74,7 +74,7 @@ int switch_root_main(int argc, char **argv)
 	// Parse args (-c console)
 
 	opt_complementary = "-2";
-	getopt32(argc, argv, "c:", &console);
+	getopt32(argv, "c:", &console);
 	argv += optind;
 
 	// Change to new root directory and verify it's a different fs.

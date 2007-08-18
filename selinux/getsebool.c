@@ -16,7 +16,7 @@ int getsebool_main(int argc, char **argv)
 	unsigned opt;
 
 	selinux_or_die();
-	opt = getopt32(argc, argv, "a");
+	opt = getopt32(argv, "a");
 
 	if (opt) { /* -a */
 		if (argc > 2)

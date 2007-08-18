@@ -583,7 +583,7 @@ int telnet_main(int argc, char** argv)
 		bb_show_usage();
 
 #if ENABLE_FEATURE_TELNET_AUTOLOGIN
-	if (1 & getopt32(argc, argv, "al:", &G.autologin))
+	if (1 & getopt32(argv, "al:", &G.autologin))
 		G.autologin = getenv("USER");
 	argv += optind;
 #else

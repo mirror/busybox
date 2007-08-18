@@ -66,7 +66,7 @@ int swap_on_off_main(int argc, char **argv)
 	if (argc == 1)
 		bb_show_usage();
 
-	ret = getopt32(argc, argv, "a");
+	ret = getopt32(argv, "a");
 	if (ret)
 		return do_em_all();
 

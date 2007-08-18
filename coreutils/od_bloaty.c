@@ -1259,7 +1259,7 @@ int od_main(int argc, char **argv)
 #if ENABLE_GETOPT_LONG
 	applet_long_options = od_longopts;
 #endif
-	opt = getopt32(argc, argv, "A:N:abcdfhij:lot:vxsS:"
+	opt = getopt32(argv, "A:N:abcdfhij:lot:vxsS:"
 		"w::", // -w with optional param
 		// -S was -s and also had optional parameter
 		// but in coreutils 6.3 it was renamed and now has

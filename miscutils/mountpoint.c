@@ -16,7 +16,7 @@ int mountpoint_main(int argc, char **argv)
 {
 	struct stat st;
 	char *arg;
-	int opt = getopt32(argc, argv, "qdx");
+	int opt = getopt32(argv, "qdx");
 #define OPT_q (1)
 #define OPT_d (2)
 #define OPT_x (4)

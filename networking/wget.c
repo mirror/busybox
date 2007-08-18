@@ -147,7 +147,7 @@ int wget_main(int argc, char **argv)
 #endif
 	/* server.allocated = target.allocated = NULL; */
 	opt_complementary = "-1" USE_FEATURE_WGET_LONG_OPTIONS(":\xfe::");
-	opt = getopt32(argc, argv, "csqO:P:Y:U:",
+	opt = getopt32(argv, "csqO:P:Y:U:",
 				&fname_out, &dir_prefix,
 				&proxy_flag, &user_agent
 				USE_FEATURE_WGET_LONG_OPTIONS(, &headers_llist)

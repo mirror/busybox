@@ -28,7 +28,7 @@ int uuencode_main(int argc, char **argv)
 	tbl = bb_uuenc_tbl_std;
 	mode = 0666 & ~umask(0666);
 	opt_complementary = "-1:?2"; /* must have 1 or 2 args */
-	if (getopt32(argc, argv, "m")) {
+	if (getopt32(argv, "m")) {
 		tbl = bb_uuenc_tbl_base64;
 	}
 	argv += optind;

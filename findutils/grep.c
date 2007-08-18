@@ -389,7 +389,7 @@ int grep_main(int argc, char **argv)
 	char *Copt;
 
 	opt_complementary = "H-h:e::f::C-AB";
-	getopt32(argc, argv,
+	getopt32(argv,
 		OPTSTR_GREP,
 		&pattern_head, &fopt, &mopt,
 		&slines_after, &slines_before, &Copt);
@@ -419,7 +419,7 @@ int grep_main(int argc, char **argv)
 #else
 	/* with auto sanity checks */
 	opt_complementary = "H-h:e::f::c-n:q-n:l-n";
-	getopt32(argc, argv, OPTSTR_GREP,
+	getopt32(argv, OPTSTR_GREP,
 		&pattern_head, &fopt, &mopt);
 #endif
 	if (option_mask32 & OPT_m) {

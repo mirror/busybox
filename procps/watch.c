@@ -35,7 +35,7 @@ int watch_main(int argc, char **argv)
 	char **p;
 
 	opt_complementary = "-1"; // at least one param please
-	opt = getopt32(argc, argv, "+dtn:", &tmp);
+	opt = getopt32(argv, "+dtn:", &tmp);
 	//if (opt & 0x1) // -d (ignore)
 	//if (opt & 0x2) // -t
 	if (opt & 0x4) period = xatou(tmp);

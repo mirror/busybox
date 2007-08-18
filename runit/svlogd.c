@@ -759,7 +759,7 @@ int svlogd_main(int argc, char **argv)
 #define line bb_common_bufsiz1
 
 	opt_complementary = "tt:vv";
-	opt = getopt32(argc, argv, "r:R:l:b:tv",
+	opt = getopt32(argv, "r:R:l:b:tv",
 			&r, &replace, &l, &b, &timestamp, &verbose);
 	if (opt & 1) { // -r
 		repl = r[0];

@@ -535,7 +535,7 @@ int top_main(int argc, char **argv)
 
 	/* do normal option parsing */
 	opt_complementary = "-";
-	getopt32(argc, argv, "d:n:b", &sinterval, &siterations);
+	getopt32(argv, "d:n:b", &sinterval, &siterations);
 	if (option_mask32 & 0x1) interval = xatou(sinterval); // -d
 	if (option_mask32 & 0x2) iterations = xatou(siterations); // -n
 	//if (option_mask32 & 0x4) // -b

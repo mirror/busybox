@@ -33,7 +33,7 @@ int eject_main(int argc, char **argv)
 	int dev, cmd;
 
 	opt_complementary = "?1:t--T:T--t";
-	flags = getopt32(argc, argv, "tT");
+	flags = getopt32(argv, "tT");
 	device = argv[optind] ? : "/dev/cdrom";
 
 	// We used to do "umount <device>" here, but it was buggy

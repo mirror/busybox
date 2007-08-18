@@ -195,7 +195,7 @@ int ether_wake_main(int argc, char **argv)
 
 	/* handle misc user options */
 	opt_complementary = "=1";
-	flags = getopt32(argc, argv, "bi:p:", &ifname, &pass);
+	flags = getopt32(argv, "bi:p:", &ifname, &pass);
 	if (flags & 4) /* -p */
 		wol_passwd_sz = get_wol_pw(pass, wol_passwd);
 	flags &= 1; /* we further interested only in -b [bcast] flag */

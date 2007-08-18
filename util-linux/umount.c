@@ -38,7 +38,7 @@ int umount_main(int argc, char **argv)
 
 	/* Parse any options */
 
-	opt = getopt32(argc, argv, OPTION_STRING, &fstype);
+	opt = getopt32(argv, OPTION_STRING, &fstype);
 
 	argc -= optind;
 	argv += optind;

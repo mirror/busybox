@@ -26,7 +26,7 @@ int touch_main(int argc, char **argv)
 {
 	int fd;
 	int status = EXIT_SUCCESS;
-	int flags = getopt32(argc, argv, "c");
+	int flags = getopt32(argv, "c");
 
 	argv += optind;
 

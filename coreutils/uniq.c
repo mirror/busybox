@@ -45,7 +45,7 @@ int uniq_main(int argc, char **argv)
 
 	skip_fields = skip_chars = 0;
 
-	opt = getopt32(argc, argv, "cduf:s:", &s0, &s1);
+	opt = getopt32(argv, "cduf:s:", &s0, &s1);
 	if (opt & OPT_f)
 		skip_fields = xatoul(s0);
 	if (opt & OPT_s)

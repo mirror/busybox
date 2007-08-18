@@ -239,7 +239,7 @@ int login_main(int argc, char **argv)
 	 * (The name of the function is misleading. Not daemonizing here.) */
 	bb_daemonize_or_rexec(DAEMON_ONLY_SANITIZE | DAEMON_CLOSE_EXTRA_FDS, NULL);
 
-	opt = getopt32(argc, argv, "f:h:p", &opt_user, &opt_host);
+	opt = getopt32(argv, "f:h:p", &opt_user, &opt_host);
 	if (opt & LOGIN_OPT_f) {
 		if (!amroot)
 			bb_error_msg_and_die("-f is for root only");

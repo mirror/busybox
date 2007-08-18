@@ -152,7 +152,7 @@ int slattach_main(int argc, char **argv)
 	INIT_G();
 
 	/* Parse command line options */
-	opt = getopt32(argc, argv, "p:s:c:ehmLF", &proto, &baud_str, &extcmd);
+	opt = getopt32(argv, "p:s:c:ehmLF", &proto, &baud_str, &extcmd);
 	/*argc -= optind;*/
 	argv += optind;
 

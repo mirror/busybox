@@ -1219,7 +1219,7 @@ int diff_main(int argc, char **argv)
 
 	/* exactly 2 params; collect multiple -L <label> */
 	opt_complementary = "=2:L::";
-	getopt32(argc, argv, "abdiL:NqrsS:tTU:wu"
+	getopt32(argv, "abdiL:NqrsS:tTU:wu"
 			"p" /* ignored (for compatibility) */,
 			&L_arg, &start, &U_opt);
 	/*argc -= optind;*/

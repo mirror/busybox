@@ -30,7 +30,7 @@ int watchdog_main(int argc, char **argv)
 	char *t_arg;
 
 	opt_complementary = "=1"; /* must have 1 argument */
-	opts = getopt32(argc, argv, "Ft:", &t_arg);
+	opts = getopt32(argv, "Ft:", &t_arg);
 
 	if (opts & OPT_TIMER)
 		timer_duration = xatou(t_arg);

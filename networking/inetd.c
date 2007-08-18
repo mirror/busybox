@@ -1278,7 +1278,7 @@ int inetd_main(int argc, char **argv)
 	if (uid != 0)
 		config_filename = NULL;
 
-	opt = getopt32(argc, argv, "R:f", &stoomany);
+	opt = getopt32(argv, "R:f", &stoomany);
 	if (opt & 1)
 		toomany = xatoi_u(stoomany);
 	argv += optind;

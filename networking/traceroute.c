@@ -941,7 +941,7 @@ int traceroute_main(int argc, char **argv)
 	opt_complementary = "x-x";
 #endif
 
-	op = getopt32(argc, argv, "FIlnrdvxt:i:m:p:q:s:w:z:f:"
+	op = getopt32(argv, "FIlnrdvxt:i:m:p:q:s:w:z:f:"
 #if ENABLE_FEATURE_TRACEROUTE_SOURCE_ROUTE
 					"g:"
 #endif

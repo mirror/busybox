@@ -87,7 +87,7 @@ int ipcalc_main(int argc, char **argv)
 #if ENABLE_FEATURE_IPCALC_LONG_OPTIONS
 	applet_long_options = ipcalc_longopts;
 #endif
-	opt = getopt32(argc, argv, "mbn" USE_FEATURE_IPCALC_FANCY("phs"));
+	opt = getopt32(argv, "mbn" USE_FEATURE_IPCALC_FANCY("phs"));
 	argc -= optind;
 	argv += optind;
 	if (opt & (BROADCAST | NETWORK | NETPREFIX)) {

@@ -1579,7 +1579,7 @@ int dpkg_main(int argc, char **argv)
 		OPT_unpack = 0x40,
 	};
 
-	opt = getopt32(argc, argv, "CF:ilPru", &str_f);
+	opt = getopt32(argv, "CF:ilPru", &str_f);
 	//if (opt & OPT_configure) ... // -C
 	if (opt & OPT_force_ignore_depends) { // -F (--force in official dpkg)
 		if (strcmp(str_f, "depends"))

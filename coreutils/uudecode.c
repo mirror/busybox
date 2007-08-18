@@ -134,7 +134,7 @@ int uudecode_main(int argc, char **argv)
 	char *line;
 
 	opt_complementary = "?1"; /* 1 argument max */
-	getopt32(argc, argv, "o:", &outname);
+	getopt32(argv, "o:", &outname);
 	argv += optind;
 
 	if (argv[0])

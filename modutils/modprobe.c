@@ -868,7 +868,7 @@ int modprobe_main(int argc, char** argv)
 	char *unused;
 
 	opt_complementary = "?V-:q-v:v-q";
-	main_opts = getopt32(argc, argv, "acdklnqrst:vVC:",
+	main_opts = getopt32(argv, "acdklnqrst:vVC:",
 							&unused, &unused);
 	if (main_opts & (DUMP_CONF_EXIT | LIST_ALL))
 		return EXIT_SUCCESS;

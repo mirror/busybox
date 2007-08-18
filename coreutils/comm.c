@@ -47,7 +47,7 @@ int comm_main(int argc, char **argv)
 	unsigned flags;
 
 	opt_complementary = "=2";
-	flags = getopt32(argc, argv, "123");
+	flags = getopt32(argv, "123");
 	argv += optind;
 
 	for (i = 0; i < 2; ++i) {

@@ -2817,7 +2817,7 @@ int awk_main(int argc, char **argv)
 		}
 	}
 	opt_complementary = "v::";
-	opt = getopt32(argc, argv, "F:v:f:W:", &opt_F, &opt_v, &g_progname, &opt_W);
+	opt = getopt32(argv, "F:v:f:W:", &opt_F, &opt_v, &g_progname, &opt_W);
 	argv += optind;
 	argc -= optind;
 	if (opt & 0x1)

@@ -297,7 +297,7 @@ int ps_main(int argc, char **argv)
 	//     Select which columns to display
 	/* We allow (and ignore) most of the above. FIXME */
 	opt_complementary = "o::";
-	USE_SELINUX(opt =) getopt32(argc, argv, "Zo:aAdefl", &opt_o);
+	USE_SELINUX(opt =) getopt32(argv, "Zo:aAdefl", &opt_o);
 	if (opt_o) {
 		do {
 			parse_o(opt_o->data);
@@ -357,7 +357,7 @@ int ps_main(int argc, char **argv)
 #if ENABLE_FEATURE_PS_WIDE || ENABLE_SELINUX
 #if ENABLE_FEATURE_PS_WIDE
 	opt_complementary = "-:ww";
-	USE_SELINUX(i =) getopt32(argc, argv, USE_SELINUX("Z") "w", &w_count);
+	USE_SELINUX(i =) getopt32(argv, USE_SELINUX("Z") "w", &w_count);
 	/* if w is given once, GNU ps sets the width to 132,
 	 * if w is given more than once, it is "unlimited"
 	 */
@@ -370,7 +370,7 @@ int ps_main(int argc, char **argv)
 			terminal_width = MAX_WIDTH;
 	}
 #else /* only ENABLE_SELINUX */
-	i = getopt32(argc, argv, "Z");
+	i = getopt32(argv, "Z");
 #endif
 #if ENABLE_SELINUX
 	if ((i & 1) && is_selinux_enabled())

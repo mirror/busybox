@@ -656,7 +656,7 @@ int route_main(int argc, char **argv)
 		}
 	}
 
-	opt = getopt32(argc, argv, "A:ne", &family);
+	opt = getopt32(argv, "A:ne", &family);
 
 	if ((opt & ROUTE_OPT_A) && strcmp(family, "inet") != 0) {
 #if ENABLE_FEATURE_IPV6

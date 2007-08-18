@@ -56,7 +56,7 @@ int adjtimex_main(int argc, char **argv)
 	const char *descript;
 	txc.modes=0;
 
-	opt = getopt32(argc, argv, "qo:f:p:t:",
+	opt = getopt32(argv, "qo:f:p:t:",
 			&opt_o, &opt_f, &opt_p, &opt_t);
 	//if (opt & 0x1) // -q
 	if (opt & 0x2) { // -o

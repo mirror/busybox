@@ -18,7 +18,7 @@ int losetup_main(int argc, char **argv)
 	char *opt_o;
 	unsigned long long offset = 0;
 
-	opt = getopt32(argc, argv, "do:", &opt_o);
+	opt = getopt32(argv, "do:", &opt_o);
 	argc -= optind;
 	argv += optind;
 

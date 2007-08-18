@@ -573,7 +573,7 @@ int syslogd_main(int argc, char **argv)
 
 	/* do normal option parsing */
 	opt_complementary = "=0"; /* no non-option params */
-	getopt32(argc, argv, OPTION_STR, OPTION_PARAM);
+	getopt32(argv, OPTION_STR, OPTION_PARAM);
 #ifdef SYSLOGD_MARK
 	if (option_mask32 & OPT_mark) // -m
 		G.markInterval = xatou_range(opt_m, 0, INT_MAX/60) * 60;

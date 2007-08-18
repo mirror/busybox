@@ -28,7 +28,7 @@ int strings_main(int argc, char **argv)
 	const char *fmt = "%s: ";
 	const char *n_arg = "4";
 
-	opt = getopt32(argc, argv, "afon:", &n_arg);
+	opt = getopt32(argv, "afon:", &n_arg);
 	/* -a is our default behaviour */
 	/*argc -= optind;*/
 	argv += optind;

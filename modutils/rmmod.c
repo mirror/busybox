@@ -47,7 +47,7 @@ int rmmod_main(int argc, char **argv)
 #define misc_buf bb_common_bufsiz1
 
 	/* Parse command line. */
-	n = getopt32(argc, argv, "wfa");
+	n = getopt32(argv, "wfa");
 	if (n & 1)	// --wait
 		flags &= ~O_NONBLOCK;
 	if (n & 2)	// --force

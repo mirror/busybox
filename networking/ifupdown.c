@@ -1148,7 +1148,7 @@ int ifupdown_main(int argc, char **argv)
 		cmds = iface_up;
 	}
 
-	getopt32(argc, argv, OPTION_STR, &interfaces);
+	getopt32(argv, OPTION_STR, &interfaces);
 	if (argc - optind > 0) {
 		if (DO_ALL) bb_show_usage();
 	} else {

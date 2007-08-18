@@ -61,7 +61,7 @@ int cmp_main(int argc, char **argv)
 			USE_DESKTOP(":?4")
 			SKIP_DESKTOP(":?2")
 			":l--s:s--l";
-	opt = getopt32(argc, argv, opt_chars);
+	opt = getopt32(argv, opt_chars);
 	argv += optind;
 
 	filename1 = *argv;

@@ -101,7 +101,7 @@ int install_main(int argc, char **argv)
 	opt_complementary = "s--d:d--s" USE_SELINUX(":Z--\xff:\xff--Z");
 	/* -c exists for backwards compatibility, it's needed */
 
-	flags = getopt32(argc, argv, "cdpsg:m:o:" USE_SELINUX("Z:"),
+	flags = getopt32(argv, "cdpsg:m:o:" USE_SELINUX("Z:"),
 			&gid_str, &mode_str, &uid_str USE_SELINUX(, &scontext));
 
 #if ENABLE_SELINUX

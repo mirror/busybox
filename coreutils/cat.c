@@ -46,7 +46,7 @@ int bb_cat(char **argv)
 int cat_main(int argc, char **argv);
 int cat_main(int argc, char **argv)
 {
-	getopt32(argc, argv, "u");
+	getopt32(argv, "u");
 	argv += optind;
 	return bb_cat(argv);
 }

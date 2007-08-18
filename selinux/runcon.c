@@ -104,7 +104,7 @@ int runcon_main(int argc, char **argv)
 	applet_long_options = runcon_longopts;
 #endif
 	opt_complementary = "-1";
-	opts = getopt32(argc, argv, "r:t:u:l:ch", &role, &type, &user, &range);
+	opts = getopt32(argv, "r:t:u:l:ch", &role, &type, &user, &range);
 	argv += optind;
 
 	if (!(opts & OPTS_CONTEXT_COMPONENT)) {

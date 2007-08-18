@@ -161,7 +161,7 @@ USE_DESKTOP(long long) int unpack_bunzip2(void)
 int bunzip2_main(int argc, char **argv);
 int bunzip2_main(int argc, char **argv)
 {
-	getopt32(argc, argv, "cf");
+	getopt32(argv, "cf");
 	argv += optind;
 	if (applet_name[2] == 'c')
 		option_mask32 |= OPT_STDOUT;
@@ -260,7 +260,7 @@ USE_DESKTOP(long long) int unpack_gunzip(void)
 int gunzip_main(int argc, char **argv);
 int gunzip_main(int argc, char **argv)
 {
-	getopt32(argc, argv, "cfvdt");
+	getopt32(argv, "cfvdt");
 	argv += optind;
 	/* if called as zcat */
 	if (applet_name[1] == 'c')
@@ -298,7 +298,7 @@ USE_DESKTOP(long long) int unpack_unlzma(void)
 int unlzma_main(int argc, char **argv);
 int unlzma_main(int argc, char **argv)
 {
-	getopt32(argc, argv, "c");
+	getopt32(argv, "c");
 	argv += optind;
 	/* lzmacat? */
 	if (applet_name[4] == 'c')
@@ -340,7 +340,7 @@ USE_DESKTOP(long long) int unpack_uncompress(void)
 int uncompress_main(int argc, char **argv);
 int uncompress_main(int argc, char **argv)
 {
-	getopt32(argc, argv, "cf");
+	getopt32(argv, "cf");
 	argv += optind;
 
 	return bbunpack(argv, make_new_name_uncompress, unpack_uncompress);

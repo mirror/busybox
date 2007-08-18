@@ -42,7 +42,7 @@ int klogd_main(int argc, char **argv)
 	char *start;
 
 	/* do normal option parsing */
-	getopt32(argc, argv, "c:n", &start);
+	getopt32(argv, "c:n", &start);
 
 	if (option_mask32 & OPT_LEVEL) {
 		/* Valid levels are between 1 and 8 */

@@ -171,7 +171,7 @@ int cut_main(int argc, char **argv)
 	char *sopt, *ltok;
 
 	opt_complementary = "b--bcf:c--bcf:f--bcf";
-	getopt32(argc, argv, optstring, &sopt, &sopt, &sopt, &ltok);
+	getopt32(argv, optstring, &sopt, &sopt, &sopt, &ltok);
 //	argc -= optind;
 	argv += optind;
 	if (!(option_mask32 & (CUT_OPT_BYTE_FLGS | CUT_OPT_CHAR_FLGS | CUT_OPT_FIELDS_FLGS)))

@@ -57,7 +57,7 @@ int fdformat_main(int argc,char **argv)
 	if (argc < 2) {
 		bb_show_usage();
 	}
-	verify = !getopt32(argc, argv, "n");
+	verify = !getopt32(argv, "n");
 	argv += optind;
 
 	xstat(*argv, &st);

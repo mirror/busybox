@@ -386,7 +386,7 @@ int telnetd_main(int argc, char **argv)
 		OPT_INETD = 0x20 * ENABLE_FEATURE_TELNETD_STANDALONE,
 	};
 
-	opt = getopt32(argc, argv, "f:l:" USE_FEATURE_TELNETD_STANDALONE("p:b:Fi"),
+	opt = getopt32(argv, "f:l:" USE_FEATURE_TELNETD_STANDALONE("p:b:Fi"),
 			&issuefile, &loginpath
 			USE_FEATURE_TELNETD_STANDALONE(, &opt_portnbr, &opt_bindaddr));
 	/* Redirect log to syslog early, if needed */

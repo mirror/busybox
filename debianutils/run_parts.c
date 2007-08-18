@@ -121,7 +121,7 @@ int run_parts_main(int argc, char **argv)
 #if ENABLE_FEATURE_RUN_PARTS_LONG_OPTIONS
 	applet_long_options = runparts_longopts;
 #endif
-	tmp = getopt32(argc, argv, "a:u:t"USE_FEATURE_RUN_PARTS_FANCY("l"), &arg_list, &umask_p);
+	tmp = getopt32(argv, "a:u:t"USE_FEATURE_RUN_PARTS_FANCY("l"), &arg_list, &umask_p);
 	G.mode = tmp &~ (RUN_PARTS_OPT_a|RUN_PARTS_OPT_u);
 	if (tmp & RUN_PARTS_OPT_u) {
 		/* Check and set the umask of the program executed.

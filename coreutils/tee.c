@@ -28,7 +28,7 @@ int tee_main(int argc, char **argv)
 #else
 	int c;
 #endif
-	retval = getopt32(argc, argv, "ia");	/* 'a' must be 2nd */
+	retval = getopt32(argv, "ia");	/* 'a' must be 2nd */
 	argc -= optind;
 	argv += optind;
 
