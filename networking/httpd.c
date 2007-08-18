@@ -131,11 +131,12 @@ typedef struct Htaccess_IP {
 } Htaccess_IP;
 
 struct globals {
-	int verbose;
+	int verbose;            /* must be int (used by getopt32) */
 	smallint flg_deny_all;
 
 	unsigned rmt_ip;
-	unsigned rmt_port;       /* for set env REMOTE_PORT */
+	unsigned rmt_port;      /* for set env REMOTE_PORT */
+	char *rmt_ip_str;       /* for set env REMOTE_ADDR */
 	const char *bind_addr_or_port;
 
 	const char *g_query;
@@ -145,26 +146,27 @@ struct globals {
 	const char *found_mime_type;
 	const char *found_moved_temporarily;
 	time_t last_mod;
-	off_t ContentLength;          /* -1 - unknown */
-	Htaccess_IP *ip_a_d;          /* config allow/deny lines */
+	off_t ContentLength;    /* -1 - unknown */
+	Htaccess_IP *ip_a_d;    /* config allow/deny lines */
 
 	USE_FEATURE_HTTPD_BASIC_AUTH(const char *g_realm;)
 	USE_FEATURE_HTTPD_BASIC_AUTH(char *remoteuser;)
 	USE_FEATURE_HTTPD_CGI(char *referer;)
 	USE_FEATURE_HTTPD_CGI(char *user_agent;)
 
-	char *rmt_ip_str;        /* for set env REMOTE_ADDR */
-
 #if ENABLE_FEATURE_HTTPD_BASIC_AUTH
-	Htaccess *g_auth;        /* config user:password lines */
+	Htaccess *g_auth;       /* config user:password lines */
 #endif
 #if ENABLE_FEATURE_HTTPD_CONFIG_WITH_MIME_TYPES
-	Htaccess *mime_a;             /* config mime types */
+	Htaccess *mime_a;       /* config mime types */
 #endif
 #if ENABLE_FEATURE_HTTPD_CONFIG_WITH_SCRIPT_INTERPR
-	Htaccess *script_i;           /* config script interpreters */
+	Htaccess *script_i;     /* config script interpreters */
 #endif
-	char iobuf[MAX_MEMORY_BUF];
+	char *iobuf;	        /* [MAX_MEMORY_BUF] */
+#define hdr_buf bb_common_bufsiz1
+	char *hdr_ptr;
+	int hdr_cnt;
 };
 #define G (*ptr_to_globals)
 #define verbose           (G.verbose          )
@@ -189,12 +191,15 @@ struct globals {
 #define mime_a            (G.mime_a           )
 #define script_i          (G.script_i         )
 #define iobuf             (G.iobuf            )
+#define hdr_ptr           (G.hdr_ptr          )
+#define hdr_cnt           (G.hdr_cnt          )
 #define INIT_G() do { \
 	PTR_TO_GLOBALS = xzalloc(sizeof(G)); \
 	USE_FEATURE_HTTPD_BASIC_AUTH(g_realm = "Web Server Authentication";) \
 	bind_addr_or_port = "80"; \
 	ContentLength = -1; \
 } while (0)
+
 
 typedef enum {
 	HTTP_OK = 200,
@@ -881,12 +886,21 @@ static void send_headers_and_exit(HttpResponseNum responseNum)
 static int get_line(void)
 {
 	int count = 0;
+	char c;
 
-	/* We must not read extra chars. Reading byte-by-byte... */
-	while (read(0, iobuf + count, 1) == 1) {
-		if (iobuf[count] == '\r')
+	while (1) {
+		if (hdr_cnt <= 0) {
+			hdr_cnt = safe_read(0, hdr_buf, sizeof(hdr_buf));
+			if (hdr_cnt <= 0)
+				break;
+			hdr_ptr = hdr_buf;
+		}
+		iobuf[count] = c = *hdr_ptr++;
+		hdr_cnt--;
+
+		if (c == '\r')
 			continue;
-		if (iobuf[count] == '\n') {
+		if (c == '\n') {
 			iobuf[count] = '\0';
 			return count;
 		}
@@ -928,7 +942,6 @@ static void send_cgi_and_exit(
 	char *fullpath;
 	char *script;
 	char *purl;
-	size_t post_read_size, post_read_idx;
 	int buf_count;
 	int status;
 	int pid = 0;
@@ -1080,10 +1093,10 @@ static void send_cgi_and_exit(
 	/* First, restore variables possibly changed by child */
 	xfunc_error_retval = 0;
 
-	/* Prepare for pumping data */
+	/* Prepare for pumping data.
+	 * iobuf is used for CGI -> network data,
+	 * hdr_buf is for network -> CGI data (POSTDATA) */
 	buf_count = 0;
-	post_read_size = 0;
-	post_read_idx = 0; /* for gcc */
 	close(fromCgi.wr);
 	close(toCgi.rd);
 
@@ -1091,25 +1104,25 @@ static void send_cgi_and_exit(
 	 * and send it to the peer. So please no SIGPIPEs! */
 	signal(SIGPIPE, SIG_IGN);
 
+	/* This loop still looks messy. What is an exit criteria?
+	 * "CGI's output closed"? Or "CGI has exited"?
+	 * What to do if CGI has closed both input and output, but
+	 * didn't exit? etc... */
+
+	/* NB: breaking out of this loop jumps to log_and_exit() */
 	while (1) {
 		fd_set readSet;
 		fd_set writeSet;
-		char wbuf[128];
 		int nfound;
 		int count;
-
-		/* This loop still looks messy. What is an exit criteria?
-		 * "CGI's output closed"? Or "CGI has exited"?
-		 * What to do if CGI has closed both input and output, but
-		 * didn't exit? etc... */
 
 		FD_ZERO(&readSet);
 		FD_ZERO(&writeSet);
 		FD_SET(fromCgi.rd, &readSet);
-		if (bodyLen > 0 || post_read_size > 0) {
+		if (bodyLen > 0 || hdr_cnt > 0) {
 			FD_SET(toCgi.wr, &writeSet);
 			nfound = toCgi.wr > fromCgi.rd ? toCgi.wr : fromCgi.rd;
-			if (post_read_size == 0)
+			if (hdr_cnt <= 0)
 				FD_SET(0, &readSet);
 			/* Now wait on the set of sockets! */
 			nfound = select(nfound + 1, &readSet, &writeSet, NULL, NULL);
@@ -1135,30 +1148,30 @@ static void send_cgi_and_exit(
 			break;
 		}
 
-		if (post_read_size > 0 && FD_ISSET(toCgi.wr, &writeSet)) {
+		if (hdr_cnt > 0 && FD_ISSET(toCgi.wr, &writeSet)) {
 			/* Have data from peer and can write to CGI */
-			count = safe_write(toCgi.wr, wbuf + post_read_idx, post_read_size);
+			count = safe_write(toCgi.wr, hdr_ptr, hdr_cnt);
 			/* Doesn't happen, we dont use nonblocking IO here
 			 *if (count < 0 && errno == EAGAIN) {
 			 *	...
 			 *} else */
 			if (count > 0) {
-				post_read_idx += count;
-				post_read_size -= count;
+				hdr_ptr += count;
+				hdr_cnt -= count;
 			} else {
-				post_read_size = bodyLen = 0; /* EOF/broken pipe to CGI */
+				hdr_cnt = bodyLen = 0; /* EOF/broken pipe to CGI */
 			}
-		} else if (bodyLen > 0 && post_read_size == 0
+		} else if (bodyLen > 0 && hdr_cnt == 0
 		 && FD_ISSET(0, &readSet)
 		) {
 			/* We expect data, prev data portion is eaten by CGI
 			 * and there *is* data to read from the peer
 			 * (POSTDATA?) */
-			count = bodyLen > (int)sizeof(wbuf) ? (int)sizeof(wbuf) : bodyLen;
-			count = safe_read(0, wbuf, count);
+			count = bodyLen > (int)sizeof(hdr_buf) ? (int)sizeof(hdr_buf) : bodyLen;
+			count = safe_read(0, hdr_buf, count);
 			if (count > 0) {
-				post_read_size = count;
-				post_read_idx = 0;
+				hdr_cnt = count;
+				hdr_ptr = hdr_buf;
 				bodyLen -= count;
 			} else {
 				bodyLen = 0; /* closed */
@@ -1195,7 +1208,7 @@ static void send_cgi_and_exit(
 						full_write(1, HTTP_200, sizeof(HTTP_200)-1);
 						full_write(1, rbuf, buf_count);
 					}
-					break; /* closed */
+					break; /* CGI stdout is closed, exiting */
 				}
 				buf_count += count;
 				count = 0;
@@ -1379,6 +1392,7 @@ static int checkPermIP(void)
 	return !flg_deny_all;
 }
 
+#if ENABLE_FEATURE_HTTPD_BASIC_AUTH
 /*
  * Check the permission file for access password protected.
  *
@@ -1390,7 +1404,6 @@ static int checkPermIP(void)
  *
  * Returns 1 if request is OK.
  */
-#if ENABLE_FEATURE_HTTPD_BASIC_AUTH
 static int checkPerm(const char *path, const char *request)
 {
 	Htaccess *cur;
@@ -1457,7 +1470,6 @@ static int checkPerm(const char *path, const char *request)
 
 	return prev == NULL;
 }
-
 #endif  /* FEATURE_HTTPD_BASIC_AUTH */
 
 /*
@@ -1494,6 +1506,10 @@ static void handle_incoming_and_exit(const len_and_sockaddr *fromAddr)
 #if ENABLE_FEATURE_HTTPD_BASIC_AUTH
 	int credentials = -1;  /* if not required this is Ok */
 #endif
+
+	/* Allocation of iobuf is postponed until now
+	 * (IOW, server process doesn't need to waste 8k) */
+	iobuf = xmalloc(MAX_MEMORY_BUF);
 
 	rmt_port = get_nport(&fromAddr->sa);
 	rmt_port = ntohs(rmt_port);
@@ -1731,6 +1747,7 @@ static void handle_incoming_and_exit(const len_and_sockaddr *fromAddr)
 		send_headers_and_exit(HTTP_NOT_IMPLEMENTED);
 	}
 #endif  /* FEATURE_HTTPD_CGI */
+
 	if (purl[-1] == '/')
 		strcpy(purl, "index.html");
 	if (stat(test, &sb) == 0) {
