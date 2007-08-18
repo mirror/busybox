@@ -5,16 +5,14 @@
  * run as root, but NOT setuid root
  *
  * Copyright 1994 Matthew Dillon (dillon@apollo.west.oic.com)
+ * (version 2.3.2)
  * Vladimir Oleynik <dzo@simtreas.ru> (C) 2002
  *
  * Licensed under the GPL v2 or later, see the file LICENSE in this tarball.
  */
 
-#define VERSION "2.3.2"
-
-#include "libbb.h"
 #include <sys/syslog.h>
-
+#include "libbb.h"
 
 #ifndef CRONTABS
 #define CRONTABS        "/var/spool/cron/crontabs"
@@ -23,7 +21,7 @@
 #define TMPDIR          "/var/spool/cron"
 #endif
 #ifndef SENDMAIL
-#define SENDMAIL        "/usr/sbin/sendmail"
+#define SENDMAIL        "sendmail"
 #endif
 #ifndef SENDMAIL_ARGS
 #define SENDMAIL_ARGS   "-ti", "oem"
@@ -172,7 +170,7 @@ int crond_main(int ac, char **av)
 	 * main loop - synchronize to 1 second after the minute, minimum sleep
 	 *             of 1 second.
 	 */
-	crondlog("\011%s " VERSION " dillon, started, log level %d\n",
+	crondlog("\011%s " BB_VER " started, log level %d\n",
 			 applet_name, LogLevel);
 
 	SynchronizeDir();
@@ -941,8 +939,10 @@ static void EndJob(const char *user, CronLine * line)
 		return;
 	}
 
-	if (fstat(mailFd, &sbuf) < 0 || sbuf.st_uid != DaemonUid ||	sbuf.st_nlink != 0 ||
-		sbuf.st_size == line->cl_MailPos || !S_ISREG(sbuf.st_mode)) {
+	if (fstat(mailFd, &sbuf) < 0 || sbuf.st_uid != DaemonUid
+	 || sbuf.st_nlink != 0 || sbuf.st_size == line->cl_MailPos
+	 || !S_ISREG(sbuf.st_mode)
+	) {
 		close(mailFd);
 		return;
 	}
