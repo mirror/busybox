@@ -764,7 +764,6 @@ static void decodeBase64(char *Data)
 /*
  * Create a listen server socket on the designated port.
  */
-#if BB_MMU
 static int openServer(void)
 {
 	int n = bb_strtou(bind_addr_or_port, NULL, 10);
@@ -775,7 +774,6 @@ static int openServer(void)
 	xlisten(n, 9);
 	return n;
 }
-#endif
 
 /*
  * Log the connection closure and exit.
@@ -1474,8 +1472,8 @@ static void exit_on_signal(int sig)
 /*
  * Handle an incoming http request and exit.
  */
-static void handle_incoming_and_exit(void) ATTRIBUTE_NORETURN;
-static void handle_incoming_and_exit(void)
+static void handle_incoming_and_exit(const len_and_sockaddr *fromAddr) ATTRIBUTE_NORETURN;
+static void handle_incoming_and_exit(const len_and_sockaddr *fromAddr)
 {
 	static const char request_GET[] ALIGN1 = "GET";
 
@@ -1496,6 +1494,22 @@ static void handle_incoming_and_exit(void)
 #if ENABLE_FEATURE_HTTPD_BASIC_AUTH
 	int credentials = -1;  /* if not required this is Ok */
 #endif
+
+	rmt_port = get_nport(&fromAddr->sa);
+	rmt_port = ntohs(rmt_port);
+	rmt_ip = 0;
+	if (fromAddr->sa.sa_family == AF_INET) {
+		rmt_ip = ntohl(fromAddr->sin.sin_addr.s_addr);
+	}
+	if (ENABLE_FEATURE_HTTPD_CGI || DEBUG || verbose) {
+		rmt_ip_str = xmalloc_sockaddr2dotted(&fromAddr->sa);
+	}
+	if (verbose) {
+		/* this trick makes -v logging much simpler */
+		applet_name = rmt_ip_str;
+		if (verbose > 2)
+			bb_error_msg("connected");
+	}
 
 	/* Install timeout handler */
 	memset(&sa, 0, sizeof(sa));
@@ -1772,13 +1786,13 @@ static void handle_incoming_and_exit(void)
 #endif
 }
 
-#if BB_MMU
 /*
  * The main http server function.
- * Given an open socket, listen for new connections and farm out
- * the processing as a forked process.
+ * Given a socket, listen for new connections and farm out
+ * the processing as a [v]forked process.
  * Never returns.
  */
+#if BB_MMU
 static void mini_httpd(int server_socket) ATTRIBUTE_NORETURN;
 static void mini_httpd(int server_socket)
 {
@@ -1810,22 +1824,53 @@ static void mini_httpd(int server_socket)
 			xmove_fd(n, 0);
 			xdup2(0, 1);
 
-			n = get_nport(&fromAddr.sa);
-			rmt_port = ntohs(n);
-			rmt_ip = 0;
-			if (fromAddr.sa.sa_family == AF_INET) {
-				rmt_ip = ntohl(fromAddr.sin.sin_addr.s_addr);
-			}
-			if (ENABLE_FEATURE_HTTPD_CGI || DEBUG || verbose) {
-				rmt_ip_str = xmalloc_sockaddr2dotted(&fromAddr.sa);
-			}
-			if (verbose) {
-				/* this trick makes -v logging much simpler */
-				applet_name = rmt_ip_str;
-				if (verbose > 2)
-					bb_error_msg("connected");
-			}
-			handle_incoming_and_exit();
+			handle_incoming_and_exit(&fromAddr);
+		}
+		/* parent, or fork failed */
+		close(n);
+	} /* while (1) */
+	/* never reached */
+}
+#else
+static void mini_httpd_nommu(int server_socket, int argc, char **argv) ATTRIBUTE_NORETURN;
+static void mini_httpd_nommu(int server_socket, int argc, char **argv)
+{
+	char *argv_copy[argc + 2];
+
+	argv_copy[0] = argv[0];
+	argv_copy[1] = (char*)"-i";
+	memcpy(&argv_copy[2], &argv[1], argc * sizeof(argv[0]));
+
+	/* NB: it's best to not use xfuncs in this loop before vfork().
+	 * Otherwise server may die on transient errors (temporary
+	 * out-of-memory condition, etc), which is Bad(tm).
+	 * Try to do any dangerous calls after fork.
+	 */
+	while (1) {
+		int n;
+		len_and_sockaddr fromAddr;
+		
+		/* Wait for connections... */
+		fromAddr.len = LSA_SIZEOF_SA;
+		n = accept(server_socket, &fromAddr.sa, &fromAddr.len);
+
+		if (n < 0)
+			continue;
+		/* set the KEEPALIVE option to cull dead connections */
+		setsockopt(n, SOL_SOCKET, SO_KEEPALIVE, &const_int_1, sizeof(const_int_1));
+
+		if (vfork() == 0) {
+			/* child */
+#if ENABLE_FEATURE_HTTPD_RELOAD_CONFIG_SIGHUP
+			/* Do not reload config on HUP */
+			signal(SIGHUP, SIG_IGN);
+#endif
+			close(server_socket);
+			xmove_fd(n, 0);
+			xdup2(0, 1);
+
+			/* Run a copy of ourself in inetd mode */
+			re_exec(argv_copy);
 		}
 		/* parent, or fork failed */
 		close(n);
@@ -1834,25 +1879,18 @@ static void mini_httpd(int server_socket)
 }
 #endif
 
-/* from inetd */
+/*
+ * Process a HTTP connection on stdin/out.
+ * Never returns.
+ */
 static void mini_httpd_inetd(void) ATTRIBUTE_NORETURN;
 static void mini_httpd_inetd(void)
 {
-	int n;
 	len_and_sockaddr fromAddr;
 
 	fromAddr.len = LSA_SIZEOF_SA;
 	getpeername(0, &fromAddr.sa, &fromAddr.len);
-	n = get_nport(&fromAddr.sa);
-	rmt_port = ntohs(n);
-	rmt_ip = 0;
-	if (fromAddr.sa.sa_family == AF_INET) {
-		rmt_ip = ntohl(fromAddr.sin.sin_addr.s_addr);
-	}
-	if (ENABLE_FEATURE_HTTPD_CGI || DEBUG || verbose) {
-		rmt_ip_str = xmalloc_sockaddr2dotted(&fromAddr.sa);
-	}
-	handle_incoming_and_exit();
+	handle_incoming_and_exit(&fromAddr);
 }
 
 #if ENABLE_FEATURE_HTTPD_RELOAD_CONFIG_SIGHUP
@@ -1915,7 +1953,8 @@ int httpd_main(int argc, char **argv)
 #endif
 
 	home_httpd = xrealloc_getcwd_or_warn(NULL);
-	opt_complementary = "vv"; /* counter */
+	/* -v counts, -i implies -f */
+	opt_complementary = "vv:if";
 	/* We do not "absolutize" path given by -h (home) opt.
 	 * If user gives relative path in -h, $SCRIPT_FILENAME can end up
 	 * relative too. */
@@ -1934,12 +1973,12 @@ int httpd_main(int argc, char **argv)
 			, &verbose
 		);
 	if (opt & OPT_DECODE_URL) {
-		printf("%s", decodeString(url_for_decode, 1));
+		fputs(decodeString(url_for_decode, 1), stdout);
 		return 0;
 	}
 #if ENABLE_FEATURE_HTTPD_ENCODE_URL_STR
 	if (opt & OPT_ENCODE_URL) {
-		printf("%s", encodeString(url_for_encode));
+		fputs(encodeString(url_for_encode), stdout);
 		return 0;
 	}
 #endif
@@ -1957,9 +1996,14 @@ int httpd_main(int argc, char **argv)
 	}
 #endif
 
+#if !BB_MMU
+	if (!(opt & OPT_FOREGROUND)) {
+		bb_daemonize_or_rexec(0, argv); /* don't change current directory */
+	}
+#endif
+
 	xchdir(home_httpd);
 	if (!(opt & OPT_INETD)) {
-#if BB_MMU
 		signal(SIGCHLD, SIG_IGN);
 		server_socket = openServer();
 #if ENABLE_FEATURE_HTTPD_SETUID
@@ -1972,9 +2016,6 @@ int httpd_main(int argc, char **argv)
 			}
 			xsetuid(ugid.uid);
 		}
-#endif
-#else	/* BB_MMU */
-		bb_error_msg_and_die("-i is required");
 #endif
 	}
 
@@ -1990,21 +2031,22 @@ int httpd_main(int argc, char **argv)
 	}
 #endif
 
-#if BB_MMU
 #if ENABLE_FEATURE_HTTPD_RELOAD_CONFIG_SIGHUP
-	sighup_handler(0);
-#else
-	parse_conf(default_path_httpd_conf, FIRST_PARSE);
+	if (!(opt & OPT_INETD))
+		sighup_handler(0);
+	else /* do not install HUP handler in inetd mode */
 #endif
+		parse_conf(default_path_httpd_conf, FIRST_PARSE);
+
 	xfunc_error_retval = 0;
 	if (opt & OPT_INETD)
 		mini_httpd_inetd();
+#if BB_MMU
 	if (!(opt & OPT_FOREGROUND))
 		bb_daemonize(0); /* don't change current directory */
 	mini_httpd(server_socket); /* never returns */
 #else
-	xfunc_error_retval = 0;
-	mini_httpd_inetd(); /* never returns */
-	/* return 0; */
+	mini_httpd_nommu(server_socket, argc, argv); /* never returns */
 #endif
+	/* return 0; */
 }

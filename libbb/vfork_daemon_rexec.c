@@ -203,6 +203,15 @@ int spawn_and_wait(char **argv)
 }
 
 #if !BB_MMU
+void re_exec(char **argv)
+{
+	/* high-order bit of first char in argv[0] is a hidden
+	 * "we have (already) re-execed, don't do it again" flag */
+	argv[0][0] |= 0x80;
+	execv(bb_busybox_exec_path, argv);
+	bb_perror_msg_and_die("exec %s", bb_busybox_exec_path);
+}
+
 void forkexit_or_rexec(char **argv)
 {
 	pid_t pid;
@@ -216,11 +225,7 @@ void forkexit_or_rexec(char **argv)
 	if (pid) /* parent */
 		exit(0);
 	/* child - re-exec ourself */
-	/* high-order bit of first char in argv[0] is a hidden
-	 * "we have (alrealy) re-execed, don't do it again" flag */
-	argv[0][0] |= 0x80;
-	execv(bb_busybox_exec_path, argv);
-	bb_perror_msg_and_die("exec %s", bb_busybox_exec_path);
+	re_exec(argv);
 }
 #else
 /* Dance around (void)...*/
