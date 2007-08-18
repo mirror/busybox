@@ -131,13 +131,11 @@ typedef struct Htaccess_IP {
 } Htaccess_IP;
 
 struct globals {
-	int server_socket;
-	int accepted_socket;
 	int verbose;
 	smallint flg_deny_all;
 
 	unsigned rmt_ip;
-	unsigned tcp_port;       /* for set env REMOTE_PORT */
+	unsigned rmt_port;       /* for set env REMOTE_PORT */
 	const char *bind_addr_or_port;
 
 	const char *g_query;
@@ -169,12 +167,10 @@ struct globals {
 	char iobuf[MAX_MEMORY_BUF];
 };
 #define G (*ptr_to_globals)
-#define server_socket     (G.server_socket    )
-#define accepted_socket   (G.accepted_socket  )
 #define verbose           (G.verbose          )
 #define flg_deny_all      (G.flg_deny_all     )
 #define rmt_ip            (G.rmt_ip           )
-#define tcp_port          (G.tcp_port         )
+#define rmt_port          (G.rmt_port         )
 #define bind_addr_or_port (G.bind_addr_or_port)
 #define g_query           (G.g_query          )
 #define configFile        (G.configFile       )
@@ -863,10 +859,7 @@ static void send_headers(HttpResponseNum responseNum)
 	}
 	if (DEBUG)
 		fprintf(stderr, "headers: '%s'\n", iobuf);
-	i = accepted_socket;
-	if (i == 0)
-		i++; /* write to fd #1 in inetd mode */
-	if (full_write(i, iobuf, len) != len) {
+	if (full_write(1, iobuf, len) != len) {
 		if (verbose > 1)
 			bb_perror_msg("error");
 		log_and_exit();
@@ -892,7 +885,7 @@ static int get_line(void)
 	int count = 0;
 
 	/* We must not read extra chars. Reading byte-by-byte... */
-	while (read(accepted_socket, iobuf + count, 1) == 1) {
+	while (read(0, iobuf + count, 1) == 1) {
 		if (iobuf[count] == '\r')
 			continue;
 		if (iobuf[count] == '\n') {
@@ -941,7 +934,6 @@ static void send_cgi_and_exit(
 	int buf_count;
 	int status;
 	int pid = 0;
-	int sv_accepted_socket = accepted_socket;
 
 	/*
 	 * We are mucking with environment _first_ and then vfork/exec,
@@ -1008,7 +1000,7 @@ static void send_cgi_and_exit(
 	}
 	setenv1("HTTP_USER_AGENT", user_agent);
 #if ENABLE_FEATURE_HTTPD_SET_REMOTE_PORT_TO_ENV
-	setenv_long("REMOTE_PORT", tcp_port);
+	setenv_long("REMOTE_PORT", rmt_port);
 #endif
 	if (bodyLen)
 		setenv_long("CONTENT_LENGTH", bodyLen);
@@ -1037,11 +1029,6 @@ static void send_cgi_and_exit(
 	if (!pid) {
 		/* Child process */
 		xfunc_error_retval = 242;
-
-		if (accepted_socket > 1)
-			close(accepted_socket);
-		if (server_socket > 1)
-			close(server_socket);
 
 		xmove_fd(toCgi.rd, 0);  /* replace stdin with the pipe */
 		xmove_fd(fromCgi.wr, 1);  /* replace stdout with the pipe */
@@ -1087,7 +1074,6 @@ static void send_cgi_and_exit(
  error_execing_cgi:
 		/* send to stdout
 		 * (we are CGI here, our stdout is pumped to the net) */
-		accepted_socket = 1;
 		send_headers_and_exit(HTTP_NOT_FOUND);
 	} /* end child */
 
@@ -1095,7 +1081,6 @@ static void send_cgi_and_exit(
 
 	/* First, restore variables possibly changed by child */
 	xfunc_error_retval = 0;
-	accepted_socket = sv_accepted_socket;
 
 	/* Prepare for pumping data */
 	buf_count = 0;
@@ -1126,11 +1111,8 @@ static void send_cgi_and_exit(
 		if (bodyLen > 0 || post_read_size > 0) {
 			FD_SET(toCgi.wr, &writeSet);
 			nfound = toCgi.wr > fromCgi.rd ? toCgi.wr : fromCgi.rd;
-			if (post_read_size == 0) {
-				FD_SET(accepted_socket, &readSet);
-				if (nfound < accepted_socket)
-					nfound = accepted_socket;
-			}
+			if (post_read_size == 0)
+				FD_SET(0, &readSet);
 			/* Now wait on the set of sockets! */
 			nfound = select(nfound + 1, &readSet, &writeSet, NULL, NULL);
 		} else {
@@ -1169,13 +1151,13 @@ static void send_cgi_and_exit(
 				post_read_size = bodyLen = 0; /* EOF/broken pipe to CGI */
 			}
 		} else if (bodyLen > 0 && post_read_size == 0
-		 && FD_ISSET(accepted_socket, &readSet)
+		 && FD_ISSET(0, &readSet)
 		) {
 			/* We expect data, prev data portion is eaten by CGI
 			 * and there *is* data to read from the peer
 			 * (POSTDATA?) */
 			count = bodyLen > (int)sizeof(wbuf) ? (int)sizeof(wbuf) : bodyLen;
-			count = safe_read(accepted_socket, wbuf, count);
+			count = safe_read(0, wbuf, count);
 			if (count > 0) {
 				post_read_size = count;
 				post_read_idx = 0;
@@ -1191,7 +1173,6 @@ static void send_cgi_and_exit(
 #endif
 		if (FD_ISSET(fromCgi.rd, &readSet)) {
 			/* There is something to read from CGI */
-			int s = accepted_socket;
 			char *rbuf = iobuf;
 
 			/* Are we still buffering CGI output? */
@@ -1213,8 +1194,8 @@ static void send_cgi_and_exit(
 					/* eof (or error) and there was no "HTTP",
 					 * so write it, then write received data */
 					if (buf_count) {
-						full_write(s, HTTP_200, sizeof(HTTP_200)-1);
-						full_write(s, rbuf, buf_count);
+						full_write(1, HTTP_200, sizeof(HTTP_200)-1);
+						full_write(1, rbuf, buf_count);
 					}
 					break; /* closed */
 				}
@@ -1223,7 +1204,7 @@ static void send_cgi_and_exit(
 				/* "Status" header format is: "Status: 302 Redirected\r\n" */
 				if (buf_count >= 8 && memcmp(rbuf, "Status: ", 8) == 0) {
 					/* send "HTTP/1.0 " */
-					if (full_write(s, HTTP_200, 9) != 9)
+					if (full_write(1, HTTP_200, 9) != 9)
 						break;
 					rbuf += 8; /* skip "Status: " */
 					count = buf_count - 8;
@@ -1232,7 +1213,7 @@ static void send_cgi_and_exit(
 					/* Did CGI add "HTTP"? */
 					if (memcmp(rbuf, HTTP_200, 4) != 0) {
 						/* there is no "HTTP", do it ourself */
-						if (full_write(s, HTTP_200, sizeof(HTTP_200)-1) != sizeof(HTTP_200)-1)
+						if (full_write(1, HTTP_200, sizeof(HTTP_200)-1) != sizeof(HTTP_200)-1)
 							break;
 					}
 					/* Commented out:
@@ -1252,7 +1233,7 @@ static void send_cgi_and_exit(
 				if (count <= 0)
 					break;  /* eof (or error) */
 			}
-			if (full_write(s, rbuf, count) != count)
+			if (full_write(1, rbuf, count) != count)
 				break;
 			if (DEBUG)
 				fprintf(stderr, "cgi read %d bytes: '%.*s'\n", count, count, rbuf);
@@ -1292,7 +1273,6 @@ static void send_file_and_exit(const char *url)
 
 	char *suffix;
 	int f;
-	int fd;
 	const char *const *table;
 	const char *try_suffix;
 	ssize_t count;
@@ -1340,9 +1320,6 @@ static void send_file_and_exit(const char *url)
 	}
 
 	send_headers(HTTP_OK);
-	fd = accepted_socket;
-	if (fd == 0)
-		fd++; /* write to fd #1 in inetd mode */
 
 	/* If you want to know about EPIPE below
 	 * (happens if you abort downloads from local httpd): */
@@ -1351,7 +1328,7 @@ static void send_file_and_exit(const char *url)
 #if ENABLE_FEATURE_HTTPD_USE_SENDFILE
 	do {
 		/* byte count (3rd arg) is rounded down to 64k */
-		count = sendfile(fd, f, &offset, MAXINT(ssize_t) - 0xffff);
+		count = sendfile(1, f, &offset, MAXINT(ssize_t) - 0xffff);
 		if (count < 0) {
 			if (offset == 0)
 				goto fallback;
@@ -1364,7 +1341,7 @@ static void send_file_and_exit(const char *url)
 #endif
 	while ((count = safe_read(f, iobuf, MAX_MEMORY_BUF)) > 0) {
 		ssize_t n = count;
-		count = full_write(fd, iobuf, count);
+		count = full_write(1, iobuf, count);
 		if (count != n)
 			break;
 	}
@@ -1521,9 +1498,10 @@ static void handle_incoming_and_exit(void)
 #endif
 
 	/* Install timeout handler */
+	memset(&sa, 0, sizeof(sa));
 	sa.sa_handler = exit_on_signal;
-	sigemptyset(&sa.sa_mask);
-	sa.sa_flags = 0; /* no SA_RESTART */
+	/* sigemptyset(&sa.sa_mask); - memset should be enough */
+	/*sa.sa_flags = 0; - no SA_RESTART */
 	sigaction(SIGALRM, &sa, NULL);
 	alarm(HEADER_READ_TIMEOUT);
 
@@ -1779,18 +1757,17 @@ static void handle_incoming_and_exit(void)
 #endif
 	/* Properly wait for remote to closed */
 	int retval;
-	shutdown(accepted_socket, SHUT_WR);
+	shutdown(1, SHUT_WR);
 	do {
 		fd_set s_fd;
 		struct timeval tv;
 		FD_ZERO(&s_fd);
-		FD_SET(accepted_socket, &s_fd);
+		FD_SET(0, &s_fd);
 		tv.tv_sec = 2;
 		tv.tv_usec = 0;
-		retval = select(accepted_socket + 1, &s_fd, NULL, NULL, &tv);
-	} while (retval > 0 && read(accepted_socket, iobuf, sizeof(iobuf) > 0));
-	shutdown(accepted_socket, SHUT_RD);
-	close(accepted_socket);
+		retval = select(1, &s_fd, NULL, NULL, &tv);
+	} while (retval > 0 && read(0, iobuf, sizeof(iobuf) > 0));
+	shutdown(0, SHUT_RD);
 	log_and_exit();
 #endif
 }
@@ -1802,8 +1779,8 @@ static void handle_incoming_and_exit(void)
  * the processing as a forked process.
  * Never returns.
  */
-static void mini_httpd(int server) ATTRIBUTE_NORETURN;
-static void mini_httpd(int server)
+static void mini_httpd(int server_socket) ATTRIBUTE_NORETURN;
+static void mini_httpd(int server_socket)
 {
 	/* NB: it's best to not use xfuncs in this loop before fork().
 	 * Otherwise server may die on transient errors (temporary
@@ -1816,7 +1793,7 @@ static void mini_httpd(int server)
 		
 		/* Wait for connections... */
 		fromAddr.len = LSA_SIZEOF_SA;
-		n = accept(server, &fromAddr.sa, &fromAddr.len);
+		n = accept(server_socket, &fromAddr.sa, &fromAddr.len);
 
 		if (n < 0)
 			continue;
@@ -1829,15 +1806,18 @@ static void mini_httpd(int server)
 			/* Do not reload config on HUP */
 			signal(SIGHUP, SIG_IGN);
 #endif
-			accepted_socket = n;
+			close(server_socket);
+			xmove_fd(n, 0);
+			xdup2(0, 1);
+
 			n = get_nport(&fromAddr.sa);
-			tcp_port = ntohs(n);
+			rmt_port = ntohs(n);
 			rmt_ip = 0;
 			if (fromAddr.sa.sa_family == AF_INET) {
 				rmt_ip = ntohl(fromAddr.sin.sin_addr.s_addr);
 			}
 			if (ENABLE_FEATURE_HTTPD_CGI || DEBUG || verbose) {
-				rmt_ip_str = xmalloc_sockaddr2dotted(&fromAddr.sa, fromAddr.len);
+				rmt_ip_str = xmalloc_sockaddr2dotted(&fromAddr.sa);
 			}
 			if (verbose) {
 				/* this trick makes -v logging much simpler */
@@ -1864,13 +1844,13 @@ static void mini_httpd_inetd(void)
 	fromAddr.len = LSA_SIZEOF_SA;
 	getpeername(0, &fromAddr.sa, &fromAddr.len);
 	n = get_nport(&fromAddr.sa);
-	tcp_port = ntohs(n);
+	rmt_port = ntohs(n);
 	rmt_ip = 0;
 	if (fromAddr.sa.sa_family == AF_INET) {
 		rmt_ip = ntohl(fromAddr.sin.sin_addr.s_addr);
 	}
 	if (ENABLE_FEATURE_HTTPD_CGI || DEBUG || verbose) {
-		rmt_ip_str = xmalloc_sockaddr2dotted(&fromAddr.sa, fromAddr.len);
+		rmt_ip_str = xmalloc_sockaddr2dotted(&fromAddr.sa);
 	}
 	handle_incoming_and_exit();
 }
@@ -1919,6 +1899,7 @@ enum {
 int httpd_main(int argc, char **argv);
 int httpd_main(int argc, char **argv)
 {
+	int server_socket = server_socket; /* for gcc */
 	unsigned opt;
 	char *url_for_decode;
 	USE_FEATURE_HTTPD_ENCODE_URL_STR(const char *url_for_encode;)
@@ -2004,8 +1985,8 @@ int httpd_main(int argc, char **argv)
 		clearenv();
 		if (p)
 			putenv(p - 5);
-		if (!(opt & OPT_INETD))
-			setenv_long("SERVER_PORT", tcp_port);
+//		if (!(opt & OPT_INETD))
+//			setenv_long("SERVER_PORT", ???);
 	}
 #endif
 
