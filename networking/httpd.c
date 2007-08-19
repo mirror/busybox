@@ -289,10 +289,6 @@ static ALWAYS_INLINE void free_Htaccess_IP_list(Htaccess_IP **pptr)
 	free_llist((has_next_ptr**)pptr);
 }
 
-//#undef isdigit
-//#define isdigit(a) ((unsigned)((a) - '0') <= 9)
-//#define notdigit(a) ((unsigned)((a) - '0') > 9)
-
 /* Returns presumed mask width in bits or < 0 on error.
  * Updates strp, stores IP at provided pointer */
 static int scan_ip(const char **strp, unsigned *ipp, unsigned char endc)
