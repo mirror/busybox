@@ -289,17 +289,26 @@ static ALWAYS_INLINE void free_Htaccess_IP_list(Htaccess_IP **pptr)
 	free_llist((has_next_ptr**)pptr);
 }
 
-static int scan_ip(const char **ep, unsigned *ip, unsigned char endc)
+//#undef isdigit
+//#define isdigit(a) ((unsigned)((a) - '0') <= 9)
+//#define notdigit(a) ((unsigned)((a) - '0') > 9)
+
+/* Returns presumed mask width in bits or < 0 on error.
+ * Updates strp, stores IP at provided pointer */
+static int scan_ip(const char **strp, unsigned *ipp, unsigned char endc)
 {
-	const char *p = *ep;
+	const char *p = *strp;
 	int auto_mask = 8;
+	unsigned ip = 0;
 	int j;
 
-	*ip = 0;
+	if (*p == '/')
+		return -auto_mask;
+
 	for (j = 0; j < 4; j++) {
 		unsigned octet;
 
-		if ((*p < '0' || *p > '9') && (*p != '/' || j == 0) && *p != '\0')
+		if ((*p < '0' || *p > '9') && *p != '/' && *p)
 			return -auto_mask;
 		octet = 0;
 		while (*p >= '0' && *p <= '9') {
@@ -311,55 +320,61 @@ static int scan_ip(const char **ep, unsigned *ip, unsigned char endc)
 		}
 		if (*p == '.')
 			p++;
-		if (*p != '/' && *p != '\0')
+		if (*p != '/' && *p)
 			auto_mask += 8;
-		*ip = ((*ip) << 8) | octet;
+		ip = (ip << 8) | octet;
 	}
-	if (*p != '\0') {
+	if (*p) {
 		if (*p != endc)
 			return -auto_mask;
 		p++;
 		if (*p == '\0')
 			return -auto_mask;
 	}
-	*ep = p;
+	*ipp = ip;
+	*strp = p;
 	return auto_mask;
 }
 
-static int scan_ip_mask(const char *ipm, unsigned *ip, unsigned *mask)
+/* Returns 0 on success. Stores IP and mask at provided pointers */
+static int scan_ip_mask(const char *str, unsigned *ipp, unsigned *maskp)
 {
 	int i;
-	unsigned msk;
+	unsigned mask;
+	char *p;
 
-	i = scan_ip(&ipm, ip, '/');
+	i = scan_ip(&str, ipp, '/');
 	if (i < 0)
 		return i;
-	if (*ipm) {
-		const char *p = ipm;
 
-		i = 0;
-		while (*p) {
-			if (*p < '0' || *p > '9') {
-				if (*p == '.') {
-					i = scan_ip(&ipm, mask, 0);
-					return i != 32;
-				}
-				return -1;
-			}
-			i *= 10;
-			i += *p - '0';
-			p++;
+	if (*str) {
+		/* there is /xxx after dotted-IP address */
+		i = bb_strtou(str, &p, 10);
+		if (*p == '.') {
+			/* 'xxx' itself is dotted-IP mask, parse it */
+			/* (return 0 (success) only if it has N.N.N.N form) */
+			return scan_ip(&str, maskp, '\0') - 32;
 		}
+		if (*p)
+			return -1;
 	}
-	if (i > 32 || i < 0)
+
+	if (i > 32)
 		return -1;
-	msk = 0x80000000;
-	*mask = 0;
-	while (i > 0) {
-		*mask |= msk;
-		msk >>= 1;
-		i--;
+
+	if (sizeof(unsigned) == 4 && i == 32) {
+		/* mask >>= 32 below may not work */
+		mask = 0;
+	} else {
+		mask = 0xffffffff;
+		mask >>= i;
 	}
+	/* i == 0 -> *maskp = 0x00000000
+	 * i == 1 -> *maskp = 0x80000000
+	 * i == 4 -> *maskp = 0xf0000000
+	 * i == 31 -> *maskp = 0xfffffffe
+	 * i == 32 -> *maskp = 0xffffffff */
+	*maskp = (uint32_t)(~mask);
 	return 0;
 }
 
