@@ -301,7 +301,7 @@ void isrv_run(
 	isrv_want_rd(state, listen_fd);
 	/* remember flags to make blocking<->nonblocking switch faster */
 	/* (suppress gcc warning "cast from ptr to int of different size") */
-	PARAM_TBL[0] = (void*)(ptrdiff_t)(fcntl(listen_fd, F_GETFL, 0));
+	PARAM_TBL[0] = (void*)(ptrdiff_t)(fcntl(listen_fd, F_GETFL));
 
 	while (1) {
 		struct timeval tv;

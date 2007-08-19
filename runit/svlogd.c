@@ -800,7 +800,7 @@ int svlogd_main(int argc, char **argv)
 	/* We cannot set NONBLOCK on fd #0 permanently - this setting
 	 * _isn't_ per-process! It is shared among all other processes
 	 * with the same stdin */
-	fl_flag_0 = fcntl(0, F_GETFL, 0);
+	fl_flag_0 = fcntl(0, F_GETFL);
 
 	blocked_sigset = &ss;
 	sigemptyset(&ss);

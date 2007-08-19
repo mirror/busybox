@@ -32,7 +32,7 @@ static int new_peer(isrv_state_t *state, int fd)
 	if (isrv_register_fd(state, peer, fd) < 0)
 		return peer; /* failure, unregister peer */
 
-	buf->fd_flag = fcntl(fd, F_GETFL, 0) | O_NONBLOCK;
+	buf->fd_flag = fcntl(fd, F_GETFL) | O_NONBLOCK;
 	isrv_want_rd(state, fd);
 	return 0;
 }

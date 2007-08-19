@@ -726,7 +726,7 @@ opentrace(void)
 		}
 	}
 #ifdef O_APPEND
-	flags = fcntl(fileno(tracefile), F_GETFL, 0);
+	flags = fcntl(fileno(tracefile), F_GETFL);
 	if (flags >= 0)
 		fcntl(fileno(tracefile), F_SETFL, flags | O_APPEND);
 #endif
@@ -8565,7 +8565,7 @@ preadfd(void)
 
 	if (nr < 0) {
 		if (parsefile->fd == 0 && errno == EWOULDBLOCK) {
-			int flags = fcntl(0, F_GETFL, 0);
+			int flags = fcntl(0, F_GETFL);
 			if (flags >= 0 && flags & O_NONBLOCK) {
 				flags &=~ O_NONBLOCK;
 				if (fcntl(0, F_SETFL, flags) >= 0) {

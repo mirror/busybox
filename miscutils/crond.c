@@ -137,7 +137,7 @@ int crond_main(int ac, char **av)
 
 	opt_complementary = "f-b:b-f:S-L:L-S" USE_DEBUG_CROND_OPTION(":d-l");
 	opterr = 0;			/* disable getopt 'errors' message. */
-	opt = getopt32(ac, av, "l:L:fbSc:" USE_DEBUG_CROND_OPTION("d:"),
+	opt = getopt32(av, "l:L:fbSc:" USE_DEBUG_CROND_OPTION("d:"),
 			&lopt, &Lopt, &copt USE_DEBUG_CROND_OPTION(, &dopt));
 	if (opt & 1) /* -l */
 		LogLevel = xatou(lopt);

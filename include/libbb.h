@@ -611,8 +611,7 @@ extern const char *opt_complementary;
 extern const char *applet_long_options;
 #endif
 extern uint32_t option_mask32;
-/* TODO: don't pass argc, determine it by looking at argv */
-extern uint32_t getopt32(int argc, char **argv, const char *applet_opts, ...);
+extern uint32_t getopt32(char **argv, const char *applet_opts, ...);
 
 
 typedef struct llist_t {

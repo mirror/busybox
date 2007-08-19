@@ -161,12 +161,12 @@ void xunlink(const char *pathname)
 // Turn on nonblocking I/O on a fd
 int ndelay_on(int fd)
 {
-	return fcntl(fd, F_SETFL, fcntl(fd,F_GETFL,0) | O_NONBLOCK);
+	return fcntl(fd, F_SETFL, fcntl(fd,F_GETFL) | O_NONBLOCK);
 }
 
 int ndelay_off(int fd)
 {
-	return fcntl(fd, F_SETFL, fcntl(fd,F_GETFL,0) & ~O_NONBLOCK);
+	return fcntl(fd, F_SETFL, fcntl(fd,F_GETFL) & ~O_NONBLOCK);
 }
 
 void xdup2(int from, int to)

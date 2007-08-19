@@ -1524,7 +1524,7 @@ int lash_main(int argc_l, char **argv_l)
 		}
 	}
 
-	opt = getopt32(argc_l, argv_l, "+ic:", &local_pending_command);
+	opt = getopt32(argv_l, "+ic:", &local_pending_command);
 #define LASH_OPT_i (1<<0)
 #define LASH_OPT_c (1<<1)
 	if (opt & LASH_OPT_c) {
