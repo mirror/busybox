@@ -110,6 +110,7 @@
 
 static const char default_path_httpd_conf[] ALIGN1 = "/etc";
 static const char httpd_conf[] ALIGN1 = "httpd.conf";
+static const char HTTP_200[] ALIGN1 = "HTTP/1.0 200 OK\r\n";
 
 typedef struct has_next_ptr {
 	struct has_next_ptr *next;
@@ -135,6 +136,7 @@ struct globals {
 	smallint flg_deny_all;
 
 	unsigned rmt_ip;
+// TODO: get rid of rmt_port
 	unsigned rmt_port;      /* for set env REMOTE_PORT */
 	char *rmt_ip_str;       /* for set env REMOTE_ADDR */
 	const char *bind_addr_or_port;
@@ -661,6 +663,22 @@ static char *encodeString(const char *string)
  *
  * Returns a pointer to the decoded string (same as input).
  */
+static unsigned hex_to_bin(unsigned char c)
+{
+	unsigned v = c | 0x20; /* lowercase */
+	v = v - '0';
+	if (v <= 9)
+		return v;
+	v = v + ('0' - 'a');
+	if (v <= 5)
+		return v + 10;
+	return ~0;
+}
+/* For testing:
+void t(char c) { printf("'%c' %u\n", c, hex_to_bin(c)); }
+int main() { t('0'); t('9'); t('A'); t('F'); t('a'); t('f');
+t('0'-1); t('9'+1); t('A'-1); t('F'+1); t('a'-1); t('f'+1); return 0; }
+*/
 static char *decodeString(char *orig, int option_d)
 {
 	/* note that decoded string is always shorter than original */
@@ -669,7 +687,7 @@ static char *decodeString(char *orig, int option_d)
 	char c;
 
 	while ((c = *ptr++) != '\0') {
-		unsigned value1, value2;
+		unsigned v;
 
 		if (option_d && c == '+') {
 			*string++ = ' ';
@@ -679,21 +697,23 @@ static char *decodeString(char *orig, int option_d)
 			*string++ = c;
 			continue;
 		}
-		if (sscanf(ptr, "%1X", &value1) != 1
-		 || sscanf(ptr+1, "%1X", &value2) != 1
-		) {
+		v = hex_to_bin(ptr[0]);
+		if (v > 15) {
+ bad_hex:
 			if (!option_d)
 				return NULL;
 			*string++ = '%';
 			continue;
 		}
-		value1 = value1 * 16 + value2;
-		if (!option_d && (value1 == '/' || value1 == '\0')) {
+		v = (v * 16) | hex_to_bin(ptr[1]);
+		if (v > 255)
+			goto bad_hex;
+		if (!option_d && (v == '/' || v == '\0')) {
 			/* caller takes it as indication of invalid
 			 * (dangerous wrt exploits) chars */
 			return orig + 1;
 		}
-		*string++ = value1;
+		*string++ = v;
 		ptr += 2;
 	}
 	*string = '\0';
@@ -1188,13 +1208,13 @@ static void send_cgi_and_exit(
 
 			/* Are we still buffering CGI output? */
 			if (buf_count >= 0) {
-				/* According to http://hoohoo.ncsa.uiuc.edu/cgi/out.html,
+				/* HTTP_200[] has single "\r\n" at the end.
+				 * According to http://hoohoo.ncsa.uiuc.edu/cgi/out.html,
 				 * CGI scripts MUST send their own header terminated by
 				 * empty line, then data. That's why we have only one
 				 * <cr><lf> pair here. We will output "200 OK" line
 				 * if needed, but CGI still has to provide blank line
 				 * between header and body */
-				static const char HTTP_200[] ALIGN1 = "HTTP/1.0 200 OK\r\n";
 
 				/* Must use safe_read, not full_read, because
 				 * CGI may output a few first bytes and then wait
@@ -1489,12 +1509,11 @@ static void handle_incoming_and_exit(const len_and_sockaddr *fromAddr)
 {
 	static const char request_GET[] ALIGN1 = "GET";
 
-	char *url;
-	char *purl;
-	int count;
-	int http_major_version;
-	char *test;
 	struct stat sb;
+	char *urlcopy;
+	char *urlp;
+	char *tptr;
+	int http_major_version;
 	int ip_allowed;
 #if ENABLE_FEATURE_HTTPD_CGI
 	const char *prequest;
@@ -1535,58 +1554,57 @@ static void handle_incoming_and_exit(const len_and_sockaddr *fromAddr)
 	sigaction(SIGALRM, &sa, NULL);
 	alarm(HEADER_READ_TIMEOUT);
 
-	if (!get_line()) {
-		/* EOF or error or empty line */
+	if (!get_line()) /* EOF or error or empty line */
 		send_headers_and_exit(HTTP_BAD_REQUEST);
-	}
 
 	/* Determine type of request (GET/POST) */
-	purl = strpbrk(iobuf, " \t");
-	if (purl == NULL) {
+	urlp = strpbrk(iobuf, " \t");
+	if (urlp == NULL)
 		send_headers_and_exit(HTTP_BAD_REQUEST);
-	}
-	*purl = '\0';
+	*urlp++ = '\0';
 #if ENABLE_FEATURE_HTTPD_CGI
 	prequest = request_GET;
 	if (strcasecmp(iobuf, prequest) != 0) {
 		prequest = "POST";
-		if (strcasecmp(iobuf, prequest) != 0) {
+		if (strcasecmp(iobuf, prequest) != 0)
 			send_headers_and_exit(HTTP_NOT_IMPLEMENTED);
-		}
 	}
 #else
-	if (strcasecmp(iobuf, request_GET) != 0) {
+	if (strcasecmp(iobuf, request_GET) != 0)
 		send_headers_and_exit(HTTP_NOT_IMPLEMENTED);
-	}
 #endif
-	*purl = ' ';
+	urlp = skip_whitespace(urlp);
+	if (urlp[0] != '/')
+		send_headers_and_exit(HTTP_BAD_REQUEST);
+
+	/* Find end of URL and parse HTTP version, if any */
+	http_major_version = -1;
+	tptr = strchrnul(urlp, ' ');
+	/* Is it " HTTP/"? */
+	if (tptr[0] && strncmp(tptr + 1, HTTP_200, 5) == 0)
+		http_major_version = (tptr[6] - '0');
+	*tptr = '\0';
 
 	/* Copy URL from after "GET "/"POST " to stack-allocated char[] */
-	http_major_version = -1;
-	count = sscanf(purl, " %[^ ] HTTP/%d.%*d", iobuf, &http_major_version);
-	if (count < 1 || iobuf[0] != '/') {
-		/* Garbled request/URL */
-		send_headers_and_exit(HTTP_BAD_REQUEST);
-	}
-	url = alloca(strlen(iobuf) + sizeof("/index.html"));
-	if (url == NULL) {
-		send_headers_and_exit(HTTP_INTERNAL_SERVER_ERROR);
-	}
-	strcpy(url, iobuf);
+	urlcopy = alloca((tptr - urlp) + sizeof("/index.html"));
+	/*if (urlcopy == NULL)
+	 *	send_headers_and_exit(HTTP_INTERNAL_SERVER_ERROR);*/
+	strcpy(urlcopy, urlp);
+	/* NB: urlcopy ptr is never changed after this */
 
 	/* Extract url args if present */
-	test = strchr(url, '?');
+	tptr = strchr(urlcopy, '?');
 	g_query = NULL;
-	if (test) {
-		*test++ = '\0';
-		g_query = test;
+	if (tptr) {
+		*tptr++ = '\0';
+		g_query = tptr;
 	}
 
 	/* Decode URL escape sequences */
-	test = decodeString(url, 0);
-	if (test == NULL)
+	tptr = decodeString(urlcopy, 0);
+	if (tptr == NULL)
 		send_headers_and_exit(HTTP_BAD_REQUEST);
-	if (test == url + 1) {
+	if (tptr == urlcopy + 1) {
 		/* '/' or NUL is encoded */
 		send_headers_and_exit(HTTP_NOT_FOUND);
 	}
@@ -1594,60 +1612,58 @@ static void handle_incoming_and_exit(const len_and_sockaddr *fromAddr)
 	/* Canonicalize path */
 	/* Algorithm stolen from libbb bb_simplify_path(),
 	 * but don't strdup and reducing trailing slash and protect out root */
-	purl = test = url;
+	urlp = tptr = urlcopy;
 	do {
-		if (*purl == '/') {
+		if (*urlp == '/') {
 			/* skip duplicate (or initial) slash */
-			if (*test == '/') {
+			if (*tptr == '/') {
 				continue;
 			}
-			if (*test == '.') {
+			if (*tptr == '.') {
 				/* skip extra '.' */
-				if (test[1] == '/' || !test[1]) {
+				if (tptr[1] == '/' || !tptr[1]) {
 					continue;
 				}
 				/* '..': be careful */
-				if (test[1] == '.' && (test[2] == '/' || !test[2])) {
-					++test;
-					if (purl == url) {
-						/* protect root */
+				if (tptr[1] == '.' && (tptr[2] == '/' || !tptr[2])) {
+					++tptr;
+					if (urlp == urlcopy) /* protect root */
 						send_headers_and_exit(HTTP_BAD_REQUEST);
-					}
-					while (*--purl != '/') /* omit previous dir */;
+					while (*--urlp != '/') /* omit previous dir */;
 						continue;
 				}
 			}
 		}
-		*++purl = *test;
-	} while (*++test);
-	*++purl = '\0';       /* so keep last character */
-	test = purl;          /* end ptr */
+		*++urlp = *tptr;
+	} while (*++tptr);
+	*++urlp = '\0';       /* so keep last character */
+	tptr = urlp;          /* end ptr */
 
 	/* If URL is a directory, add '/' */
-	if (test[-1] != '/') {
-		if (is_directory(url + 1, 1, &sb)) {
-			found_moved_temporarily = url;
+	if (tptr[-1] != '/') {
+		if (is_directory(urlcopy + 1, 1, &sb)) {
+			found_moved_temporarily = urlcopy;
 		}
 	}
 
 	/* Log it */
 	if (verbose > 1)
-		bb_error_msg("url:%s", url);
+		bb_error_msg("url:%s", urlcopy);
 
-	test = url;
+	tptr = urlcopy;
 	ip_allowed = checkPermIP();
-	while (ip_allowed && (test = strchr(test + 1, '/')) != NULL) {
+	while (ip_allowed && (tptr = strchr(tptr + 1, '/')) != NULL) {
 		/* have path1/path2 */
-		*test = '\0';
-		if (is_directory(url + 1, 1, &sb)) {
+		*tptr = '\0';
+		if (is_directory(urlcopy + 1, 1, &sb)) {
 			/* may be having subdir config */
-			parse_conf(url + 1, SUBDIR_PARSE);
+			parse_conf(urlcopy + 1, SUBDIR_PARSE);
 			ip_allowed = checkPermIP();
 		}
-		*test = '/';
+		*tptr = '/';
 	}
 	if (http_major_version >= 0) {
-		/* Request was with "... HTTP/n.m", and n >= 0 */
+		/* Request was with "... HTTP/nXXX", and n >= 0 */
 
 		/* Read until blank line for HTTP version specified, else parse immediate */
 		while (1) {
@@ -1662,16 +1678,16 @@ static void handle_incoming_and_exit(const len_and_sockaddr *fromAddr)
 			if ((STRNCASECMP(iobuf, "Content-length:") == 0)) {
 				/* extra read only for POST */
 				if (prequest != request_GET) {
-					test = iobuf + sizeof("Content-length:") - 1;
-					if (!test[0])
+					tptr = iobuf + sizeof("Content-length:") - 1;
+					if (!tptr[0])
 						send_headers_and_exit(HTTP_BAD_REQUEST);
 					errno = 0;
 					/* not using strtoul: it ignores leading minus! */
-					length = strtol(test, &test, 10);
+					length = strtol(tptr, &tptr, 10);
 					/* length is "ulong", but we need to pass it to int later */
 					/* so we check for negative or too large values in one go: */
 					/* (long -> ulong conv caused negatives to be seen as > INT_MAX) */
-					if (test[0] || errno || length > INT_MAX)
+					if (tptr[0] || errno || length > INT_MAX)
 						send_headers_and_exit(HTTP_BAD_REQUEST);
 				}
 			} else if (STRNCASECMP(iobuf, "Cookie:") == 0) {
@@ -1690,13 +1706,13 @@ static void handle_incoming_and_exit(const len_and_sockaddr *fromAddr)
 				 * It shows up as "Authorization: Basic <userid:password>" where
 				 * the userid:password is base64 encoded.
 				 */
-				test = skip_whitespace(iobuf + sizeof("Authorization:")-1);
-				if (STRNCASECMP(test, "Basic") != 0)
+				tptr = skip_whitespace(iobuf + sizeof("Authorization:")-1);
+				if (STRNCASECMP(tptr, "Basic") != 0)
 					continue;
-				test += sizeof("Basic")-1;
+				tptr += sizeof("Basic")-1;
 				/* decodeBase64() skips whitespace itself */
-				decodeBase64(test);
-				credentials = checkPerm(url, test);
+				decodeBase64(tptr);
+				credentials = checkPerm(urlcopy, tptr);
 			}
 #endif          /* FEATURE_HTTPD_BASIC_AUTH */
 		} /* while extra header reading */
@@ -1705,13 +1721,13 @@ static void handle_incoming_and_exit(const len_and_sockaddr *fromAddr)
 	/* We read headers, disable peer timeout */
 	alarm(0);
 
-	if (strcmp(bb_basename(url), httpd_conf) == 0 || ip_allowed == 0) {
+	if (strcmp(bb_basename(urlcopy), httpd_conf) == 0 || ip_allowed == 0) {
 		/* protect listing [/path]/httpd_conf or IP deny */
 		send_headers_and_exit(HTTP_FORBIDDEN);
 	}
 
 #if ENABLE_FEATURE_HTTPD_BASIC_AUTH
-	if (credentials <= 0 && checkPerm(url, ":") == 0) {
+	if (credentials <= 0 && checkPerm(urlcopy, ":") == 0) {
 		send_headers_and_exit(HTTP_UNAUTHORIZED);
 	}
 #endif
@@ -1720,24 +1736,24 @@ static void handle_incoming_and_exit(const len_and_sockaddr *fromAddr)
 		send_headers_and_exit(HTTP_MOVED_TEMPORARILY);
 	}
 
-	test = url + 1;      /* skip first '/' */
+	tptr = urlcopy + 1;      /* skip first '/' */
 
 #if ENABLE_FEATURE_HTTPD_CGI
-	if (strncmp(test, "cgi-bin/", 8) == 0) {
-		if (test[8] == '\0') {
+	if (strncmp(tptr, "cgi-bin/", 8) == 0) {
+		if (tptr[8] == '\0') {
 			/* protect listing "cgi-bin/" */
 			send_headers_and_exit(HTTP_FORBIDDEN);
 		}
-		send_cgi_and_exit(url, prequest, length, cookie, content_type);
+		send_cgi_and_exit(urlcopy, prequest, length, cookie, content_type);
 	}
 #if ENABLE_FEATURE_HTTPD_CONFIG_WITH_SCRIPT_INTERPR
 	{
-		char *suffix = strrchr(test, '.');
+		char *suffix = strrchr(tptr, '.');
 		if (suffix) {
 			Htaccess *cur;
 			for (cur = script_i; cur; cur = cur->next) {
 				if (strcmp(cur->before_colon + 1, suffix) == 0) {
-					send_cgi_and_exit(url, prequest, length, cookie, content_type);
+					send_cgi_and_exit(urlcopy, prequest, length, cookie, content_type);
 				}
 			}
 		}
@@ -1748,20 +1764,20 @@ static void handle_incoming_and_exit(const len_and_sockaddr *fromAddr)
 	}
 #endif  /* FEATURE_HTTPD_CGI */
 
-	if (purl[-1] == '/')
-		strcpy(purl, "index.html");
-	if (stat(test, &sb) == 0) {
+	if (urlp[-1] == '/')
+		strcpy(urlp, "index.html");
+	if (stat(tptr, &sb) == 0) {
 		/* It's a dir URL and there is index.html */
 		ContentLength = sb.st_size;
 		last_mod = sb.st_mtime;
 	}
 #if ENABLE_FEATURE_HTTPD_CGI
-	else if (purl[-1] == '/') {
+	else if (urlp[-1] == '/') {
 		/* It's a dir URL and there is no index.html
 		 * Try cgi-bin/index.cgi */
 		if (access("/cgi-bin/index.cgi"+1, X_OK) == 0) {
-			purl[0] = '\0';
-			g_query = url;
+			urlp[0] = '\0';
+			g_query = urlcopy;
 			send_cgi_and_exit("/cgi-bin/index.cgi", prequest, length, cookie, content_type);
 		}
 	}
@@ -1771,7 +1787,7 @@ static void handle_incoming_and_exit(const len_and_sockaddr *fromAddr)
 	 * }
 	 */
 
-	send_file_and_exit(test);
+	send_file_and_exit(tptr);
 
 #if 0 /* Is this needed? Why? */
 	if (DEBUG)
