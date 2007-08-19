@@ -135,10 +135,10 @@ struct globals {
 	int verbose;            /* must be int (used by getopt32) */
 	smallint flg_deny_all;
 
-	unsigned rmt_ip;
-// TODO: get rid of rmt_port
-	unsigned rmt_port;      /* for set env REMOTE_PORT */
-	char *rmt_ip_str;       /* for set env REMOTE_ADDR */
+	unsigned rmt_ip;	/* used for IP-based allow/deny rules */
+	time_t last_mod;
+	off_t ContentLength;    /* -1 - unknown */
+	char *rmt_ip_str;       /* for $REMOTE_ADDR and $REMOTE_PORT */
 	const char *bind_addr_or_port;
 
 	const char *g_query;
@@ -147,8 +147,6 @@ struct globals {
 
 	const char *found_mime_type;
 	const char *found_moved_temporarily;
-	time_t last_mod;
-	off_t ContentLength;    /* -1 - unknown */
 	Htaccess_IP *ip_a_d;    /* config allow/deny lines */
 
 	USE_FEATURE_HTTPD_BASIC_AUTH(const char *g_realm;)
@@ -174,7 +172,6 @@ struct globals {
 #define verbose           (G.verbose          )
 #define flg_deny_all      (G.flg_deny_all     )
 #define rmt_ip            (G.rmt_ip           )
-#define rmt_port          (G.rmt_port         )
 #define bind_addr_or_port (G.bind_addr_or_port)
 #define g_query           (G.g_query          )
 #define configFile        (G.configFile       )
@@ -731,12 +728,6 @@ static void setenv1(const char *name, const char *value)
 		value = "";
 	setenv(name, value, 1);
 }
-static void setenv_long(const char *name, long value)
-{
-	char buf[sizeof(value)*3 + 2];
-	sprintf(buf, "%ld", value);
-	setenv(name, buf, 1);
-}
 #endif
 
 #if ENABLE_FEATURE_HTTPD_BASIC_AUTH
@@ -751,7 +742,7 @@ static void setenv_long(const char *name, long value)
 static void decodeBase64(char *Data)
 {
 	const unsigned char *in = (const unsigned char *)Data;
-	// The decoded size will be at most 3/4 the size of the encoded
+	/* The decoded size will be at most 3/4 the size of the encoded */
 	unsigned ch = 0;
 	int i = 0;
 
@@ -1027,14 +1018,16 @@ static void send_cgi_and_exit(
 			cp = NULL;
 		if (cp) *cp = '\0'; /* delete :PORT */
 		setenv1("REMOTE_ADDR", p);
-		if (cp) *cp = ':';
+		if (cp) {
+			*cp = ':';
+#if ENABLE_FEATURE_HTTPD_SET_REMOTE_PORT_TO_ENV
+			setenv1("REMOTE_PORT", cp + 1);
+#endif
+		}
 	}
 	setenv1("HTTP_USER_AGENT", user_agent);
-#if ENABLE_FEATURE_HTTPD_SET_REMOTE_PORT_TO_ENV
-	setenv_long("REMOTE_PORT", rmt_port);
-#endif
 	if (bodyLen)
-		setenv_long("CONTENT_LENGTH", bodyLen);
+		putenv(xasprintf("CONTENT_LENGTH=%d", bodyLen));
 	if (cookie)
 		setenv1("HTTP_COOKIE", cookie);
 	if (content_type)
@@ -1530,8 +1523,6 @@ static void handle_incoming_and_exit(const len_and_sockaddr *fromAddr)
 	 * (IOW, server process doesn't need to waste 8k) */
 	iobuf = xmalloc(MAX_MEMORY_BUF);
 
-	rmt_port = get_nport(&fromAddr->sa);
-	rmt_port = ntohs(rmt_port);
 	rmt_ip = 0;
 	if (fromAddr->sa.sa_family == AF_INET) {
 		rmt_ip = ntohl(fromAddr->sin.sin_addr.s_addr);
