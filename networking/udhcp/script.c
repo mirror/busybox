@@ -14,7 +14,7 @@
 
 
 /* get a rough idea of how long an option will be (rounding up...) */
-static const int max_option_length[] = {
+static const uint8_t max_option_length[] = {
 	[OPTION_IP] =		sizeof("255.255.255.255 "),
 	[OPTION_IP_PAIR] =	sizeof("255.255.255.255 ") * 2,
 	[OPTION_STRING] =	1,
