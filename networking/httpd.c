@@ -104,7 +104,7 @@
 # define PIPE_BUF 4096
 #endif
 
-#define MAX_MEMORY_BUF 8192    /* IO buffer */
+#define IOBUF_SIZE 8192    /* IO buffer */
 
 #define HEADER_READ_TIMEOUT 60
 
@@ -163,7 +163,7 @@ struct globals {
 #if ENABLE_FEATURE_HTTPD_CONFIG_WITH_SCRIPT_INTERPR
 	Htaccess *script_i;     /* config script interpreters */
 #endif
-	char *iobuf;	        /* [MAX_MEMORY_BUF] */
+	char *iobuf;	        /* [IOBUF_SIZE] */
 #define hdr_buf bb_common_bufsiz1
 	char *hdr_ptr;
 	int hdr_cnt;
@@ -717,19 +717,6 @@ static char *decodeString(char *orig, int option_d)
 	return orig;
 }
 
-
-#if ENABLE_FEATURE_HTTPD_CGI
-/*
- * setenv helpers
- */
-static void setenv1(const char *name, const char *value)
-{
-	if (!value)
-		value = "";
-	setenv(name, value, 1);
-}
-#endif
-
 #if ENABLE_FEATURE_HTTPD_BASIC_AUTH
 /*
  * Decode a base64 data stream as per rfc1521.
@@ -797,6 +784,13 @@ static int openServer(void)
 static void log_and_exit(void) ATTRIBUTE_NORETURN;
 static void log_and_exit(void)
 {
+	/* Paranoia. IE said to be buggy. It may send some extra data
+	 * or be confused by us just exiting without SHUT_WR. Oh well. */
+	shutdown(1, SHUT_WR);
+	ndelay_on(0);
+	while (read(0, iobuf, IOBUF_SIZE) > 0)
+		continue;
+
 	if (verbose > 2)
 		bb_error_msg("closed");
 	_exit(xfunc_error_retval);
@@ -915,13 +909,18 @@ static int get_line(void)
 			iobuf[count] = '\0';
 			return count;
 		}
-		if (count < (MAX_MEMORY_BUF - 1))      /* check overflow */
+		if (count < (IOBUF_SIZE - 1))      /* check overflow */
 			count++;
 	}
 	return count;
 }
 
 #if ENABLE_FEATURE_HTTPD_CGI
+static void setenv1(const char *name, const char *value)
+{
+	setenv(name, value ? value : "", 1);
+}
+
 /*
  * Spawn CGI script, forward CGI's stdin/out <=> network
  *
@@ -1192,8 +1191,8 @@ static void send_cgi_and_exit(
 		}
 
 #define PIPESIZE PIPE_BUF
-#if PIPESIZE >= MAX_MEMORY_BUF
-# error "PIPESIZE >= MAX_MEMORY_BUF"
+#if PIPESIZE >= IOBUF_SIZE
+# error "PIPESIZE >= IOBUF_SIZE"
 #endif
 		if (FD_ISSET(fromCgi.rd, &readSet)) {
 			/* There is something to read from CGI */
@@ -1363,7 +1362,7 @@ static void send_file_and_exit(const char *url)
 
  fallback:
 #endif
-	while ((count = safe_read(f, iobuf, MAX_MEMORY_BUF)) > 0) {
+	while ((count = safe_read(f, iobuf, IOBUF_SIZE)) > 0) {
 		ssize_t n = count;
 		count = full_write(1, iobuf, count);
 		if (count != n)
@@ -1455,12 +1454,13 @@ static int checkPerm(const char *path, const char *request)
 				char *pp;
 
 				if (strncmp(p, request, u - request) != 0) {
-					/* user uncompared */
+					/* user doesn't match */
 					continue;
 				}
 				pp = strchr(p, ':');
-				if (pp && pp[1] == '$' && pp[2] == '1' &&
-						pp[3] == '$' && pp[4]) {
+				if (pp && pp[1] == '$' && pp[2] == '1'
+				 && pp[3] == '$' && pp[4]
+				) {
 					pp++;
 					cipher = pw_encrypt(u+1, pp);
 					if (strcmp(cipher, pp) == 0)
@@ -1474,7 +1474,7 @@ static int checkPerm(const char *path, const char *request)
  set_remoteuser_var:
 				remoteuser = strdup(request);
 				if (remoteuser)
-					remoteuser[(u - request)] = '\0';
+					remoteuser[u - request] = '\0';
 				return 1;   /* Ok */
 			}
 			/* unauthorized */
@@ -1521,7 +1521,7 @@ static void handle_incoming_and_exit(const len_and_sockaddr *fromAddr)
 
 	/* Allocation of iobuf is postponed until now
 	 * (IOW, server process doesn't need to waste 8k) */
-	iobuf = xmalloc(MAX_MEMORY_BUF);
+	iobuf = xmalloc(IOBUF_SIZE);
 
 	rmt_ip = 0;
 	if (fromAddr->sa.sa_family == AF_INET) {
@@ -1779,35 +1779,6 @@ static void handle_incoming_and_exit(const len_and_sockaddr *fromAddr)
 	 */
 
 	send_file_and_exit(tptr);
-
-#if 0 /* Is this needed? Why? */
-	if (DEBUG)
-		fprintf(stderr, "closing socket\n");
-#if ENABLE_FEATURE_HTTPD_CGI
-	free(cookie);
-	free(content_type);
-	free(referer);
-	referer = NULL;
-#if ENABLE_FEATURE_HTTPD_BASIC_AUTH
-	free(remoteuser);
-	remoteuser = NULL;
-#endif
-#endif
-	/* Properly wait for remote to closed */
-	int retval;
-	shutdown(1, SHUT_WR);
-	do {
-		fd_set s_fd;
-		struct timeval tv;
-		FD_ZERO(&s_fd);
-		FD_SET(0, &s_fd);
-		tv.tv_sec = 2;
-		tv.tv_usec = 0;
-		retval = select(1, &s_fd, NULL, NULL, &tv);
-	} while (retval > 0 && read(0, iobuf, sizeof(iobuf) > 0));
-	shutdown(0, SHUT_RD);
-	log_and_exit();
-#endif
 }
 
 /*
@@ -1896,7 +1867,7 @@ static void mini_httpd_nommu(int server_socket, int argc, char **argv)
 			/* Run a copy of ourself in inetd mode */
 			re_exec(argv_copy);
 		}
-		/* parent, or fork failed */
+		/* parent, or vfork failed */
 		close(n);
 	} /* while (1) */
 	/* never reached */
