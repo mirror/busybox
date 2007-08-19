@@ -287,56 +287,19 @@ static void startlogger(void)
 }
 
 
-static const char *const DowAry[] = {
-	"sun",
-	"mon",
-	"tue",
-	"wed",
-	"thu",
-	"fri",
-	"sat",
+static const char DowAry[] ALIGN1 =
+	"sun""mon""tue""wed""thu""fri""sat"
+	/* "Sun""Mon""Tue""Wed""Thu""Fri""Sat" */
+;
 
-	"Sun",
-	"Mon",
-	"Tue",
-	"Wed",
-	"Thu",
-	"Fri",
-	"Sat",
-	NULL
-};
-
-static const char *const MonAry[] = {
-	"jan",
-	"feb",
-	"mar",
-	"apr",
-	"may",
-	"jun",
-	"jul",
-	"aug",
-	"sep",
-	"oct",
-	"nov",
-	"dec",
-
-	"Jan",
-	"Feb",
-	"Mar",
-	"Apr",
-	"May",
-	"Jun",
-	"Jul",
-	"Aug",
-	"Sep",
-	"Oct",
-	"Nov",
-	"Dec",
-	NULL
-};
+static const char MonAry[] ALIGN1 =
+	"jan""feb""mar""apr""may""jun""jul""aug""sep""oct""nov""dec"
+	/* "Jan""Feb""Mar""Apr""May""Jun""Jul""Aug""Sep""Oct""Nov""Dec" */
+;
 
 static char *ParseField(char *user, char *ary, int modvalue, int off,
-						const char *const *names, char *ptr)
+				const char *names, char *ptr)
+/* 'names' is a pointer to a set of 3-char abbreviations */
 {
 	char *base = ptr;
 	int n1 = -1;
@@ -366,19 +329,18 @@ static char *ParseField(char *user, char *ary, int modvalue, int off,
 		} else if (names) {
 			int i;
 
-			for (i = 0; names[i]; ++i) {
-				if (strncmp(ptr, names[i], strlen(names[i])) == 0) {
+			for (i = 0; names[i]; i += 3) {
+				/* was using strncmp before... */
+				if (strncasecmp(ptr, &names[i], 3) == 0) {
+					ptr += 3;
+					if (n1 < 0) {
+						n1 = i / 3;
+					} else {
+						n2 = i / 3;
+					}
+					skip = 1;
 					break;
 				}
-			}
-			if (names[i]) {
-				ptr += strlen(names[i]);
-				if (n1 < 0) {
-					n1 = i;
-				} else {
-					n2 = i;
-				}
-				skip = 1;
 			}
 		}
 
