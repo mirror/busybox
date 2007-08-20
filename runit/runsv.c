@@ -54,20 +54,18 @@ struct svdir {
 	smallint ctrl;
 	smallint want;
 	smallint islog;
-	struct taia start;
+	struct timespec start;
 	int fdlock;
 	int fdcontrol;
 	int fdcontrolwrite;
 };
-static struct svdir svd[2];
 
+static struct svdir svd[2];
 static smallint sigterm;
 static smallint haslog;
 static smallint pidchanged = 1;
 static int logpipe[2];
 static char *dir;
-
-#define usage() bb_show_usage()
 
 static void fatal2_cannot(const char *m1, const char *m2)
 {
@@ -87,10 +85,6 @@ static void fatal2x_cannot(const char *m1, const char *m2)
 static void warn_cannot(const char *m)
 {
 	bb_perror_msg("%s: warning: cannot %s", dir, m);
-}
-static void warnx_cannot(const char *m)
-{
-	bb_error_msg("%s: warning: cannot %s", dir, m);
 }
 
 static void s_child(int sig_no)
@@ -132,11 +126,19 @@ static int rename_or_warn(const char *old, const char *new)
 	return 0;
 }
 
+#define LESS(a,b) ((int)((unsigned)(b) - (unsigned)(a)) > 0)
+
+#include <sys/syscall.h>
+static void gettimeofday_ns(struct timespec *ts)
+{
+	syscall(__NR_clock_gettime, CLOCK_REALTIME, ts);
+}
+
 static void update_status(struct svdir *s)
 {
-	unsigned long l;
+	ssize_t sz;
 	int fd;
-	char status[20];
+	svstatus_t status;
 
 	/* pid */
 	if (pidchanged) {
@@ -194,38 +196,27 @@ static void update_status(struct svdir *s)
 		s->islog ? "log/supervise/stat" : "log/supervise/stat"+4);
 
 	/* supervise compatibility */
-	taia_pack(status, &s->start);
-	l = (unsigned long)s->pid;
-	status[12] = l; l >>=8;
-	status[13] = l; l >>=8;
-	status[14] = l; l >>=8;
-	status[15] = l;
+	memset(&status, 0, sizeof(status));
+	status.time_be64 = SWAP_BE64(s->start.tv_sec + 0x400000000000000aULL);
+	status.time_nsec_be32 = SWAP_BE32(s->start.tv_nsec);
+	status.pid_le32 = SWAP_LE32(s->pid);
 	if (s->ctrl & C_PAUSE)
-		status[16] = 1;
-	else
-		status[16] = 0;
+		status.paused = 1;
 	if (s->want == W_UP)
-		status[17] = 'u';
+		status.want = 'u';
 	else
-		status[17] = 'd';
+		status.want = 'd';
 	if (s->ctrl & C_TERM)
-		status[18] = 1;
-	else
-		status[18] = 0;
-	status[19] = s->state;
+		status.got_term = 1;
+	status.run_or_finish = s->state;
 	fd = open_trunc_or_warn("supervise/status.new");
 	if (fd < 0)
 		return;
-	l = write(fd, status, sizeof(status));
-	if (l < 0) {
-		warn_cannot("write supervise/status.new");
-		close(fd);
-		unlink("supervise/status.new");
-		return;
-	}
+	sz = write(fd, &status, sizeof(status));
 	close(fd);
-	if (l < sizeof(status)) {
-		warnx_cannot("write supervise/status.new: partial write");
+	if (sz != sizeof(status)) {
+		warn_cannot("write supervise/status.new");
+		unlink("supervise/status.new");
 		return;
 	}
 	rename_or_warn("supervise/status.new",
@@ -329,7 +320,7 @@ static void startservice(struct svdir *s)
 		fatal2_cannot(s->islog ? "start log/" : "start ", *run);
 	}
 	if (s->state != S_FINISH) {
-		taia_now(&s->start);
+		gettimeofday_ns(&s->start);
 		s->state = S_RUN;
 	}
 	s->pid = p;
@@ -346,39 +337,48 @@ static int ctrl(struct svdir *s, char c)
 	case 'd': /* down */
 		s->want = W_DOWN;
 		update_status(s);
-		if (s->pid && s->state != S_FINISH) stopservice(s);
+		if (s->pid && s->state != S_FINISH)
+			stopservice(s);
 		break;
 	case 'u': /* up */
 		s->want = W_UP;
 		update_status(s);
-		if (s->pid == 0) startservice(s);
+		if (s->pid == 0)
+			startservice(s);
 		break;
 	case 'x': /* exit */
-		if (s->islog) break;
+		if (s->islog)
+			break;
 		s->want = W_EXIT;
 		update_status(s);
 		/* FALLTHROUGH */
 	case 't': /* sig term */
-		if (s->pid && s->state != S_FINISH) stopservice(s);
+		if (s->pid && s->state != S_FINISH)
+			stopservice(s);
 		break;
 	case 'k': /* sig kill */
-		if (s->pid && !custom(s, c)) kill(s->pid, SIGKILL);
+		if (s->pid && !custom(s, c))
+			kill(s->pid, SIGKILL);
 		s->state = S_DOWN;
 		break;
 	case 'p': /* sig pause */
-		if (s->pid && !custom(s, c)) kill(s->pid, SIGSTOP);
+		if (s->pid && !custom(s, c))
+			kill(s->pid, SIGSTOP);
 		s->ctrl |= C_PAUSE;
 		update_status(s);
 		break;
 	case 'c': /* sig cont */
-		if (s->pid && !custom(s, c)) kill(s->pid, SIGCONT);
-		if (s->ctrl & C_PAUSE) s->ctrl &= ~C_PAUSE;
+		if (s->pid && !custom(s, c))
+			kill(s->pid, SIGCONT);
+		if (s->ctrl & C_PAUSE)
+			s->ctrl &= ~C_PAUSE;
 		update_status(s);
 		break;
 	case 'o': /* once */
 		s->want = W_DOWN;
 		update_status(s);
-		if (!s->pid) startservice(s);
+		if (!s->pid)
+			startservice(s);
 		break;
 	case 'a': /* sig alarm */
 		sig = SIGALRM;
@@ -414,7 +414,8 @@ int runsv_main(int argc, char **argv)
 	int r;
 	char buf[256];
 
-	if (!argv[1] || argv[2]) usage();
+	if (!argv[1] || argv[2])
+		bb_show_usage();
 	dir = argv[1];
 
 	xpipe(selfpipe);
@@ -435,22 +436,23 @@ int runsv_main(int argc, char **argv)
 	if (W_UP) svd[0].want = W_UP;
 	/* bss: svd[0].islog = 0; */
 	/* bss: svd[1].pid = 0; */
-	taia_now(&svd[0].start);
+	gettimeofday_ns(&svd[0].start);
 	if (stat("down", &s) != -1) svd[0].want = W_DOWN;
 
 	if (stat("log", &s) == -1) {
 		if (errno != ENOENT)
 			warn_cannot("stat ./log");
 	} else {
-		if (!S_ISDIR(s.st_mode))
-			warnx_cannot("stat log/down: log is not a directory");
-		else {
+		if (!S_ISDIR(s.st_mode)) {
+			errno = 0;
+			warn_cannot("stat log/down: log is not a directory");
+		} else {
 			haslog = 1;
 			svd[1].state = S_DOWN;
 			svd[1].ctrl = C_NOOP;
 			svd[1].want = W_UP;
 			svd[1].islog = 1;
-			taia_now(&svd[1].start);
+			gettimeofday_ns(&svd[1].start);
 			if (stat("log/down", &s) != -1)
 				svd[1].want = W_DOWN;
 			xpipe(logpipe);
@@ -525,9 +527,8 @@ int runsv_main(int argc, char **argv)
 		coe(fd);
 	}
 	for (;;) {
-		iopause_fd x[3];
-		struct taia deadline;
-		struct taia now;
+		struct pollfd x[3];
+		unsigned deadline;
 		char ch;
 
 		if (haslog)
@@ -538,32 +539,30 @@ int runsv_main(int argc, char **argv)
 				startservice(&svd[0]);
 
 		x[0].fd = selfpipe[0];
-		x[0].events = IOPAUSE_READ;
+		x[0].events = POLLIN;
 		x[1].fd = svd[0].fdcontrol;
-		x[1].events = IOPAUSE_READ;
-		if (haslog) {
-			x[2].fd = svd[1].fdcontrol;
-			x[2].events = IOPAUSE_READ;
-		}
-		taia_now(&now);
-		taia_uint(&deadline, 3600);
-		taia_add(&deadline, &now, &deadline);
-
+		x[1].events = POLLIN;
+		/* x[2] is used only if haslog == 1 */
+		x[2].fd = svd[1].fdcontrol;
+		x[2].events = POLLIN;
 		sig_unblock(SIGTERM);
 		sig_unblock(SIGCHLD);
-		iopause(x, 2+haslog, &deadline, &now);
+		poll(x, 2 + haslog, 3600*1000);
 		sig_block(SIGTERM);
 		sig_block(SIGCHLD);
 
 		while (read(selfpipe[0], &ch, 1) == 1)
-			;
+			continue;
+
 		for (;;) {
 			int child;
 			int wstat;
 
 			child = wait_nohang(&wstat);
-			if (!child) break;
-			if ((child == -1) && (errno != EINTR)) break;
+			if (!child)
+				break;
+			if ((child == -1) && (errno != EINTR))
+				break;
 			if (child == svd[0].pid) {
 				svd[0].pid = 0;
 				pidchanged = 1;
@@ -578,11 +577,11 @@ int runsv_main(int argc, char **argv)
 					}
 				}
 				svd[0].state = S_DOWN;
-				taia_uint(&deadline, 1);
-				taia_add(&deadline, &svd[0].start, &deadline);
-				taia_now(&svd[0].start);
+				deadline = svd[0].start.tv_sec + 1;
+				gettimeofday_ns(&svd[0].start);
 				update_status(&svd[0]);
-				if (taia_less(&svd[0].start, &deadline)) sleep(1);
+				if (LESS(svd[0].start.tv_sec, deadline))
+					sleep(1);
 			}
 			if (haslog) {
 				if (child == svd[1].pid) {
@@ -590,11 +589,11 @@ int runsv_main(int argc, char **argv)
 					pidchanged = 1;
 					svd[1].state = S_DOWN;
 					svd[1].ctrl &= ~C_TERM;
-					taia_uint(&deadline, 1);
-					taia_add(&deadline, &svd[1].start, &deadline);
-					taia_now(&svd[1].start);
+					deadline = svd[1].start.tv_sec + 1;
+					gettimeofday_ns(&svd[1].start);
 					update_status(&svd[1]);
-					if (taia_less(&svd[1].start, &deadline)) sleep(1);
+					if (LESS(svd[1].start.tv_sec, deadline))
+						sleep(1);
 				}
 			}
 		}
@@ -618,10 +617,6 @@ int runsv_main(int argc, char **argv)
 				update_status(&svd[1]);
 				close(logpipe[1]);
 				close(logpipe[0]);
-				//if (close(logpipe[1]) == -1)
-				//	warn_cannot("close logpipe[1]");
-				//if (close(logpipe[0]) == -1)
-				//	warn_cannot("close logpipe[0]");
 			}
 		}
 	}

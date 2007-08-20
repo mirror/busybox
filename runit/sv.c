@@ -161,10 +161,10 @@ Exit Codes
 static const char *acts;
 static char **service;
 static unsigned rc;
-static struct taia tstart, tnow;
-static char svstatus[20];
+/* "Bernstein" time format: unix + 0x400000000000000aULL */
+static uint64_t tstart, tnow;
+svstatus_t svstatus;
 
-#define usage() bb_show_usage()
 
 static void fatal_cannot(const char *m1) ATTRIBUTE_NORETURN;
 static void fatal_cannot(const char *m1)
@@ -195,15 +195,11 @@ static void failx(const char *m1)
 	errno = 0;
 	fail(m1);
 }
-static void warn_cannot(const char *m1)
+static void warn(const char *m1)
 {
 	++rc;
-	out("warning: cannot ", m1);
-}
-static void warnx_cannot(const char *m1)
-{
-	errno = 0;
-	warn_cannot(m1);
+	/* "warning: <service>: <m1>\n" */
+	out("warning: ", m1);
 }
 static void ok(const char *m1)
 {
@@ -222,32 +218,38 @@ static int svstatus_get(void)
 			             : failx("runsv not running");
 			return 0;
 		}
-		warn_cannot("open supervise/ok");
+		warn("cannot open supervise/ok");
 		return -1;
 	}
 	close(fd);
 	fd = open_read("supervise/status");
 	if (fd == -1) {
-		warn_cannot("open supervise/status");
+		warn("cannot open supervise/status");
 		return -1;
 	}
-	r = read(fd, svstatus, 20);
+	r = read(fd, &svstatus, 20);
 	close(fd);
 	switch (r) {
-	case 20: break;
-	case -1: warn_cannot("read supervise/status"); return -1;
-	default: warnx_cannot("read supervise/status: bad format"); return -1;
+	case 20:
+		break;
+	case -1:
+		warn("cannot read supervise/status");
+		return -1;
+	default:
+		errno = 0;
+		warn("cannot read supervise/status: bad format");
+		return -1;
 	}
 	return 1;
 }
 
 static unsigned svstatus_print(const char *m)
 {
-	long diff;
+	int diff;
 	int pid;
 	int normallyup = 0;
 	struct stat s;
-	struct tai tstatus;
+	uint64_t timestamp;
 
 	if (stat("down", &s) == -1) {
 		if (errno != ENOENT) {
@@ -256,13 +258,10 @@ static unsigned svstatus_print(const char *m)
 		}
 		normallyup = 1;
 	}
-	pid = (unsigned char) svstatus[15];
-	pid <<= 8; pid += (unsigned char)svstatus[14];
-	pid <<= 8; pid += (unsigned char)svstatus[13];
-	pid <<= 8; pid += (unsigned char)svstatus[12];
-	tai_unpack(svstatus, &tstatus);
+	pid = SWAP_LE32(svstatus.pid_le32);
+	timestamp = SWAP_BE64(svstatus.time_be64);
 	if (pid) {
-		switch (svstatus[19]) {
+		switch (svstatus.run_or_finish) {
 		case 1: printf("run: "); break;
 		case 2: printf("finish: "); break;
 		}
@@ -270,16 +269,16 @@ static unsigned svstatus_print(const char *m)
 	} else {
 		printf("down: %s: ", m);
 	}
-	diff = tnow.sec.x - tstatus.x;
-	printf("%lds", (diff < 0 ? 0L : diff));
+	diff = tnow - timestamp;
+	printf("%us", (diff < 0 ? 0 : diff));
 	if (pid) {
 		if (!normallyup) printf(", normally down");
-		if (svstatus[16]) printf(", paused");
-		if (svstatus[17] == 'd') printf(", want down");
-		if (svstatus[18]) printf(", got TERM");
+		if (svstatus.paused) printf(", paused");
+		if (svstatus.want == 'd') printf(", want down");
+		if (svstatus.got_term) printf(", got TERM");
 	} else {
 		if (normallyup) printf(", normally up");
-		if (svstatus[17] == 'u') printf(", want up");
+		if (svstatus.want == 'u') printf(", want up");
 	}
 	return pid ? 1 : 2;
 }
@@ -336,7 +335,7 @@ static int check(const char *a)
 {
 	int r;
 	unsigned pid;
-	struct tai tstatus;
+	uint64_t timestamp;
 
 	r = svstatus_get();
 	if (r == -1)
@@ -346,15 +345,12 @@ static int check(const char *a)
 			return 1;
 		return -1;
 	}
-	pid = (unsigned char)svstatus[15];
-	pid <<= 8; pid += (unsigned char)svstatus[14];
-	pid <<= 8; pid += (unsigned char)svstatus[13];
-	pid <<= 8; pid += (unsigned char)svstatus[12];
+	pid = SWAP_LE32(svstatus.pid_le32);
 	switch (*a) {
 	case 'x':
 		return 0;
 	case 'u':
-		if (!pid || svstatus[19] != 1) return 0;
+		if (!pid || svstatus.run_or_finish != 1) return 0;
 		if (!checkscript()) return 0;
 		break;
 	case 'd':
@@ -364,14 +360,14 @@ static int check(const char *a)
 		if (pid && !checkscript()) return 0;
 		break;
 	case 't':
-		if (!pid && svstatus[17] == 'd') break;
-		tai_unpack(svstatus, &tstatus);
-		if ((tstart.sec.x > tstatus.x) || !pid || svstatus[18] || !checkscript())
+		if (!pid && svstatus.want == 'd') break;
+		timestamp = SWAP_BE64(svstatus.time_be64);
+		if ((tstart > timestamp) || !pid || svstatus.got_term || !checkscript())
 			return 0;
 		break;
 	case 'o':
-		tai_unpack(svstatus, &tstatus);
-		if ((!pid && tstart.sec.x > tstatus.x) || (pid && svstatus[17] != 'd'))
+		timestamp = SWAP_BE64(svstatus.time_be64);
+		if ((!pid && tstart > timestamp) || (pid && svstatus.want != 'd'))
 			return 0;
 	}
 	printf(OK);
@@ -384,12 +380,14 @@ static int control(const char *a)
 {
 	int fd, r;
 
-	if (svstatus_get() <= 0) return -1;
-	if (svstatus[17] == *a) return 0;
+	if (svstatus_get() <= 0)
+		return -1;
+	if (svstatus.want == *a)
+		return 0;
 	fd = open_write("supervise/control");
 	if (fd == -1) {
 		if (errno != ENODEV)
-			warn_cannot("open supervise/control");
+			warn("cannot open supervise/control");
 		else
 			*a == 'x' ? ok("runsv not running") : failx("runsv not running");
 		return -1;
@@ -397,7 +395,7 @@ static int control(const char *a)
 	r = write(fd, a, strlen(a));
 	close(fd);
 	if (r != strlen(a)) {
-		warn_cannot("write to supervise/control");
+		warn("cannot write to supervise/control");
 		return -1;
 	}
 	return 1;
@@ -413,7 +411,7 @@ int sv_main(int argc, char **argv)
 	const char *varservice = "/var/service/";
 	unsigned services;
 	char **servicex;
-	unsigned long waitsec = 7;
+	unsigned waitsec = 7;
 	smallint kll = 0;
 	smallint verbose = 0;
 	int (*act)(const char*);
@@ -425,19 +423,19 @@ int sv_main(int argc, char **argv)
 	x = getenv("SVDIR");
 	if (x) varservice = x;
 	x = getenv("SVWAIT");
-	if (x) waitsec = xatoul(x);
+	if (x) waitsec = xatou(x);
 
 	opt = getopt32(argv, "w:v", &x);
-	if (opt & 1) waitsec = xatoul(x); // -w
+	if (opt & 1) waitsec = xatou(x); // -w
 	if (opt & 2) verbose = 1; // -v
 	argc -= optind;
 	argv += optind;
 	action = *argv++;
-	if (!action || !*argv) usage();
+	if (!action || !*argv) bb_show_usage();
 	service = argv;
 	services = argc - 1;
 
-	taia_now(&tnow);
+	tnow = time(0) + 0x400000000000000aULL;
 	tstart = tnow;
 	curdir = open_read(".");
 	if (curdir == -1)
@@ -467,7 +465,7 @@ int sv_main(int argc, char **argv)
 		kll = 1;
 		break;
 	case 'c':
-		if (!str_diff(action, "check")) {
+		if (str_equal(action, "check")) {
 			act = NULL;
 			acts = "c";
 			break;
@@ -479,15 +477,15 @@ int sv_main(int argc, char **argv)
 		if (!verbose) cbk = NULL;
 		break;
 	case 's':
-		if (!str_diff(action, "shutdown")) {
+		if (str_equal(action, "shutdown")) {
 			acts = "x";
 			break;
 		}
-		if (!str_diff(action, "start")) {
+		if (str_equal(action, "start")) {
 			acts = "u";
 			break;
 		}
-		if (!str_diff(action, "stop")) {
+		if (str_equal(action, "stop")) {
 			acts = "d";
 			break;
 		}
@@ -496,34 +494,34 @@ int sv_main(int argc, char **argv)
 		cbk = NULL;
 		break;
 	case 'r':
-		if (!str_diff(action, "restart")) {
+		if (str_equal(action, "restart")) {
 			acts = "tcu";
 			break;
 		}
-		usage();
+		bb_show_usage();
 	case 'f':
-		if (!str_diff(action, "force-reload")) {
+		if (str_equal(action, "force-reload")) {
 			acts = "tc";
 			kll = 1;
 			break;
 		}
-		if (!str_diff(action, "force-restart")) {
+		if (str_equal(action, "force-restart")) {
 			acts = "tcu";
 			kll = 1;
 			break;
 		}
-		if (!str_diff(action, "force-shutdown")) {
+		if (str_equal(action, "force-shutdown")) {
 			acts = "x";
 			kll = 1;
 			break;
 		}
-		if (!str_diff(action, "force-stop")) {
+		if (str_equal(action, "force-stop")) {
 			acts = "d";
 			kll = 1;
 			break;
 		}
 	default:
-		usage();
+		bb_show_usage();
 	}
 
 	servicex = service;
@@ -547,11 +545,9 @@ int sv_main(int argc, char **argv)
 	}
 
 	if (cbk) while (1) {
-		//struct taia tdiff;
-		long diff;
+		int diff;
 
-		//taia_sub(&tdiff, &tnow, &tstart);
-		diff = tnow.sec.x - tstart.sec.x;
+		diff = tnow - tstart;
 		service = servicex;
 		want_exit = 1;
 		for (i = 0; i < services; ++i, ++service) {
@@ -586,7 +582,7 @@ int sv_main(int argc, char **argv)
 		}
 		if (want_exit) break;
 		usleep(420000);
-		taia_now(&tnow);
+		tnow = time(0) + 0x400000000000000aULL;
 	}
 	return rc > 99 ? 99 : rc;
 }

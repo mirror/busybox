@@ -35,26 +35,25 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #define MAXSERVICES 1000
 
+struct service {
+	dev_t dev;
+	ino_t ino;
+	pid_t pid;
+	smallint isgone;
+};
+
+struct service *sv;
 static char *svdir;
-static unsigned long dev;
-static unsigned long ino;
-static struct service {
-	unsigned long dev;
-	unsigned long ino;
-	int pid;
-	int isgone;
-} *sv;
 static int svnum;
-static int check = 1;
 static char *rplog;
 static int rploglen;
 static int logpipe[2];
-static iopause_fd io[1];
-static struct taia stamplog;
-static int exitsoon;
-static int pgrp;
+static struct pollfd pfd[1];
+static unsigned stamplog;
+static smallint check = 1;
+static smallint exitsoon;
+static smallint set_pgrp;
 
-#define usage() bb_show_usage()
 static void fatal2_cannot(const char *m1, const char *m2)
 {
 	bb_perror_msg_and_die("%s: fatal: cannot %s%s", svdir, m1, m2);
@@ -84,25 +83,26 @@ static void s_hangup(int sig_no)
 
 static void runsv(int no, const char *name)
 {
-	int pid = fork();
+	pid_t pid;
+	char *prog[3];
+
+	prog[0] = (char*)"runsv";
+	prog[1] = (char*)name;
+	prog[2] = NULL;
+
+	pid = vfork();
 
 	if (pid == -1) {
-		warn2_cannot("fork for ", name);
+		warn2_cannot("vfork", "");
 		return;
 	}
 	if (pid == 0) {
 		/* child */
-		char *prog[3];
-
-		prog[0] = (char*)"runsv";
-		prog[1] = (char*)name;
-		prog[2] = NULL;
-		if (pgrp)
+		if (set_pgrp)
 			setsid();
 		signal(SIGHUP, SIG_DFL);
 		signal(SIGTERM, SIG_DFL);
-		BB_EXECVP(prog[0], prog);
-		//pathexec_run(*prog, prog, (char* const*)environ);
+		execvp(prog[0], prog);
 		fatal2_cannot("start runsv ", name);
 	}
 	sv[no].pid = pid;
@@ -124,13 +124,15 @@ static void runsvdir(void)
 		sv[i].isgone = 1;
 	errno = 0;
 	while ((d = readdir(dir))) {
-		if (d->d_name[0] == '.') continue;
+		if (d->d_name[0] == '.')
+			continue;
 		if (stat(d->d_name, &s) == -1) {
 			warn2_cannot("stat ", d->d_name);
 			errno = 0;
 			continue;
 		}
-		if (!S_ISDIR(s.st_mode)) continue;
+		if (!S_ISDIR(s.st_mode))
+			continue;
 		for (i = 0; i < svnum; i++) {
 			if ((sv[i].ino == s.st_ino) && (sv[i].dev == s.st_dev)) {
 				sv[i].isgone = 0;
@@ -152,8 +154,8 @@ static void runsvdir(void)
 			memset(&sv[i], 0, sizeof(sv[i]));
 			sv[i].ino = s.st_ino;
 			sv[i].dev = s.st_dev;
-			//sv[i].pid = 0;
-			//sv[i].isgone = 0;
+			/*sv[i].pid = 0;*/
+			/*sv[i].isgone = 0;*/
 			runsv(i, d->d_name);
 			check = 1;
 		}
@@ -196,9 +198,9 @@ static int setup_log(void)
 		warnx("cannot set filedescriptor for log");
 		return -1;
 	}
-	io[0].fd = logpipe[0];
-	io[0].events = IOPAUSE_READ;
-	taia_now(&stamplog);
+	pfd[0].fd = logpipe[0];
+	pfd[0].events = POLLIN;
+	stamplog = monotonic_sec();
 	return 1;
 }
 
@@ -206,24 +208,28 @@ int runsvdir_main(int argc, char **argv);
 int runsvdir_main(int argc, char **argv)
 {
 	struct stat s;
-	time_t mtime = 0;
+	dev_t last_dev = last_dev; /* for gcc */
+	ino_t last_ino = last_ino; /* for gcc */
+	time_t last_mtime = 0;
 	int wstat;
 	int curdir;
 	int pid;
-	struct taia deadline;
-	struct taia now;
-	struct taia stampcheck;
+	unsigned deadline;
+	unsigned now;
+	unsigned stampcheck;
 	char ch;
 	int i;
 
 	argv++;
-	if (!argv || !*argv) usage();
-	if (**argv == '-') {
-		switch (*(*argv + 1)) {
-		case 'P': pgrp = 1;
+	if (!*argv)
+		bb_show_usage();
+	if (argv[0][0] == '-') {
+		switch (argv[0][1]) {
+		case 'P': set_pgrp = 1;
 		case '-': ++argv;
 		}
-		if (!argv || !*argv) usage();
+		if (!*argv)
+			bb_show_usage();
 	}
 
 	sig_catch(SIGTERM, s_term);
@@ -241,13 +247,14 @@ int runsvdir_main(int argc, char **argv)
 		fatal2_cannot("open current directory", "");
 	coe(curdir);
 
-	taia_now(&stampcheck);
+	stampcheck = monotonic_sec();
 
 	for (;;) {
 		/* collect children */
 		for (;;) {
 			pid = wait_nohang(&wstat);
-			if (pid <= 0) break;
+			if (pid <= 0)
+				break;
 			for (i = 0; i < svnum; i++) {
 				if (pid == sv[i].pid) {
 					/* runsv has gone */
@@ -258,31 +265,23 @@ int runsvdir_main(int argc, char **argv)
 			}
 		}
 
-		taia_now(&now);
-		if (now.sec.x < (stampcheck.sec.x - 3)) {
-			/* time warp */
-			warnx("time warp: resetting time stamp");
-			taia_now(&stampcheck);
-			taia_now(&now);
-			if (rplog) taia_now(&stamplog);
-		}
-		if (taia_less(&now, &stampcheck) == 0) {
+		now = monotonic_sec();
+		if ((int)(now - stampcheck) >= 0) {
 			/* wait at least a second */
-			taia_uint(&deadline, 1);
-			taia_add(&stampcheck, &now, &deadline);
+			stampcheck = now + 1;
 
 			if (stat(svdir, &s) != -1) {
-				if (check || s.st_mtime != mtime
-				 || s.st_ino != ino || s.st_dev != dev
+				if (check || s.st_mtime != last_mtime
+				 || s.st_ino != last_ino || s.st_dev != last_dev
 				) {
 					/* svdir modified */
 					if (chdir(svdir) != -1) {
-						mtime = s.st_mtime;
-						dev = s.st_dev;
-						ino = s.st_ino;
+						last_mtime = s.st_mtime;
+						last_dev = s.st_dev;
+						last_ino = s.st_ino;
 						check = 0;
-						if (now.sec.x <= (4611686018427387914ULL + (uint64_t)mtime))
-							sleep(1);
+						//if (now <= mtime)
+						//	sleep(1);
 						runsvdir();
 						while (fchdir(curdir) == -1) {
 							warn2_cannot("change directory, pausing", "");
@@ -296,29 +295,30 @@ int runsvdir_main(int argc, char **argv)
 		}
 
 		if (rplog) {
-			if (taia_less(&now, &stamplog) == 0) {
+			if ((int)(now - stamplog) >= 0) {
 				write(logpipe[1], ".", 1);
-				taia_uint(&deadline, 900);
-				taia_add(&stamplog, &now, &deadline);
+				stamplog = now + 900;
 			}
 		}
-		taia_uint(&deadline, check ? 1 : 5);
-		taia_add(&deadline, &now, &deadline);
+		deadline = now + (check ? 1 : 5);
 
+		pfd[0].revents = 0;
 		sig_block(SIGCHLD);
 		if (rplog)
-			iopause(io, 1, &deadline, &now);
+			poll(pfd, 1, deadline*1000);
 		else
-			iopause(0, 0, &deadline, &now);
+			sleep(deadline);
 		sig_unblock(SIGCHLD);
 
-		if (rplog && (io[0].revents | IOPAUSE_READ))
-			while (read(logpipe[0], &ch, 1) > 0)
+		if (pfd[0].revents & POLLIN) {
+			while (read(logpipe[0], &ch, 1) > 0) {
 				if (ch) {
 					for (i = 6; i < rploglen; i++)
 						rplog[i-1] = rplog[i];
 					rplog[rploglen-1] = ch;
 				}
+			}
+		}
 
 		switch (exitsoon) {
 		case 1:

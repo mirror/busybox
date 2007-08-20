@@ -34,8 +34,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "libbb.h"
 #include "runit_lib.h"
 
-/*** byte_chr.c ***/
-
 unsigned byte_chr(char *s,unsigned n,int c)
 {
 	char ch;
@@ -52,62 +50,14 @@ unsigned byte_chr(char *s,unsigned n,int c)
 	return t - s;
 }
 
-
-/*** coe.c ***/
-
 int coe(int fd)
 {
-	return fcntl(fd,F_SETFD,FD_CLOEXEC);
+	return fcntl(fd, F_SETFD, FD_CLOEXEC);
 }
 
-
-/*** fmt_ptime.c ***/
-
-void fmt_ptime30nul(char *s, struct taia *ta) {
-	struct tm *t;
-	unsigned long u;
-
-	if (ta->sec.x < 4611686018427387914ULL)
-		return; /* impossible? */
-	u = ta->sec.x -4611686018427387914ULL;
-	t = gmtime((time_t*)&u);
-	if (!t)
-		return; /* huh? */
-	//fmt_ulong(s, 1900 + t->tm_year);
-	//s[4] = '-'; fmt_uint0(&s[5], t->tm_mon+1, 2);
-	//s[7] = '-'; fmt_uint0(&s[8], t->tm_mday, 2);
-	//s[10] = '_'; fmt_uint0(&s[11], t->tm_hour, 2);
-	//s[13] = ':'; fmt_uint0(&s[14], t->tm_min, 2);
-	//s[16] = ':'; fmt_uint0(&s[17], t->tm_sec, 2);
-	//s[19] = '.'; fmt_uint0(&s[20], ta->nano, 9);
-	sprintf(s, "%04u-%02u-%02u_%02u:%02u:%02u.%09u",
-		(unsigned)(1900 + t->tm_year),
-		(unsigned)(t->tm_mon+1),
-		(unsigned)(t->tm_mday),
-		(unsigned)(t->tm_hour),
-		(unsigned)(t->tm_min),
-		(unsigned)(t->tm_sec),
-		(unsigned)(ta->nano)
-	);
-	/* 4+1 + 2+1 + 2+1 + 2+1 + 2+1 + 2+1 + 9 = */
-	/* 5   + 3   + 3   + 3   + 3   + 3   + 9 = */
-	/* 20 (up to '.' inclusive) + 9 (not including '\0') */
-}
-
-unsigned fmt_taia25(char *s, struct taia *t) {
-	static char pack[TAIA_PACK];
-
-	taia_pack(pack, t);
-	*s++ = '@';
-	bin2hex(s, pack, 12);
-	return 25;
-}
-
-
-/*** tai_pack.c ***/
-
+#ifdef UNUSED
 static /* as it isn't used anywhere else */
-void tai_pack(char *s,const struct tai *t)
+void tai_pack(char *s, const struct tai *t)
 {
 	uint64_t x;
 
@@ -121,19 +71,6 @@ void tai_pack(char *s,const struct tai *t)
 	s[1] = x & 255; x >>= 8;
 	s[0] = x;
 }
-
-
-#ifdef UNUSED
-/*** tai_sub.c ***/
-
-void tai_sub(struct tai *t, const struct tai *u, const struct tai *v)
-{
-	t->x = u->x - v->x;
-}
-#endif
-
-
-/*** tai_unpack.c ***/
 
 void tai_unpack(const char *s,struct tai *t)
 {
@@ -151,8 +88,6 @@ void tai_unpack(const char *s,struct tai *t)
 }
 
 
-/*** taia_add.c ***/
-
 void taia_add(struct taia *t,const struct taia *u,const struct taia *v)
 {
 	t->sec.x = u->sec.x + v->sec.x;
@@ -168,9 +103,6 @@ void taia_add(struct taia *t,const struct taia *u,const struct taia *v)
 	}
 }
 
-
-/*** taia_less.c ***/
-
 int taia_less(const struct taia *t, const struct taia *u)
 {
 	if (t->sec.x < u->sec.x) return 1;
@@ -179,9 +111,6 @@ int taia_less(const struct taia *t, const struct taia *u)
 	if (t->nano > u->nano) return 0;
 	return t->atto < u->atto;
 }
-
-
-/*** taia_now.c ***/
 
 void taia_now(struct taia *t)
 {
@@ -192,9 +121,7 @@ void taia_now(struct taia *t)
 	t->atto = 0;
 }
 
-
-/*** taia_pack.c ***/
-
+/* UNUSED
 void taia_pack(char *s, const struct taia *t)
 {
 	unsigned long x;
@@ -213,9 +140,7 @@ void taia_pack(char *s, const struct taia *t)
 	s[1] = x & 255; x >>= 8;
 	s[0] = x;
 }
-
-
-/*** taia_sub.c ***/
+*/
 
 void taia_sub(struct taia *t, const struct taia *u, const struct taia *v)
 {
@@ -235,11 +160,7 @@ void taia_sub(struct taia *t, const struct taia *u, const struct taia *v)
 	}
 }
 
-
-/*** taia_uint.c ***/
-
 /* XXX: breaks tai encapsulation */
-
 void taia_uint(struct taia *t, unsigned s)
 {
 	t->sec.x = s;
@@ -247,15 +168,11 @@ void taia_uint(struct taia *t, unsigned s)
 	t->atto = 0;
 }
 
-
-/*** iopause.c ***/
-
 static
 uint64_t taia2millisec(const struct taia *t)
 {
 	return (t->sec.x * 1000) + (t->nano / 1000000);
 }
-
 
 void iopause(iopause_fd *x, unsigned len, struct taia *deadline, struct taia *stamp)
 {
@@ -282,59 +199,40 @@ void iopause(iopause_fd *x, unsigned len, struct taia *deadline, struct taia *st
 	/* XXX: how to handle EAGAIN? are kernels really this dumb? */
 	/* XXX: how to handle EINVAL? when exactly can this happen? */
 }
-
-
-/*** lock_ex.c ***/
+#endif
 
 int lock_ex(int fd)
 {
 	return flock(fd,LOCK_EX);
 }
 
-
-/*** lock_exnb.c ***/
-
 int lock_exnb(int fd)
 {
 	return flock(fd,LOCK_EX | LOCK_NB);
 }
-
-
-/*** open_append.c ***/
 
 int open_append(const char *fn)
 {
 	return open(fn, O_WRONLY|O_NDELAY|O_APPEND|O_CREAT, 0600);
 }
 
-
-/*** open_read.c ***/
-
 int open_read(const char *fn)
 {
 	return open(fn, O_RDONLY|O_NDELAY);
 }
-
-
-/*** open_trunc.c ***/
 
 int open_trunc(const char *fn)
 {
 	return open(fn,O_WRONLY | O_NDELAY | O_TRUNC | O_CREAT,0644);
 }
 
-
-/*** open_write.c ***/
-
 int open_write(const char *fn)
 {
 	return open(fn, O_WRONLY|O_NDELAY);
 }
 
-
-/*** pmatch.c ***/
-
-unsigned pmatch(const char *p, const char *s, unsigned len) {
+unsigned pmatch(const char *p, const char *s, unsigned len)
+{
 	for (;;) {
 		char c = *p++;
 		if (!c) return !len;
@@ -373,32 +271,3 @@ unsigned pmatch(const char *p, const char *s, unsigned len) {
 	}
 	return 0;
 }
-
-
-#ifdef UNUSED
-/*** seek_set.c ***/
-
-int seek_set(int fd,seek_pos pos)
-{
-	if (lseek(fd,(off_t) pos,SEEK_SET) == -1) return -1; return 0;
-}
-
-
-/*** str_chr.c ***/
-
-// strchrnul?
-unsigned str_chr(const char *s,int c)
-{
-	char ch;
-	const char *t;
-
-	ch = c;
-	t = s;
-	for (;;) {
-		if (!*t) break;
-		if (*t == ch) break;
-		++t;
-	}
-	return t - s;
-}
-#endif

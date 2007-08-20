@@ -155,9 +155,8 @@ static const signed char width_bytes[] ALIGN1 = {
 };
 /* Ensure that for each member of 'enum size_spec' there is an
    initializer in the width_bytes array.  */
-struct dummy {
-	int assert_width_bytes_matches_size_spec_decl
-		[ARRAY_SIZE(width_bytes) == N_SIZE_SPECS ? 1 : -1];
+struct ERR_width_bytes_has_bad_size {
+	char ERR_width_bytes_has_bad_size[ARRAY_SIZE(width_bytes) == N_SIZE_SPECS ? 1 : -1];
 };
 
 static smallint flag_dump_strings;
