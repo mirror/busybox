@@ -60,18 +60,20 @@ LDFLAGS += -static
 endif
 
 BBOX_LIB_LIST = m crypt
+
+ifeq ($(CONFIG_PAM),y)
+BBOX_LIB_LIST += pam pam_misc
+endif
+
 ifeq ($(CONFIG_SELINUX),y)
-#LDLIBS += -lselinux -lsepol
 BBOX_LIB_LIST += selinux sepol
 endif
 
 ifeq ($(CONFIG_EFENCE),y)
-#LDLIBS += -lefence
 BBOX_LIB_LIST += efence
 endif
 
 ifeq ($(CONFIG_DMALLOC),y)
-#LDLIBS += -ldmalloc
 BBOX_LIB_LIST += dmalloc
 endif
 

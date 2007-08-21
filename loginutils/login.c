@@ -14,6 +14,15 @@
 #include <selinux/flask.h> /* for security class definitions  */
 #endif
 
+#if ENABLE_PAM
+#include <pam/pam_appl.h>
+#include <pam/pam_misc.h>
+static const struct pam_conv conv = {
+	misc_conv,
+	NULL
+};
+#endif
+
 enum {
 	TIMEOUT = 60,
 	EMPTY_USERNAME_COUNT = 10,
@@ -125,7 +134,7 @@ static void die_if_nologin_and_non_root(int amroot)
 static ALWAYS_INLINE void die_if_nologin_and_non_root(int amroot) {}
 #endif
 
-#if ENABLE_FEATURE_SECURETTY
+#if ENABLE_FEATURE_SECURETTY && !ENABLE_PAM
 static int check_securetty(void)
 {
 	FILE *fp;
@@ -214,7 +223,7 @@ int login_main(int argc, char **argv)
 		LOGIN_OPT_h = (1<<1),
 		LOGIN_OPT_p = (1<<2),
 	};
-	char fromhost[512];
+	char *fromhost;
 	char username[USERNAME_SIZE];
 	const char *tmp;
 	int amroot;
@@ -226,6 +235,9 @@ int login_main(int argc, char **argv)
 	char full_tty[TTYNAME_SIZE];
 	USE_SELINUX(security_context_t user_sid = NULL;)
 	USE_FEATURE_UTMP(struct utmp utent;)
+	USE_PAM(pam_handle_t *pamh;)
+	USE_PAM(int pamret;)
+	USE_PAM(const char *failed_msg;)
 
 	short_tty = full_tty;
 	username[0] = '\0';
@@ -265,13 +277,12 @@ int login_main(int argc, char **argv)
 		USE_FEATURE_UTMP(
 			safe_strncpy(utent.ut_host, opt_host, sizeof(utent.ut_host));
 		)
-		snprintf(fromhost, sizeof(fromhost)-1, " on '%.100s' from "
-					"'%.200s'", short_tty, opt_host);
+		fromhost = xasprintf(" on '%s' from '%s'", short_tty, opt_host);
 	} else
-		snprintf(fromhost, sizeof(fromhost)-1, " on '%.100s'", short_tty);
+		fromhost = xasprintf(" on '%s'", short_tty);
 
-	// Was breaking "login <username>" from shell command line:
-	// bb_setpgrp();
+	/* Was breaking "login <username>" from shell command line: */
+	/*bb_setpgrp();*/
 
 	openlog(applet_name, LOG_PID | LOG_CONS | LOG_NOWAIT, LOG_AUTH);
 
@@ -279,6 +290,46 @@ int login_main(int argc, char **argv)
 		if (!username[0])
 			get_username_or_die(username, sizeof(username));
 
+#if ENABLE_PAM
+		pamret = pam_start("login", username, &conv, &pamh);
+		if (pamret != PAM_SUCCESS) {
+			failed_msg = "pam_start";
+			goto pam_auth_failed;
+		}
+		/* set TTY (so things like securetty work) */
+		pamret = pam_set_item(pamh, PAM_TTY, short_tty);
+		if (pamret != PAM_SUCCESS) {
+			failed_msg = "pam_set_item(TTY)";
+			goto pam_auth_failed;
+		}
+		pamret = pam_authenticate(pamh, 0);
+		if (pamret == PAM_SUCCESS) {
+			char *pamuser;
+			/* check that the account is healthy. */
+			pamret = pam_acct_mgmt(pamh, 0);
+			if (pamret != PAM_SUCCESS) {
+				failed_msg = "account setup";
+				goto pam_auth_failed;
+			}
+			/* read user back */
+			/* gcc: "dereferencing type-punned pointer breaks aliasing rules..."
+			 * thus we use double cast */
+			if (pam_get_item(pamh, PAM_USER, (const void **)(void*)&pamuser) != PAM_SUCCESS) {
+				failed_msg = "pam_get_item(USER)";
+				goto pam_auth_failed;
+			}
+			safe_strncpy(username, pamuser, sizeof(username));
+		}
+		/* If we get here, the user was authenticated, and is
+		 * granted access. */
+		pw = getpwnam(username);
+		if (pw)
+			break;
+		goto auth_failed;
+ pam_auth_failed:
+		bb_error_msg("%s failed: %s", failed_msg, pam_strerror(pamh, pamret));
+		safe_strncpy(username, "UNKNOWN", sizeof(username));
+#else /* not PAM */
 		pw = getpwnam(username);
 		if (!pw) {
 			strcpy(username, "UNKNOWN");
@@ -301,6 +352,7 @@ int login_main(int argc, char **argv)
 		/* authorization takes place here */
 		if (correct_password(pw))
 			break;
+#endif /* ENABLE_PAM */
  auth_failed:
 		opt &= ~LOGIN_OPT_f;
 		bb_do_delay(FAIL_DELAY);

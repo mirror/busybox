@@ -128,6 +128,13 @@ config LOGIN
 	  Note that Busybox binary must be setuid root for this applet to
 	  work properly.
 
+config PAM
+	bool "Support for PAM (Pluggable Authentication Modules)"
+	default n
+	depends on LOGIN
+	help
+	  Use PAM in login(1) instead of direct access to password database.
+
 config LOGIN_SCRIPTS
 	bool "Support for login scripts"
 	depends on LOGIN
