@@ -513,22 +513,25 @@ static unsigned logdir_open(struct logdir *ld, const char *fn)
 	/* read config */
 	i = open_read_close("config", buf, sizeof(buf));
 	if (i < 0 && errno != ENOENT)
-		bb_perror_msg(WARNING": %s/config", ld->name);
+		bb_perror_msg(WARNING"%s/config", ld->name);
 	if (i > 0) {
 		if (verbose)
 			bb_error_msg(INFO"read: %s/config", ld->name);
 		s = buf;
 		while (s) {
 			np = strchr(s, '\n');
-			if (np) *np++ = '\0';
+			if (np)
+				*np++ = '\0';
 			switch (s[0]) {
 			case '+':
 			case '-':
 			case 'e':
 			case 'E':
+				/* Add '\n'-terminated line to ld->inst */
 				while (1) {
-					int l = asprintf(&new, "%s%s\n", ld->inst?:"", s);
-					if (l >= 0 && new) break;
+					int l = asprintf(&new, "%s%s\n", ld->inst ? : "", s);
+					if (l >= 0 && new)
+						break;
 					pause_nomem();
 				}
 				free(ld->inst);
@@ -578,7 +581,8 @@ static unsigned logdir_open(struct logdir *ld, const char *fn)
 		s = ld->inst;
 		while (s) {
 			np = strchr(s, '\n');
-			if (np) *np++ = '\0';
+			if (np)
+				*np++ = '\0';
 			s = np;
 		}
 	}
@@ -586,7 +590,7 @@ static unsigned logdir_open(struct logdir *ld, const char *fn)
 	/* open current */
 	i = stat("current", &st);
 	if (i != -1) {
-		if (st.st_size && ! (st.st_mode & S_IXUSR)) {
+		if (st.st_size && !(st.st_mode & S_IXUSR)) {
 			ld->fnsave[25] = '.';
 			ld->fnsave[26] = 'u';
 			ld->fnsave[27] = '\0';
@@ -600,8 +604,9 @@ static unsigned logdir_open(struct logdir *ld, const char *fn)
 			rmoldest(ld);
 			i = -1;
 		} else {
-			/* Be paranoid: st.st_size can be not just bigger, but WIDER! */
-			/* (bug in original svlogd. remove this comment when fixed there) */
+			/* st.st_size can be not just bigger, but WIDER!
+			 * This code is safe: if st.st_size > 4GB, we select
+			 * ld->sizemax (because it's "unsigned") */
 			ld->size = (st.st_size > ld->sizemax) ? ld->sizemax : st.st_size;
 		}
 	} else {
@@ -667,7 +672,7 @@ static int buffer_pread(int fd, char *s, unsigned len)
 	int i;
 
 	input.fd = 0;
-        input.events = POLLIN|POLLHUP|POLLERR;
+	input.events = POLLIN;
 
 	do {
 		if (rotateasap) {
@@ -743,7 +748,6 @@ static int buffer_pread(int fd, char *s, unsigned len)
 	}
 	return i;
 }
-
 
 static void sig_term_handler(int sig_no)
 {

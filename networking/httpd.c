@@ -163,7 +163,7 @@ enum {
 #endif
 };
 
-static const uint16_t http_response_type[] = {
+static const uint16_t http_response_type[] ALIGN2 = {
 	HTTP_OK,
 	HTTP_MOVED_TEMPORARILY,
 	HTTP_REQUEST_TIMEOUT,
@@ -285,8 +285,6 @@ struct globals {
 	bind_addr_or_port = "80"; \
 	ContentLength = -1; \
 } while (0)
-
-
 
 
 #define STRNCASECMP(a, str) strncasecmp((a), (str), sizeof(str)-1)
@@ -467,11 +465,6 @@ static void parse_conf(const char *path, int flag)
 
 	if (flag == SUBDIR_PARSE || cf == NULL) {
 		cf = alloca(strlen(path) + sizeof(httpd_conf) + 2);
-		if (cf == NULL) {
-			if (flag == FIRST_PARSE)
-				bb_error_msg_and_die(bb_msg_memory_exhausted);
-			return;
-		}
 		sprintf((char *)cf, "%s/%s", path, httpd_conf);
 	}
 
@@ -554,7 +547,7 @@ static void parse_conf(const char *path, int flag)
 			/* error status code */
 			int status = atoi(++p0);
 			/* c already points at the character following ':' in parse loop */
-			// c = strchr(p0, ':'); c++;
+			/* c = strchr(p0, ':'); c++; */
 			if (status < HTTP_CONTINUE) {
 				bb_error_msg("config error '%s' in '%s'", buf, cf);
 				continue;
@@ -575,9 +568,7 @@ static void parse_conf(const char *path, int flag)
 		if (*p0 == '/') {
 			/* make full path from httpd root / current_path / config_line_path */
 			cf = (flag == SUBDIR_PARSE ? path : "");
-			p0 = malloc(strlen(cf) + (c - buf) + 2 + strlen(c));
-			if (p0 == NULL)
-				continue;
+			p0 = xmalloc(strlen(cf) + (c - buf) + 2 + strlen(c));
 			c[-1] = '\0';
 			sprintf(p0, "/%s%s", cf, buf);
 
@@ -694,9 +685,11 @@ static char *encodeString(const char *string)
 	char ch;
 
 	while ((ch = *string++)) {
-		// very simple check for what to encode
-		if (isalnum(ch)) *p++ = ch;
-		else p += sprintf(p, "&#%d;", (unsigned char) ch);
+		/* very simple check for what to encode */
+		if (isalnum(ch))
+			*p++ = ch;
+		else
+			p += sprintf(p, "&#%d;", (unsigned char) ch);
 	}
 	*p = '\0';
 	return out;
@@ -717,18 +710,21 @@ static char *encodeString(const char *string)
  */
 static unsigned hex_to_bin(unsigned char c)
 {
-	unsigned v = c | 0x20; /* lowercase */
-	v = v - '0';
+	unsigned v;
+
+	v = c - '0';
 	if (v <= 9)
 		return v;
-	v = v + ('0' - 'a');
+	/* c | 0x20: letters to lower case, non-letters
+	 * to (potentially different) non-letters */
+	v = (unsigned)(c | 0x20) - 'a';
 	if (v <= 5)
 		return v + 10;
 	return ~0;
 }
 /* For testing:
-void t(char c) { printf("'%c' %u\n", c, hex_to_bin(c)); }
-int main() { t('0'); t('9'); t('A'); t('F'); t('a'); t('f');
+void t(char c) { printf("'%c'(%u) %u\n", c, c, hex_to_bin(c)); }
+int main() { t(0x10); t(0x20); t('0'); t('9'); t('A'); t('F'); t('a'); t('f');
 t('0'-1); t('9'+1); t('A'-1); t('F'+1); t('a'-1); t('f'+1); return 0; }
 */
 static char *decodeString(char *orig, int option_d)
