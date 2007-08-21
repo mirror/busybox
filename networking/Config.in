@@ -170,6 +170,19 @@ config FEATURE_HTTPD_ENCODE_URL_STR
 	  For example, httpd -e "<Hello World>" as
 	  "&#60Hello&#32World&#62".
 
+config FEATURE_HTTPD_ERROR_PAGES
+	bool "Enable support for custom error pages"
+	default n
+	depends on HTTPD
+	help
+	  This option allows you to define custom error pages in
+	  the configuration file instead of the default HTTP status
+	  error pages. For instance, if you add the line:
+	        E404:/path/e404.html
+	  in the config file, the server will respond the specified
+	  '/path/e404.html' file instead of the terse '404 NOT FOUND'
+	  message.
+
 config IFCONFIG
 	bool "ifconfig"
 	default n

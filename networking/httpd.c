@@ -42,6 +42,7 @@
  * A:10.0.0.0/255.255.255.128  # Allow any address that previous set
  * A:127.0.0.1       # Allow local loopback connections
  * D:*               # Deny from other IP connections
+ * E404:/path/e404.html # /path/e404.html is the 404 (not found) error page
  * /cgi-bin:foo:bar  # Require user foo, pwd bar on urls starting with /cgi-bin/
  * /adm:admin:setup  # Require user admin, pwd setup on urls starting with /adm/
  * /adm:toor:PaSsWd  # or user toor, pwd PaSsWd on urls starting with /adm/
@@ -84,6 +85,10 @@
  * subdir http request, any merge is discarded when the process exits.  As a
  * result, the subdir settings only have a lifetime of a single request.
  *
+ * Custom error pages can contain an absolute path or be relative to
+ * 'home_httpd'. Error pages are to be static files (no CGI or script). Error
+ * page can only be defined in the root configuration file and are not taken
+ * into account in local (directories) config files.
  *
  * If -c is not set, an attempt will be made to open the default
  * root configuration file.  If -c is set and the file is not found, the
@@ -131,6 +136,84 @@ typedef struct Htaccess_IP {
 	int allow_deny;
 } Htaccess_IP;
 
+enum {
+	HTTP_OK = 200,
+	HTTP_MOVED_TEMPORARILY = 302,
+	HTTP_BAD_REQUEST = 400,       /* malformed syntax */
+	HTTP_UNAUTHORIZED = 401, /* authentication needed, respond with auth hdr */
+	HTTP_NOT_FOUND = 404,
+	HTTP_FORBIDDEN = 403,
+	HTTP_REQUEST_TIMEOUT = 408,
+	HTTP_NOT_IMPLEMENTED = 501,   /* used for unrecognized requests */
+	HTTP_INTERNAL_SERVER_ERROR = 500,
+	HTTP_CONTINUE = 100,
+#if 0   /* future use */
+	HTTP_SWITCHING_PROTOCOLS = 101,
+	HTTP_CREATED = 201,
+	HTTP_ACCEPTED = 202,
+	HTTP_NON_AUTHORITATIVE_INFO = 203,
+	HTTP_NO_CONTENT = 204,
+	HTTP_MULTIPLE_CHOICES = 300,
+	HTTP_MOVED_PERMANENTLY = 301,
+	HTTP_NOT_MODIFIED = 304,
+	HTTP_PAYMENT_REQUIRED = 402,
+	HTTP_BAD_GATEWAY = 502,
+	HTTP_SERVICE_UNAVAILABLE = 503, /* overload, maintenance */
+	HTTP_RESPONSE_SETSIZE = 0xffffffff
+#endif
+};
+
+static const uint16_t http_response_type[] = {
+	HTTP_OK,
+	HTTP_MOVED_TEMPORARILY,
+	HTTP_REQUEST_TIMEOUT,
+	HTTP_NOT_IMPLEMENTED,
+#if ENABLE_FEATURE_HTTPD_BASIC_AUTH 
+	HTTP_UNAUTHORIZED,
+#endif
+	HTTP_NOT_FOUND,
+	HTTP_BAD_REQUEST,
+	HTTP_FORBIDDEN,
+	HTTP_INTERNAL_SERVER_ERROR,
+#if 0   /* not implemented */
+	HTTP_CREATED,
+	HTTP_ACCEPTED,
+	HTTP_NO_CONTENT,
+	HTTP_MULTIPLE_CHOICES,
+	HTTP_MOVED_PERMANENTLY,
+	HTTP_NOT_MODIFIED,
+	HTTP_BAD_GATEWAY,
+	HTTP_SERVICE_UNAVAILABLE,
+#endif
+};
+
+static const struct {
+	const char *name;
+	const char *info;
+} http_response[ARRAY_SIZE(http_response_type)] = {
+	{ "OK", NULL },
+	{ "Found", "Directories must end with a slash" }, /* ?? */
+	{ "Request Timeout", "No request appeared within 60 seconds" },
+	{ "Not Implemented", "The requested method is not recognized" },
+#if ENABLE_FEATURE_HTTPD_BASIC_AUTH
+	{ "Unauthorized", "" },
+#endif
+	{ "Not Found", "The requested URL was not found" },
+	{ "Bad Request", "Unsupported method" },
+	{ "Forbidden", ""  },
+	{ "Internal Server Error", "Internal Server Error" },
+#if 0   /* not implemented */
+	{ "Created" },
+	{ "Accepted" },
+	{ "No Content" },
+	{ "Multiple Choices" },
+	{ "Moved Permanently" },
+	{ "Not Modified" },
+	{ "Bad Gateway", "" },
+	{ "Service Unavailable", "" },
+#endif
+};
+
 struct globals {
 	int verbose;            /* must be int (used by getopt32) */
 	smallint flg_deny_all;
@@ -167,6 +250,9 @@ struct globals {
 #define hdr_buf bb_common_bufsiz1
 	char *hdr_ptr;
 	int hdr_cnt;
+#if ENABLE_FEATURE_HTTPD_ERROR_PAGES
+	const char *http_error_page[ARRAY_SIZE(http_response_type)];
+#endif
 };
 #define G (*ptr_to_globals)
 #define verbose           (G.verbose          )
@@ -192,6 +278,7 @@ struct globals {
 #define iobuf             (G.iobuf            )
 #define hdr_ptr           (G.hdr_ptr          )
 #define hdr_cnt           (G.hdr_cnt          )
+#define http_error_page   (G.http_error_page  )
 #define INIT_G() do { \
 	PTR_TO_GLOBALS = xzalloc(sizeof(G)); \
 	USE_FEATURE_HTTPD_BASIC_AUTH(g_realm = "Web Server Authentication";) \
@@ -200,69 +287,12 @@ struct globals {
 } while (0)
 
 
-typedef enum {
-	HTTP_OK = 200,
-	HTTP_MOVED_TEMPORARILY = 302,
-	HTTP_BAD_REQUEST = 400,       /* malformed syntax */
-	HTTP_UNAUTHORIZED = 401, /* authentication needed, respond with auth hdr */
-	HTTP_NOT_FOUND = 404,
-	HTTP_FORBIDDEN = 403,
-	HTTP_REQUEST_TIMEOUT = 408,
-	HTTP_NOT_IMPLEMENTED = 501,   /* used for unrecognized requests */
-	HTTP_INTERNAL_SERVER_ERROR = 500,
-#if 0 /* future use */
-	HTTP_CONTINUE = 100,
-	HTTP_SWITCHING_PROTOCOLS = 101,
-	HTTP_CREATED = 201,
-	HTTP_ACCEPTED = 202,
-	HTTP_NON_AUTHORITATIVE_INFO = 203,
-	HTTP_NO_CONTENT = 204,
-	HTTP_MULTIPLE_CHOICES = 300,
-	HTTP_MOVED_PERMANENTLY = 301,
-	HTTP_NOT_MODIFIED = 304,
-	HTTP_PAYMENT_REQUIRED = 402,
-	HTTP_BAD_GATEWAY = 502,
-	HTTP_SERVICE_UNAVAILABLE = 503, /* overload, maintenance */
-	HTTP_RESPONSE_SETSIZE = 0xffffffff
-#endif
-} HttpResponseNum;
-
-typedef struct {
-	HttpResponseNum type;
-	const char *name;
-	const char *info;
-} HttpEnumString;
-
-static const HttpEnumString httpResponseNames[] = {
-	{ HTTP_OK, "OK", NULL },
-	{ HTTP_MOVED_TEMPORARILY, "Found", "Directories must end with a slash." },
-	{ HTTP_REQUEST_TIMEOUT, "Request Timeout",
-		"No request appeared within a reasonable time period." },
-	{ HTTP_NOT_IMPLEMENTED, "Not Implemented",
-		"The requested method is not recognized by this server." },
-#if ENABLE_FEATURE_HTTPD_BASIC_AUTH
-	{ HTTP_UNAUTHORIZED, "Unauthorized", "" },
-#endif
-	{ HTTP_NOT_FOUND, "Not Found",
-		"The requested URL was not found on this server." },
-	{ HTTP_BAD_REQUEST, "Bad Request", "Unsupported method." },
-	{ HTTP_FORBIDDEN, "Forbidden", "" },
-	{ HTTP_INTERNAL_SERVER_ERROR, "Internal Server Error",
-		"Internal Server Error" },
-#if 0                               /* not implemented */
-	{ HTTP_CREATED, "Created" },
-	{ HTTP_ACCEPTED, "Accepted" },
-	{ HTTP_NO_CONTENT, "No Content" },
-	{ HTTP_MULTIPLE_CHOICES, "Multiple Choices" },
-	{ HTTP_MOVED_PERMANENTLY, "Moved Permanently" },
-	{ HTTP_NOT_MODIFIED, "Not Modified" },
-	{ HTTP_BAD_GATEWAY, "Bad Gateway", "" },
-	{ HTTP_SERVICE_UNAVAILABLE, "Service Unavailable", "" },
-#endif
-};
 
 
 #define STRNCASECMP(a, str) strncasecmp((a), (str), sizeof(str)-1)
+
+/* Prototypes */
+static void send_file_and_exit(const char *url, int headers) ATTRIBUTE_NORETURN;
 
 static void free_llist(has_next_ptr **pptr)
 {
@@ -382,11 +412,13 @@ static int scan_ip_mask(const char *str, unsigned *ipp, unsigned *maskp)
  *    .ext:mime/type   # new mime type not compiled into httpd
  *    [adAD]:from      # ip address allow/deny, * for wildcard
  *    /path:user:pass  # username/password
+ *    Ennn:error.html  # error page for status nnn
  *
  * Any previous IP rules are discarded.
  * If the flag argument is not SUBDIR_PARSE then all /path and mime rules
  * are also discarded.  That is, previous settings are retained if flag is
  * SUBDIR_PARSE.
+ * Error pages are only parsed on the main config file.
  *
  * path   Path where to look for httpd.conf (without filename).
  * flag   Type of the parse request.
@@ -486,18 +518,6 @@ static void parse_conf(const char *path, int flag)
 
 		if (*p0 == 'a')
 			*p0 = 'A';
-		else if (*p0 != 'D' && *p0 != 'A'
-#if ENABLE_FEATURE_HTTPD_BASIC_AUTH
-			 && *p0 != '/'
-#endif
-#if ENABLE_FEATURE_HTTPD_CONFIG_WITH_MIME_TYPES
-			 && *p0 != '.'
-#endif
-#if ENABLE_FEATURE_HTTPD_CONFIG_WITH_SCRIPT_INTERPR
-			 && *p0 != '*'
-#endif
-			)
-			 continue;
 		if (*p0 == 'A' || *p0 == 'D') {
 			/* storing current config IP line */
 			pip = xzalloc(sizeof(Htaccess_IP));
@@ -527,6 +547,30 @@ static void parse_conf(const char *path, int flag)
 			}
 			continue;
 		}
+
+#if ENABLE_FEATURE_HTTPD_ERROR_PAGES
+		if (flag == FIRST_PARSE && *p0 == 'E') {
+			int i;
+			/* error status code */
+			int status = atoi(++p0);
+			/* c already points at the character following ':' in parse loop */
+			// c = strchr(p0, ':'); c++;
+			if (status < HTTP_CONTINUE) {
+				bb_error_msg("config error '%s' in '%s'", buf, cf);
+				continue;
+			}
+
+			/* then error page; find matching status */
+			for (i = 0; i < ARRAY_SIZE(http_response_type); i++) {
+				if (http_response_type[i] == status) {
+					http_error_page[i] = concat_path_file((*c == '/') ? NULL : home_httpd, c);
+					break;
+				}
+			}
+			continue;
+		}
+#endif
+
 #if ENABLE_FEATURE_HTTPD_BASIC_AUTH
 		if (*p0 == '/') {
 			/* make full path from httpd root / current_path / config_line_path */
@@ -813,24 +857,29 @@ static void log_and_exit(void)
  * IE will puke big-time if the headers are not sent in one packet and the
  * second packet is delayed for any reason.
  * responseNum - the result code to send.
- * Return result of write().
  */
-static void send_headers(HttpResponseNum responseNum)
+static void send_headers(int responseNum)
 {
 	static const char RFC1123FMT[] ALIGN1 = "%a, %d %b %Y %H:%M:%S GMT";
 
 	const char *responseString = "";
 	const char *infoString = NULL;
 	const char *mime_type;
+#if ENABLE_FEATURE_HTTPD_ERROR_PAGES
+	const char *error_page = 0;
+#endif
 	unsigned i;
 	time_t timer = time(0);
 	char tmp_str[80];
 	int len;
 
-	for (i = 0; i < ARRAY_SIZE(httpResponseNames); i++) {
-		if (httpResponseNames[i].type == responseNum) {
-			responseString = httpResponseNames[i].name;
-			infoString = httpResponseNames[i].info;
+	for (i = 0; i < ARRAY_SIZE(http_response_type); i++) {
+		if (http_response_type[i] == responseNum) {
+			responseString = http_response[i].name;
+			infoString = http_response[i].info;
+#if ENABLE_FEATURE_HTTPD_ERROR_PAGES
+			error_page = http_error_page[i];
+#endif
 			break;
 		}
 	}
@@ -862,6 +911,20 @@ static void send_headers(HttpResponseNum responseNum)
 				(g_query ? g_query : ""));
 	}
 
+#if ENABLE_FEATURE_HTTPD_ERROR_PAGES
+	if (error_page && !access(error_page, R_OK)) {
+		strcat(iobuf, "\r\n");
+		len += 2;
+
+		if (DEBUG)
+			fprintf(stderr, "headers: '%s'\n", iobuf);
+		full_write(1, iobuf, len);
+		if (DEBUG)
+			fprintf(stderr, "writing error page: '%s'\n", error_page);
+		return send_file_and_exit(error_page, FALSE);
+	}
+#endif
+
 	if (ContentLength != -1) {    /* file */
 		strftime(tmp_str, sizeof(tmp_str), RFC1123FMT, gmtime(&last_mod));
 		len += sprintf(iobuf + len, "Last-Modified: %s\r\n%s %"OFF_FMT"d\r\n",
@@ -885,8 +948,8 @@ static void send_headers(HttpResponseNum responseNum)
 	}
 }
 
-static void send_headers_and_exit(HttpResponseNum responseNum) ATTRIBUTE_NORETURN;
-static void send_headers_and_exit(HttpResponseNum responseNum)
+static void send_headers_and_exit(int responseNum) ATTRIBUTE_NORETURN;
+static void send_headers_and_exit(int responseNum)
 {
 	send_headers(responseNum);
 	log_and_exit();
@@ -1279,9 +1342,12 @@ static void send_cgi_and_exit(
 
 /*
  * Send a file response to a HTTP request, and exit
+ * 
+ * Parameters:
+ * const char *url    The requested URL (with leading /).
+ * headers            Don't send headers before if FALSE.
  */
-static void send_file_and_exit(const char *url) ATTRIBUTE_NORETURN;
-static void send_file_and_exit(const char *url)
+static void send_file_and_exit(const char *url, int headers)
 {
 	static const char *const suffixTable[] = {
 	/* Warning: shorter equivalent suffix in one line must be first */
@@ -1350,10 +1416,12 @@ static void send_file_and_exit(const char *url)
 	if (f < 0) {
 		if (DEBUG)
 			bb_perror_msg("cannot open '%s'", url);
-		send_headers_and_exit(HTTP_NOT_FOUND);
+		if (headers)
+			send_headers_and_exit(HTTP_NOT_FOUND);
 	}
 
-	send_headers(HTTP_OK);
+	if (headers)
+		send_headers(HTTP_OK);
 
 	/* If you want to know about EPIPE below
 	 * (happens if you abort downloads from local httpd): */
@@ -1789,7 +1857,7 @@ static void handle_incoming_and_exit(const len_and_sockaddr *fromAddr)
 	 * }
 	 */
 
-	send_file_and_exit(tptr);
+	send_file_and_exit(tptr, TRUE);
 }
 
 /*
