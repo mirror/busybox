@@ -220,10 +220,10 @@ int main(void)
 	dir_list_t *dir_list;
 	dir_list_t *cdir;
 	unsigned dir_list_count;
-    	unsigned count_dirs;
-    	unsigned count_files;
-    	unsigned long long size_total;
-    	int odd;
+	unsigned count_dirs;
+	unsigned count_files;
+	unsigned long long size_total;
+	int odd;
 	DIR *dirp;
 	char *QUERY_STRING;
 
