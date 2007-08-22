@@ -15,8 +15,12 @@
 #endif
 
 #if ENABLE_PAM
-#include <pam/pam_appl.h>
-#include <pam/pam_misc.h>
+/* PAM may include <locale.h>. We may need to undefine bbox's stub define: */
+#undef setlocale
+/* For some obscure reason, PAM is not in pam/xxx, but in security/xxx.
+ * Apparently they like to confuse people. */
+#include <security/pam_appl.h>
+#include <security/pam_misc.h>
 static const struct pam_conv conv = {
 	misc_conv,
 	NULL
