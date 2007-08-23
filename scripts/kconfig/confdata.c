@@ -222,7 +222,8 @@ int conf_read_simple(const char *name)
 					sym->user.val = strdup(p);
 					sym->flags &= ~SYMBOL_NEW;
 				} else {
-					conf_warning("symbol value '%s' invalid for %s", p, sym->name);
+					if (p[0]) /* bbox */
+						conf_warning("symbol value '%s' invalid for %s", p, sym->name);
 					continue;
 				}
 				break;
