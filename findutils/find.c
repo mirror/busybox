@@ -881,7 +881,9 @@ USE_FEATURE_FIND_MAXDEPTH(OPT_MAXDEPTH,)
 				fileAction,     /* file action */
 				fileAction,     /* dir action */
 #if ENABLE_FEATURE_FIND_MAXDEPTH
-				(void*)maxdepth,/* user data */
+				/* double cast suppresses
+				 * "cast to ptr from int of different size" */
+				(void*)(ptrdiff_t)maxdepth,/* user data */
 #else
 				NULL,           /* user data */
 #endif

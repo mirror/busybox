@@ -23,7 +23,7 @@ int deallocvt_main(int argc, char **argv)
 
 	switch (argc) {
 	case 2:
-		num = xatoul_range(argv[1], 1, 63);
+		num = xatou_range(argv[1], 1, 63);
 		/* Fallthrough */
 	case 1:
 		break;
@@ -31,6 +31,7 @@ int deallocvt_main(int argc, char **argv)
 		bb_show_usage();
 	}
 
-	xioctl(get_console_fd(), VT_DISALLOCATE, (void *)num);
+	/* double cast suppresses "cast to ptr from int of different size */
+	xioctl(get_console_fd(), VT_DISALLOCATE, (void *)(ptrdiff_t)num);
 	return EXIT_SUCCESS;
 }

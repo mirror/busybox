@@ -91,7 +91,7 @@ int listen_socket(/*uint32_t ip,*/ int port, const char *inf)
 	struct ifreq interface;
 	struct sockaddr_in addr;
 
-	DEBUG("Opening listen socket on 0x%08x:%d %s", ip, port, inf);
+	DEBUG("Opening listen socket on *:%d %s", port, inf);
 	fd = xsocket(PF_INET, SOCK_DGRAM, IPPROTO_UDP);
 
 	setsockopt_reuseaddr(fd);

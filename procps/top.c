@@ -212,6 +212,31 @@ static void do_stats(void)
 }
 #endif /* FEATURE_TOP_CPU_USAGE_PERCENTAGE */
 
+#if ENABLE_FEATURE_TOP_CPU_GLOBAL_PERCENTS && ENABLE_FEATURE_TOP_DECIMALS
+/* formats 7 char string (8 with terminating NUL) */
+static char *fmt_100percent_8(char pbuf[8], unsigned value, unsigned total)
+{
+	unsigned t;
+	if (value >= total) { /* 100% ? */
+		strcpy(pbuf, "  100% ");
+		return pbuf;
+	}
+	/* else generate " [N/space]N.N% " string */
+	value = 1000 * value / total;
+	t = value / 100;
+	value = value % 100;
+	pbuf[0] = ' ';
+	pbuf[1] = t ? t + '0' : ' ';
+	pbuf[2] = '0' + (value / 10);
+	pbuf[3] = '.';
+	pbuf[4] = '0' + (value % 10);
+	pbuf[5] = '%';
+	pbuf[6] = ' ';
+	pbuf[7] = '\0';
+	return pbuf;
+}
+#endif
+
 /* display generic info (meminfo / loadavg) */
 static unsigned long display_generic(int scr_width)
 {
@@ -219,35 +244,8 @@ static unsigned long display_generic(int scr_width)
 	char buf[80];
 	char scrbuf[80];
 	unsigned long total, used, mfree, shared, buffers, cached;
-#if ENABLE_FEATURE_TOP_DECIMALS || ENABLE_FEATURE_TOP_CPU_GLOBAL_PERCENTS
+#if ENABLE_FEATURE_TOP_CPU_GLOBAL_PERCENTS
 	unsigned total_diff;
-#endif
-
-#if ENABLE_FEATURE_TOP_DECIMALS
-	/* formats 7 char string (8 with terminating NUL) */
-	/* using GCCism (nested function) - we need to access total_diff */
-	/* This produces more than 100 bytes smaller code */
-	char *fmt_100percent_8(char pbuf[8], unsigned value)
-	{
-		unsigned t;
-		if (value >= total_diff) { /* 100% ? */
-			strcpy(pbuf, "  100% ");
-			return pbuf;
-		}
-		/* else generate " [N/space]N.N% " string */
-		value = 1000 * value / total_diff;
-		t = value / 100;
-		value = value % 100;
-		pbuf[0] = ' ';
-		pbuf[1] = t ? t + '0' : ' ';
-		pbuf[2] = '0' + (value / 10);
-		pbuf[3] = '.';
-		pbuf[4] = '0' + (value % 10);
-		pbuf[5] = '%';
-		pbuf[6] = ' ';
-		pbuf[7] = '\0';
-		return pbuf;
-	}
 #endif
 
 	/* read memory info */
@@ -316,7 +314,7 @@ static unsigned long display_generic(int scr_width)
 #if ENABLE_FEATURE_TOP_DECIMALS
 /* Generated code is approx +0.3k */
 #define CALC_STAT(xxx) char xxx[8]
-#define SHOW_STAT(xxx) fmt_100percent_8(xxx, (unsigned)(jif.xxx - prev_jif.xxx))
+#define SHOW_STAT(xxx) fmt_100percent_8(xxx, (unsigned)(jif.xxx - prev_jif.xxx), total_diff)
 #define FMT "%s"
 #else
 #define CALC_STAT(xxx) unsigned xxx = 100 * (unsigned)(jif.xxx - prev_jif.xxx) / total_diff

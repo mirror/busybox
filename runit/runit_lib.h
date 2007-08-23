@@ -86,9 +86,9 @@ extern unsigned pmatch(const char *, const char *, unsigned);
  * runsv / supervise / sv stuff
  */
 typedef struct svstatus_t {
-	uint64_t time_be64;
-	uint32_t time_nsec_be32;
-	uint32_t pid_le32;
+	uint64_t time_be64 ATTRIBUTE_PACKED;
+	uint32_t time_nsec_be32 ATTRIBUTE_PACKED;
+	uint32_t pid_le32 ATTRIBUTE_PACKED;
 	uint8_t  paused;
 	uint8_t  want;
 	uint8_t  got_term;
