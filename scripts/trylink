@@ -72,8 +72,7 @@ done
 	#  .rodata         : { *(.rodata SORT_BY_ALIGNMENT(.rodata.*) .gnu.linkonce.r.*) }
 	#  *(.data SORT_BY_ALIGNMENT(.data.*) .gnu.linkonce.d.*)
 	#  *(.bss SORT_BY_ALIGNMENT(.bss.*) .gnu.linkonce.b.*)
-	# This will eliminate most of the data padding. Use linker script
-	# by commenting "try" above and uncommenting this one (tested on i386):
+	# This will eliminate most of the data padding (~3kb).
 	try "-Wl,--start-group $l_list -Wl,--end-group -Wl,--verbose -Wl,-T -Wl,busybox_ldscript" "$@" >busybox_ld.out
     fi
 ####}

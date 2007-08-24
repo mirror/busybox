@@ -98,7 +98,7 @@ enum {
 
 static void connection_status(void)
 {
-	/* "only 1 client max" don't need this */
+	/* "only 1 client max" desn't need this */
 	if (cmax > 1)
 		printf("%s: info: status %u/%u\n", applet_name, cnum, cmax);
 }
@@ -341,7 +341,7 @@ int tcpudpsvd_main(int argc, char **argv)
 		 * we cannot replace fd #0 - we will lose pending packet
 		 * which is already buffered for us! And we cannot use fd #1
 		 * instead - it will "intercept" all following packets, but child
-		 * do not expect data coming *from fd #1*! */
+		 * does not expect data coming *from fd #1*! */
 #if 0
 		/* Make it so that local addr is fixed to localp->sa
 		 * and we don't accidentally accept packets to other local IPs. */
