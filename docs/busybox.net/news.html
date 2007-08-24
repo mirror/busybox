@@ -10,13 +10,13 @@
     <p>Applets which had many changes since 1.6.x:
     <p>httpd:
       <ul>
-	<li>works in standalone mode on NOMMU machines now (partly by Alex Landau &lt;landau_alex@yahoo.com&gt;)
+	<li>works in standalone mode on NOMMU machines now (partly by Alex Landau &lt;landau_alex at yahoo.com&gt;)
 	<li>indexer example is rewritten in C
-	<li>optional support for error pages (by Pierre Metras &lt;genepi@sympatico.ca&gt;)
+	<li>optional support for error pages (by Pierre Metras &lt;genepi at sympatico.ca&gt;)
 	<li>stop reading headers using 1-byte reads
 	<li>new option -v[v]: prints client addresses, HTTP codes returned, URLs
 	<li>extended -p PORT to -p [IP[v6]:]PORT
-	<li>sendfile support (by Pierre Metras &lt;genepi@sympatico.ca&gt;)
+	<li>sendfile support (by Pierre Metras &lt;genepi at sympatico.ca&gt;)
 	<li>add support for Status: CGI header
 	<li>fix CGI handling bug (we were closing wrong fd)
 	<li>CGI I/O loop still doesn't look 100% ok to me...
@@ -26,7 +26,7 @@
       <ul>
 	<li>add -f "foreground" and -S "syslog" options
 	<li>fixed "ifupdown + udhcpc_without_pidfile_creation" bug
-	<li>new config option "Rewrite the lease file at every new acknowledge" (Mats Erik Andersson &lt;mats@blue2net.com&gt; (Blue2Net AB))
+	<li>new config option "Rewrite the lease file at every new acknowledge" (Mats Erik Andersson &lt;mats at blue2net.com&gt; (Blue2Net AB))
 	<li>consistently treat server_config.start/end IPs as host-order
 	<li>fix IP parsing for 64bit machines
 	<li>fix unsafe hton macro usage in read_opt()
@@ -66,9 +66,9 @@ Same .config built against static uclibc:
 
     <p>New applets:
       <ul>
-	<li>pscan, expand, unexpand (from Tito &lt;farmatito@tiscali.it&gt;)
-	<li>setfiles, restorecon (by Yuichi Nakamura &lt;ynakam@hitachisoft.jp&gt;)
-	<li>chpasswd (by Alexander Shishkin &lt;virtuoso@slind.org&gt;)
+	<li>pscan, expand, unexpand (from Tito &lt;farmatito at tiscali.it&gt;)
+	<li>setfiles, restorecon (by Yuichi Nakamura &lt;ynakam at hitachisoft.jp&gt;)
+	<li>chpasswd (by Alexander Shishkin &lt;virtuoso at slind.org&gt;)
 	<li>slattach, ttysize
       </ul>
 
@@ -79,39 +79,39 @@ Same .config built against static uclibc:
 
     <p>Other changes since previous release (abridged):
       <ul>
-	<li>addgroup: disallow addgroup -g num user group; make -g 0 work (Tito &lt;farmatito@tiscali.it&gt;)
-	<li>adduser: close /etc/{passwd,shadow} before calling passwd etc. Spotted by Natanael Copa &lt;natanael.copa@gmail.com&gt;
+	<li>addgroup: disallow addgroup -g num user group; make -g 0 work (Tito &lt;farmatito at tiscali.it&gt;)
+	<li>adduser: close /etc/{passwd,shadow} before calling passwd etc. Spotted by Natanael Copa &lt;natanael.copa at gmail.com&gt;
 	<li>arping: -i should be -I, fixed
 	<li>ash: make "jobs | cat" work like in bash (was giving empty output)
 	<li>ash: recognize -l as --login equivalent; do not recognize +-login
-	<li>ash: fix buglet in DEBUG code (Nguyen Thai Ngoc Duy &lt;pclouds@gmail.com&gt;)
+	<li>ash: fix buglet in DEBUG code (Nguyen Thai Ngoc Duy &lt;pclouds at gmail.com&gt;)
 	<li>ash: fix SEGV if type has zero parameters
 	<li>awk: fix -F 'regex' bug (miscounted fields if last field is empty)
-	<li>catv: catv without arguments was trying to use environ as argv (Alex Landau &lt;landau_alex@yahoo.com&gt;)
+	<li>catv: catv without arguments was trying to use environ as argv (Alex Landau &lt;landau_alex at yahoo.com&gt;)
 	<li>catv: don't die on open error (emit warning)
 	<li>chown/chgrp: completely match coreutils 6.8 wrt symlink handling
 	<li>correct_password: do not print "no shadow passwd..." message
 	<li>crond: don't start sendmail with absolute path, don't report obsolete version (report true bbox version)
 	<li>dd: fix bug where we assume count=INT_MAX when count is unspecified
-	<li>devfsd: sanitization by Tito &lt;farmatito@tiscali.it&gt;
+	<li>devfsd: sanitization by Tito &lt;farmatito at tiscali.it&gt;
 	<li>echo: fix non-fancy echo
 	<li>fdisk: make it work with big disks (read: typical today's disks) even if CONFIG_LFS is unset
-	<li>find: -context support for SELinux (KaiGai Kohei &lt;kaigai@kaigai.gr.jp&gt;)
+	<li>find: -context support for SELinux (KaiGai Kohei &lt;kaigai at kaigai.gr.jp&gt;)
 	<li>find: add conditional support for -maxdepth and -regex, make -size match GNU find
-	<li>find: fix build failure on certain configs (found by Cristian Ionescu-Idbohrn &lt;cristian.ionescu-idbohrn@axis.com&gt;)
+	<li>find: fix build failure on certain configs (found by Cristian Ionescu-Idbohrn &lt;cristian.ionescu-idbohrn at axis.com&gt;)
 	<li>fsck_minix: make it print bb version, not it's own (outdated/irrelevant) one
 	<li>grep: implement -m MAX_MATCHES, fix buglets with context printing
-	<li>grep: fix selection done by FEATURE_GREP_EGREP_ALIAS (Maxime Bizon &lt;mbizon@freebox.fr&gt; (Freebox))
-	<li>hush: add missing dependencies (Maxime Bizon &lt;mbizon@freebox.fr&gt; (Freebox))
+	<li>grep: fix selection done by FEATURE_GREP_EGREP_ALIAS (Maxime Bizon &lt;mbizon at freebox.fr&gt; (Freebox))
+	<li>hush: add missing dependencies (Maxime Bizon &lt;mbizon at freebox.fr&gt; (Freebox))
 	<li>hush: fix read builtin to not read ahead past EOL and to not use insane amounts of stack
 	<li>ifconfig: make it work with ifaces with interface no. > 255
 	<li>ifup/ifdown: make location of ifstate configurable
 	<li>ifupdown: make netmask parsing smaller and more strict (was accepting 255.0.255.0, 255.1234.0.0 etc...)
 	<li>install: fix -s (strip) option, fix install a b /a/link/to/dir
-	<li>libbb: consolidate ARRAY_SIZE macro (Walter Harms &lt;wharms@bfs.de&gt;)
+	<li>libbb: consolidate ARRAY_SIZE macro (Walter Harms &lt;wharms at bfs.de&gt;)
 	<li>libbb: make /etc/network parsing configurable. -200 bytes when off
 	<li>libbb: nuke BB_GETOPT_ERROR, always die if there are mutually exclusive options
-	<li>libbb: xioctl and friends by Tito &lt;farmatito@tiscali.it&gt;
+	<li>libbb: xioctl and friends by Tito &lt;farmatito at tiscali.it&gt;
 	<li>login: optional support for PAM
 	<li>login: make /etc/nologin support configurable (-240 bytes)
 	<li>login: ask passwords even for wrong usernames
@@ -119,20 +119,20 @@ Same .config built against static uclibc:
 	<li>mdev: add support for firmware loading
 	<li>mdev: work even when CONFIG_SYSFS_DEPRECATED in kernel is off
 	<li>modprobe: add scanning of /lib/modules/`uname -r`/modules.symbols (by Yann E. MORIN)
-	<li>more: fixes by Tristan Schmelcher &lt;tpkschme@engmail.uwaterloo.ca&gt;
+	<li>more: fixes by Tristan Schmelcher &lt;tpkschme at engmail.uwaterloo.ca&gt;
 	<li>nc: make connecting to IPv4 from IPv6-enabled hosts easier (was requiring -s local_addr)
 	<li>passwd: fix bug "updating shadow even if user's record is in passwd"
 	<li>patch: fix -p -1 handling
-	<li>patch: fix bad line ending handling (Nguyen Thai Ngoc Duy &lt;pclouds@gmail.com&gt;)
+	<li>patch: fix bad line ending handling (Nguyen Thai Ngoc Duy &lt;pclouds at gmail.com&gt;)
 	<li>ping: display roundtrip times with 1/1000th of ms, not 1/10 ms precision.
-	<li>ping: fix incorrect handling of -I (Iouri Kharon &lt;bc-info@styx.cabel.net>&gt;)
+	<li>ping: fix incorrect handling of -I (Iouri Kharon &lt;bc-info at styx.cabel.net>&gt;)
 	<li>ping: fix non-fancy ping6
-	<li>printenv: fix "printenv VAR1 VAR2" bug (spotted by Kalyanatejaswi Balabhadrapatruni &lt;kalyanatejaswi@yahoo.co.in&gt;)
-	<li>ps: fix -Z (by Yuichi Nakamura &lt;ynakam@hitachisoft.jp&gt;)
+	<li>printenv: fix "printenv VAR1 VAR2" bug (spotted by Kalyanatejaswi Balabhadrapatruni &lt;kalyanatejaswi at yahoo.co.in&gt;)
+	<li>ps: fix -Z (by Yuichi Nakamura &lt;ynakam at hitachisoft.jp&gt;)
 	<li>rpm: add optional support for bz2 data. +50 bytes of code
 	<li>rpm: fix bogus "package is not installed" case
-	<li>sed: fix 'q' command handling (by Nguyen Thai Ngoc Duy &lt;pclouds@gmail.com&gt;)
-	<li>start_stop_daemon: NOMMU fixes by Alex Landau &lt;landau_alex@yahoo.com&gt;
+	<li>sed: fix 'q' command handling (by Nguyen Thai Ngoc Duy &lt;pclouds at gmail.com&gt;)
+	<li>start_stop_daemon: NOMMU fixes by Alex Landau &lt;landau_alex at yahoo.com&gt;
 	<li>stat: fix option -Z SEGV
 	<li>strings: strings a b was processing a twice, fix that
 	<li>svlogd: fix timestamping, do not warn if config is missing
@@ -140,8 +140,8 @@ Same .config built against static uclibc:
 	<li>syslogd: do not convert tabs to ^I, set syslog IPC buffer to mode 0644
 	<li>tar: improve OLDGNU compat, make old SUN compat configurable
 	<li>test: fix testing primary expressions like '"-u" = "-u"'
-	<li>uudecode: fix to base64 decode by Jorgen Cederlof &lt;jcz@google.com&gt;
-	<li>vi: multiple fixes by Natanael Copa &lt;natanael.copa@gmail.com&gt;
+	<li>uudecode: fix to base64 decode by Jorgen Cederlof &lt;jcz at google.com&gt;
+	<li>vi: multiple fixes by Natanael Copa &lt;natanael.copa at gmail.com&gt;
 	<li>wget: fix bug in base64 encoding (bug 1404). +10 bytes
 	<li>wget: lift 256 chars limitation on terminal width
 	<li>wget, zcip: use monotonic_sec instead of gettimeofday
@@ -179,45 +179,45 @@ Same .config built against static uclibc:
 <li>NOFORK: remove potential xmalloc from NOFORK path in bb_full_fd_action
 <li>NOMMU: random fixes; compressed --help now works for NOMMU
 <li>SELinux: load_policy applet
-<li>[u]mount: extend -t option (Roy Marples &lt;uberlord@gentoo.org&gt;)
+<li>[u]mount: extend -t option (Roy Marples &lt;uberlord at gentoo.org&gt;)
 <li>addgroup: clean up, fix adding users to existing groups and make it optional (Tito)
-<li>adduser: don't bomb out if shadow password file doesn't exist (from Tito &lt;farmatito@tiscali.it&gt;)
+<li>adduser: don't bomb out if shadow password file doesn't exist (from Tito &lt;farmatito at tiscali.it&gt;)
 <li>applet.c: do not even try to read config if run by real root; fix suid config handling
 <li>ash: fix infinite loop on exit if tty is not there anymore
-<li>ash: fix kill -l (by Mats Erik Andersson &lt;mats.andersson64@comhem.se&gt;)
-<li>ash: implement type -p, costs less than 10 bytes (patch by Mats Erik Andersson &lt;mats.andersson64@comhem.se&gt;)
+<li>ash: fix kill -l (by Mats Erik Andersson &lt;mats.andersson64 at comhem.se&gt;)
+<li>ash: implement type -p, costs less than 10 bytes (patch by Mats Erik Andersson &lt;mats.andersson64 at comhem.se&gt;)
 <li>awk: don't segfault on printf(%*s). Closes bug 1337
 <li>awk: guard against empty environment
 <li>awk: some 'lineno' vars were shorts, made them ints (code got smaller)
 <li>cat: stop using stdio.h opens
 <li>config system: clarify PREFER_APPLETS/SH_STANDALONE effects in help text
-<li>cryptpw: new applet (by Thomas Lundquist &lt;lists@zelow.no&gt;)
+<li>cryptpw: new applet (by Thomas Lundquist &lt;lists at zelow.no&gt;)
 <li>cttyhack: new applet
-<li>dd: NOEXEC fix; fix skip= parse error (spotted by Dirk Clemens &lt;develop@cle-mens.de&gt;)
-<li>deluser: add optional support for removing users from groups (by Tito &lt;farmatito@tiscali.it&gt;)
+<li>dd: NOEXEC fix; fix skip= parse error (spotted by Dirk Clemens &lt;develop at cle-mens.de&gt;)
+<li>deluser: add optional support for removing users from groups (by Tito &lt;farmatito at tiscali.it&gt;)
 <li>diff: fix SEGV (NULL deref) in diff -N
-<li>diff: fix segfault on empty dirs (Peter Korsgaard &lt;peter.korsgaard@barco.com&gt;)
+<li>diff: fix segfault on empty dirs (Peter Korsgaard &lt;peter.korsgaard at barco.com&gt;)
 <li>dnsd: fix several buglets, make smaller; openlog(), so that applet's name is logged
-<li>dpkg: run_package_script() returns 0 if all ok and non-zero if failure. The result code was checked incorrectly in two places. (from Kim B. Heino &lt;Kim.Heino@bluegiga.com&gt;)
+<li>dpkg: run_package_script() returns 0 if all ok and non-zero if failure. The result code was checked incorrectly in two places. (from Kim B. Heino &lt;Kim.Heino at bluegiga.com&gt;)
 <li>dpkg: use bitfields which are a bit closer to typical short/char. Code size -800 bytes
-<li>dumpleases: getopt32()-ization (from Mats Erik Andersson &lt;mats.andersson64@comhem.se&gt;)
+<li>dumpleases: getopt32()-ization (from Mats Erik Andersson &lt;mats.andersson64 at comhem.se&gt;)
 <li>e2fsprogs: stop using statics in chattr. Minor code shrinkage (-130 bytes)
 <li>ether-wake: close bug 1317. Reorder fuctions to avoid forward refs while at it
 <li>ether-wake: save a few more bytes of code
-<li>find: -group, -depth (Natanael Copa &lt;natanael.copa@gmail.com&gt;)
+<li>find: -group, -depth (Natanael Copa &lt;natanael.copa at gmail.com&gt;)
 <li>find: add support for -delete, -path (by Natanael Copa)
 <li>find: fix -prune. Add big comment about it
-<li>find: improve usage text (Natanael Copa &lt;natanael.copa@gmail.com&gt;)
+<li>find: improve usage text (Natanael Copa &lt;natanael.copa at gmail.com&gt;)
 <li>find: missed 'static' on const data; size and prune were mixed up; use index_in_str_array
-<li>find: un-DESKTOPize (Kai Schwenzfeier &lt;niteblade@gmx.net&gt;)
-<li>find_root_device: teach to deal with /dev/ subdirs (by Kirill K. Smirnov &lt;lich@math.spbu.ru&gt;)
+<li>find: un-DESKTOPize (Kai Schwenzfeier &lt;niteblade at gmx.net&gt;)
+<li>find_root_device: teach to deal with /dev/ subdirs (by Kirill K. Smirnov &lt;lich at math.spbu.ru&gt;)
 <li>find_root_device: use lstat - don't follow links
 <li>getopt32: fix llist_t options ordering. llist_rev is now unused
-<li>getopt: use getopt32 for option parsing - inspired by patch by Mats Erik Andersson &lt;mats.andersson64@comhem.se&gt;
-<li>hdparm: fix multisector mode setting (from Toni Mirabete &lt;amirabete@catix.cat&gt;)
+<li>getopt: use getopt32 for option parsing - inspired by patch by Mats Erik Andersson &lt;mats.andersson64 at comhem.se&gt;
+<li>hdparm: fix multisector mode setting (from Toni Mirabete &lt;amirabete at catix.cat&gt;)
 <li>hdparm: make -T -t code smaller (-194 bytes), and output prettier
 <li>ifupdown: make it possible to use DHCP clients different from udhcp
-<li>ifupdown: reread state file before rewriting it. Fixes "ifup started another ifup" state corruption bug. Patch by Natanael Copa &lt;natanael.copa@gmail.com&gt;
+<li>ifupdown: reread state file before rewriting it. Fixes "ifup started another ifup" state corruption bug. Patch by Natanael Copa &lt;natanael.copa at gmail.com&gt;
 <li>ifupdown: small optimization (avoid doing useless work if we are not going to update state file)
 <li>ip: fix compilation if FEATURE_TR_CLASSES is off
 <li>ip: mv ip*_main into ip.c; use a dispatcher to save on needless duplication. Saves a minor 12b
@@ -229,7 +229,7 @@ Same .config built against static uclibc:
 <li>klogd: remove dependency on syslogd
 <li>lash: "forking" applets are actually can be treated the same way as "non-forked". Also save a bit of space on trailing NULL array elements.
 <li>lash: fix kill buglet (didn't properly recognize ESRCH)
-<li>lash: make -c work; crush buffer overrun and free of non-malloced ptr (from Mats Erik Andersson &lt;mats.andersson64@comhem.se&gt;)
+<li>lash: make -c work; crush buffer overrun and free of non-malloced ptr (from Mats Erik Andersson &lt;mats.andersson64 at comhem.se&gt;)
 <li>lash: recognize and use NOFORK applets
 <li>less: fix case when regex search finds nothing; fix very obscure memory corruption bug; fix less &lt;HUGEFILE + [End] busy loop
 <li>libbb: add xsendto, xunlink, xpipe
@@ -253,14 +253,14 @@ Same .config built against static uclibc:
 <li>ping: fix wrong sign extension of packet id (bug 1373)
 <li>ps: add -o tty and -o rss support; make a bit smaller; work around libc bug: printf("%.*s\n", MAX_INT, buffer)
 <li>run_parts: rewrite
-<li>run_parts: do not check path portion of a name for "bad chars". Needed for ifupdown. Patch by Gabriel L. Somlo &lt;somlo@cmu.edu&gt;
+<li>run_parts: do not check path portion of a name for "bad chars". Needed for ifupdown. Patch by Gabriel L. Somlo &lt;somlo at cmu.edu&gt;
 <li>sed: fix escaped newlines in -f
 <li>split: new applet
 <li>stat: remove superfluous bss user (flags) and manually unswitch some areas
-<li>stty: fix option parsing bug (spotted by Sascha Hauer &lt;s.hauer@pengutronix.de&gt;)
+<li>stty: fix option parsing bug (spotted by Sascha Hauer &lt;s.hauer at pengutronix.de&gt;)
 <li>svlogd: fix 'SEGV on uninitialized data' and make it honor TERM
 <li>tail: fix SEGV on "tail -N"
-<li>ipsvd: tcpsvd,udpsvd are new applets, GPL-ed 'clones' of Dan Bernstein's tcpserver. Author: Gerrit Pape &lt;pape@smarden.org&gt;, http://smarden.sunsite.dk/ipsvd/
+<li>ipsvd: tcpsvd,udpsvd are new applets, GPL-ed 'clones' of Dan Bernstein's tcpserver. Author: Gerrit Pape &lt;pape at smarden.org&gt;, http://smarden.sunsite.dk/ipsvd/
 <li>test: close bug 1371; plug a memory leak; code size reduction
 <li>tftp: code diet, and I think retransmits were broken
 <li>tr: fix bug where we did not reject invalid classes like '[[:alpha'. debloat while at it
