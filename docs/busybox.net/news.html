@@ -1,6 +1,154 @@
 <!--#include file="header.html" -->
 
 <ul>
+  <li><b>24 August 2007 -- BusyBox 1.7.0 (unstable)</b>
+    <p><a href=http://busybox.net/downloads/busybox-1.7.0.tar.bz2>BusyBox 1.7.0</a>.
+    (<a href=http://busybox.net/cgi-bin/viewcvs.cgi/branches/busybox_1_7_stable/>svn</a>,
+    <a href=http://busybox.net/downloads/fixes-1.7.0/>patches</a>,
+    <a href=http://busybox.net/fix.html>how to add a patch</a>)</p>
+
+    <p>Applets which had many changes since 1.6.x:
+    <p>httpd:
+      <ul>
+	<li>works in standalone mode on NOMMU machines now (partly by Alex Landau &lt;landau_alex@yahoo.com&gt;)
+	<li>indexer example is rewritten in C
+	<li>optional support for error pages (by Pierre Metras &lt;genepi@sympatico.ca&gt;)
+	<li>stop reading headers using 1-byte reads
+	<li>new option -v[v]: prints client addresses, HTTP codes returned, URLs
+	<li>extended -p PORT to -p [IP[v6]:]PORT
+	<li>sendfile support
+	<li>add support for Status: CGI header
+	<li>fix CGI handling bug (we were closing wrong fd)
+	<li>CGI I/O loop still doesn't look 100% ok to me...
+      </ul>
+
+    <p>udhcp[cd]:
+      <ul>
+	<li>add -f "foreground" and -S "syslog" options
+	<li>fixed "ifupdown + udhcpc_without_pidpile_creation" bug
+	<li>new config option "Rewrite the lease file at every new acknowledge" (Mats Erik Andersson &lt;mats@blue2net.com&gt; (Blue2Net AB))
+	<li>consistently treat server_config.start/end IPs as host-order
+	<li>fix IP parsing for 64bit machines
+	<li>fix unsafe hton macro usage in read_opt()
+	<li>do not chdir to / when daemonizing
+      </ul>
+
+    <p>top, ps, killall, pidof
+      <ul>
+	<li>simpler loadavg processing
+	<li>truncate usernames to 8 chars
+	<li>fix non-CONFIG_DESKTOP ps -ww (by rockeychu)
+	<li>improve /proc/PID/cmdinfo reading code
+	<li>use cmdline, not comm field (fixes problems with re-execed applets showing as processes with name "exe", and not being found by pidof/killall by applet name)
+	<li>reduce CPU usage in decimal conversion (optional) (corresponding speedup on kernel side is accepted in mainline Linux kernel, yay!)
+	<li>make percentile (0.1%) calculations configurable
+	<li>add config option and code for global CPU% display
+	<li>reorder columns, so that [P]PIDs are together and VSZ/%MEM are together - makes more sense
+      </ul>
+
+    <p>Build system improvements: doesn't link against libraries we don't need,
+	generates verbose link output and map file, allows for custom link
+	stripts (useful for removing extra padding, among other things).
+
+    <p>Code and data size in comparison with 1.6.1:<pre>
+Equivalent .config, i386 glibc dynamic builds:
+   text    data     bss     dec     hex filename
+ 672671    2768   16808  692247   a9017 busybox-1.6.1/busybox
+ 662948    2660   13528  679136   a5ce0 busybox-1.7.0/busybox
+ 662783    2631   13416  678830   a5bae busybox-1.7.0/busybox.customld
+
+Same .config built against static uclibc:
+ 765021    1059   11020  777100   bdb8c busybox-1.7.0/busybox_uc</pre>
+
+    <p>Code/data shrink done in applets: crond, hdparm, dd, cal, od, nc, expr, uuencode,
+	test, slattach, diff, ping, tr, syslogd, hwclock, zcip, find, pidof, ash, uudecode,
+	runit/*, in libbb.
+
+    <p>New applets:
+      <ul>
+	<li>pscan, expand, unexpand (from Tito &lt;farmatito@tiscali.it&gt;)
+	<li>setfiles, restorecon (by Yuichi Nakamura &lt;ynakam@hitachisoft.jp&gt;)
+	<li>chpasswd (by Alexander Shishkin &lt;virtuoso@slind.org&gt;)
+	<li>slattach, ttysize
+      </ul>
+
+    <p>Unfortunately, not much work is done on shells. This was mostly stalled
+	by lack of time (read: laziness) on my part to learn how to adapt existing
+	qemu-runnable image for a NOMMU architechture (available on qemu website)
+	for local testing of cross-compiled busybox on my machine.
+
+    <p>Other changes since previous release (abridged):
+      <ul>
+	<li>addgroup: disallow addgroup -g num user group; make -g 0 work (Tito &lt;farmatito@tiscali.it&gt;)
+	<li>adduser: close /etc/{passwd,shadow} before calling passwd etc. Spotted by Natanael Copa &lt;natanael.copa@gmail.com&gt;
+	<li>arping: -i should be -I, fixed
+	<li>ash: make "jobs | cat" work like in bash (was giving empty output)
+	<li>ash: recognize -l as --login equivalent; do not recognize +-login
+	<li>ash: fix buglet in DEBUG code (Nguyen Thai Ngoc Duy &lt;pclouds@gmail.com&gt;)
+	<li>ash: fix SEGV if type has zero parameters
+	<li>awk: fix -F 'regex' bug (miscounted fields if last field is empty)
+	<li>catv: catv without arguments was trying to use environ as argv (Alex Landau &lt;landau_alex@yahoo.com&gt;)
+	<li>catv: don't die on open error (emit warning)
+	<li>chown/chgrp: completely match coreutils 6.8 wrt symlink handling
+	<li>correct_password: do not print "no shadow passwd..." message
+	<li>crond: don't start sendmail with absolute path, don't report obsolete version (report true bbox version)
+	<li>dd: fix bug where we assume count=INT_MAX when count is unspecified
+	<li>devfsd: sanitization by Tito &lt;farmatito@tiscali.it&gt;
+	<li>echo: fix non-fancy echo
+	<li>fdisk: make it work with big disks (read: typical today's disks) even if CONFIG_LFS is unset
+	<li>find: -context support for SELinux (KaiGai Kohei &lt;kaigai@kaigai.gr.jp&gt;)
+	<li>find: add conditional support for -maxdepth and -regex, make -size match GNU find
+	<li>find: fix build failure on certain configs (found by Cristian Ionescu-Idbohrn &lt;cristian.ionescu-idbohrn@axis.com&gt;)
+	<li>fsck_minix: make it print bb version, not it's own (outdated/irrelevant) one
+	<li>grep: implement -m MAX_MATCHES, fix buglets with context printing
+	<li>grep: fix selection done by FEATURE_GREP_EGREP_ALIAS (Maxime Bizon &lt;mbizon@freebox.fr&gt; (Freebox))
+	<li>hush: add missing dependencies (Maxime Bizon &lt;mbizon@freebox.fr&gt; (Freebox))
+	<li>hush: fix read builtin to not read ahead past EOL and to not use insane amounts of stack
+	<li>ifconfig: make it work with ifaces with interface no. > 255
+	<li>ifup/ifdown: make location of ifstate configurable
+	<li>ifupdown: make netmask parsing smaller and more strict (was accepting 255.0.255.0, 255.1234.0.0 etc...)
+	<li>install: fix -s (strip) option, fix install a b /a/link/to/dir
+	<li>libbb: consolidate ARRAY_SIZE macro (Walter Harms &lt;wharms@bfs.de&gt;)
+	<li>libbb: make /etc/network parsing configurable. -200 bytes when off
+	<li>libbb: nuke BB_GETOPT_ERROR, always die if there are mutually exclusive options
+	<li>libbb: xioctl and friends by Tito &lt;farmatito@tiscali.it&gt;
+	<li>login: optional support for PAM
+	<li>login: make /etc/nologin support configurable (-240 bytes)
+	<li>login: ask passwords even for wrong usernames
+	<li>md5_sha1_sum: fix mishandling when run as /bin/md5sum
+	<li>mdev: add support for firmware loading
+	<li>mdev: work even when CONFIG_SYSFS_DEPRECATED in kernel is off
+	<li>modprobe: add scanning of /lib/modules/`uname -r`/modules.symbols (by Yann E. MORIN)
+	<li>more: fixes by Tristan Schmelcher &lt;tpkschme@engmail.uwaterloo.ca&gt;
+	<li>nc: make connecting to IPv4 from IPv6-enabled hosts easier (was requiring -s local_addr)
+	<li>passwd: fix bug "updating shadow even if user's record is in passwd"
+	<li>patch: fix -p -1 handling
+	<li>patch: fix bad line ending handling (Nguyen Thai Ngoc Duy &lt;pclouds@gmail.com&gt;)
+	<li>ping: display roundtrip times with 1/1000th of ms, not 1/10 ms precision.
+	<li>ping: fix incorrect handling of -I (Iouri Kharon &lt;bc-info@styx.cabel.net>&gt;)
+	<li>ping: fix non-fancy ping6
+	<li>printenv: fix "printenv VAR1 VAR2" bug (spotted by Kalyanatejaswi Balabhadrapatruni &lt;kalyanatejaswi@yahoo.co.in&gt;)
+	<li>ps: fix -Z (by Yuichi Nakamura &lt;ynakam@hitachisoft.jp&gt;)
+	<li>rpm: add optional support for bz2 data. +50 bytes of code
+	<li>rpm: fix bogus "package is not installed" case
+	<li>sed: fix 'q' command handling (by Nguyen Thai Ngoc Duy &lt;pclouds@gmail.com&gt;)
+	<li>start_stop_daemon: NOMMU fixes by Alex Landau &lt;landau_alex@yahoo.com&gt;
+	<li>stat: fix option -Z SEGV
+	<li>strings: strings a b was processing a twice, fix that
+	<li>svlogd: fix timestamping, do not warn if config is missing
+	<li>syslogd, logread: get rid of head pointer, fix logread bug in the process
+	<li>syslogd: do not convert tabs to ^I, set syslog IPC buffer to mode 0644
+	<li>tar: improve OLDGNU compat, make old SUN compat configurable
+	<li>test: fix testing primary expressions like '"-u" = "-u"'
+	<li>uudecode: fix to base64 decode by Jorgen Cederlof &lt;jcz@google.com&gt;
+	<li>vi: multiple fixes by Natanael Copa &lt;natanael.copa@gmail.com&gt;
+	<li>wget: fix bug in base64 encoding (bug 1404). +10 bytes
+	<li>wget: lift 256 chars limitation on terminal width
+	<li>wget, zcip: use monotonic_sec instead of gettimeofday
+      </ul>
+    </p>
+  </li>
+
   <li><b>30 June 2007 -- BusyBox 1.6.1 (stable)</b>
     <p><a href=http://busybox.net/downloads/busybox-1.6.1.tar.bz2>BusyBox 1.6.1</a>.
     (<a href=http://busybox.net/cgi-bin/viewcvs.cgi/branches/busybox_1_6_stable/>svn</a>,
