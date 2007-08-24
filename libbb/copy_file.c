@@ -22,25 +22,25 @@
 
 #define DO_POSIX_CP 0  /* 1 - POSIX behavior, 0 - safe behavior */
 
-
+// errno must be set to relevant value ("why we cannot create dest?")
+// for POSIX mode to give reasonable error message
 static int ask_and_unlink(const char *dest, int flags)
 {
-	// If !DO_POSIX_CP, act as if -f is always in effect - we don't want
-	// "'file' exists" msg, we want unlink to be done (silently unless -i
-	// is also in effect).
-	// This prevents safe way from asking more questions than POSIX does.
 #if DO_POSIX_CP
 	if (!(flags & (FILEUTILS_FORCE|FILEUTILS_INTERACTIVE))) {
-		fprintf(stderr, "'%s' exists\n", dest);
+		// Either it exists, or the *path* doesnt exist
+		bb_perror_msg("cannot create '%s'", dest);
 		return -1;
 	}
 #endif
+	// If !DO_POSIX_CP, act as if -f is always in effect - we don't want
+	// "cannot create" msg, we want unlink to be done (silently unless -i).
 
 	// TODO: maybe we should do it only if ctty is present?
 	if (flags & FILEUTILS_INTERACTIVE) {
 		// We would not do POSIX insanity. -i asks,
 		// then _unlinks_ the offender. Presto.
-		// (No opening without O_EXCL, no unlinks only if -f)
+		// (No "opening without O_EXCL", no "unlink only if -f")
 		// Or else we will end up having 3 open()s!
 		fprintf(stderr, "%s: overwrite '%s'? ", applet_name, dest);
 		if (!bb_ask_confirmation())
@@ -280,6 +280,7 @@ int copy_file(const char *source, const char *dest, int flags)
 	) {
 		// We are lazy here, a bit lax with races...
 		if (dest_exists) {
+			errno = EEXIST;
 			ovr = ask_and_unlink(dest, flags);
 			if (ovr <= 0)
 				return ovr;
