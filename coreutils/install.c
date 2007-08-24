@@ -123,10 +123,12 @@ int install_main(int argc, char **argv)
 		copy_flags |= FILEUTILS_PRESERVE_STATUS;
 	}
 	mode = 0666;
-	if (flags & OPT_MODE) bb_parse_mode(mode_str, &mode);
+	if (flags & OPT_MODE)
+		bb_parse_mode(mode_str, &mode);
 	uid = (flags & OPT_OWNER) ? get_ug_id(uid_str, xuname2uid) : getuid();
 	gid = (flags & OPT_GROUP) ? get_ug_id(gid_str, xgroup2gid) : getgid();
-	if (flags & (OPT_OWNER|OPT_GROUP)) umask(0);
+	if (flags & (OPT_OWNER|OPT_GROUP))
+		umask(0);
 
 	/* Create directories
 	 * don't use bb_make_directory() as it can't change uid or gid

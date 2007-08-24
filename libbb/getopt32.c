@@ -178,7 +178,7 @@ Special characters:
         This is typically used to implement "print verbose usage message
         and exit" option.
 
- "-"    A dash between two options causes the second of the two
+ "a-b"  A dash between two options causes the second of the two
         to be unset (and ignored) if it is given on the command line.
 
         [FIXME: what if they are the same? like "x-x"? Is it ever useful?]
@@ -204,7 +204,7 @@ Special characters:
         if (opt & 4)
                 printf("Detected odd -x usage\n");
 
- "--"   A double dash between two options, or between an option and a group
+ "a--b" A double dash between two options, or between an option and a group
         of options, means that they are mutually exclusive.  Unlike
         the "-" case above, an error will be forced if the options
         are used together.
@@ -220,7 +220,7 @@ Special characters:
  "x--x" Variation of the above, it means that -x option should occur
         at most once.
 
- "::"   A double colon after a char in opt_complementary means that the
+ "a::"  A double colon after a char in opt_complementary means that the
         option can occur multiple times. Each occurrence will be saved as
         a llist_t element instead of char*.
 
@@ -240,7 +240,7 @@ Special characters:
         root:x:0:0:root:/root:/bin/bash
         user:x:500:500::/home/user:/bin/bash
 
- "?"    An "?" between an option and a group of options means that
+ "a?b"  A "?" between an option and a group of options means that
         at least one of them is required to occur if the first option
         occurs in preceding command line arguments.
 
@@ -259,7 +259,7 @@ Special characters:
         For example from "start-stop-daemon" applet:
 
         // Don't allow -KS -SK, but -S or -K is required
-        opt_complementary = "K:S:?K--S:S--K";
+        opt_complementary = "K:S:K--S:S--K";
         flags = getopt32(argv, "KS...);
 
 
@@ -268,6 +268,7 @@ Special characters:
         max 3 args; count uses of '-2'; min 2 args; if there is
         a '-2' option then unset '-3', '-X' and '-a'; if there is
         a '-2' and after it a '-x' then error out.
+	But it's far too obfuscated. Use ':' to separate groups.
 */
 
 /* Code here assumes that 'unsigned' is at least 32 bits wide */

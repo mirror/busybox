@@ -47,16 +47,15 @@ int mv_main(int argc, char **argv)
 #if ENABLE_FEATURE_MV_LONG_OPTIONS
 	applet_long_options = mv_longopts;
 #endif
-	opt_complementary = "f-i:i-f";
+	// Need at least two arguments
+	// -f unsets -i, -i unsets -f
+	opt_complementary = "-2:f-i:i-f";
 	flags = getopt32(argv, "fi");
-	if (optind + 2 > argc) {
-		bb_show_usage();
-	}
-
-	last = argv[argc - 1];
+	argc -= optind;
 	argv += optind;
+	last = argv[argc - 1];
 
-	if (optind + 2 == argc) {
+	if (argc == 2) {
 		dest_exists = cp_mv_stat(last, &dest_stat);
 		if (dest_exists < 0) {
 			return 1;
@@ -75,11 +74,11 @@ int mv_main(int argc, char **argv)
 			goto RET_1;
 		}
 
-DO_MOVE:
-
-		if (dest_exists && !(flags & OPT_FILEUTILS_FORCE) &&
-			((access(dest, W_OK) < 0 && isatty(0)) ||
-			(flags & OPT_FILEUTILS_INTERACTIVE))) {
+ DO_MOVE:
+		if (dest_exists && !(flags & OPT_FILEUTILS_FORCE)
+		 && ((access(dest, W_OK) < 0 && isatty(0))
+		    || (flags & OPT_FILEUTILS_INTERACTIVE))
+		) {
 			if (fprintf(stderr, "mv: overwrite '%s'? ", dest) < 0) {
 				goto RET_1;	/* Ouch! fprintf failed! */
 			}
@@ -91,8 +90,9 @@ DO_MOVE:
 			struct stat source_stat;
 			int source_exists;
 
-			if (errno != EXDEV ||
-				(source_exists = cp_mv_stat(*argv, &source_stat)) < 1) {
+			if (errno != EXDEV
+			 || (source_exists = cp_mv_stat(*argv, &source_stat)) < 1
+			) {
 				bb_perror_msg("cannot rename '%s'", *argv);
 			} else {
 				if (dest_exists) {
@@ -116,15 +116,16 @@ DO_MOVE:
 #if ENABLE_SELINUX
 				copy_flag |= FILEUTILS_PRESERVE_SECURITY_CONTEXT;
 #endif
-				if ((copy_file(*argv, dest, copy_flag) >= 0) &&
-					(remove_file(*argv, FILEUTILS_RECUR | FILEUTILS_FORCE) >= 0)) {
+				if ((copy_file(*argv, dest, copy_flag) >= 0)
+				 && (remove_file(*argv, FILEUTILS_RECUR | FILEUTILS_FORCE) >= 0)
+				) {
 					goto RET_0;
 				}
 			}
-RET_1:
+ RET_1:
 			status = 1;
 		}
-RET_0:
+ RET_0:
 		if (dest != last) {
 			free((void *) dest);
 		}

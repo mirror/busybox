@@ -40,12 +40,16 @@ int cp_main(int argc, char **argv)
 		OPT_L = 1 << (sizeof(FILEUTILS_CP_OPTSTR)+3),
 	};
 
+	// Need at least two arguments
 	// Soft- and hardlinking don't mix
 	// -P and -d are the same (-P is POSIX, -d is GNU)
 	// -r and -R are the same
 	// -a = -pdR
-	opt_complementary = "l--s:s--l:Pd:rR:apdR";
+	opt_complementary = "-2:l--s:s--l:Pd:rR:apdR";
 	flags = getopt32(argv, FILEUTILS_CP_OPTSTR "arPHL");
+	argc -= optind;
+	argv += optind;
+	flags ^= FILEUTILS_DEREFERENCE;		/* The sense of this flag was reversed. */
 	/* Default behavior of cp is to dereference, so we don't have to do
 	 * anything special when we are given -L.
 	 * The behavior of -H is *almost* like -L, but not quite, so let's
@@ -60,19 +64,12 @@ int cp_main(int argc, char **argv)
 	}
 #endif
 
-	flags ^= FILEUTILS_DEREFERENCE;		/* The sense of this flag was reversed. */
-
-	if (optind + 2 > argc) {
-		bb_show_usage();
-	}
-
 	last = argv[argc - 1];
-	argv += optind;
-
 	/* If there are only two arguments and...  */
-	if (optind + 2 == argc) {
+	if (argc == 2) {
 		s_flags = cp_mv_stat2(*argv, &source_stat,
 				      (flags & FILEUTILS_DEREFERENCE) ? stat : lstat);
+		/* TODO: does coreutils cp exit? "cp BAD GOOD dir"... */
 		if (s_flags < 0)
 			return EXIT_FAILURE;
 		d_flags = cp_mv_stat(last, &dest_stat);
@@ -85,19 +82,24 @@ int cp_main(int argc, char **argv)
 			((flags & FILEUTILS_RECUR) && (s_flags & 2) && !d_flags)
 		) {
 			/* ...do a simple copy.  */
-			dest = xstrdup(last);
-			goto DO_COPY; /* Note: optind+2==argc implies argv[1]==last below. */
+			dest = last;
+			goto DO_COPY; /* NB: argc==2 -> *++argv==last */
 		}
 	}
 
-	do {
+	while (1) {
 		dest = concat_path_file(last, bb_get_last_path_component(*argv));
  DO_COPY:
 		if (copy_file(*argv, dest, flags) < 0) {
 			status = 1;
 		}
+		if (*++argv == last) {
+			/* possibly leaking dest... */
+			break;
+		}
 		free((void*)dest);
-	} while (*++argv != last);
+	}
 
+	/* Exit. We are NOEXEC, not NOFORK. We do exit at the end of main() */
 	return status;
 }
