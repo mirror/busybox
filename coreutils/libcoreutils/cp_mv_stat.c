@@ -31,7 +31,8 @@ int cp_mv_stat2(const char *fn, struct stat *fn_stat, stat_func sf)
 			return -1;
 		}
 		return 0;
-	} else if (S_ISDIR(fn_stat->st_mode)) {
+	}
+	if (S_ISDIR(fn_stat->st_mode)) {
 		return 3;
 	}
 	return 1;

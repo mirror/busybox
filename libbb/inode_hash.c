@@ -84,6 +84,4 @@ void reset_ino_dev_hashtable(void)
 	free(ino_dev_hashtable);
 	ino_dev_hashtable = NULL;
 }
-#else
-void reset_ino_dev_hashtable(void);
 #endif

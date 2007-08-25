@@ -60,9 +60,11 @@ static int ask_and_unlink(const char *dest, int flags)
  */
 int copy_file(const char *source, const char *dest, int flags)
 {
+	/* This is a recursive function, try to minimize stack usage */
+	/* NB: each struct stat is ~100 bytes */
 	struct stat source_stat;
 	struct stat dest_stat;
-	int status = 0;
+	signed char retval = 0;
 	signed char dest_exists = 0;
 	signed char ovr;
 
@@ -120,7 +122,7 @@ int copy_file(const char *source, const char *dest, int flags)
 			return -1;
 		}
 
-		/* Create DEST.  */
+		/* Create DEST */
 		if (dest_exists) {
 			if (!S_ISDIR(dest_stat.st_mode)) {
 				bb_error_msg("target '%s' is not a directory", dest);
@@ -133,22 +135,21 @@ int copy_file(const char *source, const char *dest, int flags)
 			mode = source_stat.st_mode;
 			if (!(flags & FILEUTILS_PRESERVE_STATUS))
 				mode = source_stat.st_mode & ~saved_umask;
+			/* Allow owner to access new dir (at least for now) */
 			mode |= S_IRWXU;
-
 			if (mkdir(dest, mode) < 0) {
 				umask(saved_umask);
 				bb_perror_msg("cannot create directory '%s'", dest);
 				return -1;
 			}
-
 			umask(saved_umask);
 		}
 
-		/* Recursively copy files in SOURCE.  */
+		/* Recursively copy files in SOURCE */
 		dp = opendir(source);
 		if (dp == NULL) {
-			status = -1;
-			goto preserve_status;
+			retval = -1;
+			goto preserve_mode_ugid_time;
 		}
 
 		while ((d = readdir(dp)) != NULL) {
@@ -159,7 +160,7 @@ int copy_file(const char *source, const char *dest, int flags)
 				continue;
 			new_dest = concat_path_file(dest, d->d_name);
 			if (copy_file(new_source, new_dest, flags) < 0)
-				status = -1;
+				retval = -1;
 			free(new_source);
 			free(new_dest);
 		}
@@ -169,10 +170,12 @@ int copy_file(const char *source, const char *dest, int flags)
 		 && chmod(dest, source_stat.st_mode & ~saved_umask) < 0
 		) {
 			bb_perror_msg("cannot change permissions of '%s'", dest);
-			status = -1;
+			retval = -1;
 		}
+		goto preserve_mode_ugid_time;
+	}
 
-	} else if (flags & (FILEUTILS_MAKE_SOFTLINK|FILEUTILS_MAKE_HARDLINK)) {
+	if (flags & (FILEUTILS_MAKE_SOFTLINK|FILEUTILS_MAKE_HARDLINK)) {
 		int (*lf)(const char *oldpath, const char *newpath);
  make_links:
 		// Hmm... maybe
@@ -188,39 +191,40 @@ int copy_file(const char *source, const char *dest, int flags)
 				return -1;
 			}
 		}
+		/* _Not_ jumping to preserve_mode_ugid_time:
+		 * hard/softlinks don't have those */
 		return 0;
+	}
 
-	} else if (S_ISREG(source_stat.st_mode)
+	if (S_ISREG(source_stat.st_mode)
 	 /* Huh? DEREF uses stat, which never returns links! */
 	 /* || (FLAGS_DEREF && S_ISLNK(source_stat.st_mode)) */
 	) {
 		int src_fd;
 		int dst_fd;
-		if (ENABLE_FEATURE_PRESERVE_HARDLINKS) {
+
+		if (ENABLE_FEATURE_PRESERVE_HARDLINKS && !FLAGS_DEREF) {
 			char *link_target;
 
-			if (!FLAGS_DEREF) {
-				link_target = is_in_ino_dev_hashtable(&source_stat);
-				if (link_target) {
+			link_target = is_in_ino_dev_hashtable(&source_stat);
+			if (link_target) {
+				if (link(link_target, dest) < 0) {
+					ovr = ask_and_unlink(dest, flags);
+					if (ovr <= 0)
+						return ovr;
 					if (link(link_target, dest) < 0) {
-						ovr = ask_and_unlink(dest, flags);
-						if (ovr <= 0)
-							return ovr;
-						if (link(link_target, dest) < 0) {
-							bb_perror_msg("cannot create link '%s'", dest);
-							return -1;
-						}
+						bb_perror_msg("cannot create link '%s'", dest);
+						return -1;
 					}
-					return 0;
 				}
+				return 0;
 			}
 			add_to_ino_dev_hashtable(&source_stat, dest);
 		}
 
 		src_fd = open_or_warn(source, O_RDONLY);
-		if (src_fd < 0) {
+		if (src_fd < 0)
 			return -1;
-		}
 
 #if DO_POSIX_CP  /* POSIX way (a security problem versus symlink attacks!): */
 		dst_fd = open(dest, (flags & FILEUTILS_INTERACTIVE)
@@ -264,61 +268,56 @@ int copy_file(const char *source, const char *dest, int flags)
 		}
 #endif
 		if (bb_copyfd_eof(src_fd, dst_fd) == -1)
-			status = -1;
+			retval = -1;
 		if (close(dst_fd) < 0) {
 			bb_perror_msg("cannot close '%s'", dest);
-			status = -1;
+			retval = -1;
 		}
 		if (close(src_fd) < 0) {
 			bb_perror_msg("cannot close '%s'", source);
-			status = -1;
+			retval = -1;
 		}
+		goto preserve_mode_ugid_time;
+	}
 
-	} else if (S_ISBLK(source_stat.st_mode) || S_ISCHR(source_stat.st_mode)
-	 || S_ISSOCK(source_stat.st_mode) || S_ISFIFO(source_stat.st_mode)
-	 || S_ISLNK(source_stat.st_mode)
-	) {
-		// We are lazy here, a bit lax with races...
-		if (dest_exists) {
-			errno = EEXIST;
-			ovr = ask_and_unlink(dest, flags);
-			if (ovr <= 0)
-				return ovr;
-		}
-		if (S_ISFIFO(source_stat.st_mode)) {
-			if (mkfifo(dest, source_stat.st_mode) < 0) {
-				bb_perror_msg("cannot create fifo '%s'", dest);
-				return -1;
-			}
-		} else if (S_ISLNK(source_stat.st_mode)) {
-			char *lpath;
+	/* Source is a symlink or a special file */
+	/* We are lazy here, a bit lax with races... */
+	if (dest_exists) {
+		errno = EEXIST;
+		ovr = ask_and_unlink(dest, flags);
+		if (ovr <= 0)
+			return ovr;
+	}
+	if (S_ISLNK(source_stat.st_mode)) {
+		char *lpath;
 
-			lpath = xmalloc_readlink_or_warn(source);
-			if (lpath && symlink(lpath, dest) < 0) {
-				bb_perror_msg("cannot create symlink '%s'", dest);
-				free(lpath);
-				return -1;
-			}
+		lpath = xmalloc_readlink_or_warn(source);
+		if (lpath && symlink(lpath, dest) < 0) {
+			bb_perror_msg("cannot create symlink '%s'", dest);
 			free(lpath);
-
-			if (flags & FILEUTILS_PRESERVE_STATUS)
-				if (lchown(dest, source_stat.st_uid, source_stat.st_gid) < 0)
-					bb_perror_msg("cannot preserve %s of '%s'", "ownership", dest);
-
-			return 0;
-
-		} else {
-			if (mknod(dest, source_stat.st_mode, source_stat.st_rdev) < 0) {
-				bb_perror_msg("cannot create '%s'", dest);
-				return -1;
-			}
+			return -1;
+		}
+		free(lpath);
+		if (flags & FILEUTILS_PRESERVE_STATUS)
+			if (lchown(dest, source_stat.st_uid, source_stat.st_gid) < 0)
+				bb_perror_msg("cannot preserve %s of '%s'", "ownership", dest);
+		/* _Not_ jumping to preserve_mode_ugid_time:
+		 * symlinks don't have those */
+		return 0;
+	}
+	if (S_ISBLK(source_stat.st_mode) || S_ISCHR(source_stat.st_mode)
+	 || S_ISSOCK(source_stat.st_mode) || S_ISFIFO(source_stat.st_mode)
+	) {
+		if (mknod(dest, source_stat.st_mode, source_stat.st_rdev) < 0) {
+			bb_perror_msg("cannot create '%s'", dest);
+			return -1;
 		}
 	} else {
-		bb_error_msg("internal error: unrecognized file type");
+		bb_error_msg("unrecognized file '%s' with mode %x", source, source_stat.st_mode);
 		return -1;
 	}
 
- preserve_status:
+ preserve_mode_ugid_time:
 
 	if (flags & FILEUTILS_PRESERVE_STATUS
 	/* Cannot happen: */
@@ -338,5 +337,5 @@ int copy_file(const char *source, const char *dest, int flags)
 			bb_perror_msg("cannot preserve %s of '%s'", "permissions", dest);
 	}
 
-	return status;
+	return retval;
 }

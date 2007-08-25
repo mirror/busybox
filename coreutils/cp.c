@@ -69,7 +69,6 @@ int cp_main(int argc, char **argv)
 	if (argc == 2) {
 		s_flags = cp_mv_stat2(*argv, &source_stat,
 				      (flags & FILEUTILS_DEREFERENCE) ? stat : lstat);
-		/* TODO: does coreutils cp exit? "cp BAD GOOD dir"... */
 		if (s_flags < 0)
 			return EXIT_FAILURE;
 		d_flags = cp_mv_stat(last, &dest_stat);
