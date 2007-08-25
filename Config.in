@@ -465,12 +465,41 @@ config INSTALL_APPLET_HARDLINKS
 	  Install applets as hard-links to the busybox binary. This might count
 	  on a filesystem with few inodes.
 
+config INSTALL_APPLET_SCRIPT_WRAPPERS
+	bool "as script wrappers"
+	help
+	  Install applets as script wrappers that call the busybox binary.
+
 config INSTALL_APPLET_DONT
 	bool "not installed"
 	depends on FEATURE_INSTALLER || FEATURE_SH_STANDALONE || FEATURE_PREFER_APPLETS
 	help
 	  Do not install applet links. Useful when using the -install feature
 	  or a standalone shell for rescue purposes.
+
+endchoice
+
+choice
+	prompt "/bin/sh applet link"
+	default INSTALL_SH_APPLET_SYMLINK
+	depends on INSTALL_APPLET_SCRIPT_WRAPPERS
+	help
+	  Choose how you install /bin/sh applet link.
+
+config INSTALL_SH_APPLET_SYMLINK
+	bool "as soft-link"
+	help
+	  Install /bin/sh applet as soft-link to the busybox binary.
+
+config INSTALL_SH_APPLET_HARDLINK
+	bool "as hard-link"
+	help
+	  Install /bin/sh applet as hard-link to the busybox binary.
+
+config INSTALL_SH_APPLET_SCRIPT_WRAPPER
+	bool "as script wrapper"
+	help
+	  Install /bin/sh applet as script wrapper that call the busybox binary.
 
 endchoice
 

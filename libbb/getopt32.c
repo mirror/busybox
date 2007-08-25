@@ -268,7 +268,7 @@ Special characters:
         max 3 args; count uses of '-2'; min 2 args; if there is
         a '-2' option then unset '-3', '-X' and '-a'; if there is
         a '-2' and after it a '-x' then error out.
-	But it's far too obfuscated. Use ':' to separate groups.
+        But it's far too obfuscated. Use ':' to separate groups.
 */
 
 /* Code here assumes that 'unsigned' is at least 32 bits wide */
