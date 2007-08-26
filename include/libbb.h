@@ -881,12 +881,12 @@ enum { COMM_LEN = TASK_COMM_LEN };
 enum { COMM_LEN = 16 };
 #endif
 #endif
-typedef struct {
+typedef struct procps_status_t {
 	DIR *dir;
+	uint8_t shift_pages_to_bytes;
+	uint8_t shift_pages_to_kb;
 /* Fields are set to 0/NULL if failed to determine (or not requested) */
-	/*char *cmd;*/
 	char *argv0;
-	/*char *exe;*/
 	USE_SELINUX(char *context;)
 	/* Everything below must contain no ptrs to malloc'ed data:
 	 * it is memset(0) for each process in procps_scan() */

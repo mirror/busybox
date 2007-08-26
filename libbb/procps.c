@@ -95,8 +95,15 @@ static int read_to_buf(const char *filename, void *buf)
 
 procps_status_t *alloc_procps_scan(int flags)
 {
+	unsigned n = getpagesize();
 	procps_status_t* sp = xzalloc(sizeof(procps_status_t));
 	sp->dir = xopendir("/proc");
+	while (1) {
+		n >>= 1;
+		if (!n) break;
+		sp->shift_pages_to_bytes++;
+	}
+	sp->shift_pages_to_kb = sp->shift_pages_to_bytes - 10;
 	return sp;
 }
 
@@ -229,8 +236,10 @@ procps_status_t *procps_scan(procps_status_t* sp, int flags)
 				&rss);
 			if (n != 10)
 				break;
-			sp->vsz = vsz >> 10; /* vsize is in bytes and we want kb */
-			sp->rss = rss >> 10;
+			/* vsz is in bytes and we want kb */
+			sp->vsz = vsz >> 10;
+			/* vsz is in bytes but rss is in *PAGES*! Can you believe that? */
+			sp->rss = rss << sp->shift_pages_to_kb;
 			sp->tty_major = (tty >> 8) & 0xfff;
 			sp->tty_minor = (tty & 0xff) | ((tty >> 12) & 0xfff00);
 #else
@@ -250,8 +259,10 @@ procps_status_t *procps_scan(procps_status_t* sp, int flags)
 			cp = skip_fields(cp, 3); /* cutime, cstime, priority */
 			tasknice = fast_strtoul_10(&cp);
 			cp = skip_fields(cp, 3); /* timeout, it_real_value, start_time */
-			sp->vsz = fast_strtoul_10(&cp) >> 10; /* vsize is in bytes and we want kb */
-			sp->rss = fast_strtoul_10(&cp) >> 10;
+			/* vsz is in bytes and we want kb */
+			sp->vsz = fast_strtoul_10(&cp) >> 10;
+			/* vsz is in bytes but rss is in *PAGES*! Can you believe that? */
+			sp->rss = fast_strtoul_10(&cp) << sp->shift_pages_to_kb;
 #endif
 
 			if (sp->vsz == 0 && sp->state[0] != 'Z')
