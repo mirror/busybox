@@ -114,11 +114,21 @@ int copy_file(const char *source, const char *dest, int flags)
 
 	if (S_ISDIR(source_stat.st_mode)) {
 		DIR *dp;
+		const char *existing_name;
 		struct dirent *d;
 		mode_t saved_umask = 0;
 
 		if (!(flags & FILEUTILS_RECUR)) {
 			bb_error_msg("omitting directory '%s'", source);
+			return -1;
+		}
+
+		/* Did we ever create source ourself before? */
+		existing_name = is_in_ino_dev_hashtable(&source_stat);
+		if (existing_name) {
+			/* We did! it's a recursion! man the lifeboats... */
+			bb_error_msg("recursion detected, omitting directory '%s'",
+					existing_name);
 			return -1;
 		}
 
@@ -143,7 +153,15 @@ int copy_file(const char *source, const char *dest, int flags)
 				return -1;
 			}
 			umask(saved_umask);
+			/* need stat info for add_to_ino_dev_hashtable */
+			if (lstat(dest, &dest_stat) < 0) {
+				bb_perror_msg("cannot stat '%s'", dest);
+				return -1;
+			}
 		}
+		/* remember (dev,inode) of each created dir.
+		 * NULL: name is not remembered */
+		add_to_ino_dev_hashtable(&dest_stat, NULL);
 
 		/* Recursively copy files in SOURCE */
 		dp = opendir(source);
@@ -169,8 +187,8 @@ int copy_file(const char *source, const char *dest, int flags)
 		if (!dest_exists
 		 && chmod(dest, source_stat.st_mode & ~saved_umask) < 0
 		) {
-			bb_perror_msg("cannot change permissions of '%s'", dest);
-			retval = -1;
+			bb_perror_msg("cannot preserve %s of '%s'", "permissions", dest);
+			/* retval = -1; - WRONG! copy *WAS* made */
 		}
 		goto preserve_mode_ugid_time;
 	}
@@ -197,7 +215,7 @@ int copy_file(const char *source, const char *dest, int flags)
 	}
 
 	if (S_ISREG(source_stat.st_mode)
-	 /* Huh? DEREF uses stat, which never returns links! */
+	 /* DEREF uses stat, which never returns S_ISLNK() == true. */
 	 /* || (FLAGS_DEREF && S_ISLNK(source_stat.st_mode)) */
 	) {
 		int src_fd;
@@ -269,14 +287,13 @@ int copy_file(const char *source, const char *dest, int flags)
 #endif
 		if (bb_copyfd_eof(src_fd, dst_fd) == -1)
 			retval = -1;
+		/* Ok, writing side I can understand... */
 		if (close(dst_fd) < 0) {
 			bb_perror_msg("cannot close '%s'", dest);
 			retval = -1;
 		}
-		if (close(src_fd) < 0) {
-			bb_perror_msg("cannot close '%s'", source);
-			retval = -1;
-		}
+		/* ...but read size is already checked by bb_copyfd_eof */
+		close(src_fd);
 		goto preserve_mode_ugid_time;
 	}
 
@@ -289,18 +306,18 @@ int copy_file(const char *source, const char *dest, int flags)
 			return ovr;
 	}
 	if (S_ISLNK(source_stat.st_mode)) {
-		char *lpath;
-
-		lpath = xmalloc_readlink_or_warn(source);
-		if (lpath && symlink(lpath, dest) < 0) {
-			bb_perror_msg("cannot create symlink '%s'", dest);
+		char *lpath = xmalloc_readlink_or_warn(source);
+		if (lpath) {
+			int r = symlink(lpath, dest);
 			free(lpath);
-			return -1;
+			if (r < 0) {
+				bb_perror_msg("cannot create symlink '%s'", dest);
+				return -1;
+			}
+			if (flags & FILEUTILS_PRESERVE_STATUS)
+				if (lchown(dest, source_stat.st_uid, source_stat.st_gid) < 0)
+					bb_perror_msg("cannot preserve %s of '%s'", "ownership", dest);
 		}
-		free(lpath);
-		if (flags & FILEUTILS_PRESERVE_STATUS)
-			if (lchown(dest, source_stat.st_uid, source_stat.st_gid) < 0)
-				bb_perror_msg("cannot preserve %s of '%s'", "ownership", dest);
 		/* _Not_ jumping to preserve_mode_ugid_time:
 		 * symlinks don't have those */
 		return 0;
@@ -327,6 +344,7 @@ int copy_file(const char *source, const char *dest, int flags)
 
 		times.actime = source_stat.st_atime;
 		times.modtime = source_stat.st_mtime;
+		/* BTW, utimes sets usec-precision time - just FYI */
 		if (utime(dest, &times) < 0)
 			bb_perror_msg("cannot preserve %s of '%s'", "times", dest);
 		if (chown(dest, source_stat.st_uid, source_stat.st_gid) < 0) {
