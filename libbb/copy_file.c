@@ -114,7 +114,7 @@ int copy_file(const char *source, const char *dest, int flags)
 
 	if (S_ISDIR(source_stat.st_mode)) {
 		DIR *dp;
-		const char *existing_name;
+		const char *tp;
 		struct dirent *d;
 		mode_t saved_umask = 0;
 
@@ -124,11 +124,11 @@ int copy_file(const char *source, const char *dest, int flags)
 		}
 
 		/* Did we ever create source ourself before? */
-		existing_name = is_in_ino_dev_hashtable(&source_stat);
-		if (existing_name) {
+		tp = is_in_ino_dev_hashtable(&source_stat);
+		if (tp) {
 			/* We did! it's a recursion! man the lifeboats... */
 			bb_error_msg("recursion detected, omitting directory '%s'",
-					existing_name);
+					source);
 			return -1;
 		}
 
@@ -222,8 +222,7 @@ int copy_file(const char *source, const char *dest, int flags)
 		int dst_fd;
 
 		if (ENABLE_FEATURE_PRESERVE_HARDLINKS && !FLAGS_DEREF) {
-			char *link_target;
-
+			const char *link_target;
 			link_target = is_in_ino_dev_hashtable(&source_stat);
 			if (link_target) {
 				if (link(link_target, dest) < 0) {
