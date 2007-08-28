@@ -27,6 +27,7 @@
 #include <stddef.h>
 #include <string.h>
 /* #include <strings.h> - said to be obsolete */
+#include <sys/poll.h>
 #include <sys/ioctl.h>
 #include <sys/mman.h>
 #include <sys/socket.h>

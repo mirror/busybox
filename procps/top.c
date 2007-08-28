@@ -448,7 +448,7 @@ static void display_status(int count, int scr_width)
 #endif
 
 		if (s->vsz >= 100*1024)
-			sprintf(vsz_str_buf, "%6ldM", s->vsz/1024);
+			sprintf(vsz_str_buf, "%6ldm", s->vsz/1024);
 		else
 			sprintf(vsz_str_buf, "%7ld", s->vsz);
 		// PID PPID USER STAT VSZ %MEM [%CPU] COMMAND
@@ -519,23 +519,29 @@ int top_main(int argc, char **argv);
 int top_main(int argc, char **argv)
 {
 	int count, lines, col;
-	unsigned interval = 5; /* default update rate is 5 seconds */
-	unsigned iterations = UINT_MAX; /* 2^32 iterations by default :) */
+	unsigned interval;
+	int iterations = -1; /* infinite */
 	char *sinterval, *siterations;
 #if ENABLE_FEATURE_USE_TERMIOS
 	struct termios new_settings;
-	struct timeval tv;
-	fd_set readfds;
+	struct pollfd pfd[1];
 	unsigned char c;
+
+	pfd[0].fd = 0;
+	pfd[0].events = POLLIN;
 #endif /* FEATURE_USE_TERMIOS */
 
-	interval = 5;
+	interval = 5; /* default update rate is 5 seconds */
 
 	/* do normal option parsing */
 	opt_complementary = "-";
 	getopt32(argv, "d:n:b", &sinterval, &siterations);
-	if (option_mask32 & 0x1) interval = xatou(sinterval); // -d
-	if (option_mask32 & 0x2) iterations = xatou(siterations); // -n
+	if (option_mask32 & 0x1) {
+		/* Need to limit it to not overflow poll timeout */
+		interval = xatou16(sinterval); // -d
+	}
+	if (option_mask32 & 0x2)
+		iterations = xatoi_u(siterations); // -n
 	//if (option_mask32 & 0x4) // -b
 
 	/* change to /proc */
@@ -584,9 +590,8 @@ int top_main(int argc, char **argv)
 				| PSSCAN_UTIME
 				| PSSCAN_STATE
 				| PSSCAN_COMM
-				| PSSCAN_SID
 				| PSSCAN_UIDGID
-		))) {
+		)) != NULL) {
 			int n = ntop;
 			top = xrealloc(top, (++ntop) * sizeof(*top));
 			top[n].pid = p->pid;
@@ -622,15 +627,9 @@ int top_main(int argc, char **argv)
 		/* show status for each of the processes */
 		display_status(count, col);
 #if ENABLE_FEATURE_USE_TERMIOS
-		tv.tv_sec = interval;
-		tv.tv_usec = 0;
-		FD_ZERO(&readfds);
-		FD_SET(0, &readfds);
-		select(1, &readfds, NULL, NULL, &tv);
-		if (FD_ISSET(0, &readfds)) {
-			if (read(0, &c, 1) <= 0) {   /* signal */
-				return EXIT_FAILURE;
-			}
+		if (poll(pfd, 1, interval * 1000) != 0) {
+			if (read(0, &c, 1) != 1)    /* signal */
+				break;
 			if (c == 'q' || c == initial_settings.c_cc[VINTR])
 				break;
 			if (c == 'M') {
@@ -662,7 +661,7 @@ int top_main(int argc, char **argv)
 #endif
 			}
 		}
-		if (!--iterations)
+		if (iterations >= 0 && !--iterations)
 			break;
 #else
 		sleep(interval);
