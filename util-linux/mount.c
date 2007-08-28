@@ -1087,7 +1087,7 @@ static int nfsmount(struct mntent *mp, int vfsflags, char *filteropts)
 	 * give up immediately, to avoid the initial timeout.
 	 */
 	if (bg && we_saw_this_host_before(hostname)) {
-		daemonized = daemonize(); /* parent or error */
+		daemonized = daemonize();
 		if (daemonized <= 0) { /* parent or error */
 			retval = -daemonized;
 			goto ret;
@@ -1178,7 +1178,7 @@ retry:
 						 &msock, 0, 0);
 			break;
 		default:
-			mclient = 0;
+			mclient = NULL;
 		}
 		if (!mclient) {
 			if (!daemonized && prevt == 0)
@@ -1219,8 +1219,9 @@ retry:
 				error_msg_rpc(clnt_sperror(mclient, " "));
 			auth_destroy(mclient->cl_auth);
 			clnt_destroy(mclient);
-			mclient = 0;
+			mclient = NULL;
 			close(msock);
+			msock = -1;
 		}
 
 		/* Timeout. We are going to retry... maybe */
@@ -1316,6 +1317,7 @@ prepare_kernel_data:
 	auth_destroy(mclient->cl_auth);
 	clnt_destroy(mclient);
 	close(msock);
+	msock = -1;
 
 	if (bg) {
 		/* We must wait until mount directory is available */
@@ -1325,6 +1327,7 @@ prepare_kernel_data:
 			if (!daemonized) {
 				daemonized = daemonize();
 				if (daemonized <= 0) { /* parent or error */
+	// FIXME: parent doesn't close fsock - ??!
 					retval = -daemonized;
 					goto ret;
 				}
@@ -1344,14 +1347,14 @@ do_mount: /* perform actual mount */
 
 fail:	/* abort */
 
-	if (msock != -1) {
+	if (msock >= 0) {
 		if (mclient) {
 			auth_destroy(mclient->cl_auth);
 			clnt_destroy(mclient);
 		}
 		close(msock);
 	}
-	if (fsock != -1)
+	if (fsock >= 0)
 		close(fsock);
 
 ret:
