@@ -234,8 +234,7 @@ static char *fmt_100percent_8(char pbuf[8], unsigned value, unsigned total)
 }
 #endif
 
-/* display generic info (meminfo / loadavg) */
-static unsigned long display_generic(int scr_width)
+static unsigned long display_header(int scr_width)
 {
 	FILE *fp;
 	char buf[80];
@@ -361,7 +360,7 @@ static void display_process_list(int count, int scr_width)
 
 	top_status_t *s = top;
 	char vsz_str_buf[8];
-	unsigned long total_memory = display_generic(scr_width); /* or use total_vsz? */
+	unsigned long total_memory = display_header(scr_width); /* or use total_vsz? */
 	/* xxx_shift and xxx_scale variables allow us to replace
 	 * expensive divides with multiply and shift */
 	unsigned pmem_shift, pmem_scale, pmem_half;
