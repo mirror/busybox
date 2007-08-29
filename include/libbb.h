@@ -891,7 +891,7 @@ typedef struct procps_status_t {
 	USE_SELINUX(char *context;)
 	/* Everything below must contain no ptrs to malloc'ed data:
 	 * it is memset(0) for each process in procps_scan() */
-	unsigned vsz, rss; /* we round it to kbytes */
+	unsigned long vsz, rss; /* we round it to kbytes */
 	unsigned long stime, utime;
 	unsigned pid;
 	unsigned ppid;
