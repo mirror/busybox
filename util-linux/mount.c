@@ -1557,7 +1557,7 @@ int mount_main(int argc, char **argv)
 
 	// Parse remaining options
 
-	opt = getopt32(argv, "o:t:rwanfvs", &opt_o, &fstype);
+	opt = getopt32(argv, "o:t:rwanfvsi", &opt_o, &fstype);
 	if (opt & 0x1) append_mount_options(&cmdopts, opt_o); // -o
 	//if (opt & 0x2) // -t
 	if (opt & 0x4) append_mount_options(&cmdopts, "ro"); // -r
@@ -1567,6 +1567,7 @@ int mount_main(int argc, char **argv)
 	if (opt & 0x40) USE_FEATURE_MTAB_SUPPORT(fakeIt = 1); // -f
 	//if (opt & 0x80) // -v: verbose (ignore)
 	//if (opt & 0x100) // -s: sloppy (ignore)
+	//if (opt & 0x200) // -i: don't call mount.<fstype> (ignore)
 	argv += optind;
 	argc -= optind;
 
