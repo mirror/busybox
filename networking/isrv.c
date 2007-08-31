@@ -21,20 +21,6 @@
 
 /* Helpers */
 
-/* Even if _POSIX_MONOTONIC_CLOCK is defined, this
- * may require librt */
-#if 0 /*def _POSIX_MONOTONIC_CLOCK*/
-static time_t monotonic_time(void)
-{
-	struct timespec ts;
-	if (clock_gettime(CLOCK_MONOTONIC, &ts) != 0)
-		time(&ts.tv_sec);
-	return ts.tv_sec;
-}
-#else
-#define monotonic_time() (time(NULL))
-#endif
-
 /* Opaque structure */
 
 struct isrv_state_t {
@@ -258,7 +244,7 @@ static void handle_fd_set(isrv_state_t *state, fd_set *fds, int (*h)(int, void *
 			/* this peer is gone */
 			remove_peer(state, peer);
 		} else if (TIMEOUT) {
-			TIMEO_TBL[peer] = monotonic_time();
+			TIMEO_TBL[peer] = monotonic_sec();
 		}
 	}
 }
@@ -335,7 +321,7 @@ void isrv_run(
 			break;
 
 		if (timeout) {
-			time_t t = monotonic_time();
+			time_t t = monotonic_sec();
 			if (t != CURTIME) {
 				CURTIME = t;
 				handle_timeout(state, do_timeout);

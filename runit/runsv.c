@@ -33,6 +33,34 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "libbb.h"
 #include "runit_lib.h"
 
+#if ENABLE_MONOTONIC_SYSCALL
+#include <sys/syscall.h>
+
+/* libc has incredibly messy way of doing this,
+ * typically requiring -lrt. We just skip all this mess */
+static void gettimeofday_ns(struct timespec *ts)
+{
+	syscall(__NR_clock_gettime, CLOCK_REALTIME, ts);
+}
+#else
+static void gettimeofday_ns(struct timespec *ts)
+{
+	if (sizeof(struct timeval) == sizeof(struct timespec)
+	 && sizeof(((struct timeval*)ts)->tv_usec) == sizeof(ts->tv_nsec)
+	) {
+		/* Cheat */
+		gettimeofday((void*)ts, NULL);
+		ts->tv_nsec *= 1000;
+	} else {
+		extern void BUG_need_to_implement_gettimeofday_ns(void);
+		BUG_need_to_implement_gettimeofday_ns();
+	}
+}
+#endif
+
+/* Compare possibly overflowing unsigned counters */
+#define LESS(a,b) ((int)((unsigned)(b) - (unsigned)(a)) > 0)
+
 static int selfpipe[2];
 
 /* state */
@@ -124,14 +152,6 @@ static int rename_or_warn(const char *old, const char *new)
 		return -1;
 	}
 	return 0;
-}
-
-#define LESS(a,b) ((int)((unsigned)(b) - (unsigned)(a)) > 0)
-
-#include <sys/syscall.h>
-static void gettimeofday_ns(struct timespec *ts)
-{
-	syscall(__NR_clock_gettime, CLOCK_REALTIME, ts);
 }
 
 static void update_status(struct svdir *s)
