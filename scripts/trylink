@@ -39,8 +39,17 @@ while test "$BBOX_LIB_LIST"; do
     for one in $BBOX_LIB_LIST; do
 	without_one=`echo " $BBOX_LIB_LIST " | sed "s/ $one / /g" | xargs`
 	l_list=`echo "$without_one" | sed -e 's/ / -l/g' -e 's/^/-l/'`
-	$debug && echo "Trying -l options: $l_list"
-	if try "-Wl,--start-group $l_list -Wl,--end-group" "$@"; then
+	# If l_list is just "-l" without a lib, then make sure to test the
+	# correct thing to fail: just using -l will fail, so the last lib
+	# (usually m in my case) will incorrectly be added as needed.
+	if test "x$without_one" != "x"; then
+		l_list="-Wl,--start-group $l_list -Wl,--end-group"
+	else
+		# without_one is empty, so l_list has to be empty too
+		l_list=""
+	fi
+	$debug && echo "Trying -l options: '$l_list'"
+	if try "$l_list" "$@"; then
 		echo "Library $one is not needed"
 		BBOX_LIB_LIST="$without_one"
 		all_needed=false
