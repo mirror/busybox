@@ -14,9 +14,11 @@ try() {
 BBOX_LIB_LIST=`echo "$BBOX_LIB_LIST" | xargs -n1 | sort | uniq | xargs`
 
 # First link with all libs. If it fails, bail out
-l_list=`echo "$BBOX_LIB_LIST" | sed -e 's/ / -l/g' -e 's/^/-l/'`
+l_list=`echo "$BBOX_LIB_LIST" | sed -e 's/ / -l/g' -e 's/^/-l/' -e 's/^-l$//'`
+
 echo "Trying libraries: $BBOX_LIB_LIST"
-try "-Wl,--start-group $l_list -Wl,--end-group" "$@" \
+test "x$l_list" != "x" && l_list="-Wl,--start-group $l_list -Wl,--end-group"
+try "$l_list" "$@" \
 || {
     echo "Failed: $* -Wl,--start-group $l_list -Wl,--end-group"
     cat busybox_ld.err
@@ -38,16 +40,8 @@ while test "$BBOX_LIB_LIST"; do
     all_needed=true
     for one in $BBOX_LIB_LIST; do
 	without_one=`echo " $BBOX_LIB_LIST " | sed "s/ $one / /g" | xargs`
-	l_list=`echo "$without_one" | sed -e 's/ / -l/g' -e 's/^/-l/'`
-	# If l_list is just "-l" without a lib, then make sure to test the
-	# correct thing to fail: just using -l will fail, so the last lib
-	# (usually m in my case) will incorrectly be added as needed.
-	if test "x$without_one" != "x"; then
-		l_list="-Wl,--start-group $l_list -Wl,--end-group"
-	else
-		# without_one is empty, so l_list has to be empty too
-		l_list=""
-	fi
+	l_list=`echo "$without_one" | sed -e 's/ / -l/g' -e 's/^/-l/' -e 's/^-l$//'`
+	test "x$l_list" != "x" && l_list="-Wl,--start-group $l_list -Wl,--end-group"
 	$debug && echo "Trying -l options: '$l_list'"
 	if try "$l_list" "$@"; then
 		echo "Library $one is not needed"
@@ -71,10 +65,12 @@ done
 ####$ever_discarded && {
     # Make the binary with final, minimal list of libs
     echo "Final link with: $BBOX_LIB_LIST"
-    l_list=`echo "$BBOX_LIB_LIST" | sed -e 's/ / -l/g' -e 's/^/-l/'`
+    l_list=`echo "$BBOX_LIB_LIST" | sed -e 's/ / -l/g' -e 's/^/-l/' -e 's/^-l$//'`
     # --verbose gives us gobs of info to stdout (e.g. linker script used)
+    test "x$l_list" != "x" && l_list="-Wl,--start-group $l_list -Wl,--end-group -Wl,--verbose"
     if ! test -f busybox_ldscript; then
-	try "-Wl,--start-group $l_list -Wl,--end-group -Wl,--verbose" "$@" >busybox_ld.out ####|| exit 1
+
+	try "$l_list" "$@" >busybox_ld.out ####|| exit 1
     else
 	echo "Custom linker script 'busybox_ldscript' found, using it"
 	# Add SORT_BY_ALIGNMENT to linker script (found in busybox_ld.out):
@@ -82,7 +78,7 @@ done
 	#  *(.data SORT_BY_ALIGNMENT(.data.*) .gnu.linkonce.d.*)
 	#  *(.bss SORT_BY_ALIGNMENT(.bss.*) .gnu.linkonce.b.*)
 	# This will eliminate most of the data padding (~3kb).
-	try "-Wl,--start-group $l_list -Wl,--end-group -Wl,--verbose -Wl,-T -Wl,busybox_ldscript" "$@" >busybox_ld.out
+	try "$l_list -Wl,-T -Wl,busybox_ldscript" "$@" >busybox_ld.out
     fi
 ####}
 ####rm busybox_ld.err
