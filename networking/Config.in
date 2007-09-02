@@ -249,6 +249,7 @@ config IFUPDOWN
 config IFUPDOWN_IFSTATE_PATH
 	string "Absolute path to ifstate file"
 	default "/var/run/ifstate"
+	depends on IFUPDOWN
 	help
 	  ifupdown keeps state information in a file called ifstate.
 	  Typically it is located in /var/run/ifstate, however
