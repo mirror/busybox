@@ -512,6 +512,9 @@ int execable_file(const char *name);
 char *find_execable(const char *filename);
 int exists_execable(const char *filename);
 
+/* BB_EXECxx always execs (it's not doing NOFORK/NOEXEC stuff),
+ * but it may exec busybox and call applet instead of searching PATH.
+ */
 #if ENABLE_FEATURE_PREFER_APPLETS
 int bb_execvp(const char *file, char *const argv[]);
 #define BB_EXECVP(prog,cmd) bb_execvp(prog,cmd)
