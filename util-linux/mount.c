@@ -725,6 +725,7 @@ next:
 	return &p;
 }
 
+#if BB_MMU
 static int daemonize(void)
 {
 	int fd;
@@ -744,6 +745,9 @@ static int daemonize(void)
 	logmode = LOGMODE_SYSLOG;
 	return 1;
 }
+#else
+static inline int daemonize(void) { return -ENOSYS; }
+#endif
 
 // TODO
 static inline int we_saw_this_host_before(const char *hostname)
@@ -786,7 +790,11 @@ static int nfsmount(struct mntent *mp, int vfsflags, char *filteropts)
 	int port;
 	int mountport;
 	int proto;
-	int bg;
+#if BB_MMU
+	int bg = 0;
+#else
+	enum { bg = 0 };
+#endif
 	int soft;
 	int intr;
 	int posix;
@@ -867,7 +875,6 @@ static int nfsmount(struct mntent *mp, int vfsflags, char *filteropts)
 	data.acdirmax	= 60;
 	data.namlen	= NAME_MAX;
 
-	bg = 0;
 	soft = 0;
 	intr = 0;
 	posix = 0;
@@ -1010,10 +1017,14 @@ static int nfsmount(struct mntent *mp, int vfsflags, char *filteropts)
 			}
 			switch (index_in_strings(options, opt)) {
 			case 0: // "bg"
+#if BB_MMU
 				bg = val;
+#endif
 				break;
 			case 1: // "fg"
+#if BB_MMU
 				bg = !val;
+#endif
 				break;
 			case 2: // "soft"
 				soft = val;
