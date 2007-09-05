@@ -10,8 +10,7 @@
  * NOTE: This function returns a malloced char* that you will have to free
  * yourself. You have been warned.
  */
-
-char *xmalloc_readlink_or_warn(const char *path)
+char *xmalloc_readlink(const char *path)
 {
 	enum { GROWBY = 80 }; /* how large we will grow strings by */
 
@@ -20,20 +19,30 @@ char *xmalloc_readlink_or_warn(const char *path)
 
 	do {
 		buf = xrealloc(buf, bufsize += GROWBY);
-		readsize = readlink(path, buf, bufsize); /* 1st try */
+		readsize = readlink(path, buf, bufsize);
 		if (readsize == -1) {
-			bb_perror_msg("%s", path);
 			free(buf);
 			return NULL;
 		}
-	}
-	while (bufsize < readsize + 1);
+	} while (bufsize < readsize + 1);
 
 	buf[readsize] = '\0';
 
 	return buf;
 }
 
+char *xmalloc_readlink_or_warn(const char *path)
+{
+	char *buf = xmalloc_readlink(path);
+	if (!buf) {
+		/* EINVAL => "file: Invalid argument" => puzzled user */
+		bb_error_msg("%s: cannot read link (not a symlink?)", path);
+	}
+	return buf;
+}
+
+/* UNUSED */
+#if 0
 char *xmalloc_realpath(const char *path)
 {
 #if defined(__GLIBC__) && !defined(__UCLIBC__)
@@ -46,3 +55,4 @@ char *xmalloc_realpath(const char *path)
 	return xstrdup(realpath(path, buf));
 #endif
 }
+#endif
