@@ -3843,7 +3843,7 @@ USE_FEATURE_RUN_PARTS_FANCY("\n	-l	Prints names of all matching files even when 
 #define watch_full_usage \
        "Execute a program periodically" \
        "\n\nOptions:\n" \
-       "	-n	Loop period in seconds - default is 2\n" \
+       "	-n	Loop period in seconds (default 2)\n" \
        "	-t	Don't print header"
 #define watch_example_usage \
        "$ watch date\n" \
@@ -3852,12 +3852,14 @@ USE_FEATURE_RUN_PARTS_FANCY("\n	-l	Prints names of all matching files even when 
        "Mon Dec 17 10:31:44 GMT 2000"
 
 #define watchdog_trivial_usage \
-       "[-t seconds] [-F] DEV"
+       "[-t N[ms]] [-F] DEV"
 #define watchdog_full_usage \
        "Periodically write to watchdog device DEV" \
-       "\n\nOptions:\n" \
-       "	-t	Timer period in seconds - default is 30\n" \
-       "	-F	Stay in the foreground and don't fork"
+       "\n\nOptions:" \
+     "\n	-t N	Timer period (default 30)" \
+     "\n	-F	Stay in the foreground and don't fork" \
+     "\n" \
+     "\nUse -t 500ms to specify period in milliseconds"
 
 #define wc_trivial_usage \
        "[OPTION]... [FILE]..."
