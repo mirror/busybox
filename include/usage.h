@@ -16,7 +16,7 @@
 #define addgroup_full_usage \
        "Add a group to the system"USE_FEATURE_ADDUSER_TO_GROUP(" or add an user to a group") \
        "\n\nOptions:\n" \
-       "	-g GID	Specify gid"
+       "	-g GID	Group id"
 
 #define adduser_trivial_usage \
        "[OPTIONS] user_name"
@@ -28,7 +28,7 @@
        "	-s SHELL	Login shell\n" \
        "	-G GROUP	Add user to existing group\n" \
        "	-S		Create a system user (ignored)\n" \
-       "	-D		Do not assign a password (logins still possible via ssh)\n" \
+       "	-D		Do not assign a password\n" \
        "	-H		Do not create home directory"
 
 #define adjtimex_trivial_usage \
@@ -40,7 +40,7 @@
        "	-q		Quiet\n" \
        "	-o offset	Time offset, microseconds\n" \
        "	-f frequency	Frequency adjust, integer kernel units (65536 is 1ppm)\n" \
-       "			(positive values make the system clock run faster)\n" \
+       "			(positive values make clock run faster)\n" \
        "	-t tick		Microseconds per tick, usually 10000\n" \
        "	-p timeconstant"
 
@@ -70,10 +70,10 @@
        "\n	-d		Delete a specified entry" \
        "\n	-v		Verbose" \
        "\n	-n		Don't resolve names" \
-       "\n	-i if		Specify network interface (e.g. eth0)" \
+       "\n	-i if		Network interface (e.g. eth0)" \
        "\n	-D		Read <hwaddr> from given device" \
-       "\n	-A, -p		Specify protocol family" \
-       "\n	-H hwtype	Specify hardware address type"
+       "\n	-A, -p		Protocol family" \
+       "\n	-H hwtype	Hardware address type"
 
 #define arping_trivial_usage \
        "[-fqbDUA] [-c count] [-w timeout] [-i device] [-s sender] target"
@@ -103,7 +103,7 @@
 #define awk_full_usage \
        "Options:\n" \
        "	-v var=val	Set variable\n" \
-       "	-F sep		Use 'sep' as field separator\n" \
+       "	-F sep		Use sep as field separator\n" \
        "	-f filename	Read program from file"
 
 #define basename_trivial_usage \
@@ -468,11 +468,11 @@
 #define crontab_full_usage \
        "	file [opts]	Replace crontab from file\n" \
        "	- [opts]	Replace crontab from stdin\n" \
-       "	-u user		Specify user\n" \
+       "	-u user		User\n" \
        "	-l [user]	List crontab for user\n" \
        "	-e [user]	Edit crontab for user\n" \
        "	-d [user]	Delete crontab for user\n" \
-       "	-c dir		Specify crontab directory"
+       "	-c dir		Crontab directory"
 
 #define cryptpw_trivial_usage \
        "[-a des|md5] [string]"
@@ -509,11 +509,11 @@
 	USE_FEATURE_DATE_ISOFMT( \
        "	-I[TIMESPEC]	Outputs an ISO-8601 compliant date/time string\n" \
        "			TIMESPEC='date' (or missing) for date only,\n" \
-       "			'hours', 'minutes', or 'seconds' for date and,\n" \
+       "			'hours', 'minutes', or 'seconds' for date and\n" \
        "			time to the indicated precision\n" \
        "	-D hint		Use 'hint' as date format, via strptime()\n" \
 	) \
-       "	-s		Sets time described by STRING\n" \
+       "	-s STRING	Sets time described by STRING\n" \
        "	-r FILE		Displays the last modification time of FILE\n" \
        "	-u		Prints or sets Coordinated Universal Time"
 #define date_example_usage \
@@ -596,9 +596,9 @@
        "\n\nOptions:" \
        "\n	mntpnt	The mount point where devfs is mounted" \
        "\n	-v	Print the protocol version numbers for devfsd" \
-       "\n		and the kernel-side protocol version and exits" \
+       "\n		and the kernel-side protocol version and exit" \
 	USE_DEVFSD_FG_NP( \
-       "\n	-fg	Run the daemon in the foreground" \
+       "\n	-fg	Run in foreground" \
        "\n	-np	Exit after parsing the configuration file" \
        "\n		and processing synthetic REGISTER events," \
        "\n		do not poll for events")
@@ -1606,7 +1606,7 @@
        "	-c	Copy the file, default\n" \
        "	-d	Create directories\n" \
        "	-g	Set group ownership\n" \
-       "	-m	Set permission modes\n" \
+       "	-m	Set permissions\n" \
        "	-o	Set ownership\n" \
        "	-p	Preserve date\n" \
        "	-s	Strip symbol tables" \
@@ -1672,7 +1672,7 @@
 #define ipcs_trivial_usage \
        "[[-smq] -i shmid] | [[-asmq] [-tcplu]]"
 #define ipcs_full_usage \
-       "	-i	Specify a specific resource id\n" \
+       "	-i	Show a specific resource\n" \
        "Resource specification:\n" \
        "	-m	Shared memory segments\n" \
        "	-q	Message queues\n" \
@@ -1764,7 +1764,7 @@
        "Kernel logger" \
        "\n\nOptions:\n" \
        "	-c n	Sets the default log level of console messages to n\n" \
-       "	-n	Run as foreground process"
+       "	-n	Run in foreground"
 
 #define length_trivial_usage \
        "STRING"
@@ -1781,11 +1781,9 @@
        "changed, and files can be manipulated in various ways." \
        "\n\nOptions:\n" \
        "	-E	Quit once the end of a file is reached\n" \
-       "	-M	Display a status line containing the current line numbers\n" \
+       "	-M,-m	Display a status line containing the current line numbers\n" \
        "		and the percentage through the file\n" \
        "	-N	Prefix line numbers to each line\n" \
-       "	-m	Display a status line containing the percentage through the\n" \
-       "		file\n" \
        "	-~	Suppress ~s displayed when input past the end of the file is\n" \
        "		reached"
 
@@ -1804,7 +1802,7 @@
        "\n\nOptions:\n" \
        "	-s	Make symlinks instead of hardlinks\n" \
        "	-f	Remove existing destination files\n" \
-       "	-n	No dereference symlinks - treat like normal file\n" \
+       "	-n	Don't dereference symlinks - treat like normal file\n" \
        "	-b	Make a backup of the target (if exists) before link operation\n" \
        "	-S suf	Use suffix instead of ~ when making backup files"
 #define ln_example_usage \
@@ -2144,10 +2142,10 @@
 #define mkfs_minix_full_usage \
        "Make a MINIX filesystem" \
        "\n\nOptions:\n" \
-       "	-c		Check the device for bad blocks\n" \
-       "	-n [14|30]	Specify the maximum length of filenames\n" \
-       "	-i INODES	Specify the number of inodes for the filesystem\n" \
-       "	-l FILENAME	Read the bad blocks list from FILENAME\n" \
+       "	-c		Check device for bad blocks\n" \
+       "	-n [14|30]	Maximum length of filenames\n" \
+       "	-i INODES	Number of inodes for the filesystem\n" \
+       "	-l FILENAME	Read bad blocks list from FILENAME\n" \
        "	-v		Make a Minix version 2 filesystem"
 
 #define mknod_trivial_usage \
@@ -2281,7 +2279,7 @@
 	) \
        "	-o option	One of many filesystem options, listed below\n" \
        "	-r		Mount the filesystem read-only\n" \
-       "	-t fs-type	Specify the filesystem type\n" \
+       "	-t fs-type	Filesystem type\n" \
        "	-w		Mount for reading and writing (default)\n" \
        "\n" \
        "Options for use with the \"-o\" flag:\n" \
@@ -3095,7 +3093,7 @@ USE_FEATURE_RUN_PARTS_FANCY("\n	-l	Prints names of all matching files even when 
        "	-f	Ignore case\n" \
        "	-g	General numerical sort\n" \
        "	-i	Ignore unprintable characters\n" \
-       "	-k	Specify sort key\n" \
+       "	-k	Sort key\n" \
        "	-M	Sort month\n") \
        "	-n	Sort numbers\n" \
 	USE_FEATURE_SORT_BIG( \
@@ -3146,7 +3144,7 @@ USE_FEATURE_RUN_PARTS_FANCY("\n	-l	Prints names of all matching files even when 
        "\n	-S|--start			Start" \
        "\n	-K|--stop			Stop" \
        "\n	-a|--startas pathname		Starts process specified by pathname" \
-       "\n	-b|--background			Force process into background" \
+       "\n	-b|--background			Put process into background" \
        "\n	-u|--user username|uid		Stop this user's processes" \
        "\n	-x|--exec executable		Program to either start or check" \
        "\n	-m|--make-pidfile		Create the -p file and enter pid in it" \
@@ -3338,7 +3336,7 @@ USE_FEATURE_RUN_PARTS_FANCY("\n	-l	Prints names of all matching files even when 
        "System logging utility.\n" \
        "Note that this version of syslogd ignores /etc/syslog.conf." \
        "\n\nOptions:" \
-       "\n	-n		Run as foreground process" \
+       "\n	-n		Run in foreground" \
        "\n	-O FILE		Log to given file (default=/var/log/messages)" \
        "\n	-l n		Set local log level" \
        "\n	-S		Smaller logging output" \
@@ -3472,7 +3470,7 @@ USE_FEATURE_RUN_PARTS_FANCY("\n	-l	Prints names of all matching files even when 
 	USE_FEATURE_TELNETD_STANDALONE( \
        "\n	-p PORT		Port to listen to" \
        "\n	-b ADDR		Address to bind to" \
-       "\n	-F		Stay in foreground" \
+       "\n	-F		Run in foreground" \
        "\n	-i		Run as inetd subservice" \
 	)
 
@@ -3613,7 +3611,7 @@ USE_FEATURE_RUN_PARTS_FANCY("\n	-l	Prints names of all matching files even when 
        "	-t tos		Type-of-service in probe packets (default 0)\n" \
        "	-w wait		Time in seconds to wait for a response to a probe\n" \
        "			(default 3 sec)\n" \
-       "	-g		Specify a loose source route gateway (8 max)"
+       "	-g		Loose source route gateway (8 max)"
 
 
 #define true_trivial_usage \
@@ -3664,7 +3662,7 @@ USE_FEATURE_RUN_PARTS_FANCY("\n	-l	Prints names of all matching files even when 
        "\n	-r,--request=IP		IP address to request" \
        "\n	-s,--script=file	Run file at dhcp events (default: /usr/share/udhcpc/default.script)" \
        "\n	-t,--retries=N		Send up to N request packets"\
-       "\n	-f,--foreground	Stay in foreground" \
+       "\n	-f,--foreground	Run in foreground" \
        "\n	-b,--background	Background if lease cannot be immediately negotiated" \
        "\n	-S,--syslog	Log to syslog too" \
        "\n	-n,--now	Exit with failure if lease cannot be immediately negotiated" \
@@ -3677,7 +3675,7 @@ USE_FEATURE_RUN_PARTS_FANCY("\n	-l	Prints names of all matching files even when 
 
 #define udhcpd_full_usage \
        "DHCP server" \
-       "\n	-f	Stay in foreground" \
+       "\n	-f	Run in foreground" \
        "\n	-S	Log to syslog too"
 
 #define umount_trivial_usage \
@@ -3857,7 +3855,7 @@ USE_FEATURE_RUN_PARTS_FANCY("\n	-l	Prints names of all matching files even when 
        "Periodically write to watchdog device DEV" \
        "\n\nOptions:" \
      "\n	-t N	Timer period (default 30)" \
-     "\n	-F	Stay in the foreground and don't fork" \
+     "\n	-F	Run in foreground" \
      "\n" \
      "\nUse -t 500ms to specify period in milliseconds"
 
@@ -3940,7 +3938,7 @@ USE_FEATURE_RUN_PARTS_FANCY("\n	-l	Prints names of all matching files even when 
 #define zcip_full_usage \
        "Manage a ZeroConf IPv4 link-local address" \
        "\n\nOptions:\n" \
-       "	-f		Foreground mode\n" \
+       "	-f		Run in foreground\n" \
        "	-q		Quit after address (no daemon)\n" \
        "	-r 169.254.x.x	Request this address first\n" \
        "	-v		Verbose"
