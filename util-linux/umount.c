@@ -12,13 +12,14 @@
 #include <getopt.h>
 #include "libbb.h"
 
-#define OPTION_STRING		"flDnravdt:"
-#define OPT_FORCE			1
-#define OPT_LAZY			2
-#define OPT_DONTFREELOOP	4
-#define OPT_NO_MTAB			8
-#define OPT_REMOUNT			16
-#define OPT_ALL				(ENABLE_FEATURE_UMOUNT_ALL ? 32 : 0)
+/* ignored: -v -d -t -i */
+#define OPTION_STRING           "flDnra" "vdt:i"
+#define OPT_FORCE               (1 << 0)
+#define OPT_LAZY                (1 << 1)
+#define OPT_DONTFREELOOP        (1 << 2)
+#define OPT_NO_MTAB             (1 << 3)
+#define OPT_REMOUNT             (1 << 4)
+#define OPT_ALL                 (ENABLE_FEATURE_UMOUNT_ALL ? (1 << 5) : 0)
 
 int umount_main(int argc, char **argv);
 int umount_main(int argc, char **argv)
@@ -77,7 +78,8 @@ int umount_main(int argc, char **argv)
 	/* If we're not umounting all, we need at least one argument. */
 	if (!(opt & OPT_ALL) && !fstype) {
 		m = 0;
-		if (!argc) bb_show_usage();
+		if (!argc)
+			bb_show_usage();
 	}
 
 	// Loop through everything we're supposed to umount, and do so.
@@ -86,11 +88,14 @@ int umount_main(int argc, char **argv)
 		char *zapit = *argv;
 
 		// Do we already know what to umount this time through the loop?
-		if (m) safe_strncpy(path, m->dir, PATH_MAX);
+		if (m)
+			safe_strncpy(path, m->dir, PATH_MAX);
 		// For umount -a, end of mtab means time to exit.
-		else if (opt & OPT_ALL) break;
+		else if (opt & OPT_ALL)
+			break;
 		// Get next command line argument (and look it up in mtab list)
-		else if (!argc--) break;
+		else if (!argc--)
+			break;
 		else {
 			argv++;
 			realpath(zapit, path);
