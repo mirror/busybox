@@ -383,9 +383,11 @@ static int fileAction(const char *fileName, struct stat *statbuf, void *userData
 #if ENABLE_FEATURE_FIND_XDEV
 	if (S_ISDIR(statbuf->st_mode) && xdev_count) {
 		for (i = 0; i < xdev_count; i++) {
-			if (xdev_dev[i] != statbuf->st_dev)
-				return SKIP;
+			if (xdev_dev[i] == statbuf->st_dev)
+				break;
 		}
+		if (i == xdev_count)
+			return SKIP;
 	}
 #endif
 	i = exec_actions(actions, fileName, statbuf);
