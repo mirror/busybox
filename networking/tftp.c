@@ -21,12 +21,12 @@
 
 #include "libbb.h"
 
-
 #if ENABLE_FEATURE_TFTP_GET || ENABLE_FEATURE_TFTP_PUT
 
 #define TFTP_BLOCKSIZE_DEFAULT 512	/* according to RFC 1350, don't change */
-#define TFTP_TIMEOUT 5	/* seconds */
-#define TFTP_NUM_RETRIES 5 /* number of retries */
+#define TFTP_TIMEOUT 50000		/* 50ms, in microseconds */
+#define TFTP_MAXTIMEOUT 999000		/* about 1 second, in microseconds */
+#define TFTP_NUM_RETRIES 12 		/* number of backed-off retries */
 
 /* opcodes we support */
 #define TFTP_RRQ   1
@@ -124,7 +124,7 @@ static int tftp( USE_GETPUT(const int cmd,)
 	uint16_t opcode;
 	uint16_t block_nr = 1;
 	uint16_t recv_blk;
-	int timeout = TFTP_NUM_RETRIES;
+	int retries, waittime;
 	char *cp;
 
 	unsigned org_port;
@@ -206,6 +206,10 @@ static int tftp( USE_GETPUT(const int cmd,)
 		send_len = cp - xbuf;
 		/* NB: send_len value is preserved in code below
 		 * for potential resend */
+
+		retries = TFTP_NUM_RETRIES;	/* re-initialize */
+		waittime = TFTP_TIMEOUT;
+
  send_again:
 #if ENABLE_DEBUG_TFTP
 		fprintf(stderr, "sending %u bytes\n", send_len);
@@ -218,11 +222,10 @@ static int tftp( USE_GETPUT(const int cmd,)
 		if (finished && (opcode == TFTP_ACK))
 			goto ret;
 
-		timeout = TFTP_NUM_RETRIES;	/* re-initialize */
  recv_again:
 		/* Receive packet */
-		tv.tv_sec = TFTP_TIMEOUT;
-		tv.tv_usec = 0;
+		tv.tv_sec = 0;
+		tv.tv_usec = waittime;
 		FD_ZERO(&rfds);
 		FD_SET(socketfd, &rfds);
 		switch (select(socketfd + 1, &rfds, NULL, NULL, &tv)) {
@@ -248,12 +251,18 @@ static int tftp( USE_GETPUT(const int cmd,)
 				goto recv_again;
 			goto process_pkt;
 		case 0:
-			timeout--;
-			if (timeout == 0) {
-				bb_error_msg("last timeout");
+			retries--;
+			if (retries == 0) {
+				bb_error_msg("timeout");
 				goto ret;
 			}
-			bb_error_msg("last timeout" + 5);
+
+			/* exponential backoff with limit */
+			waittime += waittime/2;
+			if (waittime > TFTP_MAXTIMEOUT) {
+				waittime = TFTP_MAXTIMEOUT;
+			}
+
 			goto send_again; /* resend last sent pkt */
 		default:
 			bb_perror_msg("select");
