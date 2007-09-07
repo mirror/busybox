@@ -37,14 +37,12 @@ struct arpMsg {
 
 int arpping(uint32_t test_ip, uint32_t from_ip, uint8_t *from_mac, const char *interface)
 {
-	int timeout = 2;
-	int s;                  /* socket */
+	int timeout_ms = 2000;
+	struct pollfd pfd[1];
+#define s (pfd[0].fd)           /* socket */
 	int rv = 1;             /* "no reply received" yet */
 	struct sockaddr addr;   /* for interface name */
 	struct arpMsg arp;
-	fd_set fdset;
-	struct timeval tm;
-	unsigned prevTime;
 
 	s = socket(PF_PACKET, SOCK_PACKET, htons(ETH_P_ARP));
 	if (s == -1) {
@@ -80,18 +78,17 @@ int arpping(uint32_t test_ip, uint32_t from_ip, uint8_t *from_mac, const char *i
 	/* wait for arp reply, and check it */
 	do {
 		int r;
-		prevTime = monotonic_sec();
-		FD_ZERO(&fdset);
-		FD_SET(s, &fdset);
-		tm.tv_sec = timeout;
-		tm.tv_usec = 0;
-		r = select(s + 1, &fdset, NULL, NULL, &tm);
+		unsigned prevTime = monotonic_us();
+
+		pfd[0].events = POLLIN;
+		r = poll(pfd, 1, timeout_ms);
 		if (r < 0) {
-			bb_perror_msg("error on ARPING request");
-			if (errno != EINTR)
+			if (errno != EINTR) {
+				bb_perror_msg("poll");
 				break;
+			}
 		} else if (r) {
-			if (recv(s, &arp, sizeof(arp), 0) < 0)
+			if (read(s, &arp, sizeof(arp)) < 0)
 				break;
 			if (arp.operation == htons(ARPOP_REPLY)
 			 && memcmp(arp.tHaddr, from_mac, 6) == 0
@@ -101,8 +98,8 @@ int arpping(uint32_t test_ip, uint32_t from_ip, uint8_t *from_mac, const char *i
 				break;
 			}
 		}
-		timeout -= monotonic_sec() - prevTime;
-	} while (timeout > 0);
+		timeout_ms -= (monotonic_us() - prevTime) / 1000;
+	} while (timeout_ms > 0);
 
  ret:
 	close(s);

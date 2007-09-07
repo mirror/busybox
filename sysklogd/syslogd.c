@@ -471,8 +471,8 @@ static void do_syslogd(void) ATTRIBUTE_NORETURN;
 static void do_syslogd(void)
 {
 	struct sockaddr_un sunx;
-	int sock_fd;
-	fd_set fds;
+	struct pollfd pfd[1];
+#define sock_fd (pfd[0].fd)
 	char *dev_log_name;
 
 	/* Set up signal handlers */
@@ -526,20 +526,20 @@ static void do_syslogd(void)
 			(char*)"syslogd started: BusyBox v" BB_VER, 0);
 
 	for (;;) {
-		FD_ZERO(&fds);
-		FD_SET(sock_fd, &fds);
-
-		if (select(sock_fd + 1, &fds, NULL, NULL, NULL) < 0) {
+		/*pfd[0].fd = sock_fd;*/
+		pfd[0].events = POLLIN;
+		pfd[0].revents = 0;
+		if (poll(pfd, 1, -1) < 0) { /* -1: no timeout */
 			if (errno == EINTR) {
 				/* alarm may have happened */
 				continue;
 			}
-			bb_perror_msg_and_die("select");
+			bb_perror_msg_and_die("poll");
 		}
 
-		if (FD_ISSET(sock_fd, &fds)) {
+		if (pfd[0].revents) {
 			int i;
-			i = recv(sock_fd, G.recvbuf, MAX_READ - 1, 0);
+			i = read(sock_fd, G.recvbuf, MAX_READ - 1);
 			if (i <= 0)
 				bb_perror_msg_and_die("UNIX socket error");
 			/* TODO: maybe suppress duplicates? */
@@ -559,7 +559,7 @@ static void do_syslogd(void)
 #endif
 			G.recvbuf[i] = '\0';
 			split_escape_and_log(G.recvbuf, i);
-		} /* FD_ISSET() */
+		}
 	} /* for */
 }
 

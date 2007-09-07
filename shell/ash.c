@@ -11589,6 +11589,7 @@ readcmd(int argc, char **argv)
 #endif
 #if ENABLE_ASH_READ_TIMEOUT
 	if (ts.tv_sec || ts.tv_usec) {
+// TODO: replace with poll, it is smaller
 		FD_ZERO(&set);
 		FD_SET(0, &set);
 

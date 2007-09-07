@@ -237,7 +237,8 @@ static char *yank_delete(char *, char *, int, int);	// yank text[] into register
 static void show_help(void);	// display some help info
 static void rawmode(void);	// set "raw" mode on tty
 static void cookmode(void);	// return to "cooked" mode on tty
-static int mysleep(int);	// sleep for 'h' 1/100 seconds
+// sleep for 'h' 1/100 seconds, return 1/0 if stdin is (ready for read)/(not ready)
+static int mysleep(int);
 static char readit(void);	// read (maybe cursor) key from stdin
 static char get_one_char(void);	// read 1 char from stdin
 static int file_size(const char *);   // what is the byte size of "fn"
@@ -2134,17 +2135,11 @@ static void catch_sig(int sig)
 
 static int mysleep(int hund)	// sleep for 'h' 1/100 seconds
 {
-	fd_set rfds;
-	struct timeval tv;
+	struct pollfd pfd[1];
 
-	// Don't hang- Wait 5/100 seconds-  1 Sec= 1000000
-	fflush(stdout);
-	FD_ZERO(&rfds);
-	FD_SET(0, &rfds);
-	tv.tv_sec = 0;
-	tv.tv_usec = hund * 10000;
-	select(1, &rfds, NULL, NULL, &tv);
-	return FD_ISSET(0, &rfds);
+	pfd[0].fd = 0;
+	pfd[0].events = POLLIN;
+	return poll(pfd, 1, hund*10) > 0;
 }
 
 #define readbuffer bb_common_bufsiz1
@@ -2217,25 +2212,20 @@ static char readit(void)	// read (maybe cursor) key from stdin
 		if (n <= 0)
 			return 0;       // error
 		if (readbuffer[0] == 27) {
-			fd_set rfds;
-			struct timeval tv;
-
 			// This is an ESC char. Is this Esc sequence?
 			// Could be bare Esc key. See if there are any
 			// more chars to read after the ESC. This would
 			// be a Function or Cursor Key sequence.
-			FD_ZERO(&rfds);
-			FD_SET(0, &rfds);
-			tv.tv_sec = 0;
-			tv.tv_usec = 50000;	// Wait 5/100 seconds- 1 Sec=1000000
-
+			struct pollfd pfd[1];
+			pfd[0].fd = 0;
+			pfd[0].events = POLLIN;
+			// Wait 50 ms
 			// keep reading while there are input chars and room in buffer
-			while (select(1, &rfds, NULL, NULL, &tv) > 0 && n <= (MAX_LINELEN - 5)) {
+			while (poll(pfd, 1, 50) > 0 && n <= (MAX_LINELEN - 5)) {
 				// read the rest of the ESC string
-				int r = read(0, (void *) (readbuffer + n), MAX_LINELEN - n);
-				if (r > 0) {
+				int r = read(0, readbuffer + n, MAX_LINELEN - n);
+				if (r > 0)
 					n += r;
-				}
 			}
 		}
 		readed_for_parse = n;
