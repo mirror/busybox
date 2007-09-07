@@ -97,7 +97,10 @@ int unzip_main(int argc, char **argv);
 int unzip_main(int argc, char **argv)
 {
 	zip_header_t zip_header;
-	enum {v_silent, v_normal, v_list} verbosity = v_normal;
+	smallint verbose = 1;
+	smallint listing = 0;
+	smallint list_header_done = 0;
+	smallint failed;
 	enum {o_prompt, o_never, o_always} overwrite = o_prompt;
 	unsigned int total_size = 0;
 	unsigned int total_entries = 0;
@@ -106,7 +109,7 @@ int unzip_main(int argc, char **argv)
 	llist_t *zaccept = NULL;
 	llist_t *zreject = NULL;
 	char *base_dir = NULL;
-	int failed, i, opt, opt_range = 0, list_header_done = 0;
+	int i, opt, opt_range = 0;
 	char key_buf[512];
 	struct stat stat_buf;
 
@@ -115,7 +118,7 @@ int unzip_main(int argc, char **argv)
 		case 0: /* Options */
 			switch (opt) {
 			case 'l': /* List */
-				verbosity = v_list;
+				listing = 1;
 				break;
 
 			case 'n': /* Never overwrite existing files */
@@ -130,7 +133,7 @@ int unzip_main(int argc, char **argv)
 				dst_fd = STDOUT_FILENO;
 
 			case 'q': /* Be quiet */
-				verbosity = (verbosity == v_normal) ? v_silent : verbosity;
+				verbose = 0;
 				break;
 
 			case 1 : /* The zip file */
@@ -205,7 +208,7 @@ int unzip_main(int argc, char **argv)
 	if (base_dir)
 		xchdir(base_dir);
 
-	if (verbosity != v_silent)
+	if (verbose)
 		printf("Archive:  %s\n", src_fn);
 
 	failed = 0;
@@ -245,7 +248,7 @@ int unzip_main(int argc, char **argv)
 		/* Skip extra header bytes */
 		unzip_skip(src_fd, zip_header.formatted.extra_len);
 
-		if ((verbosity == v_list) && !list_header_done){
+		if (listing && verbose && !list_header_done){
 			puts("  Length     Date   Time    Name\n"
 			     " --------    ----   ----    ----");
 			list_header_done = 1;
@@ -259,7 +262,8 @@ int unzip_main(int argc, char **argv)
 		} else { /* Extract entry */
 			total_size += zip_header.formatted.ucmpsize;
 
-			if (verbosity == v_list) { /* List entry */
+			if (listing) { /* List entry */
+			    if (verbose) {
 				unsigned int dostime = zip_header.formatted.modtime | (zip_header.formatted.moddate << 16);
 				printf("%9u  %02u-%02u-%02u %02u:%02u   %s\n",
 					   zip_header.formatted.ucmpsize,
@@ -270,7 +274,11 @@ int unzip_main(int argc, char **argv)
 					   (dostime & 0x000007e0) >> 5,
 					   dst_fn);
 				total_entries++;
-				i = 'n';
+			    } else {
+				/* short listing -- filenames only */
+				printf("%s\n", dst_fn);
+			    }
+			    i = 'n';
 			} else if (dst_fd == STDOUT_FILENO) { /* Extracting to STDOUT */
 				i = -1;
 			} else if (last_char_is(dst_fn, '/')) { /* Extract directory */
@@ -278,7 +286,7 @@ int unzip_main(int argc, char **argv)
 					if (errno != ENOENT) {
 						bb_perror_msg_and_die("cannot stat '%s'",dst_fn);
 					}
-					if (verbosity == v_normal) {
+					if (verbose) {
 						printf("   creating: %s\n", dst_fn);
 					}
 					unzip_create_leading_dirs(dst_fn);
@@ -326,7 +334,7 @@ int unzip_main(int argc, char **argv)
 			unzip_create_leading_dirs(dst_fn);
 			dst_fd = xopen(dst_fn, O_WRONLY | O_CREAT | O_TRUNC);
 		case -1: /* Unzip */
-			if (verbosity == v_normal) {
+			if (verbose) {
 				printf("  inflating: %s\n", dst_fn);
 			}
 			if (unzip_extract(&zip_header, src_fd, dst_fd)) {
@@ -368,7 +376,7 @@ int unzip_main(int argc, char **argv)
 		}
 	}
 
-	if (verbosity == v_list) {
+	if (listing && verbose) {
 		printf(" --------                   -------\n"
 		       "%9d                   %d files\n", total_size, total_entries);
 	}

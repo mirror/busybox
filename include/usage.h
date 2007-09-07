@@ -3763,7 +3763,7 @@ USE_FEATURE_RUN_PARTS_FANCY("\n	-l	Prints names of all matching files even when 
 #define unzip_full_usage \
        "Extract files from ZIP archives" \
        "\n\nOptions:\n" \
-       "	-l	List archive contents (short form)\n" \
+       "	-l	List archive contents (with -q for short form)\n" \
        "	-n	Never overwrite existing files (default)\n" \
        "	-o	Overwrite files without prompting\n" \
        "	-p	Send output to stdout\n" \
