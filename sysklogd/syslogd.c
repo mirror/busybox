@@ -471,8 +471,7 @@ static void do_syslogd(void) ATTRIBUTE_NORETURN;
 static void do_syslogd(void)
 {
 	struct sockaddr_un sunx;
-	struct pollfd pfd[1];
-#define sock_fd (pfd[0].fd)
+	int sock_fd;
 	char *dev_log_name;
 
 	/* Set up signal handlers */
@@ -526,40 +525,34 @@ static void do_syslogd(void)
 			(char*)"syslogd started: BusyBox v" BB_VER, 0);
 
 	for (;;) {
-		/*pfd[0].fd = sock_fd;*/
-		pfd[0].events = POLLIN;
-		pfd[0].revents = 0;
-		if (poll(pfd, 1, -1) < 0) { /* -1: no timeout */
-			if (errno == EINTR) {
-				/* alarm may have happened */
+		size_t sz;
+
+		sz = read(sock_fd, G.recvbuf, MAX_READ - 1);
+		if (sz <= 0) {
+			if (sz == 0)
+				continue; /* EOF from unix socket??? */
+			if (errno == EINTR) /* alarm may have happened */
 				continue;
-			}
-			bb_perror_msg_and_die("poll");
+			bb_perror_msg_and_die("read from /dev/log");
 		}
 
-		if (pfd[0].revents) {
-			int i;
-			i = read(sock_fd, G.recvbuf, MAX_READ - 1);
-			if (i <= 0)
-				bb_perror_msg_and_die("UNIX socket error");
-			/* TODO: maybe suppress duplicates? */
+		/* TODO: maybe suppress duplicates? */
 #if ENABLE_FEATURE_REMOTE_LOG
-			/* We are not modifying log messages in any way before send */
-			/* Remote site cannot trust _us_ anyway and need to do validation again */
-			if (G.remoteAddr) {
-				if (-1 == G.remoteFD) {
-					G.remoteFD = socket(G.remoteAddr->sa.sa_family, SOCK_DGRAM, 0);
-				}
-				if (-1 != G.remoteFD) {
-					/* send message to remote logger, ignore possible error */
-					sendto(G.remoteFD, G.recvbuf, i, MSG_DONTWAIT,
-						&G.remoteAddr->sa, G.remoteAddr->len);
-				}
+		/* We are not modifying log messages in any way before send */
+		/* Remote site cannot trust _us_ anyway and need to do validation again */
+		if (G.remoteAddr) {
+			if (-1 == G.remoteFD) {
+				G.remoteFD = socket(G.remoteAddr->sa.sa_family, SOCK_DGRAM, 0);
 			}
-#endif
-			G.recvbuf[i] = '\0';
-			split_escape_and_log(G.recvbuf, i);
+			if (-1 != G.remoteFD) {
+				/* send message to remote logger, ignore possible error */
+				sendto(G.remoteFD, G.recvbuf, sz, MSG_DONTWAIT,
+					&G.remoteAddr->sa, G.remoteAddr->len);
+			}
 		}
+#endif
+		G.recvbuf[sz] = '\0';
+		split_escape_and_log(G.recvbuf, sz);
 	} /* for */
 }
 
