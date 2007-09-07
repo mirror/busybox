@@ -7,12 +7,20 @@
 
 #include "libbb.h"
 
-#ifndef BB_EXTRA_VERSION
-#define BANNER "BusyBox v" BB_VER " (" BB_BT ")"
-#else
-#define BANNER "BusyBox v" BB_VER " (" BB_EXTRA_VERSION ")"
+/* allow default system PATH to be extended via CFLAGS */
+#ifndef BB_ADDITIONAL_PATH
+#define BB_ADDITIONAL_PATH ""
 #endif
+
+/* allow version to be extended, via CFLAGS */
+#ifndef BB_EXTRA_VERSION
+#define BB_EXTRA_VERSION BB_BT
+#endif
+
+#define BANNER "BusyBox v" BB_VER " (" BB_EXTRA_VERSION ")"
+
 const char bb_banner[] ALIGN1 = BANNER;
+
 
 const char bb_msg_memory_exhausted[] ALIGN1 = "memory exhausted";
 const char bb_msg_invalid_date[] ALIGN1 = "invalid date '%s'";
@@ -39,7 +47,8 @@ const char bb_busybox_exec_path[] ALIGN1 = CONFIG_BUSYBOX_EXEC_PATH;
 const char bb_default_login_shell[] ALIGN1 = LIBBB_DEFAULT_LOGIN_SHELL;
 /* util-linux manpage says /sbin:/bin:/usr/sbin:/usr/bin,
  * but I want to save a few bytes here. Check libbb.h before changing! */
-const char bb_PATH_root_path[] ALIGN1 = "PATH=/sbin:/usr/sbin:/bin:/usr/bin";
+const char bb_PATH_root_path[] ALIGN1 = 
+	"PATH=/sbin:/usr/sbin:/bin:/usr/bin" BB_ADDITIONAL_PATH;
 
 
 const int const_int_0;
@@ -49,11 +58,11 @@ const int const_int_1 = 1;
 /* This is usually something like "/var/adm/wtmp" or "/var/log/wtmp" */
 const char bb_path_wtmp_file[] ALIGN1 =
 #if defined _PATH_WTMP
-_PATH_WTMP;
+	_PATH_WTMP;
 #elif defined WTMP_FILE
-WTMP_FILE;
+	WTMP_FILE;
 #else
-# error unknown path to wtmp file
+#error unknown path to wtmp file
 #endif
 
 char bb_common_bufsiz1[COMMON_BUFSIZE];

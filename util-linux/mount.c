@@ -1527,11 +1527,10 @@ static int singlemount(struct mntent *mp, int ignore_busy)
 	if (ENABLE_FEATURE_CLEAN_UP)
 		free(filteropts);
 
-	if (rc && errno == EBUSY && ignore_busy)
-		rc = 0;
+	if (errno == EBUSY && ignore_busy)
+		return 0;
 	if (rc < 0)
 		bb_perror_msg("mounting %s on %s failed", mp->mnt_fsname, mp->mnt_dir);
-
 	return rc;
 }
 
