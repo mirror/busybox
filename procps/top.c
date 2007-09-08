@@ -85,6 +85,12 @@ struct globals {
 #endif
 };
 #define G (*(struct globals*)&bb_common_bufsiz1)
+#define INIT_G() \
+	do { \
+		struct G_sizecheck { \
+			char G_sizecheck[sizeof(G) > COMMON_BUFSIZE ? -1 : 1]; \
+		}; \
+	} while (0)
 #define top              (G.top               )
 #define ntop             (G.ntop              )
 #define sort_field       (G.sort_field        )
@@ -512,20 +518,9 @@ static void sig_catcher(int sig ATTRIBUTE_UNUSED)
 }
 #endif /* FEATURE_USE_TERMIOS */
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+/*
+ * TOPMEM support
+ */
 
 typedef unsigned long mem_t;
 
@@ -766,20 +761,9 @@ void display_topmem_process_list(int count, int scr_width);
 int topmem_sort(char *a, char *b);
 #endif /* TOPMEM */
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+/*
+ * end TOPMEM support
+ */
 
 enum {
 	TOP_MASK = 0
@@ -802,7 +786,7 @@ int top_main(int argc, char **argv)
 {
 	int count, lines, col;
 	unsigned interval;
-	int iterations = 0; /* infinite */
+	int iterations;
 	char *sinterval, *siterations;
 	SKIP_FEATURE_TOPMEM(const) unsigned scan_mask = TOP_MASK;
 #if ENABLE_FEATURE_USE_TERMIOS
@@ -814,7 +798,10 @@ int top_main(int argc, char **argv)
 	pfd[0].events = POLLIN;
 #endif /* FEATURE_USE_TERMIOS */
 
+	INIT_G();
+
 	interval = 5; /* default update rate is 5 seconds */
+	iterations = 0; /* infinite */
 
 	/* do normal option parsing */
 	opt_complementary = "-";
@@ -852,8 +839,7 @@ int top_main(int argc, char **argv)
 	while (1) {
 		procps_status_t *p = NULL;
 
-		/* Default */
-		lines = 24;
+		lines = 24; /* default */
 		col = 79;
 #if ENABLE_FEATURE_USE_TERMIOS
 		get_terminal_width_height(0, &col, &lines);
