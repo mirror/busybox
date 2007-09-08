@@ -128,6 +128,13 @@ config FEATURE_TOP_DECIMALS
 	help
 	  Show 1/10th of a percent in CPU/mem statistics.
 
+config FEATURE_TOPMEM
+	bool "topmem"
+	default n
+	depends on TOP
+	help
+	  Enable 's' in top (gives lots of memory info)
+
 config UPTIME
 	bool "uptime"
 	default n

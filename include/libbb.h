@@ -904,6 +904,15 @@ typedef struct procps_status_t {
 	unsigned uid;
 	unsigned gid;
 	unsigned tty_major,tty_minor;
+#if ENABLE_FEATURE_TOPMEM
+	unsigned long mapped_rw;
+	unsigned long mapped_ro;
+	unsigned long shared_clean;
+	unsigned long shared_dirty;
+	unsigned long private_clean;
+	unsigned long private_dirty;
+	unsigned long stack;
+#endif
 	char state[4];
 	/* basename of executable in exec(2), read from /proc/N/stat
 	 * (if executable is symlink or script, it is NOT replaced
@@ -927,7 +936,8 @@ enum {
 	PSSCAN_STIME    = 1 << 12,
 	PSSCAN_UTIME    = 1 << 13,
 	PSSCAN_TTY      = 1 << 14,
-	USE_SELINUX(PSSCAN_CONTEXT  = 1 << 15,)
+	PSSCAN_SMAPS	= (1 << 15) * ENABLE_FEATURE_TOPMEM,
+	USE_SELINUX(PSSCAN_CONTEXT = 1 << 16,)
 	/* These are all retrieved from proc/NN/stat in one go: */
 	PSSCAN_STAT     = PSSCAN_PPID | PSSCAN_PGID | PSSCAN_SID
 	                | PSSCAN_COMM | PSSCAN_STATE

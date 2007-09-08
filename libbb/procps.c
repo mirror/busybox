@@ -115,6 +115,28 @@ void free_procps_scan(procps_status_t* sp)
 	free(sp);
 }
 
+#if ENABLE_FEATURE_TOPMEM
+static unsigned long fast_strtoul_16(char **endptr)
+{
+	unsigned char c;
+	char *str = *endptr;
+	unsigned long n = 0;
+
+	while ((c = *str++) != ' ') {
+		c = ((c|0x20) - '0');
+		if (c > 9)
+			// c = c + '0' - 'a' + 10:
+			c = c - ('a' - '0' - 10);
+		n = n*16 + c;
+	}
+	*endptr = str; /* We skip trailing space! */
+	return n;
+}
+/* TOPMEM uses fast_strtoul_10, so... */
+#undef ENABLE_FEATURE_FAST_TOP
+#define ENABLE_FEATURE_FAST_TOP 1
+#endif
+
 #if ENABLE_FEATURE_FAST_TOP
 /* We cut a lot of corners here for speed */
 static unsigned long fast_strtoul_10(char **endptr)
@@ -277,6 +299,57 @@ procps_status_t *procps_scan(procps_status_t* sp, int flags)
 				sp->state[2] = ' ';
 
 		}
+
+#if ENABLE_FEATURE_TOPMEM
+		if (flags & (PSSCAN_SMAPS)) {
+			FILE *file;
+
+			strcpy(filename_tail, "/smaps");
+			file = fopen(filename, "r");
+			if (!file)
+				break;
+			while (fgets(buf, sizeof(buf), file)) {
+				unsigned long sz;
+				char *tp;
+				char w;
+#define SCAN(str, name) \
+	if (strncmp(buf, str, sizeof(str)-1) == 0) { \
+		tp = skip_whitespace(buf + sizeof(str)-1); \
+		sp->name += fast_strtoul_10(&tp); \
+		continue; \
+	}
+				SCAN("Shared_Clean:" , shared_clean );
+				SCAN("Shared_Dirty:" , shared_dirty );
+				SCAN("Private_Clean:", private_clean);
+				SCAN("Private_Dirty:", private_dirty);
+#undef SCAN
+				// f7d29000-f7d39000 rw-s ADR M:m OFS FILE
+				tp = strchr(buf, '-');
+				if (tp) {
+					*tp = ' ';
+					tp = buf;
+					sz = fast_strtoul_16(&tp); /* start */
+					sz = (fast_strtoul_16(&tp) - sz) >> 10; /* end - start */
+					// tp -> "rw-s" string
+					w = tp[1];
+					// skipping "rw-s ADR M:m OFS "
+					tp = skip_whitespace(skip_fields(tp, 4));
+					// filter out /dev/something (something != zero)
+					if (strncmp(tp, "/dev/", 5) != 0 || strcmp(tp, "/dev/zero\n") == 0) {
+						if (w == 'w') {
+							sp->mapped_rw += sz;
+						} else if (w == '-') {
+							sp->mapped_ro += sz;
+						}
+					}
+//else printf("DROPPING %s (%s)\n", buf, tp);
+					if (strcmp(tp, "[stack]\n") == 0)
+						sp->stack += sz;
+				}
+			}
+			fclose(file);
+		}
+#endif /* TOPMEM */
 
 #if 0 /* PSSCAN_CMD is not used */
 		if (flags & (PSSCAN_CMD|PSSCAN_ARGV0)) {
