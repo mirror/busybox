@@ -474,8 +474,8 @@ static NOINLINE void display_process_list(int count, int scr_width)
 				, SHOW_STAT(pcpu)
 #endif
 		);
-		if (col < scr_width)
-			read_cmdline(line_buf + col, scr_width - col, s->pid, s->comm);
+		if (col + 1 < scr_width)
+			read_cmdline(line_buf + col, scr_width - col - 1, s->pid, s->comm);
 		fputs(line_buf, stdout);
 		/* printf(" %d/%d %lld/%lld", s->pcpu, total_pcpu,
 			jif.busy - prev_jif.busy, jif.total - prev_jif.total); */
