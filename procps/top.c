@@ -82,8 +82,10 @@ struct globals {
 	/* int hist_iterations; */
 	unsigned total_pcpu;
 	/* unsigned long total_vsz; */
+	char line_buf[80];
 #endif
 };
+enum { LINE_BUF_SIZE = COMMON_BUFSIZE - offsetof(struct globals, line_buf) };
 #define G (*(struct globals*)&bb_common_bufsiz1)
 #define INIT_G() \
 	do { \
@@ -102,6 +104,7 @@ struct globals {
 #define jif              (G.jif               )
 #define prev_jif         (G.prev_jif          )
 #define total_pcpu       (G.total_pcpu        )
+#define line_buf         (G.line_buf          )
 
 
 #define OPT_BATCH_MODE (option_mask32 & 0x4)
@@ -366,7 +369,7 @@ static unsigned long display_header(int scr_width)
 	return total;
 }
 
-static void display_process_list(int count, int scr_width)
+static NOINLINE void display_process_list(int count, int scr_width)
 {
 	enum {
 		BITS_PER_INT = sizeof(int)*8
@@ -447,7 +450,6 @@ static void display_process_list(int count, int scr_width)
 	scr_width += 2; /* account for leading '\n' and trailing NUL */
 	/* Ok, all preliminary data is ready, go thru the list */
 	while (count-- > 0) {
-		char buf[scr_width];
 		unsigned col;
 		CALC_STAT(pmem, (s->vsz*pmem_scale + pmem_half) >> pmem_shift);
 #if ENABLE_FEATURE_TOP_CPU_USAGE_PERCENTAGE
@@ -459,7 +461,7 @@ static void display_process_list(int count, int scr_width)
 		else
 			sprintf(vsz_str_buf, "%7ld", s->vsz);
 		// PID PPID USER STAT VSZ %MEM [%CPU] COMMAND
-		col = snprintf(buf, scr_width,
+		col = snprintf(line_buf, scr_width,
 				"\n" "%5u%6u %-8.8s %s%s" FMT
 #if ENABLE_FEATURE_TOP_CPU_USAGE_PERCENTAGE
 				FMT
@@ -473,8 +475,8 @@ static void display_process_list(int count, int scr_width)
 #endif
 		);
 		if (col < scr_width)
-			read_cmdline(buf + col, scr_width - col, s->pid, s->comm);
-		fputs(buf, stdout);
+			read_cmdline(line_buf + col, scr_width - col, s->pid, s->comm);
+		fputs(line_buf, stdout);
 		/* printf(" %d/%d %lld/%lld", s->pcpu, total_pcpu,
 			jif.busy - prev_jif.busy, jif.total - prev_jif.total); */
 		s++;
@@ -722,33 +724,32 @@ static void smart_ulltoa6(unsigned long long ul, char buf[6])
 	buf[5] = ' ';
 }
 
-static void display_topmem_process_list(int count, int scr_width)
+static NOINLINE void display_topmem_process_list(int count, int scr_width)
 {
 #define HDR_STR "  PID   VSZ VSZRW   RSS (SHR) DIRTY (SHR) STACK"
 #define MIN_WIDTH sizeof(HDR_STR)
 	const topmem_status_t *s = topmem;
-	char buf[scr_width | MIN_WIDTH]; /* a|b is a cheap max(a,b) */
 
 	display_topmem_header(scr_width);
-	strcpy(buf, HDR_STR " COMMAND");
-	buf[5 + sort_field * 6] = '*';
-	printf(OPT_BATCH_MODE ? "%.*s" : "\e[7m%.*s\e[0m", scr_width, buf);
+	strcpy(line_buf, HDR_STR " COMMAND");
+	line_buf[5 + sort_field * 6] = '*';
+	printf(OPT_BATCH_MODE ? "%.*s" : "\e[7m%.*s\e[0m", scr_width, line_buf);
 
 	while (--count >= 0) {
 		// PID VSZ VSZRW RSS (SHR) DIRTY (SHR) COMMAND
-		smart_ulltoa6(s->pid     , &buf[0*6]);
-		smart_ulltoa6(s->vsz     , &buf[1*6]);
-		smart_ulltoa6(s->vszrw   , &buf[2*6]);
-		smart_ulltoa6(s->rss     , &buf[3*6]);
-		smart_ulltoa6(s->rss_sh  , &buf[4*6]);
-		smart_ulltoa6(s->dirty   , &buf[5*6]);
-		smart_ulltoa6(s->dirty_sh, &buf[6*6]);
-		smart_ulltoa6(s->stack   , &buf[7*6]);
-		buf[8*6] = '\0';
+		smart_ulltoa6(s->pid     , &line_buf[0*6]);
+		smart_ulltoa6(s->vsz     , &line_buf[1*6]);
+		smart_ulltoa6(s->vszrw   , &line_buf[2*6]);
+		smart_ulltoa6(s->rss     , &line_buf[3*6]);
+		smart_ulltoa6(s->rss_sh  , &line_buf[4*6]);
+		smart_ulltoa6(s->dirty   , &line_buf[5*6]);
+		smart_ulltoa6(s->dirty_sh, &line_buf[6*6]);
+		smart_ulltoa6(s->stack   , &line_buf[7*6]);
+		line_buf[8*6] = '\0';
 		if (scr_width > MIN_WIDTH) {
-			read_cmdline(&buf[8*6], scr_width - MIN_WIDTH, s->pid, s->comm);
+			read_cmdline(&line_buf[8*6], scr_width - MIN_WIDTH, s->pid, s->comm);
 		}
-		printf("\n""%.*s", scr_width, buf);
+		printf("\n""%.*s", scr_width, line_buf);
 		s++;
 	}
 	putchar(OPT_BATCH_MODE ? '\n' : '\r');
@@ -848,6 +849,8 @@ int top_main(int argc, char **argv)
 			continue;
 		}
 #endif /* FEATURE_USE_TERMIOS */
+		if (col > LINE_BUF_SIZE-2) /* +2 bytes for '\n', NUL, */
+			col = LINE_BUF_SIZE-2;
 		if (!ENABLE_FEATURE_TOP_CPU_GLOBAL_PERCENTS && scan_mask == TOP_MASK)
 			lines -= 3;
 		else
