@@ -663,7 +663,7 @@ static char get_header_tar_Z(archive_handle_t *archive_handle)
 	archive_handle->src_fd = open_transformer(archive_handle->src_fd, uncompress, "uncompress", "uncompress", "-cf", "-", NULL);
 	archive_handle->offset = 0;
 	while (get_header_tar(archive_handle) == EXIT_SUCCESS)
-		/* nothing */;
+		continue;
 
 	/* Can only do one file at a time */
 	return EXIT_FAILURE;
