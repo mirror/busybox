@@ -46,8 +46,9 @@ int open_transformer(int src_fd,
 		xmove_fd(src_fd, 0);
 		xmove_fd(fd_pipe[1], 1);
 		va_start(ap, transform_prog);
-		BB_EXECVP(transform_prog, ap);
-		bb_perror_and_die("exec failed");
+		/* hoping that va_list -> char** on our CPU is working... */
+		BB_EXECVP(transform_prog, (void*)ap);
+		bb_perror_msg_and_die("exec failed");
 #endif
 		/* notreached */
 	}
