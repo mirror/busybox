@@ -181,14 +181,8 @@ static int grep_file(FILE *file)
 		while (pattern_ptr) {
 			gl = (grep_list_data_t *)pattern_ptr->data;
 			if (FGREP_FLAG) {
-				found |= strstr(line, gl->pattern) != NULL;
+				found |= (strstr(line, gl->pattern) != NULL);
 			} else {
-				/*
-				 * test for a postitive-assertion match (regexec returns success (0)
-				 * and the user did not specify invert search), or a negative-assertion
-				 * match (regexec returns failure (REG_NOMATCH) and the user specified
-				 * invert search)
-				 */
 				if (!(gl->flg_mem_alocated_compiled & COMPILED)) {
 					gl->flg_mem_alocated_compiled |= COMPILED;
 					xregcomp(&(gl->preg), gl->pattern, reflags);
