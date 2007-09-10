@@ -432,7 +432,9 @@ int login_main(int argc, char **argv)
 	tmp = pw->pw_shell;
 	if (!tmp || !*tmp)
 		tmp = DEFAULT_SHELL;
+	/* setup_environment params: shell, loginshell, changeenv, pw */
 	setup_environment(tmp, 1, !(opt & LOGIN_OPT_p), pw);
+	/* FIXME: login shell = 1 -> 3rd parameter is ignored! */
 
 	motd();
 
@@ -463,7 +465,8 @@ int login_main(int argc, char **argv)
 	 * should it leave SIGINT etc enabled or disabled? */
 	signal(SIGINT, SIG_DFL);
 
-	run_shell(tmp, 1, 0, 0);	/* exec the shell finally */
+	/* Exec login shell with no additional parameters */
+	run_shell(tmp, 1, NULL, NULL);
 
-	return EXIT_FAILURE;
+	/* return EXIT_FAILURE; - not reached */
 }

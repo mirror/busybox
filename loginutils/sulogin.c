@@ -112,14 +112,15 @@ int sulogin_main(int argc, char **argv)
 	USE_SELINUX(renew_current_security_context());
 
 	shell = getenv("SUSHELL");
-	if (!shell) shell = getenv("sushell");
+	if (!shell)
+		shell = getenv("sushell");
 	if (!shell) {
 		shell = "/bin/sh";
 		if (pwd->pw_shell[0])
 			shell = pwd->pw_shell;
 	}
-	run_shell(shell, 1, 0, 0);
-	/* never returns */
+	/* Exec login shell with no additional parameters. Never returns. */
+	run_shell(shell, 1, NULL, NULL);
 
 auth_error:
 	bb_error_msg_and_die("no password entry for 'root'");

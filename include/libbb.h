@@ -780,6 +780,7 @@ char *bb_simplify_path(const char *path);
 extern void bb_do_delay(int seconds);
 extern void change_identity(const struct passwd *pw);
 extern const char *change_identity_e2str(const struct passwd *pw);
+extern void run_shell(const char *shell, int loginshell, const char *command, const char **additional_args) ATTRIBUTE_NORETURN;
 extern void run_shell(const char *shell, int loginshell, const char *command, const char **additional_args);
 #if ENABLE_SELINUX
 extern void renew_current_security_context(void);
@@ -790,6 +791,21 @@ extern void setfscreatecon_or_die(security_context_t scontext);
 #endif
 extern void selinux_or_die(void);
 extern int restricted_shell(const char *shell);
+
+/* setup_environment:
+ * if loginshell = 1: cd(pw->pw_dir), clear environment, then set
+ *   TERM=(old value)
+ *   USER=pw->pw_name, LOGNAME=pw->pw_name
+ *   PATH=bb_default_[root_]path
+ *   HOME=pw->pw_dir
+ *   SHELL=shell
+ * else if changeenv = 1:
+ *   if not root (if pw->pw_uid != 0):
+ *     USER=pw->pw_name, LOGNAME=pw->pw_name
+ *   HOME=pw->pw_dir
+ *   SHELL=shell
+ * else does nothing
+ */
 extern void setup_environment(const char *shell, int loginshell, int changeenv, const struct passwd *pw);
 extern int correct_password(const struct passwd *pw);
 /* Returns a ptr to static storage */

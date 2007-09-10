@@ -36,7 +36,7 @@ int su_main(int argc, char **argv)
 	/* get user if specified */
 	if (argc) {
 		opt_username = argv[0];
-//		argc--;
+		//argc--; - not used below anyway
 		argv++;
 	}
 
@@ -86,18 +86,19 @@ int su_main(int argc, char **argv)
 		   compromise the account by allowing access with a standard
 		   shell.  */
 		bb_error_msg("using restricted shell");
-		opt_shell = 0;
+		opt_shell = NULL;
 	}
 #endif
 	if (!opt_shell)
 		opt_shell = pw->pw_shell;
 
 	change_identity(pw);
+	/* setup_environment params: shell, loginshell, changeenv, pw */
 	setup_environment(opt_shell, flags & SU_OPT_l, !(flags & SU_OPT_mp), pw);
 	USE_SELINUX(set_current_security_context(NULL);)
 
 	/* Never returns */
 	run_shell(opt_shell, flags & SU_OPT_l, opt_command, (const char**)argv);
 
-	return EXIT_FAILURE;
+	/* return EXIT_FAILURE; - not reached */
 }
