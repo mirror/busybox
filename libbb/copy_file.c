@@ -141,6 +141,8 @@ int copy_file(const char *source, const char *dest, int flags)
 				bb_error_msg("target '%s' is not a directory", dest);
 				return -1;
 			}
+			/* race here: user can substitute a symlink between
+			 * this check and actual creation of files inside dest */
 		} else {
 			mode_t mode;
 			saved_umask = umask(0);
@@ -247,13 +249,13 @@ int copy_file(const char *source, const char *dest, int flags)
 			return -1;
 
 		/* POSIX way is a security problem versus symlink attacks,
-		 * we do it only for dest's which are device nodes,
-		 * and only for non-recursive, non-interactive cp. NB: it is still racy
-		 * for "cp file /home/bad_user/device_node" case
-		 * (user can rm device_node and create link to /etc/passwd) */
+		 * we do it only for non-symlinks, and only for non-recursive,
+		 * non-interactive cp. NB: it is still racy
+		 * for "cp file /home/bad_user/file" case
+		 * (user can rm file and create a link to /etc/passwd) */
 		if (DO_POSIX_CP
 		 || (dest_exists && !(flags & (FILEUTILS_RECUR|FILEUTILS_INTERACTIVE))
-		     && (S_ISBLK(dest_stat.st_mode) || S_ISCHR(dest_stat.st_mode)))
+		     && !S_ISLNK(dest_stat.st_mode))
 		) {
 			dst_fd = open(dest, O_WRONLY|O_CREAT|O_TRUNC, source_stat.st_mode);
 		} else  /* safe way: */
