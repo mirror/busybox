@@ -19,6 +19,9 @@
 // (or fail, if it points to dir/nonexistent location/etc).
 // This is strange, but POSIX-correct.
 // coreutils cp has --remove-destination to override this...
+//
+// NB: we have special code which still allows for "cp file /dev/node"
+// to work POSIX-ly (the only realistic case where it makes sense)
 
 #define DO_POSIX_CP 0  /* 1 - POSIX behavior, 0 - safe behavior */
 
@@ -243,13 +246,18 @@ int copy_file(const char *source, const char *dest, int flags)
 		if (src_fd < 0)
 			return -1;
 
-#if DO_POSIX_CP  /* POSIX way (a security problem versus symlink attacks!): */
-		dst_fd = open(dest, (flags & FILEUTILS_INTERACTIVE)
-				? O_WRONLY|O_CREAT|O_EXCL
-				: O_WRONLY|O_CREAT|O_TRUNC, source_stat.st_mode);
-#else  /* safe way: */
-		dst_fd = open(dest, O_WRONLY|O_CREAT|O_EXCL, source_stat.st_mode);
-#endif
+		/* POSIX way is a security problem versus symlink attacks,
+		 * we do it only for dest's which are device nodes,
+		 * and only for non-recursive, non-interactive cp. NB: it is still racy
+		 * for "cp file /home/bad_user/device_node" case
+		 * (user can rm device_node and create link to /etc/passwd) */
+		if (DO_POSIX_CP
+		 || (dest_exists && !(flags & (FILEUTILS_RECUR|FILEUTILS_INTERACTIVE))
+		     && (S_ISBLK(dest_stat.st_mode) || S_ISCHR(dest_stat.st_mode)))
+		) {
+			dst_fd = open(dest, O_WRONLY|O_CREAT|O_TRUNC, source_stat.st_mode);
+		} else  /* safe way: */
+			dst_fd = open(dest, O_WRONLY|O_CREAT|O_EXCL, source_stat.st_mode);
 		if (dst_fd == -1) {
 			ovr = ask_and_unlink(dest, flags);
 			if (ovr <= 0) {
