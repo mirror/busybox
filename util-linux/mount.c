@@ -18,8 +18,8 @@
    mount_it_now() does the actual mount.
 */
 
-#include "libbb.h"
 #include <mntent.h>
+#include "libbb.h"
 
 /* Needed for nfs support only... */
 #include <syslog.h>
@@ -30,19 +30,22 @@
 #include <rpc/pmap_prot.h>
 #include <rpc/pmap_clnt.h>
 
+#ifndef MS_SILENT
+#define MS_SILENT	(1 << 15)
+#endif
 
 #if defined(__dietlibc__)
 /* 16.12.2006, Sampo Kellomaki (sampo@iki.fi)
  * dietlibc-0.30 does not have implementation of getmntent_r() */
-/* OTOH: why we use getmntent_r instead of getmntent? TODO... */
 struct mntent *getmntent_r(FILE* stream, struct mntent* result, char* buffer, int bufsize)
 {
-	/* *** XXX FIXME WARNING: This hack is NOT thread safe. --Sampo */
 	struct mntent* ment = getmntent(stream);
 	memcpy(result, ment, sizeof(struct mntent));
 	return result;
 }
 #endif
+
+#define getmntent_buf bb_common_bufsiz1
 
 
 // Not real flags, but we want to be able to check for this.
@@ -186,11 +189,11 @@ static int parse_mount_options(char *options, char **unrecognized)
 			strcpy((*unrecognized)+i, options);
 		}
 
-		// Advance to next option, or finish
-		if (comma) {
-			*comma = ',';
-			options = ++comma;
-		} else break;
+		if (!comma)
+			break;
+		// Advance to next option
+		*comma = ',';
+		options = ++comma;
 	}
 
 	return flags;
@@ -262,8 +265,9 @@ static int mount_it_now(struct mntent *mp, int vfsflags, char *filteropts)
 				vfsflags, filteropts);
 		if (!rc || (vfsflags&MS_RDONLY) || (errno!=EACCES && errno!=EROFS))
 			break;
-		bb_error_msg("%s is write-protected, mounting read-only",
-				mp->mnt_fsname);
+		if (!(vfsflags & MS_SILENT))
+			bb_error_msg("%s is write-protected, mounting read-only",
+						mp->mnt_fsname);
 		vfsflags |= MS_RDONLY;
 	}
 
@@ -1399,6 +1403,27 @@ static int singlemount(struct mntent *mp, int ignore_busy)
 	if (mp->mnt_type && strcmp(mp->mnt_type,"auto") == 0)
 		mp->mnt_type = 0;
 
+	// Might this be a virtual filesystem?
+
+	if (ENABLE_FEATURE_MOUNT_HELPERS
+	 && (strchr(mp->mnt_fsname,'#'))
+	) {
+		char *s, *p, *args[35];
+		int n = 0;
+		for (s = p = mp->mnt_fsname; *s && n < 35-3; ++s) {
+			if (s[0] == '#' && s[1] != '#') {
+				*s = '\0';
+				args[n++] = p;
+				p = s + 1;
+			}
+		}
+		args[n++] = p;
+		args[n++] = mp->mnt_dir;
+		args[n] = NULL;
+		rc = wait4pid(xspawn(args));
+		goto report_error;
+	}
+
 	// Might this be an CIFS filesystem?
 
 	if (ENABLE_FEATURE_MOUNT_CIFS
@@ -1593,8 +1618,8 @@ int mount_main(int argc, char **argv)
 
 			if (!mountTable) bb_error_msg_and_die("no %s", bb_path_mtab_file);
 
-			while (getmntent_r(mountTable, mtpair, bb_common_bufsiz1,
-								sizeof(bb_common_bufsiz1)))
+			while (getmntent_r(mountTable, &mtpair[0], getmntent_buf,
+								sizeof(getmntent_buf)))
 			{
 				// Don't show rootfs. FIXME: why??
 				// util-linux 2.12a happily shows rootfs...
@@ -1657,9 +1682,9 @@ int mount_main(int argc, char **argv)
 
 		// Get next fstab entry
 
-		if (!getmntent_r(fstab, mtcur, bb_common_bufsiz1
-					+ (mtcur==mtpair ? sizeof(bb_common_bufsiz1)/2 : 0),
-				sizeof(bb_common_bufsiz1)/2))
+		if (!getmntent_r(fstab, mtcur, getmntent_buf
+					+ (mtcur==mtpair ? sizeof(getmntent_buf)/2 : 0),
+				sizeof(getmntent_buf)/2))
 		{
 			// Were we looking for something specific?
 

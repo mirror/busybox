@@ -2089,7 +2089,13 @@ int httpd_main(int argc, char **argv)
 #endif
 	}
 
-#if ENABLE_FEATURE_HTTPD_CGI
+#if 0 /*was #if ENABLE_FEATURE_HTTPD_CGI*/
+	/* User can do it himself: 'env - PATH="$PATH" httpd'
+	 * We don't do it because we don't want to screw users
+	 * which want to do
+	 * 'env - VAR1=val1 VAR2=val2 https'
+	 * and have VAR1 and VAR2 values visible in their CGIs.
+	 * Besides, it is also smaller. */
 	{
 		char *p = getenv("PATH");
 		/* env strings themself are not freed, no need to strdup(p): */
