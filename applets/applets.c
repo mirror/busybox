@@ -546,7 +546,7 @@ static int busybox_main(char **argv)
  help:
 		output_width = 80;
 		if (ENABLE_FEATURE_AUTOWIDTH) {
-			/* Obtain the terminal width.  */
+			/* Obtain the terminal width */
 			get_terminal_width_height(0, &output_width, NULL);
 		}
 		/* leading tab and room to wrap */
@@ -580,12 +580,11 @@ static int busybox_main(char **argv)
 
 	if (ENABLE_FEATURE_INSTALLER && strcmp(argv[1], "--install") == 0) {
 		const char *busybox;
-		busybox = xmalloc_readlink_or_warn(bb_busybox_exec_path);
+		busybox = xmalloc_readlink(bb_busybox_exec_path);
 		if (!busybox)
 			busybox = bb_busybox_exec_path;
 		/* -s makes symlinks */
-		install_links(busybox,
-				 argv[2] && strcmp(argv[2], "-s") == 0);
+		install_links(busybox, argv[2] && strcmp(argv[2], "-s") == 0);
 		return 0;
 	}
 

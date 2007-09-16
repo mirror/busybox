@@ -115,7 +115,13 @@ extern USE_DESKTOP(long long) int inflate_unzip(inflate_unzip_result *res, unsig
 extern USE_DESKTOP(long long) int unpack_gz_stream(int src_fd, int dst_fd);
 extern USE_DESKTOP(long long) int unpack_lzma_stream(int src_fd, int dst_fd);
 
+#if BB_MMU
 extern int open_transformer(int src_fd,
 	USE_DESKTOP(long long) int (*transformer)(int src_fd, int dst_fd));
+#define open_transformer(src_fd, transformer, transform_prog, ...) open_transformer(src_fd, transformer)
+#else
+extern int open_transformer(int src_fd, const char *transform_prog, ...);
+#define open_transformer(src_fd, transformer, transform_prog, ...) open_transformer(src_fd, transform_prog, __VA_ARGS__)
+#endif
 
 #endif

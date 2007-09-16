@@ -248,9 +248,10 @@ void xmove_fd(int, int);
 DIR *xopendir(const char *path);
 DIR *warn_opendir(const char *path);
 
-char *xrealloc_getcwd_or_warn(char *cwd);
+/* UNUSED: char *xmalloc_realpath(const char *path); */
+char *xmalloc_readlink(const char *path);
 char *xmalloc_readlink_or_warn(const char *path);
-char *xmalloc_realpath(const char *path);
+char *xrealloc_getcwd_or_warn(char *cwd);
 
 
 //TODO: signal(sid, f) is the same? then why?
@@ -316,8 +317,8 @@ enum {
 };
 /* Create stream socket, and allocate suitable lsa.
  * (lsa of correct size and lsa->sa.sa_family (AF_INET/AF_INET6))
- * af == AF_UNSPEC will result in trying to create IPv6, and
- * if kernel doesn't support it, IPv4.
+ * af == AF_UNSPEC will result in trying to create IPv6 socket,
+ * and if kernel doesn't support it, IPv4.
  */
 int xsocket_type(len_and_sockaddr **lsap, USE_FEATURE_IPV6(int af,) int sock_type);
 int xsocket_stream(len_and_sockaddr **lsap);

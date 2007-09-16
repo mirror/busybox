@@ -298,7 +298,7 @@ USE_DESKTOP(long long) int unpack_unlzma(void)
 int unlzma_main(int argc, char **argv);
 int unlzma_main(int argc, char **argv)
 {
-	getopt32(argv, "c");
+	getopt32(argv, "cf");
 	argv += optind;
 	/* lzmacat? */
 	if (applet_name[4] == 'c')
