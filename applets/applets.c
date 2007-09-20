@@ -553,8 +553,8 @@ static int busybox_main(char **argv)
 		output_width -= sizeof("start-stop-daemon, ") + 8;
 
 		printf("%s multi-call binary\n", bb_banner); /* reuse const string... */
-		printf("Copyright (C) 1998-2006  Erik Andersen, Rob Landley, and others.\n"
-		       "Licensed under GPLv2.  See source distribution for full notice.\n"
+		printf("Copyright (C) 1998-2006 Erik Andersen, Rob Landley, and others.\n"
+		       "Licensed under GPLv2. See source distribution for full notice.\n"
 		       "\n"
 		       "Usage: busybox [function] [arguments]...\n"
 		       "   or: [function] [arguments]...\n"
