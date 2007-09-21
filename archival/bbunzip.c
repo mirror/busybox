@@ -138,7 +138,7 @@ char* make_new_name_generic(char *filename, const char *expected_ext)
 
 
 /*
- *  Modified for busybox by Glenn McGrath <bug1@iinet.net.au>
+ *  Modified for busybox by Glenn McGrath
  *  Added support output to stdout by Thomas Lundquist <thomasez@zelow.no>
  *
  *  Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
@@ -185,7 +185,7 @@ int bunzip2_main(int argc, char **argv)
  * handling.
  *
  * General cleanup to better adhere to the style guide and make use of standard
- * busybox functions by Glenn McGrath <bug1@iinet.net.au>
+ * busybox functions by Glenn McGrath
  *
  * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  *

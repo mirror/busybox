@@ -3,7 +3,6 @@
  * Mini ar implementation for busybox
  *
  * Copyright (C) 2000 by Glenn McGrath
- * Written by Glenn McGrath <bug1@iinet.net.au> 1 June 2000
  *
  * Based in part on BusyBox tar, Debian dpkg-deb and GNU ar.
  *

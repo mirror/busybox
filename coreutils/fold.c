@@ -5,7 +5,7 @@
    Copyright (C) 91, 1995-2002 Free Software Foundation, Inc.
 
    Modified for busybox based on coreutils v 5.0
-   Copyright (C) 2003 Glenn McGrath <bug1@iinet.net.au>
+   Copyright (C) 2003 Glenn McGrath
 
    Licensed under the GPL v2 or later, see the file LICENSE in this tarball.
 */

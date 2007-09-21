@@ -1,7 +1,7 @@
 /* vi: set sw=4 ts=4: */
 /*
  *  busybox patch applet to handle the unified diff format.
- *  Copyright (C) 2003 Glenn McGrath <bug1@iinet.net.au>
+ *  Copyright (C) 2003 Glenn McGrath
  *
  *  Licensed under the GPL v2 or later, see the file LICENSE in this tarball.
  *

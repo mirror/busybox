@@ -2,7 +2,7 @@
 
 # Tests for unzip.
 # Copyright 2006 Rob Landley <rob@landley.net>
-# Copyright 2006 Glenn McGrath <bug1@ihug.co.nz>
+# Copyright 2006 Glenn McGrath
 # Licensed under GPL v2, see file LICENSE for details.
 
 . testing.sh
