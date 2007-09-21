@@ -2152,8 +2152,8 @@ padvance(const char **path, const char *name)
 
 /* ============ Prompt */
 
-static int doprompt;                   /* if set, prompt the user */
-static int needprompt;                 /* true if interactive and at start of line */
+static smallint doprompt;                   /* if set, prompt the user */
+static smallint needprompt;                 /* true if interactive and at start of line */
 
 #if ENABLE_FEATURE_EDITING
 static line_input_t *line_input_state;
@@ -2458,7 +2458,7 @@ pwdcmd(int argc, char **argv)
 
 /* ============ ... */
 
-#define IBUFSIZ (BUFSIZ + 1)
+#define IBUFSIZ COMMON_BUFSIZE
 #define basebuf bb_common_bufsiz1       /* buffer for top level input file */
 
 /* Syntax classes */
@@ -8481,11 +8481,6 @@ enum {
 	INPUT_NOFILE_OK = 2,
 };
 
-/*
- * NEOF is returned by parsecmd when it encounters an end of file.  It
- * must be distinct from NULL, so we use the address of a variable that
- * happens to be handy.
- */
 static int plinno = 1;                  /* input line number */
 /* number of characters left in input buffer */
 static int parsenleft;                  /* copy of parsefile->nleft */
@@ -8906,7 +8901,7 @@ setinputstring(char *string)
 /* times of mailboxes */
 static time_t mailtime[MAXMBOXES];
 /* Set if MAIL or MAILPATH is changed. */
-static int mail_var_path_changed;
+static smallint mail_var_path_changed;
 
 /*
  * Print appropriate message(s) if mail has arrived.
@@ -8957,7 +8952,7 @@ chkmail(void)
 static void
 changemail(const char *val)
 {
-	mail_var_path_changed++;
+	mail_var_path_changed = 1;
 }
 
 #endif /* ASH_MAIL */
@@ -9304,15 +9299,20 @@ getoptscmd(int argc, char **argv)
 
 /* ============ Shell parser */
 
-static int tokpushback;                /* last token pushed back */
+/*
+ * NEOF is returned by parsecmd when it encounters an end of file.  It
+ * must be distinct from NULL, so we use the address of a variable that
+ * happens to be handy.
+ */
+static smallint tokpushback;           /* last token pushed back */
 #define NEOF ((union node *)&tokpushback)
-static int parsebackquote;             /* nonzero if we are inside backquotes */
+static smallint parsebackquote;        /* nonzero if we are inside backquotes */
 static int lasttoken;                  /* last token read */
 static char *wordtext;                 /* text of last word returned by readtoken */
 static struct nodelist *backquotelist;
 static union node *redirnode;
 static struct heredoc *heredoc;
-static int quoteflag;                  /* set if (part of) last token was quoted */
+static smallint quoteflag;             /* set if (part of) last token was quoted */
 
 static void raise_error_syntax(const char *) ATTRIBUTE_NORETURN;
 static void
@@ -9406,7 +9406,7 @@ list(int nlflag)
 				if (nlflag == 1)
 					return n1;
 			} else {
-				tokpushback++;
+				tokpushback = 1;
 			}
 			checkkwd = CHKNL | CHKKWD | CHKALIAS;
 			if (peektoken())
@@ -9421,7 +9421,7 @@ list(int nlflag)
 		default:
 			if (nlflag == 1)
 				raise_error_unexpected_syntax(-1);
-			tokpushback++;
+			tokpushback = 1;
 			return n1;
 		}
 	}
@@ -9441,7 +9441,7 @@ andor(void)
 		} else if (t == TOR) {
 			t = NOR;
 		} else {
-			tokpushback++;
+			tokpushback = 1;
 			return n1;
 		}
 		checkkwd = CHKNL | CHKKWD | CHKALIAS;
@@ -9467,7 +9467,7 @@ pipeline(void)
 		negate = !negate;
 		checkkwd = CHKKWD | CHKALIAS;
 	} else
-		tokpushback++;
+		tokpushback = 1;
 	n1 = parse_command();
 	if (readtoken() == TPIPE) {
 		pipenode = stalloc(sizeof(struct npipe));
@@ -9486,7 +9486,7 @@ pipeline(void)
 		lp->next = NULL;
 		n1 = pipenode;
 	}
-	tokpushback++;
+	tokpushback = 1;
 	if (negate) {
 		n2 = stalloc(sizeof(struct nnot));
 		n2->type = NNOT;
@@ -9644,7 +9644,7 @@ simplecmd(void)
 			}
 			/* fall through */
 		default:
-			tokpushback++;
+			tokpushback = 1;
 			goto out;
 		}
 	}
@@ -9698,7 +9698,7 @@ parse_command(void)
 			n2->nif.elsepart = list(0);
 		else {
 			n2->nif.elsepart = NULL;
-			tokpushback++;
+			tokpushback = 1;
 		}
 		t = TFI;
 		break;
@@ -9751,7 +9751,7 @@ parse_command(void)
 			 * that the original Bourne shell only allowed NL).
 			 */
 			if (lasttoken != TNL && lasttoken != TSEMI)
-				tokpushback++;
+				tokpushback = 1;
 		}
 		checkkwd = CHKNL | CHKKWD | CHKALIAS;
 		if (readtoken() != TDO)
@@ -9824,7 +9824,7 @@ parse_command(void)
 		break;
 	case TWORD:
 	case TREDIR:
-		tokpushback++;
+		tokpushback = 1;
 		return simplecmd();
 	}
 
@@ -9840,7 +9840,7 @@ parse_command(void)
 		rpp = &n2->nfile.next;
 		parsefname();
 	}
-	tokpushback++;
+	tokpushback = 1;
 	*rpp = NULL;
 	if (redir) {
 		if (n1->type != NSUBSHELL) {
@@ -9866,8 +9866,6 @@ parse_command(void)
  * will run code that appears at the end of readtoken1.
  */
 
-static int parsebackquote;             /* nonzero if we are inside backquotes */
-
 #define CHECKEND()      {goto checkend; checkend_return:;}
 #define PARSEREDIR()    {goto parseredir; parseredir_return:;}
 #define PARSESUB()      {goto parsesub; parsesub_return:;}
@@ -9878,19 +9876,21 @@ static int parsebackquote;             /* nonzero if we are inside backquotes */
 static int
 readtoken1(int firstc, int syntax, char *eofmark, int striptabs)
 {
+	/* NB: syntax parameter fits into smallint */
 	int c = firstc;
 	char *out;
 	int len;
 	char line[EOFMARKLEN + 1];
-	struct nodelist *bqlist = 0;
-	int quotef = 0;
-	int dblquote = 0;
-	int varnest = 0;    /* levels of variables expansion */
-	int arinest = 0;    /* levels of arithmetic expansion */
-	int parenlevel = 0; /* levels of parens in arithmetic */
-	int dqvarnest = 0;  /* levels of variables expansion within double quotes */
-	int oldstyle = 0;
-	int prevsyntax = 0; /* syntax before arithmetic */
+	struct nodelist *bqlist;
+	smallint quotef;
+	smallint dblquote;
+	smallint oldstyle;
+	smallint prevsyntax; /* syntax before arithmetic */
+	int varnest;         /* levels of variables expansion */
+	int arinest;         /* levels of arithmetic expansion */
+	int parenlevel;      /* levels of parens in arithmetic */
+	int dqvarnest;       /* levels of variables expansion within double quotes */
+
 #if __GNUC__
 	/* Avoid longjmp clobbering */
 	(void) &out;
@@ -9904,13 +9904,12 @@ readtoken1(int firstc, int syntax, char *eofmark, int striptabs)
 	(void) &prevsyntax;
 	(void) &syntax;
 #endif
-
 	startlinno = plinno;
-	dblquote = 0;
-	if (syntax == DQSYNTAX)
-		dblquote = 1;
-	quotef = 0;
 	bqlist = NULL;
+	quotef = 0;
+	dblquote = (syntax == DQSYNTAX);
+	oldstyle = 0;
+	prevsyntax = 0;
 	varnest = 0;
 	arinest = 0;
 	parenlevel = 0;
@@ -9961,7 +9960,7 @@ readtoken1(int firstc, int syntax, char *eofmark, int striptabs)
 					if (SIT(c, SQSYNTAX) == CCTL)
 						USTPUTC(CTLESC, out);
 					USTPUTC(c, out);
-					quotef++;
+					quotef = 1;
 				}
 				break;
 			case CSQUOTE:
@@ -9985,7 +9984,7 @@ readtoken1(int firstc, int syntax, char *eofmark, int striptabs)
 						syntax = BASESYNTAX;
 						dblquote = 0;
 					}
-					quotef++;
+					quotef = 1;
 					goto quotemark;
 				}
 				break;
@@ -10017,10 +10016,7 @@ readtoken1(int firstc, int syntax, char *eofmark, int striptabs)
 						if (--arinest == 0) {
 							USTPUTC(CTLENDARI, out);
 							syntax = prevsyntax;
-							if (syntax == DQSYNTAX)
-								dblquote = 1;
-							else
-								dblquote = 0;
+							dblquote = (syntax == DQSYNTAX);
 						} else
 							USTPUTC(')', out);
 					} else {
@@ -10306,17 +10302,17 @@ parsesub: {
  */
 parsebackq: {
 	struct nodelist **nlpp;
-	int savepbq;
+	smallint savepbq;
 	union node *n;
 	char *volatile str;
 	struct jmploc jmploc;
 	struct jmploc *volatile savehandler;
 	size_t savelen;
-	int saveprompt = 0;
+	smallint saveprompt = 0;
+
 #ifdef __GNUC__
 	(void) &saveprompt;
 #endif
-
 	savepbq = parsebackquote;
 	if (setjmp(jmploc.loc)) {
 		if (str)
@@ -10651,7 +10647,7 @@ readtoken(void)
 {
 	int t;
 #if DEBUG
-	int alreadyseen = tokpushback;
+	smallint alreadyseen = tokpushback;
 #endif
 
 #if ENABLE_ASH_ALIAS
@@ -10717,7 +10713,7 @@ peektoken(void)
 	int t;
 
 	t = readtoken();
-	tokpushback++;
+	tokpushback = 1;
 	return tokname_array[t][0];
 }
 
@@ -10740,7 +10736,7 @@ parsecmd(int interact)
 		return NEOF;
 	if (t == TNL)
 		return NULL;
-	tokpushback++;
+	tokpushback = 1;
 	return list(1);
 }
 
