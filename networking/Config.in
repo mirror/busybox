@@ -83,6 +83,15 @@ config HTTPD
 	help
 	  Serve web pages via an HTTP server.
 
+config FEATURE_HTTPD_RANGES
+	bool "Support 'Ranges:' header"
+	default n
+	depends on HTTPD
+	help
+	  Makes httpd emit "Accept-Ranges: bytes" header and understand
+	  "Range: bytes=NNN-[MMM]" header. Allows for resuming interrupted
+	  downloads, seeking in multimedia players etc.
+
 config FEATURE_HTTPD_USE_SENDFILE
 	bool "Use sendfile system call"
 	default n

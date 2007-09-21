@@ -138,6 +138,7 @@ typedef struct Htaccess_IP {
 
 enum {
 	HTTP_OK = 200,
+	HTTP_PARTIAL_CONTENT = 206,
 	HTTP_MOVED_TEMPORARILY = 302,
 	HTTP_BAD_REQUEST = 400,       /* malformed syntax */
 	HTTP_UNAUTHORIZED = 401, /* authentication needed, respond with auth hdr */
@@ -165,6 +166,9 @@ enum {
 
 static const uint16_t http_response_type[] ALIGN2 = {
 	HTTP_OK,
+#if ENABLE_FEATURE_HTTPD_RANGES
+	HTTP_PARTIAL_CONTENT,
+#endif
 	HTTP_MOVED_TEMPORARILY,
 	HTTP_REQUEST_TIMEOUT,
 	HTTP_NOT_IMPLEMENTED,
@@ -192,7 +196,10 @@ static const struct {
 	const char *info;
 } http_response[ARRAY_SIZE(http_response_type)] = {
 	{ "OK", NULL },
-	{ "Found", "Directories must end with a slash" }, /* ?? */
+#if ENABLE_FEATURE_HTTPD_RANGES
+	{ "Partial Content", NULL },
+#endif
+	{ "Found", NULL },
 	{ "Request Timeout", "No request appeared within 60 seconds" },
 	{ "Not Implemented", "The requested method is not recognized" },
 #if ENABLE_FEATURE_HTTPD_BASIC_AUTH
@@ -214,13 +221,13 @@ static const struct {
 #endif
 };
 
+
 struct globals {
 	int verbose;            /* must be int (used by getopt32) */
 	smallint flg_deny_all;
 
 	unsigned rmt_ip;	/* used for IP-based allow/deny rules */
 	time_t last_mod;
-	off_t ContentLength;    /* -1 - unknown */
 	char *rmt_ip_str;       /* for $REMOTE_ADDR and $REMOTE_PORT */
 	const char *bind_addr_or_port;
 
@@ -236,6 +243,13 @@ struct globals {
 	USE_FEATURE_HTTPD_BASIC_AUTH(char *remoteuser;)
 	USE_FEATURE_HTTPD_CGI(char *referer;)
 	USE_FEATURE_HTTPD_CGI(char *user_agent;)
+
+	off_t file_size;        /* -1 - unknown */
+#if ENABLE_FEATURE_HTTPD_RANGES
+	off_t range_start;
+	off_t range_end;
+	off_t range_len;
+#endif
 
 #if ENABLE_FEATURE_HTTPD_BASIC_AUTH
 	Htaccess *g_auth;       /* config user:password lines */
@@ -264,13 +278,18 @@ struct globals {
 #define home_httpd        (G.home_httpd       )
 #define found_mime_type   (G.found_mime_type  )
 #define found_moved_temporarily (G.found_moved_temporarily)
-#define ContentLength     (G.ContentLength    )
 #define last_mod          (G.last_mod         )
 #define ip_a_d            (G.ip_a_d           )
 #define g_realm           (G.g_realm          )
 #define remoteuser        (G.remoteuser       )
 #define referer           (G.referer          )
 #define user_agent        (G.user_agent       )
+#define file_size         (G.file_size        )
+#if ENABLE_FEATURE_HTTPD_RANGES
+#define range_start       (G.range_start      )
+#define range_end         (G.range_end        )
+#define range_len         (G.range_len        )
+#endif
 #define rmt_ip_str        (G.rmt_ip_str       )
 #define g_auth            (G.g_auth           )
 #define mime_a            (G.mime_a           )
@@ -283,8 +302,16 @@ struct globals {
 	PTR_TO_GLOBALS = xzalloc(sizeof(G)); \
 	USE_FEATURE_HTTPD_BASIC_AUTH(g_realm = "Web Server Authentication";) \
 	bind_addr_or_port = "80"; \
-	ContentLength = -1; \
+	file_size = -1; \
 } while (0)
+
+#if !ENABLE_FEATURE_HTTPD_RANGES
+enum {
+	range_start = 0,
+	range_end = MAXINT(off_t) - 1,
+	range_len = MAXINT(off_t),
+};
+#endif
 
 
 #define STRNCASECMP(a, str) strncasecmp((a), (str), sizeof(str)-1)
@@ -921,10 +948,26 @@ static void send_headers(int responseNum)
 	}
 #endif
 
-	if (ContentLength != -1) {    /* file */
+	if (file_size != -1) {    /* file */
 		strftime(tmp_str, sizeof(tmp_str), RFC1123FMT, gmtime(&last_mod));
-		len += sprintf(iobuf + len, "Last-Modified: %s\r\n%s %"OFF_FMT"d\r\n",
-			tmp_str, "Content-length:", ContentLength);
+#if ENABLE_FEATURE_HTTPD_RANGES
+		if (responseNum == HTTP_PARTIAL_CONTENT) {
+			len += sprintf(iobuf + len, "Content-Range: bytes %"OFF_FMT"d-%"OFF_FMT"d/%"OFF_FMT"d\r\n",
+					range_start,
+					range_end,
+					file_size);
+			file_size = range_end - range_start + 1;
+		}
+#endif
+		len += sprintf(iobuf + len,
+#if ENABLE_FEATURE_HTTPD_RANGES
+			"Accept-Ranges: bytes\r\n"
+#endif
+			"Last-Modified: %s\r\n%s %"OFF_FMT"d\r\n",
+				tmp_str,
+				"Content-length:",
+				file_size
+		);
 	}
 	iobuf[len++] = '\r';
 	iobuf[len++] = '\n';
@@ -1373,7 +1416,7 @@ static void send_file_and_exit(const char *url, int headers)
 	const char *try_suffix;
 	ssize_t count;
 #if ENABLE_FEATURE_HTTPD_USE_SENDFILE
-	off_t offset = 0;
+	off_t offset;
 #endif
 
 	suffix = strrchr(url, '.');
@@ -1415,6 +1458,26 @@ static void send_file_and_exit(const char *url, int headers)
 		if (headers)
 			send_headers_and_exit(HTTP_NOT_FOUND);
 	}
+#if ENABLE_FEATURE_HTTPD_RANGES
+	if (!headers)
+		range_start = 0; /* err pages and ranges don't mix */
+	range_len = MAXINT(off_t);
+	if (range_start) {
+		if (!range_end) {
+			range_end = file_size - 1;
+		}
+		if (range_end < range_start
+		 || lseek(f, range_start, SEEK_SET) != range_start
+		) {
+			lseek(f, 0, SEEK_SET);
+			range_start = 0;
+		} else {
+			range_len = range_end - range_start + 1;
+			send_headers(HTTP_PARTIAL_CONTENT);
+			headers = 0;
+		}
+	}
+#endif
 
 	if (headers)
 		send_headers(HTTP_OK);
@@ -1424,23 +1487,31 @@ static void send_file_and_exit(const char *url, int headers)
 	signal(SIGPIPE, SIG_IGN);
 
 #if ENABLE_FEATURE_HTTPD_USE_SENDFILE
+	offset = range_start;
 	do {
-		/* byte count (3rd arg) is rounded down to 64k */
-		count = sendfile(1, f, &offset, MAXINT(ssize_t) - 0xffff);
+		/* sz is rounded down to 64k */
+		ssize_t sz = MAXINT(ssize_t) - 0xffff;
+		USE_FEATURE_HTTPD_RANGES(if (sz > range_len) sz = range_len;)
+		count = sendfile(1, f, &offset, sz);
 		if (count < 0) {
-			if (offset == 0)
+			if (offset == range_start)
 				goto fallback;
 			goto fin;
 		}
-	} while (count > 0);
+		USE_FEATURE_HTTPD_RANGES(range_len -= sz;)
+	} while (count > 0 && range_len);
 	log_and_exit();
 
  fallback:
 #endif
 	while ((count = safe_read(f, iobuf, IOBUF_SIZE)) > 0) {
-		ssize_t n = count;
-		count = full_write(1, iobuf, count);
+		ssize_t n;
+		USE_FEATURE_HTTPD_RANGES(if (count > range_len) count = range_len;)
+		n = full_write(1, iobuf, count);
 		if (count != n)
+			break;
+		USE_FEATURE_HTTPD_RANGES(range_len -= count;)
+		if (!range_len)
 			break;
 	}
 #if ENABLE_FEATURE_HTTPD_USE_SENDFILE
@@ -1781,6 +1852,23 @@ static void handle_incoming_and_exit(const len_and_sockaddr *fromAddr)
 				credentials = checkPerm(urlcopy, tptr);
 			}
 #endif          /* FEATURE_HTTPD_BASIC_AUTH */
+#if ENABLE_FEATURE_HTTPD_RANGES
+			if (STRNCASECMP(iobuf, "Range:") == 0) {
+				// We know only bytes=NNN-[MMM]
+				char *s = skip_whitespace(iobuf + sizeof("Range:")-1);
+				if (strncmp(s, "bytes=", 6) == 0) {
+					s += sizeof("bytes=")-1;
+					range_start = BB_STRTOOFF(s, &s, 10);
+					if (s[0] != '-' || range_start < 0) {
+						range_start = 0;
+					} else if (s[1]) {
+						range_end = BB_STRTOOFF(s+1, NULL, 10);
+						if (errno || range_end < range_start)
+							range_start = 0;
+					}
+				}
+			}
+#endif
 		} /* while extra header reading */
 	}
 
@@ -1833,8 +1921,7 @@ static void handle_incoming_and_exit(const len_and_sockaddr *fromAddr)
 	if (urlp[-1] == '/')
 		strcpy(urlp, "index.html");
 	if (stat(tptr, &sb) == 0) {
-		/* It's a dir URL and there is index.html */
-		ContentLength = sb.st_size;
+		file_size = sb.st_size;
 		last_mod = sb.st_mtime;
 	}
 #if ENABLE_FEATURE_HTTPD_CGI
