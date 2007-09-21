@@ -156,7 +156,7 @@ typedef int arith_t;
 /* Cannot eliminate these static data (do the G trick)
  * because of test_main usage from other applets */
 static char **t_wp;
-static struct t_op const *t_wp_op;
+static const struct t_op *t_wp_op;
 static gid_t *group_array;
 static int ngroups;
 static jmp_buf leaving;
