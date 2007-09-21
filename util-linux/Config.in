@@ -305,6 +305,12 @@ config FEATURE_MDEV_LOAD_FIRMWARE
 	  /lib/firmware/ and if it exists, send it to the kernel for
 	  loading into the hardware.
 
+config MICROCOM
+	bool "microcom"
+	default n
+	help
+	  The poor man's minicom utility for chatting with serial port devices.
+
 config MKSWAP
 	bool "mkswap"
 	default n

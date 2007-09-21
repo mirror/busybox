@@ -2077,6 +2077,11 @@
        "	y	Allow write access to your terminal\n" \
        "	n	Disallow write access to your terminal"
 
+#define microcom_trivial_usage \
+	"[-s speed] tty-name"
+#define microcom_full_usage \
+	""
+
 #define mkdir_trivial_usage \
        "[OPTION] DIRECTORY..."
 #define mkdir_full_usage \
