@@ -2494,7 +2494,6 @@ pwdcmd(int argc, char **argv)
 #define DQSYNTAX   1    /* in double quotes */
 #define SQSYNTAX   2    /* in single quotes */
 #define ARISYNTAX  3    /* in arithmetic */
-#define PSSYNTAX   4    /* prompt */
 
 #if ENABLE_ASH_OPTIMIZE_FOR_SIZE
 #define USE_SIT_FUNCTION
@@ -9887,9 +9886,6 @@ readtoken1(int firstc, int syntax, char *eofmark, int striptabs)
 	smallint dblquote;
 	smallint oldstyle;
 	smallint prevsyntax; /* syntax before arithmetic */
-#if ENABLE_ASH_EXPAND_PRMT
-	smallint pssyntax;   /* we are expanding a prompt string */
-#endif
 	int varnest;         /* levels of variables expansion */
 	int arinest;         /* levels of arithmetic expansion */
 	int parenlevel;      /* levels of parens in arithmetic */
@@ -9914,11 +9910,6 @@ readtoken1(int firstc, int syntax, char *eofmark, int striptabs)
 	dblquote = (syntax == DQSYNTAX);
 	oldstyle = 0;
 	prevsyntax = 0;
-#if ENABLE_ASH_EXPAND_PRMT
-	pssyntax = (syntax == PSSYNTAX);
-	if (pssyntax)
-		syntax = DQSYNTAX;
-#endif
 	varnest = 0;
 	arinest = 0;
 	parenlevel = 0;
@@ -9957,12 +9948,6 @@ readtoken1(int firstc, int syntax, char *eofmark, int striptabs)
 					if (doprompt)
 						setprompt(2);
 				} else {
-#if ENABLE_ASH_EXPAND_PRMT
-					if (c == '$' && pssyntax) {
-						USTPUTC(CTLESC, out);
-						USTPUTC('\\', out);
-					}
-#endif
 					if (dblquote &&
 						c != '\\' && c != '`' &&
 						c != '$' && (
@@ -10795,7 +10780,7 @@ expandstr(const char *ps)
 
 	/* XXX Fix (char *) cast. */
 	setinputstring((char *)ps);
-	readtoken1(pgetc(), PSSYNTAX, nullstr, 0);
+	readtoken1(pgetc(), DQSYNTAX, nullstr, 0);
 	popfile();
 
 	n.narg.type = NARG;
