@@ -30,4 +30,3 @@ lib-$(CONFIG_SETARCH)		+=setarch.o
 lib-$(CONFIG_SWAPONOFF)		+=swaponoff.o
 lib-$(CONFIG_SWITCH_ROOT)	+=switch_root.o
 lib-$(CONFIG_UMOUNT)		+=umount.o
-lib-$(CONFIG_MICROCOM)		+=microcom.o

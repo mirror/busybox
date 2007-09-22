@@ -276,6 +276,12 @@ config FEATURE_MAKEDEVS_TABLE
 
 endchoice
 
+config MICROCOM
+	bool "microcom"
+	default n
+	help
+	  The poor man's minicom utility for chatting with serial port devices.
+
 config MOUNTPOINT
 	bool "mountpoint"
 	default n

@@ -17,6 +17,7 @@ lib-$(CONFIG_HDPARM)      += hdparm.o
 lib-$(CONFIG_LAST)        += last.o
 lib-$(CONFIG_LESS)        += less.o
 lib-$(CONFIG_MAKEDEVS)    += makedevs.o
+lib-$(CONFIG_MICROCOM)    += microcom.o
 lib-$(CONFIG_MOUNTPOINT)  += mountpoint.o
 lib-$(CONFIG_MT)          += mt.o
 lib-$(CONFIG_RAIDAUTORUN) += raidautorun.o
