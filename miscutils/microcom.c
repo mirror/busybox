@@ -7,7 +7,7 @@
  *
  * Licensed under GPLv2, see file LICENSE in this tarball for details.
  */
-#include "busybox.h"
+#include "libbb.h"
 
 int microcom_main(int argc, char **argv);
 int microcom_main(int argc, char **argv)
