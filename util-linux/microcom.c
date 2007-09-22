@@ -1,4 +1,5 @@
-/* 
+/* vi: set sw=4 ts=4: */
+/*
  * bare bones 'talk to modem' program - similar to 'cu -l $device'
  * inspired by mgetty's microcom
  *
@@ -107,7 +108,7 @@ int microcom_main(int argc, char **argv)
 		while (-1 == poll(pfd, 2, -1) && EINTR == errno)
 			continue;
 		for (i = 0; i < 2; ++i) {
-			if (pfd[i].revents & POLLIN) { 
+			if (pfd[i].revents & POLLIN) {
 				len = read(pfd[i].fd, bb_common_bufsiz1, COMMON_BUFSIZE);
 				if (len > 0) {
 					if (!i && 24 == bb_common_bufsiz1[0])
