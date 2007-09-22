@@ -338,7 +338,7 @@ int vi_main(int argc, char **argv)
 	}
 #endif
 
-	vi_setops = VI_AUTOINDENT | VI_SHOWMATCH | VI_IGNORECASE | VI_ERR_METHOD;
+	vi_setops = VI_AUTOINDENT | VI_SHOWMATCH | VI_IGNORECASE;
 #if ENABLE_FEATURE_VI_YANKMARK
 	memset(reg, 0, sizeof(reg)); // init the yank regs
 #endif
