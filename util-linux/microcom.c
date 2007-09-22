@@ -1,8 +1,10 @@
-/* microcom.c
- *
+/* 
  * bare bones 'talk to modem' program - similar to 'cu -l $device'
  * inspired by mgetty's microcom
  *
+ * Copyright (C) 2007 by Vladimir Dronnikov <dronnikov@gmail.ru>
+ *
+ * Licensed under GPLv2, see file LICENSE in this tarball for details.
  */
 #include "busybox.h"
 
