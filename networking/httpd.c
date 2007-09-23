@@ -104,12 +104,15 @@
 //#define DEBUG 1
 #define DEBUG 0
 
+#define IOBUF_SIZE 8192    /* IO buffer */
+
 /* amount of buffering in a pipe */
 #ifndef PIPE_BUF
 # define PIPE_BUF 4096
 #endif
-
-#define IOBUF_SIZE 8192    /* IO buffer */
+#if PIPE_BUF >= IOBUF_SIZE
+# error "PIPE_BUF >= IOBUF_SIZE"
+#endif
 
 #define HEADER_READ_TIMEOUT 60
 
@@ -1029,6 +1032,173 @@ static int get_line(void)
 }
 
 #if ENABLE_FEATURE_HTTPD_CGI
+
+/* gcc 4.2.1 fares better with NOINLINE */
+static NOINLINE void cgi_io_loop_and_exit(int fromCgi_rd, int toCgi_wr, int post_len) ATTRIBUTE_NORETURN;
+static NOINLINE void cgi_io_loop_and_exit(int fromCgi_rd, int toCgi_wr, int post_len)
+{
+	enum { FROM_CGI = 1, TO_CGI = 2 }; /* indexes in pfd[] */
+	struct pollfd pfd[3];
+	int out_cnt; /* we buffer a bit of initial CGI output */
+	int count;
+
+	/* iobuf is used for CGI -> network data,
+	 * hdr_buf is for network -> CGI data (POSTDATA) */
+
+	/* If CGI dies, we still want to correctly finish reading its output
+	 * and send it to the peer. So please no SIGPIPEs! */
+	signal(SIGPIPE, SIG_IGN);
+
+	/* NB: breaking out of this loop jumps to log_and_exit() */
+	out_cnt = 0;
+	while (1) {
+		memset(pfd, 0, sizeof(pfd));
+
+		pfd[FROM_CGI].fd = fromCgi_rd;
+		pfd[FROM_CGI].events = POLLIN;
+
+		if (toCgi_wr) {
+			pfd[TO_CGI].fd = toCgi_wr;
+			if (hdr_cnt > 0) {
+				pfd[TO_CGI].events = POLLOUT;
+			} else if (post_len > 0) {
+				pfd[0].events = POLLIN;
+			} else {
+				/* post_len <= 0 && hdr_cnt <= 0:
+				 * no more POST data to CGI,
+				 * let CGI see EOF on CGI's stdin */
+				close(toCgi_wr);
+				toCgi_wr = 0;
+			}
+		}
+
+		/* Now wait on the set of sockets */
+		count = poll(pfd, 3, -1);
+		if (count <= 0) {
+#if 0
+			if (errno == EINTR)
+				continue;
+#endif
+#if 0
+			if (waitpid(pid, &status, WNOHANG) <= 0) {
+				/* Weird. CGI didn't exit and no fd's
+				 * are ready, yet poll returned?! */
+				continue;
+			}
+			if (DEBUG && WIFEXITED(status))
+				bb_error_msg("CGI exited, status=%d", WEXITSTATUS(status));
+			if (DEBUG && WIFSIGNALED(status))
+				bb_error_msg("CGI killed, signal=%d", WTERMSIG(status));
+#endif
+			break;
+		}
+
+		if (pfd[TO_CGI].revents) {
+			/* hdr_cnt > 0 here due to the way pfd[TO_CGI].events set */
+			/* Have data from peer and can write to CGI */
+			count = safe_write(toCgi_wr, hdr_ptr, hdr_cnt);
+			/* Doesn't happen, we dont use nonblocking IO here
+			 *if (count < 0 && errno == EAGAIN) {
+			 *	...
+			 *} else */
+			if (count > 0) {
+				hdr_ptr += count;
+				hdr_cnt -= count;
+			} else {
+				/* EOF/broken pipe to CGI, stop piping POST data */
+				hdr_cnt = post_len = 0;
+			}
+		}
+
+		if (pfd[0].revents) {
+			/* post_len > 0 && hdr_cnt == 0 here */
+			/* We expect data, prev data portion is eaten by CGI
+			 * and there *is* data to read from the peer
+			 * (POSTDATA) */
+			//count = post_len > (int)sizeof(hdr_buf) ? (int)sizeof(hdr_buf) : post_len;
+			//count = safe_read(0, hdr_buf, count);
+			count = safe_read(0, hdr_buf, sizeof(hdr_buf));
+			if (count > 0) {
+				hdr_cnt = count;
+				hdr_ptr = hdr_buf;
+				post_len -= count;
+			} else {
+				/* no more POST data can be read */
+				post_len = 0;
+			}
+		}
+
+		if (pfd[FROM_CGI].revents) {
+			/* There is something to read from CGI */
+			char *rbuf = iobuf;
+
+			/* Are we still buffering CGI output? */
+			if (out_cnt >= 0) {
+				/* HTTP_200[] has single "\r\n" at the end.
+				 * According to http://hoohoo.ncsa.uiuc.edu/cgi/out.html,
+				 * CGI scripts MUST send their own header terminated by
+				 * empty line, then data. That's why we have only one
+				 * <cr><lf> pair here. We will output "200 OK" line
+				 * if needed, but CGI still has to provide blank line
+				 * between header and body */
+
+				/* Must use safe_read, not full_read, because
+				 * CGI may output a few first bytes and then wait
+				 * for POSTDATA without closing stdout.
+				 * With full_read we may wait here forever. */
+				count = safe_read(fromCgi_rd, rbuf + out_cnt, PIPE_BUF - 8);
+				if (count <= 0) {
+					/* eof (or error) and there was no "HTTP",
+					 * so write it, then write received data */
+					if (out_cnt) {
+						full_write(1, HTTP_200, sizeof(HTTP_200)-1);
+						full_write(1, rbuf, out_cnt);
+					}
+					break; /* CGI stdout is closed, exiting */
+				}
+				out_cnt += count;
+				count = 0;
+				/* "Status" header format is: "Status: 302 Redirected\r\n" */
+				if (out_cnt >= 8 && memcmp(rbuf, "Status: ", 8) == 0) {
+					/* send "HTTP/1.0 " */
+					if (full_write(1, HTTP_200, 9) != 9)
+						break;
+					rbuf += 8; /* skip "Status: " */
+					count = out_cnt - 8;
+					out_cnt = -1; /* buffering off */
+				} else if (out_cnt >= 4) {
+					/* Did CGI add "HTTP"? */
+					if (memcmp(rbuf, HTTP_200, 4) != 0) {
+						/* there is no "HTTP", do it ourself */
+						if (full_write(1, HTTP_200, sizeof(HTTP_200)-1) != sizeof(HTTP_200)-1)
+							break;
+					}
+					/* Commented out:
+					if (!strstr(rbuf, "ontent-")) {
+						full_write(s, "Content-type: text/plain\r\n\r\n", 28);
+					}
+					 * Counter-example of valid CGI without Content-type:
+					 * echo -en "HTTP/1.0 302 Found\r\n"
+					 * echo -en "Location: http://www.busybox.net\r\n"
+					 * echo -en "\r\n"
+					 */
+					count = out_cnt;
+					out_cnt = -1; /* buffering off */
+				}
+			} else {
+				count = safe_read(fromCgi_rd, rbuf, PIPE_BUF);
+				if (count <= 0)
+					break;  /* eof (or error) */
+			}
+			if (full_write(1, rbuf, count) != count)
+				break;
+			if (DEBUG)
+				fprintf(stderr, "cgi read %d bytes: '%.*s'\n", count, count, rbuf);
+		} /* if (pfd[FROM_CGI].revents) */
+	} /* while (1) */
+	log_and_exit();
+}
+
 static void setenv1(const char *name, const char *value)
 {
 	setenv(name, value ? value : "", 1);
@@ -1038,25 +1208,25 @@ static void setenv1(const char *name, const char *value)
  * Spawn CGI script, forward CGI's stdin/out <=> network
  *
  * Environment variables are set up and the script is invoked with pipes
- * for stdin/stdout.  If a post is being done the script is fed the POST
+ * for stdin/stdout.  If a POST is being done the script is fed the POST
  * data in addition to setting the QUERY_STRING variable (for GETs or POSTs).
  *
  * Parameters:
  * const char *url              The requested URL (with leading /).
- * int bodyLen                  Length of the post body.
+ * int post_len                 Length of the POST body.
  * const char *cookie           For set HTTP_COOKIE.
  * const char *content_type     For set CONTENT_TYPE.
  */
 static void send_cgi_and_exit(
 		const char *url,
 		const char *request,
-		int bodyLen,
+		int post_len,
 		const char *cookie,
 		const char *content_type) ATTRIBUTE_NORETURN;
 static void send_cgi_and_exit(
 		const char *url,
 		const char *request,
-		int bodyLen,
+		int post_len,
 		const char *cookie,
 		const char *content_type)
 {
@@ -1065,9 +1235,7 @@ static void send_cgi_and_exit(
 	char *fullpath;
 	char *script;
 	char *purl;
-	int buf_count;
-	int status;
-	int pid = 0;
+	int pid;
 
 	/*
 	 * We are mucking with environment _first_ and then vfork/exec,
@@ -1138,8 +1306,8 @@ static void send_cgi_and_exit(
 		}
 	}
 	setenv1("HTTP_USER_AGENT", user_agent);
-	if (bodyLen)
-		putenv(xasprintf("CONTENT_LENGTH=%d", bodyLen));
+	if (post_len)
+		putenv(xasprintf("CONTENT_LENGTH=%d", post_len));
 	if (cookie)
 		setenv1("HTTP_COOKIE", cookie);
 	if (content_type)
@@ -1215,168 +1383,15 @@ static void send_cgi_and_exit(
 
 	/* Parent process */
 
-	/* First, restore variables possibly changed by child */
+	/* Restore variables possibly changed by child */
 	xfunc_error_retval = 0;
 
-	/* Prepare for pumping data.
-	 * iobuf is used for CGI -> network data,
-	 * hdr_buf is for network -> CGI data (POSTDATA) */
-	buf_count = 0;
+	/* Pump data */
 	close(fromCgi.wr);
 	close(toCgi.rd);
-
-	/* If CGI dies, we still want to correctly finish reading its output
-	 * and send it to the peer. So please no SIGPIPEs! */
-	signal(SIGPIPE, SIG_IGN);
-
-	/* This loop still looks messy. What is an exit criteria?
-	 * "CGI's output closed"? Or "CGI has exited"?
-	 * What to do if CGI has closed both input and output, but
-	 * didn't exit? etc... */
-
-	/* NB: breaking out of this loop jumps to log_and_exit() */
-	while (1) {
-		fd_set readSet;
-		fd_set writeSet;
-		int nfound;
-		int count;
-
-		FD_ZERO(&readSet);
-		FD_ZERO(&writeSet);
-		FD_SET(fromCgi.rd, &readSet);
-		if (bodyLen > 0 || hdr_cnt > 0) {
-			FD_SET(toCgi.wr, &writeSet);
-			nfound = toCgi.wr > fromCgi.rd ? toCgi.wr : fromCgi.rd;
-			if (hdr_cnt <= 0)
-				FD_SET(0, &readSet);
-			/* Now wait on the set of sockets! */
-			nfound = select(nfound + 1, &readSet, &writeSet, NULL, NULL);
-		} else {
-			if (!bodyLen) {
-				close(toCgi.wr); /* no more POST data to CGI */
-				bodyLen = -1;
-			}
-			nfound = select(fromCgi.rd + 1, &readSet, NULL, NULL, NULL);
-		}
-
-		if (nfound <= 0) {
-			if (waitpid(pid, &status, WNOHANG) <= 0) {
-				/* Weird. CGI didn't exit and no fd's
-				 * are ready, yet select returned?! */
-				continue;
-			}
-			close(fromCgi.rd);
-			if (DEBUG && WIFEXITED(status))
-				bb_error_msg("CGI exited, status=%d", WEXITSTATUS(status));
-			if (DEBUG && WIFSIGNALED(status))
-				bb_error_msg("CGI killed, signal=%d", WTERMSIG(status));
-			break;
-		}
-
-		if (hdr_cnt > 0 && FD_ISSET(toCgi.wr, &writeSet)) {
-			/* Have data from peer and can write to CGI */
-			count = safe_write(toCgi.wr, hdr_ptr, hdr_cnt);
-			/* Doesn't happen, we dont use nonblocking IO here
-			 *if (count < 0 && errno == EAGAIN) {
-			 *	...
-			 *} else */
-			if (count > 0) {
-				hdr_ptr += count;
-				hdr_cnt -= count;
-			} else {
-				hdr_cnt = bodyLen = 0; /* EOF/broken pipe to CGI */
-			}
-		} else if (bodyLen > 0 && hdr_cnt == 0
-		 && FD_ISSET(0, &readSet)
-		) {
-			/* We expect data, prev data portion is eaten by CGI
-			 * and there *is* data to read from the peer
-			 * (POSTDATA?) */
-			count = bodyLen > (int)sizeof(hdr_buf) ? (int)sizeof(hdr_buf) : bodyLen;
-			count = safe_read(0, hdr_buf, count);
-			if (count > 0) {
-				hdr_cnt = count;
-				hdr_ptr = hdr_buf;
-				bodyLen -= count;
-			} else {
-				bodyLen = 0; /* closed */
-			}
-		}
-
-#define PIPESIZE PIPE_BUF
-#if PIPESIZE >= IOBUF_SIZE
-# error "PIPESIZE >= IOBUF_SIZE"
-#endif
-		if (FD_ISSET(fromCgi.rd, &readSet)) {
-			/* There is something to read from CGI */
-			char *rbuf = iobuf;
-
-			/* Are we still buffering CGI output? */
-			if (buf_count >= 0) {
-				/* HTTP_200[] has single "\r\n" at the end.
-				 * According to http://hoohoo.ncsa.uiuc.edu/cgi/out.html,
-				 * CGI scripts MUST send their own header terminated by
-				 * empty line, then data. That's why we have only one
-				 * <cr><lf> pair here. We will output "200 OK" line
-				 * if needed, but CGI still has to provide blank line
-				 * between header and body */
-
-				/* Must use safe_read, not full_read, because
-				 * CGI may output a few first bytes and then wait
-				 * for POSTDATA without closing stdout.
-				 * With full_read we may wait here forever. */
-				count = safe_read(fromCgi.rd, rbuf + buf_count, PIPESIZE - 8);
-				if (count <= 0) {
-					/* eof (or error) and there was no "HTTP",
-					 * so write it, then write received data */
-					if (buf_count) {
-						full_write(1, HTTP_200, sizeof(HTTP_200)-1);
-						full_write(1, rbuf, buf_count);
-					}
-					break; /* CGI stdout is closed, exiting */
-				}
-				buf_count += count;
-				count = 0;
-				/* "Status" header format is: "Status: 302 Redirected\r\n" */
-				if (buf_count >= 8 && memcmp(rbuf, "Status: ", 8) == 0) {
-					/* send "HTTP/1.0 " */
-					if (full_write(1, HTTP_200, 9) != 9)
-						break;
-					rbuf += 8; /* skip "Status: " */
-					count = buf_count - 8;
-					buf_count = -1; /* buffering off */
-				} else if (buf_count >= 4) {
-					/* Did CGI add "HTTP"? */
-					if (memcmp(rbuf, HTTP_200, 4) != 0) {
-						/* there is no "HTTP", do it ourself */
-						if (full_write(1, HTTP_200, sizeof(HTTP_200)-1) != sizeof(HTTP_200)-1)
-							break;
-					}
-					/* Commented out:
-					if (!strstr(rbuf, "ontent-")) {
-						full_write(s, "Content-type: text/plain\r\n\r\n", 28);
-					}
-					 * Counter-example of valid CGI without Content-type:
-					 * echo -en "HTTP/1.0 302 Found\r\n"
-					 * echo -en "Location: http://www.busybox.net\r\n"
-					 * echo -en "\r\n"
-					 */
-					count = buf_count;
-					buf_count = -1; /* buffering off */
-				}
-			} else {
-				count = safe_read(fromCgi.rd, rbuf, PIPESIZE);
-				if (count <= 0)
-					break;  /* eof (or error) */
-			}
-			if (full_write(1, rbuf, count) != count)
-				break;
-			if (DEBUG)
-				fprintf(stderr, "cgi read %d bytes: '%.*s'\n", count, count, rbuf);
-		} /* if (FD_ISSET(fromCgi.rd)) */
-	} /* while (1) */
-	log_and_exit();
+	cgi_io_loop_and_exit(fromCgi.rd, toCgi.wr, post_len);
 }
+
 #endif          /* FEATURE_HTTPD_CGI */
 
 /*
