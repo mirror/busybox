@@ -190,9 +190,6 @@ extern char **environ;
 
 /* Reserve some descriptors, 3 stdio + at least: 1 log, 1 conf. file */
 #define FD_MARGIN       8
-static rlim_t rlim_ofile_cur = OPEN_MAX;
-static struct rlimit rlim_ofile;
-
 
 /* Check unsupporting builtin */
 #if ENABLE_FEATURE_INETD_SUPPORT_BUILTIN_ECHO || \
@@ -209,11 +206,24 @@ static struct rlimit rlim_ofile;
 # define INETD_SETPROCTITLE
 #endif
 
-typedef struct servtab {
+typedef int8_t socktype_t;
+typedef int8_t family_t;
+struct BUG_too_small {
+	char BUG_socktype_t_too_small[(0
+			| SOCK_STREAM
+			| SOCK_DGRAM
+			| SOCK_RDM
+			| SOCK_SEQPACKET
+			| SOCK_RAW) <= 127 ? 1 : -1];
+	char BUG_family_t_too_small[(0
+			| AF_INET
+			| AF_INET6
+			| AF_UNIX) <= 127 ? 1 : -1];
+};
+
+typedef struct servtab_t {
 	char *se_hostaddr;                    /* host address to listen on */
 	char *se_service;                     /* name of service */
-	int se_socktype;                      /* type of socket to use */
-	int se_family;                        /* address family */
 	char *se_proto;                       /* protocol used */
 #if ENABLE_FEATURE_INETD_RPC
 	int se_rpcprog;                       /* rpc program number */
@@ -224,7 +234,9 @@ typedef struct servtab {
 #define isrpcservice(sep)       0
 #endif
 	pid_t se_wait;                        /* single threaded server */
-	short se_checked;                     /* looked at during merge */
+	socktype_t se_socktype;               /* type of socket to use */
+	family_t se_family;                   /* address family */
+	smallint se_checked;                  /* looked at during merge */
 	char *se_user;                        /* user name to run as */
 	char *se_group;                       /* group name to run as */
 #ifdef INETD_FEATURE_ENABLED
@@ -250,17 +262,16 @@ typedef struct servtab {
 	int se_max;                           /* max # of instances of this service */
 	int se_count;                         /* number started since se_time */
 	struct timeval se_time;               /* start of se_count */
-	struct servtab *se_next;
+	struct servtab_t *se_next;
 } servtab_t;
-
-static servtab_t *servtab;
 
 #ifdef INETD_FEATURE_ENABLED
 struct builtin {
 	const char *bi_service;               /* internally provided service name */
-	int bi_socktype;                      /* type of socket supported */
-	short bi_fork;                        /* 1 if should fork before call */
-	short bi_wait;                        /* 1 if should wait for child */
+	socktype_t bi_socktype;               /* type of socket supported */
+	uint8_t bi_fork;                      /* 1 if should fork before call */
+// Commented since it is always 0
+//	uint8_t bi_wait;                      /* 1 if should wait for child */
 	void (*bi_fn) (int, servtab_t *);
 };
 
@@ -293,45 +304,90 @@ static void chargen_dg(int, servtab_t *);
 static const struct builtin builtins[] = {
 #if ENABLE_FEATURE_INETD_SUPPORT_BUILTIN_ECHO
 	/* Echo received data */
-	{"echo", SOCK_STREAM, 1, 0, echo_stream,},
-	{"echo", SOCK_DGRAM, 0, 0, echo_dg,},
+	{"echo", SOCK_STREAM, 1, echo_stream,},
+	{"echo", SOCK_DGRAM, 0, echo_dg,},
 #endif
 #if ENABLE_FEATURE_INETD_SUPPORT_BUILTIN_DISCARD
 	/* Internet /dev/null */
-	{"discard", SOCK_STREAM, 1, 0, discard_stream,},
-	{"discard", SOCK_DGRAM, 0, 0, discard_dg,},
+	{"discard", SOCK_STREAM, 1, discard_stream,},
+	{"discard", SOCK_DGRAM, 0, discard_dg,},
 #endif
 #if ENABLE_FEATURE_INETD_SUPPORT_BUILTIN_TIME
 	/* Return 32 bit time since 1900 */
-	{"time", SOCK_STREAM, 0, 0, machtime_stream,},
-	{"time", SOCK_DGRAM, 0, 0, machtime_dg,},
+	{"time", SOCK_STREAM, 0, machtime_stream,},
+	{"time", SOCK_DGRAM, 0, machtime_dg,},
 #endif
 #if ENABLE_FEATURE_INETD_SUPPORT_BUILTIN_DAYTIME
 	/* Return human-readable time */
-	{"daytime", SOCK_STREAM, 0, 0, daytime_stream,},
-	{"daytime", SOCK_DGRAM, 0, 0, daytime_dg,},
+	{"daytime", SOCK_STREAM, 0, daytime_stream,},
+	{"daytime", SOCK_DGRAM, 0, daytime_dg,},
 #endif
 #if ENABLE_FEATURE_INETD_SUPPORT_BUILTIN_CHARGEN
 	/* Familiar character generator */
-	{"chargen", SOCK_STREAM, 1, 0, chargen_stream,},
-	{"chargen", SOCK_DGRAM, 0, 0, chargen_dg,},
+	{"chargen", SOCK_STREAM, 1, chargen_stream,},
+	{"chargen", SOCK_DGRAM, 0, chargen_dg,},
 #endif
-	{NULL, 0, 0, 0, NULL}
+	{ /* zero filled */ }
 };
 #endif /* INETD_FEATURE_ENABLED */
 
-static int global_queuelen = 128;
-static int nsock, maxsock;
-static fd_set allsock;
-static int toomany;
-static int timingout;
-static struct servent *sp;
-static uid_t uid;
-
-static const char *config_filename = "/etc/inetd.conf";
-
-static FILE *fconfig;
-static char *defhost;
+struct globals {
+	rlim_t rlim_ofile_cur;
+	struct rlimit rlim_ofile;
+	servtab_t *servtab;
+	int global_queuelen;
+	int nsock;
+	int maxsock;
+	int toomany;
+	int timingout;
+	struct servent *sp;
+	uid_t uid;
+	const char *config_filename;
+	FILE *fconfig;
+	char *defhost;
+#ifdef INETD_SETPROCTITLE
+	char **Argv;
+	char *LastArg;
+#endif
+#if ENABLE_FEATURE_INETD_SUPPORT_BUILTIN_CHARGEN
+	char *endring;
+	char *ringpos;
+	char ring[128];
+#endif
+	fd_set allsock;
+	/* Used only in nextline() */
+	char line[80];          /* at least 80, see LINE_SIZE */
+};
+#define G (*(struct globals*)&bb_common_bufsiz1)
+enum { LINE_SIZE = COMMON_BUFSIZE - offsetof(struct globals, line) };
+struct BUG_G_too_big {
+	char BUG_G_too_big[sizeof(G) <= COMMON_BUFSIZE ? 1 : -1];
+};
+#define rlim_ofile_cur  (G.rlim_ofile_cur )
+#define rlim_ofile      (G.rlim_ofile     )
+#define servtab         (G.servtab        )
+#define global_queuelen (G.global_queuelen)
+#define nsock           (G.nsock          )
+#define maxsock         (G.maxsock        )
+#define toomany         (G.toomany        )
+#define timingout       (G.timingout      )
+#define sp              (G.sp             )
+#define uid             (G.uid            )
+#define config_filename (G.config_filename)
+#define fconfig         (G.fconfig        )
+#define defhost         (G.defhost        )
+#define Argv            (G.Argv           )
+#define LastArg         (G.LastArg        )
+#define endring         (G.endring        )
+#define ringpos         (G.ringpos        )
+#define ring            (G.ring           )
+#define allsock         (G.allsock        )
+#define line            (G.line           )
+#define INIT_G() do { \
+	rlim_ofile_cur = OPEN_MAX; \
+	global_queuelen = 128; \
+	config_filename = "/etc/inetd.conf"; \
+} while (0)
 
 /* xstrdup(NULL) returns NULL, but this one
  * will return newly-allocated "" if called with NULL arg
@@ -510,12 +566,10 @@ static void setup(servtab_t *sep)
 
 static char *nextline(void)
 {
-#define line bb_common_bufsiz1
-
 	char *cp;
 	FILE *fd = fconfig;
 
-	if (fgets(line, sizeof(line), fd) == NULL)
+	if (fgets(line, LINE_SIZE, fd) == NULL)
 		return NULL;
 	cp = strchr(line, '\n');
 	if (cp)
@@ -740,15 +794,15 @@ static servtab_t *getconfigent(void)
 		const struct builtin *bi;
 
 		for (bi = builtins; bi->bi_service; bi++)
-			if (bi->bi_socktype == sep->se_socktype &&
-					strcmp(bi->bi_service, sep->se_service) == 0)
+			if (bi->bi_socktype == sep->se_socktype
+			 && strcmp(bi->bi_service, sep->se_service) == 0)
 				break;
 		if (bi->bi_service == 0) {
 			bb_error_msg("internal service %s unknown", sep->se_service);
 			goto more;
 		}
 		sep->se_bi = bi;
-		sep->se_wait = bi->bi_wait;
+		sep->se_wait = 0; /* = bi->bi_wait; - always 0 */
 #else
 		bb_perror_msg("internal service %s unknown", sep->se_service);
 		goto more;
@@ -792,36 +846,36 @@ static servtab_t *getconfigent(void)
 			if (LONE_CHAR(nsep->se_hostaddr, '*'))
 				nsep->se_ctrladdr_in.sin_addr.s_addr = INADDR_ANY;
 			else if (!inet_aton(nsep->se_hostaddr, &nsep->se_ctrladdr_in.sin_addr)) {
+				int i;
 				struct hostent *hp;
 
 				hp = gethostbyname(nsep->se_hostaddr);
-				if (hp == 0) {
+				if (hp == NULL) {
 					bb_error_msg("%s: unknown host", nsep->se_hostaddr);
 					nsep->se_checked = 0;
 					goto skip;
-				} else if (hp->h_addrtype != AF_INET) {
+				}
+				if (hp->h_addrtype != AF_INET) {
 					bb_error_msg("%s: address isn't an Internet "
 								  "address", nsep->se_hostaddr);
 					nsep->se_checked = 0;
 					goto skip;
-				} else {
-					int i = 1;
-
-					memmove(&nsep->se_ctrladdr_in.sin_addr,
-								   hp->h_addr_list[0], sizeof(struct in_addr));
-					while (hp->h_addr_list[i] != NULL) {
-						psep = dupconfig(nsep);
-						psep->se_hostaddr = xxstrdup(nsep->se_hostaddr);
-						psep->se_checked = 1;
-						memmove(&psep->se_ctrladdr_in.sin_addr,
-								     hp->h_addr_list[i], sizeof(struct in_addr));
-						psep->se_ctrladdr_size = sizeof(psep->se_ctrladdr_in);
-						i++;
-						/* Prepend to list, don't want to look up */
-						/* its hostname again. */
-						psep->se_next = sep;
-						sep = psep;
-					}
+				}
+				i = 1;
+				memmove(&nsep->se_ctrladdr_in.sin_addr,
+							   hp->h_addr_list[0], sizeof(struct in_addr));
+				while (hp->h_addr_list[i] != NULL) {
+					psep = dupconfig(nsep);
+					psep->se_hostaddr = xxstrdup(nsep->se_hostaddr);
+					psep->se_checked = 1;
+					memmove(&psep->se_ctrladdr_in.sin_addr,
+							     hp->h_addr_list[i], sizeof(struct in_addr));
+					psep->se_ctrladdr_size = sizeof(psep->se_ctrladdr_in);
+					i++;
+					/* Prepend to list, don't want to look up */
+					/* its hostname again. */
+					psep->se_next = sep;
+					sep = psep;
 				}
 			}
 		}
@@ -1219,8 +1273,6 @@ static void goaway(int sig ATTRIBUTE_UNUSED)
 
 
 #ifdef INETD_SETPROCTITLE
-static char **Argv;
-static char *LastArg;
 
 static void
 inetd_setproctitle(char *a, int s)
@@ -1262,10 +1314,14 @@ int inetd_main(int argc, char **argv)
 	char buf[50];
 	char *stoomany;
 	sigset_t omask, wait_mask;
+#ifdef INETD_SETPROCTITLE
+	char **envp;
+#endif
+
+	INIT_G();
 
 #ifdef INETD_SETPROCTITLE
-	char **envp = environ;
-
+	envp = environ;
 	Argv = argv;
 	if (envp == 0 || *envp == 0)
 		envp = argv;
@@ -1600,8 +1656,6 @@ discard_dg(int s, servtab_t *sep ATTRIBUTE_UNUSED)
 
 #if ENABLE_FEATURE_INETD_SUPPORT_BUILTIN_CHARGEN
 #define LINESIZ 72
-static char ring[128];
-static char *endring;
 
 static void
 initring(void)
@@ -1609,7 +1663,6 @@ initring(void)
 	int i;
 
 	endring = ring;
-
 	for (i = 0; i <= 128; ++i)
 		if (isprint(i))
 			*endring++ = i;
@@ -1657,14 +1710,13 @@ chargen_dg(int s, servtab_t *sep ATTRIBUTE_UNUSED)
 {
 	/* struct sockaddr_storage ss; */
 	struct sockaddr sa;
-	static char *rs;
 	int len;
 	char text[LINESIZ + 2];
 	socklen_t size;
 
-	if (endring == 0) {
+	if (!endring) {
 		initring();
-		rs = ring;
+		ringpos = ring;
 	}
 
 	size = sizeof(sa);
@@ -1673,14 +1725,15 @@ chargen_dg(int s, servtab_t *sep ATTRIBUTE_UNUSED)
 	if (dg_badinput((struct sockaddr_in *) &sa))
 		return;
 
-	if ((len = endring - rs) >= LINESIZ)
-		memmove(text, rs, LINESIZ);
+	len = endring - ringpos;
+	if (len >= LINESIZ)
+		memmove(text, ringpos, LINESIZ);
 	else {
-		memmove(text, rs, len);
+		memmove(text, ringpos, len);
 		memmove(text + len, ring, LINESIZ - len);
 	}
-	if (++rs == endring)
-		rs = ring;
+	if (++ringpos == endring)
+		ringpos = ring;
 	text[LINESIZ] = '\r';
 	text[LINESIZ + 1] = '\n';
 	(void) sendto(s, text, sizeof(text), 0, &sa, sizeof(sa));
