@@ -236,9 +236,15 @@ extern void bb_copyfd_exact_size(int fd1, int fd2, off_t size);
 /* this helper yells "short read!" if param is not -1 */
 extern void complain_copyfd_and_die(off_t sz) ATTRIBUTE_NORETURN;
 extern char bb_process_escape_sequence(const char **ptr);
-/* TODO: sometimes modifies its parameter, which
- * makes it rather inconvenient at times: */
-extern char *bb_get_last_path_component(char *path);
+/* xxxx_strip version can modify its parameter:
+ * "/"        -> "/"
+ * "abc"      -> "abc"
+ * "abc/def"  -> "def"
+ * "abc/def/" -> "def" !!
+ */
+extern char *bb_get_last_path_component_strip(char *path);
+/* "abc/def/" -> "" and it never modifies 'path' */
+extern char *bb_get_last_path_component_nostrip(const char *path);
 
 int ndelay_on(int fd);
 int ndelay_off(int fd);

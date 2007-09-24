@@ -68,7 +68,7 @@ int mv_main(int argc, char **argv)
 	}
 
 	do {
-		dest = concat_path_file(last, bb_get_last_path_component(*argv));
+		dest = concat_path_file(last, bb_get_last_path_component_strip(*argv));
 		dest_exists = cp_mv_stat(dest, &dest_stat);
 		if (dest_exists < 0) {
 			goto RET_1;

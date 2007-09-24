@@ -34,7 +34,8 @@ int basename_main(int argc, char **argv)
 		bb_show_usage();
 	}
 
-	s = bb_get_last_path_component(*++argv);
+	/* It should strip slash: /abc/def/ -> def */
+	s = bb_get_last_path_component_strip(*++argv);
 
 	if (*++argv) {
 		n = strlen(*argv);

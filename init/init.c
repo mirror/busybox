@@ -436,10 +436,11 @@ static pid_t run(const struct init_action *a)
 		++cmdpath;
 
 		/* find the last component in the command pathname */
-		s = bb_get_last_path_component(cmdpath);
+		s = bb_get_last_path_component_nostrip(cmdpath);
 
 		/* make a new argv[0] */
-		if ((cmd[0] = malloc(strlen(s) + 2)) == NULL) {
+		cmd[0] = malloc(strlen(s) + 2);
+		if (cmd[0] == NULL) {
 			message(L_LOG | L_CONSOLE, bb_msg_memory_exhausted);
 			cmd[0] = cmdpath;
 		} else {

@@ -601,7 +601,7 @@ static int busybox_main(char **argv)
 	}
 	/* We support "busybox /a/path/to/applet args..." too. Allows for
 	 * "#!/bin/busybox"-style wrappers */
-	applet_name = bb_get_last_path_component(argv[0]);
+	applet_name = bb_get_last_path_component_nostrip(argv[0]);
 	run_applet_and_exit(applet_name, argv);
 	bb_error_msg_and_die("applet not found");
 }

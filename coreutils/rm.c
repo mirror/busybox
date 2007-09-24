@@ -38,7 +38,7 @@ int rm_main(int argc, char **argv)
 
 	if (*argv != NULL) {
 		do {
-			const char *base = bb_get_last_path_component(*argv);
+			const char *base = bb_get_last_path_component_strip(*argv);
 
 			if (DOT_OR_DOTDOT(base)) {
 				bb_error_msg("cannot remove '.' or '..'");

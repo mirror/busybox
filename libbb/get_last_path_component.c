@@ -8,25 +8,35 @@
  */
 
 #include "libbb.h"
-
-char *bb_get_last_path_component(char *path)
+/*
+ * "/"        -> "/"
+ * "abc"      -> "abc"
+ * "abc/def"  -> "def"
+ * "abc/def/" -> ""
+ */
+char *bb_get_last_path_component_nostrip(const char *path)
 {
-	char *first = path;
-	char *last;
+	char *slash = strrchr(path, '/');
 
-	last = path - 1;
+	if (!slash || (slash == path && !slash[1]))
+		return (char*)path;
 
-	while (*path) {
-		if ((*path != '/') && (path > ++last)) {
-			last = first = path;
-		}
-		++path;
-	}
+	return slash + 1;
+}
 
-	if (*first == '/') {
-		last = first;
-	}
-	last[1] = '\0';
+/*
+ * "/"        -> "/"
+ * "abc"      -> "abc"
+ * "abc/def"  -> "def"
+ * "abc/def/" -> "def" !!
+ */
+char *bb_get_last_path_component_strip(char *path)
+{
+	char *slash = last_char_is(path, '/');
 
-	return first;
+	if (slash)
+		while (*slash == '/' && slash != path)
+			*slash-- = '\0';
+
+	return bb_get_last_path_component_nostrip(path);
 }

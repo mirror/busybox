@@ -806,7 +806,7 @@ static int check_module_name_match(const char *filename, struct stat *statbuf,
 		return FALSE;
 	else {
 		char *tmp, *tmp1 = xstrdup(filename);
-		tmp = bb_get_last_path_component(tmp1);
+		tmp = bb_get_last_path_component_nostrip(tmp1);
 		if (strcmp(tmp, fullname) == 0) {
 			free(tmp1);
 			/* Stop searching if we find a match */

@@ -67,7 +67,7 @@ void run_shell(const char *shell, int loginshell, const char *command, const cha
 
 	args = xmalloc(sizeof(char*) * (4 + additional_args_cnt));
 
-	args[0] = bb_get_last_path_component(xstrdup(shell));
+	args[0] = bb_get_last_path_component_nostrip(xstrdup(shell));
 
 	if (loginshell)
 		args[0] = xasprintf("-%s", args[0]);

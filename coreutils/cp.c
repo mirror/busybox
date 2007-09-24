@@ -87,7 +87,7 @@ int cp_main(int argc, char **argv)
 	}
 
 	while (1) {
-		dest = concat_path_file(last, bb_get_last_path_component(*argv));
+		dest = concat_path_file(last, bb_get_last_path_component_strip(*argv));
  DO_COPY:
 		if (copy_file(*argv, dest, flags) < 0) {
 			status = 1;

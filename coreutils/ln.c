@@ -45,7 +45,7 @@ int ln_main(int argc, char **argv)
 
 	if (argc == optind + 1) {
 		*--argv = last;
-		last = bb_get_last_path_component(xstrdup(last));
+		last = bb_get_last_path_component_strip(xstrdup(last));
 	}
 
 	do {
@@ -57,7 +57,7 @@ int ln_main(int argc, char **argv)
 		                NULL)
 		) {
 			src_name = xstrdup(*argv);
-			src = concat_path_file(src, bb_get_last_path_component(src_name));
+			src = concat_path_file(src, bb_get_last_path_component_strip(src_name));
 			free(src_name);
 			src_name = src;
 		}

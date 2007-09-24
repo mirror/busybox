@@ -1141,12 +1141,11 @@ static int pseudo_exec(struct child_prog *child)
 		}
 	}
 
-
 	/* Check if the command matches any busybox internal
 	 * commands ("applets") here.  Following discussions from
 	 * November 2000 on busybox@busybox.net, don't use
-	 * bb_get_last_path_component().  This way explicit (with
-	 * slashes) filenames will never be interpreted as an
+	 * bb_get_last_path_component_nostrip().  This way explicit
+	 * (with slashes) filenames will never be interpreted as an
 	 * applet, just like with builtins.  This way the user can
 	 * override an applet with an explicit filename reference.
 	 * The only downside to this change is that an explicit

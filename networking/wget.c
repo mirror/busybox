@@ -12,11 +12,11 @@
 struct host_info {
 	// May be used if we ever will want to free() all xstrdup()s...
 	/* char *allocated; */
-	char    *path;
-	char    *user;
-	char    *host;
-	int      port;
-	smallint is_ftp;
+	const char *path;
+	const char *user;
+	char       *host;
+	int         port;
+	smallint    is_ftp;
 };
 
 
@@ -318,9 +318,7 @@ static void parse_url(char *src_url, struct host_info *h)
 	p = strchr(h->host, '?'); if (!sp || (p && sp > p)) sp = p;
 	p = strchr(h->host, '#'); if (!sp || (p && sp > p)) sp = p;
 	if (!sp) {
-		/* must be writable because of bb_get_last_path_component() */
-		static char nullstr[] ALIGN1 = "";
-		h->path = nullstr;
+		h->path = "";
 	} else if (*sp == '/') {
 		*sp = '\0';
 		h->path = sp + 1;
@@ -328,7 +326,7 @@ static void parse_url(char *src_url, struct host_info *h)
 		// http://busybox.net?login=john@doe is a valid URL
 		// memmove converts to:
 		// http:/busybox.nett?login=john@doe...
-		memmove(h->host-1, h->host, sp - h->host);
+		memmove(h->host - 1, h->host, sp - h->host);
 		h->host--;
 		sp[-1] = '\0';
 		h->path = sp;
@@ -497,31 +495,20 @@ int wget_main(int argc, char **argv)
 		}
 	}
 
-	/* Guess an output filename */
+	/* Guess an output filename, if there was no -O FILE */
 	if (!fname_out) {
-		// Dirty hack. Needed because bb_get_last_path_component
-		// will destroy trailing / by storing '\0' in last byte!
-		if (!last_char_is(target.path, '/')) {
-			fname_out = bb_get_last_path_component(target.path);
-#if ENABLE_FEATURE_WGET_STATUSBAR
-			curfile = fname_out;
-#endif
-		}
-		if (!fname_out || !fname_out[0]) {
-			/* bb_get_last_path_component writes
-			 * to last '/' only. We don't have one here... */
+		fname_out = bb_get_last_path_component_nostrip(target.path);
+		/* handle "wget http://kernel.org//" */
+		if (fname_out[0] == '/' || !fname_out[0])
 			fname_out = (char*)"index.html";
-#if ENABLE_FEATURE_WGET_STATUSBAR
-			curfile = fname_out;
-#endif
-		}
-		if (dir_prefix != NULL)
+		/* -P DIR is considered only if there was no -O FILE */
+		if (dir_prefix)
 			fname_out = concat_path_file(dir_prefix, fname_out);
-#if ENABLE_FEATURE_WGET_STATUSBAR
-	} else {
-		curfile = bb_get_last_path_component(fname_out);
-#endif
 	}
+#if ENABLE_FEATURE_WGET_STATUSBAR
+	curfile = bb_get_last_path_component_nostrip(fname_out);
+#endif
+
 	/* Impossible?
 	if ((opt & WGET_OPT_CONTINUE) && !fname_out)
 		bb_error_msg_and_die("cannot specify continue (-c) without a filename (-O)"); */
