@@ -6,10 +6,6 @@
  *
  */
 
-/* We want libc to give us xxx64 functions also */
-/* http://www.unix.org/version2/whatsnew/lfs20mar.html */
-//#define _LARGEFILE64_SOURCE 1
-
 #include <getopt.h>	/* for struct option */
 #include "libbb.h"
 
@@ -23,21 +19,44 @@ struct host_info {
 	char *user;
 };
 
+
+/* Globals (can be accessed from signal handlers) */
+struct globals {
+	off_t content_len;        /* Content-length of the file */
+	off_t beg_range;          /* Range at which continue begins */
+#if ENABLE_FEATURE_WGET_STATUSBAR
+	off_t lastsize;
+	off_t totalsize;
+	off_t transferred;        /* Number of bytes transferred so far */
+	const char *curfile;      /* Name of current file being transferred */
+	unsigned lastupdate_sec;
+	unsigned start_sec;
+#endif
+	bool chunked;             /* chunked transfer encoding */
+};
+#define G (*(struct globals*)&bb_common_bufsiz1)
+struct BUG_G_too_big {
+        char BUG_G_too_big[sizeof(G) <= COMMON_BUFSIZE ? 1 : -1];
+};
+#define content_len     (G.content_len    )
+#define beg_range       (G.beg_range      )
+#define lastsize        (G.lastsize       )
+#define totalsize       (G.totalsize      )
+#define transferred     (G.transferred    )
+#define curfile         (G.curfile        )
+#define lastupdate_sec  (G.lastupdate_sec )
+#define start_sec       (G.start_sec      )
+#define chunked         (G.chunked        )
+#define INIT_G() do { } while (0)
+
+
 static void parse_url(char *url, struct host_info *h);
 static FILE *open_socket(len_and_sockaddr *lsa);
 static char *gethdr(char *buf, size_t bufsiz, FILE *fp /*,int *istrunc*/ );
 static int ftpcmd(const char *s1, const char *s2, FILE *fp, char *buf);
 
-/* Globals (can be accessed from signal handlers */
-static off_t content_len;        /* Content-length of the file */
-static off_t beg_range;          /* Range at which continue begins */
-#if ENABLE_FEATURE_WGET_STATUSBAR
-static off_t transferred;        /* Number of bytes transferred so far */
-#endif
-static bool chunked;                     /* chunked transfer encoding */
 #if ENABLE_FEATURE_WGET_STATUSBAR
 static void progressmeter(int flag);
-static const char *curfile;             /* Name of current file being transferred */
 enum {
 	STALLTIME = 5                   /* Seconds when xfer considered "stalled" */
 };
@@ -105,7 +124,6 @@ int wget_main(int argc, char **argv)
 	char *extra_headers = NULL;
 	llist_t *headers_llist = NULL;
 #endif
-
 	FILE *sfp = NULL;               /* socket to web/ftp server         */
 	FILE *dfp = NULL;               /* socket to ftp server (data)      */
 	char *fname_out = NULL;         /* where to direct output (-O)      */
@@ -114,6 +132,7 @@ int wget_main(int argc, char **argv)
 	bool use_proxy = 1;             /* Use proxies if env vars are set  */
 	const char *proxy_flag = "on";  /* Use proxies if env vars are set  */
 	const char *user_agent = "Wget";/* "User-Agent" header field        */
+
 	static const char keywords[] ALIGN1 =
 		"content-length\0""transfer-encoding\0""chunked\0""location\0";
 	enum {
@@ -143,6 +162,11 @@ int wget_main(int argc, char **argv)
 		"passive-ftp\0"      No_argument       "\xff"
 		"header\0"           Required_argument "\xfe"
 		;
+#endif
+
+	INIT_G();
+
+#if ENABLE_FEATURE_WGET_LONG_OPTIONS
 	applet_long_options = wget_longopts;
 #endif
 	/* server.allocated = target.allocated = NULL; */
@@ -337,7 +361,7 @@ int wget_main(int argc, char **argv)
 				}
 				if (key == KEY_transfer_encoding) {
 					if (index_in_strings(keywords, str_tolower(str)) + 1 != KEY_chunked)
-						bb_error_msg_and_die("server wants to do %s transfer encoding", str);
+						bb_error_msg_and_die("transfer encoding '%s' is not supported", str);
 					chunked = got_clen = 1;
 				}
 				if (key == KEY_location) {
@@ -432,22 +456,18 @@ int wget_main(int argc, char **argv)
 		}
 
 		if (ftpcmd("RETR ", target.path, sfp, buf) > 150)
-			bb_error_msg_and_die("bad response to RETR: %s", buf);
+			bb_error_msg_and_die("bad response to %s: %s", "RETR", buf);
 	}
+
 	if (opt & WGET_OPT_SPIDER) {
 		if (ENABLE_FEATURE_CLEAN_UP)
 			fclose(sfp);
-		goto done;
+		return EXIT_SUCCESS;
 	}
 
 	/*
 	 * Retrieve file
 	 */
-	if (chunked) {
-		fgets(buf, sizeof(buf), dfp);
-		content_len = STRTOOFF(buf, NULL, 16);
-		/* FIXME: error check?? */
-	}
 
 	/* Do it before progressmeter (want to have nice error message) */
 	if (output_fd < 0)
@@ -456,6 +476,9 @@ int wget_main(int argc, char **argv)
 
 	if (!(opt & WGET_OPT_QUIET))
 		progressmeter(-1);
+
+	if (chunked)
+		goto get_clen;
 
 	/* Loops only if chunked */
 	while (1) {
@@ -485,6 +508,7 @@ int wget_main(int argc, char **argv)
 			break;
 
 		safe_fgets(buf, sizeof(buf), dfp); /* This is a newline */
+ get_clen:
 		safe_fgets(buf, sizeof(buf), dfp);
 		content_len = STRTOOFF(buf, NULL, 16);
 		/* FIXME: error check? */
@@ -501,9 +525,9 @@ int wget_main(int argc, char **argv)
 			bb_error_msg_and_die("ftp error: %s", buf+4);
 		ftpcmd("QUIT", NULL, sfp, buf);
 	}
-done:
-	exit(EXIT_SUCCESS);
-}
+
+	return EXIT_SUCCESS;
+} /* wget_main() */
 
 
 static void parse_url(char *src_url, struct host_info *h)
@@ -688,10 +712,6 @@ static void alarmtimer(int iwait)
 static void
 progressmeter(int flag)
 {
-	static unsigned lastupdate_sec;
-	static unsigned start_sec;
-	static off_t lastsize, totalsize;
-
 	off_t abbrevsize;
 	unsigned since_last_update, elapsed;
 	unsigned ratio;
