@@ -3972,7 +3972,7 @@ int insmod_main( int argc, char **argv)
 	int m_version, m_crcs;
 #endif
 #if ENABLE_FEATURE_CLEAN_UP
-	FILE *fp = 0;
+	FILE *fp = NULL;
 #else
 	FILE *fp;
 #endif
@@ -4030,7 +4030,7 @@ int insmod_main( int argc, char **argv)
 		tmp1 = 0;       /* flag for free(m_name) before exit() */
 	}
 
-	/* Get a filedesc for the module.  Check we we have a complete path */
+	/* Get a filedesc for the module.  Check that we have a complete path */
 	if (stat(arg1, &st) < 0 || !S_ISREG(st.st_mode)
 	 || (fp = fopen(arg1, "r")) == NULL
 	) {
@@ -4057,12 +4057,12 @@ int insmod_main( int argc, char **argv)
 		}
 
 		/* Check if we have found anything yet */
-		if (m_filename == 0 || ((fp = fopen(m_filename, "r")) == NULL)) {
+		if (!m_filename || ((fp = fopen(m_filename, "r")) == NULL)) {
 			char module_dir[FILENAME_MAX];
 
 			free(m_filename);
-			m_filename = 0;
-			if (realpath (_PATH_MODULES, module_dir) == NULL)
+			m_filename = NULL;
+			if (realpath(_PATH_MODULES, module_dir) == NULL)
 				strcpy(module_dir, _PATH_MODULES);
 			/* No module found under /lib/modules/`uname -r`, this
 			 * time cast the net a bit wider.  Search /lib/modules/ */
@@ -4072,11 +4072,11 @@ int insmod_main( int argc, char **argv)
 				if (m_filename == 0
 				 || ((fp = fopen(m_filename, "r")) == NULL)
 				) {
-					bb_error_msg("%s: no module by that name found", m_fullName);
+					bb_error_msg("%s: module not found", m_fullName);
 					goto out;
 				}
 			} else
-				bb_error_msg_and_die("%s: no module by that name found", m_fullName);
+				bb_error_msg_and_die("%s: module not found", m_fullName);
 		}
 	} else
 		m_filename = xstrdup(arg1);
