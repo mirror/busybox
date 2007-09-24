@@ -1584,9 +1584,10 @@
 "	::shutdown:/sbin/swapoff -a\n"
 
 #define insmod_trivial_usage \
-       "[OPTION]... MODULE [symbol=value]..."
+	USE_FEATURE_2_4_MODULES("[OPTION]... ") "MODULE [symbol=value]..."
 #define insmod_full_usage \
        "Load the specified kernel modules into the kernel" \
+	USE_FEATURE_2_4_MODULES( \
        "\n\nOptions:\n" \
        "	-f	Force module to load into the wrong kernel version\n" \
        "	-k	Make module autoclean-able\n" \
@@ -1594,9 +1595,11 @@
        "	-q	Quiet\n" \
        "	-L	Lock to prevent simultaneous loads of a module\n" \
 	USE_FEATURE_INSMOD_LOAD_MAP( \
-       "	-m	Output load map to stdout\n") \
+       "	-m	Output load map to stdout\n" \
+	) \
        "	-o NAME	Set internal module name to NAME\n" \
-       "	-x	Do not export externs"
+       "	-x	Do not export externs" \
+	)
 
 #define install_trivial_usage \
        "[-cgmops] [sources] dest|directory"

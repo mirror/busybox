@@ -72,7 +72,7 @@
 #endif
 
 #if ENABLE_FEATURE_2_6_MODULES
-extern int insmod_ng_main( int argc, char **argv);
+extern int insmod_ng_main(int argc, char **argv);
 #endif
 
 
