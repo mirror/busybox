@@ -25,7 +25,7 @@ struct host_info {
 
 static void parse_url(char *url, struct host_info *h);
 static FILE *open_socket(len_and_sockaddr *lsa);
-static char *gethdr(char *buf, size_t bufsiz, FILE *fp, int *istrunc);
+static char *gethdr(char *buf, size_t bufsiz, FILE *fp /*,int *istrunc*/ );
 static int ftpcmd(const char *s1, const char *s2, FILE *fp, char *buf);
 
 /* Globals (can be accessed from signal handlers */
@@ -94,7 +94,7 @@ int wget_main(int argc, char **argv)
 	char buf[512];
 	struct host_info server, target;
 	len_and_sockaddr *lsa;
-	int n, status;
+	int status;
 	int port;
 	int try = 5;
 	unsigned opt;
@@ -301,7 +301,7 @@ int wget_main(int argc, char **argv)
 			switch (status) {
 			case 0:
 			case 100:
-				while (gethdr(buf, sizeof(buf), sfp, &n) != NULL)
+				while (gethdr(buf, sizeof(buf), sfp /*, &n*/) != NULL)
 					/* eat all remaining headers */;
 				goto read_response;
 			case 200:
@@ -324,7 +324,7 @@ int wget_main(int argc, char **argv)
 			/*
 			 * Retrieve HTTP headers.
 			 */
-			while ((str = gethdr(buf, sizeof(buf), sfp, &n)) != NULL) {
+			while ((str = gethdr(buf, sizeof(buf), sfp /*, &n*/)) != NULL) {
 				/* gethdr did already convert the "FOO:" string to lowercase */
 				smalluint key = index_in_strings(keywords, *&buf) + 1;
 				if (key == KEY_content_length) {
@@ -457,39 +457,40 @@ int wget_main(int argc, char **argv)
 	if (!(opt & WGET_OPT_QUIET))
 		progressmeter(-1);
 
-	do {
+	/* Loops only if chunked */
+	while (1) {
 		while (content_len > 0 || !got_clen) {
+			int n;
 			unsigned rdsz = sizeof(buf);
+
 			if (content_len < sizeof(buf) && (chunked || got_clen))
 				rdsz = (unsigned)content_len;
 			n = safe_fread(buf, rdsz, dfp);
-			if (n <= 0)
+			if (n <= 0) {
+				if (ferror(dfp)) {
+					/* perror will not work: ferror doesn't set errno */
+					bb_error_msg_and_die(bb_msg_read_error);
+				}
 				break;
-			if (full_write(output_fd, buf, n) != n) {
-				bb_perror_msg_and_die(bb_msg_write_error);
 			}
+			xwrite(output_fd, buf, n);
 #if ENABLE_FEATURE_WGET_STATUSBAR
 			transferred += n;
 #endif
-			if (got_clen) {
+			if (got_clen)
 				content_len -= n;
-			}
 		}
 
-		if (chunked) {
-			safe_fgets(buf, sizeof(buf), dfp); /* This is a newline */
-			safe_fgets(buf, sizeof(buf), dfp);
-			content_len = STRTOOFF(buf, NULL, 16);
-			/* FIXME: error check? */
-			if (content_len == 0) {
-				chunked = 0; /* all done! */
-			}
-		}
+		if (!chunked)
+			break;
 
-		if (n == 0 && ferror(dfp)) {
-			bb_perror_msg_and_die(bb_msg_read_error);
-		}
-	} while (chunked);
+		safe_fgets(buf, sizeof(buf), dfp); /* This is a newline */
+		safe_fgets(buf, sizeof(buf), dfp);
+		content_len = STRTOOFF(buf, NULL, 16);
+		/* FIXME: error check? */
+		if (content_len == 0)
+			break; /* all done! */
+	}
 
 	if (!(opt & WGET_OPT_QUIET))
 		progressmeter(1);
@@ -580,12 +581,12 @@ static FILE *open_socket(len_and_sockaddr *lsa)
 }
 
 
-static char *gethdr(char *buf, size_t bufsiz, FILE *fp, int *istrunc)
+static char *gethdr(char *buf, size_t bufsiz, FILE *fp /*, int *istrunc*/)
 {
 	char *s, *hdrval;
 	int c;
 
-	*istrunc = 0;
+	/* *istrunc = 0; */
 
 	/* retrieve header line */
 	if (fgets(buf, bufsiz, fp) == NULL)
@@ -593,12 +594,12 @@ static char *gethdr(char *buf, size_t bufsiz, FILE *fp, int *istrunc)
 
 	/* see if we are at the end of the headers */
 	for (s = buf; *s == '\r'; ++s)
-		;
-	if (s[0] == '\n')
+		continue;
+	if (*s == '\n')
 		return NULL;
 
 	/* convert the header name to lower case */
-	for (s = buf; isalnum(*s) || *s == '-'; ++s)
+	for (s = buf; isalnum(*s) || *s == '-' || *s == '.'; ++s)
 		*s = tolower(*s);
 
 	/* verify we are at the end of the header name */
@@ -606,24 +607,23 @@ static char *gethdr(char *buf, size_t bufsiz, FILE *fp, int *istrunc)
 		bb_error_msg_and_die("bad header line: %s", buf);
 
 	/* locate the start of the header value */
-	for (*s++ = '\0'; *s == ' ' || *s == '\t'; ++s)
-		;
-	hdrval = s;
+	*s++ = '\0';
+	hdrval = skip_whitespace(s);
 
 	/* locate the end of header */
-	while (*s != '\0' && *s != '\r' && *s != '\n')
+	while (*s && *s != '\r' && *s != '\n')
 		++s;
 
 	/* end of header found */
-	if (*s != '\0') {
+	if (*s) {
 		*s = '\0';
 		return hdrval;
 	}
 
-	/* Rats!  The buffer isn't big enough to hold the entire header value. */
+	/* Rats! The buffer isn't big enough to hold the entire header value. */
 	while (c = getc(fp), c != EOF && c != '\n')
-		;
-	*istrunc = 1;
+		continue;
+	/* *istrunc = 1; */
 	return hdrval;
 }
 
