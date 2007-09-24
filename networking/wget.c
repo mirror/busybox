@@ -50,19 +50,165 @@ struct BUG_G_too_big {
 #define INIT_G() do { } while (0)
 
 
-static void parse_url(char *url, struct host_info *h);
-static FILE *open_socket(len_and_sockaddr *lsa);
-static char *gethdr(char *buf, size_t bufsiz, FILE *fp /*,int *istrunc*/ );
-static int ftpcmd(const char *s1, const char *s2, FILE *fp, char *buf);
-
 #if ENABLE_FEATURE_WGET_STATUSBAR
-static void progressmeter(int flag);
 enum {
 	STALLTIME = 5                   /* Seconds when xfer considered "stalled" */
 };
-#else
-static ALWAYS_INLINE void progressmeter(int flag) {}
+
+static int getttywidth(void)
+{
+	int width;
+	get_terminal_width_height(0, &width, NULL);
+	return width;
+}
+
+static void updateprogressmeter(int ignore)
+{
+	int save_errno = errno;
+
+	progressmeter(0);
+	errno = save_errno;
+}
+
+static void alarmtimer(int iwait)
+{
+	struct itimerval itv;
+
+	itv.it_value.tv_sec = iwait;
+	itv.it_value.tv_usec = 0;
+	itv.it_interval = itv.it_value;
+	setitimer(ITIMER_REAL, &itv, NULL);
+}
+
+static void progressmeter(int flag)
+{
+	off_t abbrevsize;
+	unsigned since_last_update, elapsed;
+	unsigned ratio;
+	int barlength, i;
+
+	if (flag == -1) { /* first call to progressmeter */
+		start_sec = monotonic_sec();
+		lastupdate_sec = start_sec;
+		lastsize = 0;
+		totalsize = content_len + beg_range; /* as content_len changes.. */
+	}
+
+	ratio = 100;
+	if (totalsize != 0 && !chunked) {
+		/* long long helps to have it working even if !LFS */
+		ratio = (unsigned) (100ULL * (transferred+beg_range) / totalsize);
+		if (ratio > 100) ratio = 100;
+	}
+
+	fprintf(stderr, "\r%-20.20s%4d%% ", curfile, ratio);
+
+	barlength = getttywidth() - 49;
+	if (barlength > 0) {
+		/* god bless gcc for variable arrays :) */
+		i = barlength * ratio / 100;
+		{
+			char buf[i+1];
+			memset(buf, '*', i);
+			buf[i] = '\0';
+			fprintf(stderr, "|%s%*s|", buf, barlength - i, "");
+		}
+	}
+	i = 0;
+	abbrevsize = transferred + beg_range;
+	while (abbrevsize >= 100000) {
+		i++;
+		abbrevsize >>= 10;
+	}
+	/* see http://en.wikipedia.org/wiki/Tera */
+	fprintf(stderr, "%6d%c ", (int)abbrevsize, " kMGTPEZY"[i]);
+
+// Nuts! Ain't it easier to update progress meter ONLY when we transferred++?
+// FIXME: get rid of alarmtimer + updateprogressmeter mess
+
+	elapsed = monotonic_sec();
+	since_last_update = elapsed - lastupdate_sec;
+	if (transferred > lastsize) {
+		lastupdate_sec = elapsed;
+		lastsize = transferred;
+		if (since_last_update >= STALLTIME) {
+			/* We "cut off" these seconds from elapsed time
+			 * by adjusting start time */
+			start_sec += since_last_update;
+		}
+		since_last_update = 0; /* we are un-stalled now */
+	}
+	elapsed -= start_sec; /* now it's "elapsed since start" */
+
+	if (since_last_update >= STALLTIME) {
+		fprintf(stderr, " - stalled -");
+	} else {
+		off_t to_download = totalsize - beg_range;
+		if (transferred <= 0 || (int)elapsed <= 0 || transferred > to_download || chunked) {
+			fprintf(stderr, "--:--:-- ETA");
+		} else {
+			/* to_download / (transferred/elapsed) - elapsed: */
+			int eta = (int) ((unsigned long long)to_download*elapsed/transferred - elapsed);
+			/* (long long helps to have working ETA even if !LFS) */
+			i = eta % 3600;
+			fprintf(stderr, "%02d:%02d:%02d ETA", eta / 3600, i / 60, i % 60);
+		}
+	}
+
+	if (flag == -1) { /* first call to progressmeter */
+		struct sigaction sa;
+		sa.sa_handler = updateprogressmeter;
+		sigemptyset(&sa.sa_mask);
+		sa.sa_flags = SA_RESTART;
+		sigaction(SIGALRM, &sa, NULL);
+		alarmtimer(1);
+	} else if (flag == 1) { /* last call to progressmeter */
+		alarmtimer(0);
+		transferred = 0;
+		putc('\n', stderr);
+	}
+}
+/* Original copyright notice which applies to the CONFIG_FEATURE_WGET_STATUSBAR stuff,
+ * much of which was blatantly stolen from openssh.  */
+/*-
+ * Copyright (c) 1992, 1993
+ *	The Regents of the University of California.  All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in the
+ *    documentation and/or other materials provided with the distribution.
+ *
+ * 3. <BSD Advertising Clause omitted per the July 22, 1999 licensing change
+ *		ftp://ftp.cs.berkeley.edu/pub/4bsd/README.Impt.License.Change>
+ *
+ * 4. Neither the name of the University nor the names of its contributors
+ *    may be used to endorse or promote products derived from this software
+ *    without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE REGENTS AND CONTRIBUTORS ``AS IS'' AND
+ * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ * ARE DISCLAIMED.  IN NO EVENT SHALL THE REGENTS OR CONTRIBUTORS BE LIABLE
+ * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+ * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
+ * OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+ * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+ * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
+ * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
+ * SUCH DAMAGE.
+ *
+ */
+#else /* FEATURE_WGET_STATUSBAR */
+
+static ALWAYS_INLINE void progressmeter(int flag) { }
+
 #endif
+
 
 /* Read NMEMB bytes into PTR from STREAM.  Returns the number of bytes read,
  * and a short count if an eof or non-interrupt error is encountered.  */
@@ -106,6 +252,157 @@ static char *base64enc_512(char buf[512], const char *str)
 	return buf;
 }
 #endif
+
+
+static FILE *open_socket(len_and_sockaddr *lsa)
+{
+	FILE *fp;
+
+	/* glibc 2.4 seems to try seeking on it - ??! */
+	/* hopefully it understands what ESPIPE means... */
+	fp = fdopen(xconnect_stream(lsa), "r+");
+	if (fp == NULL)
+		bb_perror_msg_and_die("fdopen");
+
+	return fp;
+}
+
+
+static int ftpcmd(const char *s1, const char *s2, FILE *fp, char *buf)
+{
+	int result;
+	if (s1) {
+		if (!s2) s2 = "";
+		fprintf(fp, "%s%s\r\n", s1, s2);
+		fflush(fp);
+	}
+
+	do {
+		char *buf_ptr;
+
+		if (fgets(buf, 510, fp) == NULL) {
+			bb_perror_msg_and_die("error getting response");
+		}
+		buf_ptr = strstr(buf, "\r\n");
+		if (buf_ptr) {
+			*buf_ptr = '\0';
+		}
+	} while (!isdigit(buf[0]) || buf[3] != ' ');
+
+	buf[3] = '\0';
+	result = xatoi_u(buf);
+	buf[3] = ' ';
+	return result;
+}
+
+
+static void parse_url(char *src_url, struct host_info *h)
+{
+	char *url, *p, *sp;
+
+	/* h->allocated = */ url = xstrdup(src_url);
+
+	if (strncmp(url, "http://", 7) == 0) {
+		h->port = bb_lookup_port("http", "tcp", 80);
+		h->host = url + 7;
+		h->is_ftp = 0;
+	} else if (strncmp(url, "ftp://", 6) == 0) {
+		h->port = bb_lookup_port("ftp", "tcp", 21);
+		h->host = url + 6;
+		h->is_ftp = 1;
+	} else
+		bb_error_msg_and_die("not an http or ftp url: %s", url);
+
+	// FYI:
+	// "Real" wget 'http://busybox.net?var=a/b' sends this request:
+	//   'GET /?var=a/b HTTP 1.0'
+	//   and saves 'index.html?var=a%2Fb' (we save 'b')
+	// wget 'http://busybox.net?login=john@doe':
+	//   request: 'GET /?login=john@doe HTTP/1.0'
+	//   saves: 'index.html?login=john@doe' (we save '?login=john@doe')
+	// wget 'http://busybox.net#test/test':
+	//   request: 'GET / HTTP/1.0'
+	//   saves: 'index.html' (we save 'test')
+	//
+	// We also don't add unique .N suffix if file exists...
+	sp = strchr(h->host, '/');
+	p = strchr(h->host, '?'); if (!sp || (p && sp > p)) sp = p;
+	p = strchr(h->host, '#'); if (!sp || (p && sp > p)) sp = p;
+	if (!sp) {
+		/* must be writable because of bb_get_last_path_component() */
+		static char nullstr[] ALIGN1 = "";
+		h->path = nullstr;
+	} else if (*sp == '/') {
+		*sp = '\0';
+		h->path = sp + 1;
+	} else { // '#' or '?'
+		// http://busybox.net?login=john@doe is a valid URL
+		// memmove converts to:
+		// http:/busybox.nett?login=john@doe...
+		memmove(h->host-1, h->host, sp - h->host);
+		h->host--;
+		sp[-1] = '\0';
+		h->path = sp;
+	}
+
+	sp = strrchr(h->host, '@');
+	h->user = NULL;
+	if (sp != NULL) {
+		h->user = h->host;
+		*sp = '\0';
+		h->host = sp + 1;
+	}
+
+	sp = h->host;
+}
+
+
+static char *gethdr(char *buf, size_t bufsiz, FILE *fp /*, int *istrunc*/)
+{
+	char *s, *hdrval;
+	int c;
+
+	/* *istrunc = 0; */
+
+	/* retrieve header line */
+	if (fgets(buf, bufsiz, fp) == NULL)
+		return NULL;
+
+	/* see if we are at the end of the headers */
+	for (s = buf; *s == '\r'; ++s)
+		continue;
+	if (*s == '\n')
+		return NULL;
+
+	/* convert the header name to lower case */
+	for (s = buf; isalnum(*s) || *s == '-' || *s == '.'; ++s)
+		*s = tolower(*s);
+
+	/* verify we are at the end of the header name */
+	if (*s != ':')
+		bb_error_msg_and_die("bad header line: %s", buf);
+
+	/* locate the start of the header value */
+	*s++ = '\0';
+	hdrval = skip_whitespace(s);
+
+	/* locate the end of header */
+	while (*s && *s != '\r' && *s != '\n')
+		++s;
+
+	/* end of header found */
+	if (*s) {
+		*s = '\0';
+		return hdrval;
+	}
+
+	/* Rats! The buffer isn't big enough to hold the entire header value. */
+	while (c = getc(fp), c != EOF && c != '\n')
+		continue;
+	/* *istrunc = 1; */
+	return hdrval;
+}
+
 
 int wget_main(int argc, char **argv);
 int wget_main(int argc, char **argv)
@@ -527,312 +824,4 @@ int wget_main(int argc, char **argv)
 	}
 
 	return EXIT_SUCCESS;
-} /* wget_main() */
-
-
-static void parse_url(char *src_url, struct host_info *h)
-{
-	char *url, *p, *sp;
-
-	/* h->allocated = */ url = xstrdup(src_url);
-
-	if (strncmp(url, "http://", 7) == 0) {
-		h->port = bb_lookup_port("http", "tcp", 80);
-		h->host = url + 7;
-		h->is_ftp = 0;
-	} else if (strncmp(url, "ftp://", 6) == 0) {
-		h->port = bb_lookup_port("ftp", "tcp", 21);
-		h->host = url + 6;
-		h->is_ftp = 1;
-	} else
-		bb_error_msg_and_die("not an http or ftp url: %s", url);
-
-	// FYI:
-	// "Real" wget 'http://busybox.net?var=a/b' sends this request:
-	//   'GET /?var=a/b HTTP 1.0'
-	//   and saves 'index.html?var=a%2Fb' (we save 'b')
-	// wget 'http://busybox.net?login=john@doe':
-	//   request: 'GET /?login=john@doe HTTP/1.0'
-	//   saves: 'index.html?login=john@doe' (we save '?login=john@doe')
-	// wget 'http://busybox.net#test/test':
-	//   request: 'GET / HTTP/1.0'
-	//   saves: 'index.html' (we save 'test')
-	//
-	// We also don't add unique .N suffix if file exists...
-	sp = strchr(h->host, '/');
-	p = strchr(h->host, '?'); if (!sp || (p && sp > p)) sp = p;
-	p = strchr(h->host, '#'); if (!sp || (p && sp > p)) sp = p;
-	if (!sp) {
-		/* must be writable because of bb_get_last_path_component() */
-		static char nullstr[] ALIGN1 = "";
-		h->path = nullstr;
-	} else if (*sp == '/') {
-		*sp = '\0';
-		h->path = sp + 1;
-	} else { // '#' or '?'
-		// http://busybox.net?login=john@doe is a valid URL
-		// memmove converts to:
-		// http:/busybox.nett?login=john@doe...
-		memmove(h->host-1, h->host, sp - h->host);
-		h->host--;
-		sp[-1] = '\0';
-		h->path = sp;
-	}
-
-	sp = strrchr(h->host, '@');
-	h->user = NULL;
-	if (sp != NULL) {
-		h->user = h->host;
-		*sp = '\0';
-		h->host = sp + 1;
-	}
-
-	sp = h->host;
 }
-
-
-static FILE *open_socket(len_and_sockaddr *lsa)
-{
-	FILE *fp;
-
-	/* glibc 2.4 seems to try seeking on it - ??! */
-	/* hopefully it understands what ESPIPE means... */
-	fp = fdopen(xconnect_stream(lsa), "r+");
-	if (fp == NULL)
-		bb_perror_msg_and_die("fdopen");
-
-	return fp;
-}
-
-
-static char *gethdr(char *buf, size_t bufsiz, FILE *fp /*, int *istrunc*/)
-{
-	char *s, *hdrval;
-	int c;
-
-	/* *istrunc = 0; */
-
-	/* retrieve header line */
-	if (fgets(buf, bufsiz, fp) == NULL)
-		return NULL;
-
-	/* see if we are at the end of the headers */
-	for (s = buf; *s == '\r'; ++s)
-		continue;
-	if (*s == '\n')
-		return NULL;
-
-	/* convert the header name to lower case */
-	for (s = buf; isalnum(*s) || *s == '-' || *s == '.'; ++s)
-		*s = tolower(*s);
-
-	/* verify we are at the end of the header name */
-	if (*s != ':')
-		bb_error_msg_and_die("bad header line: %s", buf);
-
-	/* locate the start of the header value */
-	*s++ = '\0';
-	hdrval = skip_whitespace(s);
-
-	/* locate the end of header */
-	while (*s && *s != '\r' && *s != '\n')
-		++s;
-
-	/* end of header found */
-	if (*s) {
-		*s = '\0';
-		return hdrval;
-	}
-
-	/* Rats! The buffer isn't big enough to hold the entire header value. */
-	while (c = getc(fp), c != EOF && c != '\n')
-		continue;
-	/* *istrunc = 1; */
-	return hdrval;
-}
-
-static int ftpcmd(const char *s1, const char *s2, FILE *fp, char *buf)
-{
-	int result;
-	if (s1) {
-		if (!s2) s2 = "";
-		fprintf(fp, "%s%s\r\n", s1, s2);
-		fflush(fp);
-	}
-
-	do {
-		char *buf_ptr;
-
-		if (fgets(buf, 510, fp) == NULL) {
-			bb_perror_msg_and_die("error getting response");
-		}
-		buf_ptr = strstr(buf, "\r\n");
-		if (buf_ptr) {
-			*buf_ptr = '\0';
-		}
-	} while (!isdigit(buf[0]) || buf[3] != ' ');
-
-	buf[3] = '\0';
-	result = xatoi_u(buf);
-	buf[3] = ' ';
-	return result;
-}
-
-#if ENABLE_FEATURE_WGET_STATUSBAR
-/* Stuff below is from BSD rcp util.c, as added to openshh.
- * Original copyright notice is retained at the end of this file.
- */
-static int
-getttywidth(void)
-{
-	int width;
-	get_terminal_width_height(0, &width, NULL);
-	return width;
-}
-
-static void
-updateprogressmeter(int ignore)
-{
-	int save_errno = errno;
-
-	progressmeter(0);
-	errno = save_errno;
-}
-
-static void alarmtimer(int iwait)
-{
-	struct itimerval itv;
-
-	itv.it_value.tv_sec = iwait;
-	itv.it_value.tv_usec = 0;
-	itv.it_interval = itv.it_value;
-	setitimer(ITIMER_REAL, &itv, NULL);
-}
-
-static void
-progressmeter(int flag)
-{
-	off_t abbrevsize;
-	unsigned since_last_update, elapsed;
-	unsigned ratio;
-	int barlength, i;
-
-	if (flag == -1) { /* first call to progressmeter */
-		start_sec = monotonic_sec();
-		lastupdate_sec = start_sec;
-		lastsize = 0;
-		totalsize = content_len + beg_range; /* as content_len changes.. */
-	}
-
-	ratio = 100;
-	if (totalsize != 0 && !chunked) {
-		/* long long helps to have it working even if !LFS */
-		ratio = (unsigned) (100ULL * (transferred+beg_range) / totalsize);
-		if (ratio > 100) ratio = 100;
-	}
-
-	fprintf(stderr, "\r%-20.20s%4d%% ", curfile, ratio);
-
-	barlength = getttywidth() - 49;
-	if (barlength > 0) {
-		/* god bless gcc for variable arrays :) */
-		i = barlength * ratio / 100;
-		{
-			char buf[i+1];
-			memset(buf, '*', i);
-			buf[i] = '\0';
-			fprintf(stderr, "|%s%*s|", buf, barlength - i, "");
-		}
-	}
-	i = 0;
-	abbrevsize = transferred + beg_range;
-	while (abbrevsize >= 100000) {
-		i++;
-		abbrevsize >>= 10;
-	}
-	/* see http://en.wikipedia.org/wiki/Tera */
-	fprintf(stderr, "%6d%c ", (int)abbrevsize, " kMGTPEZY"[i]);
-
-// Nuts! Ain't it easier to update progress meter ONLY when we transferred++?
-// FIXME: get rid of alarmtimer + updateprogressmeter mess
-
-	elapsed = monotonic_sec();
-	since_last_update = elapsed - lastupdate_sec;
-	if (transferred > lastsize) {
-		lastupdate_sec = elapsed;
-		lastsize = transferred;
-		if (since_last_update >= STALLTIME) {
-			/* We "cut off" these seconds from elapsed time
-			 * by adjusting start time */
-			start_sec += since_last_update;
-		}
-		since_last_update = 0; /* we are un-stalled now */
-	}
-	elapsed -= start_sec; /* now it's "elapsed since start" */
-
-	if (since_last_update >= STALLTIME) {
-		fprintf(stderr, " - stalled -");
-	} else {
-		off_t to_download = totalsize - beg_range;
-		if (transferred <= 0 || (int)elapsed <= 0 || transferred > to_download || chunked) {
-			fprintf(stderr, "--:--:-- ETA");
-		} else {
-			/* to_download / (transferred/elapsed) - elapsed: */
-			int eta = (int) ((unsigned long long)to_download*elapsed/transferred - elapsed);
-			/* (long long helps to have working ETA even if !LFS) */
-			i = eta % 3600;
-			fprintf(stderr, "%02d:%02d:%02d ETA", eta / 3600, i / 60, i % 60);
-		}
-	}
-
-	if (flag == -1) { /* first call to progressmeter */
-		struct sigaction sa;
-		sa.sa_handler = updateprogressmeter;
-		sigemptyset(&sa.sa_mask);
-		sa.sa_flags = SA_RESTART;
-		sigaction(SIGALRM, &sa, NULL);
-		alarmtimer(1);
-	} else if (flag == 1) { /* last call to progressmeter */
-		alarmtimer(0);
-		transferred = 0;
-		putc('\n', stderr);
-	}
-}
-#endif /* FEATURE_WGET_STATUSBAR */
-
-/* Original copyright notice which applies to the CONFIG_FEATURE_WGET_STATUSBAR stuff,
- * much of which was blatantly stolen from openssh.  */
-
-/*-
- * Copyright (c) 1992, 1993
- *	The Regents of the University of California.  All rights reserved.
- *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions
- * are met:
- * 1. Redistributions of source code must retain the above copyright
- *    notice, this list of conditions and the following disclaimer.
- * 2. Redistributions in binary form must reproduce the above copyright
- *    notice, this list of conditions and the following disclaimer in the
- *    documentation and/or other materials provided with the distribution.
- *
- * 3. <BSD Advertising Clause omitted per the July 22, 1999 licensing change
- *		ftp://ftp.cs.berkeley.edu/pub/4bsd/README.Impt.License.Change>
- *
- * 4. Neither the name of the University nor the names of its contributors
- *    may be used to endorse or promote products derived from this software
- *    without specific prior written permission.
- *
- * THIS SOFTWARE IS PROVIDED BY THE REGENTS AND CONTRIBUTORS ``AS IS'' AND
- * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
- * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
- * ARE DISCLAIMED.  IN NO EVENT SHALL THE REGENTS OR CONTRIBUTORS BE LIABLE
- * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
- * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
- * OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
- * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
- * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
- * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
- * SUCH DAMAGE.
- *
- */
