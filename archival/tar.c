@@ -386,6 +386,7 @@ static int writeFileToTarball(const char *fileName, struct stat *statbuf,
 	const char *header_name;
 	int inputFileFd = -1;
 
+	/* Strip leading '/' (must be before memorizing hardlink's name) */
 	header_name = fileName;
 	while (header_name[0] == '/') {
 		static smallint warned;
@@ -400,6 +401,12 @@ static int writeFileToTarball(const char *fileName, struct stat *statbuf,
 	if (header_name[0] == '\0')
 		return TRUE;
 
+	/* It is against the rules to archive a socket */
+	if (S_ISSOCK(statbuf->st_mode)) {
+		bb_error_msg("%s: socket ignored", fileName);
+		return TRUE;
+	}
+
 	/*
 	 * Check to see if we are dealing with a hard link.
 	 * If so -
@@ -412,12 +419,6 @@ static int writeFileToTarball(const char *fileName, struct stat *statbuf,
 		tbInfo->hlInfo = findHardLinkInfo(tbInfo->hlInfoHead, statbuf);
 		if (tbInfo->hlInfo == NULL)
 			addHardLinkInfo(&tbInfo->hlInfoHead, statbuf, header_name);
-	}
-
-	/* It is against the rules to archive a socket */
-	if (S_ISSOCK(statbuf->st_mode)) {
-		bb_error_msg("%s: socket ignored", fileName);
-		return TRUE;
 	}
 
 	/* It is a bad idea to store the archive we are in the process of creating,
