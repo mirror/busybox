@@ -12,11 +12,11 @@
 struct host_info {
 	// May be used if we ever will want to free() all xstrdup()s...
 	/* char *allocated; */
-	char *host;
-	int port;
-	char *path;
-	int is_ftp;
-	char *user;
+	char    *path;
+	char    *user;
+	char    *host;
+	int      port;
+	smallint is_ftp;
 };
 
 
@@ -32,7 +32,7 @@ struct globals {
 	unsigned lastupdate_sec;
 	unsigned start_sec;
 #endif
-	bool chunked;             /* chunked transfer encoding */
+	smallint chunked;             /* chunked transfer encoding */
 };
 #define G (*(struct globals*)&bb_common_bufsiz1)
 struct BUG_G_too_big {
@@ -62,26 +62,10 @@ static int getttywidth(void)
 	return width;
 }
 
-static void updateprogressmeter(int ignore)
-{
-	int save_errno = errno;
-
-	progressmeter(0);
-	errno = save_errno;
-}
-
-static void alarmtimer(int iwait)
-{
-	struct itimerval itv;
-
-	itv.it_value.tv_sec = iwait;
-	itv.it_value.tv_usec = 0;
-	itv.it_interval = itv.it_value;
-	setitimer(ITIMER_REAL, &itv, NULL);
-}
-
 static void progressmeter(int flag)
 {
+	/* We can be called from signal handler */
+	int save_errno = errno;
 	off_t abbrevsize;
 	unsigned since_last_update, elapsed;
 	unsigned ratio;
@@ -124,7 +108,6 @@ static void progressmeter(int flag)
 	fprintf(stderr, "%6d%c ", (int)abbrevsize, " kMGTPEZY"[i]);
 
 // Nuts! Ain't it easier to update progress meter ONLY when we transferred++?
-// FIXME: get rid of alarmtimer + updateprogressmeter mess
 
 	elapsed = monotonic_sec();
 	since_last_update = elapsed - lastupdate_sec;
@@ -155,18 +138,24 @@ static void progressmeter(int flag)
 		}
 	}
 
-	if (flag == -1) { /* first call to progressmeter */
-		struct sigaction sa;
-		sa.sa_handler = updateprogressmeter;
-		sigemptyset(&sa.sa_mask);
-		sa.sa_flags = SA_RESTART;
-		sigaction(SIGALRM, &sa, NULL);
-		alarmtimer(1);
-	} else if (flag == 1) { /* last call to progressmeter */
-		alarmtimer(0);
+	if (flag == 0) {
+		/* last call to progressmeter */
+		alarm(0);
 		transferred = 0;
 		putc('\n', stderr);
+	} else {
+		if (flag == -1) {
+			/* first call to progressmeter */
+			struct sigaction sa;
+			sa.sa_handler = progressmeter;
+			sigemptyset(&sa.sa_mask);
+			sa.sa_flags = SA_RESTART;
+			sigaction(SIGALRM, &sa, NULL);
+		}
+		alarm(1);
 	}
+
+	errno = save_errno;
 }
 /* Original copyright notice which applies to the CONFIG_FEATURE_WGET_STATUSBAR stuff,
  * much of which was blatantly stolen from openssh.  */
@@ -566,7 +555,8 @@ int wget_main(int argc, char **argv)
 		 *  HTTP session
 		 */
 		do {
-			got_clen = chunked = 0;
+			got_clen = 0;
+			chunked = 0;
 
 			if (!--try)
 				bb_error_msg_and_die("too many redirections");
@@ -814,7 +804,7 @@ int wget_main(int argc, char **argv)
 	}
 
 	if (!(opt & WGET_OPT_QUIET))
-		progressmeter(1);
+		progressmeter(0);
 
 	if ((use_proxy == 0) && target.is_ftp) {
 		fclose(dfp);
