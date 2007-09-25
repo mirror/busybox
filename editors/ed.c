@@ -82,7 +82,6 @@ static int bad_nums(int num1, int num2, const char *for_what)
 
 static char *skip_blank(const char *cp)
 {
-// NB: fix comment in skip_whitespace!
 	while (isblank(*cp))
 		cp++;
 	return (char *)cp;
@@ -125,7 +124,6 @@ static void doCommands(void)
 	smallint have1, have2;
 
 	while (TRUE) {
-// NB: fix comment in lineedit.c!
 		/* Returns:
 		 * -1 on read errors or EOF, or on bare Ctrl-D.
 		 * 0  on ctrl-C,

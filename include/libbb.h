@@ -892,6 +892,12 @@ enum {
 	FOR_SHELL = DO_HISTORY | SAVE_HISTORY | TAB_COMPLETION | USERNAME_COMPLETION,
 };
 line_input_t *new_line_input_t(int flags);
+/* Returns:
+ * -1 on read errors or EOF, or on bare Ctrl-D.
+ * 0  on ctrl-C,
+ * >0 length of input string, including terminating '\n'
+ * [is this true? stores "" in 'command' if return value is 0 or -1]
+ */
 int read_line_input(const char* prompt, char* command, int maxsize, line_input_t *state);
 #else
 int read_line_input(const char* prompt, char* command, int maxsize);

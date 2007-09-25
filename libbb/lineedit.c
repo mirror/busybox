@@ -1253,6 +1253,11 @@ static void win_changed(int nsig)
 #undef CTRL
 #define CTRL(a) ((a) & ~0x40)
 
+/* Returns:
+ * -1 on read errors or EOF, or on bare Ctrl-D.
+ * 0  on ctrl-C,
+ * >0 length of input string, including terminating '\n'
+ */
 int read_line_input(const char* prompt, char* command, int maxsize, line_input_t *st)
 {
 	int lastWasTab = FALSE;

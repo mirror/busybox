@@ -11,7 +11,7 @@
 
 char *skip_whitespace(const char *s)
 {
-	/* NB: isspace('0') returns 0 */
+	/* NB: isspace('\0') returns 0 */
 	while (isspace(*s)) ++s;
 
 	return (char *) s;
