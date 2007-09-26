@@ -1813,8 +1813,8 @@
        "$ ls -l /tmp/ls\n" \
        "lrwxrwxrwx    1 root     root            7 Apr 12 18:39 ls -> BusyBox*\n"
 
-#define load_policy_trivial_usage \
-       "[FILE]"
+#define load_policy_trivial_usage
+
 #define load_policy_full_usage
 
 #define loadfont_trivial_usage \
