@@ -1868,19 +1868,21 @@
        "	-f	Output data as the log grows"
 
 #define losetup_trivial_usage \
-       "[-o OFFSET] [-d] LOOPDEVICE [FILE]]"
+       "[-o OFS] LOOPDEV FILE - associate loop devices\n" \
+       "	losetup -d LOOPDEV - disassociate\n" \
+       "	losetup [-f] - show"
 #define losetup_full_usage \
-       "(Dis)associate LOOPDEVICE with FILE, or display current associations" \
-       "\n\nOptions:\n" \
-       "	-d		Disassociate LOOPDEVICE\n" \
-       "	-o OFFSET	Start OFFSET bytes into FILE"
+       "Options:\n" \
+       "	-o OFS	Start OFS bytes into FILE\n" \
+       "	-f	Show first free loop device"
 #define losetup_notes_usage \
        "No arguments will display all current associations.\n" \
        "One argument (losetup /dev/loop1) will display the current association\n" \
        "(if any), or disassociate it (with -d). The display shows the offset\n" \
        "and filename of the file the loop device is currently bound to.\n\n" \
        "Two arguments (losetup /dev/loop1 file.img) create a new association,\n" \
-       "with an optional offset (-o 12345). Encryption is not yet supported.\n\n"
+       "with an optional offset (-o 12345). Encryption is not yet supported.\n" \
+       "losetup -f will show the first loop free loop device\n\n"
 
 #define ls_trivial_usage \
        "[-1Aa" USE_FEATURE_LS_TIMESTAMPS("c") "Cd" \
