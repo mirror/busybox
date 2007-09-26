@@ -300,10 +300,10 @@ int runsvdir_main(int argc, char **argv)
 				stamplog = now + 900;
 			}
 		}
-		deadline = now + (check ? 1 : 5);
 
 		pfd[0].revents = 0;
 		sig_block(SIGCHLD);
+		deadline = (check ? 1 : 5);
 		if (rplog)
 			poll(pfd, 1, deadline*1000);
 		else
