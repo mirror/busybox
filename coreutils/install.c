@@ -23,6 +23,8 @@ static const char install_longopts[] ALIGN1 =
 	"group\0"               No_argument       "g"
 	"mode\0"                No_argument       "m"
 	"owner\0"               No_argument       "o"
+/* autofs build insists of using -b --suffix=.orig */
+/* TODO? (short option for --suffix is -S) */
 #if ENABLE_SELINUX
 	"context\0"             Required_argument "Z"
 	"preserve_context\0"    No_argument       "\xff"
@@ -33,8 +35,6 @@ static const char install_longopts[] ALIGN1 =
 
 
 #if ENABLE_SELINUX
-static bool use_default_selinux_context = 1;
-
 static void setdefaultfilecon(const char *path)
 {
 	struct stat s;
@@ -83,18 +83,21 @@ int install_main(int argc, char **argv)
 	int isdir;
 #if ENABLE_SELINUX
 	security_context_t scontext;
+	bool use_default_selinux_context = 1;
 #endif
 	enum {
-		OPT_CMD           =  0x1,
-		OPT_DIRECTORY     =  0x2,
-		OPT_PRESERVE_TIME =  0x4,
-		OPT_STRIP         =  0x8,
-		OPT_GROUP         = 0x10,
-		OPT_MODE          = 0x20,
-		OPT_OWNER         = 0x40,
+		OPT_c             = 1 << 0,
+		OPT_v             = 1 << 1,
+		OPT_b             = 1 << 2,
+		OPT_DIRECTORY     = 1 << 3,
+		OPT_PRESERVE_TIME = 1 << 4,
+		OPT_STRIP         = 1 << 5,
+		OPT_GROUP         = 1 << 6,
+		OPT_MODE          = 1 << 7,
+		OPT_OWNER         = 1 << 8,
 #if ENABLE_SELINUX
-		OPT_SET_SECURITY_CONTEXT = 0x80,
-		OPT_PRESERVE_SECURITY_CONTEXT = 0x100,
+		OPT_SET_SECURITY_CONTEXT = 1 << 9,
+		OPT_PRESERVE_SECURITY_CONTEXT = 1 << 10,
 #endif
 	};
 
@@ -103,23 +106,24 @@ int install_main(int argc, char **argv)
 #endif
 	opt_complementary = "s--d:d--s" USE_SELINUX(":Z--\xff:\xff--Z");
 	/* -c exists for backwards compatibility, it's needed */
-
-	flags = getopt32(argv, "cdpsg:m:o:" USE_SELINUX("Z:"),
+	/* -v is ignored ("print name of each created directory") */
+	/* -b is ignored ("make a backup of each existing destination file") */
+	flags = getopt32(argv, "cvb" "dpsg:m:o:" USE_SELINUX("Z:"),
 			&gid_str, &mode_str, &uid_str USE_SELINUX(, &scontext));
 	argc -= optind;
 	argv += optind;
 
 #if ENABLE_SELINUX
-	if (flags & OPT_PRESERVE_SECURITY_CONTEXT) {
-		use_default_selinux_context = 0;
-		copy_flags |= FILEUTILS_PRESERVE_SECURITY_CONTEXT;
+	if (flags & (OPT_PRESERVE_SECURITY_CONTEXT|OPT_SET_SECURITY_CONTEXT)) {
 		selinux_or_die();
-	}
-	if (flags & OPT_SET_SECURITY_CONTEXT) {
-		selinux_or_die();
-		setfscreatecon_or_die(scontext);
 		use_default_selinux_context = 0;
-		copy_flags |= FILEUTILS_SET_SECURITY_CONTEXT;
+		if (flags & OPT_PRESERVE_SECURITY_CONTEXT) {
+			copy_flags |= FILEUTILS_PRESERVE_SECURITY_CONTEXT;
+		}
+		if (flags & OPT_SET_SECURITY_CONTEXT) {
+			setfscreatecon_or_die(scontext);
+			copy_flags |= FILEUTILS_SET_SECURITY_CONTEXT;
+		}
 	}
 #endif
 
@@ -172,6 +176,7 @@ int install_main(int argc, char **argv)
 		bb_show_usage();
 
 	last = argv[argc - 1];
+	argv[argc - 1] = NULL;
 	/* coreutils install resolves link in this case, don't use lstat */
 	isdir = stat(last, &statbuf) < 0 ? 0 : S_ISDIR(statbuf.st_mode);
 
