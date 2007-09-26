@@ -222,6 +222,9 @@ struct BUG_too_small {
 };
 
 typedef struct servtab_t {
+	/* The most frequently referenced one: */
+	int se_fd;                            /* open descriptor */
+	/* NB: 'biggest fields last' saves on code size (~250 bytes) */
 	char *se_hostaddr;                    /* host address to listen on */
 	char *se_service;                     /* name of service */
 	char *se_proto;                       /* protocol used */
@@ -242,10 +245,14 @@ typedef struct servtab_t {
 #ifdef INETD_FEATURE_ENABLED
 	const struct builtin *se_bi;          /* if built-in, description */
 #endif
+	int se_ctrladdr_size;
+	int se_max;                           /* max # of instances of this service */
+	int se_count;                         /* number started since se_time */
+	struct servtab_t *se_next;
+	struct timeval se_time;               /* start of se_count */
 	char *se_server;                      /* server program */
 #define MAXARGV 20
 	char *se_argv[MAXARGV + 1];           /* program arguments */
-	int se_fd;                            /* open descriptor */
 	union {
 		struct sockaddr se_un_ctrladdr;
 		struct sockaddr_in se_un_ctrladdr_in;
@@ -258,11 +265,6 @@ typedef struct servtab_t {
 #define se_ctrladdr_in  se_un.se_un_ctrladdr_in
 #define se_ctrladdr_in6 se_un.se_un_ctrladdr_in6
 #define se_ctrladdr_un  se_un.se_un_ctrladdr_un
-	int se_ctrladdr_size;
-	int se_max;                           /* max # of instances of this service */
-	int se_count;                         /* number started since se_time */
-	struct timeval se_time;               /* start of se_count */
-	struct servtab_t *se_next;
 } servtab_t;
 
 #ifdef INETD_FEATURE_ENABLED
