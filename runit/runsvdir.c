@@ -42,7 +42,7 @@ struct service {
 	smallint isgone;
 };
 
-struct service *sv;
+static struct service *sv;
 static char *svdir;
 static int svnum;
 static char *rplog;

@@ -163,7 +163,7 @@ static char **service;
 static unsigned rc;
 /* "Bernstein" time format: unix + 0x400000000000000aULL */
 static uint64_t tstart, tnow;
-svstatus_t svstatus;
+static svstatus_t svstatus;
 
 
 static void fatal_cannot(const char *m1) ATTRIBUTE_NORETURN;

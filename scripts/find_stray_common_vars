@@ -3,7 +3,7 @@
 # Common variables are elusive, they don't show up in size output!
 # This script will show all commons in *.o, sorted by size
 
-find -name '*.o' \
+find ! -path './scripts/*' -a ! -name built-in.o -a -name '*.o' \
 | while read name; do
     b=`basename "$name"`
     nm "$name" | sed "s/^/$b: /"
