@@ -69,7 +69,7 @@ char *bb_askpass(int timeout, const char * prompt)
 	}
 
 	tcsetattr(STDIN_FILENO, TCSANOW, &old);
-	putchar('\n');
+	bb_putchar('\n');
 	fflush(stdout);
 	return ret;
 }

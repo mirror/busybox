@@ -482,7 +482,7 @@ static NOINLINE void display_process_list(int count, int scr_width)
 		s++;
 	}
 	/* printf(" %d", hist_iterations); */
-	putchar(OPT_BATCH_MODE ? '\n' : '\r');
+	bb_putchar(OPT_BATCH_MODE ? '\n' : '\r');
 	fflush(stdout);
 }
 #undef UPSCALE
@@ -752,7 +752,7 @@ static NOINLINE void display_topmem_process_list(int count, int scr_width)
 		printf("\n""%.*s", scr_width, line_buf);
 		s++;
 	}
-	putchar(OPT_BATCH_MODE ? '\n' : '\r');
+	bb_putchar(OPT_BATCH_MODE ? '\n' : '\r');
 	fflush(stdout);
 #undef HDR_STR
 #undef MIN_WIDTH
@@ -972,6 +972,6 @@ int top_main(int argc, char **argv)
 		}
 #endif /* FEATURE_USE_TERMIOS */
 	}
-	putchar('\n');
+	bb_putchar('\n');
 	return EXIT_SUCCESS;
 }

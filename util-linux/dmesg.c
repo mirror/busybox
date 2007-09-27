@@ -38,12 +38,12 @@ int dmesg_main(int argc, char **argv)
 
 			for (in = 0; in<len;) {
 				if (last == '\n' && buf[in] == '<') in += 3;
-				else putchar(last = buf[in++]);
+				else bb_putchar(last = buf[in++]);
 			}
-			if (last != '\n') putchar('\n');
+			if (last != '\n') bb_putchar('\n');
 		} else {
 			write(1,buf,len);
-			if (len && buf[len-1]!='\n') putchar('\n');
+			if (len && buf[len-1]!='\n') bb_putchar('\n');
 		}
 
 		if (ENABLE_FEATURE_CLEAN_UP) free(buf);

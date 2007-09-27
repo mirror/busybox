@@ -179,7 +179,7 @@ static void out(const char *p, const char *m1)
 	if (errno) {
 		printf(": %s", strerror(errno));
 	}
-	puts(""); /* will also flush the output */
+	bb_putchar('\n'); /* will also flush the output */
 }
 
 #define WARN    "warning: "
@@ -300,7 +300,7 @@ static int status(const char *unused)
 		printf("; ");
 		svstatus_print("log");
 	}
-	puts(""); /* will also flush the output */
+	bb_putchar('\n'); /* will also flush the output */
 	return r;
 }
 
@@ -372,7 +372,7 @@ static int check(const char *a)
 	}
 	printf(OK);
 	svstatus_print(*service);
-	puts(""); /* will also flush the output */
+	bb_putchar('\n'); /* will also flush the output */
 	return 1;
 }
 
@@ -571,7 +571,7 @@ int sv_main(int argc, char **argv)
 					svstatus_print(*service);
 					++rc;
 				}
-				puts(""); /* will also flush the output */
+				bb_putchar('\n'); /* will also flush the output */
 				if (kll)
 					control("k");
  nullify_service:

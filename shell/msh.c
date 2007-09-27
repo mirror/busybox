@@ -1137,7 +1137,7 @@ static void nameval(struct var *vp, const char *val, const char *name)
 	if (vp->status & RONLY) {
 		xp = vp->name;
 		while (*xp && *xp != '=')
-			putc(*xp++, stderr);
+			fputc(*xp++, stderr);
 		err(" is read-only");
 		return;
 	}
@@ -3181,7 +3181,7 @@ static int dohelp(struct op *t)
 	while (x->name) {
 		col += printf("%c%s", ((col == 0) ? '\t' : ' '), x->name);
 		if (col > 60) {
-			puts("");
+			bb_putchar('\n');
 			col = 0;
 		}
 		x++;
@@ -3193,7 +3193,7 @@ static int dohelp(struct op *t)
 		while (applet->name) {
 			col += printf("%c%s", ((col == 0) ? '\t' : ' '), applet->name);
 			if (col > 60) {
-				puts("");
+				bb_putchar('\n');
 				col = 0;
 			}
 			applet++;
@@ -3274,8 +3274,8 @@ static int doumask(struct op *t)
 		i = umask(0);
 		umask(i);
 		for (n = 3 * 4; (n -= 3) >= 0;)
-			putc('0' + ((i >> n) & 07), stderr);
-		putc('\n', stderr);
+			fputc('0' + ((i >> n) & 07), stderr);
+		fputc('\n', stderr);
 	} else {
 /* huh??? '8','9' are not allowed! */
 		for (n = 0; *cp >= '0' && *cp <= '9'; cp++)

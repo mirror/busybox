@@ -57,7 +57,7 @@ static void list_attributes(const char *name)
 	if (flags & OPT_PF_LONG) {
 		printf("%-28s ", name);
 		print_flags(stdout, fsflags, PFOPT_LONG);
-		puts("");
+		bb_putchar('\n');
 	} else {
 		print_flags(stdout, fsflags, 0);
 		printf(" %s\n", name);
@@ -102,7 +102,7 @@ static int lsattr_dir_proc(const char *dir_name, struct dirent *de,
 			   (de->d_name[1] != '.' && de->d_name[2] != '\0')))) {
 				printf("\n%s:\n", path);
 				iterate_on_dir(path, lsattr_dir_proc, NULL);
-				puts("");
+				bb_putchar('\n');
 			}
 		}
 	}

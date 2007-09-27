@@ -284,8 +284,8 @@ static int restore(const char *file)
 		if (count % 0x400 == 0) { /* every 1024 times */
 			count = (count % (80*0x400));
 			if (count == 0)
-				fputc('\n', stdout);
-			fputc('*', stdout);
+				bb_putchar('\n');
+			bb_putchar('*');
 			fflush(stdout);
 		}
 	}

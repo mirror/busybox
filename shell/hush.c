@@ -2004,7 +2004,7 @@ static int run_list_real(struct pipe *pi)
 				insert_bg_job(pi);
 			} else {
 				/* ctrl-C. We just stop doing whatever we were doing */
-				putchar('\n');
+				bb_putchar('\n');
 			}
 			rcode = 0;
 			goto ret;

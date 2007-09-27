@@ -892,7 +892,7 @@ list_types(const char *const *sys)
 			next = ++done;
 		}
 	} while (done < last[0]);
-	putchar('\n');
+	bb_putchar('\n');
 }
 #endif /* FEATURE_FDISK_WRITABLE */
 
@@ -2473,13 +2473,13 @@ print_buffer(char *pbuffer)
 			printf("0x%03X:", i);
 		printf(" %02X", (unsigned char) pbuffer[i]);
 		if (l == MAX_PER_LINE - 1) {
-			puts("");
+			bb_putchar('\n');
 			l = -1;
 		}
 	}
 	if (l > 0)
-		puts("");
-	puts("");
+		bb_putchar('\n');
+	bb_putchar('\n');
 }
 
 static void
@@ -2527,7 +2527,7 @@ xselect(void)
 	char c;
 
 	while (1) {
-		putchar('\n');
+		bb_putchar('\n');
 		c = tolower(read_nonempty("Expert command (m for help): "));
 		switch (c) {
 		case 'a':
@@ -2588,7 +2588,7 @@ xselect(void)
 			break;
 		case 'q':
 			close(fd);
-			puts("");
+			bb_putchar('\n');
 			exit(0);
 		case 'r':
 			return;
@@ -2867,7 +2867,7 @@ int fdisk_main(int argc, char **argv)
 
 	while (1) {
 		int c;
-		putchar('\n');
+		bb_putchar('\n');
 		c = tolower(read_nonempty("Command (m for help): "));
 		switch (c) {
 		case 'a':
@@ -2947,7 +2947,7 @@ int fdisk_main(int argc, char **argv)
 			break;
 		case 'q':
 			close(fd);
-			puts("");
+			bb_putchar('\n');
 			return 0;
 		case 's':
 #if ENABLE_FEATURE_SUN_LABEL

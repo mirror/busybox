@@ -83,7 +83,7 @@ int hostname_main(int argc, char **argv)
 			while (hp->h_addr_list[0]) {
 				printf("%s ", inet_ntoa(*(struct in_addr *) (*hp->h_addr_list++)));
 			}
-			puts("");
+			bb_putchar('\n');
 		}
 	}
 	/* Set the hostname */

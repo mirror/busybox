@@ -451,7 +451,7 @@ static void showdirs(struct dnode **dn, int ndirs, int first)
 	for (i = 0; i < ndirs; i++) {
 		if (all_fmt & (DISP_DIRNAME | DISP_RECURSIVE)) {
 			if (!first)
-				puts("");
+				bb_putchar('\n');
 			first = 0;
 			printf("%s:\n", dn[i]->fullname);
 		}

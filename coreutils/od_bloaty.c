@@ -1183,7 +1183,7 @@ dump_strings(void)
 			case '\r': fputs("\\r", stdout); break;
 			case '\t': fputs("\\t", stdout); break;
 			case '\v': fputs("\\v", stdout); break;
-			default: putc(c, stdout);
+			default: bb_putchar(c);
 			}
 		}
 		putchar('\n');

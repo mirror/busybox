@@ -868,13 +868,13 @@ static void colon(char * buf)
 			if (c == '\n') {
 				write1("$\r");
 			} else if (c < ' ' || c == 127) {
-				putchar('^');
+				bb_putchar('^');
 				if (c == 127)
 					c = '?';
 				else
 					c += '@';
 			}
-			putchar(c);
+			bb_putchar(c);
 			if (c_is_no_print)
 				standout_end();
 		}
@@ -2337,7 +2337,7 @@ static char *get_input_line(const char * prompt) // get input line- use "status 
 		} else {
 			buf[i] = c;	// save char in buffer
 			buf[i + 1] = '\0';	// make sure buffer is null terminated
-			putchar(c);   // echo the char back to user
+			bb_putchar(c);   // echo the char back to user
 			i++;
 		}
 	}
@@ -2860,7 +2860,7 @@ static void refresh(int full_screen)
 				char *out = sp + cs;
 
 				while (nic-- > 0) {
-					putchar(*out);
+					bb_putchar(*out);
 					out++;
 				}
 			}

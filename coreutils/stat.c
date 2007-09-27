@@ -321,7 +321,7 @@ static void print_it(char const *masterformat, char const *filename,
 			b = NULL;
 			/* fall through */
 		case '%':
-			putchar('%');
+			bb_putchar('%');
 			break;
 		default:
 			print_func(dest, n_alloc, *p, filename, data USE_SELINUX(,scontext));
@@ -552,7 +552,7 @@ static bool do_stat(char const *filename, char const *format)
 		if (option_mask32 & OPT_SELINUX)
 			printf(" %lc\n", *scontext);
 		else
-			putchar('\n');
+			bb_putchar('\n');
 #endif
 	} else {
 		char *linkname = NULL;
@@ -586,7 +586,7 @@ static bool do_stat(char const *filename, char const *format)
 			       (unsigned long) major(statbuf.st_rdev),
 			       (unsigned long) minor(statbuf.st_rdev));
 		else
-			putchar('\n');
+			bb_putchar('\n');
 		printf("Access: (%04lo/%10.10s)  Uid: (%5lu/%8s)   Gid: (%5lu/%8s)\n",
 		       (unsigned long) (statbuf.st_mode & (S_ISUID|S_ISGID|S_ISVTX|S_IRWXU|S_IRWXG|S_IRWXO)),
 		       bb_mode_string(statbuf.st_mode),

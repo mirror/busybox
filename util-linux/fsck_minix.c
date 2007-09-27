@@ -307,12 +307,12 @@ static int ask(const char *string, int def)
 	int c;
 
 	if (!repair) {
-		puts("");
+		bb_putchar('\n');
 		errors_uncorrected = 1;
 		return 0;
 	}
 	if (automatic) {
-		puts("");
+		bb_putchar('\n');
 		if (!def)
 			errors_uncorrected = 1;
 		return def;

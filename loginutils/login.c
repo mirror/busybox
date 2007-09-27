@@ -125,7 +125,7 @@ static void die_if_nologin_and_non_root(int amroot)
 	fp = fopen("/etc/nologin", "r");
 	if (fp) {
 		while ((c = getc(fp)) != EOF)
-			putchar((c=='\n') ? '\r' : c);
+			bb_putchar((c=='\n') ? '\r' : c);
 		fflush(stdout);
 		fclose(fp);
 	} else

@@ -456,6 +456,14 @@ off_t fdlength(int fd)
 	return pos + 1;
 }
 
+int bb_putchar(int ch)
+{
+	/* time.c needs putc(ch, stdout), not putchar(ch).
+	 * it does "stdout = stderr;", but then glibc's putchar()
+	 * doesn't work as expected. bad glibc, bad */
+	return putc(ch, stdout);
+}
+
 // Die with an error message if we can't malloc() enough space and do an
 // sprintf() into that space.
 char *xasprintf(const char *format, ...)

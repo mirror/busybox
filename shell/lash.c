@@ -319,7 +319,7 @@ static int builtin_help(struct child_prog ATTRIBUTE_UNUSED *dummy)
 			continue;
 		printf("%s\t%s\n", x->cmd, x->descr);
 	}
-	putchar('\n');
+	bb_putchar('\n');
 	return EXIT_SUCCESS;
 }
 
@@ -677,7 +677,7 @@ static int get_command_bufsiz(FILE * source, char *command)
 
 	if (!fgets(command, BUFSIZ - 2, source)) {
 		if (source == stdin)
-			puts("");
+			bb_putchar('\n');
 		return 1;
 	}
 

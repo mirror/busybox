@@ -167,7 +167,7 @@ int cal_main(int argc, char **argv)
 			if (!julian) {
 				printf("%*s%s", HEAD_SEP, "", day_headings);
 			}
-			putchar('\n');
+			bb_putchar('\n');
 			for (row = 0; row < (6*7); row += 7) {
 				for (which_cal = 0; which_cal < 3-julian; which_cal++) {
 					dp = days[month + which_cal] + row;

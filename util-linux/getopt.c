@@ -195,7 +195,7 @@ static int generate_output(char **argv, int argc, const char *optstr, const stru
 		printf(" --");
 		while (optind < argc)
 			printf(" %s", normalize(argv[optind++]));
-		puts("");
+		bb_putchar('\n');
 	}
 	return exit_code;
 }

@@ -394,7 +394,7 @@ bsd_select(void)
 #endif
 
 	while (1) {
-		putchar('\n');
+		bb_putchar('\n');
 		switch (tolower(read_nonempty("BSD disklabel command (m for help): "))) {
 		case 'd':
 			xbsd_delete_part();
@@ -521,7 +521,7 @@ xbsd_print_disklabel(int show_all)
 			printf(" ecc");
 		if (lp->d_flags & BSD_D_BADSECT)
 			printf(" badsect");
-		puts("");
+		bb_putchar('\n');
 		/* On various machines the fields of *lp are short/int/long */
 		/* In order to avoid problems, we cast them all to long. */
 		printf("bytes/sector: %ld\n", (long) lp->d_secsize);
@@ -588,7 +588,7 @@ xbsd_print_disklabel(int show_all)
 				printf("%22.22s", "");
 				break;
 			}
-			puts("");
+			bb_putchar('\n');
 		}
 	}
 }

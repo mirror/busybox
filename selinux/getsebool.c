@@ -53,7 +53,7 @@ int getsebool_main(int argc, char **argv)
 		printf("%s --> %s", names[i], (active ? "on" : "off"));
 		if (pending != active)
 			printf(" pending: %s", (pending ? "on" : "off"));
-		putchar('\n');
+		bb_putchar('\n');
 	}
 
 	if (ENABLE_FEATURE_CLEAN_UP) {

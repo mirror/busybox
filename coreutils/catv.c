@@ -62,13 +62,13 @@ int catv_main(int argc, char **argv)
 				if (c < 32) {
 					if (c == 10) {
 						if (flags & CATV_OPT_e)
-							putchar('$');
+							bb_putchar('$');
 					} else if (flags & (c==9 ? CATV_OPT_t : CATV_OPT_v)) {
 						printf("^%c", c+'@');
 						continue;
 					}
 				}
-				putchar(c);
+				bb_putchar(c);
 			}
 		}
 		if (ENABLE_FEATURE_CLEAN_UP && fd)

@@ -173,7 +173,7 @@ static void less_exit(int code)
 	 * and restore it when we exit. Less does this with the
 	 * "ti" and "te" termcap commands; can this be done with
 	 * only termios.h? */
-	putchar('\n');
+	bb_putchar('\n');
 	fflush_stdout_and_exit(code);
 }
 
@@ -419,7 +419,7 @@ static void status_print(void)
 
 	clear_line();
 	if (cur_fline && cur_fline < max_fline - max_displayed_line) {
-		putchar(':');
+		bb_putchar(':');
 		return;
 	}
 	p = "(END)";
@@ -755,7 +755,7 @@ static char* less_gets(int sz)
 			continue;
 		if (i >= width - sz - 1)
 			continue; /* len limit */
-		putchar(c);
+		bb_putchar(c);
 		result[i++] = c;
 		result = xrealloc(result, i+1);
 		result[i] = '\0';
@@ -916,7 +916,7 @@ static void regex_process(void)
 
 	/* Get the uncompiled regular expression from the user */
 	clear_line();
-	putchar((option_mask32 & LESS_STATE_MATCH_BACKWARDS) ? '?' : '/');
+	bb_putchar((option_mask32 & LESS_STATE_MATCH_BACKWARDS) ? '?' : '/');
 	uncomp_regex = less_gets(1);
 	if (!uncomp_regex[0]) {
 		free(uncomp_regex);
@@ -969,7 +969,7 @@ static void number_process(int first_digit)
 		num_input[i] = less_getch();
 		if (!num_input[i] || !isdigit(num_input[i]))
 			break;
-		putchar(num_input[i]);
+		bb_putchar(num_input[i]);
 		i++;
 	}
 
@@ -1024,7 +1024,7 @@ static void flag_change(void)
 	int keypress;
 
 	clear_line();
-	putchar('-');
+	bb_putchar('-');
 	keypress = less_getch();
 
 	switch (keypress) {
@@ -1049,7 +1049,7 @@ static void show_flag_status(void)
 	int flag_val;
 
 	clear_line();
-	putchar('_');
+	bb_putchar('_');
 	keypress = less_getch();
 
 	switch (keypress) {

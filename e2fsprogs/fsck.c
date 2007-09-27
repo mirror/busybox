@@ -651,7 +651,7 @@ static void execute(const char *type, const char *device, const char *mntpt,
 					mntpt ? mntpt : device);
 		for (i = 0; i < argc; i++)
 			printf(" %s", argv[i]);
-		puts("");
+		bb_putchar('\n');
 	}
 
 	/* Fork and execute the correct program. */

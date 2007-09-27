@@ -39,6 +39,6 @@ int ttysize_main(int argc, char **argv)
 			fmt = "%u %u" + 2; /* " %u" */
 		}
 	}
-	putchar('\n');
+	bb_putchar('\n');
 	return 0;
 }

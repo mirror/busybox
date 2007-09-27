@@ -2443,10 +2443,10 @@ static void safe_print(const char *cp, int len)
 			ch -= 128;
 		}
 		if ((ch < 32) || (ch == 0x7f)) {
-			fputc('^', stdout);
+			bb_putchar('^');
 			ch ^= 0x40; /* ^@, ^A, ^B; ^? for DEL */
 		}
-		fputc(ch, stdout);
+		bb_putchar(ch);
 	}
 }
 
@@ -2497,7 +2497,7 @@ static void expand_at_expression(e2fsck_t ctx, char ch,
 		str = _(*cpp) + 1;
 		if (*first && islower(*str)) {
 			*first = 0;
-			fputc(toupper(*str++), stdout);
+			bb_putchar(toupper(*str++));
 		}
 		print_e2fsck_message(ctx, str, pctx, *first);
 	} else
@@ -2630,7 +2630,7 @@ static void expand_percent_expression(ext2_filsys fs, char ch,
 
 	switch (ch) {
 	case '%':
-		fputc('%', stdout);
+		bb_putchar('%');
 		break;
 	case 'b':
 		printf("%u", ctx->blk);
@@ -12767,7 +12767,7 @@ static void check_if_skip(e2fsck_t ctx)
 		else
 			printf(_(" (check in %ld mounts)"), next_check);
 	}
-	fputc('\n', stdout);
+	bb_putchar('\n');
 	ext2fs_close(fs);
 	ctx->fs = NULL;
 	e2fsck_free_context(ctx);
@@ -12864,9 +12864,9 @@ int e2fsck_simple_progress(e2fsck_t ctx, const char *label, float percent,
 	       bar + (sizeof(bar) - (i+1)),
 	       spaces + (sizeof(spaces) - (dpywidth - i + 1)));
 	if (fixed_percent == 1000)
-		fputc('|', stdout);
+		bb_putchar('|');
 	else
-		fputc(spinner[ctx->progress_pos & 3], stdout);
+		bb_putchar(spinner[ctx->progress_pos & 3]);
 	printf(" %4.1f%%  ", percent);
 	if (dpynum)
 		printf("%u\r", dpynum);

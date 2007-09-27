@@ -102,7 +102,7 @@ int id_main(int argc, char **argv)
 	/* Print full info like GNU id */
 	/* bb_getpwuid(0) doesn't exit on failure (returns NULL) */
 	status = printf_full(uid, bb_getpwuid(NULL, 0, uid), 'u');
-	putchar(' ');
+	bb_putchar(' ');
 	status |= printf_full(gid, bb_getgrgid(NULL, 0, gid), 'g');
 
 #if ENABLE_SELINUX
@@ -121,6 +121,6 @@ int id_main(int argc, char **argv)
 	}
 #endif
 
-	putchar('\n');
+	bb_putchar('\n');
 	fflush_stdout_and_exit(status);
 }

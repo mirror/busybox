@@ -76,7 +76,7 @@ int pidof_main(int argc, char **argv)
 		free(pidList);
 		optind++;
 	}
-	putchar('\n');
+	bb_putchar('\n');
 
 #if ENABLE_FEATURE_PIDOF_OMIT
 	if (ENABLE_FEATURE_CLEAN_UP)

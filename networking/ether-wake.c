@@ -92,7 +92,7 @@ void bb_debug_dump_packet(unsigned char *outpack, int pktsize)
 	printf("packet dump:\n");
 	for (i = 0; i < pktsize; ++i) {
 		printf("%2.2x ", outpack[i]);
-		if (i % 20 == 19) puts("");
+		if (i % 20 == 19) bb_putchar('\n');
 	}
 	printf("\n\n");
 }

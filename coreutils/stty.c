@@ -475,10 +475,10 @@ static void wrapf(const char *message, ...)
 		G.current_col++;
 		if (buf[0] != '\n') {
 			if (G.current_col + buflen >= max_col) {
-				putchar('\n');
+				bb_putchar('\n');
 				G.current_col = 0;
 			} else
-				putchar(' ');
+				bb_putchar(' ');
 		}
 	}
 	fputs(buf, stdout);
@@ -618,7 +618,7 @@ static void display_recoverable(const struct termios *mode,
 		   (unsigned long) mode->c_cflag, (unsigned long) mode->c_lflag);
 	for (i = 0; i < NCCS; ++i)
 		printf(":%x", (unsigned int) mode->c_cc[i]);
-	putchar('\n');
+	bb_putchar('\n');
 }
 
 static void display_speed(const struct termios *mode, int fancy)

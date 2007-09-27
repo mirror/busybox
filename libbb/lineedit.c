@@ -111,15 +111,15 @@ static void cmdedit_set_out_char(int next_char)
 #endif
 	{
 		if (initial_settings.c_lflag & ECHO)
-			putchar(c);
+			bb_putchar(c);
 	}
 	if (++cmdedit_x >= cmdedit_termw) {
 		/* terminal is scrolled down */
 		cmdedit_y++;
 		cmdedit_x = 0;
 		/* destroy "(auto)margin" */
-		putchar(next_char);
-		putchar('\b');
+		bb_putchar(next_char);
+		bb_putchar('\b');
 	}
 // Huh? What if command_ps[cursor] == '\0' (we are at the end already?)
 	cursor++;
@@ -137,7 +137,7 @@ static void goto_new_line(void)
 {
 	input_end();
 	if (cmdedit_x)
-		putchar('\n');
+		bb_putchar('\n');
 }
 
 
@@ -149,7 +149,7 @@ static void out1str(const char *s)
 
 static void beep(void)
 {
-	putchar('\007');
+	bb_putchar('\007');
 }
 
 /* Move back one character */
@@ -197,7 +197,7 @@ static void redraw(int y, int back_cursor)
 {
 	if (y > 0)                              /* up to start y */
 		printf("\033[%dA", y);
-	putchar('\r');
+	bb_putchar('\r');
 	put_prompt();
 	input_end();                            /* rewrite */
 	printf("\033[J");                       /* erase after cursor */
@@ -1585,8 +1585,8 @@ int read_line_input(const char* prompt, char* command, int maxsize, line_input_t
 				beep();
 			else {
 				*(command + cursor) = c;
-				putchar(c);
-				putchar('\b');
+				bb_putchar(c);
+				bb_putchar('\b');
 			}
 			break;
 #endif /* FEATURE_COMMAND_EDITING_VI */

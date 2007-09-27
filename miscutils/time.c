@@ -188,8 +188,6 @@ static void summarize(const char *fmt, char **command, resource_t * resp)
 #endif
 	if (!cpu_ticks) cpu_ticks = 1; /* we divide by it, must be nonzero */
 
-	/* putchar() != putc(stdout) in glibc! */
-
 	while (*fmt) {
 		/* Handle leading literal part */
 		int n = strcspn(fmt, "%\\");
@@ -205,7 +203,7 @@ static void summarize(const char *fmt, char **command, resource_t * resp)
 		/* Usually we optimize for size, but there is a limit
 		 * for everything. With this we do a lot of 1-byte writes */
 		default:
-			putc(*fmt, stdout);
+			bb_putchar(*fmt);
 			break;
 #endif
 
@@ -215,11 +213,11 @@ static void summarize(const char *fmt, char **command, resource_t * resp)
 		/* Our format strings do not have these */
 		/* and we do not take format str from user */
 			default:
-				putc('%', stdout);
+				bb_putchar('%');
 				/*FALLTHROUGH*/
 			case '%':
 				if (!*fmt) goto ret;
-				putc(*fmt, stdout);
+				bb_putchar(*fmt);
 				break;
 #endif
 			case 'C':	/* The command that got timed.  */
@@ -351,17 +349,17 @@ static void summarize(const char *fmt, char **command, resource_t * resp)
 		case '\\':		/* Format escape.  */
 			switch (*++fmt) {
 			default:
-				putc('\\', stdout);
+				bb_putchar('\\');
 				/*FALLTHROUGH*/
 			case '\\':
 				if (!*fmt) goto ret;
-				putc(*fmt, stdout);
+				bb_putchar(*fmt);
 				break;
 			case 't':
-				putc('\t', stdout);
+				bb_putchar('\t');
 				break;
 			case 'n':
-				putc('\n', stdout);
+				bb_putchar('\n');
 				break;
 			}
 			break;
@@ -370,7 +368,7 @@ static void summarize(const char *fmt, char **command, resource_t * resp)
 		++fmt;
 	}
  /* ret: */
-	putc('\n', stdout);
+	bb_putchar('\n');
 }
 
 /* Run command CMD and return statistics on it.
@@ -437,6 +435,7 @@ int time_main(int argc, char **argv)
 	run_command(argv, &res);
 
 	/* Cheat. printf's are shorter :) */
+	/* (but see bb_putchar() body for additional wrinkle!) */
 	stdout = stderr;
 	dup2(2, 1); /* just in case libc does something silly :( */
 	summarize(output_format, argv, &res);

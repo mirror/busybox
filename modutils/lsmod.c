@@ -15,7 +15,7 @@
 
 
 #if !ENABLE_FEATURE_CHECK_TAINTED_MODULE
-static void check_tainted(void) { puts(""); }
+static void check_tainted(void) { bb_putchar('\n'); }
 #else
 #define TAINT_FILENAME                  "/proc/sys/kernel/tainted"
 #define TAINT_PROPRIETORY_MODULE        (1<<0)
@@ -128,7 +128,7 @@ int lsmod_main(int argc, char **argv)
 		}
 		if (count) printf("]");
 
-		puts("");
+		bb_putchar('\n');
 	}
 
 #if ENABLE_FEATURE_CLEAN_UP
@@ -178,7 +178,7 @@ int lsmod_main(int argc, char **argv)
 				}
 				printf(" %s", tok);
 			}
-			puts("");
+			bb_putchar('\n');
 			free(line);
 		}
 		fclose(file);

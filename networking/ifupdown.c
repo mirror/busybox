@@ -1259,7 +1259,7 @@ int ifupdown_main(int argc, char **argv)
 			iface_list = iface_list->link;
 		}
 		if (VERBOSE) {
-			puts("");
+			bb_putchar('\n');
 		}
 
 		if (!okay && !FORCE) {

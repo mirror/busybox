@@ -1322,7 +1322,7 @@ int traceroute_main(int argc, char **argv)
 				printf(" *");
 			(void)fflush(stdout);
 		}
-		putchar('\n');
+		bb_putchar('\n');
 		if (got_there ||
 		    (unreachable > 0 && unreachable >= nprobes - 1))
 			break;

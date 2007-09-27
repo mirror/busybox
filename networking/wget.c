@@ -142,7 +142,7 @@ static void progressmeter(int flag)
 		/* last call to progressmeter */
 		alarm(0);
 		transferred = 0;
-		putc('\n', stderr);
+		fputc('\n', stderr);
 	} else {
 		if (flag == -1) {
 			/* first call to progressmeter */

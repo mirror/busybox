@@ -641,7 +641,7 @@ static void show_stats(ext2_filsys fs)
 			s->s_blocks_per_group, s->s_frags_per_group,
 			s->s_inodes_per_group);
 	if (fs->group_desc_count == 1) {
-		puts("");
+		bb_putchar('\n');
 		return;
 	}
 

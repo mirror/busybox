@@ -34,7 +34,7 @@ int mountpoint_main(int argc, char **argv)
 				return EXIT_SUCCESS;
 			} else {
 				if (opt & OPT_q)
-					putchar('\n');
+					bb_putchar('\n');
 				else
 					bb_error_msg("%s: not a block device", arg);
 			}

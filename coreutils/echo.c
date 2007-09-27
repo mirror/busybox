@@ -100,18 +100,18 @@ int bb_echo(char **argv)
 					c = bb_process_escape_sequence(&arg);
 				}
 			}
-			putchar(c);
+			bb_putchar(c);
 		}
 
 		arg = *++argv;
 		if (!arg)
 			break;
-		putchar(' ');
+		bb_putchar(' ');
 	}
 
  newline_ret:
 	if (nflag) {
-		putchar('\n');
+		bb_putchar('\n');
 	}
  ret:
 	return fflush(stdout);

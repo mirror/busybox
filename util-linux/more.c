@@ -40,7 +40,7 @@ struct globals {
 
 static void gotsig(int sig)
 {
-	putchar('\n');
+	bb_putchar('\n');
 	setTermSettings(cin_fileno, &initial_settings);
 	exit(EXIT_FAILURE);
 }

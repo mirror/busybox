@@ -112,7 +112,7 @@ static void server_print(void)
 	print_host(server, "Server:");
 	if (ENABLE_FEATURE_CLEAN_UP)
 		free(server);
-	puts("");
+	bb_putchar('\n');
 }
 
 /* alter the global _res nameserver structure to use

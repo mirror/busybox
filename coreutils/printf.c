@@ -99,9 +99,9 @@ static void print_esc_string(char *str)
 	for (; *str; str++) {
 		if (*str == '\\') {
 			str++;
-			putchar(bb_process_escape_sequence((const char **)&str));
+			bb_putchar(bb_process_escape_sequence((const char **)&str));
 		} else {
-			putchar(*str);
+			bb_putchar(*str);
 		}
 
 	}
@@ -205,7 +205,7 @@ static int print_formatted(char *format, int argc, char **argv)
 			direc_length = 1;
 			field_width = precision = -1;
 			if (*f == '%') {
-				putchar('%');
+				bb_putchar('%');
 				break;
 			}
 			if (*f == 'b') {
@@ -274,11 +274,11 @@ static int print_formatted(char *format, int argc, char **argv)
 		case '\\':
 			if (*++f == 'c')
 				exit(0);
-			putchar(bb_process_escape_sequence((const char **)&f));
+			bb_putchar(bb_process_escape_sequence((const char **)&f));
 			f--;
 			break;
 		default:
-			putchar(*f);
+			bb_putchar(*f);
 		}
 	}
 

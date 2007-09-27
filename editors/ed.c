@@ -853,14 +853,14 @@ static int printLines(int num1, int num2, int expandFlag)
 				ch &= 0x7f;
 			}
 			if (ch < ' ') {
-				fputc('^', stdout);
+				bb_putchar('^');
 				ch += '@';
 			}
 			if (ch == 0x7f) {
-				fputc('^', stdout);
+				bb_putchar('^');
 				ch = '?';
 			}
-			fputc(ch, stdout);
+			bb_putchar(ch);
 		}
 
 		fputs("$\n", stdout);

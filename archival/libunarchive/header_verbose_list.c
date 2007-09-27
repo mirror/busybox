@@ -26,6 +26,5 @@ void header_verbose_list(const file_header_t *file_header)
 	if (file_header->link_target) {
 		printf(" -> %s", file_header->link_target);
 	}
-	/* putchar isnt used anywhere else i dont think */
-	puts("");
+	bb_putchar('\n');
 }

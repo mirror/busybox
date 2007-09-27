@@ -46,7 +46,7 @@ static void list_attributes(const char *name)
 	if (option_mask32 & OPT_PF_LONG) {
 		printf("%-28s ", name);
 		print_flags(stdout, fsflags, PFOPT_LONG);
-		puts("");
+		bb_putchar('\n');
 	} else {
 		print_flags(stdout, fsflags, 0);
 		printf(" %s\n", name);
@@ -74,7 +74,7 @@ static int lsattr_dir_proc(const char *dir_name, struct dirent *de,
 		) {
 			printf("\n%s:\n", path);
 			iterate_on_dir(path, lsattr_dir_proc, NULL);
-			puts("");
+			bb_putchar('\n');
 		}
 	}
 

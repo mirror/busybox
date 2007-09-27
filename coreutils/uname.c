@@ -91,12 +91,12 @@ int uname_main(int argc, char **argv)
 		if (toprint & 1) {
 			printf(((char *)(&uname_info)) + *delta);
 			if (toprint > 1) {
-				putchar(' ');
+				bb_putchar(' ');
 			}
 		}
 		++delta;
 	} while (toprint >>= 1);
-	putchar('\n');
+	bb_putchar('\n');
 
 	fflush_stdout_and_exit(EXIT_SUCCESS);
 }

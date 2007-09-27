@@ -482,19 +482,43 @@ static void print_value_on_off(const char *str, unsigned long argp)
 }
 
 #if ENABLE_FEATURE_HDPARM_GET_IDENTITY
-static void print_ascii(uint16_t *p, uint8_t length);
+static void print_ascii(const char *p, int length)
+{
+#if BB_BIG_ENDIAN
+#define LE_ONLY(x)
+	enum { ofs = 0 };
+#else
+#define LE_ONLY(x) x
+	/* every 16bit word is big-endian (i.e. inverted) */
+	/* accessing bytes in 1,0, 3,2, 5,4... sequence */
+	int ofs = 1;
+#endif
+
+	length *= 2;
+	/* find first non-space & print it */
+	while (length && p[ofs] != ' ') {
+		p++;
+		LE_ONLY(ofs = -ofs;)
+		length--;
+	}
+	while (length && p[ofs]) {
+		bb_putchar(p[ofs]);
+		p++;
+		LE_ONLY(ofs = -ofs;)
+		length--;
+	}
+	bb_putchar('\n');
+#undef LE_ONLY
+}
 
 static void xprint_ascii(uint16_t *val, int i, const char *string, int n)
 {
 	if (val[i]) {
 		printf("\t%-20s", string);
-		print_ascii(&val[i], n);
+		print_ascii((void*)&val[i], n);
 	}
 }
-#endif
-/* end of busybox specific stuff */
 
-#if ENABLE_FEATURE_HDPARM_GET_IDENTITY
 static uint8_t mode_loop(uint16_t mode_sup, uint16_t mode_sel, int cc, uint8_t *have_mode)
 {
 	uint16_t ii;
@@ -515,41 +539,11 @@ static uint8_t mode_loop(uint16_t mode_sup, uint16_t mode_sel, int cc, uint8_t *
 	return err_dma;
 }
 
-static void print_ascii(uint16_t *p, uint8_t length)
-{
-	uint8_t ii;
-	char cl;
-
-	/* find first non-space & print it */
-	for (ii = 0; ii < length; ii++) {
-		if ((char)((*p)>>8) != ' ')
-			break;
-		cl = (char)(*p);
-		if (cl != ' ') {
-			if (cl != '\0')
-				printf("%c", cl);
-			p++;
-			ii++;
-			break;
-		}
-		p++;
-	}
-	/* print the rest */
-	for (; ii< length; ii++) {
-		if (!(*p))
-			break; /* some older devices have NULLs */
-		printf("%c%c", (char)((*p)>>8), (char)(*p));
-		p++;
-	}
-	puts("");
-}
-
 // Parse 512 byte disk identification block and print much crap.
 
-static void identify(uint16_t *id_supplied)
+static void identify(uint16_t *val)
 {
-	uint16_t buf[256];
-	uint16_t *val, ii, jj, kk;
+	uint16_t ii, jj, kk;
 	uint16_t like_std = 1, std = 0, min_std = 0xffff;
 	uint16_t dev = NO_DEV, eqpt = NO_DEV;
 	uint8_t  have_mode = 0, err_dma = 0;
@@ -557,19 +551,15 @@ static void identify(uint16_t *id_supplied)
 	uint32_t ll, mm, nn, oo;
 	uint64_t bbbig; /* (:) */
 	const char *strng;
+#if BB_BIG_ENDIAN
+	uint16_t buf[256];
 
-	// Adjust for endianness if necessary.
-
-	if (BB_BIG_ENDIAN) {
-		swab(id_supplied, buf, sizeof(buf));
-		val = buf;
-	} else
-		val = id_supplied;
-
-	chksum &= 0xff;
-
+	// Adjust for endianness
+	swab(val, buf, sizeof(buf));
+	val = buf;
+#endif
 	/* check if we recognise the device type */
-	puts("");
+	bb_putchar('\n');
 	if (!(val[GEN_CONFIG] & NOT_ATA)) {
 		dev = ATA_DEV;
 		printf("ATA device, with ");
@@ -686,7 +676,7 @@ static void identify(uint16_t *id_supplied)
 		else if (like_std > std)
 			printf("& some of %u\n", like_std);
 		else
-			puts("");
+			bb_putchar('\n');
 	} else {
 		/* TBD: do CDROM stuff more thoroughly.  For now... */
 		kk = 0;
@@ -786,7 +776,7 @@ static void identify(uint16_t *id_supplied)
 		if (bbbig > 1000)
 			printf("(%"PRIu64" GB)\n", bbbig/1000);
 		else
-			puts("");
+			bb_putchar('\n');
 	}
 
 	/* hw support of commands (capabilities) */
@@ -829,7 +819,7 @@ static void identify(uint16_t *id_supplied)
 			if ((like_std > 3) && ((val[CAPAB_1] & VALID) == VALID_VAL))
 				printf(", %s device specific minimum\n", (val[CAPAB_1] & MIN_STANDBY_TIMER) ? "with" : "no");
 			else
-				puts("");
+				bb_putchar('\n');
 		}
 		printf("\tR/W multiple sector transfer: ");
 		if ((like_std < 3) && !(val[SECTOR_XFER_MAX] & SECTOR_XFER))
@@ -866,7 +856,7 @@ static void identify(uint16_t *id_supplied)
 			printf("\tOverlap support:");
 			if (val[PKT_REL]) printf(" %uus to release bus.", val[PKT_REL]);
 			if (val[SVC_NBSY]) printf(" %uus to clear BSY after SERVICE cmd.", val[SVC_NBSY]);
-			puts("");
+			bb_putchar('\n');
 		}
 	}
 
@@ -893,7 +883,7 @@ static void identify(uint16_t *id_supplied)
 			err_dma += mode_loop(jj, kk, 'u', &have_mode);
 		}
 		if (err_dma || !have_mode) printf("(?)");
-		puts("");
+		bb_putchar('\n');
 
 		if ((dev == ATAPI_DEV) && (eqpt != CDROM) && (val[CAPAB_0] & DMA_IL_SUP))
 			printf("\t\tInterleaved DMA support\n");
@@ -904,7 +894,7 @@ static void identify(uint16_t *id_supplied)
 			printf("\t\tCycle time:");
 			if (val[DMA_TIME_MIN]) printf(" min=%uns", val[DMA_TIME_MIN]);
 			if (val[DMA_TIME_NORM]) printf(" recommended=%uns", val[DMA_TIME_NORM]);
-			puts("");
+			bb_putchar('\n');
 		}
 	}
 
@@ -918,11 +908,11 @@ static void identify(uint16_t *id_supplied)
 			if (jj & 0x0001) printf("pio%d ", ii);
 			jj >>=1;
 		}
-		puts("");
+		bb_putchar('\n');
 	} else if (((min_std < 5) || (eqpt == CDROM)) && (val[PIO_MODE] & MODE)) {
 		for (ii = 0; ii <= val[PIO_MODE]>>8; ii++)
 			printf("pio%d ", ii);
-		puts("");
+		bb_putchar('\n');
 	} else
 		printf("unknown\n");
 
@@ -931,7 +921,7 @@ static void identify(uint16_t *id_supplied)
 			printf("\t\tCycle time:");
 			if (val[PIO_NO_FLOW]) printf(" no flow control=%uns", val[PIO_NO_FLOW]);
 			if (val[PIO_FLOW]) printf("  IORDY flow control=%uns", val[PIO_FLOW]);
-			puts("");
+			bb_putchar('\n');
 		}
 	}
 
@@ -982,7 +972,7 @@ static void identify(uint16_t *id_supplied)
 			printf("\t");
 			if (jj) printf("%umin for %sSECURITY ERASE UNIT. ", jj==ERASE_BITS ? 508 : jj<<1, "");
 			if (kk) printf("%umin for %sSECURITY ERASE UNIT. ", kk==ERASE_BITS ? 508 : kk<<1, "ENHANCED ");
-			puts("");
+			bb_putchar('\n');
 		}
 	}
 
@@ -1134,7 +1124,7 @@ static void dump_identity(const struct hd_driveid *id)
 		else
 			printf("off");
 	}
-	puts("");
+	bb_putchar('\n');
 
 	if (!(id->field_valid & 1))
 		printf(" (maybe):");
@@ -1905,7 +1895,7 @@ static void parse_xfermode(int flag, smallint *get, smallint *set, int *value)
 
 /*------- getopt short options --------*/
 static const char hdparm_options[] ALIGN1 =
-	"gfu::n::p:r::m::c::k::a::B:tTh"
+	"gfu::n::p:r::m::c::k::a::B:tT"
 	USE_FEATURE_HDPARM_GET_IDENTITY("iI")
 	USE_FEATURE_HDPARM_HDIO_GETSET_DMA("d::")
 #ifdef HDIO_DRIVE_CMD
@@ -1933,7 +1923,6 @@ int hdparm_main(int argc, char **argv)
 
 	while ((c = getopt(argc, argv, hdparm_options)) >= 0) {
 		flagcount++;
-		if (c == 'h') bb_show_usage(); /* EXIT */
 		USE_FEATURE_HDPARM_GET_IDENTITY(get_IDentity |= (c == 'I'));
 		USE_FEATURE_HDPARM_GET_IDENTITY(get_identity |= (c == 'i'));
 		get_geom |= (c == 'g');
@@ -1999,7 +1988,7 @@ int hdparm_main(int argc, char **argv)
 	if (!*argv) {
 		if (ENABLE_FEATURE_HDPARM_GET_IDENTITY && !isatty(STDIN_FILENO))
 			identify_from_stdin(); /* EXIT */
-		else bb_show_usage();
+		bb_show_usage();
 	}
 
 	do {

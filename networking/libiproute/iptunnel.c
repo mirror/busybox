@@ -482,7 +482,7 @@ static void do_tunnels_list(struct ip_tunnel_parm *p)
 		    (p->i_key && p1.i_key != p->i_key))
 			continue;
 		print_tunnel(&p1);
-		puts("");
+		bb_putchar('\n');
 	}
 }
 
@@ -512,7 +512,7 @@ static int do_show(int argc, char **argv)
 		return -1;
 
 	print_tunnel(&p);
-	puts("");
+	bb_putchar('\n');
 	return 0;
 }
 

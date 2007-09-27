@@ -555,7 +555,7 @@ static void print_sem(int semid)
 		}
 		printf("%-10d %-10d %-10d %-10d %-10d\n", i, val, ncnt, zcnt, pid);
 	}
-	puts("");
+	bb_putchar('\n');
 }
 
 int ipcs_main(int argc, char **argv);
@@ -603,19 +603,19 @@ int ipcs_main(int argc, char **argv)
 
 	if (!(flags & (flag_shm | flag_msg | flag_sem)))
 		flags |= flag_msg | flag_shm | flag_sem;
-	puts("");
+	bb_putchar('\n');
 
 	if (flags & flag_shm) {
 		do_shm();
-		puts("");
+		bb_putchar('\n');
 	}
 	if (flags & flag_sem) {
 		do_sem();
-		puts("");
+		bb_putchar('\n');
 	}
 	if (flags & flag_msg) {
 		do_msg();
-		puts("");
+		bb_putchar('\n');
 	}
 	fflush_stdout_and_exit(0);
 }

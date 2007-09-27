@@ -391,11 +391,13 @@ ssize_t recv_from_to(int fd, void *buf, size_t len, int flags,
 		struct sockaddr *from, struct sockaddr *to,
 		socklen_t sa_size);
 
-
-extern char *xstrdup(const char *s);
-extern char *xstrndup(const char *s, int n);
-extern char *safe_strncpy(char *dst, const char *src, size_t size);
-extern char *xasprintf(const char *format, ...) __attribute__ ((format (printf, 1, 2)));
+char *xstrdup(const char *s);
+char *xstrndup(const char *s, int n);
+char *safe_strncpy(char *dst, const char *src, size_t size);
+/* Guaranteed to NOT be a macro (smallest code). Saves nearly 2k on uclibc.
+/* But potentially slow, don't use in one-billion-times loops */
+int bb_putchar(int ch);
+char *xasprintf(const char *format, ...) __attribute__ ((format (printf, 1, 2)));
 // gcc-4.1.1 still isn't good enough at optimizing it
 // (+200 bytes compared to macro)
 //static ALWAYS_INLINE

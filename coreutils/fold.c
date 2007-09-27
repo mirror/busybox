@@ -115,7 +115,7 @@ int fold_main(int argc, char **argv)
 						/* Found a blank.  Don't output the part after it. */
 						logical_end++;
 						fwrite(line_out, sizeof(char), (size_t) logical_end, stdout);
-						putchar('\n');
+						bb_putchar('\n');
 						/* Move the remainder to the beginning of the next line.
 						   The areas being copied here might overlap. */
 						memmove(line_out, line_out + logical_end, offset_out - logical_end);

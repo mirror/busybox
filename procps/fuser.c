@@ -292,7 +292,7 @@ static int fuser_print_pid_list(pid_list *plist)
 			printf("%d ", curr->pid);
 		curr = curr->next;
 	}
-	puts("");
+	bb_putchar('\n');
 	return 1;
 }
 
