@@ -51,8 +51,10 @@ const char bb_PATH_root_path[] ALIGN1 =
 	"PATH=/sbin:/usr/sbin:/bin:/usr/bin" BB_ADDITIONAL_PATH;
 
 
-const int const_int_0;
 const int const_int_1 = 1;
+/* explicitly = 0, otherwise gcc may make it a common variable
+ * and it will end up in bss */
+const int const_int_0 = 0;
 
 #include <utmp.h>
 /* This is usually something like "/var/adm/wtmp" or "/var/log/wtmp" */
