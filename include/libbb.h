@@ -395,7 +395,7 @@ char *xstrdup(const char *s);
 char *xstrndup(const char *s, int n);
 char *safe_strncpy(char *dst, const char *src, size_t size);
 /* Guaranteed to NOT be a macro (smallest code). Saves nearly 2k on uclibc.
-/* But potentially slow, don't use in one-billion-times loops */
+ * But potentially slow, don't use in one-billion-times loops */
 int bb_putchar(int ch);
 char *xasprintf(const char *format, ...) __attribute__ ((format (printf, 1, 2)));
 // gcc-4.1.1 still isn't good enough at optimizing it
