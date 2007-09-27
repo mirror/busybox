@@ -1213,7 +1213,7 @@ static void keypress_process(int keypress)
 	case KEY_UP: case 'y': case 'k':
 		buffer_up(1);
 		break;
-	case PAGE_DOWN: case ' ': case 'z':
+	case PAGE_DOWN: case ' ': case 'z': case 'f':
 		buffer_down(max_displayed_line + 1);
 		break;
 	case PAGE_UP: case 'w': case 'b':
