@@ -324,7 +324,7 @@ static int ChangeUser(const char *user, short dochdir)
 
 	pas = getpwnam(user);
 	if (pas == NULL) {
-		bb_perror_msg_and_die("failed to get uid for %s", user);
+		bb_perror_msg_and_die("cannot get uid for %s", user);
 	}
 	setenv("USER", pas->pw_name, 1);
 	setenv("HOME", pas->pw_dir, 1);

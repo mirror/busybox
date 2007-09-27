@@ -99,23 +99,19 @@ static void print_perms(int id, struct ipc_perm *ipcp)
 
 	printf("%-10d %-10o", id, ipcp->mode & 0777);
 
-	if ((pw = getpwuid(ipcp->cuid)))
-		printf(" %-10s", pw->pw_name);
-	else
-		printf(" %-10d", ipcp->cuid);
-	if ((gr = getgrgid(ipcp->cgid)))
-		printf(" %-10s", gr->gr_name);
-	else
-		printf(" %-10d", ipcp->cgid);
+	pw = getpwuid(ipcp->cuid);
+	if (pw)	printf(" %-10s", pw->pw_name);
+	else	printf(" %-10d", ipcp->cuid);
+	gr = getgrgid(ipcp->cgid);
+	if (gr)	printf(" %-10s", gr->gr_name);
+	else	printf(" %-10d", ipcp->cgid);
 
-	if ((pw = getpwuid(ipcp->uid)))
-		printf(" %-10s", pw->pw_name);
-	else
-		printf(" %-10d", ipcp->uid);
-	if ((gr = getgrgid(ipcp->gid)))
-		printf(" %-10s\n", gr->gr_name);
-	else
-		printf(" %-10d\n", ipcp->gid);
+	pw = getpwuid(ipcp->uid);
+	if (pw)	printf(" %-10s", pw->pw_name);
+	else	printf(" %-10d", ipcp->uid);
+	gr = getgrgid(ipcp->gid);
+	if (gr)	printf(" %-10s\n", gr->gr_name);
+	else	printf(" %-10d\n", ipcp->gid);
 }
 
 
