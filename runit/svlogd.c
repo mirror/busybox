@@ -665,7 +665,7 @@ static ssize_t ndelay_read(int fd, void *buf, size_t count)
 }
 
 /* Used for reading stdin */
-static int buffer_pread(int fd, char *s, unsigned len)
+static int buffer_pread(/*int fd, */char *s, unsigned len)
 {
 	unsigned now;
 	struct pollfd input;
@@ -709,7 +709,7 @@ static int buffer_pread(int fd, char *s, unsigned len)
 		poll(&input, 1, i * 1000);
 		sigprocmask(SIG_BLOCK, blocked_sigset, NULL);
 
-		i = ndelay_read(fd, s, len);
+		i = ndelay_read(0, s, len);
 		if (i >= 0)
 			break;
 		if (errno == EINTR)
@@ -909,7 +909,7 @@ int svlogd_main(int argc, char **argv)
 		if (!np && !exitasap) {
 			i = linemax - stdin_cnt; /* avail. bytes at tail */
 			if (i >= 128) {
-				i = buffer_pread(0, lineptr + stdin_cnt, i);
+				i = buffer_pread(/*0, */lineptr + stdin_cnt, i);
 				if (i <= 0) /* EOF or error on stdin */
 					exitasap = 1;
 				else {
@@ -966,7 +966,7 @@ int svlogd_main(int argc, char **argv)
 		/* read/write repeatedly until we see it */
 		while (ch != '\n') {
 			/* lineptr is emptied now, safe to use as buffer */
-			stdin_cnt = exitasap ? -1 : buffer_pread(0, lineptr, linemax);
+			stdin_cnt = exitasap ? -1 : buffer_pread(/*0, */lineptr, linemax);
 			if (stdin_cnt <= 0) { /* EOF or error on stdin */
 				exitasap = 1;
 				lineptr[0] = ch = '\n';

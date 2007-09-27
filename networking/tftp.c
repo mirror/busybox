@@ -225,7 +225,7 @@ static int tftp( USE_GETPUT(const int cmd,)
 		/* Receive packet */
 		/*pfd[0].fd = socketfd;*/
 		pfd[0].events = POLLIN;
-		switch (poll(pfd, 1, waittime_ms)) {
+		switch (safe_poll(pfd, 1, waittime_ms)) {
 			unsigned from_port;
 		case 1:
 			from->len = peer_lsa->len;
@@ -262,7 +262,7 @@ static int tftp( USE_GETPUT(const int cmd,)
 
 			goto send_again; /* resend last sent pkt */
 		default:
-			bb_perror_msg("poll");
+			/*bb_perror_msg("poll"); - done in safe_poll */
 			goto ret;
 		}
  process_pkt:

@@ -924,7 +924,7 @@ int top_main(int argc, char **argv)
 #if !ENABLE_FEATURE_USE_TERMIOS
 		sleep(interval);
 #else
-		if (poll(pfd, 1, interval * 1000) != 0) {
+		if (safe_poll(pfd, 1, interval * 1000) > 0) {
 			if (read(0, &c, 1) != 1)    /* signal */
 				break;
 			if (c == initial_settings.c_cc[VINTR])

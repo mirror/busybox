@@ -451,8 +451,14 @@ extern FILE *fopen_or_warn(const char *filename, const char *mode);
 /* "Opens" stdin if filename is special, else just opens file: */
 extern FILE *fopen_or_warn_stdin(const char *filename);
 
+/* Wrapper which restarts poll on EINTR or ENOMEM.
+ * On other errors complains [perror("poll")] and returns.
+ * Warning! May take (much) longer than timeout_ms to return!
+ * If this is a problem, use bare poll and open-code EINTR/ENOMEM handling */
+int safe_poll(struct pollfd *ufds, nfds_t nfds, int timeout_ms);
+
 /* Convert each alpha char in str to lower-case */
-extern char* str_tolower(char *str);
+char* str_tolower(char *str);
 
 char *utoa(unsigned n);
 char *itoa(int n);

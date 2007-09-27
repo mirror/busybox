@@ -1073,12 +1073,8 @@ static NOINLINE void cgi_io_loop_and_exit(int fromCgi_rd, int toCgi_wr, int post
 		}
 
 		/* Now wait on the set of sockets */
-		count = poll(pfd, 3, -1);
+		count = safe_poll(pfd, 3, -1);
 		if (count <= 0) {
-#if 0
-			if (errno == EINTR)
-				continue;
-#endif
 #if 0
 			if (waitpid(pid, &status, WNOHANG) <= 0) {
 				/* Weird. CGI didn't exit and no fd's

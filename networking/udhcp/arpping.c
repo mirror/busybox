@@ -81,12 +81,9 @@ int arpping(uint32_t test_ip, uint32_t from_ip, uint8_t *from_mac, const char *i
 		unsigned prevTime = monotonic_us();
 
 		pfd[0].events = POLLIN;
-		r = poll(pfd, 1, timeout_ms);
+		r = safe_poll(pfd, 1, timeout_ms);
 		if (r < 0) {
-			if (errno != EINTR) {
-				bb_perror_msg("poll");
-				break;
-			}
+			break;
 		} else if (r) {
 			if (read(s, &arp, sizeof(arp)) < 0)
 				break;

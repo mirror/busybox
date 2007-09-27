@@ -2139,7 +2139,7 @@ static int mysleep(int hund)	// sleep for 'h' 1/100 seconds
 
 	pfd[0].fd = 0;
 	pfd[0].events = POLLIN;
-	return poll(pfd, 1, hund*10) > 0;
+	return safe_poll(pfd, 1, hund*10) > 0;
 }
 
 #define readbuffer bb_common_bufsiz1
@@ -2221,7 +2221,7 @@ static char readit(void)	// read (maybe cursor) key from stdin
 			pfd[0].events = POLLIN;
 			// Wait 50 ms
 			// keep reading while there are input chars and room in buffer
-			while (poll(pfd, 1, 50) > 0 && n <= (MAX_LINELEN - 5)) {
+			while (safe_poll(pfd, 1, 50) > 0 && n <= (MAX_LINELEN - 5)) {
 				// read the rest of the ESC string
 				int r = read(0, readbuffer + n, MAX_LINELEN - n);
 				if (r > 0)

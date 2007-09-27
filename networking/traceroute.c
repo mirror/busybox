@@ -543,7 +543,7 @@ wait_for_reply(int sock, struct sockaddr_in *fromp)
 
 	pfd[0].fd = sock;
 	pfd[0].events = POLLIN;
-	if (poll(pfd, 1, waittime * 1000) > 0)
+	if (safe_poll(pfd, 1, waittime * 1000) > 0)
 		cc = recvfrom(sock, packet, sizeof(packet), 0,
 			    (struct sockaddr *)fromp, &fromlen);
 	return cc;

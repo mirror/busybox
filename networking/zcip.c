@@ -300,7 +300,12 @@ int zcip_main(int argc, char **argv)
 
 		VDBG("...wait %d %s nprobes=%u, nclaims=%u\n",
 				timeout_ms, intf, nprobes, nclaims);
-		switch (poll(fds, 1, timeout_ms)) {
+
+		switch (safe_poll(fds, 1, timeout_ms)) {
+
+		default:
+			/*bb_perror_msg("poll"); - done in safe_poll */
+			return EXIT_FAILURE;
 
 		// timeout
 		case 0:
@@ -388,6 +393,7 @@ int zcip_main(int argc, char **argv)
 				break;
 			} // switch (state)
 			break; // case 0 (timeout)
+
 		// packets arriving
 		case 1:
 			// We need to adjust the timeout in case we didn't receive
@@ -519,13 +525,9 @@ int zcip_main(int argc, char **argv)
 				nclaims = 0;
 				break;
 			} // switch state
-
 			break; // case 1 (packets arriving)
-		default:
-			why = "poll";
-			goto bad;
 		} // switch poll
-	}
+	} // while (1)
  bad:
 	bb_perror_msg("%s, %s", intf, why);
 	return EXIT_FAILURE;

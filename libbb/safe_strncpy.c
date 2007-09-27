@@ -10,7 +10,7 @@
 #include "libbb.h"
 
 /* Like strncpy but make sure the resulting string is always 0 terminated. */
-char * safe_strncpy(char *dst, const char *src, size_t size)
+char *safe_strncpy(char *dst, const char *src, size_t size)
 {
 	if (!size) return dst;
 	dst[--size] = '\0';

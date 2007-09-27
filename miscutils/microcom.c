@@ -105,8 +105,7 @@ int microcom_main(int argc, char **argv)
 	pfd[1].events = POLLIN;
 	while (1) {
 		int i;
-		while (-1 == poll(pfd, 2, -1) && EINTR == errno)
-			continue;
+		safe_poll(pfd, 2, -1);
 		for (i = 0; i < 2; ++i) {
 			if (pfd[i].revents & POLLIN) {
 				len = read(pfd[i].fd, bb_common_bufsiz1, COMMON_BUFSIZE);
