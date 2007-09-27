@@ -409,8 +409,8 @@ int wget_main(int argc, char **argv)
 	llist_t *headers_llist = NULL;
 #endif
 	FILE *sfp = NULL;               /* socket to web/ftp server         */
-	FILE *dfp = NULL;               /* socket to ftp server (data)      */
-	char *fname_out = NULL;         /* where to direct output (-O)      */
+	FILE *dfp;                      /* socket to ftp server (data)      */
+	char *fname_out;                /* where to direct output (-O)      */
 	bool got_clen = 0;              /* got content-length: from server  */
 	int output_fd = -1;
 	bool use_proxy = 1;             /* Use proxies if env vars are set  */
@@ -496,7 +496,7 @@ int wget_main(int argc, char **argv)
 	}
 
 	/* Guess an output filename, if there was no -O FILE */
-	if (!fname_out) {
+	if (!(opt & WGET_OPT_OUTNAME)) {
 		fname_out = bb_get_last_path_component_nostrip(target.path);
 		/* handle "wget http://kernel.org//" */
 		if (fname_out[0] == '/' || !fname_out[0])
@@ -504,6 +504,12 @@ int wget_main(int argc, char **argv)
 		/* -P DIR is considered only if there was no -O FILE */
 		if (dir_prefix)
 			fname_out = concat_path_file(dir_prefix, fname_out);
+	} else {
+		if (LONE_DASH(fname_out)) {
+			/* -O - */
+			output_fd = 1;
+			opt &= ~WGET_OPT_CONTINUE;
+		}
 	}
 #if ENABLE_FEATURE_WGET_STATUSBAR
 	curfile = bb_get_last_path_component_nostrip(fname_out);
@@ -514,10 +520,6 @@ int wget_main(int argc, char **argv)
 		bb_error_msg_and_die("cannot specify continue (-c) without a filename (-O)"); */
 
 	/* Determine where to start transfer */
-	if (LONE_DASH(fname_out)) {
-		output_fd = 1;
-		opt &= ~WGET_OPT_CONTINUE;
-	}
 	if (opt & WGET_OPT_CONTINUE) {
 		output_fd = open(fname_out, O_WRONLY);
 		if (output_fd >= 0) {
@@ -744,9 +746,13 @@ int wget_main(int argc, char **argv)
 	 */
 
 	/* Do it before progressmeter (want to have nice error message) */
-	if (output_fd < 0)
-		output_fd = xopen(fname_out,
-			O_WRONLY|O_CREAT|O_EXCL|O_TRUNC);
+	if (output_fd < 0) {
+		int o_flags = O_WRONLY | O_CREAT | O_TRUNC | O_EXCL;
+		/* compat with wget: -O FILE can overwrite */
+		if (opt & WGET_OPT_OUTNAME)
+			o_flags = O_WRONLY | O_CREAT | O_TRUNC;
+		output_fd = xopen(fname_out, o_flags);
+	}
 
 	if (!(opt & WGET_OPT_QUIET))
 		progressmeter(-1);
