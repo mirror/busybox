@@ -441,25 +441,28 @@ static const char *const secu_str[] = {
 
 #undef DO_FLUSHCACHE            /* under construction: force cache flush on -W0 */
 
+
+enum { fd = 3 };
+
 /* Busybox messages and functions */
 #if ENABLE_IOCTL_HEX2STR_ERROR
-static int ioctl_alt_func(int fd, int cmd, unsigned char *args, int alt, const char *string)
+static int ioctl_alt_func(/*int fd,*/ int cmd, unsigned char *args, int alt, const char *string)
 {
 	if (!ioctl(fd, cmd, args))
 		return 0;
 	args[0] = alt;
 	return bb_ioctl_or_warn(fd, cmd, args, string);
 }
-#define ioctl_alt_or_warn(fd,cmd,args,alt) ioctl_alt_func(fd,cmd,args,alt,#cmd)
+#define ioctl_alt_or_warn(cmd,args,alt) ioctl_alt_func(cmd,args,alt,#cmd)
 #else
-static int ioctl_alt_func(int fd, int cmd, unsigned char *args, int alt)
+static int ioctl_alt_func(/*int fd,*/ int cmd, unsigned char *args, int alt)
 {
 	if (!ioctl(fd, cmd, args))
 		return 0;
 	args[0] = alt;
 	return bb_ioctl_or_warn(fd, cmd, args);
 }
-#define ioctl_alt_or_warn(fd,cmd,args,alt) ioctl_alt_func(fd,cmd,args,alt)
+#define ioctl_alt_or_warn(cmd,args,alt) ioctl_alt_func(cmd,args,alt)
 #endif
 
 static void on_off(int value)
@@ -1233,7 +1236,7 @@ static void dump_identity(const struct hd_driveid *id)
 }
 #endif
 
-static void flush_buffer_cache(int fd)
+static void flush_buffer_cache(/*int fd*/ void)
 {
 	fsync(fd);				/* flush buffers */
 	ioctl_or_warn(fd, BLKFLSBUF, NULL); /* do it again, big time */
@@ -1248,14 +1251,14 @@ static void flush_buffer_cache(int fd)
 #endif
 }
 
-static int seek_to_zero(int fd)
+static int seek_to_zero(/*int fd*/ void)
 {
 	if (lseek(fd, (off_t) 0, SEEK_SET))
 		return 1;
 	return 0;
 }
 
-static int read_big_block(int fd, char *buf)
+static int read_big_block(/*int fd,*/ char *buf)
 {
 	int i;
 
@@ -1270,7 +1273,7 @@ static int read_big_block(int fd, char *buf)
 	return 0;
 }
 
-static int do_blkgetsize(int fd, unsigned long long *blksize64)
+static int do_blkgetsize(/*int fd,*/ unsigned long long *blksize64)
 {
 	int rc;
 	unsigned blksize32 = 0;
@@ -1292,7 +1295,7 @@ static void print_timing(unsigned t, double e)
 		printf("%4d MB in %.2f seconds = %.2f %cB/sec\n", t, e, t / e * 1024, 'k');
 }
 
-static void do_time(int flag, int fd)
+static void do_time(int flag /*,int fd*/)
 /* flag = 0 time_cache, 1 time_device */
 {
 	static const struct itimerval thousand = {{1000, 0}, {1000, 0}};
@@ -1309,7 +1312,7 @@ static void do_time(int flag, int fd)
 	}
 
 	max_iterations = 1024;
-	if (0 == do_blkgetsize(fd, &blksize)) {
+	if (0 == do_blkgetsize(&blksize)) {
 		max_iterations = blksize / (2 * 1024) / TIMING_BUF_MB;
 	}
 
@@ -1317,9 +1320,9 @@ static void do_time(int flag, int fd)
 	sync();
 	sleep(2);
 	if (flag == 0) { /* Time cache */
-		if (seek_to_zero(fd))
+		if (seek_to_zero())
 			goto quit;
-		if (read_big_block(fd, buf))
+		if (read_big_block(buf))
 			goto quit;
 		printf(" Timing buffer-cache reads:  ");
 	} else { /* Time device */
@@ -1335,9 +1338,9 @@ static void do_time(int flag, int fd)
 	/* Now do the timing */
 	do {
 		++iterations;
-		if ((flag == 0) && seek_to_zero(fd))
+		if ((flag == 0) && seek_to_zero())
 			goto quit;
-		if (read_big_block(fd, buf))
+		if (read_big_block(buf))
 			goto quit;
 		getitimer(ITIMER_REAL, &itv);
 		elapsed = (1000 - itv.it_value.tv_sec) * 1000000
@@ -1348,7 +1351,7 @@ static void do_time(int flag, int fd)
 		/* Now remove the lseek() and getitimer() overheads from the elapsed time */
 		setitimer(ITIMER_REAL, &thousand, NULL);
 		do {
-			if (seek_to_zero(fd))
+			if (seek_to_zero())
 				goto quit;
 			getitimer(ITIMER_REAL, &itv);
 			elapsed2 = (1000 - itv.it_value.tv_sec) * 1000000
@@ -1356,7 +1359,7 @@ static void do_time(int flag, int fd)
 		} while (--iterations);
 		elapsed -= elapsed2;
 		total_MB *= BUFCACHE_FACTOR;
-		flush_buffer_cache(fd);
+		flush_buffer_cache();
 	}
 	print_timing(total_MB, elapsed / 1000000.0);
  quit:
@@ -1465,7 +1468,7 @@ static void print_flag(int flag, const char *s, unsigned long value)
 
 static void process_dev(char *devname)
 {
-	int fd;
+	/*int fd;*/
 	long parm, multcount;
 #ifndef HDIO_DRIVE_CMD
 	int force_operation = 0;
@@ -1475,7 +1478,8 @@ static void process_dev(char *devname)
 	unsigned char args[4] = { WIN_SETFEATURES, 0, 0, 0 };
 	const char *fmt = " %s\t= %2ld";
 
-	fd = xopen(devname, O_RDONLY|O_NONBLOCK);
+	/*fd = xopen(devname, O_RDONLY | O_NONBLOCK);*/
+	xmove_fd(xopen(devname, O_RDONLY | O_NONBLOCK), fd);
 	printf("\n%s:\n", devname);
 
 	if (set_readahead) {
@@ -1633,7 +1637,7 @@ static void process_dev(char *devname)
 #endif
 		if (get_standbynow) printf(" issuing standby command\n");
 		args[0] = WIN_STANDBYNOW1;
-		ioctl_alt_or_warn(fd, HDIO_DRIVE_CMD, args, WIN_STANDBYNOW2);
+		ioctl_alt_or_warn(HDIO_DRIVE_CMD, args, WIN_STANDBYNOW2);
 	}
 	if (set_sleepnow) {
 #ifndef WIN_SLEEPNOW1
@@ -1644,7 +1648,7 @@ static void process_dev(char *devname)
 #endif
 		if (get_sleepnow) printf(" issuing sleep command\n");
 		args[0] = WIN_SLEEPNOW1;
-		ioctl_alt_or_warn(fd, HDIO_DRIVE_CMD, args, WIN_SLEEPNOW2);
+		ioctl_alt_or_warn(HDIO_DRIVE_CMD, args, WIN_SLEEPNOW2);
 	}
 	if (set_seagate) {
 		args[0] = 0xfb;
@@ -1664,7 +1668,7 @@ static void process_dev(char *devname)
 #else	/* HDIO_DRIVE_CMD */
 	if (force_operation) {
 		char buf[512];
-		flush_buffer_cache(fd);
+		flush_buffer_cache();
 		if (-1 == read(fd, buf, sizeof(buf)))
 			bb_perror_msg("read(%d bytes) failed (rc=%d)", sizeof(buf), -1);
 	}
@@ -1757,7 +1761,7 @@ static void process_dev(char *devname)
 		const char *state;
 
 		args[0] = WIN_CHECKPOWERMODE1;
-		if (ioctl_alt_or_warn(fd, HDIO_DRIVE_CMD, args, WIN_CHECKPOWERMODE2)) {
+		if (ioctl_alt_or_warn(HDIO_DRIVE_CMD, args, WIN_CHECKPOWERMODE2)) {
 			if (errno != EIO || args[0] != 0 || args[1] != 0)
 				state = "unknown";
 			else
@@ -1806,7 +1810,7 @@ static void process_dev(char *devname)
 		memset(args1, 0, sizeof(args1));
 		args1[0] = WIN_IDENTIFY;
 		args1[3] = 1;
-		if (!ioctl_alt_or_warn(fd, HDIO_DRIVE_CMD, args1, WIN_PIDENTIFY))
+		if (!ioctl_alt_or_warn(HDIO_DRIVE_CMD, args1, WIN_PIDENTIFY))
 			identify((void *)(args1 + 4));
 	}
 #endif
@@ -1829,11 +1833,11 @@ static void process_dev(char *devname)
 		ioctl_or_warn(fd, BLKRRPART, NULL);
 
 	if (do_ctimings)
-		do_time(0, fd); /* time cache */
+		do_time(0 /*,fd*/); /* time cache */
 	if (do_timings)
-		do_time(1, fd); /* time device */
+		do_time(1 /*,fd*/); /* time device */
 	if (do_flush)
-		flush_buffer_cache(fd);
+		flush_buffer_cache();
 	close(fd);
 }
 
