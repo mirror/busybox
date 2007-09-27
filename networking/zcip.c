@@ -160,7 +160,8 @@ int zcip_main(int argc, char **argv);
 int zcip_main(int argc, char **argv)
 {
 	int state = PROBE;
-	struct ether_addr eth_addr;
+	/* Prevent unaligned traps for ARM (see srand() below) */
+	struct ether_addr eth_addr __attribute__(( aligned(sizeof(unsigned)) ));
 	const char *why;
 	int fd;
 	char *r_opt;
@@ -252,7 +253,7 @@ int zcip_main(int argc, char **argv)
 	// the hardware address or else the last address we used.
 	// NOTE: the sequence of addresses we try changes only
 	// depending on when we detect conflicts.
-	srand(*(unsigned*)&ifr.ifr_hwaddr.sa_data);
+	srand(*(unsigned*)&eth_addr);
 	if (ip.s_addr == 0)
 		pick(&ip);
 
