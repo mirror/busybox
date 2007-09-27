@@ -19,26 +19,18 @@
 #include "libbb.h"
 #include <sys/vt.h>
 
-static struct passwd *pw;
-static struct vt_mode ovtm;
-static struct termios oterm;
-static int vfd;
-static unsigned long o_lock_all;
+enum { vfd = 3 };
+
+/* static unsigned long o_lock_all; */
 
 static void release_vt(int signo)
 {
-	ioctl(vfd, VT_RELDISP, !o_lock_all);
+	ioctl(vfd, VT_RELDISP, (unsigned long) !option_mask32 /*!o_lock_all*/);
 }
 
 static void acquire_vt(int signo)
 {
 	ioctl(vfd, VT_RELDISP, VT_ACKACQ);
-}
-
-static void restore_terminal(void)
-{
-	ioctl(vfd, VT_SETMODE, &ovtm);
-	tcsetattr(STDIN_FILENO, TCSANOW, &oterm);
 }
 
 int vlock_main(int argc, char **argv);
@@ -48,8 +40,12 @@ int vlock_main(int argc, char **argv)
 	struct sigaction sa;
 	struct vt_mode vtm;
 	struct termios term;
-	uid_t uid = getuid();
+	struct termios oterm;
+	struct vt_mode ovtm;
+	uid_t uid;
+	struct passwd *pw;
 
+	uid = getuid();
 	pw = getpwuid(uid);
 	if (pw == NULL)
 		bb_error_msg_and_die("unknown uid %d", uid);
@@ -58,10 +54,10 @@ int vlock_main(int argc, char **argv)
 		bb_show_usage();
 	}
 
-	o_lock_all = getopt32(argv, "a");
+	/*o_lock_all = */getopt32(argv, "a");
 
-	vfd = xopen(CURRENT_TTY, O_RDWR);
-
+	/* Avoid using statics - use constant fd */
+	xmove_fd(xopen(CURRENT_TTY, O_RDWR), vfd);
 	xioctl(vfd, VT_GETMODE, &vtm);
 
 	/* mask a bunch of signals */
@@ -105,13 +101,17 @@ int vlock_main(int argc, char **argv)
 	tcsetattr(STDIN_FILENO, TCSANOW, &term);
 
 	do {
-		printf("Virtual Console%s locked by %s.\n", (o_lock_all) ? "s" : "", pw->pw_name);
+		printf("Virtual console%s locked by %s.\n",
+				option_mask32 /*o_lock_all*/ ? "s" : "",
+				pw->pw_name);
 		if (correct_password(pw)) {
 			break;
 		}
 		bb_do_delay(FAIL_DELAY);
 		puts("Password incorrect");
 	} while (1);
-	restore_terminal();
+
+	ioctl(vfd, VT_SETMODE, &ovtm);
+	tcsetattr(STDIN_FILENO, TCSANOW, &oterm);
 	fflush_stdout_and_exit(0);
 }
