@@ -725,14 +725,14 @@ unpack_bz2_stream(int src_fd, int dst_fd)
 
 	if (i == RETVAL_LAST_BLOCK) {
 		if (bd->headerCRC != bd->totalCRC) {
-			bb_error_msg("data integrity error when decompressing");
+			bb_error_msg("CRC error");
 		} else {
 			i = RETVAL_OK;
 		}
 	} else if (i == RETVAL_UNEXPECTED_OUTPUT_EOF) {
-		bb_error_msg("compressed file ends unexpectedly");
+		bb_error_msg("unexpected EOF");
 	} else {
-		bb_error_msg("decompression failed");
+		bb_error_msg("bunzip error %d", i);
 	}
 	dealloc_bunzip(bd);
 	free(outbuf);
