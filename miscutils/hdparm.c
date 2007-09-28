@@ -1378,8 +1378,8 @@ static void print_timing(unsigned m, unsigned elapsed_us)
 
 	printf("%5u MB in %u.%02u seconds = %u kB/s\n",
 		m, sec, hs,
-		/* + 1 prevents div-by-0 */
-		(unsigned) ((unsigned long long)m * (1024 * 1000000) / (elapsed_us + 1))
+		/* "| 1" prevents div-by-0 */
+		(unsigned) ((unsigned long long)m * (1024 * 1000000) / (elapsed_us | 1))
 		// ~= (m * 1024) / (elapsed_us / 1000000)
 		// = kb / elapsed_sec
 	);
