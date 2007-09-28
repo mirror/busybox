@@ -1314,7 +1314,7 @@ int read_line_input(const char* prompt, char* command, int maxsize, line_input_t
 			/* If we enter read_line_input for the Nth time,
 			 * they may be already allocated! Need to free. */
 			free(user_buf);
-			if (home_pwd_buf != null_str);
+			if (home_pwd_buf != null_str)
 				free(home_pwd_buf);
 			user_buf = xstrdup(entry->pw_name);
 			home_pwd_buf = xstrdup(entry->pw_dir);
