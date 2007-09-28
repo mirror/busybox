@@ -1353,35 +1353,34 @@ static void read_big_block(/*int fd,*/ char *buf)
 		buf[i] &= 1;
 }
 
-static unsigned long long dev_size_mb(/*int fd*/ void)
+static unsigned dev_size_mb(/*int fd*/ void)
 {
 	union {
 		unsigned long long blksize64;
 		unsigned blksize32;
 	} u;
 
-	if (0 == ioctl(fd, BLKGETSIZE64, &u.blksize64)) { // returns bytes
-		return u.blksize64 / (1024 * 1024);
+	if (0 == ioctl(fd, BLKGETSIZE64, &u.blksize64)) { // bytes
+		u.blksize64 /= (1024 * 1024);
+	} else {
+		xioctl(fd, BLKGETSIZE, &u.blksize32); // sectors
+		u.blksize64 = u.blksize32 / (2 * 1024);
 	}
-	xioctl(fd, BLKGETSIZE, &u.blksize32); // returns sectors
-	return u.blksize32 / (2 * 1024);
+	if (u.blksize64 > UINT_MAX)
+		return UINT_MAX;
+	return u.blksize64;
 }
 
-static void print_timing(unsigned long m, unsigned elapsed_us)
+static void print_timing(unsigned m, unsigned elapsed_us)
 {
 	unsigned sec = elapsed_us / 1000000;
 	unsigned hs = (elapsed_us % 1000000) / 10000;
 
-	printf("%5lu MB in %u.%02u seconds = %lu kB/s\n",
+	printf("%5u MB in %u.%02u seconds = %u kB/s\n",
 		m, sec, hs,
-		/* Trying to not overflow 32-bit arith in m * CONST
-		 * by keeping CONST not so big. But elapsed_us / CONST2 
-		 * also should not introduce big errors. Currently,
-		 * 16000us is ~1.6% of 1 second.
-		 * "+ 1" prevents div-by-0. */
-		(m * (1024 * 1000000 / (16*1024))) / (elapsed_us / (16*1024) + 1)
-		// ~= (m * 1024 * 1000000) / elapsed_us
-		// = (m * 1024) / (elapsed_us / 1000000)
+		/* + 1 prevents div-by-0 */
+		(unsigned) ((unsigned long long)m * (1024 * 1000000) / (elapsed_us + 1))
+		// ~= (m * 1024) / (elapsed_us / 1000000)
 		// = kb / elapsed_sec
 	);
 }
@@ -1392,18 +1391,13 @@ static void do_time(int cache /*,int fd*/)
  */
 {
 	unsigned max_iterations, iterations;
-	unsigned start; /* don't need to be long long */
+	unsigned start; /* doesn't need to be long long */
 	unsigned elapsed, elapsed2;
-	unsigned long total_MB;
+	unsigned total_MB;
 	char *buf = xmalloc(TIMING_BUF_BYTES);
 
 	if (mlock(buf, TIMING_BUF_BYTES))
 		bb_perror_msg_and_die("mlock");
-
-	/* Don't want to read past the end! */
-	max_iterations = UINT_MAX;
-	if (!cache)
-		max_iterations = dev_size_mb() / TIMING_BUF_MB;
 
 	/* Clear out the device request queues & give them time to complete.
 	 * NB: *small* delay. User is expected to have a clue and to not run
@@ -1422,10 +1416,14 @@ static void do_time(int cache /*,int fd*/)
 	/* Now do the timing */
 	iterations = 0;
 	/* Max time to run (small for cache, avoids getting
-	 * huge total_MB which can overlow on print_timing) */
+	 * huge total_MB which can overlow unsigned type) */
 	elapsed2 = 510000; /* cache */
-	if (!cache)
+	max_iterations = UINT_MAX;
+	if (!cache) {
 		elapsed2 = 3000000; /* not cache */
+		/* Don't want to read past the end! */
+		max_iterations = dev_size_mb() / TIMING_BUF_MB;
+	}
 	start = monotonic_us();
 	do {
 		if (cache)
@@ -1434,7 +1432,7 @@ static void do_time(int cache /*,int fd*/)
 		elapsed = (unsigned)monotonic_us() - start;
 		++iterations;
 	} while (elapsed < elapsed2 && iterations < max_iterations);
-	total_MB = (unsigned long)iterations * TIMING_BUF_MB;
+	total_MB = iterations * TIMING_BUF_MB;
 	//printf(" elapsed:%u iterations:%u ", elapsed, iterations);
 	if (cache) {
 		/* Cache: remove lseek() and monotonic_us() overheads
