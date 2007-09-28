@@ -379,11 +379,6 @@ static const char *const cmd_feat_str[] = {
 	"SMART self-test ",			/* word 84 bit  1 */
 	"SMART error logging "			/* word 84 bit  0 */
 };
-
-static void identify(uint16_t *id_supplied) ATTRIBUTE_NORETURN;
-static void identify_from_stdin(void) ATTRIBUTE_NORETURN;
-#else
-void identify_from_stdin(void);
 #endif
 
 
@@ -443,6 +438,162 @@ static const char *const secu_str[] = {
 
 
 enum { fd = 3 };
+
+
+struct globals {
+	smallint get_identity, get_geom;
+	smallint do_flush;
+	smallint do_ctimings, do_timings;
+	smallint reread_partn;
+	smallint set_piomode, noisy_piomode;
+	smallint set_readahead, get_readahead;
+	smallint set_readonly, get_readonly;
+	smallint set_unmask, get_unmask;
+	smallint set_mult, get_mult;
+	smallint set_dma_q, get_dma_q;
+	smallint set_nowerr, get_nowerr;
+	smallint set_keep, get_keep;
+	smallint set_io32bit, get_io32bit;
+	int piomode;
+	unsigned long Xreadahead;
+	unsigned long readonly;
+	unsigned long unmask;
+	unsigned long mult;
+	unsigned long dma_q;
+	unsigned long nowerr;
+	unsigned long keep;
+	unsigned long io32bit;
+#if ENABLE_FEATURE_HDPARM_HDIO_GETSET_DMA
+	unsigned long dma;
+	smallint set_dma, get_dma;
+#endif
+#ifdef HDIO_DRIVE_CMD
+	smallint set_xfermode, get_xfermode;
+	smallint set_dkeep, get_dkeep;
+	smallint set_standby, get_standby;
+	smallint set_lookahead, get_lookahead;
+	smallint set_prefetch, get_prefetch;
+	smallint set_defects, get_defects;
+	smallint set_wcache, get_wcache;
+	smallint set_doorlock, get_doorlock;
+	smallint set_seagate, get_seagate;
+	smallint set_standbynow, get_standbynow;
+	smallint set_sleepnow, get_sleepnow;
+	smallint get_powermode;
+	smallint set_apmmode, get_apmmode;
+	int xfermode_requested;
+	unsigned long dkeep;
+	unsigned long standby_requested;
+	unsigned long lookahead;
+	unsigned long prefetch;
+	unsigned long defects;
+	unsigned long wcache;
+	unsigned long doorlock;
+	unsigned long apmmode;
+#endif
+	USE_FEATURE_HDPARM_GET_IDENTITY(        smallint get_IDentity;)
+	USE_FEATURE_HDPARM_HDIO_TRISTATE_HWIF(  smallint set_busstate, get_busstate;)
+	USE_FEATURE_HDPARM_HDIO_DRIVE_RESET(    smallint perform_reset;)
+	USE_FEATURE_HDPARM_HDIO_TRISTATE_HWIF(  smallint perform_tristate;)
+	USE_FEATURE_HDPARM_HDIO_UNREGISTER_HWIF(smallint unregister_hwif;)
+	USE_FEATURE_HDPARM_HDIO_SCAN_HWIF(      smallint scan_hwif;)
+	USE_FEATURE_HDPARM_HDIO_TRISTATE_HWIF(  unsigned long busstate;)
+	USE_FEATURE_HDPARM_HDIO_TRISTATE_HWIF(  unsigned long tristate;)
+	USE_FEATURE_HDPARM_HDIO_UNREGISTER_HWIF(unsigned long hwif;)
+#if ENABLE_FEATURE_HDPARM_HDIO_SCAN_HWIF
+	unsigned long hwif_data;
+	unsigned long hwif_ctrl;
+	unsigned long hwif_irq;
+#endif
+};
+#define G (*(struct globals*)&bb_common_bufsiz1)
+struct BUG_G_too_big {
+	char BUG_G_too_big[sizeof(G) <= COMMON_BUFSIZE ? 1 : -1];
+};
+#define get_identity       (G.get_identity           )
+#define get_geom           (G.get_geom               )
+#define do_flush           (G.do_flush               )
+#define do_ctimings        (G.do_ctimings            )
+#define do_timings         (G.do_timings             )
+#define reread_partn       (G.reread_partn           )
+#define set_piomode        (G.set_piomode            )
+#define noisy_piomode      (G.noisy_piomode          )
+#define set_readahead      (G.set_readahead          )
+#define get_readahead      (G.get_readahead          )
+#define set_readonly       (G.set_readonly           )
+#define get_readonly       (G.get_readonly           )
+#define set_unmask         (G.set_unmask             )
+#define get_unmask         (G.get_unmask             )
+#define set_mult           (G.set_mult               )
+#define get_mult           (G.get_mult               )
+#define set_dma_q          (G.set_dma_q              )
+#define get_dma_q          (G.get_dma_q              )
+#define set_nowerr         (G.set_nowerr             )
+#define get_nowerr         (G.get_nowerr             )
+#define set_keep           (G.set_keep               )
+#define get_keep           (G.get_keep               )
+#define set_io32bit        (G.set_io32bit            )
+#define get_io32bit        (G.get_io32bit            )
+#define piomode            (G.piomode                )
+#define Xreadahead         (G.Xreadahead             )
+#define readonly           (G.readonly               )
+#define unmask             (G.unmask                 )
+#define mult               (G.mult                   )
+#define dma_q              (G.dma_q                  )
+#define nowerr             (G.nowerr                 )
+#define keep               (G.keep                   )
+#define io32bit            (G.io32bit                )
+#define dma                (G.dma                    )
+#define set_dma            (G.set_dma                )
+#define get_dma            (G.get_dma                )
+#define set_xfermode       (G.set_xfermode           )
+#define get_xfermode       (G.get_xfermode           )
+#define set_dkeep          (G.set_dkeep              )
+#define get_dkeep          (G.get_dkeep              )
+#define set_standby        (G.set_standby            )
+#define get_standby        (G.get_standby            )
+#define set_lookahead      (G.set_lookahead          )
+#define get_lookahead      (G.get_lookahead          )
+#define set_prefetch       (G.set_prefetch           )
+#define get_prefetch       (G.get_prefetch           )
+#define set_defects        (G.set_defects            )
+#define get_defects        (G.get_defects            )
+#define set_wcache         (G.set_wcache             )
+#define get_wcache         (G.get_wcache             )
+#define set_doorlock       (G.set_doorlock           )
+#define get_doorlock       (G.get_doorlock           )
+#define set_seagate        (G.set_seagate            )
+#define get_seagate        (G.get_seagate            )
+#define set_standbynow     (G.set_standbynow         )
+#define get_standbynow     (G.get_standbynow         )
+#define set_sleepnow       (G.set_sleepnow           )
+#define get_sleepnow       (G.get_sleepnow           )
+#define get_powermode      (G.get_powermode          )
+#define set_apmmode        (G.set_apmmode            )
+#define get_apmmode        (G.get_apmmode            )
+#define xfermode_requested (G.xfermode_requested     )
+#define dkeep              (G.dkeep                  )
+#define standby_requested  (G.standby_requested      )
+#define lookahead          (G.lookahead              )
+#define prefetch           (G.prefetch               )
+#define defects            (G.defects                )
+#define wcache             (G.wcache                 )
+#define doorlock           (G.doorlock               )
+#define apmmode            (G.apmmode                )
+#define get_IDentity       (G.get_IDentity           )
+#define set_busstate       (G.set_busstate           )
+#define get_busstate       (G.get_busstate           )
+#define perform_reset      (G.perform_reset          )
+#define perform_tristate   (G.perform_tristate       )
+#define unregister_hwif    (G.unregister_hwif        )
+#define scan_hwif          (G.scan_hwif              )
+#define busstate           (G.busstate               )
+#define tristate           (G.tristate               )
+#define hwif               (G.hwif                   )
+#define hwif_data          (G.hwif_data              )
+#define hwif_ctrl          (G.hwif_ctrl              )
+#define hwif_irq           (G.hwif_irq               )
+
 
 /* Busybox messages and functions */
 #if ENABLE_IOCTL_HEX2STR_ERROR
@@ -544,6 +695,7 @@ static uint8_t mode_loop(uint16_t mode_sup, uint16_t mode_sel, int cc, uint8_t *
 
 // Parse 512 byte disk identification block and print much crap.
 
+static void identify(uint16_t *val) ATTRIBUTE_NORETURN;
 static void identify(uint16_t *val)
 {
 	uint16_t ii, jj, kk;
@@ -1012,72 +1164,6 @@ static void identify(uint16_t *val)
 }
 #endif
 
-static smallint get_identity, get_geom;
-static smallint do_flush;
-static smallint do_ctimings, do_timings;
-static smallint reread_partn;
-
-static smallint set_piomode, noisy_piomode;
-static smallint set_readahead, get_readahead;
-static smallint set_readonly, get_readonly;
-static smallint set_unmask, get_unmask;
-static smallint set_mult, get_mult;
-static smallint set_dma_q, get_dma_q;
-static smallint set_nowerr, get_nowerr;
-static smallint set_keep, get_keep;
-static smallint set_io32bit, get_io32bit;
-static int piomode;
-static unsigned long Xreadahead;
-static unsigned long readonly;
-static unsigned long unmask;
-static unsigned long mult;
-static unsigned long dma_q;
-static unsigned long nowerr;
-static unsigned long keep;
-static unsigned long io32bit;
-#if ENABLE_FEATURE_HDPARM_HDIO_GETSET_DMA
-static unsigned long dma;
-static smallint set_dma, get_dma;
-#endif
-#ifdef HDIO_DRIVE_CMD
-static smallint set_xfermode, get_xfermode;
-static smallint set_dkeep, get_dkeep;
-static smallint set_standby, get_standby;
-static smallint set_lookahead, get_lookahead;
-static smallint set_prefetch, get_prefetch;
-static smallint set_defects, get_defects;
-static smallint set_wcache, get_wcache;
-static smallint set_doorlock, get_doorlock;
-static smallint set_seagate, get_seagate;
-static smallint set_standbynow, get_standbynow;
-static smallint set_sleepnow, get_sleepnow;
-static smallint get_powermode;
-static smallint set_apmmode, get_apmmode;
-static int xfermode_requested;
-static unsigned long dkeep;
-static unsigned long standby_requested;
-static unsigned long lookahead;
-static unsigned long prefetch;
-static unsigned long defects;
-static unsigned long wcache;
-static unsigned long doorlock;
-static unsigned long apmmode;
-#endif
-USE_FEATURE_HDPARM_GET_IDENTITY(        static smallint get_IDentity;)
-USE_FEATURE_HDPARM_HDIO_TRISTATE_HWIF(  static smallint set_busstate, get_busstate;)
-USE_FEATURE_HDPARM_HDIO_DRIVE_RESET(    static smallint perform_reset;)
-USE_FEATURE_HDPARM_HDIO_TRISTATE_HWIF(  static smallint perform_tristate;)
-USE_FEATURE_HDPARM_HDIO_UNREGISTER_HWIF(static smallint unregister_hwif;)
-USE_FEATURE_HDPARM_HDIO_SCAN_HWIF(      static smallint scan_hwif;)
-USE_FEATURE_HDPARM_HDIO_TRISTATE_HWIF(  static unsigned long busstate;)
-USE_FEATURE_HDPARM_HDIO_TRISTATE_HWIF(  static unsigned long tristate;)
-USE_FEATURE_HDPARM_HDIO_UNREGISTER_HWIF(static unsigned long hwif;)
-#if ENABLE_FEATURE_HDPARM_HDIO_SCAN_HWIF
-static unsigned long hwif_data;
-static unsigned long hwif_ctrl;
-static unsigned long hwif_irq;
-#endif
-
 // Historically, if there was no HDIO_OBSOLETE_IDENTITY, then
 // then the HDIO_GET_IDENTITY only returned 142 bytes.
 // Otherwise, HDIO_OBSOLETE_IDENTITY returns 142 bytes,
@@ -1251,11 +1337,9 @@ static void flush_buffer_cache(/*int fd*/ void)
 #endif
 }
 
-static int seek_to_zero(/*int fd*/ void)
+static void seek_to_zero(/*int fd*/ void)
 {
-	if (lseek(fd, (off_t) 0, SEEK_SET))
-		return 1;
-	return 0;
+	xlseek(fd, (off_t) 0, SEEK_SET);
 }
 
 static int read_big_block(/*int fd,*/ char *buf)
@@ -1273,18 +1357,18 @@ static int read_big_block(/*int fd,*/ char *buf)
 	return 0;
 }
 
-static int do_blkgetsize(/*int fd,*/ unsigned long long *blksize64)
+static unsigned long long do_blkgetsize(/*int fd*/ void)
 {
-	int rc;
-	unsigned blksize32 = 0;
+	union {
+		unsigned long long blksize64;
+		unsigned blksize32;
+	} u;
 
-	if (0 == ioctl(fd, BLKGETSIZE64, blksize64)) {	// returns bytes
-		*blksize64 /= 512;
-		return 0;
+	if (0 == ioctl(fd, BLKGETSIZE64, &u.blksize64)) { // returns bytes
+		return u.blksize64 / 512;
 	}
-	rc = ioctl_or_warn(fd, BLKGETSIZE, &blksize32);	// returns sectors
-	*blksize64 = blksize32;
-	return rc;
+	xioctl(fd, BLKGETSIZE, &u.blksize32); // returns sectors
+	return u.blksize32;
 }
 
 static void print_timing(unsigned t, double e)
@@ -1303,25 +1387,20 @@ static void do_time(int flag /*,int fd*/)
 	struct itimerval itv;
 	unsigned elapsed, elapsed2;
 	unsigned max_iterations, total_MB, iterations;
-	unsigned long long blksize;
-	RESERVE_CONFIG_BUFFER(buf, TIMING_BUF_BYTES);
+	char *buf = xmalloc(TIMING_BUF_BYTES);
 
 	if (mlock(buf, TIMING_BUF_BYTES)) {
 		bb_perror_msg("mlock");
 		goto quit2;
 	}
 
-	max_iterations = 1024;
-	if (0 == do_blkgetsize(&blksize)) {
-		max_iterations = blksize / (2 * 1024) / TIMING_BUF_MB;
-	}
+	max_iterations = do_blkgetsize() / (2 * 1024) / TIMING_BUF_MB;
 
 	/* Clear out the device request queues & give them time to complete */
 	sync();
 	sleep(2);
 	if (flag == 0) { /* Time cache */
-		if (seek_to_zero())
-			goto quit;
+		seek_to_zero();
 		if (read_big_block(buf))
 			goto quit;
 		printf(" Timing buffer-cache reads:  ");
@@ -1334,12 +1413,13 @@ static void do_time(int flag /*,int fd*/)
 	 * getitimer() is used rather than gettimeofday() because
 	 * it is much more consistent (on my machine, at least).
 	 */
+//TODO: get rid of
 	setitimer(ITIMER_REAL, &thousand, NULL);
 	/* Now do the timing */
 	do {
 		++iterations;
-		if ((flag == 0) && seek_to_zero())
-			goto quit;
+		if (flag == 0)
+			seek_to_zero();
 		if (read_big_block(buf))
 			goto quit;
 		getitimer(ITIMER_REAL, &itv);
@@ -1351,8 +1431,7 @@ static void do_time(int flag /*,int fd*/)
 		/* Now remove the lseek() and getitimer() overheads from the elapsed time */
 		setitimer(ITIMER_REAL, &thousand, NULL);
 		do {
-			if (seek_to_zero())
-				goto quit;
+			seek_to_zero();
 			getitimer(ITIMER_REAL, &itv);
 			elapsed2 = (1000 - itv.it_value.tv_sec) * 1000000
 					- itv.it_value.tv_usec;
@@ -1365,7 +1444,7 @@ static void do_time(int flag /*,int fd*/)
  quit:
 	munlock(buf, TIMING_BUF_BYTES);
  quit2:
-	RELEASE_CONFIG_BUFFER(buf);
+	free(buf);
 }
 
 #if ENABLE_FEATURE_HDPARM_HDIO_TRISTATE_HWIF
@@ -1851,6 +1930,7 @@ static int fromhex(unsigned char c)
 	bb_error_msg_and_die("bad char: '%c' 0x%02x", c, c);
 }
 
+static void identify_from_stdin(void) ATTRIBUTE_NORETURN;
 static void identify_from_stdin(void)
 {
 	uint16_t sbuf[256];
@@ -1872,6 +1952,8 @@ static void identify_from_stdin(void)
 
 	identify(sbuf);
 }
+#else
+void identify_from_stdin(void);
 #endif
 
 /* busybox specific stuff */
