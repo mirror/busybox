@@ -66,10 +66,10 @@ enum {
 /* Standard mount options (from -o options or --options), with corresponding
  * flags */
 
-struct {
+static const struct {
 	const char *name;
 	long flags;
-} static mount_options[] = {
+} mount_options[] = {
 	// MS_FLAGS set a bit.  ~MS_FLAGS disable that bit.  0 flags are NOPs.
 
 	USE_FEATURE_MOUNT_LOOP(
@@ -231,7 +231,7 @@ static llist_t *get_block_backed_filesystems(void)
 	return list;
 }
 
-llist_t *fslist = 0;
+static llist_t *fslist;
 
 #if ENABLE_FEATURE_CLEAN_UP
 static void delete_block_backed_filesystems(void)
@@ -562,14 +562,12 @@ static const struct {
 static char *nfs_strerror(int status)
 {
 	int i;
-	static char buf[sizeof("unknown nfs status return value: ") + sizeof(int)*3];
 
 	for (i = 0; nfs_errtbl[i].stat != -1; i++) {
 		if (nfs_errtbl[i].stat == status)
 			return strerror(nfs_errtbl[i].errnum);
 	}
-	sprintf(buf, "unknown nfs status return value: %d", status);
-	return buf;
+	return xasprintf("unknown nfs status return value: %d", status);
 }
 
 static bool_t xdr_fhandle(XDR *xdrs, fhandle objp)
@@ -642,11 +640,7 @@ static bool_t xdr_mountres3(XDR *xdrs, mountres3 *objp)
 
 #define MAX_NFSPROT ((nfs_mount_version >= 4) ? 3 : 2)
 
-/*
- * nfs_mount_version according to the sources seen at compile time.
- */
-static int nfs_mount_version;
-static int kernel_version;
+static smalluint nfs_mount_version;
 
 /*
  * Unfortunately, the kernel prints annoying console messages
@@ -662,7 +656,9 @@ static int kernel_version;
 static void
 find_kernel_nfs_mount_version(void)
 {
-	if (kernel_version)
+	int kernel_version;
+
+	if (nfs_mount_version)
 		return;
 
 	nfs_mount_version = 4; /* default */
@@ -679,15 +675,15 @@ find_kernel_nfs_mount_version(void)
 	}
 }
 
-static struct pmap *
-get_mountport(struct sockaddr_in *server_addr,
+static void 
+get_mountport(struct pmap *pm_mnt,
+	struct sockaddr_in *server_addr,
 	long unsigned prog,
 	long unsigned version,
 	long unsigned proto,
 	long unsigned port)
 {
 	struct pmaplist *pmap;
-	static struct pmap p = {0, 0, 0, 0};
 
 	server_addr->sin_port = PMAPPORT;
 /* glibc 2.4 (still) has pmap_getmaps(struct sockaddr_in *).
@@ -698,35 +694,34 @@ get_mountport(struct sockaddr_in *server_addr,
 		version = MAX_NFSPROT;
 	if (!prog)
 		prog = MOUNTPROG;
-	p.pm_prog = prog;
-	p.pm_vers = version;
-	p.pm_prot = proto;
-	p.pm_port = port;
+	pm_mnt->pm_prog = prog;
+	pm_mnt->pm_vers = version;
+	pm_mnt->pm_prot = proto;
+	pm_mnt->pm_port = port;
 
 	while (pmap) {
 		if (pmap->pml_map.pm_prog != prog)
 			goto next;
-		if (!version && p.pm_vers > pmap->pml_map.pm_vers)
+		if (!version && pm_mnt->pm_vers > pmap->pml_map.pm_vers)
 			goto next;
 		if (version > 2 && pmap->pml_map.pm_vers != version)
 			goto next;
 		if (version && version <= 2 && pmap->pml_map.pm_vers > 2)
 			goto next;
 		if (pmap->pml_map.pm_vers > MAX_NFSPROT ||
-		    (proto && p.pm_prot && pmap->pml_map.pm_prot != proto) ||
+		    (proto && pm_mnt->pm_prot && pmap->pml_map.pm_prot != proto) ||
 		    (port && pmap->pml_map.pm_port != port))
 			goto next;
-		memcpy(&p, &pmap->pml_map, sizeof(p));
-next:
+		memcpy(pm_mnt, &pmap->pml_map, sizeof(*pm_mnt));
+ next:
 		pmap = pmap->pml_next;
 	}
-	if (!p.pm_vers)
-		p.pm_vers = MOUNTVERS;
-	if (!p.pm_port)
-		p.pm_port = MOUNTPORT;
-	if (!p.pm_prot)
-		p.pm_prot = IPPROTO_TCP;
-	return &p;
+	if (!pm_mnt->pm_vers)
+		pm_mnt->pm_vers = MOUNTVERS;
+	if (!pm_mnt->pm_port)
+		pm_mnt->pm_port = MOUNTPORT;
+	if (!pm_mnt->pm_prot)
+		pm_mnt->pm_prot = IPPROTO_TCP;
 }
 
 #if BB_MMU
@@ -1147,7 +1142,7 @@ static int nfsmount(struct mntent *mp, int vfsflags, char *filteropts)
 	{
 		struct timeval total_timeout;
 		struct timeval retry_timeout;
-		struct pmap* pm_mnt;
+		struct pmap pm_mnt;
 		time_t t;
 		time_t prevt;
 		time_t timeout;
@@ -1164,32 +1159,32 @@ retry:
 		if (t - prevt < 30)
 			sleep(30);
 
-		pm_mnt = get_mountport(&mount_server_addr,
+		get_mountport(&pm_mnt, &mount_server_addr,
 				mountprog,
 				mountvers,
 				proto,
 				mountport);
-		nfsvers = (pm_mnt->pm_vers < 2) ? 2 : pm_mnt->pm_vers;
+		nfsvers = (pm_mnt.pm_vers < 2) ? 2 : pm_mnt.pm_vers;
 
 		/* contact the mount daemon via TCP */
-		mount_server_addr.sin_port = htons(pm_mnt->pm_port);
+		mount_server_addr.sin_port = htons(pm_mnt.pm_port);
 		msock = RPC_ANYSOCK;
 
-		switch (pm_mnt->pm_prot) {
+		switch (pm_mnt.pm_prot) {
 		case IPPROTO_UDP:
 			mclient = clntudp_create(&mount_server_addr,
-						 pm_mnt->pm_prog,
-						 pm_mnt->pm_vers,
+						 pm_mnt.pm_prog,
+						 pm_mnt.pm_vers,
 						 retry_timeout,
 						 &msock);
 			if (mclient)
 				break;
-			mount_server_addr.sin_port = htons(pm_mnt->pm_port);
+			mount_server_addr.sin_port = htons(pm_mnt.pm_port);
 			msock = RPC_ANYSOCK;
 		case IPPROTO_TCP:
 			mclient = clnttcp_create(&mount_server_addr,
-						 pm_mnt->pm_prog,
-						 pm_mnt->pm_vers,
+						 pm_mnt.pm_prog,
+						 pm_mnt.pm_vers,
 						 &msock, 0, 0);
 			break;
 		default:
@@ -1208,7 +1203,7 @@ retry:
 			 */
 			memset(&status, 0, sizeof(status));
 
-			if (pm_mnt->pm_vers == 3)
+			if (pm_mnt.pm_vers == 3)
 				clnt_stat = clnt_call(mclient, MOUNTPROC3_MNT,
 					      (xdrproc_t) xdr_dirpath,
 					      (caddr_t) &pathname,

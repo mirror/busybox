@@ -40,11 +40,24 @@
 #include "ssl_io.h"
 #endif
 
-static unsigned verbose;
-static unsigned max_per_host;
-static unsigned cur_per_host;
-static unsigned cnum;
-static unsigned cmax = 30;
+struct globals {
+	unsigned verbose;
+	unsigned max_per_host;
+	unsigned cur_per_host;
+	unsigned cnum;
+	unsigned cmax;       
+};
+#define G (*(struct globals*)&bb_common_bufsiz1)
+#define verbose      (G.verbose     )
+#define max_per_host (G.max_per_host)
+#define cur_per_host (G.cur_per_host)
+#define cnum         (G.cnum        )
+#define cmax         (G.cmax        )
+#define INIT_G() \
+	do { \
+		cmax = 30; \
+	} while (0)
+
 
 static void xsetenv_proto(const char *proto, const char *n, const char *v)
 {
@@ -146,6 +159,8 @@ int tcpudpsvd_main(int argc, char **argv)
 	int sock;
 	int conn;
 	unsigned backlog = 20;
+
+	INIT_G();
 
 	tcp = (applet_name[0] == 't');
 

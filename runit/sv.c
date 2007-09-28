@@ -158,12 +158,22 @@ Exit Codes
 #include "libbb.h"
 #include "runit_lib.h"
 
-static const char *acts;
-static char **service;
-static unsigned rc;
+struct globals {
+	const char *acts;
+	char **service;
+	unsigned rc;
 /* "Bernstein" time format: unix + 0x400000000000000aULL */
-static uint64_t tstart, tnow;
-static svstatus_t svstatus;
+	uint64_t tstart, tnow;
+	svstatus_t svstatus;
+};
+#define G (*(struct globals*)&bb_common_bufsiz1)
+#define acts         (G.acts        )
+#define service      (G.service     )
+#define rc           (G.rc          )
+#define tstart       (G.tstart      )
+#define tnow         (G.tnow        )
+#define svstatus     (G.svstatus    )
+#define INIT_G() do { } while (0)
 
 
 static void fatal_cannot(const char *m1) ATTRIBUTE_NORETURN;
@@ -417,6 +427,8 @@ int sv_main(int argc, char **argv)
 	int (*act)(const char*);
 	int (*cbk)(const char*);
 	int curdir;
+
+	INIT_G();
 
 	xfunc_error_retval = 100;
 

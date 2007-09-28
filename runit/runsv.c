@@ -61,8 +61,6 @@ static void gettimeofday_ns(struct timespec *ts)
 /* Compare possibly overflowing unsigned counters */
 #define LESS(a,b) ((int)((unsigned)(b) - (unsigned)(a)) > 0)
 
-static int selfpipe[2];
-
 /* state */
 #define S_DOWN 0
 #define S_RUN 1
@@ -88,12 +86,27 @@ struct svdir {
 	int fdcontrolwrite;
 };
 
-static struct svdir svd[2];
-static smallint sigterm;
-static smallint haslog;
-static smallint pidchanged = 1;
-static int logpipe[2];
-static char *dir;
+struct globals {
+	smallint haslog;
+	smallint sigterm;
+	smallint pidchanged;
+	int selfpipe[2];
+	int logpipe[2];
+	char *dir;
+	struct svdir svd[2];
+};
+#define G (*(struct globals*)&bb_common_bufsiz1)
+#define haslog       (G.haslog      )
+#define sigterm      (G.sigterm     )
+#define pidchanged   (G.pidchanged  )
+#define selfpipe     (G.selfpipe    )
+#define logpipe      (G.logpipe     )
+#define dir          (G.dir         )
+#define svd          (G.svd         )
+#define INIT_G() \
+	do { \
+		pidchanged = 1; \
+	} while (0)
 
 static void fatal2_cannot(const char *m1, const char *m2)
 {
@@ -433,6 +446,8 @@ int runsv_main(int argc, char **argv)
 	int fd;
 	int r;
 	char buf[256];
+
+	INIT_G();
 
 	if (!argv[1] || argv[2])
 		bb_show_usage();
