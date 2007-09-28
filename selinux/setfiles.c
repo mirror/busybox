@@ -189,7 +189,7 @@ static int match(const char *name, struct stat *sb, char **con)
 			file_sep = strrchr(tmp_path, '/');
 			if (file_sep == tmp_path) {
 				file_sep++;
-				p[0] = '\0';
+				path[0] = '\0';
 				p = path;
 			} else if (file_sep) {
 				*file_sep++ = '\0';
