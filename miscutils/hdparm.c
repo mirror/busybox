@@ -1375,10 +1375,13 @@ static void print_timing(unsigned long m, unsigned elapsed_us)
 	printf("%5lu MB in %u.%02u seconds = %lu kB/s\n",
 		m, sec, hs,
 		/* Trying to not overflow 32-bit arith in m * CONST
-		 * by keeping CONST not so big. + 1 prevents div-by-0. */
-		(m * (1024 * 1000000 / (64*1024))) / (elapsed_us / (64*1024) + 1)
-		// ~= (m * 1024 * 1000000) / elapsed_ms
-		// = (m * 1024) / (elapsed_ms / 1000000)
+		 * by keeping CONST not so big. But elapsed_us / CONST2 
+		 * also should not introduce big errors. Currently,
+		 * 16000us is ~1.6% of 1 second.
+		 * "+ 1" prevents div-by-0. */
+		(m * (1024 * 1000000 / (16*1024))) / (elapsed_us / (16*1024) + 1)
+		// ~= (m * 1024 * 1000000) / elapsed_us
+		// = (m * 1024) / (elapsed_us / 1000000)
 		// = kb / elapsed_sec
 	);
 }
@@ -1418,6 +1421,11 @@ static void do_time(int cache /*,int fd*/)
 
 	/* Now do the timing */
 	iterations = 0;
+	/* Max time to run (small for cache, avoids getting
+	 * huge total_MB which can overlow on print_timing) */
+	elapsed2 = 510000; /* cache */
+	if (!cache)
+		elapsed2 = 3000000; /* not cache */
 	start = monotonic_us();
 	do {
 		if (cache)
@@ -1425,11 +1433,11 @@ static void do_time(int cache /*,int fd*/)
 		read_big_block(buf);
 		elapsed = (unsigned)monotonic_us() - start;
 		++iterations;
-	} while (elapsed < 3000000 && iterations < max_iterations);
+	} while (elapsed < elapsed2 && iterations < max_iterations);
 	total_MB = (unsigned long)iterations * TIMING_BUF_MB;
 	//printf(" elapsed:%u iterations:%u ", elapsed, iterations);
 	if (cache) {
-		/* Now remove the lseek() and monotonic_us() overheads
+		/* Cache: remove lseek() and monotonic_us() overheads
 		 * from elapsed */
 		start = monotonic_us();
 		do {
