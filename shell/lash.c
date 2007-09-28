@@ -455,8 +455,7 @@ static void free_job(struct job *cmd)
 	for (i = 0; i < cmd->num_progs; i++) {
 		free(cmd->progs[i].argv);
 #if ENABLE_LASH_PIPE_N_REDIRECTS
-		if (cmd->progs[i].redirects)
-			free(cmd->progs[i].redirects);
+		free(cmd->progs[i].redirects);
 #endif
 	}
 	free(cmd->progs);

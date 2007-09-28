@@ -5328,8 +5328,7 @@ expbackq(union node *cmd, int quoted, int quotes)
 		p = buf;
 	}
 
-	if (in.buf)
-		free(in.buf);
+	free(in.buf);
 	if (in.fd >= 0) {
 		close(in.fd);
 		back_exitstatus = waitforjob(in.jp);
@@ -8788,8 +8787,7 @@ popfile(void)
 	INT_OFF;
 	if (pf->fd >= 0)
 		close(pf->fd);
-	if (pf->buf)
-		free(pf->buf);
+	free(pf->buf);
 	while (pf->strpush)
 		popstring();
 	parsefile = pf->prev;
@@ -10330,8 +10328,7 @@ parsebackq: {
 #endif
 	savepbq = parsebackquote;
 	if (setjmp(jmploc.loc)) {
-		if (str)
-			free(str);
+		free(str);
 		parsebackquote = 0;
 		exception_handler = savehandler;
 		longjmp(exception_handler->loc, 1);
@@ -11264,8 +11261,7 @@ trapcmd(int argc, char **argv)
 			else
 				action = ckstrdup(action);
 		}
-		if (trap[signo])
-			free(trap[signo]);
+		free(trap[signo]);
 		trap[signo] = action;
 		if (signo != 0)
 			setsignal(signo);

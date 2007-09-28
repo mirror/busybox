@@ -157,7 +157,7 @@ static void sed_free_and_close_stuff(void)
 		sed_cmd = sed_cmd_next;
 	}
 
-	if (G.hold_space) free(G.hold_space);
+	free(G.hold_space);
 
 	while (G.current_input_file < G.input_file_count)
 		fclose(G.input_file_list[G.current_input_file++]);
