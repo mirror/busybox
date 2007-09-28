@@ -609,10 +609,12 @@ static void parse_conf(const char *path, int flag)
 				if (*p == '/') {
 					if (*cf == '/') {    /* skip duplicate (or initial) slash */
 						continue;
-					} else if (*cf == '.') {
+					}
+					if (*cf == '.') {
 						if (cf[1] == '/' || cf[1] == '\0') { /* remove extra '.' */
 							continue;
-						} else if ((cf[1] == '.') && (cf[2] == '/' || cf[2] == '\0')) {
+						}
+						if ((cf[1] == '.') && (cf[2] == '/' || cf[2] == '\0')) {
 							++cf;
 							if (p > p0) {
 								while (*--p != '/') /* omit previous dir */;
@@ -627,8 +629,8 @@ static void parse_conf(const char *path, int flag)
 			if ((p == p0) || (*p != '/')) {      /* not a trailing slash */
 				++p;                             /* so keep last character */
 			}
-			*p = '\0';
-			sprintf(p0 + strlen(p0), ":%s", c);
+			*p = ':';
+			strcpy(p + 1, c);
 		}
 #endif
 
