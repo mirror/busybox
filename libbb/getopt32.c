@@ -30,7 +30,7 @@ getopt32(char **argv, const char *applet_opts, ...)
 
         "r" will add 1    (bit 0)
         "n" will add 2    (bit 1)
-        "u  will add 4    (bit 2)
+        "u" will add 4    (bit 2)
         "g" will add 8    (bit 3)
 
         and so on.  You can also look at the return value as a bit

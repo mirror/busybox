@@ -353,14 +353,10 @@ procps_status_t *procps_scan(procps_status_t* sp, int flags)
 
 #if 0 /* PSSCAN_CMD is not used */
 		if (flags & (PSSCAN_CMD|PSSCAN_ARGV0)) {
-			if (sp->argv0) {
-				free(sp->argv0);
-				sp->argv0 = NULL;
-			}
-			if (sp->cmd) {
-				free(sp->cmd);
-				sp->cmd = NULL;
-			}
+			free(sp->argv0);
+			sp->argv0 = NULL;
+			free(sp->cmd);
+			sp->cmd = NULL;
 			strcpy(filename_tail, "/cmdline");
 			/* TODO: to get rid of size limits, read into malloc buf,
 			 * then realloc it down to real size. */
@@ -380,10 +376,8 @@ procps_status_t *procps_scan(procps_status_t* sp, int flags)
 		}
 #else
 		if (flags & PSSCAN_ARGV0) {
-			if (sp->argv0) {
-				free(sp->argv0);
-				sp->argv0 = NULL;
-			}
+			free(sp->argv0);
+			sp->argv0 = NULL;
 			strcpy(filename_tail, "/cmdline");
 			n = read_to_buf(filename, buf);
 			if (n <= 0)
