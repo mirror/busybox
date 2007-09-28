@@ -429,10 +429,8 @@ static const char *const secu_str[] = {
 #define SIG                     0x00ff  /* signature location */
 #define SIG_VAL                 0x00a5  /* signature value */
 
-#define TIMING_MB               64
 #define TIMING_BUF_MB           1
 #define TIMING_BUF_BYTES        (TIMING_BUF_MB * 1024 * 1024)
-#define BUFCACHE_FACTOR         2
 
 #undef DO_FLUSHCACHE            /* under construction: force cache flush on -W0 */
 
@@ -504,6 +502,9 @@ struct globals {
 	unsigned long hwif_data;
 	unsigned long hwif_ctrl;
 	unsigned long hwif_irq;
+#endif
+#ifdef DO_FLUSHCACHE
+	unsigned char flushcache[4] = { WIN_FLUSHCACHE, 0, 0, 0 };
 #endif
 };
 #define G (*(struct globals*)&bb_common_bufsiz1)
@@ -1342,22 +1343,17 @@ static void seek_to_zero(/*int fd*/ void)
 	xlseek(fd, (off_t) 0, SEEK_SET);
 }
 
-static int read_big_block(/*int fd,*/ char *buf)
+static void read_big_block(/*int fd,*/ char *buf)
 {
 	int i;
 
-	i = read(fd, buf, TIMING_BUF_BYTES);
-	if (i != TIMING_BUF_BYTES) {
-		bb_error_msg("read(%d bytes) failed (rc=%d)", TIMING_BUF_BYTES, i);
-		return 1;
-	}
+	xread(fd, buf, TIMING_BUF_BYTES);
 	/* access all sectors of buf to ensure the read fully completed */
 	for (i = 0; i < TIMING_BUF_BYTES; i += 512)
 		buf[i] &= 1;
-	return 0;
 }
 
-static unsigned long long do_blkgetsize(/*int fd*/ void)
+static unsigned long long dev_size_mb(/*int fd*/ void)
 {
 	union {
 		unsigned long long blksize64;
@@ -1365,85 +1361,88 @@ static unsigned long long do_blkgetsize(/*int fd*/ void)
 	} u;
 
 	if (0 == ioctl(fd, BLKGETSIZE64, &u.blksize64)) { // returns bytes
-		return u.blksize64 / 512;
+		return u.blksize64 / (1024 * 1024);
 	}
 	xioctl(fd, BLKGETSIZE, &u.blksize32); // returns sectors
-	return u.blksize32;
+	return u.blksize32 / (2 * 1024);
 }
 
-static void print_timing(unsigned t, double e)
+static void print_timing(unsigned long m, unsigned elapsed_us)
 {
-	if (t >= e)  /* more than 1MB/s */
-		printf("%4d MB in %.2f seconds = %.2f %cB/sec\n", t, e, t / e, 'M');
-	else
-		printf("%4d MB in %.2f seconds = %.2f %cB/sec\n", t, e, t / e * 1024, 'k');
+	unsigned sec = elapsed_us / 1000000;
+	unsigned hs = (elapsed_us % 1000000) / 10000;
+
+	printf("%5lu MB in %u.%02u seconds = %lu kB/s\n",
+		m, sec, hs,
+		/* Trying to not overflow 32-bit arith in m * CONST
+		 * by keeping CONST not so big. + 1 prevents div-by-0. */
+		(m * (1024 * 1000000 / (64*1024))) / (elapsed_us / (64*1024) + 1)
+		// ~= (m * 1024 * 1000000) / elapsed_ms
+		// = (m * 1024) / (elapsed_ms / 1000000)
+		// = kb / elapsed_sec
+	);
 }
 
-static void do_time(int flag /*,int fd*/)
-/* flag = 0 time_cache, 1 time_device */
+static void do_time(int cache /*,int fd*/)
+/* cache=1: time cache: repeatedly read N MB at offset 0
+ * cache=0: time device: linear read, starting at offset 0
+ */
 {
-	static const struct itimerval thousand = {{1000, 0}, {1000, 0}};
-
-	struct itimerval itv;
+	unsigned max_iterations, iterations;
+	unsigned start; /* don't need to be long long */
 	unsigned elapsed, elapsed2;
-	unsigned max_iterations, total_MB, iterations;
+	unsigned long total_MB;
 	char *buf = xmalloc(TIMING_BUF_BYTES);
 
-	if (mlock(buf, TIMING_BUF_BYTES)) {
-		bb_perror_msg("mlock");
-		goto quit2;
-	}
+	if (mlock(buf, TIMING_BUF_BYTES))
+		bb_perror_msg_and_die("mlock");
 
-	max_iterations = do_blkgetsize() / (2 * 1024) / TIMING_BUF_MB;
+	/* Don't want to read past the end! */
+	max_iterations = UINT_MAX;
+	if (!cache)
+		max_iterations = dev_size_mb() / TIMING_BUF_MB;
 
-	/* Clear out the device request queues & give them time to complete */
+	/* Clear out the device request queues & give them time to complete.
+	 * NB: *small* delay. User is expected to have a clue and to not run
+	 * heavy io in parallel with measurements. */
 	sync();
-	sleep(2);
-	if (flag == 0) { /* Time cache */
+	sleep(1);
+	if (cache) { /* Time cache */
 		seek_to_zero();
-		if (read_big_block(buf))
-			goto quit;
-		printf(" Timing buffer-cache reads:  ");
+		read_big_block(buf);
+		printf("Timing buffer-cache reads: ");
 	} else { /* Time device */
-		printf(" Timing buffered disk reads: ");
+		printf("Timing buffered disk reads:");
 	}
 	fflush(stdout);
-	iterations = 0;
-	/*
-	 * getitimer() is used rather than gettimeofday() because
-	 * it is much more consistent (on my machine, at least).
-	 */
-//TODO: get rid of
-	setitimer(ITIMER_REAL, &thousand, NULL);
+
 	/* Now do the timing */
+	iterations = 0;
+	start = monotonic_us();
 	do {
-		++iterations;
-		if (flag == 0)
+		if (cache)
 			seek_to_zero();
-		if (read_big_block(buf))
-			goto quit;
-		getitimer(ITIMER_REAL, &itv);
-		elapsed = (1000 - itv.it_value.tv_sec) * 1000000
-				- itv.it_value.tv_usec;
+		read_big_block(buf);
+		elapsed = (unsigned)monotonic_us() - start;
+		++iterations;
 	} while (elapsed < 3000000 && iterations < max_iterations);
-	total_MB = iterations * TIMING_BUF_MB;
-	if (flag == 0) {
-		/* Now remove the lseek() and getitimer() overheads from the elapsed time */
-		setitimer(ITIMER_REAL, &thousand, NULL);
+	total_MB = (unsigned long)iterations * TIMING_BUF_MB;
+	//printf(" elapsed:%u iterations:%u ", elapsed, iterations);
+	if (cache) {
+		/* Now remove the lseek() and monotonic_us() overheads
+		 * from elapsed */
+		start = monotonic_us();
 		do {
 			seek_to_zero();
-			getitimer(ITIMER_REAL, &itv);
-			elapsed2 = (1000 - itv.it_value.tv_sec) * 1000000
-					- itv.it_value.tv_usec;
+			elapsed2 = (unsigned)monotonic_us() - start;
 		} while (--iterations);
+		//printf(" elapsed2:%u ", elapsed2);
 		elapsed -= elapsed2;
-		total_MB *= BUFCACHE_FACTOR;
+		total_MB *= 2; // BUFCACHE_FACTOR (why?)
 		flush_buffer_cache();
 	}
-	print_timing(total_MB, elapsed / 1000000.0);
- quit:
+	print_timing(total_MB, elapsed);
 	munlock(buf, TIMING_BUF_BYTES);
- quit2:
 	free(buf);
 }
 
@@ -1688,7 +1687,6 @@ static void process_dev(char *devname)
 #ifndef WIN_FLUSHCACHE
 #define WIN_FLUSHCACHE 0xe7
 #endif
-		static unsigned char flushcache[4] = { WIN_FLUSHCACHE, 0, 0, 0 };
 #endif /* DO_FLUSHCACHE */
 		args[2] = wcache ? 0x02 : 0x82;
 		print_flag_on_off(get_wcache, "drive write-caching", wcache);
@@ -1749,7 +1747,7 @@ static void process_dev(char *devname)
 		char buf[512];
 		flush_buffer_cache();
 		if (-1 == read(fd, buf, sizeof(buf)))
-			bb_perror_msg("read(%d bytes) failed (rc=%d)", sizeof(buf), -1);
+			bb_perror_msg("read(%d bytes) failed (rc=-1)", sizeof(buf));
 	}
 #endif	/* HDIO_DRIVE_CMD */
 
@@ -1912,9 +1910,9 @@ static void process_dev(char *devname)
 		ioctl_or_warn(fd, BLKRRPART, NULL);
 
 	if (do_ctimings)
-		do_time(0 /*,fd*/); /* time cache */
+		do_time(1 /*,fd*/); /* time cache */
 	if (do_timings)
-		do_time(1 /*,fd*/); /* time device */
+		do_time(0 /*,fd*/); /* time device */
 	if (do_flush)
 		flush_buffer_cache();
 	close(fd);
