@@ -56,12 +56,11 @@ int microcom_main(int argc, char **argv)
 	}
 
 	// open device
-	sfd = open(argv[0], O_RDWR | O_NDELAY);
+	sfd = open(argv[0], O_RDWR);
 	if (sfd < 0) {
 		bb_perror_msg("can't open device");
 		goto unlock_and_exit;
 	}
-	fcntl(sfd, F_SETFL, O_RDWR); // why?
 
 	// put stdin to "raw mode", handle one character at a time
 	tcgetattr(STDIN_FILENO, &tio0);
