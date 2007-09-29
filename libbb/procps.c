@@ -382,8 +382,7 @@ procps_status_t *procps_scan(procps_status_t* sp, int flags)
 			n = read_to_buf(filename, buf);
 			if (n <= 0)
 				break;
-			if (flags & PSSCAN_ARGV0)
-				sp->argv0 = xstrdup(buf);
+			sp->argv0 = xstrdup(buf);
 		}
 #endif
 		break;
