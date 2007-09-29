@@ -159,3 +159,18 @@ const char *get_signame(int number)
 
 	return itoa(number);
 }
+
+
+// Print the whole signal list
+
+void print_signames_and_exit(void)
+{
+	int signo;
+
+	for (signo = 1; signo < ARRAY_SIZE(signals); signo++) {
+		const char *name = signals[signo];
+		if (name[0])
+			puts(name);
+	}
+	exit(EXIT_SUCCESS);
+}

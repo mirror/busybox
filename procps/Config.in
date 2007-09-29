@@ -49,6 +49,12 @@ config NMETER
 	help
 	  Prints selected system stats continuously, one line per update.
 
+config PGREP
+	bool "pgrep"
+	default n
+	help
+	  Look for processes by name.
+
 config PIDOF
 	bool "pidof"
 	default n
@@ -71,6 +77,12 @@ config FEATURE_PIDOF_OMIT
 	  Support argument '-o' for omitting the given pids in output.
 	  The special pid %PPID can be used to name the parent process
 	  of the pidof, in other words the calling shell or shell script.
+
+config PKILL
+	bool "pkill"
+	default n
+	help
+	  Send signals to processes by name.
 
 config PS
 	bool "ps"

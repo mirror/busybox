@@ -375,13 +375,22 @@ procps_status_t *procps_scan(procps_status_t* sp, int flags)
 			}
 		}
 #else
-		if (flags & PSSCAN_ARGV0) {
+		if (flags & *PSSCAN_ARGV0|PSSCAN_ARGVN)) {
 			free(sp->argv0);
 			sp->argv0 = NULL;
 			strcpy(filename_tail, "/cmdline");
 			n = read_to_buf(filename, buf);
 			if (n <= 0)
 				break;
+#if ENABLE_PGREP || ENABLE_PKILL
+			if (flags & PSSCAN_ARGVN) {
+				do {
+					n--;
+					if (buf[n] == '\0')
+						buf[n] = ' ';
+				} while (n);
+			}
+#endif
 			sp->argv0 = xstrdup(buf);
 		}
 #endif

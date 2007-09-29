@@ -2558,6 +2558,18 @@
        "$ patch -p1 < example.diff\n" \
        "$ patch -p0 -i example.diff"
 
+#define pgrep_trivial_usage \
+       "[-flnovx] pattern"
+#define pgrep_full_usage \
+       "Display process(es) selected by regex pattern" \
+       "\n\nOptions:\n" \
+       "	-l	Show command name too\n" \
+       "	-f	Match against entire command line\n" \
+       "	-n	Signal the newest process only\n" \
+       "	-o	Signal the oldest process only\n" \
+       "	-v	Negate the matching\n" \
+       "	-x	Match whole name (not substring)"
+
 #if (ENABLE_FEATURE_PIDOF_SINGLE || ENABLE_FEATURE_PIDOF_OMIT)
 #define USAGE_PIDOF "Options:"
 #else
@@ -2639,6 +2651,18 @@
 #define pivot_root_full_usage \
        "Move the current root file system to PUT_OLD and make NEW_ROOT\n" \
        "the new root file system"
+
+#define pkill_trivial_usage \
+       "[-l] | [-fnovx] [-signal] pattern"
+#define pkill_full_usage \
+       "Send a signal to process(es) selected by regex pattern" \
+       "\n\nOptions:\n" \
+       "	-l	List all signals\n" \
+       "	-f	Match against entire command line\n" \
+       "	-n	Signal the newest process only\n" \
+       "	-o	Signal the oldest process only\n" \
+       "	-v	Negate the matching\n" \
+       "	-x	Match whole name (not substring)"
 
 #define poweroff_trivial_usage \
        "[-d delay] [-n] [-f]"

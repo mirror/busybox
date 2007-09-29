@@ -787,6 +787,7 @@ int bb_make_directory(char *path, long mode, int flags);
 
 int get_signum(const char *name);
 const char *get_signame(int number);
+void print_signames_and_exit(void) ATTRIBUTE_NORETURN;
 
 char *bb_simplify_path(const char *path);
 
@@ -973,7 +974,8 @@ enum {
 	PSSCAN_UTIME    = 1 << 13,
 	PSSCAN_TTY      = 1 << 14,
 	PSSCAN_SMAPS	= (1 << 15) * ENABLE_FEATURE_TOPMEM,
-	USE_SELINUX(PSSCAN_CONTEXT = 1 << 16,)
+	PSSCAN_ARGVN    = (1 << 16) * (ENABLE_PGREP | ENABLE_PKILL),
+	USE_SELINUX(PSSCAN_CONTEXT = 1 << 17,)
 	/* These are all retrieved from proc/NN/stat in one go: */
 	PSSCAN_STAT     = PSSCAN_PPID | PSSCAN_PGID | PSSCAN_SID
 	                | PSSCAN_COMM | PSSCAN_STATE
