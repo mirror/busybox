@@ -1,6 +1,6 @@
 /* vi: set sw=4 ts=4: */
 /*
- * Copyright (C) 2003 by Glenn McGrath <bug1@iinet.net.au>
+ * Copyright (C) 2003 by Glenn McGrath
  * SELinux support: by Yuichi Nakamura <ynakam@hitachisoft.jp>
  *
  * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
@@ -23,6 +23,8 @@ static const char install_longopts[] ALIGN1 =
 	"group\0"               No_argument       "g"
 	"mode\0"                No_argument       "m"
 	"owner\0"               No_argument       "o"
+/* autofs build insists of using -b --suffix=.orig */
+/* TODO? (short option for --suffix is -S) */
 #if ENABLE_SELINUX
 	"context\0"             Required_argument "Z"
 	"preserve_context\0"    No_argument       "\xff"
@@ -33,8 +35,6 @@ static const char install_longopts[] ALIGN1 =
 
 
 #if ENABLE_SELINUX
-static bool use_default_selinux_context = 1;
-
 static void setdefaultfilecon(const char *path)
 {
 	struct stat s;
@@ -73,25 +73,31 @@ int install_main(int argc, char **argv)
 	mode_t mode;
 	uid_t uid;
 	gid_t gid;
+	char *arg, *last;
 	const char *gid_str;
 	const char *uid_str;
 	const char *mode_str;
 	int copy_flags = FILEUTILS_DEREFERENCE | FILEUTILS_FORCE;
-	int ret = EXIT_SUCCESS, flags, i, isdir;
+	int flags;
+	int ret = EXIT_SUCCESS;
+	int isdir;
 #if ENABLE_SELINUX
 	security_context_t scontext;
+	bool use_default_selinux_context = 1;
 #endif
 	enum {
-		OPT_CMD           =  0x1,
-		OPT_DIRECTORY     =  0x2,
-		OPT_PRESERVE_TIME =  0x4,
-		OPT_STRIP         =  0x8,
-		OPT_GROUP         = 0x10,
-		OPT_MODE          = 0x20,
-		OPT_OWNER         = 0x40,
+		OPT_c             = 1 << 0,
+		OPT_v             = 1 << 1,
+		OPT_b             = 1 << 2,
+		OPT_DIRECTORY     = 1 << 3,
+		OPT_PRESERVE_TIME = 1 << 4,
+		OPT_STRIP         = 1 << 5,
+		OPT_GROUP         = 1 << 6,
+		OPT_MODE          = 1 << 7,
+		OPT_OWNER         = 1 << 8,
 #if ENABLE_SELINUX
-		OPT_SET_SECURITY_CONTEXT = 0x80,
-		OPT_PRESERVE_SECURITY_CONTEXT = 0x100,
+		OPT_SET_SECURITY_CONTEXT = 1 << 9,
+		OPT_PRESERVE_SECURITY_CONTEXT = 1 << 10,
 #endif
 	};
 
@@ -100,21 +106,24 @@ int install_main(int argc, char **argv)
 #endif
 	opt_complementary = "s--d:d--s" USE_SELINUX(":Z--\xff:\xff--Z");
 	/* -c exists for backwards compatibility, it's needed */
-
-	flags = getopt32(argv, "cdpsg:m:o:" USE_SELINUX("Z:"),
+	/* -v is ignored ("print name of each created directory") */
+	/* -b is ignored ("make a backup of each existing destination file") */
+	flags = getopt32(argv, "cvb" "dpsg:m:o:" USE_SELINUX("Z:"),
 			&gid_str, &mode_str, &uid_str USE_SELINUX(, &scontext));
+	argc -= optind;
+	argv += optind;
 
 #if ENABLE_SELINUX
-	if (flags & OPT_PRESERVE_SECURITY_CONTEXT) {
-		use_default_selinux_context = 0;
-		copy_flags |= FILEUTILS_PRESERVE_SECURITY_CONTEXT;
+	if (flags & (OPT_PRESERVE_SECURITY_CONTEXT|OPT_SET_SECURITY_CONTEXT)) {
 		selinux_or_die();
-	}
-	if (flags & OPT_SET_SECURITY_CONTEXT) {
-		selinux_or_die();
-		setfscreatecon_or_die(scontext);
 		use_default_selinux_context = 0;
-		copy_flags |= FILEUTILS_SET_SECURITY_CONTEXT;
+		if (flags & OPT_PRESERVE_SECURITY_CONTEXT) {
+			copy_flags |= FILEUTILS_PRESERVE_SECURITY_CONTEXT;
+		}
+		if (flags & OPT_SET_SECURITY_CONTEXT) {
+			setfscreatecon_or_die(scontext);
+			copy_flags |= FILEUTILS_SET_SECURITY_CONTEXT;
+		}
 	}
 #endif
 
@@ -123,58 +132,63 @@ int install_main(int argc, char **argv)
 		copy_flags |= FILEUTILS_PRESERVE_STATUS;
 	}
 	mode = 0666;
-	if (flags & OPT_MODE) bb_parse_mode(mode_str, &mode);
+	if (flags & OPT_MODE)
+		bb_parse_mode(mode_str, &mode);
 	uid = (flags & OPT_OWNER) ? get_ug_id(uid_str, xuname2uid) : getuid();
 	gid = (flags & OPT_GROUP) ? get_ug_id(gid_str, xgroup2gid) : getgid();
-	if (flags & (OPT_OWNER|OPT_GROUP)) umask(0);
+	if (flags & (OPT_OWNER|OPT_GROUP))
+		umask(0);
 
 	/* Create directories
 	 * don't use bb_make_directory() as it can't change uid or gid
 	 * perhaps bb_make_directory() should be improved.
 	 */
 	if (flags & OPT_DIRECTORY) {
-		for (argv += optind; *argv; argv++) {
-			char *old_argv_ptr = *argv + 1;
-			char *argv_ptr;
-			do {
-				argv_ptr = strchr(old_argv_ptr, '/');
-				old_argv_ptr = argv_ptr;
-				if (argv_ptr) {
-					*argv_ptr = '\0';
-					old_argv_ptr++;
-				}
-				if (mkdir(*argv, mode | 0111) == -1) {
+		while ((arg = *argv++) != NULL) {
+			char *slash = arg;
+			while (1) {
+				slash = strchr(slash + 1, '/');
+				if (slash)
+					*slash = '\0';
+				if (mkdir(arg, mode | 0111) == -1) {
 					if (errno != EEXIST) {
-						bb_perror_msg("cannot create %s", *argv);
+						bb_perror_msg("cannot create %s", arg);
 						ret = EXIT_FAILURE;
 						break;
 					}
-				}
-				if ((flags & (OPT_OWNER|OPT_GROUP))
-				 && lchown(*argv, uid, gid) == -1
+				} /* dir was created, chown? */
+				else if ((flags & (OPT_OWNER|OPT_GROUP))
+				 && lchown(arg, uid, gid) == -1
 				) {
-					bb_perror_msg("cannot change ownership of %s", *argv);
+					bb_perror_msg("cannot change ownership of %s", arg);
 					ret = EXIT_FAILURE;
 					break;
 				}
-				if (argv_ptr) {
-					*argv_ptr = '/';
-				}
-			} while (old_argv_ptr);
+				if (!slash)
+					break;
+				*slash = '/';
+			}
 		}
 		return ret;
 	}
 
+	if (argc < 2)
+		bb_show_usage();
+
+	last = argv[argc - 1];
+	argv[argc - 1] = NULL;
 	/* coreutils install resolves link in this case, don't use lstat */
-	isdir = stat(argv[argc - 1], &statbuf) < 0 ? 0 : S_ISDIR(statbuf.st_mode);
+	isdir = stat(last, &statbuf) < 0 ? 0 : S_ISDIR(statbuf.st_mode);
 
-	for (i = optind; i < argc - 1; i++) {
-		char *dest;
-
-		dest = argv[argc - 1];
+	while ((arg = *argv++) != NULL) {
+		char *dest = last;
 		if (isdir)
-			dest = concat_path_file(argv[argc - 1], basename(argv[i]));
-		ret |= copy_file(argv[i], dest, copy_flags);
+			dest = concat_path_file(last, basename(arg));
+		if (copy_file(arg, dest, copy_flags)) {
+			/* copy is not made */
+			ret = EXIT_FAILURE;
+			goto next;
+		}
 
 		/* Set the file mode */
 		if ((flags & OPT_MODE) && chmod(dest, mode) == -1) {
@@ -202,7 +216,9 @@ int install_main(int argc, char **argv)
 				ret = EXIT_FAILURE;
 			}
 		}
-		if (ENABLE_FEATURE_CLEAN_UP && isdir) free(dest);
+ next:
+		if (ENABLE_FEATURE_CLEAN_UP && isdir)
+			free(dest);
 	}
 
 	return ret;

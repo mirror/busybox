@@ -307,18 +307,26 @@ int login_main(int argc, char **argv)
 			goto pam_auth_failed;
 		}
 		pamret = pam_authenticate(pamh, 0);
-		if (pamret == PAM_SUCCESS) {
-			char *pamuser;
-			/* check that the account is healthy. */
-			pamret = pam_acct_mgmt(pamh, 0);
-			if (pamret != PAM_SUCCESS) {
-				failed_msg = "account setup";
-				goto pam_auth_failed;
-			}
-			/* read user back */
+		if (pamret != PAM_SUCCESS) {
+			failed_msg = "pam_authenticate";
+			goto pam_auth_failed;
+			/* TODO: or just "goto auth_failed"
+			 * since user seems to enter wrong password
+			 * (in this case pamret == 7)
+			 */
+		}
+		/* check that the account is healthy */
+		pamret = pam_acct_mgmt(pamh, 0);
+		if (pamret != PAM_SUCCESS) {
+			failed_msg = "account setup";
+			goto pam_auth_failed;
+		}
+		/* read user back */
+		{
+			const char *pamuser;
 			/* gcc: "dereferencing type-punned pointer breaks aliasing rules..."
-			 * thus we use double cast */
-			if (pam_get_item(pamh, PAM_USER, (const void **)(void*)&pamuser) != PAM_SUCCESS) {
+			 * thus we cast to (void*) */
+			if (pam_get_item(pamh, PAM_USER, (void*)&pamuser) != PAM_SUCCESS) {
 				failed_msg = "pam_get_item(USER)";
 				goto pam_auth_failed;
 			}
@@ -331,7 +339,7 @@ int login_main(int argc, char **argv)
 			break;
 		goto auth_failed;
  pam_auth_failed:
-		bb_error_msg("%s failed: %s", failed_msg, pam_strerror(pamh, pamret));
+		bb_error_msg("%s failed: %s (%d)", failed_msg, pam_strerror(pamh, pamret), pamret);
 		safe_strncpy(username, "UNKNOWN", sizeof(username));
 #else /* not PAM */
 		pw = getpwnam(username);
@@ -360,6 +368,7 @@ int login_main(int argc, char **argv)
  auth_failed:
 		opt &= ~LOGIN_OPT_f;
 		bb_do_delay(FAIL_DELAY);
+		/* TODO: doesn't sound like correct English phrase to me */
 		puts("Login incorrect");
 		if (++count == 3) {
 			syslog(LOG_WARNING, "invalid password for '%s'%s",
@@ -423,7 +432,9 @@ int login_main(int argc, char **argv)
 	tmp = pw->pw_shell;
 	if (!tmp || !*tmp)
 		tmp = DEFAULT_SHELL;
+	/* setup_environment params: shell, loginshell, changeenv, pw */
 	setup_environment(tmp, 1, !(opt & LOGIN_OPT_p), pw);
+	/* FIXME: login shell = 1 -> 3rd parameter is ignored! */
 
 	motd();
 
@@ -454,7 +465,8 @@ int login_main(int argc, char **argv)
 	 * should it leave SIGINT etc enabled or disabled? */
 	signal(SIGINT, SIG_DFL);
 
-	run_shell(tmp, 1, 0, 0);	/* exec the shell finally */
+	/* Exec login shell with no additional parameters */
+	run_shell(tmp, 1, NULL, NULL);
 
-	return EXIT_FAILURE;
+	/* return EXIT_FAILURE; - not reached */
 }

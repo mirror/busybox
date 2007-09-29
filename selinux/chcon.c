@@ -136,7 +136,7 @@ int chcon_main(int argc, char **argv)
 		":\xff--urtl:u--\xff:r--\xff:t--\xff:l--\xff"
 #endif
 		":f--v:v--f";  /* 'verbose' and 'quiet' are exclusive */
-	getopt32(argv, "Rchf:u:r:t:l:v",
+	getopt32(argv, "Rchfu:r:t:l:v",
 		&user, &role, &type, &range, &reference_file);
 	argv += optind;
 

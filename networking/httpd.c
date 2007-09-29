@@ -598,7 +598,7 @@ static void parse_conf(const char *path, int flag)
 				++p;                             /* so keep last character */
 			}
 			*p = '\0';
-			sprintf(p0, "%s:%s", p0, c);
+			sprintf(p0 + strlen(p0), ":%s", c);
 		}
 #endif
 
@@ -1602,6 +1602,13 @@ static void handle_incoming_and_exit(const len_and_sockaddr *fromAddr)
 	if (fromAddr->sa.sa_family == AF_INET) {
 		rmt_ip = ntohl(fromAddr->sin.sin_addr.s_addr);
 	}
+#if ENABLE_FEATURE_IPV6
+	if (fromAddr->sa.sa_family == AF_INET6
+	 && fromAddr->sin6.sin6_addr.s6_addr32[0] == 0
+	 && fromAddr->sin6.sin6_addr.s6_addr32[1] == 0
+	 && ntohl(fromAddr->sin6.sin6_addr.s6_addr32[2]) == 0xffff)
+		rmt_ip = ntohl(fromAddr->sin6.sin6_addr.s6_addr32[3]);
+#endif
 	if (ENABLE_FEATURE_HTTPD_CGI || DEBUG || verbose) {
 		rmt_ip_str = xmalloc_sockaddr2dotted(&fromAddr->sa);
 	}

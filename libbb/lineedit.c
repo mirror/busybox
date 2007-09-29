@@ -81,8 +81,9 @@ static int num_ok_lines = 1;
 #endif
 
 #if ENABLE_FEATURE_GETUSERNAME_AND_HOMEDIR
-static char *user_buf = (char*)"";
-static char *home_pwd_buf = (char*)"";
+static const char null_str[] = "";
+static char *user_buf;
+static char *home_pwd_buf = (char*)null_str;
 #endif
 
 /* Put 'command_ps[cursor]', cursor++.
@@ -311,7 +312,7 @@ static void username_tab_completion(char *ud, char *with_shash_flg)
 
 	if (with_shash_flg) {           /* "~/..." or "~user/..." */
 		char *sav_ud = ud - 1;
-		char *home = 0;
+		char *home = NULL;
 		char *temp;
 
 		if (*ud == '/') {       /* "~/..."     */
@@ -1119,7 +1120,7 @@ static void parse_prompt(const char *prmt_ptr)
 				switch (c) {
 #if ENABLE_FEATURE_GETUSERNAME_AND_HOMEDIR
 				case 'u':
-					pbuf = user_buf;
+					pbuf = user_buf ? user_buf : (char*)"";
 					break;
 #endif
 				case 'h':
@@ -1143,7 +1144,7 @@ static void parse_prompt(const char *prmt_ptr)
 				case 'w':
 					pbuf = pwd_buf;
 					l = strlen(home_pwd_buf);
-					if (home_pwd_buf[0] != 0
+					if (l != 0
 					 && strncmp(home_pwd_buf, pbuf, l) == 0
 					 && (pbuf[l]=='/' || pbuf[l]=='\0')
 					 && strlen(pwd_buf+l)<PATH_MAX
@@ -1253,6 +1254,11 @@ static void win_changed(int nsig)
 #undef CTRL
 #define CTRL(a) ((a) & ~0x40)
 
+/* Returns:
+ * -1 on read errors or EOF, or on bare Ctrl-D.
+ * 0  on ctrl-C,
+ * >0 length of input string, including terminating '\n'
+ */
 int read_line_input(const char* prompt, char* command, int maxsize, line_input_t *st)
 {
 	int lastWasTab = FALSE;
@@ -1305,8 +1311,14 @@ int read_line_input(const char* prompt, char* command, int maxsize, line_input_t
 
 		entry = getpwuid(geteuid());
 		if (entry) {
+			/* If we enter read_line_input for the Nth time,
+			 * they may be already allocated! Need to free. */
+			free(user_buf);
+			if (home_pwd_buf != null_str)
+				free(home_pwd_buf);
 			user_buf = xstrdup(entry->pw_name);
 			home_pwd_buf = xstrdup(entry->pw_dir);
+			/* They are not freed on exit (too small to bother) */
 		}
 	}
 #endif

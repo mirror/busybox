@@ -638,8 +638,16 @@ static void
 seek_sector(ullong secno)
 {
 	secno *= sector_size;
+#if ENABLE_FDISK_SUPPORT_LARGE_DISKS
 	if (lseek64(fd, (off64_t)secno, SEEK_SET) == (off64_t) -1)
 		fdisk_fatal(unable_to_seek);
+#else
+	if (secno > MAXINT(off_t)
+	 || lseek(fd, (off_t)secno, SEEK_SET) == (off_t) -1
+	) {
+		fdisk_fatal(unable_to_seek);
+	}
+#endif
 }
 
 #if ENABLE_FEATURE_FDISK_WRITABLE
