@@ -375,7 +375,7 @@ procps_status_t *procps_scan(procps_status_t* sp, int flags)
 			}
 		}
 #else
-		if (flags & *PSSCAN_ARGV0|PSSCAN_ARGVN)) {
+		if (flags & (PSSCAN_ARGV0|PSSCAN_ARGVN)) {
 			free(sp->argv0);
 			sp->argv0 = NULL;
 			strcpy(filename_tail, "/cmdline");
