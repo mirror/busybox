@@ -87,8 +87,10 @@ int pgrep_main(int argc, char **argv)
 		scan_mask |= PSSCAN_ARGVN;
 
 	if (pkill) {
-		if (OPT_LIST) /* -l: print the whole signal list */
-			print_signames_and_exit();
+		if (OPT_LIST) { /* -l: print the whole signal list */
+			print_signames();
+			return 0;
+		}
 		if (first_arg && first_arg[0] == '-') {
 			signo = get_signum(&first_arg[1]);
 			if (signo < 0) /* || signo > MAX_SIGNUM ? */

@@ -58,7 +58,8 @@ int kill_main(int argc, char **argv)
 	if (arg[1] == 'l' && arg[2] == '\0') {
 		if (argc == 1) {
 			/* Print the whole signal list */
-			print_signames_and_exit();
+			print_signames();
+			return 0;
 		}
 		/* -l <sig list> */
 		while ((arg = *++argv)) {

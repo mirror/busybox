@@ -787,7 +787,7 @@ int bb_make_directory(char *path, long mode, int flags);
 
 int get_signum(const char *name);
 const char *get_signame(int number);
-void print_signames_and_exit(void) ATTRIBUTE_NORETURN;
+void print_signames(void);
 
 char *bb_simplify_path(const char *path);
 
