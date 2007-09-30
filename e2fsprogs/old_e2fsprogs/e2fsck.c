@@ -2654,7 +2654,7 @@ static void expand_percent_expression(ext2_filsys fs, char ch,
 		printf("%u", ctx->ino2);
 		break;
 	case 'm':
-		printf("%s", error_message(ctx->errcode));
+		fputs(error_message(ctx->errcode), stdout);
 		break;
 	case 'N':
 		printf("%"PRIi64, ctx->num);
@@ -2676,7 +2676,7 @@ static void expand_percent_expression(ext2_filsys fs, char ch,
 		printf("%d", get_backup_sb(NULL, fs, NULL, NULL));
 		break;
 	case 's':
-		printf("%s", ctx->str ? ctx->str : "NULL");
+		fputs((ctx->str ? ctx->str : "NULL"), stdout);
 		break;
 	case 'X':
 		printf("0x%"PRIi64, ctx->num);

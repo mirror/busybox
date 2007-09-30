@@ -87,11 +87,10 @@ static int print_rule(struct sockaddr_nl *who ATTRIBUTE_UNUSED,
 				r->rtm_src_len
 				);
 		} else {
-			fprintf(fp, "%s", format_host(r->rtm_family,
+			fputs(format_host(r->rtm_family,
 						       RTA_PAYLOAD(tb[RTA_SRC]),
 						       RTA_DATA(tb[RTA_SRC]),
-						       abuf, sizeof(abuf))
-				);
+						       abuf, sizeof(abuf)), fp);
 		}
 	} else if (r->rtm_src_len) {
 		fprintf(fp, "0/%d", r->rtm_src_len);
@@ -154,7 +153,7 @@ static int print_rule(struct sockaddr_nl *who ATTRIBUTE_UNUSED,
 		} else
 			fprintf(fp, "masquerade");
 	} else if (r->rtm_type != RTN_UNICAST)
-		fprintf(fp, "%s", rtnl_rtntype_n2a(r->rtm_type, b1, sizeof(b1)));
+		fputs(rtnl_rtntype_n2a(r->rtm_type, b1, sizeof(b1)), fp);
 
 	fputc('\n', fp);
 	fflush(fp);
