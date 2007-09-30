@@ -11,17 +11,15 @@
  */
 
 #include "common.h"
-#include "dhcpd.h"
 #include "options.h"
 
 /* constants */
-#define SELECT_TIMEOUT 5 /* select timeout in sec. */
-#define MAX_LIFETIME 2*60 /* lifetime of an xid entry in sec. */
-#define MAX_INTERFACES 9
+#define SELECT_TIMEOUT    5 /* select timeout in sec. */
+#define MAX_LIFETIME   2*60 /* lifetime of an xid entry in sec. */
 
 /* This list holds information about clients. The xid_* functions manipulate this list. */
 struct xid_item {
-	time_t timestamp;
+	unsigned timestamp;
 	int client;
 	uint32_t xid;
 	struct sockaddr_in ip;
@@ -41,7 +39,7 @@ static struct xid_item *xid_add(uint32_t xid, struct sockaddr_in *ip, int client
 	item->ip = *ip;
 	item->xid = xid;
 	item->client = client;
-	item->timestamp = time(NULL);
+	item->timestamp = monotonic_sec();
 	item->next = dhcprelay_xid_list.next;
 	dhcprelay_xid_list.next = item;
 
@@ -52,7 +50,7 @@ static void xid_expire(void)
 {
 	struct xid_item *item = dhcprelay_xid_list.next;
 	struct xid_item *last = &dhcprelay_xid_list;
-	time_t current_time = time(NULL);
+	unsigned current_time = monotonic_sec();
 
 	while (item != NULL) {
 		if ((current_time - item->timestamp) > MAX_LIFETIME) {
@@ -120,31 +118,32 @@ static int get_dhcp_packet_type(struct dhcpMessage *p)
  */
 static char **get_client_devices(char *dev_list, int *client_number)
 {
-	char *s, *list, **client_dev;
+	char *s, **client_dev;
 	int i, cn;
 
 	/* copy list */
-	list = xstrdup(dev_list);
-	if (list == NULL) return NULL;
+	dev_list = xstrdup(dev_list);
 
-	/* get number of items */
-	for (s = dev_list, cn = 1; *s; s++)
-		if (*s == ',')
+	/* get number of items, replace ',' with NULs */
+	s = dev_list;
+	cn = 1;
+	while (*s) {
+		if (*s == ',') {
+			*s = '\0';
 			cn++;
-
-	client_dev = xzalloc(cn * sizeof(*client_dev));
-
-	/* parse list */
-	s = strtok(list, ",");
-	i = 0;
-	while (s != NULL) {
-		client_dev[i++] = xstrdup(s);
-		s = strtok(NULL, ",");
+		}
+		s++;
 	}
-
-	/* free copy and exit */
-	free(list);
 	*client_number = cn;
+
+	/* create vector of pointers */
+	client_dev = xzalloc(cn * sizeof(*client_dev));
+	client_dev[0] = dev_list;
+	i = 1;
+	while (i != cn) {
+		client_dev[i] = client_dev[i - 1] + strlen(client_dev[i - 1]) + 1;
+		i++;
+	}
 	return client_dev;
 }
 
@@ -161,7 +160,7 @@ static int init_sockets(char **client, int num_clients,
 
 	for (i = 1; i < num_clients; i++) {
 		/* listen for clients on bootps */
-		fds[i] = listen_socket(/*NADDR_ANY,*/ 67, client[i-1]);
+		fds[i] = listen_socket(/*INADDR_ANY,*/ 67, client[i-1]);
 		if (fds[i] > n)
 			n = fds[i];
 	}
@@ -224,8 +223,6 @@ static void pass_back(struct dhcpMessage *p, int packet_len, int *fds)
 
 	if (item->ip.sin_addr.s_addr == htonl(INADDR_ANY))
 		item->ip.sin_addr.s_addr = htonl(INADDR_BROADCAST);
-	if (item->client > MAX_INTERFACES)
-		return;
 	res = sendto(fds[item->client], p, packet_len, 0, (struct sockaddr*)(&item->ip),
 				sizeof(item->ip));
 	if (res != packet_len) {
@@ -285,7 +282,8 @@ static void dhcprelay_loop(int *fds, int num_sockets, int max_socket, char **cli
 int dhcprelay_main(int argc, char **argv);
 int dhcprelay_main(int argc, char **argv)
 {
-	int num_sockets, max_socket, fds[MAX_INTERFACES];
+	int num_sockets, max_socket;
+	int *fds;
 	uint32_t gw_ip;
 	char **clients;
 	struct sockaddr_in server_addr;
@@ -300,10 +298,10 @@ int dhcprelay_main(int argc, char **argv)
 	} else {
 		bb_show_usage();
 	}
-	clients = get_client_devices(argv[1], &num_sockets);
-	if (!clients) return 0;
 
+	clients = get_client_devices(argv[1], &num_sockets);
 	num_sockets++; /* for server socket at fds[0] */
+	fds = xmalloc(num_sockets * sizeof(fds[0]));
 	max_socket = init_sockets(clients, num_sockets, argv[2], fds);
 
 	if (read_interface(argv[2], NULL, &gw_ip, NULL))
