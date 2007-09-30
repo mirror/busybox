@@ -121,7 +121,7 @@ int pgrep_main(int argc, char **argv)
 			matched_pid = proc->pid;
 			if (OPT_LAST) {
 				free(cmd_last);
-				cmd_last = xstrdup(cmd_last);
+				cmd_last = xstrdup(cmd);
 				continue;
 			}
 			act(proc->pid, cmd, signo, opt);
