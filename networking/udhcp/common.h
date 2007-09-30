@@ -73,10 +73,6 @@ void udhcp_run_script(struct dhcpMessage *packet, const char *name);
 /* from socket.h */
 #define listen_socket		udhcp_listen_socket
 #define read_interface		udhcp_read_interface
-/* from dhcpc.h */
-#define client_config		udhcp_client_config
-/* from dhcpd.h */
-#define server_config		udhcp_server_config
 
 void udhcp_sp_setup(void);
 int udhcp_sp_fd_set(fd_set *rfds, int extra_fd);

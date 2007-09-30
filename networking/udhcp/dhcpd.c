@@ -18,7 +18,7 @@
 
 /* globals */
 struct dhcpOfferedAddr *leases;
-struct server_config_t server_config;
+/* struct server_config_t server_config is in bb_common_bufsiz1 */
 
 
 int udhcpd_main(int argc, char **argv);

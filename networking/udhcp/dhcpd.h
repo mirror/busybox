@@ -54,7 +54,8 @@ struct server_config_t {
 	struct static_lease *static_leases; /* List of ip/mac pairs to assign static leases */
 };
 
-extern struct server_config_t server_config;
+#define server_config (*(struct server_config_t*)&bb_common_bufsiz1)
+
 extern struct dhcpOfferedAddr *leases;
 
 

@@ -37,7 +37,7 @@ static smallint listen_mode;
 
 static smallint state;
 
-struct client_config_t client_config;
+/* struct client_config_t client_config is in bb_common_bufsiz1 */
 
 
 /* just a little helper */

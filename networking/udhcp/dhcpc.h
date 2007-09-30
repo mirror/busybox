@@ -33,7 +33,7 @@ struct client_config_t {
 	uint8_t arp[6];                 /* Our arp address */
 };
 
-extern struct client_config_t client_config;
+#define client_config (*(struct client_config_t*)&bb_common_bufsiz1)
 
 
 /*** clientpacket.h ***/
