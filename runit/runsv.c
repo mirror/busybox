@@ -454,8 +454,8 @@ int runsv_main(int argc, char **argv)
 	dir = argv[1];
 
 	xpipe(selfpipe);
-	coe(selfpipe[0]);
-	coe(selfpipe[1]);
+	close_on_exec_on(selfpipe[0]);
+	close_on_exec_on(selfpipe[1]);
 	ndelay_on(selfpipe[0]);
 	ndelay_on(selfpipe[1]);
 
@@ -491,8 +491,8 @@ int runsv_main(int argc, char **argv)
 			if (stat("log/down", &s) != -1)
 				svd[1].want = W_DOWN;
 			xpipe(logpipe);
-			coe(logpipe[0]);
-			coe(logpipe[1]);
+			close_on_exec_on(logpipe[0]);
+			close_on_exec_on(logpipe[1]);
 		}
 	}
 
@@ -512,7 +512,7 @@ int runsv_main(int argc, char **argv)
 			O_WRONLY|O_NDELAY|O_APPEND|O_CREAT, 0600);
 	if (lock_exnb(svd[0].fdlock) == -1)
 		fatal_cannot("lock supervise/lock");
-	coe(svd[0].fdlock);
+	close_on_exec_on(svd[0].fdlock);
 	if (haslog) {
 		if (mkdir("log/supervise", 0700) == -1) {
 			r = readlink("log/supervise", buf, 256);
@@ -536,30 +536,30 @@ int runsv_main(int argc, char **argv)
 				O_WRONLY|O_NDELAY|O_APPEND|O_CREAT, 0600);
 		if (lock_ex(svd[1].fdlock) == -1)
 			fatal_cannot("lock log/supervise/lock");
-		coe(svd[1].fdlock);
+		close_on_exec_on(svd[1].fdlock);
 	}
 
 	mkfifo("log/supervise/control"+4, 0600);
 	svd[0].fdcontrol = xopen("log/supervise/control"+4, O_RDONLY|O_NDELAY);
-	coe(svd[0].fdcontrol);
+	close_on_exec_on(svd[0].fdcontrol);
 	svd[0].fdcontrolwrite = xopen("log/supervise/control"+4, O_WRONLY|O_NDELAY);
-	coe(svd[0].fdcontrolwrite);
+	close_on_exec_on(svd[0].fdcontrolwrite);
 	update_status(&svd[0]);
 	if (haslog) {
 		mkfifo("log/supervise/control", 0600);
 		svd[1].fdcontrol = xopen("log/supervise/control", O_RDONLY|O_NDELAY);
-		coe(svd[1].fdcontrol);
+		close_on_exec_on(svd[1].fdcontrol);
 		svd[1].fdcontrolwrite = xopen("log/supervise/control", O_WRONLY|O_NDELAY);
-		coe(svd[1].fdcontrolwrite);
+		close_on_exec_on(svd[1].fdcontrolwrite);
 		update_status(&svd[1]);
 	}
 	mkfifo("log/supervise/ok"+4, 0600);
 	fd = xopen("log/supervise/ok"+4, O_RDONLY|O_NDELAY);
-	coe(fd);
+	close_on_exec_on(fd);
 	if (haslog) {
 		mkfifo("log/supervise/ok", 0600);
 		fd = xopen("log/supervise/ok", O_RDONLY|O_NDELAY);
-		coe(fd);
+		close_on_exec_on(fd);
 	}
 	for (;;) {
 		struct pollfd x[3];

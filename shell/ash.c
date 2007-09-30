@@ -3469,7 +3469,7 @@ setjobctl(int on)
 		close(ofd);
 		if (fd < 0)
 			goto out;
-		fcntl(fd, F_SETFD, FD_CLOEXEC);
+		close_on_exec_on(fd);
 		do { /* while we are in the background */
 			pgrp = tcgetpgrp(fd);
 			if (pgrp < 0) {
@@ -8830,7 +8830,7 @@ closescript(void)
 static void
 setinputfd(int fd, int push)
 {
-	fcntl(fd, F_SETFD, FD_CLOEXEC);
+	close_on_exec_on(fd);
 	if (push) {
 		pushfile();
 		parsefile->buf = 0;

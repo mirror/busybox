@@ -361,7 +361,7 @@ static unsigned rotate(struct logdir *ld)
 		/* we presume this cannot fail */
 		ld->filecur = fdopen(ld->fdcur, "a"); ////
 		setvbuf(ld->filecur, NULL, _IOFBF, linelen); ////
-		coe(ld->fdcur);
+		close_on_exec_on(ld->fdcur);
 		ld->size = 0;
 		while (fchmod(ld->fdcur, 0644) == -1)
 			pause2cannot("set mode of current", ld->name);
@@ -482,7 +482,7 @@ static unsigned logdir_open(struct logdir *ld, const char *fn)
 		warn2("cannot open log directory", (char*)fn);
 		return 0;
 	}
-	coe(ld->fddir);
+	close_on_exec_on(ld->fddir);
 	if (fchdir(ld->fddir) == -1) {
 		logdir_close(ld);
 		warn2("cannot change directory", (char*)fn);
@@ -498,7 +498,7 @@ static unsigned logdir_open(struct logdir *ld, const char *fn)
 			pause1cannot("change to initial working directory");
 		return 0;
 	}
-	coe(ld->fdlock);
+	close_on_exec_on(ld->fdlock);
 
 	ld->size = 0;
 	ld->sizemax = 1000000;
@@ -624,7 +624,7 @@ static unsigned logdir_open(struct logdir *ld, const char *fn)
 	ld->filecur = fdopen(ld->fdcur, "a"); ////
 	setvbuf(ld->filecur, NULL, _IOFBF, linelen); ////
 
-	coe(ld->fdcur);
+	close_on_exec_on(ld->fdcur);
 	while (fchmod(ld->fdcur, 0644) == -1)
 		pause2cannot("set mode of current", ld->name);
 
@@ -851,7 +851,7 @@ int svlogd_main(int argc, char **argv)
 	if (dirn <= 0) usage();
 	////if (buflen <= linemax) usage();
 	fdwdir = xopen(".", O_RDONLY|O_NDELAY);
-	coe(fdwdir);
+	close_on_exec_on(fdwdir);
 	dir = xzalloc(dirn * sizeof(struct logdir));
 	for (i = 0; i < dirn; ++i) {
 		dir[i].fddir = -1;

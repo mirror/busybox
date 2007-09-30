@@ -50,11 +50,6 @@ unsigned byte_chr(char *s,unsigned n,int c)
 	return t - s;
 }
 
-int coe(int fd)
-{
-	return fcntl(fd, F_SETFD, FD_CLOEXEC);
-}
-
 #ifdef UNUSED
 static /* as it isn't used anywhere else */
 void tai_pack(char *s, const struct tai *t)

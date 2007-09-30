@@ -39,9 +39,9 @@ void udhcp_sp_setup(void)
 {
 	/* was socketpair, but it needs AF_UNIX in kernel */
 	xpipe(signal_pipe);
-	fcntl(signal_pipe[0], F_SETFD, FD_CLOEXEC);
-	fcntl(signal_pipe[1], F_SETFD, FD_CLOEXEC);
-	fcntl(signal_pipe[1], F_SETFL, O_NONBLOCK);
+	close_on_exec_on(signal_pipe[0]);
+	close_on_exec_on(signal_pipe[1]);
+	ndelay_on(signal_pipe[1]);
 	signal(SIGUSR1, signal_handler);
 	signal(SIGUSR2, signal_handler);
 	signal(SIGTERM, signal_handler);
@@ -56,7 +56,7 @@ int udhcp_sp_fd_set(fd_set *rfds, int extra_fd)
 	FD_ZERO(rfds);
 	FD_SET(signal_pipe[0], rfds);
 	if (extra_fd >= 0) {
-		fcntl(extra_fd, F_SETFD, FD_CLOEXEC);
+		close_on_exec_on(extra_fd);
 		FD_SET(extra_fd, rfds);
 	}
 	return signal_pipe[0] > extra_fd ? signal_pipe[0] : extra_fd;

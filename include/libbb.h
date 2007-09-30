@@ -248,6 +248,7 @@ extern char *bb_get_last_path_component_nostrip(const char *path);
 
 int ndelay_on(int fd);
 int ndelay_off(int fd);
+int close_on_exec_on(int fd);
 void xdup2(int, int);
 void xmove_fd(int, int);
 

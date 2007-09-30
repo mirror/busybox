@@ -113,7 +113,7 @@ int nc_main(int argc, char **argv)
 				lport = get_nport(&lsa->sa);
 				fdprintf(2, "%d\n", ntohs(lport));
 			}
-			fcntl(sfd, F_SETFD, FD_CLOEXEC);
+			close_on_exec_on(sfd);
  accept_again:
 			cfd = accept(sfd, NULL, 0);
 			if (cfd < 0)

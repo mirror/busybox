@@ -760,9 +760,11 @@ static int builtin_eval(char **argv)
 static int builtin_cd(char **argv)
 {
 	const char *newdir;
-	if (argv[1] == NULL)
+	if (argv[1] == NULL) {
+		// bash does nothing (exitcode 0) if HOME is ""; if it's unset,
+		// bash says "bash: cd: HOME not set" and does nothing (exitcode 1)
 		newdir = getenv("HOME") ? : "/";
-	else
+	} else
 		newdir = argv[1];
 	if (chdir(newdir)) {
 		printf("cd: %s: %s\n", newdir, strerror(errno));
@@ -3629,7 +3631,7 @@ static void setup_job_control(void)
 
 	saved_task_pgrp = shell_pgrp = getpgrp();
 	debug_printf_jobs("saved_task_pgrp=%d\n", saved_task_pgrp);
-	fcntl(interactive_fd, F_SETFD, FD_CLOEXEC);
+	close_on_exec_on(interactive_fd);
 
 	/* If we were ran as 'hush &',
 	 * sleep until we are in the foreground.  */

@@ -190,8 +190,8 @@ static int setup_log(void)
 		warnx("cannot create pipe for log");
 		return -1;
 	}
-	coe(logpipe[1]);
-	coe(logpipe[0]);
+	close_on_exec_on(logpipe[1]);
+	close_on_exec_on(logpipe[0]);
 	ndelay_on(logpipe[0]);
 	ndelay_on(logpipe[1]);
 	if (dup2(logpipe[1], 2) == -1) {
@@ -245,7 +245,7 @@ int runsvdir_main(int argc, char **argv)
 	curdir = open_read(".");
 	if (curdir == -1)
 		fatal2_cannot("open current directory", "");
-	coe(curdir);
+	close_on_exec_on(curdir);
 
 	stampcheck = monotonic_sec();
 

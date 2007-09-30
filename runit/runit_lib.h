@@ -27,8 +27,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 extern unsigned byte_chr(char *s,unsigned n,int c);
 
-extern int coe(int);
-
 #define direntry struct dirent
 
 //struct tai {

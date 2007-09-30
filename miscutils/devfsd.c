@@ -371,10 +371,7 @@ int devfsd_main(int argc, char **argv)
 	xchdir(mount_point);
 
 	fd = xopen(".devfsd", O_RDONLY);
-
-	if (fcntl(fd, F_SETFD, FD_CLOEXEC) != 0)
-		bb_perror_msg_and_die("FD_CLOEXEC");
-
+	close_on_exec_on(fd);
 	xioctl(fd, DEVFSDIOC_GET_PROTO_REV, &proto_rev);
 
 	/*setup initial entries */

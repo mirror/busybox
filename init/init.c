@@ -179,7 +179,7 @@ static void message(int device, const char *fmt, ...)
 				bb_error_msg("can't log to %s", log_console);
 				device = L_CONSOLE;
 			} else {
-				fcntl(log_fd, F_SETFD, FD_CLOEXEC);
+				close_on_exec_on(log_fd);
 			}
 		}
 	}
