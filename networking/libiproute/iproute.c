@@ -858,10 +858,13 @@ int do_iproute(int argc, char **argv)
 			return iproute_list_or_flush(argc-1, argv+1, 0);
 		case 8: /* prepend */
 			flags = NLM_F_CREATE;
+			break;
 		case 9: /* replace */
 			flags = NLM_F_CREATE|NLM_F_REPLACE;
+			break;
 		case 10: /* test */
 			flags = NLM_F_EXCL;
+			break;
 		case 11: /* flush */
 			return iproute_list_or_flush(argc-1, argv+1, 1);
 		default:
