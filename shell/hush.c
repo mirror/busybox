@@ -277,11 +277,6 @@ struct pipe {
 	smallint res_word;          /* needed for if, for, while, until... */
 };
 
-struct close_me {
-	struct close_me *next;
-	int fd;
-};
-
 /* On program start, environ points to initial environment.
  * putenv adds new pointers into it, unsetenv removes them.
  * Neither of these (de)allocates the strings.
@@ -362,7 +357,6 @@ struct globals {
 	int global_argc;
 	int last_return_code;
 	const char *ifs;
-	struct close_me *close_me_head;
 	const char *cwd;
 	unsigned last_bg_pid;
 	struct variable *top_var; /* = &shell_ver (set in main()) */
@@ -409,7 +403,6 @@ enum { run_list_level = 0 };
 #define last_return_code (G.last_return_code)
 #define ifs              (G.ifs             )
 #define fake_mode        (G.fake_mode       )
-#define close_me_head    (G.close_me_head   )
 #define cwd              (G.cwd             )
 #define last_bg_pid      (G.last_bg_pid     )
 #define top_var          (G.top_var         )
@@ -487,10 +480,6 @@ static int file_get(struct in_str *i);
 static int file_peek(struct in_str *i);
 static void setup_file_in_str(struct in_str *i, FILE *f);
 static void setup_string_in_str(struct in_str *i, const char *s);
-/*  close_me manipulations: */
-static void mark_open(int fd);
-static void mark_closed(int fd);
-static void close_all(void);
 /*  "run" the final data structures: */
 #if !defined(DEBUG_CLEAN)
 #define free_pipe_list(head, indent) free_pipe_list(head)
@@ -999,14 +988,13 @@ static int builtin_source(char **argv)
 		bb_error_msg("cannot open '%s'", argv[1]);
 		return EXIT_FAILURE;
 	}
+	close_on_exec_on(fileno(input));
 
 	/* Now run the file */
 	/* XXX argv and argc are broken; need to save old global_argv
 	 * (pointer only is OK!) on this stack frame,
 	 * set global_argv=argv+1, recurse, and restore. */
-	mark_open(fileno(input));
 	status = parse_and_run_file(input);
-	mark_closed(fileno(input));
 	fclose(input);
 	return status;
 }
@@ -1249,33 +1237,6 @@ static void setup_string_in_str(struct in_str *i, const char *s)
 #endif
 	i->p = s;
 	i->eof_flag = 0;
-}
-
-static void mark_open(int fd)
-{
-	struct close_me *new = xmalloc(sizeof(struct close_me));
-	new->fd = fd;
-	new->next = close_me_head;
-	close_me_head = new;
-}
-
-static void mark_closed(int fd)
-{
-	struct close_me *tmp;
-	if (close_me_head == NULL || close_me_head->fd != fd)
-		bb_error_msg_and_die("corrupt close_me");
-	tmp = close_me_head;
-	close_me_head = close_me_head->next;
-	free(tmp);
-}
-
-static void close_all(void)
-{
-	struct close_me *c;
-	for (c = close_me_head; c; c = c->next) {
-		close(c->fd);
-	}
-	close_me_head = NULL;
 }
 
 /* squirrel != NULL means we squirrel away copies of stdin, stdout,
@@ -1826,7 +1787,6 @@ static int run_pipe_real(struct pipe *pi)
 			}
 #endif
 			/* in non-interactive case fatal sigs are already SIG_DFL */
-			close_all();
 			if (nextin != 0) {
 				dup2(nextin, 0);
 				close(nextin);
@@ -3183,7 +3143,7 @@ static int process_command_subs(o_string *dest, struct p_context *ctx,
 
 	p = generate_stream_from_list(inner.list_head);
 	if (p == NULL) return 1;
-	mark_open(fileno(p));
+	close_on_exec_on(fileno(p));
 	setup_file_in_str(&pipe_str, p);
 
 	/* now send results of command back into original context */
@@ -3206,7 +3166,6 @@ static int process_command_subs(o_string *dest, struct p_context *ctx,
 	 * to do better, by using wait(), and keeping track of background jobs
 	 * at the same time.  That would be a lot of work, and contrary
 	 * to the KISS philosophy of this program. */
-	mark_closed(fileno(p));
 	retcode = fclose(p);
 	free_pipe_list(inner.list_head, 0);
 	debug_printf("closed FILE from child, retcode=%d\n", retcode);
@@ -3718,9 +3677,8 @@ int hush_main(int argc, char **argv)
 		debug_printf("sourcing /etc/profile\n");
 		input = fopen("/etc/profile", "r");
 		if (input != NULL) {
-			mark_open(fileno(input));
+			close_on_exec_on(fileno(input));
 			parse_and_run_file(input);
-			mark_closed(fileno(input));
 			fclose(input);
 		}
 	}
