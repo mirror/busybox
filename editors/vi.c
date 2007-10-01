@@ -1721,7 +1721,7 @@ static char *skip_thing(char * p, int linecnt, int dir, int type)
 }
 
 // find matching char of pair  ()  []  {}
-static char *find_pair(char * p, char c)
+static char *find_pair(char * p, const char c)
 {
 	char match, *q;
 	int dir, level;
@@ -1895,8 +1895,8 @@ static void show_help(void)
 	"\n\tLast command repeat with \'.\'"
 #endif
 #if ENABLE_FEATURE_VI_YANKMARK
-	"\n\tLine marking with  'x"
-	"\n\tNamed buffers with  \"x"
+	"\n\tLine marking with 'x"
+	"\n\tNamed buffers with \"x"
 #endif
 #if ENABLE_FEATURE_VI_READONLY
 	"\n\tReadonly if vi is called as \"view\""
