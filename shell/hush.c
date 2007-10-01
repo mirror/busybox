@@ -246,7 +246,7 @@ struct redir_struct {
 	redir_type type;            /* type of redirection */
 	int fd;                     /* file descriptor being redirected */
 	int dup;                    /* -1, or file descriptor being duplicated */
-	glob_t word;                /* *word.gl_pathv is the filename */
+	glob_t glob_word;           /* *word.gl_pathv is the filename */
 };
 
 struct child_prog {
@@ -304,8 +304,8 @@ typedef struct {
 	char *data;
 	int length;
 	int maxlen;
-	int quote;
-	int nonnull;
+	smallint o_quote;
+	smallint nonnull;
 } o_string;
 #define NULL_O_STRING {NULL,0,0,0,0}
 /* used for initialization: o_string foo = NULL_O_STRING; */
@@ -1256,13 +1256,13 @@ static int setup_redirects(struct child_prog *prog, int squirrel[])
 	struct redir_struct *redir;
 
 	for (redir = prog->redirects; redir; redir = redir->next) {
-		if (redir->dup == -1 && redir->word.gl_pathv == NULL) {
+		if (redir->dup == -1 && redir->glob_word.gl_pathv == NULL) {
 			/* something went wrong in the parse.  Pretend it didn't happen */
 			continue;
 		}
 		if (redir->dup == -1) {
 			mode = redir_table[redir->type].mode;
-			openfd = open_or_warn(redir->word.gl_pathv[0], mode);
+			openfd = open_or_warn(redir->glob_word.gl_pathv[0], mode);
 			if (openfd < 0) {
 			/* this could get lost if stderr has been redirected, but
 			   bash and ash both lose it as well (though zsh doesn't!) */
@@ -2162,9 +2162,9 @@ static int free_pipe(struct pipe *pi, int indent)
 			debug_printf_clean("%s   redirect %d%s", indenter(indent), r->fd, redir_table[r->type].descrip);
 			if (r->dup == -1) {
 				/* guard against the case >$FOO, where foo is unset or blank */
-				if (r->word.gl_pathv) {
-					debug_printf_clean(" %s\n", *r->word.gl_pathv);
-					globfree(&r->word);
+				if (r->glob_word.gl_pathv) {
+					debug_printf_clean(" %s\n", r->glob_word.gl_pathv[0]);
+					globfree(&r->glob_word);
 				}
 			} else {
 				debug_printf_clean("&%d\n", r->dup);
@@ -2215,6 +2215,10 @@ static int run_list(struct pipe *pi)
 	debug_printf_exec("run_list return %d\n", rcode);
 	return rcode;
 }
+
+/* Whoever decided to muck with glob internal data is AN IDIOT! */
+/* uclibc happily changed the way it works (and it has rights to do so!),
+   all hell broke loose (SEGVs) */
 
 /* The API for glob is arguably broken.  This routine pushes a non-matching
  * string into the output structure, removing non-backslashed backslashes.
@@ -2769,9 +2773,9 @@ static int setup_redirect(struct p_context *ctx, int fd, redir_type style,
 		last_redir = redir;
 		redir = redir->next;
 	}
-	redir = xmalloc(sizeof(struct redir_struct));
-	redir->next = NULL;
-	redir->word.gl_pathv = NULL;
+	redir = xzalloc(sizeof(struct redir_struct));
+	/* redir->next = NULL; */
+	/* redir->glob_word.gl_pathv = NULL; */
 	if (last_redir) {
 		last_redir->next = redir;
 	} else {
@@ -2924,7 +2928,7 @@ static int done_word(o_string *dest, struct p_context *ctx)
 		return 0;
 	}
 	if (ctx->pending_redirect) {
-		glob_target = &ctx->pending_redirect->word;
+		glob_target = &ctx->pending_redirect->glob_word;
 	} else {
 		if (child->group) {
 			syntax(NULL);
@@ -3160,10 +3164,10 @@ static int process_command_subs(o_string *dest, struct p_context *ctx,
 			continue;
 		}
 		while (eol_cnt) {
-			b_addqchr(dest, '\n', dest->quote);
+			b_addqchr(dest, '\n', dest->o_quote);
 			eol_cnt--;
 		}
-		b_addqchr(dest, ch, dest->quote);
+		b_addqchr(dest, ch, dest->o_quote);
 	}
 
 	debug_printf("done reading from pipe, pclose()ing\n");
@@ -3224,7 +3228,7 @@ static const char *lookup_param(const char *src)
 static int handle_dollar(o_string *dest, struct p_context *ctx, struct in_str *input)
 {
 	int ch = b_peek(input);  /* first character after the $ */
-	unsigned char quote_mask = dest->quote ? 0x80 : 0;
+	unsigned char quote_mask = dest->o_quote ? 0x80 : 0;
 
 	debug_printf_parse("handle_dollar entered: ch='%c'\n", ch);
 	if (isalpha(ch)) {
@@ -3289,7 +3293,7 @@ static int handle_dollar(o_string *dest, struct p_context *ctx, struct in_str *i
 			return 1;
 			break;
 		default:
-			b_addqchr(dest, '$', dest->quote);
+			b_addqchr(dest, '$', dest->o_quote);
 	}
 	debug_printf_parse("handle_dollar return 0\n");
 	return 0;
@@ -3304,9 +3308,9 @@ static int parse_stream(o_string *dest, struct p_context *ctx,
 	redir_type redir_style;
 	int next;
 
-	/* Only double-quote state is handled in the state variable dest->quote.
+	/* Only double-quote state is handled in the state variable dest->o_quote.
 	 * A single-quote triggers a bypass of the main loop until its mate is
-	 * found.  When recursing, quote state is passed in via dest->quote. */
+	 * found.  When recursing, quote state is passed in via dest->o_quote. */
 
 	debug_printf_parse("parse_stream entered, end_trigger='%s'\n", end_trigger);
 
@@ -3320,16 +3324,16 @@ static int parse_stream(o_string *dest, struct p_context *ctx,
 				next = b_peek(input);
 		}
 		debug_printf_parse(": ch=%c (%d) m=%d quote=%d\n",
-						ch, ch, m, dest->quote);
+						ch, ch, m, dest->o_quote);
 		if (m == CHAR_ORDINARY
-		 || (m != CHAR_SPECIAL && dest->quote)
+		 || (m != CHAR_SPECIAL && dest->o_quote)
 		) {
 			if (ch == EOF) {
 				syntax("unterminated \"");
 				debug_printf_parse("parse_stream return 1: unterminated \"\n");
 				return 1;
 			}
-			b_addqchr(dest, ch, dest->quote);
+			b_addqchr(dest, ch, dest->o_quote);
 			continue;
 		}
 		if (m == CHAR_IFS) {
@@ -3347,7 +3351,7 @@ static int parse_stream(o_string *dest, struct p_context *ctx,
 			}
 		}
 		if ((end_trigger && strchr(end_trigger, ch))
-		 && !dest->quote && ctx->res_w == RES_NONE
+		 && !dest->o_quote && ctx->res_w == RES_NONE
 		) {
 			debug_printf_parse("parse_stream return 0: end_trigger char found\n");
 			return 0;
@@ -3356,7 +3360,7 @@ static int parse_stream(o_string *dest, struct p_context *ctx,
 			continue;
 		switch (ch) {
 		case '#':
-			if (dest->length == 0 && !dest->quote) {
+			if (dest->length == 0 && !dest->o_quote) {
 				while (1) {
 					ch = b_peek(input);
 					if (ch == EOF || ch == '\n')
@@ -3364,7 +3368,7 @@ static int parse_stream(o_string *dest, struct p_context *ctx,
 					b_getch(input);
 				}
 			} else {
-				b_addqchr(dest, ch, dest->quote);
+				b_addqchr(dest, ch, dest->o_quote);
 			}
 			break;
 		case '\\':
@@ -3373,8 +3377,8 @@ static int parse_stream(o_string *dest, struct p_context *ctx,
 				debug_printf_parse("parse_stream return 1: \\<eof>\n");
 				return 1;
 			}
-			b_addqchr(dest, '\\', dest->quote);
-			b_addqchr(dest, b_getch(input), dest->quote);
+			b_addqchr(dest, '\\', dest->o_quote);
+			b_addqchr(dest, b_getch(input), dest->o_quote);
 			break;
 		case '$':
 			if (handle_dollar(dest, ctx, input) != 0) {
@@ -3398,7 +3402,7 @@ static int parse_stream(o_string *dest, struct p_context *ctx,
 			break;
 		case '"':
 			dest->nonnull = 1;
-			dest->quote = !dest->quote;
+			dest->o_quote ^= 1; /* invert */
 			break;
 #if ENABLE_HUSH_TICK
 		case '`':
@@ -3561,7 +3565,7 @@ static int parse_and_run_stream(struct in_str *inp, int parse_flag)
 				b_reset(&temp);
 			}
 			temp.nonnull = 0;
-			temp.quote = 0;
+			temp.o_quote = 0;
 			inp->p = NULL;
 			free_pipe_list(ctx.list_head, 0);
 		}
