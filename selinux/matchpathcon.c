@@ -17,7 +17,7 @@ static int print_matchpathcon(char *path, int noprint)
 	if (!noprint)
 		printf("%s\t%s\n", path, buf);
 	else
-		printf("%s\n", buf);
+		puts(buf);
 
 	freecon(buf);
 	return 0;

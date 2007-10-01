@@ -700,7 +700,7 @@ static void showfiles(void)
 			printf("%s%-*s", matches[n],
 				(int)(column_width - strlen(matches[n])), "");
 		}
-		printf("%s\n", matches[n]);
+		puts(matches[n]);
 	}
 }
 

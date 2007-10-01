@@ -64,7 +64,7 @@ int losetup_main(int argc, char **argv)
 		s = query_loop(dev);
 		if (!s) {
 			if (opt == 0x4) {
-				printf("%s\n", dev);
+				puts(dev);
 				return EXIT_SUCCESS;
 			}
 		} else {

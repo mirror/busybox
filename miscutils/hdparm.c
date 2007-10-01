@@ -849,7 +849,7 @@ static void identify(uint16_t *val)
 				jj >>= 1;
 			}
 		}
-		printf("%s\n", kk ? "" : "\n\tLikely used CD-ROM ATAPI-1");
+		puts(kk ? "" : "\n\tLikely used CD-ROM ATAPI-1");
 		/* the cdrom stuff is more like ATA-2 than anything else, so: */
 		like_std = 2;
 	}

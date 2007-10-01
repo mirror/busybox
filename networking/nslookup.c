@@ -69,7 +69,7 @@ static int print_host(const char *hostname, const char *header)
 		unsigned cnt = 0;
 
 		printf("%-10s %s\n", header, hostname);
-		// printf("%s\n", cur->ai_canonname); ?
+		// puts(cur->ai_canonname); ?
 		while (cur) {
 			char *dotted, *revhost;
 			dotted = xmalloc_sockaddr2dotted_noport(cur->ai_addr);

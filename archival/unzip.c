@@ -263,9 +263,9 @@ int unzip_main(int argc, char **argv)
 			total_size += zip_header.formatted.ucmpsize;
 
 			if (listing) { /* List entry */
-			    if (verbose) {
-				unsigned int dostime = zip_header.formatted.modtime | (zip_header.formatted.moddate << 16);
-				printf("%9u  %02u-%02u-%02u %02u:%02u   %s\n",
+				if (verbose) {
+					unsigned int dostime = zip_header.formatted.modtime | (zip_header.formatted.moddate << 16);
+					printf("%9u  %02u-%02u-%02u %02u:%02u   %s\n",
 					   zip_header.formatted.ucmpsize,
 					   (dostime & 0x01e00000) >> 21,
 					   (dostime & 0x001f0000) >> 16,
@@ -273,12 +273,12 @@ int unzip_main(int argc, char **argv)
 					   (dostime & 0x0000f800) >> 11,
 					   (dostime & 0x000007e0) >> 5,
 					   dst_fn);
-				total_entries++;
-			    } else {
-				/* short listing -- filenames only */
-				printf("%s\n", dst_fn);
-			    }
-			    i = 'n';
+					total_entries++;
+				} else {
+					/* short listing -- filenames only */
+					puts(dst_fn);
+				}
+				i = 'n';
 			} else if (dst_fd == STDOUT_FILENO) { /* Extracting to STDOUT */
 				i = -1;
 			} else if (last_char_is(dst_fn, '/')) { /* Extract directory */

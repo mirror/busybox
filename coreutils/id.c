@@ -92,7 +92,7 @@ int id_main(int argc, char **argv)
 			if (getcon(&scontext)) {
 				bb_error_msg_and_die("can't get process context");
 			}
-			printf("%s\n", scontext);
+			puts(scontext);
 		}
 #endif
 		/* exit */
