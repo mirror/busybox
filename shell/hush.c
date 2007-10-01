@@ -86,6 +86,15 @@ extern char **environ; /* This is in <unistd.h>, but protected with __USE_GNU */
 #include "busybox.h" /* for struct bb_applet */
 
 
+#if !BB_MMU
+/* A bit drastic. Can allow some simpler commands
+ * by analysing command in generate_stream_from_list()
+ */
+#undef ENABLE_HUSH_TICK
+#define ENABLE_HUSH_TICK 0
+#endif
+
+
 /* If you comment out one of these below, it will be #defined later
  * to perform debug printfs to stderr: */
 #define debug_printf(...)        do {} while (0)
@@ -1268,7 +1277,7 @@ static int setup_redirects(struct child_prog *prog, int squirrel[])
 				squirrel[redir->fd] = dup(redir->fd);
 			}
 			if (openfd == -3) {
-				close(openfd);
+				//close(openfd); // close(-3) ??!
 			} else {
 				dup2(openfd, redir->fd);
 				if (redir->dup == -1)
@@ -1291,8 +1300,9 @@ static void restore_redirects(int squirrel[])
 	}
 }
 
-/* never returns */
-/* XXX no exit() here.  If you don't exec, use _exit instead.
+/* Called after [v]fork() in run_pipe_real(), or from builtin_exec().
+ * Never returns.
+ * XXX no exit() here.  If you don't exec, use _exit instead.
  * The at_exit handlers apparently confuse the calling process,
  * in particular stdin handling.  Not sure why? -- because of vfork! (vda) */
 static void pseudo_exec_argv(char **argv)
@@ -1359,6 +1369,8 @@ static void pseudo_exec_argv(char **argv)
 	_exit(1);
 }
 
+/* Called after [v]fork() in run_pipe_real()
+ */
 static void pseudo_exec(struct child_prog *child)
 {
 // FIXME: buggy wrt NOMMU! Must not modify any global data
@@ -1370,7 +1382,9 @@ static void pseudo_exec(struct child_prog *child)
 	}
 
 	if (child->group) {
-	// FIXME: do not modify globals! Think vfork!
+#if !BB_MMU
+		bb_error_msg_and_exit("nested lists are not supported on NOMMU");
+#else
 #if ENABLE_HUSH_INTERACTIVE
 		debug_printf_exec("pseudo_exec: setting interactive_fd=0\n");
 		interactive_fd = 0;    /* crucial!!!! */
@@ -1380,6 +1394,7 @@ static void pseudo_exec(struct child_prog *child)
 		/* OK to leak memory by not calling free_pipe_list,
 		 * since this process is about to exit */
 		_exit(rcode);
+#endif
 	}
 
 	/* Can happen.  See what bash does with ">foo" by itself. */
@@ -1787,14 +1802,8 @@ static int run_pipe_real(struct pipe *pi)
 			}
 #endif
 			/* in non-interactive case fatal sigs are already SIG_DFL */
-			if (nextin != 0) {
-				dup2(nextin, 0);
-				close(nextin);
-			}
-			if (nextout != 1) {
-				dup2(nextout, 1);
-				close(nextout);
-			}
+			xmove_fd(nextin, 0);
+			xmove_fd(nextout, 1);
 			if (pipefds[0] != -1) {
 				close(pipefds[0]);  /* opposite end of our output pipe */
 			}
@@ -3084,17 +3093,14 @@ static int redirect_opt_num(o_string *o)
 }
 
 #if ENABLE_HUSH_TICK
+/* NB: currently disabled on NOMMU */
 static FILE *generate_stream_from_list(struct pipe *head)
 {
 	FILE *pf;
 	int pid, channel[2];
 
 	xpipe(channel);
-#if BB_MMU
 	pid = fork();
-#else
-	pid = vfork();
-#endif
 	if (pid < 0) {
 		bb_perror_msg_and_die("fork");
 	} else if (pid == 0) {
