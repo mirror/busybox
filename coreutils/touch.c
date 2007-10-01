@@ -49,7 +49,7 @@ int touch_main(int argc, char **argv)
 				}
 			}
 			status = EXIT_FAILURE;
-			bb_perror_msg("%s", *argv);
+			bb_simple_perror_msg(*argv);
 		}
 	} while (*++argv);
 

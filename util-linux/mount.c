@@ -1655,7 +1655,7 @@ int mount_main(int argc, char **argv)
 	 && (i & (MS_SHARED | MS_PRIVATE | MS_SLAVE | MS_UNBINDABLE))
 	) {
 		rc = mount("", argv[0], "", i, "");
-		if (rc) bb_perror_msg_and_die("%s", argv[0]);
+		if (rc) bb_simple_perror_msg_and_die(argv[0]);
 		goto clean_up;
 	}
 

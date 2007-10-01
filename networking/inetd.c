@@ -983,7 +983,7 @@ static void config(int sig ATTRIBUTE_UNUSED)
 	char protoname[10];
 
 	if (!setconfig()) {
-		bb_perror_msg("%s", config_filename);
+		bb_simple_perror_msg(config_filename);
 		return;
 	}
 	for (sep = servtab; sep; sep = sep->se_next)

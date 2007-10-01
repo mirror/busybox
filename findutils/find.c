@@ -277,7 +277,7 @@ ACTF(exec)
 
 	rc = spawn_and_wait(argv);
 	if (rc < 0)
-		bb_perror_msg("%s", argv[0]);
+		bb_simple_perror_msg(argv[0]);
 
 	i = 0;
 	while (argv[i])
@@ -347,7 +347,7 @@ ACTF(delete)
 		rc = unlink(fileName);
 	}
 	if (rc < 0)
-		bb_perror_msg("%s", fileName);
+		bb_simple_perror_msg(fileName);
 	return TRUE;
 }
 #endif
@@ -780,7 +780,7 @@ static action*** parse_params(char **argv)
 			ap->context = NULL;
 			/* SELinux headers erroneously declare non-const parameter */
 			if (selinux_raw_to_trans_context((char*)arg1, &ap->context))
-				bb_perror_msg("%s", arg1);
+				bb_simple_perror_msg(arg1);
 		}
 #endif
 		else {

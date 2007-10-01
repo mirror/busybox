@@ -40,7 +40,7 @@ int mesg_main(int argc, char **argv)
 				return EXIT_SUCCESS;
 			}
 		}
-		bb_perror_msg_and_die("%s", tty);
+		bb_simple_perror_msg_and_die(tty);
 	}
 	bb_show_usage();
 }

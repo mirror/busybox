@@ -67,7 +67,7 @@ static unsigned long du(const char *filename)
 	unsigned long sum;
 
 	if (lstat(filename, &statbuf) != 0) {
-		bb_perror_msg("%s", filename);
+		bb_simple_perror_msg(filename);
 		G.status = EXIT_FAILURE;
 		return 0;
 	}
@@ -85,7 +85,7 @@ static unsigned long du(const char *filename)
 	if (S_ISLNK(statbuf.st_mode)) {
 		if (G.slink_depth > G.du_depth) {	/* -H or -L */
 			if (stat(filename, &statbuf) != 0) {
-				bb_perror_msg("%s", filename);
+				bb_simple_perror_msg(filename);
 				G.status = EXIT_FAILURE;
 				return 0;
 			}

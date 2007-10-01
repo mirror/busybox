@@ -19,3 +19,8 @@ void bb_perror_msg_and_die(const char *s, ...)
 	va_end(p);
 	xfunc_die();
 }
+
+void bb_simple_perror_msg_and_die(const char *s)
+{
+	bb_perror_msg_and_die("%s", s);
+}

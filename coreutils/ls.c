@@ -171,7 +171,7 @@ static struct dnode *my_stat(const char *fullname, const char *name, int force_f
 		}
 #endif
 		if (stat(fullname, &dstat)) {
-			bb_perror_msg("%s", fullname);
+			bb_simple_perror_msg(fullname);
 			status = EXIT_FAILURE;
 			return 0;
 		}
@@ -182,7 +182,7 @@ static struct dnode *my_stat(const char *fullname, const char *name, int force_f
 		}
 #endif
 		if (lstat(fullname, &dstat)) {
-			bb_perror_msg("%s", fullname);
+			bb_simple_perror_msg(fullname);
 			status = EXIT_FAILURE;
 			return 0;
 		}

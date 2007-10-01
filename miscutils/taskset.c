@@ -92,7 +92,7 @@ int taskset_main(int argc, char** argv)
 	}
 	++argv;
 	BB_EXECVP(*argv, argv);
-	bb_perror_msg_and_die("%s", *argv);
+	bb_simple_perror_msg_and_die(*argv);
 }
 #undef OPT_p
 #undef TASKSET_PRINTF_MASK

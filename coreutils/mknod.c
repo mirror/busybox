@@ -44,7 +44,7 @@ int mknod_main(int argc, char **argv)
 			if (mknod(name, mode, dev) == 0) {
 				return EXIT_SUCCESS;
 			}
-			bb_perror_msg_and_die("%s", name);
+			bb_simple_perror_msg_and_die(name);
 		}
 	}
 	bb_show_usage();

@@ -62,7 +62,7 @@ pid_t xspawn(char **argv)
 {
 	pid_t pid = spawn(argv);
 	if (pid < 0)
-		bb_perror_msg_and_die("%s", *argv);
+		bb_simple_perror_msg_and_die(*argv);
 	return pid;
 }
 

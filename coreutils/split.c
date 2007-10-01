@@ -104,7 +104,7 @@ int split_main(int argc, char **argv)
 		if (!bytes_read)
 			break;
 		if (bytes_read < 0)
-			bb_perror_msg_and_die("%s", argv[0]);
+			bb_simple_perror_msg_and_die(argv[0]);
 		src = read_buffer;
 		do {
 			if (!remaining) {

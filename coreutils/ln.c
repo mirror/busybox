@@ -64,7 +64,7 @@ int ln_main(int argc, char **argv)
 		if (!(flag & LN_SYMLINK) && stat(*argv, &statbuf)) {
 			// coreutils: "ln dangling_symlink new_hardlink" works
 			if (lstat(*argv, &statbuf) || !S_ISLNK(statbuf.st_mode)) {
-				bb_perror_msg("%s", *argv);
+				bb_simple_perror_msg(*argv);
 				status = EXIT_FAILURE;
 				free(src_name);
 				continue;
@@ -75,7 +75,7 @@ int ln_main(int argc, char **argv)
 			char *backup;
 			backup = xasprintf("%s%s", src, suffix);
 			if (rename(src, backup) < 0 && errno != ENOENT) {
-				bb_perror_msg("%s", src);
+				bb_simple_perror_msg(src);
 				status = EXIT_FAILURE;
 				free(backup);
 				continue;
@@ -97,7 +97,7 @@ int ln_main(int argc, char **argv)
 		}
 
 		if (link_func(*argv, src) != 0) {
-			bb_perror_msg("%s", src);
+			bb_simple_perror_msg(src);
 			status = EXIT_FAILURE;
 		}
 

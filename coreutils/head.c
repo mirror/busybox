@@ -128,7 +128,7 @@ int head_main(int argc, char **argv)
 				putchar(c);
 			}
 			if (fclose_if_not_stdin(fp)) {
-				bb_perror_msg("%s", *argv);	/* Avoid multibyte problems. */
+				bb_simple_perror_msg(*argv);	/* Avoid multibyte problems. */
 				retval = EXIT_FAILURE;
 			}
 			die_if_ferror_stdout();

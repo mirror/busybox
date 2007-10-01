@@ -278,7 +278,7 @@ int dd_main(int argc, char **argv)
 		if (n < 0) {
 			if (flags & FLAG_NOERROR) {
 				n = ibs;
-				bb_perror_msg("%s", infile);
+				bb_simple_perror_msg(infile);
 			} else
 				goto die_infile;
 		}
@@ -320,12 +320,12 @@ int dd_main(int argc, char **argv)
 	}
 	if (close(ifd) < 0) {
  die_infile:
-		bb_perror_msg_and_die("%s", infile);
+		bb_simple_perror_msg_and_die(infile);
 	}
 
 	if (close(ofd) < 0) {
  die_outfile:
-		bb_perror_msg_and_die("%s", outfile);
+		bb_simple_perror_msg_and_die(outfile);
 	}
  out_status:
 	dd_output_status(0);

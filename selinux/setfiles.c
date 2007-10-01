@@ -595,7 +595,7 @@ int setfiles_main(int argc, char **argv)
 		if (argc == 1)
 			bb_show_usage();
 		if (stat(argv[optind], &sb) < 0) {
-			bb_perror_msg_and_die("%s", argv[optind]);
+			bb_simple_perror_msg_and_die(argv[optind]);
 		}
 		if (!S_ISREG(sb.st_mode)) {
 			bb_error_msg_and_die("spec file %s is not a regular file", argv[optind]);
@@ -603,7 +603,7 @@ int setfiles_main(int argc, char **argv)
 		/* Load the file contexts configuration and check it. */
 		rc = matchpathcon_init(argv[optind]);
 		if (rc < 0) {
-			bb_perror_msg_and_die("%s", argv[optind]);
+			bb_simple_perror_msg_and_die(argv[optind]);
 		}
 
 		optind++;

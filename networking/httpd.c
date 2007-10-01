@@ -504,7 +504,7 @@ static void parse_conf(const char *path, int flag)
 			return;
 		}
 		if (configFile && flag == FIRST_PARSE) /* if -c option given */
-			bb_perror_msg_and_die("%s", cf);
+			bb_simple_perror_msg_and_die(cf);
 		flag = FIND_FROM_HTTPD_ROOT;
 		cf = httpd_conf;
 	}

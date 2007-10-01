@@ -526,7 +526,7 @@ static void install_links(const char *busybox, int use_symbolic_links)
 				applets[i].name);
 		rc = lf(busybox, fpc);
 		if (rc != 0 && errno != EEXIST) {
-			bb_perror_msg("%s", fpc);
+			bb_simple_perror_msg(fpc);
 		}
 		free(fpc);
 	}

@@ -35,7 +35,7 @@ int realpath_main(int argc, char **argv)
 			puts(resolved_path);
 		} else {
 			retval = EXIT_FAILURE;
-			bb_perror_msg("%s", *argv);
+			bb_simple_perror_msg(*argv);
 		}
 	} while (--argc);
 

@@ -31,7 +31,7 @@ static int swap_enable_disable(char *device)
 		status = swapoff(device);
 
 	if (status != 0) {
-		bb_perror_msg("%s", device);
+		bb_simple_perror_msg(device);
 		return 1;
 	}
 

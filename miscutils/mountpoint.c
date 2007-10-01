@@ -61,6 +61,6 @@ int mountpoint_main(int argc, char **argv)
 		}
 	}
 	if (!(opt & OPT_q))
-		bb_perror_msg("%s", arg);
+		bb_simple_perror_msg(arg);
 	return EXIT_FAILURE;
 }

@@ -100,7 +100,7 @@ int df_main(int argc, char **argv)
 		mount_point = mount_entry->mnt_dir;
 
 		if (statfs(mount_point, &s) != 0) {
-			bb_perror_msg("%s", mount_point);
+			bb_simple_perror_msg(mount_point);
 			goto SET_ERROR;
 		}
 

@@ -1159,7 +1159,7 @@ static int pseudo_exec(struct child_prog *child)
 
 	/* Do not use bb_perror_msg_and_die() here, since we must not
 	 * call exit() but should call _exit() instead */
-	bb_perror_msg("%s", child->argv[0]);
+	bb_simple_perror_msg(child->argv[0]);
 	_exit(EXIT_FAILURE);
 }
 

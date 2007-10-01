@@ -297,7 +297,7 @@ static void do_skip(const char *fname, int statok)
 
 	if (statok) {
 		if (fstat(STDIN_FILENO, &sbuf)) {
-			bb_perror_msg_and_die("%s", fname);
+			bb_simple_perror_msg_and_die(fname);
 		}
 		if ((!(S_ISCHR(sbuf.st_mode) ||
 			   S_ISBLK(sbuf.st_mode) ||
@@ -309,7 +309,7 @@ static void do_skip(const char *fname, int statok)
 		}
 	}
 	if (fseek(stdin, bb_dump_skip, SEEK_SET)) {
-		bb_perror_msg_and_die("%s", fname);
+		bb_simple_perror_msg_and_die(fname);
 	}
 	savaddress = address += bb_dump_skip;
 	bb_dump_skip = 0;
@@ -328,7 +328,7 @@ static int next(char **argv)
 	for (;;) {
 		if (*_argv) {
 			if (!(freopen(*_argv, "r", stdin))) {
-				bb_perror_msg("%s", *_argv);
+				bb_simple_perror_msg(*_argv);
 				exitval = 1;
 				++_argv;
 				continue;
@@ -393,7 +393,7 @@ static unsigned char *get(void)
 				  bb_dump_length == -1 ? need : MIN(bb_dump_length, need), stdin);
 		if (!n) {
 			if (ferror(stdin)) {
-				bb_perror_msg("%s", _argv[-1]);
+				bb_simple_perror_msg(_argv[-1]);
 			}
 			ateof = 1;
 			continue;

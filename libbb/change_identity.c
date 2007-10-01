@@ -47,5 +47,5 @@ void change_identity(const struct passwd *pw)
 	const char *err_msg = change_identity_e2str(pw);
 
 	if (err_msg)
-		bb_perror_msg_and_die("%s", err_msg);
+		bb_simple_perror_msg_and_die(err_msg);
 }

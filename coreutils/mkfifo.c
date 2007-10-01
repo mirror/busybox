@@ -28,7 +28,7 @@ int mkfifo_main(int argc, char **argv)
 
 	do {
 		if (mkfifo(*argv, mode) < 0) {
-			bb_perror_msg("%s", *argv);	/* Avoid multibyte problems. */
+			bb_simple_perror_msg(*argv);	/* Avoid multibyte problems. */
 			retval = EXIT_FAILURE;
 		}
 	} while (*++argv);

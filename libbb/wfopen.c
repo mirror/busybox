@@ -13,7 +13,7 @@ FILE *fopen_or_warn(const char *path, const char *mode)
 {
 	FILE *fp = fopen(path, mode);
 	if (!fp) {
-		bb_perror_msg("%s", path);
+		bb_simple_perror_msg(path);
 		errno = 0;
 	}
 	return fp;

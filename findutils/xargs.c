@@ -57,7 +57,7 @@ static int xargs_exec(char **args)
 
 	status = spawn_and_wait(args);
 	if (status < 0) {
-		bb_perror_msg("%s", args[0]);
+		bb_simple_perror_msg(args[0]);
 		return errno == ENOENT ? 127 : 126;
 	}
 	if (status == 255) {

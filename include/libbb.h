@@ -677,7 +677,9 @@ extern void bb_show_usage(void) ATTRIBUTE_NORETURN ATTRIBUTE_EXTERNALLY_VISIBLE;
 extern void bb_error_msg(const char *s, ...) __attribute__ ((format (printf, 1, 2)));
 extern void bb_error_msg_and_die(const char *s, ...) __attribute__ ((noreturn, format (printf, 1, 2)));
 extern void bb_perror_msg(const char *s, ...) __attribute__ ((format (printf, 1, 2)));
+extern void bb_simple_perror_msg(const char *s);
 extern void bb_perror_msg_and_die(const char *s, ...) __attribute__ ((noreturn, format (printf, 1, 2)));
+extern void bb_simple_perror_msg_and_die(const char *s) __attribute__ ((noreturn));
 extern void bb_herror_msg(const char *s, ...) __attribute__ ((format (printf, 1, 2)));
 extern void bb_herror_msg_and_die(const char *s, ...) __attribute__ ((noreturn, format (printf, 1, 2)));
 extern void bb_perror_nomsg_and_die(void) ATTRIBUTE_NORETURN;
@@ -1184,7 +1186,6 @@ extern const char bb_default_login_shell[];
 #ifdef DMALLOC
 #include <dmalloc.h>
 #endif
-
 
 #define ARRAY_SIZE(x) (sizeof(x) / sizeof((x)[0]))
 

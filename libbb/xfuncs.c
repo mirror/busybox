@@ -704,13 +704,13 @@ int bb_ioctl_or_warn(int fd, int request, void *argp, const char *ioctl_name)
 
 	ret = ioctl(fd, request, argp);
 	if (ret < 0)
-		bb_perror_msg("%s", ioctl_name);
+		bb_simple_perror_msg(ioctl_name);
 	return ret;
 }
 void bb_xioctl(int fd, int request, void *argp, const char *ioctl_name)
 {
 	if (ioctl(fd, request, argp) < 0)
-		bb_perror_msg_and_die("%s", ioctl_name);
+		bb_simple_perror_msg_and_die(ioctl_name);
 }
 #else
 int bb_ioctl_or_warn(int fd, int request, void *argp)

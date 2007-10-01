@@ -120,6 +120,6 @@ int recursive_action(const char *fileName,
 	return TRUE;
 
  done_nak_warn:
-	bb_perror_msg("%s", fileName);
+	bb_simple_perror_msg(fileName);
 	return FALSE;
 }

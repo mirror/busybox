@@ -144,7 +144,7 @@ static int adduser(struct passwd *p)
 		if (mkdir(p->pw_dir, 0755)
 		|| chown(p->pw_dir, p->pw_uid, p->pw_gid)
 		|| chmod(p->pw_dir, 02755)) {
-			bb_perror_msg("%s", p->pw_dir);
+			bb_simple_perror_msg(p->pw_dir);
 		}
 	}
 

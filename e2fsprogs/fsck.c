@@ -659,7 +659,7 @@ static void execute(const char *type, const char *device, const char *mntpt,
 	if (!noexecute) {
 		pid = spawn(argv);
 		if (pid < 0)
-			bb_perror_msg("%s", argv[0]);
+			bb_simple_perror_msg(argv[0]);
 	}
 
 	for (i = num_args+1; i < argc; i++)

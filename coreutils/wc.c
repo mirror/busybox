@@ -150,7 +150,7 @@ int wc_main(int argc, char **argv)
 				}
 			} else if (c == EOF) {
 				if (ferror(fp)) {
-					bb_perror_msg("%s", arg);
+					bb_simple_perror_msg(arg);
 					status = EXIT_FAILURE;
 				}
 				--counts[WC_CHARS];

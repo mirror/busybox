@@ -369,7 +369,7 @@ static int file_action_grep(const char *filename, struct stat *statbuf, void* ma
 	FILE *file = fopen(filename, "r");
 	if (file == NULL) {
 		if (!SUPPRESS_ERR_MSGS)
-			bb_perror_msg("%s", cur_file);
+			bb_simple_perror_msg(cur_file);
 		open_errors = 1;
 		return 0;
 	}
@@ -517,7 +517,7 @@ int grep_main(int argc, char **argv)
 			file = fopen(cur_file, "r");
 			if (file == NULL) {
 				if (!SUPPRESS_ERR_MSGS)
-					bb_perror_msg("%s", cur_file);
+					bb_simple_perror_msg(cur_file);
 				open_errors = 1;
 				continue;
 			}

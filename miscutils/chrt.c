@@ -115,7 +115,7 @@ print_rt_info:
 	}
 	++argv;
 	BB_EXECVP(*argv, argv);
-	bb_perror_msg_and_die("%s", *argv);
+	bb_simple_perror_msg_and_die(*argv);
 }
 #undef OPT_p
 #undef OPT_r

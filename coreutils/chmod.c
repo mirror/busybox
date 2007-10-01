@@ -63,7 +63,7 @@ static int fileAction(const char *fileName, struct stat *statbuf, void* param, i
 	}
  err:
 	if (!OPT_QUIET)
-		bb_perror_msg("%s", fileName);
+		bb_simple_perror_msg(fileName);
 	return FALSE;
 }
 

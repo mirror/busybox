@@ -18,3 +18,8 @@ void bb_perror_msg(const char *s, ...)
 	bb_verror_msg(s, p, errno ? strerror(errno) : NULL);
 	va_end(p);
 }
+
+void bb_simple_perror_msg(const char *s)
+{
+	bb_perror_msg("%s", s);
+}

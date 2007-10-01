@@ -626,7 +626,7 @@ static int execute(const char *type, const char *device, const char *mntpt,
 		if (!interactive)
 			close(0);
 		(void) execv(s, argv);
-		bb_perror_msg_and_die("%s", argv[0]);
+		bb_simple_perror_msg_and_die(argv[0]);
 	}
 
 	for (i = 1; i < argc; i++)

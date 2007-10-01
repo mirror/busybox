@@ -145,7 +145,7 @@ int fold_main(int argc, char **argv)
 		}
 
 		if (ferror(istream) || fclose_if_not_stdin(istream)) {
-			bb_perror_msg("%s", *argv);	/* Avoid multibyte problems. */
+			bb_simple_perror_msg(*argv);	/* Avoid multibyte problems. */
 			errs |= EXIT_FAILURE;
 		}
 	} while (*++argv);

@@ -49,7 +49,7 @@ int bbunpack(char **argv,
 		/* Open src */
 		if (filename) {
 			if (stat(filename, &stat_buf) != 0) {
-				bb_perror_msg("%s", filename);
+				bb_simple_perror_msg(filename);
  err:
 				exitcode = 1;
 				goto free_name;
