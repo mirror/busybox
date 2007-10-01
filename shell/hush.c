@@ -246,7 +246,7 @@ struct redir_struct {
 	redir_type type;            /* type of redirection */
 	int fd;                     /* file descriptor being redirected */
 	int dup;                    /* -1, or file descriptor being duplicated */
-	glob_t glob_word;           /* *word.gl_pathv is the filename */
+	char **glob_word;           /* *word.gl_pathv is the filename */
 };
 
 struct child_prog {
@@ -256,7 +256,7 @@ struct child_prog {
 	smallint subshell;          /* flag, non-zero if group must be forked */
 	smallint is_stopped;        /* is the program currently running? */
 	struct redir_struct *redirects; /* I/O redirections */
-	glob_t glob_result;         /* result of parameter globbing */
+	char **glob_result;         /* result of parameter globbing */
 	struct pipe *family;        /* pointer back to the child's parent pipe */
 	//sp counting seems to be broken... so commented out, grep for '//sp:'
 	//sp: int sp;               /* number of SPECIAL_VAR_SYMBOL */
@@ -503,9 +503,9 @@ static void pseudo_exec_argv(char **argv) ATTRIBUTE_NORETURN;
 static void pseudo_exec(struct child_prog *child) ATTRIBUTE_NORETURN;
 static int run_pipe_real(struct pipe *pi);
 /*   extended glob support: */
-static int globhack(const char *src, int flags, glob_t *pglob);
+static char **globhack(const char *src, char **strings);
 static int glob_needed(const char *s);
-static int xglob(o_string *dest, int flags, glob_t *pglob);
+static int xglob(o_string *dest, char ***pglob);
 /*   variable assignment: */
 static int is_assignment(const char *s);
 /*   data structure manipulation: */
@@ -547,6 +547,58 @@ static char *expand_string_to_string(const char *str);
 static struct variable *get_local_var(const char *name);
 static int set_local_var(char *str, int flg_export);
 static void unset_local_var(const char *name);
+
+
+static char **add_strings_to_strings(int need_xstrdup, char **strings, char **add)
+{
+	int i;
+	unsigned count1;
+	unsigned count2;
+	char **v;
+
+	v = strings;
+	count1 = 0;
+	if (v) {
+		while (*v) {
+			count1++;
+			v++;
+		}
+	}
+	count2 = 0;
+	v = add;
+	while (*v) {
+		count2++;
+		v++;
+	}
+	v = xrealloc(strings, (count1 + count2 + 1) * sizeof(char*));
+	v[count1 + count2] = NULL;
+	i = count2;
+	while (--i >= 0)
+		v[count1 + i] = need_xstrdup ? xstrdup(add[i]) : add[i];
+	return v;
+}
+
+/* 'add' should be a malloced pointer */
+static char **add_string_to_strings(char **strings, char *add)
+{
+	char *v[2];
+
+	v[0] = add;
+	v[1] = NULL;
+
+	return add_strings_to_strings(0, strings, v);
+}
+
+static void free_strings(char **strings)
+{
+	if (strings) {
+		char **v = strings;
+		while (*v)
+			free(*v++);
+		free(strings);
+	}
+}
+
 
 /* Table of built-in functions.  They can be forked or not, depending on
  * context: within pipes, they fork.  As simple commands, they do not.
@@ -1067,16 +1119,14 @@ static void b_reset(o_string *o)
 {
 	o->length = 0;
 	o->nonnull = 0;
-	if (o->data != NULL)
-		*o->data = '\0';
+	if (o->data)
+		o->data[0] = '\0';
 }
 
 static void b_free(o_string *o)
 {
-	b_reset(o);
 	free(o->data);
-	o->data = NULL;
-	o->maxlen = 0;
+	memset(o, 0, sizeof(*o));
 }
 
 /* My analysis of quoting semantics tells me that state information
@@ -1256,13 +1306,13 @@ static int setup_redirects(struct child_prog *prog, int squirrel[])
 	struct redir_struct *redir;
 
 	for (redir = prog->redirects; redir; redir = redir->next) {
-		if (redir->dup == -1 && redir->glob_word.gl_pathv == NULL) {
+		if (redir->dup == -1 && redir->glob_word == NULL) {
 			/* something went wrong in the parse.  Pretend it didn't happen */
 			continue;
 		}
 		if (redir->dup == -1) {
 			mode = redir_table[redir->type].mode;
-			openfd = open_or_warn(redir->glob_word.gl_pathv[0], mode);
+			openfd = open_or_warn(redir->glob_word[0], mode);
 			if (openfd < 0) {
 			/* this could get lost if stderr has been redirected, but
 			   bash and ash both lose it as well (though zsh doesn't!) */
@@ -2024,6 +2074,7 @@ static int run_list_real(struct pipe *pi)
 #if ENABLE_HUSH_LOOPS
 		if (rword == RES_FOR && pi->num_progs) {
 			if (!for_lcur) {
+				/* first loop through for */
 				/* if no variable values after "in" we skip "for" */
 				if (!pi->next->progs->argv)
 					continue;
@@ -2036,17 +2087,16 @@ static int run_list_real(struct pipe *pi)
 			}
 			free(pi->progs->argv[0]);
 			if (!*for_lcur) {
+				/* for loop is over, clean up */
 				free(for_list);
 				for_lcur = NULL;
 				flag_rep = 0;
 				pi->progs->argv[0] = for_varname;
-				pi->progs->glob_result.gl_pathv[0] = pi->progs->argv[0];
 				continue;
 			}
 			/* insert next value from for_lcur */
 			/* vda: does it need escaping? */
 			pi->progs->argv[0] = xasprintf("%s=%s", for_varname, *for_lcur++);
-			pi->progs->glob_result.gl_pathv[0] = pi->progs->argv[0];
 		}
 		if (rword == RES_IN)
 			continue;
@@ -2149,8 +2199,8 @@ static int free_pipe(struct pipe *pi, int indent)
 			for (a = 0, p = child->argv; *p; a++, p++) {
 				debug_printf_clean("%s   argv[%d] = %s\n", indenter(indent), a, *p);
 			}
-			globfree(&child->glob_result);
-			child->argv = NULL;
+			free_strings(child->glob_result);
+			child->glob_result = NULL;
 		} else if (child->group) {
 			debug_printf_clean("%s   begin group (subshell:%d)\n", indenter(indent), child->subshell);
 			ret_code = free_pipe_list(child->group, indent+3);
@@ -2162,9 +2212,10 @@ static int free_pipe(struct pipe *pi, int indent)
 			debug_printf_clean("%s   redirect %d%s", indenter(indent), r->fd, redir_table[r->type].descrip);
 			if (r->dup == -1) {
 				/* guard against the case >$FOO, where foo is unset or blank */
-				if (r->glob_word.gl_pathv) {
-					debug_printf_clean(" %s\n", r->glob_word.gl_pathv[0]);
-					globfree(&r->glob_word);
+				if (r->glob_word) {
+					debug_printf_clean(" %s\n", r->glob_word[0]);
+					free_strings(r->glob_word);
+					r->glob_word = NULL;
 				}
 			} else {
 				debug_printf_clean("&%d\n", r->dup);
@@ -2224,80 +2275,79 @@ static int run_list(struct pipe *pi)
  * string into the output structure, removing non-backslashed backslashes.
  * If someone can prove me wrong, by performing this function within the
  * original glob(3) api, feel free to rewrite this routine into oblivion.
- * Return code (0 vs. GLOB_NOSPACE) matches glob(3).
  * XXX broken if the last character is '\\', check that before calling.
  */
-static int globhack(const char *src, int flags, glob_t *pglob)
+static char **globhack(const char *src, char **strings)
 {
-	int cnt = 0, pathc;
+	int cnt;
 	const char *s;
-	char *dest;
+	char *v, *dest;
+
 	for (cnt = 1, s = src; s && *s; s++) {
 		if (*s == '\\') s++;
 		cnt++;
 	}
-	dest = xmalloc(cnt);
-	if (!(flags & GLOB_APPEND)) {
-		pglob->gl_pathv = NULL;
-		pglob->gl_pathc = 0;
-		pglob->gl_offs = 0;
-		pglob->gl_offs = 0;
-	}
-	pathc = ++pglob->gl_pathc;
-	pglob->gl_pathv = xrealloc(pglob->gl_pathv, (pathc+1) * sizeof(*pglob->gl_pathv));
-	pglob->gl_pathv[pathc-1] = dest;
-	pglob->gl_pathv[pathc] = NULL;
+	v = dest = xmalloc(cnt);
 	for (s = src; s && *s; s++, dest++) {
 		if (*s == '\\') s++;
 		*dest = *s;
 	}
 	*dest = '\0';
-	return 0;
+
+	return add_string_to_strings(strings, v);
 }
 
 /* XXX broken if the last character is '\\', check that before calling */
 static int glob_needed(const char *s)
 {
 	for (; *s; s++) {
-		if (*s == '\\') s++;
-		if (strchr("*[?", *s)) return 1;
+		if (*s == '\\')
+			s++;
+		if (strchr("*[?", *s))
+			return 1;
 	}
 	return 0;
 }
 
-static int xglob(o_string *dest, int flags, glob_t *pglob)
+static int xglob(o_string *dest, char ***pglob)
 {
-	int gr;
-
 	/* short-circuit for null word */
 	/* we can code this better when the debug_printf's are gone */
 	if (dest->length == 0) {
 		if (dest->nonnull) {
 			/* bash man page calls this an "explicit" null */
-			gr = globhack(dest->data, flags, pglob);
+			*pglob = globhack(dest->data, *pglob);
+		}
+		return 0;
+	}
+
+	if (glob_needed(dest->data)) {
+		glob_t globdata;
+		int gr;
+
+		memset(&globdata, 0, sizeof(globdata));
+		gr = glob(dest->data, 0, NULL, &globdata);
+		debug_printf("glob returned %d\n", gr);
+		if (gr == GLOB_NOSPACE)
+			bb_error_msg_and_die("out of memory during glob");
+		if (gr == GLOB_NOMATCH) {
 			debug_printf("globhack returned %d\n", gr);
-		} else {
+			/* quote removal, or more accurately, backslash removal */
+			*pglob = globhack(dest->data, *pglob);
 			return 0;
 		}
-	} else if (glob_needed(dest->data)) {
-		gr = glob(dest->data, flags, NULL, pglob);
-		debug_printf("glob returned %d\n", gr);
-		if (gr == GLOB_NOMATCH) {
-			/* quote removal, or more accurately, backslash removal */
-			gr = globhack(dest->data, flags, pglob);
-			debug_printf("globhack returned %d\n", gr);
+		if (gr != 0) { /* GLOB_ABORTED ? */
+			bb_error_msg("glob(3) error %d", gr);
 		}
-	} else {
-		gr = globhack(dest->data, flags, pglob);
-		debug_printf("globhack returned %d\n", gr);
+		if (globdata.gl_pathv && globdata.gl_pathv[0])
+			*pglob = add_strings_to_strings(1, *pglob, globdata.gl_pathv);
+		/* globprint(glob_target); */
+		globfree(&globdata);
+		return gr;
 	}
-	if (gr == GLOB_NOSPACE)
-		bb_error_msg_and_die("out of memory during glob");
-	if (gr != 0) { /* GLOB_ABORTED ? */
-		bb_error_msg("glob(3) error %d", gr);
-	}
-	/* globprint(glob_target); */
-	return gr;
+
+	*pglob = globhack(dest->data, *pglob);
+	return 0;
 }
 
 /* expand_strvec_to_strvec() takes a list of strings, expands
@@ -2775,7 +2825,7 @@ static int setup_redirect(struct p_context *ctx, int fd, redir_type style,
 	}
 	redir = xzalloc(sizeof(struct redir_struct));
 	/* redir->next = NULL; */
-	/* redir->glob_word.gl_pathv = NULL; */
+	/* redir->glob_word = NULL; */
 	if (last_redir) {
 		last_redir->next = redir;
 	} else {
@@ -2919,8 +2969,8 @@ static int reserved_word(o_string *dest, struct p_context *ctx)
 static int done_word(o_string *dest, struct p_context *ctx)
 {
 	struct child_prog *child = ctx->child;
-	glob_t *glob_target;
-	int gr, flags = 0;
+	char ***glob_target;
+	int gr;
 
 	debug_printf_parse("done_word entered: '%s' %p\n", dest->data, child);
 	if (dest->length == 0 && !dest->nonnull) {
@@ -2942,11 +2992,9 @@ static int done_word(o_string *dest, struct p_context *ctx)
 				return (ctx->res_w == RES_SNTX);
 			}
 		}
-		glob_target = &child->glob_result;
-		if (child->argv)
-			flags |= GLOB_APPEND;
+		glob_target = &child->argv;
 	}
-	gr = xglob(dest, flags, glob_target);
+	gr = xglob(dest, glob_target);
 	if (gr != 0) {
 		debug_printf_parse("done_word return 1: xglob returned %d\n", gr);
 		return 1;
@@ -2954,14 +3002,17 @@ static int done_word(o_string *dest, struct p_context *ctx)
 
 	b_reset(dest);
 	if (ctx->pending_redirect) {
-		ctx->pending_redirect = NULL;
-		if (glob_target->gl_pathc != 1) {
+		if (ctx->pending_redirect->glob_word
+		 && ctx->pending_redirect->glob_word[0]
+		 && ctx->pending_redirect->glob_word[1]
+		) {
+			/* more than one word resulted from globbing redir */
+			ctx->pending_redirect = NULL;
 			bb_error_msg("ambiguous redirect");
 			debug_printf_parse("done_word return 1: ambiguous redirect\n");
 			return 1;
 		}
-	} else {
-		child->argv = glob_target->gl_pathv;
+		ctx->pending_redirect = NULL;
 	}
 #if ENABLE_HUSH_LOOPS
 	if (ctx->res_w == RES_FOR) {
@@ -3006,7 +3057,7 @@ static int done_command(struct p_context *ctx)
 	/*child->argv = NULL;*/
 	/*child->is_stopped = 0;*/
 	/*child->group = NULL;*/
-	/*child->glob_result.gl_pathv = NULL;*/
+	/*child->glob_result = NULL;*/
 	child->family = pi;
 	//sp: /*child->sp = 0;*/
 	//pt: child->parse_type = ctx->parse_type;
