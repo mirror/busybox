@@ -107,7 +107,7 @@ int logger_main(int argc, char **argv)
 	argv += optind;
 	if (!argc) {
 #define strbuf bb_common_bufsiz1
-		while (fgets(strbuf, BUFSIZ, stdin)) {
+		while (fgets(strbuf, COMMON_BUFSIZE, stdin)) {
 			if (strbuf[0]
 			 && NOT_LONE_CHAR(strbuf, '\n')
 			) {
@@ -117,11 +117,11 @@ int logger_main(int argc, char **argv)
 		}
 	} else {
 		char *message = NULL;
-		int len = 1; /* for NUL */
+		int len = 0;
 		int pos = 0;
 		do {
 			len += strlen(*argv) + 1;
-			message = xrealloc(message, len);
+			message = xrealloc(message, len + 1);
 			sprintf(message + pos, " %s", *argv),
 			pos = len;
 		} while (*++argv);
