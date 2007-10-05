@@ -57,7 +57,7 @@ static ssize_t tail_read(int fd, char *buf, size_t count)
 		if (sbuf.st_size < current)
 			lseek(fd, 0, SEEK_SET);
 
-	r = safe_read(fd, buf, count);
+	r = full_read(fd, buf, count);
 	if (r < 0) {
 		bb_perror_msg(bb_msg_read_error);
 		G.status = EXIT_FAILURE;
@@ -271,7 +271,7 @@ int tail_main(int argc, char **argv)
 			if (nfiles > header_threshhold) {
 				fmt = header_fmt;
 			}
-			while ((nread = tail_read(fds[i], buf, sizeof(buf))) > 0) {
+			while ((nread = tail_read(fds[i], buf, BUFSIZ)) > 0) {
 				if (fmt) {
 					tail_xprint_header(fmt, argv[i]);
 					fmt = NULL;
