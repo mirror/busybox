@@ -229,7 +229,6 @@ static void extract_cpio_gz(int fd)
 				USE_FEATURE_RPM_BZ2("/bzip")
 				" magic");
 	} else {
-		check_header_gzip_or_die(archive_handle->src_fd);
 #if !BB_MMU
 		/* NOMMU version of open_transformer execs an external unzipper that should
 		 * have the file position at the start of the file */

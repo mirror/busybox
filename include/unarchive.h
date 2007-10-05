@@ -81,8 +81,6 @@ extern void header_skip(const file_header_t *file_header);
 extern void header_list(const file_header_t *file_header);
 extern void header_verbose_list(const file_header_t *file_header);
 
-extern void check_header_gzip_or_die(int src_fd);
-
 extern char get_header_ar(archive_handle_t *archive_handle);
 extern char get_header_cpio(archive_handle_t *archive_handle);
 extern char get_header_tar(archive_handle_t *archive_handle);

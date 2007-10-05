@@ -23,8 +23,6 @@ char get_header_tar_gz(archive_handle_t *archive_handle)
 	if ((magic[0] != 0x1f) || (magic[1] != 0x8b)) {
 		bb_error_msg_and_die("invalid gzip magic");
 	}
-
-	check_header_gzip_or_die(archive_handle->src_fd);
 #endif
 
 	archive_handle->src_fd = open_transformer(archive_handle->src_fd, unpack_gz_stream, "gunzip", "gunzip", "-cf", "-", NULL);

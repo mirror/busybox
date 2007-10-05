@@ -28,7 +28,8 @@ lib-y:= \
 	find_list_entry.o \
 	init_handle.o
 
-GUNZIP_FILES:= check_header_gzip.o decompress_unzip.o
+GUNZIP_FILES:= decompress_unzip.o
+
 DPKG_FILES:= \
 	get_header_ar.o \
 	unpack_ar_archive.o \

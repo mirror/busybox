@@ -79,7 +79,6 @@ int rpm2cpio_main(int argc, char **argv)
 		bb_error_msg_and_die("invalid gzip magic");
 	}
 
-	check_header_gzip_or_die(rpm_fd);
 	if (unpack_gz_stream(rpm_fd, STDOUT_FILENO) < 0) {
 		bb_error_msg("error inflating");
 	}

@@ -74,7 +74,7 @@ int bbunpack(char **argv,
 				goto err;
 			}
 			/* O_EXCL: "real" bunzip2 doesn't overwrite files */
-			/* GNU gunzip goes not bail out, but goes to next file */
+			/* GNU gunzip does not bail out, but goes to next file */
 			if (open_to_or_warn(STDOUT_FILENO, new_name, O_WRONLY | O_CREAT | O_EXCL,
 					stat_buf.st_mode))
 				goto err;
@@ -241,7 +241,6 @@ USE_DESKTOP(long long) int unpack_gunzip(void)
 		if (ENABLE_FEATURE_GUNZIP_UNCOMPRESS && magic2 == 0x9d) {
 			status = uncompress(STDIN_FILENO, STDOUT_FILENO);
 		} else if (magic2 == 0x8b) {
-			check_header_gzip_or_die(STDIN_FILENO);
 			status = unpack_gz_stream(STDIN_FILENO, STDOUT_FILENO);
 		} else {
 			goto bad_magic;
