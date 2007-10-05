@@ -54,7 +54,7 @@ struct globals {
 	long limitc;
 	long limitr;
 	long limitt;
-	int nicelvl;       
+	int nicelvl;
 };
 #define G (*(struct globals*)&bb_common_bufsiz1)
 #define set_user (G.set_user)

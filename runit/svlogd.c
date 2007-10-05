@@ -37,31 +37,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #define FMT_PTIME 30
 
-static unsigned verbose;
-static int linemax = 1000;
-////static int buflen = 1024;
-static int linelen;
-
-static char **fndir;
-static int fdwdir;
-static int wstat;
-static unsigned nearest_rotate;
-
-static char *line;
-static smallint exitasap;
-static smallint rotateasap;
-static smallint reopenasap;
-static smallint linecomplete = 1;
-
-static smallint tmaxflag;
-
-static char repl;
-static const char *replace = "";
-
-static sigset_t *blocked_sigset;
-static int fl_flag_0;
-
-static struct logdir {
+struct logdir {
 	////char *btmp;
 	/* pattern list to match, in "aa\0bb\0\cc\0\0" form */
 	char *inst;
@@ -81,8 +57,64 @@ static struct logdir {
 	char fnsave[FMT_PTIME];
 	char match;
 	char matcherr;
-} *dir;
-static unsigned dirn;
+};
+
+
+struct globals {
+	struct logdir *dir;
+	unsigned verbose;
+	int linemax;
+	////int buflen;
+	int linelen;
+
+	int fdwdir;
+	char **fndir;
+	int wstat;
+	unsigned nearest_rotate;
+
+	smallint exitasap;
+	smallint rotateasap;
+	smallint reopenasap;
+	smallint linecomplete;
+	smallint tmaxflag;
+
+	char repl;
+	const char *replace;
+	int fl_flag_0;
+	unsigned dirn;
+
+	sigset_t blocked_sigset;
+};
+#define G (*(struct globals*)ptr_to_globals)
+#define dir            (G.dir           )
+#define verbose        (G.verbose       )
+#define linemax        (G.linemax       )
+#define buflen         (G.buflen        )
+#define linelen        (G.linelen       )
+#define fndir          (G.fndir         )
+#define fdwdir         (G.fdwdir        )
+#define wstat          (G.wstat         )
+#define nearest_rotate (G.nearest_rotate)
+#define exitasap       (G.exitasap      )
+#define rotateasap     (G.rotateasap    )
+#define reopenasap     (G.reopenasap    )
+#define linecomplete   (G.linecomplete  )
+#define tmaxflag       (G.tmaxflag      )
+#define repl           (G.repl          )
+#define replace        (G.replace       )
+#define blocked_sigset (G.blocked_sigset)
+#define fl_flag_0      (G.fl_flag_0     )
+#define dirn           (G.dirn          )
+#define INIT_G() do { \
+	PTR_TO_GLOBALS = xzalloc(sizeof(G)); \
+	linemax = 1000; \
+	/*buflen = 1024;*/ \
+	linecomplete = 1; \
+	replace = ""; \
+} while (0)
+
+#define line bb_common_bufsiz1
+
 
 #define FATAL "fatal: "
 #define WARNING "warning: "
@@ -700,14 +732,14 @@ static int buffer_pread(/*int fd, */char *s, unsigned len)
 			}
 		}
 
-		sigprocmask(SIG_UNBLOCK, blocked_sigset, NULL);
+		sigprocmask(SIG_UNBLOCK, &blocked_sigset, NULL);
 		i = nearest_rotate - now;
 		if (i > 1000000)
 			i = 1000000;
 		if (i <= 0)
 			i = 1;
 		poll(&input, 1, i * 1000);
-		sigprocmask(SIG_BLOCK, blocked_sigset, NULL);
+		sigprocmask(SIG_BLOCK, &blocked_sigset, NULL);
 
 		i = ndelay_read(0, s, len);
 		if (i >= 0)
@@ -814,7 +846,6 @@ static void logmatch(struct logdir *ld)
 int svlogd_main(int argc, char **argv);
 int svlogd_main(int argc, char **argv)
 {
-	sigset_t ss;
 	char *r,*l,*b;
 	ssize_t stdin_cnt = 0;
 	int i;
@@ -822,7 +853,7 @@ int svlogd_main(int argc, char **argv)
 	unsigned timestamp = 0;
 	void* (*memRchr)(const void *, int, size_t) = memchr;
 
-#define line bb_common_bufsiz1
+	INIT_G();
 
 	opt_complementary = "tt:vv";
 	opt = getopt32(argv, "r:R:l:b:tv",
@@ -866,13 +897,12 @@ int svlogd_main(int argc, char **argv)
 	 * with the same stdin */
 	fl_flag_0 = fcntl(0, F_GETFL);
 
-	blocked_sigset = &ss;
-	sigemptyset(&ss);
-	sigaddset(&ss, SIGTERM);
-	sigaddset(&ss, SIGCHLD);
-	sigaddset(&ss, SIGALRM);
-	sigaddset(&ss, SIGHUP);
-	sigprocmask(SIG_BLOCK, &ss, NULL);
+	sigemptyset(&blocked_sigset);
+	sigaddset(&blocked_sigset, SIGTERM);
+	sigaddset(&blocked_sigset, SIGCHLD);
+	sigaddset(&blocked_sigset, SIGALRM);
+	sigaddset(&blocked_sigset, SIGHUP);
+	sigprocmask(SIG_BLOCK, &blocked_sigset, NULL);
 	sig_catch(SIGTERM, sig_term_handler);
 	sig_catch(SIGCHLD, sig_child_handler);
 	sig_catch(SIGALRM, sig_alarm_handler);
