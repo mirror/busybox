@@ -633,7 +633,7 @@ static const struct method_t *get_method(const struct address_family_t *af, char
 
 	if (!name)
 		return NULL;
-
+	/* TODO: use index_in_str_array() */
 	for (i = 0; i < af->n_methods; i++) {
 		if (strcmp(af->method[i].name, name) == 0) {
 			return &af->method[i];
