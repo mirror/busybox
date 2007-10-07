@@ -3,24 +3,40 @@
 debug=false
 
 try() {
-    added="$1"
-    shift
-    $debug && echo "Trying: $* $added"
-    "$@" $added 2>busybox_ld.err
+    printf "%s\n" "Output of:" >$EXE.out
+    printf "%s\n" "$*" >>$EXE.out
+    printf "%s\n" "==========" >>$EXE.out
+    $debug && echo "Trying: $*"
+    "$@" >>$EXE.out 2>&1
+    exitcode=$?
+    cat $EXE.out
+    return $exitcode
 }
 
+EXE="$1"
+CC="$2"
+LDFLAGS="$3"
+O_FILES="$4"
+A_FILES="$5"
+LDLIBS="$6"
+
 # Sanitize lib list (dups, extra spaces etc)
-#echo "BBOX_LIB_LIST=$BBOX_LIB_LIST"
 BBOX_LIB_LIST=`echo "$BBOX_LIB_LIST" | xargs -n1 | sort | uniq | xargs`
 
 # First link with all libs. If it fails, bail out
 echo "Trying libraries: $BBOX_LIB_LIST"
+# "lib1 lib2 lib3" -> "-llib1 -llib2 -llib3"
 l_list=`echo "$BBOX_LIB_LIST" | sed -e 's/ / -l/g' -e 's/^/-l/' -e 's/^-l$//'`
 test "x$l_list" != "x" && l_list="-Wl,--start-group $l_list -Wl,--end-group"
-try "$l_list" "$@" \
+try $CC $LDFLAGS \
+	-o $EXE -Wl,-Map -Wl,$EXE.map \
+	-Wl,--warn-common -Wl,--sort-common -Wl,--gc-sections \
+	-Wl,--start-group $O_FILES $A_FILES -Wl,--end-group \
+	$l_list \
+	>/dev/null \
 || {
-    echo "Failed: $* -Wl,--start-group $l_list -Wl,--end-group"
-    cat busybox_ld.err
+    echo "Failed: $* $l_list"
+    cat $EXE.out
     exit 1
 }
 
@@ -31,15 +47,22 @@ while test "$BBOX_LIB_LIST"; do
     all_needed=true
     for one in $BBOX_LIB_LIST; do
 	without_one=`echo " $BBOX_LIB_LIST " | sed "s/ $one / /g" | xargs`
+	# "lib1 lib2 lib3" -> "-llib1 -llib2 -llib3"
 	l_list=`echo "$without_one" | sed -e 's/ / -l/g' -e 's/^/-l/' -e 's/^-l$//'`
 	test "x$l_list" != "x" && l_list="-Wl,--start-group $l_list -Wl,--end-group"
 	$debug && echo "Trying -l options: '$l_list'"
-	if try "$l_list" "$@"; then
-		echo "Library $one is not needed"
-		BBOX_LIB_LIST="$without_one"
-		all_needed=false
+	try $CC $LDFLAGS \
+		-o $EXE -Wl,-Map -Wl,$EXE.map \
+		-Wl,--warn-common -Wl,--sort-common -Wl,--gc-sections \
+		-Wl,--start-group $O_FILES $A_FILES -Wl,--end-group \
+		$l_list \
+		>/dev/null
+	if test $? = 0; then
+	    echo "Library $one is not needed"
+	    BBOX_LIB_LIST="$without_one"
+	    all_needed=false
 	else
-		echo "Library $one is needed"
+	    echo "Library $one is needed"
 	fi
     done
     # All libs were needed, can't remove any
@@ -56,13 +79,55 @@ l_list=`echo "$BBOX_LIB_LIST" | sed -e 's/ / -l/g' -e 's/^/-l/' -e 's/^-l$//'`
 test "x$l_list" != "x" && l_list="-Wl,--start-group $l_list -Wl,--end-group -Wl,--verbose"
 # --verbose gives us gobs of info to stdout (e.g. linker script used)
 if ! test -f busybox_ldscript; then
-    try "$l_list -Wl,--verbose" "$@" >busybox_ld.out
+    try $CC $LDFLAGS \
+	    -o $EXE -Wl,-Map -Wl,$EXE.map \
+	    -Wl,--warn-common -Wl,--sort-common -Wl,--gc-sections \
+	    -Wl,--start-group $O_FILES $A_FILES -Wl,--end-group \
+	    $l_list -Wl,--verbose \
+	    >/dev/null
 else
     echo "Custom linker script 'busybox_ldscript' found, using it"
-    # Add SORT_BY_ALIGNMENT to linker script (found in busybox_ld.out):
+    # Add SORT_BY_ALIGNMENT to linker script (found in ${EXE}_ld.out):
     #  .rodata         : { *(.rodata SORT_BY_ALIGNMENT(.rodata.*) .gnu.linkonce.r.*) }
     #  *(.data SORT_BY_ALIGNMENT(.data.*) .gnu.linkonce.d.*)
     #  *(.bss SORT_BY_ALIGNMENT(.bss.*) .gnu.linkonce.b.*)
     # This will eliminate most of the data padding (~3kb).
-    try "$l_list -Wl,--verbose -Wl,-T -Wl,busybox_ldscript" "$@" >busybox_ld.out
+    try $CC $LDFLAGS \
+	    -o $EXE -Wl,-Map -Wl,$EXE.map \
+	    -Wl,--warn-common -Wl,--sort-common -Wl,--gc-sections \
+	    -Wl,--start-group $O_FILES $A_FILES -Wl,--end-group \
+	    $l_list -Wl,--verbose \
+	    -Wl,-T -Wl,busybox_ldscript \
+	    >/dev/null
 fi
+
+mkdir 0lib 2>/dev/null
+test -d 0lib || exit 1
+ln -s libbusybox.so.1.8.0 0lib/libbusybox.so 2>/dev/null
+
+EXE="0lib/libbusybox.so.1.8.0"
+try $CC $LDFLAGS \
+	-o $EXE -Wl,-Map -Wl,$EXE.map \
+	-shared -fPIC -Wl,--enable-new-dtags \
+	-Wl,--start-group -Wl,--whole-archive $A_FILES -Wl,--no-whole-archive -Wl,--end-group \
+	$l_list -Wl,--verbose \
+	-Wl,-soname="libbusybox.so.1.8.0" \
+	-Wl,-z,combreloc \
+	>/dev/null \
+|| {
+    echo "Linking $EXE failed"
+    exit 1
+}
+
+EXE="0lib/busybox"
+try $CC $LDFLAGS \
+	-o $EXE -Wl,-Map -Wl,$EXE.map \
+	-Wl,--warn-common -Wl,--sort-common -Wl,--gc-sections \
+	-Wl,--start-group $O_FILES -Wl,--end-group \
+	$l_list -Wl,--verbose \
+	-L"0lib" -lbusybox \
+	>/dev/null \
+|| {
+    echo "Linking $EXE failed"
+    exit 1
+}
