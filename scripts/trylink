@@ -101,35 +101,50 @@ else
 	    >/dev/null
 fi
 
-mkdir 0lib 2>/dev/null
-test -d 0lib || exit 1
-ln -s libbusybox.so.1.8.0 0lib/libbusybox.so 2>/dev/null
+. .config
 
-EXE="0lib/libbusybox.so.1.8.0"
-try $CC $LDFLAGS \
+sharedlib_dir="0_lib"
+
+if test "$CONFIG_BUILD_LIBBUSYBOX" = y; then
+    mkdir "$sharedlib_dir" 2>/dev/null
+    test -d "$sharedlib_dir" || {
+	echo "Cannot make directory $sharedlib_dir"
+	exit 1
+    }
+    ln -s "libbusybox.so.$BB_VER" "$sharedlib_dir"/libbusybox.so 2>/dev/null
+
+    EXE="$sharedlib_dir/libbusybox.so.${BB_VER}_unstripped"
+    try $CC $LDFLAGS \
 	-o $EXE -Wl,-Map -Wl,$EXE.map \
 	-shared -fPIC -Wl,--enable-new-dtags \
 	-Wl,--start-group -Wl,--whole-archive $A_FILES -Wl,--no-whole-archive -Wl,--end-group \
 	$l_list -Wl,--verbose \
-	-Wl,-soname="libbusybox.so.1.8.0" \
+	-Wl,-soname="libbusybox.so.$BB_VER" \
 	-Wl,-z,combreloc \
 	>/dev/null \
-|| {
-    echo "Linking $EXE failed"
-    exit 1
-}
-strip -s --remove-section=.note --remove-section=.comment $EXE
+    || {
+	echo "Linking $EXE failed"
+	cat $EXE.out
+	exit 1
+    }
+    strip -s --remove-section=.note --remove-section=.comment $EXE -o "$sharedlib_dir/libbusybox.so.$BB_VER"
+    echo "libbusybox: $sharedlib_dir/libbusybox.so.$BB_VER"
+fi
 
-EXE="0lib/busybox"
-try $CC $LDFLAGS \
+if test "$CONFIG_FEATURE_SHARED_BUSYBOX" = y; then
+    EXE="$sharedlib_dir/busybox_unstripped"
+    try $CC $LDFLAGS \
 	-o $EXE -Wl,-Map -Wl,$EXE.map \
 	-Wl,--warn-common -Wl,--sort-common -Wl,--gc-sections \
 	-Wl,--start-group $O_FILES -Wl,--end-group \
 	$l_list -Wl,--verbose \
-	-L"0lib" -lbusybox \
+	-L"$sharedlib_dir" -lbusybox \
 	>/dev/null \
-|| {
-    echo "Linking $EXE failed"
-    exit 1
-}
-strip -s --remove-section=.note --remove-section=.comment $EXE
+    || {
+	echo "Linking $EXE failed"
+	cat $EXE.out
+	exit 1
+    }
+    strip -s --remove-section=.note --remove-section=.comment $EXE -o "$sharedlib_dir/busybox"
+    echo "busybox linked against libbusybox: $sharedlib_dir/busybox"
+fi

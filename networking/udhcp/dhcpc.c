@@ -260,7 +260,7 @@ int udhcpc_main(int argc, char **argv)
 	if (opt & OPT_t)
 		client_config.retries = xatoi_u(str_t);
 	if (opt & OPT_v) {
-		printf("version %s\n", BB_VER);
+		puts("version "BB_VER);
 		return 0;
 	}
 
@@ -283,7 +283,7 @@ int udhcpc_main(int argc, char **argv)
 	/* if (!..) bb_perror_msg("cannot create pidfile %s", pidfile); */
 
 	/* Goes to stdout and possibly syslog */
-	bb_info_msg("%s (v%s) started", applet_name, BB_VER);
+	bb_info_msg("%s (v"BB_VER") started", applet_name);
 
 	/* if not set, and not suppressed, setup the default client ID */
 	if (!client_config.clientid && !(opt & OPT_C)) {

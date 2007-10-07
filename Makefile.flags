@@ -3,6 +3,7 @@
 # ==========================================================================
 
 BB_VER = $(VERSION).$(PATCHLEVEL).$(SUBLEVEL)$(EXTRAVERSION)
+export BB_VER
 SKIP_STRIP = n
 
 # -std=gnu99 needed for [U]LLONG_MAX on some systems
@@ -59,7 +60,7 @@ ifeq ($(CONFIG_STATIC),y)
 LDFLAGS += -static
 endif
 
-LDLIBS = m crypt
+LDLIBS += m crypt
 
 ifeq ($(CONFIG_PAM),y)
 LDLIBS += pam pam_misc

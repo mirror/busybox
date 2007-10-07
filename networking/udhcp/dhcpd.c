@@ -62,7 +62,7 @@ int udhcpd_main(int argc, char **argv)
 	write_pidfile(server_config.pidfile);
 	/* if (!..) bb_perror_msg("cannot create pidfile %s", pidfile); */
 
-	bb_info_msg("%s (v%s) started", applet_name, BB_VER);
+	bb_info_msg("%s (v"BB_VER") started", applet_name);
 
 	option = find_option(server_config.options, DHCP_LEASE_TIME);
 	server_config.lease = LEASE_TIME;

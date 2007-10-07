@@ -292,31 +292,30 @@ config BUILD_LIBBUSYBOX
 	  binary serves no purpose (and increases the size).  You should
 	  almost certainly say "no" to this right now.
 
-config FEATURE_FULL_LIBBUSYBOX
-	bool "Feature-complete libbusybox"
-	default n if !FEATURE_SHARED_BUSYBOX
-	depends on BUILD_LIBBUSYBOX
-	help
-	  Build a libbusybox with the complete feature-set, disregarding
-	  the actually selected config.
-
-	  Normally, libbusybox will only contain the features which are
-	  used by busybox itself. If you plan to write a separate
-	  standalone application which uses libbusybox say 'Y'.
-
-	  Note: libbusybox is GPL, not LGPL, and exports no stable API that
-	  might act as a copyright barrier.  We can and will modify the
-	  exported function set between releases (even minor version number
-	  changes), and happily break out-of-tree features.
-
-	  Say 'N' if in doubt.
+### config FEATURE_FULL_LIBBUSYBOX
+###	bool "Feature-complete libbusybox"
+###	default n if !FEATURE_SHARED_BUSYBOX
+###	depends on BUILD_LIBBUSYBOX
+###	help
+###	  Build a libbusybox with the complete feature-set, disregarding
+###	  the actually selected config.
+###
+###	  Normally, libbusybox will only contain the features which are
+###	  used by busybox itself. If you plan to write a separate
+###	  standalone application which uses libbusybox say 'Y'.
+###
+###	  Note: libbusybox is GPL, not LGPL, and exports no stable API that
+###	  might act as a copyright barrier.  We can and will modify the
+###	  exported function set between releases (even minor version number
+###	  changes), and happily break out-of-tree features.
+###
+###	  Say 'N' if in doubt.
 
 config FEATURE_SHARED_BUSYBOX
-	bool "Use shared libbusybox for busybox"
+	bool "Produce additional busybox binary linked against libbusybox"
 	default y if BUILD_LIBBUSYBOX
 	depends on !STATIC && BUILD_LIBBUSYBOX
 	help
-	  Use libbusybox.so also for busybox itself.
 	  You need to have a working dynamic linker to use this variant.
 
 config LFS
@@ -331,24 +330,24 @@ config LFS
 	  cp, mount, tar, and many others.  If you want to access files larger
 	  than 2 Gigabytes, enable this option.  Otherwise, leave it set to 'N'.
 
-config BUILD_AT_ONCE
-	bool "Compile all sources at once"
-	default n
-	help
-	  Normally each source-file is compiled with one invocation of
-	  the compiler.
-	  If you set this option, all sources are compiled at once.
-	  This gives the compiler more opportunities to optimize which can
-	  result in smaller and/or faster binaries.
-
-	  Setting this option will consume alot of memory, e.g. if you
-	  enable all applets with all features, gcc uses more than 300MB
-	  RAM during compilation of busybox.
-
-	  This option is most likely only beneficial for newer compilers
-	  such as gcc-4.1 and above.
-
-	  Say 'N' unless you know what you are doing.
+### config BUILD_AT_ONCE
+###	bool "Compile all sources at once"
+###	default n
+###	help
+###	  Normally each source-file is compiled with one invocation of
+###	  the compiler.
+###	  If you set this option, all sources are compiled at once.
+###	  This gives the compiler more opportunities to optimize which can
+###	  result in smaller and/or faster binaries.
+###
+###	  Setting this option will consume alot of memory, e.g. if you
+###	  enable all applets with all features, gcc uses more than 300MB
+###	  RAM during compilation of busybox.
+###
+###	  This option is most likely only beneficial for newer compilers
+###	  such as gcc-4.1 and above.
+###
+###	  Say 'N' unless you know what you are doing.
 
 endmenu
 
