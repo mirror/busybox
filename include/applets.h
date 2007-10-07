@@ -30,6 +30,13 @@ s     - suid type:
 # define APPLET_NOEXEC(name,main,l,s,name2)  int main##_main(int argc, char **argv);
 # define APPLET_NOFORK(name,main,l,s,name2)  int main##_main(int argc, char **argv);
 
+#elif defined(NAME_MAIN_CNAME)
+# define APPLET(name,l,s)                    name name##_main name
+# define APPLET_NOUSAGE(name,main,l,s)       name main##_main name
+# define APPLET_ODDNAME(name,main,l,s,name2) name main##_main name2
+# define APPLET_NOEXEC(name,main,l,s,name2)  name main##_main name2
+# define APPLET_NOFORK(name,main,l,s,name2)  name main##_main name2
+
 #elif defined(MAKE_USAGE) && ENABLE_FEATURE_VERBOSE_USAGE
 # define APPLET(name,l,s)                    name##_trivial_usage "\n\n" name##_full_usage "\0"
 # define APPLET_NOUSAGE(name,main,l,s)       "\b\0"
@@ -373,7 +380,7 @@ USE_YES(APPLET_NOFORK(yes, yes, _BB_DIR_USR_BIN, _BB_SUID_NEVER, yes))
 USE_GUNZIP(APPLET_ODDNAME(zcat, gunzip, _BB_DIR_BIN, _BB_SUID_NEVER, zcat))
 USE_ZCIP(APPLET(zcip, _BB_DIR_SBIN, _BB_SUID_NEVER))
 
-#if !defined(PROTOTYPES) && !defined(MAKE_USAGE)
+#if !defined(PROTOTYPES) && !defined(NAME_MAIN_CNAME) && !defined(MAKE_USAGE)
 	{ NULL }
 };
 #endif

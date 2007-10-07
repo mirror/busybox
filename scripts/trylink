@@ -137,7 +137,7 @@ if test "$CONFIG_FEATURE_SHARED_BUSYBOX" = y; then
 	-o $EXE -Wl,-Map -Wl,$EXE.map \
 	-Wl,--warn-common -Wl,--sort-common -Wl,--gc-sections \
 	-Wl,--start-group $O_FILES -Wl,--end-group \
-	$l_list -Wl,--verbose \
+	-Wl,--verbose \
 	-L"$sharedlib_dir" -lbusybox \
 	>/dev/null \
     || {
@@ -147,4 +147,71 @@ if test "$CONFIG_FEATURE_SHARED_BUSYBOX" = y; then
     }
     strip -s --remove-section=.note --remove-section=.comment $EXE -o "$sharedlib_dir/busybox"
     echo "busybox linked against libbusybox: $sharedlib_dir/busybox"
+fi
+
+if test "$CONFIG_FEATURE_INDIVIDUAL" = y; then
+    gcc -DNAME_MAIN_CNAME -E -include include/autoconf.h include/applets.h \
+    | grep -v "^#" \
+    | grep -v "^$" \
+    > applet.lst
+    while read name main cname; do
+
+	test x"$cname" = "x[" && cname=test
+	test x"$cname" = "x[[" && cname=test
+
+	echo "\
+#include <errno.h>
+#include <unistd.h>
+#include <stdlib.h>
+#include <stdio.h>
+#include \"../include/autoconf.h\"
+#include \"../include/usage.h\"
+
+#ifdef __GLIBC__
+/* Make it reside in R/W memory: */
+int *const bb_errno __attribute__ ((section (\".data\")));
+#endif
+
+const char *applet_name = \"$name\";
+
+void bb_show_usage(void)
+{
+	fprintf(stderr, \"Usage: $name \"
+#ifdef ${cname}_trivial_usage
+		${cname}_trivial_usage
+#endif
+#ifdef ${cname}_full_usage
+		\"\\n\\n\" ${cname}_full_usage
+#endif
+		\"\\n\\n\");
+	exit(1);
+}
+
+int $main(int argc, char **argv);
+
+int main(int argc, char **argv)
+{
+#ifdef __GLIBC__
+        (*(int **)&bb_errno) = __errno_location();
+#endif
+        return $main(argc, argv);
+}
+" >"$sharedlib_dir/applet.c"
+
+	EXE="$sharedlib_dir/$name"
+	try $CC $LDFLAGS "$sharedlib_dir/applet.c" \
+	    -o $EXE \
+	    -Wl,--warn-common -Wl,--sort-common -Wl,--gc-sections \
+	    -L"$sharedlib_dir" -lbusybox \
+	    >/dev/null \
+	|| {
+	    echo "Linking $EXE failed"
+	    cat -- $EXE.out
+	    exit 1
+	}
+	rm -- "$sharedlib_dir/applet.c" $EXE.out
+	strip -s --remove-section=.note --remove-section=.comment $EXE
+	echo "applet linked against libbusybox: $EXE"
+
+    done <applet.lst
 fi

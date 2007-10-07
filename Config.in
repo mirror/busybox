@@ -311,24 +311,32 @@ config BUILD_LIBBUSYBOX
 ###
 ###	  Say 'N' if in doubt.
 
-config FEATURE_SHARED_BUSYBOX
-	bool "Produce additional busybox binary linked against libbusybox"
-	default y if BUILD_LIBBUSYBOX
+config FEATURE_INDIVIDUAL
+	bool "Produce a binary for each applet, linked against libbusybox"
+	default y
 	depends on !STATIC && BUILD_LIBBUSYBOX
 	help
-	  You need to have a working dynamic linker to use this variant.
+	  If your CPU architecture doesn't allow for sharing text/rodata
+	  sections of running binaries, but allows for runtime dynamic
+	  libraries, this option will allow you to reduce memory footprint
+	  when you have many different applets running at once.
 
-config LFS
-	bool "Build with Large File Support (for accessing files > 2 GB)"
-	default n
-	select FDISK_SUPPORT_LARGE_DISKS
+	  If your CPU architecture allows for sharing text/rodata,
+	  having single binary is more optimal.
+
+	  Each applet will be a tiny program, dynamically linked
+	  against libbusybox.so.N.N.N.
+
+	  You need to have a working dynamic linker.
+
+config FEATURE_SHARED_BUSYBOX
+	bool "Produce additional busybox binary linked against libbusybox"
+	default y
+	depends on !STATIC && BUILD_LIBBUSYBOX
 	help
-	  If you want to build BusyBox with large file support, then enable
-	  this option.  This will have no effect if your kernel or your C
-	  library lacks large file support for large files.  Some of the
-	  programs that can benefit from large file support include dd, gzip,
-	  cp, mount, tar, and many others.  If you want to access files larger
-	  than 2 Gigabytes, enable this option.  Otherwise, leave it set to 'N'.
+	  Build busybox, dynamically linked against libbusybox.so.N.N.N.
+
+	  You need to have a working dynamic linker.
 
 ### config BUILD_AT_ONCE
 ###	bool "Compile all sources at once"
@@ -348,6 +356,18 @@ config LFS
 ###	  such as gcc-4.1 and above.
 ###
 ###	  Say 'N' unless you know what you are doing.
+
+config LFS
+	bool "Build with Large File Support (for accessing files > 2 GB)"
+	default n
+	select FDISK_SUPPORT_LARGE_DISKS
+	help
+	  If you want to build BusyBox with large file support, then enable
+	  this option.  This will have no effect if your kernel or your C
+	  library lacks large file support for large files.  Some of the
+	  programs that can benefit from large file support include dd, gzip,
+	  cp, mount, tar, and many others.  If you want to access files larger
+	  than 2 Gigabytes, enable this option.  Otherwise, leave it set to 'N'.
 
 endmenu
 
