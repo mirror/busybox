@@ -155,20 +155,17 @@ if test "$CONFIG_FEATURE_INDIVIDUAL" = y; then
     | grep -v "^#" \
     | grep -v "^$" \
     > applet.lst
-    while read name main cname; do
-
-	test x"$cname" = "x[" && cname=test
-	test x"$cname" = "x[[" && cname=test
+    while read name main junk; do
 
 	echo "\
-void bbox_prepare_main(void);
+void bbox_prepare_main(char **argv);
 int $main(int argc, char **argv);
 
 const char *applet_name = \"$name\";
 
 int main(int argc, char **argv)
 {
-	bbox_prepare_main();
+	bbox_prepare_main(argv);
 	return $main(argc, argv);
 }
 " >"$sharedlib_dir/applet.c"

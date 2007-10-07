@@ -538,7 +538,7 @@ void run_applet_and_exit(const char *name, char **argv)
 
 int main(int argc, char **argv)
 {
-	bbox_prepare_main();
+	bbox_prepare_main(argv);
 
 #if !BB_MMU
 	/* NOMMU re-exec trick sets high-order bit in first byte of name */

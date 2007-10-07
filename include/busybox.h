@@ -51,6 +51,6 @@ struct bb_applet {
 /* Defined in appletlib.c */
 extern const struct bb_applet applets[];
 extern const unsigned short NUM_APPLETS;
-void bbox_prepare_main(void);
+void bbox_prepare_main(char **argv);
 
 #endif	/* _BB_INTERNAL_H_ */
