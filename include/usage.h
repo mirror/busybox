@@ -3628,7 +3628,7 @@ USE_FEATURE_RUN_PARTS_FANCY("\n	-l	Prints names of all matching files even when 
        "	[-s src_addr] [-t tos] [-w wait] [-g gateway] [-i iface]\n" \
        "	[-z pausemsecs] host [data size]"
 #define traceroute_full_usage \
-       "Trace the route ip packets follow going to \"host\"" \
+       "Trace the route to \"host\"" \
        "\n\nOptions:\n" \
        "	-F	Set the don't fragment bit\n" \
        "	-I	Use ICMP ECHO instead of UDP datagrams\n" \
@@ -3643,10 +3643,9 @@ USE_FEATURE_RUN_PARTS_FANCY("\n	-l	Prints names of all matching files even when 
        "	-q nqueries	Number of probes per 'ttl' (default 3)\n" \
        "	-s src_addr	IP address to use as the source address\n" \
        "	-t tos		Type-of-service in probe packets (default 0)\n" \
-       "	-w wait		Time in seconds to wait for a response to a probe\n" \
+       "	-w wait		Time in seconds to wait for a response\n" \
        "			(default 3 sec)\n" \
        "	-g		Loose source route gateway (8 max)"
-
 
 #define true_trivial_usage \
        ""
@@ -3736,11 +3735,11 @@ USE_FEATURE_RUN_PARTS_FANCY("\n	-l	Prints names of all matching files even when 
        "\n\nOptions:\n" \
        "	-a	Print all information\n" \
        "	-m	The machine (hardware) type\n" \
-       "	-n	Print the machine's network node hostname\n" \
-       "	-r	Print the operating system release\n" \
-       "	-s	Print the operating system name\n" \
-       "	-p	Print the host processor type\n" \
-       "	-v	Print the operating system version"
+       "	-n	Print machine's hostname\n" \
+       "	-r	Print OS release\n" \
+       "	-s	Print OS name\n" \
+       "	-p	Print host processor type\n" \
+       "	-v	Print OS version"
 #define uname_example_usage \
        "$ uname -a\n" \
        "Linux debian 2.4.23 #2 Tue Dec 23 17:09:10 MST 2003 i686 GNU/Linux\n"
