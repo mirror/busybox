@@ -21,12 +21,12 @@ A_FILES="$5"
 LDLIBS="$6"
 
 # Sanitize lib list (dups, extra spaces etc)
-BBOX_LIB_LIST=`echo "$BBOX_LIB_LIST" | xargs -n1 | sort | uniq | xargs`
+LDLIBS=`echo "$LDLIBS" | xargs -n1 | sort | uniq | xargs`
 
 # First link with all libs. If it fails, bail out
-echo "Trying libraries: $BBOX_LIB_LIST"
+echo "Trying libraries: $LDLIBS"
 # "lib1 lib2 lib3" -> "-llib1 -llib2 -llib3"
-l_list=`echo "$BBOX_LIB_LIST" | sed -e 's/ / -l/g' -e 's/^/-l/' -e 's/^-l$//'`
+l_list=`echo "$LDLIBS" | sed -e 's/ / -l/g' -e 's/^/-l/' -e 's/^-l$//'`
 test "x$l_list" != "x" && l_list="-Wl,--start-group $l_list -Wl,--end-group"
 try $CC $LDFLAGS \
 	-o $EXE -Wl,-Map -Wl,$EXE.map \
@@ -42,11 +42,11 @@ try $CC $LDFLAGS \
 
 # Now try to remove each lib and build without it.
 # Stop when no lib can be removed.
-while test "$BBOX_LIB_LIST"; do
-    $debug && echo "Trying libraries: $BBOX_LIB_LIST"
+while test "$LDLIBS"; do
+    $debug && echo "Trying libraries: $LDLIBS"
     all_needed=true
-    for one in $BBOX_LIB_LIST; do
-	without_one=`echo " $BBOX_LIB_LIST " | sed "s/ $one / /g" | xargs`
+    for one in $LDLIBS; do
+	without_one=`echo " $LDLIBS " | sed "s/ $one / /g" | xargs`
 	# "lib1 lib2 lib3" -> "-llib1 -llib2 -llib3"
 	l_list=`echo "$without_one" | sed -e 's/ / -l/g' -e 's/^/-l/' -e 's/^-l$//'`
 	test "x$l_list" != "x" && l_list="-Wl,--start-group $l_list -Wl,--end-group"
@@ -59,7 +59,7 @@ while test "$BBOX_LIB_LIST"; do
 		>/dev/null
 	if test $? = 0; then
 	    echo "Library $one is not needed"
-	    BBOX_LIB_LIST="$without_one"
+	    LDLIBS="$without_one"
 	    all_needed=false
 	else
 	    echo "Library $one is needed"
@@ -70,12 +70,12 @@ while test "$BBOX_LIB_LIST"; do
     # If there is no space char, the list has just one lib.
     # I'm not sure that in this case lib really is 100% needed.
     # Let's try linking without it anyway... thus commented out.
-    #{ echo "$BBOX_LIB_LIST" | grep -q ' '; } || break
+    #{ echo "$LDLIBS" | grep -q ' '; } || break
 done
 
 # Make the binary with final, minimal list of libs
-echo "Final link with: $BBOX_LIB_LIST"
-l_list=`echo "$BBOX_LIB_LIST" | sed -e 's/ / -l/g' -e 's/^/-l/' -e 's/^-l$//'`
+echo "Final link with: $LDLIBS"
+l_list=`echo "$LDLIBS" | sed -e 's/ / -l/g' -e 's/^/-l/' -e 's/^-l$//'`
 test "x$l_list" != "x" && l_list="-Wl,--start-group $l_list -Wl,--end-group -Wl,--verbose"
 # --verbose gives us gobs of info to stdout (e.g. linker script used)
 if ! test -f busybox_ldscript; then
@@ -87,11 +87,11 @@ if ! test -f busybox_ldscript; then
 	    >/dev/null
 else
     echo "Custom linker script 'busybox_ldscript' found, using it"
-    # Add SORT_BY_ALIGNMENT to linker script (found in ${EXE}_ld.out):
+    # Add SORT_BY_ALIGNMENT to linker script (found in $EXE.out):
     #  .rodata         : { *(.rodata SORT_BY_ALIGNMENT(.rodata.*) .gnu.linkonce.r.*) }
     #  *(.data SORT_BY_ALIGNMENT(.data.*) .gnu.linkonce.d.*)
     #  *(.bss SORT_BY_ALIGNMENT(.bss.*) .gnu.linkonce.b.*)
-    # This will eliminate most of the data padding (~3kb).
+    # This will eliminate most of the padding (~3kb).
     try $CC $LDFLAGS \
 	    -o $EXE -Wl,-Map -Wl,$EXE.map \
 	    -Wl,--warn-common -Wl,--sort-common -Wl,--gc-sections \
@@ -118,6 +118,7 @@ try $CC $LDFLAGS \
     echo "Linking $EXE failed"
     exit 1
 }
+strip -s --remove-section=.note --remove-section=.comment $EXE
 
 EXE="0lib/busybox"
 try $CC $LDFLAGS \
@@ -131,3 +132,4 @@ try $CC $LDFLAGS \
     echo "Linking $EXE failed"
     exit 1
 }
+strip -s --remove-section=.note --remove-section=.comment $EXE
