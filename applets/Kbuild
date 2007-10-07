@@ -4,13 +4,13 @@
 #
 # Licensed under the GPL v2, see the file LICENSE in this tarball.
 
-obj-y:=
-obj-y	    += applets.o
+obj-y :=
+obj-y += applets.o
 
 hostprogs-y:=
 hostprogs-y += usage
 
-always:=    $(hostprogs-y)
+always:= $(hostprogs-y)
 
 # Generated files need additional love
 

@@ -128,6 +128,7 @@ if test "$CONFIG_BUILD_LIBBUSYBOX" = y; then
 	exit 1
     }
     strip -s --remove-section=.note --remove-section=.comment $EXE -o "$sharedlib_dir/libbusybox.so.$BB_VER"
+    chmod a+x "$sharedlib_dir/libbusybox.so.$BB_VER"
     echo "libbusybox: $sharedlib_dir/libbusybox.so.$BB_VER"
 fi
 
@@ -160,41 +161,15 @@ if test "$CONFIG_FEATURE_INDIVIDUAL" = y; then
 	test x"$cname" = "x[[" && cname=test
 
 	echo "\
-#include <errno.h>
-#include <unistd.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include \"../include/autoconf.h\"
-#include \"../include/usage.h\"
-
-#ifdef __GLIBC__
-/* Make it reside in R/W memory: */
-int *const bb_errno __attribute__ ((section (\".data\")));
-#endif
+void bbox_prepare_main(void);
+int $main(int argc, char **argv);
 
 const char *applet_name = \"$name\";
 
-void bb_show_usage(void)
-{
-	fprintf(stderr, \"Usage: $name \"
-#ifdef ${cname}_trivial_usage
-		${cname}_trivial_usage
-#endif
-#ifdef ${cname}_full_usage
-		\"\\n\\n\" ${cname}_full_usage
-#endif
-		\"\\n\\n\");
-	exit(1);
-}
-
-int $main(int argc, char **argv);
-
 int main(int argc, char **argv)
 {
-#ifdef __GLIBC__
-        (*(int **)&bb_errno) = __errno_location();
-#endif
-        return $main(argc, argv);
+	bbox_prepare_main();
+	return $main(argc, argv);
 }
 " >"$sharedlib_dir/applet.c"
 
@@ -215,3 +190,7 @@ int main(int argc, char **argv)
 
     done <applet.lst
 fi
+
+# libbusybox.so is needed only for -lbusybox at link time,
+# it is not needed at runtime. Deleting to reduce confusion.
+rm "$sharedlib_dir"/libbusybox.so >/dev/null
