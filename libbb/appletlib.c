@@ -134,6 +134,6 @@ void bbox_prepare_main(char **argv)
 		setlocale(LC_ALL, "");
 
 	/* Redundant for busybox, but needed for individual applets */
-        if (argv[1] && strcmp(argv[1], "--help") == 0)
+	if (argv[1] && strcmp(argv[1], "--help") == 0)
 		bb_show_usage();
 }
