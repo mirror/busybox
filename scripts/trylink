@@ -14,7 +14,7 @@ debug=false
 # --sort-section alignment      reduces padding
 # --gc-sections                 throws out unused sections,
 #                               does not work for shared libs
-# -O				Not used, maybe useful?
+# -On                           Not used, maybe useful?
 #
 # List of files to link:
 # $l_list                       == --start-group -llib1 -llib2 --end-group
@@ -155,7 +155,7 @@ else
     }
 fi
 
-. .config
+. ./.config
 
 sharedlib_dir="0_lib"
 
