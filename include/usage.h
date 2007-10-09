@@ -457,7 +457,7 @@
        "	-d [#] -l [#] -S -L logfile -f -b -c dir\n" \
        "	-d num	Debug level\n" \
        "	-l num	Log level (8 - default)\n" \
-       "	-S	Log to syslogd (default)\n" \
+       "	-S	Log to syslog (default)\n" \
        "	-L file	Log to file\n" \
        "	-f	Run in foreground\n" \
        "	-b	Run in background (default)\n" \
