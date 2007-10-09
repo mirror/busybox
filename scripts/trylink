@@ -9,7 +9,6 @@ try() {
     $debug && echo "Trying: $*"
     "$@" >>$EXE.out 2>&1
     exitcode=$?
-    cat $EXE.out
     return $exitcode
 }
 
@@ -33,7 +32,6 @@ try $CC $LDFLAGS \
 	-Wl,--warn-common -Wl,--sort-common -Wl,--gc-sections \
 	-Wl,--start-group $O_FILES $A_FILES -Wl,--end-group \
 	$l_list \
-	>/dev/null \
 || {
     echo "Failed: $* $l_list"
     cat $EXE.out
@@ -76,7 +74,7 @@ done
 # Make the binary with final, minimal list of libs
 echo "Final link with: $LDLIBS"
 l_list=`echo "$LDLIBS" | sed -e 's/ / -l/g' -e 's/^/-l/' -e 's/^-l$//'`
-test "x$l_list" != "x" && l_list="-Wl,--start-group $l_list -Wl,--end-group -Wl,--verbose"
+test "x$l_list" != "x" && l_list="-Wl,--start-group $l_list -Wl,--end-group"
 # --verbose gives us gobs of info to stdout (e.g. linker script used)
 if ! test -f busybox_ldscript; then
     try $CC $LDFLAGS \
@@ -121,7 +119,6 @@ if test "$CONFIG_BUILD_LIBBUSYBOX" = y; then
 	$l_list -Wl,--verbose \
 	-Wl,-soname="libbusybox.so.$BB_VER" \
 	-Wl,-z,combreloc \
-	>/dev/null \
     || {
 	echo "Linking $EXE failed"
 	cat $EXE.out
@@ -140,7 +137,6 @@ if test "$CONFIG_FEATURE_SHARED_BUSYBOX" = y; then
 	-Wl,--start-group $O_FILES -Wl,--end-group \
 	-Wl,--verbose \
 	-L"$sharedlib_dir" -lbusybox \
-	>/dev/null \
     || {
 	echo "Linking $EXE failed"
 	cat $EXE.out
@@ -176,10 +172,9 @@ int main(int argc, char **argv)
 	    -o $EXE \
 	    -Wl,--warn-common -Wl,--sort-common -Wl,--gc-sections \
 	    -L"$sharedlib_dir" -lbusybox \
-	    >/dev/null \
 	|| {
 	    echo "Linking $EXE failed"
-	    cat -- $EXE.out
+	    cat $EXE.out
 	    exit 1
 	}
 	rm -- "$sharedlib_dir/applet.c" $EXE.out
@@ -190,4 +185,5 @@ fi
 
 # libbusybox.so is needed only for -lbusybox at link time,
 # it is not needed at runtime. Deleting to reduce confusion.
-rm "$sharedlib_dir"/libbusybox.so >/dev/null
+rm "$sharedlib_dir"/libbusybox.so 2>/dev/null
+exit 0 # or else we may confuse make
