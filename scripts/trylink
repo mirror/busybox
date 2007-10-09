@@ -53,8 +53,7 @@ while test "$LDLIBS"; do
 		-o $EXE -Wl,-Map -Wl,$EXE.map \
 		-Wl,--warn-common -Wl,--sort-common -Wl,--gc-sections \
 		-Wl,--start-group $O_FILES $A_FILES -Wl,--end-group \
-		$l_list \
-		>/dev/null
+		$l_list
 	if test $? = 0; then
 	    echo "Library $one is not needed"
 	    LDLIBS="$without_one"
@@ -82,7 +81,10 @@ if ! test -f busybox_ldscript; then
 	    -Wl,--warn-common -Wl,--sort-common -Wl,--gc-sections \
 	    -Wl,--start-group $O_FILES $A_FILES -Wl,--end-group \
 	    $l_list -Wl,--verbose \
-	    >/dev/null
+    || {
+	cat $EXE.out
+	exit 1
+    }
 else
     echo "Custom linker script 'busybox_ldscript' found, using it"
     # Add SORT_BY_ALIGNMENT to linker script (found in $EXE.out):
@@ -96,7 +98,10 @@ else
 	    -Wl,--start-group $O_FILES $A_FILES -Wl,--end-group \
 	    $l_list -Wl,--verbose \
 	    -Wl,-T -Wl,busybox_ldscript \
-	    >/dev/null
+    || {
+	cat $EXE.out
+	exit 1
+    }
 fi
 
 . .config
