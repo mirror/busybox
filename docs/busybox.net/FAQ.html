@@ -568,7 +568,7 @@ functionality: main() looks up argv[0] in applets[] to get a function pointer
 to APPLET_main().</p>
 
 <p>Busybox applets may also be invoked through the multiplexor applet
-"busybox" (see busybox_main() in applets/busybox.c), and through the
+"busybox" (see busybox_main() in libbb/appletlib.c), and through the
 standalone shell (grep for STANDALONE_SHELL in applets/shell/*.c).
 See <a href="FAQ.html#getting_started">getting started</a> in the
 FAQ for more information on these alternate usage mechanisms, which are

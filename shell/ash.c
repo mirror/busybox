@@ -6470,10 +6470,8 @@ tryexec(char *cmd, char **argv, char **envp)
 
 		a = find_applet_by_name(cmd);
 		if (a) {
-			if (a->noexec) {
-				current_applet = a;
-				run_current_applet_and_exit(argv);
-			}
+			if (a->noexec)
+				run_appletstruct_and_exit(a, argv);
 			/* re-exec ourselves with the new arguments */
 			execve(bb_busybox_exec_path, argv, envp);
 			/* If they called chroot or otherwise made the binary no longer

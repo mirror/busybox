@@ -28,7 +28,6 @@
 #endif
 
 
-const struct bb_applet *current_applet;
 const char *applet_name;
 #if !BB_MMU
 bool re_execed;
@@ -507,7 +506,7 @@ static int busybox_main(char **argv)
 	bb_error_msg_and_die("applet not found");
 }
 
-void run_current_applet_and_exit(char **argv)
+void run_appletstruct_and_exit(const struct bb_applet *applet, char **argv)
 {
 	int argc = 1;
 
@@ -518,19 +517,19 @@ void run_current_applet_and_exit(char **argv)
 	optind = 1;
 	xfunc_error_retval = EXIT_FAILURE;
 
-	applet_name = current_applet->name;
+	applet_name = applet->name;
 	if (argc == 2 && !strcmp(argv[1], "--help"))
 		bb_show_usage();
 	if (ENABLE_FEATURE_SUID)
-		check_suid(current_applet);
-	exit(current_applet->main(argc, argv));
+		check_suid(applet);
+	exit(applet->main(argc, argv));
 }
 
 void run_applet_and_exit(const char *name, char **argv)
 {
-	current_applet = find_applet_by_name(name);
-	if (current_applet)
-		run_current_applet_and_exit(argv);
+	const struct bb_applet *applet = find_applet_by_name(name);
+	if (applet)
+		run_appletstruct_and_exit(applet, argv);
 	if (!strncmp(name, "busybox", 7))
 		exit(busybox_main(argv));
 }

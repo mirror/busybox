@@ -104,7 +104,7 @@ int wait_pid(int *wstat, int pid)
 void save_nofork_data(struct nofork_save_area *save)
 {
 	memcpy(&save->die_jmp, &die_jmp, sizeof(die_jmp));
-	save->current_applet = current_applet;
+	save->applet_name = applet_name;
 	save->xfunc_error_retval = xfunc_error_retval;
 	save->option_mask32 = option_mask32;
 	save->die_sleep = die_sleep;
@@ -114,19 +114,16 @@ void save_nofork_data(struct nofork_save_area *save)
 void restore_nofork_data(struct nofork_save_area *save)
 {
 	memcpy(&die_jmp, &save->die_jmp, sizeof(die_jmp));
-	current_applet = save->current_applet;
+	applet_name = save->applet_name;
 	xfunc_error_retval = save->xfunc_error_retval;
 	option_mask32 = save->option_mask32;
 	die_sleep = save->die_sleep;
-
-	applet_name = current_applet->name;
 }
 
 int run_nofork_applet_prime(struct nofork_save_area *old, const struct bb_applet *a, char **argv)
 {
 	int rc, argc;
 
-	current_applet = a;
 	applet_name = a->name;
 	xfunc_error_retval = EXIT_FAILURE;
 	/*option_mask32 = 0; - not needed */
@@ -193,8 +190,7 @@ int spawn_and_wait(char **argv)
 			return wait4pid(rc);
 		/* child */
 		xfunc_error_retval = EXIT_FAILURE;
-		current_applet = a;
-		run_current_applet_and_exit(argv);
+		run_appletstruct_and_exit(a, argv);
 #endif
 	}
 #endif /* FEATURE_PREFER_APPLETS */

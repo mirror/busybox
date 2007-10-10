@@ -564,7 +564,7 @@ int wait_nohang(int *wstat);
 int spawn_and_wait(char **argv);
 struct nofork_save_area {
 	jmp_buf die_jmp;
-	const struct bb_applet *current_applet;
+	const char *applet_name;
 	int xfunc_error_retval;
 	uint32_t option_mask32;
 	int die_sleep;
@@ -748,7 +748,7 @@ const struct hwtype *get_hwntype(int type);
 extern const struct bb_applet *find_applet_by_name(const char *name);
 /* Returns only if applet is not found. */
 extern void run_applet_and_exit(const char *name, char **argv);
-extern void run_current_applet_and_exit(char **argv) ATTRIBUTE_NORETURN;
+extern void run_appletstruct_and_exit(const struct bb_applet *a, char **argv) ATTRIBUTE_NORETURN;
 #endif
 
 extern int match_fstype(const struct mntent *mt, const char *fstypes);
@@ -1040,7 +1040,6 @@ enum {	/* DO NOT CHANGE THESE VALUES!  cp.c, mv.c, install.c depend on them. */
 };
 
 #define FILEUTILS_CP_OPTSTR "pdRfils" USE_SELINUX("c")
-extern const struct bb_applet *current_applet;
 extern const char *applet_name;
 /* "BusyBox vN.N.N (timestamp or extra_vestion)" */
 extern const char bb_banner[];

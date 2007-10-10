@@ -133,7 +133,10 @@ void bbox_prepare_main(char **argv)
 	if (ENABLE_LOCALE_SUPPORT && getpid() != 1)
 		setlocale(LC_ALL, "");
 
-	/* Redundant for busybox, but needed for individual applets */
+#if ENABLE_FEATURE_INDIVIDUAL
+	/* Redundant for busybox (run_applet_and_exit covers that case)
+	 * but needed for "individual applet" mode */
 	if (argv[1] && strcmp(argv[1], "--help") == 0)
 		bb_show_usage();
+#endif
 }

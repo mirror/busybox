@@ -1399,10 +1399,9 @@ static void pseudo_exec_argv(char **argv)
 		const struct bb_applet *a = find_applet_by_name(argv[0]);
 		if (a) {
 			if (a->noexec) {
-				current_applet = a;
 				debug_printf_exec("running applet '%s'\n", argv[0]);
-// is it ok that run_current_applet_and_exit() does exit(), not _exit()?
-				run_current_applet_and_exit(argv);
+// is it ok that run_appletstruct_and_exit() does exit(), not _exit()?
+				run_appletstruct_and_exit(a, argv);
 			}
 			/* re-exec ourselves with the new arguments */
 			debug_printf_exec("re-execing applet '%s'\n", argv[0]);
