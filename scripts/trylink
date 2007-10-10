@@ -19,18 +19,16 @@ debug=false
 # List of files to link:
 # $l_list                       == --start-group -llib1 -llib2 --end-group
 # --start-group $O_FILES $A_FILES --end-group
-# or for shlib:
-# --start-group --whole-archive $A_FILES --no-whole-archive --end-group
-# otherwise we don't pull in all parts of *.a files. Now we pull in too much.
-# FIXME: make it work without --whole-archive, or better, with --gc-sections.
 #
 # Shared library link:
 # -shared                       self-explanatory
 # -fPIC                         position-independent code
-# -Wl,--enable-new-dtags        ?
-# -Wl,-z,combreloc              ?
-# -Wl,-soname="libbusybox.so.$BB_VER"
-# -static			Not used, but may be useful! manpage:
+# --enable-new-dtags            ?
+# -z,combreloc                  ?
+# -soname="libbusybox.so.$BB_VER"
+# --undefined=libbusybox_main   Seed name to start pulling from
+#                               (otherwise we'll need --whole-archive)
+# -static                       Not used, but may be useful! manpage:
 #                               "... This option can be used with -shared.
 #                               Doing so means that a shared library
 #                               is being created but that all of the library's
@@ -174,9 +172,10 @@ if test "$CONFIG_BUILD_LIBBUSYBOX" = y; then
 	    -Wl,--enable-new-dtags \
 	    -Wl,-z,combreloc \
 	    -Wl,-soname="libbusybox.so.$BB_VER" \
+	    -Wl,--undefined=libbusybox_main \
 	    -Wl,--sort-common \
 	    -Wl,--sort-section -Wl,alignment \
-	    -Wl,--start-group -Wl,--whole-archive $A_FILES -Wl,--no-whole-archive -Wl,--end-group \
+	    -Wl,--start-group $A_FILES -Wl,--end-group \
 	    $l_list \
 	    -Wl,--warn-common \
 	    -Wl,-Map -Wl,$EXE.map \

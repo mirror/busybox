@@ -52,5 +52,8 @@ struct bb_applet {
 extern const struct bb_applet applets[];
 extern const unsigned short NUM_APPLETS;
 void bbox_prepare_main(char **argv);
+#if ENABLE_BUILD_LIBBUSYBOX
+int libbusybox_main(int argc, char **argv);
+#endif
 
 #endif	/* _BB_INTERNAL_H_ */
