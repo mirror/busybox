@@ -186,7 +186,7 @@ if test "$CONFIG_BUILD_LIBBUSYBOX" = y; then
 	cat $EXE.out
 	exit 1
     }
-    strip -s --remove-section=.note --remove-section=.comment $EXE -o "$sharedlib_dir/libbusybox.so.$BB_VER"
+    $STRIP -s --remove-section=.note --remove-section=.comment $EXE -o "$sharedlib_dir/libbusybox.so.$BB_VER"
     chmod a+x "$sharedlib_dir/libbusybox.so.$BB_VER"
     echo "libbusybox: $sharedlib_dir/libbusybox.so.$BB_VER"
 fi
@@ -208,7 +208,7 @@ if test "$CONFIG_FEATURE_SHARED_BUSYBOX" = y; then
 	cat $EXE.out
 	exit 1
     }
-    strip -s --remove-section=.note --remove-section=.comment $EXE -o "$sharedlib_dir/busybox"
+    $STRIP -s --remove-section=.note --remove-section=.comment $EXE -o "$sharedlib_dir/busybox"
     echo "busybox linked against libbusybox: $sharedlib_dir/busybox"
 fi
 
@@ -247,7 +247,7 @@ int main(int argc, char **argv)
 	    exit 1
 	}
 	rm -- "$sharedlib_dir/applet.c" $EXE.out
-	strip -s --remove-section=.note --remove-section=.comment $EXE
+	$STRIP -s --remove-section=.note --remove-section=.comment $EXE
 
     done <applet_lst.tmp
 fi
