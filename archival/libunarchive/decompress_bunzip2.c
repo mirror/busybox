@@ -44,7 +44,7 @@
 #define RETVAL_LAST_BLOCK               (-1)
 #define RETVAL_NOT_BZIP_DATA            (-2)
 #define RETVAL_UNEXPECTED_INPUT_EOF     (-3)
-#define RETVAL_UNEXPECTED_OUTPUT_EOF    (-4)
+#define RETVAL_SHORT_WRITE              (-4)
 #define RETVAL_DATA_ERROR               (-5)
 #define RETVAL_OUT_OF_MEMORY            (-6)
 #define RETVAL_OBSOLETE_INPUT           (-7)
@@ -54,22 +54,27 @@
 
 /* This is what we know about each Huffman coding group */
 struct group_data {
-	/* We have an extra slot at the end of limit[] for a sentinal value. */
+	/* We have an extra slot at the end of limit[] for a sentinel value. */
 	int limit[MAX_HUFCODE_BITS+1], base[MAX_HUFCODE_BITS], permute[MAX_SYMBOLS];
 	int minLen, maxLen;
 };
 
 /* Structure holding all the housekeeping data, including IO buffers and
-   memory that persists between calls to bunzip */
+ * memory that persists between calls to bunzip
+ * Found the most used member:
+ *  cat this_file.c | sed -e 's/"/ /g' -e "s/'/ /g" | xargs -n1 \
+ *  | grep 'bd->' | sed 's/^.*bd->/bd->/' | sort | $PAGER
+ * and moved it (inbufBitCount) to offset 0.
+ */
 
 struct bunzip_data {
-	/* State for interrupting output loop */
-	int writeCopies, writePos, writeRunCountdown, writeCount, writeCurrent;
-
 	/* I/O tracking data (file handles, buffers, positions, etc.) */
+	unsigned inbufBitCount, inbufBits;
 	int in_fd, out_fd, inbufCount, inbufPos /*, outbufPos*/;
 	unsigned char *inbuf /*,*outbuf*/;
-	unsigned inbufBitCount, inbufBits;
+
+	/* State for interrupting output loop */
+	int writeCopies, writePos, writeRunCountdown, writeCount, writeCurrent;
 
 	/* The CRC values stored in the block header and calculated from the data */
 	uint32_t headerCRC, totalCRC, writeCRC;
@@ -80,7 +85,7 @@ struct bunzip_data {
 	/* For I/O error handling */
 	jmp_buf jmpbuf;
 
-	/* Big things go last (register-relative addressing can be larger for big offsets */
+	/* Big things go last (register-relative addressing can be larger for big offsets) */
 	uint32_t crc32Table[256];
 	unsigned char selectors[32768];			/* nSelectors=15 bits */
 	struct group_data groups[MAX_GROUPS];	/* Huffman coding tables */
@@ -91,7 +96,7 @@ struct bunzip_data {
 /* Return the next nnn bits of input.  All reads from the compressed input
    are done through this function.  All reads are big endian */
 
-static unsigned get_bits(bunzip_data *bd, char bits_wanted)
+static unsigned get_bits(bunzip_data *bd, int bits_wanted)
 {
 	unsigned bits = 0;
 
@@ -121,7 +126,7 @@ static unsigned get_bits(bunzip_data *bd, char bits_wanted)
 
 		/* Grab next 8 bits of input from buffer. */
 
-		bd->inbufBits = (bd->inbufBits<<8) | bd->inbuf[bd->inbufPos++];
+		bd->inbufBits = (bd->inbufBits << 8) | bd->inbuf[bd->inbufPos++];
 		bd->inbufBitCount += 8;
 	}
 
@@ -205,7 +210,7 @@ static int get_next_block(bunzip_data *bd)
 		/* Get next value */
 
 		for (j = 0; get_bits(bd, 1); j++)
-			if (j>=groupCount) return RETVAL_DATA_ERROR;
+			if (j >= groupCount) return RETVAL_DATA_ERROR;
 
 		/* Decode MTF to get the next selector */
 
@@ -320,19 +325,20 @@ static int get_next_block(bunzip_data *bd)
 			t += temp[i];
 			base[i+1] = pp - t;
 		}
-		limit[maxLen+1] = INT_MAX; /* Sentinal value for reading next sym. */
+		limit[maxLen+1] = INT_MAX; /* Sentinel value for reading next sym. */
 		limit[maxLen] = pp + temp[maxLen] - 1;
 		base[minLen] = 0;
 	}
 
 	/* We've finished reading and digesting the block header.  Now read this
 	   block's Huffman coded symbols from the file and undo the Huffman coding
-	   and run length encoding, saving the result into dbuf[dbufCount++]=uc */
+	   and run length encoding, saving the result into dbuf[dbufCount++] = uc */
 
 	/* Initialize symbol occurrence counters and symbol Move To Front table */
 
+	memset(byteCount, 0, sizeof(byteCount)); /* smaller, maybe slower? */
 	for (i = 0; i < 256; i++) {
-		byteCount[i] = 0;
+		//byteCount[i] = 0;
 		mtfSymbol[i] = (unsigned char)i;
 	}
 
@@ -547,7 +553,7 @@ int read_bunzip(bunzip_data *bd, char *outbuf, int len)
 			/* If the output buffer is full, snapshot state and return */
 
 			if (gotcount >= len) {
-				bd->writePos  =pos;
+				bd->writePos = pos;
 				bd->writeCurrent = current;
 				bd->writeCopies++;
 				return len;
@@ -573,8 +579,8 @@ int read_bunzip(bunzip_data *bd, char *outbuf, int len)
 			current = pos & 0xff;
 			pos >>= 8;
 
-			/* After 3 consecutive copies of the same byte, the 4th is a repeat
-			   count.  We count down from 4 instead
+			/* After 3 consecutive copies of the same byte, the 4th
+			 * is a repeat count.  We count down from 4 instead
 			 * of counting up because testing for non-zero is faster */
 
 			if (--bd->writeRunCountdown) {
@@ -606,7 +612,7 @@ int read_bunzip(bunzip_data *bd, char *outbuf, int len)
 		/* If this block had a CRC error, force file level CRC error. */
 
 		if (bd->writeCRC != bd->headerCRC) {
-			bd->totalCRC = bd->headerCRC+1;
+			bd->totalCRC = bd->headerCRC + 1;
 			return RETVAL_LAST_BLOCK;
 		}
 	}
@@ -713,8 +719,8 @@ unpack_bz2_stream(int src_fd, int dst_fd)
 		for (;;) {
 			i = read_bunzip(bd, outbuf, IOBUF_SIZE);
 			if (i <= 0) break;
-			if (i != safe_write(dst_fd, outbuf, i)) {
-				i = RETVAL_UNEXPECTED_OUTPUT_EOF;
+			if (i != full_write(dst_fd, outbuf, i)) {
+				i = RETVAL_SHORT_WRITE;
 				break;
 			}
 			USE_DESKTOP(total_written += i;)
@@ -729,8 +735,8 @@ unpack_bz2_stream(int src_fd, int dst_fd)
 		} else {
 			i = RETVAL_OK;
 		}
-	} else if (i == RETVAL_UNEXPECTED_OUTPUT_EOF) {
-		bb_error_msg("unexpected EOF");
+	} else if (i == RETVAL_SHORT_WRITE) {
+		bb_error_msg("short write");
 	} else {
 		bb_error_msg("bunzip error %d", i);
 	}
