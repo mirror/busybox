@@ -127,11 +127,12 @@ const struct bb_applet *find_applet_by_name(const char *name)
 int *const bb_errno __attribute__ ((section (".data")));
 #endif
 
-void lbb_prepare(char **argv)
+void lbb_prepare(const char *applet, char **argv)
 {
 #ifdef __GLIBC__
 	(*(int **)&bb_errno) = __errno_location();
 #endif
+	applet_name = applet;
 
 	/* Set locale for everybody except 'init' */
 	if (ENABLE_LOCALE_SUPPORT && getpid() != 1)
@@ -666,7 +667,7 @@ int lbb_main(int argc, char **argv)
 int main(int argc, char **argv)
 #endif
 {
-	lbb_prepare(argv);
+	lbb_prepare("busybox", argv);
 
 #if !BB_MMU
 	/* NOMMU re-exec trick sets high-order bit in first byte of name */

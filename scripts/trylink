@@ -220,14 +220,12 @@ if test "$CONFIG_FEATURE_INDIVIDUAL" = y; then
     while read name main junk; do
 
 	echo "\
-void lbb_prepare(char **argv);
+void lbb_prepare(const char *applet, char **argv);
 int $main(int argc, char **argv);
-
-const char *applet_name = \"$name\";
 
 int main(int argc, char **argv)
 {
-	lbb_prepare(argv);
+	lbb_prepare(\"$name\", argv);
 	return $main(argc, argv);
 }
 " >"$sharedlib_dir/applet.c"
