@@ -670,9 +670,9 @@
 #define dmesg_full_usage \
        "Print or control the kernel ring buffer" \
        "\n\nOptions:\n" \
-       "	-c		Clears the ring buffer's contents after printing\n" \
-       "	-n LEVEL	Sets console logging level\n" \
-       "	-s SIZE		Use a buffer of size SIZE"
+       "	-c		Clear ring buffer after printing\n" \
+       "	-n LEVEL	Set console logging level\n" \
+       "	-s SIZE		Buffer size"
 
 #define dnsd_trivial_usage \
        "[-c config] [-t seconds] [-p port] [-i iface-ip] [-d]"
@@ -859,19 +859,19 @@
 #define expr_full_usage \
        "Print the value of EXPRESSION to standard output.\n\n" \
        "EXPRESSION may be:\n" \
-       "	ARG1 |  ARG2	ARG1 if it is neither null nor 0, otherwise ARG2\n" \
-       "	ARG1 &  ARG2	ARG1 if neither argument is null or 0, otherwise 0\n" \
-       "	ARG1 <  ARG2	ARG1 is less than ARG2\n" \
-       "	ARG1 <= ARG2	ARG1 is less than or equal to ARG2\n" \
-       "	ARG1 =  ARG2	ARG1 is equal to ARG2\n" \
-       "	ARG1 != ARG2	ARG1 is unequal to ARG2\n" \
-       "	ARG1 >= ARG2	ARG1 is greater than or equal to ARG2\n" \
-       "	ARG1 >  ARG2	ARG1 is greater than ARG2\n" \
-       "	ARG1 +  ARG2	Sum of ARG1 and ARG2\n" \
-       "	ARG1 -  ARG2	Difference of ARG1 and ARG2\n" \
-       "	ARG1 *  ARG2	Product of ARG1 and ARG2\n" \
-       "	ARG1 /  ARG2	Quotient of ARG1 divided by ARG2\n" \
-       "	ARG1 %  ARG2	Remainder of ARG1 divided by ARG2\n" \
+       "	ARG1 | ARG2	ARG1 if it is neither null nor 0, otherwise ARG2\n" \
+       "	ARG1 & ARG2	ARG1 if neither argument is null or 0, otherwise 0\n" \
+       "	ARG1 < ARG2	1 if ARG1 is less than ARG2, else 0. Similarly:\n" \
+       "	ARG1 <= ARG2\n" \
+       "	ARG1 = ARG2\n" \
+       "	ARG1 != ARG2\n" \
+       "	ARG1 >= ARG2\n" \
+       "	ARG1 > ARG2\n" \
+       "	ARG1 + ARG2	Sum of ARG1 and ARG2. Similarly:\n" \
+       "	ARG1 - ARG2\n" \
+       "	ARG1 * ARG2\n" \
+       "	ARG1 / ARG2\n" \
+       "	ARG1 % ARG2\n" \
        "	STRING : REGEXP		Anchored pattern match of REGEXP in STRING\n" \
        "	match STRING REGEXP	Same as STRING : REGEXP\n" \
        "	substr STRING POS LENGTH Substring of STRING, POS counted from 1\n" \
@@ -1055,12 +1055,12 @@
 #define fsck_minix_full_usage \
        "Perform a consistency check for MINIX filesystems" \
        "\n\nOptions:\n" \
-       "	-l	Lists all filenames\n" \
+       "	-l	List all filenames\n" \
        "	-r	Perform interactive repairs\n" \
        "	-a	Perform automatic repairs\n" \
        "	-v	Verbose\n" \
-       "	-s	Outputs super-block information\n" \
-       "	-m	Activates MINIX-like \"mode not cleared\" warnings\n" \
+       "	-s	Output super-block information\n" \
+       "	-m	Activate MINIX-like \"mode not cleared\" warnings\n" \
        "	-f	Force file system check"
 
 #define ftpget_trivial_usage \
@@ -2205,7 +2205,7 @@
 #define modprobe_full_usage \
        "Options:\n" \
        "	-k	Make module autoclean-able\n" \
-       "	-n	Just show what would be done\n" \
+       "	-n	Dry run\n" \
        "	-q	Quiet\n" \
        "	-r	Remove module (stacks) or do autoclean\n" \
        "	-s	Report via syslog instead of stderr\n" \
@@ -2284,15 +2284,14 @@
        "\n\nOptions:\n" \
        "	-a		Mount all filesystems in fstab\n" \
 	USE_FEATURE_MTAB_SUPPORT( \
-       "	-f		\"Fake\" Add entry to mount table but don't mount it\n" \
-       "	-n		Don't write a mount table entry\n" \
+       "	-f		Update /etc/mtab, but don't mount\n" \
+       "	-n		Don't update /etc/mtab\n" \
 	) \
-       "	-o option	One of many filesystem options, listed below\n" \
-       "	-r		Mount the filesystem read-only\n" \
+       "	-r		Read-only mount\n" \
        "	-t fs-type	Filesystem type\n" \
-       "	-w		Mount for reading and writing (default)\n" \
+       "	-w		Read-write mount (default)\n" \
        "\n" \
-       "Options for use with the \"-o\" flag:\n" \
+       "-o option:\n" \
 	USE_FEATURE_MOUNT_LOOP( \
        "	loop		Ignored (loop devices are autodetected)\n" \
 	) \
@@ -2427,7 +2426,7 @@
 	USE_NC_SERVER( \
        "-l		Listen mode, for inbound connects\n" \
 	) \
-       "-n		Do not do DNS resolution" \
+       "-n		Don't do DNS resolution" \
      "\n-s addr		Local address" \
      "\n-p port		Local port" \
      "\n-u		UDP mode" \
@@ -2812,7 +2811,7 @@
 #define renice_full_usage \
        "Change priority of running processes" \
        "\n\nOptions:\n" \
-       "	-n	Adjusts current nice value (smaller is faster)\n" \
+       "	-n	Adjust current nice value (smaller is faster)\n" \
        "	-p	Process id(s) (default)\n" \
        "	-g	Process group id(s)\n" \
        "	-u	Process user name(s) and/or id(s)"
@@ -3257,10 +3256,10 @@ USE_FEATURE_RUN_PARTS_FANCY("\n	-l	Prints names of all matching files even when 
 #define strings_full_usage \
        "Display printable strings in a binary file" \
        "\n\nOptions:" \
-       "\n	-a	Scan the whole files (this is the default)" \
-       "\n	-f	Precede each string with the name of the file where it was found" \
-       "\n	-n N	Specifies that at least N characters forms a sequence (default 4)" \
-       "\n	-o	Each string is preceded by its decimal offset in the file"
+       "\n	-a	Scan whole file (default)" \
+       "\n	-f	Precede strings with filenames" \
+       "\n	-n N	At least N characters form a string (default 4)" \
+       "\n	-o	Precede strings with decimal offsets"
 
 #define stty_trivial_usage \
        "[-a|g] [-F DEVICE] [SETTING]..."
@@ -3352,11 +3351,11 @@ USE_FEATURE_RUN_PARTS_FANCY("\n	-l	Prints names of all matching files even when 
 #define sysctl_full_usage \
        "Configure kernel parameters at runtime" \
        "\n\nOptions:\n" \
-       "	-n	Use this option to disable printing of the key name when printing values\n" \
-       "	-w	Use this option when you want to change a sysctl setting\n" \
-       "	-p	Load in sysctl settings from the file specified or /etc/sysctl.conf if none given\n" \
-       "	-a	Display all values currently available\n" \
-       "	-A	Display all values currently available in table form"
+       "	-n	Disable printing of key names\n" \
+       "	-w	Change sysctl setting\n" \
+       "	-p FILE	Load sysctl settings from FILE (default /etc/sysctl.conf)\n" \
+       "	-a	Display all values\n" \
+       "	-A	Display all values in table form"
 #define sysctl_example_usage \
        "sysctl [-n] variable ...\n" \
        "sysctl [-n] -w variable=value ...\n" \
