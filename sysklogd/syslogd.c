@@ -527,12 +527,10 @@ static void do_syslogd(void)
 	for (;;) {
 		size_t sz;
 
-		sz = read(sock_fd, G.recvbuf, MAX_READ - 1);
+		sz = safe_read(sock_fd, G.recvbuf, MAX_READ - 1);
 		if (sz <= 0) {
-			if (sz == 0)
-				continue; /* EOF from unix socket??? */
-			if (errno == EINTR) /* alarm may have happened */
-				continue;
+			//if (sz == 0)
+			//	continue; /* EOF from unix socket??? */
 			bb_perror_msg_and_die("read from /dev/log");
 		}
 

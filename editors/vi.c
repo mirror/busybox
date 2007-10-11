@@ -2152,7 +2152,7 @@ static char readit(void)	// read (maybe cursor) key from stdin
 	char c;
 	int n;
 	struct esc_cmds {
-		const char *seq;
+		const char seq[4];
 		char val;
 	};
 
@@ -2178,6 +2178,7 @@ static char readit(void)	// read (maybe cursor) key from stdin
 		{"OQ", VI_K_FUN2},     // Function Key F2
 		{"OR", VI_K_FUN3},     // Function Key F3
 		{"OS", VI_K_FUN4},     // Function Key F4
+		// careful: these have no terminating NUL!
 		{"[15~", VI_K_FUN5},   // Function Key F5
 		{"[17~", VI_K_FUN6},   // Function Key F6
 		{"[18~", VI_K_FUN7},   // Function Key F7
@@ -2198,12 +2199,9 @@ static char readit(void)	// read (maybe cursor) key from stdin
 	n = readed_for_parse;
 	// get input from User- are there already input chars in Q?
 	if (n <= 0) {
- ri0:
 		// the Q is empty, wait for a typed char
-		n = read(0, readbuffer, MAX_LINELEN - 1);
+		n = safe_read(0, readbuffer, MAX_LINELEN - 1);
 		if (n < 0) {
-			if (errno == EINTR)
-				goto ri0;	// interrupted sys call
 			if (errno == EBADF || errno == EFAULT || errno == EINVAL
 					|| errno == EIO)
 				editing = 0;
@@ -2219,11 +2217,10 @@ static char readit(void)	// read (maybe cursor) key from stdin
 			struct pollfd pfd[1];
 			pfd[0].fd = 0;
 			pfd[0].events = POLLIN;
-			// Wait 50 ms
 			// keep reading while there are input chars and room in buffer
-			while (safe_poll(pfd, 1, 50) > 0 && n <= (MAX_LINELEN - 5)) {
+			while (safe_poll(pfd, 1, 0) > 0 && n <= (MAX_LINELEN - 5)) {
 				// read the rest of the ESC string
-				int r = read(0, readbuffer + n, MAX_LINELEN - n);
+				int r = safe_read(0, readbuffer + n, MAX_LINELEN - n);
 				if (r > 0)
 					n += r;
 			}
@@ -2236,7 +2233,7 @@ static char readit(void)	// read (maybe cursor) key from stdin
 		const struct esc_cmds *eindex;
 
 		for (eindex = esccmds; eindex < &esccmds[ESCCMDS_COUNT]; eindex++) {
-			int cnt = strlen(eindex->seq);
+			int cnt = strnlen(eindex->seq, 4);
 
 			if (n <= cnt)
 				continue;
@@ -2397,7 +2394,7 @@ static int file_insert(const char * fn, char *p
 	p = text_hole_make(p, size);
 	if (p == NULL)
 		goto fi0;
-	cnt = read(fd, p, size);
+	cnt = safe_read(fd, p, size);
 	if (cnt < 0) {
 		psbs("\"%s\" %s", fn, strerror(errno));
 		p = text_hole_delete(p, p + size - 1);	// un-do buffer insert
@@ -3961,7 +3958,7 @@ static void crash_test()
 		printf("\n\n%d: \'%c\' %s\n\n\n%s[Hit return to continue]%s",
 			totalcmds, last_input_char, msg, SOs, SOn);
 		fflush(stdout);
-		while (read(0, d, 1) > 0) {
+		while (safe_read(0, d, 1) > 0) {
 			if (d[0] == '\n' || d[0] == '\r')
 				break;
 		}

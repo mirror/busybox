@@ -1638,8 +1638,7 @@ discard_stream(int s, servtab_t *sep)
 
 	inetd_setproctitle(sep->se_service, s);
 	while (1) {
-		errno = 0;
-		if (read(s, buffer, sizeof(buffer)) <= 0 && errno != EINTR)
+		if (safe_read(s, buffer, sizeof(buffer)) <= 0)
 			exit(0);
 	}
 }
