@@ -248,7 +248,7 @@ static const struct aftype unspec_aftype = {
 	.name   = "unspec",
 	.title  = "UNSPEC",
 	.af     = AF_UNSPEC,
-	.alen    = 0,
+	.alen   = 0,
 	.print  = UNSPEC_print,
 	.sprint = UNSPEC_sprint,
 };
@@ -405,24 +405,25 @@ static char *get_name(char *name, char *p)
 	/* Extract <name> from nul-terminated p where p matches
 	   <name>: after leading whitespace.
 	   If match is not made, set name empty and return unchanged p */
-	int namestart=0, nameend=0;
+	int namestart = 0, nameend = 0;
+
 	while (isspace(p[namestart]))
 		namestart++;
-	nameend=namestart;
-	while (p[nameend] && p[nameend]!=':' && !isspace(p[nameend]))
+	nameend = namestart;
+	while (p[nameend] && p[nameend] != ':' && !isspace(p[nameend]))
 		nameend++;
-	if (p[nameend]==':') {
-		if ((nameend-namestart)<IFNAMSIZ) {
-			memcpy(name,&p[namestart],nameend-namestart);
-			name[nameend-namestart]='\0';
-			p=&p[nameend];
+	if (p[nameend] == ':') {
+		if ((nameend - namestart) < IFNAMSIZ) {
+			memcpy(name, &p[namestart], nameend - namestart);
+			name[nameend - namestart] = '\0';
+			p = &p[nameend];
 		} else {
 			/* Interface name too large */
-			name[0]='\0';
+			name[0] = '\0';
 		}
 	} else {
 		/* trailing ':' not found - return empty */
-		name[0]='\0';
+		name[0] = '\0';
 	}
 	return p + 1;
 }
