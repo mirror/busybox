@@ -171,7 +171,7 @@ static int check_utc(void)
 #define HWCLOCK_OPT_SYSTOHC     0x10
 #define HWCLOCK_OPT_RTCFILE     0x20
 
-int hwclock_main(int argc, char **argv);
+int hwclock_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int hwclock_main(int argc, char **argv)
 {
 	unsigned opt;

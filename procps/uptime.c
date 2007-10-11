@@ -25,7 +25,7 @@
 #define LOAD_FRAC(x) LOAD_INT(((x) & (FIXED_1-1)) * 100)
 
 
-int uptime_main(int argc, char **argv);
+int uptime_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int uptime_main(int argc, char **argv)
 {
 	int updays, uphours, upminutes;

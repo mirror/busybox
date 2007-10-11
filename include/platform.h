@@ -71,9 +71,10 @@
 /* -fwhole-program makes all symbols local. The attribute externally_visible
    forces a symbol global.  */
 # if __GNUC_PREREQ (4,1)
-#  define ATTRIBUTE_EXTERNALLY_VISIBLE __attribute__ ((__externally_visible__))
+#  define EXTERNALLY_VISIBLE __attribute__(( visibility("default") ));
+//__attribute__ ((__externally_visible__))
 # else
-#  define ATTRIBUTE_EXTERNALLY_VISIBLE
+#  define EXTERNALLY_VISIBLE
 # endif /* GNUC >= 4.1 */
 
 /* We use __extension__ in some places to suppress -pedantic warnings

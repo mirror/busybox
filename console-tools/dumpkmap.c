@@ -22,7 +22,7 @@ struct kbentry {
 #define NR_KEYS 128
 #define MAX_NR_KEYMAPS 256
 
-int dumpkmap_main(int argc, char **argv);
+int dumpkmap_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int dumpkmap_main(int argc, char **argv)
 {
 	struct kbentry ke;

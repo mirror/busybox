@@ -278,7 +278,7 @@ static void format_process(const procps_status_t *ps)
 	printf("%.*s\n", terminal_width, buffer);
 }
 
-int ps_main(int argc, char **argv);
+int ps_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int ps_main(int argc, char **argv)
 {
 	procps_status_t *p;
@@ -340,7 +340,7 @@ int ps_main(int argc, char **argv)
 #else /* !ENABLE_DESKTOP */
 
 
-int ps_main(int argc, char **argv);
+int ps_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int ps_main(int argc, char **argv)
 {
 	procps_status_t *p = NULL;

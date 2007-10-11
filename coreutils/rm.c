@@ -19,7 +19,7 @@
 
 /* This is a NOFORK applet. Be very careful! */
 
-int rm_main(int argc, char **argv);
+int rm_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int rm_main(int argc, char **argv)
 {
 	int status = 0;

@@ -309,7 +309,7 @@ static inline void showmode(struct fb_var_screeninfo *v)
 #ifdef STANDALONE
 int main(int argc, char **argv)
 #else
-int fbset_main(int argc, char **argv);
+int fbset_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int fbset_main(int argc, char **argv)
 #endif
 {

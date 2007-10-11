@@ -1557,7 +1557,7 @@ static void configure_package(deb_file_t *deb_file)
 	set_status(status_num, "installed", 3);
 }
 
-int dpkg_main(int argc, char **argv);
+int dpkg_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int dpkg_main(int argc, char **argv)
 {
 	deb_file_t **deb_file = NULL;

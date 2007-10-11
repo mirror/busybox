@@ -11,7 +11,7 @@
 
 #include "libbb.h"
 
-int mktemp_main(int argc, char **argv);
+int mktemp_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int mktemp_main(int argc, char **argv)
 {
 	unsigned long flags = getopt32(argv, "dqt");

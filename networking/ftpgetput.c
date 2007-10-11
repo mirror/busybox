@@ -296,7 +296,7 @@ static const char ftpgetput_longopts[] ALIGN1 =
 	;
 #endif
 
-int ftpgetput_main(int argc, char **argv);
+int ftpgetput_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int ftpgetput_main(int argc, char **argv)
 {
 	/* content-length of the file */

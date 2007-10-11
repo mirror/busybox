@@ -1321,7 +1321,7 @@ static void PRS(int argc, char **argv)
 	    max_running = atoi(tmp);
 }
 
-int fsck_main(int argc, char **argv);
+int fsck_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int fsck_main(int argc, char **argv)
 {
 	int i, status = 0;

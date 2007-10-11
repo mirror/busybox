@@ -15,7 +15,7 @@
 #include <utmp.h>
 #include "libbb.h"
 
-int runlevel_main(int argc, char **argv);
+int runlevel_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int runlevel_main(int argc, char **argv)
 {
 	struct utmp *ut;

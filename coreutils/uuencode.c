@@ -15,7 +15,7 @@ enum {
 	DST_BUF_SIZE = 4 * ((SRC_BUF_SIZE + 2) / 3),
 };
 
-int uuencode_main(int argc, char **argv);
+int uuencode_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int uuencode_main(int argc, char **argv)
 {
 	struct stat stat_buf;

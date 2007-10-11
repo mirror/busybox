@@ -285,7 +285,7 @@ static int print_formatted(char *format, int argc, char **argv)
 	return save_argc - argc;
 }
 
-int printf_main(int argc, char **argv);
+int printf_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int printf_main(int argc, char **argv)
 {
 	char *format;

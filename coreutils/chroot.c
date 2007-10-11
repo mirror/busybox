@@ -11,7 +11,7 @@
 
 #include "libbb.h"
 
-int chroot_main(int argc, char **argv);
+int chroot_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int chroot_main(int argc, char **argv)
 {
 	if (argc < 2) {

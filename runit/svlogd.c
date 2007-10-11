@@ -843,7 +843,7 @@ static void logmatch(struct logdir *ld)
 	}
 }
 
-int svlogd_main(int argc, char **argv);
+int svlogd_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int svlogd_main(int argc, char **argv)
 {
 	char *r,*l,*b;

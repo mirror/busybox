@@ -1223,7 +1223,7 @@ static void add_cmd_block(char *cmdstr)
 	free(sv);
 }
 
-int sed_main(int argc, char **argv);
+int sed_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int sed_main(int argc, char **argv)
 {
 	enum {

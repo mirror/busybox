@@ -558,7 +558,7 @@ static void print_sem(int semid)
 	bb_putchar('\n');
 }
 
-int ipcs_main(int argc, char **argv);
+int ipcs_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int ipcs_main(int argc, char **argv)
 {
 	int id = 0;

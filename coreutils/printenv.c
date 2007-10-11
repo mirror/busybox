@@ -11,7 +11,7 @@
 #include "libbb.h"
 extern char **environ;
 
-int printenv_main(int argc, char **argv);
+int printenv_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int printenv_main(int argc, char **argv)
 {
 	/* no variables specified, show whole env */

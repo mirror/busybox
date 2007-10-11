@@ -15,7 +15,7 @@ enum {
 	VT_WAITACTIVE = 0x5607  /* wait for vt active */
 };
 
-int chvt_main(int argc, char **argv);
+int chvt_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int chvt_main(int argc, char **argv)
 {
 	int fd, num;

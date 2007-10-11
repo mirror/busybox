@@ -24,7 +24,7 @@ static void watchdog_shutdown(int ATTRIBUTE_UNUSED sig)
 	exit(0);
 }
 
-int watchdog_main(int argc, char **argv);
+int watchdog_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int watchdog_main(int argc, char **argv)
 {
 	unsigned opts;

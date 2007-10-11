@@ -15,7 +15,7 @@
 /* From <linux/vt.h> */
 enum { VT_DISALLOCATE = 0x5608 }; /* free memory associated to vt */
 
-int deallocvt_main(int argc, char **argv);
+int deallocvt_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int deallocvt_main(int argc, char **argv)
 {
 	/* num = 0 deallocate all unused consoles */

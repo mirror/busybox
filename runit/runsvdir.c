@@ -204,7 +204,7 @@ static int setup_log(void)
 	return 1;
 }
 
-int runsvdir_main(int argc, char **argv);
+int runsvdir_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int runsvdir_main(int argc, char **argv)
 {
 	struct stat s;

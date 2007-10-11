@@ -38,7 +38,7 @@ static int ip_do(int argc, char **argv)
 }
 
 #if ENABLE_FEATURE_IP_ADDRESS
-int ipaddr_main(int argc, char **argv);
+int ipaddr_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int ipaddr_main(int argc, char **argv)
 {
     ip_func = do_ipaddr;
@@ -46,7 +46,7 @@ int ipaddr_main(int argc, char **argv)
 }
 #endif
 #if ENABLE_FEATURE_IP_LINK
-int iplink_main(int argc, char **argv);
+int iplink_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int iplink_main(int argc, char **argv)
 {
     ip_func = do_iplink;
@@ -54,7 +54,7 @@ int iplink_main(int argc, char **argv)
 }
 #endif
 #if ENABLE_FEATURE_IP_ROUTE
-int iproute_main(int argc, char **argv);
+int iproute_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int iproute_main(int argc, char **argv)
 {
     ip_func = do_iproute;
@@ -62,7 +62,7 @@ int iproute_main(int argc, char **argv)
 }
 #endif
 #if ENABLE_FEATURE_IP_RULE
-int iprule_main(int argc, char **argv);
+int iprule_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int iprule_main(int argc, char **argv)
 {
     ip_func = do_iprule;
@@ -70,7 +70,7 @@ int iprule_main(int argc, char **argv)
 }
 #endif
 #if ENABLE_FEATURE_IP_TUNNEL
-int iptunnel_main(int argc, char **argv);
+int iptunnel_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int iptunnel_main(int argc, char **argv)
 {
     ip_func = do_iptunnel;
@@ -79,7 +79,7 @@ int iptunnel_main(int argc, char **argv)
 #endif
 
 
-int ip_main(int argc, char **argv);
+int ip_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int ip_main(int argc, char **argv)
 {
 	static const char keywords[] ALIGN1 =

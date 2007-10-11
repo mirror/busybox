@@ -44,7 +44,7 @@ static void act(unsigned pid, char *cmd, int signo, unsigned opt)
 		kill(pid, signo);
 }
 
-int pgrep_main(int argc, char **argv);
+int pgrep_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int pgrep_main(int argc, char **argv)
 {
 	unsigned pid = getpid();

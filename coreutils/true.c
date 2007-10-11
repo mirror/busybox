@@ -14,7 +14,7 @@
 
 /* This is a NOFORK applet. Be very careful! */
 
-int true_main(int argc, char **argv);
+int true_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int true_main(int argc, char **argv)
 {
 	return EXIT_SUCCESS;

@@ -12,7 +12,7 @@
 
 #include "libbb.h"
 
-int tty_main(int argc, char **argv);
+int tty_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int tty_main(int argc, char **argv)
 {
 	const char *s;

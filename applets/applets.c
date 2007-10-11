@@ -24,6 +24,6 @@
 #if ENABLE_BUILD_LIBBUSYBOX
 int main(int argc, char **argv)
 {
-	return libbusybox_main(argc, argv);
+	return lbb_main(argc, argv);
 }
 #endif

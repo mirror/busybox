@@ -33,7 +33,7 @@ static const char mv_longopts[] ALIGN1 =
 static const char fmt[] ALIGN1 =
 	"cannot overwrite %sdirectory with %sdirectory";
 
-int mv_main(int argc, char **argv);
+int mv_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int mv_main(int argc, char **argv)
 {
 	struct stat dest_stat;

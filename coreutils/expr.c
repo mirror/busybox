@@ -483,7 +483,7 @@ static VALUE *eval(void)
 	return l;
 }
 
-int expr_main(int argc, char **argv);
+int expr_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int expr_main(int argc, char **argv)
 {
 	VALUE *v;

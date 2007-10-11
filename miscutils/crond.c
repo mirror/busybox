@@ -128,7 +128,7 @@ static void crondlog(const char *ctl, ...)
 	}
 }
 
-int crond_main(int ac, char **av);
+int crond_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int crond_main(int ac, char **av)
 {
 	unsigned opt;

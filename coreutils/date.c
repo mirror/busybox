@@ -38,7 +38,7 @@ static void maybe_set_utc(int opt)
 		putenv((char*)"TZ=UTC0");
 }
 
-int date_main(int argc, char **argv);
+int date_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int date_main(int argc, char **argv)
 {
 	time_t tm;

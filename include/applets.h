@@ -24,11 +24,11 @@ s     - suid type:
 */
 
 #if defined(PROTOTYPES)
-# define APPLET(name,l,s)                    int name##_main(int argc, char **argv);
-# define APPLET_NOUSAGE(name,main,l,s)       int main##_main(int argc, char **argv);
-# define APPLET_ODDNAME(name,main,l,s,name2) int main##_main(int argc, char **argv);
-# define APPLET_NOEXEC(name,main,l,s,name2)  int main##_main(int argc, char **argv);
-# define APPLET_NOFORK(name,main,l,s,name2)  int main##_main(int argc, char **argv);
+# define APPLET(name,l,s)                    int name##_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
+# define APPLET_NOUSAGE(name,main,l,s)       int main##_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
+# define APPLET_ODDNAME(name,main,l,s,name2) int main##_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
+# define APPLET_NOEXEC(name,main,l,s,name2)  int main##_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
+# define APPLET_NOFORK(name,main,l,s,name2)  int main##_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 
 #elif defined(NAME_MAIN_CNAME)
 # define APPLET(name,l,s)                    name name##_main name

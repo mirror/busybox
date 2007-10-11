@@ -41,7 +41,7 @@
 static const char defaultmap[] ALIGN1 = "/boot/System.map";
 static const char defaultpro[] ALIGN1 = "/proc/profile";
 
-int readprofile_main(int argc, char **argv);
+int readprofile_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int readprofile_main(int argc, char **argv)
 {
 	FILE *map;

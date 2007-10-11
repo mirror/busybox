@@ -34,7 +34,7 @@ static const char mkdir_longopts[] ALIGN1 =
 	;
 #endif
 
-int mkdir_main(int argc, char **argv);
+int mkdir_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int mkdir_main(int argc, char **argv)
 {
 	mode_t mode = (mode_t)(-1);

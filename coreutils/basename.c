@@ -24,7 +24,7 @@
 
 /* This is a NOFORK applet. Be very careful! */
 
-int basename_main(int argc, char **argv);
+int basename_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int basename_main(int argc, char **argv)
 {
 	size_t m, n;

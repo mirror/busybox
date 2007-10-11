@@ -38,7 +38,7 @@ static int adjust_column(int column, char c)
 	return column;
 }
 
-int fold_main(int argc, char **argv);
+int fold_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int fold_main(int argc, char **argv)
 {
 	char *line_out = NULL;

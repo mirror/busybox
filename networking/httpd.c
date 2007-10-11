@@ -2111,7 +2111,7 @@ enum {
 };
 
 
-int httpd_main(int argc, char **argv);
+int httpd_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int httpd_main(int argc, char **argv)
 {
 	int server_socket = server_socket; /* for gcc */

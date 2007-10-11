@@ -783,7 +783,7 @@ static const unsigned opt_flags[] = {
 /* THIS IS A "SAFE" APPLET, main() MAY BE CALLED INTERNALLY FROM SHELL */
 /* BE CAREFUL! */
 
-int ls_main(int argc, char **argv);
+int ls_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int ls_main(int argc, char **argv)
 {
 	struct dnode **dnd;

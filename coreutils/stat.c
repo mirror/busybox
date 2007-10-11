@@ -609,7 +609,7 @@ static bool do_stat(const char *filename, const char *format)
 	return 1;
 }
 
-int stat_main(int argc, char **argv);
+int stat_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int stat_main(int argc, char **argv)
 {
 	char *format = NULL;

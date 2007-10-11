@@ -1303,7 +1303,7 @@ inetd_setproctitle(char *a, int s)
 #endif
 
 
-int inetd_main(int argc, char **argv);
+int inetd_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int inetd_main(int argc, char **argv)
 {
 	servtab_t *sep;

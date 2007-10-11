@@ -38,7 +38,7 @@ void filename2modname(char *modname, const char *afterslash);
 int query_module(const char *name, int which, void *buf,
 			size_t bufsize, size_t *ret);
 
-int rmmod_main(int argc, char **argv);
+int rmmod_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int rmmod_main(int argc, char **argv)
 {
 	int n, ret = EXIT_SUCCESS;

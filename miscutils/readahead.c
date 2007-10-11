@@ -12,7 +12,7 @@
 
 #include "libbb.h"
 
-int readahead_main(int argc, char **argv);
+int readahead_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int readahead_main(int argc, char **argv)
 {
 	FILE *f;

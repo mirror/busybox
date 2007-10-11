@@ -673,7 +673,7 @@ extern int die_sleep;
 extern int xfunc_error_retval;
 extern jmp_buf die_jmp;
 extern void xfunc_die(void) ATTRIBUTE_NORETURN;
-extern void bb_show_usage(void) ATTRIBUTE_NORETURN ATTRIBUTE_EXTERNALLY_VISIBLE;
+extern void bb_show_usage(void) ATTRIBUTE_NORETURN;
 extern void bb_error_msg(const char *s, ...) __attribute__ ((format (printf, 1, 2)));
 extern void bb_error_msg_and_die(const char *s, ...) __attribute__ ((noreturn, format (printf, 1, 2)));
 extern void bb_perror_msg(const char *s, ...) __attribute__ ((format (printf, 1, 2)));
@@ -687,18 +687,27 @@ extern void bb_perror_nomsg(void);
 extern void bb_info_msg(const char *s, ...) __attribute__ ((format (printf, 1, 2)));
 extern void bb_verror_msg(const char *s, va_list p, const char *strerr);
 
+/* We need to export XXX_main from libbusybox
+ * only if we build "individual" binaries
+ */
+#if ENABLE_FEATURE_INDIVIDUAL
+#define MAIN_EXTERNALLY_VISIBLE EXTERNALLY_VISIBLE
+#else
+#define MAIN_EXTERNALLY_VISIBLE
+#endif
+
 
 /* applets which are useful from another applets */
 int bb_cat(char** argv);
 int bb_echo(char** argv);
-int test_main(int argc, char** argv);
-int kill_main(int argc, char **argv);
+int test_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
+int kill_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 #if ENABLE_ROUTE
 void bb_displayroutes(int noresolve, int netstatfmt);
 #endif
-int chown_main(int argc, char **argv);
+int chown_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 #if ENABLE_GUNZIP
-int gunzip_main(int argc, char **argv);
+int gunzip_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 #endif
 int bbunpack(char **argv,
 	char* (*make_new_name)(char *filename),

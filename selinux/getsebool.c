@@ -8,7 +8,7 @@
 
 #include "libbb.h"
 
-int getsebool_main(int argc, char **argv);
+int getsebool_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int getsebool_main(int argc, char **argv)
 {
 	int i, rc = 0, active, pending, len = 0;

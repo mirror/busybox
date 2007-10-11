@@ -42,7 +42,7 @@ For a new applet mu, here is the code that would go in mu.c:
 #include "libbb.h"
 #include "other.h"
 
-int mu_main(int argc, char **argv);
+int mu_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int mu_main(int argc, char **argv)
 {
 	int fd;

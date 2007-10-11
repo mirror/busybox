@@ -12,7 +12,7 @@
 
 #include "libbb.h"
 
-int openvt_main(int argc, char **argv);
+int openvt_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int openvt_main(int argc, char **argv)
 {
 	char vtname[sizeof(VC_FORMAT) + 2];

@@ -26,7 +26,7 @@ debug=false
 # --enable-new-dtags            ?
 # -z,combreloc                  ?
 # -soname="libbusybox.so.$BB_VER"
-# --undefined=libbusybox_main   Seed name to start pulling from
+# --undefined=lbb_main          Seed name to start pulling from
 #                               (otherwise we'll need --whole-archive)
 # -static                       Not used, but may be useful! manpage:
 #                               "... This option can be used with -shared.
@@ -172,7 +172,7 @@ if test "$CONFIG_BUILD_LIBBUSYBOX" = y; then
 	    -Wl,--enable-new-dtags \
 	    -Wl,-z,combreloc \
 	    -Wl,-soname="libbusybox.so.$BB_VER" \
-	    -Wl,--undefined=libbusybox_main \
+	    -Wl,--undefined=lbb_main \
 	    -Wl,--sort-common \
 	    -Wl,--sort-section -Wl,alignment \
 	    -Wl,--start-group $A_FILES -Wl,--end-group \
@@ -220,14 +220,14 @@ if test "$CONFIG_FEATURE_INDIVIDUAL" = y; then
     while read name main junk; do
 
 	echo "\
-void bbox_prepare_main(char **argv);
+void lbb_prepare(char **argv);
 int $main(int argc, char **argv);
 
 const char *applet_name = \"$name\";
 
 int main(int argc, char **argv)
 {
-	bbox_prepare_main(argv);
+	lbb_prepare(argv);
 	return $main(argc, argv);
 }
 " >"$sharedlib_dir/applet.c"

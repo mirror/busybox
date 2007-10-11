@@ -889,7 +889,7 @@ print_delta_ms(unsigned t1p, unsigned t2p)
 	printf("  %u.%03u ms", tt/1000, tt%1000);
 }
 
-int traceroute_main(int argc, char **argv);
+int traceroute_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int traceroute_main(int argc, char **argv)
 {
 	int code, n;

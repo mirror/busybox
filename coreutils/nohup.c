@@ -12,7 +12,7 @@
 
 #include "libbb.h"
 
-int nohup_main(int argc, char **argv);
+int nohup_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int nohup_main(int argc, char **argv)
 {
 	int nullfd;

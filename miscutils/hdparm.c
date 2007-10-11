@@ -2005,7 +2005,7 @@ static const char hdparm_options[] ALIGN1 =
 /*-------------------------------------*/
 
 /* our main() routine: */
-int hdparm_main(int argc, char **argv);
+int hdparm_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int hdparm_main(int argc, char **argv)
 {
 	int c;

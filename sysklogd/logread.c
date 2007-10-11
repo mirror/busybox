@@ -53,7 +53,7 @@ static void interrupted(int sig ATTRIBUTE_UNUSED)
 	exit(0);
 }
 
-int logread_main(int argc, char **argv);
+int logread_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int logread_main(int argc, char **argv)
 {
 	int cur;

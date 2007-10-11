@@ -13,7 +13,7 @@
 #define DPKG_DEB_OPT_EXTRACT	8
 #define DPKG_DEB_OPT_EXTRACT_VERBOSE	16
 
-int dpkg_deb_main(int argc, char **argv);
+int dpkg_deb_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int dpkg_deb_main(int argc, char **argv)
 {
 	archive_handle_t *ar_archive;

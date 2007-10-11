@@ -50,7 +50,7 @@ static const struct mt_opcodes opcodes[] = {
 	{0, 0}
 };
 
-int mt_main(int argc, char **argv);
+int mt_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int mt_main(int argc, char **argv)
 {
 	const char *file = "/dev/tape";

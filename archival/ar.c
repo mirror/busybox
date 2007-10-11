@@ -37,7 +37,7 @@ static void header_verbose_list_ar(const file_header_t *file_header)
 #define AR_OPT_CREATE		0x20
 #define AR_OPT_INSERT		0x40
 
-int ar_main(int argc, char **argv);
+int ar_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int ar_main(int argc, char **argv)
 {
 	static const char msg_unsupported_err[] ALIGN1 =

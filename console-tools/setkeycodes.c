@@ -20,8 +20,8 @@ enum {
 	KDSETKEYCODE = 0x4B4D  /* write kernel keycode table entry */
 };
 
-int setkeycodes_main(int argc, char** argv);
-int setkeycodes_main(int argc, char** argv)
+int setkeycodes_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
+int setkeycodes_main(int argc, char **argv)
 {
 	int fd, sc;
 	struct kbkeycode a;

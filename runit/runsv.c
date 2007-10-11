@@ -439,7 +439,7 @@ static int ctrl(struct svdir *s, char c)
 	return 1;
 }
 
-int runsv_main(int argc, char **argv);
+int runsv_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int runsv_main(int argc, char **argv)
 {
 	struct stat s;

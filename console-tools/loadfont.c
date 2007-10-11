@@ -166,7 +166,7 @@ static void loadnewfont(int fd)
 	do_loadfont(fd, inbuf + offset, unit, 256);
 }
 
-int loadfont_main(int argc, char **argv);
+int loadfont_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int loadfont_main(int argc, char **argv)
 {
 	int fd;

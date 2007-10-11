@@ -95,7 +95,7 @@ static void lsattr_args(const char *name)
 	}
 }
 
-int lsattr_main(int argc, char **argv);
+int lsattr_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int lsattr_main(int argc, char **argv)
 {
 	getopt32(argv, "Radlv");

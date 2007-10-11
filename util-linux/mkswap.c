@@ -8,7 +8,7 @@
 
 #include "libbb.h"
 
-int mkswap_main(int argc, char **argv);
+int mkswap_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int mkswap_main(int argc, char **argv)
 {
 	int fd, pagesize;

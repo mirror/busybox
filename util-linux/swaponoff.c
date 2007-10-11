@@ -58,7 +58,7 @@ static int do_em_all(void)
 	return err;
 }
 
-int swap_on_off_main(int argc, char **argv);
+int swap_on_off_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int swap_on_off_main(int argc, char **argv)
 {
 	int ret;

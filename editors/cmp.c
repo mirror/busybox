@@ -42,7 +42,7 @@ static const char opt_chars[] ALIGN1 = "sl";
 #define CMP_OPT_s (1<<0)
 #define CMP_OPT_l (1<<1)
 
-int cmp_main(int argc, char **argv);
+int cmp_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int cmp_main(int argc, char **argv)
 {
 	FILE *fp1, *fp2, *outfile = stdout;

@@ -12,7 +12,7 @@
 #include <sys/klog.h>
 #include "libbb.h"
 
-int dmesg_main(int argc, char **argv);
+int dmesg_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int dmesg_main(int argc, char **argv)
 {
 	char *size, *level;

@@ -33,7 +33,7 @@ static void acquire_vt(int signo)
 	ioctl(vfd, VT_RELDISP, VT_ACKACQ);
 }
 
-int vlock_main(int argc, char **argv);
+int vlock_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int vlock_main(int argc, char **argv)
 {
 	sigset_t sig;

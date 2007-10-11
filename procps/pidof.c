@@ -16,7 +16,7 @@ enum {
 	OPT_OMIT   = USE_FEATURE_PIDOF_OMIT(  (1<<OPTBIT_OMIT  )) + 0,
 };
 
-int pidof_main(int argc, char **argv);
+int pidof_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int pidof_main(int argc, char **argv)
 {
 	unsigned first = 1;

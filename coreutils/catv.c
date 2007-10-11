@@ -12,7 +12,7 @@
 
 #include "libbb.h"
 
-int catv_main(int argc, char **argv);
+int catv_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int catv_main(int argc, char **argv)
 {
 	int retval = EXIT_SUCCESS;

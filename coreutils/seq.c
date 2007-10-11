@@ -12,7 +12,7 @@
 /* This is a NOFORK applet. Be very careful! */
 
 
-int seq_main(int argc, char **argv);
+int seq_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int seq_main(int argc, char **argv)
 {
 	double last, increment, i;

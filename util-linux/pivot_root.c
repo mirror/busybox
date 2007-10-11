@@ -12,7 +12,7 @@
 
 extern int pivot_root(const char * new_root,const char * put_old);
 
-int pivot_root_main(int argc, char **argv);
+int pivot_root_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int pivot_root_main(int argc, char **argv)
 {
 	if (argc != 3)

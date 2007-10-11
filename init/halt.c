@@ -10,7 +10,7 @@
 #include "libbb.h"
 #include <sys/reboot.h>
 
-int halt_main(int argc, char **argv);
+int halt_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int halt_main(int argc, char **argv)
 {
 	static const int magic[] = {

@@ -142,7 +142,7 @@ static void change_attributes(const char *name, struct globals *gp)
 		iterate_on_dir(name, chattr_dir_proc, gp);
 }
 
-int chattr_main(int argc, char **argv);
+int chattr_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int chattr_main(int argc, char **argv)
 {
 	struct globals g;

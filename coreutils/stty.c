@@ -911,7 +911,7 @@ static void set_control_char_or_die(const struct control_info *info,
 #define STTY_verbose_output     (1<<2)
 #define STTY_recoverable_output (1<<3)
 #define STTY_noargs             (1<<4)
-int stty_main(int argc, char **argv);
+int stty_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int stty_main(int argc, char **argv)
 {
 	struct termios mode;

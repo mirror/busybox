@@ -165,7 +165,7 @@ static void cut_file(FILE * file)
 
 static const char _op_on_field[] ALIGN1 = " only when operating on fields";
 
-int cut_main(int argc, char **argv);
+int cut_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int cut_main(int argc, char **argv)
 {
 	char *sopt, *ltok;

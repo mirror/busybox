@@ -35,7 +35,7 @@ static void klogd_signal(int sig ATTRIBUTE_UNUSED)
 #define KLOGD_LOGBUF_SIZE BUFSIZ
 #define log_buffer bb_common_bufsiz1
 
-int klogd_main(int argc, char **argv);
+int klogd_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int klogd_main(int argc, char **argv)
 {
 	int i = i; /* silence gcc */

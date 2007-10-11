@@ -11,7 +11,7 @@
 
 #include "libbb.h"
 
-int losetup_main(int argc, char **argv);
+int losetup_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int losetup_main(int argc, char **argv)
 {
 	char dev[] = LOOP_NAME"0";

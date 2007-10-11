@@ -80,7 +80,7 @@ static void fileaction_dobackup(char *filename, int fileref);
 static void fileaction_setowngrp(char *filename, int fileref);
 static void loop_through_files(int filetag, void (*fileaction)(char *filename, int fileref));
 
-int rpm_main(int argc, char **argv);
+int rpm_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int rpm_main(int argc, char **argv)
 {
 	int opt = 0, func = 0, rpm_fd, offset;

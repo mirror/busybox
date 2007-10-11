@@ -7,7 +7,7 @@
 
 #include "libbb.h"
 
-int cryptpw_main(int argc, char **argv);
+int cryptpw_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int cryptpw_main(int argc, char **argv)
 {
 	char salt[sizeof("$N$XXXXXXXX")];

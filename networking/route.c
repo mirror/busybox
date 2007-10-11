@@ -640,7 +640,7 @@ static const char tbl_verb[] ALIGN1 =
 	"\010\002delete"  /* Since it's last, we can save a byte. */
 ;
 
-int route_main(int argc, char **argv);
+int route_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int route_main(int argc, char **argv)
 {
 	unsigned opt;

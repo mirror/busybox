@@ -11,7 +11,7 @@
 
 #include "libbb.h"
 
-int setlogcons_main(int argc, char **argv);
+int setlogcons_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int setlogcons_main(int argc, char **argv)
 {
 	struct {

@@ -7,7 +7,7 @@
 #include "common.h"
 #include "dhcpd.h"
 
-int dumpleases_main(int argc, char **argv);
+int dumpleases_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int dumpleases_main(int argc, char **argv)
 {
 	int fd;

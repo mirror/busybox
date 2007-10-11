@@ -66,7 +66,7 @@ static void setdefaultfilecon(const char *path)
 
 #endif
 
-int install_main(int argc, char **argv);
+int install_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int install_main(int argc, char **argv)
 {
 	struct stat statbuf;

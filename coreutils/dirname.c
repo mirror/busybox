@@ -14,7 +14,7 @@
 
 /* This is a NOFORK applet. Be very careful! */
 
-int dirname_main(int argc, char **argv);
+int dirname_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int dirname_main(int argc, char **argv)
 {
 	if (argc != 2) {

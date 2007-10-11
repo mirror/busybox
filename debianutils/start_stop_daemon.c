@@ -234,7 +234,7 @@ enum {
 	OPT_NICELEVEL  = 0x4000 * ENABLE_FEATURE_START_STOP_DAEMON_FANCY, // -N
 };
 
-int start_stop_daemon_main(int argc, char **argv);
+int start_stop_daemon_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int start_stop_daemon_main(int argc, char **argv)
 {
 	unsigned opt;

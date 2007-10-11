@@ -6,7 +6,7 @@
 
 /* This is a NOFORK applet. Be very careful! */
 
-int length_main(int argc, char **argv);
+int length_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int length_main(int argc, char **argv)
 {
 	if ((argc != 2) || (**(++argv) == '-')) {

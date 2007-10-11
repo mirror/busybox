@@ -21,7 +21,7 @@
 #define OPT_REMOUNT             (1 << 4)
 #define OPT_ALL                 (ENABLE_FEATURE_UMOUNT_ALL ? (1 << 5) : 0)
 
-int umount_main(int argc, char **argv);
+int umount_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int umount_main(int argc, char **argv)
 {
 	int doForce;

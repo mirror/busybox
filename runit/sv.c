@@ -411,7 +411,7 @@ static int control(const char *a)
 	return 1;
 }
 
-int sv_main(int argc, char **argv);
+int sv_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int sv_main(int argc, char **argv)
 {
 	unsigned opt;

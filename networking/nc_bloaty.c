@@ -668,7 +668,7 @@ Debug("wrote %d to net, errno %d", rr, errno);
 } /* readwrite */
 
 /* main: now we pull it all together... */
-int nc_main(int argc, char **argv);
+int nc_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int nc_main(int argc, char **argv)
 {
 	char *str_p, *str_s, *str_w;

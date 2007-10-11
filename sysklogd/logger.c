@@ -81,7 +81,7 @@ static int pencode(char *s)
 }
 
 
-int logger_main(int argc, char **argv);
+int logger_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int logger_main(int argc, char **argv)
 {
 	char *str_p, *str_t;

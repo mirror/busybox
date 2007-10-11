@@ -249,7 +249,7 @@ static void sigalrm_handler(int ATTRIBUTE_UNUSED signum)
 {
 }
 
-int rx_main(int argc, char **argv);
+int rx_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int rx_main(int argc, char **argv)
 {
 	char *fn;

@@ -20,7 +20,7 @@ onintr(int sig ATTRIBUTE_UNUSED)
 	exit(1);
 }
 
-int resize_main(int argc, char **argv);
+int resize_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int resize_main(int argc, char **argv)
 {
 	struct termios new;

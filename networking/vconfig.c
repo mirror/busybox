@@ -106,7 +106,7 @@ static const char name_types[] ALIGN1 = {
 
 static const char conf_file_name[] ALIGN1 = "/proc/net/vlan/config";
 
-int vconfig_main(int argc, char **argv);
+int vconfig_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int vconfig_main(int argc, char **argv)
 {
 	struct vlan_ioctl_args ifr;

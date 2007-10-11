@@ -13,7 +13,7 @@
 #include "libbb.h"
 #include "libcoreutils/coreutils.h"
 
-int mkfifo_main(int argc, char **argv);
+int mkfifo_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int mkfifo_main(int argc, char **argv)
 {
 	mode_t mode;

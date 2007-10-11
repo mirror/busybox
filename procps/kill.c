@@ -24,7 +24,7 @@
  * This is needed to avoid collision with kill -9 ... syntax
  */
 
-int kill_main(int argc, char **argv);
+int kill_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int kill_main(int argc, char **argv)
 {
 	char *arg;

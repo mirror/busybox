@@ -699,7 +699,7 @@ static void update_utmp(const char *line)
 #endif /* SYSV_STYLE */
 
 
-int getty_main(int argc, char **argv);
+int getty_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int getty_main(int argc, char **argv)
 {
 	int nullfd;

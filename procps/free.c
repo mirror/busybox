@@ -11,7 +11,7 @@
 
 #include "libbb.h"
 
-int free_main(int argc, char **argv);
+int free_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int free_main(int argc, char **argv)
 {
 	struct sysinfo info;

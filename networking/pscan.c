@@ -30,7 +30,7 @@ static const char *port_name(unsigned port)
 /* We don't expect to see 1000+ seconds delay, unsigned is enough */
 #define MONOTONIC_US() ((unsigned)monotonic_us())
 
-int pscan_main(int argc, char **argv);
+int pscan_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int pscan_main(int argc, char **argv)
 {
 	const char *opt_max_port = "1024";      /* -P: default max port */

@@ -219,7 +219,7 @@ static void alarm_handler(int sig ATTRIBUTE_UNUSED)
 	exit(EXIT_SUCCESS);
 }
 
-int login_main(int argc, char **argv);
+int login_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int login_main(int argc, char **argv)
 {
 	enum {

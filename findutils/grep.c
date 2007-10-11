@@ -393,7 +393,7 @@ static int grep_dir(const char *dir)
 	return matched;
 }
 
-int grep_main(int argc, char **argv);
+int grep_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int grep_main(int argc, char **argv)
 {
 	FILE *file;

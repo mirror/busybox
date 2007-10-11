@@ -279,7 +279,7 @@ static void dhcprelay_loop(int *fds, int num_sockets, int max_socket, char **cli
 	}
 }
 
-int dhcprelay_main(int argc, char **argv);
+int dhcprelay_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int dhcprelay_main(int argc, char **argv)
 {
 	int num_sockets, max_socket;

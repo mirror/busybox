@@ -39,7 +39,7 @@ static void idle_string(char *str6, time_t t)
 	strcpy(str6, "old");
 }
 
-int who_main(int argc, char **argv);
+int who_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int who_main(int argc, char **argv)
 {
 	char str6[6];

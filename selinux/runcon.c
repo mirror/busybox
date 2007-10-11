@@ -87,7 +87,7 @@ static const char runcon_longopts[] ALIGN1 =
 #define OPTS_HELP	(1<<5)	/* h */
 #define OPTS_CONTEXT_COMPONENT		(OPTS_ROLE | OPTS_TYPE | OPTS_USER | OPTS_RANGE)
 
-int runcon_main(int argc, char **argv);
+int runcon_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int runcon_main(int argc, char **argv)
 {
 	char *role = NULL;

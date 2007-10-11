@@ -14,7 +14,7 @@
 /* From <linux/fd.h> */
 #define FDFLUSH  _IO(2,0x4b)
 
-int freeramdisk_main(int argc, char **argv);
+int freeramdisk_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int freeramdisk_main(int argc, char **argv)
 {
 	int fd;

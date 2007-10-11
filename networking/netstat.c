@@ -484,7 +484,7 @@ static void do_info(const char *file, const char *name, void (*proc)(int, const 
  * Our main function.
  */
 
-int netstat_main(int argc, char **argv);
+int netstat_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int netstat_main(int argc, char **argv)
 {
 	const char *net_conn_line_header = PRINT_NET_CONN_HEADER;

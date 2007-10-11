@@ -127,7 +127,7 @@ const struct bb_applet *find_applet_by_name(const char *name)
 int *const bb_errno __attribute__ ((section (".data")));
 #endif
 
-void bbox_prepare_main(char **argv)
+void lbb_prepare(char **argv)
 {
 #ifdef __GLIBC__
 	(*(int **)&bb_errno) = __errno_location();
@@ -661,12 +661,12 @@ void run_applet_and_exit(const char *name, char **argv)
 
 
 #if ENABLE_BUILD_LIBBUSYBOX
-int libbusybox_main(int argc, char **argv)
+int lbb_main(int argc, char **argv)
 #else
 int main(int argc, char **argv)
 #endif
 {
-	bbox_prepare_main(argv);
+	lbb_prepare(argv);
 
 #if !BB_MMU
 	/* NOMMU re-exec trick sets high-order bit in first byte of name */

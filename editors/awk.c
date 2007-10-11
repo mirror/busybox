@@ -2752,7 +2752,7 @@ static rstream *next_input_file(void)
 #undef files_happen
 }
 
-int awk_main(int argc, char **argv);
+int awk_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int awk_main(int argc, char **argv)
 {
 	unsigned opt;

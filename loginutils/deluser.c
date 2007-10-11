@@ -93,7 +93,7 @@ static void del_line_matching(char **args,
 	free(new);
 }
 
-int deluser_main(int argc, char **argv);
+int deluser_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int deluser_main(int argc, char **argv)
 {
 	if (argc == 2

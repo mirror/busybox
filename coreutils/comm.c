@@ -35,7 +35,7 @@ static void writeline(char *line, int class, int flags)
 	fputs(line, stdout);
 }
 
-int comm_main(int argc, char **argv);
+int comm_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int comm_main(int argc, char **argv)
 {
 #define LINE_LEN 100

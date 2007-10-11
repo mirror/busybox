@@ -74,7 +74,7 @@ static unsigned sum_file(const char *file, const unsigned type)
 #undef buf
 }
 
-int sum_main(int argc, char **argv);
+int sum_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int sum_main(int argc, char **argv)
 {
 	unsigned n;

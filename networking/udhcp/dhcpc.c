@@ -140,7 +140,7 @@ static uint8_t* alloc_dhcp_option(int code, const char *str, int extra)
 }
 
 
-int udhcpc_main(int argc, char **argv);
+int udhcpc_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int udhcpc_main(int argc, char **argv)
 {
 	uint8_t *temp, *message;

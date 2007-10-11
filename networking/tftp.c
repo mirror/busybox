@@ -391,7 +391,7 @@ static int tftp( USE_GETPUT(const int cmd,)
 	return finished == 0; /* returns 1 on failure */
 }
 
-int tftp_main(int argc, char **argv);
+int tftp_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int tftp_main(int argc, char **argv)
 {
 	len_and_sockaddr *peer_lsa;

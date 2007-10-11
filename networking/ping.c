@@ -173,7 +173,7 @@ static void ping6(len_and_sockaddr *lsa)
 }
 #endif
 
-int ping_main(int argc, char **argv);
+int ping_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int ping_main(int argc, char **argv)
 {
 	len_and_sockaddr *lsa;
@@ -676,7 +676,7 @@ static void ping(len_and_sockaddr *lsa)
 		ping4(lsa);
 }
 
-int ping_main(int argc, char **argv);
+int ping_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int ping_main(int argc, char **argv)
 {
 	len_and_sockaddr *lsa;
@@ -724,7 +724,7 @@ int ping_main(int argc, char **argv)
 
 
 #if ENABLE_PING6
-int ping6_main(int argc, char **argv);
+int ping6_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int ping6_main(int argc, char **argv)
 {
 	argv[0] = (char*)"-6";

@@ -29,7 +29,7 @@ static unsigned long kscale(unsigned long b, unsigned long bs)
 }
 #endif
 
-int df_main(int argc, char **argv);
+int df_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int df_main(int argc, char **argv)
 {
 	unsigned long blocks_used;

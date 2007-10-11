@@ -279,8 +279,8 @@ static const char getopt_longopts[] ALIGN1 =
 	;
 #endif
 
-int getopt_main(int argc, char *argv[]);
-int getopt_main(int argc, char *argv[])
+int getopt_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
+int getopt_main(int argc, char **argv)
 {
 	char *optstr = NULL;
 	char *name = NULL;

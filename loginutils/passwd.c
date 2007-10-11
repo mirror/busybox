@@ -70,7 +70,7 @@ static char* new_password(const struct passwd *pw, uid_t myuid, int algo)
 	return ret;
 }
 
-int passwd_main(int argc, char **argv);
+int passwd_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int passwd_main(int argc, char **argv)
 {
 	enum {

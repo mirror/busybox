@@ -336,7 +336,7 @@ static unsigned int scan_dev_name(const char *d, unsigned int n, const char *ptr
 
 /*  Public functions follow  */
 
-int devfsd_main(int argc, char **argv);
+int devfsd_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int devfsd_main(int argc, char **argv)
 {
 	int print_version = FALSE;

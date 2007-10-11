@@ -11,7 +11,7 @@
 
 #include "libbb.h"
 
-int mountpoint_main(int argc, char **argv);
+int mountpoint_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int mountpoint_main(int argc, char **argv)
 {
 	struct stat st;

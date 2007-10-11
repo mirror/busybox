@@ -156,7 +156,7 @@ static unsigned ALWAYS_INLINE ms_rdelay(unsigned secs)
 /**
  * main program
  */
-int zcip_main(int argc, char **argv);
+int zcip_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int zcip_main(int argc, char **argv)
 {
 	int state = PROBE;

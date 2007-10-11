@@ -197,7 +197,7 @@ static int number_of_tokens(char *buffer)
 	return i;
 }
 
-int dc_main(int argc, char **argv);
+int dc_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int dc_main(int argc, char **argv)
 {
 	/* take stuff from stdin if no args are given */

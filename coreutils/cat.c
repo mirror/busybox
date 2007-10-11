@@ -43,7 +43,7 @@ int bb_cat(char **argv)
 	return retval;
 }
 
-int cat_main(int argc, char **argv);
+int cat_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int cat_main(int argc, char **argv)
 {
 	getopt32(argv, "u");

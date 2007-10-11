@@ -4,7 +4,7 @@
  */
 #include "libbb.h"
 
-int load_policy_main(int argc, char **argv);
+int load_policy_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int load_policy_main(int argc, char **argv)
 {
 	int rc;

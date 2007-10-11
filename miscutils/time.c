@@ -402,7 +402,7 @@ static void run_command(char *const *cmd, resource_t * resp)
 	signal(SIGQUIT, quit_signal);
 }
 
-int time_main(int argc, char **argv);
+int time_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int time_main(int argc, char **argv)
 {
 	resource_t res;

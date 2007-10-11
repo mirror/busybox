@@ -74,7 +74,7 @@ enum {
 	NEW_MOD_INITIALIZING = 64
 };
 
-int lsmod_main(int argc, char **argv);
+int lsmod_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int lsmod_main(int argc, char **argv)
 {
 	struct module_info info;
@@ -140,7 +140,7 @@ int lsmod_main(int argc, char **argv)
 
 #else /* CONFIG_FEATURE_QUERY_MODULE_INTERFACE */
 
-int lsmod_main(int argc, char **argv);
+int lsmod_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int lsmod_main(int argc, char **argv)
 {
 	FILE *file = xfopen("/proc/modules", "r");

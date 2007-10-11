@@ -48,12 +48,22 @@ struct bb_applet {
 #endif
 };
 
+
 /* Defined in appletlib.c */
 extern const struct bb_applet applets[];
 extern const unsigned short NUM_APPLETS;
-void bbox_prepare_main(char **argv);
+
+/* Length of these names has effect on size of libbusybox
+ * and "individual" binaries. Keep them short.
+ */
+void lbb_prepare(char **argv) MAIN_EXTERNALLY_VISIBLE;
 #if ENABLE_BUILD_LIBBUSYBOX
-int libbusybox_main(int argc, char **argv);
+#if ENABLE_FEATURE_SHARED_BUSYBOX
+int lbb_main(int argc, char **argv) EXTERNALLY_VISIBLE;
+#else
+int lbb_main(int argc, char **argv);
 #endif
+#endif
+
 
 #endif	/* _BB_INTERNAL_H_ */

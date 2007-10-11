@@ -16,7 +16,7 @@
 
 #include "libbb.h"
 
-int setsid_main(int argc, char **argv);
+int setsid_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int setsid_main(int argc, char **argv)
 {
 	if (argc < 2)

@@ -769,7 +769,7 @@ static const char tar_longopts[] ALIGN1 =
 	;
 #endif
 
-int tar_main(int argc, char **argv);
+int tar_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int tar_main(int argc, char **argv)
 {
 	char (*get_header_ptr)(archive_handle_t *) = get_header_tar;

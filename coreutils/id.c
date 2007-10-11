@@ -36,7 +36,7 @@ static int printf_full(unsigned int id, const char *arg, const char prefix)
 	return status;
 }
 
-int id_main(int argc, char **argv);
+int id_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int id_main(int argc, char **argv)
 {
 	struct passwd *p;

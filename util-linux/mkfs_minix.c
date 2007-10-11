@@ -603,7 +603,7 @@ static void setup_tables(void)
 	printf("Maxsize=%ld\n", (long)SB_MAXSIZE);
 }
 
-int mkfs_minix_main(int argc, char **argv);
+int mkfs_minix_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int mkfs_minix_main(int argc, char **argv)
 {
 	struct mntent *mp;

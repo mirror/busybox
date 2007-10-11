@@ -2025,7 +2025,7 @@ USE_DESKTOP(long long) int pack_gzip(void)
 	return 0;
 }
 
-int gzip_main(int argc, char **argv);
+int gzip_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int gzip_main(int argc, char **argv)
 {
 	unsigned opt;

@@ -120,7 +120,7 @@ static const char chcon_longopts[] ALIGN1 =
 	;
 #endif
 
-int chcon_main(int argc, char **argv);
+int chcon_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int chcon_main(int argc, char **argv)
 {
 	char *reference_file;

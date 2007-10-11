@@ -42,7 +42,7 @@ static time_t askremotedate(const char *host)
 	return ntohl(nett) - RFC_868_BIAS;
 }
 
-int rdate_main(int argc, char **argv);
+int rdate_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int rdate_main(int argc, char **argv)
 {
 	time_t remote_time;

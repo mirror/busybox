@@ -56,10 +56,13 @@ ifeq ($(CONFIG_DEBUG),y)
 CFLAGS += $(call cc-option,-g)
 endif
 
+ifeq ($(CONFIG_BUILD_LIBBUSYBOX),y)
 # on i386: 14% smaller libbusybox.so
 # (code itself is 9% bigger, we save on relocs/PLT/GOT)
-ifeq ($(CONFIG_BUILD_LIBBUSYBOX),y)
 CFLAGS += -fpic
+# and another 4% reduction of libbusybox.so:
+# (external entry points must be marked EXTERNALLY_VISIBLE)
+CFLAGS += $(call cc-option,-fvisibility=hidden)
 endif
 
 ifeq ($(CONFIG_STATIC),y)

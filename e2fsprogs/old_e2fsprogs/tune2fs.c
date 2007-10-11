@@ -577,7 +577,7 @@ static void tune2fs_clean_up(void)
 	if (ENABLE_FEATURE_CLEAN_UP && journal_device) free(journal_device);
 }
 
-int tune2fs_main(int argc, char **argv);
+int tune2fs_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int tune2fs_main(int argc, char **argv)
 {
 	errcode_t retval;

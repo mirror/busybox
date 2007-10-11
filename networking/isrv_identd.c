@@ -92,7 +92,7 @@ static void inetd_mode(void)
 	while (do_rd(0, (void*)&buf) == 0);
 }
 
-int fakeidentd_main(int argc, char **argv);
+int fakeidentd_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int fakeidentd_main(int argc, char **argv)
 {
 	enum {

@@ -73,7 +73,7 @@ static bool write_and_stats(int fd, const void *buf, size_t len, size_t obs,
 #define XATOU_SFX xatoul_sfx
 #endif
 
-int dd_main(int argc, char **argv);
+int dd_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int dd_main(int argc, char **argv)
 {
 	enum {

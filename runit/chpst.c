@@ -289,7 +289,7 @@ static void envuidgid(int, char **) ATTRIBUTE_NORETURN;
 static void envdir(int, char **) ATTRIBUTE_NORETURN;
 static void softlimit(int, char **) ATTRIBUTE_NORETURN;
 
-int chpst_main(int argc, char **argv);
+int chpst_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int chpst_main(int argc, char **argv)
 {
 	INIT_G();

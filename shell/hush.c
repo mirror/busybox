@@ -3675,7 +3675,7 @@ static void setup_job_control(void)
 }
 #endif
 
-int hush_main(int argc, char **argv);
+int hush_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int hush_main(int argc, char **argv)
 {
 	static const char version_str[] ALIGN1 = "HUSH_VERSION="HUSH_VER_STR;

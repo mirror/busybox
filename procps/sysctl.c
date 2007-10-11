@@ -59,7 +59,7 @@ static void dwrite_str(int fd, const char *buf)
 /*
  *    sysctl_main()...
  */
-int sysctl_main(int argc, char **argv);
+int sysctl_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int sysctl_main(int argc, char **argv)
 {
 	int retval = 0;

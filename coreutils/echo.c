@@ -119,8 +119,8 @@ int bb_echo(char **argv)
 
 /* This is a NOFORK applet. Be very careful! */
 
-int echo_main(int argc, char** argv);
-int echo_main(int argc, char** argv)
+int echo_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
+int echo_main(int argc, char **argv)
 {
 	return bb_echo(argv);
 }

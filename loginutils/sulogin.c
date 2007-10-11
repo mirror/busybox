@@ -34,7 +34,7 @@ static void catchalarm(int ATTRIBUTE_UNUSED junk)
 }
 
 
-int sulogin_main(int argc, char **argv);
+int sulogin_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int sulogin_main(int argc, char **argv)
 {
 	char *cp;

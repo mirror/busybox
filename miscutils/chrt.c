@@ -41,8 +41,8 @@ static void show_min_max(int pol)
 #define OPT_f (1<<3)
 #define OPT_o (1<<4)
 
-int chrt_main(int argc, char** argv);
-int chrt_main(int argc, char** argv)
+int chrt_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
+int chrt_main(int argc, char **argv)
 {
 	pid_t pid = 0;
 	unsigned opt;

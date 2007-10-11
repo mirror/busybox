@@ -13,7 +13,7 @@
 
 /* This is a NOFORK applet. Be very careful! */
 
-int usleep_main(int argc, char **argv);
+int usleep_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int usleep_main(int argc, char **argv)
 {
 	if (argc != 2) {

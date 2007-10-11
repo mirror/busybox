@@ -67,7 +67,7 @@ static int fileAction(const char *fileName, struct stat *statbuf, void* param, i
 	return FALSE;
 }
 
-int chmod_main(int argc, char **argv);
+int chmod_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int chmod_main(int argc, char **argv)
 {
 	int retval = EXIT_SUCCESS;

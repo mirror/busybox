@@ -861,8 +861,8 @@ static int mod_remove(char *mod)
 	return rc;
 }
 
-int modprobe_main(int argc, char** argv);
-int modprobe_main(int argc, char** argv)
+int modprobe_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
+int modprobe_main(int argc, char **argv)
 {
 	int rc = EXIT_SUCCESS;
 	char *unused;

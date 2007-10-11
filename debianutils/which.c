@@ -12,7 +12,7 @@
 
 #include "libbb.h"
 
-int which_main(int argc, char **argv);
+int which_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int which_main(int argc, char **argv)
 {
 	int status = EXIT_SUCCESS;

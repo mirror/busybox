@@ -21,7 +21,7 @@
 /* This is a NOEXEC applet. Be very careful! */
 
 
-int cp_main(int argc, char **argv);
+int cp_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int cp_main(int argc, char **argv)
 {
 	struct stat source_stat;

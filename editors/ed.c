@@ -88,7 +88,7 @@ static char *skip_blank(const char *cp)
 }
 
 
-int ed_main(int argc, char **argv);
+int ed_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int ed_main(int argc, char **argv)
 {
 	INIT_G();

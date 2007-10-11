@@ -9,7 +9,7 @@
  */
 #include "libbb.h"
 
-int microcom_main(int argc, char **argv);
+int microcom_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int microcom_main(int argc, char **argv)
 {
 	struct pollfd pfd[2];

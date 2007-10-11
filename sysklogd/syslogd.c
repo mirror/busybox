@@ -556,7 +556,7 @@ static void do_syslogd(void)
 	} /* for */
 }
 
-int syslogd_main(int argc, char **argv);
+int syslogd_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int syslogd_main(int argc, char **argv)
 {
 	char OPTION_DECL;

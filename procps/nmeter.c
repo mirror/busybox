@@ -770,7 +770,7 @@ static init_func *const init_functions[] = {
 	init_cr
 };
 
-int nmeter_main(int argc, char **argv);
+int nmeter_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int nmeter_main(int argc, char **argv)
 {
 	char buf[32];
