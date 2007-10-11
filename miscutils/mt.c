@@ -6,58 +6,87 @@
 #include "libbb.h"
 #include <sys/mtio.h>
 
-struct mt_opcodes {
-	const char *name;
-	short value;
+/* missing: eod/seod, stoptions, stwrthreshold, densities */
+static const short opcode_value[] = {
+	MTBSF,
+	MTBSFM,
+	MTBSR,
+	MTBSS,
+	MTCOMPRESSION,
+	MTEOM,
+	MTERASE,
+	MTFSF,
+	MTFSFM,
+	MTFSR,
+	MTFSS,
+	MTLOAD,
+	MTLOCK,
+	MTMKPART,
+	MTNOP,
+	MTOFFL,
+	MTOFFL,
+	MTRAS1,
+	MTRAS2,
+	MTRAS3,
+	MTRESET,
+	MTRETEN,
+	MTREW,
+	MTSEEK,
+	MTSETBLK,
+	MTSETDENSITY,
+	MTSETDRVBUFFER,
+	MTSETPART,
+	MTTELL,
+	MTWSM,
+	MTUNLOAD,
+	MTUNLOCK,
+	MTWEOF,
+	MTWEOF
 };
 
-/* missing: eod/seod, stoptions, stwrthreshold, densities */
-static const struct mt_opcodes opcodes[] = {
-	{"bsf", MTBSF},
-	{"bsfm", MTBSFM},
-	{"bsr", MTBSR},
-	{"bss", MTBSS},
-	{"datacompression", MTCOMPRESSION},
-	{"eom", MTEOM},
-	{"erase", MTERASE},
-	{"fsf", MTFSF},
-	{"fsfm", MTFSFM},
-	{"fsr", MTFSR},
-	{"fss", MTFSS},
-	{"load", MTLOAD},
-	{"lock", MTLOCK},
-	{"mkpart", MTMKPART},
-	{"nop", MTNOP},
-	{"offline", MTOFFL},
-	{"rewoffline", MTOFFL},
-	{"ras1", MTRAS1},
-	{"ras2", MTRAS2},
-	{"ras3", MTRAS3},
-	{"reset", MTRESET},
-	{"retension", MTRETEN},
-	{"rewind", MTREW},
-	{"seek", MTSEEK},
-	{"setblk", MTSETBLK},
-	{"setdensity", MTSETDENSITY},
-	{"drvbuffer", MTSETDRVBUFFER},
-	{"setpart", MTSETPART},
-	{"tell", MTTELL},
-	{"wset", MTWSM},
-	{"unload", MTUNLOAD},
-	{"unlock", MTUNLOCK},
-	{"eof", MTWEOF},
-	{"weof", MTWEOF},
-	{0, 0}
-};
+static const char opcode_name[] ALIGN1 =
+	"bsf"             "\0"
+	"bsfm"            "\0"
+	"bsr"             "\0"
+	"bss"             "\0"
+	"datacompression" "\0"
+	"eom"             "\0"
+	"erase"           "\0"
+	"fsf"             "\0"
+	"fsfm"            "\0"
+	"fsr"             "\0"
+	"fss"             "\0"
+	"load"            "\0"
+	"lock"            "\0"
+	"mkpart"          "\0"
+	"nop"             "\0"
+	"offline"         "\0"
+	"rewoffline"      "\0"
+	"ras1"            "\0"
+	"ras2"            "\0"
+	"ras3"            "\0"
+	"reset"           "\0"
+	"retension"       "\0"
+	"rewind"          "\0"
+	"seek"            "\0"
+	"setblk"          "\0"
+	"setdensity"      "\0"
+	"drvbuffer"       "\0"
+	"setpart"         "\0"
+	"tell"            "\0"
+	"wset"            "\0"
+	"unload"          "\0"
+	"unlock"          "\0"
+	"eof"             "\0"
+	"weof"            "\0";
 
 int mt_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int mt_main(int argc, char **argv)
 {
 	const char *file = "/dev/tape";
-	const struct mt_opcodes *code = opcodes;
 	struct mtop op;
 	struct mtpos position;
-	int fd, mode;
+	int fd, mode, idx;
 
 	if (argc < 2) {
 		bb_show_usage();
@@ -72,24 +101,18 @@ int mt_main(int argc, char **argv)
 		argc -= 2;
 	}
 
-	while (code->name != 0) {
-		if (strcmp(code->name, argv[1]) == 0)
-			break;
-		code++;
-	}
+	idx = index_in_strings(opcode_name, argv[1]);
 
-	if (code->name == 0) {
-		bb_error_msg("unrecognized opcode %s", argv[1]);
-		return EXIT_FAILURE;
-	}
+	if (idx < 0)
+		bb_error_msg_and_die("unrecognized opcode %s", argv[1]);
 
-	op.mt_op = code->value;
+	op.mt_op = opcode_value[idx];
 	if (argc >= 3)
 		op.mt_count = xatoi_u(argv[2]);
 	else
 		op.mt_count = 1;		/* One, not zero, right? */
 
-	switch (code->value) {
+	switch (opcode_value[idx]) {
 		case MTWEOF:
 		case MTERASE:
 		case MTWSM:
@@ -104,10 +127,10 @@ int mt_main(int argc, char **argv)
 
 	fd = xopen(file, mode);
 
-	switch (code->value) {
+	switch (opcode_value[idx]) {
 		case MTTELL:
 			ioctl_or_perror_and_die(fd, MTIOCPOS, &position, "%s", file);
-			printf("At block %d.\n", (int) position.mt_blkno);
+			printf("At block %d\n", (int) position.mt_blkno);
 			break;
 
 		default:
