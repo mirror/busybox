@@ -127,29 +127,6 @@ enum {
 	control, input, output, local, combination
 };
 
-static const char evenp     [] ALIGN1 = "evenp";
-static const char raw       [] ALIGN1 = "raw";
-static const char stty_min  [] ALIGN1 = "min";
-static const char stty_time [] ALIGN1 = "time";
-static const char stty_swtch[] ALIGN1 = "swtch";
-static const char stty_eol  [] ALIGN1 = "eol";
-static const char stty_eof  [] ALIGN1 = "eof";
-static const char parity    [] ALIGN1 = "parity";
-static const char stty_oddp [] ALIGN1 = "oddp";
-static const char stty_nl   [] ALIGN1 = "nl";
-static const char stty_ek   [] ALIGN1 = "ek";
-static const char stty_sane [] ALIGN1 = "sane";
-static const char cbreak    [] ALIGN1 = "cbreak";
-static const char stty_pass8[] ALIGN1 = "pass8";
-static const char litout    [] ALIGN1 = "litout";
-static const char cooked    [] ALIGN1 = "cooked";
-static const char decctlq   [] ALIGN1 = "decctlq";
-static const char stty_tabs [] ALIGN1 = "tabs";
-static const char stty_lcase[] ALIGN1 = "lcase";
-static const char stty_LCASE[] ALIGN1 = "LCASE";
-static const char stty_crt  [] ALIGN1 = "crt";
-static const char stty_dec  [] ALIGN1 = "dec";
-
 /* Flags for 'struct mode_info' */
 #define SANE_SET 1              /* Set in 'sane' mode                  */
 #define SANE_UNSET 2            /* Unset in 'sane' mode                */
@@ -158,7 +135,7 @@ static const char stty_dec  [] ALIGN1 = "dec";
 
 /* Each mode */
 struct mode_info {
-	const char *const name;      /* Name given on command line           */
+	const char name[9];           /* Name given on command line           */
 	const unsigned char type;     /* Which structure element to change    */
 	const unsigned char flags;    /* Setting and display options          */
 	/* were using short here, but ppc32 was unhappy: */
@@ -166,13 +143,59 @@ struct mode_info {
 	const tcflag_t bits;          /* Bits to set for this mode            */
 };
 
-/* We can optimize it further by using name[8] instead of char *name */
-/* but beware of "if (info->name == evenp)" checks! */
-/* Need to replace them with "if (info == &mode_info[EVENP_INDX])" */
+enum {
+	/* Must match mode_info[] order! */
+	IDX_evenp = 0,
+	IDX_parity,
+	IDX_oddp,
+	IDX_nl,
+	IDX_ek,
+	IDX_sane,
+	IDX_cooked,
+	IDX_raw,
+	IDX_pass8,
+	IDX_litout,
+	IDX_cbreak,
+	IDX_crt,
+	IDX_dec,
+#ifdef IXANY
+	IDX_decctlq,
+#endif
+#if defined(TABDLY) || defined(OXTABS)
+	IDX_tabs,
+#endif
+#if defined(XCASE) && defined(IUCLC) && defined(OLCUC)
+	IDX_lcase,
+	IDX_LCASE,
+#endif
+};
 
 #define MI_ENTRY(N,T,F,B,M) { N, T, F, M, B }
 
 static const struct mode_info mode_info[] = {
+	MI_ENTRY("evenp",    combination, REV        | OMIT, 0,          0 ),
+	MI_ENTRY("parity",   combination, REV        | OMIT, 0,          0 ),
+	MI_ENTRY("oddp",     combination, REV        | OMIT, 0,          0 ),
+	MI_ENTRY("nl",       combination, REV        | OMIT, 0,          0 ),
+	MI_ENTRY("ek",       combination, OMIT,              0,          0 ),
+	MI_ENTRY("sane",     combination, OMIT,              0,          0 ),
+	MI_ENTRY("cooked",   combination, REV        | OMIT, 0,          0 ),
+	MI_ENTRY("raw",      combination, REV        | OMIT, 0,          0 ),
+	MI_ENTRY("pass8",    combination, REV        | OMIT, 0,          0 ),
+	MI_ENTRY("litout",   combination, REV        | OMIT, 0,          0 ),
+	MI_ENTRY("cbreak",   combination, REV        | OMIT, 0,          0 ),
+	MI_ENTRY("crt",      combination, OMIT,              0,          0 ),
+	MI_ENTRY("dec",      combination, OMIT,              0,          0 ),
+#ifdef IXANY
+	MI_ENTRY("decctlq",  combination, REV        | OMIT, 0,          0 ),
+#endif
+#if defined(TABDLY) || defined(OXTABS)
+	MI_ENTRY("tabs",     combination, REV        | OMIT, 0,          0 ),
+#endif
+#if defined(XCASE) && defined(IUCLC) && defined(OLCUC)
+	MI_ENTRY("lcase",    combination, REV        | OMIT, 0,          0 ),
+	MI_ENTRY("LCASE",    combination, REV        | OMIT, 0,          0 ),
+#endif
 	MI_ENTRY("parenb",   control,     REV,               PARENB,     0 ),
 	MI_ENTRY("parodd",   control,     REV,               PARODD,     0 ),
 	MI_ENTRY("cs5",      control,     0,                 CS5,     CSIZE),
@@ -293,56 +316,70 @@ static const struct mode_info mode_info[] = {
 	MI_ENTRY("echoke",   local,       SANE_SET   | REV,  ECHOKE,     0 ),
 	MI_ENTRY("crtkill",  local,       REV        | OMIT, ECHOKE,     0 ),
 #endif
-	MI_ENTRY(evenp,      combination, REV        | OMIT, 0,          0 ),
-	MI_ENTRY(parity,     combination, REV        | OMIT, 0,          0 ),
-	MI_ENTRY(stty_oddp,  combination, REV        | OMIT, 0,          0 ),
-	MI_ENTRY(stty_nl,    combination, REV        | OMIT, 0,          0 ),
-	MI_ENTRY(stty_ek,    combination, OMIT,              0,          0 ),
-	MI_ENTRY(stty_sane,  combination, OMIT,              0,          0 ),
-	MI_ENTRY(cooked,     combination, REV        | OMIT, 0,          0 ),
-	MI_ENTRY(raw,        combination, REV        | OMIT, 0,          0 ),
-	MI_ENTRY(stty_pass8, combination, REV        | OMIT, 0,          0 ),
-	MI_ENTRY(litout,     combination, REV        | OMIT, 0,          0 ),
-	MI_ENTRY(cbreak,     combination, REV        | OMIT, 0,          0 ),
-#ifdef IXANY
-	MI_ENTRY(decctlq,    combination, REV        | OMIT, 0,          0 ),
-#endif
-#if defined(TABDLY) || defined(OXTABS)
-	MI_ENTRY(stty_tabs,  combination, REV        | OMIT, 0,          0 ),
-#endif
-#if defined(XCASE) && defined(IUCLC) && defined(OLCUC)
-	MI_ENTRY(stty_lcase, combination, REV        | OMIT, 0,          0 ),
-	MI_ENTRY(stty_LCASE, combination, REV        | OMIT, 0,          0 ),
-#endif
-	MI_ENTRY(stty_crt,   combination, OMIT,              0,          0 ),
-	MI_ENTRY(stty_dec,   combination, OMIT,              0,          0 ),
 };
 
 enum {
 	NUM_mode_info = ARRAY_SIZE(mode_info)
 };
 
-/* Control character settings */
+/* Control characters */
 struct control_info {
-	const char *const name;               /* Name given on command line */
+	const char name[7];                   /* Name given on command line */
 	const unsigned char saneval;          /* Value to set for 'stty sane' */
 	const unsigned char offset;           /* Offset in c_cc */
 };
 
-/* Control characters */
+enum {
+	/* Must match control_info[] order! */
+	CIDX_intr = 0,
+	CIDX_quit,
+	CIDX_erase,
+	CIDX_kill,
+	CIDX_eof,
+	CIDX_eol,
+#ifdef VEOL2
+	CIDX_eol2,
+#endif
+#ifdef VSWTCH
+	CIDX_swtch,
+#endif
+	CIDX_start,
+	CIDX_stop,
+	CIDX_susp,
+#ifdef VDSUSP
+	CIDX_dsusp,
+#endif
+#ifdef VREPRINT
+	CIDX_rprnt,
+#endif
+#ifdef VWERASE
+	CIDX_werase,
+#endif
+#ifdef VLNEXT
+	CIDX_lnext,
+#endif
+#ifdef VFLUSHO
+	CIDX_flush,
+#endif
+#ifdef VSTATUS
+	CIDX_status,
+#endif
+	CIDX_min,
+	CIDX_time,
+};
 
 static const struct control_info control_info[] = {
 	{"intr",     CINTR,   VINTR},
 	{"quit",     CQUIT,   VQUIT},
 	{"erase",    CERASE,  VERASE},
 	{"kill",     CKILL,   VKILL},
-	{stty_eof,   CEOF,    VEOF},
-	{stty_eol,   CEOL,    VEOL},
+	{"eof",      CEOF,    VEOF},
+	{"eol",      CEOL,    VEOL},
 #ifdef VEOL2
 	{"eol2",     CEOL2,   VEOL2},
 #endif
 #ifdef VSWTCH
-	{stty_swtch, CSWTCH,  VSWTCH},
+	{"swtch",    CSWTCH,  VSWTCH},
 #endif
 	{"start",    CSTART,  VSTART},
 	{"stop",     CSTOP,   VSTOP},
@@ -366,8 +403,8 @@ static const struct control_info control_info[] = {
 	{"status",   CSTATUS, VSTATUS},
 #endif
 	/* These must be last because of the display routines */
-	{stty_min,   1,       VMIN},
-	{stty_time,  0,       VTIME},
+	{"min",      1,       VMIN},
+	{"time",     0,       VTIME},
 };
 
 enum {
@@ -653,17 +690,19 @@ static void do_display(const struct termios *mode, const int all)
 	wrapf("\n");
 #endif
 
-	for (i = 0; control_info[i].name != stty_min; ++i) {
+	for (i = 0; i != CIDX_min; ++i) {
 		/* If swtch is the same as susp, don't print both */
 #if VSWTCH == VSUSP
-		if (control_info[i].name == stty_swtch)
+		if (i == CIDX_swtch)
 			continue;
 #endif
 		/* If eof uses the same slot as min, only print whichever applies */
 #if VEOF == VMIN
 		if ((mode->c_lflag & ICANON) == 0
-			&& (control_info[i].name == stty_eof
-				|| control_info[i].name == stty_eol)) continue;
+		 && (i == CIDX_eof || i == CIDX_eol)
+		) {
+			continue;
+		}
 #endif
 		wrapf("%s = %s;", control_info[i].name,
 			  visible(mode->c_cc[control_info[i].offset]));
@@ -705,7 +744,7 @@ static void sane_mode(struct termios *mode)
 
 	for (i = 0; i < NUM_control_info; ++i) {
 #if VMIN == VEOF
-		if (control_info[i].name == stty_min)
+		if (i == CIDX_min)
 			break;
 #endif
 		mode->c_cc[control_info[i].offset] = control_info[i].saneval;
@@ -775,17 +814,17 @@ static void set_mode(const struct mode_info *info, int reversed,
 	}
 
 	/* Combination mode */
-	if (info->name == evenp || info->name == parity) {
+	if (info == &mode_info[IDX_evenp] || info == &mode_info[IDX_parity]) {
 		if (reversed)
 			mode->c_cflag = (mode->c_cflag & ~PARENB & ~CSIZE) | CS8;
 		else
 			mode->c_cflag =	(mode->c_cflag & ~PARODD & ~CSIZE) | PARENB | CS7;
-	} else if (info->name == stty_oddp) {
+	} else if (info == &mode_info[IDX_oddp]) {
 		if (reversed)
 			mode->c_cflag = (mode->c_cflag & ~PARENB & ~CSIZE) | CS8;
 		else
 			mode->c_cflag =	(mode->c_cflag & ~CSIZE) | CS7 | PARODD | PARENB;
-	} else if (info->name == stty_nl) {
+	} else if (info == &mode_info[IDX_nl]) {
 		if (reversed) {
 			mode->c_iflag = (mode->c_iflag | ICRNL) & ~INLCR & ~IGNCR;
 			mode->c_oflag = (mode->c_oflag | ONLCR)	& ~OCRNL & ~ONLRET;
@@ -793,18 +832,17 @@ static void set_mode(const struct mode_info *info, int reversed,
 			mode->c_iflag = mode->c_iflag & ~ICRNL;
 			if (ONLCR) mode->c_oflag = mode->c_oflag & ~ONLCR;
 		}
-	} else if (info->name == stty_ek) {
+	} else if (info == &mode_info[IDX_ek]) {
 		mode->c_cc[VERASE] = CERASE;
 		mode->c_cc[VKILL] = CKILL;
-	} else if (info->name == stty_sane) {
+	} else if (info == &mode_info[IDX_sane]) {
 		sane_mode(mode);
-	}
-	else if (info->name == cbreak) {
+	} else if (info == &mode_info[IDX_cbreak]) {
 		if (reversed)
 			mode->c_lflag |= ICANON;
 		else
 			mode->c_lflag &= ~ICANON;
-	} else if (info->name == stty_pass8) {
+	} else if (info == &mode_info[IDX_pass8]) {
 		if (reversed) {
 			mode->c_cflag = (mode->c_cflag & ~CSIZE) | CS7 | PARENB;
 			mode->c_iflag |= ISTRIP;
@@ -812,7 +850,7 @@ static void set_mode(const struct mode_info *info, int reversed,
 			mode->c_cflag = (mode->c_cflag & ~PARENB & ~CSIZE) | CS8;
 			mode->c_iflag &= ~ISTRIP;
 		}
-	} else if (info->name == litout) {
+	} else if (info == &mode_info[IDX_litout]) {
 		if (reversed) {
 			mode->c_cflag = (mode->c_cflag & ~CSIZE) | CS7 | PARENB;
 			mode->c_iflag |= ISTRIP;
@@ -822,9 +860,10 @@ static void set_mode(const struct mode_info *info, int reversed,
 			mode->c_iflag &= ~ISTRIP;
 			mode->c_oflag &= ~OPOST;
 		}
-	} else if (info->name == raw || info->name == cooked) {
+	} else if (info == &mode_info[IDX_raw] || info == &mode_info[IDX_cooked]) {
 		if ((info->name[0] == 'r' && reversed)
-			|| (info->name[0] == 'c' && !reversed)) {
+		 || (info->name[0] == 'c' && !reversed)
+		) {
 			/* Cooked mode */
 			mode->c_iflag |= BRKINT | IGNPAR | ISTRIP | ICRNL | IXON;
 			mode->c_oflag |= OPOST;
@@ -844,26 +883,27 @@ static void set_mode(const struct mode_info *info, int reversed,
 			mode->c_cc[VTIME] = 0;
 		}
 	}
-	else if (IXANY && info->name == decctlq) {
+	else if (IXANY && info == &mode_info[IDX_decctlq]) {
 		if (reversed)
 			mode->c_iflag |= IXANY;
 		else
 			mode->c_iflag &= ~IXANY;
 	}
-	else if (TABDLY && info->name == stty_tabs) {
+	else if (TABDLY && info == &mode_info[IDX_tabs]) {
 		if (reversed)
 			mode->c_oflag = (mode->c_oflag & ~TABDLY) | TAB3;
 		else
 			mode->c_oflag = (mode->c_oflag & ~TABDLY) | TAB0;
 	}
-	else if (OXTABS && info->name == stty_tabs) {
+	else if (OXTABS && info == &mode_info[IDX_tabs]) {
 		if (reversed)
 			mode->c_oflag |= OXTABS;
 		else
 			mode->c_oflag &= ~OXTABS;
-	}
-	else if (XCASE && IUCLC && OLCUC
-	&& (info->name == stty_lcase || info->name == stty_LCASE)) {
+	} else
+	if (XCASE && IUCLC && OLCUC
+	 && (info == &mode_info[IDX_lcase] || info == &mode_info[IDX_LCASE])
+	) {
 		if (reversed) {
 			mode->c_lflag &= ~XCASE;
 			mode->c_iflag &= ~IUCLC;
@@ -873,11 +913,9 @@ static void set_mode(const struct mode_info *info, int reversed,
 			mode->c_iflag |= IUCLC;
 			mode->c_oflag |= OLCUC;
 		}
-	}
-	else if (info->name == stty_crt) {
+	} else if (info == &mode_info[IDX_crt]) {
 		mode->c_lflag |= ECHOE | ECHOCTL | ECHOKE;
-	}
-	else if (info->name == stty_dec) {
+	} else if (info == &mode_info[IDX_dec]) {
 		mode->c_cc[VINTR] = 3; /* ^C */
 		mode->c_cc[VERASE] = 127; /* DEL */
 		mode->c_cc[VKILL] = 21; /* ^U */
@@ -891,7 +929,7 @@ static void set_control_char_or_die(const struct control_info *info,
 {
 	unsigned char value;
 
-	if (info->name == stty_min || info->name == stty_time)
+	if (info == &control_info[CIDX_min] || info == &control_info[CIDX_time])
 		value = xatoul_range_sfx(arg, 0, 0xff, stty_suffixes);
 	else if (arg[0] == '\0' || arg[1] == '\0')
 		value = arg[0];
