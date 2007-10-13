@@ -54,7 +54,8 @@
 # define ATTRIBUTE_ALIGNED(m) __attribute__ ((__aligned__(m)))
 # if __GNUC_PREREQ (3,0)
 #  define ALWAYS_INLINE __attribute__ ((always_inline)) inline
-#  define NOINLINE      __attribute__((noinline))
+/* I've seen a toolchain where I needed __noinline__ instead of noinline */
+#  define NOINLINE      __attribute__((__noinline__))
 #  if !ENABLE_WERROR
 #   define ATTRIBUTE_DEPRECATED __attribute__ ((__deprecated__))
 #   define ATTRIBUTE_UNUSED_RESULT __attribute__ ((warn_unused_result))
@@ -63,7 +64,8 @@
 #   define ATTRIBUTE_UNUSED_RESULT /* n/a */
 #  endif
 # else
-#  define ALWAYS_INLINE inline
+#  define ALWAYS_INLINE inline /* n/a */
+#  define NOINLINE /* n/a */
 #  define ATTRIBUTE_DEPRECATED /* n/a */
 #  define ATTRIBUTE_UNUSED_RESULT /* n/a */
 # endif

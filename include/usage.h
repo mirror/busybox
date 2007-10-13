@@ -127,6 +127,16 @@
        "	-c	Write output to standard output\n" \
        "	-f	Force"
 
+#define bzip2_trivial_usage \
+       "[OPTION]... [FILE]..."
+#define bzip2_full_usage \
+       "Compress FILE(s) with bzip2 algorithm.\n" \
+       "When FILE is '-' or unspecified, reads standard input. Implies -c." \
+       "\n\nOptions:\n" \
+       "	-c	Write output to standard output instead of FILE.bz\n" \
+       "	-d	Decompress\n" \
+       "	-f	Force"
+
 #define busybox_notes_usage \
        "Hello world!\n"
 
@@ -1201,7 +1211,7 @@
        "Uncompress FILE (or standard input if FILE is '-')" \
        "\n\nOptions:\n" \
        "	-c	Write output to standard output\n" \
-       "	-f	Force read when source is a terminal\n" \
+       "	-f	Force\n" \
        "	-t	Test compressed file integrity"
 #define gunzip_example_usage \
        "$ ls -la /tmp/BusyBox*\n" \
@@ -1218,7 +1228,7 @@
        "\n\nOptions:\n" \
        "	-c	Write output to standard output instead of FILE.gz\n" \
        "	-d	Decompress\n" \
-       "	-f	Force write when destination is a terminal"
+       "	-f	Force"
 #define gzip_example_usage \
        "$ ls -la /tmp/busybox*\n" \
        "-rw-rw-r--    1 andersen andersen  1761280 Apr 14 17:47 /tmp/busybox.tar\n" \

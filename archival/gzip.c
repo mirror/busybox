@@ -2032,15 +2032,14 @@ int gzip_main(int argc, char **argv)
 
 	/* Must match bbunzip's constants OPT_STDOUT, OPT_FORCE! */
 	opt = getopt32(argv, "cfv" USE_GUNZIP("d") "q123456789" );
-	option_mask32 &= 0x7; /* Clear -d, ignore -q, -0..9 */
+#if ENABLE_GUNZIP /* gunzip_main may not be visible... */
+	if (opt & 0x8) // -d
+		return gunzip_main(argc, argv);
+#endif
+	option_mask32 &= 0x7; /* ignore -q, -0..9 */
 	//if (opt & 0x1) // -c
 	//if (opt & 0x2) // -f
 	//if (opt & 0x4) // -v
-#if ENABLE_GUNZIP /* gunzip_main may not be visible... */
-	if (opt & 0x8) { // -d
-		return gunzip_main(argc, argv);
-	}
-#endif
 	argv += optind;
 
 	PTR_TO_GLOBALS = xzalloc(sizeof(struct globals) + sizeof(struct globals2))

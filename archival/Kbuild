@@ -9,6 +9,7 @@ libs-y				+= libunarchive/
 lib-y:=
 lib-$(CONFIG_AR)		+= ar.o
 lib-$(CONFIG_BUNZIP2)		+= bbunzip.o
+lib-$(CONFIG_BZIP2)		+= bzip2.o bbunzip.o
 lib-$(CONFIG_UNLZMA)		+= bbunzip.o
 lib-$(CONFIG_CPIO)		+= cpio.o
 lib-$(CONFIG_DPKG)		+= dpkg.o

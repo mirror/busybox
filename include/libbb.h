@@ -709,6 +709,9 @@ int chown_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 #if ENABLE_GUNZIP
 int gunzip_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 #endif
+#if ENABLE_BUNZIP2
+int bunzip2_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
+#endif
 int bbunpack(char **argv,
 	char* (*make_new_name)(char *filename),
 	USE_DESKTOP(long long) int (*unpacker)(void)

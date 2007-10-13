@@ -323,7 +323,7 @@ static int huft_build(const unsigned *b, const unsigned n,
 	} while (--i);
 	if (c[0] == n) {  /* null input - all zero length codes */
 		*m = 0;
-		return 2; 
+		return 2;
 	}
 
 	/* Find minimum and maximum length, bound *m by those */
