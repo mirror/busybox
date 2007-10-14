@@ -25,6 +25,34 @@ in the file LICENSE.
 
 /* #include "bzlib_private.h" */
 
+#define mswap(zz1, zz2) \
+{ \
+	int32_t zztmp = zz1; \
+	zz1 = zz2; \
+	zz2 = zztmp; \
+}
+
+static
+/* No measurable speed gain with inlining */
+/* ALWAYS_INLINE */
+void mvswap(uint32_t* ptr, int32_t zzp1, int32_t zzp2, int32_t zzn)
+{
+	while (zzn > 0) {
+		mswap(ptr[zzp1], ptr[zzp2]);
+		zzp1++;
+		zzp2++;
+		zzn--;
+	}
+}
+
+static
+ALWAYS_INLINE
+int32_t mmin(int32_t a, int32_t b)
+{
+	return (a < b) ? a : b;
+}
+
+
 /*---------------------------------------------*/
 /*--- Fallback O(N log(N)^2) sorting        ---*/
 /*--- algorithm, for repetitive blocks      ---*/
@@ -64,29 +92,6 @@ void fallbackSimpleSort(uint32_t* fmap,
 
 
 /*---------------------------------------------*/
-#define fswap(zz1, zz2) \
-{ \
-	int32_t zztmp = zz1; \
-	zz1 = zz2; \
-	zz2 = zztmp; \
-}
-
-#define fvswap(zzp1, zzp2, zzn) \
-{ \
-	int32_t yyp1 = (zzp1); \
-	int32_t yyp2 = (zzp2); \
-	int32_t yyn  = (zzn); \
-	while (yyn > 0) { \
-		fswap(fmap[yyp1], fmap[yyp2]); \
-		yyp1++; \
-		yyp2++; \
-		yyn--; \
-	} \
-}
-
-
-#define fmin(a,b) ((a) < (b)) ? (a) : (b)
-
 #define fpush(lz,hz) { \
 	stackLo[sp] = lz; \
 	stackHi[sp] = hz; \
@@ -101,7 +106,6 @@ void fallbackSimpleSort(uint32_t* fmap,
 
 #define FALLBACK_QSORT_SMALL_THRESH 10
 #define FALLBACK_QSORT_STACK_SIZE   100
-
 
 static
 void fallbackQSort3(uint32_t* fmap,
@@ -153,7 +157,7 @@ void fallbackQSort3(uint32_t* fmap,
 				if (unLo > unHi) break;
 				n = (int32_t)eclass[fmap[unLo]] - (int32_t)med;
 				if (n == 0) {
-					fswap(fmap[unLo], fmap[ltLo]);
+					mswap(fmap[unLo], fmap[ltLo]);
 					ltLo++;
 					unLo++;
 					continue;
@@ -165,7 +169,7 @@ void fallbackQSort3(uint32_t* fmap,
 				if (unLo > unHi) break;
 				n = (int32_t)eclass[fmap[unHi]] - (int32_t)med;
 				if (n == 0) {
-					fswap(fmap[unHi], fmap[gtHi]);
+					mswap(fmap[unHi], fmap[gtHi]);
 					gtHi--; unHi--;
 					continue;
 				};
@@ -173,15 +177,15 @@ void fallbackQSort3(uint32_t* fmap,
 				unHi--;
 			}
 			if (unLo > unHi) break;
-			fswap(fmap[unLo], fmap[unHi]); unLo++; unHi--;
+			mswap(fmap[unLo], fmap[unHi]); unLo++; unHi--;
 		}
 
 		AssertD(unHi == unLo-1, "fallbackQSort3(2)");
 
 		if (gtHi < ltLo) continue;
 
-		n = fmin(ltLo-lo, unLo-ltLo); fvswap(lo, unLo-n, n);
-		m = fmin(hi-gtHi, gtHi-unHi); fvswap(unLo, hi-m+1, m);
+		n = mmin(ltLo-lo, unLo-ltLo); mvswap(fmap, lo, unLo-n, n);
+		m = mmin(hi-gtHi, gtHi-unHi); mvswap(fmap, unLo, hi-m+1, m);
 
 		n = lo + unLo - ltLo - 1;
 		m = hi - (gtHi - unHi) + 1;
@@ -196,11 +200,8 @@ void fallbackQSort3(uint32_t* fmap,
 	}
 }
 
-#undef fmin
 #undef fpush
 #undef fpop
-#undef fswap
-#undef fvswap
 #undef FALLBACK_QSORT_SMALL_THRESH
 #undef FALLBACK_QSORT_STACK_SIZE
 
@@ -209,11 +210,11 @@ void fallbackQSort3(uint32_t* fmap,
 /* Pre:
  *	nblock > 0
  *	eclass exists for [0 .. nblock-1]
- *	((UChar*)eclass) [0 .. nblock-1] holds block
+ *	((uint8_t*)eclass) [0 .. nblock-1] holds block
  *	ptr exists for [0 .. nblock-1]
  *
  * Post:
- *	((UChar*)eclass) [0 .. nblock-1] holds block
+ *	((uint8_t*)eclass) [0 .. nblock-1] holds block
  *	All other areas of eclass destroyed
  *	fmap [0 .. nblock-1] holds sorted order
  *	bhtab[0 .. 2+(nblock/32)] destroyed
@@ -236,7 +237,7 @@ void fallbackSort(uint32_t* fmap,
 	int32_t H, i, j, k, l, r, cc, cc1;
 	int32_t nNotDone;
 	int32_t nBhtab;
-	UChar* eclass8 = (UChar*)eclass;
+	uint8_t* eclass8 = (uint8_t*)eclass;
 
 	/*
 	 * Initial 1-char radix sort to generate
@@ -287,7 +288,7 @@ void fallbackSort(uint32_t* fmap,
 		r = -1;
 		while (1) {
 
-	 /*-- find the next non-singleton bucket --*/
+		/*-- find the next non-singleton bucket --*/
 			k = r + 1;
 			while (ISSET_BH(k) && UNALIGNED_BH(k))
 				k++;
@@ -340,7 +341,7 @@ void fallbackSort(uint32_t* fmap,
 		while (ftabCopy[j] == 0)
 			j++;
 		ftabCopy[j]--;
-		eclass8[fmap[i]] = (UChar)j;
+		eclass8[fmap[i]] = (uint8_t)j;
 	}
 	AssertH(j < 256, 1005);
 }
@@ -360,133 +361,83 @@ void fallbackSort(uint32_t* fmap,
 
 /*---------------------------------------------*/
 static
-inline
-Bool mainGtU(
+NOINLINE
+int mainGtU(
 		uint32_t  i1,
 		uint32_t  i2,
-		UChar*    block,
+		uint8_t*  block,
 		uint16_t* quadrant,
 		uint32_t  nblock,
 		int32_t*  budget)
 {
 	int32_t  k;
-	UChar  c1, c2;
+	uint8_t  c1, c2;
 	uint16_t s1, s2;
 
-///unrolling
+/* Loop unrolling here is actually very useful
+ * (generated code is much simpler),
+ * code size increase is only 270 bytes (i386)
+ * but speeds up compression 10% overall
+ */
+
+#if CONFIG_BZIP2_FEATURE_SPEED >= 1
+
+#define TIMES_8(code) \
+	code; code; code; code; \
+	code; code; code; code;
+#define TIMES_12(code) \
+	code; code; code; code; \
+	code; code; code; code; \
+	code; code; code; code;
+
+#else
+
+#define TIMES_8(code) \
+{ \
+	int nn = 8; \
+	do { \
+		code; \
+	} while (--nn); \
+}
+#define TIMES_12(code) \
+{ \
+	int nn = 12; \
+	do { \
+		code; \
+	} while (--nn); \
+}
+
+#endif
+
 	AssertD(i1 != i2, "mainGtU");
-	/* 1 */
-	c1 = block[i1]; c2 = block[i2];
-	if (c1 != c2) return (c1 > c2);
-	i1++; i2++;
-	/* 2 */
-	c1 = block[i1]; c2 = block[i2];
-	if (c1 != c2) return (c1 > c2);
-	i1++; i2++;
-	/* 3 */
-	c1 = block[i1]; c2 = block[i2];
-	if (c1 != c2) return (c1 > c2);
-	i1++; i2++;
-	/* 4 */
-	c1 = block[i1]; c2 = block[i2];
-	if (c1 != c2) return (c1 > c2);
-	i1++; i2++;
-	/* 5 */
-	c1 = block[i1]; c2 = block[i2];
-	if (c1 != c2) return (c1 > c2);
-	i1++; i2++;
-	/* 6 */
-	c1 = block[i1]; c2 = block[i2];
-	if (c1 != c2) return (c1 > c2);
-	i1++; i2++;
-	/* 7 */
-	c1 = block[i1]; c2 = block[i2];
-	if (c1 != c2) return (c1 > c2);
-	i1++; i2++;
-	/* 8 */
-	c1 = block[i1]; c2 = block[i2];
-	if (c1 != c2) return (c1 > c2);
-	i1++; i2++;
-	/* 9 */
-	c1 = block[i1]; c2 = block[i2];
-	if (c1 != c2) return (c1 > c2);
-	i1++; i2++;
-	/* 10 */
-	c1 = block[i1]; c2 = block[i2];
-	if (c1 != c2) return (c1 > c2);
-	i1++; i2++;
-	/* 11 */
-	c1 = block[i1]; c2 = block[i2];
-	if (c1 != c2) return (c1 > c2);
-	i1++; i2++;
-	/* 12 */
-	c1 = block[i1]; c2 = block[i2];
-	if (c1 != c2) return (c1 > c2);
-	i1++; i2++;
+	TIMES_12(
+		c1 = block[i1]; c2 = block[i2];
+		if (c1 != c2) return (c1 > c2);
+		i1++; i2++;
+	)
 
 	k = nblock + 8;
 
-///unrolling
 	do {
-		/* 1 */
-		c1 = block[i1]; c2 = block[i2];
-		if (c1 != c2) return (c1 > c2);
-		s1 = quadrant[i1]; s2 = quadrant[i2];
-		if (s1 != s2) return (s1 > s2);
-		i1++; i2++;
-		/* 2 */
-		c1 = block[i1]; c2 = block[i2];
-		if (c1 != c2) return (c1 > c2);
-		s1 = quadrant[i1]; s2 = quadrant[i2];
-		if (s1 != s2) return (s1 > s2);
-		i1++; i2++;
-		/* 3 */
-		c1 = block[i1]; c2 = block[i2];
-		if (c1 != c2) return (c1 > c2);
-		s1 = quadrant[i1]; s2 = quadrant[i2];
-		if (s1 != s2) return (s1 > s2);
-		i1++; i2++;
-		/* 4 */
-		c1 = block[i1]; c2 = block[i2];
-		if (c1 != c2) return (c1 > c2);
-		s1 = quadrant[i1]; s2 = quadrant[i2];
-		if (s1 != s2) return (s1 > s2);
-		i1++; i2++;
-		/* 5 */
-		c1 = block[i1]; c2 = block[i2];
-		if (c1 != c2) return (c1 > c2);
-		s1 = quadrant[i1]; s2 = quadrant[i2];
-		if (s1 != s2) return (s1 > s2);
-		i1++; i2++;
-		/* 6 */
-		c1 = block[i1]; c2 = block[i2];
-		if (c1 != c2) return (c1 > c2);
-		s1 = quadrant[i1]; s2 = quadrant[i2];
-		if (s1 != s2) return (s1 > s2);
-		i1++; i2++;
-		/* 7 */
-		c1 = block[i1]; c2 = block[i2];
-		if (c1 != c2) return (c1 > c2);
-		s1 = quadrant[i1]; s2 = quadrant[i2];
-		if (s1 != s2) return (s1 > s2);
-		i1++; i2++;
-		/* 8 */
-		c1 = block[i1]; c2 = block[i2];
-		if (c1 != c2) return (c1 > c2);
-		s1 = quadrant[i1]; s2 = quadrant[i2];
-		if (s1 != s2) return (s1 > s2);
-		i1++; i2++;
+		TIMES_8(
+			c1 = block[i1]; c2 = block[i2];
+			if (c1 != c2) return (c1 > c2);
+			s1 = quadrant[i1]; s2 = quadrant[i2];
+			if (s1 != s2) return (s1 > s2);
+			i1++; i2++;
+		)
 
 		if (i1 >= nblock) i1 -= nblock;
 		if (i2 >= nblock) i2 -= nblock;
 
-		k -= 8;
 		(*budget)--;
+		k -= 8;
 	} while (k >= 0);
 
 	return False;
 }
-
+#undef TIMES_8
+#undef TIMES_12
 
 /*---------------------------------------------*/
 /*
@@ -504,7 +455,7 @@ const int32_t incs[14] = {
 
 static
 void mainSimpleSort(uint32_t* ptr,
-		UChar*  block,
+		uint8_t*  block,
 		uint16_t* quadrant,
 		int32_t   nblock,
 		int32_t   lo,
@@ -527,8 +478,6 @@ void mainSimpleSort(uint32_t* ptr,
 
 		i = lo + h;
 		while (1) {
-
-///unrolling
 			/*-- copy 1 --*/
 			if (i > hi) break;
 			v = ptr[i];
@@ -541,6 +490,8 @@ void mainSimpleSort(uint32_t* ptr,
 			ptr[j] = v;
 			i++;
 
+/* 1.5% overall speedup, +290 bytes */
+#if CONFIG_BZIP2_FEATURE_SPEED >= 3
 			/*-- copy 2 --*/
 			if (i > hi) break;
 			v = ptr[i];
@@ -557,14 +508,14 @@ void mainSimpleSort(uint32_t* ptr,
 			if (i > hi) break;
 			v = ptr[i];
 			j = i;
-			while (mainGtU (ptr[j-h]+d, v+d, block, quadrant, nblock, budget)) {
+			while (mainGtU(ptr[j-h]+d, v+d, block, quadrant, nblock, budget)) {
 				ptr[j] = ptr[j-h];
 				j = j - h;
 				if (j <= (lo + h - 1)) break;
 			}
 			ptr[j] = v;
 			i++;
-
+#endif
 			if (*budget < 0) return;
 		}
 	}
@@ -580,36 +531,17 @@ void mainSimpleSort(uint32_t* ptr,
  * Sedgewick and Jon L. Bentley.
  */
 
-#define mswap(zz1, zz2) \
-{ \
-	int32_t zztmp = zz1; \
-	zz1 = zz2; \
-	zz2 = zztmp; \
-}
-
-#define mvswap(zzp1, zzp2, zzn) \
-{ \
-	int32_t yyp1 = (zzp1); \
-	int32_t yyp2 = (zzp2); \
-	int32_t yyn  = (zzn); \
-	while (yyn > 0) { \
-		mswap(ptr[yyp1], ptr[yyp2]); \
-		yyp1++; \
-		yyp2++; \
-		yyn--; \
-	} \
-}
-
 static
-inline
-UChar mmed3(UChar a, UChar b, UChar c)
+ALWAYS_INLINE
+uint8_t mmed3(uint8_t a, uint8_t b, uint8_t c)
 {
-	UChar t;
+	uint8_t t;
 	if (a > b) {
 		t = a;
 		a = b;
 		b = t;
 	};
+	/* here b >= a */
 	if (b > c) {
 		b = c;
 		if (a > b)
@@ -617,8 +549,6 @@ UChar mmed3(UChar a, UChar b, UChar c)
 	}
 	return b;
 }
-
-#define mmin(a,b) ((a) < (b)) ? (a) : (b)
 
 #define mpush(lz,hz,dz) \
 { \
@@ -636,8 +566,7 @@ UChar mmed3(UChar a, UChar b, UChar c)
 	dz = stackD [sp]; \
 }
 
-
-#define mnextsize(az) (nextHi[az]-nextLo[az])
+#define mnextsize(az) (nextHi[az] - nextLo[az])
 
 #define mnextswap(az,bz) \
 { \
@@ -653,7 +582,7 @@ UChar mmed3(UChar a, UChar b, UChar c)
 
 static
 void mainQSort3(uint32_t* ptr,
-		UChar*    block,
+		uint8_t*  block,
 		uint16_t* quadrant,
 		int32_t   nblock,
 		int32_t   loSt,
@@ -687,7 +616,6 @@ void mainQSort3(uint32_t* ptr,
 				return;
 			continue;
 		}
-
 		med = (int32_t)	mmed3(block[ptr[lo          ] + d],
 		                      block[ptr[hi          ] + d],
 		                      block[ptr[(lo+hi) >> 1] + d]);
@@ -736,8 +664,8 @@ void mainQSort3(uint32_t* ptr,
 			continue;
 		}
 
-		n = mmin(ltLo-lo, unLo-ltLo); mvswap(lo, unLo-n, n);
-		m = mmin(hi-gtHi, gtHi-unHi); mvswap(unLo, hi-m+1, m);
+		n = mmin(ltLo-lo, unLo-ltLo); mvswap(ptr, lo, unLo-n, n);
+		m = mmin(hi-gtHi, gtHi-unHi); mvswap(ptr, unLo, hi-m+1, m);
 
 		n = lo + unLo - ltLo - 1;
 		m = hi - (gtHi - unHi) + 1;
@@ -746,24 +674,21 @@ void mainQSort3(uint32_t* ptr,
 		nextLo[1] = m;   nextHi[1] = hi;  nextD[1] = d;
 		nextLo[2] = n+1; nextHi[2] = m-1; nextD[2] = d+1;
 
-		if (mnextsize(0) < mnextsize(1)) mnextswap(0,1);
-		if (mnextsize(1) < mnextsize(2)) mnextswap(1,2);
-		if (mnextsize(0) < mnextsize(1)) mnextswap(0,1);
+		if (mnextsize(0) < mnextsize(1)) mnextswap(0, 1);
+		if (mnextsize(1) < mnextsize(2)) mnextswap(1, 2);
+		if (mnextsize(0) < mnextsize(1)) mnextswap(0, 1);
 
 		AssertD (mnextsize(0) >= mnextsize(1), "mainQSort3(8)");
 		AssertD (mnextsize(1) >= mnextsize(2), "mainQSort3(9)");
 
-		mpush (nextLo[0], nextHi[0], nextD[0]);
-		mpush (nextLo[1], nextHi[1], nextD[1]);
-		mpush (nextLo[2], nextHi[2], nextD[2]);
+		mpush(nextLo[0], nextHi[0], nextD[0]);
+		mpush(nextLo[1], nextHi[1], nextD[1]);
+		mpush(nextLo[2], nextHi[2], nextD[2]);
 	}
 }
 
-#undef mswap
-#undef mvswap
 #undef mpush
 #undef mpop
-#undef mmin
 #undef mnextsize
 #undef mnextswap
 #undef MAIN_QSORT_SMALL_THRESH
@@ -775,11 +700,11 @@ void mainQSort3(uint32_t* ptr,
 /* Pre:
  * 	nblock > N_OVERSHOOT
  * 	block32 exists for [0 .. nblock-1 +N_OVERSHOOT]
- * 	((UChar*)block32) [0 .. nblock-1] holds block
+ * 	((uint8_t*)block32) [0 .. nblock-1] holds block
  * 	ptr exists for [0 .. nblock-1]
  *
  * Post:
- * 	((UChar*)block32) [0 .. nblock-1] holds block
+ * 	((uint8_t*)block32) [0 .. nblock-1] holds block
  * 	All other areas of block32 destroyed
  * 	ftab[0 .. 65536] destroyed
  * 	ptr [0 .. nblock-1] holds sorted order
@@ -792,7 +717,7 @@ void mainQSort3(uint32_t* ptr,
 
 static NOINLINE
 void mainSort(uint32_t*   ptr,
-		UChar*    block,
+		uint8_t*  block,
 		uint16_t* quadrant,
 		uint32_t* ftab,
 		int32_t   nblock,
@@ -800,10 +725,10 @@ void mainSort(uint32_t*   ptr,
 {
 	int32_t  i, j, k, ss, sb;
 	int32_t  runningOrder[256];
-	Bool   bigDone[256];
+	Bool     bigDone[256];
 	int32_t  copyStart[256];
 	int32_t  copyEnd  [256];
-	UChar  c1;
+	uint8_t  c1;
 	int32_t  numQSorted;
 	uint16_t s;
 
@@ -813,7 +738,8 @@ void mainSort(uint32_t*   ptr,
 
 	j = block[0] << 8;
 	i = nblock-1;
-#if 0
+/* 3%, +300 bytes */
+#if CONFIG_BZIP2_FEATURE_SPEED >= 2
 	for (; i >= 3; i -= 4) {
 		quadrant[i] = 0;
 		j = (j >> 8) |(((uint16_t)block[i]) << 8);
@@ -842,11 +768,12 @@ void mainSort(uint32_t*   ptr,
 	}
 
 	/*-- Complete the initial radix sort --*/
-	for (i = 1; i <= 65536; i++) ftab[i] += ftab[i-1];
+	for (i = 1; i <= 65536; i++)
+		ftab[i] += ftab[i-1];
 
 	s = block[0] << 8;
 	i = nblock-1;
-#if 0
+#if CONFIG_BZIP2_FEATURE_SPEED >= 2
 	for (; i >= 3; i -= 4) {
 		s = (s >> 8) | (block[i] << 8);
 		j = ftab[s] -1;
@@ -940,8 +867,8 @@ void mainSort(uint32_t*   ptr,
 							ptr, block, quadrant, nblock,
 							lo, hi, BZ_N_RADIX, budget
 						);
-						numQSorted += (hi - lo + 1);
 						if (*budget < 0) return;
+						numQSorted += (hi - lo + 1);
 					}
 				}
 				ftab[sb] |= SETMASK;
@@ -980,14 +907,12 @@ void mainSort(uint32_t*   ptr,
 			}
 		}
 
-		AssertH((copyStart[ss]-1 == copyEnd[ss])
-					 ||
-					/* Extremely rare case missing in bzip2-1.0.0 and 1.0.1.
-					 * Necessity for this case is demonstrated by compressing
-					 * a sequence of approximately 48.5 million of character
-					 * 251; 1.0.0/1.0.1 will then die here. */
-					(copyStart[ss] == 0 && copyEnd[ss] == nblock-1),
-					1007)
+		/* Extremely rare case missing in bzip2-1.0.0 and 1.0.1.
+		 * Necessity for this case is demonstrated by compressing
+		 * a sequence of approximately 48.5 million of character
+		 * 251; 1.0.0/1.0.1 will then die here. */
+		AssertH((copyStart[ss]-1 == copyEnd[ss]) \
+		     || (copyStart[ss] == 0 && copyEnd[ss] == nblock-1), 1007);
 
 		for (j = 0; j <= 255; j++)
 			ftab[(j << 8) + ss] |= SETMASK;
@@ -1062,11 +987,11 @@ void mainSort(uint32_t*   ptr,
 /* Pre:
  *	nblock > 0
  *	arr2 exists for [0 .. nblock-1 +N_OVERSHOOT]
- *	  ((UChar*)arr2)[0 .. nblock-1] holds block
+ *	  ((uint8_t*)arr2)[0 .. nblock-1] holds block
  *	arr1 exists for [0 .. nblock-1]
  *
  * Post:
- *	((UChar*)arr2) [0 .. nblock-1] holds block
+ *	((uint8_t*)arr2) [0 .. nblock-1] holds block
  *	All other areas of block destroyed
  *	ftab[0 .. 65536] destroyed
  *	arr1[0 .. nblock-1] holds sorted order
@@ -1075,11 +1000,11 @@ static NOINLINE
 void BZ2_blockSort(EState* s)
 {
 	/* In original bzip2 1.0.4, it's a parameter, but 30
-	 * should work ok. */
+	 * (which was the default) should work ok. */
 	enum { wfact = 30 };
 
 	uint32_t* ptr    = s->ptr;
-	UChar*    block  = s->block;
+	uint8_t*  block  = s->block;
 	uint32_t* ftab   = s->ftab;
 	int32_t   nblock = s->nblock;
 	uint16_t* quadrant;

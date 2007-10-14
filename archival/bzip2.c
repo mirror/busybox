@@ -9,8 +9,28 @@
 
 #include "libbb.h"
 
-/* This buys 6% speed for nearly 4k code */
-/*#define FAST_GROUP6 1*/
+#define CONFIG_BZIP2_FEATURE_SPEED 1
+
+/* Speed test:
+ * Compiled with gcc 4.2.1, run on Athlon 64 1800 MHz (512K L2 cache).
+ * Stock bzip2 is 26.4% slower than bbox bzip2 at SPEED 1
+ * (time to compress gcc-4.2.1.tar is 126.4% compared to bbox).
+ * At SPEED 5 difference is 32.7%.
+ *
+ * Test run of all CONFIG_BZIP2_FEATURE_SPEED values on a 11Mb text file:
+ *     Size   Time (3 runs)
+ * 0:  10828  4.145 4.146 4.148
+ * 1:  11097  3.845 3.860 3.861
+ * 2:  11392  3.763 3.767 3.768
+ * 3:  11892  3.722 3.724 3.727
+ * 4:  12740  3.637 3.640 3.644
+ * 5:  17273  3.497 3.509 3.509
+ */
+
+
+#define BZ_DEBUG 0
+/* Takes ~300 bytes, detects corruption caused by bad RAM etc */
+#define BZ_LIGHT_DEBUG 0
 
 #include "bz/bzlib.h"
 
@@ -19,9 +39,7 @@
 #include "bz/blocksort.c"
 #include "bz/bzlib.c"
 #include "bz/compress.c"
-#include "bz/crctable.c"
 #include "bz/huffman.c"
-#include "bz/randtable.c"
 
 /* No point in being shy and having very small buffer here.
  * bzip2 internal buffers are much bigger anyway, hundreds of kbytes.
@@ -36,15 +54,13 @@ enum {
 /* Returns:
  * <0 on write errors (examine errno),
  * >0 on short writes (errno == 0)
- * 0  no error (entire input consume, gimme more)
+ * 0  no error (entire input consumed, gimme more)
  * on "impossible" errors (internal bzip2 compressor bug) dies
  */
 static
 ssize_t bz_write(bz_stream *strm, void* rbuf, ssize_t rlen, void *wbuf)
 {
 	int n, n2, ret;
-
-	/* if (len == 0) return 0; */
 
 	strm->avail_in = rlen;
 	strm->next_in  = rbuf;

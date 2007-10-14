@@ -56,7 +56,7 @@ typedef struct bz_stream {
 
 static void BZ2_bzCompressInit(bz_stream *strm, int blockSize100k);
 static int BZ2_bzCompress(bz_stream *strm, int action);
-static int BZ2_bzCompressEnd(bz_stream *strm);
+static void BZ2_bzCompressEnd(bz_stream *strm);
 
 /*-------------------------------------------------------------*/
 /*--- end                                           bzlib.h ---*/

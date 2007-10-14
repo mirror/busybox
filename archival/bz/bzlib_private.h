@@ -25,31 +25,30 @@ in the file LICENSE.
 
 /* #include "bzlib.h" */
 
-#define BZ_DEBUG 0
-//#define BZ_NO_STDIO 1 - does not work
-
-
 /*-- General stuff. --*/
 
 typedef unsigned char Bool;
-typedef unsigned char UChar;
 
 #define True  ((Bool)1)
 #define False ((Bool)0)
 
+#if BZ_LIGHT_DEBUG
 static void bz_assert_fail(int errcode) ATTRIBUTE_NORETURN;
 #define AssertH(cond, errcode) \
-{ \
+do { \
 	if (!(cond)) \
 		bz_assert_fail(errcode); \
-}
+} while (0)
+#else
+#define AssertH(cond, msg) do { } while (0)
+#endif
 
 #if BZ_DEBUG
 #define AssertD(cond, msg) \
-{ \
+do { \
 	if (!(cond)) \
 		bb_error_msg_and_die("(debug build): internal error %s", msg); \
-}
+} while (0)
 #else
 #define AssertD(cond, msg) do { } while (0)
 #endif
@@ -79,34 +78,7 @@ static void bz_assert_fail(int errcode) ATTRIBUTE_NORETURN;
 #define BZ_MAX_SELECTORS (2 + (900000 / BZ_G_SIZE))
 
 
-/*-- Stuff for randomising repetitive blocks. --*/
-
-static const int32_t BZ2_rNums[512];
-
-#define BZ_RAND_DECLS \
-	int32_t rNToGo; \
-	int32_t rTPos \
-
-#define BZ_RAND_INIT_MASK \
-	s->rNToGo = 0; \
-	s->rTPos  = 0 \
-
-#define BZ_RAND_MASK ((s->rNToGo == 1) ? 1 : 0)
-
-#define BZ_RAND_UPD_MASK \
-{ \
-	if (s->rNToGo == 0) { \
-		s->rNToGo = BZ2_rNums[s->rTPos]; \
-		s->rTPos++; \
-		if (s->rTPos == 512) s->rTPos = 0; \
-	} \
-	s->rNToGo--; \
-}
-
-
 /*-- Stuff for doing CRCs. --*/
-
-static const uint32_t BZ2_crc32Table[256];
 
 #define BZ_INITIALISE_CRC(crcVar) \
 { \
@@ -118,9 +90,9 @@ static const uint32_t BZ2_crc32Table[256];
 	crcVar = ~(crcVar); \
 }
 
-#define BZ_UPDATE_CRC(crcVar,cha) \
+#define BZ_UPDATE_CRC(s, crcVar, cha) \
 { \
-	crcVar = (crcVar << 8) ^ BZ2_crc32Table[(crcVar >> 24) ^ ((UChar)cha)]; \
+	crcVar = (crcVar << 8) ^ s->crc32table[(crcVar >> 24) ^ ((uint8_t)cha)]; \
 }
 
 
@@ -152,24 +124,28 @@ typedef struct EState {
 	int32_t  state;
 
 	/* remembers avail_in when flush/finish requested */
-	uint32_t avail_in_expect; //vda: do we need this?
+/* bbox: not needed, strm->avail_in always has the same value */
+/* commented out with '//#' throughout the code */
+	/* uint32_t avail_in_expect; */
 
 	/* for doing the block sorting */
+	int32_t  origPtr;
 	uint32_t *arr1;
 	uint32_t *arr2;
 	uint32_t *ftab;
-	int32_t  origPtr;
 
 	/* aliases for arr1 and arr2 */
 	uint32_t *ptr;
-	UChar    *block;
+	uint8_t  *block;
 	uint16_t *mtfv;
-	UChar    *zbits;
+	uint8_t  *zbits;
+
+	/* guess what */
+	uint32_t *crc32table;
 
 	/* run-length-encoding of the input */
 	uint32_t state_in_ch;
 	int32_t  state_in_len;
-	BZ_RAND_DECLS;
 
 	/* input and output limits and current posns */
 	int32_t  nblock;
@@ -194,18 +170,18 @@ typedef struct EState {
 
 	/* map of bytes used in block */
 	int32_t  nInUse;
-	Bool     inUse[256];
-	UChar    unseqToSeq[256];
+	Bool     inUse[256] __attribute__(( aligned(sizeof(long)) ));
+	uint8_t  unseqToSeq[256];
 
 	/* stuff for coding the MTF values */
 	int32_t  mtfFreq    [BZ_MAX_ALPHA_SIZE];
-	UChar    selector   [BZ_MAX_SELECTORS];
-	UChar    selectorMtf[BZ_MAX_SELECTORS];
+	uint8_t  selector   [BZ_MAX_SELECTORS];
+	uint8_t  selectorMtf[BZ_MAX_SELECTORS];
 
-	UChar    len     [BZ_N_GROUPS][BZ_MAX_ALPHA_SIZE];
-	int32_t  code    [BZ_N_GROUPS][BZ_MAX_ALPHA_SIZE];
-	int32_t  rfreq   [BZ_N_GROUPS][BZ_MAX_ALPHA_SIZE];
-#ifdef FAST_GROUP6
+	uint8_t  len  [BZ_N_GROUPS][BZ_MAX_ALPHA_SIZE];
+	int32_t  code [BZ_N_GROUPS][BZ_MAX_ALPHA_SIZE];
+	int32_t  rfreq[BZ_N_GROUPS][BZ_MAX_ALPHA_SIZE];
+#if CONFIG_BZIP2_FEATURE_SPEED >= 5
 	/* second dimension: only 3 needed; 4 makes index calculations faster */
 	uint32_t len_pack[BZ_MAX_ALPHA_SIZE][4];
 #endif
@@ -218,16 +194,16 @@ static void
 BZ2_blockSort(EState*);
 
 static void
-BZ2_compressBlock(EState*, Bool);
+BZ2_compressBlock(EState*, int);
 
 static void
 BZ2_bsInitWrite(EState*);
 
 static void
-BZ2_hbAssignCodes(int32_t*, UChar*, int32_t, int32_t, int32_t);
+BZ2_hbAssignCodes(int32_t*, uint8_t*, int32_t, int32_t, int32_t);
 
 static void
-BZ2_hbMakeCodeLengths(UChar*, int32_t*, int32_t, int32_t);
+BZ2_hbMakeCodeLengths(uint8_t*, int32_t*, int32_t, int32_t);
 
 /*-------------------------------------------------------------*/
 /*--- end                                   bzlib_private.h ---*/

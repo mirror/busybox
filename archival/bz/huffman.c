@@ -68,7 +68,7 @@ in the file LICENSE.
 
 /*---------------------------------------------------*/
 static
-void BZ2_hbMakeCodeLengths(UChar *len,
+void BZ2_hbMakeCodeLengths(uint8_t *len,
 		int32_t *freq,
 		int32_t alphaSize,
 		int32_t maxLen)
@@ -163,7 +163,7 @@ void BZ2_hbMakeCodeLengths(UChar *len,
 /*---------------------------------------------------*/
 static
 void BZ2_hbAssignCodes(int32_t *code,
-		UChar *length,
+		uint8_t *length,
 		int32_t minLen,
 		int32_t maxLen,
 		int32_t alphaSize)
