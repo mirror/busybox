@@ -46,10 +46,16 @@ in the file LICENSE.
 	heap[zz] = tmp; \
 }
 
-#define DOWNHEAP(z) \
+
+/* 90 bytes, 0.3% of overall compress speed */
+#if CONFIG_BZIP2_FEATURE_SPEED >= 1
+
+/* macro works better than inline (gcc 4.2.1) */
+#define DOWNHEAP1(heap, weight, Heap) \
 { \
 	int32_t zz, yy, tmp; \
-	zz = z; tmp = heap[zz]; \
+	zz = 1; \
+	tmp = heap[zz]; \
 	while (1) { \
 		yy = zz << 1; \
 		if (yy > nHeap) \
@@ -65,6 +71,30 @@ in the file LICENSE.
 	heap[zz] = tmp; \
 }
 
+#else
+
+static
+void DOWNHEAP1(int32_t *heap, int32_t *weight, int32_t nHeap)
+{
+	int32_t zz, yy, tmp;
+	zz = 1;
+	tmp = heap[zz];
+	while (1) {
+		yy = zz << 1;
+		if (yy > nHeap)
+			break;
+		if (yy < nHeap
+		 && weight[heap[yy + 1]] < weight[heap[yy]])
+			yy++;
+		if (weight[tmp] < weight[heap[yy]])
+			break;
+		heap[zz] = heap[yy];
+		zz = yy;
+	}
+	heap[zz] = tmp;
+}
+
+#endif
 
 /*---------------------------------------------------*/
 static
@@ -105,8 +135,8 @@ void BZ2_hbMakeCodeLengths(uint8_t *len,
 		AssertH(nHeap < (BZ_MAX_ALPHA_SIZE+2), 2001);
 	
 		while (nHeap > 1) {
-			n1 = heap[1]; heap[1] = heap[nHeap]; nHeap--; DOWNHEAP(1);
-			n2 = heap[1]; heap[1] = heap[nHeap]; nHeap--; DOWNHEAP(1);
+			n1 = heap[1]; heap[1] = heap[nHeap]; nHeap--; DOWNHEAP1(heap, weight, nHeap);
+			n2 = heap[1]; heap[1] = heap[nHeap]; nHeap--; DOWNHEAP1(heap, weight, nHeap);
 			nNodes++;
 			parent[n1] = parent[n2] = nNodes;
 			weight[nNodes] = ADDWEIGHTS(weight[n1], weight[n2]);
