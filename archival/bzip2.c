@@ -120,6 +120,7 @@ USE_DESKTOP(long long) int bz_write_tail(bz_stream *strm, void *wbuf)
 	return total;
 }
 
+static uint8_t level;
 
 static
 USE_DESKTOP(long long) int compressStream(void)
@@ -134,7 +135,7 @@ USE_DESKTOP(long long) int compressStream(void)
 
 	iobuf = xmalloc(2 * IOBUF_SIZE);
 
-	BZ2_bzCompressInit(strm, 9 /*blockSize100k*/);
+	BZ2_bzCompressInit(strm, level);
 
 	while (1) {
 		count = full_read(STDIN_FILENO, rbuf, IOBUF_SIZE);
@@ -166,17 +167,39 @@ int bzip2_main(int argc, char **argv)
 {
 	unsigned opt;
 
+	/* standard bzip2 flags
+	 * -d --decompress force decompression
+	 * -z --compress force compression
+	 * -k --keep     keep (don't delete) input files
+	 * -f --force    overwrite existing output files
+	 * -t --test     test compressed file integrity
+	 * -c --stdout   output to standard out
+	 * -q --quiet    suppress noncritical error messages
+	 * -v --verbose  be verbose (a 2nd -v gives more)
+	 * -s --small    use less memory (at most 2500k)
+	 * -1 .. -9      set block size to 100k .. 900k
+	 * --fast        alias for -1
+	 * --best        alias for -9
+	 */
+
 	/* Must match bbunzip's constants OPT_STDOUT, OPT_FORCE! */
-	opt = getopt32(argv, "cfv" USE_BUNZIP2("d") "q123456789" );
+	opt = getopt32(argv, "cfv" USE_BUNZIP2("d") "123456789qzs" );
 #if ENABLE_BUNZIP2 /* bunzip2_main may not be visible... */
 	if (opt & 0x8) // -d
 		return bunzip2_main(argc, argv);
+	opt >>= 4;
+#else
+	opt >>= 3;
 #endif
-	option_mask32 &= 0x7; /* ignore -q, -0..9 */
-	//if (opt & 0x1) // -c
-	//if (opt & 0x2) // -f
-	//if (opt & 0x4) // -v
-	argv += optind;
+	opt = (uint8_t)opt; /* isolate bits for -1..-8 */
+	opt |= 0x100; /* if nothing else, assume -9 */
+	level = 1;
+	while (!(opt & 1)) {
+		level++;
+		opt >>= 1;
+	}
 
+	argv += optind;
+	option_mask32 &= 0x7; /* ignore all except -cfv */
 	return bbunpack(argv, make_new_name_bzip2, compressStream);
 }
