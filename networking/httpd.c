@@ -1051,6 +1051,17 @@ static NOINLINE void cgi_io_loop_and_exit(int fromCgi_rd, int toCgi_wr, int post
 	 * and send it to the peer. So please no SIGPIPEs! */
 	signal(SIGPIPE, SIG_IGN);
 
+	// We inconsistently handle a case when more POSTDATA from network
+	// is coming than we expected. We may give *some part* of that
+	// extra data to CGI.
+
+	//if (hdr_cnt > post_len) {
+	//	/* We got more POSTDATA from network than we expected */
+	//	hdr_cnt = post_len;
+	//}
+	post_len -= hdr_cnt;
+	/* post_len - number of POST bytes not yet read from network */
+
 	/* NB: breaking out of this loop jumps to log_and_exit() */
 	out_cnt = 0;
 	while (1) {
