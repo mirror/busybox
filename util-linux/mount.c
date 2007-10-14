@@ -675,7 +675,7 @@ find_kernel_nfs_mount_version(void)
 	}
 }
 
-static void 
+static void
 get_mountport(struct pmap *pm_mnt,
 	struct sockaddr_in *server_addr,
 	long unsigned prog,

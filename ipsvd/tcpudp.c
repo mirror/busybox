@@ -45,7 +45,7 @@ struct globals {
 	unsigned max_per_host;
 	unsigned cur_per_host;
 	unsigned cnum;
-	unsigned cmax;       
+	unsigned cmax;
 };
 #define G (*(struct globals*)&bb_common_bufsiz1)
 #define verbose      (G.verbose     )

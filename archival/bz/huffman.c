@@ -133,7 +133,7 @@ void BZ2_hbMakeCodeLengths(uint8_t *len,
 		}
 
 		AssertH(nHeap < (BZ_MAX_ALPHA_SIZE+2), 2001);
-	
+
 		while (nHeap > 1) {
 			n1 = heap[1]; heap[1] = heap[nHeap]; nHeap--; DOWNHEAP1(heap, weight, nHeap);
 			n2 = heap[1]; heap[1] = heap[nHeap]; nHeap--; DOWNHEAP1(heap, weight, nHeap);
@@ -160,7 +160,7 @@ void BZ2_hbMakeCodeLengths(uint8_t *len,
 			if (j > maxLen)
 				tooLong = True;
 		}
-		
+
 		if (!tooLong)
 			break;
 

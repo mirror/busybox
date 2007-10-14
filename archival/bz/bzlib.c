@@ -259,7 +259,7 @@ void /*Bool*/ handle_compress(bz_stream *strm)
 	/*Bool progress_in  = False;*/
 	/*Bool progress_out = False;*/
 	EState* s = strm->state;
-	
+
 	while (1) {
 		if (s->state == BZ_S_OUTPUT) {
 			/*progress_out |=*/ copy_output_until_stop(s);

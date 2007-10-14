@@ -175,7 +175,7 @@ static const uint16_t http_response_type[] ALIGN2 = {
 	HTTP_MOVED_TEMPORARILY,
 	HTTP_REQUEST_TIMEOUT,
 	HTTP_NOT_IMPLEMENTED,
-#if ENABLE_FEATURE_HTTPD_BASIC_AUTH 
+#if ENABLE_FEATURE_HTTPD_BASIC_AUTH
 	HTTP_UNAUTHORIZED,
 #endif
 	HTTP_NOT_FOUND,
@@ -1405,7 +1405,7 @@ static void send_cgi_and_exit(
 
 /*
  * Send a file response to a HTTP request, and exit
- * 
+ *
  * Parameters:
  * const char *url    The requested URL (with leading /).
  * headers            Don't send headers before if FALSE.
@@ -1992,7 +1992,7 @@ static void mini_httpd(int server_socket)
 	while (1) {
 		int n;
 		len_and_sockaddr fromAddr;
-		
+
 		/* Wait for connections... */
 		fromAddr.len = LSA_SIZEOF_SA;
 		n = accept(server_socket, &fromAddr.sa, &fromAddr.len);
@@ -2037,7 +2037,7 @@ static void mini_httpd_nommu(int server_socket, int argc, char **argv)
 	while (1) {
 		int n;
 		len_and_sockaddr fromAddr;
-		
+
 		/* Wait for connections... */
 		fromAddr.len = LSA_SIZEOF_SA;
 		n = accept(server_socket, &fromAddr.sa, &fromAddr.len);

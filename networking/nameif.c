@@ -4,7 +4,7 @@
  *
  * Written 2000 by Andi Kleen.
  * Busybox port 2002 by Nick Fedchik <nick@fedchik.org.ua>
- *			Glenn McGrath 
+ *			Glenn McGrath
  *
  * Licensed under the GPL v2 or later, see the file LICENSE in this tarball.
  */
