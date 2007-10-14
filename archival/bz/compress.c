@@ -186,7 +186,8 @@ void generateMTFValues(EState* s)
 						s->mtfFreq[BZ_RUNA]++;
 					}
 					if (zPend < 2) break;
-					zPend = (zPend - 2) / 2;
+					zPend = (uint32_t)(zPend - 2) / 2;
+					/* bbox: unsigned div is easier */
 				};
 				zPend = 0;
 			}
@@ -219,15 +220,18 @@ void generateMTFValues(EState* s)
 		zPend--;
 		while (1) {
 			if (zPend & 1) {
-				mtfv[wr] = BZ_RUNB; wr++;
+				mtfv[wr] = BZ_RUNB;
+				wr++;
 				s->mtfFreq[BZ_RUNB]++;
 			} else {
-				mtfv[wr] = BZ_RUNA; wr++;
+				mtfv[wr] = BZ_RUNA;
+				wr++;
 				s->mtfFreq[BZ_RUNA]++;
 			}
 			if (zPend < 2)
 				break;
-			zPend = (zPend - 2) / 2;
+			zPend = (uint32_t)(zPend - 2) / 2;
+			/* bbox: unsigned div is easier */
 		};
 		zPend = 0;
 	}
@@ -288,7 +292,7 @@ void sendMTFValues(EState* s)
 		gs = 0;
 		while (nPart > 0) {
 			tFreq = remF / nPart;
-			ge = gs-1;
+			ge = gs - 1;
 			aFreq = 0;
 			while (aFreq < tFreq && ge < alphaSize-1) {
 				ge++;
@@ -297,7 +301,7 @@ void sendMTFValues(EState* s)
 
 			if (ge > gs
 			 && nPart != nGroups && nPart != 1
-			 && ((nGroups - nPart) % 2 == 1)
+			 && ((nGroups - nPart) % 2 == 1) /* bbox: can this be replaced by x & 1? */
 			) {
 				aFreq -= s->mtfFreq[ge];
 				ge--;
@@ -310,7 +314,7 @@ void sendMTFValues(EState* s)
 					s->len[nPart-1][v] = BZ_GREATER_ICOST;
 
 			nPart--;
-			gs = ge+1;
+			gs = ge + 1;
 			remF -= aFreq;
 		}
 	}
@@ -414,7 +418,7 @@ void sendMTFValues(EState* s)
 			/*
 			 * Increment the symbol frequencies for the selected table.
 			 */
-/* 1% faster compress. +800 bytes */
+/* 1% faster compress. +800 bytes */ 
 #if CONFIG_BZIP2_FEATURE_SPEED >= 4
 			if (nGroups == 6 && 50 == ge-gs+1) {
 				/*--- fast track the common case ---*/

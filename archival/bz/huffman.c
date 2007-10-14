@@ -183,6 +183,8 @@ void BZ2_hbMakeCodeLengths(uint8_t *len,
 
 		for (i = 1; i <= alphaSize; i++) {
 			j = weight[i] >> 8;
+			/* bbox: yes, it is a signed division.
+			 * don't replace with shift! */
 			j = 1 + (j / 2);
 			weight[i] = j << 8;
 		}
