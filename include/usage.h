@@ -104,7 +104,7 @@
        "Options:\n" \
        "	-v var=val	Set variable\n" \
        "	-F sep		Use sep as field separator\n" \
-       "	-f filename	Read program from file"
+       "	-f file		Read program from file"
 
 #define basename_trivial_usage \
        "FILE [SUFFIX]"
@@ -132,10 +132,11 @@
 #define bzip2_full_usage \
        "Compress FILE(s) with bzip2 algorithm.\n" \
        "When FILE is '-' or unspecified, reads standard input. Implies -c." \
-       "\n\nOptions:\n" \
-       "	-c	Write output to standard output instead of FILE.bz\n" \
-       "	-d	Decompress\n" \
-       "	-f	Force"
+       "\n\nOptions:" \
+       "\n	-c	Write output to standard output instead of FILE.bz2" \
+       "\n	-d	Decompress" \
+       "\n	-f	Force" \
+       "\n	-1..-9	Compression level"
 
 #define busybox_notes_usage \
        "Hello world!\n"
@@ -2841,11 +2842,11 @@
 #define restorecon_full_usage \
        "Reset security contexts of files in pathname\n" \
        "\n	-i		Ignore files that do not exist" \
-       "\n	-f filename	File with list of files to process. Use - for stdin" \
+       "\n	-f file		File with list of files to process. Use - for stdin" \
        "\n	-e directory	Directory to exclude" \
        "\n	-R,-r		Recurse directories" \
        "\n	-n		Don't change any file labels" \
-       "\n	-o filename	Save list of files with incorrect context" \
+       "\n	-o file		Save list of files with incorrect context" \
        "\n	-v		Verbose" \
        "\n	-vv		Show changed labels" \
        "\n	-F		Force reset of context to match file_context" \
@@ -3017,7 +3018,7 @@ USE_FEATURE_RUN_PARTS_FANCY("\n	-l	Prints names of all matching files even when 
 #define setenforce_full_usage
 
 #define setfiles_trivial_usage \
-       "[-dnpqsvW] [-e dir]... [-o filename] [-r alt_root_path]" \
+       "[-dnpqsvW] [-e dir]... [-o file] [-r alt_root_path]" \
 	USE_FEATURE_SETFILES_CHECK_OPTION( \
        " [-c policyfile] spec_file" \
 	) \
