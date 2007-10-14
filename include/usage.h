@@ -3056,6 +3056,12 @@ USE_FEATURE_RUN_PARTS_FANCY("\n	-l	Prints names of all matching files even when 
 #define setlogcons_full_usage \
        "Redirect the kernel output to console N (0 for current)"
 
+#define setsebool_trivial_usage \
+       "boolean value"
+
+#define setsebool_full_usage \
+       "Change boolean setting"
+
 #define setsid_trivial_usage \
        "program [arg ...]"
 #define setsid_full_usage \

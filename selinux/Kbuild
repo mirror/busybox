@@ -16,3 +16,4 @@ lib-$(CONFIG_SELINUXENABLED)	+= selinuxenabled.o
 lib-$(CONFIG_SETENFORCE)	+= setenforce.o
 lib-$(CONFIG_SETFILES)		+= setfiles.o
 lib-$(CONFIG_RESTORECON)	+= setfiles.o
+lib-$(CONFIG_SETSEBOOL)		+= setsebool.o
