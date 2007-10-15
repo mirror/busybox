@@ -37,7 +37,7 @@
 struct tsession {
 	struct tsession *next;
 	int sockfd_read, sockfd_write, ptyfd;
-	/*int shell_pid;*/
+	int shell_pid;
 
 	/* two circular buffers */
 	/*char *buf1, *buf2;*/
@@ -265,7 +265,7 @@ make_new_session(
 	}
 	if (pid > 0) {
 		/* Parent */
-		/*ts->shell_pid = pid;*/
+		ts->shell_pid = pid;
 		return ts;
 	}
 
@@ -305,7 +305,8 @@ make_new_session(
 	login_argv[0] = loginpath;
 	login_argv[1] = NULL;
 	execvp(loginpath, (char **)login_argv);
-	/* Safer with vfork, and we shouldn't send this to the client anyway */
+	/* Safer with vfork, and we shouldn't send message
+	 * to remote clients anyway */
 	_exit(1); /*bb_perror_msg_and_die("execv %s", loginpath);*/
 }
 
@@ -357,6 +358,24 @@ void free_session(struct tsession *ts);
 
 #endif
 
+static void handle_sigchld(int sig)
+{
+	pid_t pid;
+	struct tsession *ts;
+
+	pid = waitpid(-1, &sig, WNOHANG);
+	if (pid > 0) {
+		ts = sessions;
+		while (ts) {
+			if (ts->shell_pid == pid) {
+				ts->shell_pid = -1;
+				return;
+			}
+			ts = ts->next;
+		}
+	}
+}
+
 
 int telnetd_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int telnetd_main(int argc, char **argv)
@@ -379,29 +398,35 @@ int telnetd_main(int argc, char **argv)
 	};
 #endif
 	enum {
-		OPT_INETD      = (1 << 2) * ENABLE_FEATURE_TELNETD_STANDALONE, /* -i */
-		OPT_PORT       = (1 << 3) * ENABLE_FEATURE_TELNETD_STANDALONE, /* -p */
-		OPT_FOREGROUND = (1 << 5) * ENABLE_FEATURE_TELNETD_STANDALONE, /* -F */
+		OPT_WATCHCHILD = (1 << 2), /* -K */
+		OPT_INETD      = (1 << 3) * ENABLE_FEATURE_TELNETD_STANDALONE, /* -i */
+		OPT_PORT       = (1 << 4) * ENABLE_FEATURE_TELNETD_STANDALONE, /* -p */
+		OPT_FOREGROUND = (1 << 6) * ENABLE_FEATURE_TELNETD_STANDALONE, /* -F */
 	};
 
-	/* If !STANDALONE, we accept (and ignore) -i, thus people
+	/* Even if !STANDALONE, we accept (and ignore) -i, thus people
 	 * don't need to guess whether it's ok to pass -i to us */
-	opt = getopt32(argv, "f:l:i" USE_FEATURE_TELNETD_STANDALONE("p:b:F"),
+	opt = getopt32(argv, "f:l:Ki" USE_FEATURE_TELNETD_STANDALONE("p:b:F"),
 			&issuefile, &loginpath
 			USE_FEATURE_TELNETD_STANDALONE(, &opt_portnbr, &opt_bindaddr));
+	if (!IS_INETD /*&& !re_execed*/) {
+		/* inform that we start in standalone mode?
+		 * May be useful when people forget to give -i */
+		/*bb_error_msg("listening for connections");*/
+		if (!(opt & OPT_FOREGROUND)) {
+			/* DAEMON_CHDIR_ROOT was giving inconsistent
+			 * behavior with/wthout -F, -i */
+			bb_daemonize_or_rexec(0 /*DAEMON_CHDIR_ROOT*/, argv);
+		}
+	}
 	/* Redirect log to syslog early, if needed */
 	if (IS_INETD || !(opt & OPT_FOREGROUND)) {
 		openlog(applet_name, 0, LOG_USER);
 		logmode = LOGMODE_SYSLOG;
 	}
-	//if (opt & 1) // -f
-	//if (opt & 2) // -l
 	USE_FEATURE_TELNETD_STANDALONE(
-		if (opt & OPT_PORT) // -p
+		if (opt & OPT_PORT)
 			portnbr = xatou16(opt_portnbr);
-		//if (opt & 8) // -b
-		//if (opt & 0x10) // -F
-		//if (opt & 0x20) // -i
 	);
 
 	/* Used to check access(loginpath, X_OK) here. Pointless.
@@ -413,12 +438,8 @@ int telnetd_main(int argc, char **argv)
 		if (!sessions) /* pty opening or vfork problem, exit */
 			return 1; /* make_new_session prints error message */
 	} else {
-//vda: inform that we start in standalone mode?
 		master_fd = create_and_bind_stream_or_die(opt_bindaddr, portnbr);
 		xlisten(master_fd, 1);
-		if (!(opt & OPT_FOREGROUND))
-//vda: NOMMU?
-			bb_daemonize(DAEMON_CHDIR_ROOT);
 	}
 #else
 	sessions = make_new_session();
@@ -428,6 +449,9 @@ int telnetd_main(int argc, char **argv)
 
 	/* We don't want to die if just one session is broken */
 	signal(SIGPIPE, SIG_IGN);
+
+	if (opt & OPT_WATCHCHILD)
+		signal(SIGCHLD, handle_sigchld);
 
 /*
    This is how the buffers are used. The arrows indicate the movement
@@ -450,14 +474,6 @@ int telnetd_main(int argc, char **argv)
  again:
 	FD_ZERO(&rdfdset);
 	FD_ZERO(&wrfdset);
-	if (!IS_INETD) {
-		FD_SET(master_fd, &rdfdset);
-		/* This is needed because free_session() does not
-		 * take into account master_fd when it finds new
-		 * maxfd among remaining fd's: */
-		if (master_fd > maxfd)
-			maxfd = master_fd;
-	}
 
 	/* Select on the master socket, all telnet sockets and their
 	 * ptys if there is room in their session buffers.
@@ -465,15 +481,28 @@ int telnetd_main(int argc, char **argv)
 	 * before each select. Can be a problem with 500+ connections. */
 	ts = sessions;
 	while (ts) {
-		if (ts->size1 > 0)       /* can write to pty */
-			FD_SET(ts->ptyfd, &wrfdset);
-		if (ts->size1 < BUFSIZE) /* can read from socket */
-			FD_SET(ts->sockfd_read, &rdfdset);
-		if (ts->size2 > 0)       /* can write to socket */
-			FD_SET(ts->sockfd_write, &wrfdset);
-		if (ts->size2 < BUFSIZE) /* can read from pty */
-			FD_SET(ts->ptyfd, &rdfdset);
-		ts = ts->next;
+		struct tsession *next = ts->next; /* in case we free ts. */
+		if (ts->shell_pid == -1) {
+			free_session(ts);
+		} else {
+			if (ts->size1 > 0)       /* can write to pty */
+				FD_SET(ts->ptyfd, &wrfdset);
+			if (ts->size1 < BUFSIZE) /* can read from socket */
+				FD_SET(ts->sockfd_read, &rdfdset);
+			if (ts->size2 > 0)       /* can write to socket */
+				FD_SET(ts->sockfd_write, &wrfdset);
+			if (ts->size2 < BUFSIZE) /* can read from pty */
+				FD_SET(ts->ptyfd, &rdfdset);
+		}
+		ts = next;
+	}
+	if (!IS_INETD) {
+		FD_SET(master_fd, &rdfdset);
+		/* This is needed because free_session() does not
+		 * take into account master_fd when it finds new
+		 * maxfd among remaining fd's */
+		if (master_fd > maxfd)
+			maxfd = master_fd;
 	}
 
 	count = select(maxfd + 1, &rdfdset, &wrfdset, NULL, NULL);

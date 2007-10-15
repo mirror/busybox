@@ -3517,6 +3517,8 @@ USE_FEATURE_RUN_PARTS_FANCY("\n	-l	Prints names of all matching files even when 
        "\n\nOptions:" \
        "\n	-l LOGIN	Exec LOGIN on connect" \
        "\n	-f issue_file	Display issue_file instead of /etc/issue" \
+       "\n	-K		Close connection as soon as login exits" \
+       "\n			(normally wait until all programs close slave pty)" \
 	USE_FEATURE_TELNETD_STANDALONE( \
        "\n	-p PORT		Port to listen to" \
        "\n	-b ADDR		Address to bind to" \
