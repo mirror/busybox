@@ -43,8 +43,8 @@ struct tsession {
 	/*char *buf1, *buf2;*/
 /*#define TS_BUF1 ts->buf1*/
 /*#define TS_BUF2 TS_BUF2*/
-#define TS_BUF1 ((char*)(ts + 1))
-#define TS_BUF2 (((char*)(ts + 1)) + BUFSIZE)
+#define TS_BUF1 ((unsigned char*)(ts + 1))
+#define TS_BUF2 (((unsigned char*)(ts + 1)) + BUFSIZE)
 	int rdidx1, wridx1, size1;
 	int rdidx2, wridx2, size2;
 };
@@ -82,27 +82,30 @@ static const char *issuefile = "/etc/issue.net";
    FIXME - if we mean to send 0xFF to the terminal then it will be escaped,
    what is the escape character?  We aren't handling that situation here.
 
-   CR-LF ->'s CR mapping is also done here, for convenience
+   CR-LF ->'s CR mapping is also done here, for convenience.
+
+   NB: may fail to remove iacs which wrap around buffer!
  */
-static char *
+static unsigned char *
 remove_iacs(struct tsession *ts, int *pnum_totty)
 {
-	unsigned char *ptr0 = (unsigned char *)TS_BUF1 + ts->wridx1;
+	unsigned char *ptr0 = TS_BUF1 + ts->wridx1;
 	unsigned char *ptr = ptr0;
 	unsigned char *totty = ptr;
 	unsigned char *end = ptr + MIN(BUFSIZE - ts->wridx1, ts->size1);
-	int processed;
 	int num_totty;
 
 	while (ptr < end) {
 		if (*ptr != IAC) {
-			int c = *ptr;
-			*totty++ = *ptr++;
+			char c = *ptr;
+
+			*totty++ = c;
+			ptr++;
 			/* We now map \r\n ==> \r for pragmatic reasons.
 			 * Many client implementations send \r\n when
 			 * the user hits the CarriageReturn key.
 			 */
-			if (c == '\r' && (*ptr == '\n' || *ptr == 0) && ptr < end)
+			if (c == '\r' && ptr < end && (*ptr == '\n' || *ptr == '\0'))
 				ptr++;
 		} else {
 			/*
@@ -120,6 +123,7 @@ remove_iacs(struct tsession *ts, int *pnum_totty)
 			 */
 			else if (ptr[1] == SB && ptr[2] == TELOPT_NAWS) {
 				struct winsize ws;
+
 				if ((ptr+8) >= end)
 					break;	/* incomplete, can't process */
 				ws.ws_col = (ptr[3] << 8) | ptr[4];
@@ -137,16 +141,15 @@ remove_iacs(struct tsession *ts, int *pnum_totty)
 		}
 	}
 
-	processed = ptr - ptr0;
-	num_totty = totty - ptr0;
-	/* the difference between processed and num_to tty
-	   is all the iacs we removed from the stream.
-	   Adjust buf1 accordingly. */
-	ts->wridx1 += processed - num_totty;
-	ts->size1 -= processed - num_totty;
+	num_totty = totty - ptr0;   
 	*pnum_totty = num_totty;
-	/* move the chars meant for the terminal towards the end of the
-	buffer. */
+	/* the difference between ptr and totty is number of iacs
+	   we removed from the stream. Adjust buf1 accordingly. */
+	if ((ptr - totty) == 0) /* 99.999% of cases */
+		return ptr0;
+	ts->wridx1 += ptr - totty;
+	ts->size1 -= ptr - totty;
+	/* move chars meant for the terminal towards the end of the buffer */
 	return memmove(ptr - num_totty, ptr0, num_totty);
 }
 
@@ -360,7 +363,7 @@ int telnetd_main(int argc, char **argv)
 {
 	fd_set rdfdset, wrfdset;
 	unsigned opt;
-	int selret, maxlen, w, r;
+	int count;
 	struct tsession *ts;
 #if ENABLE_FEATURE_TELNETD_STANDALONE
 #define IS_INETD (opt & OPT_INETD)
@@ -473,8 +476,8 @@ int telnetd_main(int argc, char **argv)
 		ts = ts->next;
 	}
 
-	selret = select(maxfd + 1, &rdfdset, &wrfdset, NULL, NULL);
-	if (selret < 0)
+	count = select(maxfd + 1, &rdfdset, &wrfdset, NULL, NULL);
+	if (count < 0)
 		goto again; /* EINTR or ENOMEM */
 
 #if ENABLE_FEATURE_TELNETD_STANDALONE
@@ -504,11 +507,11 @@ int telnetd_main(int argc, char **argv)
 
 		if (/*ts->size1 &&*/ FD_ISSET(ts->ptyfd, &wrfdset)) {
 			int num_totty;
-			char *ptr;
+			unsigned char *ptr;
 			/* Write to pty from buffer 1. */
 			ptr = remove_iacs(ts, &num_totty);
-			w = safe_write(ts->ptyfd, ptr, num_totty);
-			if (w < 0) {
+			count = safe_write(ts->ptyfd, ptr, num_totty);
+			if (count < 0) {
 				if (errno == EAGAIN)
 					goto skip1;
 				if (IS_INETD)
@@ -517,17 +520,17 @@ int telnetd_main(int argc, char **argv)
 				ts = next;
 				continue;
 			}
-			ts->size1 -= w;
-			ts->wridx1 += w;
+			ts->size1 -= count;
+			ts->wridx1 += count;
 			if (ts->wridx1 >= BUFSIZE) /* actually == BUFSIZE */
 				ts->wridx1 = 0;
 		}
  skip1:
 		if (/*ts->size2 &&*/ FD_ISSET(ts->sockfd_write, &wrfdset)) {
 			/* Write to socket from buffer 2. */
-			maxlen = MIN(BUFSIZE - ts->wridx2, ts->size2);
-			w = safe_write(ts->sockfd_write, TS_BUF2 + ts->wridx2, maxlen);
-			if (w < 0) {
+			count = MIN(BUFSIZE - ts->wridx2, ts->size2);
+			count = safe_write(ts->sockfd_write, TS_BUF2 + ts->wridx2, count);
+			if (count < 0) {
 				if (errno == EAGAIN)
 					goto skip2;
 				if (IS_INETD)
@@ -536,14 +539,18 @@ int telnetd_main(int argc, char **argv)
 				ts = next;
 				continue;
 			}
-			ts->size2 -= w;
-			ts->wridx2 += w;
+			ts->size2 -= count;
+			ts->wridx2 += count;
 			if (ts->wridx2 >= BUFSIZE) /* actually == BUFSIZE */
 				ts->wridx2 = 0;
 		}
  skip2:
-#if 0
-		/* Not strictly needed, but allows for bigger reads in common case */
+		/* Should not be needed, but... remove_iacs is actually buggy
+		 * (it cannot process iacs which wrap around buffer's end)!
+		 * Since properly fixing it requires writing bigger code,
+		 * we will rely instead on this code making it virtually impossible
+		 * to have wrapped iac (people don't type at 2k/second).
+		 * It also allows for bigger reads in common case. */
 		if (ts->size1 == 0) {
 			ts->rdidx1 = 0;
 			ts->wridx1 = 0;
@@ -552,13 +559,13 @@ int telnetd_main(int argc, char **argv)
 			ts->rdidx2 = 0;
 			ts->wridx2 = 0;
 		}
-#endif
+
 		if (/*ts->size1 < BUFSIZE &&*/ FD_ISSET(ts->sockfd_read, &rdfdset)) {
 			/* Read from socket to buffer 1. */
-			maxlen = MIN(BUFSIZE - ts->rdidx1, BUFSIZE - ts->size1);
-			r = safe_read(ts->sockfd_read, TS_BUF1 + ts->rdidx1, maxlen);
-			if (r <= 0) {
-				if (r < 0 && errno == EAGAIN)
+			count = MIN(BUFSIZE - ts->rdidx1, BUFSIZE - ts->size1);
+			count = safe_read(ts->sockfd_read, TS_BUF1 + ts->rdidx1, count);
+			if (count <= 0) {
+				if (count < 0 && errno == EAGAIN)
 					goto skip3;
 				if (IS_INETD)
 					return 0;
@@ -567,22 +574,22 @@ int telnetd_main(int argc, char **argv)
 				continue;
 			}
 			/* Ignore trailing NUL if it is there */
-			if (!TS_BUF1[ts->rdidx1 + r - 1]) {
-				if (!--r)
+			if (!TS_BUF1[ts->rdidx1 + count - 1]) {
+				if (!--count)
 					goto skip3;
 			}
-			ts->size1 += r;
-			ts->rdidx1 += r;
+			ts->size1 += count;
+			ts->rdidx1 += count;
 			if (ts->rdidx1 >= BUFSIZE) /* actually == BUFSIZE */
 				ts->rdidx1 = 0;
 		}
  skip3:
 		if (/*ts->size2 < BUFSIZE &&*/ FD_ISSET(ts->ptyfd, &rdfdset)) {
 			/* Read from pty to buffer 2. */
-			maxlen = MIN(BUFSIZE - ts->rdidx2, BUFSIZE - ts->size2);
-			r = safe_read(ts->ptyfd, TS_BUF2 + ts->rdidx2, maxlen);
-			if (r <= 0) {
-				if (r < 0 && errno == EAGAIN)
+			count = MIN(BUFSIZE - ts->rdidx2, BUFSIZE - ts->size2);
+			count = safe_read(ts->ptyfd, TS_BUF2 + ts->rdidx2, count);
+			if (count <= 0) {
+				if (count < 0 && errno == EAGAIN)
 					goto skip4;
 				if (IS_INETD)
 					return 0;
@@ -590,8 +597,8 @@ int telnetd_main(int argc, char **argv)
 				ts = next;
 				continue;
 			}
-			ts->size2 += r;
-			ts->rdidx2 += r;
+			ts->size2 += count;
+			ts->rdidx2 += count;
 			if (ts->rdidx2 >= BUFSIZE) /* actually == BUFSIZE */
 				ts->rdidx2 = 0;
 		}
