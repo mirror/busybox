@@ -203,7 +203,7 @@ getpty(char *line, int size)
 
 static struct tsession *
 make_new_session(
-		USE_FEATURE_TELNETD_STANDALONE(int sock_r, int sock_w)
+		USE_FEATURE_TELNETD_STANDALONE(int sock)
 		SKIP_FEATURE_TELNETD_STANDALONE(void)
 ) {
 	const char *login_argv[2];
@@ -221,19 +221,22 @@ make_new_session(
 		bb_error_msg("can't create pty");
 		return NULL;
 	}
-	if (fd > maxfd) maxfd = fd;
+	if (fd > maxfd)
+		maxfd = fd;
 	ts->ptyfd = fd;
 	ndelay_on(fd);
 #if ENABLE_FEATURE_TELNETD_STANDALONE
-	if (sock_w > maxfd) maxfd = sock_w;
-	ts->sockfd_write = sock_w;
-	ndelay_on(sock_w);
-	if (sock_r > maxfd) maxfd = sock_r;
-	ts->sockfd_read = sock_r;
-	ndelay_on(sock_r);
+	ts->sockfd_read = sock;
+	ndelay_on(sock);
+	if (!sock) /* We are called with fd 0 - we are in inetd mode */
+		sock++;
+	ts->sockfd_write = sock;
+	ndelay_on(sock);
+	if (sock > maxfd)
+		maxfd = sock;
 #else
-	ts->sockfd_write = 1;
 	/* ts->sockfd_read = 0; - done by xzalloc */
+	ts->sockfd_write = 1;
 	ndelay_on(0);
 	ndelay_on(1);
 #endif
@@ -326,27 +329,33 @@ free_session(struct tsession *ts)
 		t->next = ts->next;
 	}
 
+#if 0
 	/* It was said that "normal" telnetd just closes ptyfd,
 	 * doesn't send SIGKILL. When we close ptyfd,
 	 * kernel sends SIGHUP to processes having slave side opened. */
-	/*kill(ts->shell_pid, SIGKILL);
-	wait4(ts->shell_pid, NULL, 0, NULL);*/
+	kill(ts->shell_pid, SIGKILL);
+	wait4(ts->shell_pid, NULL, 0, NULL);
+#endif
 	close(ts->ptyfd);
 	close(ts->sockfd_read);
-	/* error if ts->sockfd_read == ts->sockfd_write. So what? ;) */
-	close(ts->sockfd_write);
+	/* We do not need to close(ts->sockfd_write), it's the same
+	 * as sockfd_read unless we are in inetd mode. But in inetd mode
+	 * we do not free_session(), ever */
 	free(ts);
 
 	/* Scan all sessions and find new maxfd */
-	ts = sessions;
 	maxfd = 0;
+	ts = sessions;
 	while (ts) {
 		if (maxfd < ts->ptyfd)
 			maxfd = ts->ptyfd;
 		if (maxfd < ts->sockfd_read)
 			maxfd = ts->sockfd_read;
+#if 0
+		/* Again, sockfd_write == sockfd_read here */
 		if (maxfd < ts->sockfd_write)
 			maxfd = ts->sockfd_write;
+#endif
 		ts = ts->next;
 	}
 }
@@ -434,7 +443,7 @@ int telnetd_main(int argc, char **argv)
 
 #if ENABLE_FEATURE_TELNETD_STANDALONE
 	if (IS_INETD) {
-		sessions = make_new_session(0, 1);
+		sessions = make_new_session(0);
 		if (!sessions) /* pty opening or vfork problem, exit */
 			return 1; /* make_new_session prints error message */
 	} else {
@@ -519,7 +528,7 @@ int telnetd_main(int argc, char **argv)
 		if (fd < 0)
 			goto again;
 		/* Create a new session and link it into our active list */
-		new_ts = make_new_session(fd, fd);
+		new_ts = make_new_session(fd);
 		if (new_ts) {
 			new_ts->next = sessions;
 			sessions = new_ts;
@@ -545,9 +554,7 @@ int telnetd_main(int argc, char **argv)
 					goto skip1;
 				if (IS_INETD)
 					return 0;
-				free_session(ts);
-				ts = next;
-				continue;
+				goto kill_session;
 			}
 			ts->size1 -= count;
 			ts->wridx1 += count;
@@ -564,9 +571,7 @@ int telnetd_main(int argc, char **argv)
 					goto skip2;
 				if (IS_INETD)
 					return 0;
-				free_session(ts);
-				ts = next;
-				continue;
+				goto kill_session;
 			}
 			ts->size2 -= count;
 			ts->wridx2 += count;
@@ -577,7 +582,7 @@ int telnetd_main(int argc, char **argv)
 		/* Should not be needed, but... remove_iacs is actually buggy
 		 * (it cannot process iacs which wrap around buffer's end)!
 		 * Since properly fixing it requires writing bigger code,
-		 * we will rely instead on this code making it virtually impossible
+		 * we rely instead on this code making it virtually impossible
 		 * to have wrapped iac (people don't type at 2k/second).
 		 * It also allows for bigger reads in common case. */
 		if (ts->size1 == 0) {
@@ -598,14 +603,11 @@ int telnetd_main(int argc, char **argv)
 					goto skip3;
 				if (IS_INETD)
 					return 0;
-				free_session(ts);
-				ts = next;
-				continue;
+				goto kill_session;
 			}
 			/* Ignore trailing NUL if it is there */
 			if (!TS_BUF1[ts->rdidx1 + count - 1]) {
-				if (!--count)
-					goto skip3;
+				--count;
 			}
 			ts->size1 += count;
 			ts->rdidx1 += count;
@@ -622,9 +624,7 @@ int telnetd_main(int argc, char **argv)
 					goto skip4;
 				if (IS_INETD)
 					return 0;
-				free_session(ts);
-				ts = next;
-				continue;
+				goto kill_session;
 			}
 			ts->size2 += count;
 			ts->rdidx2 += count;
@@ -633,6 +633,11 @@ int telnetd_main(int argc, char **argv)
 		}
  skip4:
 		ts = next;
+		continue;
+ kill_session:
+		free_session(ts);
+		ts = next;
 	}
+
 	goto again;
 }
