@@ -262,7 +262,7 @@ make_new_session(
 	if (pid < 0) {
 		free(ts);
 		close(fd);
-		/* sock_r and sock_w will be closed by caller */
+		/* sock will be closed by caller */
 		bb_perror_msg("vfork");
 		return NULL;
 	}
