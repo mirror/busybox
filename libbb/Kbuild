@@ -125,5 +125,6 @@ lib-$(CONFIG_GREP) += xregcomp.o
 lib-$(CONFIG_EXPR) += xregcomp.o
 lib-$(CONFIG_MDEV) += xregcomp.o
 lib-$(CONFIG_LESS) += xregcomp.o
+lib-$(CONFIG_PGREP) += xregcomp.o
 lib-$(CONFIG_DEVFSD) += xregcomp.o
 lib-$(CONFIG_FEATURE_FIND_REGEX) += xregcomp.o
