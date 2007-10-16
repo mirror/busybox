@@ -492,7 +492,11 @@ int telnetd_main(int argc, char **argv)
 	while (ts) {
 		struct tsession *next = ts->next; /* in case we free ts. */
 		if (ts->shell_pid == -1) {
+#if !ENABLE_FEATURE_TELNETD_STANDALONE
+			return 0;
+#else
 			free_session(ts);
+#endif
 		} else {
 			if (ts->size1 > 0)       /* can write to pty */
 				FD_SET(ts->ptyfd, &wrfdset);
@@ -552,8 +556,6 @@ int telnetd_main(int argc, char **argv)
 			if (count < 0) {
 				if (errno == EAGAIN)
 					goto skip1;
-				if (IS_INETD)
-					return 0;
 				goto kill_session;
 			}
 			ts->size1 -= count;
@@ -569,8 +571,6 @@ int telnetd_main(int argc, char **argv)
 			if (count < 0) {
 				if (errno == EAGAIN)
 					goto skip2;
-				if (IS_INETD)
-					return 0;
 				goto kill_session;
 			}
 			ts->size2 -= count;
@@ -601,8 +601,6 @@ int telnetd_main(int argc, char **argv)
 			if (count <= 0) {
 				if (count < 0 && errno == EAGAIN)
 					goto skip3;
-				if (IS_INETD)
-					return 0;
 				goto kill_session;
 			}
 			/* Ignore trailing NUL if it is there */
@@ -622,8 +620,6 @@ int telnetd_main(int argc, char **argv)
 			if (count <= 0) {
 				if (count < 0 && errno == EAGAIN)
 					goto skip4;
-				if (IS_INETD)
-					return 0;
 				goto kill_session;
 			}
 			ts->size2 += count;
@@ -635,8 +631,14 @@ int telnetd_main(int argc, char **argv)
 		ts = next;
 		continue;
  kill_session:
+#if !ENABLE_FEATURE_TELNETD_STANDALONE
+		return 0;
+#else
+ 		if (IS_INETD)
+			return 0;
 		free_session(ts);
 		ts = next;
+#endif
 	}
 
 	goto again;

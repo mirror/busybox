@@ -82,10 +82,12 @@ struct globals {
 	/* int hist_iterations; */
 	unsigned total_pcpu;
 	/* unsigned long total_vsz; */
-	char line_buf[80];
 #endif
+	char line_buf[80];
 };
+
 enum { LINE_BUF_SIZE = COMMON_BUFSIZE - offsetof(struct globals, line_buf) };
+
 #define G (*(struct globals*)&bb_common_bufsiz1)
 #define INIT_G() \
 	do { \

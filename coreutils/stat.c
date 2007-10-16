@@ -119,6 +119,7 @@ static const char *human_fstype(uint32_t f_type)
 	return humantypes[i].fs;
 }
 
+#if ENABLE_FEATURE_STAT_FORMAT
 static void strcatc(char *str, char c)
 {
 	int len = strlen(str);
@@ -132,7 +133,6 @@ static void printfs(char *pformat, const char *msg)
 	printf(pformat, msg);
 }
 
-#if ENABLE_FEATURE_STAT_FORMAT
 /* print statfs info */
 static void print_statfs(char *pformat, const char m,
 		const char *const filename, const void *data
