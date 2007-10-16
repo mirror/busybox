@@ -182,6 +182,7 @@ int bzip2_main(int argc, char **argv)
 	 * --best        alias for -9
 	 */
 
+	opt_complementary = "s2"; /* -s means -2 (compatibility) */
 	/* Must match bbunzip's constants OPT_STDOUT, OPT_FORCE! */
 	opt = getopt32(argv, "cfv" USE_BUNZIP2("d") "123456789qzs" );
 #if ENABLE_BUNZIP2 /* bunzip2_main may not be visible... */

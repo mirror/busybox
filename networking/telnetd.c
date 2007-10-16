@@ -415,7 +415,7 @@ int telnetd_main(int argc, char **argv)
 		/*bb_error_msg("listening for connections");*/
 		if (!(opt & OPT_FOREGROUND)) {
 			/* DAEMON_CHDIR_ROOT was giving inconsistent
-			 * behavior with/wthout -F, -i */
+			 * behavior with/without -F, -i */
 			bb_daemonize_or_rexec(0 /*DAEMON_CHDIR_ROOT*/, argv);
 		}
 	}
