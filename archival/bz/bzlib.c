@@ -363,6 +363,7 @@ case_BZ_M_FLUSHING:
 
 
 /*---------------------------------------------------*/
+#if ENABLE_FEATURE_CLEAN_UP
 static
 void BZ2_bzCompressEnd(bz_stream *strm)
 {
@@ -375,6 +376,7 @@ void BZ2_bzCompressEnd(bz_stream *strm)
 	free(s->crc32table);
 	free(strm->state);
 }
+#endif
 
 
 /*---------------------------------------------------*/

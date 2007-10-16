@@ -43,20 +43,22 @@ in the file LICENSE.
 #define BZ_CONFIG_ERROR      (-9)
 
 typedef struct bz_stream {
+	void *state;
 	char *next_in;
 	char *next_out;
 	unsigned avail_in;
 	unsigned avail_out;
 	/*unsigned long long total_in;*/
 	unsigned long long total_out;
-	void *state;
 } bz_stream;
 
 /*-- Core (low-level) library functions --*/
 
 static void BZ2_bzCompressInit(bz_stream *strm, int blockSize100k);
 static int BZ2_bzCompress(bz_stream *strm, int action);
+#if ENABLE_FEATURE_CLEAN_UP
 static void BZ2_bzCompressEnd(bz_stream *strm);
+#endif
 
 /*-------------------------------------------------------------*/
 /*--- end                                           bzlib.h ---*/

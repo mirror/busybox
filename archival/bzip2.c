@@ -116,7 +116,9 @@ USE_DESKTOP(long long) int bz_write_tail(bz_stream *strm, void *wbuf)
 
 	total = 0 USE_DESKTOP( + strm->total_out );
  err:
+#if ENABLE_FEATURE_CLEAN_UP
 	BZ2_bzCompressEnd(strm);
+#endif
 	return total;
 }
 
