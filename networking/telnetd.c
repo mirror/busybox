@@ -228,10 +228,11 @@ make_new_session(
 #if ENABLE_FEATURE_TELNETD_STANDALONE
 	ts->sockfd_read = sock;
 	ndelay_on(sock);
-	if (!sock) /* We are called with fd 0 - we are in inetd mode */
-		sock++;
+	if (!sock) { /* We are called with fd 0 - we are in inetd mode */
+		sock++; /* so use fd 1 for output */
+		ndelay_on(sock);
+	}
 	ts->sockfd_write = sock;
-	ndelay_on(sock);
 	if (sock > maxfd)
 		maxfd = sock;
 #else
