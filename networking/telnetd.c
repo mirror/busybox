@@ -314,12 +314,23 @@ make_new_session(
 	_exit(1); /*bb_perror_msg_and_die("execv %s", loginpath);*/
 }
 
+/* Must match getopt32 string */
+enum {
+	OPT_WATCHCHILD = (1 << 2), /* -K */
+	OPT_INETD      = (1 << 3) * ENABLE_FEATURE_TELNETD_STANDALONE, /* -i */
+	OPT_PORT       = (1 << 4) * ENABLE_FEATURE_TELNETD_STANDALONE, /* -p */
+	OPT_FOREGROUND = (1 << 6) * ENABLE_FEATURE_TELNETD_STANDALONE, /* -F */
+};
+
 #if ENABLE_FEATURE_TELNETD_STANDALONE
 
 static void
 free_session(struct tsession *ts)
 {
 	struct tsession *t = sessions;
+
+	if (option_mask32 & OPT_INETD)
+		exit(0);
 
 	/* Unlink this telnet session from the session list */
 	if (t == ts)
@@ -341,7 +352,7 @@ free_session(struct tsession *ts)
 	close(ts->sockfd_read);
 	/* We do not need to close(ts->sockfd_write), it's the same
 	 * as sockfd_read unless we are in inetd mode. But in inetd mode
-	 * we do not free_session(), ever */
+	 * we do not reach this */
 	free(ts);
 
 	/* Scan all sessions and find new maxfd */
@@ -363,8 +374,8 @@ free_session(struct tsession *ts)
 
 #else /* !FEATURE_TELNETD_STANDALONE */
 
-/* Never actually called */
-void free_session(struct tsession *ts);
+/* Used in main() only, thus exits. */
+#define free_session(ts) return 0
 
 #endif
 
@@ -407,13 +418,6 @@ int telnetd_main(int argc, char **argv)
 		portnbr = 23,
 	};
 #endif
-	enum {
-		OPT_WATCHCHILD = (1 << 2), /* -K */
-		OPT_INETD      = (1 << 3) * ENABLE_FEATURE_TELNETD_STANDALONE, /* -i */
-		OPT_PORT       = (1 << 4) * ENABLE_FEATURE_TELNETD_STANDALONE, /* -p */
-		OPT_FOREGROUND = (1 << 6) * ENABLE_FEATURE_TELNETD_STANDALONE, /* -F */
-	};
-
 	/* Even if !STANDALONE, we accept (and ignore) -i, thus people
 	 * don't need to guess whether it's ok to pass -i to us */
 	opt = getopt32(argv, "f:l:Ki" USE_FEATURE_TELNETD_STANDALONE("p:b:F"),
@@ -493,11 +497,8 @@ int telnetd_main(int argc, char **argv)
 	while (ts) {
 		struct tsession *next = ts->next; /* in case we free ts. */
 		if (ts->shell_pid == -1) {
-#if !ENABLE_FEATURE_TELNETD_STANDALONE
-			return 0;
-#else
+			/* Child died ad we detected that */
 			free_session(ts);
-#endif
 		} else {
 			if (ts->size1 > 0)       /* can write to pty */
 				FD_SET(ts->ptyfd, &wrfdset);
@@ -632,14 +633,8 @@ int telnetd_main(int argc, char **argv)
 		ts = next;
 		continue;
  kill_session:
-#if !ENABLE_FEATURE_TELNETD_STANDALONE
-		return 0;
-#else
- 		if (IS_INETD)
-			return 0;
 		free_session(ts);
 		ts = next;
-#endif
 	}
 
 	goto again;
