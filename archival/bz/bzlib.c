@@ -76,11 +76,9 @@ void init_RL(EState* s)
 
 
 static
-Bool isempty_RL(EState* s)
+int isempty_RL(EState* s)
 {
-	if (s->state_in_ch < 256 && s->state_in_len > 0)
-		return False;
-	return True;
+	return (s->state_in_ch >= 256 || s->state_in_len <= 0);
 }
 
 
@@ -333,7 +331,7 @@ int BZ2_bzCompress(bz_stream *strm, int action)
 			}
 
 #ifdef FLUSH_IS_UNUSED
-case_BZ_M_FLUSHING:
+ case_BZ_M_FLUSHING:
 		case BZ_M_FLUSHING:
 			/*if (s->avail_in_expect != s->strm->avail_in)
 				return BZ_SEQUENCE_ERROR;*/

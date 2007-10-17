@@ -51,78 +51,54 @@ enum {
 	IOBUF_SIZE = 8 * 1024
 };
 
+static uint8_t level;
+
+/* NB: compressStream() has to return -1 on errors, not die.
+ * bbunpack() will correctly clean up in this case
+ * (delete incomplete .bz2 file)
+ */
+
 /* Returns:
- * <0 on write errors (examine errno),
- * >0 on short writes (errno == 0)
- * 0  no error (entire input consumed, gimme more)
- * on "impossible" errors (internal bzip2 compressor bug) dies
+ * -1 on errors
+ * total written bytes so far otherwise
  */
 static
-ssize_t bz_write(bz_stream *strm, void* rbuf, ssize_t rlen, void *wbuf)
+USE_DESKTOP(long long) int bz_write(bz_stream *strm, void* rbuf, ssize_t rlen, void *wbuf)
 {
 	int n, n2, ret;
 
 	strm->avail_in = rlen;
-	strm->next_in  = rbuf;
+	strm->next_in = rbuf;
 	while (1) {
 		strm->avail_out = IOBUF_SIZE;
 		strm->next_out = wbuf;
 
-		ret = BZ2_bzCompress(strm, BZ_RUN);
-		if (ret != BZ_RUN_OK)
+		ret = BZ2_bzCompress(strm, rlen ? BZ_RUN : BZ_FINISH);
+		if (ret != BZ_RUN_OK /* BZ_RUNning */
+		 && ret != BZ_FINISH_OK /* BZ_FINISHing, but not done yet */
+		 && ret != BZ_STREAM_END /* BZ_FINISHed */
+		) {
 			bb_error_msg_and_die("internal error %d", ret);
-
-		n = IOBUF_SIZE - strm->avail_out;
-		if (n) {
-			/* short reads must have errno == 0 */
-			errno = 0;
-			n2 = full_write(STDOUT_FILENO, wbuf, n);
-			if (n2 != n)
-				return n2 ? n2 : 1;
 		}
 
-		if (strm->avail_in == 0)
-			return 0;
-	}
-}
-
-
-/*---------------------------------------------------*/
-static
-USE_DESKTOP(long long) int bz_write_tail(bz_stream *strm, void *wbuf)
-{
-	int n, n2, ret;
-	USE_DESKTOP(long long) int total;
-
-	total = -1;
-	while (1) {
-		strm->avail_out = IOBUF_SIZE;
-		strm->next_out = wbuf;
-
-		ret = BZ2_bzCompress(strm, BZ_FINISH);
-		if (ret != BZ_FINISH_OK && ret != BZ_STREAM_END)
-			bb_error_msg_and_die("internal error %d", ret);
-
 		n = IOBUF_SIZE - strm->avail_out;
 		if (n) {
 			n2 = full_write(STDOUT_FILENO, wbuf, n);
-			if (n2 != n)
-				goto err;
+			if (n2 != n) {
+				if (n2 >= 0)
+					errno = 0; /* prevent bogus error message */
+				bb_perror_msg(n2 >= 0 ? "short write" : "write error");
+				return -1;
+			}
 		}
 
 		if (ret == BZ_STREAM_END)
 			break;
+		if (rlen && strm->avail_in == 0)
+			break;
 	}
-
-	total = 0 USE_DESKTOP( + strm->total_out );
- err:
-#if ENABLE_FEATURE_CLEAN_UP
-	BZ2_bzCompressEnd(strm);
-#endif
-	return total;
+	return 0 USE_DESKTOP( + strm->total_out );
 }
-
-static uint8_t level;
 
 static
 USE_DESKTOP(long long) int compressStream(void)
@@ -136,26 +112,26 @@ USE_DESKTOP(long long) int compressStream(void)
 #define wbuf (iobuf + IOBUF_SIZE)
 
 	iobuf = xmalloc(2 * IOBUF_SIZE);
-
 	BZ2_bzCompressInit(strm, level);
 
 	while (1) {
 		count = full_read(STDIN_FILENO, rbuf, IOBUF_SIZE);
-		if (count < 0)
+		if (count < 0) {
 			bb_perror_msg("read error");
-		if (count <= 0)
-			break;
-		count = bz_write(strm, rbuf, count, wbuf);
-		if (count) {
-			bb_perror_msg(count < 0 ? "write error" : "short write");
+			total = -1;
 			break;
 		}
+		/* if count == 0, bz_write finalizes compression */
+		total = bz_write(strm, rbuf, count, wbuf);
+		if (count == 0 || total < 0)
+			break;
 	}
 
-	total = bz_write_tail(strm, wbuf);
+#if ENABLE_FEATURE_CLEAN_UP
+	BZ2_bzCompressEnd(strm);
 	free(iobuf);
-	/* we had no error _only_ if count == 0 */
-	return count == 0 ? total : -1;
+#endif
+	return total;
 }
 
 static
