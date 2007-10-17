@@ -8237,12 +8237,12 @@ evalcommand(union node *cmd, int flags)
 		const char *p = " %s";
 
 		p++;
-		dprintf(preverrout_fd, p, expandstr(ps4val()));
+		fdprintf(preverrout_fd, p, expandstr(ps4val()));
 
 		sp = varlist.list;
 		for (n = 0; n < 2; n++) {
 			while (sp) {
-				dprintf(preverrout_fd, p, sp->text);
+				fdprintf(preverrout_fd, p, sp->text);
 				sp = sp->next;
 				if (*p == '%') {
 					p--;

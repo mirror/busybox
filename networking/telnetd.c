@@ -141,7 +141,7 @@ remove_iacs(struct tsession *ts, int *pnum_totty)
 		}
 	}
 
-	num_totty = totty - ptr0;   
+	num_totty = totty - ptr0;
 	*pnum_totty = num_totty;
 	/* the difference between ptr and totty is number of iacs
 	   we removed from the stream. Adjust buf1 accordingly. */
