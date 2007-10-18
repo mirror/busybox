@@ -210,21 +210,37 @@
        "	-v	Set the file's version/generation number"
 
 #define chcon_trivial_usage \
-       "[OPTIONS] CONTEXT FILE...\n" \
-       "	chcon [OPTIONS] [-u USER] [-r ROLE] [-l RANGE] [-t TYPE] FILE...\n" \
-       "	chcon [OPTIONS] --reference=RFILE FILE...\n"
+       "[OPTIONS] CONTEXT FILE..." \
+       "\n	chcon [OPTIONS] [-u USER] [-r ROLE] [-l RANGE] [-t TYPE] FILE..." \
+	USE_FEATURE_CHCON_LONG_OPTIONS( \
+       "\n	chcon [OPTIONS] --reference=RFILE FILE..." \
+	)
 #define chcon_full_usage \
        "Change the security context of each FILE to CONTEXT\n" \
-       "\n	-v, --verbose		Verbose" \
-       "\n	-c, --changes		Report changes made" \
-       "\n	-h, --no-dereference	Affect symlinks instead of their targets" \
-       "\n	-f, --silent, --quiet	Suppress most error messages" \
+	USE_FEATURE_CHCON_LONG_OPTIONS( \
+       "\n	-v,--verbose		Verbose" \
+       "\n	-c,--changes		Report changes made" \
+       "\n	-h,--no-dereference	Affect symlinks instead of their targets" \
+       "\n	-f,--silent,--quiet	Suppress most error messages" \
        "\n	--reference=RFILE	Use RFILE's group instead of using a CONTEXT value" \
-       "\n	-u, --user=USER		Set user USER in the target security context" \
-       "\n	-r, --role=ROLE		Set role ROLE in the target security context" \
-       "\n	-t, --type=TYPE		Set type TYPE in the target security context" \
-       "\n	-l, --range=RANGE	Set range RANGE in the target security context" \
-       "\n	-R, --recursive		Recurse subdirectories" \
+       "\n	-u,--user=USER		Set user USER in the target security context" \
+       "\n	-r,--role=ROLE		Set role ROLE in the target security context" \
+       "\n	-t,--type=TYPE		Set type TYPE in the target security context" \
+       "\n	-l,--range=RANGE	Set range RANGE in the target security context" \
+       "\n	-R,--recursive		Recurse subdirectories" \
+	) \
+	SKIP_FEATURE_CHCON_LONG_OPTIONS( \
+       "\n	-v	Verbose" \
+       "\n	-c	Report changes made" \
+       "\n	-h	Affect symlinks instead of their targets" \
+       "\n	-f	Suppress most error messages" \
+       "\n	-u USER	Set user USER in the target security context" \
+       "\n	-r ROLE	Set role ROLE in the target security context" \
+       "\n	-t TYPE	Set type TYPE in the target security context" \
+       "\n	-l RNG	Set range RNE in the target security context" \
+       "\n	-R	Recurse subdirectories" \
+	)
+
 
 #define chmod_trivial_usage \
        "[-R"USE_DESKTOP("cvf")"] MODE[,MODE]... FILE..."
@@ -780,9 +796,16 @@
 #define dumpleases_full_usage \
        "Display DHCP leases granted by udhcpd" \
        "\n\nOptions:\n" \
-       "	-f, --file=FILENAME	Leases file to load\n" \
-       "	-r, --remaining		Interpret lease times as time remaining\n" \
-       "	-a, --absolute		Interpret lease times as expire time"
+	USE_GETOPT_LONG( \
+       "	-f,--file=FILE	Leases file to load\n" \
+       "	-r,--remaining	Interpret lease times as time remaining\n" \
+       "	-a,--absolute	Interpret lease times as expire time" \
+	) \
+	SKIP_GETOPT_LONG( \
+       "	-f FILE	Leases file to load\n" \
+       "	-r	Interpret lease times as time remaining\n" \
+       "	-a	Interpret lease times as expire time" \
+	)
 
 #define e2fsck_trivial_usage \
        "[-panyrcdfvstDFSV] [-b superblock] [-B blocksize] " \
@@ -1079,21 +1102,38 @@
 #define ftpget_full_usage \
        "Retrieve a remote file via FTP" \
        "\n\nOptions:\n" \
-       "	-c, --continue	Continue a previous transfer\n" \
-       "	-v, --verbose	Verbose\n" \
-       "	-u, --username	Username to be used\n" \
-       "	-p, --password	Password to be used\n" \
-       "	-P, --port	Port number to be used"
+	USE_GETOPT_LONG( \
+       "	-c,--continue	Continue previous transfer\n" \
+       "	-v,--verbose	Verbose\n" \
+       "	-u,--username	Username\n" \
+       "	-p,--password	Password\n" \
+       "	-P,--port	Port number" \
+	) \
+	SKIP_GETOPT_LONG( \
+       "	-c	Continue previous transfer\n" \
+       "	-v	Verbose\n" \
+       "	-u	Username\n" \
+       "	-p	Password\n" \
+       "	-P	Port number" \
+	)
 
 #define ftpput_trivial_usage \
        "[options] remote-host remote-file local-file"
 #define ftpput_full_usage \
        "Store a local file on a remote machine via FTP" \
        "\n\nOptions:\n" \
-       "	-v, --verbose	Verbose\n" \
-       "	-u, --username	Username to be used\n" \
-       "	-p, --password	Password to be used\n" \
-       "	-P, --port	Port number to be used"
+	USE_GETOPT_LONG( \
+       "	-v,--verbose	Verbose\n" \
+       "	-u,--username	Username\n" \
+       "	-p,--password	Password\n" \
+       "	-P,--port	Port number" \
+	) \
+	SKIP_GETOPT_LONG( \
+       "	-v	Verbose\n" \
+       "	-u	Username\n" \
+       "	-p	Password\n" \
+       "	-P	Port number" \
+	)
 
 #define fuser_trivial_usage \
        "[options] file OR port/proto"
@@ -1113,15 +1153,28 @@
        "[OPTIONS]..."
 #define getopt_full_usage \
        "Parse command options\n" \
-       "	-a, --alternative		Allow long options starting with single -\n" \
-       "	-l, --longoptions=longopts	Long options to be recognized\n" \
-       "	-n, --name=progname		The name under which errors are reported\n" \
-       "	-o, --options=optstring		Short options to be recognized\n" \
-       "	-q, --quiet			Disable error reporting by getopt(3)\n" \
-       "	-Q, --quiet-output		No normal output\n" \
-       "	-s, --shell=shell		Set shell quoting conventions\n" \
-       "	-T, --test			Test for getopt(1) version\n" \
-       "	-u, --unquoted			Do not quote the output"
+	USE_GETOPT_LONG( \
+       "	-a,--alternative		Allow long options starting with single -\n" \
+       "	-l,--longoptions=longopts	Long options to be recognized\n" \
+       "	-n,--name=progname		The name under which errors are reported\n" \
+       "	-o,--options=optstring		Short options to be recognized\n" \
+       "	-q,--quiet			Disable error reporting by getopt(3)\n" \
+       "	-Q,--quiet-output		No normal output\n" \
+       "	-s,--shell=shell		Set shell quoting conventions\n" \
+       "	-T,--test			Test for getopt(1) version\n" \
+       "	-u,--unquoted			Don't quote the output" \
+	) \
+	SKIP_GETOPT_LONG( \
+       "	-a		Allow long options starting with single -\n" \
+       "	-l longopts	Long options to be recognized\n" \
+       "	-n progname	The name under which errors are reported\n" \
+       "	-o optstring	Short options to be recognized\n" \
+       "	-q		Disable error reporting by getopt(3)\n" \
+       "	-Q		No normal output\n" \
+       "	-s shell	Set shell quoting conventions\n" \
+       "	-T		Test for getopt(1) version\n" \
+       "	-u		Don't quote the output" \
+	)
 #define getopt_example_usage \
        "$ cat getopt.test\n" \
        "#!/bin/sh\n" \
@@ -2551,13 +2604,19 @@
        "	-u	Unlocks (re-enables) the specified user account"
 
 #define chpasswd_trivial_usage \
-       "[--md5|--encrypt]"
+	USE_GETOPT_LONG("[--md5|--encrypt]") SKIP_GETOPT_LONG("[-m|-e]")
 #define chpasswd_full_usage \
        "Read user:password information from stdin\n" \
        "and update /etc/passwd accordingly." \
        "\n\nOptions:" \
-       "\n	-e, --encrypt	Supplied passwords are in encrypted form" \
-       "\n	-m, --md5	Use MD5 encryption instead of DES"
+	USE_GETOPT_LONG( \
+       "\n	-e,--encrypt	Supplied passwords are in encrypted form" \
+       "\n	-m,--md5	Use MD5 encryption instead of DES" \
+	) \
+	SKIP_GETOPT_LONG( \
+       "\n	-e	Supplied passwords are in encrypted form" \
+       "\n	-m	Use MD5 encryption instead of DES" \
+	)
 
 #define patch_trivial_usage \
        "[-p num] [-i diff]"
@@ -3187,27 +3246,50 @@ USE_FEATURE_RUN_PARTS_FANCY("\n	-l	Prints names of all matching files even when 
        "$ cat TODO | split -a 2 -l 2 TODO_\n"
 
 #define start_stop_daemon_trivial_usage \
-       "[OPTIONS] [--start|--stop] ... [-- arguments...]"
+       "[OPTIONS] [" \
+	USE_GETOPT_LONG("--start|--stop") SKIP_GETOPT_LONG("-S|-K") \
+       "] ... [-- arguments...]"
 #define start_stop_daemon_full_usage \
        "Start and stop services" \
        "\n\nOptions:" \
-       "\n	-S|--start			Start" \
-       "\n	-K|--stop			Stop" \
-       "\n	-a|--startas pathname		Starts process specified by pathname" \
-       "\n	-b|--background			Put process into background" \
-       "\n	-u|--user username|uid		Stop this user's processes" \
-       "\n	-x|--exec executable		Program to either start or check" \
-       "\n	-m|--make-pidfile		Create the -p file and enter pid in it" \
-       "\n	-n|--name process-name		Stop processes with this name" \
-       "\n	-p|--pidfile pid-file		Save or load pid using a pid-file" \
-       "\n	-q|--quiet			Quiet" \
+	USE_GETOPT_LONG( \
+       "\n	-S,--start		Start" \
+       "\n	-K,--stop		Stop" \
+       "\n	-a,--startas pathname	Starts process specified by pathname" \
+       "\n	-b,--background		Put process into background" \
+       "\n	-u,--user username|uid	Stop this user's processes" \
+       "\n	-x,--exec executable	Program to either start or check" \
+       "\n	-n,--name process-name	Stop processes with this name" \
+       "\n	-p,--pidfile pid-file	Save or load pid using a pid-file" \
+       "\n	-m,--make-pidfile	Create the -p file and enter pid in it" \
+       "\n	-q,--quiet		Quiet" \
 	USE_FEATURE_START_STOP_DAEMON_FANCY( \
-       "\n	-o|--oknodo			Exit status 0 if nothing done" \
-       "\n	-v|--verbose			Verbose" \
-       "\n	-N|--nicelevel N		Add N to process's nice level" \
+       "\n	-o,--oknodo		Exit status 0 if nothing done" \
+       "\n	-v,--verbose		Verbose" \
+       "\n	-N,--nicelevel N	Add N to process's nice level" \
 	) \
-       "\n	-s|--signal signal		Signal to send (default TERM)" \
-       "\n	-c|--chuid user[:[group]]	Change to specified user/group"
+       "\n	-s,--signal signal	Signal to send (default TERM)" \
+       "\n	-c,--chuid user[:[grp]]	Change to specified user/group" \
+	) \
+	SKIP_GETOPT_LONG( \
+       "\n	-S		Start" \
+       "\n	-K		Stop" \
+       "\n	-a pathname	Starts process specified by pathname" \
+       "\n	-b		Put process into background" \
+       "\n	-u username|uid	Stop this user's processes" \
+       "\n	-x executable	Program to either start or check" \
+       "\n	-n process-name	Stop processes with this name" \
+       "\n	-p pid-file	Save or load pid using a pid-file" \
+       "\n	-m		Create the -p file and enter pid in it" \
+       "\n	-q		Quiet" \
+	USE_FEATURE_START_STOP_DAEMON_FANCY( \
+       "\n	-o		Exit status 0 if nothing done" \
+       "\n	-v		Verbose" \
+       "\n	-N N		Add N to process's nice level" \
+	) \
+       "\n	-s signal	Signal to send (default TERM)" \
+       "\n	-c user[:[grp]]	Change to specified user/group" \
+	)
 
 #define stat_trivial_usage \
        "[OPTION] FILE..."
