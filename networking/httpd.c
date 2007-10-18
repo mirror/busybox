@@ -1759,8 +1759,8 @@ static void handle_incoming_and_exit(const len_and_sockaddr *fromAddr)
 	char http_major_version;
 #if ENABLE_FEATURE_HTTPD_PROXY
 	char http_minor_version;
-	char *headers = headers;
-	char *headers_ptr = headers_ptr;
+	char *header_buf = header_buf; /* for gcc */
+	char *header_ptr = header_ptr;
 	Htaccess_Proxy *proxy_entry;
 #endif
 	struct sigaction sa;
@@ -1916,7 +1916,7 @@ static void handle_incoming_and_exit(const len_and_sockaddr *fromAddr)
 #if ENABLE_FEATURE_HTTPD_PROXY
 	proxy_entry = find_proxy_entry(urlcopy);
 	if (proxy_entry)
-		headers = headers_ptr = xmalloc(IOBUF_SIZE);
+		header_buf = header_ptr = xmalloc(IOBUF_SIZE);
 #endif
 
 	if (http_major_version >= '0') {
@@ -1932,16 +1932,16 @@ static void handle_incoming_and_exit(const len_and_sockaddr *fromAddr)
 
 #if ENABLE_FEATURE_HTTPD_PROXY
 			/* We need 2 more bytes for yet another "\r\n" -
-			 * see fdprintf(proxy_fd...) further below */
-			if (proxy_entry && headers_ptr - headers < IOBUF_SIZE - 2) {
+			 * see near fdprintf(proxy_fd...) further below */
+			if (proxy_entry && (header_ptr - header_buf) < IOBUF_SIZE - 2) {
 				int len = strlen(iobuf);
-				if (len > IOBUF_SIZE - (headers_ptr - headers) - 4)
-					len = IOBUF_SIZE - (headers_ptr - headers) - 4;
-				memcpy(headers_ptr, iobuf, len);
-				headers_ptr += len;
-				headers_ptr[0] = '\r';
-				headers_ptr[1] = '\n';
-				headers_ptr += 2;
+				if (len > IOBUF_SIZE - (header_ptr - header_buf) - 4)
+					len = IOBUF_SIZE - (header_ptr - header_buf) - 4;
+				memcpy(header_ptr, iobuf, len);
+				header_ptr += len;
+				header_ptr[0] = '\r';
+				header_ptr[1] = '\n';
+				header_ptr += 2;
 			}
 #endif
 
@@ -2048,10 +2048,11 @@ static void handle_incoming_and_exit(const len_and_sockaddr *fromAddr)
 				(g_query ? "?" : ""), /* "?" (maybe) */
 				(g_query ? g_query : ""), /* query string (maybe) */
 				http_major_version, http_minor_version);
-		headers_ptr[0] = '\r';
-		headers_ptr[1] = '\n';
-		headers_ptr += 2;
-		write(proxy_fd, headers, headers_ptr - headers);
+		header_ptr[0] = '\r';
+		header_ptr[1] = '\n';
+		header_ptr += 2;
+		write(proxy_fd, header_buf, header_ptr - header_buf);
+		free(header_buf); /* on the order of 8k, free it */
 		/* cgi_io_loop_and_exit needs to have two disctinct fds */
 		cgi_io_loop_and_exit(proxy_fd, dup(proxy_fd), length);
 	}
