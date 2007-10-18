@@ -1717,13 +1717,26 @@
 #define ipcalc_full_usage \
        "Calculate IP network settings from a IP address" \
        "\n\nOptions:" \
-       "\n	-b	--broadcast	Display calculated broadcast address" \
-       "\n	-n	--network	Display calculated network address" \
-       "\n	-m	--netmask	Display default netmask for IP" \
+	USE_FEATURE_IPCALC_LONG_OPTIONS( \
+       "\n	-b,--broadcast	Display calculated broadcast address" \
+       "\n	-n,--network	Display calculated network address" \
+       "\n	-m,--netmask	Display default netmask for IP" \
 	USE_FEATURE_IPCALC_FANCY( \
-       "\n	-p	--prefix	Display the prefix for IP/NETMASK" \
-       "\n	-h	--hostname	Display first resolved host name" \
-       "\n	-s	--silent	Don't ever display error messages")
+       "\n	-p,--prefix	Display the prefix for IP/NETMASK" \
+       "\n	-h,--hostname	Display first resolved host name" \
+       "\n	-s,--silent	Don't ever display error messages" \
+	) \
+	) \
+	SKIP_FEATURE_IPCALC_LONG_OPTIONS( \
+       "\n	-b	Display calculated broadcast address" \
+       "\n	-n	Display calculated network address" \
+       "\n	-m	Display default netmask for IP" \
+	USE_FEATURE_IPCALC_FANCY( \
+       "\n	-p	Display the prefix for IP/NETMASK" \
+       "\n	-h	Display first resolved host name" \
+       "\n	-s	Don't ever display error messages" \
+	) \
+	)
 
 #define ipcrm_trivial_usage \
        "[-[MQS] key] [-[mqs] id]"
@@ -2971,15 +2984,22 @@
        "[-c] [-u USER] [-r ROLE] [-t TYPE] [-l RANGE] COMMAND [args]\n" \
        "	runcon CONTEXT COMMAND [args]"
 #define runcon_full_usage \
-       "runcon [-c] [-u USER] [-r ROLE] [-t TYPE] [-l RANGE] COMMAND [args]\n" \
-       "runcon CONTEXT COMMAND [args]\n" \
        "Run a program in a different security context\n\n" \
        "	CONTEXT		Complete security context\n" \
-       "	-c, --compute	Compute process transition context before modifying\n" \
-       "	-t, --type=TYPE	Type (for same role as parent)\n" \
-       "	-u, --user=USER	User identity\n" \
-       "	-r, --role=ROLE	Role\n" \
-       "	-l, --range=RNG	Levelrange" \
+	USE_GETOPT_LONG( \
+       "	-c,--compute	Compute process transition context before modifying\n" \
+       "	-t,--type=TYPE	Type (for same role as parent)\n" \
+       "	-u,--user=USER	User identity\n" \
+       "	-r,--role=ROLE	Role\n" \
+       "	-l,--range=RNG	Levelrange" \
+	) \
+	SKIP_GETOPT_LONG( \
+       "	-c	Compute process transition context before modifying\n" \
+       "	-t TYPE	Type (for same role as parent)\n" \
+       "	-u USER	User identity\n" \
+       "	-r ROLE	Role\n" \
+       "	-l RNG	Levelrange" \
+	)
 
 #define run_parts_trivial_usage \
        "[-t] "USE_FEATURE_RUN_PARTS_FANCY("[-l] ")"[-a ARG] [-u MASK] DIRECTORY"
@@ -3786,6 +3806,7 @@ USE_FEATURE_RUN_PARTS_FANCY("\n	-l	Prints names of all matching files even when 
        "[-Cfbnqtv] [-c CID] [-V VCLS] [-H HOSTNAME] [-i INTERFACE]\n" \
        "	[-p pidfile] [-r IP] [-s script]"
 #define udhcpc_full_usage \
+	USE_GETOPT_LONG( \
        "	-V,--vendorclass=CLASSID	Set vendor class identifier" \
        "\n	-i,--interface=INTERFACE	Interface to use (default: eth0)" \
        "\n	-H,-h,--hostname=HOSTNAME	Client hostname" \
@@ -3802,6 +3823,25 @@ USE_FEATURE_RUN_PARTS_FANCY("\n	-l	Prints names of all matching files even when 
        "\n	-q,--quit	Quit after obtaining lease" \
        "\n	-R,--release	Release IP on quit" \
        "\n	-v,--version	Display version" \
+	) \
+	SKIP_GETOPT_LONG( \
+       "	-V CLASSID	Set vendor class identifier" \
+       "\n	-i INTERFACE	Interface to use (default: eth0)" \
+       "\n	-H,-h HOSTNAME	Client hostname" \
+       "\n	-c CLIENTID	Set client identifier" \
+       "\n	-C		Suppress default client identifier" \
+       "\n	-p file		Store process ID of daemon in file" \
+       "\n	-r IP		IP address to request" \
+       "\n	-s file		Run file at dhcp events (default: /usr/share/udhcpc/default.script)" \
+       "\n	-t N		Send up to N request packets"\
+       "\n	-f		Run in foreground" \
+       "\n	-b		Background if lease cannot be immediately negotiated" \
+       "\n	-S		Log to syslog too" \
+       "\n	-n		Exit with failure if lease cannot be immediately negotiated" \
+       "\n	-q		Quit after obtaining lease" \
+       "\n	-R		Release IP on quit" \
+       "\n	-v		Display version" \
+	)
 
 #define udhcpd_trivial_usage \
        "[-fS] [configfile]" \
@@ -4007,9 +4047,14 @@ USE_FEATURE_RUN_PARTS_FANCY("\n	-l	Prints names of all matching files even when 
        "     31      46    1365 /etc/passwd\n"
 
 #define wget_trivial_usage \
+	USE_GETOPT_LONG( \
        "[-c|--continue] [-s|--spider] [-q|--quiet] [-O|--output-document file]\n" \
-       "		[--header 'header: value'] [-Y|--proxy on/off] [-P DIR]\n" \
-       "		[-U|--user-agent agent] url"
+       "	[--header 'header: value'] [-Y|--proxy on/off] [-P DIR]\n" \
+       "	[-U|--user-agent agent] url" \
+	) \
+	SKIP_GETOPT_LONG( \
+       "[-csq] [-O file] [-Y on/off] [-P DIR] [-U agent] url" \
+	)
 #define wget_full_usage \
        "Retrieve files via HTTP or FTP" \
        "\n\nOptions:\n" \
