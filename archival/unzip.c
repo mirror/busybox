@@ -27,37 +27,59 @@
 #include "libbb.h"
 #include "unarchive.h"
 
-#define ZIP_FILEHEADER_MAGIC		SWAP_LE32(0x04034b50)
-#define ZIP_CDS_MAGIC			SWAP_LE32(0x02014b50)
-#define ZIP_CDS_END_MAGIC		SWAP_LE32(0x06054b50)
-#define ZIP_DD_MAGIC			SWAP_LE32(0x08074b50)
+enum {
+#if BB_BIG_ENDIAN
+	ZIP_FILEHEADER_MAGIC = 0x504b0304,
+	ZIP_CDS_MAGIC        = 0x504b0102,
+	ZIP_CDS_END_MAGIC    = 0x504b0506,
+	ZIP_DD_MAGIC         = 0x504b0708,
+#else
+	ZIP_FILEHEADER_MAGIC = 0x04034b50,
+	ZIP_CDS_MAGIC        = 0x02014b50,
+	ZIP_CDS_END_MAGIC    = 0x06054b50,
+	ZIP_DD_MAGIC         = 0x08074b50,
+#endif
+};
 
 typedef union {
-	unsigned char raw[26];
+	uint8_t raw[26];
 	struct {
-		unsigned short version;	/* 0-1 */
-		unsigned short flags;	/* 2-3 */
-		unsigned short method;	/* 4-5 */
-		unsigned short modtime;	/* 6-7 */
-		unsigned short moddate;	/* 8-9 */
-		unsigned int crc32 ATTRIBUTE_PACKED;	/* 10-13 */
-		unsigned int cmpsize ATTRIBUTE_PACKED;	/* 14-17 */
-		unsigned int ucmpsize ATTRIBUTE_PACKED;	/* 18-21 */
-		unsigned short filename_len;	/* 22-23 */
-		unsigned short extra_len;		/* 24-25 */
+		uint16_t version;                       /* 0-1 */
+		uint16_t flags;                         /* 2-3 */
+		uint16_t method;                        /* 4-5 */
+		uint16_t modtime;                       /* 6-7 */
+		uint16_t moddate;                       /* 8-9 */
+		uint32_t crc32 ATTRIBUTE_PACKED;        /* 10-13 */
+		uint32_t cmpsize ATTRIBUTE_PACKED;      /* 14-17 */
+		uint32_t ucmpsize ATTRIBUTE_PACKED;     /* 18-21 */
+		uint16_t filename_len;                  /* 22-23 */
+		uint16_t extra_len;                     /* 24-25 */
 	} formatted ATTRIBUTE_PACKED;
 } zip_header_t;
 
+struct BUG_zip_header_must_be_26_bytes {
+	char BUG_zip_header_must_be_26_bytes[sizeof(zip_header_t) == 26 ? 1 : -1];
+};
+
+#define FIX_ENDIANNESS(zip_header) do { \
+	(zip_header).formatted.version      = SWAP_LE16((zip_header).formatted.version     ); \
+	(zip_header).formatted.flags        = SWAP_LE16((zip_header).formatted.flags       ); \
+	(zip_header).formatted.method       = SWAP_LE16((zip_header).formatted.method      ); \
+	(zip_header).formatted.modtime      = SWAP_LE16((zip_header).formatted.modtime     ); \
+	(zip_header).formatted.moddate      = SWAP_LE16((zip_header).formatted.moddate     ); \
+	(zip_header).formatted.crc32        = SWAP_LE32((zip_header).formatted.crc32       ); \
+	(zip_header).formatted.cmpsize      = SWAP_LE32((zip_header).formatted.cmpsize     ); \
+	(zip_header).formatted.ucmpsize     = SWAP_LE32((zip_header).formatted.ucmpsize    ); \
+	(zip_header).formatted.filename_len = SWAP_LE16((zip_header).formatted.filename_len); \
+	(zip_header).formatted.extra_len    = SWAP_LE16((zip_header).formatted.extra_len   ); \
+} while (0)
+
 static void unzip_skip(int fd, off_t skip)
 {
-	if (lseek(fd, skip, SEEK_CUR) == (off_t)-1) {
-		if (errno != ESPIPE)
-			bb_error_msg_and_die("seek failure");
-		bb_copyfd_exact_size(fd, -1, skip);
-	}
+	bb_copyfd_exact_size(fd, -1, skip);
 }
 
-static void unzip_create_leading_dirs(char *fn)
+static void unzip_create_leading_dirs(const char *fn)
 {
 	/* Create all leading directories */
 	char *name = xstrdup(fn);
@@ -67,7 +89,7 @@ static void unzip_create_leading_dirs(char *fn)
 	free(name);
 }
 
-static int unzip_extract(zip_header_t *zip_header, int src_fd, int dst_fd)
+static void unzip_extract(zip_header_t *zip_header, int src_fd, int dst_fd)
 {
 	if (zip_header->formatted.method == 0) {
 		/* Method 0 - stored (not compressed) */
@@ -77,42 +99,43 @@ static int unzip_extract(zip_header_t *zip_header, int src_fd, int dst_fd)
 	} else {
 		/* Method 8 - inflate */
 		inflate_unzip_result res;
-		/* err = */ inflate_unzip(&res, zip_header->formatted.cmpsize, src_fd, dst_fd);
-// we should check for -1 error return
+		if (inflate_unzip(&res, zip_header->formatted.cmpsize, src_fd, dst_fd) < 0)
+			bb_error_msg_and_die("inflate error");
 		/* Validate decompression - crc */
 		if (zip_header->formatted.crc32 != (res.crc ^ 0xffffffffL)) {
-			bb_error_msg("invalid compressed data--%s error", "crc");
-			return 1;
+			bb_error_msg_and_die("crc error");
 		}
 		/* Validate decompression - size */
 		if (zip_header->formatted.ucmpsize != res.bytes_out) {
-			bb_error_msg("invalid compressed data--%s error", "length");
-			return 1;
+			bb_error_msg("bad length");
 		}
 	}
-	return 0;
 }
 
 int unzip_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int unzip_main(int argc, char **argv)
 {
+	enum { O_PROMPT, O_NEVER, O_ALWAYS };
+
 	zip_header_t zip_header;
 	smallint verbose = 1;
 	smallint listing = 0;
-	smallint list_header_done = 0;
-	smallint failed;
-	enum {o_prompt, o_never, o_always} overwrite = o_prompt;
-	unsigned int total_size = 0;
-	unsigned int total_entries = 0;
-	int src_fd = -1, dst_fd = -1;
-	char *src_fn = NULL, *dst_fn = NULL;
+	smallint overwrite = O_PROMPT;
+	unsigned total_size;
+	unsigned total_entries;
+	int src_fd = -1;
+	int dst_fd = -1;
+	char *src_fn = NULL;
+	char *dst_fn = NULL;
 	llist_t *zaccept = NULL;
 	llist_t *zreject = NULL;
 	char *base_dir = NULL;
-	int i, opt, opt_range = 0;
-	char key_buf[512];
+	int i, opt;
+	int opt_range = 0;
+	char key_buf[80];
 	struct stat stat_buf;
 
+	/* '-' makes getopt return 1 for non-options */
 	while ((opt = getopt(argc, argv, "-d:lnopqx")) != -1) {
 		switch (opt_range) {
 		case 0: /* Options */
@@ -122,11 +145,11 @@ int unzip_main(int argc, char **argv)
 				break;
 
 			case 'n': /* Never overwrite existing files */
-				overwrite = o_never;
+				overwrite = O_NEVER;
 				break;
 
 			case 'o': /* Always overwrite existing files */
-				overwrite = o_always;
+				overwrite = O_ALWAYS;
 				break;
 
 			case 'p': /* Extract files to stdout and fall through to set verbosity */
@@ -136,8 +159,9 @@ int unzip_main(int argc, char **argv)
 				verbose = 0;
 				break;
 
-			case 1 : /* The zip file */
-				src_fn = xmalloc(strlen(optarg)+4);
+			case 1: /* The zip file */
+				/* +5: space for ".zip" and NUL */
+				src_fn = xmalloc(strlen(optarg) + 5);
 				strcpy(src_fn, optarg);
 				opt_range++;
 				break;
@@ -151,31 +175,30 @@ int unzip_main(int argc, char **argv)
 		case 1: /* Include files */
 			if (opt == 1) {
 				llist_add_to(&zaccept, optarg);
-
-			} else if (opt == 'd') {
+				break;
+			}
+			if (opt == 'd') {
 				base_dir = optarg;
 				opt_range += 2;
-
-			} else if (opt == 'x') {
-				opt_range++;
-
-			} else {
-				bb_show_usage();
+				break;
 			}
-			break;
+			if (opt == 'x') {
+				opt_range++;
+				break;
+			}
+			bb_show_usage();
 
 		case 2 : /* Exclude files */
 			if (opt == 1) {
 				llist_add_to(&zreject, optarg);
-
-			} else if (opt == 'd') { /* Extract to base directory */
+				break;
+			}
+			if (opt == 'd') { /* Extract to base directory */
 				base_dir = optarg;
 				opt_range++;
-
-			} else {
-				bb_show_usage();
+				break;
 			}
-			break;
+			/* fall through */
 
 		default:
 			bb_show_usage();
@@ -190,17 +213,19 @@ int unzip_main(int argc, char **argv)
 	if (LONE_DASH(src_fn)) {
 		src_fd = STDIN_FILENO;
 		/* Cannot use prompt mode since zip data is arriving on STDIN */
-		overwrite = (overwrite == o_prompt) ? o_never : overwrite;
+		if (overwrite == O_PROMPT)
+			overwrite = O_NEVER;
 	} else {
-		static const char *const extn[] = {"", ".zip", ".ZIP"};
+		static const char extn[][5] = {"", ".zip", ".ZIP"};
 		int orig_src_fn_len = strlen(src_fn);
+
 		for (i = 0; (i < 3) && (src_fd == -1); i++) {
 			strcpy(src_fn + orig_src_fn_len, extn[i]);
 			src_fd = open(src_fn, O_RDONLY);
 		}
 		if (src_fd == -1) {
 			src_fn[orig_src_fn_len] = '\0';
-			bb_error_msg_and_die("cannot open %s, %s.zip, %s.ZIP", src_fn, src_fn, src_fn);
+			bb_error_msg_and_die("can't open %s, %s.zip, %s.ZIP", src_fn, src_fn, src_fn);
 		}
 	}
 
@@ -208,36 +233,31 @@ int unzip_main(int argc, char **argv)
 	if (base_dir)
 		xchdir(base_dir);
 
-	if (verbose)
+	if (verbose) {
 		printf("Archive:  %s\n", src_fn);
+		if (listing){
+			puts("  Length     Date   Time    Name\n"
+			     " --------    ----   ----    ----");
+		}
+	}
 
-	failed = 0;
-
+	total_size = 0;
+	total_entries = 0;
 	while (1) {
-		unsigned int magic;
+		uint32_t magic;
 
 		/* Check magic number */
 		xread(src_fd, &magic, 4);
-		if (magic == ZIP_CDS_MAGIC) {
+		if (magic == ZIP_CDS_MAGIC)
 			break;
-		} else if (magic != ZIP_FILEHEADER_MAGIC) {
+		if (magic != ZIP_FILEHEADER_MAGIC)
 			bb_error_msg_and_die("invalid zip magic %08X", magic);
-		}
 
 		/* Read the file header */
-		xread(src_fd, zip_header.raw, 26);
-		zip_header.formatted.version = SWAP_LE32(zip_header.formatted.version);
-		zip_header.formatted.flags = SWAP_LE32(zip_header.formatted.flags);
-		zip_header.formatted.method = SWAP_LE32(zip_header.formatted.method);
-		zip_header.formatted.modtime = SWAP_LE32(zip_header.formatted.modtime);
-		zip_header.formatted.moddate = SWAP_LE32(zip_header.formatted.moddate);
-		zip_header.formatted.crc32 = SWAP_LE32(zip_header.formatted.crc32);
-		zip_header.formatted.cmpsize = SWAP_LE32(zip_header.formatted.cmpsize);
-		zip_header.formatted.ucmpsize = SWAP_LE32(zip_header.formatted.ucmpsize);
-		zip_header.formatted.filename_len = SWAP_LE32(zip_header.formatted.filename_len);
-		zip_header.formatted.extra_len = SWAP_LE32(zip_header.formatted.extra_len);
+		xread(src_fd, zip_header.raw, sizeof(zip_header));
+		FIX_ENDIANNESS(zip_header);
 		if ((zip_header.formatted.method != 0) && (zip_header.formatted.method != 8)) {
-			bb_error_msg_and_die("unsupported compression method %d", zip_header.formatted.method);
+			bb_error_msg_and_die("unsupported method %d", zip_header.formatted.method);
 		}
 
 		/* Read filename */
@@ -248,23 +268,16 @@ int unzip_main(int argc, char **argv)
 		/* Skip extra header bytes */
 		unzip_skip(src_fd, zip_header.formatted.extra_len);
 
-		if (listing && verbose && !list_header_done){
-			puts("  Length     Date   Time    Name\n"
-			     " --------    ----   ----    ----");
-			list_header_done = 1;
-		}
-
 		/* Filter zip entries */
-		if (find_list_entry(zreject, dst_fn) ||
-			(zaccept && !find_list_entry(zaccept, dst_fn))) { /* Skip entry */
+		if (find_list_entry(zreject, dst_fn)
+		 || (zaccept && !find_list_entry(zaccept, dst_fn))
+		) { /* Skip entry */
 			i = 'n';
 
 		} else { /* Extract entry */
-			total_size += zip_header.formatted.ucmpsize;
-
 			if (listing) { /* List entry */
 				if (verbose) {
-					unsigned int dostime = zip_header.formatted.modtime | (zip_header.formatted.moddate << 16);
+					unsigned dostime = zip_header.formatted.modtime | (zip_header.formatted.moddate << 16);
 					printf("%9u  %02u-%02u-%02u %02u:%02u   %s\n",
 					   zip_header.formatted.ucmpsize,
 					   (dostime & 0x01e00000) >> 21,
@@ -273,6 +286,7 @@ int unzip_main(int argc, char **argv)
 					   (dostime & 0x0000f800) >> 11,
 					   (dostime & 0x000007e0) >> 5,
 					   dst_fn);
+					total_size += zip_header.formatted.ucmpsize;
 					total_entries++;
 				} else {
 					/* short listing -- filenames only */
@@ -308,14 +322,14 @@ int unzip_main(int argc, char **argv)
 					}
 					i = 'y';
 				} else { /* File already exists */
-					if (overwrite == o_never) {
+					if (overwrite == O_NEVER) {
 						i = 'n';
 					} else if (S_ISREG(stat_buf.st_mode)) { /* File is regular file */
-						if (overwrite == o_always) {
+						if (overwrite == O_ALWAYS) {
 							i = 'y';
 						} else {
 							printf("replace %s? [y]es, [n]o, [A]ll, [N]one, [r]ename: ", dst_fn);
-							if (!fgets(key_buf, 512, stdin)) {
+							if (!fgets(key_buf, sizeof(key_buf), stdin)) {
 								bb_perror_msg_and_die("cannot read input");
 							}
 							i = key_buf[0];
@@ -329,7 +343,7 @@ int unzip_main(int argc, char **argv)
 
 		switch (i) {
 		case 'A':
-			overwrite = o_always;
+			overwrite = O_ALWAYS;
 		case 'y': /* Open file and fall into unzip */
 			unzip_create_leading_dirs(dst_fn);
 			dst_fd = xopen(dst_fn, O_WRONLY | O_CREAT | O_TRUNC);
@@ -337,9 +351,7 @@ int unzip_main(int argc, char **argv)
 			if (verbose) {
 				printf("  inflating: %s\n", dst_fn);
 			}
-			if (unzip_extract(&zip_header, src_fd, dst_fd)) {
-				failed = 1;
-			}
+			unzip_extract(&zip_header, src_fd, dst_fd);
 			if (dst_fd != STDOUT_FILENO) {
 				/* closing STDOUT is potentially bad for future business */
 				close(dst_fd);
@@ -347,7 +359,7 @@ int unzip_main(int argc, char **argv)
 			break;
 
 		case 'N':
-			overwrite = o_never;
+			overwrite = O_NEVER;
 		case 'n':
 			/* Skip entry data */
 			unzip_skip(src_fd, zip_header.formatted.cmpsize);
@@ -356,7 +368,7 @@ int unzip_main(int argc, char **argv)
 		case 'r':
 			/* Prompt for new name */
 			printf("new name: ");
-			if (!fgets(key_buf, 512, stdin)) {
+			if (!fgets(key_buf, sizeof(key_buf), stdin)) {
 				bb_perror_msg_and_die("cannot read input");
 			}
 			free(dst_fn);
@@ -378,8 +390,9 @@ int unzip_main(int argc, char **argv)
 
 	if (listing && verbose) {
 		printf(" --------                   -------\n"
-		       "%9d                   %d files\n", total_size, total_entries);
+		       "%9d                   %d files\n",
+		       total_size, total_entries);
 	}
 
-	return failed;
+	return 0;
 }
