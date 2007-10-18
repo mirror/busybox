@@ -192,6 +192,18 @@ config FEATURE_HTTPD_ERROR_PAGES
 	  '/path/e404.html' file instead of the terse '404 NOT FOUND'
 	  message.
 
+config FEATURE_HTTPD_PROXY
+	bool "Enable support for reverse proxy"
+	default n
+	depends on HTTPD
+	help
+	  This option allows you to define URLs that will be forwarded
+	  to another HTTP server. To setup add the following line to the
+	  configuration file
+	        P:/url/:http://hostname[:port]/new/path/
+	  Then a request to /url/myfile will be forwarded to
+	  http://hostname[:port]/new/path/myfile.
+
 config IFCONFIG
 	bool "ifconfig"
 	default n

@@ -105,7 +105,18 @@ static ALWAYS_INLINE uint32_t xatou32(const char *numstr)
 	return BUG_xatou32_unimplemented();
 }
 
-/* Non-aborting kind of convertors */
+/* Non-aborting kind of convertors: bb_strto[u][l]l */
+
+/* On exit: errno = 0 only if there was non-empty, '\0' terminated value
+ * errno = EINVAL if value was not '\0' terminated, but othervise ok
+ *    Return value is still valid, caller should just check whether end[0]
+ *    is a valid terminating char for particular case. OTOH, if caller
+ *    requires '\0' terminated input, [s]he can just check errno == 0.
+ * errno = ERANGE if value had alphanumeric terminating char ("1234abcg").
+ * errno = ERANGE if value is out of range, missing, etc.
+ * errno = ERANGE if value had minus sign for strtouXX (even "-0" is not ok )
+ *    return value is all-ones in this case.
+ */
 
 unsigned long long bb_strtoull(const char *arg, char **endp, int base);
 long long bb_strtoll(const char *arg, char **endp, int base);

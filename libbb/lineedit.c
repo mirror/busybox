@@ -658,7 +658,7 @@ static int find_match(char *matchBuf, int *len_with_quotes)
 		j = pos_buf[i] + 1;
 	}
 	matchBuf[c] = 0;
-	/* old lenght matchBuf with quotes symbols */
+	/* old length matchBuf with quotes symbols */
 	*len_with_quotes = j ? j - pos_buf[0] : 0;
 
 	return command_mode;

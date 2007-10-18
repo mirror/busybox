@@ -43,6 +43,11 @@
  * A:127.0.0.1       # Allow local loopback connections
  * D:*               # Deny from other IP connections
  * E404:/path/e404.html # /path/e404.html is the 404 (not found) error page
+ *
+ * P:/url:[http://]hostname[:port]/new/path
+ *                   # When /urlXXXXXX is requested, reverse proxy
+ *                   # it to http://hostname[:port]/new/pathXXXXXX
+ *
  * /cgi-bin:foo:bar  # Require user foo, pwd bar on urls starting with /cgi-bin/
  * /adm:admin:setup  # Require user admin, pwd setup on urls starting with /adm/
  * /adm:toor:PaSsWd  # or user toor, pwd PaSsWd on urls starting with /adm/
@@ -138,6 +143,14 @@ typedef struct Htaccess_IP {
 	unsigned mask;
 	int allow_deny;
 } Htaccess_IP;
+
+/* Must have "next" as a first member */
+typedef struct Htaccess_Proxy {
+	struct Htaccess_Proxy *next;
+	char *url_from;
+	char *host_port;
+	char *url_to;
+} Htaccess_Proxy;
 
 enum {
 	HTTP_OK = 200,
@@ -270,6 +283,9 @@ struct globals {
 #if ENABLE_FEATURE_HTTPD_ERROR_PAGES
 	const char *http_error_page[ARRAY_SIZE(http_response_type)];
 #endif
+#if ENABLE_FEATURE_HTTPD_PROXY
+	Htaccess_Proxy *proxy;
+#endif
 };
 #define G (*ptr_to_globals)
 #define verbose           (G.verbose          )
@@ -301,6 +317,7 @@ struct globals {
 #define hdr_ptr           (G.hdr_ptr          )
 #define hdr_cnt           (G.hdr_cnt          )
 #define http_error_page   (G.http_error_page  )
+#define proxy             (G.proxy            )
 #define INIT_G() do { \
 	PTR_TO_GLOBALS = xzalloc(sizeof(G)); \
 	USE_FEATURE_HTTPD_BASIC_AUTH(g_realm = "Web Server Authentication";) \
@@ -441,6 +458,7 @@ static int scan_ip_mask(const char *str, unsigned *ipp, unsigned *maskp)
  *    [adAD]:from      # ip address allow/deny, * for wildcard
  *    /path:user:pass  # username/password
  *    Ennn:error.html  # error page for status nnn
+ *    P:/url:[http://]hostname[:port]/new/path # reverse proxy
  *
  * Any previous IP rules are discarded.
  * If the flag argument is not SUBDIR_PARSE then all /path and mime rules
@@ -469,7 +487,7 @@ static void parse_conf(const char *path, int flag)
 #endif
 	const char *cf = configFile;
 	char buf[160];
-	char *p0 = NULL;
+	char *p0;
 	char *c, *p;
 	Htaccess_IP *pip;
 
@@ -594,6 +612,42 @@ static void parse_conf(const char *path, int flag)
 		}
 #endif
 
+#if ENABLE_FEATURE_HTTPD_PROXY
+		if (flag == FIRST_PARSE && *p0 == 'P') {
+			/* P:/url:[http://]hostname[:port]/new/path */
+			char *url_from, *host_port, *url_to;
+			Htaccess_Proxy *proxy_entry;
+
+			url_from = c;
+			host_port = strchr(c, ':');
+			if (host_port == NULL) {
+				bb_error_msg("config error '%s' in '%s'", buf, cf);
+				continue;
+			}
+			*host_port++ = '\0';
+			if (strncmp(host_port, "http://", 7) == 0)
+				c += 7;
+			if (*host_port == '\0') {
+				bb_error_msg("config error '%s' in '%s'", buf, cf);
+				continue;
+			}
+			url_to = strchr(host_port, '/');
+			if (url_to == NULL) {
+				bb_error_msg("config error '%s' in '%s'", buf, cf);
+				continue;
+			}
+			*url_to = '\0';
+			proxy_entry = xzalloc(sizeof(Htaccess_Proxy));
+			proxy_entry->url_from = xstrdup(url_from);
+			proxy_entry->host_port = xstrdup(host_port);
+			*url_to = '/';
+			proxy_entry->url_to = xstrdup(url_to);
+			proxy_entry->next = proxy;
+			proxy = proxy_entry;
+			continue;
+		}
+#endif
+
 #if ENABLE_FEATURE_HTTPD_BASIC_AUTH
 		if (*p0 == '/') {
 			/* make full path from httpd root / current_path / config_line_path */
@@ -639,62 +693,63 @@ static void parse_conf(const char *path, int flag)
  || ENABLE_FEATURE_HTTPD_CONFIG_WITH_SCRIPT_INTERPR
 		/* storing current config line */
 		cur = xzalloc(sizeof(Htaccess) + strlen(p0));
-		if (cur) {
-			cf = strcpy(cur->before_colon, p0);
-			c = strchr(cf, ':');
-			*c++ = 0;
-			cur->after_colon = c;
-#if ENABLE_FEATURE_HTTPD_CONFIG_WITH_MIME_TYPES
-			if (*cf == '.') {
-				/* config .mime line move top for overwrite previous */
-				cur->next = mime_a;
-				mime_a = cur;
-				continue;
-			}
-#endif
-#if ENABLE_FEATURE_HTTPD_CONFIG_WITH_SCRIPT_INTERPR
-			if (*cf == '*' && cf[1] == '.') {
-				/* config script interpreter line move top for overwrite previous */
-				cur->next = script_i;
-				script_i = cur;
-				continue;
-			}
-#endif
+		cf = strcpy(cur->before_colon, p0);
 #if ENABLE_FEATURE_HTTPD_BASIC_AUTH
+		if (*p0 == '/')
 			free(p0);
-			if (prev == NULL) {
-				/* first line */
-				g_auth = prev = cur;
-			} else {
-				/* sort path, if current lenght eq or bigger then move up */
-				Htaccess *prev_hti = g_auth;
-				size_t l = strlen(cf);
-				Htaccess *hti;
-
-				for (hti = prev_hti; hti; hti = hti->next) {
-					if (l >= strlen(hti->before_colon)) {
-						/* insert before hti */
-						cur->next = hti;
-						if (prev_hti != hti) {
-							prev_hti->next = cur;
-						} else {
-							/* insert as top */
-							g_auth = cur;
-						}
-						break;
-					}
-					if (prev_hti != hti)
-						prev_hti = prev_hti->next;
-				}
-				if (!hti) {       /* not inserted, add to bottom */
-					prev->next = cur;
-					prev = cur;
-				}
-			}
 #endif
+		c = strchr(cf, ':');
+		*c++ = '\0';
+		cur->after_colon = c;
+#if ENABLE_FEATURE_HTTPD_CONFIG_WITH_MIME_TYPES
+		if (*cf == '.') {
+			/* config .mime line move top for overwrite previous */
+			cur->next = mime_a;
+			mime_a = cur;
+			continue;
 		}
 #endif
-	 }
+#if ENABLE_FEATURE_HTTPD_CONFIG_WITH_SCRIPT_INTERPR
+		if (*cf == '*' && cf[1] == '.') {
+			/* config script interpreter line move top for overwrite previous */
+			cur->next = script_i;
+			script_i = cur;
+			continue;
+		}
+#endif
+#if ENABLE_FEATURE_HTTPD_BASIC_AUTH
+		if (prev == NULL) {
+			/* first line */
+			g_auth = prev = cur;
+		} else {
+			/* sort path, if current length eq or bigger then move up */
+			Htaccess *prev_hti = g_auth;
+			size_t l = strlen(cf);
+			Htaccess *hti;
+
+			for (hti = prev_hti; hti; hti = hti->next) {
+				if (l >= strlen(hti->before_colon)) {
+					/* insert before hti */
+					cur->next = hti;
+					if (prev_hti != hti) {
+						prev_hti->next = cur;
+					} else {
+						/* insert as top */
+						g_auth = cur;
+					}
+					break;
+				}
+				if (prev_hti != hti)
+					prev_hti = prev_hti->next;
+			}
+			if (!hti) {       /* not inserted, add to bottom */
+				prev->next = cur;
+				prev = cur;
+			}
+		}
+#endif /* BASIC_AUTH */
+#endif /* BASIC_AUTH || MIME_TYPES || SCRIPT_INTERPR */
+	 } /* while (fgets) */
 	 fclose(f);
 }
 
@@ -852,7 +907,7 @@ static void decodeBase64(char *Data)
  */
 static int openServer(void)
 {
-	int n = bb_strtou(bind_addr_or_port, NULL, 10);
+	unsigned n = bb_strtou(bind_addr_or_port, NULL, 10);
 	if (!errno && n && n <= 0xffff)
 		n = create_and_bind_stream_or_die(NULL, n);
 	else
@@ -1033,7 +1088,7 @@ static int get_line(void)
 	return count;
 }
 
-#if ENABLE_FEATURE_HTTPD_CGI
+#if ENABLE_FEATURE_HTTPD_CGI || ENABLE_FEATURE_HTTPD_PROXY
 
 /* gcc 4.2.1 fares better with NOINLINE */
 static NOINLINE void cgi_io_loop_and_exit(int fromCgi_rd, int toCgi_wr, int post_len) ATTRIBUTE_NORETURN;
@@ -1207,6 +1262,9 @@ static NOINLINE void cgi_io_loop_and_exit(int fromCgi_rd, int toCgi_wr, int post
 	} /* while (1) */
 	log_and_exit();
 }
+#endif
+
+#if ENABLE_FEATURE_HTTPD_CGI
 
 static void setenv1(const char *name, const char *value)
 {
@@ -1655,6 +1713,18 @@ static int checkPerm(const char *path, const char *request)
 }
 #endif  /* FEATURE_HTTPD_BASIC_AUTH */
 
+#if ENABLE_FEATURE_HTTPD_PROXY
+static Htaccess_Proxy *find_proxy_entry(const char *url)
+{
+	Htaccess_Proxy *p;
+	for (p = proxy; p; p = p->next) {
+		if (strncmp(url, p->url_from, strlen(p->url_from)) == 0)
+			return p;
+	}
+	return NULL;
+}
+#endif
+
 /*
  * Handle timeouts
  */
@@ -1676,13 +1746,22 @@ static void handle_incoming_and_exit(const len_and_sockaddr *fromAddr)
 	char *urlcopy;
 	char *urlp;
 	char *tptr;
-	int http_major_version;
 	int ip_allowed;
 #if ENABLE_FEATURE_HTTPD_CGI
 	const char *prequest;
+	char *cookie = NULL;
+	char *content_type = NULL;
 	unsigned long length = 0;
-	char *cookie = 0;
-	char *content_type = 0;
+#elif ENABLE_FEATURE_HTTPD_PROXY
+#define prequest request_GET
+	unsigned long length = 0;
+#endif
+	char http_major_version;
+#if ENABLE_FEATURE_HTTPD_PROXY
+	char http_minor_version;
+	char *headers = headers;
+	char *headers_ptr = headers_ptr;
+	Htaccess_Proxy *proxy_entry;
 #endif
 	struct sigaction sa;
 #if ENABLE_FEATURE_HTTPD_BASIC_AUTH
@@ -1746,11 +1825,14 @@ static void handle_incoming_and_exit(const len_and_sockaddr *fromAddr)
 		send_headers_and_exit(HTTP_BAD_REQUEST);
 
 	/* Find end of URL and parse HTTP version, if any */
-	http_major_version = -1;
+	http_major_version = '0';
+	USE_FEATURE_HTTPD_PROXY(http_minor_version = '0';)
 	tptr = strchrnul(urlp, ' ');
 	/* Is it " HTTP/"? */
-	if (tptr[0] && strncmp(tptr + 1, HTTP_200, 5) == 0)
-		http_major_version = (tptr[6] - '0');
+	if (tptr[0] && strncmp(tptr + 1, HTTP_200, 5) == 0) {
+		http_major_version = tptr[6];
+		USE_FEATURE_HTTPD_PROXY(http_minor_version = tptr[8];)
+	}
 	*tptr = '\0';
 
 	/* Copy URL from after "GET "/"POST " to stack-allocated char[] */
@@ -1761,8 +1843,8 @@ static void handle_incoming_and_exit(const len_and_sockaddr *fromAddr)
 	/* NB: urlcopy ptr is never changed after this */
 
 	/* Extract url args if present */
-	tptr = strchr(urlcopy, '?');
 	g_query = NULL;
+	tptr = strchr(urlcopy, '?');
 	if (tptr) {
 		*tptr++ = '\0';
 		g_query = tptr;
@@ -1830,7 +1912,14 @@ static void handle_incoming_and_exit(const len_and_sockaddr *fromAddr)
 		}
 		*tptr = '/';
 	}
-	if (http_major_version >= 0) {
+
+#if ENABLE_FEATURE_HTTPD_PROXY
+	proxy_entry = find_proxy_entry(urlcopy);
+	if (proxy_entry)
+		headers = headers_ptr = xmalloc(IOBUF_SIZE);
+#endif
+
+	if (http_major_version >= '0') {
 		/* Request was with "... HTTP/nXXX", and n >= 0 */
 
 		/* Read until blank line for HTTP version specified, else parse immediate */
@@ -1841,8 +1930,23 @@ static void handle_incoming_and_exit(const len_and_sockaddr *fromAddr)
 			if (DEBUG)
 				bb_error_msg("header: '%s'", iobuf);
 
-#if ENABLE_FEATURE_HTTPD_CGI
-			/* try and do our best to parse more lines */
+#if ENABLE_FEATURE_HTTPD_PROXY
+			/* We need 2 more bytes for yet another "\r\n" -
+			 * see fdprintf(proxy_fd...) further below */
+			if (proxy_entry && headers_ptr - headers < IOBUF_SIZE - 2) {
+				int len = strlen(iobuf);
+				if (len > IOBUF_SIZE - (headers_ptr - headers) - 4)
+					len = IOBUF_SIZE - (headers_ptr - headers) - 4;
+				memcpy(headers_ptr, iobuf, len);
+				headers_ptr += len;
+				headers_ptr[0] = '\r';
+				headers_ptr[1] = '\n';
+				headers_ptr += 2;
+			}
+#endif
+
+#if ENABLE_FEATURE_HTTPD_CGI || ENABLE_FEATURE_HTTPD_PROXY
+			/* Try and do our best to parse more lines */
 			if ((STRNCASECMP(iobuf, "Content-length:") == 0)) {
 				/* extra read only for POST */
 				if (prequest != request_GET) {
@@ -1858,7 +1962,10 @@ static void handle_incoming_and_exit(const len_and_sockaddr *fromAddr)
 					if (tptr[0] || errno || length > INT_MAX)
 						send_headers_and_exit(HTTP_BAD_REQUEST);
 				}
-			} else if (STRNCASECMP(iobuf, "Cookie:") == 0) {
+			}
+#endif
+#if ENABLE_FEATURE_HTTPD_CGI
+			else if (STRNCASECMP(iobuf, "Cookie:") == 0) {
 				cookie = strdup(skip_whitespace(iobuf + sizeof("Cookie:")-1));
 			} else if (STRNCASECMP(iobuf, "Content-Type:") == 0) {
 				content_type = strdup(skip_whitespace(iobuf + sizeof("Content-Type:")-1));
@@ -1885,7 +1992,7 @@ static void handle_incoming_and_exit(const len_and_sockaddr *fromAddr)
 #endif          /* FEATURE_HTTPD_BASIC_AUTH */
 #if ENABLE_FEATURE_HTTPD_RANGES
 			if (STRNCASECMP(iobuf, "Range:") == 0) {
-				// We know only bytes=NNN-[MMM]
+				/* We know only bytes=NNN-[MMM] */
 				char *s = skip_whitespace(iobuf + sizeof("Range:")-1);
 				if (strncmp(s, "bytes=", 6) == 0) {
 					s += sizeof("bytes=")-1;
@@ -1903,7 +2010,7 @@ static void handle_incoming_and_exit(const len_and_sockaddr *fromAddr)
 		} /* while extra header reading */
 	}
 
-	/* We read headers, disable peer timeout */
+	/* We are done reading headers, disable peer timeout */
 	alarm(0);
 
 	if (strcmp(bb_basename(urlcopy), httpd_conf) == 0 || ip_allowed == 0) {
@@ -1920,6 +2027,35 @@ static void handle_incoming_and_exit(const len_and_sockaddr *fromAddr)
 	if (found_moved_temporarily) {
 		send_headers_and_exit(HTTP_MOVED_TEMPORARILY);
 	}
+
+#if ENABLE_FEATURE_HTTPD_PROXY
+	if (proxy_entry != NULL) {
+		int proxy_fd;
+		len_and_sockaddr *lsa;
+
+		proxy_fd = socket(AF_INET, SOCK_STREAM, 0);
+		if (proxy_fd < 0)
+			send_headers_and_exit(HTTP_INTERNAL_SERVER_ERROR);
+		lsa = host2sockaddr(proxy_entry->host_port, 80);
+		if (lsa == NULL)
+			send_headers_and_exit(HTTP_INTERNAL_SERVER_ERROR);
+		if (connect(proxy_fd, &lsa->sa, lsa->len) < 0)
+			send_headers_and_exit(HTTP_INTERNAL_SERVER_ERROR);
+		fdprintf(proxy_fd, "%s %s%s%s%s HTTP/%c.%c\r\n",
+				prequest, /* GET or POST */
+				proxy_entry->url_to, /* url part 1 */
+				urlcopy + strlen(proxy_entry->url_from), /* url part 2 */
+				(g_query ? "?" : ""), /* "?" (maybe) */
+				(g_query ? g_query : ""), /* query string (maybe) */
+				http_major_version, http_minor_version);
+		headers_ptr[0] = '\r';
+		headers_ptr[1] = '\n';
+		headers_ptr += 2;
+		write(proxy_fd, headers, headers_ptr - headers);
+		/* cgi_io_loop_and_exit needs to have two disctinct fds */
+		cgi_io_loop_and_exit(proxy_fd, dup(proxy_fd), length);
+	}
+#endif
 
 	tptr = urlcopy + 1;      /* skip first '/' */
 
@@ -2211,7 +2347,7 @@ int httpd_main(int argc, char **argv)
 	/* User can do it himself: 'env - PATH="$PATH" httpd'
 	 * We don't do it because we don't want to screw users
 	 * which want to do
-	 * 'env - VAR1=val1 VAR2=val2 https'
+	 * 'env - VAR1=val1 VAR2=val2 httpd'
 	 * and have VAR1 and VAR2 values visible in their CGIs.
 	 * Besides, it is also smaller. */
 	{
