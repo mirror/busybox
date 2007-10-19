@@ -238,9 +238,10 @@ enum {
 
 struct globals {
 	int pingsock;
+	int if_index;
+	char *opt_I;
 	len_and_sockaddr *source_lsa;
 	unsigned datalen;
-	int if_index;
 	unsigned long ntransmitted, nreceived, nrepeats, pingcount;
 	uint16_t myid;
 	unsigned tmin, tmax; /* in us */
@@ -258,9 +259,10 @@ struct globals {
 };
 #define G (*(struct globals*)&bb_common_bufsiz1)
 #define pingsock     (G.pingsock    )
-#define source_lsa   (G.source_lsa  )
-#define datalen      (G.datalen     )
 #define if_index     (G.if_index    )
+#define source_lsa   (G.source_lsa  )
+#define opt_I        (G.opt_I       )
+#define datalen      (G.datalen     )
 #define ntransmitted (G.ntransmitted)
 #define nreceived    (G.nreceived   )
 #define nrepeats     (G.nrepeats    )
@@ -537,6 +539,8 @@ static void ping4(len_and_sockaddr *lsa)
 			bb_error_msg_and_die("can't set multicast source interface");
 		xbind(pingsock, &source_lsa->sa, source_lsa->len);
 	}
+	if (opt_I)
+		setsockopt(pingsock, SOL_SOCKET, SO_BINDTODEVICE, device, strlen(opt_I) + 1);
 
 	/* enable broadcast pings */
 	setsockopt_broadcast(pingsock);
@@ -584,6 +588,8 @@ static void ping6(len_and_sockaddr *lsa)
 	/* untested whether "-I addr" really works for IPv6: */
 	if (source_lsa)
 		xbind(pingsock, &source_lsa->sa, source_lsa->len);
+	if (opt_I)
+		setsockopt(pingsock, SOL_SOCKET, SO_BINDTODEVICE, device, strlen(opt_I) + 1);
 
 #ifdef ICMP6_FILTER
 	{
@@ -680,23 +686,26 @@ int ping_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int ping_main(int argc, char **argv)
 {
 	len_and_sockaddr *lsa;
-	char *opt_c, *opt_s, *opt_I;
+	char *opt_c, *opt_s;
 	USE_PING6(sa_family_t af = AF_UNSPEC;)
 
 	INIT_G();
 
-	datalen = DEFDATALEN; /* initialized here rather than in global scope to work around gcc bug */
+	datalen = DEFDATALEN;
 
 	/* exactly one argument needed, -v and -q don't mix */
 	opt_complementary = "=1:q--v:v--q";
 	getopt32(argv, OPT_STRING, &opt_c, &opt_s, &opt_I);
-	if (option_mask32 & OPT_c) pingcount = xatoul(opt_c); // -c
-	if (option_mask32 & OPT_s) datalen = xatou16(opt_s); // -s
+	if (option_mask32 & OPT_c)
+		pingcount = xatoul(opt_c); // -c
+	if (option_mask32 & OPT_s)
+		datalen = xatou16(opt_s); // -s
 	if (option_mask32 & OPT_I) { // -I
 		if_index = if_nametoindex(opt_I);
 		if (!if_index) {
 			/* TODO: I'm not sure it takes IPv6 unless in [XX:XX..] format */
 			source_lsa = xdotted2sockaddr(opt_I, 0);
+			opt_I = NULL; /* don't try to bind to device later */
 		}
 	}
 	myid = (uint16_t) getpid();
