@@ -107,6 +107,8 @@ static void unzip_extract(zip_header_t *zip_header, int src_fd, int dst_fd)
 		}
 		/* Validate decompression - size */
 		if (zip_header->formatted.ucmpsize != res.bytes_out) {
+			/* Don't die. Who knows, maybe len calculation
+			 * was botched somewhere. After all, crc matched! */
 			bb_error_msg("bad length");
 		}
 	}
