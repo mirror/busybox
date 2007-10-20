@@ -883,10 +883,14 @@
 #define expand_full_usage \
        "Convert tabs to spaces, writing to standard output." \
        "\n\nOptions:" \
-       "\n	-i" USE_FEATURE_EXPAND_LONG_OPTIONS(",--initial") \
-       "	Do not convert tabs after non blanks" \
-       "\n	-t" USE_FEATURE_EXPAND_LONG_OPTIONS(",--tabs=N") \
-       "	Tabstops every N chars"
+	USE_FEATURE_EXPAND_LONG_OPTIONS( \
+       "\n	-i,--initial	Do not convert tabs after non blanks" \
+       "\n	-t,--tabs=N	Tabstops every N chars" \
+	) \
+	SKIP_FEATURE_EXPAND_LONG_OPTIONS( \
+       "\n	-i	Do not convert tabs after non blanks" \
+       "\n	-t	Tabstops every N chars" \
+	)
 
 #define expr_trivial_usage \
        "EXPRESSION"
@@ -1380,9 +1384,9 @@
        "	-d		Two-byte decimal display\n" \
        "	-e FORMAT STRING\n" \
        "	-f FORMAT FILE\n" \
-       "	-n LENGTH	Interpret only length bytes of input\n" \
+       "	-n LENGTH	Interpret only LENGTH bytes of input\n" \
        "	-o		Two-byte octal display\n" \
-       "	-s OFFSET	Skip offset bytes\n" \
+       "	-s OFFSET	Skip OFFSET bytes\n" \
        "	-v		Display all input data\n" \
        "	-x		Two-byte hexadecimal display"
 
@@ -1434,15 +1438,20 @@
        "\n	-d STRING	URL decode STRING" \
 
 #define hwclock_trivial_usage \
+	USE_GETOPT_LONG( \
        "[-r|--show] [-s|--hctosys] [-w|--systohc]" \
        " [-l|--localtime] [-u|--utc]" \
-       " [-f FILE]"
+       " [-f FILE]" \
+	) \
+	SKIP_GETOPT_LONG( \
+       "[-r] [-s] [-w] [-l] [-u] [-f FILE]" \
+	)
 #define hwclock_full_usage \
        "Query and set a hardware clock (RTC)" \
        "\n\nOptions:\n" \
        "	-r	Read hardware clock and print result\n" \
        "	-s	Set the system time from the hardware clock\n" \
-       "	-w	Set the hardware clock to the current system time\n" \
+       "	-w	Set the hardware clock to the system time\n" \
        "	-u	The hardware clock is kept in coordinated universal time\n" \
        "	-l	The hardware clock is kept in local time\n" \
        "	-f FILE	Use the specified clock (e.g. /dev/rtc2)"
@@ -1453,7 +1462,7 @@
        "Print information for USERNAME or the current user" \
        "\n\nOptions:\n" \
 	USE_SELINUX( \
-       "	-Z	prints only the security context\n" \
+       "	-Z	Prints only the security context\n" \
 	) \
        "	-g	Prints only the group ID\n" \
        "	-u	Prints only the user ID\n" \
@@ -3096,7 +3105,7 @@ USE_FEATURE_RUN_PARTS_FANCY("\n	-l	Prints names of all matching files even when 
        "	FIRST INCREMENT LAST"
 
 #define setconsole_trivial_usage \
-       "[-r|--reset] [DEVICE]"
+       "[-r" USE_FEATURE_SETCONSOLE_LONG_OPTIONS("|--reset") "] [DEVICE]"
 #define setconsole_full_usage \
        "Redirect system console output to DEVICE (default: /dev/tty)" \
        "\n\nOptions:\n" \
@@ -3907,12 +3916,16 @@ USE_FEATURE_RUN_PARTS_FANCY("\n	-l	Prints names of all matching files even when 
 #define unexpand_full_usage \
        "Convert spaces to tabs, writing to standard output." \
        "\n\nOptions:" \
-       "\n	-a" USE_FEATURE_UNEXPAND_LONG_OPTIONS(",--all") \
-       "	Convert all blanks" \
-       "\n	-f" USE_FEATURE_UNEXPAND_LONG_OPTIONS(",--first-only") \
-       "	Convert only leading sequences of blanks" \
-       "\n	-t" USE_FEATURE_UNEXPAND_LONG_OPTIONS(",--tabs=N") \
-       "	Tabstops every N chars"
+	USE_FEATURE_UNEXPAND_LONG_OPTIONS( \
+       "\n	-a,--all	Convert all blanks" \
+       "\n	-f,--first-only	Convert only leading blanks" \
+       "\n	-t,--tabs=N	Tabstops every N chars" \
+	) \
+	SKIP_FEATURE_UNEXPAND_LONG_OPTIONS( \
+       "\n	-a	Convert all blanks" \
+       "\n	-f	Convert only leading blanks" \
+       "\n	-t N	Tabstops every N chars" \
+	)
 
 #define uniq_trivial_usage \
        "[-fscdu]... [INPUT [OUTPUT]]"
