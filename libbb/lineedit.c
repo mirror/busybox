@@ -1259,7 +1259,7 @@ static void win_changed(int nsig)
  * 0  on ctrl-C,
  * >0 length of input string, including terminating '\n'
  */
-int read_line_input(const char* prompt, char* command, int maxsize, line_input_t *st)
+int read_line_input(const char *prompt, char *command, int maxsize, line_input_t *st)
 {
 	int lastWasTab = FALSE;
 	unsigned int ic;
@@ -1269,6 +1269,15 @@ int read_line_input(const char* prompt, char* command, int maxsize, line_input_t
 	smallint vi_cmdmode = 0;
 	smalluint prevc;
 #endif
+
+	getTermSettings(0, (void *) &initial_settings);
+	/* Happens when e.g. stty -echo was run before */
+	if (!(initial_settings.c_lflag & ECHO)) {
+		parse_prompt(prompt);
+		fflush(stdout);
+		fgets(command, maxsize, stdin);
+		return strlen(command);
+	}
 
 // FIXME: audit & improve this
 	if (maxsize > MAX_LINELEN)
@@ -1287,7 +1296,6 @@ int read_line_input(const char* prompt, char* command, int maxsize, line_input_t
 	command_ps = command;
 	command[0] = '\0';
 
-	getTermSettings(0, (void *) &initial_settings);
 	memcpy(&new_settings, &initial_settings, sizeof(new_settings));
 	new_settings.c_lflag &= ~ICANON;        /* unbuffered input */
 	/* Turn off echoing and CTRL-C, so we can trap it */

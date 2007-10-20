@@ -11491,7 +11491,7 @@ readcmd(int argc, char **argv)
 	int status;
 	int i;
 #if ENABLE_ASH_READ_NCHARS
-	int nch_flag = 0;
+	int n_flag = 0;
 	int nchars = 0;
 	int silent = 0;
 	struct termios tty, old_tty;
@@ -11521,10 +11521,10 @@ readcmd(int argc, char **argv)
 			break;
 #if ENABLE_ASH_READ_NCHARS
 		case 'n':
-			nchars = strtol(optionarg, &p, 10);
-			if (*p)
+			nchars = bb_strtou(optionarg, NULL, 10);
+			if (nchars < 0 || errno)
 				ash_msg_and_raise_error("invalid count");
-			nch_flag = (nchars > 0);
+			n_flag = nchars; /* just a flag "nchars is nonzero" */
 			break;
 		case 's':
 			silent = 1;
@@ -11532,14 +11532,15 @@ readcmd(int argc, char **argv)
 #endif
 #if ENABLE_ASH_READ_TIMEOUT
 		case 't':
-			ts.tv_sec = strtol(optionarg, &p, 10);
+			ts.tv_sec = bb_strtou(optionarg, &p, 10);
 			ts.tv_usec = 0;
-			if (*p == '.') {
+			/* EINVAL means number is ok, but not terminated by NUL */
+			if (*p == '.' && errno == EINVAL) {
 				char *p2;
 				if (*++p) {
 					int scale;
-					ts.tv_usec = strtol(p, &p2, 10);
-					if (*p2)
+					ts.tv_usec = bb_strtou(p, &p2, 10);
+					if (errno)
 						ash_msg_and_raise_error("invalid timeout");
 					scale = p2 - p;
 					/* normalize to usec */
@@ -11548,11 +11549,12 @@ readcmd(int argc, char **argv)
 					while (scale++ < 6)
 						ts.tv_usec *= 10;
 				}
-			} else if (*p) {
+			} else if (ts.tv_sec < 0 || errno) {
 				ash_msg_and_raise_error("invalid timeout");
 			}
-			if ( ! ts.tv_sec && ! ts.tv_usec)
+			if (!(ts.tv_sec | ts.tv_usec)) { /* both are 0? */
 				ash_msg_and_raise_error("invalid timeout");
+			}
 			break;
 #endif
 		case 'r':
@@ -11572,16 +11574,15 @@ readcmd(int argc, char **argv)
 	if (ifs == NULL)
 		ifs = defifs;
 #if ENABLE_ASH_READ_NCHARS
-	if (nch_flag || silent) {
+	if (n_flag || silent) {
 		tcgetattr(0, &tty);
 		old_tty = tty;
-		if (nch_flag) {
+		if (n_flag) {
 			tty.c_lflag &= ~ICANON;
 			tty.c_cc[VMIN] = nchars;
 		}
 		if (silent) {
 			tty.c_lflag &= ~(ECHO|ECHOK|ECHONL);
-
 		}
 		tcsetattr(0, TCSANOW, &tty);
 	}
@@ -11595,7 +11596,7 @@ readcmd(int argc, char **argv)
 		i = select(FD_SETSIZE, &set, NULL, NULL, &ts);
 		if (!i) {
 #if ENABLE_ASH_READ_NCHARS
-			if (nch_flag)
+			if (n_flag)
 				tcsetattr(0, TCSANOW, &old_tty);
 #endif
 			return 1;
@@ -11606,12 +11607,7 @@ readcmd(int argc, char **argv)
 	startword = 1;
 	backslash = 0;
 	STARTSTACKSTR(p);
-#if ENABLE_ASH_READ_NCHARS
-	while (!nch_flag || nchars--)
-#else
-	for (;;)
-#endif
-	{
+	do {
 		if (read(0, &c, 1) != 1) {
 			status = 1;
 			break;
@@ -11645,8 +11641,15 @@ readcmd(int argc, char **argv)
 			STPUTC(c, p);
 		}
 	}
+/* end of do {} while: */
 #if ENABLE_ASH_READ_NCHARS
-	if (nch_flag || silent)
+	while (!n_flag || --nchars);
+#else
+	while (1);
+#endif
+
+#if ENABLE_ASH_READ_NCHARS
+	if (n_flag || silent)
 		tcsetattr(0, TCSANOW, &old_tty);
 #endif
 
