@@ -1805,6 +1805,16 @@
        "	[[i|o]seq] [[i|o]key KEY] [[i|o]csum]\n" \
        "	[ttl TTL] [tos TOS] [[no]pmtudisc] [dev PHYS_DEV]"
 
+#define kbd_mode_trivial_usage \
+       "[-a|k|s|u]"
+#define kbd_mode_full_usage \
+       "Report or set the keyboard mode" \
+       "\n\nOptions set mode:\n" \
+       "	-a	Default (ASCII)\n" \
+       "	-k	Medium-raw (keyboard)\n" \
+       "	-s	Raw (scancode)\n" \
+       "	-u	Unicode (utf-8)"
+
 #define kill_trivial_usage \
        "[-l] [-signal] process-id [process-id ...]"
 #define kill_full_usage \

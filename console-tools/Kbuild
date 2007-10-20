@@ -10,6 +10,7 @@ lib-$(CONFIG_CLEAR)		+= clear.o
 lib-$(CONFIG_DEALLOCVT)		+= deallocvt.o
 lib-$(CONFIG_DUMPKMAP)		+= dumpkmap.o
 lib-$(CONFIG_SETCONSOLE)	+= setconsole.o
+lib-$(CONFIG_KBD_MODE)		+= kbd_mode.o
 lib-$(CONFIG_LOADFONT)		+= loadfont.o
 lib-$(CONFIG_LOADKMAP)		+= loadkmap.o
 lib-$(CONFIG_OPENVT)		+= openvt.o
