@@ -540,7 +540,7 @@ static void ping4(len_and_sockaddr *lsa)
 		xbind(pingsock, &source_lsa->sa, source_lsa->len);
 	}
 	if (opt_I)
-		setsockopt(pingsock, SOL_SOCKET, SO_BINDTODEVICE, device, strlen(opt_I) + 1);
+		setsockopt(pingsock, SOL_SOCKET, SO_BINDTODEVICE, opt_I, strlen(opt_I) + 1);
 
 	/* enable broadcast pings */
 	setsockopt_broadcast(pingsock);
@@ -589,7 +589,7 @@ static void ping6(len_and_sockaddr *lsa)
 	if (source_lsa)
 		xbind(pingsock, &source_lsa->sa, source_lsa->len);
 	if (opt_I)
-		setsockopt(pingsock, SOL_SOCKET, SO_BINDTODEVICE, device, strlen(opt_I) + 1);
+		setsockopt(pingsock, SOL_SOCKET, SO_BINDTODEVICE, opt_I, strlen(opt_I) + 1);
 
 #ifdef ICMP6_FILTER
 	{

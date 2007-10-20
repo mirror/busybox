@@ -11,6 +11,31 @@
 
 #include "libbb.h"
 
+#if ENABLE_SELINUX
+static void check_selinux_update_passwd(const char *username)
+{
+	security_context_t context;
+	char *seuser;
+
+	if (getuid() != (uid_t)0 || is_selinux_enabled() == 0)
+		return;		/* No need to check */
+
+	if (getprevcon_raw(&context) < 0)
+		bb_perror_msg_and_die("getprevcon failed");
+	seuser = strtok(context, ":");
+	if (!seuser)
+		bb_error_msg_and_die("invalid context '%s'", context);
+	if (strcmp(seuser, username) != 0) {
+		if (checkPasswdAccess(PASSWD__PASSWD) != 0)
+			bb_error_msg_and_die("SELinux: access denied");
+	}
+	if (ENABLE_FEATURE_CLEAN_UP)
+		freecon(context);
+}
+#else
+#define check_selinux_update_passwd(username) ((void)0)
+#endif
+
 int update_passwd(const char *filename, const char *username,
 			const char *new_pw)
 {
@@ -27,6 +52,8 @@ int update_passwd(const char *filename, const char *username,
 	int cnt = 0;
 	int ret = -1; /* failure */
 
+	check_selinux_update_passwd(username);
+
 	/* New passwd file, "/etc/passwd+" for now */
 	fnamesfx = xasprintf("%s+", filename);
 	sfx_char = &fnamesfx[strlen(fnamesfx)-1];
@@ -37,6 +64,8 @@ int update_passwd(const char *filename, const char *username,
 	if (!old_fp)
 		goto free_mem;
 	old_fd = fileno(old_fp);
+
+	selinux_preserve_fcontext(old_fd);
 
 	/* Try to create "/etc/passwd+". Wait if it exists. */
 	i = 30;

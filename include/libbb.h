@@ -44,6 +44,8 @@
 #if ENABLE_SELINUX
 #include <selinux/selinux.h>
 #include <selinux/context.h>
+#include <selinux/flask.h>
+#include <selinux/av_permissions.h>
 #endif
 
 #if ENABLE_LOCALE_SUPPORT
@@ -818,6 +820,9 @@ extern void set_current_security_context(security_context_t sid);
 extern context_t set_security_context_component(security_context_t cur_context,
 						char *user, char *role, char *type, char *range);
 extern void setfscreatecon_or_die(security_context_t scontext);
+extern void selinux_preserve_fcontext(int fdesc);
+#else
+#define selinux_preserve_fcontext(fdesc) ((void)0)
 #endif
 extern void selinux_or_die(void);
 extern int restricted_shell(const char *shell);
