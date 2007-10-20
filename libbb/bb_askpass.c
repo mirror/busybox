@@ -17,7 +17,7 @@ static void askpass_timeout(int ATTRIBUTE_UNUSED ignore)
 {
 }
 
-char *bb_askpass(int timeout, const char * prompt)
+char *bb_askpass(int timeout, const char *prompt)
 {
 	/* Was static char[BIGNUM] */
 	enum { sizeof_passwd = 128 };
@@ -25,35 +25,36 @@ char *bb_askpass(int timeout, const char * prompt)
 
 	char *ret;
 	int i;
-	struct sigaction sa;
-	struct termios old, new;
+	struct sigaction sa, oldsa;
+	struct termios tio, oldtio;
 
 	if (!passwd)
 		passwd = xmalloc(sizeof_passwd);
 	memset(passwd, 0, sizeof_passwd);
 
-	tcgetattr(STDIN_FILENO, &old);
+	tcgetattr(STDIN_FILENO, &oldtio);
 	tcflush(STDIN_FILENO, TCIFLUSH);
+	tio = oldtio;
+	tio.c_iflag &= ~(IUCLC|IXON|IXOFF|IXANY);
+	tio.c_lflag &= ~(ECHO|ECHOE|ECHOK|ECHONL|TOSTOP);
+	tcsetattr(STDIN_FILENO, TCSANOW, &tio);
 
-	fputs(prompt, stdout);
-	fflush(stdout);
-
-	tcgetattr(STDIN_FILENO, &new);
-	new.c_iflag &= ~(IUCLC|IXON|IXOFF|IXANY);
-	new.c_lflag &= ~(ECHO|ECHOE|ECHOK|ECHONL|TOSTOP);
-	tcsetattr(STDIN_FILENO, TCSANOW, &new);
-
+	memset(&sa, 0, sizeof(sa));
+	/* sa.sa_flags = 0; - no SA_RESTART! */
+	/* SIGINT and SIGALRM will interrupt read below */
+	sa.sa_handler = askpass_timeout;
+	sigaction(SIGINT, &sa, &oldsa);
 	if (timeout) {
-		sa.sa_flags = 0;
-		sa.sa_handler = askpass_timeout;
 		sigaction(SIGALRM, &sa, NULL);
 		alarm(timeout);
 	}
 
+	fputs(prompt, stdout);
+	fflush(stdout);
 	ret = NULL;
-	/* On timeout, read will hopefully be interrupted by SIGALRM,
+	/* On timeout or Ctrl-C, read will hopefully be interrupted,
 	 * and we return NULL */
-	if (read(STDIN_FILENO, passwd, sizeof_passwd-1) > 0) {
+	if (read(STDIN_FILENO, passwd, sizeof_passwd - 1) > 0) {
 		ret = passwd;
 		i = 0;
 		/* Last byte is guaranteed to be 0
@@ -67,8 +68,9 @@ char *bb_askpass(int timeout, const char * prompt)
 	if (timeout) {
 		alarm(0);
 	}
+	sigaction(SIGINT, &oldsa, NULL);
 
-	tcsetattr(STDIN_FILENO, TCSANOW, &old);
+	tcsetattr(STDIN_FILENO, TCSANOW, &oldtio);
 	bb_putchar('\n');
 	fflush(stdout);
 	return ret;

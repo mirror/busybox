@@ -9,29 +9,26 @@
 
 #include "libbb.h"
 
-static const char *const forbid[] = {
-	"ENV",
-	"BASH_ENV",
-	"HOME",
-	"IFS",
-	"PATH",
-	"SHELL",
-	"LD_LIBRARY_PATH",
-	"LD_PRELOAD",
-	"LD_TRACE_LOADED_OBJECTS",
-	"LD_BIND_NOW",
-	"LD_AOUT_LIBRARY_PATH",
-	"LD_AOUT_PRELOAD",
-	"LD_NOWARN",
-	"LD_KEEPDIR",
-	(char *) 0
-};
+static const char forbid[] ALIGN1 =
+	"ENV" "\0"
+	"BASH_ENV" "\0"
+	"HOME" "\0"
+	"IFS" "\0"
+	"PATH" "\0"
+	"SHELL" "\0"
+	"LD_LIBRARY_PATH" "\0"
+	"LD_PRELOAD" "\0"
+	"LD_TRACE_LOADED_OBJECTS" "\0"
+	"LD_BIND_NOW" "\0"
+	"LD_AOUT_LIBRARY_PATH" "\0"
+	"LD_AOUT_PRELOAD" "\0"
+	"LD_NOWARN" "\0"
+	"LD_KEEPDIR" "\0";
 
-
-static void catchalarm(int ATTRIBUTE_UNUSED junk)
-{
-	exit(EXIT_FAILURE);
-}
+//static void catchalarm(int ATTRIBUTE_UNUSED junk)
+//{
+//	exit(EXIT_FAILURE);
+//}
 
 
 int sulogin_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
@@ -40,7 +37,7 @@ int sulogin_main(int argc, char **argv)
 	char *cp;
 	int timeout = 0;
 	char *timeout_arg;
-	const char *const *p;
+	const char *p;
 	struct passwd *pwd;
 	const char *shell;
 #if ENABLE_FEATURE_SHADOWPASSWDS
@@ -71,10 +68,14 @@ int sulogin_main(int argc, char **argv)
 	}
 
 	/* Clear out anything dangerous from the environment */
-	for (p = forbid; *p; p++)
-		unsetenv(*p);
+	p = forbid;
+	do {
+		unsetenv(p);
+		p += strlen(p) + 1;
+	} while (*p);
 
-	signal(SIGALRM, catchalarm);
+// bb_askpass() already handles this
+//	signal(SIGALRM, catchalarm);
 
 	pwd = getpwuid(0);
 	if (!pwd) {
@@ -105,7 +106,7 @@ int sulogin_main(int argc, char **argv)
 		bb_error_msg("login incorrect");
 	}
 	memset(cp, 0, strlen(cp));
-	signal(SIGALRM, SIG_DFL);
+//	signal(SIGALRM, SIG_DFL);
 
 	bb_info_msg("System Maintenance Mode");
 
@@ -122,6 +123,6 @@ int sulogin_main(int argc, char **argv)
 	/* Exec login shell with no additional parameters. Never returns. */
 	run_shell(shell, 1, NULL, NULL);
 
-auth_error:
-	bb_error_msg_and_die("no password entry for 'root'");
+ auth_error:
+	bb_error_msg_and_die("no password entry for root");
 }
