@@ -626,7 +626,7 @@ static void parse_conf(const char *path, int flag)
 			}
 			*host_port++ = '\0';
 			if (strncmp(host_port, "http://", 7) == 0)
-				c += 7;
+				host_port += 7;
 			if (*host_port == '\0') {
 				bb_error_msg("config error '%s' in '%s'", buf, cf);
 				continue;
