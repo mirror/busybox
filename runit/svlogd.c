@@ -985,9 +985,11 @@ int svlogd_main(int argc, char **argv)
 			if (ld->fddir == -1) continue;
 			if (ld->inst)
 				logmatch(ld);
-			if (ld->matcherr == 'e')
+			if (ld->matcherr == 'e') {
+				/* runit-1.8.0 compat: if timestamping, do it on stderr too */
 				////full_write(2, printptr, printlen);
-				fwrite(lineptr, 1, linelen, stderr);
+				fwrite(printptr, 1, printlen, stderr);
+			}
 			if (ld->match != '+') continue;
 			buffer_pwrite(i, printptr, printlen);
 		}
@@ -1012,9 +1014,10 @@ int svlogd_main(int argc, char **argv)
 			/* linelen == no of chars incl. '\n' (or == stdin_cnt) */
 			for (i = 0; i < dirn; ++i) {
 				if (dir[i].fddir == -1) continue;
-				if (dir[i].matcherr == 'e')
+				if (dir[i].matcherr == 'e') {
 					////full_write(2, lineptr, linelen);
 					fwrite(lineptr, 1, linelen, stderr);
+				}
 				if (dir[i].match != '+') continue;
 				buffer_pwrite(i, lineptr, linelen);
 			}
