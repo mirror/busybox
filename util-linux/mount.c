@@ -37,7 +37,7 @@
 #if defined(__dietlibc__)
 /* 16.12.2006, Sampo Kellomaki (sampo@iki.fi)
  * dietlibc-0.30 does not have implementation of getmntent_r() */
-struct mntent *getmntent_r(FILE* stream, struct mntent* result, char* buffer, int bufsize)
+static struct mntent *getmntent_r(FILE* stream, struct mntent* result, char* buffer, int bufsize)
 {
 	struct mntent* ment = getmntent(stream);
 	memcpy(result, ment, sizeof(struct mntent));
@@ -66,63 +66,105 @@ enum {
 /* Standard mount options (from -o options or --options), with corresponding
  * flags */
 
-static const struct {
-	const char *name;
-	long flags;
-} mount_options[] = {
+static const int32_t mount_options[] = {
 	// MS_FLAGS set a bit.  ~MS_FLAGS disable that bit.  0 flags are NOPs.
 
 	USE_FEATURE_MOUNT_LOOP(
-		{"loop", 0},
+		/* "loop" */ 0,
 	)
 
 	USE_FEATURE_MOUNT_FSTAB(
-		{"defaults", 0},
-		/* {"quiet", 0}, - do not filter out, vfat wants to see it */
-		{"noauto", MOUNT_NOAUTO},
-		{"sw", MOUNT_SWAP},
-		{"swap", MOUNT_SWAP},
-		USE_DESKTOP({"user",  MOUNT_USERS},)
-		USE_DESKTOP({"users", MOUNT_USERS},)
+		/* "defaults" */ 0,
+		/* "quiet" 0 - do not filter out, vfat wants to see it */
+		/* "noauto" */ MOUNT_NOAUTO,
+		/* "sw"     */ MOUNT_SWAP,
+		/* "swap"   */ MOUNT_SWAP,
+		USE_DESKTOP(/* "user"  */ MOUNT_USERS,)
+		USE_DESKTOP(/* "users" */ MOUNT_USERS,)
 	)
 
 	USE_FEATURE_MOUNT_FLAGS(
 		// vfs flags
-		{"nosuid", MS_NOSUID},
-		{"suid", ~MS_NOSUID},
-		{"dev", ~MS_NODEV},
-		{"nodev", MS_NODEV},
-		{"exec", ~MS_NOEXEC},
-		{"noexec", MS_NOEXEC},
-		{"sync", MS_SYNCHRONOUS},
-		{"async", ~MS_SYNCHRONOUS},
-		{"atime", ~MS_NOATIME},
-		{"noatime", MS_NOATIME},
-		{"diratime", ~MS_NODIRATIME},
-		{"nodiratime", MS_NODIRATIME},
-		{"loud", ~MS_SILENT},
+		/* "nosuid"      */ MS_NOSUID,
+		/* "suid"        */ ~MS_NOSUID,
+		/* "dev"         */ ~MS_NODEV,
+		/* "nodev"       */ MS_NODEV,
+		/* "exec"        */ ~MS_NOEXEC,
+		/* "noexec"      */ MS_NOEXEC,
+		/* "sync"        */ MS_SYNCHRONOUS,
+		/* "async"       */ ~MS_SYNCHRONOUS,
+		/* "atime"       */ ~MS_NOATIME,
+		/* "noatime"     */ MS_NOATIME,
+		/* "diratime"    */ ~MS_NODIRATIME,
+		/* "nodiratime"  */ MS_NODIRATIME,
+		/* "loud"        */ ~MS_SILENT,
 
 		// action flags
-
-		{"bind", MS_BIND},
-		{"move", MS_MOVE},
-		{"shared", MS_SHARED},
-		{"slave", MS_SLAVE},
-		{"private", MS_PRIVATE},
-		{"unbindable", MS_UNBINDABLE},
-		{"rshared", MS_SHARED|MS_RECURSIVE},
-		{"rslave", MS_SLAVE|MS_RECURSIVE},
-		{"rprivate", MS_SLAVE|MS_RECURSIVE},
-		{"runbindable", MS_UNBINDABLE|MS_RECURSIVE},
+		/* "bind"        */ MS_BIND,
+		/* "move"        */ MS_MOVE,
+		/* "shared"      */ MS_SHARED,
+		/* "slave"       */ MS_SLAVE,
+		/* "private"     */ MS_PRIVATE,
+		/* "unbindable"  */ MS_UNBINDABLE,
+		/* "rshared"     */ MS_SHARED|MS_RECURSIVE,
+		/* "rslave"      */ MS_SLAVE|MS_RECURSIVE,
+		/* "rprivate"    */ MS_SLAVE|MS_RECURSIVE,
+		/* "runbindable" */ MS_UNBINDABLE|MS_RECURSIVE,
 	)
 
 	// Always understood.
-
-	{"ro", MS_RDONLY},        // vfs flag
-	{"rw", ~MS_RDONLY},       // vfs flag
-	{"remount", MS_REMOUNT},  // action flag
+	/* "ro"      */ MS_RDONLY,  // vfs flag
+	/* "rw"      */ ~MS_RDONLY, // vfs flag
+	/* "remount" */ MS_REMOUNT  // action flag
 };
 
+static const char mount_option_str[] =
+	USE_FEATURE_MOUNT_LOOP(
+		"loop" "\0"
+	)
+	USE_FEATURE_MOUNT_FSTAB(
+		"defaults" "\0"
+		/* "quiet" "\0" - do not filter out, vfat wants to see it */
+		"noauto" "\0"
+		"sw" "\0"
+		"swap" "\0"
+		USE_DESKTOP("user" "\0")
+		USE_DESKTOP("users" "\0")
+	)
+	USE_FEATURE_MOUNT_FLAGS(
+		// vfs flags
+		"nosuid" "\0"
+		"suid" "\0"
+		"dev" "\0"
+		"nodev" "\0"
+		"exec" "\0"
+		"noexec" "\0"
+		"sync" "\0"
+		"async" "\0"
+		"atime" "\0"
+		"noatime" "\0"
+		"diratime" "\0"
+		"nodiratime" "\0"
+		"loud" "\0"
+
+		// action flags
+		"bind" "\0"
+		"move" "\0"
+		"shared" "\0"
+		"slave" "\0"
+		"private" "\0"
+		"unbindable" "\0"
+		"rshared" "\0"
+		"rslave" "\0"
+		"rprivate" "\0"
+		"runbindable" "\0"
+	)
+
+	// Always understood.
+	"ro" "\0"        // vfs flag
+	"rw" "\0"        // vfs flag
+	"remount" "\0"   // action flag
+;
 
 /* Append mount options to string */
 static void append_mount_options(char **oldopts, const char *newopts)
@@ -137,7 +179,7 @@ static void append_mount_options(char **oldopts, const char *newopts)
 			p = *oldopts;
 			while (1) {
 				if (!strncmp(p, newopts, len)
-				 && (p[len]==',' || p[len]==0))
+				 && (p[len] == ',' || p[len] == '\0'))
 					goto skip;
 				p = strchr(p,',');
 				if (!p) break;
@@ -146,7 +188,7 @@ static void append_mount_options(char **oldopts, const char *newopts)
 			p = xasprintf("%s,%.*s", *oldopts, len, newopts);
 			free(*oldopts);
 			*oldopts = p;
-skip:
+ skip:
 			newopts += len;
 			while (newopts[0] == ',') newopts++;
 		}
@@ -166,17 +208,19 @@ static int parse_mount_options(char *options, char **unrecognized)
 	for (;;) {
 		int i;
 		char *comma = strchr(options, ',');
+		const char *option_str = mount_option_str;
 
-		if (comma) *comma = 0;
+		if (comma) *comma = '\0';
 
 		// Find this option in mount_options
 		for (i = 0; i < ARRAY_SIZE(mount_options); i++) {
-			if (!strcasecmp(mount_options[i].name, options)) {
-				long fl = mount_options[i].flags;
+			if (!strcasecmp(option_str, options)) {
+				long fl = mount_options[i];
 				if (fl < 0) flags &= fl;
 				else flags |= fl;
 				break;
 			}
+			option_str += strlen(option_str) + 1;
 		}
 		// If unrecognized not NULL, append unrecognized mount options */
 		if (unrecognized && i == ARRAY_SIZE(mount_options)) {
@@ -263,7 +307,7 @@ static int mount_it_now(struct mntent *mp, int vfsflags, char *filteropts)
 	for (;;) {
 		rc = mount(mp->mnt_fsname, mp->mnt_dir, mp->mnt_type,
 				vfsflags, filteropts);
-		if (!rc || (vfsflags&MS_RDONLY) || (errno!=EACCES && errno!=EROFS))
+		if (!rc || (vfsflags & MS_RDONLY) || (errno != EACCES && errno != EROFS))
 			break;
 		if (!(vfsflags & MS_SILENT))
 			bb_error_msg("%s is write-protected, mounting read-only",
@@ -282,23 +326,26 @@ static int mount_it_now(struct mntent *mp, int vfsflags, char *filteropts)
 	if (ENABLE_FEATURE_MTAB_SUPPORT && useMtab && !rc && !(vfsflags & MS_REMOUNT)) {
 		char *fsname;
 		FILE *mountTable = setmntent(bb_path_mtab_file, "a+");
+		const char *option_str = mount_option_str;
 		int i;
 
 		if (!mountTable) {
-			bb_error_msg("no %s",bb_path_mtab_file);
+			bb_error_msg("no %s", bb_path_mtab_file);
 			goto ret;
 		}
 
 		// Add vfs string flags
 
-		for (i=0; mount_options[i].flags != MS_REMOUNT; i++)
-			if (mount_options[i].flags > 0 && (mount_options[i].flags & vfsflags))
-				append_mount_options(&(mp->mnt_opts), mount_options[i].name);
+		for (i = 0; mount_options[i] != MS_REMOUNT; i++) {
+			if (mount_options[i] > 0 && (mount_options[i] & vfsflags))
+				append_mount_options(&(mp->mnt_opts), option_str);
+			option_str += strlen(option_str) + 1;
+		}
 
 		// Remove trailing / (if any) from directory we mounted on
 
 		i = strlen(mp->mnt_dir) - 1;
-		if (i > 0 && mp->mnt_dir[i] == '/') mp->mnt_dir[i] = 0;
+		if (i > 0 && mp->mnt_dir[i] == '/') mp->mnt_dir[i] = '\0';
 
 		// Convert to canonical pathnames as needed
 
@@ -550,8 +597,8 @@ enum {
 // Convert each NFSERR_BLAH into EBLAH
 
 static const struct {
-	int stat;
-	int errnum;
+	short stat;
+	short errnum;
 } nfs_errtbl[] = {
 	{0,0}, {1,EPERM}, {2,ENOENT}, {5,EIO}, {6,ENXIO}, {13,EACCES}, {17,EEXIST},
 	{19,ENODEV}, {20,ENOTDIR}, {21,EISDIR}, {22,EINVAL}, {27,EFBIG},
@@ -1154,7 +1201,7 @@ static int nfsmount(struct mntent *mp, int vfsflags, char *filteropts)
 		timeout = time(NULL) + 60 * retry;
 		prevt = 0;
 		t = 30;
-retry:
+ retry:
 		/* be careful not to use too many CPU cycles */
 		if (t - prevt < 30)
 			sleep(30);
@@ -1254,7 +1301,7 @@ retry:
 		goto retry;
 	}
 
-prepare_kernel_data:
+ prepare_kernel_data:
 
 	if (nfsvers == 2) {
 		if (status.nfsv2.fhs_status != 0) {
@@ -1349,13 +1396,13 @@ prepare_kernel_data:
 		}
 	}
 
-do_mount: /* perform actual mount */
+ do_mount: /* perform actual mount */
 
 	mp->mnt_type = (char*)"nfs";
 	retval = mount_it_now(mp, vfsflags, (char*)&data);
 	goto ret;
 
-fail:	/* abort */
+ fail:	/* abort */
 
 	if (msock >= 0) {
 		if (mclient) {
@@ -1367,7 +1414,7 @@ fail:	/* abort */
 	if (fsock >= 0)
 		close(fsock);
 
-ret:
+ ret:
 	free(hostname);
 	free(mounthost);
 	free(filteropts);
@@ -1756,7 +1803,7 @@ int mount_main(int argc, char **argv)
 	}
 	if (ENABLE_FEATURE_CLEAN_UP) endmntent(fstab);
 
-clean_up:
+ clean_up:
 
 	if (ENABLE_FEATURE_CLEAN_UP) {
 		free(storage_path);
