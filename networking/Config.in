@@ -464,7 +464,7 @@ config FEATURE_IP_SHORT_FORMS
 	  object commands.
 
 config FEATURE_IP_RARE_PROTOCOLS
-	bool "Suport display of rarely-used link types."
+	bool "Support displaying rarely used link types"
 	default n
 	depends on IP
 	help
