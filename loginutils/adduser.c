@@ -11,68 +11,47 @@
 #include "libbb.h"
 
 #define OPT_DONT_SET_PASS  (1 << 4)
+#define OPT_SYSTEM_ACCOUNT (1 << 5)
 #define OPT_DONT_MAKE_HOME (1 << 6)
 
 
 /* remix */
-/* EDR recoded such that the uid may be passed in *p */
-static int passwd_study(const char *filename, struct passwd *p)
+/* recoded such that the uid may be passed in *p */
+static void passwd_study(struct passwd *p)
 {
-	enum { min = 500, max = 65000 };
-	FILE *passwd;
-	/* We are using reentrant fgetpwent_r() in order to avoid
-	 * pulling in static buffers from libc (think static build here) */
-	char buffer[256];
-	struct passwd pw;
-	struct passwd *result;
+	int max;
 
-	passwd = xfopen(filename, "r");
+	if (getpwnam(p->pw_name))
+		bb_error_msg_and_die("login '%s' is in use", p->pw_name);
 
-	/* EDR if uid is out of bounds, set to min */
-	if ((p->pw_uid > max) || (p->pw_uid < min))
-		p->pw_uid = min;
-
-	/* stuff to do:
-	 * make sure login isn't taken;
-	 * find free uid and gid;
-	 */
-	while (!fgetpwent_r(passwd, &pw, buffer, sizeof(buffer), &result)) {
-		if (strcmp(pw.pw_name, p->pw_name) == 0) {
-			/* return 0; */
-			return 1;
-		}
-		if ((pw.pw_uid >= p->pw_uid) && (pw.pw_uid < max)
-			&& (pw.pw_uid >= min)) {
-			p->pw_uid = pw.pw_uid + 1;
-		}
+	if (option_mask32 & OPT_SYSTEM_ACCOUNT) {
+		p->pw_uid = 0;
+		max = 999;
+	} else {
+		p->pw_uid = 1000;
+		max = 64999;
 	}
 
-	if (p->pw_gid == 0) {
-		/* EDR check for an already existing gid */
-		while (getgrgid(p->pw_uid) != NULL)
-			p->pw_uid++;
-
-		/* EDR also check for an existing group definition */
-		if (getgrnam(p->pw_name) != NULL)
-			return 3;
-
-		/* EDR create new gid always = uid */
+	/* check for a free uid (and maybe gid) */
+	while (getpwuid(p->pw_uid) || (!p->pw_gid && getgrgid(p->pw_uid)))
+		p->pw_uid++;
+        
+	if (!p->pw_gid) {
+		/* new gid = uid */
 		p->pw_gid = p->pw_uid;
+		if (getgrnam(p->pw_name))
+			bb_error_msg_and_die("group name '%s' is in use", p->pw_name);
 	}
 
-	/* EDR bounds check */
-	if ((p->pw_uid > max) || (p->pw_uid < min))
-		return 2;
-
-	/* return 1; */
-	return 0;
+	if (p->pw_uid > max)
+		bb_error_msg_and_die("no free uids left");
 }
 
 static void addgroup_wrapper(struct passwd *p)
 {
 	char *cmd;
 
-	cmd = xasprintf("addgroup -g %d \"%s\"", p->pw_gid, p->pw_name);
+	cmd = xasprintf("addgroup -g %u '%s'", (unsigned)p->pw_gid, p->pw_name);
 	system(cmd);
 	free(cmd);
 }
@@ -84,85 +63,12 @@ static void passwd_wrapper(const char *login)
 	static const char prog[] ALIGN1 = "passwd";
 
 	BB_EXECLP(prog, prog, login, NULL);
-	bb_error_msg_and_die("failed to execute '%s', you must set the password for '%s' manually", prog, login);
-}
-
-/* putpwent(3) remix */
-static int adduser(struct passwd *p)
-{
-	FILE *file;
-	int addgroup = !p->pw_gid;
-
-	/* make sure everything is kosher and setup uid && gid */
-	file = xfopen(bb_path_passwd_file, "a");
-	fseek(file, 0, SEEK_END);
-
-	switch (passwd_study(bb_path_passwd_file, p)) {
-		case 1:
-			bb_error_msg_and_die("%s: login already in use", p->pw_name);
-		case 2:
-			bb_error_msg_and_die("illegal uid or no uids left");
-		case 3:
-			bb_error_msg_and_die("%s: group name already in use", p->pw_name);
-	}
-
-	/* add to passwd */
-	if (putpwent(p, file) == -1) {
-		bb_perror_nomsg_and_die();
-	}
-	/* Do fclose even if !ENABLE_FEATURE_CLEAN_UP.
-	 * We will exec passwd, files must be flushed & closed before that! */
-	fclose(file);
-
-#if ENABLE_FEATURE_SHADOWPASSWDS
-	/* add to shadow if necessary */
-	file = fopen_or_warn(bb_path_shadow_file, "a");
-	if (file) {
-		fseek(file, 0, SEEK_END);
-		fprintf(file, "%s:!:%ld:%d:%d:%d:::\n",
-				p->pw_name,             /* username */
-				time(NULL) / 86400,     /* sp->sp_lstchg */
-				0,                      /* sp->sp_min */
-				99999,                  /* sp->sp_max */
-				7);                     /* sp->sp_warn */
-		fclose(file);
-	}
-#endif
-
-	/* add to group */
-	/* addgroup should be responsible for dealing w/ gshadow */
-	/* if using a pre-existing group, don't create one */
-	if (addgroup) addgroup_wrapper(p);
-
-	/* Clear the umask for this process so it doesn't
-	 * screw up the permissions on the mkdir and chown. */
-	umask(0);
-	if (!(option_mask32 & OPT_DONT_MAKE_HOME)) {
-		/* Set the owner and group so it is owned by the new user,
-		   then fix up the permissions to 2755. Can't do it before
-		   since chown will clear the setgid bit */
-		if (mkdir(p->pw_dir, 0755)
-		|| chown(p->pw_dir, p->pw_uid, p->pw_gid)
-		|| chmod(p->pw_dir, 02755)) {
-			bb_simple_perror_msg(p->pw_dir);
-		}
-	}
-
-	if (!(option_mask32 & OPT_DONT_SET_PASS)) {
-		/* interactively set passwd */
-		passwd_wrapper(p->pw_name);
-	}
-
-	return 0;
+	bb_error_msg_and_die("cannot execute %s, you must set password manually", prog);
 }
 
 /*
  * adduser will take a login_name as its first parameter.
- *
- * home
- * shell
- * gecos
- *
+ * home, shell, gecos:
  * can be customized via command-line parameters.
  */
 int adduser_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
@@ -170,6 +76,7 @@ int adduser_main(int argc, char **argv)
 {
 	struct passwd pw;
 	const char *usegroup = NULL;
+	FILE *file;
 
 	/* got root? */
 	if (geteuid()) {
@@ -185,16 +92,69 @@ int adduser_main(int argc, char **argv)
 	getopt32(argv, "h:g:s:G:DSH", &pw.pw_dir, &pw.pw_gecos, &pw.pw_shell, &usegroup);
 	argv += optind;
 
-	/* create a passwd struct */
+	/* fill in the passwd struct */
 	pw.pw_name = argv[0];
 	if (!pw.pw_dir) {
 		/* create string for $HOME if not specified already */
 		pw.pw_dir = xasprintf("/home/%s", argv[0]);
 	}
 	pw.pw_passwd = (char *)"x";
-	pw.pw_uid = 0;
 	pw.pw_gid = usegroup ? xgroup2gid(usegroup) : 0; /* exits on failure */
 
-	/* grand finale */
-	return adduser(&pw);
+	/* make sure everything is kosher and setup uid && maybe gid */
+	passwd_study(&pw);
+
+	/* add to passwd */
+	file = xfopen(bb_path_passwd_file, "a");
+	//fseek(file, 0, SEEK_END); /* paranoia, "a" should ensure that anyway */
+	if (putpwent(&pw, file) != 0) {
+		bb_perror_nomsg_and_die();
+	}
+	/* do fclose even if !ENABLE_FEATURE_CLEAN_UP.
+	 * We will exec passwd, files must be flushed & closed before that! */
+	fclose(file);
+
+#if ENABLE_FEATURE_SHADOWPASSWDS
+	/* add to shadow if necessary */
+	file = fopen_or_warn(bb_path_shadow_file, "a");
+	if (file) {
+		//fseek(file, 0, SEEK_END);
+		fprintf(file, "%s:!:%u:0:99999:7:::\n",
+				pw.pw_name,             /* username */
+				(unsigned)(time(NULL) / 86400) /* sp->sp_lstchg */
+				/*0,*/                  /* sp->sp_min */
+				/*99999,*/              /* sp->sp_max */
+				/*7*/                   /* sp->sp_warn */
+		);
+		fclose(file);
+	}
+#endif
+
+	/* add to group */
+	/* addgroup should be responsible for dealing w/ gshadow */
+	/* if using a pre-existing group, don't create one */
+	if (!usegroup)
+		addgroup_wrapper(&pw);
+
+	/* Clear the umask for this process so it doesn't
+	 * screw up the permissions on the mkdir and chown. */
+	umask(0);
+	if (!(option_mask32 & OPT_DONT_MAKE_HOME)) {
+		/* Set the owner and group so it is owned by the new user,
+		   then fix up the permissions to 2755. Can't do it before
+		   since chown will clear the setgid bit */
+		if (mkdir(pw.pw_dir, 0755)
+		 || chown(pw.pw_dir, pw.pw_uid, pw.pw_gid)
+		 || chmod(pw.pw_dir, 02755) /* set setgid bit on homedir */
+		) { 
+			bb_simple_perror_msg(pw.pw_dir);
+		}
+	}
+
+	if (!(option_mask32 & OPT_DONT_SET_PASS)) {
+		/* interactively set passwd */
+		passwd_wrapper(pw.pw_name);
+	}
+
+	return 0;
 }

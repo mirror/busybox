@@ -40,6 +40,11 @@ int correct_password(const struct passwd *pw)
 {
 	char *unencrypted, *encrypted;
 	const char *correct;
+#if ENABLE_FEATURE_SHADOWPASSWDS
+	/* Using _r function to avoid pulling in static buffers */
+	struct spwd spw;
+	char buffer[256];
+#endif
 
 	/* fake salt. crypt() can choke otherwise. */
 	correct = "aa";
@@ -50,11 +55,11 @@ int correct_password(const struct passwd *pw)
 	correct = pw->pw_passwd;
 #if ENABLE_FEATURE_SHADOWPASSWDS
 	if ((correct[0] == 'x' || correct[0] == '*') && !correct[1]) {
-		/* Using _r function to avoid pulling in static buffers */
-		struct spwd spw;
-		struct spwd *result;
-		char buffer[256];
-		correct = (getspnam_r(pw->pw_name, &spw, buffer, sizeof(buffer), &result)) ? "aa" : spw.sp_pwdp;
+		/* getspnam_r may return 0 yet set result to NULL.
+		 * At least glibc 2.4 does this. Be extra paranoid here. */
+		struct spwd *result = NULL;
+		int r = getspnam_r(pw->pw_name, &spw, buffer, sizeof(buffer), &result);
+		correct = (r || !result) ? "aa" : result->sp_pwdp;
 	}
 #endif
 

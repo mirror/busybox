@@ -44,7 +44,6 @@ int sulogin_main(int argc, char **argv)
 	/* Using _r function to avoid pulling in static buffers */
 	char buffer[256];
 	struct spwd spw;
-	struct spwd *result;
 #endif
 
 	logmode = LOGMODE_BOTH;
@@ -83,10 +82,16 @@ int sulogin_main(int argc, char **argv)
 	}
 
 #if ENABLE_FEATURE_SHADOWPASSWDS
-	if (getspnam_r(pwd->pw_name, &spw, buffer, sizeof(buffer), &result)) {
-		goto auth_error;
+	{
+		/* getspnam_r may return 0 yet set result to NULL.
+		 * At least glibc 2.4 does this. Be extra paranoid here. */
+		struct spwd *result = NULL;
+		int r = getspnam_r(pwd->pw_name, &spw, buffer, sizeof(buffer), &result);
+		if (r || !result) {
+			goto auth_error;
+		}
+		pwd->pw_passwd = result->sp_pwdp;
 	}
-	pwd->pw_passwd = spw.sp_pwdp;
 #endif
 
 	while (1) {

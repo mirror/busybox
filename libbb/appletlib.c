@@ -459,10 +459,7 @@ static void check_suid(const struct bb_applet *applet)
 			if (sct->m_applet == applet)
 				goto found;
 		}
-		/* default: drop all privileges */
-		xsetgid(rgid);
-		xsetuid(ruid);
-		return;
+		goto check_need_suid;
  found:
 		m = sct->m_mode;
 		if (sct->m_uid == ruid)
@@ -505,13 +502,13 @@ static void check_suid(const struct bb_applet *applet)
 		}
 	}
 #endif
+ check_need_suid:
 #endif
-
 	if (applet->need_suid == _BB_SUID_ALWAYS) {
 		/* Real uid is not 0. If euid isn't 0 too, suid bit
 		 * is most probably not set on our executable */
 		if (geteuid())
-			bb_error_msg_and_die("applet requires root privileges!");
+			bb_error_msg_and_die("must be suid to work properly");
 	} else if (applet->need_suid == _BB_SUID_NEVER) {
 		xsetgid(rgid);  /* drop all privileges */
 		xsetuid(ruid);

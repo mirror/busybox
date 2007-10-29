@@ -27,7 +27,7 @@
        "	-g GECOS	GECOS field\n" \
        "	-s SHELL	Login shell\n" \
        "	-G GROUP	Add user to existing group\n" \
-       "	-S		Create a system user (ignored)\n" \
+       "	-S		Create a system user\n" \
        "	-D		Do not assign a password\n" \
        "	-H		Do not create home directory"
 
