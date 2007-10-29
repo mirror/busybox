@@ -26,7 +26,7 @@ int chvt_main(int argc, char **argv)
 
 	fd = get_console_fd();
 	num = xatou_range(argv[1], 1, 63);
-	/* double cast suppresses "cast to ptr from int of different size */
+	/* double cast suppresses "cast to ptr from int of different size" */
 	xioctl(fd, VT_ACTIVATE, (void *)(ptrdiff_t)num);
 	xioctl(fd, VT_WAITACTIVE, (void *)(ptrdiff_t)num);
 	return EXIT_SUCCESS;
