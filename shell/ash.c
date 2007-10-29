@@ -11575,26 +11575,31 @@ readcmd(int argc, char **argv)
 		ifs = defifs;
 #if ENABLE_ASH_READ_NCHARS
 	if (n_flag || silent) {
-		tcgetattr(0, &tty);
-		old_tty = tty;
-		if (n_flag) {
-			tty.c_lflag &= ~ICANON;
-			tty.c_cc[VMIN] = nchars;
+		if (tcgetattr(0, &tty) != 0) {
+			/* Not a tty */
+			n_flag = 0;
+			silent = 0;
+		} else {
+			old_tty = tty;
+			if (n_flag) {
+				tty.c_lflag &= ~ICANON;
+				tty.c_cc[VMIN] = nchars < 256 ? nchars : 255;
+			}
+			if (silent) {
+				tty.c_lflag &= ~(ECHO | ECHOK | ECHONL);
+			}
+			tcsetattr(0, TCSANOW, &tty);
 		}
-		if (silent) {
-			tty.c_lflag &= ~(ECHO|ECHOK|ECHONL);
-		}
-		tcsetattr(0, TCSANOW, &tty);
 	}
 #endif
 #if ENABLE_ASH_READ_TIMEOUT
 	if (ts.tv_sec || ts.tv_usec) {
-// TODO: replace with poll, it is smaller
 		FD_ZERO(&set);
 		FD_SET(0, &set);
 
-		i = select(FD_SETSIZE, &set, NULL, NULL, &ts);
-		if (!i) {
+		/* poll-based wait produces bigger code, using select */
+		i = select(1, &set, NULL, NULL, &ts);
+		if (!i) { /* timed out! */
 #if ENABLE_ASH_READ_NCHARS
 			if (n_flag)
 				tcsetattr(0, TCSANOW, &old_tty);
@@ -11742,48 +11747,81 @@ umaskcmd(int argc, char **argv)
  */
 
 struct limits {
-	const char *name;
-	int     cmd;
-	int     factor; /* multiply by to get rlim_{cur,max} values */
+	uint8_t cmd;          /* RLIMIT_xxx fit into it */
+	uint8_t factor_shift; /* shift by to get rlim_{cur,max} values */
 	char    option;
 };
 
-static const struct limits limits[] = {
+static const struct limits limits_tbl[] = {
 #ifdef RLIMIT_CPU
-	{ "time(seconds)",              RLIMIT_CPU,        1, 't' },
+	{ RLIMIT_CPU,        0, 't' },
 #endif
 #ifdef RLIMIT_FSIZE
-	{ "file(blocks)",               RLIMIT_FSIZE,    512, 'f' },
+	{ RLIMIT_FSIZE,      9, 'f' },
 #endif
 #ifdef RLIMIT_DATA
-	{ "data(kbytes)",               RLIMIT_DATA,    1024, 'd' },
+	{ RLIMIT_DATA,      10, 'd' },
 #endif
 #ifdef RLIMIT_STACK
-	{ "stack(kbytes)",              RLIMIT_STACK,   1024, 's' },
+	{ RLIMIT_STACK,     10, 's' },
 #endif
-#ifdef  RLIMIT_CORE
-	{ "coredump(blocks)",           RLIMIT_CORE,     512, 'c' },
+#ifdef RLIMIT_CORE
+	{ RLIMIT_CORE,       9, 'c' },
 #endif
 #ifdef RLIMIT_RSS
-	{ "memory(kbytes)",             RLIMIT_RSS,     1024, 'm' },
+	{ RLIMIT_RSS,       10, 'm' },
 #endif
 #ifdef RLIMIT_MEMLOCK
-	{ "locked memory(kbytes)",      RLIMIT_MEMLOCK, 1024, 'l' },
+	{ RLIMIT_MEMLOCK,   10, 'l' },
 #endif
 #ifdef RLIMIT_NPROC
-	{ "process",                    RLIMIT_NPROC,      1, 'p' },
+	{ RLIMIT_NPROC,      0, 'p' },
 #endif
 #ifdef RLIMIT_NOFILE
-	{ "nofiles",                    RLIMIT_NOFILE,     1, 'n' },
+	{ RLIMIT_NOFILE,     0, 'n' },
 #endif
 #ifdef RLIMIT_AS
-	{ "vmemory(kbytes)",            RLIMIT_AS,      1024, 'v' },
+	{ RLIMIT_AS,        10, 'v' },
 #endif
 #ifdef RLIMIT_LOCKS
-	{ "locks",                      RLIMIT_LOCKS,      1, 'w' },
+	{ RLIMIT_LOCKS,      0, 'w' },
 #endif
-	{ NULL,                         0,                 0,  '\0' }
 };
+static const char limits_name[] =
+#ifdef RLIMIT_CPU
+	"time(seconds)" "\0"
+#endif
+#ifdef RLIMIT_FSIZE
+	"file(blocks)" "\0"
+#endif
+#ifdef RLIMIT_DATA
+	"data(kb)" "\0"
+#endif
+#ifdef RLIMIT_STACK
+	"stack(kb)" "\0"
+#endif
+#ifdef RLIMIT_CORE
+	"coredump(blocks)" "\0"
+#endif
+#ifdef RLIMIT_RSS
+	"memory(kb)" "\0"
+#endif
+#ifdef RLIMIT_MEMLOCK
+	"locked memory(kb)" "\0"
+#endif
+#ifdef RLIMIT_NPROC
+	"process" "\0"
+#endif
+#ifdef RLIMIT_NOFILE
+	"nofiles" "\0"
+#endif
+#ifdef RLIMIT_AS
+	"vmemory(kb)" "\0"
+#endif
+#ifdef RLIMIT_LOCKS
+	"locks" "\0"
+#endif
+;
 
 enum limtype { SOFT = 0x1, HARD = 0x2 };
 
@@ -11800,7 +11838,7 @@ printlim(enum limtype how, const struct rlimit *limit,
 	if (val == RLIM_INFINITY)
 		out1fmt("unlimited\n");
 	else {
-		val /= l->factor;
+		val >>= l->factor_shift;
 		out1fmt("%lld\n", (long long) val);
 	}
 }
@@ -11866,8 +11904,8 @@ ulimitcmd(int argc, char **argv)
 			what = optc;
 		}
 
-	for (l = limits; l->option != what; l++)
-		;
+	for (l = limits_tbl; l->option != what; l++)
+		continue;
 
 	set = *argptr ? 1 : 0;
 	if (set) {
@@ -11887,13 +11925,15 @@ ulimitcmd(int argc, char **argv)
 			}
 			if (c)
 				ash_msg_and_raise_error("bad number");
-			val *= l->factor;
+			val <<= l->factor_shift;
 		}
 	}
 	if (all) {
-		for (l = limits; l->name; l++) {
+		const char *lname = limits_name;
+		for (l = limits_tbl; l != &limits_tbl[ARRAY_SIZE(limits_tbl)]; l++) {
 			getrlimit(l->cmd, &limit);
-			out1fmt("%-20s ", l->name);
+			out1fmt("%-20s ", lname);
+			lname += strlen(lname) + 1;
 			printlim(how, &limit, l);
 		}
 		return 0;
