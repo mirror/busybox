@@ -463,6 +463,16 @@ config FEATURE_IP_SHORT_FORMS
 	  Say N unless you desparately need the short form of the ip
 	  object commands.
 
+config FEATURE_IP_RARE_PROTOCOLS
+	bool "Suport display of rarely-used link types."
+	default n
+	depends on IP
+	help
+	  If you are not going to use links of type "frad", "econet",
+	  "bif" etc, you probably don't need to enable this.
+	  Ethernet, wireless, infrared, ppp/slip, ip tunnelling
+	  link types are supported without this option selected.
+
 config IPADDR
 	bool
 	default y

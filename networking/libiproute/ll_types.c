@@ -15,102 +15,184 @@
 #include "libbb.h"
 #include "rt_names.h"
 
-const char* ll_type_n2a(int type, char *buf, int len)
+const char *ll_type_n2a(int type, char *buf, int len)
 {
-#define __PF(f,n) { ARPHRD_##f, #n },
-static const struct {
-	int type;
-	const char *name;
-} arphrd_names[] = {
-{ 0, "generic" },
-__PF(ETHER,ether)
-__PF(EETHER,eether)
-__PF(AX25,ax25)
-__PF(PRONET,pronet)
-__PF(CHAOS,chaos)
+	static const char arphrd_name[] =
+	/* 0,                  */ "generic" "\0"
+	/* ARPHRD_LOOPBACK,    */ "loopback" "\0"
+	/* ARPHRD_ETHER,       */ "ether" "\0"
 #ifdef ARPHRD_IEEE802_TR
-__PF(IEEE802,ieee802)
+	/* ARPHRD_IEEE802,     */ "ieee802" "\0"
+	/* ARPHRD_IEEE802_TR,  */ "tr" "\0"
 #else
-__PF(IEEE802,tr)
-#endif
-__PF(ARCNET,arcnet)
-__PF(APPLETLK,atalk)
-__PF(DLCI,dlci)
-#ifdef ARPHRD_ATM
-__PF(ATM,atm)
-#endif
-__PF(METRICOM,metricom)
-#ifdef ARPHRD_IEEE1394
-__PF(IEEE1394,ieee1394)
-#endif
-
-__PF(SLIP,slip)
-__PF(CSLIP,cslip)
-__PF(SLIP6,slip6)
-__PF(CSLIP6,cslip6)
-__PF(RSRVD,rsrvd)
-__PF(ADAPT,adapt)
-__PF(ROSE,rose)
-__PF(X25,x25)
-#ifdef ARPHRD_HWX25
-__PF(HWX25,hwx25)
-#endif
-__PF(PPP,ppp)
-__PF(HDLC,hdlc)
-__PF(LAPB,lapb)
-#ifdef ARPHRD_DDCMP
-__PF(DDCMP,ddcmp)
-__PF(RAWHDLC,rawhdlc)
-#endif
-
-__PF(TUNNEL,ipip)
-__PF(TUNNEL6,tunnel6)
-__PF(FRAD,frad)
-__PF(SKIP,skip)
-__PF(LOOPBACK,loopback)
-__PF(LOCALTLK,ltalk)
-__PF(FDDI,fddi)
-__PF(BIF,bif)
-__PF(SIT,sit)
-__PF(IPDDP,ip/ddp)
-__PF(IPGRE,gre)
-__PF(PIMREG,pimreg)
-__PF(HIPPI,hippi)
-__PF(ASH,ash)
-__PF(ECONET,econet)
-__PF(IRDA,irda)
-__PF(FCPP,fcpp)
-__PF(FCAL,fcal)
-__PF(FCPL,fcpl)
-__PF(FCFABRIC,fcfb0)
-__PF(FCFABRIC+1,fcfb1)
-__PF(FCFABRIC+2,fcfb2)
-__PF(FCFABRIC+3,fcfb3)
-__PF(FCFABRIC+4,fcfb4)
-__PF(FCFABRIC+5,fcfb5)
-__PF(FCFABRIC+6,fcfb6)
-__PF(FCFABRIC+7,fcfb7)
-__PF(FCFABRIC+8,fcfb8)
-__PF(FCFABRIC+9,fcfb9)
-__PF(FCFABRIC+10,fcfb10)
-__PF(FCFABRIC+11,fcfb11)
-__PF(FCFABRIC+12,fcfb12)
-#ifdef ARPHRD_IEEE802_TR
-__PF(IEEE802_TR,tr)
+	/* ARPHRD_IEEE802,     */ "tr" "\0"
 #endif
 #ifdef ARPHRD_IEEE80211
-__PF(IEEE80211,ieee802.11)
+	/* ARPHRD_IEEE80211,   */ "ieee802.11" "\0"
 #endif
+#ifdef ARPHRD_IEEE1394
+	/* ARPHRD_IEEE1394,    */ "ieee1394" "\0"
+#endif
+	/* ARPHRD_IRDA,        */ "irda" "\0"
+	/* ARPHRD_SLIP,        */ "slip" "\0"
+	/* ARPHRD_CSLIP,       */ "cslip" "\0"
+	/* ARPHRD_SLIP6,       */ "slip6" "\0"
+	/* ARPHRD_CSLIP6,      */ "cslip6" "\0"
+	/* ARPHRD_PPP,         */ "ppp" "\0"
+	/* ARPHRD_TUNNEL,      */ "ipip" "\0"
+	/* ARPHRD_TUNNEL6,     */ "tunnel6" "\0"
+	/* ARPHRD_SIT,         */ "sit" "\0"
+	/* ARPHRD_IPGRE,       */ "gre" "\0"
 #ifdef ARPHRD_VOID
-__PF(VOID,void)
+	/* ARPHRD_VOID,        */ "void" "\0"
 #endif
-};
-#undef __PF
+
+#if ENABLE_FEATURE_IP_RARE_PROTOCOLS
+	/* ARPHRD_EETHER,      */ "eether" "\0"
+	/* ARPHRD_AX25,        */ "ax25" "\0"
+	/* ARPHRD_PRONET,      */ "pronet" "\0"
+	/* ARPHRD_CHAOS,       */ "chaos" "\0"
+	/* ARPHRD_ARCNET,      */ "arcnet" "\0"
+	/* ARPHRD_APPLETLK,    */ "atalk" "\0"
+	/* ARPHRD_DLCI,        */ "dlci" "\0"
+#ifdef ARPHRD_ATM
+	/* ARPHRD_ATM,         */ "atm" "\0"
+#endif
+	/* ARPHRD_METRICOM,    */ "metricom" "\0"
+	/* ARPHRD_RSRVD,       */ "rsrvd" "\0"
+	/* ARPHRD_ADAPT,       */ "adapt" "\0"
+	/* ARPHRD_ROSE,        */ "rose" "\0"
+	/* ARPHRD_X25,         */ "x25" "\0"
+#ifdef ARPHRD_HWX25
+	/* ARPHRD_HWX25,       */ "hwx25" "\0"
+#endif
+	/* ARPHRD_HDLC,        */ "hdlc" "\0"
+	/* ARPHRD_LAPB,        */ "lapb" "\0"
+#ifdef ARPHRD_DDCMP
+	/* ARPHRD_DDCMP,       */ "ddcmp" "\0"
+	/* ARPHRD_RAWHDLC,     */ "rawhdlc" "\0"
+#endif
+	/* ARPHRD_FRAD,        */ "frad" "\0"
+	/* ARPHRD_SKIP,        */ "skip" "\0"
+	/* ARPHRD_LOCALTLK,    */ "ltalk" "\0"
+	/* ARPHRD_FDDI,        */ "fddi" "\0"
+	/* ARPHRD_BIF,         */ "bif" "\0"
+	/* ARPHRD_IPDDP,       */ "ip/ddp" "\0"
+	/* ARPHRD_PIMREG,      */ "pimreg" "\0"
+	/* ARPHRD_HIPPI,       */ "hippi" "\0"
+	/* ARPHRD_ASH,         */ "ash" "\0"
+	/* ARPHRD_ECONET,      */ "econet" "\0"
+	/* ARPHRD_FCPP,        */ "fcpp" "\0"
+	/* ARPHRD_FCAL,        */ "fcal" "\0"
+	/* ARPHRD_FCPL,        */ "fcpl" "\0"
+	/* ARPHRD_FCFABRIC,    */ "fcfb0" "\0"
+	/* ARPHRD_FCFABRIC+1,  */ "fcfb1" "\0"
+	/* ARPHRD_FCFABRIC+2,  */ "fcfb2" "\0"
+	/* ARPHRD_FCFABRIC+3,  */ "fcfb3" "\0"
+	/* ARPHRD_FCFABRIC+4,  */ "fcfb4" "\0"
+	/* ARPHRD_FCFABRIC+5,  */ "fcfb5" "\0"
+	/* ARPHRD_FCFABRIC+6,  */ "fcfb6" "\0"
+	/* ARPHRD_FCFABRIC+7,  */ "fcfb7" "\0"
+	/* ARPHRD_FCFABRIC+8,  */ "fcfb8" "\0"
+	/* ARPHRD_FCFABRIC+9,  */ "fcfb9" "\0"
+	/* ARPHRD_FCFABRIC+10, */ "fcfb10" "\0"
+	/* ARPHRD_FCFABRIC+11, */ "fcfb11" "\0"
+	/* ARPHRD_FCFABRIC+12, */ "fcfb12" "\0"
+#endif /* FEATURE_IP_RARE_PROTOCOLS */
+	;
+
+	/* Keep these arrays in sync! */
+
+	static const uint16_t arphrd_type[] = {
+	0,                  /* "generic" "\0" */
+	ARPHRD_LOOPBACK,    /* "loopback" "\0" */
+	ARPHRD_ETHER,       /* "ether" "\0" */
+#ifdef ARPHRD_IEEE802_TR
+	ARPHRD_IEEE802,     /* "ieee802" "\0" */
+	ARPHRD_IEEE802_TR,  /* "tr" "\0" */
+#else
+	ARPHRD_IEEE802,     /* "tr" "\0" */
+#endif
+#ifdef ARPHRD_IEEE80211
+	ARPHRD_IEEE80211,   /* "ieee802.11" "\0" */
+#endif
+#ifdef ARPHRD_IEEE1394
+	ARPHRD_IEEE1394,    /* "ieee1394" "\0" */
+#endif
+	ARPHRD_IRDA,        /* "irda" "\0" */
+	ARPHRD_SLIP,        /* "slip" "\0" */
+	ARPHRD_CSLIP,       /* "cslip" "\0" */
+	ARPHRD_SLIP6,       /* "slip6" "\0" */
+	ARPHRD_CSLIP6,      /* "cslip6" "\0" */
+	ARPHRD_PPP,         /* "ppp" "\0" */
+	ARPHRD_TUNNEL,      /* "ipip" "\0" */
+	ARPHRD_TUNNEL6,     /* "tunnel6" "\0" */
+	ARPHRD_SIT,         /* "sit" "\0" */
+	ARPHRD_IPGRE,       /* "gre" "\0" */
+#ifdef ARPHRD_VOID
+	ARPHRD_VOID,        /* "void" "\0" */
+#endif
+
+#if ENABLE_FEATURE_IP_RARE_PROTOCOLS
+	ARPHRD_EETHER,      /* "eether" "\0" */
+	ARPHRD_AX25,        /* "ax25" "\0" */
+	ARPHRD_PRONET,      /* "pronet" "\0" */
+	ARPHRD_CHAOS,       /* "chaos" "\0" */
+	ARPHRD_ARCNET,      /* "arcnet" "\0" */
+	ARPHRD_APPLETLK,    /* "atalk" "\0" */
+	ARPHRD_DLCI,        /* "dlci" "\0" */
+#ifdef ARPHRD_ATM
+	ARPHRD_ATM,         /* "atm" "\0" */
+#endif
+	ARPHRD_METRICOM,    /* "metricom" "\0" */
+	ARPHRD_RSRVD,       /* "rsrvd" "\0" */
+	ARPHRD_ADAPT,       /* "adapt" "\0" */
+	ARPHRD_ROSE,        /* "rose" "\0" */
+	ARPHRD_X25,         /* "x25" "\0" */
+#ifdef ARPHRD_HWX25
+	ARPHRD_HWX25,       /* "hwx25" "\0" */
+#endif
+	ARPHRD_HDLC,        /* "hdlc" "\0" */
+	ARPHRD_LAPB,        /* "lapb" "\0" */
+#ifdef ARPHRD_DDCMP
+	ARPHRD_DDCMP,       /* "ddcmp" "\0" */
+	ARPHRD_RAWHDLC,     /* "rawhdlc" "\0" */
+#endif
+	ARPHRD_FRAD,        /* "frad" "\0" */
+	ARPHRD_SKIP,        /* "skip" "\0" */
+	ARPHRD_LOCALTLK,    /* "ltalk" "\0" */
+	ARPHRD_FDDI,        /* "fddi" "\0" */
+	ARPHRD_BIF,         /* "bif" "\0" */
+	ARPHRD_IPDDP,       /* "ip/ddp" "\0" */
+	ARPHRD_PIMREG,      /* "pimreg" "\0" */
+	ARPHRD_HIPPI,       /* "hippi" "\0" */
+	ARPHRD_ASH,         /* "ash" "\0" */
+	ARPHRD_ECONET,      /* "econet" "\0" */
+	ARPHRD_FCPP,        /* "fcpp" "\0" */
+	ARPHRD_FCAL,        /* "fcal" "\0" */
+	ARPHRD_FCPL,        /* "fcpl" "\0" */
+	ARPHRD_FCFABRIC,    /* "fcfb0" "\0" */
+	ARPHRD_FCFABRIC+1,  /* "fcfb1" "\0" */
+	ARPHRD_FCFABRIC+2,  /* "fcfb2" "\0" */
+	ARPHRD_FCFABRIC+3,  /* "fcfb3" "\0" */
+	ARPHRD_FCFABRIC+4,  /* "fcfb4" "\0" */
+	ARPHRD_FCFABRIC+5,  /* "fcfb5" "\0" */
+	ARPHRD_FCFABRIC+6,  /* "fcfb6" "\0" */
+	ARPHRD_FCFABRIC+7,  /* "fcfb7" "\0" */
+	ARPHRD_FCFABRIC+8,  /* "fcfb8" "\0" */
+	ARPHRD_FCFABRIC+9,  /* "fcfb9" "\0" */
+	ARPHRD_FCFABRIC+10, /* "fcfb10" "\0" */
+	ARPHRD_FCFABRIC+11, /* "fcfb11" "\0" */
+	ARPHRD_FCFABRIC+12, /* "fcfb12" "\0" */
+#endif /* FEATURE_IP_RARE_PROTOCOLS */
+	};
 
 	int i;
-	for (i = 0; i < ARRAY_SIZE(arphrd_names); i++) {
-		 if (arphrd_names[i].type == type)
-			return arphrd_names[i].name;
+	const char *aname = arphrd_name;
+	for (i = 0; i < ARRAY_SIZE(arphrd_type); i++) {
+		if (arphrd_type[i] == type)
+			return aname;
+		aname += strlen(aname) + 1;
 	}
 	snprintf(buf, len, "[%d]", type);
 	return buf;

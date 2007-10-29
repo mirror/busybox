@@ -62,4 +62,3 @@ lib-$(CONFIG_FEATURE_IP_RULE) += \
 	iprule.o \
 	rt_names.o \
 	utils.o
-

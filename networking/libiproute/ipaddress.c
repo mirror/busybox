@@ -173,7 +173,7 @@ static int print_linkinfo(struct sockaddr_nl ATTRIBUTE_UNUSED *who,
 						      b1, sizeof(b1)), fp);
 		}
 		if (tb[IFLA_BROADCAST]) {
-			if (ifi->ifi_flags&IFF_POINTOPOINT)
+			if (ifi->ifi_flags & IFF_POINTOPOINT)
 				fprintf(fp, " peer ");
 			else
 				fprintf(fp, " brd ");
