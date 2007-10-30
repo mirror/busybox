@@ -708,18 +708,17 @@ static servtab_t *getconfigent(void)
 	sep->se_service = xxstrdup(arg);
 	arg = skip(&cp);
 
-	if (strcmp(arg, "stream") == 0)
-		sep->se_socktype = SOCK_STREAM;
-	else if (strcmp(arg, "dgram") == 0)
-		sep->se_socktype = SOCK_DGRAM;
-	else if (strcmp(arg, "rdm") == 0)
-		sep->se_socktype = SOCK_RDM;
-	else if (strcmp(arg, "seqpacket") == 0)
-		sep->se_socktype = SOCK_SEQPACKET;
-	else if (strcmp(arg, "raw") == 0)
-		sep->se_socktype = SOCK_RAW;
-	else
-		sep->se_socktype = -1;
+	{
+		static int8_t SOCK_xxx[] ALIGN1 = {
+			-1,
+			SOCK_STREAM, SOCK_DGRAM, SOCK_RDM,
+			SOCK_SEQPACKET, SOCK_RAW
+		};
+		sep->se_socktype = SOCK_xxx[1 + index_in_strings(
+			"stream""\0" "dgram""\0" "rdm""\0"
+			"seqpacket""\0" "raw""\0"
+			, arg)];
+	}
 
 	sep->se_proto = xxstrdup(skip(&cp));
 
@@ -787,10 +786,9 @@ static servtab_t *getconfigent(void)
 		*arg++ = '\0';
 		sep->se_group = xstrdup(arg);
 	}
-	/* if ((arg = skip(&cp, 1)) == NULL) */
-	/* goto more; */
 
-	sep->se_server = xxstrdup(skip(&cp));
+	arg = skip(&cp);
+	sep->se_server = xxstrdup(arg);
 	if (strcmp(sep->se_server, "internal") == 0) {
 #ifdef INETD_FEATURE_ENABLED
 		const struct builtin *bi;
@@ -815,7 +813,7 @@ static servtab_t *getconfigent(void)
 		sep->se_bi = NULL;
 #endif
 	argc = 0;
-	for (arg = skip(&cp); cp; arg = skip(&cp)) {
+	for (; cp; arg = skip(&cp)) {
 		if (argc < MAXARGV)
 			sep->se_argv[argc++] = xxstrdup(arg);
 	}
