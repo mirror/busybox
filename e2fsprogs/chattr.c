@@ -37,27 +37,9 @@ struct globals {
 
 static unsigned long get_flag(char c)
 {
-	/* Two separate vectors take less space than vector of structs */
-	static const char flags_letter[] ALIGN1 = "ASDacdijsutT";
-	static const unsigned long flags_val[] = {
-		/* A */ EXT2_NOATIME_FL,
-		/* S */ EXT2_SYNC_FL,
-		/* D */ EXT2_DIRSYNC_FL,
-		/* a */ EXT2_APPEND_FL,
-		/* c */ EXT2_COMPR_FL,
-		/* d */ EXT2_NODUMP_FL,
-		/* i */ EXT2_IMMUTABLE_FL,
-		/* j */ EXT3_JOURNAL_DATA_FL,
-		/* s */ EXT2_SECRM_FL,
-		/* u */ EXT2_UNRM_FL,
-		/* t */ EXT2_NOTAIL_FL,
-		/* T */ EXT2_TOPDIR_FL,
-	};
-	const char *fp;
-
-	for (fp = flags_letter; *fp; fp++)
-		if (*fp == c)
-			return flags_val[fp - flags_letter];
+	const char *fp = strchr(e2attr_flags_sname_chattr, c);
+	if (fp)
+		return e2attr_flags_value_chattr[fp - e2attr_flags_sname_chattr];
 	bb_show_usage();
 }
 

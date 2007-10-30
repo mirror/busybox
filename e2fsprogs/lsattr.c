@@ -104,8 +104,7 @@ int lsattr_main(int argc, char **argv)
 	if (!*argv)
 		lsattr_args(".");
 	else {
-		while (*argv)
-			lsattr_args(*argv++);
+		do lsattr_args(*argv++); while (*argv);
 	}
 
 	return EXIT_SUCCESS;
