@@ -127,62 +127,6 @@
 
 #define CDROM 0x0005
 
-#if ENABLE_FEATURE_HDPARM_GET_IDENTITY
-static const char *const pkt_str[] = {
-	"Direct-access device",			/* word 0, bits 12-8 = 00 */
-	"Sequential-access device",		/* word 0, bits 12-8 = 01 */
-	"Printer",				/* word 0, bits 12-8 = 02 */
-	"Processor",				/* word 0, bits 12-8 = 03 */
-	"Write-once device",			/* word 0, bits 12-8 = 04 */
-	"CD-ROM",				/* word 0, bits 12-8 = 05 */
-	"Scanner",				/* word 0, bits 12-8 = 06 */
-	"Optical memory",			/* word 0, bits 12-8 = 07 */
-	"Medium changer",			/* word 0, bits 12-8 = 08 */
-	"Communications device",		/* word 0, bits 12-8 = 09 */
-	"ACS-IT8 device",			/* word 0, bits 12-8 = 0a */
-	"ACS-IT8 device",			/* word 0, bits 12-8 = 0b */
-	"Array controller",			/* word 0, bits 12-8 = 0c */
-	"Enclosure services",			/* word 0, bits 12-8 = 0d */
-	"Reduced block command device",		/* word 0, bits 12-8 = 0e */
-	"Optical card reader/writer",		/* word 0, bits 12-8 = 0f */
-	"",					/* word 0, bits 12-8 = 10 */
-	"",					/* word 0, bits 12-8 = 11 */
-	"",					/* word 0, bits 12-8 = 12 */
-	"",					/* word 0, bits 12-8 = 13 */
-	"",					/* word 0, bits 12-8 = 14 */
-	"",					/* word 0, bits 12-8 = 15 */
-	"",					/* word 0, bits 12-8 = 16 */
-	"",					/* word 0, bits 12-8 = 17 */
-	"",					/* word 0, bits 12-8 = 18 */
-	"",					/* word 0, bits 12-8 = 19 */
-	"",					/* word 0, bits 12-8 = 1a */
-	"",					/* word 0, bits 12-8 = 1b */
-	"",					/* word 0, bits 12-8 = 1c */
-	"",					/* word 0, bits 12-8 = 1d */
-	"",					/* word 0, bits 12-8 = 1e */
-	"Unknown",			/* word 0, bits 12-8 = 1f */
-};
-
-static const char *const ata1_cfg_str[] = {			/* word 0 in ATA-1 mode */
-	"Reserved",				/* bit 0 */
-	"hard sectored",			/* bit 1 */
-	"soft sectored",			/* bit 2 */
-	"not MFM encoded ",			/* bit 3 */
-	"head switch time > 15us",		/* bit 4 */
-	"spindle motor control option",		/* bit 5 */
-	"fixed drive",				/* bit 6 */
-	"removable drive",			/* bit 7 */
-	"disk xfer rate <= 5Mbs",		/* bit 8 */
-	"disk xfer rate > 5Mbs, <= 10Mbs",	/* bit 9 */
-	"disk xfer rate > 5Mbs",		/* bit 10 */
-	"rotational speed tol.",		/* bit 11 */
-	"data strobe offset option",		/* bit 12 */
-	"track offset option",			/* bit 13 */
-	"format speed tolerance gap reqd",	/* bit 14 */
-	"ATAPI"					/* bit 14 */
-};
-#endif
-
 /* word 1: number of logical cylinders */
 #define LCYLS_MAX		0x3fff /* maximum allowable value */
 
@@ -238,149 +182,12 @@ static const char *const ata1_cfg_str[] = {			/* word 0 in ATA-1 mode */
 
 /* word 81: minor version number */
 #define MINOR_MAX		0x22
-#if ENABLE_FEATURE_HDPARM_GET_IDENTITY
-static const char *const minor_str[MINOR_MAX + 2] = {
-	/* word 81 value: */
-	"Unspecified",                                  /* 0x0000 */
-	"ATA-1 X3T9.2 781D prior to rev.4",             /* 0x0001 */
-	"ATA-1 published, ANSI X3.221-1994",            /* 0x0002 */
-	"ATA-1 X3T9.2 781D rev.4",                      /* 0x0003 */
-	"ATA-2 published, ANSI X3.279-1996",            /* 0x0004 */
-	"ATA-2 X3T10 948D prior to rev.2k",             /* 0x0005 */
-	"ATA-3 X3T10 2008D rev.1",                      /* 0x0006 */
-	"ATA-2 X3T10 948D rev.2k",                      /* 0x0007 */
-	"ATA-3 X3T10 2008D rev.0",                      /* 0x0008 */
-	"ATA-2 X3T10 948D rev.3",                       /* 0x0009 */
-	"ATA-3 published, ANSI X3.298-199x",            /* 0x000a */
-	"ATA-3 X3T10 2008D rev.6",                      /* 0x000b */
-	"ATA-3 X3T13 2008D rev.7 and 7a",               /* 0x000c */
-	"ATA/ATAPI-4 X3T13 1153D rev.6",                /* 0x000d */
-	"ATA/ATAPI-4 T13 1153D rev.13",                 /* 0x000e */
-	"ATA/ATAPI-4 X3T13 1153D rev.7",                /* 0x000f */
-	"ATA/ATAPI-4 T13 1153D rev.18",                 /* 0x0010 */
-	"ATA/ATAPI-4 T13 1153D rev.15",                 /* 0x0011 */
-	"ATA/ATAPI-4 published, ANSI INCITS 317-1998",  /* 0x0012 */
-	"ATA/ATAPI-5 T13 1321D rev.3",                  /* 0x0013 */
-	"ATA/ATAPI-4 T13 1153D rev.14",                 /* 0x0014 */
-	"ATA/ATAPI-5 T13 1321D rev.1",                  /* 0x0015 */
-	"ATA/ATAPI-5 published, ANSI INCITS 340-2000",  /* 0x0016 */
-	"ATA/ATAPI-4 T13 1153D rev.17",                 /* 0x0017 */
-	"ATA/ATAPI-6 T13 1410D rev.0",                  /* 0x0018 */
-	"ATA/ATAPI-6 T13 1410D rev.3a",                 /* 0x0019 */
-	"ATA/ATAPI-7 T13 1532D rev.1",                  /* 0x001a */
-	"ATA/ATAPI-6 T13 1410D rev.2",                  /* 0x001b */
-	"ATA/ATAPI-6 T13 1410D rev.1",                  /* 0x001c */
-	"ATA/ATAPI-7 published, ANSI INCITS 397-2005",  /* 0x001d */
-	"ATA/ATAPI-7 T13 1532D rev.0",                  /* 0x001e */
-	"Reserved"                                      /* 0x001f */
-	"Reserved"                                      /* 0x0020 */
-	"ATA/ATAPI-7 T13 1532D rev.4a",                 /* 0x0021 */
-	"ATA/ATAPI-6 published, ANSI INCITS 361-2002",  /* 0x0022 */
-	"Reserved"                                      /* 0x0023-0xfffe */
-};
-#endif
-static const char actual_ver[MINOR_MAX + 2] ALIGN1 = {
-	   /* word 81 value: */
-	0, /* 0x0000 WARNING: actual_ver[] array */
-	1, /* 0x0001 WARNING: corresponds        */
-	1, /* 0x0002 WARNING: *exactly*          */
-	1, /* 0x0003 WARNING: to the ATA/        */
-	2, /* 0x0004 WARNING: ATAPI version      */
-	2, /* 0x0005 WARNING: listed in          */
-	3, /* 0x0006 WARNING: the                */
-	2, /* 0x0007 WARNING: minor_str          */
-	3, /* 0x0008 WARNING: array              */
-	2, /* 0x0009 WARNING: above.             */
-	3, /* 0x000a WARNING:                    */
-	3, /* 0x000b WARNING: If you change      */
-	3, /* 0x000c WARNING: that one,          */
-	4, /* 0x000d WARNING: change this one    */
-	4, /* 0x000e WARNING: too!!!             */
-	4, /* 0x000f */
-	4, /* 0x0010 */
-	4, /* 0x0011 */
-	4, /* 0x0012 */
-	5, /* 0x0013 */
-	4, /* 0x0014 */
-	5, /* 0x0015 */
-	5, /* 0x0016 */
-	4, /* 0x0017 */
-	6, /* 0x0018 */
-	6, /* 0x0019 */
-	7, /* 0x001a */
-	6, /* 0x001b */
-	6, /* 0x001c */
-	7, /* 0x001d */
-	7, /* 0x001e */
-	0, /* 0x001f */
-	0, /* 0x0020 */
-	7, /* 0x0021 */
-	6, /* 0x0022 */
-	0  /* 0x0023-0xfffe */
-};
-
 /* words 82-84: cmds/feats supported */
 #define CMDS_W82		0x77ff  /* word 82: defined command locations*/
 #define CMDS_W83		0x3fff  /* word 83: defined command locations*/
 #define CMDS_W84		0x002f  /* word 83: defined command locations*/
 #define SUPPORT_48_BIT		0x0400
 #define NUM_CMD_FEAT_STR	48
-
-#if ENABLE_FEATURE_HDPARM_GET_IDENTITY
-static const char *const cmd_feat_str[] = {
-	"",					/* word 82 bit 15: obsolete  */
-	"NOP cmd",				/* word 82 bit 14 */
-	"READ BUFFER cmd",			/* word 82 bit 13 */
-	"WRITE BUFFER cmd",			/* word 82 bit 12 */
-	"",					/* word 82 bit 11: obsolete  */
-	"Host Protected Area feature set",	/* word 82 bit 10 */
-	"DEVICE RESET cmd",			/* word 82 bit  9 */
-	"SERVICE interrupt",			/* word 82 bit  8 */
-	"Release interrupt",			/* word 82 bit  7 */
-	"Look-ahead",				/* word 82 bit  6 */
-	"Write cache",				/* word 82 bit  5 */
-	"PACKET command feature set",		/* word 82 bit  4 */
-	"Power Management feature set",		/* word 82 bit  3 */
-	"Removable Media feature set",		/* word 82 bit  2 */
-	"Security Mode feature set",		/* word 82 bit  1 */
-	"SMART feature set",			/* word 82 bit  0 */
-						/* -------------- */
-	"",					/* word 83 bit 15: !valid bit */
-	"",					/* word 83 bit 14:  valid bit */
-	"FLUSH CACHE EXT cmd",			/* word 83 bit 13 */
-	"Mandatory FLUSH CACHE cmd ",		/* word 83 bit 12 */
-	"Device Configuration Overlay feature set ",
-	"48-bit Address feature set ",		/* word 83 bit 10 */
-	"",
-	"SET MAX security extension",		/* word 83 bit  8 */
-	"Address Offset Reserved Area Boot",	/* word 83 bit  7 */
-	"SET FEATURES subcommand required to spinup after power up",
-	"Power-Up In Standby feature set",	/* word 83 bit  5 */
-	"Removable Media Status Notification feature set",
-	"Adv. Power Management feature set",	/* word 83 bit  3 */
-	"CFA feature set",			/* word 83 bit  2 */
-	"READ/WRITE DMA QUEUED",		/* word 83 bit  1 */
-	"DOWNLOAD MICROCODE cmd",		/* word 83 bit  0 */
-						/* -------------- */
-	"",					/* word 84 bit 15: !valid bit */
-	"",					/* word 84 bit 14:  valid bit */
-	"",					/* word 84 bit 13:  reserved */
-	"",					/* word 84 bit 12:  reserved */
-	"",					/* word 84 bit 11:  reserved */
-	"",					/* word 84 bit 10:  reserved */
-	"",					/* word 84 bit  9:  reserved */
-	"",					/* word 84 bit  8:  reserved */
-	"",					/* word 84 bit  7:  reserved */
-	"",					/* word 84 bit  6:  reserved */
-	"General Purpose Logging feature set",	/* word 84 bit  5 */
-	"",					/* word 84 bit  4:  reserved */
-	"Media Card Pass Through Command feature set ",
-	"Media serial number ",			/* word 84 bit  2 */
-	"SMART self-test ",			/* word 84 bit  1 */
-	"SMART error logging "			/* word 84 bit  0 */
-};
-#endif
-
 
 /* words 85-87: cmds/feats enabled */
 /* use cmd_feat_str[] to display what commands and features have
@@ -408,16 +215,6 @@ static const char *const cmd_feat_str[] = {
 #define SECU_ENABLED    0x0002
 #define SECU_LEVEL      0x0010
 #define NUM_SECU_STR    6
-#if ENABLE_FEATURE_HDPARM_GET_IDENTITY
-static const char *const secu_str[] = {
-	"supported",			/* word 128, bit 0 */
-	"enabled",			/* word 128, bit 1 */
-	"locked",			/* word 128, bit 2 */
-	"frozen",			/* word 128, bit 3 */
-	"expired: security count",	/* word 128, bit 4 */
-	"supported: enhanced erase"	/* word 128, bit 5 */
-};
-#endif
 
 /* word 160: CFA power mode */
 #define VALID_W160              0x8000  /* 1=word valid */
@@ -694,8 +491,195 @@ static uint8_t mode_loop(uint16_t mode_sup, uint16_t mode_sel, int cc, uint8_t *
 	return err_dma;
 }
 
-// Parse 512 byte disk identification block and print much crap.
+static const char *nth_str(const char *strings, int n)
+{
+	while (n) {
+		n--;
+		strings += strlen(strings) + 1;
+	}
+	return strings;
+}
 
+static const char pkt_str[] ALIGN1 =
+	"Direct-access device" "\0"             /* word 0, bits 12-8 = 00 */
+	"Sequential-access device" "\0"         /* word 0, bits 12-8 = 01 */
+	"Printer" "\0"                          /* word 0, bits 12-8 = 02 */
+	"Processor" "\0"                        /* word 0, bits 12-8 = 03 */
+	"Write-once device" "\0"                /* word 0, bits 12-8 = 04 */
+	"CD-ROM" "\0"                           /* word 0, bits 12-8 = 05 */
+	"Scanner" "\0"                          /* word 0, bits 12-8 = 06 */
+	"Optical memory" "\0"                   /* word 0, bits 12-8 = 07 */
+	"Medium changer" "\0"                   /* word 0, bits 12-8 = 08 */
+	"Communications device" "\0"            /* word 0, bits 12-8 = 09 */
+	"ACS-IT8 device" "\0"                   /* word 0, bits 12-8 = 0a */
+	"ACS-IT8 device" "\0"                   /* word 0, bits 12-8 = 0b */
+	"Array controller" "\0"                 /* word 0, bits 12-8 = 0c */
+	"Enclosure services" "\0"               /* word 0, bits 12-8 = 0d */
+	"Reduced block command device" "\0"     /* word 0, bits 12-8 = 0e */
+	"Optical card reader/writer" "\0"       /* word 0, bits 12-8 = 0f */
+;
+
+static const char ata1_cfg_str[] ALIGN1 =       /* word 0 in ATA-1 mode */
+	"reserved" "\0"                         /* bit 0 */
+	"hard sectored" "\0"                    /* bit 1 */
+	"soft sectored" "\0"                    /* bit 2 */
+	"not MFM encoded " "\0"                 /* bit 3 */
+	"head switch time > 15us" "\0"          /* bit 4 */
+	"spindle motor control option" "\0"     /* bit 5 */
+	"fixed drive" "\0"                      /* bit 6 */
+	"removable drive" "\0"                  /* bit 7 */
+	"disk xfer rate <= 5Mbs" "\0"           /* bit 8 */
+	"disk xfer rate > 5Mbs, <= 10Mbs" "\0"  /* bit 9 */
+	"disk xfer rate > 5Mbs" "\0"            /* bit 10 */
+	"rotational speed tol." "\0"            /* bit 11 */
+	"data strobe offset option" "\0"        /* bit 12 */
+	"track offset option" "\0"              /* bit 13 */
+	"format speed tolerance gap reqd" "\0"  /* bit 14 */
+	"ATAPI"                                 /* bit 14 */
+;
+
+static const char minor_str[] ALIGN1 =
+	/* word 81 value: */
+	"Unspecified" "\0"                                  /* 0x0000 */
+	"ATA-1 X3T9.2 781D prior to rev.4" "\0"             /* 0x0001 */
+	"ATA-1 published, ANSI X3.221-1994" "\0"            /* 0x0002 */
+	"ATA-1 X3T9.2 781D rev.4" "\0"                      /* 0x0003 */
+	"ATA-2 published, ANSI X3.279-1996" "\0"            /* 0x0004 */
+	"ATA-2 X3T10 948D prior to rev.2k" "\0"             /* 0x0005 */
+	"ATA-3 X3T10 2008D rev.1" "\0"                      /* 0x0006 */
+	"ATA-2 X3T10 948D rev.2k" "\0"                      /* 0x0007 */
+	"ATA-3 X3T10 2008D rev.0" "\0"                      /* 0x0008 */
+	"ATA-2 X3T10 948D rev.3" "\0"                       /* 0x0009 */
+	"ATA-3 published, ANSI X3.298-199x" "\0"            /* 0x000a */
+	"ATA-3 X3T10 2008D rev.6" "\0"                      /* 0x000b */
+	"ATA-3 X3T13 2008D rev.7 and 7a" "\0"               /* 0x000c */
+	"ATA/ATAPI-4 X3T13 1153D rev.6" "\0"                /* 0x000d */
+	"ATA/ATAPI-4 T13 1153D rev.13" "\0"                 /* 0x000e */
+	"ATA/ATAPI-4 X3T13 1153D rev.7" "\0"                /* 0x000f */
+	"ATA/ATAPI-4 T13 1153D rev.18" "\0"                 /* 0x0010 */
+	"ATA/ATAPI-4 T13 1153D rev.15" "\0"                 /* 0x0011 */
+	"ATA/ATAPI-4 published, ANSI INCITS 317-1998" "\0"  /* 0x0012 */
+	"ATA/ATAPI-5 T13 1321D rev.3" "\0"                  /* 0x0013 */
+	"ATA/ATAPI-4 T13 1153D rev.14" "\0"                 /* 0x0014 */
+	"ATA/ATAPI-5 T13 1321D rev.1" "\0"                  /* 0x0015 */
+	"ATA/ATAPI-5 published, ANSI INCITS 340-2000" "\0"  /* 0x0016 */
+	"ATA/ATAPI-4 T13 1153D rev.17" "\0"                 /* 0x0017 */
+	"ATA/ATAPI-6 T13 1410D rev.0" "\0"                  /* 0x0018 */
+	"ATA/ATAPI-6 T13 1410D rev.3a" "\0"                 /* 0x0019 */
+	"ATA/ATAPI-7 T13 1532D rev.1" "\0"                  /* 0x001a */
+	"ATA/ATAPI-6 T13 1410D rev.2" "\0"                  /* 0x001b */
+	"ATA/ATAPI-6 T13 1410D rev.1" "\0"                  /* 0x001c */
+	"ATA/ATAPI-7 published, ANSI INCITS 397-2005" "\0"  /* 0x001d */
+	"ATA/ATAPI-7 T13 1532D rev.0" "\0"                  /* 0x001e */
+	"reserved" "\0"                                     /* 0x001f */
+	"reserved" "\0"                                     /* 0x0020 */
+	"ATA/ATAPI-7 T13 1532D rev.4a" "\0"                 /* 0x0021 */
+	"ATA/ATAPI-6 published, ANSI INCITS 361-2002" "\0"  /* 0x0022 */
+	"reserved"                                          /* 0x0023-0xfffe */
+;
+static const char actual_ver[MINOR_MAX + 2] ALIGN1 = {
+	   /* word 81 value: */
+	0, /* 0x0000 WARNING: actual_ver[] array */
+	1, /* 0x0001 WARNING: corresponds        */
+	1, /* 0x0002 WARNING: *exactly*          */
+	1, /* 0x0003 WARNING: to the ATA/        */
+	2, /* 0x0004 WARNING: ATAPI version      */
+	2, /* 0x0005 WARNING: listed in          */
+	3, /* 0x0006 WARNING: the                */
+	2, /* 0x0007 WARNING: minor_str          */
+	3, /* 0x0008 WARNING: array              */
+	2, /* 0x0009 WARNING: above.             */
+	3, /* 0x000a WARNING:                    */
+	3, /* 0x000b WARNING: If you change      */
+	3, /* 0x000c WARNING: that one,          */
+	4, /* 0x000d WARNING: change this one    */
+	4, /* 0x000e WARNING: too!!!             */
+	4, /* 0x000f */
+	4, /* 0x0010 */
+	4, /* 0x0011 */
+	4, /* 0x0012 */
+	5, /* 0x0013 */
+	4, /* 0x0014 */
+	5, /* 0x0015 */
+	5, /* 0x0016 */
+	4, /* 0x0017 */
+	6, /* 0x0018 */
+	6, /* 0x0019 */
+	7, /* 0x001a */
+	6, /* 0x001b */
+	6, /* 0x001c */
+	7, /* 0x001d */
+	7, /* 0x001e */
+	0, /* 0x001f */
+	0, /* 0x0020 */
+	7, /* 0x0021 */
+	6, /* 0x0022 */
+	0  /* 0x0023-0xfffe */
+};
+
+static const char cmd_feat_str[] ALIGN1 =
+	"" "\0"                                     /* word 82 bit 15: obsolete  */
+	"NOP cmd" "\0"                              /* word 82 bit 14 */
+	"READ BUFFER cmd" "\0"                      /* word 82 bit 13 */
+	"WRITE BUFFER cmd" "\0"                     /* word 82 bit 12 */
+	"" "\0"                                     /* word 82 bit 11: obsolete  */
+	"Host Protected Area feature set" "\0"      /* word 82 bit 10 */
+	"DEVICE RESET cmd" "\0"                     /* word 82 bit  9 */
+	"SERVICE interrupt" "\0"                    /* word 82 bit  8 */
+	"Release interrupt" "\0"                    /* word 82 bit  7 */
+	"Look-ahead" "\0"                           /* word 82 bit  6 */
+	"Write cache" "\0"                          /* word 82 bit  5 */
+	"PACKET command feature set" "\0"           /* word 82 bit  4 */
+	"Power Management feature set" "\0"         /* word 82 bit  3 */
+	"Removable Media feature set" "\0"          /* word 82 bit  2 */
+	"Security Mode feature set" "\0"            /* word 82 bit  1 */
+	"SMART feature set" "\0"                    /* word 82 bit  0 */
+	                                            /* -------------- */
+	"" "\0"                                     /* word 83 bit 15: !valid bit */
+	"" "\0"                                     /* word 83 bit 14:  valid bit */
+	"FLUSH CACHE EXT cmd" "\0"                  /* word 83 bit 13 */
+	"Mandatory FLUSH CACHE cmd " "\0"           /* word 83 bit 12 */
+	"Device Configuration Overlay feature set " "\0"
+	"48-bit Address feature set " "\0"          /* word 83 bit 10 */
+	"" "\0"
+	"SET MAX security extension" "\0"           /* word 83 bit  8 */
+	"Address Offset Reserved Area Boot" "\0"    /* word 83 bit  7 */
+	"SET FEATURES subcommand required to spinup after power up" "\0"
+	"Power-Up In Standby feature set" "\0"      /* word 83 bit  5 */
+	"Removable Media Status Notification feature set" "\0"
+	"Adv. Power Management feature set" "\0"    /* word 83 bit  3 */
+	"CFA feature set" "\0"                      /* word 83 bit  2 */
+	"READ/WRITE DMA QUEUED" "\0"                /* word 83 bit  1 */
+	"DOWNLOAD MICROCODE cmd" "\0"               /* word 83 bit  0 */
+	                                            /* -------------- */
+	"" "\0"                                     /* word 84 bit 15: !valid bit */
+	"" "\0"                                     /* word 84 bit 14:  valid bit */
+	"" "\0"                                     /* word 84 bit 13:  reserved */
+	"" "\0"                                     /* word 84 bit 12:  reserved */
+	"" "\0"                                     /* word 84 bit 11:  reserved */
+	"" "\0"                                     /* word 84 bit 10:  reserved */
+	"" "\0"                                     /* word 84 bit  9:  reserved */
+	"" "\0"                                     /* word 84 bit  8:  reserved */
+	"" "\0"                                     /* word 84 bit  7:  reserved */
+	"" "\0"                                     /* word 84 bit  6:  reserved */
+	"General Purpose Logging feature set" "\0"  /* word 84 bit  5 */
+	"" "\0"                                     /* word 84 bit  4:  reserved */
+	"Media Card Pass Through Command feature set " "\0"
+	"Media serial number " "\0"                 /* word 84 bit  2 */
+	"SMART self-test " "\0"                     /* word 84 bit  1 */
+	"SMART error logging "                      /* word 84 bit  0 */
+;
+
+static const char secu_str[] ALIGN1 =
+	"supported" "\0"                /* word 128, bit 0 */
+	"enabled" "\0"                  /* word 128, bit 1 */
+	"locked" "\0"                   /* word 128, bit 2 */
+	"frozen" "\0"                   /* word 128, bit 3 */
+	"expired: security count" "\0"  /* word 128, bit 4 */
+	"supported: enhanced erase"     /* word 128, bit 5 */
+;
+
+// Parse 512 byte disk identification block and print much crap.
 static void identify(uint16_t *val) ATTRIBUTE_NORETURN;
 static void identify(uint16_t *val)
 {
@@ -726,10 +710,10 @@ static void identify(uint16_t *val)
 	} else if (!(val[GEN_CONFIG] & NOT_ATAPI)) {
 		dev = ATAPI_DEV;
 		eqpt = (val[GEN_CONFIG] & EQPT_TYPE) >> SHIFT_EQPT;
-		printf("ATAPI %s, with ", pkt_str[eqpt]);
+		printf("ATAPI %s, with ", eqpt <= 0xf ? nth_str(pkt_str, eqpt) : "unknown");
 		like_std = 3;
 	} else
-		/*"Unknown device type:\n\tbits 15&14 of general configuration word 0 both set to 1.\n"*/
+		/* "Unknown device type:\n\tbits 15&14 of general configuration word 0 both set to 1.\n" */
 		bb_error_msg_and_die("unknown device type");
 
 	printf("%sremovable media\n", !(val[GEN_CONFIG] & MEDIA_REMOVABLE) ? "non-" : "");
@@ -764,7 +748,7 @@ static void identify(uint16_t *val)
 		if (val[MINOR] && (val[MINOR] <= MINOR_MAX)) {
 			if (like_std < 3) like_std = 3;
 			std = actual_ver[val[MINOR]];
-			if (std) printf("\n\tUsed: %s ", minor_str[val[MINOR]]);
+			if (std) printf("\n\tUsed: %s ", nth_str(minor_str, val[MINOR]));
 
 		}
 		/* looks like when they up-issue the std, they obsolete one;
@@ -863,7 +847,7 @@ static void identify(uint16_t *val)
 		jj = val[GEN_CONFIG] >> 1;
 		for (ii = 1; ii < 15; ii++) {
 			if (jj & 0x0001)
-				printf("\t%s\n", ata1_cfg_str[ii]);
+				printf("\t%s\n", nth_str(ata1_cfg_str, ii));
 			jj >>=1;
 		}
 	}
@@ -875,7 +859,7 @@ static void identify(uint16_t *val)
 		else if ((val[GEN_CONFIG] & DRQ_RESPONSE_TIME) ==  DRQ_50US_VAL)
 			strng ="50us";
 		else
-			strng = "Unknown";
+			strng = "unknown";
 		printf("\tDRQ response: %s\n\tPacket size: ", strng); /* Data Request (DRQ) */
 
 		if ((val[GEN_CONFIG] & PKT_SIZE_SUPPORTED) == PKT_SIZE_12_VAL)
@@ -883,7 +867,7 @@ static void identify(uint16_t *val)
 		else if ((val[GEN_CONFIG] & PKT_SIZE_SUPPORTED) == PKT_SIZE_16_VAL)
 			strng = "16 bytes";
 		else
-			strng = "Unknown";
+			strng = "unknown";
 		puts(strng);
 	} else {
 		/* addressing...CHS? See section 6.2 of ATA specs 4 or 5 */
@@ -1070,7 +1054,7 @@ static void identify(uint16_t *val)
 			printf("pio%d ", ii);
 		bb_putchar('\n');
 	} else
-		printf("unknown\n");
+		puts("unknown");
 
 	if (val[WHATS_VALID] & OK_W64_70) {
 		if (val[PIO_NO_FLOW] || val[PIO_FLOW]) {
@@ -1086,8 +1070,9 @@ static void identify(uint16_t *val)
 		jj = val[CMDS_SUPP_0];
 		kk = val[CMDS_EN_0];
 		for (ii = 0; ii < NUM_CMD_FEAT_STR; ii++) {
-			if ((jj & 0x8000) && (*cmd_feat_str[ii] != '\0')) {
-				printf("\t%s\t%s\n", (kk & 0x8000) ? "   *" : "", cmd_feat_str[ii]);
+			const char *feat_str = nth_str(cmd_feat_str, ii);
+			if ((jj & 0x8000) && (*feat_str != '\0')) {
+				printf("\t%s\t%s\n", (kk & 0x8000) ? "   *" : "", feat_str);
 			}
 			jj <<= 1;
 			kk <<= 1;
@@ -1103,7 +1088,7 @@ static void identify(uint16_t *val)
 	}
 	/* Removable Media Status Notification feature set */
 	if ((val[RM_STAT] & RM_STAT_BITS) == RM_STAT_SUP)
-		printf("\t%s supported\n", cmd_feat_str[27]);
+		printf("\t%s supported\n", nth_str(cmd_feat_str, 27));
 
 	/* security */
 	if ((eqpt != CDROM) && (like_std > 3)
@@ -1115,7 +1100,7 @@ static void identify(uint16_t *val)
 		jj = val[SECU_STATUS];
 		if (jj) {
 			for (ii = 0; ii < NUM_SECU_STR; ii++) {
-				printf("\t%s\t%s\n", (!(jj & 0x0001)) ? "not" : "",  secu_str[ii]);
+				printf("\t%s\t%s\n", (!(jj & 0x0001)) ? "not" : "", nth_str(secu_str, ii));
 				jj >>=1;
 			}
 			if (val[SECU_STATUS] & SECU_ENABLED) {
@@ -1177,16 +1162,16 @@ static void identify(uint16_t *val)
 // Too bad, really.
 
 #if ENABLE_FEATURE_HDPARM_GET_IDENTITY
-static const char *const cfg_str[] = {
-	"",	     "HardSect",   "SoftSect",   "NotMFM",
-	"HdSw>15uSec", "SpinMotCtl", "Fixed",     "Removeable",
-	"DTR<=5Mbs",   "DTR>5Mbs",   "DTR>10Mbs", "RotSpdTol>.5%",
-	"dStbOff",     "TrkOff",     "FmtGapReq", "nonMagnetic"
-};
+static const char cfg_str[] ALIGN1 =
+        """\0"            "HardSect""\0"   "SoftSect""\0"  "NotMFM""\0"
+        "HdSw>15uSec""\0" "SpinMotCtl""\0" "Fixed""\0"     "Removeable""\0"
+        "DTR<=5Mbs""\0"   "DTR>5Mbs""\0"   "DTR>10Mbs""\0" "RotSpdTol>.5%""\0"
+        "dStbOff""\0"     "TrkOff""\0"     "FmtGapReq""\0" "nonMagnetic"
+;
 
-static const char *const BuffType[] = {
-	"Unknown", "1Sect", "DualPort", "DualPortCache"
-};
+static const char BuffType[] ALIGN1 =
+	"unknown""\0"     "1Sect""\0"      "DualPort""\0"  "DualPortCache"
+;
 
 static void dump_identity(const struct hd_driveid *id)
 {
@@ -1197,13 +1182,13 @@ static void dump_identity(const struct hd_driveid *id)
 				id->model, id->fw_rev, id->serial_no);
 	for (i = 0; i <= 15; i++) {
 		if (id->config & (1<<i))
-			printf(" %s", cfg_str[i]);
+			printf(" %s", nth_str(cfg_str, i));
 	}
 	printf(" }\n RawCHS=%u/%u/%u, TrkSize=%u, SectSize=%u, ECCbytes=%u\n"
 			" BuffType=(%u) %s, BuffSize=%ukB, MaxMultSect=%u",
 				id->cyls, id->heads, id->sectors, id->track_bytes,
 				id->sector_bytes, id->ecc_bytes,
-				id->buf_type, BuffType[(id->buf_type > 3) ? 0 :  id->buf_type],
+				id->buf_type, nth_str(BuffType, (id->buf_type > 3) ? 0 : id->buf_type),
 				id->buf_size/2, id->max_multsect);
 	if (id->max_multsect) {
 		printf(", MultSect=");
@@ -1309,7 +1294,7 @@ static void dump_identity(const struct hd_driveid *id)
 	if ((id->minor_rev_num && id->minor_rev_num <= 31)
 	 || (id->major_rev_num && id->minor_rev_num <= 31)
 	) {
-		printf("\n Drive conforms to: %s: ", (id->minor_rev_num <= 31) ? minor_str[id->minor_rev_num] : "Unknown");
+		printf("\n Drive conforms to: %s: ", (id->minor_rev_num <= 31) ? nth_str(minor_str, id->minor_rev_num) : "unknown");
 		if (id->major_rev_num != 0x0000 &&  /* NOVAL_0 */
 		    id->major_rev_num != 0xFFFF) {  /* NOVAL_1 */
 			for (i = 0; i <= 15; i++) {
@@ -1479,7 +1464,7 @@ static void interpret_standby(unsigned standby)
 	else if (standby == 253)
 		printf("vendor-specific");
 	else if (standby == 254)
-		printf("Reserved");
+		printf("reserved");
 	else if (standby == 255)
 		printf("21 minutes + 15 seconds");
 	else if (standby <= 240) {
@@ -1539,7 +1524,7 @@ static void interpret_xfermode(unsigned xfermode)
 	else if (xfermode >= 64 && xfermode <= 71)
 		printf("UltraDMA mode%u", xfermode - 64);
 	else
-		printf("Unknown");
+		printf("unknown");
 	printf(")\n");
 }
 #endif /* HDIO_DRIVE_CMD */
