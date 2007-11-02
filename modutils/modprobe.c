@@ -15,6 +15,8 @@
 #include <sys/utsname.h>
 #include <fnmatch.h>
 
+#define line_buffer bb_common_bufsiz1
+
 struct mod_opt_t {	/* one-way list of options to pass to a module */
 	char *  m_opt_val;
 	struct mod_opt_t * m_next;
@@ -48,7 +50,7 @@ struct mod_list_t {	/* two-way list of modules to process */
 
 static struct dep_t *depend;
 
-#define main_options "acdklnqrst:vVC:"
+#define MAIN_OPT_STR "acdklnqrst:vVC:"
 #define INSERT_ALL     1        /* a */
 #define DUMP_CONF_EXIT 2        /* c */
 #define D_OPT_IGNORED  4        /* d */
@@ -63,14 +65,12 @@ static struct dep_t *depend;
 #define VERSION_ONLY   2048     /* V */
 #define CONFIG_FILE    4096     /* C */
 
-#define autoclean       (main_opts & AUTOCLEAN_FLG)
-#define show_only       (main_opts & SHOW_ONLY)
-#define quiet           (main_opts & QUIET)
-#define remove_opt      (main_opts & REMOVE_OPT)
-#define do_syslog       (main_opts & DO_SYSLOG)
-#define verbose         (main_opts & VERBOSE)
-
-static int main_opts;
+#define autoclean       (option_mask32 & AUTOCLEAN_FLG)
+#define show_only       (option_mask32 & SHOW_ONLY)
+#define quiet           (option_mask32 & QUIET)
+#define remove_opt      (option_mask32 & REMOVE_OPT)
+#define do_syslog       (option_mask32 & DO_SYSLOG)
+#define verbose         (option_mask32 & VERBOSE)
 
 static int parse_tag_value(char *buffer, char **ptag, char **pvalue)
 {
@@ -78,12 +78,15 @@ static int parse_tag_value(char *buffer, char **ptag, char **pvalue)
 
 	buffer = skip_whitespace(buffer);
 	tag = value = buffer;
-	while (!isspace(*value))
-		if (!*value) return 0;
-		else value++;
-	*value++ = 0;
+	while (!isspace(*value)) {
+		if (!*value)
+			return 0;
+		value++;
+	}
+	*value++ = '\0';
 	value = skip_whitespace(value);
-	if (!*value) return 0;
+	if (!*value)
+		return 0;
 
 	*ptag = tag;
 	*pvalue = value;
@@ -102,14 +105,14 @@ static struct mod_opt_t *append_option(struct mod_opt_t *opt_list, char *opt)
 		while (ol->m_next) {
 			ol = ol->m_next;
 		}
-		ol->m_next = xmalloc(sizeof(struct mod_opt_t));
+		ol->m_next = xzalloc(sizeof(struct mod_opt_t));
 		ol = ol->m_next;
 	} else {
-		ol = opt_list = xmalloc(sizeof(struct mod_opt_t));
+		ol = opt_list = xzalloc(sizeof(struct mod_opt_t));
 	}
 
 	ol->m_opt_val = xstrdup(opt);
-	ol->m_next = NULL;
+	/*ol->m_next = NULL; - done by xzalloc*/
 
 	return opt_list;
 }
@@ -190,7 +193,8 @@ static char *parse_command_string(char *src, char **dst)
 				case '0':
 					/* We escaped a special character. For now, keep
 					 * both the back-slash and the following char. */
-					tmp_str++; src++;
+					tmp_str++;
+					src++;
 					break;
 				default:
 					/* We escaped a space or a single or double quote,
@@ -242,12 +246,12 @@ static void include_conf(struct dep_t **first, struct dep_t **current, char *buf
 
 		p = strchr(buffer, '#');
 		if (p)
-			*p = 0;
+			*p = '\0';
 
 		l = strlen(buffer);
 
 		while (l && isspace(buffer[l-1])) {
-			buffer[l-1] = 0;
+			buffer[l-1] = '\0';
 			l--;
 		}
 
@@ -256,66 +260,68 @@ static void include_conf(struct dep_t **first, struct dep_t **current, char *buf
 			continue;
 		}
 
-		if (!continuation_line) {
-			if ((strncmp(buffer, "alias", 5) == 0) && isspace(buffer[5])) {
-				char *alias, *mod;
+		if (continuation_line)
+			continue;
 
-				if (parse_tag_value(buffer + 6, &alias, &mod)) {
-					/* handle alias as a module dependent on the aliased module */
-					if (!*current) {
-						(*first) = (*current) = xzalloc(sizeof(struct dep_t));
-					} else {
-						(*current)->m_next = xzalloc(sizeof(struct dep_t));
-						(*current) = (*current)->m_next;
-					}
-					(*current)->m_name  = xstrdup(alias);
-					(*current)->m_isalias = 1;
+		if ((strncmp(buffer, "alias", 5) == 0) && isspace(buffer[5])) {
+			char *alias, *mod;
 
-					if ((strcmp(mod, "off") == 0) || (strcmp(mod, "null") == 0)) {
-						(*current)->m_depcnt = 0;
-						(*current)->m_deparr = 0;
-					} else {
-						(*current)->m_depcnt  = 1;
-						(*current)->m_deparr  = xmalloc(1 * sizeof(char *));
-						(*current)->m_deparr[0] = xstrdup(mod);
-					}
-					(*current)->m_next    = 0;
+			if (parse_tag_value(buffer + 6, &alias, &mod)) {
+				/* handle alias as a module dependent on the aliased module */
+				if (!*current) {
+					(*first) = (*current) = xzalloc(sizeof(struct dep_t));
+				} else {
+					(*current)->m_next = xzalloc(sizeof(struct dep_t));
+					(*current) = (*current)->m_next;
 				}
-			} else if ((strncmp(buffer, "options", 7) == 0) && isspace(buffer[7])) {
-				char *mod, *opt;
+				(*current)->m_name = xstrdup(alias);
+				(*current)->m_isalias = 1;
 
-				/* split the line in the module/alias name, and options */
-				if (parse_tag_value(buffer + 8, &mod, &opt)) {
-					struct dep_t *dt;
+				if ((strcmp(mod, "off") == 0) || (strcmp(mod, "null") == 0)) {
+					/*(*current)->m_depcnt = 0; - done by xzalloc */
+					/*(*current)->m_deparr = 0;*/
+				} else {
+					(*current)->m_depcnt = 1;
+					(*current)->m_deparr = xmalloc(sizeof(char *));
+					(*current)->m_deparr[0] = xstrdup(mod);
+				}
+				/*(*current)->m_next = NULL; - done by xzalloc */
+			}
+		} else if ((strncmp(buffer, "options", 7) == 0) && isspace(buffer[7])) {
+			char *mod, *opt;
 
-					/* find the corresponding module */
-					for (dt = *first; dt; dt = dt->m_next) {
-						if (strcmp(dt->m_name, mod) == 0)
-							break;
-					}
-					if (dt) {
-						if (ENABLE_FEATURE_MODPROBE_MULTIPLE_OPTIONS) {
-							char* new_opt = NULL;
-							while ((opt = parse_command_string(opt, &new_opt))) {
-								dt->m_options = append_option(dt->m_options, new_opt);
-							}
-						} else {
-							dt->m_options = append_option(dt->m_options, opt);
+			/* split the line in the module/alias name, and options */
+			if (parse_tag_value(buffer + 8, &mod, &opt)) {
+				struct dep_t *dt;
+
+				/* find the corresponding module */
+				for (dt = *first; dt; dt = dt->m_next) {
+					if (strcmp(dt->m_name, mod) == 0)
+						break;
+				}
+				if (dt) {
+					if (ENABLE_FEATURE_MODPROBE_MULTIPLE_OPTIONS) {
+						char* new_opt = NULL;
+						while ((opt = parse_command_string(opt, &new_opt))) {
+							dt->m_options = append_option(dt->m_options, new_opt);
 						}
+					} else {
+						dt->m_options = append_option(dt->m_options, opt);
 					}
-				}
-			} else if ((strncmp(buffer, "include", 7) == 0) && isspace(buffer[7])) {
-				int fdi; char *filename;
-
-				filename = skip_whitespace(buffer + 8);
-
-				if ((fdi = open(filename, O_RDONLY)) >= 0) {
-					include_conf(first, current, buffer, buflen, fdi);
-					close(fdi);
 				}
 			}
+		} else if ((strncmp(buffer, "include", 7) == 0) && isspace(buffer[7])) {
+			int fdi;
+			char *filename;
+
+			filename = skip_whitespace(buffer + 8);
+			fdi = open(filename, O_RDONLY);
+			if (fdi >= 0) {
+				include_conf(first, current, buffer, buflen, fdi);
+				close(fdi);
+			}
 		}
-	}
+	} /* while (reads(...)) */
 }
 
 /*
@@ -327,9 +333,8 @@ static struct dep_t *build_dep(void)
 {
 	int fd;
 	struct utsname un;
-	struct dep_t *first = 0;
-	struct dep_t *current = 0;
-	char buffer[2048];
+	struct dep_t *first = NULL;
+	struct dep_t *current = NULL;
 	char *filename;
 	int continuation_line = 0;
 	int k_version;
@@ -350,16 +355,16 @@ static struct dep_t *build_dep(void)
 		/* Ok, that didn't work.  Fall back to looking in /lib/modules */
 		fd = open("/lib/modules/modules.dep", O_RDONLY);
 		if (fd < 0) {
-			return 0;
+			bb_error_msg_and_die("cannot parse modules.dep");
 		}
 	}
 
-	while (reads(fd, buffer, sizeof(buffer))) {
-		int l = strlen(buffer);
+	while (reads(fd, line_buffer, sizeof(line_buffer))) {
+		int l = strlen(line_buffer);
 		char *p = 0;
 
-		while (l > 0 && isspace(buffer[l-1])) {
-			buffer[l-1] = 0;
+		while (l > 0 && isspace(line_buffer[l-1])) {
+			line_buffer[l-1] = '\0';
 			l--;
 		}
 
@@ -371,7 +376,7 @@ static struct dep_t *build_dep(void)
 		/* Is this a new module dep description? */
 		if (!continuation_line) {
 			/* find the dep beginning */
-			char *col = strchr(buffer, ':');
+			char *col = strchr(line_buffer, ':');
 			char *dot = col;
 
 			if (col) {
@@ -381,53 +386,52 @@ static struct dep_t *build_dep(void)
 				char *mod;
 
 				/* Find the beginning of the module file name */
-				*col = 0;
-				mods = bb_basename(buffer);
+				*col = '\0';
+				mods = bb_basename(line_buffer);
 
 				/* find the path of the module */
-				modpath = strchr(buffer, '/'); /* ... and this is the path */
+				modpath = strchr(line_buffer, '/'); /* ... and this is the path */
 				if (!modpath)
-					modpath = buffer; /* module with no path */
+					modpath = line_buffer; /* module with no path */
 				/* find the end of the module name in the file name */
 				if (ENABLE_FEATURE_2_6_MODULES &&
-				     (k_version > 4) && (*(col-3) == '.') &&
-				    (*(col-2) == 'k') && (*(col-1) == 'o'))
+				    (k_version > 4) && (col[-3] == '.') &&
+				    (col[-2] == 'k') && (col[-1] == 'o'))
 					dot = col - 3;
-				else
-					if ((*(col-2) == '.') && (*(col-1) == 'o'))
-						dot = col - 2;
+				else if ((col[-2] == '.') && (col[-1] == 'o'))
+					dot = col - 2;
 
 				mod = xstrndup(mods, dot - mods);
 
 				/* enqueue new module */
 				if (!current) {
-					first = current = xmalloc(sizeof(struct dep_t));
+					first = current = xzalloc(sizeof(struct dep_t));
 				} else {
-					current->m_next = xmalloc(sizeof(struct dep_t));
+					current->m_next = xzalloc(sizeof(struct dep_t));
 					current = current->m_next;
 				}
-				current->m_name    = mod;
-				current->m_path    = xstrdup(modpath);
-				current->m_options = NULL;
-				current->m_isalias = 0;
-				current->m_depcnt  = 0;
-				current->m_deparr  = 0;
-				current->m_next    = 0;
+				current->m_name = mod;
+				current->m_path = xstrdup(modpath);
+				/*current->m_options = NULL; - xzalloc did it*/
+				/*current->m_isalias = 0;*/
+				/*current->m_depcnt = 0;*/
+				/*current->m_deparr = 0;*/
+				/*current->m_next = 0;*/
 
 				p = col + 1;
 			} else
 				/* this line is not a dep description */
-				p = 0;
+				p = NULL;
 		} else
 			/* It's a dep description continuation */
-			p = buffer;
+			p = line_buffer;
 
 		while (p && *p && isblank(*p))
 			p++;
 
 		/* p points to the first dependable module; if NULL, no dependable module */
 		if (p && *p) {
-			char *end = &buffer[l-1];
+			char *end = &line_buffer[l-1];
 			const char *deps;
 			char *dep;
 			char *next;
@@ -440,7 +444,7 @@ static struct dep_t *build_dep(void)
 				/* search the end of the dependency */
 				next = strchr(p, ' ');
 				if (next) {
-					*next = 0;
+					*next = '\0';
 					next--;
 				} else
 					next = end;
@@ -454,12 +458,11 @@ static struct dep_t *build_dep(void)
 
 				/* find the end of the module name in the file name */
 				if (ENABLE_FEATURE_2_6_MODULES
-				 && (k_version > 4) && (*(next-2) == '.')
-				 && (*(next-1) == 'k') && (*next == 'o'))
+				 && (k_version > 4) && (next[-2] == '.')
+				 && (next[-1] == 'k') && (next[0] == 'o'))
 					ext = 3;
-				else
-					if ((*(next-1) == '.') && (*next == 'o'))
-						ext = 2;
+				else if ((next[-1] == '.') && (next[0] == 'o'))
+					ext = 2;
 
 				/* Cope with blank lines */
 				if ((next-deps-ext+1) <= 0)
@@ -477,11 +480,8 @@ static struct dep_t *build_dep(void)
 		}
 
 		/* is there other dependable module(s) ? */
-		if (buffer[l-1] == '\\')
-			continuation_line = 1;
-		else
-			continuation_line = 0;
-	}
+		continuation_line = (line_buffer[l-1] == '\\');
+	} /* while (reads(...)) */
 	close(fd);
 
 	/*
@@ -498,7 +498,7 @@ static struct dep_t *build_dep(void)
 				fd = open("/etc/conf.modules", O_RDONLY);
 
 	if (fd >= 0) {
-		include_conf(&first, &current, buffer, sizeof(buffer), fd);
+		include_conf(&first, &current, line_buffer, sizeof(line_buffer), fd);
 		close(fd);
 	}
 
@@ -515,7 +515,7 @@ static struct dep_t *build_dep(void)
 			free(filename);
 
 		if (fd >= 0) {
-			include_conf(&first, &current, buffer, sizeof(buffer), fd);
+			include_conf(&first, &current, line_buffer, sizeof(line_buffer), fd);
 			close(fd);
 		}
 
@@ -530,7 +530,7 @@ static struct dep_t *build_dep(void)
 			free(filename);
 
 		if (fd >= 0) {
-			include_conf(&first, &current, buffer, sizeof(buffer), fd);
+			include_conf(&first, &current, line_buffer, sizeof(line_buffer), fd);
 			close(fd);
 		}
 	}
@@ -542,16 +542,15 @@ static struct dep_t *build_dep(void)
 static int already_loaded(const char *name)
 {
 	int fd, ret = 0;
-	char buffer[4096];
 
 	fd = open("/proc/modules", O_RDONLY);
 	if (fd < 0)
 		return -1;
 
-	while (reads(fd, buffer, sizeof(buffer))) {
+	while (reads(fd, line_buffer, sizeof(line_buffer))) {
 		char *p;
 
-		p = strchr (buffer, ' ');
+		p = strchr(line_buffer, ' ');
 		if (p) {
 			const char *n;
 
@@ -559,8 +558,8 @@ static int already_loaded(const char *name)
 			// the idiosyncrasy that _ and - are interchangeable because the
 			// 2.6 kernel does weird things.
 
-			*p = 0;
-			for (p = buffer, n = name; ; p++, n++) {
+			*p = '\0';
+			for (p = line_buffer, n = name; ; p++, n++) {
 				if (*p != *n) {
 					if ((*p == '_' || *p == '-') && (*n == '_' || *n == '-'))
 						continue;
@@ -574,8 +573,8 @@ static int already_loaded(const char *name)
 			}
 		}
 	}
-done:
-	close (fd);
+ done:
+	close(fd);
 	return ret;
 }
 
@@ -623,7 +622,7 @@ static int mod_process(const struct mod_list_t *list, int do_insert)
 				while (opts) {
 					/* Add one more option */
 					argc++;
-					argv = xrealloc(argv,(argc + 1)* sizeof(char*));
+					argv = xrealloc(argv, (argc + 1) * sizeof(char*));
 					argv[argc-1] = opts->m_opt_val;
 					opts = opts->m_next;
 				}
@@ -698,9 +697,8 @@ static int check_pattern(const char* pat_src, const char* mod_src)
 		}
 
 		return ret;
-	} else {
-		return fnmatch(pat_src, mod_src, 0);
 	}
+	return fnmatch(pat_src, mod_src, 0);
 }
 
 /*
@@ -712,8 +710,8 @@ static void check_dep(char *mod, struct mod_list_t **head, struct mod_list_t **t
 {
 	struct mod_list_t *find;
 	struct dep_t *dt;
-	struct mod_opt_t *opt = 0;
-	char *path = 0;
+	struct mod_opt_t *opt = NULL;
+	char *path = NULL;
 
 	/* Search for the given module name amongst all dependency rules.
 	 * The module name in a dependency rule can be a shell pattern,
@@ -765,8 +763,8 @@ static void check_dep(char *mod, struct mod_list_t **head, struct mod_list_t **t
 
 	// search for duplicates
 	for (find = *head; find; find = find->m_next) {
-		if (!strcmp(mod, find->m_name)) {
-			// found ->dequeue it
+		if (strcmp(mod, find->m_name) == 0) {
+			// found -> dequeue it
 
 			if (find->m_prev)
 				find->m_prev->m_next = find->m_next;
@@ -783,7 +781,7 @@ static void check_dep(char *mod, struct mod_list_t **head, struct mod_list_t **t
 	}
 
 	if (!find) { // did not find a duplicate
-		find = xmalloc(sizeof(struct mod_list_t));
+		find = xzalloc(sizeof(struct mod_list_t));
 		find->m_name = mod;
 		find->m_path = path;
 		find->m_options = opt;
@@ -793,7 +791,7 @@ static void check_dep(char *mod, struct mod_list_t **head, struct mod_list_t **t
 	if (*tail)
 		(*tail)->m_next = find;
 	find->m_prev = *tail;
-	find->m_next = 0;
+	/*find->m_next = NULL; - xzalloc did it */
 
 	if (!*head)
 		*head = find;
@@ -868,11 +866,11 @@ int modprobe_main(int argc, char **argv)
 	char *unused;
 
 	opt_complementary = "?V-:q-v:v-q";
-	main_opts = getopt32(argv, "acdklnqrst:vVC:",
-							&unused, &unused);
-	if (main_opts & (DUMP_CONF_EXIT | LIST_ALL))
+	getopt32(argv, MAIN_OPT_STR, &unused, &unused);
+
+	if (option_mask32 & (DUMP_CONF_EXIT | LIST_ALL))
 		return EXIT_SUCCESS;
-	if (main_opts & (RESTRICT_DIR | CONFIG_FILE))
+	if (option_mask32 & (RESTRICT_DIR | CONFIG_FILE))
 		bb_error_msg_and_die("-t and -C not supported");
 
 	depend = build_dep();
@@ -882,8 +880,8 @@ int modprobe_main(int argc, char **argv)
 
 	if (remove_opt) {
 		do {
-			if (mod_remove(optind < argc ?
-						argv[optind] : NULL)) {
+			/* argv[optind] can be NULL here */
+			if (mod_remove(argv[optind])) {
 				bb_error_msg("failed to remove module %s",
 						argv[optind]);
 				rc = EXIT_FAILURE;

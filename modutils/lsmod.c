@@ -28,17 +28,17 @@ static void check_tainted(void)
 	FILE *f;
 
 	tainted = 0;
-	if ((f = fopen(TAINT_FILENAME, "r"))) {
+	f = fopen(TAINT_FILENAME, "r");
+	if (f) {
 		fscanf(f, "%d", &tainted);
 		fclose(f);
 	}
-	if (f && tainted) {
+	if (tainted) {
 		printf("    Tainted: %c%c%c\n",
 				tainted & TAINT_PROPRIETORY_MODULE      ? 'P' : 'G',
 				tainted & TAINT_FORCED_MODULE           ? 'F' : ' ',
 				tainted & TAINT_UNSAFE_SMP              ? 'S' : ' ');
-	}
-	else {
+	} else {
 		printf("    Not tainted\n");
 	}
 }
@@ -147,7 +147,7 @@ int lsmod_main(int argc, char **argv)
 
 	printf("Module                  Size  Used by");
 	check_tainted();
-#if defined(CONFIG_FEATURE_LSMOD_PRETTY_2_6_OUTPUT)
+#if ENABLE_FEATURE_LSMOD_PRETTY_2_6_OUTPUT
 	{
 		char *line;
 		while ((line = xmalloc_fgets(file)) != NULL) {

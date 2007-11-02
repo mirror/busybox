@@ -18,7 +18,8 @@ char *xmalloc_readlink(const char *path)
 	int bufsize = 0, readsize = 0;
 
 	do {
-		buf = xrealloc(buf, bufsize += GROWBY);
+		bufsize += GROWBY;
+		buf = xrealloc(buf, bufsize);
 		readsize = readlink(path, buf, bufsize);
 		if (readsize == -1) {
 			free(buf);
