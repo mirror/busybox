@@ -241,12 +241,12 @@ static void parse_args(int argc, char **argv, int cmd, struct ip_tunnel_parm *p)
 		} else if (key == ARG_remote) {
 			NEXT_ARG();
 			key = index_in_strings(keywords, *argv);
-			if (key == ARG_any)
+			if (key != ARG_any)
 				p->iph.daddr = get_addr32(*argv);
 		} else if (key == ARG_local) {
 			NEXT_ARG();
 			key = index_in_strings(keywords, *argv);
-			if (key == ARG_any)
+			if (key != ARG_any)
 				p->iph.saddr = get_addr32(*argv);
 		} else if (key == ARG_dev) {
 			NEXT_ARG();

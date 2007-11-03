@@ -734,7 +734,8 @@ static servtab_t *getconfigent(void)
 	/* if ((arg = skip(&cp, 1)) == NULL) */
 	/* goto more; */
 
-	sep->se_server = xxstrdup(skip(&cp));
+	arg = skip(&cp);
+	sep->se_server = xxstrdup(arg);
 	if (strcmp(sep->se_server, "internal") == 0) {
 #ifdef INETD_FEATURE_ENABLED
 		const struct builtin *bi;
@@ -759,7 +760,7 @@ static servtab_t *getconfigent(void)
 		sep->se_bi = NULL;
 #endif
 	argc = 0;
-	for (arg = skip(&cp); cp; arg = skip(&cp)) {
+	for (; cp; arg = skip(&cp)) {
 		if (argc < MAXARGV)
 			sep->se_argv[argc++] = xxstrdup(arg);
 	}

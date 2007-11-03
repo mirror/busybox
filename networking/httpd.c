@@ -1186,6 +1186,9 @@ static void send_cgi_and_exit(
 	 * and send it to the peer. So please no SIGPIPEs! */
 	signal(SIGPIPE, SIG_IGN);
 
+	/* Accound for POSTDATA already in hdr_buf */
+	bodyLen -= hdr_cnt;
+
 	/* This loop still looks messy. What is an exit criteria?
 	 * "CGI's output closed"? Or "CGI has exited"?
 	 * What to do if CGI has closed both input and output, but

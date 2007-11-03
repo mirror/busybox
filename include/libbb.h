@@ -776,7 +776,7 @@ char *bb_simplify_path(const char *path);
 extern void bb_do_delay(int seconds);
 extern void change_identity(const struct passwd *pw);
 extern const char *change_identity_e2str(const struct passwd *pw);
-extern void run_shell(const char *shell, int loginshell, const char *command, const char **additional_args);
+extern void run_shell(const char *shell, int loginshell, const char *command, const char **additional_args) ATTRIBUTE_NORETURN;
 #if ENABLE_SELINUX
 extern void renew_current_security_context(void);
 extern void set_current_security_context(security_context_t sid);
