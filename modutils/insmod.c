@@ -2983,7 +2983,7 @@ obj_string_patch(struct obj_file *f, int secidx, ElfW(Addr) offset,
 	memcpy(loc, string, len);
 }
 
-static void 
+static void
 obj_symbol_patch(struct obj_file *f, int secidx, ElfW(Addr) offset,
 				 struct obj_symbol *sym)
 {

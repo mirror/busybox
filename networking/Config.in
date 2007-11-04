@@ -329,13 +329,13 @@ config FEATURE_IFUPDOWN_IPV6
 	  If you need support for IPv6, turn this option on.
 
 ### UNUSED
-### config FEATURE_IFUPDOWN_IPX
-### 	bool "Enable support for IPX"
-### 	default n
-### 	depends on IFUPDOWN
-### 	help
-### 	  If this option is selected you can use busybox to work with IPX
-### 	  networks.
+###config FEATURE_IFUPDOWN_IPX
+###	bool "Enable support for IPX"
+###	default n
+###	depends on IFUPDOWN
+###	help
+###	  If this option is selected you can use busybox to work with IPX
+###	  networks.
 
 config FEATURE_IFUPDOWN_MAPPING
 	bool "Enable mapping support"

@@ -35,7 +35,7 @@ static void passwd_study(struct passwd *p)
 	/* check for a free uid (and maybe gid) */
 	while (getpwuid(p->pw_uid) || (!p->pw_gid && getgrgid(p->pw_uid)))
 		p->pw_uid++;
-        
+
 	if (!p->pw_gid) {
 		/* new gid = uid */
 		p->pw_gid = p->pw_uid;
@@ -146,7 +146,7 @@ int adduser_main(int argc, char **argv)
 		if (mkdir(pw.pw_dir, 0755)
 		 || chown(pw.pw_dir, pw.pw_uid, pw.pw_gid)
 		 || chmod(pw.pw_dir, 02755) /* set setgid bit on homedir */
-		) { 
+		) {
 			bb_simple_perror_msg(pw.pw_dir);
 		}
 	}

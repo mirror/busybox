@@ -703,17 +703,17 @@ void mainQSort3(uint32_t* ptr,
 
 /*---------------------------------------------*/
 /* Pre:
- * 	nblock > N_OVERSHOOT
- * 	block32 exists for [0 .. nblock-1 +N_OVERSHOOT]
- * 	((uint8_t*)block32) [0 .. nblock-1] holds block
- * 	ptr exists for [0 .. nblock-1]
+ *	nblock > N_OVERSHOOT
+ *	block32 exists for [0 .. nblock-1 +N_OVERSHOOT]
+ *	((uint8_t*)block32) [0 .. nblock-1] holds block
+ *	ptr exists for [0 .. nblock-1]
  *
  * Post:
- * 	((uint8_t*)block32) [0 .. nblock-1] holds block
- * 	All other areas of block32 destroyed
- * 	ftab[0 .. 65536] destroyed
- * 	ptr [0 .. nblock-1] holds sorted order
- * 	if (*budget < 0), sorting was abandoned
+ *	((uint8_t*)block32) [0 .. nblock-1] holds block
+ *	All other areas of block32 destroyed
+ *	ftab[0 .. 65536] destroyed
+ *	ptr [0 .. nblock-1] holds sorted order
+ *	if (*budget < 0), sorting was abandoned
  */
 
 #define BIGFREQ(b) (ftab[((b)+1) << 8] - ftab[(b) << 8])
