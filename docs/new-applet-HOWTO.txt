@@ -46,6 +46,7 @@ int mu_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int mu_main(int argc, char **argv)
 {
 	int fd;
+	ssize_t n;
 	char mu;
 
 	fd = xopen("/dev/random", O_RDONLY);
@@ -123,7 +124,7 @@ lib-$(CONFIG_MU)               += mu.o
 
 Add the applet to Config.in in the chosen directory:
 
-config CONFIG_MU
+config MU
 	bool "MU"
 	default n
 	help
