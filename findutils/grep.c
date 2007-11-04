@@ -174,7 +174,7 @@ static int grep_file(FILE *file)
 
 	while ((line = xmalloc_getline(file)) != NULL) {
 		llist_t *pattern_ptr = pattern_head;
-		grep_list_data_t *gl;
+		grep_list_data_t *gl = gl; /* for gcc */
 
 		linenum++;
 		found = 0;
@@ -274,8 +274,15 @@ static int grep_file(FILE *file)
 				print_n_lines_after = lines_after;
 #endif
 				if (option_mask32 & OPT_o) {
-					line[regmatch.rm_eo] = '\0';
-					print_line(line + regmatch.rm_so, linenum, ':');
+					if (FGREP_FLAG) {
+						/* -Fo just prints the pattern
+						 * (unless -v: -Fov doesnt print anything at all) */
+						if (found)
+							print_line(gl->pattern, linenum, ':');
+					} else {
+						line[regmatch.rm_eo] = '\0';
+						print_line(line + regmatch.rm_so, linenum, ':');
+					}
 				} else {
 					print_line(line, linenum, ':');
 				}
