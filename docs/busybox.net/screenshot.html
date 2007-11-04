@@ -11,8 +11,10 @@ Everybody loves to look at screenshots, so here is a live action screenshot of B
 <pre style="background-color: black; color: lightgreen; padding: 5px;
 font-family: monospace; font-size: smaller;" width="100">
 
-$ ./busybox
-BusyBox v1.6.0.svn (2007-04-07 04:27:00 CEST) multi-call binary
+$ busybox
+BusyBox v1.8.0 (2007-11-04 15:42:38 GMT) multi-call binary
+Copyright (C) 1998-2006 Erik Andersen, Rob Landley, and others.
+Licensed under GPLv2. See source distribution for full notice.
 
 Usage: busybox [function] [arguments]...
    or: [function] [arguments]...
@@ -24,39 +26,38 @@ Usage: busybox [function] [arguments]...
 
 Currently defined functions:
         [, [[, addgroup, adduser, adjtimex, ar, arp, arping, ash,
-        awk, basename, bunzip2, bzcat, cal, cat, catv, chattr,
-        chgrp, chmod, chown, chpst, chroot, chvt, cksum, clear,
-        cmp, comm, cp, cpio, crond, crontab, cut, date, dc, dd,
-        deallocvt, delgroup, deluser, df, dhcprelay, diff, dirname,
-        dmesg, dnsd, dos2unix, dpkg, dpkg-deb, du, dumpkmap, dumpleases,
-        echo, ed, egrep, eject, env, envdir, envuidgid, expr,
-        fakeidentd, false, fbset, fdflush, fdformat, fdisk, fgrep,
-        find, fold, free, freeramdisk, fsck, fsck.minix, ftpget,
-        ftpput, fuser, getopt, getty, grep, gunzip, gzip, halt,
-        hdparm, head, hexdump, hostid, hostname, httpd, hwclock,
-        id, ifconfig, ifdown, ifup, inetd, init, insmod, install,
-        ip, ipaddr, ipcalc, ipcrm, ipcs, iplink, iproute, iprule,
-        iptunnel, kill, killall, killall5, klogd, lash, last,
-        length, less, linux32, linux64, linuxrc, ln, loadfont,
-        loadkmap, logger, login, logname, logread, losetup, ls,
-        lsattr, lsmod, lzmacat, makedevs, md5sum, mdev, mesg,
-        mkdir, mkfifo, mkfs.minix, mknod, mkswap, mktemp, modprobe,
-        more, mount, mountpoint, msh, mt, mv, nameif, nc, netstat,
-        nice, nmeter, nohup, nslookup, od, openvt, passwd, patch,
-        pidof, ping, ping6, pipe_progress, pivot_root, poweroff,
-        printenv, printf, ps, pwd, raidautorun, rdate, readahead,
-        readlink, readprofile, realpath, reboot, renice, reset,
-        resize, rm, rmdir, rmmod, route, rpm, rpm2cpio, run-parts,
-        runlevel, runsv, runsvdir, rx, sed, seq, setarch, setconsole,
-        setkeycodes, setlogcons, setsid, setuidgid, sha1sum, sleep,
-        softlimit, sort, split, start-stop-daemon, stat, strings,
-        stty, su, sulogin, sum, sv, svlogd, swapoff, swapon, switch_root,
-        sync, sysctl, syslogd, tail, tar, tcpsvd, tee, telnet,
-        telnetd, test, tftp, time, top, touch, traceroute, true,
-        tty, udhcpc, udhcpd, udpsvd, umount, uname, uncompress,
-        uniq, unix2dos, unlzma, unzip, uptime, usleep, uudecode,
-        uuencode, vconfig, vi, vlock, watch, watchdog, wc, wget,
-        which, who, whoami, xargs, yes, zcat, zcip
+        awk, basename, bunzip2, bzcat, bzip2, cal, cat, catv, chattr,
+        chgrp, chmod, chown, chpasswd, chpst, chroot, chrt, chvt,
+        cksum, clear, cmp, comm, cp, cpio, crond, crontab, cryptpw,
+        cut, date, dc, dd, deallocvt, delgroup, deluser, df, dhcprelay,
+        diff, dirname, dmesg, dnsd, dos2unix, dpkg, du, dumpkmap,
+        dumpleases, echo, ed, egrep, eject, env, envdir, envuidgid,
+        expand, expr, fakeidentd, false, fbset, fdflush, fdformat,
+        fdisk, fgrep, find, fold, free, freeramdisk, fsck, fsck.minix,
+        ftpget, ftpput, fuser, getopt, getty, grep, gunzip, gzip,
+        hdparm, head, hexdump, hostid, hostname, httpd, hush, hwclock,
+        id, ifconfig, inetd, insmod, install, ip, ipaddr, ipcalc,
+        ipcrm, ipcs, iplink, iproute, iprule, iptunnel, kbd_mode,
+        kill, killall, killall5, klogd, lash, last, length, less,
+        linux32, linux64, ln, loadfont, loadkmap, logger, login, logname,
+        logread, losetup, ls, lsattr, lsmod, lzmacat, md5sum, mdev,
+        mesg, microcom, mkdir, mkfifo, mkfs.minix, mknod, mkswap,
+        mktemp, modprobe, more, mount, mountpoint, msh, mt, mv, nameif,
+        nc, netstat, nice, nmeter, nohup, nslookup, od, openvt, passwd,
+        patch, pgrep, pidof, ping, ping6, pipe_progress, pivot_root,
+        pkill, printenv, printf, ps, pscan, pwd, raidautorun, rdate,
+        readlink, readprofile, realpath, renice, reset, resize, rm,
+        rmdir, rmmod, route, rpm, rpm2cpio, run-parts, runlevel, runsv,
+        runsvdir, rx, sed, seq, setarch, setconsole, setkeycodes,
+        setlogcons, setsid, setuidgid, sha1sum, slattach, sleep, softlimit,
+        sort, split, start-stop-daemon, stat, strings, stty, su, sulogin,
+        sum, sv, svlogd, swapoff, swapon, switch_root, sync, sysctl,
+        syslogd, tail, tar, tcpsvd, tee, telnet, telnetd, test, tftp,
+        time, top, touch, tr, traceroute, true, tty, ttysize, udhcpc,
+        udhcpd, udpsvd, umount, uname, uncompress, unexpand, uniq,
+        unix2dos, unlzma, unzip, uptime, usleep, uudecode, uuencode,
+        vconfig, vi, vlock, watch, watchdog, wc, wget, which, who,
+        whoami, xargs, yes, zcat, zcip
 
 $ <span style="text-decoration:blink;">_</span>
 
