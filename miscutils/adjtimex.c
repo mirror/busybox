@@ -14,34 +14,46 @@
 #include "libbb.h"
 #include <sys/timex.h>
 
-static const struct {
-	int bit;
-	const char *name;
-} statlist[] = {
-	{ STA_PLL,       "PLL"       },
-	{ STA_PPSFREQ,   "PPSFREQ"   },
-	{ STA_PPSTIME,   "PPSTIME"   },
-	{ STA_FLL,       "FFL"       },
-	{ STA_INS,       "INS"       },
-	{ STA_DEL,       "DEL"       },
-	{ STA_UNSYNC,    "UNSYNC"    },
-	{ STA_FREQHOLD,  "FREQHOLD"  },
-	{ STA_PPSSIGNAL, "PPSSIGNAL" },
-	{ STA_PPSJITTER, "PPSJITTER" },
-	{ STA_PPSWANDER, "PPSWANDER" },
-	{ STA_PPSERROR,  "PPSERROR"  },
-	{ STA_CLOCKERR,  "CLOCKERR"  },
-	{ 0, NULL }
+static const uint16_t statlist_bit[] = {
+	STA_PLL,
+	STA_PPSFREQ,
+	STA_PPSTIME,
+	STA_FLL,
+	STA_INS,
+	STA_DEL,
+	STA_UNSYNC,
+	STA_FREQHOLD,
+	STA_PPSSIGNAL,
+	STA_PPSJITTER,
+	STA_PPSWANDER,
+	STA_PPSERROR,
+	STA_CLOCKERR,
+	0
 };
+static const char statlist_name[] =
+	"PLL"       "\0"
+	"PPSFREQ"   "\0"
+	"PPSTIME"   "\0"
+	"FFL"       "\0"
+	"INS"       "\0"
+	"DEL"       "\0"
+	"UNSYNC"    "\0"
+	"FREQHOLD"  "\0"
+	"PPSSIGNAL" "\0"
+	"PPSJITTER" "\0"
+	"PPSWANDER" "\0"
+	"PPSERROR"  "\0"
+	"CLOCKERR"
+;
 
-static const char *const ret_code_descript[] = {
-	"clock synchronized",
-	"insert leap second",
-	"delete leap second",
-	"leap second in progress",
-	"leap second has occurred",
+static const char ret_code_descript[] =
+	"clock synchronized" "\0"
+	"insert leap second" "\0"
+	"delete leap second" "\0"
+	"leap second in progress" "\0"
+	"leap second has occurred" "\0"
 	"clock not synchronized"
-};
+;
 
 int adjtimex_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int adjtimex_main(int argc, char **argv)
@@ -52,7 +64,7 @@ int adjtimex_main(int argc, char **argv)
 	unsigned opt;
 	char *opt_o, *opt_f, *opt_p, *opt_t;
 	struct timex txc;
-	int i, ret, sep;
+	int i, ret;
 	const char *descript;
 	txc.modes=0;
 
@@ -81,33 +93,42 @@ int adjtimex_main(int argc, char **argv)
 
 	ret = adjtimex(&txc);
 
-	if (ret < 0) perror("adjtimex");
+	if (ret < 0) {
+		bb_perror_nomsg_and_die();
+	}
 
-	if (!(opt & OPT_quiet) && ret>=0) {
+	if (!(opt & OPT_quiet)) {
+		int sep;
+		const char *name;
+
 		printf(
 			"    mode:         %d\n"
 			"-o  offset:       %ld\n"
 			"-f  frequency:    %ld\n"
 			"    maxerror:     %ld\n"
 			"    esterror:     %ld\n"
-			"    status:       %d ( ",
+			"    status:       %d (",
 		txc.modes, txc.offset, txc.freq, txc.maxerror,
 		txc.esterror, txc.status);
 
 		/* representative output of next code fragment:
 		   "PLL | PPSTIME" */
-		sep=0;
-		for (i=0; statlist[i].name; i++) {
-			if (txc.status & statlist[i].bit) {
-				if (sep) fputs(" | ",stdout);
-				fputs(statlist[i].name,stdout);
-				sep=1;
+		name = statlist_name;
+		sep = 0;
+		for (i = 0; statlist_bit[i]; i++) {
+			if (txc.status & statlist_bit[i]) {
+				if (sep)
+					fputs(" | ", stdout);
+				fputs(name, stdout);
+				sep = 1;
 			}
+			name += strlen(name) + 1;
 		}
 
 		descript = "error";
-		if (ret >= 0 && ret <= 5) descript = ret_code_descript[ret];
-		printf(" )\n"
+		if (ret <= 5)
+			descript = nth_string(ret_code_descript, ret);
+		printf(")\n"
 			"-p  timeconstant: %ld\n"
 			"    precision:    %ld\n"
 			"    tolerance:    %ld\n"
@@ -119,5 +140,6 @@ int adjtimex_main(int argc, char **argv)
 		txc.precision, txc.tolerance, txc.tick,
 		(long)txc.time.tv_sec, (long)txc.time.tv_usec, ret, descript);
 	}
-	return (ret<0);
+
+	return 0;
 }

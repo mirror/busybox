@@ -164,7 +164,7 @@ struct in6_ifreq {
 
 struct arg1opt {
 	const char *name;
-	int selector;
+	unsigned short selector;
 	unsigned short ifr_offset;
 };
 
@@ -183,70 +183,70 @@ struct options {
 #define ifreq_offsetof(x)  offsetof(struct ifreq, x)
 
 static const struct arg1opt Arg1Opt[] = {
-	{"SIOCSIFMETRIC",  SIOCSIFMETRIC,  ifreq_offsetof(ifr_metric)},
-	{"SIOCSIFMTU",     SIOCSIFMTU,     ifreq_offsetof(ifr_mtu)},
-	{"SIOCSIFTXQLEN",  SIOCSIFTXQLEN,  ifreq_offsetof(ifr_qlen)},
-	{"SIOCSIFDSTADDR", SIOCSIFDSTADDR, ifreq_offsetof(ifr_dstaddr)},
-	{"SIOCSIFNETMASK", SIOCSIFNETMASK, ifreq_offsetof(ifr_netmask)},
-	{"SIOCSIFBRDADDR", SIOCSIFBRDADDR, ifreq_offsetof(ifr_broadaddr)},
+	{ "SIFMETRIC",  SIOCSIFMETRIC,  ifreq_offsetof(ifr_metric) },
+	{ "SIFMTU",     SIOCSIFMTU,     ifreq_offsetof(ifr_mtu) },
+	{ "SIFTXQLEN",  SIOCSIFTXQLEN,  ifreq_offsetof(ifr_qlen) },
+	{ "SIFDSTADDR", SIOCSIFDSTADDR, ifreq_offsetof(ifr_dstaddr) },
+	{ "SIFNETMASK", SIOCSIFNETMASK, ifreq_offsetof(ifr_netmask) },
+	{ "SIFBRDADDR", SIOCSIFBRDADDR, ifreq_offsetof(ifr_broadaddr) },
 #if ENABLE_FEATURE_IFCONFIG_HW
-	{"SIOCSIFHWADDR",  SIOCSIFHWADDR,  ifreq_offsetof(ifr_hwaddr)},
+	{ "SIFHWADDR",  SIOCSIFHWADDR,  ifreq_offsetof(ifr_hwaddr) },
 #endif
-	{"SIOCSIFDSTADDR", SIOCSIFDSTADDR, ifreq_offsetof(ifr_dstaddr)},
+	{ "SIFDSTADDR", SIOCSIFDSTADDR, ifreq_offsetof(ifr_dstaddr) },
 #ifdef SIOCSKEEPALIVE
-	{"SIOCSKEEPALIVE", SIOCSKEEPALIVE, ifreq_offsetof(ifr_data)},
+	{ "SKEEPALIVE", SIOCSKEEPALIVE, ifreq_offsetof(ifr_data) },
 #endif
 #ifdef SIOCSOUTFILL
-	{"SIOCSOUTFILL",   SIOCSOUTFILL,   ifreq_offsetof(ifr_data)},
+	{ "SOUTFILL",   SIOCSOUTFILL,   ifreq_offsetof(ifr_data) },
 #endif
 #if ENABLE_FEATURE_IFCONFIG_MEMSTART_IOADDR_IRQ
-	{"SIOCSIFMAP",     SIOCSIFMAP,     ifreq_offsetof(ifr_map.mem_start)},
-	{"SIOCSIFMAP",     SIOCSIFMAP,     ifreq_offsetof(ifr_map.base_addr)},
-	{"SIOCSIFMAP",     SIOCSIFMAP,     ifreq_offsetof(ifr_map.irq)},
+	{ "SIFMAP",     SIOCSIFMAP,     ifreq_offsetof(ifr_map.mem_start) },
+	{ "SIFMAP",     SIOCSIFMAP,     ifreq_offsetof(ifr_map.base_addr) },
+	{ "SIFMAP",     SIOCSIFMAP,     ifreq_offsetof(ifr_map.irq) },
 #endif
 	/* Last entry if for unmatched (possibly hostname) arg. */
 #if ENABLE_FEATURE_IPV6
-	{"SIOCSIFADDR",    SIOCSIFADDR,    ifreq_offsetof(ifr_addr)}, /* IPv6 version ignores the offset */
-	{"SIOCDIFADDR",    SIOCDIFADDR,    ifreq_offsetof(ifr_addr)}, /* IPv6 version ignores the offset */
+	{ "SIFADDR",    SIOCSIFADDR,    ifreq_offsetof(ifr_addr) }, /* IPv6 version ignores the offset */
+	{ "DIFADDR",    SIOCDIFADDR,    ifreq_offsetof(ifr_addr) }, /* IPv6 version ignores the offset */
 #endif
-	{"SIOCSIFADDR",    SIOCSIFADDR,    ifreq_offsetof(ifr_addr)},
+	{ "SIFADDR",    SIOCSIFADDR,    ifreq_offsetof(ifr_addr) },
 };
 
 static const struct options OptArray[] = {
-	{"metric",      N_ARG,         ARG_METRIC,      0},
-	{"mtu",         N_ARG,         ARG_MTU,         0},
-	{"txqueuelen",  N_ARG,         ARG_TXQUEUELEN,  0},
-	{"dstaddr",     N_ARG,         ARG_DSTADDR,     0},
-	{"netmask",     N_ARG,         ARG_NETMASK,     0},
-	{"broadcast",   N_ARG | M_CLR, ARG_BROADCAST,   IFF_BROADCAST},
+	{ "metric",      N_ARG,         ARG_METRIC,      0 },
+	{ "mtu",         N_ARG,         ARG_MTU,         0 },
+	{ "txqueuelen",  N_ARG,         ARG_TXQUEUELEN,  0 },
+	{ "dstaddr",     N_ARG,         ARG_DSTADDR,     0 },
+	{ "netmask",     N_ARG,         ARG_NETMASK,     0 },
+	{ "broadcast",   N_ARG | M_CLR, ARG_BROADCAST,   IFF_BROADCAST },
 #if ENABLE_FEATURE_IFCONFIG_HW
-	{"hw",          N_ARG, ARG_HW,                  0},
+	{ "hw",          N_ARG, ARG_HW,                  0 },
 #endif
-	{"pointopoint", N_ARG | M_CLR, ARG_POINTOPOINT, IFF_POINTOPOINT},
+	{ "pointopoint", N_ARG | M_CLR, ARG_POINTOPOINT, IFF_POINTOPOINT },
 #ifdef SIOCSKEEPALIVE
-	{"keepalive",   N_ARG,         ARG_KEEPALIVE,   0},
+	{ "keepalive",   N_ARG,         ARG_KEEPALIVE,   0 },
 #endif
 #ifdef SIOCSOUTFILL
-	{"outfill",     N_ARG,         ARG_OUTFILL,     0},
+	{ "outfill",     N_ARG,         ARG_OUTFILL,     0 },
 #endif
 #if ENABLE_FEATURE_IFCONFIG_MEMSTART_IOADDR_IRQ
-	{"mem_start",   N_ARG,         ARG_MEM_START,   0},
-	{"io_addr",     N_ARG,         ARG_IO_ADDR,     0},
-	{"irq",         N_ARG,         ARG_IRQ,         0},
+	{ "mem_start",   N_ARG,         ARG_MEM_START,   0 },
+	{ "io_addr",     N_ARG,         ARG_IO_ADDR,     0 },
+	{ "irq",         N_ARG,         ARG_IRQ,         0 },
 #endif
 #if ENABLE_FEATURE_IPV6
-	{"add",         N_ARG,         ARG_ADD_DEL,     0},
-	{"del",         N_ARG,         ARG_ADD_DEL,     0},
+	{ "add",         N_ARG,         ARG_ADD_DEL,     0 },
+	{ "del",         N_ARG,         ARG_ADD_DEL,     0 },
 #endif
-	{"arp",         N_CLR | M_SET, 0,               IFF_NOARP},
-	{"trailers",    N_CLR | M_SET, 0,               IFF_NOTRAILERS},
-	{"promisc",     N_SET | M_CLR, 0,               IFF_PROMISC},
-	{"multicast",   N_SET | M_CLR, 0,               IFF_MULTICAST},
-	{"allmulti",    N_SET | M_CLR, 0,               IFF_ALLMULTI},
-	{"dynamic",     N_SET | M_CLR, 0,               IFF_DYNAMIC},
-	{"up",          N_SET,         0,               (IFF_UP | IFF_RUNNING)},
-	{"down",        N_CLR,         0,               IFF_UP},
-	{NULL,          0,             ARG_HOSTNAME,    (IFF_UP | IFF_RUNNING)}
+	{ "arp",         N_CLR | M_SET, 0,               IFF_NOARP },
+	{ "trailers",    N_CLR | M_SET, 0,               IFF_NOTRAILERS },
+	{ "promisc",     N_SET | M_CLR, 0,               IFF_PROMISC },
+	{ "multicast",   N_SET | M_CLR, 0,               IFF_MULTICAST },
+	{ "allmulti",    N_SET | M_CLR, 0,               IFF_ALLMULTI },
+	{ "dynamic",     N_SET | M_CLR, 0,               IFF_DYNAMIC },
+	{ "up",          N_SET,         0,               (IFF_UP | IFF_RUNNING) },
+	{ "down",        N_CLR,         0,               IFF_UP },
+	{ NULL,          0,             ARG_HOSTNAME,    (IFF_UP | IFF_RUNNING) }
 };
 
 /*
@@ -405,7 +405,7 @@ int ifconfig_main(int argc, char **argv)
 								xioctl(sockfd6, SIOGIFINDEX, &ifr);
 								ifr6.ifr6_ifindex = ifr.ifr_ifindex;
 								ifr6.ifr6_prefixlen = prefix_len;
-								ioctl_or_perror_and_die(sockfd6, a1op->selector, &ifr6, "%s", a1op->name);
+								ioctl_or_perror_and_die(sockfd6, a1op->selector, &ifr6, "SIOC%s", a1op->name);
 								if (ENABLE_FEATURE_CLEAN_UP)
 									free(lsa);
 								continue;
@@ -457,7 +457,7 @@ int ifconfig_main(int argc, char **argv)
 						*((int *) p) = i;
 				}
 
-				ioctl_or_perror_and_die(sockfd, a1op->selector, &ifr, "%s", a1op->name);
+				ioctl_or_perror_and_die(sockfd, a1op->selector, &ifr, "SIOC%s", a1op->name);
 #ifdef QUESTIONABLE_ALIAS_CASE
 				if (mask & A_COLON_CHK) {
 					/*

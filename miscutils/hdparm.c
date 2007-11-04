@@ -491,15 +491,6 @@ static uint8_t mode_loop(uint16_t mode_sup, uint16_t mode_sel, int cc, uint8_t *
 	return err_dma;
 }
 
-static const char *nth_str(const char *strings, int n)
-{
-	while (n) {
-		n--;
-		strings += strlen(strings) + 1;
-	}
-	return strings;
-}
-
 static const char pkt_str[] ALIGN1 =
 	"Direct-access device" "\0"             /* word 0, bits 12-8 = 00 */
 	"Sequential-access device" "\0"         /* word 0, bits 12-8 = 01 */
@@ -710,7 +701,7 @@ static void identify(uint16_t *val)
 	} else if (!(val[GEN_CONFIG] & NOT_ATAPI)) {
 		dev = ATAPI_DEV;
 		eqpt = (val[GEN_CONFIG] & EQPT_TYPE) >> SHIFT_EQPT;
-		printf("ATAPI %s, with ", eqpt <= 0xf ? nth_str(pkt_str, eqpt) : "unknown");
+		printf("ATAPI %s, with ", eqpt <= 0xf ? nth_string(pkt_str, eqpt) : "unknown");
 		like_std = 3;
 	} else
 		/* "Unknown device type:\n\tbits 15&14 of general configuration word 0 both set to 1.\n" */
@@ -748,7 +739,7 @@ static void identify(uint16_t *val)
 		if (val[MINOR] && (val[MINOR] <= MINOR_MAX)) {
 			if (like_std < 3) like_std = 3;
 			std = actual_ver[val[MINOR]];
-			if (std) printf("\n\tUsed: %s ", nth_str(minor_str, val[MINOR]));
+			if (std) printf("\n\tUsed: %s ", nth_string(minor_str, val[MINOR]));
 
 		}
 		/* looks like when they up-issue the std, they obsolete one;
@@ -847,7 +838,7 @@ static void identify(uint16_t *val)
 		jj = val[GEN_CONFIG] >> 1;
 		for (ii = 1; ii < 15; ii++) {
 			if (jj & 0x0001)
-				printf("\t%s\n", nth_str(ata1_cfg_str, ii));
+				printf("\t%s\n", nth_string(ata1_cfg_str, ii));
 			jj >>=1;
 		}
 	}
@@ -1070,7 +1061,7 @@ static void identify(uint16_t *val)
 		jj = val[CMDS_SUPP_0];
 		kk = val[CMDS_EN_0];
 		for (ii = 0; ii < NUM_CMD_FEAT_STR; ii++) {
-			const char *feat_str = nth_str(cmd_feat_str, ii);
+			const char *feat_str = nth_string(cmd_feat_str, ii);
 			if ((jj & 0x8000) && (*feat_str != '\0')) {
 				printf("\t%s\t%s\n", (kk & 0x8000) ? "   *" : "", feat_str);
 			}
@@ -1088,7 +1079,7 @@ static void identify(uint16_t *val)
 	}
 	/* Removable Media Status Notification feature set */
 	if ((val[RM_STAT] & RM_STAT_BITS) == RM_STAT_SUP)
-		printf("\t%s supported\n", nth_str(cmd_feat_str, 27));
+		printf("\t%s supported\n", nth_string(cmd_feat_str, 27));
 
 	/* security */
 	if ((eqpt != CDROM) && (like_std > 3)
@@ -1100,7 +1091,7 @@ static void identify(uint16_t *val)
 		jj = val[SECU_STATUS];
 		if (jj) {
 			for (ii = 0; ii < NUM_SECU_STR; ii++) {
-				printf("\t%s\t%s\n", (!(jj & 0x0001)) ? "not" : "", nth_str(secu_str, ii));
+				printf("\t%s\t%s\n", (!(jj & 0x0001)) ? "not" : "", nth_string(secu_str, ii));
 				jj >>=1;
 			}
 			if (val[SECU_STATUS] & SECU_ENABLED) {
@@ -1182,13 +1173,13 @@ static void dump_identity(const struct hd_driveid *id)
 				id->model, id->fw_rev, id->serial_no);
 	for (i = 0; i <= 15; i++) {
 		if (id->config & (1<<i))
-			printf(" %s", nth_str(cfg_str, i));
+			printf(" %s", nth_string(cfg_str, i));
 	}
 	printf(" }\n RawCHS=%u/%u/%u, TrkSize=%u, SectSize=%u, ECCbytes=%u\n"
 			" BuffType=(%u) %s, BuffSize=%ukB, MaxMultSect=%u",
 				id->cyls, id->heads, id->sectors, id->track_bytes,
 				id->sector_bytes, id->ecc_bytes,
-				id->buf_type, nth_str(BuffType, (id->buf_type > 3) ? 0 : id->buf_type),
+				id->buf_type, nth_string(BuffType, (id->buf_type > 3) ? 0 : id->buf_type),
 				id->buf_size/2, id->max_multsect);
 	if (id->max_multsect) {
 		printf(", MultSect=");
@@ -1294,7 +1285,7 @@ static void dump_identity(const struct hd_driveid *id)
 	if ((id->minor_rev_num && id->minor_rev_num <= 31)
 	 || (id->major_rev_num && id->minor_rev_num <= 31)
 	) {
-		printf("\n Drive conforms to: %s: ", (id->minor_rev_num <= 31) ? nth_str(minor_str, id->minor_rev_num) : "unknown");
+		printf("\n Drive conforms to: %s: ", (id->minor_rev_num <= 31) ? nth_string(minor_str, id->minor_rev_num) : "unknown");
 		if (id->major_rev_num != 0x0000 &&  /* NOVAL_0 */
 		    id->major_rev_num != 0xFFFF) {  /* NOVAL_1 */
 			for (i = 0; i <= 15; i++) {

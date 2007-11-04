@@ -846,10 +846,13 @@ extern int correct_password(const struct passwd *pw);
 /* Returns a ptr to static storage */
 extern char *pw_encrypt(const char *clear, const char *salt);
 extern int obscure(const char *old, const char *newval, const struct passwd *pwdp);
-extern int index_in_str_array(const char *const string_array[], const char *key);
-extern int index_in_strings(const char *strings, const char *key);
-extern int index_in_substr_array(const char *const string_array[], const char *key);
-extern int index_in_substrings(const char *strings, const char *key);
+
+int index_in_str_array(const char *const string_array[], const char *key);
+int index_in_strings(const char *strings, const char *key);
+int index_in_substr_array(const char *const string_array[], const char *key);
+int index_in_substrings(const char *strings, const char *key);
+const char *nth_string(const char *strings, int n);
+
 extern void print_login_issue(const char *issue_file, const char *tty);
 extern void print_login_prompt(void);
 
