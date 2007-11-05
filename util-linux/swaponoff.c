@@ -21,7 +21,7 @@ static int swap_enable_disable(char *device)
 #if ENABLE_DESKTOP
 	/* test for holes */
 	if (S_ISREG(st.st_mode))
-		if (st.st_blocks * 512 < st.st_size)
+		if (st.st_blocks * (off_t)512 < st.st_size)
 			bb_error_msg("warning: swap file has holes");
 #endif
 
