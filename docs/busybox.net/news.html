@@ -53,8 +53,8 @@ Equivalent .config, i386 uclibc static builds:
 	<li>hdparm: reduce possibility of numeric overflow in -T
 	<li>hdparm: simplify timing measurement
 	<li>wget: -O FILE is allowed to overwrite existing file (compat)
-	<li>wget: allow dots in header field names.
-	<li>telnetd: add -K option to close sessions as soon as child exits.
+	<li>wget: allow dots in header field names
+	<li>telnetd: add -K option to close sessions as soon as child exits
 	<li>telnetd: don't SIGKILL child when closing the session, kernel will send SIGHUP for us
 	<li>ed: large cleanup, add line editing
 	<li>hush: feeble attempt at making it more NOMMU-friendly
@@ -93,7 +93,7 @@ Equivalent .config, i386 uclibc static builds:
 	<li>runsv: do not use clock_gettime if !MONOTONIC_CLOCK
 	<li>runsvdir: fix "linear wait time" bug
 	<li>sulogin: remove alarm handling, it is redundant there
-	<li>svlogd: compat: svlogd -tt should timestanp stderr too
+	<li>svlogd: compat: svlogd -tt should timestamp stderr too
 	<li>syslogd: bail out if you see null read from Unix socket
 	<li>syslogd: do not need to poll(), we can just block in read()
 	<li>tail: work correctly on /proc files (Kazuo TAKADA &lt;kztakada at sm.sony.co.jp&gt;)
