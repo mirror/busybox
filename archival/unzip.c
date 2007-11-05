@@ -41,8 +41,10 @@ enum {
 #endif
 };
 
+#define ZIP_HEADER_LEN 26
+
 typedef union {
-	uint8_t raw[26];
+	uint8_t raw[ZIP_HEADER_LEN];
 	struct {
 		uint16_t version;                       /* 0-1 */
 		uint16_t flags;                         /* 2-3 */
@@ -57,8 +59,14 @@ typedef union {
 	} formatted ATTRIBUTE_PACKED;
 } zip_header_t;
 
+/* Check the offset of the last element, not the length.  This leniency
+ * allows for poor packing, whereby the overall struct may be too long,
+ * even though the elements are all in the right place.
+ */
 struct BUG_zip_header_must_be_26_bytes {
-	char BUG_zip_header_must_be_26_bytes[sizeof(zip_header_t) == 26 ? 1 : -1];
+	char BUG_zip_header_must_be_26_bytes[
+		offsetof(zip_header_t, formatted.extra_len) + 2 ==
+	    		ZIP_HEADER_LEN ? 1 : -1];
 };
 
 #define FIX_ENDIANNESS(zip_header) do { \
@@ -256,7 +264,7 @@ int unzip_main(int argc, char **argv)
 			bb_error_msg_and_die("invalid zip magic %08X", magic);
 
 		/* Read the file header */
-		xread(src_fd, zip_header.raw, sizeof(zip_header));
+		xread(src_fd, zip_header.raw, ZIP_HEADER_LEN);
 		FIX_ENDIANNESS(zip_header);
 		if ((zip_header.formatted.method != 0) && (zip_header.formatted.method != 8)) {
 			bb_error_msg_and_die("unsupported method %d", zip_header.formatted.method);
