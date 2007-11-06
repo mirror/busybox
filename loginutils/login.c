@@ -201,7 +201,7 @@ static void motd(void)
 	int fd;
 
 	fd = open(bb_path_motd_file, O_RDONLY);
-	if (fd) {
+	if (fd >= 0) {
 		fflush(stdout);
 		bb_copyfd_eof(fd, STDOUT_FILENO);
 		close(fd);
@@ -216,6 +216,10 @@ static void alarm_handler(int sig ATTRIBUTE_UNUSED)
 	ndelay_on(1);
 	ndelay_on(2);
 	printf("\r\nLogin timed out after %d seconds\r\n", TIMEOUT);
+	/* unix API is brain damaged regarding O_NONBLOCK,
+	 * we should undo it, or else we can affect other processes */
+	ndelay_off(1);
+	ndelay_off(2);
 	exit(EXIT_SUCCESS);
 }
 
@@ -254,6 +258,11 @@ int login_main(int argc, char **argv)
 	 * and any extra open fd's are closed.
 	 * (The name of the function is misleading. Not daemonizing here.) */
 	bb_daemonize_or_rexec(DAEMON_ONLY_SANITIZE | DAEMON_CLOSE_EXTRA_FDS, NULL);
+	/* More of suid paranoia if called by non-root */
+	if (!amroot) {
+	        /* Clear dangerous stuff, set PATH */
+		sanitize_env_for_suid();
+	}
 
 	opt = getopt32(argv, "f:h:p", &opt_user, &opt_host);
 	if (opt & LOGIN_OPT_f) {
@@ -411,7 +420,8 @@ int login_main(int argc, char **argv)
 	fchown(0, pw->pw_uid, pw->pw_gid);
 	fchmod(0, 0600);
 
-	if (ENABLE_LOGIN_SCRIPTS) {
+	/* We trust environment only if we run by root */
+	if (ENABLE_LOGIN_SCRIPTS && amroot) {
 		char *t_argv[2];
 
 		t_argv[0] = getenv("LOGIN_PRE_SUID_SCRIPT");

@@ -99,3 +99,29 @@ void print_login_prompt(void)
 	fputs(LOGIN, stdout);
 	fflush(stdout);
 }
+
+/* Clear dangerous stuff, set PATH */
+static const char forbid[] ALIGN1 =
+	"ENV" "\0"
+	"BASH_ENV" "\0"
+	"HOME" "\0"
+	"IFS" "\0"
+	"SHELL" "\0"
+	"LD_LIBRARY_PATH" "\0"
+	"LD_PRELOAD" "\0"
+	"LD_TRACE_LOADED_OBJECTS" "\0"
+	"LD_BIND_NOW" "\0"
+	"LD_AOUT_LIBRARY_PATH" "\0"
+	"LD_AOUT_PRELOAD" "\0"
+	"LD_NOWARN" "\0"
+	"LD_KEEPDIR" "\0";
+
+void sanitize_env_for_suid(void)
+{
+	const char *p = forbid;
+	do {
+		unsetenv(p);
+		p += strlen(p) + 1;
+	} while (*p);
+	putenv((char*)bb_PATH_root_path);
+}

@@ -9,22 +9,6 @@
 
 #include "libbb.h"
 
-static const char forbid[] ALIGN1 =
-	"ENV" "\0"
-	"BASH_ENV" "\0"
-	"HOME" "\0"
-	"IFS" "\0"
-	"PATH" "\0"
-	"SHELL" "\0"
-	"LD_LIBRARY_PATH" "\0"
-	"LD_PRELOAD" "\0"
-	"LD_TRACE_LOADED_OBJECTS" "\0"
-	"LD_BIND_NOW" "\0"
-	"LD_AOUT_LIBRARY_PATH" "\0"
-	"LD_AOUT_PRELOAD" "\0"
-	"LD_NOWARN" "\0"
-	"LD_KEEPDIR" "\0";
-
 //static void catchalarm(int ATTRIBUTE_UNUSED junk)
 //{
 //	exit(EXIT_FAILURE);
@@ -37,7 +21,6 @@ int sulogin_main(int argc, char **argv)
 	char *cp;
 	int timeout = 0;
 	char *timeout_arg;
-	const char *p;
 	struct passwd *pwd;
 	const char *shell;
 #if ENABLE_FEATURE_SHADOWPASSWDS
@@ -66,12 +49,8 @@ int sulogin_main(int argc, char **argv)
 		bb_error_msg_and_die("not a tty");
 	}
 
-	/* Clear out anything dangerous from the environment */
-	p = forbid;
-	do {
-		unsetenv(p);
-		p += strlen(p) + 1;
-	} while (*p);
+	/* Clear dangerous stuff, set PATH */
+	sanitize_env_for_suid();
 
 // bb_askpass() already handles this
 //	signal(SIGALRM, catchalarm);

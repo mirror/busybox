@@ -623,6 +623,8 @@ enum {
 #endif
 void bb_daemonize_or_rexec(int flags, char **argv);
 void bb_sanitize_stdio(void);
+/* Clear dangerous stuff, set PATH */
+void sanitize_env_for_suid(void);
 
 
 extern const char *opt_complementary;
