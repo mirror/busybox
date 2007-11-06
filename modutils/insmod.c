@@ -4241,8 +4241,8 @@ static int insmod_ng_main(int argc, char **argv)
 
 	ret = syscall(__NR_init_module, map, len, options);
 	if (ret != 0) {
-		bb_perror_msg_and_die("cannot insert '%s': %s (%li)",
-				filename, moderror(errno), ret);
+		bb_error_msg_and_die("cannot insert '%s': %s",
+				filename, moderror(errno));
 	}
 
 	return 0;
