@@ -588,7 +588,9 @@ static void check(FILE * f1, FILE * f2)
 			while (1) {
 				ctold++;
 				ctnew++;
-				if ((c = getc(f1)) != (d = getc(f2))) {
+				c = getc(f1);
+				d = getc(f2);
+				if (c != d) {
 					J[i] = 0;
 					if (c != '\n' && c != EOF)
 						ctold += skipline(f1);
@@ -668,7 +670,8 @@ static void fetch(long *f, int a, int b, FILE * lb, int ch)
 		}
 		col = 0;
 		for (j = 0, lastc = '\0'; j < nc; j++, lastc = c) {
-			if ((c = getc(lb)) == EOF) {
+			c = getc(lb);
+			if (c == EOF) {
 				printf("\n\\ No newline at end of file\n");
 				return;
 			}

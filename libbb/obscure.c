@@ -130,7 +130,8 @@ static const char *obscure_msg(const char *old_p, const char *new_p, const struc
 		c = 0;
 		p = new_p;
 		while (1) {
-			if ((p = strchr(p, new_p[i])) == NULL) {
+			p = strchr(p, new_p[i]);
+			if (p == NULL) {
 				break;
 			}
 			c++;

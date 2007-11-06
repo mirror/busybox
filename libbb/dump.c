@@ -59,7 +59,8 @@ int bb_dump_size(FS * fs)
 				prec = atoi(fmt);
 				while (isdigit(*++fmt));
 			}
-			if (!(p = strchr(size_conv_str + 12, *fmt))) {
+			p = strchr(size_conv_str + 12, *fmt);
+			if (!p) {
 				if (*fmt == 's') {
 					bcnt += prec;
 				} else if (*fmt == '_') {
@@ -162,7 +163,8 @@ static void rewrite(FS * fs)
 			DO_INT_CONV:
 				{
 					const char *e;
-					if (!(e = strchr(lcc, *p1))) {
+					e = strchr(lcc, *p1);
+					if (!e) {
 						goto DO_BAD_CONV_CHAR;
 					}
 					pr->flags = F_INT;

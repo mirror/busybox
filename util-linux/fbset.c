@@ -181,10 +181,11 @@ static int readmode(struct fb_var_screeninfo *base, const char *fn,
 	f = xfopen(fn, "r");
 	while (!feof(f)) {
 		fgets(buf, sizeof(buf), f);
-		if (!(p = strstr(buf, "mode ")) && !(p = strstr(buf, "mode\t")))
+		p = strstr(buf, "mode ");
+		if (!p && !(p = strstr(buf, "mode\t")))
 			continue;
-		p += 5;
-		if (!(p = strstr(buf, mode)))
+		p = strstr(p + 5, mode);
+		if (!p)
 			continue;
 		p += strlen(mode);
 		if (!isspace(*p) && (*p != 0) && (*p != '"')
@@ -193,7 +194,8 @@ static int readmode(struct fb_var_screeninfo *base, const char *fn,
 
 		while (!feof(f)) {
 			fgets(buf, sizeof(buf), f);
-			if ((p = strstr(buf, "geometry "))) {
+			p = strstr(buf, "geometry ");
+			if (p) {
 				p += 9;
 				/* FIXME: catastrophic on arches with 64bit ints */
 				sscanf(p, "%d %d %d %d %d",

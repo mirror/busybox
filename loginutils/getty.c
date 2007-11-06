@@ -166,8 +166,10 @@ static void parse_speeds(struct options *op, char *arg)
 
 	debug("entered parse_speeds\n");
 	for (cp = strtok(arg, ","); cp != 0; cp = strtok((char *) 0, ",")) {
-		if ((op->speeds[op->numspeed++] = bcode(cp)) <= 0)
+		op->speeds[op->numspeed] = bcode(cp);
+		if (op->speeds[op->numspeed] <= 0)
 			bb_error_msg_and_die("bad speed: %s", cp);
+		op->numspeed++;
 		if (op->numspeed > MAX_SPEED)
 			bb_error_msg_and_die("too many alternate speeds");
 	}

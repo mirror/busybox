@@ -369,7 +369,8 @@ static pid_t run(const struct init_action *a)
 	if (a->action & (SYSINIT | WAIT | CTRLALTDEL | SHUTDOWN | RESTART)) {
 
 		/* Now fork off another process to just hang around */
-		if ((pid = fork()) < 0) {
+		pid = fork();
+		if (pid) {
 			message(L_LOG | L_CONSOLE, "Can't fork");
 			_exit(1);
 		}
@@ -388,7 +389,8 @@ static pid_t run(const struct init_action *a)
 				_exit(0);
 
 			/* Use a temporary process to steal the controlling tty. */
-			if ((pid = fork()) < 0) {
+			pid = fork();
+			if (pid < 0) {
 				message(L_LOG | L_CONSOLE, "Can't fork");
 				_exit(1);
 			}

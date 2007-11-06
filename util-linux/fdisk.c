@@ -1837,7 +1837,8 @@ wrong_p_order(int *prev)
 			last_p_start_pos = 0;
 		}
 		pe = &ptes[i];
-		if ((p = pe->part_table)->sys_ind) {
+		p = pe->part_table;
+		if (p->sys_ind) {
 			p_start_pos = get_partition_start(pe);
 
 			if (last_p_start_pos > p_start_pos) {

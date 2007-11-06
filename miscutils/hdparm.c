@@ -1111,7 +1111,8 @@ static void identify(uint16_t *val)
 	/* reset result */
 	jj = val[HWRST_RSLT];
 	if ((jj & VALID) == VALID_VAL) {
-		if (!(oo = (jj & RST0)))
+		oo = (jj & RST0);
+		if (!oo)
 			jj >>= 8;
 		if ((jj & DEV_DET) == JUMPER_VAL)
 			strng = " determined by the jumper";

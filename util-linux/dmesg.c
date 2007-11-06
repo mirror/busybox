@@ -27,7 +27,8 @@ int dmesg_main(int argc, char **argv)
 
 		len = (flags & 2) ? xatoul_range(size, 2, INT_MAX) : 16384;
 		buf = xmalloc(len);
-		if (0 > (len = klogctl(3 + (flags & 1), buf, len)))
+		len = klogctl(3 + (flags & 1), buf, len);
+		if (len < 0)
 			bb_perror_msg_and_die("klogctl");
 
 		// Skip <#> at the start of lines, and make sure we end with a newline.
