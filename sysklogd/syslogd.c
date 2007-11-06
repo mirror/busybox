@@ -381,8 +381,8 @@ static void parse_fac_prio_20(int pri, char *res20)
 }
 
 /* len parameter is used only for "is there a timestamp?" check.
- * NB: some callers cheat and supply 0 when they know
- * that there is no timestamp, short-cutting the test. */
+ * NB: some callers cheat and supply len==0 when they know
+ * that there is no timestamp, short-circuiting the test. */
 static void timestamp_and_log(int pri, char *msg, int len)
 {
 	char *timestamp;
@@ -427,10 +427,10 @@ static void split_escape_and_log(char *tmpbuf, int len)
 		if (*p == '<') {
 			/* Parse the magic priority number */
 			pri = bb_strtou(p + 1, &p, 10);
-			if (*p == '>') p++;
-			if (pri & ~(LOG_FACMASK | LOG_PRIMASK)) {
+			if (*p == '>')
+				p++;
+			if (pri & ~(LOG_FACMASK | LOG_PRIMASK))
 				pri = (LOG_USER | LOG_NOTICE);
-			}
 		}
 
 		while ((c = *p++)) {
@@ -526,13 +526,21 @@ static void do_syslogd(void)
 
 	for (;;) {
 		size_t sz;
-
+ read_again:
 		sz = safe_read(sock_fd, G.recvbuf, MAX_READ - 1);
-		if (sz <= 0) {
-			//if (sz == 0)
-			//	continue; /* EOF from unix socket??? */
+		if (sz < 0) {
 			bb_perror_msg_and_die("read from /dev/log");
 		}
+
+		/* Drop trailing NULs (typically there is one NUL) */
+		while (1) {
+			if (sz == 0)
+				goto read_again;
+			if (G.recvbuf[sz-1])
+				break;
+			sz--;
+		}
+		G.recvbuf[sz] = '\0'; /* make sure it *is* NUL terminated */
 
 		/* TODO: maybe suppress duplicates? */
 #if ENABLE_FEATURE_REMOTE_LOG
@@ -549,7 +557,6 @@ static void do_syslogd(void)
 			}
 		}
 #endif
-		G.recvbuf[sz] = '\0';
 		split_escape_and_log(G.recvbuf, sz);
 	} /* for */
 }

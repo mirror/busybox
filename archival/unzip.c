@@ -57,7 +57,7 @@ typedef union {
 		uint16_t filename_len;                  /* 22-23 */
 		uint16_t extra_len;                     /* 24-25 */
 	} formatted ATTRIBUTE_PACKED;
-} zip_header_t;
+} zip_header_t ATTRIBUTE_PACKED;
 
 /* Check the offset of the last element, not the length.  This leniency
  * allows for poor packing, whereby the overall struct may be too long,
