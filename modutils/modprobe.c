@@ -791,7 +791,7 @@ static void check_dep(char *mod, struct mod_list_t **head, struct mod_list_t **t
 	if (*tail)
 		(*tail)->m_next = find;
 	find->m_prev = *tail;
-	/*find->m_next = NULL; - xzalloc did it */
+	find->m_next = NULL; /* possibly NOT done by xzalloc! */
 
 	if (!*head)
 		*head = find;

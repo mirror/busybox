@@ -536,10 +536,20 @@ static void do_syslogd(void)
 		while (1) {
 			if (sz == 0)
 				goto read_again;
-			if (G.recvbuf[sz-1])
+			/* man 3 syslog says: "A trailing newline is added when needed".
+			 * However, neither glibc nor uclibc do this:
+			 * syslog(prio, "test")   sends "test\0" to /dev/log,
+			 * syslog(prio, "test\n") sends "test\n\0",
+			 * IOW: newline is passed verbatim!
+			 * I take it to mean that it's syslogd's job
+			 * to make those look identical in the log files */
+			if (G.recvbuf[sz-1] && G.recvbuf[sz-1] != '\n')
 				break;
 			sz--;
 		}
+		/* Maybe we need to add '\n' here, not later?
+		 * It looks like stock syslogd does send '\n' over network,
+		 * but we do not (see sendto below) */
 		G.recvbuf[sz] = '\0'; /* make sure it *is* NUL terminated */
 
 		/* TODO: maybe suppress duplicates? */
