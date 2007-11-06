@@ -343,8 +343,10 @@ int read_config(const char *file)
 		p = strchr(buffer, '#');
 		if (p) *p = '\0';
 
-		if (!(token = strtok(buffer, " \t"))) continue;
-		if (!(line = strtok(NULL, ""))) continue;
+		token = strtok(buffer, " \t");
+		if (!token) continue;
+		line = strtok(NULL, "");
+		if (!line) continue;
 
 		/* eat leading whitespace */
 		line = skip_whitespace(line);

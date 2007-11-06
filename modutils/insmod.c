@@ -1951,7 +1951,8 @@ static unsigned long obj_elf_hash_n(const char *name, unsigned long n)
 	while (n > 0) {
 		ch = *name++;
 		h = (h << 4) + ch;
-		if ((g = (h & 0xf0000000)) != 0) {
+		g = (h & 0xf0000000);
+		if (g != 0) {
 			h ^= g >> 24;
 			h &= ~g;
 		}

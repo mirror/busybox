@@ -430,7 +430,8 @@ static void register_rpc(servtab_t *sep)
 	struct protoent *pp;
 	socklen_t size;
 
-	if ((pp = getprotobyname(sep->se_proto + 4)) == NULL) {
+	pp = getprotobyname(sep->se_proto + 4);
+	if (pp == NULL) {
 		bb_perror_msg("%s: getproto", sep->se_proto);
 		return;
 	}

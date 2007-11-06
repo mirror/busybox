@@ -352,9 +352,10 @@ static void INET6_setroute(int action, char **args)
 			memset(&sa6, 0, sizeof(sa6));
 		} else {
 			char *cp;
-			if ((cp = strchr(target, '/'))) { /* Yes... const to non is ok. */
-				*cp = 0;
-				prefix_len = xatoul_range(cp+1, 0, 128);
+			cp = strchr(target, '/'); /* Yes... const to non is ok. */
+			if (cp) {
+				*cp = '\0';
+				prefix_len = xatoul_range(cp + 1, 0, 128);
 			} else {
 				prefix_len = 128;
 			}
