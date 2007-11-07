@@ -243,9 +243,14 @@ int login_main(int argc, char **argv)
 	char full_tty[TTYNAME_SIZE];
 	USE_SELINUX(security_context_t user_sid = NULL;)
 	USE_FEATURE_UTMP(struct utmp utent;)
-	USE_PAM(pam_handle_t *pamh;)
-	USE_PAM(int pamret;)
-	USE_PAM(const char *failed_msg;)
+#if ENABLE_PAM
+	int pamret;
+	pam_handle_t *pamh;
+	const char *pamuser;
+	const char *failed_msg;
+	struct passwd pwdstruct;
+	char pwdbuf[256];
+#endif
 
 	short_tty = full_tty;
 	username[0] = '\0';
@@ -306,18 +311,18 @@ int login_main(int argc, char **argv)
 #if ENABLE_PAM
 		pamret = pam_start("login", username, &conv, &pamh);
 		if (pamret != PAM_SUCCESS) {
-			failed_msg = "pam_start";
+			failed_msg = "start";
 			goto pam_auth_failed;
 		}
 		/* set TTY (so things like securetty work) */
 		pamret = pam_set_item(pamh, PAM_TTY, short_tty);
 		if (pamret != PAM_SUCCESS) {
-			failed_msg = "pam_set_item(TTY)";
+			failed_msg = "set_item(TTY)";
 			goto pam_auth_failed;
 		}
 		pamret = pam_authenticate(pamh, 0);
 		if (pamret != PAM_SUCCESS) {
-			failed_msg = "pam_authenticate";
+			failed_msg = "authenticate";
 			goto pam_auth_failed;
 			/* TODO: or just "goto auth_failed"
 			 * since user seems to enter wrong password
@@ -327,28 +332,42 @@ int login_main(int argc, char **argv)
 		/* check that the account is healthy */
 		pamret = pam_acct_mgmt(pamh, 0);
 		if (pamret != PAM_SUCCESS) {
-			failed_msg = "account setup";
+			failed_msg = "acct_mgmt";
 			goto pam_auth_failed;
 		}
 		/* read user back */
-		{
-			const char *pamuser;
-			/* gcc: "dereferencing type-punned pointer breaks aliasing rules..."
-			 * thus we cast to (void*) */
-			if (pam_get_item(pamh, PAM_USER, (void*)&pamuser) != PAM_SUCCESS) {
-				failed_msg = "pam_get_item(USER)";
-				goto pam_auth_failed;
-			}
-			safe_strncpy(username, pamuser, sizeof(username));
+		pamuser = NULL;
+		/* gcc: "dereferencing type-punned pointer breaks aliasing rules..."
+		 * thus we cast to (void*) */
+		if (pam_get_item(pamh, PAM_USER, (void*)&pamuser) != PAM_SUCCESS) {
+			failed_msg = "get_item(USER)";
+			goto pam_auth_failed;
 		}
-		/* If we get here, the user was authenticated, and is
-		 * granted access. */
-		pw = getpwnam(username);
-		if (pw)
-			break;
-		goto auth_failed;
+		if (!pamuser || !pamuser[0])
+			goto auth_failed;
+		safe_strncpy(username, pamuser, sizeof(username));
+		/* Don't use "pw = getpwnam(username);",
+		 * PAM is said to be capable of destroying static storage
+		 * used by getpwnam(). We are using safe(r) function */
+		pw = NULL;
+		getpwnam_r(username, &pwdstruct, pwdbuf, sizeof(pwdbuf), &pw);
+		if (!pw)
+			goto auth_failed;
+		pamret = pam_open_session(pamh, 0);
+		if (pamret != PAM_SUCCESS) {
+			failed_msg = "open_session";
+			goto pam_auth_failed;
+		}
+		pamret = pam_setcred(pamh, PAM_ESTABLISH_CRED);
+		if (pamret != PAM_SUCCESS) {
+			failed_msg = "setcred";
+			goto pam_auth_failed;
+		}
+		break; /* success, continue login process */
+
  pam_auth_failed:
-		bb_error_msg("%s failed: %s (%d)", failed_msg, pam_strerror(pamh, pamret), pamret);
+		bb_error_msg("pam_%s call failed: %s (%d)", failed_msg,
+					pam_strerror(pamh, pamret), pamret);
 		safe_strncpy(username, "UNKNOWN", sizeof(username));
 #else /* not PAM */
 		pw = getpwnam(username);
