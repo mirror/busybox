@@ -3835,6 +3835,8 @@ USE_FEATURE_RUN_PARTS_FANCY("\n	-l	Prints names of all matching files even when 
        "\n	-r,--request=IP		IP address to request" \
        "\n	-s,--script=file	Run file at dhcp events (default: /usr/share/udhcpc/default.script)" \
        "\n	-t,--retries=N		Send up to N request packets"\
+       "\n	-T,--timeout=N		Try to get a lease for N seconds (default: 3)"\
+       "\n	-A,--tryagain=N		Wait N seconds (default: 60) after failure"\
        "\n	-f,--foreground	Run in foreground" \
        "\n	-b,--background	Background if lease cannot be immediately negotiated" \
        "\n	-S,--syslog	Log to syslog too" \
@@ -3853,6 +3855,8 @@ USE_FEATURE_RUN_PARTS_FANCY("\n	-l	Prints names of all matching files even when 
        "\n	-r IP		IP address to request" \
        "\n	-s file		Run file at dhcp events (default: /usr/share/udhcpc/default.script)" \
        "\n	-t N		Send up to N request packets"\
+       "\n	-T N		Try to get a lease for N seconds (default: 3)"\
+       "\n	-A N		Wait N seconds (default: 60) after failure"\
        "\n	-f		Run in foreground" \
        "\n	-b		Background if lease cannot be immediately negotiated" \
        "\n	-S		Log to syslog too" \
