@@ -8,7 +8,7 @@
 
 /*
  * NOTE: This function returns a malloced char* that you will have to free
- * yourself. You have been warned.
+ * yourself.
  */
 char *xmalloc_readlink(const char *path)
 {
@@ -33,14 +33,14 @@ char *xmalloc_readlink(const char *path)
 }
 
 /*
- * this routine is not the same as realpath(), which
- * canonicalizes the given path completely.  this routine only
- * follows trailing symlinks until a real file is reached, and
- * returns its name.  if the path ends in a dangling link, or if
- * the target doesn't exist, the path is returned in any case. 
- * intermediate symlinks in the path are not expanded -- only
+ * This routine is not the same as realpath(), which
+ * canonicalizes the given path completely. This routine only
+ * follows trailing symlinks until a real file is reached and
+ * returns its name. If the path ends in a dangling link or if
+ * the target doesn't exist, the path is returned in any case.
+ * Intermediate symlinks in the path are not expanded -- only
  * those at the tail.
- * a malloced char* is returned, which must be freed by the caller.
+ * A malloced char* is returned, which must be freed by the caller.
  */
 char *xmalloc_follow_symlinks(const char *path)
 {
@@ -60,12 +60,12 @@ char *xmalloc_follow_symlinks(const char *path)
 			/* not a symlink, or doesn't exist */
 			if (errno == EINVAL || errno == ENOENT)
 				return buf;
-			free(buf);
-			return NULL;
-		} 
+			goto free_buf_ret_null;
+		}
 
 		if (!--looping) {
 			free(linkpath);
+free_buf_ret_null:
 			free(buf);
 			return NULL;
 		}
