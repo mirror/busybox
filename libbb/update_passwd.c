@@ -52,6 +52,10 @@ int update_passwd(const char *filename, const char *username,
 	int cnt = 0;
 	int ret = -1; /* failure */
 
+	filename = xmalloc_readlink_follow(filename);
+	if (filename == NULL)
+		return -1;
+
 	check_selinux_update_passwd(username);
 
 	/* New passwd file, "/etc/passwd+" for now */
@@ -143,6 +147,7 @@ int update_passwd(const char *filename, const char *username,
 
  free_mem:
 	free(fnamesfx);
-	free((char*)username);
+	free((char *)filename);
+	free((char *)username);
 	return ret;
 }
