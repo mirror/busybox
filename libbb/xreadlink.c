@@ -41,14 +41,21 @@ char *xmalloc_readlink(const char *path)
  */
 char *xmalloc_readlink_follow(const char *path)
 {
-	char *buf = NULL, *lpc, *linkpath;
+	char *buf;
+	char *lpc;
+	char *linkpath;
 	int bufsize;
-	smallint looping = 0;
+	int looping = MAXSYMLINKS + 1;
 
-	buf = strdup(path);
-	bufsize = strlen(path) + 1;
+	linkpath = xstrdup(path);
+	goto jump_in;
 
-	while(1) {
+	while (1) {
+		if (!--looping) {
+			free(linkpath);
+			free(buf);
+			return NULL;
+		}
 		linkpath = xmalloc_readlink(buf);
 		if (!linkpath) {
 			if (errno == EINVAL) /* not a symlink */
@@ -56,25 +63,19 @@ char *xmalloc_readlink_follow(const char *path)
 			free(buf);
 			return NULL;
 		} 
-
-		if (*linkpath == '/') {
-			free(buf);
-			buf = linkpath;
-			bufsize = strlen(linkpath) + 1;
-		} else {
+		if (linkpath[0] != '/') {
 			bufsize += strlen(linkpath);
-			if (looping++ > MAXSYMLINKS) {
-				free(linkpath);
-				free(buf);
-				return NULL;
-			}
 			buf = xrealloc(buf, bufsize);
 			lpc = bb_get_last_path_component_strip(buf);
 			strcpy(lpc, linkpath);
 			free(linkpath);
+		} else {
+			free(buf);
+ jump_in:
+			buf = linkpath;
+			bufsize = strlen(buf) + 1;
 		}
 	}
-
 }
 
 char *xmalloc_readlink_or_warn(const char *path)

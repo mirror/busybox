@@ -305,9 +305,8 @@ int login_main(int argc, char **argv)
 	openlog(applet_name, LOG_PID | LOG_CONS | LOG_NOWAIT, LOG_AUTH);
 
 	while (1) {
-
 		/* flush away any type-ahead (as getty does) */
-		(void) ioctl(0, TCFLSH, TCIFLUSH);
+		ioctl(0, TCFLSH, TCIFLUSH);
 
 		if (!username[0])
 			get_username_or_die(username, sizeof(username));

@@ -30,6 +30,7 @@ struct client_config_t {
 	int ifindex;                    /* Index number of the interface to use */
 	int retries;                    /* Max number of request packets */
 	int timeout;                    /* Number of seconds to try to get a lease */
+	int tryagain;                   /* Number of seconds to try to get a lease */
 	uint8_t arp[6];                 /* Our arp address */
 };
 
