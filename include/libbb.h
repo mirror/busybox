@@ -260,10 +260,10 @@ DIR *warn_opendir(const char *path);
 
 /* UNUSED: char *xmalloc_realpath(const char *path); */
 char *xmalloc_readlink(const char *path);
-char *xmalloc_readlink_follow(const char *path);
 char *xmalloc_readlink_or_warn(const char *path);
 char *xrealloc_getcwd_or_warn(char *cwd);
 
+char *xmalloc_follow_symlinks(const char *path);
 
 //TODO: signal(sid, f) is the same? then why?
 extern void sig_catch(int,void (*)(int));

@@ -33,13 +33,16 @@ char *xmalloc_readlink(const char *path)
 }
 
 /*
- * this routine is not the same as realpath(), which canonicalizes
- * the given path completely.  this routine only follows trailing
- * symlinks until a real file is reached, and returns its name. 
- * intermediate symlinks are not expanded.  as above, a malloced
- * char* is returned, which must be freed.
+ * this routine is not the same as realpath(), which
+ * canonicalizes the given path completely.  this routine only
+ * follows trailing symlinks until a real file is reached, and
+ * returns its name.  if the path ends in a dangling link, or if
+ * the target doesn't exist, the path is returned in any case. 
+ * intermediate symlinks in the path are not expanded -- only
+ * those at the tail.
+ * a malloced char* is returned, which must be freed by the caller.
  */
-char *xmalloc_readlink_follow(const char *path)
+char *xmalloc_follow_symlinks(const char *path)
 {
 	char *buf;
 	char *lpc;
@@ -47,23 +50,27 @@ char *xmalloc_readlink_follow(const char *path)
 	int bufsize;
 	int looping = MAXSYMLINKS + 1;
 
-	linkpath = xstrdup(path);
+	buf = xstrdup(path);
 	goto jump_in;
 
 	while (1) {
+
+		linkpath = xmalloc_readlink(buf);
+		if (!linkpath) {
+			/* not a symlink, or doesn't exist */
+			if (errno == EINVAL || errno == ENOENT)
+				return buf;
+			free(buf);
+			return NULL;
+		} 
+
 		if (!--looping) {
 			free(linkpath);
 			free(buf);
 			return NULL;
 		}
-		linkpath = xmalloc_readlink(buf);
-		if (!linkpath) {
-			if (errno == EINVAL) /* not a symlink */
-				return buf;
-			free(buf);
-			return NULL;
-		} 
-		if (linkpath[0] != '/') {
+
+		if (*linkpath != '/') {
 			bufsize += strlen(linkpath);
 			buf = xrealloc(buf, bufsize);
 			lpc = bb_get_last_path_component_strip(buf);
@@ -71,8 +78,8 @@ char *xmalloc_readlink_follow(const char *path)
 			free(linkpath);
 		} else {
 			free(buf);
- jump_in:
 			buf = linkpath;
+ jump_in:
 			bufsize = strlen(buf) + 1;
 		}
 	}

@@ -52,7 +52,7 @@ int update_passwd(const char *filename, const char *username,
 	int cnt = 0;
 	int ret = -1; /* failure */
 
-	filename = xmalloc_readlink_follow(filename);
+	filename = xmalloc_follow_symlinks(filename);
 	if (filename == NULL)
 		return -1;
 
