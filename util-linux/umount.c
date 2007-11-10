@@ -25,7 +25,7 @@ int umount_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int umount_main(int argc, char **argv)
 {
 	int doForce;
-	char path[2*PATH_MAX];
+	char path[PATH_MAX + 2];
 	struct mntent me;
 	FILE *fp;
 	char *fstype = 0;
@@ -89,7 +89,7 @@ int umount_main(int argc, char **argv)
 
 		// Do we already know what to umount this time through the loop?
 		if (m)
-			safe_strncpy(path, m->dir, PATH_MAX);
+			safe_strncpy(path, m->dir, sizeof(path));
 		// For umount -a, end of mtab means time to exit.
 		else if (opt & OPT_ALL)
 			break;
