@@ -279,6 +279,10 @@ make_new_session(
 	/* make new session and process group */
 	setsid();
 
+	/* Restore default signal handling */
+	signal(SIGCHLD, SIG_DFL);
+	signal(SIGPIPE, SIG_DFL);
+
 	/* open the child's side of the tty. */
 	/* NB: setsid() disconnects from any previous ctty's. Therefore
 	 * we must open child's side of the tty AFTER setsid! */
@@ -302,14 +306,18 @@ make_new_session(
 	/* Uses FILE-based I/O to stdout, but does fflush(stdout),
 	 * so should be safe with vfork.
 	 * I fear, though, that some users will have ridiculously big
-	 * issue files, and they may block writing to fd 1. */
+	 * issue files, and they may block writing to fd 1,
+	 * (parent is supposed to read it, but parent waits
+	 * for vforked child to exec!) */
 	print_login_issue(issuefile, NULL);
 
 	/* Exec shell / login / whatever */
 	login_argv[0] = loginpath;
 	login_argv[1] = NULL;
-	execvp(loginpath, (char **)login_argv);
-	/* Safer with vfork, and we shouldn't send message
+	/* exec busybox applet (if PREFER_APPLETS=y), if that fails,
+	 * exec external program */
+	BB_EXECVP(loginpath, (char **)login_argv);
+	/* _exit is safer with vfork, and we shouldn't send message
 	 * to remote clients anyway */
 	_exit(1); /*bb_perror_msg_and_die("execv %s", loginpath);*/
 }
@@ -374,7 +382,7 @@ free_session(struct tsession *ts)
 
 #else /* !FEATURE_TELNETD_STANDALONE */
 
-/* Used in main() only, thus exits. */
+/* Used in main() only, thus "return 0" actually is exit(0). */
 #define free_session(ts) return 0
 
 #endif
@@ -384,19 +392,21 @@ static void handle_sigchld(int sig)
 	pid_t pid;
 	struct tsession *ts;
 
-	pid = waitpid(-1, &sig, WNOHANG);
-	if (pid > 0) {
+	/* Looping: more than one child may have exited */
+	while (1) {
+		pid = waitpid(-1, NULL, WNOHANG);
+		if (pid <= 0)
+			break;
 		ts = sessions;
 		while (ts) {
 			if (ts->shell_pid == pid) {
 				ts->shell_pid = -1;
-				return;
+				break;
 			}
 			ts = ts->next;
 		}
 	}
 }
-
 
 int telnetd_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int telnetd_main(int argc, char **argv)
@@ -430,7 +440,7 @@ int telnetd_main(int argc, char **argv)
 		if (!(opt & OPT_FOREGROUND)) {
 			/* DAEMON_CHDIR_ROOT was giving inconsistent
 			 * behavior with/without -F, -i */
-			bb_daemonize_or_rexec(0 /*DAEMON_CHDIR_ROOT*/, argv);
+			bb_daemonize_or_rexec(0 /*was DAEMON_CHDIR_ROOT*/, argv);
 		}
 	}
 	/* Redirect log to syslog early, if needed */
@@ -466,6 +476,8 @@ int telnetd_main(int argc, char **argv)
 
 	if (opt & OPT_WATCHCHILD)
 		signal(SIGCHLD, handle_sigchld);
+	else /* prevent dead children from becoming zombies */
+		signal(SIGCHLD, SIG_IGN);
 
 /*
    This is how the buffers are used. The arrows indicate the movement
@@ -497,7 +509,7 @@ int telnetd_main(int argc, char **argv)
 	while (ts) {
 		struct tsession *next = ts->next; /* in case we free ts. */
 		if (ts->shell_pid == -1) {
-			/* Child died ad we detected that */
+			/* Child died and we detected that */
 			free_session(ts);
 		} else {
 			if (ts->size1 > 0)       /* can write to pty */
@@ -514,7 +526,7 @@ int telnetd_main(int argc, char **argv)
 	if (!IS_INETD) {
 		FD_SET(master_fd, &rdfdset);
 		/* This is needed because free_session() does not
-		 * take into account master_fd when it finds new
+		 * take master_fd into account when it finds new
 		 * maxfd among remaining fd's */
 		if (master_fd > maxfd)
 			maxfd = master_fd;
