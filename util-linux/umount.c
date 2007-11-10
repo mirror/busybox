@@ -25,7 +25,7 @@ int umount_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int umount_main(int argc, char **argv)
 {
 	int doForce;
-	char path[PATH_MAX + 2];
+	char *const path = xmalloc(PATH_MAX + 2); /* to save stack */
 	struct mntent me;
 	FILE *fp;
 	char *fstype = 0;
@@ -155,6 +155,7 @@ int umount_main(int argc, char **argv)
 			free(mtl);
 			mtl = m;
 		}
+		free(path);
 	}
 
 	return status;
