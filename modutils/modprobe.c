@@ -865,7 +865,7 @@ int modprobe_main(int argc, char **argv)
 	int rc = EXIT_SUCCESS;
 	char *unused;
 
-	opt_complementary = "?V-:q-v:v-q";
+	opt_complementary = "q-v:v-q";
 	getopt32(argv, MAIN_OPT_STR, &unused, &unused);
 
 	if (option_mask32 & (DUMP_CONF_EXIT | LIST_ALL))
