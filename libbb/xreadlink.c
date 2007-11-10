@@ -65,7 +65,7 @@ char *xmalloc_follow_symlinks(const char *path)
 
 		if (!--looping) {
 			free(linkpath);
-free_buf_ret_null:
+ free_buf_ret_null:
 			free(buf);
 			return NULL;
 		}

@@ -467,12 +467,38 @@ static void do_mark(int sig)
 }
 #endif
 
-static void do_syslogd(void) ATTRIBUTE_NORETURN;
-static void do_syslogd(void)
+/* Don't inline: prevent struct sockaddr_un to take up space on stack
+ * permanently */
+static NOINLINE int create_socket(void)
 {
 	struct sockaddr_un sunx;
 	int sock_fd;
 	char *dev_log_name;
+
+	memset(&sunx, 0, sizeof(sunx));
+	sunx.sun_family = AF_UNIX;
+
+	/* Unlink old /dev/log or object it points to. */
+	/* (if it exists, bind will fail) */
+	strcpy(sunx.sun_path, "/dev/log");
+	dev_log_name = xmalloc_follow_symlinks("/dev/log");
+	if (dev_log_name) {
+		safe_strncpy(sunx.sun_path, dev_log_name, sizeof(sunx.sun_path));
+		free(dev_log_name);
+	}
+	unlink(sunx.sun_path);
+
+	sock_fd = xsocket(AF_UNIX, SOCK_DGRAM, 0);
+	xbind(sock_fd, (struct sockaddr *) &sunx, sizeof(sunx));
+	chmod("/dev/log", 0666);
+
+	return sock_fd;
+}
+
+static void do_syslogd(void) ATTRIBUTE_NORETURN;
+static void do_syslogd(void)
+{
+	int sock_fd;
 
 	/* Set up signal handlers */
 	signal(SIGINT, quit_signal);
@@ -487,36 +513,8 @@ static void do_syslogd(void)
 	signal(SIGALRM, do_mark);
 	alarm(G.markInterval);
 #endif
-	remove_pidfile("/var/run/syslogd.pid");
+	sock_fd = create_socket();
 
-	memset(&sunx, 0, sizeof(sunx));
-	sunx.sun_family = AF_UNIX;
-	strcpy(sunx.sun_path, "/dev/log");
-
-	/* Unlink old /dev/log or object it points to. */
-	/* (if it exists, bind will fail) */
-	logmode = LOGMODE_NONE;
-	dev_log_name = xmalloc_readlink_or_warn("/dev/log");
-	logmode = LOGMODE_STDIO;
-	if (dev_log_name) {
-		int fd = xopen(".", O_NONBLOCK);
-		xchdir("/dev");
-		/* we do not check whether this is a link also */
-		unlink(dev_log_name);
-		fchdir(fd);
-		close(fd);
-		safe_strncpy(sunx.sun_path, dev_log_name, sizeof(sunx.sun_path));
-		free(dev_log_name);
-	} else {
-		unlink("/dev/log");
-	}
-
-	sock_fd = xsocket(AF_UNIX, SOCK_DGRAM, 0);
-	xbind(sock_fd, (struct sockaddr *) &sunx, sizeof(sunx));
-
-	if (chmod("/dev/log", 0666) < 0) {
-		bb_perror_msg_and_die("cannot set permission on /dev/log");
-	}
 	if (ENABLE_FEATURE_IPC_SYSLOG && (option_mask32 & OPT_circularlog)) {
 		ipcsyslog_init();
 	}
