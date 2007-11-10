@@ -41,7 +41,6 @@
 #define ENABLE_FEATURE_TAB_COMPLETION 0
 #define ENABLE_FEATURE_USERNAME_COMPLETION 0
 #define ENABLE_FEATURE_NONPRINTABLE_INVERSE_PUT 0
-#define ENABLE_FEATURE_CLEAN_UP 0
 
 #endif  /* TEST */
 
@@ -56,35 +55,117 @@
 #endif
 
 #define ENABLE_FEATURE_GETUSERNAME_AND_HOMEDIR \
-(ENABLE_FEATURE_USERNAME_COMPLETION || ENABLE_FEATURE_EDITING_FANCY_PROMPT)
+	(ENABLE_FEATURE_USERNAME_COMPLETION || ENABLE_FEATURE_EDITING_FANCY_PROMPT)
+#define USE_FEATURE_GETUSERNAME_AND_HOMEDIR(...)
+#if ENABLE_FEATURE_GETUSERNAME_AND_HOMEDIR
+#undef USE_FEATURE_GETUSERNAME_AND_HOMEDIR
+#define USE_FEATURE_GETUSERNAME_AND_HOMEDIR(...) __VA_ARGS__
+#endif
 
-enum { MAX_LINELEN = CONFIG_FEATURE_EDITING_MAX_LEN };
+enum {
+	/* We use int16_t for positions, need to limit line len */
+	MAX_LINELEN = CONFIG_FEATURE_EDITING_MAX_LEN < 0x7ff0
+                      ? CONFIG_FEATURE_EDITING_MAX_LEN
+	              : 0x7ff0
+};
 
-static line_input_t *state;
+#if ENABLE_FEATURE_GETUSERNAME_AND_HOMEDIR
+static const char null_str[] ALIGN1 = "";
+#endif
 
-static struct termios initial_settings, new_settings;
+/* We try to minimize both static and stack usage. */
+struct statics {
+	line_input_t *state;
 
-static volatile unsigned cmdedit_termw = 80;        /* actual terminal width */
+	volatile unsigned cmdedit_termw; /* = 80; */ /* actual terminal width */
+	sighandler_t previous_SIGWINCH_handler;
 
-static int cmdedit_x;           /* real x terminal position */
-static int cmdedit_y;           /* pseudoreal y terminal position */
-static int cmdedit_prmt_len;    /* length of prompt (without colors etc) */
 
-static unsigned cursor;
-static unsigned command_len;
-static char *command_ps;
-static const char *cmdedit_prompt;
+	int cmdedit_x;           /* real x terminal position */
+	int cmdedit_y;           /* pseudoreal y terminal position */
+	int cmdedit_prmt_len;    /* length of prompt (without colors etc) */
 
+	unsigned cursor;
+	unsigned command_len;
+	char *command_ps;
+
+	const char *cmdedit_prompt;
 #if ENABLE_FEATURE_EDITING_FANCY_PROMPT
-static char *hostname_buf;
-static int num_ok_lines = 1;
+	char *hostname_buf;
+	int num_ok_lines; /* = 1; */
 #endif
 
 #if ENABLE_FEATURE_GETUSERNAME_AND_HOMEDIR
-static const char null_str[] = "";
-static char *user_buf;
-static char *home_pwd_buf = (char*)null_str;
+	char *user_buf;
+	char *home_pwd_buf; /* = (char*)null_str; */
 #endif
+
+#if ENABLE_FEATURE_TAB_COMPLETION
+	char **matches;
+	unsigned num_matches;
+#endif
+
+#if ENABLE_FEATURE_EDITING_VI
+#define DELBUFSIZ 128
+	char *delptr;
+	smallint newdelflag;     /* whether delbuf should be reused yet */
+	char delbuf[DELBUFSIZ];  /* a place to store deleted characters */
+#endif
+
+	/* Formerly these were big buffers on stack: */
+#if ENABLE_FEATURE_TAB_COMPLETION
+	char exe_n_cwd_tab_completion__dirbuf[MAX_LINELEN];
+	char input_tab__matchBuf[MAX_LINELEN];
+	int16_t find_match__int_buf[MAX_LINELEN + 1]; /* need to have 9 bits at least */
+	int16_t find_match__pos_buf[MAX_LINELEN + 1];
+#endif
+};
+
+static struct statics *const ptr_to_statics __attribute__ ((section (".data")));
+
+#define S (*ptr_to_statics)
+#define state            (S.state           )
+#define cmdedit_termw    (S.cmdedit_termw   )
+#define previous_SIGWINCH_handler (S.previous_SIGWINCH_handler)
+#define cmdedit_x        (S.cmdedit_x       )
+#define cmdedit_y        (S.cmdedit_y       )
+#define cmdedit_prmt_len (S.cmdedit_prmt_len)
+#define cursor           (S.cursor          )
+#define command_len      (S.command_len     )
+#define command_ps       (S.command_ps      )
+#define cmdedit_prompt   (S.cmdedit_prompt  )
+#define hostname_buf     (S.hostname_buf    )
+#define num_ok_lines     (S.num_ok_lines    )
+#define user_buf         (S.user_buf        ) 
+#define home_pwd_buf     (S.home_pwd_buf    )
+#define matches          (S.matches         )
+#define num_matches      (S.num_matches     )
+#define delptr           (S.delptr          )
+#define newdelflag       (S.newdelflag      )
+#define delbuf           (S.delbuf          )
+
+#define INIT_S() do { \
+	(*(struct statics**)&ptr_to_statics) = xzalloc(sizeof(S)); \
+	cmdedit_termw = 80; \
+	USE_FEATURE_EDITING_FANCY_PROMPT(num_ok_lines = 1;) \
+	USE_FEATURE_GETUSERNAME_AND_HOMEDIR(home_pwd_buf = (char*)null_str;) \
+} while (0)
+static void deinit_S(void)
+{
+#if ENABLE_FEATURE_EDITING_FANCY_PROMPT
+	free(hostname_buf);
+	/* This one is allocated only if FANCY_PROMPT is on
+	 * (otherwise it points to verbatim prompt (NOT malloced) */
+	free((char*)cmdedit_prompt);
+#endif
+#if ENABLE_FEATURE_GETUSERNAME_AND_HOMEDIR
+	free(user_buf);
+	if (home_pwd_buf != null_str)
+		free(home_pwd_buf);
+#endif
+	free(ptr_to_statics);
+}
+#define DEINIT_S() deinit_S()
 
 /* Put 'command_ps[cursor]', cursor++.
  * Advance cursor on screen. If we reached right margin, scroll text up
@@ -110,8 +191,7 @@ static void cmdedit_set_out_char(int next_char)
 	} else
 #endif
 	{
-		if (initial_settings.c_lflag & ECHO)
-			bb_putchar(c);
+		bb_putchar(c);
 	}
 	if (++cmdedit_x >= cmdedit_termw) {
 		/* terminal is scrolled down */
@@ -204,13 +284,6 @@ static void redraw(int y, int back_cursor)
 	input_backward(back_cursor);
 }
 
-#if ENABLE_FEATURE_EDITING_VI
-#define DELBUFSIZ 128
-static char *delbuf;  /* a (malloced) place to store deleted characters */
-static char *delp;
-static char newdelflag;      /* whether delbuf should be reused yet */
-#endif
-
 /* Delete the char in front of the cursor, optionally saving it
  * for later putback */
 static void input_delete(int save)
@@ -223,14 +296,11 @@ static void input_delete(int save)
 #if ENABLE_FEATURE_EDITING_VI
 	if (save) {
 		if (newdelflag) {
-			if (!delbuf)
-				delbuf = malloc(DELBUFSIZ);
-			/* safe if malloc fails */
-			delp = delbuf;
+			delptr = delbuf;
 			newdelflag = 0;
 		}
-		if (delbuf && (delp - delbuf < DELBUFSIZ))
-			*delp++ = command_ps[j];
+		if ((delptr - delbuf) < DELBUFSIZ)
+			*delptr++ = command_ps[j];
 	}
 #endif
 
@@ -245,7 +315,7 @@ static void input_delete(int save)
 static void put(void)
 {
 	int ocursor;
-	int j = delp - delbuf;
+	int j = delptr - delbuf;
 
 	if (j == 0)
 		return;
@@ -275,11 +345,7 @@ static void input_forward(void)
 		cmdedit_set_out_char(command_ps[cursor + 1]);
 }
 
-
 #if ENABLE_FEATURE_TAB_COMPLETION
-
-static char **matches;
-static unsigned num_matches;
 
 static void free_tab_completion_data(void)
 {
@@ -329,11 +395,8 @@ static void username_tab_completion(char *ud, char *with_shash_flg)
 		}
 		if (home) {
 			if ((userlen + strlen(home) + 1) < MAX_LINELEN) {
-				char temp2[MAX_LINELEN];     /* argument size */
-
 				/* /home/user/... */
-				sprintf(temp2, "%s%s", home, ud);
-				strcpy(sav_ud, temp2);
+				sprintf(sav_ud, "%s%s", home, ud);
 			}
 		}
 	} else {
@@ -411,7 +474,6 @@ static void exe_n_cwd_tab_completion(char *command, int type)
 {
 	DIR *dir;
 	struct dirent *next;
-	char dirbuf[MAX_LINELEN];
 	struct stat st;
 	char *path1[1];
 	char **paths = path1;
@@ -419,6 +481,8 @@ static void exe_n_cwd_tab_completion(char *command, int type)
 	int i;
 	char *found;
 	char *pfind = strrchr(command, '/');
+/*	char dirbuf[MAX_LINELEN]; */
+#define dirbuf (S.exe_n_cwd_tab_completion__dirbuf)
 
 	npaths = 1;
 	path1[0] = (char*)".";
@@ -492,21 +556,25 @@ static void exe_n_cwd_tab_completion(char *command, int type)
 		free(paths[0]);                 /* allocated memory only in first member */
 		free(paths);
 	}
+#undef dirbuf
 }
 
 #define QUOT (UCHAR_MAX+1)
 
-#define collapse_pos(is, in) { \
-	memmove(int_buf+(is), int_buf+(in), (MAX_LINELEN+1-(is)-(in))*sizeof(int)); \
-	memmove(pos_buf+(is), pos_buf+(in), (MAX_LINELEN+1-(is)-(in))*sizeof(int)); }
+#define collapse_pos(is, in) do { \
+	memmove(int_buf+(is), int_buf+(in), (MAX_LINELEN+1-(is)-(in)) * sizeof(pos_buf[0])); \
+	memmove(pos_buf+(is), pos_buf+(in), (MAX_LINELEN+1-(is)-(in)) * sizeof(pos_buf[0])); \
+} while (0)
 
 static int find_match(char *matchBuf, int *len_with_quotes)
 {
 	int i, j;
 	int command_mode;
 	int c, c2;
-	int int_buf[MAX_LINELEN + 1];
-	int pos_buf[MAX_LINELEN + 1];
+/*	int16_t int_buf[MAX_LINELEN + 1]; */
+/*	int16_t pos_buf[MAX_LINELEN + 1]; */
+#define int_buf (S.find_match__int_buf)
+#define pos_buf (S.find_match__pos_buf)
 
 	/* set to integer dimension characters and own positions */
 	for (i = 0;; i++) {
@@ -622,8 +690,8 @@ static int find_match(char *matchBuf, int *len_with_quotes)
 	for (i = 0; int_buf[i]; i++)
 		if (int_buf[i] == ' ' || int_buf[i] == '<' || int_buf[i] == '>') {
 			if (int_buf[i] == ' ' && command_mode == FIND_EXE_ONLY
-			 && matchBuf[pos_buf[0]]=='c'
-			 && matchBuf[pos_buf[1]]=='d'
+			 && matchBuf[pos_buf[0]] == 'c'
+			 && matchBuf[pos_buf[1]] == 'd'
 			) {
 				command_mode = FIND_DIR_ONLY;
 			} else {
@@ -657,11 +725,13 @@ static int find_match(char *matchBuf, int *len_with_quotes)
 		matchBuf[c++] = matchBuf[pos_buf[i]];
 		j = pos_buf[i] + 1;
 	}
-	matchBuf[c] = 0;
+	matchBuf[c] = '\0';
 	/* old length matchBuf with quotes symbols */
 	*len_with_quotes = j ? j - pos_buf[0] : 0;
 
 	return command_mode;
+#undef int_buf
+#undef pos_buf
 }
 
 /*
@@ -724,7 +794,7 @@ static int match_compare(const void *a, const void *b)
 }
 
 /* Do TAB completion */
-static void input_tab(int *lastWasTab)
+static void input_tab(smallint *lastWasTab)
 {
 	if (!(state->flags & TAB_COMPLETION))
 		return;
@@ -732,7 +802,8 @@ static void input_tab(int *lastWasTab)
 	if (!*lastWasTab) {
 		char *tmp, *tmp1;
 		int len_found;
-		char matchBuf[MAX_LINELEN];
+/*		char matchBuf[MAX_LINELEN]; */
+#define matchBuf (S.input_tab__matchBuf)
 		int find_type;
 		int recalc_pos;
 
@@ -782,7 +853,6 @@ static void input_tab(int *lastWasTab)
 			if (!matches)
 				return;         /* not found */
 			/* find minimal match */
-		// ash: yet another failure in trying to achieve "we don't die on OOM"
 			tmp1 = xstrdup(matches[0]);
 			for (tmp = tmp1; *tmp; tmp++)
 				for (len_found = 1; len_found < num_matches; len_found++)
@@ -811,7 +881,7 @@ static void input_tab(int *lastWasTab)
 		/* have space to placed match? */
 		if ((len_found - strlen(matchBuf) + command_len) < MAX_LINELEN) {
 			/* before word for match   */
-			command_ps[cursor - recalc_pos] = 0;
+			command_ps[cursor - recalc_pos] = '\0';
 			/* save   tail line        */
 			strcpy(matchBuf, command_ps + cursor);
 			/* add    match            */
@@ -828,6 +898,7 @@ static void input_tab(int *lastWasTab)
 			redraw(cmdedit_y, command_len - recalc_pos);
 		}
 		free(tmp);
+#undef matchBuf
 	} else {
 		/* Ok -- the last char was a TAB.  Since they
 		 * just hit TAB again, print a list of all the
@@ -843,8 +914,6 @@ static void input_tab(int *lastWasTab)
 	}
 }
 
-#else
-#define input_tab(a) ((void)0)
 #endif  /* FEATURE_COMMAND_TAB_COMPLETION */
 
 
@@ -1079,14 +1148,14 @@ vi_back_motion(char *command)
  */
 
 #if !ENABLE_FEATURE_EDITING_FANCY_PROMPT
-static void parse_prompt(const char *prmt_ptr)
+static void parse_and_put_prompt(const char *prmt_ptr)
 {
 	cmdedit_prompt = prmt_ptr;
 	cmdedit_prmt_len = strlen(prmt_ptr);
 	put_prompt();
 }
 #else
-static void parse_prompt(const char *prmt_ptr)
+static void parse_and_put_prompt(const char *prmt_ptr)
 {
 	int prmt_len = 0;
 	size_t cur_prmt_len = 0;
@@ -1114,7 +1183,7 @@ static void parse_prompt(const char *prmt_ptr)
 
 			c = bb_process_escape_sequence(&prmt_ptr);
 			if (prmt_ptr == cp) {
-				if (*cp == 0)
+				if (*cp == '\0')
 					break;
 				c = *prmt_ptr++;
 				switch (c) {
@@ -1147,7 +1216,7 @@ static void parse_prompt(const char *prmt_ptr)
 					if (l != 0
 					 && strncmp(home_pwd_buf, pbuf, l) == 0
 					 && (pbuf[l]=='/' || pbuf[l]=='\0')
-					 && strlen(pwd_buf+l)<PATH_MAX
+					 && strlen(pwd_buf+l) < PATH_MAX
 					) {
 						pbuf = buf2;
 						*pbuf = '~';
@@ -1188,7 +1257,7 @@ static void parse_prompt(const char *prmt_ptr)
 					break;
 				case '[': case ']':
 					if (c == flg_not_length) {
-						flg_not_length = flg_not_length == '[' ? ']' : '[';
+						flg_not_length = (flg_not_length == '[' ? ']' : '[');
 						continue;
 					}
 					break;
@@ -1209,11 +1278,6 @@ static void parse_prompt(const char *prmt_ptr)
 	put_prompt();
 }
 #endif
-
-#define setTermSettings(fd, argp) tcsetattr(fd, TCSANOW, argp)
-#define getTermSettings(fd, argp) tcgetattr(fd, argp);
-
-static sighandler_t previous_SIGWINCH_handler;
 
 static void cmdedit_setwidth(unsigned w, int redraw_flg)
 {
@@ -1261,7 +1325,9 @@ static void win_changed(int nsig)
  */
 int read_line_input(const char *prompt, char *command, int maxsize, line_input_t *st)
 {
-	int lastWasTab = FALSE;
+#if ENABLE_FEATURE_TAB_COMPLETION
+	smallint lastWasTab = FALSE;
+#endif
 	unsigned int ic;
 	unsigned char c;
 	smallint break_out = 0;
@@ -1269,14 +1335,22 @@ int read_line_input(const char *prompt, char *command, int maxsize, line_input_t
 	smallint vi_cmdmode = 0;
 	smalluint prevc;
 #endif
+	struct termios initial_settings;
+	struct termios new_settings;
 
-	getTermSettings(0, (void *) &initial_settings);
-	/* Happens when e.g. stty -echo was run before */
-	if (!(initial_settings.c_lflag & ECHO)) {
-		parse_prompt(prompt);
+	INIT_S();
+
+	if (tcgetattr(STDIN_FILENO, &initial_settings) < 0
+	 || !(initial_settings.c_lflag & ECHO)
+	) {
+		/* Happens when e.g. stty -echo was run before */
+		int len;
+		parse_and_put_prompt(prompt);
 		fflush(stdout);
 		fgets(command, maxsize, stdin);
-		return strlen(command);
+		len = strlen(command);
+		DEINIT_S();
+		return len;
 	}
 
 // FIXME: audit & improve this
@@ -1296,7 +1370,7 @@ int read_line_input(const char *prompt, char *command, int maxsize, line_input_t
 	command_ps = command;
 	command[0] = '\0';
 
-	memcpy(&new_settings, &initial_settings, sizeof(new_settings));
+	new_settings = initial_settings;
 	new_settings.c_lflag &= ~ICANON;        /* unbuffered input */
 	/* Turn off echoing and CTRL-C, so we can trap it */
 	new_settings.c_lflag &= ~(ECHO | ECHONL | ISIG);
@@ -1308,7 +1382,7 @@ int read_line_input(const char *prompt, char *command, int maxsize, line_input_t
 #define _POSIX_VDISABLE '\0'
 #endif
 	new_settings.c_cc[VINTR] = _POSIX_VDISABLE;
-	setTermSettings(0, (void *) &new_settings);
+	tcsetattr(STDIN_FILENO, TCSANOW, &new_settings);
 
 	/* Now initialize things */
 	previous_SIGWINCH_handler = signal(SIGWINCH, win_changed);
@@ -1319,11 +1393,6 @@ int read_line_input(const char *prompt, char *command, int maxsize, line_input_t
 
 		entry = getpwuid(geteuid());
 		if (entry) {
-			/* If we enter read_line_input for the Nth time,
-			 * they may be already allocated! Need to free. */
-			free(user_buf);
-			if (home_pwd_buf != null_str)
-				free(home_pwd_buf);
 			user_buf = xstrdup(entry->pw_name);
 			home_pwd_buf = xstrdup(entry->pw_dir);
 			/* They are not freed on exit (too small to bother) */
@@ -1331,12 +1400,12 @@ int read_line_input(const char *prompt, char *command, int maxsize, line_input_t
 	}
 #endif
 	/* Print out the command prompt */
-	parse_prompt(prompt);
+	parse_and_put_prompt(prompt);
 
 	while (1) {
 		fflush(stdout);
 
-		if (safe_read(0, &c, 1) < 1) {
+		if (safe_read(STDIN_FILENO, &c, 1) < 1) {
 			/* if we can't read input then exit */
 			goto prepare_to_die;
 		}
@@ -1411,9 +1480,11 @@ int read_line_input(const char *prompt, char *command, int maxsize, line_input_t
 			input_backspace();
 			break;
 
+#if ENABLE_FEATURE_TAB_COMPLETION
 		case '\t':
 			input_tab(&lastWasTab);
 			break;
+#endif
 
 #if ENABLE_FEATURE_EDITING_FANCY_KEYS
 		case CTRL('K'):
@@ -1526,7 +1597,7 @@ int read_line_input(const char *prompt, char *command, int maxsize, line_input_t
 			int nc, sc;
 			sc = cursor;
 			prevc = ic;
-			if (safe_read(0, &c, 1) < 1)
+			if (safe_read(STDIN_FILENO, &c, 1) < 1)
 				goto prepare_to_die;
 			if (c == (prevc & 0xff)) {
 				/* "cc", "dd" */
@@ -1587,7 +1658,7 @@ int read_line_input(const char *prompt, char *command, int maxsize, line_input_t
 			put();
 			break;
 		case 'r'|vbit:
-			if (safe_read(0, &c, 1) < 1)
+			if (safe_read(STDIN_FILENO, &c, 1) < 1)
 				goto prepare_to_die;
 			if (c == 0)
 				beep();
@@ -1610,19 +1681,19 @@ int read_line_input(const char *prompt, char *command, int maxsize, line_input_t
 			}
 #endif
 			/* escape sequence follows */
-			if (safe_read(0, &c, 1) < 1)
+			if (safe_read(STDIN_FILENO, &c, 1) < 1)
 				goto prepare_to_die;
 			/* different vt100 emulations */
 			if (c == '[' || c == 'O') {
 		vi_case('['|vbit:)
 		vi_case('O'|vbit:)
-				if (safe_read(0, &c, 1) < 1)
+				if (safe_read(STDIN_FILENO, &c, 1) < 1)
 					goto prepare_to_die;
 			}
 			if (c >= '1' && c <= '9') {
 				unsigned char dummy;
 
-				if (safe_read(0, &dummy, 1) < 1)
+				if (safe_read(STDIN_FILENO, &dummy, 1) < 1)
 					goto prepare_to_die;
 				if (dummy != '~')
 					c = '\0';
@@ -1687,7 +1758,7 @@ int read_line_input(const char *prompt, char *command, int maxsize, line_input_t
 #if ENABLE_FEATURE_NONPRINTABLE_INVERSE_PUT
 			/* Control-V -- Add non-printable symbol */
 			if (c == CTRL('V')) {
-				if (safe_read(0, &c, 1) < 1)
+				if (safe_read(STDIN_FILENO, &c, 1) < 1)
 					goto prepare_to_die;
 				if (c == 0) {
 					beep();
@@ -1727,8 +1798,10 @@ int read_line_input(const char *prompt, char *command, int maxsize, line_input_t
 		if (break_out)                  /* Enter is the command terminator, no more input. */
 			break;
 
+#if ENABLE_FEATURE_TAB_COMPLETION
 		if (c != '\t')
 			lastWasTab = FALSE;
+#endif
 	}
 
 	if (command_len > 0)
@@ -1739,18 +1812,18 @@ int read_line_input(const char *prompt, char *command, int maxsize, line_input_t
 		command[command_len] = '\0';
 	}
 
-#if ENABLE_FEATURE_CLEAN_UP && ENABLE_FEATURE_TAB_COMPLETION
+#if ENABLE_FEATURE_TAB_COMPLETION
 	free_tab_completion_data();
 #endif
 
-#if ENABLE_FEATURE_EDITING_FANCY_PROMPT
-	free((char*)cmdedit_prompt);
-#endif
 	/* restore initial_settings */
-	setTermSettings(STDIN_FILENO, (void *) &initial_settings);
+	tcsetattr(STDIN_FILENO, TCSANOW, &initial_settings);
 	/* restore SIGWINCH handler */
 	signal(SIGWINCH, previous_SIGWINCH_handler);
 	fflush(stdout);
+
+	DEINIT_S();
+
 	return command_len;
 }
 
