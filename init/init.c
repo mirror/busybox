@@ -370,13 +370,12 @@ static pid_t run(const struct init_action *a)
 
 		/* Now fork off another process to just hang around */
 		pid = fork();
-		if (pid) {
+		if (pid < 0) {
 			message(L_LOG | L_CONSOLE, "Can't fork");
 			_exit(1);
 		}
 
 		if (pid > 0) {
-
 			/* We are the parent -- wait till the child is done */
 			signal(SIGINT, SIG_IGN);
 			signal(SIGTSTP, SIG_IGN);
