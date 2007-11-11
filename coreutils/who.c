@@ -52,7 +52,7 @@ int who_main(int argc, char **argv)
 	}
 
 	setutent();
-	printf("USER       TTY      IDLE      TIME           HOST\n");
+	printf("USER       TTY      IDLE      TIME            HOST\n");
 	while ((ut = getutent()) != NULL) {
 		if (ut->ut_user[0] && ut->ut_type == USER_PROCESS) {
 			time_t thyme = ut->ut_tv.tv_sec;
@@ -63,7 +63,8 @@ int who_main(int argc, char **argv)
 			str6[1] = '\0';
 			if (stat(name, &st) == 0)
 				idle_string(str6, st.st_atime);
-			printf("%-10s %-8s %-9s %-14.14s %s\n",
+			/* 15 chars for time:   Nov 10 19:33:20 */
+			printf("%-10s %-8s %-9s %-15.15s %s\n",
 					ut->ut_user, ut->ut_line, str6,
 					ctime(&thyme) + 4, ut->ut_host);
 			if (ENABLE_FEATURE_CLEAN_UP)
