@@ -1178,6 +1178,7 @@ unpack_gz_stream(int in, int out)
 	ALLOC_STATE;
 	bytebuffer_max = 0x8000;
 	bytebuffer = xmalloc(bytebuffer_max);
+	gunzip_src_fd = in;
 
  again:
 	if (!check_header_gzip(PASS_STATE_ONLY)) {
