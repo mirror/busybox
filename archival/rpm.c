@@ -237,7 +237,7 @@ static void extract_cpio_gz(int fd)
 	}
 
 	xchdir("/"); /* Install RPM's to root */
-	archive_handle->src_fd = open_transformer(archive_handle->src_fd, xformer, xformer_prog, xformer_prog, "-cf", "-", NULL);
+	archive_handle->src_fd = open_transformer(archive_handle->src_fd, xformer, xformer_prog);
 	archive_handle->offset = 0;
 	while (get_header_cpio(archive_handle) == EXIT_SUCCESS)
 		continue;
