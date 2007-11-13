@@ -88,10 +88,7 @@ int readprofile_main(int argc, char **argv)
 		}
 
 		fd = xopen(defaultpro, O_WRONLY);
-
-		if (full_write(fd, &multiplier, to_write) != to_write)
-			bb_perror_msg_and_die("error writing %s", defaultpro);
-
+		xwrite(fd, &multiplier, to_write);
 		close(fd);
 		return EXIT_SUCCESS;
 	}

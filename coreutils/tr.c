@@ -173,7 +173,8 @@ int tr_main(int argc, char **argv)
 	int idx = 1;
 	int i;
 	smalluint flags = 0;
-	size_t read_chars = 0, in_index = 0, out_index = 0, c, coded, last = -1;
+	ssize_t read_chars = 0;
+	size_t in_index = 0, out_index = 0, c, coded, last = -1;
 	RESERVE_CONFIG_UBUFFER(output, BUFSIZ);
 	RESERVE_CONFIG_BUFFER(vector, ASCII+1);
 	RESERVE_CONFIG_BUFFER(invec,  ASCII+1);
@@ -223,8 +224,9 @@ int tr_main(int argc, char **argv)
 			}
 			read_chars = read(STDIN_FILENO, tr_buf, BUFSIZ);
 			if (read_chars <= 0) {
-				if (write(STDOUT_FILENO, (char *)output, out_index) != out_index)
-					bb_perror_msg(bb_msg_write_error);
+				xwrite(STDOUT_FILENO, (char *)output, out_index);
+				if (read_chars < 0)
+					bb_perror_msg_and_die(bb_msg_read_error);
 				exit(EXIT_SUCCESS);
 			}
 			in_index = 0;
