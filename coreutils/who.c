@@ -55,8 +55,6 @@ int who_main(int argc, char **argv)
 	printf("USER       TTY      IDLE      TIME            HOST\n");
 	while ((ut = getutent()) != NULL) {
 		if (ut->ut_user[0] && ut->ut_type == USER_PROCESS) {
-			time_t thyme = ut->ut_tv.tv_sec;
-
 			/* ut->ut_line is device name of tty - "/dev/" */
 			name = concat_path_file("/dev", ut->ut_line);
 			str6[0] = '?';
@@ -66,7 +64,7 @@ int who_main(int argc, char **argv)
 			/* 15 chars for time:   Nov 10 19:33:20 */
 			printf("%-10s %-8s %-9s %-15.15s %s\n",
 					ut->ut_user, ut->ut_line, str6,
-					ctime(&thyme) + 4, ut->ut_host);
+					ctime(&(ut->ut_tv.tv_sec)) + 4, ut->ut_host);
 			if (ENABLE_FEATURE_CLEAN_UP)
 				free(name);
 		}
