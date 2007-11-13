@@ -22,10 +22,6 @@
 
 #define ASCII 0377
 
-#define TR_OPT_complement	(1<<0)
-#define TR_OPT_delete		(1<<1)
-#define TR_OPT_squeeze_reps	(1<<2)
-
 static void map(char *pvector,
 		unsigned char *string1, unsigned int string1_len,
 		unsigned char *string2, unsigned int string2_len)
@@ -180,47 +176,39 @@ static int complement(char *buffer, int buffer_len)
 int tr_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int tr_main(int argc, char **argv)
 {
-	unsigned char *ptr;
 	int output_length = 0, input_length;
-	int idx = 1;
 	int i;
-	smalluint flags = 0;
+	smalluint flags;
 	ssize_t read_chars = 0;
 	size_t in_index = 0, out_index = 0;
 	unsigned last = UCHAR_MAX + 1; /* not equal to any char */
 	unsigned char coded, c; 
-	RESERVE_CONFIG_UBUFFER(output, BUFSIZ);
-	RESERVE_CONFIG_BUFFER(vector, ASCII+1);
-	RESERVE_CONFIG_BUFFER(invec,  ASCII+1);
-	RESERVE_CONFIG_BUFFER(outvec, ASCII+1);
+	unsigned char *output = xmalloc(BUFSIZ);
+	char *vector = xzalloc((ASCII+1) * 3);
+	char *invec  = vector + (ASCII+1);
+	char *outvec = vector + (ASCII+1) * 2;
 
-	if (argc > 1 && argv[idx][0] == '-') {
-		for (ptr = (unsigned char *) &argv[idx][1]; *ptr; ptr++) {
-			if (*ptr == 'c')
-				flags |= TR_OPT_complement;
-			else if (*ptr == 'd')
-				flags |= TR_OPT_delete;
-			else if (*ptr == 's')
-				flags |= TR_OPT_squeeze_reps;
-			else
-				bb_show_usage();
-		}
-		idx++;
-	}
+#define TR_OPT_complement	(1 << 0)
+#define TR_OPT_delete		(1 << 1)
+#define TR_OPT_squeeze_reps	(1 << 2)
+
+	flags = getopt32(argv, "+cds"); /* '+': stop at first non-option */
+	argv += optind;
+
 	for (i = 0; i <= ASCII; i++) {
 		vector[i] = i;
-		invec[i] = outvec[i] = FALSE;
+		/*invec[i] = outvec[i] = FALSE; - done by xzalloc */
 	}
 
 #define tr_buf bb_common_bufsiz1
-	if (argv[idx] != NULL) {
-		input_length = expand(argv[idx++], tr_buf);
+	if (*argv != NULL) {
+		input_length = expand(*argv++, tr_buf);
 		if (flags & TR_OPT_complement)
 			input_length = complement(tr_buf, input_length);
-		if (argv[idx]) {
-			if (argv[idx][0] == '\0')
+		if (*argv) {
+			if (argv[0][0] == '\0')
 				bb_error_msg_and_die("STRING2 cannot be empty");
-			output_length = expand(argv[idx], output);
+			output_length = expand(*argv, output);
 			map(vector, tr_buf, input_length, output, output_length);
 		}
 		for (i = 0; i < input_length; i++)
