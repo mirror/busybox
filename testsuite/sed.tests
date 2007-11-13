@@ -57,6 +57,7 @@ testing "sed s arbitrary delimiter" "sed -e 's woo boing '" "boing\n" "" "woo\n"
 testing "sed s chains" "sed -e s/foo/bar/ -e s/bar/baz/" "baz\n" "" "foo\n"
 testing "sed s chains2" "sed -e s/foo/bar/ -e s/baz/nee/" "bar\n" "" "foo\n"
 testing "sed s [delimiter]" "sed -e 's@[@]@@'" "onetwo" "" "one@two"
+testing "sed s with \\t (GNU ext)" "sed 's/\t/ /'" "one two" "" "one\ttwo"
 
 # branch
 testing "sed b (branch)" "sed -e 'b one;p;: one'" "foo\n" "" "foo\n"

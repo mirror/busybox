@@ -173,7 +173,7 @@ static void cleanup_outname(void)
 	if (G.outname) unlink(G.outname);
 }
 
-/* strdup, replacing "\n" with '\n', and "\delimiter" with 'delimiter' */
+/* strcpy, replacing "\from" with 'to'. If to is NUL, replacing "\any" with 'any' */
 
 static void parse_escapes(char *dest, const char *string, int len, char from, char to)
 {
@@ -188,9 +188,10 @@ static void parse_escapes(char *dest, const char *string, int len, char from, ch
 			}
 			*dest++ = string[i++];
 		}
+		/* TODO: is it safe wrt a string with trailing '\\' ? */
 		*dest++ = string[i++];
 	}
-	*dest = 0;
+	*dest = '\0';
 }
 
 static char *copy_parsing_escapes(const char *string, int len)
@@ -198,6 +199,8 @@ static char *copy_parsing_escapes(const char *string, int len)
 	char *dest = xmalloc(len + 1);
 
 	parse_escapes(dest, string, len, 'n', '\n');
+	/* GNU sed also recognizes \t */
+	parse_escapes(dest, dest, strlen(dest), 't', '\t');
 	return dest;
 }
 
@@ -205,7 +208,7 @@ static char *copy_parsing_escapes(const char *string, int len)
 /*
  * index_of_next_unescaped_regexp_delim - walks left to right through a string
  * beginning at a specified index and returns the index of the next regular
- * expression delimiter (typically a forward * slash ('/')) not preceded by
+ * expression delimiter (typically a forward slash ('/')) not preceded by
  * a backslash ('\').  A negative delimiter disables square bracket checking.
  */
 static int index_of_next_unescaped_regexp_delim(int delimiter, const char *str)
@@ -425,7 +428,8 @@ static const char *parse_cmd_args(sed_cmd_t *sed_cmd, const char *cmdstr)
 				break;
 		}
 		sed_cmd->string = xstrdup(cmdstr);
-		parse_escapes(sed_cmd->string, sed_cmd->string, strlen(cmdstr), 0, 0);
+		/* "\anychar" -> "anychar" */
+		parse_escapes(sed_cmd->string, sed_cmd->string, strlen(cmdstr), '\0', '\0');
 		cmdstr += strlen(cmdstr);
 	/* handle file cmds: (r)ead */
 	} else if (strchr("rw", sed_cmd->cmd)) {
@@ -1337,7 +1341,7 @@ int sed_main(int argc, char **argv)
 			// FIXME: error check / message?
 			rename(G.outname, argv[i]);
 			free(G.outname);
-			G.outname = 0;
+			G.outname = NULL;
 		}
 		if (G.input_file_count > G.current_input_file)
 			process_files();
