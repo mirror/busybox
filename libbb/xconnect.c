@@ -125,6 +125,7 @@ USE_FEATURE_IPV6(sa_family_t af,)
 	int rc;
 	len_and_sockaddr *r = NULL;
 	struct addrinfo *result = NULL;
+	struct addrinfo *used_res;
 	const char *org_host = host; /* only for error msg */
 	const char *cp;
 	struct addrinfo hint;
@@ -169,9 +170,21 @@ USE_FEATURE_IPV6(sa_family_t af,)
 			xfunc_die();
 		goto ret;
 	}
-	r = xmalloc(offsetof(len_and_sockaddr, sa) + result->ai_addrlen);
-	r->len = result->ai_addrlen;
-	memcpy(&r->sa, result->ai_addr, result->ai_addrlen);
+	used_res = result;
+#if ENABLE_FEATURE_PREFER_IPV4_ADDRESS
+	while (1) {
+		if (used_res->ai_family == AF_INET)
+			break;
+		used_res = used_res->ai_next;
+		if (!used_res) {
+			used_res = result;
+			break;
+		}
+	}
+#endif
+	r = xmalloc(offsetof(len_and_sockaddr, sa) + used_res->ai_addrlen);
+	r->len = used_res->ai_addrlen;
+	memcpy(&r->sa, used_res->ai_addr, used_res->ai_addrlen);
 	set_nport(r, htons(port));
  ret:
 	freeaddrinfo(result);
