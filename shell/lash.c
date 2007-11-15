@@ -157,8 +157,8 @@ static int shell_context;  /* Type prompt trigger (PS1 or PS2) */
 static char *cwd;
 static char *local_pending_command;
 static struct jobset job_list = { NULL, NULL };
-static int argc;
-static char **argv;
+static int global_argc;
+static char **global_argv;
 static llist_t *close_me_list;
 static int last_return_code;
 static int last_bg_pid;
@@ -810,16 +810,16 @@ static int expand_arguments(char *command)
 				var = itoa(getpid());
 				break;
 			case '#':
-				var = itoa(argc-1);
+				var = itoa(global_argc - 1);
 				break;
 			case '0':case '1':case '2':case '3':case '4':
 			case '5':case '6':case '7':case '8':case '9':
 				{
 					int ixx = *(dst+1)-48+1;
-					if (ixx >= argc) {
+					if (ixx >= global_argc) {
 						var = '\0';
 					} else {
-						var = argv[ixx];
+						var = global_argv[ixx];
 					}
 				}
 				break;
@@ -1492,12 +1492,13 @@ static inline void setup_job_control(void)
 #endif
 
 int lash_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int lash_main(int argc_l, char **argv_l)
+int lash_main(int argc, char **argv)
 {
 	unsigned opt;
 	FILE *input = stdin;
-	argc = argc_l;
-	argv = argv_l;
+
+	global_argc = argc;
+	global_argv = argv;
 
 #if ENABLE_FEATURE_EDITING
 	line_input_state = new_line_input_t(FOR_SHELL);
@@ -1510,7 +1511,7 @@ int lash_main(int argc_l, char **argv_l)
 	job_list.fg = NULL;
 	last_return_code = 1;
 
-	if (argv[0] && argv[0][0] == '-') {
+	if (global_argv[0] && global_argv[0][0] == '-') {
 		FILE *prof_input;
 		prof_input = fopen("/etc/profile", "r");
 		if (prof_input) {
@@ -1522,13 +1523,13 @@ int lash_main(int argc_l, char **argv_l)
 		}
 	}
 
-	opt = getopt32(argv_l, "+ic:", &local_pending_command);
+	opt = getopt32(argv, "+ic:", &local_pending_command);
 #define LASH_OPT_i (1<<0)
 #define LASH_OPT_c (1<<1)
 	if (opt & LASH_OPT_c) {
 		input = NULL;
 		optind++;
-		argv += optind;
+		global_argv += optind;
 	}
 	/* A shell is interactive if the `-i' flag was given, or if all of
 	 * the following conditions are met:
@@ -1537,7 +1538,7 @@ int lash_main(int argc_l, char **argv_l)
 	 *    standard input is a terminal
 	 *    standard output is a terminal
 	 *    Refer to Posix.2, the description of the `sh' utility. */
-	if (argv[optind] == NULL && input == stdin
+	if (global_argv[optind] == NULL && input == stdin
 	 && isatty(STDIN_FILENO) && isatty(STDOUT_FILENO)
 	) {
 		opt |= LASH_OPT_i;
@@ -1550,9 +1551,9 @@ int lash_main(int argc_l, char **argv_l)
 					"Enter 'help' for a list of built-in commands.\n\n",
 					bb_banner);
 		}
-	} else if (!local_pending_command && argv[optind]) {
+	} else if (!local_pending_command && global_argv[optind]) {
 		//printf( "optind=%d  argv[optind]='%s'\n", optind, argv[optind]);
-		input = xfopen(argv[optind], "r");
+		input = xfopen(global_argv[optind], "r");
 		/* be lazy, never mark this closed */
 		llist_add_to(&close_me_list, (void *)(long)fileno(input));
 	}
