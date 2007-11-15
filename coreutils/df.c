@@ -46,18 +46,19 @@ int df_main(int argc, char **argv)
 	const char *disp_units_hdr = "1k-blocks";
 
 	enum {
-		OPT_INODE = (ENABLE_FEATURE_HUMAN_READABLE ? (1 << 3) : (1 << 1))
+		OPT_ALL = (1 << 0),
+		OPT_INODE = (ENABLE_FEATURE_HUMAN_READABLE ? (1 << 4) : (1 << 2))
 		            * ENABLE_FEATURE_DF_INODE
 	};
 
 #if ENABLE_FEATURE_HUMAN_READABLE
 	opt_complementary = "h-km:k-hm:m-hk";
-	opt = getopt32(argv, "hmk" USE_FEATURE_DF_INODE("i"));
-	if (opt & 1) {
+	opt = getopt32(argv, "ahmk" USE_FEATURE_DF_INODE("i"));
+	if (opt & (1 << 1)) { // -h
 		df_disp_hr = 0;
 		disp_units_hdr = "     Size";
 	}
-	if (opt & 2) {
+	if (opt & (1 << 2)) { // -m
 		df_disp_hr = 1024*1024;
 		disp_units_hdr = "1M-blocks";
 	}
@@ -65,11 +66,11 @@ int df_main(int argc, char **argv)
 		disp_units_hdr = "   Inodes";
 	}
 #else
-	opt = getopt32(argv, "k" USE_FEATURE_DF_INODE("i"));
+	opt = getopt32(argv, "ak" USE_FEATURE_DF_INODE("i"));
 #endif
 
-	printf("Filesystem%11s%-15sUsed Available Use%% Mounted on\n",
-			  "", disp_units_hdr);
+	printf("Filesystem           %-15sUsed Available Use%% Mounted on\n",
+			disp_units_hdr);
 
 	mount_table = NULL;
 	argv += optind;
@@ -112,7 +113,7 @@ int df_main(int argc, char **argv)
 			goto SET_ERROR;
 		}
 
-		if ((s.f_blocks > 0) || !mount_table) {
+		if ((s.f_blocks > 0) || !mount_table || (opt & OPT_ALL)) {
 			if (opt & OPT_INODE) {
 				s.f_blocks = s.f_files;
 				s.f_bavail = s.f_bfree = s.f_ffree;
@@ -130,9 +131,13 @@ int df_main(int argc, char **argv)
 						) / (blocks_used + s.f_bavail);
 			}
 
+#ifdef WHY_IT_SHOULD_BE_HIDDEN
 			if (strcmp(device, "rootfs") == 0) {
 				continue;
 			}
+#endif
+#ifdef WHY_WE_DO_IT_FOR_DEV_ROOT_ONLY
+/* ... and also this is the only user of find_block_device */
 			if (strcmp(device, "/dev/root") == 0) {
 				/* Adjusts device to be the real root device,
 				* or leaves device alone if it can't find it */
@@ -141,6 +146,7 @@ int df_main(int argc, char **argv)
 					goto SET_ERROR;
 				}
 			}
+#endif
 
 			if (printf("\n%-20s" + 1, device) > 20)
 				    printf("\n%-20s", "");
