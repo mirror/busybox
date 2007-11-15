@@ -45,9 +45,14 @@ int df_main(int argc, char **argv)
 	/* default display is kilobytes */
 	const char *disp_units_hdr = "1k-blocks";
 
+	enum {
+		OPT_INODE = (ENABLE_FEATURE_HUMAN_READABLE ? (1 << 3) : (1 << 1))
+		            * ENABLE_FEATURE_DF_INODE
+	};
+
 #if ENABLE_FEATURE_HUMAN_READABLE
 	opt_complementary = "h-km:k-hm:m-hk";
-	opt = getopt32(argv, "hmk");
+	opt = getopt32(argv, "hmk" USE_FEATURE_DF_INODE("i"));
 	if (opt & 1) {
 		df_disp_hr = 0;
 		disp_units_hdr = "     Size";
@@ -56,8 +61,11 @@ int df_main(int argc, char **argv)
 		df_disp_hr = 1024*1024;
 		disp_units_hdr = "1M-blocks";
 	}
+	if (opt & OPT_INODE) {
+		disp_units_hdr = "   Inodes";
+	}
 #else
-	opt = getopt32(argv, "k");
+	opt = getopt32(argv, "k" USE_FEATURE_DF_INODE("i"));
 #endif
 
 	printf("Filesystem%11s%-15sUsed Available Use%% Mounted on\n",
@@ -104,7 +112,16 @@ int df_main(int argc, char **argv)
 			goto SET_ERROR;
 		}
 
-		if ((s.f_blocks > 0) || !mount_table){
+		if ((s.f_blocks > 0) || !mount_table) {
+			if (opt & OPT_INODE) {
+				s.f_blocks = s.f_files;
+				s.f_bavail = s.f_bfree = s.f_ffree;
+				s.f_bsize = 1;
+#if ENABLE_FEATURE_HUMAN_READABLE
+				if (df_disp_hr)
+					df_disp_hr = 1;
+#endif
+			}
 			blocks_used = s.f_blocks - s.f_bfree;
 			blocks_percent_used = 0;
 			if (blocks_used + s.f_bavail) {
@@ -115,7 +132,8 @@ int df_main(int argc, char **argv)
 
 			if (strcmp(device, "rootfs") == 0) {
 				continue;
-			} else if (strcmp(device, "/dev/root") == 0) {
+			}
+			if (strcmp(device, "/dev/root") == 0) {
 				/* Adjusts device to be the real root device,
 				* or leaves device alone if it can't find it */
 				device = find_block_device("/");

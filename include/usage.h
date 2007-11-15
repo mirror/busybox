@@ -99,7 +99,7 @@
        "The ash shell (command interpreter)"
 
 #define awk_trivial_usage \
-       "[OPTION]... [program-text] [FILE ...]"
+       "[OPTION]... [program-text] [FILE...]"
 #define awk_full_usage \
        "Options:\n" \
        "	-v var=val	Set variable\n" \
@@ -548,7 +548,7 @@
        "Wed Apr 12 18:52:41 MDT 2000\n"
 
 #define dc_trivial_usage \
-       "expression ..."
+       "expression..."
 #define dc_full_usage \
        "This is a Tiny RPN calculator that understands the\n" \
        "following operations: +, add, -, sub, *, mul, /, div, %, mod, " \
@@ -617,7 +617,7 @@
 
 #define devfsd_trivial_usage \
        "mntpnt [-v]" \
-	USE_DEVFSD_FG_NP("[-fg][-np]" )
+	USE_DEVFSD_FG_NP("[-fg][-np]")
 #define devfsd_full_usage \
        "Manage devfs permissions and old device name symlinks" \
        "\n\nOptions:" \
@@ -630,18 +630,28 @@
        "\n		and processing synthetic REGISTER events," \
        "\n		do not poll for events")
 
+/* -k is accepted but ignored for !HUMAN_READABLE,
+ * but we won't mention this (unimportant) */
+#if ENABLE_FEATURE_HUMAN_READABLE || ENABLE_FEATURE_DF_INODE
+#define DF_HAS_OPTIONS(x) x
+#else
+#define DF_HAS_OPTIONS(x)
+#endif
 #define df_trivial_usage \
-       "[-" USE_FEATURE_HUMAN_READABLE("hm") "k] [FILESYSTEM ...]"
+	DF_HAS_OPTIONS("[-") \
+	USE_FEATURE_HUMAN_READABLE("hmk") USE_FEATURE_DF_INODE("i") \
+	DF_HAS_OPTIONS("] ") "[FILESYSTEM...]"
 #define df_full_usage \
-       "Print the filesystem space used and space available" \
+       "Print filesystem usage statistics" \
+	DF_HAS_OPTIONS("\n\nOptions:") \
 	USE_FEATURE_HUMAN_READABLE( \
-       "\n\nOptions control size display:" \
        "\n	-h	Human readable (e.g. 1K 243M 2G)" \
        "\n	-m	1024*1024 blocks" \
-       "\n	-k	1024 blocks") \
-	SKIP_FEATURE_HUMAN_READABLE( \
-       "\n\nOptions:" \
-       "\n	-k	Ignored")
+       "\n	-k	1024 blocks" \
+	) \
+	USE_FEATURE_DF_INODE( \
+       "\n	-i	Inodes" \
+	)
 #define df_example_usage \
        "$ df\n" \
        "Filesystem           1k-blocks      Used Available Use% Mounted on\n" \
@@ -828,7 +838,7 @@
        "	-L file		Set badblocks list"
 
 #define echo_trivial_usage \
-	USE_FEATURE_FANCY_ECHO("[-neE] ") "[ARG ...]"
+	USE_FEATURE_FANCY_ECHO("[-neE] ") "[ARG...]"
 #define echo_full_usage \
        "Print the specified ARGs to stdout" \
 	USE_FEATURE_FANCY_ECHO( \
@@ -1075,7 +1085,7 @@
        "$ freeramdisk /dev/ram2\n"
 
 #define fsck_trivial_usage \
-       "[-ANPRTV] [-C fd] [-t fstype] [fs-options] [filesys ...]"
+       "[-ANPRTV] [-C fd] [-t fstype] [fs-options] [filesys...]"
 #define fsck_full_usage \
        "Check and repair filesystems" \
        "\n\nOptions:\n" \
@@ -1825,7 +1835,7 @@
        "	-u	Unicode (utf-8)"
 
 #define kill_trivial_usage \
-       "[-l] [-signal] process-id [process-id ...]"
+       "[-l] [-signal] process-id [process-id...]"
 #define kill_full_usage \
        "Send a signal (default is TERM) to the specified process(es)" \
        "\n\nOptions:\n" \
@@ -1841,7 +1851,7 @@
        "$ kill 252\n"
 
 #define killall_trivial_usage \
-       "[-l] [-q] [-signal] process-name [process-name ...]"
+       "[-l] [-q] [-signal] process-name [process-name...]"
 #define killall_full_usage \
        "Send a signal (default is TERM) to the specified process(es)" \
        "\n\nOptions:\n" \
@@ -1887,7 +1897,7 @@
        "		reached"
 
 #define setarch_trivial_usage \
-       "personality program [args ...]"
+       "personality program [args...]"
 #define setarch_full_usage \
        "Personality may be:\n" \
        "	linux32		Set 32bit uname emulation\n" \
@@ -1940,7 +1950,7 @@
        "$ logger \"hello\"\n"
 
 #define login_trivial_usage \
-       "[OPTION]... [username] [ENV=VAR ...]"
+       "[OPTION]... [username] [ENV=VAR...]"
 #define login_full_usage \
        "Begin a new session on the system" \
        "\n\nOptions:\n" \
@@ -2297,7 +2307,7 @@
        "-rw-------    1 andersen andersen        0 Apr 25 17:10 /tmp/temp.mWiLjM\n"
 
 #define modprobe_trivial_usage \
-       "[-knqrsv] MODULE [symbol=value ...]"
+       "[-knqrsv] MODULE [symbol=value...]"
 #define modprobe_full_usage \
        "Options:\n" \
        "	-k	Make module autoclean-able\n" \
@@ -2331,7 +2341,7 @@
 "    the module and the alias.\n" \
 "    A module can be aliased more than once.\n" \
 "\n" \
-"  options <mod_name|alias_name> <symbol=value ...>\n" \
+"  options <mod_name|alias_name> <symbol=value...>\n" \
 "    When loading module mod_name (or the module aliased by alias_name), pass\n" \
 "    the \"symbol=value\" pairs as option to that module.\n" \
 "\n" \
@@ -2367,7 +2377,7 @@
        "   from the command line\n"
 
 #define more_trivial_usage \
-       "[FILE ...]"
+       "[FILE...]"
 #define more_full_usage \
        "View FILE or standard input one screenful at a time"
 #define more_example_usage \
@@ -2560,7 +2570,7 @@
 	)
 
 #define nice_trivial_usage \
-       "[-n ADJUST] [COMMAND [ARG] ...]"
+       "[-n ADJUST] [COMMAND [ARG]...]"
 #define nice_full_usage \
        "Run a program with modified scheduling priority" \
        "\n\nOptions:\n" \
@@ -2678,7 +2688,7 @@
 #endif
 
 #define pidof_trivial_usage \
-       "process-name [OPTION] [process-name ...]"
+       "process-name [OPTION] [process-name...]"
 
 #define pidof_full_usage \
        "List the PIDs of all processes with names that match the\n" \
@@ -2895,7 +2905,7 @@
        "	-n		Disable byte order auto-detection"
 
 #define realpath_trivial_usage \
-       "pathname ..."
+       "pathname..."
 #define realpath_full_usage \
        "Return the absolute pathnames of given argument"
 
@@ -2909,7 +2919,7 @@
        "	-f	Force reboot (don't go through init)"
 
 #define renice_trivial_usage \
-       "{{-n INCREMENT} | PRIORITY} [[-p | -g | -u] ID ...]"
+       "{{-n INCREMENT} | PRIORITY} [[-p | -g | -u] ID...]"
 #define renice_full_usage \
        "Change priority of running processes" \
        "\n\nOptions:\n" \
@@ -3141,7 +3151,7 @@ USE_FEATURE_RUN_PARTS_FANCY("\n	-l	Prints names of all matching files even when 
        "\n	-W	Display warnings about entries that had no matching files"
 
 #define setkeycodes_trivial_usage \
-       "SCANCODE KEYCODE ..."
+       "SCANCODE KEYCODE..."
 #define setkeycodes_full_usage \
        "Set entries into the kernel's scancode-to-keycode map,\n" \
        "allowing unusual keyboards to generate usable keycodes.\n\n" \
@@ -3162,7 +3172,7 @@ USE_FEATURE_RUN_PARTS_FANCY("\n	-l	Prints names of all matching files even when 
        "Change boolean setting"
 
 #define setsid_trivial_usage \
-       "program [arg ...]"
+       "program [arg...]"
 #define setsid_full_usage \
        "Run any program in a new session by calling setsid() before\n" \
        "exec'ing the rest of its arguments. See setsid(2) for details."
@@ -3390,7 +3400,7 @@ USE_FEATURE_RUN_PARTS_FANCY("\n	-l	Prints names of all matching files even when 
 	)
 
 #define strings_trivial_usage \
-       "[-afo] [-n length] [file ...]"
+       "[-afo] [-n length] [file...]"
 #define strings_full_usage \
        "Display printable strings in a binary file" \
        "\n\nOptions:" \
@@ -3495,8 +3505,8 @@ USE_FEATURE_RUN_PARTS_FANCY("\n	-l	Prints names of all matching files even when 
        "	-a	Display all values\n" \
        "	-A	Display all values in table form"
 #define sysctl_example_usage \
-       "sysctl [-n] variable ...\n" \
-       "sysctl [-n] -w variable=value ...\n" \
+       "sysctl [-n] variable...\n" \
+       "sysctl [-n] -w variable=value...\n" \
        "sysctl [-n] -a\n" \
        "sysctl [-n] -p file	(default /etc/sysctl.conf)\n" \
        "sysctl [-n] -A\n"
@@ -3553,7 +3563,7 @@ USE_FEATURE_RUN_PARTS_FANCY("\n	-l	Prints names of all matching files even when 
 	USE_FEATURE_TAR_BZIP2("j") USE_FEATURE_TAR_LZMA("a") \
 	USE_FEATURE_TAR_COMPRESS("Z") "xtvO] " \
 	USE_FEATURE_TAR_FROM("[-X FILE] ") \
-       "[-f TARFILE] [-C DIR] [FILE(s)] ..."
+       "[-f TARFILE] [-C DIR] [FILE(s)]..."
 #define tar_full_usage \
        "Create, extract, or list files from a tar file" \
        "\n\nOptions:\n" \
@@ -3737,7 +3747,7 @@ USE_FEATURE_RUN_PARTS_FANCY("\n	-l	Prints names of all matching files even when 
        "and show the status for however many processes will fit on the screen."
 
 #define touch_trivial_usage \
-       "[-c] FILE [FILE ...]"
+       "[-c] FILE [FILE...]"
 #define touch_full_usage \
        "Update the last-modified date on the given FILE[s]" \
        "\n\nOptions:\n" \
@@ -4011,7 +4021,7 @@ USE_FEATURE_RUN_PARTS_FANCY("\n	-l	Prints names of all matching files even when 
        "$\n"
 
 #define vconfig_trivial_usage \
-       "COMMAND [OPTIONS] ..."
+       "COMMAND [OPTIONS]..."
 #define vconfig_full_usage \
        "Create and remove virtual ethernet devices" \
        "\n\nOptions:\n" \
@@ -4094,7 +4104,7 @@ USE_FEATURE_RUN_PARTS_FANCY("\n	-l	Prints names of all matching files even when 
        "	-Y	Use proxy ('on' or 'off')"
 
 #define which_trivial_usage \
-       "[COMMAND ...]"
+       "[COMMAND...]"
 #define which_full_usage \
        "Locate a COMMAND"
 #define which_example_usage \
