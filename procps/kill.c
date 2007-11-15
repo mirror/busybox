@@ -129,7 +129,7 @@ do_it_now:
 
 	/* Pid or name is required for kill/killall */
 	if (argc < 1) {
-		bb_error_msg("You need to specify whom to kill");
+		bb_error_msg("you need to specify whom to kill");
 		return EXIT_FAILURE;
 	}
 
