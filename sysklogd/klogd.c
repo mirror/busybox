@@ -24,16 +24,17 @@
 static void klogd_signal(int sig ATTRIBUTE_UNUSED)
 {
 	klogctl(7, NULL, 0);
-	klogctl(0, 0, 0);
-	syslog(LOG_NOTICE, "Kernel log daemon exiting");
+	klogctl(0, NULL, 0);
+	syslog(LOG_NOTICE, "klogd: exiting");
 	exit(EXIT_SUCCESS);
 }
 
-#define OPT_LEVEL        1
-#define OPT_FOREGROUND   2
-
-#define KLOGD_LOGBUF_SIZE BUFSIZ
 #define log_buffer bb_common_bufsiz1
+enum {
+	KLOGD_LOGBUF_SIZE = sizeof(log_buffer),
+	OPT_LEVEL      = (1 << 0),
+	OPT_FOREGROUND = (1 << 1),
+};
 
 int klogd_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int klogd_main(int argc, char **argv)

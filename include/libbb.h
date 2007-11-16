@@ -26,7 +26,6 @@
 #include <stdarg.h>
 #include <stddef.h>
 #include <string.h>
-/* #include <strings.h> - said to be obsolete */
 #include <sys/poll.h>
 #include <sys/ioctl.h>
 #include <sys/mman.h>
@@ -40,6 +39,12 @@
 #include <time.h>
 #include <unistd.h>
 #include <utime.h>
+/* Try to pull in PATH_MAX */
+#include <limits.h>
+#include <sys/param.h>
+#ifndef PATH_MAX
+#define PATH_MAX 256
+#endif
 
 #if ENABLE_SELINUX
 #include <selinux/selinux.h>
@@ -62,14 +67,37 @@
 #include "shadow_.h"
 #endif
 
-/* Try to pull in PATH_MAX */
-#include <limits.h>
-#include <sys/param.h>
-#ifndef PATH_MAX
-#define PATH_MAX 256
+#if defined(__GLIBC__) && __GLIBC__ < 2
+int vdprintf(int d, const char *format, va_list ap);
 #endif
+/* klogctl is in libc's klog.h, but we cheat and not #include that */
+int klogctl(int type, char *b, int len);
+/* This is declared here rather than #including <libgen.h> in order to avoid
+ * confusing the two versions of basename.  See the dirname/basename man page
+ * for details. */
+char *dirname(char *path);
+/* Include our own copy of struct sysinfo to avoid binary compatibility
+ * problems with Linux 2.4, which changed things.  Grumble, grumble. */
+struct sysinfo {
+	long uptime;			/* Seconds since boot */
+	unsigned long loads[3];		/* 1, 5, and 15 minute load averages */
+	unsigned long totalram;		/* Total usable main memory size */
+	unsigned long freeram;		/* Available memory size */
+	unsigned long sharedram;	/* Amount of shared memory */
+	unsigned long bufferram;	/* Memory used by buffers */
+	unsigned long totalswap;	/* Total swap space size */
+	unsigned long freeswap;		/* swap space still available */
+	unsigned short procs;		/* Number of current processes */
+	unsigned short pad;			/* Padding needed for m68k */
+	unsigned long totalhigh;	/* Total high memory size */
+	unsigned long freehigh;		/* Available high memory size */
+	unsigned int mem_unit;		/* Memory unit size in bytes */
+	char _f[20 - 2*sizeof(long) - sizeof(int)]; /* Padding: libc5 uses this.. */
+};
+int sysinfo(struct sysinfo* info);
 
-/* Tested to work correctly (IIRC :]) */
+
+/* Tested to work correctly with all int types (IIRC :]) */
 #define MAXINT(T) (T)( \
 	((T)-1) > 0 \
 	? (T)-1 \
@@ -83,7 +111,7 @@
 	)
 
 /* Large file support */
-/* Note that CONFIG_LFS forces bbox to be built with all common ops
+/* Note that CONFIG_LFS=y forces bbox to be built with all common ops
  * (stat, lseek etc) mapped to "largefile" variants by libc.
  * Practically it means that open() automatically has O_LARGEFILE added
  * and all filesize/file_offset parameters and struct members are "large"
@@ -167,7 +195,6 @@
 #endif
 #endif
 
-
 #if defined(__GLIBC__)
 /* glibc uses __errno_location() to get a ptr to errno */
 /* We can just memorize it once - no multithreading in busybox :) */
@@ -175,33 +202,6 @@ extern int *const bb_errno;
 #undef errno
 #define errno (*bb_errno)
 #endif
-
-#if defined(__GLIBC__) && __GLIBC__ < 2
-int vdprintf(int d, const char *format, va_list ap);
-#endif
-// This is declared here rather than #including <libgen.h> in order to avoid
-// confusing the two versions of basename.  See the dirname/basename man page
-// for details.
-char *dirname(char *path);
-/* Include our own copy of struct sysinfo to avoid binary compatibility
- * problems with Linux 2.4, which changed things.  Grumble, grumble. */
-struct sysinfo {
-	long uptime;			/* Seconds since boot */
-	unsigned long loads[3];		/* 1, 5, and 15 minute load averages */
-	unsigned long totalram;		/* Total usable main memory size */
-	unsigned long freeram;		/* Available memory size */
-	unsigned long sharedram;	/* Amount of shared memory */
-	unsigned long bufferram;	/* Memory used by buffers */
-	unsigned long totalswap;	/* Total swap space size */
-	unsigned long freeswap;		/* swap space still available */
-	unsigned short procs;		/* Number of current processes */
-	unsigned short pad;			/* Padding needed for m68k */
-	unsigned long totalhigh;	/* Total high memory size */
-	unsigned long freehigh;		/* Available high memory size */
-	unsigned int mem_unit;		/* Memory unit size in bytes */
-	char _f[20-2*sizeof(long)-sizeof(int)];	/* Padding: libc5 uses this.. */
-};
-int sysinfo(struct sysinfo* info);
 
 unsigned long long monotonic_us(void);
 unsigned monotonic_sec(void);
@@ -788,7 +788,6 @@ extern int set_loop(char **devname, const char *file, unsigned long long offset)
 //TODO: pass buf pointer or return allocated buf (avoid statics)?
 char *bb_askpass(int timeout, const char * prompt);
 int bb_ask_confirmation(void);
-int klogctl(int type, char * b, int len);
 
 extern int bb_parse_mode(const char* s, mode_t* theMode);
 
