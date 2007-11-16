@@ -4112,9 +4112,11 @@ USE_FEATURE_RUN_PARTS_FANCY("\n	-l	Prints names of all matching files even when 
        "/bin/login\n"
 
 #define who_trivial_usage \
-       " "
+       "[-a]"
 #define who_full_usage \
-       "Print the current user names and related information"
+       "Show who is logged on" \
+       "\n\nOptions:\n" \
+       "	-a	show all"
 
 #define whoami_trivial_usage \
        ""

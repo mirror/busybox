@@ -46,15 +46,15 @@ int who_main(int argc, char **argv)
 	struct utmp *ut;
 	struct stat st;
 	char *name;
+	unsigned opt;
 
-	if (argc > 1) {
-		bb_show_usage();
-	}
+	opt_complementary = "=0";
+	opt = getopt32(argv, "a");
 
 	setutent();
 	printf("USER       TTY      IDLE      TIME            HOST\n");
 	while ((ut = getutent()) != NULL) {
-		if (ut->ut_user[0] && ut->ut_type == USER_PROCESS) {
+		if (ut->ut_user[0] && (opt || ut->ut_type == USER_PROCESS)) {
 			/* ut->ut_line is device name of tty - "/dev/" */
 			name = concat_path_file("/dev", ut->ut_line);
 			str6[0] = '?';
