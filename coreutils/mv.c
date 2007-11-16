@@ -58,7 +58,7 @@ int mv_main(int argc, char **argv)
 	if (argc == 2) {
 		dest_exists = cp_mv_stat(last, &dest_stat);
 		if (dest_exists < 0) {
-			return 1;
+			return EXIT_FAILURE;
 		}
 
 		if (!(dest_exists & 2)) {

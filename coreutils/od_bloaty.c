@@ -1411,7 +1411,7 @@ int od_main(int argc, char **argv)
 	/* skip over any unwanted header bytes */
 	skip(n_bytes_to_skip);
 	if (!in_stream)
-		return 1;
+		return EXIT_FAILURE;
 
 	pseudo_offset = (flag_pseudo_start ? pseudo_start - n_bytes_to_skip : 0);
 

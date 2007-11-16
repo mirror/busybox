@@ -374,9 +374,9 @@ int sort_main(int argc, char **argv)
 		for (i = 1; i < linecount; i++)
 			if (compare_keys(&lines[i-1], &lines[i]) > j) {
 				fprintf(stderr, "Check line %d\n", i);
-				return 1;
+				return EXIT_FAILURE;
 			}
-		return 0;
+		return EXIT_SUCCESS;
 	}
 #endif
 	/* Perform the actual sort */

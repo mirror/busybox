@@ -137,5 +137,5 @@ int split_main(int argc, char **argv)
 			src += to_write;
 		} while (bytes_read);
 	}
-	return 0;
+	return EXIT_SUCCESS;
 }
