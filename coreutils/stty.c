@@ -412,7 +412,7 @@ enum {
 };
 
 /* The width of the screen, for output wrapping */
-unsigned max_col = 80; /* default */
+static unsigned max_col = 80; /* default */
 
 struct globals {
 	/* Current position, to know when to wrap */
