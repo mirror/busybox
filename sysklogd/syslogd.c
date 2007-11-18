@@ -299,7 +299,7 @@ static void log_locally(char *msg)
 					| O_NOCTTY | O_APPEND | O_NONBLOCK);
 		if (G.logFD < 0) {
 			/* cannot open logfile? - print to /dev/console then */
-			int fd = device_open(_PATH_CONSOLE, O_WRONLY | O_NOCTTY | O_NONBLOCK);
+			int fd = device_open(DEV_CONSOLE, O_WRONLY | O_NOCTTY | O_NONBLOCK);
 			if (fd < 0)
 				fd = 2; /* then stderr, dammit */
 			full_write(fd, msg, len);

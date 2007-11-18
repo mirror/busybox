@@ -11,9 +11,6 @@
 
 #include "libbb.h"
 #include <paths.h>
-//#include <signal.h>
-//#include <sys/ioctl.h>
-//#include <sys/wait.h>
 #include <sys/reboot.h>
 
 #if ENABLE_FEATURE_INIT_SYSLOG
@@ -977,7 +974,6 @@ int init_main(int argc, char **argv)
 			BB_EXECVP(argv[0], argv);
 		} else if (enforce > 0) {
 			/* SELinux in enforcing mode but load_policy failed */
-			/* At this point, we probably can't open /dev/console, so log() won't work */
 			message(L_CONSOLE, "Cannot load SELinux Policy. "
 				"Machine is in enforcing mode. Halting now.");
 			exit(1);
