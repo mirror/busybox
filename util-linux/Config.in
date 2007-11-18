@@ -210,6 +210,22 @@ config HEXDUMP
 	  The hexdump utility is used to display binary data in a readable
 	  way that is comparable to the output from most hex editors.
 
+config HD
+	bool "hd"
+	default n
+	help
+	  hd is an alias to hexdump -C.
+
+config FEATURE_HEXDUMP_REVERSE
+	bool "Support -R, reverse of 'hexdump -Cv'"
+	default n
+	depends on HEXDUMP
+	help
+	  The hexdump utility is used to display binary data in an ascii
+	  readable way. This option creates binary data from an ascii input.
+	  NB: this option is non-standard. It's unwise to use it in scripts
+	  aimed to be portable.
+
 config HWCLOCK
 	bool "hwclock"
 	default n

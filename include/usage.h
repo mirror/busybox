@@ -1384,21 +1384,28 @@
        "daemon:x:1:1:daemon:/usr/sbin:/bin/sh\n"
 
 #define hexdump_trivial_usage \
-       "[-[bcCdefnosvx]] [OPTION] FILE"
+       "[-bcCdefnosvx" USE_FEATURE_HEXDUMP_REVERSE("R") "] FILE..."
 #define hexdump_full_usage \
        "Display file(s) or standard input in a user specified format" \
-       "\n\nOptions:\n" \
-       "	-b		One-byte octal display\n" \
-       "	-c		One-byte character display\n" \
-       "	-C		Canonical hex+ASCII, 16 bytes per line\n" \
-       "	-d		Two-byte decimal display\n" \
-       "	-e FORMAT STRING\n" \
-       "	-f FORMAT FILE\n" \
-       "	-n LENGTH	Interpret only LENGTH bytes of input\n" \
-       "	-o		Two-byte octal display\n" \
-       "	-s OFFSET	Skip OFFSET bytes\n" \
-       "	-v		Display all input data\n" \
-       "	-x		Two-byte hexadecimal display"
+       "\n\nOptions:" \
+     "\n	-b		One-byte octal display" \
+     "\n	-c		One-byte character display" \
+     "\n	-C		Canonical hex+ASCII, 16 bytes per line" \
+     "\n	-d		Two-byte decimal display" \
+     "\n	-e FORMAT STRING" \
+     "\n	-f FORMAT FILE" \
+     "\n	-n LENGTH	Interpret only LENGTH bytes of input" \
+     "\n	-o		Two-byte octal display" \
+     "\n	-s OFFSET	Skip OFFSET bytes" \
+     "\n	-v		Display all input data" \
+     "\n	-x		Two-byte hexadecimal display" \
+	USE_FEATURE_HEXDUMP_REVERSE( \
+     "\n	-R		Reverse of 'hexdump -Cv'") \
+
+#define hd_trivial_usage \
+       "FILE..."
+#define hd_full_usage \
+       "hd is an alias for hexdump -C"
 
 #define hostid_trivial_usage \
        ""
