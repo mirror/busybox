@@ -104,11 +104,11 @@ while test "$LDLIBS"; do
 		-Wl,--start-group $O_FILES $A_FILES -Wl,--end-group \
 		$l_list
 	if test $? = 0; then
-	    echo "Library $one is not needed"
+	    echo " Library $one is not needed"
 	    LDLIBS="$without_one"
 	    all_needed=false
 	else
-	    echo "Library $one is needed"
+	    echo " Library $one is needed"
 	fi
     done
     # All libs were needed, can't remove any
@@ -120,7 +120,7 @@ while test "$LDLIBS"; do
 done
 
 # Make the binary with final, minimal list of libs
-echo "Final link with: $LDLIBS"
+echo "Final link with: ${LDLIBS:-<none>}"
 l_list=`echo "$LDLIBS" | sed -e 's/ / -l/g' -e 's/^/-l/' -e 's/^-l$//'`
 test "x$l_list" != "x" && l_list="-Wl,--start-group $l_list -Wl,--end-group"
 # --verbose gives us gobs of info to stdout (e.g. linker script used)
