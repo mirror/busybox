@@ -177,7 +177,7 @@ sub build_ref_tables
 	} else {
         # exporting all symbols
         foreach ( @$sym_ar ) {
-            / [ABCDGRST] (.*)$/ and do {
+            / [ABCDGRSTW] (.*)$/ and do {
                 warn "syma = $1\n" if $verbose;
                 $exp->{$1} = $name;
             };
