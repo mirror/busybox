@@ -21,12 +21,6 @@
 /* taken from linux/sockios.h */
 #define SIOCSIFNAME	0x8923		/* set interface name */
 
-static void on_off(const char *msg) ATTRIBUTE_NORETURN;
-static void on_off(const char *msg)
-{
-	bb_error_msg_and_die("error: argument of \"%s\" must be \"on\" or \"off\"", msg);
-}
-
 /* Exits on error */
 static int get_ctl_fd(void)
 {
@@ -158,8 +152,14 @@ static void set_address(struct ifreq *ifr, int brd)
 }
 
 
+static void die_must_be_on_off(const char *msg) ATTRIBUTE_NORETURN;
+static void die_must_be_on_off(const char *msg)
+{
+	bb_error_msg_and_die("argument of \"%s\" must be \"on\" or \"off\"", msg);
+}
+
 /* Return value becomes exitcode. It's okay to not return at all */
-static int do_set(int argc, char **argv)
+static int do_set(char **argv)
 {
 	char *dev = NULL;
 	uint32_t mask = 0;
@@ -172,53 +172,63 @@ static int do_set(int argc, char **argv)
 	char *newname = NULL;
 	int htype, halen;
 	static const char keywords[] ALIGN1 =
-		"up\0""down\0""name\0""mtu\0""multicast\0""arp\0""addr\0""dev\0"
-		"on\0""off\0";
-	enum { ARG_up = 1, ARG_down, ARG_name, ARG_mtu, ARG_multicast, ARG_arp,
-		ARG_addr, ARG_dev, PARM_on, PARM_off };
+		"up\0""down\0""name\0""mtu\0""multicast\0""arp\0""addr\0""dev\0";
+	enum { ARG_up = 0, ARG_down, ARG_name, ARG_mtu, ARG_multicast, ARG_arp,
+		ARG_addr, ARG_dev };
+	static const char str_on_off[] ALIGN1 = "on\0""off\0";
+	enum { PARM_on = 0, PARM_off };
 	smalluint key;
 
-	while (argc > 0) {
-		key = index_in_strings(keywords, *argv) + 1;
+	while (*argv) {
+		key = index_in_strings(keywords, *argv);
 		if (key == ARG_up) {
 			mask |= IFF_UP;
 			flags |= IFF_UP;
-		} else if (key == ARG_down) {
+		}
+		if (key == ARG_down) {
 			mask |= IFF_UP;
 			flags &= ~IFF_UP;
-		} else if (key == ARG_name) {
+		}
+		if (key == ARG_name) {
 			NEXT_ARG();
 			newname = *argv;
-		} else if (key == ARG_mtu) {
+		}
+		if (key == ARG_mtu) {
 			NEXT_ARG();
 			if (mtu != -1)
 				duparg("mtu", *argv);
 			if (get_integer(&mtu, *argv, 0))
 				invarg(*argv, "mtu");
-		} else if (key == ARG_multicast) {
+		}
+		if (key == ARG_multicast) {
+			int param;
 			NEXT_ARG();
 			mask |= IFF_MULTICAST;
-			key = index_in_strings(keywords, *argv) + 1;
-			if (key == PARM_on) {
+			param = index_in_strings(str_on_off, *argv);
+			if (param < 0)
+				die_must_be_on_off("multicast");
+			if (param == PARM_on)
 				flags |= IFF_MULTICAST;
-			} else if (key == PARM_off) {
+			else
 				flags &= ~IFF_MULTICAST;
-			} else
-				on_off("multicast");
-		} else if (key == ARG_arp) {
+		}
+		if (key == ARG_arp) {
+			int param;
 			NEXT_ARG();
 			mask |= IFF_NOARP;
-			key = index_in_strings(keywords, *argv) + 1;
-			if (key == PARM_on) {
+			param = index_in_strings(str_on_off, *argv);
+			if (param < 0)
+				die_must_be_on_off("arp");
+			if (param == PARM_on)
 				flags &= ~IFF_NOARP;
-			} else if (key == PARM_off) {
+			else
 				flags |= IFF_NOARP;
-			} else
-				on_off("arp");
-		} else if (key == ARG_addr) {
+		}
+		if (key == ARG_addr) {
 			NEXT_ARG();
 			newaddr = *argv;
-		} else {
+		}
+		if (key >= ARG_dev) {
 			if (key == ARG_dev) {
 				NEXT_ARG();
 			}
@@ -226,7 +236,7 @@ static int do_set(int argc, char **argv)
 				duparg2("dev", *argv);
 			dev = *argv;
 		}
-		argc--; argv++;
+		argv++;
 	}
 
 	if (!dev) {
@@ -266,26 +276,26 @@ static int do_set(int argc, char **argv)
 	return 0;
 }
 
-static int ipaddr_list_link(int argc, char **argv)
+static int ipaddr_list_link(char **argv)
 {
 	preferred_family = AF_PACKET;
-	return ipaddr_list_or_flush(argc, argv, 0);
+	return ipaddr_list_or_flush(argv, 0);
 }
 
 /* Return value becomes exitcode. It's okay to not return at all */
-int do_iplink(int argc, char **argv)
+int do_iplink(char **argv)
 {
 	static const char keywords[] ALIGN1 =
 		"set\0""show\0""lst\0""list\0";
-	smalluint key;
-	if (argc <= 0)
-		return ipaddr_list_link(0, NULL);
-	key = index_in_substrings(keywords, *argv) + 1;
-	if (key == 0)
+	int key;
+	if (!*argv)
+		return ipaddr_list_link(argv);
+	key = index_in_substrings(keywords, *argv);
+	if (key < 0)
 		bb_error_msg_and_die(bb_msg_invalid_arg, *argv, applet_name);
-	argc--; argv++;
-	if (key == 1) /* set */
-		return do_set(argc, argv);
-	else /* show, lst, list */
-		return ipaddr_list_link(argc, argv);
+	argv++;
+	if (key == 0) /* set */
+		return do_set(argv);
+	/* show, lst, list */
+	return ipaddr_list_link(argv);
 }

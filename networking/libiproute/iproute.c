@@ -292,7 +292,7 @@ static int print_route(struct sockaddr_nl *who ATTRIBUTE_UNUSED,
 }
 
 /* Return value becomes exitcode. It's okay to not return at all */
-static int iproute_modify(int cmd, unsigned flags, int argc, char **argv)
+static int iproute_modify(int cmd, unsigned flags, char **argv)
 {
 	static const char keywords[] ALIGN1 =
 		"src\0""via\0""mtu\0""lock\0""protocol\0"USE_FEATURE_IP_RULE("table\0")
@@ -344,7 +344,7 @@ USE_FEATURE_IP_RULE(ARG_table,)
 	mxrta->rta_type = RTA_METRICS;
 	mxrta->rta_len = RTA_LENGTH(0);
 
-	while (argc > 0) {
+	while (*argv) {
 		arg = index_in_substrings(keywords, *argv);
 		if (arg == ARG_src) {
 			inet_prefix addr;
@@ -417,7 +417,7 @@ USE_FEATURE_IP_RULE(ARG_table,)
 				addattr_l(&req.n, sizeof(req), RTA_DST, &dst.data, dst.bytelen);
 			}
 		}
-		argc--; argv++;
+		argv++;
 	}
 
 	xrtnl_open(&rth);
@@ -511,7 +511,7 @@ static void iproute_reset_filter(void)
 }
 
 /* Return value becomes exitcode. It's okay to not return at all */
-static int iproute_list_or_flush(int argc, char **argv, int flush)
+static int iproute_list_or_flush(char **argv, int flush)
 {
 	int do_ipv6 = preferred_family;
 	struct rtnl_handle rth;
@@ -534,10 +534,10 @@ static int iproute_list_or_flush(int argc, char **argv, int flush)
 	iproute_reset_filter();
 	filter.tb = RT_TABLE_MAIN;
 
-	if (flush && argc <= 0)
+	if (flush && !*argv)
 		bb_error_msg_and_die(bb_msg_requires_arg, "\"ip route flush\"");
 
-	while (argc > 0) {
+	while (*argv) {
 		arg = index_in_substrings(keywords, *argv);
 		if (arg == ARG_proto) {
 			uint32_t prot = 0;
@@ -602,7 +602,6 @@ static int iproute_list_or_flush(int argc, char **argv, int flush)
 				filter.rdst = filter.mdst;
 			}
 		}
-		argc--;
 		argv++;
 	}
 
@@ -667,7 +666,7 @@ static int iproute_list_or_flush(int argc, char **argv, int flush)
 
 
 /* Return value becomes exitcode. It's okay to not return at all */
-static int iproute_get(int argc, char **argv)
+static int iproute_get(char **argv)
 {
 	struct rtnl_handle rth;
 	struct {
@@ -698,7 +697,7 @@ static int iproute_get(int argc, char **argv)
 	req.r.rtm_dst_len = 0;
 	req.r.rtm_tos = 0;
 
-	while (argc > 0) {
+	while (*argv) {
 		switch (index_in_strings(options, *argv)) {
 			case 0: /* from */
 			{
@@ -744,7 +743,7 @@ static int iproute_get(int argc, char **argv)
 				}
 				req.r.rtm_dst_len = addr.bitlen;
 			}
-			argc--; argv++;
+			argv++;
 		}
 	}
 
@@ -822,7 +821,7 @@ static int iproute_get(int argc, char **argv)
 }
 
 /* Return value becomes exitcode. It's okay to not return at all */
-int do_iproute(int argc, char **argv)
+int do_iproute(char **argv)
 {
 	static const char ip_route_commands[] ALIGN1 =
 	/*0-3*/	"add\0""append\0""change\0""chg\0"
@@ -852,10 +851,10 @@ int do_iproute(int argc, char **argv)
 			cmd = RTM_DELROUTE;
 			break;
 		case 5: /* get */
-			return iproute_get(argc-1, argv+1);
+			return iproute_get(argv+1);
 		case 6: /* list */
 		case 7: /* show */
-			return iproute_list_or_flush(argc-1, argv+1, 0);
+			return iproute_list_or_flush(argv+1, 0);
 		case 8: /* prepend */
 			flags = NLM_F_CREATE;
 			break;
@@ -866,10 +865,10 @@ int do_iproute(int argc, char **argv)
 			flags = NLM_F_EXCL;
 			break;
 		case 11: /* flush */
-			return iproute_list_or_flush(argc-1, argv+1, 1);
+			return iproute_list_or_flush(argv+1, 1);
 		default:
 			bb_error_msg_and_die("unknown command %s", *argv);
 	}
 
-	return iproute_modify(cmd, flags, argc-1, argv+1);
+	return iproute_modify(cmd, flags, argv+1);
 }

@@ -206,21 +206,6 @@ extern char **environ;
 # define INETD_SETPROCTITLE
 #endif
 
-typedef int8_t socktype_t;
-typedef int8_t family_t;
-struct BUG_too_small {
-	char BUG_socktype_t_too_small[(0
-			| SOCK_STREAM
-			| SOCK_DGRAM
-			| SOCK_RDM
-			| SOCK_SEQPACKET
-			| SOCK_RAW) <= 127 ? 1 : -1];
-	char BUG_family_t_too_small[(0
-			| AF_INET
-			| AF_INET6
-			| AF_UNIX) <= 127 ? 1 : -1];
-};
-
 typedef struct servtab_t {
 	/* The most frequently referenced one: */
 	int se_fd;                            /* open descriptor */

@@ -410,7 +410,7 @@ static void ipaddr_reset_filter(int _oneline)
 }
 
 /* Return value becomes exitcode. It's okay to not return at all */
-int ipaddr_list_or_flush(int argc, char **argv, int flush)
+int ipaddr_list_or_flush(char **argv, int flush)
 {
 	static const char option[] ALIGN1 = "to\0""scope\0""up\0""label\0""dev\0";
 
@@ -428,7 +428,7 @@ int ipaddr_list_or_flush(int argc, char **argv, int flush)
 		filter.family = preferred_family;
 
 	if (flush) {
-		if (argc <= 0) {
+		if (!*argv) {
 			bb_error_msg_and_die(bb_msg_requires_arg, "flush");
 		}
 		if (filter.family == AF_PACKET) {
@@ -436,7 +436,7 @@ int ipaddr_list_or_flush(int argc, char **argv, int flush)
 		}
 	}
 
-	while (argc > 0) {
+	while (*argv) {
 		const int option_num = index_in_strings(option, *argv);
 		switch (option_num) {
 			case 0: /* to */
@@ -477,7 +477,6 @@ int ipaddr_list_or_flush(int argc, char **argv, int flush)
 				filter_dev = *argv;
 		}
 		argv++;
-		argc--;
 	}
 
 	xrtnl_open(&rth);
@@ -517,26 +516,26 @@ int ipaddr_list_or_flush(int argc, char **argv, int flush)
 
 	if (filter.family && filter.family != AF_PACKET) {
 		struct nlmsg_list **lp;
-		lp=&linfo;
+		lp = &linfo;
 
 		if (filter.oneline)
 			no_link = 1;
 
-		while ((l=*lp)!=NULL) {
+		while ((l = *lp) != NULL) {
 			int ok = 0;
 			struct ifinfomsg *ifi = NLMSG_DATA(&l->h);
 			struct nlmsg_list *a;
 
-			for (a=ainfo; a; a=a->next) {
+			for (a = ainfo; a; a = a->next) {
 				struct nlmsghdr *n = &a->h;
 				struct ifaddrmsg *ifa = NLMSG_DATA(n);
 
 				if (ifa->ifa_index != ifi->ifi_index ||
 				    (filter.family && filter.family != ifa->ifa_family))
 					continue;
-				if ((filter.scope^ifa->ifa_scope)&filter.scopemask)
+				if ((filter.scope ^ ifa->ifa_scope) & filter.scopemask)
 					continue;
-				if ((filter.flags^ifa->ifa_flags)&filter.flagmask)
+				if ((filter.flags ^ ifa->ifa_flags) & filter.flagmask)
 					continue;
 				if (filter.pfx.family || filter.label) {
 					struct rtattr *tb[IFA_MAX+1];
@@ -581,7 +580,6 @@ int ipaddr_list_or_flush(int argc, char **argv, int flush)
 			if (filter.family != AF_PACKET)
 				print_selected_addrinfo(ifi->ifi_index, ainfo, stdout);
 		}
-		fflush(stdout); /* why? */
 	}
 
 	return 0;
@@ -597,7 +595,7 @@ static int default_scope(inet_prefix *lcl)
 }
 
 /* Return value becomes exitcode. It's okay to not return at all */
-static int ipaddr_modify(int cmd, int argc, char **argv)
+static int ipaddr_modify(int cmd, char **argv)
 {
 	static const char option[] ALIGN1 =
 		"peer\0""remote\0""broadcast\0""brd\0"
@@ -625,7 +623,7 @@ static int ipaddr_modify(int cmd, int argc, char **argv)
 	req.n.nlmsg_type = cmd;
 	req.ifa.ifa_family = preferred_family;
 
-	while (argc > 0) {
+	while (*argv) {
 		const int option_num = index_in_strings(option, *argv);
 		switch (option_num) {
 			case 0: /* peer */
@@ -653,8 +651,7 @@ static int ipaddr_modify(int cmd, int argc, char **argv)
 				}
 				if (LONE_CHAR(*argv, '+')) {
 					brd_len = -1;
-				}
-				else if (LONE_DASH(*argv)) {
+				} else if (LONE_DASH(*argv)) {
 					brd_len = -2;
 				} else {
 					get_addr(&addr, *argv, req.ifa.ifa_family);
@@ -713,12 +710,11 @@ static int ipaddr_modify(int cmd, int argc, char **argv)
 				addattr_l(&req.n, sizeof(req), IFA_LOCAL, &lcl.data, lcl.bytelen);
 				local_len = lcl.bytelen;
 		}
-		argc--;
 		argv++;
 	}
 
 	if (d == NULL) {
-		bb_error_msg(bb_msg_requires_arg,"\"dev\"");
+		bb_error_msg(bb_msg_requires_arg, "\"dev\"");
 		return -1;
 	}
 	if (l && strncmp(d, l, strlen(d)) != 0) {
@@ -766,7 +762,7 @@ static int ipaddr_modify(int cmd, int argc, char **argv)
 }
 
 /* Return value becomes exitcode. It's okay to not return at all */
-int do_ipaddr(int argc, char **argv)
+int do_ipaddr(char **argv)
 {
 	static const char commands[] ALIGN1 =
 		"add\0""delete\0""list\0""show\0""lst\0""flush\0";
@@ -775,17 +771,16 @@ int do_ipaddr(int argc, char **argv)
 
 	if (*argv) {
 		command_num = index_in_substrings(commands, *argv);
+		if (command_num < 0 || command_num > 5)
+			bb_error_msg_and_die("unknown command %s", *argv);
+		argv++;
 	}
-	if (command_num < 0 || command_num > 5)
-		bb_error_msg_and_die("unknown command %s", *argv);
-	--argc;
-	++argv;
 	if (command_num == 0) /* add */
-		return ipaddr_modify(RTM_NEWADDR, argc, argv);
-	else if (command_num == 1) /* delete */
-		return ipaddr_modify(RTM_DELADDR, argc, argv);
-	else if (command_num == 5) /* flush */
-		return ipaddr_list_or_flush(argc, argv, 1);
-	else /* 2 == list, 3 == show, 4 == lst */
-		return ipaddr_list_or_flush(argc, argv, 0);
+		return ipaddr_modify(RTM_NEWADDR, argv);
+	if (command_num == 1) /* delete */
+		return ipaddr_modify(RTM_DELADDR, argv);
+	if (command_num == 5) /* flush */
+		return ipaddr_list_or_flush(argv, 1);
+	/* 2 == list, 3 == show, 4 == lst */
+	return ipaddr_list_or_flush(argv, 0);
 }

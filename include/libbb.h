@@ -289,6 +289,30 @@ void xpipe(int filedes[2]);
 off_t xlseek(int fd, off_t offset, int whence);
 off_t fdlength(int fd);
 
+/* Useful for having small structure members/global variables */
+typedef int8_t socktype_t;
+typedef int8_t family_t;
+struct BUG_too_small {
+	char BUG_socktype_t_too_small[(0
+			| SOCK_STREAM
+			| SOCK_DGRAM
+			| SOCK_RDM
+			| SOCK_SEQPACKET
+			| SOCK_RAW
+			) <= 127 ? 1 : -1];
+	char BUG_family_t_too_small[(0
+			| AF_UNSPEC
+			| AF_INET
+			| AF_INET6
+			| AF_UNIX
+			| AF_PACKET
+			| AF_NETLINK
+			/* | AF_DECnet */
+			/* | AF_IPX */
+			) <= 127 ? 1 : -1];
+};
+
+
 int xsocket(int domain, int type, int protocol);
 void xbind(int sockfd, struct sockaddr *my_addr, socklen_t addrlen);
 void xlisten(int s, int backlog);

@@ -6,7 +6,7 @@
 #include "ll_map.h"
 #include "rtm_map.h"
 
-extern int preferred_family;
+extern family_t preferred_family;
 extern smallint show_stats;    /* UNUSED */
 extern smallint show_details;  /* UNUSED */
 extern smallint show_raw;      /* UNUSED */
@@ -26,7 +26,7 @@ extern char _SL_;
 
 extern void incomplete_command(void) ATTRIBUTE_NORETURN;
 
-#define NEXT_ARG() do { argv++; if (--argc <= 0) incomplete_command(); } while (0)
+#define NEXT_ARG() do { if (!*++argv) incomplete_command(); } while (0)
 
 typedef struct
 {

@@ -126,7 +126,7 @@ static int do_del_ioctl(const char *basedev, struct ip_tunnel_parm *p)
 }
 
 /* Dies on error */
-static void parse_args(int argc, char **argv, int cmd, struct ip_tunnel_parm *p)
+static void parse_args(char **argv, int cmd, struct ip_tunnel_parm *p)
 {
 	static const char keywords[] ALIGN1 =
 		"mode\0""ipip\0""ip/ip\0""gre\0""gre/ip\0""sit\0""ipv6/ip\0"
@@ -157,7 +157,7 @@ static void parse_args(int argc, char **argv, int cmd, struct ip_tunnel_parm *p)
 #endif
 	p->iph.frag_off = htons(IP_DF);
 
-	while (argc > 0) {
+	while (*argv) {
 		key = index_in_strings(keywords, *argv);
 		if (key == ARG_mode) {
 			NEXT_ARG();
@@ -289,7 +289,6 @@ static void parse_args(int argc, char **argv, int cmd, struct ip_tunnel_parm *p)
 			}
 		}
 		count++;
-		argc--;
 		argv++;
 	}
 
@@ -327,11 +326,11 @@ static void parse_args(int argc, char **argv, int cmd, struct ip_tunnel_parm *p)
 
 
 /* Return value becomes exitcode. It's okay to not return at all */
-static int do_add(int cmd, int argc, char **argv)
+static int do_add(int cmd, char **argv)
 {
 	struct ip_tunnel_parm p;
 
-	parse_args(argc, argv, cmd, &p);
+	parse_args(argv, cmd, &p);
 
 	if (p.iph.ttl && p.iph.frag_off == 0) {
 		bb_error_msg_and_die("ttl != 0 and noptmudisc are incompatible");
@@ -350,11 +349,11 @@ static int do_add(int cmd, int argc, char **argv)
 }
 
 /* Return value becomes exitcode. It's okay to not return at all */
-static int do_del(int argc, char **argv)
+static int do_del(char **argv)
 {
 	struct ip_tunnel_parm p;
 
-	parse_args(argc, argv, SIOCDELTUNNEL, &p);
+	parse_args(argv, SIOCDELTUNNEL, &p);
 
 	switch (p.iph.protocol) {
 	case IPPROTO_IPIP:
@@ -487,12 +486,12 @@ static void do_tunnels_list(struct ip_tunnel_parm *p)
 }
 
 /* Return value becomes exitcode. It's okay to not return at all */
-static int do_show(int argc, char **argv)
+static int do_show(char **argv)
 {
 	int err;
 	struct ip_tunnel_parm p;
 
-	parse_args(argc, argv, SIOCGETTUNNEL, &p);
+	parse_args(argv, SIOCGETTUNNEL, &p);
 
 	switch (p.iph.protocol) {
 	case IPPROTO_IPIP:
@@ -517,25 +516,24 @@ static int do_show(int argc, char **argv)
 }
 
 /* Return value becomes exitcode. It's okay to not return at all */
-int do_iptunnel(int argc, char **argv)
+int do_iptunnel(char **argv)
 {
 	static const char keywords[] ALIGN1 =
 		"add\0""change\0""delete\0""show\0""list\0""lst\0";
 	enum { ARG_add = 0, ARG_change, ARG_del, ARG_show, ARG_list, ARG_lst };
 	int key;
 
-	if (argc) {
+	if (*argv) {
 		key = index_in_substrings(keywords, *argv);
 		if (key < 0)
 			bb_error_msg_and_die(bb_msg_invalid_arg, *argv, applet_name);
-		--argc;
-		++argv;
+		argv++;
 		if (key == ARG_add)
-			return do_add(SIOCADDTUNNEL, argc, argv);
+			return do_add(SIOCADDTUNNEL, argv);
 		if (key == ARG_change)
-			return do_add(SIOCCHGTUNNEL, argc, argv);
+			return do_add(SIOCCHGTUNNEL, argv);
 		if (key == ARG_del)
-			return do_del(argc, argv);
+			return do_del(argv);
 	}
-	return do_show(argc, argv);
+	return do_show(argv);
 }
