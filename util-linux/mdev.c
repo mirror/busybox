@@ -35,154 +35,146 @@ static void make_device(char *path, int delete)
 	/* Try to read major/minor string.  Note that the kernel puts \n after
 	 * the data, so we don't need to worry about null terminating the string
 	 * because sscanf() will stop at the first nondigit, which \n is.  We
-	 * also depend on path having writeable space after it. */
-
+	 * also depend on path having writeable space after it.
+	 */
 	if (!delete) {
 		strcat(path, "/dev");
 		len = open_read_close(path, temp + 1, 64);
 		*temp++ = 0;
-		if (len < 1) return;
+		if (len < 1)
+			return;
 	}
 
 	/* Determine device name, type, major and minor */
-
 	device_name = bb_basename(path);
-	type = path[5]=='c' ? S_IFCHR : S_IFBLK;
-
-	/* If we have a config file, look up permissions for this device */
+	type = (path[5] == 'c' ? S_IFCHR : S_IFBLK);
 
 	if (ENABLE_FEATURE_MDEV_CONF) {
-		char *conf, *pos, *end;
-		int line, fd;
+		FILE *fp;
+		char *line, *vline;
+		size_t lineno = 0;
 
-		/* mmap the config file */
-		fd = open("/etc/mdev.conf", O_RDONLY);
-		if (fd < 0)
-			goto end_parse;
-		len = xlseek(fd, 0, SEEK_END);
-		conf = mmap(NULL, len, PROT_READ, MAP_PRIVATE, fd, 0);
-		close(fd);
-		if (!conf)
+		/* If we have a config file, look up the user settings */
+		fp = fopen_or_warn("/etc/mdev.conf", "r");
+		if (!fp)
 			goto end_parse;
 
-		line = 0;
-		/* Loop through lines in mmaped file*/
-		for (pos=conf; pos-conf<len;) {
+		while ((vline = line = xmalloc_getline(fp)) != NULL) {
 			int field;
-			char *end2;
 
-			line++;
-			/* find end of this line */
-			for (end=pos; end-conf<len && *end!='\n'; end++)
-				;
+			/* A pristine copy for command execution. */
+			char *orig_line;
+			if (ENABLE_FEATURE_MDEV_EXEC)
+				orig_line = xstrdup(line);
+
+			++lineno;
 
 			/* Three fields: regex, uid:gid, mode */
-			for (field=0; field < (3 + ENABLE_FEATURE_MDEV_EXEC);
-					field++)
-			{
-				/* Skip whitespace */
-				while (pos<end && isspace(*pos)) pos++;
-				if (pos==end || *pos=='#') break;
-				for (end2=pos;
-					end2<end && !isspace(*end2) && *end2!='#'; end2++)
-					;
+			for (field = 0; field < (3 + ENABLE_FEATURE_MDEV_EXEC); ++field) {
+
+				/* Find a non-empty field */
+				char *val;
+				do {
+					val = strtok(vline, " \t");
+					vline = NULL;
+				} while (val && !*val);
+				if (!val)
+					break;
 
 				if (field == 0) {
-					/* Regex to match this device */
 
-					char *regex = xstrndup(pos, end2-pos);
+					/* Regex to match this device */
 					regex_t match;
 					regmatch_t off;
 					int result;
 
 					/* Is this it? */
-					xregcomp(&match,regex, REG_EXTENDED);
+					xregcomp(&match, val, REG_EXTENDED);
 					result = regexec(&match, device_name, 1, &off, 0);
 					regfree(&match);
-					free(regex);
 
 					/* If not this device, skip rest of line */
-					if (result || off.rm_so
-							|| off.rm_eo != strlen(device_name))
-						break;
-				}
-				if (field == 1) {
-					/* uid:gid */
+					if (result || off.rm_so || off.rm_eo != strlen(device_name))
+						goto next_line;
 
-					char *s, *s2;
+				} else if (field == 1) {
 
-					/* Find : */
-					for (s=pos; s<end2 && *s!=':'; s++)
-						;
-					if (s == end2) break;
+					/* uid:gid device ownership */
+					struct passwd *pass;
+					struct group *grp;
+
+					char *str_uid = val;
+					char *str_gid = strchr(val, ':');
+					if (str_gid)
+						*str_gid = '\0', ++str_gid;
 
 					/* Parse UID */
-					uid = strtoul(pos, &s2, 10);
-					if (s != s2) {
-						struct passwd *pass;
-						char *_unam = xstrndup(pos, s-pos);
-						pass = getpwnam(_unam);
-						free(_unam);
-						if (!pass) break;
+					pass = getpwnam(str_uid);
+					if (pass)
 						uid = pass->pw_uid;
-					}
-					s++;
-					/* parse GID */
-					gid = strtoul(s, &s2, 10);
-					if (end2 != s2) {
-						struct group *grp;
-						char *_grnam = xstrndup(s, end2-s);
-						grp = getgrnam(_grnam);
-						free(_grnam);
-						if (!grp) break;
-						gid = grp->gr_gid;
-					}
-				}
-				if (field == 2) {
-					/* mode */
+					else
+						uid = strtoul(str_uid, NULL, 10);
 
-					mode = strtoul(pos, &pos, 8);
-					if (pos != end2) break;
-				}
-				if (ENABLE_FEATURE_MDEV_EXEC && field == 3) {
-					// Command to run
+					/* parse GID */
+					grp = getgrnam(str_gid);
+					if (grp)
+						gid = grp->gr_gid;
+					else
+						gid = strtoul(str_gid, NULL, 10);
+
+				} else if (field == 2) {
+
+					/* Mode device permissions */
+					mode = strtoul(val, NULL, 8);
+
+				} else if (ENABLE_FEATURE_MDEV_EXEC && field == 3) {
+
+					/* Optional command to run */
 					const char *s = "@$*";
-					const char *s2;
-					s2 = strchr(s, *pos++);
+					const char *s2 = strchr(s, *val);
+
 					if (!s2) {
-						// Force error
+						/* Force error */
 						field = 1;
 						break;
 					}
-					if ((s2-s+1) & (1<<delete))
-						command = xstrndup(pos, end-pos);
-				}
 
-				pos = end2;
+					/* Correlate the position in the "@$*" with the delete
+					 * step so that we get the proper behavior.
+					 */
+					if ((s2 - s + 1) & (1 << delete))
+						command = xstrdup(orig_line + (val + 1 - line));
+				}
 			}
 
 			/* Did everything parse happily? */
+			if (field <= 2)
+				bb_error_msg_and_die("bad line %i", lineno);
 
-			if (field > 2) break;
-			if (field) bb_error_msg_and_die("bad line %d",line);
-
-			/* Next line */
-			pos = ++end;
+ next_line:
+			free(line);
+			if (ENABLE_FEATURE_MDEV_EXEC)
+				free(orig_line);
 		}
-		munmap(conf, len);
+
+		if (ENABLE_FEATURE_CLEAN_UP)
+			fclose(fp);
+
  end_parse:	/* nothing */ ;
 	}
 
 	umask(0);
 	if (!delete) {
-		if (sscanf(temp, "%d:%d", &major, &minor) != 2) return;
+		if (sscanf(temp, "%d:%d", &major, &minor) != 2)
+			return;
 		if (mknod(device_name, mode | type, makedev(major, minor)) && errno != EEXIST)
 			bb_perror_msg_and_die("mknod %s", device_name);
 
 		if (major == root_major && minor == root_minor)
 			symlink(device_name, "root");
 
-		if (ENABLE_FEATURE_MDEV_CONF) chown(device_name, uid, gid);
+		if (ENABLE_FEATURE_MDEV_CONF)
+			chown(device_name, uid, gid);
 	}
 	if (command) {
 		/* setenv will leak memory, so use putenv */
@@ -195,7 +187,8 @@ static void make_device(char *path, int delete)
 		free(s);
 		free(command);
 	}
-	if (delete) unlink(device_name);
+	if (delete)
+		remove_file(device_name, FILEUTILS_FORCE);
 }
 
 /* File callback for /sys/ traversal */
@@ -296,9 +289,12 @@ int mdev_main(int argc, char **argv)
 
 	xchdir("/dev");
 
-	/* Scan */
-
 	if (argc == 2 && !strcmp(argv[1],"-s")) {
+
+		/* Scan:
+		 * mdev -s
+		 */
+
 		struct stat st;
 
 		xstat("/", &st);
@@ -313,9 +309,14 @@ int mdev_main(int argc, char **argv)
 			ACTION_RECURSE | ACTION_FOLLOWLINKS,
 			fileAction, dirAction, temp, 0);
 
-	/* Hotplug */
-
 	} else {
+
+		/* Hotplug:
+		 * env ACTION=... DEVPATH=... mdev
+		 * ACTION can be "add" or "remove"
+		 * DEVPATH is like "/block/sda" or "/class/input/mice"
+		 */
+
 		action = getenv("ACTION");
 		env_path = getenv("DEVPATH");
 		if (!action || !env_path)
@@ -332,6 +333,8 @@ int mdev_main(int argc, char **argv)
 		}
 	}
 
-	if (ENABLE_FEATURE_CLEAN_UP) RELEASE_CONFIG_BUFFER(temp);
+	if (ENABLE_FEATURE_CLEAN_UP)
+		RELEASE_CONFIG_BUFFER(temp);
+
 	return 0;
 }
