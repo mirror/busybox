@@ -4567,6 +4567,7 @@ stoppedjobs(void)
  */
 
 #define EMPTY -2                /* marks an unused slot in redirtab */
+#define CLOSED -3               /* marks a slot of previously-closed fd */
 #ifndef PIPE_BUF
 # define PIPESIZE 4096          /* amount of buffering in a pipe */
 #else
@@ -4791,7 +4792,7 @@ redirect(union node *redir, int flags)
 	int i;
 	int fd;
 	int newfd;
-	int *p;
+
 	nullredirs++;
 	if (!redir) {
 		return;
@@ -4799,15 +4800,13 @@ redirect(union node *redir, int flags)
 	sv = NULL;
 	INT_OFF;
 	if (flags & REDIR_PUSH) {
-		struct redirtab *q;
-		q = ckmalloc(sizeof(struct redirtab));
-		q->next = redirlist;
-		redirlist = q;
-		q->nullredirs = nullredirs - 1;
+		sv = ckmalloc(sizeof(*sv));
+		sv->next = redirlist;
+		redirlist = sv;
+		sv->nullredirs = nullredirs - 1;
 		for (i = 0; i < 10; i++)
-			q->renamed[i] = EMPTY;
+			sv->renamed[i] = EMPTY;
 		nullredirs = 0;
-		sv = q;
 	}
 	n = redir;
 	do {
@@ -4817,9 +4816,14 @@ redirect(union node *redir, int flags)
 			continue; /* redirect from/to same file descriptor */
 
 		newfd = openredirect(n);
-		if (fd == newfd)
+		if (fd == newfd) {
+			/* Descriptor wasn't open before redirect.
+			 * Mark it for close in the future */
+			if (sv && sv->renamed[fd] == EMPTY)
+				sv->renamed[fd] = CLOSED;
 			continue;
-		if (sv && *(p = &sv->renamed[fd]) == EMPTY) {
+		}
+		if (sv && sv->renamed[fd] == EMPTY) {
 			i = fcntl(fd, F_DUPFD, 10);
 
 			if (i == -1) {
@@ -4831,7 +4835,7 @@ redirect(union node *redir, int flags)
 					/* NOTREACHED */
 				}
 			} else {
-				*p = i;
+				sv->renamed[fd] = i;
 				close(fd);
 			}
 		} else {
@@ -4840,7 +4844,7 @@ redirect(union node *redir, int flags)
 		dupredirect(n, newfd);
 	} while ((n = n->nfile.next));
 	INT_ON;
-	if (flags & REDIR_SAVEFD2 && sv && sv->renamed[2] >= 0)
+	if ((flags & REDIR_SAVEFD2) && sv && sv->renamed[2] >= 0)
 		preverrout_fd = sv->renamed[2];
 }
 
@@ -4858,6 +4862,11 @@ popredir(int drop)
 	INT_OFF;
 	rp = redirlist;
 	for (i = 0; i < 10; i++) {
+		if (rp->renamed[i] == CLOSED) {
+			if (!drop)
+				close(i);
+			continue;
+		}
 		if (rp->renamed[i] != EMPTY) {
 			if (!drop) {
 				close(i);
@@ -10994,7 +11003,7 @@ exitcmd(int argc, char **argv)
 static int
 echocmd(int argc, char **argv)
 {
-	return bb_echo(argv);
+	return bb_echo(argc, argv);
 }
 #endif
 
