@@ -145,13 +145,12 @@ int udhcpc_main(int argc, char **argv)
 {
 	uint8_t *temp, *message;
 	char *str_c, *str_V, *str_h, *str_F, *str_r, *str_T, *str_A, *str_t;
-	int tryagain_timeout = 60;
-	int discover_timeout = 3;
-	int discover_retries = 3;
 #if ENABLE_FEATURE_UDHCPC_ARPING
-	int decline_wait = 10;
 	char *str_W;
 #endif
+	int tryagain_timeout = 20;
+	int discover_timeout = 3;
+	int discover_retries = 3;
 	uint32_t xid = 0;
 	uint32_t lease_seconds = 0; /* can be given as 32-bit quantity */
 	unsigned t1 = 0, t2 = 0; /* what a wonderful names */
@@ -199,7 +198,6 @@ int udhcpc_main(int argc, char **argv)
 		"foreground\0"    No_argument       "f"
 		"background\0"    No_argument       "b"
 		"hostname\0"      Required_argument "H"
-		"hostname\0"      Required_argument "h"
 		"fqdn\0"          Required_argument "F"
 		"interface\0"     Required_argument "i"
 		"now\0"           No_argument       "n"
@@ -215,7 +213,6 @@ int udhcpc_main(int argc, char **argv)
 		"syslog\0"        No_argument       "S"
 #if ENABLE_FEATURE_UDHCPC_ARPING
 		"arping\0"        No_argument       "a"
-		"wait\0"          Required_argument "W"
 #endif
 		;
 #endif
@@ -224,8 +221,7 @@ int udhcpc_main(int argc, char **argv)
 	client_config.script = DEFAULT_SCRIPT;
 
 	/* Parse command line */
-	opt_complementary = "c--C:C--c" // mutually exclusive
-	                    ":hH:Hh"; // -h and -H are the same
+	opt_complementary = "c--C:C--c"; // mutually exclusive
 #if ENABLE_GETOPT_LONG
 	applet_long_options = udhcpc_longopts;
 #endif
@@ -246,7 +242,7 @@ int udhcpc_main(int argc, char **argv)
 		client_config.foreground = 1;
 	if (opt & OPT_b)
 		client_config.background_if_no_lease = 1;
-	if (opt & OPT_h)
+	if (opt & (OPT_h|OPT_H))
 		client_config.hostname = alloc_dhcp_option(DHCP_HOST_NAME, str_h, 0);
 	if (opt & OPT_F) {
 		client_config.fqdn = alloc_dhcp_option(DHCP_FQDN, str_F, 3);
@@ -286,11 +282,6 @@ int udhcpc_main(int argc, char **argv)
 		openlog(applet_name, LOG_PID, LOG_LOCAL0);
 		logmode |= LOGMODE_SYSLOG;
 	}
-
-#if ENABLE_FEATURE_UDHCPC_ARPING
-	if (opt & OPT_W)
-		decline_wait = xatou_range(str_W, 10, INT_MAX);
-#endif
 
 	if (read_interface(client_config.interface, &client_config.ifindex,
 			   NULL, client_config.arp))
@@ -536,7 +527,7 @@ int udhcpc_main(int argc, char **argv)
 							change_listen_mode(LISTEN_RAW);
 							state = INIT_SELECTING;
 							requested_ip = 0;
-							timeout = decline_wait;
+							timeout = tryagain_timeout;
 							packet_num = 0;
 							continue; /* back to main loop */
 						}

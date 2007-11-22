@@ -3856,10 +3856,10 @@ USE_FEATURE_RUN_PARTS_FANCY("\n	-l	Prints names of all matching files even when 
        "\n	-C,--clientid-none	Suppress default client identifier" \
        "\n	-p,--pidfile=file	Create pidfile" \
        "\n	-r,--request=IP		IP address to request" \
-       "\n	-s,--script=file	Run file at dhcp events (default: /usr/share/udhcpc/default.script)" \
+       "\n	-s,--script=file	Run file at dhcp events (default /usr/share/udhcpc/default.script)" \
        "\n	-t,--retries=N		Send up to N request packets" \
        "\n	-T,--timeout=N		Try to get a lease for N seconds (default 3)" \
-       "\n	-A,--tryagain=N		Wait N seconds (default 60) after failure" \
+       "\n	-A,--tryagain=N		Wait N seconds (default 20) after failure" \
        "\n	-f,--foreground	Run in foreground" \
        "\n	-b,--background	Background if lease is not immediately obtained" \
        "\n	-S,--syslog	Log to syslog too" \
@@ -3868,7 +3868,6 @@ USE_FEATURE_RUN_PARTS_FANCY("\n	-l	Prints names of all matching files even when 
        "\n	-R,--release	Release IP on quit" \
 	USE_FEATURE_UDHCPC_ARPING( \
        "\n	-a,--arping	Use arping to validate offered address" \
-       "\n	-W,--wait=N	Wait N seconds after declining (default 10)" \
 	) \
 	) \
 	SKIP_GETOPT_LONG( \
@@ -3879,10 +3878,10 @@ USE_FEATURE_RUN_PARTS_FANCY("\n	-l	Prints names of all matching files even when 
        "\n	-C		Suppress default client identifier" \
        "\n	-p file		Create pidfile" \
        "\n	-r IP		IP address to request" \
-       "\n	-s file		Run file at dhcp events (default: /usr/share/udhcpc/default.script)" \
+       "\n	-s file		Run file at dhcp events (default /usr/share/udhcpc/default.script)" \
        "\n	-t N		Send up to N request packets" \
        "\n	-T N		Try to get a lease for N seconds (default 3)" \
-       "\n	-A N		Wait N seconds (default 60) after failure" \
+       "\n	-A N		Wait N seconds (default 20) after failure" \
        "\n	-f		Run in foreground" \
        "\n	-b		Background if lease is not immediately obtained" \
        "\n	-S		Log to syslog too" \
@@ -3891,7 +3890,6 @@ USE_FEATURE_RUN_PARTS_FANCY("\n	-l	Prints names of all matching files even when 
        "\n	-R		Release IP on quit" \
 	USE_FEATURE_UDHCPC_ARPING( \
        "\n	-a		Use arping to validate offered address" \
-       "\n	-W N		Wait N seconds after declining (default 10)" \
 	) \
 	)
 
@@ -3921,17 +3919,17 @@ USE_FEATURE_RUN_PARTS_FANCY("\n	-l	Prints names of all matching files even when 
        "$ umount /dev/hdc1\n"
 
 #define uname_trivial_usage \
-       "[OPTION]..."
+       "[-amnrspv]"
 #define uname_full_usage \
-       "Print certain system information. With no OPTION, same as -s." \
+       "Print system information." \
        "\n\nOptions:\n" \
-       "	-a	Print all information\n" \
+       "	-a	Print all\n" \
        "	-m	The machine (hardware) type\n" \
-       "	-n	Print machine's hostname\n" \
-       "	-r	Print OS release\n" \
-       "	-s	Print OS name\n" \
-       "	-p	Print host processor type\n" \
-       "	-v	Print OS version"
+       "	-n	Hostname\n" \
+       "	-r	OS release\n" \
+       "	-s	OS name (default)\n" \
+       "	-p	Processor type\n" \
+       "	-v	OS version"
 #define uname_example_usage \
        "$ uname -a\n" \
        "Linux debian 2.4.23 #2 Tue Dec 23 17:09:10 MST 2003 i686 GNU/Linux\n"
@@ -3942,7 +3940,7 @@ USE_FEATURE_RUN_PARTS_FANCY("\n	-l	Prints names of all matching files even when 
        "Uncompress .Z file[s]" \
        "\n\nOptions:\n" \
        "	-c	Extract to stdout\n" \
-       "	-f	Force overwrite an existing file"
+       "	-f	Overwrite an existing file"
 
 #define unexpand_trivial_usage \
        "[-f][-a][-t NUM] [FILE|-]"
