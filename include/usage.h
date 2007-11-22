@@ -3121,6 +3121,12 @@ USE_FEATURE_RUN_PARTS_FANCY("\n	-l	Prints names of all matching files even when 
        "	FIRST LAST\n" \
        "	FIRST INCREMENT LAST"
 
+#define sestatus_trivial_usage \
+       "[-vb]"
+#define sestatus_full_usage \
+       "-v	Verbose\n" \
+       "-b	Display current state of booleans"
+
 #define setconsole_trivial_usage \
        "[-r" USE_FEATURE_SETCONSOLE_LONG_OPTIONS("|--reset") "] [DEVICE]"
 #define setconsole_full_usage \

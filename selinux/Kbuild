@@ -17,3 +17,4 @@ lib-$(CONFIG_SETENFORCE)	+= setenforce.o
 lib-$(CONFIG_SETFILES)		+= setfiles.o
 lib-$(CONFIG_RESTORECON)	+= setfiles.o
 lib-$(CONFIG_SETSEBOOL)		+= setsebool.o
+lib-$(CONFIG_SESTATUS)		+= sestatus.o
