@@ -54,6 +54,16 @@ config APP_UDHCPC
 
 	  See http://udhcp.busybox.net for further details.
 
+config FEATURE_UDHCPC_ARPING
+	bool "Ask udhcpc to verify that the offered address is free, using arpping"
+	default y
+	depends on APP_UDHCPC
+	help
+	  If selected, udhcpc will use arpping to make sure the offered address
+	  is really available. The client will DHCPDECLINE the offer if the
+	  address is in use, and restart the discover process.
+
+
 config FEATURE_UDHCP_DEBUG
 	bool "Compile udhcp with noisy debugging messages"
 	default n

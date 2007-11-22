@@ -1,5 +1,6 @@
 /* vi: set sw=4 ts=4: */
 /* dhcpc.h */
+
 #ifndef _DHCPC_H
 #define _DHCPC_H
 
@@ -28,9 +29,6 @@ struct client_config_t {
 	uint8_t *hostname;              /* Optional hostname to use */
 	uint8_t *fqdn;                  /* Optional fully qualified domain name to use */
 	int ifindex;                    /* Index number of the interface to use */
-	int retries;                    /* Max number of request packets */
-	int timeout;                    /* Number of seconds to try to get a lease */
-	int tryagain;                   /* Number of seconds to try to get a lease */
 	uint8_t arp[6];                 /* Our arp address */
 };
 
@@ -42,6 +40,9 @@ struct client_config_t {
 uint32_t random_xid(void);
 int send_discover(uint32_t xid, uint32_t requested);
 int send_selecting(uint32_t xid, uint32_t server, uint32_t requested);
+#if ENABLE_FEATURE_UDHCPC_ARPING
+int send_decline(uint32_t xid, uint32_t server);
+#endif
 int send_renew(uint32_t xid, uint32_t server, uint32_t ciaddr);
 int send_renew(uint32_t xid, uint32_t server, uint32_t ciaddr);
 int send_release(uint32_t server, uint32_t ciaddr);

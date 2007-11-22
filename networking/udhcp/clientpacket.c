@@ -69,6 +69,22 @@ static void add_requests(struct dhcpMessage *packet)
 
 }
 
+#if ENABLE_FEATURE_UDHCPC_ARPING
+/* Unicast a DHCP decline message */
+int send_decline(uint32_t xid, uint32_t server)
+{
+	struct dhcpMessage packet;
+
+	init_packet(&packet, DHCPDECLINE);
+	packet.xid = xid;
+	add_requests(&packet);
+
+	bb_info_msg("Sending decline...");
+
+	return udhcp_raw_packet(&packet, INADDR_ANY, CLIENT_PORT, INADDR_BROADCAST,
+		SERVER_PORT, MAC_BCAST_ADDR, client_config.ifindex);
+}
+#endif
 
 /* Broadcast a DHCP discover packet to the network, with an optionally requested IP */
 int send_discover(uint32_t xid, uint32_t requested)

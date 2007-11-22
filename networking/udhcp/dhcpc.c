@@ -145,6 +145,13 @@ int udhcpc_main(int argc, char **argv)
 {
 	uint8_t *temp, *message;
 	char *str_c, *str_V, *str_h, *str_F, *str_r, *str_T, *str_A, *str_t;
+	int tryagain_timeout = 60;
+	int discover_timeout = 3;
+	int discover_retries = 3;
+#if ENABLE_FEATURE_UDHCPC_ARPING
+	int decline_wait = 10;
+	char *str_W;
+#endif
 	uint32_t xid = 0;
 	uint32_t lease = 0; /* can be given as 32-bit quantity */
 	unsigned t1 = 0, t2 = 0; /* what a wonderful names */
@@ -180,6 +187,10 @@ int udhcpc_main(int argc, char **argv)
 		OPT_v = 1 << 17,
 		OPT_S = 1 << 18,
 		OPT_A = 1 << 19,
+#if ENABLE_FEATURE_UDHCPC_ARPING
+		OPT_a = 1 << 20,
+		OPT_W = 1 << 21,
+#endif
 	};
 #if ENABLE_GETOPT_LONG
 	static const char udhcpc_longopts[] ALIGN1 =
@@ -203,14 +214,15 @@ int udhcpc_main(int argc, char **argv)
 		"retries\0"       Required_argument "t"
 		"tryagain\0"      Required_argument "A"
 		"syslog\0"        No_argument       "S"
+#if ENABLE_FEATURE_UDHCPC_ARPING
+		"arping\0"        No_argument       "a"
+		"wait\0"          Required_argument "W"
+#endif
 		;
 #endif
 	/* Default options. */
 	client_config.interface = "eth0";
 	client_config.script = DEFAULT_SCRIPT;
-	client_config.retries = 3;
-	client_config.timeout = 3;
-	client_config.tryagain = 60;
 
 	/* Parse command line */
 	opt_complementary = "c--C:C--c" // mutually exclusive
@@ -218,10 +230,12 @@ int udhcpc_main(int argc, char **argv)
 #if ENABLE_GETOPT_LONG
 	applet_long_options = udhcpc_longopts;
 #endif
-	opt = getopt32(argv, "c:CV:fbH:h:F:i:np:qRr:s:T:t:vSA:",
-		&str_c, &str_V, &str_h, &str_h, &str_F,
+	opt = getopt32(argv, "c:CV:fbH:h:F:i:np:qRr:s:T:t:vSA:"
+		USE_FEATURE_UDHCPC_ARPING("aW:")
+		, &str_c, &str_V, &str_h, &str_h, &str_F,
 		&client_config.interface, &client_config.pidfile, &str_r,
 		&client_config.script, &str_T, &str_t, &str_A
+		USE_FEATURE_UDHCPC_ARPING(, &str_W)
 		);
 
 	if (opt & OPT_c)
@@ -259,11 +273,11 @@ int udhcpc_main(int argc, char **argv)
 		requested_ip = inet_addr(str_r);
 	// if (opt & OPT_s) client_config.script = ...
 	if (opt & OPT_T)
-		client_config.timeout = xatoi_u(str_T);
+		discover_timeout = xatoi_u(str_T);
 	if (opt & OPT_t)
-		client_config.retries = xatoi_u(str_t);
+		discover_retries = xatoi_u(str_t);
 	if (opt & OPT_A)
-		client_config.tryagain = xatoi_u(str_A);
+		tryagain_timeout = xatoi_u(str_A);
 	if (opt & OPT_v) {
 		puts("version "BB_VER);
 		return 0;
@@ -273,6 +287,11 @@ int udhcpc_main(int argc, char **argv)
 		openlog(applet_name, LOG_PID, LOG_LOCAL0);
 		logmode |= LOGMODE_SYSLOG;
 	}
+
+#if ENABLE_FEATURE_UDHCPC_ARPING
+	if (opt & OPT_W)
+		decline_wait = xatou_range(str_W, 10, INT_MAX);
+#endif
 
 	if (read_interface(client_config.interface, &client_config.ifindex,
 			   NULL, client_config.arp))
@@ -339,14 +358,14 @@ int udhcpc_main(int argc, char **argv)
 			/* timeout dropped to zero */
 			switch (state) {
 			case INIT_SELECTING:
-				if (packet_num < client_config.retries) {
+				if (packet_num < discover_retries) {
 					if (packet_num == 0)
 						xid = random_xid();
 
 					/* send discover packet */
 					send_discover(xid, requested_ip); /* broadcast */
 
-					timeout = now + client_config.timeout;
+					timeout = now + discover_timeout;
 					packet_num++;
 				} else {
 					udhcp_run_script(NULL, "leasefail");
@@ -360,12 +379,12 @@ int udhcpc_main(int argc, char **argv)
 					}
 					/* wait to try again */
 					packet_num = 0;
-					timeout = now + client_config.tryagain;
+					timeout = now + tryagain_timeout;
 				}
 				break;
 			case RENEW_REQUESTED:
 			case REQUESTING:
-				if (packet_num < client_config.retries) {
+				if (packet_num < discover_retries) {
 					/* send request packet */
 					if (state == RENEW_REQUESTED)
 						send_renew(xid, server_addr, requested_ip); /* unicast */
@@ -491,6 +510,28 @@ int udhcpc_main(int argc, char **argv)
 						lease = ntohl(lease);
 					}
 
+#if ENABLE_FEATURE_UDHCPC_ARPING
+					if (opt & OPT_a) {
+						if (!arpping(packet.yiaddr,
+							    (uint32_t) 0,
+							    client_config.arp,
+							    client_config.interface)
+						) {
+							bb_info_msg("offered address is in use,"
+								" declining");
+							send_decline(xid, server_addr);
+
+							if (state != REQUESTING)
+								udhcp_run_script(NULL, "deconfig");
+							state = INIT_SELECTING;
+							requested_ip = 0;
+							packet_num = 0;
+							change_mode(LISTEN_RAW);
+							timeout = now + decline_wait;
+							break;
+						}
+					}
+#endif
 					/* enter bound state */
 					t1 = lease / 2;
 

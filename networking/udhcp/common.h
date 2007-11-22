@@ -76,7 +76,7 @@ void udhcp_run_script(struct dhcpMessage *packet, const char *name);
 
 void udhcp_sp_setup(void);
 int udhcp_sp_fd_set(fd_set *rfds, int extra_fd);
-int udhcp_sp_read(fd_set *rfds);
+int udhcp_sp_read(const fd_set *rfds);
 int raw_socket(int ifindex);
 int read_interface(const char *interface, int *ifindex, uint32_t *addr, uint8_t *arp);
 int listen_socket(/*uint32_t ip,*/ int port, const char *inf);

@@ -66,7 +66,7 @@ int udhcp_sp_fd_set(fd_set *rfds, int extra_fd)
 /* Read a signal from the signal pipe. Returns 0 if there is
  * no signal, -1 on error (and sets errno appropriately), and
  * your signal on success */
-int udhcp_sp_read(fd_set *rfds)
+int udhcp_sp_read(const fd_set *rfds)
 {
 	unsigned char sig;
 

@@ -2183,8 +2183,8 @@
        "and * (run both after creating and before deleting). The commands run in\n" \
        "the /dev directory, and use system() which calls /bin/sh.\n\n" \
 	) \
-       "Config file parsing stops on the first matching line. If no config\n"\
-       "entry is matched, devices are created with default 0:0 660. (Make\n"\
+       "Config file parsing stops on the first matching line. If no config\n" \
+       "entry is matched, devices are created with default 0:0 660. (Make\n" \
        "the last line match .* to override this.)\n\n" \
 	)
 
@@ -3843,44 +3843,50 @@ USE_FEATURE_RUN_PARTS_FANCY("\n	-l	Prints names of all matching files even when 
        "	[-p pidfile] [-r IP] [-s script]"
 #define udhcpc_full_usage \
 	USE_GETOPT_LONG( \
-       "	-V,--vendorclass=CLASSID	Set vendor class identifier" \
-       "\n	-i,--interface=INTERFACE	Interface to use (default: eth0)" \
+       "	-V,--vendorclass=CLASSID	Vendor class identifier" \
+       "\n	-i,--interface=INTERFACE	Interface to use (default eth0)" \
        "\n	-H,-h,--hostname=HOSTNAME	Client hostname" \
-       "\n	-c,--clientid=CLIENTID	Set client identifier" \
+       "\n	-c,--clientid=CLIENTID	Client identifier" \
        "\n	-C,--clientid-none	Suppress default client identifier" \
-       "\n	-p,--pidfile=file	Store process ID of daemon in file" \
+       "\n	-p,--pidfile=file	Create pidfile" \
        "\n	-r,--request=IP		IP address to request" \
        "\n	-s,--script=file	Run file at dhcp events (default: /usr/share/udhcpc/default.script)" \
-       "\n	-t,--retries=N		Send up to N request packets"\
-       "\n	-T,--timeout=N		Try to get a lease for N seconds (default: 3)"\
-       "\n	-A,--tryagain=N		Wait N seconds (default: 60) after failure"\
+       "\n	-t,--retries=N		Send up to N request packets" \
+       "\n	-T,--timeout=N		Try to get a lease for N seconds (default 3)" \
+       "\n	-A,--tryagain=N		Wait N seconds (default 60) after failure" \
        "\n	-f,--foreground	Run in foreground" \
-       "\n	-b,--background	Background if lease cannot be immediately negotiated" \
+       "\n	-b,--background	Background if lease is not immediately obtained" \
        "\n	-S,--syslog	Log to syslog too" \
-       "\n	-n,--now	Exit with failure if lease cannot be immediately negotiated" \
+       "\n	-n,--now	Exit with failure if lease is not immediately obtained" \
        "\n	-q,--quit	Quit after obtaining lease" \
        "\n	-R,--release	Release IP on quit" \
-       "\n	-v,--version	Display version" \
+	USE_FEATURE_UDHCPC_ARPING( \
+       "\n	-a,--arping	Use arping to validate offered address" \
+       "\n	-W,--wait=N	Wait N seconds after declining (default 10)" \
+	) \
 	) \
 	SKIP_GETOPT_LONG( \
-       "	-V CLASSID	Set vendor class identifier" \
+       "	-V CLASSID	Vendor class identifier" \
        "\n	-i INTERFACE	Interface to use (default: eth0)" \
        "\n	-H,-h HOSTNAME	Client hostname" \
-       "\n	-c CLIENTID	Set client identifier" \
+       "\n	-c CLIENTID	Client identifier" \
        "\n	-C		Suppress default client identifier" \
-       "\n	-p file		Store process ID of daemon in file" \
+       "\n	-p file		Create pidfile" \
        "\n	-r IP		IP address to request" \
        "\n	-s file		Run file at dhcp events (default: /usr/share/udhcpc/default.script)" \
-       "\n	-t N		Send up to N request packets"\
-       "\n	-T N		Try to get a lease for N seconds (default: 3)"\
-       "\n	-A N		Wait N seconds (default: 60) after failure"\
+       "\n	-t N		Send up to N request packets" \
+       "\n	-T N		Try to get a lease for N seconds (default 3)" \
+       "\n	-A N		Wait N seconds (default 60) after failure" \
        "\n	-f		Run in foreground" \
-       "\n	-b		Background if lease cannot be immediately negotiated" \
+       "\n	-b		Background if lease is not immediately obtained" \
        "\n	-S		Log to syslog too" \
-       "\n	-n		Exit with failure if lease cannot be immediately negotiated" \
+       "\n	-n		Exit with failure if lease is not immediately obtained" \
        "\n	-q		Quit after obtaining lease" \
        "\n	-R		Release IP on quit" \
-       "\n	-v		Display version" \
+	USE_FEATURE_UDHCPC_ARPING( \
+       "\n	-a		Use arping to validate offered address" \
+       "\n	-W N		Wait N seconds after declining (default 10)" \
+	) \
 	)
 
 #define udhcpd_trivial_usage \
