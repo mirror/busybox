@@ -11,6 +11,7 @@ export THIS_SH
 do_test()
 {
     test -d "$1" || return 0
+#   echo Running tests in directory "$1"
     (
     cd "$1" || { echo "cannot cd $1!"; exit 1; }
     for x in run-*; do

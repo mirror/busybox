@@ -1,5 +1,8 @@
 Various bits of what is known about busybox shells, in no particular order.
 
+2007-11-23
+hush: fixed bogus glob handling; fixed exec <"$1"; added test and echo builtins
+
 2007-06-13
 hush: exec <"$1" doesn't do parameter subst
 

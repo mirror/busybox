@@ -1361,8 +1361,11 @@ static int setup_redirects(struct child_prog *prog, int squirrel[])
 			continue;
 		}
 		if (redir->dup == -1) {
+			char *p;
 			mode = redir_table[redir->type].mode;
-			openfd = open_or_warn(redir->glob_word[0], mode);
+			p = expand_string_to_string(redir->glob_word[0]);
+			openfd = open_or_warn(p, mode);
+			free(p);
 			if (openfd < 0) {
 			/* this could get lost if stderr has been redirected, but
 			   bash and ash both lose it as well (though zsh doesn't!) */
@@ -2579,7 +2582,7 @@ static int expand_vars_to_list(char **list, int n, char **posp, char *arg, char 
 				}
 			} else
 			/* If or_mask is nonzero, we handle assignment 'a=....$@.....'
-			 * and in this case should theat it like '$*' */
+			 * and in this case should treat it like '$*' - see 'else...' below */
 			if (first_ch == ('@'|0x80) && !or_mask) { /* quoted $@ */
 				while (1) {
 					strcpy(pos, global_argv[i]);
@@ -2593,10 +2596,10 @@ static int expand_vars_to_list(char **list, int n, char **posp, char *arg, char 
 					list[n++] = pos;
 				}
 			} else { /* quoted $*: add as one word */
-				while (1) {
+				if (global_argv[i]) while (1) {
 					strcpy(pos, global_argv[i]);
 					pos += strlen(global_argv[i]);
-					if (++i >= global_argc)
+					if (!global_argv[++i])
 						break;
 					if (ifs[0])
 						*pos++ = ifs[0];
