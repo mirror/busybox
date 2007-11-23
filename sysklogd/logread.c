@@ -75,6 +75,8 @@ int logread_main(int argc, char **argv)
 	int log_shmid; /* ipc shared memory id */
 	smallint follow = getopt32(argv, "f");
 
+	INIT_G();
+
 	log_shmid = shmget(KEY_ID, 0, 0);
 	if (log_shmid == -1)
 		bb_perror_msg_and_die("can't find syslogd buffer");
