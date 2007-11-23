@@ -76,7 +76,7 @@
        "\n	-H hwtype	Hardware address type"
 
 #define arping_trivial_usage \
-       "[-fqbDUA] [-c count] [-w timeout] [-i device] [-s sender] target"
+       "[-fqbDUA] [-c count] [-w timeout] [-I dev] [-s sender] target"
 #define arping_full_usage \
        "Ping hosts by ARP requests/replies" \
        "\n\nOptions:\n" \
@@ -84,13 +84,13 @@
        "	-q		Quiet\n" \
        "	-b		Keep broadcasting, don't go unicast\n" \
        "	-D		Duplicated address detection mode\n" \
-       "	-U		Unsolicited ARP mode, update your neighbours\n" \
-       "	-A		ARP answer mode, update your neighbours\n" \
-       "	-c count	Stop after sending count ARP request packets\n" \
+       "	-U		Unsolicited ARP mode, update your neighbors\n" \
+       "	-A		ARP answer mode, update your neighbors\n" \
+       "	-c N		Stop after sending N ARP requests\n" \
        "	-w timeout	Time to wait for ARP reply, in seconds\n" \
-       "	-I device	Outgoing interface name, default is eth0\n" \
-       "	-s sender	Set specific sender IP address\n" \
-       "	target		Target IP address of ARP request"
+       "	-I dev		Interface to use (default eth0)\n" \
+       "	-s sender	Sender IP address\n" \
+       "	target		Target IP address"
 
 #define ash_trivial_usage \
        "[FILE]...\n" \
