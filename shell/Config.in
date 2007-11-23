@@ -166,6 +166,7 @@ config HUSH
 	select TRUE
 	select FALSE
 	select TEST
+	select ECHO
 	help
 	  hush is a very small shell (just 18k) and it has fairly complete
 	  Bourne shell grammar.  It even handles all the normal flow control

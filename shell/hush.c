@@ -614,6 +614,7 @@ static void free_strings(char **strings)
 
 /* Function prototypes for builtins */
 static int builtin_cd(char **argv);
+static int builtin_echo(char **argv);
 static int builtin_eval(char **argv);
 static int builtin_exec(char **argv);
 static int builtin_exit(char **argv);
@@ -652,6 +653,8 @@ struct built_in_command {
 #endif
 };
 
+/* For now, echo and test are unconditionally enabled.
+ * Maybe make it configurable? */
 static const struct built_in_command bltins[] = {
 	BLTIN("["     , builtin_test, "Test condition"),
 	BLTIN("[["    , builtin_test, "Test condition"),
@@ -661,6 +664,7 @@ static const struct built_in_command bltins[] = {
 //	BLTIN("break" , builtin_not_written, "Exit for, while or until loop"),
 	BLTIN("cd"    , builtin_cd, "Change working directory"),
 //	BLTIN("continue", builtin_not_written, "Continue for, while or until loop"),
+	BLTIN("echo"  , builtin_echo, "Write strings to stdout"),
 	BLTIN("eval"  , builtin_eval, "Construct and run shell command"),
 	BLTIN("exec"  , builtin_exec, "Exec command, replacing this shell with the exec'd process"),
 	BLTIN("exit"  , builtin_exit, "Exit from shell"),
@@ -839,6 +843,17 @@ static int builtin_test(char **argv)
 		argv++;
 	}
 	return test_main(argc, argv - argc);
+}
+
+/* built-in 'test' handler */
+static int builtin_echo(char **argv)
+{
+	int argc = 0;
+	while (*argv) {
+		argc++;
+		argv++;
+	}
+	return bb_echo(argc, argv - argc);
 }
 
 /* built-in 'eval' handler */
