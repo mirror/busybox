@@ -39,9 +39,9 @@
  *
  * Original copyright notice is retained at the end of this file.
  */
-static int decode(char *name, CODE * codetab)
+static int decode(char *name, const CODE *codetab)
 {
-	CODE *c;
+	const CODE *c;
 
 	if (isdigit(*name))
 		return atoi(name);

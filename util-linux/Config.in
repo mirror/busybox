@@ -213,6 +213,7 @@ config HEXDUMP
 config HD
 	bool "hd"
 	default n
+	select HEXDUMP
 	help
 	  hd is an alias to hexdump -C.
 
