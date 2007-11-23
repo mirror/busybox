@@ -7,7 +7,6 @@
 lib-y:=
 lib-$(CONFIG_ASH)  += ash.o
 lib-$(CONFIG_HUSH) += hush.o
-lib-$(CONFIG_LASH) += lash.o
 lib-$(CONFIG_MSH)  += msh.o
 
 lib-$(CONFIG_CTTYHACK) += cttyhack.o

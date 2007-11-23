@@ -20,9 +20,9 @@ config FEATURE_SH_IS_HUSH
 	select HUSH
 	bool "hush"
 
-config FEATURE_SH_IS_LASH
-	select LASH
-	bool "lash"
+####config FEATURE_SH_IS_LASH
+####	select LASH
+####	bool "lash"
 
 config FEATURE_SH_IS_MSH
 	select MSH
@@ -229,16 +229,9 @@ config HUSH_LOOPS
 config LASH
 	bool "lash"
 	default n
-	select TRUE
-	select FALSE
-	select TEST
+	select HUSH
 	help
-	  lash is the very smallest shell (adds just 10k) and it is quite
-	  usable as a command prompt, but it is not suitable for any but the
-	  most trivial scripting (such as an initrd that calls insmod a few
-	  times) since it does not understand any Bourne shell grammar.  It
-	  does handle pipes, redirects, and job control though.  Adding in
-	  command editing makes it a very nice lightweight command prompt.
+	  lash is deprecated and will be removed, please migrate to hush.
 
 
 config MSH

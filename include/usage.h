@@ -3194,15 +3194,7 @@ USE_FEATURE_RUN_PARTS_FANCY("\n	-l	Prints names of all matching files even when 
        "[FILE]...\n" \
        "or: sh -c command [args]..."
 #define lash_full_usage \
-       "The BusyBox LAme SHell (command interpreter)"
-#define lash_notes_usage \
-       "This command does not yet have proper documentation.\n\n" \
-       "Use lash just as you would use any other shell. It properly handles pipes,\n" \
-       "redirects, job control, can be used as the shell for scripts, and has a\n" \
-       "sufficient set of builtins to do what is needed. It does not (yet) support\n" \
-       "Bourne Shell syntax. If you need things like \"if-then-else\", \"while\", and such\n" \
-       "use ash or bash. If you just need a very simple and extremely small shell,\n" \
-       "this will do the job."
+       "lash is deprecated, please use hush"
 
 #define last_trivial_usage \
        ""

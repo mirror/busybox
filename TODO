@@ -22,12 +22,9 @@ Rob Landley <rob@landley.net>:
     The command shell situation is a big mess.  We have three or four different
     shells that don't really share any code, and the "standalone shell" doesn't
     work all that well (especially not in a chroot environment), due to apps not
-    being reentrant.  I'm writing a new shell (bbsh) to unify the various
-    shells and configurably add the minimal set of bash features people
-    actually use.  The hardest part is it has to configure down as small as
-    lash while providing lash's features.  The rest is easy in comparison.
-  bzip2
-    Compression-side support.
+    being reentrant.
+    lash is phased out. hush can be configured down to be nearly as small,
+    but less buggy :)
   init
     General cleanup (should use ENABLE_FEATURE_INIT_SYSLOG and ENABLE_FEATURE_INIT_DEBUG).
   depmod
@@ -35,8 +32,6 @@ Rob Landley <rob@landley.net>:
     use of the depmod.pl (perl is to bloated for most embedded setups) and or orig
     modutils. The orig depmod is rather pointless to have to add to a firmware image
     in when we already have a insmod/rmmod and friends.
-  Unify base64 handling.
-    [done]
   Do a SUSv3 audit
     Look at the full Single Unix Specification version 3 (available online at
     "http://www.opengroup.org/onlinepubs/009695399/nfindex.html") and

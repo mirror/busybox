@@ -3925,3 +3925,13 @@ int hush_main(int argc, char **argv)
 #endif
 	hush_exit(opt ? opt : last_return_code);
 }
+
+
+#if ENABLE_LASH
+int lash_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
+int lash_main(int argc, char **argv)
+{
+	//bb_error_msg("lash is deprecated, please use hush instead");
+	return hush_main(argc, argv);
+}
+#endif
