@@ -31,6 +31,7 @@ do_test()
 	test -x "$x" || continue
 	name="${x%%.tests}"
 	test -f "$name.right" || continue
+#	echo Running test: "$name.right"
 	{
 	    "$THIS_SH" "./$x" >"$name.xx" 2>&1
 	    diff -u "$name.xx" "$name.right" >"../$1-$x.fail" && rm -f "$name.xx" "../$1-$x.fail"

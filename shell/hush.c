@@ -144,6 +144,40 @@ static const char *indenter(int i)
 #endif
 
 
+/*
+ * Leak hunting. Use hush_leaktool.sh for post-processing.
+ */
+#ifdef FOR_HUSH_LEAKTOOL
+void *xxmalloc(int lineno, size_t size)
+{
+	void *ptr = xmalloc((size + 0xff) & ~0xff);
+	fprintf(stderr, "line %d: malloc %p\n", lineno, ptr);
+	return ptr;
+}
+void *xxrealloc(int lineno, void *ptr, size_t size)
+{
+	ptr = xrealloc(ptr, (size + 0xff) & ~0xff);
+	fprintf(stderr, "line %d: realloc %p\n", lineno, ptr);
+	return ptr;
+}
+char *xxstrdup(int lineno, const char *str)
+{
+	char *ptr = xstrdup(str);
+	fprintf(stderr, "line %d: strdup %p\n", lineno, ptr);
+	return ptr;
+}
+void xxfree(void *ptr)
+{
+	fprintf(stderr, "free %p\n", ptr);
+	free(ptr);
+}
+#define xmalloc(s)     xxmalloc(__LINE__, s)
+#define xrealloc(p, s) xxrealloc(__LINE__, p, s)
+#define xstrdup(s)     xxstrdup(__LINE__, s)
+#define free(p)        xxfree(p)
+#endif
+
+
 #if !ENABLE_HUSH_INTERACTIVE
 #undef ENABLE_FEATURE_EDITING
 #define ENABLE_FEATURE_EDITING 0
@@ -256,7 +290,6 @@ struct child_prog {
 	smallint subshell;          /* flag, non-zero if group must be forked */
 	smallint is_stopped;        /* is the program currently running? */
 	struct redir_struct *redirects; /* I/O redirections */
-	char **glob_result;         /* result of parameter globbing */
 	struct pipe *family;        /* pointer back to the child's parent pipe */
 	//sp counting seems to be broken... so commented out, grep for '//sp:'
 	//sp: int sp;               /* number of SPECIAL_VAR_SYMBOL */
@@ -2198,8 +2231,8 @@ static int free_pipe(struct pipe *pi, int indent)
 			for (a = 0, p = child->argv; *p; a++, p++) {
 				debug_printf_clean("%s   argv[%d] = %s\n", indenter(indent), a, *p);
 			}
-			free_strings(child->glob_result);
-			child->glob_result = NULL;
+			free_strings(child->argv);
+			child->argv = NULL;
 		} else if (child->group) {
 			debug_printf_clean("%s   begin group (subshell:%d)\n", indenter(indent), child->subshell);
 			ret_code = free_pipe_list(child->group, indent+3);
@@ -2333,6 +2366,7 @@ static int xglob(o_string *dest, char ***pglob)
 			debug_printf("globhack returned %d\n", gr);
 			/* quote removal, or more accurately, backslash removal */
 			*pglob = globhack(dest->data, *pglob);
+			globfree(&globdata);
 			return 0;
 		}
 		if (gr != 0) { /* GLOB_ABORTED ? */
@@ -2340,7 +2374,6 @@ static int xglob(o_string *dest, char ***pglob)
 		}
 		if (globdata.gl_pathv && globdata.gl_pathv[0])
 			*pglob = add_strings_to_strings(1, *pglob, globdata.gl_pathv);
-		/* globprint(glob_target); */
 		globfree(&globdata);
 		return gr;
 	}
@@ -3001,6 +3034,7 @@ static int done_word(o_string *dest, struct p_context *ctx)
 
 	b_reset(dest);
 	if (ctx->pending_redirect) {
+		/* NB: don't free_strings(ctx->pending_redirect->glob_word) here */
 		if (ctx->pending_redirect->glob_word
 		 && ctx->pending_redirect->glob_word[0]
 		 && ctx->pending_redirect->glob_word[1]
@@ -3056,7 +3090,6 @@ static int done_command(struct p_context *ctx)
 	/*child->argv = NULL;*/
 	/*child->is_stopped = 0;*/
 	/*child->group = NULL;*/
-	/*child->glob_result = NULL;*/
 	child->family = pi;
 	//sp: /*child->sp = 0;*/
 	//pt: child->parse_type = ctx->parse_type;
