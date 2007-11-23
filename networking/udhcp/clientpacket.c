@@ -171,7 +171,7 @@ int get_raw_packet(struct dhcpMessage *payload, int fd)
 	bytes = read(fd, &packet, sizeof(struct udp_dhcp_packet));
 	if (bytes < 0) {
 		DEBUG("Cannot read on raw listening socket - ignoring");
-		usleep(500000); /* possible down interface, looping condition */
+		sleep(1); /* possible down interface, looping condition */
 		return -1;
 	}
 
@@ -190,7 +190,7 @@ int get_raw_packet(struct dhcpMessage *payload, int fd)
 
 	/* Make sure its the right packet for us, and that it passes sanity checks */
 	if (packet.ip.protocol != IPPROTO_UDP || packet.ip.version != IPVERSION
-	 || packet.ip.ihl != sizeof(packet.ip) >> 2
+	 || packet.ip.ihl != (sizeof(packet.ip) >> 2)
 	 || packet.udp.dest != htons(CLIENT_PORT)
 	 || bytes > (int) sizeof(struct udp_dhcp_packet)
 	 || ntohs(packet.udp.len) != (uint16_t)(bytes - sizeof(packet.ip))
@@ -207,7 +207,7 @@ int get_raw_packet(struct dhcpMessage *payload, int fd)
 		return -1;
 	}
 
-	/* verify the UDP checksum by replacing the header with a psuedo header */
+	/* verify the UDP checksum by replacing the header with a pseudo header */
 	source = packet.ip.saddr;
 	dest = packet.ip.daddr;
 	check = packet.udp.check;
@@ -225,7 +225,7 @@ int get_raw_packet(struct dhcpMessage *payload, int fd)
 
 	memcpy(payload, &(packet.data), bytes - (sizeof(packet.ip) + sizeof(packet.udp)));
 
-	if (ntohl(payload->cookie) != DHCP_MAGIC) {
+	if (payload->cookie != htonl(DHCP_MAGIC)) {
 		bb_error_msg("received bogus message (bad magic) - ignoring");
 		return -2;
 	}

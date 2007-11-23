@@ -38,12 +38,18 @@ struct dhcpMessage {
 	uint8_t file[128];
 	uint32_t cookie;
 	uint8_t options[308]; /* 312 - cookie */
-};
+} ATTRIBUTE_PACKED;
 
 struct udp_dhcp_packet {
 	struct iphdr ip;
 	struct udphdr udp;
 	struct dhcpMessage data;
+} ATTRIBUTE_PACKED;
+
+/* Let's see whether compiler understood us right */
+struct BUG_bad_sizeof_struct_udp_dhcp_packet {
+	char BUG_bad_sizeof_struct_udp_dhcp_packet
+                [sizeof(struct udp_dhcp_packet) != 576 ? -1 : 1];
 };
 
 void udhcp_init_header(struct dhcpMessage *packet, char type);

@@ -73,12 +73,13 @@ uint8_t *get_option(struct dhcpMessage *packet, int code)
 {
 	int i, length;
 	uint8_t *optionptr;
-	int over = 0, done = 0, curr = OPTION_FIELD;
+	int over = 0;
+	int curr = OPTION_FIELD;
 
 	optionptr = packet->options;
 	i = 0;
-	length = 308;
-	while (!done) {
+	length = sizeof(packet->options);
+	while (1) {
 		if (i >= length) {
 			bb_error_msg("bogus packet, option fields too long");
 			return NULL;
@@ -103,17 +104,18 @@ uint8_t *get_option(struct dhcpMessage *packet, int code)
 			i += optionptr[OPT_LEN] + 2;
 			break;
 		case DHCP_END:
-			if (curr == OPTION_FIELD && over & FILE_FIELD) {
+			if (curr == OPTION_FIELD && (over & FILE_FIELD)) {
 				optionptr = packet->file;
 				i = 0;
-				length = 128;
+				length = sizeof(packet->file);
 				curr = FILE_FIELD;
-			} else if (curr == FILE_FIELD && over & SNAME_FIELD) {
+			} else if (curr == FILE_FIELD && (over & SNAME_FIELD)) {
 				optionptr = packet->sname;
 				i = 0;
-				length = 64;
+				length = sizeof(packet->sname);
 				curr = SNAME_FIELD;
-			} else done = 1;
+			} else
+				return NULL;
 			break;
 		default:
 			i += optionptr[OPT_LEN + i] + 2;

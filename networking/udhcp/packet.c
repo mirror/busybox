@@ -57,7 +57,7 @@ int udhcp_get_packet(struct dhcpMessage *packet, int fd)
 		return -1;
 	}
 
-	if (ntohl(packet->cookie) != DHCP_MAGIC) {
+	if (packet->cookie != htonl(DHCP_MAGIC)) {
 		bb_error_msg("received bogus message, ignoring");
 		return -2;
 	}
@@ -123,7 +123,6 @@ uint16_t udhcp_checksum(void *addr, int count)
 
 
 /* Construct a ip/udp header for a packet, and specify the source and dest hardware address */
-void BUG_sizeof_struct_udp_dhcp_packet_must_be_576(void);
 int udhcp_raw_packet(struct dhcpMessage *payload,
 		uint32_t source_ip, int source_port,
 		uint32_t dest_ip, int dest_port, const uint8_t *dest_arp, int ifindex)
@@ -168,9 +167,6 @@ int udhcp_raw_packet(struct dhcpMessage *payload,
 	packet.ip.version = IPVERSION;
 	packet.ip.ttl = IPDEFTTL;
 	packet.ip.check = udhcp_checksum(&(packet.ip), sizeof(packet.ip));
-
-	if (sizeof(struct udp_dhcp_packet) != 576)
-		BUG_sizeof_struct_udp_dhcp_packet_must_be_576();
 
 	result = sendto(fd, &packet, sizeof(struct udp_dhcp_packet), 0,
 			(struct sockaddr *) &dest, sizeof(dest));
