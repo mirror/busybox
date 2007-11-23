@@ -134,13 +134,15 @@ static char *get_var(const char *id, size_t idlen, struct interface_defn_t *ifd)
 	int i;
 
 	if (strncmpz(id, "iface", idlen) == 0) {
-		char *result;
-		static char label_buf[20];
-		safe_strncpy(label_buf, ifd->iface, sizeof(label_buf));
-		result = strchr(label_buf, ':');
-		if (result) {
-			*result = '\0';
-		}
+		static char *label_buf;
+		//char *result;
+
+		free(label_buf);
+		label_buf = xstrdup(ifd->iface);
+		// Remove virtual iface suffix - why?
+		// ubuntu's ifup doesn't do this
+		//result = strchrnul(label_buf, ':');
+		//*result = '\0';
 		return label_buf;
 	}
 	if (strncmpz(id, "label", idlen) == 0) {

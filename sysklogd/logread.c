@@ -18,16 +18,30 @@
 
 enum { KEY_ID = 0x414e4547 }; /* "GENA" */
 
-static struct shbuf_ds {
+struct shbuf_ds {
 	int32_t size;           // size of data - 1
 	int32_t tail;           // end of message list
 	char data[1];           // messages
-} *shbuf;
+};
 
-// Semaphore operation structures
-static struct sembuf SMrup[1] = {{0, -1, IPC_NOWAIT | SEM_UNDO}}; // set SMrup
-static struct sembuf SMrdn[2] = {{1, 0}, {0, +1, SEM_UNDO}}; // set SMrdn
+static const struct sembuf init_sem[3] = {
+	{0, -1, IPC_NOWAIT | SEM_UNDO},
+	{1, 0}, {0, +1, SEM_UNDO}
+};
 
+struct globals {
+	struct sembuf SMrup[1]; // {0, -1, IPC_NOWAIT | SEM_UNDO},
+	struct sembuf SMrdn[2]; // {1, 0}, {0, +1, SEM_UNDO}
+	struct shbuf_ds *shbuf;
+};
+#define G (*(struct globals*)&bb_common_bufsiz1)
+#define SMrup (G.SMrup)
+#define SMrdn (G.SMrdn)
+#define shbuf (G.shbuf)
+#define INIT_G() \
+	do { \
+		memcpy(SMrup, init_sem, sizeof(init_sem)); \
+	} while (0)
 
 static void error_exit(const char *str) ATTRIBUTE_NORETURN;
 static void error_exit(const char *str)
