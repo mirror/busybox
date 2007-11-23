@@ -16,13 +16,11 @@
 
 /* option vars */
 static const char optstring[] ALIGN1 = "b:c:f:d:sn";
-#define CUT_OPT_BYTE_FLGS	(1<<0)
-#define CUT_OPT_CHAR_FLGS	(1<<1)
-#define CUT_OPT_FIELDS_FLGS	(1<<2)
-#define CUT_OPT_DELIM_FLGS	(1<<3)
-#define CUT_OPT_SUPPRESS_FLGS (1<<4)
-
-static char delim = '\t';	/* delimiter, default is tab */
+#define CUT_OPT_BYTE_FLGS     (1 << 0)
+#define CUT_OPT_CHAR_FLGS     (1 << 1)
+#define CUT_OPT_FIELDS_FLGS   (1 << 2)
+#define CUT_OPT_DELIM_FLGS    (1 << 3)
+#define CUT_OPT_SUPPRESS_FLGS (1 << 4)
 
 struct cut_list {
 	int startpos;
@@ -47,7 +45,7 @@ static int cmpfunc(const void *a, const void *b)
 
 }
 
-static void cut_file(FILE * file)
+static void cut_file(FILE *file, char delim)
 {
 	char *line = NULL;
 	unsigned int linenum = 0;	/* keep these zero-based to be consistent */
@@ -163,11 +161,10 @@ static void cut_file(FILE * file)
 	}
 }
 
-static const char _op_on_field[] ALIGN1 = " only when operating on fields";
-
 int cut_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int cut_main(int argc, char **argv)
 {
+	char delim = '\t';	/* delimiter, default is tab */
 	char *sopt, *ltok;
 
 	opt_complementary = "b--bcf:c--bcf:f--bcf";
@@ -178,7 +175,7 @@ int cut_main(int argc, char **argv)
 		bb_error_msg_and_die("expected a list of bytes, characters, or fields");
 
 	if (option_mask32 & CUT_OPT_DELIM_FLGS) {
-		if (strlen(ltok) > 1) {
+		if (ltok[0] && ltok[1]) { /* more than 1 char? */
 			bb_error_msg_and_die("the delimiter must be a single character");
 		}
 		delim = ltok[0];
@@ -186,6 +183,8 @@ int cut_main(int argc, char **argv)
 
 	/*  non-field (char or byte) cutting has some special handling */
 	if (!(option_mask32 & CUT_OPT_FIELDS_FLGS)) {
+		static const char _op_on_field[] ALIGN1 = " only when operating on fields";
+
 		if (option_mask32 & CUT_OPT_SUPPRESS_FLGS) {
 			bb_error_msg_and_die
 				("suppressing non-delimited lines makes sense%s",
@@ -210,15 +209,12 @@ int cut_main(int argc, char **argv)
 		while ((ltok = strsep(&sopt, ",")) != NULL) {
 
 			/* it's actually legal to pass an empty list */
-			if (strlen(ltok) == 0)
+			if (!ltok[0])
 				continue;
 
 			/* get the start pos */
 			ntok = strsep(&ltok, "-");
-			if (ntok == NULL) {
-				bb_error_msg
-					("internal error: ntok is null for start pos!?\n");
-			} else if (strlen(ntok) == 0) {
+			if (!ntok[0]) {
 				s = BOL;
 			} else {
 				s = xatoi_u(ntok);
@@ -229,13 +225,12 @@ int cut_main(int argc, char **argv)
 			}
 
 			/* get the end pos */
-			ntok = strsep(&ltok, "-");
-			if (ntok == NULL) {
+			if (ltok == NULL) {
 				e = NON_RANGE;
-			} else if (strlen(ntok) == 0) {
+			} else if (!ltok[0]) {
 				e = EOL;
 			} else {
-				e = xatoi_u(ntok);
+				e = xatoi_u(ltok);
 				/* if the user specified and end position of 0, that means "til the
 				 * end of the line */
 				if (e == 0)
@@ -244,11 +239,6 @@ int cut_main(int argc, char **argv)
 				if (e == s)
 					e = NON_RANGE;
 			}
-
-			/* if there's something left to tokenize, the user passed
-			 * an invalid list */
-			if (ltok)
-				bb_error_msg_and_die("invalid byte or field list");
 
 			/* add the new list */
 			cut_lists = xrealloc(cut_lists, sizeof(struct cut_list) * (++nlists));
@@ -266,23 +256,31 @@ int cut_main(int argc, char **argv)
 		qsort(cut_lists, nlists, sizeof(struct cut_list), cmpfunc);
 	}
 
-	/* argv[0..argc-1] should be names of file to process. If no
-	 * files were specified or '-' was specified, take input from stdin.
-	 * Otherwise, we process all the files specified. */
-	if (argv[0] == NULL || LONE_DASH(argv[0])) {
-		cut_file(stdin);
-	} else {
-		FILE *file;
+	{
+		int retval = EXIT_SUCCESS;
+		FILE *file = stdin;
+
+		if (!*argv) {
+			argv--;
+			goto jump_in;
+		}
 
 		do {
-			file = fopen_or_warn(argv[0], "r");
-			if (file) {
-				cut_file(file);
-				fclose(file);
+			file = stdin;
+			if (NOT_LONE_DASH(*argv))
+				file = fopen_or_warn(*argv, "r");
+			if (!file) {
+				retval = EXIT_FAILURE;
+				continue;
 			}
+ jump_in:
+			cut_file(file, delim);
+			if (NOT_LONE_DASH(*argv))
+				fclose(file);
 		} while (*++argv);
+
+		if (ENABLE_FEATURE_CLEAN_UP)
+			free(cut_lists);
+		fflush_stdout_and_exit(retval);
 	}
-	if (ENABLE_FEATURE_CLEAN_UP)
-		free(cut_lists);
-	return EXIT_SUCCESS;
 }
