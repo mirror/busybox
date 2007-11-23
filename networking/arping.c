@@ -18,12 +18,6 @@
 /* We don't expect to see 1000+ seconds delay, unsigned is enough */
 #define MONOTONIC_US() ((unsigned)monotonic_us())
 
-static struct in_addr src;
-static struct in_addr dst;
-static struct sockaddr_ll me;
-static struct sockaddr_ll he;
-static unsigned last;
-
 enum {
 	DAD = 1,
 	UNSOLICITED = 2,
@@ -34,14 +28,43 @@ enum {
 	UNICASTING = 64
 };
 
-static int sock;
-static unsigned count = UINT_MAX;
-static unsigned timeout_us;
-static unsigned sent;
-static unsigned brd_sent;
-static unsigned received;
-static unsigned brd_recv;
-static unsigned req_recv;
+struct globals {
+	struct in_addr src;
+	struct in_addr dst;
+	struct sockaddr_ll me;
+	struct sockaddr_ll he;
+	int sock;
+
+	int count; // = -1;
+	unsigned last;
+	unsigned timeout_us;
+	unsigned start;
+
+	unsigned sent;
+	unsigned brd_sent;
+	unsigned received;
+	unsigned brd_recv;
+	unsigned req_recv;
+};
+#define G (*(struct globals*)&bb_common_bufsiz1)
+#define src        (G.src       )
+#define dst        (G.dst       )
+#define me         (G.me        )
+#define he         (G.he        )
+#define sock       (G.sock      )
+#define count      (G.count     )
+#define last       (G.last      )
+#define timeout_us (G.timeout_us)
+#define start      (G.start     )
+#define sent       (G.sent      )
+#define brd_sent   (G.brd_sent  )
+#define received   (G.received  )
+#define brd_recv   (G.brd_recv  )
+#define req_recv   (G.req_recv  )
+#define INIT_G() \
+	do { \
+		count = -1; \
+	} while (0)
 
 static int send_pack(struct in_addr *src_addr,
 			struct in_addr *dst_addr, struct sockaddr_ll *ME,
@@ -106,8 +129,6 @@ static void finish(void)
 
 static void catcher(void)
 {
-	static unsigned start;
-
 	unsigned now;
 
 	now = MONOTONIC_US();
@@ -117,7 +138,9 @@ static void catcher(void)
 	if (count == 0 || (timeout_us && (now - start) > (timeout_us + 500000)))
 		finish();
 
-	count--;
+	/* count < 0 means "infinite count" */
+	if (count > 0)
+		count--;
 
 	if (last == 0 || (now - last) > 500000) {
 		send_pack(&src, &dst, &me, &he);
@@ -236,6 +259,8 @@ int arping_main(int argc, char **argv)
 	char *target;
 	unsigned char *packet;
 
+	INIT_G();
+
 	sock = xsocket(PF_PACKET, SOCK_DGRAM, 0);
 
 	// Drop suid root privileges
@@ -252,14 +277,9 @@ int arping_main(int argc, char **argv)
 		opt = getopt32(argv, "DUAqfbc:w:I:s:",
 				&str_count, &str_timeout, &device, &source);
 		if (opt & 0x40) /* -c: count */
-			count = xatou(str_count);
+			count = xatoi_u(str_count);
 		if (opt & 0x80) /* -w: timeout */
 			timeout_us = xatou_range(str_timeout, 0, INT_MAX/2000000) * 1000000;
-		//if (opt & 0x100) /* -I: interface */
-		if (strlen(device) >= IF_NAMESIZE) {
-			bb_error_msg_and_die("interface name '%s' is too long",
-							device);
-		}
 		//if (opt & 0x200) /* -s: source */
 		option_mask32 &= 0x3f; /* set respective flags */
 	}
@@ -272,8 +292,10 @@ int arping_main(int argc, char **argv)
 		struct ifreq ifr;
 
 		memset(&ifr, 0, sizeof(ifr));
-		strncpy(ifr.ifr_name, device, IFNAMSIZ - 1);
-		ioctl_or_perror_and_die(sock, SIOCGIFINDEX, &ifr, "interface %s not found", device);
+		strncpy(ifr.ifr_name, device, sizeof(ifr.ifr_name) - 1);
+		/* We use ifr.ifr_name in error msg so that problem
+		 * with truncated name will be visible */
+		ioctl_or_perror_and_die(sock, SIOCGIFINDEX, &ifr, "interface %s not found", ifr.ifr_name);
 		ifindex = ifr.ifr_ifindex;
 
 		xioctl(sock, SIOCGIFFLAGS, (char *) &ifr);
@@ -308,7 +330,7 @@ int arping_main(int argc, char **argv)
 
 		if (device) {
 			if (setsockopt(probe_fd, SOL_SOCKET, SO_BINDTODEVICE, device, strlen(device) + 1) == -1)
-				bb_error_msg("warning: interface %s is ignored", device);
+				bb_perror_msg("cannot bind to device %s", device);
 		}
 		memset(&saddr, 0, sizeof(saddr));
 		saddr.sin_family = AF_INET;
@@ -322,7 +344,7 @@ int arping_main(int argc, char **argv)
 			saddr.sin_addr = dst;
 
 			if (setsockopt(probe_fd, SOL_SOCKET, SO_DONTROUTE, &const_int_1, sizeof(const_int_1)) == -1)
-				bb_perror_msg("warning: setsockopt(SO_DONTROUTE)");
+				bb_perror_msg("setsockopt(SO_DONTROUTE)");
 			xconnect(probe_fd, (struct sockaddr *) &saddr, sizeof(saddr));
 			if (getsockname(probe_fd, (struct sockaddr *) &saddr, &alen) == -1) {
 				bb_error_msg_and_die("getsockname");
@@ -345,20 +367,20 @@ int arping_main(int argc, char **argv)
 		}
 	}
 	if (me.sll_halen == 0) {
-		bb_error_msg("interface \"%s\" is not ARPable (no ll address)", device);
+		bb_error_msg("interface %s is not ARPable (no ll address)", device);
 		return (option_mask32 & DAD ? 0 : 2);
 	}
 	he = me;
 	memset(he.sll_addr, -1, he.sll_halen);
 
+	if (!src.s_addr && !(option_mask32 & DAD)) {
+		bb_error_msg_and_die("no src address in the non-DAD mode");
+	}
+
 	if (!(option_mask32 & QUIET)) {
 		printf("ARPING to %s from %s via %s\n",
 			inet_ntoa(dst), inet_ntoa(src),
 			device ? device : "unknown");
-	}
-
-	if (!src.s_addr && !(option_mask32 & DAD)) {
-		bb_error_msg_and_die("no src address in the non-DAD mode");
 	}
 
 	{
