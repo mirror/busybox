@@ -489,27 +489,6 @@ static void syntax_lineno(int line)
 #endif
 
 /* Index of subroutines: */
-/*   function prototypes for builtins */
-static int builtin_cd(char **argv);
-static int builtin_eval(char **argv);
-static int builtin_exec(char **argv);
-static int builtin_exit(char **argv);
-static int builtin_export(char **argv);
-#if ENABLE_HUSH_JOB
-static int builtin_fg_bg(char **argv);
-static int builtin_jobs(char **argv);
-#endif
-#if ENABLE_HUSH_HELP
-static int builtin_help(char **argv);
-#endif
-static int builtin_pwd(char **argv);
-static int builtin_read(char **argv);
-static int builtin_set(char **argv);
-static int builtin_shift(char **argv);
-static int builtin_source(char **argv);
-static int builtin_umask(char **argv);
-static int builtin_unset(char **argv);
-//static int builtin_not_written(char **argv);
 /*   o_string manipulation: */
 static int b_check_space(o_string *o, int len);
 static int b_addchr(o_string *o, int ch);
@@ -633,6 +612,29 @@ static void free_strings(char **strings)
 }
 
 
+/* Function prototypes for builtins */
+static int builtin_cd(char **argv);
+static int builtin_eval(char **argv);
+static int builtin_exec(char **argv);
+static int builtin_exit(char **argv);
+static int builtin_export(char **argv);
+#if ENABLE_HUSH_JOB
+static int builtin_fg_bg(char **argv);
+static int builtin_jobs(char **argv);
+#endif
+#if ENABLE_HUSH_HELP
+static int builtin_help(char **argv);
+#endif
+static int builtin_pwd(char **argv);
+static int builtin_read(char **argv);
+static int builtin_test(char **argv);
+static int builtin_set(char **argv);
+static int builtin_shift(char **argv);
+static int builtin_source(char **argv);
+static int builtin_umask(char **argv);
+static int builtin_unset(char **argv);
+//static int builtin_not_written(char **argv);
+
 /* Table of built-in functions.  They can be forked or not, depending on
  * context: within pipes, they fork.  As simple commands, they do not.
  * When used in non-forking context, they can change global variables
@@ -651,6 +653,8 @@ struct built_in_command {
 };
 
 static const struct built_in_command bltins[] = {
+	BLTIN("["     , builtin_test, "Test condition"),
+	BLTIN("[["    , builtin_test, "Test condition"),
 #if ENABLE_HUSH_JOB
 	BLTIN("bg"    , builtin_fg_bg, "Resume a job in the background"),
 #endif
@@ -672,6 +676,7 @@ static const struct built_in_command bltins[] = {
 	BLTIN("set"   , builtin_set, "Set/unset shell local variables"),
 	BLTIN("shift" , builtin_shift, "Shift positional parameters"),
 //	BLTIN("trap"  , builtin_not_written, "Trap signals"),
+	BLTIN("test"  , builtin_test, "Test condition"),
 //	BLTIN("ulimit", builtin_not_written, "Controls resource limits"),
 	BLTIN("umask" , builtin_umask, "Sets file creation mask"),
 	BLTIN("unset" , builtin_unset, "Unset environment variable"),
@@ -822,6 +827,18 @@ static const char *set_cwd(void)
 	if (!cwd)
 		cwd = bb_msg_unknown;
 	return cwd;
+}
+
+
+/* built-in 'test' handler */
+static int builtin_test(char **argv)
+{
+	int argc = 0;
+	while (*argv) {
+		argc++;
+		argv++;
+	}
+	return test_main(argc, argv - argc);
 }
 
 /* built-in 'eval' handler */
