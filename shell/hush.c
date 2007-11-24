@@ -2468,7 +2468,7 @@ static void count_var_expansion_space(int *countp, int *lenp, char *arg)
 			break;
 		case '*':
 		case '@':
-			for (i = 1; i < global_argc; i++) {
+			for (i = 1; global_argv[i]; i++) {
 				len += strlen(global_argv[i]) + 1;
 				count++;
 				if (!(first_ch & 0x80))
@@ -2581,11 +2581,13 @@ static int expand_vars_to_list(char **list, int n, char **posp, char *arg, char 
 		case '*':
 		case '@':
 			i = 1;
+			if (!global_argv[i])
+				break;
 			if (!(first_ch & 0x80)) { /* unquoted $* or $@ */
-				while (i < global_argc) {
+				while (global_argv[i]) {
 					n = expand_on_ifs(list, n, &pos, global_argv[i]);
 					debug_printf_expand("expand_vars_to_list: argv %d (last %d)\n", i, global_argc-1);
-					if (global_argv[i++][0] && i < global_argc) {
+					if (global_argv[i++][0] && global_argv[i]) {
 						/* this argv[] is not empty and not last:
 						 * put terminating NUL, start new word */
 						*pos++ = '\0';
@@ -2611,7 +2613,7 @@ static int expand_vars_to_list(char **list, int n, char **posp, char *arg, char 
 					list[n++] = pos;
 				}
 			} else { /* quoted $*: add as one word */
-				if (global_argv[i]) while (1) {
+				while (1) {
 					strcpy(pos, global_argv[i]);
 					pos += strlen(global_argv[i]);
 					if (!global_argv[++i])
