@@ -59,8 +59,9 @@ char get_header_tar(archive_handle_t *archive_handle)
 		char chksum[8];     /* 148-155 */
 		char typeflag;      /* 156-156 */
 		char linkname[100]; /* 157-256 */
-		char magic[6];      /* 257-262 */
-		char version[2];    /* 263-264 */
+		/* POSIX:   "ustar" NUL "00" */
+		/* GNU tar: "ustar  " NUL */
+		char magic[8];      /* 257-264 */
 		char uname[32];     /* 265-296 */
 		char gname[32];     /* 297-328 */
 		char devmajor[8];   /* 329-336 */

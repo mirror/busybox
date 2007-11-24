@@ -813,7 +813,7 @@ static servtab_t *getconfigent(void)
 		sep->se_bi = NULL;
 #endif
 	argc = 0;
-	for (; cp; arg = skip(&cp)) {
+	for (arg = skip(&cp); cp; arg = skip(&cp)) {
 		if (argc < MAXARGV)
 			sep->se_argv[argc++] = xxstrdup(arg);
 	}
