@@ -728,7 +728,7 @@ extern void bb_verror_msg(const char *s, va_list p, const char *strerr);
 
 /* applets which are useful from another applets */
 int bb_cat(char** argv);
-int bb_echo(int argc, char** argv);
+int echo_main(int argc, char** argv) MAIN_EXTERNALLY_VISIBLE;
 int test_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int kill_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 #if ENABLE_ROUTE

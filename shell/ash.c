@@ -11003,7 +11003,7 @@ exitcmd(int argc, char **argv)
 static int
 echocmd(int argc, char **argv)
 {
-	return bb_echo(argc, argv);
+	return echo_main(argc, argv);
 }
 #endif
 

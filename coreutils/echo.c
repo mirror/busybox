@@ -25,9 +25,13 @@
 
 #include "libbb.h"
 
+/* This is a NOFORK applet. Be very careful! */
+
 /* argc is unused, but removing it precludes compiler from
  * using call -> jump optimization */
-int bb_echo(int argc, char **argv)
+
+int echo_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
+int echo_main(int argc, char **argv)
 {
 	const char *arg;
 #if !ENABLE_FEATURE_FANCY_ECHO
@@ -38,7 +42,7 @@ int bb_echo(int argc, char **argv)
 
 	/* We must check that stdout is not closed.
 	 * The reason for this is highly non-obvious.
-	 * bb_echo is used from shell. Shell must correctly handle "echo foo"
+	 * echo_main is used from shell. Shell must correctly handle "echo foo"
 	 * if stdout is closed. With stdio, output gets shoveled into
 	 * stdout buffer, and even fflush cannot clear it out. It seems that
 	 * even if libc receives EBADF on write attempts, it feels determined
@@ -135,14 +139,6 @@ int bb_echo(int argc, char **argv)
 	return fflush(stdout);
 }
 
-/* This is a NOFORK applet. Be very careful! */
-
-int echo_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int echo_main(int argc, char **argv)
-{
-	return bb_echo(argc, argv);
-}
-
 /*-
  * Copyright (c) 1991, 1993
  *	The Regents of the University of California.  All rights reserved.
@@ -185,7 +181,7 @@ int echo_main(int argc, char **argv)
 #ifdef VERSION_WITH_WRITEV
 /* We can't use stdio.
  * The reason for this is highly non-obvious.
- * bb_echo is used from shell. Shell must correctly handle "echo foo"
+ * echo_main is used from shell. Shell must correctly handle "echo foo"
  * if stdout is closed. With stdio, output gets shoveled into
  * stdout buffer, and even fflush cannot clear it out. It seems that
  * even if libc receives EBADF on write attempts, it feels determined
@@ -195,7 +191,7 @@ int echo_main(int argc, char **argv)
  * Using writev instead, with 'direct' conversion of argv vector.
  */
 
-int bb_echo(int argc, char **argv)
+int echo_main(int argc, char **argv)
 {
 	struct iovec io[argc];
 	struct iovec *cur_io = io;

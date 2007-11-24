@@ -853,7 +853,7 @@ static int builtin_echo(char **argv)
 		argc++;
 		argv++;
 	}
-	return bb_echo(argc, argv - argc);
+	return echo_main(argc, argv - argc);
 }
 
 /* built-in 'eval' handler */
