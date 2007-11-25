@@ -145,7 +145,7 @@ int add_option_string(uint8_t *optionptr, uint8_t *string)
 	int end = end_option(optionptr);
 
 	/* end position + string length + option code/length + end option */
-	if (end + string[OPT_LEN] + 2 + 1 >= 308) {
+	if (end + string[OPT_LEN] + 2 + 1 >= DHCP_OPTIONS_BUFSIZE) {
 		bb_error_msg("option 0x%02x did not fit into the packet",
 				string[OPT_CODE]);
 		return 0;

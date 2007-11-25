@@ -21,6 +21,8 @@ extern const uint8_t MAC_BCAST_ADDR[6]; /* six all-ones */
 #include <netinet/udp.h>
 #include <netinet/ip.h>
 
+#define DHCP_OPTIONS_BUFSIZE 308
+
 struct dhcpMessage {
 	uint8_t op;
 	uint8_t htype;
@@ -37,7 +39,7 @@ struct dhcpMessage {
 	uint8_t sname[64];
 	uint8_t file[128];
 	uint32_t cookie;
-	uint8_t options[308]; /* 312 - cookie */
+	uint8_t options[DHCP_OPTIONS_BUFSIZE + CONFIG_UDHCPC_SLACK_FOR_BUGGY_SERVERS];
 } ATTRIBUTE_PACKED;
 
 struct udp_dhcp_packet {
@@ -49,7 +51,7 @@ struct udp_dhcp_packet {
 /* Let's see whether compiler understood us right */
 struct BUG_bad_sizeof_struct_udp_dhcp_packet {
 	char BUG_bad_sizeof_struct_udp_dhcp_packet
-                [sizeof(struct udp_dhcp_packet) != 576 ? -1 : 1];
+		[(sizeof(struct udp_dhcp_packet) != 576 + CONFIG_UDHCPC_SLACK_FOR_BUGGY_SERVERS) ? -1 : 1];
 };
 
 void udhcp_init_header(struct dhcpMessage *packet, char type);

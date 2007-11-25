@@ -82,3 +82,25 @@ config FEATURE_RFC3397
 	help
 	  If selected, both client and server will support passing of domain
 	  search lists via option 119, specified in RFC3397.
+
+config UDHCPC_SLACK_FOR_BUGGY_SERVERS
+	int "DHCP options slack buffer size"
+	default 80
+	range 0 924
+	depends on APP_UDHCPD || APP_UDHCPC
+	help
+	  Some buggy DHCP servers will send DHCP offer packets with option
+	  field larger than we expect (which might also be considered a
+	  buffer overflow attempt). These packets are normally discarded.
+	  If circumstances beyond your control force you to support such
+	  servers, this may help. The upper limit (924) makes dhcpc accept
+	  even 1500 byte packets (maximum-sized ethernet packets).
+
+	  This options does not make dhcp[cd] emit non-standard
+	  sized packets.
+
+	  Known buggy DHCP servers:
+	  3Com OfficeConnect Remote 812 ADSL Router:
+	    seems to confuse maximum allowed UDP packet size with
+	    maximum size of entire IP packet, and sends packets which are
+	    28 bytes too large.
