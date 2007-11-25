@@ -33,7 +33,7 @@ struct globals {
 	struct in_addr dst;
 	struct sockaddr_ll me;
 	struct sockaddr_ll he;
-	int sock;
+	int sock_fd;
 
 	int count; // = -1;
 	unsigned last;
@@ -51,7 +51,7 @@ struct globals {
 #define dst        (G.dst       )
 #define me         (G.me        )
 #define he         (G.he        )
-#define sock       (G.sock      )
+#define sock_fd    (G.sock_fd   )
 #define count      (G.count     )
 #define last       (G.last      )
 #define timeout_us (G.timeout_us)
@@ -71,7 +71,6 @@ static int send_pack(struct in_addr *src_addr,
 			struct sockaddr_ll *HE)
 {
 	int err;
-	unsigned now;
 	unsigned char buf[256];
 	struct arphdr *ah = (struct arphdr *) buf;
 	unsigned char *p = (unsigned char *) (ah + 1);
@@ -98,10 +97,9 @@ static int send_pack(struct in_addr *src_addr,
 	memcpy(p, dst_addr, 4);
 	p += 4;
 
-	now = MONOTONIC_US();
-	err = sendto(sock, buf, p - buf, 0, (struct sockaddr *) HE, sizeof(*HE));
+	err = sendto(sock_fd, buf, p - buf, 0, (struct sockaddr *) HE, sizeof(*HE));
 	if (err == p - buf) {
-		last = now;
+		last = MONOTONIC_US();
 		sent++;
 		if (!(option_mask32 & UNICASTING))
 			brd_sent++;
@@ -135,7 +133,7 @@ static void catcher(void)
 	if (start == 0)
 		start = now;
 
-	if (count == 0 || (timeout_us && (now - start) > (timeout_us + 500000)))
+	if (count == 0 || (timeout_us && (now - start) > timeout_us))
 		finish();
 
 	/* count < 0 means "infinite count" */
@@ -183,7 +181,7 @@ static int recv_pack(unsigned char *buf, int len, struct sockaddr_ll *FROM)
 	memcpy(&src_ip, p + ah->ar_hln, 4);
 	memcpy(&dst_ip, p + ah->ar_hln + 4 + ah->ar_hln, 4);
 	if (!(option_mask32 & DAD)) {
-		if (src_ip.s_addr != dst.s_addr)
+		if (dst.s_addr != src_ip.s_addr)
 			return 0;
 		if (src.s_addr != dst_ip.s_addr)
 			return 0;
@@ -230,7 +228,8 @@ static int recv_pack(unsigned char *buf, int len, struct sockaddr_ll *FROM)
 		}
 
 		if (last) {
-			printf(" %u.%03ums\n", last / 1000, last % 1000);
+			unsigned diff = MONOTONIC_US() - last;
+			printf(" %u.%03ums\n", diff / 1000, diff % 1000);
 		} else {
 			printf(" UNSOLICITED?\n");
 		}
@@ -254,17 +253,17 @@ int arping_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int arping_main(int argc, char **argv)
 {
 	const char *device = "eth0";
-	int ifindex;
 	char *source = NULL;
 	char *target;
 	unsigned char *packet;
 
 	INIT_G();
 
-	sock = xsocket(PF_PACKET, SOCK_DGRAM, 0);
+	sock_fd = xsocket(AF_PACKET, SOCK_DGRAM, 0);
 
 	// Drop suid root privileges
-	xsetuid(getuid());
+	// Need to remove SUID_NEVER from applets.h for this to work
+	//xsetuid(getuid());
 
 	{
 		unsigned opt;
@@ -279,7 +278,7 @@ int arping_main(int argc, char **argv)
 		if (opt & 0x40) /* -c: count */
 			count = xatoi_u(str_count);
 		if (opt & 0x80) /* -w: timeout */
-			timeout_us = xatou_range(str_timeout, 0, INT_MAX/2000000) * 1000000;
+			timeout_us = xatou_range(str_timeout, 0, INT_MAX/2000000) * 1000000 + 500000;
 		//if (opt & 0x200) /* -s: source */
 		option_mask32 &= 0x3f; /* set respective flags */
 	}
@@ -295,10 +294,10 @@ int arping_main(int argc, char **argv)
 		strncpy(ifr.ifr_name, device, sizeof(ifr.ifr_name) - 1);
 		/* We use ifr.ifr_name in error msg so that problem
 		 * with truncated name will be visible */
-		ioctl_or_perror_and_die(sock, SIOCGIFINDEX, &ifr, "interface %s not found", ifr.ifr_name);
-		ifindex = ifr.ifr_ifindex;
+		ioctl_or_perror_and_die(sock_fd, SIOCGIFINDEX, &ifr, "interface %s not found", ifr.ifr_name);
+		me.sll_ifindex = ifr.ifr_ifindex;
 
-		xioctl(sock, SIOCGIFFLAGS, (char *) &ifr);
+		xioctl(sock_fd, SIOCGIFFLAGS, (char *) &ifr);
 
 		if (!(ifr.ifr_flags & IFF_UP)) {
 			bb_error_msg_and_die("interface %s is down", device);
@@ -309,7 +308,7 @@ int arping_main(int argc, char **argv)
 		}
 	}
 
-	if (!inet_aton(target, &dst)) {
+	/* if (!inet_aton(target, &dst)) - not needed */ {
 		len_and_sockaddr *lsa;
 		lsa = xhost_and_af2sockaddr(target, 0, AF_INET);
 		memcpy(&dst, &lsa->sin.sin_addr.s_addr, 4);
@@ -321,23 +320,23 @@ int arping_main(int argc, char **argv)
 		bb_error_msg_and_die("invalid source address %s", source);
 	}
 
-	if (!(option_mask32 & DAD) && (option_mask32 & UNSOLICITED) && src.s_addr == 0)
+	if ((option_mask32 & (DAD|UNSOLICITED)) == UNSOLICITED && src.s_addr == 0)
 		src = dst;
 
 	if (!(option_mask32 & DAD) || src.s_addr) {
 		struct sockaddr_in saddr;
 		int probe_fd = xsocket(AF_INET, SOCK_DGRAM, 0);
 
-		if (device) {
-			if (setsockopt(probe_fd, SOL_SOCKET, SO_BINDTODEVICE, device, strlen(device) + 1) == -1)
-				bb_perror_msg("cannot bind to device %s", device);
-		}
+		if (setsockopt(probe_fd, SOL_SOCKET, SO_BINDTODEVICE, device, strlen(device) + 1) == -1)
+			bb_perror_msg("cannot bind to device %s", device);
 		memset(&saddr, 0, sizeof(saddr));
 		saddr.sin_family = AF_INET;
 		if (src.s_addr) {
+			/* Check that this is indeed our IP */
 			saddr.sin_addr = src;
 			xbind(probe_fd, (struct sockaddr *) &saddr, sizeof(saddr));
-		} else if (!(option_mask32 & DAD)) {
+		} else { /* !(option_mask32 & DAD) case */
+			/* Find IP address on this iface */
 			socklen_t alen = sizeof(saddr);
 
 			saddr.sin_port = htons(1025);
@@ -347,23 +346,25 @@ int arping_main(int argc, char **argv)
 				bb_perror_msg("setsockopt(SO_DONTROUTE)");
 			xconnect(probe_fd, (struct sockaddr *) &saddr, sizeof(saddr));
 			if (getsockname(probe_fd, (struct sockaddr *) &saddr, &alen) == -1) {
-				bb_error_msg_and_die("getsockname");
+				bb_perror_msg_and_die("getsockname");
 			}
+			if (saddr.sin_family != AF_INET)
+				bb_error_msg_and_die("no IP address configured");
 			src = saddr.sin_addr;
 		}
 		close(probe_fd);
 	}
 
 	me.sll_family = AF_PACKET;
-	me.sll_ifindex = ifindex;
+	//me.sll_ifindex = ifindex; - done before
 	me.sll_protocol = htons(ETH_P_ARP);
-	xbind(sock, (struct sockaddr *) &me, sizeof(me));
+	xbind(sock_fd, (struct sockaddr *) &me, sizeof(me));
 
 	{
 		socklen_t alen = sizeof(me);
 
-		if (getsockname(sock, (struct sockaddr *) &me, &alen) == -1) {
-			bb_error_msg_and_die("getsockname");
+		if (getsockname(sock_fd, (struct sockaddr *) &me, &alen) == -1) {
+			bb_perror_msg_and_die("getsockname");
 		}
 	}
 	if (me.sll_halen == 0) {
@@ -373,14 +374,10 @@ int arping_main(int argc, char **argv)
 	he = me;
 	memset(he.sll_addr, -1, he.sll_halen);
 
-	if (!src.s_addr && !(option_mask32 & DAD)) {
-		bb_error_msg_and_die("no src address in the non-DAD mode");
-	}
-
 	if (!(option_mask32 & QUIET)) {
-		printf("ARPING to %s from %s via %s\n",
-			inet_ntoa(dst), inet_ntoa(src),
-			device ? device : "unknown");
+		/* inet_ntoa uses static storage, can't use in same printf */
+		printf("ARPING to %s", inet_ntoa(dst));
+		printf(" from %s via %s\n", inet_ntoa(src), device);
 	}
 
 	{
@@ -405,7 +402,7 @@ int arping_main(int argc, char **argv)
 		socklen_t alen = sizeof(from);
 		int cc;
 
-		cc = recvfrom(sock, packet, 4096, 0, (struct sockaddr *) &from, &alen);
+		cc = recvfrom(sock_fd, packet, 4096, 0, (struct sockaddr *) &from, &alen);
 		if (cc < 0) {
 			bb_perror_msg("recvfrom");
 			continue;
