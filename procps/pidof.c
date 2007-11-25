@@ -47,12 +47,13 @@ int pidof_main(int argc, char **argv)
 	}
 #endif
 	/* Looks like everything is set to go.  */
-	while (optind < argc) {
+	argv += optind;
+	while (*argv) {
 		pid_t *pidList;
 		pid_t *pl;
 
 		/* reverse the pidlist like GNU pidof does.  */
-		pidList = pidlist_reverse(find_pid_by_name(argv[optind]));
+		pidList = pidlist_reverse(find_pid_by_name(*argv));
 		for (pl = pidList; *pl; pl++) {
 #if ENABLE_FEATURE_PIDOF_OMIT
 			if (opt & OPT_OMIT) {
@@ -74,9 +75,10 @@ int pidof_main(int argc, char **argv)
 #endif
 		}
 		free(pidList);
-		optind++;
+		argv++;
 	}
-	bb_putchar('\n');
+	if (!first)
+		bb_putchar('\n');
 
 #if ENABLE_FEATURE_PIDOF_OMIT
 	if (ENABLE_FEATURE_CLEAN_UP)

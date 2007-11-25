@@ -22,11 +22,11 @@ int which_main(int argc, char **argv)
 		bb_show_usage();
 	}
 
-/* We shouldn't do this. Ever. Not our business.
+	/* This matches what is seen on e.g. ubuntu
+	 * "which" there is a shell script */
 	if (!getenv("PATH")) {
 		putenv((char*)bb_PATH_root_path);
 	}
-*/
 
 	while (--argc > 0) {
 		argv++;

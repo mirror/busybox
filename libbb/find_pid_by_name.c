@@ -63,7 +63,7 @@ pid_t* find_pid_by_name(const char* procName)
 		    (!p->comm[sizeof(p->comm)-2] && strcmp(p->comm, procName) == 0)
 		/* or we require argv0 to match (essential for matching reexeced /proc/self/exe)*/
 		 || (p->argv0 && strcmp(bb_basename(p->argv0), procName) == 0)
-		/* TOOD: we can also try exe, do we want that? */
+		/* TOOD: we can also try /proc/NUM/exe link, do we want that? */
 		) {
 			pidList = xrealloc(pidList, sizeof(*pidList) * (i+2));
 			pidList[i++] = p->pid;
