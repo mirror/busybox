@@ -177,7 +177,6 @@ int zcip_main(int argc, char **argv)
 {
 	int state = PROBE;
 	struct ether_addr eth_addr;
-	const char *why;
 	char *r_opt;
 	unsigned opts;
 
@@ -319,8 +318,6 @@ int zcip_main(int argc, char **argv)
 		VDBG("...wait %d %s nprobes=%u, nclaims=%u\n",
 				timeout_ms, intf, nprobes, nclaims);
 
-	// FIXME: do we really receive ALL packets here??
-	// if yes, set up filtering to get ARPs only!!! (see arping)
 		switch (safe_poll(fds, 1, timeout_ms)) {
 
 		default:
@@ -447,8 +444,7 @@ int zcip_main(int argc, char **argv)
 
 			// read ARP packet
 			if (safe_read(sock_fd, &p, sizeof(p)) < 0) {
-				why = "recv";
-				goto bad;
+				bb_perror_msg_and_die(bb_msg_read_error);
 			}
 			if (p.eth.ether_type != htons(ETHERTYPE_ARP))
 				continue;
@@ -550,7 +546,4 @@ int zcip_main(int argc, char **argv)
 			break; // case 1 (packets arriving)
 		} // switch poll
 	} // while (1)
- bad:
-	bb_perror_msg("%s: %s", intf, why);
-	return EXIT_FAILURE;
 }
