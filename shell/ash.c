@@ -3461,14 +3461,17 @@ setjobctl(int on)
 	 * That sometimes helps to acquire controlling tty.
 	 * Obviously, a workaround for bugs when someone
 	 * failed to provide a controlling tty to bash! :) */
-			fd += 3;
-			while (!isatty(fd) && --fd >= 0)
-				;
+			fd = 2;
+			while (!isatty(fd))
+				if (--fd < 0)
+					goto out;
 		}
 		fd = fcntl(fd, F_DUPFD, 10);
-		close(ofd);
+		if (ofd >= 0)
+			close(ofd);
 		if (fd < 0)
 			goto out;
+		/* fd is a tty at this point */
 		close_on_exec_on(fd);
 		do { /* while we are in the background */
 			pgrp = tcgetpgrp(fd);
@@ -3502,7 +3505,8 @@ setjobctl(int on)
 		setsignal(SIGTTOU);
 		setsignal(SIGTTIN);
  close:
-		close(fd);
+		if (fd >= 0)
+			close(fd);
 		fd = -1;
 	}
 	ttyfd = fd;
