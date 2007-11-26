@@ -111,11 +111,11 @@ static int print_route(struct sockaddr_nl *who ATTRIBUTE_UNUSED,
 	if (r->rtm_family == AF_INET6) {
 		if (filter.tb) {
 			if (filter.tb < 0) {
-				if (!(r->rtm_flags&RTM_F_CLONED)) {
+				if (!(r->rtm_flags & RTM_F_CLONED)) {
 					return 0;
 				}
 			} else {
-				if (r->rtm_flags&RTM_F_CLONED) {
+				if (r->rtm_flags & RTM_F_CLONED) {
 					return 0;
 				}
 				if (filter.tb == RT_TABLE_LOCAL) {
@@ -366,7 +366,7 @@ USE_FEATURE_IP_RULE(ARG_table,)
 			unsigned mtu;
 			NEXT_ARG();
 			if (index_in_strings(keywords, *argv) == PARM_lock) {
-				mxlock |= (1<<RTAX_MTU);
+				mxlock |= (1 << RTAX_MTU);
 				NEXT_ARG();
 			}
 			if (get_unsigned(&mtu, *argv, 0))
@@ -398,7 +398,7 @@ USE_FEATURE_IP_RULE(ARG_table,)
 				NEXT_ARG();
 			}
 			if ((**argv < '0' || **argv > '9')
-				&& rtnl_rtntype_a2n(&type, *argv) == 0) {
+			 && rtnl_rtntype_a2n(&type, *argv) == 0) {
 				NEXT_ARG();
 				req.r.rtm_type = type;
 				ok |= type_ok;
@@ -518,19 +518,30 @@ static int iproute_list_or_flush(char **argv, int flush)
 	char *id = NULL;
 	char *od = NULL;
 	static const char keywords[] ALIGN1 =
-		"protocol\0""all\0""dev\0""oif\0""iif\0""via\0""table\0""cache\0" /*all*/
-		"from\0""root\0""match\0""exact\0""to\0"/*root match exact*/;
+		/* "ip route list/flush" parameters: */
+		"protocol\0" "dev\0"   "oif\0"   "iif\0"
+		"via\0"      "table\0" "cache\0"
+		"from\0"     "to\0"
+		/* and possible further keywords */
+		"all\0"
+		"root\0"
+		"match\0"
+		"exact\0"
+		"main\0"
+		;
 	enum {
-		ARG_proto, PARM_all,
-		ARG_dev,
-		ARG_oif,
-		ARG_iif,
-		ARG_via,
-		ARG_table, PARM_cache, /*PARM_all,*/
-		ARG_from, PARM_root, PARM_match, PARM_exact,
-		ARG_to  /*PARM_root, PARM_match, PARM_exact*/
+		KW_proto, KW_dev,   KW_oif,  KW_iif,
+		KW_via,   KW_table, KW_cache,
+		KW_from,  KW_to,
+		/* */
+		KW_all,
+		KW_root,
+		KW_match,
+		KW_exact,
+		KW_main,
 	};
 	int arg, parm;
+
 	iproute_reset_filter();
 	filter.tb = RT_TABLE_MAIN;
 
@@ -539,64 +550,66 @@ static int iproute_list_or_flush(char **argv, int flush)
 
 	while (*argv) {
 		arg = index_in_substrings(keywords, *argv);
-		if (arg == ARG_proto) {
+		if (arg == KW_proto) {
 			uint32_t prot = 0;
 			NEXT_ARG();
 			filter.protocolmask = -1;
 			if (rtnl_rtprot_a2n(&prot, *argv)) {
-				if (index_in_strings(keywords, *argv) != PARM_all)
+				if (index_in_strings(keywords, *argv) != KW_all)
 					invarg(*argv, "protocol");
 				prot = 0;
 				filter.protocolmask = 0;
 			}
 			filter.protocol = prot;
-		} else if (arg == ARG_dev || arg == ARG_oif) {
+		} else if (arg == KW_dev || arg == KW_oif) {
 			NEXT_ARG();
 			od = *argv;
-		} else if (arg == ARG_iif) {
+		} else if (arg == KW_iif) {
 			NEXT_ARG();
 			id = *argv;
-		} else if (arg == ARG_via) {
+		} else if (arg == KW_via) {
 			NEXT_ARG();
 			get_prefix(&filter.rvia, *argv, do_ipv6);
-		} else if (arg == ARG_table) {
+		} else if (arg == KW_table) { /* table all/cache/main */
 			NEXT_ARG();
 			parm = index_in_substrings(keywords, *argv);
-			if (parm == PARM_cache)
+			if (parm == KW_cache)
 				filter.tb = -1;
-			else if (parm == PARM_all)
+			else if (parm == KW_all)
 				filter.tb = 0;
-			else
+			else if (parm != KW_main)
 				invarg(*argv, "table");
-		} else if (arg == ARG_from) {
+		} else if (arg == KW_cache) { // hmm is it valid - "ip r flush cache"?
+			filter.tb = -1;
+		} else if (arg == KW_from) {
 			NEXT_ARG();
 			parm = index_in_substrings(keywords, *argv);
-			if (parm == PARM_root) {
+			if (parm == KW_root) {
 				NEXT_ARG();
 				get_prefix(&filter.rsrc, *argv, do_ipv6);
-			} else if (parm == PARM_match) {
+			} else if (parm == KW_match) {
 				NEXT_ARG();
 				get_prefix(&filter.msrc, *argv, do_ipv6);
 			} else {
-				if (parm == PARM_exact)
+				if (parm == KW_exact)
 					NEXT_ARG();
 				get_prefix(&filter.msrc, *argv, do_ipv6);
 				filter.rsrc = filter.msrc;
 			}
-		} else {
-			/* parm = arg; // would be more plausible, we reuse arg here */
-			if (arg == ARG_to) {
+		} else { /* "to" is the default parameter */
+			if (arg == KW_to) {
 				NEXT_ARG();
 				arg = index_in_substrings(keywords, *argv);
 			}
-			if (arg == PARM_root) {
+			/* parm = arg; - would be more plausible, but we reuse 'arg' here */
+			if (arg == KW_root) {
 				NEXT_ARG();
 				get_prefix(&filter.rdst, *argv, do_ipv6);
-			} else if (arg == PARM_match) {
+			} else if (arg == KW_match) {
 				NEXT_ARG();
 				get_prefix(&filter.mdst, *argv, do_ipv6);
-			} else {
-				if (arg == PARM_exact)
+			} else { /* "to exact" is the default */
+				if (arg == KW_exact)
 					NEXT_ARG();
 				get_prefix(&filter.mdst, *argv, do_ipv6);
 				filter.rdst = filter.mdst;
@@ -610,7 +623,6 @@ static int iproute_list_or_flush(char **argv, int flush)
 	}
 
 	xrtnl_open(&rth);
-
 	ll_init_map(&rth);
 
 	if (id || od)  {
@@ -631,7 +643,7 @@ static int iproute_list_or_flush(char **argv, int flush)
 	if (flush) {
 		char flushb[4096-512];
 
-		if (filter.tb == -1) {
+		if (filter.tb == -1) { /* "flush table cache" */
 			if (do_ipv6 != AF_INET6)
 				iproute_flush_cache();
 			if (do_ipv6 == AF_INET)
