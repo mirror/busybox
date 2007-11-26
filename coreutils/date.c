@@ -32,16 +32,10 @@
 #define DATE_OPT_TIMESPEC	0x20
 #define DATE_OPT_HINT		0x40
 
-static void xputenv(char *s)
-{
-	if (putenv(s) != 0)
-		bb_error_msg_and_die(bb_msg_memory_exhausted);
-}
-
 static void maybe_set_utc(int opt)
 {
 	if (opt & DATE_OPT_UTC)
-		xputenv((char*)"TZ=UTC0");
+		putenv((char*)"TZ=UTC0");
 }
 
 int date_main(int argc, char **argv);

@@ -277,6 +277,9 @@ static void console_init(void)
 			while (fd > 2) close(fd--);
 		}
 		messageD(L_LOG, "console='%s'", s);
+	} else {
+		/* Make sure fd 0,1,2 are not closed */
+		bb_sanitize_stdio();
 	}
 
 	s = getenv("TERM");
