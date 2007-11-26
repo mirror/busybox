@@ -58,7 +58,7 @@ testing()
 
   if [ $# -ne 5 ]
   then
-    echo "Test $NAME has the wrong number of arguments ($# $*)" >&2
+    echo "Test $NAME has wrong number of arguments (must be 5) ($# $*)" >&2
     exit
   fi
 

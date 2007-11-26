@@ -127,7 +127,7 @@ for applet in $applets; do
 			echo "SKIPPED: $applet (not built)"
 			continue
 		fi
-		if PATH="$LINKSDIR":$tsdir:$bindir:$PATH \
+		if PATH="$LINKSDIR:$tsdir:$bindir:$PATH" \
 				"${tsdir:-.}/$applet".tests
 		then
 			:
@@ -137,5 +137,11 @@ for applet in $applets; do
 	fi
 
 done
-rm -rf "$LINKSDIR"
+
+# Leaving the dir makes it somewhat easier to run failed test by hand
+#rm -rf "$LINKSDIR"
+
+if [ $status != 0 -a x"$VERBOSE" = x ]; then
+	echo "Failures detected, running with VERBOSE=1 will give more info"
+fi
 exit $status
