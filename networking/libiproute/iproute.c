@@ -579,7 +579,9 @@ static int iproute_list_or_flush(char **argv, int flush)
 				filter.tb = 0;
 			else if (parm != KW_main)
 				invarg(*argv, "table");
-		} else if (arg == KW_cache) { // hmm is it valid - "ip r flush cache"?
+		} else if (arg == KW_cache) {
+			/* The command 'ip route flush cache' is used by OpenSWAN.
+			 * Assuming it's a synonym for 'ip route flush table cache' */
 			filter.tb = -1;
 		} else if (arg == KW_from) {
 			NEXT_ARG();
