@@ -33,6 +33,7 @@ enum {
 
 #define DHCP_MAGIC		0x63825363
 
+
 /* DHCP option codes (partial list) */
 #define DHCP_PADDING		0x00
 #define DHCP_SUBNET		0x01
@@ -67,7 +68,6 @@ enum {
 #define DHCP_VENDOR		0x3c
 #define DHCP_CLIENT_ID		0x3d
 #define DHCP_FQDN		0x51
-
 #define DHCP_END		0xFF
 
 
@@ -98,7 +98,7 @@ enum {
 #define OPT_DATA 2
 
 struct dhcp_option {
-	char name[12];
+	char opt_name[12];
 	char flags;
 	uint8_t code;
 };

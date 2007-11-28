@@ -104,3 +104,4 @@ config UDHCPC_SLACK_FOR_BUGGY_SERVERS
 	    seems to confuse maximum allowed UDP packet size with
 	    maximum size of entire IP packet, and sends packets which are
 	    28 bytes too large.
+          Seednet (ISP) VDSL: sends packets 2 bytes too big.

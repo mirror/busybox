@@ -96,6 +96,9 @@ int send_discover(uint32_t xid, uint32_t requested)
 	if (requested)
 		add_simple_option(packet.options, DHCP_REQUESTED_IP, requested);
 
+	/* Explicitly saying that we want RFC-compliant packets helps
+	 * some buggy DHCP servers to NOT send bigger packets */
+	add_simple_option(packet.options, DHCP_MAX_SIZE, htons(576));
 	add_requests(&packet);
 	bb_info_msg("Sending discover...");
 	return udhcp_raw_packet(&packet, INADDR_ANY, CLIENT_PORT, INADDR_BROADCAST,

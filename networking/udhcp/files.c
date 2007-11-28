@@ -90,7 +90,7 @@ static void attach_option(struct option_set **opt_list,
 
 	existing = find_option(*opt_list, option->code);
 	if (!existing) {
-		DEBUG("Attaching option %s to list", option->name);
+		DEBUG("Attaching option %02x to list", option->code);
 
 #if ENABLE_FEATURE_RFC3397
 		if ((option->flags & TYPE_MASK) == OPTION_STR1035)
@@ -119,7 +119,7 @@ static void attach_option(struct option_set **opt_list,
 	}
 
 	/* add it to an existing option */
-	DEBUG("Attaching option %s to existing member of list", option->name);
+	DEBUG("Attaching option %02x to existing member of list", option->code);
 	if (option->flags & OPTION_LIST) {
 #if ENABLE_FEATURE_RFC3397
 		if ((option->flags & TYPE_MASK) == OPTION_STR1035)
@@ -170,7 +170,7 @@ static int read_opt(const char *const_line, void *arg)
 	while (1) {
 		if (!option->code)
 			return 0;
-		if (!strcasecmp(option->name, opt))
+		if (!strcasecmp(option->opt_name, opt))
 			break;
 		option++;
 	}

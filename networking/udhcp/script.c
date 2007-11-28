@@ -44,14 +44,15 @@ static int sprintip(char *dest, const char *pre, const uint8_t *ip)
 
 
 /* really simple implementation, just count the bits */
-static int mton(struct in_addr *mask)
+static int mton(uint32_t mask)
 {
-	int i;
-	unsigned long bits = ntohl(mask->s_addr);
-	/* too bad one can't check the carry bit, etc in c bit
-	 * shifting */
-	for (i = 0; i < 32 && !((bits >> i) & 1); i++);
-	return 32 - i;
+	int i = 0;
+	mask = ntohl(mask); /* 111110000-like bit pattern */
+	while (mask) {
+		i++;
+		mask <<= 1;
+	}
+	return i;
 }
 
 
@@ -69,8 +70,8 @@ static char *alloc_fill_opts(uint8_t *option, const struct dhcp_option *type_p)
 	type = type_p->flags & TYPE_MASK;
 	optlen = option_lengths[type];
 
-	dest = ret = xmalloc(upper_length(len, type) + strlen(type_p->name) + 2);
-	dest += sprintf(ret, "%s=", type_p->name);
+	dest = ret = xmalloc(upper_length(len, type) + strlen(type_p->opt_name) + 2);
+	dest += sprintf(ret, "%s=", type_p->opt_name);
 
 	for (;;) {
 		switch (type) {
@@ -133,7 +134,6 @@ static char **fill_envp(struct dhcpMessage *packet)
 	char **envp;
 	char *var;
 	uint8_t *temp;
-	struct in_addr subnet;
 	char over = 0;
 
 	if (packet) {
@@ -179,8 +179,9 @@ static char **fill_envp(struct dhcpMessage *packet)
 
 		/* Fill in a subnet bits option for things like /24 */
 		if (dhcp_options[i].code == DHCP_SUBNET) {
+			uint32_t subnet;
 			memcpy(&subnet, temp, 4);
-			envp[j++] = xasprintf("mask=%d", mton(&subnet));
+			envp[j++] = xasprintf("mask=%d", mton(subnet));
 		}
 	}
 	if (packet->siaddr) {
