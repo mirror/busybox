@@ -53,7 +53,7 @@
 #if DEBUG
 #define _GNU_SOURCE
 #endif
-#include "busybox.h" /* for struct bb_applet */
+#include "busybox.h" /* for applet_names */
 #include <paths.h>
 #include <setjmp.h>
 #include <fnmatch.h>
@@ -6479,12 +6479,10 @@ tryexec(char *cmd, char **argv, char **envp)
 
 #if ENABLE_FEATURE_SH_STANDALONE
 	if (strchr(cmd, '/') == NULL) {
-		const struct bb_applet *a;
-
-		a = find_applet_by_name(cmd);
-		if (a) {
-			if (a->noexec)
-				run_appletstruct_and_exit(a, argv);
+		int a = find_applet_by_name(cmd);
+		if (a >= 0) {
+			if (APPLET_IS_NOEXEC(a))
+				run_applet_no_and_exit(a, argv);
 			/* re-exec ourselves with the new arguments */
 			execve(bb_busybox_exec_path, argv, envp);
 			/* If they called chroot or otherwise made the binary no longer
@@ -6539,7 +6537,7 @@ shellexec(char **argv, const char *path, int idx)
 	envp = environment();
 	if (strchr(argv[0], '/')
 #if ENABLE_FEATURE_SH_STANDALONE
-	 || find_applet_by_name(argv[0])
+	 || find_applet_by_name(argv[0]) >= 0
 #endif
 	) {
 		tryexec(argv[0], argv, envp);
@@ -11117,7 +11115,7 @@ find_command(char *name, struct cmdentry *entry, int act, const char *path)
 	}
 
 #if ENABLE_FEATURE_SH_STANDALONE
-	if (find_applet_by_name(name)) {
+	if (find_applet_by_name(name) >= 0) {
 		entry->cmdtype = CMDNORMAL;
 		entry->u.index = -1;
 		return;
@@ -11298,11 +11296,15 @@ helpcmd(int argc, char **argv)
 		}
 	}
 #if ENABLE_FEATURE_SH_STANDALONE
-	for (i = 0; i < NUM_APPLETS; i++) {
-		col += out1fmt("%c%s", ((col == 0) ? '\t' : ' '), applets[i].name);
-		if (col > 60) {
-			out1fmt("\n");
-			col = 0;
+	{
+		const char *a = applet_names;
+		while (*a) {
+			col += out1fmt("%c%s", ((col == 0) ? '\t' : ' '), a);
+			if (col > 60) {
+				out1fmt("\n");
+				col = 0;
+			}
+			a += strlen(a) + 1;
 		}
 	}
 #endif

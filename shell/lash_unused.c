@@ -23,7 +23,7 @@
 #include <getopt.h>
 #include <glob.h>
 
-#include "busybox.h" /* for struct bb_applet */
+#include "libbb.h"
 
 #define expand_t	glob_t
 
@@ -1253,8 +1253,8 @@ static int run_command(struct job *newjob, int inbg, int outpipe[2])
 			}
 #if ENABLE_FEATURE_SH_STANDALONE
 			{
-				const struct bb_applet *a = find_applet_by_name(child->argv[i]);
-				if (a && a->nofork) {
+				int a = find_applet_by_name(child->argv[i]);
+				if (a >= 0 && APPLET_IS_NOFORK(a)) {
 					setup_redirects(child, squirrel);
 					rcode = run_nofork_applet(a, child->argv + i);
 					restore_redirects(squirrel);

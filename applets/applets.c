@@ -2,7 +2,7 @@
 /*
  * Stub for linking busybox binary against libbusybox.
  *
- * Copyright (C) 2007 Denis Vlasenko
+ * Copyright (C) 2007 Denys Vlasenko <vda.linux@googlemail.com>
  *
  * Licensed under GPLv2, see file License in this tarball for details.
  */

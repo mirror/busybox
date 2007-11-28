@@ -550,7 +550,6 @@ void clear_username_cache(void);
 enum { USERNAME_MAX_SIZE = 16 - sizeof(int) };
 
 
-struct bb_applet;
 int execable_file(const char *name);
 char *find_execable(const char *filename);
 int exists_execable(const char *filename);
@@ -562,7 +561,7 @@ int exists_execable(const char *filename);
 int bb_execvp(const char *file, char *const argv[]);
 #define BB_EXECVP(prog,cmd) bb_execvp(prog,cmd)
 #define BB_EXECLP(prog,cmd,...) \
-	execlp((find_applet_by_name(prog)) ? CONFIG_BUSYBOX_EXEC_PATH : prog, \
+	execlp((find_applet_by_name(prog) >= 0) ? CONFIG_BUSYBOX_EXEC_PATH : prog, \
 		cmd, __VA_ARGS__)
 #else
 #define BB_EXECVP(prog,cmd)     execvp(prog,cmd)
@@ -600,8 +599,8 @@ struct nofork_save_area {
 void save_nofork_data(struct nofork_save_area *save);
 void restore_nofork_data(struct nofork_save_area *save);
 /* Does NOT check that applet is NOFORK, just blindly runs it */
-int run_nofork_applet(const struct bb_applet *a, char **argv);
-int run_nofork_applet_prime(struct nofork_save_area *old, const struct bb_applet *a, char **argv);
+int run_nofork_applet(int applet_no, char **argv);
+int run_nofork_applet_prime(struct nofork_save_area *old, int applet_no, char **argv);
 
 /* Helpers for daemonization.
  *
@@ -786,10 +785,10 @@ const struct hwtype *get_hwntype(int type);
 
 
 #ifndef BUILD_INDIVIDUAL
-extern const struct bb_applet *find_applet_by_name(const char *name);
+extern int find_applet_by_name(const char *name);
 /* Returns only if applet is not found. */
 extern void run_applet_and_exit(const char *name, char **argv);
-extern void run_appletstruct_and_exit(const struct bb_applet *a, char **argv) ATTRIBUTE_NORETURN;
+extern void run_applet_no_and_exit(int a, char **argv) ATTRIBUTE_NORETURN;
 #endif
 
 extern int match_fstype(const struct mntent *mt, const char *fstypes);

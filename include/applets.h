@@ -59,12 +59,12 @@ s     - suid type:
 # define APPLET_NOFORK(name,main,l,s,name2)  LINK l name
 
 #else
-  const struct bb_applet applets[] = { /*    name, main, location, need_suid */
-# define APPLET(name,l,s)                    { #name, name##_main USE_FEATURE_INSTALLER(,l) USE_FEATURE_SUID(,s) },
-# define APPLET_NOUSAGE(name,main,l,s)       { #name, main##_main USE_FEATURE_INSTALLER(,l) USE_FEATURE_SUID(,s) },
-# define APPLET_ODDNAME(name,main,l,s,name2) { #name, main##_main USE_FEATURE_INSTALLER(,l) USE_FEATURE_SUID(,s) },
-# define APPLET_NOEXEC(name,main,l,s,name2)  { #name, main##_main USE_FEATURE_INSTALLER(,l) USE_FEATURE_SUID(,s) USE_FEATURE_PREFER_APPLETS(,1) },
-# define APPLET_NOFORK(name,main,l,s,name2)  { #name, main##_main USE_FEATURE_INSTALLER(,l) USE_FEATURE_SUID(,s) USE_FEATURE_PREFER_APPLETS(,1 ,1) },
+  static struct bb_applet applets[] = { /*    name, main, location, need_suid */
+# define APPLET(name,l,s)                    { #name, #name, l, s },
+# define APPLET_NOUSAGE(name,main,l,s)       { #name, #main, l, s },
+# define APPLET_ODDNAME(name,main,l,s,name2) { #name, #main, l, s },
+# define APPLET_NOEXEC(name,main,l,s,name2)  { #name, #main, l, s, 1 },
+# define APPLET_NOFORK(name,main,l,s,name2)  { #name, #main, l, s, 1, 1 },
 #endif
 
 #if ENABLE_INSTALL_NO_USR
@@ -385,7 +385,6 @@ USE_GUNZIP(APPLET_ODDNAME(zcat, gunzip, _BB_DIR_BIN, _BB_SUID_NEVER, zcat))
 USE_ZCIP(APPLET(zcip, _BB_DIR_SBIN, _BB_SUID_NEVER))
 
 #if !defined(PROTOTYPES) && !defined(NAME_MAIN_CNAME) && !defined(MAKE_USAGE)
-	{ NULL }
 };
 #endif
 

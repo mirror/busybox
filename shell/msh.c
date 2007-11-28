@@ -45,9 +45,9 @@
 # define NOT_LONE_DASH(s) ((s)[0] != '-' || (s)[1])
 # define LONE_CHAR(s,c) ((s)[0] == (c) && !(s)[1])
 # define ATTRIBUTE_NORETURN __attribute__ ((__noreturn__))
-static char *find_applet_by_name(const char *applet)
+static int find_applet_by_name(const char *applet)
 {
-	return NULL;
+	return -1;
 }
 static char *utoa_to_buf(unsigned n, char *buf, unsigned buflen)
 {
@@ -83,7 +83,7 @@ static char *itoa(int n)
 	return local_buf;
 }
 #else
-# include "busybox.h"
+# include "busybox.h" /* for applet_names */
 extern char **environ;
 #endif
 
@@ -3057,7 +3057,7 @@ static const char *rexecve(char *c, char **v, char **envp)
 	char *name = c;
 
 	if (ENABLE_FEATURE_SH_STANDALONE) {
-		if (find_applet_by_name(name)) {
+		if (find_applet_by_name(name) >= 0) {
 			/* We have to exec here since we vforked.  Running
 			 * run_applet_and_exit() won't work and bad things
 			 * will happen. */
@@ -3188,15 +3188,15 @@ static int dohelp(struct op *t)
 	}
 #if ENABLE_FEATURE_SH_STANDALONE
 	{
-		const struct bb_applet *applet = applets;
+		const char *applet = applet_names;
 
-		while (applet->name) {
-			col += printf("%c%s", ((col == 0) ? '\t' : ' '), applet->name);
+		while (*applet) {
+			col += printf("%c%s", ((col == 0) ? '\t' : ' '), applet);
 			if (col > 60) {
 				bb_putchar('\n');
 				col = 0;
 			}
-			applet++;
+			applet += strlen(applet) + 1;
 		}
 	}
 #endif

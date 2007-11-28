@@ -65,7 +65,7 @@ int exists_execable(const char *filename)
  */
 int bb_execvp(const char *file, char *const argv[])
 {
-	return execvp(find_applet_by_name(file) ? bb_busybox_exec_path : file,
+	return execvp(find_applet_by_name(file) >= 0 ? bb_busybox_exec_path : file,
 					argv);
 }
 #endif

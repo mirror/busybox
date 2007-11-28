@@ -83,7 +83,7 @@
 
 extern char **environ; /* This is in <unistd.h>, but protected with __USE_GNU */
 
-#include "busybox.h" /* for struct bb_applet */
+#include "busybox.h" /* for APPLET_IS_NOFORK/NOEXEC */
 
 
 #if !BB_MMU
@@ -1464,12 +1464,12 @@ static void pseudo_exec_argv(char **argv)
 	/* Check if the command matches any busybox applets */
 #if ENABLE_FEATURE_SH_STANDALONE
 	if (strchr(argv[0], '/') == NULL) {
-		const struct bb_applet *a = find_applet_by_name(argv[0]);
-		if (a) {
-			if (a->noexec) {
+		int a = find_applet_by_name(argv[0]);
+		if (a >= 0) {
+			if (APPLET_IS_NOEXEC(a)) {
 				debug_printf_exec("running applet '%s'\n", argv[0]);
-// is it ok that run_appletstruct_and_exit() does exit(), not _exit()?
-				run_appletstruct_and_exit(a, argv);
+// is it ok that run_applet_no_and_exit() does exit(), not _exit()?
+				run_applet_no_and_exit(a, argv);
 			}
 			/* re-exec ourselves with the new arguments */
 			debug_printf_exec("re-execing applet '%s'\n", argv[0]);
@@ -1855,8 +1855,8 @@ static int run_pipe_real(struct pipe *pi)
 		}
 #if ENABLE_FEATURE_SH_STANDALONE
 		{
-			const struct bb_applet *a = find_applet_by_name(argv[i]);
-			if (a && a->nofork) {
+			int a = find_applet_by_name(argv[i]);
+			if (a >= 0 && APPLET_IS_NOFORK(a)) {
 				setup_redirects(child, squirrel);
 				save_nofork_data(&nofork_save);
 				argv_expanded = argv + i;

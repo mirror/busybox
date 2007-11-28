@@ -8,7 +8,7 @@ obj-y :=
 obj-y += applets.o
 
 hostprogs-y:=
-hostprogs-y += usage
+hostprogs-y += usage applet_tables
 
 always:= $(hostprogs-y)
 
@@ -19,7 +19,15 @@ quiet_cmd_gen_usage_compressed = GEN     include/usage_compressed.h
 
 HOSTCFLAGS_usage.o = -I$(srctree)/include
 
-applets/applets.o:          include/usage_compressed.h
+applets/applets.o:          include/usage_compressed.h include/applet_tables.h
+
 applets/usage:              .config $(srctree)/applets/usage_compressed
+
 include/usage_compressed.h: applets/usage $(srctree)/applets/usage_compressed
 	$(call cmd,gen_usage_compressed)
+
+# Two-stage file creation, to avoid having target file still created
+# in case applet_tables fails
+include/applet_tables.h: applets/applet_tables
+	applets/applet_tables >include/applet_tables.h.tmp
+	mv include/applet_tables.h.tmp include/applet_tables.h

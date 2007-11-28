@@ -16,7 +16,7 @@
  */
 
 #include <paths.h>
-#include "busybox.h" /* for struct bb_applet */
+#include "busybox.h" /* uses applet tables */
 
 /* This does a fork/exec in one call, using vfork().  Returns PID of new child,
  * -1 for failure.  Runs argv[0], searching path if that has no / in it. */
@@ -120,11 +120,11 @@ void restore_nofork_data(struct nofork_save_area *save)
 	die_sleep = save->die_sleep;
 }
 
-int run_nofork_applet_prime(struct nofork_save_area *old, const struct bb_applet *a, char **argv)
+int run_nofork_applet_prime(struct nofork_save_area *old, int applet_no, char **argv)
 {
 	int rc, argc;
 
-	applet_name = a->name;
+	applet_name = APPLET_NAME(applet_no);
 	xfunc_error_retval = EXIT_FAILURE;
 	/*option_mask32 = 0; - not needed */
 	/* special flag for xfunc_die(). If xfunc will "die"
@@ -143,7 +143,7 @@ int run_nofork_applet_prime(struct nofork_save_area *old, const struct bb_applet
 		char *tmp_argv[argc+1];
 		memcpy(tmp_argv, argv, (argc+1) * sizeof(tmp_argv[0]));
 		/* Finally we can call NOFORK applet's main() */
-		rc = a->main(argc, tmp_argv);
+		rc = applet_mains[applet_no](argc, tmp_argv);
 	} else { /* xfunc died in NOFORK applet */
 		/* in case they meant to return 0... */
 		if (rc == -2222)
@@ -155,13 +155,13 @@ int run_nofork_applet_prime(struct nofork_save_area *old, const struct bb_applet
 	return rc;
 }
 
-int run_nofork_applet(const struct bb_applet *a, char **argv)
+int run_nofork_applet(int applet_no, char **argv)
 {
 	struct nofork_save_area old;
 
 	/* Saving globals */
 	save_nofork_data(&old);
-	return run_nofork_applet_prime(&old, a, argv);
+	return run_nofork_applet_prime(&old, applet_no, argv);
 }
 #endif /* FEATURE_PREFER_APPLETS */
 
@@ -169,15 +169,15 @@ int spawn_and_wait(char **argv)
 {
 	int rc;
 #if ENABLE_FEATURE_PREFER_APPLETS
-	const struct bb_applet *a = find_applet_by_name(argv[0]);
+	int a = find_applet_by_name(argv[0]);
 
-	if (a && (a->nofork
+	if (a >= 0 && (APPLET_IS_NOFORK(a)
 #if BB_MMU
-		 || a->noexec /* NOEXEC trick needs fork() */
+			|| APPLET_IS_NOEXEC(a) /* NOEXEC trick needs fork() */
 #endif
 	)) {
 #if BB_MMU
-		if (a->nofork)
+		if (APPLET_IS_NOFORK(a))
 #endif
 		{
 			return run_nofork_applet(a, argv);
@@ -190,7 +190,7 @@ int spawn_and_wait(char **argv)
 			return wait4pid(rc);
 		/* child */
 		xfunc_error_retval = EXIT_FAILURE;
-		run_appletstruct_and_exit(a, argv);
+		run_applet_no_and_exit(a, argv);
 #endif
 	}
 #endif /* FEATURE_PREFER_APPLETS */

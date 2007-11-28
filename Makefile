@@ -928,6 +928,8 @@ MRPROPER_FILES += .config .config.old include/asm .version .old_version \
 		  include/autoconf.h \
 		  include/bbconfigopts.h \
 		  include/usage_compressed.h \
+		  include/applet_tables.h \
+		  applets/usage \
 		  .kernelrelease Module.symvers tags TAGS cscope*
 
 # clean - Delete most, but leave enough to build external modules
