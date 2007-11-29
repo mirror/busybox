@@ -3505,16 +3505,17 @@ USE_FEATURE_RUN_PARTS_FANCY("\n	-l	Prints names of all matching files even when 
        "Configure kernel parameters at runtime" \
        "\n\nOptions:\n" \
        "	-n	Disable printing of key names\n" \
+       "	-e	Don't warn about unknown keys\n" \
        "	-w	Change sysctl setting\n" \
        "	-p FILE	Load sysctl settings from FILE (default /etc/sysctl.conf)\n" \
        "	-a	Display all values\n" \
        "	-A	Display all values in table form"
 #define sysctl_example_usage \
-       "sysctl [-n] variable...\n" \
-       "sysctl [-n] -w variable=value...\n" \
-       "sysctl [-n] -a\n" \
-       "sysctl [-n] -p file	(default /etc/sysctl.conf)\n" \
-       "sysctl [-n] -A\n"
+       "sysctl [-n] [-e] variable...\n" \
+       "sysctl [-n] [-e] -w variable=value...\n" \
+       "sysctl [-n] [-e] -a\n" \
+       "sysctl [-n] [-e] -p file	(default /etc/sysctl.conf)\n" \
+       "sysctl [-n] [-e] -A\n"
 
 #define syslogd_trivial_usage \
        "[OPTION]..."
