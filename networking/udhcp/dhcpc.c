@@ -19,15 +19,9 @@
 #include "options.h"
 
 
-/* Something is definitely wrong here. IPv4 addresses
- * in variables of type long?? BTW, we use inet_ntoa()
- * in the code. Manpage says that struct in_addr has a member of type long (!)
- * which holds IPv4 address, and the struct is passed by value (!!)
- */
 static int timeout; /* = 0. Must be signed */
 static uint32_t requested_ip; /* = 0 */
 static uint32_t server_addr;
-static int packet_num; /* = 0 */
 static int sockfd = -1;
 
 #define LISTEN_NONE 0
@@ -74,12 +68,6 @@ static void perform_renew(void)
 	case INIT_SELECTING:
 		break;
 	}
-
-	/* start things over */
-	packet_num = 0;
-
-	/* Kill any timeouts because the user wants this to hurry along */
-	timeout = 0;
 }
 
 
@@ -153,8 +141,11 @@ int udhcpc_main(int argc, char **argv)
 	int discover_retries = 3;
 	uint32_t xid = 0;
 	uint32_t lease_seconds = 0; /* can be given as 32-bit quantity */
-	unsigned t1 = 0, t2 = 0; /* what a wonderful names */
-	unsigned timestamp_got_lease = 0; /* for gcc */
+	int packet_num;
+	/* t1, t2... what a wonderful names... */
+	unsigned t1 = t1; /* for gcc */
+	unsigned t2 = t2;
+	unsigned timestamp_got_lease = timestamp_got_lease;
 	unsigned opt;
 	int max_fd;
 	int retval;
@@ -315,6 +306,7 @@ int udhcpc_main(int argc, char **argv)
 	state = INIT_SELECTING;
 	udhcp_run_script(NULL, "deconfig");
 	change_listen_mode(LISTEN_RAW);
+	packet_num = 0;
 
 	/* Main event loop. select() waits on signal pipe and possibly
 	 * on sockfd.
@@ -585,6 +577,10 @@ int udhcpc_main(int argc, char **argv)
 			switch (signo) {
 			case SIGUSR1:
 				perform_renew();
+				/* start things over */
+				packet_num = 0;
+				/* Kill any timeouts because the user wants this to hurry along */
+				timeout = 0;
 				break;
 			case SIGUSR2:
 				perform_release();

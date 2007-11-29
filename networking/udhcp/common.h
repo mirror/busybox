@@ -77,7 +77,6 @@ void udhcp_run_script(struct dhcpMessage *packet, const char *name);
 #define end_option		udhcp_end_option
 #define add_option_string	udhcp_add_option_string
 #define add_simple_option	udhcp_add_simple_option
-#define option_lengths		udhcp_option_lengths
 /* from socket.h */
 #define listen_socket		udhcp_listen_socket
 #define read_interface		udhcp_read_interface

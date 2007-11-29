@@ -33,7 +33,7 @@ static const uint8_t max_option_length[] = {
 static inline int upper_length(int length, int opt_index)
 {
 	return max_option_length[opt_index] *
-		(length / option_lengths[opt_index]);
+		(length / dhcp_option_lengths[opt_index]);
 }
 
 
@@ -57,7 +57,7 @@ static int mton(uint32_t mask)
 
 
 /* Allocate and fill with the text of option 'option'. */
-static char *alloc_fill_opts(uint8_t *option, const struct dhcp_option *type_p)
+static char *alloc_fill_opts(uint8_t *option, const struct dhcp_option *type_p, const char *opt_name)
 {
 	int len, type, optlen;
 	uint16_t val_u16;
@@ -68,10 +68,10 @@ static char *alloc_fill_opts(uint8_t *option, const struct dhcp_option *type_p)
 
 	len = option[OPT_LEN - 2];
 	type = type_p->flags & TYPE_MASK;
-	optlen = option_lengths[type];
+	optlen = dhcp_option_lengths[type];
 
-	dest = ret = xmalloc(upper_length(len, type) + strlen(type_p->opt_name) + 2);
-	dest += sprintf(ret, "%s=", type_p->opt_name);
+	dest = ret = xmalloc(upper_length(len, type) + strlen(opt_name) + 2);
+	dest += sprintf(ret, "%s=", opt_name);
 
 	for (;;) {
 		switch (type) {
@@ -133,6 +133,7 @@ static char **fill_envp(struct dhcpMessage *packet)
 	int i, j;
 	char **envp;
 	char *var;
+	const char *opt_name;
 	uint8_t *temp;
 	char over = 0;
 
@@ -171,11 +172,13 @@ static char **fill_envp(struct dhcpMessage *packet)
 	envp[j] = xmalloc(sizeof("ip=255.255.255.255"));
 	sprintip(envp[j++], "ip=", (uint8_t *) &packet->yiaddr);
 
-	for (i = 0; dhcp_options[i].code; i++) {
+	opt_name = dhcp_option_strings;
+	i = 0;
+	while (*opt_name) {
 		temp = get_option(packet, dhcp_options[i].code);
 		if (!temp)
-			continue;
-		envp[j++] = alloc_fill_opts(temp, &dhcp_options[i]);
+			goto next;
+		envp[j++] = alloc_fill_opts(temp, &dhcp_options[i], opt_name);
 
 		/* Fill in a subnet bits option for things like /24 */
 		if (dhcp_options[i].code == DHCP_SUBNET) {
@@ -183,6 +186,9 @@ static char **fill_envp(struct dhcpMessage *packet)
 			memcpy(&subnet, temp, 4);
 			envp[j++] = xasprintf("mask=%d", mton(subnet));
 		}
+ next:
+		opt_name += strlen(opt_name) + 1;
+		i++;
 	}
 	if (packet->siaddr) {
 		envp[j] = xmalloc(sizeof("siaddr=255.255.255.255"));

@@ -11,54 +11,97 @@
 
 /* Supported options are easily added here */
 const struct dhcp_option dhcp_options[] = {
-	/* opt_name[12] flags                                   code */
-	{"subnet",      OPTION_IP | OPTION_REQ,                 0x01},   /* DHCP_SUBNET         */
-	{"timezone",    OPTION_S32,                             0x02},   /* DHCP_TIME_OFFSET    */
-	{"router",      OPTION_IP | OPTION_LIST | OPTION_REQ,   0x03},   /* DHCP_ROUTER         */
-	{"timesvr",     OPTION_IP | OPTION_LIST,                0x04},   /* DHCP_TIME_SERVER    */
-	{"namesvr",     OPTION_IP | OPTION_LIST,                0x05},   /* DHCP_NAME_SERVER    */
-	{"dns",         OPTION_IP | OPTION_LIST | OPTION_REQ,   0x06},   /* DHCP_DNS_SERVER     */
-	{"logsvr",      OPTION_IP | OPTION_LIST,                0x07},   /* DHCP_LOG_SERVER     */
-	{"cookiesvr",   OPTION_IP | OPTION_LIST,                0x08},   /* DHCP_COOKIE_SERVER  */
-	{"lprsvr",      OPTION_IP | OPTION_LIST,                0x09},   /* DHCP_LPR_SERVER     */
-	{"hostname",    OPTION_STRING | OPTION_REQ,             0x0c},   /* DHCP_HOST_NAME      */
-	{"bootsize",    OPTION_U16,                             0x0d},   /* DHCP_BOOT_SIZE      */
-	{"domain",      OPTION_STRING | OPTION_LIST | OPTION_REQ, 0x0f}, /* DHCP_DOMAIN_NAME    */
-	{"swapsvr",     OPTION_IP,                              0x10},   /* DHCP_SWAP_SERVER    */
-	{"rootpath",    OPTION_STRING,                          0x11},   /* DHCP_ROOT_PATH      */
-	{"ipttl",       OPTION_U8,                              0x17},   /* DHCP_IP_TTL         */
-	{"mtu",         OPTION_U16,                             0x1a},   /* DHCP_MTU            */
-	{"broadcast",   OPTION_IP | OPTION_REQ,                 0x1c},   /* DHCP_BROADCAST      */
-	{"nisdomain",   OPTION_STRING | OPTION_REQ,             0x28},   /* DHCP_NTP_SERVER     */
-	{"nissrv",      OPTION_IP | OPTION_LIST | OPTION_REQ,   0x29},   /* DHCP_WINS_SERVER    */
-	{"ntpsrv",      OPTION_IP | OPTION_LIST | OPTION_REQ,   0x2a},   /* DHCP_REQUESTED_IP   */
-	{"wins",        OPTION_IP | OPTION_LIST,                0x2c},   /* DHCP_LEASE_TIME     */
-	{"requestip",   OPTION_IP,                              0x32},   /* DHCP_OPTION_OVER    */
-	{"lease",       OPTION_U32,                             0x33},   /* DHCP_MESSAGE_TYPE   */
-	{"dhcptype",    OPTION_U8,                              0x35},   /* DHCP_SERVER_ID      */
-	{"serverid",    OPTION_IP,                              0x36},   /* DHCP_PARAM_REQ      */
-	{"message",     OPTION_STRING,                          0x38},   /* DHCP_MESSAGE        */
-// TODO: 1) some options should not be parsed & passed to script -
-// maxsize sure should not, since it cannot appear in server responses!
-// grep for opt_name is fix the mess.
-// 2) Using fixed-sized char[] vector wastes space.
-	{"maxsize",     OPTION_U16,                             0x39},   /* DHCP_MAX_SIZE       */
-	{"vendorclass", OPTION_STRING,                          0x3C},   /* DHCP_VENDOR         */
-	{"clientid",    OPTION_STRING,                          0x3D},   /* DHCP_CLIENT_ID      */
-	{"tftp",        OPTION_STRING,                          0x42},
-	{"bootfile",    OPTION_STRING,                          0x43},
-	{"userclass",   OPTION_STRING,                          0x4D},
+	/* flags                                     code */
+	{ OPTION_IP | OPTION_REQ,                    0x01 }, /* DHCP_SUBNET        */
+	{ OPTION_S32,                                0x02 }, /* DHCP_TIME_OFFSET   */
+	{ OPTION_IP | OPTION_LIST | OPTION_REQ,      0x03 }, /* DHCP_ROUTER        */
+	{ OPTION_IP | OPTION_LIST,                   0x04 }, /* DHCP_TIME_SERVER   */
+	{ OPTION_IP | OPTION_LIST,                   0x05 }, /* DHCP_NAME_SERVER   */
+	{ OPTION_IP | OPTION_LIST | OPTION_REQ,      0x06 }, /* DHCP_DNS_SERVER    */
+	{ OPTION_IP | OPTION_LIST,                   0x07 }, /* DHCP_LOG_SERVER    */
+	{ OPTION_IP | OPTION_LIST,                   0x08 }, /* DHCP_COOKIE_SERVER */
+	{ OPTION_IP | OPTION_LIST,                   0x09 }, /* DHCP_LPR_SERVER    */
+	{ OPTION_STRING | OPTION_REQ,                0x0c }, /* DHCP_HOST_NAME     */
+	{ OPTION_U16,                                0x0d }, /* DHCP_BOOT_SIZE     */
+	{ OPTION_STRING | OPTION_LIST | OPTION_REQ,  0x0f }, /* DHCP_DOMAIN_NAME   */
+	{ OPTION_IP,                                 0x10 }, /* DHCP_SWAP_SERVER   */
+	{ OPTION_STRING,                             0x11 }, /* DHCP_ROOT_PATH     */
+	{ OPTION_U8,                                 0x17 }, /* DHCP_IP_TTL        */
+	{ OPTION_U16,                                0x1a }, /* DHCP_MTU           */
+	{ OPTION_IP | OPTION_REQ,                    0x1c }, /* DHCP_BROADCAST     */
+	{ OPTION_STRING | OPTION_REQ,                0x28 }, /* DHCP_NTP_SERVER    */
+	{ OPTION_IP | OPTION_LIST | OPTION_REQ,      0x29 }, /* DHCP_WINS_SERVER   */
+	{ OPTION_IP | OPTION_LIST | OPTION_REQ,      0x2a }, /* DHCP_REQUESTED_IP  */
+	{ OPTION_IP | OPTION_LIST,                   0x2c }, /* DHCP_LEASE_TIME    */
+	{ OPTION_IP,                                 0x32 }, /* DHCP_OPTION_OVER   */
+	{ OPTION_U32,                                0x33 }, /* DHCP_MESSAGE_TYPE  */
+	{ OPTION_U8,                                 0x35 }, /* DHCP_SERVER_ID     */
+	{ OPTION_IP,                                 0x36 }, /* DHCP_PARAM_REQ     */
+	{ OPTION_STRING,                             0x38 }, /* DHCP_MESSAGE       */
+	{ OPTION_STRING,                             0x3C }, /* DHCP_VENDOR        */
+	{ OPTION_STRING,                             0x3D }, /* DHCP_CLIENT_ID     */
+	{ OPTION_STRING,                             0x42 }, /* "tftp"             */
+	{ OPTION_STRING,                             0x43 }, /* "bootfile"         */
+	{ OPTION_STRING,                             0x4D }, /* "userclass"        */
 #if ENABLE_FEATURE_RFC3397
-	{"search",      OPTION_STR1035 | OPTION_LIST | OPTION_REQ, 0x77},
+	{ OPTION_STR1035 | OPTION_LIST | OPTION_REQ, 0x77 }, /* "search"           */
 #endif
 	/* MSIE's "Web Proxy Autodiscovery Protocol" support */
-	{"wpad",        OPTION_STRING,                          0xfc},
-	{} /* zero-padded terminating entry */
+	{ OPTION_STRING,                             0xfc }, /* "wpad"             */
+
+	/* Options below have no match in dhcp_option_strings[],
+	 * are not passed to dhcpc scripts, and cannot be specified
+	 * with "option XXX YYY" syntax in dhcpd config file. */
+
+	{ OPTION_U16,                                0x39 }, /* DHCP_MAX_SIZE      */
+	{ } /* zeroed terminating entry */
 };
+
+/* Used for converting options from incoming packets to env variables
+ * for udhcpc stript */
+/* Must match dhcp_options[] order */
+const char dhcp_option_strings[] ALIGN1 =
+	"subnet" "\0"      /* DHCP_SUBNET         */
+	"timezone" "\0"    /* DHCP_TIME_OFFSET    */
+	"router" "\0"      /* DHCP_ROUTER         */
+	"timesvr" "\0"     /* DHCP_TIME_SERVER    */
+	"namesvr" "\0"     /* DHCP_NAME_SERVER    */
+	"dns" "\0"         /* DHCP_DNS_SERVER     */
+	"logsvr" "\0"      /* DHCP_LOG_SERVER     */
+	"cookiesvr" "\0"   /* DHCP_COOKIE_SERVER  */
+	"lprsvr" "\0"      /* DHCP_LPR_SERVER     */
+	"hostname" "\0"    /* DHCP_HOST_NAME      */
+	"bootsize" "\0"    /* DHCP_BOOT_SIZE      */
+	"domain" "\0"      /* DHCP_DOMAIN_NAME    */
+	"swapsvr" "\0"     /* DHCP_SWAP_SERVER    */
+	"rootpath" "\0"    /* DHCP_ROOT_PATH      */
+	"ipttl" "\0"       /* DHCP_IP_TTL         */
+	"mtu" "\0"         /* DHCP_MTU            */
+	"broadcast" "\0"   /* DHCP_BROADCAST      */
+	"nisdomain" "\0"   /* DHCP_NTP_SERVER     */
+	"nissrv" "\0"      /* DHCP_WINS_SERVER    */
+	"ntpsrv" "\0"      /* DHCP_REQUESTED_IP   */
+	"wins" "\0"        /* DHCP_LEASE_TIME     */
+	"requestip" "\0"   /* DHCP_OPTION_OVER    */
+	"lease" "\0"       /* DHCP_MESSAGE_TYPE   */
+	"dhcptype" "\0"    /* DHCP_SERVER_ID      */
+	"serverid" "\0"    /* DHCP_PARAM_REQ      */
+	"message" "\0"     /* DHCP_MESSAGE        */
+	"vendorclass" "\0" /* DHCP_VENDOR         */
+	"clientid" "\0"    /* DHCP_CLIENT_ID      */
+	"tftp" "\0"
+	"bootfile" "\0"
+	"userclass" "\0"
+#if ENABLE_FEATURE_RFC3397
+	"search" "\0"
+#endif
+	/* MSIE's "Web Proxy Autodiscovery Protocol" support */
+	"wpad" "\0"
+	;
 
 
 /* Lengths of the different option types */
-const unsigned char option_lengths[] ALIGN1 = {
+const uint8_t dhcp_option_lengths[] ALIGN1 = {
 	[OPTION_IP] =      4,
 	[OPTION_IP_PAIR] = 8,
 	[OPTION_BOOLEAN] = 1,
@@ -137,8 +180,10 @@ int end_option(uint8_t *optionptr)
 	int i = 0;
 
 	while (optionptr[i] != DHCP_END) {
-		if (optionptr[i] == DHCP_PADDING) i++;
-		else i += optionptr[i + OPT_LEN] + 2;
+		if (optionptr[i] == DHCP_PADDING)
+			i++;
+		else
+			i += optionptr[i + OPT_LEN] + 2;
 	}
 	return i;
 }
@@ -173,10 +218,11 @@ int add_simple_option(uint8_t *optionptr, uint8_t code, uint32_t data)
 			uint8_t option[6], len;
 
 			option[OPT_CODE] = code;
-			len = option_lengths[dh->flags & TYPE_MASK];
+			len = dhcp_option_lengths[dh->flags & TYPE_MASK];
 			option[OPT_LEN] = len;
-			if (BB_BIG_ENDIAN) data <<= 8 * (4 - len);
-			/* This memcpy is for broken processors which can't
+			if (BB_BIG_ENDIAN)
+				data <<= 8 * (4 - len);
+			/* This memcpy is for processors which can't
 			 * handle a simple unaligned 32-bit assignment */
 			memcpy(&option[OPT_DATA], &data, 4);
 			return add_option_string(optionptr, option);

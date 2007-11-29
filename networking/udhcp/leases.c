@@ -98,7 +98,9 @@ struct dhcpOfferedAddr *find_lease_by_yiaddr(uint32_t yiaddr)
 /* check is an IP is taken, if it is, add it to the lease table */
 static int nobody_responds_to_arp(uint32_t addr)
 {
-	static const uint8_t blank_chaddr[16]; /* 16 zero bytes */
+	/* 16 zero bytes */
+	static const uint8_t blank_chaddr[16] = { 0 };
+	/* = { 0 } helps gcc to put it in rodata, not bss */
 
 	struct in_addr temp;
 	int r;

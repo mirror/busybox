@@ -98,13 +98,13 @@ enum {
 #define OPT_DATA 2
 
 struct dhcp_option {
-	char opt_name[12];
-	char flags;
+	uint8_t flags;
 	uint8_t code;
 };
 
 extern const struct dhcp_option dhcp_options[];
-extern const unsigned char option_lengths[];
+extern const char dhcp_option_strings[];
+extern const uint8_t dhcp_option_lengths[];
 
 uint8_t *get_option(struct dhcpMessage *packet, int code);
 int end_option(uint8_t *optionptr);
