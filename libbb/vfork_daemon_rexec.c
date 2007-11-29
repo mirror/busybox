@@ -143,7 +143,7 @@ int run_nofork_applet_prime(struct nofork_save_area *old, int applet_no, char **
 		char *tmp_argv[argc+1];
 		memcpy(tmp_argv, argv, (argc+1) * sizeof(tmp_argv[0]));
 		/* Finally we can call NOFORK applet's main() */
-		rc = applet_mains[applet_no](argc, tmp_argv);
+		rc = applet_main[applet_no](argc, tmp_argv);
 	} else { /* xfunc died in NOFORK applet */
 		/* in case they meant to return 0... */
 		if (rc == -2222)

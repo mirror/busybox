@@ -101,19 +101,17 @@ void bb_show_usage(void)
 }
 
 
+/* NB: any char pointer will work as well, not necessarily applet_names */
 static int applet_name_compare(const void *name, const void *v)
 {
 	int i = (const char *)v - applet_names;
 	return strcmp(name, APPLET_NAME(i));
 }
-
 int find_applet_by_name(const char *name)
 {
-	const char *p;
 	/* Do a binary search to find the applet entry given the name. */
-
-	/* NB: any char pointer will work as well, not necessarily applet_names */
-	p = bsearch(name, applet_names, ARRAY_SIZE(applet_mains), 1, applet_name_compare);
+	const char *p;
+	p = bsearch(name, applet_names, ARRAY_SIZE(applet_main), 1, applet_name_compare);
 	if (!p)
 		return -1;
 	return p - applet_names;
@@ -543,10 +541,12 @@ static void install_links(const char *busybox, int use_symbolic_links)
 	if (use_symbolic_links)
 		lf = symlink;
 
-	for (i = 0; i < ARRAY_SIZE(applet_mains); i++) {
+	for (i = 0; i < ARRAY_SIZE(applet_main); i++) {
 		fpc = concat_path_file(
 				install_dir[APPLET_INSTALL_LOC(i)],
 				APPLET_NAME(i));
+		// debug: bb_error_msg("%slinking %s to busybox",
+		//		use_symbolic_links ? "sym" : "", fpc);
 		rc = lf(busybox, fpc);
 		if (rc != 0 && errno != EEXIST) {
 			bb_simple_perror_msg(fpc);
@@ -644,7 +644,7 @@ void run_applet_no_and_exit(int applet_no, char **argv)
 		bb_show_usage();
 	if (ENABLE_FEATURE_SUID)
 		check_suid(applet_no);
-	exit(applet_mains[applet_no](argc, argv));
+	exit(applet_main[applet_no](argc, argv));
 }
 
 void run_applet_and_exit(const char *name, char **argv)

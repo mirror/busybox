@@ -28,28 +28,31 @@ typedef enum bb_suid_t {
 /* Defined in appletlib.c (by including generated applet_tables.h) */
 /* Keep in sync with applets/applet_tables.c! */
 extern const char applet_names[];
-extern int (*const applet_mains[])(int argc, char **argv);
-
-#if ENABLE_FEATURE_INSTALLER || ENABLE_FEATURE_PREFER_APPLETS
-extern const uint32_t applet_nameofs[];
-#else
+extern int (*const applet_main[])(int argc, char **argv);
 extern const uint16_t applet_nameofs[];
-#endif
+extern const uint8_t applet_install_loc[];
 
-#if ENABLE_FEATURE_SUID
-#define APPLET_NAME(i) (applet_names + (applet_nameofs[i] & 0x3fff))
-#define APPLET_SUID(i) ((applet_nameofs[i] >> 14) & 0x3)
+#if ENABLE_FEATURE_SUID || ENABLE_FEATURE_PREFER_APPLETS
+#define APPLET_NAME(i) (applet_names + (applet_nameofs[i] & 0x0fff))
 #else
-#define APPLET_NAME(i) (applet_names + (applet_nameofs[i] & 0xffff))
-#endif
-
-#if ENABLE_FEATURE_INSTALLER
-#define APPLET_INSTALL_LOC(i) ((applet_nameofs[i] >> 16) & 0x7)
+#define APPLET_NAME(i) (applet_names + applet_nameofs[i])
 #endif
 
 #if ENABLE_FEATURE_PREFER_APPLETS
-#define APPLET_IS_NOFORK(i) (applet_nameofs[i] & (1 << 19))
-#define APPLET_IS_NOEXEC(i) (applet_nameofs[i] & (1 << 20))
+#define APPLET_IS_NOFORK(i) (applet_nameofs[i] & (1 << 12))
+#define APPLET_IS_NOEXEC(i) (applet_nameofs[i] & (1 << 13))
+#endif
+
+#if ENABLE_FEATURE_SUID
+#define APPLET_SUID(i) ((applet_nameofs[i] >> 14) & 0x3)
+#endif
+
+#if ENABLE_FEATURE_INSTALLER
+#define APPLET_INSTALL_LOC(i) ({ \
+	unsigned v = (i); \
+	if (v & 1) v = applet_install_loc[v/2] >> 4; \
+	else v = applet_install_loc[v/2] & 0xf; \
+	v; })
 #endif
 
 
