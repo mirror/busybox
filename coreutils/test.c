@@ -23,7 +23,11 @@
 #include "libbb.h"
 #include <setjmp.h>
 
-/* This is a NOEXEC applet. Be very careful! */
+/* This is a NOFORK applet. Be very careful! */
+
+/* test_main() is called from shells, and we need to be extra careful here.
+ * This is true regardless of PREFER_APPLETS and STANDALONE_SHELL
+ * state. */
 
 
 /* test(1) accepts the following grammar:
@@ -85,12 +89,12 @@ enum token {
 	RPAREN,
 	OPERAND
 };
-#define is_int_op(a) (((unsigned char)((a) - INTEQ)) <= 5)
-#define is_str_op(a) (((unsigned char)((a) - STREZ)) <= 5)
-#define is_file_op(a) (((unsigned char)((a) - FILNT)) <= 2)
+#define is_int_op(a)      (((unsigned char)((a) - INTEQ)) <= 5)
+#define is_str_op(a)      (((unsigned char)((a) - STREZ)) <= 5)
+#define is_file_op(a)     (((unsigned char)((a) - FILNT)) <= 2)
 #define is_file_access(a) (((unsigned char)((a) - FILRD)) <= 2)
-#define is_file_type(a) (((unsigned char)((a) - FILREG)) <= 5)
-#define is_file_bit(a) (((unsigned char)((a) - FILSUID)) <= 2)
+#define is_file_type(a)   (((unsigned char)((a) - FILREG)) <= 5)
+#define is_file_bit(a)    (((unsigned char)((a) - FILSUID)) <= 2)
 enum token_types {
 	UNOP,
 	BINOP,
@@ -153,13 +157,33 @@ typedef int64_t arith_t;
 typedef int arith_t;
 #endif
 
-/* Cannot eliminate these static data (do the G trick)
- * because of test_main usage from other applets */
-static char **t_wp;
-static const struct t_op *t_wp_op;
-static gid_t *group_array;
-static int ngroups;
-static jmp_buf leaving;
+
+/* We try to minimize both static and stack usage. */
+struct statics {
+	char **t_wp;
+	const struct t_op *t_wp_op;
+	gid_t *group_array;
+	int ngroups;
+	jmp_buf leaving;
+};
+
+/* Make it reside in writable memory, yet make compiler understand
+ * that it is not going to change. */
+static struct statics *const ptr_to_statics __attribute__ ((section (".data")));
+
+#define S (*ptr_to_statics)
+#define t_wp            (S.t_wp         )
+#define t_wp_op         (S.t_wp_op      )
+#define group_array     (S.group_array  )
+#define ngroups         (S.ngroups      )
+#define leaving         (S.leaving      )
+
+#define INIT_S() do { \
+	(*(struct statics**)&ptr_to_statics) = xzalloc(sizeof(S)); \
+} while (0)
+#define DEINIT_S() do { \
+	free(ptr_to_statics); \
+} while (0)
 
 static arith_t primary(enum token n);
 
@@ -550,9 +574,13 @@ int test_main(int argc, char **argv)
 		argv[argc] = NULL;
 	}
 
+	/* We must do DEINIT_S() prior to returning */
+	INIT_S();
+
 	res = setjmp(leaving);
-	if (res)
-		return res;
+	if (res) {
+		goto ret;
+	}
 
 	/* resetting ngroups is probably unnecessary.  it will
 	 * force a new call to getgroups(), which prevents using
@@ -565,24 +593,30 @@ int test_main(int argc, char **argv)
 	ngroups = 0;
 
 	/* Implement special cases from POSIX.2, section 4.62.4 */
-	if (argc == 1)
-		return 1;
-	if (argc == 2)
-		return *argv[1] == '\0';
-//assert(argc);
+	if (argc == 1) {
+		res = 1;
+		goto ret;
+	}
+	if (argc == 2) {
+		res = (*argv[1] == '\0');
+		goto ret;
+	}
+
 	/* remember if we saw argc==4 which wants *no* '!' test */
 	_off = argc - 4;
-	if (_off ?
-		(LONE_CHAR(argv[1], '!'))
-		: (argv[1][0] != '!' || argv[1][1] != '\0'))
-	{
-		if (argc == 3)
-			return *argv[2] != '\0';
+	if (_off ? (LONE_CHAR(argv[1], '!'))
+	         : (argv[1][0] != '!' || argv[1][1] != '\0')
+	) {
+		if (argc == 3) {
+			res = (*argv[2] != '\0');
+			goto ret;
+		}
 
 		t_lex(argv[2 + _off]);
 		if (t_wp_op && t_wp_op->op_type == BINOP) {
 			t_wp = &argv[1 + _off];
-			return binop() == _off;
+			res = (binop() == _off);
+			goto ret;
 		}
 	}
 	t_wp = &argv[1];
@@ -590,7 +624,9 @@ int test_main(int argc, char **argv)
 
 	if (*t_wp != NULL && *++t_wp != NULL) {
 		bb_error_msg("%s: unknown operand", *t_wp);
-		return 2;
+		res = 2;
 	}
+ ret:
+	DEINIT_S();
 	return res;
 }

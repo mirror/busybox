@@ -121,6 +121,8 @@ struct statics {
 #endif
 };
 
+/* Make it reside in writable memory, yet make compiler understand
+ * that it is not going to change. */
 static struct statics *const ptr_to_statics __attribute__ ((section (".data")));
 
 #define S (*ptr_to_statics)
