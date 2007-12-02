@@ -24,10 +24,15 @@ extern int rtnl_dump_request(struct rtnl_handle *rth, int type, void *req, int l
 extern int xrtnl_dump_filter(struct rtnl_handle *rth,
 			int (*filter)(struct sockaddr_nl*, struct nlmsghdr *n, void*),
 			void *arg1);
+
+/* bbox doesn't use parameters no. 3, 4, 6, 7, stub them out */
+#define rtnl_talk(rtnl, n, peer, groups, answer, junk, jarg) \
+	rtnl_talk(rtnl, n, answer)
 extern int rtnl_talk(struct rtnl_handle *rtnl, struct nlmsghdr *n, pid_t peer,
 			unsigned groups, struct nlmsghdr *answer,
 			int (*junk)(struct sockaddr_nl *,struct nlmsghdr *n, void *),
 			void *jarg);
+
 extern int rtnl_send(struct rtnl_handle *rth, char *buf, int);
 
 

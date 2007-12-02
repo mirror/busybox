@@ -108,9 +108,10 @@ static int rtnl_dump_filter(struct rtnl_handle *rth,
 		int (*junk)(struct sockaddr_nl *, struct nlmsghdr *n, void *),
 		void *arg2*/)
 {
-	char buf[8192];
+	int retval = -1;
+	char *buf = xmalloc(8*1024); /* avoid big stack buffer */
 	struct sockaddr_nl nladdr;
-	struct iovec iov = { buf, sizeof(buf) };
+	struct iovec iov = { buf, 8*1024 };
 
 	while (1) {
 		int status;
@@ -133,7 +134,7 @@ static int rtnl_dump_filter(struct rtnl_handle *rth,
 		}
 		if (status == 0) {
 			bb_error_msg("EOF on netlink");
-			return -1;
+			goto ret;
 		}
 		if (msg.msg_namelen != sizeof(nladdr)) {
 			bb_error_msg_and_die("sender address length == %d", msg.msg_namelen);
@@ -146,16 +147,18 @@ static int rtnl_dump_filter(struct rtnl_handle *rth,
 			if (nladdr.nl_pid != 0 ||
 			    h->nlmsg_pid != rth->local.nl_pid ||
 			    h->nlmsg_seq != rth->dump) {
-/*				if (junk) {
-					err = junk(&nladdr, h, arg2);
-					if (err < 0)
-						return err;
-				} */
+//				if (junk) {
+//					err = junk(&nladdr, h, arg2);
+//					if (err < 0) {
+//						retval = err;
+//						goto ret;
+//					}
+//				}
 				goto skip_it;
 			}
 
 			if (h->nlmsg_type == NLMSG_DONE) {
-				return 0;
+				goto ret_0;
 			}
 			if (h->nlmsg_type == NLMSG_ERROR) {
 				struct nlmsgerr *l_err = (struct nlmsgerr*)NLMSG_DATA(h);
@@ -165,13 +168,15 @@ static int rtnl_dump_filter(struct rtnl_handle *rth,
 					errno = -l_err->error;
 					bb_perror_msg("RTNETLINK answers");
 				}
-				return -1;
+				goto ret;
 			}
 			err = filter(&nladdr, h, arg1);
-			if (err < 0)
-				return err;
+			if (err < 0) {
+				retval = err;
+				goto ret;
+			}
 
-skip_it:
+ skip_it:
 			h = NLMSG_NEXT(h, status);
 		}
 		if (msg.msg_flags & MSG_TRUNC) {
@@ -181,7 +186,12 @@ skip_it:
 		if (status) {
 			bb_error_msg_and_die("remnant of size %d!", status);
 		}
-	}
+	} /* while (1) */
+ ret_0:
+	retval++; /* = 0 */
+ ret:
+	free(buf);
+	return retval;
 }
 
 int xrtnl_dump_filter(struct rtnl_handle *rth,
@@ -194,17 +204,24 @@ int xrtnl_dump_filter(struct rtnl_handle *rth,
 	return ret;
 }
 
-int rtnl_talk(struct rtnl_handle *rtnl, struct nlmsghdr *n, pid_t peer,
-	      unsigned groups, struct nlmsghdr *answer,
-	      int (*junk)(struct sockaddr_nl *,struct nlmsghdr *n, void *),
+int rtnl_talk(struct rtnl_handle *rtnl, struct nlmsghdr *n,
+	      pid_t peer, unsigned groups,
+	      struct nlmsghdr *answer,
+	      int (*junk)(struct sockaddr_nl *, struct nlmsghdr *n, void *),
 	      void *jarg)
 {
+/* bbox doesn't use parameters no. 3, 4, 6, 7, they are stubbed out */
+#define peer   0
+#define groups 0
+#define junk   NULL
+#define jarg   NULL
+	int retval = -1;
 	int status;
 	unsigned seq;
 	struct nlmsghdr *h;
 	struct sockaddr_nl nladdr;
 	struct iovec iov = { (void*)n, n->nlmsg_len };
-	char   buf[8192];
+	char   *buf = xmalloc(8*1024); /* avoid big stack buffer */
 	struct msghdr msg = {
 		(void*)&nladdr, sizeof(nladdr),
 		&iov,	1,
@@ -214,8 +231,8 @@ int rtnl_talk(struct rtnl_handle *rtnl, struct nlmsghdr *n, pid_t peer,
 
 	memset(&nladdr, 0, sizeof(nladdr));
 	nladdr.nl_family = AF_NETLINK;
-	nladdr.nl_pid = peer;
-	nladdr.nl_groups = groups;
+//	nladdr.nl_pid = peer;
+//	nladdr.nl_groups = groups;
 
 	n->nlmsg_seq = seq = ++rtnl->seq;
 	if (answer == NULL) {
@@ -225,13 +242,13 @@ int rtnl_talk(struct rtnl_handle *rtnl, struct nlmsghdr *n, pid_t peer,
 
 	if (status < 0) {
 		bb_perror_msg("cannot talk to rtnetlink");
-		return -1;
+		goto ret;
 	}
 
 	iov.iov_base = buf;
 
 	while (1) {
-		iov.iov_len = sizeof(buf);
+		iov.iov_len = 8*1024;
 		status = recvmsg(rtnl->fd, &msg, 0);
 
 		if (status < 0) {
@@ -243,20 +260,20 @@ int rtnl_talk(struct rtnl_handle *rtnl, struct nlmsghdr *n, pid_t peer,
 		}
 		if (status == 0) {
 			bb_error_msg("EOF on netlink");
-			return -1;
+			goto ret;
 		}
 		if (msg.msg_namelen != sizeof(nladdr)) {
 			bb_error_msg_and_die("sender address length == %d", msg.msg_namelen);
 		}
 		for (h = (struct nlmsghdr*)buf; status >= sizeof(*h); ) {
-			int l_err;
+//			int l_err;
 			int len = h->nlmsg_len;
 			int l = len - sizeof(*h);
 
-			if (l<0 || len>status) {
+			if (l < 0 || len > status) {
 				if (msg.msg_flags & MSG_TRUNC) {
 					bb_error_msg("truncated message");
-					return -1;
+					goto ret;
 				}
 				bb_error_msg_and_die("malformed message: len=%d!", len);
 			}
@@ -264,12 +281,13 @@ int rtnl_talk(struct rtnl_handle *rtnl, struct nlmsghdr *n, pid_t peer,
 			if (nladdr.nl_pid != peer ||
 			    h->nlmsg_pid != rtnl->local.nl_pid ||
 			    h->nlmsg_seq != seq) {
-				if (junk) {
-					l_err = junk(&nladdr, h, jarg);
-					if (l_err < 0) {
-						return l_err;
-					}
-				}
+//				if (junk) {
+//					l_err = junk(&nladdr, h, jarg);
+//					if (l_err < 0) {
+//						retval = l_err;
+//						goto ret;
+//					}
+//				}
 				continue;
 			}
 
@@ -278,20 +296,20 @@ int rtnl_talk(struct rtnl_handle *rtnl, struct nlmsghdr *n, pid_t peer,
 				if (l < sizeof(struct nlmsgerr)) {
 					bb_error_msg("ERROR truncated");
 				} else {
-					errno = -err->error;
+					errno = - err->error;
 					if (errno == 0) {
 						if (answer) {
 							memcpy(answer, h, h->nlmsg_len);
 						}
-						return 0;
+						goto ret_0;
 					}
 					bb_perror_msg("RTNETLINK answers");
 				}
-				return -1;
+				goto ret;
 			}
 			if (answer) {
 				memcpy(answer, h, h->nlmsg_len);
-				return 0;
+				goto ret_0;
 			}
 
 			bb_error_msg("unexpected reply!");
@@ -306,7 +324,12 @@ int rtnl_talk(struct rtnl_handle *rtnl, struct nlmsghdr *n, pid_t peer,
 		if (status) {
 			bb_error_msg_and_die("remnant of size %d!", status);
 		}
-	}
+	} /* while (1) */
+ ret_0:
+	retval++; /* = 0 */
+ ret:
+	free(buf);
+	return retval;
 }
 
 int addattr32(struct nlmsghdr *n, int maxlen, int type, uint32_t data)
