@@ -67,14 +67,13 @@
 
 #include "minix.h"
 
-#define DEBUG 0
-
-/* If debugging, store the very same times/uids/gids for image consistency */
-#if DEBUG
+/* Store the very same times/uids/gids for image consistency */
+#if 1
 # define CUR_TIME 0
 # define GETUID 0
 # define GETGID 0
 #else
+/* Was using this. Is it useful? NB: this will break testsuite */
 # define CUR_TIME time(NULL)
 # define GETUID getuid()
 # define GETGID getgid()
