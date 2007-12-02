@@ -22,6 +22,8 @@ static off_t bb_full_fd_action(int src_fd, int dst_fd, off_t size)
 	char *buffer;
 	int buffer_size;
 
+	/* We want page-aligned buffer, just in case kernel is clever
+	 * and can do page-aligned io more efficiently */
 	buffer = mmap(NULL, CONFIG_FEATURE_COPYBUF_KB * 1024,
 			PROT_READ | PROT_WRITE,
 			MAP_PRIVATE | MAP_ANON,
