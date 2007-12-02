@@ -110,6 +110,16 @@ config FEATURE_EDITING_FANCY_PROMPT
 	  Setting this option allows for prompts to use things like \w and
 	  \$ and escape codes.
 
+config FEATURE_COPYBUF_KB
+	int "Copy buffer size, in kilobytes"
+	range 1 1024
+	default 4
+	help
+	  Size of buffer used by cp, mv, install etc.
+	  Buffers which are 4 kb or less will be allocated on stack.
+	  Bigger buffers will be allocated with mmap, with fallback to 4 kb
+	  stack buffer if mmap fails.
+
 config MONOTONIC_SYSCALL
 	bool "Use clock_gettime(CLOCK_MONOTONIC) syscall"
 	default y

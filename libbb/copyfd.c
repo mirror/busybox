@@ -9,31 +9,42 @@
 
 #include "libbb.h"
 
-#if BUFSIZ < 4096
-#undef BUFSIZ
-#define BUFSIZ 4096
-#endif
-
 /* Used by NOFORK applets (e.g. cat) - must not use xmalloc */
 
 static off_t bb_full_fd_action(int src_fd, int dst_fd, off_t size)
 {
 	int status = -1;
 	off_t total = 0;
-	char buffer[BUFSIZ];
+#if CONFIG_FEATURE_COPYBUF_KB <= 4
+	char buffer[CONFIG_FEATURE_COPYBUF_KB * 1024];
+	enum { buffer_size = sizeof(buffer) };
+#else
+	char *buffer;
+	int buffer_size;
+
+	buffer = mmap(NULL, CONFIG_FEATURE_COPYBUF_KB * 1024,
+			PROT_READ | PROT_WRITE,
+			MAP_PRIVATE | MAP_ANON,
+			/* ignored: */ -1, 0);
+	buffer_size = CONFIG_FEATURE_COPYBUF_KB * 1024;
+	if (buffer == MAP_FAILED) {
+		buffer = alloca(4 * 1024);
+		buffer_size = 4 * 1024;
+	}
+#endif
 
 	if (src_fd < 0)
 		goto out;
 
 	if (!size) {
-		size = BUFSIZ;
+		size = buffer_size;
 		status = 1; /* copy until eof */
 	}
 
 	while (1) {
 		ssize_t rd;
 
-		rd = safe_read(src_fd, buffer, size > BUFSIZ ? BUFSIZ : size);
+		rd = safe_read(src_fd, buffer, size > buffer_size ? buffer_size : size);
 
 		if (!rd) { /* eof - all done */
 			status = 0;
@@ -62,6 +73,11 @@ static off_t bb_full_fd_action(int src_fd, int dst_fd, off_t size)
 		}
 	}
  out:
+
+#if CONFIG_FEATURE_COPYBUF_KB > 4
+	if (buffer_size != 4 * 1024)
+		munmap(buffer, buffer_size);
+#endif
 	return status ? -1 : total;
 }
 
