@@ -126,7 +126,8 @@ while (my $line = <STDIN>) {
 		$addr =~ s/ /0/g;
 		$addr = "0x$addr";
 
-		my $intro = "$addr $func [$file]:";
+		# bbox: was: my $intro = "$addr $func [$file]:";
+		my $intro = "$func [$file]:";
 		my $padlen = 56 - length($intro);
 		while ($padlen > 0) {
 			$intro .= '	';

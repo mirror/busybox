@@ -109,16 +109,22 @@ struct globals {
 	unsigned long req_nr_inodes;
 	unsigned currently_testing;
 
-
 	char root_block[BLOCK_SIZE];
 	char super_block_buffer[BLOCK_SIZE];
 	char boot_block_buffer[512];
 	unsigned short good_blocks_table[MAX_GOOD_BLOCKS];
 	/* check_blocks(): buffer[] was the biggest static in entire bbox */
 	char check_blocks_buffer[BLOCK_SIZE * TEST_BUFFER_BLOCKS];
-};
 
+	unsigned short ind_block1[BLOCK_SIZE >> 1];
+	unsigned short dind_block1[BLOCK_SIZE >> 1];
+	unsigned long ind_block2[BLOCK_SIZE >> 2];
+	unsigned long dind_block2[BLOCK_SIZE >> 2];
+};
 #define G (*ptr_to_globals)
+#define INIT_G() do { \
+	PTR_TO_GLOBALS = xzalloc(sizeof(G)); \
+} while (0)
 
 static ALWAYS_INLINE unsigned div_roundup(unsigned size, unsigned n)
 {
@@ -306,8 +312,12 @@ static void make_bad_inode(void)
 	struct minix1_inode *inode = &INODE_BUF1[MINIX_BAD_INO];
 	int i, j, zone;
 	int ind = 0, dind = 0;
+	/* moved to globals to reduce stack usage
 	unsigned short ind_block[BLOCK_SIZE >> 1];
 	unsigned short dind_block[BLOCK_SIZE >> 1];
+	*/
+#define ind_block (G.ind_block1)
+#define dind_block (G.dind_block1)
 
 #define NEXT_BAD (zone = next(zone))
 
@@ -351,6 +361,8 @@ static void make_bad_inode(void)
 		write_block(ind, (char *) ind_block);
 	if (dind)
 		write_block(dind, (char *) dind_block);
+#undef ind_block
+#undef dind_block
 }
 
 #if ENABLE_FEATURE_MINIX2
@@ -359,8 +371,12 @@ static void make_bad_inode2(void)
 	struct minix2_inode *inode = &INODE_BUF2[MINIX_BAD_INO];
 	int i, j, zone;
 	int ind = 0, dind = 0;
+	/* moved to globals to reduce stack usage
 	unsigned long ind_block[BLOCK_SIZE >> 2];
 	unsigned long dind_block[BLOCK_SIZE >> 2];
+	*/
+#define ind_block (G.ind_block2)
+#define dind_block (G.dind_block2)
 
 	if (!G.badblocks)
 		return;
@@ -401,6 +417,8 @@ static void make_bad_inode2(void)
 		write_block(ind, (char *) ind_block);
 	if (dind)
 		write_block(dind, (char *) dind_block);
+#undef ind_block
+#undef dind_block
 }
 #else
 void make_bad_inode2(void);
@@ -613,7 +631,7 @@ int mkfs_minix_main(int argc, char **argv)
 	char *str_i, *str_n;
 	char *listfile = NULL;
 
-	PTR_TO_GLOBALS = xzalloc(sizeof(G));
+	INIT_G();
 /* default (changed to 30, per Linus's suggestion, Sun Nov 21 08:05:07 1993) */
 	G.namelen = 30;
 	G.dirsize = 32;

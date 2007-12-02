@@ -98,7 +98,8 @@ void DOWNHEAP1(int32_t *heap, int32_t *weight, int32_t nHeap)
 
 /*---------------------------------------------------*/
 static
-void BZ2_hbMakeCodeLengths(uint8_t *len,
+void BZ2_hbMakeCodeLengths(EState *s,
+		uint8_t *len,
 		int32_t *freq,
 		int32_t alphaSize,
 		int32_t maxLen)
@@ -110,9 +111,14 @@ void BZ2_hbMakeCodeLengths(uint8_t *len,
 	int32_t nNodes, nHeap, n1, n2, i, j, k;
 	Bool  tooLong;
 
+	/* bbox: moved to EState to save stack
 	int32_t heap  [BZ_MAX_ALPHA_SIZE + 2];
 	int32_t weight[BZ_MAX_ALPHA_SIZE * 2];
 	int32_t parent[BZ_MAX_ALPHA_SIZE * 2];
+	*/
+#define heap   (s->BZ2_hbMakeCodeLengths__heap)
+#define weight (s->BZ2_hbMakeCodeLengths__weight)
+#define parent (s->BZ2_hbMakeCodeLengths__parent)
 
 	for (i = 0; i < alphaSize; i++)
 		weight[i+1] = (freq[i] == 0 ? 1 : freq[i]) << 8;
@@ -189,6 +195,9 @@ void BZ2_hbMakeCodeLengths(uint8_t *len,
 			weight[i] = j << 8;
 		}
 	}
+#undef heap
+#undef weight
+#undef parent
 }
 
 

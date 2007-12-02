@@ -735,6 +735,9 @@ struct globals {
 	char filechar_cmdbuf[BUFSIZ];
 	char line[LINELIM];
 	char child_cmd[LINELIM];
+
+	char grave__var_name[LINELIM];
+	char grave__alt_value[LINELIM];
 };
 
 #define G (*ptr_to_globals)
@@ -746,6 +749,9 @@ struct globals {
 #define filechar_cmdbuf (G.filechar_cmdbuf)
 #define line            (G.line           )
 #define child_cmd       (G.child_cmd      )
+#define INIT_G() do { \
+	PTR_TO_GLOBALS = xzalloc(sizeof(G)); \
+} while (0)
 
 
 #ifdef MSHDEBUG
@@ -4042,8 +4048,12 @@ static int grave(int quoted)
 			ignore_once = 1;
 		if (*src == '$' && !ignore && !ignore_once) {
 			struct var *vp;
+			/* moved to G to reduce stack usage
 			char var_name[LINELIM];
 			char alt_value[LINELIM];
+			*/
+#define var_name (G.grave__var_name)
+#define alt_value (G.grave__alt_value)
 			int var_index = 0;
 			int alt_index = 0;
 			char operator = 0;
@@ -4131,6 +4141,8 @@ static int grave(int quoted)
 					count++;
 				}
 			}
+#undef var_name
+#undef alt_value
 		} else {
 			*dest++ = *src++;
 			count++;
@@ -5173,7 +5185,8 @@ int msh_main(int argc, char **argv)
 	char *name, **ap;
 	int (*iof) (struct ioarg *);
 
-	PTR_TO_GLOBALS = xzalloc(sizeof(G));
+	INIT_G();
+
 	sharedbuf.id = AFID_NOBUF;
 	mainbuf.id = AFID_NOBUF;
 	e.linep = line;

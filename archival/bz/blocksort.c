@@ -721,7 +721,8 @@ void mainQSort3(uint32_t* ptr,
 #define CLEARMASK (~(SETMASK))
 
 static NOINLINE
-void mainSort(uint32_t*   ptr,
+void mainSort(EState* state,
+		uint32_t* ptr,
 		uint8_t*  block,
 		uint16_t* quadrant,
 		uint32_t* ftab,
@@ -729,13 +730,18 @@ void mainSort(uint32_t*   ptr,
 		int32_t*  budget)
 {
 	int32_t  i, j, k, ss, sb;
-	int32_t  runningOrder[256];
-	Bool     bigDone[256];
-	int32_t  copyStart[256];
-	int32_t  copyEnd  [256];
 	uint8_t  c1;
 	int32_t  numQSorted;
 	uint16_t s;
+	Bool     bigDone[256];
+	/* bbox: moved to EState to save stack
+	int32_t  runningOrder[256];
+	int32_t  copyStart[256];
+	int32_t  copyEnd  [256];
+	*/
+#define runningOrder (state->mainSort__runningOrder)
+#define copyStart    (state->mainSort__copyStart)
+#define copyEnd      (state->mainSort__copyEnd)
 
 	/*-- set up the 2-byte frequency table --*/
 	/* was: for (i = 65536; i >= 0; i--) ftab[i] = 0; */
@@ -985,6 +991,9 @@ void mainSort(uint32_t*   ptr,
 			AssertH(((bbSize-1) >> shifts) <= 65535, 1002);
 		}
 	}
+#undef runningOrder
+#undef copyStart
+#undef copyEnd
 }
 
 #undef BIGFREQ
@@ -1041,7 +1050,7 @@ void BZ2_blockSort(EState* s)
 		 */
 		budget = nblock * ((wfact-1) / 3);
 
-		mainSort(ptr, block, quadrant, ftab, nblock, &budget);
+		mainSort(s, ptr, block, quadrant, ftab, nblock, &budget);
 		if (budget < 0) {
 			fallbackSort(s->arr1, s->arr2, ftab, nblock);
 		}

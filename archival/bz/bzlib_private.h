@@ -178,13 +178,22 @@ typedef struct EState {
 	uint8_t  selector   [BZ_MAX_SELECTORS];
 	uint8_t  selectorMtf[BZ_MAX_SELECTORS];
 
-	uint8_t  len  [BZ_N_GROUPS][BZ_MAX_ALPHA_SIZE];
-	int32_t  code [BZ_N_GROUPS][BZ_MAX_ALPHA_SIZE];
-	int32_t  rfreq[BZ_N_GROUPS][BZ_MAX_ALPHA_SIZE];
+	uint8_t  len[BZ_N_GROUPS][BZ_MAX_ALPHA_SIZE];
+
+	/* stack-saving measures: these can be local, but they are too big */
+	int32_t  sendMTFValues__code [BZ_N_GROUPS][BZ_MAX_ALPHA_SIZE];
+	int32_t  sendMTFValues__rfreq[BZ_N_GROUPS][BZ_MAX_ALPHA_SIZE];
 #if CONFIG_BZIP2_FEATURE_SPEED >= 5
 	/* second dimension: only 3 needed; 4 makes index calculations faster */
-	uint32_t len_pack[BZ_MAX_ALPHA_SIZE][4];
+	uint32_t sendMTFValues__len_pack[BZ_MAX_ALPHA_SIZE][4];
 #endif
+	int32_t  BZ2_hbMakeCodeLengths__heap  [BZ_MAX_ALPHA_SIZE + 2];
+	int32_t  BZ2_hbMakeCodeLengths__weight[BZ_MAX_ALPHA_SIZE * 2];
+	int32_t  BZ2_hbMakeCodeLengths__parent[BZ_MAX_ALPHA_SIZE * 2];
+
+	int32_t  mainSort__runningOrder[256];
+	int32_t  mainSort__copyStart[256];
+	int32_t  mainSort__copyEnd[256];
 } EState;
 
 
@@ -203,7 +212,7 @@ static void
 BZ2_hbAssignCodes(int32_t*, uint8_t*, int32_t, int32_t, int32_t);
 
 static void
-BZ2_hbMakeCodeLengths(uint8_t*, int32_t*, int32_t, int32_t);
+BZ2_hbMakeCodeLengths(EState*, uint8_t*, int32_t*, int32_t, int32_t);
 
 /*-------------------------------------------------------------*/
 /*--- end                                   bzlib_private.h ---*/

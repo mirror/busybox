@@ -264,13 +264,16 @@ void sendMTFValues(EState* s)
 	 * are also globals only used in this proc.
 	 * Made global to keep stack frame size small.
 	 */
+#define code     sendMTFValues__code
+#define rfreq    sendMTFValues__rfreq
+#define len_pack sendMTFValues__len_pack
 
 	uint16_t cost[BZ_N_GROUPS];
 	int32_t  fave[BZ_N_GROUPS];
 
 	uint16_t* mtfv = s->mtfv;
 
-	alphaSize = s->nInUse+2;
+	alphaSize = s->nInUse + 2;
 	for (t = 0; t < BZ_N_GROUPS; t++)
 		for (v = 0; v < alphaSize; v++)
 			s->len[t][v] = BZ_GREATER_ICOST;
@@ -453,7 +456,7 @@ void sendMTFValues(EState* s)
 		/* maxLen was changed from 20 to 17 in bzip2-1.0.3.  See
 		 * comment in huffman.c for details. */
 		for (t = 0; t < nGroups; t++)
-			BZ2_hbMakeCodeLengths(&(s->len[t][0]), &(s->rfreq[t][0]), alphaSize, 17 /*20*/);
+			BZ2_hbMakeCodeLengths(s, &(s->len[t][0]), &(s->rfreq[t][0]), alphaSize, 17 /*20*/);
 	}
 
 	AssertH(nGroups < 8, 3002);
@@ -602,6 +605,9 @@ void sendMTFValues(EState* s)
 		selCtr++;
 	}
 	AssertH(selCtr == nSelectors, 3007);
+#undef code
+#undef rfreq
+#undef len_pack
 }
 
 
