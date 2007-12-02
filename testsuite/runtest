@@ -1,20 +1,20 @@
 #!/bin/sh
 
-# Run old-style test.
-
+# Run one old-style test.
+# Tests are stored in applet/testcase shell scripts.
+# They are run using "sh -x -e applet/testcase".
+# Option -e will make testcase stop on the first failed command.
 run_applet_testcase()
 {
 	local applet=$1
 	local testcase=$2
 
-	local status=0
-	local RES=
-
+	local status
 	local uc_applet=$(echo $applet | tr a-z A-Z)
 	local testname=$(basename $testcase)
 
 	if grep -q "^# CONFIG_${uc_applet} is not set$" $bindir/.config; then
-		echo UNTESTED: $testname
+		echo "UNTESTED: $testname"
 		return 0
 	fi
 
@@ -22,72 +22,67 @@ run_applet_testcase()
 		local feature=`sed -ne 's/^# FEATURE: //p' $testcase`
 
 		if grep -q "^# ${feature} is not set$" $bindir/.config; then
-			echo UNTESTED: $testname
+			echo "UNTESTED: $testname"
 			return 0
 		fi
 	fi
 
-	rm -rf tmp
-	mkdir -p tmp
-	pushd tmp > /dev/null
+	rm -rf ".tmpdir.$applet"
+	mkdir -p ".tmpdir.$applet"
+	cd ".tmpdir.$applet" || return 1
 
-#	echo Running testcase $testcase
-	d=$tsdir sh -x -e $testcase >.logfile.txt 2>&1 || status=$?
-
-	if [ $status -ne 0 ]; then
-		echo FAIL: $testname
-		if [ $verbose -gt 0 ]; then
-			cat .logfile.txt
+#	echo "Running testcase $testcase"
+	d="$tsdir" sh -x -e "$testcase" >"$testname.stdout.txt" 2>&1
+	status=$?
+	if [ $status != 0 ]; then
+		echo "FAIL: $testname"
+		if [ x"$VERBOSE" != x ]; then
+			cat "$testname.stdout.txt"
 		fi
-		status=$?
 	else
-		echo PASS: $testname
-		rm -f .logfile.txt
-		status=$?
+		echo "PASS: $testname"
 	fi
 
-	popd > /dev/null
-	rm -rf tmp
+	cd ..
+	rm -rf ".tmpdir.$applet"
 
 	return $status
 }
 
+# Run all old-style tests for given applet
 run_applet_tests()
 {
 	local applet=$1
-
 	local status=0
-
 	for testcase in $tsdir/$applet/*; do
 		if [ "$testcase" = "$tsdir/$applet/CVS" ]; then
 			continue
 		fi
-		if ! run_applet_testcase $applet $testcase; then
-			status=1
-		fi
+		run_applet_testcase $applet $testcase
+		test $? = 0 || status=1
 	done
-
 	return $status
 }
 
 
-status=0
-verbose=0
 
 [ -n "$tsdir" ] || tsdir=$(pwd)
 [ -n "$bindir" ] || bindir=$(dirname $(pwd))
 PATH="$bindir:$PATH"
 
+if [ x"$VERBOSE" = x ]; then
+	export VERBOSE=
+fi
+
 if [ x"$1" = x"-v" ]; then
-	verbose=1
-	export VERBOSE=$verbose
+	export VERBOSE=1
 	shift
 fi
 
 implemented=$(
 	$bindir/busybox 2>&1 |
 	while read line; do
-		if test x"$line" = x"Currently defined functions:"; then
+		if [ x"$line" = x"Currently defined functions:" ]; then
 			xargs | sed 's/,//g'
 			break
 		fi
@@ -109,39 +104,34 @@ for i in $implemented; do
 done
 
 # Set up option flags so tests can be selective.
+export OPTIONFLAGS=:$(sed -nr 's/^CONFIG_//p' $bindir/.config | sed 's/=.*//' | xargs | sed 's/ /:/g')
 
-configfile=${bindir}/.config
-export OPTIONFLAGS=:$(sed -nr 's/^CONFIG_(.*)=.*/\1/p' $configfile | xargs | sed 's/ /:/g')
-
+status=0
 for applet in $applets; do
 	if [ "$applet" = "links" ]; then continue; fi
+
+	# Any old-style tests for this applet?
 	if [ "$applet" != "CVS" -a -d "$tsdir/$applet" ]; then
-		if ! run_applet_tests $applet; then
-			status=1
-		fi
+		run_applet_tests "$applet"
+		test $? = 0 || status=1
 	fi
 
 	# Is this a new-style test?
-	if [ -f ${applet}.tests ]; then
+	if [ -f "${applet}.tests" ]; then
 		if [ ! -h "$LINKSDIR/$applet" ] && [ "${applet:0:4}" != "all_" ]; then
 			echo "SKIPPED: $applet (not built)"
 			continue
 		fi
-		if PATH="$LINKSDIR:$tsdir:$bindir:$PATH" \
-				"${tsdir:-.}/$applet".tests
-		then
-			:
-		else
-			status=1
-		fi
+#		echo "Running test ${tsdir:-.}/${applet}.tests"
+		PATH="$LINKSDIR:$tsdir:$bindir:$PATH" "${tsdir:-.}/${applet}.tests"
+		test $? = 0 || status=1
 	fi
-
 done
 
 # Leaving the dir makes it somewhat easier to run failed test by hand
 #rm -rf "$LINKSDIR"
 
 if [ $status != 0 -a x"$VERBOSE" = x ]; then
-	echo "Failures detected, running with VERBOSE=1 will give more info"
+	echo "Failures detected, running with -v (verbose) will give more info"
 fi
 exit $status

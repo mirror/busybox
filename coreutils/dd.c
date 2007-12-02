@@ -14,6 +14,11 @@
 /* This is a NOEXEC applet. Be very careful! */
 
 
+enum {
+	ifd = STDIN_FILENO,
+	ofd = STDOUT_FILENO,
+};
+
 static const struct suffix_mult dd_suffixes[] = {
 	{ "c", 1 },
 	{ "w", 2 },
@@ -45,19 +50,19 @@ static void dd_output_status(int ATTRIBUTE_UNUSED cur_signal)
 			G.out_full, G.out_part);
 }
 
-static ssize_t full_write_or_warn(int fd, const void *buf, size_t len,
+static ssize_t full_write_or_warn(const void *buf, size_t len,
 	const char *const filename)
 {
-	ssize_t n = full_write(fd, buf, len);
+	ssize_t n = full_write(ofd, buf, len);
 	if (n < 0)
 		bb_perror_msg("writing '%s'", filename);
 	return n;
 }
 
-static bool write_and_stats(int fd, const void *buf, size_t len, size_t obs,
+static bool write_and_stats(const void *buf, size_t len, size_t obs,
 	const char *filename)
 {
-	ssize_t n = full_write_or_warn(fd, buf, len, filename);
+	ssize_t n = full_write_or_warn(buf, len, filename);
 	if (n < 0)
 		return 1;
 	if (n == obs)
@@ -105,13 +110,13 @@ int dd_main(int argc, char **argv)
 		OP_conv_noerror,
 #endif
 	};
+	int exitcode = EXIT_FAILURE;
 	size_t ibs = 512, obs = 512;
 	ssize_t n, w;
 	char *ibuf, *obuf;
 	/* And these are all zeroed at once! */
 	struct {
 		int flags;
-		int ifd, ofd;
 		size_t oc;
 		off_t count;
 		off_t seek, skip;
@@ -121,8 +126,6 @@ int dd_main(int argc, char **argv)
 #endif
 	} Z;
 #define flags   (Z.flags  )
-#define ifd     (Z.ifd    )
-#define ofd     (Z.ofd    )
 #define oc      (Z.oc     )
 #define count   (Z.count  )
 #define seek    (Z.seek   )
@@ -133,6 +136,7 @@ int dd_main(int argc, char **argv)
 
 	memset(&Z, 0, sizeof(Z));
 	INIT_G();
+	//fflush(NULL); - is this needed because of NOEXEC?
 
 #if ENABLE_FEATURE_DD_SIGNAL_HANDLING
 	sigact.sa_handler = dd_output_status;
@@ -227,9 +231,8 @@ int dd_main(int argc, char **argv)
 		obuf = xmalloc(obs);
 	}
 	if (infile != NULL)
-		ifd = xopen(infile, O_RDONLY);
+		xmove_fd(xopen(infile, O_RDONLY), ifd);
 	else {
-		/* ifd = STDIN_FILENO; - it's zero and it's already there */
 		infile = bb_msg_standard_input;
 	}
 	if (outfile != NULL) {
@@ -238,7 +241,7 @@ int dd_main(int argc, char **argv)
 		if (!seek && !(flags & FLAG_NOTRUNC))
 			oflag |= O_TRUNC;
 
-		ofd = xopen(outfile, oflag);
+		xmove_fd(xopen(outfile, oflag), ofd);
 
 		if (seek && !(flags & FLAG_NOTRUNC)) {
 			if (ftruncate(ofd, seek * obs) < 0) {
@@ -250,7 +253,6 @@ int dd_main(int argc, char **argv)
 			}
 		}
 	} else {
-		ofd = STDOUT_FILENO;
 		outfile = bb_msg_standard_output;
 	}
 	if (skip) {
@@ -276,11 +278,10 @@ int dd_main(int argc, char **argv)
 		if (n == 0)
 			break;
 		if (n < 0) {
-			if (flags & FLAG_NOERROR) {
-				n = ibs;
-				bb_simple_perror_msg(infile);
-			} else
+			if (!(flags & FLAG_NOERROR))
 				goto die_infile;
+			n = ibs;
+			bb_simple_perror_msg(infile);
 		}
 		if ((size_t)n == ibs)
 			G.in_full++;
@@ -303,17 +304,17 @@ int dd_main(int argc, char **argv)
 				tmp += d;
 				oc += d;
 				if (oc == obs) {
-					if (write_and_stats(ofd, obuf, obs, obs, outfile))
+					if (write_and_stats(obuf, obs, obs, outfile))
 						goto out_status;
 					oc = 0;
 				}
 			}
-		} else if (write_and_stats(ofd, ibuf, n, obs, outfile))
+		} else if (write_and_stats(ibuf, n, obs, outfile))
 			goto out_status;
 	}
 
 	if (ENABLE_FEATURE_DD_IBS_OBS && oc) {
-		w = full_write_or_warn(ofd, obuf, oc, outfile);
+		w = full_write_or_warn(obuf, oc, outfile);
 		if (w < 0) goto out_status;
 		if (w > 0)
 			G.out_part++;
@@ -327,8 +328,10 @@ int dd_main(int argc, char **argv)
  die_outfile:
 		bb_simple_perror_msg_and_die(outfile);
 	}
+
+	exitcode = EXIT_SUCCESS;
  out_status:
 	dd_output_status(0);
 
-	return EXIT_SUCCESS;
+	return exitcode;
 }
