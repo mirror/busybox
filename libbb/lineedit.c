@@ -91,7 +91,6 @@ struct statics {
 
 	const char *cmdedit_prompt;
 #if ENABLE_FEATURE_EDITING_FANCY_PROMPT
-	char *hostname_buf;
 	int num_ok_lines; /* = 1; */
 #endif
 
@@ -136,7 +135,6 @@ static struct statics *const ptr_to_statics __attribute__ ((section (".data")));
 #define command_len      (S.command_len     )
 #define command_ps       (S.command_ps      )
 #define cmdedit_prompt   (S.cmdedit_prompt  )
-#define hostname_buf     (S.hostname_buf    )
 #define num_ok_lines     (S.num_ok_lines    )
 #define user_buf         (S.user_buf        ) 
 #define home_pwd_buf     (S.home_pwd_buf    )
@@ -155,7 +153,6 @@ static struct statics *const ptr_to_statics __attribute__ ((section (".data")));
 static void deinit_S(void)
 {
 #if ENABLE_FEATURE_EDITING_FANCY_PROMPT
-	free(hostname_buf);
 	/* This one is allocated only if FANCY_PROMPT is on
 	 * (otherwise it points to verbatim prompt (NOT malloced) */
 	free((char*)cmdedit_prompt);
@@ -381,14 +378,14 @@ static void username_tab_completion(char *ud, char *with_shash_flg)
 	if (with_shash_flg) {           /* "~/..." or "~user/..." */
 		char *sav_ud = ud - 1;
 		char *home = NULL;
-		char *temp;
 
 		if (*ud == '/') {       /* "~/..."     */
 			home = home_pwd_buf;
 		} else {
 			/* "~user/..." */
+			char *temp;
 			temp = strchr(ud, '/');
-			*temp = 0;              /* ~user\0 */
+			*temp = '\0';           /* ~user\0 */
 			entry = getpwnam(ud);
 			*temp = '/';            /* restore ~user/... */
 			ud = temp;
@@ -1163,21 +1160,23 @@ static void parse_and_put_prompt(const char *prmt_ptr)
 	size_t cur_prmt_len = 0;
 	char flg_not_length = '[';
 	char *prmt_mem_ptr = xzalloc(1);
-	char *pwd_buf = xrealloc_getcwd_or_warn(NULL);
-	char buf2[PATH_MAX + 1];
-	char buf[2];
+	char *cwd_buf = xrealloc_getcwd_or_warn(NULL);
+	char cbuf[2];
 	char c;
 	char *pbuf;
 
 	cmdedit_prmt_len = 0;
 
-	if (!pwd_buf) {
-		pwd_buf = (char *)bb_msg_unknown;
+	if (!cwd_buf) {
+		cwd_buf = (char *)bb_msg_unknown;
 	}
 
+	cbuf[1] = '\0'; /* never changes */
+
 	while (*prmt_ptr) {
-		pbuf = buf;
-		pbuf[1] = 0;
+		char *free_me = NULL;
+
+		pbuf = cbuf;
 		c = *prmt_ptr++;
 		if (c == '\\') {
 			const char *cp = prmt_ptr;
@@ -1188,6 +1187,7 @@ static void parse_and_put_prompt(const char *prmt_ptr)
 				if (*cp == '\0')
 					break;
 				c = *prmt_ptr++;
+
 				switch (c) {
 #if ENABLE_FEATURE_GETUSERNAME_AND_HOMEDIR
 				case 'u':
@@ -1195,87 +1195,81 @@ static void parse_and_put_prompt(const char *prmt_ptr)
 					break;
 #endif
 				case 'h':
-					pbuf = hostname_buf;
-					if (!pbuf) {
-						pbuf = xzalloc(256);
-						if (gethostname(pbuf, 255) < 0) {
-							strcpy(pbuf, "?");
-						} else {
-							char *s = strchr(pbuf, '.');
-							if (s)
-								*s = '\0';
-						}
-						hostname_buf = pbuf;
+					pbuf = free_me = xzalloc(256);
+					if (gethostname(pbuf, 255) < 0) {
+						pbuf[0] = '?';
+						pbuf[1] = '\0';
 					}
+					*strchrnul(pbuf, '.') = '\0';
 					break;
 				case '$':
 					c = (geteuid() == 0 ? '#' : '$');
 					break;
 #if ENABLE_FEATURE_GETUSERNAME_AND_HOMEDIR
 				case 'w':
-					pbuf = pwd_buf;
+					/* /home/user[/something] -> ~[/something] */
+					pbuf = cwd_buf;
 					l = strlen(home_pwd_buf);
 					if (l != 0
-					 && strncmp(home_pwd_buf, pbuf, l) == 0
-					 && (pbuf[l]=='/' || pbuf[l]=='\0')
-					 && strlen(pwd_buf+l) < PATH_MAX
+					 && strncmp(home_pwd_buf, cwd_buf, l) == 0
+					 && (cwd_buf[l]=='/' || cwd_buf[l]=='\0')
+					 && strlen(cwd_buf + l) < PATH_MAX
 					) {
-						pbuf = buf2;
-						*pbuf = '~';
-						strcpy(pbuf+1, pwd_buf+l);
+						pbuf = free_me = xasprintf("~%s", cwd_buf + l);
 					}
 					break;
 #endif
 				case 'W':
-					pbuf = pwd_buf;
+					pbuf = cwd_buf;
 					cp = strrchr(pbuf, '/');
 					if (cp != NULL && cp != pbuf)
 						pbuf += (cp-pbuf) + 1;
 					break;
 				case '!':
-					pbuf = buf2;
-					snprintf(buf2, sizeof(buf2), "%d", num_ok_lines);
+					pbuf = free_me = xasprintf("%d", num_ok_lines);
 					break;
 				case 'e': case 'E':     /* \e \E = \033 */
 					c = '\033';
 					break;
-				case 'x': case 'X':
+				case 'x': case 'X': {
+					char buf2[4];
 					for (l = 0; l < 3;) {
-						int h;
+						unsigned h;
 						buf2[l++] = *prmt_ptr;
-						buf2[l] = 0;
-						h = strtol(buf2, &pbuf, 16);
+						buf2[l] = '\0';
+						h = strtoul(buf2, &pbuf, 16);
 						if (h > UCHAR_MAX || (pbuf - buf2) < l) {
-							l--;
+							buf2[--l] = '\0';
 							break;
 						}
 						prmt_ptr++;
 					}
-					buf2[l] = 0;
-					c = (char)strtol(buf2, NULL, 16);
+					c = (char)strtoul(buf2, NULL, 16);
 					if (c == 0)
 						c = '?';
-					pbuf = buf;
+					pbuf = cbuf;
 					break;
+				}
 				case '[': case ']':
 					if (c == flg_not_length) {
 						flg_not_length = (flg_not_length == '[' ? ']' : '[');
 						continue;
 					}
 					break;
-				}
-			}
-		}
-		if (pbuf == buf)
-			*pbuf = c;
+				} /* switch */
+			} /* if */
+		} /* if */
+		cbuf[0] = c;
 		cur_prmt_len = strlen(pbuf);
 		prmt_len += cur_prmt_len;
 		if (flg_not_length != ']')
 			cmdedit_prmt_len += cur_prmt_len;
 		prmt_mem_ptr = strcat(xrealloc(prmt_mem_ptr, prmt_len+1), pbuf);
-	}
-	if (pwd_buf != (char *)bb_msg_unknown)
-		free(pwd_buf);
+		free(free_me);
+	} /* while */
+
+	if (cwd_buf != (char *)bb_msg_unknown)
+		free(cwd_buf);
 	cmdedit_prompt = prmt_mem_ptr;
 	put_prompt();
 }
@@ -1397,7 +1391,6 @@ int read_line_input(const char *prompt, char *command, int maxsize, line_input_t
 		if (entry) {
 			user_buf = xstrdup(entry->pw_name);
 			home_pwd_buf = xstrdup(entry->pw_dir);
-			/* They are not freed on exit (too small to bother) */
 		}
 	}
 #endif

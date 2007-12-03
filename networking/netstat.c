@@ -148,7 +148,7 @@ static char *ip_port_str(struct sockaddr *addr, int port, const char *proto, int
 	return host_port;
 }
 
-static void tcp_do_one(int lnr, const char *line)
+static void tcp_do_one(int lnr, char *line)
 {
 	char local_addr[64], rem_addr[64];
 	char more[512];
@@ -201,7 +201,7 @@ static void tcp_do_one(int lnr, const char *line)
 	}
 }
 
-static void udp_do_one(int lnr, const char *line)
+static void udp_do_one(int lnr, char *line)
 {
 	char local_addr[64], rem_addr[64];
 	const char *state_str;
@@ -283,7 +283,7 @@ static void udp_do_one(int lnr, const char *line)
 	}
 }
 
-static void raw_do_one(int lnr, const char *line)
+static void raw_do_one(int lnr, char *line)
 {
 	char local_addr[64], rem_addr[64];
 	char more[512];
@@ -339,31 +339,37 @@ static void raw_do_one(int lnr, const char *line)
 	}
 }
 
-static void unix_do_one(int nr, const char *line)
+static void unix_do_one(int nr, char *line)
 {
-	static smallint has_inode = 0;
-
-	char path[PATH_MAX], ss_flags[32];
-	const char *ss_proto, *ss_state, *ss_type;
-	int num, state, type, inode;
-	void *d;
 	unsigned long refcnt, proto, unix_flags;
+	unsigned long inode;
+	int type, state;
+	int num, path_ofs;
+	void *d;
+	const char *ss_proto, *ss_state, *ss_type;
+	char ss_flags[32];
 
-	if (nr == 0) {
-		if (strstr(line, "Inode"))
-			has_inode = 1;
+	if (nr == 0)
+		return; /* skip header */
+
+	{
+		char *last = last_char_is(line, '\n');
+		if (last)
+			*last = '\0';
+	}
+
+	/* 2.6.15 may report lines like "... @/tmp/fam-user-^@^@^@^@^@^@^@..."
+	 * (those ^@ are NUL bytes). fgets sees them as tons of empty lines. */
+	if (!line[0])
+		return;
+
+	path_ofs = 0; /* paranoia */
+	num = sscanf(line, "%p: %lX %lX %lX %X %X %lu %n",
+			&d, &refcnt, &proto, &unix_flags, &type, &state, &inode, &path_ofs);
+	if (num < 7) {
+		bb_error_msg("got bogus unix line '%s'", line);
 		return;
 	}
-	path[0] = '\0';
-	num = sscanf(line, "%p: %lX %lX %lX %X %X %d %s",
-			&d, &refcnt, &proto, &unix_flags, &type, &state, &inode, path);
-	if (num < 6) {
-		bb_error_msg("warning, got bogus unix line");
-		return;
-	}
-	if (!has_inode)
-		sprintf(path, "%d", inode);
-
 	if ((flags & (NETSTAT_LISTENING|NETSTAT_CONNECTED)) != (NETSTAT_LISTENING|NETSTAT_CONNECTED)) {
 		if ((state == SS_UNCONNECTED) && (unix_flags & SO_ACCEPTCON)) {
 			if (!(flags & NETSTAT_LISTENING))
@@ -439,13 +445,9 @@ static void unix_do_one(int nr, const char *line)
 		strcat(ss_flags, "N ");
 	strcat(ss_flags, "]");
 
-	printf("%-5s %-6ld %-11s %-10s %-13s ",
-		   ss_proto, refcnt, ss_flags, ss_type, ss_state);
-	if (has_inode)
-		printf("%-6d ", inode);
-	else
-		printf("-      ");
-	puts(path);
+	printf("%-5s %-6ld %-11s %-10s %-13s %6lu %s\n",
+		ss_proto, refcnt, ss_flags, ss_type, ss_state, inode,
+		line + path_ofs);
 }
 
 #define _PATH_PROCNET_UDP "/proc/net/udp"
@@ -456,10 +458,11 @@ static void unix_do_one(int nr, const char *line)
 #define _PATH_PROCNET_RAW6 "/proc/net/raw6"
 #define _PATH_PROCNET_UNIX "/proc/net/unix"
 
-static void do_info(const char *file, const char *name, void (*proc)(int, const char *))
+static void do_info(const char *file, const char *name, void (*proc)(int, char *))
 {
-	int lnr = 0;
+	int lnr;
 	FILE *procinfo;
+	char *buffer;
 
 	procinfo = fopen(file, "r");
 	if (procinfo == NULL) {
@@ -470,13 +473,14 @@ static void do_info(const char *file, const char *name, void (*proc)(int, const 
 		}
 		return;
 	}
+	lnr = 0;
 	do {
-		char *buffer = xmalloc_fgets(procinfo);
+		buffer = xmalloc_fgets(procinfo);
 		if (buffer) {
 			(proc)(lnr++, buffer);
 			free(buffer);
 		}
-	} while (!feof(procinfo));
+	} while (buffer);
 	fclose(procinfo);
 }
 
