@@ -28,12 +28,16 @@
  * System V, assume it is SunOS 4.
  */
 #ifdef LOGIN_PROCESS                    /* defined in System V utmp.h */
-#define SYSV_STYLE                      /* select System V style getty */
 #include <sys/utsname.h>
 #include <time.h>
 #if ENABLE_FEATURE_WTMP
 extern void updwtmp(const char *filename, const struct utmp *ut);
 #endif
+#else /* if !sysV style, wtmp/utmp code is off */
+#undef ENABLE_FEATURE_UTMP
+#undef ENABLE_FEATURE_WTMP
+#define ENABLE_FEATURE_UTMP 0
+#define ENABLE_FEATURE_WTMP 0
 #endif  /* LOGIN_PROCESS */
 
 /*
@@ -116,7 +120,7 @@ static const struct chardata init_chardata = {
 static const char opt_string[] ALIGN1 = "I:LH:f:hil:mt:wn";
 #define F_INITSTRING    (1 << 0)        /* -I initstring is set */
 #define F_LOCAL         (1 << 1)        /* -L force local */
-#define F_FAKEHOST      (1 << 2)        /* -H force fakehost */
+#define F_FAKEHOST      (1 << 2)        /* -H fake hostname */
 #define F_CUSTISSUE     (1 << 3)        /* -f give alternative issue file */
 #define F_RTSCTS        (1 << 4)        /* -h enable RTS/CTS flow control */
 #define F_ISSUE         (1 << 5)        /* -i display /etc/issue */
@@ -124,11 +128,9 @@ static const char opt_string[] ALIGN1 = "I:LH:f:hil:mt:wn";
 #define F_PARSE         (1 << 7)        /* -m process modem status messages */
 #define F_TIMEOUT       (1 << 8)        /* -t time out */
 #define F_WAITCRLF      (1 << 9)        /* -w wait for CR or LF */
-#define F_NOPROMPT      (1 << 10)       /* -n don't ask for login name! */
+#define F_NOPROMPT      (1 << 10)       /* -n don't ask for login name */
 
 
-/* Fake hostname for ut_host specified on command line. */
-static char *fakehost = NULL;
 #define line_buf bb_common_bufsiz1
 
 /* The following is used for understandable diagnostics. */
@@ -175,20 +177,20 @@ static void parse_speeds(struct options *op, char *arg)
 }
 
 /* parse_args - parse command-line arguments */
-static void parse_args(char **argv, struct options *op)
+static void parse_args(char **argv, struct options *op, char **fakehost_p)
 {
 	char *ts;
 
 	opt_complementary = "-2"; /* at least 2 args */
 	op->flags = getopt32(argv, opt_string,
-		&(op->initstring), &fakehost, &(op->issue),
+		&(op->initstring), fakehost_p, &(op->issue),
 		&(op->login), &ts);
 	argv += optind;
 	if (op->flags & F_INITSTRING) {
 		const char *p = op->initstring;
 		char *q;
 
-		op->initstring = q = xstrdup(op->initstring);
+		op->initstring = q = xstrdup(p);
 		/* copy optarg into op->initstring decoding \ddd
 		   octal codes into chars */
 		while (*p) {
@@ -564,15 +566,23 @@ static void termios_final(struct options *op, struct termios *tp, struct chardat
 	ioctl_or_perror_and_die(0, TCSETS, tp, "%s: TCSETS", op->tty);
 }
 
-#ifdef SYSV_STYLE
 #if ENABLE_FEATURE_UTMP
+static void touch(const char *filename)
+{
+	if (access(filename, R_OK | W_OK) == -1)
+		close(open(filename, O_WRONLY | O_CREAT, 0664));
+}
+
 /* update_utmp - update our utmp entry */
-static void update_utmp(const char *line)
+static void update_utmp(const char *line, char *fakehost)
 {
 	struct utmp ut;
 	struct utmp *utp;
-	time_t t;
 	int mypid = getpid();
+
+	/* In case we won't find an entry below... */
+	memset(&ut, 0, sizeof(ut));
+	safe_strncpy(ut.ut_id, line + 3, sizeof(ut.ut_id));
 
 	/*
 	 * The utmp file holds miscellaneous information about things started by
@@ -582,29 +592,22 @@ static void update_utmp(const char *line)
 	 * utmp file can be opened for update, and if we are able to find our
 	 * entry in the utmp file.
 	 */
-	if (access(_PATH_UTMP, R_OK|W_OK) == -1) {
-		close(creat(_PATH_UTMP, 0664));
-	}
+	touch(_PATH_UTMP);
+
 	utmpname(_PATH_UTMP);
 	setutent();
-	while ((utp = getutent())
-	    && !(utp->ut_type == INIT_PROCESS && utp->ut_pid == mypid)
-	) {
-		continue;
+	while ((utp = getutent()) != NULL) {
+		if (utp->ut_type == INIT_PROCESS && utp->ut_pid == mypid) {
+			memcpy(&ut, utp, sizeof(ut));
+			break;
+		}
 	}
-
-	/* some inits don't initialize utmp... */
-	memset(&ut, 0, sizeof(ut));
-	safe_strncpy(ut.ut_id, line + 3, sizeof(ut.ut_id));
-	if (utp)
-		memcpy(&ut, utp, sizeof(ut));
 
 	strcpy(ut.ut_user, "LOGIN");
 	safe_strncpy(ut.ut_line, line, sizeof(ut.ut_line));
 	if (fakehost)
 		safe_strncpy(ut.ut_host, fakehost, sizeof(ut.ut_host));
-	time(&t);
-	ut.ut_time = t;
+	ut.ut_time = time(NULL);
 	ut.ut_type = LOGIN_PROCESS;
 	ut.ut_pid = mypid;
 
@@ -612,19 +615,17 @@ static void update_utmp(const char *line)
 	endutent();
 
 #if ENABLE_FEATURE_WTMP
-	if (access(bb_path_wtmp_file, R_OK|W_OK) == -1)
-		close(creat(bb_path_wtmp_file, 0664));
+	touch(bb_path_wtmp_file);
 	updwtmp(bb_path_wtmp_file, &ut);
 #endif
 }
-
 #endif /* CONFIG_FEATURE_UTMP */
-#endif /* SYSV_STYLE */
 
 int getty_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int getty_main(int argc, char **argv)
 {
 	int n;
+	char *fakehost = NULL;          /* Fake hostname for ut_host */
 	char *logname;                  /* login name, given to /bin/login */
 	/* Merging these into "struct local" may _seem_ to reduce
 	 * parameter passing, but today's gcc will inline
@@ -673,7 +674,7 @@ int getty_main(int argc, char **argv)
 #endif
 
 	/* Parse command-line arguments. */
-	parse_args(argv, &options);
+	parse_args(argv, &options, &fakehost);
 
 	debug("calling open_tty\n");
 	/* Open the tty as standard input, if it is not "-" */
@@ -694,11 +695,9 @@ int getty_main(int argc, char **argv)
 	 */
 	ioctl_or_perror_and_die(0, TCGETS, &termios, "%s: TCGETS", options.tty);
 
-#ifdef SYSV_STYLE
 #if ENABLE_FEATURE_UTMP
 	/* Update the utmp file */
-	update_utmp(options.tty);
-#endif
+	update_utmp(options.tty, fakehost);
 #endif
 
 #ifdef __linux__
