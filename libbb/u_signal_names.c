@@ -9,9 +9,10 @@
 
 #include "libbb.h"
 
-#define KILL_MAX_SIG 32
+/* Believe it or not, but some arches have more than 32 SIGs!
+ * HPPA: SIGSTKFLT == 36. */
 
-static const char signals[KILL_MAX_SIG][6] = {
+static const char signals[][7] = {
 	// SUSv3 says kill must support these, and specifies the numerical values,
 	// http://www.opengroup.org/onlinepubs/009695399/utilities/kill.html
 	// {0, "EXIT"}, {1, "HUP"}, {2, "INT"}, {3, "QUIT"},
@@ -22,102 +23,98 @@ static const char signals[KILL_MAX_SIG][6] = {
 	// {SIGCONT, "CONT"}, {SIGSTOP, "STOP"}, {SIGTSTP, "TSTP"}, {SIGTTIN, "TTIN"},
 	// {SIGTTOU, "TTOU"}
 
-/* Believe it or not, but some arches have more than 32 SIGs!
- * HPPA: SIGSTKFLT == 36. We don't include those. */
-
-/* NB: longest (6-char) names are NOT nul-terminated */
 	[0] = "EXIT",
-#if defined SIGHUP && SIGHUP < KILL_MAX_SIG
+#ifdef SIGHUP
 	[SIGHUP   ] = "HUP",
 #endif
-#if defined SIGINT && SIGINT < KILL_MAX_SIG
+#ifdef SIGINT
 	[SIGINT   ] = "INT",
 #endif
-#if defined SIGQUIT && SIGQUIT < KILL_MAX_SIG
+#ifdef SIGQUIT
 	[SIGQUIT  ] = "QUIT",
 #endif
-#if defined SIGILL && SIGILL < KILL_MAX_SIG
+#ifdef SIGILL
 	[SIGILL   ] = "ILL",
 #endif
-#if defined SIGTRAP && SIGTRAP < KILL_MAX_SIG
+#ifdef SIGTRAP
 	[SIGTRAP  ] = "TRAP",
 #endif
-#if defined SIGABRT && SIGABRT < KILL_MAX_SIG
+#ifdef SIGABRT
 	[SIGABRT  ] = "ABRT",
 #endif
-#if defined SIGBUS && SIGBUS < KILL_MAX_SIG
+#ifdef SIGBUS
 	[SIGBUS   ] = "BUS",
 #endif
-#if defined SIGFPE && SIGFPE < KILL_MAX_SIG
+#ifdef SIGFPE
 	[SIGFPE   ] = "FPE",
 #endif
-#if defined SIGKILL && SIGKILL < KILL_MAX_SIG
+#ifdef SIGKILL
 	[SIGKILL  ] = "KILL",
 #endif
-#if defined SIGUSR1 && SIGUSR1 < KILL_MAX_SIG
+#ifdef SIGUSR1
 	[SIGUSR1  ] = "USR1",
 #endif
-#if defined SIGSEGV && SIGSEGV < KILL_MAX_SIG
+#ifdef SIGSEGV
 	[SIGSEGV  ] = "SEGV",
 #endif
-#if defined SIGUSR2 && SIGUSR2 < KILL_MAX_SIG
+#ifdef SIGUSR2
 	[SIGUSR2  ] = "USR2",
 #endif
-#if defined SIGPIPE && SIGPIPE < KILL_MAX_SIG
+#ifdef SIGPIPE
 	[SIGPIPE  ] = "PIPE",
 #endif
-#if defined SIGALRM && SIGALRM < KILL_MAX_SIG
+#ifdef SIGALRM
 	[SIGALRM  ] = "ALRM",
 #endif
-#if defined SIGTERM && SIGTERM < KILL_MAX_SIG
+#ifdef SIGTERM
 	[SIGTERM  ] = "TERM",
 #endif
-#if defined SIGSTKFLT && SIGSTKFLT < KILL_MAX_SIG
+#ifdef SIGSTKFLT
 	[SIGSTKFLT] = "STKFLT",
 #endif
-#if defined SIGCHLD && SIGCHLD < KILL_MAX_SIG
+#ifdef SIGCHLD
 	[SIGCHLD  ] = "CHLD",
 #endif
-#if defined SIGCONT && SIGCONT < KILL_MAX_SIG
+#ifdef SIGCONT
 	[SIGCONT  ] = "CONT",
 #endif
-#if defined SIGSTOP && SIGSTOP < KILL_MAX_SIG
+#ifdef SIGSTOP
 	[SIGSTOP  ] = "STOP",
 #endif
-#if defined SIGTSTP && SIGTSTP < KILL_MAX_SIG
+#ifdef SIGTSTP
 	[SIGTSTP  ] = "TSTP",
 #endif
-#if defined SIGTTIN && SIGTTIN < KILL_MAX_SIG
+#ifdef SIGTTIN
 	[SIGTTIN  ] = "TTIN",
 #endif
-#if defined SIGTTOU && SIGTTOU < KILL_MAX_SIG
+#ifdef SIGTTOU
 	[SIGTTOU  ] = "TTOU",
 #endif
-#if defined SIGURG && SIGURG < KILL_MAX_SIG
+#ifdef SIGURG
 	[SIGURG   ] = "URG",
 #endif
-#if defined SIGXCPU && SIGXCPU < KILL_MAX_SIG
+#ifdef SIGXCPU
 	[SIGXCPU  ] = "XCPU",
 #endif
-#if defined SIGXFSZ && SIGXFSZ < KILL_MAX_SIG
+#ifdef SIGXFSZ
 	[SIGXFSZ  ] = "XFSZ",
 #endif
-#if defined SIGVTALRM && SIGVTALRM < KILL_MAX_SIG
+#ifdef SIGVTALRM
 	[SIGVTALRM] = "VTALRM",
 #endif
-#if defined SIGPROF && SIGPROF < KILL_MAX_SIG
+#ifdef SIGPROF
 	[SIGPROF  ] = "PROF",
 #endif
-#if defined SIGWINCH && SIGWINCH < KILL_MAX_SIG
+#ifdef SIGWINCH
 	[SIGWINCH ] = "WINCH",
 #endif
-#if defined SIGPOLL && SIGPOLL < KILL_MAX_SIG
+#ifdef SIGPOLL
 	[SIGPOLL  ] = "POLL",
 #endif
-#if defined SIGPWR && SIGPWR < KILL_MAX_SIG
+#ifdef SIGPWR
 	[SIGPWR   ] = "PWR",
 #endif
-#if defined SIGSYS && SIGSYS < KILL_MAX_SIG
+#ifdef SIGSYS
 	[SIGSYS   ] = "SYS",
 #endif
 };
@@ -133,20 +130,20 @@ int get_signum(const char *name)
 		return i;
 	if (strncasecmp(name, "SIG", 3) == 0)
 		name += 3;
-	if (strlen(name) > 6)
-		return -1;
 	for (i = 0; i < ARRAY_SIZE(signals); i++)
-		if (strncasecmp(name, signals[i], 6) == 0)
+		if (strcasecmp(name, signals[i]) == 0)
 			return i;
 
 #if ENABLE_DESKTOP && (defined(SIGIOT) || defined(SIGIO))
-	/* These are aliased to other names */
+	/* SIGIO[T] are aliased to other names,
+	 * thus cannot be stored in the signals[] array.
+	 * Need special code to recognize them */
 	if ((name[0] | 0x20) == 'i' && (name[1] | 0x20) == 'o') {
-#if defined SIGIO
+#ifdef SIGIO
 		if (!name[2])
 			return SIGIO;
 #endif
-#if defined SIGIOT
+#ifdef SIGIOT
 		if ((name[2] | 0x20) == 't' && !name[3])
 			return SIGIOT;
 #endif
