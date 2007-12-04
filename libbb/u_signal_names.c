@@ -11,10 +11,9 @@
 
 #define KILL_MAX_SIG 32
 
-static const char signals[KILL_MAX_SIG][7] = {
+static const char signals[KILL_MAX_SIG][6] = {
 	// SUSv3 says kill must support these, and specifies the numerical values,
 	// http://www.opengroup.org/onlinepubs/009695399/utilities/kill.html
-	// TODO: "[SIG]EXIT" shouldn't work for kill, right?
 	// {0, "EXIT"}, {1, "HUP"}, {2, "INT"}, {3, "QUIT"},
 	// {6, "ABRT"}, {9, "KILL"}, {14, "ALRM"}, {15, "TERM"}
 	// And Posix adds the following:
@@ -25,6 +24,8 @@ static const char signals[KILL_MAX_SIG][7] = {
 
 /* Believe it or not, but some arches have more than 32 SIGs!
  * HPPA: SIGSTKFLT == 36. We don't include those. */
+
+/* NB: longest (6-char) names are NOT nul-terminated */
 	[0] = "EXIT",
 #if defined SIGHUP && SIGHUP < KILL_MAX_SIG
 	[SIGHUP   ] = "HUP",
@@ -132,8 +133,10 @@ int get_signum(const char *name)
 		return i;
 	if (strncasecmp(name, "SIG", 3) == 0)
 		name += 3;
+	if (strlen(name) > 6)
+		return -1;
 	for (i = 0; i < ARRAY_SIZE(signals); i++)
-		if (strcasecmp(name, signals[i]) == 0)
+		if (strncasecmp(name, signals[i], 6) == 0)
 			return i;
 
 #if ENABLE_DESKTOP && (defined(SIGIOT) || defined(SIGIO))
