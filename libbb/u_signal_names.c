@@ -9,7 +9,9 @@
 
 #include "libbb.h"
 
-static const char signals[32][7] = {
+#define KILL_MAX_SIG 32
+
+static const char signals[KILL_MAX_SIG][7] = {
 	// SUSv3 says kill must support these, and specifies the numerical values,
 	// http://www.opengroup.org/onlinepubs/009695399/utilities/kill.html
 	// TODO: "[SIG]EXIT" shouldn't work for kill, right?
@@ -20,98 +22,101 @@ static const char signals[32][7] = {
 	// {SIGSEGV, "SEGV"}, {SIGUSR2, "USR2"}, {SIGPIPE, "PIPE"}, {SIGCHLD, "CHLD"},
 	// {SIGCONT, "CONT"}, {SIGSTOP, "STOP"}, {SIGTSTP, "TSTP"}, {SIGTTIN, "TTIN"},
 	// {SIGTTOU, "TTOU"}
+
+/* Believe it or not, but some arches have more than 32 SIGs!
+ * HPPA: SIGSTKFLT == 36. We don't include those. */
 	[0] = "EXIT",
-#ifdef SIGHUP
+#if defined SIGHUP && SIGHUP < KILL_MAX_SIG
 	[SIGHUP   ] = "HUP",
 #endif
-#ifdef SIGINT
+#if defined SIGINT && SIGINT < KILL_MAX_SIG
 	[SIGINT   ] = "INT",
 #endif
-#ifdef SIGQUIT
+#if defined SIGQUIT && SIGQUIT < KILL_MAX_SIG
 	[SIGQUIT  ] = "QUIT",
 #endif
-#ifdef SIGILL
+#if defined SIGILL && SIGILL < KILL_MAX_SIG
 	[SIGILL   ] = "ILL",
 #endif
-#ifdef SIGTRAP
+#if defined SIGTRAP && SIGTRAP < KILL_MAX_SIG
 	[SIGTRAP  ] = "TRAP",
 #endif
-#ifdef SIGABRT
+#if defined SIGABRT && SIGABRT < KILL_MAX_SIG
 	[SIGABRT  ] = "ABRT",
 #endif
-#ifdef SIGBUS
+#if defined SIGBUS && SIGBUS < KILL_MAX_SIG
 	[SIGBUS   ] = "BUS",
 #endif
-#ifdef SIGFPE
+#if defined SIGFPE && SIGFPE < KILL_MAX_SIG
 	[SIGFPE   ] = "FPE",
 #endif
-#ifdef SIGKILL
+#if defined SIGKILL && SIGKILL < KILL_MAX_SIG
 	[SIGKILL  ] = "KILL",
 #endif
-#ifdef SIGUSR1
+#if defined SIGUSR1 && SIGUSR1 < KILL_MAX_SIG
 	[SIGUSR1  ] = "USR1",
 #endif
-#ifdef SIGSEGV
+#if defined SIGSEGV && SIGSEGV < KILL_MAX_SIG
 	[SIGSEGV  ] = "SEGV",
 #endif
-#ifdef SIGUSR2
+#if defined SIGUSR2 && SIGUSR2 < KILL_MAX_SIG
 	[SIGUSR2  ] = "USR2",
 #endif
-#ifdef SIGPIPE
+#if defined SIGPIPE && SIGPIPE < KILL_MAX_SIG
 	[SIGPIPE  ] = "PIPE",
 #endif
-#ifdef SIGALRM
+#if defined SIGALRM && SIGALRM < KILL_MAX_SIG
 	[SIGALRM  ] = "ALRM",
 #endif
-#ifdef SIGTERM
+#if defined SIGTERM && SIGTERM < KILL_MAX_SIG
 	[SIGTERM  ] = "TERM",
 #endif
-#ifdef SIGSTKFLT
+#if defined SIGSTKFLT && SIGSTKFLT < KILL_MAX_SIG
 	[SIGSTKFLT] = "STKFLT",
 #endif
-#ifdef SIGCHLD
+#if defined SIGCHLD && SIGCHLD < KILL_MAX_SIG
 	[SIGCHLD  ] = "CHLD",
 #endif
-#ifdef SIGCONT
+#if defined SIGCONT && SIGCONT < KILL_MAX_SIG
 	[SIGCONT  ] = "CONT",
 #endif
-#ifdef SIGSTOP
+#if defined SIGSTOP && SIGSTOP < KILL_MAX_SIG
 	[SIGSTOP  ] = "STOP",
 #endif
-#ifdef SIGTSTP
+#if defined SIGTSTP && SIGTSTP < KILL_MAX_SIG
 	[SIGTSTP  ] = "TSTP",
 #endif
-#ifdef SIGTTIN
+#if defined SIGTTIN && SIGTTIN < KILL_MAX_SIG
 	[SIGTTIN  ] = "TTIN",
 #endif
-#ifdef SIGTTOU
+#if defined SIGTTOU && SIGTTOU < KILL_MAX_SIG
 	[SIGTTOU  ] = "TTOU",
 #endif
-#ifdef SIGURG
+#if defined SIGURG && SIGURG < KILL_MAX_SIG
 	[SIGURG   ] = "URG",
 #endif
-#ifdef SIGXCPU
+#if defined SIGXCPU && SIGXCPU < KILL_MAX_SIG
 	[SIGXCPU  ] = "XCPU",
 #endif
-#ifdef SIGXFSZ
+#if defined SIGXFSZ && SIGXFSZ < KILL_MAX_SIG
 	[SIGXFSZ  ] = "XFSZ",
 #endif
-#ifdef SIGVTALRM
+#if defined SIGVTALRM && SIGVTALRM < KILL_MAX_SIG
 	[SIGVTALRM] = "VTALRM",
 #endif
-#ifdef SIGPROF
+#if defined SIGPROF && SIGPROF < KILL_MAX_SIG
 	[SIGPROF  ] = "PROF",
 #endif
-#ifdef SIGWINCH
+#if defined SIGWINCH && SIGWINCH < KILL_MAX_SIG
 	[SIGWINCH ] = "WINCH",
 #endif
-#ifdef SIGPOLL
+#if defined SIGPOLL && SIGPOLL < KILL_MAX_SIG
 	[SIGPOLL  ] = "POLL",
 #endif
-#ifdef SIGPWR
+#if defined SIGPWR && SIGPWR < KILL_MAX_SIG
 	[SIGPWR   ] = "PWR",
 #endif
-#ifdef SIGSYS
+#if defined SIGSYS && SIGSYS < KILL_MAX_SIG
 	[SIGSYS   ] = "SYS",
 #endif
 };
@@ -134,11 +139,11 @@ int get_signum(const char *name)
 #if ENABLE_DESKTOP && (defined(SIGIOT) || defined(SIGIO))
 	/* These are aliased to other names */
 	if ((name[0] | 0x20) == 'i' && (name[1] | 0x20) == 'o') {
-#ifdef SIGIO
+#if defined SIGIO
 		if (!name[2])
 			return SIGIO;
 #endif
-#ifdef SIGIOT
+#if defined SIGIOT
 		if ((name[2] | 0x20) == 't' && !name[3])
 			return SIGIOT;
 #endif
