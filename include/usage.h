@@ -1008,6 +1008,7 @@
      "\n	-maxdepth N	Descend at most N levels. -maxdepth 0 applies" \
      "\n			tests/actions to command line arguments only") \
      "\n	-name PATTERN	File name (w/o directory name) matches PATTERN" \
+     "\n	-iname PATTERN	Case insensitive -name" \
 	USE_FEATURE_FIND_PATH( \
      "\n	-path PATTERN	Path matches PATTERN") \
 	USE_FEATURE_FIND_REGEX( \

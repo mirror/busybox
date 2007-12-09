@@ -76,7 +76,7 @@ typedef struct {
 #define ACTS(name, arg...) typedef struct { action a; arg; } action_##name;
 #define ACTF(name)         static int func_##name(const char *fileName, struct stat *statbuf, action_##name* ap)
                          ACTS(print)
-                         ACTS(name,  const char *pattern;)
+                         ACTS(name,  const char *pattern; bool iname;)
 USE_FEATURE_FIND_PATH(   ACTS(path,  const char *pattern;))
 USE_FEATURE_FIND_REGEX(  ACTS(regex, regex_t compiled_pattern;))
 USE_FEATURE_FIND_PRINT0( ACTS(print0))
@@ -188,8 +188,9 @@ ACTF(name)
 		if (*tmp == '/')
 			tmp++;
 	}
-	return fnmatch(ap->pattern, tmp, FNM_PERIOD) == 0;
+	return fnmatch(ap->pattern, tmp, FNM_PERIOD | (ap->iname ? FNM_CASEFOLD : 0)) == 0;
 }
+
 #if ENABLE_FEATURE_FIND_PATH
 ACTF(path)
 {
@@ -458,6 +459,7 @@ static action*** parse_params(char **argv)
 	USE_FEATURE_FIND_PAREN(  PARM_char_brace,)
 	/* All options starting from here require argument */
 	                         PARM_name      ,
+	                         PARM_iname     ,
 	USE_FEATURE_FIND_PATH(   PARM_path      ,)
 	USE_FEATURE_FIND_REGEX(  PARM_regex     ,)
 	USE_FEATURE_FIND_TYPE(   PARM_type      ,)
@@ -490,6 +492,7 @@ static action*** parse_params(char **argv)
 	USE_FEATURE_FIND_PAREN(  "(\0"       )
 	/* All options starting from here require argument */
 	                         "-name\0"
+	                         "-iname\0"
 	USE_FEATURE_FIND_PATH(   "-path\0"   )
 	USE_FEATURE_FIND_REGEX(  "-regex\0"  )
 	USE_FEATURE_FIND_TYPE(   "-type\0"   )
@@ -654,10 +657,11 @@ static action*** parse_params(char **argv)
 			argv = endarg;
 		}
 #endif
-		else if (parm == PARM_name) {
+		else if (parm == PARM_name || parm == PARM_iname) {
 			action_name *ap;
 			ap = ALLOC_ACTION(name);
 			ap->pattern = arg1;
+			ap->iname = (parm == PARM_iname);
 		}
 #if ENABLE_FEATURE_FIND_PATH
 		else if (parm == PARM_path) {
