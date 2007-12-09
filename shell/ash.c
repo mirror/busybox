@@ -8553,7 +8553,7 @@ preadfd(void)
 			goto retry;
 		}
 		if (nr < 0 && errno == 0) {
-			/* Ctrl+D presend */
+			/* Ctrl+D pressed */
 			nr = 0;
 		}
 	}
@@ -8564,8 +8564,8 @@ preadfd(void)
 	if (nr < 0) {
 		if (parsefile->fd == 0 && errno == EWOULDBLOCK) {
 			int flags = fcntl(0, F_GETFL);
-			if (flags >= 0 && flags & O_NONBLOCK) {
-				flags &=~ O_NONBLOCK;
+			if (flags >= 0 && (flags & O_NONBLOCK)) {
+				flags &= ~O_NONBLOCK;
 				if (fcntl(0, F_SETFL, flags) >= 0) {
 					out2str("sh: turning off NDELAY mode\n");
 					goto retry;

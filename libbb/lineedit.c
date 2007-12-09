@@ -1343,8 +1343,10 @@ int read_line_input(const char *prompt, char *command, int maxsize, line_input_t
 		int len;
 		parse_and_put_prompt(prompt);
 		fflush(stdout);
-		fgets(command, maxsize, stdin);
-		len = strlen(command);
+		if (fgets(command, maxsize, stdin) == NULL)
+			len = -1; /* EOF or error */
+		else
+			len = strlen(command);
 		DEINIT_S();
 		return len;
 	}
