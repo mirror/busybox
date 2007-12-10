@@ -69,7 +69,7 @@ int cttyhack_main(int argc, char **argv)
 		dup2(fd, 2);
 		while (fd > 2) close(fd--);
 		/* Some other session may have it as ctty. Steal it from them */
-		ioctl(0, TIOCSCTTY, 1)
+		ioctl(0, TIOCSCTTY, 1);
 	}
 
 	BB_EXECVP(argv[0], argv);

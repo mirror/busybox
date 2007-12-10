@@ -513,11 +513,13 @@ static void run_actions(int action)
 	for (a = init_action_list; a; a = tmp) {
 		tmp = a->next;
 		if (a->action == action) {
-			/* a->terminal of "" means "init's console" */
-			if (a->terminal[0] && access(a->terminal, R_OK | W_OK)) {
-				//message(L_LOG | L_CONSOLE, "Device %s cannot be opened in RW mode", a->terminal /*, strerror(errno)*/);
-				delete_init_action(a);
-			} else if (a->action & (SYSINIT | WAIT | CTRLALTDEL | SHUTDOWN | RESTART)) {
+			// Pointless: run() will error out if open of device fails.
+			///* a->terminal of "" means "init's console" */
+			//if (a->terminal[0] && access(a->terminal, R_OK | W_OK)) {
+			//	//message(L_LOG | L_CONSOLE, "Device %s cannot be opened in RW mode", a->terminal /*, strerror(errno)*/);
+			//	delete_init_action(a);
+			//} else
+			if (a->action & (SYSINIT | WAIT | CTRLALTDEL | SHUTDOWN | RESTART)) {
 				waitfor(run(a));
 				delete_init_action(a);
 			} else if (a->action & ONCE) {
