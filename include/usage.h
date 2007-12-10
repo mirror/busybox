@@ -3840,7 +3840,7 @@ USE_FEATURE_RUN_PARTS_FANCY("\n	-l	Prints names of all matching files even when 
 
 #define udhcpc_trivial_usage \
        "[-Cfbnqtv] [-c CID] [-V VCLS] [-H HOSTNAME] [-i INTERFACE]\n" \
-       "	[-p pidfile] [-r IP] [-s script]"
+       "	[-p pidfile] [-r IP] [-s script] [-O dhcp-option]..."
 #define udhcpc_full_usage \
 	USE_GETOPT_LONG( \
        "	-V,--vendorclass=CLASSID	Vendor class identifier" \
@@ -3860,6 +3860,7 @@ USE_FEATURE_RUN_PARTS_FANCY("\n	-l	Prints names of all matching files even when 
        "\n	-n,--now	Exit with failure if lease is not immediately obtained" \
        "\n	-q,--quit	Quit after obtaining lease" \
        "\n	-R,--release	Release IP on quit" \
+       "\n	-O,--request-option=OPT	Request DHCP option OPT from server" \
 	USE_FEATURE_UDHCPC_ARPING( \
        "\n	-a,--arping	Use arping to validate offered address" \
 	) \
@@ -3882,6 +3883,7 @@ USE_FEATURE_RUN_PARTS_FANCY("\n	-l	Prints names of all matching files even when 
        "\n	-n		Exit with failure if lease is not immediately obtained" \
        "\n	-q		Quit after obtaining lease" \
        "\n	-R		Release IP on quit" \
+       "\n	-O OPT		Request DHCP option OPT from server" \
 	USE_FEATURE_UDHCPC_ARPING( \
        "\n	-a		Use arping to validate offered address" \
 	) \

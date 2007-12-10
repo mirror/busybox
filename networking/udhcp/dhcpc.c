@@ -133,6 +133,7 @@ int udhcpc_main(int argc, char **argv)
 {
 	uint8_t *temp, *message;
 	char *str_c, *str_V, *str_h, *str_F, *str_r, *str_T, *str_A, *str_t;
+	llist_t *list_O = NULL;
 #if ENABLE_FEATURE_UDHCPC_ARPING
 	char *str_W;
 #endif
@@ -183,28 +184,29 @@ int udhcpc_main(int argc, char **argv)
 	};
 #if ENABLE_GETOPT_LONG
 	static const char udhcpc_longopts[] ALIGN1 =
-		"clientid\0"      Required_argument "c"
-		"clientid-none\0" No_argument       "C"
-		"vendorclass\0"   Required_argument "V"
-		"foreground\0"    No_argument       "f"
-		"background\0"    No_argument       "b"
-		"hostname\0"      Required_argument "H"
-		"fqdn\0"          Required_argument "F"
-		"interface\0"     Required_argument "i"
-		"now\0"           No_argument       "n"
-		"pidfile\0"       Required_argument "p"
-		"quit\0"          No_argument       "q"
-		"release\0"       No_argument       "R"
-		"request\0"       Required_argument "r"
-		"script\0"        Required_argument "s"
-		"timeout\0"       Required_argument "T"
-		"version\0"       No_argument       "v"
-		"retries\0"       Required_argument "t"
-		"tryagain\0"      Required_argument "A"
-		"syslog\0"        No_argument       "S"
+		"clientid\0"       Required_argument "c"
+		"clientid-none\0"  No_argument       "C"
+		"vendorclass\0"    Required_argument "V"
+		"foreground\0"     No_argument       "f"
+		"background\0"     No_argument       "b"
+		"hostname\0"       Required_argument "H"
+		"fqdn\0"           Required_argument "F"
+		"interface\0"      Required_argument "i"
+		"now\0"            No_argument       "n"
+		"pidfile\0"        Required_argument "p"
+		"quit\0"           No_argument       "q"
+		"release\0"        No_argument       "R"
+		"request\0"        Required_argument "r"
+		"script\0"         Required_argument "s"
+		"timeout\0"        Required_argument "T"
+		"version\0"        No_argument       "v"
+		"retries\0"        Required_argument "t"
+		"tryagain\0"       Required_argument "A"
+		"syslog\0"         No_argument       "S"
 #if ENABLE_FEATURE_UDHCPC_ARPING
-		"arping\0"        No_argument       "a"
+		"arping\0"         No_argument       "a"
 #endif
+		"request-option\0" Required_argument "O"
 		;
 #endif
 	/* Default options. */
@@ -212,16 +214,18 @@ int udhcpc_main(int argc, char **argv)
 	client_config.script = DEFAULT_SCRIPT;
 
 	/* Parse command line */
-	opt_complementary = "c--C:C--c"; // mutually exclusive
+	opt_complementary = "c--C:C--c:O::"; // Cc: mutually exclusive; O: list
 #if ENABLE_GETOPT_LONG
 	applet_long_options = udhcpc_longopts;
 #endif
 	opt = getopt32(argv, "c:CV:fbH:h:F:i:np:qRr:s:T:t:vSA:"
 		USE_FEATURE_UDHCPC_ARPING("aW:")
-		, &str_c, &str_V, &str_h, &str_h, &str_F,
-		&client_config.interface, &client_config.pidfile, &str_r,
-		&client_config.script, &str_T, &str_t, &str_A
+		"O:"
+		, &str_c, &str_V, &str_h, &str_h, &str_F
+		, &client_config.interface, &client_config.pidfile, &str_r
+		, &client_config.script, &str_T, &str_t, &str_A
 		USE_FEATURE_UDHCPC_ARPING(, &str_W)
+		, &list_O
 		);
 
 	if (opt & OPT_c)
@@ -268,10 +272,17 @@ int udhcpc_main(int argc, char **argv)
 		puts("version "BB_VER);
 		return 0;
 	}
-
 	if (opt & OPT_S) {
 		openlog(applet_name, LOG_PID, LOG_LOCAL0);
 		logmode |= LOGMODE_SYSLOG;
+	}
+	while (list_O) {
+		int n = index_in_strings(dhcp_option_strings, list_O->data);
+		if (n < 0)
+			bb_error_msg_and_die("unknown option '%s'", list_O->data);
+		n = dhcp_options[n].code;
+		client_config.opt_mask[n >> 3] |= 1 << (n & 7);
+		list_O = list_O->link;
 	}
 
 	if (read_interface(client_config.interface, &client_config.ifindex,

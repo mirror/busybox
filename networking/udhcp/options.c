@@ -11,49 +11,49 @@
 
 /* Supported options are easily added here */
 const struct dhcp_option dhcp_options[] = {
-	/* flags                                     code */
-	{ OPTION_IP | OPTION_REQ,                    0x01 }, /* DHCP_SUBNET        */
-	{ OPTION_S32,                                0x02 }, /* DHCP_TIME_OFFSET   */
-	{ OPTION_IP | OPTION_LIST | OPTION_REQ,      0x03 }, /* DHCP_ROUTER        */
-	{ OPTION_IP | OPTION_LIST,                   0x04 }, /* DHCP_TIME_SERVER   */
-	{ OPTION_IP | OPTION_LIST,                   0x05 }, /* DHCP_NAME_SERVER   */
-	{ OPTION_IP | OPTION_LIST | OPTION_REQ,      0x06 }, /* DHCP_DNS_SERVER    */
-	{ OPTION_IP | OPTION_LIST,                   0x07 }, /* DHCP_LOG_SERVER    */
-	{ OPTION_IP | OPTION_LIST,                   0x08 }, /* DHCP_COOKIE_SERVER */
-	{ OPTION_IP | OPTION_LIST,                   0x09 }, /* DHCP_LPR_SERVER    */
-	{ OPTION_STRING | OPTION_REQ,                0x0c }, /* DHCP_HOST_NAME     */
-	{ OPTION_U16,                                0x0d }, /* DHCP_BOOT_SIZE     */
-	{ OPTION_STRING | OPTION_LIST | OPTION_REQ,  0x0f }, /* DHCP_DOMAIN_NAME   */
-	{ OPTION_IP,                                 0x10 }, /* DHCP_SWAP_SERVER   */
-	{ OPTION_STRING,                             0x11 }, /* DHCP_ROOT_PATH     */
-	{ OPTION_U8,                                 0x17 }, /* DHCP_IP_TTL        */
-	{ OPTION_U16,                                0x1a }, /* DHCP_MTU           */
-	{ OPTION_IP | OPTION_REQ,                    0x1c }, /* DHCP_BROADCAST     */
-	{ OPTION_STRING | OPTION_REQ,                0x28 }, /* DHCP_NTP_SERVER    */
-	{ OPTION_IP | OPTION_LIST | OPTION_REQ,      0x29 }, /* DHCP_WINS_SERVER   */
-	{ OPTION_IP | OPTION_LIST | OPTION_REQ,      0x2a }, /* DHCP_REQUESTED_IP  */
-	{ OPTION_IP | OPTION_LIST,                   0x2c }, /* DHCP_LEASE_TIME    */
-	{ OPTION_IP,                                 0x32 }, /* DHCP_OPTION_OVER   */
-	{ OPTION_U32,                                0x33 }, /* DHCP_MESSAGE_TYPE  */
-	{ OPTION_U8,                                 0x35 }, /* DHCP_SERVER_ID     */
-	{ OPTION_IP,                                 0x36 }, /* DHCP_PARAM_REQ     */
-	{ OPTION_STRING,                             0x38 }, /* DHCP_MESSAGE       */
-	{ OPTION_STRING,                             0x3C }, /* DHCP_VENDOR        */
-	{ OPTION_STRING,                             0x3D }, /* DHCP_CLIENT_ID     */
-	{ OPTION_STRING,                             0x42 }, /* "tftp"             */
-	{ OPTION_STRING,                             0x43 }, /* "bootfile"         */
-	{ OPTION_STRING,                             0x4D }, /* "userclass"        */
+	/* flags                                    code */
+	{ OPTION_IP                   | OPTION_REQ, 0x01 }, /* DHCP_SUBNET        */
+	{ OPTION_S32                              , 0x02 }, /* DHCP_TIME_OFFSET   */
+	{ OPTION_IP | OPTION_LIST     | OPTION_REQ, 0x03 }, /* DHCP_ROUTER        */
+	{ OPTION_IP | OPTION_LIST                 , 0x04 }, /* DHCP_TIME_SERVER   */
+	{ OPTION_IP | OPTION_LIST                 , 0x05 }, /* DHCP_NAME_SERVER   */
+	{ OPTION_IP | OPTION_LIST     | OPTION_REQ, 0x06 }, /* DHCP_DNS_SERVER    */
+	{ OPTION_IP | OPTION_LIST                 , 0x07 }, /* DHCP_LOG_SERVER    */
+	{ OPTION_IP | OPTION_LIST                 , 0x08 }, /* DHCP_COOKIE_SERVER */
+	{ OPTION_IP | OPTION_LIST                 , 0x09 }, /* DHCP_LPR_SERVER    */
+	{ OPTION_STRING               | OPTION_REQ, 0x0c }, /* DHCP_HOST_NAME     */
+	{ OPTION_U16                              , 0x0d }, /* DHCP_BOOT_SIZE     */
+	{ OPTION_STRING | OPTION_LIST | OPTION_REQ, 0x0f }, /* DHCP_DOMAIN_NAME   */
+	{ OPTION_IP                               , 0x10 }, /* DHCP_SWAP_SERVER   */
+	{ OPTION_STRING                           , 0x11 }, /* DHCP_ROOT_PATH     */
+	{ OPTION_U8                               , 0x17 }, /* DHCP_IP_TTL        */
+	{ OPTION_U16                              , 0x1a }, /* DHCP_MTU           */
+	{ OPTION_IP                   | OPTION_REQ, 0x1c }, /* DHCP_BROADCAST     */
+	{ OPTION_STRING                           , 0x28 }, /* nisdomain          */
+	{ OPTION_IP | OPTION_LIST                 , 0x29 }, /* nissrv             */
+	{ OPTION_IP | OPTION_LIST     | OPTION_REQ, 0x2a }, /* DHCP_NTP_SERVER    */
+	{ OPTION_IP | OPTION_LIST                 , 0x2c }, /* DHCP_WINS_SERVER   */
+	{ OPTION_IP                               , 0x32 }, /* DHCP_REQUESTED_IP  */
+	{ OPTION_U32                              , 0x33 }, /* DHCP_LEASE_TIME    */
+	{ OPTION_U8                               , 0x35 }, /* dhcptype           */
+	{ OPTION_IP                               , 0x36 }, /* DHCP_SERVER_ID     */
+	{ OPTION_STRING                           , 0x38 }, /* DHCP_MESSAGE       */
+	{ OPTION_STRING                           , 0x3C }, /* DHCP_VENDOR        */
+	{ OPTION_STRING                           , 0x3D }, /* DHCP_CLIENT_ID     */
+	{ OPTION_STRING                           , 0x42 }, /* tftp               */
+	{ OPTION_STRING                           , 0x43 }, /* bootfile           */
+	{ OPTION_STRING                           , 0x4D }, /* userclass          */
 #if ENABLE_FEATURE_RFC3397
-	{ OPTION_STR1035 | OPTION_LIST | OPTION_REQ, 0x77 }, /* "search"           */
+	{ OPTION_STR1035 | OPTION_LIST            , 0x77 }, /* search             */
 #endif
 	/* MSIE's "Web Proxy Autodiscovery Protocol" support */
-	{ OPTION_STRING,                             0xfc }, /* "wpad"             */
+	{ OPTION_STRING                           , 0xfc }, /* wpad               */
 
 	/* Options below have no match in dhcp_option_strings[],
 	 * are not passed to dhcpc scripts, and cannot be specified
 	 * with "option XXX YYY" syntax in dhcpd config file. */
 
-	{ OPTION_U16,                                0x39 }, /* DHCP_MAX_SIZE      */
+	{ OPTION_U16                              , 0x39 }, /* DHCP_MAX_SIZE      */
 	{ } /* zeroed terminating entry */
 };
 
@@ -64,28 +64,28 @@ const char dhcp_option_strings[] ALIGN1 =
 	"subnet" "\0"      /* DHCP_SUBNET         */
 	"timezone" "\0"    /* DHCP_TIME_OFFSET    */
 	"router" "\0"      /* DHCP_ROUTER         */
-	"timesvr" "\0"     /* DHCP_TIME_SERVER    */
-	"namesvr" "\0"     /* DHCP_NAME_SERVER    */
+	"timesrv" "\0"     /* DHCP_TIME_SERVER    */
+	"namesrv" "\0"     /* DHCP_NAME_SERVER    */
 	"dns" "\0"         /* DHCP_DNS_SERVER     */
-	"logsvr" "\0"      /* DHCP_LOG_SERVER     */
-	"cookiesvr" "\0"   /* DHCP_COOKIE_SERVER  */
-	"lprsvr" "\0"      /* DHCP_LPR_SERVER     */
+	"logsrv" "\0"      /* DHCP_LOG_SERVER     */
+	"cookiesrv" "\0"   /* DHCP_COOKIE_SERVER  */
+	"lprsrv" "\0"      /* DHCP_LPR_SERVER     */
 	"hostname" "\0"    /* DHCP_HOST_NAME      */
 	"bootsize" "\0"    /* DHCP_BOOT_SIZE      */
 	"domain" "\0"      /* DHCP_DOMAIN_NAME    */
-	"swapsvr" "\0"     /* DHCP_SWAP_SERVER    */
+	"swapsrv" "\0"     /* DHCP_SWAP_SERVER    */
 	"rootpath" "\0"    /* DHCP_ROOT_PATH      */
 	"ipttl" "\0"       /* DHCP_IP_TTL         */
 	"mtu" "\0"         /* DHCP_MTU            */
 	"broadcast" "\0"   /* DHCP_BROADCAST      */
-	"nisdomain" "\0"   /* DHCP_NTP_SERVER     */
-	"nissrv" "\0"      /* DHCP_WINS_SERVER    */
-	"ntpsrv" "\0"      /* DHCP_REQUESTED_IP   */
-	"wins" "\0"        /* DHCP_LEASE_TIME     */
-	"requestip" "\0"   /* DHCP_OPTION_OVER    */
-	"lease" "\0"       /* DHCP_MESSAGE_TYPE   */
-	"dhcptype" "\0"    /* DHCP_SERVER_ID      */
-	"serverid" "\0"    /* DHCP_PARAM_REQ      */
+	"nisdomain" "\0"   /*                     */
+	"nissrv" "\0"      /*                     */
+	"ntpsrv" "\0"      /* DHCP_NTP_SERVER     */
+	"wins" "\0"        /* DHCP_WINS_SERVER    */
+	"requestip" "\0"   /* DHCP_REQUESTED_IP   */
+	"lease" "\0"       /* DHCP_LEASE_TIME     */
+	"dhcptype" "\0"    /*                     */
+	"serverid" "\0"    /* DHCP_SERVER_ID      */
 	"message" "\0"     /* DHCP_MESSAGE        */
 	"vendorclass" "\0" /* DHCP_VENDOR         */
 	"clientid" "\0"    /* DHCP_CLIENT_ID      */
