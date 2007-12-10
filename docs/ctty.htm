@@ -365,7 +365,7 @@ this is a great mystery.
 becomes its controlling tty.
 </p><p>The BSD approach is that one has to explicitly call
 </p><blockquote>
-<pre>ioctl(fd, TIOCSCTTY, ...);
+<pre>ioctl(fd, TIOCSCTTY, 0/1);
 </pre>
 </blockquote>
 
@@ -378,6 +378,8 @@ and (ii) it does not yet have a controlling tty, and
 (iii) maybe the tty should not already control some other session;
 if it does it is an error if we aren't root, or we steal the tty
 if we are all-powerful.
+[vda: correction: third parameter controls this: if 1, we steal tty from
+any such session, if 0, we don't steal]
 </p><p>Opening some terminal will give us a controlling tty,
 provided that (i) the current process is a session leader, and
 (ii) it does not yet have a controlling tty, and

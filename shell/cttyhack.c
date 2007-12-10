@@ -1,16 +1,18 @@
-/* This code is adapted from busybox project
- *
+/* vi: set sw=4 ts=4: */
+/*
  * Licensed under GPLv2
+ *
+ * Copyright (c) 2007 Denys Vlasenko <vda.linux@googlemail.com>
  */
 #include "libbb.h"
 
 /* From <linux/vt.h> */
 struct vt_stat {
-	unsigned short v_active;	/* active vt */
-	unsigned short v_signal;	/* signal to send */
-	unsigned short v_state;	/* vt bitmask */
+	unsigned short v_active;        /* active vt */
+	unsigned short v_signal;        /* signal to send */
+	unsigned short v_state;         /* vt bitmask */
 };
-enum { VT_GETSTATE = 0x5603 };	/* get global vt state info */
+enum { VT_GETSTATE = 0x5603 }; /* get global vt state info */
 
 /* From <linux/serial.h> */
 struct serial_struct {
@@ -26,8 +28,8 @@ struct serial_struct {
 	char	io_type;
 	char	reserved_char[1];
 	int	hub6;
-	unsigned short	closing_wait; /* time to wait before closing */
-	unsigned short	closing_wait2; /* no longer used... */
+	unsigned short	closing_wait;   /* time to wait before closing */
+	unsigned short	closing_wait2;  /* no longer used... */
 	unsigned char	*iomem_base;
 	unsigned short	iomem_reg_shift;
 	unsigned int	port_high;
@@ -66,8 +68,10 @@ int cttyhack_main(int argc, char **argv)
 		dup2(fd, 1);
 		dup2(fd, 2);
 		while (fd > 2) close(fd--);
+		/* Some other session may have it as ctty. Steal it from them */
+		ioctl(0, TIOCSCTTY, 1)
 	}
 
-	execvp(argv[0], argv);
+	BB_EXECVP(argv[0], argv);
 	bb_perror_msg_and_die("cannot exec '%s'", argv[0]);
 }
