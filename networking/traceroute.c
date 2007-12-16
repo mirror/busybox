@@ -22,9 +22,6 @@
  * MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-//#define version "1.4a12"
-
-
 /*
  * traceroute host  - trace the route ip packets follow going to "host".
  *
@@ -272,48 +269,17 @@ struct hostinfo {
 };
 
 /* Data section of the probe packet */
-struct outdata {
+typedef struct outdata {
 	unsigned char seq;             /* sequence number of this packet */
 	unsigned char ttl;             /* ttl packet left with */
 // UNUSED. Retaining to have the same packet size.
 	struct timeval tv_UNUSED ATTRIBUTE_PACKED; /* time packet left */
-};
+} outdata_t;
 
 struct IFADDRLIST {
 	uint32_t addr;
 	char device[sizeof(struct ifreq)];
 };
-
-
-static struct ip *outip;               /* last output (udp) packet */
-static struct udphdr *outudp;          /* last output (udp) packet */
-static struct outdata *outdata;        /* last output (udp) packet */
-
-#if ENABLE_FEATURE_TRACEROUTE_USE_ICMP
-static struct icmp *outicmp;           /* last output (icmp) packet */
-#endif
-
-static int s;                          /* receive (icmp) socket file descriptor */
-static int sndsock;                    /* send (udp/icmp) socket file descriptor */
-
-static int packlen;                    /* total length of packet */
-static int minpacket;                  /* min ip packet size */
-static int maxpacket = 32 * 1024;      /* max ip packet size */
-static int pmtu;                       /* Path MTU Discovery (RFC1191) */
-
-static char *hostname;
-
-static uint16_t ident;
-static uint16_t port = 32768 + 666;     /* start udp dest port # for probe packets */
-
-static int waittime = 5;               /* time to wait for response (in seconds) */
-static int doipcksum = 1;              /* calculate ip checksums by default */
-
-#if ENABLE_FEATURE_TRACEROUTE_SOURCE_ROUTE
-static int optlen;                     /* length of ip options */
-#else
-#define optlen 0
-#endif
 
 
 /* Keep in sync with getopt32 call! */
@@ -346,6 +312,36 @@ static int optlen;                     /* length of ip options */
 
 
 struct globals {
+	struct ip *outip;               /* last output (udp) packet */
+	struct udphdr *outudp;          /* last output (udp) packet */
+	struct outdata *outdata;        /* last output (udp) packet */
+
+#if ENABLE_FEATURE_TRACEROUTE_USE_ICMP
+	struct icmp *outicmp;           /* last output (icmp) packet */
+#endif
+
+	int rcvsock;                    /* receive (icmp) socket file descriptor */
+	int sndsock;                    /* send (udp/icmp) socket file descriptor */
+
+	int packlen;                    /* total length of packet */
+	int minpacket;                  /* min ip packet size */
+	int maxpacket; // 32 * 1024;    /* max ip packet size */
+	int pmtu;                       /* Path MTU Discovery (RFC1191) */
+
+	char *hostname;
+
+	uint16_t ident;
+	uint16_t port; // 32768 + 666;  /* start udp dest port # for probe packets */
+
+	int waittime; // 5;             /* time to wait for response (in seconds) */
+	int doipcksum; // 1;            /* calculate ip checksums by default */
+
+#if ENABLE_FEATURE_TRACEROUTE_SOURCE_ROUTE
+	int optlen;                     /* length of ip options */
+#else
+#define optlen 0
+#endif
+
 	struct sockaddr_storage whereto;        /* Who to try to reach */
 	struct sockaddr_storage wherefrom;      /* Who we are */
 	/* last inbound (icmp) packet */
@@ -359,11 +355,35 @@ struct globals {
 };
 
 #define G (*ptr_to_globals)
-#define INIT_G() PTR_TO_GLOBALS = xzalloc(sizeof(G))
+#define outip     (G.outip    )
+#define outudp    (G.outudp   )
+#define outdata   (G.outdata  )
+#define outicmp   (G.outicmp  )
+#define rcvsock   (G.rcvsock  )
+#define sndsock   (G.sndsock  )
+#define packlen   (G.packlen  )
+#define minpacket (G.minpacket)
+#define maxpacket (G.maxpacket)
+#define pmtu      (G.pmtu     )
+#define hostname  (G.hostname )
+#define ident     (G.ident    )
+#define port      (G.port     )
+#define waittime  (G.waittime )
+#define doipcksum (G.doipcksum)
+#if ENABLE_FEATURE_TRACEROUTE_SOURCE_ROUTE
+#define optlen    (G.optlen   )
+#endif
 #define packet    (G.packet   )
 #define whereto   (G.whereto  )
 #define wherefrom (G.wherefrom)
 #define gwlist    (G.gwlist   )
+#define INIT_G() do { \
+	PTR_TO_GLOBALS = xzalloc(sizeof(G)); \
+	maxpacket = 32 * 1024; \
+	port = 32768 + 666; \
+	waittime = 5; \
+	doipcksum = 1; \
+} while (0)
 
 
 /*
@@ -1035,15 +1055,15 @@ int traceroute_main(int argc, char **argv)
 	/* Ensure the socket fds won't be 0, 1 or 2 */
 	bb_sanitize_stdio();
 
-	s = xsocket(AF_INET, SOCK_RAW, IPPROTO_ICMP);
+	rcvsock = xsocket(AF_INET, SOCK_RAW, IPPROTO_ICMP);
 
 #if TRACEROUTE_SO_DEBUG
 	if (op & OPT_DEBUG)
-		setsockopt(s, SOL_SOCKET, SO_DEBUG,
+		setsockopt(rcvsock, SOL_SOCKET, SO_DEBUG,
 				&const_int_1, sizeof(const_int_1));
 #endif
 	if (op & OPT_BYPASS_ROUTE)
-		setsockopt(s, SOL_SOCKET, SO_DONTROUTE,
+		setsockopt(rcvsock, SOL_SOCKET, SO_DONTROUTE,
 				&const_int_1, sizeof(const_int_1));
 
 	sndsock = xsocket(AF_INET, SOCK_RAW, IPPROTO_RAW);
@@ -1124,7 +1144,7 @@ int traceroute_main(int argc, char **argv)
 		outicmp = (struct icmp *)outp;
 		outicmp->icmp_type = ICMP_ECHO;
 		outicmp->icmp_id = htons(ident);
-		outdata = (struct outdata *)(outp + 8); /* XXX magic number */
+		outdata = (outdata_t *)(outp + 8); /* XXX magic number */
 	} else
 #endif
 	{
@@ -1132,7 +1152,7 @@ int traceroute_main(int argc, char **argv)
 		outudp = (struct udphdr *)outp;
 		outudp->source = htons(ident);
 		outudp->len = htons((uint16_t)(packlen - (sizeof(*outip) + optlen)));
-		outdata = (struct outdata *)(outudp + 1);
+		outdata = (outdata_t *)(outudp + 1);
 	}
 
 	/* Get the interface address list */
@@ -1214,7 +1234,7 @@ int traceroute_main(int argc, char **argv)
 			t1 = monotonic_us();
 			send_probe(++seq, ttl);
 			++sentfirst;
-			while ((cc = wait_for_reply(s, from)) != 0) {
+			while ((cc = wait_for_reply(rcvsock, from)) != 0) {
 				t2 = monotonic_us();
 				i = packet_ok(packet, cc, from, seq);
 				/* Skip short packet */
