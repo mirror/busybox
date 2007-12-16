@@ -202,24 +202,24 @@ struct op {
 	char *str;					/* identifier for case and for */
 };
 
-#define	TCOM	1				/* command */
-#define	TPAREN	2				/* (c-list) */
-#define	TPIPE	3				/* a | b */
-#define	TLIST	4				/* a [&;] b */
-#define	TOR		5				/* || */
-#define	TAND	6				/* && */
-#define	TFOR	7
-#define	TDO		8
-#define	TCASE	9
-#define	TIF		10
-#define	TWHILE	11
-#define	TUNTIL	12
-#define	TELIF	13
-#define	TPAT	14				/* pattern in case */
-#define	TBRACE	15				/* {c-list} */
-#define	TASYNC	16				/* c & */
+#define TCOM    1       /* command */
+#define TPAREN  2       /* (c-list) */
+#define TPIPE   3       /* a | b */
+#define TLIST   4       /* a [&;] b */
+#define TOR     5       /* || */
+#define TAND    6       /* && */
+#define TFOR    7
+#define TDO     8
+#define TCASE   9
+#define TIF     10
+#define TWHILE  11
+#define TUNTIL  12
+#define TELIF   13
+#define TPAT    14      /* pattern in case */
+#define TBRACE  15      /* {c-list} */
+#define TASYNC  16      /* c & */
 /* Added to support "." file expansion */
-#define	TDOT	17
+#define TDOT    17
 
 /* Strings for names to make debug easier */
 #ifdef MSHDEBUG
@@ -270,22 +270,6 @@ struct brkcon {
 };
 
 
-/*
- * flags:
- * -e: quit on error
- * -k: look for name=value everywhere on command line
- * -n: no execution
- * -t: exit after reading and executing one command
- * -v: echo as read
- * -x: trace
- * -u: unset variables net diagnostic
- */
-static char flags['z' - 'a' + 1] ALIGN1;
-/* this looks weird, but is OK ... we index FLAG with 'a'...'z' */
-#define FLAG (flags - 'a')
-
-/* moved to G: static char *trap[_NSIG + 1]; */
-/* moved to G: static char ourtrap[_NSIG + 1]; */
 static int trapset;				/* trap pending */
 
 static int yynerrs;				/* yacc */
@@ -422,10 +406,6 @@ static int yyparse(void);
 static int execute(struct op *t, int *pin, int *pout, int act);
 
 
-#define AFID_NOBUF	(~0)
-#define AFID_ID		0
-
-
 /* -------- io.h -------- */
 /* io buffer */
 struct iobuf {
@@ -455,23 +435,11 @@ struct io {
 	char xchar;             /* for `'s */
 	char task;              /* reason for pushed IO */
 };
-
-#define	XOTHER	0				/* none of the below */
-#define	XDOLL	1				/* expanding ${} */
-#define	XGRAVE	2				/* expanding `'s */
-#define	XIO	3				/* file IO */
-
-/* in substitution */
-#define	INSUB()	(e.iop->task == XGRAVE || e.iop->task == XDOLL)
-
-static struct ioarg temparg = { 0, 0, 0, AFID_NOBUF, 0 };	/* temporary for PUSHIO */
-/* moved to G: static struct ioarg ioargstack[NPUSH]; */
-static struct io iostack[NPUSH];
-/* moved to G: static struct iobuf sharedbuf = { AFID_NOBUF }; */
-/* moved to G: static struct iobuf mainbuf = { AFID_NOBUF }; */
-static unsigned bufid = AFID_ID;	/* buffer id counter */
-
-#define	RUN(what,arg,gen) ((temparg.what = (arg)), run(&temparg,(gen)))
+/* ->task: */
+#define	XOTHER	0	/* none of the below */
+#define	XDOLL	1	/* expanding ${} */
+#define	XGRAVE	2	/* expanding `'s */
+#define	XIO	3	/* file IO */
 
 
 /*
@@ -597,33 +565,6 @@ static const char *const signame[] = {
 };
 
 
-struct res {
-	const char *r_name;
-	int r_val;
-};
-static const struct res restab[] = {
-	{ "for"  , FOR    },
-	{ "case" , CASE   },
-	{ "esac" , ESAC   },
-	{ "while", WHILE  },
-	{ "do"   , DO     },
-	{ "done" , DONE   },
-	{ "if"   , IF     },
-	{ "in"   , IN     },
-	{ "then" , THEN   },
-	{ "else" , ELSE   },
-	{ "elif" , ELIF   },
-	{ "until", UNTIL  },
-	{ "fi"   , FI     },
-	{ ";;"   , BREAK  },
-	{ "||"   , LOGOR  },
-	{ "&&"   , LOGAND },
-	{ "{"    , '{'    },
-	{ "}"    , '}'    },
-	{ "."    , DOT    },
-	{ NULL   , 0      },
-};
-
 struct builtincmd {
 	const char *name;
 	int (*builtinfunc)(struct op *t);
@@ -704,6 +645,10 @@ static struct region *areanxt;  /* starting point of scan */
 static void *brktop;
 static void *brkaddr;
 
+#define AFID_NOBUF	(~0)
+#define AFID_ID		0
+
+
 /*
  * parsing & execution environment
  */
@@ -716,43 +661,67 @@ struct env {
 	struct env *oenv;
 };
 
-static struct env e = {
-	NULL /* set to line in main() */, /* linep:  char ptr */
-	iostack,                /* iobase:  struct io ptr */
-	iostack - 1,            /* iop:  struct io ptr */
-	(xint *) NULL,          /* errpt:  void ptr for errors? */
-	FDBASE,                 /* iofd:  file desc  */
-	(struct env *) NULL     /* oenv:  struct env ptr */
-};
-
 
 struct globals {
+	struct env global_env;
+	struct ioarg temparg; // = { .afid = AFID_NOBUF };	/* temporary for PUSHIO */
+	unsigned bufid; // = AFID_ID;	/* buffer id counter */
 	char ourtrap[_NSIG + 1];
 	char *trap[_NSIG + 1];
 	struct iobuf sharedbuf; /* in main(): set to { AFID_NOBUF } */
 	struct iobuf mainbuf; /* in main(): set to { AFID_NOBUF } */
 	struct ioarg ioargstack[NPUSH];
+	/*
+	 * flags:
+	 * -e: quit on error
+	 * -k: look for name=value everywhere on command line
+	 * -n: no execution
+	 * -t: exit after reading and executing one command
+	 * -v: echo as read
+	 * -x: trace
+	 * -u: unset variables net diagnostic
+	 */
+	char flags['z' - 'a' + 1];
 	char filechar_cmdbuf[BUFSIZ];
 	char line[LINELIM];
 	char child_cmd[LINELIM];
+
+	struct io iostack[NPUSH];
 
 	char grave__var_name[LINELIM];
 	char grave__alt_value[LINELIM];
 };
 
 #define G (*ptr_to_globals)
+#define global_env      (G.global_env     )
+#define temparg         (G.temparg        )
+#define bufid           (G.bufid          )
 #define ourtrap         (G.ourtrap        )
 #define trap            (G.trap           )
 #define sharedbuf       (G.sharedbuf      )
 #define mainbuf         (G.mainbuf        )
 #define ioargstack      (G.ioargstack     )
+/* this looks weird, but is OK ... we index FLAG with 'a'...'z' */
+#define FLAG            (G.flags - 'a'    )
 #define filechar_cmdbuf (G.filechar_cmdbuf)
 #define line            (G.line           )
 #define child_cmd       (G.child_cmd      )
+#define iostack         (G.iostack        )
 #define INIT_G() do { \
 	PTR_TO_GLOBALS = xzalloc(sizeof(G)); \
+	global_env.linep = line; \
+	global_env.iobase = iostack; \
+	global_env.iop = iostack - 1; \
+	global_env.iofd = FDBASE; \
+	temparg.afid = AFID_NOBUF; \
+	bufid = AFID_ID; \
 } while (0)
 
+
+/* in substitution */
+#define	INSUB()	(global_env.iop->task == XGRAVE || global_env.iop->task == XDOLL)
+
+#define	RUN(what, arg, gen) ((temparg.what = (arg)), run(&temparg, (gen)))
 
 #ifdef MSHDEBUG
 void print_t(struct op *t)
@@ -867,10 +836,10 @@ static void err(const char *s)
 		return;
 	if (!interactive)
 		leave();
-	if (e.errpt)
-		longjmp(e.errpt, 1);
+	if (global_env.errpt)
+		longjmp(global_env.errpt, 1);
 	closeall();
-	e.iop = e.iobase = iostack;
+	global_env.iop = global_env.iobase = iostack;
 }
 
 
@@ -1364,7 +1333,7 @@ static void onecommand(void)
 
 	DBGPRINTF(("ONECOMMAND: enter, outtree=%p\n", outtree));
 
-	while (e.oenv)
+	while (global_env.oenv)
 		quitenv();
 
 	areanum = 1;
@@ -1373,8 +1342,8 @@ static void onecommand(void)
 	garbage();
 	wdlist = 0;
 	iolist = 0;
-	e.errpt = 0;
-	e.linep = line;
+	global_env.errpt = 0;
+	global_env.linep = line;
 	yynerrs = 0;
 	multiline = 0;
 	inparse = 1;
@@ -1387,7 +1356,7 @@ static void onecommand(void)
 	if (setjmp(failpt) || yyparse() || intr) {
 		DBGPRINTF(("ONECOMMAND: this is not good.\n"));
 
-		while (e.oenv)
+		while (global_env.oenv)
 			quitenv();
 		scraphere();
 		if (!interactive && intr)
@@ -1433,13 +1402,13 @@ static int newenv(int f)
 
 	ep = (struct env *) space(sizeof(*ep));
 	if (ep == NULL) {
-		while (e.oenv)
+		while (global_env.oenv)
 			quitenv();
 		fail();
 	}
-	*ep = e;
-	e.oenv = ep;
-	e.errpt = errpt;
+	*ep = global_env;
+	global_env.oenv = ep;
+	global_env.errpt = errpt;
 
 	return 0;
 }
@@ -1449,15 +1418,15 @@ static void quitenv(void)
 	struct env *ep;
 	int fd;
 
-	DBGPRINTF(("QUITENV: e.oenv=%p\n", e.oenv));
+	DBGPRINTF(("QUITENV: global_env.oenv=%p\n", global_env.oenv));
 
-	ep = e.oenv;
+	ep = global_env.oenv;
 	if (ep != NULL) {
-		fd = e.iofd;
-		e = *ep;
+		fd = global_env.iofd;
+		global_env = *ep;
 		/* should close `'d files */
 		DELETE(ep);
-		while (--fd >= e.iofd)
+		while (--fd >= global_env.iofd)
 			close(fd);
 	}
 }
@@ -1593,7 +1562,7 @@ static void yyerror(const char *s) ATTRIBUTE_NORETURN;
 static void yyerror(const char *s)
 {
 	yynerrs++;
-	if (interactive && e.iop <= iostack) {
+	if (interactive && global_env.iop <= iostack) {
 		multiline = 0;
 		while (eofc() == 0 && yylex(0) != '\n');
 	}
@@ -2085,11 +2054,38 @@ static struct op *block(int type, struct op *t1, struct op *t2, char **wp)
 /* See if given string is a shell multiline (FOR, IF, etc) */
 static int rlookup(char *n)
 {
+	struct res {
+		char r_name[6];
+		int16_t r_val;
+	};
+	static const struct res restab[] = {
+		{ "for"  , FOR    },
+		{ "case" , CASE   },
+		{ "esac" , ESAC   },
+		{ "while", WHILE  },
+		{ "do"   , DO     },
+		{ "done" , DONE   },
+		{ "if"   , IF     },
+		{ "in"   , IN     },
+		{ "then" , THEN   },
+		{ "else" , ELSE   },
+		{ "elif" , ELIF   },
+		{ "until", UNTIL  },
+		{ "fi"   , FI     },
+		{ ";;"   , BREAK  },
+		{ "||"   , LOGOR  },
+		{ "&&"   , LOGAND },
+		{ "{"    , '{'    },
+		{ "}"    , '}'    },
+		{ "."    , DOT    },
+		{ },
+	};
+
 	const struct res *rp;
 
 	DBGPRINTF7(("RLOOKUP: enter, n is %s\n", n));
 
-	for (rp = restab; rp->r_name; rp++)
+	for (rp = restab; rp->r_name[0]; rp++)
 		if (strcmp(rp->r_name, n) == 0) {
 			DBGPRINTF7(("RLOOKUP: match, returning %d\n", rp->r_val));
 			return rp->r_val;	/* Return numeric code for shell multiline */
@@ -2194,7 +2190,7 @@ static int yylex(int cf)
 	atstart = startl;
 	startl = 0;
 	yylval.i = 0;
-	e.linep = line;
+	global_env.linep = line;
 
 /* MALAMO */
 	line[LINELIM - 1] = '\0';
@@ -2212,7 +2208,7 @@ static int yylex(int cf)
 				iounit = c - '0';
 				goto loop;
 			}
-			*e.linep++ = c;
+			*global_env.linep++ = c;
 			c = c1;
 		}
 		break;
@@ -2228,7 +2224,7 @@ static int yylex(int cf)
 
 	case '$':
 		DBGPRINTF9(("YYLEX: found $\n"));
-		*e.linep++ = c;
+		*global_env.linep++ = c;
 		c = my_getc(0);
 		if (c == '{') {
 			c = collect(c, '}');
@@ -2269,7 +2265,7 @@ static int yylex(int cf)
 		gethere();
 		startl = 1;
 		if (multiline || cf & CONTIN) {
-			if (interactive && e.iop <= iostack) {
+			if (interactive && global_env.iop <= iostack) {
 #if ENABLE_FEATURE_EDITING
 				current_prompt = cprompt->value;
 #else
@@ -2291,10 +2287,10 @@ static int yylex(int cf)
 
  pack:
 	while ((c = my_getc(0)) != '\0' && !any(c, "`$ '\"\t;&<>()|^\n")) {
-		if (e.linep >= elinep)
+		if (global_env.linep >= elinep)
 			err("word too long");
 		else
-			*e.linep++ = c;
+			*global_env.linep++ = c;
 	};
 
 	unget(c);
@@ -2302,7 +2298,7 @@ static int yylex(int cf)
 	if (any(c, "\"'`$"))
 		goto loop;
 
-	*e.linep++ = '\0';
+	*global_env.linep++ = '\0';
 
 	if (atstart) {
 		c = rlookup(line);
@@ -2323,7 +2319,7 @@ static int collect(int c, int c1)
 
 	DBGPRINTF8(("COLLECT: enter, c=%d, c1=%d\n", c, c1));
 
-	*e.linep++ = c;
+	*global_env.linep++ = c;
 	while ((c = my_getc(c1)) != c1) {
 		if (c == 0) {
 			unget(c);
@@ -2333,17 +2329,17 @@ static int collect(int c, int c1)
 			yyerror(s);
 			return YYERRCODE;
 		}
-		if (interactive && c == '\n' && e.iop <= iostack) {
+		if (interactive && c == '\n' && global_env.iop <= iostack) {
 #if ENABLE_FEATURE_EDITING
 			current_prompt = cprompt->value;
 #else
 			prs(cprompt->value);
 #endif
 		}
-		*e.linep++ = c;
+		*global_env.linep++ = c;
 	}
 
-	*e.linep++ = c;
+	*global_env.linep++ = c;
 
 	DBGPRINTF8(("COLLECT: return 0, line is %s\n", line));
 
@@ -3077,7 +3073,7 @@ static const char *rexecve(char *c, char **v, char **envp)
 	asis = (*sp == '\0');
 	while (asis || *sp != '\0') {
 		asis = 0;
-		tp = e.linep;
+		tp = global_env.linep;
 		for (; *sp != '\0'; tp++) {
 			*tp = *sp++;
 			if (*tp == ':') {
@@ -3085,19 +3081,19 @@ static const char *rexecve(char *c, char **v, char **envp)
 				break;
 			}
 		}
-		if (tp != e.linep)
+		if (tp != global_env.linep)
 			*tp++ = '/';
 		for (i = 0; (*tp++ = c[i++]) != '\0';);
 
-		DBGPRINTF3(("REXECVE: e.linep is %s\n", e.linep));
+		DBGPRINTF3(("REXECVE: global_env.linep is %s\n", global_env.linep));
 
-		execve(e.linep, v, envp);
+		execve(global_env.linep, v, envp);
 
 		switch (errno) {
 		case ENOEXEC:
-			*v = e.linep;
+			*v = global_env.linep;
 			tp = *--v;
-			*v = e.linep;
+			*v = global_env.linep;
 			execve(DEFAULT_SHELL, v, envp);
 			*v = tp;
 			return "no Shell";
@@ -3149,7 +3145,7 @@ static int run(struct ioarg *argp, int (*f) (struct ioarg *))
 		wdlist = 0;
 		iolist = 0;
 		pushio(argp, f);
-		e.iobase = e.iop;
+		global_env.iobase = global_env.iop;
 		yynerrs = 0;
 		failpt = rt;
 		if (setjmp(failpt) == 0 && yyparse() == 0)
@@ -3319,7 +3315,8 @@ static int dodot(struct op *t)
 	char *cp;
 	int maltmp;
 
-	DBGPRINTF(("DODOT: enter, t=%p, tleft %p, tright %p, e.linep is %s\n", t, t->left, t->right, ((e.linep == NULL) ? "NULL" : e.linep)));
+	DBGPRINTF(("DODOT: enter, t=%p, tleft %p, tright %p, global_env.linep is %s\n",
+		t, t->left, t->right, ((global_env.linep == NULL) ? "NULL" : global_env.linep)));
 
 	cp = t->words[1];
 	if (cp == NULL) {
@@ -3330,25 +3327,26 @@ static int dodot(struct op *t)
 
 	sp = any('/', cp) ? ":" : path->value;
 
-	DBGPRINTF(("DODOT: sp is %s,  e.linep is %s\n",
+	DBGPRINTF(("DODOT: sp is %s,  global_env.linep is %s\n",
 			   ((sp == NULL) ? "NULL" : sp),
-			   ((e.linep == NULL) ? "NULL" : e.linep)));
+			   ((global_env.linep == NULL) ? "NULL" : global_env.linep)));
 
 	while (*sp) {
-		tp = e.linep;
+		tp = global_env.linep;
 		while (*sp && (*tp = *sp++) != ':')
 			tp++;
-		if (tp != e.linep)
+		if (tp != global_env.linep)
 			*tp++ = '/';
 
 		for (i = 0; (*tp++ = cp[i++]) != '\0';);
 
 		/* Original code */
-		i = open(e.linep, O_RDONLY);
+		i = open(global_env.linep, O_RDONLY);
 		if (i >= 0) {
 			exstat = 0;
 			maltmp = remap(i);
-			DBGPRINTF(("DODOT: remap=%d, exstat=%d, e.iofd %d, i %d, e.linep is %s\n", maltmp, exstat, e.iofd, i, e.linep));
+			DBGPRINTF(("DODOT: remap=%d, exstat=%d, global_env.iofd %d, i %d, global_env.linep is %s\n",
+				maltmp, exstat, global_env.iofd, i, global_env.linep));
 
 			next(maltmp);		/* Basically a PUSHIO */
 
@@ -3391,7 +3389,7 @@ static int doread(struct op *t)
 		return 1;
 	}
 	for (wp = t->words + 1; *wp; wp++) {
-		for (cp = e.linep; !nl && cp < elinep - 1; cp++) {
+		for (cp = global_env.linep; !nl && cp < elinep - 1; cp++) {
 			nb = read(0, cp, sizeof(*cp));
 			if (nb != sizeof(*cp))
 				break;
@@ -3402,7 +3400,7 @@ static int doread(struct op *t)
 		*cp = '\0';
 		if (nb <= 0)
 			break;
-		setval(lookup(*wp), e.linep);
+		setval(lookup(*wp), global_env.linep);
 	}
 	return nb <= 0;
 }
@@ -3760,9 +3758,9 @@ static int expand(const char *cp, struct wdblock **wbp, int f)
 	errpt = ev;
 	if (newenv(setjmp(errpt)) == 0) {
 		PUSHIO(aword, cp, strchar);
-		e.iobase = e.iop;
+		global_env.iobase = global_env.iop;
 		while ((xp = blank(f)) && gflg == 0) {
-			e.linep = xp;
+			global_env.linep = xp;
 			xp = strsave(xp, areanum);
 			if ((f & DOGLOB) == 0) {
 				if (f & DOTRIM)
@@ -3811,7 +3809,7 @@ static char *blank(int f)
 
 	DBGPRINTF3(("BLANK: enter, f=%d\n", f));
 
-	sp = e.linep;
+	sp = global_env.linep;
 	scanequals = f & DOKEY;
 	foundequals = 0;
 
@@ -3819,9 +3817,9 @@ static char *blank(int f)
 	c = subgetc('"', foundequals);
 	switch (c) {
 	case 0:
-		if (sp == e.linep)
+		if (sp == global_env.linep)
 			return 0;
-		*e.linep++ = 0;
+		*global_env.linep++ = 0;
 		return sp;
 
 	default:
@@ -3839,7 +3837,7 @@ static char *blank(int f)
 				break;
 			if (c == '\'' || !any(c, "$`\""))
 				c |= QUOTE;
-			*e.linep++ = c;
+			*global_env.linep++ = c;
 		}
 		c = 0;
 	}
@@ -3864,9 +3862,9 @@ static char *blank(int f)
 			} else if (!isalnum(c) && c != '_')
 				scanequals = 0;
 		}
-		*e.linep++ = c;
+		*global_env.linep++ = c;
 	}
-	*e.linep++ = 0;
+	*global_env.linep++ = 0;
 	return sp;
 }
 
@@ -3885,13 +3883,13 @@ static int subgetc(char ec, int quoted)
 		if (c == '`') {
 			if (grave(quoted) == 0)
 				return 0;
-			e.iop->task = XGRAVE;
+			global_env.iop->task = XGRAVE;
 			goto again;
 		}
 		if (c == '$') {
 			c = dollar(quoted);
 			if (c == 0) {
-				e.iop->task = XDOLL;
+				global_env.iop->task = XDOLL;
 				goto again;
 			}
 		}
@@ -3913,38 +3911,38 @@ static int dollar(int quoted)
 	DBGPRINTF3(("DOLLAR: enter, quoted=%d\n", quoted));
 
 	c = readc();
-	s = e.linep;
+	s = global_env.linep;
 	if (c != '{') {
-		*e.linep++ = c;
+		*global_env.linep++ = c;
 		if (isalpha(c) || c == '_') {
 			while ((c = readc()) != 0 && (isalnum(c) || c == '_'))
-				if (e.linep < elinep)
-					*e.linep++ = c;
+				if (global_env.linep < elinep)
+					*global_env.linep++ = c;
 			unget(c);
 		}
 		c = 0;
 	} else {
-		oiop = e.iop;
-		otask = e.iop->task;
+		oiop = global_env.iop;
+		otask = global_env.iop->task;
 
-		e.iop->task = XOTHER;
+		global_env.iop->task = XOTHER;
 		while ((c = subgetc('"', 0)) != 0 && c != '}' && c != '\n')
-			if (e.linep < elinep)
-				*e.linep++ = c;
-		if (oiop == e.iop)
-			e.iop->task = otask;
+			if (global_env.linep < elinep)
+				*global_env.linep++ = c;
+		if (oiop == global_env.iop)
+			global_env.iop->task = otask;
 		if (c != '}') {
 			err("unclosed ${");
 			gflg++;
 			return c;
 		}
 	}
-	if (e.linep >= elinep) {
+	if (global_env.linep >= elinep) {
 		err("string in ${} too long");
 		gflg++;
-		e.linep -= 10;
+		global_env.linep -= 10;
 	}
-	*e.linep = 0;
+	*global_env.linep = 0;
 	if (*s)
 		for (cp = s + 1; *cp; cp++)
 			if (any(*cp, "=-+?")) {
@@ -3956,7 +3954,7 @@ static int dollar(int quoted)
 		if (dolc > 1) {
 			/* currently this does not distinguish $* and $@ */
 			/* should check dollar */
-			e.linep = s;
+			global_env.linep = s;
 			PUSHIO(awordlist, dolv + 1, dolchar);
 			return 0;
 		} else {				/* trap the nasty ${=} */
@@ -3998,7 +3996,7 @@ static int dollar(int quoted)
 		err(s);
 		gflg++;
 	}
-	e.linep = s;
+	global_env.linep = s;
 	PUSHIO(aword, dolp, quoted ? qstrchar : strchar);
 	return 0;
 }
@@ -4028,7 +4026,7 @@ static int grave(int quoted)
 	(void) &cp;
 #endif
 
-	for (cp = e.iop->argp->aword; *cp != '`'; cp++) {
+	for (cp = global_env.iop->argp->aword; *cp != '`'; cp++) {
 		if (*cp == 0) {
 			err("no closing `");
 			return 0;
@@ -4036,7 +4034,7 @@ static int grave(int quoted)
 	}
 
 	/* string copy with dollar expansion */
-	src = e.iop->argp->aword;
+	src = global_env.iop->argp->aword;
 	dest = child_cmd;
 	count = 0;
 	ignore = 0;
@@ -4165,7 +4163,7 @@ static int grave(int quoted)
 	}
 	if (i != 0) {
 		waitpid(i, NULL, 0);
-		e.iop->argp->aword = ++cp;
+		global_env.iop->argp->aword = ++cp;
 		close(pf[1]);
 		PUSHIO(afile, remap(pf[0]),
 			(int (*)(struct ioarg *)) ((quoted) ? qgravechar : gravechar));
@@ -4535,14 +4533,14 @@ static int my_getc(int ec)
 {
 	int c;
 
-	if (e.linep > elinep) {
+	if (global_env.linep > elinep) {
 		while ((c = readc()) != '\n' && c);
 		err("input line too long");
 		gflg++;
 		return c;
 	}
 	c = readc();
-	if ((ec != '\'') && (ec != '`') && (e.iop->task != XGRAVE)) {
+	if ((ec != '\'') && (ec != '`') && (global_env.iop->task != XGRAVE)) {
 		if (c == '\\') {
 			c = readc();
 			if (c == '\n' && ec != '\"')
@@ -4555,53 +4553,53 @@ static int my_getc(int ec)
 
 static void unget(int c)
 {
-	if (e.iop >= e.iobase)
-		e.iop->peekc = c;
+	if (global_env.iop >= global_env.iobase)
+		global_env.iop->peekc = c;
 }
 
 static int eofc(void)
 {
-	return e.iop < e.iobase || (e.iop->peekc == 0 && e.iop->prev == 0);
+	return global_env.iop < global_env.iobase || (global_env.iop->peekc == 0 && global_env.iop->prev == 0);
 }
 
 static int readc(void)
 {
 	int c;
 
-	RCPRINTF(("READC: e.iop %p, e.iobase %p\n", e.iop, e.iobase));
+	RCPRINTF(("READC: global_env.iop %p, global_env.iobase %p\n", global_env.iop, global_env.iobase));
 
-	for (; e.iop >= e.iobase; e.iop--) {
-		RCPRINTF(("READC: e.iop %p, peekc 0x%x\n", e.iop, e.iop->peekc));
-		c = e.iop->peekc;
+	for (; global_env.iop >= global_env.iobase; global_env.iop--) {
+		RCPRINTF(("READC: global_env.iop %p, peekc 0x%x\n", global_env.iop, global_env.iop->peekc));
+		c = global_env.iop->peekc;
 		if (c != '\0') {
-			e.iop->peekc = 0;
+			global_env.iop->peekc = 0;
 			return c;
 		}
-		if (e.iop->prev != 0) {
-			c = (*e.iop->iofn)(e.iop->argp, e.iop);
+		if (global_env.iop->prev != 0) {
+			c = (*global_env.iop->iofn)(global_env.iop->argp, global_env.iop);
 			if (c != '\0') {
 				if (c == -1) {
-					e.iop++;
+					global_env.iop++;
 					continue;
 				}
-				if (e.iop == iostack)
+				if (global_env.iop == iostack)
 					ioecho(c);
-				e.iop->prev = c;
-				return e.iop->prev;
+				global_env.iop->prev = c;
+				return global_env.iop->prev;
 			}
-			if (e.iop->task == XIO && e.iop->prev != '\n') {
-				e.iop->prev = 0;
-				if (e.iop == iostack)
+			if (global_env.iop->task == XIO && global_env.iop->prev != '\n') {
+				global_env.iop->prev = 0;
+				if (global_env.iop == iostack)
 					ioecho('\n');
 				return '\n';
 			}
 		}
-		if (e.iop->task == XIO) {
+		if (global_env.iop->task == XIO) {
 			if (multiline) {
-				e.iop->prev = 0;
-				return e.iop->prev;
+				global_env.iop->prev = 0;
+				return global_env.iop->prev;
 			}
-			if (interactive && e.iop == iostack + 1) {
+			if (interactive && global_env.iop == iostack + 1) {
 #if ENABLE_FEATURE_EDITING
 				current_prompt = prompt->value;
 #else
@@ -4611,8 +4609,8 @@ static int readc(void)
 		}
 	}							/* FOR */
 
-	if (e.iop >= iostack) {
-		RCPRINTF(("READC: return 0, e.iop %p\n", e.iop));
+	if (global_env.iop >= iostack) {
+		RCPRINTF(("READC: return 0, global_env.iop %p\n", global_env.iop));
 		return 0;
 	}
 
@@ -4632,12 +4630,12 @@ static void ioecho(char c)
 
 static void pushio(struct ioarg *argp, int (*fn) (struct ioarg *))
 {
-	DBGPRINTF(("PUSHIO: argp %p, argp->afid 0x%x, e.iop %p\n", argp,
-			   argp->afid, e.iop));
+	DBGPRINTF(("PUSHIO: argp %p, argp->afid 0x%x, global_env.iop %p\n", argp,
+			   argp->afid, global_env.iop));
 
 	/* Set env ptr for io source to next array spot and check for array overflow */
-	if (++e.iop >= &iostack[NPUSH]) {
-		e.iop--;
+	if (++global_env.iop >= &iostack[NPUSH]) {
+		global_env.iop--;
 		err("Shell input nested too deeply");
 		gflg++;
 		return;
@@ -4645,60 +4643,60 @@ static void pushio(struct ioarg *argp, int (*fn) (struct ioarg *))
 
 	/* We did not overflow the NPUSH array spots so setup data structs */
 
-	e.iop->iofn = (int (*)(struct ioarg *, struct io *)) fn;	/* Store data source func ptr */
+	global_env.iop->iofn = (int (*)(struct ioarg *, struct io *)) fn;	/* Store data source func ptr */
 
 	if (argp->afid != AFID_NOBUF)
-		e.iop->argp = argp;
+		global_env.iop->argp = argp;
 	else {
 
-		e.iop->argp = ioargstack + (e.iop - iostack);	/* MAL - index into stack */
-		*e.iop->argp = *argp;	/* copy data from temp area into stack spot */
+		global_env.iop->argp = ioargstack + (global_env.iop - iostack);	/* MAL - index into stack */
+		*global_env.iop->argp = *argp;	/* copy data from temp area into stack spot */
 
 		/* MAL - mainbuf is for 1st data source (command line?) and all nested use a single shared buffer? */
 
-		if (e.iop == &iostack[0])
-			e.iop->argp->afbuf = &mainbuf;
+		if (global_env.iop == &iostack[0])
+			global_env.iop->argp->afbuf = &mainbuf;
 		else
-			e.iop->argp->afbuf = &sharedbuf;
+			global_env.iop->argp->afbuf = &sharedbuf;
 
 		/* MAL - if not a termimal AND (commandline OR readable file) then give it a buffer id? */
 		/* This line appears to be active when running scripts from command line */
-		if ((isatty(e.iop->argp->afile) == 0)
-			&& (e.iop == &iostack[0]
-				|| lseek(e.iop->argp->afile, 0L, SEEK_CUR) != -1)) {
+		if ((isatty(global_env.iop->argp->afile) == 0)
+			&& (global_env.iop == &iostack[0]
+				|| lseek(global_env.iop->argp->afile, 0L, SEEK_CUR) != -1)) {
 			if (++bufid == AFID_NOBUF)	/* counter rollover check, AFID_NOBUF = 11111111  */
 				bufid = AFID_ID;	/* AFID_ID = 0 */
 
-			e.iop->argp->afid = bufid;	/* assign buffer id */
+			global_env.iop->argp->afid = bufid;	/* assign buffer id */
 		}
 
-		DBGPRINTF(("PUSHIO: iostack %p,  e.iop %p, afbuf %p\n",
-				   iostack, e.iop, e.iop->argp->afbuf));
-		DBGPRINTF(("PUSHIO: mbuf %p, sbuf %p, bid %d, e.iop %p\n",
-				   &mainbuf, &sharedbuf, bufid, e.iop));
+		DBGPRINTF(("PUSHIO: iostack %p,  global_env.iop %p, afbuf %p\n",
+				   iostack, global_env.iop, global_env.iop->argp->afbuf));
+		DBGPRINTF(("PUSHIO: mbuf %p, sbuf %p, bid %d, global_env.iop %p\n",
+				   &mainbuf, &sharedbuf, bufid, global_env.iop));
 
 	}
 
-	e.iop->prev = ~'\n';
-	e.iop->peekc = 0;
-	e.iop->xchar = 0;
-	e.iop->nlcount = 0;
+	global_env.iop->prev = ~'\n';
+	global_env.iop->peekc = 0;
+	global_env.iop->xchar = 0;
+	global_env.iop->nlcount = 0;
 
 	if (fn == filechar || fn == linechar)
-		e.iop->task = XIO;
+		global_env.iop->task = XIO;
 	else if (fn == (int (*)(struct ioarg *)) gravechar
 	 || fn == (int (*)(struct ioarg *)) qgravechar)
-		e.iop->task = XGRAVE;
+		global_env.iop->task = XGRAVE;
 	else
-		e.iop->task = XOTHER;
+		global_env.iop->task = XOTHER;
 }
 
 static struct io *setbase(struct io *ip)
 {
 	struct io *xp;
 
-	xp = e.iobase;
-	e.iobase = ip;
+	xp = global_env.iobase;
+	global_env.iobase = ip;
 	return xp;
 }
 
@@ -4929,9 +4927,9 @@ static int remap(int fd)
 	int map[NOFILE];
 	int newfd;
 
-	DBGPRINTF(("REMAP: fd=%d, e.iofd=%d\n", fd, e.iofd));
+	DBGPRINTF(("REMAP: fd=%d, global_env.iofd=%d\n", fd, global_env.iofd));
 
-	if (fd < e.iofd) {
+	if (fd < global_env.iofd) {
 		for (i = 0; i < NOFILE; i++)
 			map[i] = 0;
 
@@ -4939,7 +4937,7 @@ static int remap(int fd)
 			map[fd] = 1;
 			newfd = dup(fd);
 			fd = newfd;
-		} while (fd >= 0 && fd < e.iofd);
+		} while (fd >= 0 && fd < global_env.iofd);
 
 		for (i = 0; i < NOFILE; i++)
 			if (map[i])
@@ -5052,10 +5050,10 @@ static void readhere(char **name, char *s, int ec)
 	if (newenv(setjmp(errpt)) != 0)
 		unlink(tname);
 	else {
-		pushio(e.iop->argp, (int (*)(struct ioarg *)) e.iop->iofn);
-		e.iobase = e.iop;
+		pushio(global_env.iop->argp, (int (*)(struct ioarg *)) global_env.iop->iofn);
+		global_env.iobase = global_env.iop;
 		for (;;) {
-			if (interactive && e.iop <= iostack) {
+			if (interactive && global_env.iop <= iostack) {
 #if ENABLE_FEATURE_EDITING
 				current_prompt = cprompt->value;
 #else
@@ -5121,7 +5119,7 @@ static int herein(char *hname, int xdoll)
 		errpt = ev;
 		if (newenv(setjmp(errpt)) == 0) {
 			PUSHIO(afile, hf, herechar);
-			setbase(e.iop);
+			setbase(global_env.iop);
 			while ((c = subgetc(0, 0)) != 0) {
 				c &= ~QUOTE;
 				write(tf, &c, sizeof c);
@@ -5189,7 +5187,6 @@ int msh_main(int argc, char **argv)
 
 	sharedbuf.id = AFID_NOBUF;
 	mainbuf.id = AFID_NOBUF;
-	e.linep = line;
 	elinep = line + sizeof(line) - 5;
 
 #if ENABLE_FEATURE_EDITING
@@ -5321,7 +5318,7 @@ int msh_main(int argc, char **argv)
 	setdash();
 
 	/* This won't be true if PUSHIO has been called, say from newfile() above */
-	if (e.iop < iostack) {
+	if (global_env.iop < iostack) {
 		PUSHIO(afile, 0, iof);
 		if (isatty(0) && isatty(1) && !cflag) {
 			interactive++;
@@ -5366,10 +5363,10 @@ int msh_main(int argc, char **argv)
 	}
 	setval(lookup("#"), putn((--dolc < 0) ? (dolc = 0) : dolc));
 
-	DBGPRINTF(("MSH_MAIN: begin FOR loop, interactive %d, e.iop %p, iostack %p\n", interactive, e.iop, iostack));
+	DBGPRINTF(("MSH_MAIN: begin FOR loop, interactive %d, global_env.iop %p, iostack %p\n", interactive, global_env.iop, iostack));
 
 	for (;;) {
-		if (interactive && e.iop <= iostack) {
+		if (interactive && global_env.iop <= iostack) {
 #if ENABLE_FEATURE_EDITING
 			current_prompt = prompt->value;
 #else
