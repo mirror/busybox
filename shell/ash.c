@@ -67,6 +67,13 @@ extern char **environ;
 #endif
 
 
+/* ============ Hash table sizes. Configurable. */
+
+#define VTABSIZE 39
+#define ATABSIZE 39
+#define CMDTABLESIZE 31         /* should be prime */
+
+
 /* ============ Misc helpers */
 
 #define xbarrier() do { __asm__ __volatile__ ("": : :"memory"); } while (0)
@@ -127,29 +134,9 @@ static char optlist[NOPTS] ALIGN1;
 
 /* ============ Misc data */
 
-static char nullstr[1] ALIGN1;  /* zero length string */
 static const char homestr[] ALIGN1 = "HOME";
 static const char snlfmt[] ALIGN1 = "%s\n";
 static const char illnum[] ALIGN1 = "Illegal number: %s";
-
-static char *minusc;  /* argument to -c option */
-
-/* pid of main shell */
-static int rootpid;
-/* shell level: 0 for the main shell, 1 for its children, and so on */
-static int shlvl;
-#define rootshell (!shlvl)
-/* trap handler commands */
-static char *trap[NSIG];
-static smallint isloginsh;
-/* current value of signal */
-static char sigmode[NSIG - 1];
-/* indicates specified signal received */
-static char gotsig[NSIG - 1];
-static char *arg0; /* value of $0 */
-
-
-/* ============ Interrupts / exceptions */
 
 /*
  * We enclose jmp_buf in a structure so that we can declare pointers to
@@ -163,33 +150,83 @@ static char *arg0; /* value of $0 */
 struct jmploc {
 	jmp_buf loc;
 };
-static struct jmploc *exception_handler;
-static int exception;
-/* exceptions */
+
+struct globals_misc {
+	/* pid of main shell */
+	int rootpid;
+	/* shell level: 0 for the main shell, 1 for its children, and so on */
+	int shlvl;
+#define rootshell (!shlvl)
+	char *minusc;  /* argument to -c option */
+
+	char *curdir; // = nullstr;     /* current working directory */
+	char *physdir; // = nullstr;    /* physical working directory */
+
+	char *arg0; /* value of $0 */
+
+	struct jmploc *exception_handler;
+	int exception;
+	/* exceptions */
 #define EXINT 0         /* SIGINT received */
 #define EXERROR 1       /* a generic error */
 #define EXSHELLPROC 2   /* execute a shell procedure */
 #define EXEXEC 3        /* command execution failed */
 #define EXEXIT 4        /* exit the shell */
 #define EXSIG 5         /* trapped signal in wait(1) */
-static volatile int suppressint;
-static volatile sig_atomic_t intpending;
-/* do we generate EXSIG events */
-static int exsig;
-/* last pending signal */
-static volatile sig_atomic_t pendingsig;
+	volatile int suppressint;
+	volatile sig_atomic_t intpending;
+	/* do we generate EXSIG events */
+	int exsig;
+	/* last pending signal */
+	volatile sig_atomic_t pendingsig;
 
-/*
- * Sigmode records the current value of the signal handlers for the various
- * modes.  A value of zero means that the current handler is not known.
- * S_HARD_IGN indicates that the signal was ignored on entry to the shell,
- */
-
+	/* trap handler commands */
+	char *trap[NSIG];
+	smallint isloginsh;
+	char nullstr[1];                /* zero length string */
+	/*
+	 * Sigmode records the current value of the signal handlers for the various
+	 * modes.  A value of zero means that the current handler is not known.
+	 * S_HARD_IGN indicates that the signal was ignored on entry to the shell,
+	 */
+	char sigmode[NSIG - 1];
 #define S_DFL 1                 /* default signal handling (SIG_DFL) */
 #define S_CATCH 2               /* signal is caught */
 #define S_IGN 3                 /* signal is ignored (SIG_IGN) */
 #define S_HARD_IGN 4            /* signal is ignored permenantly */
 #define S_RESET 5               /* temporary - to reset a hard ignored sig */
+
+	/* indicates specified signal received */
+	char gotsig[NSIG - 1];
+};
+/* Make it reside in writable memory, yet make compiler understand that it is not going to change. */
+static struct globals_misc *const ptr_to_globals_misc __attribute__ ((section (".data")));
+#define G_misc (*ptr_to_globals_misc)
+#define rootpid   (G_misc.rootpid  )
+#define shlvl     (G_misc.shlvl    )
+#define minusc    (G_misc.minusc   )
+#define curdir    (G_misc.curdir   )
+#define physdir   (G_misc.physdir  )
+#define arg0      (G_misc.arg0     )
+#define exception_handler (G_misc.exception_handler)
+#define exception         (G_misc.exception        )
+#define suppressint       (G_misc.suppressint      )
+#define intpending        (G_misc.intpending       )
+#define exsig             (G_misc.exsig            )
+#define pendingsig        (G_misc.pendingsig       )
+#define trap      (G_misc.trap     )
+#define isloginsh (G_misc.isloginsh)
+#define nullstr   (G_misc.nullstr  )
+#define sigmode   (G_misc.sigmode  )
+#define gotsig    (G_misc.gotsig   )
+#define INIT_G_misc() do { \
+	(*(struct globals_misc**)&ptr_to_globals_misc) = xzalloc(sizeof(G_misc)); \
+	curdir = nullstr; \
+	physdir = nullstr; \
+} while (0)
+
+
+/* ============ Interrupts / exceptions */
 
 /*
  * These macros allow the user to suspend the handling of interrupt signals
@@ -1090,7 +1127,7 @@ enum {
 	 * on many machines.  */
 	SHELL_SIZE = sizeof(union {int i; char *cp; double d; }) - 1,
 	/* Minimum size of a block */
-	MINSIZE  = SHELL_ALIGN(504),
+	MINSIZE = SHELL_ALIGN(504),
 };
 
 struct stack_block {
@@ -1105,16 +1142,38 @@ struct stackmark {
 	struct stackmark *marknext;
 };
 
-static struct stack_block stackbase;
-static struct stack_block *stackp = &stackbase;
-static struct stackmark *markp;
-static char *stacknxt = stackbase.space;
-static size_t stacknleft = MINSIZE;
-static char *sstrend = stackbase.space + MINSIZE;
-static int herefd = -1;
 
-#define stackblock() ((void *)stacknxt)
-#define stackblocksize() stacknleft
+struct globals_memstack {
+	struct stack_block *g_stackp; // = &stackbase;
+	struct stackmark *markp;
+	char *g_stacknxt; // = stackbase.space;
+	char *sstrend; // = stackbase.space + MINSIZE;
+	size_t g_stacknleft; // = MINSIZE;
+	int    herefd; // = -1;
+	struct stack_block stackbase;
+};
+/* Make it reside in writable memory, yet make compiler understand that it is not going to change. */
+static struct globals_memstack *const ptr_to_globals_memstack __attribute__ ((section (".data")));
+#define G_memstack (*ptr_to_globals_memstack)
+#define g_stackp     (G_memstack.g_stackp    )
+#define markp        (G_memstack.markp       )
+#define g_stacknxt   (G_memstack.g_stacknxt  )
+#define sstrend      (G_memstack.sstrend     )
+#define g_stacknleft (G_memstack.g_stacknleft)
+#define herefd       (G_memstack.herefd      )
+#define stackbase    (G_memstack.stackbase   )
+#define INIT_G_memstack() do { \
+	(*(struct globals_memstack**)&ptr_to_globals_memstack) = xzalloc(sizeof(G_memstack)); \
+	g_stackp = &stackbase; \
+	g_stacknxt = stackbase.space; \
+	g_stacknleft = MINSIZE; \
+	sstrend = stackbase.space + MINSIZE; \
+	herefd = -1; \
+} while (0)
+
+#define stackblock()     ((void *)g_stacknxt)
+#define stackblocksize() g_stacknleft
+
 
 static void *
 ckrealloc(void * p, size_t nbytes)
@@ -1158,7 +1217,7 @@ stalloc(size_t nbytes)
 	size_t aligned;
 
 	aligned = SHELL_ALIGN(nbytes);
-	if (aligned > stacknleft) {
+	if (aligned > g_stacknleft) {
 		size_t len;
 		size_t blocksize;
 		struct stack_block *sp;
@@ -1171,16 +1230,16 @@ stalloc(size_t nbytes)
 			ash_msg_and_raise_error(bb_msg_memory_exhausted);
 		INT_OFF;
 		sp = ckmalloc(len);
-		sp->prev = stackp;
-		stacknxt = sp->space;
-		stacknleft = blocksize;
-		sstrend = stacknxt + blocksize;
-		stackp = sp;
+		sp->prev = g_stackp;
+		g_stacknxt = sp->space;
+		g_stacknleft = blocksize;
+		sstrend = g_stacknxt + blocksize;
+		g_stackp = sp;
 		INT_ON;
 	}
-	p = stacknxt;
-	stacknxt += aligned;
-	stacknleft -= aligned;
+	p = g_stacknxt;
+	g_stacknxt += aligned;
+	g_stacknleft -= aligned;
 	return p;
 }
 
@@ -1188,13 +1247,13 @@ static void
 stunalloc(void *p)
 {
 #if DEBUG
-	if (!p || (stacknxt < (char *)p) || ((char *)p < stackp->space)) {
+	if (!p || (g_stacknxt < (char *)p) || ((char *)p < g_stackp->space)) {
 		write(2, "stunalloc\n", 10);
 		abort();
 	}
 #endif
-	stacknleft += stacknxt - (char *)p;
-	stacknxt = p;
+	g_stacknleft += g_stacknxt - (char *)p;
+	g_stacknxt = p;
 }
 
 /*
@@ -1210,9 +1269,9 @@ ststrdup(const char *p)
 static void
 setstackmark(struct stackmark *mark)
 {
-	mark->stackp = stackp;
-	mark->stacknxt = stacknxt;
-	mark->stacknleft = stacknleft;
+	mark->stackp = g_stackp;
+	mark->stacknxt = g_stacknxt;
+	mark->stacknleft = g_stacknleft;
 	mark->marknext = markp;
 	markp = mark;
 }
@@ -1227,13 +1286,13 @@ popstackmark(struct stackmark *mark)
 
 	INT_OFF;
 	markp = mark->marknext;
-	while (stackp != mark->stackp) {
-		sp = stackp;
-		stackp = sp->prev;
+	while (g_stackp != mark->stackp) {
+		sp = g_stackp;
+		g_stackp = sp->prev;
 		free(sp);
 	}
-	stacknxt = mark->stacknxt;
-	stacknleft = mark->stacknleft;
+	g_stacknxt = mark->stacknxt;
+	g_stacknleft = mark->stacknleft;
 	sstrend = mark->stacknxt + mark->stacknleft;
 	INT_ON;
 }
@@ -1252,13 +1311,13 @@ growstackblock(void)
 {
 	size_t newlen;
 
-	newlen = stacknleft * 2;
-	if (newlen < stacknleft)
+	newlen = g_stacknleft * 2;
+	if (newlen < g_stacknleft)
 		ash_msg_and_raise_error(bb_msg_memory_exhausted);
 	if (newlen < 128)
 		newlen += 128;
 
-	if (stacknxt == stackp->space && stackp != &stackbase) {
+	if (g_stacknxt == g_stackp->space && g_stackp != &stackbase) {
 		struct stack_block *oldstackp;
 		struct stackmark *xmark;
 		struct stack_block *sp;
@@ -1266,15 +1325,15 @@ growstackblock(void)
 		size_t grosslen;
 
 		INT_OFF;
-		oldstackp = stackp;
-		sp = stackp;
+		oldstackp = g_stackp;
+		sp = g_stackp;
 		prevstackp = sp->prev;
 		grosslen = newlen + sizeof(struct stack_block) - MINSIZE;
 		sp = ckrealloc(sp, grosslen);
 		sp->prev = prevstackp;
-		stackp = sp;
-		stacknxt = sp->space;
-		stacknleft = newlen;
+		g_stackp = sp;
+		g_stacknxt = sp->space;
+		g_stacknleft = newlen;
 		sstrend = sp->space + newlen;
 
 		/*
@@ -1283,20 +1342,20 @@ growstackblock(void)
 		 */
 		xmark = markp;
 		while (xmark != NULL && xmark->stackp == oldstackp) {
-			xmark->stackp = stackp;
-			xmark->stacknxt = stacknxt;
-			xmark->stacknleft = stacknleft;
+			xmark->stackp = g_stackp;
+			xmark->stacknxt = g_stacknxt;
+			xmark->stacknleft = g_stacknleft;
 			xmark = xmark->marknext;
 		}
 		INT_ON;
 	} else {
-		char *oldspace = stacknxt;
-		int oldlen = stacknleft;
+		char *oldspace = g_stacknxt;
+		int oldlen = g_stacknleft;
 		char *p = stalloc(newlen);
 
 		/* free the space we just allocated */
-		stacknxt = memcpy(p, oldspace, oldlen);
-		stacknleft += newlen;
+		g_stacknxt = memcpy(p, oldspace, oldlen);
+		g_stacknleft += newlen;
 	}
 }
 
@@ -1304,8 +1363,8 @@ static void
 grabstackblock(size_t len)
 {
 	len = SHELL_ALIGN(len);
-	stacknxt += len;
-	stacknleft -= len;
+	g_stacknxt += len;
+	g_stacknleft -= len;
 }
 
 /*
@@ -1343,7 +1402,7 @@ growstackstr(void)
 static char *
 makestrspace(size_t newlen, char *p)
 {
-	size_t len = p - stacknxt;
+	size_t len = p - g_stacknxt;
 	size_t size = stackblocksize();
 
 	for (;;) {
@@ -1568,6 +1627,60 @@ static unsigned long rseed;
 
 /* ============ Shell variables */
 
+/*
+ * The parsefile structure pointed to by the global variable parsefile
+ * contains information about the current file being read.
+ */
+struct redirtab {
+	struct redirtab *next;
+	int renamed[10];
+	int nullredirs;
+};
+
+struct shparam {
+	int nparam;             /* # of positional parameters (without $0) */
+#if ENABLE_ASH_GETOPTS
+	int optind;             /* next parameter to be processed by getopts */
+	int optoff;             /* used by getopts */
+#endif
+	unsigned char malloced; /* if parameter list dynamically allocated */
+	char **p;               /* parameter list */
+};
+
+/*
+ * Free the list of positional parameters.
+ */
+static void
+freeparam(volatile struct shparam *param)
+{
+	char **ap;
+
+	if (param->malloced) {
+		for (ap = param->p; *ap; ap++)
+			free(*ap);
+		free(param->p);
+	}
+}
+
+#if ENABLE_ASH_GETOPTS
+static void getoptsreset(const char *value);
+#endif
+
+struct var {
+	struct var *next;               /* next entry in hash list */
+	int flags;                      /* flags are defined above */
+	const char *text;               /* name=value */
+	void (*func)(const char *);     /* function to be called when  */
+					/* the variable gets set/unset */
+};
+
+struct localvar {
+	struct localvar *next;          /* next local variable in list */
+	struct var *vp;                 /* the variable that was made local */
+	int flags;                      /* saved flags */
+	const char *text;               /* saved text */
+};
+
 /* flags */
 #define VEXPORT         0x01    /* variable is exported */
 #define VREADONLY       0x02    /* variable cannot be modified */
@@ -1591,58 +1704,8 @@ static const char defifsvar[] ALIGN1 = "IFS= \t\n";
 static const char defifs[] ALIGN1 = " \t\n";
 #endif
 
-struct shparam {
-	int nparam;             /* # of positional parameters (without $0) */
-	unsigned char malloc;   /* if parameter list dynamically allocated */
-	char **p;               /* parameter list */
-#if ENABLE_ASH_GETOPTS
-	int optind;             /* next parameter to be processed by getopts */
-	int optoff;             /* used by getopts */
-#endif
-};
 
-static struct shparam shellparam;      /* $@ current positional parameters */
-
-/*
- * Free the list of positional parameters.
- */
-static void
-freeparam(volatile struct shparam *param)
-{
-	char **ap;
-
-	if (param->malloc) {
-		for (ap = param->p; *ap; ap++)
-			free(*ap);
-		free(param->p);
-	}
-}
-
-#if ENABLE_ASH_GETOPTS
-static void
-getoptsreset(const char *value)
-{
-	shellparam.optind = number(value);
-	shellparam.optoff = -1;
-}
-#endif
-
-struct var {
-	struct var *next;               /* next entry in hash list */
-	int flags;                      /* flags are defined above */
-	const char *text;               /* name=value */
-	void (*func)(const char *);     /* function to be called when  */
-					/* the variable gets set/unset */
-};
-
-struct localvar {
-	struct localvar *next;          /* next local variable in list */
-	struct var *vp;                 /* the variable that was made local */
-	int flags;                      /* saved flags */
-	const char *text;               /* saved text */
-};
-
-/* Forward decls for varinit[] */
+/* Need to be before varinit_data[] */
 #if ENABLE_LOCALE_SUPPORT
 static void
 change_lc_all(const char *value)
@@ -1666,46 +1729,78 @@ static void changepath(const char *);
 static void change_random(const char *);
 #endif
 
-static struct var varinit[] = {
+static const struct {
+	int flags;
+	const char *text;
+	void (*func)(const char *);
+} varinit_data[] = {
 #ifdef IFS_BROKEN
-	{ NULL, VSTRFIXED|VTEXTFIXED,           defifsvar,      NULL },
+	{ VSTRFIXED|VTEXTFIXED       , defifsvar   , NULL            },
 #else
-	{ NULL, VSTRFIXED|VTEXTFIXED|VUNSET,    "IFS\0",        NULL },
+	{ VSTRFIXED|VTEXTFIXED|VUNSET, "IFS\0"     , NULL            },
 #endif
 #if ENABLE_ASH_MAIL
-	{ NULL, VSTRFIXED|VTEXTFIXED|VUNSET,    "MAIL\0",       changemail },
-	{ NULL, VSTRFIXED|VTEXTFIXED|VUNSET,    "MAILPATH\0",   changemail },
+	{ VSTRFIXED|VTEXTFIXED|VUNSET, "MAIL\0"    , changemail      },
+	{ VSTRFIXED|VTEXTFIXED|VUNSET, "MAILPATH\0", changemail      },
 #endif
-	{ NULL, VSTRFIXED|VTEXTFIXED,           bb_PATH_root_path, changepath },
-	{ NULL, VSTRFIXED|VTEXTFIXED,           "PS1=$ ",       NULL },
-	{ NULL, VSTRFIXED|VTEXTFIXED,           "PS2=> ",       NULL },
-	{ NULL, VSTRFIXED|VTEXTFIXED,           "PS4=+ ",       NULL },
+	{ VSTRFIXED|VTEXTFIXED       , bb_PATH_root_path, changepath },
+	{ VSTRFIXED|VTEXTFIXED       , "PS1=$ "    , NULL            },
+	{ VSTRFIXED|VTEXTFIXED       , "PS2=> "    , NULL            },
+	{ VSTRFIXED|VTEXTFIXED       , "PS4=+ "    , NULL            },
 #if ENABLE_ASH_GETOPTS
-	{ NULL, VSTRFIXED|VTEXTFIXED,           "OPTIND=1",     getoptsreset },
+	{ VSTRFIXED|VTEXTFIXED       , "OPTIND=1"  , getoptsreset    },
 #endif
 #if ENABLE_ASH_RANDOM_SUPPORT
-	{ NULL, VSTRFIXED|VTEXTFIXED|VUNSET|VDYNAMIC, "RANDOM\0", change_random },
+	{ VSTRFIXED|VTEXTFIXED|VUNSET|VDYNAMIC, "RANDOM\0", change_random },
 #endif
 #if ENABLE_LOCALE_SUPPORT
-	{ NULL, VSTRFIXED | VTEXTFIXED | VUNSET, "LC_ALL\0",    change_lc_all },
-	{ NULL, VSTRFIXED | VTEXTFIXED | VUNSET, "LC_CTYPE\0",  change_lc_ctype },
+	{ VSTRFIXED|VTEXTFIXED|VUNSET, "LC_ALL\0"  , change_lc_all   },
+	{ VSTRFIXED|VTEXTFIXED|VUNSET, "LC_CTYPE\0", change_lc_ctype },
 #endif
 #if ENABLE_FEATURE_EDITING_SAVEHISTORY
-	{ NULL, VSTRFIXED | VTEXTFIXED | VUNSET, "HISTFILE\0",  NULL },
+	{ VSTRFIXED|VTEXTFIXED|VUNSET, "HISTFILE\0", NULL            },
 #endif
 };
 
-#define vifs varinit[0]
+
+struct globals_var {
+	struct shparam shellparam;      /* $@ current positional parameters */
+	struct redirtab *redirlist;
+	int g_nullredirs;
+	int preverrout_fd;   /* save fd2 before print debug if xflag is set. */
+	struct var *vartab[VTABSIZE];
+	struct var varinit[ARRAY_SIZE(varinit_data)];
+};
+/* Make it reside in writable memory, yet make compiler understand that it is not going to change. */
+static struct globals_var *const ptr_to_globals_var __attribute__ ((section (".data")));
+#define G_var (*ptr_to_globals_var)
+#define shellparam    (G_var.shellparam   )
+#define redirlist     (G_var.redirlist    )
+#define g_nullredirs  (G_var.g_nullredirs )
+#define preverrout_fd (G_var.preverrout_fd)
+#define vartab        (G_var.vartab       )
+#define varinit       (G_var.varinit      )
+#define INIT_G_var() do { \
+	int i; \
+	(*(struct globals_var**)&ptr_to_globals_var) = xzalloc(sizeof(G_var)); \
+	for (i = 0; i < ARRAY_SIZE(varinit_data); i++) { \
+		varinit[i].flags = varinit_data[i].flags; \
+		varinit[i].text  = varinit_data[i].text; \
+		varinit[i].func  = varinit_data[i].func; \
+	} \
+} while (0)
+
+#define vifs    varinit[0]
 #if ENABLE_ASH_MAIL
-#define vmail (&vifs)[1]
-#define vmpath (&vmail)[1]
+#define vmail   (&vifs)[1]
+#define vmpath  (&vmail)[1]
 #else
-#define vmpath vifs
+#define vmpath  vifs
 #endif
-#define vpath (&vmpath)[1]
-#define vps1 (&vpath)[1]
-#define vps2 (&vps1)[1]
-#define vps4 (&vps2)[1]
+#define vpath   (&vmpath)[1]
+#define vps1    (&vpath)[1]
+#define vps2    (&vps1)[1]
+#define vps4    (&vps2)[1]
 #define voptind (&vps4)[1]
 #if ENABLE_ASH_GETOPTS
 #define vrandom (&voptind)[1]
@@ -1730,26 +1825,18 @@ static struct var varinit[] = {
 
 #define mpathset()      ((vmpath.flags & VUNSET) == 0)
 
-/*
- * The parsefile structure pointed to by the global variable parsefile
- * contains information about the current file being read.
- */
-struct redirtab {
-	struct redirtab *next;
-	int renamed[10];
-	int nullredirs;
-};
-
-static struct redirtab *redirlist;
-static int nullredirs;
-static int preverrout_fd;   /* save fd2 before print debug if xflag is set. */
-
-#define VTABSIZE 39
-
-static struct var *vartab[VTABSIZE];
 
 #define is_name(c)      ((c) == '_' || isalpha((unsigned char)(c)))
 #define is_in_name(c)   ((c) == '_' || isalnum((unsigned char)(c)))
+
+#if ENABLE_ASH_GETOPTS
+static void
+getoptsreset(const char *value)
+{
+	shellparam.optind = number(value);
+	shellparam.optoff = -1;
+}
+#endif
 
 /*
  * Return of a legal variable name (a letter or underscore followed by zero or
@@ -2221,9 +2308,6 @@ setprompt(int whichprompt)
 
 static int docd(const char *, int);
 
-static char *curdir = nullstr;          /* current working directory */
-static char *physdir = nullstr;         /* physical working directory */
-
 static int
 cdopt(void)
 {
@@ -2310,7 +2394,7 @@ updatepwd(const char *dir)
 static char *
 getpwd(void)
 {
-	char *dir = getcwd(0, 0);
+	char *dir = getcwd(NULL, 0); /* huh, using glibc extension? */
 	return dir ? dir : nullstr;
 }
 
@@ -2903,8 +2987,6 @@ static const char syntax_index_table[258] = {
 #define ALIASINUSE 1
 #define ALIASDEAD  2
 
-#define ATABSIZE 39
-
 struct alias {
 	struct alias *next;
 	char *name;
@@ -2912,7 +2994,12 @@ struct alias {
 	int flag;
 };
 
-static struct alias *atab[ATABSIZE];
+
+static struct alias **atab; // [ATABSIZE];
+#define INIT_G_alias() do { \
+	atab = xzalloc(ATABSIZE * sizeof(atab[0])); \
+} while (0)
+
 
 static struct alias **
 __lookupalias(const char *name) {
@@ -4797,7 +4884,7 @@ redirect(union node *redir, int flags)
 	int fd;
 	int newfd;
 
-	nullredirs++;
+	g_nullredirs++;
 	if (!redir) {
 		return;
 	}
@@ -4807,10 +4894,10 @@ redirect(union node *redir, int flags)
 		sv = ckmalloc(sizeof(*sv));
 		sv->next = redirlist;
 		redirlist = sv;
-		sv->nullredirs = nullredirs - 1;
+		sv->nullredirs = g_nullredirs - 1;
 		for (i = 0; i < 10; i++)
 			sv->renamed[i] = EMPTY;
-		nullredirs = 0;
+		g_nullredirs = 0;
 	}
 	n = redir;
 	do {
@@ -4861,7 +4948,7 @@ popredir(int drop)
 	struct redirtab *rp;
 	int i;
 
-	if (--nullredirs >= 0)
+	if (--g_nullredirs >= 0)
 		return;
 	INT_OFF;
 	rp = redirlist;
@@ -4880,7 +4967,7 @@ popredir(int drop)
 		}
 	}
 	redirlist = rp->next;
-	nullredirs = rp->nullredirs;
+	g_nullredirs = rp->nullredirs;
 	free(rp);
 	INT_ON;
 }
@@ -4896,7 +4983,7 @@ static void
 clearredir(int drop)
 {
 	for (;;) {
-		nullredirs = 0;
+		g_nullredirs = 0;
 		if (!redirlist)
 			break;
 		popredir(drop);
@@ -6458,7 +6545,6 @@ static void find_command(char *, struct cmdentry *, int, const char *);
  * would make the command name "hash" a misnomer.
  */
 
-#define CMDTABLESIZE 31         /* should be prime */
 #define ARB 1                   /* actual size determined at run time */
 
 struct tblentry {
@@ -6469,8 +6555,13 @@ struct tblentry {
 	char cmdname[ARB];      /* name of command */
 };
 
-static struct tblentry *cmdtable[CMDTABLESIZE];
-static int builtinloc = -1;             /* index in path of %builtin, or -1 */
+static struct tblentry **cmdtable;
+#define INIT_G_cmdtable() do { \
+	cmdtable = xzalloc(CMDTABLESIZE * sizeof(cmdtable[0])); \
+} while (0)
+
+static int builtinloc = -1;     /* index in path of %builtin, or -1 */
+
 
 static void
 tryexec(char *cmd, char **argv, char **envp)
@@ -7840,7 +7931,7 @@ evalfun(struct funcnode *func, int argc, char **argv, int flags)
 	savehandler = exception_handler;
 	exception_handler = &jmploc;
 	localvars = NULL;
-	shellparam.malloc = 0;
+	shellparam.malloced = 0;
 	func->count++;
 	funcnest++;
 	INT_ON;
@@ -7851,7 +7942,7 @@ evalfun(struct funcnode *func, int argc, char **argv, int flags)
 	shellparam.optoff = -1;
 #endif
 	evaltree(&func->n, flags & EV_TESTED);
-funcdone:
+ funcdone:
 	INT_OFF;
 	funcnest--;
 	freefunc(func);
@@ -8979,7 +9070,7 @@ setparam(char **argv)
 	}
 	*ap = NULL;
 	freeparam(&shellparam);
-	shellparam.malloc = 1;
+	shellparam.malloced = 1;
 	shellparam.nparam = nparam;
 	shellparam.p = newparam;
 #if ENABLE_ASH_GETOPTS
@@ -9094,7 +9185,7 @@ shiftcmd(int argc, char **argv)
 	INT_OFF;
 	shellparam.nparam -= n;
 	for (ap1 = shellparam.p; --n >= 0; ap1++) {
-		if (shellparam.malloc)
+		if (shellparam.malloced)
 			free(*ap1);
 	}
 	ap2 = shellparam.p;
@@ -10971,7 +11062,7 @@ dotcmd(int argc, char **argv)
 
 		if (argc > 2) {
 			saveparam = shellparam;
-			shellparam.malloc = 0;
+			shellparam.malloced = 0;
 			shellparam.nparam = argc - 2;
 			shellparam.p = argv + 2;
 		};
@@ -12741,7 +12832,7 @@ procargs(int argc, char **argv)
 	shellparam.optind = 1;
 	shellparam.optoff = -1;
 #endif
-	/* assert(shellparam.malloc == 0 && shellparam.nparam == 0); */
+	/* assert(shellparam.malloced == 0 && shellparam.nparam == 0); */
 	while (*xargv) {
 		shellparam.nparam++;
 		xargv++;
@@ -12804,6 +12895,13 @@ int ash_main(int argc, char **argv)
 	volatile int state;
 	struct jmploc jmploc;
 	struct stackmark smark;
+
+	/* Initialize global data */
+	INIT_G_misc();
+	INIT_G_memstack();
+	INIT_G_var();
+	INIT_G_alias();
+	INIT_G_cmdtable();
 
 #if PROFILE
 	monitor(4, etext, profile_buf, sizeof(profile_buf), 50);
