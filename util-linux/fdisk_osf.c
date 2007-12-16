@@ -240,8 +240,6 @@ static const char *const xbsd_fstypes[] = {
    Also fixed unaligned accesses in alpha_bootblock_checksum()
 */
 
-static int possibly_osf_label;
-
 #define FREEBSD_PARTITION       0xa5
 #define NETBSD_PARTITION        0xa9
 
@@ -876,10 +874,10 @@ xbsd_initlabel(struct partition *p)
 	d->d_flags = 0;
 #endif
 	d->d_secsize = SECTOR_SIZE;           /* bytes/sector  */
-	d->d_nsectors = sectors;              /* sectors/track */
-	d->d_ntracks = heads;                 /* tracks/cylinder (heads) */
-	d->d_ncylinders = cylinders;
-	d->d_secpercyl  = sectors * heads;    /* sectors/cylinder */
+	d->d_nsectors = g_sectors;            /* sectors/track */
+	d->d_ntracks = g_heads;               /* tracks/cylinder (heads) */
+	d->d_ncylinders = g_cylinders;
+	d->d_secpercyl  = g_sectors * g_heads;/* sectors/cylinder */
 	if (d->d_secpercyl == 0)
 		d->d_secpercyl = 1;           /* avoid segfaults */
 	d->d_secperunit = d->d_secpercyl * d->d_ncylinders;
@@ -1027,7 +1025,7 @@ xbsd_link_part(void)
 	int k, i;
 	struct partition *p;
 
-	k = get_partition(1, partitions);
+	k = get_partition(1, g_partitions);
 
 	if (!xbsd_check_new_partition(&i))
 		return;

@@ -84,7 +84,7 @@ set_sun_partition(int i, uint start, uint stop, int sysid)
 {
 	sunlabel->infos[i].id = sysid;
 	sunlabel->partitions[i].start_cylinder =
-		SUN_SSWAP32(start / (heads * sectors));
+		SUN_SSWAP32(start / (g_heads * g_sectors));
 	sunlabel->partitions[i].num_sectors =
 		SUN_SSWAP32(stop - start);
 	set_changed(i);
@@ -111,13 +111,13 @@ check_sun_label(void)
 "e.g. heads, sectors, cylinders and partitions\n"
 "or force a fresh label (s command in main menu)\n");
 	} else {
-		heads = SUN_SSWAP16(sunlabel->ntrks);
-		cylinders = SUN_SSWAP16(sunlabel->ncyl);
-		sectors = SUN_SSWAP16(sunlabel->nsect);
+		g_heads = SUN_SSWAP16(sunlabel->ntrks);
+		g_cylinders = SUN_SSWAP16(sunlabel->ncyl);
+		g_sectors = SUN_SSWAP16(sunlabel->nsect);
 	}
 	update_units();
 	current_label_type = label_sun;
-	partitions = 8;
+	g_partitions = 8;
 	return 1;
 }
 
@@ -273,32 +273,32 @@ create_sunlabel(void)
 	}
 	if (!p || floppy) {
 		if (!ioctl(fd, HDIO_GETGEO, &geometry)) {
-			heads = geometry.heads;
-			sectors = geometry.sectors;
-			cylinders = geometry.cylinders;
+			g_heads = geometry.heads;
+			g_sectors = geometry.sectors;
+			g_cylinders = geometry.cylinders;
 		} else {
-			heads = 0;
-			sectors = 0;
-			cylinders = 0;
+			g_heads = 0;
+			g_sectors = 0;
+			g_cylinders = 0;
 		}
 		if (floppy) {
 			sunlabel->nacyl = 0;
-			sunlabel->pcylcount = SUN_SSWAP16(cylinders);
+			sunlabel->pcylcount = SUN_SSWAP16(g_cylinders);
 			sunlabel->rspeed = SUN_SSWAP16(300);
 			sunlabel->ilfact = SUN_SSWAP16(1);
 			sunlabel->sparecyl = 0;
 		} else {
-			heads = read_int(1, heads, 1024, 0, "Heads");
-			sectors = read_int(1, sectors, 1024, 0, "Sectors/track");
-		if (cylinders)
-			cylinders = read_int(1, cylinders-2, 65535, 0, "Cylinders");
+			g_heads = read_int(1, g_heads, 1024, 0, "Heads");
+			g_sectors = read_int(1, g_sectors, 1024, 0, "Sectors/track");
+		if (g_cylinders)
+			g_cylinders = read_int(1, g_cylinders - 2, 65535, 0, "Cylinders");
 		else
-			cylinders = read_int(1, 0, 65535, 0, "Cylinders");
+			g_cylinders = read_int(1, 0, 65535, 0, "Cylinders");
 			sunlabel->nacyl = SUN_SSWAP16(read_int(0, 2, 65535, 0, "Alternate cylinders"));
-			sunlabel->pcylcount = SUN_SSWAP16(read_int(0, cylinders+SUN_SSWAP16(sunlabel->nacyl), 65535, 0, "Physical cylinders"));
+			sunlabel->pcylcount = SUN_SSWAP16(read_int(0, g_cylinders + SUN_SSWAP16(sunlabel->nacyl), 65535, 0, "Physical cylinders"));
 			sunlabel->rspeed = SUN_SSWAP16(read_int(1, 5400, 100000, 0, "Rotation speed (rpm)"));
 			sunlabel->ilfact = SUN_SSWAP16(read_int(1, 1, 32, 0, "Interleave factor"));
-			sunlabel->sparecyl = SUN_SSWAP16(read_int(0, 0, sectors, 0, "Extra sectors per cylinder"));
+			sunlabel->sparecyl = SUN_SSWAP16(read_int(0, 0, g_sectors, 0, "Extra sectors per cylinder"));
 		}
 	} else {
 		sunlabel->sparecyl = SUN_SSWAP16(p->sparecyl);
@@ -309,9 +309,9 @@ create_sunlabel(void)
 		sunlabel->nsect = SUN_SSWAP16(p->nsect);
 		sunlabel->rspeed = SUN_SSWAP16(p->rspeed);
 		sunlabel->ilfact = SUN_SSWAP16(1);
-		cylinders = p->ncyl;
-		heads = p->ntrks;
-		sectors = p->nsect;
+		g_cylinders = p->ncyl;
+		g_heads = p->ntrks;
+		g_sectors = p->nsect;
 		puts("You may change all the disk params from the x menu");
 	}
 
@@ -319,23 +319,23 @@ create_sunlabel(void)
 		"%s%s%s cyl %d alt %d hd %d sec %d",
 		p ? p->vendor : "", (p && *p->vendor) ? " " : "",
 		p ? p->model : (floppy ? "3,5\" floppy" : "Linux custom"),
-		cylinders, SUN_SSWAP16(sunlabel->nacyl), heads, sectors);
+		g_cylinders, SUN_SSWAP16(sunlabel->nacyl), g_heads, g_sectors);
 
-	sunlabel->ntrks = SUN_SSWAP16(heads);
-	sunlabel->nsect = SUN_SSWAP16(sectors);
-	sunlabel->ncyl = SUN_SSWAP16(cylinders);
+	sunlabel->ntrks = SUN_SSWAP16(g_heads);
+	sunlabel->nsect = SUN_SSWAP16(g_sectors);
+	sunlabel->ncyl = SUN_SSWAP16(g_cylinders);
 	if (floppy)
-		set_sun_partition(0, 0, cylinders * heads * sectors, LINUX_NATIVE);
+		set_sun_partition(0, 0, g_cylinders * g_heads * g_sectors, LINUX_NATIVE);
 	else {
-		if (cylinders * heads * sectors >= 150 * 2048) {
-			ndiv = cylinders - (50 * 2048 / (heads * sectors)); /* 50M swap */
+		if (g_cylinders * g_heads * g_sectors >= 150 * 2048) {
+			ndiv = g_cylinders - (50 * 2048 / (g_heads * g_sectors)); /* 50M swap */
 		} else
-			ndiv = cylinders * 2 / 3;
-		set_sun_partition(0, 0, ndiv * heads * sectors, LINUX_NATIVE);
-		set_sun_partition(1, ndiv * heads * sectors, cylinders * heads * sectors, LINUX_SWAP);
+			ndiv = g_cylinders * 2 / 3;
+		set_sun_partition(0, 0, ndiv * g_heads * g_sectors, LINUX_NATIVE);
+		set_sun_partition(1, ndiv * g_heads * g_sectors, g_cylinders * g_heads * g_sectors, LINUX_SWAP);
 		sunlabel->infos[1].flags |= 0x01; /* Not mountable */
 	}
-	set_sun_partition(2, 0, cylinders * heads * sectors, SUN_WHOLE_DISK);
+	set_sun_partition(2, 0, g_cylinders * g_heads * g_sectors, SUN_WHOLE_DISK);
 	{
 		unsigned short *ush = (unsigned short *)sunlabel;
 		unsigned short csum = 0;
@@ -365,12 +365,12 @@ fetch_sun(uint *starts, uint *lens, uint *start, uint *stop)
 	int i, continuous = 1;
 
 	*start = 0;
-	*stop = cylinders * heads * sectors;
-	for (i = 0; i < partitions; i++) {
+	*stop = g_cylinders * g_heads * g_sectors;
+	for (i = 0; i < g_partitions; i++) {
 		if (sunlabel->partitions[i].num_sectors
 		 && sunlabel->infos[i].id
 		 && sunlabel->infos[i].id != SUN_WHOLE_DISK) {
-			starts[i] = SUN_SSWAP32(sunlabel->partitions[i].start_cylinder) * heads * sectors;
+			starts[i] = SUN_SSWAP32(sunlabel->partitions[i].start_cylinder) * g_heads * g_sectors;
 			lens[i] = SUN_SSWAP32(sunlabel->partitions[i].num_sectors);
 			if (continuous) {
 				if (starts[i] == *start)
@@ -408,10 +408,10 @@ verify_sun(void)
 	int array[8];
 
 	verify_sun_starts = starts;
-	fetch_sun(starts,lens,&start,&stop);
+	fetch_sun(starts, lens, &start, &stop);
 	for (k = 0; k < 7; k++) {
 		for (i = 0; i < 8; i++) {
-			if (k && (lens[i] % (heads * sectors))) {
+			if (k && (lens[i] % (g_heads * g_sectors))) {
 				printf("Partition %d doesn't end on cylinder boundary\n", i+1);
 			}
 			if (lens[i]) {
@@ -452,7 +452,7 @@ verify_sun(void)
 		printf("No partitions defined\n");
 		return;
 	}
-	stop = cylinders * heads * sectors;
+	stop = g_cylinders * g_heads * g_sectors;
 	if (starts[array[0]])
 		printf("Unused gap - sectors 0-%d\n", starts[array[0]]);
 	for (i = 0; i < 7 && array[i+1] != -1; i++) {
@@ -499,7 +499,7 @@ add_sun_partition(int n, int sys)
 			first *= units_per_sector;
 		else
 			/* Starting sector has to be properly aligned */
-			first = (first + heads * sectors - 1) / (heads * sectors);
+			first = (first + g_heads * g_sectors - 1) / (g_heads * g_sectors);
 		if (n == 2 && first != 0)
 			printf("\
 It is highly recommended that the third partition covers the whole disk\n\
@@ -520,10 +520,10 @@ and is of type 'Whole disk'\n");
 		/* On the other hand, one should not use partitions
 		   starting at block 0 in an md, or the label will
 		   be trashed. */
-		for (i = 0; i < partitions; i++)
+		for (i = 0; i < g_partitions; i++)
 			if (lens[i] && starts[i] <= first && starts[i] + lens[i] > first)
 				break;
-		if (i < partitions && !whole_disk) {
+		if (i < g_partitions && !whole_disk) {
 			if (n == 2 && !first) {
 				whole_disk = 1;
 				break;
@@ -532,9 +532,9 @@ and is of type 'Whole disk'\n");
 		} else
 			break;
 	}
-	stop = cylinders * heads * sectors;
+	stop = g_cylinders * g_heads * g_sectors;
 	stop2 = stop;
-	for (i = 0; i < partitions; i++) {
+	for (i = 0; i < g_partitions; i++) {
 		if (starts[i] > first && starts[i] < stop)
 			stop = starts[i];
 	}
@@ -581,7 +581,7 @@ sun_delete_partition(int i)
 	if (i == 2
 	 && sunlabel->infos[i].id == SUN_WHOLE_DISK
 	 && !sunlabel->partitions[i].start_cylinder
-	 && (nsec = SUN_SSWAP32(sunlabel->partitions[i].num_sectors)) == heads * sectors * cylinders)
+	 && (nsec = SUN_SSWAP32(sunlabel->partitions[i].num_sectors)) == g_heads * g_sectors * g_cylinders)
 		printf("If you want to maintain SunOS/Solaris compatibility, "
 			"consider leaving this\n"
 			"partition as Whole disk (5), starting at 0, with %u "
@@ -631,8 +631,8 @@ sun_list_table(int xtra)
 		"%d extra sects/cyl, interleave %d:1\n"
 		"%s\n"
 		"Units = %s of %d * 512 bytes\n\n",
-			disk_device, heads, sectors, SUN_SSWAP16(sunlabel->rspeed),
-			cylinders, SUN_SSWAP16(sunlabel->nacyl),
+			disk_device, g_heads, g_sectors, SUN_SSWAP16(sunlabel->rspeed),
+			g_cylinders, SUN_SSWAP16(sunlabel->nacyl),
 			SUN_SSWAP16(sunlabel->pcylcount),
 			SUN_SSWAP16(sunlabel->sparecyl),
 			SUN_SSWAP16(sunlabel->ilfact),
@@ -642,14 +642,14 @@ sun_list_table(int xtra)
 		printf(
 	"\nDisk %s (Sun disk label): %d heads, %d sectors, %d cylinders\n"
 	"Units = %s of %d * 512 bytes\n\n",
-			disk_device, heads, sectors, cylinders,
+			disk_device, g_heads, g_sectors, g_cylinders,
 			str_units(PLURAL), units_per_sector);
 
 	printf("%*s Flag    Start       End    Blocks   Id  System\n",
 		w + 1, "Device");
-	for (i = 0; i < partitions; i++) {
+	for (i = 0; i < g_partitions; i++) {
 		if (sunlabel->partitions[i].num_sectors) {
-			uint32_t start = SUN_SSWAP32(sunlabel->partitions[i].start_cylinder) * heads * sectors;
+			uint32_t start = SUN_SSWAP32(sunlabel->partitions[i].start_cylinder) * g_heads * g_sectors;
 			uint32_t len = SUN_SSWAP32(sunlabel->partitions[i].num_sectors);
 			printf("%s %c%c %9ld %9ld %9ld%c  %2x  %s\n",
 				partname(disk_device, i+1, w),			/* device */
@@ -684,7 +684,7 @@ static void
 sun_set_xcyl(void)
 {
 	sunlabel->sparecyl =
-		SUN_SSWAP16(read_int(0, SUN_SSWAP16(sunlabel->sparecyl), sectors, 0,
+		SUN_SSWAP16(read_int(0, SUN_SSWAP16(sunlabel->sparecyl), g_sectors, 0,
 				"Extra sectors per cylinder"));
 }
 

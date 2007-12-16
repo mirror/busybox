@@ -248,7 +248,7 @@ check_sgi_label(void)
 	}
 	update_units();
 	current_label_type = label_sgi;
-	partitions = 16;
+	g_partitions = 16;
 	sgi_volumes = 15;
 	return 1;
 }
@@ -295,7 +295,7 @@ sgi_list_table(int xtra)
 			"%d extra sects/cyl, interleave %d:1\n"
 			"%s\n"
 			"Units = %s of %d * 512 bytes\n\n",
-			disk_device, heads, sectors, cylinders,
+			disk_device, g_heads, g_sectors, g_cylinders,
 			SGI_SSWAP16(sgiparam.pcylcount),
 			SGI_SSWAP16(sgiparam.sparecyl),
 			SGI_SSWAP16(sgiparam.ilfact),
@@ -305,7 +305,7 @@ sgi_list_table(int xtra)
 		printf("\nDisk %s (SGI disk label): "
 			"%d heads, %d sectors, %d cylinders\n"
 			"Units = %s of %d * 512 bytes\n\n",
-			disk_device, heads, sectors, cylinders,
+			disk_device, g_heads, g_sectors, g_cylinders,
 			str_units(PLURAL), units_per_sector );
 	}
 
@@ -317,7 +317,7 @@ sgi_list_table(int xtra)
 	printf("----- partitions -----\n"
 		"Pt# %*s  Info     Start       End   Sectors  Id  System\n",
 		w + 2, "Device");
-	for (i = 0; i < partitions; i++) {
+	for (i = 0; i < g_partitions; i++) {
 		if (sgi_get_num_sectors(i) || debug ) {
 			uint32_t start = sgi_get_start_sector(i);
 			uint32_t len = sgi_get_num_sectors(i);
@@ -359,7 +359,7 @@ sgi_set_bootpartition(int i)
 static unsigned int
 sgi_get_lastblock(void)
 {
-	return heads * sectors * cylinders;
+	return g_heads * g_sectors * g_cylinders;
 }
 
 static void
@@ -660,7 +660,7 @@ sgi_set_entire(void)
 {
 	int n;
 
-	for (n = 10; n < partitions; n++) {
+	for (n = 10; n < g_partitions; n++) {
 		if (!sgi_get_num_sectors(n) ) {
 			sgi_set_partition(n, 0, sgi_get_lastblock(), SGI_VOLUME);
 			break;
@@ -673,7 +673,7 @@ sgi_set_volhdr(void)
 {
 	int n;
 
-	for (n = 8; n < partitions; n++) {
+	for (n = 8; n < g_partitions; n++) {
 	if (!sgi_get_num_sectors(n)) {
 		/*
 		 * 5 cylinders is an arbitrary value I like
@@ -681,8 +681,8 @@ sgi_set_volhdr(void)
 		 * (like sash, symmon, fx, ide) with ca. 3200
 		 * sectors.
 		 */
-		if (heads * sectors * 5 < sgi_get_lastblock())
-			sgi_set_partition(n, 0, heads * sectors * 5, SGI_VOLHDR);
+		if (g_heads * g_sectors * 5 < sgi_get_lastblock())
+			sgi_set_partition(n, 0, g_heads * g_sectors * 5, SGI_VOLHDR);
 			break;
 		}
 	}
@@ -783,18 +783,18 @@ create_sgilabel(void)
 	sgi_other_endian = (BYTE_ORDER == LITTLE_ENDIAN);
 	res = ioctl(fd, BLKGETSIZE, &longsectors);
 	if (!ioctl(fd, HDIO_GETGEO, &geometry)) {
-		heads = geometry.heads;
-		sectors = geometry.sectors;
+		g_heads = geometry.heads;
+		g_sectors = geometry.sectors;
 		if (res == 0) {
 			/* the get device size ioctl was successful */
-			cylinders = longsectors / (heads * sectors);
-			cylinders /= sec_fac;
+			g_cylinders = longsectors / (g_heads * g_sectors);
+			g_cylinders /= sec_fac;
 		} else {
 			/* otherwise print error and use truncated version */
-			cylinders = geometry.cylinders;
+			g_cylinders = geometry.cylinders;
 			printf(
 "Warning: BLKGETSIZE ioctl failed on %s.  Using geometry cylinder value of %d.\n"
-"This value may be truncated for devices > 33.8 GB.\n", disk_device, cylinders);
+"This value may be truncated for devices > 33.8 GB.\n", disk_device, g_cylinders);
 		}
 	}
 	for (i = 0; i < 4; i++) {
@@ -851,7 +851,7 @@ create_sgilabel(void)
 	//memset( &(sgilabel->directory), 0, sizeof(struct volume_directory)*15 );
 	//memset( &(sgilabel->partitions), 0, sizeof(struct sgi_partinfo)*16 );
 	current_label_type = label_sgi;
-	partitions = 16;
+	g_partitions = 16;
 	sgi_volumes = 15;
 	sgi_set_entire();
 	sgi_set_volhdr();
