@@ -256,7 +256,7 @@ static void dhcprelay_loop(int *fds, int num_sockets, int max_socket, char **cli
 		if (select(max_socket + 1, &rfds, NULL, NULL, &tv) > 0) {
 			/* server */
 			if (FD_ISSET(fds[0], &rfds)) {
-				packlen = udhcp_get_packet(&dhcp_msg, fds[0]);
+				packlen = udhcp_recv_packet(&dhcp_msg, fds[0]);
 				if (packlen > 0) {
 					pass_back(&dhcp_msg, packlen, fds);
 				}

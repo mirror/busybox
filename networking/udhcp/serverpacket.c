@@ -30,7 +30,7 @@ static int send_packet_to_relay(struct dhcpMessage *payload)
 {
 	DEBUG("Forwarding packet to relay");
 
-	return udhcp_kernel_packet(payload, server_config.server, SERVER_PORT,
+	return udhcp_send_kernel_packet(payload, server_config.server, SERVER_PORT,
 			payload->giaddr, SERVER_PORT);
 }
 
@@ -58,7 +58,7 @@ static int send_packet_to_client(struct dhcpMessage *payload, int force_broadcas
 		ciaddr = payload->yiaddr;
 		chaddr = payload->chaddr;
 	}
-	return udhcp_raw_packet(payload, server_config.server, SERVER_PORT,
+	return udhcp_send_raw_packet(payload, server_config.server, SERVER_PORT,
 			ciaddr, CLIENT_PORT, chaddr, server_config.ifindex);
 }
 

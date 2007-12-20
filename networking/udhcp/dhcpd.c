@@ -133,7 +133,7 @@ int udhcpd_main(int argc, char **argv)
 		default: continue;	/* signal or error (probably EINTR) */
 		}
 
-		bytes = udhcp_get_packet(&packet, server_socket); /* this waits for a packet - idle */
+		bytes = udhcp_recv_packet(&packet, server_socket); /* this waits for a packet - idle */
 		if (bytes < 0) {
 			if (bytes == -1 && errno != EINTR) {
 				DEBUG("error on read, %s, reopening socket", strerror(errno));

@@ -451,7 +451,7 @@ int udhcpc_main(int argc, char **argv)
 			/* A packet is ready, read it */
 
 			if (listen_mode == LISTEN_KERNEL)
-				len = udhcp_get_packet(&packet, sockfd);
+				len = udhcp_recv_packet(&packet, sockfd);
 			else len = get_raw_packet(&packet, sockfd);
 
 			if (len == -1 && errno != EINTR) {

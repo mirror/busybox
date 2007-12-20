@@ -86,7 +86,7 @@ int send_decline(uint32_t xid, uint32_t server)
 
 	bb_info_msg("Sending decline...");
 
-	return udhcp_raw_packet(&packet, INADDR_ANY, CLIENT_PORT, INADDR_BROADCAST,
+	return udhcp_send_raw_packet(&packet, INADDR_ANY, CLIENT_PORT, INADDR_BROADCAST,
 		SERVER_PORT, MAC_BCAST_ADDR, client_config.ifindex);
 }
 #endif
@@ -106,7 +106,7 @@ int send_discover(uint32_t xid, uint32_t requested)
 	add_simple_option(packet.options, DHCP_MAX_SIZE, htons(576));
 	add_requests(&packet);
 	bb_info_msg("Sending discover...");
-	return udhcp_raw_packet(&packet, INADDR_ANY, CLIENT_PORT, INADDR_BROADCAST,
+	return udhcp_send_raw_packet(&packet, INADDR_ANY, CLIENT_PORT, INADDR_BROADCAST,
 			SERVER_PORT, MAC_BCAST_ADDR, client_config.ifindex);
 }
 
@@ -126,7 +126,7 @@ int send_selecting(uint32_t xid, uint32_t server, uint32_t requested)
 	add_requests(&packet);
 	addr.s_addr = requested;
 	bb_info_msg("Sending select for %s...", inet_ntoa(addr));
-	return udhcp_raw_packet(&packet, INADDR_ANY, CLIENT_PORT, INADDR_BROADCAST,
+	return udhcp_send_raw_packet(&packet, INADDR_ANY, CLIENT_PORT, INADDR_BROADCAST,
 				SERVER_PORT, MAC_BCAST_ADDR, client_config.ifindex);
 }
 
@@ -143,9 +143,9 @@ int send_renew(uint32_t xid, uint32_t server, uint32_t ciaddr)
 	add_requests(&packet);
 	bb_info_msg("Sending renew...");
 	if (server)
-		return udhcp_kernel_packet(&packet, ciaddr, CLIENT_PORT, server, SERVER_PORT);
+		return udhcp_send_kernel_packet(&packet, ciaddr, CLIENT_PORT, server, SERVER_PORT);
 
-	return udhcp_raw_packet(&packet, INADDR_ANY, CLIENT_PORT, INADDR_BROADCAST,
+	return udhcp_send_raw_packet(&packet, INADDR_ANY, CLIENT_PORT, INADDR_BROADCAST,
 				SERVER_PORT, MAC_BCAST_ADDR, client_config.ifindex);
 }
 
@@ -163,7 +163,7 @@ int send_release(uint32_t server, uint32_t ciaddr)
 	add_simple_option(packet.options, DHCP_SERVER_ID, server);
 
 	bb_info_msg("Sending release...");
-	return udhcp_kernel_packet(&packet, ciaddr, CLIENT_PORT, server, SERVER_PORT);
+	return udhcp_send_kernel_packet(&packet, ciaddr, CLIENT_PORT, server, SERVER_PORT);
 }
 
 
@@ -172,7 +172,6 @@ int get_raw_packet(struct dhcpMessage *payload, int fd)
 {
 	int bytes;
 	struct udp_dhcp_packet packet;
-	uint32_t source, dest;
 	uint16_t check;
 
 	memset(&packet, 0, sizeof(struct udp_dhcp_packet));
@@ -207,36 +206,31 @@ int get_raw_packet(struct dhcpMessage *payload, int fd)
 		return -2;
 	}
 
-	/* check IP checksum */
+	/* verify IP checksum */
 	check = packet.ip.check;
 	packet.ip.check = 0;
-	if (check != udhcp_checksum(&(packet.ip), sizeof(packet.ip))) {
-		DEBUG("bad IP header checksum, ignoring");
+	if (check != udhcp_checksum(&packet.ip, sizeof(packet.ip))) {
+		DEBUG("Bad IP header checksum, ignoring");
 		return -1;
 	}
 
-	/* verify the UDP checksum by replacing the header with a pseudo header */
-	source = packet.ip.saddr;
-	dest = packet.ip.daddr;
+	/* verify UDP checksum. IP header has to be modified for this */
+	memset(&packet.ip, 0, offsetof(struct iphdr, protocol));
+	/* fields which are not memset: protocol, check, saddr, daddr */
+	packet.ip.tot_len = packet.udp.len; /* yes, this is needed */
 	check = packet.udp.check;
 	packet.udp.check = 0;
-	memset(&packet.ip, 0, sizeof(packet.ip));
-
-	packet.ip.protocol = IPPROTO_UDP;
-	packet.ip.saddr = source;
-	packet.ip.daddr = dest;
-	packet.ip.tot_len = packet.udp.len; /* cheat on the psuedo-header */
 	if (check && check != udhcp_checksum(&packet, bytes)) {
 		bb_error_msg("packet with bad UDP checksum received, ignoring");
 		return -2;
 	}
 
-	memcpy(payload, &(packet.data), bytes - (sizeof(packet.ip) + sizeof(packet.udp)));
+	memcpy(payload, &packet.data, bytes - (sizeof(packet.ip) + sizeof(packet.udp)));
 
 	if (payload->cookie != htonl(DHCP_MAGIC)) {
 		bb_error_msg("received bogus message (bad magic) - ignoring");
 		return -2;
 	}
-	DEBUG("oooooh!!! got some!");
+	DEBUG("Got valid DHCP packet");
 	return bytes - (sizeof(packet.ip) + sizeof(packet.udp));
 }

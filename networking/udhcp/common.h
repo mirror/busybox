@@ -54,14 +54,16 @@ struct BUG_bad_sizeof_struct_udp_dhcp_packet {
 		[(sizeof(struct udp_dhcp_packet) != 576 + CONFIG_UDHCPC_SLACK_FOR_BUGGY_SERVERS) ? -1 : 1];
 };
 
-void udhcp_init_header(struct dhcpMessage *packet, char type);
-int udhcp_get_packet(struct dhcpMessage *packet, int fd);
 uint16_t udhcp_checksum(void *addr, int count);
-int udhcp_raw_packet(struct dhcpMessage *payload,
+
+void udhcp_init_header(struct dhcpMessage *packet, char type);
+
+int udhcp_recv_packet(struct dhcpMessage *packet, int fd);
+int udhcp_send_raw_packet(struct dhcpMessage *payload,
 		uint32_t source_ip, int source_port,
 		uint32_t dest_ip, int dest_port,
 		const uint8_t *dest_arp, int ifindex);
-int udhcp_kernel_packet(struct dhcpMessage *payload,
+int udhcp_send_kernel_packet(struct dhcpMessage *payload,
 		uint32_t source_ip, int source_port,
 		uint32_t dest_ip, int dest_port);
 

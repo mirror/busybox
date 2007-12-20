@@ -39,7 +39,7 @@ void udhcp_init_header(struct dhcpMessage *packet, char type)
 
 
 /* read a packet from socket fd, return -1 on read error, -2 on packet error */
-int udhcp_get_packet(struct dhcpMessage *packet, int fd)
+int udhcp_recv_packet(struct dhcpMessage *packet, int fd)
 {
 #if 0
 	static const char broken_vendors[][8] = {
@@ -111,7 +111,7 @@ uint16_t udhcp_checksum(void *addr, int count)
 		/* Make sure that the left-over byte is added correctly both
 		 * with little and big endian hosts */
 		uint16_t tmp = 0;
-		*(uint8_t *) (&tmp) = * (uint8_t *) source;
+		*(uint8_t*)&tmp = *(uint8_t*)source;
 		sum += tmp;
 	}
 	/*  Fold 32-bit sum to 16 bits */
@@ -123,7 +123,7 @@ uint16_t udhcp_checksum(void *addr, int count)
 
 
 /* Construct a ip/udp header for a packet, and specify the source and dest hardware address */
-int udhcp_raw_packet(struct dhcpMessage *payload,
+int udhcp_send_raw_packet(struct dhcpMessage *payload,
 		uint32_t source_ip, int source_port,
 		uint32_t dest_ip, int dest_port, const uint8_t *dest_arp, int ifindex)
 {
@@ -131,6 +131,11 @@ int udhcp_raw_packet(struct dhcpMessage *payload,
 	int result;
 	struct sockaddr_ll dest;
 	struct udp_dhcp_packet packet;
+
+	enum {
+		IP_UPD_DHCP_SIZE = sizeof(struct udp_dhcp_packet) - CONFIG_UDHCPC_SLACK_FOR_BUGGY_SERVERS,
+		UPD_DHCP_SIZE    = IP_UPD_DHCP_SIZE - offsetof(struct udp_dhcp_packet, udp),
+	};
 
 	fd = socket(PF_PACKET, SOCK_DGRAM, htons(ETH_P_IP));
 	if (fd < 0) {
@@ -140,6 +145,7 @@ int udhcp_raw_packet(struct dhcpMessage *payload,
 
 	memset(&dest, 0, sizeof(dest));
 	memset(&packet, 0, sizeof(packet));
+	packet.data = *payload; /* struct copy */
 
 	dest.sll_family = AF_PACKET;
 	dest.sll_protocol = htons(ETH_P_IP);
@@ -157,19 +163,19 @@ int udhcp_raw_packet(struct dhcpMessage *payload,
 	packet.ip.daddr = dest_ip;
 	packet.udp.source = htons(source_port);
 	packet.udp.dest = htons(dest_port);
-	packet.udp.len = htons(sizeof(packet.udp) + sizeof(struct dhcpMessage)); /* cheat on the psuedo-header */
+	/* size, excluding IP header: */
+	packet.udp.len = htons(UPD_DHCP_SIZE);
+	/* for UDP checksumming, ip.len is set to UDP packet len */
 	packet.ip.tot_len = packet.udp.len;
-	memcpy(&(packet.data), payload, sizeof(struct dhcpMessage));
-	packet.udp.check = udhcp_checksum(&packet, sizeof(struct udp_dhcp_packet));
-
-	packet.ip.tot_len = htons(sizeof(struct udp_dhcp_packet));
+	packet.udp.check = udhcp_checksum(&packet, IP_UPD_DHCP_SIZE);
+	/* but for sending, it is set to IP packet len */
+	packet.ip.tot_len = htons(IP_UPD_DHCP_SIZE);
 	packet.ip.ihl = sizeof(packet.ip) >> 2;
 	packet.ip.version = IPVERSION;
 	packet.ip.ttl = IPDEFTTL;
-	packet.ip.check = udhcp_checksum(&(packet.ip), sizeof(packet.ip));
+	packet.ip.check = udhcp_checksum(&packet.ip, sizeof(packet.ip));
 
-	result = sendto(fd, &packet, sizeof(struct udp_dhcp_packet), 0,
-			(struct sockaddr *) &dest, sizeof(dest));
+	result = sendto(fd, &packet, IP_UPD_DHCP_SIZE, 0, (struct sockaddr *) &dest, sizeof(dest));
 	if (result <= 0) {
 		bb_perror_msg("sendto");
 	}
@@ -179,12 +185,16 @@ int udhcp_raw_packet(struct dhcpMessage *payload,
 
 
 /* Let the kernel do all the work for packet generation */
-int udhcp_kernel_packet(struct dhcpMessage *payload,
+int udhcp_send_kernel_packet(struct dhcpMessage *payload,
 		uint32_t source_ip, int source_port,
 		uint32_t dest_ip, int dest_port)
 {
 	int fd, result;
 	struct sockaddr_in client;
+
+	enum {
+		DHCP_SIZE = sizeof(struct dhcpMessage) - CONFIG_UDHCPC_SLACK_FOR_BUGGY_SERVERS,
+	};
 
 	fd = socket(PF_INET, SOCK_DGRAM, IPPROTO_UDP);
 	if (fd < 0)
@@ -212,7 +222,7 @@ int udhcp_kernel_packet(struct dhcpMessage *payload,
 		return -1;
 	}
 
-	result = write(fd, payload, sizeof(struct dhcpMessage));
+	result = write(fd, payload, DHCP_SIZE);
 	close(fd);
 	return result;
 }
