@@ -122,7 +122,7 @@ uint16_t udhcp_checksum(void *addr, int count)
 }
 
 
-/* Construct a ip/udp header for a packet, and specify the source and dest hardware address */
+/* Construct a ip/udp header for a packet, send packet */
 int udhcp_send_raw_packet(struct dhcpMessage *payload,
 		uint32_t source_ip, int source_port,
 		uint32_t dest_ip, int dest_port, const uint8_t *dest_arp, int ifindex)
@@ -175,6 +175,10 @@ int udhcp_send_raw_packet(struct dhcpMessage *payload,
 	packet.ip.ttl = IPDEFTTL;
 	packet.ip.check = udhcp_checksum(&packet.ip, sizeof(packet.ip));
 
+	/* Currently we send full-sized DHCP packets (zero padded).
+	 * If you need to change this: last byte of the packet is
+	 * packet.data.options[end_option(packet.data.options)]
+	 */
 	result = sendto(fd, &packet, IP_UPD_DHCP_SIZE, 0, (struct sockaddr *) &dest, sizeof(dest));
 	if (result <= 0) {
 		bb_perror_msg("sendto");
@@ -222,6 +226,7 @@ int udhcp_send_kernel_packet(struct dhcpMessage *payload,
 		return -1;
 	}
 
+	/* Currently we send full-sized DHCP packets (see above) */
 	result = write(fd, payload, DHCP_SIZE);
 	close(fd);
 	return result;
