@@ -35,6 +35,7 @@
 enum {
 	MAX_LINELEN = CONFIG_FEATURE_VI_MAX_LEN,
 	MAX_SCR_COLS = CONFIG_FEATURE_VI_MAX_LEN,
+	MAX_TABSTOP = 32, // sanity limit
 };
 
 // Misc. non-Ascii keys that report an escape sequence
@@ -116,7 +117,8 @@ static int fn_start;            // index of first cmd line file name
 static int save_argc;           // how many file names on cmd line
 static int cmdcnt;              // repetition count
 static int rows, columns;       // the terminal screen is this size
-static int crow, ccol, offset;  // cursor is on Crow x Ccol with Horz Ofset
+static int crow, ccol;          // cursor is on Crow x Ccol
+static int offset;              // chars scrolled off the screen to the left
 static char *status_buffer;     // mesages to the user
 #define STATUS_BUFFER_LEN  200
 static int have_status_msg;     // is default edit status needed?
@@ -253,6 +255,9 @@ static int file_insert(const char *, char *, int);
 static int file_insert(const char *, char *);
 #endif
 static int file_write(char *, char *, char *);
+#if !ENABLE_FEATURE_VI_OPTIMIZE_CURSOR
+#define place_cursor(a, b, optimize) place_cursor(a, b)
+#endif
 static void place_cursor(int, int, int);
 static void screen_erase(void);
 static void clear_to_eol(void);
@@ -266,7 +271,7 @@ static void psbs(const char *, ...);    // Print Status Buf in standout mode
 static void ni(const char *);		// display messages
 static int format_edit_status(void);	// format file status on status line
 static void redraw(int);	// force a full screen refresh
-static void format_line(char*, char*, int);
+static int format_line(char*, char*, int);
 static void refresh(int);	// update the terminal from screen[]
 
 static void Indicate_Error(void);       // use flash or beep to indicate error
@@ -992,7 +997,7 @@ static void colon(char * buf)
 			/* tabstopXXXX */
 			if (strncasecmp(argp + i, "tabstop=%d ", 7) == 0) {
 				sscanf(strchr(argp + i, '='), "tabstop=%d" + 7, &ch);
-				if (ch > 0 && ch < columns - 1)
+				if (ch > 0 && ch <= MAX_TABSTOP)
 					tabstop = ch;
 			}
 			while (*argp && *argp != ' ')
@@ -1252,7 +1257,7 @@ static char *end_line(char * p) // return pointer to NL of cur line line
 	return p;
 }
 
-static inline char *dollar_line(char * p) // return pointer to just before NL line
+static char *dollar_line(char * p) // return pointer to just before NL line
 {
 	while (p < end - 1 && *p != '\n')
 		p++;			// go to cur line E-o-l
@@ -1923,7 +1928,7 @@ static void show_help(void)
 	);
 }
 
-static inline void print_literal(char * buf, const char * s) // copy s to buf, convert unprintable
+static void print_literal(char * buf, const char * s) // copy s to buf, convert unprintable
 {
 	unsigned char c;
 	char b[2];
@@ -2055,7 +2060,7 @@ static void check_context(char cmd)
 	}
 }
 
-static inline char *swap_context(char * p) // goto new context for '' command make this the current context
+static char *swap_context(char * p) // goto new context for '' command make this the current context
 {
 	char *tmp;
 
@@ -2147,7 +2152,7 @@ static int mysleep(int hund)	// sleep for 'h' 1/100 seconds
 	return safe_poll(pfd, 1, hund*10) > 0;
 }
 
-static int readed_for_parse;
+static int chars_to_parse;
 
 //----- IO Routines --------------------------------------------
 static char readit(void)	// read (maybe cursor) key from stdin
@@ -2199,7 +2204,7 @@ static char readit(void)	// read (maybe cursor) key from stdin
 
 	alarm(0);	// turn alarm OFF while we wait for input
 	fflush(stdout);
-	n = readed_for_parse;
+	n = chars_to_parse;
 	// get input from User- are there already input chars in Q?
 	if (n <= 0) {
 		// the Q is empty, wait for a typed char
@@ -2228,7 +2233,7 @@ static char readit(void)	// read (maybe cursor) key from stdin
 					n += r;
 			}
 		}
-		readed_for_parse = n;
+		chars_to_parse = n;
 	}
 	c = readbuffer[0];
 	if (c == 27 && n > 1) {
@@ -2256,7 +2261,7 @@ static char readit(void)	// read (maybe cursor) key from stdin
 		n = 1;
 	}
 	// remove key sequence from Q
-	readed_for_parse -= n;
+	chars_to_parse -= n;
 	memmove(readbuffer, readbuffer + n, MAX_LINELEN - n);
 	alarm(3);	// we are done waiting for input, turn alarm ON
 	return c;
@@ -2265,7 +2270,7 @@ static char readit(void)	// read (maybe cursor) key from stdin
 //----- IO Routines --------------------------------------------
 static char get_one_char(void)
 {
-	static char c;
+	char c;
 
 #if ENABLE_FEATURE_VI_DOT_CMD
 	// ! adding2q  && ioq == 0  read()
@@ -2290,7 +2295,7 @@ static char get_one_char(void)
 	} else {
 		// adding STDIN chars to q
 		c = readit();	// get the users input
-		if (last_modifying_cmd != 0) {
+		if (last_modifying_cmd != NULL) {
 			int len = strlen(last_modifying_cmd);
 			if (len >= MAX_LINELEN - 1) {
 				psbs("last_modifying_cmd overrun");
@@ -2303,16 +2308,17 @@ static char get_one_char(void)
 #else
 	c = readit();		// get the users input
 #endif /* FEATURE_VI_DOT_CMD */
-	return c;			// return the char, where ever it came from
+	return c;
 }
 
 static char *get_input_line(const char * prompt) // get input line- use "status line"
 {
-	static char *obufp;
+	static char *buf; // [MAX_LINELEN]
 
-	char buf[MAX_LINELEN];
 	char c;
 	int i;
+
+	if (!buf) buf = xmalloc(MAX_LINELEN);
 
 	strcpy(buf, prompt);
 	last_status_cksum = 0;	// force status update
@@ -2329,7 +2335,7 @@ static char *get_input_line(const char * prompt) // get input line- use "status 
 			// user wants to erase prev char
 			i--;		// backup to prev char
 			buf[i] = '\0';	// erase the char
-			buf[i + 1] = '\0';	// null terminate buffer
+			//buf[i + 1] = '\0';	// null terminate buffer
 			write1("\b \b");     // erase char on screen
 			if (i <= 0) {	// user backs up before b-o-l, exit
 				break;
@@ -2342,9 +2348,7 @@ static char *get_input_line(const char * prompt) // get input line- use "status 
 		}
 	}
 	refresh(FALSE);
-	free(obufp);
-	obufp = xstrdup(buf);
-	return obufp;
+	return buf;
 }
 
 static int file_size(const char *fn) // what is the byte size of "fn"
@@ -2434,12 +2438,11 @@ static int file_write(char * fn, char * first, char * last)
 		return -2;
 	}
 	charcnt = 0;
-	// FIXIT- use the correct umask()
-	fd = open(fn, (O_WRONLY | O_CREAT | O_TRUNC), 0664);
+	fd = open(fn, (O_WRONLY | O_CREAT | O_TRUNC), 0666);
 	if (fd < 0)
 		return -1;
 	cnt = last - first + 1;
-	charcnt = write(fd, first, cnt);
+	charcnt = full_write(fd, first, cnt);
 	if (charcnt == cnt) {
 		// good write
 		//file_modified = FALSE; // the file has not been modified
@@ -2459,22 +2462,13 @@ static int file_write(char * fn, char * first, char * last)
 //  .       ...     .
 //  .       ...     .
 //  22,0    ...     22,79
-//  23,0    ...     23,79   status line
-//
+//  23,0    ...     23,79   <- status line
 
 //----- Move the cursor to row x col (count from 0, not 1) -------
-static void place_cursor(int row, int col, int opti)
+static void place_cursor(int row, int col, int optimize)
 {
-	char cm1[MAX_LINELEN];
+	char cm1[32];
 	char *cm;
-#if ENABLE_FEATURE_VI_OPTIMIZE_CURSOR
-	char cm2[MAX_LINELEN];
-	char *screenp;
-	// char cm3[MAX_LINELEN];
-	int Rrow = last_row;
-#endif
-
-	memset(cm1, '\0', MAX_LINELEN);  // clear the buffer
 
 	if (row < 0) row = 0;
 	if (row >= rows) row = rows - 1;
@@ -2484,45 +2478,42 @@ static void place_cursor(int row, int col, int opti)
 	//----- 1.  Try the standard terminal ESC sequence
 	sprintf(cm1, CMrc, row + 1, col + 1);
 	cm = cm1;
-	if (!opti)
-		goto pc0;
 
 #if ENABLE_FEATURE_VI_OPTIMIZE_CURSOR
-	//----- find the minimum # of chars to move cursor -------------
-	//----- 2.  Try moving with discreet chars (Newline, [back]space, ...)
-	memset(cm2, '\0', MAX_LINELEN);  // clear the buffer
+	if (optimize && col < 16) {
+		char cm2[MAX_LINELEN]; // better size estimate?
+		char *screenp;
+		int Rrow = last_row;
 
-	// move to the correct row
-	while (row < Rrow) {
-		// the cursor has to move up
-		strcat(cm2, CMup);
-		Rrow--;
+		//----- find the minimum # of chars to move cursor -------------
+		//----- 2.  Try moving with discreet chars (Newline, [back]space, ...)
+		cm2[0] = '\0';
+
+		// move to the correct row
+		while (row < Rrow) {
+			// the cursor has to move up
+			strcat(cm2, CMup);
+			Rrow--;
+		}
+		while (row > Rrow) {
+			// the cursor has to move down
+			strcat(cm2, CMdown);
+			Rrow++;
+		}
+
+		// now move to the correct column
+		strcat(cm2, "\r");			// start at col 0
+		// just send out orignal source char to get to correct place
+		screenp = &screen[row * columns];	// start of screen line
+		strncat(cm2, screenp, col);
+
+		// pick the shortest cursor motion to send out
+		if (strlen(cm2) < strlen(cm)) {
+			cm = cm2;
+		}
 	}
-	while (row > Rrow) {
-		// the cursor has to move down
-		strcat(cm2, CMdown);
-		Rrow++;
-	}
-
-	// now move to the correct column
-	strcat(cm2, "\r");			// start at col 0
-	// just send out orignal source char to get to correct place
-	screenp = &screen[row * columns];	// start of screen line
-	strncat(cm2, screenp, col);
-
-	//----- 3.  Try some other way of moving cursor
-	//---------------------------------------------
-
-	// pick the shortest cursor motion to send out
-	cm = cm1;
-	if (strlen(cm2) < strlen(cm)) {
-		cm = cm2;
-	}  /* else if (strlen(cm3) < strlen(cm)) {
-		cm= cm3;
-	} */
 #endif /* FEATURE_VI_OPTIMIZE_CURSOR */
- pc0:
-	write1(cm);                 // move the cursor
+	write1(cm);
 }
 
 //----- Erase from cursor to end of line -----------------------
@@ -2721,11 +2712,15 @@ static void redraw(int full_screen)
 }
 
 //----- Format a text[] line into a buffer ---------------------
-static void format_line(char *dest, char *src, int li)
+// Returns number of leading chars which should be ignored
+// (return value is always <= offset)
+static int format_line(char *dest, char *src, int li)
 {
-	int co;
 	char c;
+	int co;
+	int ofs = offset;
 
+	memset(dest, ' ', MAX_SCR_COLS);
 	for (co = 0; co < MAX_SCR_COLS; co++) {
 		c = ' ';		// assume blank
 		if (li > 0 && co == 0) {
@@ -2734,33 +2729,52 @@ static void format_line(char *dest, char *src, int li)
 		// are there chars in text[] and have we gone past the end
 		if (text < end && src < end) {
 			c = *src++;
-		}
-		if (c == '\n')
-			break;
-		if ((c & 0x80) && !Isprint(c)) {
-			c = '.';
-		}
-		if ((unsigned char)(c) < ' ' || c == 0x7f) {
-			if (c == '\t') {
-				c = ' ';
-				//       co %    8     !=     7
-				for (; (co % tabstop) != (tabstop - 1); co++) {
-					dest[co] = c;
+
+			if (c == '\n')
+				break;
+			if ((c & 0x80) && !Isprint(c)) {
+				c = '.';
+			}
+			if ((unsigned char)(c) < ' ' || c == 0x7f) {
+				if (c == '\t') {
+					c = ' ';
+					//      co %    8     !=     7
+					while ((co % tabstop) != (tabstop - 1)) {
+						dest[co++] = c;
+						if (co >= MAX_SCR_COLS)
+							goto ret;
+					}
+				} else {
+					dest[co++] = '^';
+					if (co >= MAX_SCR_COLS)
+						goto ret;
+					if (c == 0x7f)
+						c = '?';
+					else
+						c += '@';       // make it visible
 				}
-			} else {
-				dest[co++] = '^';
-				if (c == 0x7f)
-					c = '?';
-				else
-					c += '@';       // make it visible
 			}
 		}
 		// the co++ is done here so that the column will
 		// not be overwritten when we blank-out the rest of line
 		dest[co] = c;
+		// discard scrolled-off portion, in tabstop-sized pieces
+		if (ofs >= tabstop && co >= tabstop) {
+			co -= tabstop;
+			ofs -= tabstop;
+			memset(&dest[co + 1], ' ', tabstop);
+		}
 		if (src >= end)
 			break;
 	}
+ ret:
+	if (co < ofs) {
+		// entire line has scrolled off, make it entirely blank
+		memset(dest, ' ', MAX_SCR_COLS);
+		ofs = 0;
+	}
+	dest[MAX_SCR_COLS-1] = '\0';
+	return ofs;
 }
 
 //----- Refresh the changed screen lines -----------------------
@@ -2786,19 +2800,19 @@ static void refresh(int full_screen)
 
 	// compare text[] to screen[] and mark screen[] lines that need updating
 	for (li = 0; li < rows - 1; li++) {
+		int ofs;
 		int cs, ce;				// column start & end
-		memset(buf, ' ', MAX_SCR_COLS);		// blank-out the buffer
-		buf[MAX_SCR_COLS-1] = 0;		// NULL terminate the buffer
 		// format current text line into buf
-		format_line(buf, tp, li);
+		ofs = format_line(buf, tp, li);
 
 		// skip to the end of the current text[] line
-		while (tp < end && *tp++ != '\n') /*no-op*/;
+		while (tp < end && *tp++ != '\n')
+			continue;
 
 		// see if there are any changes between vitual screen and buf
 		changed = FALSE;	// assume no change
-		cs= 0;
-		ce= columns-1;
+		cs = 0;
+		ce = columns - 1;
 		sp = &screen[li * columns];	// start of screen line
 		if (full_screen) {
 			// force re-draw of every single column from 0 - columns-1
@@ -2807,15 +2821,15 @@ static void refresh(int full_screen)
 		// compare newly formatted buffer with virtual screen
 		// look forward for first difference between buf and screen
 		for (; cs <= ce; cs++) {
-			if (buf[cs + offset] != sp[cs]) {
+			if (buf[cs + ofs] != sp[cs]) {
 				changed = TRUE;	// mark for redraw
 				break;
 			}
 		}
 
 		// look backward for last difference between buf and screen
-		for ( ; ce >= cs; ce--) {
-			if (buf[ce + offset] != sp[ce]) {
+		for (; ce >= cs; ce--) {
+			if (buf[ce + ofs] != sp[ce]) {
 				changed = TRUE;	// mark for redraw
 				break;
 			}
@@ -2829,13 +2843,13 @@ static void refresh(int full_screen)
 		}
 
 		// make a sanity check of columns indexes
-		if (cs < 0) cs= 0;
-		if (ce > columns-1) ce= columns-1;
-		if (cs > ce) {  cs= 0;  ce= columns-1;  }
+		if (cs < 0) cs = 0;
+		if (ce > columns - 1) ce = columns - 1;
+		if (cs > ce) { cs = 0; ce = columns - 1; }
 		// is there a change between vitual screen and buf
 		if (changed) {
-			//  copy changed part of buffer to virtual screen
-			memmove(sp+cs, buf+(cs+offset), ce-cs+1);
+			// copy changed part of buffer to virtual screen
+			memmove(sp+cs, buf+(cs+ofs), ce-cs+1);
 
 			// move cursor to column of first change
 			if (offset != old_offset) {
@@ -2848,7 +2862,7 @@ static void refresh(int full_screen)
 				//  try to optimize cursor movement
 				//  otherwise, use standard ESC sequence
 				place_cursor(li, cs, li == (last_li+1) ? TRUE : FALSE);
-				last_li= li;
+				last_li = li;
 #else
 				place_cursor(li, cs, FALSE);	// use standard ESC sequence
 #endif /* FEATURE_VI_OPTIMIZE_CURSOR */
@@ -2859,7 +2873,7 @@ static void refresh(int full_screen)
 				int nic = ce - cs + 1;
 				char *out = sp + cs;
 
-				while (nic-- > 0) {
+				while (--nic >= 0) {
 					bb_putchar(*out);
 					out++;
 				}
@@ -2877,8 +2891,7 @@ static void refresh(int full_screen)
 	place_cursor(crow, ccol, FALSE);
 #endif
 
-	if (offset != old_offset)
-		old_offset = offset;
+	old_offset = offset;
 }
 
 //---------------------------------------------------------------------
@@ -3230,7 +3243,7 @@ static void do_cmd(char c)
 	case '.':			// .- repeat the last modifying command
 		// Stuff the last_modifying_cmd back into stdin
 		// and let it be re-executed.
-		if (last_modifying_cmd != 0) {
+		if (last_modifying_cmd != NULL) {
 			ioq = ioq_start = xstrdup(last_modifying_cmd);
 		}
 		break;
@@ -3844,7 +3857,7 @@ static void crash_dummy()
 	cmd1 = " \n\r\002\004\005\006\025\0310^$-+wWeEbBhjklHL";
 
 	// is there already a command running?
-	if (readed_for_parse > 0)
+	if (chars_to_parse > 0)
 		goto cd1;
  cd0:
 	startrbi = rbi = 0;
@@ -3921,7 +3934,7 @@ static void crash_dummy()
 		}
 		strcat(readbuffer, "\033");
 	}
-	readed_for_parse = strlen(readbuffer);
+	chars_to_parse = strlen(readbuffer);
  cd1:
 	totalcmds++;
 	if (sleeptime > 0)
