@@ -12900,7 +12900,9 @@ int ash_main(int argc, char **argv)
 	INIT_G_misc();
 	INIT_G_memstack();
 	INIT_G_var();
+#if ENABLE_ASH_ALIAS
 	INIT_G_alias();
+#endif
 	INIT_G_cmdtable();
 
 #if PROFILE

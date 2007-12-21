@@ -52,7 +52,7 @@ static void make_device(char *path, int delete)
 	if (ENABLE_FEATURE_MDEV_CONF) {
 		FILE *fp;
 		char *line, *vline;
-		size_t lineno = 0;
+		unsigned lineno = 0;
 
 		/* If we have a config file, look up the user settings */
 		fp = fopen_or_warn("/etc/mdev.conf", "r");
@@ -149,7 +149,7 @@ static void make_device(char *path, int delete)
 
 			/* Did everything parse happily? */
 			if (field <= 2)
-				bb_error_msg_and_die("bad line %i", lineno);
+				bb_error_msg_and_die("bad line %u", lineno);
 
  next_line:
 			free(line);
