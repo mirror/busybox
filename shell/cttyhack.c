@@ -37,7 +37,7 @@ struct serial_struct {
 	int	reserved[1];
 };
 
-int cttyhack_main(int argc, char **argv) ATTRIBUTE_NORETURN;
+int cttyhack_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int cttyhack_main(int argc, char **argv)
 {
 	int fd;
