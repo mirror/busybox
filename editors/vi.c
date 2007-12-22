@@ -2516,9 +2516,9 @@ static void place_cursor(int row, int col, int optimize)
 		}
  skip: ;
 	}
+	last_row = row;
 #endif /* FEATURE_VI_OPTIMIZE_CURSOR */
 	write1(cm);
-	last_row = row;
 }
 
 //----- Erase from cursor to end of line -----------------------
@@ -2762,10 +2762,9 @@ static char* format_line(char *src, int li)
 	int ofs = offset;
 	char *dest = scr_out_buf; // [MAX_SCR_COLS + MAX_TABSTOP * 2]
 
-	memset(dest, ' ', MAX_SCR_COLS + MAX_TABSTOP * 2);
-
 	c = '~'; // char in col 0 in non-existent lines is '~'
-	for (co = 0; co < columns + MAX_TABSTOP; co++) {
+	co = 0;
+	while (co < columns + tabstop) {
 		// have we gone past the end?
 		if (src < end) {
 			c = *src++;
@@ -2790,11 +2789,11 @@ static char* format_line(char *src, int li)
 				}
 			}
 		}
-		dest[co] = c;
+		dest[co++] = c;
 		// discard scrolled-off-to-the-left portion,
 		// in tabstop-sized pieces
 		if (ofs >= tabstop && co >= tabstop) {
-			memmove(dest, dest + tabstop, co + 1);
+			memmove(dest, dest + tabstop, co);
 			co -= tabstop;
 			ofs -= tabstop;
 		}
@@ -2803,9 +2802,14 @@ static char* format_line(char *src, int li)
 	}
 	// check "short line, gigantic offset" case
 	if (co < ofs)
-		ofs = co + 1;
-	dest[ofs + MAX_SCR_COLS] = '\0';
-	return &dest[ofs];
+		ofs = co;
+	// discard last scrolled off part
+	co -= ofs;
+	dest += ofs;
+	// fill the rest with spaces
+	if (co < columns)
+		memset(&dest[co], ' ', columns - co);
+	return dest;
 }
 
 //----- Refresh the changed screen lines -----------------------
