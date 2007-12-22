@@ -90,7 +90,7 @@ int ip_main(int argc, char **argv)
 		USE_FEATURE_IP_RULE(IP_rule,)
 		IP_none
 	};
-	int (*ip_func)(char **argv) = ip_print_help;
+	int (*ip_func)(char**) = ip_print_help;
 
 	argv = ip_parse_common_args(argv + 1);
 	if (*argv) {

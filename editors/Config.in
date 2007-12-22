@@ -98,6 +98,16 @@ config FEATURE_VI_MAX_LEN
 	  Contrary to what you may think, this is not eating much.
 	  Make it smaller than 4k only if you are very limited on memory.
 
+config FEATURE_VI_8BIT
+	bool "Allow vi to display 8-bit chars (otherwise shows dots)"
+	default y
+	depends on VI
+	help
+	  If your terminal can display characters with high bit set,
+	  you may want to enable this. Note: vi is not Unicode-capable.
+	  If your terminal combines several 8-bit bytes into one character
+	  (as in Unicode mode), this will not work properly.
+
 config FEATURE_VI_COLON
 	bool "Enable \":\" colon commands (no \"ex\" mode)"
 	default y

@@ -25,12 +25,26 @@
 
 #define ENABLE_FEATURE_VI_CRASHME 0
 
+
 #if ENABLE_LOCALE_SUPPORT
-#define Isprint(c) isprint((c))
+
+#if ENABLE_FEATURE_VI_8BIT
+#define Isprint(c) isprint(c)
 #else
-/* 0x9b is Meta-ESC */
-#define Isprint(c) ((unsigned char)(c) >= ' ' && (c) != 0x7f && (unsigned char)(c) != 0x9b)
+#define Isprint(c) (isprint(c) && (unsigned char)(c) < 0x7f)
 #endif
+
+#else
+
+/* 0x9b is Meta-ESC */
+#if ENABLE_FEATURE_VI_8BIT
+#define Isprint(c) ((unsigned char)(c) >= ' ' && (c) != 0x7f && (unsigned char)(c) != 0x9b)
+#else
+#define Isprint(c) ((unsigned char)(c) >= ' ' && (unsigned char)(c) < 0x7f)
+#endif
+
+#endif
+
 
 enum {
 	MAX_TABSTOP = 32, // sanity limit
@@ -1162,7 +1176,7 @@ static int next_tabstop(int col)
 }
 
 //----- Synchronize the cursor to Dot --------------------------
-static void sync_cursor(char * d, int *row, int *col)
+static void sync_cursor(char *d, int *row, int *col)
 {
 	char *beg_cur;	// begin and end of "d" line
 	char *end_scr;	// begin and end of screen
@@ -1209,19 +1223,22 @@ static void sync_cursor(char * d, int *row, int *col)
 
 	// find out what col "d" is on
 	co = 0;
-	do {				// drive "co" to correct column
+	while (tp < d) { // drive "co" to correct column
 		if (*tp == '\n') //vda || *tp == '\0')
 			break;
 		if (*tp == '\t') {
-			if (d == tp && cmd_mode) { /* handle tabs like real vi */
+			// handle tabs like real vi
+			if (d == tp && cmd_mode) {
 				break;
 			} else {
 				co = next_tabstop(co);
 			}
-		} else if (*tp < ' ' || *tp == 127) {
-			co++;		// display as ^X, use 2 columns
+		} else if ((unsigned char)*tp < ' ' || *tp == 0x7f) {
+			co++; // display as ^X, use 2 columns
 		}
-	} while (tp++ < d && ++co);
+		co++;
+		tp++;
+	}
 
 	// "co" is the column where "dot" is.
 	// The screen has "columns" columns.
@@ -1367,15 +1384,17 @@ static char *move_to_col(char *p, int l)
 
 	p = begin_line(p);
 	co = 0;
-	do {
+	while (co < l && p < end) {
 		if (*p == '\n') //vda || *p == '\0')
 			break;
 		if (*p == '\t') {
 			co = next_tabstop(co);
 		} else if (*p < ' ' || *p == 127) {
-			co++;		// display as ^X, use 2 columns
+			co++; // display as ^X, use 2 columns
 		}
-	} while (++co <= l && p++ < end);
+		co++;
+		p++;
+	}
 	return p;
 }
 
@@ -2081,6 +2100,7 @@ static void cookmode(void)
 #if ENABLE_FEATURE_VI_USE_SIGNALS
 static void winch_sig(int sig ATTRIBUTE_UNUSED)
 {
+	// FIXME: do it in main loop!!!
 	signal(SIGWINCH, winch_sig);
 	if (ENABLE_FEATURE_VI_WIN_RESIZE) {
 		get_terminal_width_height(0, &columns, &rows);
@@ -2735,11 +2755,9 @@ static void redraw(int full_screen)
 }
 
 //----- Format a text[] line into a buffer ---------------------
-// Returns number of leading chars which should be ignored
-// (return value is always <= offset)
 static char* format_line(char *src, int li)
 {
-	char c;
+	unsigned char c;
 	int co;
 	int ofs = offset;
 	char *dest = scr_out_buf; // [MAX_SCR_COLS + MAX_TABSTOP * 2]
@@ -2747,8 +2765,8 @@ static char* format_line(char *src, int li)
 	memset(dest, ' ', MAX_SCR_COLS + MAX_TABSTOP * 2);
 
 	c = '~'; // char in col 0 in non-existent lines is '~'
-	for (co = 0; co < MAX_SCR_COLS + MAX_TABSTOP; co++) {
-		// are there chars in text[] and have we gone past the end
+	for (co = 0; co < columns + MAX_TABSTOP; co++) {
+		// have we gone past the end?
 		if (src < end) {
 			c = *src++;
 			if (c == '\n')
@@ -2756,7 +2774,7 @@ static char* format_line(char *src, int li)
 			if ((c & 0x80) && !Isprint(c)) {
 				c = '.';
 			}
-			if ((unsigned char)c < ' ' || c == 0x7f) {
+			if (c < ' ' || c == 0x7f) {
 				if (c == '\t') {
 					c = ' ';
 					//      co %    8     !=     7
@@ -2907,14 +2925,15 @@ static void refresh(int full_screen)
 //----- Execute a Vi Command -----------------------------------
 static void do_cmd(char c)
 {
-	const char *msg;
+	const char *msg = msg; // for compiler
 	char c1, *p, *q, *save_dot;
 	char buf[12];
-	int cnt, i, j, dir, yf;
+	int dir = dir; // for compiler
+	int cnt, i, j, yf;
 
-//	c1 = c;				// quiet the compiler
-//	cnt = yf = dir = 0;	// quiet the compiler
-//	msg = p = q = save_dot = buf;	// quiet the compiler
+//	c1 = c; // quiet the compiler
+//	cnt = yf = 0; // quiet the compiler
+//	msg = p = q = save_dot = buf; // quiet the compiler
 	memset(buf, '\0', 12);
 
 	show_status_line();
