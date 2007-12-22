@@ -37,14 +37,14 @@ int losetup_main(int argc, char **argv)
 		if (argc != 1)
 			bb_show_usage();
 		if (del_loop(argv[0]))
-			bb_perror_nomsg_and_die();
+			bb_simple_perror_msg_and_die(argv[0]);
 		return EXIT_SUCCESS;
 	}
 
 	if (argc == 2) {
 		/* -o or no option */
 		if (set_loop(&argv[0], argv[1], offset) < 0)
-			bb_perror_nomsg_and_die();
+			bb_simple_perror_msg_and_die(argv[0]);
 		return EXIT_SUCCESS;
 	}
 
@@ -52,7 +52,7 @@ int losetup_main(int argc, char **argv)
 		/* -o or no option */
 		s = query_loop(argv[0]);
 		if (!s)
-			bb_perror_nomsg_and_die();
+			bb_simple_perror_msg_and_die(argv[0]);
 		printf("%s: %s\n", argv[0], s);
 		if (ENABLE_FEATURE_CLEAN_UP)
 			free(s);
