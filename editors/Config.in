@@ -90,14 +90,13 @@ config VI
 	  you may wish to use something else.
 
 config FEATURE_VI_MAX_LEN
-	int "Maximum line length in vi"
+	int "Maximum screen width in vi"
 	range 256 16384
-	default 1024
+	default 4096
 	depends on VI
 	help
-	  vi uses on-stack buffers for intermediate line buffers.
-	  You may want to decrease this parameter if your target machine
-	  benefits from smaller stack usage.
+	  Contrary to what you may think, this is not eating much.
+	  Make it smaller than 4k only if you are very limited on memory.
 
 config FEATURE_VI_COLON
 	bool "Enable \":\" colon commands (no \"ex\" mode)"
