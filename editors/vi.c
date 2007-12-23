@@ -1162,9 +1162,9 @@ static void Hit_Return(void)
 {
 	char c;
 
-	standout_start();	// start reverse video
+	standout_start();
 	write1("[Hit return to continue]");
-	standout_end();		// end reverse video
+	standout_end();
 	while ((c = get_one_char()) != '\n' && c != '\r')
 		continue;
 	redraw(TRUE);		// force redraw all
@@ -1179,16 +1179,13 @@ static int next_tabstop(int col)
 static void sync_cursor(char *d, int *row, int *col)
 {
 	char *beg_cur;	// begin and end of "d" line
-	char *end_scr;	// begin and end of screen
 	char *tp;
 	int cnt, ro, co;
 
 	beg_cur = begin_line(d);	// first char of cur line
 
-	end_scr = end_screen();	// last char of screen
-
 	if (beg_cur < screenbegin) {
-		// "d" is before  top line on screen
+		// "d" is before top line on screen
 		// how many lines do we have to move
 		cnt = count_lines(beg_cur, screenbegin);
  sc1:
@@ -1199,18 +1196,22 @@ static void sync_cursor(char *d, int *row, int *col)
 				screenbegin = prev_line(screenbegin);
 			}
 		}
-	} else if (beg_cur > end_scr) {
-		// "d" is after bottom line on screen
-		// how many lines do we have to move
-		cnt = count_lines(end_scr, beg_cur);
-		if (cnt > (rows - 1) / 2)
-			goto sc1;	// too many lines
-		for (ro = 0; ro < cnt - 1; ro++) {
-			// move screen begin the same amount
-			screenbegin = next_line(screenbegin);
-			// now, move the end of screen
-			end_scr = next_line(end_scr);
-			end_scr = end_line(end_scr);
+	} else {
+		char *end_scr;	// begin and end of screen
+		end_scr = end_screen();	// last char of screen
+		if (beg_cur > end_scr) {
+			// "d" is after bottom line on screen
+			// how many lines do we have to move
+			cnt = count_lines(end_scr, beg_cur);
+			if (cnt > (rows - 1) / 2)
+				goto sc1;	// too many lines
+			for (ro = 0; ro < cnt - 1; ro++) {
+				// move screen begin the same amount
+				screenbegin = next_line(screenbegin);
+				// now, move the end of screen
+				end_scr = next_line(end_scr);
+				end_scr = end_line(end_scr);
+			}
 		}
 	}
 	// "d" is on screen- find out which row
@@ -1271,31 +1272,37 @@ static void sync_cursor(char *d, int *row, int *col)
 }
 
 //----- Text Movement Routines ---------------------------------
-static char *begin_line(char * p) // return pointer to first char cur line
+static char *begin_line(char *p) // return pointer to first char cur line
 {
-	while (p > text && p[-1] != '\n')
-		p--;			// go to cur line B-o-l
+	if (p > text) {
+		p = memrchr(text, '\n', p - text);
+		if (!p)
+			return text;
+		return p + 1;
+	}
 	return p;
 }
 
-static char *end_line(char * p) // return pointer to NL of cur line line
+static char *end_line(char *p) // return pointer to NL of cur line line
 {
-	while (p < end - 1 && *p != '\n')
-		p++;			// go to cur line E-o-l
+	if (p < end - 1) {
+		p = memchr(p, '\n', end - p - 1);
+		if (!p)
+			return end - 1;
+	}
 	return p;
 }
 
-static char *dollar_line(char * p) // return pointer to just before NL line
+static char *dollar_line(char *p) // return pointer to just before NL line
 {
-	while (p < end - 1 && *p != '\n')
-		p++;			// go to cur line E-o-l
+	p = end_line(p);
 	// Try to stay off of the Newline
 	if (*p == '\n' && (p - begin_line(p)) > 0)
 		p--;
 	return p;
 }
 
-static char *prev_line(char * p) // return pointer first char prev line
+static char *prev_line(char *p) // return pointer first char prev line
 {
 	p = begin_line(p);	// goto begining of cur line
 	if (p[-1] == '\n' && p > text)
@@ -1304,7 +1311,7 @@ static char *prev_line(char * p) // return pointer first char prev line
 	return p;
 }
 
-static char *next_line(char * p) // return pointer first char next line
+static char *next_line(char *p) // return pointer first char next line
 {
 	p = end_line(p);
 	if (*p == '\n' && p < end - 1)
@@ -1326,21 +1333,24 @@ static char *end_screen(void)
 	return q;
 }
 
-static int count_lines(char * start, char * stop) // count line from start to stop
+// count line from start to stop
+static int count_lines(char *start, char *stop)
 {
 	char *q;
 	int cnt;
 
-	if (stop < start) {	// start and stop are backwards- reverse them
+	if (stop < start) { // start and stop are backwards- reverse them
 		q = start;
 		start = stop;
 		stop = q;
 	}
 	cnt = 0;
-	stop = end_line(stop);	// get to end of this line
-	for (q = start; q <= stop && q <= end - 1; q++) {
-		if (*q == '\n')
+	stop = end_line(stop);
+	while (start <= stop && start <= end - 1) {
+		start = end_line(start);
+		if (*start == '\n')
 			cnt++;
+		start++;
 	}
 	return cnt;
 }
@@ -1415,11 +1425,11 @@ static void dot_scroll(int cnt, int dir)
 	for (; cnt > 0; cnt--) {
 		if (dir < 0) {
 			// scroll Backwards
-			// ctrl-Y  scroll up one line
+			// ctrl-Y scroll up one line
 			screenbegin = prev_line(screenbegin);
 		} else {
 			// scroll Forwards
-			// ctrl-E  scroll down one line
+			// ctrl-E scroll down one line
 			screenbegin = next_line(screenbegin);
 		}
 	}
@@ -1444,7 +1454,7 @@ static void dot_delete(void)	// delete the char at 'dot'
 	text_hole_delete(dot, dot);
 }
 
-static char *bound_dot(char * p) // make sure  text[0] <= P < "end"
+static char *bound_dot(char *p) // make sure  text[0] <= P < "end"
 {
 	if (p >= end && end > text) {
 		p = end - 1;
@@ -1808,7 +1818,7 @@ static char *find_pair(char * p, const char c)
 
 #if ENABLE_FEATURE_VI_SETOPTS
 // show the matching char of a pair,  ()  []  {}
-static void showmatching(char * p)
+static void showmatching(char *p)
 {
 	char *q, *save_dot;
 
@@ -2057,7 +2067,7 @@ static void check_context(char cmd)
 	}
 }
 
-static char *swap_context(char * p) // goto new context for '' command make this the current context
+static char *swap_context(char *p) // goto new context for '' command make this the current context
 {
 	char *tmp;
 
@@ -2837,12 +2847,16 @@ static void refresh(int full_screen)
 	// compare text[] to screen[] and mark screen[] lines that need updating
 	for (li = 0; li < rows - 1; li++) {
 		int cs, ce;				// column start & end
+		char *out_buf;
 		// format current text line
-		char *out_buf = format_line(tp, li);
+		out_buf = format_line(tp, li);
 
 		// skip to the end of the current text[] line
-		while (tp < end && *tp++ != '\n')
-			continue;
+		if (tp < end) {
+			char *t = memchr(tp, '\n', end - tp);
+			if (!t) t = end - 1;
+			tp = t + 1;
+		}
 
 		// see if there are any changes between vitual screen and out_buf
 		changed = FALSE;	// assume no change
