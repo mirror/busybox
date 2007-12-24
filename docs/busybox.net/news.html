@@ -1,6 +1,76 @@
 <!--#include file="header.html" -->
 
 <ul>
+  <li><b>24 December 2007 -- BusyBox 1.9.0 (unstable)</b>
+    <p><a href=http://busybox.net/downloads/busybox-1.9.0.tar.bz2>BusyBox 1.9.0</a>.
+    (<a href=http://busybox.net/cgi-bin/viewcvs.cgi/branches/busybox_1_9_stable/>svn</a>,
+    <a href=http://busybox.net/downloads/fixes-1.9.0/>patches</a>,
+    <a href=http://busybox.net/fix.html>how to add a patch</a>)</p>
+
+    <p>Sizes of busybox-1.8.2 and busybox-1.9.0 (with almost full config, static uclibc build):<pre>
+   text    data     bss     dec     hex filename
+ 792796     978    9724  803498   c42aa busybox-1.8.2
+ 783803     683    7508  791994   c15ba busybox-1.9.0
+</pre>
+    <p>Top 10 stack users:<pre>
+busybox-1.8.2:               busybox-1.9.0:
+input_tab             10428  echo_dg                4116
+umount_main            8252  bb_full_fd_action      4112
+rtnl_talk              8240  discard_dg             4096
+xrtnl_dump_filter      8240  echo_stream            4096
+sendMTFValues          5316  discard_stream         4096
+mainSort               4700  find_list_entry2       4096
+mkfs_minix_main        4288  readlink_main          4096
+grave                  4260  ipaddr_list_or_flush   3900
+unix_do_one            4156  iproute_list_or_flush  3680
+parse_prompt           4132  insmod_main            3152
+</pre>
+
+    <p>lash is deleted from this release. hush can be configured down to almost
+       the same size, but it is significantly less buggy. It even works
+       on NOMMU machines (interactive mode and backticks are not working on NOMMU,
+       though). "lash" applet is still available, but it runs hush.
+
+    <p>init has some changes in this release, please report if it causes
+       problems for you.
+
+    <p>Changes since previous release:
+      <ul>
+	<li>Build system improvements
+	<li>Testsuite additions
+	<li>Stack size reductions, code size reductions, data/bss reductions
+	<li>An option to prefer IPv4 address if host has both
+	<li>New applets: hd, sestatus
+	<li>Removed applets: lash
+	<li>hush: fixed a few bugs, wired up echo and test to be builtins
+	<li>init: simplify forking of children
+	<li>getty: special handling of '#' and '@' is removed
+	<li>[su]login: sanitize environment if called by non-root
+	<li>udhcpc: support "bad" servers which send oversized packets
+	  (Cristian Ionescu-Idbohrn &lt;cristian.ionescu-idbohrn at axis.com&gt;)
+	<li>udhcpc: -O option allows to specify which options to ask tor
+	  (Stefan Hellermann &lt;stefan at the2masters.de&gt;)
+	<li>udhcpc: optionally check whether given IP is really free (by ARP ping)
+	  (Jonas Danielsson &lt;jonas.danielsson at axis.com&gt;)
+	<li>vi: now handles files with unlimited line length
+	<li>vi: speedup for huge line lengths
+	<li>vi: Del key works
+	<li>sed: support GNUism '\t'
+	<li>cp/mv/install: optionally use bigger buffer for bulk copying
+	<li>line editing: don't eat stack like crazy
+	<li>passwd: follows symlinked /etc/passwd
+	<li>renice: accepts priority with +N too
+	<li>netstat: wide output mode
+	<li>nameif: extended matching (Nico Erfurth &lt;masta at perlgolf.de&gt;)
+	<li>test: become NOFORK applet
+	<li>find: -iname (Alexander Griesser &lt;alexander.griesser at lkh-vil.or.at&gt;)
+	<li>df: -i option (show inode info) (Pascal Bellard &lt;pascal.bellard at ads-lu.com&gt;)
+	<li>hexdump: -R option (Pascal Bellard &lt;pascal.bellard at ads-lu.com&gt;)
+      </ul>
+
+    <p><a href=http://busybox.net/~vda/HOWTO_bbox_with_uclibc.txt>How to build static busybox against uclibc</a>
+
+
   <li><b>23 November 2007 -- BusyBox 1.8.2 (stable), BusyBox 1.7.4 (stable)</b>
     <p><a href=http://busybox.net/downloads/busybox-1.8.2.tar.bz2>BusyBox 1.8.2</a>.
     (<a href=http://busybox.net/cgi-bin/viewcvs.cgi/branches/busybox_1_8_stable/>svn</a>,
@@ -132,7 +202,6 @@ Equivalent .config, i386 uclibc static builds:
       </ul>
     </p>
 
-    <p><a href=http://busybox.net/~vda/HOWTO_bbox_with_uclibc.txt>How to build static busybox against uclibc</a></p>
   </li>
 
   <li><b>4 November 2007 -- BusyBox 1.7.3 (stable)</b>
