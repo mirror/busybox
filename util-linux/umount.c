@@ -62,7 +62,7 @@ int umount_main(int argc, char **argv)
 		if (opt & OPT_ALL)
 			bb_error_msg_and_die("cannot open %s", bb_path_mtab_file);
 	} else {
-		while (getmntent_r(fp, &me, path, sizeof(path))) {
+		while (getmntent_r(fp, &me, path, PATH_MAX)) {
 			/* Match fstype if passed */
 			if (fstype && match_fstype(&me, fstype))
 				continue;
@@ -89,7 +89,7 @@ int umount_main(int argc, char **argv)
 
 		// Do we already know what to umount this time through the loop?
 		if (m)
-			safe_strncpy(path, m->dir, sizeof(path));
+			safe_strncpy(path, m->dir, PATH_MAX);
 		// For umount -a, end of mtab means time to exit.
 		else if (opt & OPT_ALL)
 			break;
