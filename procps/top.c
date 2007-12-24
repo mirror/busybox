@@ -636,7 +636,7 @@ static void display_topmem_header(int scr_width)
 	}
 	fclose(fp);
 
-#define S(s) (s ? s : "0")
+#define S(s) (s ? s : "0 ")
 	snprintf(linebuf, sizeof(linebuf),
 		"Mem %stotal %sanon %smap %sfree",
 		S(total), S(anon), S(map), S(mfree));

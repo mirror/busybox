@@ -575,17 +575,19 @@ static int busybox_main(char **argv)
 		output_width -= sizeof("start-stop-daemon, ") + 8;
 
 		printf("%s multi-call binary\n", bb_banner); /* reuse const string... */
-		printf("Copyright (C) 1998-2006 Erik Andersen, Rob Landley, and others.\n"
-		       "Licensed under GPLv2. See source distribution for full notice.\n"
+		printf("Copyright (C) 1998-2007 Erik Andersen, Rob Landley, Denys Vlasenko\n"
+		       "and others. Licensed under GPLv2.\n"
+		       "See source distribution for full notice.\n"
 		       "\n"
 		       "Usage: busybox [function] [arguments]...\n"
-		       "   or: [function] [arguments]...\n"
+		       "   or: function [arguments]...\n"
 		       "\n"
 		       "\tBusyBox is a multi-call binary that combines many common Unix\n"
 		       "\tutilities into a single executable.  Most people will create a\n"
 		       "\tlink to busybox for each function they wish to use and BusyBox\n"
 		       "\twill act like whatever it was invoked as!\n"
-		       "\nCurrently defined functions:\n");
+		       "\n"
+		       "Currently defined functions:\n");
 		col = 0;
 		a = applet_names;
 		while (*a) {

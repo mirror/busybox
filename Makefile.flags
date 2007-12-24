@@ -97,4 +97,5 @@ endif
 # Busybox is a stack-fatty so make sure we increase default size
 # TODO: use "make stksizes" to find & fix big stack users
 # (we stole scripts/checkstack.pl from the kernel... thanks guys!)
-FLTFLAGS += -s 20000
+# Reduced from 20k to 16k in 1.9.0.
+FLTFLAGS += -s 16000
