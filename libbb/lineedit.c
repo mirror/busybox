@@ -136,7 +136,7 @@ static struct statics *const ptr_to_statics __attribute__ ((section (".data")));
 #define command_ps       (S.command_ps      )
 #define cmdedit_prompt   (S.cmdedit_prompt  )
 #define num_ok_lines     (S.num_ok_lines    )
-#define user_buf         (S.user_buf        ) 
+#define user_buf         (S.user_buf        )
 #define home_pwd_buf     (S.home_pwd_buf    )
 #define matches          (S.matches         )
 #define num_matches      (S.num_matches     )

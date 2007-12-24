@@ -182,7 +182,7 @@ int tr_main(int argc, char **argv)
 	ssize_t read_chars = 0;
 	size_t in_index = 0, out_index = 0;
 	unsigned last = UCHAR_MAX + 1; /* not equal to any char */
-	unsigned char coded, c; 
+	unsigned char coded, c;
 	unsigned char *output = xmalloc(BUFSIZ);
 	char *vector = xzalloc((ASCII+1) * 3);
 	char *invec  = vector + (ASCII+1);

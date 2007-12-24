@@ -66,7 +66,7 @@ typedef union {
 struct BUG_zip_header_must_be_26_bytes {
 	char BUG_zip_header_must_be_26_bytes[
 		offsetof(zip_header_t, formatted.extra_len) + 2 ==
-	    		ZIP_HEADER_LEN ? 1 : -1];
+			ZIP_HEADER_LEN ? 1 : -1];
 };
 
 #define FIX_ENDIANNESS(zip_header) do { \

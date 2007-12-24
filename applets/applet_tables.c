@@ -65,7 +65,7 @@ int main(int argc, char **argv)
 	i = open(argv[1], O_WRONLY | O_TRUNC | O_CREAT, 0666);
 	if (i < 0)
 		return 1;
-	dup2(i, 1);		
+	dup2(i, 1);
 
 	/* Keep in sync with include/busybox.h! */
 

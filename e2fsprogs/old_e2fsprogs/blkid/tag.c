@@ -364,7 +364,7 @@ void usage(char *prog)
 int main(int argc, char **argv)
 {
 	blkid_tag_iterate	iter;
-	blkid_cache 		cache = NULL;
+	blkid_cache		cache = NULL;
 	blkid_dev		dev;
 	int			c, ret, found;
 	int			flags = BLKID_DEV_FIND;

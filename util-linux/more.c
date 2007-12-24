@@ -165,7 +165,7 @@ int more_main(int argc, char **argv)
 			if (c == '\t') {
 				spaces = CONVERTED_TAB_SIZE - 1;
 				c = ' ';
- 			}
+			}
 
 			/*
 			 * There are two input streams to worry about here:

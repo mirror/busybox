@@ -76,7 +76,7 @@ The following steps will create a root file system.
 
  - Make device files in /dev:
 
- 	This can be done by running the 'mkdevs.sh' script. If you want the gory
+	This can be done by running the 'mkdevs.sh' script. If you want the gory
 	details, you can read the script.
 
  - Make necessary files in /etc:

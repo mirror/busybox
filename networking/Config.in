@@ -549,6 +549,19 @@ config NAMEIF
 	  # Comment
 	  new_interface_name    XX:XX:XX:XX:XX:XX
 
+config FEATURE_NAMEIF_EXTENDED
+	bool "Extended nameif"
+	default n
+	depends on NAMEIF
+	help
+	  This extends the nameif syntax to support the bus_info and driver
+	  checks. The syntax is compatible to the normal nameif.
+	  File format:
+	    new_interface_name  driver=asix bus=usb-0000:00:08.2-3
+	    new_interface_name  bus=usb-0000:00:08.2-3 00:80:C8:38:91:B5
+	    new_interface_name  mac=00:80:C8:38:91:B5
+	    new_interface_name  00:80:C8:38:91:B5
+
 config NC
 	bool "nc"
 	default n

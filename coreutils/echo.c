@@ -293,6 +293,6 @@ int echo_main(int argc, char **argv)
 	}
  ret:
 	/* TODO: implement and use full_writev? */
-	return writev(1, io, (cur_io - io)) >= 0; 
+	return writev(1, io, (cur_io - io)) >= 0;
 }
 #endif
