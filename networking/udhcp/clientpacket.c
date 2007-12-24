@@ -167,39 +167,40 @@ int send_release(uint32_t server, uint32_t ciaddr)
 }
 
 
-/* return -1 on errors that are fatal for the socket, -2 for those that aren't */
+/* Returns -1 on errors that are fatal for the socket, -2 for those that aren't */
 int get_raw_packet(struct dhcpMessage *payload, int fd)
 {
 	int bytes;
 	struct udp_dhcp_packet packet;
 	uint16_t check;
 
-	memset(&packet, 0, sizeof(struct udp_dhcp_packet));
-	bytes = read(fd, &packet, sizeof(struct udp_dhcp_packet));
+	memset(&packet, 0, sizeof(packet));
+	bytes = safe_read(fd, &packet, sizeof(packet));
 	if (bytes < 0) {
 		DEBUG("Cannot read on raw listening socket - ignoring");
 		sleep(1); /* possible down interface, looping condition */
-		return -1;
+		return bytes; /* returns -1 */
 	}
 
-	if (bytes < (int) (sizeof(struct iphdr) + sizeof(struct udphdr))) {
-		DEBUG("Message too short, ignoring");
+	if (bytes < (int) (sizeof(packet.ip) + sizeof(packet.udp))) {
+		DEBUG("Packet is too short, ignoring");
 		return -2;
 	}
 
 	if (bytes < ntohs(packet.ip.tot_len)) {
-		DEBUG("Truncated packet");
+		/* packet is bigger than sizeof(packet), we did partial read */
+		DEBUG("Oversized packet, ignoring");
 		return -2;
 	}
 
 	/* ignore any extra garbage bytes */
 	bytes = ntohs(packet.ip.tot_len);
 
-	/* Make sure its the right packet for us, and that it passes sanity checks */
+	/* make sure its the right packet for us, and that it passes sanity checks */
 	if (packet.ip.protocol != IPPROTO_UDP || packet.ip.version != IPVERSION
 	 || packet.ip.ihl != (sizeof(packet.ip) >> 2)
 	 || packet.udp.dest != htons(CLIENT_PORT)
-	 || bytes > (int) sizeof(struct udp_dhcp_packet)
+	/* || bytes > (int) sizeof(packet) - can't happen */
 	 || ntohs(packet.udp.len) != (uint16_t)(bytes - sizeof(packet.ip))
 	) {
 		DEBUG("Unrelated/bogus packet");
@@ -211,12 +212,12 @@ int get_raw_packet(struct dhcpMessage *payload, int fd)
 	packet.ip.check = 0;
 	if (check != udhcp_checksum(&packet.ip, sizeof(packet.ip))) {
 		DEBUG("Bad IP header checksum, ignoring");
-		return -1;
+		return -2;
 	}
 
 	/* verify UDP checksum. IP header has to be modified for this */
 	memset(&packet.ip, 0, offsetof(struct iphdr, protocol));
-	/* fields which are not memset: protocol, check, saddr, daddr */
+	/* ip.xx fields which are not memset: protocol, check, saddr, daddr */
 	packet.ip.tot_len = packet.udp.len; /* yes, this is needed */
 	check = packet.udp.check;
 	packet.udp.check = 0;
@@ -228,7 +229,7 @@ int get_raw_packet(struct dhcpMessage *payload, int fd)
 	memcpy(payload, &packet.data, bytes - (sizeof(packet.ip) + sizeof(packet.udp)));
 
 	if (payload->cookie != htonl(DHCP_MAGIC)) {
-		bb_error_msg("received bogus message (bad magic) - ignoring");
+		bb_error_msg("received bogus message (bad magic), ignoring");
 		return -2;
 	}
 	DEBUG("Got valid DHCP packet");

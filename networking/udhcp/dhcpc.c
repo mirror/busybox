@@ -454,7 +454,7 @@ int udhcpc_main(int argc, char **argv)
 				len = udhcp_recv_packet(&packet, sockfd);
 			else len = get_raw_packet(&packet, sockfd);
 
-			if (len == -1 && errno != EINTR) {
+			if (len == -1) { /* error is severe, reopen socket */
 				DEBUG("error on read, %s, reopening socket", strerror(errno));
 				change_listen_mode(listen_mode); /* just close and reopen */
 			}

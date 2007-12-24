@@ -41,20 +41,14 @@ void udhcp_init_header(struct dhcpMessage *packet, char type)
 /* read a packet from socket fd, return -1 on read error, -2 on packet error */
 int udhcp_recv_packet(struct dhcpMessage *packet, int fd)
 {
-#if 0
-	static const char broken_vendors[][8] = {
-		"MSFT 98",
-		""
-	};
-#endif
 	int bytes;
 	unsigned char *vendor;
 
 	memset(packet, 0, sizeof(*packet));
-	bytes = read(fd, packet, sizeof(*packet));
+	bytes = safe_read(fd, packet, sizeof(*packet));
 	if (bytes < 0) {
 		DEBUG("cannot read on listening socket, ignoring");
-		return -1;
+		return bytes; /* returns -1 */
 	}
 
 	if (packet->cookie != htonl(DHCP_MAGIC)) {
@@ -67,6 +61,10 @@ int udhcp_recv_packet(struct dhcpMessage *packet, int fd)
 		vendor = get_option(packet, DHCP_VENDOR);
 		if (vendor) {
 #if 0
+			static const char broken_vendors[][8] = {
+				"MSFT 98",
+				""
+			};
 			int i;
 			for (i = 0; broken_vendors[i][0]; i++) {
 				if (vendor[OPT_LEN - 2] == (uint8_t)strlen(broken_vendors[i])
@@ -127,10 +125,11 @@ int udhcp_send_raw_packet(struct dhcpMessage *payload,
 		uint32_t source_ip, int source_port,
 		uint32_t dest_ip, int dest_port, const uint8_t *dest_arp, int ifindex)
 {
-	int fd;
-	int result;
 	struct sockaddr_ll dest;
 	struct udp_dhcp_packet packet;
+	int fd;
+	int result = -1;
+	const char *msg;
 
 	enum {
 		IP_UPD_DHCP_SIZE = sizeof(struct udp_dhcp_packet) - CONFIG_UDHCPC_SLACK_FOR_BUGGY_SERVERS,
@@ -139,8 +138,8 @@ int udhcp_send_raw_packet(struct dhcpMessage *payload,
 
 	fd = socket(PF_PACKET, SOCK_DGRAM, htons(ETH_P_IP));
 	if (fd < 0) {
-		bb_perror_msg("socket");
-		return -1;
+		msg = "socket(%s)";
+		goto ret_msg;
 	}
 
 	memset(&dest, 0, sizeof(dest));
@@ -152,10 +151,9 @@ int udhcp_send_raw_packet(struct dhcpMessage *payload,
 	dest.sll_ifindex = ifindex;
 	dest.sll_halen = 6;
 	memcpy(dest.sll_addr, dest_arp, 6);
-	if (bind(fd, (struct sockaddr *)&dest, sizeof(struct sockaddr_ll)) < 0) {
-		bb_perror_msg("bind");
-		close(fd);
-		return -1;
+	if (bind(fd, (struct sockaddr *)&dest, sizeof(dest)) < 0) {
+		msg = "bind(%s)";
+		goto ret_close;
 	}
 
 	packet.ip.protocol = IPPROTO_UDP;
@@ -179,11 +177,15 @@ int udhcp_send_raw_packet(struct dhcpMessage *payload,
 	 * If you need to change this: last byte of the packet is
 	 * packet.data.options[end_option(packet.data.options)]
 	 */
-	result = sendto(fd, &packet, IP_UPD_DHCP_SIZE, 0, (struct sockaddr *) &dest, sizeof(dest));
-	if (result <= 0) {
-		bb_perror_msg("sendto");
-	}
+	result = sendto(fd, &packet, IP_UPD_DHCP_SIZE, 0,
+				(struct sockaddr *) &dest, sizeof(dest));
+	msg = "sendto";
+ ret_close:
 	close(fd);
+	if (result < 0) {
+ ret_msg:
+		bb_perror_msg(msg, "PACKET");
+	}
 	return result;
 }
 
@@ -193,41 +195,48 @@ int udhcp_send_kernel_packet(struct dhcpMessage *payload,
 		uint32_t source_ip, int source_port,
 		uint32_t dest_ip, int dest_port)
 {
-	int fd, result;
 	struct sockaddr_in client;
+	int fd;
+	int result = -1;
+	const char *msg;
 
 	enum {
 		DHCP_SIZE = sizeof(struct dhcpMessage) - CONFIG_UDHCPC_SLACK_FOR_BUGGY_SERVERS,
 	};
 
 	fd = socket(PF_INET, SOCK_DGRAM, IPPROTO_UDP);
-	if (fd < 0)
-		return -1;
-
+	if (fd < 0) {
+		msg = "socket(%s)";
+		goto ret_msg;
+	}
 	setsockopt_reuseaddr(fd);
 
 	memset(&client, 0, sizeof(client));
 	client.sin_family = AF_INET;
 	client.sin_port = htons(source_port);
 	client.sin_addr.s_addr = source_ip;
-
 	if (bind(fd, (struct sockaddr *)&client, sizeof(client)) == -1) {
-		close(fd);
-		return -1;
+		msg = "bind(%s)";
+		goto ret_close;
 	}
 
 	memset(&client, 0, sizeof(client));
 	client.sin_family = AF_INET;
 	client.sin_port = htons(dest_port);
 	client.sin_addr.s_addr = dest_ip;
-
-	if (connect(fd, (struct sockaddr *)&client, sizeof(struct sockaddr)) == -1) {
-		close(fd);
-		return -1;
+	if (connect(fd, (struct sockaddr *)&client, sizeof(client)) == -1) {
+		msg = "connect";
+		goto ret_close;
 	}
 
 	/* Currently we send full-sized DHCP packets (see above) */
-	result = write(fd, payload, DHCP_SIZE);
+	result = safe_write(fd, payload, DHCP_SIZE);
+	msg = "write";
+ ret_close:
 	close(fd);
+	if (result < 0) {
+ ret_msg:
+		bb_perror_msg(msg, "UDP");
+	}
 	return result;
 }
