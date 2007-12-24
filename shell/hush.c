@@ -1492,16 +1492,16 @@ static void pseudo_exec(struct child_prog *child)
 {
 // FIXME: buggy wrt NOMMU! Must not modify any global data
 // until it does exec/_exit, but currently it does.
-	int rcode;
-
 	if (child->argv) {
 		pseudo_exec_argv(child->argv);
 	}
 
 	if (child->group) {
 #if !BB_MMU
-		bb_error_msg_and_exit("nested lists are not supported on NOMMU");
+		bb_error_msg_and_die("nested lists are not supported on NOMMU");
 #else
+		int rcode;
+
 #if ENABLE_HUSH_INTERACTIVE
 		debug_printf_exec("pseudo_exec: setting interactive_fd=0\n");
 		interactive_fd = 0;    /* crucial!!!! */
