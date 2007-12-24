@@ -181,14 +181,8 @@ static void (*format_address)(off_t, char);
 /* The difference between the old-style pseudo starting address and
    the number of bytes to skip.  */
 static off_t pseudo_offset;
-/* The number of input bytes to skip before formatting and writing.  */
-static off_t n_bytes_to_skip;
 /* When zero, MAX_BYTES_TO_FORMAT and END_OFFSET are ignored, and all
    input is formatted.  */
-/* The maximum number of bytes that will be formatted.  */
-static off_t max_bytes_to_format;
-/* The offset of the first byte after the last byte to be formatted.  */
-static off_t end_offset;
 
 /* The number of input bytes formatted per output line.  It must be
    a multiple of the least common multiple of the sizes associated with
@@ -196,22 +190,14 @@ static off_t end_offset;
    no larger than 16 -- unless specified with the -w option.  */
 static size_t bytes_per_block;
 
-/* Human-readable representation of *file_list (for error messages).
-   It differs from *file_list only when *file_list is "-".  */
-static char const *input_filename;
-
 /* A NULL-terminated list of the file-arguments from the command line.  */
-static char const *const *file_list;
-
-/* Initializer for file_list if no file-arguments
-   were specified on the command line.  */
-static char const *const default_file_list[] = { "-", NULL };
+static const char *const *file_list;
 
 /* The input stream associated with the current file.  */
 static FILE *in_stream;
 
 #define MAX_INTEGRAL_TYPE_SIZE sizeof(ulonglong_t)
-static unsigned char integral_type_size[MAX_INTEGRAL_TYPE_SIZE + 1] ALIGN1 = {
+static const unsigned char integral_type_size[MAX_INTEGRAL_TYPE_SIZE + 1] ALIGN1 = {
 	[sizeof(char)] = CHAR,
 #if USHRT_MAX != UCHAR_MAX
 	[sizeof(short)] = SHORT,
@@ -228,7 +214,7 @@ static unsigned char integral_type_size[MAX_INTEGRAL_TYPE_SIZE + 1] ALIGN1 = {
 };
 
 #define MAX_FP_TYPE_SIZE sizeof(longdouble_t)
-static unsigned char fp_type_size[MAX_FP_TYPE_SIZE + 1] ALIGN1 = {
+static const unsigned char fp_type_size[MAX_FP_TYPE_SIZE + 1] ALIGN1 = {
 	/* gcc seems to allow repeated indexes. Last one stays */
 	[sizeof(longdouble_t)] = FLOAT_LONG_DOUBLE,
 	[sizeof(double)] = FLOAT_DOUBLE,
@@ -481,14 +467,10 @@ static void
 open_next_file(void)
 {
 	while (1) {
-		input_filename = *file_list;
-		if (!input_filename)
+		if (!*file_list)
 			return;
-		file_list++;
-		in_stream = fopen_or_warn_stdin(input_filename);
+		in_stream = fopen_or_warn_stdin(*file_list++);
 		if (in_stream) {
-			if (in_stream == stdin)
-				input_filename = bb_msg_standard_input;
 			break;
 		}
 		ioerror = 1;
@@ -510,7 +492,10 @@ check_and_close(void)
 {
 	if (in_stream) {
 		if (ferror(in_stream))	{
-			bb_error_msg("%s: read error", input_filename);
+			bb_error_msg("%s: read error", (in_stream == stdin)
+					? bb_msg_standard_input
+					: file_list[-1]
+			);
 			ioerror = 1;
 		}
 		fclose_if_not_stdin(in_stream);
@@ -804,8 +789,9 @@ skip(off_t n_skip)
 		} else {
 			/* If it's not a regular file with nonnegative size,
 			   position the file pointer by reading.  */
-			char buf[BUFSIZ];
-			size_t n_bytes_read, n_bytes_to_read = BUFSIZ;
+			char buf[1024];
+			size_t n_bytes_to_read = 1024;
+			size_t n_bytes_read;
 
 			while (n_skip > 0) {
 				if (n_skip < n_bytes_to_read)
@@ -1019,17 +1005,14 @@ parse_old_offset(const char *s, off_t *offset)
    Otherwise, return zero.  */
 
 static void
-dump(void)
+dump(off_t current_offset, off_t end_offset)
 {
 	char *block[2];
-	off_t current_offset;
 	int idx;
 	size_t n_bytes_read;
 
 	block[0] = xmalloc(2*bytes_per_block);
 	block[1] = block[0] + bytes_per_block;
-
-	current_offset = n_bytes_to_skip;
 
 	idx = 0;
 	if (limit_bytes_to_format) {
@@ -1133,11 +1116,10 @@ read_char(int *c)
    occurs.  Otherwise, return zero.  */
 
 static void
-dump_strings(void)
+dump_strings(off_t address, off_t end_offset)
 {
 	size_t bufsize = MAX(100, string_min);
 	char *buf = xmalloc(bufsize);
-	off_t address = n_bytes_to_skip;
 
 	while (1) {
 		size_t i;
@@ -1169,7 +1151,7 @@ dump_strings(void)
 		if (i < string_min)		/* Too short! */
 			goto tryline;
 
-		/* If we get here, the string is all printable and null-terminated,
+		/* If we get here, the string is all printable and NUL-terminated,
 		 * so print it.  It is all in 'buf' and 'i' is its length.  */
 		buf[i] = 0;
 		format_address(address - i - 1, ' ');
@@ -1183,7 +1165,7 @@ dump_strings(void)
 			case '\r': fputs("\\r", stdout); break;
 			case '\t': fputs("\\t", stdout); break;
 			case '\v': fputs("\\v", stdout); break;
-			default: bb_putchar(c);
+			default: putchar(c);
 			}
 		}
 		putchar('\n');
@@ -1199,17 +1181,13 @@ dump_strings(void)
 int od_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int od_main(int argc, char **argv)
 {
+	static char const *const default_file_list[] = { "-", NULL };
 	static const struct suffix_mult bkm[] = {
 		{ "b", 512 },
 		{ "k", 1024 },
 		{ "m", 1024*1024 },
 		{ }
 	};
-	unsigned opt;
-	int l_c_m;
-	/* The old-style 'pseudo starting address' to be printed in parentheses
-	   after any true address.  */
-	off_t pseudo_start = 0; // only for gcc
 	enum {
 		OPT_A = 1 << 0,
 		OPT_N = 1 << 1,
@@ -1246,6 +1224,17 @@ int od_main(int argc, char **argv)
 	char *str_A, *str_N, *str_j, *str_S;
 	char *str_w = NULL;
 	llist_t *lst_t = NULL;
+	unsigned opt;
+	int l_c_m;
+	/* The old-style 'pseudo starting address' to be printed in parentheses
+	   after any true address.  */
+	off_t pseudo_start = pseudo_start; // for gcc
+	/* The number of input bytes to skip before formatting and writing.  */
+	off_t n_bytes_to_skip = 0;
+	/* The offset of the first byte after the last byte to be formatted.  */
+	off_t end_offset = 0;
+	/* The maximum number of bytes that will be formatted.  */
+	off_t max_bytes_to_format = 0;
 
 	spec = NULL;
 	format_address = format_address_std;
@@ -1441,9 +1430,9 @@ int od_main(int argc, char **argv)
 #endif
 
 	if (flag_dump_strings)
-		dump_strings();
+		dump_strings(n_bytes_to_skip, end_offset);
 	else
-		dump();
+		dump(n_bytes_to_skip, end_offset);
 
 	if (fclose(stdin) == EOF)
 		bb_perror_msg_and_die(bb_msg_standard_input);
