@@ -326,14 +326,9 @@ static pid_t run(const struct init_action *a)
 	open_stdio_to_tty(a->terminal, 1 /* - exit if open fails*/);
 
 #ifdef BUT_RUN_ACTIONS_ALREADY_DOES_WAITING
-# define BRAADS 1
-#else
-# define BRAADS 0
-#endif
 	/* If the init Action requires us to wait, then force the
 	 * supplied terminal to be the controlling tty. */
-	if (BRAADS && a->action & (SYSINIT | WAIT | CTRLALTDEL | SHUTDOWN | RESTART)) {
-
+	if (a->action & (SYSINIT | WAIT | CTRLALTDEL | SHUTDOWN | RESTART)) {
 		/* Now fork off another process to just hang around */
 		pid = fork();
 		if (pid < 0) {
@@ -370,6 +365,7 @@ static pid_t run(const struct init_action *a)
 
 		/* Child - fall though to actually execute things */
 	}
+#endif
 
 	/* See if any special /bin/sh requiring characters are present */
 	if (strpbrk(a->command, "~`!$^&*()=|\\{}[];\"'<>?") != NULL) {
@@ -403,23 +399,18 @@ static pid_t run(const struct init_action *a)
 		++cmdpath;
 
 #ifdef WHY_WE_DO_THIS_SHELL_MUST_HANDLE_THIS_ITSELF
-# define WWDTSMHTI 1
-#else
-# define WWDTSMHTI 0
-#endif
-		if (WWDTSMHTI) {
-			/* find the last component in the command pathname */
-			s = bb_get_last_path_component_nostrip(cmdpath);
-			/* make a new argv[0] */
-			cmd[0] = malloc(strlen(s) + 2);
-			if (cmd[0] == NULL) {
-				message(L_LOG | L_CONSOLE, bb_msg_memory_exhausted);
-				cmd[0] = cmdpath;
-			} else {
-				cmd[0][0] = '-';
-				strcpy(cmd[0] + 1, s);
-			}
+		/* find the last component in the command pathname */
+		s = bb_get_last_path_component_nostrip(cmdpath);
+		/* make a new argv[0] */
+		cmd[0] = malloc(strlen(s) + 2);
+		if (cmd[0] == NULL) {
+			message(L_LOG | L_CONSOLE, bb_msg_memory_exhausted);
+			cmd[0] = cmdpath;
+		} else {
+			cmd[0][0] = '-';
+			strcpy(cmd[0] + 1, s);
 		}
+#endif
 
 		/* Establish this process as session leader and
 		 * _attempt_ to make stdin a controlling tty.
