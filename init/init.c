@@ -12,16 +12,12 @@
 #include "libbb.h"
 #include <paths.h>
 #include <sys/reboot.h>
-
-#if ENABLE_FEATURE_INIT_SYSLOG
-# include <sys/syslog.h>
-#endif
+#include <sys/syslog.h>
 
 #define INIT_BUFFS_SIZE 256
 #define CONSOLE_NAME_SIZE 32
 #define MAXENV	16		/* Number of env. vars */
 
-#if ENABLE_FEATURE_INIT_COREDUMPS
 /*
  * When a file named CORE_ENABLE_FLAG_FILE exists, setrlimit is called
  * before processes are spawned to set core file size as unlimited.
@@ -30,7 +26,6 @@
  */
 #define CORE_ENABLE_FLAG_FILE "/.init_enable_core"
 #include <sys/resource.h>
-#endif
 
 #define INITTAB      "/etc/inittab"	/* inittab file location */
 #ifndef INIT_SCRIPT
@@ -68,12 +63,8 @@ struct init_action {
 /* Static variables */
 static struct init_action *init_action_list = NULL;
 
-#if !ENABLE_FEATURE_INIT_SYSLOG
 static const char *log_console = VC_5;
-#endif
-#if !ENABLE_DEBUG_INIT
 static sig_atomic_t got_cont = 0;
-#endif
 
 enum {
 	L_LOG = 0x1,
@@ -105,33 +96,22 @@ static const char *const environment[] = {
 /* Function prototypes */
 static void delete_init_action(struct init_action *a);
 static int waitfor(pid_t pid);
-#if !ENABLE_DEBUG_INIT
 static void shutdown_signal(int sig);
-#endif
 
-#if !ENABLE_DEBUG_INIT
 static void loop_forever(void)
 {
 	while (1)
 		sleep(1);
 }
-#endif
 
 /* Print a message to the specified device.
  * Device may be bitwise-or'd from L_LOG | L_CONSOLE */
-#if ENABLE_DEBUG_INIT
-#define messageD message
-#else
-#define messageD(...)  do {} while (0)
-#endif
+#define messageD(...) do { if (ENABLE_DEBUG_INIT) message(__VA_ARGS__); } while (0)
 static void message(int device, const char *fmt, ...)
 	__attribute__ ((format(printf, 2, 3)));
 static void message(int device, const char *fmt, ...)
 {
-#if !ENABLE_FEATURE_INIT_SYSLOG
 	static int log_fd = -1;
-#endif
-
 	va_list arguments;
 	int l;
 	char msg[128];
@@ -143,40 +123,40 @@ static void message(int device, const char *fmt, ...)
 	msg[sizeof(msg) - 2] = '\0';
 	l = strlen(msg);
 
-#if ENABLE_FEATURE_INIT_SYSLOG
-	/* Log the message to syslogd */
-	if (device & L_LOG) {
-		/* don't out "\r" */
-		openlog(applet_name, 0, LOG_DAEMON);
-		syslog(LOG_INFO, "init: %s", msg + 1);
-		closelog();
-	}
-	msg[l++] = '\n';
-	msg[l] = '\0';
-#else
-	msg[l++] = '\n';
-	msg[l] = '\0';
-	/* Take full control of the log tty, and never close it.
-	 * It's mine, all mine!  Muhahahaha! */
-	if (log_fd < 0) {
-		if (!log_console) {
-			log_fd = 2;
-		} else {
-			log_fd = device_open(log_console, O_WRONLY | O_NONBLOCK | O_NOCTTY);
-			if (log_fd < 0) {
-				bb_error_msg("can't log to %s", log_console);
-				device = L_CONSOLE;
+	if (ENABLE_FEATURE_INIT_SYSLOG) {
+		/* Log the message to syslogd */
+		if (device & L_LOG) {
+			/* don't out "\r" */
+			openlog(applet_name, 0, LOG_DAEMON);
+			syslog(LOG_INFO, "init: %s", msg + 1);
+			closelog();
+		}
+		msg[l++] = '\n';
+		msg[l] = '\0';
+	} else {
+		msg[l++] = '\n';
+		msg[l] = '\0';
+		/* Take full control of the log tty, and never close it.
+		 * It's mine, all mine!  Muhahahaha! */
+		if (log_fd < 0) {
+			if (!log_console) {
+				log_fd = 2;
 			} else {
-				close_on_exec_on(log_fd);
+				log_fd = device_open(log_console, O_WRONLY | O_NONBLOCK | O_NOCTTY);
+				if (log_fd < 0) {
+					bb_error_msg("can't log to %s", log_console);
+					device = L_CONSOLE;
+				} else {
+					close_on_exec_on(log_fd);
+				}
 			}
 		}
+		if (device & L_LOG) {
+			full_write(log_fd, msg, l);
+			if (log_fd == 2)
+				return; /* don't print dup messages */
+		}
 	}
-	if (device & L_LOG) {
-		full_write(log_fd, msg, l);
-		if (log_fd == 2)
-			return; /* don't print dup messages */
-	}
-#endif
 
 	if (device & L_CONSOLE) {
 		/* Send console messages to console so people will see them. */
@@ -235,9 +215,8 @@ static void console_init(void)
 		 * if TERM is set to linux (the default) */
 		if (!s || strcmp(s, "linux") == 0)
 			putenv((char*)"TERM=vt102");
-#if !ENABLE_FEATURE_INIT_SYSLOG
-		log_console = NULL;
-#endif
+		if (!ENABLE_FEATURE_INIT_SYSLOG)
+			log_console = NULL;
 	} else if (!s)
 		putenv((char*)"TERM=linux");
 }
@@ -290,11 +269,10 @@ static void open_stdio_to_tty(const char* tty_name, int fail)
 				tty_name, strerror(errno));
 			if (fail)
 				_exit(1);
-#if !ENABLE_DEBUG_INIT
-			shutdown_signal(SIGUSR1);
-#else
-			_exit(2);
-#endif
+			if (!ENABLE_DEBUG_INIT)
+				shutdown_signal(SIGUSR1);
+			else
+				_exit(2);
 		} else {
 			dup2(fd, 0);
 			dup2(fd, 1);
@@ -348,9 +326,13 @@ static pid_t run(const struct init_action *a)
 	open_stdio_to_tty(a->terminal, 1 /* - exit if open fails*/);
 
 #ifdef BUT_RUN_ACTIONS_ALREADY_DOES_WAITING
+# define BRAADS 1
+#else
+# define BRAADS 0
+#endif
 	/* If the init Action requires us to wait, then force the
 	 * supplied terminal to be the controlling tty. */
-	if (a->action & (SYSINIT | WAIT | CTRLALTDEL | SHUTDOWN | RESTART)) {
+	if (BRAADS && a->action & (SYSINIT | WAIT | CTRLALTDEL | SHUTDOWN | RESTART)) {
 
 		/* Now fork off another process to just hang around */
 		pid = fork();
@@ -388,7 +370,6 @@ static pid_t run(const struct init_action *a)
 
 		/* Child - fall though to actually execute things */
 	}
-#endif
 
 	/* See if any special /bin/sh requiring characters are present */
 	if (strpbrk(a->command, "~`!$^&*()=|\\{}[];\"'<>?") != NULL) {
@@ -422,25 +403,29 @@ static pid_t run(const struct init_action *a)
 		++cmdpath;
 
 #ifdef WHY_WE_DO_THIS_SHELL_MUST_HANDLE_THIS_ITSELF
-		/* find the last component in the command pathname */
-		s = bb_get_last_path_component_nostrip(cmdpath);
-		/* make a new argv[0] */
-		cmd[0] = malloc(strlen(s) + 2);
-		if (cmd[0] == NULL) {
-			message(L_LOG | L_CONSOLE, bb_msg_memory_exhausted);
-			cmd[0] = cmdpath;
-		} else {
-			cmd[0][0] = '-';
-			strcpy(cmd[0] + 1, s);
-		}
+# define WWDTSMHTI 1
+#else
+# define WWDTSMHTI 0
 #endif
+		if (WWDTSMHTI) {
+			/* find the last component in the command pathname */
+			s = bb_get_last_path_component_nostrip(cmdpath);
+			/* make a new argv[0] */
+			cmd[0] = malloc(strlen(s) + 2);
+			if (cmd[0] == NULL) {
+				message(L_LOG | L_CONSOLE, bb_msg_memory_exhausted);
+				cmd[0] = cmdpath;
+			} else {
+				cmd[0][0] = '-';
+				strcpy(cmd[0] + 1, s);
+			}
+		}
 
-#if ENABLE_FEATURE_INIT_SCTTY
 		/* Establish this process as session leader and
 		 * _attempt_ to make stdin a controlling tty.
 		 */
-		ioctl(0, TIOCSCTTY, 0 /*only try, don't steal*/);
-#endif
+		if (ENABLE_FEATURE_INIT_SCTTY)
+			ioctl(0, TIOCSCTTY, 0 /*only try, don't steal*/);
 	}
 
 	if (a->action & ASKFIRST) {
@@ -470,8 +455,7 @@ static pid_t run(const struct init_action *a)
 	message(L_LOG, "starting pid %d, tty '%s': '%s'",
 			  getpid(), a->terminal, cmdpath);
 
-#if ENABLE_FEATURE_INIT_COREDUMPS
-	{
+	if (ENABLE_FEATURE_INIT_COREDUMPS) {
 		struct stat sb;
 		if (stat(CORE_ENABLE_FLAG_FILE, &sb) == 0) {
 			struct rlimit limit;
@@ -481,7 +465,7 @@ static pid_t run(const struct init_action *a)
 			setrlimit(RLIMIT_CORE, &limit);
 		}
 	}
-#endif
+
 	/* Now run it.  The new program will take over this PID,
 	 * so nothing further in init.c should be run. */
 	BB_EXECVP(cmdpath, cmd);
@@ -536,7 +520,6 @@ static void run_actions(int action)
 	}
 }
 
-#if !ENABLE_DEBUG_INIT
 static void init_reboot(unsigned long magic)
 {
 	pid_t pid;
@@ -676,8 +659,6 @@ static void cont_handler(int sig ATTRIBUTE_UNUSED)
 	got_cont = 1;
 }
 
-#endif	/* !ENABLE_DEBUG_INIT */
-
 static void new_init_action(uint8_t action, const char *command, const char *cons)
 {
 	struct init_action *new_action, *a, *last;
@@ -737,14 +718,16 @@ static void delete_init_action(struct init_action *action)
  */
 static void parse_inittab(void)
 {
-#if ENABLE_FEATURE_USE_INITTAB
 	FILE *file;
 	char buf[INIT_BUFFS_SIZE];
 
-	file = fopen(INITTAB, "r");
+	if (ENABLE_FEATURE_USE_INITTAB)
+		file = fopen(INITTAB, "r");
+	else
+		file = NULL;
+
+	/* No inittab file -- set up some default behavior */
 	if (file == NULL) {
-		/* No inittab file -- set up some default behavior */
-#endif
 		/* Reboot on Ctrl-Alt-Del */
 		new_init_action(CTRLALTDEL, "reboot", "");
 		/* Umount all filesystems on halt/reboot */
@@ -763,7 +746,6 @@ static void parse_inittab(void)
 		new_init_action(SYSINIT, INIT_SCRIPT, "");
 
 		return;
-#if ENABLE_FEATURE_USE_INITTAB
 	}
 
 	while (fgets(buf, INIT_BUFFS_SIZE, file) != NULL) {
@@ -823,10 +805,8 @@ static void parse_inittab(void)
  next_line: ;
 	}
 	fclose(file);
-#endif /* FEATURE_USE_INITTAB */
 }
 
-#if ENABLE_FEATURE_USE_INITTAB
 static void reload_signal(int sig ATTRIBUTE_UNUSED)
 {
 	struct init_action *a, *tmp;
@@ -840,22 +820,21 @@ static void reload_signal(int sig ATTRIBUTE_UNUSED)
 
 	parse_inittab();
 
-#if ENABLE_FEATURE_KILL_REMOVED
-	for (a = init_action_list; a; a = a->next) {
-		pid_t pid = a->pid;
-		if ((a->action & ONCE) && pid != 0) {
-			/* Be nice and send SIGTERM first */
-			kill(pid, SIGTERM);
-#if CONFIG_FEATURE_KILL_DELAY
-			if (fork() == 0) { /* child */
-				sleep(CONFIG_FEATURE_KILL_DELAY);
-				kill(pid, SIGKILL);
-				_exit(0);
+	if (ENABLE_FEATURE_KILL_REMOVED) {
+		for (a = init_action_list; a; a = a->next) {
+			pid_t pid = a->pid;
+			if ((a->action & ONCE) && pid != 0) {
+				/* Be nice and send SIGTERM first */
+				kill(pid, SIGTERM);
+				if (CONFIG_FEATURE_KILL_DELAY)
+					if (fork() == 0) { /* child */
+						sleep(CONFIG_FEATURE_KILL_DELAY);
+						kill(pid, SIGKILL);
+						_exit(0);
+					}
 			}
-#endif
 		}
 	}
-#endif /* FEATURE_KILL_REMOVED */
 
 	/* remove unused entrys */
 	for (a = init_action_list; a; a = tmp) {
@@ -866,7 +845,6 @@ static void reload_signal(int sig ATTRIBUTE_UNUSED)
 	}
 	run_actions(RESPAWN);
 }
-#endif  /* FEATURE_USE_INITTAB */
 
 int init_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int init_main(int argc, char **argv)
@@ -879,30 +857,30 @@ int init_main(int argc, char **argv)
 	if (argc > 1 && !strcmp(argv[1], "-q")) {
 		return kill(1, SIGHUP);
 	}
-#if !ENABLE_DEBUG_INIT
-	/* Expect to be invoked as init with PID=1 or be invoked as linuxrc */
-	if (getpid() != 1
-	 && (!ENABLE_FEATURE_INITRD || !strstr(applet_name, "linuxrc"))
-	) {
-		bb_show_usage();
+
+	if (!ENABLE_DEBUG_INIT) {
+		/* Expect to be invoked as init with PID=1 or be invoked as linuxrc */
+		if (getpid() != 1
+		 && (!ENABLE_FEATURE_INITRD || !strstr(applet_name, "linuxrc"))
+		) {
+			bb_show_usage();
+		}
+		/* Set up sig handlers  -- be sure to
+		 * clear all of these in run() */
+		signal(SIGHUP, exec_signal);
+		signal(SIGQUIT, exec_signal);
+		signal(SIGUSR1, shutdown_signal);
+		signal(SIGUSR2, shutdown_signal);
+		signal(SIGINT, ctrlaltdel_signal);
+		signal(SIGTERM, shutdown_signal);
+		signal(SIGCONT, cont_handler);
+		signal(SIGSTOP, stop_handler);
+		signal(SIGTSTP, stop_handler);
+
+		/* Turn off rebooting via CTL-ALT-DEL -- we get a
+		 * SIGINT on CAD so we can shut things down gracefully... */
+		init_reboot(RB_DISABLE_CAD);
 	}
-	/* Set up sig handlers  -- be sure to
-	 * clear all of these in run() */
-	signal(SIGHUP, exec_signal);
-	signal(SIGQUIT, exec_signal);
-	signal(SIGUSR1, shutdown_signal);
-	signal(SIGUSR2, shutdown_signal);
-	signal(SIGINT, ctrlaltdel_signal);
-	signal(SIGTERM, shutdown_signal);
-	signal(SIGCONT, cont_handler);
-	signal(SIGSTOP, stop_handler);
-	signal(SIGTSTP, stop_handler);
-
-	/* Turn off rebooting via CTL-ALT-DEL -- we get a
-	 * SIGINT on CAD so we can shut things down gracefully... */
-	init_reboot(RB_DISABLE_CAD);
-#endif
-
 
 	/* Figure out where the default console should be */
 	console_init();
@@ -986,12 +964,11 @@ int init_main(int argc, char **argv)
 	/* Next run anything to be run only once */
 	run_actions(ONCE);
 
-#if ENABLE_FEATURE_USE_INITTAB
 	/* Redefine SIGHUP to reread /etc/inittab */
-	signal(SIGHUP, reload_signal);
-#else
-	signal(SIGHUP, SIG_IGN);
-#endif /* FEATURE_USE_INITTAB */
+	if (ENABLE_FEATURE_USE_INITTAB)
+		signal(SIGHUP, reload_signal);
+	else
+		signal(SIGHUP, SIG_IGN);
 
 	/* Now run the looping stuff for the rest of forever */
 	while (1) {
