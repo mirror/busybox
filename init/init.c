@@ -738,21 +738,8 @@ static void delete_init_action(struct init_action *action)
 static void parse_inittab(void)
 {
 #if ENABLE_FEATURE_USE_INITTAB
-	static const char actions[] =
-		STR_SYSINIT    "sysinit\0"
-		STR_RESPAWN    "respawn\0"
-		STR_ASKFIRST   "askfirst\0"
-		STR_WAIT       "wait\0"
-		STR_ONCE       "once\0"
-		STR_CTRLALTDEL "ctrlaltdel\0"
-		STR_SHUTDOWN   "shutdown\0"
-		STR_RESTART    "restart\0"
-	;
-
 	FILE *file;
-	char buf[INIT_BUFFS_SIZE], lineAsRead[INIT_BUFFS_SIZE];
-	char tmpConsole[CONSOLE_NAME_SIZE];
-	char *id, *runlev, *action, *command, *eol;
+	char buf[INIT_BUFFS_SIZE];
 
 	file = fopen(INITTAB, "r");
 	if (file == NULL) {
@@ -780,57 +767,43 @@ static void parse_inittab(void)
 	}
 
 	while (fgets(buf, INIT_BUFFS_SIZE, file) != NULL) {
+		static const char actions[] =
+			STR_SYSINIT    "sysinit\0"
+			STR_RESPAWN    "respawn\0"
+			STR_ASKFIRST   "askfirst\0"
+			STR_WAIT       "wait\0"
+			STR_ONCE       "once\0"
+			STR_CTRLALTDEL "ctrlaltdel\0"
+			STR_SHUTDOWN   "shutdown\0"
+			STR_RESTART    "restart\0"
+		;
+		char tmpConsole[CONSOLE_NAME_SIZE];
+		char *id, *runlev, *action, *command;
 		const char *a;
 
 		/* Skip leading spaces */
-		for (id = buf; *id == ' ' || *id == '\t'; id++);
-
+		id = skip_whitespace(buf);
 		/* Skip the line if it's a comment */
 		if (*id == '#' || *id == '\n')
 			continue;
+		/* Trim the trailing '\n' */
+		*strchrnul(id, '\n') = '\0';
 
-		/* Trim the trailing \n */
-		//XXX: chomp() ?
-		eol = strrchr(id, '\n');
-		if (eol != NULL)
-			*eol = '\0';
-
-		/* Keep a copy around for posterity's sake (and error msgs) */
-		strcpy(lineAsRead, buf);
-
-		/* Separate the ID field from the runlevels */
+		/* Line is: "id:runlevel_ignored:action:command" */
 		runlev = strchr(id, ':');
-		if (runlev == NULL || *(runlev + 1) == '\0') {
-			message(L_LOG | L_CONSOLE, "Bad inittab entry: %s", lineAsRead);
-			continue;
-		} else {
-			*runlev = '\0';
-			++runlev;
-		}
+		if (runlev == NULL /*|| runlev[1] == '\0' - not needed */)
+			goto bad_entry;
+		action = strchr(runlev + 1, ':');
+		if (action == NULL /*|| action[1] == '\0' - not needed */)
+			goto bad_entry;
+		command = strchr(action + 1, ':');
+		if (command == NULL || command[1] == '\0')
+			goto bad_entry;
 
-		/* Separate the runlevels from the action */
-		action = strchr(runlev, ':');
-		if (action == NULL || *(action + 1) == '\0') {
-			message(L_LOG | L_CONSOLE, "Bad inittab entry: %s", lineAsRead);
-			continue;
-		} else {
-			*action = '\0';
-			++action;
-		}
-
-		/* Separate the action from the command */
-		command = strchr(action, ':');
-		if (command == NULL || *(command + 1) == '\0') {
-			message(L_LOG | L_CONSOLE, "Bad inittab entry: %s", lineAsRead);
-			continue;
-		} else {
-			*command = '\0';
-			++command;
-		}
-
-		/* Ok, now process it */
+		*command = '\0'; /* action => ":action\0" now */
 		for (a = actions; a[0]; a += strlen(a) + 1) {
-			if (strcmp(a + 1, action) == 0) {
+			if (strcmp(a + 1, action + 1) == 0) {
+				*runlev = '\0';
 				if (*id != '\0') {
 					if (strncmp(id, "/dev/", 5) == 0)
 						id += 5;
@@ -839,14 +812,15 @@ static void parse_inittab(void)
 						sizeof(tmpConsole) - 5);
 					id = tmpConsole;
 				}
-				new_init_action((uint8_t)a[0], command, id);
-				break;
+				new_init_action((uint8_t)a[0], command + 1, id);
+				goto next_line;
 			}
 		}
-		if (!a[0]) {
-			/* Choke on an unknown action */
-			message(L_LOG | L_CONSOLE, "Bad inittab entry: %s", lineAsRead);
-		}
+		*command = ':';
+		/* Choke on an unknown action */
+ bad_entry:
+		message(L_LOG | L_CONSOLE, "Bad inittab entry: %s", id);
+ next_line: ;
 	}
 	fclose(file);
 #endif /* FEATURE_USE_INITTAB */
@@ -860,11 +834,28 @@ static void reload_signal(int sig ATTRIBUTE_UNUSED)
 	message(L_LOG, "reloading /etc/inittab");
 
 	/* disable old entrys */
-	for (a = init_action_list; a; a = a->next ) {
+	for (a = init_action_list; a; a = a->next) {
 		a->action = ONCE;
 	}
 
 	parse_inittab();
+
+#if ENABLE_FEATURE_KILL_REMOVED
+	for (a = init_action_list; a; a = a->next) {
+		pid_t pid = a->pid;
+		if ((a->action & ONCE) && pid != 0) {
+			/* Be nice and send SIGTERM first */
+			kill(pid, SIGTERM);
+#if CONFIG_FEATURE_KILL_DELAY
+			if (fork() == 0) { /* child */
+				sleep(CONFIG_FEATURE_KILL_DELAY);
+				kill(pid, SIGKILL);
+				_exit(0);
+			}
+#endif
+		}
+	}
+#endif /* FEATURE_KILL_REMOVED */
 
 	/* remove unused entrys */
 	for (a = init_action_list; a; a = tmp) {

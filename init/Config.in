@@ -27,6 +27,26 @@ config FEATURE_USE_INITTAB
 	help
 	  Allow init to read an inittab file when the system boot.
 
+config FEATURE_KILL_REMOVED
+	bool "Support killing processes that have been removed from inittab"
+	default y
+	depends on FEATURE_USE_INITTAB
+	help
+	  When respawn entries are removed from inittab and a SIGHUP is 
+	  sent to init, this feature will kill the processes that have 
+	  been removed.
+
+config FEATURE_KILL_DELAY
+	int "How long to wait between TERM and KILL (0 - send TERM only)"
+	range 0 1024
+	default 0
+	depends on FEATURE_KILL_REMOVED
+	help
+	  With nonzero setting, init sends TERM, forks, child waits N
+	  seconds, sends KILL and exits. Setting it too high is unwise
+	  (child will hang around for too long and can actually kill
+	  wrong process!)
+
 config FEATURE_INIT_SCTTY
 	bool "Support running commands with a controlling-tty"
 	default n
