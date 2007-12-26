@@ -554,13 +554,9 @@ static void setup(servtab_t *sep)
 
 static char *nextline(void)
 {
-	char *cp;
-
 	if (fgets(line, LINE_SIZE, fconfig) == NULL)
 		return NULL;
-	cp = strchr(line, '\n');
-	if (cp)
-		*cp = '\0';
+	*strchrnul(line, '\n') = '\0';
 	return line;
 }
 

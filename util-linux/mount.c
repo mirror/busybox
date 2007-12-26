@@ -1448,7 +1448,7 @@ static int singlemount(struct mntent *mp, int ignore_busy)
 	// Might this be a virtual filesystem?
 
 	if (ENABLE_FEATURE_MOUNT_HELPERS
-	 && (strchr(mp->mnt_fsname,'#'))
+	 && (strchr(mp->mnt_fsname, '#'))
 	) {
 		char *s, *p, *args[35];
 		int n = 0;

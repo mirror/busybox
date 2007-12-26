@@ -242,11 +242,8 @@ static void include_conf(struct dep_t **first, struct dep_t **current, char *buf
 
 	while (reads(fd, buffer, buflen)) {
 		int l;
-		char *p;
 
-		p = strchr(buffer, '#');
-		if (p)
-			*p = '\0';
+		*strchrnul(buffer, '#') = '\0';
 
 		l = strlen(buffer);
 

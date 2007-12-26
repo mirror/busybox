@@ -332,14 +332,12 @@ int read_config(const char *file)
 
 	while (fgets(buffer, READ_CONFIG_BUF_SIZE, in)) {
 		char debug_orig[READ_CONFIG_BUF_SIZE];
-		char *p;
 
 		lm++;
-		p = strchr(buffer, '\n');
-		if (p) *p = '\0';
-		if (ENABLE_FEATURE_UDHCP_DEBUG) strcpy(debug_orig, buffer);
-		p = strchr(buffer, '#');
-		if (p) *p = '\0';
+		*strchrnul(buffer, '\n') = '\0';
+		if (ENABLE_FEATURE_UDHCP_DEBUG)
+			strcpy(debug_orig, buffer);
+		*strchrnul(buffer, '#') = '\0';
 
 		token = strtok(buffer, " \t");
 		if (!token) continue;

@@ -349,9 +349,7 @@ static int parse_fstab_line(char *line, struct fs_info **ret_fs)
 
 	*ret_fs = 0;
 	strip_line(line);
-	cp = strchr(line, '#');
-	if (cp)
-		*cp = '\0'; /* Ignore everything after the comment char */
+	*strchrnul(line, '#') = '\0'; /* Ignore everything after comment */
 	cp = line;
 
 	device = parse_word(&cp);
