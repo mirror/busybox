@@ -96,8 +96,9 @@ static const char *const environment[] = {
 /* Function prototypes */
 static void delete_init_action(struct init_action *a);
 static int waitfor(pid_t pid);
-static void shutdown_signal(int sig);
+static void halt_reboot_pwoff(int sig) ATTRIBUTE_NORETURN;
 
+static void loop_forever(void) ATTRIBUTE_NORETURN;
 static void loop_forever(void)
 {
 	while (1)
@@ -259,26 +260,25 @@ static void set_sane_term(void)
 }
 
 /* Open the new terminal device */
-static void open_stdio_to_tty(const char* tty_name, int fail)
+static void open_stdio_to_tty(const char* tty_name, int exit_on_failure)
 {
 	/* empty tty_name means "use init's tty", else... */
 	if (tty_name[0]) {
-		int fd = device_open(tty_name, O_RDWR);
-		if (fd < 0) {
+		int fd;
+		close(0);
+		/* fd can be only < 0 or 0: */
+		fd = device_open(tty_name, O_RDWR);
+		if (fd) {
 			message(L_LOG | L_CONSOLE, "Can't open %s: %s",
 				tty_name, strerror(errno));
-			if (fail)
+			if (exit_on_failure)
 				_exit(1);
-			if (!ENABLE_DEBUG_INIT)
-				shutdown_signal(SIGUSR1);
-			else
+			if (ENABLE_DEBUG_INIT)
 				_exit(2);
-		} else {
-			dup2(fd, 0);
-			dup2(fd, 1);
-			dup2(fd, 2);
-			if (fd > 2) close(fd);
+			halt_reboot_pwoff(SIGUSR1); /* halt the system */
 		}
+		dup2(0, 1);
+		dup2(0, 2);
 	}
 	set_sane_term();
 }
@@ -412,9 +412,7 @@ static pid_t run(const struct init_action *a)
 		}
 #endif
 
-		/* Establish this process as session leader and
-		 * _attempt_ to make stdin a controlling tty.
-		 */
+		/* _Attempt_ to make stdin a controlling tty. */
 		if (ENABLE_FEATURE_INIT_SCTTY)
 			ioctl(0, TIOCSCTTY, 0 /*only try, don't steal*/);
 	}
@@ -525,7 +523,7 @@ static void init_reboot(unsigned long magic)
 	waitpid(pid, NULL, 0);
 }
 
-static void shutdown_system(void)
+static void kill_all_processes(void)
 {
 	sigset_t block_signals;
 
@@ -535,7 +533,8 @@ static void shutdown_system(void)
 	run_actions(SHUTDOWN);
 
 	/* first disable all our signals */
-	sigemptyset(&block_signals);
+	sigfillset(&block_signals);
+	/*sigemptyset(&block_signals);
 	sigaddset(&block_signals, SIGHUP);
 	sigaddset(&block_signals, SIGQUIT);
 	sigaddset(&block_signals, SIGCHLD);
@@ -545,7 +544,7 @@ static void shutdown_system(void)
 	sigaddset(&block_signals, SIGTERM);
 	sigaddset(&block_signals, SIGCONT);
 	sigaddset(&block_signals, SIGSTOP);
-	sigaddset(&block_signals, SIGTSTP);
+	sigaddset(&block_signals, SIGTSTP);*/
 	sigprocmask(SIG_BLOCK, &block_signals, NULL);
 
 	message(L_CONSOLE | L_LOG, "The system is going down NOW!");
@@ -565,12 +564,12 @@ static void shutdown_system(void)
 	sleep(1);
 }
 
-static void shutdown_signal(int sig)
+static void halt_reboot_pwoff(int sig)
 {
 	const char *m;
 	int rb;
 
-	shutdown_system();
+	kill_all_processes();
 
 	m = "halt";
 	rb = RB_HALT_SYSTEM;
@@ -588,7 +587,9 @@ static void shutdown_signal(int sig)
 	loop_forever();
 }
 
-static void exec_signal(int sig ATTRIBUTE_UNUSED)
+/* Handler for HUP and QUIT - exec "restart" action,
+ * else (no such action defined) do nothing */
+static void exec_restart_action(int sig ATTRIBUTE_UNUSED)
 {
 	struct init_action *a, *tmp;
 	sigset_t unblock_signals;
@@ -596,10 +597,11 @@ static void exec_signal(int sig ATTRIBUTE_UNUSED)
 	for (a = init_action_list; a; a = tmp) {
 		tmp = a->next;
 		if (a->action & RESTART) {
-			shutdown_system();
+			kill_all_processes();
 
-			/* unblock all signals, blocked in shutdown_system() */
-			sigemptyset(&unblock_signals);
+			/* unblock all signals (blocked in kill_all_processes()) */
+			sigfillset(&unblock_signals);
+			/*sigemptyset(&unblock_signals);
 			sigaddset(&unblock_signals, SIGHUP);
 			sigaddset(&unblock_signals, SIGQUIT);
 			sigaddset(&unblock_signals, SIGCHLD);
@@ -609,11 +611,11 @@ static void exec_signal(int sig ATTRIBUTE_UNUSED)
 			sigaddset(&unblock_signals, SIGTERM);
 			sigaddset(&unblock_signals, SIGCONT);
 			sigaddset(&unblock_signals, SIGSTOP);
-			sigaddset(&unblock_signals, SIGTSTP);
+			sigaddset(&unblock_signals, SIGTSTP);*/
 			sigprocmask(SIG_UNBLOCK, &unblock_signals, NULL);
 
 			/* Open the new terminal device */
-			open_stdio_to_tty(a->terminal, 0 /* - shutdown_signal(SIGUSR1) [halt] if open fails */);
+			open_stdio_to_tty(a->terminal, 0 /* - halt if open fails */);
 
 			messageD(L_CONSOLE | L_LOG, "Trying to re-exec %s", a->command);
 			BB_EXECLP(a->command, a->command, NULL);
@@ -812,19 +814,25 @@ static void reload_signal(int sig ATTRIBUTE_UNUSED)
 	parse_inittab();
 
 	if (ENABLE_FEATURE_KILL_REMOVED) {
+		/* Be nice and send SIGTERM first */
 		for (a = init_action_list; a; a = a->next) {
 			pid_t pid = a->pid;
 			if ((a->action & ONCE) && pid != 0) {
-				/* Be nice and send SIGTERM first */
 				kill(pid, SIGTERM);
-				if (CONFIG_FEATURE_KILL_DELAY)
-					if (fork() == 0) { /* child */
-						sleep(CONFIG_FEATURE_KILL_DELAY);
-						kill(pid, SIGKILL);
-						_exit(0);
-					}
 			}
 		}
+#if CONFIG_FEATURE_KILL_DELAY
+		if (fork() == 0) { /* child */
+			sleep(CONFIG_FEATURE_KILL_DELAY);
+			for (a = init_action_list; a; a = a->next) {
+				pid_t pid = a->pid;
+				if ((a->action & ONCE) && pid != 0) {
+					kill(pid, SIGKILL);
+				}
+			}
+			_exit(0);
+		}
+#endif
 	}
 
 	/* remove unused entrys */
@@ -858,12 +866,12 @@ int init_main(int argc, char **argv)
 		}
 		/* Set up sig handlers  -- be sure to
 		 * clear all of these in run() */
-		signal(SIGHUP, exec_signal);
-		signal(SIGQUIT, exec_signal);
-		signal(SIGUSR1, shutdown_signal);
-		signal(SIGUSR2, shutdown_signal);
+		signal(SIGHUP, exec_restart_action);
+		signal(SIGQUIT, exec_restart_action);
+		signal(SIGUSR1, halt_reboot_pwoff); /* halt */
+		signal(SIGUSR2, halt_reboot_pwoff); /* poweroff */
+		signal(SIGTERM, halt_reboot_pwoff); /* reboot */
 		signal(SIGINT, ctrlaltdel_signal);
-		signal(SIGTERM, shutdown_signal);
 		signal(SIGCONT, cont_handler);
 		signal(SIGSTOP, stop_handler);
 		signal(SIGTSTP, stop_handler);
