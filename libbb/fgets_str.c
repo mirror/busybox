@@ -10,10 +10,7 @@
 
 #include "libbb.h"
 
-/* Read up to (and including) TERMINATING_STRING from FILE and return it.
- * Return NULL on EOF.  */
-
-char *xmalloc_fgets_str(FILE *file, const char *terminating_string)
+static char *xmalloc_fgets_internal(FILE *file, const char *terminating_string, int chop_off)
 {
 	char *linebuf = NULL;
 	const int term_length = strlen(terminating_string);
@@ -25,12 +22,12 @@ char *xmalloc_fgets_str(FILE *file, const char *terminating_string)
 	while (1) {
 		ch = fgetc(file);
 		if (ch == EOF) {
-			free(linebuf);
-			return NULL;
+			if (idx == 0)
+				return linebuf; /* NULL */
+			break;
 		}
 
-		/* grow the line buffer as necessary */
-		while (idx > linebufsz - 2) {
+		if (idx >= linebufsz) {
 			linebufsz += 200;
 			linebuf = xrealloc(linebuf, linebufsz);
 		}
@@ -40,14 +37,30 @@ char *xmalloc_fgets_str(FILE *file, const char *terminating_string)
 
 		/* Check for terminating string */
 		end_string_offset = idx - term_length;
-		if (end_string_offset > 0
+		if (end_string_offset >= 0
 		 && memcmp(&linebuf[end_string_offset], terminating_string, term_length) == 0
 		) {
-			idx -= term_length;
+			if (chop_off)
+				idx -= term_length;
 			break;
 		}
 	}
+	/* Grow/shrink *first*, then store NUL */
 	linebuf = xrealloc(linebuf, idx + 1);
 	linebuf[idx] = '\0';
 	return linebuf;
+}
+
+/* Read up to TERMINATING_STRING from FILE and return it,
+ * including terminating string.
+ * Non-terminated string can be returned if EOF is reached.
+ * Return NULL if EOF is reached immediately.  */
+char *xmalloc_fgets_str(FILE *file, const char *terminating_string)
+{
+	return xmalloc_fgets_internal(file, terminating_string, 0);
+}
+
+char *xmalloc_fgetline_str(FILE *file, const char *terminating_string)
+{
+	return xmalloc_fgets_internal(file, terminating_string, 1);
 }

@@ -464,9 +464,12 @@ extern void xwrite(int fd, const void *buf, size_t count);
 
 /* Reads and prints to stdout till eof, then closes FILE. Exits on error: */
 extern void xprint_and_close_file(FILE *file);
-extern char *xmalloc_fgets(FILE *file);
-/* Read up to (and including) TERMINATING_STRING: */
+/* Reads up to (and including) TERMINATING_STRING: */
 extern char *xmalloc_fgets_str(FILE *file, const char *terminating_string);
+/* Chops off TERMINATING_STRING: from the end: */
+extern char *xmalloc_fgetline_str(FILE *file, const char *terminating_string);
+/* Reads up to (and including) "\n" or NUL byte */
+extern char *xmalloc_fgets(FILE *file);
 /* Chops off '\n' from the end, unlike fgets: */
 extern char *xmalloc_getline(FILE *file);
 extern char *bb_get_chunk_from_file(FILE *file, int *end);

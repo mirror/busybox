@@ -170,6 +170,11 @@ static void tcp_do_one(int lnr, char *line)
 			rem_addr, &rem_port, &state,
 			&txq, &rxq, &timer_run, &time_len, &retr, &uid, &timeout, &inode, more);
 
+	if (num < 10) {
+		bb_error_msg("warning, got bogus tcp line");
+		return;
+	}
+
 	if (strlen(local_addr) > 8) {
 #if ENABLE_FEATURE_IPV6
 		build_ipv6_addr(local_addr, &localaddr);
@@ -178,11 +183,6 @@ static void tcp_do_one(int lnr, char *line)
 	} else {
 		build_ipv4_addr(local_addr, &localaddr);
 		build_ipv4_addr(rem_addr, &remaddr);
-	}
-
-	if (num < 10) {
-		bb_error_msg("warning, got bogus tcp line");
-		return;
 	}
 
 	if ((rem_port && (flags & NETSTAT_CONNECTED))
@@ -349,17 +349,16 @@ static void unix_do_one(int nr, char *line)
 	const char *ss_proto, *ss_state, *ss_type;
 	char ss_flags[32];
 
+	/* TODO: currently we stop at first NUL byte. Is it a problem? */
+
 	if (nr == 0)
 		return; /* skip header */
 
-	{
-		char *last = last_char_is(line, '\n');
-		if (last)
-			*last = '\0';
-	}
+	*strchrnul(line, '\n') = '\0';
 
 	/* 2.6.15 may report lines like "... @/tmp/fam-user-^@^@^@^@^@^@^@..."
-	 * (those ^@ are NUL bytes). fgets sees them as tons of empty lines. */
+	 * Other users report long lines filled by NUL bytes. 
+	 * (those ^@ are NUL bytes too). We see them as empty lines. */
 	if (!line[0])
 		return;
 
@@ -474,19 +473,13 @@ static void do_info(const char *file, const char *name, void (*proc)(int, char *
 		return;
 	}
 	lnr = 0;
-	do {
-		buffer = xmalloc_fgets(procinfo);
-		if (buffer) {
-			(proc)(lnr++, buffer);
-			free(buffer);
-		}
-	} while (buffer);
+	/* Why? because xmalloc_fgets_str doesn't stop on NULs */
+	while ((buffer = xmalloc_fgets_str(procinfo, "\n")) != NULL) {
+		(proc)(lnr++, buffer);
+		free(buffer);
+	}
 	fclose(procinfo);
 }
-
-/*
- * Our main function.
- */
 
 int netstat_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int netstat_main(int argc, char **argv)

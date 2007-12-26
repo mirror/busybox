@@ -12,11 +12,10 @@
 #include "libbb.h"
 
 /* This function reads an entire line from a text file, up to a newline
- * or NUL byte, inclusive.  It returns a malloc'ed char * which must be
- * stored and free'ed by the caller.  If end is NULL '\n' isn't considered
+ * or NUL byte, inclusive.  It returns a malloc'ed char * which
+ * must be free'ed by the caller.  If end is NULL '\n' isn't considered
  * end of line.  If end isn't NULL, length of the chunk read is stored in it.
  * Return NULL if EOF/error */
-
 char *bb_get_chunk_from_file(FILE *file, int *end)
 {
 	int ch;

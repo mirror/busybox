@@ -602,7 +602,7 @@ static unsigned fill_package_struct(char *control_buffer)
 				&field_name, &field_value);
 
 		if (field_name == NULL) {
-			goto fill_package_struct_cleanup; /* Oh no, the dreaded goto statement! */
+			goto fill_package_struct_cleanup;
 		}
 
 		field_num = index_in_strings(field_names, field_name);
@@ -745,7 +745,7 @@ static void index_status_file(const char *filename)
 	unsigned status_num;
 
 	status_file = xfopen(filename, "r");
-	while ((control_buffer = xmalloc_fgets_str(status_file, "\n\n")) != NULL) {
+	while ((control_buffer = xmalloc_fgetline_str(status_file, "\n\n")) != NULL) {
 		const unsigned package_num = fill_package_struct(control_buffer);
 		if (package_num != -1) {
 			status_node = xmalloc(sizeof(status_node_t));
@@ -798,7 +798,7 @@ static void write_status_file(deb_file_t **deb_file)
 	int i = 0;
 
 	/* Update previously known packages */
-	while ((control_buffer = xmalloc_fgets_str(old_status_file, "\n\n")) != NULL) {
+	while ((control_buffer = xmalloc_fgetline_str(old_status_file, "\n\n")) != NULL) {
 		tmp_string = strstr(control_buffer, "Package:");
 		if (tmp_string == NULL) {
 			continue;
