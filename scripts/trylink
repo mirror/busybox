@@ -47,11 +47,28 @@ try() {
 }
 
 check_cc() {
-    if $CC $1 -shared -o /dev/null -xc /dev/null > /dev/null 2>&1; then
-        echo "$1";
+    if $CC $1 -shared -o /dev/null -xc /dev/null >/dev/null 2>&1; then
+	echo "$1";
     else
-        echo "$2";
+	echo "$2";
     fi
+}
+
+check_libc_is_glibc() {
+    local tempname="/tmp/temp.$$.$RANDOM.c"
+    echo "\
+	#include <stdlib.h>
+	/* Apparently uclibc defines __GLIBC__ (compat trick?). Oh well. */
+	#if defined(__GLIBC__) && !defined(__UCLIBC__)
+	syntax error here
+	#endif
+	" >"$tempname"
+    if $CC "$tempname" -c -o /dev/null >/dev/null 2>&1; then
+	echo "$2";
+    else
+	echo "$1";
+    fi
+    rm "$tempname"
 }
 
 EXE="$1"
@@ -63,6 +80,20 @@ LDLIBS="$6"
 
 # The -Wl,--sort-section option is not supported by older versions of ld
 SORT_SECTION=`check_cc "-Wl,--sort-section -Wl,alignment" ""`
+
+# Static linking against glibc produces buggy executables
+# (glibc does not cope well with ld --gc-sections).
+# See sources.redhat.com/bugzilla/show_bug.cgi?id=3400
+# Note that glibc is unsuitable for static linking anyway.
+# We are removing -Wl,--gc-sections from link command line.
+GC_SECTION=`(
+. ./.config
+if test x"$CONFIG_STATIC" = x"y"; then
+    check_libc_is_glibc "" "-Wl,--gc-sections"
+else
+    echo "-Wl,--gc-sections"
+fi
+)`
 
 # Sanitize lib list (dups, extra spaces etc)
 LDLIBS=`echo "$LDLIBS" | xargs -n1 | sort | uniq | xargs`
@@ -76,7 +107,7 @@ try $CC $LDFLAGS \
 	-o $EXE \
 	-Wl,--sort-common \
 	$SORT_SECTION \
-	-Wl,--gc-sections \
+	$GC_SECTION \
 	-Wl,--start-group $O_FILES $A_FILES -Wl,--end-group \
 	$l_list \
 || {
@@ -100,7 +131,7 @@ while test "$LDLIBS"; do
 		-o $EXE \
 		-Wl,--sort-common \
 		$SORT_SECTION \
-		-Wl,--gc-sections \
+		$GC_SECTION \
 		-Wl,--start-group $O_FILES $A_FILES -Wl,--end-group \
 		$l_list
 	if test $? = 0; then
@@ -129,7 +160,7 @@ if ! test -f busybox_ldscript; then
 	    -o $EXE \
 	    -Wl,--sort-common \
 	    $SORT_SECTION \
-	    -Wl,--gc-sections \
+	    $GC_SECTION \
 	    -Wl,--start-group $O_FILES $A_FILES -Wl,--end-group \
 	    $l_list \
 	    -Wl,--warn-common \
@@ -151,7 +182,7 @@ else
 	    -o $EXE \
 	    -Wl,--sort-common \
 	    $SORT_SECTION \
-	    -Wl,--gc-sections \
+	    $GC_SECTION \
 	    -Wl,-T -Wl,busybox_ldscript \
 	    -Wl,--start-group $O_FILES $A_FILES -Wl,--end-group \
 	    $l_list \
@@ -207,7 +238,7 @@ if test "$CONFIG_FEATURE_SHARED_BUSYBOX" = y; then
 	    -o $EXE \
 	    -Wl,--sort-common \
 	    $SORT_SECTION \
-	    -Wl,--gc-sections \
+	    $GC_SECTION \
 	    -Wl,--start-group $O_FILES -Wl,--end-group \
 	    -L"$sharedlib_dir" -lbusybox \
 	    -Wl,--warn-common \
@@ -246,7 +277,7 @@ int main(int argc, char **argv)
 		-o $EXE \
 		-Wl,--sort-common \
 		$SORT_SECTION \
-		-Wl,--gc-sections \
+		$GC_SECTION \
 		-L"$sharedlib_dir" -lbusybox \
 		-Wl,--warn-common \
 	|| {

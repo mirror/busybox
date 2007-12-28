@@ -50,7 +50,7 @@ typedef struct ethtable_s {
 #define ETHTOOL_BUSINFO_LEN 32
 /* these strings are set to whatever the driver author decides... */
 struct ethtool_drvinfo {
-	__u32 cmd;
+	uint32_t cmd;
 	char  driver[32]; /* driver short name, "tulip", "eepro100" */
 	char  version[32];  /* driver version string */
 	char  fw_version[32]; /* firmware version string, if applicable */
@@ -58,10 +58,10 @@ struct ethtool_drvinfo {
         /* For PCI devices, use pci_dev->slot_name. */
 	char  reserved1[32];
 	char  reserved2[16];
-	__u32 n_stats;  /* number of u64's from ETHTOOL_GSTATS */
-	__u32 testinfo_len;
-	__u32 eedump_len; /* Size of data from ETHTOOL_GEEPROM (bytes) */
-	__u32 regdump_len;  /* Size of data from ETHTOOL_GREGS (bytes) */
+	uint32_t n_stats;  /* number of u64's from ETHTOOL_GSTATS */
+	uint32_t testinfo_len;
+	uint32_t eedump_len; /* Size of data from ETHTOOL_GEEPROM (bytes) */
+	uint32_t regdump_len;  /* Size of data from ETHTOOL_GREGS (bytes) */
 };
 #define ETHTOOL_GDRVINFO  0x00000003 /* Get driver info. */
 #endif
