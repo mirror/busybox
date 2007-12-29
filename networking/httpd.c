@@ -43,6 +43,7 @@
  * A:127.0.0.1       # Allow local loopback connections
  * D:*               # Deny from other IP connections
  * E404:/path/e404.html # /path/e404.html is the 404 (not found) error page
+ * I:index.html      # Show index.html when a directory is requested
  *
  * P:/url:[http://]hostname[:port]/new/path
  *                   # When /urlXXXXXX is requested, reverse proxy
@@ -250,6 +251,7 @@ struct globals {
 	const char *g_query;
 	const char *configFile;
 	const char *home_httpd;
+	const char *index_page;
 
 	const char *found_mime_type;
 	const char *found_moved_temporarily;
@@ -295,6 +297,7 @@ struct globals {
 #define g_query           (G.g_query          )
 #define configFile        (G.configFile       )
 #define home_httpd        (G.home_httpd       )
+#define index_page        (G.index_page       )
 #define found_mime_type   (G.found_mime_type  )
 #define found_moved_temporarily (G.found_moved_temporarily)
 #define last_mod          (G.last_mod         )
@@ -687,6 +690,11 @@ static void parse_conf(const char *path, int flag)
 			strcpy(p + 1, c);
 		}
 #endif
+
+		if (*p0 == 'I') {
+			index_page = xstrdup(c);
+			continue;
+		}
 
 #if ENABLE_FEATURE_HTTPD_BASIC_AUTH \
  || ENABLE_FEATURE_HTTPD_CONFIG_WITH_MIME_TYPES \
@@ -1836,7 +1844,7 @@ static void handle_incoming_and_exit(const len_and_sockaddr *fromAddr)
 	*tptr = '\0';
 
 	/* Copy URL from after "GET "/"POST " to stack-allocated char[] */
-	urlcopy = alloca((tptr - urlp) + sizeof("/index.html"));
+	urlcopy = alloca((tptr - urlp) + 2 + strlen(index_page));
 	/*if (urlcopy == NULL)
 	 *	send_headers_and_exit(HTTP_INTERNAL_SERVER_ERROR);*/
 	strcpy(urlcopy, urlp);
@@ -2087,7 +2095,7 @@ static void handle_incoming_and_exit(const len_and_sockaddr *fromAddr)
 #endif  /* FEATURE_HTTPD_CGI */
 
 	if (urlp[-1] == '/')
-		strcpy(urlp, "index.html");
+		strcpy(urlp, index_page);
 	if (stat(tptr, &sb) == 0) {
 		file_size = sb.st_size;
 		last_mod = sb.st_mtime;
@@ -2367,6 +2375,7 @@ int httpd_main(int argc, char **argv)
 		sighup_handler(0);
 	else /* do not install HUP handler in inetd mode */
 #endif
+		index_page = "index.html";
 		parse_conf(default_path_httpd_conf, FIRST_PARSE);
 
 	xfunc_error_retval = 0;
