@@ -847,20 +847,8 @@ static int printLines(int num1, int num2, int expandFlag)
 			count--;
 
 		while (count-- > 0) {
-			ch = *cp++;
-			if (ch & 0x80) {
-				fputs("M-", stdout);
-				ch &= 0x7f;
-			}
-			if (ch < ' ') {
-				bb_putchar('^');
-				ch += '@';
-			}
-			if (ch == 0x7f) {
-				bb_putchar('^');
-				ch = '?';
-			}
-			bb_putchar(ch);
+			ch = (unsigned char) *cp++;
+			fputc_printable(ch | PRINTABLE_META, stdout);
 		}
 
 		fputs("$\n", stdout);

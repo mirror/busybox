@@ -349,12 +349,8 @@ static int unix_do_one(int nr, char *line)
 	const char *ss_proto, *ss_state, *ss_type;
 	char ss_flags[32];
 
-	/* TODO: currently we stop at first NUL byte. Is it a problem? */
-
 	if (nr == 0)
 		return 0; /* skip header */
-
-	*strchrnul(line, '\n') = '\0';
 
 	/* 2.6.15 may report lines like "... @/tmp/fam-user-^@^@^@^@^@^@^@..."
 	 * Other users report long lines filled by NUL bytes. 
@@ -443,9 +439,16 @@ static int unix_do_one(int nr, char *line)
 		strcat(ss_flags, "N ");
 	strcat(ss_flags, "]");
 
-	printf("%-5s %-6ld %-11s %-10s %-13s %6lu %s\n",
-		ss_proto, refcnt, ss_flags, ss_type, ss_state, inode,
-		line + path_ofs);
+	printf("%-5s %-6ld %-11s %-10s %-13s %6lu ",
+		ss_proto, refcnt, ss_flags, ss_type, ss_state, inode
+		);
+
+	/* TODO: currently we stop at first NUL byte. Is it a problem? */
+	line += path_ofs;
+	*strchrnul(line, '\n') = '\0';
+	while (*line)
+		fputc_printable(*line++, stdout);
+	bb_putchar('\n');
 	return 0;
 }
 

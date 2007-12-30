@@ -426,6 +426,11 @@ char *safe_strncpy(char *dst, const char *src, size_t size);
  * But potentially slow, don't use in one-billion-times loops */
 int bb_putchar(int ch);
 char *xasprintf(const char *format, ...) __attribute__ ((format (printf, 1, 2)));
+/* Prints unprintable chars ch as ^C or M-c to file
+ * (M-c is used only if ch is ORed with PRINTABLE_META),
+ * else it is printed as-is (except for ch = 0x9b) */
+enum { PRINTABLE_META = 0x100 };
+void fputc_printable(int ch, FILE *file);
 // gcc-4.1.1 still isn't good enough at optimizing it
 // (+200 bytes compared to macro)
 //static ALWAYS_INLINE

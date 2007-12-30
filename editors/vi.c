@@ -899,7 +899,7 @@ static void colon(char *buf)
 			if (c_is_no_print) {
 				c = '.';
 				standout_start();
-				}
+			}
 			if (c == '\n') {
 				write1("$\r");
 			} else if (c < ' ' || c == 127) {

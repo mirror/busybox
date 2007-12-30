@@ -65,6 +65,7 @@ lib-y += perror_msg_and_die.o
 lib-y += perror_nomsg.o
 lib-y += perror_nomsg_and_die.o
 lib-y += pidfile.o
+lib-y += printable.o
 lib-y += process_escape_sequence.o
 lib-y += procps.o
 lib-y += read.o
