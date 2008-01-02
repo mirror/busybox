@@ -66,6 +66,21 @@ pid_t xspawn(char **argv)
 	return pid;
 }
 
+int safe_waitpid(int pid, int *wstat, int options)
+{
+	int r;
+
+	do
+		r = waitpid(pid, wstat, options);
+	while ((r == -1) && (errno == EINTR));
+	return r;
+}
+
+int wait_any_nohang(int *wstat)
+{
+	return safe_waitpid(-1, wstat, WNOHANG);
+}
+
 // Wait for the specified child PID to exit, returning child's error return.
 int wait4pid(int pid)
 {
@@ -76,28 +91,18 @@ int wait4pid(int pid)
 		/* we expect errno to be already set from failed [v]fork/exec */
 		return -1;
 	}
-	if (waitpid(pid, &status, 0) == -1)
+	if (safe_waitpid(pid, &status, 0) == -1)
 		return -1;
 	if (WIFEXITED(status))
 		return WEXITSTATUS(status);
 	if (WIFSIGNALED(status))
 		return WTERMSIG(status) + 1000;
 	return 0;
-}
-
-int wait_nohang(int *wstat)
-{
-	return waitpid(-1, wstat, WNOHANG);
-}
-
-int wait_pid(int *wstat, int pid)
-{
-	int r;
-
-	do
-		r = waitpid(pid, wstat, 0);
-	while ((r == -1) && (errno == EINTR));
-	return r;
+	if (WIFEXITED(status))
+		return WEXITSTATUS(status);
+	if (WIFSIGNALED(status))
+		return WTERMSIG(status) + 1000;
+	return 0;
 }
 
 #if ENABLE_FEATURE_PREFER_APPLETS

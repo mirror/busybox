@@ -1161,7 +1161,7 @@ static void reapchild(int sig ATTRIBUTE_UNUSED)
 	servtab_t *sep;
 
 	for (;;) {
-		pid = wait3(&status, WNOHANG, NULL);
+		pid = wait_any_nohang(&status);
 		if (pid <= 0)
 			break;
 		for (sep = servtab; sep; sep = sep->se_next)

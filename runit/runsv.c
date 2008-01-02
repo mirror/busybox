@@ -282,8 +282,7 @@ static unsigned custom(struct svdir *s, char c)
 				execve(a, prog, environ);
 				fatal_cannot("run control/?");
 			}
-			while (wait_pid(&w, pid) == -1) {
-				if (errno == EINTR) continue;
+			while (safe_waitpid(pid, &w, 0) == -1) {
 				warn_cannot("wait for child control/?");
 				return 0;
 			}
@@ -593,7 +592,7 @@ int runsv_main(int argc, char **argv)
 			int child;
 			int wstat;
 
-			child = wait_nohang(&wstat);
+			child = wait_any_nohang(&wstat);
 			if (!child)
 				break;
 			if ((child == -1) && (errno != EINTR))

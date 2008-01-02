@@ -1649,6 +1649,7 @@ static int checkjobs(struct pipe* fg_pipe)
 // + killall -STOP cat
 
  wait_more:
+// TODO: safe_waitpid?
 	while ((childpid = waitpid(-1, &status, attributes)) > 0) {
 		const int dead = WIFEXITED(status) || WIFSIGNALED(status);
 

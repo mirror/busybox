@@ -610,7 +610,7 @@ static int writeTarFile(const int tar_fd, const int verboseFlag,
 
 	if (gzipPid) {
 		int status;
-		if (waitpid(gzipPid, &status, 0) == -1)
+		if (safe_waitpid(gzipPid, &status, 0) == -1)
 			bb_perror_msg("waitpid");
 		else if (!WIFEXITED(status) || WEXITSTATUS(status))
 			/* gzip was killed or has exited with nonzero! */
@@ -688,7 +688,7 @@ static void handle_SIGCHLD(int status)
 	/* Actually, 'status' is a signo. We reuse it for other needs */
 
 	/* Wait for any child without blocking */
-	if (waitpid(-1, &status, WNOHANG) < 0)
+	if (wait_any_nohang(&status) < 0)
 		/* wait failed?! I'm confused... */
 		return;
 

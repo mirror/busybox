@@ -394,7 +394,7 @@ static void handle_sigchld(int sig)
 
 	/* Looping: more than one child may have exited */
 	while (1) {
-		pid = waitpid(-1, NULL, WNOHANG);
+		pid = wait_any_nohang(NULL);
 		if (pid <= 0)
 			break;
 		ts = sessions;

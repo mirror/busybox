@@ -587,9 +587,9 @@ pid_t xspawn(char **argv);
  *      if (rc < 0) bb_perror_msg("%s", argv[0]);
  *      if (rc > 0) bb_error_msg("exit code: %d", rc);
  */
+int safe_waitpid(int pid, int *wstat, int options);
 int wait4pid(int pid);
-int wait_pid(int *wstat, int pid);
-int wait_nohang(int *wstat);
+int wait_any_nohang(int *wstat);
 #define wait_crashed(w) ((w) & 127)
 #define wait_exitcode(w) ((w) >> 8)
 #define wait_stopsig(w) ((w) >> 8)

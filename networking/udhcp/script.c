@@ -232,7 +232,7 @@ void udhcp_run_script(struct dhcpMessage *packet, const char *name)
 		       name, NULL, envp);
 		bb_perror_msg_and_die("script %s failed", client_config.script);
 	}
-	waitpid(pid, NULL, 0);
+	safe_waitpid(pid, NULL, 0);
 	for (curr = envp; *curr; curr++)
 		free(*curr);
 	free(envp);

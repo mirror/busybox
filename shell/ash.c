@@ -3768,7 +3768,7 @@ waitproc(int block, int *status)
 #endif
 	if (block == 0)
 		flags |= WNOHANG;
-	return wait3(status, flags, (struct rusage *)NULL);
+	return waitpid(-1, status, flags); // safe_waitpid?
 }
 
 /*

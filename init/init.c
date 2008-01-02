@@ -95,8 +95,13 @@ static const char *const environment[] = {
 
 /* Function prototypes */
 static void delete_init_action(struct init_action *a);
-static int waitfor(pid_t pid);
 static void halt_reboot_pwoff(int sig) ATTRIBUTE_NORETURN;
+
+/* TODO: move to libbb? */
+static int waitfor(pid_t runpid)
+{
+	return safe_waitpid(runpid, NULL, 0);
+}
 
 static void loop_forever(void) ATTRIBUTE_NORETURN;
 static void loop_forever(void)
@@ -465,19 +470,6 @@ static pid_t run(const struct init_action *a)
 	_exit(-1);
 }
 
-static int waitfor(pid_t runpid)
-{
-	int status, wpid;
-
-	while (1) {
-		wpid = waitpid(runpid, &status, 0);
-		if (wpid == -1 && errno == EINTR)
-			continue;
-		break;
-	}
-	return wpid;
-}
-
 /* Run all commands of a particular type */
 static void run_actions(int action)
 {
@@ -520,7 +512,7 @@ static void init_reboot(unsigned long magic)
 		reboot(magic);
 		_exit(0);
 	}
-	waitpid(pid, NULL, 0);
+	waitfor(pid);
 }
 
 static void kill_all_processes(void)
@@ -980,7 +972,7 @@ int init_main(int argc, char **argv)
 		/* Don't consume all CPU time -- sleep a bit */
 		sleep(1);
 
-		/* Wait for a child process to exit */
+		/* Wait for any child process to exit */
 		wpid = wait(NULL);
 		while (wpid > 0) {
 			/* Find out who died and clean up their corpse */
@@ -995,7 +987,7 @@ int init_main(int argc, char **argv)
 				}
 			}
 			/* see if anyone else is waiting to be reaped */
-			wpid = waitpid(-1, NULL, WNOHANG);
+			wpid = wait_any_nohang(NULL);
 		}
 	}
 }

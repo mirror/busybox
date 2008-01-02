@@ -1152,7 +1152,7 @@ static NOINLINE void cgi_io_loop_and_exit(int fromCgi_rd, int toCgi_wr, int post
 		count = safe_poll(pfd, 3, -1);
 		if (count <= 0) {
 #if 0
-			if (waitpid(pid, &status, WNOHANG) <= 0) {
+			if (safe_waitpid(pid, &status, WNOHANG) <= 0) {
 				/* Weird. CGI didn't exit and no fd's
 				 * are ready, yet poll returned?! */
 				continue;

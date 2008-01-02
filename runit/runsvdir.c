@@ -252,7 +252,7 @@ int runsvdir_main(int argc, char **argv)
 	for (;;) {
 		/* collect children */
 		for (;;) {
-			pid = wait_nohang(&wstat);
+			pid = wait_any_nohang(&wstat);
 			if (pid <= 0)
 				break;
 			for (i = 0; i < svnum; i++) {

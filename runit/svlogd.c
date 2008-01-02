@@ -265,7 +265,7 @@ static unsigned processorstop(struct logdir *ld)
 
 	if (ld->ppid) {
 		sig_unblock(SIGHUP);
-		while (wait_pid(&wstat, ld->ppid) == -1)
+		while (safe_waitpid(ld->ppid, &wstat, 0) == -1)
 			pause2cannot("wait for processor", ld->name);
 		sig_block(SIGHUP);
 		ld->ppid = 0;
@@ -794,7 +794,7 @@ static void sig_child_handler(int sig_no)
 
 	if (verbose)
 		bb_error_msg(INFO"sig%s received", "child");
-	while ((pid = wait_nohang(&wstat)) > 0) {
+	while ((pid = wait_any_nohang(&wstat)) > 0) {
 		for (l = 0; l < dirn; ++l) {
 			if (dir[l].ppid == pid) {
 				dir[l].ppid = 0;

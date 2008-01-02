@@ -4162,7 +4162,7 @@ static int grave(int quoted)
 		return 0;
 	}
 	if (i != 0) {
-		waitpid(i, NULL, 0);
+		waitpid(i, NULL, 0); // safe_waitpid?
 		global_env.iop->argp->aword = ++cp;
 		close(pf[1]);
 		PUSHIO(afile, remap(pf[0]),

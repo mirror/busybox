@@ -121,7 +121,7 @@ static void sig_child_handler(int sig)
 	int wstat;
 	int pid;
 
-	while ((pid = wait_nohang(&wstat)) > 0) {
+	while ((pid = wait_any_nohang(&wstat)) > 0) {
 		if (max_per_host)
 			ipsvd_perhost_remove(pid);
 		if (cnum)

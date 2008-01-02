@@ -944,7 +944,7 @@ static int doit(char *str)
 			execle(DEFAULT_SHELL, DEFAULT_SHELL, "-c", str, NULL, my_environ);
 			exit(127);
 		}
-		waitpid(child, &status, 0);
+		safe_waitpid(child, &status, 0);
 		if (!WIFEXITED(status) || WEXITSTATUS(status) != 0) {
 			return 0;
 		}
@@ -1068,7 +1068,7 @@ static char *run_mapping(char *physical, struct mapping_defn_t * map)
 		fprintf(in, "%s\n", map->mapping[i]);
 	}
 	fclose(in);
-	waitpid(pid, &status, 0);
+	safe_waitpid(pid, &status, 0);
 
 	if (WIFEXITED(status) && WEXITSTATUS(status) == 0) {
 		/* If the mapping script exited successfully, try to

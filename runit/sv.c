@@ -333,8 +333,7 @@ static int checkscript(void)
 		bb_perror_msg(WARN"cannot %s child %s/check", "run", *service);
 		return 0;
 	}
-	while (wait_pid(&w, pid) == -1) {
-		if (errno == EINTR) continue;
+	while (safe_waitpid(pid, &w, 0) == -1) {
 		bb_perror_msg(WARN"cannot %s child %s/check", "wait for", *service);
 		return 0;
 	}

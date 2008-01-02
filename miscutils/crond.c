@@ -756,7 +756,7 @@ static int CheckJobs(void)
 			for (line = file->cf_LineBase; line; line = line->cl_Next) {
 				if (line->cl_Pid > 0) {
 					int status;
-					int r = wait4(line->cl_Pid, &status, WNOHANG, NULL);
+					int r = waitpid(line->cl_Pid, &status, WNOHANG);
 
 					if (r < 0 || r == line->cl_Pid) {
 						EndJob(file->cf_User, line);
