@@ -285,7 +285,7 @@ void log_to_shmem(const char *msg);
 
 
 /* Print a message to the log file. */
-static void log_locally(char *msg)
+static void log_locally(time_t now, char *msg)
 {
 	struct flock fl;
 	int len = strlen(msg);
@@ -297,10 +297,10 @@ static void log_locally(char *msg)
 	}
 #endif
 	if (G.logFD >= 0) {
-		time_t cur;
-		time(&cur);
-		if (G.last_log_time != cur) {
-			G.last_log_time = cur; /* reopen log file every second */
+		if (!now)
+			now = time(NULL);
+		if (G.last_log_time != now) {
+			G.last_log_time = now; /* reopen log file every second */
 			close(G.logFD);
 			goto reopen;
 		}
@@ -397,23 +397,20 @@ static void parse_fac_prio_20(int pri, char *res20)
 static void timestamp_and_log(int pri, char *msg, int len)
 {
 	char *timestamp;
-
-	if (ENABLE_FEATURE_REMOTE_LOG && !(option_mask32 & OPT_locallog))
-		return;
+	time_t now;
 
 	if (len < 16 || msg[3] != ' ' || msg[6] != ' '
 	 || msg[9] != ':' || msg[12] != ':' || msg[15] != ' '
 	) {
-		time_t now;
 		time(&now);
-		timestamp = ctime(&now) + 4;
+		timestamp = ctime(&now) + 4; /* skip day of week */
 	} else {
+		now = 0;
 		timestamp = msg;
 		msg += 16;
 	}
 	timestamp[15] = '\0';
 
-	/* Log message locally (to file or shared mem) */
 	if (option_mask32 & OPT_small)
 		sprintf(G.printbuf, "%s %s\n", timestamp, msg);
 	else {
@@ -421,7 +418,16 @@ static void timestamp_and_log(int pri, char *msg, int len)
 		parse_fac_prio_20(pri, res);
 		sprintf(G.printbuf, "%s %s %s %s\n", timestamp, G.localHostName, res, msg);
 	}
-	log_locally(G.printbuf);
+
+	/* Log message locally (to file or shared mem) */
+	log_locally(now, G.printbuf);
+}
+
+static void timestamp_and_log_internal(const char *msg)
+{
+	if (ENABLE_FEATURE_REMOTE_LOG && !(option_mask32 & OPT_locallog))
+		return;
+	timestamp_and_log(LOG_SYSLOG | LOG_INFO, (char*)msg, 0);
 }
 
 static void split_escape_and_log(char *tmpbuf, int len)
@@ -462,7 +468,7 @@ static void split_escape_and_log(char *tmpbuf, int len)
 
 static void quit_signal(int sig)
 {
-	timestamp_and_log(LOG_SYSLOG | LOG_INFO, (char*)"syslogd exiting", 0);
+	timestamp_and_log_internal("syslogd exiting");
 	puts("syslogd exiting");
 	if (ENABLE_FEATURE_IPC_SYSLOG)
 		ipcsyslog_cleanup();
@@ -473,7 +479,7 @@ static void quit_signal(int sig)
 static void do_mark(int sig)
 {
 	if (G.markInterval) {
-		timestamp_and_log(LOG_SYSLOG | LOG_INFO, (char*)"-- MARK --", 0);
+		timestamp_and_log_internal("-- MARK --");
 		alarm(G.markInterval);
 	}
 }
@@ -546,8 +552,7 @@ static void do_syslogd(void)
 		ipcsyslog_init();
 	}
 
-	timestamp_and_log(LOG_SYSLOG | LOG_INFO,
-			(char*)"syslogd started: BusyBox v" BB_VER, 0);
+	timestamp_and_log_internal("syslogd started: BusyBox v" BB_VER);
 
 	for (;;) {
 		size_t sz;
