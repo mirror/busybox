@@ -42,7 +42,10 @@
  * (semaphores are down but do_mark routine tries to down them again) */
 #undef SYSLOGD_MARK
 
-enum { MAX_READ = 256 };
+enum {
+	MAX_READ = 256,
+	DNS_WAIT_SEC = 2 * 60,
+};
 
 /* Semaphore operation structures */
 struct shbuf_ds {
@@ -86,6 +89,12 @@ struct init_globals {
 
 struct globals {
 	GLOBALS
+
+#if ENABLE_FEATURE_REMOTE_LOG
+	unsigned last_dns_resolve;
+	char *remoteAddrStr;
+#endif
+
 #if ENABLE_FEATURE_IPC_SYSLOG
 	struct shbuf_ds *shbuf;
 #endif
@@ -128,6 +137,9 @@ static const struct init_globals init_data = {
 };
 
 #define G (*ptr_to_globals)
+#define INIT_G() do { \
+	PTR_TO_GLOBALS = memcpy(xzalloc(sizeof(G)), &init_data, sizeof(init_data)); \
+} while (0)
 
 
 /* Options */
@@ -140,7 +152,7 @@ enum {
 	USE_FEATURE_ROTATE_LOGFILE(OPTBIT_filesize   ,)	// -s
 	USE_FEATURE_ROTATE_LOGFILE(OPTBIT_rotatecnt  ,)	// -b
 	USE_FEATURE_REMOTE_LOG(    OPTBIT_remote     ,)	// -R
-	USE_FEATURE_REMOTE_LOG(    OPTBIT_localtoo   ,)	// -L
+	USE_FEATURE_REMOTE_LOG(    OPTBIT_locallog   ,)	// -L
 	USE_FEATURE_IPC_SYSLOG(    OPTBIT_circularlog,)	// -C
 
 	OPT_mark        = 1 << OPTBIT_mark    ,
@@ -151,7 +163,7 @@ enum {
 	OPT_filesize    = USE_FEATURE_ROTATE_LOGFILE((1 << OPTBIT_filesize   )) + 0,
 	OPT_rotatecnt   = USE_FEATURE_ROTATE_LOGFILE((1 << OPTBIT_rotatecnt  )) + 0,
 	OPT_remotelog   = USE_FEATURE_REMOTE_LOG(    (1 << OPTBIT_remote     )) + 0,
-	OPT_locallog    = USE_FEATURE_REMOTE_LOG(    (1 << OPTBIT_localtoo   )) + 0,
+	OPT_locallog    = USE_FEATURE_REMOTE_LOG(    (1 << OPTBIT_locallog   )) + 0,
 	OPT_circularlog = USE_FEATURE_IPC_SYSLOG(    (1 << OPTBIT_circularlog)) + 0,
 };
 #define OPTION_STR "m:nO:l:S" \
@@ -163,12 +175,11 @@ enum {
 #define OPTION_DECL *opt_m, *opt_l \
 	USE_FEATURE_ROTATE_LOGFILE(,*opt_s) \
 	USE_FEATURE_ROTATE_LOGFILE(,*opt_b) \
-	USE_FEATURE_REMOTE_LOG(    ,*opt_R) \
 	USE_FEATURE_IPC_SYSLOG(    ,*opt_C = NULL)
 #define OPTION_PARAM &opt_m, &G.logFilePath, &opt_l \
 	USE_FEATURE_ROTATE_LOGFILE(,&opt_s) \
 	USE_FEATURE_ROTATE_LOGFILE(,&opt_b) \
-	USE_FEATURE_REMOTE_LOG(    ,&opt_R) \
+	USE_FEATURE_REMOTE_LOG(    ,&G.remoteAddrStr) \
 	USE_FEATURE_IPC_SYSLOG(    ,&opt_C)
 
 
@@ -387,6 +398,9 @@ static void timestamp_and_log(int pri, char *msg, int len)
 {
 	char *timestamp;
 
+	if (ENABLE_FEATURE_REMOTE_LOG && !(option_mask32 & OPT_locallog))
+		return;
+
 	if (len < 16 || msg[3] != ' ' || msg[6] != ' '
 	 || msg[9] != ':' || msg[12] != ':' || msg[15] != ' '
 	) {
@@ -400,18 +414,14 @@ static void timestamp_and_log(int pri, char *msg, int len)
 	timestamp[15] = '\0';
 
 	/* Log message locally (to file or shared mem) */
-	if (!ENABLE_FEATURE_REMOTE_LOG || (option_mask32 & OPT_locallog)) {
-		if (LOG_PRI(pri) < G.logLevel) {
-			if (option_mask32 & OPT_small)
-				sprintf(G.printbuf, "%s %s\n", timestamp, msg);
-			else {
-				char res[20];
-				parse_fac_prio_20(pri, res);
-				sprintf(G.printbuf, "%s %s %s %s\n", timestamp, G.localHostName, res, msg);
-			}
-			log_locally(G.printbuf);
-		}
+	if (option_mask32 & OPT_small)
+		sprintf(G.printbuf, "%s %s\n", timestamp, msg);
+	else {
+		char res[20];
+		parse_fac_prio_20(pri, res);
+		sprintf(G.printbuf, "%s %s %s %s\n", timestamp, G.localHostName, res, msg);
 	}
+	log_locally(G.printbuf);
 }
 
 static void split_escape_and_log(char *tmpbuf, int len)
@@ -443,8 +453,10 @@ static void split_escape_and_log(char *tmpbuf, int len)
 			*q++ = c;
 		}
 		*q = '\0';
+
 		/* Now log it */
-		timestamp_and_log(pri, G.parsebuf, q - G.parsebuf);
+		if (LOG_PRI(pri) < G.logLevel)
+			timestamp_and_log(pri, G.parsebuf, q - G.parsebuf);
 	}
 }
 
@@ -495,6 +507,24 @@ static NOINLINE int create_socket(void)
 	return sock_fd;
 }
 
+#if ENABLE_FEATURE_REMOTE_LOG
+static int try_to_resolve_remote(void)
+{
+	if (!G.remoteAddr) {
+		unsigned now = monotonic_sec();
+
+		/* Don't resolve name too often - DNS timeouts can be big */
+		if ((now - G.last_dns_resolve) < DNS_WAIT_SEC)
+			return -1;
+		G.last_dns_resolve = now;
+		G.remoteAddr = host2sockaddr(G.remoteAddrStr, 514);
+		if (!G.remoteAddr)
+			return -1;
+	}
+	return socket(G.remoteAddr->sa.sa_family, SOCK_DGRAM, 0);
+}
+#endif
+
 static void do_syslogd(void) ATTRIBUTE_NORETURN;
 static void do_syslogd(void)
 {
@@ -505,10 +535,7 @@ static void do_syslogd(void)
 	signal(SIGTERM, quit_signal);
 	signal(SIGQUIT, quit_signal);
 	signal(SIGHUP, SIG_IGN);
-	signal(SIGCHLD, SIG_IGN);
-#ifdef SIGCLD
-	signal(SIGCLD, SIG_IGN);
-#endif
+	/* signal(SIGCHLD, SIG_IGN); - why? */
 #ifdef SYSLOGD_MARK
 	signal(SIGALRM, do_mark);
 	alarm(G.markInterval);
@@ -554,19 +581,21 @@ static void do_syslogd(void)
 #if ENABLE_FEATURE_REMOTE_LOG
 		/* We are not modifying log messages in any way before send */
 		/* Remote site cannot trust _us_ anyway and need to do validation again */
-		if (G.remoteAddr) {
+		if (G.remoteAddrStr) {
 			if (-1 == G.remoteFD) {
-				G.remoteFD = socket(G.remoteAddr->sa.sa_family, SOCK_DGRAM, 0);
+				G.remoteFD = try_to_resolve_remote();
+				if (-1 == G.remoteFD)
+					goto no_luck;
 			}
-			if (-1 != G.remoteFD) {
-				/* send message to remote logger, ignore possible error */
-				sendto(G.remoteFD, G.recvbuf, sz, MSG_DONTWAIT,
-					&G.remoteAddr->sa, G.remoteAddr->len);
-			}
+			/* send message to remote logger, ignore possible error */
+			sendto(G.remoteFD, G.recvbuf, sz, MSG_DONTWAIT,
+				    &G.remoteAddr->sa, G.remoteAddr->len);
+ no_luck: ;
 		}
 #endif
-		split_escape_and_log(G.recvbuf, sz);
-	} /* for */
+		if (!ENABLE_FEATURE_REMOTE_LOG || (option_mask32 & OPT_locallog))
+			split_escape_and_log(G.recvbuf, sz);
+	} /* for (;;) */
 }
 
 int syslogd_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
@@ -575,7 +604,10 @@ int syslogd_main(int argc, char **argv)
 	char OPTION_DECL;
 	char *p;
 
-	PTR_TO_GLOBALS = memcpy(xzalloc(sizeof(G)), &init_data, sizeof(init_data));
+	INIT_G();
+#if ENABLE_FEATURE_REMOTE_LOG
+	G.last_dns_resolve = monotonic_sec() - DNS_WAIT_SEC - 1;
+#endif
 
 	/* do normal option parsing */
 	opt_complementary = "=0"; /* no non-option params */
@@ -594,12 +626,6 @@ int syslogd_main(int argc, char **argv)
 		G.logFileSize = xatou_range(opt_s, 0, INT_MAX/1024) * 1024;
 	if (option_mask32 & OPT_rotatecnt) // -b
 		G.logFileRotate = xatou_range(opt_b, 0, 99);
-#endif
-#if ENABLE_FEATURE_REMOTE_LOG
-	if (option_mask32 & OPT_remotelog) { // -R
-		G.remoteAddr = xhost2sockaddr(opt_R, 514);
-	}
-	//if (option_mask32 & OPT_locallog) // -L
 #endif
 #if ENABLE_FEATURE_IPC_SYSLOG
 	if (opt_C) // -Cn
