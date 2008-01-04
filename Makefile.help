@@ -16,7 +16,6 @@ help:
 	@echo 'Configuration:'
 	@echo '  allnoconfig		- disable all symbols in .config'
 	@echo '  allyesconfig		- enable all symbols in .config (see defconfig)'
-	@echo '  allbareconfig		- enable all applets without any sub-features'
 	@echo '  config		- text based configurator (of last resort)'
 	@echo '  defconfig		- set .config to largest generic configuration'
 	@echo '  menuconfig		- interactive curses-based configurator'
