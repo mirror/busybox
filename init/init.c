@@ -97,10 +97,16 @@ static const char *const environment[] = {
 static void delete_init_action(struct init_action *a);
 static void halt_reboot_pwoff(int sig) ATTRIBUTE_NORETURN;
 
-/* TODO: move to libbb? */
-static int waitfor(pid_t runpid)
+static void waitfor(pid_t pid)
 {
-	return safe_waitpid(runpid, NULL, 0);
+	/* waitfor(run(x)): protect against failed fork inside run() */
+	if (pid <= 0)
+		return;
+
+	/* Wait for any child (prevent zombies from exiting orphaned processes)
+	 * but exit the loop only when specified one has exited. */
+	while (wait(NULL) != pid)
+		continue;
 }
 
 static void loop_forever(void) ATTRIBUTE_NORETURN;
