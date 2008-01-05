@@ -990,6 +990,7 @@ typedef struct procps_status_t {
 	 * it is memset(0) for each process in procps_scan() */
 	unsigned long vsz, rss; /* we round it to kbytes */
 	unsigned long stime, utime;
+	unsigned long start_time;
 	unsigned pid;
 	unsigned ppid;
 	unsigned pgid;
@@ -1032,11 +1033,12 @@ enum {
 	PSSCAN_SMAPS	= (1 << 15) * ENABLE_FEATURE_TOPMEM,
 	PSSCAN_ARGVN    = (1 << 16) * (ENABLE_PGREP | ENABLE_PKILL),
 	USE_SELINUX(PSSCAN_CONTEXT = 1 << 17,)
+	PSSCAN_START_TIME = 1 << 18,
 	/* These are all retrieved from proc/NN/stat in one go: */
 	PSSCAN_STAT     = PSSCAN_PPID | PSSCAN_PGID | PSSCAN_SID
 	                | PSSCAN_COMM | PSSCAN_STATE
 	                | PSSCAN_VSZ | PSSCAN_RSS
-			| PSSCAN_STIME | PSSCAN_UTIME
+			| PSSCAN_STIME | PSSCAN_UTIME | PSSCAN_START_TIME
 			| PSSCAN_TTY,
 };
 procps_status_t* alloc_procps_scan(int flags);

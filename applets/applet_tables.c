@@ -71,7 +71,7 @@ int main(int argc, char **argv)
 
 	puts("/* This is a generated file, don't edit */");
 
-	puts("const char applet_names[] ALIGN1 = \"\" \n");
+	puts("const char applet_names[] ALIGN1 = \"\"\n");
 	for (i = 0; i < NUM_APPLETS; i++) {
 		printf("\"%s\" \"\\0\"\n", applets[i].name);
 	}

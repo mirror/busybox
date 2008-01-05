@@ -16,6 +16,143 @@ enum { MAX_WIDTH = 2*1024 };
 
 #if ENABLE_DESKTOP
 
+#include <sys/times.h> /* for times() */
+//#include <sys/sysinfo.h> /* for sysinfo() */
+#ifndef AT_CLKTCK
+#define AT_CLKTCK 17
+#endif
+
+
+#if ENABLE_SELINUX
+#define SELINIX_O_PREFIX "label,"
+#define DEFAULT_O_STR    (SELINIX_O_PREFIX "pid,user" USE_FEATURE_PS_TIME(",time"))
+#else
+#define DEFAULT_O_STR    ("pid,user" USE_FEATURE_PS_TIME(",time"))
+#endif
+
+typedef struct {
+	uint16_t width;
+	char name[6];
+	const char *header;
+	void (*f)(char *buf, int size, const procps_status_t *ps);
+	int ps_flags;
+} ps_out_t;
+
+struct globals {
+	ps_out_t* out;
+	int out_cnt;
+	int print_header;
+	int need_flags;
+	char *buffer;
+	unsigned terminal_width;
+#if ENABLE_FEATURE_PS_TIME
+	unsigned kernel_HZ;
+	unsigned long long seconds_since_boot;
+#endif
+	char default_o[sizeof(DEFAULT_O_STR)];
+};
+#define G (*(struct globals*)&bb_common_bufsiz1)
+#define out                (G.out               )
+#define out_cnt            (G.out_cnt           )
+#define print_header       (G.print_header      )
+#define need_flags         (G.need_flags        )
+#define buffer             (G.buffer            )
+#define terminal_width     (G.terminal_width    )
+#define kernel_HZ          (G.kernel_HZ         )
+#define seconds_since_boot (G.seconds_since_boot)
+#define default_o          (G.default_o         )
+
+#if ENABLE_FEATURE_PS_TIME
+/* for ELF executables, notes are pushed before environment and args */
+static ptrdiff_t find_elf_note(ptrdiff_t findme)
+{
+        ptrdiff_t *ep = (ptrdiff_t *) environ;
+
+        while (*ep++);
+        while (*ep) {
+                if (ep[0] == findme) {
+                        return ep[1];
+                }
+                ep += 2;
+        }
+        return -1;
+}
+
+#if ENABLE_FEATURE_PS_UNUSUAL_SYSTEMS
+static unsigned get_HZ_by_waiting(void)
+{
+        struct timeval tv1, tv2;
+        unsigned t1, t2, r, hz;
+        unsigned cnt = cnt; /* for compiler */
+        int diff;
+
+        r = 0;
+
+        /* Wait for times() to reach new tick */
+        t1 = times(NULL);
+        do {
+                t2 = times(NULL);
+        } while (t2 == t1);
+        gettimeofday(&tv2, NULL);
+
+        do {
+                t1 = t2;
+                tv1.tv_usec = tv2.tv_usec;
+
+                /* Wait exactly one times() tick */
+                do {
+                        t2 = times(NULL);
+                } while (t2 == t1);
+                gettimeofday(&tv2, NULL);
+
+                /* Calculate ticks per sec, rounding up to even */
+                diff = tv2.tv_usec - tv1.tv_usec;
+                if (diff <= 0) diff += 1000000;
+                hz = 1000000u / (unsigned)diff;
+                hz = (hz+1) & ~1;
+
+		/* Count how many same hz values we saw */
+                if (r != hz) {
+                        r = hz;
+                        cnt = 0;
+                }
+                cnt++;
+        } while (cnt < 3); /* exit if saw 3 same values */
+
+        return r;
+}
+#else
+static inline unsigned get_HZ_by_waiting(void)
+{
+	/* Better method? */
+	return 100;
+}
+#endif
+
+static unsigned get_kernel_HZ(void)
+{
+	//char buf[64];
+	struct sysinfo info;
+
+	if (kernel_HZ)
+		return kernel_HZ;
+
+	/* Works for ELF only, Linux 2.4.0+ */
+	kernel_HZ = find_elf_note(AT_CLKTCK);
+	if (kernel_HZ == (unsigned)-1)
+		kernel_HZ = get_HZ_by_waiting();
+
+	//if (open_read_close("/proc/uptime", buf, sizeof(buf) <= 0)
+	//	bb_perror_msg_and_die("cannot read %s", "/proc/uptime");
+	//buf[sizeof(buf)-1] = '\0';
+	///sscanf(buf, "%llu", &seconds_since_boot);
+	sysinfo(&info);
+	seconds_since_boot = info.uptime;
+
+	return kernel_HZ;
+}
+#endif
+
 /* Print value to buf, max size+1 chars (including trailing '\0') */
 
 static void func_user(char *buf, int size, const procps_status_t *ps)
@@ -73,6 +210,34 @@ static void func_tty(char *buf, int size, const procps_status_t *ps)
 		snprintf(buf, size+1, "%u,%u", ps->tty_major, ps->tty_minor);
 }
 
+#if ENABLE_FEATURE_PS_TIME
+static void func_etime(char *buf, int size, const procps_status_t *ps)
+{
+	/* elapsed time [[dd-]hh:]mm:ss; here only mm:ss */
+	unsigned long mm;
+	unsigned ss;
+
+	mm = ps->start_time / get_kernel_HZ();
+	/* must be after get_kernel_HZ()! */
+	mm = seconds_since_boot - mm;
+	ss = mm % 60;
+	mm /= 60;
+	snprintf(buf, size+1, "%3lu:%02u", mm, ss);
+}
+
+static void func_time(char *buf, int size, const procps_status_t *ps)
+{
+	/* cumulative time [[dd-]hh:]mm:ss; here only mm:ss */
+	unsigned long mm;
+	unsigned ss;
+
+	mm = (ps->utime + ps->stime) / get_kernel_HZ();
+	ss = mm % 60;
+	mm /= 60;
+	snprintf(buf, size+1, "%3lu:%02u", mm, ss);
+}
+#endif
+
 #if ENABLE_SELINUX
 static void func_label(char *buf, int size, const procps_status_t *ps)
 {
@@ -86,28 +251,10 @@ static void func_nice(char *buf, int size, const procps_status_t *ps)
 	ps->???
 }
 
-static void func_etime(char *buf, int size, const procps_status_t *ps)
-{
-	elapled time [[dd-]hh:]mm:ss
-}
-
-static void func_time(char *buf, int size, const procps_status_t *ps)
-{
-	cumulative time [[dd-]hh:]mm:ss
-}
-
 static void func_pcpu(char *buf, int size, const procps_status_t *ps)
 {
 }
 */
-
-typedef struct {
-	uint16_t width;
-	char name[6];
-	const char *header;
-	void (*f)(char *buf, int size, const procps_status_t *ps);
-	int ps_flags;
-} ps_out_t;
 
 static const ps_out_t out_spec[] = {
 // Mandated by POSIX:
@@ -117,13 +264,17 @@ static const ps_out_t out_spec[] = {
 	{ 5                  , "pid"   ,"PID"    ,func_pid   ,PSSCAN_PID     },
 	{ 5                  , "ppid"  ,"PPID"   ,func_ppid  ,PSSCAN_PPID    },
 	{ 5                  , "pgid"  ,"PGID"   ,func_pgid  ,PSSCAN_PGID    },
-//	{ sizeof("ELAPSED")-1, "etime" ,"ELAPSED",func_etime ,PSSCAN_        },
+#if ENABLE_FEATURE_PS_TIME
+	{ sizeof("ELAPSED")-1, "etime" ,"ELAPSED",func_etime ,PSSCAN_START_TIME },
+#endif
 //	{ sizeof("GROUP"  )-1, "group" ,"GROUP"  ,func_group ,PSSCAN_UIDGID  },
 //	{ sizeof("NI"     )-1, "nice"  ,"NI"     ,func_nice  ,PSSCAN_        },
 //	{ sizeof("%CPU"   )-1, "pcpu"  ,"%CPU"   ,func_pcpu  ,PSSCAN_        },
 //	{ sizeof("RGROUP" )-1, "rgroup","RGROUP" ,func_rgroup,PSSCAN_UIDGID  },
 //	{ sizeof("RUSER"  )-1, "ruser" ,"RUSER"  ,func_ruser ,PSSCAN_UIDGID  },
-//	{ sizeof("TIME"   )-1, "time"  ,"TIME"   ,func_time  ,PSSCAN_        },
+#if ENABLE_FEATURE_PS_TIME
+	{ 6                  , "time"  ,"TIME"   ,func_time  ,PSSCAN_STIME | PSSCAN_UTIME },
+#endif
 	{ 6                  , "tty"   ,"TT"     ,func_tty   ,PSSCAN_TTY     },
 	{ 4                  , "vsz"   ,"VSZ"    ,func_vsz   ,PSSCAN_VSZ     },
 // Not mandated by POSIX, but useful:
@@ -132,31 +283,6 @@ static const ps_out_t out_spec[] = {
 	{ 35                 , "label" ,"LABEL"  ,func_label ,PSSCAN_CONTEXT },
 #endif
 };
-
-#if ENABLE_SELINUX
-#define SELINIX_O_PREFIX "label,"
-#define DEFAULT_O_STR    SELINIX_O_PREFIX "pid,user" /* TODO: ,vsz,stat */ ",args"
-#else
-#define DEFAULT_O_STR    "pid,user" /* TODO: ,vsz,stat */ ",args"
-#endif
-
-struct globals {
-	ps_out_t* out;
-	int out_cnt;
-	int print_header;
-	int need_flags;
-	char *buffer;
-	unsigned terminal_width;
-	char default_o[sizeof(DEFAULT_O_STR)];
-};
-#define G (*(struct globals*)&bb_common_bufsiz1)
-#define out            (G.out           )
-#define out_cnt        (G.out_cnt       )
-#define print_header   (G.print_header  )
-#define need_flags     (G.need_flags    )
-#define buffer         (G.buffer        )
-#define terminal_width (G.terminal_width)
-#define default_o      (G.default_o     )
 
 static ps_out_t* new_out_t(void)
 {

@@ -243,7 +243,8 @@ procps_status_t *procps_scan(procps_status_t* sp, int flags)
 				"%lu %lu "             /* utime, stime */
 				"%*s %*s %*s "         /* cutime, cstime, priority */
 				"%ld "                 /* nice */
-				"%*s %*s %*s "         /* timeout, it_real_value, start_time */
+				"%*s %*s "             /* timeout, it_real_value */
+				"%lu "                 /* start_time */
 				"%lu "                 /* vsize */
 				"%lu "                 /* rss */
 			/*	"%lu %lu %lu %lu %lu %lu " rss_rlim, start_code, end_code, start_stack, kstk_esp, kstk_eip */
@@ -254,6 +255,7 @@ procps_status_t *procps_scan(procps_status_t* sp, int flags)
 				&sp->pgid, &sp->sid, &tty,
 				&sp->utime, &sp->stime,
 				&tasknice,
+				&sp->start_time,
 				&vsz,
 				&rss);
 			if (n != 10)
@@ -280,7 +282,8 @@ procps_status_t *procps_scan(procps_status_t* sp, int flags)
 			sp->stime = fast_strtoul_10(&cp);
 			cp = skip_fields(cp, 3); /* cutime, cstime, priority */
 			tasknice = fast_strtoul_10(&cp);
-			cp = skip_fields(cp, 3); /* timeout, it_real_value, start_time */
+			cp = skip_fields(cp, 2); /* timeout, it_real_value */
+			sp->start_time = fast_strtoul_10(&cp);
 			/* vsz is in bytes and we want kb */
 			sp->vsz = fast_strtoul_10(&cp) >> 10;
 			/* vsz is in bytes but rss is in *PAGES*! Can you believe that? */
