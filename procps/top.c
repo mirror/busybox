@@ -669,60 +669,10 @@ static void display_topmem_header(int scr_width)
 #undef str
 }
 
-// Converts unsigned long long value into compact 5-char
-// representation. Sixth char is always ' '
-static void smart_ulltoa6(unsigned long long ul, char buf[6])
+static void ulltoa6_and_space(unsigned long long ul, char buf[6])
 {
-	const char *fmt;
-	char c;
-	unsigned v, u, idx = 0;
-
-	if (ul > 99999) { // do not scale if 99999 or less
-		ul *= 10;
-		do {
-			ul /= 1024;
-			idx++;
-		} while (ul >= 100000);
-	}
-	v = ul; // ullong divisions are expensive, avoid them
-
-	fmt = " 123456789";
-	u = v / 10;
-	v = v % 10;
-	if (!idx) {
-		// 99999 or less: use "12345" format
-		// u is value/10, v is last digit
-		c = buf[0] = " 123456789"[u/1000];
-		if (c != ' ') fmt = "0123456789";
-		c = buf[1] = fmt[u/100%10];
-		if (c != ' ') fmt = "0123456789";
-		c = buf[2] = fmt[u/10%10];
-		if (c != ' ') fmt = "0123456789";
-		buf[3] = fmt[u%10];
-		buf[4] = "0123456789"[v];
-	} else {
-		// value has been scaled into 0..9999.9 range
-		// u is value, v is 1/10ths (allows for 92.1M format)
-		if (u >= 100) {
-			// value is >= 100: use "1234M', " 123M" formats
-			c = buf[0] = " 123456789"[u/1000];
-			if (c != ' ') fmt = "0123456789";
-			c = buf[1] = fmt[u/100%10];
-			if (c != ' ') fmt = "0123456789";
-			v = u % 10;
-			u = u / 10;
-			buf[2] = fmt[u%10];
-		} else {
-			// value is < 100: use "92.1M" format
-			c = buf[0] = " 123456789"[u/10];
-			if (c != ' ') fmt = "0123456789";
-			buf[1] = fmt[u%10];
-			buf[2] = '.';
-		}
-		buf[3] = "0123456789"[v];
-		// see http://en.wikipedia.org/wiki/Tera
-		buf[4] = " mgtpezy"[idx];
-	}
+	/* see http://en.wikipedia.org/wiki/Tera */
+	smart_ulltoa5(ul, buf, " mgtpezy");
 	buf[5] = ' ';
 }
 
@@ -739,14 +689,14 @@ static NOINLINE void display_topmem_process_list(int count, int scr_width)
 
 	while (--count >= 0) {
 		// PID VSZ VSZRW RSS (SHR) DIRTY (SHR) COMMAND
-		smart_ulltoa6(s->pid     , &line_buf[0*6]);
-		smart_ulltoa6(s->vsz     , &line_buf[1*6]);
-		smart_ulltoa6(s->vszrw   , &line_buf[2*6]);
-		smart_ulltoa6(s->rss     , &line_buf[3*6]);
-		smart_ulltoa6(s->rss_sh  , &line_buf[4*6]);
-		smart_ulltoa6(s->dirty   , &line_buf[5*6]);
-		smart_ulltoa6(s->dirty_sh, &line_buf[6*6]);
-		smart_ulltoa6(s->stack   , &line_buf[7*6]);
+		ulltoa6_and_space(s->pid     , &line_buf[0*6]);
+		ulltoa6_and_space(s->vsz     , &line_buf[1*6]);
+		ulltoa6_and_space(s->vszrw   , &line_buf[2*6]);
+		ulltoa6_and_space(s->rss     , &line_buf[3*6]);
+		ulltoa6_and_space(s->rss_sh  , &line_buf[4*6]);
+		ulltoa6_and_space(s->dirty   , &line_buf[5*6]);
+		ulltoa6_and_space(s->dirty_sh, &line_buf[6*6]);
+		ulltoa6_and_space(s->stack   , &line_buf[7*6]);
 		line_buf[8*6] = '\0';
 		if (scr_width > MIN_WIDTH) {
 			read_cmdline(&line_buf[8*6], scr_width - MIN_WIDTH, s->pid, s->comm);

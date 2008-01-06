@@ -503,7 +503,9 @@ char *itoa(int n);
 /* Returns a pointer past the formatted number, does NOT null-terminate */
 char *utoa_to_buf(unsigned n, char *buf, unsigned buflen);
 char *itoa_to_buf(int n, char *buf, unsigned buflen);
-void smart_ulltoa5(unsigned long long ul, char buf[5]);
+/* Intelligent formatters of bignums */
+void smart_ulltoa4(unsigned long long ul, char buf[5], const char *scale);
+void smart_ulltoa5(unsigned long long ul, char buf[5], const char *scale);
 //TODO: provide pointer to buf (avoid statics)?
 const char *make_human_readable_str(unsigned long long size,
 		unsigned long block_size, unsigned long display_unit);

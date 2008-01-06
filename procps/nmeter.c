@@ -257,7 +257,10 @@ static int rdval_diskstats(const char* p, ullong *vec)
 static void scale(ullong ul)
 {
 	char buf[5];
-	smart_ulltoa5(ul, buf);
+
+	/* see http://en.wikipedia.org/wiki/Tera */
+	smart_ulltoa4(ul, buf, " kmgtpezy");
+	buf[4] = '\0';
 	put(buf);
 }
 

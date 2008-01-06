@@ -282,10 +282,10 @@ void xsetenv(const char *key, const char *value)
 		bb_error_msg_and_die(bb_msg_memory_exhausted);
 }
 
-// Converts unsigned long long value into compact 4-char
-// representation. Examples: "1234", "1.2k", " 27M", "123T"
-// Fifth char is always '\0'
-void smart_ulltoa5(unsigned long long ul, char buf[5])
+/* Converts unsigned long long value into compact 4-char
+ * representation. Examples: "1234", "1.2k", " 27M", "123T"
+ * String is not terminated (buf[4] is untouched) */
+void smart_ulltoa4(unsigned long long ul, char buf[5], const char *scale)
 {
 	const char *fmt;
 	char c;
@@ -327,12 +327,65 @@ void smart_ulltoa5(unsigned long long ul, char buf[5])
 			buf[1] = '.';
 		}
 		buf[2] = "0123456789"[v];
-		// see http://en.wikipedia.org/wiki/Tera
-		// (small letters stand out better versus numbers)
-		buf[3] = " kmgtpezy"[idx];
+		buf[3] = scale[idx]; /* typically scale = " kmgt..." */
 	}
-	buf[4] = '\0';
 }
+
+/* Converts unsigned long long value into compact 5-char representation.
+ * String is not terminated (buf[5] is untouched) */
+void smart_ulltoa5(unsigned long long ul, char buf[6], const char *scale)
+{
+	const char *fmt;
+	char c;
+	unsigned v, u, idx = 0;
+
+	if (ul > 99999) { // do not scale if 99999 or less
+		ul *= 10;
+		do {
+			ul /= 1024;
+			idx++;
+		} while (ul >= 100000);
+	}
+	v = ul; // ullong divisions are expensive, avoid them
+
+	fmt = " 123456789";
+	u = v / 10;
+	v = v % 10;
+	if (!idx) {
+		// 99999 or less: use "12345" format
+		// u is value/10, v is last digit
+		c = buf[0] = " 123456789"[u/1000];
+		if (c != ' ') fmt = "0123456789";
+		c = buf[1] = fmt[u/100%10];
+		if (c != ' ') fmt = "0123456789";
+		c = buf[2] = fmt[u/10%10];
+		if (c != ' ') fmt = "0123456789";
+		buf[3] = fmt[u%10];
+		buf[4] = "0123456789"[v];
+	} else {
+		// value has been scaled into 0..9999.9 range
+		// u is value, v is 1/10ths (allows for 92.1M format)
+		if (u >= 100) {
+			// value is >= 100: use "1234M', " 123M" formats
+			c = buf[0] = " 123456789"[u/1000];
+			if (c != ' ') fmt = "0123456789";
+			c = buf[1] = fmt[u/100%10];
+			if (c != ' ') fmt = "0123456789";
+			v = u % 10;
+			u = u / 10;
+			buf[2] = fmt[u%10];
+		} else {
+			// value is < 100: use "92.1M" format
+			c = buf[0] = " 123456789"[u/10];
+			if (c != ' ') fmt = "0123456789";
+			buf[1] = fmt[u%10];
+			buf[2] = '.';
+		}
+		buf[3] = "0123456789"[v];
+		buf[4] = scale[idx]; /* typically scale = " kmgt..." */
+	}
+}
+
 
 // Convert unsigned integer to ascii, writing into supplied buffer.
 // A truncated result contains the first few digits of the result ala strncpy.

@@ -25,9 +25,9 @@ enum { MAX_WIDTH = 2*1024 };
 
 #if ENABLE_SELINUX
 #define SELINIX_O_PREFIX "label,"
-#define DEFAULT_O_STR    (SELINIX_O_PREFIX "pid,user" USE_FEATURE_PS_TIME(",time"))
+#define DEFAULT_O_STR    (SELINIX_O_PREFIX "pid,user" USE_FEATURE_PS_TIME(",time") ",args")
 #else
-#define DEFAULT_O_STR    ("pid,user" USE_FEATURE_PS_TIME(",time"))
+#define DEFAULT_O_STR    ("pid,user" USE_FEATURE_PS_TIME(",time") ",args")
 #endif
 
 typedef struct {
@@ -188,7 +188,10 @@ static void func_pgid(char *buf, int size, const procps_status_t *ps)
 static void put_lu(char *buf, int size, unsigned long u)
 {
 	char buf5[5];
-	smart_ulltoa5( ((unsigned long long)u) << 10, buf5);
+
+	/* see http://en.wikipedia.org/wiki/Tera */
+	smart_ulltoa4( (u, buf5, " mgtpezy");
+	buf5[5] = '\0';
 	sprintf(buf, "%.*s", size, buf5);
 }
 
@@ -505,9 +508,9 @@ int ps_main(int argc, char **argv)
 #endif /* ENABLE_FEATURE_PS_WIDE || ENABLE_SELINUX */
 
 	if (use_selinux)
-		puts("  PID Context                          Stat Command");
+		puts("  PID CONTEXT                          STAT COMMAND");
 	else
-		puts("  PID  Uid        VSZ Stat Command");
+		puts("  PID USER       VSZ STAT COMMAND");
 
 	while ((p = procps_scan(p, 0
 			| PSSCAN_PID
@@ -519,7 +522,7 @@ int ps_main(int argc, char **argv)
 	))) {
 #if ENABLE_SELINUX
 		if (use_selinux) {
-			len = printf("%5u %-32s %s ",
+			len = printf("%5u %-32.32s %s ",
 					p->pid,
 					p->context ? p->context : "unknown",
 					p->state);
@@ -527,12 +530,17 @@ int ps_main(int argc, char **argv)
 #endif
 		{
 			const char *user = get_cached_username(p->uid);
-			if (p->vsz == 0)
-				len = printf("%5u %-8s        %s ",
-					p->pid, user, p->state);
-			else
-				len = printf("%5u %-8s %6lu %s ",
-					p->pid, user, p->vsz, p->state);
+			//if (p->vsz == 0)
+			//	len = printf("%5u %-8.8s        %s ",
+			//		p->pid, user, p->state);
+			//else
+			{
+				char buf6[6];
+				smart_ulltoa5(p->vsz, buf6, " mgtpezy");
+				buf6[5] = '\0';
+				len = printf("%5u %-8.8s %s %s ",
+					p->pid, user, buf6, p->state);
+			}
 		}
 
 		{
