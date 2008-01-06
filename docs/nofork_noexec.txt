@@ -2,7 +2,7 @@
 
 Unix shells traditionally execute some commands internally in the attempt
 to dramatically speed up execution. It will be slow as hell if for every
-"echo blah" shell will fork and exec /bin/echo. For this end, shells
+"echo blah" shell will fork and exec /bin/echo. To this end, shells
 have to _reimplement_ these commands internally.
 
 Busybox is unique in this regard because it already is a collection
@@ -11,14 +11,20 @@ for speeding up busybox shells, and more. NOEXEC and NOFORK applets
 are exactly those applets which are eligible for these tricks.
 
 Applet will be subject to NOFORK/NOEXEC tricks if it is marked as such
-in applets.h. CONFIG_FEATURE_PREFER_APPLETS is a config option which
+in applets.h. FEATURE_PREFER_APPLETS is a config option which
 globally enables usage of NOFORK/NOEXEC tricks.
+If it is enabled, FEATURE_SH_STANDALONE can be enabled too,
+and then shells will use NOFORK/NOEXEC tricks for ordinary commands.
+NB: shell builtins use these tricks regardless of FEATURE_SH_STANDALONE
+or FEATURE_PREFER_APPLETS.
 
-If you want to call a program and wait for it, use spawn_and_wait(argv).
-It will check whether argv[0] is an applet name and will optionally
-do NOFORK/NOEXEC thing.
+In C, if you want to call a program and wait for it, use
+spawn_and_wait(argv), BB_EXECVP(prog,argv) or BB_EXECLP(prog,argv0,...).
+They check whether program name is an applet name and optionally
+do NOFORK/NOEXEC thing depending on configuration.
 
-NOEXEC
+
+	NOEXEC
 
 NOEXEC applet should work correctly if another applet forks and then
 executes exit(<applet>_main(argc,argv)) in the child. The rules
@@ -32,9 +38,10 @@ roughly are:
 * ...
 
 NOEXEC applets save only one half of fork+exec overhead.
-NOEXEC trick is disabled for NOMMU compile.
+NOEXEC trick is disabled for NOMMU build.
 
-NOFORK
+
+	NOFORK
 
 NOFORK applet should work correctly if another applet simply runs
 <applet>_main(argc,argv) and then continues with its business (xargs,
@@ -55,6 +62,8 @@ on what applet can/cannot do:
 * if you allocate memory, you can use xmalloc() only on the very first
   allocation. All other allocations should use malloc[_or_warn]().
   After first allocation, you cannot use any xfuncs.
+  Otherwise, failing xfunc will return to caller applet
+  without freeing malloced data!
 * All allocated data, opened files, signal handlers, termios settings,
   O_NONBLOCK flags etc should be freed/closed/restored prior to return.
 * ...

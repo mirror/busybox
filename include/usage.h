@@ -3542,6 +3542,11 @@ USE_FEATURE_RUN_PARTS_FANCY("\n	-l	Prints names of all matching files even when 
        "$ syslogd -R masterlog:514\n" \
        "$ syslogd -R 192.168.1.1:601\n"
 
+#define tac_trivial_usage \
+	"[FILE]..."
+#define tac_full_usage \
+	"Concatenates FILE(s) and prints them to stdout in reverse"
+
 #define tail_trivial_usage \
        "[OPTION]... [FILE]..."
 #define tail_full_usage \

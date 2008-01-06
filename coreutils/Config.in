@@ -579,6 +579,12 @@ config SYNC
 	help
 	  sync is used to flush filesystem buffers.
 
+config TAC
+	bool "tac"
+	default n
+	help
+	  tac is used to concatenate and print files in reverse.
+
 config TAIL
 	bool "tail"
 	default n
