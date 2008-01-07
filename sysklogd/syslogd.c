@@ -218,7 +218,7 @@ static void ipcsyslog_init(void)
 	}
 
 	G.shbuf = shmat(G.shmid, NULL, 0);
-	if (!G.shbuf) {
+	if (G.shbuf == (void*) -1L) { /* shmat has bizarre error return */
 		bb_perror_msg_and_die("shmat");
 	}
 
