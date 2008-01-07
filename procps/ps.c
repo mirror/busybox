@@ -522,7 +522,7 @@ int ps_main(int argc, char **argv)
 	))) {
 #if ENABLE_SELINUX
 		if (use_selinux) {
-			len = printf("%5u %-32.32s %s ",
+			len = printf("%5u %-32.32s %s  ",
 					p->pid,
 					p->context ? p->context : "unknown",
 					p->state);
@@ -538,7 +538,7 @@ int ps_main(int argc, char **argv)
 				char buf6[6];
 				smart_ulltoa5(p->vsz, buf6, " mgtpezy");
 				buf6[5] = '\0';
-				len = printf("%5u %-8.8s %s %s ",
+				len = printf("%5u %-8.8s %s %s  ",
 					p->pid, user, buf6, p->state);
 			}
 		}
