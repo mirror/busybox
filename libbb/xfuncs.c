@@ -166,7 +166,7 @@ int ndelay_on(int fd)
 
 int close_on_exec_on(int fd)
 {
-        return fcntl(fd, F_SETFD, FD_CLOEXEC);
+	return fcntl(fd, F_SETFD, FD_CLOEXEC);
 }
 
 int ndelay_off(int fd)

@@ -66,60 +66,60 @@ struct globals {
 /* for ELF executables, notes are pushed before environment and args */
 static ptrdiff_t find_elf_note(ptrdiff_t findme)
 {
-        ptrdiff_t *ep = (ptrdiff_t *) environ;
+	ptrdiff_t *ep = (ptrdiff_t *) environ;
 
-        while (*ep++);
-        while (*ep) {
-                if (ep[0] == findme) {
-                        return ep[1];
-                }
-                ep += 2;
-        }
-        return -1;
+	while (*ep++);
+	while (*ep) {
+		if (ep[0] == findme) {
+			return ep[1];
+		}
+		ep += 2;
+	}
+	return -1;
 }
 
 #if ENABLE_FEATURE_PS_UNUSUAL_SYSTEMS
 static unsigned get_HZ_by_waiting(void)
 {
-        struct timeval tv1, tv2;
-        unsigned t1, t2, r, hz;
-        unsigned cnt = cnt; /* for compiler */
-        int diff;
+	struct timeval tv1, tv2;
+	unsigned t1, t2, r, hz;
+	unsigned cnt = cnt; /* for compiler */
+	int diff;
 
-        r = 0;
+	r = 0;
 
-        /* Wait for times() to reach new tick */
-        t1 = times(NULL);
-        do {
-                t2 = times(NULL);
-        } while (t2 == t1);
-        gettimeofday(&tv2, NULL);
+	/* Wait for times() to reach new tick */
+	t1 = times(NULL);
+	do {
+		t2 = times(NULL);
+	} while (t2 == t1);
+	gettimeofday(&tv2, NULL);
 
-        do {
-                t1 = t2;
-                tv1.tv_usec = tv2.tv_usec;
+	do {
+		t1 = t2;
+		tv1.tv_usec = tv2.tv_usec;
 
-                /* Wait exactly one times() tick */
-                do {
-                        t2 = times(NULL);
-                } while (t2 == t1);
-                gettimeofday(&tv2, NULL);
+		/* Wait exactly one times() tick */
+		do {
+			t2 = times(NULL);
+		} while (t2 == t1);
+		gettimeofday(&tv2, NULL);
 
-                /* Calculate ticks per sec, rounding up to even */
-                diff = tv2.tv_usec - tv1.tv_usec;
-                if (diff <= 0) diff += 1000000;
-                hz = 1000000u / (unsigned)diff;
-                hz = (hz+1) & ~1;
+		/* Calculate ticks per sec, rounding up to even */
+		diff = tv2.tv_usec - tv1.tv_usec;
+		if (diff <= 0) diff += 1000000;
+		hz = 1000000u / (unsigned)diff;
+		hz = (hz+1) & ~1;
 
 		/* Count how many same hz values we saw */
-                if (r != hz) {
-                        r = hz;
-                        cnt = 0;
-                }
-                cnt++;
-        } while (cnt < 3); /* exit if saw 3 same values */
+		if (r != hz) {
+			r = hz;
+			cnt = 0;
+		}
+		cnt++;
+	} while (cnt < 3); /* exit if saw 3 same values */
 
-        return r;
+	return r;
 }
 #else
 static inline unsigned get_HZ_by_waiting(void)
@@ -190,7 +190,7 @@ static void put_lu(char *buf, int size, unsigned long u)
 	char buf5[5];
 
 	/* see http://en.wikipedia.org/wiki/Tera */
-	smart_ulltoa4( (u, buf5, " mgtpezy");
+	smart_ulltoa4(u, buf5, " mgtpezy");
 	buf5[5] = '\0';
 	sprintf(buf, "%.*s", size, buf5);
 }

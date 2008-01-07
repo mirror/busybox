@@ -36,7 +36,7 @@ struct globals {
 };
 #define G (*(struct globals*)&bb_common_bufsiz1)
 struct BUG_G_too_big {
-        char BUG_G_too_big[sizeof(G) <= COMMON_BUFSIZE ? 1 : -1];
+	char BUG_G_too_big[sizeof(G) <= COMMON_BUFSIZE ? 1 : -1];
 };
 #define content_len     (G.content_len    )
 #define beg_range       (G.beg_range      )

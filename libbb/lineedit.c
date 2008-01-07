@@ -65,7 +65,7 @@
 enum {
 	/* We use int16_t for positions, need to limit line len */
 	MAX_LINELEN = CONFIG_FEATURE_EDITING_MAX_LEN < 0x7ff0
-                      ? CONFIG_FEATURE_EDITING_MAX_LEN
+	              ? CONFIG_FEATURE_EDITING_MAX_LEN
 	              : 0x7ff0
 };
 

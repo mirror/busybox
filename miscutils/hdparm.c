@@ -1155,10 +1155,10 @@ static void identify(uint16_t *val)
 
 #if ENABLE_FEATURE_HDPARM_GET_IDENTITY
 static const char cfg_str[] ALIGN1 =
-        """\0"            "HardSect""\0"   "SoftSect""\0"  "NotMFM""\0"
-        "HdSw>15uSec""\0" "SpinMotCtl""\0" "Fixed""\0"     "Removeable""\0"
-        "DTR<=5Mbs""\0"   "DTR>5Mbs""\0"   "DTR>10Mbs""\0" "RotSpdTol>.5%""\0"
-        "dStbOff""\0"     "TrkOff""\0"     "FmtGapReq""\0" "nonMagnetic"
+	"""\0"            "HardSect""\0"   "SoftSect""\0"  "NotMFM""\0"
+	"HdSw>15uSec""\0" "SpinMotCtl""\0" "Fixed""\0"     "Removeable""\0"
+	"DTR<=5Mbs""\0"   "DTR>5Mbs""\0"   "DTR>10Mbs""\0" "RotSpdTol>.5%""\0"
+	"dStbOff""\0"     "TrkOff""\0"     "FmtGapReq""\0" "nonMagnetic"
 ;
 
 static const char BuffType[] ALIGN1 =

@@ -70,9 +70,9 @@ int index_in_substrings(const char *strings, const char *key)
 
 const char *nth_string(const char *strings, int n)
 {
-        while (n) {
-                n--;
-                strings += strlen(strings) + 1;
-        }
-        return strings;
+	while (n) {
+		n--;
+		strings += strlen(strings) + 1;
+	}
+	return strings;
 }

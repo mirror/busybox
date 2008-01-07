@@ -277,8 +277,8 @@ struct globals {
 #define rcvd_tbl     (G.rcvd_tbl    )
 void BUG_ping_globals_too_big(void);
 #define INIT_G() do { \
-        if (sizeof(G) > COMMON_BUFSIZE) \
-                BUG_ping_globals_too_big(); \
+	if (sizeof(G) > COMMON_BUFSIZE) \
+		BUG_ping_globals_too_big(); \
 	pingsock = -1; \
 	tmin = UINT_MAX; \
 } while (0)
