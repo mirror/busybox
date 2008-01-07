@@ -187,12 +187,12 @@ static void func_pgid(char *buf, int size, const procps_status_t *ps)
 
 static void put_lu(char *buf, int size, unsigned long u)
 {
-	char buf5[5];
+	char buf4[5];
 
 	/* see http://en.wikipedia.org/wiki/Tera */
-	smart_ulltoa4(u, buf5, " mgtpezy");
-	buf5[5] = '\0';
-	sprintf(buf, "%.*s", size, buf5);
+	smart_ulltoa4(u, buf4, " mgtpezy");
+	buf4[4] = '\0';
+	sprintf(buf, "%.*s", size, buf4);
 }
 
 static void func_vsz(char *buf, int size, const procps_status_t *ps)
