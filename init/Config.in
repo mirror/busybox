@@ -32,8 +32,8 @@ config FEATURE_KILL_REMOVED
 	default y
 	depends on FEATURE_USE_INITTAB
 	help
-	  When respawn entries are removed from inittab and a SIGHUP is 
-	  sent to init, this feature will kill the processes that have 
+	  When respawn entries are removed from inittab and a SIGHUP is
+	  sent to init, this feature will kill the processes that have
 	  been removed.
 
 config FEATURE_KILL_DELAY

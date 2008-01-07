@@ -353,7 +353,7 @@ static int unix_do_one(int nr, char *line)
 		return 0; /* skip header */
 
 	/* 2.6.15 may report lines like "... @/tmp/fam-user-^@^@^@^@^@^@^@..."
-	 * Other users report long lines filled by NUL bytes. 
+	 * Other users report long lines filled by NUL bytes.
 	 * (those ^@ are NUL bytes too). We see them as empty lines. */
 	if (!line[0])
 		return 0;

@@ -28,7 +28,7 @@ int tac_main(int argc, char **argv)
 	char *line;
 	llist_t *list = NULL;
 	int retval = EXIT_SUCCESS;
-	
+
 	argv++;
 	if (!*argv)
 		*--argv = (char *)"-";
@@ -48,7 +48,7 @@ int tac_main(int argc, char **argv)
 		errno = 0;
 		/* FIXME: NUL bytes are mishandled. */
 		while ((line = xmalloc_fgets(f)) != NULL)
-			llist_add_to(&list, line);	
+			llist_add_to(&list, line);
 
 		/* xmalloc_fgets uses getc and returns NULL on error or EOF. */
 		/* It sets errno to ENOENT on EOF, but fopen_or_warn_stdin would */
@@ -63,6 +63,6 @@ int tac_main(int argc, char **argv)
 		printf("%s", list->data);
 		list = list->link;
 	}
-	
+
 	return retval;
 }
