@@ -1777,8 +1777,8 @@ static int checkjobs_and_fg_shell(struct pipe* fg_pipe)
 static int run_pipe_real(struct pipe *pi)
 {
 	int i;
-	int nextin, nextout;
-	int pipefds[2];				/* pipefds[0] is for reading */
+	int nextin;
+	int pipefds[2];		/* pipefds[0] is for reading */
 	struct child_prog *child;
 	const struct built_in_command *x;
 	char *p;
@@ -1789,7 +1789,6 @@ static int run_pipe_real(struct pipe *pi)
 
 	debug_printf_exec("run_pipe_real start: single_fg=%d\n", single_fg);
 
-	nextin = 0;
 #if ENABLE_HUSH_JOB
 	pi->pgrp = -1;
 #endif
@@ -1874,12 +1873,13 @@ static int run_pipe_real(struct pipe *pi)
 #endif
 	}
 
-	/* Going to fork a child per each pipe member */
-	pi->running_progs = 0;
-
 	/* Disable job control signals for shell (parent) and
 	 * for initial child code after fork */
 	set_jobctrl_sighandler(SIG_IGN);
+
+	/* Going to fork a child per each pipe member */
+	pi->running_progs = 0;
+	nextin = 0;
 
 	for (i = 0; i < pi->num_progs; i++) {
 		child = &(pi->progs[i]);
@@ -1889,24 +1889,20 @@ static int run_pipe_real(struct pipe *pi)
 			debug_printf_exec(": pipe member with no argv\n");
 
 		/* pipes are inserted between pairs of commands */
-		if ((i + 1) < pi->num_progs) {
-			pipe(pipefds);
-			nextout = pipefds[1];
-		} else {
-			nextout = 1;
-			pipefds[0] = -1;
-		}
+		pipefds[0] = 0;
+		pipefds[1] = 1;
+		if ((i + 1) < pi->num_progs)
+			xpipe(pipefds);
 
-		/* XXX test for failed fork()? */
 #if BB_MMU
 		child->pid = fork();
 #else
 		child->pid = vfork();
 #endif
 		if (!child->pid) { /* child */
+#if ENABLE_HUSH_JOB
 			/* Every child adds itself to new process group
 			 * with pgid == pid of first child in pipe */
-#if ENABLE_HUSH_JOB
 			if (run_list_level == 1 && interactive_fd) {
 				/* Don't do pgrp restore anymore on fatal signals */
 				set_fatal_sighandler(SIG_DFL);
@@ -1919,12 +1915,10 @@ static int run_pipe_real(struct pipe *pi)
 				}
 			}
 #endif
-			/* in non-interactive case fatal sigs are already SIG_DFL */
 			xmove_fd(nextin, 0);
-			xmove_fd(nextout, 1);
-			if (pipefds[0] != -1) {
-				close(pipefds[0]);  /* opposite end of our output pipe */
-			}
+			xmove_fd(pipefds[1], 1); /* write end */
+			if (pipefds[0] > 1)
+				close(pipefds[0]); /* read end */
 			/* Like bash, explicit redirects override pipes,
 			 * and the pipe fd is available for dup'ing. */
 			setup_redirects(child, NULL);
@@ -1933,25 +1927,29 @@ static int run_pipe_real(struct pipe *pi)
 			set_jobctrl_sighandler(SIG_DFL);
 			set_misc_sighandler(SIG_DFL);
 			signal(SIGCHLD, SIG_DFL);
-			pseudo_exec(child);
+			pseudo_exec(child); /* does not return */
 		}
 
-		pi->running_progs++;
-
+		if (child->pid < 0) { /* [v]fork failed */
+			/* Clearly indicate, was it fork or vfork */
+			bb_perror_msg(BB_MMU ? "cannot fork" : "cannot vfork");
+		} else {
+			pi->running_progs++;
 #if ENABLE_HUSH_JOB
-		/* Second and next children need to know pid of first one */
-		if (pi->pgrp < 0)
-			pi->pgrp = child->pid;
+			/* Second and next children need to know pid of first one */
+			if (pi->pgrp < 0)
+				pi->pgrp = child->pid;
 #endif
-		if (nextin != 0)
-			close(nextin);
-		if (nextout != 1)
-			close(nextout);
+		}
 
-		/* If there isn't another process, nextin is garbage
-		   but it doesn't matter */
+		if (i)
+			close(nextin);
+		if ((i + 1) < pi->num_progs)
+			close(pipefds[1]); /* write end */
+		/* Pass read (output) pipe end to next iteration */
 		nextin = pipefds[0];
 	}
+
 	debug_printf_exec("run_pipe_real return -1\n");
 	return -1;
 }

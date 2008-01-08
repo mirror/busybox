@@ -280,6 +280,17 @@ config STATIC
 
 	  Most people will leave this set to 'N'.
 
+config NOMMU
+	bool "Force NOMMU build"
+	default n
+	help
+	  Busybox tries to detect whether architecture it is being
+	  built against supports MMU or not. If this detection fails,
+	  or if you want to build NOMMU version of busybox for testing,
+	  you may force NOMMU build here.
+
+	  Most people will leave this set to 'N'.
+
 config BUILD_LIBBUSYBOX
 	bool "Build shared libbusybox"
 	default n
