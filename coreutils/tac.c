@@ -20,12 +20,17 @@
 
 /* This is a NOEXEC applet. Be very careful! */
 
+struct lstring {
+	int size;
+	char buf[];
+};
+
 int tac_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int tac_main(int argc, char **argv)
 {
 	char **name;
 	FILE *f;
-	char *line;
+	struct lstring *line = NULL;
 	llist_t *list = NULL;
 	int retval = EXIT_SUCCESS;
 
@@ -38,6 +43,8 @@ int tac_main(int argc, char **argv)
 		name++;
 
 	do {
+		int ch, i;
+
 		name--;
 		f = fopen_or_warn_stdin(*name);
 		if (f == NULL) {
@@ -45,14 +52,26 @@ int tac_main(int argc, char **argv)
 			continue;
 		}
 
-		errno = 0;
-		/* FIXME: NUL bytes are mishandled. */
-		while ((line = xmalloc_fgets(f)) != NULL)
-			llist_add_to(&list, line);
-
-		/* xmalloc_fgets uses getc and returns NULL on error or EOF. */
-		/* It sets errno to ENOENT on EOF, but fopen_or_warn_stdin would */
-		/* catch this error so we can filter it out here. */
+		errno = i = 0;
+		do {
+			ch = fgetc(f);
+			if (ch != EOF) {
+				if (!(i & 0x7f))
+					/* Grow on every 128th char */
+					line = xrealloc(line, i + 0x7f + sizeof(int) + 1);
+				line->buf[i++] = ch;
+			}
+			if ((ch == '\n' || ch == EOF) && i) {
+				line = xrealloc(line, i + sizeof(int));
+				line->size = i;
+				llist_add_to(&list, line);
+				line = NULL;
+				i = 0;
+			}
+		} while (ch != EOF);
+		/* fgetc sets errno to ENOENT on EOF, but     */
+		/* fopen_or_warn_stdin would catch this error */
+		/* so we can filter it out here.              */
 		if (errno && errno != ENOENT) {
 			bb_simple_perror_msg(*name);
 			retval = EXIT_FAILURE;
@@ -60,8 +79,13 @@ int tac_main(int argc, char **argv)
 	} while (name != argv);
 
 	while (list) {
-		printf("%s", list->data);
-		list = list->link;
+		line = (struct lstring *)list->data;
+		xwrite(STDOUT_FILENO, line->buf, line->size);
+		if (ENABLE_FEATURE_CLEAN_UP) {
+			free(llist_pop(&list));
+		} else {
+			list = list->link;
+		}
 	}
 
 	return retval;
