@@ -1752,8 +1752,8 @@ int read_line_input(const char *prompt, char *command, int maxsize, line_input_t
 			break;
 
 		default:        /* If it's regular input, do the normal thing */
-#if ENABLE_FEATURE_NONPRINTABLE_INVERSE_PUT
-			/* Control-V -- Add non-printable symbol */
+
+			/* Control-V -- force insert of next char */
 			if (c == CTRL('V')) {
 				if (safe_read(STDIN_FILENO, &c, 1) < 1)
 					goto prepare_to_die;
@@ -1761,8 +1761,7 @@ int read_line_input(const char *prompt, char *command, int maxsize, line_input_t
 					beep();
 					break;
 				}
-			} else
-#endif
+			}
 
 #if ENABLE_FEATURE_EDITING_VI
 			if (vi_cmdmode)  /* Don't self-insert */
