@@ -1768,9 +1768,6 @@ int read_line_input(const char *prompt, char *command, int maxsize, line_input_t
 			if (vi_cmdmode)  /* Don't self-insert */
 				break;
 #endif
-			if (!Isprint(c)) /* Skip non-printable characters */
-				break;
-
 			if (command_len >= (maxsize - 2))        /* Need to leave space for enter */
 				break;
 
