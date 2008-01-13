@@ -1098,7 +1098,7 @@ enum {	/* DO NOT CHANGE THESE VALUES!  cp.c, mv.c, install.c depend on them. */
 
 #define FILEUTILS_CP_OPTSTR "pdRfils" USE_SELINUX("c")
 extern const char *applet_name;
-/* "BusyBox vN.N.N (timestamp or extra_vestion)" */
+/* "BusyBox vN.N.N (timestamp or extra_version)" */
 extern const char bb_banner[];
 extern const char bb_msg_memory_exhausted[];
 extern const char bb_msg_invalid_date[];
