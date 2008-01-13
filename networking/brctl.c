@@ -35,6 +35,7 @@ int brctl_main(int argc, char **argv)
 		  USE_FEATURE_BRCTL_SHOW(, ARG_show) };
 	smalluint key;
 	static char info[] = BRCTL_VERBOSE("%s ")"bridge %s\0 iface %s";
+	char *br;
 
 	argv++;
 	while (*argv) {
@@ -51,10 +52,9 @@ int brctl_main(int argc, char **argv)
 #endif
 		BRCTL_VERBOSE(op = (char*)((key % 2) ? "add" : "del");)
 		fd = xsocket(AF_INET, SOCK_STREAM, 0);
-		if (key < 3) {/* addbr or delbr */
-			char *br;
+		br = *(argv++);
 
-			br = *(argv++);
+		if (key < 3) { /* addbr or delbr */
 			if (ioctl(fd, key == ARG_addbr ? SIOCBRADDBR : SIOCBRDELBR, br) < 0)
 			{
 				info[9 BRCTL_VERBOSE(+3)] = '\0';
@@ -63,9 +63,8 @@ int brctl_main(int argc, char **argv)
 		}
 		if (key > 2) { /* addif or delif */
 			struct ifreq ifr;
-			char *br, *brif;
+			char *brif;
 
-			br = *(argv++);
 			if (!*argv)
 				bb_show_usage();
 			brif = *(argv++);
