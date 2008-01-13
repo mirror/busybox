@@ -119,6 +119,16 @@
        "$ basename /foo/bar.txt .txt\n" \
        "bar"
 
+#define brctl_trivial_usage \
+       "COMMAND [BRIDGE [INTERFACE]]"
+#define brctl_full_usage \
+       "Manage ethernet bridges." \
+       "\n\nCommands:\n" \
+       "	addbr <bridge>		Create <bridge>\n" \
+       "	delbr <bridge>		Delete <bridge>\n" \
+       "	addif <bridge> <iface>	Add <iface> to <bridge>\n" \
+       "	delif <bridge> <iface>	Delete <iface> from <bridge>"
+
 #define bunzip2_trivial_usage \
        "[OPTION]... [FILE]"
 #define bunzip2_full_usage \

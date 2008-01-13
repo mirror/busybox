@@ -47,6 +47,12 @@ config ARPING
 	help
 	  Ping hosts by ARP packets.
 
+config BRCTL
+	bool "brctl"
+	default n
+	help
+	  Manage ethernet bridges.
+
 config DNSD
 	bool "dnsd"
 	default n

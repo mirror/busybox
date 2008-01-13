@@ -7,6 +7,7 @@
 lib-y:=
 lib-$(CONFIG_ARP)          += arp.o interface.o
 lib-$(CONFIG_ARPING)       += arping.o
+lib-$(CONFIG_BRCTL)        += brctl.o
 lib-$(CONFIG_DNSD)         += dnsd.o
 lib-$(CONFIG_ETHER_WAKE)   += ether-wake.o
 lib-$(CONFIG_FAKEIDENTD)   += isrv_identd.o isrv.o
