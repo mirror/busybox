@@ -52,6 +52,25 @@ config BRCTL
 	default n
 	help
 	  Manage ethernet bridges.
+	  Supports addbr/delbr and addif/delif.
+
+#config FEATURE_BRCTL_SHOW
+#	bool "support show, showmac and showstp"
+#	default n
+#	depends on BRCTL
+#	help
+#	  Add support for option which print the current config:
+#	    showmacs, showstp, show
+
+config FEATURE_BRCTL_FANCY
+	bool "fancy options"
+	default n
+	depends on BRCTL
+	help
+	  Add support for extended option like:
+	    setageing, setfd, sethello, setmaxage,
+	    setpathcost, setportprio, setbridgeprio,
+	    stp
 
 config DNSD
 	bool "dnsd"

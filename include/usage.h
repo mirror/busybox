@@ -127,8 +127,13 @@
        "	addbr <bridge>		Create <bridge>\n" \
        "	delbr <bridge>		Delete <bridge>\n" \
        "	addif <bridge> <iface>	Add <iface> to <bridge>\n" \
-       "	delif <bridge> <iface>	Delete <iface> from <bridge>"
-
+       "	delif <bridge> <iface>	Delete <iface> from <bridge>" \
+USE_FEATURE_BRCTL_FANCY("\n" \
+       "	setageing <bridge <time>	set ageing time\n" \
+       "	setfd <bridge <time>		set bridge forward delay\n" \
+       "	sethello <bridge <time>		set hello time\n" \
+       "	setmaxage <bridge <time>	set max message age\n" \
+)
 #define bunzip2_trivial_usage \
        "[OPTION]... [FILE]"
 #define bunzip2_full_usage \
