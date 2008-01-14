@@ -133,6 +133,10 @@ USE_FEATURE_BRCTL_FANCY("\n" \
        "	setfd <bridge <time>		set bridge forward delay\n" \
        "	sethello <bridge <time>		set hello time\n" \
        "	setmaxage <bridge <time>	set max message age\n" \
+       "	setpathcost <bridge <cost>	set path cost\n" \
+       "	setportprio <bridge <prio>	set port priority\n" \
+       "	setbridgeprio <bridge <prio>	set bridge priority\n" \
+       "	stp <bridge> [1|0]		turn stp on/off\n" \
 )
 #define bunzip2_trivial_usage \
        "[OPTION]... [FILE]"

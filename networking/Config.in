@@ -71,6 +71,7 @@ config FEATURE_BRCTL_FANCY
 	    setageing, setfd, sethello, setmaxage,
 	    setpathcost, setportprio, setbridgeprio,
 	    stp
+	  This adds about 600 bytes.
 
 config DNSD
 	bool "dnsd"
