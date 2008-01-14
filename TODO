@@ -301,6 +301,9 @@ Minor stuff:
 ---
   Move __get_hz() to a better place and (re)use it in route.c, ash.c, msh.c
 ---
+  See grep -r strtod
+  Alot of duplication that wants cleanup.
+---
 
 
 Code cleanup:
