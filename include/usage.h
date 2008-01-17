@@ -3354,7 +3354,7 @@ USE_FEATURE_RUN_PARTS_FANCY("\n	-l	Prints names of all matching files even when 
 	USE_FEATURE_STAT_FORMAT( \
        "	-c fmt	Use the specified format\n") \
        "	-f	Display filesystem status\n" \
-       "	-L,-l	Dereference links\n" \
+       "	-L	Dereference links\n" \
        "	-t	Display info in terse form" \
 	USE_SELINUX( \
        "\n	-Z	Print security context" \
