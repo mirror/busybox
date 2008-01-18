@@ -57,14 +57,6 @@ config FEATURE_EDITING_MAX_LEN
 	  You may want to decrease this parameter if your target machine
 	  benefits from smaller stack usage.
 
-config FEATURE_EDITING_FANCY_KEYS
-	bool "Additional editing keys"
-	default n
-	depends on FEATURE_EDITING
-	help
-	  Enable additonal editing keys (Ctrl-E, Ctrl-U etc).
-	  Arrow keys, Home/End/Delete and Ctrl-W work even without this option.
-
 config FEATURE_EDITING_VI
 	bool "vi-style line editing commands"
 	default n

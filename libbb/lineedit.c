@@ -1423,7 +1423,6 @@ int read_line_input(const char *prompt, char *command, int maxsize, line_input_t
 			goto_new_line();
 			break_out = 1;
 			break;
-#if ENABLE_FEATURE_EDITING_FANCY_KEYS
 		case CTRL('A'):
 		vi_case('0'|vbit:)
 			/* Control-a -- Beginning of line */
@@ -1436,7 +1435,6 @@ int read_line_input(const char *prompt, char *command, int maxsize, line_input_t
 			/* Control-b -- Move back one character */
 			input_backward(1);
 			break;
-#endif
 		case CTRL('C'):
 		vi_case(CTRL('C')|vbit:)
 			/* Control-c -- stop gathering input */
@@ -1457,7 +1455,6 @@ int read_line_input(const char *prompt, char *command, int maxsize, line_input_t
 			input_delete(0);
 			break;
 
-#if ENABLE_FEATURE_EDITING_FANCY_KEYS
 		case CTRL('E'):
 		vi_case('$'|vbit:)
 			/* Control-e -- End of line */
@@ -1469,7 +1466,6 @@ int read_line_input(const char *prompt, char *command, int maxsize, line_input_t
 			/* Control-f -- Move forward one character */
 			input_forward();
 			break;
-#endif
 
 		case '\b':
 		case '\x7f': /* DEL */
@@ -1483,7 +1479,6 @@ int read_line_input(const char *prompt, char *command, int maxsize, line_input_t
 			break;
 #endif
 
-#if ENABLE_FEATURE_EDITING_FANCY_KEYS
 		case CTRL('K'):
 			/* Control-k -- clear to end of line */
 			command[cursor] = 0;
@@ -1496,7 +1491,6 @@ int read_line_input(const char *prompt, char *command, int maxsize, line_input_t
 			printf("\033[H");
 			redraw(0, command_len - cursor);
 			break;
-#endif
 
 #if MAX_HISTORY > 0
 		case CTRL('N'):
@@ -1518,7 +1512,6 @@ int read_line_input(const char *prompt, char *command, int maxsize, line_input_t
 			break;
 #endif
 
-#if ENABLE_FEATURE_EDITING_FANCY_KEYS
 		case CTRL('U'):
 		vi_case(CTRL('U')|vbit:)
 			/* Control-U -- Clear line before cursor */
@@ -1528,7 +1521,6 @@ int read_line_input(const char *prompt, char *command, int maxsize, line_input_t
 				redraw(cmdedit_y, command_len);
 			}
 			break;
-#endif
 		case CTRL('W'):
 		vi_case(CTRL('W')|vbit:)
 			/* Control-W -- Remove the last word */
