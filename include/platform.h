@@ -228,8 +228,7 @@ typedef unsigned smalluint;
 /* uclibc does not implement daemon() for no-mmu systems.
  * For 0.9.29 and svn, __ARCH_USE_MMU__ indicates no-mmu reliably.
  * For earlier versions there is no reliable way to check if we are building
- * for a mmu-less system; the user should pass EXTRA_CFLAGS="-DBB_NOMMU"
- * on his own.
+ * for a mmu-less system.
  */
 #if ENABLE_NOMMU || \
     (defined __UCLIBC__ && __UCLIBC_MAJOR__ >= 0 && __UCLIBC_MINOR__ >= 9 && \
