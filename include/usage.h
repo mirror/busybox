@@ -1328,10 +1328,13 @@ USE_FEATURE_BRCTL_FANCY("\n" \
        "[-d delay] [-n] [-f]"
 #define halt_full_usage \
        "Halt the system" \
-       "\n\nOptions:\n" \
-       "	-d	Delay interval for halting\n" \
-       "	-n	No call to sync()\n" \
-       "	-f	Force halt (don't go through init)"
+       "\n\nOptions:" \
+       "\n	-d	Delay interval for halting" \
+       "\n	-n	No call to sync()" \
+       "\n	-f	Force halt (don't go through init)" \
+	USE_FEATURE_WTMP( \
+       "\n	-w	Only write a wtmp record" \
+	)
 
 #define hdparm_trivial_usage \
        "[options] [device] .."
