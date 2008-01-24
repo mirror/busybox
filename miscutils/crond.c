@@ -98,7 +98,6 @@ static void crondlog(const char *ctl, ...)
 	int type = level == 20 ?
 		LOG_ERR : ((ctl[0] & 0100) ? LOG_WARNING : LOG_NOTICE);
 
-
 	va_start(va, ctl);
 	fmt = ctl + 1;
 	if (level >= LogLevel) {
@@ -108,7 +107,7 @@ static void crondlog(const char *ctl, ...)
 			vfprintf(stderr, fmt, va);
 		} else
 #endif
-		if (LogFile == 0) {
+		if (LogFile == NULL) {
 			vsyslog(type, fmt, va);
 		} else {
 #if !ENABLE_DEBUG_CROND_OPTION
@@ -271,7 +270,7 @@ static int ChangeUser(const char *user)
 
 static void startlogger(void)
 {
-	if (LogFile == 0) {
+	if (LogFile == NULL) {
 		openlog(applet_name, LOG_CONS | LOG_PID, LOG_CRON);
 	}
 #if ENABLE_DEBUG_CROND_OPTION
@@ -778,7 +777,8 @@ static int CheckJobs(void)
 #if ENABLE_FEATURE_CROND_CALL_SENDMAIL
 static void
 ForkJob(const char *user, CronLine * line, int mailFd,
-		const char *prog, const char *cmd, const char *arg, const char *mailf)
+		const char *prog, const char *cmd, const char *arg,
+		const char *mail_filename)
 {
 	/* Fork as the user in question and run program */
 	pid_t pid = fork();
@@ -786,7 +786,6 @@ ForkJob(const char *user, CronLine * line, int mailFd,
 	line->cl_Pid = pid;
 	if (pid == 0) {
 		/* CHILD */
-
 		/* Change running state to the user in question */
 
 		if (ChangeUser(user) < 0) {
@@ -799,31 +798,32 @@ ForkJob(const char *user, CronLine * line, int mailFd,
 #endif
 
 		if (mailFd >= 0) {
-			dup2(mailFd, mailf != NULL);
-			dup2((mailf ? mailFd : 1), 2);
-			close(mailFd);
+			xmove_fd(mailFd, mail_filename ? 1 : 0);
+			dup2(1, 2);
 		}
 		execl(prog, prog, cmd, arg, NULL);
 		crondlog("\024cannot exec, user %s cmd %s %s %s\n", user, prog, cmd, arg);
-		if (mailf) {
+		if (mail_filename) {
 			fdprintf(1, "Exec failed: %s -c %s\n", prog, arg);
 		}
 		exit(0);
-	} else if (pid < 0) {
+	}
+
+	if (pid < 0) {
 		/* FORK FAILED */
-		crondlog("\024cannot fork, user %s\n", user);
+		crondlog("\024cannot fork\n");
 		line->cl_Pid = 0;
-		if (mailf) {
-			remove(mailf);
+		if (mail_filename) {
+			remove(mail_filename);
 		}
-	} else if (mailf) {
+	} else if (mail_filename) {
 		/* PARENT, FORK SUCCESS
 		 * rename mail-file based on pid of process
 		 */
 		char mailFile2[128];
 
 		snprintf(mailFile2, sizeof(mailFile2), TMPDIR "/cron.%s.%d", user, pid);
-		rename(mailf, mailFile2);
+		rename(mail_filename, mailFile2);
 	}
 	/*
 	 * Close the mail file descriptor.. we can't just leave it open in
