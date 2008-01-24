@@ -10,6 +10,11 @@
 #include "libbb.h"
 #include <sys/reboot.h>
 
+#if ENABLE_FEATURE_WTMP
+#include <sys/utsname.h>
+#include <utmp.h>
+#endif
+
 int halt_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int halt_main(int argc, char **argv)
 {
@@ -26,18 +31,46 @@ RB_POWERDOWN,
 #endif
 RB_AUTOBOOT
 	};
-	static const int signals[] = { SIGUSR1, SIGUSR2, SIGTERM };
+	static const smallint signals[] = { SIGUSR1, SIGUSR2, SIGTERM };
 
 	char *delay;
 	int which, flags, rc = 1;
+#if ENABLE_FEATURE_WTMP
+	struct utmp utmp;
+	struct timeval tv;
+	struct utsname uts;
+#endif
 
 	/* Figure out which applet we're running */
-	for (which = 0; "hpr"[which] != *applet_name; which++);
+	for (which = 0; "hpr"[which] != *applet_name; which++)
+		continue;
 
 	/* Parse and handle arguments */
-	flags = getopt32(argv, "d:nf", &delay);
-	if (flags & 1) sleep(xatou(delay));
-	if (!(flags & 2)) sync();
+	flags = getopt32(argv, "d:nfw", &delay);
+	if (flags & 1)
+		sleep(xatou(delay));
+
+#if ENABLE_FEATURE_WTMP
+	if (access(bb_path_wtmp_file, R_OK|W_OK) == -1) {
+		close(creat(bb_path_wtmp_file, 0664));
+	}
+	memset(&utmp, 0, sizeof(utmp));
+	gettimeofday(&tv, NULL);
+	utmp.ut_tv.tv_sec = tv.tv_sec;
+	utmp.ut_tv.tv_usec = tv.tv_usec;
+	safe_strncpy(utmp.ut_user, "shutdown", UT_NAMESIZE);
+	utmp.ut_type = RUN_LVL;
+	safe_strncpy(utmp.ut_id, "~~", sizeof(utmp.ut_id));
+	safe_strncpy(utmp.ut_line, "~~", UT_LINESIZE);
+	if (uname(&uts) == 0)
+		safe_strncpy(utmp.ut_host, uts.release, sizeof(utmp.ut_host));
+	updwtmp(bb_path_wtmp_file, &utmp);
+#endif /* !ENABLE_FEATURE_WTMP */
+
+	if (flags & 8) /* -w */
+		return 0;
+	if (!(flags & 2)) /* no -n */
+		sync();
 
 	/* Perform action. */
 	if (ENABLE_INIT && !(flags & 4)) {
