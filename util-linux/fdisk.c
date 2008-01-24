@@ -1734,9 +1734,8 @@ change_sysid(void)
 				"to %x (%s)\n", i + 1, sys,
 				partition_type(sys));
 			ptes[i].changed = 1;
-			if (is_dos_partition(origsys) ||
-				is_dos_partition(sys))
-				//dos_changed = 1;
+			//if (is_dos_partition(origsys) || is_dos_partition(sys))
+			//	dos_changed = 1;
 			break;
 		}
 	}
