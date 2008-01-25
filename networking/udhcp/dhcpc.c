@@ -523,7 +523,7 @@ int udhcpc_main(int argc, char **argv)
 						) {
 							bb_info_msg("offered address is in use "
 								"(got ARP reply), declining");
-							send_decline(xid, server_addr);
+							send_decline(xid, server_addr, packet.yiaddr);
 
 							if (state != REQUESTING)
 								udhcp_run_script(NULL, "deconfig");

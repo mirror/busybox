@@ -42,7 +42,7 @@ uint32_t random_xid(void);
 int send_discover(uint32_t xid, uint32_t requested);
 int send_selecting(uint32_t xid, uint32_t server, uint32_t requested);
 #if ENABLE_FEATURE_UDHCPC_ARPING
-int send_decline(uint32_t xid, uint32_t server);
+int send_decline(uint32_t xid, uint32_t server, uint32_t requested);
 #endif
 int send_renew(uint32_t xid, uint32_t server, uint32_t ciaddr);
 int send_renew(uint32_t xid, uint32_t server, uint32_t ciaddr);

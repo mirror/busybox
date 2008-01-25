@@ -48,14 +48,15 @@ static void init_packet(struct dhcpMessage *packet, char type)
 		add_option_string(packet->options, client_config.hostname);
 	if (client_config.fqdn)
 		add_option_string(packet->options, client_config.fqdn);
-	add_option_string(packet->options, client_config.vendorclass);
+	if ((type != DHCPDECLINE) && (type != DHCPRELEASE))
+		add_option_string(packet->options, client_config.vendorclass);
 }
 
 
 /* Add a parameter request list for stubborn DHCP servers. Pull the data
  * from the struct in options.c. Don't do bounds checking here because it
  * goes towards the head of the packet. */
-static void add_requests(struct dhcpMessage *packet)
+static void add_param_req_option(struct dhcpMessage *packet)
 {
 	uint8_t c;
 	int end = end_option(packet->options);
@@ -63,26 +64,28 @@ static void add_requests(struct dhcpMessage *packet)
 
 	packet->options[end + OPT_CODE] = DHCP_PARAM_REQ;
 	for (i = 0; (c = dhcp_options[i].code) != 0; i++) {
-		if (dhcp_options[i].flags & OPTION_REQ
+		if ((dhcp_options[i].flags & OPTION_REQ)
 		 || (client_config.opt_mask[c >> 3] & (1 << (c & 7)))
 		) {
-			packet->options[end + OPT_DATA + len++] = c;
+			packet->options[end + OPT_DATA + len] = c;
+			len++;
 		}
 	}
 	packet->options[end + OPT_LEN] = len;
 	packet->options[end + OPT_DATA + len] = DHCP_END;
-
 }
+
 
 #if ENABLE_FEATURE_UDHCPC_ARPING
 /* Unicast a DHCP decline message */
-int send_decline(uint32_t xid, uint32_t server)
+int send_decline(uint32_t xid, uint32_t server, uint32_t requested)
 {
 	struct dhcpMessage packet;
 
 	init_packet(&packet, DHCPDECLINE);
 	packet.xid = xid;
-	add_requests(&packet);
+	add_simple_option(packet.options, DHCP_REQUESTED_IP, requested);
+	add_simple_option(packet.options, DHCP_SERVER_ID, server);
 
 	bb_info_msg("Sending decline...");
 
@@ -104,7 +107,7 @@ int send_discover(uint32_t xid, uint32_t requested)
 	/* Explicitly saying that we want RFC-compliant packets helps
 	 * some buggy DHCP servers to NOT send bigger packets */
 	add_simple_option(packet.options, DHCP_MAX_SIZE, htons(576));
-	add_requests(&packet);
+	add_param_req_option(&packet);
 	bb_info_msg("Sending discover...");
 	return udhcp_send_raw_packet(&packet, INADDR_ANY, CLIENT_PORT, INADDR_BROADCAST,
 			SERVER_PORT, MAC_BCAST_ADDR, client_config.ifindex);
@@ -123,7 +126,7 @@ int send_selecting(uint32_t xid, uint32_t server, uint32_t requested)
 	add_simple_option(packet.options, DHCP_REQUESTED_IP, requested);
 	add_simple_option(packet.options, DHCP_SERVER_ID, server);
 
-	add_requests(&packet);
+	add_param_req_option(&packet);
 	addr.s_addr = requested;
 	bb_info_msg("Sending select for %s...", inet_ntoa(addr));
 	return udhcp_send_raw_packet(&packet, INADDR_ANY, CLIENT_PORT, INADDR_BROADCAST,
@@ -140,7 +143,7 @@ int send_renew(uint32_t xid, uint32_t server, uint32_t ciaddr)
 	packet.xid = xid;
 	packet.ciaddr = ciaddr;
 
-	add_requests(&packet);
+	add_param_req_option(&packet);
 	bb_info_msg("Sending renew...");
 	if (server)
 		return udhcp_send_kernel_packet(&packet, ciaddr, CLIENT_PORT, server, SERVER_PORT);
@@ -159,7 +162,6 @@ int send_release(uint32_t server, uint32_t ciaddr)
 	packet.xid = random_xid();
 	packet.ciaddr = ciaddr;
 
-	add_simple_option(packet.options, DHCP_REQUESTED_IP, ciaddr);
 	add_simple_option(packet.options, DHCP_SERVER_ID, server);
 
 	bb_info_msg("Sending release...");
