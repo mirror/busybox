@@ -702,6 +702,7 @@ get_partition_start(const struct pte *pe)
  * We might also do the opposite and warn in all cases except
  * for "is probably nondos partition".
  */
+#ifdef UNUSED
 static int
 is_dos_partition(int t)
 {
@@ -711,6 +712,7 @@ is_dos_partition(int t)
 		t == 0x1b || t == 0x1c || t == 0x1e || t == 0x24 ||
 		t == 0xc1 || t == 0xc4 || t == 0xc6);
 }
+#endif
 
 static void
 menu(void)
