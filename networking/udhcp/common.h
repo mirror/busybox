@@ -14,6 +14,9 @@
 
 #define DEFAULT_SCRIPT  "/usr/share/udhcpc/default.script"
 
+#define SERVER_PORT  67
+#define CLIENT_PORT  68
+
 extern const uint8_t MAC_BCAST_ADDR[6]; /* six all-ones */
 
 /*** packet.h ***/
@@ -21,7 +24,7 @@ extern const uint8_t MAC_BCAST_ADDR[6]; /* six all-ones */
 #include <netinet/udp.h>
 #include <netinet/ip.h>
 
-#define DHCP_OPTIONS_BUFSIZE 308
+#define DHCP_OPTIONS_BUFSIZE  308
 
 struct dhcpMessage {
 	uint8_t op;
@@ -93,7 +96,7 @@ int listen_socket(/*uint32_t ip,*/ int port, const char *inf);
 int arpping(uint32_t test_ip, uint32_t from_ip, uint8_t *from_mac, const char *interface);
 
 #if ENABLE_FEATURE_UDHCP_DEBUG
-# define DEBUG(str, args...) bb_info_msg(str, ## args)
+# define DEBUG(str, args...) bb_info_msg("### " str, ## args)
 #else
 # define DEBUG(str, args...) do {;} while (0)
 #endif

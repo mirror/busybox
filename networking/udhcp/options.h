@@ -28,9 +28,6 @@ enum {
 /*****************************************************************/
 
 /* DHCP protocol -- see RFC 2131 */
-#define SERVER_PORT		67
-#define CLIENT_PORT		68
-
 #define DHCP_MAGIC		0x63825363
 
 
