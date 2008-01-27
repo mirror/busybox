@@ -9,128 +9,188 @@
  */
 #include "libbb.h"
 
+/* All known arches use small ints for signals */
+static volatile smallint signalled;
+
+static void signal_handler(int signo)
+{
+	signalled = signo;
+}
+
+// set canonical tty mode
+static void xget1(int fd, struct termios *t, struct termios *oldt)
+{ 
+	tcgetattr(fd, oldt);
+	*t = *oldt;
+	cfmakeraw(t);
+//	t->c_lflag &= ~(ISIG|ICANON|ECHO|IEXTEN);
+//	t->c_iflag &= ~(BRKINT|IXON|ICRNL);
+//	t->c_oflag &= ~(ONLCR);
+//	t->c_cc[VMIN]  = 1;
+//	t->c_cc[VTIME] = 0;
+}
+
+static int xset1(int fd, struct termios *tio, const char *device)
+{
+	int ret = tcsetattr(fd, TCSANOW, tio);
+
+	if (ret) {
+		bb_perror_msg("can't tcsetattr for %s", device);
+	}
+	return ret;
+}
+
 int microcom_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int microcom_main(int argc, char **argv)
 {
 	struct pollfd pfd[2];
-#define sfd (pfd[1].fd)
-	char *device_lock_file = NULL;
-	const char *s;
+	int nfd;
+	//int sfd;
+#define sfd (pfd[0].fd)
+	char *device_lock_file;
 	const char *opt_s = "9600";
-	unsigned speed;
-	int len;
-	int exitcode = 1;
+	speed_t speed;
+	const char *opt_t = "100"; // 0.1 sec timeout
+	unsigned timeout;
 	struct termios tio0, tiosfd, tio;
+	bool istty;
 
-	getopt32(argv, "s:", &opt_s);
+	// fetch options
+	opt_complementary = "-1"; /* at least one arg should be there */
+	getopt32(argv, "s:t:", &opt_s, &opt_t);
 	argc -= optind;
 	argv += optind;
-	if (!argv[0])
-		bb_show_usage();
+
+	// check sanity
 	speed = xatou(opt_s);
+	timeout = xatou(opt_t);
+	device_lock_file = (char *)bb_basename(argv[0]);
 
 	// try to create lock file in /var/lock
-	s = bb_basename(argv[0]);
-	if (!s[0]) {
-		errno = ENODEV;
-		bb_perror_msg_and_die("can't lock device");
-	}
-	device_lock_file = xasprintf("/var/lock/LCK..%s", s);
+	device_lock_file = xasprintf("/var/lock/LCK..%s", device_lock_file);
 	sfd = open(device_lock_file, O_CREAT | O_WRONLY | O_TRUNC | O_EXCL, 0644);
 	if (sfd < 0) {
-		if (ENABLE_FEATURE_CLEAN_UP)
-			free(device_lock_file);
-		device_lock_file = NULL;
 		if (errno == EEXIST)
 			bb_perror_msg_and_die("can't lock device");
 		// We don't abort on other errors: /var/lock can be
 		// non-writable or non-existent
+		if (ENABLE_FEATURE_CLEAN_UP)
+			free(device_lock_file);
+		device_lock_file = NULL;
 	} else {
 		// %4d to make mgetty happy. It treats 4-bytes lock files as binary,
 		// not text, PID. Making 5+ char file. Brrr...
-		s = xasprintf("%4d\n", getpid());
+		char *s = xasprintf("%4d\n", getpid());
 		write(sfd, s, strlen(s));
 		if (ENABLE_FEATURE_CLEAN_UP)
-			free((char*)s);
+			free(s);
 		close(sfd);
 	}
 
+	// setup signals
+	sig_catch(SIGHUP,  signal_handler);
+	sig_catch(SIGINT,  signal_handler);
+	sig_catch(SIGTERM, signal_handler);
+	sig_catch(SIGPIPE, signal_handler);
+
+	// error exit code if we fail to open the device
+	signalled = 1;
+
 	// open device
-	sfd = open(argv[0], O_RDWR);
-	if (sfd < 0) {
-		bb_perror_msg("can't open device");
+	sfd = open_or_warn(argv[0], O_RDWR | O_NOCTTY | O_NONBLOCK);
+	if (sfd < 0)
 		goto unlock_and_exit;
+	fcntl(sfd, F_SETFL, O_RDWR | O_NOCTTY);
+
+	/* put stdin to "raw mode" (if stdin is a TTY),
+		handle one character at a time */
+	istty = isatty(STDIN_FILENO);
+	if (istty) {
+		xget1(STDIN_FILENO, &tio, &tio0);
+		if (xset1(STDIN_FILENO, &tio, "stdin"))
+			goto close_unlock_and_exit;
+//		tcflush(STDIN_FILENO, TCIFLUSH);
+		timeout = -1; // tty input? -> set infinite timeout for poll()
 	}
 
-	// put stdin to "raw mode", handle one character at a time
-	tcgetattr(STDIN_FILENO, &tio0);
-	tio = tio0;
-	tio.c_lflag &= ~(ICANON|ECHO);
-	tio.c_iflag &= ~(IXON|ICRNL);
-	tio.c_oflag &= ~(ONLCR);
-	tio.c_cc[VMIN] = 1;
-	tio.c_cc[VTIME] = 0;
-	if (tcsetattr(STDIN_FILENO, TCSANOW, &tio)) {
-		bb_perror_msg("can't tcsetattr for %s", "stdin");
-		goto unlock_and_exit;
-	}
-
-	/* same thing for modem (plus: set baud rate) - TODO: make CLI option */
-	tcgetattr(sfd, &tiosfd);
-	tio = tiosfd;
-	tio.c_lflag &= ~(ICANON|ECHO);
-	tio.c_iflag &= ~(IXON|ICRNL);
-	tio.c_oflag &= ~(ONLCR);
-	tio.c_cc[VMIN] = 1;
-	tio.c_cc[VTIME] = 0;
-	cfsetispeed(&tio, tty_value_to_baud(speed));
-	cfsetospeed(&tio, tty_value_to_baud(speed));
-	if (tcsetattr(sfd, TCSANOW, &tio)) {
-		bb_perror_msg("can't tcsetattr for %s", "device");
-		goto unlock_and_exit;
-	}
-
-	// disable SIGINT
-	signal(SIGINT, SIG_IGN);
-
-	// drain stdin
-	tcflush(STDIN_FILENO, TCIFLUSH);
-	printf("connected to '%s' (%d bps), exit with ctrl-X...\r\n", argv[0], speed);
+	// same thing for modem
+	xget1(sfd, &tio, &tiosfd);
+	// order device to hang up at exit
+	tio.c_cflag |= (CREAD|HUPCL);
+	// set device speed
+	cfsetspeed(&tio, tty_value_to_baud(speed));
+	if (xset1(sfd, &tio, argv[0]))
+		goto restore0_close_unlock_and_exit;
 
 	// main loop: check with poll(), then read/write bytes across
-	pfd[0].fd = STDIN_FILENO;
+	/* pfd[0].fd = sfd; - they are the same */
 	pfd[0].events = POLLIN;
-	/*pfd[1].fd = sfd;*/
+	pfd[1].fd = STDIN_FILENO;
 	pfd[1].events = POLLIN;
-	while (1) {
+
+	// TODO: on piped input should we treat NL as CRNL?!
+
+	signalled = 0;
+	// initially we have to poll() both stdin and device
+	nfd = 2;
+	while (!signalled && nfd && safe_poll(pfd, nfd, timeout) > 0) {
 		int i;
-		safe_poll(pfd, 2, -1);
-		for (i = 0; i < 2; ++i) {
-			if (pfd[i].revents & POLLIN) {
-				len = read(pfd[i].fd, bb_common_bufsiz1, COMMON_BUFSIZE);
-				if (len > 0) {
-					if (!i && 24 == bb_common_bufsiz1[0])
-						goto done; // ^X exits
-					write(pfd[1-i].fd, bb_common_bufsiz1, len);
+
+		for (i = 0; i < nfd; ++i) {
+			if (pfd[i].revents & (POLLIN | POLLHUP)) {
+//		int fd;
+				char c;
+				// read a byte
+				if (safe_read(pfd[i].fd, &c, 1) < 1) {
+					// this can occur at the end of piped input
+					// from now we only poll() for device
+					nfd--;
+					continue;
 				}
+//		fd = STDOUT_FILENO;
+				// stdin requires additional processing
+				// (TODO: must be controlled by command line switch)
+				if (i) {
+					// ^@ sends Break
+					if (0 == c) {
+						tcsendbreak(sfd, 0);
+						continue;
+					}
+					// ^X exits
+					if (24 == c)
+						goto done;
+//		fd = sfd;
+				}
+				// write the byte
+				write(i ? sfd : STDOUT_FILENO, &c, 1);
+//		write(fd, &c, 1);
+				// give device a chance to get data
+				// wait 0.01 msec
+				// (TODO: seems to be arbitrary to me)
+				if (i)
+					usleep(10);
 			}
 		}
 	}
- done:
+done:
 	tcsetattr(sfd, TCSANOW, &tiosfd);
-	tcsetattr(STDIN_FILENO, TCSANOW, &tio0);
-	tcflush(STDIN_FILENO, TCIFLUSH);
 
+restore0_close_unlock_and_exit:
+	if (istty) {
+//		tcflush(STDIN_FILENO, TCIFLUSH);
+		tcsetattr(STDIN_FILENO, TCSANOW, &tio0);
+	}
+
+close_unlock_and_exit:
 	if (ENABLE_FEATURE_CLEAN_UP)
 		close(sfd);
-	exitcode = 0;
 
- unlock_and_exit:
+unlock_and_exit:
 	// delete lock file
 	if (device_lock_file) {
 		unlink(device_lock_file);
 		if (ENABLE_FEATURE_CLEAN_UP)
 			free(device_lock_file);
 	}
-	return exitcode;
+	return signalled;
 }
