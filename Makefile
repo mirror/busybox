@@ -842,7 +842,7 @@ depend dep:
 # ---------------------------------------------------------------------------
 # Modules
 
-ifdef CONFIG_MODULES
+ifdef _BB_DISABLED_CONFIG_MODULES
 
 # 	By default, build modules as well
 
