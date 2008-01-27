@@ -780,30 +780,14 @@ static const struct suffix_mult stty_suffixes[] = {
 
 static const struct mode_info *find_mode(const char *name)
 {
-	int i = 0;
-	const char *m = mode_name;
-
-	while (*m) {
-		if (strcmp(name, m) == 0)
-			return &mode_info[i];
-		m += strlen(m) + 1;
-		i++;
-	}
-	return NULL;
+	int i = index_in_strings(mode_name, name);
+	return i >= 0 ? &mode_info[i] : NULL;
 }
 
 static const struct control_info *find_control(const char *name)
 {
-	int i = 0;
-	const char *m = mode_name;
-
-	while (*m) {
-		if (strcmp(name, m) == 0)
-			return &control_info[i];
-		m += strlen(m) + 1;
-		i++;
-	}
-	return NULL;
+	int i = index_in_strings(control_name, name);
+	return i >= 0 ? &control_info[i] : NULL;
 }
 
 enum {
