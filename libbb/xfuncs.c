@@ -475,6 +475,7 @@ void xsetuid(uid_t uid)
 }
 
 // Return how long the file at fd is, if there's any way to determine it.
+#ifdef UNUSED
 off_t fdlength(int fd)
 {
 	off_t bottom = 0, top = 0, pos;
@@ -513,6 +514,7 @@ off_t fdlength(int fd)
 
 	return pos + 1;
 }
+#endif
 
 int bb_putchar(int ch)
 {

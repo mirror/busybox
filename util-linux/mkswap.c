@@ -64,9 +64,11 @@ int mkswap_main(int argc, char **argv)
 	// Figure out how big the device is and announce our intentions.
 
 	fd = xopen(argv[1], O_RDWR);
-	len = fdlength(fd);
+	/* fdlength was reported to be unreliable - use seek */
+	len = xlseek(fd, 0, SEEK_END);
+	xlseek(fd, 0, SEEK_SET);
 	pagesize = getpagesize();
-	printf("Setting up swapspace version 1, size = %"OFF_FMT"d bytes\n",
+	printf("Setting up swapspace version 1, size = %"OFF_FMT"u bytes\n",
 			len - pagesize);
 	mkswap_selinux_setcontext(fd, argv[1]);
 
