@@ -10,9 +10,9 @@
  */
 
 #include "libbb.h"
+#include <syslog.h>
 #include <paths.h>
 #include <sys/reboot.h>
-#include <sys/syslog.h>
 
 #define INIT_BUFFS_SIZE 256
 #define CONSOLE_NAME_SIZE 32

@@ -6,7 +6,6 @@
 #include "libbb.h"
 #include <syslog.h>
 
-
 static void nuke_str(char *str)
 {
 	if (str) memset(str, 0, strlen(str));

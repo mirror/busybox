@@ -20,9 +20,9 @@
 
 #include <mntent.h>
 #include "libbb.h"
+#include <syslog.h>
 
 /* Needed for nfs support only... */
-#include <syslog.h>
 #include <sys/utsname.h>
 #undef TRUE
 #undef FALSE

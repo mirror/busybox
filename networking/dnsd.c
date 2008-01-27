@@ -17,8 +17,8 @@
  * the first porting of oao' scdns to busybox also.
  */
 
-#include <syslog.h>
 #include "libbb.h"
+#include <syslog.h>
 
 //#define DEBUG 1
 #define DEBUG 0

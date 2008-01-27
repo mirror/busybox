@@ -16,7 +16,6 @@
  * initially integrated into busybox by Bernhard Fischer
  */
 
-#include <syslog.h>
 #include <netinet/in.h>
 #include <netinet/ip.h>
 #include <arpa/inet.h>

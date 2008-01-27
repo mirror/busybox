@@ -8,28 +8,32 @@
  */
 
 #include "libbb.h"
-
-#if !defined CONFIG_SYSLOGD
-
-/* SYSLOG_NAMES defined to pull prioritynames[] and facilitynames[]
- * from syslog.h. Grrrr - glibc puts those in _rwdata_! :( */
+#ifndef CONFIG_SYSLOGD
 #define SYSLOG_NAMES
-#define SYSLOG_NAMES_CONST /* uclibc is saner :) */
-#include <sys/syslog.h>
-
+#define SYSLOG_NAMES_CONST
+#include <syslog.h>
 #else
-#include <sys/syslog.h>
-#  ifndef __dietlibc__
-	/* We have to do this since the header file defines static
-	 * structures.  Argh.... bad libc, bad, bad...
-	 */
-	typedef struct _code {
-		char *c_name;
-		int c_val;
-	} CODE;
-	extern CODE prioritynames[];
-	extern CODE facilitynames[];
+/* brokenness alert. Everybody except dietlibc get's this wrong by neither
+ * providing a typedef nor an extern for facilitynames and prioritynames
+ * in syslog.h.
+ */
+# include <syslog.h>
+# ifndef __dietlibc__
+/* We have to do this since the header file does neither provide a sane type
+ * for this structure nor extern definitions.  Argh.... bad libc, bad, bad...
+ */
+typedef struct _code {
+	char *c_name; /* FIXME: this should be const char *const c_name ! */
+	int c_val;
+} CODE;
+#  ifdef __UCLIBC__
+extern const CODE prioritynames[];
+extern const CODE facilitynames[];
+#  else
+extern CODE prioritynames[];
+extern CODE facilitynames[];
 #  endif
+# endif
 #endif
 
 /* Decode a symbolic name to a numeric value

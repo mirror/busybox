@@ -23,9 +23,6 @@
 // - avoid silent script failures, especially under load...
 // - link status monitoring (restart on link-up; stop on link-down)
 
-#include <syslog.h>
-#include <poll.h>
-#include <sys/wait.h>
 #include <netinet/ether.h>
 #include <net/ethernet.h>
 #include <net/if.h>
@@ -34,6 +31,7 @@
 #include <linux/sockios.h>
 
 #include "libbb.h"
+#include <syslog.h>
 
 /* We don't need more than 32 bits of the counter */
 #define MONOTONIC_US() ((unsigned)monotonic_us())

@@ -7,8 +7,8 @@
  * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  */
 
-#include <syslog.h>
 #include "libbb.h"
+#include <syslog.h>
 
 void bb_info_msg(const char *s, ...)
 {

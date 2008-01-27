@@ -14,14 +14,12 @@
  */
 
 #include "libbb.h"
+#define SYSLOG_NAMES
+#define SYSLOG_NAMES_CONST
+#include <syslog.h>
+
 #include <paths.h>
 #include <sys/un.h>
-
-/* SYSLOG_NAMES defined to pull prioritynames[] and facilitynames[]
- * from syslog.h. Grrrr - glibc puts those in _rwdata_! :( */
-#define SYSLOG_NAMES
-#define SYSLOG_NAMES_CONST /* uclibc is saner :) */
-#include <sys/syslog.h>
 #include <sys/uio.h>
 
 #if ENABLE_FEATURE_REMOTE_LOG

@@ -7,8 +7,8 @@
  * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  */
 
-#include <syslog.h>
 #include "libbb.h"
+#include <syslog.h>
 
 smallint logmode = LOGMODE_STDIO;
 const char *msg_eol = "\n";

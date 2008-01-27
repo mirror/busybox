@@ -18,7 +18,7 @@
  */
 
 #include "libbb.h"
-#include <sys/syslog.h>
+#include <syslog.h>
 #include <sys/klog.h>
 
 static void klogd_signal(int sig ATTRIBUTE_UNUSED)

@@ -53,17 +53,12 @@
     The postal address is:
       Richard Gooch, c/o ATNF, P. O. Box 76, Epping, N.S.W., 2121, Australia.
 */
-
-//#include <sys/wait.h>
-//#include <sys/ioctl.h>
-//#include <sys/socket.h>
-#include <sys/un.h>
-#include <dirent.h>
-#include <syslog.h>
-#include <sys/sysmacros.h>
 #include "libbb.h"
 #include "xregex.h"
+#include <syslog.h>
 
+#include <sys/un.h>
+#include <sys/sysmacros.h>
 
 /* Various defines taken from linux/major.h */
 #define IDE0_MAJOR	3

@@ -24,14 +24,13 @@
 #define DEBUG 0
 
 #include "libbb.h"
+#include <syslog.h>
 
 #if DEBUG
 #define TELCMDS
 #define TELOPTS
 #endif
 #include <arpa/telnet.h>
-#include <sys/syslog.h>
-
 
 /* Structure that describes a session */
 struct tsession {

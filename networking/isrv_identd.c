@@ -7,8 +7,8 @@
  * Licensed under GPL version 2, see file LICENSE in this tarball for details.
  */
 
-#include <syslog.h>
 #include "libbb.h"
+#include <syslog.h>
 #include "isrv.h"
 
 enum { TIMEOUT = 20 };

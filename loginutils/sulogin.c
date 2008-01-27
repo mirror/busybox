@@ -5,9 +5,8 @@
  * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  */
 
-#include <syslog.h>
-
 #include "libbb.h"
+#include <syslog.h>
 
 //static void catchalarm(int ATTRIBUTE_UNUSED junk)
 //{

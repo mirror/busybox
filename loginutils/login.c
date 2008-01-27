@@ -4,9 +4,9 @@
  */
 
 #include "libbb.h"
+#include <syslog.h>
 #include <utmp.h>
 #include <sys/resource.h>
-#include <syslog.h>
 
 #if ENABLE_SELINUX
 #include <selinux/selinux.h>  /* for is_selinux_enabled()  */
