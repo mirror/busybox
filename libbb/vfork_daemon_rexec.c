@@ -131,11 +131,33 @@ int run_nofork_applet_prime(struct nofork_save_area *old, int applet_no, char **
 
 	applet_name = APPLET_NAME(applet_no);
 	xfunc_error_retval = EXIT_FAILURE;
-	/*option_mask32 = 0; - not needed */
-	/* special flag for xfunc_die(). If xfunc will "die"
+
+	/* Special flag for xfunc_die(). If xfunc will "die"
 	 * in NOFORK applet, xfunc_die() sees negative
 	 * die_sleep and longjmp here instead. */
 	die_sleep = -1;
+
+	/* Reset the libc getopt() function, which keeps internal state.
+	 *
+	 * BSD-derived getopt() functions require that optind be reset to 1 in
+	 * order to reset getopt() state.  This used to be generally accepted
+	 * way of resetting getopt().  However, glibc's getopt()
+	 * has additional getopt() state beyond optind, and requires that
+	 * optind be set zero to reset its state.  So the unfortunate state of
+	 * affairs is that BSD-derived versions of getopt() misbehave if
+	 * optind is set to 0 in order to reset getopt(), and glibc's getopt()
+	 * will core ump if optind is set 1 in order to reset getopt().
+	 * 
+	 * More modern versions of BSD require that optreset be set to 1 in
+	 * order to reset getopt().   Sigh.  Standards, anyone?
+	 */
+#ifdef __GLIBC__
+	optind = 0;
+#else /* BSD style */
+	optind = 1;
+	/* optreset = 1; */
+#endif
+	/* option_mask32 = 0; - not needed */
 
 	argc = 1;
 	while (argv[argc])
