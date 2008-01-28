@@ -45,8 +45,8 @@ int microcom_main(int argc, char **argv)
 {
 	struct pollfd pfd[2];
 	int nfd;
-	//int sfd;
-#define sfd (pfd[0].fd)
+	int sfd;
+/* #define sfd (pfd[0].fd) - gcc 4.2.1 is still not smart enough */
 	char *device_lock_file;
 	const char *opt_s = "9600";
 	speed_t speed;
@@ -123,7 +123,7 @@ int microcom_main(int argc, char **argv)
 		goto restore0_close_unlock_and_exit;
 
 	// main loop: check with poll(), then read/write bytes across
-	/* pfd[0].fd = sfd; - they are the same */
+	pfd[0].fd = sfd;
 	pfd[0].events = POLLIN;
 	pfd[1].fd = STDIN_FILENO;
 	pfd[1].events = POLLIN;
