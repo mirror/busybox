@@ -665,6 +665,19 @@ config ROUTE
 	help
 	  Route displays or manipulates the kernel's IP routing tables.
 
+config SENDMAIL
+	bool "sendmail"
+	default n
+	help
+	  Barebones sendmail.
+
+config FEATURE_SENDMAIL_NETWORK
+	bool "Support network connectivity"
+	default y
+	depends on SENDMAIL
+	help
+	  Add ability to send, not only compose messages.
+
 config SLATTACH
 	bool "slattach"
 	default n

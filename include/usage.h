@@ -3134,6 +3134,29 @@ USE_FEATURE_RUN_PARTS_FANCY("\n	-l	Prints names of all matching files even when 
 #define selinuxenabled_trivial_usage
 #define selinuxenabled_full_usage
 
+#define sendmail_trivial_usage \
+       "[-d] {-t to}+ [-f from] [-n[notify]] [-s subject] [-b file]*\n" \
+       "[-a attachment]* [-c charset] [-w timeout] [-h server] [-p port] [-U user] [-P password]"
+#define sendmail_full_usage \
+       "Send an email from to with subject and optional attachments.\n" \
+       "Body is read from stdin or from optional files" \
+       "\n\nArguments:\n" \
+       "	-d		Just dump composed message\n" \
+       "	-t to		Recipient email. May be multiple\n" \
+       "	-f from		Sender email\n" \
+       "	-n[notify]	Optional notification address. If just -n given then notifies the sender\n" \
+       "	-s subject	Optional subject\n" \
+       "	-b filename	Optional body content file. May be multiple\n" \
+       "	-a filename	Optional file attachment. May be multiple\n" \
+       "	-c charset	Assumed charset for body and subject [koi8-r]" \
+       USE_FEATURE_SENDMAIL_NETWORK("\n" \
+       "	-w timeout	Set timeout on network operations\n" \
+       "	-h server	Optional mail server name or IP [127.0.0.1]\n" \
+       "	-p port		Optional mail server port [25]\n" \
+       "	-U username	Authenticate using AUTH LOGIN with specified username\n" \
+       "	-P password	Authenticate using AUTH LOGIN with specified password"\
+       )
+
 #define seq_trivial_usage \
        "[first [increment]] last"
 #define seq_full_usage \
