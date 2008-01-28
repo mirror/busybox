@@ -252,7 +252,7 @@ static unsigned processorstart(struct logdir *ld)
 		prog[1] = (char*)"-c";
 		prog[2] = ld->processor;
 		prog[3] = NULL;
-		execve("/bin/sh", prog, environ);
+		execv("/bin/sh", prog);
 		bb_perror_msg_and_die(FATAL"cannot %s processor %s", "run", ld->name);
 	}
 	ld->ppid = pid;

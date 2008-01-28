@@ -60,7 +60,6 @@
 #if JOBS || ENABLE_ASH_READ_NCHARS
 #include <termios.h>
 #endif
-extern char **environ;
 
 #if defined(__uClinux__)
 #error "Do not even bother, ash will not run on uClinux"

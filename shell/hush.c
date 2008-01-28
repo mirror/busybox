@@ -81,8 +81,6 @@
 #include <getopt.h>    /* should be pretty obvious */
 /* #include <dmalloc.h> */
 
-extern char **environ; /* This is in <unistd.h>, but protected with __USE_GNU */
-
 #include "busybox.h" /* for APPLET_IS_NOFORK/NOEXEC */
 
 

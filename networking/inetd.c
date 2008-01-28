@@ -172,9 +172,6 @@
 #include <rpc/pmap_clnt.h>
 #endif
 
-extern char **environ;
-
-
 #define _PATH_INETDPID  "/var/run/inetd.pid"
 
 #define CNT_INTVL       60              /* servers in CNT_INTVL sec. */

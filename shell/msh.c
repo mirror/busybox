@@ -84,7 +84,6 @@ static char *itoa(int n)
 }
 #else
 # include "busybox.h" /* for applet_names */
-extern char **environ;
 #endif
 
 /*#define MSHDEBUG 1*/
@@ -2825,11 +2824,13 @@ static int forkexec(struct op *t, int *pin, int *pout, int act, char **wp)
 
 	if (pin != NULL) {
 		xmove_fd(pin[0], 0);
-		if (pin[1] != 0) close(pin[1]);
+		if (pin[1] != 0)
+			close(pin[1]);
 	}
 	if (pout != NULL) {
 		xmove_fd(pout[1], 1);
-		if (pout[1] != 1) close(pout[0]);
+		if (pout[1] != 1)
+			close(pout[0]);
 	}
 
 	iopp = t->ioact;
@@ -4181,7 +4182,8 @@ static int grave(int quoted)
 	 *  echo "$files" >zz
 	 */
 	xmove_fd(pf[1], 1);
-	if (pf[0] != 1) close(pf[0]);
+	if (pf[0] != 1)
+		close(pf[0]);
 
 	argument_list[0] = (char *) DEFAULT_SHELL;
 	argument_list[1] = (char *) "-c";

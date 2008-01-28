@@ -10,7 +10,6 @@
 #include "libbb.h"
 #include "xregex.h"
 #include <math.h>
-extern char **environ;
 
 /* This is a NOEXEC applet. Be very careful! */
 

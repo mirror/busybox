@@ -30,7 +30,7 @@ int open_transformer(int src_fd,
 
 	if (pid == 0) {
 		/* child process */
-		close(fd_pipe[0]); /* We don't wan't to read from the parent */
+		close(fd_pipe[0]); /* We don't want to read from the parent */
 		// FIXME: error check?
 #if BB_MMU
 		transformer(src_fd, fd_pipe[1]);

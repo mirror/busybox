@@ -279,7 +279,7 @@ static unsigned custom(struct svdir *s, char c)
 					warn_cannot("setup stdout for control/?");
 				prog[0] = a;
 				prog[1] = NULL;
-				execve(a, prog, environ);
+				execv(a, prog);
 				fatal_cannot("run control/?");
 			}
 			while (safe_waitpid(pid, &w, 0) == -1) {

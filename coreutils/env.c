@@ -30,8 +30,6 @@
  */
 
 #include <getopt.h> /* struct option */
-extern char **environ;
-
 #include "libbb.h"
 
 #if ENABLE_FEATURE_ENV_LONG_OPTIONS
