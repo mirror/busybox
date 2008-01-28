@@ -638,7 +638,6 @@ void run_applet_no_and_exit(int applet_no, char **argv)
 		argc++;
 
 	/* Reinit some shared global data */
-	optind = 1;
 	xfunc_error_retval = EXIT_FAILURE;
 
 	applet_name = APPLET_NAME(applet_no);
