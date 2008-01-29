@@ -81,6 +81,7 @@ static const int32_t mount_options[] = {
 		/* "swap"   */ MOUNT_SWAP,
 		USE_DESKTOP(/* "user"  */ MOUNT_USERS,)
 		USE_DESKTOP(/* "users" */ MOUNT_USERS,)
+		/* "_netdev" */ 0,
 	)
 
 	USE_FEATURE_MOUNT_FLAGS(
@@ -130,6 +131,7 @@ static const char mount_option_str[] =
 		"swap" "\0"
 		USE_DESKTOP("user" "\0")
 		USE_DESKTOP("users" "\0")
+		"_netdev" "\0"
 	)
 	USE_FEATURE_MOUNT_FLAGS(
 		// vfs flags
