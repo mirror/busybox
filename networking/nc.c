@@ -103,14 +103,14 @@ int nc_main(int argc, char **argv)
 			if (lport)
 				set_nport(lsa, htons(lport));
 			setsockopt_reuseaddr(sfd);
-			xbind(sfd, &lsa->sa, lsa->len);
+			xbind(sfd, &lsa->u.sa, lsa->len);
 			xlisten(sfd, do_listen); /* can be > 1 */
 			/* If we didn't specify a port number,
 			 * query and print it after listen() */
 			if (!lport) {
 				socklen_t addrlen = lsa->len;
-				getsockname(sfd, &lsa->sa, &addrlen);
-				lport = get_nport(&lsa->sa);
+				getsockname(sfd, &lsa->u.sa, &addrlen);
+				lport = get_nport(&lsa->u.sa);
 				fdprintf(2, "%d\n", ntohs(lport));
 			}
 			close_on_exec_on(sfd);

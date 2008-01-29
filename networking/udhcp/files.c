@@ -19,7 +19,7 @@ static int read_ip(const char *line, void *arg)
 	lsa = host_and_af2sockaddr(line, 0, AF_INET);
 	if (!lsa)
 		return 0;
-	*(uint32_t*)arg = lsa->sin.sin_addr.s_addr;
+	*(uint32_t*)arg = lsa->u.sin.sin_addr.s_addr;
 	free(lsa);
 	return 1;
 }

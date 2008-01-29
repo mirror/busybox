@@ -254,10 +254,10 @@ int tcpudpsvd_main(int argc, char **argv)
 
 	local_port = bb_lookup_port(argv[1], tcp ? "tcp" : "udp", 0);
 	lsa = xhost2sockaddr(argv[0], local_port);
-	sock = xsocket(lsa->sa.sa_family, tcp ? SOCK_STREAM : SOCK_DGRAM, 0);
+	sock = xsocket(lsa->u.sa.sa_family, tcp ? SOCK_STREAM : SOCK_DGRAM, 0);
 	setsockopt_reuseaddr(sock);
 	sa_len = lsa->len; /* I presume sockaddr len stays the same */
-	xbind(sock, &lsa->sa, sa_len);
+	xbind(sock, &lsa->u.sa, sa_len);
 	if (tcp)
 		xlisten(sock, backlog);
 	else /* udp: needed for recv_from_to to work: */
@@ -273,7 +273,7 @@ int tcpudpsvd_main(int argc, char **argv)
 #endif
 
 	if (verbose) {
-		char *addr = xmalloc_sockaddr2dotted(&lsa->sa);
+		char *addr = xmalloc_sockaddr2dotted(&lsa->u.sa);
 		printf("%s: info: listening on %s", applet_name, addr);
 		free(addr);
 #ifndef SSLSVD
@@ -299,12 +299,12 @@ int tcpudpsvd_main(int argc, char **argv)
 	sig_unblock(SIGCHLD);
 	if (tcp) {
 		remote.len = sa_len;
-		conn = accept(sock, &remote.sa, &remote.len);
+		conn = accept(sock, &remote.u.sa, &remote.len);
 	} else {
 		/* In case recv_from_to won't be able to recover local addr.
 		 * Also sets port - recv_from_to is unable to do it. */
 		local = *lsa;
-		conn = recv_from_to(sock, NULL, 0, MSG_PEEK, &remote.sa, &local.sa, sa_len);
+		conn = recv_from_to(sock, NULL, 0, MSG_PEEK, &remote.u.sa, &local.u.sa, sa_len);
 	}
 	sig_block(SIGCHLD);
 	if (conn < 0) {
@@ -317,7 +317,7 @@ int tcpudpsvd_main(int argc, char **argv)
 	if (max_per_host) {
 		/* Drop connection immediately if cur_per_host > max_per_host
 		 * (minimizing load under SYN flood) */
-		remote_ip = xmalloc_sockaddr2dotted_noport(&remote.sa);
+		remote_ip = xmalloc_sockaddr2dotted_noport(&remote.u.sa);
 		cur_per_host = ipsvd_perhost_add(remote_ip, max_per_host, &hccp);
 		if (cur_per_host > max_per_host) {
 			/* ipsvd_perhost_add detected that max is exceeded
@@ -342,14 +342,14 @@ int tcpudpsvd_main(int argc, char **argv)
 		/* Make plain write/send work for this socket by supplying default
 		 * destination address. This also restricts incoming packets
 		 * to ones coming from this remote IP. */
-		xconnect(0, &remote.sa, sa_len);
+		xconnect(0, &remote.u.sa, sa_len);
 	/* hole? at this point we have no wildcard udp socket...
 	 * can this cause clients to get "port unreachable" icmp?
 	 * Yup, time window is very small, but it exists (is it?) */
 		/* Open new non-connected UDP socket for further clients */
-		sock = xsocket(lsa->sa.sa_family, tcp ? SOCK_STREAM : SOCK_DGRAM, 0);
+		sock = xsocket(lsa->u.sa.sa_family, tcp ? SOCK_STREAM : SOCK_DGRAM, 0);
 		setsockopt_reuseaddr(sock);
-		xbind(sock, &lsa->sa, sa_len);
+		xbind(sock, &lsa->u.sa, sa_len);
 		socket_want_pktinfo(sock);
 
 		/* Doesn't work:
@@ -358,16 +358,16 @@ int tcpudpsvd_main(int argc, char **argv)
 		 * instead - it will "intercept" all following packets, but child
 		 * does not expect data coming *from fd #1*! */
 #if 0
-		/* Make it so that local addr is fixed to localp->sa
+		/* Make it so that local addr is fixed to localp->u.sa
 		 * and we don't accidentally accept packets to other local IPs. */
 		/* NB: we possibly bind to the _very_ same_ address & port as the one
 		 * already bound in parent! This seems to work in Linux.
 		 * (otherwise we can move socket to fd #0 only if bind succeeds) */
 		close(0);
 		set_nport(localp, htons(local_port));
-		xmove_fd(xsocket(localp->sa.sa_family, SOCK_DGRAM, 0), 0);
+		xmove_fd(xsocket(localp->u.sa.sa_family, SOCK_DGRAM, 0), 0);
 		setsockopt_reuseaddr(0); /* crucial */
-		xbind(0, &localp->sa, localp->len);
+		xbind(0, &localp->u.sa, localp->len);
 #endif
 	}
 
@@ -395,11 +395,11 @@ int tcpudpsvd_main(int argc, char **argv)
 		close(sock);
 
 	if (need_remote_ip)
-		remote_addr = xmalloc_sockaddr2dotted(&remote.sa);
+		remote_addr = xmalloc_sockaddr2dotted(&remote.u.sa);
 
 	if (need_hostnames) {
 		if (option_mask32 & OPT_h) {
-			remote_hostname = xmalloc_sockaddr2host_noport(&remote.sa);
+			remote_hostname = xmalloc_sockaddr2host_noport(&remote.u.sa);
 			if (!remote_hostname) {
 				bb_error_msg("warning: cannot look up hostname for %s", remote_addr);
 				remote_hostname = (char*)"";
@@ -410,11 +410,11 @@ int tcpudpsvd_main(int argc, char **argv)
 		 * which doesn't know local IP). */
 		if (tcp) {
 			local.len = sa_len;
-			getsockname(0, &local.sa, &local.len);
+			getsockname(0, &local.u.sa, &local.len);
 		}
-		local_addr = xmalloc_sockaddr2dotted(&local.sa);
+		local_addr = xmalloc_sockaddr2dotted(&local.u.sa);
 		if (!local_hostname) {
-			local_hostname = xmalloc_sockaddr2host_noport(&local.sa);
+			local_hostname = xmalloc_sockaddr2host_noport(&local.u.sa);
 			if (!local_hostname)
 				bb_error_msg_and_die("warning: cannot look up hostname for %s"+9, local_addr);
 		}
@@ -440,8 +440,8 @@ int tcpudpsvd_main(int argc, char **argv)
 		 * from Linux firewall. Useful when you redirect
 		 * an outbond connection to local handler, and it needs
 		 * to know where it originally tried to connect */
-		if (tcp && getsockopt(0, SOL_IP, SO_ORIGINAL_DST, &lsa->sa, &lsa->len) == 0) {
-			char *addr = xmalloc_sockaddr2dotted(&lsa->sa);
+		if (tcp && getsockopt(0, SOL_IP, SO_ORIGINAL_DST, &lsa->u.sa, &lsa->len) == 0) {
+			char *addr = xmalloc_sockaddr2dotted(&lsa->u.sa);
 			xsetenv("TCPORIGDSTADDR", addr);
 			free(addr);
 		}

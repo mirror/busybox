@@ -594,20 +594,20 @@ static void display_topmem_header(int scr_width)
 			/*  9 */ char *anon;
 			/* 10 */ char *map;
 			/* 11 */ char *slab;
-		};
+		} u;
 		char *str[11];
 	} Z;
-#define total     Z.total
-#define mfree     Z.mfree
-#define buf       Z.buf
-#define cache     Z.cache
-#define swaptotal Z.swaptotal
-#define swapfree  Z.swapfree
-#define dirty     Z.dirty
-#define mwrite    Z.mwrite
-#define anon      Z.anon
-#define map       Z.map
-#define slab      Z.slab
+#define total     Z.u.total
+#define mfree     Z.u.mfree
+#define buf       Z.u.buf
+#define cache     Z.u.cache
+#define swaptotal Z.u.swaptotal
+#define swapfree  Z.u.swapfree
+#define dirty     Z.u.dirty
+#define mwrite    Z.u.mwrite
+#define anon      Z.u.anon
+#define map       Z.u.map
+#define slab      Z.u.slab
 #define str       Z.str
 
 	memset(&Z, 0, sizeof(Z));

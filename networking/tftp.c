@@ -127,7 +127,7 @@ static int tftp( USE_GETPUT(const int cmd,)
 	char *cp;
 
 	unsigned org_port;
-	len_and_sockaddr *const from = alloca(offsetof(len_and_sockaddr, sa) + peer_lsa->len);
+	len_and_sockaddr *const from = alloca(offsetof(len_and_sockaddr, u.sa) + peer_lsa->len);
 
 	/* Can't use RESERVE_CONFIG_BUFFER here since the allocation
 	 * size varies meaning BUFFERS_GO_ON_STACK would fail */
@@ -138,7 +138,7 @@ static int tftp( USE_GETPUT(const int cmd,)
 
 	port = org_port = htons(port);
 
-	socketfd = xsocket(peer_lsa->sa.sa_family, SOCK_DGRAM, 0);
+	socketfd = xsocket(peer_lsa->u.sa.sa_family, SOCK_DGRAM, 0);
 
 	/* build opcode */
 	opcode = TFTP_WRQ;
@@ -216,7 +216,7 @@ static int tftp( USE_GETPUT(const int cmd,)
 			fprintf(stderr, "%02x ", (unsigned char) *cp);
 		fprintf(stderr, "\n");
 #endif
-		xsendto(socketfd, xbuf, send_len, &peer_lsa->sa, peer_lsa->len);
+		xsendto(socketfd, xbuf, send_len, &peer_lsa->u.sa, peer_lsa->len);
 		/* Was it final ACK? then exit */
 		if (finished && (opcode == TFTP_ACK))
 			goto ret;
@@ -229,14 +229,14 @@ static int tftp( USE_GETPUT(const int cmd,)
 			unsigned from_port;
 		case 1:
 			from->len = peer_lsa->len;
-			memset(&from->sa, 0, peer_lsa->len);
+			memset(&from->u.sa, 0, peer_lsa->len);
 			len = recvfrom(socketfd, rbuf, tftp_bufsize, 0,
-						&from->sa, &from->len);
+						&from->u.sa, &from->len);
 			if (len < 0) {
 				bb_perror_msg("recvfrom");
 				goto ret;
 			}
-			from_port = get_nport(&from->sa);
+			from_port = get_nport(&from->u.sa);
 			if (port == org_port) {
 				/* Our first query went to port 69
 				 * but reply will come from different one.
@@ -316,7 +316,7 @@ static int tftp( USE_GETPUT(const int cmd,)
 						/*static const uint16_t error_8[2] = { htons(TFTP_ERROR), htons(8) };*/
 						/* thus we open-code big-endian layout */
 						static const uint8_t error_8[4] = { 0,TFTP_ERROR, 0,8 };
-						xsendto(socketfd, error_8, 4, &peer_lsa->sa, peer_lsa->len);
+						xsendto(socketfd, error_8, 4, &peer_lsa->u.sa, peer_lsa->len);
 						bb_error_msg("server proposes bad blksize %d, exiting", blksize);
 						goto ret;
 					}
@@ -449,7 +449,7 @@ int tftp_main(int argc, char **argv)
 
 #if ENABLE_DEBUG_TFTP
 	fprintf(stderr, "using server '%s', remotefile '%s', localfile '%s'\n",
-			xmalloc_sockaddr2dotted(&peer_lsa->sa),
+			xmalloc_sockaddr2dotted(&peer_lsa->u.sa),
 			remotefile, localfile);
 #endif
 

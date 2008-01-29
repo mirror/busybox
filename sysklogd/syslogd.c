@@ -525,7 +525,7 @@ static int try_to_resolve_remote(void)
 		if (!G.remoteAddr)
 			return -1;
 	}
-	return socket(G.remoteAddr->sa.sa_family, SOCK_DGRAM, 0);
+	return socket(G.remoteAddr->u.sa.sa_family, SOCK_DGRAM, 0);
 }
 #endif
 
@@ -592,7 +592,7 @@ static void do_syslogd(void)
 			}
 			/* send message to remote logger, ignore possible error */
 			sendto(G.remoteFD, G.recvbuf, sz, MSG_DONTWAIT,
-				    &G.remoteAddr->sa, G.remoteAddr->len);
+				    &G.remoteAddr->u.sa, G.remoteAddr->len);
  no_luck: ;
 		}
 #endif

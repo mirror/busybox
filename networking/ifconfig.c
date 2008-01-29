@@ -392,12 +392,12 @@ int ifconfig_main(int argc, char **argv)
 								continue; /* compat stuff */
 							lsa = xhost2sockaddr(host, 0);
 #if ENABLE_FEATURE_IPV6
-							if (lsa->sa.sa_family == AF_INET6) {
+							if (lsa->u.sa.sa_family == AF_INET6) {
 								int sockfd6;
 								struct in6_ifreq ifr6;
 
 								memcpy((char *) &ifr6.ifr6_addr,
-										(char *) &(lsa->sin6.sin6_addr),
+										(char *) &(lsa->u.sin6.sin6_addr),
 										sizeof(struct in6_addr));
 
 								/* Create a channel to the NET kernel. */
@@ -411,7 +411,7 @@ int ifconfig_main(int argc, char **argv)
 								continue;
 							}
 #endif
-							sai.sin_addr = lsa->sin.sin_addr;
+							sai.sin_addr = lsa->u.sin.sin_addr;
 							if (ENABLE_FEATURE_CLEAN_UP)
 								free(lsa);
 						}

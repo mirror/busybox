@@ -1781,18 +1781,18 @@ static void handle_incoming_and_exit(const len_and_sockaddr *fromAddr)
 	iobuf = xmalloc(IOBUF_SIZE);
 
 	rmt_ip = 0;
-	if (fromAddr->sa.sa_family == AF_INET) {
-		rmt_ip = ntohl(fromAddr->sin.sin_addr.s_addr);
+	if (fromAddr->u.sa.sa_family == AF_INET) {
+		rmt_ip = ntohl(fromAddr->u.sin.sin_addr.s_addr);
 	}
 #if ENABLE_FEATURE_IPV6
-	if (fromAddr->sa.sa_family == AF_INET6
-	 && fromAddr->sin6.sin6_addr.s6_addr32[0] == 0
-	 && fromAddr->sin6.sin6_addr.s6_addr32[1] == 0
-	 && ntohl(fromAddr->sin6.sin6_addr.s6_addr32[2]) == 0xffff)
-		rmt_ip = ntohl(fromAddr->sin6.sin6_addr.s6_addr32[3]);
+	if (fromAddr->u.sa.sa_family == AF_INET6
+	 && fromAddr->u.sin6.sin6_addr.s6_addr32[0] == 0
+	 && fromAddr->u.sin6.sin6_addr.s6_addr32[1] == 0
+	 && ntohl(fromAddr->u.sin6.sin6_addr.s6_addr32[2]) == 0xffff)
+		rmt_ip = ntohl(fromAddr->u.sin6.sin6_addr.s6_addr32[3]);
 #endif
 	if (ENABLE_FEATURE_HTTPD_CGI || DEBUG || verbose) {
-		rmt_ip_str = xmalloc_sockaddr2dotted(&fromAddr->sa);
+		rmt_ip_str = xmalloc_sockaddr2dotted(&fromAddr->u.sa);
 	}
 	if (verbose) {
 		/* this trick makes -v logging much simpler */
@@ -2047,7 +2047,7 @@ static void handle_incoming_and_exit(const len_and_sockaddr *fromAddr)
 		lsa = host2sockaddr(proxy_entry->host_port, 80);
 		if (lsa == NULL)
 			send_headers_and_exit(HTTP_INTERNAL_SERVER_ERROR);
-		if (connect(proxy_fd, &lsa->sa, lsa->len) < 0)
+		if (connect(proxy_fd, &lsa->u.sa, lsa->len) < 0)
 			send_headers_and_exit(HTTP_INTERNAL_SERVER_ERROR);
 		fdprintf(proxy_fd, "%s %s%s%s%s HTTP/%c.%c\r\n",
 				prequest, /* GET or POST */
@@ -2140,7 +2140,7 @@ static void mini_httpd(int server_socket)
 
 		/* Wait for connections... */
 		fromAddr.len = LSA_SIZEOF_SA;
-		n = accept(server_socket, &fromAddr.sa, &fromAddr.len);
+		n = accept(server_socket, &fromAddr.u.sa, &fromAddr.len);
 
 		if (n < 0)
 			continue;
@@ -2222,7 +2222,7 @@ static void mini_httpd_inetd(void)
 	len_and_sockaddr fromAddr;
 
 	fromAddr.len = LSA_SIZEOF_SA;
-	getpeername(0, &fromAddr.sa, &fromAddr.len);
+	getpeername(0, &fromAddr.u.sa, &fromAddr.len);
 	handle_incoming_and_exit(&fromAddr);
 }
 

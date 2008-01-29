@@ -348,7 +348,7 @@ int ftpgetput_main(int argc, char **argv)
 	server->lsa = xhost2sockaddr(argv[0], bb_lookup_port(port, "tcp", 21));
 	if (verbose_flag) {
 		printf("Connecting to %s (%s)\n", argv[0],
-			xmalloc_sockaddr2dotted(&server->lsa->sa));
+			xmalloc_sockaddr2dotted(&server->lsa->u.sa));
 	}
 
 	/*  Connect/Setup/Configure the FTP session */

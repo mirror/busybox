@@ -209,7 +209,7 @@ int ping_main(int argc, char **argv)
 	alarm(5); /* give the host 5000ms to respond */
 
 #if ENABLE_PING6
-	if (lsa->sa.sa_family == AF_INET6)
+	if (lsa->u.sa.sa_family == AF_INET6)
 		ping6(lsa);
 	else
 #endif
@@ -532,12 +532,12 @@ static void ping4(len_and_sockaddr *lsa)
 	int sockopt;
 
 	pingsock = create_icmp_socket();
-	pingaddr.sin = lsa->sin;
+	pingaddr.sin = lsa->u.sin;
 	if (source_lsa) {
 		if (setsockopt(pingsock, IPPROTO_IP, IP_MULTICAST_IF,
-				&source_lsa->sa, source_lsa->len))
+				&source_lsa->u.sa, source_lsa->len))
 			bb_error_msg_and_die("can't set multicast source interface");
-		xbind(pingsock, &source_lsa->sa, source_lsa->len);
+		xbind(pingsock, &source_lsa->u.sa, source_lsa->len);
 	}
 	if (opt_I)
 		setsockopt(pingsock, SOL_SOCKET, SO_BINDTODEVICE, opt_I, strlen(opt_I) + 1);
@@ -584,10 +584,10 @@ static void ping6(len_and_sockaddr *lsa)
 	char control_buf[CMSG_SPACE(36)];
 
 	pingsock = create_icmp6_socket();
-	pingaddr.sin6 = lsa->sin6;
+	pingaddr.sin6 = lsa->u.sin6;
 	/* untested whether "-I addr" really works for IPv6: */
 	if (source_lsa)
-		xbind(pingsock, &source_lsa->sa, source_lsa->len);
+		xbind(pingsock, &source_lsa->u.sa, source_lsa->len);
 	if (opt_I)
 		setsockopt(pingsock, SOL_SOCKET, SO_BINDTODEVICE, opt_I, strlen(opt_I) + 1);
 
@@ -670,12 +670,12 @@ static void ping(len_and_sockaddr *lsa)
 	printf("PING %s (%s)", hostname, dotted);
 	if (source_lsa) {
 		printf(" from %s",
-			xmalloc_sockaddr2dotted_noport(&source_lsa->sa));
+			xmalloc_sockaddr2dotted_noport(&source_lsa->u.sa));
 	}
 	printf(": %d data bytes\n", datalen);
 
 #if ENABLE_PING6
-	if (lsa->sa.sa_family == AF_INET6)
+	if (lsa->u.sa.sa_family == AF_INET6)
 		ping6(lsa);
 	else
 #endif
@@ -720,11 +720,11 @@ int ping_main(int argc, char **argv)
 	lsa = xhost_and_af2sockaddr(hostname, 0, AF_INET);
 #endif
 
-	if (source_lsa && source_lsa->sa.sa_family != lsa->sa.sa_family)
+	if (source_lsa && source_lsa->u.sa.sa_family != lsa->u.sa.sa_family)
 		/* leaking it here... */
 		source_lsa = NULL;
 
-	dotted = xmalloc_sockaddr2dotted_noport(&lsa->sa);
+	dotted = xmalloc_sockaddr2dotted_noport(&lsa->u.sa);
 	ping(lsa);
 	pingstats(0);
 	return EXIT_SUCCESS;

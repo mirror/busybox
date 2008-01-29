@@ -1496,7 +1496,7 @@ static int singlemount(struct mntent *mp, int ignore_busy)
 
 		// insert ip=... option into string flags.
 
-		dotted = xmalloc_sockaddr2dotted_noport(&lsa->sa);
+		dotted = xmalloc_sockaddr2dotted_noport(&lsa->u.sa);
 		ip = xasprintf("ip=%s", dotted);
 		parse_mount_options(ip, &filteropts);
 

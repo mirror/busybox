@@ -340,7 +340,7 @@ typedef struct len_and_sockaddr {
 #if ENABLE_FEATURE_IPV6
 		struct sockaddr_in6 sin6;
 #endif
-	};
+	} u;
 } len_and_sockaddr;
 enum {
 	LSA_SIZEOF_SA = sizeof(

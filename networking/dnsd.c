@@ -371,11 +371,11 @@ int dnsd_main(int argc, char **argv)
 #endif
 
 	lsa = xdotted2sockaddr(listen_interface, port);
-	udps = xsocket(lsa->sa.sa_family, SOCK_DGRAM, 0);
-	xbind(udps, &lsa->sa, lsa->len);
+	udps = xsocket(lsa->u.sa.sa_family, SOCK_DGRAM, 0);
+	xbind(udps, &lsa->u.sa, lsa->len);
 	/* xlisten(udps, 50); - ?!! DGRAM sockets are never listened on I think? */
 	bb_info_msg("Accepting UDP packets on %s",
-			xmalloc_sockaddr2dotted(&lsa->sa));
+			xmalloc_sockaddr2dotted(&lsa->u.sa));
 
 	while (1) {
 		int r;
@@ -385,7 +385,7 @@ int dnsd_main(int argc, char **argv)
 // Or else we can exhibit usual UDP ugliness:
 // [ip1.multihomed.ip2] <=  query to ip1  <= peer
 // [ip1.multihomed.ip2] => reply from ip2 => peer (confused)
-		r = recvfrom(udps, buf, sizeof(buf), 0, &lsa->sa, &fromlen);
+		r = recvfrom(udps, buf, sizeof(buf), 0, &lsa->u.sa, &fromlen);
 		if (OPT_verbose)
 			bb_info_msg("Got UDP packet");
 		if (r < 12 || r > 512) {
@@ -395,7 +395,7 @@ int dnsd_main(int argc, char **argv)
 		r = process_packet(buf);
 		if (r <= 0)
 			continue;
-		sendto(udps, buf, r, 0, &lsa->sa, fromlen);
+		sendto(udps, buf, r, 0, &lsa->u.sa, fromlen);
 	}
 	return 0;
 }
