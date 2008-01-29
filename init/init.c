@@ -756,11 +756,11 @@ static void parse_inittab(void)
 
 		/* Skip leading spaces */
 		id = skip_whitespace(buf);
-		/* Skip the line if it's a comment */
-		if (*id == '#' || *id == '\n')
-			continue;
 		/* Trim the trailing '\n' */
 		*strchrnul(id, '\n') = '\0';
+		/* Skip the line if it is a comment */
+		if (*id == '#' || *id == '\0')
+			continue;
 
 		/* Line is: "id:runlevel_ignored:action:command" */
 		runlev = strchr(id, ':');
