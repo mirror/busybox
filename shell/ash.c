@@ -229,7 +229,7 @@ static struct globals_misc *const ptr_to_globals_misc __attribute__ ((section ("
 
 /*
  * These macros allow the user to suspend the handling of interrupt signals
- * over a period of time.  This is similar to SIGHOLD to or sigblock, but
+ * over a period of time.  This is similar to SIGHOLD or to sigblock, but
  * much more efficient and portable.  (But hacking the kernel is so much
  * more fun than worrying about efficiency and portability. :-))
  */
@@ -272,10 +272,10 @@ raise_interrupt(void)
 	sigset_t mask;
 
 	intpending = 0;
-	/* Signal is not automatically re-enabled after it is raised,
-	 * do it ourself */
+	/* Signal is not automatically unmasked after it is raised,
+	 * do it ourself - unmask all signals */
 	sigemptyset(&mask);
-	sigprocmask(SIG_SETMASK, &mask, 0);
+	sigprocmask(SIG_SETMASK, &mask, NULL);
 	/* pendingsig = 0; - now done in onsig() */
 
 	i = EXSIG;
@@ -3337,8 +3337,8 @@ setsignal(int signo)
 #define CUR_STOPPED 0
 
 /* mode flags for dowait */
-#define DOWAIT_NORMAL 0
-#define DOWAIT_BLOCK 1
+#define DOWAIT_NONBLOCK WNOHANG
+#define DOWAIT_BLOCK    0
 
 #if JOBS
 /* pgrp of shell on invocation */
@@ -3584,7 +3584,7 @@ setjobctl(int on)
 		fd = ttyfd;
 		pgrp = initialpgrp;
 		/* was xtcsetpgrp, but this can make exiting ash
-		 * with pty already deleted loop forever */
+		 * loop forever if pty is already deleted */
 		tcsetpgrp(fd, pgrp);
 		setpgid(0, pgrp);
 		setsignal(SIGTSTP);
@@ -3757,24 +3757,20 @@ sprint_status(char *s, int status, int sigonly)
  * and the jobs command may give out of date information.
  */
 static int
-waitproc(int block, int *status)
+waitproc(int wait_flags, int *status)
 {
-	int flags = 0;
-
 #if JOBS
 	if (jobctl)
-		flags |= WUNTRACED;
+		wait_flags |= WUNTRACED;
 #endif
-	if (block == 0)
-		flags |= WNOHANG;
-	return waitpid(-1, status, flags); // safe_waitpid?
+	return waitpid(-1, status, wait_flags); // safe_waitpid?
 }
 
 /*
  * Wait for a process to terminate.
  */
 static int
-dowait(int block, struct job *job)
+dowait(int wait_flags, struct job *job)
 {
 	int pid;
 	int status;
@@ -3782,9 +3778,9 @@ dowait(int block, struct job *job)
 	struct job *thisjob;
 	int state;
 
-	TRACE(("dowait(%d) called\n", block));
-	pid = waitproc(block, &status);
-	TRACE(("wait returns pid %d, status=%d\n", pid, status));
+	TRACE(("dowait(%d) called\n", wait_flags));
+	pid = waitproc(wait_flags, &status);
+	TRACE(("wait returns pid=%d, status=%d\n", pid, status));
 	if (pid <= 0)
 		return pid;
 	INT_OFF;
@@ -3822,7 +3818,6 @@ dowait(int block, struct job *job)
 #if JOBS
 	if (!WIFSTOPPED(status))
 #endif
-
 		jobless--;
 	goto out;
 
@@ -3852,7 +3847,7 @@ dowait(int block, struct job *job)
 		len = sprint_status(s, status, 1);
 		if (len) {
 			s[len] = '\n';
-			s[len + 1] = 0;
+			s[len + 1] = '\0';
 			out2str(s);
 		}
 	}
@@ -3938,8 +3933,8 @@ showjobs(FILE *out, int mode)
 
 	TRACE(("showjobs(%x) called\n", mode));
 
-	/* If not even one one job changed, there is nothing to do */
-	while (dowait(DOWAIT_NORMAL, NULL) > 0)
+	/* If not even one job changed, there is nothing to do */
+	while (dowait(DOWAIT_NONBLOCK, NULL) > 0)
 		continue;
 
 	for (jp = curjob; jp; jp = jp->prev_job) {
@@ -4029,7 +4024,7 @@ waitcmd(int argc, char **argv)
 				jp->waited = 1;
 				jp = jp->prev_job;
 			}
-			dowait(DOWAIT_BLOCK, 0);
+			dowait(DOWAIT_BLOCK, NULL);
 		}
 	}
 
@@ -4038,20 +4033,18 @@ waitcmd(int argc, char **argv)
 		if (**argv != '%') {
 			pid_t pid = number(*argv);
 			job = curjob;
-			goto start;
-			do {
+			while (1) {
+				if (!job)
+					goto repeat;
 				if (job->ps[job->nprocs - 1].pid == pid)
 					break;
 				job = job->prev_job;
- start:
-				if (!job)
-					goto repeat;
-			} while (1);
+			}
 		} else
 			job = getjob(*argv, 0);
 		/* loop until process terminated or stopped */
 		while (job->state == JOBRUNNING)
-			dowait(DOWAIT_BLOCK, 0);
+			dowait(DOWAIT_BLOCK, NULL);
 		job->waited = 1;
 		retval = getstatus(job);
  repeat:
@@ -4526,7 +4519,8 @@ forkparent(struct job *jp, union node *n, int mode, pid_t pid)
 {
 	TRACE(("In parent shell: child = %d\n", pid));
 	if (!jp) {
-		while (jobless && dowait(DOWAIT_NORMAL, 0) > 0);
+		while (jobless && dowait(DOWAIT_NONBLOCK, NULL) > 0)
+			continue;
 		jobless++;
 		return;
 	}
