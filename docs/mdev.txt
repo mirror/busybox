@@ -62,10 +62,12 @@ The special characters have the meaning:
 	* Run both after creating and before removing the device.
 
 The command is executed via the system() function (which means you're giving a
-command to the shell), so make sure you have a shell installed at /bin/sh.
+command to the shell), so make sure you have a shell installed at /bin/sh.  You
+should also keep in mind that the kernel executes hotplug helpers with stdin,
+stdout, and stderr connected to /dev/null.
 
 For your convenience, the shell env var $MDEV is set to the device name.  So if
-the device 'hdc' was matched, MDEV would be set to "hdc".
+the device "hdc" was matched, MDEV would be set to "hdc".
 
 ----------
  FIRMWARE
