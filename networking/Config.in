@@ -645,12 +645,6 @@ config PING6
 	help
 	  This will give you a ping that can talk IPv6.
 
-config PSCAN
-	bool "pscan"
-	default n
-	help
-	  Simple network port scanner.
-
 config FEATURE_FANCY_PING
 	bool "Enable fancy ping output"
 	default y
@@ -658,6 +652,12 @@ config FEATURE_FANCY_PING
 	help
 	  Make the output from the ping applet include statistics, and at the
 	  same time provide full support for ICMP packets.
+
+config PSCAN
+	bool "pscan"
+	default n
+	help
+	  Simple network port scanner.
 
 config ROUTE
 	bool "route"

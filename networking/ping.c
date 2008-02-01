@@ -94,7 +94,7 @@ static void ping4(len_and_sockaddr *lsa)
 	char packet[DEFDATALEN + MAXIPLEN + MAXICMPLEN];
 
 	pingsock = create_icmp_socket();
-	pingaddr = lsa->sin;
+	pingaddr = lsa->u.sin;
 
 	pkt = (struct icmp *) packet;
 	memset(pkt, 0, sizeof(packet));
@@ -138,7 +138,7 @@ static void ping6(len_and_sockaddr *lsa)
 	char packet[DEFDATALEN + MAXIPLEN + MAXICMPLEN];
 
 	pingsock = create_icmp6_socket();
-	pingaddr = lsa->sin6;
+	pingaddr = lsa->u.sin6;
 
 	pkt = (struct icmp6_hdr *) packet;
 	memset(pkt, 0, sizeof(packet));
