@@ -31,6 +31,10 @@ static void make_device(char *path, int delete)
 	gid_t gid = 0;
 	char *temp = path + strlen(path);
 	char *command = NULL;
+	char *alias = NULL;
+
+	/* Force the configuration file settings exactly. */
+	umask(0);
 
 	/* Try to read major/minor string.  Note that the kernel puts \n after
 	 * the data, so we don't need to worry about null terminating the string
@@ -70,7 +74,7 @@ static void make_device(char *path, int delete)
 			++lineno;
 
 			/* Three fields: regex, uid:gid, mode */
-			for (field = 0; field < (3 + ENABLE_FEATURE_MDEV_EXEC); ++field) {
+			for (field = 0; field < (3 + ENABLE_FEATURE_MDEV_RENAME + ENABLE_FEATURE_MDEV_EXEC); ++field) {
 
 				/* Find a non-empty field */
 				char *val;
@@ -131,7 +135,16 @@ static void make_device(char *path, int delete)
 					/* Mode device permissions */
 					mode = strtoul(val, NULL, 8);
 
-				} else if (ENABLE_FEATURE_MDEV_EXEC && field == 3) {
+				} else if (ENABLE_FEATURE_MDEV_RENAME && field == 3) {
+
+					if (*val != '>')
+						++field;
+					else
+						alias = xstrdup(val + 1);
+
+				}
+
+				if (ENABLE_FEATURE_MDEV_EXEC && field == 3 + ENABLE_FEATURE_MDEV_RENAME) {
 
 					/* Optional command to run */
 					const char *s = "@$*";
@@ -167,20 +180,45 @@ static void make_device(char *path, int delete)
  end_parse:	/* nothing */ ;
 	}
 
-	umask(0);
 	if (!delete) {
 		if (sscanf(temp, "%d:%d", &major, &minor) != 2)
 			return;
+
+		if (ENABLE_FEATURE_MDEV_RENAME)
+			unlink(device_name);
+
 		if (mknod(device_name, mode | type, makedev(major, minor)) && errno != EEXIST)
 			bb_perror_msg_and_die("mknod %s", device_name);
 
 		if (major == root_major && minor == root_minor)
 			symlink(device_name, "root");
 
-		if (ENABLE_FEATURE_MDEV_CONF)
+		if (ENABLE_FEATURE_MDEV_CONF) {
 			chown(device_name, uid, gid);
+
+			if (ENABLE_FEATURE_MDEV_RENAME && alias) {
+				char *dest;
+
+				temp = strrchr(alias, '/');
+				if (temp) {
+					if (temp[1] != '\0')
+						/* given a file name, so rename it */
+						*temp = '\0';
+					bb_make_directory(alias, 0755, FILEUTILS_RECUR);
+					dest = concat_path_file(alias, device_name);
+				} else
+					dest = alias;
+
+				rename(device_name, dest);
+				symlink(dest, device_name);
+
+				if (alias != dest)
+					free(alias);
+				free(dest);
+			}
+		}
 	}
-	if (command) {
+	if (ENABLE_FEATURE_MDEV_EXEC && command) {
 		/* setenv will leak memory, so use putenv */
 		char *s = xasprintf("MDEV=%s", device_name);
 		putenv(s);
