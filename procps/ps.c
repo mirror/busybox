@@ -157,7 +157,21 @@ static unsigned get_kernel_HZ(void)
 
 static void func_user(char *buf, int size, const procps_status_t *ps)
 {
+#if 1
 	safe_strncpy(buf, get_cached_username(ps->uid), size+1);
+#else
+	/* "compatible" version, but it's larger */
+	/* procps 2.18 shows numeric UID if name overflows the field */
+	/* TODO: get_cached_username() returns numeric string if
+	 * user has no passwd record, we will display it
+	 * left-justified here; too long usernames are shown
+	 * as _right-justified_ IDs. Is it worth fixing? */
+	const char *user = get_cached_username(ps->uid);
+	if (strlen(user) <= size)
+		safe_strncpy(buf, get_cached_username(ps->uid), size+1);
+	else
+		sprintf(buf, "%*u", size, (unsigned)ps->uid);
+#endif
 }
 
 static void func_comm(char *buf, int size, const procps_status_t *ps)
