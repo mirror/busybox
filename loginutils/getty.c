@@ -435,7 +435,7 @@ static char *get_logname(char *logname, unsigned size_logname,
 
 			/* Do parity bit handling. */
 			ascval = c & 0177;
-			if (c != ascval) {       /* "parity" bit on ? */
+			if (!(op->flags & F_LOCAL) && (c != ascval)) {       /* "parity" bit on ? */
 				bits = 1;
 				mask = 1;
 				while (mask & 0177) {
