@@ -4836,11 +4836,11 @@ static int filechar(struct ioarg *ap)
 		static int position = 0, size = 0;
 
 		while (size == 0 || position >= size) {
-			/* Repeat if Ctrl-C is pressed. TODO: exit on -1 (error/EOF)? */
-			while (read_line_input(current_prompt, filechar_cmdbuf, BUFSIZ, line_input_state) == 0)
-				continue;
-			size = strlen(filechar_cmdbuf);
+			size = read_line_input(current_prompt, filechar_cmdbuf, BUFSIZ, line_input_state);
+			if (size < 0) /* Error/EOF */
+				exit(0);
 			position = 0;
+			/* if Ctrl-C, size == 0 and loop will repeat */
 		}
 		c = filechar_cmdbuf[position];
 		position++;
