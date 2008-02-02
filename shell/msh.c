@@ -4836,7 +4836,9 @@ static int filechar(struct ioarg *ap)
 		static int position = 0, size = 0;
 
 		while (size == 0 || position >= size) {
-			read_line_input(current_prompt, filechar_cmdbuf, BUFSIZ, line_input_state);
+			/* Repeat if Ctrl-C is pressed. TODO: exit on -1 (error/EOF)? */
+			while (read_line_input(current_prompt, filechar_cmdbuf, BUFSIZ, line_input_state) == 0)
+				continue;
 			size = strlen(filechar_cmdbuf);
 			position = 0;
 		}
