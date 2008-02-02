@@ -1,7 +1,7 @@
 /* Based on netcat 1.10 RELEASE 960320 written by hobbit@avian.org.
  * Released into public domain by the author.
  *
- * Copyright (C) 2007 Denis Vlasenko.
+ * Copyright (C) 2007 Denys Vlasenko.
  *
  * Licensed under GPLv2, see file LICENSE in this tarball for details.
  */
@@ -243,7 +243,7 @@ static int connect_w_timeout(int fd)
 	/* wrap connect inside a timer, and hit it */
 	arm(o_wait);
 	if (setjmp(jbuf) == 0) {
-		rr = connect(fd, &themaddr->sa, themaddr->len);
+		rr = connect(fd, &themaddr->u.sa, themaddr->len);
 		unarm();
 	} else { /* setjmp: connect failed... */
 		rr = -1;
@@ -275,10 +275,10 @@ static void dolisten(void)
 	 random unknown port is probably not very useful without "netstat". */
 	if (o_verbose) {
 		char *addr;
-		rr = getsockname(netfd, &ouraddr->sa, &ouraddr->len);
+		rr = getsockname(netfd, &ouraddr->u.sa, &ouraddr->len);
 		if (rr < 0)
 			bb_perror_msg_and_die("getsockname after bind");
-		addr = xmalloc_sockaddr2dotted(&ouraddr->sa);
+		addr = xmalloc_sockaddr2dotted(&ouraddr->u.sa);
 		fprintf(stderr, "listening on %s ...\n", addr);
 		free(addr);
 	}
@@ -306,7 +306,7 @@ static void dolisten(void)
 		remend.len = LSA_SIZEOF_SA;
 		if (themaddr) {
 			remend = *themaddr;
-			xconnect(netfd, &themaddr->sa, themaddr->len);
+			xconnect(netfd, &themaddr->u.sa, themaddr->len);
 		}
 		/* peek first packet and remember peer addr */
 		arm(o_wait);                /* might as well timeout this, too */
@@ -314,7 +314,7 @@ static void dolisten(void)
 			/* (*ouraddr) is prefilled with "default" address */
 			/* and here we block... */
 			rr = recv_from_to(netfd, NULL, 0, MSG_PEEK, /*was bigbuf_net, BIGSIZ*/
-				&remend.sa, &ouraddr->sa, ouraddr->len);
+				&remend.u.sa, &ouraddr->u.sa, ouraddr->len);
 			if (rr < 0)
 				bb_perror_msg_and_die("recvfrom");
 			unarm();
@@ -323,25 +323,25 @@ static void dolisten(void)
 /* Now we learned *to which IP* peer has connected, and we want to anchor
 our socket on it, so that our outbound packets will have correct local IP.
 Unfortunately, bind() on already bound socket will fail now (EINVAL):
-	xbind(netfd, &ouraddr->sa, ouraddr->len);
+	xbind(netfd, &ouraddr->u.sa, ouraddr->len);
 Need to read the packet, save data, close this socket and
 create new one, and bind() it. TODO */
 		if (!themaddr)
-			xconnect(netfd, &remend.sa, ouraddr->len);
+			xconnect(netfd, &remend.u.sa, ouraddr->len);
 	} else {
 		/* TCP */
 		arm(o_wait); /* wrap this in a timer, too; 0 = forever */
 		if (setjmp(jbuf) == 0) {
  again:
 			remend.len = LSA_SIZEOF_SA;
-			rr = accept(netfd, &remend.sa, &remend.len);
+			rr = accept(netfd, &remend.u.sa, &remend.len);
 			if (rr < 0)
 				bb_perror_msg_and_die("accept");
-			if (themaddr && memcmp(&remend.sa, &themaddr->sa, remend.len) != 0) {
+			if (themaddr && memcmp(&remend.u.sa, &themaddr->u.sa, remend.len) != 0) {
 				/* nc 1.10 bails out instead, and its error message
 				 * is not suppressed by o_verbose */
 				if (o_verbose) {
-					char *remaddr = xmalloc_sockaddr2dotted(&remend.sa);
+					char *remaddr = xmalloc_sockaddr2dotted(&remend.u.sa);
 					bb_error_msg("connect from wrong ip/port %s ignored", remaddr);
 					free(remaddr);
 				}
@@ -356,7 +356,7 @@ create new one, and bind() it. TODO */
 		 doing a listen-on-any on a multihomed machine.  This allows one to
 		 offer different services via different alias addresses, such as the
 		 "virtual web site" hack. */
-		rr = getsockname(netfd, &ouraddr->sa, &ouraddr->len);
+		rr = getsockname(netfd, &ouraddr->u.sa, &ouraddr->len);
 		if (rr < 0)
 			bb_perror_msg_and_die("getsockname after accept");
 	}
@@ -393,9 +393,9 @@ create new one, and bind() it. TODO */
 	 accept the connection and then reject undesireable ones by closing.
 	 In other words, we need a TCP MSG_PEEK. */
 	/* bbox: removed most of it */
-		lcladdr = xmalloc_sockaddr2dotted(&ouraddr->sa);
-		remaddr = xmalloc_sockaddr2dotted(&remend.sa);
-		remhostname = o_nflag ? remaddr : xmalloc_sockaddr2host(&remend.sa);
+		lcladdr = xmalloc_sockaddr2dotted(&ouraddr->u.sa);
+		remaddr = xmalloc_sockaddr2dotted(&remend.u.sa);
+		remhostname = o_nflag ? remaddr : xmalloc_sockaddr2host(&remend.u.sa);
 		fprintf(stderr, "connect to %s from %s (%s)\n",
 				lcladdr, remhostname, remaddr);
 		free(lcladdr);
@@ -433,7 +433,7 @@ static int udptest(void)
 	/* Set a temporary connect timeout, so packet filtration doesnt cause
 	 us to hang forever, and hit it */
 		o_wait = 5;                     /* enough that we'll notice?? */
-		rr = xsocket(ouraddr->sa.sa_family, SOCK_STREAM, 0);
+		rr = xsocket(ouraddr->u.sa.sa_family, SOCK_STREAM, 0);
 		set_nport(themaddr, htons(SLEAZE_PORT));
 		connect_w_timeout(rr);
 		/* don't need to restore themaddr's port, it's not used anymore */
@@ -746,12 +746,12 @@ int nc_main(int argc, char **argv)
 	if (option_mask32 & OPT_s) { /* local address */
 		/* if o_lport is still 0, then we will use random port */
 		ouraddr = xhost2sockaddr(str_s, o_lport);
-		x = xsocket(ouraddr->sa.sa_family, x, 0);
+		x = xsocket(ouraddr->u.sa.sa_family, x, 0);
 	} else {
 		/* We try IPv6, then IPv4, unless addr family is
 		 * implicitly set by way of remote addr/port spec */
 		x = xsocket_type(&ouraddr,
-				USE_FEATURE_IPV6((themaddr ? themaddr->sa.sa_family : AF_UNSPEC),)
+				USE_FEATURE_IPV6((themaddr ? themaddr->u.sa.sa_family : AF_UNSPEC),)
 				x);
 		if (o_lport)
 			set_nport(ouraddr, htons(o_lport));
@@ -760,7 +760,7 @@ int nc_main(int argc, char **argv)
 	setsockopt_reuseaddr(netfd);
 	if (o_udpmode)
 		socket_want_pktinfo(netfd);
-	xbind(netfd, &ouraddr->sa, ouraddr->len);
+	xbind(netfd, &ouraddr->u.sa, ouraddr->len);
 #if 0
 	setsockopt(netfd, SOL_SOCKET, SO_RCVBUF, &o_rcvbuf, sizeof o_rcvbuf);
 	setsockopt(netfd, SOL_SOCKET, SO_SNDBUF, &o_sndbuf, sizeof o_sndbuf);
@@ -796,7 +796,7 @@ int nc_main(int argc, char **argv)
 
 		remend = *themaddr;
 		if (o_verbose)
-			themdotted = xmalloc_sockaddr2dotted(&themaddr->sa);
+			themdotted = xmalloc_sockaddr2dotted(&themaddr->u.sa);
 
 		x = connect_w_timeout(netfd);
 		if (o_zero && x == 0 && o_udpmode)        /* if UDP scanning... */
