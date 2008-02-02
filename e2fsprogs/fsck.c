@@ -663,6 +663,12 @@ static void execute(const char *type, const char *device, const char *mntpt,
 	for (i = num_args+1; i < argc; i++)
 		free(argv[i]);
 
+	/* No pid, so don't record an instance */
+	if (pid < 0) {
+		free(inst);
+		return;
+	}
+
 	inst->pid = pid;
 	inst->prog = argv[0];
 	inst->type = xstrdup(type);
