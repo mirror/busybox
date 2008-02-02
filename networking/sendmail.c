@@ -16,45 +16,46 @@ enum {
 	DST_BUF_SIZE = 4 * ((SRC_BUF_SIZE + 2) / 3),
 };
 
-static void uuencode(const char *fname)
+static void uuencode(char *fname, const char *text)
 {
+#define src_buf text
 	int fd;
-	char src_buf[SRC_BUF_SIZE];
-	char dst_buf[1 + DST_BUF_SIZE + 1];
-
-	fd = xopen(fname, O_RDONLY);
-	fflush(stdout);
-	dst_buf[0] = '\n';
-	while (1) {
-		size_t size = full_read(fd, src_buf, SRC_BUF_SIZE);
-		if (!size)
-			break;
-		if ((ssize_t)size < 0)
-			bb_perror_msg_and_die(bb_msg_read_error);
-		/* Encode the buffer we just read in */
-		bb_uuencode(dst_buf + 1, src_buf, size, bb_uuenc_tbl_base64);
-		xwrite(STDOUT_FILENO, dst_buf, 1 + 4 * ((size + 2) / 3));
-	}
-	close(fd);
-}
-
-// "inline" version
-// encodes content of given buffer instead of fd
-// used to encode subject and authentication terms
-static void uuencode_inline(const char *src_buf)
-{
-	size_t len;
+#define len fd
 	char dst_buf[DST_BUF_SIZE + 1];
 
-	len = strlen(src_buf);
-	fflush(stdout);
-	while (len > 0) {
-		size_t chunk = (len <= SRC_BUF_SIZE) ? len : SRC_BUF_SIZE;
-		bb_uuencode(dst_buf, src_buf, chunk, bb_uuenc_tbl_base64);
-		xwrite(STDOUT_FILENO, dst_buf, 4 * ((chunk + 2) / 3));
-		src_buf += chunk;
-		len -= chunk;
+	if (fname) {
+		fd = xopen(fname, O_RDONLY);
+		src_buf = bb_common_bufsiz1;
+	} else {
+		len = strlen(text);
 	}
+
+	fflush(stdout); // sync stdio and unistd output
+	while (1) {
+		size_t size;
+		if (fname) {
+			size = full_read(fd, (char *)src_buf, SRC_BUF_SIZE);
+			if ((ssize_t)size < 0)
+				bb_perror_msg_and_die(bb_msg_read_error);
+		} else {
+			size = len;
+			if (len > SRC_BUF_SIZE)
+				size = SRC_BUF_SIZE;
+		}
+		if (!size)
+			break;
+		// Encode the buffer we just read in
+		bb_uuencode(dst_buf, src_buf, size, bb_uuenc_tbl_base64);
+		if (fname) {
+			xwrite(STDOUT_FILENO, "\n", 1);
+		} else {
+			src_buf += size;
+			len -= size;
+		}
+		xwrite(STDOUT_FILENO, dst_buf, 4 * ((size + 2) / 3));
+	}
+	if (ENABLE_FEATURE_CLEAN_UP && fname)
+		close(fd);
 }
 
 #if ENABLE_FEATURE_SENDMAIL_NETWORK
@@ -72,7 +73,7 @@ static void signal_handler(int signo)
 			bb_error_msg_and_die("child exited (%d)", WEXITSTATUS(err));
 }
 
-static pid_t helper_pid = -1;
+static pid_t helper_pid;
 
 // read stdin, parses first bytes to a number, i.e. server response
 // if code = -1 then just return this number
@@ -92,7 +93,7 @@ static int check(int code, const char *errmsg)
 			return n;
 		}
 	}
-	// TODO!!!: is there more elegant way to terminate child on program failure?
+	// TODO: is there more elegant way to terminate child on program failure?
 	if (helper_pid > 0)
 		kill(helper_pid, SIGTERM);
 	if (!answer)
@@ -104,8 +105,23 @@ static int check(int code, const char *errmsg)
 
 static int puts_and_check(const char *msg, int code, const char *errmsg)
 {
-	puts(msg);
+	printf("%s\r\n", msg);
 	return check(code, errmsg);
+}
+
+// strip argument of bad chars
+static char *sane(char *str)
+{
+	char *s = str;
+	char *p = s;
+	while (*s) {
+		if (isalnum(*s) || '_' == *s || '-' == *s || '.' == *s || '@' == *s) {
+			*p++ = *s;
+		}
+		s++;
+	}
+	*p = '\0';
+	return str;
 }
 #endif
 
@@ -115,10 +131,10 @@ int sendmail_main(int argc, char **argv)
 	llist_t *recipients = NULL;
 	llist_t *bodies = NULL;
 	llist_t *attachments = NULL;
-	const char *from;
-	const char *notify;
+	char *from;
+	char *notify = NULL;
 	const char *subject;
-	const char *charset = "utf-8";
+	char *charset = (char*)"utf-8";
 #if ENABLE_FEATURE_SENDMAIL_NETWORK
 	const char *wsecs = "10";
 	const char *server = "127.0.0.1";
@@ -133,6 +149,7 @@ int sendmail_main(int argc, char **argv)
 		OPT_f = 1 << 0,         // sender
 		OPT_n = 1 << 2,         // notification
 		OPT_s = 1 << 3,         // subject given
+		OPT_c = 1 << 6,         // charset
 		OPT_d = 1 << 7,         // dry run - no networking
 		OPT_w = 1 << 8,         // network timeout
 		OPT_h = 1 << 9,         // server
@@ -152,9 +169,10 @@ int sendmail_main(int argc, char **argv)
 	//argc -= optind;
 	argv += optind;
 
-//printf("OPTS[%4x]\n", opts);
-
-	// TODO!!!: strip recipients and sender from <>
+	// sanitize user input
+	sane(from);
+	if (opts & OPT_c)
+		sane(charset);
 
 	// establish connection
 #if ENABLE_FEATURE_SENDMAIL_NETWORK
@@ -167,24 +185,24 @@ int sendmail_main(int argc, char **argv)
 				bb_error_msg_and_die("no password");
 			}
 		}
-//printf("OPTS[%4x][%s][%s]\n", opts, opt_user, opt_pass);
-//exit(0);
 		// set chat timeout
 		alarm(timeout);
 		// connect to server
 		if (argv[0]) {
 			// if connection helper given
 			// setup vanilla unidirectional pipes interchange
+			int idx;
 			int pipes[4];
 			xpipe(pipes);
 			xpipe(pipes+2);
 			helper_pid = vfork();
 			if (helper_pid < 0)
 				bb_perror_msg_and_die("vfork");
-			xdup2(pipes[(helper_pid)?0:2], STDIN_FILENO);
-			xdup2(pipes[(helper_pid)?3:1], STDOUT_FILENO);
+			idx = (!helper_pid)*2;
+			xdup2(pipes[idx], STDIN_FILENO);
+			xdup2(pipes[3-idx], STDOUT_FILENO);
 			if (ENABLE_FEATURE_CLEAN_UP)
-				for (int i = 4; --i >= 0; )
+				for (int i = 4; --i >= 0;)
 					if (pipes[i] > STDOUT_FILENO)
 						close(pipes[i]);
 			// replace child with connection helper
@@ -210,10 +228,12 @@ int sendmail_main(int argc, char **argv)
 			check(220, "INIT");
 		}
 		// mail user specified? try modern AUTHentication
-		if (opt_user && (334 == puts_and_check("auth login", -1, "auth login"))) {
-			uuencode_inline(opt_user);
+		if ((opts & OPT_U)
+		 && (334 == puts_and_check("auth login", -1, "auth login"))
+		) {
+			uuencode(NULL, opt_user);
 			puts_and_check("", 334, "AUTH");
-			uuencode_inline(opt_pass);
+			uuencode(NULL, opt_pass);
 			puts_and_check("", 235, "AUTH");
 		// no mail user specified or modern AUTHentication is not supported?
 		} else {
@@ -224,15 +244,15 @@ int sendmail_main(int argc, char **argv)
 				domain++;
 			else
 				domain = "local";
-			printf("helo %s\n", domain);
+			printf("helo %s\r\n", domain);
 			check(250, "HELO");
 		}
 
 		// set addresses
-		printf("mail from:<%s>\n", from);
+		printf("mail from:<%s>\r\n", from);
 		check(250, "MAIL FROM");
 		for (llist_t *to = recipients; to; to = to->link) {
-			printf("rcpt to:<%s>\n", to->data);
+			printf("rcpt to:<%s>\r\n", sane(to->data));
 			check(250, "RCPT TO");
 		}
 		puts_and_check("data", 354, "DATA");
@@ -243,60 +263,64 @@ int sendmail_main(int argc, char **argv)
 
 	// now put message
 	// put address headers
-	printf("From: %s\n", from);
+	printf("From: %s\r\n", from);
 	for (llist_t *to = recipients; to; to = to->link) {
-		printf("To: %s\n", to->data);
+		printf("To: %s\r\n", sane(to->data));
 	}
 	// put encoded subject
 	if (opts & OPT_s) {
 		printf("Subject: =?%s?B?", charset);
-		uuencode_inline(subject);
-		puts("?=");
+		uuencode(NULL, subject);
+		puts("?=\r");
 	}
 	// put notification
 	if (opts & OPT_n) {
-		const char *s = notify;
-		if (!s[0])
-			s = from; // notify sender by default
-		printf("Disposition-Notification-To: %s\n", s);
+		// -n without parameter?
+		if (!notify)
+			notify = from; // notify sender by default
+		printf("Disposition-Notification-To: %s\r\n", sane(notify));
 	}
 	// put common headers and body start
 	//srand(?);
 	boundary = xasprintf("%d-%d-%d", rand(), rand(), rand());
 	printf(
-		"X-Mailer: busybox " BB_VER " sendmail\n"
-		"X-Priority: 3\n"
-		"Message-ID: <%s>\n"
-		"Mime-Version: 1.0\n"
-		"Content-Type: multipart/mixed; boundary=\"%s\"\n"
-		"\n"
-		"--%s\n"
-		"Content-Type: text/plain; charset=%s\n"
-		"%s\n%s"
-		, boundary, boundary, boundary, charset
+		"X-Mailer: busybox " BB_VER " sendmail\r\n"
+		"Message-ID: <%s>\r\n"
+		"Mime-Version: 1.0\r\n"
+		"%smultipart/mixed; boundary=\"%s\"\r\n"
+		"\r\n"
+		"--%s\r\n"
+		"%stext/plain; charset=%s\r\n"
+		"%s\r\n%s"
+		, boundary
+		, "Content-Type: "
+		, boundary, boundary
+		, "Content-Type: "
+		, charset
 		, "Content-Disposition: inline"
-		, "Content-Transfer-Encoding: base64\n"
+		, "Content-Transfer-Encoding: base64\r\n"
 	);
 	// put body(ies)
 	for (llist_t *f = bodies; f; f = f->link) {
-		uuencode(f->data);
+		uuencode(f->data, NULL);
 	}
 	// put attachment(s)
 	for (llist_t *f = attachments; f; f = f->link) {
 		printf(
-			"\n--%s\n"
-			"Content-Type: application/octet-stream\n"
-			"%s; filename=\"%s\"\n"
+			"\r\n--%s\r\n"
+			"%sapplication/octet-stream\r\n"
+			"%s; filename=\"%s\"\r\n"
 			"%s"
 			, boundary
+			, "Content-Type: "
 			, "Content-Disposition: inline"
 			, bb_get_last_path_component_strip(f->data)
-			, "Content-Transfer-Encoding: base64\n"
+			, "Content-Transfer-Encoding: base64\r\n"
 		);
-		uuencode(f->data);
+		uuencode(f->data, NULL);
 	}
 	// put terminator
-	printf("\n--%s--\n\n", boundary);
+	printf("\r\n--%s--\r\n\r\n", boundary);
 	if (ENABLE_FEATURE_CLEAN_UP)
 		free(boundary);
 
