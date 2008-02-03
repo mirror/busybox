@@ -66,7 +66,9 @@ int mkswap_main(int argc, char **argv)
 	fd = xopen(argv[1], O_RDWR);
 	/* fdlength was reported to be unreliable - use seek */
 	len = xlseek(fd, 0, SEEK_END);
+#if ENABLE_SELINUX
 	xlseek(fd, 0, SEEK_SET);
+#endif
 	pagesize = getpagesize();
 	printf("Setting up swapspace version 1, size = %"OFF_FMT"u bytes\n",
 			len - pagesize);

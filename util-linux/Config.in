@@ -392,9 +392,11 @@ config FEATURE_MOUNT_HELPERS
 	depends on MOUNT
 	help
 	  Enable mounting of virtual file systems via external helpers.
-	  E.g. mount obexfs#-b00.11.22.33.44.55 /mnt will in effect call
-	  obexfs -b00.11.22.33.44.55 /mnt
-	  The idea is to use such virtual filesystems in /etc/fstab
+	  E.g. "mount obexfs#-b00.11.22.33.44.55 /mnt" will in effect call
+	  "obexfs -b00.11.22.33.44.55 /mnt"
+	  Also "mount -t sometype [-o opts] fs /mnt" will try
+	  "sometype [-o opts] fs /mnt" if simple mount syscall fails.
+	  The idea is to use such virtual filesystems in /etc/fstab.
 
 config FEATURE_MOUNT_NFS
 	bool "Support mounting NFS file systems"

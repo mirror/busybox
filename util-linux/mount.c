@@ -309,6 +309,27 @@ static int mount_it_now(struct mntent *mp, int vfsflags, char *filteropts)
 	for (;;) {
 		rc = mount(mp->mnt_fsname, mp->mnt_dir, mp->mnt_type,
 				vfsflags, filteropts);
+
+		// If mount failed, try
+		// helper program <mnt_type>
+		if (ENABLE_FEATURE_MOUNT_HELPERS && rc) {
+			char *args[6];
+			int errno_save = errno;
+			args[0] = mp->mnt_type;
+			rc = 1;
+			if (filteropts) {
+				args[rc++] = (char *)"-o";
+				args[rc++] = filteropts;
+			}
+			args[rc++] = mp->mnt_fsname;
+			args[rc++] = mp->mnt_dir;
+			args[rc] = NULL;
+			rc = wait4pid(spawn(args));
+			if (!rc)
+				break;
+			errno = errno_save;
+		}
+
 		if (!rc || (vfsflags & MS_RDONLY) || (errno != EACCES && errno != EROFS))
 			break;
 		if (!(vfsflags & MS_SILENT))
