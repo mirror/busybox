@@ -4,7 +4,7 @@
  *
  * Copyright (C) 1999-2004 by Erik Andersen <andersen@codepoet.org>
  * Fix for SELinux Support:(c)2007 Hiroshi Shinji <shiroshi@my.email.ne.jp>
-                           (c)2007 Yuichi Nakamura <ynakam@hitachisoft.jp>
+ *                         (c)2007 Yuichi Nakamura <ynakam@hitachisoft.jp>
  *
  * Licensed under the GPL version 2, see the file LICENSE in this tarball.
  */
@@ -168,7 +168,7 @@ static void func_user(char *buf, int size, const procps_status_t *ps)
 	 * as _right-justified_ IDs. Is it worth fixing? */
 	const char *user = get_cached_username(ps->uid);
 	if (strlen(user) <= size)
-		safe_strncpy(buf, get_cached_username(ps->uid), size+1);
+		safe_strncpy(buf, user, size+1);
 	else
 		sprintf(buf, "%*u", size, (unsigned)ps->uid);
 #endif
