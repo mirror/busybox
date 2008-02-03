@@ -1475,7 +1475,7 @@ prefix(const char *string, const char *pfx)
 {
 	while (*pfx) {
 		if (*pfx++ != *string++)
-			return 0;
+			return NULL;
 	}
 	return (char *) string;
 }
@@ -6500,8 +6500,10 @@ struct builtincmd {
 	/* unsigned flags; */
 };
 #define IS_BUILTIN_SPECIAL(b) ((b)->name[0] & 1)
+/* "regular" bltins always take precedence over commands,
+ * regardless of PATH=....%builtin... position */
 #define IS_BUILTIN_REGULAR(b) ((b)->name[0] & 2)
-#define IS_BUILTIN_ASSIGN(b) ((b)->name[0] & 4)
+#define IS_BUILTIN_ASSIGN(b)  ((b)->name[0] & 4)
 
 struct cmdentry {
 	int cmdtype;
@@ -6788,10 +6790,11 @@ hashcmd(int argc, char **argv)
 	struct cmdentry entry;
 	char *name;
 
-	while ((c = nextopt("r")) != '\0') {
+	if (nextopt("r") != '\0') {
 		clearcmdentry(0);
 		return 0;
 	}
+
 	if (*argptr == NULL) {
 		for (pp = cmdtable; pp < &cmdtable[CMDTABLESIZE]; pp++) {
 			for (cmdp = *pp; cmdp; cmdp = cmdp->next) {
@@ -6801,13 +6804,16 @@ hashcmd(int argc, char **argv)
 		}
 		return 0;
 	}
+
 	c = 0;
 	while ((name = *argptr) != NULL) {
 		cmdp = cmdlookup(name, 0);
 		if (cmdp != NULL
 		 && (cmdp->cmdtype == CMDNORMAL
-		     || (cmdp->cmdtype == CMDBUILTIN && builtinloc >= 0)))
+		     || (cmdp->cmdtype == CMDBUILTIN && builtinloc >= 0))
+		) {
 			delete_cmd_entry();
+		}
 		find_command(name, &entry, DO_ERR, pathval());
 		if (entry.cmdtype == CMDUNKNOWN)
 			c = 1;
@@ -6828,12 +6834,13 @@ hashcd(void)
 
 	for (pp = cmdtable; pp < &cmdtable[CMDTABLESIZE]; pp++) {
 		for (cmdp = *pp; cmdp; cmdp = cmdp->next) {
-			if (cmdp->cmdtype == CMDNORMAL || (
-				cmdp->cmdtype == CMDBUILTIN &&
-				!(IS_BUILTIN_REGULAR(cmdp->param.cmd)) &&
-				builtinloc > 0
-			))
+			if (cmdp->cmdtype == CMDNORMAL
+			 || (cmdp->cmdtype == CMDBUILTIN
+			     &&	!IS_BUILTIN_REGULAR(cmdp->param.cmd)
+			     && builtinloc > 0)
+			) {
 				cmdp->rehash = 1;
+			}
 		}
 	}
 }
@@ -6845,15 +6852,14 @@ hashcd(void)
  * Called with interrupts off.
  */
 static void
-changepath(const char *newval)
+changepath(const char *new)
 {
-	const char *old, *new;
-	int idx;
+	const char *old;
 	int firstchange;
+	int idx;
 	int idx_bltin;
 
 	old = pathval();
-	new = newval;
 	firstchange = 9999;     /* assume no change */
 	idx = 0;
 	idx_bltin = -1;
@@ -6869,9 +6875,8 @@ changepath(const char *newval)
 			break;
 		if (*new == '%' && idx_bltin < 0 && prefix(new + 1, "builtin"))
 			idx_bltin = idx;
-		if (*new == ':') {
+		if (*new == ':')
 			idx++;
-		}
 		new++, old++;
 	}
 	if (builtinloc < 0 && idx_bltin >= 0)
