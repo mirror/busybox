@@ -21,6 +21,7 @@
  */
 
 #include "common.h"
+#include "dhcpc.h"
 #include "dhcpd.h"
 #include "options.h"
 

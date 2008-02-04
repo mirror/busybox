@@ -12,6 +12,7 @@
 
 #include <syslog.h>
 #include "common.h"
+#include "dhcpc.h"
 #include "dhcpd.h"
 #include "options.h"
 
@@ -35,8 +36,14 @@ int udhcpd_main(int argc, char **argv)
 	unsigned opt;
 	struct option_set *option;
 	struct dhcpOfferedAddr *lease, static_lease;
+	USE_FEATURE_UDHCP_PORT(char *str_P;)
 
-	opt = getopt32(argv, "fS");
+#if ENABLE_FEATURE_UDHCP_PORT
+	SERVER_PORT = 67;
+	CLIENT_PORT = 68;
+#endif
+
+	opt = getopt32(argv, "fS" USE_FEATURE_UDHCP_PORT("P:", &str_P));
 	argv += optind;
 
 	if (!(opt & 1)) { /* no -f */
@@ -48,7 +55,12 @@ int udhcpd_main(int argc, char **argv)
 		openlog(applet_name, LOG_PID, LOG_LOCAL0);
 		logmode |= LOGMODE_SYSLOG;
 	}
-
+#if ENABLE_FEATURE_UDHCP_PORT
+	if (opt & 4) { /* -P */
+		SERVER_PORT = xatou16(str_P);
+		CLIENT_PORT = SERVER_PORT + 1;
+	}
+#endif
 	/* Would rather not do read_config before daemonization -
 	 * otherwise NOMMU machines will parse config twice */
 	read_config(argv[0] ? argv[0] : DHCPD_CONF_FILE);

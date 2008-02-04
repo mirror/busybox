@@ -14,9 +14,6 @@
 
 #define DEFAULT_SCRIPT  "/usr/share/udhcpc/default.script"
 
-#define SERVER_PORT  67
-#define CLIENT_PORT  68
-
 extern const uint8_t MAC_BCAST_ADDR[6]; /* six all-ones */
 
 /*** packet.h ***/

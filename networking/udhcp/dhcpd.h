@@ -1,5 +1,6 @@
 /* vi: set sw=4 ts=4: */
 /* dhcpd.h */
+
 #ifndef _DHCPD_H
 #define _DHCPD_H
 
@@ -27,6 +28,7 @@ struct static_lease {
 
 struct server_config_t {
 	uint32_t server;                /* Our IP, in network order */
+	uint16_t port;
 	/* start,end are in host order: we need to compare start <= ip <= end */
 	uint32_t start_ip;              /* Start address of leases, in host order */
 	uint32_t end_ip;                /* End of leases, in host order */
@@ -55,6 +57,13 @@ struct server_config_t {
 };
 
 #define server_config (*(struct server_config_t*)&bb_common_bufsiz1)
+/* client_config sits in 2nd half of bb_common_bufsiz1 */
+
+#if ENABLE_FEATURE_UDHCP_PORT
+#define SERVER_PORT (server_config.port)
+#else
+#define SERVER_PORT 67
+#endif
 
 extern struct dhcpOfferedAddr *leases;
 

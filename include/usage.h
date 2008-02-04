@@ -3892,7 +3892,7 @@ USE_FEATURE_RUN_PARTS_FANCY("\n	-l	Prints names of all matching files even when 
 
 #define udhcpc_trivial_usage \
        "[-Cfbnqtv] [-c CID] [-V VCLS] [-H HOSTNAME] [-i INTERFACE]\n" \
-       "	[-p pidfile] [-r IP] [-s script] [-O dhcp-option]..."
+       "	[-p pidfile] [-r IP] [-s script] [-O dhcp-option]..." USE_FEATURE_UDHCP_PORT(" [-P N]")
 #define udhcpc_full_usage \
 	USE_GETOPT_LONG( \
        "	-V,--vendorclass=CLASSID	Vendor class identifier" \
@@ -3913,6 +3913,9 @@ USE_FEATURE_RUN_PARTS_FANCY("\n	-l	Prints names of all matching files even when 
        "\n	-q,--quit	Quit after obtaining lease" \
        "\n	-R,--release	Release IP on quit" \
        "\n	-O,--request-option=OPT	Request DHCP option OPT from server" \
+	USE_FEATURE_UDHCP_PORT( \
+       "\n	-P,--client-port N  Use port N instead of default 68" \
+	) \
 	USE_FEATURE_UDHCPC_ARPING( \
        "\n	-a,--arping	Use arping to validate offered address" \
 	) \
@@ -3936,18 +3939,24 @@ USE_FEATURE_RUN_PARTS_FANCY("\n	-l	Prints names of all matching files even when 
        "\n	-q		Quit after obtaining lease" \
        "\n	-R		Release IP on quit" \
        "\n	-O OPT		Request DHCP option OPT from server" \
+	USE_FEATURE_UDHCP_PORT( \
+       "\n	-P N		Use port N instead of default 68" \
+	) \
 	USE_FEATURE_UDHCPC_ARPING( \
        "\n	-a		Use arping to validate offered address" \
 	) \
 	)
 
 #define udhcpd_trivial_usage \
-       "[-fS] [configfile]" \
+       "[-fS]" USE_FEATURE_UDHCP_PORT(" [-P N]") " [configfile]" \
 
 #define udhcpd_full_usage \
        "DHCP server" \
        "\n	-f	Run in foreground" \
-       "\n	-S	Log to syslog too"
+       "\n	-S	Log to syslog too" \
+	USE_FEATURE_UDHCP_PORT( \
+       "\n	-P N	Use port N instead of default 67" \
+	)
 
 #define umount_trivial_usage \
        "[flags] FILESYSTEM|DIRECTORY"

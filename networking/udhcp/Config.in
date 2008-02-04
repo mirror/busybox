@@ -63,6 +63,13 @@ config FEATURE_UDHCPC_ARPING
 	  is really available. The client will DHCPDECLINE the offer if the
 	  address is in use, and restart the discover process.
 
+config FEATURE_UDHCP_PORT
+	bool "Enable '-P port' option for udhcpd and udhcpc"
+	default n
+	depends on APP_UDHCPD || APP_UDHCPC
+	help
+	  At the cost of ~300 bytes, enables -P port option.
+	  This feature is typically not needed.
 
 config FEATURE_UDHCP_DEBUG
 	bool "Compile udhcp with noisy debugging messages"

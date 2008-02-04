@@ -29,11 +29,19 @@ struct client_config_t {
 	uint8_t *hostname;              /* Optional hostname to use */
 	uint8_t *fqdn;                  /* Optional fully qualified domain name to use */
 	int ifindex;                    /* Index number of the interface to use */
+	uint16_t port;
 	uint8_t arp[6];                 /* Our arp address */
 	uint8_t opt_mask[256 / 8];      /* Bitmask of options to send (-O option) */
 };
 
-#define client_config (*(struct client_config_t*)&bb_common_bufsiz1)
+/* server_config sits in 1st half of bb_common_bufsiz1 */
+#define client_config (*(struct client_config_t*)(&bb_common_bufsiz1[COMMON_BUFSIZE/2]))
+
+#if ENABLE_FEATURE_UDHCP_PORT
+#define CLIENT_PORT (client_config.port)
+#else
+#define CLIENT_PORT 68
+#endif
 
 
 /*** clientpacket.h ***/

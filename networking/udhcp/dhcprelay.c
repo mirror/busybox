@@ -14,6 +14,7 @@
 #include "options.h"
 
 /* constants */
+#define SERVER_PORT      67
 #define SELECT_TIMEOUT    5 /* select timeout in sec. */
 #define MAX_LIFETIME   2*60 /* lifetime of an xid entry in sec. */
 

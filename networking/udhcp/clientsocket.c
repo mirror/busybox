@@ -33,8 +33,8 @@
 #include <linux/filter.h>
 
 #include "common.h"
-
-#define SERVER_AND_CLIENT_PORTS  ((SERVER_PORT << 16) + CLIENT_PORT)
+#include "dhcpd.h"
+#include "dhcpc.h"
 
 int raw_socket(int ifindex)
 {
@@ -62,6 +62,7 @@ int raw_socket(int ifindex)
 	 *
 	 * TODO: make conditional?
 	 */
+#define SERVER_AND_CLIENT_PORTS  ((67 << 16) + 68)
 	static const struct sock_filter filter_instr[] = {
 		/* check for udp */
 		BPF_STMT(BPF_LD|BPF_B|BPF_ABS, 9),
@@ -89,10 +90,13 @@ int raw_socket(int ifindex)
 	fd = xsocket(PF_PACKET, SOCK_DGRAM, htons(ETH_P_IP));
 	DEBUG("got raw socket fd %d", fd);
 
-	/* Ignoring error (kernel may lack support for this) */
-	if (setsockopt(fd, SOL_SOCKET, SO_ATTACH_FILTER, &filter_prog,
+	if (SERVER_PORT == 67 && CLIENT_PORT == 68) {
+		/* Use only if standard ports are in use */
+		/* Ignoring error (kernel may lack support for this) */
+		if (setsockopt(fd, SOL_SOCKET, SO_ATTACH_FILTER, &filter_prog,
 				sizeof(filter_prog)) >= 0)
-		DEBUG("attached filter to raw socket fd %d", fd);
+			DEBUG("attached filter to raw socket fd %d", fd);
+	}
 
 	sock.sll_family = AF_PACKET;
 	sock.sll_protocol = htons(ETH_P_IP);
