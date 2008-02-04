@@ -85,7 +85,8 @@ typedef struct state_t {
 
 	/* input (compressed) data */
 	unsigned char *bytebuffer;      /* buffer itself */
-	unsigned bytebuffer_max;        /* buffer size */
+	off_t to_read;			/* compressed bytes to read (unzip only, -1 for gunzip) */
+//	unsigned bytebuffer_max;        /* buffer size */
 	unsigned bytebuffer_offset;     /* buffer position */
 	unsigned bytebuffer_size;       /* how much data is there (size <= max) */
 
@@ -126,7 +127,10 @@ typedef struct state_t {
 #define gunzip_crc_table    (S()gunzip_crc_table   )
 #define gunzip_bb           (S()gunzip_bb          )
 #define gunzip_bk           (S()gunzip_bk          )
-#define bytebuffer_max      (S()bytebuffer_max     )
+#define to_read             (S()to_read            )
+// #define bytebuffer_max   (S()bytebuffer_max     )
+// Both gunzip and unzip can use constant buffer size now (16k):
+#define bytebuffer_max      0x4000
 #define bytebuffer          (S()bytebuffer         )
 #define bytebuffer_offset   (S()bytebuffer_offset  )
 #define bytebuffer_size     (S()bytebuffer_size    )
@@ -251,13 +255,18 @@ static unsigned fill_bitbuffer(STATE_PARAM unsigned bitbuffer, unsigned *current
 {
 	while (*current < required) {
 		if (bytebuffer_offset >= bytebuffer_size) {
+			unsigned sz = bytebuffer_max - 4;
+			if (to_read >= 0 && to_read < sz) /* unzip only */
+				sz = to_read;
 			/* Leave the first 4 bytes empty so we can always unwind the bitbuffer
 			 * to the front of the bytebuffer */
-			bytebuffer_size = safe_read(gunzip_src_fd, &bytebuffer[4], bytebuffer_max - 4);
+			bytebuffer_size = safe_read(gunzip_src_fd, &bytebuffer[4], sz);
 			if ((int)bytebuffer_size < 1) {
 				error_msg = "unexpected end of file";
 				abort_unzip(PASS_STATE_ONLY);
 			}
+			if (to_read >= 0) /* unzip only */
+				to_read -= bytebuffer_size;
 			bytebuffer_size += 4;
 			bytebuffer_offset = 4;
 		}
@@ -1025,14 +1034,15 @@ inflate_unzip_internal(STATE_PARAM int in, int out)
 /* For unzip */
 
 USE_DESKTOP(long long) int
-inflate_unzip(inflate_unzip_result *res, unsigned bufsize, int in, int out)
+inflate_unzip(inflate_unzip_result *res, off_t compr_size, int in, int out)
 {
 	USE_DESKTOP(long long) int n;
 	DECLARE_STATE;
 
 	ALLOC_STATE;
 
-	bytebuffer_max = bufsize + 4;
+	to_read = compr_size;
+//	bytebuffer_max = 0x8000;
 	bytebuffer_offset = 4;
 	bytebuffer = xmalloc(bytebuffer_max);
 	n = inflate_unzip_internal(PASS_STATE in, out);
@@ -1176,7 +1186,8 @@ unpack_gz_stream(int in, int out)
 	n = 0;
 
 	ALLOC_STATE;
-	bytebuffer_max = 0x8000;
+	to_read = -1;
+//	bytebuffer_max = 0x8000;
 	bytebuffer = xmalloc(bytebuffer_max);
 	gunzip_src_fd = in;
 

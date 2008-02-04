@@ -109,7 +109,7 @@ typedef struct inflate_unzip_result {
 } inflate_unzip_result;
 
 extern USE_DESKTOP(long long) int unpack_bz2_stream(int src_fd, int dst_fd);
-extern USE_DESKTOP(long long) int inflate_unzip(inflate_unzip_result *res, unsigned bufsize, int src_fd, int dst_fd);
+extern USE_DESKTOP(long long) int inflate_unzip(inflate_unzip_result *res, off_t compr_size, int src_fd, int dst_fd);
 extern USE_DESKTOP(long long) int unpack_gz_stream(int src_fd, int dst_fd);
 extern USE_DESKTOP(long long) int unpack_lzma_stream(int src_fd, int dst_fd);
 
