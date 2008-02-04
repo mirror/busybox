@@ -28,7 +28,9 @@ struct static_lease {
 
 struct server_config_t {
 	uint32_t server;                /* Our IP, in network order */
+#if ENABLE_FEATURE_UDHCP_PORT
 	uint16_t port;
+#endif
 	/* start,end are in host order: we need to compare start <= ip <= end */
 	uint32_t start_ip;              /* Start address of leases, in host order */
 	uint32_t end_ip;                /* End of leases, in host order */

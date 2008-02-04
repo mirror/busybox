@@ -29,7 +29,9 @@ struct client_config_t {
 	uint8_t *hostname;              /* Optional hostname to use */
 	uint8_t *fqdn;                  /* Optional fully qualified domain name to use */
 	int ifindex;                    /* Index number of the interface to use */
+#if ENABLE_FEATURE_UDHCP_PORT
 	uint16_t port;
+#endif
 	uint8_t arp[6];                 /* Our arp address */
 	uint8_t opt_mask[256 / 8];      /* Bitmask of options to send (-O option) */
 };
