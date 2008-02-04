@@ -12,21 +12,41 @@
 
 #include "libbb.h"
 
+/* Compat info: nohup (GNU coreutils 6.8) does this:
+# nohup true
+nohup: ignoring input and appending output to `nohup.out'
+# nohup true 1>/dev/null
+nohup: ignoring input and redirecting stderr to stdout
+# nohup true 2>zz
+# cat zz
+nohup: ignoring input and appending output to `nohup.out'
+# nohup true 2>zz 1>/dev/null
+# cat zz
+nohup: ignoring input
+# nohup true </dev/null 1>/dev/null
+nohup: redirecting stderr to stdout
+# nohup true </dev/null 2>zz 1>/dev/null
+# cat zz
+  (nothing)
+#
+*/
+
 int nohup_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int nohup_main(int argc, char **argv)
 {
-	int nullfd;
 	const char *nohupout;
-	char *home = NULL;
+	char *home;
 
 	xfunc_error_retval = 127;
 
 	if (argc < 2) bb_show_usage();
 
-	nullfd = xopen(bb_dev_null, O_WRONLY|O_APPEND);
 	/* If stdin is a tty, detach from it. */
-	if (isatty(STDIN_FILENO))
-		dup2(nullfd, STDIN_FILENO);
+	if (isatty(STDIN_FILENO)) {
+		/* bb_error_msg("ignoring input"); */
+		close(STDIN_FILENO);
+		xopen(bb_dev_null, O_RDONLY); /* will be fd 0 (STDIN_FILENO) */
+	}
 
 	nohupout = "nohup.out";
 	/* Redirect stdout to nohup.out, either in "." or in "$HOME". */
@@ -37,24 +57,22 @@ int nohup_main(int argc, char **argv)
 			if (home) {
 				nohupout = concat_path_file(home, nohupout);
 				xopen3(nohupout, O_CREAT|O_WRONLY|O_APPEND, S_IRUSR|S_IWUSR);
+			} else {
+				xopen(bb_dev_null, O_RDONLY); /* will be fd 1 */
 			}
 		}
-	} else dup2(nullfd, STDOUT_FILENO);
+		bb_error_msg("appending output to %s", nohupout);
+	}
 
-	/* If we have a tty on stderr, announce filename and redirect to stdout.
-	 * Else redirect to /dev/null.
-	 */
+	/* If we have a tty on stderr, redirect to stdout. */
 	if (isatty(STDERR_FILENO)) {
-		bb_error_msg("appending to %s", nohupout);
+		/* if (stdout_wasnt_a_tty)
+			bb_error_msg("redirecting stderr to stdout"); */
 		dup2(STDOUT_FILENO, STDERR_FILENO);
-	} else dup2(nullfd, STDERR_FILENO);
+	}
 
-	if (nullfd > 2)
-		close(nullfd);
 	signal(SIGHUP, SIG_IGN);
 
 	BB_EXECVP(argv[1], argv+1);
-	if (ENABLE_FEATURE_CLEAN_UP && home)
-		free((char*)nohupout);
 	bb_simple_perror_msg_and_die(argv[1]);
 }
