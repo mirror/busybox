@@ -729,7 +729,7 @@ localver = $(subst $(space),, \
 # Currently, only git is supported.
 # Other SCMs can edit scripts/setlocalversion and add the appropriate
 # checks as needed.
-ifdef CONFIG_LOCALVERSION_AUTO
+ifdef _BB_DISABLED_CONFIG_LOCALVERSION_AUTO
 	_localver-auto = $(shell $(CONFIG_SHELL) \
 	                  $(srctree)/scripts/setlocalversion $(srctree))
 	localver-auto  = $(LOCALVERSION)$(_localver-auto)
