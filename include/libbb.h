@@ -30,7 +30,6 @@
 #include <sys/mman.h>
 #include <sys/socket.h>
 #include <sys/stat.h>
-#include <sys/statfs.h>
 #include <sys/time.h>
 #include <sys/types.h>
 #include <sys/wait.h>
@@ -47,6 +46,10 @@
 
 #ifdef HAVE_MNTENT_H
 #include <mntent.h>
+#endif
+
+#ifdef HAVE_SYS_STATFS_H
+#include <sys/statfs.h>
 #endif
 
 #if ENABLE_SELINUX
@@ -311,8 +314,12 @@ struct BUG_too_small {
 			| AF_INET
 			| AF_INET6
 			| AF_UNIX
+#ifdef AF_PACKET
 			| AF_PACKET
+#endif
+#ifdef AF_NETLINK
 			| AF_NETLINK
+#endif
 			/* | AF_DECnet */
 			/* | AF_IPX */
 			) <= 127 ? 1 : -1];
@@ -807,8 +814,10 @@ extern void run_applet_and_exit(const char *name, char **argv);
 extern void run_applet_no_and_exit(int a, char **argv) ATTRIBUTE_NORETURN;
 #endif
 
+#ifdef HAVE_MNTENT_H
 extern int match_fstype(const struct mntent *mt, const char *fstypes);
 extern struct mntent *find_mount_point(const char *name, const char *table);
+#endif
 extern void erase_mtab(const char * name);
 extern unsigned int tty_baud_to_value(speed_t speed);
 extern speed_t tty_value_to_baud(unsigned int value);

@@ -137,19 +137,20 @@
 /* ---- Networking ------------------------------------------ */
 #ifndef __APPLE__
 # include <arpa/inet.h>
+# ifndef __socklen_t_defined
+typedef int socklen_t;
+# endif
 #else
 # include <netinet/in.h>
-#endif
-
-#ifndef __socklen_t_defined
-typedef int socklen_t;
 #endif
 
 /* ---- Compiler dependent settings ------------------------- */
 #if (defined __digital__ && defined __unix__) || defined __APPLE__
 # undef HAVE_MNTENT_H
+# undef HAVE_SYS_STATFS_H
 #else
 # define HAVE_MNTENT_H 1
+# define HAVE_SYS_STATFS_H 1
 #endif /* ___digital__ && __unix__ */
 
 /* linux/loop.h relies on __u64. Make sure we have that as a proper type
@@ -180,7 +181,7 @@ __extension__ typedef unsigned long long __u64;
 #define HAVE_FEATURES_H
 #include <stdint.h>
 #define HAVE_STDINT_H
-#else
+#elif !defined __APPLE__
 /* Largest integral types.  */
 #if __BIG_ENDIAN__
 typedef long                intmax_t;
