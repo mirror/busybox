@@ -17,7 +17,6 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <inttypes.h>
-#include <mntent.h>
 #include <netdb.h>
 #include <setjmp.h>
 #include <signal.h>
@@ -44,6 +43,10 @@
 #include <sys/param.h>
 #ifndef PATH_MAX
 #define PATH_MAX 256
+#endif
+
+#ifdef HAVE_MNTENT_H
+#include <mntent.h>
 #endif
 
 #if ENABLE_SELINUX

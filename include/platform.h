@@ -146,7 +146,7 @@ typedef int socklen_t;
 #endif
 
 /* ---- Compiler dependent settings ------------------------- */
-#if (defined __digital__ && defined __unix__)
+#if (defined __digital__ && defined __unix__) || defined __APPLE__
 # undef HAVE_MNTENT_H
 #else
 # define HAVE_MNTENT_H 1
