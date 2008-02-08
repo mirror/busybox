@@ -1419,8 +1419,9 @@ static void send_cgi_and_exit(
 
 		/* script must have absolute path */
 		script = strrchr(fullpath, '/');
-		if (!script)
-			goto error_execing_cgi;
+		//fullpath is a result of concat_path_file and always has '/'
+		//if (!script)
+		//	goto error_execing_cgi;
 		*script = '\0';
 		/* chdiring to script's dir */
 		if (chdir(fullpath) == 0) {
@@ -1441,16 +1442,19 @@ static void send_cgi_and_exit(
 #endif
 			*script = '/';
 			/* set argv[0] to name without path */
-			argv[0] = (char*)bb_basename(purl);
+			argv[0] = script + 1;
 			argv[1] = NULL;
 #if ENABLE_FEATURE_HTTPD_CONFIG_WITH_SCRIPT_INTERPR
 			if (interpr)
-				execv(interpr, argv);
-			else
+				fullpath = interpr;
 #endif
-				execv(fullpath, argv);
+			execv(fullpath, argv);
+			if (verbose)
+				bb_perror_msg("exec %s", fullpath);
+		} else if (verbose) {
+			bb_perror_msg("chdir %s", fullpath);
 		}
- error_execing_cgi:
+ //error_execing_cgi:
 		/* send to stdout
 		 * (we are CGI here, our stdout is pumped to the net) */
 		send_headers_and_exit(HTTP_NOT_FOUND);
