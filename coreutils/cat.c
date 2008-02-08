@@ -30,7 +30,7 @@ int bb_cat(char **argv)
 		if (!LONE_DASH(*argv))
 			fd = open_or_warn(*argv, O_RDONLY);
 		if (fd >= 0) {
-			/* This is not an xfunc - never exits */
+			/* This is not a xfunc - never exits */
 			off_t r = bb_copyfd_eof(fd, STDOUT_FILENO);
 			if (fd != STDIN_FILENO)
 				close(fd);

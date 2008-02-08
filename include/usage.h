@@ -2654,10 +2654,10 @@ USE_FEATURE_BRCTL_FANCY("\n" \
        "Address:    127.0.0.1\n"
 
 #define od_trivial_usage \
-       "[-aBbcDdeFfHhIiLlOovXx] [FILE]"
+       "[-aBbcDdeFfHhIiLlOovXx] " USE_DESKTOP("[-t TYPE] ") "[FILE]"
 #define od_full_usage \
        "Write an unambiguous representation, octal bytes by default, of FILE\n" \
-       "to standard output. With no FILE, or when FILE is -, read standard input."
+       "to standard output. With no FILE or when FILE is -, read standard input."
 
 #define openvt_trivial_usage \
        "VTNUM COMMAND [ARGS...]"
