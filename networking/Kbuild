@@ -11,6 +11,7 @@ lib-$(CONFIG_BRCTL)        += brctl.o
 lib-$(CONFIG_DNSD)         += dnsd.o
 lib-$(CONFIG_ETHER_WAKE)   += ether-wake.o
 lib-$(CONFIG_FAKEIDENTD)   += isrv_identd.o isrv.o
+lib-$(CONFIG_FETCHMAIL)    += sendmail.o
 lib-$(CONFIG_FTPGET)       += ftpgetput.o
 lib-$(CONFIG_FTPPUT)       += ftpgetput.o
 lib-$(CONFIG_HOSTNAME)     += hostname.o

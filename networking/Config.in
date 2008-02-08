@@ -671,12 +671,39 @@ config SENDMAIL
 	help
 	  Barebones sendmail.
 
-config FEATURE_SENDMAIL_NETWORK
-	bool "Support network connectivity"
-	default y
+config FEATURE_SENDMAIL_EHLO
+	bool "Support EHLO command"
+	default n
 	depends on SENDMAIL
 	help
-	  Add ability to send, not only compose messages.
+	  Support ESMTP EHLO command.
+
+config FEATURE_SENDMAIL_BLOATY
+	bool "Be more verbose"
+	default n
+	depends on SENDMAIL
+	help
+	  Should be turned off.
+
+config FETCHMAIL
+	bool "fetchmail"
+	default n
+	help
+	  Barebones fetchmail.
+
+config FEATURE_FETCHMAIL_APOP
+	bool "Support APOP authentication"
+	default y
+	depends on FETCHMAIL
+	help
+	  Support secure APOP authentication.
+
+config FEATURE_FETCHMAIL_FILTER
+	bool "Pipe thru external filter"
+	default n
+	depends on FETCHMAIL
+	help
+	  Support piping incoming messages thru external filter.
 
 config SLATTACH
 	bool "slattach"

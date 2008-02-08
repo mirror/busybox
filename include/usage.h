@@ -1017,6 +1017,19 @@ USE_FEATURE_BRCTL_FANCY("\n" \
        "	-S SECTORS	Set the number of sectors\n" \
        "	-v		Give fdisk version"
 
+#define fetchmail_trivial_usage \
+       "[-C dir] [-w timeout] [-U user] -P password [-X] [-t] [-z] server[:port]"
+#define fetchmail_full_usage \
+       "Fetch content of remote mailbox to local Maildir." \
+       "\n\nOptions:\n" \
+       "	-C dir		Set Maildir location\n" \
+       "	-w timeout	Set timeout on network operations\n" \
+       "	-U username	Authenticate with specified username\n" \
+       "	-P password	Authenticate with specified password\n" \
+       "	-X		Use openssl connection helper for secured servers\n" \
+       "	-t		Get only headers\n" \
+       "	-z		Delete messages on server"
+
 #define find_trivial_usage \
        "[PATH...] [EXPRESSION]"
 #define find_full_usage \
@@ -3138,29 +3151,21 @@ USE_FEATURE_RUN_PARTS_FANCY("\n	-l	Prints names of all matching files even when 
 #define selinuxenabled_full_usage
 
 #define sendmail_trivial_usage \
-       "{-t to}+ {-f from} [-n[notify]] [-s subject] [-b file]*\n" \
-       "[-a attachment]* [-c charset]" \
-       USE_FEATURE_SENDMAIL_NETWORK("\n" \
-       " [-d] [-w timeout] [-h server] [-p port] [-U user] [-P password]" \
-       )
+       "[-C dir] [-w timeout] [-U user] [-P password] [-X]\n" \
+       "-t to [-t to] -f from [-n] [-s subject] [-c charset] server[:port] [body] [attachment ...]"
 #define sendmail_full_usage \
-       "Send an email <from> <to> with <subject> and optional attachments." \
-       "\n\nArguments:\n" \
+       "Send an email with optional attachments." \
+       "\n\nOptions:\n" \
+       "	-C dir		Change current directory to dir\n" \
+       "	-w timeout	Set timeout on network operations\n" \
+       "	-U username	Authenticate with specified username\n" \
+       "	-P password	Authenticate with specified password\n" \
+       "	-X		Use openssl connection helper for secured servers\n" \
        "	-t to		Recipient email. May be multiple\n" \
        "	-f from		Sender address\n" \
-       "	-n[notify]	Optional notification address. If just -n given then notifies the sender\n" \
-       "	-s subject	Optional subject\n" \
-       "	-b filename	Optional body content file. May be multiple\n" \
-       "	-a filename	Optional file attachment. May be multiple\n" \
-       "	-c charset	Assumed charset for body and subject [koi8-r]" \
-       USE_FEATURE_SENDMAIL_NETWORK("\n" \
-       "	-d		Just dump composed message\n" \
-       "	-w timeout	Set timeout on network operations\n" \
-       "	-h server	Optional mail server name or IP [127.0.0.1]\n" \
-       "	-p port		Optional mail server port [25]\n" \
-       "	-U username	Authenticate using AUTH LOGIN with specified username\n" \
-       "	-P password	Authenticate using AUTH LOGIN with specified password" \
-       )
+       "	-n		Request delivery notification to sender\n" \
+       "	-s subject	Subject\n" \
+       "	-c charset	Assumed charset for body and subject [utf-8]"
 
 #define seq_trivial_usage \
        "[first [increment]] last"
