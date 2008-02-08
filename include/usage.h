@@ -881,6 +881,9 @@ USE_FEATURE_BRCTL_FANCY("\n" \
 #define eject_full_usage \
        "Eject specified DEVICE (or default /dev/cdrom)" \
        "\n\nOptions:\n" \
+       USE_FEATURE_EJECT_SCSI( \
+       "	-s	scsi device\n" \
+       ) \
        "	-t	Close tray\n" \
        "	-T	Open/close tray (toggle)"
 

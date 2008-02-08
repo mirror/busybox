@@ -126,6 +126,14 @@ config EJECT
 	help
 	  Used to eject cdroms.  (defaults to /dev/cdrom)
 
+config FEATURE_EJECT_SCSI
+  bool "eject scsi support"
+  default n
+  depends on EJECT
+  help
+    Add the -s option to eject, this allows to eject SCSI-Devices and
+    usb-storage devices.
+
 config LAST
 	bool "last"
 	default n
