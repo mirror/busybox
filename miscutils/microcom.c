@@ -51,8 +51,8 @@ int microcom_main(int argc, char **argv)
 	enum {
 		OPT_X = 1 << 0, // do not respect Ctrl-X, Ctrl-@
 		OPT_s = 1 << 1, // baudrate
-		OPT_d = 1 << 2  // wait for device response, msecs
-		OPT_t = 1 << 3  // timeout, ms
+		OPT_d = 1 << 2, // wait for device response, msecs
+		OPT_t = 1 << 3, // timeout, ms
 	};
 	speed_t speed = 9600;
 	int delay = -1;
@@ -60,6 +60,7 @@ int microcom_main(int argc, char **argv)
 
 	// fetch options
 	char *opt_s;
+	char *opt_d;
 	char *opt_t;
 	unsigned opts;
 	opt_complementary = "=1"; /* exactly one arg should be there */
