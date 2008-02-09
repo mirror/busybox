@@ -14,23 +14,29 @@
 int mktemp_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int mktemp_main(int argc, char **argv)
 {
-	unsigned long flags = getopt32(argv, "dqt");
+	// -d      Make a directory instead of a file
+	// -q      Fail silently if an error occurs [bbox: ignored]
+	// -t      Generate a path rooted in temporary directory
+	// -p DIR  Use DIR as a temporary directory (implies -t)
+	const char *path;
 	char *chp;
+	unsigned flags;
 
-	if (optind + 1 != argc)
-		bb_show_usage();
-
+	opt_complementary = "=1"; /* exactly one arg */
+	flags = getopt32(argv, "dqtp:", &path);
 	chp = argv[optind];
 
-	if (flags & 4) {
-		char *dir = getenv("TMPDIR");
+	if (flags & (4|8)) { /* -t and/or -p */
+		const char *dir = getenv("TMPDIR");
 		if (dir && *dir != '\0')
-			chp = concat_path_file(dir, chp);
-		else
-			chp = concat_path_file("/tmp/", chp);
+			path = dir;
+		else if (!(flags & 8)) /* No -p */
+			path = "/tmp/";
+		/* else path comes from -p DIR */
+		chp = concat_path_file(path, chp);
 	}
 
-	if (flags & 1) {
+	if (flags & 1) { /* -d */
 		if (mkdtemp(chp) == NULL)
 			return EXIT_FAILURE;
 	} else {

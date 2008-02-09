@@ -2339,13 +2339,19 @@ USE_FEATURE_BRCTL_FANCY("\n" \
        "	block-count	Number of block to use (default is entire partition)"
 
 #define mktemp_trivial_usage \
-       "[-dq] TEMPLATE"
+       "[-dqt] [-p dir] TEMPLATE"
 #define mktemp_full_usage \
        "Create a temporary file with its name based on TEMPLATE.\n" \
        "TEMPLATE is any name with six 'Xs' (i.e., /tmp/temp.XXXXXX)." \
        "\n\nOptions:\n" \
        "	-d	Make a directory instead of a file\n" \
-       "	-q	Fail silently if an error occurs"
+       /* "	-q	Fail silently if an error occurs\n" - we ignore it */ \
+       "	-t	Generate a path rooted in temporary directory\n" \
+       "	-p DIR	Use DIR as a temporary directory (implies -t)\n" \
+       "\n" \
+       "For -t or -p, directory is chosen as follows:\n" \
+       "$TMPDIR if set, else -p DIR, else /tmp"
+
 #define mktemp_example_usage \
        "$ mktemp /tmp/temp.XXXXXX\n" \
        "/tmp/temp.mWiLjM\n" \
