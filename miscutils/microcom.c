@@ -51,22 +51,28 @@ int microcom_main(int argc, char **argv)
 	enum {
 		OPT_X = 1 << 0, // do not respect Ctrl-X, Ctrl-@
 		OPT_s = 1 << 1, // baudrate
-		OPT_t = 1 << 2  // wait for device response, msecs
+		OPT_d = 1 << 2  // wait for device response, msecs
+		OPT_t = 1 << 3  // timeout, ms
 	};
 	speed_t speed = 9600;
-	int timeout = 100; // 0.1 sec timeout
+	int delay = -1;
+	int timeout = -1;
 
 	// fetch options
 	char *opt_s;
 	char *opt_t;
 	unsigned opts;
 	opt_complementary = "=1"; /* exactly one arg should be there */
-	opts = getopt32(argv, "Xs:t:", &opt_s, &opt_t);
+	opts = getopt32(argv, "Xs:d:t:", &opt_s, &opt_d, &opt_t);
+
 	// apply options
 	if (opts & OPT_s)
 		speed = xatoi_u(opt_s);
+	if (opts & OPT_d)
+		delay = xatoi_u(opt_d);
 	if (opts & OPT_t)
 		timeout = xatoi_u(opt_t);
+
 //	argc -= optind;
 	argv += optind;
 
@@ -106,13 +112,12 @@ int microcom_main(int argc, char **argv)
 		goto done;
 	fcntl(sfd, F_SETFL, O_RDWR | O_NOCTTY);
 
-	/* put stdin to "raw mode" (if stdin is a TTY),
-		handle one character at a time */
+	// put stdin to "raw mode" (if stdin is a TTY),
+	// handle one character at a time
 	if (isatty(STDIN_FILENO)) {
 		xget1(STDIN_FILENO, &tio, &tio0);
 		if (xset1(STDIN_FILENO, &tio, "stdin"))
 			goto done;
-		timeout = -1; // tty input? -> set infinite timeout for poll()
 	}
 
 	// same thing for modem
@@ -136,16 +141,18 @@ int microcom_main(int argc, char **argv)
 	nfd = 2;
 	while (!signalled && safe_poll(pfd, nfd, timeout) > 0) {
 		char c;
-		if (pfd[0].revents & POLLIN) {
+		if (pfd[0].revents) {
+serial_ready:
 			// read from device -> write to stdout
 			if (safe_read(sfd, &c, 1) > 0)
 				write(STDOUT_FILENO, &c, 1);
+			// else { EOF/error - what to do? }
 		}
-		if (pfd[1].revents & POLLIN) {
+		if (pfd[1].revents) {
+			pfd[1].revents = 0;
 			// read from stdin -> write to device
 			if (safe_read(STDIN_FILENO, &c, 1) < 1) {
-				// skip polling stdin if we got EOF/error
-				pfd[1].revents = 0;
+				// don't poll stdin anymore if we got EOF/error
 				nfd--;
 				continue;
 			}
@@ -161,20 +168,15 @@ int microcom_main(int argc, char **argv)
 					break;
 			}
 			write(sfd, &c, 1);
-//// vda: this is suspicious!
-			// without this we never get POLLIN on sfd
-			// until piped stdin is drained
-			if (-1 != timeout)
-				safe_poll(pfd, 1, 1 /* 1 ms */);
+			if (delay >= 0 && safe_poll(pfd, 1, delay) > 0)
+				goto serial_ready;
 		}
 	}
-	/* usleep(10000); - let last chars leave serial line */
 
 	tcsetattr(sfd, TCSAFLUSH, &tiosfd);
 
 restore0_and_done:
-	// timeout == -1 -- stdin is a tty
-	if (-1 == timeout)
+	if (isatty(STDIN_FILENO))
 		tcsetattr(STDIN_FILENO, TCSAFLUSH, &tio0);
 
 done:
