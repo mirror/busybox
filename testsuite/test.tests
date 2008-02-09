@@ -1,0 +1,26 @@
+#!/bin/sh
+
+# Copyright 2007 by Denys Vlasenko <vda.linux@googlemail.com>
+# Licensed under GPL v2, see file LICENSE for details.
+
+. testing.sh
+
+# testing "test name" "options" "expected result" "file input" "stdin"
+#   file input will be file called "input"
+#   test can create a file "actual" instead of writing to stdout
+
+# Need to call 'busybox test', otherwise shell builtin is used
+
+testing "test ! a = b -a ! c = c: should be false" \
+	"busybox test ! a = b -a ! c = c; echo \$?" \
+	"1\n" \
+	"" \
+	"" \
+
+testing "test ! a = b -a ! c = d: should be true" \
+	"busybox test ! a = b -a ! c = d; echo \$?" \
+	"0\n" \
+	"" \
+	"" \
+
+exit $FAILCOUNT
