@@ -2754,7 +2754,6 @@ unknown_command(int c)
 int fdisk_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int fdisk_main(int argc, char **argv)
 {
-	char *str_b, *str_C, *str_H, *str_S;
 	unsigned opt;
 	/*
 	 *  fdisk -v
@@ -2776,8 +2775,9 @@ int fdisk_main(int argc, char **argv)
 
 	INIT_G();
 
+	opt_complementary = "b+:C+:H+:S+"; /* numeric params */
 	opt = getopt32(argv, "b:C:H:lS:u" USE_FEATURE_FDISK_BLKSIZE("s"),
-				&str_b, &str_C, &str_H, &str_S);
+				&sector_size, &user_cylinders, &user_heads, &user_sectors);
 	argc -= optind;
 	argv += optind;
 	if (opt & OPT_b) { // -b
@@ -2785,27 +2785,18 @@ int fdisk_main(int argc, char **argv)
 		   so cannot be combined with multiple disks,
 		   and the same goes for the C/H/S options.
 		*/
-		sector_size = xatoi_u(str_b);
-		if (sector_size != 512 && sector_size != 1024 &&
-			sector_size != 2048)
+		if (sector_size != 512 && sector_size != 1024
+		 && sector_size != 2048)
 			bb_show_usage();
 		sector_offset = 2;
 		user_set_sector_size = 1;
 	}
-	if (opt & OPT_C) user_cylinders = xatoi_u(str_C); // -C
-	if (opt & OPT_H) { // -H
-		user_heads = xatoi_u(str_H);
-		if (user_heads <= 0 || user_heads >= 256)
-			user_heads = 0;
-	}
-	//if (opt & OPT_l) // -l
-	if (opt & OPT_S) { // -S
-		user_sectors = xatoi_u(str_S);
-		if (user_sectors <= 0 || user_sectors >= 64)
-			user_sectors = 0;
-	}
-	if (opt & OPT_u) display_in_cyl_units = 0; // -u
-	//if (opt & OPT_s) // -s
+	if (user_heads <= 0 || user_heads >= 256)
+		user_heads = 0;
+	if (user_sectors <= 0 || user_sectors >= 64)
+		user_sectors = 0;
+	if (opt & OPT_u)
+		display_in_cyl_units = 0; // -u
 
 	if (user_set_sector_size && argc != 1)
 		printf("Warning: the -b (set sector size) option should"

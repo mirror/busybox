@@ -740,7 +740,7 @@ int top_main(int argc, char **argv)
 	int count, lines, col;
 	unsigned interval;
 	int iterations;
-	char *sinterval, *siterations;
+	char *sinterval;
 	SKIP_FEATURE_TOPMEM(const) unsigned scan_mask = TOP_MASK;
 #if ENABLE_FEATURE_USE_TERMIOS
 	struct termios new_settings;
@@ -757,15 +757,12 @@ int top_main(int argc, char **argv)
 	iterations = 0; /* infinite */
 
 	/* do normal option parsing */
-	opt_complementary = "-";
-	getopt32(argv, "d:n:b", &sinterval, &siterations);
+	opt_complementary = "-:n+";
+	getopt32(argv, "d:n:b", &sinterval, &iterations);
 	if (option_mask32 & 0x1) {
 		/* Need to limit it to not overflow poll timeout */
 		interval = xatou16(sinterval); // -d
 	}
-	if (option_mask32 & 0x2)
-		iterations = xatoi_u(siterations); // -n
-	//if (option_mask32 & 0x4) // -b
 
 	/* change to /proc */
 	xchdir("/proc");
