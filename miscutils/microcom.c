@@ -63,7 +63,7 @@ int microcom_main(int argc, char **argv)
 	char *opt_d;
 	char *opt_t;
 	unsigned opts;
-	opt_complementary = "=1"; /* exactly one arg should be there */
+	opt_complementary = "=1"; // exactly one arg should be there
 	opts = getopt32(argv, "Xs:d:t:", &opt_s, &opt_d, &opt_t);
 
 	// apply options
@@ -141,36 +141,38 @@ int microcom_main(int argc, char **argv)
 	signalled = 0;
 	nfd = 2;
 	while (!signalled && safe_poll(pfd, nfd, timeout) > 0) {
-		char c;
-		if (pfd[0].revents) {
-serial_ready:
-			// read from device -> write to stdout
-			if (safe_read(sfd, &c, 1) > 0)
-				write(STDOUT_FILENO, &c, 1);
-			// else { EOF/error - what to do? }
-		}
 		if (pfd[1].revents) {
-			pfd[1].revents = 0;
+			char c;
 			// read from stdin -> write to device
 			if (safe_read(STDIN_FILENO, &c, 1) < 1) {
 				// don't poll stdin anymore if we got EOF/error
+				pfd[1].revents = 0;
 				nfd--;
-				continue;
+				goto check_stdin;
 			}
 			// do we need special processing?
 			if (!(opts & OPT_X)) {
 				// ^@ sends Break
 				if (VINTR == c) {
 					tcsendbreak(sfd, 0);
-					continue;
+					goto check_stdin;
 				}
 				// ^X exits
 				if (24 == c)
 					break;
 			}
 			write(sfd, &c, 1);
-			if (delay >= 0 && safe_poll(pfd, 1, delay) > 0)
-				goto serial_ready;
+			if (delay >= 0)
+				safe_poll(pfd, 1, delay);
+		}
+check_stdin:
+		if (pfd[0].revents) {
+			ssize_t len;
+			// read from device -> write to stdout
+			len = safe_read(sfd, bb_common_bufsiz1, sizeof(bb_common_bufsiz1));
+			if (len > 0)
+				full_write(STDOUT_FILENO, bb_common_bufsiz1, len);
+			// else { EOF/error - what to do? }
 		}
 	}
 
