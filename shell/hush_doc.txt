@@ -22,11 +22,11 @@ run_list(struct pipe *) - handles "cmd; cmd2 && cmd3", while/for/do loops
 
 /* callsite: run_list */
 run_pipe - runs "cmd1 | cmd2 | cmd3 [&]"
-  run_list - used if only one cmd and it is of the form "{ cmd4; cmd5 && cmd6; }"
+  run_list - used if only one cmd and it is of the form "{cmds;}"
   forks for every cmd if more than one cmd or if & is there
   pseudo_exec - runs each "cmdN" (handles builtins etc)
 
-/* callsite: run_pipe_real */
+/* callsite: run_pipe */
 pseudo_exec - runs "cmd" (handles builtins etc)
   exec - execs external programs
   run_list - used if cmdN is "(cmds)" or "{cmds;}"

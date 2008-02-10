@@ -9,7 +9,7 @@
 
 ## hush does globbing for "VAR=val" too!
 ## it should do it only for non-assignments.
-## even if word looks like assignment, it can be non-assignemnt:
+## even if word looks like assignment, it can be non-assignment:
 ## ZVAR=*.map /bin/echo ZVAR=*.map
 ## ^dont_glob           ^glob
 
