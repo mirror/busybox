@@ -1,0 +1,31 @@
+	Wait + signals
+
+We had some bugs here which are hard to test in testsuite.
+
+Bug 1280 (http://busybox.net/bugs/view.php?id=1280):
+was misbehaving in interactive ash. Correct behavior:
+
+$ sleep 20 &
+$ wait
+^C
+$ wait
+^C
+$ wait
+^C
+...
+
+Bug 1984 (http://busybox.net/bugs/view.php?id=1984):
+traps were not triggering:
+
+trap_handler_usr () {
+    echo trap usr
+}
+trap_handler_int () {
+    echo trap int
+}
+trap trap_handler_usr USR1
+trap trap_handler_int INT
+sleep 3600 &
+echo "Please do: kill -USR1 $$"
+echo "or: kill -INT $$"
+while true; do wait; echo wait interrupted; done

@@ -164,7 +164,16 @@ struct globals_misc {
 	char *arg0; /* value of $0 */
 
 	struct jmploc *exception_handler;
-	int exception;
+
+// disabled by vda: cannot understand how it was supposed to work -
+// cannot fix bugs. That's why you have to explain your non-trivial designs!
+//	/* do we generate EXSIG events */
+//	int exsig; /* counter */
+	volatile int suppressint; /* counter */
+	volatile /*sig_atomic_t*/ smallint intpending; /* 1 = got SIGINT */
+	/* last pending signal */
+	volatile /*sig_atomic_t*/ smallint pendingsig;
+	smallint exception; /* kind of exception (0..5) */
 	/* exceptions */
 #define EXINT 0         /* SIGINT received */
 #define EXERROR 1       /* a generic error */
@@ -172,12 +181,6 @@ struct globals_misc {
 #define EXEXEC 3        /* command execution failed */
 #define EXEXIT 4        /* exit the shell */
 #define EXSIG 5         /* trapped signal in wait(1) */
-	volatile int suppressint;
-	volatile sig_atomic_t intpending;
-	/* do we generate EXSIG events */
-	int exsig;
-	/* last pending signal */
-	volatile sig_atomic_t pendingsig;
 
 	/* trap handler commands */
 	char *trap[NSIG];
@@ -211,7 +214,7 @@ static struct globals_misc *const ptr_to_globals_misc __attribute__ ((section ("
 #define exception         (G_misc.exception        )
 #define suppressint       (G_misc.suppressint      )
 #define intpending        (G_misc.intpending       )
-#define exsig             (G_misc.exsig            )
+//#define exsig             (G_misc.exsig            )
 #define pendingsig        (G_misc.pendingsig       )
 #define trap      (G_misc.trap     )
 #define isloginsh (G_misc.isloginsh)
@@ -281,6 +284,7 @@ raise_interrupt(void)
 	i = EXSIG;
 	if (gotsig[SIGINT - 1] && !trap[SIGINT]) {
 		if (!(rootshell && iflag)) {
+			/* Kill ourself with SIGINT */
 			signal(SIGINT, SIG_DFL);
 			raise(SIGINT);
 		}
@@ -333,15 +337,6 @@ force_int_on(void)
 			raise_interrupt(); \
 	} while (0)
 
-#define EXSIGON \
-	do { \
-		exsig++; \
-		xbarrier(); \
-		if (pendingsig) \
-			raise_exception(EXSIG); \
-	} while (0)
-/* EXSIG is turned off by evalbltin(). */
-
 /*
  * Ignore a signal. Only one usage site - in forkchild()
  */
@@ -363,10 +358,10 @@ onsig(int signo)
 	gotsig[signo - 1] = 1;
 	pendingsig = signo;
 
-	if (exsig || (signo == SIGINT && !trap[SIGINT])) {
+	if ( /* exsig || */ (signo == SIGINT && !trap[SIGINT])) {
 		if (!suppressint) {
 			pendingsig = 0;
-			raise_interrupt();
+			raise_interrupt(); /* does not return */
 		}
 		intpending = 1;
 	}
@@ -3256,12 +3251,11 @@ setsignal(int signo)
 	struct sigaction act;
 
 	t = trap[signo];
+	action = S_IGN;
 	if (t == NULL)
 		action = S_DFL;
 	else if (*t != '\0')
 		action = S_CATCH;
-	else
-		action = S_IGN;
 	if (rootshell && action == S_DFL) {
 		switch (signo) {
 		case SIGINT:
@@ -3294,7 +3288,7 @@ setsignal(int signo)
 		/*
 		 * current setting unknown
 		 */
-		if (sigaction(signo, 0, &act) == -1) {
+		if (sigaction(signo, NULL, &act) == -1) {
 			/*
 			 * Pretend it worked; maybe we should give a warning
 			 * here, but other shells don't. We don't alter
@@ -3302,19 +3296,19 @@ setsignal(int signo)
 			 */
 			return;
 		}
+		tsig = S_RESET; /* force to be set */
 		if (act.sa_handler == SIG_IGN) {
+			tsig = S_HARD_IGN;
 			if (mflag
 			 && (signo == SIGTSTP || signo == SIGTTIN || signo == SIGTTOU)
 			) {
 				tsig = S_IGN;   /* don't hard ignore these */
-			} else
-				tsig = S_HARD_IGN;
-		} else {
-			tsig = S_RESET; /* force to be set */
+			}
 		}
 	}
 	if (tsig == S_HARD_IGN || tsig == action)
 		return;
+	act.sa_handler = SIG_DFL;
 	switch (action) {
 	case S_CATCH:
 		act.sa_handler = onsig;
@@ -3322,13 +3316,11 @@ setsignal(int signo)
 	case S_IGN:
 		act.sa_handler = SIG_IGN;
 		break;
-	default:
-		act.sa_handler = SIG_DFL;
 	}
 	*t = action;
 	act.sa_flags = 0;
 	sigfillset(&act.sa_mask);
-	sigaction(signo, &act, 0);
+	sigaction(signo, &act, NULL);
 }
 
 /* mode flags for set_curjob */
@@ -3763,7 +3755,8 @@ waitproc(int wait_flags, int *status)
 	if (jobctl)
 		wait_flags |= WUNTRACED;
 #endif
-	return waitpid(-1, status, wait_flags); // safe_waitpid?
+	/* NB: _not_ safe_waitpid, we need to detect EINTR */
+	return waitpid(-1, status, wait_flags);
 }
 
 /*
@@ -3781,8 +3774,14 @@ dowait(int wait_flags, struct job *job)
 	TRACE(("dowait(%d) called\n", wait_flags));
 	pid = waitproc(wait_flags, &status);
 	TRACE(("wait returns pid=%d, status=%d\n", pid, status));
-	if (pid <= 0)
+	if (pid <= 0) {
+		/* If we were doing blocking wait and (probably) got EINTR,
+		 * check for pending sigs received while waiting.
+		 * (NB: can be moved into callers if needed) */
+		if (wait_flags == DOWAIT_BLOCK && pendingsig)
+			raise_exception(EXSIG);
 		return pid;
+	}
 	INT_OFF;
 	thisjob = NULL;
 	for (jp = curjob; jp; jp = jp->prev_job) {
@@ -4004,7 +4003,10 @@ waitcmd(int argc, char **argv)
 	int retval;
 	struct job *jp;
 
-	EXSIGON;
+//	exsig++;
+//	xbarrier();
+	if (pendingsig)
+		raise_exception(EXSIG);
 
 	nextopt(nullstr);
 	retval = 0;
@@ -4015,10 +4017,8 @@ waitcmd(int argc, char **argv)
 		for (;;) {
 			jp = curjob;
 			while (1) {
-				if (!jp) {
-					/* no running procs */
-					goto out;
-				}
+				if (!jp) /* no running procs */
+					goto ret;
 				if (jp->state == JOBRUNNING)
 					break;
 				jp->waited = 1;
@@ -4051,7 +4051,7 @@ waitcmd(int argc, char **argv)
 		;
 	} while (*++argv);
 
- out:
+ ret:
 	return retval;
 }
 
@@ -4450,7 +4450,7 @@ clear_traps(void)
 	char **tp;
 
 	for (tp = trap; tp < &trap[NSIG]; tp++) {
-		if (*tp && **tp) {      /* trap not NULL or SIG_IGN */
+		if (*tp && **tp) {      /* trap not NULL or "" (SIG_IGN) */
 			INT_OFF;
 			free(*tp);
 			*tp = NULL;
@@ -4613,8 +4613,8 @@ waitforjob(struct job *jp)
 		 * intuit from the subprocess exit status whether a SIGINT
 		 * occurred, and if so interrupt ourselves.  Yuck.  - mycroft
 		 */
-		if (jp->sigint)
-			raise(SIGINT);
+		if (jp->sigint) /* TODO: do the same with all signals */
+			raise(SIGINT); /* ... by raise(jp->sig) instead? */
 	}
 	if (jp->state == JOBDONE)
 #endif
@@ -6268,7 +6268,7 @@ expmeta(char *enddir, char *name)
 		p++;
 	if (*p == '.')
 		matchdot++;
-	while (! intpending && (dp = readdir(dirp)) != NULL) {
+	while (!intpending && (dp = readdir(dirp)) != NULL) {
 		if (dp->d_name[0] == '.' && ! matchdot)
 			continue;
 		if (pmatch(start, dp->d_name)) {
@@ -7437,7 +7437,7 @@ dotrap(void)
 	char *q;
 	int i;
 	int savestatus;
-	int skip = 0;
+	int skip;
 
 	savestatus = exitstatus;
 	pendingsig = 0;
@@ -7454,10 +7454,10 @@ dotrap(void)
 		skip = evalstring(p, SKIPEVAL);
 		exitstatus = savestatus;
 		if (skip)
-			break;
+			return skip;
 	}
 
-	return skip;
+	return 0;
 }
 
 /* forward declarations - evaluation is fairly recursive business... */
@@ -8434,22 +8434,15 @@ evalcommand(union node *cmd, int flags)
 		}
 		if (evalbltin(cmdentry.u.cmd, argc, argv)) {
 			int exit_status;
-			int i, j;
-
-			i = exception;
+			int i = exception;
 			if (i == EXEXIT)
 				goto raise;
-
 			exit_status = 2;
-			j = 0;
 			if (i == EXINT)
-				j = SIGINT;
+				exit_status = 128 + SIGINT;
 			if (i == EXSIG)
-				j = pendingsig;
-			if (j)
-				exit_status = j + 128;
+				exit_status = 128 + pendingsig;
 			exitstatus = exit_status;
-
 			if (i == EXINT || spclbltin > 0) {
  raise:
 				longjmp(exception_handler->loc, 1);
@@ -8499,7 +8492,7 @@ evalbltin(const struct builtincmd *cmd, int argc, char **argv)
 	exitstatus |= ferror(stdout);
 	clearerr(stdout);
 	commandname = savecmdname;
-	exsig = 0;
+//	exsig = 0;
 	exception_handler = savehandler;
 
 	return i;
