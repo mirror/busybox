@@ -664,6 +664,9 @@ enum {
   void re_exec(char **argv) ATTRIBUTE_NORETURN;
   void forkexit_or_rexec(char **argv);
   extern bool re_execed;
+  int  BUG_fork_is_unavailable_on_nommu(void);
+  int  BUG_daemon_is_unavailable_on_nommu(void);
+  void BUG_bb_daemonize_is_unavailable_on_nommu(void);
 # define fork()          BUG_fork_is_unavailable_on_nommu()
 # define daemon(a,b)     BUG_daemon_is_unavailable_on_nommu()
 # define bb_daemonize(a) BUG_bb_daemonize_is_unavailable_on_nommu()

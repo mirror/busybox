@@ -1,0 +1,39 @@
+	This is how hush runs commands:
+
+/* callsite: process_command_subs */
+generate_stream_from_list(struct pipe *head) - handles `cmds`
+  create UNIX pipe
+  [v]fork
+  child:
+  redirect pipe output to stdout
+  _exit(run_list(head));   /* leaks memory */
+  parent:
+  return UNIX pipe's output fd
+  /* head is freed by the caller */
+
+/* callsite: parse_and_run_stream */
+run_and_free_list(struct pipe *)
+  run_list(struct pipe *)
+  free_pipe_list(struct pipe *)
+
+/* callsites: generate_stream_from_list, run_and_free_list, pseudo_exec, run_pipe */
+run_list(struct pipe *) - handles "cmd; cmd2 && cmd3", while/for/do loops
+  run_pipe - for every pipe in list
+
+/* callsite: run_list */
+run_pipe - runs "cmd1 | cmd2 | cmd3 [&]"
+  run_list - used if only one cmd and it is of the form "{ cmd4; cmd5 && cmd6; }"
+  forks for every cmd if more than one cmd or if & is there
+  pseudo_exec - runs each "cmdN" (handles builtins etc)
+
+/* callsite: run_pipe_real */
+pseudo_exec - runs "cmd" (handles builtins etc)
+  exec - execs external programs
+  run_list - used if cmdN is "(cmds)" or "{cmds;}"
+  /* problem: putenv's malloced strings into environ -
+  ** with vfork they will leak into parent process
+  */
+  /* problem with ENABLE_FEATURE_SH_STANDALONE:
+  ** run_applet_no_and_exit(a, argv) uses exit - this can interfere
+  ** with vfork - switch to _exit there?
+  */

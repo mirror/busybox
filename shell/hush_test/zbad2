@@ -1,0 +1,19 @@
+## TODO: fix and add to testsuite
+
+## # bash zbad2
+## ZVAR=z.map
+## *.map
+## # hush zbad2
+## ZVAR=z.map
+## z.map  <====== !!!
+
+## hush does globbing for "VAR=val" too!
+## it should do it only for non-assignments.
+## even if word looks like assignment, it can be non-assignemnt:
+## ZVAR=*.map /bin/echo ZVAR=*.map
+## ^dont_glob           ^glob
+
+>ZVAR=z.map
+ZVAR=*.map /bin/echo ZVAR=*.map
+ZVAR=*.map
+echo "$ZVAR"
