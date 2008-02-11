@@ -121,7 +121,7 @@ static void finish(void)
 	if (option_mask32 & DAD)
 		exit(!!received);
 	if (option_mask32 & UNSOLICITED)
-		exit(0);
+		exit(EXIT_SUCCESS);
 	exit(!received);
 }
 
@@ -148,7 +148,7 @@ static void catcher(void)
 	alarm(1);
 }
 
-static int recv_pack(unsigned char *buf, int len, struct sockaddr_ll *FROM)
+static bool recv_pack(unsigned char *buf, int len, struct sockaddr_ll *FROM)
 {
 	struct arphdr *ah = (struct arphdr *) buf;
 	unsigned char *p = (unsigned char *) (ah + 1);
@@ -158,35 +158,33 @@ static int recv_pack(unsigned char *buf, int len, struct sockaddr_ll *FROM)
 	if (FROM->sll_pkttype != PACKET_HOST
 	 && FROM->sll_pkttype != PACKET_BROADCAST
 	 && FROM->sll_pkttype != PACKET_MULTICAST)
-		return 0;
+		return false;
 
 	/* Only these types are recognised */
 	if (ah->ar_op != htons(ARPOP_REQUEST) && ah->ar_op != htons(ARPOP_REPLY))
-		return 0;
+		return false;
 
 	/* ARPHRD check and this darned FDDI hack here :-( */
 	if (ah->ar_hrd != htons(FROM->sll_hatype)
 	 && (FROM->sll_hatype != ARPHRD_FDDI || ah->ar_hrd != htons(ARPHRD_ETHER)))
-		return 0;
+		return false;
 
 	/* Protocol must be IP. */
-	if (ah->ar_pro != htons(ETH_P_IP))
-		return 0;
-	if (ah->ar_pln != 4)
-		return 0;
-	if (ah->ar_hln != me.sll_halen)
-		return 0;
-	if (len < sizeof(*ah) + 2 * (4 + ah->ar_hln))
-		return 0;
+	if (ah->ar_pro != htons(ETH_P_IP)
+		|| (ah->ar_pln != 4)
+		|| (ah->ar_hln != me.sll_halen)
+		|| (len < sizeof(*ah) + 2 * (4 + ah->ar_hln)))
+		return false;
+
 	memcpy(&src_ip, p + ah->ar_hln, 4);
 	memcpy(&dst_ip, p + ah->ar_hln + 4 + ah->ar_hln, 4);
+
+	if (dst.s_addr != src_ip.s_addr)
+		return false;
 	if (!(option_mask32 & DAD)) {
-		if (dst.s_addr != src_ip.s_addr)
-			return 0;
-		if (src.s_addr != dst_ip.s_addr)
-			return 0;
-		if (memcmp(p + ah->ar_hln + 4, &me.sll_addr, ah->ar_hln))
-			return 0;
+		if ((src.s_addr != dst_ip.s_addr)
+			|| (memcmp(p + ah->ar_hln + 4, &me.sll_addr, ah->ar_hln)))
+			return false;
 	} else {
 		/* DAD packet was:
 		   src_ip = 0 (or some src)
@@ -201,12 +199,9 @@ static int recv_pack(unsigned char *buf, int len, struct sockaddr_ll *FROM)
 		   also that it matches to dst_ip, otherwise
 		   dst_ip/dst_hw do not matter.
 		 */
-		if (src_ip.s_addr != dst.s_addr)
-			return 0;
-		if (memcmp(p, &me.sll_addr, me.sll_halen) == 0)
-			return 0;
-		if (src.s_addr && src.s_addr != dst_ip.s_addr)
-			return 0;
+		if ((memcmp(p, &me.sll_addr, me.sll_halen) == 0)
+			|| (src.s_addr && src.s_addr != dst_ip.s_addr))
+			return false;
 	}
 	if (!(option_mask32 & QUIET)) {
 		int s_printed = 0;
@@ -246,7 +241,7 @@ static int recv_pack(unsigned char *buf, int len, struct sockaddr_ll *FROM)
 		memcpy(he.sll_addr, p, me.sll_halen);
 		option_mask32 |= UNICASTING;
 	}
-	return 1;
+	return true;
 }
 
 int arping_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
@@ -256,6 +251,7 @@ int arping_main(int argc, char **argv)
 	char *source = NULL;
 	char *target;
 	unsigned char *packet;
+	char *err_str;
 
 	INIT_G();
 
@@ -265,6 +261,7 @@ int arping_main(int argc, char **argv)
 	// Need to remove SUID_NEVER from applets.h for this to work
 	//xsetuid(getuid());
 
+	err_str = xasprintf("interface %s %%s", device);
 	{
 		unsigned opt;
 		char *str_count, *str_timeout;
@@ -294,16 +291,16 @@ int arping_main(int argc, char **argv)
 		strncpy(ifr.ifr_name, device, sizeof(ifr.ifr_name) - 1);
 		/* We use ifr.ifr_name in error msg so that problem
 		 * with truncated name will be visible */
-		ioctl_or_perror_and_die(sock_fd, SIOCGIFINDEX, &ifr, "interface %s not found", ifr.ifr_name);
+		ioctl_or_perror_and_die(sock_fd, SIOCGIFINDEX, &ifr, err_str, "not found");
 		me.sll_ifindex = ifr.ifr_ifindex;
 
 		xioctl(sock_fd, SIOCGIFFLAGS, (char *) &ifr);
 
 		if (!(ifr.ifr_flags & IFF_UP)) {
-			bb_error_msg_and_die("interface %s is down", device);
+			bb_error_msg_and_die(err_str, "is down");
 		}
 		if (ifr.ifr_flags & (IFF_NOARP | IFF_LOOPBACK)) {
-			bb_error_msg("interface %s is not ARPable", device);
+			bb_error_msg(err_str, "is not ARPable");
 			return (option_mask32 & DAD ? 0 : 2);
 		}
 	}
@@ -368,7 +365,7 @@ int arping_main(int argc, char **argv)
 		}
 	}
 	if (me.sll_halen == 0) {
-		bb_error_msg("interface %s is not ARPable (no ll address)", device);
+		bb_error_msg(err_str, "is not ARPable (no ll address)");
 		return (option_mask32 & DAD ? 0 : 2);
 	}
 	he = me;
