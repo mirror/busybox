@@ -759,6 +759,7 @@ static void handler_ctrl_z(int sig)
 		return;
 	ctrl_z_flag = 1;
 	if (!pid) { /* child */
+		die_sleep = 0; /* let nofork's xfuncs die */
 		setpgrp();
 		debug_printf_jobs("set pgrp for child %d ok\n", getpid());
 		set_every_sighandler(SIG_DFL);
@@ -1899,6 +1900,7 @@ static int run_pipe(struct pipe *pi)
 
 		child->pid = BB_MMU ? fork() : vfork();
 		if (!child->pid) { /* child */
+			die_sleep = 0; /* let nofork's xfuncs die */
 #if ENABLE_HUSH_JOB
 			/* Every child adds itself to new process group
 			 * with pgid == pid_of_first_child_in_pipe */
@@ -2571,7 +2573,7 @@ static int expand_vars_to_list(char **list, int n, char **posp, char *arg, char 
 		/* Highest bit in first_ch indicates that var is double-quoted */
 		case '$': /* pid */
 			/* FIXME: (echo $$) should still print pid of main shell */
-			val = utoa(getpid());
+			val = utoa(getpid()); /* rootpid? */
 			break;
 		case '!': /* bg pid */
 			val = last_bg_pid ? utoa(last_bg_pid) : (char*)"";
@@ -3237,6 +3239,7 @@ static FILE *generate_stream_from_list(struct pipe *head)
 	if (pid < 0)
 		bb_perror_msg_and_die(BB_MMU ? "fork" : "vfork");
 	if (pid == 0) { /* child */
+		die_sleep = 0; /* let nofork's xfuncs die */
 		close(channel[0]);
 		xmove_fd(channel[1], 1);
 		/* Prevent it from trying to handle ctrl-z etc */
@@ -3250,12 +3253,13 @@ static FILE *generate_stream_from_list(struct pipe *head)
 		 * everywhere outside actual command execution. */
 		/*set_jobctrl_sighandler(SIG_IGN);*/
 		set_misc_sighandler(SIG_DFL);
-		_exit(run_list(head));   /* leaks memory */
+		/* Freeing 'head' here would break NOMMU. */
+		_exit(run_list(head));
 	}
 	close(channel[1]);
 	pf = fdopen(channel[0], "r");
 	return pf;
-	/* head is freed by the caller */
+	/* 'head' is freed by the caller */
 }
 
 /* Return code is exit status of the process that is run. */
@@ -3878,9 +3882,9 @@ int hush_main(int argc, char **argv)
 	if (interactive_fd) {
 		/* Looks like they want an interactive shell */
 		setup_job_control();
-		/* Make xfuncs do cleanup on exit */
-		die_sleep = -1; /* flag */
-// FIXME: should we reset die_sleep = 0 whereever we fork?
+		/* -1 is special - makes xfuncs longjmp on exit
+		 * (we reset die_sleep = 0 whereever we [v]fork) */
+		die_sleep = -1;
 		if (setjmp(die_jmp)) {
 			/* xfunc has failed! die die die */
 			hush_exit(xfunc_error_retval);
