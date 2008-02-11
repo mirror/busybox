@@ -3880,6 +3880,7 @@ int hush_main(int argc, char **argv)
 	}
 	debug_printf("interactive_fd=%d\n", interactive_fd);
 	if (interactive_fd) {
+		fcntl(interactive_fd, F_SETFD, FD_CLOEXEC);
 		/* Looks like they want an interactive shell */
 		setup_job_control();
 		/* -1 is special - makes xfuncs longjmp, not exit
@@ -3907,8 +3908,9 @@ int hush_main(int argc, char **argv)
 				/* give up */
 				interactive_fd = 0;
 		}
+		if (interactive_fd)
+			fcntl(interactive_fd, F_SETFD, FD_CLOEXEC);
 	}
-
 #endif
 
 	if (argv[optind] == NULL) {
