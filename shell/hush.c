@@ -3918,6 +3918,7 @@ int hush_main(int argc, char **argv)
 		global_argv = argv + optind;
 		global_argc = argc - optind;
 		input = xfopen(argv[optind], "r");
+		fcntl(fileno(input), F_SETFD, FD_CLOEXEC);
 		opt = parse_and_run_file(input);
 	}
 
