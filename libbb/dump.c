@@ -100,7 +100,7 @@ static void rewrite(FS * fs)
 			if (!fu->nextpr)
 				fu->nextpr = pr;
 			/* ignore nextpr -- its unused inside the loop and is
-			 * uninitialized 1st time thru.
+			 * uninitialized 1st time through.
 			 */
 
 			/* bb_dump_skip preceding text and up to the next % sign */

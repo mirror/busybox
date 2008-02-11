@@ -360,7 +360,7 @@ print_long_double(size_t n_bytes, const char *block, const char *fmt_string)
 }
 
 /* print_[named]_ascii are optimized for speed.
- * Remember, someday you may want to pump gigabytes thru this thing.
+ * Remember, someday you may want to pump gigabytes through this thing.
  * Saving a dozen of .text bytes here is counter-productive */
 
 static void

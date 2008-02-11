@@ -481,12 +481,12 @@ int sendgetmail_main(int argc, char **argv)
 		// make tempnam(dir, salt) respect dir argument
 		unsetenv("TMPDIR");
 
-		// TODO: piping thru external filter argv... if *argv
+		// TODO: piping through external filter argv... if *argv
 
 		// cache fetch command
 	{
 		const char *retr = (opts & OPTF_t) ? "TOP %u 0" : "RETR %u";
-		// loop thru messages
+		// loop through messages
 		for (; nmsg; nmsg--) {
 			int fd;
 			char tmp_name[sizeof("tmp/XXXXXX")];

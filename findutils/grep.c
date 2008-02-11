@@ -229,7 +229,7 @@ static int grep_file(FILE *file)
 				/* if we're just printing filenames, we stop after the first match */
 				if (PRINT_FILES_WITH_MATCHES) {
 					puts(cur_file);
-					/* fall thru to "return 1" */
+					/* fall through to "return 1" */
 				}
 				/* OPT_L aka PRINT_FILES_WITHOUT_MATCHES: return early */
 				return 1; /* one match */

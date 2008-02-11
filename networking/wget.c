@@ -614,7 +614,7 @@ int wget_main(int argc, char **argv)
 			case 206:
 				if (beg_range)
 					break;
-				/*FALLTHRU*/
+				/* fall through */
 			default:
 				/* Show first line only and kill any ESC tricks */
 				buf[strcspn(buf, "\n\r\x1b")] = '\0';
@@ -685,7 +685,7 @@ int wget_main(int argc, char **argv)
 		case 331:
 			if (ftpcmd("PASS ", str, sfp, buf) == 230)
 				break;
-			/* FALLTHRU (failed login) */
+			/* fall through (failed login) */
 		default:
 			bb_error_msg_and_die("ftp login: %s", buf+4);
 		}

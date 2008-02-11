@@ -77,7 +77,7 @@ struct globals {
 	unsigned wrote_out;          /* total stdout bytes */
 	unsigned wrote_net;          /* total net bytes */
 #endif
-	/* ouraddr is never NULL and goes thru three states as we progress:
+	/* ouraddr is never NULL and goes through three states as we progress:
 	 1 - local address before bind (IP/port possibly zero)
 	 2 - local address after bind (port is nonzero)
 	 3 - local address after connect??/recv/accept (IP and port are nonzero) */

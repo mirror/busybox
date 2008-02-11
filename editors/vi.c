@@ -1863,7 +1863,7 @@ static char *text_hole_make(char * p, int size)	// at "p", make a 'size' byte ho
 }
 
 //  close a hole in text[]
-static char *text_hole_delete(char * p, char * q) // delete "p" thru "q", inclusive
+static char *text_hole_delete(char * p, char * q) // delete "p" through "q", inclusive
 {
 	char *src, *dest;
 	int cnt, hole_size;
@@ -3245,7 +3245,7 @@ static void do_cmd(char c)
 		//
 		// dont separate these two commands. 'f' depends on ';'
 		//
-		//**** fall thru to ... ';'
+		//**** fall through to ... ';'
 	case ';':			// ;- look at rest of line for last forward char
 		if (cmdcnt-- > 1) {
 			do_cmd(';');
@@ -3456,7 +3456,7 @@ static void do_cmd(char c)
 		break;
 	case 'A':			// A- append at e-o-l
 		dot_end();		// go to e-o-l
-		//**** fall thru to ... 'a'
+		//**** fall through to ... 'a'
 	case 'a':			// a- append after current char
 		if (*dot != '\n')
 			dot++;
@@ -3511,7 +3511,7 @@ static void do_cmd(char c)
 	case 'I':			// I- insert before first non-blank
 		dot_begin();	// 0
 		dot_skip_over_ws();
-		//**** fall thru to ... 'i'
+		//**** fall through to ... 'i'
 	case 'i':			// i- insert before current char
 	case VI_K_INSERT:	// Cursor Key Insert
  dc_i:

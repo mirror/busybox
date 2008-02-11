@@ -689,7 +689,7 @@ config FETCHMAIL
 	bool "fetchmail"
 	default n
 	help
-	  Barebones fetchmail.
+	  Barebone fetchmail.
 
 config FEATURE_FETCHMAIL_APOP
 	bool "Support APOP authentication"
@@ -699,11 +699,11 @@ config FEATURE_FETCHMAIL_APOP
 	  Support secure APOP authentication.
 
 config FEATURE_FETCHMAIL_FILTER
-	bool "Pipe thru external filter"
+	bool "Pipe through external filter"
 	default n
 	depends on FETCHMAIL
 	help
-	  Support piping incoming messages thru external filter.
+	  Support piping incoming messages through external filter.
 
 config SLATTACH
 	bool "slattach"

@@ -450,7 +450,7 @@ static NOINLINE void display_process_list(int count, int scr_width)
 #endif
 
 	scr_width += 2; /* account for leading '\n' and trailing NUL */
-	/* Ok, all preliminary data is ready, go thru the list */
+	/* Ok, all preliminary data is ready, go through the list */
 	while (count-- > 0) {
 		unsigned col;
 		CALC_STAT(pmem, (s->vsz*pmem_scale + pmem_half) >> pmem_shift);
