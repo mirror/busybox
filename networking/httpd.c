@@ -1417,36 +1417,38 @@ static void send_cgi_and_exit(
 		 * If CGI really wants that, it can always do dup itself. */
 		/* dup2(1, 2); */
 
-		/* script must have absolute path */
 		script = strrchr(fullpath, '/');
 		//fullpath is a result of concat_path_file and always has '/'
 		//if (!script)
 		//	goto error_execing_cgi;
 		*script = '\0';
 		/* chdiring to script's dir */
-		if (chdir(fullpath) == 0) {
-			char *argv[2];
-#if ENABLE_FEATURE_HTTPD_CONFIG_WITH_SCRIPT_INTERPR
-			char *interpr = NULL;
-			char *suffix = strrchr(purl, '.');
+		if (chdir(script == fullpath ? "/" : fullpath) == 0) {
+			char *argv[3];
 
-			if (suffix) {
-				Htaccess *cur;
-				for (cur = script_i; cur; cur = cur->next) {
-					if (strcmp(cur->before_colon + 1, suffix) == 0) {
-						interpr = cur->after_colon;
-						break;
+			*script++ = '/'; /* repair fullpath */
+			/* set argv[0] to name without path */
+			argv[0] = script;
+			argv[1] = NULL;
+
+#if ENABLE_FEATURE_HTTPD_CONFIG_WITH_SCRIPT_INTERPR
+			{
+				char *suffix = strrchr(script, '.');
+
+				if (suffix) {
+					Htaccess *cur;
+					for (cur = script_i; cur; cur = cur->next) {
+						if (strcmp(cur->before_colon + 1, suffix) == 0) {
+							/* found interpreter name */
+							fullpath = cur->after_colon;
+							argv[0] = cur->after_colon;
+							argv[1] = script;
+							argv[2] = NULL;
+							break;
+						}
 					}
 				}
 			}
-#endif
-			*script = '/';
-			/* set argv[0] to name without path */
-			argv[0] = script + 1;
-			argv[1] = NULL;
-#if ENABLE_FEATURE_HTTPD_CONFIG_WITH_SCRIPT_INTERPR
-			if (interpr)
-				fullpath = interpr;
 #endif
 			execv(fullpath, argv);
 			if (verbose)
