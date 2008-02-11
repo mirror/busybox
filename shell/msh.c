@@ -2553,8 +2553,7 @@ static int execute(struct op *t, int *pin, int *pout, int act)
 			interactive = hinteractive;
 			if (i != -1) {
 				setval(lookup("!"), putn(i));
-				if (pin != NULL)
-					closepipe(pin);
+				closepipe(pin);
 				if (interactive) {
 					prs(putn(i));
 					prs("\n");
@@ -2689,8 +2688,8 @@ static builtin_func_ptr inbuilt(const char *s)
 static int forkexec(struct op *t, int *pin, int *pout, int act, char **wp)
 {
 	pid_t newpid;
-	int i, rv;
-	builtin_func_ptr shcom = NULL;
+	int i;
+	builtin_func_ptr bltin = NULL;
 	int f;
 	const char *cp = NULL;
 	struct ioword **iopp;
@@ -2711,7 +2710,7 @@ static int forkexec(struct op *t, int *pin, int *pout, int act, char **wp)
 	(void) &pin;
 	(void) &pout;
 	(void) &wp;
-	(void) &shcom;
+	(void) &bltin;
 	(void) &cp;
 	(void) &resetsig;
 	(void) &owp;
@@ -2724,7 +2723,6 @@ static int forkexec(struct op *t, int *pin, int *pout, int act, char **wp)
 
 	owp = wp;
 	resetsig = 0;
-	rv = -1;					/* system-detected error */
 	if (t->type == TCOM) {
 		while (*wp++ != NULL)
 			continue;
@@ -2745,17 +2743,17 @@ static int forkexec(struct op *t, int *pin, int *pout, int act, char **wp)
 			return setstatus(0);
 		}
 		if (cp != NULL) {
-			shcom = inbuilt(cp);
+			bltin = inbuilt(cp);
 		}
 	}
 
 	t->words = wp;
 	f = act;
 
-	DBGPRINTF(("FORKEXEC: shcom %p, f&FEXEC 0x%x, owp %p\n", shcom,
+	DBGPRINTF(("FORKEXEC: bltin %p, f&FEXEC 0x%x, owp %p\n", bltin,
 			   f & FEXEC, owp));
 
-	if (shcom == NULL && (f & FEXEC) == 0) {
+	if (!bltin && (f & FEXEC) == 0) {
 		/* Save values in case the child process alters them */
 		hpin = pin;
 		hpout = pout;
@@ -2783,18 +2781,13 @@ static int forkexec(struct op *t, int *pin, int *pout, int act, char **wp)
 			intr = hintr;
 			brklist = hbrklist;
 			execflg = hexecflg;
-/* moved up
-			if (i == -1)
-				return rv;
-*/
-			if (pin != NULL)
-				closepipe(pin);
 
+			closepipe(pin);
 			return (pout == NULL ? setstatus(waitfor(newpid, 0)) : 0);
 		}
 
-		/* Must be the child process, pid should be 0 */
-		DBGPRINTF(("FORKEXEC: child process, shcom=%p\n", shcom));
+		/* Child */
+		DBGPRINTF(("FORKEXEC: child process, bltin=%p\n", bltin));
 
 		if (interactive) {
 			signal(SIGINT, SIG_IGN);
@@ -2808,13 +2801,18 @@ static int forkexec(struct op *t, int *pin, int *pout, int act, char **wp)
 		execflg = 0;
 	}
 
-	if (owp != NULL)
+	if (owp)
 		while ((cp = *owp++) != NULL && assign(cp, COPYV))
-			if (shcom == NULL)
+			if (!bltin)
 				export(lookup(cp));
 
-#ifdef COMPIPE
-	if ((pin != NULL || pout != NULL) && shcom != NULL && shcom != doexec) {
+#if 1
+	/* How to fix it:
+	 * explicitly pass pin[0] and pout[1] to builtins
+	 * instead of making them rely on fd 0/1,
+	 * and do not xmove_fd(pin[0]/pout[1]) below if bltin != NULL.
+	 */
+	if ((pin || pout) && bltin && bltin != doexec) {
 		err("piping to/from shell builtins not yet done");
 		if (forked)
 			_exit(-1);
@@ -2822,20 +2820,20 @@ static int forkexec(struct op *t, int *pin, int *pout, int act, char **wp)
 	}
 #endif
 
-	if (pin != NULL) {
+	if (pin) {
 		xmove_fd(pin[0], 0);
 		if (pin[1] != 0)
 			close(pin[1]);
 	}
-	if (pout != NULL) {
+	if (pout) {
 		xmove_fd(pout[1], 1);
-		if (pout[1] != 1)
+		if (pout[0] > 1)
 			close(pout[0]);
 	}
 
 	iopp = t->ioact;
-	if (iopp != NULL) {
-		if (shcom != NULL && shcom != doexec) {
+	if (iopp) {
+		if (bltin && bltin != doexec) {
 			prs(cp);
 			err(": cannot redirect shell command");
 			if (forked)
@@ -2844,17 +2842,25 @@ static int forkexec(struct op *t, int *pin, int *pout, int act, char **wp)
 		}
 		while (*iopp)
 			if (iosetup(*iopp++, pin != NULL, pout != NULL)) {
+				/* system-detected error */
 				if (forked)
-					_exit(rv);
-				return rv;
+					_exit(-1);
+				return -1;
 			}
 	}
 
-	if (shcom) {
-		i = setstatus((*shcom) (t));
+	if (bltin) {
+		i = setstatus(bltin(t));
 		if (forked)
 			_exit(i);
 		DBGPRINTF(("FORKEXEC: returning i=%d\n", i));
+/* Builtins in pipes ("ls /dev/null | cd"):
+ * here "cd" (which is not a child) will return to main msh,
+ * and we will read from ls's output as if it is our next command!
+ * Result: "/dev/null: cannot execute"
+ * and then we reach EOF on stdin and exit.
+ * See above for possible way to fix this.
+ */
 		return i;
 	}
 
@@ -2882,7 +2888,7 @@ static int forkexec(struct op *t, int *pin, int *pout, int act, char **wp)
 
 	leave();
 	/* NOTREACHED */
-	_exit(1);
+	return 0;
 }
 
 /*
@@ -3056,7 +3062,7 @@ static const char *rexecve(char *c, char **v, char **envp)
 	int i;
 	const char *sp;
 	char *tp;
-	int eacces = 0, asis = 0;
+	int asis = 0;
 	char *name = c;
 
 	if (ENABLE_FEATURE_SH_STANDALONE) {
@@ -3104,10 +3110,6 @@ static const char *rexecve(char *c, char **v, char **envp)
 
 		case E2BIG:
 			return "argument list too long";
-
-		case EACCES:
-			eacces++;
-			break;
 		}
 	}
 	return errno == ENOENT ? "not found" : "cannot execute";
@@ -3280,8 +3282,7 @@ static int doumask(struct op *t)
 			fputc('0' + ((i >> n) & 07), stderr);
 		fputc('\n', stderr);
 	} else {
-/* huh??? '8','9' are not allowed! */
-		for (n = 0; *cp >= '0' && *cp <= '9'; cp++)
+		for (n = 0; *cp >= '0' && *cp <= '7'; cp++)
 			n = n * 8 + (*cp - '0');
 		umask(n);
 	}
@@ -4618,7 +4619,6 @@ static int readc(void)
 
 	DBGPRINTF(("READC: leave()...\n"));
 	leave();
-
 	/* NOTREACHED */
 	return 0;
 }
@@ -4628,7 +4628,6 @@ static void ioecho(char c)
 	if (FLAG['v'])
 		write(2, &c, sizeof c);
 }
-
 
 static void pushio(struct ioarg *argp, int (*fn) (struct ioarg *))
 {
@@ -4967,8 +4966,8 @@ static int openpipe(int *pv)
 static void closepipe(int *pv)
 {
 	if (pv != NULL) {
-		close(*pv++);
-		close(*pv);
+		close(pv[0]);
+		close(pv[1]);
 	}
 }
 
