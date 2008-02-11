@@ -3882,7 +3882,7 @@ int hush_main(int argc, char **argv)
 	if (interactive_fd) {
 		/* Looks like they want an interactive shell */
 		setup_job_control();
-		/* -1 is special - makes xfuncs longjmp on exit
+		/* -1 is special - makes xfuncs longjmp, not exit
 		 * (we reset die_sleep = 0 whereever we [v]fork) */
 		die_sleep = -1;
 		if (setjmp(die_jmp)) {
