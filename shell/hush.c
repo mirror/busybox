@@ -759,7 +759,8 @@ static void handler_ctrl_z(int sig)
 		return;
 	ctrl_z_flag = 1;
 	if (!pid) { /* child */
-		die_sleep = 0; /* let nofork's xfuncs die */
+		if (ENABLE_HUSH_JOB)
+			die_sleep = 0; /* let nofork's xfuncs die */
 		setpgrp();
 		debug_printf_jobs("set pgrp for child %d ok\n", getpid());
 		set_every_sighandler(SIG_DFL);
@@ -1900,7 +1901,8 @@ static int run_pipe(struct pipe *pi)
 
 		child->pid = BB_MMU ? fork() : vfork();
 		if (!child->pid) { /* child */
-			die_sleep = 0; /* let nofork's xfuncs die */
+			if (ENABLE_HUSH_JOB)
+				die_sleep = 0; /* let nofork's xfuncs die */
 #if ENABLE_HUSH_JOB
 			/* Every child adds itself to new process group
 			 * with pgid == pid_of_first_child_in_pipe */
@@ -3239,7 +3241,8 @@ static FILE *generate_stream_from_list(struct pipe *head)
 	if (pid < 0)
 		bb_perror_msg_and_die(BB_MMU ? "fork" : "vfork");
 	if (pid == 0) { /* child */
-		die_sleep = 0; /* let nofork's xfuncs die */
+		if (ENABLE_HUSH_JOB)
+			die_sleep = 0; /* let nofork's xfuncs die */
 		close(channel[0]);
 		xmove_fd(channel[1], 1);
 		/* Prevent it from trying to handle ctrl-z etc */
