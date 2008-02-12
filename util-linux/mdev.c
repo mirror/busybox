@@ -78,8 +78,12 @@ static void make_device(char *path, int delete)
 					val = strtok(vline, " \t");
 					vline = NULL;
 				} while (val && !*val);
-				if (!val)
-					break;
+				if (!val) {
+					if (field)
+						break;
+					else
+						goto next_line;
+				}
 
 				if (field == 0) {
 
