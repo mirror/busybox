@@ -158,7 +158,7 @@ int mshdbg_rc = 0;
 /*
  * library and system definitions
  */
-typedef void xint;				/* base type of jmp_buf, for not broken compilers */
+typedef void xint;                     	/* base type of jmp_buf, for not broken compilers */
 
 /*
  * shell components
@@ -172,20 +172,20 @@ typedef void xint;				/* base type of jmp_buf, for not broken compilers */
  * redirection
  */
 struct ioword {
-	short io_unit;				/* unit affected */
-	short io_flag;				/* action (below) */
-	char *io_name;				/* file name */
+	short io_unit;                  /* unit affected */
+	short io_flag;                  /* action (below) */
+	char *io_name;                  /* file name */
 };
 
-#define	IOREAD	 1				/* < */
-#define	IOHERE	 2				/* << (here file) */
-#define	IOWRITE	 4				/* > */
-#define	IOCAT	 8				/* >> */
-#define	IOXHERE	 16				/* ${}, ` in << */
-#define	IODUP	 32				/* >&digit */
-#define	IOCLOSE	 64				/* >&- */
+#define	IOREAD	 1                      /* < */
+#define	IOHERE	 2                      /* << (here file) */
+#define	IOWRITE	 4                      /* > */
+#define	IOCAT	 8                      /* >> */
+#define	IOXHERE	 16                     /* ${}, ` in << */
+#define	IODUP	 32                     /* >&digit */
+#define	IOCLOSE	 64                     /* >&- */
 
-#define	IODEFAULT (-1)			/* token for default IO unit */
+#define	IODEFAULT (-1)                  /* token for default IO unit */
 
 
 /*
@@ -193,12 +193,12 @@ struct ioword {
  * Might eventually use a union.
  */
 struct op {
-	int type;					/* operation type, see below */
-	char **words;				/* arguments to a command */
-	struct ioword **ioact;		/* IO actions (eg, < > >>) */
+	smallint type;                  /* operation type, see Txxxx below */
+	char **words;                   /* arguments to a command */
+	struct ioword **ioact;          /* IO actions (eg, < > >>) */
 	struct op *left;
 	struct op *right;
-	char *str;					/* identifier for case and for */
+	char *str;                      /* identifier for case and for */
 };
 
 #define TCOM    1       /* command */
@@ -269,9 +269,9 @@ struct brkcon {
 };
 
 
-static int trapset;				/* trap pending */
+static smallint trapset;                        /* trap pending (signal number) */
 
-static int yynerrs;				/* yacc */
+static smallint yynerrs;                        /* yacc (flag) */
 
 /* moved to G: static char line[LINELIM]; */
 
@@ -420,7 +420,7 @@ struct ioarg {
 	char **awordlist;
 	int afile;              /* file descriptor */
 	unsigned afid;          /* buffer id */
-	long afpos;             /* file position */
+	off_t afpos;            /* file position */
 	struct iobuf *afbuf;    /* buffer for this file */
 };
 
@@ -539,7 +539,7 @@ static int xxchar(struct ioarg *ap);
 
 struct here {
 	char *h_tag;
-	int h_dosub;
+	char h_dosub;
 	struct ioword *h_iop;
 	struct here *h_next;
 };
@@ -600,15 +600,15 @@ static struct op *dowholefile(int, int);
 static char **dolv;
 static int dolc;
 static int exstat;
-static char gflg;
-static int interactive;			/* Is this an interactive shell */
-static int execflg;
-static int multiline;			/* \n changed to ; */
-static struct op *outtree;		/* result from parser */
+static smallint gflg;                   /* (seems to be a parse error indicator) */
+static smallint interactive;            /* Is this an interactive shell */
+static smallint execflg;
+static smallint isbreak;                /* "break" statement was seen */
+static int multiline;                   /* '\n' changed to ';' (counter) */
+static struct op *outtree;              /* result from parser */
 static xint *failpt;
 static xint *errpt;
 static struct brkcon *brklist;
-static int isbreak;
 static struct wdblock *wdlist;
 static struct wdblock *iolist;
 
@@ -624,10 +624,10 @@ static struct var *shell;		/* shell to interpret command files */
 static struct var *ifs;			/* field separators */
 
 static int areanum;                     /* current allocation area */
-static int intr;                        /* interrupt pending */
+static smallint intr;                   /* interrupt pending (bool) */
+static smallint heedint = 1;            /* heed interrupt signals (bool) */
 static int inparse;
 static char *null = (char*)"";          /* null value for variable */
-static int heedint = 1;                 /* heed interrupt signals */
 static void (*qflag)(int) = SIG_IGN;
 static int startl;
 static int peeksym;
@@ -1560,10 +1560,11 @@ static int gmatch(const char *s, const char *p)
 static void yyerror(const char *s) ATTRIBUTE_NORETURN;
 static void yyerror(const char *s)
 {
-	yynerrs++;
+	yynerrs = 1;
 	if (interactive && global_env.iop <= iostack) {
 		multiline = 0;
-		while (eofc() == 0 && yylex(0) != '\n');
+		while (eofc() == 0 && yylex(0) != '\n')
+			continue;
 	}
 	err(s);
 	fail();
@@ -1584,7 +1585,7 @@ int yyparse(void)
 	yynerrs = 0;
 	outtree = c_list();
 	musthave('\n', 0);
-	return (yynerrs != 0);
+	return yynerrs; /* 0/1 */
 }
 
 static struct op *pipeline(int cf)
@@ -1819,7 +1820,7 @@ static struct op *command(int cf)
 	case UNTIL:
 		multiline++;
 		t = newtp();
-		t->type = c == WHILE ? TWHILE : TUNTIL;
+		t->type = (c == WHILE ? TWHILE : TUNTIL);
 		t->left = c_list();
 		t->right = dogroup(1);
 		t->words = NULL;
@@ -1916,7 +1917,7 @@ static struct op *thenpart(void)
 		return NULL;
 	}
 	t = newtp();
-	t->type = 0;
+	/*t->type = 0; - newtp() did this */
 	t->left = c_list();
 	if (t->left == NULL)
 		zzerr();
@@ -2044,8 +2045,7 @@ static struct op *block(int type, struct op *t1, struct op *t2, char **wp)
 	t->right = t2;
 	t->words = wp;
 
-	DBGPRINTF7(("BLOCK: inserted %p between %p and %p\n", t, t1,
-				t2));
+	DBGPRINTF7(("BLOCK: inserted %p between %p and %p\n", t, t1, t2));
 
 	return t;
 }
@@ -2099,12 +2099,7 @@ static struct op *newtp(void)
 	struct op *t;
 
 	t = (struct op *) tree(sizeof(*t));
-	t->type = 0;
-	t->words = NULL;
-	t->ioact = NULL;
-	t->left = NULL;
-	t->right = NULL;
-	t->str = NULL;
+	memset(t, 0, sizeof(*t));
 
 	DBGPRINTF3(("NEWTP: allocated %p\n", t));
 
@@ -2481,7 +2476,8 @@ static int execute(struct op *t, int *pin, int *pout, int act)
 
 	rv = 0;
 	a = areanum++;
-	wp = (wp2 = t->words) != NULL
+	wp2 = t->words;
+	wp = (wp2 != NULL)
 		? eval(wp2, t->type == TCOM ? DOALL : DOALL & ~DOKEY)
 		: NULL;
 
@@ -2533,7 +2529,7 @@ static int execute(struct op *t, int *pin, int *pout, int act)
 
 	case TASYNC:
 		{
-			int hinteractive = interactive;
+			smallint hinteractive = interactive;
 
 			DBGPRINTF7(("EXECUTE: TASYNC clause, calling vfork()...\n"));
 
@@ -2700,10 +2696,10 @@ static int forkexec(struct op *t, int *pin, int *pout, int act, char **wp)
 	int *hpin = pin;
 	int *hpout = pout;
 	char *hwp;
-	int hinteractive;
-	int hintr;
+	smallint hinteractive;
+	smallint hintr;
+	smallint hexecflg;
 	struct brkcon *hbrklist;
-	int hexecflg;
 
 #if __GNUC__
 	/* Avoid longjmp clobbering */
@@ -2993,7 +2989,7 @@ static int waitfor(int lastpid, int canintr)
 {
 	int pid, rv;
 	int s;
-	int oheedint = heedint;
+	smallint oheedint = heedint;
 
 	heedint = 0;
 	rv = 0;
@@ -3521,7 +3517,7 @@ static int brkcontin(char *cp, int val)
 		err("bad break/continue level");
 		return 1;
 	}
-	isbreak = val;
+	isbreak = (val != 0);
 	longjmp(bc->brkpt, 1);
 	/* NOTREACHED */
 }
@@ -3699,7 +3695,7 @@ static char **eval(char **ap, int f)
 					expand(*wf, &wb, f & ~DOGLOB);
 			}
 		}
-		for (wb = addword((char *) 0, wb); *ap; ap++) {
+		for (wb = addword((char *) NULL, wb); *ap; ap++) {
 			if (!FLAG['k'] || !isassign(*ap))
 				expand(*ap, &wb, f & ~DOKEY);
 		}
@@ -3935,13 +3931,13 @@ static int dollar(int quoted)
 			global_env.iop->task = otask;
 		if (c != '}') {
 			err("unclosed ${");
-			gflg++;
+			gflg = 1;
 			return c;
 		}
 	}
 	if (global_env.linep >= elinep) {
 		err("string in ${} too long");
-		gflg++;
+		gflg = 1;
 		global_env.linep -= 10;
 	}
 	*global_env.linep = 0;
@@ -3971,7 +3967,7 @@ static int dollar(int quoted)
 		case '=':
 			if (isdigit(*s)) {
 				err("cannot use ${...=...} with $n");
-				gflg++;
+				gflg = 1;
 				break;
 			}
 			setval(vp, cp);
@@ -3988,7 +3984,7 @@ static int dollar(int quoted)
 				err(s);
 			} else
 				err(cp);
-			gflg++;
+			gflg = 1;
 			break;
 		}
 	} else if (c == '+')
@@ -3996,7 +3992,7 @@ static int dollar(int quoted)
 	if (FLAG['u'] && dolp == null) {
 		prs("unset variable: ");
 		err(s);
-		gflg++;
+		gflg = 1;
 	}
 	global_env.linep = s;
 	PUSHIO(aword, dolp, quoted ? qstrchar : strchar);
@@ -4539,7 +4535,7 @@ static int my_getc(int ec)
 	if (global_env.linep > elinep) {
 		while ((c = readc()) != '\n' && c);
 		err("input line too long");
-		gflg++;
+		gflg = 1;
 		return c;
 	}
 	c = readc();
@@ -4638,7 +4634,7 @@ static void pushio(struct ioarg *argp, int (*fn) (struct ioarg *))
 	if (++global_env.iop >= &iostack[NPUSH]) {
 		global_env.iop--;
 		err("Shell input nested too deeply");
-		gflg++;
+		gflg = 1;
 		return;
 	}
 
@@ -5012,7 +5008,7 @@ static void markhere(char *s, struct ioword *iop)
 			*s &= ~QUOTE;
 		}
 	}
-	h->h_dosub = iop->io_flag & IOXHERE;
+	h->h_dosub = ((iop->io_flag & IOXHERE) ? '\0' : '\'');
 }
 
 static void gethere(void)
@@ -5023,7 +5019,7 @@ static void gethere(void)
 
 	/* Scan here files first leaving inhere list in place */
 	for (hp = h = inhere; h != NULL; hp = h, h = h->h_next)
-		readhere(&h->h_iop->io_name, h->h_tag, h->h_dosub ? 0 : '\'');
+		readhere(&h->h_iop->io_name, h->h_tag, h->h_dosub /* NUL or ' */);
 
 	/* Make inhere list active - keep list intact for scraphere */
 	if (hp != NULL) {
@@ -5288,7 +5284,7 @@ int msh_main(int argc, char **argv)
 					break;
 
 				case 'i':
-					interactive++;
+					interactive = 1;
 				default:
 					if (*s >= 'a' && *s <= 'z')
 						FLAG[(int) *s]++;
@@ -5324,7 +5320,7 @@ int msh_main(int argc, char **argv)
 	if (global_env.iop < iostack) {
 		PUSHIO(afile, 0, iof);
 		if (isatty(0) && isatty(1) && !cflag) {
-			interactive++;
+			interactive = 1;
 #if !ENABLE_FEATURE_SH_EXTRA_QUIET
 #ifdef MSHDEBUG
 			printf("\n\n%s built-in shell (msh with debug)\n", bb_banner);
@@ -5338,7 +5334,7 @@ int msh_main(int argc, char **argv)
 
 	signal(SIGQUIT, qflag);
 	if (name && name[0] == '-') {
-		interactive++;
+		interactive = 1;
 		f = open(".profile", O_RDONLY);
 		if (f >= 0)
 			next(remap(f));
