@@ -86,7 +86,7 @@ static char *itoa(int n)
 # include "busybox.h" /* for applet_names */
 #endif
 
-/*#define MSHDEBUG 1*/
+//#define MSHDEBUG 4
 
 #ifdef MSHDEBUG
 int mshdbg = MSHDEBUG;
@@ -244,11 +244,6 @@ static const char *const T_CMD_NAMES[] = {
 };
 #endif
 
-/*
- * actions determining the environment of a process
- */
-#define FEXEC    1      /* execute without forking */
-
 #define AREASIZE (90000)
 
 /*
@@ -402,8 +397,6 @@ struct var {
 
 static int yyparse(void);
 
-static int execute(struct op *t, int *pin, int *pout, int act);
-
 
 /* -------- io.h -------- */
 /* io buffer */
@@ -495,7 +488,8 @@ static char **getwords(struct wdblock *wb);
 
 /* -------- misc stuff -------- */
 
-static int forkexec(struct op *t, int *pin, int *pout, int act, char **wp);
+static int forkexec(struct op *t, int *pin, int *pout, int no_fork, char **wp);
+static int execute(struct op *t, int *pin, int *pout, int no_fork);
 static int iosetup(struct ioword *iop, int pipein, int pipeout);
 static void brkset(struct brkcon *bc);
 static int dolabel(struct op *t);
@@ -564,10 +558,13 @@ static const char *const signame[] = {
 };
 
 
+typedef int (*builtin_func_ptr)(struct op *);
+
 struct builtincmd {
 	const char *name;
-	int (*builtinfunc)(struct op *t);
+	builtin_func_ptr builtinfunc;
 };
+
 static const struct builtincmd builtincmds[] = {
 	{ "."       , dodot      },
 	{ ":"       , dolabel    },
@@ -1373,7 +1370,7 @@ static void onecommand(void)
 	if (!FLAG['n']) {
 		DBGPRINTF(("ONECOMMAND: calling execute, t=outtree=%p\n",
 				   outtree));
-		execute(outtree, NOPIPE, NOPIPE, 0);
+		execute(outtree, NOPIPE, NOPIPE, /* no_fork: */ 0);
 	}
 
 	if (!interactive && intr) {
@@ -2450,7 +2447,7 @@ static struct op *findcase(struct op *t, const char *w)
  * execute tree
  */
 
-static int execute(struct op *t, int *pin, int *pout, int act)
+static int execute(struct op *t, int *pin, int *pout, int no_fork)
 {
 	struct op *t1;
 	volatile int i, rv, a;
@@ -2495,17 +2492,17 @@ static int execute(struct op *t, int *pin, int *pout, int act)
 		outtree = outtree_save;
 
 		if (t->left)
-			rv = execute(t->left, pin, pout, 0);
+			rv = execute(t->left, pin, pout, /* no_fork: */ 0);
 		if (t->right)
-			rv = execute(t->right, pin, pout, 0);
+			rv = execute(t->right, pin, pout, /* no_fork: */ 0);
 		break;
 
 	case TPAREN:
-		rv = execute(t->left, pin, pout, 0);
+		rv = execute(t->left, pin, pout, /* no_fork: */ 0);
 		break;
 
 	case TCOM:
-		rv = forkexec(t, pin, pout, act, wp);
+		rv = forkexec(t, pin, pout, no_fork, wp);
 		break;
 
 	case TPIPE:
@@ -2517,14 +2514,14 @@ static int execute(struct op *t, int *pin, int *pout, int act)
 				break;
 			pv[0] = remap(pv[0]);
 			pv[1] = remap(pv[1]);
-			(void) execute(t->left, pin, pv, 0);
-			rv = execute(t->right, pv, pout, 0);
+			(void) execute(t->left, pin, pv, /* no_fork: */ 0);
+			rv = execute(t->right, pv, pout, /* no_fork: */ 0);
 		}
 		break;
 
 	case TLIST:
-		(void) execute(t->left, pin, pout, 0);
-		rv = execute(t->right, pin, pout, 0);
+		(void) execute(t->left, pin, pout, /* no_fork: */ 0);
+		rv = execute(t->right, pin, pout, /* no_fork: */ 0);
 		break;
 
 	case TASYNC:
@@ -2544,7 +2541,7 @@ static int execute(struct op *t, int *pin, int *pout, int act)
 					close(0);
 					xopen(bb_dev_null, O_RDONLY);
 				}
-				_exit(execute(t->left, pin, pout, FEXEC));
+				_exit(execute(t->left, pin, pout, /* no_fork: */ 1));
 			}
 			interactive = hinteractive;
 			if (i != -1) {
@@ -2562,10 +2559,10 @@ static int execute(struct op *t, int *pin, int *pout, int act)
 
 	case TOR:
 	case TAND:
-		rv = execute(t->left, pin, pout, 0);
+		rv = execute(t->left, pin, pout, /* no_fork: */ 0);
 		t1 = t->right;
 		if (t1 != NULL && (rv == 0) == (t->type == TAND))
-			rv = execute(t1, pin, pout, 0);
+			rv = execute(t1, pin, pout, /* no_fork: */ 0);
 		break;
 
 	case TFOR:
@@ -2585,7 +2582,7 @@ static int execute(struct op *t, int *pin, int *pout, int act)
 		brkset(&bc);
 		for (t1 = t->left; i-- && *wp != NULL;) {
 			setval(vp, *wp++);
-			rv = execute(t1, pin, pout, 0);
+			rv = execute(t1, pin, pout, /* no_fork: */ 0);
 		}
 		brklist = brklist->nextlev;
 		break;
@@ -2597,17 +2594,17 @@ static int execute(struct op *t, int *pin, int *pout, int act)
 				goto broken;
 		brkset(&bc);
 		t1 = t->left;
-		while ((execute(t1, pin, pout, 0) == 0) == (t->type == TWHILE))
-			rv = execute(t->right, pin, pout, 0);
+		while ((execute(t1, pin, pout, /* no_fork: */ 0) == 0) == (t->type == TWHILE))
+			rv = execute(t->right, pin, pout, /* no_fork: */ 0);
 		brklist = brklist->nextlev;
 		break;
 
 	case TIF:
 	case TELIF:
 		if (t->right != NULL) {
-			rv = !execute(t->left, pin, pout, 0) ?
-				execute(t->right->left, pin, pout, 0) :
-				execute(t->right->right, pin, pout, 0);
+			rv = !execute(t->left, pin, pout, /* no_fork: */ 0) ?
+				execute(t->right->left, pin, pout, /* no_fork: */ 0) :
+				execute(t->right->right, pin, pout, /* no_fork: */ 0);
 		}
 		break;
 
@@ -2623,7 +2620,7 @@ static int execute(struct op *t, int *pin, int *pout, int act)
 		t1 = findcase(t->left, cp);
 		if (t1 != NULL) {
 			DBGPRINTF7(("EXECUTE: TCASE, calling execute(t=%p, t1=%p)...\n", t, t1));
-			rv = execute(t1, pin, pout, 0);
+			rv = execute(t1, pin, pout, /* no_fork: */ 0);
 			DBGPRINTF7(("EXECUTE: TCASE, back from execute(t=%p, t1=%p)...\n", t, t1));
 		}
 		break;
@@ -2641,7 +2638,7 @@ static int execute(struct op *t, int *pin, int *pout, int act)
 		if (rv >= 0) {
 			t1 = t->left;
 			if (t1) {
-				rv = execute(t1, pin, pout, 0);
+				rv = execute(t1, pin, pout, /* no_fork: */ 0);
 			}
 		}
 		break;
@@ -2669,8 +2666,6 @@ static int execute(struct op *t, int *pin, int *pout, int act)
 	return rv;
 }
 
-typedef int (*builtin_func_ptr)(struct op *);
-
 static builtin_func_ptr inbuilt(const char *s)
 {
 	const struct builtincmd *bp;
@@ -2681,17 +2676,17 @@ static builtin_func_ptr inbuilt(const char *s)
 	return NULL;
 }
 
-static int forkexec(struct op *t, int *pin, int *pout, int act, char **wp)
+static int forkexec(struct op *t, int *pin, int *pout, int no_fork, char **wp)
 {
 	pid_t newpid;
 	int i;
 	builtin_func_ptr bltin = NULL;
-	int f;
-	const char *cp = NULL;
+	const char *bltin_name = NULL;
+	const char *cp;
 	struct ioword **iopp;
 	int resetsig;
 	char **owp;
-	int forked = 0;
+	int forked;
 
 	int *hpin = pin;
 	int *hpout = pout;
@@ -2712,11 +2707,10 @@ static int forkexec(struct op *t, int *pin, int *pout, int act, char **wp)
 	(void) &owp;
 #endif
 
-	DBGPRINTF(("FORKEXEC: t=%p, pin %p, pout %p, act %d\n", t, pin,
-			   pout, act));
+	DBGPRINTF(("FORKEXEC: t=%p, pin %p, pout %p, no_fork %d\n", t, pin,
+			pout, no_fork));
 	DBGPRINTF7(("FORKEXEC: t->words is %s\n",
-				((t->words == NULL) ? "NULL" : t->words[0])));
-
+			((t->words == NULL) ? "NULL" : t->words[0])));
 	owp = wp;
 	resetsig = 0;
 	if (t->type == TCOM) {
@@ -2725,32 +2719,36 @@ static int forkexec(struct op *t, int *pin, int *pout, int act, char **wp)
 		cp = *wp;
 
 		/* strip all initial assignments */
-		/* not correct wrt PATH=yyy command  etc */
+		/* FIXME: not correct wrt PATH=yyy command etc */
 		if (FLAG['x']) {
 			DBGPRINTF9(("FORKEXEC: echo'ing, cp=%p, wp=%p, owp=%p\n",
 						cp, wp, owp));
 			echo(cp ? wp : owp);
 		}
 
-		if (cp == NULL && t->ioact == NULL) {
-			while ((cp = *owp++) != NULL && assign(cp, COPYV))
-				continue;
-			DBGPRINTF(("FORKEXEC: returning setstatus()\n"));
-			return setstatus(0);
-		}
-		if (cp != NULL) {
+		if (cp == NULL) {
+			if (t->ioact == NULL) {
+				while ((cp = *owp++) != NULL && assign(cp, COPYV))
+					continue;
+				DBGPRINTF(("FORKEXEC: returning setstatus(0)\n"));
+				return setstatus(0);
+			}
+		} else { /* cp != NULL */
+			bltin_name = cp;
 			bltin = inbuilt(cp);
 		}
 	}
 
+	forked = 0;
 	t->words = wp;
-	f = act;
-
-	DBGPRINTF(("FORKEXEC: bltin %p, f&FEXEC 0x%x, owp %p\n", bltin,
-			   f & FEXEC, owp));
-
-	if (!bltin && (f & FEXEC) == 0) {
-		/* Save values in case the child process alters them */
+	DBGPRINTF(("FORKEXEC: bltin %p, no_fork %d, owp %p\n", bltin,
+			no_fork, owp));
+	/* Don't fork if it is a lone builtin (not in pipe)
+	 * OR we are told to _not_ fork */
+	if ((!bltin || pin || pout)   /* not lone bltin AND */
+	 && !no_fork                  /* not told to avoid fork */
+	) {
+		/* Save values in case child alters them after vfork */
 		hpin = pin;
 		hpout = pout;
 		hwp = *wp;
@@ -2760,9 +2758,7 @@ static int forkexec(struct op *t, int *pin, int *pout, int act, char **wp)
 		hexecflg = execflg;
 
 		DBGPRINTF3(("FORKEXEC: calling vfork()...\n"));
-
 		newpid = vfork();
-
 		if (newpid == -1) {
 			DBGPRINTF(("FORKEXEC: ERROR, cannot vfork()!\n"));
 			return -1;
@@ -2783,8 +2779,7 @@ static int forkexec(struct op *t, int *pin, int *pout, int act, char **wp)
 		}
 
 		/* Child */
-		DBGPRINTF(("FORKEXEC: child process, bltin=%p\n", bltin));
-
+		DBGPRINTF(("FORKEXEC: child process, bltin=%p (%s)\n", bltin, bltin_name));
 		if (interactive) {
 			signal(SIGINT, SIG_IGN);
 			signal(SIGQUIT, SIG_IGN);
@@ -2802,20 +2797,6 @@ static int forkexec(struct op *t, int *pin, int *pout, int act, char **wp)
 			if (!bltin)
 				export(lookup(cp));
 
-#if 1
-	/* How to fix it:
-	 * explicitly pass pin[0] and pout[1] to builtins
-	 * instead of making them rely on fd 0/1,
-	 * and do not xmove_fd(pin[0]/pout[1]) below if bltin != NULL.
-	 */
-	if ((pin || pout) && bltin && bltin != doexec) {
-		err("piping to/from shell builtins not yet done");
-		if (forked)
-			_exit(-1);
-		return -1;
-	}
-#endif
-
 	if (pin) {
 		xmove_fd(pin[0], 0);
 		if (pin[1] != 0)
@@ -2830,33 +2811,36 @@ static int forkexec(struct op *t, int *pin, int *pout, int act, char **wp)
 	iopp = t->ioact;
 	if (iopp) {
 		if (bltin && bltin != doexec) {
-			prs(cp);
+			prs(bltin_name);
 			err(": cannot redirect shell command");
 			if (forked)
 				_exit(-1);
 			return -1;
 		}
-		while (*iopp)
+		while (*iopp) {
 			if (iosetup(*iopp++, pin != NULL, pout != NULL)) {
 				/* system-detected error */
 				if (forked)
 					_exit(-1);
 				return -1;
 			}
+		}
 	}
 
 	if (bltin) {
+		if (forked || pin || pout) {
+			/* Builtin in pipe: disallowed */
+			/* TODO: allow "exec"? */
+			prs(bltin_name);
+			err(": cannot run builtin as part of pipe");
+			if (forked)
+				_exit(-1);
+			return -1;
+		}
 		i = setstatus(bltin(t));
 		if (forked)
 			_exit(i);
 		DBGPRINTF(("FORKEXEC: returning i=%d\n", i));
-/* Builtins in pipes ("ls /dev/null | cd"):
- * here "cd" (which is not a child) will return to main msh,
- * and we will read from ls's output as if it is our next command!
- * Result: "/dev/null: cannot execute"
- * and then we reach EOF on stdin and exit.
- * See above for possible way to fix this.
- */
 		return i;
 	}
 
@@ -2869,7 +2853,7 @@ static int forkexec(struct op *t, int *pin, int *pout, int act, char **wp)
 	}
 
 	if (t->type == TPAREN)
-		_exit(execute(t->left, NOPIPE, NOPIPE, FEXEC));
+		_exit(execute(t->left, NOPIPE, NOPIPE, /* no_fork: */ 1));
 	if (wp[0] == NULL)
 		_exit(0);
 
@@ -2880,7 +2864,7 @@ static int forkexec(struct op *t, int *pin, int *pout, int act, char **wp)
 	if (!execflg)
 		trap[0] = NULL;
 
-	DBGPRINTF(("FORKEXEC: calling leave(), pid=%d\n", newpid));
+	DBGPRINTF(("FORKEXEC: calling leave(), pid=%d\n", getpid()));
 
 	leave();
 	/* NOTREACHED */
@@ -2927,6 +2911,7 @@ static int iosetup(struct ioword *iop, int pipein, int pipeout)
 			iop->io_flag = IOCLOSE;
 		iop->io_flag &= ~(IOREAD | IOWRITE);
 	}
+
 	switch (iop->io_flag) {
 	case IOREAD:
 		u = open(cp, O_RDONLY);
@@ -2944,6 +2929,8 @@ static int iosetup(struct ioword *iop, int pipein, int pipeout)
 			lseek(u, (long) 0, SEEK_END);
 			break;
 		}
+		/* fall through to creation if >>file doesn't exist */
+
 	case IOWRITE:
 		u = creat(cp, 0666);
 		break;
@@ -2956,6 +2943,7 @@ static int iosetup(struct ioword *iop, int pipein, int pipeout)
 		close(iop->io_unit);
 		return 0;
 	}
+
 	if (u < 0) {
 		prs(cp);
 		prs(": cannot ");
@@ -3148,7 +3136,7 @@ static int run(struct ioarg *argp, int (*f) (struct ioarg *))
 		yynerrs = 0;
 		failpt = rt;
 		if (setjmp(failpt) == 0 && yyparse() == 0)
-			rv = execute(outtree, NOPIPE, NOPIPE, 0);
+			rv = execute(outtree, NOPIPE, NOPIPE, /* no_fork: */ 0);
 		quitenv();
 	} else {
 		DBGPRINTF(("RUN: error from newenv()!\n"));
@@ -3267,20 +3255,21 @@ static int dologin(struct op *t)
 
 static int doumask(struct op *t)
 {
-	int i, n;
+	int i;
 	char *cp;
 
 	cp = t->words[1];
 	if (cp == NULL) {
 		i = umask(0);
 		umask(i);
-		for (n = 3 * 4; (n -= 3) >= 0;)
-			fputc('0' + ((i >> n) & 07), stderr);
-		fputc('\n', stderr);
+		printf("%04o\n", i);
 	} else {
-		for (n = 0; *cp >= '0' && *cp <= '7'; cp++)
-			n = n * 8 + (*cp - '0');
-		umask(n);
+		i = bb_strtou(cp, NULL, 8);
+		if (errno) {
+			err("umask: bad octal number");
+			return 1;
+		}
+		umask(i);
 	}
 	return 0;
 }
@@ -3292,14 +3281,15 @@ static int doexec(struct op *t)
 	xint *ofail;
 
 	t->ioact = NULL;
-	for (i = 0; (t->words[i] = t->words[i + 1]) != NULL; i++);
+	for (i = 0; (t->words[i] = t->words[i + 1]) != NULL; i++)
+		continue;
 	if (i == 0)
 		return 1;
 	execflg = 1;
 	ofail = failpt;
 	failpt = ex;
 	if (setjmp(failpt) == 0)
-		execute(t, NOPIPE, NOPIPE, FEXEC);
+		execute(t, NOPIPE, NOPIPE, /* no_fork: */ 1);
 	failpt = ofail;
 	execflg = 0;
 	return 1;
