@@ -2825,11 +2825,13 @@ static int forkexec(struct op *t, int *pin, int *pout, int act, char **wp)
 
 	if (pin != NULL) {
 		xmove_fd(pin[0], 0);
-		if (pin[1] != 0) close(pin[1]);
+		if (pin[1] != 0)
+			close(pin[1]);
 	}
 	if (pout != NULL) {
 		xmove_fd(pout[1], 1);
-		if (pout[1] != 1) close(pout[0]);
+		if (pout[1] != 1)
+			close(pout[0]);
 	}
 
 	iopp = t->ioact;
@@ -4162,7 +4164,7 @@ static int grave(int quoted)
 		return 0;
 	}
 	if (i != 0) {
-		waitpid(i, NULL, 0);
+		waitpid(i, NULL, 0); // safe_waitpid?
 		global_env.iop->argp->aword = ++cp;
 		close(pf[1]);
 		PUSHIO(afile, remap(pf[0]),
@@ -4181,7 +4183,8 @@ static int grave(int quoted)
 	 *  echo "$files" >zz
 	 */
 	xmove_fd(pf[1], 1);
-	if (pf[0] != 1) close(pf[0]);
+	if (pf[0] != 1)
+		close(pf[0]);
 
 	argument_list[0] = (char *) DEFAULT_SHELL;
 	argument_list[1] = (char *) "-c";
@@ -4834,9 +4837,11 @@ static int filechar(struct ioarg *ap)
 		static int position = 0, size = 0;
 
 		while (size == 0 || position >= size) {
-			read_line_input(current_prompt, filechar_cmdbuf, BUFSIZ, line_input_state);
-			size = strlen(filechar_cmdbuf);
+			size = read_line_input(current_prompt, filechar_cmdbuf, BUFSIZ, line_input_state);
+			if (size < 0) /* Error/EOF */
+				exit(0);
 			position = 0;
+			/* if Ctrl-C, size == 0 and loop will repeat */
 		}
 		c = filechar_cmdbuf[position];
 		position++;

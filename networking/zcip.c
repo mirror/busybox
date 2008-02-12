@@ -180,7 +180,7 @@ int zcip_main(int argc, char **argv)
 	char *r_opt;
 	unsigned opts;
 
-	/* Ugly trick, but I want these zeroed in one go */
+	// ugly trick, but I want these zeroed in one go
 	struct {
 		const struct in_addr null_ip;
 		const struct ether_addr null_addr;
@@ -214,8 +214,17 @@ int zcip_main(int argc, char **argv)
 	// exactly 2 args; -v accumulates and implies -f
 	opt_complementary = "=2:vv:vf";
 	opts = getopt32(argv, "fqr:v", &r_opt, &verbose);
+#if !BB_MMU
+	// on NOMMU reexec early (or else we will rerun things twice)
+	if (!FOREGROUND)
+		bb_daemonize_or_rexec(DAEMON_CHDIR_ROOT, argv);
+#endif
+	// open an ARP socket
+	// (need to do it before openlog to prevent openlog from taking
+	// fd 3 (sock_fd==3))
+	xmove_fd(xsocket(AF_PACKET, SOCK_PACKET, htons(ETH_P_ARP)), sock_fd);
 	if (!FOREGROUND) {
-		/* Do it early, before all bb_xx_msg calls */
+		// do it before all bb_xx_msg calls
 		openlog(applet_name, 0, LOG_DAEMON);
 		logmode |= LOGMODE_SYSLOG;
 	}
@@ -226,11 +235,6 @@ int zcip_main(int argc, char **argv)
 			bb_error_msg_and_die("invalid link address");
 		}
 	}
-	// On NOMMU reexec early (or else we will rerun things twice)
-#if !BB_MMU
-	if (!FOREGROUND)
-		bb_daemonize_or_rexec(DAEMON_CHDIR_ROOT, argv);
-#endif
 	argc -= optind;
 	argv += optind;
 
@@ -249,8 +253,6 @@ int zcip_main(int argc, char **argv)
 	//TODO: are we leaving sa_family == 0 (AF_UNSPEC)?!
 	safe_strncpy(saddr.sa_data, intf, sizeof(saddr.sa_data));
 
-	// open an ARP socket
-	xmove_fd(xsocket(AF_PACKET, SOCK_PACKET, htons(ETH_P_ARP)), sock_fd);
 	// bind to the interface's ARP socket
 	xbind(sock_fd, &saddr, sizeof(saddr));
 
@@ -290,7 +292,7 @@ int zcip_main(int argc, char **argv)
 	// restarting after address conflicts:
 	//  - start with some address we want to try
 	//  - short random delay
-	//  - arp probes to see if another host else uses it
+	//  - arp probes to see if another host uses it
 	//  - arp announcements that we're claiming it
 	//  - use it
 	//  - defend it, within limits
@@ -321,7 +323,7 @@ int zcip_main(int argc, char **argv)
 		switch (safe_poll(fds, 1, timeout_ms)) {
 
 		default:
-			/*bb_perror_msg("poll"); - done in safe_poll */
+			//bb_perror_msg("poll"); - done in safe_poll
 			return EXIT_FAILURE;
 
 		// timeout

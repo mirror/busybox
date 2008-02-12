@@ -641,6 +641,9 @@ enum {
   void re_exec(char **argv) ATTRIBUTE_NORETURN;
   void forkexit_or_rexec(char **argv);
   extern bool re_execed;
+  int  BUG_fork_is_unavailable_on_nommu(void);
+  int  BUG_daemon_is_unavailable_on_nommu(void);
+  void BUG_bb_daemonize_is_unavailable_on_nommu(void);
 # define fork()          BUG_fork_is_unavailable_on_nommu()
 # define daemon(a,b)     BUG_daemon_is_unavailable_on_nommu()
 # define bb_daemonize(a) BUG_bb_daemonize_is_unavailable_on_nommu()
@@ -950,10 +953,9 @@ enum {
 };
 line_input_t *new_line_input_t(int flags);
 /* Returns:
- * -1 on read errors or EOF, or on bare Ctrl-D.
- * 0  on ctrl-C,
+ * -1 on read errors or EOF, or on bare Ctrl-D,
+ * 0  on ctrl-C (the line entered is still returned in 'command'),
  * >0 length of input string, including terminating '\n'
- * [is this true? stores "" in 'command' if return value is 0 or -1]
  */
 int read_line_input(const char* prompt, char* command, int maxsize, line_input_t *state);
 #else
