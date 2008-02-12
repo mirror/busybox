@@ -5337,19 +5337,22 @@ int msh_main(int argc, char **argv)
 
 	if (signal(SIGINT, SIG_IGN) != SIG_IGN)
 		signal(SIGINT, onintr);
+
+/* Handle "msh SCRIPT VAR=val params..." */
+/* Disabled: bash does not do it! */
+#if 0
+	argv++;
+	/* skip leading args of the form VAR=val */
+	while (*argv && assign(*argv, !COPYV)) {
+		argc--;
+		argv++;
+	}
+	argv--;
+#endif
 	dolv = argv;
 	dolc = argc;
 	dolv[0] = name;
-	if (dolc > 1) {
-		for (ap = ++argv; --argc > 0;) {
-			*ap = *argv++;
-			if (assign(*ap, !COPYV)) {
-				dolc--;			/* keyword */
-			} else {
-				ap++;
-			}
-		}
-	}
+
 	setval(lookup("#"), putn((--dolc < 0) ? (dolc = 0) : dolc));
 
 	DBGPRINTF(("MSH_MAIN: begin FOR loop, interactive %d, global_env.iop %p, iostack %p\n", interactive, global_env.iop, iostack));
