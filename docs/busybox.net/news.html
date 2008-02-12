@@ -1,6 +1,19 @@
 <!--#include file="header.html" -->
 
 <ul>
+  <li><b>12 February 2008 -- BusyBox 1.9.1 (stable)</b>
+    <p><a href=http://busybox.net/downloads/busybox-1.9.1.tar.bz2>BusyBox 1.9.1</a>.
+    (<a href=http://busybox.net/cgi-bin/viewcvs.cgi/branches/busybox_1_9_stable/>svn</a>,
+    <a href=http://busybox.net/downloads/fixes-1.9.1/>patches</a>,
+    <a href=http://busybox.net/fix.html>how to add a patch</a>)</p>
+
+    <p>This is a bugfix-only release, with fixes to fsck,
+    iproute, mdev, mkswap, msh, nameif, stty, test, zcip.</p>
+    <p>hush has `command` expansion re-enabled for NOMMU, although it is
+    inherently unsafe (by virtue of NOMMU's use of vfork instead of fork).
+    Plan to make this less likely to bite people in future versions.</p>
+  </li>
+
   <li><b>24 December 2007 -- BusyBox 1.9.0 (unstable)</b>
     <p><a href=http://busybox.net/downloads/busybox-1.9.0.tar.bz2>BusyBox 1.9.0</a>.
     (<a href=http://busybox.net/cgi-bin/viewcvs.cgi/branches/busybox_1_9_stable/>svn</a>,
