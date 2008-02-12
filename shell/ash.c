@@ -51,7 +51,9 @@
 #endif
 
 #if DEBUG
+#ifndef _GNU_SOURCE
 #define _GNU_SOURCE
+#endif
 #endif
 #include "busybox.h" /* for applet_names */
 #include <paths.h>
@@ -6500,7 +6502,7 @@ struct builtincmd {
 	/* unsigned flags; */
 };
 #define IS_BUILTIN_SPECIAL(b) ((b)->name[0] & 1)
-/* "regular" bltins always take precedence over commands,
+/* "regular" builtins always take precedence over commands,
  * regardless of PATH=....%builtin... position */
 #define IS_BUILTIN_REGULAR(b) ((b)->name[0] & 2)
 #define IS_BUILTIN_ASSIGN(b)  ((b)->name[0] & 4)
