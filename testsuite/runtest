@@ -1,5 +1,8 @@
 #!/bin/sh
 
+# Usage:
+# runtest [applet1] [applet2...]
+
 # Run one old-style test.
 # Tests are stored in applet/testcase shell scripts.
 # They are run using "sh -x -e applet/testcase".

@@ -32,7 +32,7 @@ enum {
 	FLAG_u  = 8,            /* Unique */
 	FLAG_c  = 0x10,         /* Check: no output, exit(!ordered) */
 	FLAG_s  = 0x20,         /* Stable sort, no ascii fallback at end */
-	FLAG_z  = 0x40,         /* Input is null terminated, not \n */
+	FLAG_z  = 0x40,         /* Input and output is NUL terminated, not \n */
 /* These can be applied to search keys, the previous four can't */
 	FLAG_b  = 0x80,         /* Ignore leading blanks */
 	FLAG_r  = 0x100,        /* Reverse */
@@ -396,8 +396,9 @@ int sort_main(int argc, char **argv)
 		if (linecount) linecount = flag+1;
 	}
 	/* Print it */
+	flag = (option_mask32 & FLAG_z) ? '\0' : '\n';
 	for (i = 0; i < linecount; i++)
-		fprintf(outfile, "%s\n", lines[i]);
+		fprintf(outfile, "%s%c", lines[i], flag);
 
 	fflush_stdout_and_exit(EXIT_SUCCESS);
 }

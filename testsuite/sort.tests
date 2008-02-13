@@ -107,6 +107,12 @@ a c
 b c
 " ""
 
+testing "sort -z outputs NUL terminated lines" "sort -z input" "\
+one\0three\0two\0\
+" "\
+one\0two\0three\0\
+" ""
+
 testing "sort key doesn't strip leading blanks, disables fallback global sort" \
 "sort -n -k2 -t ' '" " a \n 1 \n 2 \n" "" " 2 \n 1 \n a \n"
 
