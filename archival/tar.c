@@ -28,6 +28,11 @@
 #include "libbb.h"
 #include "unarchive.h"
 
+/* FIXME: Stop using this non-standard feature */
+#ifndef FNM_LEADING_DIR
+#define FNM_LEADING_DIR 0
+#endif
+
 #define block_buf bb_common_bufsiz1
 
 #if ENABLE_FEATURE_TAR_CREATE

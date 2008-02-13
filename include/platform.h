@@ -268,12 +268,6 @@ static ALWAYS_INLINE char* strchrnul(const char *s, char c)
 # define lchown chown
 #endif
 
-/* THIS SHOULD BE CLEANED OUT OF THE TREE ENTIRELY */
-/* FIXME: fix tar.c! */
-#ifndef FNM_LEADING_DIR
-#define FNM_LEADING_DIR 0
-#endif
-
 #if (defined __digital__ && defined __unix__)
 #include <standards.h>
 #define HAVE_STANDARDS_H
