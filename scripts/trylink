@@ -47,15 +47,19 @@ try() {
 }
 
 check_cc() {
-    if $CC $1 -shared -o /dev/null -xc /dev/null >/dev/null 2>&1; then
+    local tempname="/tmp/temp.$$.$RANDOM"
+    # Can use "-o /dev/null", but older gcc tend to *unlink it* on failure! :(
+    # "-xc": C language. "/dev/null" is an empty source file.
+    if $CC $1 -shared -xc /dev/null -o "$tempname".o >/dev/null 2>&1; then
 	echo "$1";
     else
 	echo "$2";
     fi
+    rm "$tempname".o 2>/dev/null
 }
 
 check_libc_is_glibc() {
-    local tempname="/tmp/temp.$$.$RANDOM.c"
+    local tempname="/tmp/temp.$$.$RANDOM"
     echo "\
 	#include <stdlib.h>
 	/* Apparently uclibc defines __GLIBC__ (compat trick?). Oh well. */
@@ -63,12 +67,12 @@ check_libc_is_glibc() {
 	syntax error here
 	#endif
 	" >"$tempname"
-    if $CC "$tempname" -c -o /dev/null >/dev/null 2>&1; then
+    if $CC "$tempname".c -c -o "$tempname".o >/dev/null 2>&1; then
 	echo "$2";
     else
 	echo "$1";
     fi
-    rm "$tempname"
+    rm "$tempname".c "$tempname".o 2>/dev/null
 }
 
 EXE="$1"
