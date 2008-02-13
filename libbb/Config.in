@@ -102,6 +102,21 @@ config FEATURE_EDITING_FANCY_PROMPT
 	  Setting this option allows for prompts to use things like \w and
 	  \$ and escape codes.
 
+config FEATURE_VERBOSE_CP_MESSAGE
+	bool "Give more precise messages when copy fails (cp, mv etc)"
+	default n
+	help
+	  Error messages with this feature enabled:
+	    $ cp file /does_not_exist/file
+	    cp: cannot create '/does_not_exist/file': Path does not exist
+	    $ cp file /vmlinuz/file
+	    cp: cannot stat '/vmlinuz/file': Path has non-directory component
+	  If this feature is not enabled, they will be, respectively:
+	    cp: cannot remove '/does_not_exist/file': No such file or directory
+	    cp: cannot stat '/vmlinuz/file': Not a directory
+	  respectively.
+	  This will cost you ~60 bytes.
+
 config FEATURE_COPYBUF_KB
 	int "Copy buffer size, in kilobytes"
 	range 1 1024

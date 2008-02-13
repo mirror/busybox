@@ -27,6 +27,12 @@ int cp_mv_stat2(const char *fn, struct stat *fn_stat, stat_func sf)
 {
 	if (sf(fn, fn_stat) < 0) {
 		if (errno != ENOENT) {
+#if ENABLE_FEATURE_VERBOSE_CP_MESSAGE
+			if (errno == ENOTDIR) {
+				bb_error_msg("cannot stat '%s': Path has non-directory component", fn);
+				return -1;
+			}
+#endif
 			bb_perror_msg("cannot stat '%s'", fn);
 			return -1;
 		}

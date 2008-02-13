@@ -29,6 +29,7 @@
 // for POSIX mode to give reasonable error message
 static int ask_and_unlink(const char *dest, int flags)
 {
+	int e = errno;
 #if DO_POSIX_CP
 	if (!(flags & (FILEUTILS_FORCE|FILEUTILS_INTERACTIVE))) {
 		// Either it exists, or the *path* doesnt exist
@@ -50,7 +51,16 @@ static int ask_and_unlink(const char *dest, int flags)
 			return 0; // not allowed to overwrite
 	}
 	if (unlink(dest) < 0) {
-		bb_perror_msg("cannot remove '%s'", dest);
+#if ENABLE_FEATURE_VERBOSE_CP_MESSAGE
+		if (e == errno && e == ENOENT) {
+			/* e == ENOTDIR is similar: path has non-dir component,
+			 * but in this case we don't even reach copy_file() */
+			bb_error_msg("cannot create '%s': Path does not exist", dest);
+			return -1; // error
+		}
+#endif
+		errno = e;
+		bb_perror_msg("cannot create '%s'", dest);
 		return -1; // error
 	}
 	return 1; // ok (to try again)
