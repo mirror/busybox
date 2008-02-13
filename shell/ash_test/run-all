@@ -1,6 +1,9 @@
 #!/bin/sh
 
-test -x ash || { echo "No ./ash?!"; exit; }
+test -x ash || {
+    echo "No ./ash?! Perhaps you want to run 'ln -s ../../busybox ash'"
+    exit
+}
 test -x printenv || gcc -O2 -o printenv printenv.c || exit $?
 test -x recho    || gcc -O2 -o recho    recho.c    || exit $?
 test -x zecho    || gcc -O2 -o zecho    zecho.c    || exit $?
@@ -50,6 +53,7 @@ if [ $# -lt 1 ]; then
     modules=`ls -d ash-*`
 
     for module in $modules; do
+	echo do_test $module
 	do_test $module
     done
 else

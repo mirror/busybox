@@ -1,0 +1,24 @@
+sleeping=true
+
+trap "echo got signal" USR1
+
+for try in 1 2 3 4 5; do
+    kill -USR1 $$
+    sleep 1
+    echo sent $try signal
+done &
+
+sleep 10 &
+
+while $sleeping; do
+    trap
+    if wait %%; then
+        echo sleep completed
+        sleeping=false
+    elif [ $? == 127 ]; then
+        echo no sleep tonite
+        sleeping=false
+    else
+        echo sleep interrupted;
+    fi
+done
