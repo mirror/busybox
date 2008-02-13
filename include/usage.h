@@ -2335,14 +2335,17 @@ USE_FEATURE_BRCTL_FANCY("\n" \
        "$ mknod -m 644 /tmp/pipe p\n"
 
 #define mkswap_trivial_usage \
-       "[-c] [-v0|-v1] device [block-count]"
+       "DEVICE"
 #define mkswap_full_usage \
-       "Prepare a disk partition to be used as swap partition" \
-       "\n\nOptions:\n" \
-       "	-c		Check for read-ability\n" \
-       "	-v0		Make version 0 swap [max 128 Megs]\n" \
-       "	-v1		Make version 1 swap [big!] (default for kernels > 2.1.117)\n" \
-       "	block-count	Number of block to use (default is entire partition)"
+       "Prepare block device to be used as swap partition"
+#if 0
+       "[-c] [-v0|-v1] DEVICE [BLOCKS]"
+       "\n\nOptions:"
+     "\n	-c	Check for readability"
+     "\n	-v0	Make swap version 0 (max 128M)"
+     "\n	-v1	Make swap version 1 (default for kernels > 2.1.117)"
+     "\n	BLOCKS	Number of blocks to use (default is entire partition)"
+#endif
 
 #define mktemp_trivial_usage \
        "[-dt] [-p DIR] TEMPLATE"
@@ -3312,34 +3315,36 @@ USE_FEATURE_RUN_PARTS_FANCY("\n	-l	Prints names of all matching files even when 
 
 #define sort_trivial_usage \
        "[-nru" \
-	USE_FEATURE_SORT_BIG("gMcszbdfimSTokt] [-o outfile] [-k start[.offset][opts][,end[.offset][opts]] [-t char") \
+	USE_FEATURE_SORT_BIG("gMcszbdfimSTokt] [-o FILE] [-k start[.offset][opts][,end[.offset][opts]] [-t CHAR") \
        "] [FILE]..."
 #define sort_full_usage \
        "Sort lines of text in the specified files" \
-       "\n\nOptions:\n" \
+       "\n\nOptions:" \
 	USE_FEATURE_SORT_BIG( \
-       "	-b	Ignore leading blanks\n" \
-       "	-c	Check whether input is sorted\n" \
-       "	-d	Dictionary order (blank or alphanumeric only)\n" \
-       "	-f	Ignore case\n" \
-       "	-g	General numerical sort\n" \
-       "	-i	Ignore unprintable characters\n" \
-       "	-k	Sort key\n" \
-       "	-M	Sort month\n") \
-       "	-n	Sort numbers\n" \
+     "\n	-b	Ignore leading blanks" \
+     "\n	-c	Check whether input is sorted" \
+     "\n	-d	Dictionary order (blank or alphanumeric only)" \
+     "\n	-f	Ignore case" \
+     "\n	-g	General numerical sort" \
+     "\n	-i	Ignore unprintable characters" \
+     "\n	-k	Sort key" \
+     "\n	-M	Sort month" \
+	) \
+     "\n	-n	Sort numbers" \
 	USE_FEATURE_SORT_BIG( \
-       "	-o	Output to file\n" \
-       "	-k	Sort by key\n" \
-       "	-t	Use key separator other than whitespace\n") \
-       "	-r	Reverse sort order\n" \
+     "\n	-o	Output to file" \
+     "\n	-k	Sort by key" \
+     "\n	-t CHAR	Key separator" \
+	) \
+     "\n	-r	Reverse sort order" \
 	USE_FEATURE_SORT_BIG( \
-       "	-s	Stable (don't sort ties alphabetically)\n") \
-       "	-u	Suppress duplicate lines" \
+     "\n	-s	Stable (don't sort ties alphabetically)" \
+	) \
+     "\n	-u	Suppress duplicate lines" \
 	USE_FEATURE_SORT_BIG( \
-       "\n	-z	Input terminated by nulls, not newlines\n") \
-	USE_FEATURE_SORT_BIG( \
-       "	-mST	Ignored for GNU compatibility") \
-       ""
+     "\n	-z	Lines are terminated by NUL, not newline" \
+     "\n	-mST	Ignored for GNU compatibility") \
+
 #define sort_example_usage \
        "$ echo -e \"e\\nf\\nb\\nd\\nc\\na\" | sort\n" \
        "a\n" \

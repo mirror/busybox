@@ -50,12 +50,47 @@ static void mkswap_selinux_setcontext(int fd, const char *path)
 #define mkswap_selinux_setcontext(fd, path) ((void)0)
 #endif
 
+#if 0 /* from Linux 2.6.23 */
+/*
+ * Magic header for a swap area. The first part of the union is
+ * what the swap magic looks like for the old (limited to 128MB)
+ * swap area format, the second part of the union adds - in the
+ * old reserved area - some extra information. Note that the first
+ * kilobyte is reserved for boot loader or disk label stuff...
+ */
+union swap_header {
+	struct {
+		char reserved[PAGE_SIZE - 10];
+		char magic[10];			/* SWAP-SPACE or SWAPSPACE2 */
+	} magic;
+	struct {
+		char            bootbits[1024];	/* Space for disklabel etc. */
+		__u32           version;        /* second kbyte, word 0 */
+		__u32           last_page;      /* 1 */
+		__u32           nr_badpages;    /* 2 */
+		unsigned char   sws_uuid[16];   /* 3,4,5,6 */
+		unsigned char   sws_volume[16]; /* 7,8,9,10  */
+		__u32           padding[117];   /* 11..127 */
+		__u32           badpages[1];    /* 128, total 129 32-bit words */
+	} info;
+};
+#endif
+
+#define NWORDS 129
+#define hdr ((uint32_t*)(&bb_common_bufsiz1))
+
+struct BUG_bufsiz1_is_too_small {
+	char BUG_bufsiz1_is_too_small[COMMON_BUFSIZE < (NWORDS * 4) ? -1 : 1];
+};
+
+/* Stored without terminating NUL */
+static const char SWAPSPACE2[sizeof("SWAPSPACE2")-1] ALIGN1 = "SWAPSPACE2";
+
 int mkswap_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int mkswap_main(int argc, char **argv)
 {
 	int fd, pagesize;
 	off_t len;
-	unsigned int hdr[129];
 
 	// No options supported.
 
@@ -74,9 +109,7 @@ int mkswap_main(int argc, char **argv)
 			len - pagesize);
 	mkswap_selinux_setcontext(fd, argv[1]);
 
-	// Make a header.
-
-	memset(hdr, 0, sizeof(hdr));
+	// Make a header. hdr is zero-filled so far...
 	hdr[0] = 1;
 	hdr[1] = (len / pagesize) - 1;
 
@@ -84,9 +117,9 @@ int mkswap_main(int argc, char **argv)
 	// signature on disk (not in cache) during swapon.
 
 	xlseek(fd, 1024, SEEK_SET);
-	xwrite(fd, hdr, sizeof(hdr));
+	xwrite(fd, hdr, NWORDS * 4);
 	xlseek(fd, pagesize - 10, SEEK_SET);
-	xwrite(fd, "SWAPSPACE2", 10);
+	xwrite(fd, SWAPSPACE2, 10);
 	fsync(fd);
 
 	if (ENABLE_FEATURE_CLEAN_UP) close(fd);
