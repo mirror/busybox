@@ -370,13 +370,15 @@ static void parse_fac_prio_20(int pri, char *res20)
 		c_fac = facilitynames;
 		while (c_fac->c_name) {
 			if (c_fac->c_val != (LOG_FAC(pri) << 3)) {
-				c_fac++; continue;
+				c_fac++;
+				continue;
 			}
 			/* facility is found, look for prio */
 			c_pri = prioritynames;
 			while (c_pri->c_name) {
 				if (c_pri->c_val != LOG_PRI(pri)) {
-					c_pri++; continue;
+					c_pri++;
+					continue;
 				}
 				snprintf(res20, 20, "%s.%s",
 						c_fac->c_name, c_pri->c_name);
@@ -428,6 +430,9 @@ static void timestamp_and_log_internal(const char *msg)
 	timestamp_and_log(LOG_SYSLOG | LOG_INFO, (char*)msg, 0);
 }
 
+/* tmpbuf[len] is a NUL byte (set by caller), but there can be other,
+ * embedded NULs. Split messages on each of these NULs, parse prio,
+ * escape control chars and log each locally. */
 static void split_escape_and_log(char *tmpbuf, int len)
 {
 	char *p = tmpbuf;
@@ -556,30 +561,24 @@ static void do_syslogd(void)
 		size_t sz;
  read_again:
 		sz = safe_read(sock_fd, G.recvbuf, MAX_READ - 1);
-		if (sz < 0) {
+		if (sz < 0)
 			bb_perror_msg_and_die("read from /dev/log");
-		}
 
-		/* Drop trailing NULs (typically there is one NUL) */
+		/* Drop trailing '\n' and NULs (typically there is one NUL) */
 		while (1) {
 			if (sz == 0)
 				goto read_again;
 			/* man 3 syslog says: "A trailing newline is added when needed".
 			 * However, neither glibc nor uclibc do this:
 			 * syslog(prio, "test")   sends "test\0" to /dev/log,
-			 * syslog(prio, "test\n") sends "test\n\0",
+			 * syslog(prio, "test\n") sends "test\n\0".
 			 * IOW: newline is passed verbatim!
 			 * I take it to mean that it's syslogd's job
-			 * to make those look identical in the log files */
-			if (G.recvbuf[sz-1] && G.recvbuf[sz-1] != '\n')
+			 * to make those look identical in the log files. */
+			if (G.recvbuf[sz-1] != '\0' && G.recvbuf[sz-1] != '\n')
 				break;
 			sz--;
 		}
-		/* Maybe we need to add '\n' here, not later?
-		 * It looks like stock syslogd does send '\n' over network,
-		 * but we do not (see sendto below) */
-		G.recvbuf[sz] = '\0'; /* make sure it *is* NUL terminated */
-
 		/* TODO: maybe suppress duplicates? */
 #if ENABLE_FEATURE_REMOTE_LOG
 		/* We are not modifying log messages in any way before send */
@@ -590,14 +589,21 @@ static void do_syslogd(void)
 				if (-1 == G.remoteFD)
 					goto no_luck;
 			}
+			/* Stock syslogd sends it '\n'-terminated
+			 * over network, mimic that */
+			G.recvbuf[sz] = '\n';
 			/* send message to remote logger, ignore possible error */
-			sendto(G.remoteFD, G.recvbuf, sz, MSG_DONTWAIT,
+			/* TODO: on some errors, close and set G.remoteFD to -1
+			 * so that DNS resolution and connect is retried? */
+			sendto(G.remoteFD, G.recvbuf, sz+1, MSG_DONTWAIT,
 				    &G.remoteAddr->u.sa, G.remoteAddr->len);
  no_luck: ;
 		}
 #endif
-		if (!ENABLE_FEATURE_REMOTE_LOG || (option_mask32 & OPT_locallog))
+		if (!ENABLE_FEATURE_REMOTE_LOG || (option_mask32 & OPT_locallog)) {
+			G.recvbuf[sz] = '\0'; /* ensure it *is* NUL terminated */
 			split_escape_and_log(G.recvbuf, sz);
+		}
 	} /* for (;;) */
 }
 
