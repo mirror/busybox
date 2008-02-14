@@ -522,7 +522,7 @@ static void exe_n_cwd_tab_completion(char *command, int type)
 			}
 			found = concat_path_file(paths[i], str_found);
 			/* hmm, remover in progress? */
-			if (stat(found, &st) < 0)
+			if (lstat(found, &st) < 0)
 				goto cont;
 			/* find with dirs? */
 			if (paths[i] != dirbuf)
