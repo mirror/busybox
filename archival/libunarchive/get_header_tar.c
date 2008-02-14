@@ -90,15 +90,22 @@ char get_header_tar(archive_handle_t *archive_handle)
 
  again_after_align:
 
+#if ENABLE_DESKTOP
 	i = full_read(archive_handle->src_fd, &tar, 512);
 	/* if GNU tar sees EOF in above read, it says:
 	 * "tar: A lone zero block at N", where N = kilobyte
 	 * where EOF was met (not EOF block, actual EOF!),
-	 * and tar will exit with error code 0! Mimic exit(0): */
+	 * and tar will exit with error code 0.
+	 * We will mimic exit(0), although we will not mimic
+	 * the message and we don't check whether we indeed
+	 * saw zero block directly before this. */
 	if (i == 0)
 		xfunc_error_retval = 0;
 	if (i != 512)
 		bb_error_msg_and_die("short read");
+#else
+	xread(archive_handle->src_fd, &tar, 512);
+#endif
 	archive_handle->offset += 512;
 
 	/* If there is no filename its an empty header */
