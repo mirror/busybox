@@ -13,6 +13,10 @@
 typedef struct file_header_t {
 	char *name;
 	char *link_target;
+#if ENABLE_FEATURE_TAR_UNAME_GNAME
+	char *uname; 
+	char *gname;
+#endif
 	off_t size;
 	uid_t uid;
 	gid_t gid;

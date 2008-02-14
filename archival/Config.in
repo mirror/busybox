@@ -237,7 +237,15 @@ config FEATURE_TAR_LONG_OPTIONS
 	default n
 	depends on TAR && GETOPT_LONG
 	help
-		Enable use of long options, increases size by about 400 Bytes
+	  Enable use of long options, increases size by about 400 Bytes
+
+config FEATURE_TAR_UNAME_GNAME
+	bool "Enable use of user and group names"
+	default n
+	help
+	  Enables use of user and group names in tar. This affects contents
+	  listings (-t) and preserving permissions when unpacking (-p).
+	  +200 bytes.
 
 config UNCOMPRESS
 	bool "uncompress"

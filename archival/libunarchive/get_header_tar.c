@@ -187,6 +187,10 @@ char get_header_tar(archive_handle_t *archive_handle)
 		/* FIXME: what if we have non-link object with link_target? */
 		/* Will link_target be free()ed? */
 	}
+#if ENABLE_FEATURE_TAR_UNAME_GNAME
+	file_header->uname = tar.uname[0] ? xstrndup(tar.uname, sizeof(tar.uname)) : NULL;
+	file_header->gname = tar.gname[0] ? xstrndup(tar.gname, sizeof(tar.gname)) : NULL;
+#endif
 	file_header->mtime = GET_OCTAL(tar.mtime);
 	file_header->size = GET_OCTAL(tar.size);
 	file_header->gid = GET_OCTAL(tar.gid);
@@ -317,6 +321,9 @@ char get_header_tar(archive_handle_t *archive_handle)
 
 	free(file_header->link_target);
 	/* Do not free(file_header->name)! */
-
+#if ENABLE_FEATURE_TAR_UNAME_GNAME
+	free(file_header->uname);
+	free(file_header->gname);
+#endif
 	return EXIT_SUCCESS;
 }
