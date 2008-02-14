@@ -77,10 +77,11 @@ check_libc_is_glibc() {
 
 EXE="$1"
 CC="$2"
-LDFLAGS="$3"
-O_FILES="$4"
-A_FILES="$5"
-LDLIBS="$6"
+CFLAGS="$3"
+LDFLAGS="$4"
+O_FILES="$5"
+A_FILES="$6"
+LDLIBS="$7"
 
 # The -Wl,--sort-section option is not supported by older versions of ld
 SORT_SECTION=`check_cc "-Wl,--sort-section -Wl,alignment" ""`
@@ -107,7 +108,7 @@ echo "Trying libraries: $LDLIBS"
 # "lib1 lib2 lib3" -> "-llib1 -llib2 -llib3"
 l_list=`echo "$LDLIBS" | sed -e 's/ / -l/g' -e 's/^/-l/' -e 's/^-l$//'`
 test "x$l_list" != "x" && l_list="-Wl,--start-group $l_list -Wl,--end-group"
-try $CC $LDFLAGS \
+try $CC $CFLAGS $LDFLAGS \
 	-o $EXE \
 	-Wl,--sort-common \
 	$SORT_SECTION \
@@ -131,7 +132,7 @@ while test "$LDLIBS"; do
 	l_list=`echo "$without_one" | sed -e 's/ / -l/g' -e 's/^/-l/' -e 's/^-l$//'`
 	test "x$l_list" != "x" && l_list="-Wl,--start-group $l_list -Wl,--end-group"
 	$debug && echo "Trying -l options: '$l_list'"
-	try $CC $LDFLAGS \
+	try $CC $CFLAGS $LDFLAGS \
 		-o $EXE \
 		-Wl,--sort-common \
 		$SORT_SECTION \
@@ -160,7 +161,7 @@ l_list=`echo "$LDLIBS" | sed -e 's/ / -l/g' -e 's/^/-l/' -e 's/^-l$//'`
 test "x$l_list" != "x" && l_list="-Wl,--start-group $l_list -Wl,--end-group"
 # --verbose gives us gobs of info to stdout (e.g. linker script used)
 if ! test -f busybox_ldscript; then
-    try $CC $LDFLAGS \
+    try $CC $CFLAGS $LDFLAGS \
 	    -o $EXE \
 	    -Wl,--sort-common \
 	    $SORT_SECTION \
@@ -182,7 +183,7 @@ else
     #  *(.bss SORT_BY_ALIGNMENT(.bss.*) .gnu.linkonce.b.*)
     # This will eliminate most of the padding (~3kb).
     # Hmm, "ld --sort-section alignment" should do it too.
-    try $CC $LDFLAGS \
+    try $CC $CFLAGS $LDFLAGS \
 	    -o $EXE \
 	    -Wl,--sort-common \
 	    $SORT_SECTION \
@@ -212,7 +213,7 @@ if test "$CONFIG_BUILD_LIBBUSYBOX" = y; then
     ln -s "libbusybox.so.$BB_VER" "$sharedlib_dir"/libbusybox.so 2>/dev/null
 
     EXE="$sharedlib_dir/libbusybox.so.${BB_VER}_unstripped"
-    try $CC $LDFLAGS \
+    try $CC $CFLAGS $LDFLAGS \
 	    -o $EXE \
 	    -shared -fPIC \
 	    -Wl,--enable-new-dtags \
@@ -238,7 +239,7 @@ fi
 
 if test "$CONFIG_FEATURE_SHARED_BUSYBOX" = y; then
     EXE="$sharedlib_dir/busybox_unstripped"
-    try $CC $LDFLAGS \
+    try $CC $CFLAGS $LDFLAGS \
 	    -o $EXE \
 	    -Wl,--sort-common \
 	    $SORT_SECTION \
@@ -277,7 +278,7 @@ int main(int argc, char **argv)
 " >"$sharedlib_dir/applet.c"
 
 	EXE="$sharedlib_dir/$name"
-	try $CC $LDFLAGS "$sharedlib_dir/applet.c" \
+	try $CC $CFLAGS $LDFLAGS "$sharedlib_dir/applet.c" \
 		-o $EXE \
 		-Wl,--sort-common \
 		$SORT_SECTION \
