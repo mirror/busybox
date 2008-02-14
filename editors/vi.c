@@ -3024,7 +3024,6 @@ static void do_cmd(char c)
 		//case '(':	// (-
 		//case ')':	// )-
 		//case '*':	// *-
-		//case ',':	// ,-
 		//case '=':	// =-
 		//case '@':	// @-
 		//case 'F':	// F-
@@ -3038,7 +3037,6 @@ static void do_cmd(char c)
 		//case ']':	// ]-
 		//case '_':	// _-
 		//case '`':	// `-
-		//case 'g':	// g-
 		//case 'u':	// u- FIXME- there is no undo
 		//case 'v':	// v-
 	default:			// unrecognised command
@@ -3259,6 +3257,20 @@ static void do_cmd(char c)
 		if (*q == last_forward_char)
 			dot = q;
 		break;
+	case ',':           // repeat latest 'f' in opposite direction
+		if (cmdcnt-- > 1) {
+			do_cmd(',');
+		}                               // repeat cnt
+		if (last_forward_char == 0)
+			break;
+		q = dot - 1;
+		while (q >= text && *q != '\n' && *q != last_forward_char) {
+			q--;
+		}
+		if (q >= text && *q == last_forward_char)
+			dot = q;
+		break;
+
 	case '-':			// -- goto prev line
 		if (cmdcnt-- > 1) {
 			do_cmd(c);
@@ -3491,6 +3503,19 @@ static void do_cmd(char c)
 			end_cmd_q();	// stop adding to q
 #endif
 		break;
+	case 'g':                       // 'gg' goto a line number (from vim)
+					// (default to first line in file)
+		c1 = get_one_char();
+		if (c1 != 'g') {
+			buf[0] = 'g';
+			buf[1] = c1;
+			buf[2] = '\0';
+			not_implemented(buf);
+			break;
+		}
+		if (cmdcnt == 0)
+			cmdcnt = 1;
+		/* fall through */
 	case 'G':		// G- goto to a line number (default= E-O-F)
 		dot = end - 1;				// assume E-O-F
 		if (cmdcnt > 0) {
