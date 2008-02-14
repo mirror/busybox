@@ -3996,7 +3996,7 @@ USE_FEATURE_RUN_PARTS_FANCY("\n	-l	Prints names of all matching files even when 
        "\n	-l	Lazy umount (detach filesystem)" \
        "\n	-f	Force umount (i.e., unreachable NFS server)" \
 	USE_FEATURE_MOUNT_LOOP( \
-       "\n	-D	Do not free loop device (if a loop device has been used)")
+       "\n	-d	Free loop device if it has been used")
 #define umount_example_usage \
        "$ umount /dev/hdc1\n"
 

@@ -13,13 +13,18 @@
 #include "libbb.h"
 
 /* ignored: -v -d -t -i */
-#define OPTION_STRING           "flDnra" "vdt:i"
+#define OPTION_STRING           "fldnra" "vdt:i"
 #define OPT_FORCE               (1 << 0)
 #define OPT_LAZY                (1 << 1)
-#define OPT_DONTFREELOOP        (1 << 2)
+#define OPT_FREELOOP            (1 << 2)
 #define OPT_NO_MTAB             (1 << 3)
 #define OPT_REMOUNT             (1 << 4)
 #define OPT_ALL                 (ENABLE_FEATURE_UMOUNT_ALL ? (1 << 5) : 0)
+
+// These constants from linux/fs.h must match OPT_FORCE and OPT_LAZY,
+// otherwise "doForce" trick below won't work!
+//#define MNT_FORCE  0x00000001 /* Attempt to forcibly umount */
+//#define MNT_DETACH 0x00000002 /* Just detach from the tree */
 
 int umount_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int umount_main(int argc, char **argv)
@@ -28,7 +33,7 @@ int umount_main(int argc, char **argv)
 	char *const path = xmalloc(PATH_MAX + 2); /* to save stack */
 	struct mntent me;
 	FILE *fp;
-	char *fstype = 0;
+	char *fstype = NULL;
 	int status = EXIT_SUCCESS;
 	unsigned opt;
 	struct mtab_list {
@@ -37,13 +42,9 @@ int umount_main(int argc, char **argv)
 		struct mtab_list *next;
 	} *mtl, *m;
 
-	/* Parse any options */
-
 	opt = getopt32(argv, OPTION_STRING, &fstype);
-
-	argc -= optind;
+	//argc -= optind;
 	argv += optind;
-
 	doForce = MAX((opt & OPT_FORCE), (opt & OPT_LAZY));
 
 	/* Get a list of mount points from mtab.  We read them all in now mostly
@@ -51,12 +52,10 @@ int umount_main(int argc, char **argv)
 	 * we iterate over it, or about getting stuck in a loop on the same failing
 	 * entry.  Notice that this also naturally reverses the list so that -a
 	 * umounts the most recent entries first. */
+	m = mtl = NULL;
 
-	m = mtl = 0;
-
-	/* If we're umounting all, then m points to the start of the list and
-	 * the argument list should be empty (which will match all). */
-
+	// If we're umounting all, then m points to the start of the list and
+	// the argument list should be empty (which will match all).
 	fp = setmntent(bb_path_mtab_file, "r");
 	if (!fp) {
 		if (opt & OPT_ALL)
@@ -75,11 +74,11 @@ int umount_main(int argc, char **argv)
 		endmntent(fp);
 	}
 
-	/* If we're not umounting all, we need at least one argument. */
+	// If we're not umounting all, we need at least one argument.
 	if (!(opt & OPT_ALL) && !fstype) {
-		m = 0;
-		if (!argc)
+		if (!argv[0])
 			bb_show_usage();
+		m = NULL;
 	}
 
 	// Loop through everything we're supposed to umount, and do so.
@@ -93,10 +92,10 @@ int umount_main(int argc, char **argv)
 		// For umount -a, end of mtab means time to exit.
 		else if (opt & OPT_ALL)
 			break;
-		// Get next command line argument (and look it up in mtab list)
-		else if (!argc--)
-			break;
+		// Use command line argument (and look it up in mtab list)
 		else {
+			if (!zapit)
+				break;
 			argv++;
 			realpath(zapit, path);
 			for (m = mtl; m; m = m->next)
@@ -112,26 +111,29 @@ int umount_main(int argc, char **argv)
 		curstat = umount(zapit);
 
 		// Force the unmount, if necessary.
-		if (curstat && doForce) {
+		if (curstat && doForce)
 			curstat = umount2(zapit, doForce);
-			if (curstat)
-				bb_error_msg("forced umount of %s failed!", zapit);
-		}
 
 		// If still can't umount, maybe remount read-only?
-		if (curstat && (opt & OPT_REMOUNT) && errno == EBUSY && m) {
-			curstat = mount(m->device, zapit, NULL, MS_REMOUNT|MS_RDONLY, NULL);
-			bb_error_msg(curstat ? "cannot remount %s read-only" :
-						 "%s busy - remounted read-only", m->device);
-		}
-
 		if (curstat) {
-			status = EXIT_FAILURE;
-			bb_perror_msg("cannot umount %s", zapit);
+			if ((opt & OPT_REMOUNT) && errno == EBUSY && m) {
+				// Note! Even if we succeed here, later we should not
+				// free loop device or erase mtab entry!
+				const char *msg = "%s busy - remounted read-only";
+				curstat = mount(m->device, zapit, NULL, MS_REMOUNT|MS_RDONLY, NULL);
+				if (curstat) {
+					msg = "cannot remount %s read-only";
+					status = EXIT_FAILURE;
+				}
+				bb_error_msg(msg, m->device);
+			} else {
+				status = EXIT_FAILURE;
+				bb_perror_msg("cannot %sumount %s", (doForce ? "forcibly " : ""), zapit);
+			}
 		} else {
-			/* De-allocate the loop device.  This ioctl should be ignored on
-			 * any non-loop block devices. */
-			if (ENABLE_FEATURE_MOUNT_LOOP && !(opt & OPT_DONTFREELOOP) && m)
+			// De-allocate the loop device.  This ioctl should be ignored on
+			// any non-loop block devices.
+			if (ENABLE_FEATURE_MOUNT_LOOP && (opt & OPT_FREELOOP) && m)
 				del_loop(m->device);
 			if (ENABLE_FEATURE_MTAB_SUPPORT && !(opt & OPT_NO_MTAB) && m)
 				erase_mtab(m->dir);
@@ -140,13 +142,12 @@ int umount_main(int argc, char **argv)
 		// Find next matching mtab entry for -a or umount /dev
 		// Note this means that "umount /dev/blah" will unmount all instances
 		// of /dev/blah, not just the most recent.
-		while (m && (m = m->next))
+		if (m) while ((m = m->next) != NULL)
 			if ((opt & OPT_ALL) || !strcmp(path, m->device))
 				break;
 	}
 
 	// Free mtab list if necessary
-
 	if (ENABLE_FEATURE_CLEAN_UP) {
 		while (mtl) {
 			m = mtl->next;
