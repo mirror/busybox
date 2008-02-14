@@ -1,7 +1,7 @@
 Various bits of what is known about busybox shells, in no particular order.
 
 2008-02-14
-ash: does not restore tty pgrp if killed by HUP. Symptom: Midnigth Commander
+ash: does not restore tty pgrp if killed by HUP. Symptom: Midnight Commander
 is backgrounded if you started ash under it, and then killed it with HUP.
 
 2007-11-23
