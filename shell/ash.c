@@ -9075,6 +9075,23 @@ setparam(char **argv)
 /*
  * Process shell options.  The global variable argptr contains a pointer
  * to the argument list; we advance it past the options.
+ *
+ * SUSv3 section 2.8.1 "Consequences of Shell Errors" says:
+ * For a non-interactive shell, an error condition encountered
+ * by a special built-in ... shall cause the shell to write a diagnostic message
+ * to standard error and exit as shown in the following table:
+ * Error                                           Special Built-In 
+ * ...
+ * Utility syntax error (option or operand error)  Shall exit
+ * ...
+ * However, in bug 1142 (http://busybox.net/bugs/view.php?id=1142)
+ * we see that bash does not do that (set "finishes" with error code 1 instead,
+ * and shell continues), and people rely on this behavior!
+ * Testcase:
+ * set -o barfoo 2>/dev/null
+ * echo $?
+ *
+ * Oh well. Let's mimic that.
  */
 static int
 minus_o(char *name, int val)
