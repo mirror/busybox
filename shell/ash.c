@@ -9076,7 +9076,7 @@ setparam(char **argv)
  * Process shell options.  The global variable argptr contains a pointer
  * to the argument list; we advance it past the options.
  */
-static void
+static int
 minus_o(char *name, int val)
 {
 	int i;
@@ -9085,15 +9085,17 @@ minus_o(char *name, int val)
 		for (i = 0; i < NOPTS; i++) {
 			if (strcmp(name, optnames(i)) == 0) {
 				optlist[i] = val;
-				return;
+				return 0;
 			}
 		}
-		ash_msg_and_raise_error("illegal option -o %s", name);
+		ash_msg("illegal option -o %s", name);
+		return 1;
 	}
 	out1str("Current option settings\n");
 	for (i = 0; i < NOPTS; i++)
 		out1fmt("%-16s%s\n", optnames(i),
 				optlist[i] ? "on" : "off");
+	return 0;
 }
 static void
 setoption(int flag, int val)
@@ -9109,7 +9111,7 @@ setoption(int flag, int val)
 	ash_msg_and_raise_error("illegal option -%c", flag);
 	/* NOTREACHED */
 }
-static void
+static int
 options(int cmdline)
 {
 	char *p;
@@ -9144,7 +9146,10 @@ options(int cmdline)
 			if (c == 'c' && cmdline) {
 				minusc = p;     /* command is after shell args */
 			} else if (c == 'o') {
-				minus_o(*argptr, val);
+				if (minus_o(*argptr, val)) {
+					/* it already printed err message */
+					return 1; /* error */
+				}
 				if (*argptr)
 					argptr++;
 			} else if (cmdline && (c == 'l')) { /* -l or +l == --login */
@@ -9159,6 +9164,7 @@ options(int cmdline)
 			}
 		}
 	}
+	return 0;
 }
 
 /*
@@ -9228,16 +9234,21 @@ showvars(const char *sep_prefix, int on, int off)
 static int
 setcmd(int argc, char **argv)
 {
+	int retval;
+
 	if (argc == 1)
 		return showvars(nullstr, 0, VUNSET);
 	INT_OFF;
-	options(0);
-	optschanged();
-	if (*argptr != NULL) {
-		setparam(argptr);
+	retval = 1;
+	if (!options(0)) { /* if no parse error... */
+		retval = 0;
+		optschanged();
+		if (*argptr != NULL) {
+			setparam(argptr);
+		}
 	}
 	INT_ON;
-	return 0;
+	return retval;
 }
 
 #if ENABLE_ASH_RANDOM_SUPPORT
@@ -12790,7 +12801,10 @@ procargs(int argc, char **argv)
 	for (i = 0; i < NOPTS; i++)
 		optlist[i] = 2;
 	argptr = xargv;
-	options(1);
+	if (options(1)) {
+		/* it already printed err message */
+		raise_exception(EXERROR);
+	}
 	xargv = argptr;
 	xminusc = minusc;
 	if (*xargv == NULL) {
