@@ -2239,11 +2239,11 @@ USE_FEATURE_BRCTL_FANCY("\n" \
 #define microcom_full_usage \
        "Copy bytes for stdin to TTY and from TTY to stdout" \
        "\n\nOptions:" \
-     "\n	-d	Wait up to DELAY ms for TTY output before sending every" \
-     "\n		next byte to it" \
-     "\n	-t	Exit if both stdin and TTY are silent for TIMEOUT ms" \
-     "\n	-s	Set serial line to SPEED"
-     "\n	-X	Disable special meaning of NUL and Ctrl-X from stdin"
+       "\n	-d	Wait up to DELAY ms for TTY output before sending every" \
+       "\n		next byte to it" \
+       "\n	-t	Exit if both stdin and TTY are silent for TIMEOUT ms" \
+       "\n	-s	Set serial line to SPEED" \
+       "\n	-X	Disable special meaning of NUL and Ctrl-X from stdin"
 
 #define mkdir_trivial_usage \
        "[OPTION] DIRECTORY..."
