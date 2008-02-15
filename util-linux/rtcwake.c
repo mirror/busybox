@@ -122,17 +122,16 @@ int rtcwake_main(int argc, char **argv)
 	int fd;
 
 #if ENABLE_GETOPT_LONG
-		static const char rtcwake_longopts[] ALIGN1 =
-			"auto\0"    No_argument "a"
-			"local\0"   No_argument "l"
-			"utc\0"     No_argument "u"
-			"device\0"  Required_argument "d"
-			"mode\0"    Required_argument "m"
-			"seconds\0" Required_argument "s"
-			"time\0"    Required_argument "t"
-			;
-		applet_long_options = rtcwake_longopts;
-	}
+	static const char rtcwake_longopts[] ALIGN1 =
+		"auto\0"    No_argument "a"
+		"local\0"   No_argument "l"
+		"utc\0"     No_argument "u"
+		"device\0"  Required_argument "d"
+		"mode\0"    Required_argument "m"
+		"seconds\0" Required_argument "s"
+		"time\0"    Required_argument "t"
+		;
+	applet_long_options = rtcwake_longopts;
 #endif
 	opt = getopt32(argv, "alud:m:s:t:", &rtcname, &suspend, &opt_seconds, &opt_time);
 
