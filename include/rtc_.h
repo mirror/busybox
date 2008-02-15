@@ -10,7 +10,7 @@
 #include "libbb.h"
 
 extern int rtc_adjtime_is_utc(void);
-extern int rtc_xopen(const char *default_rtc, int flags);
+extern int rtc_xopen(const char **default_rtc, int flags);
 extern time_t rtc_read_time(int fd, int utc);
 
 

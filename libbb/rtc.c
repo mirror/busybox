@@ -40,21 +40,23 @@ int rtc_adjtime_is_utc(void)
 	return utc;
 }
 
-int rtc_xopen(const char *default_rtc, int flags)
+int rtc_xopen(const char **default_rtc, int flags)
 {
 	int rtc;
 
-	if (!default_rtc) {
-		rtc = open("/dev/rtc", flags);
+	if (!*default_rtc) {
+		*default_rtc = "/dev/rtc";
+		rtc = open(*default_rtc, flags);
 		if (rtc >= 0)
 			return rtc;
-		rtc = open("/dev/rtc0", flags);
+		*default_rtc = "/dev/rtc0";
+		rtc = open(*default_rtc, flags);
 		if (rtc >= 0)
 			return rtc;
-		default_rtc = "/dev/misc/rtc";
+		*default_rtc = "/dev/misc/rtc";
 	}
 
-	return xopen(default_rtc, flags);
+	return xopen(*default_rtc, flags);
 }
 
 time_t rtc_read_time(int fd, int utc)

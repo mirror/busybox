@@ -25,7 +25,7 @@ static time_t read_rtc(int utc)
 	time_t ret;
 	int fd;
 
-	fd = rtc_xopen(rtcname, O_RDONLY);
+	fd = rtc_xopen(&rtcname, O_RDONLY);
 	ret = rtc_read_time(fd, utc);
 	close(fd);
 
@@ -35,7 +35,7 @@ static time_t read_rtc(int utc)
 static void write_rtc(time_t t, int utc)
 {
 	struct tm tm;
-	int rtc = rtc_xopen(rtcname, O_WRONLY);
+	int rtc = rtc_xopen(&rtcname, O_WRONLY);
 
 	tm = *(utc ? gmtime(&t) : localtime(&t));
 	tm.tm_isdst = 0;

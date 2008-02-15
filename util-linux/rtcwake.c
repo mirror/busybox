@@ -45,7 +45,7 @@ static int may_wakeup(const char *rtcname)
 		return 0;
 
 	/* wakeup events could be disabled or not supported */
-	return strcmp(buf, "enabled\n") == 0;
+	return strncmp(buf, "enabled\n", 8) == 0;
 }
 
 static void setup_alarm(int fd, time_t *wakeup)
@@ -159,11 +159,11 @@ int rtcwake_main(int argc, char **argv)
 	/* the rtcname is relative to /dev */
 	xchdir("/dev");
 
-	if (strcmp(suspend, "on") != 0 && !may_wakeup(rtcname))
-		bb_error_msg_and_die("%s not enabled for wakeup events", rtcname);
-
 	/* this RTC must exist and (if we'll sleep) be wakeup-enabled */
-	fd = rtc_xopen(rtcname, O_RDONLY);
+	fd = rtc_xopen(&rtcname, O_RDONLY);
+
+	if (strcmp(suspend, "on") && !may_wakeup(rtcname))
+		bb_error_msg_and_die("%s not enabled for wakeup events", rtcname);
 
 	/* relative or absolute alarm time, normalized to time_t */
 	sys_time = time(0);
@@ -184,7 +184,7 @@ int rtcwake_main(int argc, char **argv)
 	fflush(stdout);
 	usleep(10 * 1000);
 
-	if (!strcmp(suspend, "on"))
+	if (strcmp(suspend, "on"))
 		suspend_system(suspend);
 	else {
 		/* "fake" suspend ... we'll do the delay ourselves */
