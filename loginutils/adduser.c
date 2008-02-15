@@ -66,6 +66,19 @@ static void passwd_wrapper(const char *login)
 	bb_error_msg_and_die("cannot execute %s, you must set password manually", prog);
 }
 
+#if ENABLE_FEATURE_ADDUSER_LONG_OPTIONS
+static const char adduser_longopts[] ALIGN1 =
+		"home\0"                Required_argument "h"
+		"gecos\0"               Required_argument "g"
+		"shell\0"               Required_argument "s"
+		"ingroup\0"             Required_argument "G"
+		"disabled-password\0"   No_argument       "D"
+		"empty-password\0"      No_argument       "D"
+		"system\0"              No_argument       "S"
+		"no-create-home\0"      No_argument       "H"
+		;
+#endif
+
 /*
  * adduser will take a login_name as its first parameter.
  * home, shell, gecos:
@@ -77,6 +90,10 @@ int adduser_main(int argc, char **argv)
 	struct passwd pw;
 	const char *usegroup = NULL;
 	FILE *file;
+
+#if ENABLE_FEATURE_ADDUSER_LONG_OPTIONS
+	applet_long_options = adduser_longopts;
+#endif
 
 	/* got root? */
 	if (geteuid()) {

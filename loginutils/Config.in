@@ -88,6 +88,13 @@ config ADDUSER
 	help
 	  Utility for creating a new user account.
 
+config FEATURE_ADDUSER_LONG_OPTIONS
+	bool "Enable long options"
+	default n
+	depends on ADDUSER && GETOPT_LONG
+	help
+	  Support long options for the adduser applet.
+
 config DELUSER
 	bool "deluser"
 	default n
