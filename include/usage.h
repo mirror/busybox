@@ -3070,6 +3070,29 @@ USE_FEATURE_BRCTL_FANCY("\n" \
 #define rpm2cpio_full_usage \
        "Output a cpio archive of the rpm file"
 
+#define rtcwake_trivial_usage \
+       "[-a | -l | -u] [-d DEV] [-m MODE] [-s SECS | -t TIME]"
+#define rtcwake_full_usage \
+       "enter a system sleep state until specified wakeup time\n\n" \
+	USE_GETOPT_LONG( \
+       "	-a,--auto	 Read clock mode from adjtime\n" \
+       "	-l,--local	 Clock is set to local time\n" \
+       "	-u,--utc	 Clock is set to UTC time\n" \
+       "	-d,--device=DEV	 Specify the RTC device\n" \
+       "	-m,--mode=MODE	 Set the sleep state (default: standby)\n" \
+       "	-s,--seconds=SEC Set the timeout in SEC seconds from now\n" \
+       "	-t,--time=TIME	 Set the timeout to TIME seconds from epoch" \
+	) \
+	SKIP_GETOPT_LONG( \
+       "	-a	Read clock mode from adjtime\n" \
+       "	-l	Clock is set to local time\n" \
+       "	-u	Clock is set to UTC time\n" \
+       "	-d DEV	Specify the RTC device\n" \
+       "	-m MODE	Set the sleep state (default: standby)\n" \
+       "	-s SEC	Set the timeout in SEC seconds from now\n" \
+       "	-t TIME	Set the timeout to TIME seconds from epoch" \
+	)
+
 #define runcon_trivial_usage \
        "[-c] [-u USER] [-r ROLE] [-t TYPE] [-l RANGE] COMMAND [args]\n" \
        "	runcon CONTEXT COMMAND [args]"

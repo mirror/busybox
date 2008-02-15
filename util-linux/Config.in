@@ -458,6 +458,12 @@ config READPROFILE
 	help
 	  This allows you to parse /proc/profile for basic profiling.
 
+config RTCWAKE
+	bool "rtcwake"
+	default n
+	help
+	  Enter a system sleep state until specified wakeup time.
+
 config SETARCH
 	bool "setarch"
 	default n
