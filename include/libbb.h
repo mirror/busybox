@@ -274,14 +274,18 @@ char *xrealloc_getcwd_or_warn(char *cwd);
 
 char *xmalloc_follow_symlinks(const char *path);
 
-//TODO: signal(sid, f) is the same? then why?
-extern void sig_catch(int,void (*)(int));
-//#define sig_ignore(s) (sig_catch((s), SIG_IGN))
-//#define sig_uncatch(s) (sig_catch((s), SIG_DFL))
-extern void sig_block(int);
-extern void sig_unblock(int);
-/* UNUSED: extern void sig_blocknone(void); */
-extern void sig_pause(void);
+//enum {
+//	BB_SIGS_FATAL = ,
+//};
+void bb_signals(int sigs, void (*f)(int));
+/* Unlike signal() and bb_signals, sets handler with sigaction()
+ * and in a way that while signal handler is run, no other signals
+ * will be blocked: */
+void bb_signals_recursive(int sigs, void (*f)(int));
+void sig_block(int);
+void sig_unblock(int);
+/* UNUSED: void sig_blocknone(void); */
+void sig_pause(void);
 
 
 void xsetgid(gid_t gid);

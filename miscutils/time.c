@@ -61,7 +61,7 @@ static const char long_format[] ALIGN1 =
    Return 0 on error, 1 if ok.  */
 
 /* pid_t is short on BSDI, so don't try to promote it.  */
-static int resuse_end(pid_t pid, resource_t * resp)
+static int resuse_end(pid_t pid, resource_t *resp)
 {
 	int status;
 	pid_t caught;
@@ -69,7 +69,7 @@ static int resuse_end(pid_t pid, resource_t * resp)
 	/* Ignore signals, but don't ignore the children.  When wait3
 	   returns the child process, set the time the command finished. */
 	while ((caught = wait3(&status, 0, &resp->ru)) != pid) {
-		if (caught == -1)
+		if (caught == -1 && errno != EINTR)
 			return 0;
 	}
 	resp->elapsed_ms = (monotonic_us() / 1000) - resp->elapsed_ms;
@@ -373,24 +373,26 @@ static void summarize(const char *fmt, char **command, resource_t * resp)
 
 /* Run command CMD and return statistics on it.
    Put the statistics in *RESP.  */
-static void run_command(char *const *cmd, resource_t * resp)
+static void run_command(char *const *cmd, resource_t *resp)
 {
 	pid_t pid;			/* Pid of child.  */
-	__sighandler_t interrupt_signal, quit_signal;
+	void (*interrupt_signal)(int);
+	void (*quit_signal)(int);
 
 	resp->elapsed_ms = monotonic_us() / 1000;
 	pid = vfork();		/* Run CMD as child process.  */
 	if (pid < 0)
 		bb_error_msg_and_die("cannot fork");
-	else if (pid == 0) {	/* If child.  */
+	if (pid == 0) {	/* If child.  */
 		/* Don't cast execvp arguments; that causes errors on some systems,
 		   versus merely warnings if the cast is left off.  */
 		BB_EXECVP(cmd[0], cmd);
-		bb_error_msg("cannot run %s", cmd[0]);
-		_exit(errno == ENOENT ? 127 : 126);
+		xfunc_error_retval = (errno == ENOENT ? 127 : 126);
+		bb_error_msg_and_die("cannot run %s", cmd[0]);
 	}
 
 	/* Have signals kill the child but not self (if possible).  */
+//TODO: just block all sigs? and reenable them in the very end in main?
 	interrupt_signal = signal(SIGINT, SIG_IGN);
 	quit_signal = signal(SIGQUIT, SIG_IGN);
 

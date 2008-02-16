@@ -319,15 +319,17 @@ static pid_t run(const struct init_action *a)
 	/* Child */
 
 	/* Reset signal handlers that were set by the parent process */
-	signal(SIGUSR1, SIG_DFL);
-	signal(SIGUSR2, SIG_DFL);
-	signal(SIGINT, SIG_DFL);
-	signal(SIGTERM, SIG_DFL);
-	signal(SIGHUP, SIG_DFL);
-	signal(SIGQUIT, SIG_DFL);
-	signal(SIGCONT, SIG_DFL);
-	signal(SIGSTOP, SIG_DFL);
-	signal(SIGTSTP, SIG_DFL);
+	bb_signals(0
+		+ (1 << SIGUSR1)
+		+ (1 << SIGUSR2)
+		+ (1 << SIGINT)
+		+ (1 << SIGTERM)
+		+ (1 << SIGHUP)
+		+ (1 << SIGQUIT)
+		+ (1 << SIGCONT)
+		+ (1 << SIGSTOP)
+		+ (1 << SIGTSTP)
+		, SIG_DFL);
 
 	/* Create a new session and make ourself the process
 	 * group leader */
@@ -349,9 +351,11 @@ static pid_t run(const struct init_action *a)
 
 		if (pid > 0) {
 			/* Parent - wait till the child is done */
-			signal(SIGINT, SIG_IGN);
-			signal(SIGTSTP, SIG_IGN);
-			signal(SIGQUIT, SIG_IGN);
+			bb_signals(0
+				+ (1 << SIGINT)
+				+ (1 << SIGTSTP)
+				+ (1 << SIGQUIT)
+				, SIG_IGN);
 			signal(SIGCHLD, SIG_DFL);
 
 			waitfor(pid);
@@ -864,15 +868,21 @@ int init_main(int argc, char **argv)
 		}
 		/* Set up sig handlers  -- be sure to
 		 * clear all of these in run() */
-		signal(SIGHUP, exec_restart_action);
-		signal(SIGQUIT, exec_restart_action);
-		signal(SIGUSR1, halt_reboot_pwoff); /* halt */
-		signal(SIGUSR2, halt_reboot_pwoff); /* poweroff */
-		signal(SIGTERM, halt_reboot_pwoff); /* reboot */
+		bb_signals(0
+			+ (1 << SIGHUP)
+			+ (1 << SIGQUIT)
+			, exec_restart_action);
+		bb_signals(0
+			+ (1 << SIGUSR1)  /* halt */
+			+ (1 << SIGUSR2)  /* poweroff */
+			+ (1 << SIGTERM)  /* reboot */
+			, halt_reboot_pwoff);
 		signal(SIGINT, ctrlaltdel_signal);
 		signal(SIGCONT, cont_handler);
-		signal(SIGSTOP, stop_handler);
-		signal(SIGTSTP, stop_handler);
+		bb_signals(0
+			+ (1 << SIGSTOP)
+			+ (1 << SIGTSTP)
+			, stop_handler);
 
 		/* Turn off rebooting via CTL-ALT-DEL -- we get a
 		 * SIGINT on CAD so we can shut things down gracefully... */

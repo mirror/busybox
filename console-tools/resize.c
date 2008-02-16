@@ -37,10 +37,12 @@ int resize_main(int argc, char **argv)
 	new = old_termios;
 	new.c_cflag |= (CLOCAL | CREAD);
 	new.c_lflag &= ~(ICANON | ECHO | ECHOE | ISIG);
-	signal(SIGINT, onintr);
-	signal(SIGQUIT, onintr);
-	signal(SIGTERM, onintr);
-	signal(SIGALRM, onintr);
+	bb_signals(0
+		+ (1 << SIGINT)
+		+ (1 << SIGQUIT)
+		+ (1 << SIGTERM)
+		+ (1 << SIGALRM)
+		, onintr);
 	tcsetattr(STDERR_FILENO, TCSANOW, &new);
 
 	/* save_cursor_pos 7

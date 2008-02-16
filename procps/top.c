@@ -772,8 +772,10 @@ int top_main(int argc, char **argv)
 	/* unbuffered input, turn off echo */
 	new_settings.c_lflag &= ~(ISIG | ICANON | ECHO | ECHONL);
 
-	signal(SIGTERM, sig_catcher);
-	signal(SIGINT, sig_catcher);
+	bb_signals(0
+		+ (1 << SIGTERM)
+		+ (1 << SIGINT)
+		, sig_catcher);
 	tcsetattr(0, TCSANOW, (void *) &new_settings);
 	atexit(reset_term);
 #endif /* FEATURE_USE_TERMIOS */

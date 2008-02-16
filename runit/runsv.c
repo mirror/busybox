@@ -345,8 +345,10 @@ static void startservice(struct svdir *s)
 				xdup2(logpipe.wr, 1);
 			}
 		}
-		signal(SIGCHLD, SIG_DFL);
-		signal(SIGTERM, SIG_DFL);
+		bb_signals(0
+			+ (1 << SIGCHLD)
+			+ (1 << SIGTERM)
+			, SIG_DFL);
 		sig_unblock(SIGCHLD);
 		sig_unblock(SIGTERM);
 		execvp(*run, run);
@@ -460,9 +462,9 @@ int runsv_main(int argc, char **argv)
 	ndelay_on(selfpipe.wr);
 
 	sig_block(SIGCHLD);
-	sig_catch(SIGCHLD, s_child);
+	bb_signals_recursive(1 << SIGCHLD, s_child);
 	sig_block(SIGTERM);
-	sig_catch(SIGTERM, s_term);
+	bb_signals_recursive(1 << SIGTERM, s_term);
 
 	xchdir(dir);
 	/* bss: svd[0].pid = 0; */

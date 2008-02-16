@@ -683,14 +683,18 @@ int nc_main(int argc, char **argv)
 	PTR_TO_GLOBALS = xzalloc(sizeof(G));
 
 	/* catch a signal or two for cleanup */
-	signal(SIGINT, catch);
-	signal(SIGQUIT, catch);
-	signal(SIGTERM, catch);
+	bb_signals(0
+		+ (1 << SIGINT)
+		+ (1 << SIGQUIT)
+		+ (1 << SIGTERM)
+		, catch);
 	/* and suppress others... */
+	bb_signals(0
 #ifdef SIGURG
-	signal(SIGURG, SIG_IGN);
+		+ (1 << SIGURG)
 #endif
-	signal(SIGPIPE, SIG_IGN); /* important! */
+		+ (1 << SIGPIPE) /* important! */
+		, SIG_IGN);
 
 	proggie = argv;
 	while (*++proggie) {

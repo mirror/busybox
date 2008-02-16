@@ -175,10 +175,12 @@ int slattach_main(int argc, char **argv)
 
 	/* Trap signals in order to restore tty states upon exit */
 	if (!(opt & OPT_e_quit)) {
-		signal(SIGHUP, sig_handler);
-		signal(SIGINT, sig_handler);
-		signal(SIGQUIT, sig_handler);
-		signal(SIGTERM, sig_handler);
+		bb_signals(0
+			+ (1 << SIGHUP)
+			+ (1 << SIGINT)
+			+ (1 << SIGQUIT)
+			+ (1 << SIGTERM)
+			, sig_handler);
 	}
 
 	/* Open tty */

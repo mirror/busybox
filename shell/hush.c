@@ -709,28 +709,34 @@ static void signal_SA_RESTART(int sig, void (*handler)(int))
 /* Signals are grouped, we handle them in batches */
 static void set_fatal_sighandler(void (*handler)(int))
 {
-	signal(SIGILL , handler);
-	signal(SIGTRAP, handler);
-	signal(SIGABRT, handler);
-	signal(SIGFPE , handler);
-	signal(SIGBUS , handler);
-	signal(SIGSEGV, handler);
+	bb_signals(0
+		+ (1 << SIGILL)
+		+ (1 << SIGTRAP)
+		+ (1 << SIGABRT)
+		+ (1 << SIGFPE)
+		+ (1 << SIGBUS)
+		+ (1 << SIGSEGV)
 	/* bash 3.2 seems to handle these just like 'fatal' ones */
-	signal(SIGHUP , handler);
-	signal(SIGPIPE, handler);
-	signal(SIGALRM, handler);
+		+ (1 << SIGHUP)
+		+ (1 << SIGPIPE)
+		+ (1 << SIGALRM)
+		, handler);
 }
 static void set_jobctrl_sighandler(void (*handler)(int))
 {
-	signal(SIGTSTP, handler);
-	signal(SIGTTIN, handler);
-	signal(SIGTTOU, handler);
+	bb_signals(0
+		+ (1 << SIGTSTP)
+		+ (1 << SIGTTIN)
+		+ (1 << SIGTTOU)
+		, handler);
 }
 static void set_misc_sighandler(void (*handler)(int))
 {
-	signal(SIGINT , handler);
-	signal(SIGQUIT, handler);
-	signal(SIGTERM, handler);
+	bb_signals(0
+		+ (1 << SIGINT)
+		+ (1 << SIGQUIT)
+		+ (1 << SIGTERM)
+		, handler);
 }
 /* SIGCHLD is special and handled separately */
 

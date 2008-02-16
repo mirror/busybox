@@ -36,12 +36,12 @@ int tee_main(int argc, char **argv)
 	mode += (retval & 2);	/* Since 'a' is the 2nd option... */
 
 	if (retval & 1) {
-		signal(SIGINT, SIG_IGN); /* TODO - switch to sigaction. */
+		signal(SIGINT, SIG_IGN); /* TODO - switch to sigaction. (why?) */
 	}
 	retval = EXIT_SUCCESS;
 	/* gnu tee ignores SIGPIPE in case one of the output files is a pipe
 	 * that doesn't consume all its input.  Good idea... */
-	signal(SIGPIPE, SIG_IGN);	/* TODO - switch to sigaction. */
+	signal(SIGPIPE, SIG_IGN);
 
 	/* Allocate an array of FILE *'s, with one extra for a sentinal. */
 	fp = files = xzalloc(sizeof(FILE *) * (argc + 2));

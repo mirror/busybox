@@ -111,8 +111,10 @@ static void launch_helper(const char **argv)
 		_exit(127);
 	}
 	// parent - check whether child is alive
-	sig_catch(SIGCHLD, signal_handler);
-	sig_catch(SIGALRM, signal_handler);
+	bb_signals_recursive(0
+			+ (1 << SIGCHLD)
+			+ (1 << SIGALRM)
+			, signal_handler);
 	signal_handler(SIGCHLD);
 	// child seems OK -> parent goes on
 }

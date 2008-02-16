@@ -57,9 +57,10 @@ int klogd_main(int argc, char **argv)
 	openlog("kernel", 0, LOG_KERN);
 
 	/* Set up sig handlers */
-	signal(SIGINT, klogd_signal);
-	signal(SIGKILL, klogd_signal);
-	signal(SIGTERM, klogd_signal);
+	bb_signals(0
+		+ (1 << SIGINT)
+		+ (1 << SIGTERM)
+		, klogd_signal);
 	signal(SIGHUP, SIG_IGN);
 
 	/* "Open the log. Currently a NOP." */

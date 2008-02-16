@@ -361,14 +361,16 @@ int dnsd_main(int argc, char **argv)
 	dnsentryinit();
 
 	signal(SIGINT, interrupt);
-	/* why? signal(SIGPIPE, SIG_IGN); */
-	signal(SIGHUP, SIG_IGN);
+	bb_signals(0
+		/* why? + (1 << SIGPIPE) */
+		+ (1 << SIGHUP)
 #ifdef SIGTSTP
-	signal(SIGTSTP, SIG_IGN);
+		+ (1 << SIGTSTP)
 #endif
 #ifdef SIGURG
-	signal(SIGURG, SIG_IGN);
+		+ (1 << SIGURG)
 #endif
+		, SIG_IGN);
 
 	lsa = xdotted2sockaddr(listen_interface, port);
 	udps = xsocket(lsa->u.sa.sa_family, SOCK_DGRAM, 0);

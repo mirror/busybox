@@ -222,9 +222,11 @@ static unsigned processorstart(struct logdir *ld)
 		int fd;
 
 		/* child */
-		signal(SIGTERM, SIG_DFL);
-		signal(SIGALRM, SIG_DFL);
-		signal(SIGHUP, SIG_DFL);
+		bb_signals(0
+			+ (1 << SIGTERM)
+			+ (1 << SIGALRM)
+			+ (1 << SIGHUP)
+			, SIG_DFL);
 		sig_unblock(SIGTERM);
 		sig_unblock(SIGALRM);
 		sig_unblock(SIGHUP);
@@ -903,10 +905,10 @@ int svlogd_main(int argc, char **argv)
 	sigaddset(&blocked_sigset, SIGALRM);
 	sigaddset(&blocked_sigset, SIGHUP);
 	sigprocmask(SIG_BLOCK, &blocked_sigset, NULL);
-	sig_catch(SIGTERM, sig_term_handler);
-	sig_catch(SIGCHLD, sig_child_handler);
-	sig_catch(SIGALRM, sig_alarm_handler);
-	sig_catch(SIGHUP, sig_hangup_handler);
+	bb_signals_recursive(1 << SIGTERM, sig_term_handler);
+	bb_signals_recursive(1 << SIGCHLD, sig_child_handler);
+	bb_signals_recursive(1 << SIGALRM, sig_alarm_handler);
+	bb_signals_recursive(1 << SIGHUP, sig_hangup_handler);
 
 	logdirs_reopen();
 

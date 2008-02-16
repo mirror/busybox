@@ -100,8 +100,10 @@ static void runsv(int no, const char *name)
 		/* child */
 		if (set_pgrp)
 			setsid();
-		signal(SIGHUP, SIG_DFL);
-		signal(SIGTERM, SIG_DFL);
+		bb_signals(0
+			+ (1 << SIGHUP)
+			+ (1 << SIGTERM)
+			, SIG_DFL);
 		execvp(prog[0], prog);
 		fatal2_cannot("start runsv ", name);
 	}
@@ -232,8 +234,8 @@ int runsvdir_main(int argc, char **argv)
 			bb_show_usage();
 	}
 
-	sig_catch(SIGTERM, s_term);
-	sig_catch(SIGHUP, s_hangup);
+	bb_signals_recursive(1 << SIGTERM, s_term);
+	bb_signals_recursive(1 << SIGHUP, s_hangup);
 	svdir = *argv++;
 	if (argv && *argv) {
 		rplog = *argv;

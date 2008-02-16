@@ -87,9 +87,11 @@ int more_main(int argc, char **argv)
 	new_settings.c_cc[VMIN] = 1;
 	new_settings.c_cc[VTIME] = 0;
 	setTermSettings(cin_fileno, &new_settings);
-	signal(SIGINT, gotsig);
-	signal(SIGQUIT, gotsig);
-	signal(SIGTERM, gotsig);
+	bb_signals(0
+		+ (1 << SIGINT)
+		+ (1 << SIGQUIT)
+		+ (1 << SIGTERM)
+		, gotsig);
 #endif
 
 	do {

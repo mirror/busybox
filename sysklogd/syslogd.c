@@ -540,9 +540,11 @@ static void do_syslogd(void)
 	int sock_fd;
 
 	/* Set up signal handlers */
-	signal(SIGINT, quit_signal);
-	signal(SIGTERM, quit_signal);
-	signal(SIGQUIT, quit_signal);
+	bb_signals(0
+		+ (1 << SIGINT)
+		+ (1 << SIGTERM)
+		+ (1 << SIGQUIT)
+		, quit_signal);
 	signal(SIGHUP, SIG_IGN);
 	/* signal(SIGCHLD, SIG_IGN); - why? */
 #ifdef SYSLOGD_MARK

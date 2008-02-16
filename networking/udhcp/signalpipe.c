@@ -42,9 +42,11 @@ void udhcp_sp_setup(void)
 	close_on_exec_on(signal_pipe.rd);
 	close_on_exec_on(signal_pipe.wr);
 	ndelay_on(signal_pipe.wr);
-	signal(SIGUSR1, signal_handler);
-	signal(SIGUSR2, signal_handler);
-	signal(SIGTERM, signal_handler);
+	bb_signals(0
+		+ (1 << SIGUSR1)
+		+ (1 << SIGUSR2)
+		+ (1 << SIGTERM)
+		, signal_handler);
 }
 
 

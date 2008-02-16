@@ -99,10 +99,12 @@ int microcom_main(int argc, char **argv)
 	}
 
 	// setup signals
-	sig_catch(SIGHUP,  signal_handler);
-	sig_catch(SIGINT,  signal_handler);
-	sig_catch(SIGTERM, signal_handler);
-	sig_catch(SIGPIPE, signal_handler);
+	bb_signals_recursive(0
+			+ (1 << SIGHUP)
+			+ (1 << SIGINT)
+			+ (1 << SIGTERM)
+			+ (1 << SIGPIPE)
+			, signal_handler);
 
 	// error exit code if we fail to open the device
 	signalled = 1;

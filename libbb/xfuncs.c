@@ -234,48 +234,6 @@ void xfflush_stdout(void)
 	}
 }
 
-void sig_block(int sig)
-{
-	sigset_t ss;
-	sigemptyset(&ss);
-	sigaddset(&ss, sig);
-	sigprocmask(SIG_BLOCK, &ss, NULL);
-}
-
-void sig_unblock(int sig)
-{
-	sigset_t ss;
-	sigemptyset(&ss);
-	sigaddset(&ss, sig);
-	sigprocmask(SIG_UNBLOCK, &ss, NULL);
-}
-
-#if 0
-void sig_blocknone(void)
-{
-	sigset_t ss;
-	sigemptyset(&ss);
-	sigprocmask(SIG_SETMASK, &ss, NULL);
-}
-#endif
-
-void sig_catch(int sig, void (*f)(int))
-{
-	struct sigaction sa;
-	sa.sa_handler = f;
-	sa.sa_flags = 0;
-	sigemptyset(&sa.sa_mask);
-	sigaction(sig, &sa, NULL);
-}
-
-void sig_pause(void)
-{
-	sigset_t ss;
-	sigemptyset(&ss);
-	sigsuspend(&ss);
-}
-
-
 void xsetenv(const char *key, const char *value)
 {
 	if (setenv(key, value, 1))

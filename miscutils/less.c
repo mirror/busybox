@@ -1355,8 +1355,10 @@ int less_main(int argc, char **argv)
 		empty_line_marker = "";
 
 	tcgetattr(kbd_fd, &term_orig);
-	signal(SIGTERM, sig_catcher);
-	signal(SIGINT, sig_catcher);
+	bb_signals(0
+		+ (1 << SIGTERM)
+		+ (1 << SIGINT)
+		, sig_catcher);
 	term_less = term_orig;
 	term_less.c_lflag &= ~(ICANON | ECHO);
 	term_less.c_iflag &= ~(IXON | ICRNL);
