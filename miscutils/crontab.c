@@ -15,9 +15,6 @@
 #ifndef CRONTABS
 #define CRONTABS        "/var/spool/cron/crontabs"
 #endif
-#ifndef TMPDIR
-#define TMPDIR          "/var/spool/cron"
-#endif
 #ifndef CRONUPDATE
 #define CRONUPDATE      "cron.update"
 #endif
@@ -37,7 +34,7 @@ static void change_user(const struct passwd *pas)
 	if (chdir(pas->pw_dir) < 0) {
 		bb_perror_msg("chdir(%s) by %s failed",
 				pas->pw_dir, pas->pw_name);
-		xchdir(TMPDIR);
+		xchdir("/tmp");
 	}
 }
 
@@ -62,9 +59,7 @@ static void edit_file(const struct passwd *pas, const char *file)
 			ptr = PATH_VI;
 	}
 
-	/* TODO: clean up the environment!!! */
-	/* not execlp - we won't use PATH */
-	execl(ptr, ptr, file, NULL);
+	BB_EXECLP(ptr, ptr, file, NULL);
 	bb_perror_msg_and_die("exec %s", ptr);
 }
 
@@ -136,9 +131,12 @@ int crontab_main(int argc, char **argv)
 	opt_ler = getopt32(argv, "u:c:lerd", &user_name, &crontab_dir);
 	argv += optind;
 
-	if (opt_ler & (OPT_u|OPT_c))
-		if (my_uid != geteuid())
+	if (my_uid != geteuid()) { /* run by non-root? */
+		if (opt_ler & (OPT_u|OPT_c))
 			bb_error_msg_and_die("only root can use -c or -u");
+		/* Clear dangerous stuff, set PATH */
+		sanitize_env_for_suid();
+	}
 
 	if (opt_ler & OPT_u) {
 		pas = getpwnam(user_name);
@@ -194,7 +192,7 @@ int crontab_main(int argc, char **argv)
 		}
 
 	case OPT_e: /* Edit */
-		tmp_fname = xasprintf(TMPDIR "/crontab.%u", (unsigned)getpid());
+		tmp_fname = xasprintf("%s.%u", crontab_dir, (unsigned)getpid());
 		fd = xopen3(tmp_fname, O_RDWR|O_CREAT|O_TRUNC|O_EXCL, 0600);
 		xmove_fd(fd, STDIN_FILENO);
 		fd = open(pas->pw_name, O_RDONLY);
