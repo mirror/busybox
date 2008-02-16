@@ -595,14 +595,14 @@ int bb_execvp(const char *file, char *const argv[]);
 pid_t spawn(char **argv);
 pid_t xspawn(char **argv);
 
-/* Unlike waitpid, waits ONLY for one process,
+int safe_waitpid(int pid, int *wstat, int options);
+/* Unlike waitpid, waits ONLY for one process.
  * It's safe to pass negative 'pids' from failed [v]fork -
  * wait4pid will return -1 (and will not clobber [v]fork's errno).
  * IOW: rc = wait4pid(spawn(argv));
  *      if (rc < 0) bb_perror_msg("%s", argv[0]);
  *      if (rc > 0) bb_error_msg("exit code: %d", rc);
  */
-int safe_waitpid(int pid, int *wstat, int options);
 int wait4pid(int pid);
 int wait_any_nohang(int *wstat);
 #define wait_crashed(w) ((w) & 127)

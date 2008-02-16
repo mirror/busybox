@@ -1,5 +1,7 @@
 #if ENABLE_FEATURE_SGI_LABEL
 
+#define SGI_DEBUG 0
+
 /*
  * Copyright (C) Andreas Neuper, Sep 1998.
  *      This file may be modified and redistributed under
@@ -117,9 +119,8 @@ typedef struct {
  */
 
 
-static int sgi_other_endian;
-static int debug;
-static short sgi_volumes = 1;
+static smallint sgi_other_endian; /* bool */
+static smallint sgi_volumes = 1; /* max 15 */
 
 /*
  * only dealing with free blocks here
@@ -318,7 +319,7 @@ sgi_list_table(int xtra)
 		"Pt# %*s  Info     Start       End   Sectors  Id  System\n",
 		w + 2, "Device");
 	for (i = 0; i < g_partitions; i++) {
-		if (sgi_get_num_sectors(i) || debug ) {
+		if (sgi_get_num_sectors(i) || SGI_DEBUG) {
 			uint32_t start = sgi_get_start_sector(i);
 			uint32_t len = sgi_get_num_sectors(i);
 			kpi++;              /* only count nonempty partitions */
@@ -514,7 +515,7 @@ verify_sgi(int verbose)
 				"at block 0,\n"
 				"not at diskblock %d\n",
 				sgi_get_start_sector(Index[0]));
-		if (debug)      /* I do not understand how some disks fulfil it */
+		if (SGI_DEBUG)      /* I do not understand how some disks fulfil it */
 			if ((sgi_get_num_sectors(Index[0]) != lastblock) && verbose)
 				printf("The entire disk partition is only %d diskblock large,\n"
 					"but the disk is %d diskblocks long\n",
@@ -523,7 +524,7 @@ verify_sgi(int verbose)
 	} else {
 		if (verbose)
 			printf("One Partition (#11) should cover the entire disk\n");
-		if (debug > 2)
+		if (SGI_DEBUG > 2)
 			printf("sysid=%d\tpartition=%d\n",
 				sgi_get_sysid(Index[0]), Index[0]+1);
 	}
@@ -531,13 +532,13 @@ verify_sgi(int verbose)
 		int cylsize = sgi_get_nsect() * sgi_get_ntrks();
 
 		if ((sgi_get_start_sector(Index[i]) % cylsize) != 0) {
-			if (debug)      /* I do not understand how some disks fulfil it */
+			if (SGI_DEBUG)      /* I do not understand how some disks fulfil it */
 				if (verbose)
 					printf("Partition %d does not start on cylinder boundary\n",
 						Index[i]+1);
 		}
 		if (sgi_get_num_sectors(Index[i]) % cylsize != 0) {
-			if (debug)      /* I do not understand how some disks fulfil it */
+			if (SGI_DEBUG)      /* I do not understand how some disks fulfil it */
 				if (verbose)
 					printf("Partition %d does not end on cylinder boundary\n",
 						Index[i]+1);
@@ -562,7 +563,7 @@ verify_sgi(int verbose)
 		}
 		start = sgi_get_start_sector(Index[i])
 			   + sgi_get_num_sectors(Index[i]);
-		if (debug > 1) {
+		if (SGI_DEBUG > 1) {
 			if (verbose)
 				printf("%2d:%12d\t%12d\t%12d\n", Index[i],
 					sgi_get_start_sector(Index[i]),
@@ -805,7 +806,7 @@ create_sgilabel(void)
 				old[i].start = get_start_sect(get_part_table(i));
 				old[i].nsect = get_nr_sects(get_part_table(i));
 				printf("Trying to keep parameters of partition %d\n", i);
-				if (debug)
+				if (SGI_DEBUG)
 					printf("ID=%02x\tSTART=%d\tLENGTH=%d\n",
 				old[i].sysid, old[i].start, old[i].nsect);
 			}

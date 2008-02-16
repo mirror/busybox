@@ -1409,10 +1409,11 @@ static void send_cgi_and_exit(
 		/* Child process */
 		xfunc_error_retval = 242;
 
+		/* NB: close _first_, then move fds! */
+		close(toCgi.wr);
+		close(fromCgi.rd);
 		xmove_fd(toCgi.rd, 0);  /* replace stdin with the pipe */
 		xmove_fd(fromCgi.wr, 1);  /* replace stdout with the pipe */
-		close(fromCgi.rd);
-		close(toCgi.wr);
 		/* User seeing stderr output can be a security problem.
 		 * If CGI really wants that, it can always do dup itself. */
 		/* dup2(1, 2); */

@@ -3243,7 +3243,7 @@ static FILE *generate_stream_from_list(struct pipe *head)
 	if (pid == 0) { /* child */
 		if (ENABLE_HUSH_JOB)
 			die_sleep = 0; /* let nofork's xfuncs die */
-		close(channel[0]);
+		close(channel[0]); /* NB: close _first_, then move fd! */
 		xmove_fd(channel[1], 1);
 		/* Prevent it from trying to handle ctrl-z etc */
 #if ENABLE_HUSH_JOB

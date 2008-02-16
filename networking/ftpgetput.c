@@ -72,7 +72,7 @@ static int ftpcmd(const char *s1, const char *s2, FILE *stream, char *buf)
 static int xconnect_ftpdata(ftp_host_info_t *server, char *buf)
 {
 	char *buf_ptr;
-	unsigned short port_num;
+	unsigned port_num;
 
 	/* Response is "NNN garbageN1,N2,N3,N4,P1,P2[)garbage]
 	 * Server's IP is N1.N2.N3.N4 (we ignore it)

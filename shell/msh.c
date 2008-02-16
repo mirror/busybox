@@ -2797,15 +2797,13 @@ static int forkexec(struct op *t, int *pin, int *pout, int no_fork, char **wp)
 			if (!bltin)
 				export(lookup(cp));
 
-	if (pin) {
+	if (pin) { /* NB: close _first_, then move fds! */
+		close(pin[1]);
 		xmove_fd(pin[0], 0);
-		if (pin[1] != 0)
-			close(pin[1]);
 	}
 	if (pout) {
+		close(pout[0]);
 		xmove_fd(pout[1], 1);
-		if (pout[0] > 1)
-			close(pout[0]);
 	}
 
 	iopp = t->ioact;

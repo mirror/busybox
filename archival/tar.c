@@ -546,13 +546,16 @@ static int writeTarFile(const int tar_fd, const int verboseFlag,
 
 		if (gzipPid == 0) {
 			/* child */
-			xmove_fd(tbInfo.tarFd, 1);
-			xmove_fd(gzipDataPipe.rd, 0);
+			/* NB: close _first_, then move fds! */
 			close(gzipDataPipe.wr);
 #if WAIT_FOR_CHILD
 			close(gzipStatusPipe.rd);
+			/* gzipStatusPipe.wr will close only on exec -
+			 * parent waits for this close to happen */
 			fcntl(gzipStatusPipe.wr, F_SETFD, FD_CLOEXEC);
 #endif
+			xmove_fd(gzipDataPipe.rd, 0);
+			xmove_fd(tbInfo.tarFd, 1);
 			/* exec gzip/bzip2 program/applet */
 			BB_EXECLP(zip_exec, zip_exec, "-f", NULL);
 			vfork_exec_errno = errno;
@@ -570,7 +573,7 @@ static int writeTarFile(const int tar_fd, const int verboseFlag,
 
 			/* Wait until child execs (or fails to) */
 			n = full_read(gzipStatusPipe.rd, &buf, 1);
-			if ((n < 0) && (/*errno == EAGAIN ||*/ errno == EINTR))
+			if (n < 0 /* && errno == EAGAIN */)
 				continue;	/* try it again */
 
 		}

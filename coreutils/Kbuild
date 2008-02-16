@@ -12,6 +12,7 @@ lib-$(CONFIG_CAL)       += cal.o
 lib-$(CONFIG_CAT)       += cat.o
 lib-$(CONFIG_MORE)      += cat.o # more uses it if stdout isn't a tty
 lib-$(CONFIG_LESS)      += cat.o # less too
+lib-$(CONFIG_CRONTAB)   += cat.o # crontab -l
 lib-$(CONFIG_CATV)      += catv.o
 lib-$(CONFIG_CHGRP)     += chgrp.o chown.o
 lib-$(CONFIG_CHMOD)     += chmod.o

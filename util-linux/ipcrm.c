@@ -24,7 +24,7 @@
 union semun {
 	int val;
 	struct semid_ds *buf;
-	unsigned short int *array;
+	unsigned short *array;
 	struct seminfo *__buf;
 };
 #endif

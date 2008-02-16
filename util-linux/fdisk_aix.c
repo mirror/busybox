@@ -29,8 +29,8 @@ typedef struct {
   *      Some fixes
 */
 
-static int aix_other_endian;
-static short aix_volumes = 1;
+static smallint aix_other_endian; /* bool */
+static smallint aix_volumes = 1; /* max 15 */
 
 /*
  * only dealing with free blocks here

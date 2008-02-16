@@ -97,7 +97,7 @@ extern void seek_by_read(const archive_handle_t *archive_handle, const unsigned 
 
 extern ssize_t archive_xread_all_eof(archive_handle_t *archive_handle, unsigned char *buf, size_t count);
 
-extern void data_align(archive_handle_t *archive_handle, const unsigned short boundary);
+extern void data_align(archive_handle_t *archive_handle, unsigned boundary);
 extern const llist_t *find_list_entry(const llist_t *list, const char *filename);
 extern const llist_t *find_list_entry2(const llist_t *list, const char *filename);
 

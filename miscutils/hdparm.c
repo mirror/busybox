@@ -1168,7 +1168,7 @@ static const char BuffType[] ALIGN1 =
 static void dump_identity(const struct hd_driveid *id)
 {
 	int i;
-	const unsigned short int *id_regs = (const void*) id;
+	const unsigned short *id_regs = (const void*) id;
 
 	printf("\n Model=%.40s, FwRev=%.8s, SerialNo=%.20s\n Config={",
 				id->model, id->fw_rev, id->serial_no);

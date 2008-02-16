@@ -76,7 +76,7 @@ typedef struct sed_cmd_s {
 	FILE *sw_file;          /* File (sw) command writes to, -1 for none. */
 	char *string;           /* Data string for (saicytb) commands. */
 
-	unsigned short which_match; /* (s) Which match to replace (0 for all) */
+	unsigned which_match;   /* (s) Which match to replace (0 for all) */
 
 	/* Bitfields (gcc won't group them if we don't) */
 	unsigned invert:1;      /* the '!' after the address */
@@ -353,7 +353,7 @@ static int parse_subst_cmd(sed_cmd_t *sed_cmd, const char *substr)
 				/* Match 0 treated as all, multiple matches we take the last one. */
 				const char *pos = substr + idx;
 /* FIXME: error check? */
-				sed_cmd->which_match = (unsigned short)strtol(substr+idx, (char**) &pos, 10);
+				sed_cmd->which_match = (unsigned)strtol(substr+idx, (char**) &pos, 10);
 				idx = pos - substr;
 			}
 			continue;
@@ -364,7 +364,8 @@ static int parse_subst_cmd(sed_cmd_t *sed_cmd, const char *substr)
 		switch (substr[idx]) {
 		/* Replace all occurrences */
 		case 'g':
-			if (match[0] != '^') sed_cmd->which_match = 0;
+			if (match[0] != '^')
+				sed_cmd->which_match = 0;
 			break;
 		/* Print pattern space */
 		case 'p':
@@ -683,7 +684,8 @@ static int do_subst_command(sed_cmd_t *sed_cmd, char **line)
 		altered++;
 
 		/* if we're not doing this globally, get out now */
-		if (sed_cmd->which_match) break;
+		if (sed_cmd->which_match)
+			break;
 	} while (*oldline && (regexec(current_regex, oldline, 10, G.regmatch, 0) != REG_NOMATCH));
 
 	/* Copy rest of string into output pipeline */
