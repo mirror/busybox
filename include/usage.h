@@ -510,15 +510,14 @@ USE_FEATURE_BRCTL_FANCY("\n" \
        "	-c dir	Working dir"
 
 #define crontab_trivial_usage \
-       "[-c dir] {file|-}|[-u|-l|-e|-d user]"
+       "[-c DIR] [-u USER] [-ler]|[FILE]"
 #define crontab_full_usage \
-       "	file [opts]	Replace crontab from file\n" \
-       "	- [opts]	Replace crontab from stdin\n" \
-       "	-u user		User\n" \
-       "	-l [user]	List crontab for user\n" \
-       "	-e [user]	Edit crontab for user\n" \
-       "	-d [user]	Delete crontab for user\n" \
-       "	-c dir		Crontab directory"
+       "	-c	Crontab directory" \
+     "\n	-u	User" \
+     "\n	-l	List crontab" \
+     "\n	-e	Edit crontab" \
+     "\n	-r	Delete crontab" \
+     "\n	FILE	Replace crontab by FILE ('-': stdin)" \
 
 #define cryptpw_trivial_usage \
        "[-a des|md5] [string]"
