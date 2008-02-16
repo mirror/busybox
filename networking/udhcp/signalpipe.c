@@ -23,12 +23,12 @@
 #include "common.h"
 
 
-static int signal_pipe[2];
+static struct fd_pair signal_pipe;
 
 static void signal_handler(int sig)
 {
 	unsigned char ch = sig; /* use char, avoid dealing with partial writes */
-	if (write(signal_pipe[1], &ch, 1) != 1)
+	if (write(signal_pipe.wr, &ch, 1) != 1)
 		bb_perror_msg("cannot send signal");
 }
 
@@ -38,10 +38,10 @@ static void signal_handler(int sig)
 void udhcp_sp_setup(void)
 {
 	/* was socketpair, but it needs AF_UNIX in kernel */
-	xpipe(signal_pipe);
-	close_on_exec_on(signal_pipe[0]);
-	close_on_exec_on(signal_pipe[1]);
-	ndelay_on(signal_pipe[1]);
+	xpiped_pair(signal_pipe);
+	close_on_exec_on(signal_pipe.rd);
+	close_on_exec_on(signal_pipe.wr);
+	ndelay_on(signal_pipe.wr);
 	signal(SIGUSR1, signal_handler);
 	signal(SIGUSR2, signal_handler);
 	signal(SIGTERM, signal_handler);
@@ -54,12 +54,12 @@ void udhcp_sp_setup(void)
 int udhcp_sp_fd_set(fd_set *rfds, int extra_fd)
 {
 	FD_ZERO(rfds);
-	FD_SET(signal_pipe[0], rfds);
+	FD_SET(signal_pipe.rd, rfds);
 	if (extra_fd >= 0) {
 		close_on_exec_on(extra_fd);
 		FD_SET(extra_fd, rfds);
 	}
-	return signal_pipe[0] > extra_fd ? signal_pipe[0] : extra_fd;
+	return signal_pipe.rd > extra_fd ? signal_pipe.rd : extra_fd;
 }
 
 
@@ -70,10 +70,10 @@ int udhcp_sp_read(const fd_set *rfds)
 {
 	unsigned char sig;
 
-	if (!FD_ISSET(signal_pipe[0], rfds))
+	if (!FD_ISSET(signal_pipe.rd, rfds))
 		return 0;
 
-	if (read(signal_pipe[0], &sig, 1) != 1)
+	if (safe_read(signal_pipe.rd, &sig, 1) != 1)
 		return -1;
 
 	return sig;

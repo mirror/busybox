@@ -70,18 +70,18 @@ static void edit_file(const struct passwd *pas, const char *file)
 
 static int open_as_user(const struct passwd *pas, const char *file)
 {
-	int filedes[2];
+	struct fd_pair filedes;
 	pid_t pid;
 	char c;
 
-	xpipe(filedes);
+	xpiped_pair(filedes);
 	pid = vfork();
 	if (pid < 0) /* ERROR */
 		bb_perror_msg_and_die("vfork");
 	if (pid) { /* PARENT */
-		int n = safe_read(filedes[0], &c, 1);
-		close(filedes[0]);
-		close(filedes[1]);
+		int n = safe_read(filedes.rd, &c, 1);
+		close(filedes.rd);
+		close(filedes.wr);
 		if (n > 0) /* child says it can read */
 			return open(file, O_RDONLY);
 		return -1;
@@ -95,7 +95,7 @@ static int open_as_user(const struct passwd *pas, const char *file)
 	/* We just try to read one byte. If that works, file is readable
 	 * under this user. We signal that by sending one byte to parent. */
 	if (safe_read(xopen(file, O_RDONLY), &c, 1) == 1)
-		safe_write(filedes[1], &c, 1); /* "papa, I can read!" */
+		safe_write(filedes.wr, &c, 1); /* "papa, I can read!" */
 	_exit(0);
 }
 

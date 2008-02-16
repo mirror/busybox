@@ -521,14 +521,14 @@ static int writeTarFile(const int tar_fd, const int verboseFlag,
 
 		volatile int vfork_exec_errno = 0;
 #if WAIT_FOR_CHILD
-		struct { int rd; int wr; } gzipStatusPipe;
+		struct fd_pair gzipStatusPipe;
 #endif
-		struct { int rd; int wr; } gzipDataPipe;
+		struct fd_pair gzipDataPipe;
 		const char *zip_exec = (gzip == 1) ? "gzip" : "bzip2";
 
-		xpipe(&gzipDataPipe.rd);
+		xpiped_pair(gzipDataPipe);
 #if WAIT_FOR_CHILD
-		xpipe(&gzipStatusPipe.rd);
+		xpiped_pair(gzipStatusPipe);
 #endif
 
 		signal(SIGPIPE, SIG_IGN); /* we only want EPIPE on errors */

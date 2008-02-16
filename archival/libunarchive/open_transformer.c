@@ -15,10 +15,10 @@ int open_transformer(int src_fd,
 	USE_DESKTOP(long long) int (*transformer)(int src_fd, int dst_fd),
 	const char *transform_prog)
 {
-	int fd_pipe[2];
+	struct fd_pair fd_pipe;
 	int pid;
 
-	xpipe(fd_pipe);
+	xpiped_pair(fd_pipe);
 
 #if BB_MMU
 	pid = fork();
@@ -30,12 +30,12 @@ int open_transformer(int src_fd,
 
 	if (pid == 0) {
 		/* child process */
-		close(fd_pipe[0]); /* We don't want to read from the parent */
+		close(fd_pipe.rd); /* We don't want to read from the parent */
 		// FIXME: error check?
 #if BB_MMU
-		transformer(src_fd, fd_pipe[1]);
+		transformer(src_fd, fd_pipe.wr);
 		if (ENABLE_FEATURE_CLEAN_UP) {
-			close(fd_pipe[1]); /* Send EOF */
+			close(fd_pipe.wr); /* Send EOF */
 			close(src_fd);
 		}
 		exit(0);
@@ -43,7 +43,7 @@ int open_transformer(int src_fd,
 		{
 			char *argv[4];
 			xmove_fd(src_fd, 0);
-			xmove_fd(fd_pipe[1], 1);
+			xmove_fd(fd_pipe.wr, 1);
 			argv[0] = (char*)transform_prog;
 			argv[1] = (char*)"-cf";
 			argv[2] = (char*)"-";
@@ -56,7 +56,7 @@ int open_transformer(int src_fd,
 	}
 
 	/* parent process */
-	close(fd_pipe[1]); /* Don't want to write to the child */
+	close(fd_pipe.wr); /* Don't want to write to the child */
 
-	return fd_pipe[0];
+	return fd_pipe.rd;
 }

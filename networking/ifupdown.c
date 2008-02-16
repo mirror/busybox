@@ -987,11 +987,11 @@ static int iface_down(struct interface_defn_t *iface)
 static int popen2(FILE **in, FILE **out, char *command, char *param)
 {
 	char *argv[3] = { command, param, NULL };
-	int infd[2], outfd[2];
+	struct fd_pair infd, outfd;
 	pid_t pid;
 
-	xpipe(infd);
-	xpipe(outfd);
+	xpiped_pair(infd);
+	xpiped_pair(outfd);
 
 	fflush(NULL);
 	pid = fork();
@@ -1001,18 +1001,18 @@ static int popen2(FILE **in, FILE **out, char *command, char *param)
 		bb_perror_msg_and_die("fork");
 	case 0:  /* child */
 		/* NB: close _first_, then move fds! */
-		close(infd[1]);
-		close(outfd[0]);
-		xmove_fd(infd[0], 0);
-		xmove_fd(outfd[1], 1);
+		close(infd.wr);
+		close(outfd.rd);
+		xmove_fd(infd.rd, 0);
+		xmove_fd(outfd.wr, 1);
 		BB_EXECVP(command, argv);
 		_exit(127);
 	}
 	/* parent */
-	close(infd[0]);
-	close(outfd[1]);
-	*in = fdopen(infd[1], "w");
-	*out = fdopen(outfd[0], "r");
+	close(infd.rd);
+	close(outfd.wr);
+	*in = fdopen(infd.wr, "w");
+	*out = fdopen(outfd.rd, "r");
 	return pid;
 }
 

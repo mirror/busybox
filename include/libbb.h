@@ -294,9 +294,14 @@ int xopen(const char *pathname, int flags);
 int xopen3(const char *pathname, int flags, int mode);
 int open_or_warn(const char *pathname, int flags);
 int open3_or_warn(const char *pathname, int flags, int mode);
-void xpipe(int filedes[2]);
 off_t xlseek(int fd, off_t offset, int whence);
 off_t fdlength(int fd);
+
+void xpipe(int filedes[2]);
+/* In this form code with pipes is much more readable */
+struct fd_pair { int rd; int wr; };
+#define piped_pair(pair)  pipe(&((pair).rd))
+#define xpiped_pair(pair) xpipe(&((pair).rd))
 
 /* Useful for having small structure members/global variables */
 typedef int8_t socktype_t;

@@ -1305,8 +1305,8 @@ static void send_cgi_and_exit(
 		const char *cookie,
 		const char *content_type)
 {
-	struct { int rd; int wr; } fromCgi;  /* CGI -> httpd pipe */
-	struct { int rd; int wr; } toCgi;    /* httpd -> CGI pipe */
+	struct fd_pair fromCgi;  /* CGI -> httpd pipe */
+	struct fd_pair toCgi;    /* httpd -> CGI pipe */
 	char *fullpath;
 	char *script;
 	char *purl;
@@ -1396,8 +1396,8 @@ static void send_cgi_and_exit(
 	if (referer)
 		setenv1("HTTP_REFERER", referer);
 
-	xpipe(&fromCgi.rd);
-	xpipe(&toCgi.rd);
+	xpiped_pair(fromCgi);
+	xpiped_pair(toCgi);
 
 	pid = vfork();
 	if (pid < 0) {

@@ -6,7 +6,7 @@
 #include "libbb.h"
 #include "unarchive.h"
 
-void seek_by_jump(const archive_handle_t *archive_handle, const unsigned int amount)
+void seek_by_jump(const archive_handle_t *archive_handle, unsigned amount)
 {
 	if (lseek(archive_handle->src_fd, (off_t) amount, SEEK_CUR) == (off_t) -1) {
 #if ENABLE_FEATURE_UNARCHIVE_TAPE

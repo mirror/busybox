@@ -47,7 +47,7 @@ static char *svdir;
 static int svnum;
 static char *rplog;
 static int rploglen;
-static int logpipe[2];
+static struct fd_pair logpipe;
 static struct pollfd pfd[1];
 static unsigned stamplog;
 static smallint check = 1;
@@ -186,19 +186,19 @@ static int setup_log(void)
 		warnx("log must have at least seven characters");
 		return 0;
 	}
-	if (pipe(logpipe)) {
+	if (piped_pair(logpipe)) {
 		warnx("cannot create pipe for log");
 		return -1;
 	}
-	close_on_exec_on(logpipe[1]);
-	close_on_exec_on(logpipe[0]);
-	ndelay_on(logpipe[0]);
-	ndelay_on(logpipe[1]);
-	if (dup2(logpipe[1], 2) == -1) {
+	close_on_exec_on(logpipe.rd);
+	close_on_exec_on(logpipe.wr);
+	ndelay_on(logpipe.rd);
+	ndelay_on(logpipe.wr);
+	if (dup2(logpipe.wr, 2) == -1) {
 		warnx("cannot set filedescriptor for log");
 		return -1;
 	}
-	pfd[0].fd = logpipe[0];
+	pfd[0].fd = logpipe.rd;
 	pfd[0].events = POLLIN;
 	stamplog = monotonic_sec();
 	return 1;
@@ -296,7 +296,7 @@ int runsvdir_main(int argc, char **argv)
 
 		if (rplog) {
 			if ((int)(now - stamplog) >= 0) {
-				write(logpipe[1], ".", 1);
+				write(logpipe.wr, ".", 1);
 				stamplog = now + 900;
 			}
 		}
@@ -311,7 +311,7 @@ int runsvdir_main(int argc, char **argv)
 		sig_unblock(SIGCHLD);
 
 		if (pfd[0].revents & POLLIN) {
-			while (read(logpipe[0], &ch, 1) > 0) {
+			while (read(logpipe.rd, &ch, 1) > 0) {
 				if (ch) {
 					for (i = 6; i < rploglen; i++)
 						rplog[i-1] = rplog[i];
