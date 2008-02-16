@@ -3,7 +3,7 @@
  * bare bones 'talk to modem' program - similar to 'cu -l $device'
  * inspired by mgetty's microcom
  *
- * Copyright (C) 2007 by Vladimir Dronnikov <dronnikov@gmail.ru>
+ * Copyright (C) 2008 by Vladimir Dronnikov <dronnikov@gmail.com>
  *
  * Licensed under GPLv2, see file LICENSE in this tarball for details.
  */
@@ -59,20 +59,9 @@ int microcom_main(int argc, char **argv)
 	int timeout = -1;
 
 	// fetch options
-	char *opt_s;
-	char *opt_d;
-	char *opt_t;
 	unsigned opts;
-	opt_complementary = "=1"; // exactly one arg should be there
-	opts = getopt32(argv, "Xs:d:t:", &opt_s, &opt_d, &opt_t);
-
-	// apply options
-	if (opts & OPT_s)
-		speed = xatoi_u(opt_s);
-	if (opts & OPT_d)
-		delay = xatoi_u(opt_d);
-	if (opts & OPT_t)
-		timeout = xatoi_u(opt_t);
+	opt_complementary = "=1:s+:d+:t+"; // exactly one arg should be there
+	opts = getopt32(argv, "Xs:d:t:", &speed, &delay, &timeout);
 
 //	argc -= optind;
 	argv += optind;
@@ -99,21 +88,15 @@ int microcom_main(int argc, char **argv)
 	}
 
 	// setup signals
-	bb_signals_recursive(0
-			+ (1 << SIGHUP)
-			+ (1 << SIGINT)
-			+ (1 << SIGTERM)
-			+ (1 << SIGPIPE)
-			, signal_handler);
+	bb_signals(0
+		+ (1 << SIGHUP)
+		+ (1 << SIGINT)
+		+ (1 << SIGTERM)
+		+ (1 << SIGPIPE)
+		, signal_handler);
 
 	// error exit code if we fail to open the device
 	signalled = 1;
-
-	// open device
-	sfd = open_or_warn(argv[0], O_RDWR | O_NOCTTY | O_NONBLOCK);
-	if (sfd < 0)
-		goto done;
-	fcntl(sfd, F_SETFL, O_RDWR | O_NOCTTY);
 
 	// put stdin to "raw mode" (if stdin is a TTY),
 	// handle one character at a time
@@ -123,12 +106,15 @@ int microcom_main(int argc, char **argv)
 			goto done;
 	}
 
-	// same thing for modem
+	// open device
+	sfd = open_or_warn(argv[0], O_RDWR | O_NOCTTY | O_NONBLOCK);
+	if (sfd < 0)
+		goto done;
+	fcntl(sfd, F_SETFL, 0);
+
+	// put device to "raw mode"
 	xget1(sfd, &tio, &tiosfd);
-	// order device to hang up at exit
-	tio.c_cflag |= (CREAD|HUPCL);
-//	if (!istty)
-//		tio.c_iflag |= (IGNCR);
+//	tio.c_cflag |= (CREAD|HUPCL); // we just bail out on any device error
 	// set device speed
 	cfsetspeed(&tio, tty_value_to_baud(speed));
 	if (xset1(sfd, &tio, argv[0]))
@@ -143,21 +129,20 @@ int microcom_main(int argc, char **argv)
 	signalled = 0;
 	nfd = 2;
 	while (!signalled && safe_poll(pfd, nfd, timeout) > 0) {
-		if (pfd[1].revents) {
+		if (nfd > 1 && pfd[1].revents) {
 			char c;
 			// read from stdin -> write to device
 			if (safe_read(STDIN_FILENO, &c, 1) < 1) {
 				// don't poll stdin anymore if we got EOF/error
-				pfd[1].revents = 0;
 				nfd--;
-				goto check_stdin;
+				goto skip_write;
 			}
 			// do we need special processing?
 			if (!(opts & OPT_X)) {
 				// ^@ sends Break
 				if (VINTR == c) {
 					tcsendbreak(sfd, 0);
-					goto check_stdin;
+					goto skip_write;
 				}
 				// ^X exits
 				if (24 == c)
@@ -166,18 +151,24 @@ int microcom_main(int argc, char **argv)
 			write(sfd, &c, 1);
 			if (delay >= 0)
 				safe_poll(pfd, 1, delay);
+skip_write: ;
 		}
-check_stdin:
 		if (pfd[0].revents) {
+#define iobuf bb_common_bufsiz1
 			ssize_t len;
 			// read from device -> write to stdout
-			len = safe_read(sfd, bb_common_bufsiz1, sizeof(bb_common_bufsiz1));
+			len = safe_read(sfd, iobuf, sizeof(iobuf));
 			if (len > 0)
-				full_write(STDOUT_FILENO, bb_common_bufsiz1, len);
-			// else { EOF/error - what to do? }
+				full_write(STDOUT_FILENO, iobuf, len);
+			else {
+				// EOF/error -> bail out
+				signalled = SIGHUP;
+				break;
+			}
 		}
 	}
 
+	// restore device mode
 	tcsetattr(sfd, TCSAFLUSH, &tiosfd);
 
 restore0_and_done:
