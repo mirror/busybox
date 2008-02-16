@@ -590,8 +590,8 @@ static char *next_word(char **buf)
 	/* Skip over leading whitespace */
 	word = skip_whitespace(*buf);
 
-	/* Stop on EOL/comments */
-	if (*word == '#' || *word == '\0')
+	/* Stop on EOL */
+	if (*word == '\0')
 		return NULL;
 
 	/* Find the length of this word (can't be 0) */
@@ -652,40 +652,67 @@ static const llist_t *find_list_string(const llist_t *list, const char *string)
 
 static struct interfaces_file_t *read_interfaces(const char *filename)
 {
+	/* Let's try to be compatible.
+	 *
+	 * "man 5 interfaces" says:
+	 * Lines starting with "#" are ignored. Note that end-of-line
+	 * comments are NOT supported, comments must be on a line of their own.
+	 * A line may be extended across multiple lines by making
+	 * the last character a backslash.
+	 *
+	 * Seen elsewhere in example config file:
+	 * A "#" character in the very first column makes the rest of the line
+	 * be ignored. Blank lines are ignored. Lines may be indented freely.
+	 * A "\" character at the very end of the line indicates the next line
+	 * should be treated as a continuation of the current one.
+	 */
 #if ENABLE_FEATURE_IFUPDOWN_MAPPING
 	struct mapping_defn_t *currmap = NULL;
 #endif
 	struct interface_defn_t *currif = NULL;
 	struct interfaces_file_t *defn;
 	FILE *f;
-	char *firstword;
 	char *buf;
-
+	char *first_word;
+	char *rest_of_line;
 	enum { NONE, IFACE, MAPPING } currently_processing = NONE;
 
-	defn = xzalloc(sizeof(struct interfaces_file_t));
-
+	defn = xzalloc(sizeof(*defn));
 	f = xfopen(filename, "r");
 
 	while ((buf = xmalloc_getline(f)) != NULL) {
-		char *buf_ptr = buf;
-
-		firstword = next_word(&buf_ptr);
-		if (firstword == NULL) {
+#if ENABLE_DESKTOP
+		/* Trailing "\" concatenates lines */
+		char *p;
+		while ((p = last_char_is(buf, '\\')) != NULL) {
+			*p = '\0';
+			rest_of_line = xmalloc_getline(f);
+			if (!rest_of_line)
+				break;
+			p = xasprintf("%s%s", buf, rest_of_line);
 			free(buf);
-			continue;	/* blank line */
+			free(rest_of_line);
+			buf = p;
+		}
+#endif
+		rest_of_line = buf;
+		first_word = next_word(&rest_of_line);
+		if (!first_word || *buf == '#') {
+			free(buf);
+			continue; /* blank/comment line */
 		}
 
-		if (strcmp(firstword, "mapping") == 0) {
+		if (strcmp(first_word, "mapping") == 0) {
 #if ENABLE_FEATURE_IFUPDOWN_MAPPING
 			currmap = xzalloc(sizeof(*currmap));
 
-			while ((firstword = next_word(&buf_ptr)) != NULL) {
+			while ((first_word = next_word(&rest_of_line)) != NULL) {
 				if (currmap->n_matches >= currmap->max_matches) {
 					currmap->max_matches = currmap->max_matches * 2 + 1;
-					currmap->match = xrealloc(currmap->match, sizeof(*currmap->match) * currmap->max_matches);
+					currmap->match = xrealloc(currmap->match,
+						sizeof(*currmap->match) * currmap->max_matches);
 				}
-				currmap->match[currmap->n_matches++] = xstrdup(firstword);
+				currmap->match[currmap->n_matches++] = xstrdup(first_word);
 			}
 			/*currmap->max_mappings = 0; - done by xzalloc */
 			/*currmap->n_mappings = 0;*/
@@ -702,7 +729,7 @@ static struct interfaces_file_t *read_interfaces(const char *filename)
 			debug_noise("Added mapping\n");
 #endif
 			currently_processing = MAPPING;
-		} else if (strcmp(firstword, "iface") == 0) {
+		} else if (strcmp(first_word, "iface") == 0) {
 			static const struct address_family_t *const addr_fams[] = {
 #if ENABLE_FEATURE_IFUPDOWN_IPV4
 				&addr_inet,
@@ -712,24 +739,23 @@ static struct interfaces_file_t *read_interfaces(const char *filename)
 #endif
 				NULL
 			};
-
 			char *iface_name;
 			char *address_family_name;
 			char *method_name;
 			llist_t *iface_list;
 
 			currif = xzalloc(sizeof(*currif));
-			iface_name = next_word(&buf_ptr);
-			address_family_name = next_word(&buf_ptr);
-			method_name = next_word(&buf_ptr);
+			iface_name = next_word(&rest_of_line);
+			address_family_name = next_word(&rest_of_line);
+			method_name = next_word(&rest_of_line);
 
 			if (method_name == NULL)
 				bb_error_msg_and_die("too few parameters for line \"%s\"", buf);
 
 			/* ship any trailing whitespace */
-			buf_ptr = skip_whitespace(buf_ptr);
+			rest_of_line = skip_whitespace(rest_of_line);
 
-			if (buf_ptr[0] != '\0' /* && buf_ptr[0] != '#' */)
+			if (rest_of_line[0] != '\0' /* && rest_of_line[0] != '#' */)
 				bb_error_msg_and_die("too many parameters \"%s\"", buf);
 
 			currif->iface = xstrdup(iface_name);
@@ -754,57 +780,59 @@ static struct interfaces_file_t *read_interfaces(const char *filename)
 
 			debug_noise("iface %s %s %s\n", currif->iface, address_family_name, method_name);
 			currently_processing = IFACE;
-		} else if (strcmp(firstword, "auto") == 0) {
-			while ((firstword = next_word(&buf_ptr)) != NULL) {
+		} else if (strcmp(first_word, "auto") == 0) {
+			while ((first_word = next_word(&rest_of_line)) != NULL) {
 
 				/* Check the interface isnt already listed */
-				if (find_list_string(defn->autointerfaces, firstword)) {
+				if (find_list_string(defn->autointerfaces, first_word)) {
 					bb_perror_msg_and_die("interface declared auto twice \"%s\"", buf);
 				}
 
 				/* Add the interface to the list */
-				llist_add_to_end(&(defn->autointerfaces), xstrdup(firstword));
-				debug_noise("\nauto %s\n", firstword);
+				llist_add_to_end(&(defn->autointerfaces), xstrdup(first_word));
+				debug_noise("\nauto %s\n", first_word);
 			}
 			currently_processing = NONE;
 		} else {
 			switch (currently_processing) {
 			case IFACE:
-				if (buf_ptr[0] == '\0')
+				if (rest_of_line[0] == '\0')
 					bb_error_msg_and_die("option with empty value \"%s\"", buf);
 
-				if (strcmp(firstword, "up") != 0
-				 && strcmp(firstword, "down") != 0
-				 && strcmp(firstword, "pre-up") != 0
-				 && strcmp(firstword, "post-down") != 0
+				if (strcmp(first_word, "up") != 0
+				 && strcmp(first_word, "down") != 0
+				 && strcmp(first_word, "pre-up") != 0
+				 && strcmp(first_word, "post-down") != 0
 				) {
 					int i;
 					for (i = 0; i < currif->n_options; i++) {
-						if (strcmp(currif->option[i].name, firstword) == 0)
+						if (strcmp(currif->option[i].name, first_word) == 0)
 							bb_error_msg_and_die("duplicate option \"%s\"", buf);
 					}
 				}
 				if (currif->n_options >= currif->max_options) {
 					currif->max_options += 10;
-					currif->option = xrealloc(currif->option, sizeof(*currif->option) * currif->max_options);
+					currif->option = xrealloc(currif->option,
+						sizeof(*currif->option) * currif->max_options);
 				}
-				debug_noise("\t%s=%s\n", firstword, buf_ptr);
-				currif->option[currif->n_options].name = xstrdup(firstword);
-				currif->option[currif->n_options].value = xstrdup(buf_ptr);
+				debug_noise("\t%s=%s\n", first_word, rest_of_line);
+				currif->option[currif->n_options].name = xstrdup(first_word);
+				currif->option[currif->n_options].value = xstrdup(rest_of_line);
 				currif->n_options++;
 				break;
 			case MAPPING:
 #if ENABLE_FEATURE_IFUPDOWN_MAPPING
-				if (strcmp(firstword, "script") == 0) {
+				if (strcmp(first_word, "script") == 0) {
 					if (currmap->script != NULL)
 						bb_error_msg_and_die("duplicate script in mapping \"%s\"", buf);
-					currmap->script = xstrdup(next_word(&buf_ptr));
-				} else if (strcmp(firstword, "map") == 0) {
+					currmap->script = xstrdup(next_word(&rest_of_line));
+				} else if (strcmp(first_word, "map") == 0) {
 					if (currmap->n_mappings >= currmap->max_mappings) {
 						currmap->max_mappings = currmap->max_mappings * 2 + 1;
-						currmap->mapping = xrealloc(currmap->mapping, sizeof(char *) * currmap->max_mappings);
+						currmap->mapping = xrealloc(currmap->mapping,
+							sizeof(char *) * currmap->max_mappings);
 					}
-					currmap->mapping[currmap->n_mappings] = xstrdup(next_word(&buf_ptr));
+					currmap->mapping[currmap->n_mappings] = xstrdup(next_word(&rest_of_line));
 					currmap->n_mappings++;
 				} else {
 					bb_error_msg_and_die("misplaced option \"%s\"", buf);
@@ -817,7 +845,8 @@ static struct interfaces_file_t *read_interfaces(const char *filename)
 			}
 		}
 		free(buf);
-	}
+	} /* while (fgets) */
+
 	if (ferror(f) != 0) {
 		/* ferror does NOT set errno! */
 		bb_error_msg_and_die("%s: I/O error", filename);
@@ -955,60 +984,39 @@ static int iface_down(struct interface_defn_t *iface)
 }
 
 #if ENABLE_FEATURE_IFUPDOWN_MAPPING
-static int popen2(FILE **in, FILE **out, char *command, ...)
+static int popen2(FILE **in, FILE **out, char *command, char *param)
 {
-	va_list ap;
-	char *argv[11] = { command };
-	int argc;
+	char *argv[3] = { command, param, NULL };
 	int infd[2], outfd[2];
 	pid_t pid;
 
-	argc = 1;
-	va_start(ap, command);
-	while ((argc < 10) && (argv[argc] = va_arg(ap, char *))) {
-		argc++;
-	}
-	argv[argc] = NULL;	/* make sure */
-	va_end(ap);
-
-	if (pipe(infd) != 0) {
-		return 0;
-	}
-
-	if (pipe(outfd) != 0) {
-		close(infd[0]);
-		close(infd[1]);
-		return 0;
-	}
+	xpipe(infd);
+	xpipe(outfd);
 
 	fflush(NULL);
-	switch (pid = fork()) {
-	case -1:			/* failure */
-		close(infd[0]);
+	pid = fork();
+
+	switch (pid) {
+	case -1:  /* failure */
+		bb_perror_msg_and_die("fork");
+	case 0:  /* child */
+		/* NB: close _first_, then move fds! */
 		close(infd[1]);
 		close(outfd[0]);
-		close(outfd[1]);
-		return 0;
-	case 0:			/* child */
-		dup2(infd[0], 0);
-		dup2(outfd[1], 1);
-		close(infd[0]);
-		close(infd[1]);
-		close(outfd[0]);
-		close(outfd[1]);
+		xmove_fd(infd[0], 0);
+		xmove_fd(outfd[1], 1);
 		BB_EXECVP(command, argv);
-		exit(127);
-	default:			/* parent */
-		*in = fdopen(infd[1], "w");
-		*out = fdopen(outfd[0], "r");
-		close(infd[0]);
-		close(outfd[1]);
-		return pid;
+		_exit(127);
 	}
-	/* unreached */
+	/* parent */
+	close(infd[0]);
+	close(outfd[1]);
+	*in = fdopen(infd[1], "w");
+	*out = fdopen(outfd[0], "r");
+	return pid;
 }
 
-static char *run_mapping(char *physical, struct mapping_defn_t * map)
+static char *run_mapping(char *physical, struct mapping_defn_t *map)
 {
 	FILE *in, *out;
 	int i, status;
@@ -1016,12 +1024,8 @@ static char *run_mapping(char *physical, struct mapping_defn_t * map)
 
 	char *logical = xstrdup(physical);
 
-	/* Run the mapping script. */
-	pid = popen2(&in, &out, map->script, physical, NULL);
-
-	/* popen2() returns 0 on failure. */
-	if (pid == 0)
-		return logical;
+	/* Run the mapping script. Never fails. */
+	pid = popen2(&in, &out, map->script, physical);
 
 	/* Write mappings to stdin of mapping script. */
 	for (i = 0; i < map->n_mappings; i++) {
@@ -1034,9 +1038,9 @@ static char *run_mapping(char *physical, struct mapping_defn_t * map)
 		/* If the mapping script exited successfully, try to
 		 * grab a line of output and use that as the name of the
 		 * logical interface. */
-		char *new_logical = xmalloc(MAX_INTERFACE_LENGTH);
+		char *new_logical = xmalloc_getline(out);
 
-		if (fgets(new_logical, MAX_INTERFACE_LENGTH, out)) {
+		if (new_logical) {
 			/* If we are able to read a line of output from the script,
 			 * remove any trailing whitespace and use this value
 			 * as the name of the logical interface. */
@@ -1047,10 +1051,6 @@ static char *run_mapping(char *physical, struct mapping_defn_t * map)
 
 			free(logical);
 			logical = new_logical;
-		} else {
-			/* If we are UNABLE to read a line of output, discard our
-			 * freshly allocated memory. */
-			free(new_logical);
 		}
 	}
 
@@ -1062,12 +1062,13 @@ static char *run_mapping(char *physical, struct mapping_defn_t * map)
 
 static llist_t *find_iface_state(llist_t *state_list, const char *iface)
 {
-	unsigned short iface_len = strlen(iface);
+	unsigned iface_len = strlen(iface);
 	llist_t *search = state_list;
 
 	while (search) {
 		if ((strncmp(search->data, iface, iface_len) == 0)
-		 && (search->data[iface_len] == '=')) {
+		 && (search->data[iface_len] == '=')
+		) {
 			return search;
 		}
 		search = search->link;
