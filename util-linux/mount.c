@@ -54,6 +54,35 @@ enum {
 	MOUNT_NOAUTO = (1<<29),
 	MOUNT_SWAP   = (1<<30),
 };
+
+
+#define OPTION_STR "o:t:rwanfvsi"
+enum {
+	OPT_o = (1 << 0),
+	OPT_t = (1 << 1),
+	OPT_r = (1 << 2),
+	OPT_w = (1 << 3),
+	OPT_a = (1 << 4),
+	OPT_n = (1 << 5),
+	OPT_f = (1 << 6),
+	OPT_v = (1 << 7),
+	OPT_s = (1 << 8),
+	OPT_i = (1 << 9),
+};
+
+#if ENABLE_FEATURE_MTAB_SUPPORT
+#define useMtab (!(option_mask32 & OPT_n))
+#else
+#define useMtab 0
+#endif
+
+#if ENABLE_FEATURE_MOUNT_FAKE
+#define fakeIt (option_mask32 & OPT_f)
+#else
+#define fakeIt 0
+#endif
+
+
 // TODO: more "user" flag compatibility.
 // "user" option (from mount manpage):
 // Only the user that mounted a filesystem can unmount it again.
@@ -288,14 +317,6 @@ static void delete_block_backed_filesystems(void)
 void delete_block_backed_filesystems(void);
 #endif
 
-#if ENABLE_FEATURE_MTAB_SUPPORT
-static int useMtab = 1;
-static int fakeIt;
-#else
-#define useMtab 0
-#define fakeIt 0
-#endif
-
 // Perform actual mount of specific filesystem at specific location.
 // NB: mp->xxx fields may be trashed on exit
 static int mount_it_now(struct mntent *mp, int vfsflags, char *filteropts)
@@ -346,7 +367,7 @@ static int mount_it_now(struct mntent *mp, int vfsflags, char *filteropts)
 	/* If the mount was successful, and we're maintaining an old-style
 	 * mtab file by hand, add the new entry to it now. */
  mtab:
-	if (ENABLE_FEATURE_MTAB_SUPPORT && useMtab && !rc && !(vfsflags & MS_REMOUNT)) {
+	if (useMtab && !rc && !(vfsflags & MS_REMOUNT)) {
 		char *fsname;
 		FILE *mountTable = setmntent(bb_path_mtab_file, "a+");
 		const char *option_str = mount_option_str;
@@ -1657,17 +1678,10 @@ int mount_main(int argc, char **argv)
 
 	// Parse remaining options
 
-	opt = getopt32(argv, "o:t:rwanfvsi", &opt_o, &fstype);
-	if (opt & 0x1) append_mount_options(&cmdopts, opt_o); // -o
-	//if (opt & 0x2) // -t
-	if (opt & 0x4) append_mount_options(&cmdopts, "ro"); // -r
-	if (opt & 0x8) append_mount_options(&cmdopts, "rw"); // -w
-	//if (opt & 0x10) // -a
-	if (opt & 0x20) USE_FEATURE_MTAB_SUPPORT(useMtab = 0); // -n
-	if (opt & 0x40) USE_FEATURE_MTAB_SUPPORT(fakeIt = 1); // -f
-	//if (opt & 0x80) // -v: verbose (ignore)
-	//if (opt & 0x100) // -s: sloppy (ignore)
-	//if (opt & 0x200) // -i: don't call mount.<fstype> (ignore)
+	opt = getopt32(argv, OPTION_STR, &opt_o, &fstype);
+	if (opt & OPT_o) append_mount_options(&cmdopts, opt_o); // -o
+	if (opt & OPT_r) append_mount_options(&cmdopts, "ro"); // -r
+	if (opt & OPT_w) append_mount_options(&cmdopts, "rw"); // -w
 	argv += optind;
 	argc -= optind;
 

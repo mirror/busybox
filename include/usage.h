@@ -2449,8 +2449,10 @@ USE_FEATURE_BRCTL_FANCY("\n" \
        "Mount a filesystem. Filesystem autodetection requires /proc be mounted." \
        "\n\nOptions:\n" \
        "	-a		Mount all filesystems in fstab\n" \
+	USE_FEATURE_MOUNT_FAKE( \
+       "	-f		"USE_FEATURE_MTAB_SUPPORT("Update /etc/mtab, but ")"don't mount\n" \
+	) \
 	USE_FEATURE_MTAB_SUPPORT( \
-       "	-f		Update /etc/mtab, but don't mount\n" \
        "	-n		Don't update /etc/mtab\n" \
 	) \
        "	-r		Read-only mount\n" \

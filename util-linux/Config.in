@@ -386,6 +386,13 @@ config MOUNT
 	  NFS filesystems.  Most people using BusyBox will also want to enable
 	  the 'mount' utility.
 
+config FEATURE_MOUNT_FAKE
+	bool "mount -f option"
+	default n
+	depends on MOUNT
+	help
+	  Enable support for faking a file system mount.
+
 config FEATURE_MOUNT_HELPERS
 	bool "Support mount helpers"
 	default n
@@ -542,6 +549,7 @@ config FEATURE_MTAB_SUPPORT
 	bool "Support for the old /etc/mtab file"
 	default n
 	depends on MOUNT || UMOUNT
+	select FEATURE_MOUNT_FAKE
 	help
 	  Historically, Unix systems kept track of the currently mounted
 	  partitions in the file "/etc/mtab".  These days, the kernel exports
