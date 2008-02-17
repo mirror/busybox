@@ -9115,7 +9115,7 @@ setparam(char **argv)
  * For a non-interactive shell, an error condition encountered
  * by a special built-in ... shall cause the shell to write a diagnostic message
  * to standard error and exit as shown in the following table:
- * Error                                           Special Built-In 
+ * Error                                           Special Built-In
  * ...
  * Utility syntax error (option or operand error)  Shall exit
  * ...

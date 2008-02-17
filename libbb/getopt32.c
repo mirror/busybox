@@ -505,7 +505,7 @@ getopt32(char **argv, const char *applet_opts, ...)
 	 * affairs is that BSD-derived versions of getopt() misbehave if
 	 * optind is set to 0 in order to reset getopt(), and glibc's getopt()
 	 * will core dump if optind is set 1 in order to reset getopt().
-	 * 
+	 *
 	 * More modern versions of BSD require that optreset be set to 1 in
 	 * order to reset getopt().   Sigh.  Standards, anyone?
 	 */

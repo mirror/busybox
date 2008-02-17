@@ -19,7 +19,7 @@ static void signal_handler(int signo)
 
 // set raw tty mode
 static void xget1(int fd, struct termios *t, struct termios *oldt)
-{ 
+{
 	tcgetattr(fd, oldt);
 	*t = *oldt;
 	cfmakeraw(t);
