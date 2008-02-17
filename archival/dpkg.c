@@ -913,20 +913,16 @@ static void write_status_file(deb_file_t **deb_file)
 	fclose(old_status_file);
 	fclose(new_status_file);
 
-
 	/* Create a separate backfile to dpkg */
 	if (rename("/var/lib/dpkg/status", "/var/lib/dpkg/status.udeb.bak") == -1) {
-		struct stat stat_buf;
-		xstat("/var/lib/dpkg/status", &stat_buf);
+		if (errno != ENOENT)
+			bb_error_msg_and_die("cannot create backup status file");
 		/* Its ok if renaming the status file fails because status
 		 * file doesnt exist, maybe we are starting from scratch */
 		bb_error_msg("no status file found, creating new one");
 	}
 
-	if (rename("/var/lib/dpkg/status.udeb", "/var/lib/dpkg/status") == -1) {
-		bb_error_msg_and_die("DANGER: cannot create status file, "
-			"you need to manually repair your status file");
-	}
+	xrename("/var/lib/dpkg/status.udeb", "/var/lib/dpkg/status");
 }
 
 /* This function returns TRUE if the given package can satisfy a
@@ -1344,7 +1340,7 @@ static void remove_package(const unsigned package_num, int noisy)
 	free_array(exclude_files);
 
 	/* rename <package>.conffile to <package>.list */
-	rename(conffile_name, list_name);
+	xrename(conffile_name, list_name);
 
 	/* Change package status */
 	set_status(status_num, "config-files", 3);
