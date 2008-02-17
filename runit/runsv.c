@@ -157,16 +157,6 @@ static int open_trunc_or_warn(const char *name)
 	return fd;
 }
 
-static int rename_or_warn(const char *old, const char *new)
-{
-	if (rename(old, new) == -1) {
-		bb_perror_msg("%s: warning: cannot rename %s to %s",
-				dir, old, new);
-		return -1;
-	}
-	return 0;
-}
-
 static void update_status(struct svdir *s)
 {
 	ssize_t sz;

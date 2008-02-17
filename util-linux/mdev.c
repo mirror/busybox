@@ -209,7 +209,7 @@ static void make_device(char *path, int delete)
 				} else
 					dest = alias;
 
-				rename(device_name, dest);
+				rename(device_name, dest); // TODO: xrename?
 				symlink(dest, device_name);
 
 				if (alias != dest)

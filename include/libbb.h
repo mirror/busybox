@@ -298,6 +298,8 @@ int xopen(const char *pathname, int flags);
 int xopen3(const char *pathname, int flags, int mode);
 int open_or_warn(const char *pathname, int flags);
 int open3_or_warn(const char *pathname, int flags, int mode);
+void xrename(const char *oldpath, const char *newpath);
+int rename_or_warn(const char *oldpath, const char *newpath);
 off_t xlseek(int fd, off_t offset, int whence);
 off_t fdlength(int fd);
 

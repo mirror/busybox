@@ -150,10 +150,7 @@ int patch_main(int argc, char **argv)
 			backup_filename = xmalloc(strlen(new_filename) + 6);
 			strcpy(backup_filename, new_filename);
 			strcat(backup_filename, ".orig");
-			if (rename(new_filename, backup_filename) == -1) {
-				bb_perror_msg_and_die("cannot create file %s",
-						backup_filename);
-			}
+			xrename(new_filename, backup_filename);
 			dst_stream = xfopen(new_filename, "w");
 		}
 

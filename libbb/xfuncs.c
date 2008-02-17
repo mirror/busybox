@@ -146,16 +146,30 @@ int open_or_warn(const char *pathname, int flags)
 	return open3_or_warn(pathname, flags, 0666);
 }
 
-void xpipe(int filedes[2])
-{
-	if (pipe(filedes))
-		bb_perror_msg_and_die("can't create pipe");
-}
-
 void xunlink(const char *pathname)
 {
 	if (unlink(pathname))
 		bb_perror_msg_and_die("can't remove file '%s'", pathname);
+}
+
+void xrename(const char *oldpath, const char *newpath)
+{
+	if (rename(oldpath, newpath))
+		bb_perror_msg_and_die("can't move '%s' to '%s'", oldpath, newpath);
+}
+
+int rename_or_warn(const char *oldpath, const char *newpath)
+{
+	int n = rename(oldpath, newpath);
+	if (n)
+		bb_perror_msg("can't move '%s' to '%s'", oldpath, newpath);
+	return n;
+}
+
+void xpipe(int filedes[2])
+{
+	if (pipe(filedes))
+		bb_perror_msg_and_die("can't create pipe");
 }
 
 // Turn on nonblocking I/O on a fd

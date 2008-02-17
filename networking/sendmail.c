@@ -512,10 +512,7 @@ int sendgetmail_main(int argc, char **argv)
 				if (fd < 0)
 					bb_perror_msg_and_die("cannot create unique file");
 				close(fd);
-				if (rename(tmp_name, new_name) < 0) {
-					// something is very wrong
-					bb_perror_msg_and_die("cannot move %s to %s", tmp_name, new_name);
-				}
+				xrename(tmp_name, new_name);
 			}
 
 			// delete message from server

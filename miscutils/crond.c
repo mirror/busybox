@@ -548,7 +548,7 @@ static void CheckUpdates(void)
 
 	fi = fopen(CRONUPDATE, "r");
 	if (fi != NULL) {
-		remove(CRONUPDATE);
+		unlink(CRONUPDATE);
 		while (fgets(buf, sizeof(buf), fi) != NULL) {
 			SynchronizeFile(strtok(buf, " \t\r\n"));
 		}
@@ -579,7 +579,7 @@ static void SynchronizeDir(void)
 	 * scan directory and add associated users
 	 */
 
-	remove(CRONUPDATE);
+	unlink(CRONUPDATE);
 	if (chdir(CDir) < 0) {
 		crondlog("\311cannot find %s\n", CDir);
 	}
@@ -814,7 +814,7 @@ ForkJob(const char *user, CronLine * line, int mailFd,
 		crondlog("\024cannot fork\n");
 		line->cl_Pid = 0;
 		if (mail_filename) {
-			remove(mail_filename);
+			unlink(mail_filename);
 		}
 	} else if (mail_filename) {
 		/* PARENT, FORK SUCCESS
@@ -823,7 +823,7 @@ ForkJob(const char *user, CronLine * line, int mailFd,
 		char mailFile2[128];
 
 		snprintf(mailFile2, sizeof(mailFile2), TMPDIR "/cron.%s.%d", user, pid);
-		rename(mail_filename, mailFile2);
+		rename(mail_filename, mailFile2); // TODO: xrename?
 	}
 	/*
 	 * Close the mail file descriptor.. we can't just leave it open in
@@ -896,7 +896,7 @@ static void EndJob(const char *user, CronLine * line)
 	 */
 
 	mailFd = open(mailFile, O_RDONLY);
-	remove(mailFile);
+	unlink(mailFile);
 	if (mailFd < 0) {
 		return;
 	}

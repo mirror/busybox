@@ -98,11 +98,6 @@ int wait4pid(int pid)
 	if (WIFSIGNALED(status))
 		return WTERMSIG(status) + 1000;
 	return 0;
-	if (WIFEXITED(status))
-		return WEXITSTATUS(status);
-	if (WIFSIGNALED(status))
-		return WTERMSIG(status) + 1000;
-	return 0;
 }
 
 #if ENABLE_FEATURE_PREFER_APPLETS

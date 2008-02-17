@@ -344,10 +344,10 @@ static void log_locally(time_t now, char *msg)
 				sprintf(newFile, "%s.%d", G.logFilePath, i);
 				if (i == 0) break;
 				sprintf(oldFile, "%s.%d", G.logFilePath, --i);
-				rename(oldFile, newFile);
+				xrename(oldFile, newFile);
 			}
 			/* newFile == "f.0" now */
-			rename(G.logFilePath, newFile);
+			xrename(G.logFilePath, newFile);
 			fl.l_type = F_UNLCK;
 			fcntl(G.logFD, F_SETLKW, &fl);
 			close(G.logFD);

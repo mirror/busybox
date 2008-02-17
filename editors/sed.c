@@ -1340,8 +1340,7 @@ int sed_main(int argc, char **argv)
 
 			G.nonstdout = stdout;
 			/* unlink(argv[i]); */
-			// FIXME: error check / message?
-			rename(G.outname, argv[i]);
+			xrename(G.outname, argv[i]);
 			free(G.outname);
 			G.outname = NULL;
 		}
