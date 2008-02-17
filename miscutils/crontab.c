@@ -65,33 +65,26 @@ static void edit_file(const struct passwd *pas, const char *file)
 
 static int open_as_user(const struct passwd *pas, const char *file)
 {
-	struct fd_pair filedes;
 	pid_t pid;
 	char c;
 
-	xpiped_pair(filedes);
 	pid = vfork();
 	if (pid < 0) /* ERROR */
 		bb_perror_msg_and_die("vfork");
 	if (pid) { /* PARENT */
-		int n = safe_read(filedes.rd, &c, 1);
-		close(filedes.rd);
-		close(filedes.wr);
-		if (n > 0) /* child says it can read */
+		if (wait4pid(pid) == 0) {
+			/* exitcode 0: child says it can read */
 			return open(file, O_RDONLY);
+		}
 		return -1;
 	}
 
 	/* CHILD */
-
 	/* initgroups, setgid, setuid */
 	change_identity(pas);
-
-	/* We just try to read one byte. If that works, file is readable
-	 * under this user. We signal that by sending one byte to parent. */
-	if (safe_read(xopen(file, O_RDONLY), &c, 1) == 1)
-		safe_write(filedes.wr, &c, 1); /* "papa, I can read!" */
-	_exit(0);
+	/* We just try to read one byte. If it works, file is readable
+	 * under this user. We signal that by exiting with 0. */
+	_exit(safe_read(xopen(file, O_RDONLY), &c, 1) < 0);
 }
 
 int crontab_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
@@ -180,7 +173,7 @@ int crontab_main(int argc, char **argv)
 	switch (opt_ler) {
 
 	default: /* case OPT_r: Delete */
-		remove(pas->pw_name);
+		unlink(pas->pw_name);
 		break;
 
 	case OPT_l: /* List */
@@ -211,13 +204,13 @@ int crontab_main(int argc, char **argv)
 		if (fd >= 0) {
 			bb_copyfd_eof(STDIN_FILENO, fd);
 			close(fd);
-			rename(new_fname, pas->pw_name);
+			xrename(new_fname, pas->pw_name);
 		} else {
 			bb_error_msg("cannot create %s/%s",
 					crontab_dir, new_fname);
 		}
 		if (tmp_fname)
-			remove(tmp_fname);
+			unlink(tmp_fname);
 		/*free(tmp_fname);*/
 		/*free(new_fname);*/
 
