@@ -20,7 +20,7 @@ enum {
 };
 
 /* if fn is NULL then input is stdin and output is stdout */
-static int convert(char *fn, int conv_type)
+static void convert(char *fn, int conv_type)
 {
 	FILE *in, *out;
 	int i;
@@ -37,14 +37,11 @@ static int convert(char *fn, int conv_type)
 		 */
 		snprintf(name_buf, sizeof(name_buf), "%sXXXXXX", fn);
 		i = mkstemp(&name_buf[0]);
-		if (i == -1 || chmod(name_buf, 0600) == -1) {
+		if (i == -1
+		 || fchmod(i, 0600) == -1
+		 || !(out = fdopen(i, "w+"))
+		) {
 			bb_perror_nomsg_and_die();
-		}
-		out = fdopen(i, "w+");
-		if (!out) {
-			close(i);
-			remove(name_buf);
-			return -2;
 		}
 	}
 
@@ -62,20 +59,11 @@ static int convert(char *fn, int conv_type)
 
 	if (fn != NULL) {
 		if (fclose(in) < 0 || fclose(out) < 0) {
-			bb_perror_nomsg();
-			remove(name_buf);
-			return -2;
+			unlink(name_buf);
+			bb_perror_nomsg_and_die();
 		}
-		/* Assume they are both on the same filesystem (which
-		 * should be true since we put them into the same directory
-		 * so we _should_ be ok, but you never know... */
-		if (rename(name_buf, fn) < 0) {
-			bb_perror_msg("cannot rename '%s' as '%s'", name_buf, fn);
-			return -1;
-		}
+		xrename(name_buf, fn);
 	}
-
-	return 0;
 }
 
 int dos2unix_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
@@ -84,10 +72,9 @@ int dos2unix_main(int argc, char **argv)
 	int o, conv_type;
 
 	/* See if we are supposed to be doing dos2unix or unix2dos */
+	conv_type = CT_UNIX2DOS;
 	if (applet_name[0] == 'd') {
-		conv_type = CT_DOS2UNIX;	/* 2 */
-	} else {
-		conv_type = CT_UNIX2DOS;	/* 1 */
+		conv_type = CT_DOS2UNIX;
 	}
 
 	/* -u convert to unix, -d convert to dos */
@@ -101,11 +88,9 @@ int dos2unix_main(int argc, char **argv)
 
 	do {
 		/* might be convert(NULL) if there is no filename given */
-		o = convert(argv[optind], conv_type);
-		if (o < 0)
-			break;
+		convert(argv[optind], conv_type);
 		optind++;
 	} while (optind < argc);
 
-	return o;
+	return 0;
 }
