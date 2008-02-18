@@ -97,7 +97,6 @@ int crontab_main(int argc, char **argv)
 	char *user_name;  /* -u USER */
 	int fd;
 	int opt_ler;
-	uid_t my_uid;
 
 	/* file [opts]     Replace crontab from file
 	 * - [opts]        Replace crontab from stdin
@@ -118,25 +117,22 @@ int crontab_main(int argc, char **argv)
 		OPT_ler = OPT_l + OPT_e + OPT_r,
 	};
 
-	my_uid = getuid();
-
 	opt_complementary = "?1:dr"; /* max one argument; -d implies -r */
 	opt_ler = getopt32(argv, "u:c:lerd", &user_name, &crontab_dir);
 	argv += optind;
 
-	if (my_uid != geteuid()) { /* run by non-root? */
+	if (sanitize_env_if_suid()) { /* Clears dangerous stuff, sets PATH */
+		/* run by non-root? */
 		if (opt_ler & (OPT_u|OPT_c))
 			bb_error_msg_and_die("only root can use -c or -u");
-		/* Clear dangerous stuff, set PATH */
-		sanitize_env_for_suid();
 	}
 
 	if (opt_ler & OPT_u) {
 		pas = getpwnam(user_name);
 		if (!pas)
 			bb_error_msg_and_die("user %s is not known", user_name);
-		my_uid = pas->pw_uid;
 	} else {
+		uid_t my_uid = getuid();
 		pas = getpwuid(my_uid);
 		if (!pas)
 			bb_perror_msg_and_die("no user record for UID %u",
@@ -144,7 +140,6 @@ int crontab_main(int argc, char **argv)
 	}
 
 #define user_name DONT_USE_ME_BEYOND_THIS_POINT
-#define my_uid    DONT_USE_ME_BEYOND_THIS_POINT
 
 	/* From now on, keep only -l, -e, -r bits */
 	opt_ler &= OPT_ler;

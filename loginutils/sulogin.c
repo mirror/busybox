@@ -49,7 +49,7 @@ int sulogin_main(int argc, char **argv)
 	}
 
 	/* Clear dangerous stuff, set PATH */
-	sanitize_env_for_suid();
+	sanitize_env_if_suid();
 
 // bb_askpass() already handles this
 //	signal(SIGALRM, catchalarm);

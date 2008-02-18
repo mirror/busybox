@@ -116,12 +116,19 @@ static const char forbid[] ALIGN1 =
 	"LD_NOWARN" "\0"
 	"LD_KEEPDIR" "\0";
 
-void sanitize_env_for_suid(void)
+int sanitize_env_if_suid(void)
 {
-	const char *p = forbid;
+	const char *p;
+
+	if (getuid() == geteuid())
+		return 0;
+
+	p = forbid;
 	do {
 		unsetenv(p);
 		p += strlen(p) + 1;
 	} while (*p);
 	putenv((char*)bb_PATH_root_path);
+
+	return 1; /* we indeed were run by different user! */
 }

@@ -44,14 +44,17 @@ int nc_main(int argc, char **argv)
 		while ((opt = getopt(argc, argv,
 		        "" USE_NC_SERVER("lp:") USE_NC_EXTRA("w:i:f:e:") )) > 0
 		) {
-			if (ENABLE_NC_SERVER && opt=='l')      USE_NC_SERVER(do_listen++);
-			else if (ENABLE_NC_SERVER && opt=='p') {
+			if (ENABLE_NC_SERVER && opt=='l')
+				USE_NC_SERVER(do_listen++);
+			else if (ENABLE_NC_SERVER && opt=='p')
 				USE_NC_SERVER(lport = bb_lookup_port(optarg, "tcp", 0));
-			}
-			else if (ENABLE_NC_EXTRA && opt=='w') USE_NC_EXTRA( wsecs = xatou(optarg));
-			else if (ENABLE_NC_EXTRA && opt=='i') USE_NC_EXTRA( delay = xatou(optarg));
-			else if (ENABLE_NC_EXTRA && opt=='f') USE_NC_EXTRA( cfd = xopen(optarg, O_RDWR));
-			else if (ENABLE_NC_EXTRA && opt=='e' && optind<=argc) {
+			else if (ENABLE_NC_EXTRA && opt=='w')
+				USE_NC_EXTRA( wsecs = xatou(optarg));
+			else if (ENABLE_NC_EXTRA && opt=='i')
+				USE_NC_EXTRA( delay = xatou(optarg));
+			else if (ENABLE_NC_EXTRA && opt=='f')
+				USE_NC_EXTRA( cfd = xopen(optarg, O_RDWR));
+			else if (ENABLE_NC_EXTRA && opt=='e' && optind <= argc) {
 				/* We cannot just 'break'. We should let getopt finish.
 				** Or else we won't be able to find where
 				** 'host' and 'port' params are

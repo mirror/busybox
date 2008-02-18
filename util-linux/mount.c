@@ -33,6 +33,11 @@
 #ifndef MS_SILENT
 #define MS_SILENT	(1 << 15)
 #endif
+/* Grab more as needed from util-linux's mount/mount_constants.h */
+#ifndef MS_DIRSYNC
+#define MS_DIRSYNC      128     /* Directory modifications are synchronous */
+#endif
+
 
 #if defined(__dietlibc__)
 /* 16.12.2006, Sampo Kellomaki (sampo@iki.fi)
@@ -122,6 +127,7 @@ static const int32_t mount_options[] = {
 		/* "exec"        */ ~MS_NOEXEC,
 		/* "noexec"      */ MS_NOEXEC,
 		/* "sync"        */ MS_SYNCHRONOUS,
+		/* "dirsync"     */ MS_DIRSYNC,
 		/* "async"       */ ~MS_SYNCHRONOUS,
 		/* "atime"       */ ~MS_NOATIME,
 		/* "noatime"     */ MS_NOATIME,
@@ -171,6 +177,7 @@ static const char mount_option_str[] =
 		"exec" "\0"
 		"noexec" "\0"
 		"sync" "\0"
+		"dirsync" "\0"
 		"async" "\0"
 		"atime" "\0"
 		"noatime" "\0"
@@ -1664,6 +1671,8 @@ int mount_main(int argc, char **argv)
 	struct mntent mtpair[2], *mtcur = mtpair;
 	SKIP_DESKTOP(const int nonroot = 0;)
 	USE_DESKTOP( int nonroot = (getuid() != 0);)
+
+	sanitize_env_if_suid();
 
 	/* parse long options, like --bind and --move.  Note that -o option
 	 * and --option are synonymous.  Yes, this means --remount,rw works. */

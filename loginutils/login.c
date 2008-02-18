@@ -254,20 +254,17 @@ int login_main(int argc, char **argv)
 
 	short_tty = full_tty;
 	username[0] = '\0';
-	amroot = (getuid() == 0);
 	signal(SIGALRM, alarm_handler);
 	alarm(TIMEOUT);
+
+	/* More of suid paranoia if called by non-root */
+	amroot = !sanitize_env_if_suid(); /* Clear dangerous stuff, set PATH */
 
 	/* Mandatory paranoia for suid applet:
 	 * ensure that fd# 0,1,2 are opened (at least to /dev/null)
 	 * and any extra open fd's are closed.
 	 * (The name of the function is misleading. Not daemonizing here.) */
 	bb_daemonize_or_rexec(DAEMON_ONLY_SANITIZE | DAEMON_CLOSE_EXTRA_FDS, NULL);
-	/* More of suid paranoia if called by non-root */
-	if (!amroot) {
-	        /* Clear dangerous stuff, set PATH */
-		sanitize_env_for_suid();
-	}
 
 	opt = getopt32(argv, "f:h:p", &opt_user, &opt_host);
 	if (opt & LOGIN_OPT_f) {
