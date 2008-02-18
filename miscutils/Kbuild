@@ -7,6 +7,7 @@
 lib-y:=
 lib-$(CONFIG_ADJTIMEX)    += adjtimex.o
 lib-$(CONFIG_BBCONFIG)    += bbconfig.o
+lib-$(CONFIG_CHAT)        += chat.o
 lib-$(CONFIG_CHRT)        += chrt.o
 lib-$(CONFIG_CROND)       += crond.o
 lib-$(CONFIG_CRONTAB)     += crontab.o

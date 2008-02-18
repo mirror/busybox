@@ -204,6 +204,15 @@ USE_FEATURE_BRCTL_FANCY("\n" \
        "	-e	End each line with $\n" \
        "	-t	Show tabs as ^I\n" \
        "	-v	Don't use ^x or M-x escapes"
+
+#define chat_trivial_usage \
+       "EXPECT [SEND [EXPECT [SEND...]]]"
+#define chat_full_usage \
+       "Useful for interacting with a modem connected to stdin/stdout.\n" \
+       "A script consists of one or more \"expect-send\" pairs of strings,\n" \
+       "each pair is a pair of arguments. Example:\n" \
+       "chat '' ATZ OK ATD123456 CONNECT '' ogin: pppuser word: ppppass '~'" \
+
 #define chattr_trivial_usage \
        "[-R] [-+=AacDdijsStTu] [-v version] files..."
 #define chattr_full_usage \

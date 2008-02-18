@@ -19,6 +19,66 @@ config BBCONFIG
 	  The bbconfig applet will print the config file with which
 	  busybox was built.
 
+config CHAT
+	bool "chat"
+	default n
+	help
+	  Simple chat utility.
+
+config FEATURE_CHAT_NOFAIL
+	bool "Enable NOFAIL expect strings"
+	default y
+	help
+	  When enabled expect strings which are started with a dash trigger
+	  no-fail mode. That is when expectation is not met within timeout
+	  the script is not terminated but sends next SEND string and waits
+	  for next EXPECT string. This allows to compose far more flexible
+	  scripts.
+
+config FEATURE_CHAT_TTY_HIFI
+	bool "Force STDIN to be a TTY"
+	default n
+	help
+	  Original chat always treats STDIN as a TTY device and sets for it
+	  so-called raw mode. This option turns on such behaviour.
+
+config FEATURE_CHAT_IMPLICIT_CR
+	bool "Enable implicit Carriage Return"
+	default y
+	help
+	  When enabled make chat to terminate all SEND strings with a "\r"
+	  unless "\c" is met anywhere in the string.
+
+config FEATURE_CHAT_SWALLOW_OPTS
+	bool "Swallow options"
+	default n
+	help
+	  Busybox chat require no options. To make it not fail when used
+	  in place of original chat (which has a bunch of options) turn
+	  this on.
+
+config FEATURE_CHAT_SEND_ESCAPES
+	bool "Support weird SEND escapes"
+	default n
+	help
+	  Original chat uses some escape sequences in SEND arguments which
+	  are not sent to device but rather performs special actions.
+	  E.g. "\K" means to send a break sequence to device.
+	  "\d" delays execution for a second, "\p" -- for a 1/100 of second.
+	  Before turning this option on think twice: do you really need them?
+
+config FEATURE_CHAT_VAR_ABORT_LEN
+	bool "Support variable-length ABORT conditions"
+	default n
+	help
+	  Original chat uses fixed 50-bytes length ABORT conditions. Say N here.
+
+config FEATURE_CHAT_CLR_ABORT
+	bool "Support revoking of ABORT conditions"
+	default n
+	help
+	  Support CLR_ABORT directive.
+
 config CHRT
 	bool "chrt"
 	default n
