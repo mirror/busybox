@@ -50,8 +50,6 @@ static struct mntent *getmntent_r(FILE* stream, struct mntent* result, char* buf
 }
 #endif
 
-#define getmntent_buf bb_common_bufsiz1
-
 
 // Not real flags, but we want to be able to check for this.
 enum {
@@ -204,6 +202,44 @@ static const char mount_option_str[] =
 	"remount" "\0"   // action flag
 ;
 
+
+struct globals {
+#if ENABLE_FEATURE_MOUNT_NFS
+	smalluint nfs_mount_version;
+#endif
+#if ENABLE_FEATURE_MOUNT_VERBOSE
+	unsigned verbose;
+#endif
+	llist_t *fslist;
+	char getmntent_buf[sizeof(bb_common_bufsiz1) - 8*3];
+
+};
+#define G (*(struct globals*)&bb_common_bufsiz1)
+#define nfs_mount_version (G.nfs_mount_version)
+#define verbose           (G.verbose          )
+#define fslist            (G.fslist           )
+#define getmntent_buf     (G.getmntent_buf    )
+
+
+#if ENABLE_FEATURE_MOUNT_VERBOSE
+static int verbose_mount(const char *source, const char *target,
+		const char *filesystemtype,
+		unsigned long mountflags, const void *data)
+{
+	int rc;
+
+	errno = 0;
+	rc = mount(source, target, filesystemtype, mountflags, data);
+	if (verbose >= 2)
+		bb_perror_msg("mount('%s','%s','%s',0x%08lx,'%s'):%d",
+				source, target, filesystemtype,
+				mountflags, (char*)data, rc);
+	return rc;
+}
+#else
+#define verbose_mount(...) mount(__VA_ARGS__)
+#endif
+
 /* Append mount options to string */
 static void append_mount_options(char **oldopts, const char *newopts)
 {
@@ -313,8 +349,6 @@ static llist_t *get_block_backed_filesystems(void)
 	return list;
 }
 
-static llist_t *fslist;
-
 #if ENABLE_FEATURE_CLEAN_UP
 static void delete_block_backed_filesystems(void)
 {
@@ -333,9 +367,9 @@ static int mount_it_now(struct mntent *mp, int vfsflags, char *filteropts)
 	if (fakeIt) goto mtab;
 
 	// Mount, with fallback to read-only if necessary.
-
 	for (;;) {
-		rc = mount(mp->mnt_fsname, mp->mnt_dir, mp->mnt_type,
+		errno = 0;
+		rc = verbose_mount(mp->mnt_fsname, mp->mnt_dir, mp->mnt_type,
 				vfsflags, filteropts);
 
 		// If mount failed, try
@@ -737,8 +771,6 @@ static bool_t xdr_mountres3(XDR *xdrs, mountres3 *objp)
 }
 
 #define MAX_NFSPROT ((nfs_mount_version >= 4) ? 3 : 2)
-
-static smalluint nfs_mount_version;
 
 /*
  * Unfortunately, the kernel prints annoying console messages
@@ -1674,8 +1706,8 @@ int mount_main(int argc, char **argv)
 
 	sanitize_env_if_suid();
 
-	/* parse long options, like --bind and --move.  Note that -o option
-	 * and --option are synonymous.  Yes, this means --remount,rw works. */
+	// Parse long options, like --bind and --move.  Note that -o option
+	// and --option are synonymous.  Yes, this means --remount,rw works.
 
 	for (i = j = 0; i < argc; i++) {
 		if (argv[i][0] == '-' && argv[i][1] == '-') {
@@ -1687,7 +1719,11 @@ int mount_main(int argc, char **argv)
 
 	// Parse remaining options
 
-	opt = getopt32(argv, OPTION_STR, &opt_o, &fstype);
+#if ENABLE_FEATURE_MOUNT_VERBOSE
+	opt_complementary = "vv"; // -v is a counter
+#endif
+	opt = getopt32(argv, OPTION_STR, &opt_o, &fstype
+			USE_FEATURE_MOUNT_VERBOSE(, &verbose));
 	if (opt & OPT_o) append_mount_options(&cmdopts, opt_o); // -o
 	if (opt & OPT_r) append_mount_options(&cmdopts, "ro"); // -r
 	if (opt & OPT_w) append_mount_options(&cmdopts, "rw"); // -w
@@ -1747,7 +1783,7 @@ int mount_main(int argc, char **argv)
 	if (ENABLE_FEATURE_MOUNT_FLAGS
 	 && (i & (MS_SHARED | MS_PRIVATE | MS_SLAVE | MS_UNBINDABLE))
 	) {
-		rc = mount("", argv[0], "", i, "");
+		rc = verbose_mount("", argv[0], "", i, "");
 		if (rc) bb_simple_perror_msg_and_die(argv[0]);
 		goto clean_up;
 	}

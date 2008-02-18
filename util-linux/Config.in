@@ -393,6 +393,15 @@ config FEATURE_MOUNT_FAKE
 	help
 	  Enable support for faking a file system mount.
 
+config FEATURE_MOUNT_VERBOSE
+	bool "mount -v option"
+	default n
+	depends on MOUNT
+	help
+	  Enable multi-level -v[vv...] verbose messages. Useful if you
+	  debug mount problems and want to see what is exactly passed
+	  to the kernel.
+
 config FEATURE_MOUNT_HELPERS
 	bool "Support mount helpers"
 	default n
