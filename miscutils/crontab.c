@@ -214,7 +214,7 @@ int crontab_main(int argc, char **argv)
 	/* Bump notification file.  Handle window where crond picks file up
 	 * before we can write our entry out.
 	 */
-	while ((fd = open(CRONUPDATE, O_WRONLY|O_CREAT|O_APPEND)) >= 0) {
+	while ((fd = open(CRONUPDATE, O_WRONLY|O_CREAT|O_APPEND, 0600)) >= 0) {
 		struct stat st;
 
 		fdprintf(fd, "%s\n", pas->pw_name);
