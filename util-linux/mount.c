@@ -19,10 +19,13 @@
 */
 
 #include <mntent.h>
-#include "libbb.h"
 #include <syslog.h>
+#include "libbb.h"
 
-/* Needed for nfs support only... */
+/* For FEATURE_MOUNT_LABEL only */
+#include "volume_id.h"
+
+/* Needed for nfs support only */
 #include <sys/utsname.h>
 #undef TRUE
 #undef FALSE
@@ -244,6 +247,22 @@ static int verbose_mount(const char *source, const char *target,
 #else
 #define verbose_mount(...) mount(__VA_ARGS__)
 #endif
+
+static int resolve_mount_spec(char **fsname)
+{
+	char *tmp = NULL;
+
+	if (!strncmp(*fsname, "UUID=", 5))
+		tmp = get_devname_from_uuid(*fsname + 5);
+	else if (!strncmp(*fsname, "LABEL=", 6))
+		tmp = get_devname_from_label(*fsname + 6);
+
+	if (tmp) {
+		*fsname = tmp;
+		return 1;
+	}
+	return 0;
+}
 
 /* Append mount options to string */
 static void append_mount_options(char **oldopts, const char *newopts)
@@ -1781,6 +1800,9 @@ int mount_main(int argc, char **argv)
 		mtpair->mnt_dir = argv[1];
 		mtpair->mnt_type = fstype;
 		mtpair->mnt_opts = cmdopts;
+		if (ENABLE_FEATURE_MOUNT_LABEL) {
+			resolve_mount_spec(&mtpair->mnt_fsname);
+		}
 		rc = singlemount(mtpair, 0);
 		goto clean_up;
 	}
@@ -1842,6 +1864,9 @@ int mount_main(int argc, char **argv)
 
 				mtcur->mnt_opts = xstrdup(mtcur->mnt_opts);
 				append_mount_options(&(mtcur->mnt_opts), cmdopts);
+				if (ENABLE_FEATURE_MOUNT_LABEL) {
+					resolve_mount_spec(&mtpair->mnt_fsname);
+				}
 				rc = singlemount(mtcur, 0);
 				free(mtcur->mnt_opts);
 			}
@@ -1884,6 +1909,9 @@ int mount_main(int argc, char **argv)
 				bb_error_msg_and_die(must_be_root);
 
 			// Mount this thing.
+			if (ENABLE_FEATURE_MOUNT_LABEL) {
+				resolve_mount_spec(&mtpair->mnt_fsname);
+			}
 
 			// NFS mounts want this to be xrealloc-able
 			mtcur->mnt_opts = xstrdup(mtcur->mnt_opts);

@@ -1029,6 +1029,13 @@ USE_FEATURE_BRCTL_FANCY("\n" \
        "	-t		Get only headers\n" \
        "	-z		Delete messages on server"
 
+#define findfs_trivial_usage \
+       "LABEL=label or UUID=uuid"
+#define findfs_full_usage \
+       "Finds a filesystem device based on a label or UUID."
+#define findfs_example_usage \
+       "$ findfs LABEL=MyDevice"
+
 #define find_trivial_usage \
        "[PATH...] [EXPRESSION]"
 #define find_full_usage \

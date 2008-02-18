@@ -781,7 +781,7 @@ create_sgilabel(void)
 
 	printf(msg_building_new_label, "SGI disklabel");
 
-	sgi_other_endian = (BYTE_ORDER == LITTLE_ENDIAN);
+	sgi_other_endian = BB_LITTLE_ENDIAN;
 	res = ioctl(fd, BLKGETSIZE, &longsectors);
 	if (!ioctl(fd, HDIO_GETGEO, &geometry)) {
 		g_heads = geometry.heads;

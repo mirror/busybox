@@ -150,6 +150,17 @@ config FEATURE_FDISK_ADVANCED
 	  partition, and similarly evil things.  Unless you have a very good
 	  reason you would be wise to leave this disabled.
 
+config FINDFS
+	bool "findfs"
+	default n
+	select VOLUMEID
+	help
+	  This is similar to the findfs program that is part of the e2fsprogs
+	  package.  However, the e2fsprogs version only support ext2/3.  This
+	  version supports those in addition to FAT, swap, and ReiserFS.
+	  WARNING:
+	  With all submodules selected, it will add ~11k to busybox.
+
 config FREERAMDISK
 	bool "freeramdisk"
 	default n
@@ -375,6 +386,215 @@ config FEATURE_USE_TERMIOS
 	  will be unable to determine the current screen size, and will be
 	  unable to move the cursor.
 
+config VOLUMEID
+	bool "Routines for detecting label and uuid on common filesystems"
+	default n
+	help
+	  TODO
+
+config FEATURE_VOLUMEID_EXT
+	bool "Ext filesystem"
+	default n
+	depends on VOLUMEID
+	help
+	  TODO
+
+config FEATURE_VOLUMEID_REISERFS
+	bool "Reiser filesystem"
+	default n
+	depends on VOLUMEID
+	help
+	  TODO
+
+config FEATURE_VOLUMEID_FAT
+	bool "fat filesystem"
+	default n
+	depends on VOLUMEID
+	help
+	  TODO
+
+config FEATURE_VOLUMEID_HFS
+	bool "hfs filesystem"
+	default n
+	depends on VOLUMEID
+	help
+	  TODO
+
+config FEATURE_VOLUMEID_JFS
+	bool "jfs filesystem"
+	default n
+	depends on VOLUMEID
+	help
+	  TODO
+
+config FEATURE_VOLUMEID_UFS
+	bool "ufs filesystem"
+	default n
+	depends on VOLUMEID
+	help
+	  TODO
+
+config FEATURE_VOLUMEID_XFS
+	bool "xfs filesystem"
+	default n
+	depends on VOLUMEID
+	help
+	  TODO
+
+config FEATURE_VOLUMEID_NTFS
+	bool "ntfs filesystem"
+	default n
+	depends on VOLUMEID
+	help
+	  TODO
+
+config FEATURE_VOLUMEID_ISO9660
+	bool "iso9660 filesystem"
+	default n
+	depends on VOLUMEID
+	help
+	  TODO
+
+config FEATURE_VOLUMEID_UDF
+	bool "udf filesystem"
+	default n
+	depends on VOLUMEID
+	help
+	  TODO
+
+config FEATURE_VOLUMEID_LUKS
+	bool "luks filesystem"
+	default n
+	depends on VOLUMEID
+	help
+	  TODO
+
+config FEATURE_VOLUMEID_LINUXSWAP
+	bool "linux swap filesystem"
+	default n
+	depends on VOLUMEID
+	help
+	  TODO
+
+config FEATURE_VOLUMEID_LVM
+	bool "lvm"
+	default n
+	depends on VOLUMEID
+	help
+	  TODO
+
+config FEATURE_VOLUMEID_CRAMFS
+	bool "cramfs filesystem"
+	default n
+	depends on VOLUMEID
+	help
+	  TODO
+
+config FEATURE_VOLUMEID_HPFS
+	bool "hpfs filesystem"
+	default n
+	depends on VOLUMEID
+	help
+	  TODO
+
+config FEATURE_VOLUMEID_ROMFS
+	bool "romfs filesystem"
+	default n
+	depends on VOLUMEID
+	help
+	  TODO
+
+config FEATURE_VOLUMEID_SYSV
+	bool "sysv filesystem"
+	default n
+	depends on VOLUMEID
+	help
+	  TODO
+
+config FEATURE_VOLUMEID_MINIX
+	bool "minix filesystem"
+	default n
+	depends on VOLUMEID
+	help
+	  TODO
+
+config FEATURE_VOLUMEID_MAC
+	bool "mac filesystem"
+	default n
+	depends on VOLUMEID
+	help
+	  TODO
+
+config FEATURE_VOLUMEID_MSDOS
+	bool "msdos filesystem"
+	default n
+	depends on VOLUMEID
+	help
+	  TODO
+
+config FEATURE_VOLUMEID_OCFS2
+	bool "ocfs2 filesystem"
+	default n
+	depends on VOLUMEID
+	help
+	  TODO
+
+config FEATURE_VOLUMEID_HIGHPOINTRAID
+	bool "highpoint raid"
+	default n
+	depends on VOLUMEID
+	help
+	  TODO
+
+config FEATURE_VOLUMEID_ISWRAID
+	bool "intel raid"
+	default n
+	depends on VOLUMEID
+	help
+	  TODO
+
+config FEATURE_VOLUMEID_LSIRAID
+	bool "lsi raid"
+	default n
+	depends on VOLUMEID
+	help
+	  TODO
+
+config FEATURE_VOLUMEID_VIARAID
+	bool "via raid"
+	default n
+	depends on VOLUMEID
+	help
+	  TODO
+
+config FEATURE_VOLUMEID_SILICONRAID
+	bool "silicon raid"
+	default n
+	depends on VOLUMEID
+	help
+	  TODO
+
+config FEATURE_VOLUMEID_NVIDIARAID
+	bool "nvidia raid"
+	default n
+	depends on VOLUMEID
+	help
+	  TODO
+
+config FEATURE_VOLUMEID_PROMISERAID
+	bool "promise raid"
+	default n
+	depends on VOLUMEID
+	help
+	  TODO
+
+config FEATURE_VOLUMEID_LINUXRAID
+	bool "linuxraid"
+	default n
+	depends on VOLUMEID
+	help
+	  TODO
+
 config MOUNT
 	bool "mount"
 	default n
@@ -413,6 +633,15 @@ config FEATURE_MOUNT_HELPERS
 	  Also "mount -t sometype [-o opts] fs /mnt" will try
 	  "sometype [-o opts] fs /mnt" if simple mount syscall fails.
 	  The idea is to use such virtual filesystems in /etc/fstab.
+
+config FEATURE_MOUNT_LABEL
+	bool "  Support specifiying devices by label or UUID"
+	default n
+	depends on MOUNT
+	select FINDFS
+	help
+	  This allows for specifying a device by label or uuid, rather than by
+	  name.  This feature utilizes the same functionality as findfs.
 
 config FEATURE_MOUNT_NFS
 	bool "Support mounting NFS file systems"

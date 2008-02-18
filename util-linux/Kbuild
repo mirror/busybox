@@ -10,6 +10,7 @@ lib-$(CONFIG_FBSET)		+=fbset.o
 lib-$(CONFIG_FDFLUSH)		+=freeramdisk.o
 lib-$(CONFIG_FDFORMAT)		+=fdformat.o
 lib-$(CONFIG_FDISK)		+=fdisk.o
+lib-$(CONFIG_FINDFS)		+=findfs.o
 lib-$(CONFIG_FREERAMDISK)	+=freeramdisk.o
 lib-$(CONFIG_FSCK_MINIX)	+=fsck_minix.o
 lib-$(CONFIG_GETOPT)		+=getopt.o
