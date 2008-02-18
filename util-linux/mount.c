@@ -216,7 +216,11 @@ struct globals {
 };
 #define G (*(struct globals*)&bb_common_bufsiz1)
 #define nfs_mount_version (G.nfs_mount_version)
+#if ENABLE_FEATURE_MOUNT_VERBOSE
 #define verbose           (G.verbose          )
+#else
+#define verbose           0
+#endif
 #define fslist            (G.fslist           )
 #define getmntent_buf     (G.getmntent_buf    )
 
@@ -231,9 +235,10 @@ static int verbose_mount(const char *source, const char *target,
 	errno = 0;
 	rc = mount(source, target, filesystemtype, mountflags, data);
 	if (verbose >= 2)
-		bb_perror_msg("mount('%s','%s','%s',0x%08lx,'%s'):%d",
-				source, target, filesystemtype,
-				mountflags, (char*)data, rc);
+		bb_perror_msg("would do mount('%s','%s','%s',0x%08lx,'%s'):%d"
+				+ (sizeof("would do ")-1),
+			source, target, filesystemtype,
+			mountflags, (char*)data, rc);
 	return rc;
 }
 #else
@@ -274,9 +279,9 @@ static void append_mount_options(char **oldopts, const char *newopts)
 
 /* Use the mount_options list to parse options into flags.
  * Also return list of unrecognized options if unrecognized!=NULL */
-static int parse_mount_options(char *options, char **unrecognized)
+static long parse_mount_options(char *options, char **unrecognized)
 {
-	int flags = MS_SILENT;
+	long flags = MS_SILENT;
 
 	// Loop through options
 	for (;;) {
@@ -360,11 +365,17 @@ void delete_block_backed_filesystems(void);
 
 // Perform actual mount of specific filesystem at specific location.
 // NB: mp->xxx fields may be trashed on exit
-static int mount_it_now(struct mntent *mp, int vfsflags, char *filteropts)
+static int mount_it_now(struct mntent *mp, long vfsflags, char *filteropts)
 {
 	int rc = 0;
 
-	if (fakeIt) goto mtab;
+	if (fakeIt) {
+		if (verbose >= 2)
+			bb_error_msg("would do mount('%s','%s','%s',0x%08lx,'%s')",
+				mp->mnt_fsname, mp->mnt_dir, mp->mnt_type,
+				vfsflags, filteropts);
+		goto mtab;
+	}
 
 	// Mount, with fallback to read-only if necessary.
 	for (;;) {
@@ -898,7 +909,7 @@ static void error_msg_rpc(const char *msg)
 }
 
 // NB: mp->xxx fields may be trashed on exit
-static int nfsmount(struct mntent *mp, int vfsflags, char *filteropts)
+static int nfsmount(struct mntent *mp, long vfsflags, char *filteropts)
 {
 	CLIENT *mclient;
 	char *hostname;
@@ -1507,7 +1518,7 @@ static int nfsmount(struct mntent *mp, int vfsflags, char *filteropts)
 #else /* !ENABLE_FEATURE_MOUNT_NFS */
 
 /* Never called. Call should be optimized out. */
-int nfsmount(struct mntent *mp, int vfsflags, char *filteropts);
+int nfsmount(struct mntent *mp, long vfsflags, char *filteropts);
 
 #endif /* !ENABLE_FEATURE_MOUNT_NFS */
 
@@ -1516,7 +1527,8 @@ int nfsmount(struct mntent *mp, int vfsflags, char *filteropts);
 // NB: mp->xxx fields may be trashed on exit
 static int singlemount(struct mntent *mp, int ignore_busy)
 {
-	int rc = -1, vfsflags;
+	int rc = -1;
+	long vfsflags;
 	char *loopFile = 0, *filteropts = 0;
 	llist_t *fl = 0;
 	struct stat st;
@@ -1702,9 +1714,8 @@ int mount_main(int argc, char **argv)
 	unsigned opt;
 	struct mntent mtpair[2], *mtcur = mtpair;
 	SKIP_DESKTOP(const int nonroot = 0;)
-	USE_DESKTOP( int nonroot = (getuid() != 0);)
 
-	sanitize_env_if_suid();
+	USE_DESKTOP( int nonroot = ) sanitize_env_if_suid();
 
 	// Parse long options, like --bind and --move.  Note that -o option
 	// and --option are synonymous.  Yes, this means --remount,rw works.
@@ -1774,7 +1785,7 @@ int mount_main(int argc, char **argv)
 		goto clean_up;
 	}
 
-	i = parse_mount_options(cmdopts, 0);
+	i = parse_mount_options(cmdopts, 0); // FIXME: should be "long", not "int"
 	if (nonroot && (i & ~MS_SILENT)) // Non-root users cannot specify flags
 		bb_error_msg_and_die(must_be_root);
 
