@@ -166,6 +166,14 @@ config FEATURE_TAR_CREATE
 	  If you enable this option you'll be able to create
 	  tar archives using the `-c' option.
 
+config FEATURE_TAR_GZIP
+	bool "Enable -z option"
+	default y
+	depends on TAR
+	help
+	  If you enable this option tar will be able to call gzip,
+	  when creating or extracting tar gziped archives.
+
 config FEATURE_TAR_BZIP2
 	bool "Enable -j option to handle .tar.bz2 files"
 	default n
@@ -182,22 +190,6 @@ config FEATURE_TAR_LZMA
 	  If you enable this option you'll be able to extract
 	  archives compressed with lzma.
 
-config FEATURE_TAR_FROM
-	bool "Enable -X (exclude from) and -T (include from) options)"
-	default n
-	depends on TAR
-	help
-	  If you enable this option you'll be able to specify
-	  a list of files to include or exclude from an archive.
-
-config FEATURE_TAR_GZIP
-	bool "Enable -z option"
-	default y
-	depends on TAR
-	help
-	  If you enable this option tar will be able to call gzip,
-	  when creating or extracting tar gziped archives.
-
 config FEATURE_TAR_COMPRESS
 	bool "Enable -Z option"
 	default n
@@ -205,6 +197,22 @@ config FEATURE_TAR_COMPRESS
 	help
 	  If you enable this option tar will be able to call uncompress,
 	  when extracting .tar.Z archives.
+
+config FEATURE_TAR_AUTODETECT
+	bool "Let tar autodetect gz/bz2 compresses tarballs"
+	default n
+	depends on FEATURE_TAR_GZIP || FEATURE_TAR_BZIP2
+	help
+	  With this option tar can automatically detect gzip/bzip2 compressed
+	  tarballs. Currently it works only on seekable streams.
+
+config FEATURE_TAR_FROM
+	bool "Enable -X (exclude from) and -T (include from) options)"
+	default n
+	depends on TAR
+	help
+	  If you enable this option you'll be able to specify
+	  a list of files to include or exclude from an archive.
 
 config FEATURE_TAR_OLDGNU_COMPATIBILITY
 	bool "Enable support for old tar header format"

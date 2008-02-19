@@ -33,7 +33,16 @@
 #define FNM_LEADING_DIR 0
 #endif
 
+
 #define block_buf bb_common_bufsiz1
+
+
+#if !ENABLE_FEATURE_TAR_GZIP && !ENABLE_FEATURE_TAR_BZIP2
+/* Do not pass gzip flag to writeTarFile() */
+#define writeTarFile(tar_fd, verboseFlag, dereferenceFlag, include, exclude, gzip) \
+	writeTarFile(tar_fd, verboseFlag, dereferenceFlag, include, exclude)
+#endif
+
 
 #if ENABLE_FEATURE_TAR_CREATE
 
@@ -514,18 +523,23 @@ static int writeTarFile(const int tar_fd, const int verboseFlag,
 	if (fstat(tbInfo.tarFd, &tbInfo.statBuf) < 0)
 		bb_perror_msg_and_die("cannot stat tar file");
 
-	if ((ENABLE_FEATURE_TAR_GZIP || ENABLE_FEATURE_TAR_BZIP2) && gzip) {
-// On Linux, vfork never unpauses parent early, although standard
-// allows for that. Do we want to waste bytes checking for it?
+#if ENABLE_FEATURE_TAR_GZIP || ENABLE_FEATURE_TAR_BZIP2
+	if (gzip) {
+#if ENABLE_FEATURE_TAR_GZIP && ENABLE_FEATURE_TAR_BZIP2
+		const char *zip_exec = (gzip == 1) ? "gzip" : "bzip2";
+#elif ENABLE_FEATURE_TAR_GZIP
+		const char *zip_exec = "gzip";
+#else /* only ENABLE_FEATURE_TAR_BZIP2 */
+		const char *zip_exec = "bzip2";
+#endif
+	// On Linux, vfork never unpauses parent early, although standard
+	// allows for that. Do we want to waste bytes checking for it?
 #define WAIT_FOR_CHILD 0
-
 		volatile int vfork_exec_errno = 0;
 #if WAIT_FOR_CHILD
 		struct fd_pair gzipStatusPipe;
 #endif
 		struct fd_pair gzipDataPipe;
-		const char *zip_exec = (gzip == 1) ? "gzip" : "bzip2";
-
 		xpiped_pair(gzipDataPipe);
 #if WAIT_FOR_CHILD
 		xpiped_pair(gzipStatusPipe);
@@ -584,6 +598,7 @@ static int writeTarFile(const int tar_fd, const int verboseFlag,
 			bb_perror_msg_and_die("cannot exec %s", zip_exec);
 		}
 	}
+#endif
 
 	tbInfo.excludeList = exclude;
 
@@ -934,11 +949,13 @@ int tar_main(int argc, char **argv)
 
 	/* create an archive */
 	if (opt & OPT_CREATE) {
+#if ENABLE_FEATURE_TAR_GZIP || ENABLE_FEATURE_TAR_BZIP2
 		int zipMode = 0;
-		if (ENABLE_FEATURE_TAR_GZIP && get_header_ptr == get_header_tar_gz)
+		if (ENABLE_FEATURE_TAR_GZIP && (opt & OPT_GZIP))
 			zipMode = 1;
-		if (ENABLE_FEATURE_TAR_BZIP2 && get_header_ptr == get_header_tar_bz2)
+		if (ENABLE_FEATURE_TAR_BZIP2 && (opt & OPT_BZIP2))
 			zipMode = 2;
+#endif
 		/* NB: writeTarFile() closes tar_handle->src_fd */
 		return writeTarFile(tar_handle->src_fd, verboseFlag, opt & OPT_DEREFERENCE,
 				tar_handle->accept,
@@ -946,7 +963,7 @@ int tar_main(int argc, char **argv)
 	}
 
 	while (get_header_ptr(tar_handle) == EXIT_SUCCESS)
-		/* nothing */;
+		continue;
 
 	/* Check that every file that should have been extracted was */
 	while (tar_handle->accept) {

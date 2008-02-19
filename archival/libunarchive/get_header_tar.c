@@ -46,6 +46,9 @@ void BUG_tar_header_size(void);
 char get_header_tar(archive_handle_t *archive_handle)
 {
 	static smallint end;
+#if ENABLE_FEATURE_TAR_AUTODETECT
+	static smallint not_first;
+#endif
 
 	file_header_t *file_header = archive_handle->file_header;
 	struct {
@@ -115,7 +118,7 @@ char get_header_tar(archive_handle_t *archive_handle)
 			 * Read until the end to empty the pipe from gz or bz2
 			 */
 			while (full_read(archive_handle->src_fd, &tar, 512) == 512)
-				/* repeat */;
+				continue;
 			return EXIT_FAILURE;
 		}
 		end = 1;
@@ -123,15 +126,48 @@ char get_header_tar(archive_handle_t *archive_handle)
 	}
 	end = 0;
 
-	/* Check header has valid magic, "ustar" is for the proper tar
-	 * 0's are for the old tar format
-	 */
-	if (strncmp(tar.magic, "ustar", 5) != 0) {
-#if ENABLE_FEATURE_TAR_OLDGNU_COMPATIBILITY
-		if (memcmp(tar.magic, "\0\0\0\0", 5) != 0)
+	/* Check header has valid magic, "ustar" is for the proper tar,
+	 * five NULs are for the old tar format  */
+	if (strncmp(tar.magic, "ustar", 5) != 0
+	 && (!ENABLE_FEATURE_TAR_OLDGNU_COMPATIBILITY
+	     || memcmp(tar.magic, "\0\0\0\0", 5) != 0)
+	) {
+#if ENABLE_FEATURE_TAR_AUTODETECT
+		char (*get_header_ptr)(archive_handle_t *);
+
+		/* tar gz/bz autodetect: check for gz/bz2 magic.
+		 * If it is the very first block, and we see the magic,
+		 * we can switch to get_header_tar_gz/bz2/lzma().
+		 * Needs seekable fd. I wish recv(MSG_PEEK) would work
+		 * on any fd... */
+		if (not_first)
+			goto err;
+#if ENABLE_FEATURE_TAR_GZIP
+		if (tar.name[0] == 0x1f && tar.name[1] == 0x8b) { /* gzip */
+			get_header_ptr = get_header_tar_gz;
+		} else
 #endif
-			bb_error_msg_and_die("invalid tar magic");
+#if ENABLE_FEATURE_TAR_BZIP2
+		if (tar.name[0] == 'B' && tar.name[1] == 'Z'
+		 && tar.name[2] == 'h' && isdigit(tar.name[3])
+		) { /* bzip2 */
+			get_header_ptr = get_header_tar_bz2;
+		} else
+#endif
+			goto err;
+		if (lseek(archive_handle->src_fd, -512, SEEK_CUR) != 0)
+			goto err;
+		while (get_header_ptr(archive_handle) == EXIT_SUCCESS)
+			continue;
+		return EXIT_FAILURE;
+ err:
+#endif /* FEATURE_TAR_AUTODETECT */
+		bb_error_msg_and_die("invalid tar magic");
 	}
+
+#if ENABLE_FEATURE_TAR_AUTODETECT
+	not_first = 1;
+#endif
 
 	/* Do checksum on headers.
 	 * POSIX says that checksum is done on unsigned bytes, but
