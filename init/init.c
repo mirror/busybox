@@ -117,11 +117,13 @@ static void loop_forever(void)
 }
 
 /* Print a message to the specified device.
- * Device may be bitwise-or'd from L_LOG | L_CONSOLE */
+ * "where" may be bitwise-or'd from L_LOG | L_CONSOLE
+ * NB: careful, we can be called after vfork!
+ */
 #define messageD(...) do { if (ENABLE_DEBUG_INIT) message(__VA_ARGS__); } while (0)
-static void message(int device, const char *fmt, ...)
+static void message(int where, const char *fmt, ...)
 	__attribute__ ((format(printf, 2, 3)));
-static void message(int device, const char *fmt, ...)
+static void message(int where, const char *fmt, ...)
 {
 	static int log_fd = -1;
 	va_list arguments;
@@ -137,7 +139,7 @@ static void message(int device, const char *fmt, ...)
 
 	if (ENABLE_FEATURE_INIT_SYSLOG) {
 		/* Log the message to syslogd */
-		if (device & L_LOG) {
+		if (where & L_LOG) {
 			/* don't out "\r" */
 			openlog(applet_name, 0, LOG_DAEMON);
 			syslog(LOG_INFO, "init: %s", msg + 1);
@@ -157,20 +159,20 @@ static void message(int device, const char *fmt, ...)
 				log_fd = device_open(log_console, O_WRONLY | O_NONBLOCK | O_NOCTTY);
 				if (log_fd < 0) {
 					bb_error_msg("can't log to %s", log_console);
-					device = L_CONSOLE;
+					where = L_CONSOLE;
 				} else {
 					close_on_exec_on(log_fd);
 				}
 			}
 		}
-		if (device & L_LOG) {
+		if (where & L_LOG) {
 			full_write(log_fd, msg, l);
 			if (log_fd == 2)
 				return; /* don't print dup messages */
 		}
 	}
 
-	if (device & L_CONSOLE) {
+	if (where & L_CONSOLE) {
 		/* Send console messages to console so people will see them. */
 		full_write(2, msg, l);
 	}
@@ -233,7 +235,8 @@ static void console_init(void)
 		putenv((char*)"TERM=linux");
 }
 
-/* Set terminal settings to reasonable defaults */
+/* Set terminal settings to reasonable defaults.
+ * NB: careful, we can be called after vfork! */
 static void set_sane_term(void)
 {
 	struct termios tty;
@@ -270,7 +273,8 @@ static void set_sane_term(void)
 	tcsetattr(STDIN_FILENO, TCSANOW, &tty);
 }
 
-/* Open the new terminal device */
+/* Open the new terminal device.
+ * NB: careful, we can be called after vfork! */
 static void open_stdio_to_tty(const char* tty_name, int exit_on_failure)
 {
 	/* empty tty_name means "use init's tty", else... */
@@ -286,6 +290,8 @@ static void open_stdio_to_tty(const char* tty_name, int exit_on_failure)
 				_exit(1);
 			if (ENABLE_DEBUG_INIT)
 				_exit(2);
+		/* NB: we don't reach this if we were called after vfork.
+		 * Thus halt_reboot_pwoff() itself need not be vfork-safe. */
 			halt_reboot_pwoff(SIGUSR1); /* halt the system */
 		}
 		dup2(0, 1);
@@ -294,22 +300,24 @@ static void open_stdio_to_tty(const char* tty_name, int exit_on_failure)
 	set_sane_term();
 }
 
-/* wrapper around exec:
- * takes string (max COMMAND_SIZE chars)
- * runs [-]/bin/sh -c "exec ......." if '>' etc detected.
- * otherwise splits words on whitespace and deals with leading dash.
+/* Wrapper around exec:
+ * Takes string (max COMMAND_SIZE chars).
+ * If chars like '>' detected, execs '[-]/bin/sh -c "exec ......."'.
+ * Otherwise splits words on whitespace, deals with leading dash,
+ * and uses plain exec().
+ * NB: careful, we can be called after vfork!
  */
 static void init_exec(const char *command)
 {
 	char *cmd[COMMAND_SIZE / 2];
 	char buf[COMMAND_SIZE + 6];  /* COMMAND_SIZE+strlen("exec ")+1 */
-	int dash = (command[0] == '-');
+	int dash = (command[0] == '-' /* maybe? && command[1] == '/' */);
 
 	/* See if any special /bin/sh requiring characters are present */
 	if (strpbrk(command, "~`!$^&*()=|\\{}[];\"'<>?") != NULL) {
 		strcpy(buf, "exec ");
 		strcpy(buf + 5, command + dash); /* excluding "-" */
-		/* LIBBB_DEFAULT_LOGIN_SHELL has leading dash */
+		/* NB: LIBBB_DEFAULT_LOGIN_SHELL define has leading dash */
 		cmd[0] = (char*)(LIBBB_DEFAULT_LOGIN_SHELL + !dash);
 		cmd[1] = (char*)"-c";
 		cmd[2] = buf;
@@ -351,7 +359,7 @@ static pid_t run(const struct init_action *a)
 	sigemptyset(&nmask);
 	sigaddset(&nmask, SIGCHLD);
 	sigprocmask(SIG_BLOCK, &nmask, &omask);
-	pid = fork();
+	pid = vfork();
 	sigprocmask(SIG_SETMASK, &omask, NULL);
 
 	if (pid < 0)
@@ -379,8 +387,9 @@ static pid_t run(const struct init_action *a)
 	setsid();
 
 	/* Open the new terminal device */
-	open_stdio_to_tty(a->terminal, 1 /* - exit if open fails*/);
+	open_stdio_to_tty(a->terminal, 1 /* - exit if open fails */);
 
+// NB: do not enable unless you change vfork to fork above
 #ifdef BUT_RUN_ACTIONS_ALREADY_DOES_WAITING
 	/* If the init Action requires us to wait, then force the
 	 * supplied terminal to be the controlling tty. */
@@ -424,7 +433,9 @@ static pid_t run(const struct init_action *a)
 		/* Child - fall though to actually execute things */
 	}
 #endif
-	if (a->action_type & ASKFIRST) {
+
+	/* NB: on NOMMU we can't wait for input in child */
+	if (BB_MMU && (a->action_type & ASKFIRST)) {
 		static const char press_enter[] ALIGN1 =
 #ifdef CUSTOMIZED_BANNER
 #include CUSTOMIZED_BANNER
@@ -809,7 +820,8 @@ static void reload_signal(int sig ATTRIBUTE_UNUSED)
 			}
 		}
 #if CONFIG_FEATURE_KILL_DELAY
-		if (fork() == 0) { /* child */
+		/* NB: parent will wait in NOMMU case */
+		if ((BB_MMU ? fork() : vfork()) == 0) { /* child */
 			sleep(CONFIG_FEATURE_KILL_DELAY);
 			for (a = init_action_list; a; a = a->next) {
 				pid_t pid = a->pid;

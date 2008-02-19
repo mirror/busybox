@@ -2192,7 +2192,7 @@ static void mini_httpd_nommu(int server_socket, int argc, char **argv)
 
 		/* Wait for connections... */
 		fromAddr.len = LSA_SIZEOF_SA;
-		n = accept(server_socket, &fromAddr.sa, &fromAddr.len);
+		n = accept(server_socket, &fromAddr.u.sa, &fromAddr.len);
 
 		if (n < 0)
 			continue;
