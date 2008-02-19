@@ -853,10 +853,7 @@ int init_main(int argc, char **argv)
 		}
 		/* Set up sig handlers  -- be sure to
 		 * clear all of these in run() */
-		bb_signals(0
-			+ (1 << SIGHUP)
-			+ (1 << SIGQUIT)
-			, exec_restart_action);
+		signal(SIGQUIT, exec_restart_action);
 		bb_signals(0
 			+ (1 << SIGUSR1)  /* halt */
 			+ (1 << SIGUSR2)  /* poweroff */
