@@ -50,7 +50,7 @@ config FEATURE_RUN_PARTS_FANCY
 
 config START_STOP_DAEMON
 	bool "start-stop-daemon"
-	default y
+	default n
 	help
 	  start-stop-daemon is used to control the creation and
 	  termination of system-level processes, usually the ones
@@ -58,7 +58,7 @@ config START_STOP_DAEMON
 
 config FEATURE_START_STOP_DAEMON_FANCY
 	bool "Support additional arguments"
-	default y
+	default n
 	depends on START_STOP_DAEMON
 	help
 	  Support additional arguments.

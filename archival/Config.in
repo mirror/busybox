@@ -250,6 +250,7 @@ config FEATURE_TAR_LONG_OPTIONS
 config FEATURE_TAR_UNAME_GNAME
 	bool "Enable use of user and group names"
 	default n
+	depends on TAR
 	help
 	  Enables use of user and group names in tar. This affects contents
 	  listings (-t) and preserving permissions when unpacking (-p).
