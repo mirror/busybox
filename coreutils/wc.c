@@ -73,7 +73,7 @@ int wc_main(int argc, char **argv)
 {
 	FILE *fp;
 	const char *s, *arg;
-	const char *start_fmt = "%9"COUNT_FMT;
+	const char *start_fmt = " %9"COUNT_FMT + 1;
 	const char *fname_fmt = " %s\n";
 	COUNT_T *pcounts;
 	COUNT_T counts[4];
