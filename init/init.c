@@ -577,7 +577,7 @@ static void halt_reboot_pwoff(int sig)
 	loop_forever();
 }
 
-/* Handler for HUP and QUIT - exec "restart" action,
+/* Handler for QUIT - exec "restart" action,
  * else (no such action defined) do nothing */
 static void exec_restart_action(int sig ATTRIBUTE_UNUSED)
 {
@@ -715,7 +715,7 @@ static void parse_inittab(void)
 		/* Swapoff on halt/reboot */
 		if (ENABLE_SWAPONOFF)
 			new_init_action(SHUTDOWN, "swapoff -a", "");
-		/* Prepare to restart init when a HUP is received */
+		/* Prepare to restart init when a QUIT is received */
 		new_init_action(RESTART, "init", "");
 		/* Askfirst shell on tty1-4 */
 		new_init_action(ASKFIRST, bb_default_login_shell, "");
