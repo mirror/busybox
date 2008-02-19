@@ -1785,22 +1785,26 @@ static struct globals_var *const ptr_to_globals_var __attribute__ ((section (".d
 	} \
 } while (0)
 
-#define vifs    varinit[0]
+#define vifs      varinit[0]
 #if ENABLE_ASH_MAIL
-#define vmail   (&vifs)[1]
-#define vmpath  (&vmail)[1]
+# define vmail    (&vifs)[1]
+# define vmpath   (&vmail)[1]
+# define vpath    (&vmpath)[1]
 #else
-#define vmpath  vifs
+# define vpath    (&vifs)[1]
 #endif
-#define vpath   (&vmpath)[1]
-#define vps1    (&vpath)[1]
-#define vps2    (&vps1)[1]
-#define vps4    (&vps2)[1]
-#define voptind (&vps4)[1]
+#define vps1      (&vpath)[1]
+#define vps2      (&vps1)[1]
+#define vps4      (&vps2)[1]
 #if ENABLE_ASH_GETOPTS
-#define vrandom (&voptind)[1]
+# define voptind  (&vps4)[1]
+# if ENABLE_ASH_RANDOM_SUPPORT
+#  define vrandom (&voptind)[1]
+# endif
 #else
-#define vrandom (&vps4)[1]
+# if ENABLE_ASH_RANDOM_SUPPORT
+#  define vrandom (&vps4)[1]
+# endif
 #endif
 
 /*
@@ -1810,15 +1814,18 @@ static struct globals_var *const ptr_to_globals_var __attribute__ ((section (".d
  */
 #define ifsval()        (vifs.text + 4)
 #define ifsset()        ((vifs.flags & VUNSET) == 0)
-#define mailval()       (vmail.text + 5)
-#define mpathval()      (vmpath.text + 9)
+#if ENABLE_ASH_MAIL
+# define mailval()      (vmail.text + 5)
+# define mpathval()     (vmpath.text + 9)
+# define mpathset()     ((vmpath.flags & VUNSET) == 0)
+#endif
 #define pathval()       (vpath.text + 5)
 #define ps1val()        (vps1.text + 4)
 #define ps2val()        (vps2.text + 4)
 #define ps4val()        (vps4.text + 4)
-#define optindval()     (voptind.text + 7)
-
-#define mpathset()      ((vmpath.flags & VUNSET) == 0)
+#if ENABLE_ASH_GETOPTS
+# define optindval()    (voptind.text + 7)
+#endif
 
 
 #define is_name(c)      ((c) == '_' || isalpha((unsigned char)(c)))
@@ -5912,8 +5919,9 @@ varvalue(char *name, int varflags, int flags, struct strlist *var_str_list)
 			unsigned name_len = (strchrnul(name, '=') - name) + 1;
 			p = NULL;
 			do {
-				char *str = var_str_list->text;
-				char *eq = strchr(str, '=');
+				char *str, *eq;
+				str = var_str_list->text;
+				eq = strchr(str, '=');
 				if (!eq) /* stop at first non-assignment */
 					break;
 				eq++;
@@ -7677,6 +7685,7 @@ evalfor(union node *n, int flags)
 	struct stackmark smark;
 
 	setstackmark(&smark);
+	arglist.list = NULL;
 	arglist.lastp = &arglist.list;
 	for (argp = n->nfor.args; argp; argp = argp->narg.next) {
 		expandarg(argp, &arglist, EXP_FULL | EXP_TILDE | EXP_RECORD);
@@ -7716,6 +7725,7 @@ evalcase(union node *n, int flags)
 	struct stackmark smark;
 
 	setstackmark(&smark);
+	arglist.list = NULL;
 	arglist.lastp = &arglist.list;
 	expandarg(n->ncase.expr, &arglist, EXP_TILDE);
 	exitstatus = 0;
@@ -7777,7 +7787,7 @@ expredir(union node *n)
 	for (redir = n; redir; redir = redir->nfile.next) {
 		struct arglist fn;
 
-		memset(&fn, 0, sizeof(fn));
+		fn.list = NULL;
 		fn.lastp = &fn.list;
 		switch (redir->type) {
 		case NFROMTO:
