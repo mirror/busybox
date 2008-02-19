@@ -649,10 +649,10 @@ int syslogd_main(int argc, char **argv)
 
 	/* Store away localhost's name before the fork */
 	gethostname(G.localHostName, sizeof(G.localHostName));
-	p = strchr(G.localHostName, '.');
-	if (p) {
-		*p = '\0';
-	}
+	/* "It is unspecified whether the truncated hostname
+	 * will be null-terminated". Idiots! */
+	G.localHostName[sizeof(G.localHostName) - 1] = '\0';
+	*strchrnul(G.localHostName, '.') = '\0';
 
 	if (!(option_mask32 & OPT_nofork)) {
 		bb_daemonize_or_rexec(DAEMON_CHDIR_ROOT, argv);
