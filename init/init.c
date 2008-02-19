@@ -14,7 +14,7 @@
 #include <paths.h>
 #include <sys/reboot.h>
 
-#define INIT_BUFFS_SIZE 256
+#define COMMAND_SIZE 256
 #define CONSOLE_NAME_SIZE 32
 #define MAXENV	16		/* Number of env. vars */
 
@@ -55,9 +55,9 @@
 struct init_action {
 	struct init_action *next;
 	pid_t pid;
-	uint8_t action;
+	uint8_t action_type;
 	char terminal[CONSOLE_NAME_SIZE];
-	char command[INIT_BUFFS_SIZE];
+	char command[COMMAND_SIZE];
 };
 
 /* Static variables */
@@ -294,14 +294,57 @@ static void open_stdio_to_tty(const char* tty_name, int exit_on_failure)
 	set_sane_term();
 }
 
+/* wrapper around exec:
+ * takes string (max COMMAND_SIZE chars)
+ * runs [-]/bin/sh -c "exec ......." if '>' etc detected.
+ * otherwise splits words on whitespace and deals with leading dash.
+ */
+static void init_exec(const char *command)
+{
+	char *cmd[COMMAND_SIZE / 2];
+	char buf[COMMAND_SIZE + 6];  /* COMMAND_SIZE+strlen("exec ")+1 */
+	int dash = (command[0] == '-');
+
+	/* See if any special /bin/sh requiring characters are present */
+	if (strpbrk(command, "~`!$^&*()=|\\{}[];\"'<>?") != NULL) {
+		strcpy(buf, "exec ");
+		strcpy(buf + 5, command + dash); /* excluding "-" */
+		/* LIBBB_DEFAULT_LOGIN_SHELL has leading dash */
+		cmd[0] = (char*)(LIBBB_DEFAULT_LOGIN_SHELL + !dash);
+		cmd[1] = (char*)"-c";
+		cmd[2] = buf;
+		cmd[3] = NULL;
+	} else {
+		/* Convert command (char*) into cmd (char**, one word per string) */
+		char *word, *next;
+		int i = 0;
+		next = strcpy(buf, command); /* including "-" */
+		while ((word = strsep(&next, " \t")) != NULL) {
+			if (*word != '\0') { /* not two spaces/tabs together? */
+				cmd[i] = word;
+				i++;
+			}
+		}
+		cmd[i] = NULL;
+	}
+	/* If we saw leading "-", it is interactive shell.
+	 * Try harder to give it a controlling tty.
+	 * And skip "-" in actual exec call. */
+	if (dash) {
+		/* _Attempt_ to make stdin a controlling tty. */
+		if (ENABLE_FEATURE_INIT_SCTTY)
+			ioctl(STDIN_FILENO, TIOCSCTTY, 0 /*only try, don't steal*/);
+	}
+	BB_EXECVP(cmd[0] + dash, cmd);
+	message(L_LOG | L_CONSOLE, "Cannot run '%s': %s",
+			cmd[0], strerror(errno));
+	/* returns if execvp fails */
+}
+
 /* Used only by run_actions */
 static pid_t run(const struct init_action *a)
 {
-	int i;
 	pid_t pid;
-	char *s, *tmpCmd, *cmdpath;
-	char *cmd[INIT_BUFFS_SIZE];
-	char buf[INIT_BUFFS_SIZE + 6];	/* INIT_BUFFS_SIZE+strlen("exec ")+1 */
 	sigset_t nmask, omask;
 
 	/* Block sigchild while forking (why?) */
@@ -341,7 +384,7 @@ static pid_t run(const struct init_action *a)
 #ifdef BUT_RUN_ACTIONS_ALREADY_DOES_WAITING
 	/* If the init Action requires us to wait, then force the
 	 * supplied terminal to be the controlling tty. */
-	if (a->action & (SYSINIT | WAIT | CTRLALTDEL | SHUTDOWN | RESTART)) {
+	if (a->action_type & (SYSINIT | WAIT | CTRLALTDEL | SHUTDOWN | RESTART)) {
 		/* Now fork off another process to just hang around */
 		pid = fork();
 		if (pid < 0) {
@@ -381,58 +424,7 @@ static pid_t run(const struct init_action *a)
 		/* Child - fall though to actually execute things */
 	}
 #endif
-
-	/* See if any special /bin/sh requiring characters are present */
-	if (strpbrk(a->command, "~`!$^&*()=|\\{}[];\"'<>?") != NULL) {
-		cmd[0] = (char*)DEFAULT_SHELL;
-		cmd[1] = (char*)"-c";
-		cmd[2] = strcat(strcpy(buf, "exec "), a->command);
-		cmd[3] = NULL;
-	} else {
-		/* Convert command (char*) into cmd (char**, one word per string) */
-		strcpy(buf, a->command);
-		s = buf;
-		for (tmpCmd = buf, i = 0; (tmpCmd = strsep(&s, " \t")) != NULL;) {
-			if (*tmpCmd != '\0') {
-				cmd[i] = tmpCmd;
-				i++;
-			}
-		}
-		cmd[i] = NULL;
-	}
-
-	cmdpath = cmd[0];
-
-	/*
-	 * Interactive shells want to see a dash in argv[0].  This
-	 * typically is handled by login, argv will be setup this
-	 * way if a dash appears at the front of the command path
-	 * (like "-/bin/sh").
-	 */
-	if (*cmdpath == '-') {
-		/* skip over the dash */
-		++cmdpath;
-
-#ifdef WHY_WE_DO_THIS_SHELL_MUST_HANDLE_THIS_ITSELF
-		/* find the last component in the command pathname */
-		s = bb_get_last_path_component_nostrip(cmdpath);
-		/* make a new argv[0] */
-		cmd[0] = malloc(strlen(s) + 2);
-		if (cmd[0] == NULL) {
-			message(L_LOG | L_CONSOLE, bb_msg_memory_exhausted);
-			cmd[0] = cmdpath;
-		} else {
-			cmd[0][0] = '-';
-			strcpy(cmd[0] + 1, s);
-		}
-#endif
-
-		/* _Attempt_ to make stdin a controlling tty. */
-		if (ENABLE_FEATURE_INIT_SCTTY)
-			ioctl(0, TIOCSCTTY, 0 /*only try, don't steal*/);
-	}
-
-	if (a->action & ASKFIRST) {
+	if (a->action_type & ASKFIRST) {
 		static const char press_enter[] ALIGN1 =
 #ifdef CUSTOMIZED_BANNER
 #include CUSTOMIZED_BANNER
@@ -449,58 +441,54 @@ static pid_t run(const struct init_action *a)
 		 */
 		messageD(L_LOG, "waiting for enter to start '%s'"
 					"(pid %d, tty '%s')\n",
-				  cmdpath, getpid(), a->terminal);
+				a->command, getpid(), a->terminal);
 		full_write(1, press_enter, sizeof(press_enter) - 1);
 		while (safe_read(0, &c, 1) == 1 && c != '\n')
 			continue;
 	}
 
-	/* Log the process name and args */
-	message(L_LOG, "starting pid %d, tty '%s': '%s'",
-			  getpid(), a->terminal, cmdpath);
-
 	if (ENABLE_FEATURE_INIT_COREDUMPS) {
 		struct stat sb;
 		if (stat(CORE_ENABLE_FLAG_FILE, &sb) == 0) {
 			struct rlimit limit;
-
 			limit.rlim_cur = RLIM_INFINITY;
 			limit.rlim_max = RLIM_INFINITY;
 			setrlimit(RLIMIT_CORE, &limit);
 		}
 	}
 
+	/* Log the process name and args */
+	message(L_LOG, "starting pid %d, tty '%s': '%s'",
+			  getpid(), a->terminal, a->command);
+
 	/* Now run it.  The new program will take over this PID,
 	 * so nothing further in init.c should be run. */
-	BB_EXECVP(cmdpath, cmd);
-
+	init_exec(a->command);
 	/* We're still here?  Some error happened. */
-	message(L_LOG | L_CONSOLE, "Cannot run '%s': %s",
-			cmdpath, strerror(errno));
 	_exit(-1);
 }
 
 /* Run all commands of a particular type */
-static void run_actions(int action)
+static void run_actions(int action_type)
 {
 	struct init_action *a, *tmp;
 
 	for (a = init_action_list; a; a = tmp) {
 		tmp = a->next;
-		if (a->action == action) {
+		if (a->action_type == action_type) {
 			// Pointless: run() will error out if open of device fails.
 			///* a->terminal of "" means "init's console" */
 			//if (a->terminal[0] && access(a->terminal, R_OK | W_OK)) {
 			//	//message(L_LOG | L_CONSOLE, "Device %s cannot be opened in RW mode", a->terminal /*, strerror(errno)*/);
 			//	delete_init_action(a);
 			//} else
-			if (a->action & (SYSINIT | WAIT | CTRLALTDEL | SHUTDOWN | RESTART)) {
+			if (a->action_type & (SYSINIT | WAIT | CTRLALTDEL | SHUTDOWN | RESTART)) {
 				waitfor(run(a));
 				delete_init_action(a);
-			} else if (a->action & ONCE) {
+			} else if (a->action_type & ONCE) {
 				run(a);
 				delete_init_action(a);
-			} else if (a->action & (RESPAWN | ASKFIRST)) {
+			} else if (a->action_type & (RESPAWN | ASKFIRST)) {
 				/* Only run stuff with pid==0.  If they have
 				 * a pid, that means it is still running */
 				if (a->pid == 0) {
@@ -593,12 +581,11 @@ static void halt_reboot_pwoff(int sig)
  * else (no such action defined) do nothing */
 static void exec_restart_action(int sig ATTRIBUTE_UNUSED)
 {
-	struct init_action *a, *tmp;
+	struct init_action *a;
 	sigset_t unblock_signals;
 
-	for (a = init_action_list; a; a = tmp) {
-		tmp = a->next;
-		if (a->action & RESTART) {
+	for (a = init_action_list; a; a = a->next) {
+		if (a->action_type & RESTART) {
 			kill_all_processes();
 
 			/* unblock all signals (blocked in kill_all_processes()) */
@@ -620,10 +607,7 @@ static void exec_restart_action(int sig ATTRIBUTE_UNUSED)
 			open_stdio_to_tty(a->terminal, 0 /* - halt if open fails */);
 
 			messageD(L_CONSOLE | L_LOG, "Trying to re-exec %s", a->command);
-			BB_EXECLP(a->command, a->command, NULL);
-
-			message(L_CONSOLE | L_LOG, "Cannot run '%s': %s",
-					a->command, strerror(errno));
+			init_exec(a->command);
 			sleep(2);
 			init_reboot(RB_HALT_SYSTEM);
 			loop_forever();
@@ -654,12 +638,13 @@ static void cont_handler(int sig ATTRIBUTE_UNUSED)
 	got_cont = 1;
 }
 
-static void new_init_action(uint8_t action, const char *command, const char *cons)
+static void new_init_action(uint8_t action_type, const char *command, const char *cons)
 {
-	struct init_action *new_action, *a, *last;
+	struct init_action *a, *last;
 
-	if (strcmp(cons, bb_dev_null) == 0 && (action & ASKFIRST))
-		return;
+// Why?
+//	if (strcmp(cons, bb_dev_null) == 0 && (action & ASKFIRST))
+//		return;
 
 	/* Append to the end of the list */
 	for (a = last = init_action_list; a; a = a->next) {
@@ -668,23 +653,23 @@ static void new_init_action(uint8_t action, const char *command, const char *con
 		if ((strcmp(a->command, command) == 0)
 		 && (strcmp(a->terminal, cons) == 0)
 		) {
-			a->action = action;
+			a->action_type = action_type;
 			return;
 		}
 		last = a;
 	}
 
-	new_action = xzalloc(sizeof(struct init_action));
+	a = xzalloc(sizeof(*a));
 	if (last) {
-		last->next = new_action;
+		last->next = a;
 	} else {
-		init_action_list = new_action;
+		init_action_list = a;
 	}
-	strcpy(new_action->command, command);
-	new_action->action = action;
-	strcpy(new_action->terminal, cons);
+	a->action_type = action_type;
+	safe_strncpy(a->command, command, sizeof(a->command));
+	safe_strncpy(a->terminal, cons, sizeof(a->terminal));
 	messageD(L_LOG | L_CONSOLE, "command='%s' action=%d tty='%s'\n",
-		new_action->command, new_action->action, new_action->terminal);
+		a->command, a->action_type, a->terminal);
 }
 
 static void delete_init_action(struct init_action *action)
@@ -714,7 +699,7 @@ static void delete_init_action(struct init_action *action)
 static void parse_inittab(void)
 {
 	FILE *file;
-	char buf[INIT_BUFFS_SIZE];
+	char buf[COMMAND_SIZE];
 
 	if (ENABLE_FEATURE_USE_INITTAB)
 		file = fopen(INITTAB, "r");
@@ -743,7 +728,7 @@ static void parse_inittab(void)
 		return;
 	}
 
-	while (fgets(buf, INIT_BUFFS_SIZE, file) != NULL) {
+	while (fgets(buf, COMMAND_SIZE, file) != NULL) {
 		static const char actions[] =
 			STR_SYSINIT    "sysinit\0"
 			STR_RESPAWN    "respawn\0"
@@ -810,7 +795,7 @@ static void reload_signal(int sig ATTRIBUTE_UNUSED)
 
 	/* disable old entrys */
 	for (a = init_action_list; a; a = a->next) {
-		a->action = ONCE;
+		a->action_type = ONCE;
 	}
 
 	parse_inittab();
@@ -819,7 +804,7 @@ static void reload_signal(int sig ATTRIBUTE_UNUSED)
 		/* Be nice and send SIGTERM first */
 		for (a = init_action_list; a; a = a->next) {
 			pid_t pid = a->pid;
-			if ((a->action & ONCE) && pid != 0) {
+			if ((a->action_type & ONCE) && pid != 0) {
 				kill(pid, SIGTERM);
 			}
 		}
@@ -828,7 +813,7 @@ static void reload_signal(int sig ATTRIBUTE_UNUSED)
 			sleep(CONFIG_FEATURE_KILL_DELAY);
 			for (a = init_action_list; a; a = a->next) {
 				pid_t pid = a->pid;
-				if ((a->action & ONCE) && pid != 0) {
+				if ((a->action_type & ONCE) && pid != 0) {
 					kill(pid, SIGKILL);
 				}
 			}
@@ -840,7 +825,7 @@ static void reload_signal(int sig ATTRIBUTE_UNUSED)
 	/* remove unused entrys */
 	for (a = init_action_list; a; a = tmp) {
 		tmp = a->next;
-		if ((a->action & (ONCE | SYSINIT | WAIT)) && a->pid == 0) {
+		if ((a->action_type & (ONCE | SYSINIT | WAIT)) && a->pid == 0) {
 			delete_init_action(a);
 		}
 	}
@@ -998,7 +983,7 @@ int init_main(int argc, char **argv)
 					 * restarted by run_actions() */
 					a->pid = 0;
 					message(L_LOG, "process '%s' (pid %d) exited. "
-							"Scheduling it for restart.",
+							"Scheduling for restart.",
 							a->command, wpid);
 				}
 			}
