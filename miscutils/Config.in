@@ -27,6 +27,7 @@ config CHAT
 
 config FEATURE_CHAT_NOFAIL
 	bool "Enable NOFAIL expect strings"
+	depends on CHAT
 	default y
 	help
 	  When enabled expect strings which are started with a dash trigger
@@ -37,6 +38,7 @@ config FEATURE_CHAT_NOFAIL
 
 config FEATURE_CHAT_TTY_HIFI
 	bool "Force STDIN to be a TTY"
+	depends on CHAT
 	default n
 	help
 	  Original chat always treats STDIN as a TTY device and sets for it
@@ -44,6 +46,7 @@ config FEATURE_CHAT_TTY_HIFI
 
 config FEATURE_CHAT_IMPLICIT_CR
 	bool "Enable implicit Carriage Return"
+	depends on CHAT
 	default y
 	help
 	  When enabled make chat to terminate all SEND strings with a "\r"
@@ -51,6 +54,7 @@ config FEATURE_CHAT_IMPLICIT_CR
 
 config FEATURE_CHAT_SWALLOW_OPTS
 	bool "Swallow options"
+	depends on CHAT
 	default n
 	help
 	  Busybox chat require no options. To make it not fail when used
@@ -59,6 +63,7 @@ config FEATURE_CHAT_SWALLOW_OPTS
 
 config FEATURE_CHAT_SEND_ESCAPES
 	bool "Support weird SEND escapes"
+	depends on CHAT
 	default n
 	help
 	  Original chat uses some escape sequences in SEND arguments which
@@ -69,12 +74,14 @@ config FEATURE_CHAT_SEND_ESCAPES
 
 config FEATURE_CHAT_VAR_ABORT_LEN
 	bool "Support variable-length ABORT conditions"
+	depends on CHAT
 	default n
 	help
 	  Original chat uses fixed 50-bytes length ABORT conditions. Say N here.
 
 config FEATURE_CHAT_CLR_ABORT
 	bool "Support revoking of ABORT conditions"
+	depends on CHAT
 	default n
 	help
 	  Support CLR_ABORT directive.
@@ -460,4 +467,3 @@ config WATCHDOG
 	  hung, and will cause the hardware to reboot.
 
 endmenu
-
