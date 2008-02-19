@@ -51,18 +51,17 @@ int microcom_main(int argc, char **argv)
 	enum {
 		OPT_X = 1 << 0, // do not respect Ctrl-X, Ctrl-@
 		OPT_s = 1 << 1, // baudrate
-		OPT_d = 1 << 2, // wait for device response, msecs
+		OPT_d = 1 << 2, // wait for device response, ms
 		OPT_t = 1 << 3, // timeout, ms
 	};
 	speed_t speed = 9600;
 	int delay = -1;
 	int timeout = -1;
+	unsigned opts;
 
 	// fetch options
-	unsigned opts;
-	opt_complementary = "=1:s+:d+:t+"; // exactly one arg should be there
+	opt_complementary = "=1:s+:d+:t+"; // exactly one arg, numeric options
 	opts = getopt32(argv, "Xs:d:t:", &speed, &delay, &timeout);
-
 //	argc -= optind;
 	argv += optind;
 
@@ -71,14 +70,16 @@ int microcom_main(int argc, char **argv)
 	device_lock_file = xasprintf("/var/lock/LCK..%s", device_lock_file);
 	sfd = open(device_lock_file, O_CREAT | O_WRONLY | O_TRUNC | O_EXCL, 0644);
 	if (sfd < 0) {
+		// device already locked -> bail out
 		if (errno == EEXIST)
 			bb_perror_msg_and_die("can't create %s", device_lock_file);
+		// can't create lock -> don't care
 		if (ENABLE_FEATURE_CLEAN_UP)
 			free(device_lock_file);
 		device_lock_file = NULL;
-	}
-	if (sfd > 0) {
-		// %4d to make mgetty happy. It treats 4-bytes lock files as binary,
+	} else {
+		// %4d to make concurrent mgetty (if any) happy.
+		// Mgetty treats 4-bytes lock files as binary,
 		// not text, PID. Making 5+ char file. Brrr...
 		char *s = xasprintf("%4d\n", getpid());
 		write(sfd, s, strlen(s));
