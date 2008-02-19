@@ -17,7 +17,7 @@ int findfs_main(int argc, char **argv)
 	char *tmp = NULL;
 
 	if (argc != 2)
-		bb_show_usage();                                                                                                             
+		bb_show_usage();
 
 	if (!strncmp(argv[1], "LABEL=", 6))
 		tmp = get_devname_from_label(argv[1] + 6);
@@ -25,14 +25,14 @@ int findfs_main(int argc, char **argv)
 		tmp = get_devname_from_uuid(argv[1] + 5);
 	else if (!strncmp(argv[1], "/dev/", 5)) {
 		/* Just pass a device name right through.  This might aid in some scripts
-	   	being able to call this unconditionally */
+		being able to call this unconditionally */
 		tmp = argv[1];
 	} else
 		bb_show_usage();
-		
-	if (tmp) { 
-		puts(tmp);                                                                                                                   
+
+	if (tmp) {
+		puts(tmp);
 		return 0;
 	}
 	return 1;
-}    
+}
