@@ -45,8 +45,13 @@ static void make_device(char *path, int delete)
 		strcat(path, "/dev");
 		len = open_read_close(path, temp + 1, 64);
 		*temp++ = 0;
-		if (len < 1)
-			return;
+		if (len < 1) {
+			if (ENABLE_FEATURE_MDEV_EXEC)
+				/* no "dev" file, so just try to run script */
+				*temp = 0;
+			else
+				return;
+		}
 	}
 
 	/* Determine device name, type, major and minor */
@@ -181,8 +186,12 @@ static void make_device(char *path, int delete)
 	}
 
 	if (!delete) {
-		if (sscanf(temp, "%d:%d", &major, &minor) != 2)
-			return;
+		if (sscanf(temp, "%d:%d", &major, &minor) != 2) {
+			if (ENABLE_FEATURE_MDEV_EXEC)
+				goto skip_creation;
+			else
+				return;
+		}
 
 		if (ENABLE_FEATURE_MDEV_RENAME)
 			unlink(device_name);
@@ -217,6 +226,7 @@ static void make_device(char *path, int delete)
 				free(dest);
 			}
 		}
+ skip_creation: /* nothing */ ;
 	}
 	if (ENABLE_FEATURE_MDEV_EXEC && command) {
 		/* setenv will leak memory, so use putenv */
