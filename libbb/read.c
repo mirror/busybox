@@ -54,7 +54,7 @@ ssize_t safe_read(int fd, void *buf, size_t count)
  * So far I don't see any good solution, I can only propose
  * that affected readers should be careful and use this routine,
  * which detects EAGAIN and uses poll() to wait on the fd.
- * Thanksfully, poll() doesn't give rat's ass about O_NONBLOCK flag.
+ * Thankfully, poll() doesn't care about O_NONBLOCK flag.
  */
 ssize_t nonblock_safe_read(int fd, void *buf, size_t count)
 {
