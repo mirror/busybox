@@ -10,7 +10,7 @@
 
 /* the period of time the client is allowed to use that address */
 #define LEASE_TIME              (60*60*24*10) /* 10 days of seconds */
-#define LEASES_FILE		"/var/lib/misc/udhcpd.leases"
+#define LEASES_FILE		CONFIG_DHCPD_LEASES_FILE
 
 /* where to find the DHCP server configuration file */
 #define DHCPD_CONF_FILE         "/etc/udhcpd.conf"

@@ -42,6 +42,15 @@ config FEATURE_UDHCPD_WRITE_LEASES_EARLY
 	  to send SIGUSR1 for the initial writing, or updating. Any timed
 	  rewriting remains undisturbed
 
+config DHCPD_LEASES_FILE
+	string "Absolute path to lease file"
+	default "/var/lib/misc/udhcpd.leases"
+	depends on APP_UDHCPD
+	help
+	  The udhcpd stores address in lease files. Normaly it is save
+	  to leave it untouched.
+
+
 config APP_UDHCPC
 	bool "udhcp Client (udhcpc)"
 	default n
@@ -89,6 +98,16 @@ config FEATURE_RFC3397
 	help
 	  If selected, both client and server will support passing of domain
 	  search lists via option 119, specified in RFC3397.
+
+config DHCPC_DEFAULT_SCRIPT
+	string "Absolute path to config script"
+	default "/usr/share/udhcpc/default.script"
+	depends on APP_UDHCPC
+	help
+	  This script is called after udhcpc receives and answer. See
+	  examples/udhcp for a working example. Normaly it is save
+	  to leave this untouched.
+
 
 config UDHCPC_SLACK_FOR_BUGGY_SERVERS
 	int "DHCP options slack buffer size"

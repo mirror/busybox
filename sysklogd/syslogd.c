@@ -613,7 +613,6 @@ int syslogd_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int syslogd_main(int argc, char **argv)
 {
 	char OPTION_DECL;
-	char *p;
 
 	INIT_G();
 #if ENABLE_FEATURE_REMOTE_LOG

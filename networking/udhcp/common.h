@@ -12,7 +12,7 @@
 
 #include "libbb.h"
 
-#define DEFAULT_SCRIPT  "/usr/share/udhcpc/default.script"
+#define DEFAULT_SCRIPT   CONFIG_DHCPC_DEFAULT_SCRIPT
 
 extern const uint8_t MAC_BCAST_ADDR[6]; /* six all-ones */
 
