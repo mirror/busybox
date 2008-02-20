@@ -18,13 +18,8 @@
 void udhcp_init_header(struct dhcpMessage *packet, char type)
 {
 	memset(packet, 0, sizeof(struct dhcpMessage));
+	packet->op = BOOTREQUEST;
 	switch (type) {
-	case DHCPDISCOVER:
-	case DHCPREQUEST:
-	case DHCPRELEASE:
-	case DHCPINFORM:
-		packet->op = BOOTREQUEST;
-		break;
 	case DHCPOFFER:
 	case DHCPACK:
 	case DHCPNAK:
