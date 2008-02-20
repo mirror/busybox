@@ -1185,6 +1185,12 @@ ckmalloc(size_t nbytes)
 	return ckrealloc(NULL, nbytes);
 }
 
+static void *
+ckzalloc(size_t nbytes)
+{
+	return memset(ckmalloc(nbytes), 0, nbytes);
+}
+
 /*
  * Make a copy of a string in safe storage.
  */
@@ -1236,6 +1242,12 @@ stalloc(size_t nbytes)
 	g_stacknxt += aligned;
 	g_stacknleft -= aligned;
 	return p;
+}
+
+static void *
+stzalloc(size_t nbytes)
+{
+	return memset(stalloc(nbytes), 0, nbytes);
 }
 
 static void
@@ -2028,9 +2040,9 @@ setvareq(char *s, int flags)
 		if (flags & VNOSET)
 			return;
 		/* not found */
-		vp = ckmalloc(sizeof(*vp));
+		vp = ckzalloc(sizeof(*vp));
 		vp->next = *vpp;
-		vp->func = NULL;
+		/*vp->func = NULL; - ckzalloc did it */
 		*vpp = vp;
 	}
 	if (!(flags & (VTEXTFIXED|VSTACK|VNOSAVE)))
@@ -3072,11 +3084,11 @@ setalias(const char *name, const char *val)
 		ap->flag &= ~ALIASDEAD;
 	} else {
 		/* not found */
-		ap = ckmalloc(sizeof(struct alias));
+		ap = ckzalloc(sizeof(struct alias));
 		ap->name = ckstrdup(name);
 		ap->val = ckstrdup(val);
-		ap->flag = 0;
-		ap->next = 0;
+		/*ap->flag = 0; - ckzalloc did it */
+		/*ap->next = NULL;*/
 		*app = ap;
 	}
 	INT_ON;
@@ -5222,8 +5234,8 @@ recordregion(int start, int end, int nulonly)
 		ifsp = &ifsfirst;
 	} else {
 		INT_OFF;
-		ifsp = ckmalloc(sizeof(*ifsp));
-		ifsp->next = NULL;
+		ifsp = ckzalloc(sizeof(*ifsp));
+		/*ifsp->next = NULL; - ckzalloc did it */
 		ifslastp->next = ifsp;
 		INT_ON;
 	}
@@ -6139,7 +6151,7 @@ ifsbreakup(char *string, struct arglist *arglist)
 					continue;
 				}
 				*q = '\0';
-				sp = stalloc(sizeof(*sp));
+				sp = stzalloc(sizeof(*sp));
 				sp->text = start;
 				*arglist->lastp = sp;
 				arglist->lastp = &sp->next;
@@ -6155,7 +6167,8 @@ ifsbreakup(char *string, struct arglist *arglist)
 						if (strchr(ifs, *p) == NULL ) {
 							p = q;
 							break;
-						} else if (strchr(defifs, *p) == NULL) {
+						}
+						if (strchr(defifs, *p) == NULL) {
 							if (ifsspc) {
 								p++;
 								ifsspc = 0;
@@ -6179,7 +6192,7 @@ ifsbreakup(char *string, struct arglist *arglist)
 		return;
 
  add:
-	sp = stalloc(sizeof(*sp));
+	sp = stzalloc(sizeof(*sp));
 	sp->text = start;
 	*arglist->lastp = sp;
 	arglist->lastp = &sp->next;
@@ -6211,7 +6224,7 @@ addfname(const char *name)
 {
 	struct strlist *sp;
 
-	sp = stalloc(sizeof(*sp));
+	sp = stzalloc(sizeof(*sp));
 	sp->text = ststrdup(name);
 	*exparg.lastp = sp;
 	exparg.lastp = &sp->next;
@@ -6481,7 +6494,7 @@ expandarg(union node *arg, struct arglist *arglist, int flag)
 	} else {
 		if (flag & EXP_REDIR) /*XXX - for now, just remove escapes */
 			rmescapes(p);
-		sp = stalloc(sizeof(*sp));
+		sp = stzalloc(sizeof(*sp));
 		sp->text = p;
 		*exparg.lastp = sp;
 		exparg.lastp = &sp->next;
@@ -6644,7 +6657,7 @@ tryexec(char *cmd, char **argv, char **envp)
 		ap += 2;
 		argv++;
 		while ((*ap++ = *argv++))
-			;
+			continue;
 		argv = new;
 		goto repeat;
 	}
@@ -6781,9 +6794,9 @@ cmdlookup(const char *name, int add)
 		pp = &cmdp->next;
 	}
 	if (add && cmdp == NULL) {
-		cmdp = *pp = ckmalloc(sizeof(struct tblentry) - ARB
+		cmdp = *pp = ckzalloc(sizeof(struct tblentry) - ARB
 					+ strlen(name) + 1);
-		cmdp->next = NULL;
+		/*cmdp->next = NULL; - ckzalloc did it */
 		cmdp->cmdtype = CMDUNKNOWN;
 		strcpy(cmdp->cmdname, name);
 	}
@@ -8903,11 +8916,11 @@ pushfile(void)
 	parsefile->lleft = parselleft;
 	parsefile->nextc = parsenextc;
 	parsefile->linno = plinno;
-	pf = ckmalloc(sizeof(*pf));
+	pf = ckzalloc(sizeof(*pf));
 	pf->prev = parsefile;
 	pf->fd = -1;
-	pf->strpush = NULL;
-	pf->basestrpush.prev = NULL;
+	/*pf->strpush = NULL; - ckzalloc did it */
+	/*pf->basestrpush.prev = NULL;*/
 	parsefile = pf;
 }
 
@@ -9537,9 +9550,9 @@ list(int nlflag)
 				n2->npipe.backgnd = 1;
 			} else {
 				if (n2->type != NREDIR) {
-					n3 = stalloc(sizeof(struct nredir));
+					n3 = stzalloc(sizeof(struct nredir));
 					n3->nredir.n = n2;
-					n3->nredir.redirect = NULL;
+					/*n3->nredir.redirect = NULL; - stzalloc did it */
 					n2 = n3;
 				}
 				n2->type = NBACKGND;
@@ -9629,9 +9642,9 @@ pipeline(void)
 		tokpushback = 1;
 	n1 = parse_command();
 	if (readtoken() == TPIPE) {
-		pipenode = stalloc(sizeof(struct npipe));
+		pipenode = stzalloc(sizeof(struct npipe));
 		pipenode->type = NPIPE;
-		pipenode->npipe.backgnd = 0;
+		/*pipenode->npipe.backgnd = 0; - stzalloc did it */
 		lp = stalloc(sizeof(struct nodelist));
 		pipenode->npipe.cmdlist = lp;
 		lp->n = n1;
@@ -9660,9 +9673,9 @@ makename(void)
 {
 	union node *n;
 
-	n = stalloc(sizeof(struct narg));
+	n = stzalloc(sizeof(struct narg));
 	n->type = NARG;
-	n->narg.next = NULL;
+	/*n->narg.next = NULL; - stzalloc did it */
 	n->narg.text = wordtext;
 	n->narg.backquote = backquotelist;
 	return n;
@@ -9762,8 +9775,9 @@ simplecmd(void)
 		checkkwd = savecheckkwd;
 		switch (readtoken()) {
 		case TWORD:
-			n = stalloc(sizeof(struct narg));
+			n = stzalloc(sizeof(struct narg));
 			n->type = NARG;
+			/*n->narg.next = NULL; - stzalloc did it */
 			n->narg.text = wordtext;
 			n->narg.backquote = backquotelist;
 			if (savecheckkwd && isassignment(wordtext)) {
@@ -9887,8 +9901,9 @@ parse_command(void)
 		if (readtoken() == TIN) {
 			app = &ap;
 			while (readtoken() == TWORD) {
-				n2 = stalloc(sizeof(struct narg));
+				n2 = stzalloc(sizeof(struct narg));
 				n2->type = NARG;
+				/*n2->narg.next = NULL; - stzalloc did it */
 				n2->narg.text = wordtext;
 				n2->narg.backquote = backquotelist;
 				*app = n2;
@@ -9899,11 +9914,11 @@ parse_command(void)
 			if (lasttoken != TNL && lasttoken != TSEMI)
 				raise_error_unexpected_syntax(-1);
 		} else {
-			n2 = stalloc(sizeof(struct narg));
+			n2 = stzalloc(sizeof(struct narg));
 			n2->type = NARG;
+			/*n2->narg.next = NULL; - stzalloc did it */
 			n2->narg.text = (char *)dolatstr;
-			n2->narg.backquote = NULL;
-			n2->narg.next = NULL;
+			/*n2->narg.backquote = NULL;*/
 			n1->nfor.args = n2;
 			/*
 			 * Newline or semicolon here is optional (but note
@@ -9923,11 +9938,11 @@ parse_command(void)
 		n1->type = NCASE;
 		if (readtoken() != TWORD)
 			raise_error_unexpected_syntax(TWORD);
-		n1->ncase.expr = n2 = stalloc(sizeof(struct narg));
+		n1->ncase.expr = n2 = stzalloc(sizeof(struct narg));
 		n2->type = NARG;
+		/*n2->narg.next = NULL; - stzalloc did it */
 		n2->narg.text = wordtext;
 		n2->narg.backquote = backquotelist;
-		n2->narg.next = NULL;
 		do {
 			checkkwd = CHKKWD | CHKALIAS;
 		} while (readtoken() == TNL);
@@ -9944,8 +9959,9 @@ parse_command(void)
 			cp->type = NCLIST;
 			app = &cp->nclist.pattern;
 			for (;;) {
-				*app = ap = stalloc(sizeof(struct narg));
+				*app = ap = stzalloc(sizeof(struct narg));
 				ap->type = NARG;
+				/*ap->narg.next = NULL; - stzalloc did it */
 				ap->narg.text = wordtext;
 				ap->narg.backquote = backquotelist;
 				if (readtoken() != TPIPE)
@@ -9953,7 +9969,7 @@ parse_command(void)
 				app = &ap->narg.next;
 				readtoken();
 			}
-			ap->narg.next = NULL;
+			//ap->narg.next = NULL;
 			if (lasttoken != TRP)
 				raise_error_unexpected_syntax(TRP);
 			cp->nclist.body = list(2);
@@ -9971,10 +9987,10 @@ parse_command(void)
 		*cpp = NULL;
 		goto redir;
 	case TLP:
-		n1 = stalloc(sizeof(struct nredir));
+		n1 = stzalloc(sizeof(struct nredir));
 		n1->type = NSUBSHELL;
 		n1->nredir.n = list(0);
-		n1->nredir.redirect = NULL;
+		/*n1->nredir.redirect = NULL; - stzalloc did it */
 		t = TRP;
 		break;
 	case TBEGIN:
@@ -10003,7 +10019,7 @@ parse_command(void)
 	*rpp = NULL;
 	if (redir) {
 		if (n1->type != NSUBSHELL) {
-			n2 = stalloc(sizeof(struct nredir));
+			n2 = stzalloc(sizeof(struct nredir));
 			n2->type = NREDIR;
 			n2->nredir.n = n1;
 			n1 = n2;
@@ -10301,7 +10317,7 @@ parseredir: {
 	char fd = *out;
 	union node *np;
 
-	np = stalloc(sizeof(struct nfile));
+	np = stzalloc(sizeof(struct nfile));
 	if (c == '>') {
 		np->nfile.fd = 1;
 		c = pgetc();
@@ -10316,13 +10332,13 @@ parseredir: {
 			pungetc();
 		}
 	} else {        /* c == '<' */
-		np->nfile.fd = 0;
+		/*np->nfile.fd = 0; - stzalloc did it */
 		c = pgetc();
 		switch (c) {
 		case '<':
 			if (sizeof(struct nfile) != sizeof(struct nhere)) {
-				np = stalloc(sizeof(struct nhere));
-				np->nfile.fd = 0;
+				np = stzalloc(sizeof(struct nhere));
+				/*np->nfile.fd = 0; - stzalloc did it */
 			}
 			np->type = NHERE;
 			heredoc = stalloc(sizeof(struct heredoc));
@@ -10573,8 +10589,8 @@ parsebackq: {
 	nlpp = &bqlist;
 	while (*nlpp)
 		nlpp = &(*nlpp)->next;
-	*nlpp = stalloc(sizeof(**nlpp));
-	(*nlpp)->next = NULL;
+	*nlpp = stzalloc(sizeof(**nlpp));
+	/* (*nlpp)->next = NULL; - stzalloc did it */
 	parsebackquote = oldstyle;
 
 	if (oldstyle) {
@@ -10930,9 +10946,9 @@ parseheredoc(void)
 		}
 		readtoken1(pgetc(), here->here->type == NHERE? SQSYNTAX : DQSYNTAX,
 				here->eofmark, here->striptabs);
-		n = stalloc(sizeof(struct narg));
+		n = stzalloc(sizeof(struct narg));
 		n->narg.type = NARG;
-		n->narg.next = NULL;
+		/*n->narg.next = NULL; - stzalloc did it */
 		n->narg.text = wordtext;
 		n->narg.backquote = backquotelist;
 		here->here->nhere.doc = n;
