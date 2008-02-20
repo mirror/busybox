@@ -475,6 +475,7 @@ extern void *xzalloc(size_t size);
 extern void *xrealloc(void *old, size_t size);
 
 extern ssize_t safe_read(int fd, void *buf, size_t count);
+extern ssize_t nonblock_safe_read(int fd, void *buf, size_t count);
 extern ssize_t full_read(int fd, void *buf, size_t count);
 extern void xread(int fd, void *buf, size_t count);
 extern unsigned char xread_char(int fd);
@@ -482,6 +483,7 @@ extern unsigned char xread_char(int fd);
 extern char *reads(int fd, char *buf, size_t count);
 // Read one line a-la fgets. Reads byte-by-byte.
 // Useful when it is important to not read ahead.
+// Bytes are appended to pfx (which must be malloced, or NULL).
 extern char *xmalloc_reads(int fd, char *pfx);
 extern ssize_t read_close(int fd, void *buf, size_t count);
 extern ssize_t open_read_close(const char *filename, void *buf, size_t count);

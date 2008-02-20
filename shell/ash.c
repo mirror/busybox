@@ -5428,7 +5428,7 @@ expbackq(union node *cmd, int quoted, int quotes)
  read:
 		if (in.fd < 0)
 			break;
-		i = safe_read(in.fd, buf, sizeof(buf));
+		i = nonblock_safe_read(in.fd, buf, sizeof(buf));
 		TRACE(("expbackq: read returns %d\n", i));
 		if (i <= 0)
 			break;
@@ -8678,7 +8678,7 @@ preadfd(void)
  retry:
 #if ENABLE_FEATURE_EDITING
 	if (!iflag || parsefile->fd)
-		nr = safe_read(parsefile->fd, buf, BUFSIZ - 1);
+		nr = nonblock_safe_read(parsefile->fd, buf, BUFSIZ - 1);
 	else {
 #if ENABLE_FEATURE_TAB_COMPLETION
 		line_input_state->path_lookup = pathval();
@@ -8700,9 +8700,11 @@ preadfd(void)
 		}
 	}
 #else
-	nr = safe_read(parsefile->fd, buf, BUFSIZ - 1);
+	nr = nonblock_safe_read(parsefile->fd, buf, BUFSIZ - 1);
 #endif
 
+#if 0
+/* nonblock_safe_read() handles this problem */
 	if (nr < 0) {
 		if (parsefile->fd == 0 && errno == EWOULDBLOCK) {
 			int flags = fcntl(0, F_GETFL);
@@ -8715,6 +8717,7 @@ preadfd(void)
 			}
 		}
 	}
+#endif
 	return nr;
 }
 
@@ -11801,7 +11804,7 @@ readcmd(int argc, char **argv)
 	backslash = 0;
 	STARTSTACKSTR(p);
 	do {
-		if (read(0, &c, 1) != 1) {
+		if (nonblock_safe_read(0, &c, 1) != 1) {
 			status = 1;
 			break;
 		}

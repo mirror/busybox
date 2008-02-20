@@ -42,6 +42,7 @@
 # define xmalloc(size) malloc(size)
 # define msh_main(argc,argv) main(argc,argv)
 # define safe_read(fd,buf,count) read(fd,buf,count)
+# define nonblock_safe_read(fd,buf,count) read(fd,buf,count)
 # define NOT_LONE_DASH(s) ((s)[0] != '-' || (s)[1])
 # define LONE_CHAR(s,c) ((s)[0] == (c) && !(s)[1])
 # define ATTRIBUTE_NORETURN __attribute__ ((__noreturn__))
@@ -3376,7 +3377,7 @@ static int doread(struct op *t)
 	}
 	for (wp = t->words + 1; *wp; wp++) {
 		for (cp = global_env.linep; !nl && cp < elinep - 1; cp++) {
-			nb = read(0, cp, sizeof(*cp));
+			nb = nonblock_safe_read(0, cp, sizeof(*cp));
 			if (nb != sizeof(*cp))
 				break;
 			nl = (*cp == '\n');
@@ -4799,7 +4800,7 @@ static int filechar(struct ioarg *ap)
 			if (i)
 				lseek(ap->afile, ap->afpos, SEEK_SET);
 
-			i = safe_read(ap->afile, bp->buf, sizeof(bp->buf));
+			i = nonblock_safe_read(ap->afile, bp->buf, sizeof(bp->buf));
 			if (i <= 0) {
 				closef(ap->afile);
 				return 0;
@@ -4830,7 +4831,7 @@ static int filechar(struct ioarg *ap)
 		return c;
 	}
 #endif
-	i = safe_read(ap->afile, &c, sizeof(c));
+	i = nonblock_safe_read(ap->afile, &c, sizeof(c));
 	return i == sizeof(c) ? (c & 0x7f) : (closef(ap->afile), 0);
 }
 
@@ -4841,7 +4842,7 @@ static int herechar(struct ioarg *ap)
 {
 	char c;
 
-	if (read(ap->afile, &c, sizeof(c)) != sizeof(c)) {
+	if (nonblock_safe_read(ap->afile, &c, sizeof(c)) != sizeof(c)) {
 		close(ap->afile);
 		c = '\0';
 	}

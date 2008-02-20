@@ -20,6 +20,58 @@ ssize_t safe_read(int fd, void *buf, size_t count)
 	return n;
 }
 
+/* Suppose that you are a shell. You start child processes.
+ * They work and eventually exit. You want to get user input.
+ * You read stdin. But what happens if last child switched
+ * its stdin into O_NONBLOCK mode?
+ *
+ * *** SURPRISE! It will affect the parent too! ***
+ * *** BIG SURPRISE! It stays even after child exits! ***
+ *
+ * This is a design bug in UNIX API.
+ *      fcntl(0, F_SETFL, fcntl(0, F_GETFL, 0) | O_NONBLOCK);
+ * will set nonblocking mode not only on _your_ stdin, but
+ * also on stdin of your parent, etc.
+ *
+ * In general,
+ *      fd2 = dup(fd1);
+ *      fcntl(fd2, F_SETFL, fcntl(fd2, F_GETFL, 0) | O_NONBLOCK);
+ * sets both fd1 and fd2 to O_NONBLOCK. This includes cases
+ * where duping is done implicitly by fork() etc.
+ *
+ * We need
+ *      fcntl(fd2, F_SETFD, fcntl(fd2, F_GETFD, 0) | O_NONBLOCK);
+ * (note SETFD, not SETFL!) but such thing doesn't exist.
+ *
+ * Alternatively, we need nonblocking_read(fd, ...) which doesn't
+ * require O_NONBLOCK dance at all. Actually, it exists:
+ *      n = recv(fd, buf, len, MSG_DONTWAIT);
+ *      "MSG_DONTWAIT:
+ *      Enables non-blocking operation; if the operation
+ *      would block, EAGAIN is returned."
+ * but recv() works only for sockets!
+ *
+ * So far I don't see any good solution, I can only propose
+ * that affected readers should be careful and use this routine,
+ * which detects EAGAIN and uses poll() to wait on the fd.
+ * Thanksfully, poll() doesn't give rat's ass about O_NONBLOCK flag.
+ */
+ssize_t nonblock_safe_read(int fd, void *buf, size_t count)
+{
+	struct pollfd pfd[1];
+	ssize_t n;
+
+	while (1) {
+		n = safe_read(fd, buf, count);
+		if (n >= 0 || errno != EAGAIN)
+			return n;
+		/* fd is in O_NONBLOCK mode. Wait using poll and repeat */
+		pfd[0].fd = fd;
+		pfd[0].events = POLLIN;
+		safe_poll(pfd, 1, -1);
+	}
+}
+
 /*
  * Read all of the supplied buffer from a file.
  * This does multiple reads as necessary.
@@ -93,6 +145,7 @@ char *reads(int fd, char *buffer, size_t size)
 
 // Read one line a-la fgets. Reads byte-by-byte.
 // Useful when it is important to not read ahead.
+// Bytes are appended to pfx (which must be malloced, or NULL).
 char *xmalloc_reads(int fd, char *buf)
 {
 	char *p;
@@ -106,7 +159,8 @@ char *xmalloc_reads(int fd, char *buf)
 			p = buf + sz;
 			sz += 128;
 		}
-		if (safe_read(fd, p, 1) != 1) { /* EOF/error */
+		/* nonblock_safe_read() because we are used by e.g. shells */
+		if (nonblock_safe_read(fd, p, 1) != 1) { /* EOF/error */
 			if (p == buf) {
 				/* we read nothing [and buf was NULL initially] */
 				free(buf);

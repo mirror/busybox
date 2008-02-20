@@ -1273,10 +1273,10 @@ static void get_user_input(struct in_str *i)
 	prompt_str = setup_prompt_string(i->promptmode);
 #if ENABLE_FEATURE_EDITING
 	/* Enable command line editing only while a command line
-	 * is actually being read; otherwise, we'll end up bequeathing
-	 * atexit() handlers and other unwanted stuff to our
-	 * child processes (rob@sysgo.de) */
-	r = read_line_input(prompt_str, user_input_buf, BUFSIZ-1, line_input_state);
+	 * is actually being read */
+	do {
+		r = read_line_input(prompt_str, user_input_buf, BUFSIZ-1, line_input_state);
+	} while (r == 0); /* repeat if Ctrl-C */
 	i->eof_flag = (r < 0);
 	if (i->eof_flag) { /* EOF/error detected */
 		user_input_buf[0] = EOF; /* yes, it will be truncated, it's ok */

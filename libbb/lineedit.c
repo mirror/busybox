@@ -1408,9 +1408,9 @@ int read_line_input(const char *prompt, char *command, int maxsize, line_input_t
 	parse_and_put_prompt(prompt);
 
 	while (1) {
-		fflush(stdout);
+		fflush(NULL);
 
-		if (safe_read(STDIN_FILENO, &c, 1) < 1) {
+		if (nonblock_safe_read(STDIN_FILENO, &c, 1) < 1) {
 			/* if we can't read input then exit */
 			goto prepare_to_die;
 		}
