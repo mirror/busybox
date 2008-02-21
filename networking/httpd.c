@@ -340,7 +340,12 @@ enum {
 #define STRNCASECMP(a, str) strncasecmp((a), (str), sizeof(str)-1)
 
 /* Prototypes */
-static void send_file_and_exit(const char *url, int headers) ATTRIBUTE_NORETURN;
+enum {
+	SEND_HEADERS     = (1 << 0),
+	SEND_BODY        = (1 << 1),
+	SEND_HEADERS_AND_BODY = SEND_HEADERS + SEND_BODY,
+};
+static void send_file_and_exit(const char *url, int what) ATTRIBUTE_NORETURN;
 
 static void free_llist(has_next_ptr **pptr)
 {
@@ -957,7 +962,7 @@ static void send_headers(int responseNum)
 	const char *infoString = NULL;
 	const char *mime_type;
 #if ENABLE_FEATURE_HTTPD_ERROR_PAGES
-	const char *error_page = 0;
+	const char *error_page = NULL;
 #endif
 	unsigned i;
 	time_t timer = time(0);
@@ -1012,7 +1017,7 @@ static void send_headers(int responseNum)
 		full_write(1, iobuf, len);
 		if (DEBUG)
 			fprintf(stderr, "writing error page: '%s'\n", error_page);
-		return send_file_and_exit(error_page, FALSE);
+		return send_file_and_exit(error_page, SEND_BODY);
 	}
 #endif
 
@@ -1480,10 +1485,10 @@ static void send_cgi_and_exit(
  * Send a file response to a HTTP request, and exit
  *
  * Parameters:
- * const char *url    The requested URL (with leading /).
- * headers            Don't send headers before if FALSE.
+ * const char *url  The requested URL (with leading /).
+ * what             What to send (headers/body/both).
  */
-static void send_file_and_exit(const char *url, int headers)
+static void send_file_and_exit(const char *url, int what)
 {
 	static const char *const suffixTable[] = {
 	/* Warning: shorter equivalent suffix in one line must be first */
@@ -1515,6 +1520,10 @@ static void send_file_and_exit(const char *url, int headers)
 #if ENABLE_FEATURE_HTTPD_USE_SENDFILE
 	off_t offset;
 #endif
+
+	/* If you want to know about EPIPE below
+	 * (happens if you abort downloads from local httpd): */
+	signal(SIGPIPE, SIG_IGN);
 
 	suffix = strrchr(url, '.');
 
@@ -1552,11 +1561,15 @@ static void send_file_and_exit(const char *url, int headers)
 	if (f < 0) {
 		if (DEBUG)
 			bb_perror_msg("cannot open '%s'", url);
-		if (headers)
+		/* Error pages are sent by using send_file_and_exit(SEND_BODY).
+		 * IOW: it is unsafe to call send_headers_and_exit
+		 * if what is SEND_BODY! Can recurse! */
+		if (what != SEND_BODY)
 			send_headers_and_exit(HTTP_NOT_FOUND);
+		log_and_exit();
 	}
 #if ENABLE_FEATURE_HTTPD_RANGES
-	if (!headers)
+	if (what == SEND_BODY)
 		range_start = 0; /* err pages and ranges don't mix */
 	range_len = MAXINT(off_t);
 	if (range_start) {
@@ -1571,17 +1584,13 @@ static void send_file_and_exit(const char *url, int headers)
 		} else {
 			range_len = range_end - range_start + 1;
 			send_headers(HTTP_PARTIAL_CONTENT);
-			headers = 0;
+			what = SEND_BODY;
 		}
 	}
 #endif
 
-	if (headers)
+	if (what & SEND_HEADERS)
 		send_headers(HTTP_OK);
-
-	/* If you want to know about EPIPE below
-	 * (happens if you abort downloads from local httpd): */
-	signal(SIGPIPE, SIG_IGN);
 
 #if ENABLE_FEATURE_HTTPD_USE_SENDFILE
 	offset = range_start;
@@ -1756,13 +1765,13 @@ static void handle_incoming_and_exit(const len_and_sockaddr *fromAddr) ATTRIBUTE
 static void handle_incoming_and_exit(const len_and_sockaddr *fromAddr)
 {
 	static const char request_GET[] ALIGN1 = "GET";
-
 	struct stat sb;
 	char *urlcopy;
 	char *urlp;
 	char *tptr;
 	int ip_allowed;
 #if ENABLE_FEATURE_HTTPD_CGI
+	static const char request_HEAD[] ALIGN1 = "HEAD";
 	const char *prequest;
 	char *cookie = NULL;
 	char *content_type = NULL;
@@ -1827,9 +1836,12 @@ static void handle_incoming_and_exit(const len_and_sockaddr *fromAddr)
 #if ENABLE_FEATURE_HTTPD_CGI
 	prequest = request_GET;
 	if (strcasecmp(iobuf, prequest) != 0) {
-		prequest = "POST";
-		if (strcasecmp(iobuf, prequest) != 0)
-			send_headers_and_exit(HTTP_NOT_IMPLEMENTED);
+		prequest = request_HEAD;
+		if (strcasecmp(iobuf, prequest) != 0) {
+			prequest = "POST";
+			if (strcasecmp(iobuf, prequest) != 0)
+				send_headers_and_exit(HTTP_NOT_IMPLEMENTED);
+		}
 	}
 #else
 	if (strcasecmp(iobuf, request_GET) != 0)
@@ -1964,17 +1976,14 @@ static void handle_incoming_and_exit(const len_and_sockaddr *fromAddr)
 			/* Try and do our best to parse more lines */
 			if ((STRNCASECMP(iobuf, "Content-length:") == 0)) {
 				/* extra read only for POST */
-				if (prequest != request_GET) {
+				if (prequest != request_GET && prequest != request_HEAD) {
 					tptr = iobuf + sizeof("Content-length:") - 1;
 					if (!tptr[0])
 						send_headers_and_exit(HTTP_BAD_REQUEST);
-					errno = 0;
 					/* not using strtoul: it ignores leading minus! */
-					length = strtol(tptr, &tptr, 10);
+					length = bb_strtou(tptr, NULL, 10);
 					/* length is "ulong", but we need to pass it to int later */
-					/* so we check for negative or too large values in one go: */
-					/* (long -> ulong conv caused negatives to be seen as > INT_MAX) */
-					if (tptr[0] || errno || length > INT_MAX)
+					if (errno || length > INT_MAX)
 						send_headers_and_exit(HTTP_BAD_REQUEST);
 				}
 			}
@@ -2096,7 +2105,7 @@ static void handle_incoming_and_exit(const len_and_sockaddr *fromAddr)
 		}
 	}
 #endif
-	if (prequest != request_GET) {
+	if (prequest != request_GET && prequest != request_HEAD) {
 		send_headers_and_exit(HTTP_NOT_IMPLEMENTED);
 	}
 #endif  /* FEATURE_HTTPD_CGI */
@@ -2123,7 +2132,8 @@ static void handle_incoming_and_exit(const len_and_sockaddr *fromAddr)
 	 * }
 	 */
 
-	send_file_and_exit(tptr, TRUE);
+	send_file_and_exit(tptr,
+		(prequest != request_HEAD ? SEND_HEADERS_AND_BODY : SEND_HEADERS));
 }
 
 /*
