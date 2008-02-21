@@ -8063,7 +8063,7 @@ mklocal(char *name)
 	struct var *vp;
 
 	INT_OFF;
-	lvp = ckmalloc(sizeof(struct localvar));
+	lvp = ckzalloc(sizeof(struct localvar));
 	if (LONE_DASH(name)) {
 		char *p;
 		p = ckmalloc(sizeof(optlist));
@@ -8887,7 +8887,7 @@ pushstring(char *s, void *ap)
 	INT_OFF;
 /*dprintf("*** calling pushstring: %s, %d\n", s, len);*/
 	if (parsefile->strpush) {
-		sp = ckmalloc(sizeof(struct strpush));
+		sp = ckzmalloc(sizeof(struct strpush));
 		sp->prev = parsefile->strpush;
 		parsefile->strpush = sp;
 	} else
@@ -9520,7 +9520,7 @@ raise_error_unexpected_syntax(int token)
 
 struct heredoc {
 	struct heredoc *next;   /* next here document in list */
-	union node *here;               /* redirection node */
+	union node *here;       /* redirection node */
 	char *eofmark;          /* string indicating end of input */
 	int striptabs;          /* if set, strip leading tabs */
 };
@@ -9564,7 +9564,7 @@ list(int nlflag)
 		if (n1 == NULL) {
 			n1 = n2;
 		} else {
-			n3 = stalloc(sizeof(struct nbinary));
+			n3 = stzalloc(sizeof(struct nbinary));
 			n3->type = NSEMI;
 			n3->nbinary.ch1 = n1;
 			n3->nbinary.ch2 = n2;
@@ -9621,7 +9621,7 @@ andor(void)
 		}
 		checkkwd = CHKNL | CHKKWD | CHKALIAS;
 		n2 = pipeline();
-		n3 = stalloc(sizeof(struct nbinary));
+		n3 = stzalloc(sizeof(struct nbinary));
 		n3->type = t;
 		n3->nbinary.ch1 = n1;
 		n3->nbinary.ch2 = n2;
@@ -9648,12 +9648,12 @@ pipeline(void)
 		pipenode = stzalloc(sizeof(struct npipe));
 		pipenode->type = NPIPE;
 		/*pipenode->npipe.backgnd = 0; - stzalloc did it */
-		lp = stalloc(sizeof(struct nodelist));
+		lp = stzalloc(sizeof(struct nodelist));
 		pipenode->npipe.cmdlist = lp;
 		lp->n = n1;
 		do {
 			prev = lp;
-			lp = stalloc(sizeof(struct nodelist));
+			lp = stzalloc(sizeof(struct nodelist));
 			checkkwd = CHKNL | CHKKWD | CHKALIAS;
 			lp->n = parse_command();
 			prev->next = lp;
@@ -9663,7 +9663,7 @@ pipeline(void)
 	}
 	tokpushback = 1;
 	if (negate) {
-		n2 = stalloc(sizeof(struct nnot));
+		n2 = stzalloc(sizeof(struct nnot));
 		n2->type = NNOT;
 		n2->nnot.com = n1;
 		return n2;
@@ -9747,7 +9747,8 @@ parsefname(void)
 		if (heredoclist == NULL)
 			heredoclist = here;
 		else {
-			for (p = heredoclist; p->next; p = p->next);
+			for (p = heredoclist; p->next; p = p->next)
+				continue;
 			p->next = here;
 		}
 	} else if (n->type == NTOFD || n->type == NFROMFD) {
@@ -9828,7 +9829,7 @@ simplecmd(void)
 	*app = NULL;
 	*vpp = NULL;
 	*rpp = NULL;
-	n = stalloc(sizeof(struct ncmd));
+	n = stzalloc(sizeof(struct ncmd));
 	n->type = NCMD;
 	n->ncmd.args = args;
 	n->ncmd.assign = vars;
@@ -9854,7 +9855,7 @@ parse_command(void)
 		raise_error_unexpected_syntax(-1);
 		/* NOTREACHED */
 	case TIF:
-		n1 = stalloc(sizeof(struct nif));
+		n1 = stzalloc(sizeof(struct nif));
 		n1->type = NIF;
 		n1->nif.test = list(0);
 		if (readtoken() != TTHEN)
@@ -9862,7 +9863,7 @@ parse_command(void)
 		n1->nif.ifpart = list(0);
 		n2 = n1;
 		while (readtoken() == TELIF) {
-			n2->nif.elsepart = stalloc(sizeof(struct nif));
+			n2->nif.elsepart = stzalloc(sizeof(struct nif));
 			n2 = n2->nif.elsepart;
 			n2->type = NIF;
 			n2->nif.test = list(0);
@@ -9881,7 +9882,7 @@ parse_command(void)
 	case TWHILE:
 	case TUNTIL: {
 		int got;
-		n1 = stalloc(sizeof(struct nbinary));
+		n1 = stzalloc(sizeof(struct nbinary));
 		n1->type = (lasttoken == TWHILE) ? NWHILE : NUNTIL;
 		n1->nbinary.ch1 = list(0);
 		got = readtoken();
@@ -9897,7 +9898,7 @@ parse_command(void)
 	case TFOR:
 		if (readtoken() != TWORD || quoteflag || ! goodname(wordtext))
 			raise_error_syntax("Bad for loop variable");
-		n1 = stalloc(sizeof(struct nfor));
+		n1 = stzalloc(sizeof(struct nfor));
 		n1->type = NFOR;
 		n1->nfor.var = wordtext;
 		checkkwd = CHKKWD | CHKALIAS;
@@ -9937,7 +9938,7 @@ parse_command(void)
 		t = TDONE;
 		break;
 	case TCASE:
-		n1 = stalloc(sizeof(struct ncase));
+		n1 = stzalloc(sizeof(struct ncase));
 		n1->type = NCASE;
 		if (readtoken() != TWORD)
 			raise_error_unexpected_syntax(TWORD);
@@ -9958,7 +9959,7 @@ parse_command(void)
 		while (t != TESAC) {
 			if (lasttoken == TLP)
 				readtoken();
-			*cpp = cp = stalloc(sizeof(struct nclist));
+			*cpp = cp = stzalloc(sizeof(struct nclist));
 			cp->type = NCLIST;
 			app = &cp->nclist.pattern;
 			for (;;) {
@@ -10344,13 +10345,13 @@ parseredir: {
 				/*np->nfile.fd = 0; - stzalloc did it */
 			}
 			np->type = NHERE;
-			heredoc = stalloc(sizeof(struct heredoc));
+			heredoc = stzalloc(sizeof(struct heredoc));
 			heredoc->here = np;
 			c = pgetc();
 			if (c == '-') {
 				heredoc->striptabs = 1;
 			} else {
-				heredoc->striptabs = 0;
+				/*heredoc->striptabs = 0; - stzalloc did it */
 				pungetc();
 			}
 			break;
@@ -10941,7 +10942,7 @@ parseheredoc(void)
 	union node *n;
 
 	here = heredoclist;
-	heredoclist = 0;
+	heredoclist = NULL;
 
 	while (here) {
 		if (needprompt) {
