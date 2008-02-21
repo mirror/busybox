@@ -8887,7 +8887,7 @@ pushstring(char *s, void *ap)
 	INT_OFF;
 /*dprintf("*** calling pushstring: %s, %d\n", s, len);*/
 	if (parsefile->strpush) {
-		sp = ckzmalloc(sizeof(struct strpush));
+		sp = ckzalloc(sizeof(struct strpush));
 		sp->prev = parsefile->strpush;
 		parsefile->strpush = sp;
 	} else
