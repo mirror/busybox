@@ -2051,6 +2051,25 @@ USE_FEATURE_BRCTL_FANCY("\n" \
        "with an optional offset (-o 12345). Encryption is not yet supported.\n" \
        "losetup -f will show the first loop free loop device\n\n"
 
+#define lpq_trivial_usage \
+       "[-P lp[@host[:port]]] [-t DELAY] [-d JOBID] [-fs]"
+#define lpq_full_usage \
+     "Options:" \
+     "\n	-P	lp service to connect to (else uses $PRINTER)" \
+     "\n	-t	Scan the queue every DELAY seconds" \
+     "\n	-d	Delete job" \
+     "\n	-f	Force any waiting job to be printed" \
+     "\n	-s	Short display" \
+
+#define lpr_trivial_usage \
+       "-P lp[@host[:port]] -U USERNAME -J TITLE -Vmh [filenames]"
+#define lpr_full_usage \
+     "Options:" \
+     "\n	-P	lp service to connect to (else uses $PRINTER)"\
+     "\n	-m	Send mail to LOGNAME@HOSTNAME" \
+     "\n	-h	Banner or header for this job" \
+     "\n	-V	Verbose" \
+
 #define ls_trivial_usage \
        "[-1Aa" USE_FEATURE_LS_TIMESTAMPS("c") "Cd" \
 	USE_FEATURE_LS_TIMESTAMPS("e") USE_FEATURE_LS_FILETYPES("F") "iln" \

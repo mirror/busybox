@@ -1,0 +1,15 @@
+menu "print support"
+
+config LPR
+	bool "lpr"
+	default n
+	help
+	  lpr sends files (or standard input) to a print spooling daemon.
+
+config LPQ
+	bool "lpq"
+	default n
+	help
+	  lpq is a print spool queue examination and manipulation program.
+
+endmenu

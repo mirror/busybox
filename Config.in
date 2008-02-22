@@ -566,4 +566,5 @@ source shell/Config.in
 source sysklogd/Config.in
 source runit/Config.in
 source selinux/Config.in
+source printutils/Config.in
 source ipsvd/Config.in

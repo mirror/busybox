@@ -76,7 +76,7 @@ char * xstrdup(const char *s)
 
 // Die if we can't allocate n+1 bytes (space for the null terminator) and copy
 // the (possibly truncated to length n) string into it.
-char * xstrndup(const char *s, int n)
+char *xstrndup(const char *s, int n)
 {
 	int m;
 	char *t;
