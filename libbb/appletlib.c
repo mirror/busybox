@@ -34,7 +34,7 @@ static const char usage_messages[] ALIGN1 = ""
 #endif /* SHOW_USAGE */
 
 
-/* Include generated applet names, pointers to <apllet>_main, etc */
+/* Include generated applet names, pointers to <applet>_main, etc */
 #include "applet_tables.h"
 
 
