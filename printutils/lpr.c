@@ -53,32 +53,32 @@ int lpr_main(int argc, char *argv[])
 	const char *jobtitle;
 	const char *hostname;
 	const char *jobclass;
-	char *logname;
+	char *username;
 	int pid1000;
 	int server_sock, tmp_fd;
 	unsigned opt;
 	enum {
 		VERBOSE = 1 << 0,
-		USE_HEADER = 1 << 1, /* -h banner or header for this job */
-		USE_MAIL = 1 << 2, /* send mail to user@hostname */
-		OPT_U = 1 << 3, /* -U <username> */
-		OPT_J = 1 << 4, /* -J <title> is the jobtitle for the banner page */
-		OPT_C = 1 << 5, /* -C <class> job classification */
-		OPT_P = 1 << 6, /* -P <queue[@host[:port]]> */
+		USE_HEADER = 1 << 1, /* -h: want banner printed */
+		USE_MAIL = 1 << 2, /* -m: send mail back to user */
+		OPT_U = 1 << 3, /* -U username */
+		OPT_J = 1 << 4, /* -J title: the job title for the banner page */
+		OPT_C = 1 << 5, /* -C class: job "class" (? supposedly printed on banner) */
+		OPT_P = 1 << 6, /* -P queue[@host[:port]] */
 		/* if no -P is given use $PRINTER, then "lp@localhost:515" */
 	};
 
 	/* Set defaults, parse options */
 	hostname = mygethostname31();
 	netopt = NULL;
-	logname = getenv("LOGNAME");
-	if (logname == NULL)
-		logname = (char*)"user"; /* TODO: getpwuid(getuid())->pw_name? */
+	username = getenv("LOGNAME");
+	if (username == NULL)
+		username = (char*)"user"; /* TODO: getpwuid(getuid())->pw_name? */
 	opt = getopt32(argv, "VhmU:J:C:P:",
-			&logname, &jobtitle, &jobclass, &netopt);
+			&username, &jobtitle, &jobclass, &netopt);
 	argv += optind;
 	parse_prt(netopt, &netprint);
-	logname = xstrndup(logname, 31);
+	username = xstrndup(username, 31);
 
 	/* For stdin we need to save it to a tempfile,
 	 * otherwise we can't know the size. */
@@ -127,18 +127,18 @@ int lpr_main(int argc, char *argv[])
 		/* H HOST, P USER, l DATA_FILE_NAME, J JOBNAME */
 		strings[0] = xasprintf("H%.32s\n" "P%.32s\n" "l%.32s\n"
 			"J%.99s\n",
-			hostname, logname, dfa_name,
-			!(opt & OPT_J) ? *argv : jobtitle);
+			hostname, username, dfa_name,
+			(opt & OPT_J) ? jobtitle : *argv);
 		sptr = &strings[1];
 		/* C CLASS - printed on banner page (if L cmd is also given) */
-		if (opt & OPT_J) /* [1] */
+		if (opt & OPT_C) /* [1] */
 			*sptr++ = xasprintf("C%.32s\n", jobclass);
 		/* M WHOM_TO_MAIL */
 		if (opt & USE_MAIL) /* [2] */
-			*sptr++ = xasprintf("M%.32s\n", logname);
+			*sptr++ = xasprintf("M%.32s\n", username);
 		/* H USER - print banner page, with given user's name */
 		if (opt & USE_HEADER) /* [3] */
-			*sptr++ = xasprintf("L%.32s\n", logname);
+			*sptr++ = xasprintf("L%.32s\n", username);
 		*sptr = NULL; /* [4] max */
 
 		/* RFC 1179: "LPR servers MUST be able
