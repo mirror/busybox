@@ -647,10 +647,10 @@ int syslogd_main(int argc, char **argv)
 		option_mask32 |= OPT_locallog;
 
 	/* Store away localhost's name before the fork */
-	gethostname(G.localHostName, sizeof(G.localHostName));
 	/* "It is unspecified whether the truncated hostname
-	 * will be null-terminated". Idiots! */
-	G.localHostName[sizeof(G.localHostName) - 1] = '\0';
+	 * will be null-terminated". We give it (size - 1),
+	 * thus last byte will be NUL no matter what. */
+	gethostname(G.localHostName, sizeof(G.localHostName) - 1);
 	*strchrnul(G.localHostName, '.') = '\0';
 
 	if (!(option_mask32 & OPT_nofork)) {
