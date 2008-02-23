@@ -706,13 +706,16 @@ static ssize_t getch_nowait(char* input, int sz)
 /* Grab a character from input without requiring the return key. If the
  * character is ASCII \033, get more characters and assign certain sequences
  * special return codes. Note that this function works best with raw input. */
-static int less_getch(void)
+static int less_getch(int pos)
 {
 	unsigned char input[16];
 	unsigned i;
+
  again:
+	less_gets_pos = pos;
 	memset(input, 0, sizeof(input));
 	getch_nowait(input, sizeof(input));
+	less_gets_pos = -1;
 
 	/* Detect escape sequences (i.e. arrow keys) and handle
 	 * them accordingly */
@@ -777,11 +780,16 @@ static void examine_file(void)
 	char *new_fname;
 
 	print_statusline("Examine: ");
-	new_fname = less_gets(sizeof("Examine: ")-1);
+	new_fname = less_gets(sizeof("Examine: ") - 1);
 	if (!new_fname[0]) {
-		free(new_fname);
 		status_print();
+ err:
+		free(new_fname);
 		return;
+	}
+	if (access(new_fname, R_OK) != 0) {
+		print_statusline("Cannot read this file");
+		goto err;
 	}
 	free(filename);
 	filename = new_fname;
@@ -838,7 +846,7 @@ static void colon_process(void)
 	/* Clear the current line and print a prompt */
 	print_statusline(" :");
 
-	keypress = less_getch();
+	keypress = less_getch(2);
 	switch (keypress) {
 	case 'd':
 		remove_current_file();
@@ -971,7 +979,7 @@ static void regex_process(void)
 
 static void number_process(int first_digit)
 {
-	int i = 1;
+	int i;
 	int num;
 	char num_input[sizeof(int)*4]; /* more than enough */
 	char keypress;
@@ -983,8 +991,9 @@ static void number_process(int first_digit)
 	printf(":%c", first_digit);
 
 	/* Receive input until a letter is given */
+	i = 1;
 	while (i < sizeof(num_input)-1) {
-		num_input[i] = less_getch();
+		num_input[i] = less_getch(i + 1);
 		if (!num_input[i] || !isdigit(num_input[i]))
 			break;
 		bb_putchar(num_input[i]);
@@ -1043,7 +1052,7 @@ static void flag_change(void)
 
 	clear_line();
 	bb_putchar('-');
-	keypress = less_getch();
+	keypress = less_getch(1);
 
 	switch (keypress) {
 	case 'M':
@@ -1068,7 +1077,7 @@ static void show_flag_status(void)
 
 	clear_line();
 	bb_putchar('_');
-	keypress = less_getch();
+	keypress = less_getch(1);
 
 	switch (keypress) {
 	case 'M':
@@ -1127,7 +1136,7 @@ static void add_mark(void)
 	int letter;
 
 	print_statusline("Mark: ");
-	letter = less_getch();
+	letter = less_getch(sizeof("Mark: ") - 1);
 
 	if (isalpha(letter)) {
 		/* If we exceed 15 marks, start overwriting previous ones */
@@ -1148,7 +1157,7 @@ static void goto_mark(void)
 	int i;
 
 	print_statusline("Go to mark: ");
-	letter = less_getch();
+	letter = less_getch(sizeof("Go to mark: ") - 1);
 	clear_line();
 
 	if (isalpha(letter)) {
@@ -1385,7 +1394,7 @@ int less_main(int argc, char **argv)
 
 	reinitialize();
 	while (1) {
-		keypress = less_getch();
+		keypress = less_getch(-1); /* -1: do not position cursor */
 		keypress_process(keypress);
 	}
 }
