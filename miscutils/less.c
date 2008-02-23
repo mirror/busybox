@@ -90,6 +90,7 @@ enum { pattern_valid = 0 };
 struct globals {
 	int cur_fline; /* signed */
 	int kbd_fd;  /* fd to get input from */
+	int less_gets_pos;
 /* last position in last line, taking into account tabs */
 	size_t linepos;
 	unsigned max_displayed_line;
@@ -123,6 +124,7 @@ struct globals {
 #define G (*ptr_to_globals)
 #define cur_fline           (G.cur_fline         )
 #define kbd_fd              (G.kbd_fd            )
+#define less_gets_pos       (G.less_gets_pos     )
 #define linepos             (G.linepos           )
 #define max_displayed_line  (G.max_displayed_line)
 #define max_fline           (G.max_fline         )
@@ -152,6 +154,7 @@ struct globals {
 #define term_less           (G.term_less         )
 #define INIT_G() do { \
 		PTR_TO_GLOBALS = xzalloc(sizeof(G)); \
+		less_gets_pos = -1; \
 		empty_line_marker = "~"; \
 		num_files = 1; \
 		current_file = 1; \
@@ -385,6 +388,9 @@ static void m_status_print(void)
 {
 	int percentage;
 
+	if (less_gets_pos >= 0)	/* don't touch statusline while input is done! */
+		return;
+
 	clear_line();
 	printf(HIGHLIGHT"%s", filename);
 	if (num_files > 1)
@@ -407,6 +413,9 @@ static void m_status_print(void)
 static void status_print(void)
 {
 	const char *p;
+
+	if (less_gets_pos >= 0)	/* don't touch statusline while input is done! */
+		return;
 
 	/* Change the status if flags have been set */
 #if ENABLE_FEATURE_LESS_FLAGS
@@ -652,43 +661,46 @@ static void reinitialize(void)
 	buffer_fill_and_print();
 }
 
-static void getch_nowait(char* input, int sz)
+static ssize_t getch_nowait(char* input, int sz)
 {
 	ssize_t rd;
-	fd_set readfds;
- again:
-	fflush(stdout);
+	struct pollfd pfd[2];
 
-	/* NB: select returns whenever read will not block. Therefore:
-	 * (a) with O_NONBLOCK'ed fds select will return immediately
-	 * (b) if eof is reached, select will also return
-	 *     because read will immediately return 0 bytes.
-	 * Even if select says that input is available, read CAN block
+	pfd[0].fd = STDIN_FILENO;
+	pfd[0].events = POLLIN;
+	pfd[1].fd = kbd_fd;
+	pfd[1].events = POLLIN;
+ again:
+	tcsetattr(kbd_fd, TCSANOW, &term_less);
+	/* NB: select/poll returns whenever read will not block. Therefore:
+	 * if eof is reached, select/poll will return immediately
+	 * because read will immediately return 0 bytes.
+	 * Even if select/poll says that input is available, read CAN block
 	 * (switch fd into O_NONBLOCK'ed mode to avoid it)
 	 */
-	FD_ZERO(&readfds);
+	rd = 1;
 	if (max_fline <= cur_fline + max_displayed_line
 	 && eof_error > 0 /* did NOT reach eof yet */
 	) {
 		/* We are interested in stdin */
-		FD_SET(0, &readfds);
+		rd = 0;
 	}
-	FD_SET(kbd_fd, &readfds);
-	tcsetattr(kbd_fd, TCSANOW, &term_less);
-	select(kbd_fd + 1, &readfds, NULL, NULL, NULL);
+	/* position cursor if line input is done */
+	if (less_gets_pos >= 0)
+		move_cursor(max_displayed_line + 2, less_gets_pos + 1);
+	fflush(stdout);
+	safe_poll(pfd + rd, 2 - rd, -1);
 
 	input[0] = '\0';
-	ndelay_on(kbd_fd);
-	rd = read(kbd_fd, input, sz);
-	ndelay_off(kbd_fd);
-	if (rd < 0) {
-		/* No keyboard input, but we have input on stdin! */
-		if (errno != EAGAIN) /* Huh?? */
-			return;
+	rd = safe_read(kbd_fd, input, sz); /* NB: kbd_fd is in O_NONBLOCK mode */
+	if (rd < 0 && errno == EAGAIN) {
+		/* No keyboard input -> we have input on stdin! */
 		read_lines();
 		buffer_fill_and_print();
 		goto again;
 	}
+	set_tty_cooked();
+	return rd;
 }
 
 /* Grab a character from input without requiring the return key. If the
@@ -696,7 +708,7 @@ static void getch_nowait(char* input, int sz)
  * special return codes. Note that this function works best with raw input. */
 static int less_getch(void)
 {
-	char input[16];
+	unsigned char input[16];
 	unsigned i;
  again:
 	memset(input, 0, sizeof(input));
@@ -705,7 +717,6 @@ static int less_getch(void)
 	/* Detect escape sequences (i.e. arrow keys) and handle
 	 * them accordingly */
 	if (input[0] == '\033' && input[1] == '[') {
-		set_tty_cooked();
 		i = input[2] - REAL_KEY_UP;
 		if (i < 4)
 			return 20 + i;
@@ -724,8 +735,8 @@ static int less_getch(void)
 	}
 	/* Reject almost all control chars */
 	i = input[0];
-	if (i < ' ' && i != 0x0d && i != 8) goto again;
-	set_tty_cooked();
+	if (i < ' ' && i != 0x0d && i != 8)
+		goto again;
 	return i;
 }
 
@@ -734,22 +745,21 @@ static char* less_gets(int sz)
 	char c;
 	int i = 0;
 	char *result = xzalloc(1);
+
 	while (1) {
-		fflush(stdout);
-
-		/* I be damned if I know why is it needed *repeatedly*,
-		 * but it is needed. Is it because of stdio? */
-		tcsetattr(kbd_fd, TCSANOW, &term_less);
-
 		c = '\0';
-		read(kbd_fd, &c, 1);
-		if (c == 0x0d)
+		less_gets_pos = sz + i;
+		getch_nowait(&c, 1);
+		if (c == 0x0d) {
+			less_gets_pos = -1;
 			return result;
+		}
 		if (c == 0x7f)
 			c = 8;
 		if (c == 8 && i) {
 			printf("\x8 \x8");
 			i--;
+			result[i] = '\0';
 		}
 		if (c < ' ')
 			continue;
@@ -764,9 +774,17 @@ static char* less_gets(int sz)
 
 static void examine_file(void)
 {
+	char *new_fname;
+
 	print_statusline("Examine: ");
+	new_fname = less_gets(sizeof("Examine: ")-1);
+	if (!new_fname[0]) {
+		free(new_fname);
+		status_print();
+		return;
+	}
 	free(filename);
-	filename = less_gets(sizeof("Examine: ")-1);
+	filename = new_fname;
 	/* files start by = argv. why we assume that argv is infinitely long??
 	files[num_files] = filename;
 	current_file = num_files + 1;
@@ -1087,7 +1105,7 @@ static void save_input_to_file(void)
 
 	print_statusline("Log file: ");
 	current_line = less_gets(sizeof("Log file: ")-1);
-	if (strlen(current_line) > 0) {
+	if (current_line[0]) {
 		fp = fopen(current_line, "w");
 		if (!fp) {
 			msg = "Error opening log file";
@@ -1334,6 +1352,7 @@ int less_main(int argc, char **argv)
 	kbd_fd = open(CURRENT_TTY, O_RDONLY);
 	if (kbd_fd < 0)
 		return bb_cat(argv);
+	ndelay_on(kbd_fd);
 
 	if (!num_files) {
 		if (isatty(STDIN_FILENO)) {
@@ -1354,21 +1373,15 @@ int less_main(int argc, char **argv)
 	if (option_mask32 & FLAG_TILDE)
 		empty_line_marker = "";
 
+	bb_signals(BB_SIGS_FATAL, sig_catcher);
+
 	tcgetattr(kbd_fd, &term_orig);
-	bb_signals(0
-		+ (1 << SIGTERM)
-		+ (1 << SIGINT)
-		, sig_catcher);
 	term_less = term_orig;
 	term_less.c_lflag &= ~(ICANON | ECHO);
 	term_less.c_iflag &= ~(IXON | ICRNL);
 	/*term_less.c_oflag &= ~ONLCR;*/
 	term_less.c_cc[VMIN] = 1;
 	term_less.c_cc[VTIME] = 0;
-
-	/* Want to do it just once, but it doesn't work, */
-	/* so we are redoing it (see code above). Mystery... */
-	/*tcsetattr(kbd_fd, TCSANOW, &term_less);*/
 
 	reinitialize();
 	while (1) {

@@ -274,9 +274,32 @@ char *xrealloc_getcwd_or_warn(char *cwd);
 
 char *xmalloc_follow_symlinks(const char *path);
 
-//enum {
-//	BB_SIGS_FATAL = ,
-//};
+enum {
+	/* bb_signals(BB_SIGS_FATAL, handler) catches all signals which
+	 * otherwise would kill us, except for those resulting from bugs:
+	 * SIGSEGV, SIGILL, SIGFPE.
+	 * Other fatal signals not included (TODO?):
+	 * SIGBUS   Bus error (bad memory access)
+	 * SIGPOLL  Pollable event. Synonym of SIGIO
+	 * SIGPROF  Profiling timer expired
+	 * SIGSYS   Bad argument to routine
+	 * SIGTRAP  Trace/breakpoint trap
+	 */
+	BB_SIGS_FATAL = 0
+		+ (1 << SIGHUP)
+		+ (1 << SIGINT)
+		+ (1 << SIGTERM)
+		+ (1 << SIGPIPE)   // Write to pipe with no readers
+		+ (1 << SIGQUIT)   // Quit from keyboard
+		+ (1 << SIGABRT)   // Abort signal from abort(3)
+		+ (1 << SIGALRM)   // Timer signal from alarm(2)
+		+ (1 << SIGVTALRM) // Virtual alarm clock
+		+ (1 << SIGXCPU)   // CPU time limit exceeded
+		+ (1 << SIGXFSZ)   // File size limit exceeded
+		+ (1 << SIGUSR1)   // Yes kids, these are also fatal!
+		+ (1 << SIGUSR2)
+		+ 0,
+};
 void bb_signals(int sigs, void (*f)(int));
 /* Unlike signal() and bb_signals, sets handler with sigaction()
  * and in a way that while signal handler is run, no other signals
