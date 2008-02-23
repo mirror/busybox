@@ -172,12 +172,9 @@ static void set_tty_cooked(void)
 /* Exit the program gracefully */
 static void less_exit(int code)
 {
-	/* TODO: We really should save the terminal state when we start,
-	 * and restore it when we exit. Less does this with the
-	 * "ti" and "te" termcap commands; can this be done with
-	 * only termios.h? */
 	bb_putchar('\n');
-	fflush_stdout_and_exit(code);
+	set_tty_cooked();
+	exit(code); /* TODO: "suicide mode" for code == -signal */
 }
 
 /* Move the cursor to a position (x,y), where (0,0) is the
@@ -754,6 +751,7 @@ static char* less_gets(int sz)
 		less_gets_pos = sz + i;
 		getch_nowait(&c, 1);
 		if (c == 0x0d) {
+			result[i] = '\0';
 			less_gets_pos = -1;
 			return result;
 		}
@@ -762,7 +760,6 @@ static char* less_gets(int sz)
 		if (c == 8 && i) {
 			printf("\x8 \x8");
 			i--;
-			result[i] = '\0';
 		}
 		if (c < ' ')
 			continue;
@@ -771,7 +768,6 @@ static char* less_gets(int sz)
 		bb_putchar(c);
 		result[i++] = c;
 		result = xrealloc(result, i+1);
-		result[i] = '\0';
 	}
 }
 
@@ -1334,8 +1330,7 @@ static void keypress_process(int keypress)
 
 static void sig_catcher(int sig ATTRIBUTE_UNUSED)
 {
-	set_tty_cooked();
-	exit(1);
+	less_exit(1) /* TODO: "suicide mode" for code == -signal */
 }
 
 int less_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
@@ -1382,8 +1377,6 @@ int less_main(int argc, char **argv)
 	if (option_mask32 & FLAG_TILDE)
 		empty_line_marker = "";
 
-	bb_signals(BB_SIGS_FATAL, sig_catcher);
-
 	tcgetattr(kbd_fd, &term_orig);
 	term_less = term_orig;
 	term_less.c_lflag &= ~(ICANON | ECHO);
@@ -1391,6 +1384,9 @@ int less_main(int argc, char **argv)
 	/*term_less.c_oflag &= ~ONLCR;*/
 	term_less.c_cc[VMIN] = 1;
 	term_less.c_cc[VTIME] = 0;
+
+	/* We want to restore term_orig on exit */
+	bb_signals(BB_SIGS_FATAL, sig_catcher);
 
 	reinitialize();
 	while (1) {
