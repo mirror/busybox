@@ -10,20 +10,30 @@
 /* BB_AUDIT SUSv3 compliant */
 /* http://www.opengroup.org/onlinepubs/007904975/utilities/rmdir.html */
 
-#include <libgen.h>
 #include "libbb.h"
 
 /* This is a NOFORK applet. Be very careful! */
 
+
+#define PARENTS 0x01
+#define IGNORE_NON_EMPTY 0x02
 
 int rmdir_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int rmdir_main(int argc, char **argv)
 {
 	int status = EXIT_SUCCESS;
 	int flags;
-	int do_dot;
 	char *path;
 
+#if ENABLE_FEATURE_RMDIR_LONG_OPTIONS
+	static const char rmdir_longopts[] ALIGN1 =
+		"parents\0"                  No_argument "p"
+		/* Debian etch: many packages fail to be purged or installed
+		 * because they desperately want this option: */
+		"ignore-fail-on-non-empty\0" No_argument "\xff"
+		;
+	applet_long_options = rmdir_longopts;
+#endif
 	flags = getopt32(argv, "p");
 	argv += optind;
 
@@ -34,27 +44,26 @@ int rmdir_main(int argc, char **argv)
 	do {
 		path = *argv;
 
-		/* Record if the first char was a '.' so we can use dirname later. */
-		do_dot = (*path == '.');
-
 		while (1) {
 			if (rmdir(path) < 0) {
+#if ENABLE_FEATURE_RMDIR_LONG_OPTIONS
+				if ((flags & IGNORE_NON_EMPTY) && errno == ENOTEMPTY)
+					break;
+#endif
 				bb_perror_msg("'%s'", path);	/* Match gnu rmdir msg. */
 				status = EXIT_FAILURE;
-			} else if (flags) {
-				/* Note: path was not empty or null since rmdir succeeded. */
+			} else if (flags & PARENTS) {
+				/* Note: path was not "" since rmdir succeeded. */
 				path = dirname(path);
-				/* Path is now just the parent component.  Note that dirname
-				 * returns "." if there are no parents.  We must distinguish
-				 * this from the case of the original path starting with '.'.
+				/* Path is now just the parent component.  Dirname
+				 * returns "." if there are no parents.
 				 */
-				if (do_dot || (*path != '.') || path[1]) {
+				if (NOT_LONE_CHAR(path, '.')) {
 					continue;
 				}
 			}
 			break;
 		}
-
 	} while (*++argv);
 
 	return status;
