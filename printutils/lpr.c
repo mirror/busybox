@@ -9,7 +9,7 @@
  *
  * Licensed under GPLv2, see file LICENSE in this tarball for details.
  *
- * See RFC 1179 for propocol description.
+ * See RFC 1179 for protocol description.
  */
 #include "libbb.h"
 
