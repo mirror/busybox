@@ -28,46 +28,40 @@ int watch_main(int argc, char **argv)
 {
 	unsigned opt;
 	unsigned period = 2;
-	unsigned cmdlen;
-	char *header = NULL;
+	int width, new_width;
+	char *header;
 	char *cmd;
-	char *tmp;
-	char **p;
 
-	opt_complementary = "-1"; // at least one param please
-	opt = getopt32(argv, "+dtn:", &tmp);
-	//if (opt & 0x1) // -d (ignore)
-	//if (opt & 0x2) // -t
-	if (opt & 0x4) period = xatou(tmp);
+	opt_complementary = "-1:n+"; // at least one param; -n NUM
+	// "+": stop at first non-option (procps 3.x only)
+	opt = getopt32(argv, "+dtn:", &period);
 	argv += optind;
 
-	p = argv;
-	cmdlen = 1; // 1 for terminal NUL
-	while (*p)
-		cmdlen += strlen(*p++) + 1;
-	tmp = cmd = xmalloc(cmdlen);
-	while (*argv) {
-		tmp += sprintf(tmp, " %s", *argv);
-		argv++;
-	}
-	cmd++; // skip initial space
+	// watch from both procps 2.x and 3.x does concatenation. Example:
+	// watch ls -l "a /tmp" "2>&1" -- ls won't see "a /tmp" as one param
+	cmd = *argv;
+	while (*++argv)
+		cmd = xasprintf("%s %s", cmd, *argv); // leaks cmd
 
+	width = -1; // make sure first time new_width != width
+	header = NULL;
 	while (1) {
 		printf("\033[H\033[J");
 		if (!(opt & 0x2)) { // no -t
-			int width, len;
-			char *thyme;
+			const int time_len = sizeof("1234-67-90 23:56:89");
 			time_t t;
 
-			get_terminal_width_height(STDIN_FILENO, &width, 0);
-			header = xrealloc(header, width--);
-			// '%-*s' pads header with spaces to the full width
-			snprintf(header, width, "Every %ds: %-*s", period, width, cmd);
+			get_terminal_width_height(STDIN_FILENO, &new_width, NULL);
+			if (new_width != width) {
+				width = new_width;
+				free(header);
+				header = xasprintf("Every %us: %-*s", period, width, cmd);
+			}
 			time(&t);
-			thyme = ctime(&t);
-			len = strlen(thyme);
-			if (len < width)
-				strcpy(header + width - len, thyme);
+			if (time_len < width)
+				strftime(header + width - time_len, time_len,
+					"%Y-%m-%d %H:%M:%S", localtime(&t));
+
 			puts(header);
 		}
 		fflush(stdout);
