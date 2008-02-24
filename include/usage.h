@@ -2051,6 +2051,12 @@ USE_FEATURE_BRCTL_FANCY("\n" \
        "with an optional offset (-o 12345). Encryption is not yet supported.\n" \
        "losetup -f will show the first loop free loop device\n\n"
 
+#define lpd_trivial_usage \
+       "SPOOLDIR"
+#define lpd_full_usage \
+       "Example:" \
+       "\n	tcpsvd -E localhost 515 lpd /var/spool"
+
 #define lpq_trivial_usage \
        "[-P queue[@host[:port]]] [-U USERNAME] [-d JOBID...] [-fs]"
 #define lpq_full_usage \

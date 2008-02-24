@@ -1,5 +1,11 @@
 menu "print support"
 
+config LPD
+	bool "lpd"
+	default n
+	help
+	  lpd is a print spooling daemon.
+
 config LPR
 	bool "lpr"
 	default n

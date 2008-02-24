@@ -19,6 +19,7 @@
  */
 static void get_response_or_say_and_die(const char *errmsg)
 {
+	static const char newline = '\n';
 	char buf = ' ';
 
 	fflush(stdout);
@@ -28,8 +29,9 @@ static void get_response_or_say_and_die(const char *errmsg)
 		// request has failed
 		bb_error_msg("error while %s. Server said:", errmsg);
 		safe_write(STDERR_FILENO, &buf, 1);
-		logmode = 0; /* no errors from bb_copyfd_eof() */
+		logmode = 0; /* no error messages from bb_copyfd_eof() pls */
 		bb_copyfd_eof(STDOUT_FILENO, STDERR_FILENO);
+		safe_write(STDERR_FILENO, &newline, 1);
 		xfunc_die();
 	}
 }
@@ -190,8 +192,12 @@ int lpqr_main(int argc, char *argv[])
 			, remote_filename
 		);
 		// delete possible "\nX\n" patterns
-		while ((c = strchr(controlfile, '\n')) != NULL && c[1] && c[2] == '\n')
-			memmove(c, c+2, strlen(c+1)); /* strlen(c+1) == strlen(c+2) + 1 */
+		c = controlfile;
+		while ((c = strchr(c, '\n')) != NULL) {
+			c++;
+			while (c[0] && c[1] == '\n')
+				memmove(c, c+2, strlen(c+1)); /* strlen(c+1) == strlen(c+2) + 1 */
+		}
 
 		// send control file
 		if (opts & LPR_V)

@@ -161,8 +161,7 @@ char *xmalloc_reads(int fd, char *buf)
 		}
 		/* nonblock_safe_read() because we are used by e.g. shells */
 		if (nonblock_safe_read(fd, p, 1) != 1) { /* EOF/error */
-			if (p == buf) {
-				/* we read nothing [and buf was NULL initially] */
+			if (p == buf) { /* we read nothing */
 				free(buf);
 				return NULL;
 			}
