@@ -201,7 +201,7 @@ int lpqr_main(int argc, char *argv[])
 		 * an indication that the file being sent is complete.
 		 * A second level of acknowledgement processing
 		 * must occur at this point." */
-		printf("\x2" "%u %s\n" "c%s" "%c",
+		printf("\x2" "%u c%s\n" "%s" "%c",
 				(unsigned)strlen(controlfile),
 				remote_filename, controlfile, '\0');
 		get_response_or_say_and_die("sending control file");
