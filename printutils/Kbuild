@@ -4,5 +4,5 @@
 
 lib-y :=
 
-lib-$(CONFIG_LPR) += lpr.o parse_prt.o
-lib-$(CONFIG_LPQ) += lpq.o parse_prt.o
+lib-$(CONFIG_LPR) += lpr.o
+lib-$(CONFIG_LPQ) += lpr.o

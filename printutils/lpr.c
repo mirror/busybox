@@ -1,200 +1,236 @@
 /* vi: set sw=4 ts=4: */
 /*
- * Copyright 2008 Walter Harms (WHarms@bfs.de)
+ * bare bones version of lpr & lpq: BSD printing utilities
  *
- * Licensed under the GPL v2, see the file LICENSE in this tarball.
+ * Copyright (C) 2008 by Vladimir Dronnikov <dronnikov@gmail.com>
+ *
+ * Original idea and code:
+ *      Walter Harms <WHarms@bfs.de>
+ *
+ * Licensed under GPLv2, see file LICENSE in this tarball for details.
+ *
+ * See RFC 1179 for propocol description.
  */
 #include "libbb.h"
-#include "lpr.h"
 
-static char *mygethostname31(void)
-{
-	char *s = xzalloc(32);
-	if (gethostname(s, 31) < 0)
-		bb_perror_msg_and_die("gethostname");
-	/* gethostname() does not guarantee NUL-termination. xzalloc does. */
-	return s;
-}
-
-static int xmkstemp(char *temp_name)
-{
-	int fd;
-
-	fd = mkstemp(temp_name);
-	if (fd < 0)
-		bb_perror_msg_and_die("mkstemp");
-	return fd;
-}
-
-/* lpd server sends NUL byte on success.
- * Else read the errormessage and exit.
+/*
+ * LPD returns binary 0 on success.
+ * Otherwise it returns error message.
  */
-static void get_response(int server_sock, const char *emsg)
+static void get_response_or_say_and_die(const char *errmsg)
 {
-	char buf = '\0';
+	char buf = ' ';
 
-	safe_read(server_sock, &buf, 1);
-	if (buf != '\0') {
-		bb_error_msg("%s. Server said:", emsg);
-		fputc(buf, stderr);
+	fflush(stdout);
+
+	safe_read(STDOUT_FILENO, &buf, 1);
+	if ('\0' != buf) {
+		// request has failed
+		bb_error_msg("error while %s. Server said:", errmsg);
+		safe_write(STDERR_FILENO, &buf, 1);
 		logmode = 0; /* no errors from bb_copyfd_eof() */
-		bb_copyfd_eof(server_sock, STDERR_FILENO);
+		bb_copyfd_eof(STDOUT_FILENO, STDERR_FILENO);
 		xfunc_die();
 	}
 }
 
-int lpr_main(int argc, char *argv[]) MAIN_EXTERNALLY_VISIBLE;
-int lpr_main(int argc, char *argv[])
+int lpqr_main(int argc, char *argv[]) MAIN_EXTERNALLY_VISIBLE;
+int lpqr_main(int argc, char *argv[])
 {
-	struct netprint netprint;
-	char temp_name[] = "/tmp/lprXXXXXX"; /* for mkstemp */
-	char *strings[5];
-	const char *netopt;
-	const char *jobtitle;
-	const char *hostname;
-	const char *jobclass;
-	char *username;
-	int pid1000;
-	int server_sock, tmp_fd;
-	unsigned opt;
 	enum {
-		VERBOSE = 1 << 0,
-		USE_HEADER = 1 << 1, /* -h: want banner printed */
-		USE_MAIL = 1 << 2, /* -m: send mail back to user */
-		OPT_U = 1 << 3, /* -U username */
-		OPT_J = 1 << 4, /* -J title: the job title for the banner page */
-		OPT_C = 1 << 5, /* -C class: job "class" (? supposedly printed on banner) */
-		OPT_P = 1 << 6, /* -P queue[@host[:port]] */
-		/* if no -P is given use $PRINTER, then "lp@localhost:515" */
+		OPT_P           = 1 << 0, // -P queue[@host[:port]]. If no -P is given use $PRINTER, then "lp@localhost:515"
+		OPT_U           = 1 << 1, // -U username
+
+		LPR_V           = 1 << 2, // -V: be verbose
+		LPR_h           = 1 << 3, // -h: want banner printed    
+		LPR_C           = 1 << 4, // -C class: job "class" (? supposedly printed on banner)
+		LPR_J           = 1 << 5, // -J title: the job title for the banner page
+		LPR_m           = 1 << 6, // -m: send mail back to user
+
+		LPQ_SHORT_FMT   = 1 << 2, // -s: short listing format
+		LPQ_DELETE      = 1 << 3, // -d: delete job(s)
+		LPQ_FORCE       = 1 << 4, // -f: force waiting job(s) to be printed
 	};
+	char tempfile[sizeof("/tmp/lprXXXXXX")];
+	const char *job_title;
+	const char *printer_class = "";   // printer class, max 32 char
+	const char *queue;                // name of printer queue
+	const char *server = "localhost"; // server[:port] of printer queue
+	char *hostname;
+	// N.B. IMHO getenv("USER") can be way easily spoofed!
+	const char *user = bb_getpwuid(NULL, -1, getuid());
+	unsigned job;
+	unsigned opts;
+	int old_stdout, fd;
 
-	/* Set defaults, parse options */
-	hostname = mygethostname31();
-	netopt = NULL;
-	username = getenv("LOGNAME");
-	if (username == NULL)
-		username = (char*)"user"; /* TODO: getpwuid(getuid())->pw_name? */
-	opt = getopt32(argv, "VhmU:J:C:P:",
-			&username, &jobtitle, &jobclass, &netopt);
+	// parse options
+	// TODO: set opt_complementary: s,d,f are mutually exclusive
+	opts = getopt32(argv,
+		(/*lp*/'r' == applet_name[2]) ? "P:U:VhC:J:m" : "P:U:sdf"
+		, &queue, &user
+		, &printer_class, &job_title
+	);
 	argv += optind;
-	parse_prt(netopt, &netprint);
-	username = xstrndup(username, 31);
 
-	/* For stdin we need to save it to a tempfile,
-	 * otherwise we can't know the size. */
-	tmp_fd = -1;
-	if (!*argv) {
-		if (jobtitle == NULL)
-			jobtitle = (char *) bb_msg_standard_input;
-
-		tmp_fd = xmkstemp(temp_name);
-		if (bb_copyfd_eof(STDIN_FILENO, tmp_fd) < 0)
-			goto del_temp_file;
-		/* TODO: we actually can have deferred write errors... */
-		close(tmp_fd);
-		argv--; /* back off from NULL */
-		*argv = temp_name;
+	// if queue is not specified -> use $PRINTER
+	if (!(opts & OPT_P))
+		queue = getenv("PRINTER");
+	// if queue is still not specified ->
+	if (!queue) {
+		// ... queue defaults to "lp"
+		// server defaults to "localhost"
+		queue = "lp";
+	// if queue is specified ->
+	} else {
+		// queue name is to the left of '@'
+		char *s = strchr(queue, '@');
+		if (s) {
+			// server name is to the right of '@'
+			*s = '\0';
+			server = s + 1;
+		}
 	}
 
-	if (opt & VERBOSE)
-		puts("connect to server");
-	server_sock = xconnect_stream(netprint.lsa);
+	// do connect
+	fd = create_and_connect_stream_or_die(server, 515);
+	// play with descriptors to save space: fdprintf > printf
+	old_stdout = dup(STDOUT_FILENO);
+	xmove_fd(fd, STDOUT_FILENO);
 
-	/* "Receive a printer job" command */
-	fdprintf(server_sock, "\x2" "%s\n", netprint.queue);
-	get_response(server_sock, "set queue failed");
-
-	pid1000 = getpid() % 1000;
-	while (*argv) {
-		char dfa_name[sizeof("dfAnnn") + 32];
-		struct stat st;
-		char **sptr;
-		unsigned size;
-		int fd;
-
-		fd = xopen(*argv, O_RDONLY);
-
-		/* "The name ... should start with ASCII "dfA",
-		 * followed by a three digit job number, followed
-		 * by the host name which has constructed the file." */
-		snprintf(dfa_name, sizeof(dfa_name),
-			"dfA%03u%s", pid1000, hostname);
-		pid1000 = (pid1000 + 1) % 1000;
-
-		/*
-		 * Generate control file contents
-		 */
-		/* H HOST, P USER, l DATA_FILE_NAME, J JOBNAME */
-		strings[0] = xasprintf("H%.32s\n" "P%.32s\n" "l%.32s\n"
-			"J%.99s\n",
-			hostname, username, dfa_name,
-			(opt & OPT_J) ? jobtitle : *argv);
-		sptr = &strings[1];
-		/* C CLASS - printed on banner page (if L cmd is also given) */
-		if (opt & OPT_C) /* [1] */
-			*sptr++ = xasprintf("C%.32s\n", jobclass);
-		/* M WHOM_TO_MAIL */
-		if (opt & USE_MAIL) /* [2] */
-			*sptr++ = xasprintf("M%.32s\n", username);
-		/* H USER - print banner page, with given user's name */
-		if (opt & USE_HEADER) /* [3] */
-			*sptr++ = xasprintf("L%.32s\n", username);
-		*sptr = NULL; /* [4] max */
-
-		/* RFC 1179: "LPR servers MUST be able
-		 * to receive the control file subcommand first
-		 * and SHOULD be able to receive the data file
-		 * subcommand first".
-		 * Ok, we'll send control file first. */
-		size = 0;
-		sptr = strings;
-		while (*sptr)
-			size += strlen(*sptr++);
-		if (opt & VERBOSE)
-			puts("send control file");
-		/* 2: "Receive control file" subcommand */
-		fdprintf(server_sock, "\x2" "%u c%s\n", size, dfa_name + 1);
-		sptr = strings;
-		while (*sptr) {
-			xwrite(server_sock, *sptr, strlen(*sptr));
-			free(*sptr);
-			sptr++;
+	//
+	// LPQ ------------------------
+	//
+	if (/*lp*/'q' == applet_name[2]) {
+		char cmd;
+		// force printing of every job still in queue
+		if (opts & LPQ_FORCE) {
+			cmd = 1;
+			goto command;
+		// delete job(s)
+		} else if (opts & LPQ_DELETE) {
+			printf("\x5" "%s %s", queue, user);
+			while (*argv) {
+				printf(" %s", *argv++);
+			}
+			bb_putchar('\n');
+		// dump current jobs status
+		// N.B. periodical polling should be achieved
+		// via "watch -n delay lpq"
+		// They say it's the UNIX-way :)
+		} else {
+			cmd = (opts & LPQ_SHORT_FMT) ? 3 : 4;
+ command:
+			printf("%c" "%s\n", cmd, queue);
+			bb_copyfd_eof(STDOUT_FILENO, old_stdout);
 		}
-		free(strings);
+
+		return EXIT_SUCCESS;
+	}
+
+	//
+	// LPR ------------------------
+	//
+	if (opts & LPR_V)
+		bb_error_msg("connected to server");
+
+	job = getpid() % 1000;
+	// TODO: when do finally we invent char *xgethostname()?!!
+	hostname = xzalloc(MAXHOSTNAMELEN+1);
+	gethostname(hostname, MAXHOSTNAMELEN);
+
+	// no files given on command line? -> use stdin
+	if (!*argv)
+		*--argv = (char *)"-";
+
+	printf("\x2" "%s\n", queue);
+	get_response_or_say_and_die("setting queue");
+
+	// process files
+	do {
+		struct stat st;
+		char *c;
+		char *remote_filename;
+		char *controlfile;
+
+		// if data file is stdin, we need to dump it first
+		if (LONE_DASH(*argv)) {
+			strcpy(tempfile, "/tmp/lprXXXXXX");
+			fd = mkstemp(tempfile);
+			if (fd < 0)
+				bb_perror_msg_and_die("mkstemp");
+			bb_copyfd_eof(STDIN_FILENO, fd);
+			xlseek(fd, 0, SEEK_SET);
+			*argv = (char*)bb_msg_standard_input;
+		} else {
+			fd = xopen(*argv, O_RDONLY);
+		}
+
+		/* "The name ... should start with ASCII "cfA",
+		 * followed by a three digit job number, followed
+		 * by the host name which has constructed the file."
+		 * We supply 'c' or 'd' as needed for control/data file. */
+		remote_filename = xasprintf("fA%03u%s", job, hostname);
+
+		// create control file
+		// TODO: all lines but 2 last are constants! How we can use this fact?
+		controlfile = xasprintf(
+			"H" "%.32s\n" "P" "%.32s\n" /* H HOST, P USER */
+			"C" "%.32s\n" /* C CLASS - printed on banner page (if L cmd is also given) */
+			"J" "%.99s\n" /* J JOBNAME */
+			/* "class name for banner page and job name
+			 * for banner page commands must precede L command" */
+			"L" "%.32s\n" /* L USER - print banner page, with given user's name */
+			"M" "%.32s\n" /* M WHOM_TO_MAIL */
+			"l" "d%.31s\n" /* l DATA_FILE_NAME ("dfAxxx") */
+			, hostname, user
+			, printer_class /* can be "" */
+			, ((opts & LPR_J) ? job_title : *argv)
+			, (opts & LPR_h) ? user : ""
+			, (opts & LPR_m) ? user : ""
+			, remote_filename
+		);
+		// delete possible "\nX\n" patterns
+		while ((c = strchr(controlfile, '\n')) != NULL && c[1] && c[2] == '\n')
+			memmove(c, c+2, strlen(c+1)); /* strlen(c+1) == strlen(c+2) + 1 */
+
+		// send control file
+		if (opts & LPR_V)
+			bb_error_msg("sending control file");
 		/* "Once all of the contents have
 		 * been delivered, an octet of zero bits is sent as
 		 * an indication that the file being sent is complete.
 		 * A second level of acknowledgement processing
 		 * must occur at this point." */
-		xwrite(server_sock, "", 1);
-		get_response(server_sock, "send control file failed");
+		printf("\x2" "%u %s\n" "c%s" "%c",
+				(unsigned)strlen(controlfile),
+				remote_filename, controlfile, '\0');
+		get_response_or_say_and_die("sending control file");
 
-		/* Sending data */
-		st.st_size = 0; /* paranoia */
+		// send data file, with name "dfaXXX"
+		if (opts & LPR_V)
+			bb_error_msg("sending data file");
+		st.st_size = 0; /* paranoia: fstat may theoretically fail */
 		fstat(fd, &st);
-		if (opt & VERBOSE)
-			puts("send data file");
-		/* 3: "Receive data file" subcommand */
-		fdprintf(server_sock, "\x3" "%"OFF_FMT"u %s\n", st.st_size, dfa_name);
-		/* TODO: if file shrank and we wrote less than st.st_size,
-		 * pad output with NUL bytes? Otherwise server won't know
-		 * that we are done. */
-		if (bb_copyfd_size(fd, server_sock, st.st_size) < 0)
-			xfunc_die();
+		printf("\x3" "%"OFF_FMT"u d%s\n", st.st_size, remote_filename);
+		if (bb_copyfd_size(fd, STDOUT_FILENO, st.st_size) != st.st_size) {
+			// We're screwed. We sent less bytes than we advertised.
+			bb_error_msg_and_die("local file changed size?!");
+		}
+		bb_putchar('\0');
+		get_response_or_say_and_die("sending data file");
+
+		// delete temporary file if we dumped stdin
+		if (*argv == (char*)bb_msg_standard_input)
+			unlink(tempfile);
+
+		// cleanup
 		close(fd);
-		xwrite(server_sock, "", 1);
-		get_response(server_sock, "send file failed");
+		free(remote_filename);
+		free(controlfile);
 
-		argv++;
-	}
+		// next, please!
+		job = (job + 1) % 1000;
+	} while (*++argv);
 
-	if (ENABLE_FEATURE_CLEAN_UP)
-		close(server_sock);
-
-	if (tmp_fd >= 0) {
- del_temp_file:
-		unlink(temp_name);
-	}
-
-	return 0;
+	return EXIT_SUCCESS;
 }

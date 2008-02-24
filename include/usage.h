@@ -2052,22 +2052,23 @@ USE_FEATURE_BRCTL_FANCY("\n" \
        "losetup -f will show the first loop free loop device\n\n"
 
 #define lpq_trivial_usage \
-       "[-P lp[@host[:port]]] [-t DELAY] [-d JOBID] [-fs]"
+       "[-P queue[@host[:port]]] [-U USERNAME] [-d JOBID...] [-fs]"
 #define lpq_full_usage \
      "Options:" \
      "\n	-P	lp service to connect to (else uses $PRINTER)" \
-     "\n	-t	Scan the queue every DELAY seconds" \
-     "\n	-d	Delete job" \
+     "\n	-d	Delete jobs" \
      "\n	-f	Force any waiting job to be printed" \
      "\n	-s	Short display" \
 
 #define lpr_trivial_usage \
-       "-P lp[@host[:port]] -U USERNAME -J TITLE -Vmh [filenames]"
+       "-P queue[@host[:port]] -U USERNAME -J TITLE -Vmh [FILE...]"
+/* -C CLASS exists too, not shown.
+ * CLASS is supposed to be printed on banner page, if one is requested */
 #define lpr_full_usage \
      "Options:" \
      "\n	-P	lp service to connect to (else uses $PRINTER)"\
-     "\n	-m	Send mail to LOGNAME@HOSTNAME" \
-     "\n	-h	Banner or header for this job" \
+     "\n	-m	Send mail on completion" \
+     "\n	-h	Print banner page too" \
      "\n	-V	Verbose" \
 
 #define ls_trivial_usage \
