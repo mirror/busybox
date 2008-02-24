@@ -488,6 +488,14 @@ config RMDIR
 	help
 	  rmdir is used to remove empty directories.
 
+config FEATURE_RMDIR_LONG_OPTIONS
+	bool "Enable long options"
+	default n
+	depends on RMDIR && GETOPT_LONG
+	help
+	  Support long options for the rmdir applet, including
+	  --ignore-fail-on-non-empty for compatibility with GNU rmdir.
+
 config SEQ
 	bool "seq"
 	default n
