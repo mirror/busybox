@@ -1175,41 +1175,40 @@ static void goto_mark(void)
 static char opp_bracket(char bracket)
 {
 	switch (bracket) {
-	case '{': case '[':
-		return bracket + 2;
-	case '(':
-		return ')';
-	case '}': case ']':
-		return bracket - 2;
-	case ')':
-		return '(';
-	}
-	return 0;
+		case '{': case '[': /* '}' == '{' + 2. Same for '[' */
+			bracket++;
+		case '(':           /* ')' == '(' + 1 */
+			bracket++;
+			break;
+		case '}': case ']':
+			bracket--;
+		case ')':
+			bracket--;
+			break;
+	};
+	return bracket;
 }
 
 static void match_right_bracket(char bracket)
 {
-	int bracket_line = -1;
 	int i;
 
 	if (strchr(flines[cur_fline], bracket) == NULL) {
 		print_statusline("No bracket in top line");
 		return;
 	}
+	bracket = opp_bracket(bracket);
 	for (i = cur_fline + 1; i < max_fline; i++) {
-		if (strchr(flines[i], opp_bracket(bracket)) != NULL) {
-			bracket_line = i;
-			break;
+		if (strchr(flines[i], bracket) != NULL) {
+			buffer_line(i);
+			return;
 		}
 	}
-	if (bracket_line == -1)
-		print_statusline("No matching bracket found");
-	buffer_line(bracket_line - max_displayed_line);
+	print_statusline("No matching bracket found");
 }
 
 static void match_left_bracket(char bracket)
 {
-	int bracket_line = -1;
 	int i;
 
 	if (strchr(flines[cur_fline + max_displayed_line], bracket) == NULL) {
@@ -1217,15 +1216,14 @@ static void match_left_bracket(char bracket)
 		return;
 	}
 
+	bracket = opp_bracket(bracket);
 	for (i = cur_fline + max_displayed_line; i >= 0; i--) {
-		if (strchr(flines[i], opp_bracket(bracket)) != NULL) {
-			bracket_line = i;
-			break;
+		if (strchr(flines[i], bracket) != NULL) {
+			buffer_line(i);
+			return;
 		}
 	}
-	if (bracket_line == -1)
-		print_statusline("No matching bracket found");
-	buffer_line(bracket_line);
+	print_statusline("No matching bracket found");
 }
 #endif  /* FEATURE_LESS_BRACKETS */
 
