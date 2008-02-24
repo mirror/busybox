@@ -26,7 +26,7 @@ static void klogd_signal(int sig ATTRIBUTE_UNUSED)
 	klogctl(7, NULL, 0);
 	klogctl(0, NULL, 0);
 	syslog(LOG_NOTICE, "klogd: exiting");
-	exit(EXIT_SUCCESS);
+	kill_myself_with_sig(sig);
 }
 
 #define log_buffer bb_common_bufsiz1

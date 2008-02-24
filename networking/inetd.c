@@ -1327,7 +1327,7 @@ int inetd_main(int argc, char **argv)
 	}
 
 	memset((char *) &sa, 0, sizeof(sa));
-	sigemptyset(&sa.sa_mask);
+	/*sigemptyset(&sa.sa_mask); - memset did it */
 	sigaddset(&sa.sa_mask, SIGALRM);
 	sigaddset(&sa.sa_mask, SIGCHLD);
 	sigaddset(&sa.sa_mask, SIGHUP);

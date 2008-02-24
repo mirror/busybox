@@ -808,12 +808,7 @@ static void sigexit(int sig)
 	if (sig <= 0)
 		_exit(- sig);
 
-	/* Enable only this sig and kill ourself with it */
-	signal(sig, SIG_DFL);
-	sigdelset(&block_all, sig);
-	sigprocmask(SIG_SETMASK, &block_all, NULL);
-	raise(sig);
-	_exit(1); /* Should not reach it */
+	kill_myself_with_sig(sig); /* does not return */
 }
 
 /* Restores tty foreground process group, and exits. */

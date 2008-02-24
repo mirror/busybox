@@ -43,7 +43,7 @@ Cf:
 #define TIMEOUT_LONG 10
 #define MAXERRORS 10
 
-static int read_byte(int fd, unsigned int timeout)
+static int read_byte(int fd, unsigned timeout)
 {
 	char buf[1];
 	int n;

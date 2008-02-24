@@ -141,7 +141,7 @@ int dd_main(int argc, char **argv)
 #if ENABLE_FEATURE_DD_SIGNAL_HANDLING
 	sigact.sa_handler = dd_output_status;
 	sigact.sa_flags = SA_RESTART;
-	sigemptyset(&sigact.sa_mask);
+	/*sigemptyset(&sigact.sa_mask); - memset did it */
 	sigaction(SIGUSR1, &sigact, NULL);
 #endif
 
@@ -164,40 +164,40 @@ int dd_main(int argc, char **argv)
 		if (what == 0)
 			bb_show_usage();
 		arg += key_len;
-		/* Must fit into positive ssize_t */
 #if ENABLE_FEATURE_DD_IBS_OBS
-			if (what == OP_ibs) {
-				ibs = xatoul_range_sfx(arg, 1, ((size_t)-1L)/2, dd_suffixes);
-				continue;
+		if (what == OP_ibs) {
+			/* Must fit into positive ssize_t */
+			ibs = xatoul_range_sfx(arg, 1, ((size_t)-1L)/2, dd_suffixes);
+			continue;
+		}
+		if (what == OP_obs) {
+			obs = xatoul_range_sfx(arg, 1, ((size_t)-1L)/2, dd_suffixes);
+			continue;
+		}
+		if (what == OP_conv) {
+			while (1) {
+				/* find ',', replace them with NUL so we can use arg for
+				 * index_in_strings() without copying.
+				 * We rely on arg being non-null, else strchr would fault.
+				 */
+				key = strchr(arg, ',');
+				if (key)
+					*key = '\0';
+				what = index_in_strings(keywords, arg) + 1;
+				if (what < OP_conv_notrunc)
+					bb_error_msg_and_die(bb_msg_invalid_arg, arg, "conv");
+				if (what == OP_conv_notrunc)
+					flags |= FLAG_NOTRUNC;
+				if (what == OP_conv_sync)
+					flags |= FLAG_SYNC;
+				if (what == OP_conv_noerror)
+					flags |= FLAG_NOERROR;
+				if (!key) /* no ',' left, so this was the last specifier */
+					break;
+				arg = key + 1; /* skip this keyword and ',' */
 			}
-			if (what == OP_obs) {
-				obs = xatoul_range_sfx(arg, 1, ((size_t)-1L)/2, dd_suffixes);
-				continue;
-			}
-			if (what == OP_conv) {
-				while (1) {
-					/* find ',', replace them with nil so we can use arg for
-					 * index_in_strings() without copying.
-					 * We rely on arg being non-null, else strchr would fault.
-					 */
-					key = strchr(arg, ',');
-					if (key)
-						*key = '\0';
-					what = index_in_strings(keywords, arg) + 1;
-					if (what < OP_conv_notrunc)
-						bb_error_msg_and_die(bb_msg_invalid_arg, arg, "conv");
-					if (what == OP_conv_notrunc)
-						flags |= FLAG_NOTRUNC;
-					if (what == OP_conv_sync)
-						flags |= FLAG_SYNC;
-					if (what == OP_conv_noerror)
-						flags |= FLAG_NOERROR;
-					if (!key) /* no ',' left, so this was the last specifier */
-						break;
-					arg = key + 1; /* skip this keyword and ',' */
-				}
-				continue;
-			}
+			continue;
+		}
 #endif
 		if (what == OP_bs) {
 			ibs = obs = xatoul_range_sfx(arg, 1, ((size_t)-1L)/2, dd_suffixes);

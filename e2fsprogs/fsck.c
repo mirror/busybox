@@ -1168,8 +1168,8 @@ int fsck_main(int argc, char **argv)
 
 	memset(&sa, 0, sizeof(sa));
 	sa.sa_handler = signal_cancel;
-	sigaction(SIGINT, &sa, 0);
-	sigaction(SIGTERM, &sa, 0);
+	sigaction(SIGINT, &sa, NULL);
+	sigaction(SIGTERM, &sa, NULL);
 
 	setbuf(stdout, NULL);
 

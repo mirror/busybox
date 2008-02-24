@@ -78,3 +78,17 @@ void sig_pause(void)
 	sigemptyset(&ss);
 	sigsuspend(&ss);
 }
+
+/* Assuming the sig is fatal */
+void kill_myself_with_sig(int sig)
+{
+	sigset_t set;
+
+	signal(sig, SIG_DFL);
+
+	sigemptyset(&set);
+	sigaddset(&set, sig);
+	sigprocmask(SIG_UNBLOCK, &set, NULL);
+	raise(sig);
+	_exit(1); /* Should not reach it */
+}

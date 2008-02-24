@@ -475,7 +475,7 @@ static void quit_signal(int sig)
 	puts("syslogd exiting");
 	if (ENABLE_FEATURE_IPC_SYSLOG)
 		ipcsyslog_cleanup();
-	exit(1);
+	kill_myself_with_sig(sig);
 }
 
 #ifdef SYSLOGD_MARK

@@ -309,6 +309,7 @@ void sig_block(int);
 void sig_unblock(int);
 /* UNUSED: void sig_blocknone(void); */
 void sig_pause(void);
+void kill_myself_with_sig(int sig) ATTRIBUTE_NORETURN;
 
 
 void xsetgid(gid_t gid);

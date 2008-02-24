@@ -174,7 +174,9 @@ static void less_exit(int code)
 {
 	bb_putchar('\n');
 	set_tty_cooked();
-	exit(code); /* TODO: "suicide mode" for code == -signal */
+	if (code < 0)
+		kill_myself_with_sig(- code); /* does not return */
+	exit(code);
 }
 
 /* Move the cursor to a position (x,y), where (0,0) is the
@@ -1328,9 +1330,9 @@ static void keypress_process(int keypress)
 		number_process(keypress);
 }
 
-static void sig_catcher(int sig ATTRIBUTE_UNUSED)
+static void sig_catcher(int sig)
 {
-	less_exit(1) /* TODO: "suicide mode" for code == -signal */
+	less_exit(- sig);
 }
 
 int less_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;

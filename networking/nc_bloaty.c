@@ -163,7 +163,7 @@ static void catch(int sig)
 	if (o_verbose > 1)                /* normally we don't care */
 		fprintf(stderr, SENT_N_RECV_M, wrote_net, wrote_out);
 	fprintf(stderr, "punt!\n");
-	exit(1);
+	kill_myself_with_sig(sig);
 }
 
 /* unarm  */

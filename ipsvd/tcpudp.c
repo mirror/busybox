@@ -68,7 +68,7 @@ static void sig_term_handler(int sig)
 {
 	if (verbose)
 		printf("%s: info: sigterm received, exit\n", applet_name);
-	exit(0);
+	kill_myself_with_sig(sig);
 }
 
 /* Little bloated, but tries to give accurate info how child exited.

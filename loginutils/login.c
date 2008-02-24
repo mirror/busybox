@@ -214,13 +214,12 @@ static void alarm_handler(int sig ATTRIBUTE_UNUSED)
 	 * arrive here when their connection is broken.
 	 * We don't want to block here */
 	ndelay_on(1);
-	ndelay_on(2);
 	printf("\r\nLogin timed out after %d seconds\r\n", TIMEOUT);
+	fflush(stdout);
 	/* unix API is brain damaged regarding O_NONBLOCK,
 	 * we should undo it, or else we can affect other processes */
 	ndelay_off(1);
-	ndelay_off(2);
-	exit(EXIT_SUCCESS);
+	_exit(EXIT_SUCCESS);
 }
 
 int login_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
