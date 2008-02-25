@@ -50,6 +50,7 @@ void print_login_issue(const char *issue_file, const char *tty)
 				outbuf = uts.sysname;
 				break;
 			case 'n':
+			case 'h':
 				outbuf = uts.nodename;
 				break;
 			case 'r':
@@ -72,10 +73,6 @@ void print_login_issue(const char *issue_file, const char *tty)
 			case 't':
 				strftime(buf, sizeof(buf), fmtstr_t, localtime(&t));
 				break;
-			case 'h':
-				gethostname(buf, sizeof(buf) - 1);
-				buf[sizeof(buf) - 1] = '\0';
-				break;
 			case 'l':
 				outbuf = tty;
 				break;
@@ -91,13 +88,12 @@ void print_login_issue(const char *issue_file, const char *tty)
 
 void print_login_prompt(void)
 {
-	char buf[MAXHOSTNAMELEN+1];
-
-	if (gethostname(buf, MAXHOSTNAMELEN) == 0)
-		fputs(buf, stdout);
-
+	char *hostname = safe_gethostname();
+	
+	fputs(hostname, stdout);
 	fputs(LOGIN, stdout);
 	fflush(stdout);
+	free(hostname);
 }
 
 /* Clear dangerous stuff, set PATH */

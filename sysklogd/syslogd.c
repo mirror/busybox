@@ -97,8 +97,8 @@ struct globals {
 	struct shbuf_ds *shbuf;
 #endif
 	time_t last_log_time;
-	/* localhost's name */
-	char localHostName[64];
+	/* localhost's name. We print only first 64 chars */
+	char *hostname;
 
 	/* We recv into recvbuf... */
 	char recvbuf[MAX_READ];
@@ -416,7 +416,7 @@ static void timestamp_and_log(int pri, char *msg, int len)
 	else {
 		char res[20];
 		parse_fac_prio_20(pri, res);
-		sprintf(G.printbuf, "%s %s %s %s\n", timestamp, G.localHostName, res, msg);
+		sprintf(G.printbuf, "%s %.64s %s %s\n", timestamp, G.hostname, res, msg);
 	}
 
 	/* Log message locally (to file or shared mem) */
@@ -647,11 +647,8 @@ int syslogd_main(int argc, char **argv)
 		option_mask32 |= OPT_locallog;
 
 	/* Store away localhost's name before the fork */
-	/* "It is unspecified whether the truncated hostname
-	 * will be null-terminated". We give it (size - 1),
-	 * thus last byte will be NUL no matter what. */
-	gethostname(G.localHostName, sizeof(G.localHostName) - 1);
-	*strchrnul(G.localHostName, '.') = '\0';
+	G.hostname = safe_gethostname();
+	*strchrnul(G.hostname, '.') = '\0';
 
 	if (!(option_mask32 & OPT_nofork)) {
 		bb_daemonize_or_rexec(DAEMON_CHDIR_ROOT, argv);

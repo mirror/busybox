@@ -1133,8 +1133,8 @@ static void signal_handler(int sig)
 static const char *get_variable(const char *variable, void *info)
 {
 	static char sbuf[sizeof(int)*3 + 2]; /* sign and NUL */
+	static char *hostname;
 
-	char hostname[STRING_LENGTH];
 	struct get_variable_info *gv_info = info;
 	const char *field_names[] = {
 			"hostname", "mntpt", "devpath", "devname",
@@ -1143,12 +1143,8 @@ static const char *get_variable(const char *variable, void *info)
 	};
 	int i;
 
-	if (gethostname(hostname, STRING_LENGTH - 1) != 0)
-		/* Here on error we should do exit(RV_SYS_ERROR), instead we do exit(EXIT_FAILURE) */
-		error_logger_and_die(LOG_ERR, "gethostname");
-
-	hostname[STRING_LENGTH - 1] = '\0';
-
+	if (!hostname)
+		hostname = safe_gethostname();
 	/* index_in_str_array returns i>=0  */
 	i = index_in_str_array(field_names, variable);
 

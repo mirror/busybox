@@ -24,8 +24,7 @@ static void do_sethostname(char *s, int isfile)
 		if (sethostname(s, strlen(s)) < 0) {
 			if (errno == EPERM)
 				bb_error_msg_and_die(bb_msg_perm_denied_are_you_root);
-			else
-				bb_perror_msg_and_die("sethostname");
+			bb_perror_msg_and_die("sethostname");
 		}
 	} else {
 		f = xfopen(s, "r");
@@ -54,27 +53,27 @@ int hostname_main(int argc, char **argv)
 		OPT_dfis = 0xf,
 	};
 
-	char buf[256];
+	char *buf;
 	char *hostname_str;
 
 	if (argc < 1)
 		bb_show_usage();
 
 	getopt32(argv, "dfisF:", &hostname_str);
+	argv += optind;
+	buf = safe_gethostname();
 
 	/* Output in desired format */
 	if (option_mask32 & OPT_dfis) {
 		struct hostent *hp;
 		char *p;
-		gethostname(buf, sizeof(buf));
 		hp = xgethostbyname(buf);
 		p = strchr(hp->h_name, '.');
 		if (option_mask32 & OPT_f) {
 			puts(hp->h_name);
 		} else if (option_mask32 & OPT_s) {
-			if (p != NULL) {
+			if (p)
 				*p = '\0';
-			}
 			puts(hp->h_name);
 		} else if (option_mask32 & OPT_d) {
 			if (p)
@@ -89,14 +88,15 @@ int hostname_main(int argc, char **argv)
 	/* Set the hostname */
 	else if (option_mask32 & OPT_F) {
 		do_sethostname(hostname_str, 1);
-	} else if (optind < argc) {
-		do_sethostname(argv[optind], 0);
+	} else if (argv[0]) {
+		do_sethostname(argv[0], 0);
 	}
 	/* Or if all else fails,
 	 * just print the current hostname */
 	else {
-		gethostname(buf, sizeof(buf));
 		puts(buf);
 	}
+	if (ENABLE_FEATURE_CLEAN_UP)
+		free(buf);
 	return 0;
 }

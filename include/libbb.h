@@ -550,6 +550,8 @@ extern FILE *fopen_or_warn_stdin(const char *filename);
  * If this is a problem, use bare poll and open-code EINTR/ENOMEM handling */
 int safe_poll(struct pollfd *ufds, nfds_t nfds, int timeout_ms);
 
+char *safe_gethostname(void);
+
 /* Convert each alpha char in str to lower-case */
 char* str_tolower(char *str);
 

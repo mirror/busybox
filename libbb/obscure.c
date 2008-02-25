@@ -93,7 +93,7 @@ static const char *obscure_msg(const char *old_p, const char *new_p, const struc
 	/* Add 2 for each type of characters to the minlen of password */
 	int size = CONFIG_PASSWORD_MINLEN + 8;
 	const char *p;
-	char hostname[255];
+	char *hostname;
 
 	/* size */
 	if (!new_p || (length = strlen(new_p)) < CONFIG_PASSWORD_MINLEN)
@@ -108,12 +108,11 @@ static const char *obscure_msg(const char *old_p, const char *new_p, const struc
 		return "similar to gecos";
 	}
 	/* hostname as-is, as sub-string, reversed, capitalized, doubled */
-	if (gethostname(hostname, 255) == 0) {
-		hostname[254] = '\0';
-		if (string_checker(new_p, hostname)) {
-			return "similar to hostname";
-		}
-	}
+	hostname = safe_gethostname();
+	i = string_checker(new_p, hostname);
+	free(hostname);
+	if (i)
+		return "similar to hostname";
 
 	/* Should / Must contain a mix of: */
 	for (i = 0; i < length; i++) {

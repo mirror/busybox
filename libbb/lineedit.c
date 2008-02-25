@@ -1203,11 +1203,7 @@ static void parse_and_put_prompt(const char *prmt_ptr)
 					break;
 #endif
 				case 'h':
-					pbuf = free_me = xzalloc(256);
-					if (gethostname(pbuf, 255) < 0) {
-						pbuf[0] = '?';
-						pbuf[1] = '\0';
-					}
+					pbuf = free_me = safe_gethostname();
 					*strchrnul(pbuf, '.') = '\0';
 					break;
 				case '$':
