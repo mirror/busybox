@@ -332,8 +332,7 @@ int chpst_main(int argc, char **argv)
 	if (env_dir) edir(env_dir);
 	if (root) {
 		xchdir(root);
-		if (chroot(".") == -1)
-			bb_perror_msg_and_die("chroot");
+		xchroot(".");
 	}
 	slimit();
 	if (nicelvl) {

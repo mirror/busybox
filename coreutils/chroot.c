@@ -19,9 +19,7 @@ int chroot_main(int argc, char **argv)
 	}
 
 	++argv;
-	if (chroot(*argv)) {
-		bb_perror_msg_and_die("cannot change root directory to %s", *argv);
-	}
+	xchroot(*argv);
 	xchdir("/");
 
 	++argv;

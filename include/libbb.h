@@ -315,6 +315,7 @@ void kill_myself_with_sig(int sig) ATTRIBUTE_NORETURN;
 void xsetgid(gid_t gid);
 void xsetuid(uid_t uid);
 void xchdir(const char *path);
+void xchroot(const char *path);
 void xsetenv(const char *key, const char *value);
 void xunlink(const char *pathname);
 void xstat(const char *pathname, struct stat *buf);
@@ -500,6 +501,8 @@ extern void *xrealloc(void *old, size_t size);
 
 extern ssize_t safe_read(int fd, void *buf, size_t count);
 extern ssize_t nonblock_safe_read(int fd, void *buf, size_t count);
+// NB: will return short read on error, not -1,
+// if some data was read before error occurred
 extern ssize_t full_read(int fd, void *buf, size_t count);
 extern void xread(int fd, void *buf, size_t count);
 extern unsigned char xread_char(int fd);
@@ -514,6 +517,8 @@ extern ssize_t open_read_close(const char *filename, void *buf, size_t count);
 extern void *xmalloc_open_read_close(const char *filename, size_t *sizep);
 
 extern ssize_t safe_write(int fd, const void *buf, size_t count);
+// NB: will return short write on error, not -1,
+// if some data was written before error occurred
 extern ssize_t full_write(int fd, const void *buf, size_t count);
 extern void xwrite(int fd, const void *buf, size_t count);
 

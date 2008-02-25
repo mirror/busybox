@@ -577,6 +577,12 @@ void xchdir(const char *path)
 		bb_perror_msg_and_die("chdir(%s)", path);
 }
 
+void xchroot(const char *path)
+{
+	if (chroot(path))
+		bb_perror_msg_and_die("can't change root directory to %s", path);
+}
+
 // Print a warning message if opendir() fails, but don't die.
 DIR *warn_opendir(const char *path)
 {

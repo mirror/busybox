@@ -88,8 +88,14 @@ ssize_t full_read(int fd, void *buf, size_t len)
 	while (len) {
 		cc = safe_read(fd, buf, len);
 
-		if (cc < 0)
-			return cc;	/* read() returns -1 on failure. */
+		if (cc < 0) {
+			if (total) {
+				/* we already have some! */
+				/* user can do another read to know the error code */
+				return total;
+			}
+			return cc; /* read() returns -1 on failure. */
+		}
 		if (cc == 0)
 			break;
 		buf = ((char *)buf) + cc;

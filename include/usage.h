@@ -2055,7 +2055,7 @@ USE_FEATURE_BRCTL_FANCY("\n" \
        "SPOOLDIR"
 #define lpd_full_usage \
        "Example:" \
-       "\n	tcpsvd -E localhost 515 lpd /var/spool"
+       "\n	tcpsvd -E 0 515 softlimit -m 99999 lpd /var/spool"
 
 #define lpq_trivial_usage \
        "[-P queue[@host[:port]]] [-U USERNAME] [-d JOBID...] [-fs]"

@@ -19,19 +19,26 @@
  */
 static void get_response_or_say_and_die(const char *errmsg)
 {
-	static const char newline = '\n';
-	char buf = ' ';
+	ssize_t sz;
+	char buf[128];
 
 	fflush(stdout);
 
-	safe_read(STDOUT_FILENO, &buf, 1);
-	if ('\0' != buf) {
+	buf[0] = ' ';
+	sz = safe_read(STDOUT_FILENO, buf, 1);
+	if ('\0' != buf[0]) {
 		// request has failed
-		bb_error_msg("error while %s. Server said:", errmsg);
-		safe_write(STDERR_FILENO, &buf, 1);
-		logmode = 0; /* no error messages from bb_copyfd_eof() pls */
-		bb_copyfd_eof(STDOUT_FILENO, STDERR_FILENO);
-		safe_write(STDERR_FILENO, &newline, 1);
+		// try to make sure last char is '\n', but do not add
+		// superfluous one
+		sz = full_read(STDOUT_FILENO, buf + 1, 126);
+		bb_error_msg("error while %s%s", errmsg,
+				(sz > 0 ? ". Server said:" : ""));
+		if (sz > 0) {
+			// sz = (bytes in buf) - 1
+			if (buf[sz] != '\n')
+				buf[++sz] = '\n';
+			safe_write(STDERR_FILENO, buf, sz + 1);
+		}
 		xfunc_die();
 	}
 }

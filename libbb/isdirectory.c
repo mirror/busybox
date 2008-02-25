@@ -12,7 +12,7 @@
 #include "libbb.h"
 
 /*
- * Return TRUE if a fileName is a directory.
+ * Return TRUE if fileName is a directory.
  * Nonexistent files return FALSE.
  */
 int is_directory(const char *fileName, const int followLinks, struct stat *statBuf)
@@ -21,8 +21,8 @@ int is_directory(const char *fileName, const int followLinks, struct stat *statB
 	struct stat astatBuf;
 
 	if (statBuf == NULL) {
-	    /* set from auto stack buffer */
-	    statBuf = &astatBuf;
+		/* use auto stack buffer */
+		statBuf = &astatBuf;
 	}
 
 	if (followLinks)
@@ -30,10 +30,7 @@ int is_directory(const char *fileName, const int followLinks, struct stat *statB
 	else
 		status = lstat(fileName, statBuf);
 
-	if (status < 0 || !(S_ISDIR(statBuf->st_mode))) {
-	    status = FALSE;
-	}
-	else status = TRUE;
+	status = (status == 0 && S_ISDIR(statBuf->st_mode));
 
 	return status;
 }
