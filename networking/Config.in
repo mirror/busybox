@@ -292,6 +292,13 @@ config FEATURE_IFCONFIG_BROADCAST_PLUS
 	  Setting this will make ifconfig attempt to find the broadcast
 	  automatically if the value '+' is used.
 
+config IFENSLAVE
+	bool "ifenslave"
+	default n
+	help
+	  Userspace application to bind several interfaces
+	  to a logical interface (use with kernel bonding driver).
+
 config IFUPDOWN
 	bool "ifupdown"
 	default n

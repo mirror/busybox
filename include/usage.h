@@ -1563,6 +1563,32 @@ USE_FEATURE_BRCTL_FANCY("\n" \
        "	[mem_start NN] [io_addr NN] [irq NN]\n") \
        "	[up|down] ..."
 
+#define ifenslave_trivial_usage \
+       "[-cdf] master-iface <slave-iface...>"
+#define ifenslave_full_usage \
+       "Configure network interfaces for parallel routing\n\n" \
+       "Options:" \
+     "\n	-c, --change-active	Change active slave" \
+     "\n	-d, --detach		Remove slave interface from bonding device" \
+     "\n	-f, --force		Force, even if interface is not Ethernet" \
+/*   "\n	-r, --receive-slave	Create a receive-only slave" */
+#define ifenslave_example_usage \
+       "To create a bond device, simply follow these three steps :\n" \
+       "- ensure that the required drivers are properly loaded :\n" \
+       "  # modprobe bonding ; modprobe <3c59x|eepro100|pcnet32|tulip|...>\n" \
+       "- assign an IP address to the bond device :\n" \
+       "  # ifconfig bond0 <addr> netmask <mask> broadcast <bcast>\n" \
+       "- attach all the interfaces you need to the bond device :\n" \
+       "  # ifenslave bond0 eth0 eth1 eth2\n" \
+       "  If bond0 didn't have a MAC address, it will take eth0's. Then, all\n" \
+       "  interfaces attached AFTER this assignment will get the same MAC addr.\n\n" \
+       "  To detach a dead interface without setting the bond device down :\n" \
+       "   # ifenslave -d bond0 eth1\n\n" \
+       "  To set the bond device down and automatically release all the slaves :\n" \
+       "   # ifconfig bond0 down\n\n" \
+       "  To change active slave :\n" \
+       "   # ifenslave -c bond0 eth0\n"
+
 #define ifup_trivial_usage \
        "[-ahinv] ifaces..."
 #define ifup_full_usage \
