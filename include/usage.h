@@ -1026,17 +1026,19 @@ USE_FEATURE_BRCTL_FANCY("\n" \
        "	-v		Give fdisk version"
 
 #define fetchmail_trivial_usage \
-       "[-C dir] [-w timeout] [-U user] -P password [-X] [-t] [-z] server[:port]"
+       "[-w timeout] [-U user] -P password [-X] [-t] [-z] server[:port] maildir [prog]"
 #define fetchmail_full_usage \
        "Fetch content of remote mailbox to local Maildir." \
        "\n\nOptions:\n" \
-       "	-C dir		Set Maildir location\n" \
        "	-w timeout	Set timeout on network operations\n" \
        "	-U username	Authenticate with specified username\n" \
        "	-P password	Authenticate with specified password\n" \
        "	-X		Use openssl connection helper for secured servers\n" \
        "	-t		Get only headers\n" \
-       "	-z		Delete messages on server"
+       "	-z		Delete messages on server" \
+USE_FEATURE_FETCHMAIL_FILTER("\n" \
+       "        prog		Run prog <message file> on message delivery" \
+)
 
 #define findfs_trivial_usage \
        "LABEL=label or UUID=uuid"
@@ -3258,18 +3260,16 @@ USE_FEATURE_RUN_PARTS_FANCY("\n	-l	Prints names of all matching files even when 
 #define selinuxenabled_full_usage
 
 #define sendmail_trivial_usage \
-       "[-C dir] [-w timeout] [-U user] [-P password] [-X]\n" \
-       "-t to [-t to] -f from [-n] [-s subject] [-c charset] server[:port] [body] [attachment ...]"
+       "[-w timeout] [-U user] [-P password] [-X]\n" \
+       "-t to [-t to]... [-n] [-s subject] [-c charset] server[:port] from [body] [attachment ...]"
 #define sendmail_full_usage \
        "Send an email with optional attachments." \
        "\n\nOptions:\n" \
-       "	-C dir		Change current directory to dir\n" \
        "	-w timeout	Set timeout on network operations\n" \
        "	-U username	Authenticate with specified username\n" \
        "	-P password	Authenticate with specified password\n" \
+       "	-t address	Recipient(s). May be multiple\n" \
        "	-X		Use openssl connection helper for secured servers\n" \
-       "	-t to		Recipient email. May be multiple\n" \
-       "	-f from		Sender address\n" \
        "	-n		Request delivery notification to sender\n" \
        "	-s subject	Subject\n" \
        "	-c charset	Assumed charset for body and subject [utf-8]"
