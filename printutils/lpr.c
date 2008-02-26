@@ -130,6 +130,7 @@ int lpqr_main(int argc, char *argv[])
 			cmd = (opts & LPQ_SHORT_FMT) ? 3 : 4;
  command:
 			printf("%c" "%s\n", cmd, queue);
+			fflush(stdout);
 			bb_copyfd_eof(STDOUT_FILENO, old_stdout);
 		}
 
@@ -225,6 +226,7 @@ int lpqr_main(int argc, char *argv[])
 		st.st_size = 0; /* paranoia: fstat may theoretically fail */
 		fstat(fd, &st);
 		printf("\x3" "%"OFF_FMT"u d%s\n", st.st_size, remote_filename);
+		fflush(stdout);
 		if (bb_copyfd_size(fd, STDOUT_FILENO, st.st_size) != st.st_size) {
 			// We're screwed. We sent less bytes than we advertised.
 			bb_error_msg_and_die("local file changed size?!");
