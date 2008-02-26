@@ -3686,22 +3686,24 @@ USE_FEATURE_RUN_PARTS_FANCY("\n	-l	Prints names of all matching files even when 
        "[OPTION]..."
 #define syslogd_full_usage \
        "System logging utility.\n" \
-       "Note that this version of syslogd ignores /etc/syslog.conf." \
-       "\n\nOptions:" \
-       "\n	-n		Run in foreground" \
-       "\n	-O FILE		Log to given file (default=/var/log/messages)" \
-       "\n	-l n		Set local log level" \
-       "\n	-S		Smaller logging output" \
+       "Note that this version of syslogd ignores /etc/syslog.conf.\n" \
+     "\nOptions:" \
+     "\n	-n		Run in foreground" \
+     "\n	-O FILE		Log to given file (default=/var/log/messages)" \
+     "\n	-l n		Set local log level" \
+     "\n	-S		Smaller logging output" \
 	USE_FEATURE_ROTATE_LOGFILE( \
-       "\n	-s SIZE		Max size (KB) before rotate (default=200KB, 0=off)" \
-       "\n	-b NUM		Number of rotated logs to keep (default=1, max=99, 0=purge)") \
+     "\n	-s SIZE		Max size (KB) before rotate (default=200KB, 0=off)" \
+     "\n	-b NUM		Number of rotated logs to keep (default=1, max=99, 0=purge)") \
 	USE_FEATURE_REMOTE_LOG( \
-       "\n	-R HOST[:PORT]	Log to IP or hostname on PORT (default PORT=514/UDP)" \
-       "\n	-L		Log locally and via network (default is network only if -R)") \
+     "\n	-R HOST[:PORT]	Log to IP or hostname on PORT (default PORT=514/UDP)" \
+     "\n	-L		Log locally and via network (default is network only if -R)") \
+	USE_FEATURE_SYSLOGD_DUP( \
+     "\n	-D		Drop duplicates") \
 	USE_FEATURE_IPC_SYSLOG( \
-       "\n	-C[size(KiB)]	Log to shared mem buffer (read it using logread)")
+     "\n	-C[size(KiB)]	Log to shared mem buffer (read it using logread)")
 	/* NB: -Csize shouldn't have space (because size is optional) */
-/*     "\n	-m MIN		Minutes between MARK lines (default=20, 0=off)" */
+/*   "\n	-m MIN		Minutes between MARK lines (default=20, 0=off)" */
 #define syslogd_example_usage \
        "$ syslogd -R masterlog:514\n" \
        "$ syslogd -R 192.168.1.1:601\n"

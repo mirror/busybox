@@ -42,6 +42,14 @@ config FEATURE_REMOTE_LOG
 	  measure to prevent system logs from being tampered with
 	  by an intruder.
 
+config FEATURE_SYSLOGD_DUP
+	bool "Support -D (drop dups) option"
+	default n
+	depends on SYSLOGD
+	help
+	  Option -D instructs syslogd to drop consecutive messages
+	  which are totally the same.
+
 config FEATURE_IPC_SYSLOG
 	bool "Circular Buffer support"
 	default n

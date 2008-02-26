@@ -101,7 +101,7 @@ struct globals {
 	char *hostname;
 
 	/* We recv into recvbuf... */
-	char recvbuf[MAX_READ];
+	char recvbuf[MAX_READ * (1 + ENABLE_FEATURE_SYSLOGD_DUP)];
 	/* ...then copy to parsebuf, escaping control chars */
 	/* (can grow x2 max) */
 	char parsebuf[MAX_READ*2];
@@ -152,6 +152,7 @@ enum {
 	USE_FEATURE_REMOTE_LOG(    OPTBIT_remote     ,)	// -R
 	USE_FEATURE_REMOTE_LOG(    OPTBIT_locallog   ,)	// -L
 	USE_FEATURE_IPC_SYSLOG(    OPTBIT_circularlog,)	// -C
+	USE_FEATURE_SYSLOGD_DUP(   OPTBIT_dup        ,)	// -D
 
 	OPT_mark        = 1 << OPTBIT_mark    ,
 	OPT_nofork      = 1 << OPTBIT_nofork  ,
@@ -163,13 +164,15 @@ enum {
 	OPT_remotelog   = USE_FEATURE_REMOTE_LOG(    (1 << OPTBIT_remote     )) + 0,
 	OPT_locallog    = USE_FEATURE_REMOTE_LOG(    (1 << OPTBIT_locallog   )) + 0,
 	OPT_circularlog = USE_FEATURE_IPC_SYSLOG(    (1 << OPTBIT_circularlog)) + 0,
+	OPT_dup         = USE_FEATURE_SYSLOGD_DUP(   (1 << OPTBIT_dup        )) + 0,
 };
 #define OPTION_STR "m:nO:l:S" \
 	USE_FEATURE_ROTATE_LOGFILE("s:" ) \
 	USE_FEATURE_ROTATE_LOGFILE("b:" ) \
 	USE_FEATURE_REMOTE_LOG(    "R:" ) \
 	USE_FEATURE_REMOTE_LOG(    "L"  ) \
-	USE_FEATURE_IPC_SYSLOG(    "C::")
+	USE_FEATURE_IPC_SYSLOG(    "C::") \
+	USE_FEATURE_SYSLOGD_DUP(   "D"  )
 #define OPTION_DECL *opt_m, *opt_l \
 	USE_FEATURE_ROTATE_LOGFILE(,*opt_s) \
 	USE_FEATURE_ROTATE_LOGFILE(,*opt_b) \
@@ -538,6 +541,13 @@ static void do_syslogd(void) ATTRIBUTE_NORETURN;
 static void do_syslogd(void)
 {
 	int sock_fd;
+#if ENABLE_FEATURE_SYSLOGD_DUP
+	int last_sz = -1;
+	char *last_buf;
+	char *recvbuf = G.recvbuf;
+#else
+#define recvbuf (G.recvbuf)
+#endif
 
 	/* Set up signal handlers */
 	bb_signals(0
@@ -561,8 +571,16 @@ static void do_syslogd(void)
 
 	for (;;) {
 		size_t sz;
+
+#if ENABLE_FEATURE_SYSLOGD_DUP
+		last_buf = recvbuf;
+		if (recvbuf == G.recvbuf)
+			recvbuf = G.recvbuf + MAX_READ;
+		else
+			recvbuf = G.recvbuf;
+#endif
  read_again:
-		sz = safe_read(sock_fd, G.recvbuf, MAX_READ - 1);
+		sz = safe_read(sock_fd, recvbuf, MAX_READ - 1);
 		if (sz < 0)
 			bb_perror_msg_and_die("read from /dev/log");
 
@@ -577,11 +595,16 @@ static void do_syslogd(void)
 			 * IOW: newline is passed verbatim!
 			 * I take it to mean that it's syslogd's job
 			 * to make those look identical in the log files. */
-			if (G.recvbuf[sz-1] != '\0' && G.recvbuf[sz-1] != '\n')
+			if (recvbuf[sz-1] != '\0' && recvbuf[sz-1] != '\n')
 				break;
 			sz--;
 		}
-		/* TODO: maybe suppress duplicates? */
+#if ENABLE_FEATURE_SYSLOGD_DUP
+		if ((option_mask32 & OPT_dup) && (sz == last_sz))
+			if (memcmp(last_buf, recvbuf, sz) == 0)
+				continue;
+		last_sz = sz;
+#endif
 #if ENABLE_FEATURE_REMOTE_LOG
 		/* We are not modifying log messages in any way before send */
 		/* Remote site cannot trust _us_ anyway and need to do validation again */
@@ -593,18 +616,18 @@ static void do_syslogd(void)
 			}
 			/* Stock syslogd sends it '\n'-terminated
 			 * over network, mimic that */
-			G.recvbuf[sz] = '\n';
+			recvbuf[sz] = '\n';
 			/* send message to remote logger, ignore possible error */
 			/* TODO: on some errors, close and set G.remoteFD to -1
 			 * so that DNS resolution and connect is retried? */
-			sendto(G.remoteFD, G.recvbuf, sz+1, MSG_DONTWAIT,
+			sendto(G.remoteFD, recvbuf, sz+1, MSG_DONTWAIT,
 				    &G.remoteAddr->u.sa, G.remoteAddr->len);
  no_luck: ;
 		}
 #endif
 		if (!ENABLE_FEATURE_REMOTE_LOG || (option_mask32 & OPT_locallog)) {
-			G.recvbuf[sz] = '\0'; /* ensure it *is* NUL terminated */
-			split_escape_and_log(G.recvbuf, sz);
+			recvbuf[sz] = '\0'; /* ensure it *is* NUL terminated */
+			split_escape_and_log(recvbuf, sz);
 		}
 	} /* for (;;) */
 }
