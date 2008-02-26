@@ -18,20 +18,37 @@
 #define WANT_PIDFILE 1
 #include "libbb.h"
 
-static int signal_nr = 15;
-static int user_id = -1;
-static char *userspec;
-static char *cmdname;
-static char *execname;
-static char *pidfile;
-static smallint quiet;
-
 struct pid_list {
 	struct pid_list *next;
 	pid_t pid;
 };
 
-static struct pid_list *found;
+
+struct globals {
+	struct pid_list *found;
+	char *userspec;
+	char *cmdname;
+	char *execname;
+	char *pidfile;
+	int user_id;
+	smallint quiet;
+	smallint signal_nr;
+};
+#define G (*(struct globals*)&bb_common_bufsiz1)
+#define found             (G.found               )
+#define userspec          (G.userspec            )
+#define cmdname           (G.cmdname             )
+#define execname          (G.execname            )
+#define pidfile           (G.pidfile             )
+#define user_id           (G.user_id             )
+#define quiet             (G.quiet               )
+#define signal_nr         (G.signal_nr           )
+#define INIT_G() \
+        do { \
+		user_id = -1; \
+		signal_nr = 15; \
+        } while (0)
+
 
 static int pid_is_exec(pid_t pid, const char *name)
 {
@@ -43,8 +60,8 @@ static int pid_is_exec(pid_t pid, const char *name)
 	n = strlen(name) + 1;
 	execbuf = xzalloc(n + 1);
 	readlink(buf, execbuf, n);
-
-	/* if readlink fails, execbuf still contains "" */
+	/* if readlink fails because link target is longer than strlen(name),
+	 * execbuf still contains "", and strcmp will return !0. */
 	n = strcmp(execbuf, name);
 	if (ENABLE_FEATURE_CLEAN_UP)
 		free(execbuf);
@@ -121,7 +138,7 @@ static void do_procinit(void)
 {
 	DIR *procdir;
 	struct dirent *entry;
-	int foundany, pid;
+	int pid;
 
 	if (pidfile) {
 		do_pidfile();
@@ -130,16 +147,15 @@ static void do_procinit(void)
 
 	procdir = xopendir("/proc");
 
-	foundany = 0;
+	pid = 0;
 	while ((entry = readdir(procdir)) != NULL) {
 		pid = bb_strtou(entry->d_name, NULL, 10);
 		if (errno)
 			continue;
-		foundany++;
 		check(pid);
 	}
 	closedir(procdir);
-	if (!foundany)
+	if (!pid)
 		bb_error_msg_and_die("nothing in /proc - not mounted?");
 }
 
@@ -246,6 +262,9 @@ int start_stop_daemon_main(int argc, char **argv)
 //	int retries = -1;
 	char *opt_N;
 #endif
+
+	INIT_G();
+
 #if ENABLE_FEATURE_START_STOP_DAEMON_LONG_OPTIONS
 	applet_long_options = start_stop_daemon_longopts;
 #endif
