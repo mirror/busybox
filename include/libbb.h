@@ -1208,10 +1208,14 @@ extern char bb_common_bufsiz1[COMMON_BUFSIZE];
 struct globals;
 /* '*const' ptr makes gcc optimize code much better.
  * Magic prevents ptr_to_globals from going into rodata.
- * If you want to assign a value, use PTR_TO_GLOBALS = xxx */
+ * If you want to assign a value, use SET_PTR_TO_GLOBALS(x) */
 extern struct globals *const ptr_to_globals;
-#define PTR_TO_GLOBALS (*(struct globals**)&ptr_to_globals)
-
+/* At least gcc 3.4.6 on mipsel system needs optimization barrier */
+#define barrier() asm volatile("":::"memory")
+#define SET_PTR_TO_GLOBALS(x) do { \
+	(*(struct globals**)&ptr_to_globals) = (x); \
+	barrier(); \
+} while (0)
 
 /* You can change LIBBB_DEFAULT_LOGIN_SHELL, but don't use it,
  * use bb_default_login_shell and following defines.

@@ -127,6 +127,7 @@ void lbb_prepare(const char *applet, char **argv)
 {
 #ifdef __GLIBC__
 	(*(int **)&bb_errno) = __errno_location();
+	barrier();
 #endif
 	applet_name = applet;
 

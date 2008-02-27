@@ -146,6 +146,7 @@ static struct statics *const ptr_to_statics __attribute__ ((section (".data")));
 
 #define INIT_S() do { \
 	(*(struct statics**)&ptr_to_statics) = xzalloc(sizeof(S)); \
+	barrier(); \
 	cmdedit_termw = 80; \
 	USE_FEATURE_EDITING_FANCY_PROMPT(num_ok_lines = 1;) \
 	USE_FEATURE_GETUSERNAME_AND_HOMEDIR(home_pwd_buf = (char*)null_str;) \

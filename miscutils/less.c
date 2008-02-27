@@ -153,14 +153,14 @@ struct globals {
 #define term_orig           (G.term_orig         )
 #define term_less           (G.term_less         )
 #define INIT_G() do { \
-		PTR_TO_GLOBALS = xzalloc(sizeof(G)); \
-		less_gets_pos = -1; \
-		empty_line_marker = "~"; \
-		num_files = 1; \
-		current_file = 1; \
-		eof_error = 1; \
-		terminated = 1; \
-	} while (0)
+	SET_PTR_TO_GLOBALS(xzalloc(sizeof(G))); \
+	less_gets_pos = -1; \
+	empty_line_marker = "~"; \
+	num_files = 1; \
+	current_file = 1; \
+	eof_error = 1; \
+	terminated = 1; \
+} while (0)
 
 /* Reset terminal input to normal */
 static void set_tty_cooked(void)

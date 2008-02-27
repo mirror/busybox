@@ -5,8 +5,7 @@
 # Licensed under the GPL v2, see the file LICENSE in this tarball.
 
 lib-y:=
-lib-$(CONFIG_ASH)  += ash.o
-lib-$(CONFIG_HUSH) += hush.o
-lib-$(CONFIG_MSH)  += msh.o
-
+lib-$(CONFIG_ASH)      += ash.o ash_ptr_hack.o
+lib-$(CONFIG_HUSH)     += hush.o
+lib-$(CONFIG_MSH)      += msh.o
 lib-$(CONFIG_CTTYHACK) += cttyhack.o

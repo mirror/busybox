@@ -28,9 +28,7 @@ struct globals {
 	struct termios new_settings;
 };
 #define G (*(struct globals*)bb_common_bufsiz1)
-//#define G (*ptr_to_globals)
 #define INIT_G() ((void)0)
-//#define INIT_G() PTR_TO_GLOBALS = xzalloc(sizeof(G))
 #define initial_settings (G.initial_settings)
 #define new_settings     (G.new_settings    )
 #define cin_fileno       (G.cin_fileno      )

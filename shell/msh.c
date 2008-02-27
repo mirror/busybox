@@ -705,7 +705,7 @@ struct globals {
 #define child_cmd       (G.child_cmd      )
 #define iostack         (G.iostack        )
 #define INIT_G() do { \
-	PTR_TO_GLOBALS = xzalloc(sizeof(G)); \
+	SET_PTR_TO_GLOBALS(xzalloc(sizeof(G))); \
 	global_env.linep = line; \
 	global_env.iobase = iostack; \
 	global_env.iop = iostack - 1; \

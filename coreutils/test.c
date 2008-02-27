@@ -180,6 +180,7 @@ static struct statics *const ptr_to_statics __attribute__ ((section (".data")));
 
 #define INIT_S() do { \
 	(*(struct statics**)&ptr_to_statics) = xzalloc(sizeof(S)); \
+	barrier(); \
 } while (0)
 #define DEINIT_S() do { \
 	free(ptr_to_statics); \

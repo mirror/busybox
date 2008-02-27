@@ -151,7 +151,7 @@ struct globals {
 #define stb1               (G.stb1              )
 #define stb2               (G.stb2              )
 #define INIT_G() do { \
-	PTR_TO_GLOBALS = xzalloc(sizeof(G)); \
+	SET_PTR_TO_GLOBALS(xzalloc(sizeof(G))); \
 	context = 3; \
 	max_context = 64; \
 } while (0)

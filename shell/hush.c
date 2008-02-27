@@ -460,6 +460,9 @@ enum { run_list_level = 0 };
 #endif
 #define charmap          (G.charmap         )
 #define user_input_buf   (G.user_input_buf  )
+#define INIT_G() do { \
+	SET_PTR_TO_GLOBALS(xzalloc(sizeof(G))); \
+} while (0)
 
 
 #define B_CHUNK  100
@@ -3778,7 +3781,7 @@ int hush_main(int argc, char **argv)
 	char **e;
 	struct variable *cur_var;
 
-	PTR_TO_GLOBALS = xzalloc(sizeof(G));
+	INIT_G();
 
 	/* Deal with HUSH_VERSION */
 	shell_ver = const_shell_ver; /* copying struct here */

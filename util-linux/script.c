@@ -25,7 +25,7 @@ struct globals {
 #define tt        (G.tt       )
 #define fname     (G.fname    )
 #define INIT_G() do { \
-	PTR_TO_GLOBALS = xzalloc(sizeof(G)); \
+	SET_PTR_TO_GLOBALS(xzalloc(sizeof(G))); \
 	fname = "typescript"; \
 } while (0)
 

@@ -99,9 +99,9 @@ and then declare that ptr_to_globals is a pointer to it:
 
 ptr_to_globals is declared as constant pointer.
 This helps gcc understand that it won't change, resulting in noticeably
-smaller code. In order to assign it, use PTR_TO_GLOBALS macro:
+smaller code. In order to assign it, use SET_PTR_TO_GLOBALS macro:
 
-	PTR_TO_GLOBALS = xzalloc(sizeof(G));
+	SET_PTR_TO_GLOBALS(xzalloc(sizeof(G)));
 
 Typically it is done in <applet>_main().
 

@@ -129,7 +129,7 @@ struct globals {
 #define master     (G.master    )
 #define slave      (G.slave     )
 #define INIT_G() do { \
-        PTR_TO_GLOBALS = xzalloc(sizeof(G)); \
+        SET_PTR_TO_GLOBALS(xzalloc(sizeof(G))); \
 } while (0)
 
 

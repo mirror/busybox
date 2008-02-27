@@ -51,7 +51,7 @@ struct globals {
 #define lines              (G.lines             )
 #define marks              (G.marks             )
 #define INIT_G() do { \
-	PTR_TO_GLOBALS = xzalloc(sizeof(G)); \
+	SET_PTR_TO_GLOBALS(xzalloc(sizeof(G))); \
 } while (0)
 
 

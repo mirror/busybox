@@ -378,7 +378,7 @@ struct globals {
 #define wherefrom (G.wherefrom)
 #define gwlist    (G.gwlist   )
 #define INIT_G() do { \
-	PTR_TO_GLOBALS = xzalloc(sizeof(G)); \
+	SET_PTR_TO_GLOBALS(xzalloc(sizeof(G))); \
 	maxpacket = 32 * 1024; \
 	port = 32768 + 666; \
 	waittime = 5; \

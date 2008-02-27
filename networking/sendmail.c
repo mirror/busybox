@@ -77,7 +77,7 @@ struct globals {
 #define xargs           (G.xargs     )
 #define fargs           (G.fargs     )
 #define INIT_G() do { \
-	PTR_TO_GLOBALS = xzalloc(sizeof(G)); \
+	SET_PTR_TO_GLOBALS(xzalloc(sizeof(G))); \
 	xargs[0] = "openssl"; \
 	xargs[1] = "s_client"; \
 	xargs[2] = "-quiet"; \

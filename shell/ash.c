@@ -202,9 +202,8 @@ struct globals_misc {
 	/* indicates specified signal received */
 	char gotsig[NSIG - 1];
 };
-/* Make it reside in writable memory, yet make compiler understand that it is not going to change. */
-static struct globals_misc *const ptr_to_globals_misc __attribute__ ((section (".data")));
-#define G_misc (*ptr_to_globals_misc)
+extern struct globals_misc *const ash_ptr_to_globals_misc;
+#define G_misc (*ash_ptr_to_globals_misc)
 #define rootpid   (G_misc.rootpid  )
 #define shlvl     (G_misc.shlvl    )
 #define minusc    (G_misc.minusc   )
@@ -223,7 +222,8 @@ static struct globals_misc *const ptr_to_globals_misc __attribute__ ((section ("
 #define sigmode   (G_misc.sigmode  )
 #define gotsig    (G_misc.gotsig   )
 #define INIT_G_misc() do { \
-	(*(struct globals_misc**)&ptr_to_globals_misc) = xzalloc(sizeof(G_misc)); \
+	(*(struct globals_misc**)&ash_ptr_to_globals_misc) = xzalloc(sizeof(G_misc)); \
+	barrier(); \
 	curdir = nullstr; \
 	physdir = nullstr; \
 } while (0)
@@ -1147,9 +1147,8 @@ struct globals_memstack {
 	int    herefd; // = -1;
 	struct stack_block stackbase;
 };
-/* Make it reside in writable memory, yet make compiler understand that it is not going to change. */
-static struct globals_memstack *const ptr_to_globals_memstack __attribute__ ((section (".data")));
-#define G_memstack (*ptr_to_globals_memstack)
+extern struct globals_memstack *const ash_ptr_to_globals_memstack;
+#define G_memstack (*ash_ptr_to_globals_memstack)
 #define g_stackp     (G_memstack.g_stackp    )
 #define markp        (G_memstack.markp       )
 #define g_stacknxt   (G_memstack.g_stacknxt  )
@@ -1158,7 +1157,8 @@ static struct globals_memstack *const ptr_to_globals_memstack __attribute__ ((se
 #define herefd       (G_memstack.herefd      )
 #define stackbase    (G_memstack.stackbase   )
 #define INIT_G_memstack() do { \
-	(*(struct globals_memstack**)&ptr_to_globals_memstack) = xzalloc(sizeof(G_memstack)); \
+	(*(struct globals_memstack**)&ash_ptr_to_globals_memstack) = xzalloc(sizeof(G_memstack)); \
+	barrier(); \
 	g_stackp = &stackbase; \
 	g_stacknxt = stackbase.space; \
 	g_stacknleft = MINSIZE; \
@@ -1778,9 +1778,8 @@ struct globals_var {
 	struct var *vartab[VTABSIZE];
 	struct var varinit[ARRAY_SIZE(varinit_data)];
 };
-/* Make it reside in writable memory, yet make compiler understand that it is not going to change. */
-static struct globals_var *const ptr_to_globals_var __attribute__ ((section (".data")));
-#define G_var (*ptr_to_globals_var)
+extern struct globals_var *const ash_ptr_to_globals_var;
+#define G_var (*ash_ptr_to_globals_var)
 #define shellparam    (G_var.shellparam   )
 #define redirlist     (G_var.redirlist    )
 #define g_nullredirs  (G_var.g_nullredirs )
@@ -1789,7 +1788,8 @@ static struct globals_var *const ptr_to_globals_var __attribute__ ((section (".d
 #define varinit       (G_var.varinit      )
 #define INIT_G_var() do { \
 	int i; \
-	(*(struct globals_var**)&ptr_to_globals_var) = xzalloc(sizeof(G_var)); \
+	(*(struct globals_var**)&ash_ptr_to_globals_var) = xzalloc(sizeof(G_var)); \
+	barrier(); \
 	for (i = 0; i < ARRAY_SIZE(varinit_data); i++) { \
 		varinit[i].flags = varinit_data[i].flags; \
 		varinit[i].text  = varinit_data[i].text; \

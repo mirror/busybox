@@ -394,7 +394,8 @@ static const uint16_t PRIMES[] ALIGN2 = { 251, 1021, 4093, 16381, 65521 };
 /* Globals. Split in two parts so that first one is addressed
  * with (mostly short) negative offsets */
 struct globals {
-	chain beginseq, mainseq, endseq, *seq;
+	chain beginseq, mainseq, endseq;
+	chain *seq;
 	node *break_ptr, *continue_ptr;
 	rstream *iF;
 	xhash *vhash, *ahash, *fdhash, *fnhash;
@@ -445,7 +446,7 @@ struct globals2 {
 	tsplitter fsplitter, rsplitter;
 };
 #define G1 (ptr_to_globals[-1])
-#define G (*(struct globals2 *const)ptr_to_globals)
+#define G (*(struct globals2 *)ptr_to_globals)
 /* For debug. nm --size-sort awk.o | grep -vi ' [tr] ' */
 /* char G1size[sizeof(G1)]; - 0x6c */
 /* char Gsize[sizeof(G)]; - 0x1cc */
@@ -485,7 +486,7 @@ struct globals2 {
 #define fsplitter    (G.fsplitter   )
 #define rsplitter    (G.rsplitter   )
 #define INIT_G() do { \
-	PTR_TO_GLOBALS = xzalloc(sizeof(G1) + sizeof(G)) + sizeof(G1); \
+	SET_PTR_TO_GLOBALS(xzalloc(sizeof(G1) + sizeof(G)) + sizeof(G1)); \
 	G.next_token__ltclass = TC_OPTERM; \
 	G.evaluate__seed = 1; \
 } while (0)

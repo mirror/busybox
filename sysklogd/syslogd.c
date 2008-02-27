@@ -136,7 +136,7 @@ static const struct init_globals init_data = {
 
 #define G (*ptr_to_globals)
 #define INIT_G() do { \
-	PTR_TO_GLOBALS = memcpy(xzalloc(sizeof(G)), &init_data, sizeof(init_data)); \
+	SET_PTR_TO_GLOBALS(memcpy(xzalloc(sizeof(G)), &init_data, sizeof(init_data))); \
 } while (0)
 
 

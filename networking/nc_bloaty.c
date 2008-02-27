@@ -97,7 +97,6 @@ struct globals {
 };
 
 #define G (*ptr_to_globals)
-
 #define wrote_out  (G.wrote_out )
 #define wrote_net  (G.wrote_net )
 #define ouraddr    (G.ouraddr   )
@@ -115,6 +114,10 @@ struct globals {
 #else
 #define o_interval 0
 #endif
+#define INIT_G() do { \
+	SET_PTR_TO_GLOBALS(xzalloc(sizeof(G))); \
+} while (0)
+
 
 /* Must match getopt32 call! */
 enum {
@@ -678,9 +681,7 @@ int nc_main(int argc, char **argv)
 	int x;
 	unsigned o_lport = 0;
 
-	/* I was in this barbershop quartet in Skokie IL ... */
-	/* round up the usual suspects, i.e. malloc up all the stuff we need */
-	PTR_TO_GLOBALS = xzalloc(sizeof(G));
+	INIT_G();
 
 	/* catch a signal or two for cleanup */
 	bb_signals(0

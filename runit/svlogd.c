@@ -106,7 +106,7 @@ struct globals {
 #define fl_flag_0      (G.fl_flag_0     )
 #define dirn           (G.dirn          )
 #define INIT_G() do { \
-	PTR_TO_GLOBALS = xzalloc(sizeof(G)); \
+	SET_PTR_TO_GLOBALS(xzalloc(sizeof(G))); \
 	linemax = 1000; \
 	/*buflen = 1024;*/ \
 	linecomplete = 1; \

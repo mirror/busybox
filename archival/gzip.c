@@ -2042,8 +2042,8 @@ int gzip_main(int argc, char **argv)
 	//if (opt & 0x4) // -v
 	argv += optind;
 
-	PTR_TO_GLOBALS = xzalloc(sizeof(struct globals) + sizeof(struct globals2))
-			+ sizeof(struct globals);
+	SET_PTR_TO_GLOBALS(xzalloc(sizeof(struct globals) + sizeof(struct globals2))
+			+ sizeof(struct globals));
 	G2.l_desc.dyn_tree    = G2.dyn_ltree;
 	G2.l_desc.static_tree = G2.static_ltree;
 	G2.l_desc.extra_bits  = extra_lbits;

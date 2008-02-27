@@ -71,7 +71,3 @@ const char bb_path_wtmp_file[] ALIGN1 =
  * Since gcc insists on aligning struct global's members, it would be a pity
  * (and an alignment fault on some CPUs) to mess it up. */
 char bb_common_bufsiz1[COMMON_BUFSIZE] __attribute__(( aligned(sizeof(long long)) ));
-
-struct globals;
-/* Make it reside in R/W memory: */
-struct globals *const ptr_to_globals __attribute__ ((section (".data")));

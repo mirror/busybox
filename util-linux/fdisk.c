@@ -309,7 +309,7 @@ struct globals {
 #define MBRbuffer       (G.MBRbuffer)
 #define ptes            (G.ptes)
 #define INIT_G() do { \
-	PTR_TO_GLOBALS = xzalloc(sizeof(G)); \
+	SET_PTR_TO_GLOBALS(xzalloc(sizeof(G))); \
 	sector_size = DEFAULT_SECTOR_SIZE; \
 	sector_offset = 1; \
 	g_partitions = 4; \

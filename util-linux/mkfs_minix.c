@@ -122,7 +122,7 @@ struct globals {
 };
 #define G (*ptr_to_globals)
 #define INIT_G() do { \
-	PTR_TO_GLOBALS = xzalloc(sizeof(G)); \
+	SET_PTR_TO_GLOBALS(xzalloc(sizeof(G))); \
 } while (0)
 
 static ALWAYS_INLINE unsigned div_roundup(unsigned size, unsigned n)
