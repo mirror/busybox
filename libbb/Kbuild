@@ -39,6 +39,7 @@ lib-y += get_console.o
 lib-y += get_last_path_component.o
 lib-y += get_line_from_file.o
 lib-y += getopt32.o
+lib-y += getpty.o
 lib-y += herror_msg.o
 lib-y += herror_msg_and_die.o
 lib-y += human_readable.o

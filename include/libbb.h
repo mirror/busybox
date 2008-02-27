@@ -237,6 +237,7 @@ extern int recursive_action(const char *fileName, unsigned flags,
 	int (*dirAction) (const char *fileName, struct stat* statbuf, void* userData, int depth),
 	void* userData, unsigned depth);
 extern int device_open(const char *device, int mode);
+extern int getpty(char *line, int size);
 extern int get_console_fd(void);
 extern char *find_block_device(const char *path);
 /* bb_copyfd_XX print read/write errors and return -1 if they occur */

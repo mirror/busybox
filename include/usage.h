@@ -3234,6 +3234,15 @@ USE_FEATURE_RUN_PARTS_FANCY("\n	-l	Prints names of all matching files even when 
 #define rx_example_usage \
        "$ rx /tmp/foo\n"
 
+#define script_trivial_usage \
+       "[-afq] [-c COMMAND] [OUTFILE]"
+#define script_full_usage \
+       "Options:" \
+     "\n	-a	Append output" \
+     "\n	-c	Run COMMAND, not shell" \
+     "\n	-f	Flush output after each write" \
+     "\n	-q	Quiet"
+
 #define sed_trivial_usage \
        "[-efinr] pattern [files...]"
 #define sed_full_usage \

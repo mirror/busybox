@@ -153,53 +153,6 @@ remove_iacs(struct tsession *ts, int *pnum_totty)
 }
 
 
-static int
-getpty(char *line, int size)
-{
-	int p;
-#if ENABLE_FEATURE_DEVPTS
-	p = open("/dev/ptmx", O_RDWR);
-	if (p > 0) {
-		const char *name;
-		grantpt(p);
-		unlockpt(p);
-		name = ptsname(p);
-		if (!name) {
-			bb_perror_msg("ptsname error (is /dev/pts mounted?)");
-			return -1;
-		}
-		safe_strncpy(line, name, size);
-		return p;
-	}
-#else
-	struct stat stb;
-	int i;
-	int j;
-
-	strcpy(line, "/dev/ptyXX");
-
-	for (i = 0; i < 16; i++) {
-		line[8] = "pqrstuvwxyzabcde"[i];
-		line[9] = '0';
-		if (stat(line, &stb) < 0) {
-			continue;
-		}
-		for (j = 0; j < 16; j++) {
-			line[9] = j < 10 ? j + '0' : j - 10 + 'a';
-			if (DEBUG)
-				fprintf(stderr, "Trying to open device: %s\n", line);
-			p = open(line, O_RDWR | O_NOCTTY);
-			if (p >= 0) {
-				line[5] = 't';
-				return p;
-			}
-		}
-	}
-#endif /* FEATURE_DEVPTS */
-	return -1;
-}
-
-
 static struct tsession *
 make_new_session(
 		USE_FEATURE_TELNETD_STANDALONE(int sock)

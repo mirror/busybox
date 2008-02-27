@@ -28,6 +28,7 @@ lib-$(CONFIG_PIVOT_ROOT)	+=pivot_root.o
 lib-$(CONFIG_RDATE)		+=rdate.o
 lib-$(CONFIG_READPROFILE)	+=readprofile.o
 lib-$(CONFIG_RTCWAKE)		+=rtcwake.o
+lib-$(CONFIG_SCRIPT)		+=script.o
 lib-$(CONFIG_SETARCH)		+=setarch.o
 lib-$(CONFIG_SWAPONOFF)		+=swaponoff.o
 lib-$(CONFIG_SWITCH_ROOT)	+=switch_root.o
