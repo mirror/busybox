@@ -248,7 +248,6 @@ static int verbose_mount(const char *source, const char *target,
 #define verbose_mount(...) mount(__VA_ARGS__)
 #endif
 
-#if ENABLE_FEATURE_MOUNT_LABEL
 static int resolve_mount_spec(char **fsname)
 {
 	char *tmp = NULL;
@@ -264,7 +263,6 @@ static int resolve_mount_spec(char **fsname)
 	}
 	return 0;
 }
-#endif
 
 /* Append mount options to string */
 static void append_mount_options(char **oldopts, const char *newopts)
