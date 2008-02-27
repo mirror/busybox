@@ -17,20 +17,18 @@
  * LPD returns binary 0 on success.
  * Otherwise it returns error message.
  */
-static void get_response_or_say_and_die(const char *errmsg)
+static void get_response_or_say_and_die(int fd, const char *errmsg)
 {
 	ssize_t sz;
 	char buf[128];
 
-	fflush(stdout);
-
 	buf[0] = ' ';
-	sz = safe_read(STDOUT_FILENO, buf, 1);
+	sz = safe_read(fd, buf, 1);
 	if ('\0' != buf[0]) {
 		// request has failed
 		// try to make sure last char is '\n', but do not add
 		// superfluous one
-		sz = full_read(STDOUT_FILENO, buf + 1, 126);
+		sz = full_read(fd, buf + 1, 126);
 		bb_error_msg("error while %s%s", errmsg,
 				(sz > 0 ? ". Server said:" : ""));
 		if (sz > 0) {
@@ -70,7 +68,7 @@ int lpqr_main(int argc, char *argv[])
 	const char *user = bb_getpwuid(NULL, -1, getuid());
 	unsigned job;
 	unsigned opts;
-	int old_stdout, fd;
+	int fd;
 
 	// parse options
 	// TODO: set opt_complementary: s,d,f are mutually exclusive
@@ -102,9 +100,6 @@ int lpqr_main(int argc, char *argv[])
 
 	// do connect
 	fd = create_and_connect_stream_or_die(server, 515);
-	// play with descriptors to save space: fdprintf > printf
-	old_stdout = dup(STDOUT_FILENO);
-	xmove_fd(fd, STDOUT_FILENO);
 
 	//
 	// LPQ ------------------------
@@ -117,9 +112,9 @@ int lpqr_main(int argc, char *argv[])
 			goto command;
 		// delete job(s)
 		} else if (opts & LPQ_DELETE) {
-			printf("\x5" "%s %s", queue, user);
+			fdprintf(fd, "\x5" "%s %s", queue, user);
 			while (*argv) {
-				printf(" %s", *argv++);
+				fdprintf(fd, " %s", *argv++);
 			}
 			bb_putchar('\n');
 		// dump current jobs status
@@ -129,9 +124,8 @@ int lpqr_main(int argc, char *argv[])
 		} else {
 			cmd = (opts & LPQ_SHORT_FMT) ? 3 : 4;
  command:
-			printf("%c" "%s\n", cmd, queue);
-			fflush(stdout);
-			bb_copyfd_eof(STDOUT_FILENO, old_stdout);
+			fdprintf(fd, "%c" "%s\n", cmd, queue);
+			bb_copyfd_eof(fd, STDOUT_FILENO);
 		}
 
 		return EXIT_SUCCESS;
@@ -144,19 +138,18 @@ int lpqr_main(int argc, char *argv[])
 		bb_error_msg("connected to server");
 
 	job = getpid() % 1000;
-	// TODO: when do finally we invent char *xgethostname()?!!
-	hostname = xzalloc(MAXHOSTNAMELEN+1);
-	gethostname(hostname, MAXHOSTNAMELEN);
+	hostname = safe_gethostname();
 
 	// no files given on command line? -> use stdin
 	if (!*argv)
 		*--argv = (char *)"-";
 
-	printf("\x2" "%s\n", queue);
-	get_response_or_say_and_die("setting queue");
+	fdprintf(fd, "\x2" "%s\n", queue);
+	get_response_or_say_and_die(fd, "setting queue");
 
 	// process files
 	do {
+		int dfd;
 		struct stat st;
 		char *c;
 		char *remote_filename;
@@ -165,14 +158,14 @@ int lpqr_main(int argc, char *argv[])
 		// if data file is stdin, we need to dump it first
 		if (LONE_DASH(*argv)) {
 			strcpy(tempfile, "/tmp/lprXXXXXX");
-			fd = mkstemp(tempfile);
-			if (fd < 0)
+			dfd = mkstemp(tempfile);
+			if (dfd < 0)
 				bb_perror_msg_and_die("mkstemp");
-			bb_copyfd_eof(STDIN_FILENO, fd);
-			xlseek(fd, 0, SEEK_SET);
+			bb_copyfd_eof(STDIN_FILENO, dfd);
+			xlseek(dfd, 0, SEEK_SET);
 			*argv = (char*)bb_msg_standard_input;
 		} else {
-			fd = xopen(*argv, O_RDONLY);
+			dfd = xopen(*argv, O_RDONLY);
 		}
 
 		/* "The name ... should start with ASCII "cfA",
@@ -215,24 +208,23 @@ int lpqr_main(int argc, char *argv[])
 		 * an indication that the file being sent is complete.
 		 * A second level of acknowledgement processing
 		 * must occur at this point." */
-		printf("\x2" "%u c%s\n" "%s" "%c",
+		fdprintf(fd, "\x2" "%u c%s\n" "%s" "%c",
 				(unsigned)strlen(controlfile),
 				remote_filename, controlfile, '\0');
-		get_response_or_say_and_die("sending control file");
+		get_response_or_say_and_die(fd, "sending control file");
 
 		// send data file, with name "dfaXXX"
 		if (opts & LPR_V)
 			bb_error_msg("sending data file");
 		st.st_size = 0; /* paranoia: fstat may theoretically fail */
-		fstat(fd, &st);
-		printf("\x3" "%"OFF_FMT"u d%s\n", st.st_size, remote_filename);
-		fflush(stdout);
-		if (bb_copyfd_size(fd, STDOUT_FILENO, st.st_size) != st.st_size) {
+		fstat(dfd, &st);
+		fdprintf(fd, "\x3" "%"OFF_FMT"u d%s\n", st.st_size, remote_filename);
+		if (bb_copyfd_size(dfd, fd, st.st_size) != st.st_size) {
 			// We're screwed. We sent less bytes than we advertised.
 			bb_error_msg_and_die("local file changed size?!");
 		}
-		bb_putchar('\0');
-		get_response_or_say_and_die("sending data file");
+		write(fd, "", 1); // send ACK
+		get_response_or_say_and_die(fd, "sending data file");
 
 		// delete temporary file if we dumped stdin
 		if (*argv == (char*)bb_msg_standard_input)
@@ -242,6 +234,10 @@ int lpqr_main(int argc, char *argv[])
 		close(fd);
 		free(remote_filename);
 		free(controlfile);
+
+		// say job accepted
+		if (opts & LPR_V)
+			bb_error_msg("job accepted");
 
 		// next, please!
 		job = (job + 1) % 1000;
