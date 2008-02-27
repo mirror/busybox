@@ -1035,10 +1035,8 @@ USE_FEATURE_BRCTL_FANCY("\n" \
        "	-P password	Authenticate with specified password\n" \
        "	-X		Use openssl connection helper for secured servers\n" \
        "	-t		Get only headers\n" \
-       "	-z		Delete messages on server" \
-USE_FEATURE_FETCHMAIL_FILTER("\n" \
-       "        prog		Run prog <message file> on message delivery" \
-)
+       "	-z		Delete messages on server\n" \
+       "        prog		Run prog <message file> on message delivery"
 
 #define findfs_trivial_usage \
        "LABEL=label or UUID=uuid"

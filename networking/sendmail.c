@@ -63,20 +63,13 @@ static void uuencode(char *fname, const char *text)
 		close(fd);
 }
 
-static const char *const init_xargs[9] = {
-	"openssl", "s_client", "-quiet", "-connect",
-	NULL, "-tls1", "-starttls", "smtp"
-};
-
 struct globals {
 	pid_t helper_pid;
 	unsigned timeout;
 	// arguments for SSL connection helper
 	const char *xargs[9];
-#if ENABLE_FEATURE_FETCHMAIL_FILTER
 	// arguments for postprocess helper
 	const char *fargs[3];
-#endif
 };
 #define G (*ptr_to_globals)
 #define helper_pid      (G.helper_pid)
@@ -85,16 +78,21 @@ struct globals {
 #define fargs           (G.fargs     )
 #define INIT_G() do { \
 	PTR_TO_GLOBALS = xzalloc(sizeof(G)); \
-	memcpy(xargs, init_xargs, sizeof(init_xargs)); \
+	xargs[0] = "openssl"; \
+	xargs[1] = "s_client"; \
+	xargs[2] = "-quiet"; \
+	xargs[3] = "-connect"; \
+	/*xargs[4] = "server[:port]";*/ \
+	xargs[5] = "-tls1"; \
+	xargs[6] = "-starttls"; \
+	xargs[7] = "smtp"; \
 	fargs[0] = "utf-8"; \
 } while (0)
 
 #define opt_connect	  (xargs[4])
 #define opt_after_connect (xargs[5])
-#if ENABLE_FEATURE_FETCHMAIL_FILTER
 #define opt_charset	  (fargs[0])
 #define opt_subject	  (fargs[1])
-#endif
 
 static void kill_helper(void)
 {
@@ -116,11 +114,7 @@ static void signal_handler(int signo)
 	// SIGCHLD. reap zombies
 	if (wait_any_nohang(&err) > 0)
 		if (WIFEXITED(err) && WEXITSTATUS(err))
-#if ENABLE_FEATURE_SENDMAIL_BLOATY
 			bb_error_msg_and_die("child exited (%d)", WEXITSTATUS(err));
-#else
-			bb_error_msg_and_die("child failed");
-#endif
 }
 
 static void launch_helper(const char **argv)
@@ -141,12 +135,11 @@ static void launch_helper(const char **argv)
 			if (pipes[i] > STDOUT_FILENO)
 				close(pipes[i]);
 	if (!helper_pid) {
-		// child - try to execute connection helper
-//		close(STDERR_FILENO);
+		// child: try to execute connection helper
 		BB_EXECVP(*argv, (char **)argv);
 		_exit(127);
 	}
-	// parent - check whether child is alive
+	// parent: check whether child is alive
 	bb_signals(0
 		+ (1 << SIGCHLD)
 		+ (1 << SIGALRM)
@@ -155,13 +148,12 @@ static void launch_helper(const char **argv)
 	// child seems OK -> parent goes on
 }
 
-static char *command(const char *fmt, const char *param)
+static const char *command(const char *fmt, const char *param)
 {
-	char *msg = (char *)fmt;
+	const char *msg = fmt;
 	alarm(timeout);
 	if (msg) {
-//		if (param)
-			msg = xasprintf(fmt, param);
+		msg = xasprintf(fmt, param);
 		printf("%s\r\n", msg);
 	}
 	fflush(stdout);
@@ -171,25 +163,20 @@ static char *command(const char *fmt, const char *param)
 static int smtp_checkp(const char *fmt, const char *param, int code)
 {
 	char *answer;
-	char *msg = command(fmt, param);
+	const char *msg = command(fmt, param);
 	// read stdin
 	// if the string has a form \d\d\d- -- read next string. E.g. EHLO response
 	// parse first bytes to a number
 	// if code = -1 then just return this number
 	// if code != -1 then checks whether the number equals the code
 	// if not equal -> die saying msg
-#if ENABLE_FEATURE_SENDMAIL_EHLO
 	while ((answer = xmalloc_getline(stdin)) != NULL)
 		if (strlen(answer) <= 3 || '-' != answer[3])
 			break;
-#else
-	answer = xmalloc_getline(stdin);
-#endif
 	if (answer) {
 		int n = atoi(answer);
 		alarm(0);
 		if (ENABLE_FEATURE_CLEAN_UP) {
-			free(msg);
 			free(answer);
 		}
 		if (-1 == code || n == code) {
@@ -200,7 +187,7 @@ static int smtp_checkp(const char *fmt, const char *param, int code)
 	bb_error_msg_and_die("%s failed", msg);
 }
 
-static int smtp_check(const char *fmt, int code)
+static int inline smtp_check(const char *fmt, int code)
 {
 	return smtp_checkp(fmt, NULL, code);
 }
@@ -223,7 +210,7 @@ static char *sane(char *str)
 #if ENABLE_FETCHMAIL
 static void pop3_checkr(const char *fmt, const char *param, char **ret)
 {
-	char *msg = command(fmt, param);
+	const char *msg = command(fmt, param);
 	char *answer = xmalloc_getline(stdin);
 	if (answer && '+' == *answer) {
 		alarm(0);
@@ -237,7 +224,7 @@ static void pop3_checkr(const char *fmt, const char *param, char **ret)
 	bb_error_msg_and_die("%s failed", msg);
 }
 
-static void pop3_check(const char *fmt, const char *param)
+static void inline pop3_check(const char *fmt, const char *param)
 {
 	pop3_checkr(fmt, param, NULL);
 }
@@ -249,7 +236,7 @@ static void pop3_message(const char *filename)
 	// create and open file filename
 	// read stdin, copy to created file
 	fd = xopen(filename, O_CREAT | O_WRONLY | O_TRUNC | O_EXCL);
-	while ((answer = xmalloc_fgets_str(stdin, "\r\n"))) {
+	while ((answer = xmalloc_fgets_str(stdin, "\r\n")) != NULL) {
 		char *s = answer;
 		if ('.' == *answer) {
 			if ('.' == answer[1])
@@ -268,10 +255,6 @@ int sendgetmail_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int sendgetmail_main(int argc, char **argv)
 {
 	llist_t *opt_recipients = NULL;
-#if !ENABLE_FEATURE_FETCHMAIL_FILTER
-	char *opt_subject;
-	char *opt_charset = (char *)"utf-8";
-#endif
 
 	const char *opt_user;
 	const char *opt_pass;
@@ -295,8 +278,12 @@ int sendgetmail_main(int argc, char **argv)
 	const char *options;
 	unsigned opts;
 
+	// init global variables
 	INIT_G();
 
+	// parse options, different option sets for sendmail and fetchmail
+	// N.B. opt_after_connect hereafter is NULL if we are called as fetchmail
+	// and is NOT NULL if we are called as sendmail
 	if (!ENABLE_FETCHMAIL || 's' == applet_name[0]) {
 		// SENDMAIL
 		// save initial stdin (body or attachements can be piped!)
@@ -313,7 +300,6 @@ int sendgetmail_main(int argc, char **argv)
 		&timeout, &opt_user, &opt_pass,
 		&opt_subject, &opt_charset, &opt_recipients
 	);
-
 	//argc -= optind;
 	argv += optind;
 
@@ -321,20 +307,29 @@ int sendgetmail_main(int argc, char **argv)
 	opt_connect = *argv++;
 
 	// connect to server
+	// SSL ordered? ->
 	if (opts & OPT_X) {
+		// ... use openssl helper
 		launch_helper(xargs);
+	// no SSL ordered? ->
 	} else {
-		// no connection helper provided -> make plain connect
-		int fd = create_and_connect_stream_or_die(opt_connect, 0);
+		// ... make plain connect
+		int fd = create_and_connect_stream_or_die(opt_connect, 25);
+		// make ourselves a simple IO filter
+		// from now we know nothing about network :)
 		xmove_fd(fd, STDIN_FILENO);
 		xdup2(STDIN_FILENO, STDOUT_FILENO);
 	}
 
 #if ENABLE_FETCHMAIL
+	// we are sendmail?
 	if (opt_after_connect)
 #endif
 	{
-		// SENDMAIL
+/***************************************************
+ * SENDMAIL
+ ***************************************************/
+
 		char *opt_from;
 		int code;
 		char *boundary;
@@ -342,44 +337,45 @@ int sendgetmail_main(int argc, char **argv)
 		const char *p;
 		char *q;
 
-		// wait for initial OK on plain connect
-		if (!(opts & OPT_X))
+		// we didn't use SSL helper? ->
+		if (!(opts & OPT_X)) {
+			// ... wait for initial server OK
 			smtp_check(NULL, 220);
+		}
 
-		// get specified sender
+		// get the sender
 		opt_from = sane(*argv++);
 
 		// introduce to server
-		// should we respect modern (but useless here) EHLO?
-		// or should they respect we wanna be tiny?!
-		if (!ENABLE_FEATURE_SENDMAIL_EHLO || 250 != smtp_checkp("EHLO %s", opt_from, -1)) {
+		// we should start with modern EHLO
+		if (250 != smtp_checkp("EHLO %s", opt_from, -1)) {
 			smtp_checkp("HELO %s", opt_from, 250);
 		}
 
 		// set sender
-		// NOTE: if password has not been specified ->
-		// no authentication is possible
+		// NOTE: if password has not been specified
+		// then no authentication is possible
 		code = (opts & OPT_P) ? -1 : 250;
 		// first try softly without authentication
 		while (250 != smtp_checkp("MAIL FROM:<%s>", opt_from, code)) {
 			// MAIL FROM failed -> authentication needed
-			// do we have username?
+			// have we got username?
 			if (!(opts & OPT_U)) {
 				// no! fetch it from "from" option
 				//opts |= OPT_U;
 				opt_user = xstrdup(opt_from);
 				*strchrnul(opt_user, '@') = '\0';
 			}
-			// now it seems we have username
-			// try to authenticate
+			// now we've got username
+			// so try to authenticate
 			if (334 == smtp_check("AUTH LOGIN", -1)) {
 				uuencode(NULL, opt_user);
 				smtp_check("", 334);
 				uuencode(NULL, opt_pass);
 				smtp_check("", 235);
 			}
-			// authenticated -> retry set sender
-			// but now die on failure
+			// authenticated OK? -> retry to set sender
+			// but this time die on failure!
 			code = 250;
 		}
 
@@ -388,13 +384,15 @@ int sendgetmail_main(int argc, char **argv)
 			smtp_checkp("RCPT TO:<%s>", sane(to->data), 250);
 		}
 
-		// now put message
+		// enter "put message" mode
 		smtp_check("DATA", 354);
+
 		// put address headers
 		printf("From: %s\r\n", opt_from);
 		for (llist_t *to = opt_recipients; to; to = to->link) {
 			printf("To: %s\r\n", to->data);
 		}
+
 		// put encoded subject
 		if (opts & OPTS_c)
 			sane((char *)opt_charset);
@@ -403,17 +401,17 @@ int sendgetmail_main(int argc, char **argv)
 			uuencode(NULL, opt_subject);
 			printf("?=\r\n");
 		}
+
 		// put notification
 		if (opts & OPTS_n)
 			printf("Disposition-Notification-To: %s\r\n", opt_from);
+
+		// make a random string -- it will delimit message parts
+		srand(monotonic_us());
+ 		boundary = xasprintf("%d-%d-%d", rand(), rand(), rand());
+
 		// put common headers and body start
-		// randomize
-#if ENABLE_FEATURE_SENDMAIL_BLOATY
-		srand(time(NULL));
-#endif
-		boundary = xasprintf("%d-%d-%d", rand(), rand(), rand());
 		printf(
-			USE_FEATURE_SENDMAIL_BLOATY("X-Mailer: busybox " BB_VER " sendmail\r\n")
 			"Message-ID: <%s>\r\n"
 			"Mime-Version: 1.0\r\n"
 			"%smultipart/mixed; boundary=\"%s\"\r\n"
@@ -421,8 +419,10 @@ int sendgetmail_main(int argc, char **argv)
 			, "Content-Type: "
 			, boundary
 		);
-		// put body + attachment(s)
 
+		// put body + attachment(s)
+		// N.B. all these weird things just to be tiny
+		// by reusing string patterns!
 		fmt =
 			"\r\n--%s\r\n"
 			"%stext/plain; charset=%s\r\n"
@@ -453,44 +453,50 @@ int sendgetmail_main(int argc, char **argv)
 				q = bb_get_last_path_component_strip(*argv);
 		}
 
-		// put terminator
+		// put message terminator
 		printf("\r\n--%s--\r\n" "\r\n", boundary);
-		if (ENABLE_FEATURE_CLEAN_UP)
-			free(boundary);
 
-		// end message and say goodbye
-		smtp_check(".", 250);
+		// leave "put message" mode
+ 		smtp_check(".", 250);
+		// ... and say goodbye
 		smtp_check("QUIT", 221);
 
 #if ENABLE_FETCHMAIL
 	} else {
-		// FETCHMAIL
+/***************************************************
+ * FETCHMAIL
+ ***************************************************/
+
 		char *buf;
 		unsigned nmsg;
 		char *hostname;
 		pid_t pid;
-		// cache fetch command
+
+		// cache fetch command:
+		// TOP will return only the headers
+		// RETR will dump the whole message
 		const char *retr = (opts & OPTF_t) ? "TOP %u 0" : "RETR %u";
 
 		// goto maildir
 		xchdir(*argv++);
 
-#if ENABLE_FEATURE_FETCHMAIL_FILTER
 		// cache postprocess program
 		*fargs = *argv;
-#endif
 		
 		// authenticate
 		if (!(opts & OPT_U)) {
 			//opts |= OPT_U;
-			opt_user = getenv("USER");
+			// N.B. IMHO getenv("USER") can be way easily spoofed!
+			opt_user = bb_getpwuid(NULL, -1, getuid());
 		}
-#if ENABLE_FEATURE_FETCHMAIL_APOP
+
+		// get server greeting
 		pop3_checkr(NULL, NULL, &buf);
+
 		// server supports APOP?
 		if ('<' == *buf) {
 			md5_ctx_t md5;
-			// yes. compose <stamp><password>
+			// yes! compose <stamp><password>
 			char *s = strchr(buf, '>');
 			if (s)
 				strcpy(s+1, opt_pass);
@@ -512,26 +518,22 @@ int sendgetmail_main(int argc, char **argv)
 				free(s);
 				free(buf-4); // buf is "+OK " away from malloc'ed string
 			}
+		// server ignores APOP -> use simple text authentication
 		} else {
-#else
-		{
-			pop3_check(NULL, NULL);
-#endif
 			// USER
 			pop3_check("USER %s", opt_user);
 			// PASS
 			pop3_check("PASS %s", opt_pass);
 		}
 
-		// get statistics
+		// get mailbox statistics
 		pop3_checkr("STAT", NULL, &buf);
 
 		// prepare message filename suffix
-		hostname = xzalloc(MAXHOSTNAMELEN+1);
-		gethostname(hostname, MAXHOSTNAMELEN);
+		hostname = safe_gethostname();
 		pid = getpid();
 
-		// get number of messages
+		// get messages counter
 		// NOTE: we don't use xatou(buf) since buf is "nmsg nbytes"
 		// we only need nmsg and atoi is just exactly what we need
 		// if atoi fails to convert buf into number it returns 0
@@ -542,19 +544,19 @@ int sendgetmail_main(int argc, char **argv)
 
 		// loop through messages
 		for (; nmsg; nmsg--) {
+
+			// generate unique filename
 			char *filename = xasprintf("tmp/%llu.%u.%s", monotonic_us(), pid, hostname);
 			char *target;
-#if ENABLE_FEATURE_FETCHMAIL_FILTER
-		int rc;
-#endif
-			// retrieve message in ./tmp
+			int rc;
+
+			// retrieve message in ./tmp/
 			pop3_check(retr, (const char *)nmsg);
 			pop3_message(filename);
 			// delete message from server
 			if (opts & OPTF_z)
 				pop3_check("DELE %u", (const char*)nmsg);
 
-#if ENABLE_FEATURE_FETCHMAIL_FILTER
 			// run postprocessing program
 			if (*fargs) {
 				fargs[1] = filename;
@@ -564,22 +566,17 @@ int sendgetmail_main(int argc, char **argv)
 				if (1 == rc)
 					goto skip;
 			}
-#endif
-			// atomically move message to ./new
+
+			// atomically move message to ./new/
 			target = xstrdup(filename);
 			strncpy(target, "new", 3);
 			// ... or just stop receiving on error
 			if (rename_or_warn(filename, target))
 				break;
 			free(target);
-#if ENABLE_FEATURE_FETCHMAIL_FILTER
  skip:
-#endif
 			free(filename);
 		}
-
-		if (ENABLE_FEATURE_CLEAN_UP)
-			free(hostname);
 
 		// Bye
 		pop3_check("QUIT", NULL);
