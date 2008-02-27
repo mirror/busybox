@@ -325,6 +325,7 @@ struct globals {
 	SET_PTR_TO_GLOBALS(xzalloc(sizeof(G))); \
 	USE_FEATURE_HTTPD_BASIC_AUTH(g_realm = "Web Server Authentication";) \
 	bind_addr_or_port = "80"; \
+	index_page = "index.html"; \
 	file_size = -1; \
 } while (0)
 
