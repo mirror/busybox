@@ -865,7 +865,7 @@ static void process_files(void)
 	next_line = get_next_line(&next_gets_char);
 
 	/* go through every line in each file */
-again:
+ again:
 	substituted = 0;
 
 	/* Advance to next line.  Stop if out of lines. */
@@ -877,7 +877,7 @@ again:
 	 * the '$' address */
 	next_line = get_next_line(&next_gets_char);
 	linenum++;
-restart:
+ restart:
 	/* for every line, go through all the commands */
 	for (sed_cmd = G.sed_cmd_head.next; sed_cmd; sed_cmd = sed_cmd->next) {
 		int old_matched, matched;
@@ -1053,6 +1053,7 @@ restart:
 					pattern_space = next_line;
 					last_gets_char = next_gets_char;
 					next_line = get_next_line(&next_gets_char);
+					substituted = 0;
 					linenum++;
 					break;
 				}

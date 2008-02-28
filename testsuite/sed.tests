@@ -201,4 +201,10 @@ testing "sed s/xxx/[/" "sed -e 's/xxx/[/'" "[\n" "" "xxx\n"
 #testing "sed -g (exhaustive)" "sed -e 's/[[:space:]]*/,/g'" ",1,2,3,4,5," \
 #	"" "12345"
 
+# testing "description" "arguments" "result" "infile" "stdin"
+
+testing "sed n command must reset 'substituted' bit" \
+	"sed 's/1/x/;T;n;: next;s/3/y/;t quit;n;b next;: quit;q'" \
+	"0\nx\n2\ny\n" "" "0\n1\n2\n3\n"
+
 exit $FAILCOUNT
