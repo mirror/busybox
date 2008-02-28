@@ -81,10 +81,7 @@ int microcom_main(int argc, char **argv)
 		// %4d to make concurrent mgetty (if any) happy.
 		// Mgetty treats 4-bytes lock files as binary,
 		// not text, PID. Making 5+ char file. Brrr...
-		char *s = xasprintf("%4d\n", getpid());
-		write(sfd, s, strlen(s));
-		if (ENABLE_FEATURE_CLEAN_UP)
-			free(s);
+		fdprintf(sfd, "%4d\n", getpid());
 		close(sfd);
 	}
 
