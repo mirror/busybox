@@ -215,7 +215,7 @@ int zcip_main(int argc, char **argv)
 #if !BB_MMU
 	// on NOMMU reexec early (or else we will rerun things twice)
 	if (!FOREGROUND)
-		bb_daemonize_or_rexec(DAEMON_CHDIR_ROOT, argv);
+		bb_daemonize_or_rexec(0 /*was: DAEMON_CHDIR_ROOT*/, argv);
 #endif
 	// open an ARP socket
 	// (need to do it before openlog to prevent openlog from taking
@@ -281,7 +281,7 @@ int zcip_main(int argc, char **argv)
 	// daemonize now; don't delay system startup
 	if (!FOREGROUND) {
 #if BB_MMU
-		bb_daemonize(DAEMON_CHDIR_ROOT);
+		bb_daemonize(0 /*was: DAEMON_CHDIR_ROOT*/);
 #endif
 		bb_info_msg("start, interface %s", intf);
 	}
