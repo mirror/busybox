@@ -625,7 +625,7 @@ static void collect_mem(mem_stat *s)
 		put_question_marks(4);
 		return;
 	}
-	if (s->opt == 'f') {
+	if (s->opt == 't') {
 		scale(m_total << 10);
 		return;
 	}
