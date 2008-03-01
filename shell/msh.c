@@ -489,36 +489,37 @@ static char **getwords(struct wdblock *wb);
 
 /* -------- misc stuff -------- */
 
+static int dolabel(struct op *t, char **args);
+static int dohelp(struct op *t, char **args);
+static int dochdir(struct op *t, char **args);
+static int doshift(struct op *t, char **args);
+static int dologin(struct op *t, char **args);
+static int doumask(struct op *t, char **args);
+static int doexec(struct op *t, char **args);
+static int dodot(struct op *t, char **args);
+static int dowait(struct op *t, char **args);
+static int doread(struct op *t, char **args);
+static int doeval(struct op *t, char **args);
+static int dotrap(struct op *t, char **args);
+static int dobreak(struct op *t, char **args);
+static int doexit(struct op *t, char **args);
+static int doexport(struct op *t, char **args);
+static int doreadonly(struct op *t, char **args);
+static int doset(struct op *t, char **args);
+static int dotimes(struct op *t, char **args);
+static int docontinue(struct op *t, char **args);
+
 static int forkexec(struct op *t, int *pin, int *pout, int no_fork, char **wp);
 static int execute(struct op *t, int *pin, int *pout, int no_fork);
 static int iosetup(struct ioword *iop, int pipein, int pipeout);
 static void brkset(struct brkcon *bc);
-static int dolabel(struct op *t);
-static int dohelp(struct op *t);
-static int dochdir(struct op *t);
-static int doshift(struct op *t);
-static int dologin(struct op *t);
-static int doumask(struct op *t);
-static int doexec(struct op *t);
-static int dodot(struct op *t);
-static int dowait(struct op *t);
-static int doread(struct op *t);
-static int doeval(struct op *t);
-static int dotrap(struct op *t);
 static int getsig(char *s);
 static void setsig(int n, sighandler_t f);
 static int getn(char *as);
-static int dobreak(struct op *t);
-static int docontinue(struct op *t);
 static int brkcontin(char *cp, int val);
-static int doexit(struct op *t);
-static int doexport(struct op *t);
-static int doreadonly(struct op *t);
 static void rdexp(char **wp, void (*f) (struct var *), int key);
 static void badid(char *s);
-static int doset(struct op *t);
 static void varput(char *s, int out);
-static int dotimes(struct op *t);
 static int expand(const char *cp, struct wdblock **wbp, int f);
 static char *blank(int f);
 static int dollar(int quoted);
@@ -559,7 +560,7 @@ static const char *const signame[] = {
 };
 
 
-typedef int (*builtin_func_ptr)(struct op *);
+typedef int (*builtin_func_ptr)(struct op *, char **);
 
 struct builtincmd {
 	const char *name;
@@ -1821,7 +1822,7 @@ static struct op *command(int cf)
 		t->type = (c == WHILE ? TWHILE : TUNTIL);
 		t->left = c_list();
 		t->right = dogroup(1);
-		t->words = NULL;
+		/* t->words = NULL; - newtp() did this */
 		multiline--;
 		break;
 
@@ -2741,7 +2742,13 @@ static int forkexec(struct op *t, int *pin, int *pout, int no_fork, char **wp)
 	}
 
 	forked = 0;
-	t->words = wp;
+	// We were pointing t->words to temporary (expanded) arg list:
+	// t->words = wp;
+	// and restored it later (in execute()), but "break"
+	// longjmps away (at "Run builtin" below), leaving t->words clobbered!
+	// See http://bugs.busybox.net/view.php?id=846.
+	// Now we do not touch t->words, but separately pass wp as param list
+	// to builtins 
 	DBGPRINTF(("FORKEXEC: bltin %p, no_fork %d, owp %p\n", bltin,
 			no_fork, owp));
 	/* Don't fork if it is a lone builtin (not in pipe)
@@ -2836,7 +2843,8 @@ static int forkexec(struct op *t, int *pin, int *pout, int no_fork, char **wp)
 				_exit(-1);
 			return -1;
 		}
-		i = setstatus(bltin(t));
+		/* Run builtin */
+		i = setstatus(bltin(t, wp));
 		if (forked)
 			_exit(i);
 		DBGPRINTF(("FORKEXEC: returning i=%d\n", i));
@@ -3156,7 +3164,7 @@ static int run(struct ioarg *argp, int (*f) (struct ioarg *))
  * built-in commands: doX
  */
 
-static int dohelp(struct op *t)
+static int dohelp(struct op *t, char **args)
 {
 	int col;
 	const struct builtincmd *x;
@@ -3192,16 +3200,16 @@ static int dohelp(struct op *t)
 	return EXIT_SUCCESS;
 }
 
-static int dolabel(struct op *t)
+static int dolabel(struct op *t, char **args)
 {
 	return 0;
 }
 
-static int dochdir(struct op *t)
+static int dochdir(struct op *t, char **args)
 {
 	const char *cp, *er;
 
-	cp = t->words[1];
+	cp = args[1];
 	if (cp == NULL) {
 		cp = homedir->value;
 		if (cp != NULL)
@@ -3218,11 +3226,11 @@ static int dochdir(struct op *t)
 	return 1;
 }
 
-static int doshift(struct op *t)
+static int doshift(struct op *t, char **args)
 {
 	int n;
 
-	n = t->words[1] ? getn(t->words[1]) : 1;
+	n = args[1] ? getn(args[1]) : 1;
 	if (dolc < n) {
 		err("nothing to shift");
 		return 1;
@@ -3237,7 +3245,7 @@ static int doshift(struct op *t)
 /*
  * execute login and newgrp directly
  */
-static int dologin(struct op *t)
+static int dologin(struct op *t, char **args)
 {
 	const char *cp;
 
@@ -3245,19 +3253,19 @@ static int dologin(struct op *t)
 		signal(SIGINT, SIG_DFL);
 		signal(SIGQUIT, SIG_DFL);
 	}
-	cp = rexecve(t->words[0], t->words, makenv(0, NULL));
-	prs(t->words[0]);
+	cp = rexecve(args[0], args, makenv(0, NULL));
+	prs(args[0]);
 	prs(": ");
 	err(cp);
 	return 1;
 }
 
-static int doumask(struct op *t)
+static int doumask(struct op *t, char **args)
 {
 	int i;
 	char *cp;
 
-	cp = t->words[1];
+	cp = args[1];
 	if (cp == NULL) {
 		i = umask(0);
 		umask(i);
@@ -3273,28 +3281,36 @@ static int doumask(struct op *t)
 	return 0;
 }
 
-static int doexec(struct op *t)
+static int doexec(struct op *t, char **args)
 {
-	int i;
 	jmp_buf ex;
 	xint *ofail;
+	char **sv_words;
 
 	t->ioact = NULL;
-	for (i = 0; (t->words[i] = t->words[i + 1]) != NULL; i++)
-		continue;
-	if (i == 0)
+	if (!args[1])
 		return 1;
+
 	execflg = 1;
 	ofail = failpt;
 	failpt = ex;
+
+	sv_words = t->words;
+	t->words = args + 1;
+// TODO: test what will happen with "exec break" -
+// will it leave t->words pointing to garbage?
+// (see http://bugs.busybox.net/view.php?id=846)
 	if (setjmp(failpt) == 0)
 		execute(t, NOPIPE, NOPIPE, /* no_fork: */ 1);
+	t->words = sv_words;
+
 	failpt = ofail;
 	execflg = 0;
+
 	return 1;
 }
 
-static int dodot(struct op *t)
+static int dodot(struct op *t, char **args)
 {
 	int i;
 	const char *sp;
@@ -3305,7 +3321,7 @@ static int dodot(struct op *t)
 	DBGPRINTF(("DODOT: enter, t=%p, tleft %p, tright %p, global_env.linep is %s\n",
 		t, t->left, t->right, ((global_env.linep == NULL) ? "NULL" : global_env.linep)));
 
-	cp = t->words[1];
+	cp = args[1];
 	if (cp == NULL) {
 		DBGPRINTF(("DODOT: bad args, ret 0\n"));
 		return 0;
@@ -3349,12 +3365,12 @@ static int dodot(struct op *t)
 	return -1;
 }
 
-static int dowait(struct op *t)
+static int dowait(struct op *t, char **args)
 {
 	int i;
 	char *cp;
 
-	cp = t->words[1];
+	cp = args[1];
 	if (cp != NULL) {
 		i = getn(cp);
 		if (i == 0)
@@ -3365,17 +3381,17 @@ static int dowait(struct op *t)
 	return 0;
 }
 
-static int doread(struct op *t)
+static int doread(struct op *t, char **args)
 {
 	char *cp, **wp;
 	int nb = 0;
 	int nl = 0;
 
-	if (t->words[1] == NULL) {
+	if (args[1] == NULL) {
 		err("Usage: read name ...");
 		return 1;
 	}
-	for (wp = t->words + 1; *wp; wp++) {
+	for (wp = args + 1; *wp; wp++) {
 		for (cp = global_env.linep; !nl && cp < elinep - 1; cp++) {
 			nb = nonblock_safe_read(0, cp, sizeof(*cp));
 			if (nb != sizeof(*cp))
@@ -3392,17 +3408,17 @@ static int doread(struct op *t)
 	return nb <= 0;
 }
 
-static int doeval(struct op *t)
+static int doeval(struct op *t, char **args)
 {
-	return RUN(awordlist, t->words + 1, wdchar);
+	return RUN(awordlist, args + 1, wdchar);
 }
 
-static int dotrap(struct op *t)
+static int dotrap(struct op *t, char **args)
 {
 	int n, i;
 	int resetsig;
 
-	if (t->words[1] == NULL) {
+	if (args[1] == NULL) {
 		for (i = 0; i <= _NSIG; i++)
 			if (trap[i]) {
 				prn(i);
@@ -3412,14 +3428,14 @@ static int dotrap(struct op *t)
 			}
 		return 0;
 	}
-	resetsig = isdigit(*t->words[1]);
-	for (i = resetsig ? 1 : 2; t->words[i] != NULL; ++i) {
-		n = getsig(t->words[i]);
+	resetsig = isdigit(args[1][0]);
+	for (i = resetsig ? 1 : 2; args[i] != NULL; ++i) {
+		n = getsig(args[i]);
 		freecell(trap[n]);
 		trap[n] = 0;
 		if (!resetsig) {
-			if (*t->words[1] != '\0') {
-				trap[n] = strsave(t->words[1], 0);
+			if (args[1][0] != '\0') {
+				trap[n] = strsave(args[1], 0);
 				setsig(n, sig);
 			} else
 				setsig(n, SIG_IGN);
@@ -3478,14 +3494,14 @@ static int getn(char *as)
 	return n * m;
 }
 
-static int dobreak(struct op *t)
+static int dobreak(struct op *t, char **args)
 {
-	return brkcontin(t->words[1], 1);
+	return brkcontin(args[1], 1);
 }
 
-static int docontinue(struct op *t)
+static int docontinue(struct op *t, char **args)
 {
-	return brkcontin(t->words[1], 0);
+	return brkcontin(args[1], 0);
 }
 
 static int brkcontin(char *cp, int val)
@@ -3511,12 +3527,12 @@ static int brkcontin(char *cp, int val)
 	/* NOTREACHED */
 }
 
-static int doexit(struct op *t)
+static int doexit(struct op *t, char **args)
 {
 	char *cp;
 
 	execflg = 0;
-	cp = t->words[1];
+	cp = args[1];
 	if (cp != NULL)
 		setstatus(getn(cp));
 
@@ -3527,15 +3543,15 @@ static int doexit(struct op *t)
 	return 0;
 }
 
-static int doexport(struct op *t)
+static int doexport(struct op *t, char **args)
 {
-	rdexp(t->words + 1, export, EXPORT);
+	rdexp(args + 1, export, EXPORT);
 	return 0;
 }
 
-static int doreadonly(struct op *t)
+static int doreadonly(struct op *t, char **args)
 {
-	rdexp(t->words + 1, ronly, RONLY);
+	rdexp(args + 1, ronly, RONLY);
 	return 0;
 }
 
@@ -3568,21 +3584,20 @@ static void badid(char *s)
 	err(": bad identifier");
 }
 
-static int doset(struct op *t)
+static int doset(struct op *t, char **args)
 {
 	struct var *vp;
 	char *cp;
 	int n;
 
-	cp = t->words[1];
+	cp = args[1];
 	if (cp == NULL) {
 		for (vp = vlist; vp; vp = vp->next)
 			varput(vp->name, 1);
 		return 0;
 	}
 	if (*cp == '-') {
-		/* bad: t->words++; */
-		for (n = 0; (t->words[n] = t->words[n + 1]) != NULL; n++);
+		args++;
 		if (*++cp == 0)
 			FLAG['x'] = FLAG['v'] = 0;
 		else {
@@ -3602,12 +3617,12 @@ static int doset(struct op *t)
 		}
 		setdash();
 	}
-	if (t->words[1]) {
-		t->words[0] = dolv[0];
-		for (n = 1; t->words[n]; n++)
-			setarea((char *) t->words[n], 0);
+	if (args[1]) {
+		args[0] = dolv[0];
+		for (n = 1; args[n]; n++)
+			setarea((char *) args[n], 0);
 		dolc = n - 1;
-		dolv = t->words;
+		dolv = args;
 		setval(lookup("#"), putn(dolc));
 		setarea((char *) (dolv - 1), 0);
 	}
@@ -3627,21 +3642,40 @@ static void varput(char *s, int out)
  * Copyright (c) 1999 Herbert Xu <herbert@debian.org>
  * This file contains code for the times builtin.
  */
-static int dotimes(struct op *t)
+static void times_fmt(char *buf, clock_t val, unsigned clk_tck)
+{
+	unsigned min, sec;
+	if (sizeof(val) > sizeof(int))
+		sec = ((unsigned long)val) / clk_tck;
+	else
+		sec = ((unsigned)val) / clk_tck;
+	min = sec / 60;
+#if ENABLE_DESKTOP
+	sprintf(buf, "%um%u.%03us", min, (sec - min * 60),
+	/* msec: */ ((unsigned)(val - (clock_t)sec * clk_tck)) * 1000 / clk_tck
+	);
+#else
+	sprintf(buf, "%um%us", min, (sec - min * 60));
+#endif
+}
+
+static int dotimes(struct op *t, char **args)
 {
 	struct tms buf;
-	long clk_tck = sysconf(_SC_CLK_TCK);
+	unsigned clk_tck = sysconf(_SC_CLK_TCK);
+	/* How much do we need for "NmN.NNNs" ? */
+	enum { TIMEBUF_SIZE = sizeof(int)*3 + sizeof(int)*3 + 6 };
+	char u[TIMEBUF_SIZE], s[TIMEBUF_SIZE];
+	char cu[TIMEBUF_SIZE], cs[TIMEBUF_SIZE];
 
 	times(&buf);
-	printf("%dm%fs %dm%fs\n%dm%fs %dm%fs\n",
-		   (int) (buf.tms_utime / clk_tck / 60),
-		   ((double) buf.tms_utime) / clk_tck,
-		   (int) (buf.tms_stime / clk_tck / 60),
-		   ((double) buf.tms_stime) / clk_tck,
-		   (int) (buf.tms_cutime / clk_tck / 60),
-		   ((double) buf.tms_cutime) / clk_tck,
-		   (int) (buf.tms_cstime / clk_tck / 60),
-		   ((double) buf.tms_cstime) / clk_tck);
+
+	times_fmt(u, buf.tms_utime, clk_tck);
+	times_fmt(s, buf.tms_stime, clk_tck);
+	times_fmt(cu, buf.tms_cutime, clk_tck);
+	times_fmt(cs, buf.tms_cstime, clk_tck);
+
+	printf("%s %s\n%s %s\n", u, s, cu, cs);
 	return 0;
 }
 
