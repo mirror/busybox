@@ -796,11 +796,6 @@ static char *add_quote_for_spec_chars(char *found)
 	return s;
 }
 
-static int match_compare(const void *a, const void *b)
-{
-	return strcmp(*(char**)a, *(char**)b);
-}
-
 /* Do TAB completion */
 static void input_tab(smallint *lastWasTab)
 {
@@ -841,7 +836,7 @@ static void input_tab(smallint *lastWasTab)
 		/* Sort, then remove any duplicates found */
 		if (matches) {
 			int i, n = 0;
-			qsort(matches, num_matches, sizeof(char*), match_compare);
+			qsort_string_vector(matches, num_matches);
 			for (i = 0; i < num_matches - 1; ++i) {
 				if (matches[i] && matches[i+1]) { /* paranoia */
 					if (strcmp(matches[i], matches[i+1]) == 0) {

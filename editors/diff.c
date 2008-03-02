@@ -1095,12 +1095,6 @@ static void do_diff(char *dir1, char *path1, char *dir2, char *path2)
 
 
 #if ENABLE_FEATURE_DIFF_DIR
-static int dir_strcmp(const void *p1, const void *p2)
-{
-	return strcmp(*(char *const *) p1, *(char *const *) p2);
-}
-
-
 /* This function adds a filename to dl, the directory listing. */
 static int add_to_dirlist(const char *filename,
 		struct stat ATTRIBUTE_UNUSED * sb, void *userdata,
@@ -1144,7 +1138,7 @@ static char **get_dir(char *path)
 	}
 
 	/* Sort dl alphabetically. */
-	qsort(dl, dl_count, sizeof(char *), dir_strcmp);
+	qsort_string_vector(dl, dl_count);
 
 	dl[dl_count] = NULL;
 	return dl;

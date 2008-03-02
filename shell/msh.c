@@ -527,9 +527,6 @@ static int grave(int quoted);
 static void globname(char *we, char *pp);
 static char *generate(char *start1, char *end1, char *middle, char *end);
 static int anyspcl(struct wdblock *wb);
-static int xstrcmp(char *p1, char *p2);
-static void glob0(char *a0, unsigned a1
-		/*, int item_sz, int (*f)(char *, char *) */);
 static void readhere(char **name, char *s, int ec);
 static int xxchar(struct ioarg *ap);
 
@@ -4269,10 +4266,10 @@ static struct wdblock *glob(char *cp, struct wdblock *wb)
 				DELETE(cl->w_words[i]);
 			DELETE(cl);
 		}
-		for (i = 0; i < cl->w_nword; i++)
-			unquote(cl->w_words[i]);
-		glob0((char *) cl->w_words, cl->w_nword /*, sizeof(char *), xstrcmp*/);
 		if (cl->w_nword) {
+			for (i = 0; i < cl->w_nword; i++)
+				unquote(cl->w_words[i]);
+			qsort_string_vector(cl->w_words, cl->w_nword);
 			for (i = 0; i < cl->w_nword; i++)
 				wb = addword(cl->w_words[i], wb);
 			DELETE(cl);
@@ -4296,11 +4293,13 @@ static void globname(char *we, char *pp)
 	for (np = we; np != pp; pp--)
 		if (pp[-1] == '/')
 			break;
-	for (dp = cp = get_space((int) (pp - np) + 3); np < pp;)
+	dp = cp = get_space((int) (pp - np) + 3);
+	while (np < pp)
 		*cp++ = *np++;
 	*cp++ = '.';
 	*cp = '\0';
-	for (gp = cp = get_space(strlen(pp) + 1); *np && *np != '/';)
+	gp = cp = get_space(strlen(pp) + 1);
+	while (*np && *np != '/')
 		*cp++ = *np++;
 	*cp = '\0';
 	dirp = opendir(dp);
@@ -4372,11 +4371,6 @@ static int anyspcl(struct wdblock *wb)
 	return 0;
 }
 
-static int xstrcmp(char *p1, char *p2)
-{
-	return strcmp(*(char **) p1, *(char **) p2);
-}
-
 
 /* -------- word.c -------- */
 
@@ -4423,116 +4417,9 @@ static char **getwords(struct wdblock *wb)
 	}
 	nb = sizeof(*wd) * wb->w_nword;
 	wd = get_space(nb);
-	memcpy((char *) wd, (char *) wb->w_words, nb);
-	DELETE(wb);					/* perhaps should done by caller */
+	memcpy(wd, wb->w_words, nb);
+	DELETE(wb);			/* perhaps should done by caller */
 	return wd;
-}
-
-/*static int (*cmp_func) (char *, char *);*/
-/*static int glob_item_sz;*/
-#define cmp_func xstrcmp
-enum { glob_item_sz = sizeof(char *) };
-
-static void glob3(char *index1, char *index2, char *index3)
-{
-	int m = glob_item_sz;
-	do {
-		char c = *index1;
-		*index1++ = *index3;
-		*index3++ = *index2;
-		*index2++ = c;
-	} while (--m);
-}
-
-static void glob2(char *index1, char *index2)
-{
-	int m = glob_item_sz;
-	do {
-		char c = *index1;
-		*index1++ = *index2;
-		*index2++ = c;
-	} while (--m);
-}
-
-static void glob1(char *base, char *lim)
-{
-	char *i, *j;
-	int v2;
-	char *lptr, *hptr;
-	int c;
-	unsigned n;
-
-	v2 = glob_item_sz;
- top:
-	n = (int) (lim - base);
-	if (n <= v2)
-		return;
-	n = v2 * (n / (2 * v2));
-	hptr = lptr = base + n;
-	i = base;
-	j = lim - v2;
-	for (;;) {
-		if (i < lptr) {
-			c = cmp_func(i, lptr);
-			if (c == 0) {
-				lptr -= v2;
-				glob2(i, lptr);
-				continue;
-			}
-			if (c < 0) {
-				i += v2;
-				continue;
-			}
-		}
- begin:
-		if (j > hptr) {
-			c = cmp_func(hptr, j);
-			if (c == 0) {
-				hptr += v2;
-				glob2(hptr, j);
-				goto begin;
-			}
-			if (c > 0) {
-				if (i == lptr) {
-					hptr += v2;
-					glob3(i, hptr, j);
-					lptr += v2;
-					i = lptr;
-					goto begin;
-				}
-				glob2(i, j);
-				j -= v2;
-				i += v2;
-				continue;
-			}
-			j -= v2;
-			goto begin;
-		}
-
-		if (i == lptr) {
-			if (lptr - base >= lim - hptr) {
-				glob1(hptr + v2, lim);
-				lim = lptr;
-			} else {
-				glob1(base, lptr);
-				base = hptr + v2;
-			}
-			goto top;
-		}
-
-		lptr -= v2;
-		glob3(j, lptr, i);
-		hptr -= v2;
-		j = hptr;
-	}
-}
-
-static void glob0(char *a0, unsigned a1
-		/*, int item_sz, int (*f) (char *, char *) */)
-{
-	/*cmp_func = f; - always xstrcmp */
-	/*glob_item_sz = item_sz; - always sizeof(char*) */
-	glob1(a0, a0 + a1 * /*item_sz:*/ sizeof(char*));
 }
 
 

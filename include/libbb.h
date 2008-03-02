@@ -545,6 +545,9 @@ extern FILE *fopen_or_warn(const char *filename, const char *mode);
 /* "Opens" stdin if filename is special, else just opens file: */
 extern FILE *fopen_or_warn_stdin(const char *filename);
 
+int bb_pstrcmp(const void *a, const void *b);
+void qsort_string_vector(char **sv, unsigned count);
+
 /* Wrapper which restarts poll on EINTR or ENOMEM.
  * On other errors complains [perror("poll")] and returns.
  * Warning! May take (much) longer than timeout_ms to return!
