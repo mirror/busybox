@@ -90,7 +90,7 @@ static char *itoa(int n)
 //#define MSHDEBUG 4
 
 #ifdef MSHDEBUG
-int mshdbg = MSHDEBUG;
+static int mshdbg = MSHDEBUG;
 
 #define DBGPRINTF(x)	if (mshdbg>0) printf x
 #define DBGPRINTF0(x)	if (mshdbg>0) printf x
@@ -104,7 +104,7 @@ int mshdbg = MSHDEBUG;
 #define DBGPRINTF8(x)	if (mshdbg>8) printf x
 #define DBGPRINTF9(x)	if (mshdbg>9) printf x
 
-int mshdbg_rc = 0;
+static int mshdbg_rc = 0;
 
 #define RCPRINTF(x)	if (mshdbg_rc) printf x
 
@@ -195,7 +195,7 @@ struct ioword {
  */
 struct op {
 	smallint type;                  /* operation type, see Txxxx below */
-	char **words;                   /* arguments to a command */
+	char **op_words;                /* arguments to a command */
 	struct ioword **ioact;          /* IO actions (eg, < > >>) */
 	struct op *left;
 	struct op *right;
@@ -528,8 +528,8 @@ static void globname(char *we, char *pp);
 static char *generate(char *start1, char *end1, char *middle, char *end);
 static int anyspcl(struct wdblock *wb);
 static int xstrcmp(char *p1, char *p2);
-static void glob0(char *a0, unsigned a1, int a2,
-				  int (*a3) (char *, char *));
+static void glob0(char *a0, unsigned a1
+		/*, int item_sz, int (*f)(char *, char *) */);
 static void readhere(char **name, char *s, int ec);
 static int xxchar(struct ioarg *ap);
 
@@ -722,17 +722,7 @@ struct globals {
 #define	RUN(what, arg, gen) ((temparg.what = (arg)), run(&temparg, (gen)))
 
 #ifdef MSHDEBUG
-void print_t(struct op *t)
-{
-	DBGPRINTF(("T: t=%p, type %s, words=%p, IOword=%p\n", t,
-	          T_CMD_NAMES[t->type], t->words, t->ioact));
-
-	if (t->words) {
-		DBGPRINTF(("T: W1: %s", t->words[0]));
-	}
-}
-
-void print_tree(struct op *head)
+static void print_tree(struct op *head)
 {
 	if (head == NULL) {
 		DBGPRINTF(("PRINT_TREE: no tree\n"));
@@ -1002,7 +992,7 @@ static void garbage(void)
 #endif
 }
 
-static char *space(int n)
+static void *get_space(int n)
 {
 	char *cp;
 
@@ -1016,7 +1006,7 @@ static char *strsave(const char *s, int a)
 {
 	char *cp;
 
-	cp = space(strlen(s) + 1);
+	cp = get_space(strlen(s) + 1);
 	if (cp == NULL) {
 // FIXME: I highly doubt this is good.
 		return (char*)"";
@@ -1074,8 +1064,8 @@ static struct var *lookup(const char *n)
 			return vp;
 
 	cp = findeq(n);
-	vp = (struct var *) space(sizeof(*vp));
-	if (vp == 0 || (vp->name = space((int) (cp - n) + 2)) == 0) {
+	vp = get_space(sizeof(*vp));
+	if (vp == 0 || (vp->name = get_space((int) (cp - n) + 2)) == NULL) {
 		dummy.name = dummy.value = (char*)"";
 		return &dummy;
 	}
@@ -1116,7 +1106,7 @@ static void nameval(struct var *vp, const char *val, const char *name)
 	}
 	fl = 0;
 	if (name == NULL) {
-		xp = space(strlen(vp->name) + strlen(val) + 2);
+		xp = get_space(strlen(vp->name) + strlen(val) + 2);
 		if (xp == NULL)
 			return;
 		/* make string: name=value */
@@ -1310,12 +1300,12 @@ struct op *scantree(struct op *head)
 			return dotnode;
 	}
 
-	if (head->words == NULL)
+	if (head->op_words == NULL)
 		return NULL;
 
 	DBGPRINTF5(("SCANTREE: checking node %p\n", head));
 
-	if ((head->type != TDOT) && LONE_CHAR(head->words[0], '.')) {
+	if ((head->type != TDOT) && LONE_CHAR(head->op_words[0], '.')) {
 		DBGPRINTF5(("SCANTREE: dot found in node %p\n", head));
 		return head;
 	}
@@ -1398,7 +1388,7 @@ static int newenv(int f)
 		return 1;
 	}
 
-	ep = (struct env *) space(sizeof(*ep));
+	ep = get_space(sizeof(*ep));
 	if (ep == NULL) {
 		while (global_env.oenv)
 			quitenv();
@@ -1664,8 +1654,8 @@ static struct op *c_list(void)
 			t = block(TASYNC, t, NOBLOCK, NOWORDS);
 
 		while ((c = yylex(0)) == ';' || c == '&'
-			   || (multiline && c == '\n')) {
-
+		 || (multiline && c == '\n')
+		) {
 			p = andor();
 			if (p== NULL)
 				return t;
@@ -1807,7 +1797,7 @@ static struct op *command(int cf)
 		startl = 1;
 		t->str = yylval.cp;
 		multiline++;
-		t->words = wordlist();
+		t->op_words = wordlist();
 		c = yylex(0);
 		if (c != '\n' && c != ';')
 			peeksym = c;
@@ -1822,7 +1812,7 @@ static struct op *command(int cf)
 		t->type = (c == WHILE ? TWHILE : TUNTIL);
 		t->left = c_list();
 		t->right = dogroup(1);
-		/* t->words = NULL; - newtp() did this */
+		/* t->op_words = NULL; - newtp() did this */
 		multiline--;
 		break;
 
@@ -1856,17 +1846,18 @@ static struct op *command(int cf)
 		t = newtp();
 		t->type = TDOT;
 
-		musthave(WORD, 0);		/* gets name of file */
+		musthave(WORD, 0);              /* gets name of file */
 		DBGPRINTF7(("COMMAND: DOT clause, yylval.cp is %s\n", yylval.cp));
 
-		word(yylval.cp);		/* add word to wdlist */
-		word(NOWORD);			/* terminate  wdlist */
-		t->words = copyw();		/* dup wdlist */
+		word(yylval.cp);                /* add word to wdlist */
+		word(NOWORD);                   /* terminate  wdlist */
+		t->op_words = copyw();          /* dup wdlist */
 		break;
 
 	}
 
-	while (synio(0));
+	while (synio(0))
+		continue;
 
 	t = namelist(t);
 	iolist = iosave;
@@ -1971,7 +1962,7 @@ static struct op *casepart(void)
 
 	t = newtp();
 	t->type = TPAT;
-	t->words = pattern();
+	t->op_words = pattern();
 	musthave(')', 0);
 	t->left = c_list();
 	peeksym = yylex(CONTIN);
@@ -2042,7 +2033,7 @@ static struct op *block(int type, struct op *t1, struct op *t2, char **wp)
 	t->type = type;
 	t->left = t1;
 	t->right = t2;
-	t->words = wp;
+	t->op_words = wp;
 
 	DBGPRINTF7(("BLOCK: inserted %p between %p and %p\n", t, t1, t2));
 
@@ -2126,7 +2117,7 @@ static struct op *namelist(struct op *t)
 	}
 
 	word(NOWORD);
-	t->words = copyw();
+	t->op_words = copyw();
 
 	return t;
 }
@@ -2190,7 +2181,7 @@ static int yylex(int cf)
 
  loop:
 	while ((c = my_getc(0)) == ' ' || c == '\t')	/* Skip whitespace */
-		;
+		continue;
 
 	switch (c) {
 	default:
@@ -2207,7 +2198,8 @@ static int yylex(int cf)
 		break;
 
 	case '#':					/* Comment, skip to next newline or End-of-string */
-		while ((c = my_getc(0)) != '\0' && c != '\n');
+		while ((c = my_getc(0)) != '\0' && c != '\n')
+			continue;
 		unget(c);
 		goto loop;
 
@@ -2424,7 +2416,7 @@ static struct op **find1case(struct op *t, const char *w)
 	} else
 		t1 = t;
 
-	for (wp = t1->words; *wp;) {
+	for (wp = t1->op_words; *wp;) {
 		cp = evalstr(*wp++, DOSUB);
 		if (cp && gmatch(w, cp)) {
 			DBGPRINTF3(("FIND1CASE: returning &t1->left= %p.\n",
@@ -2469,13 +2461,13 @@ static int execute(struct op *t, int *pin, int *pout, int no_fork)
 		return 0;
 	}
 
-	DBGPRINTF(("EXECUTE: t=%p, t->type=%d (%s), t->words is %s\n", t,
+	DBGPRINTF(("EXECUTE: t=%p, t->type=%d (%s), t->op_words is %s\n", t,
 			   t->type, T_CMD_NAMES[t->type],
-			   ((t->words == NULL) ? "NULL" : t->words[0])));
+			   ((t->op_words == NULL) ? "NULL" : t->op_words[0])));
 
 	rv = 0;
 	a = areanum++;
-	wp2 = t->words;
+	wp2 = t->op_words;
 	wp = (wp2 != NULL)
 		? eval(wp2, t->type == TCOM ? DOALL : DOALL & ~DOKEY)
 		: NULL;
@@ -2486,7 +2478,7 @@ static int execute(struct op *t, int *pin, int *pout, int no_fork)
 
 		outtree_save = outtree;
 
-		newfile(evalstr(t->words[0], DOALL));
+		newfile(evalstr(t->op_words[0], DOALL));
 
 		t->left = dowholefile(TLIST, 0);
 		t->right = NULL;
@@ -2575,7 +2567,8 @@ static int execute(struct op *t, int *pin, int *pout, int no_fork)
 				i = 0;
 		} else {
 			i = -1;
-			while (*wp++ != NULL);
+			while (*wp++ != NULL)
+				continue;
 		}
 		vp = lookup(t->str);
 		while (setjmp(bc.brkpt))
@@ -2648,7 +2641,9 @@ static int execute(struct op *t, int *pin, int *pout, int no_fork)
 	};
 
  broken:
-	t->words = wp2;
+// Restoring op_words is most likely not needed now: see comment in forkexec()
+// (also take a look at exec builtin (doexec) - it touches t->op_words)
+	t->op_words = wp2;
 	isbreak = 0;
 	freehere(areanum);
 	freearea(areanum);
@@ -2711,8 +2706,8 @@ static int forkexec(struct op *t, int *pin, int *pout, int no_fork, char **wp)
 
 	DBGPRINTF(("FORKEXEC: t=%p, pin %p, pout %p, no_fork %d\n", t, pin,
 			pout, no_fork));
-	DBGPRINTF7(("FORKEXEC: t->words is %s\n",
-			((t->words == NULL) ? "NULL" : t->words[0])));
+	DBGPRINTF7(("FORKEXEC: t->op_words is %s\n",
+			((t->op_words == NULL) ? "NULL" : t->op_words[0])));
 	owp = wp;
 	resetsig = 0;
 	if (t->type == TCOM) {
@@ -2742,12 +2737,12 @@ static int forkexec(struct op *t, int *pin, int *pout, int no_fork, char **wp)
 	}
 
 	forked = 0;
-	// We were pointing t->words to temporary (expanded) arg list:
-	// t->words = wp;
+	// We were pointing t->op_words to temporary (expanded) arg list:
+	// t->op_words = wp;
 	// and restored it later (in execute()), but "break"
-	// longjmps away (at "Run builtin" below), leaving t->words clobbered!
+	// longjmps away (at "Run builtin" below), leaving t->op_words clobbered!
 	// See http://bugs.busybox.net/view.php?id=846.
-	// Now we do not touch t->words, but separately pass wp as param list
+	// Now we do not touch t->op_words, but separately pass wp as param list
 	// to builtins 
 	DBGPRINTF(("FORKEXEC: bltin %p, no_fork %d, owp %p\n", bltin,
 			no_fork, owp));
@@ -3050,7 +3045,6 @@ static int setstatus(int s)
  */
 static const char *rexecve(char *c, char **v, char **envp)
 {
-	int i;
 	const char *sp;
 	char *tp;
 	int asis = 0;
@@ -3081,7 +3075,9 @@ static const char *rexecve(char *c, char **v, char **envp)
 		}
 		if (tp != global_env.linep)
 			*tp++ = '/';
-		for (i = 0; (*tp++ = c[i++]) != '\0';);
+		strcpy(tp, c);
+		//for (i = 0; (*tp++ = c[i++]) != '\0';)
+		//	continue;
 
 		DBGPRINTF3(("REXECVE: global_env.linep is %s\n", global_env.linep));
 
@@ -3090,11 +3086,12 @@ static const char *rexecve(char *c, char **v, char **envp)
 		switch (errno) {
 		case ENOEXEC:
 			*v = global_env.linep;
-			tp = *--v;
+			v--;
+			tp = *v;
 			*v = global_env.linep;
 			execve(DEFAULT_SHELL, v, envp);
 			*v = tp;
-			return "no Shell";
+			return "no shell";
 
 		case ENOMEM:
 			return (char *) bb_msg_memory_exhausted;
@@ -3295,14 +3292,14 @@ static int doexec(struct op *t, char **args)
 	ofail = failpt;
 	failpt = ex;
 
-	sv_words = t->words;
-	t->words = args + 1;
+	sv_words = t->op_words;
+	t->op_words = args + 1;
 // TODO: test what will happen with "exec break" -
-// will it leave t->words pointing to garbage?
+// will it leave t->op_words pointing to garbage?
 // (see http://bugs.busybox.net/view.php?id=846)
 	if (setjmp(failpt) == 0)
 		execute(t, NOPIPE, NOPIPE, /* no_fork: */ 1);
-	t->words = sv_words;
+	t->op_words = sv_words;
 
 	failpt = ofail;
 	execflg = 0;
@@ -3340,8 +3337,7 @@ static int dodot(struct op *t, char **args)
 			tp++;
 		if (tp != global_env.linep)
 			*tp++ = '/';
-
-		for (i = 0; (*tp++ = cp[i++]) != '\0';);
+		strcpy(tp, cp);
 
 		/* Original code */
 		i = open(global_env.linep, O_RDONLY);
@@ -3566,7 +3562,8 @@ static void rdexp(char **wp, void (*f) (struct var *), int key)
 				char *cp;
 
 				assign(*wp, COPYV);
-				for (cp = *wp; *cp != '='; cp++);
+				for (cp = *wp; *cp != '='; cp++)
+					continue;
 				*cp = '\0';
 			}
 			if (checkname(*wp))
@@ -4173,7 +4170,8 @@ static int grave(int quoted)
 	if (openpipe(pf) < 0)
 		return 0;
 
-	while ((i = vfork()) == -1 && errno == EAGAIN);
+	while ((i = vfork()) == -1 && errno == EAGAIN)
+		continue;
 
 	DBGPRINTF3(("GRAVE: i is %p\n", io));
 
@@ -4273,7 +4271,7 @@ static struct wdblock *glob(char *cp, struct wdblock *wb)
 		}
 		for (i = 0; i < cl->w_nword; i++)
 			unquote(cl->w_words[i]);
-		glob0((char *) cl->w_words, cl->w_nword, sizeof(char *), xstrcmp);
+		glob0((char *) cl->w_words, cl->w_nword /*, sizeof(char *), xstrcmp*/);
 		if (cl->w_nword) {
 			for (i = 0; i < cl->w_nword; i++)
 				wb = addword(cl->w_words[i], wb);
@@ -4298,11 +4296,11 @@ static void globname(char *we, char *pp)
 	for (np = we; np != pp; pp--)
 		if (pp[-1] == '/')
 			break;
-	for (dp = cp = space((int) (pp - np) + 3); np < pp;)
+	for (dp = cp = get_space((int) (pp - np) + 3); np < pp;)
 		*cp++ = *np++;
 	*cp++ = '.';
 	*cp = '\0';
-	for (gp = cp = space(strlen(pp) + 1); *np && *np != '/';)
+	for (gp = cp = get_space(strlen(pp) + 1); *np && *np != '/';)
 		*cp++ = *np++;
 	*cp = '\0';
 	dirp = opendir(dp);
@@ -4351,12 +4349,14 @@ static char *generate(char *start1, char *end1, char *middle, char *end)
 	char *p;
 	char *op, *xp;
 
-	p = op = space((int)(end1 - start1) + strlen(middle) + strlen(end) + 2);
-	for (xp = start1; xp != end1;)
+	p = op = get_space((int)(end1 - start1) + strlen(middle) + strlen(end) + 2);
+	xp = start1;
+	while (xp != end1)
 		*op++ = *xp++;
-	for (xp = middle; (*op++ = *xp++) != '\0';);
-	op--;
-	for (xp = end; (*op++ = *xp++) != '\0';);
+	xp = middle;
+	while (*xp != '\0')
+		*op++ = *xp++;
+	strcpy(op, end);
 	return p;
 }
 
@@ -4384,7 +4384,7 @@ static struct wdblock *newword(int nw)
 {
 	struct wdblock *wb;
 
-	wb = (struct wdblock *) space(sizeof(*wb) + nw * sizeof(char *));
+	wb = get_space(sizeof(*wb) + nw * sizeof(char *));
 	wb->w_bsize = nw;
 	wb->w_nword = 0;
 	return wb;
@@ -4421,43 +4421,34 @@ static char **getwords(struct wdblock *wb)
 		DELETE(wb);
 		return NULL;
 	}
-	wd = (char **) space(nb = sizeof(*wd) * wb->w_nword);
+	nb = sizeof(*wd) * wb->w_nword;
+	wd = get_space(nb);
 	memcpy((char *) wd, (char *) wb->w_words, nb);
 	DELETE(wb);					/* perhaps should done by caller */
 	return wd;
 }
 
-static int (*func) (char *, char *);
-static int globv;
+/*static int (*cmp_func) (char *, char *);*/
+/*static int glob_item_sz;*/
+#define cmp_func xstrcmp
+enum { glob_item_sz = sizeof(char *) };
 
-static void glob3(char *i, char *j, char *k)
+static void glob3(char *index1, char *index2, char *index3)
 {
-	char *index1, *index2, *index3;
-	int c;
-	int m;
-
-	m = globv;
-	index1 = i;
-	index2 = j;
-	index3 = k;
+	int m = glob_item_sz;
 	do {
-		c = *index1;
+		char c = *index1;
 		*index1++ = *index3;
 		*index3++ = *index2;
 		*index2++ = c;
 	} while (--m);
 }
 
-static void glob2(char *i, char *j)
+static void glob2(char *index1, char *index2)
 {
-	char *index1, *index2, c;
-	int m;
-
-	m = globv;
-	index1 = i;
-	index2 = j;
+	int m = glob_item_sz;
 	do {
-		c = *index1;
+		char c = *index1;
 		*index1++ = *index2;
 		*index2++ = c;
 	} while (--m);
@@ -4471,8 +4462,7 @@ static void glob1(char *base, char *lim)
 	int c;
 	unsigned n;
 
-	v2 = globv;
-
+	v2 = glob_item_sz;
  top:
 	n = (int) (lim - base);
 	if (n <= v2)
@@ -4483,7 +4473,7 @@ static void glob1(char *base, char *lim)
 	j = lim - v2;
 	for (;;) {
 		if (i < lptr) {
-			c = (*func) (i, lptr);
+			c = cmp_func(i, lptr);
 			if (c == 0) {
 				lptr -= v2;
 				glob2(i, lptr);
@@ -4494,10 +4484,9 @@ static void glob1(char *base, char *lim)
 				continue;
 			}
 		}
-
  begin:
 		if (j > hptr) {
-			c = (*func) (hptr, j);
+			c = cmp_func(hptr, j);
 			if (c == 0) {
 				hptr += v2;
 				glob2(hptr, j);
@@ -4507,7 +4496,8 @@ static void glob1(char *base, char *lim)
 				if (i == lptr) {
 					hptr += v2;
 					glob3(i, hptr, j);
-					i = (lptr += v2);
+					lptr += v2;
+					i = lptr;
 					goto begin;
 				}
 				glob2(i, j);
@@ -4518,7 +4508,6 @@ static void glob1(char *base, char *lim)
 			j -= v2;
 			goto begin;
 		}
-
 
 		if (i == lptr) {
 			if (lptr - base >= lim - hptr) {
@@ -4533,15 +4522,17 @@ static void glob1(char *base, char *lim)
 
 		lptr -= v2;
 		glob3(j, lptr, i);
-		j = (hptr -= v2);
+		hptr -= v2;
+		j = hptr;
 	}
 }
 
-static void glob0(char *a0, unsigned a1, int a2, int (*a3) (char *, char *))
+static void glob0(char *a0, unsigned a1
+		/*, int item_sz, int (*f) (char *, char *) */)
 {
-	func = a3;
-	globv = a2;
-	glob1(a0, a0 + a1 * a2);
+	/*cmp_func = f; - always xstrcmp */
+	/*glob_item_sz = item_sz; - always sizeof(char*) */
+	glob1(a0, a0 + a1 * /*item_sz:*/ sizeof(char*));
 }
 
 
@@ -4556,7 +4547,8 @@ static int my_getc(int ec)
 	int c;
 
 	if (global_env.linep > elinep) {
-		while ((c = readc()) != '\n' && c);
+		while ((c = readc()) != '\n' && c)
+			continue;
 		err("input line too long");
 		gflg = 1;
 		return c;
@@ -5003,7 +4995,7 @@ static void markhere(char *s, struct ioword *iop)
 
 	DBGPRINTF7(("MARKHERE: enter, s=%p\n", s));
 
-	h = (struct here *) space(sizeof(struct here));
+	h = get_space(sizeof(struct here));
 	if (h == NULL)
 		return;
 
