@@ -173,8 +173,8 @@ typedef void xint;                     	/* base type of jmp_buf, for not broken 
  * redirection
  */
 struct ioword {
-	short io_unit;                  /* unit affected */
-	short io_flag;                  /* action (below) */
+	smallint io_flag;               /* action (below) */
+	int io_fd;                      /* fd affected */
 	char *io_name;                  /* file name */
 };
 
@@ -186,7 +186,7 @@ struct ioword {
 #define	IODUP	 32                     /* >&digit */
 #define	IOCLOSE	 64                     /* >&- */
 
-#define	IODEFAULT (-1)                  /* token for default IO unit */
+#define	IODEFAULT (-1)                  /* "default" IO fd */
 
 
 /*
@@ -194,7 +194,7 @@ struct ioword {
  * Might eventually use a union.
  */
 struct op {
-	smallint type;                  /* operation type, see Txxxx below */
+	smallint op_type;               /* operation type, see Txxxx below */
 	char **op_words;                /* arguments to a command */
 	struct ioword **ioact;          /* IO actions (eg, < > >>) */
 	struct op *left;
@@ -1302,7 +1302,7 @@ struct op *scantree(struct op *head)
 
 	DBGPRINTF5(("SCANTREE: checking node %p\n", head));
 
-	if ((head->type != TDOT) && LONE_CHAR(head->op_words[0], '.')) {
+	if ((head->op_type != TDOT) && LONE_CHAR(head->op_words[0], '.')) {
 		DBGPRINTF5(("SCANTREE: dot found in node %p\n", head));
 		return head;
 	}
@@ -1325,9 +1325,9 @@ static void onecommand(void)
 	freehere(areanum);
 	freearea(areanum);
 	garbage();
-	wdlist = 0;
-	iolist = 0;
-	global_env.errpt = 0;
+	wdlist = NULL;
+	iolist = NULL;
+	global_env.errpt = NULL;
 	global_env.linep = line;
 	yynerrs = 0;
 	multiline = 0;
@@ -1593,7 +1593,7 @@ static struct op *pipeline(int cf)
 				zzerr();
 			}
 
-			if (t->type != TPAREN && t->type != TCOM) {
+			if (t->op_type != TPAREN && t->op_type != TCOM) {
 				/* shell statement */
 				t = block(TPAREN, t, NOBLOCK, NOWORDS);
 			}
@@ -1627,7 +1627,7 @@ static struct op *andor(void)
 			}
 
 			t = block(c == LOGAND ? TAND : TOR, t, p, NOWORDS);
-		}						/* WHILE */
+		}
 
 		peeksym = c;
 	}
@@ -1723,7 +1723,7 @@ static struct op *simple(void)
 		case WORD:
 			if (t == NULL) {
 				t = newtp();
-				t->type = TCOM;
+				t->op_type = TCOM;
 			}
 			peeksym = 0;
 			word(yylval.cp);
@@ -1775,7 +1775,7 @@ static struct op *command(int cf)
 			if (iolist == NULL)
 				return NULL;
 			t = newtp();
-			t->type = TCOM;
+			t->op_type = TCOM;
 		}
 		break;
 
@@ -1789,7 +1789,7 @@ static struct op *command(int cf)
 
 	case FOR:
 		t = newtp();
-		t->type = TFOR;
+		t->op_type = TFOR;
 		musthave(WORD, 0);
 		startl = 1;
 		t->str = yylval.cp;
@@ -1806,7 +1806,7 @@ static struct op *command(int cf)
 	case UNTIL:
 		multiline++;
 		t = newtp();
-		t->type = (c == WHILE ? TWHILE : TUNTIL);
+		t->op_type = (c == WHILE ? TWHILE : TUNTIL);
 		t->left = c_list();
 		t->right = dogroup(1);
 		/* t->op_words = NULL; - newtp() did this */
@@ -1815,7 +1815,7 @@ static struct op *command(int cf)
 
 	case CASE:
 		t = newtp();
-		t->type = TCASE;
+		t->op_type = TCASE;
 		musthave(WORD, 0);
 		t->str = yylval.cp;
 		startl++;
@@ -1832,7 +1832,7 @@ static struct op *command(int cf)
 	case IF:
 		multiline++;
 		t = newtp();
-		t->type = TIF;
+		t->op_type = TIF;
 		t->left = c_list();
 		t->right = thenpart();
 		musthave(FI, 0);
@@ -1841,7 +1841,7 @@ static struct op *command(int cf)
 
 	case DOT:
 		t = newtp();
-		t->type = TDOT;
+		t->op_type = TDOT;
 
 		musthave(WORD, 0);              /* gets name of file */
 		DBGPRINTF7(("COMMAND: DOT clause, yylval.cp is %s\n", yylval.cp));
@@ -1904,7 +1904,7 @@ static struct op *thenpart(void)
 		return NULL;
 	}
 	t = newtp();
-	/*t->type = 0; - newtp() did this */
+	/*t->op_type = 0; - newtp() did this */
 	t->left = c_list();
 	if (t->left == NULL)
 		zzerr();
@@ -1926,7 +1926,7 @@ static struct op *elsepart(void)
 
 	case ELIF:
 		t = newtp();
-		t->type = TELIF;
+		t->op_type = TELIF;
 		t->left = c_list();
 		t->right = thenpart();
 		return t;
@@ -1958,7 +1958,7 @@ static struct op *casepart(void)
 	DBGPRINTF7(("CASEPART: enter...\n"));
 
 	t = newtp();
-	t->type = TPAT;
+	t->op_type = TPAT;
 	t->op_words = pattern();
 	musthave(')', 0);
 	t->left = c_list();
@@ -2027,7 +2027,7 @@ static struct op *block(int type, struct op *t1, struct op *t2, char **wp)
 	DBGPRINTF7(("BLOCK: enter, type=%d (%s)\n", type, T_CMD_NAMES[type]));
 
 	t = newtp();
-	t->type = type;
+	t->op_type = type;
 	t->left = t1;
 	t->right = t2;
 	t->op_words = wp;
@@ -2096,7 +2096,7 @@ static struct op *newtp(void)
 static struct op *namelist(struct op *t)
 {
 	DBGPRINTF7(("NAMELIST: enter, t=%p, type %s, iolist=%p\n", t,
-				T_CMD_NAMES[t->type], iolist));
+				T_CMD_NAMES[t->op_type], iolist));
 
 	if (iolist) {
 		iolist = addword((char *) NULL, iolist);
@@ -2104,8 +2104,8 @@ static struct op *namelist(struct op *t)
 	} else
 		t->ioact = NULL;
 
-	if (t->type != TCOM) {
-		if (t->type != TPAREN && t->ioact != NULL) {
+	if (t->op_type != TCOM) {
+		if (t->op_type != TPAREN && t->ioact != NULL) {
 			t = block(TPAREN, t, NOBLOCK, NOWORDS);
 			t->ioact = t->left->ioact;
 			t->left->ioact = NULL;
@@ -2124,7 +2124,7 @@ static char **copyw(void)
 	char **wd;
 
 	wd = getwords(wdlist);
-	wdlist = 0;
+	wdlist = NULL;
 	return wd;
 }
 
@@ -2138,7 +2138,7 @@ static struct ioword **copyio(void)
 	struct ioword **iop;
 
 	iop = (struct ioword **) getwords(iolist);
-	iolist = 0;
+	iolist = NULL;
 	return iop;
 }
 
@@ -2147,7 +2147,7 @@ static struct ioword *io(int u, int f, char *cp)
 	struct ioword *iop;
 
 	iop = (struct ioword *) tree(sizeof(*iop));
-	iop->io_unit = u;
+	iop->io_fd = u;
 	iop->io_flag = f;
 	iop->io_name = cp;
 	iolist = addword((char *) iop, iolist);
@@ -2194,7 +2194,7 @@ static int yylex(int cf)
 		}
 		break;
 
-	case '#':					/* Comment, skip to next newline or End-of-string */
+	case '#':	/* Comment, skip to next newline or End-of-string */
 		while ((c = my_getc(0)) != '\0' && c != '\n')
 			continue;
 		unget(c);
@@ -2400,10 +2400,10 @@ static struct op **find1case(struct op *t, const char *w)
 		return NULL;
 	}
 
-	DBGPRINTF3(("FIND1CASE: enter, t->type=%d (%s)\n", t->type,
-				T_CMD_NAMES[t->type]));
+	DBGPRINTF3(("FIND1CASE: enter, t->op_type=%d (%s)\n", t->op_type,
+				T_CMD_NAMES[t->op_type]));
 
-	if (t->type == TLIST) {
+	if (t->op_type == TLIST) {
 		tp = find1case(t->left, w);
 		if (tp != NULL) {
 			DBGPRINTF3(("FIND1CASE: found one to the left, returning tp=%p\n", tp));
@@ -2458,18 +2458,18 @@ static int execute(struct op *t, int *pin, int *pout, int no_fork)
 		return 0;
 	}
 
-	DBGPRINTF(("EXECUTE: t=%p, t->type=%d (%s), t->op_words is %s\n", t,
-			   t->type, T_CMD_NAMES[t->type],
+	DBGPRINTF(("EXECUTE: t=%p, t->op_type=%d (%s), t->op_words is %s\n", t,
+			   t->op_type, T_CMD_NAMES[t->op_type],
 			   ((t->op_words == NULL) ? "NULL" : t->op_words[0])));
 
 	rv = 0;
 	a = areanum++;
 	wp2 = t->op_words;
 	wp = (wp2 != NULL)
-		? eval(wp2, t->type == TCOM ? DOALL : DOALL & ~DOKEY)
+		? eval(wp2, t->op_type == TCOM ? DOALL : DOALL & ~DOKEY)
 		: NULL;
 
-	switch (t->type) {
+	switch (t->op_type) {
 	case TDOT:
 		DBGPRINTF3(("EXECUTE: TDOT\n"));
 
@@ -2552,7 +2552,7 @@ static int execute(struct op *t, int *pin, int *pout, int no_fork)
 	case TAND:
 		rv = execute(t->left, pin, pout, /* no_fork: */ 0);
 		t1 = t->right;
-		if (t1 != NULL && (rv == 0) == (t->type == TAND))
+		if (t1 != NULL && (rv == 0) == (t->op_type == TAND))
 			rv = execute(t1, pin, pout, /* no_fork: */ 0);
 		break;
 
@@ -2586,7 +2586,7 @@ static int execute(struct op *t, int *pin, int *pout, int no_fork)
 				goto broken;
 		brkset(&bc);
 		t1 = t->left;
-		while ((execute(t1, pin, pout, /* no_fork: */ 0) == 0) == (t->type == TWHILE))
+		while ((execute(t1, pin, pout, /* no_fork: */ 0) == 0) == (t->op_type == TWHILE))
 			rv = execute(t->right, pin, pout, /* no_fork: */ 0);
 		brklist = brklist->nextlev;
 		break;
@@ -2707,7 +2707,7 @@ static int forkexec(struct op *t, int *pin, int *pout, int no_fork, char **wp)
 			((t->op_words == NULL) ? "NULL" : t->op_words[0])));
 	owp = wp;
 	resetsig = 0;
-	if (t->type == TCOM) {
+	if (t->op_type == TCOM) {
 		while (*wp++ != NULL)
 			continue;
 		cp = *wp;
@@ -2851,7 +2851,7 @@ static int forkexec(struct op *t, int *pin, int *pout, int no_fork, char **wp)
 		signal(SIGQUIT, SIG_DFL);
 	}
 
-	if (t->type == TPAREN)
+	if (t->op_type == TPAREN)
 		_exit(execute(t->left, NOPIPE, NOPIPE, /* no_fork: */ 1));
 	if (wp[0] == NULL)
 		_exit(0);
@@ -2883,13 +2883,13 @@ static int iosetup(struct ioword *iop, int pipein, int pipeout)
 	DBGPRINTF(("IOSETUP: iop %p, pipein %i, pipeout %i\n", iop,
 			   pipein, pipeout));
 
-	if (iop->io_unit == IODEFAULT)	/* take default */
-		iop->io_unit = iop->io_flag & (IOREAD | IOHERE) ? 0 : 1;
+	if (iop->io_fd == IODEFAULT)	/* take default */
+		iop->io_fd = iop->io_flag & (IOREAD | IOHERE) ? 0 : 1;
 
-	if (pipein && iop->io_unit == 0)
+	if (pipein && iop->io_fd == 0)
 		return 0;
 
-	if (pipeout && iop->io_unit == 1)
+	if (pipeout && iop->io_fd == 1)
 		return 0;
 
 	msg = iop->io_flag & (IOREAD | IOHERE) ? "open" : "create";
@@ -2935,11 +2935,11 @@ static int iosetup(struct ioword *iop, int pipein, int pipeout)
 		break;
 
 	case IODUP:
-		u = dup2(*cp - '0', iop->io_unit);
+		u = dup2(*cp - '0', iop->io_fd);
 		break;
 
 	case IOCLOSE:
-		close(iop->io_unit);
+		close(iop->io_fd);
 		return 0;
 	}
 
@@ -2949,10 +2949,7 @@ static int iosetup(struct ioword *iop, int pipein, int pipeout)
 		warn(msg);
 		return 1;
 	}
-	if (u != iop->io_unit) {
-		dup2(u, iop->io_unit);
-		close(u);
-	}
+	xmove_fd(u, iop->io_fd);
 	return 0;
 }
 
@@ -3130,8 +3127,8 @@ static int run(struct ioarg *argp, int (*f) (struct ioarg *))
 
 	errpt = ev;
 	if (newenv(setjmp(errpt)) == 0) {
-		wdlist = 0;
-		iolist = 0;
+		wdlist = NULL;
+		iolist = NULL;
 		pushio(argp, f);
 		global_env.iobase = global_env.iop;
 		yynerrs = 0;
@@ -4486,7 +4483,7 @@ static int readc(void)
 				if (global_env.iop == iostack)
 					ioecho(c);
 				global_env.iop->prev = c;
-				return global_env.iop->prev;
+				return c;
 			}
 			if (global_env.iop->task == XIO && global_env.iop->prev != '\n') {
 				global_env.iop->prev = 0;
@@ -4498,7 +4495,7 @@ static int readc(void)
 		if (global_env.iop->task == XIO) {
 			if (multiline) {
 				global_env.iop->prev = 0;
-				return global_env.iop->prev;
+				return 0;
 			}
 			if (interactive && global_env.iop == iostack + 1) {
 #if ENABLE_FEATURE_EDITING
@@ -4584,7 +4581,7 @@ static void pushio(struct ioarg *argp, int (*fn) (struct ioarg *))
 	if (fn == filechar || fn == linechar)
 		global_env.iop->task = XIO;
 	else if (fn == (int (*)(struct ioarg *)) gravechar
-	 || fn == (int (*)(struct ioarg *)) qgravechar)
+	      || fn == (int (*)(struct ioarg *)) qgravechar)
 		global_env.iop->task = XGRAVE;
 	else
 		global_env.iop->task = XOTHER;
@@ -4604,16 +4601,16 @@ static struct io *setbase(struct io *ip)
  */
 
 /*
- * Produce the characters of a string, then a newline, then EOF.
+ * Produce the characters of a string, then a newline, then NUL.
  */
 static int nlchar(struct ioarg *ap)
 {
-	int c;
+	char c;
 
 	if (ap->aword == NULL)
-		return 0;
+		return '\0';
 	c = *ap->aword++;
-	if (c == 0) {
+	if (c == '\0') {
 		ap->aword = NULL;
 		return '\n';
 	}
@@ -5057,7 +5054,7 @@ static void freehere(int area)
 	DBGPRINTF6(("FREEHERE: enter, area=%d\n", area));
 
 	hl = NULL;
-	for (h = acthere; h != NULL; h = h->h_next)
+	for (h = acthere; h != NULL; h = h->h_next) {
 		if (getarea((char *) h) >= area) {
 			if (h->h_iop->io_name != NULL)
 				unlink(h->h_iop->io_name);
@@ -5065,8 +5062,10 @@ static void freehere(int area)
 				acthere = h->h_next;
 			else
 				hl->h_next = h->h_next;
-		} else
+		} else {
 			hl = h;
+		}
+	}
 }
 
 
