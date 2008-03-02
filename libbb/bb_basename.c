@@ -2,7 +2,7 @@
 /*
  * Utility routines.
  *
- * Copyright (C) 2007 Denis Vlasenko
+ * Copyright (C) 2007 Denys Vlasenko
  *
  * Licensed under GPL version 2, see file LICENSE in this tarball for details.
  */

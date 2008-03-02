@@ -17,7 +17,7 @@
 
 /* Written by Jim Meyering.  */
 
-/* Busyboxed by Denis Vlasenko
+/* Busyboxed by Denys Vlasenko
 
 Based on od.c from coreutils-5.2.1
 Top bloat sources:

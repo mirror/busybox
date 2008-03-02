@@ -25,7 +25,7 @@ OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
 ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-/* Busyboxed by Denis Vlasenko <vda.linux@googlemail.com> */
+/* Busyboxed by Denys Vlasenko <vda.linux@googlemail.com> */
 /* Dependencies on runit_lib.c removed */
 
 #include "libbb.h"

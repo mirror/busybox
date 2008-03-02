@@ -150,7 +150,7 @@ Exit Codes
     is 99. sv exits 100 on error.
 */
 
-/* Busyboxed by Denis Vlasenko <vda.linux@googlemail.com> */
+/* Busyboxed by Denys Vlasenko <vda.linux@googlemail.com> */
 /* TODO: depends on runit_lib.c - review and reduce/eliminate */
 
 #include <sys/poll.h>

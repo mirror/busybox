@@ -4,7 +4,7 @@
  *
  * Copyright (C) 1999-2004 by Erik Andersen <andersen@codepoet.org>
  * Copyright (C) 2006 Rob Landley
- * Copyright (C) 2006 Denis Vlasenko
+ * Copyright (C) 2006 Denys Vlasenko
  *
  * Licensed under GPL version 2, see file LICENSE in this tarball for details.
  */

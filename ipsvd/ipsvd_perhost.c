@@ -2,7 +2,7 @@
  * which are released into public domain by the author.
  * Homepage: http://smarden.sunsite.dk/ipsvd/
  *
- * Copyright (C) 2007 Denis Vlasenko.
+ * Copyright (C) 2007 Denys Vlasenko.
  *
  * Licensed under GPLv2, see file LICENSE in this tarball for details.
  */

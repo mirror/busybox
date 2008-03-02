@@ -25,7 +25,7 @@ OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
 ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-/* Busyboxed by Denis Vlasenko <vda.linux@googlemail.com> */
+/* Busyboxed by Denys Vlasenko <vda.linux@googlemail.com> */
 /* TODO: depends on runit_lib.c - review and reduce/eliminate */
 
 #include <sys/poll.h>
