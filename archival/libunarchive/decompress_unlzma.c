@@ -306,13 +306,9 @@ unpack_lzma_stream(int src_fd, int dst_fd)
 					match_byte <<= 1;
 					bit = match_byte & 0x100;
 					prob_lit = prob + 0x100 + bit + mi;
-					if (rc_get_bit(rc, prob_lit, &mi)) {
-						if (!bit)
-							break;
-					} else {
-						if (bit)
-							break;
-					}
+					bit ^= (rc_get_bit(rc, prob_lit, &mi) << 8); /* 0x100 or 0 */
+					if (bit)
+						break;
 				} while (mi < 0x100);
 			}
 			while (mi < 0x100) {
