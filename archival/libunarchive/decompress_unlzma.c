@@ -282,14 +282,16 @@ unpack_lzma_stream(int src_fd, int dst_fd)
 	while (global_pos + buffer_pos < header.dst_size) {
 		int pos_state = (buffer_pos + global_pos) & pos_state_mask;
 
-		prob =
-			p + LZMA_IS_MATCH + (state << LZMA_NUM_POS_BITS_MAX) + pos_state;
+		prob = p + LZMA_IS_MATCH + (state << LZMA_NUM_POS_BITS_MAX) + pos_state;
 		if (rc_is_bit_0(rc, prob)) {
 			mi = 1;
 			rc_update_bit_0(rc, prob);
-			prob = (p + LZMA_LITERAL + (LZMA_LIT_SIZE
-					* ((((buffer_pos + global_pos) & literal_pos_mask) << lc)
-					+ (previous_byte >> (8 - lc)))));
+			prob = (p + LZMA_LITERAL
+			        + (LZMA_LIT_SIZE * ((((buffer_pos + global_pos) & literal_pos_mask) << lc)
+			                            + (previous_byte >> (8 - lc))
+			                           )
+			          )
+			);
 
 			if (state >= LZMA_NUM_LIT_STATES) {
 				int match_byte;
@@ -317,8 +319,15 @@ unpack_lzma_stream(int src_fd, int dst_fd)
 				prob_lit = prob + mi;
 				rc_get_bit(rc, prob_lit, &mi);
 			}
-			previous_byte = (uint8_t) mi;
 
+			state -= 3;
+			if (state < 4-3)
+				state = 0;
+			if (state >= 10-3)
+				state -= 6-3;
+
+			previous_byte = (uint8_t) mi;
+#if ENABLE_FEATURE_LZMA_FAST
 			buffer[buffer_pos++] = previous_byte;
 			if (buffer_pos == header.dict_size) {
 				buffer_pos = 0;
@@ -327,12 +336,10 @@ unpack_lzma_stream(int src_fd, int dst_fd)
 					goto bad;
 				USE_DESKTOP(total_written += header.dict_size;)
 			}
-			if (state < 4)
-				state = 0;
-			else if (state < 10)
-				state -= 3;
-			else
-				state -= 6;
+#else
+			len = 1;
+			goto one_byte;
+#endif
 		} else {
 			int offset;
 			uint16_t *prob_len;
@@ -352,11 +359,14 @@ unpack_lzma_stream(int src_fd, int dst_fd)
 				if (rc_is_bit_0(rc, prob)) {
 					rc_update_bit_0(rc, prob);
 					prob = (p + LZMA_IS_REP_0_LONG
-							+ (state << LZMA_NUM_POS_BITS_MAX) + pos_state);
+					        + (state << LZMA_NUM_POS_BITS_MAX)
+					        + pos_state
+					);
 					if (rc_is_bit_0(rc, prob)) {
 						rc_update_bit_0(rc, prob);
 
 						state = state < LZMA_NUM_LIT_STATES ? 9 : 11;
+#if ENABLE_FEATURE_LZMA_FAST
 						pos = buffer_pos - rep0;
 						while (pos >= header.dict_size)
 							pos += header.dict_size;
@@ -370,6 +380,10 @@ unpack_lzma_stream(int src_fd, int dst_fd)
 							USE_DESKTOP(total_written += header.dict_size;)
 						}
 						continue;
+#else
+						len = 1;
+						goto string;
+#endif
 					} else {
 						rc_update_bit_1(rc, prob);
 					}
@@ -405,7 +419,7 @@ unpack_lzma_stream(int src_fd, int dst_fd)
 			if (rc_is_bit_0(rc, prob_len)) {
 				rc_update_bit_0(rc, prob_len);
 				prob_len = (prob + LZMA_LEN_LOW
-							+ (pos_state << LZMA_LEN_NUM_LOW_BITS));
+				            + (pos_state << LZMA_LEN_NUM_LOW_BITS));
 				offset = 0;
 				num_bits = LZMA_LEN_NUM_LOW_BITS;
 			} else {
@@ -414,14 +428,14 @@ unpack_lzma_stream(int src_fd, int dst_fd)
 				if (rc_is_bit_0(rc, prob_len)) {
 					rc_update_bit_0(rc, prob_len);
 					prob_len = (prob + LZMA_LEN_MID
-								+ (pos_state << LZMA_LEN_NUM_MID_BITS));
+					            + (pos_state << LZMA_LEN_NUM_MID_BITS));
 					offset = 1 << LZMA_LEN_NUM_LOW_BITS;
 					num_bits = LZMA_LEN_NUM_MID_BITS;
 				} else {
 					rc_update_bit_1(rc, prob_len);
 					prob_len = prob + LZMA_LEN_HIGH;
 					offset = ((1 << LZMA_LEN_NUM_LOW_BITS)
-							  + (1 << LZMA_LEN_NUM_MID_BITS));
+					          + (1 << LZMA_LEN_NUM_MID_BITS));
 					num_bits = LZMA_LEN_NUM_HIGH_BITS;
 				}
 			}
@@ -432,12 +446,10 @@ unpack_lzma_stream(int src_fd, int dst_fd)
 				int pos_slot;
 
 				state += LZMA_NUM_LIT_STATES;
-				prob =
-					p + LZMA_POS_SLOT +
-					((len <
-					  LZMA_NUM_LEN_TO_POS_STATES ? len :
-					  LZMA_NUM_LEN_TO_POS_STATES - 1)
-					 << LZMA_NUM_POS_SLOT_BITS);
+				prob = p + LZMA_POS_SLOT +
+				       ((len < LZMA_NUM_LEN_TO_POS_STATES ? len :
+				         LZMA_NUM_LEN_TO_POS_STATES - 1)
+				         << LZMA_NUM_POS_SLOT_BITS);
 				rc_bit_tree_decode(rc, prob, LZMA_NUM_POS_SLOT_BITS,
 								   &pos_slot);
 				if (pos_slot >= LZMA_START_POS_MODEL_INDEX) {
@@ -468,12 +480,13 @@ unpack_lzma_stream(int src_fd, int dst_fd)
 			}
 
 			len += LZMA_MATCH_MIN_LEN;
-
+ SKIP_FEATURE_LZMA_FAST(string:)
 			do {
 				pos = buffer_pos - rep0;
 				while (pos >= header.dict_size)
 					pos += header.dict_size;
 				previous_byte = buffer[pos];
+ SKIP_FEATURE_LZMA_FAST(one_byte:)
 				buffer[buffer_pos++] = previous_byte;
 				if (buffer_pos == header.dict_size) {
 					buffer_pos = 0;
@@ -486,7 +499,6 @@ unpack_lzma_stream(int src_fd, int dst_fd)
 			} while (len != 0 && buffer_pos < header.dst_size);
 		}
 	}
-
 
 	if (full_write(dst_fd, buffer, buffer_pos) != buffer_pos) {
  bad:
