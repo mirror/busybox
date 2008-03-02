@@ -1,5 +1,3 @@
-#!/bin/sh
-# For future msh testsuite:
 # Testcase for http://bugs.busybox.net/view.php?id=846
 
 n=0
@@ -17,13 +15,3 @@ do
         n=`expr $n + 1`
 done
 echo D
-
-# output should be:
-# A
-# B
-# iteration
-# C
-# A
-# B
-# iteration
-# D
