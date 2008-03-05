@@ -3293,8 +3293,11 @@ static void do_cmd(char c)
 		buf[0] = c;
 		buf[1] = '\0';
 		q = get_input_line(buf);	// get input line- use "status line"
-		if (q[0] && !q[1])
+		if (q[0] && !q[1]) {
+			if (last_search_pattern[0])
+			    last_search_pattern[0] = c;
 			goto dc3; // if no pat re-use old pat
+		}
 		if (q[0]) {       // strlen(q) > 1: new pat- save it and find
 			// there is a new pat
 			free(last_search_pattern);
