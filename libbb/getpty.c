@@ -8,6 +8,8 @@
 
 #include "libbb.h"
 
+#define DEBUG 0
+
 int getpty(char *line, int size)
 {
 	int p;
