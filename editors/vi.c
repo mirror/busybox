@@ -23,6 +23,7 @@
 
 #include "libbb.h"
 
+/* the CRASHME code is unmaintained, and doesn't currently build */
 #define ENABLE_FEATURE_VI_CRASHME 0
 
 
@@ -395,7 +396,7 @@ int vi_main(int argc, char **argv)
 			initial_cmds[0] = xstrndup(p, MAX_INPUT_LEN);
 	}
 #endif
-	while ((c = getopt(argc, argv, "hCR" USE_FEATURE_VI_COLON("c:"))) != -1) {
+	while ((c = getopt(argc, argv, "hCRH" USE_FEATURE_VI_COLON("c:"))) != -1) {
 		switch (c) {
 #if ENABLE_FEATURE_VI_CRASHME
 		case 'C':
@@ -407,18 +408,18 @@ int vi_main(int argc, char **argv)
 			SET_READONLY_MODE(readonly_mode);
 			break;
 #endif
-			//case 'r':	// recover flag-  ignore- we don't use tmp file
-			//case 'x':	// encryption flag- ignore
-			//case 'c':	// execute command first
 #if ENABLE_FEATURE_VI_COLON
 		case 'c':		// cmd line vi command
 			if (*optarg)
 				initial_cmds[initial_cmds[0] != 0] = xstrndup(optarg, MAX_INPUT_LEN);
 			break;
-			//case 'h':	// help -- just use default
 #endif
-		default:
+		case 'H':
 			show_help();
+			/* fall through */
+
+		default:
+		    	bb_show_usage();
 			return 1;
 		}
 	}
@@ -532,7 +533,6 @@ static void edit_file(char *fn)
 	lmc_len = 0;
 	adding2q = 0;
 #endif
-	redraw(FALSE);			// dont force every col re-draw
 
 #if ENABLE_FEATURE_VI_COLON
 	{
@@ -555,6 +555,7 @@ static void edit_file(char *fn)
 		}
 	}
 #endif
+	redraw(FALSE);			// dont force every col re-draw
 	//------This is the main Vi cmd handling loop -----------------------
 	while (editing > 0) {
 #if ENABLE_FEATURE_VI_CRASHME
@@ -3849,6 +3850,7 @@ static void do_cmd(char c)
 		dot--;
 }
 
+/* NB!  the CRASHME code is unmaintained, and doesn't currently build */
 #if ENABLE_FEATURE_VI_CRASHME
 static int totalcmds = 0;
 static int Mp = 85;             // Movement command Probability

@@ -4237,7 +4237,11 @@ USE_FEATURE_RUN_PARTS_FANCY("\n	-l	Prints names of all matching files even when 
 #define vi_full_usage \
        "Edit FILE" \
        "\n\nOptions:\n" \
-       "	-R	Read-only - do not write to the file"
+	USE_FEATURE_VI_COLON( \
+       "	-c	Initial command to run ($EXINIT also available)\n") \
+	USE_FEATURE_VI_READONLY( \
+       "	-R	Read-only - do not write to the file\n") \
+       "	-H	Short help regarding available features" 
 
 #define vlock_trivial_usage \
        "[OPTIONS]"
