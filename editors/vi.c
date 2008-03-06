@@ -170,6 +170,7 @@ static smallint readonly_mode = 0;
 #if ENABLE_FEATURE_VI_DOT_CMD
 static smallint adding2q;		// are we currently adding user input to q
 static char *last_modifying_cmd;	// [MAX_INPUT_LEN] last modifying cmd for "."
+static smallint lmc_len;		// length of last_modifying_cmd
 static char *ioq, *ioq_start;           // pointer to string for get_one_char to "read"
 #endif
 #if ENABLE_FEATURE_VI_OPTIMIZE_CURSOR
@@ -262,7 +263,7 @@ static char *bound_dot(char *);	// make sure  text[0] <= P < "end"
 static char *new_screen(int, int);	// malloc virtual screen memory
 static char *char_insert(char *, char);	// insert the char c at 'p'
 static char *stupid_insert(char *, char);	// stupidly insert the char c at 'p'
-static char find_range(char **, char **, char);	// return pointers for an object
+static int find_range(char **, char **, char);	// return pointers for an object
 static int st_test(char *, int, int, char *);	// helper for skip_thing()
 static char *skip_thing(char *, int, int, int);	// skip some object
 static char *find_pair(char *, char);	// find matching pair ()  []  {}
@@ -526,9 +527,9 @@ static void edit_file(char *fn)
 	offset = 0;			// no horizontal offset
 	c = '\0';
 #if ENABLE_FEATURE_VI_DOT_CMD
-	free(last_modifying_cmd);
 	free(ioq_start);
-	ioq = ioq_start = last_modifying_cmd = NULL;
+	ioq = ioq_start = NULL;
+	lmc_len = 0;
 	adding2q = 0;
 #endif
 	redraw(FALSE);			// dont force every col re-draw
@@ -1662,10 +1663,10 @@ static char *stupid_insert(char * p, char c) // stupidly insert the char c at 'p
 	return p;
 }
 
-static char find_range(char ** start, char ** stop, char c)
+static int find_range(char ** start, char ** stop, char c)
 {
-	char *save_dot, *p, *q;
-	int cnt;
+	char *save_dot, *p, *q, *t;
+	int cnt, multiline = 0;
 
 	save_dot = dot;
 	p = q = dot;
@@ -1677,7 +1678,7 @@ static char find_range(char ** start, char ** stop, char c)
 			q = next_line(q);
 		}
 		q = end_line(q);
-	} else if (strchr("^%$0bBeEft", c)) {
+	} else if (strchr("^%$0bBeEfth\b\177", c)) {
 		// These cmds operate on char positions
 		do_cmd(c);		// execute movement cmd
 		q = dot;
@@ -1706,17 +1707,33 @@ static char find_range(char ** start, char ** stop, char c)
 		dot_end();		// find NL
 		q = dot;
 	} else {
-		c = 27;			// error- return an ESC char
-		//break;
+	    // nothing -- this causes any other values of c to
+	    // represent the one-character range under the
+	    // cursor.  this is correct for ' ' and 'l', but
+	    // perhaps no others.
+	    //
 	}
+	if (q < p) {
+		t = q;
+		q = p;
+		p = t;
+	}
+
+	// backward char movements don't include start position 
+	if (q > p && strchr("^0bBh\b\177", c)) q--;
+
+	multiline = 0;
+	for (t = p; t <= q; t++) {
+		if (*t == '\n') {
+			multiline = 1;
+			break;
+		}
+	}
+
 	*start = p;
 	*stop = q;
-	if (q < p) {
-		*start = q;
-		*stop = p;
-	}
 	dot = save_dot;
-	return c;
+	return multiline;
 }
 
 static int st_test(char * p, int type, int dir, char * tested)
@@ -1780,27 +1797,12 @@ static char *find_pair(char * p, const char c)
 	level = 1;
 	dir = 1;			// assume forward
 	switch (c) {
-	case '(':
-		match = ')';
-		break;
-	case '[':
-		match = ']';
-		break;
-	case '{':
-		match = '}';
-		break;
-	case ')':
-		match = '(';
-		dir = -1;
-		break;
-	case ']':
-		match = '[';
-		dir = -1;
-		break;
-	case '}':
-		match = '{';
-		dir = -1;
-		break;
+	case '(': match = ')'; break;
+	case '[': match = ']'; break;
+	case '{': match = '}'; break;
+	case ')': match = '('; dir = -1; break;
+	case ']': match = '['; dir = -1; break;
+	case '}': match = '{'; dir = -1; break;
 	}
 	for (q = p + dir; text <= q && q < end; q += dir) {
 		// look for match, count levels of pairs  (( ))
@@ -1976,10 +1978,10 @@ static void start_new_cmd_q(char c)
 		last_modifying_cmd = xzalloc(MAX_INPUT_LEN);
 	// if there is a current cmd count put it in the buffer first
 	if (cmdcnt > 0)
-		sprintf(last_modifying_cmd, "%d%c", cmdcnt, c);
+		lmc_len = sprintf(last_modifying_cmd, "%d%c", cmdcnt, c);
 	else { // just save char c onto queue
 		last_modifying_cmd[0] = c;
-		last_modifying_cmd[1] = '\0';
+		lmc_len = 1;
 	}
 	adding2q = 1;
 }
@@ -2280,9 +2282,6 @@ static char get_one_char(void)
 	char c;
 
 #if ENABLE_FEATURE_VI_DOT_CMD
-	// ! adding2q  && ioq == 0  read()
-	// ! adding2q  && ioq != 0  *ioq
-	// adding2q         *last_modifying_cmd= read()
 	if (!adding2q) {
 		// we are not adding to the q.
 		// but, we may be reading from a q
@@ -2303,12 +2302,11 @@ static char get_one_char(void)
 		// adding STDIN chars to q
 		c = readit();	// get the users input
 		if (last_modifying_cmd != NULL) {
-			int len = strlen(last_modifying_cmd);
-			if (len >= MAX_INPUT_LEN - 1) {
+			if (lmc_len >= MAX_INPUT_LEN - 1) {
 				status_line_bold("last_modifying_cmd overrun");
 			} else {
 				// add new char to q
-				last_modifying_cmd[len] = c;
+				last_modifying_cmd[lmc_len++] = c;
 			}
 		}
 	}
@@ -2947,7 +2945,7 @@ static void do_cmd(char c)
 	char c1, *p, *q, *save_dot;
 	char buf[12];
 	int dir = dir; // for compiler
-	int cnt, i, j, yf;
+	int cnt, i, j;
 
 //	c1 = c; // quiet the compiler
 //	cnt = yf = 0; // quiet the compiler
@@ -3282,7 +3280,8 @@ static void do_cmd(char c)
 	case '.':			// .- repeat the last modifying command
 		// Stuff the last_modifying_cmd back into stdin
 		// and let it be re-executed.
-		if (last_modifying_cmd != NULL) {
+		if (last_modifying_cmd != NULL && lmc_len > 0) {
+			last_modifying_cmd[lmc_len] = 0;
 			ioq = ioq_start = xstrdup(last_modifying_cmd);
 		}
 		break;
@@ -3668,6 +3667,8 @@ static void do_cmd(char c)
 	case 'y':			// y- yank   something
 	case 'Y':			// Y- Yank a line
 #endif
+		{
+		int yf, ml, whole = 0;
 		yf = YANKDEL;	// assume either "c" or "d"
 #if ENABLE_FEATURE_VI_YANKMARK
 		if (c == 'y' || c == 'Y')
@@ -3676,7 +3677,8 @@ static void do_cmd(char c)
 		c1 = 'y';
 		if (c != 'Y')
 			c1 = get_one_char();	// get the type of thing to delete
-		find_range(&p, &q, c1);
+		// determine range, and whether it spans lines
+		ml = find_range(&p, &q, c1);
 		if (c1 == 27) {	// ESC- user changed mind and wants out
 			c = c1 = 27;	// Escape- do nothing
 		} else if (strchr("wW", c1)) {
@@ -3688,27 +3690,31 @@ static void do_cmd(char c)
 					q--;
 				}
 			}
-			dot = yank_delete(p, q, 0, yf);	// delete word
-		} else if (strchr("^0bBeEft$", c1)) {
-			// single line copy text into a register and delete
-			dot = yank_delete(p, q, 0, yf);	// delete word
-		} else if (strchr("cdykjHL%+-{}\r\n", c1)) {
-			// multiple line copy text into a register and delete
-			dot = yank_delete(p, q, 1, yf);	// delete lines
+			dot = yank_delete(p, q, ml, yf);	// delete word
+		} else if (strchr("^0bBeEft%$ lh\b\177", c1)) {
+			// partial line copy text into a register and delete
+			dot = yank_delete(p, q, ml, yf);	// delete word
+		} else if (strchr("cdykjHL+-{}\r\n", c1)) {
+			// whole line copy text into a register and delete
+			dot = yank_delete(p, q, ml, yf);	// delete lines
+			whole = 1;
+		} else {
+			// could not recognize object
+			c = c1 = 27;	// error-
+			ml = 0;
+			indicate_error(c);
+		}
+		if (ml && whole) {
 			if (c == 'c') {
 				dot = char_insert(dot, '\n');
 				// on the last line of file don't move to prev line
-				if (dot != (end-1)) {
+				if (whole && dot != (end-1)) {
 					dot_prev();
 				}
 			} else if (c == 'd') {
 				dot_begin();
 				dot_skip_over_ws();
 			}
-		} else {
-			// could not recognize object
-			c = c1 = 27;	// error-
-			indicate_error(c);
 		}
 		if (c1 != 27) {
 			// if CHANGING, not deleting, start inserting after the delete
@@ -3733,6 +3739,7 @@ static void do_cmd(char c)
 				buf, cnt, strlen(reg[YDreg]), what_reg());
 #endif
 			end_cmd_q();	// stop adding to q
+		}
 		}
 		break;
 	case 'k':			// k- goto prev line, same col
