@@ -106,15 +106,13 @@ config CROND
 	      $ cat /var/spool/cron/crontabs/root
 	      # Run daily cron jobs at 4:40 every day:
 	      40 4 * * * /etc/cron/daily > /dev/null 2>&1
-	  Note that Busybox binary must be setuid root for this applet to
-	  work properly.
 
 config DEBUG_CROND_OPTION
-	bool "Support debug option -d"
+	bool "Support option -d to redirect output to stderr"
 	depends on CROND
 	default n
 	help
-	  Support option -d to enter debug mode.
+	  -d sets loglevel to 0 (most verbose) and directs all output to stderr.
 
 config FEATURE_CROND_CALL_SENDMAIL
 	bool "Using /usr/sbin/sendmail?"
@@ -130,6 +128,8 @@ config CRONTAB
 	help
 	  Crontab manipulates the crontab for a particular user.  Only
 	  the superuser may specify a different user and/or crontab directory.
+	  Note that Busybox binary must be setuid root for this applet to
+	  work properly.
 
 config DC
 	bool "dc"

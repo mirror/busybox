@@ -507,16 +507,17 @@ USE_FEATURE_BRCTL_FANCY("\n" \
        "	F	Input from file"
 
 #define crond_trivial_usage \
-       "-d[#] -c crondir -f -b"
+       "-fbS -l N " USE_DEBUG_CROND_OPTION("-d N ") "-L LOGFILE -c DIR"
 #define crond_full_usage \
-       "	-d [#] -l [#] -S -L logfile -f -b -c dir\n" \
-       "	-d num	Debug level\n" \
-       "	-l num	Log level (8 - default)\n" \
+       "	-f	Foreground\n" \
+       "	-b	Background (default)\n" \
        "	-S	Log to syslog (default)\n" \
-       "	-L file	Log to file\n" \
-       "	-f	Run in foreground\n" \
-       "	-b	Run in background (default)\n" \
-       "	-c dir	Working dir"
+       "	-l	Set log level. 0 is the most verbose, default 8\n" \
+	USE_DEBUG_CROND_OPTION( \
+       "	-d	Set log level, log to stderr\n" \
+	) \
+       "	-L	Log to file\n" \
+       "	-c	Working dir"
 
 #define crontab_trivial_usage \
        "[-c DIR] [-u USER] [-ler]|[FILE]"

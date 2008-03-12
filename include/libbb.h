@@ -912,7 +912,6 @@ char *bb_simplify_path(const char *path);
 #define FAIL_DELAY 3
 extern void bb_do_delay(int seconds);
 extern void change_identity(const struct passwd *pw);
-extern const char *change_identity_e2str(const struct passwd *pw);
 extern void run_shell(const char *shell, int loginshell, const char *command, const char **additional_args) ATTRIBUTE_NORETURN;
 extern void run_shell(const char *shell, int loginshell, const char *command, const char **additional_args);
 #if ENABLE_SELINUX
