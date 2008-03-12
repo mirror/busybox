@@ -16,7 +16,6 @@
  * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  *
  * This was originally written for blob and then adapted for busybox.
- *
  */
 
 #include "libbb.h"
@@ -29,66 +28,59 @@
 #define BS  0x08
 
 /*
-
 Cf:
-
   http://www.textfiles.com/apple/xmodem
   http://www.phys.washington.edu/~belonis/xmodem/docxmodem.txt
   http://www.phys.washington.edu/~belonis/xmodem/docymodem.txt
   http://www.phys.washington.edu/~belonis/xmodem/modmprot.col
-
 */
 
 #define TIMEOUT 1
 #define TIMEOUT_LONG 10
 #define MAXERRORS 10
 
-static int read_byte(int fd, unsigned timeout)
+#define read_fd  STDIN_FILENO
+#define write_fd STDOUT_FILENO
+
+static int read_byte(unsigned timeout)
 {
 	char buf[1];
 	int n;
 
 	alarm(timeout);
-
-	n = read(fd, &buf, 1);
-
+	/* NOT safe_read! We want ALRM to interrupt us */
+	n = read(read_fd, buf, 1);
 	alarm(0);
-
 	if (n == 1)
-		return buf[0] & 0xff;
-	else
-		return -1;
+		return (unsigned char)buf[0];
+	return -1;
 }
 
-static int receive(char *error_buf, size_t error_buf_size,
-				   int ttyfd, int filefd)
+static int receive(/*int read_fd, */int file_fd)
 {
-	char blockBuf[1024];
-	unsigned int errors = 0;
-	unsigned int wantBlockNo = 1;
-	unsigned int length = 0;
-	int docrc = 1;
+	unsigned char blockBuf[1024];
+	unsigned errors = 0;
+	unsigned wantBlockNo = 1;
+	unsigned length = 0;
+	int do_crc = 1;
 	char nak = 'C';
-	unsigned int timeout = TIMEOUT_LONG;
-
-#define note_error(fmt,args...) \
-	snprintf(error_buf, error_buf_size, fmt,##args)
+	unsigned timeout = TIMEOUT_LONG;
 
 	/* Flush pending input */
-	tcflush(ttyfd, TCIFLUSH);
+	tcflush(read_fd, TCIFLUSH);
 
 	/* Ask for CRC; if we get errors, we will go with checksum */
-	write(ttyfd, &nak, 1);
+	full_write(write_fd, &nak, 1);
 
 	for (;;) {
 		int blockBegin;
 		int blockNo, blockNoOnesCompl;
 		int blockLength;
-		int cksum = 0;
-		int crcHi = 0;
-		int crcLo = 0;
+		int cksum_crc;	/* cksum OR crc */
+		int expected;
+		int i,j;
 
-		blockBegin = read_byte(ttyfd, timeout);
+		blockBegin = read_byte(timeout);
 		if (blockBegin < 0)
 			goto timeout;
 
@@ -102,52 +94,47 @@ static int receive(char *error_buf, size_t error_buf_size,
 
 		case EOT:
 			nak = ACK;
-			write(ttyfd, &nak, 1);
-			goto done;
+			full_write(write_fd, &nak, 1);
+			return length;
 
 		default:
 			goto error;
 		}
 
 		/* block no */
-		blockNo = read_byte(ttyfd, TIMEOUT);
+		blockNo = read_byte(TIMEOUT);
 		if (blockNo < 0)
 			goto timeout;
 
 		/* block no one's compliment */
-		blockNoOnesCompl = read_byte(ttyfd, TIMEOUT);
+		blockNoOnesCompl = read_byte(TIMEOUT);
 		if (blockNoOnesCompl < 0)
 			goto timeout;
 
 		if (blockNo != (255 - blockNoOnesCompl)) {
-			note_error("bad block ones compl");
+			bb_error_msg("bad block ones compl");
 			goto error;
 		}
 
 		blockLength = (blockBegin == SOH) ? 128 : 1024;
 
-		{
-			int i;
-
-			for (i = 0; i < blockLength; i++) {
-				int cc = read_byte(ttyfd, TIMEOUT);
-				if (cc < 0)
-					goto timeout;
-				blockBuf[i] = cc;
-			}
+		for (i = 0; i < blockLength; i++) {
+			int cc = read_byte(TIMEOUT);
+			if (cc < 0)
+				goto timeout;
+			blockBuf[i] = cc;
 		}
 
-		if (docrc) {
-			crcHi = read_byte(ttyfd, TIMEOUT);
-			if (crcHi < 0)
+		if (do_crc) {
+			cksum_crc = read_byte(TIMEOUT);
+			if (cksum_crc < 0)
 				goto timeout;
-
-			crcLo = read_byte(ttyfd, TIMEOUT);
-			if (crcLo < 0)
+			cksum_crc = (cksum_crc << 8) | read_byte(TIMEOUT);
+			if (cksum_crc < 0)
 				goto timeout;
 		} else {
-			cksum = read_byte(ttyfd, TIMEOUT);
-			if (cksum < 0)
+			cksum_crc = read_byte(TIMEOUT);
+			if (cksum_crc < 0)
 				goto timeout;
 		}
 
@@ -156,93 +143,74 @@ static int receive(char *error_buf, size_t error_buf_size,
 			/* this also ignores the initial block 0 which is */
 			/* meta data. */
 			goto next;
-		} else if (blockNo != (wantBlockNo & 0xff)) {
-			note_error("unexpected block no, 0x%08x, expecting 0x%08x", blockNo, wantBlockNo);
+		}
+		if (blockNo != (wantBlockNo & 0xff)) {
+			bb_error_msg("unexpected block no, 0x%08x, expecting 0x%08x", blockNo, wantBlockNo);
 			goto error;
 		}
 
-		if (docrc) {
-			int crc = 0;
-			int i, j;
-			int expectedCrcHi;
-			int expectedCrcLo;
-
+		expected = 0;
+		if (do_crc) {
 			for (i = 0; i < blockLength; i++) {
-				crc = crc ^ (int) blockBuf[i] << 8;
-				for (j = 0; j < 8; j++)
-					if (crc & 0x8000)
-						crc = crc << 1 ^ 0x1021;
+				expected = expected ^ blockBuf[i] << 8;
+				for (j = 0; j < 8; j++) {
+					if (expected & 0x8000)
+						expected = expected << 1 ^ 0x1021;
 					else
-						crc = crc << 1;
+						expected = expected << 1;
+				}
 			}
-
-			expectedCrcHi = (crc >> 8) & 0xff;
-			expectedCrcLo = crc & 0xff;
-
-			if ((crcHi != expectedCrcHi) ||
-			    (crcLo != expectedCrcLo)) {
-				note_error("crc error, expected 0x%02x 0x%02x, got 0x%02x 0x%02x", expectedCrcHi, expectedCrcLo, crcHi, crcLo);
-				goto error;
-			}
+			expected &= 0xffff;
 		} else {
-			unsigned char expectedCksum = 0;
-			int i;
-
 			for (i = 0; i < blockLength; i++)
-				expectedCksum += blockBuf[i];
-
-			if (cksum != expectedCksum) {
-				note_error("checksum error, expected 0x%02x, got 0x%02x", expectedCksum, cksum);
-				goto error;
-			}
+				expected += blockBuf[i];
+			expected &= 0xff;
+		}
+		if (cksum_crc != expected) {
+			bb_error_msg(do_crc ? "crc error, expected 0x%04x, got 0x%04x"
+			                   : "checksum error, expected 0x%02x, got 0x%02x",
+					    expected, cksum_crc);
+			goto error;
 		}
 
 		wantBlockNo++;
 		length += blockLength;
 
-		if (full_write(filefd, blockBuf, blockLength) < 0) {
-			note_error("write to file failed: %m");
+		errno = 0;
+		if (full_write(file_fd, blockBuf, blockLength) != blockLength) {
+			bb_perror_msg("can't write to file");
 			goto fatal;
 		}
-
-	next:
+ next:
 		errors = 0;
 		nak = ACK;
-		write(ttyfd, &nak, 1);
+		full_write(write_fd, &nak, 1);
 		continue;
-
-	error:
-	timeout:
+ error:
+ timeout:
 		errors++;
 		if (errors == MAXERRORS) {
 			/* Abort */
 
-			// if using crc, try again w/o crc
+			/* if were asking for crc, try again w/o crc */
 			if (nak == 'C') {
 				nak = NAK;
 				errors = 0;
-				docrc = 0;
+				do_crc = 0;
 				goto timeout;
 			}
-
-			note_error("too many errors; giving up");
-
-		fatal:
-			/* 5 CAN followed by 5 BS */
-			write(ttyfd, "\030\030\030\030\030\010\010\010\010\010", 10);
+			bb_error_msg("too many errors; giving up");
+ fatal:
+			/* 5 CAN followed by 5 BS. Don't try too hard... */
+			safe_write(write_fd, "\030\030\030\030\030\010\010\010\010\010", 10);
 			return -1;
 		}
 
 		/* Flush pending input */
-		tcflush(ttyfd, TCIFLUSH);
+		tcflush(read_fd, TCIFLUSH);
 
-		write(ttyfd, &nak, 1);
-	}
-
- done:
-	return length;
-
-#undef note_error
+		full_write(write_fd, &nak, 1);
+	} /* for (;;) */
 }
 
 static void sigalrm_handler(int ATTRIBUTE_UNUSED signum)
@@ -252,40 +220,38 @@ static void sigalrm_handler(int ATTRIBUTE_UNUSED signum)
 int rx_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int rx_main(int argc, char **argv)
 {
-	char *fn;
-	int ttyfd, filefd;
-	struct termios tty, orig_tty;
 	struct sigaction act;
+	struct termios tty, orig_tty;
+	int termios_err;
+	int file_fd;
 	int n;
-	char error_buf[256];
 
 	if (argc != 2)
-			bb_show_usage();
+		bb_show_usage();
 
-	fn = argv[1];
-	ttyfd = xopen(CURRENT_TTY, O_RDWR);
-	filefd = xopen(fn, O_RDWR|O_CREAT|O_TRUNC);
+	/* Disabled by vda:
+	 * why we can't receive from stdin? Why we *require*
+	 * controlling tty?? */
+	/*read_fd = xopen(CURRENT_TTY, O_RDWR);*/
+	file_fd = xopen(argv[1], O_RDWR|O_CREAT|O_TRUNC);
 
-	if (tcgetattr(ttyfd, &tty) < 0)
-			bb_perror_msg_and_die("tcgetattr");
+	termios_err = tcgetattr(read_fd, &tty);
+	if (termios_err == 0) {
+		orig_tty = tty;
+		cfmakeraw(&tty);
+		tcsetattr(read_fd, TCSAFLUSH, &tty);
+	}
 
-	orig_tty = tty;
-
-	cfmakeraw(&tty);
-	tcsetattr(ttyfd, TCSAFLUSH, &tty);
-
+	/* No SA_RESTART: we want ALRM to interrupt read() */
 	memset(&act, 0, sizeof(act));
 	act.sa_handler = sigalrm_handler;
-	sigaction(SIGALRM, &act, 0);
+	sigaction(SIGALRM, &act, NULL);
 
-	n = receive(error_buf, sizeof(error_buf), ttyfd, filefd);
+	n = receive(file_fd);
 
-	close(filefd);
-
-	tcsetattr(ttyfd, TCSAFLUSH, &orig_tty);
-
-	if (n < 0)
-		bb_error_msg_and_die("\nreceive failed:\n  %s", error_buf);
-
-	fflush_stdout_and_exit(EXIT_SUCCESS);
+	if (termios_err == 0)
+		tcsetattr(read_fd, TCSAFLUSH, &orig_tty);
+	if (ENABLE_FEATURE_CLEAN_UP)
+		close(file_fd);
+	fflush_stdout_and_exit(n >= 0);
 }

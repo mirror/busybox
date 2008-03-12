@@ -386,15 +386,14 @@ int devfsd_main(int argc, char **argv)
 	/*  Tell kernel we are special(i.e. we get to see hidden entries)  */
 	xioctl(fd, DEVFSDIOC_SET_EVENT_MASK, 0);
 
+	/*  Set up SIGHUP and SIGUSR1 handlers  */
 	sigemptyset(&new_action.sa_mask);
 	new_action.sa_flags = 0;
-
-	/*  Set up SIGHUP and SIGUSR1 handlers  */
 	new_action.sa_handler = signal_handler;
-	if (sigaction(SIGHUP, &new_action, NULL) != 0 || sigaction(SIGUSR1, &new_action, NULL) != 0)
-		bb_error_msg_and_die("sigaction");
+	sigaction(SIGHUP, &new_action, NULL);
+	sigaction(SIGUSR1, &new_action, NULL);
 
-	printf("%s v%s  started for %s\n",applet_name, DEVFSD_VERSION, mount_point);
+	printf("%s v%s started for %s\n", applet_name, DEVFSD_VERSION, mount_point);
 
 	/*  Set umask so that mknod(2), open(2) and mkdir(2) have complete control over permissions  */
 	umask(0);

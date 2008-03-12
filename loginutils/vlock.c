@@ -1,5 +1,4 @@
 /* vi: set sw=4 ts=4: */
-
 /*
  * vlock implementation for busybox
  *
@@ -16,27 +15,25 @@
 /* Fixed by Erik Andersen to do passwords the tinylogin way...
  * It now works with md5, sha1, etc passwords. */
 
-#include "libbb.h"
 #include <sys/vt.h>
-
-enum { vfd = 3 };
-
-/* static unsigned long o_lock_all; */
+#include "libbb.h"
 
 static void release_vt(int signo)
 {
-	ioctl(vfd, VT_RELDISP, (unsigned long) !option_mask32 /*!o_lock_all*/);
+	/* If -a, param is 0, which means:
+	 * "no, kernel, we don't allow console switch away from us!" */
+	ioctl(STDIN_FILENO, VT_RELDISP, (unsigned long) !option_mask32);
 }
 
 static void acquire_vt(int signo)
 {
-	ioctl(vfd, VT_RELDISP, VT_ACKACQ);
+	/* ACK to kernel that switch to console is successful */
+	ioctl(STDIN_FILENO, VT_RELDISP, VT_ACKACQ);
 }
 
 int vlock_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int vlock_main(int argc, char **argv)
 {
-	sigset_t sig;
 	struct sigaction sa;
 	struct vt_mode vtm;
 	struct termios term;
@@ -48,49 +45,48 @@ int vlock_main(int argc, char **argv)
 	uid = getuid();
 	pw = getpwuid(uid);
 	if (pw == NULL)
-		bb_error_msg_and_die("unknown uid %d", uid);
+		bb_error_msg_and_die("unknown uid %d", (int)uid);
 
-	if (argc > 2) {
-		bb_show_usage();
-	}
+	opt_complementary = "=0"; /* no params! */
+	getopt32(argv, "a");
 
-	/*o_lock_all = */getopt32(argv, "a");
+	/* Ignore some signals so that we don't get killed by them */
+	bb_signals(0
+		+ (1 << SIGTSTP)
+		+ (1 << SIGTTIN)
+		+ (1 << SIGTTOU)
+		+ (1 << SIGHUP )
+		+ (1 << SIGCHLD) /* paranoia :) */
+		+ (1 << SIGQUIT)
+		+ (1 << SIGINT )
+		, SIG_IGN);
 
-	/* Avoid using statics - use constant fd */
-	xmove_fd(xopen(CURRENT_TTY, O_RDWR), vfd);
-	xioctl(vfd, VT_GETMODE, &vtm);
-
-	/* mask a bunch of signals */
-	sigprocmask(SIG_SETMASK, NULL, &sig);
-	sigdelset(&sig, SIGUSR1);
-	sigdelset(&sig, SIGUSR2);
-	sigaddset(&sig, SIGTSTP);
-	sigaddset(&sig, SIGTTIN);
-	sigaddset(&sig, SIGTTOU);
-	sigaddset(&sig, SIGHUP);
-	sigaddset(&sig, SIGCHLD);
-	sigaddset(&sig, SIGQUIT);
-	sigaddset(&sig, SIGINT);
-
-	sigemptyset(&(sa.sa_mask));
+	/* We will use SIGUSRx for console switch control: */
+	/* 1: set handlers */
+	sigemptyset(&sa.sa_mask);
 	sa.sa_flags = SA_RESTART;
 	sa.sa_handler = release_vt;
 	sigaction(SIGUSR1, &sa, NULL);
 	sa.sa_handler = acquire_vt;
 	sigaction(SIGUSR2, &sa, NULL);
+	/* 2: unmask them */
+	sigprocmask(SIG_SETMASK, NULL, &sa.sa_mask);
+	sigdelset(&sa.sa_mask, SIGUSR1);
+	sigdelset(&sa.sa_mask, SIGUSR2);
+	sigprocmask(SIG_SETMASK, &sa.sa_mask, NULL);
 
-	/* need to handle some signals so that we don't get killed by them */
-	sa.sa_handler = SIG_IGN;
-	sigaction(SIGHUP, &sa, NULL);
-	sigaction(SIGQUIT, &sa, NULL);
-	sigaction(SIGINT, &sa, NULL);
-	sigaction(SIGTSTP, &sa, NULL);
+	/* Revert stdin/out to our controlling tty
+	 * (or die if we have none) */
+	xmove_fd(xopen(CURRENT_TTY, O_RDWR), STDIN_FILENO);
+	xdup2(STDIN_FILENO, STDOUT_FILENO);
 
+	xioctl(STDIN_FILENO, VT_GETMODE, &vtm);
 	ovtm = vtm;
+	/* "console switches are controlled by us, not kernel!" */
 	vtm.mode = VT_PROCESS;
 	vtm.relsig = SIGUSR1;
 	vtm.acqsig = SIGUSR2;
-	ioctl(vfd, VT_SETMODE, &vtm);
+	ioctl(STDIN_FILENO, VT_SETMODE, &vtm);
 
 	tcgetattr(STDIN_FILENO, &oterm);
 	term = oterm;
@@ -111,7 +107,7 @@ int vlock_main(int argc, char **argv)
 		puts("Password incorrect");
 	} while (1);
 
-	ioctl(vfd, VT_SETMODE, &ovtm);
+	ioctl(STDIN_FILENO, VT_SETMODE, &ovtm);
 	tcsetattr(STDIN_FILENO, TCSANOW, &oterm);
 	fflush_stdout_and_exit(0);
 }

@@ -3,6 +3,7 @@
 /*      $OpenBSD: inetd.c,v 1.79 2001/01/30 08:30:57 deraadt Exp $      */
 /*      $NetBSD: inetd.c,v 1.11 1996/02/22 11:14:41 mycroft Exp $       */
 /* Busybox port by Vladimir Oleynik (C) 2001-2005 <dzo@simtreas.ru>     */
+/* IPv6 support, many bug fixes by Denys Vlasenko (c) 2008 */
 /*
  * Copyright (c) 1983,1991 The Regents of the University of California.
  * All rights reserved.
@@ -38,21 +39,17 @@
 
 /* Inetd - Internet super-server
  *
- * This program invokes all internet services as needed.
- * connection-oriented services are invoked each time a
+ * This program invokes configured services when a connection
+ * from a peer is established or a datagram arrives.
+ * Connection-oriented services are invoked each time a
  * connection is made, by creating a process.  This process
  * is passed the connection as file descriptor 0 and is
- * expected to do a getpeername to find out the source host
+ * expected to do a getpeername to find out peer's host
  * and port.
- *
  * Datagram oriented services are invoked when a datagram
  * arrives; a process is created and passed a pending message
- * on file descriptor 0.  Datagram servers may either connect
- * to their peer, freeing up the original socket for inetd
- * to receive further messages on, or "take over the socket",
- * processing all arriving datagrams and, eventually, timing
- * out.  The first type of server is said to be "multi-threaded";
- * the second type of server "single-threaded".
+ * on file descriptor 0. peer's address can be obtained
+ * using recvfrom.
  *
  * Inetd uses a configuration file which is read at startup
  * and, possibly, at some later time in response to a hangup signal.
@@ -60,28 +57,28 @@
  * order shown below.  Continuation lines for an entry must begin with
  * a space or tab.  All fields must be present in each entry.
  *
- *      service name                    must be in /etc/services
- *      socket type                     stream/dgram/raw/rdm/seqpacket
+ *      service_name                    must be in /etc/services
+ *      socket_type                     stream/dgram/raw/rdm/seqpacket
  *      protocol                        must be in /etc/protocols
  *                                      (usually "tcp" or "udp")
  *      wait/nowait[.max]               single-threaded/multi-threaded, max #
  *      user[.group] or user[:group]    user/group to run daemon as
- *      server program                  full path name
- *      server program arguments        maximum of MAXARGS (20)
+ *      server_program                  full path name
+ *      server_program_arguments        maximum of MAXARGS (20)
  *
  * For RPC services
- *      service name/version            must be in /etc/rpc
- *      socket type                     stream/dgram/raw/rdm/seqpacket
+ *      service_name/version            must be in /etc/rpc
+ *      socket_type                     stream/dgram/raw/rdm/seqpacket
  *      rpc/protocol                    "rpc/tcp" etc
  *      wait/nowait[.max]               single-threaded/multi-threaded
  *      user[.group] or user[:group]    user to run daemon as
- *      server program                  full path name
- *      server program arguments        maximum of MAXARGS (20)
+ *      server_program                  full path name
+ *      server_program_arguments        maximum of MAXARGS (20)
  *
  * For non-RPC services, the "service name" can be of the form
  * hostaddress:servicename, in which case the hostaddress is used
  * as the host portion of the address to listen on.  If hostaddress
- * consists of a single `*' character, INADDR_ANY is used.
+ * consists of a single '*' character, INADDR_ANY is used.
  *
  * A line can also consist of just
  *      hostaddress:
@@ -102,7 +99,7 @@
  * one line for any given RPC service, even if the host-address
  * specifiers are different.
  *
- * Comment lines are indicated by a `#' in column 1.
+ * Comment lines are indicated by a '#' in column 1.
  */
 
 /* inetd rules for passing file descriptors to children
@@ -133,6 +130,8 @@
  * tening service socket, and must accept at least one connection request
  * before exiting.  Such a server would normally accept and process incoming
  * connection requests until a timeout.
+ *
+ * In short: "stream" can be "wait" or "nowait"; "dgram" must be "wait".
  */
 
 /* Here's the scoop concerning the user[:group] feature:
@@ -152,26 +151,27 @@
 
 #include <syslog.h>
 #include <sys/un.h>
-#include "libbb.h"
 
-#if !BB_MMU
-/* stream versions of these builtins are forking,
- * can't do that (easily) on NOMMU */
-#undef  ENABLE_FEATURE_INETD_SUPPORT_BUILTIN_DISCARD
-#define ENABLE_FEATURE_INETD_SUPPORT_BUILTIN_DISCARD 0
-#undef  ENABLE_FEATURE_INETD_SUPPORT_BUILTIN_CHARGEN
-#define ENABLE_FEATURE_INETD_SUPPORT_BUILTIN_CHARGEN 0
-#endif
+#include "libbb.h"
 
 #if ENABLE_FEATURE_INETD_RPC
 #include <rpc/rpc.h>
 #include <rpc/pmap_clnt.h>
 #endif
 
+#if !BB_MMU
+/* stream version of chargen is forking but not execing,
+ * can't do that (easily) on NOMMU */
+#undef  ENABLE_FEATURE_INETD_SUPPORT_BUILTIN_CHARGEN
+#define ENABLE_FEATURE_INETD_SUPPORT_BUILTIN_CHARGEN 0
+#endif
+
 #define _PATH_INETDPID  "/var/run/inetd.pid"
 
-#define CNT_INTERVAL    60              /* servers in CNT_INTERVAL sec. */
-#define RETRYTIME       (60*10)         /* retry after bind or server fail */
+#define CNT_INTERVAL    60      /* servers in CNT_INTERVAL sec. */
+#define RETRYTIME       60      /* retry after bind or server fail */
+
+// TODO: explain, or get rid of setrlimit games
 
 #ifndef RLIMIT_NOFILE
 #define RLIMIT_NOFILE   RLIMIT_OFILE
@@ -209,20 +209,21 @@ typedef struct servtab_t {
 #else
 #define is_rpc_service(sep)       0
 #endif
-	pid_t se_wait;                        /* 0:"nowait", 1:"wait" */
+	pid_t se_wait;                        /* 0:"nowait", 1:"wait", >1:"wait" */
+	                                      /* and waiting for this pid */
 	socktype_t se_socktype;               /* SOCK_STREAM/DGRAM/RDM/... */
 	family_t se_family;                   /* AF_UNIX/INET[6] */
-	smallint se_proto_no;                 /* almost "getprotobyname(se_proto)" */
+	/* se_proto_no is used by RPC code only... hmm */
+	smallint se_proto_no;                 /* IPPROTO_TCP/UDP, n/a for AF_UNIX */
 	smallint se_checked;                  /* looked at during merge */
+	unsigned se_max;                      /* allowed instances per minute */
+	unsigned se_count;                    /* number started since se_time */
+	unsigned se_time;                     /* whem we started counting */
 	char *se_user;                        /* user name to run as */
 	char *se_group;                       /* group name to run as, can be NULL */
 #ifdef INETD_BUILTINS_ENABLED
 	const struct builtin *se_builtin;     /* if built-in, description */
 #endif
-// TODO: wrong algorithm!!!
-	unsigned se_max;                      /* max # of instances of this service */
-	unsigned se_count;                    /* number started since se_time */
-	unsigned se_time;                     /* start of se_count */
 	struct servtab_t *se_next;
 	len_and_sockaddr *se_lsa;
 	char *se_program;                     /* server program */
@@ -231,60 +232,54 @@ typedef struct servtab_t {
 } servtab_t;
 
 #ifdef INETD_BUILTINS_ENABLED
-		/* Echo received data */
+/* Echo received data */
 #if ENABLE_FEATURE_INETD_SUPPORT_BUILTIN_ECHO
 static void echo_stream(int, servtab_t *);
 static void echo_dg(int, servtab_t *);
 #endif
-		/* Internet /dev/null */
+/* Internet /dev/null */
 #if ENABLE_FEATURE_INETD_SUPPORT_BUILTIN_DISCARD
 static void discard_stream(int, servtab_t *);
 static void discard_dg(int, servtab_t *);
 #endif
-		/* Return 32 bit time since 1900 */
+/* Return 32 bit time since 1900 */
 #if ENABLE_FEATURE_INETD_SUPPORT_BUILTIN_TIME
 static void machtime_stream(int, servtab_t *);
 static void machtime_dg(int, servtab_t *);
 #endif
-		/* Return human-readable time */
+/* Return human-readable time */
 #if ENABLE_FEATURE_INETD_SUPPORT_BUILTIN_DAYTIME
 static void daytime_stream(int, servtab_t *);
 static void daytime_dg(int, servtab_t *);
 #endif
-		/* Familiar character generator */
+/* Familiar character generator */
 #if ENABLE_FEATURE_INETD_SUPPORT_BUILTIN_CHARGEN
 static void chargen_stream(int, servtab_t *);
 static void chargen_dg(int, servtab_t *);
 #endif
 
 struct builtin {
-	const char *bi_service;         /* internally provided service name */
-	uint8_t bi_fork;                /* 1 if stream fn should run in child */
-	/* All builtins are "nowait" */
-	/* uint8_t bi_wait; */          /* 1 if should wait for child */
+	/* NB: not necessarily NUL terminated */
+	char bi_service7[7];      /* internally provided service name */
+	uint8_t bi_fork;          /* 1 if stream fn should run in child */
 	void (*bi_stream_fn)(int, servtab_t *);
 	void (*bi_dgram_fn)(int, servtab_t *);
 };
 
 static const struct builtin builtins[] = {
 #if ENABLE_FEATURE_INETD_SUPPORT_BUILTIN_ECHO
-	/* Echo received data */
 	{ "echo", 1, echo_stream, echo_dg },
 #endif
 #if ENABLE_FEATURE_INETD_SUPPORT_BUILTIN_DISCARD
-	/* Internet /dev/null */
 	{ "discard", 1, discard_stream, discard_dg },
 #endif
 #if ENABLE_FEATURE_INETD_SUPPORT_BUILTIN_CHARGEN
-	/* Familiar character generator */
 	{ "chargen", 1, chargen_stream, chargen_dg },
 #endif
 #if ENABLE_FEATURE_INETD_SUPPORT_BUILTIN_TIME
-	/* Return 32 bit time since 1900 */
 	{ "time", 0, machtime_stream, machtime_dg },
 #endif
 #if ENABLE_FEATURE_INETD_SUPPORT_BUILTIN_DAYTIME
-	/* Return human-readable time */
 	{ "daytime", 0, daytime_stream, daytime_dg },
 #endif
 };
@@ -305,8 +300,8 @@ struct globals {
 	FILE *fconfig;
 	char *default_local_hostname;
 #if ENABLE_FEATURE_INETD_SUPPORT_BUILTIN_CHARGEN
-	char *endring;
-	char *ringpos;
+	char *end_ring;
+	char *ring_pos;
 	char ring[128];
 #endif
 	fd_set allsock;
@@ -333,8 +328,8 @@ struct BUG_G_too_big {
 #define default_local_hostname (G.default_local_hostname)
 #define first_ps_byte   (G.first_ps_byte  )
 #define last_ps_byte    (G.last_ps_byte   )
-#define endring         (G.endring        )
-#define ringpos         (G.ringpos        )
+#define end_ring        (G.end_ring       )
+#define ring_pos        (G.ring_pos       )
 #define ring            (G.ring           )
 #define allsock         (G.allsock        )
 #define line            (G.line           )
@@ -357,6 +352,8 @@ static len_and_sockaddr *xzalloc_lsa(int family)
 	int sz;
 
 	sz = sizeof(struct sockaddr_in);
+	if (family == AF_UNIX)
+		sz = sizeof(struct sockaddr_un);
 #if ENABLE_FEATURE_IPV6
 	if (family == AF_INET6)
 		sz = sizeof(struct sockaddr_in6);
@@ -366,7 +363,6 @@ static len_and_sockaddr *xzalloc_lsa(int family)
 	lsa->u.sa.sa_family = family;
 	return lsa;	
 }
-
 
 static void rearm_alarm(void)
 {
@@ -660,10 +656,8 @@ static NOINLINE servtab_t *parse_one_line(void)
 	}
 
 	arg = next_word(&cp);
-	if (arg == NULL) {
-		/* A blank line. */
+	if (arg == NULL) /* a blank line. */
 		goto more;
-	}
 
 	/* [host:]service socktype proto wait user[:group] prog [args] */
 	/* Check for "host:...." line */
@@ -764,9 +758,9 @@ static NOINLINE servtab_t *parse_one_line(void)
 		}
 		/* we don't really need getprotobyname()! */
 		if (strcmp(arg, "tcp") == 0)
-			sep->se_proto_no = 6;
+			sep->se_proto_no = IPPROTO_TCP; /* = 6 */
 		if (strcmp(arg, "udp") == 0)
-			sep->se_proto_no = 17;
+			sep->se_proto_no = IPPROTO_UDP; /* = 17 */
 		if (six)
 			*six = '6';
 		if (!sep->se_proto_no) /* not tcp/udp?? */
@@ -785,7 +779,11 @@ static NOINLINE servtab_t *parse_one_line(void)
 		if (errno)
 			goto parse_err;
 	}
-	sep->se_wait = (strcmp(arg, "wait") == 0);
+	sep->se_wait = (arg[0] != 'n' || arg[1] != 'o');
+	if (!sep->se_wait) /* "no" seen */
+		arg += 2;
+	if (strcmp(arg, "wait") != 0)
+		goto parse_err;
 
 	/* user[:group] prog [args] */
 	sep->se_user = xstrdup(next_word(&cp));
@@ -804,48 +802,56 @@ static NOINLINE servtab_t *parse_one_line(void)
 	if (sep->se_program == NULL)
 		goto parse_err;
 #ifdef INETD_BUILTINS_ENABLED
-	/* sep->se_builtin = NULL; - done by new_servtab() */
 	if (strcmp(sep->se_program, "internal") == 0
+	 && strlen(sep->se_service) <= 7
 	 && (sep->se_socktype == SOCK_STREAM
 	     || sep->se_socktype == SOCK_DGRAM)
 	) {
 		int i;
 		for (i = 0; i < ARRAY_SIZE(builtins); i++)
-			if (strcmp(builtins[i].bi_service, sep->se_service) == 0)
+			if (strncmp(builtins[i].bi_service7, sep->se_service, 7) == 0)
 				goto found_bi;
 		bb_error_msg("unknown internal service %s", sep->se_service);
 		goto parse_err;
  found_bi:
 		sep->se_builtin = &builtins[i];
-		sep->se_wait = 0; /* = builtins[i].bi_wait; - always 0 */
+		/* stream builtins must be "nowait", dgram must be "wait" */
+		if (sep->se_wait != (sep->se_socktype == SOCK_DGRAM))
+			goto parse_err;
 	}
 #endif
 	argc = 0;
-	while ((arg = next_word(&cp)) != NULL && argc < MAXARGV) {
+	while ((arg = next_word(&cp)) != NULL && argc < MAXARGV)
 		sep->se_argv[argc++] = xstrdup(arg);
-	}
-	/* while (argc <= MAXARGV) */
-	/*	sep->se_argv[argc++] = NULL; - done by new_servtab() */
 
-	/*
-	 * Now that we've processed the entire line, check if the hostname
-	 * specifier was a comma separated list of hostnames. If so
-	 * we'll make new entries for each address.
-	 */
+	/* catch mixups. "<service> stream udp ..." == wtf */
+	if (sep->se_socktype == SOCK_STREAM) {
+		if (sep->se_proto_no == IPPROTO_UDP)
+			goto parse_err;
+	}
+	if (sep->se_socktype == SOCK_DGRAM) {
+		if (sep->se_proto_no == IPPROTO_TCP)
+			goto parse_err;
+		/* "udp nowait" is a small fork bomb :) */
+		if (!sep->se_wait)
+			goto parse_err;
+	}
+
+	/* check if the hostname specifier is a comma separated list
+	 * of hostnames. we'll make new entries for each address. */
 	while ((hostdelim = strrchr(sep->se_local_hostname, ',')) != NULL) {
 		nsep = dup_servtab(sep);
-		/*
-		 * NUL terminate the hostname field of the existing entry,
-		 * and make a dup for the new entry.
-		 */
+		/* NUL terminate the hostname field of the existing entry,
+		 * and make a dup for the new entry. */
 		*hostdelim++ = '\0';
 		nsep->se_local_hostname = xstrdup(hostdelim);
 		nsep->se_next = sep->se_next;
 		sep->se_next = nsep;
 	}
 
-	/* Was doing it here: */
+	/* was doing it here: */
 	/* DNS resolution, create copies for each IP address */
+	/* IPv6-ization destroyed it :( */
 
 	return sep;
 }
@@ -947,15 +953,9 @@ static void reread_config_file(int sig ATTRIBUTE_UNUSED)
 		switch (sep->se_family) {
 			struct sockaddr_un *sun;
 		case AF_UNIX:
-			/* we have poor infrastructure for AF_UNIX... */
-			n = strlen(sep->se_service);
-			if (n > sizeof(sun->sun_path) - 1)
-				n = sizeof(sun->sun_path) - 1;
-			lsa = xzalloc(LSA_LEN_SIZE + sizeof(struct sockaddr_un));
-			lsa->len = sizeof(struct sockaddr_un);
+			lsa = xzalloc_lsa(AF_UNIX);
 			sun = (struct sockaddr_un*)&lsa->u.sa;
-			sun->sun_family = AF_UNIX;
-			strncpy(sun->sun_path, sep->se_service, n);
+			safe_strncpy(sun->sun_path, sep->se_service, sizeof(sun->sun_path));
 			break;
 
 		default: /* case AF_INET, case AF_INET6 */
@@ -1259,8 +1259,8 @@ int inetd_main(int argc, char **argv)
 						sep->se_count = 0;
 					}
 				}
-				/* on NOMMU, streamed echo, chargen and discard
-				 * builtins wouldn't work, but they are
+				/* on NOMMU, streamed chargen
+				 * builtin wouldn't work, but it is
 				 * not allowed on NOMMU (ifdefed out) */
 #ifdef INETD_BUILTINS_ENABLED
 				if (BB_MMU && sep->se_builtin)
@@ -1311,8 +1311,42 @@ int inetd_main(int argc, char **argv)
 				continue; /* -> check next fd in fd set */
 			}
 #endif
-			/* child. prepare env and exec program */
+			/* child */
 			setsid();
+#if 0
+/* This does not work.
+ * Actually, it _almost_ works. The idea behind it is: child
+ * can peek at (already received and buffered by kernel) UDP packet,
+ * and perform connect() on the socket so that it is linked only
+ * to this peer. But this also affects parent, because descriptors
+ * are shared after fork() a-la dup(). When parent returns to
+ * select(), it will see this descriptor attached to the peer (!)
+ * and likely still readable, will act on it and mess things up
+ * (can create many copies of same child, etc).
+ * If child will create new socket instead, then bind() and
+ * connect() it to peer's address, descriptor aliasing problem
+ * is solved, but first packet cannot be "transferred" to the new
+ * socket. It is not a problem if child can account for this,
+ * but our child will exec - and exec'ed program does not know
+ * about this "lost packet" problem! Pity... */
+			/* "nowait" udp[6]. Hmmm... */
+			if (!sep->se_wait
+			 && sep->se_socktype == SOCK_DGRAM
+			 && sep->se_family != AF_UNIX
+			) {
+				len_and_sockaddr *lsa = xzalloc_lsa(sep->se_family);
+				/* peek at the packet and remember peer addr */
+				int r = recvfrom(ctrl, NULL, 0, MSG_PEEK|MSG_DONTWAIT,
+					&lsa->u.sa, &lsa->len);
+                    		if (r >= 0)
+					/* make this socket "connected" to peer addr:
+					 * only packets from this peer will be recv'ed,
+					 * and bare write()/send() will work on it */
+					connect(ctrl, &lsa->u.sa, lsa->len);
+				free(lsa);
+			}
+#endif
+			/* prepare env and exec program */
 			pwd = getpwnam(sep->se_user);
 			if (pwd == NULL) {
 				bb_error_msg("%s: no such user", sep->se_user);
@@ -1342,8 +1376,8 @@ int inetd_main(int argc, char **argv)
 					bb_perror_msg("setrlimit");
 			closelog();
 			xmove_fd(ctrl, 0);
-			dup2(0, 1);
-			dup2(0, 2);
+			xdup2(0, 1);
+			xdup2(0, 2);
 			/* NB: among others, this loop closes listening socket
 			 * for nowait stream children */
 			for (sep2 = serv_list; sep2; sep2 = sep2->se_next)
@@ -1378,6 +1412,8 @@ static void echo_stream(int s, servtab_t *sep ATTRIBUTE_UNUSED)
 	}
 #else
 	static const char *const args[] = { "cat", NULL };
+	/* no error messages */
+	xmove_fd(xopen("/dev/null", O_WRONLY), STDERR_FILENO);
 	BB_EXECVP("cat", (char**)args);
 	_exit(1);
 #endif
@@ -1404,8 +1440,16 @@ static void echo_dg(int s, servtab_t *sep)
 /* ARGSUSED */
 static void discard_stream(int s, servtab_t *sep ATTRIBUTE_UNUSED)
 {
+#if BB_MMU
 	while (safe_read(s, line, LINE_SIZE) > 0)
 		continue;
+#else
+	static const char *const args[] = { "dd", "of=/dev/null", NULL };
+	/* no error messages */
+	xmove_fd(xopen("/dev/null", O_WRONLY), STDERR_FILENO);
+	BB_EXECVP("dd", (char**)args);
+	_exit(1);
+#endif
 }
 /* ARGSUSED */
 static void discard_dg(int s, servtab_t *sep ATTRIBUTE_UNUSED)
@@ -1418,14 +1462,14 @@ static void discard_dg(int s, servtab_t *sep ATTRIBUTE_UNUSED)
 
 #if ENABLE_FEATURE_INETD_SUPPORT_BUILTIN_CHARGEN
 #define LINESIZ 72
-static void initring(void)
+static void init_ring(void)
 {
 	int i;
 
-	endring = ring;
+	end_ring = ring;
 	for (i = 0; i <= 128; ++i)
 		if (isprint(i))
-			*endring++ = i;
+			*end_ring++ = i;
 }
 /* Character generator. MMU arches only. */
 /* ARGSUSED */
@@ -1435,8 +1479,8 @@ static void chargen_stream(int s, servtab_t *sep)
 	int len;
 	char text[LINESIZ + 2];
 
-	if (!endring) {
-		initring();
+	if (!end_ring) {
+		init_ring();
 		rs = ring;
 	}
 
@@ -1444,14 +1488,14 @@ static void chargen_stream(int s, servtab_t *sep)
 	text[LINESIZ + 1] = '\n';
 	rs = ring;
 	for (;;) {
-		len = endring - rs;
+		len = end_ring - rs;
 		if (len >= LINESIZ)
 			memmove(text, rs, LINESIZ);
 		else {
 			memmove(text, rs, len);
 			memmove(text + len, ring, LINESIZ - len);
 		}
-		if (++rs == endring)
+		if (++rs == end_ring)
 			rs = ring;
 		xwrite(s, text, sizeof(text));
 	}
@@ -1469,20 +1513,20 @@ static void chargen_dg(int s, servtab_t *sep)
 	if (recvfrom(s, text, sizeof(text), MSG_DONTWAIT, &lsa->u.sa, &lsa->len) < 0)
 		return;
 
-	if (!endring) {
-		initring();
-		ringpos = ring;
+	if (!end_ring) {
+		init_ring();
+		ring_pos = ring;
 	}
 
-	len = endring - ringpos;
+	len = end_ring - ring_pos;
 	if (len >= LINESIZ)
-		memmove(text, ringpos, LINESIZ);
+		memmove(text, ring_pos, LINESIZ);
 	else {
-		memmove(text, ringpos, len);
+		memmove(text, ring_pos, len);
 		memmove(text + len, ring, LINESIZ - len);
 	}
-	if (++ringpos == endring)
-		ringpos = ring;
+	if (++ring_pos == end_ring)
+		ring_pos = ring;
 	text[LINESIZ] = '\r';
 	text[LINESIZ + 1] = '\n';
 	sendto(s, text, sizeof(text), 0, &lsa->u.sa, lsa->len);
@@ -1498,7 +1542,7 @@ static void chargen_dg(int s, servtab_t *sep)
  * we must add 2208988800 seconds to this figure to make up for
  * some seventy years Bell Labs was asleep.
  */
-static unsigned machtime(void)
+static uint32_t machtime(void)
 {
 	struct timeval tv;
 

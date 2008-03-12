@@ -339,16 +339,17 @@ int tcpudpsvd_main(int argc, char **argv)
 		 * 1) we have to do it before fork()
 		 * 2) order is important - is it right now? */
 
-		/* Make plain write/send work for this socket by supplying default
+		/* Open new non-connected UDP socket for further clients... */
+		sock = xsocket(lsa->u.sa.sa_family, SOCK_DGRAM, 0);
+		setsockopt_reuseaddr(sock);
+		/* Make plain write/send work for old socket by supplying default
 		 * destination address. This also restricts incoming packets
 		 * to ones coming from this remote IP. */
 		xconnect(0, &remote.u.sa, sa_len);
 	/* hole? at this point we have no wildcard udp socket...
 	 * can this cause clients to get "port unreachable" icmp?
 	 * Yup, time window is very small, but it exists (is it?) */
-		/* Open new non-connected UDP socket for further clients */
-		sock = xsocket(lsa->u.sa.sa_family, tcp ? SOCK_STREAM : SOCK_DGRAM, 0);
-		setsockopt_reuseaddr(sock);
+		/* ..."open new socket", continued */
 		xbind(sock, &lsa->u.sa, sa_len);
 		socket_want_pktinfo(sock);
 
@@ -376,7 +377,6 @@ int tcpudpsvd_main(int argc, char **argv)
 		bb_perror_msg("fork");
 		goto again;
 	}
-
 
 	if (pid != 0) {
 		/* parent */
@@ -467,7 +467,7 @@ int tcpudpsvd_main(int argc, char **argv)
 
 	argv += 2;
 #ifdef SSLSVD
-	strcpy(id, utoa(pid);
+	strcpy(id, utoa(pid));
 	ssl_io(0, argv);
 #else
 	BB_EXECVP(argv[0], argv);

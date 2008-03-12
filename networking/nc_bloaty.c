@@ -751,6 +751,11 @@ int nc_main(int argc, char **argv)
 	if (option_mask32 & OPT_s) { /* local address */
 		/* if o_lport is still 0, then we will use random port */
 		ouraddr = xhost2sockaddr(str_s, o_lport);
+#ifdef BLOAT
+		/* prevent spurious "UDP listen needs !0 port" */
+		o_lport = get_nport(ouraddr);
+		o_lport = ntohs(o_lport);
+#endif
 		x = xsocket(ouraddr->u.sa.sa_family, x, 0);
 	} else {
 		/* We try IPv6, then IPv4, unless addr family is
@@ -771,12 +776,14 @@ int nc_main(int argc, char **argv)
 	setsockopt(netfd, SOL_SOCKET, SO_SNDBUF, &o_sndbuf, sizeof o_sndbuf);
 #endif
 
+#ifdef BLOAT
 	if (OPT_l && (option_mask32 & (OPT_u|OPT_l)) == (OPT_u|OPT_l)) {
 		/* apparently UDP can listen ON "port 0",
 		 but that's not useful */
 		if (!o_lport)
 			bb_error_msg_and_die("UDP listen needs nonzero -p port");
 	}
+#endif
 
 	FD_SET(0, &ding1);                        /* stdin *is* initially open */
 	if (proggie) {
