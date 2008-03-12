@@ -171,8 +171,8 @@ static void limit(int what, long l)
 {
 	struct rlimit r;
 
-	if (getrlimit(what, &r) == -1)
-		bb_perror_msg_and_die("getrlimit");
+	/* Never fails under Linux (except if you pass it bad arguments) */
+	getrlimit(what, &r);
 	if ((l < 0) || (l > r.rlim_max))
 		r.rlim_cur = r.rlim_max;
 	else

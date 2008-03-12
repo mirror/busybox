@@ -63,6 +63,7 @@
  *      service name                    must be in /etc/services
  *      socket type                     stream/dgram/raw/rdm/seqpacket
  *      protocol                        must be in /etc/protocols
+ *                                      (usually "tcp" or "udp")
  *      wait/nowait[.max]               single-threaded/multi-threaded, max #
  *      user[.group] or user[:group]    user/group to run daemon as
  *      server program                  full path name
@@ -71,7 +72,7 @@
  * For RPC services
  *      service name/version            must be in /etc/rpc
  *      socket type                     stream/dgram/raw/rdm/seqpacket
- *      protocol                        must be in /etc/protocols
+ *      rpc/protocol                    "rpc/tcp" etc
  *      wait/nowait[.max]               single-threaded/multi-threaded
  *      user[.group] or user[:group]    user to run daemon as
  *      server program                  full path name
@@ -120,7 +121,7 @@
  * It should fork, and the parent should then exit to allow inetd to check
  * for new service requests to spawn new servers.  Datagram servers which
  * process all incoming datagrams on a socket and eventually time out are
- * said to be "single-threaded".  The comsat(8), (biff(1)) and talkd(8)
+ * said to be "single-threaded".  The comsat(8), biff(1) and talkd(8)
  * utilities are both examples of the latter type of datagram server.  The
  * tftpd(8) utility is an example of a multi-threaded datagram server.
  *
@@ -134,38 +135,33 @@
  * connection requests until a timeout.
  */
 
-/* Here's the scoop concerning the user[.:]group feature:
- *
- * 1) set-group-option off.
- *
+/* Here's the scoop concerning the user[:group] feature:
+ * 1) group is not specified:
  *      a) user = root: NO setuid() or setgid() is done
- *
  *      b) other:       setgid(primary group as found in passwd)
  *                      initgroups(name, primary group)
  *                      setuid()
- *
- * 2) set-group-option on.
- *
+ * 2) group is specified:
  *      a) user = root: setgid(specified group)
  *                      NO initgroups()
  *                      NO setuid()
- *
  *      b) other:       setgid(specified group)
  *                      initgroups(name, specified group)
  *                      setuid()
  */
 
-#include "libbb.h"
 #include <syslog.h>
 #include <sys/un.h>
+#include "libbb.h"
 
-//#define ENABLE_FEATURE_INETD_RPC 1
-//#define ENABLE_FEATURE_INETD_SUPPORT_BUILTIN_ECHO 1
-//#define ENABLE_FEATURE_INETD_SUPPORT_BUILTIN_DISCARD 1
-//#define ENABLE_FEATURE_INETD_SUPPORT_BUILTIN_TIME 1
-//#define ENABLE_FEATURE_INETD_SUPPORT_BUILTIN_DAYTIME 1
-//#define ENABLE_FEATURE_INETD_SUPPORT_BUILTIN_CHARGEN 1
-//#define ENABLE_FEATURE_IPV6 1
+#if !BB_MMU
+/* stream versions of these builtins are forking,
+ * can't do that (easily) on NOMMU */
+#undef  ENABLE_FEATURE_INETD_SUPPORT_BUILTIN_DISCARD
+#define ENABLE_FEATURE_INETD_SUPPORT_BUILTIN_DISCARD 0
+#undef  ENABLE_FEATURE_INETD_SUPPORT_BUILTIN_CHARGEN
+#define ENABLE_FEATURE_INETD_SUPPORT_BUILTIN_CHARGEN 0
+#endif
 
 #if ENABLE_FEATURE_INETD_RPC
 #include <rpc/rpc.h>
@@ -174,7 +170,7 @@
 
 #define _PATH_INETDPID  "/var/run/inetd.pid"
 
-#define CNT_INTVL       60              /* servers in CNT_INTVL sec. */
+#define CNT_INTERVAL    60              /* servers in CNT_INTERVAL sec. */
 #define RETRYTIME       (60*10)         /* retry after bind or server fail */
 
 #ifndef RLIMIT_NOFILE
@@ -188,77 +184,53 @@
 /* Reserve some descriptors, 3 stdio + at least: 1 log, 1 conf. file */
 #define FD_MARGIN       8
 
-/* Check unsupporting builtin */
-#if ENABLE_FEATURE_INETD_SUPPORT_BUILTIN_ECHO || \
-	ENABLE_FEATURE_INETD_SUPPORT_BUILTIN_DISCARD || \
-	ENABLE_FEATURE_INETD_SUPPORT_BUILTIN_TIME || \
-	ENABLE_FEATURE_INETD_SUPPORT_BUILTIN_DAYTIME || \
-	ENABLE_FEATURE_INETD_SUPPORT_BUILTIN_CHARGEN
-# define INETD_FEATURE_ENABLED
-#endif
-
-#if ENABLE_FEATURE_INETD_SUPPORT_BUILTIN_ECHO || \
-	ENABLE_FEATURE_INETD_SUPPORT_BUILTIN_DISCARD || \
-	ENABLE_FEATURE_INETD_SUPPORT_BUILTIN_CHARGEN
-# define INETD_SETPROCTITLE
+#if ENABLE_FEATURE_INETD_SUPPORT_BUILTIN_DISCARD \
+ || ENABLE_FEATURE_INETD_SUPPORT_BUILTIN_ECHO    \
+ || ENABLE_FEATURE_INETD_SUPPORT_BUILTIN_CHARGEN \
+ || ENABLE_FEATURE_INETD_SUPPORT_BUILTIN_TIME    \
+ || ENABLE_FEATURE_INETD_SUPPORT_BUILTIN_DAYTIME
+# define INETD_BUILTINS_ENABLED
 #endif
 
 typedef struct servtab_t {
 	/* The most frequently referenced one: */
 	int se_fd;                            /* open descriptor */
 	/* NB: 'biggest fields last' saves on code size (~250 bytes) */
-	char *se_hostaddr;                    /* host address to listen on */
-	char *se_service;                     /* name of service */
-	char *se_proto;                       /* protocol used */
+	/* [addr:]service socktype proto wait user[:group] prog [args] */
+	char *se_local_hostname;              /* addr to listen on */
+	char *se_service;                     /* "80" or "www" or "mount/2[-3]" */
+	/* socktype is in se_socktype */      /* "stream" "dgram" "raw" "rdm" "seqpacket" */
+	char *se_proto;                       /* "unix" or "[rpc/]tcp[6]" */
 #if ENABLE_FEATURE_INETD_RPC
 	int se_rpcprog;                       /* rpc program number */
-	int se_rpcversl;                      /* rpc program lowest version */
-	int se_rpcversh;                      /* rpc program highest version */
-#define isrpcservice(sep)       ((sep)->se_rpcversl != 0)
+	int se_rpcver_lo;                     /* rpc program lowest version */
+	int se_rpcver_hi;                     /* rpc program highest version */
+#define is_rpc_service(sep)       ((sep)->se_rpcver_lo != 0)
 #else
-#define isrpcservice(sep)       0
+#define is_rpc_service(sep)       0
 #endif
-	pid_t se_wait;                        /* single threaded server */
-	socktype_t se_socktype;               /* type of socket to use */
-	family_t se_family;                   /* address family */
+	pid_t se_wait;                        /* 0:"nowait", 1:"wait" */
+	socktype_t se_socktype;               /* SOCK_STREAM/DGRAM/RDM/... */
+	family_t se_family;                   /* AF_UNIX/INET[6] */
+	smallint se_proto_no;                 /* almost "getprotobyname(se_proto)" */
 	smallint se_checked;                  /* looked at during merge */
 	char *se_user;                        /* user name to run as */
-	char *se_group;                       /* group name to run as */
-#ifdef INETD_FEATURE_ENABLED
-	const struct builtin *se_bi;          /* if built-in, description */
+	char *se_group;                       /* group name to run as, can be NULL */
+#ifdef INETD_BUILTINS_ENABLED
+	const struct builtin *se_builtin;     /* if built-in, description */
 #endif
-	int se_ctrladdr_size;
-	int se_max;                           /* max # of instances of this service */
-	int se_count;                         /* number started since se_time */
+// TODO: wrong algorithm!!!
+	unsigned se_max;                      /* max # of instances of this service */
+	unsigned se_count;                    /* number started since se_time */
+	unsigned se_time;                     /* start of se_count */
 	struct servtab_t *se_next;
-	struct timeval se_time;               /* start of se_count */
-	char *se_server;                      /* server program */
+	len_and_sockaddr *se_lsa;
+	char *se_program;                     /* server program */
 #define MAXARGV 20
 	char *se_argv[MAXARGV + 1];           /* program arguments */
-	union {
-		struct sockaddr se_un_ctrladdr;
-		struct sockaddr_in se_un_ctrladdr_in;
-#if ENABLE_FEATURE_IPV6
-		struct sockaddr_in6 se_un_ctrladdr_in6;
-#endif
-		struct sockaddr_un se_un_ctrladdr_un;
-	} se_un;                              /* bound address */
-#define se_ctrladdr     se_un.se_un_ctrladdr
-#define se_ctrladdr_in  se_un.se_un_ctrladdr_in
-#define se_ctrladdr_in6 se_un.se_un_ctrladdr_in6
-#define se_ctrladdr_un  se_un.se_un_ctrladdr_un
 } servtab_t;
 
-#ifdef INETD_FEATURE_ENABLED
-struct builtin {
-	const char *bi_service;               /* internally provided service name */
-	socktype_t bi_socktype;               /* type of socket supported */
-	uint8_t bi_fork;                      /* 1 if should fork before call */
-// Commented since it is always 0
-//	uint8_t bi_wait;                      /* 1 if should wait for child */
-	void (*bi_fn) (int, servtab_t *);
-};
-
+#ifdef INETD_BUILTINS_ENABLED
 		/* Echo received data */
 #if ENABLE_FEATURE_INETD_SUPPORT_BUILTIN_ECHO
 static void echo_stream(int, servtab_t *);
@@ -285,62 +257,61 @@ static void chargen_stream(int, servtab_t *);
 static void chargen_dg(int, servtab_t *);
 #endif
 
+struct builtin {
+	const char *bi_service;         /* internally provided service name */
+	uint8_t bi_fork;                /* 1 if stream fn should run in child */
+	/* All builtins are "nowait" */
+	/* uint8_t bi_wait; */          /* 1 if should wait for child */
+	void (*bi_stream_fn)(int, servtab_t *);
+	void (*bi_dgram_fn)(int, servtab_t *);
+};
+
 static const struct builtin builtins[] = {
 #if ENABLE_FEATURE_INETD_SUPPORT_BUILTIN_ECHO
 	/* Echo received data */
-	{"echo", SOCK_STREAM, 1, echo_stream,},
-	{"echo", SOCK_DGRAM, 0, echo_dg,},
+	{ "echo", 1, echo_stream, echo_dg },
 #endif
 #if ENABLE_FEATURE_INETD_SUPPORT_BUILTIN_DISCARD
 	/* Internet /dev/null */
-	{"discard", SOCK_STREAM, 1, discard_stream,},
-	{"discard", SOCK_DGRAM, 0, discard_dg,},
-#endif
-#if ENABLE_FEATURE_INETD_SUPPORT_BUILTIN_TIME
-	/* Return 32 bit time since 1900 */
-	{"time", SOCK_STREAM, 0, machtime_stream,},
-	{"time", SOCK_DGRAM, 0, machtime_dg,},
-#endif
-#if ENABLE_FEATURE_INETD_SUPPORT_BUILTIN_DAYTIME
-	/* Return human-readable time */
-	{"daytime", SOCK_STREAM, 0, daytime_stream,},
-	{"daytime", SOCK_DGRAM, 0, daytime_dg,},
+	{ "discard", 1, discard_stream, discard_dg },
 #endif
 #if ENABLE_FEATURE_INETD_SUPPORT_BUILTIN_CHARGEN
 	/* Familiar character generator */
-	{"chargen", SOCK_STREAM, 1, chargen_stream,},
-	{"chargen", SOCK_DGRAM, 0, chargen_dg,},
+	{ "chargen", 1, chargen_stream, chargen_dg },
 #endif
-	{ /* zero filled */ }
+#if ENABLE_FEATURE_INETD_SUPPORT_BUILTIN_TIME
+	/* Return 32 bit time since 1900 */
+	{ "time", 0, machtime_stream, machtime_dg },
+#endif
+#if ENABLE_FEATURE_INETD_SUPPORT_BUILTIN_DAYTIME
+	/* Return human-readable time */
+	{ "daytime", 0, daytime_stream, daytime_dg },
+#endif
 };
-#endif /* INETD_FEATURE_ENABLED */
+#endif /* INETD_BUILTINS_ENABLED */
 
 struct globals {
 	rlim_t rlim_ofile_cur;
 	struct rlimit rlim_ofile;
-	servtab_t *servtab;
+	servtab_t *serv_list;
 	int global_queuelen;
-	int nsock;
+	int prev_maxsock;
 	int maxsock;
-	int toomany;
-	int timingout;
-	struct servent *sp;
-	uid_t uid;
+	unsigned max_concurrency;
+	smallint alarm_armed;
+	uid_t real_uid; /* user ID who ran us */
+	unsigned config_lineno;
 	const char *config_filename;
 	FILE *fconfig;
-	char *defhost;
-#ifdef INETD_SETPROCTITLE
-	char **Argv;
-	char *LastArg;
-#endif
+	char *default_local_hostname;
 #if ENABLE_FEATURE_INETD_SUPPORT_BUILTIN_CHARGEN
 	char *endring;
 	char *ringpos;
 	char ring[128];
 #endif
 	fd_set allsock;
-	/* Used only in nextline() */
-	char line[80];          /* at least 80, see LINE_SIZE */
+	/* Used in next_line(), and as scratch read buffer */
+	char line[256];          /* _at least_ 256, see LINE_SIZE */
 };
 #define G (*(struct globals*)&bb_common_bufsiz1)
 enum { LINE_SIZE = COMMON_BUFSIZE - offsetof(struct globals, line) };
@@ -349,19 +320,19 @@ struct BUG_G_too_big {
 };
 #define rlim_ofile_cur  (G.rlim_ofile_cur )
 #define rlim_ofile      (G.rlim_ofile     )
-#define servtab         (G.servtab        )
+#define serv_list       (G.serv_list      )
 #define global_queuelen (G.global_queuelen)
-#define nsock           (G.nsock          )
+#define prev_maxsock    (G.prev_maxsock   )
 #define maxsock         (G.maxsock        )
-#define toomany         (G.toomany        )
-#define timingout       (G.timingout      )
-#define sp              (G.sp             )
-#define uid             (G.uid            )
+#define max_concurrency (G.max_concurrency)
+#define alarm_armed     (G.alarm_armed    )
+#define real_uid        (G.real_uid       )
+#define config_lineno   (G.config_lineno  )
 #define config_filename (G.config_filename)
 #define fconfig         (G.fconfig        )
-#define defhost         (G.defhost        )
-#define Argv            (G.Argv           )
-#define LastArg         (G.LastArg        )
+#define default_local_hostname (G.default_local_hostname)
+#define first_ps_byte   (G.first_ps_byte  )
+#define last_ps_byte    (G.last_ps_byte   )
 #define endring         (G.endring        )
 #define ringpos         (G.ringpos        )
 #define ring            (G.ring           )
@@ -373,35 +344,50 @@ struct BUG_G_too_big {
 	config_filename = "/etc/inetd.conf"; \
 } while (0)
 
-/* xstrdup(NULL) returns NULL, but this one
- * will return newly-allocated "" if called with NULL arg
- * TODO: audit whether this makes any real difference
- */
-static char *xxstrdup(char *cp)
+static void maybe_close(int fd)
 {
-	return xstrdup(cp ? cp : "");
+	if (fd >= 0)
+		close(fd);
 }
 
-static int setconfig(void)
+// TODO: move to libbb?
+static len_and_sockaddr *xzalloc_lsa(int family)
 {
-	free(defhost);
-	defhost = xstrdup("*");
-	if (fconfig != NULL) {
-		fseek(fconfig, 0L, SEEK_SET);
-		return 1;
-	}
-	fconfig = fopen(config_filename, "r");
-	return (fconfig != NULL);
+	len_and_sockaddr *lsa;
+	int sz;
+
+	sz = sizeof(struct sockaddr_in);
+#if ENABLE_FEATURE_IPV6
+	if (family == AF_INET6)
+		sz = sizeof(struct sockaddr_in6);
+#endif
+	lsa = xzalloc(LSA_LEN_SIZE + sz);
+	lsa->len = sz;
+	lsa->u.sa.sa_family = family;
+	return lsa;	
 }
 
-static void endconfig(void)
+
+static void rearm_alarm(void)
 {
-	if (fconfig) {
-		(void) fclose(fconfig);
-		fconfig = NULL;
+	if (!alarm_armed) {
+		alarm_armed = 1;
+		alarm(RETRYTIME);
 	}
-	free(defhost);
-	defhost = 0;
+}
+
+static void block_CHLD_HUP_ALRM(sigset_t *m)
+{
+	sigemptyset(m);
+	sigaddset(m, SIGCHLD);
+	sigaddset(m, SIGHUP);
+	sigaddset(m, SIGALRM);
+	sigprocmask(SIG_BLOCK, m, NULL);
+}
+
+static void unblock_sigs(sigset_t *m)
+{
+	sigprocmask(SIG_UNBLOCK, m, NULL);
 }
 
 #if ENABLE_FEATURE_INETD_RPC
@@ -409,27 +395,20 @@ static void register_rpc(servtab_t *sep)
 {
 	int n;
 	struct sockaddr_in ir_sin;
-	struct protoent *pp;
 	socklen_t size;
 
-	pp = getprotobyname(sep->se_proto + 4);
-	if (pp == NULL) {
-		bb_perror_msg("%s: getproto", sep->se_proto);
-		return;
-	}
-	size = sizeof ir_sin;
+	size = sizeof(ir_sin);
 	if (getsockname(sep->se_fd, (struct sockaddr *) &ir_sin, &size) < 0) {
-		bb_perror_msg("%s/%s: getsockname",
-				sep->se_service, sep->se_proto);
+		bb_perror_msg("getsockname");
 		return;
 	}
 
-	for (n = sep->se_rpcversl; n <= sep->se_rpcversh; n++) {
-		(void) pmap_unset(sep->se_rpcprog, n);
-		if (!pmap_set(sep->se_rpcprog, n, pp->p_proto, ntohs(ir_sin.sin_port)))
-			bb_perror_msg("%s %s: pmap_set: %u %u %u %u",
-					sep->se_service, sep->se_proto,
-					sep->se_rpcprog, n, pp->p_proto, ntohs(ir_sin.sin_port));
+	for (n = sep->se_rpcver_lo; n <= sep->se_rpcver_hi; n++) {
+		pmap_unset(sep->se_rpcprog, n);
+		if (!pmap_set(sep->se_rpcprog, n, sep->se_proto_no, ntohs(ir_sin.sin_port)))
+			bb_perror_msg("%s %s: pmap_set(%u,%u,%u,%u)",
+				sep->se_service, sep->se_proto,
+				sep->se_rpcprog, n, sep->se_proto_no, ntohs(ir_sin.sin_port));
 	}
 }
 
@@ -437,138 +416,163 @@ static void unregister_rpc(servtab_t *sep)
 {
 	int n;
 
-	for (n = sep->se_rpcversl; n <= sep->se_rpcversh; n++) {
+	for (n = sep->se_rpcver_lo; n <= sep->se_rpcver_hi; n++) {
 		if (!pmap_unset(sep->se_rpcprog, n))
-			bb_error_msg("pmap_unset(%u, %u)", sep->se_rpcprog, n);
+			bb_perror_msg("pmap_unset(%u,%u)", sep->se_rpcprog, n);
 	}
 }
 #endif /* FEATURE_INETD_RPC */
 
-static void freeconfig(servtab_t *cp)
+static void bump_nofile(void)
 {
-	int i;
-
-	free(cp->se_hostaddr);
-	free(cp->se_service);
-	free(cp->se_proto);
-	free(cp->se_user);
-	free(cp->se_group);
-	free(cp->se_server);
-	for (i = 0; i < MAXARGV; i++)
-		free(cp->se_argv[i]);
-}
-
-static int bump_nofile(void)
-{
-#define FD_CHUNK        32
-
+	enum { FD_CHUNK = 32 };
 	struct rlimit rl;
 
-	if (getrlimit(RLIMIT_NOFILE, &rl) < 0) {
-		bb_perror_msg("getrlimit");
-		return -1;
-	}
+	/* Never fails under Linux (except if you pass it bad arguments) */
+	getrlimit(RLIMIT_NOFILE, &rl);
 	rl.rlim_cur = MIN(rl.rlim_max, rl.rlim_cur + FD_CHUNK);
 	rl.rlim_cur = MIN(FD_SETSIZE, rl.rlim_cur + FD_CHUNK);
 	if (rl.rlim_cur <= rlim_ofile_cur) {
-		bb_error_msg("bump_nofile: cannot extend file limit, max = %d",
+		bb_error_msg("can't extend file limit, max = %d",
 						(int) rl.rlim_cur);
-		return -1;
+		return;
 	}
 
 	if (setrlimit(RLIMIT_NOFILE, &rl) < 0) {
 		bb_perror_msg("setrlimit");
-		return -1;
+		return;
 	}
 
 	rlim_ofile_cur = rl.rlim_cur;
-	return 0;
 }
 
-static void setup(servtab_t *sep)
+static void remove_fd_from_set(int fd)
 {
-	int r;
+	if (fd >= 0) {
+		FD_CLR(fd, &allsock);
+		maxsock = -1;
+	}
+}
 
-	sep->se_fd = socket(sep->se_family, sep->se_socktype, 0);
-	if (sep->se_fd < 0) {
-		bb_perror_msg("%s/%s: socket", sep->se_service, sep->se_proto);
+static void add_fd_to_set(int fd)
+{
+	if (fd >= 0) {
+		FD_SET(fd, &allsock);
+		if (maxsock >= 0 && fd > maxsock) {
+			prev_maxsock = maxsock = fd;
+			if ((rlim_t)maxsock > rlim_ofile_cur - FD_MARGIN)
+				bump_nofile();
+		}
+	}
+}
+
+static void recalculate_maxsock(void)
+{
+	int fd = 0;
+	while (fd <= prev_maxsock) {
+		if (FD_ISSET(fd, &allsock))
+			maxsock = fd;
+		fd++;
+	}
+	prev_maxsock = maxsock;
+	if ((rlim_t)maxsock > rlim_ofile_cur - FD_MARGIN)
+		bump_nofile();
+}
+
+static void prepare_socket_fd(servtab_t *sep)
+{
+	int r, fd;
+
+	fd = socket(sep->se_family, sep->se_socktype, 0);
+	if (fd < 0) {
+		bb_perror_msg("socket");
 		return;
 	}
-	setsockopt_reuseaddr(sep->se_fd);
+	setsockopt_reuseaddr(fd);
 
 #if ENABLE_FEATURE_INETD_RPC
-	if (isrpcservice(sep)) {
+	if (is_rpc_service(sep)) {
 		struct passwd *pwd;
 
-		/*
-		 * for RPC services, attempt to use a reserved port
-		 * if they are going to be running as root.
-		 *
-		 * Also, zero out the port for all RPC services; let bind()
-		 * find one.
-		 */
-		sep->se_ctrladdr_in.sin_port = 0;
-		if (sep->se_user && (pwd = getpwnam(sep->se_user)) &&
-				pwd->pw_uid == 0 && uid == 0)
-			r = bindresvport(sep->se_fd, &sep->se_ctrladdr_in);
-		else {
-			r = bind(sep->se_fd, &sep->se_ctrladdr, sep->se_ctrladdr_size);
-			if (r == 0) {
-				socklen_t len = sep->se_ctrladdr_size;
-				int saveerrno = errno;
+		/* zero out the port for all RPC services; let bind()
+		 * find one. */
+		set_nport(sep->se_lsa, 0);
 
-				/* update se_ctrladdr_in.sin_port */
-				r = getsockname(sep->se_fd, &sep->se_ctrladdr, &len);
-				if (r <= 0)
-					errno = saveerrno;
-			}
+		/* for RPC services, attempt to use a reserved port
+		 * if they are going to be running as root. */
+		if (real_uid == 0 && sep->se_family == AF_INET
+		 && (pwd = getpwnam(sep->se_user)) != NULL
+		 && pwd->pw_uid == 0
+		) {
+			r = bindresvport(fd, &sep->se_lsa->u.sin);
+		} else {
+			r = bind(fd, &sep->se_lsa->u.sa, sep->se_lsa->len);
+		}
+		if (r == 0) {
+			int saveerrno = errno;
+			/* update lsa with port# */
+			getsockname(fd, &sep->se_lsa->u.sa, &sep->se_lsa->len);
+			errno = saveerrno;
 		}
 	} else
 #endif
-		r = bind(sep->se_fd, &sep->se_ctrladdr, sep->se_ctrladdr_size);
-	if (r < 0) {
-		bb_perror_msg("%s/%s (%d): bind",
-				sep->se_service, sep->se_proto, sep->se_ctrladdr.sa_family);
-		close(sep->se_fd);
-		sep->se_fd = -1;
-		if (!timingout) {
-			timingout = 1;
-			alarm(RETRYTIME);
+	{
+		if (sep->se_family == AF_UNIX) {
+			struct sockaddr_un *sun;
+			sun = (struct sockaddr_un*)&(sep->se_lsa->u.sa);
+			unlink(sun->sun_path);
 		}
+		r = bind(fd, &sep->se_lsa->u.sa, sep->se_lsa->len);
+	}
+	if (r < 0) {
+		bb_perror_msg("%s/%s: bind",
+				sep->se_service, sep->se_proto);
+		close(fd);
+		rearm_alarm();
 		return;
 	}
 	if (sep->se_socktype == SOCK_STREAM)
-		listen(sep->se_fd, global_queuelen);
+		listen(fd, global_queuelen);
 
-	FD_SET(sep->se_fd, &allsock);
-	nsock++;
-	if (sep->se_fd > maxsock) {
-		maxsock = sep->se_fd;
-		if ((rlim_t)maxsock > rlim_ofile_cur - FD_MARGIN)
-			bump_nofile();
+	add_fd_to_set(fd);
+	sep->se_fd = fd;
+}
+
+static int reopen_config_file(void)
+{
+	free(default_local_hostname);
+	default_local_hostname = xstrdup("*");
+	if (fconfig != NULL)
+		fclose(fconfig);
+	config_lineno = 0;
+	fconfig = fopen_or_warn(config_filename, "r");
+	return (fconfig != NULL);
+}
+
+static void close_config_file(void)
+{
+	if (fconfig) {
+		fclose(fconfig);
+		fconfig = NULL;
 	}
 }
 
-static char *nextline(void)
+static char *next_line(void)
 {
 	if (fgets(line, LINE_SIZE, fconfig) == NULL)
 		return NULL;
+	config_lineno++;
 	*strchrnul(line, '\n') = '\0';
 	return line;
 }
 
-static char *skip(char **cpp) /* int report; */
+static char *next_word(char **cpp)
 {
-	char *cp = *cpp;
 	char *start;
+	char *cp = *cpp;
 
-/* erp: */
-	if (cp == NULL) {
-		/* if (report) */
-		/* bb_error_msg("syntax error in inetd config file"); */
+	if (cp == NULL)
 		return NULL;
-	}
-
  again:
 	while (*cp == ' ' || *cp == '\t')
 		cp++;
@@ -576,7 +580,7 @@ static char *skip(char **cpp) /* int report; */
 		int c = getc(fconfig);
 		ungetc(c, fconfig);
 		if (c == ' ' || c == '\t') {
-			cp = nextline();
+			cp = next_line();
 			if (cp)
 				goto again;
 		}
@@ -593,90 +597,109 @@ static char *skip(char **cpp) /* int report; */
 	return start;
 }
 
-static servtab_t *new_servtab(void)
+static void free_servtab_strings(servtab_t *cp)
 {
-	return xzalloc(sizeof(servtab_t));
+	int i;
+
+	free(cp->se_local_hostname);
+	free(cp->se_service);
+	free(cp->se_proto);
+	free(cp->se_user);
+	free(cp->se_group);
+	free(cp->se_lsa); /* not a string in fact */
+	free(cp->se_program);
+	for (i = 0; i < MAXARGV; i++)
+		free(cp->se_argv[i]);
 }
 
-static servtab_t *dupconfig(servtab_t *sep)
+static servtab_t *new_servtab(void)
+{
+	servtab_t *newtab = xzalloc(sizeof(servtab_t));
+	newtab->se_fd = -1; /* paranoia */
+	return newtab;
+}
+
+static servtab_t *dup_servtab(servtab_t *sep)
 {
 	servtab_t *newtab;
 	int argc;
 
 	newtab = new_servtab();
-	newtab->se_service = xstrdup(sep->se_service);
-	newtab->se_socktype = sep->se_socktype;
-	newtab->se_family = sep->se_family;
-	newtab->se_proto = xstrdup(sep->se_proto);
-#if ENABLE_FEATURE_INETD_RPC
-	newtab->se_rpcprog = sep->se_rpcprog;
-	newtab->se_rpcversl = sep->se_rpcversl;
-	newtab->se_rpcversh = sep->se_rpcversh;
-#endif
-	newtab->se_wait = sep->se_wait;
-	newtab->se_user = xstrdup(sep->se_user);
-	newtab->se_group = xstrdup(sep->se_group);
-#ifdef INETD_FEATURE_ENABLED
-	newtab->se_bi = sep->se_bi;
-#endif
-	newtab->se_server = xstrdup(sep->se_server);
-
+	*newtab = *sep; /* struct copy */
+	/* deep-copying strings */
+	newtab->se_service = xstrdup(newtab->se_service);
+	newtab->se_proto = xstrdup(newtab->se_proto);
+	newtab->se_user = xstrdup(newtab->se_user);
+	newtab->se_group = xstrdup(newtab->se_group);
+	newtab->se_program = xstrdup(newtab->se_program);
 	for (argc = 0; argc <= MAXARGV; argc++)
-		newtab->se_argv[argc] = xstrdup(sep->se_argv[argc]);
-	newtab->se_max = sep->se_max;
+		newtab->se_argv[argc] = xstrdup(newtab->se_argv[argc]);
+	/* NB: se_fd, se_hostaddr and se_next are always
+	 * overwrittend by callers, so we don't bother resetting them
+	 * to NULL/0/-1 etc */
 
 	return newtab;
 }
 
-static servtab_t *getconfigent(void)
+/* gcc generates much more code if this is inlined */
+static NOINLINE servtab_t *parse_one_line(void)
 {
-	servtab_t *sep;
 	int argc;
-	char *cp, *arg;
+	char *p, *cp, *arg;
 	char *hostdelim;
+	servtab_t *sep;
 	servtab_t *nsep;
-	servtab_t *psep;
-
+ new:
 	sep = new_servtab();
-
  more:
-	while ((cp = nextline()) && *cp == '#')
+	while ((cp = next_line()) && *cp == '#')
 		continue; /* skip comment lines */
 	if (cp == NULL) {
 		free(sep);
 		return NULL;
 	}
 
-	arg = skip(&cp);
+	arg = next_word(&cp);
 	if (arg == NULL) {
 		/* A blank line. */
 		goto more;
 	}
 
-	/* Check for a host name. */
+	/* [host:]service socktype proto wait user[:group] prog [args] */
+	/* Check for "host:...." line */
 	hostdelim = strrchr(arg, ':');
 	if (hostdelim) {
 		*hostdelim = '\0';
-		sep->se_hostaddr = xstrdup(arg);
+		sep->se_local_hostname = xstrdup(arg);
 		arg = hostdelim + 1;
-		/*
-		 * If the line is of the form `host:', then just change the
-		 * default host for the following lines.
-		 */
 		if (*arg == '\0') {
-			arg = skip(&cp);
-			if (cp == NULL) {
-				free(defhost);
-				defhost = sep->se_hostaddr;
+			arg = next_word(&cp);
+			if (arg == NULL) {
+				/* Line has just "host:", change the
+				 * default host for the following lines. */
+				free(default_local_hostname);
+				default_local_hostname = sep->se_local_hostname;
 				goto more;
 			}
 		}
 	} else
-		sep->se_hostaddr = xxstrdup(defhost);
+		sep->se_local_hostname = xstrdup(default_local_hostname);
 
-	sep->se_service = xxstrdup(arg);
-	arg = skip(&cp);
-
+	/* service socktype proto wait user[:group] prog [args] */
+	sep->se_service = xstrdup(arg);
+	/* socktype proto wait user[:group] prog [args] */
+	arg = next_word(&cp);
+	if (arg == NULL) {
+ parse_err:
+		bb_error_msg("parse error on line %u, line is ignored",
+				config_lineno);
+		free_servtab_strings(sep);
+		/* Just "goto more" can make sep to carry over e.g.
+		 * "rpc"-ness (by having se_rpcver_lo != 0).
+		 * We will be more paranoid: */
+		free(sep);
+		goto new;
+	}
 	{
 		static int8_t SOCK_xxx[] ALIGN1 = {
 			-1,
@@ -689,63 +712,85 @@ static servtab_t *getconfigent(void)
 			, arg)];
 	}
 
-	sep->se_proto = xxstrdup(skip(&cp));
-
-	if (strcmp(sep->se_proto, "unix") == 0) {
+	/* {unix,[rpc/]{tcp,udp}[6]} wait user[:group] prog [args] */
+	sep->se_proto = arg = xstrdup(next_word(&cp));
+	if (arg == NULL)
+		goto parse_err;
+	if (strcmp(arg, "unix") == 0) {
 		sep->se_family = AF_UNIX;
 	} else {
+		char *six;
 		sep->se_family = AF_INET;
-		if (sep->se_proto[strlen(sep->se_proto) - 1] == '6')
+		six = last_char_is(arg, '6');
+		if (six) {
 #if ENABLE_FEATURE_IPV6
+			*six = '\0';
 			sep->se_family = AF_INET6;
 #else
-			bb_error_msg("%s: IPV6 not supported", sep->se_proto);
-#endif
-		if (strncmp(sep->se_proto, "rpc/", 4) == 0) {
-#if ENABLE_FEATURE_INETD_RPC
-			char *p, *ccp;
-			long l;
-
-			p = strchr(sep->se_service, '/');
-			if (p == 0) {
-				bb_error_msg("%s: no rpc version", sep->se_service);
-				goto more;
-			}
-			*p++ = '\0';
-			l = strtol(p, &ccp, 0);
-			if (ccp == p || l < 0 || l > INT_MAX) {
- badafterall:
-				bb_error_msg("%s/%s: bad rpc version", sep->se_service, p);
-				goto more;
-			}
-			sep->se_rpcversl = sep->se_rpcversh = l;
-			if (*ccp == '-') {
-				p = ccp + 1;
-				l = strtol(p, &ccp, 0);
-				if (ccp == p || l < 0 || l > INT_MAX || l < sep->se_rpcversl || *ccp)
-					goto badafterall;
-				sep->se_rpcversh = l;
-			} else if (*ccp != '\0')
-				goto badafterall;
-#else
-			bb_error_msg("%s: rpc services not supported", sep->se_service);
+			bb_error_msg("%s: no support for IPv6", sep->se_proto);
+			goto parse_err;
 #endif
 		}
+		if (strncmp(arg, "rpc/", 4) == 0) {
+#if ENABLE_FEATURE_INETD_RPC
+			unsigned n;
+			arg += 4;
+			p = strchr(sep->se_service, '/');
+			if (p == NULL) {
+				bb_error_msg("no rpc version: '%s'", sep->se_service);
+				goto parse_err;
+			}
+			*p++ = '\0';
+			n = bb_strtou(p, &p, 10);
+			if (n > INT_MAX) {
+ bad_ver_spec:
+				bb_error_msg("bad rpc version");
+				goto parse_err;
+			}
+			sep->se_rpcver_lo = sep->se_rpcver_hi = n;
+			if (*p == '-') {
+				p++;
+				n = bb_strtou(p, &p, 10);
+				if (n > INT_MAX || n < sep->se_rpcver_lo)
+					goto bad_ver_spec;
+				sep->se_rpcver_hi = n;
+			}
+			if (*p != '\0')
+				goto bad_ver_spec;
+#else
+			bb_error_msg("no support for rpc services");
+			goto parse_err;
+#endif
+		}
+		/* we don't really need getprotobyname()! */
+		if (strcmp(arg, "tcp") == 0)
+			sep->se_proto_no = 6;
+		if (strcmp(arg, "udp") == 0)
+			sep->se_proto_no = 17;
+		if (six)
+			*six = '6';
+		if (!sep->se_proto_no) /* not tcp/udp?? */
+			goto parse_err;
 	}
-	arg = skip(&cp);
-	if (arg == NULL)
-		goto more;
 
-	{
-		char *s = strchr(arg, '.');
-		if (s) {
-			*s++ = '\0';
-			sep->se_max = xatoi(s);
-		} else
-			sep->se_max = toomany;
+	/* [no]wait[.max] user[:group] prog [args] */
+	arg = next_word(&cp);
+	if (arg == NULL)
+		goto parse_err;
+	sep->se_max = max_concurrency;
+	p = strchr(arg, '.');
+	if (p) {
+		*p++ = '\0';
+		sep->se_max = bb_strtou(p, NULL, 10);
+		if (errno)
+			goto parse_err;
 	}
 	sep->se_wait = (strcmp(arg, "wait") == 0);
-	sep->se_user = xxstrdup(skip(&cp));
+
+	/* user[:group] prog [args] */
+	sep->se_user = xstrdup(next_word(&cp));
+	if (sep->se_user == NULL)
+		goto parse_err;
 	arg = strchr(sep->se_user, '.');
 	if (arg == NULL)
 		arg = strchr(sep->se_user, ':');
@@ -754,27 +799,30 @@ static servtab_t *getconfigent(void)
 		sep->se_group = xstrdup(arg);
 	}
 
-	sep->se_server = xxstrdup(skip(&cp));
-#ifdef INETD_FEATURE_ENABLED
-	/* sep->se_bi = NULL; - done by new_servtab() */
-	if (strcmp(sep->se_server, "internal") == 0) {
-		const struct builtin *bi;
-
-		for (bi = builtins; bi->bi_service; bi++)
-			if (bi->bi_socktype == sep->se_socktype
-			 && strcmp(bi->bi_service, sep->se_service) == 0)
-				break;
-		if (bi->bi_service == 0) {
-			bb_error_msg("internal service %s unknown", sep->se_service);
-			goto more;
-		}
-		sep->se_bi = bi;
-		sep->se_wait = 0; /* = bi->bi_wait; - always 0 */
+	/* prog [args] */
+	sep->se_program = xstrdup(next_word(&cp));
+	if (sep->se_program == NULL)
+		goto parse_err;
+#ifdef INETD_BUILTINS_ENABLED
+	/* sep->se_builtin = NULL; - done by new_servtab() */
+	if (strcmp(sep->se_program, "internal") == 0
+	 && (sep->se_socktype == SOCK_STREAM
+	     || sep->se_socktype == SOCK_DGRAM)
+	) {
+		int i;
+		for (i = 0; i < ARRAY_SIZE(builtins); i++)
+			if (strcmp(builtins[i].bi_service, sep->se_service) == 0)
+				goto found_bi;
+		bb_error_msg("unknown internal service %s", sep->se_service);
+		goto parse_err;
+ found_bi:
+		sep->se_builtin = &builtins[i];
+		sep->se_wait = 0; /* = builtins[i].bi_wait; - always 0 */
 	}
 #endif
 	argc = 0;
-	while ((arg = skip(&cp)) != NULL && argc < MAXARGV) {
-		sep->se_argv[argc++] = xxstrdup(arg);
+	while ((arg = next_word(&cp)) != NULL && argc < MAXARGV) {
+		sep->se_argv[argc++] = xstrdup(arg);
 	}
 	/* while (argc <= MAXARGV) */
 	/*	sep->se_argv[argc++] = NULL; - done by new_servtab() */
@@ -784,744 +832,531 @@ static servtab_t *getconfigent(void)
 	 * specifier was a comma separated list of hostnames. If so
 	 * we'll make new entries for each address.
 	 */
-	while ((hostdelim = strrchr(sep->se_hostaddr, ',')) != NULL) {
-		nsep = dupconfig(sep);
-
+	while ((hostdelim = strrchr(sep->se_local_hostname, ',')) != NULL) {
+		nsep = dup_servtab(sep);
 		/*
-		 * NULL terminate the hostname field of the existing entry,
+		 * NUL terminate the hostname field of the existing entry,
 		 * and make a dup for the new entry.
 		 */
 		*hostdelim++ = '\0';
-		nsep->se_hostaddr = xstrdup(hostdelim);
-
+		nsep->se_local_hostname = xstrdup(hostdelim);
 		nsep->se_next = sep->se_next;
 		sep->se_next = nsep;
 	}
 
-	nsep = sep;
-	while (nsep != NULL) {
-		nsep->se_checked = 1;
-		if (nsep->se_family == AF_INET) {
-			if (LONE_CHAR(nsep->se_hostaddr, '*'))
-				nsep->se_ctrladdr_in.sin_addr.s_addr = INADDR_ANY;
-			else if (!inet_aton(nsep->se_hostaddr, &nsep->se_ctrladdr_in.sin_addr)) {
-				int i;
-				struct hostent *hp;
-
-				hp = gethostbyname(nsep->se_hostaddr);
-				if (hp == NULL) {
-					bb_error_msg("%s: unknown host", nsep->se_hostaddr);
-					nsep->se_checked = 0;
-					goto skip;
-				}
-				if (hp->h_addrtype != AF_INET) {
-					bb_error_msg("%s: address isn't an Internet "
-								  "address", nsep->se_hostaddr);
-					nsep->se_checked = 0;
-					goto skip;
-				}
-				i = 1;
-				memmove(&nsep->se_ctrladdr_in.sin_addr,
-							   hp->h_addr_list[0], sizeof(struct in_addr));
-				while (hp->h_addr_list[i] != NULL) {
-					psep = dupconfig(nsep);
-					psep->se_hostaddr = xxstrdup(nsep->se_hostaddr);
-					psep->se_checked = 1;
-					memmove(&psep->se_ctrladdr_in.sin_addr,
-							     hp->h_addr_list[i], sizeof(struct in_addr));
-					psep->se_ctrladdr_size = sizeof(psep->se_ctrladdr_in);
-					i++;
-					/* Prepend to list, don't want to look up */
-					/* its hostname again. */
-					psep->se_next = sep;
-					sep = psep;
-				}
-			}
-		}
-/* XXX BUG?: is this skip: label supposed to remain? */
- skip:
-		nsep = nsep->se_next;
-	}
-
-	/*
-	 * Finally, free any entries which failed the gethostbyname
-	 * check.
-	 */
-	psep = NULL;
-	nsep = sep;
-	while (nsep != NULL) {
-		servtab_t *tsep;
-
-		if (nsep->se_checked == 0) {
-			tsep = nsep;
-			if (psep == NULL) {
-				sep = nsep->se_next;
-				nsep = sep;
-			} else {
-				nsep = nsep->se_next;
-				psep->se_next = nsep;
-			}
-			freeconfig(tsep);
-		} else {
-			nsep->se_checked = 0;
-			psep = nsep;
-			nsep = nsep->se_next;
-		}
-	}
+	/* Was doing it here: */
+	/* DNS resolution, create copies for each IP address */
 
 	return sep;
 }
 
-#define Block_Using_Signals(m) do { \
-	sigemptyset(&m); \
-	sigaddset(&m, SIGCHLD); \
-	sigaddset(&m, SIGHUP); \
-	sigaddset(&m, SIGALRM); \
-	sigprocmask(SIG_BLOCK, &m, NULL); \
-} while (0)
-
-static servtab_t *enter(servtab_t *cp)
+static servtab_t *insert_in_servlist(servtab_t *cp)
 {
 	servtab_t *sep;
 	sigset_t omask;
 
 	sep = new_servtab();
-	*sep = *cp;
+	*sep = *cp; /* struct copy */
 	sep->se_fd = -1;
 #if ENABLE_FEATURE_INETD_RPC
 	sep->se_rpcprog = -1;
 #endif
-	Block_Using_Signals(omask);
-	sep->se_next = servtab;
-	servtab = sep;
-	sigprocmask(SIG_UNBLOCK, &omask, NULL);
+	block_CHLD_HUP_ALRM(&omask);
+	sep->se_next = serv_list;
+	serv_list = sep;
+	unblock_sigs(&omask);
 	return sep;
 }
 
-static int matchconf(servtab_t *old, servtab_t *new)
+static int same_serv_addr_proto(servtab_t *old, servtab_t *new)
 {
+	if (strcmp(old->se_local_hostname, new->se_local_hostname) != 0)
+		return 0;
 	if (strcmp(old->se_service, new->se_service) != 0)
 		return 0;
-
-	if (strcmp(old->se_hostaddr, new->se_hostaddr) != 0)
-		return 0;
-
 	if (strcmp(old->se_proto, new->se_proto) != 0)
 		return 0;
-
-	/*
-	 * If the new servtab is bound to a specific address, check that the
-	 * old servtab is bound to the same entry. If the new service is not
-	 * bound to a specific address then the check of se_hostaddr above
-	 * is sufficient.
-	 */
-
-	if (old->se_family == AF_INET && new->se_family == AF_INET &&
-			memcmp(&old->se_ctrladdr_in.sin_addr,
-					&new->se_ctrladdr_in.sin_addr,
-					sizeof(new->se_ctrladdr_in.sin_addr)) != 0)
-		return 0;
-
-#if ENABLE_FEATURE_IPV6
-	if (old->se_family == AF_INET6 && new->se_family == AF_INET6 &&
-			memcmp(&old->se_ctrladdr_in6.sin6_addr,
-					&new->se_ctrladdr_in6.sin6_addr,
-					sizeof(new->se_ctrladdr_in6.sin6_addr)) != 0)
-		return 0;
-#endif
 	return 1;
 }
 
-static void config(int sig ATTRIBUTE_UNUSED)
+static void reread_config_file(int sig ATTRIBUTE_UNUSED)
 {
 	servtab_t *sep, *cp, **sepp;
+	len_and_sockaddr *lsa;
 	sigset_t omask;
-	size_t n;
-	char protoname[10];
+	unsigned n;
+	uint16_t port;
 
-	if (!setconfig()) {
-		bb_simple_perror_msg(config_filename);
+	if (!reopen_config_file())
 		return;
-	}
-	for (sep = servtab; sep; sep = sep->se_next)
+	for (sep = serv_list; sep; sep = sep->se_next)
 		sep->se_checked = 0;
-	cp = getconfigent();
-	while (cp != NULL) {
-		for (sep = servtab; sep; sep = sep->se_next)
-			if (matchconf(sep, cp))
-				break;
 
-		if (sep != 0) {
+	goto first_line;
+	while (1) {
+		if (cp == NULL) {
+ first_line:
+			cp = parse_one_line();
+			if (cp == NULL)
+				break;
+		}
+		for (sep = serv_list; sep; sep = sep->se_next)
+			if (same_serv_addr_proto(sep, cp))
+				goto equal_servtab;
+		/* not an "equal" servtab */
+		sep = insert_in_servlist(cp);
+		goto after_check;
+ equal_servtab:
+		{
 			int i;
 
-#define SWAP(type, a, b) do {type c=(type)a; a=(type)b; b=(type)c;} while (0)
-
-			Block_Using_Signals(omask);
-			/*
-			 * sep->se_wait may be holding the pid of a daemon
-			 * that we're waiting for.  If so, don't overwrite
-			 * it unless the config file explicitly says don't
-			 * wait.
-			 */
-			if (
-#ifdef INETD_FEATURE_ENABLED
-				cp->se_bi == 0 &&
-#endif
-				(sep->se_wait == 1 || cp->se_wait == 0))
-				sep->se_wait = cp->se_wait;
-			SWAP(int, cp->se_max, sep->se_max);
-			SWAP(char *, sep->se_user, cp->se_user);
-			SWAP(char *, sep->se_group, cp->se_group);
-			SWAP(char *, sep->se_server, cp->se_server);
-			for (i = 0; i < MAXARGV; i++)
-				SWAP(char *, sep->se_argv[i], cp->se_argv[i]);
-#undef SWAP
-
+			block_CHLD_HUP_ALRM(&omask);
 #if ENABLE_FEATURE_INETD_RPC
-			if (isrpcservice(sep))
+			if (is_rpc_service(sep))
 				unregister_rpc(sep);
-			sep->se_rpcversl = cp->se_rpcversl;
-			sep->se_rpcversh = cp->se_rpcversh;
+			sep->se_rpcver_lo = cp->se_rpcver_lo;
+			sep->se_rpcver_hi = cp->se_rpcver_hi;
 #endif
-			sigprocmask(SIG_UNBLOCK, &omask, NULL);
-			freeconfig(cp);
-		} else {
-			sep = enter(cp);
+			if (cp->se_wait == 0) {
+				/* New config says "nowait". If old one
+				 * was "wait", we currently may be waiting
+				 * for a child (and not accepting connects).
+				 * Stop waiting, start listening again.
+				 * (if it's not true, this op is harmless) */
+				add_fd_to_set(sep->se_fd);
+			}
+			sep->se_wait = cp->se_wait;
+			sep->se_max = cp->se_max;
+			/* string fields need more love - we don't want to leak them */
+#define SWAP(type, a, b) do { type c = (type)a; a = (type)b; b = (type)c; } while (0)
+			SWAP(char*, sep->se_user, cp->se_user);
+			SWAP(char*, sep->se_group, cp->se_group);
+			SWAP(char*, sep->se_program, cp->se_program);
+			for (i = 0; i < MAXARGV; i++)
+				SWAP(char*, sep->se_argv[i], cp->se_argv[i]);
+#undef SWAP
+			unblock_sigs(&omask);
+			free_servtab_strings(cp);
 		}
+ after_check:
+		/* cp->string_fields are consumed by insert_in_servlist()
+		 * or freed at this point, cp itself is not yet freed. */
 		sep->se_checked = 1;
 
+		/* create new len_and_sockaddr */
 		switch (sep->se_family) {
+			struct sockaddr_un *sun;
 		case AF_UNIX:
-			if (sep->se_fd != -1)
-				break;
-			(void) unlink(sep->se_service);
+			/* we have poor infrastructure for AF_UNIX... */
 			n = strlen(sep->se_service);
-			if (n > sizeof sep->se_ctrladdr_un.sun_path - 1)
-				n = sizeof sep->se_ctrladdr_un.sun_path - 1;
-			safe_strncpy(sep->se_ctrladdr_un.sun_path, sep->se_service, n + 1);
-			sep->se_ctrladdr_un.sun_family = AF_UNIX;
-			sep->se_ctrladdr_size = n + sizeof sep->se_ctrladdr_un.sun_family;
-			setup(sep);
+			if (n > sizeof(sun->sun_path) - 1)
+				n = sizeof(sun->sun_path) - 1;
+			lsa = xzalloc(LSA_LEN_SIZE + sizeof(struct sockaddr_un));
+			lsa->len = sizeof(struct sockaddr_un);
+			sun = (struct sockaddr_un*)&lsa->u.sa;
+			sun->sun_family = AF_UNIX;
+			strncpy(sun->sun_path, sep->se_service, n);
 			break;
-		case AF_INET:
-			sep->se_ctrladdr_in.sin_family = AF_INET;
-			/* se_ctrladdr_in was set in getconfigent */
-			sep->se_ctrladdr_size = sizeof sep->se_ctrladdr_in;
 
+		default: /* case AF_INET, case AF_INET6 */
+			n = bb_strtou(sep->se_service, NULL, 10);
 #if ENABLE_FEATURE_INETD_RPC
-			if (isrpcservice(sep)) {
-				struct rpcent *rp;
-				// FIXME: atoi_or_else(str, 0) would be handy here
-				sep->se_rpcprog = atoi(sep->se_service);
-				if (sep->se_rpcprog == 0) {
-					rp = getrpcbyname(sep->se_service);
-					if (rp == 0) {
+			if (is_rpc_service(sep)) {
+				sep->se_rpcprog = n;
+				if (errno) { /* se_service is not numeric */
+					struct rpcent *rp = getrpcbyname(sep->se_service);
+					if (rp == NULL) {
 						bb_error_msg("%s: unknown rpc service", sep->se_service);
-						goto serv_unknown;
+						goto next_cp;
 					}
 					sep->se_rpcprog = rp->r_number;
 				}
 				if (sep->se_fd == -1)
-					setup(sep);
+					prepare_socket_fd(sep);
 				if (sep->se_fd != -1)
 					register_rpc(sep);
-			} else
+				goto next_cp;
+			}
 #endif
-			{
-				uint16_t port = htons(atoi(sep->se_service));
-				// FIXME: atoi_or_else(str, 0) would be handy here
-				if (!port) {
-					 /*XXX*/ strncpy(protoname, sep->se_proto, sizeof(protoname));
-					if (isdigit(protoname[strlen(protoname) - 1]))
-						protoname[strlen(protoname) - 1] = '\0';
-					sp = getservbyname(sep->se_service, protoname);
-					if (sp == 0) {
-						bb_error_msg("%s/%s: unknown service",
-								sep->se_service, sep->se_proto);
-						goto serv_unknown;
-					}
-					port = sp->s_port;
+			/* what port to listen on? */
+			port = htons(n);
+			if (errno || n > 0xffff) { /* se_service is not numeric */
+				char protoname[4];
+				struct servent *sp;
+				/* can result only in "tcp" or "udp": */
+				safe_strncpy(protoname, sep->se_proto, 4);
+				sp = getservbyname(sep->se_service, protoname);
+				if (sp == NULL) {
+					bb_error_msg("%s/%s: unknown service",
+							sep->se_service, sep->se_proto);
+					goto next_cp;
 				}
-				if (port != sep->se_ctrladdr_in.sin_port) {
-					sep->se_ctrladdr_in.sin_port = port;
-					if (sep->se_fd != -1) {
-						FD_CLR(sep->se_fd, &allsock);
-						nsock--;
-						(void) close(sep->se_fd);
-					}
-					sep->se_fd = -1;
+				port = sp->s_port;
+			}
+			if (LONE_CHAR(sep->se_local_hostname, '*')) {
+				lsa = xzalloc_lsa(sep->se_family);
+				set_nport(lsa, port);
+			} else {
+				lsa = host_and_af2sockaddr(sep->se_local_hostname,
+						ntohs(port), sep->se_family);
+				if (!lsa) {
+					bb_error_msg("%s/%s: unknown host '%s'",
+						sep->se_service, sep->se_proto,
+						sep->se_local_hostname);
+					goto next_cp;
 				}
-				if (sep->se_fd == -1)
-					setup(sep);
 			}
 			break;
-#if ENABLE_FEATURE_IPV6
-		case AF_INET6:
-			sep->se_ctrladdr_in6.sin6_family = AF_INET6;
-			/* se_ctrladdr_in was set in getconfigent */
-			sep->se_ctrladdr_size = sizeof sep->se_ctrladdr_in6;
+		} /* end of "switch (sep->se_family)" */
 
-#if ENABLE_FEATURE_INETD_RPC
-			if (isrpcservice(sep)) {
-				struct rpcent *rp;
-
-				sep->se_rpcprog = atoi(sep->se_service);
-				if (sep->se_rpcprog == 0) {
-					rp = getrpcbyname(sep->se_service);
-					if (rp == 0) {
-						bb_error_msg("%s: unknown rpc service", sep->se_service);
-						goto serv_unknown;
-					}
-					sep->se_rpcprog = rp->r_number;
-				}
-				if (sep->se_fd == -1)
-					setup(sep);
-				if (sep->se_fd != -1)
-					register_rpc(sep);
-			} else
-#endif
-			{
-				uint16_t port = htons(atoi(sep->se_service));
-
-				if (!port) {
-					 /*XXX*/ strncpy(protoname, sep->se_proto, sizeof(protoname));
-					if (isdigit(protoname[strlen(protoname) - 1]))
-						protoname[strlen(protoname) - 1] = '\0';
-					sp = getservbyname(sep->se_service, protoname);
-					if (sp == 0) {
-						bb_error_msg("%s/%s: unknown service",
-								sep->se_service, sep->se_proto);
-						goto serv_unknown;
-					}
-					port = sp->s_port;
-				}
-				if (port != sep->se_ctrladdr_in6.sin6_port) {
-					sep->se_ctrladdr_in6.sin6_port = port;
-					if (sep->se_fd != -1) {
-						FD_CLR(sep->se_fd, &allsock);
-						nsock--;
-						(void) close(sep->se_fd);
-					}
-					sep->se_fd = -1;
-				}
-				if (sep->se_fd == -1)
-					setup(sep);
-			}
-			break;
-#endif /* FEATURE_IPV6 */
-		}
- serv_unknown:
-		if (cp->se_next != NULL) {
-			servtab_t *tmp = cp;
-
-			cp = cp->se_next;
-			free(tmp);
+		/* did lsa change? Then close/open */
+		if (sep->se_lsa == NULL
+		 || lsa->len != sep->se_lsa->len
+		 || memcmp(&lsa->u.sa, &sep->se_lsa->u.sa, lsa->len) != 0
+		) {
+			remove_fd_from_set(sep->se_fd);
+			maybe_close(sep->se_fd);
+			free(sep->se_lsa);
+			sep->se_lsa = lsa;
+			sep->se_fd = -1;
 		} else {
-			free(cp);
-			cp = getconfigent();
+			free(lsa);
 		}
-	}
-	endconfig();
-	/*
-	 * Purge anything not looked at above.
-	 */
-	Block_Using_Signals(omask);
-	sepp = &servtab;
+		if (sep->se_fd == -1)
+			prepare_socket_fd(sep);
+ next_cp:
+		sep = cp->se_next;
+		free(cp);
+		cp = sep;
+	} /* end of "while (1) parse lines" */
+	close_config_file();
+
+	/* Purge anything not looked at above - these are stale entries,
+	 * new config file doesnt have them. */
+	block_CHLD_HUP_ALRM(&omask);
+	sepp = &serv_list;
 	while ((sep = *sepp)) {
 		if (sep->se_checked) {
 			sepp = &sep->se_next;
 			continue;
 		}
 		*sepp = sep->se_next;
-		if (sep->se_fd != -1) {
-			FD_CLR(sep->se_fd, &allsock);
-			nsock--;
-			(void) close(sep->se_fd);
-		}
+		remove_fd_from_set(sep->se_fd);
+		maybe_close(sep->se_fd);
 #if ENABLE_FEATURE_INETD_RPC
-		if (isrpcservice(sep))
+		if (is_rpc_service(sep))
 			unregister_rpc(sep);
 #endif
 		if (sep->se_family == AF_UNIX)
-			(void) unlink(sep->se_service);
-		freeconfig(sep);
+			unlink(sep->se_service);
+		free_servtab_strings(sep);
 		free(sep);
 	}
-	sigprocmask(SIG_UNBLOCK, &omask, NULL);
+	unblock_sigs(&omask);
 }
 
-
-static void reapchild(int sig ATTRIBUTE_UNUSED)
+static void reap_child(int sig ATTRIBUTE_UNUSED)
 {
 	pid_t pid;
-	int save_errno = errno, status;
+	int status;
 	servtab_t *sep;
+	int save_errno = errno;
 
 	for (;;) {
 		pid = wait_any_nohang(&status);
 		if (pid <= 0)
 			break;
-		for (sep = servtab; sep; sep = sep->se_next)
+		for (sep = serv_list; sep; sep = sep->se_next)
 			if (sep->se_wait == pid) {
+				/* One of our "wait" services */
 				if (WIFEXITED(status) && WEXITSTATUS(status))
 					bb_error_msg("%s: exit status 0x%x",
-							sep->se_server, WEXITSTATUS(status));
+							sep->se_program, WEXITSTATUS(status));
 				else if (WIFSIGNALED(status))
 					bb_error_msg("%s: exit signal 0x%x",
-							sep->se_server, WTERMSIG(status));
+							sep->se_program, WTERMSIG(status));
 				sep->se_wait = 1;
-				FD_SET(sep->se_fd, &allsock);
-				nsock++;
+				add_fd_to_set(sep->se_fd);
 			}
 	}
 	errno = save_errno;
 }
 
-static void retry(int sig ATTRIBUTE_UNUSED)
+static void retry_network_setup(int sig ATTRIBUTE_UNUSED)
 {
 	servtab_t *sep;
 
-	timingout = 0;
-	for (sep = servtab; sep; sep = sep->se_next) {
+	alarm_armed = 0;
+	for (sep = serv_list; sep; sep = sep->se_next) {
 		if (sep->se_fd == -1) {
-			switch (sep->se_family) {
-			case AF_UNIX:
-			case AF_INET:
-#if ENABLE_FEATURE_IPV6
-			case AF_INET6:
-#endif
-				setup(sep);
+			prepare_socket_fd(sep);
 #if ENABLE_FEATURE_INETD_RPC
-				if (sep->se_fd != -1 && isrpcservice(sep))
-					register_rpc(sep);
+			if (sep->se_fd != -1 && is_rpc_service(sep))
+				register_rpc(sep);
 #endif
-				break;
-			}
 		}
 	}
 }
 
-static void goaway(int sig ATTRIBUTE_UNUSED)
+static void clean_up_and_exit(int sig ATTRIBUTE_UNUSED)
 {
 	servtab_t *sep;
 
 	/* XXX signal race walking sep list */
-	for (sep = servtab; sep; sep = sep->se_next) {
+	for (sep = serv_list; sep; sep = sep->se_next) {
 		if (sep->se_fd == -1)
 			continue;
 
 		switch (sep->se_family) {
 		case AF_UNIX:
-			(void) unlink(sep->se_service);
+			unlink(sep->se_service);
 			break;
-		case AF_INET:
-#if ENABLE_FEATURE_IPV6
-		case AF_INET6:
-#endif
+		default: /* case AF_INET, AF_INET6 */
 #if ENABLE_FEATURE_INETD_RPC
-			if (sep->se_wait == 1 && isrpcservice(sep))
+			if (sep->se_wait == 1 && is_rpc_service(sep))
 				unregister_rpc(sep);   /* XXX signal race */
 #endif
 			break;
 		}
-		(void) close(sep->se_fd);
+		if (ENABLE_FEATURE_CLEAN_UP)
+			close(sep->se_fd);
 	}
 	remove_pidfile(_PATH_INETDPID);
 	exit(0);
 }
 
-
-#ifdef INETD_SETPROCTITLE
-
-static void
-inetd_setproctitle(char *a, int s)
-{
-	socklen_t size;
-	char *cp;
-	struct sockaddr_in prt_sin;
-	char buf[80];
-
-	cp = Argv[0];
-	size = sizeof(prt_sin);
-	(void) snprintf(buf, sizeof buf, "-%s", a);
-	if (getpeername(s, (struct sockaddr *) &prt_sin, &size) == 0) {
-		char *sa = inet_ntoa(prt_sin.sin_addr);
-
-		buf[sizeof(buf) - 1 - strlen(sa) - 3] = '\0';
-		strcat(buf, " [");
-		strcat(buf, sa);
-		strcat(buf, "]");
-	}
-	strncpy(cp, buf, LastArg - cp);
-	cp += strlen(cp);
-	while (cp < LastArg)
-		*cp++ = ' ';
-}
-#endif
-
-
 int inetd_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int inetd_main(int argc, char **argv)
 {
-	servtab_t *sep;
+	struct sigaction sa, saved_pipe_handler;
+	servtab_t *sep, *sep2;
 	struct passwd *pwd;
-	struct group *grp = NULL;
-	int tmpint;
-	struct sigaction sa, sapipe;
+	struct group *grp = grp; /* for compiler */
 	int opt;
 	pid_t pid;
-	char buf[50];
-	char *stoomany;
-	sigset_t omask, wait_mask;
-#ifdef INETD_SETPROCTITLE
-	char **envp;
-#endif
+	sigset_t omask;
 
 	INIT_G();
 
-#ifdef INETD_SETPROCTITLE
-	envp = environ;
-	Argv = argv;
-	if (envp == 0 || *envp == 0)
-		envp = argv;
-	while (*envp)
-		envp++;
-	LastArg = envp[-1] + strlen(envp[-1]);
-#endif
-
-	uid = getuid();
-	if (uid != 0)
+	real_uid = getuid();
+	if (real_uid != 0) /* run by non-root user */
 		config_filename = NULL;
 
-	opt = getopt32(argv, "R:f", &stoomany);
-	if (opt & 1)
-		toomany = xatoi_u(stoomany);
+	opt_complementary = "R+:q+"; /* -q N, -R N */
+	opt = getopt32(argv, "R:feq:", &max_concurrency, &global_queuelen);
 	argv += optind;
-	argc -= optind;
-	if (argc)
+	//argc -= optind;
+	if (argv[0])
 		config_filename = argv[0];
 	if (config_filename == NULL)
-		bb_error_msg_and_die("non-root must specify a config file");
-
+		bb_error_msg_and_die("non-root must specify config file");
 	if (!(opt & 2))
 		bb_daemonize_or_rexec(0, argv - optind);
 	else
 		bb_sanitize_stdio();
-	openlog(applet_name, LOG_PID | LOG_NOWAIT, LOG_DAEMON);
-	logmode = LOGMODE_SYSLOG;
+	if (!(opt & 4)) {
+		openlog(applet_name, LOG_PID | LOG_NOWAIT, LOG_DAEMON);
+		logmode = LOGMODE_SYSLOG;
+	}
 
-	if (uid == 0) {
-		/* If run by hand, ensure groups vector gets trashed */
+	if (real_uid == 0) {
+		/* run by root, ensure groups vector gets trashed */
 		gid_t gid = getgid();
 		setgroups(1, &gid);
 	}
 
 	write_pidfile(_PATH_INETDPID);
 
-	if (getrlimit(RLIMIT_NOFILE, &rlim_ofile) < 0) {
-		bb_perror_msg("getrlimit");
-	} else {
-		rlim_ofile_cur = rlim_ofile.rlim_cur;
-		if (rlim_ofile_cur == RLIM_INFINITY)    /* ! */
-			rlim_ofile_cur = OPEN_MAX;
-	}
+	/* never fails under Linux (except if you pass it bad arguments) */
+	getrlimit(RLIMIT_NOFILE, &rlim_ofile);
+	rlim_ofile_cur = rlim_ofile.rlim_cur;
+	if (rlim_ofile_cur == RLIM_INFINITY)    /* ! */
+		rlim_ofile_cur = OPEN_MAX;
 
-	memset((char *) &sa, 0, sizeof(sa));
+	memset(&sa, 0, sizeof(sa));
 	/*sigemptyset(&sa.sa_mask); - memset did it */
 	sigaddset(&sa.sa_mask, SIGALRM);
 	sigaddset(&sa.sa_mask, SIGCHLD);
 	sigaddset(&sa.sa_mask, SIGHUP);
-	sa.sa_handler = retry;
+	sa.sa_handler = retry_network_setup;
 	sigaction(SIGALRM, &sa, NULL);
-	config(SIGHUP);
-	sa.sa_handler = config;
+	sa.sa_handler = reread_config_file;
 	sigaction(SIGHUP, &sa, NULL);
-	sa.sa_handler = reapchild;
+	sa.sa_handler = reap_child;
 	sigaction(SIGCHLD, &sa, NULL);
-	sa.sa_handler = goaway;
+	sa.sa_handler = clean_up_and_exit;
 	sigaction(SIGTERM, &sa, NULL);
-	sa.sa_handler = goaway;
+	sa.sa_handler = clean_up_and_exit;
 	sigaction(SIGINT, &sa, NULL);
 	sa.sa_handler = SIG_IGN;
-	sigaction(SIGPIPE, &sa, &sapipe);
-	memset(&wait_mask, 0, sizeof(wait_mask));
-	{
-		/* space for daemons to overwrite environment for ps */
-#define DUMMYSIZE       100
-		char dummy[DUMMYSIZE];
+	sigaction(SIGPIPE, &sa, &saved_pipe_handler);
 
-		(void) memset(dummy, 'x', DUMMYSIZE - 1);
-		dummy[DUMMYSIZE - 1] = '\0';
-
-		(void) setenv("inetd_dummy", dummy, 1);
-	}
+	reread_config_file(SIGHUP); /* load config from file */
 
 	for (;;) {
-		int n, ctrl = -1;
+		int ready_fd_cnt;
+		int ctrl, accepted_fd;
 		fd_set readable;
 
-		if (nsock == 0) {
-			Block_Using_Signals(omask);
-			while (nsock == 0)
-				sigsuspend(&wait_mask);
-			sigprocmask(SIG_UNBLOCK, &omask, NULL);
-		}
+		if (maxsock < 0)
+			recalculate_maxsock();
 
-		readable = allsock;
-		n = select(maxsock + 1, &readable, NULL, NULL, NULL);
-		if (n <= 0) {
-			if (n < 0 && errno != EINTR) {
+		readable = allsock; /* struct copy */
+		/* if there are no fds to wait on, we will block
+		 * until signal wakes us up */
+		ready_fd_cnt = select(maxsock + 1, &readable, NULL, NULL, NULL);
+		if (ready_fd_cnt < 0) {
+			if (errno != EINTR) {
 				bb_perror_msg("select");
 				sleep(1);
 			}
 			continue;
 		}
 
-		for (sep = servtab; n && sep; sep = sep->se_next) {
+		for (sep = serv_list; ready_fd_cnt && sep; sep = sep->se_next) {
 			if (sep->se_fd == -1 || !FD_ISSET(sep->se_fd, &readable))
 				continue;
 
-			n--;
+			ready_fd_cnt--;
+			ctrl = sep->se_fd;
+			accepted_fd = -1;
 			if (!sep->se_wait && sep->se_socktype == SOCK_STREAM) {
-				ctrl = accept(sep->se_fd, NULL, NULL);
+				ctrl = accepted_fd = accept(sep->se_fd, NULL, NULL);
 				if (ctrl < 0) {
-					if (errno == EINTR)
-						continue;
-					bb_perror_msg("accept (for %s)", sep->se_service);
+					if (errno != EINTR)
+						bb_perror_msg("accept (for %s)", sep->se_service);
 					continue;
 				}
-				if (sep->se_family == AF_INET && sep->se_socktype == SOCK_STREAM) {
-					struct sockaddr_in peer;
-					socklen_t plen = sizeof(peer);
+			}
 
-					if (getpeername(ctrl, (struct sockaddr *) &peer, &plen) < 0) {
-						bb_error_msg("cannot getpeername");
-						close(ctrl);
-						continue;
-					}
-					if (ntohs(peer.sin_port) == 20) {
-						/* XXX ftp bounce */
-						close(ctrl);
-						continue;
-					}
-				}
-			} else
-				ctrl = sep->se_fd;
-
-			Block_Using_Signals(omask);
+			block_CHLD_HUP_ALRM(&omask);
 			pid = 0;
-#ifdef INETD_FEATURE_ENABLED
-			if (sep->se_bi == 0 || sep->se_bi->bi_fork)
+#ifdef INETD_BUILTINS_ENABLED
+			/* do we need to fork? */
+			if (sep->se_builtin == NULL
+			 || (sep->se_socktype == SOCK_STREAM
+			     && sep->se_builtin->bi_fork))
 #endif
 			{
-				if (sep->se_count++ == 0)
-					(void) gettimeofday(&sep->se_time, NULL);
-				else if (toomany > 0 && sep->se_count >= sep->se_max) {
-					struct timeval now;
-
-					(void) gettimeofday(&now, NULL);
-					if (now.tv_sec - sep->se_time.tv_sec > CNT_INTVL) {
-						sep->se_time = now;
-						sep->se_count = 1;
-					} else {
-						if (!sep->se_wait && sep->se_socktype == SOCK_STREAM)
-							close(ctrl);
-						if (sep->se_family == AF_INET &&
-							  ntohs(sep->se_ctrladdr_in.sin_port) >= IPPORT_RESERVED) {
-							/*
-							 * Cannot close it -- there are
-							 * thieves on the system.
-							 * Simply ignore the connection.
-							 */
-							--sep->se_count;
-							continue;
+				if (sep->se_max != 0) {
+					if (++sep->se_count == 1)
+						sep->se_time = monotonic_sec();
+					else if (sep->se_count >= sep->se_max) {
+						unsigned now = monotonic_sec();
+						/* did we accumulate se_max connects too quickly? */
+						if (now - sep->se_time <= CNT_INTERVAL) {
+							bb_error_msg("%s/%s: too many connections, pausing",
+									sep->se_service, sep->se_proto);
+							remove_fd_from_set(sep->se_fd);
+							close(sep->se_fd);
+							sep->se_fd = -1;
+							sep->se_count = 0;
+							rearm_alarm(); /* will revive it in RETRYTIME sec */
+							unblock_sigs(&omask);
+							maybe_close(accepted_fd);
+							continue; /* -> check next fd in fd set */
 						}
-						bb_error_msg("%s/%s server failing (looping), service terminated",
-							      sep->se_service, sep->se_proto);
-						if (!sep->se_wait && sep->se_socktype == SOCK_STREAM)
-							close(ctrl);
-						FD_CLR(sep->se_fd, &allsock);
-						(void) close(sep->se_fd);
-						sep->se_fd = -1;
 						sep->se_count = 0;
-						nsock--;
-						sigprocmask(SIG_UNBLOCK, &omask, NULL);
-						if (!timingout) {
-							timingout = 1;
-							alarm(RETRYTIME);
-						}
-						continue;
 					}
 				}
-				pid = fork();
-			}
-			if (pid < 0) {
-				bb_perror_msg("fork");
-				if (!sep->se_wait && sep->se_socktype == SOCK_STREAM)
-					close(ctrl);
-				sigprocmask(SIG_UNBLOCK, &omask, NULL);
-				sleep(1);
-				continue;
-			}
-			if (pid && sep->se_wait) {
-				sep->se_wait = pid;
-				FD_CLR(sep->se_fd, &allsock);
-				nsock--;
-			}
-			sigprocmask(SIG_UNBLOCK, &omask, NULL);
-			if (pid == 0) {
-#ifdef INETD_FEATURE_ENABLED
-				if (sep->se_bi) {
-					(*sep->se_bi->bi_fn)(ctrl, sep);
-				} else
+				/* on NOMMU, streamed echo, chargen and discard
+				 * builtins wouldn't work, but they are
+				 * not allowed on NOMMU (ifdefed out) */
+#ifdef INETD_BUILTINS_ENABLED
+				if (BB_MMU && sep->se_builtin)
+					pid = fork();
+				else
 #endif
-				{
-					pwd = getpwnam(sep->se_user);
-					if (pwd == NULL) {
-						bb_error_msg("getpwnam: %s: no such user", sep->se_user);
-						goto do_exit1;
-					}
-					if (setsid() < 0)
-						bb_perror_msg("%s: setsid", sep->se_service);
-					if (sep->se_group && (grp = getgrnam(sep->se_group)) == NULL) {
-						bb_error_msg("getgrnam: %s: no such group", sep->se_group);
-						goto do_exit1;
-					}
-					if (uid != 0) {
-						/* a user running private inetd */
-						if (uid != pwd->pw_uid)
-							_exit(1);
-					} else if (pwd->pw_uid) {
-						if (sep->se_group)
-							pwd->pw_gid = grp->gr_gid;
-						xsetgid((gid_t) pwd->pw_gid);
-						initgroups(pwd->pw_name, pwd->pw_gid);
-						xsetuid((uid_t) pwd->pw_uid);
-					} else if (sep->se_group) {
-						xsetgid(grp->gr_gid);
-						setgroups(1, &grp->gr_gid);
-					}
-					dup2(ctrl, 0);
-					if (ctrl) close(ctrl);
-					dup2(0, 1);
-					dup2(0, 2);
-					if (rlim_ofile.rlim_cur != rlim_ofile_cur)
-						if (setrlimit(RLIMIT_NOFILE, &rlim_ofile) < 0)
-							bb_perror_msg("setrlimit");
-					closelog();
-					for (tmpint = rlim_ofile_cur - 1; --tmpint > 2;)
-						(void) close(tmpint);
-					sigaction(SIGPIPE, &sapipe, NULL);
-					execv(sep->se_server, sep->se_argv);
-					bb_perror_msg("execv %s", sep->se_server);
- do_exit1:
-					if (sep->se_socktype != SOCK_STREAM)
-						recv(0, buf, sizeof(buf), 0);
-					_exit(1);
+					pid = vfork();
+
+				if (pid < 0) { /* fork error */
+					bb_perror_msg("fork");
+					sleep(1);
+					unblock_sigs(&omask);
+					maybe_close(accepted_fd);
+					continue; /* -> check next fd in fd set */
 				}
+				if (pid == 0)
+					pid--; /* -1: "we did fork and we are child" */
 			}
-			if (!sep->se_wait && sep->se_socktype == SOCK_STREAM)
-				close(ctrl);
+			/* if pid == 0 here, we never forked */
+
+			if (pid > 0) { /* parent */
+				if (sep->se_wait) {
+					sep->se_wait = pid;
+					remove_fd_from_set(sep->se_fd);
+					/* we passed listening socket to child,
+					 * will wait for child to terminate */
+				}
+				unblock_sigs(&omask);
+				maybe_close(accepted_fd);
+				continue; /* -> check next fd in fd set */
+			}
+
+			/* we are either child or didn't fork at all */
+#ifdef INETD_BUILTINS_ENABLED
+			if (sep->se_builtin) {
+				if (pid) { /* "pid" is -1: we did fork */
+					close(sep->se_fd); /* listening socket */
+					logmode = 0; /* make xwrite etc silent */
+				}
+				unblock_sigs(&omask);
+				if (sep->se_socktype == SOCK_STREAM)
+					sep->se_builtin->bi_stream_fn(ctrl, sep);
+				else
+					sep->se_builtin->bi_dgram_fn(ctrl, sep);
+				if (pid) /* we did fork */
+					_exit(0);
+				maybe_close(accepted_fd);
+				continue; /* -> check next fd in fd set */
+			}
+#endif
+			/* child. prepare env and exec program */
+			setsid();
+			pwd = getpwnam(sep->se_user);
+			if (pwd == NULL) {
+				bb_error_msg("%s: no such user", sep->se_user);
+				goto do_exit1;
+			}
+			if (sep->se_group && (grp = getgrnam(sep->se_group)) == NULL) {
+				bb_error_msg("%s: no such group", sep->se_group);
+				goto do_exit1;
+			}
+			if (real_uid != 0 && real_uid != pwd->pw_uid) {
+				/* a user running private inetd */
+				bb_error_msg("non-root must run services as himself");
+				goto do_exit1;
+			}
+			if (pwd->pw_uid) {
+				if (sep->se_group)
+					pwd->pw_gid = grp->gr_gid;
+				xsetgid(pwd->pw_gid);
+				initgroups(pwd->pw_name, pwd->pw_gid);
+				xsetuid(pwd->pw_uid);
+			} else if (sep->se_group) {
+				xsetgid(grp->gr_gid);
+				setgroups(1, &grp->gr_gid);
+			}
+			if (rlim_ofile.rlim_cur != rlim_ofile_cur)
+				if (setrlimit(RLIMIT_NOFILE, &rlim_ofile) < 0)
+					bb_perror_msg("setrlimit");
+			closelog();
+			xmove_fd(ctrl, 0);
+			dup2(0, 1);
+			dup2(0, 2);
+			/* NB: among others, this loop closes listening socket
+			 * for nowait stream children */
+			for (sep2 = serv_list; sep2; sep2 = sep2->se_next)
+				maybe_close(sep2->se_fd);
+			sigaction(SIGPIPE, &saved_pipe_handler, NULL);
+			unblock_sigs(&omask);
+			BB_EXECVP(sep->se_program, sep->se_argv);
+			bb_perror_msg("exec %s", sep->se_program);
+ do_exit1:
+			/* eat packet in udp case */
+			if (sep->se_socktype != SOCK_STREAM)
+				recv(0, line, LINE_SIZE, MSG_DONTWAIT);
+			_exit(1);
 		} /* for (sep = servtab...) */
 	} /* for (;;) */
 }
@@ -1529,94 +1364,61 @@ int inetd_main(int argc, char **argv)
 /*
  * Internet services provided internally by inetd:
  */
-#define BUFSIZE 4096
-
-#if ENABLE_FEATURE_INETD_SUPPORT_BUILTIN_ECHO || \
-	ENABLE_FEATURE_INETD_SUPPORT_BUILTIN_CHARGEN || \
-	ENABLE_FEATURE_INETD_SUPPORT_BUILTIN_DAYTIME
-static int dg_badinput(struct sockaddr_in *dg_sin)
-{
-	if (ntohs(dg_sin->sin_port) < IPPORT_RESERVED)
-		return 1;
-	if (dg_sin->sin_addr.s_addr == htonl(INADDR_BROADCAST))
-		return 1;
-	/* XXX compare against broadcast addresses in SIOCGIFCONF list? */
-	return 0;
-}
-#endif
-
 #if ENABLE_FEATURE_INETD_SUPPORT_BUILTIN_ECHO
-/* Echo service -- echo data back */
+/* Echo service -- echo data back. */
 /* ARGSUSED */
-static void
-echo_stream(int s, servtab_t *sep)
+static void echo_stream(int s, servtab_t *sep ATTRIBUTE_UNUSED)
 {
-	char buffer[BUFSIZE];
-	int i;
-
-	inetd_setproctitle(sep->se_service, s);
+#if BB_MMU
 	while (1) {
-		i = read(s, buffer, sizeof(buffer));
-		if (i <= 0) break;
-		/* FIXME: this isnt correct - safe_write()? */
-		if (write(s, buffer, i) <= 0) break;
+		ssize_t sz = safe_read(s, line, LINE_SIZE);
+		if (sz <= 0)
+			break;
+		xwrite(s, line, sz);
 	}
-	exit(0);
+#else
+	static const char *const args[] = { "cat", NULL };
+	BB_EXECVP("cat", (char**)args);
+	_exit(1);
+#endif
 }
-
-/* Echo service -- echo data back */
-/* ARGSUSED */
-static void
-echo_dg(int s, servtab_t *sep ATTRIBUTE_UNUSED)
+static void echo_dg(int s, servtab_t *sep)
 {
-	char buffer[BUFSIZE];
-	int i;
-	socklen_t size;
-	/* struct sockaddr_storage ss; */
-	struct sockaddr sa;
+	enum { BUFSIZE = 12*1024 }; /* for jumbo sized packets! :) */
+	char *buf = xmalloc(BUFSIZE); /* too big for stack */
+	int sz;
+	len_and_sockaddr *lsa = alloca(LSA_LEN_SIZE + sep->se_lsa->len);
 
-	size = sizeof(sa);
-	i = recvfrom(s, buffer, sizeof(buffer), 0, &sa, &size);
-	if (i < 0)
-		return;
-	if (dg_badinput((struct sockaddr_in *) &sa))
-		return;
-	(void) sendto(s, buffer, i, 0, &sa, sizeof(sa));
+	lsa->len = sep->se_lsa->len;
+	/* dgram builtins are non-forking - DONT BLOCK! */
+	sz = recvfrom(s, buf, BUFSIZE, MSG_DONTWAIT, &lsa->u.sa, &lsa->len);
+	if (sz > 0)
+		sendto(s, buf, sz, 0, &lsa->u.sa, lsa->len);
+	free(buf);
 }
 #endif  /* FEATURE_INETD_SUPPORT_BUILTIN_ECHO */
 
+
 #if ENABLE_FEATURE_INETD_SUPPORT_BUILTIN_DISCARD
-/* Discard service -- ignore data */
+/* Discard service -- ignore data. MMU arches only. */
 /* ARGSUSED */
-static void
-discard_stream(int s, servtab_t *sep)
+static void discard_stream(int s, servtab_t *sep ATTRIBUTE_UNUSED)
 {
-	char buffer[BUFSIZE];
-
-	inetd_setproctitle(sep->se_service, s);
-	while (1) {
-		if (safe_read(s, buffer, sizeof(buffer)) <= 0)
-			exit(0);
-	}
+	while (safe_read(s, line, LINE_SIZE) > 0)
+		continue;
 }
-
-/* Discard service -- ignore data */
 /* ARGSUSED */
-static void
-discard_dg(int s, servtab_t *sep ATTRIBUTE_UNUSED)
+static void discard_dg(int s, servtab_t *sep ATTRIBUTE_UNUSED)
 {
-	char buffer[BUFSIZE];
-
-	(void) read(s, buffer, sizeof(buffer));
+	/* dgram builtins are non-forking - DONT BLOCK! */
+	recv(s, line, LINE_SIZE, MSG_DONTWAIT);
 }
 #endif /* FEATURE_INETD_SUPPORT_BUILTIN_DISCARD */
 
 
 #if ENABLE_FEATURE_INETD_SUPPORT_BUILTIN_CHARGEN
 #define LINESIZ 72
-
-static void
-initring(void)
+static void initring(void)
 {
 	int i;
 
@@ -1625,17 +1427,13 @@ initring(void)
 		if (isprint(i))
 			*endring++ = i;
 }
-
-/* Character generator */
+/* Character generator. MMU arches only. */
 /* ARGSUSED */
-static void
-chargen_stream(int s, servtab_t *sep)
+static void chargen_stream(int s, servtab_t *sep)
 {
 	char *rs;
 	int len;
 	char text[LINESIZ + 2];
-
-	inetd_setproctitle(sep->se_service, s);
 
 	if (!endring) {
 		initring();
@@ -1655,33 +1453,26 @@ chargen_stream(int s, servtab_t *sep)
 		}
 		if (++rs == endring)
 			rs = ring;
-		if (write(s, text, sizeof(text)) != sizeof(text))
-			break;
+		xwrite(s, text, sizeof(text));
 	}
-	exit(0);
 }
-
-/* Character generator */
 /* ARGSUSED */
-static void
-chargen_dg(int s, servtab_t *sep ATTRIBUTE_UNUSED)
+static void chargen_dg(int s, servtab_t *sep)
 {
-	/* struct sockaddr_storage ss; */
-	struct sockaddr sa;
 	int len;
 	char text[LINESIZ + 2];
-	socklen_t size;
+	len_and_sockaddr *lsa = alloca(LSA_LEN_SIZE + sep->se_lsa->len);
+
+	/* Eat UDP packet which started it all */
+	/* dgram builtins are non-forking - DONT BLOCK! */
+	lsa->len = sep->se_lsa->len;
+	if (recvfrom(s, text, sizeof(text), MSG_DONTWAIT, &lsa->u.sa, &lsa->len) < 0)
+		return;
 
 	if (!endring) {
 		initring();
 		ringpos = ring;
 	}
-
-	size = sizeof(sa);
-	if (recvfrom(s, text, sizeof(text), 0, &sa, &size) < 0)
-		return;
-	if (dg_badinput((struct sockaddr_in *) &sa))
-		return;
 
 	len = endring - ringpos;
 	if (len >= LINESIZ)
@@ -1694,7 +1485,7 @@ chargen_dg(int s, servtab_t *sep ATTRIBUTE_UNUSED)
 		ringpos = ring;
 	text[LINESIZ] = '\r';
 	text[LINESIZ + 1] = '\n';
-	(void) sendto(s, text, sizeof(text), 0, &sa, sizeof(sa));
+	sendto(s, text, sizeof(text), 0, &lsa->u.sa, lsa->len);
 }
 #endif /* FEATURE_INETD_SUPPORT_BUILTIN_CHARGEN */
 
@@ -1707,48 +1498,32 @@ chargen_dg(int s, servtab_t *sep ATTRIBUTE_UNUSED)
  * we must add 2208988800 seconds to this figure to make up for
  * some seventy years Bell Labs was asleep.
  */
-
 static unsigned machtime(void)
 {
 	struct timeval tv;
 
-	if (gettimeofday(&tv, NULL) < 0) {
-		fprintf(stderr, "Unable to get time of day\n");
-		return 0L;
-	}
-	return htonl((unsigned) tv.tv_sec + 2208988800UL);
+	gettimeofday(&tv, NULL);
+	return htonl((uint32_t)(tv.tv_sec + 2208988800));
 }
-
 /* ARGSUSED */
-static void
-machtime_stream(int s, servtab_t *sep ATTRIBUTE_UNUSED)
+static void machtime_stream(int s, servtab_t *sep ATTRIBUTE_UNUSED)
 {
-	unsigned result;
+	uint32_t result;
 
 	result = machtime();
-	(void) write(s, (char *) &result, sizeof(result));
+	full_write(s, &result, sizeof(result));
 }
-
-/* ARGSUSED */
-static void
-machtime_dg(int s, servtab_t *sep ATTRIBUTE_UNUSED)
+static void machtime_dg(int s, servtab_t *sep)
 {
-	unsigned result;
-	/* struct sockaddr_storage ss; */
-	struct sockaddr sa;
-	struct sockaddr_in *dg_sin;
-	socklen_t size;
+	uint32_t result;
+	len_and_sockaddr *lsa = alloca(LSA_LEN_SIZE + sep->se_lsa->len);
 
-	size = sizeof(sa);
-	if (recvfrom(s, (char *) &result, sizeof(result), 0, &sa, &size) < 0)
+	lsa->len = sep->se_lsa->len;
+	if (recvfrom(s, line, LINE_SIZE, MSG_DONTWAIT, &lsa->u.sa, &lsa->len) < 0)
 		return;
-	/* if (dg_badinput((struct sockaddr *)&ss)) */
-	dg_sin = (struct sockaddr_in *) &sa;
-	if (dg_sin->sin_addr.s_addr == htonl(INADDR_BROADCAST) ||
-			ntohs(dg_sin->sin_port) < IPPORT_RESERVED / 2)
-		return;
+
 	result = machtime();
-	(void) sendto(s, (char *) &result, sizeof(result), 0, &sa, sizeof(sa));
+	sendto(s, &result, sizeof(result), 0, &lsa->u.sa, lsa->len);
 }
 #endif /* FEATURE_INETD_SUPPORT_BUILTIN_TIME */
 
@@ -1758,35 +1533,22 @@ machtime_dg(int s, servtab_t *sep ATTRIBUTE_UNUSED)
 /* ARGSUSED */
 static void daytime_stream(int s, servtab_t *sep ATTRIBUTE_UNUSED)
 {
-	char buffer[32];
 	time_t t;
 
 	t = time(NULL);
-
-// fdprintf instead?
-	(void) sprintf(buffer, "%.24s\r\n", ctime(&t));
-	(void) write(s, buffer, strlen(buffer));
+	fdprintf(s, "%.24s\r\n", ctime(&t));
 }
-
-/* Return human-readable time of day */
-/* ARGSUSED */
-void
-daytime_dg(int s, servtab_t *sep ATTRIBUTE_UNUSED)
+static void daytime_dg(int s, servtab_t *sep)
 {
-	char buffer[256];
 	time_t t;
-	/* struct sockaddr_storage ss; */
-	struct sockaddr sa;
-	socklen_t size;
+	len_and_sockaddr *lsa = alloca(LSA_LEN_SIZE + sep->se_lsa->len);
+
+	lsa->len = sep->se_lsa->len;
+	if (recvfrom(s, line, LINE_SIZE, MSG_DONTWAIT, &lsa->u.sa, &lsa->len) < 0)
+		return;
 
 	t = time(NULL);
-
-	size = sizeof(sa);
-	if (recvfrom(s, buffer, sizeof(buffer), 0, &sa, &size) < 0)
-		return;
-	if (dg_badinput((struct sockaddr_in *) &sa))
-		return;
-	(void) sprintf(buffer, "%.24s\r\n", ctime(&t));
-	(void) sendto(s, buffer, strlen(buffer), 0, &sa, sizeof(sa));
+	sprintf(line, "%.24s\r\n", ctime(&t));
+	sendto(s, line, strlen(line), 0, &lsa->u.sa, lsa->len);
 }
 #endif /* FEATURE_INETD_SUPPORT_BUILTIN_DAYTIME */

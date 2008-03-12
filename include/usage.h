@@ -1597,7 +1597,7 @@ USE_FEATURE_BRCTL_FANCY("\n" \
        "	-a	De/configure all interfaces automatically\n" \
        "	-i FILE	Use FILE for interface definitions\n" \
        "	-n	Print out what would happen, but don't do it\n" \
-       "		(note that this option doesn't disable mappings)\n" \
+       "		(note: doesn't disable mappings)\n" \
        "	-v	Print out what would happen before doing it\n" \
        "	-m	Don't run any mappings\n" \
        "	-f	Force de/configuration"
@@ -1609,19 +1609,21 @@ USE_FEATURE_BRCTL_FANCY("\n" \
        "	-a	De/configure all interfaces automatically\n" \
        "	-i FILE	Use FILE for interface definitions\n" \
        "	-n	Print out what would happen, but don't do it\n" \
-       "		(note that this option doesn't disable mappings)\n" \
+       "		(note: doesn't disable mappings)\n" \
        "	-v	Print out what would happen before doing it\n" \
        "	-m	Don't run any mappings\n" \
        "	-f	Force de/configuration"
 
 #define inetd_trivial_usage \
-       "[-f] [-q len] [conf]"
+       "[-fe] [-q N] [-R N] [CONFFILE]"
 #define inetd_full_usage \
-       "Listen for network connections and launch programs" \
-       "\n\nOptions:\n" \
-       "	-f	Run in foreground\n" \
-       "	-q N	Set the size of the socket listen queue to N\n" \
-       "		(default: 128)"
+       "Listen for network connections and launch programs\n" \
+     "\nOptions:" \
+     "\n	-f	Run in foreground" \
+     "\n	-e	Log to stderr" \
+     "\n	-q N    Socket listen queue (default: 128)" \
+     "\n	-R N	Pause services after N connects/min" \
+     "\n		(default: 0 - disabled)"
 
 #define init_trivial_usage \
        ""

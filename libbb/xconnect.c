@@ -132,11 +132,15 @@ USE_FEATURE_IPV6(sa_family_t af,)
 
 	/* Ugly parsing of host:addr */
 	if (ENABLE_FEATURE_IPV6 && host[0] == '[') {
+		/* Even uglier parsing of [xx]:nn */
 		host++;
 		cp = strchr(host, ']');
-		if (!cp || cp[1] != ':') /* Malformed: must have [xx]:nn */
-			bb_error_msg_and_die("bad address '%s'", org_host);
-			//return r; /* return NULL */
+		if (!cp || cp[1] != ':') { /* Malformed: must have [xx]:nn */
+			bb_error_msg("bad address '%s'", org_host);
+			if (ai_flags & DIE_ON_ERROR)
+				xfunc_die();
+			return NULL;
+		}
 	} else {
 		cp = strrchr(host, ':');
 		if (ENABLE_FEATURE_IPV6 && cp && strchr(host, ':') != cp) {
@@ -144,13 +148,19 @@ USE_FEATURE_IPV6(sa_family_t af,)
 			cp = NULL; /* it's not a port spec */
 		}
 	}
-	if (cp) {
+	if (cp) { /* points to ":" or "]:" */
 		int sz = cp - host + 1;
 		host = safe_strncpy(alloca(sz), host, sz);
 		if (ENABLE_FEATURE_IPV6 && *cp != ':')
 			cp++; /* skip ']' */
 		cp++; /* skip ':' */
-		port = xatou16(cp);
+		port = bb_strtou(cp, NULL, 10);
+		if (errno || (unsigned)port > 0xffff) {
+			bb_error_msg("bad port spec '%s'", org_host);
+			if (ai_flags & DIE_ON_ERROR)
+				xfunc_die();
+			return NULL;
+		}
 	}
 
 	memset(&hint, 0 , sizeof(hint));
@@ -221,6 +231,7 @@ len_and_sockaddr* xdotted2sockaddr(const char *host, int port)
 	return str2sockaddr(host, port, AF_UNSPEC, AI_NUMERICHOST | DIE_ON_ERROR);
 }
 
+#undef xsocket_type
 int xsocket_type(len_and_sockaddr **lsap, USE_FEATURE_IPV6(int family,) int sock_type)
 {
 	SKIP_FEATURE_IPV6(enum { family = AF_INET };)

@@ -756,7 +756,7 @@ int nc_main(int argc, char **argv)
 		/* We try IPv6, then IPv4, unless addr family is
 		 * implicitly set by way of remote addr/port spec */
 		x = xsocket_type(&ouraddr,
-				USE_FEATURE_IPV6((themaddr ? themaddr->u.sa.sa_family : AF_UNSPEC),)
+				(themaddr ? themaddr->u.sa.sa_family : AF_UNSPEC),
 				x);
 		if (o_lport)
 			set_nport(ouraddr, htons(o_lport));

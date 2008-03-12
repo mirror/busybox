@@ -127,7 +127,7 @@ static int tftp( USE_GETPUT(const int cmd,)
 	char *cp;
 
 	unsigned org_port;
-	len_and_sockaddr *const from = alloca(offsetof(len_and_sockaddr, u.sa) + peer_lsa->len);
+	len_and_sockaddr *const from = alloca(LSA_LEN_SIZE + peer_lsa->len);
 
 	/* Can't use RESERVE_CONFIG_BUFFER here since the allocation
 	 * size varies meaning BUFFERS_GO_ON_STACK would fail */

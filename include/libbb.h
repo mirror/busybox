@@ -390,6 +390,7 @@ typedef struct len_and_sockaddr {
 	} u;
 } len_and_sockaddr;
 enum {
+	LSA_LEN_SIZE = offsetof(len_and_sockaddr, u),
 	LSA_SIZEOF_SA = sizeof(
 		union {
 			struct sockaddr sa;
@@ -405,7 +406,12 @@ enum {
  * af == AF_UNSPEC will result in trying to create IPv6 socket,
  * and if kernel doesn't support it, IPv4.
  */
-int xsocket_type(len_and_sockaddr **lsap, USE_FEATURE_IPV6(int af,) int sock_type);
+#if ENABLE_FEATURE_IPV6
+int xsocket_type(len_and_sockaddr **lsap, int af, int sock_type);
+#else
+int xsocket_type(len_and_sockaddr **lsap, int sock_type);
+#define xsocket_type(lsap, af, sock_type) xsocket_type((lsap), (sock_type))
+#endif
 int xsocket_stream(len_and_sockaddr **lsap);
 /* Create server socket bound to bindaddr:port. bindaddr can be NULL,
  * numeric IP ("N.N.N.N") or numeric IPv6 address,
@@ -430,14 +436,13 @@ len_and_sockaddr* host2sockaddr(const char *host, int port);
 /* Version which dies on error */
 len_and_sockaddr* xhost2sockaddr(const char *host, int port);
 len_and_sockaddr* xdotted2sockaddr(const char *host, int port);
-#if ENABLE_FEATURE_IPV6
 /* Same, useful if you want to force family (e.g. IPv6) */
+#if !ENABLE_FEATURE_IPV6
+#define host_and_af2sockaddr(host, port, af) host2sockaddr((host), (port))
+#define xhost_and_af2sockaddr(host, port, af) xhost2sockaddr((host), (port))
+#else
 len_and_sockaddr* host_and_af2sockaddr(const char *host, int port, sa_family_t af);
 len_and_sockaddr* xhost_and_af2sockaddr(const char *host, int port, sa_family_t af);
-#else
-/* [we evaluate af: think about "host_and_af2sockaddr(..., af++)"] */
-#define host_and_af2sockaddr(host, port, af) ((void)(af), host2sockaddr((host), (port)))
-#define xhost_and_af2sockaddr(host, port, af) ((void)(af), xhost2sockaddr((host), (port)))
 #endif
 /* Assign sin[6]_port member if the socket is an AF_INET[6] one,
  * otherwise no-op. Useful for ftp.
