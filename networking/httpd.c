@@ -1788,7 +1788,6 @@ static void handle_incoming_and_exit(const len_and_sockaddr *fromAddr)
 	char *header_ptr = header_ptr;
 	Htaccess_Proxy *proxy_entry;
 #endif
-	struct sigaction sa;
 #if ENABLE_FEATURE_HTTPD_BASIC_AUTH
 	int credentials = -1;  /* if not required this is Ok */
 #endif
@@ -1819,11 +1818,7 @@ static void handle_incoming_and_exit(const len_and_sockaddr *fromAddr)
 	}
 
 	/* Install timeout handler */
-	memset(&sa, 0, sizeof(sa));
-	sa.sa_handler = exit_on_signal;
-	/* sigemptyset(&sa.sa_mask); - memset should be enough */
-	/*sa.sa_flags = 0; - no SA_RESTART */
-	sigaction(SIGALRM, &sa, NULL);
+	signal_no_SA_RESTART_empty_mask(SIGALRM, exit_on_signal);
 	alarm(HEADER_READ_TIMEOUT);
 
 	if (!get_line()) /* EOF or error or empty line */
@@ -2247,15 +2242,9 @@ static void mini_httpd_inetd(void)
 #if ENABLE_FEATURE_HTTPD_RELOAD_CONFIG_SIGHUP
 static void sighup_handler(int sig)
 {
-	struct sigaction sa;
-
 	parse_conf(default_path_httpd_conf, sig == SIGHUP ? SIGNALED_PARSE : FIRST_PARSE);
 
-	memset(&sa, 0, sizeof(sa));
-	sa.sa_handler = sighup_handler;
-	/*sigemptyset(&sa.sa_mask); - memset should be enough */
-	sa.sa_flags = SA_RESTART;
-	sigaction(SIGHUP, &sa, NULL);
+	signal_SA_RESTART_empty_mask(SIGHUP, sighup_handler);
 }
 #endif
 

@@ -34,7 +34,6 @@ static void acquire_vt(int signo)
 int vlock_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int vlock_main(int argc, char **argv)
 {
-	struct sigaction sa;
 	struct vt_mode vtm;
 	struct termios term;
 	struct termios oterm;
@@ -63,17 +62,11 @@ int vlock_main(int argc, char **argv)
 
 	/* We will use SIGUSRx for console switch control: */
 	/* 1: set handlers */
-	sigemptyset(&sa.sa_mask);
-	sa.sa_flags = SA_RESTART;
-	sa.sa_handler = release_vt;
-	sigaction(SIGUSR1, &sa, NULL);
-	sa.sa_handler = acquire_vt;
-	sigaction(SIGUSR2, &sa, NULL);
+	signal_SA_RESTART_empty_mask(SIGUSR1, release_vt);
+	signal_SA_RESTART_empty_mask(SIGUSR2, acquire_vt);
 	/* 2: unmask them */
-	sigprocmask(SIG_SETMASK, NULL, &sa.sa_mask);
-	sigdelset(&sa.sa_mask, SIGUSR1);
-	sigdelset(&sa.sa_mask, SIGUSR2);
-	sigprocmask(SIG_SETMASK, &sa.sa_mask, NULL);
+	sig_unblock(SIGUSR1);
+	sig_unblock(SIGUSR2);
 
 	/* Revert stdin/out to our controlling tty
 	 * (or die if we have none) */

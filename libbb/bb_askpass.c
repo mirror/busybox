@@ -45,7 +45,7 @@ char *bb_askpass(int timeout, const char *prompt)
 	sa.sa_handler = askpass_timeout;
 	sigaction(SIGINT, &sa, &oldsa);
 	if (timeout) {
-		sigaction(SIGALRM, &sa, NULL);
+		sigaction_set(SIGALRM, &sa);
 		alarm(timeout);
 	}
 
@@ -68,7 +68,7 @@ char *bb_askpass(int timeout, const char *prompt)
 	if (timeout) {
 		alarm(0);
 	}
-	sigaction(SIGINT, &oldsa, NULL);
+	sigaction_set(SIGINT, &oldsa);
 
 	tcsetattr(STDIN_FILENO, TCSANOW, &oldtio);
 	bb_putchar('\n');

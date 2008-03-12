@@ -121,9 +121,6 @@ int dd_main(int argc, char **argv)
 		off_t count;
 		off_t seek, skip;
 		const char *infile, *outfile;
-#if ENABLE_FEATURE_DD_SIGNAL_HANDLING
-		struct sigaction sigact;
-#endif
 	} Z;
 #define flags   (Z.flags  )
 #define oc      (Z.oc     )
@@ -132,17 +129,13 @@ int dd_main(int argc, char **argv)
 #define skip    (Z.skip   )
 #define infile  (Z.infile )
 #define outfile (Z.outfile)
-#define sigact  (Z.sigact )
 
 	memset(&Z, 0, sizeof(Z));
 	INIT_G();
 	//fflush(NULL); - is this needed because of NOEXEC?
 
 #if ENABLE_FEATURE_DD_SIGNAL_HANDLING
-	sigact.sa_handler = dd_output_status;
-	sigact.sa_flags = SA_RESTART;
-	/*sigemptyset(&sigact.sa_mask); - memset did it */
-	sigaction(SIGUSR1, &sigact, NULL);
+	signal_SA_RESTART_empty_mask(SIGUSR1, dd_output_status);
 #endif
 
 	for (n = 1; n < argc; n++) {

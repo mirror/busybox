@@ -144,13 +144,8 @@ static void progressmeter(int flag)
 		transferred = 0;
 		fputc('\n', stderr);
 	} else {
-		if (flag == -1) {
-			/* first call to progressmeter */
-			struct sigaction sa;
-			sa.sa_handler = progressmeter;
-			sigemptyset(&sa.sa_mask);
-			sa.sa_flags = SA_RESTART;
-			sigaction(SIGALRM, &sa, NULL);
+		if (flag == -1) { /* first call to progressmeter */
+			signal_SA_RESTART_empty_mask(SIGALRM, progressmeter);
 		}
 		alarm(1);
 	}

@@ -11,6 +11,12 @@
 
 #include "libbb.h"
 
+/* Saves 2 bytes on x86! Oh my... */
+int sigaction_set(int signum, const struct sigaction *act)
+{
+	return sigaction(signum, act, NULL);
+}
+
 void bb_signals(int sigs, void (*f)(int))
 {
 	int sig_no = 0;
@@ -40,7 +46,7 @@ void bb_signals_recursive(int sigs, void (*f)(int))
 	while (sigs) {
 		if (sigs & bit) {
 			sigs &= ~bit;
-			sigaction(sig_no, &sa, NULL);
+			sigaction_set(sig_no, &sa);
 		}
 		sig_no++;
 		bit <<= 1;
@@ -86,4 +92,24 @@ void kill_myself_with_sig(int sig)
 	sig_unblock(sig);
 	raise(sig);
 	_exit(1); /* Should not reach it */
+}
+
+void signal_SA_RESTART_empty_mask(int sig, void (*handler)(int))
+{
+	struct sigaction sa;
+	memset(&sa, 0, sizeof(sa));
+	/*sigemptyset(&sa.sa_mask);*/
+	sa.sa_flags = SA_RESTART;
+	sa.sa_handler = handler;
+	sigaction_set(sig, &sa);
+}
+
+void signal_no_SA_RESTART_empty_mask(int sig, void (*handler)(int))
+{
+	struct sigaction sa;
+	memset(&sa, 0, sizeof(sa));
+	/*sigemptyset(&sa.sa_mask);*/
+	/*sa.sa_flags = 0;*/
+	sa.sa_handler = handler;
+	sigaction_set(sig, &sa);
 }

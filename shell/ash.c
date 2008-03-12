@@ -3340,7 +3340,7 @@ setsignal(int signo)
 	*t = action;
 	act.sa_flags = 0;
 	sigfillset(&act.sa_mask);
-	sigaction(signo, &act, NULL);
+	sigaction_set(signo, &act);
 }
 
 /* mode flags for set_curjob */

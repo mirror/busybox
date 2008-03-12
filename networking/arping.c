@@ -377,18 +377,8 @@ int arping_main(int argc, char **argv)
 		printf(" from %s via %s\n", inet_ntoa(src), device);
 	}
 
-	{
-		struct sigaction sa;
-
-		memset(&sa, 0, sizeof(sa));
-		sa.sa_flags = SA_RESTART;
-
-		sa.sa_handler = (void (*)(int)) finish;
-		sigaction(SIGINT, &sa, NULL);
-
-		sa.sa_handler = (void (*)(int)) catcher;
-		sigaction(SIGALRM, &sa, NULL);
-	}
+	signal_SA_RESTART_empty_mask(SIGINT,  (void (*)(int))finish);
+	signal_SA_RESTART_empty_mask(SIGALRM, (void (*)(int))catcher);
 
 	catcher();
 

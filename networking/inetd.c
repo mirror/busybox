@@ -1179,15 +1179,15 @@ int inetd_main(int argc, char **argv)
 	sigaddset(&sa.sa_mask, SIGCHLD);
 	sigaddset(&sa.sa_mask, SIGHUP);
 	sa.sa_handler = retry_network_setup;
-	sigaction(SIGALRM, &sa, NULL);
+	sigaction_set(SIGALRM, &sa);
 	sa.sa_handler = reread_config_file;
-	sigaction(SIGHUP, &sa, NULL);
+	sigaction_set(SIGHUP, &sa);
 	sa.sa_handler = reap_child;
-	sigaction(SIGCHLD, &sa, NULL);
+	sigaction_set(SIGCHLD, &sa);
 	sa.sa_handler = clean_up_and_exit;
-	sigaction(SIGTERM, &sa, NULL);
+	sigaction_set(SIGTERM, &sa);
 	sa.sa_handler = clean_up_and_exit;
-	sigaction(SIGINT, &sa, NULL);
+	sigaction_set(SIGINT, &sa);
 	sa.sa_handler = SIG_IGN;
 	sigaction(SIGPIPE, &sa, &saved_pipe_handler);
 
@@ -1382,7 +1382,7 @@ int inetd_main(int argc, char **argv)
 			 * for nowait stream children */
 			for (sep2 = serv_list; sep2; sep2 = sep2->se_next)
 				maybe_close(sep2->se_fd);
-			sigaction(SIGPIPE, &saved_pipe_handler, NULL);
+			sigaction_set(SIGPIPE, &saved_pipe_handler);
 			unblock_sigs(&omask);
 			BB_EXECVP(sep->se_program, sep->se_argv);
 			bb_perror_msg("exec %s", sep->se_program);

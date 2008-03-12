@@ -275,6 +275,7 @@ char *xrealloc_getcwd_or_warn(char *cwd);
 
 char *xmalloc_follow_symlinks(const char *path);
 
+
 enum {
 	/* bb_signals(BB_SIGS_FATAL, handler) catches all signals which
 	 * otherwise would kill us, except for those resulting from bugs:
@@ -306,6 +307,12 @@ void bb_signals(int sigs, void (*f)(int));
  * and in a way that while signal handler is run, no other signals
  * will be blocked: */
 void bb_signals_recursive(int sigs, void (*f)(int));
+/* syscalls like read() will be interrupted with EINTR: */
+void signal_no_SA_RESTART_empty_mask(int sig, void (*handler)(int));
+/* syscalls like read() won't be interrupted (though select/poll will be): */
+void signal_SA_RESTART_empty_mask(int sig, void (*handler)(int));
+/* Will do sigaction(signum, act, NULL): */
+int sigaction_set(int signum, const struct sigaction *act);
 void sig_block(int);
 void sig_unblock(int);
 /* UNUSED: void sig_blocknone(void); */

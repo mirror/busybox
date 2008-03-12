@@ -699,16 +699,6 @@ static const struct built_in_command bltins[] = {
 
 #if ENABLE_HUSH_JOB
 
-/* move to libbb? */
-static void signal_SA_RESTART(int sig, void (*handler)(int))
-{
-	struct sigaction sa;
-	sa.sa_handler = handler;
-	sa.sa_flags = SA_RESTART;
-	sigemptyset(&sa.sa_mask);
-	sigaction(sig, &sa, NULL);
-}
-
 /* Signals are grouped, we handle them in batches */
 static void set_fatal_sighandler(void (*handler)(int))
 {
@@ -2115,7 +2105,7 @@ static int run_list(struct pipe *pi)
 #if ENABLE_FEATURE_SH_STANDALONE
 		nofork_save.saved = 0; /* in case we will run a nofork later */
 #endif
-		signal_SA_RESTART(SIGTSTP, handler_ctrl_z);
+		signal_SA_RESTART_empty_mask(SIGTSTP, handler_ctrl_z);
 		signal(SIGINT, handler_ctrl_c);
 	}
 #endif /* JOB */

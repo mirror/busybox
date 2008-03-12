@@ -220,7 +220,6 @@ static void sigalrm_handler(int ATTRIBUTE_UNUSED signum)
 int rx_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int rx_main(int argc, char **argv)
 {
-	struct sigaction act;
 	struct termios tty, orig_tty;
 	int termios_err;
 	int file_fd;
@@ -243,9 +242,7 @@ int rx_main(int argc, char **argv)
 	}
 
 	/* No SA_RESTART: we want ALRM to interrupt read() */
-	memset(&act, 0, sizeof(act));
-	act.sa_handler = sigalrm_handler;
-	sigaction(SIGALRM, &act, NULL);
+	signal_no_SA_RESTART_empty_mask(SIGALRM, sigalrm_handler);
 
 	n = receive(file_fd);
 

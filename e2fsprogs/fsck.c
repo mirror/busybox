@@ -1164,12 +1164,9 @@ int fsck_main(int argc, char **argv)
 	int interactive;
 	const char *fstab;
 	struct fs_info *fs;
-	struct sigaction sa;
 
-	memset(&sa, 0, sizeof(sa));
-	sa.sa_handler = signal_cancel;
-	sigaction(SIGINT, &sa, NULL);
-	sigaction(SIGTERM, &sa, NULL);
+	signal_no_SA_RESTART_empty_mask(SIGINT, signal_cancel);
+	signal_no_SA_RESTART_empty_mask(SIGTERM, signal_cancel);
 
 	setbuf(stdout, NULL);
 

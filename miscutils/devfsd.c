@@ -390,8 +390,8 @@ int devfsd_main(int argc, char **argv)
 	sigemptyset(&new_action.sa_mask);
 	new_action.sa_flags = 0;
 	new_action.sa_handler = signal_handler;
-	sigaction(SIGHUP, &new_action, NULL);
-	sigaction(SIGUSR1, &new_action, NULL);
+	sigaction_set(SIGHUP, &new_action);
+	sigaction_set(SIGUSR1, &new_action);
 
 	printf("%s v%s started for %s\n", applet_name, DEVFSD_VERSION, mount_point);
 
