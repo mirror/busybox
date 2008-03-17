@@ -20,6 +20,31 @@
 
 #include "volume_id_internal.h"
 
+
+/* Some detection routines do not set label or uuid anyway,
+ * so they are disabled. */
+
+/* Looks for partitions, we don't use it: */
+#define ENABLE_FEATURE_VOLUMEID_MAC           0
+/* #define ENABLE_FEATURE_VOLUMEID_MSDOS      0 - NB: this one
+ * was not properly added to probe table anyway - ??! */
+
+/* None of RAIDs have label or uuid, except LinuxRAID: */
+#define ENABLE_FEATURE_VOLUMEID_HIGHPOINTRAID 0
+#define ENABLE_FEATURE_VOLUMEID_ISWRAID       0
+#define ENABLE_FEATURE_VOLUMEID_LSIRAID       0
+#define ENABLE_FEATURE_VOLUMEID_LVM           0
+#define ENABLE_FEATURE_VOLUMEID_NVIDIARAID    0
+#define ENABLE_FEATURE_VOLUMEID_PROMISERAID   0
+#define ENABLE_FEATURE_VOLUMEID_SILICONRAID   0
+#define ENABLE_FEATURE_VOLUMEID_VIARAID       0
+
+/* These filesystems also have no label or uuid: */
+#define ENABLE_FEATURE_VOLUMEID_MINIX         0
+#define ENABLE_FEATURE_VOLUMEID_HPFS          0
+#define ENABLE_FEATURE_VOLUMEID_UFS           0
+
+
 typedef int (*raid_probe_fptr)(struct volume_id *id, uint64_t off, uint64_t size);
 typedef int (*probe_fptr)(struct volume_id *id, uint64_t off);
 
@@ -68,10 +93,9 @@ static const probe_fptr fs1[] = {
 #if ENABLE_FEATURE_VOLUMEID_FAT
 	volume_id_probe_vfat,
 #endif
-// This one only looks for partitions, we don't use it
-//#if ENABLE_FEATURE_VOLUMEID_MAC
-//	volume_id_probe_mac_partition_map,
-//#endif
+#if ENABLE_FEATURE_VOLUMEID_MAC
+	volume_id_probe_mac_partition_map,
+#endif
 #if ENABLE_FEATURE_VOLUMEID_XFS
 	volume_id_probe_xfs,
 #endif

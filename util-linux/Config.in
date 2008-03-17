@@ -159,7 +159,7 @@ config FINDFS
 	  package.  However, the e2fsprogs version only support ext2/3.  This
 	  version supports those in addition to FAT, swap, and ReiserFS.
 	  WARNING:
-	  With all submodules selected, it will add ~9k to busybox.
+	  With all submodules selected, it will add ~8k to busybox.
 
 config FREERAMDISK
 	bool "freeramdisk"
@@ -427,12 +427,12 @@ config FEATURE_VOLUMEID_JFS
 	help
 	  TODO
 
-config FEATURE_VOLUMEID_UFS
-	bool "ufs filesystem"
-	default n
-	depends on VOLUMEID
-	help
-	  TODO
+### config FEATURE_VOLUMEID_UFS
+###	bool "ufs filesystem"
+###	default n
+###	depends on VOLUMEID
+###	help
+###	  TODO
 
 config FEATURE_VOLUMEID_XFS
 	bool "xfs filesystem"
@@ -476,12 +476,12 @@ config FEATURE_VOLUMEID_LINUXSWAP
 	help
 	  TODO
 
-config FEATURE_VOLUMEID_LVM
-	bool "lvm"
-	default n
-	depends on VOLUMEID
-	help
-	  TODO
+### config FEATURE_VOLUMEID_LVM
+###	bool "lvm"
+###	default n
+###	depends on VOLUMEID
+###	help
+###	  TODO
 
 config FEATURE_VOLUMEID_CRAMFS
 	bool "cramfs filesystem"
@@ -490,12 +490,12 @@ config FEATURE_VOLUMEID_CRAMFS
 	help
 	  TODO
 
-config FEATURE_VOLUMEID_HPFS
-	bool "hpfs filesystem"
-	default n
-	depends on VOLUMEID
-	help
-	  TODO
+### config FEATURE_VOLUMEID_HPFS
+###	bool "hpfs filesystem"
+###	default n
+###	depends on VOLUMEID
+###	help
+###	  TODO
 
 config FEATURE_VOLUMEID_ROMFS
 	bool "romfs filesystem"
@@ -511,27 +511,27 @@ config FEATURE_VOLUMEID_SYSV
 	help
 	  TODO
 
-config FEATURE_VOLUMEID_MINIX
-	bool "minix filesystem"
-	default n
-	depends on VOLUMEID
-	help
-	  TODO
+### config FEATURE_VOLUMEID_MINIX
+###	bool "minix filesystem"
+###	default n
+###	depends on VOLUMEID
+###	help
+###	  TODO
 
 ### These only detect partition tables - not used (yet?)
 ### config FEATURE_VOLUMEID_MAC
-### 	bool "mac filesystem"
-### 	default n
-### 	depends on VOLUMEID
-### 	help
-### 	  TODO
+###	bool "mac filesystem"
+###	default n
+###	depends on VOLUMEID
+###	help
+###	  TODO
 ### 
 ### config FEATURE_VOLUMEID_MSDOS
-### 	bool "msdos filesystem"
-### 	default n
-### 	depends on VOLUMEID
-### 	help
-### 	  TODO
+###	bool "msdos filesystem"
+###	default n
+###	depends on VOLUMEID
+###	help
+###	  TODO
 
 config FEATURE_VOLUMEID_OCFS2
 	bool "ocfs2 filesystem"
@@ -540,54 +540,54 @@ config FEATURE_VOLUMEID_OCFS2
 	help
 	  TODO
 
-config FEATURE_VOLUMEID_HIGHPOINTRAID
-	bool "highpoint raid"
-	default n
-	depends on VOLUMEID
-	help
-	  TODO
+### config FEATURE_VOLUMEID_HIGHPOINTRAID
+###	bool "highpoint raid"
+###	default n
+###	depends on VOLUMEID
+###	help
+###	  TODO
 
-config FEATURE_VOLUMEID_ISWRAID
-	bool "intel raid"
-	default n
-	depends on VOLUMEID
-	help
-	  TODO
+### config FEATURE_VOLUMEID_ISWRAID
+###	bool "intel raid"
+###	default n
+###	depends on VOLUMEID
+###	help
+###	  TODO
 
-config FEATURE_VOLUMEID_LSIRAID
-	bool "lsi raid"
-	default n
-	depends on VOLUMEID
-	help
-	  TODO
+### config FEATURE_VOLUMEID_LSIRAID
+###	bool "lsi raid"
+###	default n
+###	depends on VOLUMEID
+###	help
+###	  TODO
 
-config FEATURE_VOLUMEID_VIARAID
-	bool "via raid"
-	default n
-	depends on VOLUMEID
-	help
-	  TODO
+### config FEATURE_VOLUMEID_VIARAID
+###	bool "via raid"
+###	default n
+###	depends on VOLUMEID
+###	help
+###	  TODO
 
-config FEATURE_VOLUMEID_SILICONRAID
-	bool "silicon raid"
-	default n
-	depends on VOLUMEID
-	help
-	  TODO
+### config FEATURE_VOLUMEID_SILICONRAID
+###	bool "silicon raid"
+###	default n
+###	depends on VOLUMEID
+###	help
+###	  TODO
 
-config FEATURE_VOLUMEID_NVIDIARAID
-	bool "nvidia raid"
-	default n
-	depends on VOLUMEID
-	help
-	  TODO
+### config FEATURE_VOLUMEID_NVIDIARAID
+###	bool "nvidia raid"
+###	default n
+###	depends on VOLUMEID
+###	help
+###	  TODO
 
-config FEATURE_VOLUMEID_PROMISERAID
-	bool "promise raid"
-	default n
-	depends on VOLUMEID
-	help
-	  TODO
+### config FEATURE_VOLUMEID_PROMISERAID
+###	bool "promise raid"
+###	default n
+###	depends on VOLUMEID
+###	help
+###	  TODO
 
 config FEATURE_VOLUMEID_LINUXRAID
 	bool "linuxraid"

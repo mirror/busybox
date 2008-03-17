@@ -33,7 +33,6 @@ struct msdos_partition_entry {
 	uint32_t	nr_sects;
 } __attribute__((packed));
 
-#define MSDOS_MAGIC			"\x55\xaa"
 #define MSDOS_PARTTABLE_OFFSET		0x1be
 #define MSDOS_SIG_OFF			0x1fe
 #define BSIZE				0x200
@@ -68,7 +67,7 @@ int volume_id_probe_msdos_part_table(struct volume_id *id, uint64_t off)
 	if (buf == NULL)
 		return -1;
 
-	if (memcmp(&buf[MSDOS_SIG_OFF], MSDOS_MAGIC, 2) != 0)
+	if (buf[MSDOS_SIG_OFF] != 0x55 || buf[MSDOS_SIG_OFF + 1] != 0xaa)
 		return -1;
 
 	/* check flags on all entries for a valid partition table */
@@ -86,12 +85,8 @@ int volume_id_probe_msdos_part_table(struct volume_id *id, uint64_t off)
 
 	if (id->partitions != NULL)
 		free(id->partitions);
-	id->partitions = malloc(VOLUME_ID_PARTITIONS_MAX *
+	id->partitions = xzalloc(VOLUME_ID_PARTITIONS_MAX *
 				sizeof(struct volume_id_partition));
-	if (id->partitions == NULL)
-		return -1;
-	memset(id->partitions, 0x00,
-	       VOLUME_ID_PARTITIONS_MAX * sizeof(struct volume_id_partition));
 
 	for (i = 0; i < 4; i++) {
 		poff = (uint64_t) le32_to_cpu(part[i].start_sect) * BSIZE;
@@ -102,26 +97,26 @@ int volume_id_probe_msdos_part_table(struct volume_id *id, uint64_t off)
 
 		p = &id->partitions[i];
 
-		p->partition_type_raw = part[i].sys_ind;
+//		p->pt_type_raw = part[i].sys_ind;
 
 		if (is_extended(part[i].sys_ind)) {
 			dbg("found extended partition at 0x%llx", (unsigned long long) poff);
-			volume_id_set_usage_part(p, VOLUME_ID_PARTITIONTABLE);
-			p->type = "msdos_extended_partition";
+//			volume_id_set_usage_part(p, VOLUME_ID_PARTITIONTABLE);
+//			p->type = "msdos_extended_partition";
 			if (extended == 0)
 				extended = off + poff;
 		} else {
 			dbg("found 0x%x data partition at 0x%llx, len 0x%llx",
 			    part[i].sys_ind, (unsigned long long) poff, (unsigned long long) plen);
 
-			if (is_raid(part[i].sys_ind))
-				volume_id_set_usage_part(p, VOLUME_ID_RAID);
-			else
-				volume_id_set_usage_part(p, VOLUME_ID_UNPROBED);
+//			if (is_raid(part[i].sys_ind))
+//				volume_id_set_usage_part(p, VOLUME_ID_RAID);
+//			else
+//				volume_id_set_usage_part(p, VOLUME_ID_UNPROBED);
 		}
 
-		p->off = off + poff;
-		p->len = plen;
+//		p->pt_off = off + poff;
+//		p->pt_len = plen;
 		id->partition_count = i+1;
 	}
 
@@ -142,7 +137,7 @@ int volume_id_probe_msdos_part_table(struct volume_id *id, uint64_t off)
 
 		part = (struct msdos_partition_entry*) &buf[MSDOS_PARTTABLE_OFFSET];
 
-		if (memcmp(&buf[MSDOS_SIG_OFF], MSDOS_MAGIC, 2) != 0)
+		if (buf[MSDOS_SIG_OFF] != 0x55 || buf[MSDOS_SIG_OFF + 1] != 0xaa)
 			break;
 
 		next = 0;
@@ -163,21 +158,23 @@ int volume_id_probe_msdos_part_table(struct volume_id *id, uint64_t off)
 					part[i].sys_ind, (unsigned long long) poff, (unsigned long long) plen);
 
 				/* we always start at the 5th entry */
-				while (id->partition_count < 4)
-					volume_id_set_usage_part(&id->partitions[id->partition_count++], VOLUME_ID_UNUSED);
+//				while (id->partition_count < 4)
+//					volume_id_set_usage_part(&id->partitions[id->partition_count++], VOLUME_ID_UNUSED);
+				if (id->partition_count < 4)
+					id->partition_count = 4;
 
 				p = &id->partitions[id->partition_count];
 
-				if (is_raid(part[i].sys_ind))
-					volume_id_set_usage_part(p, VOLUME_ID_RAID);
-				else
-					volume_id_set_usage_part(p, VOLUME_ID_UNPROBED);
+//				if (is_raid(part[i].sys_ind))
+//					volume_id_set_usage_part(p, VOLUME_ID_RAID);
+//				else
+//					volume_id_set_usage_part(p, VOLUME_ID_UNPROBED);
 
-				p->off = current + poff;
-				p->len = plen;
+//				p->pt_off = current + poff;
+//				p->pt_len = plen;
 				id->partition_count++;
 
-				p->partition_type_raw = part[i].sys_ind;
+//				p->pt_type_raw = part[i].sys_ind;
 
 				if (id->partition_count >= VOLUME_ID_PARTITIONS_MAX) {
 					dbg("too many partitions");
@@ -189,8 +186,8 @@ int volume_id_probe_msdos_part_table(struct volume_id *id, uint64_t off)
 		current = next;
 	}
 
-	volume_id_set_usage(id, VOLUME_ID_PARTITIONTABLE);
-	id->type = "msdos_partition_table";
+//	volume_id_set_usage(id, VOLUME_ID_PARTITIONTABLE);
+//	id->type = "msdos_partition_table";
 
 	return 0;
 }

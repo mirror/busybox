@@ -243,8 +243,8 @@ dev_get_major_minor(char *device_name, int *major, int *minor)
 	colon = strchr(dev, ':');
 	if (!colon)
 		goto ret;
-	*major = strtol(dev, NULL, 10);
-	*minor = strtol(colon + 1, NULL, 10);
+	*major = bb_strtou(dev, NULL, 10);
+	*minor = bb_strtou(colon + 1, NULL, 10);
 
  ret:
 	free(dev_path);
@@ -261,27 +261,28 @@ uuidcache_init_cdroms(void)
 
 	proccd = fopen(PROC_CDROMS, "r");
 	if (!proccd) {
-		static smallint warn = 0;
-		if (!warn) {
-			warn = 1;
-			bb_error_msg("mount: could not open %s, so UUID and LABEL "
-				"conversion cannot be done for CD-Roms.",
-				PROC_CDROMS);
-		}
+//		static smallint warn = 0;
+//		if (!warn) {
+//			warn = 1;
+//			bb_error_msg("can't open %s, UUID and LABEL "
+//				"conversion cannot be done for CD-Roms",
+//				PROC_CDROMS);
+//		}
 		return;
 	}
 
 	while (fgets(line, sizeof(line), proccd)) {
-		static const char drive_name_string[] ALIGN1 = "drive name:\t\t";
+		static const char drive_name_string[] ALIGN1 = "drive name:";
 
 		if (strncmp(line, drive_name_string, sizeof(drive_name_string) - 1) == 0) {
 			char *device_name;
-			device_name = strtok(line + sizeof(drive_name_string) - 1, "\t\n");
-			while (device_name) {
+
+			device_name = strtok(skip_whitespace(line + sizeof(drive_name_string) - 1), " \t\n");
+			while (device_name && device_name[0]) {
 				ma = mi = -1;
 				dev_get_major_minor(device_name, &ma, &mi);
 				uuidcache_check_device(device_name, ma, mi, 1);
-				device_name = strtok(NULL, "\t\n");
+				device_name = strtok(NULL, " \t\n");
 			}
 			break;
 		}
@@ -418,7 +419,8 @@ char *get_devname_from_uuid(const char *spec)
 	uuidcache_init();
 	uc = uuidCache;
 	while (uc) {
-		if (strcmp(spec, uc->uc_uuid) == 0) {
+		/* case of hex numbers doesn't matter */
+		if (strcasecmp(spec, uc->uc_uuid) == 0) {
 			return xstrdup(uc->device);
 		}
 		uc = uc->next;

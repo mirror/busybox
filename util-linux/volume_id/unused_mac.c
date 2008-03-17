@@ -49,17 +49,18 @@ int volume_id_probe_mac_partition_map(struct volume_id *id, uint64_t off)
 		return -1;
 
 	part = (struct mac_partition *) buf;
-	if ((memcmp(part->signature, "PM", 2) == 0) &&
-	    (memcmp(part->type, "Apple_partition_map", 19) == 0)) {
+	if (part->signature[0] == 'P' && part->signature[1] == 'M' /* "PM" */
+	 && (memcmp(part->type, "Apple_partition_map", 19) == 0)
+	) {
 		/* linux creates an own subdevice for the map
 		 * just return the type if the drive header is missing */
-		volume_id_set_usage(id, VOLUME_ID_PARTITIONTABLE);
-		id->type = "mac_partition_map";
+//		volume_id_set_usage(id, VOLUME_ID_PARTITIONTABLE);
+//		id->type = "mac_partition_map";
 		return 0;
 	}
 
 	driver = (struct mac_driver_desc *) buf;
-	if (memcmp(driver->signature, "ER", 2) == 0) {
+	if (driver->signature[0] == 'E' && driver->signature[1] == 'R') { /* "ER" */
 		/* we are on a main device, like a CD
 		 * just try to probe the first partition from the map */
 		unsigned bsize = be16_to_cpu(driver->block_size);
@@ -72,7 +73,7 @@ int volume_id_probe_mac_partition_map(struct volume_id *id, uint64_t off)
 			return -1;
 
 		part = (struct mac_partition *) buf;
-		if (memcmp(part->signature, "PM", 2) != 0)
+		if (part->signature[0] != 'P' || part->signature[1] != 'M') /* not "PM" */
 			return -1;
 
 		part_count = be32_to_cpu(part->map_count);
@@ -80,11 +81,7 @@ int volume_id_probe_mac_partition_map(struct volume_id *id, uint64_t off)
 
 		if (id->partitions != NULL)
 			free(id->partitions);
-		id->partitions =
-			malloc(part_count * sizeof(struct volume_id_partition));
-		if (id->partitions == NULL)
-			return -1;
-		memset(id->partitions, 0x00, sizeof(struct volume_id_partition));
+		id->partitions = xzalloc(part_count * sizeof(struct volume_id_partition));
 
 		id->partition_count = part_count;
 
@@ -97,27 +94,28 @@ int volume_id_probe_mac_partition_map(struct volume_id *id, uint64_t off)
 				return -1;
 
 			part = (struct mac_partition *) buf;
-			if (memcmp(part->signature, "PM", 2) != 0)
+			if (part->signature[0] != 'P' || part->signature[1] != 'M') /* not "PM" */
 				return -1;
 
 			poff = be32_to_cpu(part->start_block) * bsize;
 			plen = be32_to_cpu(part->block_count) * bsize;
 			dbg("found '%s' partition entry at 0x%llx, len 0x%llx",
-			    part->type, (unsigned long long) poff, (unsigned long long) plen);
+					part->type, (unsigned long long) poff,
+					(unsigned long long) plen);
 
-			id->partitions[i].off = poff;
-			id->partitions[i].len = plen;
+//			id->partitions[i].pt_off = poff;
+//			id->partitions[i].pt_len = plen;
 
-			if (memcmp(part->type, "Apple_Free", 10) == 0) {
-				volume_id_set_usage_part(&id->partitions[i], VOLUME_ID_UNUSED);
-			} else if (memcmp(part->type, "Apple_partition_map", 19) == 0) {
-				volume_id_set_usage_part(&id->partitions[i], VOLUME_ID_PARTITIONTABLE);
-			} else {
-				volume_id_set_usage_part(&id->partitions[i], VOLUME_ID_UNPROBED);
-			}
+//			if (memcmp(part->type, "Apple_Free", 10) == 0) {
+//				volume_id_set_usage_part(&id->partitions[i], VOLUME_ID_UNUSED);
+//			} else if (memcmp(part->type, "Apple_partition_map", 19) == 0) {
+//				volume_id_set_usage_part(&id->partitions[i], VOLUME_ID_PARTITIONTABLE);
+//			} else {
+//				volume_id_set_usage_part(&id->partitions[i], VOLUME_ID_UNPROBED);
+//			}
 		}
-		volume_id_set_usage(id, VOLUME_ID_PARTITIONTABLE);
-		id->type = "mac_partition_map";
+//		volume_id_set_usage(id, VOLUME_ID_PARTITIONTABLE);
+//		id->type = "mac_partition_map";
 		return 0;
 	}
 

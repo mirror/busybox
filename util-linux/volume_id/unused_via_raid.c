@@ -53,7 +53,7 @@ int volume_id_probe_via_raid(struct volume_id *id, uint64_t off, uint64_t size)
 	if (via == NULL)
 		return -1;
 
-	if (via->signature !=  cpu_to_le16(VIA_SIGNATURE))
+	if (via->signature != cpu_to_le16(VIA_SIGNATURE))
 		return -1;
 
 	if (via->version_number > 1)
