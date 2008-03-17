@@ -72,7 +72,7 @@ config RESIZE
 	  terminal.
 
 config FEATURE_RESIZE_PRINT
-	bool "print environment variables"
+	bool "Print environment variables"
 	default n
 	depends on RESIZE
 	help

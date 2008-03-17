@@ -13,7 +13,7 @@ config INIT
 	  init is the first program run when the system boots.
 
 config DEBUG_INIT
-	bool "debugging aid"
+	bool "Debugging aid"
 	default n
 	depends on INIT
 	help

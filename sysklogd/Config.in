@@ -65,7 +65,7 @@ config FEATURE_IPC_SYSLOG
 	  break badly.
 
 config FEATURE_IPC_SYSLOG_BUFFER_SIZE
-	int "    Circular buffer size in Kbytes (minimum 4KB)"
+	int "Circular buffer size in Kbytes (minimum 4KB)"
 	default 16
 	range 4 2147483647
 	depends on FEATURE_IPC_SYSLOG
@@ -84,7 +84,7 @@ config LOGREAD
 	  stored in the syslogd circular buffer.
 
 config FEATURE_LOGREAD_REDUCED_LOCKING
-	bool "logread double buffering"
+	bool "Double buffering"
 	default n
 	depends on LOGREAD
 	help

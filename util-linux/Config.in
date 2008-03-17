@@ -18,7 +18,7 @@ config DMESG
 	  wish to enable the 'dmesg' utility.
 
 config FEATURE_DMESG_PRETTY
-	bool "pretty dmesg output"
+	bool "Pretty dmesg output"
 	default y
 	depends on DMESG
 	help
@@ -93,7 +93,7 @@ config FDISK
 	  'disk slices' that are defined on a hard drive.
 
 config FDISK_SUPPORT_LARGE_DISKS
-	bool "support over 4GB disks"
+	bool "Support over 4GB disks"
 	default y
 	depends on FDISK
 	help
@@ -221,13 +221,6 @@ config HEXDUMP
 	  The hexdump utility is used to display binary data in a readable
 	  way that is comparable to the output from most hex editors.
 
-config HD
-	bool "hd"
-	default n
-	select HEXDUMP
-	help
-	  hd is an alias to hexdump -C.
-
 config FEATURE_HEXDUMP_REVERSE
 	bool "Support -R, reverse of 'hexdump -Cv'"
 	default n
@@ -237,6 +230,13 @@ config FEATURE_HEXDUMP_REVERSE
 	  readable way. This option creates binary data from an ascii input.
 	  NB: this option is non-standard. It's unwise to use it in scripts
 	  aimed to be portable.
+
+config HD
+	bool "hd"
+	default n
+	select HEXDUMP
+	help
+	  hd is an alias to hexdump -C.
 
 config HWCLOCK
 	bool "hwclock"
@@ -356,7 +356,7 @@ config MKSWAP
 	  the swap space using the 'swapon' utility.
 
 config FEATURE_MKSWAP_V0
-	bool "version 0 support"
+	bool "Version 0 support"
 	default n
 	depends on MKSWAP
 #	depends on MKSWAP && DEPRECATED
@@ -607,14 +607,14 @@ config MOUNT
 	  the 'mount' utility.
 
 config FEATURE_MOUNT_FAKE
-	bool "mount -f option"
+	bool "Support option -f"
 	default n
 	depends on MOUNT
 	help
 	  Enable support for faking a file system mount.
 
 config FEATURE_MOUNT_VERBOSE
-	bool "mount -v option"
+	bool "Support option -v"
 	default n
 	depends on MOUNT
 	help
@@ -635,7 +635,7 @@ config FEATURE_MOUNT_HELPERS
 	  The idea is to use such virtual filesystems in /etc/fstab.
 
 config FEATURE_MOUNT_LABEL
-	bool "  Support specifiying devices by label or UUID"
+	bool "Support specifiying devices by label or UUID"
 	default n
 	depends on MOUNT
 	select FINDFS
@@ -758,7 +758,7 @@ config UMOUNT
 	  also want to enable 'umount'.
 
 config FEATURE_UMOUNT_ALL
-	bool "umount -a option"
+	bool "Support option -a"
 	default n
 	depends on UMOUNT
 	help
@@ -808,4 +808,3 @@ config FEATURE_MTAB_SUPPORT
 	  your kernel.
 
 endmenu
-

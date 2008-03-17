@@ -55,7 +55,7 @@ config BRCTL
 	  Supports addbr/delbr and addif/delif.
 
 #config FEATURE_BRCTL_SHOW
-#	bool "support show, showmac and showstp"
+#	bool "Support show, showmac and showstp"
 #	default n
 #	depends on BRCTL
 #	help
@@ -63,7 +63,7 @@ config BRCTL
 #	    showmacs, showstp, show
 
 config FEATURE_BRCTL_FANCY
-	bool "fancy options"
+	bool "Fancy options"
 	default n
 	depends on BRCTL
 	help
@@ -142,7 +142,7 @@ config FEATURE_HTTPD_USE_SENDFILE
 	  instead of read/write loop.
 
 config FEATURE_HTTPD_RELOAD_CONFIG_SIGHUP
-	bool "Support reloading the global config file using hup signal"
+	bool "Support reloading of global config file on HUP signal"
 	default n
 	depends on HTTPD
 	help
@@ -192,7 +192,7 @@ config FEATURE_HTTPD_CGI
 	  when specific URLs are requested.
 
 config FEATURE_HTTPD_CONFIG_WITH_SCRIPT_INTERPR
-	bool "Enable support for running scripts through an interpreter"
+	bool "Support for running scripts through an interpreter"
 	default n
 	depends on FEATURE_HTTPD_CGI
 	help
@@ -203,7 +203,7 @@ config FEATURE_HTTPD_CONFIG_WITH_SCRIPT_INTERPR
 	  *.php:/path/to/your/php
 
 config FEATURE_HTTPD_SET_REMOTE_PORT_TO_ENV
-	bool "Support the REMOTE_PORT environment variable for CGI"
+	bool "Set REMOTE_PORT environment variable for CGI"
 	default n
 	depends on FEATURE_HTTPD_CGI
 	help
@@ -211,17 +211,17 @@ config FEATURE_HTTPD_SET_REMOTE_PORT_TO_ENV
 	  references that contain a unique port number.
 
 config FEATURE_HTTPD_ENCODE_URL_STR
-	bool "Enable the -e option for shell script CGI simplification."
+	bool "Enable -e option (useful for CGIs written as shell scripts)"
 	default y
 	depends on HTTPD
 	help
-	  This option allows html encoding arbitrary
-	  strings for display of the browser.  Output goes to stdout.
-	  For example, httpd -e "<Hello World>" as
+	  This option allows html encoding of arbitrary strings for display
+	  by the browser.  Output goes to stdout.
+	  For example, httpd -e "<Hello World>" produces
 	  "&#60Hello&#32World&#62".
 
 config FEATURE_HTTPD_ERROR_PAGES
-	bool "Enable support for custom error pages"
+	bool "Support for custom error pages"
 	default n
 	depends on HTTPD
 	help
@@ -234,7 +234,7 @@ config FEATURE_HTTPD_ERROR_PAGES
 	  message.
 
 config FEATURE_HTTPD_PROXY
-	bool "Enable support for reverse proxy"
+	bool "Support for reverse proxy"
 	default n
 	depends on HTTPD
 	help
@@ -363,14 +363,14 @@ config FEATURE_IFUPDOWN_IFCONFIG_BUILTIN
 	  work.
 
 config FEATURE_IFUPDOWN_IPV4
-	bool "Enable support for IPv4"
+	bool "Support for IPv4"
 	default y
 	depends on IFUPDOWN
 	help
 	  If you want ifup/ifdown to talk IPv4, leave this on.
 
 config FEATURE_IFUPDOWN_IPV6
-	bool "Enable support for IPv6"
+	bool "Support for IPv6"
 	default n
 	depends on IFUPDOWN && FEATURE_IPV6
 	help
@@ -378,7 +378,7 @@ config FEATURE_IFUPDOWN_IPV6
 
 ### UNUSED
 ###config FEATURE_IFUPDOWN_IPX
-###	bool "Enable support for IPX"
+###	bool "Support for IPX"
 ###	default n
 ###	depends on IFUPDOWN
 ###	help
@@ -394,7 +394,7 @@ config FEATURE_IFUPDOWN_MAPPING
 	  a weird network setup you don't need it.
 
 config FEATURE_IFUPDOWN_EXTERNAL_DHCP
-	bool "Enable support for external dhcp clients"
+	bool "Support for external dhcp clients"
 	default n
 	depends on IFUPDOWN
 	help
@@ -497,7 +497,7 @@ config FEATURE_IP_RULE
 	  Add support for rule commands to "ip".
 
 config FEATURE_IP_SHORT_FORMS
-	bool "Support short forms of ip commands."
+	bool "Support short forms of ip commands"
 	default n
 	depends on IP
 	help
@@ -625,7 +625,7 @@ config NETSTAT
 	  netstat prints information about the Linux networking subsystem.
 
 config FEATURE_NETSTAT_WIDE
-	bool "  Enable wide netstat output"
+	bool "Enable wide netstat output"
 	default n
 	depends on NETSTAT
 	help
@@ -895,5 +895,17 @@ config ZCIP
 
 	  See http://www.zeroconf.org for further details, and "zcip.script"
 	  in the busybox examples.
+
+config TCPSVD
+	bool "tcpsvd"
+	default n
+	help
+	  tcpsvd listens on a TCP port and runs a program for each new connection
+
+config UDPSVD
+	bool "udpsvd"
+	default n
+	help
+	  udpsvd listens on an UDP port and runs a program for each new connection
 
 endmenu

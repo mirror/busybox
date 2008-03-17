@@ -178,7 +178,7 @@ config DEVFSD_VERBOSE
 	  Increases logging to stderr or syslog.
 
 config FEATURE_DEVFS
-	bool "  Use devfs names for all devices (obsolete)"
+	bool "Use devfs names for all devices (obsolete)"
 	default n
 	help
 	  This is obsolete and will be going away at the end of 2008..
@@ -194,7 +194,7 @@ config EJECT
 	  Used to eject cdroms.  (defaults to /dev/cdrom)
 
 config FEATURE_EJECT_SCSI
-  bool "eject scsi support"
+  bool "SCSI support"
   default n
   depends on EJECT
   help
@@ -437,7 +437,7 @@ config TASKSET
 	  This requires sched_{g,s}etaffinity support in your libc.
 
 config FEATURE_TASKSET_FANCY
-	bool "fancy output"
+	bool "Fancy output"
 	default y
 	depends on TASKSET
 	help

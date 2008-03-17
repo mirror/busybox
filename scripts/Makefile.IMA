@@ -63,9 +63,6 @@ lib-y:=
 include runit/Kbuild
 lib-all-y += $(patsubst %,runit/%,$(sort $(lib-y)))
 lib-y:=
-include ipsvd/Kbuild
-lib-all-y += $(patsubst %,ipsvd/%,$(sort $(lib-y)))
-lib-y:=
 include modutils/Kbuild
 lib-all-y += $(patsubst %,modutils/%,$(sort $(lib-y)))
 lib-y:=

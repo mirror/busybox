@@ -111,7 +111,7 @@ config LOCALE_SUPPORT
 	  busybox to support locale settings.
 
 config GETOPT_LONG
-	bool "Enable support for --long-options"
+	bool "Support for --long-options"
 	default y
 	help
 	  Enable this if you want busybox applets to use the gnu --long-option
@@ -567,4 +567,3 @@ source sysklogd/Config.in
 source runit/Config.in
 source selinux/Config.in
 source printutils/Config.in
-source ipsvd/Config.in

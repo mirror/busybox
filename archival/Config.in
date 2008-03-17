@@ -29,7 +29,7 @@ config AR
 	  probably say N here.
 
 config FEATURE_AR_LONG_FILENAMES
-	bool "Enable support for long filenames (not need for debs)"
+	bool "Support for long filenames (not need for debs)"
 	default n
 	depends on AR
 	help
@@ -99,7 +99,7 @@ config DPKG_DEB
 	  probably say N here.
 
 config FEATURE_DPKG_DEB_EXTRACT_ONLY
-	bool "extract only (-x)"
+	bool "Extract only (-x)"
 	default n
 	depends on DPKG_DEB
 	help
@@ -215,7 +215,7 @@ config FEATURE_TAR_FROM
 	  a list of files to include or exclude from an archive.
 
 config FEATURE_TAR_OLDGNU_COMPATIBILITY
-	bool "Enable support for old tar header format"
+	bool "Support for old tar header format"
 	default N
 	depends on TAR
 	help
@@ -233,7 +233,7 @@ config FEATURE_TAR_OLDSUN_COMPATIBILITY
 	  It is said to be fixed in newer Sun tar, but "old" tarballs still exist.
 
 config FEATURE_TAR_GNU_EXTENSIONS
-	bool "Enable support for some GNU tar extensions"
+	bool "Support for GNU tar extensions (long filenames)"
 	default y
 	depends on TAR
 	help

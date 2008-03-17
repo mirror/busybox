@@ -206,17 +206,22 @@ static void fmt_time_bernstein_25(char *s)
 	bin2hex(s, (char*)pack, 12);
 }
 
-static unsigned processorstart(struct logdir *ld)
+static void processorstart(struct logdir *ld)
 {
+	char sv_ch;
 	int pid;
 
-	if (!ld->processor) return 0;
+	if (!ld->processor) return;
 	if (ld->ppid) {
 		warnx("processor already running", ld->name);
-		return 0;
+		return;
 	}
-	while ((pid = fork()) == -1)
-		pause2cannot("fork for processor", ld->name);
+
+	/* vfork'ed child trashes this byte, save... */
+	sv_ch = ld->fnsave[26];
+
+	while ((pid = vfork()) == -1)
+		pause2cannot("vfork for processor", ld->name);
 	if (!pid) {
 		char *prog[4];
 		int fd;
@@ -235,7 +240,7 @@ static unsigned processorstart(struct logdir *ld)
 			bb_error_msg(INFO"processing: %s/%s", ld->name, ld->fnsave);
 		fd = xopen(ld->fnsave, O_RDONLY|O_NDELAY);
 		xmove_fd(fd, 0);
-		ld->fnsave[26] = 't';
+		ld->fnsave[26] = 't'; /* <- that's why we need sv_ch! */
 		fd = xopen(ld->fnsave, O_WRONLY|O_NDELAY|O_TRUNC|O_CREAT);
 		xmove_fd(fd, 1);
 		fd = open_read("state");
@@ -257,8 +262,8 @@ static unsigned processorstart(struct logdir *ld)
 		execv("/bin/sh", prog);
 		bb_perror_msg_and_die(FATAL"cannot %s processor %s", "run", ld->name);
 	}
+	ld->fnsave[26] = sv_ch; /* ...restore */
 	ld->ppid = pid;
-	return 1;
 }
 
 static unsigned processorstop(struct logdir *ld)

@@ -40,3 +40,6 @@ lib-$(CONFIG_TRACEROUTE)   += traceroute.o
 lib-$(CONFIG_VCONFIG)      += vconfig.o
 lib-$(CONFIG_WGET)         += wget.o
 lib-$(CONFIG_ZCIP)         += zcip.o
+
+lib-$(CONFIG_TCPSVD)       += tcpudp.o tcpudp_perhost.o
+lib-$(CONFIG_UDPSVD)       += tcpudp.o tcpudp_perhost.o
