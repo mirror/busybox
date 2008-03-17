@@ -941,20 +941,20 @@ extern void selinux_or_die(void);
 extern int restricted_shell(const char *shell);
 
 /* setup_environment:
- * if loginshell = 1: cd(pw->pw_dir), clear environment, then set
+ * if clear_env = 1: cd(pw->pw_dir), clear environment, then set
  *   TERM=(old value)
  *   USER=pw->pw_name, LOGNAME=pw->pw_name
  *   PATH=bb_default_[root_]path
  *   HOME=pw->pw_dir
  *   SHELL=shell
- * else if changeenv = 1:
+ * else if change_env = 1:
  *   if not root (if pw->pw_uid != 0):
  *     USER=pw->pw_name, LOGNAME=pw->pw_name
  *   HOME=pw->pw_dir
  *   SHELL=shell
  * else does nothing
  */
-extern void setup_environment(const char *shell, int loginshell, int changeenv, const struct passwd *pw);
+extern void setup_environment(const char *shell, int clear_env, int change_env, const struct passwd *pw);
 extern int correct_password(const struct passwd *pw);
 /* Returns a ptr to static storage */
 extern char *pw_encrypt(const char *clear, const char *salt);

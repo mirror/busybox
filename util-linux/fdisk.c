@@ -318,6 +318,23 @@ struct globals {
 } while (0)
 
 
+/* TODO: move to libbb? */
+static ullong bb_BLKGETSIZE_sectors(void)
+{
+	uint64_t v64;
+	unsigned long longsectors;
+
+	if (ioctl(fd, BLKGETSIZE64, &v64) == 0) {
+		/* got bytes, convert to 512 byte sectors */
+		return (v64 >> 9);
+	}
+	/* Needs temp of type long */
+	if (ioctl(fd, BLKGETSIZE, &longsectors))
+		longsectors = 0;
+	return longsectors;
+}
+
+
 #define IS_EXTENDED(i) \
 	((i) == EXTENDED || (i) == WIN98_EXTENDED || (i) == LINUX_EXTENDED)
 
@@ -624,12 +641,12 @@ get_nr_sects(const struct partition *p)
 /* normally O_RDWR, -l option gives O_RDONLY */
 static int type_open = O_RDWR;
 
-static int ext_index;               /* the prime extended partition */
-static smallint listing;                 /* no aborts for fdisk -l */
-static int dos_compatible_flag = ~0;
+static int ext_index;                   /* the prime extended partition */
+static smallint listing;                /* no aborts for fdisk -l */
+static smallint dos_compatible_flag = 1;
 #if ENABLE_FEATURE_FDISK_WRITABLE
 //static int dos_changed;
-static smallint nowarn;            /* no warnings for fdisk -l/-s */
+static smallint nowarn;                 /* no warnings for fdisk -l/-s */
 #endif
 
 static unsigned user_cylinders, user_heads, user_sectors;
@@ -1184,7 +1201,6 @@ static void
 get_geometry(void)
 {
 	int sec_fac;
-	uint64_t v64;
 
 	get_sectorsize();
 	sec_fac = sector_size / 512;
@@ -1204,15 +1220,7 @@ get_geometry(void)
 	g_sectors = user_sectors ? user_sectors :
 		pt_sectors ? pt_sectors :
 		kern_sectors ? kern_sectors : 63;
-	if (ioctl(fd, BLKGETSIZE64, &v64) == 0) {
-		/* got bytes, convert to 512 byte sectors */
-		total_number_of_sectors = (v64 >> 9);
-	} else {
-		unsigned long longsectors; /* need temp of type long */
-		if (ioctl(fd, BLKGETSIZE, &longsectors))
-			longsectors = 0;
-		total_number_of_sectors = longsectors;
-	}
+	total_number_of_sectors = bb_BLKGETSIZE_sectors();
 
 	sector_offset = 1;
 	if (dos_compatible_flag)
@@ -1576,7 +1584,7 @@ toggle_active(int i)
 static void
 toggle_dos_compatibility_flag(void)
 {
-	dos_compatible_flag = ~dos_compatible_flag;
+	dos_compatible_flag = 1 - dos_compatible_flag;
 	if (dos_compatible_flag) {
 		sector_offset = g_sectors;
 		printf("DOS Compatibility flag is set\n");
@@ -2732,7 +2740,8 @@ tryprocpt(void)
 		if (sscanf(line, " %d %d %d %[^\n ]",
 				&ma, &mi, &sz, ptname) != 4)
 			continue;
-		for (s = ptname; *s; s++);
+		for (s = ptname; *s; s++)
+			continue;
 		if (isdigit(s[-1]))
 			continue;
 		sprintf(devname, "/dev/%s", ptname);
@@ -2798,28 +2807,19 @@ int fdisk_main(int argc, char **argv)
 	if (opt & OPT_u)
 		display_in_cyl_units = 0; // -u
 
-	if (user_set_sector_size && argc != 1)
-		printf("Warning: the -b (set sector size) option should"
-			 " be used with one specified device\n");
-
 #if ENABLE_FEATURE_FDISK_WRITABLE
 	if (opt & OPT_l) {
 		nowarn = 1;
 #endif
 		type_open = O_RDONLY;
-		if (argc > 0) {
-			int k;
-#if defined(__GNUC__)
-			/* avoid gcc warning:
-			   variable `k' might be clobbered by `longjmp' */
-			(void)&k;
-#endif
+		if (*argv) {
 			listing = 1;
-			for (k = 0; k < argc; k++)
-				trydev(argv[k], 1);
+			do {
+				trydev(*argv, 1);
+			} while (*++argv);
 		} else {
-			/* we no longer have default device names */
-			/* but, we can use /proc/partitions instead */
+			/* we don't have device names, */
+			/* use /proc/partitions instead */
 			tryprocpt();
 		}
 		return 0;
@@ -2829,27 +2829,20 @@ int fdisk_main(int argc, char **argv)
 
 #if ENABLE_FEATURE_FDISK_BLKSIZE
 	if (opt & OPT_s) {
-		long size;
 		int j;
 
 		nowarn = 1;
-		type_open = O_RDONLY;
-
 		if (argc <= 0)
 			bb_show_usage();
-
 		for (j = 0; j < argc; j++) {
-			disk_device = argv[j];
-			fd = open(disk_device, type_open);
-			if (fd < 0)
-				fdisk_fatal(unable_to_open);
-			if (ioctl(fd, BLKGETSIZE, &size))
-				fdisk_fatal(ioctl_error);
+			unsigned long long size;
+			fd = xopen(argv[j], O_RDONLY);
+			size = bb_BLKGETSIZE_sectors() / 2;
 			close(fd);
 			if (argc == 1)
-				printf("%ld\n", size/2);
+				printf("%lld\n", size);
 			else
-				printf("%s: %ld\n", argv[j], size/2);
+				printf("%s: %lld\n", argv[j], size);
 		}
 		return 0;
 	}

@@ -6,6 +6,8 @@
  * 2. Do not use \t in messages, use real tab character.
  * 3. Start each source line with message as follows:
  *    |<7 spaces>"text with tabs"....
+ * or
+ *    |<5 spaces>"\ntext with tabs"....
  */
 
 #ifndef __BB_USAGE_H__
@@ -14,14 +16,14 @@
 #define addgroup_trivial_usage \
        "[-g GID]"USE_FEATURE_ADDUSER_TO_GROUP(" [user_name]")" group_name"
 #define addgroup_full_usage \
-       "Add a group to the system"USE_FEATURE_ADDUSER_TO_GROUP(" or add an user to a group") \
+       "Add a group"USE_FEATURE_ADDUSER_TO_GROUP(" or add an user to a group") \
        "\n\nOptions:\n" \
        "	-g GID	Group id"
 
 #define adduser_trivial_usage \
        "[OPTIONS] user_name"
 #define adduser_full_usage \
-       "Add a user to the system" \
+       "Add an user" \
        "\n\nOptions:\n" \
        "	-h DIR		Home directory\n" \
        "	-g GECOS	GECOS field\n" \
@@ -63,17 +65,17 @@
        "[-v]	[-H type] [-i if] -s hostname hw_addr [netmask nm] pub\n" \
        "[-v]	[-H type] [-i if] -Ds hostname ifa [netmask nm] pub\n"
 #define arp_full_usage \
-       "Manipulate the system ARP cache" \
+       "Manipulate ARP cache" \
        "\n\nOptions:" \
        "\n	-a		Display (all) hosts" \
-       "\n	-s		Set a new ARP entry" \
+       "\n	-s		Set new ARP entry" \
        "\n	-d		Delete a specified entry" \
        "\n	-v		Verbose" \
        "\n	-n		Don't resolve names" \
-       "\n	-i if		Network interface (e.g. eth0)" \
+       "\n	-i IF		Network interface" \
        "\n	-D		Read <hwaddr> from given device" \
-       "\n	-A, -p		Protocol family" \
-       "\n	-H hwtype	Hardware address type"
+       "\n	-A, -p AF	Protocol family" \
+       "\n	-H HWTYPE	Hardware address type"
 
 #define arping_trivial_usage \
        "[-fqbDUA] [-c count] [-w timeout] [-I dev] [-s sender] target"
@@ -96,7 +98,7 @@
        "[FILE]...\n" \
        "or: ash -c command [args]..."
 #define ash_full_usage \
-       "The ash shell (command interpreter)"
+       "The ash shell"
 
 #define awk_trivial_usage \
        "[OPTION]... [program-text] [FILE...]"
@@ -124,38 +126,38 @@
 #define brctl_full_usage \
        "Manage ethernet bridges." \
        "\n\nCommands:\n" \
-       "	addbr <bridge>		Create <bridge>\n" \
-       "	delbr <bridge>		Delete <bridge>\n" \
-       "	addif <bridge> <iface>	Add <iface> to <bridge>\n" \
-       "	delif <bridge> <iface>	Delete <iface> from <bridge>" \
+       "	addbr BRIDGE		Create BRIDGE\n" \
+       "	delbr BRIDGE		Delete BRIDGE\n" \
+       "	addif BRIDGE IFACE	Add IFACE to BRIDGE\n" \
+       "	delif BRIDGE IFACE	Delete IFACE from BRIDGE" \
 USE_FEATURE_BRCTL_FANCY("\n" \
-       "	setageing <bridge <time>	set ageing time\n" \
-       "	setfd <bridge <time>		set bridge forward delay\n" \
-       "	sethello <bridge <time>		set hello time\n" \
-       "	setmaxage <bridge <time>	set max message age\n" \
-       "	setpathcost <bridge <cost>	set path cost\n" \
-       "	setportprio <bridge <prio>	set port priority\n" \
-       "	setbridgeprio <bridge <prio>	set bridge priority\n" \
-       "	stp <bridge> [1|0]		turn stp on/off\n" \
+       "	setageing BRIDGE TIME		Set ageing time\n" \
+       "	setfd BRIDGE TIME		Set bridge forward delay\n" \
+       "	sethello BRIDGE TIME		Set hello time\n" \
+       "	setmaxage BRIDGE TIME		Set max message age\n" \
+       "	setpathcost BRIDGE COST		Set path cost\n" \
+       "	setportprio BRIDGE PRIO		Set port priority\n" \
+       "	setbridgeprio BRIDGE PRIO	Set bridge priority\n" \
+       "	stp BRIDGE [1|0]		STP on/off\n" \
 )
 #define bunzip2_trivial_usage \
        "[OPTION]... [FILE]"
 #define bunzip2_full_usage \
        "Uncompress FILE (or standard input if FILE is '-' or omitted)" \
        "\n\nOptions:\n" \
-       "	-c	Write output to standard output\n" \
+       "	-c	Write to standard output\n" \
        "	-f	Force"
 
 #define bzip2_trivial_usage \
        "[OPTION]... [FILE]..."
 #define bzip2_full_usage \
        "Compress FILE(s) with bzip2 algorithm.\n" \
-       "When FILE is '-' or unspecified, reads standard input. Implies -c." \
-       "\n\nOptions:" \
-       "\n	-c	Write output to standard output instead of FILE.bz2" \
-       "\n	-d	Decompress" \
-       "\n	-f	Force" \
-       "\n	-1..-9	Compression level"
+       "When FILE is '-' or unspecified, reads standard input. Implies -c.\n" \
+     "\nOptions:" \
+     "\n	-c	Write to standard output" \
+     "\n	-d	Decompress" \
+     "\n	-f	Force" \
+     "\n	-1..-9	Compression level"
 
 #define busybox_notes_usage \
        "Hello world!\n"
@@ -170,7 +172,7 @@ USE_FEATURE_BRCTL_FANCY("\n" \
 #define unlzma_full_usage \
        "Uncompress FILE (or standard input if FILE is '-' or omitted)" \
        "\n\nOptions:\n" \
-       "	-c	Write output to standard output\n" \
+       "	-c	Write to standard output\n" \
        "	-f	Force"
 
 #define lzmacat_trivial_usage \
@@ -742,7 +744,7 @@ USE_FEATURE_BRCTL_FANCY("\n" \
 #define dnsd_trivial_usage \
        "[-c config] [-t seconds] [-p port] [-i iface-ip] [-d]"
 #define dnsd_full_usage \
-       "Small and static DNS server daemon" \
+       "Small static DNS server daemon" \
        "\n\nOptions:\n" \
        "	-c	Config filename\n" \
        "	-t	TTL in seconds\n" \
@@ -753,12 +755,11 @@ USE_FEATURE_BRCTL_FANCY("\n" \
 #define dos2unix_trivial_usage \
        "[option] [FILE]"
 #define dos2unix_full_usage \
-       "Convert FILE from dos format to unix format. When no option\n" \
-       "is given, the input is converted to the opposite output format.\n" \
-       "When no file is given, use stdin for input and stdout for output." \
-       "\n\nOptions:\n" \
-       "	-u	Output will be in UNIX format\n" \
-       "	-d	Output will be in DOS format"
+       "Convert FILE from dos to unix format.\n" \
+       "When no file is given, use stdin/stdout.\n" \
+     "\nOptions:\n" \
+     "\n	-u	dos2unix" \
+     "\n	-d	unix2dos"
 
 #define dpkg_trivial_usage \
        "[-ilCPru] [-F option] package_name"
@@ -795,19 +796,19 @@ USE_FEATURE_BRCTL_FANCY("\n" \
 	SKIP_FEATURE_DU_DEFAULT_BLOCKSIZE_1K("512") \
        " bytes." \
        "\n\nOptions:\n" \
-       "	-a	Show sizes of files in addition to directories\n" \
-       "	-H	Follow symlinks that are FILE command line args\n" \
-       "	-L	Follow all symlinks encountered\n" \
+       "	-a	Show file sizes too\n" \
+       "	-H	Follow symlinks on command line\n" \
+       "	-L	Follow all symlinks\n" \
        "	-d N	Limit output to directories (and files with -a) of depth < N\n" \
-       "	-c	Output a grand total\n" \
+       "	-c	Show grand total\n" \
        "	-l	Count sizes many times if hard linked\n" \
        "	-s	Display only a total for each argument\n" \
        "	-x	Skip directories on different filesystems\n" \
 	USE_FEATURE_HUMAN_READABLE( \
-       "	-h	Print sizes in human readable format (e.g., 1K 243M 2G )\n" \
-       "	-m	Print sizes in megabytes\n" \
+       "	-h	Sizes in human readable format (e.g., 1K 243M 2G )\n" \
+       "	-m	Sizes in megabytes\n" \
 	) \
-       "	-k	Print sizes in kilobytes" \
+       "	-k	Sizes in kilobytes" \
 	USE_FEATURE_DU_DEFAULT_BLOCKSIZE_1K("(default)")
 #define du_example_usage \
        "$ du\n" \
@@ -1012,19 +1013,27 @@ USE_FEATURE_BRCTL_FANCY("\n" \
        "\n\nOptions:\n" \
        "	-n	Don't verify after format"
 
+/* Looks like someone forgot to add this to config system */
+#ifndef ENABLE_FEATURE_FDISK_BLKSIZE
+# define ENABLE_FEATURE_FDISK_BLKSIZE 0
+# define USE_FEATURE_FDISK_BLKSIZE(a)
+#endif
+
 #define fdisk_trivial_usage \
-       "[-luv] [-C CYLINDERS] [-H HEADS] [-S SECTORS] [-b SSZ] DISK"
+       "[-ul" USE_FEATURE_FDISK_BLKSIZE("s") "] " \
+       "[-C CYLINDERS] [-H HEADS] [-S SECTORS] [-b SSZ] DISK"
 #define fdisk_full_usage \
-       "Change partition table" \
-       "\n\nOptions:\n" \
-       "	-l		List partition table(s)\n" \
-       "	-u		Give Start and End in sector (instead of cylinder) units\n" \
-       "	-s PARTITION	Give partition size(s) in blocks\n" \
-       "	-b 2048		(for certain MO disks) use 2048-byte sectors\n" \
-       "	-C CYLINDERS	Set the number of cylinders\n" \
-       "	-H HEADS	Set the number of heads\n" \
-       "	-S SECTORS	Set the number of sectors\n" \
-       "	-v		Give fdisk version"
+       "Change partition table\n" \
+     "\nOptions:\n" \
+     "\n	-u		Start and End are in sectors (instead of cylinders)" \
+     "\n	-l		Show partition table for each DISK, then exit" \
+	USE_FEATURE_FDISK_BLKSIZE( \
+     "\n	-s		Show partition sizes in kb for each DISK, then exit" \
+	) \
+     "\n	-b 2048		(for certain MO disks) use 2048-byte sectors" \
+     "\n	-C CYLINDERS	Set number of cylinders/heads/sectors" \
+     "\n	-H HEADS\n" \
+     "\n	-S SECTORS" \
 
 #define fetchmail_trivial_usage \
        "[-w timeout] [-U user] -P password [-X] [-t] [-z] server[:port] maildir [prog]"
@@ -1032,25 +1041,25 @@ USE_FEATURE_BRCTL_FANCY("\n" \
        "Fetch content of remote mailbox to local Maildir." \
        "\n\nOptions:\n" \
        "	-w timeout	Set timeout on network operations\n" \
-       "	-U username	Authenticate with specified username\n" \
-       "	-P password	Authenticate with specified password\n" \
+       "	-U username	Authenticate with specified username/password\n" \
+       "	-P password\n" \
        "	-X		Use openssl connection helper for secured servers\n" \
        "	-t		Get only headers\n" \
        "	-z		Delete messages on server\n" \
-       "        prog		Run prog <message file> on message delivery"
+       "        prog		Run prog <message_file> on message delivery"
 
 #define findfs_trivial_usage \
        "LABEL=label or UUID=uuid"
 #define findfs_full_usage \
-       "Finds a filesystem device based on a label or UUID."
+       "Find a filesystem device based on a label or UUID."
 #define findfs_example_usage \
        "$ findfs LABEL=MyDevice"
 
 #define find_trivial_usage \
        "[PATH...] [EXPRESSION]"
 #define find_full_usage \
-       "Search for files in a directory hierarchy. The default PATH is\n" \
-       "the current directory, default EXPRESSION is '-print'\n" \
+       "Search for files. The default PATH is the current directory,\n" \
+       "default EXPRESSION is '-print'\n" \
      "\nEXPRESSION may consist of:" \
      "\n	-follow		Dereference symlinks" \
 	USE_FEATURE_FIND_XDEV( \
@@ -1202,15 +1211,15 @@ USE_FEATURE_BRCTL_FANCY("\n" \
 	)
 
 #define fuser_trivial_usage \
-       "[options] file OR port/proto"
+       "[options] FILE or PORT/PROTO"
 #define fuser_full_usage \
        "Options:\n" \
        "	-m	Show all processes on the same mounted fs\n" \
-       "	-k	Kill all processes that match\n" \
        "	-s	Don't print or kill anything\n" \
-       "	-4	When using port/proto only search IPv4 space\n" \
-       "	-6	When using port/proto only search IPv6 space\n" \
-       "	-SIGNAL	When used with -k, this signal will be used to kill"
+       "	-4	Search only IPv4 space\n" \
+       "	-6	Search only IPv6 space\n" \
+       "	-k	Kill all processes that match\n" \
+       "	-SIGNAL	Signal to send (default: TERM)"
 
 #define getenforce_trivial_usage
 #define getenforce_full_usage
@@ -1274,7 +1283,7 @@ USE_FEATURE_BRCTL_FANCY("\n" \
        "\n\nOptions:\n" \
        "	-h		Enable hardware (RTS/CTS) flow control\n" \
        "	-i		Do not display /etc/issue before running login\n" \
-       "	-L		Local line, so do not do carrier detect\n" \
+       "	-L		Local line, do not do carrier detect\n" \
        "	-m		Get baud rate from modem's CONNECT status message\n" \
        "	-w		Wait for a CR or LF before sending /etc/issue\n" \
        "	-n		Do not prompt the user for a login name\n" \
@@ -1330,9 +1339,9 @@ USE_FEATURE_BRCTL_FANCY("\n" \
 #define gunzip_full_usage \
        "Uncompress FILE (or standard input if FILE is '-')" \
        "\n\nOptions:\n" \
-       "	-c	Write output to standard output\n" \
+       "	-c	Write to standard output\n" \
        "	-f	Force\n" \
-       "	-t	Test compressed file integrity"
+       "	-t	Test file integrity"
 #define gunzip_example_usage \
        "$ ls -la /tmp/BusyBox*\n" \
        "-rw-rw-r--    1 andersen andersen   557009 Apr 11 10:55 /tmp/BusyBox-0.43.tar.gz\n" \
@@ -1346,7 +1355,7 @@ USE_FEATURE_BRCTL_FANCY("\n" \
        "Compress FILE(s) with maximum compression.\n" \
        "When FILE is '-' or unspecified, reads standard input. Implies -c." \
        "\n\nOptions:\n" \
-       "	-c	Write output to standard output instead of FILE.gz\n" \
+       "	-c	Write to standard output\n" \
        "	-d	Decompress\n" \
        "	-f	Force"
 #define gzip_example_usage \
@@ -1521,12 +1530,12 @@ USE_FEATURE_BRCTL_FANCY("\n" \
 #define hwclock_full_usage \
        "Query and set a hardware clock (RTC)" \
        "\n\nOptions:\n" \
-       "	-r	Read hardware clock and print result\n" \
-       "	-s	Set the system time from the hardware clock\n" \
-       "	-w	Set the hardware clock to the system time\n" \
-       "	-u	The hardware clock is kept in coordinated universal time\n" \
-       "	-l	The hardware clock is kept in local time\n" \
-       "	-f FILE	Use the specified clock (e.g. /dev/rtc2)"
+       "	-r	Show time from hardware clock\n" \
+       "	-s	Set system time from hardware clock\n" \
+       "	-w	Set hardware clock to system time\n" \
+       "	-u	Hardware clock is in UTC\n" \
+       "	-l	Hardware clock is in local time\n" \
+       "	-f FILE	Use specified device (e.g. /dev/rtc2)"
 
 #define id_trivial_usage \
        "[OPTIONS]... [USERNAME]"
@@ -1974,17 +1983,16 @@ USE_FEATURE_BRCTL_FANCY("\n" \
        "5\n"
 
 #define less_trivial_usage \
-       "[-EMNmh~?] FILE1 FILE2..."
+       "[-EMNmh~?] [FILE...]"
 #define less_full_usage \
        "View a file or list of files. The position within files can be\n" \
        "changed, and files can be manipulated in various ways." \
        "\n\nOptions:\n" \
        "	-E	Quit once the end of a file is reached\n" \
-       "	-M,-m	Display a status line containing the current line numbers\n" \
-       "		and the percentage through the file\n" \
+       "	-M,-m	Display a status line containing the line numbers\n" \
+       "		and percentage through the file\n" \
        "	-N	Prefix line numbers to each line\n" \
-       "	-~	Suppress ~s displayed when input past the end of the file is\n" \
-       "		reached"
+       "	-~	Suppress ~s displayed past the end of the file" \
 
 #define setarch_trivial_usage \
        "personality program [args...]"
@@ -2034,18 +2042,18 @@ USE_FEATURE_BRCTL_FANCY("\n" \
        "\n\nOptions:\n" \
        "	-s	Log to stderr as well as the system log\n" \
        "	-t TAG	Log using the specified tag (defaults to user name)\n" \
-       "	-p PRIO	Enter the message with the specified priority.\n" \
-       "		This may be numerical or a 'facility.level' pair."
+       "	-p PRIO	Priority (numeric or facility.level pair)"
+
 #define logger_example_usage \
        "$ logger \"hello\"\n"
 
 #define login_trivial_usage \
-       "[OPTION]... [username] [ENV=VAR...]"
+       "[-p] [-h HOST] [[-f] USER]"
 #define login_full_usage \
        "Begin a new session on the system" \
        "\n\nOptions:\n" \
        "	-f	Do not authenticate (user already authenticated)\n" \
-       "	-h	Name of the remote host for this login\n" \
+       "	-h	Name of the remote host\n" \
        "	-p	Preserve environment"
 
 #define logname_trivial_usage \
@@ -2059,9 +2067,9 @@ USE_FEATURE_BRCTL_FANCY("\n" \
 #define logread_trivial_usage \
        "[OPTION]..."
 #define logread_full_usage \
-       "Show the messages from syslogd (using circular buffer)" \
+       "Show messages in syslogd's circular buffer" \
        "\n\nOptions:\n" \
-       "	-f	Output data as the log grows"
+       "	-f	Output data as log grows"
 
 #define losetup_trivial_usage \
        "[-o OFS] LOOPDEV FILE - associate loop devices\n" \
@@ -2384,7 +2392,7 @@ USE_FEATURE_BRCTL_FANCY("\n" \
        "	-n [14|30]	Maximum length of filenames\n" \
        "	-i INODES	Number of inodes for the filesystem\n" \
        "	-l FILENAME	Read bad blocks list from FILENAME\n" \
-       "	-v		Make a Minix version 2 filesystem"
+       "	-v		Make version 2 filesystem"
 
 #define mknod_trivial_usage \
        "[OPTIONS] NAME TYPE MAJOR MINOR"
@@ -2809,30 +2817,28 @@ USE_FEATURE_BRCTL_FANCY("\n" \
        "\n\nOptions:\n" \
        "	-l	Show command name too\n" \
        "	-f	Match against entire command line\n" \
-       "	-n	Signal the newest process only\n" \
-       "	-o	Signal the oldest process only\n" \
+       "	-n	Show the newest process only\n" \
+       "	-o	Show the oldest process only\n" \
        "	-v	Negate the matching\n" \
        "	-x	Match whole name (not substring)"
 
 #if (ENABLE_FEATURE_PIDOF_SINGLE || ENABLE_FEATURE_PIDOF_OMIT)
-#define USAGE_PIDOF "Options:"
-#else
-#define USAGE_PIDOF "\nThis version of pidof accepts no options."
-#endif
-
 #define pidof_trivial_usage \
-       "process-name [OPTION] [process-name...]"
-
+       "[OPTION] [NAME...]"
+#define USAGE_PIDOF "\n\nOptions:"
+#else
+#define pidof_trivial_usage \
+       "[NAME...]"
+#define USAGE_PIDOF /* none */
+#endif
 #define pidof_full_usage \
-       "List the PIDs of all processes with names that match the\n" \
-       "names on the command line\n" \
+       "List PIDs of all processes with names that match NAMEs" \
 	USAGE_PIDOF \
 	USE_FEATURE_PIDOF_SINGLE( \
-       "\n	-s	Display only a single PID") \
+     "\n	-s	Show only one PID") \
 	USE_FEATURE_PIDOF_OMIT( \
-       "\n	-o PID	Omit given pid") \
-	USE_FEATURE_PIDOF_OMIT( \
-       "\n		Use %PPID to omit the parent pid of pidof itself")
+     "\n	-o PID	Omit given pid" \
+     "\n		Use %PPID to omit pid of pidof's parent")
 #define pidof_example_usage \
        "$ pidof init\n" \
        "1\n" \
@@ -3090,12 +3096,12 @@ USE_FEATURE_BRCTL_FANCY("\n" \
 #define rm_trivial_usage \
        "[OPTION]... FILE..."
 #define rm_full_usage \
-       "Remove (unlink) the FILE(s). You may use '--' to\n" \
+       "Remove (unlink) the FILE(s). Use '--' to\n" \
        "indicate that all following arguments are non-options." \
        "\n\nOptions:\n" \
-       "	-i	Always prompt before removing each destination\n" \
-       "	-f	Remove existing destinations, never prompt\n" \
-       "	-r,-R	Remove the contents of directories recursively"
+       "	-i	Always prompt before removing\n" \
+       "	-f	Never prompt\n" \
+       "	-r,-R	Remove directories recursively"
 #define rm_example_usage \
        "$ rm -rf /tmp/foo\n"
 
@@ -3189,12 +3195,14 @@ USE_FEATURE_BRCTL_FANCY("\n" \
 #define run_parts_trivial_usage \
        "[-t] "USE_FEATURE_RUN_PARTS_FANCY("[-l] ")"[-a ARG] [-u MASK] DIRECTORY"
 #define run_parts_full_usage \
-       "Run a bunch of scripts in a directory" \
-       "\n\nOptions:\n" \
-       "	-t	Prints what would be run, but does not actually run anything\n" \
-       "	-a ARG	Pass ARG as an argument for every program invoked\n" \
-       "	-u MASK	Set the umask to MASK before executing every program" \
-USE_FEATURE_RUN_PARTS_FANCY("\n	-l	Prints names of all matching files even when they are not executable")
+       "Run a bunch of scripts in a directory\n" \
+     "\nOptions:" \
+     "\n	-t	Print what would be run, but don't actually run anything" \
+     "\n	-a ARG	Pass ARG as argument for every program" \
+     "\n	-u MASK	Set the umask to MASK before running every program" \
+	USE_FEATURE_RUN_PARTS_FANCY( \
+     "\n	-l	Print names of all matching files even if they are not executable" \
+	)
 
 #define run_parts_example_usage \
        "$ run-parts -a start /etc/init.d\n" \
@@ -3251,7 +3259,7 @@ USE_FEATURE_RUN_PARTS_FANCY("\n	-l	Prints names of all matching files even when 
 #define sed_full_usage \
        "Options:\n" \
        "	-e script	Add the script to the commands to be executed\n" \
-       "	-f scriptfile	Add script-file contents to the\n" \
+       "	-f scriptfile	Add scriptfile contents to the\n" \
        "			commands to be executed\n" \
        "	-i		Edit files in-place\n" \
        "	-n		Suppress automatic printing of pattern space\n" \
@@ -3276,9 +3284,9 @@ USE_FEATURE_RUN_PARTS_FANCY("\n	-l	Prints names of all matching files even when 
        "Send an email with optional attachments." \
        "\n\nOptions:\n" \
        "	-w timeout	Set timeout on network operations\n" \
-       "	-U username	Authenticate with specified username\n" \
-       "	-P password	Authenticate with specified password\n" \
-       "	-t address	Recipient(s). May be multiple\n" \
+       "	-U username	Authenticate with specified username/password\n" \
+       "	-P password\n" \
+       "	-t address	Recipient(s). May be repeated\n" \
        "	-X		Use openssl connection helper for secured servers\n" \
        "	-n		Request delivery notification to sender\n" \
        "	-s subject	Subject\n" \
@@ -3813,19 +3821,15 @@ USE_FEATURE_RUN_PARTS_FANCY("\n	-l	Prints names of all matching files even when 
 #define telnet_trivial_usage \
        "[-a] [-l USER] HOST [PORT]"
 #define telnet_full_usage \
-       "Connect to remote telnet server" \
-       "\n\nOptions:\n" \
-       "	-a	Attempt an automatic login with the USER variable\n" \
-       "	-l USER	Attempt an automatic login with the USER argument\n" \
-       "	HOST	The official name, alias or the IP address of the\n" \
-       "		remote host\n" \
-       "	PORT	The remote port number to connect to. If it is not\n" \
-       "		specified, the default telnet (23) port is used."
+       "Connect to telnet server\n" \
+     "\nOptions:" \
+     "\n	-a	Attempt an automatic login with USER variable" \
+     "\n	-l USER	Attempt an automatic login with USER argument"
 #else
 #define telnet_trivial_usage \
        "HOST [PORT]"
 #define telnet_full_usage \
-       "Connect to remote telnet server"
+       "Connect to telnet server"
 #endif
 
 #define telnetd_trivial_usage \
@@ -3869,9 +3873,8 @@ USE_FEATURE_RUN_PARTS_FANCY("\n	-l	Prints names of all matching files even when 
 /* with not-implemented options: */
 /*     "[-hpEvv] [-c n] [-C n:msg] [-b n] [-u user] [-l name] [-i dir|-x cdb] [-t sec] ip port prog..." */
 #define tcpsvd_full_usage \
-       "Creates TCP socket, binds it to ip:port and listens on it\n" \
-       "for incoming connections. For each connection it runs prog." \
-     "\n" \
+       "Create TCP socket, bind it to ip:port and listen\n" \
+       "for incoming connection. Run PROG for each connection.\n" \
      "\nip		IP to listen on. '0' = all" \
      "\nport		Port to listen on" \
      "\nprog [arg]	Program to run" \
@@ -3889,10 +3892,9 @@ USE_FEATURE_RUN_PARTS_FANCY("\n	-l	Prints names of all matching files even when 
 #define udpsvd_trivial_usage \
        "[-hEv] [-c n] [-u user] [-l name] ip port prog"
 #define udpsvd_full_usage \
-       "Creates UDP socket, binds it to ip:port and listens on it\n" \
-       "for incoming packets. For each packet it runs prog\n" \
-       "(redirecting all further packets with same peer ip:port to it)." \
-     "\n" \
+       "Create UDP socket, bind it to ip:port and wait\n" \
+       "for incoming packets. Run PROG for each packet,\n" \
+       "redirecting all further packets with same peer ip:port to it\n" \
      "\nip		IP to listen on. '0' = all" \
      "\nport		Port to listen on" \
      "\nprog [arg]	Program to run" \
@@ -3928,10 +3930,10 @@ USE_FEATURE_RUN_PARTS_FANCY("\n	-l	Prints names of all matching files even when 
        "	-v	Verbose"
 
 #define top_trivial_usage \
-       "[-b] [-n count] [-d seconds]"
+       "[-b] [-n COUNT] [-d SECONDS]"
 #define top_full_usage \
        "Provide a view of process activity in real time.\n" \
-       "Read the status of all processes from /proc each <seconds>\n" \
+       "Read the status of all processes from /proc each SECONDS\n" \
        "and show the status for however many processes will fit on the screen."
 
 #define touch_trivial_usage \
@@ -4164,12 +4166,11 @@ USE_FEATURE_RUN_PARTS_FANCY("\n	-l	Prints names of all matching files even when 
 #define unix2dos_trivial_usage \
        "[option] [FILE]"
 #define unix2dos_full_usage \
-       "Convert FILE from unix format to dos format. When no option\n" \
-       "is given, the input is converted to the opposite output format.\n" \
-       "When no file is given, use stdin/stdout." \
-       "\n\nOptions:\n" \
-       "	-u	Output will be in UNIX format\n" \
-       "	-d	Output will be in DOS format"
+       "Convert FILE from unix to dos format.\n" \
+       "When no file is given, use stdin/stdout.\n" \
+     "\nOptions:\n" \
+     "\n	-u	dos2unix" \
+     "\n	-d	unix2dos"
 
 #define unzip_trivial_usage \
        "[-opts[modifiers]] file[.zip] [list] [-x xlist] [-d exdir]"

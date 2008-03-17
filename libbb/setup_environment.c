@@ -30,16 +30,16 @@
 
 #include "libbb.h"
 
-void setup_environment(const char *shell, int loginshell, int changeenv, const struct passwd *pw)
+void setup_environment(const char *shell, int clear_env, int change_env, const struct passwd *pw)
 {
-	if (loginshell) {
+	if (clear_env) {
 		const char *term;
 
 		/* Change the current working directory to be the home directory
 		 * of the user */
 		if (chdir(pw->pw_dir)) {
 			xchdir("/");
-			fputs("warning: cannot change to home directory\n", stderr);
+			bb_error_msg("can't chdir to home directory '%s'", pw->pw_dir);
 		}
 
 		/* Leave TERM unchanged. Set HOME, SHELL, USER, LOGNAME, PATH.
@@ -56,7 +56,7 @@ void setup_environment(const char *shell, int loginshell, int changeenv, const s
 		//xsetenv("HOME",    pw->pw_dir);
 		//xsetenv("SHELL",   shell);
 	}
-	else if (changeenv) {
+	else if (change_env) {
 		/* Set HOME, SHELL, and if not becoming a super-user,
 		   USER and LOGNAME.  */
 		if (pw->pw_uid) {

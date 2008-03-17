@@ -72,8 +72,9 @@ int pgrep_main(int argc, char **argv)
 		first_arg = argv[first_arg_idx];
 		if (!first_arg)
 			break;
+		/* not "-<small_letter>..."? */
 		if (first_arg[0] != '-' || first_arg[1] < 'a' || first_arg[1] > 'z') {
-			argv[first_arg_idx] = NULL;
+			argv[first_arg_idx] = NULL; /* terminate argv here */
 			break;
 		}
 		first_arg_idx++;

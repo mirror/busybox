@@ -237,8 +237,8 @@ int login_main(int argc, char **argv)
 	unsigned opt;
 	int count = 0;
 	struct passwd *pw;
-	char *opt_host = NULL;
-	char *opt_user = NULL;
+	char *opt_host = opt_host; /* for compiler */
+	char *opt_user = opt_user; /* for compiler */
 	char full_tty[TTYNAME_SIZE];
 	USE_SELINUX(security_context_t user_sid = NULL;)
 	USE_FEATURE_UTMP(struct utmp utent;)
@@ -287,7 +287,7 @@ int login_main(int argc, char **argv)
 
 	read_or_build_utent(&utent, !amroot);
 
-	if (opt_host) {
+	if (opt & LOGIN_OPT_h) {
 		USE_FEATURE_UTMP(
 			safe_strncpy(utent.ut_host, opt_host, sizeof(utent.ut_host));
 		)
@@ -450,9 +450,12 @@ int login_main(int argc, char **argv)
 			xsetenv("LOGIN_UID", utoa(pw->pw_uid));
 			xsetenv("LOGIN_GID", utoa(pw->pw_gid));
 			xsetenv("LOGIN_SHELL", pw->pw_shell);
-			xspawn(t_argv); /* NOMMU-friendly */
-			/* All variables are unset by setup_environment */
-			wait(NULL);
+			spawn_and_wait(t_argv); /* NOMMU-friendly */
+			unsetenv("LOGIN_TTY"  );
+			unsetenv("LOGIN_USER" );
+			unsetenv("LOGIN_UID"  );
+			unsetenv("LOGIN_GID"  );
+			unsetenv("LOGIN_SHELL");
 		}
 	}
 
@@ -460,9 +463,8 @@ int login_main(int argc, char **argv)
 	tmp = pw->pw_shell;
 	if (!tmp || !*tmp)
 		tmp = DEFAULT_SHELL;
-	/* setup_environment params: shell, loginshell, changeenv, pw */
-	setup_environment(tmp, 1, !(opt & LOGIN_OPT_p), pw);
-	/* FIXME: login shell = 1 -> 3rd parameter is ignored! */
+	/* setup_environment params: shell, clear_env, change_env, pw */
+	setup_environment(tmp, !(opt & LOGIN_OPT_p), 1, pw);
 
 	motd();
 

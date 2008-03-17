@@ -24,19 +24,19 @@ static void convert(char *fn, int conv_type)
 {
 	FILE *in, *out;
 	int i;
-#define name_buf bb_common_bufsiz1
+	char *name_buf = name_buf; /* for compiler */
 
 	in = stdin;
 	out = stdout;
 	if (fn != NULL) {
-		in = xfopen(fn, "rw");
+		in = xfopen(fn, "r");
 		/*
 		   The file is then created with mode read/write and
 		   permissions 0666 for glibc 2.0.6 and earlier or
 		   0600 for glibc 2.0.7 and later.
 		 */
-		snprintf(name_buf, sizeof(name_buf), "%sXXXXXX", fn);
-		i = mkstemp(&name_buf[0]);
+		name_buf = xasprintf("%sXXXXXX", fn);
+		i = mkstemp(name_buf);
 		if (i == -1
 		 || fchmod(i, 0600) == -1
 		 || !(out = fdopen(i, "w+"))
@@ -48,12 +48,9 @@ static void convert(char *fn, int conv_type)
 	while ((i = fgetc(in)) != EOF) {
 		if (i == '\r')
 			continue;
-		if (i == '\n') {
+		if (i == '\n')
 			if (conv_type == CT_UNIX2DOS)
 				fputc('\r', out);
-			fputc('\n', out);
-			continue;
-		}
 		fputc(i, out);
 	}
 
@@ -62,7 +59,9 @@ static void convert(char *fn, int conv_type)
 			unlink(name_buf);
 			bb_perror_nomsg_and_die();
 		}
+// TODO: destroys symlinks. See how passwd handles this
 		xrename(name_buf, fn);
+		free(name_buf);
 	}
 }
 

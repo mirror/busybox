@@ -93,7 +93,7 @@ int su_main(int argc, char **argv)
 		opt_shell = pw->pw_shell;
 
 	change_identity(pw);
-	/* setup_environment params: shell, loginshell, changeenv, pw */
+	/* setup_environment params: shell, clear_env, change_env, pw */
 	setup_environment(opt_shell, flags & SU_OPT_l, !(flags & SU_OPT_mp), pw);
 	USE_SELINUX(set_current_security_context(NULL);)
 
