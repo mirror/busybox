@@ -18,9 +18,6 @@
 #ifndef CRONUPDATE
 #define CRONUPDATE      "cron.update"
 #endif
-#ifndef PATH_VI
-#define PATH_VI         "/bin/vi"   /* location of vi */
-#endif
 
 static void change_user(const struct passwd *pas)
 {
@@ -56,7 +53,7 @@ static void edit_file(const struct passwd *pas, const char *file)
 	if (!ptr) {
 		ptr = getenv("EDITOR");
 		if (!ptr)
-			ptr = PATH_VI;
+			ptr = "vi";
 	}
 
 	BB_EXECLP(ptr, ptr, file, NULL);
@@ -181,14 +178,16 @@ int crontab_main(int argc ATTRIBUTE_UNUSED, char **argv)
 
 	case OPT_e: /* Edit */
 		tmp_fname = xasprintf("%s.%u", crontab_dir, (unsigned)getpid());
-		fd = xopen3(tmp_fname, O_RDWR|O_CREAT|O_TRUNC|O_EXCL, 0600);
+		/* No O_EXCL: we don't want to be stuck if earlier crontabs
+		 * were killed, leaving stale temp file behind */
+		fd = xopen3(tmp_fname, O_RDWR|O_CREAT|O_TRUNC, 0600);
 		xmove_fd(fd, STDIN_FILENO);
+		fchown(STDIN_FILENO, pas->pw_uid, pas->pw_gid);
 		fd = open(pas->pw_name, O_RDONLY);
 		if (fd >= 0) {
 			bb_copyfd_eof(fd, STDIN_FILENO);
 			close(fd);
 		}
-		fchown(STDIN_FILENO, pas->pw_uid, pas->pw_gid);
 		edit_file(pas, tmp_fname);
 		xlseek(STDIN_FILENO, 0, SEEK_SET);
 		/* fall through */

@@ -22,7 +22,7 @@
  * Version 1.0.6: Tue Jun 27 2000
  *   No important changes
  * Version 1.1.0: Tue Jun 30 2000
- *   Added NLS support (partly written by Arkadiusz Mi<B6>kiewicz
+ *   Added NLS support (partly written by Arkadiusz Mickiewicz
  *     <misiek@misiek.eu.org>)
  * Ported to Busybox - Alfred M. Szmidt <ams@trillian.itslinux.org>
  *  Removed --version/-V and --help/-h in

@@ -3839,7 +3839,7 @@
        "$ tar -cf /tmp/tarball.tar /usr/local\n"
 
 #define taskset_trivial_usage \
-       "[OPTIONS] [mask] [pid | command [arg]...]"
+       "[-p] [mask] [pid | command [arg]...]"
 #define taskset_full_usage \
        "Set or get CPU affinity\n" \
      "\nOptions:" \

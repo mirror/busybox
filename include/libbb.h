@@ -707,7 +707,7 @@ int run_nofork_applet_prime(struct nofork_save_area *old, int applet_no, char **
  *
  * forkexit_or_rexec(argv) = bare-bones "fork + parent exits" on MMU,
  *      "vfork + re-exec ourself" on NOMMU. No fd redirection, no setsid().
- *      Currently used for openvt. On MMU ignores argv.
+ *      Currently used for openvt and setsid. On MMU ignores argv.
  *
  * Helper for network daemons in foreground mode:
  *
@@ -728,7 +728,7 @@ enum {
 # define bb_daemonize(flags)                bb_daemonize_or_rexec(flags, bogus)
 #else
   void re_exec(char **argv) ATTRIBUTE_NORETURN;
-  void forkexit_or_rexec(char **argv);
+  void forkexit_or_rexec(char **argv) ATTRIBUTE_NORETURN;
   extern bool re_execed;
   int  BUG_fork_is_unavailable_on_nommu(void);
   int  BUG_daemon_is_unavailable_on_nommu(void);

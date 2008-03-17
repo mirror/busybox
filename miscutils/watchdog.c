@@ -13,8 +13,7 @@
 #define OPT_FOREGROUND 0x01
 #define OPT_TIMER      0x02
 
-static void watchdog_shutdown(int ATTRIBUTE_UNUSED sig) ATTRIBUTE_NORETURN;
-static void watchdog_shutdown(int ATTRIBUTE_UNUSED sig)
+static void watchdog_shutdown(int sig ATTRIBUTE_UNUSED)
 {
 	static const char V = 'V';
 
@@ -47,13 +46,18 @@ int watchdog_main(int argc, char **argv)
 		bb_daemonize_or_rexec(DAEMON_CHDIR_ROOT, argv);
 	}
 
-	bb_signals(0
-		+ (1 << SIGHUP)
-		+ (1 << SIGINT)
-		, watchdog_shutdown);
+	bb_signals(BB_SIGS_FATAL, watchdog_shutdown);
 
 	/* Use known fd # - avoid needing global 'int fd' */
 	xmove_fd(xopen(argv[argc - 1], O_WRONLY), 3);
+
+// TODO?
+//	if (!(opts & OPT_TIMER)) {
+//		if (ioctl(fd, WDIOC_GETTIMEOUT, &timer_duration) == 0)
+//			timer_duration *= 500;
+//		else
+//			timer_duration = 30000;
+//	}
 
 	while (1) {
 		/*

@@ -14,7 +14,7 @@
 int ttysize_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int ttysize_main(int argc, char **argv)
 {
-	unsigned w,h;
+	unsigned w, h;
 	struct winsize wsz;
 
 	w = 80;

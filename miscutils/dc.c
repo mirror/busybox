@@ -8,11 +8,18 @@
 
 /* Tiny RPN calculator, because "expr" didn't give me bitwise operations. */
 
-enum { STACK_SIZE = COMMON_BUFSIZE / sizeof(double) };
 
-#define stack ((double*)&bb_common_bufsiz1)
-static unsigned int pointer;
-static unsigned char base;
+struct globals {
+	unsigned pointer;
+	unsigned base;
+	double stack[1];
+};
+enum { STACK_SIZE = (COMMON_BUFSIZE - offsetof(struct globals, stack)) / sizeof(double) };
+#define G (*(struct globals*)&bb_common_bufsiz1)
+#define pointer   (G.pointer   )
+#define base      (G.base      )
+#define stack     (G.stack     )
+
 
 static void push(double a)
 {
@@ -61,34 +68,34 @@ static void divide(void)
 
 static void mod(void)
 {
-	unsigned int d = pop();
+	unsigned d = pop();
 
-	push((unsigned int) pop() % d);
+	push((unsigned) pop() % d);
 }
 
 static void and(void)
 {
-	push((unsigned int) pop() & (unsigned int) pop());
+	push((unsigned) pop() & (unsigned) pop());
 }
 
 static void or(void)
 {
-	push((unsigned int) pop() | (unsigned int) pop());
+	push((unsigned) pop() | (unsigned) pop());
 }
 
 static void eor(void)
 {
-	push((unsigned int) pop() ^ (unsigned int) pop());
+	push((unsigned) pop() ^ (unsigned) pop());
 }
 
 static void not(void)
 {
-	push(~(unsigned int) pop());
+	push(~(unsigned) pop());
 }
 
 static void set_output_base(void)
 {
-	base = (unsigned char)pop();
+	base = (unsigned)pop();
 	if ((base != 10) && (base != 16)) {
 		bb_error_msg("error, base %d is not supported", base);
 		base = 10;
@@ -98,14 +105,14 @@ static void set_output_base(void)
 static void print_base(double print)
 {
 	if (base == 16)
-		printf("%x\n", (unsigned int)print);
+		printf("%x\n", (unsigned)print);
 	else
 		printf("%g\n", print);
 }
 
 static void print_stack_no_pop(void)
 {
-	unsigned int i = pointer;
+	unsigned i = pointer;
 	while (i)
 		print_base(stack[--i]);
 }
@@ -142,12 +149,12 @@ static const struct op operators[] = {
 	{"p", print_no_pop},
 	{"f", print_stack_no_pop},
 	{"o", set_output_base},
-	{"", 0}
+	{ /* zero filled */ }
 };
 
 static void stack_machine(const char *argument)
 {
-	char *endPointer = 0;
+	char *endPointer;
 	double d;
 	const struct op *o = operators;
 
@@ -176,54 +183,39 @@ static void stack_machine(const char *argument)
  */
 static char *get_token(char **buffer)
 {
-	char *start = NULL;
-	char *current;
-
-	current = skip_whitespace(*buffer);
-	if (*current != 0) {
-		start = current;
-		current = skip_non_whitespace(current);
-		*buffer = current;
+	char *current = skip_whitespace(*buffer);
+	if (*current != '\0') {
+		*buffer = skip_non_whitespace(current);
+		return current;
 	}
-	return start;
-}
-
-/* In Perl one might say, scalar m|\s*(\S+)\s*|g */
-static int number_of_tokens(char *buffer)
-{
-	int   i = 0;
-	char *b = buffer;
-	while (get_token(&b)) { i++; }
-	return i;
+	return NULL;
 }
 
 int dc_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int dc_main(int argc, char **argv)
+int dc_main(int argc ATTRIBUTE_UNUSED, char **argv)
 {
-	/* take stuff from stdin if no args are given */
-	if (argc <= 1) {
-		int i, len;
-		char *line   = NULL;
-		char *cursor = NULL;
-		char *token  = NULL;
-		while ((line = xmalloc_getline(stdin))) {
+	argv++;
+	if (!argv[0]) {
+		/* take stuff from stdin if no args are given */
+		char *line;
+		char *cursor;
+		char *token;
+		while ((line = xmalloc_getline(stdin)) != NULL) {
 			cursor = line;
-			len = number_of_tokens(line);
-			for (i = 0; i < len; i++) {
+			while (1) {
 				token = get_token(&cursor);
-				*cursor++ = 0;
+				if (!token) break;
+				*cursor++ = '\0';
 				stack_machine(token);
 			}
 			free(line);
 		}
 	} else {
-		if (*argv[1] == '-')
+		if (argv[0][0] == '-')
 			bb_show_usage();
-		while (argc >= 2) {
-			stack_machine(argv[1]);
-			argv++;
-			argc--;
-		}
+		do {
+			stack_machine(*argv);
+		} while (*++argv);
 	}
 	return EXIT_SUCCESS;
 }

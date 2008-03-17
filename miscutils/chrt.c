@@ -13,8 +13,8 @@
 #warning your system may be foobared
 #endif
 static const struct {
-	const int policy;
-	const char const name[12];
+	int policy;
+	char name[12];
 } policies[] = {
 	{SCHED_OTHER, "SCHED_OTHER"},
 	{SCHED_FIFO, "SCHED_FIFO"},
@@ -42,83 +42,83 @@ static void show_min_max(int pol)
 #define OPT_o (1<<4)
 
 int chrt_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int chrt_main(int argc, char **argv)
+int chrt_main(int argc ATTRIBUTE_UNUSED, char **argv)
 {
 	pid_t pid = 0;
 	unsigned opt;
 	struct sched_param sp;
-	char *p_opt = NULL, *priority = NULL;
-	const char *state = "current\0new";
-	int prio = 0, policy = SCHED_RR;
+	char *pid_str;
+	char *priority = priority; /* for compiler */
+	const char *current_new;
+	int policy = SCHED_RR;
 
-	opt_complementary = "r--fo:f--ro:r--fo"; /* only one policy accepted */
-	opt = getopt32(argv, "+mp:rfo", &p_opt);
+	/* at least 1 arg; only one policy accepted */
+	opt_complementary = "-1:r--fo:f--ro:r--fo";
+	opt = getopt32(argv, "+mprfo");
 	if (opt & OPT_r)
 		policy = SCHED_RR;
 	if (opt & OPT_f)
 		policy = SCHED_FIFO;
 	if (opt & OPT_o)
 		policy = SCHED_OTHER;
-
 	if (opt & OPT_m) { /* print min/max */
 		show_min_max(SCHED_FIFO);
 		show_min_max(SCHED_RR);
 		show_min_max(SCHED_OTHER);
 		fflush_stdout_and_exit(EXIT_SUCCESS);
 	}
+
+	argv += optind; 
 	if (opt & OPT_p) {
-		if (argc == optind+1) { /* -p <priority> <pid> */
-			priority = p_opt;
-			p_opt = argv[optind];
+		pid_str = *argv++;
+		if (*argv) { /* "-p <priority> <pid> [...]" */
+			priority = pid_str;
+			pid_str = *argv;
 		}
-		argv += optind; /* me -p <arg> */
-		pid = xatoul_range(p_opt, 1, ULONG_MAX); /* -p <pid> */
+		/* else "-p <pid>", and *argv == NULL */
+		pid = xatoul_range(pid_str, 1, ((unsigned)(pid_t)ULONG_MAX) >> 1);
 	} else {
-		argv += optind; /* me -p <arg> */
-		priority = *argv;
-	}
-	if (priority) {
-		/* from the manpage of sched_getscheduler:
-		   [...] sched_priority can have a value
-		   in the range 0 to 99.
-		   [...] SCHED_OTHER or SCHED_BATCH  must  be  assigned
-		   the  static  priority  0. [...] SCHED_FIFO  or
-		   SCHED_RR can have a static priority in the range 1 to 99.
-		 */
-		prio = xstrtol_range(priority, 0, policy == SCHED_OTHER
-													 ? 0 : 1, 99);
+		priority = *argv++;
+		if (!*argv)
+			bb_show_usage();
 	}
 
+	current_new = "current\0new";
 	if (opt & OPT_p) {
-		int pol = 0;
-print_rt_info:
+		int pol;
+ print_rt_info:
 		pol = sched_getscheduler(pid);
 		if (pol < 0)
-			bb_perror_msg_and_die("failed to %cet pid %d's policy", 'g', pid);
+			bb_perror_msg_and_die("can't %cet pid %d's policy", 'g', pid);
 		printf("pid %d's %s scheduling policy: %s\n",
-				pid, state, policies[pol].name);
+				pid, current_new, policies[pol].name);
 		if (sched_getparam(pid, &sp))
-			bb_perror_msg_and_die("failed to get pid %d's attributes", pid);
+			bb_perror_msg_and_die("can't get pid %d's attributes", pid);
 		printf("pid %d's %s scheduling priority: %d\n",
-				pid, state, sp.sched_priority);
-		if (!*argv) /* no new prio given or we did print already, done. */
+				pid, current_new, sp.sched_priority);
+		if (!*argv) {
+			/* Either it was just "-p <pid>",
+			 * or it was "-p <priority> <pid>" and we came here
+			 * for the second time (see goto below) */
 			return EXIT_SUCCESS;
+		}
+		*argv = NULL;
+		current_new += 8;
 	}
 
-	sp.sched_priority = prio;
+	/* from the manpage of sched_getscheduler:
+	[...] sched_priority can have a value in the range 0 to 99.
+	[...] SCHED_OTHER or SCHED_BATCH must be assigned static priority 0.
+	[...] SCHED_FIFO or SCHED_RR can have static priority in 1..99 range.
+	*/
+	sp.sched_priority = xstrtou_range(priority, 0, policy != SCHED_OTHER ? 1 : 0, 99);
+
 	if (sched_setscheduler(pid, policy, &sp) < 0)
-		bb_perror_msg_and_die("failed to %cet pid %d's policy", 's', pid);
-	if (opt & OPT_p) {
-		state += 8;
-		++argv;
+		bb_perror_msg_and_die("can't %cet pid %d's policy", 's', pid);
+
+	if (!*argv) /* "-p <priority> <pid> [...]" */
 		goto print_rt_info;
-	}
-	++argv;
+
 	BB_EXECVP(*argv, argv);
 	bb_simple_perror_msg_and_die(*argv);
 }
-#undef OPT_p
-#undef OPT_r
-#undef OPT_f
-#undef OPT_o
-#undef OPT_m

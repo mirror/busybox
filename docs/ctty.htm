@@ -145,7 +145,7 @@ PID (process ID), PGID (process group ID) and SID (session ID)
 of processes. With a shell that does not know about job control,
 like <code>ash</code>, each of its children will be in the same session
 and have the same process group as the shell. With a shell that knows
-about job control, like <code>bash</code>, the processes of one pipeline. like
+about job control, like <code>bash</code>, the processes of one pipeline, like
 </p><blockquote>
 <pre>% cat paper | ideal | pic | tbl | eqn | ditroff &gt; out
 </pre>
@@ -227,7 +227,7 @@ controlling tty. If there is none, this returns a random value
 larger than 1 that is not a process group ID.
 </p><p>A process can set the foreground process group in its session
 using <code>tcsetpgrp(fd,pgrp)</code>, where <code>fd</code> refers to its
-controlling tty, and <code>pgrp</code> is a process group in the
+controlling tty, and <code>pgrp</code> is a process group in
 its session, and this session still is associated to the controlling
 tty of the calling process.
 </p><p>How does one get <code>fd</code>? By definition, <code>/dev/tty</code>

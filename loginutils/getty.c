@@ -6,14 +6,13 @@
  *
  * option added by Eric Rasmussen <ear@usfirst.org> - 12/28/95
  *
- * 1999-02-22 Arkadiusz Mi¶kiewicz <misiek@misiek.eu.org>
+ * 1999-02-22 Arkadiusz Mickiewicz <misiek@misiek.eu.org>
  * - added Native Language Support
-
+ *
  * 1999-05-05 Thorsten Kranzkowski <dl8bcu@gmx.net>
  * - enable hardware flow control before displaying /etc/issue
  *
  * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
- *
  */
 
 #include "libbb.h"

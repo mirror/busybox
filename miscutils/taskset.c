@@ -39,61 +39,71 @@ static char *__from_cpuset(cpu_set_t *mask)
 #define from_cpuset(mask) (*(unsigned*)(void*)&(mask))
 #endif
 
-#define OPT_p 1
 
 int taskset_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int taskset_main(int argc, char **argv)
+int taskset_main(int argc ATTRIBUTE_UNUSED, char **argv)
 {
-	cpu_set_t mask, new_mask;
+	cpu_set_t mask;
 	pid_t pid = 0;
-	unsigned opt;
-	const char *state = "current\0new";
-	char *p_opt = NULL, *aff = NULL;
+	unsigned opt_p;
+	const char *current_new;
+	char *pid_str;
+	char *aff = aff; /* for compiler */
 
-	opt = getopt32(argv, "+p:", &p_opt);
+	opt_complementary = "-1"; /* at least 1 arg */
+	opt_p = getopt32(argv, "+p");
+	argv += optind;
 
-	if (opt & OPT_p) {
-		if (argc == optind+1) { /* -p <aff> <pid> */
-			aff = p_opt;
-			p_opt = argv[optind];
+	if (opt_p) {
+		pid_str = *argv++;
+		if (*argv) { /* "-p <aff> <pid> ...rest.is.ignored..." */
+			aff = pid_str;
+			pid_str = *argv; /* NB: *argv != NULL in this case */
 		}
-		argv += optind; /* me -p <arg> */
-		pid = xatoul_range(p_opt, 1, ULONG_MAX); /* -p <pid> */
-	} else
-		aff = *++argv; /* <aff> <cmd...> */
-	if (aff) {
-		unsigned i = 0;
-		unsigned long l = xstrtol_range(aff, 0, 1, LONG_MAX);
-
-		CPU_ZERO(&new_mask);
-		while (i < CPU_SETSIZE && l >= (1<<i)) {
-			if ((1<<i) & l)
-				CPU_SET(i, &new_mask);
-			++i;
-		}
+		/* else it was just "-p <pid>", and *argv == NULL */
+		pid = xatoul_range(pid_str, 1, ((unsigned)(pid_t)ULONG_MAX) >> 1);
+	} else {
+		aff = *argv++; /* <aff> <cmd...> */
+		if (!*argv)
+			bb_show_usage();
 	}
 
-	if (opt & OPT_p) {
+	current_new = "current\0new";
+	if (opt_p) {
  print_aff:
 		if (sched_getaffinity(pid, sizeof(mask), &mask) < 0)
-			bb_perror_msg_and_die("failed to %cet pid %d's affinity", 'g', pid);
+			bb_perror_msg_and_die("can't %cet pid %d's affinity", 'g', pid);
 		printf("pid %d's %s affinity mask: "TASKSET_PRINTF_MASK"\n",
-				pid, state, from_cpuset(mask));
-		if (!*argv) /* no new affinity given or we did print already, done. */
+				pid, current_new, from_cpuset(mask));
+		if (!*argv) {
+			/* Either it was just "-p <pid>",
+			 * or it was "-p <aff> <pid>" and we came here
+			 * for the second time (see goto below) */
 			return EXIT_SUCCESS;
+		}
+		*argv = NULL;
+		current_new += 8; /* "new" */
 	}
 
-	if (sched_setaffinity(pid, sizeof(new_mask), &new_mask))
-		bb_perror_msg_and_die("failed to %cet pid %d's affinity", 's', pid);
-	if (opt & OPT_p) {
-		state += 8;
-		++argv;
-		goto print_aff;
+	{ /* Affinity was specified, translate it into cpu_set_t */
+		unsigned i;
+		/* Do not allow zero mask: */
+		unsigned long long m = xstrtoull_range(aff, 0, 1, ULLONG_MAX);
+		CPU_ZERO(&mask);
+		for (i = 0; i < CPU_SETSIZE; i++) {
+			unsigned long long bit = (1ULL << i);
+			if (bit & m)
+				CPU_SET(i, &mask);
+		}
 	}
-	++argv;
+
+	/* Set pid's or our own (pid==0) affinity */
+	if (sched_setaffinity(pid, sizeof(mask), &mask))
+		bb_perror_msg_and_die("can't %cet pid %d's affinity", 's', pid);
+
+	if (!*argv) /* "-p <aff> <pid> [...ignored...]" */
+		goto print_aff; /* print new affinity and exit */
+
 	BB_EXECVP(*argv, argv);
 	bb_simple_perror_msg_and_die(*argv);
 }
-#undef OPT_p
-#undef TASKSET_PRINTF_MASK
-#undef from_cpuset

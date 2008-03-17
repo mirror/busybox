@@ -14,7 +14,7 @@
 #  define SHUTDOWN_TIME 254
 #endif
 
-/* Grr... utmp char[] members  do not have to be nul-terminated.
+/* Grr... utmp char[] members do not have to be nul-terminated.
  * Do what we can while still keeping this reasonably small.
  * Note: We are assuming the ut_id[] size is fixed at 4. */
 

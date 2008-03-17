@@ -158,7 +158,7 @@ static void crondlog(const char *ctl, ...)
 }
 
 int crond_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int crond_main(int ac ATTRIBUTE_UNUSED, char **av)
+int crond_main(int argc ATTRIBUTE_UNUSED, char **argv)
 {
 	unsigned opt;
 
@@ -167,7 +167,7 @@ int crond_main(int ac ATTRIBUTE_UNUSED, char **av)
 	/* "-b after -f is ignored", and so on for every pair a-b */
 	opt_complementary = "f-b:b-f:S-L:L-S" USE_DEBUG_CROND_OPTION(":d-l")
 			":l+:d+"; /* -l and -d have numeric param */
-	opt = getopt32(av, "l:L:fbSc:" USE_DEBUG_CROND_OPTION("d:"),
+	opt = getopt32(argv, "l:L:fbSc:" USE_DEBUG_CROND_OPTION("d:"),
 			&LogLevel, &LogFile, &CDir
 			USE_DEBUG_CROND_OPTION(,&LogLevel));
 	/* both -d N and -l N set the same variable: LogLevel */
