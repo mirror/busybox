@@ -98,8 +98,8 @@ struct globals {
 	unsigned max_lineno; /* this one tracks linewrap */
 	unsigned width;
 	ssize_t eof_error; /* eof if 0, error if < 0 */
-	size_t readpos;
-	size_t readeof;
+	ssize_t readpos;
+	ssize_t readeof; /* must be signed */
 	const char **buffer;
 	const char **flines;
 	const char *empty_line_marker;
@@ -114,7 +114,8 @@ struct globals {
 #if ENABLE_FEATURE_LESS_REGEXP
 	unsigned *match_lines;
 	int match_pos; /* signed! */
-	unsigned num_matches;
+	int wanted_match; /* signed! */
+	int num_matches;
 	regex_t pattern;
 	smallint pattern_valid;
 #endif
@@ -146,6 +147,7 @@ struct globals {
 #define match_lines         (G.match_lines       )
 #define match_pos           (G.match_pos         )
 #define num_matches         (G.num_matches       )
+#define wanted_match        (G.wanted_match      )
 #define pattern             (G.pattern           )
 #define pattern_valid       (G.pattern_valid     )
 #endif
@@ -160,6 +162,7 @@ struct globals {
 	current_file = 1; \
 	eof_error = 1; \
 	terminated = 1; \
+	USE_FEATURE_LESS_REGEXP(wanted_match = -1;) \
 } while (0)
 
 /* Reset terminal input to normal */
@@ -235,15 +238,20 @@ static void read_lines(void)
 {
 #define readbuf bb_common_bufsiz1
 	char *current_line, *p;
-	USE_FEATURE_LESS_REGEXP(unsigned old_max_fline = max_fline;)
 	int w = width;
 	char last_terminated = terminated;
+#if ENABLE_FEATURE_LESS_REGEXP
+	unsigned old_max_fline = max_fline;
+	time_t last_time = 0;
+	unsigned seconds_p1 = 3; /* seconds_to_loop + 1 */
+#endif
 
 	if (option_mask32 & FLAG_N)
 		w -= 8;
 
-	current_line = xmalloc(w);
-	p = current_line;
+ USE_FEATURE_LESS_REGEXP(again0:)
+
+	p = current_line = xmalloc(w);
 	max_fline += last_terminated;
 	if (!last_terminated) {
 		const char *cp = flines[max_fline];
@@ -251,49 +259,26 @@ static void read_lines(void)
 			cp += 8;
 		strcpy(current_line, cp);
 		p += strlen(current_line);
+		free((char*)flines[max_fline]);
 		/* linepos is still valid from previous read_lines() */
 	} else {
 		linepos = 0;
 	}
 
-	while (1) {
- again:
+	while (1) { /* read lines until we reach cur_fline or wanted_match */
 		*p = '\0';
 		terminated = 0;
-		while (1) {
+		while (1) { /* read chars until we have a line */
 			char c;
 			/* if no unprocessed chars left, eat more */
 			if (readpos >= readeof) {
-				smallint yielded = 0;
-
 				ndelay_on(0);
- read_again:
 				eof_error = safe_read(0, readbuf, sizeof(readbuf));
+				ndelay_off(0);
 				readpos = 0;
 				readeof = eof_error;
-				if (eof_error < 0) {
-					if (errno == EAGAIN && !yielded) {
-			/* We can hit EAGAIN while searching for regexp match.
-			 * Yield is not 100% reliable solution in general,
-			 * but for less it should be good enough -
-			 * we give stdin supplier some CPU time to produce
-			 * more input. We do it just once.
-			 * Currently, we do not stop when we found the Nth
-			 * occurrence we were looking for. We read till end
-			 * (or double EAGAIN). TODO? */
-						sched_yield();
-						yielded = 1;
-						goto read_again;
-					}
-					readeof = 0;
-					if (errno != EAGAIN)
-						print_statusline("read error");
-				}
-				ndelay_off(0);
-
-				if (eof_error <= 0) {
+				if (eof_error <= 0)
 					goto reached_eof;
-				}
 			}
 			c = readbuf[readpos];
 			/* backspace? [needed for manpages] */
@@ -327,13 +312,13 @@ static void read_lines(void)
 			if (c == '\0') c = '\n';
 			*p++ = c;
 			*p = '\0';
-		}
+		} /* end of "read chars until we have a line" loop */
 		/* Corner case: linewrap with only "" wrapping to next line */
 		/* Looks ugly on screen, so we do not store this empty line */
 		if (!last_terminated && !current_line[0]) {
 			last_terminated = 1;
 			max_lineno++;
-			goto again;
+			continue;
 		}
  reached_eof:
 		last_terminated = terminated;
@@ -353,22 +338,51 @@ static void read_lines(void)
 			eof_error = 0; /* Pretend we saw EOF */
 			break;
 		}
-		if (max_fline > cur_fline + max_displayed_line)
+		if (max_fline > cur_fline + max_displayed_line) {
+#if !ENABLE_FEATURE_LESS_REGEXP
 			break;
-		if (eof_error <= 0) {
-			if (eof_error < 0 && errno == EAGAIN) {
-				/* not yet eof or error, reset flag (or else
-				 * we will hog CPU - select() will return
-				 * immediately */
-				eof_error = 1;
+#else
+			if (wanted_match >= num_matches) { /* goto_match called us */
+				fill_match_lines(old_max_fline);
+				old_max_fline = max_fline;
 			}
+			if (wanted_match < num_matches)
+				break;
+#endif
+		}
+		if (eof_error <= 0) {
+			if (eof_error < 0) {
+				if (errno == EAGAIN) {
+					/* not yet eof or error, reset flag (or else
+					 * we will hog CPU - select() will return
+					 * immediately */
+					eof_error = 1;
+				} else {
+					print_statusline("read error");
+				}
+			}
+#if !ENABLE_FEATURE_LESS_REGEXP
 			break;
+#else
+			if (wanted_match < num_matches) {
+				break;
+			} else { /* goto_match called us */
+				time_t t = time(NULL);
+				if (t != last_time) {
+					last_time = t;
+					if (--seconds_p1 == 0)
+						break;
+				}
+				sched_yield();
+				goto again0; /* go loop again (max 2 seconds) */
+			}
+#endif
 		}
 		max_fline++;
 		current_line = xmalloc(w);
 		p = current_line;
 		linepos = 0;
-	}
+	} /* end of "read lines until we reach cur_fline" loop */
 	fill_match_lines(old_max_fline);
 #undef readbuf
 }
@@ -884,24 +898,24 @@ static void normalize_match_pos(int match)
 
 static void goto_match(int match)
 {
-	int sv;
-
 	if (!pattern_valid)
 		return;
 	if (match < 0)
 		match = 0;
-	sv = cur_fline;
 	/* Try to find next match if eof isn't reached yet */
 	if (match >= num_matches && eof_error > 0) {
-		cur_fline = MAXLINES; /* look as far as needed */
+		wanted_match = match;
 		read_lines();
+		if (wanted_match >= num_matches) {
+			/* We still failed to find it. Prevent future
+			 * read_lines() from trying... */
+			wanted_match = num_matches - 1;
+		}
 	}
 	if (num_matches) {
-		cap_cur_fline(cur_fline);
 		normalize_match_pos(match);
 		buffer_line(match_lines[match_pos]);
 	} else {
-		cur_fline = sv;
 		print_statusline("No matches found");
 	}
 }
@@ -1370,7 +1384,7 @@ int less_main(int argc, char **argv)
 	get_terminal_width_height(kbd_fd, &width, &max_displayed_line);
 	/* 20: two tabstops + 4 */
 	if (width < 20 || max_displayed_line < 3)
-		bb_error_msg_and_die("too narrow here");
+		return bb_cat(argv);
 	max_displayed_line -= 2;
 
 	buffer = xmalloc((max_displayed_line+1) * sizeof(char *));
