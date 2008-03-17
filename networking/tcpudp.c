@@ -7,7 +7,7 @@
  * Licensed under GPLv2, see file LICENSE in this tarball for details.
  */
 
-/* Based on ipsvd ipsvd-0.12.1. This tcpsvd accepts all options
+/* Based on ipsvd-0.12.1. This tcpsvd accepts all options
  * which are supported by one from ipsvd-0.12.1, but not all are
  * functional. See help text at the end of this file for details.
  *
@@ -33,7 +33,8 @@
 #include <linux/netfilter_ipv4.h> /* wants <limits.h> */
 
 #include "libbb.h"
-#include "ipsvd_perhost.h"
+// TODO: move into this file:
+#include "tcpudp_perhost.h"
 
 #ifdef SSLSVD
 #include "matrixSsl.h"

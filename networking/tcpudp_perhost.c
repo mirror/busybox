@@ -8,7 +8,7 @@
  */
 
 #include "libbb.h"
-#include "ipsvd_perhost.h"
+#include "tcpudp_perhost.h"
 
 static struct hcc *cc;
 static unsigned cclen;
