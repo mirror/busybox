@@ -273,13 +273,11 @@ static void
 raise_interrupt(void)
 {
 	int i;
-	sigset_t mask;
 
 	intpending = 0;
 	/* Signal is not automatically unmasked after it is raised,
 	 * do it ourself - unmask all signals */
-	sigemptyset(&mask);
-	sigprocmask(SIG_SETMASK, &mask, NULL);
+	sigprocmask_allsigs(SIG_UNBLOCK);
 	/* pendingsig = 0; - now done in onsig() */
 
 	i = EXSIG;

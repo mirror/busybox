@@ -311,13 +311,14 @@ void bb_signals_recursive(int sigs, void (*f)(int));
 void signal_no_SA_RESTART_empty_mask(int sig, void (*handler)(int));
 /* syscalls like read() won't be interrupted (though select/poll will be): */
 void signal_SA_RESTART_empty_mask(int sig, void (*handler)(int));
-/* Will do sigaction(signum, act, NULL): */
-int sigaction_set(int signum, const struct sigaction *act);
-void sig_block(int);
-void sig_unblock(int);
-/* UNUSED: void sig_blocknone(void); */
-void sig_pause(void);
+void wait_for_any_sig(void);
 void kill_myself_with_sig(int sig) ATTRIBUTE_NORETURN;
+void sig_block(int sig);
+void sig_unblock(int sig);
+/* Will do sigaction(signum, act, NULL): */
+int sigaction_set(int sig, const struct sigaction *act);
+/* SIG_BLOCK/SIG_UNBLOCK all signals: */
+int sigprocmask_allsigs(int how);
 
 
 void xsetgid(gid_t gid);

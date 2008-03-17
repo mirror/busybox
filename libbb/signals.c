@@ -17,6 +17,13 @@ int sigaction_set(int signum, const struct sigaction *act)
 	return sigaction(signum, act, NULL);
 }
 
+int sigprocmask_allsigs(int how)
+{
+	sigset_t set;
+	sigfillset(&set);
+	return sigprocmask(how, &set, NULL);
+}
+
 void bb_signals(int sigs, void (*f)(int))
 {
 	int sig_no = 0;
@@ -69,16 +76,7 @@ void sig_unblock(int sig)
 	sigprocmask(SIG_UNBLOCK, &ss, NULL);
 }
 
-#if 0
-void sig_blocknone(void)
-{
-	sigset_t ss;
-	sigemptyset(&ss);
-	sigprocmask(SIG_SETMASK, &ss, NULL);
-}
-#endif
-
-void sig_pause(void)
+void wait_for_any_sig(void)
 {
 	sigset_t ss;
 	sigemptyset(&ss);

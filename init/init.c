@@ -526,27 +526,13 @@ static void init_reboot(unsigned long magic)
 
 static void kill_all_processes(void)
 {
-	sigset_t block_signals;
-
 	/* run everything to be run at "shutdown".  This is done _prior_
 	 * to killing everything, in case people wish to use scripts to
 	 * shut things down gracefully... */
 	run_actions(SHUTDOWN);
 
 	/* first disable all our signals */
-	sigfillset(&block_signals);
-	/*sigemptyset(&block_signals);
-	sigaddset(&block_signals, SIGHUP);
-	sigaddset(&block_signals, SIGQUIT);
-	sigaddset(&block_signals, SIGCHLD);
-	sigaddset(&block_signals, SIGUSR1);
-	sigaddset(&block_signals, SIGUSR2);
-	sigaddset(&block_signals, SIGINT);
-	sigaddset(&block_signals, SIGTERM);
-	sigaddset(&block_signals, SIGCONT);
-	sigaddset(&block_signals, SIGSTOP);
-	sigaddset(&block_signals, SIGTSTP);*/
-	sigprocmask(SIG_BLOCK, &block_signals, NULL);
+	sigprocmask_allsigs(SIG_BLOCK);
 
 	message(L_CONSOLE | L_LOG, "The system is going down NOW!");
 
@@ -593,26 +579,13 @@ static void halt_reboot_pwoff(int sig)
 static void exec_restart_action(int sig ATTRIBUTE_UNUSED)
 {
 	struct init_action *a;
-	sigset_t unblock_signals;
 
 	for (a = init_action_list; a; a = a->next) {
 		if (a->action_type & RESTART) {
 			kill_all_processes();
 
 			/* unblock all signals (blocked in kill_all_processes()) */
-			sigfillset(&unblock_signals);
-			/*sigemptyset(&unblock_signals);
-			sigaddset(&unblock_signals, SIGHUP);
-			sigaddset(&unblock_signals, SIGQUIT);
-			sigaddset(&unblock_signals, SIGCHLD);
-			sigaddset(&unblock_signals, SIGUSR1);
-			sigaddset(&unblock_signals, SIGUSR2);
-			sigaddset(&unblock_signals, SIGINT);
-			sigaddset(&unblock_signals, SIGTERM);
-			sigaddset(&unblock_signals, SIGCONT);
-			sigaddset(&unblock_signals, SIGSTOP);
-			sigaddset(&unblock_signals, SIGTSTP);*/
-			sigprocmask(SIG_UNBLOCK, &unblock_signals, NULL);
+			sigprocmask_allsigs(SIG_UNBLOCK);
 
 			/* Open the new terminal device */
 			open_stdio_to_tty(a->terminal, 0 /* - halt if open fails */);

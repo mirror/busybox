@@ -378,12 +378,12 @@ static void block_CHLD_HUP_ALRM(sigset_t *m)
 	sigaddset(m, SIGCHLD);
 	sigaddset(m, SIGHUP);
 	sigaddset(m, SIGALRM);
-	sigprocmask(SIG_BLOCK, m, NULL);
+	sigprocmask(SIG_BLOCK, m, m); /* old sigmask is stored in m */
 }
 
-static void unblock_sigs(sigset_t *m)
+static void restore_sigmask(sigset_t *m)
 {
-	sigprocmask(SIG_UNBLOCK, m, NULL);
+	sigprocmask(SIG_SETMASK, m, NULL);
 }
 
 #if ENABLE_FEATURE_INETD_RPC
@@ -870,7 +870,7 @@ static servtab_t *insert_in_servlist(servtab_t *cp)
 	block_CHLD_HUP_ALRM(&omask);
 	sep->se_next = serv_list;
 	serv_list = sep;
-	unblock_sigs(&omask);
+	restore_sigmask(&omask);
 	return sep;
 }
 
@@ -941,7 +941,7 @@ static void reread_config_file(int sig ATTRIBUTE_UNUSED)
 			for (i = 0; i < MAXARGV; i++)
 				SWAP(char*, sep->se_argv[i], cp->se_argv[i]);
 #undef SWAP
-			unblock_sigs(&omask);
+			restore_sigmask(&omask);
 			free_servtab_strings(cp);
 		}
  after_check:
@@ -1052,7 +1052,7 @@ static void reread_config_file(int sig ATTRIBUTE_UNUSED)
 		free_servtab_strings(sep);
 		free(sep);
 	}
-	unblock_sigs(&omask);
+	restore_sigmask(&omask);
 }
 
 static void reap_child(int sig ATTRIBUTE_UNUSED)
@@ -1252,7 +1252,7 @@ int inetd_main(int argc, char **argv)
 							sep->se_fd = -1;
 							sep->se_count = 0;
 							rearm_alarm(); /* will revive it in RETRYTIME sec */
-							unblock_sigs(&omask);
+							restore_sigmask(&omask);
 							maybe_close(accepted_fd);
 							continue; /* -> check next fd in fd set */
 						}
@@ -1272,7 +1272,7 @@ int inetd_main(int argc, char **argv)
 				if (pid < 0) { /* fork error */
 					bb_perror_msg("fork");
 					sleep(1);
-					unblock_sigs(&omask);
+					restore_sigmask(&omask);
 					maybe_close(accepted_fd);
 					continue; /* -> check next fd in fd set */
 				}
@@ -1288,7 +1288,7 @@ int inetd_main(int argc, char **argv)
 					/* we passed listening socket to child,
 					 * will wait for child to terminate */
 				}
-				unblock_sigs(&omask);
+				restore_sigmask(&omask);
 				maybe_close(accepted_fd);
 				continue; /* -> check next fd in fd set */
 			}
@@ -1300,7 +1300,7 @@ int inetd_main(int argc, char **argv)
 					close(sep->se_fd); /* listening socket */
 					logmode = 0; /* make xwrite etc silent */
 				}
-				unblock_sigs(&omask);
+				restore_sigmask(&omask);
 				if (sep->se_socktype == SOCK_STREAM)
 					sep->se_builtin->bi_stream_fn(ctrl, sep);
 				else
@@ -1383,7 +1383,7 @@ int inetd_main(int argc, char **argv)
 			for (sep2 = serv_list; sep2; sep2 = sep2->se_next)
 				maybe_close(sep2->se_fd);
 			sigaction_set(SIGPIPE, &saved_pipe_handler);
-			unblock_sigs(&omask);
+			restore_sigmask(&omask);
 			BB_EXECVP(sep->se_program, sep->se_argv);
 			bb_perror_msg("exec %s", sep->se_program);
  do_exit1:

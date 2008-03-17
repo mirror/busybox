@@ -290,7 +290,7 @@ int tcpudpsvd_main(int argc, char **argv)
 	hccp = NULL;
 
 	while (cnum >= cmax)
-		sig_pause(); /* wait for any signal (expecting SIGCHLD) */
+		wait_for_any_sig(); /* expecting SIGCHLD */
 
 	/* Accept a connection to fd #0 */
  again1:

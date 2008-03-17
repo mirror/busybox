@@ -788,11 +788,8 @@ static void handler_ctrl_z(int sig)
 static void sigexit(int sig) ATTRIBUTE_NORETURN;
 static void sigexit(int sig)
 {
-	sigset_t block_all;
-
 	/* Disable all signals: job control, SIGPIPE, etc. */
-	sigfillset(&block_all);
-	sigprocmask(SIG_SETMASK, &block_all, NULL);
+	sigprocmask_allsigs(SIG_BLOCK);
 
 	if (interactive_fd)
 		tcsetpgrp(interactive_fd, saved_tty_pgrp);
