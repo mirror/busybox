@@ -159,7 +159,7 @@ static void display_verbose(void)
 }
 
 int sestatus_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int sestatus_main(int argc, char **argv)
+int sestatus_main(int argc ATTRIBUTE_UNUSED, char **argv)
 {
 	unsigned opts;
 	const char *pol_path;

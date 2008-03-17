@@ -99,7 +99,7 @@ enum {
 #define FLAG_R               (option_mask32 & OPT_R)
 
 
-static void qprintf(const char *fmt, ...)
+static void qprintf(const char *fmt ATTRIBUTE_UNUSED, ...)
 {
 	/* quiet, do nothing */
 }
@@ -391,8 +391,11 @@ static int restore(const char *file)
  * This function is called by recursive_action on each file during
  * the directory traversal.
  */
-static int apply_spec(const char *file,
-		      struct stat *sb, void *userData, int depth)
+static int apply_spec(
+		const char *file,
+		struct stat *sb,
+		void *userData ATTRIBUTE_UNUSED,
+		int depth ATTRIBUTE_UNUSED)
 {
 	if (!follow_mounts) {
 		/* setfiles does not process across different mount points */

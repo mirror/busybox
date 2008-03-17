@@ -256,15 +256,16 @@ static unsigned custom(struct svdir *s, char c)
 
 	if (s->islog) return 0;
 	strcpy(a, "control/?");
-	a[8] = c;
+	a[8] = c; /* replace '?' */
 	if (stat(a, &st) == 0) {
 		if (st.st_mode & S_IXUSR) {
-			pid = fork();
+			pid = vfork();
 			if (pid == -1) {
-				warn_cannot("fork for control/?");
+				warn_cannot("vfork for control/?");
 				return 0;
 			}
 			if (!pid) {
+				/* child */
 				if (haslog && dup2(logpipe.wr, 1) == -1)
 					warn_cannot("setup stdout for control/?");
 				prog[0] = a;
@@ -272,6 +273,7 @@ static unsigned custom(struct svdir *s, char c)
 				execv(a, prog);
 				fatal_cannot("run control/?");
 			}
+			/* parent */
 			while (safe_waitpid(pid, &w, 0) == -1) {
 				warn_cannot("wait for child control/?");
 				return 0;
@@ -318,8 +320,8 @@ static void startservice(struct svdir *s)
 
 	if (s->pid != 0)
 		stopservice(s); /* should never happen */
-	while ((p = fork()) == -1) {
-		warn_cannot("fork, sleeping");
+	while ((p = vfork()) == -1) {
+		warn_cannot("vfork, sleeping");
 		sleep(5);
 	}
 	if (p == 0) {
@@ -344,6 +346,7 @@ static void startservice(struct svdir *s)
 		execvp(*run, run);
 		fatal2_cannot(s->islog ? "start log/" : "start ", *run);
 	}
+	/* parent */
 	if (s->state != S_FINISH) {
 		gettimeofday_ns(&s->start);
 		s->state = S_RUN;
