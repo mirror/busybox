@@ -214,8 +214,7 @@ static void console_init(void)
 		if (fd >= 0) {
 			dup2(fd, 0);
 			dup2(fd, 1);
-			dup2(fd, 2);
-			while (fd > 2) close(fd--);
+			xmove_fd(fd, 2);
 		}
 		messageD(L_LOG, "console='%s'", s);
 	} else {
@@ -223,7 +222,7 @@ static void console_init(void)
 		 * (so that they won't be used by future opens) */
 
 		/* bb_sanitize_stdio(); - WRONG.
-		 * Fail if "/dev/null" doesnt exist, and for init
+		 * It fails if "/dev/null" doesnt exist, and for init
 		 * this is a real possibility! Open code it instead. */
 
 		int fd = open(bb_dev_null, O_RDWR);
@@ -234,11 +233,11 @@ static void console_init(void)
     		while ((unsigned)fd < 2)
             		fd = dup(fd);
 		if (fd > 2)
-			close (fd);
+			close(fd);
 	}
 
 	s = getenv("TERM");
-	if (ioctl(0, TIOCGSERIAL, &sr) == 0) {
+	if (ioctl(STDIN_FILENO, TIOCGSERIAL, &sr) == 0) {
 		/* Force the TERM setting to vt102 for serial console
 		 * if TERM is set to linux (the default) */
 		if (!s || strcmp(s, "linux") == 0)
