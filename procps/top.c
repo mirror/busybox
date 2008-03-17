@@ -735,7 +735,7 @@ enum {
 };
 
 int top_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int top_main(int argc, char **argv)
+int top_main(int argc ATTRIBUTE_UNUSED, char **argv)
 {
 	int count, lines, col;
 	unsigned interval;

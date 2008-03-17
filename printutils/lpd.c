@@ -11,7 +11,7 @@
 // TODO: xmalloc_reads is vulnerable to remote OOM attack!
 
 int lpd_main(int argc, char *argv[]) MAIN_EXTERNALLY_VISIBLE;
-int lpd_main(int argc, char *argv[])
+int lpd_main(int argc ATTRIBUTE_UNUSED, char *argv[])
 {
 	int spooling;
 	char *s, *queue;

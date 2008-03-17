@@ -88,7 +88,7 @@ static int open_as_user(const struct passwd *pas, const char *file)
 }
 
 int crontab_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int crontab_main(int argc, char **argv)
+int crontab_main(int argc ATTRIBUTE_UNUSED, char **argv)
 {
 	const struct passwd *pas;
 	const char *crontab_dir = CRONTABS;

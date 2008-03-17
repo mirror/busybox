@@ -267,7 +267,7 @@ static int kill_pid_list(pid_list *plist, int sig)
 }
 
 int fuser_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int fuser_main(int argc, char **argv)
+int fuser_main(int argc ATTRIBUTE_UNUSED, char **argv)
 {
 	pid_list *plist;
 	inode_list *ilist;

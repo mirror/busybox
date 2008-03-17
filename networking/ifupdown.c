@@ -530,7 +530,7 @@ static int dhcp_down(struct interface_defn_t *ifd, execfn *exec)
 #endif
 }
 
-static int manual_up_down(struct interface_defn_t *ifd, execfn *exec)
+static int manual_up_down(struct interface_defn_t *ifd ATTRIBUTE_UNUSED, execfn *exec ATTRIBUTE_UNUSED)
 {
 	return 1;
 }

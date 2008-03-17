@@ -367,7 +367,7 @@ static void auto_baud(char *buf, unsigned size_buf, struct termios *tp)
 }
 
 /* do_prompt - show login prompt, optionally preceded by /etc/issue contents */
-static void do_prompt(struct options *op, struct termios *tp)
+static void do_prompt(struct options *op)
 {
 #ifdef ISSUE
 	print_login_issue(op->issue, op->tty);
@@ -390,7 +390,7 @@ static int all_is_upcase(const char *s)
 /* get_logname - get user name, establish parity, speed, erase, kill, eol;
  * return NULL on BREAK, logname on success */
 static char *get_logname(char *logname, unsigned size_logname,
-		struct options *op, struct chardata *cp, struct termios *tp)
+		struct options *op, struct chardata *cp)
 {
 	char *bp;
 	char c;				/* input character, full eight bits */
@@ -414,7 +414,7 @@ static char *get_logname(char *logname, unsigned size_logname,
 	logname[0] = '\0';
 	while (!logname[0]) {
 		/* Write issue file and prompt, with "parity" bit == 0. */
-		do_prompt(op, tp);
+		do_prompt(op);
 
 		/* Read name, watch for break, parity, erase, kill, end-of-line. */
 		bp = logname;
@@ -621,7 +621,7 @@ static void update_utmp(const char *line, char *fakehost)
 #endif /* CONFIG_FEATURE_UTMP */
 
 int getty_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int getty_main(int argc, char **argv)
+int getty_main(int argc ATTRIBUTE_UNUSED, char **argv)
 {
 	int n;
 	char *fakehost = NULL;          /* Fake hostname for ut_host */
@@ -670,7 +670,7 @@ int getty_main(int argc, char **argv)
 
 #ifdef DEBUGGING
 	dbf = xfopen(DEBUGTERM, "w");
-	for (n = 1; n < argc; n++) {
+	for (n = 1; argv[n]; n++) {
 		debug(argv[n]);
 		debug("\n");
 	}
@@ -750,7 +750,7 @@ int getty_main(int argc, char **argv)
 			/* Read the login name. */
 			debug("reading login name\n");
 			logname = get_logname(line_buf, sizeof(line_buf),
-					&options, &chardata, &termios);
+					&options, &chardata);
 			if (logname)
 				break;
 			/* we are here only if options.numspeed > 1 */

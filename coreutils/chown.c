@@ -42,7 +42,7 @@ typedef int (*chown_fptr)(const char *, uid_t, gid_t);
 static struct bb_uidgid_t ugid = { -1, -1 };
 
 static int fileAction(const char *fileName, struct stat *statbuf,
-		void *cf, int depth)
+		void *cf, int depth ATTRIBUTE_UNUSED)
 {
 	uid_t u = (ugid.uid == (uid_t)-1) ? statbuf->st_uid : ugid.uid;
 	gid_t g = (ugid.gid == (gid_t)-1) ? statbuf->st_gid : ugid.gid;
@@ -62,7 +62,7 @@ static int fileAction(const char *fileName, struct stat *statbuf,
 }
 
 int chown_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int chown_main(int argc, char **argv)
+int chown_main(int argc ATTRIBUTE_UNUSED, char **argv)
 {
 	int retval = EXIT_SUCCESS;
 	int flags;

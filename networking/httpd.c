@@ -1754,7 +1754,7 @@ static Htaccess_Proxy *find_proxy_entry(const char *url)
  * Handle timeouts
  */
 static void exit_on_signal(int sig) ATTRIBUTE_NORETURN;
-static void exit_on_signal(int sig)
+static void exit_on_signal(int sig ATTRIBUTE_UNUSED)
 {
 	send_headers_and_exit(HTTP_REQUEST_TIMEOUT);
 }
@@ -2275,7 +2275,7 @@ enum {
 
 
 int httpd_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int httpd_main(int argc, char **argv)
+int httpd_main(int argc ATTRIBUTE_UNUSED, char **argv)
 {
 	int server_socket = server_socket; /* for gcc */
 	unsigned opt;

@@ -12,7 +12,7 @@
 #include "libbb.h"
 
 int mktemp_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int mktemp_main(int argc, char **argv)
+int mktemp_main(int argc ATTRIBUTE_UNUSED, char **argv)
 {
 	// -d      Make a directory instead of a file
 	// -q      Fail silently if an error occurs [bbox: ignored]

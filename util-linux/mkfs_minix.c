@@ -495,7 +495,7 @@ static size_t do_check(char *buffer, size_t try, unsigned current_block)
 	return try;
 }
 
-static void alarm_intr(int alnum)
+static void alarm_intr(int alnum ATTRIBUTE_UNUSED)
 {
 	if (G.currently_testing >= SB_ZONES)
 		return;
@@ -621,7 +621,7 @@ static void setup_tables(void)
 }
 
 int mkfs_minix_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int mkfs_minix_main(int argc, char **argv)
+int mkfs_minix_main(int argc ATTRIBUTE_UNUSED, char **argv)
 {
 	struct mntent *mp;
 	unsigned opt;

@@ -37,7 +37,7 @@ enum {
 };
 
 int klogd_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int klogd_main(int argc, char **argv)
+int klogd_main(int argc ATTRIBUTE_UNUSED, char **argv)
 {
 	int i = i; /* silence gcc */
 	char *start;

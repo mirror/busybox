@@ -174,7 +174,7 @@ static void ping6(len_and_sockaddr *lsa)
 #endif
 
 int ping_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int ping_main(int argc, char **argv)
+int ping_main(int argc ATTRIBUTE_UNUSED, char **argv)
 {
 	len_and_sockaddr *lsa;
 #if ENABLE_PING6
@@ -495,7 +495,7 @@ static void unpack4(char *buf, int sz, struct sockaddr_in *from)
 	}
 }
 #if ENABLE_PING6
-static void unpack6(char *packet, int sz, struct sockaddr_in6 *from, int hoplimit)
+static void unpack6(char *packet, int sz, /*struct sockaddr_in6 *from,*/ int hoplimit)
 {
 	struct icmp6_hdr *icmppkt;
 	char buf[INET6_ADDRSTRLEN];
@@ -658,7 +658,7 @@ static void ping6(len_and_sockaddr *lsa)
 				hoplimit = *(int*)CMSG_DATA(mp);
 			}
 		}
-		unpack6(packet, c, &from, hoplimit);
+		unpack6(packet, c, /*&from,*/ hoplimit);
 		if (pingcount > 0 && nreceived >= pingcount)
 			break;
 	}
@@ -683,7 +683,7 @@ static void ping(len_and_sockaddr *lsa)
 }
 
 int ping_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int ping_main(int argc, char **argv)
+int ping_main(int argc ATTRIBUTE_UNUSED, char **argv)
 {
 	len_and_sockaddr *lsa;
 	char *opt_c, *opt_s;

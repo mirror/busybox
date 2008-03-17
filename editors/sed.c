@@ -301,7 +301,7 @@ static int get_address(const char *my_str, int *linenum, regex_t ** regex)
 }
 
 /* Grab a filename.  Whitespace at start is skipped, then goes to EOL. */
-static int parse_file_cmd(sed_cmd_t *sed_cmd, const char *filecmdstr, char **retval)
+static int parse_file_cmd(/*sed_cmd_t *sed_cmd,*/ const char *filecmdstr, char **retval)
 {
 	int start = 0, idx, hack = 0;
 
@@ -375,7 +375,7 @@ static int parse_subst_cmd(sed_cmd_t *sed_cmd, const char *substr)
 		case 'w':
 		{
 			char *temp;
-			idx += parse_file_cmd(sed_cmd, substr+idx, &temp);
+			idx += parse_file_cmd(/*sed_cmd,*/ substr+idx, &temp);
 			break;
 		}
 		/* Ignore case (gnu exension) */
@@ -436,7 +436,7 @@ static const char *parse_cmd_args(sed_cmd_t *sed_cmd, const char *cmdstr)
 	} else if (strchr("rw", sed_cmd->cmd)) {
 		if (sed_cmd->end_line || sed_cmd->end_match)
 			bb_error_msg_and_die("command only uses one address");
-		cmdstr += parse_file_cmd(sed_cmd, cmdstr, &sed_cmd->string);
+		cmdstr += parse_file_cmd(/*sed_cmd,*/ cmdstr, &sed_cmd->string);
 		if (sed_cmd->cmd == 'w') {
 			sed_cmd->sw_file = xfopen(sed_cmd->string, "w");
 			sed_cmd->sw_last_char = '\n';

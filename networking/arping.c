@@ -245,7 +245,7 @@ static bool recv_pack(unsigned char *buf, int len, struct sockaddr_ll *FROM)
 }
 
 int arping_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int arping_main(int argc, char **argv)
+int arping_main(int argc ATTRIBUTE_UNUSED, char **argv)
 {
 	const char *device = "eth0";
 	char *source = NULL;

@@ -24,7 +24,7 @@ int mknod_main(int argc, char **argv)
 	dev_t dev;
 	const char *name;
 
-	mode = getopt_mk_fifo_nod(argc, argv);
+	mode = getopt_mk_fifo_nod(argv);
 	argv += optind;
 	argc -= optind;
 

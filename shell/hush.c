@@ -536,11 +536,13 @@ static int done_pipe(struct p_context *ctx, pipe_style type);
 static int redirect_dup_num(struct in_str *input);
 static int redirect_opt_num(o_string *o);
 #if ENABLE_HUSH_TICK
-static int process_command_subs(o_string *dest, struct p_context *ctx, struct in_str *input, const char *subst_end);
+static int process_command_subs(o_string *dest, /*struct p_context *ctx,*/
+		struct in_str *input, const char *subst_end);
 #endif
 static int parse_group(o_string *dest, struct p_context *ctx, struct in_str *input, int ch);
 static const char *lookup_param(const char *src);
-static int handle_dollar(o_string *dest, struct p_context *ctx, struct in_str *input);
+static int handle_dollar(o_string *dest, /*struct p_context *ctx,*/
+		struct in_str *input);
 static int parse_stream(o_string *dest, struct p_context *ctx, struct in_str *input0, const char *end_trigger);
 /*   setup: */
 static int parse_and_run_stream(struct in_str *inp, int parse_flag);
@@ -741,14 +743,14 @@ static void set_every_sighandler(void (*handler)(int))
 	signal(SIGCHLD, handler);
 }
 
-static void handler_ctrl_c(int sig)
+static void handler_ctrl_c(int sig ATTRIBUTE_UNUSED)
 {
 	debug_printf_jobs("got sig %d\n", sig);
 // as usual we can have all kinds of nasty problems with leaked malloc data here
 	siglongjmp(toplevel_jb, 1);
 }
 
-static void handler_ctrl_z(int sig)
+static void handler_ctrl_z(int sig ATTRIBUTE_UNUSED)
 {
 	pid_t pid;
 
@@ -3257,8 +3259,10 @@ static FILE *generate_stream_from_list(struct pipe *head)
 }
 
 /* Return code is exit status of the process that is run. */
-static int process_command_subs(o_string *dest, struct p_context *ctx,
-	struct in_str *input, const char *subst_end)
+static int process_command_subs(o_string *dest,
+		/*struct p_context *ctx,*/
+		struct in_str *input,
+		const char *subst_end)
 {
 	int retcode, ch, eol_cnt;
 	o_string result = NULL_O_STRING;
@@ -3351,7 +3355,7 @@ static const char *lookup_param(const char *src)
 }
 
 /* return code: 0 for OK, 1 for syntax error */
-static int handle_dollar(o_string *dest, struct p_context *ctx, struct in_str *input)
+static int handle_dollar(o_string *dest, /*struct p_context *ctx,*/ struct in_str *input)
 {
 	int ch = b_peek(input);  /* first character after the $ */
 	unsigned char quote_mask = dest->o_quote ? 0x80 : 0;
@@ -3409,7 +3413,7 @@ static int handle_dollar(o_string *dest, struct p_context *ctx, struct in_str *i
 #if ENABLE_HUSH_TICK
 		case '(':
 			b_getch(input);
-			process_command_subs(dest, ctx, input, ")");
+			process_command_subs(dest, /*ctx,*/ input, ")");
 			break;
 #endif
 		case '-':
@@ -3507,7 +3511,7 @@ static int parse_stream(o_string *dest, struct p_context *ctx,
 			b_addqchr(dest, b_getch(input), dest->o_quote);
 			break;
 		case '$':
-			if (handle_dollar(dest, ctx, input) != 0) {
+			if (handle_dollar(dest, /*ctx,*/ input) != 0) {
 				debug_printf_parse("parse_stream return 1: handle_dollar returned non-0\n");
 				return 1;
 			}
@@ -3532,7 +3536,7 @@ static int parse_stream(o_string *dest, struct p_context *ctx,
 			break;
 #if ENABLE_HUSH_TICK
 		case '`':
-			process_command_subs(dest, ctx, input, "`");
+			process_command_subs(dest, /*ctx,*/ input, "`");
 			break;
 #endif
 		case '>':

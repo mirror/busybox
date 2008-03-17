@@ -141,7 +141,7 @@ static unsigned long du(const char *filename)
 }
 
 int du_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int du_main(int argc, char **argv)
+int du_main(int argc ATTRIBUTE_UNUSED, char **argv)
 {
 	unsigned long total;
 	int slink_depth_save;

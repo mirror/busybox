@@ -59,7 +59,9 @@ extern const uint8_t applet_install_loc[];
 /* Length of these names has effect on size of libbusybox
  * and "individual" binaries. Keep them short.
  */
-void lbb_prepare(const char *applet, char **argv) MAIN_EXTERNALLY_VISIBLE;
+void lbb_prepare(const char *applet
+	USE_FEATURE_INDIVIDUAL(, char **argv)
+	) MAIN_EXTERNALLY_VISIBLE;
 #if ENABLE_BUILD_LIBBUSYBOX
 #if ENABLE_FEATURE_SHARED_BUSYBOX
 int lbb_main(int argc, char **argv) EXTERNALLY_VISIBLE;

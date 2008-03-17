@@ -909,7 +909,7 @@ static inline int daemonize(void) { return -ENOSYS; }
 #endif
 
 // TODO
-static inline int we_saw_this_host_before(const char *hostname)
+static inline int we_saw_this_host_before(const char *hostname ATTRIBUTE_UNUSED)
 {
 	return 0;
 }

@@ -14,12 +14,12 @@
 #include "libcoreutils/coreutils.h"
 
 int mkfifo_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int mkfifo_main(int argc, char **argv)
+int mkfifo_main(int argc ATTRIBUTE_UNUSED, char **argv)
 {
 	mode_t mode;
 	int retval = EXIT_SUCCESS;
 
-	mode = getopt_mk_fifo_nod(argc, argv);
+	mode = getopt_mk_fifo_nod(argv);
 
 	argv += optind;
 	if (!*argv) {

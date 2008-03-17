@@ -11,6 +11,6 @@ typedef int (*stat_func)(const char *fn, struct stat *ps);
 int cp_mv_stat2(const char *fn, struct stat *fn_stat, stat_func sf);
 int cp_mv_stat(const char *fn, struct stat *fn_stat);
 
-mode_t getopt_mk_fifo_nod(int argc, char **argv);
+mode_t getopt_mk_fifo_nod(char **argv);
 
 #endif

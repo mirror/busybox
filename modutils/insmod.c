@@ -651,7 +651,7 @@ static struct obj_symbol *arch_new_symbol(void);
 
 static enum obj_reloc arch_apply_relocation(struct obj_file *f,
 				      struct obj_section *targsec,
-				      struct obj_section *symsec,
+				      /*struct obj_section *symsec,*/
 				      struct obj_symbol *sym,
 				      ElfW(RelM) *rel, ElfW(Addr) value);
 
@@ -792,8 +792,9 @@ static char *m_fullName;
 /*======================================================================*/
 
 
-static int check_module_name_match(const char *filename, struct stat *statbuf,
-				void *userdata, int depth)
+static int check_module_name_match(const char *filename,
+		struct stat *statbuf ATTRIBUTE_UNUSED,
+		void *userdata, int depth ATTRIBUTE_UNUSED)
 {
 	char *fullname = (char *) userdata;
 	char *tmp;
@@ -835,7 +836,7 @@ static struct obj_symbol *arch_new_symbol(void)
 static enum obj_reloc
 arch_apply_relocation(struct obj_file *f,
 				struct obj_section *targsec,
-				struct obj_section *symsec,
+				/*struct obj_section *symsec,*/
 				struct obj_symbol *sym,
 				ElfW(RelM) *rel, ElfW(Addr) v)
 {
@@ -1751,7 +1752,7 @@ static int arch_list_add(ElfW(RelM) *rel, struct arch_list_entry **list,
 
 #if defined(USE_SINGLE)
 
-static int arch_single_init(ElfW(RelM) *rel, struct arch_single_entry *single,
+static int arch_single_init(/*ElfW(RelM) *rel,*/ struct arch_single_entry *single,
 			     int offset, int size)
 {
 	if (single->allocated == 0) {
@@ -1899,7 +1900,7 @@ static void arch_create_got(struct obj_file *f)
 #if defined(USE_GOT_ENTRIES)
 			if (got_allocate) {
 				got_offset += arch_single_init(
-						rel, &intsym->gotent,
+						/*rel,*/ &intsym->gotent,
 						got_offset, GOT_ENTRY_SIZE);
 
 				got_needed = 1;
@@ -1913,7 +1914,7 @@ static void arch_create_got(struct obj_file *f)
 						plt_offset, PLT_ENTRY_SIZE);
 #else
 				plt_offset += arch_single_init(
-						rel, &intsym->pltent,
+						/*rel,*/ &intsym->pltent,
 						plt_offset, PLT_ENTRY_SIZE);
 #endif
 				plt_needed = 1;
@@ -3220,7 +3221,7 @@ static int obj_relocate(struct obj_file *f, ElfW(Addr) base)
 
 			/* Do it! */
 			switch (arch_apply_relocation
-					(f, targsec, symsec, intsym, rel, value)
+					(f, targsec, /*symsec,*/ intsym, rel, value)
 			) {
 			case obj_reloc_ok:
 				break;
@@ -3299,7 +3300,7 @@ static int obj_create_image(struct obj_file *f, char *image)
 
 /*======================================================================*/
 
-static struct obj_file *obj_load(FILE * fp, int loadprogbits)
+static struct obj_file *obj_load(FILE * fp, int loadprogbits ATTRIBUTE_UNUSED)
 {
 	struct obj_file *f;
 	ElfW(Shdr) * section_headers;
@@ -4193,9 +4194,9 @@ static const char *moderror(int err)
 
 #if !ENABLE_FEATURE_2_4_MODULES
 int insmod_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int insmod_main(int argc, char **argv)
+int insmod_main(int argc ATTRIBUTE_UNUSED, char **argv)
 #else
-static int insmod_ng_main(int argc, char **argv)
+static int insmod_ng_main(int argc ATTRIBUTE_UNUSED, char **argv)
 #endif
 {
 	long ret;

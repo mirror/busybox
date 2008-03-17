@@ -252,7 +252,7 @@ static void pop3_message(const char *filename)
 #endif
 
 int sendgetmail_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int sendgetmail_main(int argc, char **argv)
+int sendgetmail_main(int argc ATTRIBUTE_UNUSED, char **argv)
 {
 	llist_t *opt_recipients = NULL;
 

@@ -11,7 +11,7 @@
 #include "libbb.h"
 
 int readlink_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int readlink_main(int argc, char **argv)
+int readlink_main(int argc ATTRIBUTE_UNUSED, char **argv)
 {
 	char *buf;
 	char *fname;

@@ -2472,7 +2472,7 @@ docd(const char *dest, int flags)
 }
 
 static int
-cdcmd(int argc, char **argv)
+cdcmd(int argc ATTRIBUTE_UNUSED, char **argv ATTRIBUTE_UNUSED)
 {
 	const char *dest;
 	const char *path;
@@ -2536,7 +2536,7 @@ cdcmd(int argc, char **argv)
 }
 
 static int
-pwdcmd(int argc, char **argv)
+pwdcmd(int argc ATTRIBUTE_UNUSED, char **argv ATTRIBUTE_UNUSED)
 {
 	int flags;
 	const char *dir = curdir;
@@ -3138,19 +3138,20 @@ printalias(const struct alias *ap)
  * TODO - sort output
  */
 static int
-aliascmd(int argc, char **argv)
+aliascmd(int argc ATTRIBUTE_UNUSED, char **argv)
 {
 	char *n, *v;
 	int ret = 0;
 	struct alias *ap;
 
-	if (argc == 1) {
+	if (!argv[1]) {
 		int i;
 
-		for (i = 0; i < ATABSIZE; i++)
+		for (i = 0; i < ATABSIZE; i++) {
 			for (ap = atab[i]; ap; ap = ap->next) {
 				printalias(ap);
 			}
+		}
 		return 0;
 	}
 	while ((n = *++argv) != NULL) {
@@ -3172,7 +3173,7 @@ aliascmd(int argc, char **argv)
 }
 
 static int
-unaliascmd(int argc, char **argv)
+unaliascmd(int argc ATTRIBUTE_UNUSED, char **argv ATTRIBUTE_UNUSED)
 {
 	int i;
 
@@ -3245,7 +3246,7 @@ struct job {
 static pid_t backgndpid;        /* pid of last background process */
 static smallint job_warning;    /* user was warned about stopped jobs (can be 2, 1 or 0). */
 
-static struct job *makejob(union node *, int);
+static struct job *makejob(/*union node *,*/ int);
 static int forkshell(struct job *, union node *, int);
 static int waitforjob(struct job *);
 
@@ -3612,8 +3613,8 @@ setjobctl(int on)
 static int
 killcmd(int argc, char **argv)
 {
+	int i = 1;
 	if (argv[1] && strcmp(argv[1], "-l") != 0) {
-		int i = 1;
 		do {
 			if (argv[i][0] == '%') {
 				struct job *jp = getjob(argv[i], 0);
@@ -3675,7 +3676,7 @@ restartjob(struct job *jp, int mode)
 }
 
 static int
-fg_bgcmd(int argc, char **argv)
+fg_bgcmd(int argc ATTRIBUTE_UNUSED, char **argv)
 {
 	struct job *jp;
 	FILE *out;
@@ -3962,7 +3963,7 @@ showjobs(FILE *out, int mode)
 }
 
 static int
-jobscmd(int argc, char **argv)
+jobscmd(int argc ATTRIBUTE_UNUSED, char **argv)
 {
 	int mode, m;
 
@@ -4015,7 +4016,7 @@ getstatus(struct job *job)
 }
 
 static int
-waitcmd(int argc, char **argv)
+waitcmd(int argc ATTRIBUTE_UNUSED, char **argv)
 {
 	struct job *job;
 	int retval;
@@ -4121,7 +4122,7 @@ growjobtab(void)
  * Called with interrupts off.
  */
 static struct job *
-makejob(union node *node, int nprocs)
+makejob(/*union node *node,*/ int nprocs)
 {
 	int i;
 	struct job *jp;
@@ -4156,7 +4157,7 @@ makejob(union node *node, int nprocs)
 	if (nprocs > 1) {
 		jp->ps = ckmalloc(nprocs * sizeof(struct procstat));
 	}
-	TRACE(("makejob(0x%lx, %d) returns %%%d\n", (long)node, nprocs,
+	TRACE(("makejob(%d) returns %%%d\n", nprocs,
 				jobno(jp)));
 	return jp;
 }
@@ -4484,7 +4485,7 @@ static void closescript(void);
 
 /* Called after fork(), in child */
 static void
-forkchild(struct job *jp, union node *n, int mode)
+forkchild(struct job *jp, /*union node *n,*/ int mode)
 {
 	int oldlvl;
 
@@ -4584,7 +4585,7 @@ forkshell(struct job *jp, union node *n, int mode)
 		ash_msg_and_raise_error("cannot fork");
 	}
 	if (pid == 0)
-		forkchild(jp, n, mode);
+		forkchild(jp, /*n,*/ mode);
 	else
 		forkparent(jp, n, mode, pid);
 	return pid;
@@ -5371,7 +5372,7 @@ evalbackcmd(union node *n, struct backcmd *result)
 
 		if (pipe(pip) < 0)
 			ash_msg_and_raise_error("pipe call failed");
-		jp = makejob(n, 1);
+		jp = makejob(/*n,*/ 1);
 		if (forkshell(jp, n, FORK_NOJOB) == 0) {
 			FORCE_INT_ON;
 			close(pip[0]);
@@ -5668,7 +5669,7 @@ argstr(char *p, int flag, struct strlist *var_str_list)
 }
 
 static char *
-scanleft(char *startp, char *rmesc, char *rmescend, char *str, int quotes,
+scanleft(char *startp, char *rmesc, char *rmescend ATTRIBUTE_UNUSED, char *str, int quotes,
 	int zero)
 {
 	char *loc;
@@ -6407,7 +6408,7 @@ expsort(struct strlist *str)
 }
 
 static void
-expandmeta(struct strlist *str, int flag)
+expandmeta(struct strlist *str /*, int flag*/)
 {
 	static const char metachars[] ALIGN1 = {
 		'*', '?', '[', 0
@@ -6488,7 +6489,7 @@ expandarg(union node *arg, struct arglist *arglist, int flag)
 		ifsbreakup(p, &exparg);
 		*exparg.lastp = NULL;
 		exparg.lastp = &exparg.list;
-		expandmeta(exparg.list, flag);
+		expandmeta(exparg.list /*, flag*/);
 	} else {
 		if (flag & EXP_REDIR) /*XXX - for now, just remove escapes */
 			rmescapes(p);
@@ -6838,7 +6839,7 @@ addcmdentry(char *name, struct cmdentry *entry)
 }
 
 static int
-hashcmd(int argc, char **argv)
+hashcmd(int argc ATTRIBUTE_UNUSED, char **argv ATTRIBUTE_UNUSED)
 {
 	struct tblentry **pp;
 	struct tblentry *cmdp;
@@ -7139,7 +7140,7 @@ describe_command(char *command, int describe_command_verbose)
 }
 
 static int
-typecmd(int argc, char **argv)
+typecmd(int argc ATTRIBUTE_UNUSED, char **argv)
 {
 	int i = 1;
 	int err = 0;
@@ -7150,7 +7151,7 @@ typecmd(int argc, char **argv)
 		i++;
 		verbose = 0;
 	}
-	while (i < argc) {
+	while (argv[i]) {
 		err |= describe_command(argv[i++], verbose);
 	}
 	return err;
@@ -7158,7 +7159,7 @@ typecmd(int argc, char **argv)
 
 #if ENABLE_ASH_CMDCMD
 static int
-commandcmd(int argc, char **argv)
+commandcmd(int argc ATTRIBUTE_UNUSED, char **argv ATTRIBUTE_UNUSED)
 {
 	int c;
 	enum {
@@ -7768,7 +7769,7 @@ evalsubshell(union node *n, int flags)
 	if (!backgnd && flags & EV_EXIT && !trap[0])
 		goto nofork;
 	INT_OFF;
-	jp = makejob(n, 1);
+	jp = makejob(/*n,*/ 1);
 	if (forkshell(jp, n, backgnd) == 0) {
 		INT_ON;
 		flags |= EV_EXIT;
@@ -7843,7 +7844,7 @@ evalpipe(union node *n, int flags)
 		pipelen++;
 	flags |= EV_EXIT;
 	INT_OFF;
-	jp = makejob(n, pipelen);
+	jp = makejob(/*n,*/ pipelen);
 	prevfd = -1;
 	for (lp = n->npipe.cmdlist; lp; lp = lp->next) {
 		prehash(lp->n);
@@ -8098,7 +8099,7 @@ mklocal(char *name)
  * The "local" command.
  */
 static int
-localcmd(int argc, char **argv)
+localcmd(int argc ATTRIBUTE_UNUSED, char **argv)
 {
 	char *name;
 
@@ -8110,21 +8111,21 @@ localcmd(int argc, char **argv)
 }
 
 static int
-falsecmd(int argc, char **argv)
+falsecmd(int argc ATTRIBUTE_UNUSED, char **argv ATTRIBUTE_UNUSED)
 {
 	return 1;
 }
 
 static int
-truecmd(int argc, char **argv)
+truecmd(int argc ATTRIBUTE_UNUSED, char **argv ATTRIBUTE_UNUSED)
 {
 	return 0;
 }
 
 static int
-execcmd(int argc, char **argv)
+execcmd(int argc ATTRIBUTE_UNUSED, char **argv)
 {
-	if (argc > 1) {
+	if (argv[1]) {
 		iflag = 0;              /* exit on error */
 		mflag = 0;
 		optschanged();
@@ -8137,7 +8138,7 @@ execcmd(int argc, char **argv)
  * The return command.
  */
 static int
-returncmd(int argc, char **argv)
+returncmd(int argc ATTRIBUTE_UNUSED, char **argv)
 {
 	/*
 	 * If called outside a function, do what ksh does;
@@ -8296,7 +8297,7 @@ isassignment(const char *p)
 	return *q == '=';
 }
 static int
-bltincmd(int argc, char **argv)
+bltincmd(int argc ATTRIBUTE_UNUSED, char **argv ATTRIBUTE_UNUSED)
 {
 	/* Preserve exitstatus of a previous possible redirection
 	 * as POSIX mandates */
@@ -8466,7 +8467,7 @@ evalcommand(union node *cmd, int flags)
 		/* Fork off a child process if necessary. */
 		if (!(flags & EV_EXIT) || trap[0]) {
 			INT_OFF;
-			jp = makejob(cmd, 1);
+			jp = makejob(/*cmd,*/ 1);
 			if (forkshell(jp, cmd, FORK_FG) != 0) {
 				exitstatus = waitforjob(jp);
 				INT_ON;
@@ -8596,9 +8597,9 @@ prehash(union node *n)
  * in the standard shell so we don't make it one here.
  */
 static int
-breakcmd(int argc, char **argv)
+breakcmd(int argc ATTRIBUTE_UNUSED, char **argv)
 {
-	int n = argc > 1 ? number(argv[1]) : 1;
+	int n = argv[1] ? number(argv[1]) : 1;
 
 	if (n <= 0)
 		ash_msg_and_raise_error(illnum, argv[1]);
@@ -9095,7 +9096,7 @@ chkmail(void)
 }
 
 static void
-changemail(const char *val)
+changemail(const char *val ATTRIBUTE_UNUSED)
 {
 	mail_var_path_changed = 1;
 }
@@ -9247,13 +9248,13 @@ options(int cmdline)
  * The shift builtin command.
  */
 static int
-shiftcmd(int argc, char **argv)
+shiftcmd(int argc ATTRIBUTE_UNUSED, char **argv)
 {
 	int n;
 	char **ap1, **ap2;
 
 	n = 1;
-	if (argc > 1)
+	if (argv[1])
 		n = number(argv[1]);
 	if (n > shellparam.nparam)
 		ash_msg_and_raise_error("can't shift that many");
@@ -9308,11 +9309,11 @@ showvars(const char *sep_prefix, int on, int off)
  * The set command builtin.
  */
 static int
-setcmd(int argc, char **argv)
+setcmd(int argc ATTRIBUTE_UNUSED, char **argv ATTRIBUTE_UNUSED)
 {
 	int retval;
 
-	if (argc == 1)
+	if (!argv[1])
 		return showvars(nullstr, 0, VUNSET);
 	INT_OFF;
 	retval = 1;
@@ -11015,20 +11016,19 @@ evalstring(char *s, int mask)
  * The eval command.
  */
 static int
-evalcmd(int argc, char **argv)
+evalcmd(int argc ATTRIBUTE_UNUSED, char **argv)
 {
 	char *p;
 	char *concat;
-	char **ap;
 
-	if (argc > 1) {
+	if (argv[1]) {
 		p = argv[1];
-		if (argc > 2) {
+		argv += 2;
+		if (argv[0]) {
 			STARTSTACKSTR(concat);
-			ap = argv + 2;
 			for (;;) {
 				concat = stack_putstr(p, concat);
-				p = *ap++;
+				p = *argv++;
 				if (p == NULL)
 					break;
 				STPUTC(' ', concat);
@@ -11139,16 +11139,15 @@ dotcmd(int argc, char **argv)
 	for (sp = cmdenviron; sp; sp = sp->next)
 		setvareq(ckstrdup(sp->text), VSTRFIXED | VTEXTFIXED);
 
-	if (argc >= 2) {        /* That's what SVR2 does */
-		char *fullname;
-
-		fullname = find_dot_file(argv[1]);
-
-		if (argc > 2) {
+	if (argv[1]) {        /* That's what SVR2 does */
+		char *fullname = find_dot_file(argv[1]);
+		argv += 2;
+		argc -= 2;
+		if (argc) { /* argc > 0, argv[0] != NULL */
 			saveparam = shellparam;
 			shellparam.malloced = 0;
-			shellparam.nparam = argc - 2;
-			shellparam.p = argv + 2;
+			shellparam.nparam = argc;
+			shellparam.p = argv;
 		};
 
 		setinputfile(fullname, INPUT_PUSH_FILE);
@@ -11156,7 +11155,7 @@ dotcmd(int argc, char **argv)
 		cmdloop(0);
 		popfile();
 
-		if (argc > 2) {
+		if (argc) {
 			freeparam(&shellparam);
 			shellparam = saveparam;
 		};
@@ -11166,11 +11165,11 @@ dotcmd(int argc, char **argv)
 }
 
 static int
-exitcmd(int argc, char **argv)
+exitcmd(int argc ATTRIBUTE_UNUSED, char **argv)
 {
 	if (stoppedjobs())
 		return 0;
-	if (argc > 1)
+	if (argv[1])
 		exitstatus = number(argv[1]);
 	raise_exception(EXEXIT);
 	/* NOTREACHED */
@@ -11404,7 +11403,7 @@ find_command(char *name, struct cmdentry *entry, int act, const char *path)
  * The trap builtin.
  */
 static int
-trapcmd(int argc, char **argv)
+trapcmd(int argc ATTRIBUTE_UNUSED, char **argv ATTRIBUTE_UNUSED)
 {
 	char *action;
 	char **ap;
@@ -11457,7 +11456,7 @@ trapcmd(int argc, char **argv)
  * Lists available builtins
  */
 static int
-helpcmd(int argc, char **argv)
+helpcmd(int argc ATTRIBUTE_UNUSED, char **argv ATTRIBUTE_UNUSED)
 {
 	int col, i;
 
@@ -11492,7 +11491,7 @@ helpcmd(int argc, char **argv)
  * The export and readonly commands.
  */
 static int
-exportcmd(int argc, char **argv)
+exportcmd(int argc ATTRIBUTE_UNUSED, char **argv)
 {
 	struct var *vp;
 	char *name;
@@ -11543,7 +11542,7 @@ unsetfunc(const char *name)
  * with the same name.
  */
 static int
-unsetcmd(int argc, char **argv)
+unsetcmd(int argc ATTRIBUTE_UNUSED, char **argv ATTRIBUTE_UNUSED)
 {
 	char **ap;
 	int i;
@@ -11581,7 +11580,7 @@ static const unsigned char timescmd_str[] ALIGN1 = {
 };
 
 static int
-timescmd(int ac, char **av)
+timescmd(int argc ATTRIBUTE_UNUSED, char **argv ATTRIBUTE_UNUSED)
 {
 	long clk_tck, s, t;
 	const unsigned char *p;
@@ -11633,17 +11632,16 @@ dash_arith(const char *s)
  *  Copyright (C) 2003 Vladimir Oleynik <dzo@simtreas.ru>
  */
 static int
-letcmd(int argc, char **argv)
+letcmd(int argc ATTRIBUTE_UNUSED, char **argv)
 {
-	char **ap;
-	arith_t i = 0;
+	arith_t i;
 
-	ap = argv + 1;
-	if (!*ap)
+	argv++;
+	if (!*argv)
 		ash_msg_and_raise_error("expression expected");
-	for (ap = argv + 1; *ap; ap++) {
-		i = dash_arith(*ap);
-	}
+	do {
+		i = dash_arith(*argv);
+	} while (*++argv);
 
 	return !i;
 }
@@ -11668,7 +11666,7 @@ typedef enum __rlimit_resource rlim_t;
  * This uses unbuffered input, which may be avoidable in some cases.
  */
 static int
-readcmd(int argc, char **argv)
+readcmd(int argc ATTRIBUTE_UNUSED, char **argv ATTRIBUTE_UNUSED)
 {
 	char **ap;
 	int backslash;
@@ -11859,7 +11857,7 @@ readcmd(int argc, char **argv)
 }
 
 static int
-umaskcmd(int argc, char **argv)
+umaskcmd(int argc ATTRIBUTE_UNUSED, char **argv)
 {
 	static const char permuser[3] ALIGN1 = "ugo";
 	static const char permmode[3] ALIGN1 = "rwx";
@@ -12034,7 +12032,7 @@ printlim(enum limtype how, const struct rlimit *limit,
 }
 
 static int
-ulimitcmd(int argc, char **argv)
+ulimitcmd(int argc ATTRIBUTE_UNUSED, char **argv ATTRIBUTE_UNUSED)
 {
 	int c;
 	rlim_t val = 0;
@@ -12868,7 +12866,7 @@ init(void)
  * Process the shell command line arguments.
  */
 static void
-procargs(int argc, char **argv)
+procargs(char **argv)
 {
 	int i;
 	const char *xminusc;
@@ -12876,7 +12874,7 @@ procargs(int argc, char **argv)
 
 	xargv = argv;
 	arg0 = xargv[0];
-	if (argc > 0)
+	/* if (xargv[0]) - mmm, this is always true! */
 		xargv++;
 	for (i = 0; i < NOPTS; i++)
 		optlist[i] = 2;
@@ -12976,7 +12974,7 @@ extern int etext();
  * is used to figure out how far we had gotten.
  */
 int ash_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int ash_main(int argc, char **argv)
+int ash_main(int argc ATTRIBUTE_UNUSED, char **argv)
 {
 	char *shinit;
 	volatile int state;
@@ -13039,7 +13037,8 @@ int ash_main(int argc, char **argv)
 #endif
 	init();
 	setstackmark(&smark);
-	procargs(argc, argv);
+	procargs(argv);
+
 #if ENABLE_FEATURE_EDITING_SAVEHISTORY
 	if (iflag) {
 		const char *hp = lookupvar("HISTFILE");

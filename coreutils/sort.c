@@ -275,7 +275,7 @@ static unsigned str2u(char **str)
 #endif
 
 int sort_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int sort_main(int argc, char **argv)
+int sort_main(int argc ATTRIBUTE_UNUSED, char **argv)
 {
 	FILE *fp, *outfile = stdout;
 	char *line, **lines = NULL;

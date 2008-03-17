@@ -174,7 +174,7 @@ static int complement(char *buffer, int buffer_len)
 }
 
 int tr_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int tr_main(int argc, char **argv)
+int tr_main(int argc ATTRIBUTE_UNUSED, char **argv)
 {
 	int output_length = 0, input_length;
 	int i;

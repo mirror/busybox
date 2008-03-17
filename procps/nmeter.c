@@ -275,7 +275,7 @@ typedef struct a { \
 S_STAT(s_stat)
 S_STAT_END(s_stat)
 
-static void collect_literal(s_stat *s)
+static void collect_literal(s_stat *s ATTRIBUTE_UNUSED)
 {
 }
 
@@ -294,7 +294,7 @@ static s_stat* init_delay(const char *param)
 	return NULL;
 }
 
-static s_stat* init_cr(const char *param)
+static s_stat* init_cr(const char *param ATTRIBUTE_UNUSED)
 {
 	final_str = "\r";
 	return (s_stat*)0;
@@ -436,7 +436,7 @@ static void collect_ctx(ctx_stat *s)
 	scale(data[0] - old);
 }
 
-static s_stat* init_ctx(const char *param)
+static s_stat* init_ctx(const char *param ATTRIBUTE_UNUSED)
 {
 	ctx_stat *s = xmalloc(sizeof(ctx_stat));
 	s->collect = collect_ctx;
@@ -478,7 +478,7 @@ static void collect_blk(blk_stat *s)
 	scale(data[1]*512);
 }
 
-static s_stat* init_blk(const char *param)
+static s_stat* init_blk(const char *param ATTRIBUTE_UNUSED)
 {
 	blk_stat *s = xmalloc(sizeof(blk_stat));
 	s->collect = collect_blk;
@@ -491,7 +491,7 @@ S_STAT(fork_stat)
 	ullong old;
 S_STAT_END(fork_stat)
 
-static void collect_thread_nr(fork_stat *s)
+static void collect_thread_nr(fork_stat *s ATTRIBUTE_UNUSED)
 {
 	ullong data[1];
 
@@ -660,7 +660,7 @@ static s_stat* init_mem(const char *param)
 S_STAT(swp_stat)
 S_STAT_END(swp_stat)
 
-static void collect_swp(swp_stat *s)
+static void collect_swp(swp_stat *s ATTRIBUTE_UNUSED)
 {
 	ullong s_total[1];
 	ullong s_free[1];
@@ -673,7 +673,7 @@ static void collect_swp(swp_stat *s)
 	scale((s_total[0]-s_free[0]) << 10);
 }
 
-static s_stat* init_swp(const char *param)
+static s_stat* init_swp(const char *param ATTRIBUTE_UNUSED)
 {
 	swp_stat *s = xmalloc(sizeof(swp_stat));
 	s->collect = collect_swp;
@@ -684,7 +684,7 @@ static s_stat* init_swp(const char *param)
 S_STAT(fd_stat)
 S_STAT_END(fd_stat)
 
-static void collect_fd(fd_stat *s)
+static void collect_fd(fd_stat *s ATTRIBUTE_UNUSED)
 {
 	ullong data[2];
 
@@ -696,7 +696,7 @@ static void collect_fd(fd_stat *s)
 	scale(data[0] - data[1]);
 }
 
-static s_stat* init_fd(const char *param)
+static s_stat* init_fd(const char *param ATTRIBUTE_UNUSED)
 {
 	fd_stat *s = xmalloc(sizeof(fd_stat));
 	s->collect = collect_fd;

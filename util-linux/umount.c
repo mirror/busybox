@@ -27,7 +27,7 @@
 //#define MNT_DETACH 0x00000002 /* Just detach from the tree */
 
 int umount_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int umount_main(int argc, char **argv)
+int umount_main(int argc ATTRIBUTE_UNUSED, char **argv)
 {
 	int doForce;
 	char *const path = xmalloc(PATH_MAX + 2); /* to save stack */

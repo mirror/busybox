@@ -56,7 +56,7 @@ enum { READ_BUFFER_SIZE = COMMON_BUFSIZE - 1 };
 #define SPLIT_OPT_a (1<<2)
 
 int split_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int split_main(int argc, char **argv)
+int split_main(int argc ATTRIBUTE_UNUSED, char **argv)
 {
 	unsigned suffix_len = 2;
 	char *pfx;

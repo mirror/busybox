@@ -371,7 +371,7 @@ static void load_regexes_from_file(llist_t *fopt)
 	}
 }
 
-static int file_action_grep(const char *filename, struct stat *statbuf, void* matched, int depth)
+static int file_action_grep(const char *filename, struct stat *statbuf ATTRIBUTE_UNUSED, void* matched, int depth ATTRIBUTE_UNUSED)
 {
 	FILE *file = fopen(filename, "r");
 	if (file == NULL) {

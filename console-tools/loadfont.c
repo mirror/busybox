@@ -167,7 +167,7 @@ static void loadnewfont(int fd)
 }
 
 int loadfont_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int loadfont_main(int argc, char **argv)
+int loadfont_main(int argc, char **argv ATTRIBUTE_UNUSED)
 {
 	int fd;
 

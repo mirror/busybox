@@ -435,7 +435,7 @@ static int arp_show(char *name)
 }
 
 int arp_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int arp_main(int argc, char **argv)
+int arp_main(int argc ATTRIBUTE_UNUSED, char **argv)
 {
 	char *hw_type;
 	char *protocol;

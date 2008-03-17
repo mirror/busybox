@@ -93,7 +93,7 @@ static int read_to_buf(const char *filename, void *buf)
 	return ret;
 }
 
-procps_status_t *alloc_procps_scan(int flags)
+static procps_status_t *alloc_procps_scan(void)
 {
 	unsigned n = getpagesize();
 	procps_status_t* sp = xzalloc(sizeof(procps_status_t));
@@ -175,7 +175,7 @@ procps_status_t *procps_scan(procps_status_t* sp, int flags)
 	struct stat sb;
 
 	if (!sp)
-		sp = alloc_procps_scan(flags);
+		sp = alloc_procps_scan();
 
 	for (;;) {
 		entry = readdir(sp->dir);

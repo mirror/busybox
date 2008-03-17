@@ -15,7 +15,7 @@
 
 
 int sulogin_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int sulogin_main(int argc, char **argv)
+int sulogin_main(int argc ATTRIBUTE_UNUSED, char **argv)
 {
 	char *cp;
 	int timeout = 0;

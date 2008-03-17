@@ -17,7 +17,7 @@ enum {
 };
 
 int pidof_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int pidof_main(int argc, char **argv)
+int pidof_main(int argc ATTRIBUTE_UNUSED, char **argv)
 {
 	unsigned first = 1;
 	unsigned opt;

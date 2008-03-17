@@ -114,7 +114,7 @@ static void write_utent(struct utmp *utptr, const char *username)
 #endif /* !ENABLE_FEATURE_UTMP */
 
 #if ENABLE_FEATURE_NOLOGIN
-static void die_if_nologin_and_non_root(int amroot)
+static void die_if_nologin(void)
 {
 	FILE *fp;
 	int c;
@@ -135,7 +135,7 @@ static void die_if_nologin_and_non_root(int amroot)
 	puts("\r\n[Disconnect bypassed -- root login allowed]\r");
 }
 #else
-static ALWAYS_INLINE void die_if_nologin_and_non_root(int amroot) {}
+static ALWAYS_INLINE void die_if_nologin(void) {}
 #endif
 
 #if ENABLE_FEATURE_SECURETTY && !ENABLE_PAM
@@ -406,7 +406,8 @@ int login_main(int argc, char **argv)
 	}
 
 	alarm(0);
-	die_if_nologin_and_non_root(pw->pw_uid == 0);
+	if (!amroot)
+		die_if_nologin();
 
 	write_utent(&utent, username);
 

@@ -79,7 +79,7 @@ static int bb_alphasort(const void *p1, const void *p2)
 	return (option_mask32 & OPT_r) ? -r : r;
 }
 
-static int act(const char *file, struct stat *statbuf, void *args, int depth)
+static int act(const char *file, struct stat *statbuf, void *args ATTRIBUTE_UNUSED, int depth)
 {
 	if (depth == 1)
 		return TRUE;
@@ -113,7 +113,7 @@ static const char runparts_longopts[] ALIGN1 =
 #endif
 
 int run_parts_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int run_parts_main(int argc, char **argv)
+int run_parts_main(int argc ATTRIBUTE_UNUSED, char **argv)
 {
 	const char *umask_p = "22";
 	llist_t *arg_list = NULL;

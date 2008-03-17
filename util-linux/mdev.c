@@ -244,8 +244,10 @@ static void make_device(char *path, int delete)
 }
 
 /* File callback for /sys/ traversal */
-static int fileAction(const char *fileName, struct stat *statbuf,
-                      void *userData, int depth)
+static int fileAction(const char *fileName,
+                      struct stat *statbuf ATTRIBUTE_UNUSED,
+                      void *userData,
+                      int depth ATTRIBUTE_UNUSED)
 {
 	size_t len = strlen(fileName) - 4;
 	char *scratch = userData;
@@ -261,8 +263,10 @@ static int fileAction(const char *fileName, struct stat *statbuf,
 }
 
 /* Directory callback for /sys/ traversal */
-static int dirAction(const char *fileName, struct stat *statbuf,
-                      void *userData, int depth)
+static int dirAction(const char *fileName ATTRIBUTE_UNUSED,
+                      struct stat *statbuf ATTRIBUTE_UNUSED,
+                      void *userData ATTRIBUTE_UNUSED,
+                      int depth)
 {
 	return (depth >= MAX_SYSFS_DEPTH ? SKIP : TRUE);
 }

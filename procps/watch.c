@@ -24,7 +24,7 @@
 // (procps 3.x and procps 2.x are forks, not newer/older versions of the same)
 
 int watch_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int watch_main(int argc, char **argv)
+int watch_main(int argc ATTRIBUTE_UNUSED, char **argv)
 {
 	unsigned opt;
 	unsigned period = 2;

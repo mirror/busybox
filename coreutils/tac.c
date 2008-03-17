@@ -26,7 +26,7 @@ struct lstring {
 };
 
 int tac_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int tac_main(int argc, char **argv)
+int tac_main(int argc ATTRIBUTE_UNUSED, char **argv)
 {
 	char **name;
 	FILE *f;

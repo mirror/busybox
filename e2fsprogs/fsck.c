@@ -1128,7 +1128,7 @@ static void signal_cancel(int sig ATTRIBUTE_UNUSED)
 }
 
 int fsck_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int fsck_main(int argc, char **argv)
+int fsck_main(int argc ATTRIBUTE_UNUSED, char **argv)
 {
 	int i, status;
 	/*int interactive;*/

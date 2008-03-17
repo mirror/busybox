@@ -539,7 +539,7 @@ void bb_displayroutes(int noresolve, int netstatfmt)
 
 #if ENABLE_FEATURE_IPV6
 
-static void INET6_displayroutes(int noresolve)
+static void INET6_displayroutes(void)
 {
 	char addr6[128], *naddr6;
 	/* In addr6x, we store both 40-byte ':'-delimited ipv6 addresses.
@@ -642,7 +642,7 @@ static const char tbl_verb[] ALIGN1 =
 ;
 
 int route_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int route_main(int argc, char **argv)
+int route_main(int argc ATTRIBUTE_UNUSED, char **argv)
 {
 	unsigned opt;
 	int what;
@@ -675,7 +675,7 @@ int route_main(int argc, char **argv)
 		int noresolve = (opt & ROUTE_OPT_n) ? 0x0fff : 0;
 #if ENABLE_FEATURE_IPV6
 		if (opt & ROUTE_OPT_INET6)
-			INET6_displayroutes(noresolve);
+			INET6_displayroutes();
 		else
 #endif
 			bb_displayroutes(noresolve, opt & ROUTE_OPT_e);

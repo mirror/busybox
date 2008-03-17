@@ -162,7 +162,7 @@ static void cut_file(FILE *file, char delim)
 }
 
 int cut_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int cut_main(int argc, char **argv)
+int cut_main(int argc ATTRIBUTE_UNUSED, char **argv)
 {
 	char delim = '\t';	/* delimiter, default is tab */
 	char *sopt, *ltok;

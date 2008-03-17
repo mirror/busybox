@@ -79,7 +79,7 @@ static void eject_cdrom(const int fd, const unsigned long flags,
 }
 
 int eject_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int eject_main(int argc, char **argv)
+int eject_main(int argc ATTRIBUTE_UNUSED, char **argv)
 {
 	unsigned long flags;
 	const char *device;

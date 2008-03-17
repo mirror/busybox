@@ -69,7 +69,7 @@ enum {
 };
 
 int wc_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int wc_main(int argc, char **argv)
+int wc_main(int argc ATTRIBUTE_UNUSED, char **argv)
 {
 	FILE *fp;
 	const char *s, *arg;

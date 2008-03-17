@@ -293,7 +293,7 @@ static unsigned svstatus_print(const char *m)
 	return pid ? 1 : 2;
 }
 
-static int status(const char *unused)
+static int status(const char *unused ATTRIBUTE_UNUSED)
 {
 	int r;
 

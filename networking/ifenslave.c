@@ -150,7 +150,7 @@ static int release(char *master_ifname, char *slave_ifname);
 
 
 int ifenslave_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int ifenslave_main(int argc, char **argv)
+int ifenslave_main(int argc ATTRIBUTE_UNUSED, char **argv)
 {
 	char *master_ifname, *slave_ifname;
 	int rv;

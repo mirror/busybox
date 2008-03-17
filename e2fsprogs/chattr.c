@@ -125,7 +125,7 @@ static void change_attributes(const char *name, struct globals *gp)
 }
 
 int chattr_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int chattr_main(int argc, char **argv)
+int chattr_main(int argc ATTRIBUTE_UNUSED, char **argv)
 {
 	struct globals g;
 	char *arg;

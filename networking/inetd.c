@@ -1128,7 +1128,7 @@ static void clean_up_and_exit(int sig ATTRIBUTE_UNUSED)
 }
 
 int inetd_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int inetd_main(int argc, char **argv)
+int inetd_main(int argc ATTRIBUTE_UNUSED, char **argv)
 {
 	struct sigaction sa, saved_pipe_handler;
 	servtab_t *sep, *sep2;
@@ -1492,7 +1492,7 @@ static void init_ring(void)
 }
 /* Character generator. MMU arches only. */
 /* ARGSUSED */
-static void chargen_stream(int s, servtab_t *sep)
+static void chargen_stream(int s, servtab_t *sep ATTRIBUTE_UNUSED)
 {
 	char *rs;
 	int len;

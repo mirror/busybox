@@ -21,10 +21,10 @@ onintr(int sig ATTRIBUTE_UNUSED)
 }
 
 int resize_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int resize_main(int argc, char **argv)
+int resize_main(int argc ATTRIBUTE_UNUSED, char **argv ATTRIBUTE_UNUSED)
 {
 	struct termios new;
-	struct winsize w = { 0,0,0,0 };
+	struct winsize w = { 0, 0, 0, 0 };
 	int ret;
 
 	/* We use _stderr_ in order to make resize usable

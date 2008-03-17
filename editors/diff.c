@@ -1205,7 +1205,7 @@ static void diffdir(char *p1, char *p2)
 
 
 int diff_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int diff_main(int argc, char **argv)
+int diff_main(int argc ATTRIBUTE_UNUSED, char **argv)
 {
 	bool gotstdin = 0;
 	char *U_opt;

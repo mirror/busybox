@@ -177,7 +177,7 @@ static void unarm(void)
 }
 
 /* timeout and other signal handling cruft */
-static void tmtravel(int sig)
+static void tmtravel(int sig ATTRIBUTE_UNUSED)
 {
 	unarm();
 	longjmp(jbuf, 1);

@@ -12,7 +12,7 @@
 /* This is a NOFORK applet. Be very careful! */
 
 int pwd_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int pwd_main(int argc, char **argv)
+int pwd_main(int argc ATTRIBUTE_UNUSED, char **argv ATTRIBUTE_UNUSED)
 {
 	char *buf;
 

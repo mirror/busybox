@@ -114,13 +114,13 @@ static void set_state(struct termios *state, int encap)
 	}
 }
 
-static void sig_handler(int signo)
+static void sig_handler(int signo ATTRIBUTE_UNUSED)
 {
 	restore_state_and_exit(0);
 }
 
 int slattach_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int slattach_main(int argc, char **argv)
+int slattach_main(int argc ATTRIBUTE_UNUSED, char **argv)
 {
 	/* Line discipline code table */
 	static const char proto_names[] ALIGN1 =

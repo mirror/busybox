@@ -1120,7 +1120,7 @@ enum {
 			| PSSCAN_STIME | PSSCAN_UTIME | PSSCAN_START_TIME
 			| PSSCAN_TTY,
 };
-procps_status_t* alloc_procps_scan(int flags);
+//procps_status_t* alloc_procps_scan(void);
 void free_procps_scan(procps_status_t* sp);
 procps_status_t* procps_scan(procps_status_t* sp, int flags);
 /* Format cmdline (up to col chars) into char buf[col+1] */

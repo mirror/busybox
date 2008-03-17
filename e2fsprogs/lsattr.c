@@ -58,7 +58,7 @@ static void list_attributes(const char *name)
 }
 
 static int lsattr_dir_proc(const char *dir_name, struct dirent *de,
-			   void *private)
+			   void *private ATTRIBUTE_UNUSED)
 {
 	struct stat st;
 	char *path;
@@ -96,7 +96,7 @@ static void lsattr_args(const char *name)
 }
 
 int lsattr_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int lsattr_main(int argc, char **argv)
+int lsattr_main(int argc ATTRIBUTE_UNUSED, char **argv)
 {
 	getopt32(argv, "Radlv");
 	argv += optind;

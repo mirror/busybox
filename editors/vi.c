@@ -301,7 +301,7 @@ static void status_line_bold(const char *, ...);
 static void not_implemented(const char *); // display "Not implemented" message
 static int format_edit_status(void);	// format file status on status line
 static void redraw(int);	// force a full screen refresh
-static char* format_line(char*, int);
+static char* format_line(char* /*, int*/);
 static void refresh(int);	// update the terminal from screen[]
 
 static void Indicate_Error(void);       // use flash or beep to indicate error
@@ -2764,7 +2764,7 @@ static void redraw(int full_screen)
 }
 
 //----- Format a text[] line into a buffer ---------------------
-static char* format_line(char *src, int li)
+static char* format_line(char *src /*, int li*/)
 {
 	unsigned char c;
 	int co;
@@ -2848,7 +2848,7 @@ static void refresh(int full_screen)
 		int cs, ce;				// column start & end
 		char *out_buf;
 		// format current text line
-		out_buf = format_line(tp, li);
+		out_buf = format_line(tp /*, li*/);
 
 		// skip to the end of the current text[] line
 		if (tp < end) {

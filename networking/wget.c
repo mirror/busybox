@@ -387,7 +387,7 @@ static char *gethdr(char *buf, size_t bufsiz, FILE *fp /*, int *istrunc*/)
 
 
 int wget_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int wget_main(int argc, char **argv)
+int wget_main(int argc ATTRIBUTE_UNUSED, char **argv)
 {
 	char buf[512];
 	struct host_info server, target;

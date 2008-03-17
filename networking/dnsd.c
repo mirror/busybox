@@ -321,15 +321,15 @@ static int process_packet(uint8_t * buf)
 /*
  * Exit on signal
  */
-static void interrupt(int x)
+static void interrupt(int sig)
 {
 	/* unlink("/var/run/dnsd.lock"); */
 	bb_error_msg("interrupt, exiting\n");
-	exit(2);
+	kill_myself_with_sig(sig);
 }
 
 int dnsd_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int dnsd_main(int argc, char **argv)
+int dnsd_main(int argc ATTRIBUTE_UNUSED, char **argv)
 {
 	const char *listen_interface = "0.0.0.0";
 	char *sttl, *sport;
@@ -387,6 +387,9 @@ int dnsd_main(int argc, char **argv)
 // Or else we can exhibit usual UDP ugliness:
 // [ip1.multihomed.ip2] <=  query to ip1  <= peer
 // [ip1.multihomed.ip2] => reply from ip2 => peer (confused)
+
+// TODO: recv_from_to
+
 		r = recvfrom(udps, buf, sizeof(buf), 0, &lsa->u.sa, &fromlen);
 		if (OPT_verbose)
 			bb_info_msg("Got UDP packet");

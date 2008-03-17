@@ -85,7 +85,7 @@ static const char adduser_longopts[] ALIGN1 =
  * can be customized via command-line parameters.
  */
 int adduser_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int adduser_main(int argc, char **argv)
+int adduser_main(int argc ATTRIBUTE_UNUSED, char **argv)
 {
 	struct passwd pw;
 	const char *usegroup = NULL;

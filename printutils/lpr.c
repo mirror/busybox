@@ -42,7 +42,7 @@ static void get_response_or_say_and_die(int fd, const char *errmsg)
 }
 
 int lpqr_main(int argc, char *argv[]) MAIN_EXTERNALLY_VISIBLE;
-int lpqr_main(int argc, char *argv[])
+int lpqr_main(int argc ATTRIBUTE_UNUSED, char *argv[])
 {
 	enum {
 		OPT_P           = 1 << 0, // -P queue[@host[:port]]. If no -P is given use $PRINTER, then "lp@localhost:515"

@@ -107,7 +107,7 @@ static void suspend_system(const char *suspend)
 #define RTCWAKE_OPT_TIME         0x40
 
 int rtcwake_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int rtcwake_main(int argc, char **argv)
+int rtcwake_main(int argc ATTRIBUTE_UNUSED, char **argv)
 {
 	unsigned opt;
 	const char *rtcname = NULL;

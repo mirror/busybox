@@ -949,7 +949,7 @@ static int package_satisfies_dependency(int package, int depend_type)
 	return 0;
 }
 
-static int check_deps(deb_file_t **deb_file, int deb_start, int dep_max_count)
+static int check_deps(deb_file_t **deb_file, int deb_start /*, int dep_max_count - ?? */)
 {
 	int *conflicts = NULL;
 	int conflicts_num = 0;
@@ -1689,7 +1689,7 @@ int dpkg_main(int argc, char **argv)
 
 	/* Check that the deb file arguments are installable */
 	if (!(opt & OPT_force_ignore_depends)) {
-		if (!check_deps(deb_file, 0, deb_count)) {
+		if (!check_deps(deb_file, 0 /*, deb_count*/)) {
 			bb_error_msg_and_die("dependency check failed");
 		}
 	}

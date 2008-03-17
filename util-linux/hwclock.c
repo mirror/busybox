@@ -91,7 +91,7 @@ static void from_sys_clock(int utc)
 #define HWCLOCK_OPT_RTCFILE     0x20
 
 int hwclock_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int hwclock_main(int argc, char **argv)
+int hwclock_main(int argc ATTRIBUTE_UNUSED, char **argv)
 {
 	unsigned opt;
 	int utc;

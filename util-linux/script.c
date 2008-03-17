@@ -15,13 +15,13 @@
 
 static smallint fd_count = 2;
 
-static void handle_sigchld(int sig)
+static void handle_sigchld(int sig ATTRIBUTE_UNUSED)
 {
 	fd_count = 0;
 }
 
-int script_main(int argc, char *argv[]) MAIN_EXTERNALLY_VISIBLE;
-int script_main(int argc, char *argv[])
+int script_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
+int script_main(int argc ATTRIBUTE_UNUSED, char **argv)
 {
 	int opt;
 	int mode;

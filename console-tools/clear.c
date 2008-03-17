@@ -13,7 +13,7 @@
 #include "libbb.h"
 
 int clear_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int clear_main(int argc, char **argv)
+int clear_main(int argc ATTRIBUTE_UNUSED, char **argv ATTRIBUTE_UNUSED)
 {
 	return printf("\033[H\033[J") != 6;
 }

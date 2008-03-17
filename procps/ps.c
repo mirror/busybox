@@ -422,7 +422,7 @@ static void format_process(const procps_status_t *ps)
 }
 
 int ps_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int ps_main(int argc, char **argv)
+int ps_main(int argc ATTRIBUTE_UNUSED, char **argv)
 {
 	procps_status_t *p;
 	llist_t* opt_o = NULL;

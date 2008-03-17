@@ -589,7 +589,7 @@ static const struct builtincmd builtincmds[] = {
 };
 
 static struct op *scantree(struct op *);
-static struct op *dowholefile(int, int);
+static struct op *dowholefile(int /*, int*/);
 
 
 /* Globals */
@@ -1448,7 +1448,7 @@ static void next(int f)
 	PUSHIO(afile, f, filechar);
 }
 
-static void onintr(int s)					/* ANSI C requires a parameter */
+static void onintr(int s ATTRIBUTE_UNUSED) /* ANSI C requires a parameter */
 {
 	signal(SIGINT, onintr);
 	intr = 1;
@@ -1864,11 +1864,11 @@ static struct op *command(int cf)
 	return t;
 }
 
-static struct op *dowholefile(int type, int mark)
+static struct op *dowholefile(int type /*, int mark*/)
 {
 	struct op *t;
 
-	DBGPRINTF(("DOWHOLEFILE: enter, type=%d, mark=%d\n", type, mark));
+	DBGPRINTF(("DOWHOLEFILE: enter, type=%d\n", type /*, mark*/));
 
 	multiline++;
 	t = c_list();
@@ -2477,7 +2477,7 @@ static int execute(struct op *t, int *pin, int *pout, int no_fork)
 
 		newfile(evalstr(t->op_words[0], DOALL));
 
-		t->left = dowholefile(TLIST, 0);
+		t->left = dowholefile(TLIST /*, 0*/);
 		t->right = NULL;
 
 		outtree = outtree_save;
@@ -3155,7 +3155,7 @@ static int run(struct ioarg *argp, int (*f) (struct ioarg *))
  * built-in commands: doX
  */
 
-static int dohelp(struct op *t, char **args)
+static int dohelp(struct op *t ATTRIBUTE_UNUSED, char **args ATTRIBUTE_UNUSED)
 {
 	int col;
 	const struct builtincmd *x;
@@ -3191,12 +3191,12 @@ static int dohelp(struct op *t, char **args)
 	return EXIT_SUCCESS;
 }
 
-static int dolabel(struct op *t, char **args)
+static int dolabel(struct op *t ATTRIBUTE_UNUSED, char **args ATTRIBUTE_UNUSED)
 {
 	return 0;
 }
 
-static int dochdir(struct op *t, char **args)
+static int dochdir(struct op *t ATTRIBUTE_UNUSED, char **args)
 {
 	const char *cp, *er;
 
@@ -3217,7 +3217,7 @@ static int dochdir(struct op *t, char **args)
 	return 1;
 }
 
-static int doshift(struct op *t, char **args)
+static int doshift(struct op *t ATTRIBUTE_UNUSED, char **args)
 {
 	int n;
 
@@ -3236,7 +3236,7 @@ static int doshift(struct op *t, char **args)
 /*
  * execute login and newgrp directly
  */
-static int dologin(struct op *t, char **args)
+static int dologin(struct op *t ATTRIBUTE_UNUSED, char **args)
 {
 	const char *cp;
 
@@ -3251,7 +3251,7 @@ static int dologin(struct op *t, char **args)
 	return 1;
 }
 
-static int doumask(struct op *t, char **args)
+static int doumask(struct op *t ATTRIBUTE_UNUSED, char **args)
 {
 	int i;
 	char *cp;
@@ -3301,7 +3301,7 @@ static int doexec(struct op *t, char **args)
 	return 1;
 }
 
-static int dodot(struct op *t, char **args)
+static int dodot(struct op *t ATTRIBUTE_UNUSED, char **args)
 {
 	int i;
 	const char *sp;
@@ -3355,7 +3355,7 @@ static int dodot(struct op *t, char **args)
 	return -1;
 }
 
-static int dowait(struct op *t, char **args)
+static int dowait(struct op *t ATTRIBUTE_UNUSED, char **args)
 {
 	int i;
 	char *cp;
@@ -3371,7 +3371,7 @@ static int dowait(struct op *t, char **args)
 	return 0;
 }
 
-static int doread(struct op *t, char **args)
+static int doread(struct op *t ATTRIBUTE_UNUSED, char **args)
 {
 	char *cp, **wp;
 	int nb = 0;
@@ -3398,12 +3398,12 @@ static int doread(struct op *t, char **args)
 	return nb <= 0;
 }
 
-static int doeval(struct op *t, char **args)
+static int doeval(struct op *t ATTRIBUTE_UNUSED, char **args)
 {
 	return RUN(awordlist, args + 1, wdchar);
 }
 
-static int dotrap(struct op *t, char **args)
+static int dotrap(struct op *t ATTRIBUTE_UNUSED, char **args)
 {
 	int n, i;
 	int resetsig;
@@ -3484,12 +3484,12 @@ static int getn(char *as)
 	return n * m;
 }
 
-static int dobreak(struct op *t, char **args)
+static int dobreak(struct op *t ATTRIBUTE_UNUSED, char **args)
 {
 	return brkcontin(args[1], 1);
 }
 
-static int docontinue(struct op *t, char **args)
+static int docontinue(struct op *t ATTRIBUTE_UNUSED, char **args)
 {
 	return brkcontin(args[1], 0);
 }
@@ -3517,7 +3517,7 @@ static int brkcontin(char *cp, int val)
 	/* NOTREACHED */
 }
 
-static int doexit(struct op *t, char **args)
+static int doexit(struct op *t ATTRIBUTE_UNUSED, char **args)
 {
 	char *cp;
 
@@ -3533,13 +3533,13 @@ static int doexit(struct op *t, char **args)
 	return 0;
 }
 
-static int doexport(struct op *t, char **args)
+static int doexport(struct op *t ATTRIBUTE_UNUSED, char **args)
 {
 	rdexp(args + 1, export, EXPORT);
 	return 0;
 }
 
-static int doreadonly(struct op *t, char **args)
+static int doreadonly(struct op *t ATTRIBUTE_UNUSED, char **args)
 {
 	rdexp(args + 1, ronly, RONLY);
 	return 0;
@@ -3575,7 +3575,7 @@ static void badid(char *s)
 	err(": bad identifier");
 }
 
-static int doset(struct op *t, char **args)
+static int doset(struct op *t ATTRIBUTE_UNUSED, char **args)
 {
 	struct var *vp;
 	char *cp;
@@ -3650,7 +3650,7 @@ static void times_fmt(char *buf, clock_t val, unsigned clk_tck)
 #endif
 }
 
-static int dotimes(struct op *t, char **args)
+static int dotimes(struct op *t ATTRIBUTE_UNUSED, char **args ATTRIBUTE_UNUSED)
 {
 	struct tms buf;
 	unsigned clk_tck = sysconf(_SC_CLK_TCK);

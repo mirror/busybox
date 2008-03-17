@@ -338,7 +338,7 @@ free_session(struct tsession *ts)
 
 #endif
 
-static void handle_sigchld(int sig)
+static void handle_sigchld(int sig ATTRIBUTE_UNUSED)
 {
 	pid_t pid;
 	struct tsession *ts;
@@ -360,7 +360,7 @@ static void handle_sigchld(int sig)
 }
 
 int telnetd_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int telnetd_main(int argc, char **argv)
+int telnetd_main(int argc ATTRIBUTE_UNUSED, char **argv)
 {
 	fd_set rdfdset, wrfdset;
 	unsigned opt;

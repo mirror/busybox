@@ -290,7 +290,7 @@ static void envdir(int, char **) ATTRIBUTE_NORETURN;
 static void softlimit(int, char **) ATTRIBUTE_NORETURN;
 
 int chpst_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int chpst_main(int argc, char **argv)
+int chpst_main(int argc ATTRIBUTE_UNUSED, char **argv)
 {
 	INIT_G();
 
@@ -349,7 +349,7 @@ int chpst_main(int argc, char **argv)
 	bb_perror_msg_and_die("exec %s", argv[0]);
 }
 
-static void setuidgid(int argc, char **argv)
+static void setuidgid(int argc ATTRIBUTE_UNUSED, char **argv)
 {
 	const char *account;
 
@@ -361,7 +361,7 @@ static void setuidgid(int argc, char **argv)
 	bb_perror_msg_and_die("exec %s", argv[0]);
 }
 
-static void envuidgid(int argc, char **argv)
+static void envuidgid(int argc ATTRIBUTE_UNUSED, char **argv)
 {
 	const char *account;
 
@@ -373,7 +373,7 @@ static void envuidgid(int argc, char **argv)
 	bb_perror_msg_and_die("exec %s", argv[0]);
 }
 
-static void envdir(int argc, char **argv)
+static void envdir(int argc ATTRIBUTE_UNUSED, char **argv)
 {
 	const char *dir;
 
@@ -385,7 +385,7 @@ static void envdir(int argc, char **argv)
 	bb_perror_msg_and_die("exec %s", argv[0]);
 }
 
-static void softlimit(int argc, char **argv)
+static void softlimit(int argc ATTRIBUTE_UNUSED, char **argv)
 {
 	char *a,*c,*d,*f,*l,*m,*o,*p,*r,*s,*t;
 	getopt32(argv, "+a:c:d:f:l:m:o:p:r:s:t:",

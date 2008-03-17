@@ -74,7 +74,9 @@ typedef struct {
 #endif
 } action;
 #define ACTS(name, arg...) typedef struct { action a; arg; } action_##name;
-#define ACTF(name)         static int func_##name(const char *fileName, struct stat *statbuf, action_##name* ap)
+#define ACTF(name)         static int func_##name(const char *fileName ATTRIBUTE_UNUSED, \
+                                                  struct stat *statbuf ATTRIBUTE_UNUSED, \
+                                                  action_##name* ap ATTRIBUTE_UNUSED)
                          ACTS(print)
                          ACTS(name,  const char *pattern; bool iname;)
 USE_FEATURE_FIND_PATH(   ACTS(path,  const char *pattern;))

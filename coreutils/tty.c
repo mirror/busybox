@@ -13,7 +13,7 @@
 #include "libbb.h"
 
 int tty_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int tty_main(int argc, char **argv)
+int tty_main(int argc, char **argv SKIP_INCLUDE_SUSv2(ATTRIBUTE_UNUSED))
 {
 	const char *s;
 	USE_INCLUDE_SUSv2(int silent;)	/* Note: No longer relevant in SUSv3. */
@@ -22,15 +22,17 @@ int tty_main(int argc, char **argv)
 	xfunc_error_retval = 2;	/* SUSv3 requires > 1 for error. */
 
 	USE_INCLUDE_SUSv2(silent = getopt32(argv, "s");)
+	USE_INCLUDE_SUSv2(argc -= optind;)
+	SKIP_INCLUDE_SUSv2(argc -= 1;)
 
 	/* gnu tty outputs a warning that it is ignoring all args. */
-	bb_warn_ignoring_args(argc - optind);
+	bb_warn_ignoring_args(argc);
 
 	retval = 0;
 
 	s = ttyname(0);
 	if (s == NULL) {
-	/* According to SUSv3, ttyname can on fail with EBADF or ENOTTY.
+	/* According to SUSv3, ttyname can fail with EBADF or ENOTTY.
 	 * We know the file descriptor is good, so failure means not a tty. */
 		s = "not a tty";
 		retval = 1;
