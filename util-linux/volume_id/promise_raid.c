@@ -56,8 +56,8 @@ int volume_id_probe_promise_fasttrack_raid(struct volume_id *id, uint64_t off, u
 	return -1;
 
  found:
-	volume_id_set_usage(id, VOLUME_ID_RAID);
-	id->type = "promise_fasttrack_raid_member";
+//	volume_id_set_usage(id, VOLUME_ID_RAID);
+//	id->type = "promise_fasttrack_raid_member";
 
 	return 0;
 }

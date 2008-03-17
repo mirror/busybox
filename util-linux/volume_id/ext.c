@@ -47,25 +47,27 @@ int volume_id_probe_ext(struct volume_id *id, uint64_t off)
 {
 	struct ext2_super_block *es;
 
-	dbg("probing at offset 0x%llx", (unsigned long long) off);
+	dbg("ext: probing at offset 0x%llx", (unsigned long long) off);
 
 	es = volume_id_get_buffer(id, off + EXT_SUPERBLOCK_OFFSET, 0x200);
 	if (es == NULL)
 		return -1;
 
-	if (es->magic[0] != 0123 ||
-	    es->magic[1] != 0357)
+	if (es->magic[0] != 0123 || es->magic[1] != 0357) {
+		dbg("ext: no magic found");
 		return -1;
+	}
 
-	volume_id_set_usage(id, VOLUME_ID_FILESYSTEM);
-	volume_id_set_label_raw(id, es->volume_name, 16);
+//	volume_id_set_usage(id, VOLUME_ID_FILESYSTEM);
+//	volume_id_set_label_raw(id, es->volume_name, 16);
 	volume_id_set_label_string(id, es->volume_name, 16);
 	volume_id_set_uuid(id, es->uuid, UUID_DCE);
+	dbg("ext: label '%s' uuid '%s'", id->label, id->uuid);
 
-	if ((le32_to_cpu(es->feature_compat) & EXT3_FEATURE_COMPAT_HAS_JOURNAL) != 0)
-		id->type = "ext3";
-	else
-		id->type = "ext2";
+//	if ((le32_to_cpu(es->feature_compat) & EXT3_FEATURE_COMPAT_HAS_JOURNAL) != 0)
+//		id->type = "ext3";
+//	else
+//		id->type = "ext2";
 
 	return 0;
 }

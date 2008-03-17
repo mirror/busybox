@@ -20,8 +20,7 @@
 
 #include "volume_id_internal.h"
 
-struct minix_super_block
-{
+struct minix_super_block {
 	uint16_t	s_ninodes;
 	uint16_t	s_nzones;
 	uint16_t	s_imap_blocks;
@@ -46,31 +45,31 @@ int volume_id_probe_minix(struct volume_id *id, uint64_t off)
 	if (ms == NULL)
 		return -1;
 
-	if (le16_to_cpu(ms->s_magic) == 0x137f) {
-		id->type_version[0] = '1';
+	if (ms->s_magic == cpu_to_le16(0x137f)) {
+//		id->type_version[0] = '1';
 		goto found;
 	}
 
-	if (le16_to_cpu(ms->s_magic) == 0x1387) {
-		id->type_version[0] = '1';
+	if (ms->s_magic == cpu_to_le16(0x1387)) {
+//		id->type_version[0] = '1';
 		goto found;
 	}
 
-	if (le16_to_cpu(ms->s_magic) == 0x2468) {
-		id->type_version[0] = '2';
+	if (ms->s_magic == cpu_to_le16(0x2468)) {
+//		id->type_version[0] = '2';
 		goto found;
 	}
 
-	if (le16_to_cpu(ms->s_magic) == 0x2478) {
-		id->type_version[0] = '2';
+	if (ms->s_magic == cpu_to_le16(0x2478)) {
+//		id->type_version[0] = '2';
 		goto found;
 	}
 
 	return -1;
 
  found:
-	id->type_version[1] = '\0';
-	volume_id_set_usage(id, VOLUME_ID_FILESYSTEM);
-	id->type = "minix";
+//	id->type_version[1] = '\0';
+//	volume_id_set_usage(id, VOLUME_ID_FILESYSTEM);
+//	id->type = "minix";
 	return 0;
 }

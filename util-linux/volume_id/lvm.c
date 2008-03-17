@@ -33,7 +33,6 @@ struct lvm2_super_block {
 } __attribute__((packed));
 
 #define LVM1_SB_OFF			0x400
-#define LVM1_MAGIC			"HM"
 
 int volume_id_probe_lvm1(struct volume_id *id, uint64_t off)
 {
@@ -48,11 +47,11 @@ int volume_id_probe_lvm1(struct volume_id *id, uint64_t off)
 
 	lvm = (struct lvm1_super_block *) buf;
 
-	if (memcmp(lvm->id, LVM1_MAGIC, 2) != 0)
+	if (lvm->id[0] != 'H' || lvm->id[1] != 'M')
 		return -1;
 
-	volume_id_set_usage(id, VOLUME_ID_RAID);
-	id->type = "LVM1_member";
+//	volume_id_set_usage(id, VOLUME_ID_RAID);
+//	id->type = "LVM1_member";
 
 	return 0;
 }
@@ -83,9 +82,9 @@ int volume_id_probe_lvm2(struct volume_id *id, uint64_t off)
 	return -1;
 
  found:
-	memcpy(id->type_version, lvm->type, 8);
-	volume_id_set_usage(id, VOLUME_ID_RAID);
-	id->type = "LVM2_member";
+//	memcpy(id->type_version, lvm->type, 8);
+//	volume_id_set_usage(id, VOLUME_ID_RAID);
+//	id->type = "LVM2_member";
 
 	return 0;
 }

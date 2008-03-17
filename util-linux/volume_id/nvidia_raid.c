@@ -48,9 +48,9 @@ int volume_id_probe_nvidia_raid(struct volume_id *id, uint64_t off, uint64_t siz
 	if (memcmp(nv->vendor, NVIDIA_SIGNATURE, sizeof(NVIDIA_SIGNATURE)-1) != 0)
 		return -1;
 
-	volume_id_set_usage(id, VOLUME_ID_RAID);
-	snprintf(id->type_version, sizeof(id->type_version)-1, "%u", le16_to_cpu(nv->version));
-	id->type = "nvidia_raid_member";
+//	volume_id_set_usage(id, VOLUME_ID_RAID);
+//	snprintf(id->type_version, sizeof(id->type_version)-1, "%u", le16_to_cpu(nv->version));
+//	id->type = "nvidia_raid_member";
 
 	return 0;
 }

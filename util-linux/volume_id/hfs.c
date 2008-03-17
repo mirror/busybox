@@ -167,7 +167,7 @@ int volume_id_probe_hfs_hfsplus(struct volume_id *id, uint64_t off)
 		goto checkplus;
 
 	/* it may be just a hfs wrapper for hfs+ */
-	if (memcmp(hfs->embed_sig, "H+", 2) == 0) {
+	if (hfs->embed_sig[0] == 'H' && hfs->embed_sig[1] == '+') {
 		alloc_block_size = be32_to_cpu(hfs->al_blk_size);
 		dbg("alloc_block_size 0x%x", alloc_block_size);
 
@@ -188,14 +188,13 @@ int volume_id_probe_hfs_hfsplus(struct volume_id *id, uint64_t off)
 	}
 
 	if (hfs->label_len > 0 && hfs->label_len < 28) {
-		volume_id_set_label_raw(id, hfs->label, hfs->label_len);
+//		volume_id_set_label_raw(id, hfs->label, hfs->label_len);
 		volume_id_set_label_string(id, hfs->label, hfs->label_len) ;
 	}
 
 	volume_id_set_uuid(id, hfs->finder_info.id, UUID_HFS);
-
-	volume_id_set_usage(id, VOLUME_ID_FILESYSTEM);
-	id->type = "hfs";
+//	volume_id_set_usage(id, VOLUME_ID_FILESYSTEM);
+//	id->type = "hfs";
 
 	return 0;
 
@@ -281,12 +280,12 @@ int volume_id_probe_hfs_hfsplus(struct volume_id *id, uint64_t off)
 
 	label_len = be16_to_cpu(key->unicode_len) * 2;
 	dbg("label unicode16 len %i", label_len);
-	volume_id_set_label_raw(id, key->unicode, label_len);
+//	volume_id_set_label_raw(id, key->unicode, label_len);
 	volume_id_set_label_unicode16(id, key->unicode, BE, label_len);
 
  found:
-	volume_id_set_usage(id, VOLUME_ID_FILESYSTEM);
-	id->type = "hfsplus";
+//	volume_id_set_usage(id, VOLUME_ID_FILESYSTEM);
+//	id->type = "hfsplus";
 
 	return 0;
 }

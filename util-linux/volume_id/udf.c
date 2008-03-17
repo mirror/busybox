@@ -155,7 +155,7 @@ anchor:
 	goto found;
 
  pvd:
-	volume_id_set_label_raw(id, &(vd->type.primary.ident.clen), 32);
+//	volume_id_set_label_raw(id, &(vd->type.primary.ident.clen), 32);
 
 	clen = vd->type.primary.ident.clen;
 	dbg("label string charsize=%i bit", clen);
@@ -165,8 +165,8 @@ anchor:
 		volume_id_set_label_unicode16(id, vd->type.primary.ident.c, BE, 31);
 
  found:
-	volume_id_set_usage(id, VOLUME_ID_FILESYSTEM);
-	id->type = "udf";
+//	volume_id_set_usage(id, VOLUME_ID_FILESYSTEM);
+//	id->type = "udf";
 
 	return 0;
 }

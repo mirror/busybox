@@ -23,6 +23,7 @@
 
 
 #define dbg(...) ((void)0)
+/* #define dbg(...) bb_error_msg(__VA_ARGS__) */
 
 
 /* volume_id.h */
@@ -45,29 +46,34 @@ enum volume_id_usage {
 	VOLUME_ID_CRYPTO,
 };
 
+#ifdef UNUSED_PARTITION_CODE
 struct volume_id_partition {
-	enum		volume_id_usage usage_id;
-	const char	*usage;
-	const char	*type;
-	uint64_t	off;
-	uint64_t	len;
-	uint8_t		partition_type_raw;
+//	const char	*type;
+//	const char	*usage;
+//	smallint	usage_id;
+//	uint8_t		pt_type_raw;
+//	uint64_t	pt_off;
+//	uint64_t	pt_len;
 };
+#endif
 
 struct volume_id {
-	uint8_t		label_raw[VOLUME_ID_LABEL_SIZE];
-	size_t		label_raw_len;
+//	uint8_t		label_raw[VOLUME_ID_LABEL_SIZE];
+//	size_t		label_raw_len;
 	char		label[VOLUME_ID_LABEL_SIZE+1];
-	uint8_t		uuid_raw[VOLUME_ID_UUID_SIZE];
-	size_t		uuid_raw_len;
+//	uint8_t		uuid_raw[VOLUME_ID_UUID_SIZE];
+//	size_t		uuid_raw_len;
+	/* uuid is stored in ASCII (not binary) form here: */
 	char		uuid[VOLUME_ID_UUID_SIZE+1];
-	enum		volume_id_usage usage_id;
-	const char	*usage;
-	const char	*type;
-	char		type_version[VOLUME_ID_FORMAT_SIZE];
+//	char		type_version[VOLUME_ID_FORMAT_SIZE];
+//	smallint	usage_id;
+//	const char	*usage;
+//	const char	*type;
 
+#ifdef UNUSED_PARTITION_CODE
 	struct volume_id_partition *partitions;
 	size_t		partition_count;
+#endif
 
 	int		fd;
 	uint8_t		*sbbuf;
@@ -143,9 +149,9 @@ enum endian {
 };
 
 void volume_id_set_unicode16(char *str, size_t len, const uint8_t *buf, enum endian endianess, size_t count);
-void volume_id_set_usage(struct volume_id *id, enum volume_id_usage usage_id);
-void volume_id_set_usage_part(struct volume_id_partition *part, enum volume_id_usage usage_id);
-void volume_id_set_label_raw(struct volume_id *id, const uint8_t *buf, size_t count);
+//void volume_id_set_usage(struct volume_id *id, enum volume_id_usage usage_id);
+//void volume_id_set_usage_part(struct volume_id_partition *part, enum volume_id_usage usage_id);
+//void volume_id_set_label_raw(struct volume_id *id, const uint8_t *buf, size_t count);
 void volume_id_set_label_string(struct volume_id *id, const uint8_t *buf, size_t count);
 void volume_id_set_label_unicode16(struct volume_id *id, const uint8_t *buf, enum endian endianess, size_t count);
 void volume_id_set_uuid(struct volume_id *id, const uint8_t *buf, enum uuid_format format);
@@ -197,11 +203,11 @@ int volume_id_probe_linux_swap(struct volume_id *id, uint64_t off);
 
 int volume_id_probe_luks(struct volume_id *id, uint64_t off);
 
-int volume_id_probe_mac_partition_map(struct volume_id *id, uint64_t off);
+//int volume_id_probe_mac_partition_map(struct volume_id *id, uint64_t off);
 
 int volume_id_probe_minix(struct volume_id *id, uint64_t off);
 
-int volume_id_probe_msdos_part_table(struct volume_id *id, uint64_t off);
+//int volume_id_probe_msdos_part_table(struct volume_id *id, uint64_t off);
 
 int volume_id_probe_ntfs(struct volume_id *id, uint64_t off);
 

@@ -227,14 +227,16 @@ int volume_id_probe_vfat(struct volume_id *id, uint64_t off)
 	cluster_count /= vs->sectors_per_cluster;
 	dbg("cluster_count 0x%x", cluster_count);
 
-	if (cluster_count < FAT12_MAX) {
-		strcpy(id->type_version, "FAT12");
-	} else if (cluster_count < FAT16_MAX) {
-		strcpy(id->type_version, "FAT16");
-	} else {
-		strcpy(id->type_version, "FAT32");
+//	if (cluster_count < FAT12_MAX) {
+//		strcpy(id->type_version, "FAT12");
+//	} else if (cluster_count < FAT16_MAX) {
+//		strcpy(id->type_version, "FAT16");
+//	} else {
+//		strcpy(id->type_version, "FAT32");
+//		goto fat32;
+//	}
+	if (cluster_count >= FAT16_MAX)
 		goto fat32;
-	}
 
 	/* the label may be an attribute in the root directory */
 	root_start = (reserved + fat_size) * sector_size;
@@ -256,10 +258,10 @@ int volume_id_probe_vfat(struct volume_id *id, uint64_t off)
 		return -1;
 
 	if (label != NULL && memcmp(label, "NO NAME    ", 11) != 0) {
-		volume_id_set_label_raw(id, label, 11);
+//		volume_id_set_label_raw(id, label, 11);
 		volume_id_set_label_string(id, label, 11);
 	} else if (memcmp(vs->type.fat.label, "NO NAME    ", 11) != 0) {
-		volume_id_set_label_raw(id, vs->type.fat.label, 11);
+//		volume_id_set_label_raw(id, vs->type.fat.label, 11);
 		volume_id_set_label_string(id, vs->type.fat.label, 11);
 	}
 	volume_id_set_uuid(id, vs->type.fat.serno, UUID_DOS);
@@ -317,17 +319,17 @@ int volume_id_probe_vfat(struct volume_id *id, uint64_t off)
 		return -1;
 
 	if (label != NULL && memcmp(label, "NO NAME    ", 11) != 0) {
-		volume_id_set_label_raw(id, label, 11);
+//		volume_id_set_label_raw(id, label, 11);
 		volume_id_set_label_string(id, label, 11);
 	} else if (memcmp(vs->type.fat32.label, "NO NAME    ", 11) != 0) {
-		volume_id_set_label_raw(id, vs->type.fat32.label, 11);
+//		volume_id_set_label_raw(id, vs->type.fat32.label, 11);
 		volume_id_set_label_string(id, vs->type.fat32.label, 11);
 	}
 	volume_id_set_uuid(id, vs->type.fat32.serno, UUID_DOS);
 
  found:
-	volume_id_set_usage(id, VOLUME_ID_FILESYSTEM);
-	id->type = "vfat";
+//	volume_id_set_usage(id, VOLUME_ID_FILESYSTEM);
+//	id->type = "vfat";
 
 	return 0;
 }

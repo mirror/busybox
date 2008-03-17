@@ -59,10 +59,10 @@ int volume_id_probe_via_raid(struct volume_id *id, uint64_t off, uint64_t size)
 	if (via->version_number > 1)
 		return -1;
 
-	volume_id_set_usage(id, VOLUME_ID_RAID);
-	id->type_version[0] = '0' + via->version_number;
-	id->type_version[1] = '\0';
-	id->type = "via_raid_member";
+//	volume_id_set_usage(id, VOLUME_ID_RAID);
+//	id->type_version[0] = '0' + via->version_number;
+//	id->type_version[1] = '\0';
+//	id->type = "via_raid_member";
 
 	return 0;
 }

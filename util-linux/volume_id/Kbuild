@@ -25,8 +25,9 @@ lib-$(CONFIG_FEATURE_VOLUMEID_JFS)              += jfs.o
 lib-$(CONFIG_FEATURE_VOLUMEID_LINUXRAID)        += linux_raid.o
 lib-$(CONFIG_FEATURE_VOLUMEID_LINUXSWAP)        += linux_swap.o
 lib-$(CONFIG_FEATURE_VOLUMEID_LVM)              += lvm.o
-lib-$(CONFIG_FEATURE_VOLUMEID_MAC)              += mac.o
-lib-$(CONFIG_FEATURE_VOLUMEID_MSDOS)            += msdos.o
+### unused
+### lib-$(CONFIG_FEATURE_VOLUMEID_MAC)              += mac.o
+### lib-$(CONFIG_FEATURE_VOLUMEID_MSDOS)            += msdos.o
 lib-$(CONFIG_FEATURE_VOLUMEID_NTFS)             += ntfs.o
 lib-$(CONFIG_FEATURE_VOLUMEID_REISERFS)         += reiserfs.o
 lib-$(CONFIG_FEATURE_VOLUMEID_UDF)              += udf.o

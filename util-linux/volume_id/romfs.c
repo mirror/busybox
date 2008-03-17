@@ -41,12 +41,12 @@ int volume_id_probe_romfs(struct volume_id *id, uint64_t off)
 		size_t len = strlen((char *)rfs->name);
 
 		if (len) {
-			volume_id_set_label_raw(id, rfs->name, len);
+//			volume_id_set_label_raw(id, rfs->name, len);
 			volume_id_set_label_string(id, rfs->name, len);
 		}
 
-		volume_id_set_usage(id, VOLUME_ID_FILESYSTEM);
-		id->type = "romfs";
+//		volume_id_set_usage(id, VOLUME_ID_FILESYSTEM);
+//		id->type = "romfs";
 		return 0;
 	}
 

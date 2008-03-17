@@ -68,9 +68,10 @@ static const probe_fptr fs1[] = {
 #if ENABLE_FEATURE_VOLUMEID_FAT
 	volume_id_probe_vfat,
 #endif
-#if ENABLE_FEATURE_VOLUMEID_MAC
-	volume_id_probe_mac_partition_map,
-#endif
+// This one only looks for partitions, we don't use it
+//#if ENABLE_FEATURE_VOLUMEID_MAC
+//	volume_id_probe_mac_partition_map,
+//#endif
 #if ENABLE_FEATURE_VOLUMEID_XFS
 	volume_id_probe_xfs,
 #endif
@@ -170,7 +171,9 @@ struct volume_id *volume_id_open_node(const char *path)
 	struct volume_id *id;
 	int fd;
 
-	fd = xopen(path, O_RDONLY);
+	fd = open(path, O_RDONLY);
+	if (fd < 0)
+		return NULL;
 	id = xzalloc(sizeof(struct volume_id));
 	id->fd = fd;
 	///* close fd on device close */
@@ -209,6 +212,8 @@ void free_volume_id(struct volume_id *id)
 	//if (id->fd_close != 0) - always true
 		close(id->fd);
 	volume_id_free_buffer(id);
+#ifdef UNUSED_PARTITION_CODE
 	free(id->partitions);
+#endif
 	free(id);
 }

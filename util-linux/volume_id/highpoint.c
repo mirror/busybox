@@ -52,8 +52,8 @@ int volume_id_probe_highpoint_37x_raid(struct volume_id *id, uint64_t off)
 	if (magic != cpu_to_le32(HPT37X_MAGIC_OK) && magic != cpu_to_le32(HPT37X_MAGIC_BAD))
 		return -1;
 
-	volume_id_set_usage(id, VOLUME_ID_RAID);
-	id->type = "highpoint_raid_member";
+//	volume_id_set_usage(id, VOLUME_ID_RAID);
+//	id->type = "highpoint_raid_member";
 
 	return 0;
 }
@@ -79,8 +79,8 @@ int volume_id_probe_highpoint_45x_raid(struct volume_id *id, uint64_t off, uint6
 	if (magic != cpu_to_le32(HPT45X_MAGIC_OK) && magic != cpu_to_le32(HPT45X_MAGIC_BAD))
 		return -1;
 
-	volume_id_set_usage(id, VOLUME_ID_RAID);
-	id->type = "highpoint_raid_member";
+//	volume_id_set_usage(id, VOLUME_ID_RAID);
+//	id->type = "highpoint_raid_member";
 
 	return 0;
 }

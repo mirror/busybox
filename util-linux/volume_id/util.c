@@ -23,7 +23,7 @@
 void volume_id_set_unicode16(char *str, size_t len, const uint8_t *buf, enum endian endianess, size_t count)
 {
 	unsigned i, j;
-	uint16_t c;
+	unsigned c;
 
 	j = 0;
 	for (i = 0; i + 2 <= count; i += 2) {
@@ -54,6 +54,7 @@ void volume_id_set_unicode16(char *str, size_t len, const uint8_t *buf, enum end
 	str[j] = '\0';
 }
 
+#ifdef UNUSED
 static const char *usage_to_string(enum volume_id_usage usage_id)
 {
 	switch (usage_id) {
@@ -94,6 +95,7 @@ void volume_id_set_label_raw(struct volume_id *id, const uint8_t *buf, size_t co
 	memcpy(id->label_raw, buf, count);
 	id->label_raw_len = count;
 }
+#endif
 
 #ifdef NOT_NEEDED
 static size_t strnlen(const char *s, size_t maxlen)
@@ -131,7 +133,7 @@ void volume_id_set_uuid(struct volume_id *id, const uint8_t *buf, enum uuid_form
 	unsigned i;
 	unsigned count = 0;
 
-	switch(format) {
+	switch (format) {
 	case UUID_DOS:
 		count = 4;
 		break;
@@ -143,20 +145,21 @@ void volume_id_set_uuid(struct volume_id *id, const uint8_t *buf, enum uuid_form
 		count = 16;
 		break;
 	case UUID_DCE_STRING:
-		count = 36;
+		/* 36 is ok, id->uuid has one extra byte for NUL */
+		count = VOLUME_ID_UUID_SIZE;
 		break;
 	}
-	memcpy(id->uuid_raw, buf, count);
-	id->uuid_raw_len = count;
+//	memcpy(id->uuid_raw, buf, count);
+//	id->uuid_raw_len = count;
 
 	/* if set, create string in the same format, the native platform uses */
 	for (i = 0; i < count; i++)
 		if (buf[i] != 0)
 			goto set;
-	return;
+	return; /* all bytes are zero, leave it empty ("") */
 
 set:
-	switch(format) {
+	switch (format) {
 	case UUID_DOS:
 		sprintf(id->uuid, "%02X%02X-%02X%02X",
 			buf[3], buf[2], buf[1], buf[0]);

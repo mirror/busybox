@@ -39,10 +39,9 @@ int volume_id_probe_hpfs(struct volume_id *id, uint64_t off)
 		return -1;
 
 	if (memcmp(hs->magic, "\x49\xe8\x95\xf9", 4) == 0) {
-		sprintf(id->type_version, "%u", hs->version);
-
-		volume_id_set_usage(id, VOLUME_ID_FILESYSTEM);
-		id->type = "hpfs";
+//		sprintf(id->type_version, "%u", hs->version);
+//		volume_id_set_usage(id, VOLUME_ID_FILESYSTEM);
+//		id->type = "hpfs";
 		return 0;
 	}
 

@@ -48,12 +48,12 @@ int volume_id_probe_jfs(struct volume_id *id, uint64_t off)
 	if (memcmp(js->magic, "JFS1", 4) != 0)
 		return -1;
 
-	volume_id_set_label_raw(id, js->label, 16);
+//	volume_id_set_label_raw(id, js->label, 16);
 	volume_id_set_label_string(id, js->label, 16);
 	volume_id_set_uuid(id, js->uuid, UUID_DCE);
 
-	volume_id_set_usage(id, VOLUME_ID_FILESYSTEM);
-	id->type = "jfs";
+//	volume_id_set_usage(id, VOLUME_ID_FILESYSTEM);
+//	id->type = "jfs";
 
 	return 0;
 }

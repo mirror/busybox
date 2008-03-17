@@ -199,8 +199,8 @@ int volume_id_probe_ufs(struct volume_id *id, uint64_t off)
 	return -1;
 
  found:
-	volume_id_set_usage(id, VOLUME_ID_FILESYSTEM);
-	id->type = "ufs";
+//	volume_id_set_usage(id, VOLUME_ID_FILESYSTEM);
+//	id->type = "ufs";
 
 	return 0;
 }

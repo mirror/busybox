@@ -166,13 +166,13 @@ int volume_id_probe_ntfs(struct volume_id *id, uint64_t off)
 		dbg("found attribute type 0x%x, len %i, at offset %i",
 		    attr_type, attr_len, attr_off);
 
-		if (attr_type == MFT_RECORD_ATTR_VOLUME_INFO) {
-			struct volume_info *info;
-			dbg("found info, len %i", val_len);
-			info = (struct volume_info*) (((uint8_t *) attr) + val_off);
-			snprintf(id->type_version, sizeof(id->type_version)-1,
-				 "%u.%u", info->major_ver, info->minor_ver);
-		}
+//		if (attr_type == MFT_RECORD_ATTR_VOLUME_INFO) {
+//			struct volume_info *info;
+//			dbg("found info, len %i", val_len);
+//			info = (struct volume_info*) (((uint8_t *) attr) + val_off);
+//			snprintf(id->type_version, sizeof(id->type_version)-1,
+//				 "%u.%u", info->major_ver, info->minor_ver);
+//		}
 
 		if (attr_type == MFT_RECORD_ATTR_VOLUME_NAME) {
 			dbg("found label, len %i", val_len);
@@ -180,14 +180,14 @@ int volume_id_probe_ntfs(struct volume_id *id, uint64_t off)
 				val_len = VOLUME_ID_LABEL_SIZE;
 
 			val = ((uint8_t *) attr) + val_off;
-			volume_id_set_label_raw(id, val, val_len);
+//			volume_id_set_label_raw(id, val, val_len);
 			volume_id_set_label_unicode16(id, val, LE, val_len);
 		}
 	}
 
  found:
-	volume_id_set_usage(id, VOLUME_ID_FILESYSTEM);
-	id->type = "ntfs";
+//	volume_id_set_usage(id, VOLUME_ID_FILESYSTEM);
+//	id->type = "ntfs";
 
 	return 0;
 }

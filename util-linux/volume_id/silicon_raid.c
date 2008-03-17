@@ -60,10 +60,10 @@ int volume_id_probe_silicon_medley_raid(struct volume_id *id, uint64_t off, uint
 	if (sil->magic != cpu_to_le32(SILICON_MAGIC))
 		return -1;
 
-	volume_id_set_usage(id, VOLUME_ID_RAID);
-	snprintf(id->type_version, sizeof(id->type_version)-1, "%u.%u",
-		 le16_to_cpu(sil->major_ver), le16_to_cpu(sil->minor_ver));
-	id->type = "silicon_medley_raid_member";
+//	volume_id_set_usage(id, VOLUME_ID_RAID);
+//	snprintf(id->type_version, sizeof(id->type_version)-1, "%u.%u",
+//		 le16_to_cpu(sil->major_ver), le16_to_cpu(sil->minor_ver));
+//	id->type = "silicon_medley_raid_member";
 
 	return 0;
 }

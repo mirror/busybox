@@ -46,8 +46,8 @@ int volume_id_probe_linux_swap(struct volume_id *id, uint64_t off)
 				return -1;
 
 			if (memcmp(buf, "SWAP-SPACE", 10) == 0) {
-				id->type_version[0] = '1';
-				id->type_version[1] = '\0';
+//				id->type_version[0] = '1';
+//				id->type_version[1] = '\0';
 				goto found;
 			}
 
@@ -55,9 +55,9 @@ int volume_id_probe_linux_swap(struct volume_id *id, uint64_t off)
 				sw = volume_id_get_buffer(id, off, sizeof(struct swap_header_v1_2));
 				if (sw == NULL)
 					return -1;
-				id->type_version[0] = '2';
-				id->type_version[1] = '\0';
-				volume_id_set_label_raw(id, sw->volume_name, 16);
+//				id->type_version[0] = '2';
+//				id->type_version[1] = '\0';
+//				volume_id_set_label_raw(id, sw->volume_name, 16);
 				volume_id_set_label_string(id, sw->volume_name, 16);
 				volume_id_set_uuid(id, sw->uuid, UUID_DCE);
 				goto found;
@@ -66,8 +66,8 @@ int volume_id_probe_linux_swap(struct volume_id *id, uint64_t off)
 	return -1;
 
 found:
-	volume_id_set_usage(id, VOLUME_ID_OTHER);
-	id->type = "swap";
+//	volume_id_set_usage(id, VOLUME_ID_OTHER);
+//	id->type = "swap";
 
 	return 0;
 }

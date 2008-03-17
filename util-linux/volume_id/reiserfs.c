@@ -53,31 +53,35 @@ int volume_id_probe_reiserfs(struct volume_id *id, uint64_t off)
 	struct reiserfs_super_block *rs;
 	struct reiser4_super_block *rs4;
 
-	dbg("probing at offset 0x%llx", (unsigned long long) off);
+	dbg("reiserfs: probing at offset 0x%llx", (unsigned long long) off);
 
 	rs = volume_id_get_buffer(id, off + REISERFS_SUPERBLOCK_OFFSET, 0x200);
 	if (rs == NULL)
 		return -1;
 
 	if (memcmp(rs->magic, "ReIsErFs", 8) == 0) {
-		strcpy(id->type_version, "3.5");
+		dbg("reiserfs: ReIsErFs, no label");
+//		strcpy(id->type_version, "3.5");
 		goto found;
 	}
 	if (memcmp(rs->magic, "ReIsEr2Fs", 9) == 0) {
-		strcpy(id->type_version, "3.6");
+		dbg("reiserfs: ReIsEr2Fs");
+//		strcpy(id->type_version, "3.6");
 		goto found_label;
 	}
 	if (memcmp(rs->magic, "ReIsEr3Fs", 9) == 0) {
-		strcpy(id->type_version, "JR");
+		dbg("reiserfs: ReIsEr3Fs");
+//		strcpy(id->type_version, "JR");
 		goto found_label;
 	}
 
 	rs4 = (struct reiser4_super_block *) rs;
 	if (memcmp(rs4->magic, "ReIsEr4", 7) == 0) {
-		strcpy(id->type_version, "4");
-		volume_id_set_label_raw(id, rs4->label, 16);
+//		strcpy(id->type_version, "4");
+//		volume_id_set_label_raw(id, rs4->label, 16);
 		volume_id_set_label_string(id, rs4->label, 16);
 		volume_id_set_uuid(id, rs4->uuid, UUID_DCE);
+		dbg("reiserfs: ReIsEr4, label '%s' uuid '%s'", id->label, id->uuid);
 		goto found;
 	}
 
@@ -86,20 +90,23 @@ int volume_id_probe_reiserfs(struct volume_id *id, uint64_t off)
 		return -1;
 
 	if (memcmp(rs->magic, "ReIsErFs", 8) == 0) {
-		strcpy(id->type_version, "3.5");
+		dbg("reiserfs: ReIsErFs, no label");
+//		strcpy(id->type_version, "3.5");
 		goto found;
 	}
 
+	dbg("reiserfs: no signature found");
 	return -1;
 
  found_label:
-	volume_id_set_label_raw(id, rs->label, 16);
+//	volume_id_set_label_raw(id, rs->label, 16);
 	volume_id_set_label_string(id, rs->label, 16);
 	volume_id_set_uuid(id, rs->uuid, UUID_DCE);
+	dbg("reiserfs: label '%s' uuid '%s'", id->label, id->uuid);
 
  found:
-	volume_id_set_usage(id, VOLUME_ID_FILESYSTEM);
-	id->type = "reiserfs";
+//	volume_id_set_usage(id, VOLUME_ID_FILESYSTEM);
+//	id->type = "reiserfs";
 
 	return 0;
 }

@@ -50,9 +50,9 @@ int volume_id_probe_intel_software_raid(struct volume_id *id, uint64_t off, uint
 	if (memcmp(isw->sig, ISW_SIGNATURE, sizeof(ISW_SIGNATURE)-1) != 0)
 		return -1;
 
-	volume_id_set_usage(id, VOLUME_ID_RAID);
-	memcpy(id->type_version, &isw->sig[sizeof(ISW_SIGNATURE)-1], 6);
-	id->type = "isw_raid_member";
+//	volume_id_set_usage(id, VOLUME_ID_RAID);
+//	memcpy(id->type_version, &isw->sig[sizeof(ISW_SIGNATURE)-1], 6);
+//	id->type = "isw_raid_member";
 
 	return 0;
 }

@@ -45,8 +45,8 @@ int volume_id_probe_lsi_mega_raid(struct volume_id *id, uint64_t off, uint64_t s
 	if (memcmp(lsi->sig, LSI_SIGNATURE, sizeof(LSI_SIGNATURE)-1) != 0)
 		return -1;
 
-	volume_id_set_usage(id, VOLUME_ID_RAID);
-	id->type = "lsi_mega_raid_member";
+//	volume_id_set_usage(id, VOLUME_ID_RAID);
+//	id->type = "lsi_mega_raid_member";
 
 	return 0;
 }

@@ -66,7 +66,7 @@ int volume_id_probe_iso9660(struct volume_id *id, uint64_t off)
 		int i;
 
 		dbg("read label from PVD");
-		volume_id_set_label_raw(id, is->volume_id, 32);
+//		volume_id_set_label_raw(id, is->volume_id, 32);
 		volume_id_set_label_string(id, is->volume_id, 32);
 
 		dbg("looking for SVDs");
@@ -81,9 +81,10 @@ int volume_id_probe_iso9660(struct volume_id *id, uint64_t off)
 				continue;
 
 			dbg("found SVD at offset 0x%llx", (unsigned long long) (off + vd_offset));
-			if (memcmp(is->escape_sequences, "%/@", 3) == 0||
-			    memcmp(is->escape_sequences, "%/C", 3) == 0||
-			    memcmp(is->escape_sequences, "%/E", 3) == 0) {
+			if (memcmp(is->escape_sequences, "%/@", 3) == 0
+			 || memcmp(is->escape_sequences, "%/C", 3) == 0
+			 || memcmp(is->escape_sequences, "%/E", 3) == 0
+			) {
 				dbg("Joliet extension found");
 				volume_id_set_unicode16((char *)svd_label, sizeof(svd_label), is->volume_id, BE, 32);
 				if (memcmp(id->label, svd_label, 16) == 0) {
@@ -91,9 +92,9 @@ int volume_id_probe_iso9660(struct volume_id *id, uint64_t off)
 					break;
 				}
 
-				volume_id_set_label_raw(id, is->volume_id, 32);
+//				volume_id_set_label_raw(id, is->volume_id, 32);
 				volume_id_set_label_string(id, svd_label, 32);
-				strcpy(id->type_version, "Joliet Extension");
+//				strcpy(id->type_version, "Joliet Extension");
 				goto found;
 			}
 			vd_offset += ISO_SECTOR_SIZE;
@@ -104,15 +105,15 @@ int volume_id_probe_iso9660(struct volume_id *id, uint64_t off)
 	hs = (struct high_sierra_volume_descriptor *) buf;
 
 	if (memcmp(hs->id, "CDROM", 5) == 0) {
-		strcpy(id->type_version, "High Sierra");
+//		strcpy(id->type_version, "High Sierra");
 		goto found;
 	}
 
 	return -1;
 
  found:
-	volume_id_set_usage(id, VOLUME_ID_FILESYSTEM);
-	id->type = "iso9660";
+//	volume_id_set_usage(id, VOLUME_ID_FILESYSTEM);
+//	id->type = "iso9660";
 
 	return 0;
 }
