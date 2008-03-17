@@ -757,7 +757,7 @@ USE_FEATURE_BRCTL_FANCY("\n" \
 #define dos2unix_full_usage \
        "Convert FILE from dos to unix format.\n" \
        "When no file is given, use stdin/stdout.\n" \
-     "\nOptions:\n" \
+     "\nOptions:" \
      "\n	-u	dos2unix" \
      "\n	-d	unix2dos"
 
@@ -1024,7 +1024,7 @@ USE_FEATURE_BRCTL_FANCY("\n" \
        "[-C CYLINDERS] [-H HEADS] [-S SECTORS] [-b SSZ] DISK"
 #define fdisk_full_usage \
        "Change partition table\n" \
-     "\nOptions:\n" \
+     "\nOptions:" \
      "\n	-u		Start and End are in sectors (instead of cylinders)" \
      "\n	-l		Show partition table for each DISK, then exit" \
 	USE_FEATURE_FDISK_BLKSIZE( \
@@ -1213,13 +1213,14 @@ USE_FEATURE_BRCTL_FANCY("\n" \
 #define fuser_trivial_usage \
        "[options] FILE or PORT/PROTO"
 #define fuser_full_usage \
-       "Options:\n" \
-       "	-m	Show all processes on the same mounted fs\n" \
-       "	-s	Don't print or kill anything\n" \
-       "	-4	Search only IPv4 space\n" \
-       "	-6	Search only IPv6 space\n" \
-       "	-k	Kill all processes that match\n" \
-       "	-SIGNAL	Signal to send (default: TERM)"
+       "Find processes which use FILEs or PORTs\n" \
+     "\nOptions:" \
+     "\n	-m	Find processes which use same fs as FILEs" \
+     "\n	-4	Search only IPv4 space" \
+     "\n	-6	Search only IPv6 space" \
+     "\n	-s	Silent: just exit with 0 if any processes are found" \
+     "\n	-k	Kill found processes (otherwise display PIDs)" \
+     "\n	-SIGNAL	Signal to send (default: TERM)"
 
 #define getenforce_trivial_usage
 #define getenforce_full_usage
@@ -4093,7 +4094,7 @@ USE_FEATURE_BRCTL_FANCY("\n" \
        "[flags] FILESYSTEM|DIRECTORY"
 #define umount_full_usage \
        "Unmount file systems" \
-       "\n\nOptions:\n" \
+       "\n\nOptions:" \
 	USE_FEATURE_UMOUNT_ALL( \
        "\n	-a	Unmount all file systems" USE_FEATURE_MTAB_SUPPORT(" in /etc/mtab")) \
 	USE_FEATURE_MTAB_SUPPORT( \
@@ -4168,7 +4169,7 @@ USE_FEATURE_BRCTL_FANCY("\n" \
 #define unix2dos_full_usage \
        "Convert FILE from unix to dos format.\n" \
        "When no file is given, use stdin/stdout.\n" \
-     "\nOptions:\n" \
+     "\nOptions:" \
      "\n	-u	dos2unix" \
      "\n	-d	unix2dos"
 

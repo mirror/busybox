@@ -10,187 +10,148 @@
 
 #include "libbb.h"
 
-#define FUSER_PROC_DIR "/proc"
-#define FUSER_MAX_LINE 255
+#define MAX_LINE 255
 
-#define FUSER_OPT_MOUNT  1
-#define FUSER_OPT_KILL   2
-#define FUSER_OPT_SILENT 4
-#define FUSER_OPT_IP6    8
-#define FUSER_OPT_IP4    16
+#define OPTION_STRING "mks64"
+enum {
+	OPT_MOUNT  = (1 << 0),
+	OPT_KILL   = (1 << 1),
+	OPT_SILENT = (1 << 2),
+	OPT_IP6    = (1 << 3),
+	OPT_IP4    = (1 << 4),
+};
 
 typedef struct inode_list {
+	struct inode_list *next;
 	ino_t inode;
 	dev_t dev;
-	struct inode_list *next;
 } inode_list;
 
 typedef struct pid_list {
-	pid_t pid;
 	struct pid_list *next;
+	pid_t pid;
 } pid_list;
 
-static int fuser_option(char *option)
+static dev_t find_socket_dev(void)
 {
-	int opt = 0;
-
-	if (!option[0])
-		return 0;
-	if (option[0] != '-')
-		return 0;
-	++option;
-	while (*option != '\0') {
-		if (*option == 'm') opt |= FUSER_OPT_MOUNT;
-		else if (*option == 'k') opt |= FUSER_OPT_KILL;
-		else if (*option == 's') opt |= FUSER_OPT_SILENT;
-		else if (*option == '6') opt |= FUSER_OPT_IP6;
-		else if (*option == '4') opt |= FUSER_OPT_IP4;
-		else
-			bb_error_msg_and_die("unsupported option '%c'", *option);
-		++option;
+	int fd = socket(AF_INET, SOCK_DGRAM, 0);
+	if (fd >= 0) {
+		struct stat buf;
+		int r = fstat(fd, &buf);
+		close(fd);
+		if (r == 0)
+			return buf.st_dev;
 	}
-	return opt;
+	return 0;
 }
 
-static int fuser_file_to_dev_inode(const char *filename,
-	 dev_t *dev, ino_t *inode)
+static int file_to_dev_inode(const char *filename, dev_t *dev, ino_t *inode)
 {
 	struct stat f_stat;
-	if ((stat(filename, &f_stat)) < 0)
+	if (stat(filename, &f_stat))
 		return 0;
 	*inode = f_stat.st_ino;
 	*dev = f_stat.st_dev;
 	return 1;
 }
 
-static int fuser_find_socket_dev(dev_t *dev)
+static char *parse_net_arg(const char *arg, unsigned *port)
 {
-	int fd = socket(PF_INET, SOCK_DGRAM,0);
-	struct stat buf;
+	char path[12], tproto[5];
 
-	if (fd >= 0 && (fstat(fd, &buf)) == 0) {
-		*dev = buf.st_dev;
-		close(fd);
-		return 1;
-	}
-	return 0;
+	if (sscanf(arg, "%u/%4s", port, tproto) != 2)
+		return NULL;
+	sprintf(path, "net/%s", tproto);
+	if (access(path, R_OK) != 0)
+		return NULL;
+	return xstrdup(tproto);
 }
 
-static int fuser_parse_net_arg(const char *filename,
-	const char **proto, int *port)
+static pid_list *add_pid(pid_list *plist, pid_t pid)
 {
-	char path[sizeof(FUSER_PROC_DIR)+12], tproto[5];
-
-	if ((sscanf(filename, "%d/%4s", port, tproto)) != 2)
-		return 0;
-	sprintf(path, FUSER_PROC_DIR "/net/%s", tproto);
-	if ((access(path, R_OK)) != 0)
-		return 0;
-	*proto = xstrdup(tproto);
-	return 1;
-}
-
-static int fuser_add_pid(pid_list *plist, pid_t pid)
-{
-	pid_list *curr = NULL, *last = NULL;
-
-	if (plist->pid == 0)
-		plist->pid = pid;
-	curr = plist;
+	pid_list *curr = plist;
 	while (curr != NULL) {
 		if (curr->pid == pid)
-			return 1;
-		last = curr;
+			return plist;
 		curr = curr->next;
 	}
-	curr = xzalloc(sizeof(pid_list));
-	last->next = curr;
+	curr = xmalloc(sizeof(pid_list));
 	curr->pid = pid;
-	/*curr->next = NULL;*/
-	return 1;
+	curr->next = plist;
+	return curr;
 }
 
-static int fuser_add_inode(inode_list *ilist, dev_t dev, ino_t inode)
+static inode_list *add_inode(inode_list *ilist, dev_t dev, ino_t inode)
 {
-	inode_list *curr = NULL, *last = NULL;
-
-	if (!ilist->inode && !ilist->dev) {
-		ilist->dev = dev;
-		ilist->inode = inode;
-	}
-	curr = ilist;
+	inode_list *curr = ilist;
 	while (curr != NULL) {
 		if (curr->inode == inode && curr->dev == dev)
-			return 1;
-		last = curr;
+			return ilist;
 		curr = curr->next;
 	}
-	curr = xzalloc(sizeof(inode_list));
-	last->next = curr;
+	curr = xmalloc(sizeof(inode_list));
 	curr->dev = dev;
 	curr->inode = inode;
-	/*curr->next = NULL;*/
-	return 1;
+	curr->next = ilist;
+	return curr;
 }
 
-static int fuser_scan_proc_net(int opts, const char *proto,
-	int port, inode_list *ilist)
+static inode_list *scan_proc_net(const char *proto,
+				unsigned port, inode_list *ilist)
 {
-	char path[sizeof(FUSER_PROC_DIR)+12], line[FUSER_MAX_LINE+1];
+	char path[12], line[MAX_LINE + 1];
 	char addr[128];
 	ino_t tmp_inode;
 	dev_t tmp_dev;
 	long long uint64_inode;
-	int tmp_port;
+	unsigned tmp_port;
 	FILE *f;
 
-	if (!fuser_find_socket_dev(&tmp_dev))
-		tmp_dev = 0;
-	sprintf(path, FUSER_PROC_DIR "/net/%s", proto);
+	tmp_dev = find_socket_dev();
 
+	sprintf(path, "net/%s", proto);
 	f = fopen(path, "r");
 	if (!f)
-		return 0;
-	while (fgets(line, FUSER_MAX_LINE, f)) {
+		return ilist;
+
+	while (fgets(line, MAX_LINE, f)) {
 		if (sscanf(line, "%*d: %64[0-9A-Fa-f]:%x %*x:%*x %*x %*x:%*x "
 				"%*x:%*x %*x %*d %*d %llu",
 				addr, &tmp_port, &uint64_inode) == 3
 		) {
-			if (strlen(addr) == 8 && (opts & FUSER_OPT_IP6))
+			if (strlen(addr) == 8 && (option_mask32 & OPT_IP6))
 				continue;
-			if (strlen(addr) > 8 && (opts & FUSER_OPT_IP4))
+			if (strlen(addr) > 8 && (option_mask32 & OPT_IP4))
 				continue;
 			if (tmp_port == port) {
 				tmp_inode = uint64_inode;
-				fuser_add_inode(ilist, tmp_dev, tmp_inode);
+				ilist = add_inode(ilist, tmp_dev, tmp_inode);
 			}
 		}
 	}
 	fclose(f);
-	return 1;
+	return ilist;
 }
 
-static int fuser_search_dev_inode(int opts, inode_list *ilist,
-	dev_t dev, ino_t inode)
+static int search_dev_inode(inode_list *ilist, dev_t dev, ino_t inode)
 {
-	inode_list *curr;
-	curr = ilist;
-
-	while (curr) {
-		if ((opts & FUSER_OPT_MOUNT) && curr->dev == dev)
-			return 1;
-		if (curr->inode == inode && curr->dev == dev)
-			return 1;
-		curr = curr->next;
+	while (ilist) {
+		if (ilist->dev == dev) {
+			if (option_mask32 & OPT_MOUNT)
+				return 1;
+			if (ilist->inode == inode)
+				return 1;
+		}
+		ilist = ilist->next;
 	}
 	return 0;
 }
 
-static int fuser_scan_pid_maps(int opts, const char *fname, pid_t pid,
-	inode_list *ilist, pid_list *plist)
+static pid_list *scan_pid_maps(const char *fname, pid_t pid,
+				inode_list *ilist, pid_list *plist)
 {
 	FILE *file;
-	char line[FUSER_MAX_LINE + 1];
+	char line[MAX_LINE + 1];
 	int major, minor;
 	ino_t inode;
 	long long uint64_inode;
@@ -198,37 +159,36 @@ static int fuser_scan_pid_maps(int opts, const char *fname, pid_t pid,
 
 	file = fopen(fname, "r");
 	if (!file)
-		return 0;
-	while (fgets(line, FUSER_MAX_LINE, file)) {
+		return plist;
+	while (fgets(line, MAX_LINE, file)) {
 		if (sscanf(line, "%*s %*s %*s %x:%x %llu", &major, &minor, &uint64_inode) != 3)
 			continue;
 		inode = uint64_inode;
 		if (major == 0 && minor == 0 && inode == 0)
 			continue;
 		dev = makedev(major, minor);
-		if (fuser_search_dev_inode(opts, ilist, dev, inode)) {
-			fuser_add_pid(plist, pid);
-		}
+		if (search_dev_inode(ilist, dev, inode))
+			plist = add_pid(plist, pid);
 	}
 	fclose(file);
-	return 1;
+	return plist;
 }
 
-static int fuser_scan_link(int opts, const char *lname, pid_t pid,
-	inode_list *ilist, pid_list *plist)
+static pid_list *scan_link(const char *lname, pid_t pid,
+				inode_list *ilist, pid_list *plist)
 {
 	ino_t inode;
 	dev_t dev;
 
-	if (!fuser_file_to_dev_inode(lname, &dev, &inode))
-		return 0;
-	if (fuser_search_dev_inode(opts, ilist, dev, inode))
-		fuser_add_pid(plist, pid);
-	return 1;
+	if (!file_to_dev_inode(lname, &dev, &inode))
+		return plist;
+	if (search_dev_inode(ilist, dev, inode))
+		plist = add_pid(plist, pid);
+	return plist;
 }
 
-static int fuser_scan_dir_links(int opts, const char *dname, pid_t pid,
-	inode_list *ilist, pid_list *plist)
+static pid_list *scan_dir_links(const char *dname, pid_t pid,
+				inode_list *ilist, pid_list *plist)
 {
 	DIR *d;
 	struct dirent *de;
@@ -236,82 +196,72 @@ static int fuser_scan_dir_links(int opts, const char *dname, pid_t pid,
 
 	d = opendir(dname);
 	if (!d)
-		return 0;
+		return plist;
 	while ((de = readdir(d)) != NULL) {
 		lname = concat_subpath_file(dname, de->d_name);
 		if (lname == NULL)
 			continue;
-		fuser_scan_link(opts, lname, pid, ilist, plist);
+		plist = scan_link(lname, pid, ilist, plist);
 		free(lname);
 	}
 	closedir(d);
-	return 1;
+	return plist;
 }
 
-static int fuser_scan_proc_pids(int opts, inode_list *ilist, pid_list *plist)
+static pid_list *scan_proc_pids(inode_list *ilist)
 {
 	DIR *d;
 	struct dirent *de;
 	pid_t pid;
-	char *dname;
+	pid_list *plist;
 
-	d = opendir(FUSER_PROC_DIR);
+	d = opendir(".");
 	if (!d)
-		return 0;
+		return NULL;
+
+	plist = NULL;
 	while ((de = readdir(d)) != NULL) {
-		pid = (pid_t)atoi(de->d_name);
-		if (!pid)
+		pid = (pid_t)bb_strtou(de->d_name, NULL, 10);
+		if (errno)
 			continue;
-		dname = concat_subpath_file(FUSER_PROC_DIR, de->d_name);
-		if (chdir(dname) < 0) {
-			free(dname);
+		if (chdir(de->d_name) < 0)
 			continue;
-		}
-		free(dname);
-		fuser_scan_link(opts, "cwd", pid, ilist, plist);
-		fuser_scan_link(opts, "exe", pid, ilist, plist);
-		fuser_scan_link(opts, "root", pid, ilist, plist);
-		fuser_scan_dir_links(opts, "fd", pid, ilist, plist);
-		fuser_scan_dir_links(opts, "lib", pid, ilist, plist);
-		fuser_scan_dir_links(opts, "mmap", pid, ilist, plist);
-		fuser_scan_pid_maps(opts, "maps", pid, ilist, plist);
-		chdir("..");
+		plist = scan_link("cwd", pid, ilist, plist);
+		plist = scan_link("exe", pid, ilist, plist);
+		plist = scan_link("root", pid, ilist, plist);
+		plist = scan_dir_links("fd", pid, ilist, plist);
+		plist = scan_dir_links("lib", pid, ilist, plist);
+		plist = scan_dir_links("mmap", pid, ilist, plist);
+		plist = scan_pid_maps("maps", pid, ilist, plist);
+		xchdir("/proc");
 	}
 	closedir(d);
-	return 1;
+	return plist;
 }
 
-static int fuser_print_pid_list(pid_list *plist)
+static int print_pid_list(pid_list *plist)
 {
-	pid_list *curr = plist;
-
-	if (plist == NULL)
-		return 0;
-	while (curr != NULL) {
-		if (curr->pid > 0)
-			printf("%d ", curr->pid);
-		curr = curr->next;
+	while (plist != NULL) {
+		printf("%u ", (unsigned)plist->pid);
+		plist = plist->next;
 	}
 	bb_putchar('\n');
 	return 1;
 }
 
-static int fuser_kill_pid_list(pid_list *plist, int sig)
+static int kill_pid_list(pid_list *plist, int sig)
 {
-	pid_list *curr = plist;
 	pid_t mypid = getpid();
 	int success = 1;
 
-	if (plist == NULL)
-		return 0;
-	while (curr != NULL) {
-		if (curr->pid > 0 && curr->pid != mypid) {
-			if (kill(curr->pid, sig) != 0) {
-				bb_perror_msg("kill pid '%d'", curr->pid);
+	while (plist != NULL) {
+		if (plist->pid != mypid) {
+			if (kill(plist->pid, sig) != 0) {
+				bb_perror_msg("kill pid %u", (unsigned)plist->pid);
 				success = 0;
 			}
 		}
-		curr = curr->next;
+		plist = plist->next;
 	}
 	return success;
 }
@@ -319,69 +269,77 @@ static int fuser_kill_pid_list(pid_list *plist, int sig)
 int fuser_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int fuser_main(int argc, char **argv)
 {
-	/*static -- huh???*/ int opt = 0; /* FUSER_OPT_ */
-
-	int port, i, optn;
-	int* fni; /* file name indexes of argv */
-	int fnic = 0;  /* file name index count */
-	const char *proto;
+	pid_list *plist;
+	inode_list *ilist;
+	char **pp;
 	dev_t dev;
 	ino_t inode;
-	pid_list *pids;
-	inode_list *inodes;
-	int killsig = SIGTERM;
-	int success = 1;
+	unsigned port;
+	int opt;
+	int success;
+	int killsig;
+/*
+fuser [options] FILEs or PORT/PROTOs
+Find processes which use FILEs or PORTs
+        -m      Find processes which use same fs as FILEs
+        -4      Search only IPv4 space
+        -6      Search only IPv6 space
+        -s      Silent: just exit with 0 if any processes are found
+        -k      Kill found processes (otherwise display PIDs)
+        -SIGNAL Signal to send (default: TERM)
+*/
+	/* Handle -SIGNAL. Oh my... */
+	killsig = SIGTERM;
+	pp = argv;
+	while (*++pp) {
+		char *arg = *pp;
+		if (arg[0] != '-')
+			continue;
+		if (arg[1] == '-' && arg[2] == '\0') /* "--" */
+			break;
+		if ((arg[1] == '4' || arg[1] == '6') && arg[2] == '\0')
+			continue; /* it's "-4" or "-6" */
+		opt = get_signum(&arg[1]);
+		if (opt < 0)
+			continue;
+		/* "-SIGNAL" option found. Remove it and bail out */
+		killsig = opt;
+		do {
+			pp[0] = arg = pp[1];
+			pp++;
+		} while (arg);
+		break;
+	}
 
-	if (argc < 2)
-		bb_show_usage();
+	opt = getopt32(argv, OPTION_STRING);
+	argv += optind;
 
-	fni = xmalloc(sizeof(int));
-	for (i = 1; i < argc; i++) {
-		optn = fuser_option(argv[i]);
-		if (optn)
-			opt |= optn;
-		else if (argv[i][0] == '-') {
-			killsig = get_signum(argv[i]+1);
-			if (killsig < 0)
-				killsig = SIGTERM;
-		} else {
-			fni = xrealloc(fni, sizeof(int) * (fnic+2));
-			fni[fnic++] = i;
+	xchdir("/proc");
+
+	ilist = NULL;
+	pp = argv;
+	while (*pp) {
+		char *proto = parse_net_arg(*pp, &port);
+		if (proto) { /* PORT/PROTO */
+			ilist = scan_proc_net(proto, port, ilist);
+			free(proto);
+		} else { /* FILE */
+			if (!file_to_dev_inode(*pp, &dev, &inode))
+				bb_perror_msg_and_die("can't open %s", *pp);
+			ilist = add_inode(ilist, dev, inode);
 		}
+		pp++;
 	}
 
-	if (!fnic)
-		return 1;
+	plist = scan_proc_pids(ilist);
 
-	inodes = xmalloc(sizeof(inode_list));
-	for (i = 0; i < fnic; i++) {
-		if (fuser_parse_net_arg(argv[fni[i]], &proto, &port)) {
-			fuser_scan_proc_net(opt, proto, port, inodes);
-		} else {
-			if (!fuser_file_to_dev_inode(argv[fni[i]], &dev, &inode)) {
-				if (ENABLE_FEATURE_CLEAN_UP)
-					free(inodes);
-				bb_perror_msg_and_die("cannot open '%s'", argv[fni[i]]);
-			}
-			fuser_add_inode(inodes, dev, inode);
-		}
+	if (!plist)
+		return EXIT_FAILURE;
+	success = 1;
+	if (opt & OPT_KILL) {
+		success = kill_pid_list(plist, killsig);
+	} else if (!(opt & OPT_SILENT)) {
+		success = print_pid_list(plist);
 	}
-	pids = xmalloc(sizeof(pid_list));
-	success = fuser_scan_proc_pids(opt, inodes, pids);
-	/* if the first pid in the list is 0, none have been found */
-	if (pids->pid == 0)
-		success = 0;
-	if (success) {
-		if (opt & FUSER_OPT_KILL) {
-			success = fuser_kill_pid_list(pids, killsig);
-		} else if (!(opt & FUSER_OPT_SILENT)) {
-			success = fuser_print_pid_list(pids);
-		}
-	}
-	if (ENABLE_FEATURE_CLEAN_UP) {
-		free(pids);
-		free(inodes);
-	}
-	/* return 0 on (success == 1) 1 otherwise */
-	return (success != 1);
+	return (success != 1); /* 0 == success */
 }
