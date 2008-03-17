@@ -38,7 +38,7 @@ const llist_t *find_list_entry2(const llist_t *list, const char *filename)
 			if (*c++ == '/') pattern_slash_cnt++;
 		c = filename;
 		d = buf;
-		/* paranoia is better that buffer overflows */
+		/* paranoia is better than buffer overflows */
 		while (*c && d != buf + sizeof(buf)-1) {
 			if (*c == '/' && --pattern_slash_cnt < 0)
 				break;
