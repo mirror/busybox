@@ -21,8 +21,7 @@ static blkid_tag blkid_new_tag(void)
 {
 	blkid_tag tag;
 
-	if (!(tag = (blkid_tag) calloc(1, sizeof(struct blkid_struct_tag))))
-		return NULL;
+	tag = xzalloc(sizeof(struct blkid_struct_tag));
 
 	INIT_LIST_HEAD(&tag->bit_tags);
 	INIT_LIST_HEAD(&tag->bit_names);

@@ -73,7 +73,7 @@ rm -f src.typos
 # don't allow obsolete functions
 #
 find $srcdir/.. '(' -name '*.c' -o -name '*.h' ')' -print0 | xargs -0 \
-	grep -E -e '\<(bcmp|bcopy|bzero|getwd|index|mktemp|rindex|utimes)\>[[:space:]]*\(' \
+	grep -E -e '\<(bcmp|bcopy|bzero|getwd|index|mktemp|rindex|utimes|sigblock|siggetmask|sigsetmask)\>[[:space:]]*\(' \
 	| sed -e "s:^$srcdir/\.\./::g" > src.obsolete.funcs
 testing "Obsolete function usage" "cat src.obsolete.funcs" "" "" ""
 rm -f src.obsolete.funcs

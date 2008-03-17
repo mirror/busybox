@@ -20,8 +20,7 @@ blkid_dev blkid_new_dev(void)
 {
 	blkid_dev dev;
 
-	if (!(dev = (blkid_dev) calloc(1, sizeof(struct blkid_struct_dev))))
-		return NULL;
+	dev = xzalloc(sizeof(struct blkid_struct_dev));
 
 	INIT_LIST_HEAD(&dev->bid_devs);
 	INIT_LIST_HEAD(&dev->bid_tags);

@@ -264,6 +264,7 @@ static void parse_config_file(void)
 		s = buffer;
 
 		if (!fgets(s, sizeof(buffer), f)) { /* Are we done? */
+// why?
 			if (ferror(f)) {   /* Make sure it wasn't a read error. */
 				parse_error("reading");
 			}

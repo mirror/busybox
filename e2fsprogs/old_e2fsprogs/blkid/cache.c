@@ -35,8 +35,7 @@ int blkid_get_cache(blkid_cache *ret_cache, const char *filename)
 	DBG(DEBUG_CACHE, printf("creating blkid cache (using %s)\n",
 				filename ? filename : "default cache"));
 
-	if (!(cache = (blkid_cache) calloc(1, sizeof(struct blkid_struct_cache))))
-		return -BLKID_ERR_MEM;
+	cache = xzalloc(sizeof(struct blkid_struct_cache));
 
 	INIT_LIST_HEAD(&cache->bic_devs);
 	INIT_LIST_HEAD(&cache->bic_tags);
