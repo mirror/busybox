@@ -10,8 +10,6 @@
 
 #define DEBUG 0
 
-#define DEBUG 0
-
 int getpty(char *line)
 {
 	int p;

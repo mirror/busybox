@@ -1055,7 +1055,7 @@
      "\n	-X		Use openssl connection helper for secured servers" \
      "\n	-t		Get only headers" \
      "\n	-z		Delete messages on server" \
-     "\n        prog		Run prog <message_file> on message delivery" \
+     "\n	prog		Run prog <message_file> on message delivery" \
 
 #define findfs_trivial_usage \
        "LABEL=label or UUID=uuid"
@@ -3903,7 +3903,8 @@
 	)
 
 #define test_trivial_usage \
-       "EXPRESSION\n  or   [ EXPRESSION ]"
+       "EXPRESSION\n" \
+       "  or   [ EXPRESSION ]"
 #define test_full_usage \
        "Check file types and compares values returning an exit code\n" \
        "determined by the value of EXPRESSION"
@@ -4324,7 +4325,7 @@
 #define vlock_full_usage \
        "Lock a virtual terminal. A password is required to unlock.\n" \
      "\nOptions:" \
-     "\n 	-a	Lock all VTs" \
+     "\n	-a	Lock all VTs" \
 
 #define watch_trivial_usage \
        "[-n seconds] [-t] COMMAND..."
