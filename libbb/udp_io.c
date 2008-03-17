@@ -25,10 +25,10 @@ socket_want_pktinfo(int fd)
 }
 
 
-#ifdef UNUSED
 ssize_t
 send_to_from(int fd, void *buf, size_t len, int flags,
-		const struct sockaddr *from, const struct sockaddr *to,
+		const struct sockaddr *to,
+		const struct sockaddr *from,
 		socklen_t tolen)
 {
 #ifndef IP_PKTINFO
@@ -92,7 +92,6 @@ send_to_from(int fd, void *buf, size_t len, int flags,
 	return sendmsg(fd, &msg, flags);
 #endif
 }
-#endif /* UNUSED */
 
 /* NB: this will never set port# in 'to'!
  * _Only_ IP/IPv6 address part of 'to' is _maybe_ modified.

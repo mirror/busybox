@@ -36,18 +36,12 @@ enum {
    ttl(4B) + rlen(2B) + r (MAX_NAME_LEN =21B) +
    2*querystring (2 MAX_NAME_LEN= 42B), all together 90 Byte
 */
-	MAX_PACK_LEN = 512 + 1,
+	MAX_PACK_LEN = 512,
 
 	DEFAULT_TTL = 30,       // increase this when not testing?
 
 	REQ_A = 1,
 	REQ_PTR = 12
-};
-
-struct dns_repl {		// resource record, add 0 or 1 to accepted dns_msg in resp
-	uint16_t rlen;
-	uint8_t *r;		// resource
-	uint16_t flags;
 };
 
 struct dns_head {		// the message from client and first part of response mag
@@ -218,20 +212,20 @@ static int table_lookup(uint16_t type, uint8_t * as, uint8_t * qs)
 	return -1;
 }
 
-
 /*
  * Decode message and generate answer
  */
-static int process_packet(uint8_t * buf)
+static int process_packet(uint8_t *buf)
 {
+	uint8_t answstr[MAX_NAME_LEN + 1];
 	struct dns_head *head;
 	struct dns_prop *qprop;
-	struct dns_repl outr;
-	void *next, *from, *answb;
-
-	uint8_t answstr[MAX_NAME_LEN + 1];
-	int lookup_result, type, len, packet_len;
+	uint8_t *from, *answb;
+	uint16_t outr_rlen;
+	uint16_t outr_flags;
 	uint16_t flags;
+	int lookup_result, type, packet_len;
+	int querystr_len;
 
 	answstr[0] = '\0';
 
@@ -247,11 +241,12 @@ static int process_packet(uint8_t * buf)
 	}
 
 	from = (void *)&head[1];	//  start of query string
-	next = answb = from + strlen((char *)from) + 1 + sizeof(struct dns_prop);   // where to append answer block
+//FIXME: strlen of untrusted data??!
+	querystr_len = strlen((char *)from) + 1 + sizeof(struct dns_prop);
+	answb = from + querystr_len;   // where to append answer block
 
-	outr.rlen = 0;			// may change later
-	outr.r = NULL;
-	outr.flags = 0;
+	outr_rlen = 0;
+	outr_flags = 0;
 
 	qprop = (struct dns_prop *)(answb - 4);
 	type = ntohs(qprop->type);
@@ -262,7 +257,7 @@ static int process_packet(uint8_t * buf)
 	}
 
 	if (ntohs(qprop->class) != 1 /* class INET */ ) {
-		outr.flags = 4; /* not supported */
+		outr_flags = 4; /* not supported */
 		goto empty_packet;
 	}
 	/* we only support standard queries */
@@ -272,49 +267,50 @@ static int process_packet(uint8_t * buf)
 
 	// We have a standard query
 	bb_info_msg("%s", (char *)from);
-	lookup_result = table_lookup(type, answstr, (uint8_t*)from);
+	lookup_result = table_lookup(type, answstr, from);
 	if (lookup_result != 0) {
-		outr.flags = 3 | 0x0400;	//name do not exist and auth
+		outr_flags = 3 | 0x0400;	// name do not exist and auth
 		goto empty_packet;
 	}
 	if (type == REQ_A) {    // return an address
-		struct in_addr a;
-		if (!inet_aton((char*)answstr, &a)) {//dotted dec to long conv
-			outr.flags = 1; /* Frmt err */
+		struct in_addr a; // NB! its "struct { unsigned __long__ s_addr; }"
+		uint32_t v32;
+		if (!inet_aton((char*)answstr, &a)) { //dotted dec to long conv
+			outr_flags = 1; /* Frmt err */
 			goto empty_packet;
 		}
-		memcpy(answstr, &a.s_addr, 4);	// save before a disappears
-		outr.rlen = 4;			// uint32_t IP
+		v32 = a.s_addr; /* in case long != int */
+		memcpy(answstr, &v32, 4);
+		outr_rlen = 4;			// uint32_t IP
 	} else
-		outr.rlen = strlen((char *)answstr) + 1;	// a host name
-	outr.r = answstr;			// 32 bit ip or a host name
-	outr.flags |= 0x0400;			/* authority-bit */
+		outr_rlen = strlen((char *)answstr) + 1;	// a host name
+	outr_flags |= 0x0400;			/* authority-bit */
 	// we have an answer
 	head->nansw = htons(1);
 
 	// copy query block to answer block
-	len = answb - from;
-	memcpy(answb, from, len);
-	next += len;
+	memcpy(answb, from, querystr_len);
+	answb += querystr_len;
 
 	// and append answer rr
-	*(uint32_t *) next = htonl(ttl);
-	next += 4;
-	*(uint16_t *) next = htons(outr.rlen);
-	next += 2;
-	memcpy(next, (void *)answstr, outr.rlen);
-	next += outr.rlen;
+// FIXME: unaligned accesses??
+	*(uint32_t *) answb = htonl(ttl);
+	answb += 4;
+	*(uint16_t *) answb = htons(outr_rlen);
+	answb += 2;
+	memcpy(answb, answstr, outr_rlen);
+	answb += outr_rlen;
 
  empty_packet:
 
 	flags = ntohs(head->flags);
 	// clear rcode and RA, set responsebit and our new flags
-	flags |= (outr.flags & 0xff80) | 0x8000;
+	flags |= (outr_flags & 0xff80) | 0x8000;
 	head->flags = htons(flags);
-	head->nauth = head->nadd = htons(0);
+	head->nauth = head->nadd = 0;
 	head->nquer = htons(1);
 
-	packet_len = (uint8_t *)next - buf;
+	packet_len = answb - buf;
 	return packet_len;
 }
 
@@ -333,10 +329,13 @@ int dnsd_main(int argc ATTRIBUTE_UNUSED, char **argv)
 {
 	const char *listen_interface = "0.0.0.0";
 	char *sttl, *sport;
-	len_and_sockaddr *lsa;
+	len_and_sockaddr *lsa, *from, *to;
+	unsigned lsa_size;
 	int udps;
 	uint16_t port = 53;
-	uint8_t buf[MAX_PACK_LEN];
+	/* Paranoid sizing: querystring x2 + ttl + outr_rlen + answstr */
+	/* I'd rather see process_packet() fixed instead... */
+	uint8_t buf[MAX_PACK_LEN * 2 + 4 + 2 + (MAX_NAME_LEN+1)];
 
 	getopt32(argv, "i:c:t:p:dv", &listen_interface, &fileconf, &sttl, &sport);
 	//if (option_mask32 & 0x1) // -i
@@ -375,32 +374,34 @@ int dnsd_main(int argc ATTRIBUTE_UNUSED, char **argv)
 	lsa = xdotted2sockaddr(listen_interface, port);
 	udps = xsocket(lsa->u.sa.sa_family, SOCK_DGRAM, 0);
 	xbind(udps, &lsa->u.sa, lsa->len);
-	/* xlisten(udps, 50); - ?!! DGRAM sockets are never listened on I think? */
+	socket_want_pktinfo(udps); /* needed for recv_from_to to work */
+	lsa_size = LSA_LEN_SIZE + lsa->len;
+	from = xzalloc(lsa_size);
+	to = xzalloc(lsa_size);
+
 	bb_info_msg("Accepting UDP packets on %s",
 			xmalloc_sockaddr2dotted(&lsa->u.sa));
 
 	while (1) {
 		int r;
-		socklen_t fromlen = lsa->len;
-// FIXME: need to get *DEST* address (to which of our addresses
-// this query was directed), and reply from the same address.
-// Or else we can exhibit usual UDP ugliness:
-// [ip1.multihomed.ip2] <=  query to ip1  <= peer
-// [ip1.multihomed.ip2] => reply from ip2 => peer (confused)
-
-// TODO: recv_from_to
-
-		r = recvfrom(udps, buf, sizeof(buf), 0, &lsa->u.sa, &fromlen);
-		if (OPT_verbose)
-			bb_info_msg("Got UDP packet");
-		if (r < 12 || r > 512) {
+		/* Try to get *DEST* address (to which of our addresses
+		 * this query was directed), and reply from the same address.
+		 * Or else we can exhibit usual UDP ugliness:
+		 * [ip1.multihomed.ip2] <=  query to ip1  <= peer
+		 * [ip1.multihomed.ip2] => reply from ip2 => peer (confused) */
+		memcpy(to, lsa, lsa_size);
+		r = recv_from_to(udps, buf, MAX_PACK_LEN + 1, 0, &from->u.sa, &to->u.sa, lsa->len);
+		if (r < 12 || r > MAX_PACK_LEN) {
 			bb_error_msg("invalid packet size");
 			continue;
 		}
+		if (OPT_verbose)
+			bb_info_msg("Got UDP packet");
+		buf[r] = '\0'; /* paranoia */
 		r = process_packet(buf);
 		if (r <= 0)
 			continue;
-		sendto(udps, buf, r, 0, &lsa->u.sa, fromlen);
+		send_to_from(udps, buf, r, 0, &to->u.sa, &from->u.sa, lsa->len);
 	}
 	return 0;
 }

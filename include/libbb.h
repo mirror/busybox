@@ -476,10 +476,12 @@ struct hostent *xgethostbyname(const char *name);
 
 void socket_want_pktinfo(int fd);
 ssize_t send_to_from(int fd, void *buf, size_t len, int flags,
-		const struct sockaddr *from, const struct sockaddr *to,
+		const struct sockaddr *to,
+		const struct sockaddr *from,
 		socklen_t tolen);
 ssize_t recv_from_to(int fd, void *buf, size_t len, int flags,
-		struct sockaddr *from, struct sockaddr *to,
+		struct sockaddr *from,
+		struct sockaddr *to,
 		socklen_t sa_size);
 
 char *xstrdup(const char *s);
