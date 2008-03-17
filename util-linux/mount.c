@@ -1725,8 +1725,6 @@ static const char must_be_root[] ALIGN1 = "you must be root";
 int mount_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int mount_main(int argc, char **argv)
 {
-	enum { OPT_ALL = 0x10 };
-
 	char *cmdopts = xstrdup("");
 	char *fstype = NULL;
 	char *storage_path = NULL;
@@ -1771,7 +1769,7 @@ int mount_main(int argc, char **argv)
 	// If we have no arguments, show currently mounted filesystems
 
 	if (!argc) {
-		if (!(opt & OPT_ALL)) {
+		if (!(opt & OPT_a)) {
 			FILE *mountTable = setmntent(bb_path_mtab_file, "r");
 
 			if (!mountTable) bb_error_msg_and_die("no %s", bb_path_mtab_file);
