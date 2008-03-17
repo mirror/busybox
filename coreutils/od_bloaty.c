@@ -188,7 +188,7 @@ static off_t pseudo_offset;
    a multiple of the least common multiple of the sizes associated with
    the specified output types.  It should be as large as possible, but
    no larger than 16 -- unless specified with the -w option.  */
-static size_t bytes_per_block;
+static unsigned bytes_per_block = 32; /* have to use unsigned, not size_t */
 
 /* A NULL-terminated list of the file-arguments from the command line.  */
 static const char *const *file_list;
@@ -1218,7 +1218,6 @@ int od_main(int argc, char **argv)
 		;
 #endif
 	char *str_A, *str_N, *str_j, *str_S;
-	char *str_w = NULL;
 	llist_t *lst_t = NULL;
 	unsigned opt;
 	int l_c_m;
@@ -1239,7 +1238,7 @@ int od_main(int argc, char **argv)
 	/* flag_dump_strings = 0; - already is */
 
 	/* Parse command line */
-	opt_complementary = "t::"; // list
+	opt_complementary = "w+:t::"; /* -w N, -t is a list */
 #if ENABLE_GETOPT_LONG
 	applet_long_options = od_longopts;
 #endif
@@ -1248,7 +1247,7 @@ int od_main(int argc, char **argv)
 		// -S was -s and also had optional parameter
 		// but in coreutils 6.3 it was renamed and now has
 		// _mandatory_ parameter
-		&str_A, &str_N, &str_j, &lst_t, &str_S, &str_w);
+		&str_A, &str_N, &str_j, &lst_t, &str_S, &bytes_per_block);
 	argc -= optind;
 	argv += optind;
 	if (opt & OPT_A) {
@@ -1404,9 +1403,6 @@ int od_main(int argc, char **argv)
 	l_c_m = get_lcm();
 
 	if (opt & OPT_w) { /* -w: width */
-		bytes_per_block = 32;
-		if (str_w)
-			bytes_per_block = xatou(str_w);
 		if (!bytes_per_block || bytes_per_block % l_c_m != 0) {
 			bb_error_msg("warning: invalid width %u; using %d instead",
 					(unsigned)bytes_per_block, l_c_m);

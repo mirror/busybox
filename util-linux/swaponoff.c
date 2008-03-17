@@ -59,11 +59,11 @@ static int do_em_all(void)
 }
 
 int swap_on_off_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int swap_on_off_main(int argc, char **argv)
+int swap_on_off_main(int argc ATTRIBUTE_UNUSED, char **argv)
 {
 	int ret;
 
-	if (argc == 1)
+	if (!argv[1])
 		bb_show_usage();
 
 	ret = getopt32(argv, "a");

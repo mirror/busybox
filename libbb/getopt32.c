@@ -117,7 +117,7 @@ const char *opt_complementary
         if w is given once, GNU ps sets the width to 132,
         if w is given more than once, it is "unlimited"
 
-        int w_counter = 0;
+        int w_counter = 0; // must be initialized!
         opt_complementary = "ww";
         getopt32(argv, "w", &w_counter);
         if (w_counter)
@@ -220,7 +220,7 @@ Special characters:
  "x--x" Variation of the above, it means that -x option should occur
         at most once.
 
- "a+:"  A plus after a char in opt_complementary means that the parameter
+ "a+"   A plus after a char in opt_complementary means that the parameter
         for this option is a nonnegative integer. It will be processed
         with xatoi_u() - allowed range is 0..INT_MAX.
 
@@ -255,7 +255,7 @@ Special characters:
         For example from "id" applet:
 
         // Don't allow -n -r -rn -ug -rug -nug -rnug
-        opt_complementary = "r?ug:n?ug:?u--g:g--u";
+        opt_complementary = "r?ug:n?ug:u--g:g--u";
         flags = getopt32(argv, "rnug");
 
         This example allowed only:
@@ -545,11 +545,14 @@ getopt32(char **argv, const char *applet_opts, ...)
 		if (on_off->counter)
 			(*(on_off->counter))++;
 		if (on_off->param_type == PARAM_LIST) {
-			llist_add_to_end((llist_t **)(on_off->optarg), optarg);
+			if (optarg)
+				llist_add_to_end((llist_t **)(on_off->optarg), optarg);
 		} else if (on_off->param_type == PARAM_INT) {
-			*(unsigned*)(on_off->optarg) = xatoi_u(optarg);
+			if (optarg)
+				*(unsigned*)(on_off->optarg) = xatoi_u(optarg);
 		} else if (on_off->optarg) {
-			*(char **)(on_off->optarg) = optarg;
+			if (optarg)
+				*(char **)(on_off->optarg) = optarg;
 		}
 		if (pargv != NULL)
 			break;

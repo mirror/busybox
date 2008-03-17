@@ -264,16 +264,14 @@ int arping_main(int argc ATTRIBUTE_UNUSED, char **argv)
 	err_str = xasprintf("interface %s %%s", device);
 	{
 		unsigned opt;
-		char *str_count, *str_timeout;
+		char *str_timeout;
 
 		/* Dad also sets quit_on_reply.
 		 * Advert also sets unsolicited.
 		 */
-		opt_complementary = "=1:Df:AU";
+		opt_complementary = "=1:Df:AU:c+";
 		opt = getopt32(argv, "DUAqfbc:w:I:s:",
-				&str_count, &str_timeout, &device, &source);
-		if (opt & 0x40) /* -c: count */
-			count = xatoi_u(str_count);
+				&count, &str_timeout, &device, &source);
 		if (opt & 0x80) /* -w: timeout */
 			timeout_us = xatou_range(str_timeout, 0, INT_MAX/2000000) * 1000000 + 500000;
 		//if (opt & 0x200) /* -s: source */

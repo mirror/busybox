@@ -34,17 +34,16 @@ static const struct suffix_mult sfx[] = {
 #endif
 
 int sleep_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int sleep_main(int argc, char **argv)
+int sleep_main(int argc ATTRIBUTE_UNUSED, char **argv)
 {
 	unsigned duration;
 
+	++argv;
+	if (!*argv)
+		bb_show_usage();
+
 #if ENABLE_FEATURE_FANCY_SLEEP
 
-	if (argc < 2) {
-		bb_show_usage();
-	}
-
-	++argv;
 	duration = 0;
 	do {
 		duration += xatoul_range_sfx(*argv, 0, UINT_MAX-duration, sfx);
@@ -52,11 +51,7 @@ int sleep_main(int argc, char **argv)
 
 #else  /* FEATURE_FANCY_SLEEP */
 
-	if (argc != 2) {
-		bb_show_usage();
-	}
-
-	duration = xatou(argv[1]);
+	duration = xatou(*argv);
 
 #endif /* FEATURE_FANCY_SLEEP */
 

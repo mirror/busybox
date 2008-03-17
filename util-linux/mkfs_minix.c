@@ -627,7 +627,7 @@ int mkfs_minix_main(int argc ATTRIBUTE_UNUSED, char **argv)
 	unsigned opt;
 	char *tmp;
 	struct stat statbuf;
-	char *str_i, *str_n;
+	char *str_i;
 	char *listfile = NULL;
 
 	INIT_G();
@@ -643,13 +643,13 @@ int mkfs_minix_main(int argc ATTRIBUTE_UNUSED, char **argv)
 		bb_error_msg_and_die("bad inode size");
 #endif
 
-	opt = getopt32(argv, "ci:l:n:v", &str_i, &listfile, &str_n);
+	opt_complementary = "n+"; /* -n N */
+	opt = getopt32(argv, "ci:l:n:v", &str_i, &listfile, &G.namelen);
 	argv += optind;
 	//if (opt & 1) -c
 	if (opt & 2) G.req_nr_inodes = xatoul(str_i); // -i
 	//if (opt & 4) -l
 	if (opt & 8) { // -n
-		G.namelen = xatoi_u(str_n);
 		if (G.namelen == 14) G.magic = MINIX1_SUPER_MAGIC;
 		else if (G.namelen == 30) G.magic = MINIX1_SUPER_MAGIC2;
 		else bb_show_usage();

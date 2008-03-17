@@ -146,7 +146,6 @@ int du_main(int argc ATTRIBUTE_UNUSED, char **argv)
 	unsigned long total;
 	int slink_depth_save;
 	bool print_final_total;
-	char *smax_print_depth;
 	unsigned opt;
 
 #if ENABLE_FEATURE_HUMAN_READABLE
@@ -168,8 +167,8 @@ int du_main(int argc ATTRIBUTE_UNUSED, char **argv)
 	 * ignore -a.  This is consistent with -s being equivalent to -d 0.
 	 */
 #if ENABLE_FEATURE_HUMAN_READABLE
-	opt_complementary = "h-km:k-hm:m-hk:H-L:L-H:s-d:d-s";
-	opt = getopt32(argv, "aHkLsx" "d:" "lc" "hm", &smax_print_depth);
+	opt_complementary = "h-km:k-hm:m-hk:H-L:L-H:s-d:d-s:d+";
+	opt = getopt32(argv, "aHkLsx" "d:" "lc" "hm", &G.max_print_depth);
 	argv += optind;
 	if (opt & (1 << 9)) {
 		/* -h opt */
@@ -184,8 +183,8 @@ int du_main(int argc ATTRIBUTE_UNUSED, char **argv)
 		G.disp_hr = 1024;
 	}
 #else
-	opt_complementary = "H-L:L-H:s-d:d-s";
-	opt = getopt32(argv, "aHkLsx" "d:" "lc", &smax_print_depth);
+	opt_complementary = "H-L:L-H:s-d:d-s:d+";
+	opt = getopt32(argv, "aHkLsx" "d:" "lc", &G.max_print_depth);
 	argv += optind;
 #if !ENABLE_FEATURE_DU_DEFAULT_BLOCKSIZE_1K
 	if (opt & (1 << 2)) {
@@ -211,10 +210,6 @@ int du_main(int argc ATTRIBUTE_UNUSED, char **argv)
 		G.max_print_depth = 0;
 	}
 	G.one_file_system = opt & (1 << 5); /* -x opt */
-	if (opt & (1 << 6)) {
-		/* -d opt */
-		G.max_print_depth = xatoi_u(smax_print_depth);
-	}
 	if (opt & (1 << 7)) {
 		/* -l opt */
 		G.count_hardlinks = MAXINT(nlink_t);

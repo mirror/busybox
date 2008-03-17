@@ -818,14 +818,14 @@ static void reload_signal(int sig ATTRIBUTE_UNUSED)
 }
 
 int init_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int init_main(int argc, char **argv)
+int init_main(int argc ATTRIBUTE_UNUSED, char **argv)
 {
 	struct init_action *a;
 	pid_t wpid;
 
 	die_sleep = 30 * 24*60*60; /* if xmalloc will ever die... */
 
-	if (argc > 1 && !strcmp(argv[1], "-q")) {
+	if (argv[1] && !strcmp(argv[1], "-q")) {
 		return kill(1, SIGHUP);
 	}
 
@@ -868,7 +868,7 @@ int init_main(int argc, char **argv)
 			putenv((char *) *e);
 	}
 
-	if (argc > 1) setenv("RUNLEVEL", argv[1], 1);
+	if (argv[1]) setenv("RUNLEVEL", argv[1], 1);
 
 	/* Hello world */
 	message(MAYBE_CONSOLE | L_LOG, "init started: %s", bb_banner);
@@ -890,7 +890,7 @@ int init_main(int argc, char **argv)
 	}
 
 	/* Check if we are supposed to be in single user mode */
-	if (argc > 1
+	if (argv[1]
 	 && (!strcmp(argv[1], "single") || !strcmp(argv[1], "-s") || LONE_CHAR(argv[1], '1'))
 	) {
 		/* Start a shell on console */

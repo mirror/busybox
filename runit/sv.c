@@ -422,7 +422,7 @@ int sv_main(int argc, char **argv)
 	char **servicex;
 	unsigned waitsec = 7;
 	smallint kll = 0;
-	smallint verbose = 0;
+	int verbose = 0;
 	int (*act)(const char*);
 	int (*cbk)(const char*);
 	int curdir;
@@ -436,9 +436,8 @@ int sv_main(int argc, char **argv)
 	x = getenv("SVWAIT");
 	if (x) waitsec = xatou(x);
 
-	opt = getopt32(argv, "w:v", &x);
-	if (opt & 1) waitsec = xatou(x); // -w
-	if (opt & 2) verbose = 1; // -v
+	opt_complementary = "w+:vv"; /* -w N, -v is a counter */
+	opt = getopt32(argv, "w:v", &waitsec, &verbose);
 	argc -= optind;
 	argv += optind;
 	action = *argv++;

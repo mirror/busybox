@@ -674,7 +674,7 @@ Debug("wrote %d to net, errno %d", rr, errno);
 int nc_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int nc_main(int argc, char **argv)
 {
-	char *str_p, *str_s, *str_w;
+	char *str_p, *str_s;
 	USE_NC_EXTRA(char *str_i, *str_o;)
 	char *themdotted = themdotted; /* gcc */
 	char **proggie;
@@ -710,10 +710,10 @@ int nc_main(int argc, char **argv)
  e_found:
 
 	// -g -G -t -r deleted, unimplemented -a deleted too
-	opt_complementary = "?2:vv"; /* max 2 params, -v is a counter */
+	opt_complementary = "?2:vv:w+"; /* max 2 params; -v is a counter; -w N */
 	getopt32(argv, "hnp:s:uvw:" USE_NC_SERVER("l")
 			USE_NC_EXTRA("i:o:z"),
-			&str_p, &str_s, &str_w
+			&str_p, &str_s, &o_wait
 			USE_NC_EXTRA(, &str_i, &str_o, &o_verbose));
 	argv += optind;
 #if ENABLE_NC_EXTRA
@@ -731,9 +731,7 @@ int nc_main(int argc, char **argv)
 	//if (option_mask32 & OPT_r) /* randomize various things */
 	//if (option_mask32 & OPT_u) /* use UDP */
 	//if (option_mask32 & OPT_v) /* verbose */
-	if (option_mask32 & OPT_w) { /* wait time */
-		o_wait = xatoi_u(str_w);
-	}
+	//if (option_mask32 & OPT_w) /* wait time */
 	//if (option_mask32 & OPT_z) /* little or no data xfer */
 
 	/* We manage our fd's so that they are never 0,1,2 */

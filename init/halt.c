@@ -33,7 +33,7 @@ RB_AUTOBOOT
 	};
 	static const smallint signals[] = { SIGUSR1, SIGUSR2, SIGTERM };
 
-	char *delay;
+	int delay = 0;
 	int which, flags, rc = 1;
 #if ENABLE_FEATURE_WTMP
 	struct utmp utmp;
@@ -46,9 +46,10 @@ RB_AUTOBOOT
 		continue;
 
 	/* Parse and handle arguments */
+	opt_complementary = "d+"; /* -d N */
 	flags = getopt32(argv, "d:nfw", &delay);
-	if (flags & 1)
-		sleep(xatou(delay));
+
+	sleep(delay);
 
 #if ENABLE_FEATURE_WTMP
 	if (access(bb_path_wtmp_file, R_OK|W_OK) == -1) {

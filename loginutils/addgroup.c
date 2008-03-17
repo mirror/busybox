@@ -123,7 +123,7 @@ static void add_user_to_group(char **args,
  * will add an existing user to an existing group.
  */
 int addgroup_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int addgroup_main(int argc, char **argv)
+int addgroup_main(int argc ATTRIBUTE_UNUSED, char **argv)
 {
 	char *group;
 	gid_t gid = 0;
@@ -144,10 +144,10 @@ int addgroup_main(int argc, char **argv)
 	}
 	/* move past the commandline options */
 	argv += optind;
-	argc -= optind;
+	//argc -= optind;
 
 #if ENABLE_FEATURE_ADDUSER_TO_GROUP
-	if (argc == 2) {
+	if (argv[1]) {
 		struct group *gr;
 
 		if (option_mask32) {
@@ -170,7 +170,7 @@ int addgroup_main(int argc, char **argv)
 		add_user_to_group(argv, bb_path_group_file, xfopen);
 #if ENABLE_FEATURE_SHADOWPASSWDS
 		add_user_to_group(argv, bb_path_gshadow_file, fopen_or_warn);
-#endif /* ENABLE_FEATURE_SHADOWPASSWDS */
+#endif
 	} else
 #endif /* ENABLE_FEATURE_ADDUSER_TO_GROUP */
 		new_group(argv[0], gid);

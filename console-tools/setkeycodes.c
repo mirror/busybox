@@ -14,7 +14,7 @@
 
 /* From <linux/kd.h> */
 struct kbkeycode {
-	unsigned int scancode, keycode;
+	unsigned scancode, keycode;
 };
 enum {
 	KDSETKEYCODE = 0x4B4D  /* write kernel keycode table entry */
@@ -33,7 +33,7 @@ int setkeycodes_main(int argc, char **argv)
 	fd = get_console_fd();
 
 	while (argc > 2) {
-		a.keycode = xatoul_range(argv[2], 0, 127);
+		a.keycode = xatou_range(argv[2], 0, 127);
 		a.scancode = sc = xstrtoul_range(argv[1], 16, 0, 255);
 		if (a.scancode > 127) {
 			a.scancode -= 0xe000;

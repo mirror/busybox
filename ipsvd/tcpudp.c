@@ -163,7 +163,7 @@ static void sig_child_handler(int sig ATTRIBUTE_UNUSED)
 int tcpudpsvd_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int tcpudpsvd_main(int argc ATTRIBUTE_UNUSED, char **argv)
 {
-	char *str_c, *str_C, *str_b, *str_t;
+	char *str_C, *str_t;
 	char *user;
 	struct hcc *hccp;
 	const char *instructs;
@@ -189,21 +189,20 @@ int tcpudpsvd_main(int argc ATTRIBUTE_UNUSED, char **argv)
 
 	tcp = (applet_name[0] == 't');
 
-	/* 3+ args, -i at most once, -p implies -h, -v is counter */
-	opt_complementary = "-3:i--i:ph:vv";
+	/* 3+ args, -i at most once, -p implies -h, -v is counter, -b N, -c N */
+	opt_complementary = "-3:i--i:ph:vv:b+:c+";
 #ifdef SSLSVD
 	getopt32(argv, "+c:C:i:x:u:l:Eb:hpt:vU:/:Z:K:",
-		&str_c, &str_C, &instructs, &instructs, &user, &preset_local_hostname,
-		&str_b, &str_t, &ssluser, &root, &cert, &key, &verbose
+		&cmax, &str_C, &instructs, &instructs, &user, &preset_local_hostname,
+		&backlog, &str_t, &ssluser, &root, &cert, &key, &verbose
 	);
 #else
+	/* "+": stop on first non-option */
 	getopt32(argv, "+c:C:i:x:u:l:Eb:hpt:v",
-		&str_c, &str_C, &instructs, &instructs, &user, &preset_local_hostname,
-		&str_b, &str_t, &verbose
+		&cmax, &str_C, &instructs, &instructs, &user, &preset_local_hostname,
+		&backlog, &str_t, &verbose
 	);
 #endif
-	if (option_mask32 & OPT_c)
-		cmax = xatou_range(str_c, 1, INT_MAX);
 	if (option_mask32 & OPT_C) { /* -C n[:message] */
 		max_per_host = bb_strtou(str_C, &str_C, 10);
 		if (str_C[0]) {
@@ -219,8 +218,6 @@ int tcpudpsvd_main(int argc ATTRIBUTE_UNUSED, char **argv)
 		if (!get_uidgid(&ugid, user, 1))
 			bb_error_msg_and_die("unknown user/group: %s", user);
 	}
-	if (option_mask32 & OPT_b)
-		backlog = xatou(str_b);
 #ifdef SSLSVD
 	if (option_mask32 & OPT_U) ssluser = optarg;
 	if (option_mask32 & OPT_slash) root = optarg;

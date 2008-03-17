@@ -132,7 +132,7 @@ int udhcpc_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int udhcpc_main(int argc ATTRIBUTE_UNUSED, char **argv)
 {
 	uint8_t *temp, *message;
-	char *str_c, *str_V, *str_h, *str_F, *str_r, *str_T, *str_A, *str_t;
+	char *str_c, *str_V, *str_h, *str_F, *str_r;
 	USE_FEATURE_UDHCP_PORT(char *str_P;)
 	llist_t *list_O = NULL;
 #if ENABLE_FEATURE_UDHCPC_ARPING
@@ -223,7 +223,8 @@ int udhcpc_main(int argc ATTRIBUTE_UNUSED, char **argv)
 	client_config.script = DEFAULT_SCRIPT;
 
 	/* Parse command line */
-	opt_complementary = "c--C:C--c:O::"; // Cc: mutually exclusive; O: list
+	/* Cc: mutually exclusive; O: list; -T,-t,-A take numeric param */
+	opt_complementary = "c--C:C--c:O::T+:t+:A+";
 #if ENABLE_GETOPT_LONG
 	applet_long_options = udhcpc_longopts;
 #endif
@@ -233,7 +234,8 @@ int udhcpc_main(int argc ATTRIBUTE_UNUSED, char **argv)
 		"O:"
 		, &str_c, &str_V, &str_h, &str_h, &str_F
 		, &client_config.interface, &client_config.pidfile, &str_r
-		, &client_config.script, &str_T, &str_t, &str_A
+		, &client_config.script
+		, &discover_timeout, &discover_retries, &tryagain_timeout
 		USE_FEATURE_UDHCPC_ARPING(, &str_W)
 		USE_FEATURE_UDHCP_PORT(, &str_P)
 		, &list_O
@@ -273,12 +275,9 @@ int udhcpc_main(int argc ATTRIBUTE_UNUSED, char **argv)
 	if (opt & OPT_r)
 		requested_ip = inet_addr(str_r);
 	// if (opt & OPT_s) client_config.script = ...
-	if (opt & OPT_T)
-		discover_timeout = xatoi_u(str_T);
-	if (opt & OPT_t)
-		discover_retries = xatoi_u(str_t);
-	if (opt & OPT_A)
-		tryagain_timeout = xatoi_u(str_A);
+	// if (opt & OPT_T) discover_timeout = xatoi_u(str_T);
+	// if (opt & OPT_t) discover_retries = xatoi_u(str_t);
+	// if (opt & OPT_A) tryagain_timeout = xatoi_u(str_A);
 	if (opt & OPT_v) {
 		puts("version "BB_VER);
 		return 0;

@@ -89,7 +89,7 @@ static char *skip_blank(const char *cp)
 
 
 int ed_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int ed_main(int argc, char **argv)
+int ed_main(int argc ATTRIBUTE_UNUSED, char **argv)
 {
 	INIT_G();
 
@@ -99,7 +99,7 @@ int ed_main(int argc, char **argv)
 	lines.next = &lines;
 	lines.prev = &lines;
 
-	if (argc > 1) {
+	if (argv[1]) {
 		fileName = xstrdup(argv[1]);
 		if (!readLines(fileName, 1)) {
 			return EXIT_SUCCESS;

@@ -41,7 +41,7 @@ struct format_descr {
 #define FD_FILL_BYTE 0xF6 /* format fill byte. */
 
 int fdformat_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int fdformat_main(int argc, char **argv)
+int fdformat_main(int argc ATTRIBUTE_UNUSED, char **argv)
 {
 	int fd, n, cyl, read_bytes, verify;
 	unsigned char *data;
@@ -49,9 +49,7 @@ int fdformat_main(int argc, char **argv)
 	struct floppy_struct param;
 	struct format_descr descr;
 
-	if (argc < 2) {
-		bb_show_usage();
-	}
+	opt_complementary = "=1"; /* must have 1 param */
 	verify = !getopt32(argv, "n");
 	argv += optind;
 

@@ -81,24 +81,22 @@ static const char opcode_name[] ALIGN1 =
 	"weof"            "\0";
 
 int mt_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int mt_main(int argc, char **argv)
+int mt_main(int argc ATTRIBUTE_UNUSED, char **argv)
 {
 	const char *file = "/dev/tape";
 	struct mtop op;
 	struct mtpos position;
 	int fd, mode, idx;
 
-	if (argc < 2) {
+	if (!argv[1]) {
 		bb_show_usage();
 	}
 
 	if (strcmp(argv[1], "-f") == 0) {
-		if (argc < 4) {
+		if (!argv[2] || !argv[3])
 			bb_show_usage();
-		}
 		file = argv[2];
 		argv += 2;
-		argc -= 2;
 	}
 
 	idx = index_in_strings(opcode_name, argv[1]);
@@ -107,7 +105,7 @@ int mt_main(int argc, char **argv)
 		bb_error_msg_and_die("unrecognized opcode %s", argv[1]);
 
 	op.mt_op = opcode_value[idx];
-	if (argc >= 3)
+	if (argv[2])
 		op.mt_count = xatoi_u(argv[2]);
 	else
 		op.mt_count = 1;		/* One, not zero, right? */

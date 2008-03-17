@@ -397,9 +397,6 @@ int tftp_main(int argc ATTRIBUTE_UNUSED, char **argv)
 	len_and_sockaddr *peer_lsa;
 	const char *localfile = NULL;
 	const char *remotefile = NULL;
-#if ENABLE_FEATURE_TFTP_BLOCKSIZE
-	const char *sblocksize = NULL;
-#endif
 	int port;
 	USE_GETPUT(int cmd;)
 	int fd = -1;
@@ -409,13 +406,14 @@ int tftp_main(int argc ATTRIBUTE_UNUSED, char **argv)
 
 	/* -p or -g is mandatory, and they are mutually exclusive */
 	opt_complementary = "" USE_FEATURE_TFTP_GET("g:") USE_FEATURE_TFTP_PUT("p:")
-			USE_GETPUT("?g--p:p--g");
+			USE_GETPUT("g--p:p--g:")
+			USE_FEATURE_TFTP_BLOCKSIZE("b+");
 
 	USE_GETPUT(cmd =) getopt32(argv,
 			USE_FEATURE_TFTP_GET("g") USE_FEATURE_TFTP_PUT("p")
 				"l:r:" USE_FEATURE_TFTP_BLOCKSIZE("b:"),
 			&localfile, &remotefile
-			USE_FEATURE_TFTP_BLOCKSIZE(, &sblocksize));
+			USE_FEATURE_TFTP_BLOCKSIZE(, &blocksize));
 	argv += optind;
 
 	flags = O_RDONLY;
@@ -423,12 +421,8 @@ int tftp_main(int argc ATTRIBUTE_UNUSED, char **argv)
 		flags = O_WRONLY | O_CREAT | O_TRUNC;
 
 #if ENABLE_FEATURE_TFTP_BLOCKSIZE
-	if (sblocksize) {
-		blocksize = xatoi_u(sblocksize);
-		if (!tftp_blocksize_check(blocksize, 0)) {
-			return EXIT_FAILURE;
-		}
-	}
+	if (!tftp_blocksize_check(blocksize, 0))
+		return EXIT_FAILURE;
 #endif
 
 	if (!localfile)

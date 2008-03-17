@@ -221,7 +221,7 @@ static void alarm_handler(int sig ATTRIBUTE_UNUSED)
 }
 
 int login_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int login_main(int argc, char **argv)
+int login_main(int argc ATTRIBUTE_UNUSED, char **argv)
 {
 	enum {
 		LOGIN_OPT_f = (1<<0),
@@ -269,8 +269,9 @@ int login_main(int argc, char **argv)
 			bb_error_msg_and_die("-f is for root only");
 		safe_strncpy(username, opt_user, sizeof(username));
 	}
-	if (optind < argc) /* user from command line (getty) */
-		safe_strncpy(username, argv[optind], sizeof(username));
+	argv += optind;
+	if (argv[0]) /* user from command line (getty) */
+		safe_strncpy(username, argv[0], sizeof(username));
 
 	/* Let's find out and memorize our tty */
 	if (!isatty(0) || !isatty(1) || !isatty(2))

@@ -7,7 +7,7 @@
  *
  * Licensed under the GPL v2 or later, see the file LICENSE in this tarball.
  */
-/* BB_AUDIT SUSv3 defects - unsupported option -x.  */
+/* BB_AUDIT SUSv3 defects - unsupported option -x "match whole line only". */
 /* BB_AUDIT GNU defects - always acts as -a.  */
 /* http://www.opengroup.org/onlinepubs/007904975/utilities/grep.html */
 /*
@@ -299,7 +299,7 @@ static int grep_file(FILE *file)
 				free(before_buf[curpos]);
 				before_buf[curpos] = line;
 				curpos = (curpos + 1) % lines_before;
-				/* avoid free(line) - we took line */
+				/* avoid free(line) - we took the line */
 				line = NULL;
 			}
 		}
@@ -371,7 +371,10 @@ static void load_regexes_from_file(llist_t *fopt)
 	}
 }
 
-static int file_action_grep(const char *filename, struct stat *statbuf ATTRIBUTE_UNUSED, void* matched, int depth ATTRIBUTE_UNUSED)
+static int file_action_grep(const char *filename,
+			struct stat *statbuf ATTRIBUTE_UNUSED,
+			void* matched,
+			int depth ATTRIBUTE_UNUSED)
 {
 	FILE *file = fopen(filename, "r");
 	if (file == NULL) {
@@ -405,35 +408,28 @@ int grep_main(int argc, char **argv)
 {
 	FILE *file;
 	int matched;
-	char *mopt;
 	llist_t *fopt = NULL;
 
 	/* do normal option parsing */
 #if ENABLE_FEATURE_GREP_CONTEXT
-	char *slines_after;
-	char *slines_before;
-	char *Copt;
+	int Copt;
 
-	opt_complementary = "H-h:e::f::C-AB";
+	/* -H unsets -h; -C unsets -A,-B; -e,-f are lists;
+	 * -m,-A,-B,-C have numeric param */
+	opt_complementary = "H-h:C-AB:e::f::m+:A+:B+:C+";
 	getopt32(argv,
 		OPTSTR_GREP,
-		&pattern_head, &fopt, &mopt,
-		&slines_after, &slines_before, &Copt);
+		&pattern_head, &fopt, &max_matches,
+		&lines_after, &lines_before, &Copt);
 
 	if (option_mask32 & OPT_C) {
 		/* -C unsets prev -A and -B, but following -A or -B
 		   may override it */
 		if (!(option_mask32 & OPT_A)) /* not overridden */
-			slines_after = Copt;
+			lines_after = Copt;
 		if (!(option_mask32 & OPT_B)) /* not overridden */
-			slines_before = Copt;
-		option_mask32 |= OPT_A|OPT_B; /* for parser */
-	}
-	if (option_mask32 & OPT_A) {
-		lines_after = xatoi_u(slines_after);
-	}
-	if (option_mask32 & OPT_B) {
-		lines_before = xatoi_u(slines_before);
+			lines_before = Copt;
+		//option_mask32 |= OPT_A|OPT_B; /* for parser */
 	}
 	/* sanity checks */
 	if (option_mask32 & (OPT_c|OPT_q|OPT_l|OPT_L)) {
@@ -444,13 +440,11 @@ int grep_main(int argc, char **argv)
 		before_buf = xzalloc(lines_before * sizeof(char *));
 #else
 	/* with auto sanity checks */
-	opt_complementary = "H-h:e::f::c-n:q-n:l-n";
+	/* -H unsets -h; -c,-q or -l unset -n; -e,-f are lists; -m N */
+	opt_complementary = "H-h:c-n:q-n:l-n:e::f::m+";
 	getopt32(argv, OPTSTR_GREP,
-		&pattern_head, &fopt, &mopt);
+		&pattern_head, &fopt, &max_matches);
 #endif
-	if (option_mask32 & OPT_m) {
-		max_matches = xatoi_u(mopt);
-	}
 	invert_search = ((option_mask32 & OPT_v) != 0); /* 0 | 1 */
 
 	if (pattern_head != NULL) {
@@ -481,8 +475,8 @@ int grep_main(int argc, char **argv)
 	argv += optind;
 	argc -= optind;
 
-	/* if we didn't get a pattern from a -e and no command file was specified,
-	 * argv[optind] should be the pattern. no pattern, no worky */
+	/* if we didn't get a pattern from -e and no command file was specified,
+	 * first parameter should be the pattern. no pattern, no worky */
 	if (pattern_head == NULL) {
 		char *pattern;
 		if (*argv == NULL)
@@ -508,7 +502,7 @@ int grep_main(int argc, char **argv)
 	do {
 		cur_file = *argv++;
 		file = stdin;
-		if (!cur_file || (*cur_file == '-' && !cur_file[1])) {
+		if (!cur_file || LONE_DASH(cur_file)) {
 			cur_file = "(standard input)";
 		} else {
 			if (option_mask32 & OPT_r) {

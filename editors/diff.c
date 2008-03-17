@@ -1208,17 +1208,16 @@ int diff_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int diff_main(int argc ATTRIBUTE_UNUSED, char **argv)
 {
 	bool gotstdin = 0;
-	char *U_opt;
 	char *f1, *f2;
 	llist_t *L_arg = NULL;
 
 	INIT_G();
 
-	/* exactly 2 params; collect multiple -L <label> */
-	opt_complementary = "=2:L::";
+	/* exactly 2 params; collect multiple -L <label>; -U N */
+	opt_complementary = "=2:L::U+";
 	getopt32(argv, "abdiL:NqrsS:tTU:wu"
 			"p" /* ignored (for compatibility) */,
-			&L_arg, &start, &U_opt);
+			&L_arg, &start, &context);
 	/*argc -= optind;*/
 	argv += optind;
 	while (L_arg) {
@@ -1233,8 +1232,6 @@ int diff_main(int argc ATTRIBUTE_UNUSED, char **argv)
 		/* we leak L_arg here... */
 		L_arg = L_arg->link;
 	}
-	if (option_mask32 & FLAG_U)
-		context = xatoi_u(U_opt);
 
 	/*
 	 * Do sanity checks, fill in stb1 and stb2 and call the appropriate

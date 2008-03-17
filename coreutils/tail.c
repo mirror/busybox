@@ -87,7 +87,6 @@ int tail_main(int argc, char **argv)
 	bool from_top;
 	int header_threshhold = 1;
 	const char *str_c, *str_n;
-	USE_FEATURE_FANCY_TAIL(const char *str_s;)
 
 	char *tailbuf;
 	size_t tailbufsize;
@@ -110,8 +109,9 @@ int tail_main(int argc, char **argv)
 	}
 #endif
 
+	USE_FEATURE_FANCY_TAIL(opt_complementary = "s+";) /* -s N */
 	opt = getopt32(argv, "fc:n:" USE_FEATURE_FANCY_TAIL("qs:v"),
-			&str_c, &str_n USE_FEATURE_FANCY_TAIL(,&str_s));
+			&str_c, &str_n USE_FEATURE_FANCY_TAIL(,&sleep_period));
 #define FOLLOW (opt & 0x1)
 #define COUNT_BYTES (opt & 0x2)
 	//if (opt & 0x1) // -f
@@ -119,7 +119,6 @@ int tail_main(int argc, char **argv)
 	if (opt & 0x4) count = eat_num(str_n); // -n
 #if ENABLE_FEATURE_FANCY_TAIL
 	if (opt & 0x8) header_threshhold = INT_MAX; // -q
-	if (opt & 0x10) sleep_period = xatou(str_s); // -s
 	if (opt & 0x20) header_threshhold = 0; // -v
 #endif
 	argc -= optind;

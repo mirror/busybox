@@ -16,19 +16,15 @@
 enum { VT_DISALLOCATE = 0x5608 }; /* free memory associated to vt */
 
 int deallocvt_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int deallocvt_main(int argc, char **argv)
+int deallocvt_main(int argc ATTRIBUTE_UNUSED, char **argv)
 {
 	/* num = 0 deallocate all unused consoles */
 	int num = 0;
 
-	switch (argc) {
-	case 2:
+	if (argv[1]) {
+		if (argv[2])
+			bb_show_usage();
 		num = xatou_range(argv[1], 1, 63);
-		/* Fallthrough */
-	case 1:
-		break;
-	default:
-		bb_show_usage();
 	}
 
 	/* double cast suppresses "cast to ptr from int of different size" */

@@ -8,7 +8,7 @@
  */
 
 /*
- * 1999-02-22 Arkadiusz Mi¶kiewicz <misiek@pld.ORG.PL>
+ * 1999-02-22 Arkadiusz Mickiewicz <misiek@pld.ORG.PL>
  * - added Native Language Support
  * 1999-09-01 Stephane Eranian <eranian@cello.hpl.hp.com>
  * - 64bit clean patch
@@ -45,7 +45,7 @@ int readprofile_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int readprofile_main(int argc ATTRIBUTE_UNUSED, char **argv)
 {
 	FILE *map;
-	const char *mapFile, *proFile, *mult = 0;
+	const char *mapFile, *proFile;
 	unsigned long indx = 1;
 	size_t len;
 	uint64_t add0 = 0;
@@ -55,37 +55,49 @@ int readprofile_main(int argc ATTRIBUTE_UNUSED, char **argv)
 	char fn_name[S_LEN], next_name[S_LEN];   /* current and next name */
 	char mapline[S_LEN];
 	char mode[8];
-	int optAll = 0, optInfo = 0, optReset = 0;
-	int optVerbose = 0, optNative = 0;
-	int optBins = 0, optSub = 0;
 	int maplineno = 1;
 	int header_printed;
+	int multiplier = 0;
+	unsigned opt;
+	enum {
+		OPT_M = (1 << 0),
+		OPT_m = (1 << 1),
+		OPT_p = (1 << 2),
+		OPT_n = (1 << 3),
+		OPT_a = (1 << 4),
+		OPT_b = (1 << 5),
+		OPT_s = (1 << 6),
+		OPT_i = (1 << 7),
+		OPT_r = (1 << 8),
+		OPT_v = (1 << 9),
+	};
+#define optMult    (opt & OPT_M)
+#define optNative  (opt & OPT_n)
+#define optAll     (opt & OPT_a)
+#define optBins    (opt & OPT_b)
+#define optSub     (opt & OPT_s)
+#define optInfo    (opt & OPT_i)
+#define optReset   (opt & OPT_r)
+#define optVerbose (opt & OPT_v)
 
 #define next (current^1)
 
 	proFile = defaultpro;
 	mapFile = defaultmap;
 
-	opt_complementary = "nn:aa:bb:ss:ii:rr:vv";
-	getopt32(argv, "M:m:p:nabsirv",
-			&mult, &mapFile, &proFile,
-			&optNative, &optAll, &optBins, &optSub,
-			&optInfo, &optReset, &optVerbose);
+	opt_complementary = "M+"; /* -M N */
+	opt = getopt32(argv, "M:m:p:nabsirv", &multiplier, &mapFile, &proFile);
 
-	if (optReset || mult) {
-		int multiplier, fd, to_write;
+	if (opt & (OPT_M|OPT_r)) { /* mult or reset, or both */
+		int fd, to_write;
 
 		/*
 		 * When writing the multiplier, if the length of the write is
 		 * not sizeof(int), the multiplier is not changed
 		 */
-		if (mult) {
-			multiplier = xatoi_u(mult);
-			to_write = sizeof(int);
-		} else {
-			multiplier = 0;
+		to_write = sizeof(int);
+		if (!optMult)
 			to_write = 1;	/* sth different from sizeof(int) */
-		}
 
 		fd = xopen(defaultpro, O_WRONLY);
 		xwrite(fd, &multiplier, to_write);
@@ -187,8 +199,9 @@ int readprofile_main(int argc ATTRIBUTE_UNUSED, char **argv)
 		if (optBins) {
 			if (optVerbose || this > 0)
 				printf("  total\t\t\t\t%u\n", this);
-		} else if ((this || optAll) &&
-			   (fn_len = next_add-fn_add) != 0) {
+		} else if ((this || optAll)
+		        && (fn_len = next_add-fn_add) != 0
+		) {
 			if (optVerbose)
 				printf("%016llx %-40s %6i %8.4f\n", fn_add,
 				       fn_name, this, this/(double)fn_len);

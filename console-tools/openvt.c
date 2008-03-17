@@ -27,9 +27,10 @@ int openvt_main(int argc, char **argv)
 	/* grab new one */
 	close(0);
 	xopen(vtname, O_RDWR);
-	dup2(0, STDOUT_FILENO);
-	dup2(0, STDERR_FILENO);
+	xdup2(0, STDOUT_FILENO);
+	xdup2(0, STDERR_FILENO);
 
-	BB_EXECVP(argv[2], &argv[2]);
+	argv += 2;
+	BB_EXECVP(argv[0], argv);
 	_exit(1);
 }
