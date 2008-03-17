@@ -201,7 +201,7 @@ struct globals {
 #endif
 	/* a few references only */
 #if ENABLE_FEATURE_VI_USE_SIGNALS
-	jmp_buf restart;        // catch_sig()
+	sigjmp_buf restart;        // catch_sig()
 #endif
 	struct termios term_orig, term_vi;	// remember what the cooked mode was
 #if ENABLE_FEATURE_VI_COLON
@@ -516,7 +516,7 @@ static void edit_file(char *fn)
 	catch_sig(0);
 	signal(SIGWINCH, winch_sig);
 	signal(SIGTSTP, suspend_sig);
-	sig = setjmp(restart);
+	sig = sigsetjmp(restart, 1);
 	if (sig != 0) {
 		screenbegin = dot = text;
 	}
@@ -799,7 +799,6 @@ static void colon(char *buf)
 	else if (strncmp(cmd, "!", 1) == 0) {	// run a cmd
 		int retcode;
 		// :!ls   run the <cmd>
-		alarm(0);		// wait for input- no alarms
 		place_cursor(rows - 1, 0, FALSE);	// go to Status line
 		clear_to_eol();			// clear the line
 		cookmode();
@@ -808,7 +807,6 @@ static void colon(char *buf)
 			printf("\nshell returned %i\n\n", retcode);
 		rawmode();
 		Hit_Return();			// let user see results
-		alarm(3);		// done waiting for input
 	}
 #endif
 	else if (strncmp(cmd, "=", i) == 0) {	// where is the address
@@ -2153,7 +2151,7 @@ static void catch_sig(int sig)
 {
 	signal(SIGINT, catch_sig);
 	if (sig)
-		longjmp(restart, sig);
+		siglongjmp(restart, sig);
 }
 #endif /* FEATURE_VI_USE_SIGNALS */
 
@@ -2217,7 +2215,6 @@ static char readit(void)	// read (maybe cursor) key from stdin
 	};
 	enum { ESCCMDS_COUNT = ARRAY_SIZE(esccmds) };
 
-	alarm(0);	// turn alarm OFF while we wait for input
 	fflush(stdout);
 	n = chars_to_parse;
 	// get input from User- are there already input chars in Q?
@@ -2273,7 +2270,6 @@ static char readit(void)	// read (maybe cursor) key from stdin
 	// remove key sequence from Q
 	chars_to_parse -= n;
 	memmove(readbuffer, readbuffer + n, sizeof(readbuffer) - n);
-	alarm(3);	// we are done waiting for input, turn alarm ON
 	return c;
 }
 
@@ -3054,14 +3050,6 @@ static void do_cmd(char c)
 	case VI_K_PAGEUP:	// Cursor Key Page Up
 		dot_scroll(rows - 2, -1);
 		break;
-#if ENABLE_FEATURE_VI_USE_SIGNALS
-	case 0x03:			// ctrl-C   interrupt
-		longjmp(restart, 1);
-		break;
-	case 26:			// ctrl-Z suspend
-		suspend_sig(SIGTSTP);
-		break;
-#endif
 	case 4:			// ctrl-D  scroll down half screen
 		dot_scroll((rows - 2) / 2, 1);
 		break;
@@ -4037,7 +4025,6 @@ static void crash_test()
 	}
 
 	if (msg[0]) {
-		alarm(0);
 		printf("\n\n%d: \'%c\' %s\n\n\n%s[Hit return to continue]%s",
 			totalcmds, last_input_char, msg, SOs, SOn);
 		fflush(stdout);
@@ -4045,7 +4032,6 @@ static void crash_test()
 			if (d[0] == '\n' || d[0] == '\r')
 				break;
 		}
-		alarm(3);
 	}
 	tim = time(NULL);
 	if (tim >= (oldtim + 3)) {
