@@ -130,8 +130,13 @@
  * tening service socket, and must accept at least one connection request
  * before exiting.  Such a server would normally accept and process incoming
  * connection requests until a timeout.
- *
- * In short: "stream" can be "wait" or "nowait"; "dgram" must be "wait".
+ */
+
+/* Despite of above doc saying that dgram services must use "wait",
+ * "udp nowait" servers are implemented in busyboxed inetd.
+ * IPv6 addresses are also implemented. However, they may look ugly -
+ * ":::service..." means "address '::' (IPv6 wildcard addr)":"service"...
+ * You have to put "tcp6"/"udp6" in protocol field to select IPv6.
  */
 
 /* Here's the scoop concerning the user[:group] feature:
@@ -832,9 +837,6 @@ static NOINLINE servtab_t *parse_one_line(void)
 	if (sep->se_socktype == SOCK_DGRAM) {
 		if (sep->se_proto_no == IPPROTO_TCP)
 			goto parse_err;
-		/* "udp nowait" is a small fork bomb :) */
-		if (!sep->se_wait)
-			goto parse_err;
 	}
 
 	/* check if the hostname specifier is a comma separated list
@@ -1195,7 +1197,7 @@ int inetd_main(int argc, char **argv)
 
 	for (;;) {
 		int ready_fd_cnt;
-		int ctrl, accepted_fd;
+		int ctrl, accepted_fd, new_udp_fd;
 		fd_set readable;
 
 		if (maxsock < 0)
@@ -1220,12 +1222,43 @@ int inetd_main(int argc, char **argv)
 			ready_fd_cnt--;
 			ctrl = sep->se_fd;
 			accepted_fd = -1;
-			if (!sep->se_wait && sep->se_socktype == SOCK_STREAM) {
-				ctrl = accepted_fd = accept(sep->se_fd, NULL, NULL);
-				if (ctrl < 0) {
-					if (errno != EINTR)
-						bb_perror_msg("accept (for %s)", sep->se_service);
-					continue;
+			new_udp_fd = -1;
+			if (!sep->se_wait) {
+				if (sep->se_socktype == SOCK_STREAM) {
+					ctrl = accepted_fd = accept(sep->se_fd, NULL, NULL);
+					if (ctrl < 0) {
+						if (errno != EINTR)
+							bb_perror_msg("accept (for %s)", sep->se_service);
+						continue;
+					}
+				}
+				/* "nowait" udp */
+				if (sep->se_socktype == SOCK_DGRAM
+				 && sep->se_family != AF_UNIX
+				) {
+/* How udp "nowait" works:
+ * child peeks at (received and buffered by kernel) UDP packet,
+ * performs connect() on the socket so that it is linked only
+ * to this peer. But this also affects parent, because descriptors
+ * are shared after fork() a-la dup(). When parent performs
+ * select(), it will see this descriptor connected to the peer (!)
+ * and still readable, will act on it and mess things up
+ * (can create many copies of same child, etc).
+ * Parent must create and use new socket instead. */
+					new_udp_fd = socket(sep->se_family, SOCK_DGRAM, 0);
+					if (new_udp_fd < 0) { /* error: eat packet, forget about it */
+ udp_err:
+						recv(sep->se_fd, line, LINE_SIZE, MSG_DONTWAIT);
+						continue;
+					}
+					setsockopt_reuseaddr(new_udp_fd);
+					/* TODO: better do bind after vfork in parent,
+					 * so that we don't have two wildcard bound sockets
+					 * even for a brief moment? */
+					if (bind(new_udp_fd, &sep->se_lsa->u.sa, sep->se_lsa->len) < 0) {
+						close(new_udp_fd);
+						goto udp_err;
+					}
 				}
 			}
 
@@ -1283,10 +1316,15 @@ int inetd_main(int argc, char **argv)
 
 			if (pid > 0) { /* parent */
 				if (sep->se_wait) {
+					/* tcp wait: we passed listening socket to child,
+					 * will wait for child to terminate */
 					sep->se_wait = pid;
 					remove_fd_from_set(sep->se_fd);
-					/* we passed listening socket to child,
-					 * will wait for child to terminate */
+				}
+				if (new_udp_fd >= 0) {
+					/* udp nowait: child connected the socket,
+					 * we created and will use new, unconnected one */
+					xmove_fd(new_udp_fd, sep->se_fd);
 				}
 				restore_sigmask(&omask);
 				maybe_close(accepted_fd);
@@ -1313,39 +1351,20 @@ int inetd_main(int argc, char **argv)
 #endif
 			/* child */
 			setsid();
-#if 0
-/* This does not work.
- * Actually, it _almost_ works. The idea behind it is: child
- * can peek at (already received and buffered by kernel) UDP packet,
- * and perform connect() on the socket so that it is linked only
- * to this peer. But this also affects parent, because descriptors
- * are shared after fork() a-la dup(). When parent returns to
- * select(), it will see this descriptor attached to the peer (!)
- * and likely still readable, will act on it and mess things up
- * (can create many copies of same child, etc).
- * If child will create new socket instead, then bind() and
- * connect() it to peer's address, descriptor aliasing problem
- * is solved, but first packet cannot be "transferred" to the new
- * socket. It is not a problem if child can account for this,
- * but our child will exec - and exec'ed program does not know
- * about this "lost packet" problem! Pity... */
-			/* "nowait" udp[6]. Hmmm... */
-			if (!sep->se_wait
-			 && sep->se_socktype == SOCK_DGRAM
-			 && sep->se_family != AF_UNIX
-			) {
+			/* "nowait" udp */
+			if (new_udp_fd >= 0) {
 				len_and_sockaddr *lsa = xzalloc_lsa(sep->se_family);
 				/* peek at the packet and remember peer addr */
 				int r = recvfrom(ctrl, NULL, 0, MSG_PEEK|MSG_DONTWAIT,
 					&lsa->u.sa, &lsa->len);
-                    		if (r >= 0)
-					/* make this socket "connected" to peer addr:
-					 * only packets from this peer will be recv'ed,
-					 * and bare write()/send() will work on it */
-					connect(ctrl, &lsa->u.sa, lsa->len);
+                    		if (r < 0)
+					goto do_exit1;
+				/* make this socket "connected" to peer addr:
+				 * only packets from this peer will be recv'ed,
+				 * and bare write()/send() will work on it */
+				connect(ctrl, &lsa->u.sa, lsa->len);
 				free(lsa);
 			}
-#endif
 			/* prepare env and exec program */
 			pwd = getpwnam(sep->se_user);
 			if (pwd == NULL) {

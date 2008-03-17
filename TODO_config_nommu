@@ -1,7 +1,7 @@
 #
 # Automatically generated make config: don't edit
 # Busybox version: 1.10.0.svn
-# Thu Mar  6 20:18:05 2008
+# Sat Mar  8 01:11:42 2008
 #
 CONFIG_HAVE_DOT_CONFIG=y
 
@@ -844,5 +844,5 @@ CONFIG_LPQ=y
 #
 # ipsvd utilities
 #
-# CONFIG_TCPSVD is not set
-# CONFIG_UDPSVD is not set
+CONFIG_TCPSVD=y
+CONFIG_UDPSVD=y

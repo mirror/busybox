@@ -13,12 +13,12 @@
  *
  * Code inside "#ifdef SSLSVD" is for sslsvd and is currently unused.
  *
- * Output of verbose mode matches original (modulo bugs and
- * unimplemented stuff). Unnatural splitting of IP and PORT
- * is retained (personally I prefer one-value "IP:PORT" notation -
- * it is a natural string representation of struct sockaddr_XX).
+ * Busybox version exports TCPLOCALADDR instead of
+ * TCPLOCALIP + TCPLOCALPORT pair. ADDR more closely matches reality
+ * (which is "struct sockaddr_XXX". Port is not a separate entity,
+ * it's just a part of (AF_INET[6]) sockaddr!).
  *
- * TCPORIGDST{IP,PORT} is busybox-specific addition
+ * TCPORIGDSTADDR is Busybox-specific addition.
  *
  * udp server is hacked up by reusing TCP code. It has the following
  * limitation inherent in Unix DGRAM sockets implementation:
@@ -46,6 +46,8 @@ struct globals {
 	unsigned cur_per_host;
 	unsigned cnum;
 	unsigned cmax;
+	char **env_cur;
+	char *env_var[1]; /* actually bigger */
 };
 #define G (*(struct globals*)&bb_common_bufsiz1)
 #define verbose      (G.verbose     )
@@ -53,21 +55,46 @@ struct globals {
 #define cur_per_host (G.cur_per_host)
 #define cnum         (G.cnum        )
 #define cmax         (G.cmax        )
+#define env_cur      (G.env_cur     )
+#define env_var      (G.env_var     )
 #define INIT_G() \
 	do { \
 		cmax = 30; \
+		env_cur = &env_var[0]; \
 	} while (0)
 
 
+/* We have to be careful about leaking memory in repeated setenv's */
+static void xsetenv_plain(const char *n, const char *v)
+{
+	char *var = xasprintf("%s=%s", n, v);
+	*env_cur++ = var;
+	putenv(var);
+}
+
 static void xsetenv_proto(const char *proto, const char *n, const char *v)
 {
-	putenv(xasprintf("%s%s=%s", proto, n, v));
+	char *var = xasprintf("%s%s=%s", proto, n, v);
+	*env_cur++ = var;
+	putenv(var);
+}
+
+static void undo_xsetenv(void)
+{
+	char **pp = env_cur = &env_var[0];
+	while (*pp) {
+		char *var = *pp;
+		*strchrnul(var, '=') = '\0';
+		unsetenv(var);
+		free(var);
+		*pp++ = NULL;
+	}
 }
 
 static void sig_term_handler(int sig)
 {
 	if (verbose)
-		printf("%s: info: sigterm received, exit\n", applet_name);
+		bb_error_msg("got signal %u, exit", sig);
 	kill_myself_with_sig(sig);
 }
 
@@ -85,7 +112,7 @@ static void print_waitstat(unsigned pid, int wstat)
 		cause = "signal";
 		e = WTERMSIG(wstat);
 	}
-	printf("%s: info: end %d %s %d\n", applet_name, pid, cause, e);
+	bb_error_msg("end %d %s %d", pid, cause, e);
 }
 
 /* Must match getopt32 in main! */
@@ -113,7 +140,7 @@ static void connection_status(void)
 {
 	/* "only 1 client max" desn't need this */
 	if (cmax > 1)
-		printf("%s: info: status %u/%u\n", applet_name, cnum, cmax);
+		bb_error_msg("status %u/%u", cnum, cmax);
 }
 
 static void sig_child_handler(int sig)
@@ -145,13 +172,11 @@ int tcpudpsvd_main(int argc, char **argv)
 #ifndef SSLSVD
 	struct bb_uidgid_t ugid;
 #endif
-	bool need_hostnames, need_remote_ip, tcp;
+	bool tcp;
 	uint16_t local_port;
-	char *local_hostname = NULL;
-	char *remote_hostname = (char*)""; /* "" used if no -h */
-	char *local_addr = local_addr; /* gcc */
-	char *remote_addr = remote_addr; /* gcc */
-	char *remote_ip = remote_addr; /* gcc */
+	char *preset_local_hostname = NULL;
+	char *remote_hostname = remote_hostname; /* for compiler */
+	char *remote_addr = remote_addr; /* for compiler */
 	len_and_sockaddr *lsa;
 	len_and_sockaddr local, remote;
 	socklen_t sa_len;
@@ -168,12 +193,12 @@ int tcpudpsvd_main(int argc, char **argv)
 	opt_complementary = "-3:i--i:ph:vv";
 #ifdef SSLSVD
 	getopt32(argv, "+c:C:i:x:u:l:Eb:hpt:vU:/:Z:K:",
-		&str_c, &str_C, &instructs, &instructs, &user, &local_hostname,
+		&str_c, &str_C, &instructs, &instructs, &user, &preset_local_hostname,
 		&str_b, &str_t, &ssluser, &root, &cert, &key, &verbose
 	);
 #else
 	getopt32(argv, "+c:C:i:x:u:l:Eb:hpt:v",
-		&str_c, &str_C, &instructs, &instructs, &user, &local_hostname,
+		&str_c, &str_C, &instructs, &instructs, &user, &preset_local_hostname,
 		&str_b, &str_t, &verbose
 	);
 #endif
@@ -210,26 +235,21 @@ int tcpudpsvd_main(int argc, char **argv)
 	if (!tcp)
 		max_per_host = 0;
 
-	/* stdout is used for logging, don't buffer */
-	setlinebuf(stdout);
 	bb_sanitize_stdio(); /* fd# 0,1,2 must be opened */
-
-	need_hostnames = verbose || !(option_mask32 & OPT_E);
-	need_remote_ip = max_per_host || need_hostnames;
 
 #ifdef SSLSVD
 	sslser = user;
 	client = 0;
 	if ((getuid() == 0) && !(option_mask32 & OPT_u)) {
 		xfunc_exitcode = 100;
-		bb_error_msg_and_die("fatal: -U ssluser must be set when running as root");
+		bb_error_msg_and_die("-U ssluser must be set when running as root");
 	}
 	if (option_mask32 & OPT_u)
 		if (!uidgid_get(&sslugid, ssluser, 1)) {
 			if (errno) {
 				bb_perror_msg_and_die("fatal: cannot get user/group: %s", ssluser);
 			}
-			bb_error_msg_and_die("fatal: unknown user/group '%s'", ssluser);
+			bb_error_msg_and_die("unknown user/group '%s'", ssluser);
 		}
 	if (!cert) cert = "./cert.pem";
 	if (!key) key = cert;
@@ -246,7 +266,7 @@ int tcpudpsvd_main(int argc, char **argv)
 
 	sig_block(SIGCHLD);
 	signal(SIGCHLD, sig_child_handler);
-	signal(SIGTERM, sig_term_handler);
+	bb_signals(BB_SIGS_FATAL, sig_term_handler);
 	signal(SIGPIPE, SIG_IGN);
 
 	if (max_per_host)
@@ -254,6 +274,8 @@ int tcpudpsvd_main(int argc, char **argv)
 
 	local_port = bb_lookup_port(argv[1], tcp ? "tcp" : "udp", 0);
 	lsa = xhost2sockaddr(argv[0], local_port);
+	argv += 2;
+
 	sock = xsocket(lsa->u.sa.sa_family, tcp ? SOCK_STREAM : SOCK_DGRAM, 0);
 	setsockopt_reuseaddr(sock);
 	sa_len = lsa->len; /* I presume sockaddr len stays the same */
@@ -274,14 +296,13 @@ int tcpudpsvd_main(int argc, char **argv)
 
 	if (verbose) {
 		char *addr = xmalloc_sockaddr2dotted(&lsa->u.sa);
-		printf("%s: info: listening on %s", applet_name, addr);
+		bb_error_msg("listening on %s, starting", addr);
 		free(addr);
 #ifndef SSLSVD
 		if (option_mask32 & OPT_u)
 			printf(", uid %u, gid %u",
 				(unsigned)ugid.uid, (unsigned)ugid.gid);
 #endif
-		puts(", starting");
 	}
 
 	/* Main accept() loop */
@@ -297,14 +318,15 @@ int tcpudpsvd_main(int argc, char **argv)
 	close(0);
  again2:
 	sig_unblock(SIGCHLD);
+	local.len = remote.len = sa_len;
 	if (tcp) {
-		remote.len = sa_len;
 		conn = accept(sock, &remote.u.sa, &remote.len);
 	} else {
 		/* In case recv_from_to won't be able to recover local addr.
 		 * Also sets port - recv_from_to is unable to do it. */
 		local = *lsa;
-		conn = recv_from_to(sock, NULL, 0, MSG_PEEK, &remote.u.sa, &local.u.sa, sa_len);
+		conn = recv_from_to(sock, NULL, 0, MSG_DONTWAIT | MSG_PEEK,
+				&remote.u.sa, &local.u.sa, sa_len);
 	}
 	sig_block(SIGCHLD);
 	if (conn < 0) {
@@ -317,19 +339,19 @@ int tcpudpsvd_main(int argc, char **argv)
 	if (max_per_host) {
 		/* Drop connection immediately if cur_per_host > max_per_host
 		 * (minimizing load under SYN flood) */
-		remote_ip = xmalloc_sockaddr2dotted_noport(&remote.u.sa);
-		cur_per_host = ipsvd_perhost_add(remote_ip, max_per_host, &hccp);
+		remote_addr = xmalloc_sockaddr2dotted_noport(&remote.u.sa);
+		cur_per_host = ipsvd_perhost_add(remote_addr, max_per_host, &hccp);
 		if (cur_per_host > max_per_host) {
 			/* ipsvd_perhost_add detected that max is exceeded
 			 * (and did not store ip in connection table) */
-			free(remote_ip);
+			free(remote_addr);
 			if (msg_per_host) {
 				/* don't block or test for errors */
-				ndelay_on(0);
-				write(0, msg_per_host, len_per_host);
+				send(0, msg_per_host, len_per_host, MSG_DONTWAIT);
 			}
 			goto again1;
 		}
+		/* NB: remote_addr is not leaked, it is stored in conn table */
 	}
 
 	if (!tcp) {
@@ -372,19 +394,21 @@ int tcpudpsvd_main(int argc, char **argv)
 #endif
 	}
 
-	pid = fork();
+	pid = vfork();
 	if (pid == -1) {
-		bb_perror_msg("fork");
+		bb_perror_msg("vfork");
 		goto again;
 	}
 
 	if (pid != 0) {
-		/* parent */
+		/* Parent */
 		cnum++;
 		if (verbose)
 			connection_status();
 		if (hccp)
 			hccp->pid = pid;
+		/* clean up changes done by vforked child */
+		undo_xsetenv();
 		goto again;
 	}
 
@@ -394,78 +418,93 @@ int tcpudpsvd_main(int argc, char **argv)
 	if (tcp)
 		close(sock);
 
-	if (need_remote_ip)
-		remote_addr = xmalloc_sockaddr2dotted(&remote.u.sa);
+	{ /* vfork alert! every xmalloc in this block should be freed! */
+		char *local_hostname = local_hostname; /* for compiler */
+		char *local_addr = NULL;
+		char *free_me0 = NULL;
+		char *free_me1 = NULL;
+		char *free_me2 = NULL;
 
-	if (need_hostnames) {
-		if (option_mask32 & OPT_h) {
-			remote_hostname = xmalloc_sockaddr2host_noport(&remote.u.sa);
-			if (!remote_hostname) {
-				bb_error_msg("warning: cannot look up hostname for %s", remote_addr);
-				remote_hostname = (char*)"";
+		if (verbose || !(option_mask32 & OPT_E)) {
+			if (!max_per_host) /* remote_addr is not yet known */
+				free_me0 = remote_addr = xmalloc_sockaddr2dotted(&remote.u.sa);
+			if (option_mask32 & OPT_h) {
+				free_me1 = remote_hostname = xmalloc_sockaddr2host_noport(&remote.u.sa);
+				if (!remote_hostname) {
+					bb_error_msg("cannot look up hostname for %s", remote_addr);
+					remote_hostname = remote_addr;
+				}
+			}
+			/* Find out local IP peer connected to.
+			 * Errors ignored (I'm not paranoid enough to imagine kernel
+			 * which doesn't know local IP). */
+			if (tcp)
+				getsockname(0, &local.u.sa, &local.len);
+			/* else: for UDP it is done earlier by parent */
+			local_addr = xmalloc_sockaddr2dotted(&local.u.sa);
+			if (option_mask32 & OPT_h) {
+				local_hostname = preset_local_hostname;
+				if (!local_hostname) {
+					free_me2 = local_hostname = xmalloc_sockaddr2host_noport(&local.u.sa);
+					if (!local_hostname)
+						bb_error_msg_and_die("cannot look up hostname for %s", local_addr);
+				}
+				/* else: local_hostname is not NULL, but is NOT malloced! */
 			}
 		}
-		/* Find out local IP peer connected to.
-		 * Errors ignored (I'm not paranoid enough to imagine kernel
-		 * which doesn't know local IP). */
-		if (tcp) {
-			local.len = sa_len;
-			getsockname(0, &local.u.sa, &local.len);
+		if (verbose) {
+			pid = getpid();
+			if (max_per_host) {
+				bb_error_msg("concurrency %s %u/%u",
+					remote_addr,
+					cur_per_host, max_per_host);
+			}
+			bb_error_msg((option_mask32 & OPT_h)
+				? "start %u %s-%s (%s-%s)"
+				: "start %u %s-%s",
+				pid,
+				local_addr, remote_addr,
+				local_hostname, remote_hostname);
 		}
-		local_addr = xmalloc_sockaddr2dotted(&local.u.sa);
-		if (!local_hostname) {
-			local_hostname = xmalloc_sockaddr2host_noport(&local.u.sa);
-			if (!local_hostname)
-				bb_error_msg_and_die("warning: cannot look up hostname for %s"+9, local_addr);
+
+		if (!(option_mask32 & OPT_E)) {
+			/* setup ucspi env */
+			const char *proto = tcp ? "TCP" : "UDP";
+
+			/* Extract "original" destination addr:port
+			 * from Linux firewall. Useful when you redirect
+			 * an outbond connection to local handler, and it needs
+			 * to know where it originally tried to connect */
+			if (tcp && getsockopt(0, SOL_IP, SO_ORIGINAL_DST, &local.u.sa, &local.len) == 0) {
+				char *addr = xmalloc_sockaddr2dotted(&local.u.sa);
+				xsetenv_plain("TCPORIGDSTADDR", addr);
+				free(addr);
+			}
+			xsetenv_plain("PROTO", proto);
+			xsetenv_proto(proto, "LOCALADDR", local_addr);
+			xsetenv_proto(proto, "REMOTEADDR", remote_addr);
+			if (option_mask32 & OPT_h) {
+				xsetenv_proto(proto, "LOCALHOST", local_hostname);
+				xsetenv_proto(proto, "REMOTEHOST", remote_hostname);
+			}
+			//compat? xsetenv_proto(proto, "REMOTEINFO", "");
+			/* additional */
+			if (cur_per_host > 0) /* can not be true for udp */
+				xsetenv_plain("TCPCONCURRENCY", utoa(cur_per_host));
 		}
+		free(local_addr);
+		free(free_me0);
+		free(free_me1);
+		free(free_me2);
 	}
 
-	if (verbose) {
-		pid = getpid();
-		printf("%s: info: pid %u from %s\n", applet_name, pid, remote_addr);
-		if (max_per_host)
-			printf("%s: info: concurrency %u %s %u/%u\n",
-				applet_name, pid, remote_ip, cur_per_host, max_per_host);
-		printf("%s: info: start %u %s:%s :%s:%s\n",
-			applet_name, pid,
-			local_hostname, local_addr,
-			remote_hostname, remote_addr);
-	}
-
-	if (!(option_mask32 & OPT_E)) {
-		/* setup ucspi env */
-		const char *proto = tcp ? "TCP" : "UDP";
-
-		/* Extract "original" destination addr:port
-		 * from Linux firewall. Useful when you redirect
-		 * an outbond connection to local handler, and it needs
-		 * to know where it originally tried to connect */
-		if (tcp && getsockopt(0, SOL_IP, SO_ORIGINAL_DST, &lsa->u.sa, &lsa->len) == 0) {
-			char *addr = xmalloc_sockaddr2dotted(&lsa->u.sa);
-			xsetenv("TCPORIGDSTADDR", addr);
-			free(addr);
-		}
-		xsetenv("PROTO", proto);
-		xsetenv_proto(proto, "LOCALADDR", local_addr);
-		xsetenv_proto(proto, "LOCALHOST", local_hostname);
-		xsetenv_proto(proto, "REMOTEADDR", remote_addr);
-		if (option_mask32 & OPT_h) {
-			xsetenv_proto(proto, "REMOTEHOST", remote_hostname);
-		}
-		xsetenv_proto(proto, "REMOTEINFO", "");
-		/* additional */
-		if (cur_per_host > 0) /* can not be true for udp */
-			xsetenv("TCPCONCURRENCY", utoa(cur_per_host));
-	}
-
-	dup2(0, 1);
+	xdup2(0, 1);
 
 	signal(SIGTERM, SIG_DFL);
 	signal(SIGPIPE, SIG_DFL);
 	signal(SIGCHLD, SIG_DFL);
 	sig_unblock(SIGCHLD);
 
-	argv += 2;
 #ifdef SSLSVD
 	strcpy(id, utoa(pid));
 	ssl_io(0, argv);
