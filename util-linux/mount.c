@@ -56,9 +56,9 @@ static struct mntent *getmntent_r(FILE* stream, struct mntent* result, char* buf
 
 // Not real flags, but we want to be able to check for this.
 enum {
-	MOUNT_USERS  = (1<<28)*ENABLE_DESKTOP,
-	MOUNT_NOAUTO = (1<<29),
-	MOUNT_SWAP   = (1<<30),
+	MOUNT_USERS  = (1 << 28) * ENABLE_DESKTOP,
+	MOUNT_NOAUTO = (1 << 29),
+	MOUNT_SWAP   = (1 << 30),
 };
 
 
@@ -238,8 +238,7 @@ static int verbose_mount(const char *source, const char *target,
 	errno = 0;
 	rc = mount(source, target, filesystemtype, mountflags, data);
 	if (verbose >= 2)
-		bb_perror_msg("would do mount('%s','%s','%s',0x%08lx,'%s'):%d"
-				+ (sizeof("would do ")-1),
+		bb_perror_msg("mount('%s','%s','%s',0x%08lx,'%s'):%d",
 			source, target, filesystemtype,
 			mountflags, (char*)data, rc);
 	return rc;
@@ -407,7 +406,7 @@ static int mount_it_now(struct mntent *mp, long vfsflags, char *filteropts)
 		if (ENABLE_FEATURE_MOUNT_HELPERS && rc) {
 			char *args[6];
 			int errno_save = errno;
-			args[0] = mp->mnt_type;
+			args[0] = xasprintf("mount.%s", mp->mnt_type);
 			rc = 1;
 			if (filteropts) {
 				args[rc++] = (char *)"-o";
@@ -417,6 +416,7 @@ static int mount_it_now(struct mntent *mp, long vfsflags, char *filteropts)
 			args[rc++] = mp->mnt_dir;
 			args[rc] = NULL;
 			rc = wait4pid(spawn(args));
+			free(args[0]);
 			if (!rc)
 				break;
 			errno = errno_save;
@@ -1556,8 +1556,8 @@ static int singlemount(struct mntent *mp, int ignore_busy)
 
 	// Treat fstype "auto" as unspecified.
 
-	if (mp->mnt_type && strcmp(mp->mnt_type,"auto") == 0)
-		mp->mnt_type = 0;
+	if (mp->mnt_type && strcmp(mp->mnt_type, "auto") == 0)
+		mp->mnt_type = NULL;
 
 	// Might this be a virtual filesystem?
 
@@ -1566,6 +1566,8 @@ static int singlemount(struct mntent *mp, int ignore_busy)
 	) {
 		char *s, *p, *args[35];
 		int n = 0;
+// FIXME: does it allow execution of arbitrary commands?!
+// What args[0] can end up with?
 		for (s = p = mp->mnt_fsname; *s && n < 35-3; ++s) {
 			if (s[0] == '#' && s[1] != '#') {
 				*s = '\0';
@@ -1583,9 +1585,9 @@ static int singlemount(struct mntent *mp, int ignore_busy)
 	// Might this be an CIFS filesystem?
 
 	if (ENABLE_FEATURE_MOUNT_CIFS
-	 && (!mp->mnt_type || strcmp(mp->mnt_type,"cifs") == 0)
-	 && (mp->mnt_fsname[0]=='/' || mp->mnt_fsname[0]=='\\')
-	 && mp->mnt_fsname[0]==mp->mnt_fsname[1]
+	 && (!mp->mnt_type || strcmp(mp->mnt_type, "cifs") == 0)
+	 && (mp->mnt_fsname[0] == '/' || mp->mnt_fsname[0] == '\\')
+	 && mp->mnt_fsname[0] == mp->mnt_fsname[1]
 	) {
 		len_and_sockaddr *lsa;
 		char *ip, *dotted;
@@ -1725,7 +1727,9 @@ int mount_main(int argc, char **argv)
 {
 	enum { OPT_ALL = 0x10 };
 
-	char *cmdopts = xstrdup(""), *fstype=0, *storage_path=0;
+	char *cmdopts = xstrdup("");
+	char *fstype = NULL;
+	char *storage_path = NULL;
 	char *opt_o;
 	const char *fstabname;
 	FILE *fstab;
@@ -1744,7 +1748,7 @@ int mount_main(int argc, char **argv)
 			append_mount_options(&cmdopts, argv[i]+2);
 		} else argv[j++] = argv[i];
 	}
-	argv[j] = 0;
+	argv[j] = NULL;
 	argc = j;
 
 	// Parse remaining options
@@ -1895,12 +1899,13 @@ int mount_main(int argc, char **argv)
 
 		} else {
 			// Do we need to match a filesystem type?
-			if (fstype && match_fstype(mtcur, fstype)) continue;
+			if (fstype && match_fstype(mtcur, fstype))
+				continue;
 
 			// Skip noauto and swap anyway.
 
-			if (parse_mount_options(mtcur->mnt_opts, 0)
-				& (MOUNT_NOAUTO | MOUNT_SWAP)) continue;
+			if (parse_mount_options(mtcur->mnt_opts, 0) & (MOUNT_NOAUTO | MOUNT_SWAP))
+				continue;
 
 			// No, mount -a won't mount anything,
 			// even user mounts, for mere humans.
@@ -1909,9 +1914,8 @@ int mount_main(int argc, char **argv)
 				bb_error_msg_and_die(must_be_root);
 
 			// Mount this thing.
-			if (ENABLE_FEATURE_MOUNT_LABEL) {
+			if (ENABLE_FEATURE_MOUNT_LABEL)
 				resolve_mount_spec(&mtpair->mnt_fsname);
-			}
 
 			// NFS mounts want this to be xrealloc-able
 			mtcur->mnt_opts = xstrdup(mtcur->mnt_opts);
