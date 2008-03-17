@@ -281,6 +281,8 @@ Special characters:
 
 /* Code here assumes that 'unsigned' is at least 32 bits wide */
 
+const char *const bb_argv_dash[] = { "-", NULL };
+
 const char *opt_complementary;
 
 enum {

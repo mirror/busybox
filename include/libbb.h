@@ -333,6 +333,7 @@ int xopen(const char *pathname, int flags);
 int xopen3(const char *pathname, int flags, int mode);
 int open_or_warn(const char *pathname, int flags);
 int open3_or_warn(const char *pathname, int flags, int mode);
+int open_or_warn_stdin(const char *pathname);
 void xrename(const char *oldpath, const char *newpath);
 int rename_or_warn(const char *oldpath, const char *newpath);
 off_t xlseek(int fd, off_t offset, int whence);
@@ -559,6 +560,7 @@ extern FILE *xfopen(const char *filename, const char *mode);
 /* Prints warning to stderr and returns NULL on failure: */
 extern FILE *fopen_or_warn(const char *filename, const char *mode);
 /* "Opens" stdin if filename is special, else just opens file: */
+extern FILE *xfopen_stdin(const char *filename);
 extern FILE *fopen_or_warn_stdin(const char *filename);
 
 int bb_pstrcmp(const void *a, const void *b);
@@ -741,6 +743,7 @@ void bb_sanitize_stdio(void);
 int sanitize_env_if_suid(void);
 
 
+extern const char *const bb_argv_dash[]; /* "-", NULL */
 extern const char *opt_complementary;
 #if ENABLE_GETOPT_LONG
 #define No_argument "\0"

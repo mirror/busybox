@@ -22,7 +22,7 @@
 
 struct lstring {
 	int size;
-	char buf[];
+	char buf[1];
 };
 
 int tac_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
@@ -34,7 +34,21 @@ int tac_main(int argc ATTRIBUTE_UNUSED, char **argv)
 	llist_t *list = NULL;
 	int retval = EXIT_SUCCESS;
 
+#if ENABLE_DESKTOP
+/* tac from coreutils 6.9 supports:
+       -b, --before
+              attach the separator before instead of after
+       -r, --regex
+              interpret the separator as a regular expression
+       -s, --separator=STRING
+              use STRING as the separator instead of newline
+We support none, but at least we will complain or handle "--":
+*/
+	getopt32(argv, "");
+	argv += optind;
+#else
 	argv++;
+#endif
 	if (!*argv)
 		*--argv = (char *)"-";
 	/* We will read from last file to first */
@@ -48,6 +62,7 @@ int tac_main(int argc ATTRIBUTE_UNUSED, char **argv)
 		name--;
 		f = fopen_or_warn_stdin(*name);
 		if (f == NULL) {
+			/* error message is printed by fopen_or_warn_stdin */
 			retval = EXIT_FAILURE;
 			continue;
 		}
@@ -61,7 +76,7 @@ int tac_main(int argc ATTRIBUTE_UNUSED, char **argv)
 					line = xrealloc(line, i + 0x7f + sizeof(int) + 1);
 				line->buf[i++] = ch;
 			}
-			if ((ch == '\n' || ch == EOF) && i) {
+			if (ch == '\n' || (ch == EOF && i != 0)) {
 				line = xrealloc(line, i + sizeof(int));
 				line->size = i;
 				llist_add_to(&list, line);
@@ -69,9 +84,8 @@ int tac_main(int argc ATTRIBUTE_UNUSED, char **argv)
 				i = 0;
 			}
 		} while (ch != EOF);
-		/* fgetc sets errno to ENOENT on EOF, but     */
-		/* fopen_or_warn_stdin would catch this error */
-		/* so we can filter it out here.              */
+		/* fgetc sets errno to ENOENT on EOF, we don't want
+		 * to warn on this non-error! */
 		if (errno && errno != ENOENT) {
 			bb_simple_perror_msg(*name);
 			retval = EXIT_FAILURE;

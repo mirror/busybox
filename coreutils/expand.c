@@ -154,7 +154,7 @@ int expand_main(int argc ATTRIBUTE_UNUSED, char **argv)
 	if (ENABLE_EXPAND && (!ENABLE_UNEXPAND || applet_name[0] == 'e')) {
 		USE_FEATURE_EXPAND_LONG_OPTIONS(applet_long_options = expand_longopts);
 		opt = getopt32(argv, "it:", &opt_t);
-	} else if (ENABLE_UNEXPAND) {
+	} else {
 		USE_FEATURE_UNEXPAND_LONG_OPTIONS(applet_long_options = unexpand_longopts);
 		/* -t NUM sets also -a */
 		opt_complementary = "ta";
@@ -166,32 +166,23 @@ int expand_main(int argc ATTRIBUTE_UNUSED, char **argv)
 
 	argv += optind;
 
-	/* If no args are given, read from stdin */
 	if (!*argv) {
 		*--argv = (char*)bb_msg_standard_input;
-		goto use_stdin;
 	}
-
 	do {
-		if (NOT_LONE_CHAR(*argv, '-')) {
-			file = fopen_or_warn(*argv, "r");
-			if (!file) {
-				exit_status = EXIT_FAILURE;
-				continue;
-			}
-		} else {
- use_stdin:
-			file = stdin;
+		file = fopen_or_warn_stdin(*argv);
+		if (!file) {
+			exit_status = EXIT_FAILURE;
+			continue;
 		}
 
 		if (ENABLE_EXPAND && (!ENABLE_UNEXPAND || applet_name[0] == 'e'))
 			USE_EXPAND(expand(file, tab_size, opt));
-		else if (ENABLE_UNEXPAND)
+		else
 			USE_UNEXPAND(unexpand(file, tab_size, opt));
 
 		/* Check and close the file */
-		/* We do want all of them to execute, thus | instead of || */
-		if (ferror(file) | fclose_if_not_stdin(file)) {
+		if (fclose_if_not_stdin(file)) {
 			bb_simple_perror_msg(*argv);
 			exit_status = EXIT_FAILURE;
 		}

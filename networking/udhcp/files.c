@@ -377,7 +377,7 @@ void write_leases(void)
 	time_t curr = time(0);
 	unsigned long tmp_time;
 
-	fp = open3_or_warn(server_config.lease_file, O_WRONLY|O_CREAT|O_TRUNC, 0666);
+	fp = open_or_warn(server_config.lease_file, O_WRONLY|O_CREAT|O_TRUNC);
 	if (fp < 0) {
 		return;
 	}

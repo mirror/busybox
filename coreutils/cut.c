@@ -205,7 +205,7 @@ int cut_main(int argc ATTRIBUTE_UNUSED, char **argv)
 		char *ntok;
 		int s = 0, e = 0;
 
-		/* take apart the lists, one by one (they are separated with commas */
+		/* take apart the lists, one by one (they are separated with commas) */
 		while ((ltok = strsep(&sopt, ",")) != NULL) {
 
 			/* it's actually legal to pass an empty list */
@@ -258,25 +258,18 @@ int cut_main(int argc ATTRIBUTE_UNUSED, char **argv)
 
 	{
 		int retval = EXIT_SUCCESS;
-		FILE *file = stdin;
 
-		if (!*argv) {
-			argv--;
-			goto jump_in;
-		}
+		if (!*argv)
+			*--argv = (char *)"-";
 
 		do {
-			file = stdin;
-			if (NOT_LONE_DASH(*argv))
-				file = fopen_or_warn(*argv, "r");
+			FILE *file = fopen_or_warn_stdin(*argv);
 			if (!file) {
 				retval = EXIT_FAILURE;
 				continue;
 			}
- jump_in:
 			cut_file(file, delim);
-			if (NOT_LONE_DASH(*argv))
-				fclose(file);
+			fclose_if_not_stdin(file);
 		} while (*++argv);
 
 		if (ENABLE_FEATURE_CLEAN_UP)

@@ -102,10 +102,8 @@ int lsattr_main(int argc ATTRIBUTE_UNUSED, char **argv)
 	argv += optind;
 
 	if (!*argv)
-		lsattr_args(".");
-	else {
-		do lsattr_args(*argv++); while (*argv);
-	}
+		*--argv = (char*)".";
+	do lsattr_args(*argv++); while (*argv);
 
 	return EXIT_SUCCESS;
 }

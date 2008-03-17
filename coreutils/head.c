@@ -91,19 +91,19 @@ int head_main(int argc, char **argv)
 		}
 	}
 
+	argc -= optind;
 	argv += optind;
-	if (!*argv) {
+	if (!*argv)
 		*--argv = (char*)"-";
-	}
 
 	fmt = header_fmt_str + 1;
 #if ENABLE_FEATURE_FANCY_HEAD
-	if (argc - optind <= header_threshhold) {
+	if (argc <= header_threshhold) {
 		header_threshhold = 0;
 	}
 #else
-	if (argc <= optind + 1) {
-		fmt += 11;
+	if (argc <= 1) {
+		fmt += 11; /* "" */
 	}
 	/* Now define some things here to avoid #ifdefs in the code below.
 	 * These should optimize out of the if conditions below. */

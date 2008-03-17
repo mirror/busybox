@@ -101,16 +101,12 @@ int tail_main(int argc, char **argv)
 
 #if ENABLE_INCLUDE_SUSv2 || ENABLE_FEATURE_FANCY_TAIL
 	/* Allow legacy syntax of an initial numeric option without -n. */
-	if (argc >= 2 && (argv[1][0] == '+' || argv[1][0] == '-')
+	if (argv[1] && (argv[1][0] == '+' || argv[1][0] == '-')
 	 && isdigit(argv[1][1])
 	) {
-		/* replacing arg[0] with "-n" can segfault, so... */
-		argv[1] = xasprintf("-n%s", argv[1]);
-#if 0 /* If we ever decide to make tail NOFORK */
-		char *s = alloca(strlen(argv[1]) + 3);
-		sprintf(s, "-n%s", argv[1]);
-		argv[1] = s;
-#endif
+		count = eat_num(&argv[1][1]);
+		argv++;
+		argc--;
 	}
 #endif
 
@@ -133,8 +129,7 @@ int tail_main(int argc, char **argv)
 
 	/* open all the files */
 	fds = xmalloc(sizeof(int) * (argc + 1));
-	nfiles = i = 0;
-	if (argc == 0) {
+	if (!argv[0]) {
 		struct stat statbuf;
 
 		if (!fstat(STDIN_FILENO, &statbuf) && S_ISFIFO(statbuf.st_mode)) {
@@ -142,13 +137,14 @@ int tail_main(int argc, char **argv)
 		}
 		*argv = (char *) bb_msg_standard_input;
 	}
+	nfiles = i = 0;
 	do {
-		FILE* fil = fopen_or_warn_stdin(argv[i]);
-		if (!fil) {
+		int fd = open_or_warn_stdin(argv[i]);
+		if (fd < 0) {
 			G.status = EXIT_FAILURE;
 			continue;
 		}
-		fds[nfiles] = fileno(fil);
+		fds[nfiles] = fd;
 		argv[nfiles++] = argv[i];
 	} while (++i < argc);
 

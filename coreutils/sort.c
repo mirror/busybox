@@ -351,10 +351,13 @@ int sort_main(int argc ATTRIBUTE_UNUSED, char **argv)
 	if (option_mask32 & FLAG_b) option_mask32 |= FLAG_bb;
 
 	/* Open input files and read data */
-	for (i = argv[optind] ? optind : optind-1; argv[i]; i++) {
-		fp = stdin;
-		if (i >= optind && NOT_LONE_DASH(argv[i]))
-			fp = xfopen(argv[i], "r");
+	argv += optind;
+	if (!*argv)
+		*--argv = (char*)"-";
+	do {
+		/* coreutils 6.9 compat: abort on first open error,
+		 * do not continue to next file: */
+		fp = xfopen_stdin(*argv);
 		for (;;) {
 			line = GET_LINE(fp);
 			if (!line) break;
@@ -362,8 +365,9 @@ int sort_main(int argc ATTRIBUTE_UNUSED, char **argv)
 				lines = xrealloc(lines, sizeof(char *) * (linecount + 64));
 			lines[linecount++] = line;
 		}
-		fclose(fp);
-	}
+		fclose_if_not_stdin(fp);
+	} while (*++argv);
+
 #if ENABLE_FEATURE_SORT_BIG
 	/* if no key, perform alphabetic sort */
 	if (!key_list)

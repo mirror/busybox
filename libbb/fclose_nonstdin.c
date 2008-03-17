@@ -16,8 +16,10 @@
 
 int fclose_if_not_stdin(FILE *f)
 {
-	if (f != stdin) {
-		return fclose(f);
-	}
-	return 0;
+	/* Some more paranoid applets want ferror() check too */
+	int r = ferror(f); /* NB: does NOT set errno! */
+	if (r) errno = EIO; /* so we'll help it */
+	if (f != stdin)
+		return (r | fclose(f)); /* fclose does set errno on error */
+	return r;
 }

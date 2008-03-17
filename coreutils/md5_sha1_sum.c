@@ -36,12 +36,9 @@ static uint8_t *hash_file(const char *filename, hash_algo_t hash_algo)
 	void (*update)(const void*, size_t, void*);
 	void (*final)(void*, void*);
 
-	src_fd = STDIN_FILENO;
-	if (NOT_LONE_DASH(filename)) {
-		src_fd = open_or_warn(filename, O_RDONLY);
-		if (src_fd < 0) {
-			return NULL;
-		}
+	src_fd = open_or_warn_stdin(filename);
+	if (src_fd < 0) {
+		return NULL;
 	}
 
 	/* figure specific hash algorithims */
@@ -78,7 +75,7 @@ static uint8_t *hash_file(const char *filename, hash_algo_t hash_algo)
 }
 
 int md5_sha1_sum_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int md5_sha1_sum_main(int argc, char **argv)
+int md5_sha1_sum_main(int argc ATTRIBUTE_UNUSED, char **argv)
 {
 	int return_value = EXIT_SUCCESS;
 	uint8_t *hash_value;
@@ -90,6 +87,10 @@ int md5_sha1_sum_main(int argc, char **argv)
 	if (ENABLE_FEATURE_MD5_SHA1_SUM_CHECK)
 		flags = getopt32(argv, "scw");
 	else optind = 1;
+	argv += optind;
+	//argc -= optind;
+	if (!*argv)
+		*--argv = (char*)"-";
 
 	if (ENABLE_FEATURE_MD5_SHA1_SUM_CHECK && !(flags & FLAG_CHECK)) {
 		if (flags & FLAG_SILENT) {
@@ -101,26 +102,18 @@ int md5_sha1_sum_main(int argc, char **argv)
 		}
 	}
 
-	if (argc == optind) {
-		argv[argc++] = (char*)"-";
-	}
-
 	if (ENABLE_FEATURE_MD5_SHA1_SUM_CHECK && (flags & FLAG_CHECK)) {
 		FILE *pre_computed_stream;
 		int count_total = 0;
 		int count_failed = 0;
-		char *file_ptr = argv[optind];
 		char *line;
 
-		if (optind + 1 != argc) {
+		if (argv[1]) {
 			bb_error_msg_and_die
 				("only one argument may be specified when using -c");
 		}
 
-		pre_computed_stream = stdin;
-		if (NOT_LONE_DASH(file_ptr)) {
-			pre_computed_stream = xfopen(file_ptr, "r");
-		}
+		pre_computed_stream = xfopen_stdin(argv[0]);
 
 		while ((line = xmalloc_getline(pre_computed_stream)) != NULL) {
 			char *filename_ptr;
@@ -168,17 +161,15 @@ int md5_sha1_sum_main(int argc, char **argv)
 		}
 		*/
 	} else {
-		while (optind < argc) {
-			char *file_ptr = argv[optind++];
-
-			hash_value = hash_file(file_ptr, hash_algo);
+		do {
+			hash_value = hash_file(*argv, hash_algo);
 			if (hash_value == NULL) {
 				return_value = EXIT_FAILURE;
 			} else {
-				printf("%s  %s\n", hash_value, file_ptr);
+				printf("%s  %s\n", hash_value, *argv);
 				free(hash_value);
 			}
-		}
+		} while (*++argv);
 	}
 	return return_value;
 }

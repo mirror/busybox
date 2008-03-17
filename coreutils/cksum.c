@@ -9,46 +9,48 @@
 #include "libbb.h"
 
 int cksum_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int cksum_main(int argc, char **argv)
+int cksum_main(int argc ATTRIBUTE_UNUSED, char **argv)
 {
 	uint32_t *crc32_table = crc32_filltable(NULL, 1);
-
-	FILE *fp;
 	uint32_t crc;
 	long length, filesize;
 	int bytes_read;
-	char *cp;
+	uint8_t *cp;
 
-	int inp_stdin = (argc == optind) ? 1 : 0;
+#if ENABLE_DESKTOP
+	getopt32(argv, ""); /* coreutils 6.9 compat */
+	argv += optind;
+#else
+	argv++;
+#endif
 
 	do {
-		fp = fopen_or_warn_stdin((inp_stdin) ? bb_msg_standard_input : *++argv);
+		int fd = open_or_warn_stdin(*argv ? *argv : bb_msg_standard_input);
 
+		if (fd < 0)
+			continue;
 		crc = 0;
 		length = 0;
 
 #define read_buf bb_common_bufsiz1
-		while ((bytes_read = fread(read_buf, 1, BUFSIZ, fp)) > 0) {
+		while ((bytes_read = safe_read(fd, read_buf, sizeof(read_buf))) > 0) {
 			cp = read_buf;
 			length += bytes_read;
-			while (bytes_read--)
-				crc = (crc << 8) ^ crc32_table[((crc >> 24) ^ (*cp++)) & 0xffL];
+			do {
+				crc = (crc << 8) ^ crc32_table[(crc >> 24) ^ *cp++];
+			} while (--bytes_read);
 		}
+		close(fd);
 
 		filesize = length;
 
 		for (; length; length >>= 8)
-			crc = (crc << 8) ^ crc32_table[((crc >> 24) ^ length) & 0xffL];
+			crc = (crc << 8) ^ crc32_table[((crc >> 24) ^ length) & 0xff];
 		crc ^= 0xffffffffL;
 
-		if (inp_stdin) {
-			printf("%" PRIu32 " %li\n", crc, filesize);
-			break;
-		}
-
-		printf("%" PRIu32 " %li %s\n", crc, filesize, *argv);
-		fclose(fp);
-	} while (*(argv + 1));
+		printf((*argv ? "%" PRIu32 " %li %s\n" : "%" PRIu32 " %li\n"),
+				crc, filesize, *argv);
+	} while (*argv && *++argv);
 
 	fflush_stdout_and_exit(EXIT_SUCCESS);
 }

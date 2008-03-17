@@ -23,16 +23,6 @@
 
 #include "libbb.h"
 
-static FILE *cmp_xfopen_input(const char *filename)
-{
-	FILE *fp;
-
-	fp = fopen_or_warn_stdin(filename);
-	if (fp)
-		return fp;
-	xfunc_die();	/* We already output an error message. */
-}
-
 static const char fmt_eof[] ALIGN1 = "cmp: EOF on %s\n";
 static const char fmt_differ[] ALIGN1 = "%s %s differ: char %"OFF_FMT"d, line %d\n";
 // This fmt_l_opt uses gnu-isms.  SUSv3 would be "%.0s%.0s%"OFF_FMT"d %o %o\n"
@@ -65,7 +55,7 @@ int cmp_main(int argc ATTRIBUTE_UNUSED, char **argv)
 	argv += optind;
 
 	filename1 = *argv;
-	fp1 = cmp_xfopen_input(filename1);
+	fp1 = xfopen_stdin(filename1);
 
 	if (*++argv) {
 		filename2 = *argv;
@@ -79,7 +69,7 @@ int cmp_main(int argc ATTRIBUTE_UNUSED, char **argv)
 #endif
 	}
 
-	fp2 = cmp_xfopen_input(filename2);
+	fp2 = xfopen_stdin(filename2);
 	if (fp1 == fp2) {		/* Paranoia check... stdin == stdin? */
 		/* Note that we don't bother reading stdin.  Neither does gnu wc.
 		 * But perhaps we should, so that other apps down the chain don't

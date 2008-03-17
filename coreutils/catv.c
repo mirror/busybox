@@ -27,18 +27,14 @@ int catv_main(int argc ATTRIBUTE_UNUSED, char **argv)
 	argv += optind;
 
 	/* Read from stdin if there's nothing else to do. */
-	fd = 0;
-	if (!argv[0]) {
-		argv--;
-		goto jump_in;
-	}
+	if (!argv[0])
+		*--argv = (char*)"-";
 	do {
-		fd = open_or_warn(*argv, O_RDONLY);
+		fd = open_or_warn_stdin(*argv);
 		if (fd < 0) {
 			retval = EXIT_FAILURE;
 			continue;
 		}
- jump_in:
 		for (;;) {
 			int i, res;
 

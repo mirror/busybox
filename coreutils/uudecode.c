@@ -19,48 +19,57 @@ static void read_stduu(FILE *src_stream, FILE *dst_stream)
 	char *line;
 
 	while ((line = xmalloc_getline(src_stream)) != NULL) {
-		int length;
-		char *line_ptr = line;
+		int encoded_len, str_len;
+		char *line_ptr, *dst;
 
 		if (strcmp(line, "end") == 0) {
-			return;
+			return; /* the only non-error exit */
 		}
-		length = ((*line_ptr - 0x20) & 0x3f)* 4 / 3;
 
-		if (length <= 0) {
+		line_ptr = line;
+		while (*line_ptr) {
+			*line_ptr = (*line_ptr - 0x20) & 0x3f;
+			line_ptr++;
+		}
+		str_len = line_ptr - line;
+
+		encoded_len = line[0] * 4 / 3;
+		/* Check that line is not too short. (we tolerate
+		 * overly _long_ line to accomodate possible extra '`').
+		 * Empty line case is also caught here. */
+		if (str_len <= encoded_len) {
+			break; /* go to bb_error_msg_and_die("short file"); */
+		}
+		if (encoded_len <= 0) {
 			/* Ignore the "`\n" line, why is it even in the encode file ? */
+			free(line);
 			continue;
 		}
-		if (length > 60) {
+		if (encoded_len > 60) {
 			bb_error_msg_and_die("line too long");
 		}
 
-		line_ptr++;
-		/* Tolerate an overly long line to accomodate a possible exta '`' */
-		if (strlen(line_ptr) < (size_t)length) {
-			bb_error_msg_and_die("short file");
-		}
-
-		while (length > 0) {
+		dst = line;
+		line_ptr = line + 1;
+		do {
 			/* Merge four 6 bit chars to three 8 bit chars */
-			fputc(((line_ptr[0] - 0x20) & 077) << 2 | ((line_ptr[1] - 0x20) & 077) >> 4, dst_stream);
-			line_ptr++;
-			length--;
-			if (length == 0) {
+			*dst++ = line_ptr[0] << 2 | line_ptr[1] >> 4;
+			encoded_len--;
+			if (encoded_len == 0) {
 				break;
 			}
 
-			fputc(((line_ptr[0] - 0x20) & 077) << 4 | ((line_ptr[1] - 0x20) & 077) >> 2, dst_stream);
-			line_ptr++;
-			length--;
-			if (length == 0) {
+			*dst++ = line_ptr[1] << 4 | line_ptr[2] >> 2;
+			encoded_len--;
+			if (encoded_len == 0) {
 				break;
 			}
 
-			fputc(((line_ptr[0] - 0x20) & 077) << 6 | ((line_ptr[1] - 0x20) & 077), dst_stream);
-			line_ptr += 2;
-			length -= 2;
-		}
+			*dst++ = line_ptr[2] << 6 | line_ptr[3];
+			line_ptr += 4;
+			encoded_len -= 2;
+		} while (encoded_len > 0);
+		fwrite(line, 1, dst - line, dst_stream);
 		free(line);
 	}
 	bb_error_msg_and_die("short file");
@@ -129,7 +138,7 @@ static void read_base64(FILE *src_stream, FILE *dst_stream)
 int uudecode_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int uudecode_main(int argc ATTRIBUTE_UNUSED, char **argv)
 {
-	FILE *src_stream = stdin;
+	FILE *src_stream;
 	char *outname = NULL;
 	char *line;
 
@@ -137,8 +146,9 @@ int uudecode_main(int argc ATTRIBUTE_UNUSED, char **argv)
 	getopt32(argv, "o:", &outname);
 	argv += optind;
 
-	if (argv[0])
-		src_stream = xfopen(argv[0], "r");
+	if (!*argv)
+		*--argv = (char*)"-";
+	src_stream = xfopen_stdin(*argv);
 
 	/* Search for the start of the encoding */
 	while ((line = xmalloc_getline(src_stream)) != NULL) {
@@ -159,7 +169,7 @@ int uudecode_main(int argc ATTRIBUTE_UNUSED, char **argv)
 		}
 
 		/* begin line found. decode and exit */
-		mode = strtoul(line_ptr, NULL, 8);
+		mode = bb_strtou(line_ptr, NULL, 8);
 		if (outname == NULL) {
 			outname = strchr(line_ptr, ' ');
 			if ((outname == NULL) || (*outname == '\0')) {
@@ -170,7 +180,7 @@ int uudecode_main(int argc ATTRIBUTE_UNUSED, char **argv)
 		dst_stream = stdout;
 		if (NOT_LONE_DASH(outname)) {
 			dst_stream = xfopen(outname, "w");
-			chmod(outname, mode & (S_IRWXU | S_IRWXG | S_IRWXO));
+			fchmod(fileno(dst_stream), mode & (S_IRWXU | S_IRWXG | S_IRWXO));
 		}
 		free(line);
 		decode_fn_ptr(src_stream, dst_stream);

@@ -21,20 +21,17 @@ enum { SUM_BSD, PRINT_NAME, SUM_SYSV };
    The checksum varies depending on sizeof (int). */
 /* SYSV: calculate and print the checksum and the size in 512-byte blocks */
 /* Return 1 if successful.  */
-static unsigned sum_file(const char *file, const unsigned type)
+static unsigned sum_file(const char *file, unsigned type)
 {
 #define buf bb_common_bufsiz1
 	unsigned long long total_bytes = 0;
-	int fd = 0, r;
-
+	int fd, r;
 	/* The sum of all the input bytes, modulo (UINT_MAX + 1).  */
 	unsigned s = 0;
 
-	if (NOT_LONE_DASH(file)) {
-		fd = open(file, O_RDONLY);
-		if (fd == -1)
-			goto ret_bad;
-	}
+	fd = open_or_warn_stdin(file);
+	if (fd == -1)
+		return 0;
 
 	while (1) {
 		size_t bytes_read = safe_read(fd, buf, BUFSIZ);
@@ -44,7 +41,6 @@ static unsigned sum_file(const char *file, const unsigned type)
 			if (!bytes_read && !r)
 				/* no error */
 				break;
- ret_bad:
 			bb_perror_msg(file);
 			return 0;
 		}
@@ -75,26 +71,29 @@ static unsigned sum_file(const char *file, const unsigned type)
 }
 
 int sum_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int sum_main(int argc, char **argv)
+int sum_main(int argc ATTRIBUTE_UNUSED, char **argv)
 {
 	unsigned n;
 	unsigned type = SUM_BSD;
 
 	n = getopt32(argv, "sr");
+	argv += optind;
 	if (n & 1) type = SUM_SYSV;
 	/* give the bsd priority over sysv func */
 	if (n & 2) type = SUM_BSD;
 
-	if (argc == optind) {
+	if (!argv[0]) {
 		/* Do not print the name */
 		n = sum_file("-", type);
 	} else {
 		/* Need to print the name if either
 		   - more than one file given
 		   - doing sysv */
-		type += argc - 1 > optind || type == SUM_SYSV;
-		for (n = 1; optind < argc; optind++)
-			n &= sum_file(argv[optind], type);
+		type += (argv[1] || type == SUM_SYSV);
+		n = 1;
+		do {
+			n &= sum_file(*argv, type);
+		} while (*++argv);
 	}
 	return !n;
 }
