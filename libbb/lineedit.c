@@ -294,7 +294,12 @@ static void redraw(int y, int back_cursor)
 
 /* Delete the char in front of the cursor, optionally saving it
  * for later putback */
+#if !ENABLE_FEATURE_EDITING_VI
+static void input_delete(void)
+#define input_delete(save) input_delete()
+#else
 static void input_delete(int save)
+#endif
 {
 	int j = cursor;
 

@@ -189,7 +189,7 @@ static void progressmeter(int flag)
  */
 #else /* FEATURE_WGET_STATUSBAR */
 
-static ALWAYS_INLINE void progressmeter(int flag) { }
+static ALWAYS_INLINE void progressmeter(int flag ATTRIBUTE_UNUSED) { }
 
 #endif
 

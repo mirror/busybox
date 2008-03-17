@@ -161,14 +161,14 @@ make_new_session(
 	const char *login_argv[2];
 	struct termios termbuf;
 	int fd, pid;
-	char tty_name[32];
+	char tty_name[GETPTY_BUFSIZE];
 	struct tsession *ts = xzalloc(sizeof(struct tsession) + BUFSIZE * 2);
 
 	/*ts->buf1 = (char *)(ts + 1);*/
 	/*ts->buf2 = ts->buf1 + BUFSIZE;*/
 
 	/* Got a new connection, set up a tty. */
-	fd = getpty(tty_name, 32);
+	fd = getpty(tty_name);
 	if (fd < 0) {
 		bb_error_msg("can't create pty");
 		return NULL;

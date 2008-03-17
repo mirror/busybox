@@ -21,6 +21,12 @@
 #define OPT_DEREFERENCE (1 << 2)
 #define OPT_SELINUX     (1 << 3)
 
+#if ENABLE_FEATURE_STAT_FORMAT
+typedef bool (*statfunc_ptr)(const char *, const char *);
+#else
+typedef bool (*statfunc_ptr)(const char *);
+#endif
+
 static const char *file_type(const struct stat *st)
 {
 	/* See POSIX 1003.1-2001 XCU Table 4-8 lines 17093-17107
@@ -338,8 +344,14 @@ static void print_it(const char *masterformat, const char *filename,
 #endif
 
 /* Stat the file system and print what we find.  */
+#if !ENABLE_FEATURE_STAT_FORMAT
+#define do_statfs(filename, format) do_statfs(filename)
+#endif
 static bool do_statfs(const char *filename, const char *format)
 {
+#if !ENABLE_FEATURE_STAT_FORMAT
+	const char *format;
+#endif
 	struct statfs statfsbuf;
 #if ENABLE_SELINUX
 	security_context_t scontext = NULL;
@@ -447,6 +459,9 @@ static bool do_statfs(const char *filename, const char *format)
 }
 
 /* stat the file and print what we find */
+#if !ENABLE_FEATURE_STAT_FORMAT
+#define do_stat(filename, format) do_stat(filename)
+#endif
 static bool do_stat(const char *filename, const char *format)
 {
 	struct stat statbuf;
@@ -612,10 +627,10 @@ static bool do_stat(const char *filename, const char *format)
 int stat_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int stat_main(int argc, char **argv)
 {
-	char *format = NULL;
+	USE_FEATURE_STAT_FORMAT(char *format = NULL;)
 	int i;
 	int ok = 1;
-	bool (*statfunc)(const char *, const char *) = do_stat;
+	statfunc_ptr statfunc = do_stat;
 
 	getopt32(argv, "ftL"
 		USE_SELINUX("Z")
@@ -633,7 +648,7 @@ int stat_main(int argc, char **argv)
 	}
 #endif	/* ENABLE_SELINUX */
 	for (i = optind; i < argc; ++i)
-		ok &= statfunc(argv[i], format);
+		ok &= statfunc(argv[i] USE_FEATURE_STAT_FORMAT(, format));
 
 	return (ok ? EXIT_SUCCESS : EXIT_FAILURE);
 }

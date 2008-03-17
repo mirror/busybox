@@ -661,7 +661,7 @@ void run_applet_and_exit(const char *name, char **argv)
 
 
 #if ENABLE_BUILD_LIBBUSYBOX
-int lbb_main(int argc, char **argv)
+int lbb_main(char **argv)
 #else
 int main(int argc ATTRIBUTE_UNUSED, char **argv)
 #endif

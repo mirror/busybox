@@ -10,7 +10,9 @@
 
 #define DEBUG 0
 
-int getpty(char *line, int size)
+#define DEBUG 0
+
+int getpty(char *line)
 {
 	int p;
 #if ENABLE_FEATURE_DEVPTS
@@ -24,7 +26,7 @@ int getpty(char *line, int size)
 			bb_perror_msg("ptsname error (is /dev/pts mounted?)");
 			return -1;
 		}
-		safe_strncpy(line, name, size);
+		safe_strncpy(line, name, GETPTY_BUFSIZE);
 		return p;
 	}
 #else

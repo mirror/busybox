@@ -2026,7 +2026,11 @@ USE_DESKTOP(long long) int pack_gzip(void)
 }
 
 int gzip_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
+#if ENABLE_GUNZIP
 int gzip_main(int argc, char **argv)
+#else
+int gzip_main(int argc ATTRIBUTE_UNUSED, char **argv)
+#endif
 {
 	unsigned opt;
 

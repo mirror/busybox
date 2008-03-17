@@ -5,7 +5,7 @@
 #include "bbconfigopts.h"
 
 int bbconfig_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int bbconfig_main(int argc, char **argv)
+int bbconfig_main(int argc ATTRIBUTE_UNUSED, char **argv ATTRIBUTE_UNUSED)
 {
 	printf(bbconfig_config);
 	return 0;

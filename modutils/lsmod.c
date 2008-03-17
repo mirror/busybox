@@ -75,7 +75,7 @@ enum {
 };
 
 int lsmod_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int lsmod_main(int argc, char **argv)
+int lsmod_main(int argc ATTRIBUTE_UNUSED, char **argv ATTRIBUTE_UNUSED)
 {
 	struct module_info info;
 	char *module_names, *mn, *deps, *dn;

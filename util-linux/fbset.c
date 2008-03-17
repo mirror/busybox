@@ -170,10 +170,10 @@ enum {
 };
 #endif
 
+#if ENABLE_FEATURE_FBSET_READMODE
 static int readmode(struct fb_var_screeninfo *base, const char *fn,
 					const char *mode)
 {
-#if ENABLE_FEATURE_FBSET_READMODE
 	FILE *f;
 	char buf[256];
 	char *p = buf;
@@ -257,11 +257,9 @@ static int readmode(struct fb_var_screeninfo *base, const char *fn,
 				return 1;
 		}
 	}
-#else
-	bb_error_msg("mode reading not compiled in");
-#endif
 	return 0;
 }
+#endif
 
 static inline void setmode(struct fb_var_screeninfo *base,
 					struct fb_var_screeninfo *set)
@@ -389,9 +387,13 @@ int fbset_main(int argc, char **argv)
 	fh = xopen(fbdev, O_RDONLY);
 	xioctl(fh, FBIOGET_VSCREENINFO, &var);
 	if (g_options & OPT_READMODE) {
+#if !ENABLE_FEATURE_FBSET_READMODE
+		bb_show_usage();
+#else
 		if (!readmode(&var, modefile, mode)) {
 			bb_error_msg_and_die("unknown video mode '%s'", mode);
 		}
+#endif
 	}
 
 	setmode(&var, &varset);

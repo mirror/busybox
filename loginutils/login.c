@@ -130,9 +130,7 @@ static void die_if_nologin(void)
 		fclose(fp);
 	} else
 		puts("\r\nSystem closed for routine maintenance\r");
-	if (!amroot)
-		exit(1);
-	puts("\r\n[Disconnect bypassed -- root login allowed]\r");
+	exit(1);
 }
 #else
 static ALWAYS_INLINE void die_if_nologin(void) {}

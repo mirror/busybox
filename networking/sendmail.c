@@ -551,11 +551,11 @@ int sendgetmail_main(int argc ATTRIBUTE_UNUSED, char **argv)
 			int rc;
 
 			// retrieve message in ./tmp/
-			pop3_check(retr, (const char *)nmsg);
+			pop3_check(retr, (const char *)(ptrdiff_t)nmsg);
 			pop3_message(filename);
 			// delete message from server
 			if (opts & OPTF_z)
-				pop3_check("DELE %u", (const char*)nmsg);
+				pop3_check("DELE %u", (const char*)(ptrdiff_t)nmsg);
 
 			// run postprocessing program
 			if (*fargs) {

@@ -17,7 +17,7 @@
  * when compared to "standard" nc
  */
 
-static void timeout(int signum)
+static void timeout(int signum ATTRIBUTE_UNUSED)
 {
 	bb_error_msg_and_die("timed out");
 }

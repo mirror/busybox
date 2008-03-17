@@ -11,8 +11,8 @@
 #include "busybox.h"
 
 #if ENABLE_BUILD_LIBBUSYBOX
-int main(int argc, char **argv)
+int main(int argc ATTRIBUTE_UNUSED, char **argv)
 {
-	return lbb_main(argc, argv);
+	return lbb_main(argv);
 }
 #endif

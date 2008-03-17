@@ -26,6 +26,10 @@ static struct uuidCache_s {
 } *uuidCache;
 
 /* for now, only ext2, ext3 and xfs are supported */
+#if !ENABLE_FEATURE_VOLUMEID_ISO9660
+#define get_label_uuid(device, label, uuid, iso_only) \
+	get_label_uuid(device, label, uuid)
+#endif
 static int
 get_label_uuid(const char *device, char **label, char **uuid, int iso_only)
 {
@@ -83,6 +87,10 @@ uuidcache_addentry(char * device, int major, int minor, char *label, char *uuid)
 	memcpy(last->uuid, uuid, sizeof(last->uuid));
 }
 
+#if !ENABLE_FEATURE_VOLUMEID_ISO9660
+#define uuidcache_check_device(device_name, ma, mi, iso_only) \
+	uuidcache_check_device(device_name, ma, mi)
+#endif
 static void
 uuidcache_check_device(const char *device_name, int ma, int mi, int iso_only)
 {

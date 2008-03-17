@@ -729,6 +729,10 @@ pr_type(unsigned char t)
 }
 #endif
 
+#if !ENABLE_FEATURE_TRACEROUTE_VERBOSE
+#define packet_ok(buf, cc, from, seq) \
+	packet_ok(buf, cc, seq)
+#endif
 static int
 packet_ok(unsigned char *buf, int cc, struct sockaddr_in *from, int seq)
 {

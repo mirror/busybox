@@ -989,6 +989,7 @@
        ""
 #define false_full_usage \
        "Return an exit code of FALSE (1)"
+
 #define false_example_usage \
        "$ false\n" \
        "$ echo $?\n" \

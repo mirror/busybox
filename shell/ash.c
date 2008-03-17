@@ -3247,6 +3247,9 @@ static pid_t backgndpid;        /* pid of last background process */
 static smallint job_warning;    /* user was warned about stopped jobs (can be 2, 1 or 0). */
 
 static struct job *makejob(/*union node *,*/ int);
+#if !JOBS
+#define forkshell(job, node, mode) forkshell(job, mode)
+#endif
 static int forkshell(struct job *, union node *, int);
 static int waitforjob(struct job *);
 
@@ -3424,6 +3427,9 @@ jobno(const struct job *jp)
 /*
  * Convert a job name to a job structure.
  */
+#if !JOBS
+#define getjob(name, getctl) getjob(name)
+#endif
 static struct job *
 getjob(const char *name, int getctl)
 {
@@ -4533,6 +4539,9 @@ forkchild(struct job *jp, /*union node *n,*/ int mode)
 }
 
 /* Called after fork(), in parent */
+#if !JOBS
+#define forkparent(jp, n, mode, pid) forkparent(jp, mode, pid)
+#endif
 static void
 forkparent(struct job *jp, union node *n, int mode, pid_t pid)
 {
@@ -8674,8 +8683,8 @@ preadfd(void)
 	char *buf =  parsefile->buf;
 	parsenextc = buf;
 
- retry:
 #if ENABLE_FEATURE_EDITING
+ retry:
 	if (!iflag || parsefile->fd)
 		nr = nonblock_safe_read(parsefile->fd, buf, BUFSIZ - 1);
 	else {
@@ -8876,8 +8885,11 @@ pungetc(void)
  * Push a string back onto the input at this current parsefile level.
  * We handle aliases this way.
  */
+#if !ENABLE_ASH_ALIAS
+#define pushstring(s, ap) pushstring(s)
+#endif
 static void
-pushstring(char *s, void *ap)
+pushstring(char *s, struct alias *ap)
 {
 	struct strpush *sp;
 	size_t len;
@@ -8894,9 +8906,9 @@ pushstring(char *s, void *ap)
 	sp->prevstring = parsenextc;
 	sp->prevnleft = parsenleft;
 #if ENABLE_ASH_ALIAS
-	sp->ap = (struct alias *)ap;
+	sp->ap = ap;
 	if (ap) {
-		((struct alias *)ap)->flag |= ALIASINUSE;
+		ap->flag |= ALIASINUSE;
 		sp->string = s;
 	}
 #endif

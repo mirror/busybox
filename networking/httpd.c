@@ -1972,7 +1972,11 @@ static void handle_incoming_and_exit(const len_and_sockaddr *fromAddr)
 			/* Try and do our best to parse more lines */
 			if ((STRNCASECMP(iobuf, "Content-length:") == 0)) {
 				/* extra read only for POST */
-				if (prequest != request_GET && prequest != request_HEAD) {
+				if (prequest != request_GET
+#if ENABLE_FEATURE_HTTPD_CGI
+				 && prequest != request_HEAD
+#endif
+				) {
 					tptr = iobuf + sizeof("Content-length:") - 1;
 					if (!tptr[0])
 						send_headers_and_exit(HTTP_BAD_REQUEST);
@@ -2129,7 +2133,12 @@ static void handle_incoming_and_exit(const len_and_sockaddr *fromAddr)
 	 */
 
 	send_file_and_exit(tptr,
-		(prequest != request_HEAD ? SEND_HEADERS_AND_BODY : SEND_HEADERS));
+#if ENABLE_FEATURE_HTTPD_CGI
+		(prequest != request_HEAD ? SEND_HEADERS_AND_BODY : SEND_HEADERS)
+#else
+		SEND_HEADERS_AND_BODY
+#endif
+	);
 }
 
 /*

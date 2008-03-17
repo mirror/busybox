@@ -64,9 +64,9 @@ void lbb_prepare(const char *applet
 	) MAIN_EXTERNALLY_VISIBLE;
 #if ENABLE_BUILD_LIBBUSYBOX
 #if ENABLE_FEATURE_SHARED_BUSYBOX
-int lbb_main(int argc, char **argv) EXTERNALLY_VISIBLE;
+int lbb_main(char **argv) EXTERNALLY_VISIBLE;
 #else
-int lbb_main(int argc, char **argv);
+int lbb_main(char **argv);
 #endif
 #endif
 

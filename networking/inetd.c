@@ -1331,10 +1331,10 @@ int inetd_main(int argc ATTRIBUTE_UNUSED, char **argv)
 				continue; /* -> check next fd in fd set */
 			}
 
-			/* we are either child or didn't fork at all */
+			/* we are either child or didn't vfork at all */
 #ifdef INETD_BUILTINS_ENABLED
 			if (sep->se_builtin) {
-				if (pid) { /* "pid" is -1: we did fork */
+				if (pid) { /* "pid" is -1: we did vfork */
 					close(sep->se_fd); /* listening socket */
 					logmode = 0; /* make xwrite etc silent */
 				}
@@ -1343,8 +1343,8 @@ int inetd_main(int argc ATTRIBUTE_UNUSED, char **argv)
 					sep->se_builtin->bi_stream_fn(ctrl, sep);
 				else
 					sep->se_builtin->bi_dgram_fn(ctrl, sep);
-				if (pid) /* we did fork */
-					_exit(0);
+				if (pid) /* we did vfork */
+					_exit(1);
 				maybe_close(accepted_fd);
 				continue; /* -> check next fd in fd set */
 			}
@@ -1430,11 +1430,15 @@ static void echo_stream(int s, servtab_t *sep ATTRIBUTE_UNUSED)
 		xwrite(s, line, sz);
 	}
 #else
+	/* We are after vfork here! */
 	static const char *const args[] = { "cat", NULL };
-	/* no error messages */
+	/* move network socket to stdin */
+	xmove_fd(s, STDIN_FILENO);
+	xdup2(STDIN_FILENO, STDOUT_FILENO);
+	/* no error messages please... */
 	xmove_fd(xopen("/dev/null", O_WRONLY), STDERR_FILENO);
 	BB_EXECVP("cat", (char**)args);
-	_exit(1);
+	/* on failure we return to main, which does exit(1) */
 #endif
 }
 static void echo_dg(int s, servtab_t *sep)
@@ -1463,11 +1467,15 @@ static void discard_stream(int s, servtab_t *sep ATTRIBUTE_UNUSED)
 	while (safe_read(s, line, LINE_SIZE) > 0)
 		continue;
 #else
+	/* We are after vfork here! */
 	static const char *const args[] = { "dd", "of=/dev/null", NULL };
+	/* move network socket to stdin */
+	xmove_fd(s, STDIN_FILENO);
+	xdup2(STDIN_FILENO, STDOUT_FILENO);
 	/* no error messages */
 	xmove_fd(xopen("/dev/null", O_WRONLY), STDERR_FILENO);
 	BB_EXECVP("dd", (char**)args);
-	_exit(1);
+	/* on failure we return to main, which does exit(1) */
 #endif
 }
 /* ARGSUSED */

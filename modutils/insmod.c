@@ -3680,6 +3680,9 @@ static void check_tainted_module(struct obj_file *f, char *m_name)
  * start of some sections.  this info is used by ksymoops to do better
  * debugging.
  */
+#if !ENABLE_FEATURE_INSMOD_VERSION_CHECKING
+#define get_module_version(f, str) get_module_version(str)
+#endif
 static int
 get_module_version(struct obj_file *f, char str[STRVERSIONLEN])
 {

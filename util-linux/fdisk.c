@@ -128,7 +128,11 @@ static unsigned read_int(unsigned low, unsigned dflt, unsigned high, unsigned ba
 #endif
 static const char *partition_type(unsigned char type);
 static void get_geometry(void);
+#if ENABLE_FEATURE_SUN_LABEL || ENABLE_FEATURE_FDISK_WRITABLE
 static int get_boot(enum action what);
+#else
+static int get_boot(void);
+#endif
 
 #define PLURAL   0
 #define SINGULAR 1
@@ -1237,8 +1241,12 @@ get_geometry(void)
  *    0: found or created label
  *    1: I/O error
  */
-static int
-get_boot(enum action what)
+#if ENABLE_FEATURE_SUN_LABEL || ENABLE_FEATURE_FDISK_WRITABLE
+static int get_boot(enum action what)
+#else
+static int get_boot(void)
+#define get_boot(what) get_boot()
+#endif
 {
 	int i;
 

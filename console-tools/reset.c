@@ -40,7 +40,7 @@ int reset_main(int argc ATTRIBUTE_UNUSED, char **argv ATTRIBUTE_UNUSED)
 #if ENABLE_STTY
 		return stty_main(2, (char**)args);
 #else
-		execvp("stty", args);
+		execvp("stty", (char**)args);
 #endif
 	}
 	return EXIT_SUCCESS;

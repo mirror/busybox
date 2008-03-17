@@ -483,9 +483,9 @@ static const struct dhcp_client_t ext_dhcp_clients[] = {
 };
 #endif /* ENABLE_FEATURE_IFUPDOWN_EXTERNAL_DHCPC */
 
+#if ENABLE_FEATURE_IFUPDOWN_EXTERNAL_DHCP
 static int dhcp_up(struct interface_defn_t *ifd, execfn *exec)
 {
-#if ENABLE_FEATURE_IFUPDOWN_EXTERNAL_DHCP
 	int i;
 #if ENABLE_FEATURE_IFUPDOWN_IP
 	/* ip doesn't up iface when it configures it (unlike ifconfig) */
@@ -498,7 +498,10 @@ static int dhcp_up(struct interface_defn_t *ifd, execfn *exec)
 	}
 	bb_error_msg("no dhcp clients found");
 	return 0;
+}
 #elif ENABLE_APP_UDHCPC
+static int dhcp_up(struct interface_defn_t *ifd, execfn *exec)
+{
 #if ENABLE_FEATURE_IFUPDOWN_IP
 	/* ip doesn't up iface when it configures it (unlike ifconfig) */
 	if (!execute("ip link set %iface% up", ifd, exec))
@@ -507,14 +510,18 @@ static int dhcp_up(struct interface_defn_t *ifd, execfn *exec)
 	return execute("udhcpc -R -n -p /var/run/udhcpc.%iface%.pid "
 			"-i %iface%[[ -H %hostname%]][[ -c %clientid%]][[ -s %script%]]",
 			ifd, exec);
-#else
-	return 0; /* no dhcp support */
-#endif
 }
+#else
+static int dhcp_up(struct interface_defn_t *ifd ATTRIBUTE_UNUSED,
+		execfn *exec ATTRIBUTE_UNUSED)
+{
+	return 0; /* no dhcp support */
+}
+#endif
 
+#if ENABLE_FEATURE_IFUPDOWN_EXTERNAL_DHCP
 static int dhcp_down(struct interface_defn_t *ifd, execfn *exec)
 {
-#if ENABLE_FEATURE_IFUPDOWN_EXTERNAL_DHCP
 	int i;
 	for (i = 0; i < ARRAY_SIZE(ext_dhcp_clients); i++) {
 		if (exists_execable(ext_dhcp_clients[i].name))
@@ -522,13 +529,20 @@ static int dhcp_down(struct interface_defn_t *ifd, execfn *exec)
 	}
 	bb_error_msg("no dhcp clients found, using static interface shutdown");
 	return static_down(ifd, exec);
+}
 #elif ENABLE_APP_UDHCPC
+static int dhcp_down(struct interface_defn_t *ifd, execfn *exec)
+{
 	return execute("kill "
 	               "`cat /var/run/udhcpc.%iface%.pid` 2>/dev/null", ifd, exec);
-#else
-	return 0; /* no dhcp support */
-#endif
 }
+#else
+static int dhcp_down(struct interface_defn_t *ifd ATTRIBUTE_UNUSED,
+		execfn *exec ATTRIBUTE_UNUSED)
+{
+	return 0; /* no dhcp support */
+}
+#endif
 
 static int manual_up_down(struct interface_defn_t *ifd ATTRIBUTE_UNUSED, execfn *exec ATTRIBUTE_UNUSED)
 {

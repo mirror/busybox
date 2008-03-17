@@ -233,7 +233,8 @@ int chat_main(int argc ATTRIBUTE_UNUSED, char **argv)
 			//-----------------------
 			// do expect
 			//-----------------------
-			size_t expect_len, buf_len = 0;
+			int expect_len;
+			size_t buf_len = 0;
 			size_t max_len = max_abort_len;
 
 			struct pollfd pfd;
@@ -315,7 +316,7 @@ int chat_main(int argc ATTRIBUTE_UNUSED, char **argv)
 				exitcode = ERR_OK;
 
 				// expected reply received? -> goto next command
-				delta = buf_len-expect_len;
+				delta = buf_len - expect_len;
 				if (delta >= 0 && !memcmp(buf+delta, expect, expect_len))
 					goto expect_done;
 #undef buf

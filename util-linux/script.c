@@ -29,7 +29,7 @@ int script_main(int argc ATTRIBUTE_UNUSED, char **argv)
 	int attr_ok; /* NB: 0: ok */
 	int winsz_ok;
 	int pty;
-	char pty_line[32];
+	char pty_line[GETPTY_BUFSIZE];
 	struct termios tt, rtt;
 	struct winsize win;
 	const char *fname = "typescript";
@@ -69,7 +69,7 @@ int script_main(int argc ATTRIBUTE_UNUSED, char **argv)
 		shell = DEFAULT_SHELL;
 	}
 
-	pty = getpty(pty_line, sizeof(pty_line));
+	pty = getpty(pty_line);
 	if (pty < 0) {
 		bb_perror_msg_and_die("can't get pty");
 	}
