@@ -19,6 +19,8 @@ enum { STACK_SIZE = (COMMON_BUFSIZE - offsetof(struct globals, stack)) / sizeof(
 #define pointer   (G.pointer   )
 #define base      (G.base      )
 #define stack     (G.stack     )
+#define INIT_G() do { \
+} while (0)
 
 
 static void push(double a)
@@ -194,6 +196,8 @@ static char *get_token(char **buffer)
 int dc_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int dc_main(int argc ATTRIBUTE_UNUSED, char **argv)
 {
+	INIT_G();
+
 	argv++;
 	if (!argv[0]) {
 		/* take stuff from stdin if no args are given */

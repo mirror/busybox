@@ -39,9 +39,8 @@ int last_main(int argc, char **argv ATTRIBUTE_UNUSED)
 	file = xopen(bb_path_wtmp_file, O_RDONLY);
 
 	printf("%-10s %-14s %-18s %-12.12s %s\n", "USER", "TTY", "HOST", "LOGIN", "TIME");
-	while ((n = safe_read(file, (void*)&ut, sizeof(struct utmp))) != 0) {
-
-		if (n != sizeof(struct utmp)) {
+	while ((n = full_read(file, &ut, sizeof(ut))) > 0) {
+		if (n != sizeof(ut)) {
 			bb_perror_msg_and_die("short read");
 		}
 
@@ -53,16 +52,14 @@ int last_main(int argc, char **argv ATTRIBUTE_UNUSED)
 			else if (strncmp(ut.ut_user, "runlevel", 7) == 0)
 				ut.ut_type = RUN_LVL;
 		} else {
-			if (!ut.ut_name[0] || strcmp(ut.ut_name, "LOGIN") == 0 ||
-					ut.ut_name[0] == 0)
-			{
+			if (ut.ut_name[0] == '\0' || strcmp(ut.ut_name, "LOGIN") == 0) {
 				/* Don't bother.  This means we can't find how long
 				 * someone was logged in for.  Oh well. */
 				continue;
 			}
-			if (ut.ut_type != DEAD_PROCESS &&
-					ut.ut_name[0] && ut.ut_line[0])
-			{
+			if (ut.ut_type != DEAD_PROCESS
+			 && ut.ut_name[0] && ut.ut_line[0]
+			) {
 				ut.ut_type = USER_PROCESS;
 			}
 			if (strcmp(ut.ut_name, "date") == 0) {
@@ -71,7 +68,7 @@ int last_main(int argc, char **argv ATTRIBUTE_UNUSED)
 			}
 		}
 
-		if (ut.ut_type!=USER_PROCESS) {
+		if (ut.ut_type != USER_PROCESS) {
 			switch (ut.ut_type) {
 				case OLD_TIME:
 				case NEW_TIME:

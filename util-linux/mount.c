@@ -214,9 +214,10 @@ struct globals {
 	unsigned verbose;
 #endif
 	llist_t *fslist;
-	char getmntent_buf[sizeof(bb_common_bufsiz1) - 8*3];
+	char getmntent_buf[1];
 
 };
+enum { GETMNTENT_BUFSIZE = COMMON_BUFSIZE - offsetof(struct globals, getmntent_buf) };
 #define G (*(struct globals*)&bb_common_bufsiz1)
 #define nfs_mount_version (G.nfs_mount_version)
 #if ENABLE_FEATURE_MOUNT_VERBOSE
@@ -1775,7 +1776,7 @@ int mount_main(int argc, char **argv)
 			if (!mountTable) bb_error_msg_and_die("no %s", bb_path_mtab_file);
 
 			while (getmntent_r(mountTable, &mtpair[0], getmntent_buf,
-								sizeof(getmntent_buf)))
+								GETMNTENT_BUFSIZE))
 			{
 				// Don't show rootfs. FIXME: why??
 				// util-linux 2.12a happily shows rootfs...
@@ -1842,8 +1843,8 @@ int mount_main(int argc, char **argv)
 		// Get next fstab entry
 
 		if (!getmntent_r(fstab, mtcur, getmntent_buf
-					+ (mtcur==mtpair ? sizeof(getmntent_buf)/2 : 0),
-				sizeof(getmntent_buf)/2))
+					+ (mtcur==mtpair ? GETMNTENT_BUFSIZE/2 : 0),
+				GETMNTENT_BUFSIZE/2))
 		{
 			// Were we looking for something specific?
 

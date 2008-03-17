@@ -42,17 +42,34 @@ struct service {
 	smallint isgone;
 };
 
-static struct service *sv;
-static char *svdir;
-static int svnum;
-static char *rplog;
-static int rploglen;
-static struct fd_pair logpipe;
-static struct pollfd pfd[1];
-static unsigned stamplog;
-static smallint check = 1;
-static smallint exitsoon;
-static smallint set_pgrp;
+struct globals {
+	struct service *sv;
+	char *svdir;
+	char *rplog;
+	int svnum;
+	int rploglen;
+	struct fd_pair logpipe;
+	struct pollfd pfd[1];
+	unsigned stamplog;
+	smallint check; /* = 1; */
+	smallint exitsoon;
+	smallint set_pgrp;
+};
+#define G (*(struct globals*)&bb_common_bufsiz1)
+#define sv        (G.sv        )
+#define svdir     (G.svdir     )
+#define rplog     (G.rplog     )
+#define svnum     (G.svnum     )
+#define rploglen  (G.rploglen  )
+#define logpipe   (G.logpipe   )
+#define pfd       (G.pfd       )
+#define stamplog  (G.stamplog  )
+#define check     (G.check     )
+#define exitsoon  (G.exitsoon  )
+#define set_pgrp  (G.set_pgrp  )
+#define INIT_G() do { \
+	check = 1; \
+} while (0)
 
 static void fatal2_cannot(const char *m1, const char *m2)
 {
@@ -221,6 +238,8 @@ int runsvdir_main(int argc ATTRIBUTE_UNUSED, char **argv)
 	unsigned stampcheck;
 	char ch;
 	int i;
+
+	INIT_G();
 
 	argv++;
 	if (!*argv)

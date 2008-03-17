@@ -1177,7 +1177,6 @@ dump_strings(off_t address, off_t end_offset)
 int od_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int od_main(int argc, char **argv)
 {
-	static char const *const default_file_list[] = { "-", NULL };
 	static const struct suffix_mult bkm[] = {
 		{ "b", 512 },
 		{ "k", 1024 },
@@ -1383,7 +1382,7 @@ int od_main(int argc, char **argv)
 	/* If no files were listed on the command line,
 	   set the global pointer FILE_LIST so that it
 	   references the null-terminated list of one name: "-".  */
-	file_list = default_file_list;
+	file_list = bb_argv_dash;
 	if (argc > 0) {
 		/* Set the global pointer FILE_LIST so that it
 		   references the first file-argument on the command-line.  */
