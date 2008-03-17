@@ -1,4 +1,4 @@
-menu "print support"
+menu "Print Utilities"
 
 config LPD
 	bool "lpd"

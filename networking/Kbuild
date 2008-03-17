@@ -35,6 +35,7 @@ lib-$(CONFIG_SLATTACH)     += slattach.o
 lib-$(CONFIG_TELNET)       += telnet.o
 lib-$(CONFIG_TELNETD)      += telnetd.o
 lib-$(CONFIG_TFTP)         += tftp.o
+lib-$(CONFIG_TFTPD)        += tftp.o
 lib-$(CONFIG_TRACEROUTE)   += traceroute.o
 lib-$(CONFIG_VCONFIG)      += vconfig.o
 lib-$(CONFIG_WGET)         += wget.o

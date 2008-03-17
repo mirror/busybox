@@ -322,7 +322,7 @@ int tcpudpsvd_main(int argc ATTRIBUTE_UNUSED, char **argv)
 		/* In case recv_from_to won't be able to recover local addr.
 		 * Also sets port - recv_from_to is unable to do it. */
 		local = *lsa;
-		conn = recv_from_to(sock, NULL, 0, MSG_DONTWAIT | MSG_PEEK,
+		conn = recv_from_to(sock, NULL, 0, MSG_PEEK,
 				&remote.u.sa, &local.u.sa, sa_len);
 	}
 	sig_block(SIGCHLD);

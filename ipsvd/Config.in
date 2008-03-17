@@ -3,7 +3,7 @@
 # see scripts/kbuild/config-language.txt.
 #
 
-menu "ipsvd utilities"
+menu "ipsvd Utilities"
 
 config TCPSVD
 	bool "tcpsvd"

@@ -835,14 +835,14 @@ CONFIG_SOFTLIMIT=y
 # CONFIG_SESTATUS is not set
 
 #
-# print support
+# Print Utilities
 #
 CONFIG_LPD=y
 CONFIG_LPR=y
 CONFIG_LPQ=y
 
 #
-# ipsvd utilities
+# ipsvd Utilities
 #
 CONFIG_TCPSVD=y
 CONFIG_UDPSVD=y

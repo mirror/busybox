@@ -3961,7 +3961,7 @@
 #define tftp_trivial_usage \
        "[OPTION]... HOST [PORT]"
 #define tftp_full_usage \
-       "Transfer a file from/to tftp server using \"octet\" mode\n" \
+       "Transfer a file from/to tftp server\n" \
      "\nOptions:" \
      "\n	-l FILE	Local FILE" \
      "\n	-r FILE	Remote FILE" \
@@ -3974,6 +3974,12 @@
 	USE_FEATURE_TFTP_BLOCKSIZE( \
      "\n	-b SIZE	Transfer blocks of SIZE octets" \
 	)
+
+#define tftpd_trivial_usage \
+       "[DIR]"
+#define tftpd_full_usage \
+       "Transfer a file on request from a tftp client" \
+
 #define time_trivial_usage \
        "[OPTION]... COMMAND [ARGS...]"
 #define time_full_usage \

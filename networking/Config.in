@@ -774,28 +774,41 @@ config TFTP
 	  is usually used for simple, small transfers such as a root image
 	  for a network-enabled bootloader.
 
+config TFTPD
+	bool "tftpd"
+	default n
+	help
+	  This enables the Trivial File Transfer Protocol server program.
+	  It expects that stdin is a datagram socket and a packet
+	  is already pending on it. It will exit after one transfer.
+	  In other words: it should be run from inetd in nowait mode,
+	  or from udpsvd. Example: "udpsvd -E 0 69 tftpd DIR"
+
 config FEATURE_TFTP_GET
 	bool "Enable \"get\" command"
 	default y
-	depends on TFTP
+	depends on TFTP || TFTPD
 	help
 	  Add support for the GET command within the TFTP client.  This allows
 	  a client to retrieve a file from a TFTP server.
+	  Also enable upload support in tftpd, if tftpd is selected.
 
 config FEATURE_TFTP_PUT
 	bool "Enable \"put\" command"
 	default y
-	depends on TFTP
+	depends on TFTP || TFTPD
 	help
 	  Add support for the PUT command within the TFTP client.  This allows
 	  a client to transfer a file to a TFTP server.
+	  Also enable download support in tftpd, if tftpd is selected.
 
 config FEATURE_TFTP_BLOCKSIZE
-	bool "Enable \"blocksize\" command"
+	bool "Enable \"blksize\" protocol option"
 	default n
-	depends on TFTP
+	depends on TFTP || TFTPD
 	help
-	  Allow the client to specify the desired block size for transfers.
+	  Allow tftp to specify block size, and tftpd to understand
+	  "blksize" option.
 
 config DEBUG_TFTP
 	bool "Enable debug"
