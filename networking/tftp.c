@@ -16,7 +16,7 @@
  *
  * utftp:  Copyright (C) 1999 Uwe Ohse <uwe@ohse.de>
  *
- * tftpd added by Denys Vlasenko
+ * tftpd added by Denys Vlasenko & Vladimir Dronnikov
  *
  * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  * ------------------------------------------------------------------------- */
@@ -145,9 +145,9 @@ static int tftp_protocol(
 	socket_fd = xsocket(peer_lsa->u.sa.sa_family, SOCK_DGRAM, 0);
 	setsockopt_reuseaddr(socket_fd);
 
+	block_nr = 1;
 	if (!ENABLE_TFTP || our_lsa) {
 		/* tftpd */
-		block_nr = 0;
 
 		/* Create a socket which is:
 		 * 1. bound to IP:port peer sent 1st datagram to,
@@ -158,9 +158,17 @@ static int tftp_protocol(
 		xbind(socket_fd, &our_lsa->u.sa, our_lsa->len);
 		xconnect(socket_fd, &peer_lsa->u.sa, peer_lsa->len);
 
+		if (CMD_GET(cmd)) {
+			/* it's upload - we must ACK 1st packet (with filename)
+			 * as if it's "block 0" */
+			block_nr = 0;
+		}
+
 #if ENABLE_FEATURE_TFTP_BLOCKSIZE
 		if (blocksize != TFTP_BLOCKSIZE_DEFAULT) {
 			/* Create and send OACK packet */
+			/* block_nr is still 1, we expect ACK to (block_nr-1),
+			 * that is, to "block 0" */
 			opcode = TFTP_OACK;
 			cp = xbuf + 2;
 			goto add_blksize_opt;
@@ -169,7 +177,6 @@ static int tftp_protocol(
 #endif
 	} else {
 		/* tftp */
-		block_nr = 1;
 
 		/* We can't (and don't really need to) bind the socket:
 		 * we don't know from which local IP datagrams will be sent,
@@ -288,6 +295,8 @@ static int tftp_protocol(
 				bb_perror_msg("read");
 				goto ret;
 			}
+			if (len < 4) /* too small? */
+				goto recv_again;
 			goto process_pkt;
 		case 0:
 			retries--;
