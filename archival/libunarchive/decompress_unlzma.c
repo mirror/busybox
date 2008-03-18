@@ -324,6 +324,7 @@ unpack_lzma_stream(int src_fd, int dst_fd)
 
 			previous_byte = (uint8_t) mi;
 #if ENABLE_FEATURE_LZMA_FAST
+ one_byte1:
 			buffer[buffer_pos++] = previous_byte;
 			if (buffer_pos == header.dict_size) {
 				buffer_pos = 0;
@@ -334,7 +335,7 @@ unpack_lzma_stream(int src_fd, int dst_fd)
 			}
 #else
 			len = 1;
-			goto one_byte;
+			goto one_byte2;
 #endif
 		} else {
 			int offset;
@@ -367,15 +368,7 @@ unpack_lzma_stream(int src_fd, int dst_fd)
 						while (pos >= header.dict_size)
 							pos += header.dict_size;
 						previous_byte = buffer[pos];
-						buffer[buffer_pos++] = previous_byte;
-						if (buffer_pos == header.dict_size) {
-							buffer_pos = 0;
-							global_pos += header.dict_size;
-							if (full_write(dst_fd, buffer, header.dict_size) != header.dict_size)
-								goto bad;
-							USE_DESKTOP(total_written += header.dict_size;)
-						}
-						continue;
+						goto one_byte1;
 #else
 						len = 1;
 						goto string;
@@ -482,7 +475,7 @@ unpack_lzma_stream(int src_fd, int dst_fd)
 				while (pos >= header.dict_size)
 					pos += header.dict_size;
 				previous_byte = buffer[pos];
- SKIP_FEATURE_LZMA_FAST(one_byte:)
+ SKIP_FEATURE_LZMA_FAST(one_byte2:)
 				buffer[buffer_pos++] = previous_byte;
 				if (buffer_pos == header.dict_size) {
 					buffer_pos = 0;
