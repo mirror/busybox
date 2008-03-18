@@ -71,12 +71,6 @@ static char *extract_filename(char *line, int patch_level)
 	return xstrdup(filename_start_ptr);
 }
 
-static int file_doesnt_exist(const char *filename)
-{
-	struct stat statbuf;
-	return stat(filename, &statbuf);
-}
-
 int patch_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int patch_main(int argc ATTRIBUTE_UNUSED, char **argv)
 {
@@ -84,7 +78,8 @@ int patch_main(int argc ATTRIBUTE_UNUSED, char **argv)
 	char *patch_line;
 	int ret;
 	FILE *patch_file = NULL;
-
+	struct stat saved_stat;
+	
 	{
 		char *p, *i;
 		ret = getopt32(argv, "p:i:", &p, &i);
@@ -134,8 +129,9 @@ int patch_main(int argc ATTRIBUTE_UNUSED, char **argv)
 		}
 		new_filename = extract_filename(patch_line, patch_level);
 		free(patch_line);
-
-		if (file_doesnt_exist(new_filename)) {
+		
+		/* Get access rights from the file to be patched, -1 file does not exist */
+		if (stat(new_filename, &saved_stat)) {
 			char *line_ptr;
 			/* Create leading directories */
 			line_ptr = strrchr(new_filename, '/');
@@ -152,9 +148,10 @@ int patch_main(int argc ATTRIBUTE_UNUSED, char **argv)
 			strcat(backup_filename, ".orig");
 			xrename(new_filename, backup_filename);
 			dst_stream = xfopen(new_filename, "w");
+			fchmod(fileno(dst_stream), saved_stat.st_mode);
 		}
 
-		if ((backup_filename == NULL) || file_doesnt_exist(original_filename)) {
+		if ((backup_filename == NULL) || stat(original_filename, &saved_stat)) {
 			src_stream = NULL;
 		} else {
 			if (strcmp(original_filename, new_filename) == 0) {
