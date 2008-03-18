@@ -22,8 +22,10 @@
 #include <syslog.h>
 #include "libbb.h"
 
+#if ENABLE_FEATURE_MOUNT_LABEL
 /* For FEATURE_MOUNT_LABEL only */
 #include "volume_id.h"
+#endif
 
 /* Needed for nfs support only */
 #include <sys/utsname.h>
@@ -252,10 +254,12 @@ static int resolve_mount_spec(char **fsname)
 {
 	char *tmp = NULL;
 
+#if ENABLE_FEATURE_MOUNT_LABEL
 	if (!strncmp(*fsname, "UUID=", 5))
 		tmp = get_devname_from_uuid(*fsname + 5);
 	else if (!strncmp(*fsname, "LABEL=", 6))
 		tmp = get_devname_from_label(*fsname + 6);
+#endif
 
 	if (tmp) {
 		*fsname = tmp;
