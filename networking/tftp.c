@@ -56,6 +56,8 @@
  * CMD_GET(cmd) and CMD_PUT(cmd) are mutually exclusive
  */
 
+// TODO: emit error packets before dying
+
 
 #if ENABLE_FEATURE_TFTP_BLOCKSIZE
 
@@ -340,7 +342,7 @@ static int tftp_protocol(
 
 			const char *msg = "";
 
-			if (rbuf[4] != '\0') {
+			if (len > 4 && rbuf[4] != '\0') {
 				msg = &rbuf[4];
 				rbuf[tftp_bufsize - 1] = '\0';
 			} else if (recv_blk < ARRAY_SIZE(errcode_str)) {
@@ -533,14 +535,14 @@ static len_and_sockaddr *get_sock_lsa(int s)
 }
 
 int tftpd_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int tftpd_main(int argc ATTRIBUTE_UNUSED, char **argv ATTRIBUTE_UNUSED)
+int tftpd_main(int argc ATTRIBUTE_UNUSED, char **argv)
 {
-	struct stat statbuf;
 	char block_buf[TFTP_BLOCKSIZE_DEFAULT];
 	len_and_sockaddr *our_lsa;
 	len_and_sockaddr *peer_lsa;
 	char *filename, *mode, *opt_str;
-	int result, opcode, cmd, req_modebits, open_mode, local_fd, blksize;
+	int opt_r, result, opcode, open_mode, local_fd, blksize;
+	USE_GETPUT(int cmd;)
 
 	our_lsa = get_sock_lsa(STDIN_FILENO);
 	if (!our_lsa)
@@ -548,8 +550,10 @@ int tftpd_main(int argc ATTRIBUTE_UNUSED, char **argv ATTRIBUTE_UNUSED)
 	peer_lsa = xzalloc(LSA_LEN_SIZE + our_lsa->len);
 	peer_lsa->len = our_lsa->len;
 
-	if (argv[1])
-		xchdir(argv[1]);
+	opt_r = getopt32(argv, "r");
+	argv += optind;
+	if (argv[0])
+		xchdir(argv[0]);
 
 	result = recv_from_to(STDIN_FILENO, block_buf, sizeof(block_buf),
 			0 /* flags */,
@@ -558,7 +562,10 @@ int tftpd_main(int argc ATTRIBUTE_UNUSED, char **argv ATTRIBUTE_UNUSED)
 	opcode = ntohs(*(uint16_t*)block_buf);
 	if (result < 4 || result >= sizeof(block_buf)
 	 || block_buf[result-1] != '\0'
-	 || (opcode != TFTP_RRQ && opcode != TFTP_WRQ)
+	 || (USE_FEATURE_TFTP_GET(opcode != TFTP_RRQ) /* not download */
+	     USE_GETPUT(&&)
+	     USE_FEATURE_TFTP_GET(opcode != TFTP_WRQ) /* not upload */
+	    )
 	) {
 		bb_error_msg_and_die("malformed packet");
 	}
@@ -584,21 +591,20 @@ int tftpd_main(int argc ATTRIBUTE_UNUSED, char **argv ATTRIBUTE_UNUSED)
 		}
 	}
 #endif
-	xstat(filename, &statbuf);
-	/* if opcode == TFTP_WRQ: */
-	cmd = 1; /* CMD_GET: we will receive file's data */
-	req_modebits = 0222; /* writable by anyone */
-	open_mode = O_WRONLY | O_TRUNC;
-	if (opcode == TFTP_RRQ) {
-		cmd = 2; /* CMD_PUT */
-		req_modebits = 0444; /* readable by anyone */
-		open_mode = O_RDONLY;
+
+#if ENABLE_FEATURE_TFTP_PUT
+	/* in case opcode is TFTP_RRQ: */
+	USE_GETPUT(cmd = 2;) /* CMD_PUT: we will send file's data */
+	open_mode = O_RDONLY;
+#endif
+#if ENABLE_FEATURE_TFTP_GET
+	if (!ENABLE_FEATURE_TFTP_PUT || opcode == TFTP_WRQ) {
+		if (opt_r)
+			bb_error_msg_and_die("upload is prohibited");
+		USE_GETPUT(cmd = 1;) /* CMD_GET: we will receive file's data */
+		open_mode = O_WRONLY | O_TRUNC;
 	}
-	if (!S_ISREG(statbuf.st_mode)
-	 || (statbuf.st_mode & req_modebits) != req_modebits
-	) {
-		bb_error_msg_and_die("access to '%s' is denied", filename);
-	}
+#endif
 	local_fd = xopen(filename, open_mode);
 
 	close(STDIN_FILENO); /* close old, possibly wildcard socket */

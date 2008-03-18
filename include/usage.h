@@ -3977,9 +3977,11 @@
 	)
 
 #define tftpd_trivial_usage \
-       "[DIR]"
+       "[-r] [DIR]"
 #define tftpd_full_usage \
-       "Transfer a file on request from a tftp client" \
+       "Transfer a file on request from a tftp client.\n" \
+     "\nOptions:" \
+     "\n	-r	Prohibit upload" \
 
 #define time_trivial_usage \
        "[OPTION]... COMMAND [ARGS...]"
