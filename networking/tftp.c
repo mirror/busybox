@@ -623,9 +623,7 @@ int tftpd_main(int argc ATTRIBUTE_UNUSED, char **argv)
 	char *local_file, *mode;
 	const char *error_msg;
 	int opt, result, opcode;
-	int local_fd = local_fd; /* for compiler */
-	int blksize = blksize;
-	USE_GETPUT(int cmd = cmd;)
+	int blksize = TFTP_BLKSIZE_DEFAULT;
 
 	INIT_G();
 
@@ -658,14 +656,13 @@ int tftpd_main(int argc ATTRIBUTE_UNUSED, char **argv)
 	}
 	local_file = block_buf + 2;
 	if (local_file[0] == '.' || strstr(local_file, "/.")) {
-		error_msg = "dot in local_file";
+		error_msg = "dot in file name";
 		goto err;
 	}
 	mode = local_file + strlen(local_file) + 1;
 	if (mode >= block_buf + result || strcmp(mode, "octet") != 0) {
 		goto err;
 	}
-	blksize = TFTP_BLKSIZE_DEFAULT;
 #if ENABLE_FEATURE_TFTP_BLOCKSIZE
 	{
 		char *res;
