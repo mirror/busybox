@@ -18,17 +18,19 @@
 
 void die_if_bad_username(const char *name)
 {
-	int i = 0;
-
+	goto skip; /* 1st char being dash isn't valid */
 	do {
-		if (!isalnum(*name)
-		 && !(*name == '_')
-		 && !(*name == '.')
-		 && !(*name == '@')
-		 && !(*name == '-' && i)
-		 && !(*name == '$' && !*(name + 1))
-		)
-			bb_error_msg_and_die("illegal character '%c'", *name);
-		i++;
+		if (*name == '-')
+			continue;
+ skip:
+		if (isalnum(*name)
+		 || *name == '_'
+		 || *name == '.'
+		 || *name == '@'
+		 || (*name == '$' && !*(name + 1))
+		) {
+			continue;
+		}
+		bb_error_msg_and_die("illegal character '%c'", *name);
 	} while (*++name);
 }
