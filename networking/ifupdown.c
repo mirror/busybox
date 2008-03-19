@@ -939,13 +939,13 @@ static int doit(char *str)
 		int status;
 
 		fflush(NULL);
-		child = fork();
+		child = vfork();
 		switch (child) {
 		case -1: /* failure */
 			return 0;
 		case 0: /* child */
 			execle(DEFAULT_SHELL, DEFAULT_SHELL, "-c", str, NULL, my_environ);
-			exit(127);
+			_exit(127);
 		}
 		safe_waitpid(child, &status, 0);
 		if (!WIFEXITED(status) || WEXITSTATUS(status) != 0) {
@@ -1008,11 +1008,11 @@ static int popen2(FILE **in, FILE **out, char *command, char *param)
 	xpiped_pair(outfd);
 
 	fflush(NULL);
-	pid = fork();
+	pid = vfork();
 
 	switch (pid) {
 	case -1:  /* failure */
-		bb_perror_msg_and_die("fork");
+		bb_perror_msg_and_die("vfork");
 	case 0:  /* child */
 		/* NB: close _first_, then move fds! */
 		close(infd.wr);
