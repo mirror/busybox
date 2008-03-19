@@ -3977,11 +3977,13 @@
 	)
 
 #define tftpd_trivial_usage \
-       "[-r] [DIR]"
+       "[-cr] [-u USER] [DIR]"
 #define tftpd_full_usage \
-       "Transfer a file on request from a tftp client.\n" \
+       "Transfer a file on tftp client's request.\n" \
      "\nOptions:" \
      "\n	-r	Prohibit upload" \
+     "\n	-c	Allow file creation via upload" \
+     "\n	-u	Access files as USER" \
 
 #define time_trivial_usage \
        "[OPTION]... COMMAND [ARGS...]"

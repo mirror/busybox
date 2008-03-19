@@ -51,6 +51,17 @@
 #define ERR_BAD_USER 7
 #define ERR_BAD_OPT  8
 
+/* masks coming from getopt32 */
+enum {
+	TFTP_OPT_GET = (1 << 0),
+	TFTP_OPT_PUT = (1 << 1),
+	/* pseudo option: if set, it's tftpd */
+	TFTPD_OPT = (1 << 7) * ENABLE_TFTPD,
+	TFTPD_OPT_r = (1 << 8) * ENABLE_TFTPD,
+	TFTPD_OPT_c = (1 << 9) * ENABLE_TFTPD,
+	TFTPD_OPT_u = (1 << 10) * ENABLE_TFTPD,
+};
+
 #if ENABLE_FEATURE_TFTP_GET && !ENABLE_FEATURE_TFTP_PUT
 #define USE_GETPUT(...)
 #define CMD_GET(cmd) 1
@@ -61,9 +72,8 @@
 #define CMD_PUT(cmd) 1
 #else
 #define USE_GETPUT(...) __VA_ARGS__
-/* masks coming from getopt32 */
-#define CMD_GET(cmd) ((cmd) & 1)
-#define CMD_PUT(cmd) ((cmd) & 2)
+#define CMD_GET(cmd) ((cmd) & TFTP_OPT_GET)
+#define CMD_PUT(cmd) ((cmd) & TFTP_OPT_PUT)
 #endif
 /* NB: in the code below
  * CMD_GET(cmd) and CMD_PUT(cmd) are mutually exclusive
@@ -73,11 +83,15 @@
 struct globals {
 	/* u16 TFTP_ERROR; u16 reason; both network-endian, then error text: */
 	uint8_t error_pkt[4 + 32];
+#if ENABLE_TFTPD
+	char *user_opt;
+#endif
 	/* used in tftpd_main(), a bit big for stack: */
 	char block_buf[TFTP_BLKSIZE_DEFAULT];
 };
 #define G (*(struct globals*)&bb_common_bufsiz1)
 #define block_buf        (G.block_buf   )
+#define user_opt         (G.user_opt    )
 #define error_pkt        (G.error_pkt   )
 #define INIT_G() \
 	do { \
@@ -148,11 +162,10 @@ static char *tftp_get_blksize(char *buf, int len)
 #endif
 
 static int tftp_protocol(
-		USE_GETPUT(int cmd,)
 		len_and_sockaddr *our_lsa,
 		len_and_sockaddr *peer_lsa,
+		const char *local_file,
 		USE_TFTP(const char *remote_file,)
-		int local_fd,
 		int blksize)
 {
 #if !ENABLE_TFTP
@@ -167,6 +180,7 @@ static int tftp_protocol(
 	uint16_t opcode;
 	uint16_t block_nr;
 	uint16_t recv_blk;
+	int open_mode, local_fd;
 	int retries, waittime_ms;
 	int io_bufsize = blksize + 4;
 	char *cp;
@@ -179,6 +193,39 @@ static int tftp_protocol(
 
 	socket_fd = xsocket(peer_lsa->u.sa.sa_family, SOCK_DGRAM, 0);
 	setsockopt_reuseaddr(socket_fd);
+
+#if ENABLE_TFTPD
+	if (user_opt) {
+		struct passwd *pw = getpwnam(user_opt); /* initgroups, setgid, setuid */
+		if (!pw)
+			bb_error_msg_and_die("unknown user '%s'", user_opt);
+		change_identity(pw);
+	}
+#endif
+
+	if (CMD_PUT(option_mask32)) {
+		open_mode = O_RDONLY;
+	} else {
+		open_mode = O_WRONLY | O_TRUNC | O_CREAT;
+#if ENABLE_TFTPD
+		if ((option_mask32 & (TFTPD_OPT+TFTPD_OPT_c)) == TFTPD_OPT) {
+			/* tftpd without -c */
+			open_mode = O_WRONLY | O_TRUNC;
+		}
+#endif
+	}
+	if (!(option_mask32 & TFTPD_OPT)) {
+		local_fd = CMD_GET(option_mask32) ? STDOUT_FILENO : STDIN_FILENO;
+		if (NOT_LONE_DASH(local_file))
+			local_fd = xopen(local_file, open_mode);
+	} else {
+		local_fd = open_or_warn(local_file, open_mode);
+		if (local_fd < 0) {
+			/*error_pkt_reason = ERR_NOFILE/ERR_ACCESS?*/
+			strcpy(error_pkt_str, "can't open file");
+			goto send_err_pkt;
+		}
+	}
 
 	block_nr = 1;
 	if (!ENABLE_TFTP || our_lsa) {
@@ -197,7 +244,7 @@ static int tftp_protocol(
 		if (error_pkt_reason || error_pkt_str[0])
 			goto send_err_pkt;
 
-		if (CMD_GET(cmd)) {
+		if (CMD_GET(option_mask32)) {
 			/* it's upload - we must ACK 1st packet (with filename)
 			 * as if it's "block 0" */
 			block_nr = 0;
@@ -231,7 +278,7 @@ static int tftp_protocol(
 
 		/* build opcode */
 		opcode = TFTP_WRQ;
-		if (CMD_GET(cmd)) {
+		if (CMD_GET(option_mask32)) {
 			opcode = TFTP_RRQ;
 		}
 		cp = xbuf + 2;
@@ -276,7 +323,7 @@ static int tftp_protocol(
 		cp += 2;
 		block_nr++;
 		opcode = TFTP_ACK;
-		if (CMD_PUT(cmd)) {
+		if (CMD_PUT(option_mask32)) {
 			opcode = TFTP_DATA;
 			len = full_read(local_fd, cp, blksize);
 			if (len < 0) {
@@ -420,7 +467,7 @@ static int tftp_protocol(
 		/* block_nr is already advanced to next block# we expect
 		 * to get / block# we are about to send next time */
 
-		if (CMD_GET(cmd) && (opcode == TFTP_DATA)) {
+		if (CMD_GET(option_mask32) && (opcode == TFTP_DATA)) {
 			if (recv_blk == block_nr) {
 				int sz = full_write(local_fd, &rbuf[4], len - 4);
 				if (sz != len - 4) {
@@ -440,7 +487,7 @@ static int tftp_protocol(
 			}
 		}
 
-		if (CMD_PUT(cmd) && (opcode == TFTP_ACK)) {
+		if (CMD_PUT(option_mask32) && (opcode == TFTP_ACK)) {
 			/* did peer ACK our last DATA pkt? */
 			if (recv_blk == (uint16_t) (block_nr - 1)) {
 				if (finished)
@@ -462,6 +509,7 @@ static int tftp_protocol(
 	} /* end of "while (1)" */
  ret:
 	if (ENABLE_FEATURE_CLEAN_UP) {
+		close(local_fd);
 		close(socket_fd);
 		free(xbuf);
 		free(rbuf);
@@ -487,13 +535,11 @@ int tftp_main(int argc ATTRIBUTE_UNUSED, char **argv)
 	len_and_sockaddr *peer_lsa;
 	const char *local_file = NULL;
 	const char *remote_file = NULL;
-	int port;
-	USE_GETPUT(int cmd;)
-	int local_fd;
-	int flags = 0;
-	int result;
-	int blksize;
 	const char *blksize_str = "512";
+	int blksize;
+	int result;
+	int port;
+	USE_GETPUT(int opt;)
 
 	INIT_G();
 
@@ -501,16 +547,12 @@ int tftp_main(int argc ATTRIBUTE_UNUSED, char **argv)
 	opt_complementary = "" USE_FEATURE_TFTP_GET("g:") USE_FEATURE_TFTP_PUT("p:")
 			USE_GETPUT("g--p:p--g:");
 
-	USE_GETPUT(cmd =) getopt32(argv,
+	USE_GETPUT(opt =) getopt32(argv,
 			USE_FEATURE_TFTP_GET("g") USE_FEATURE_TFTP_PUT("p")
 				"l:r:" USE_FEATURE_TFTP_BLOCKSIZE("b:"),
 			&local_file, &remote_file
 			USE_FEATURE_TFTP_BLOCKSIZE(, &blksize_str));
 	argv += optind;
-
-	flags = O_RDONLY;
-	if (CMD_GET(cmd))
-		flags = O_WRONLY | O_CREAT | O_TRUNC;
 
 #if ENABLE_FEATURE_TFTP_BLOCKSIZE
 	/* Check if the blksize is valid:
@@ -530,11 +572,6 @@ int tftp_main(int argc ATTRIBUTE_UNUSED, char **argv)
 	if (!remote_file || !argv[0])
 		bb_show_usage();
 
-	local_fd = CMD_GET(cmd) ? STDOUT_FILENO : STDIN_FILENO;
-	if (!LONE_DASH(local_file)) {
-		local_fd = xopen(local_file, flags);
-	}
-
 	port = bb_lookup_port(argv[1], "udp", 69);
 	peer_lsa = xhost2sockaddr(argv[0], port);
 
@@ -545,14 +582,11 @@ int tftp_main(int argc ATTRIBUTE_UNUSED, char **argv)
 #endif
 
 	result = tftp_protocol(
-			USE_GETPUT(cmd,)
-			NULL /* our_lsa*/,
-			peer_lsa,
-			remote_file, local_fd, blksize);
+			NULL /* our_lsa*/, peer_lsa,
+			local_file, remote_file,
+			blksize);
 
-	if (ENABLE_FEATURE_CLEAN_UP)
-		close(local_fd);
-	if (result != EXIT_SUCCESS && !LONE_DASH(local_file) && CMD_GET(cmd)) {
+	if (result != EXIT_SUCCESS && NOT_LONE_DASH(local_file) && CMD_GET(opt)) {
 		unlink(local_file);
 	}
 	return result;
@@ -581,9 +615,9 @@ int tftpd_main(int argc ATTRIBUTE_UNUSED, char **argv)
 {
 	len_and_sockaddr *our_lsa;
 	len_and_sockaddr *peer_lsa;
-	char *filename, *mode;
+	char *local_file, *mode;
 	const char *error_msg;
-	int opt_r, result, opcode, open_mode;
+	int opt, result, opcode;
 	int local_fd = local_fd; /* for compiler */
 	int blksize = blksize;
 	USE_GETPUT(int cmd = cmd;)
@@ -596,7 +630,8 @@ int tftpd_main(int argc ATTRIBUTE_UNUSED, char **argv)
 	peer_lsa = xzalloc(LSA_LEN_SIZE + our_lsa->len);
 	peer_lsa->len = our_lsa->len;
 
-	opt_r = getopt32(argv, "r");
+	/* Shifting to not collide with TFTP_OPTs */
+	opt = option_mask32 = TFTPD_OPT | (getopt32(argv, "rcu:", &user_opt) << 8);
 	argv += optind;
 	if (argv[0])
 		xchdir(argv[0]);
@@ -616,15 +651,13 @@ int tftpd_main(int argc ATTRIBUTE_UNUSED, char **argv)
 	) {
 		goto err;
 	}
-	filename = block_buf + 2;
-	if (filename[0] == '.' || strstr(filename, "/.")) {
-		error_msg = "dot in filename";
+	local_file = block_buf + 2;
+	if (local_file[0] == '.' || strstr(local_file, "/.")) {
+		error_msg = "dot in local_file";
 		goto err;
 	}
-	mode = filename + strlen(filename) + 1;
-	if (mode >= block_buf + result
-	 || strcmp(mode, "octet") != 0
-	) {
+	mode = local_file + strlen(local_file) + 1;
+	if (mode >= block_buf + result || strcmp(mode, "octet") != 0) {
 		goto err;
 	}
 	blksize = TFTP_BLKSIZE_DEFAULT;
@@ -647,29 +680,16 @@ int tftpd_main(int argc ATTRIBUTE_UNUSED, char **argv)
 	}
 #endif
 
-#if ENABLE_FEATURE_TFTP_PUT
-	/* in case opcode is TFTP_RRQ: */
-	USE_GETPUT(cmd = 2;) /* CMD_PUT: we will send file's data */
-	open_mode = O_RDONLY;
-#endif
-#if ENABLE_FEATURE_TFTP_GET
 	if (!ENABLE_FEATURE_TFTP_PUT || opcode == TFTP_WRQ) {
-		if (opt_r) {
+		if (opt & TFTPD_OPT_r) {
 			/* This would mean "disk full" - not true */
 			/*error_pkt_reason = ERR_WRITE;*/
 			error_msg = bb_msg_write_error;
 			goto err;
 		}
-		USE_GETPUT(cmd = 1;) /* CMD_GET: we will receive file's data */
-		open_mode = O_WRONLY | O_TRUNC;
-	}
-#endif
-	local_fd = open(filename, open_mode);
-	if (local_fd < 0) {
-		/*error_pkt_reason = ERR_NOFILE/ERR_ACCESS?*/
-		error_msg = "can't open file";
- err:
-		strcpy(error_pkt_str, error_msg);
+		USE_GETPUT(option_mask32 |= TFTP_OPT_GET;) /* will receive file's data */
+	} else {
+		USE_GETPUT(option_mask32 |= TFTP_OPT_PUT;) /* will send file's data */
 	}
 
 	close(STDIN_FILENO); /* close old, possibly wildcard socket */
@@ -679,14 +699,15 @@ int tftpd_main(int argc ATTRIBUTE_UNUSED, char **argv)
 	 * tftp_protocol() just sends one error pkt and returns */
  do_proto:
 	result = tftp_protocol(
-		USE_GETPUT(cmd,)
 		our_lsa, peer_lsa,
-		USE_TFTP(NULL /*remote_file*/,)
-		local_fd,
+		local_file, USE_TFTP(NULL /*remote_file*/,)
 		blksize
 	);
 
 	return result;
+ err:
+	strcpy(error_pkt_str, error_msg);
+	goto do_proto;
 }
 
 #endif /* ENABLE_TFTPD */
