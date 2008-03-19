@@ -278,7 +278,7 @@ char *xmalloc_follow_symlinks(const char *path);
 
 
 enum {
-	/* bb_signals(BB_SIGS_FATAL, handler) catches all signals which
+	/* bb_signals(BB_FATAL_SIGS, handler) catches all signals which
 	 * otherwise would kill us, except for those resulting from bugs:
 	 * SIGSEGV, SIGILL, SIGFPE.
 	 * Other fatal signals not included (TODO?):
@@ -288,7 +288,7 @@ enum {
 	 * SIGSYS   Bad argument to routine
 	 * SIGTRAP  Trace/breakpoint trap
 	 */
-	BB_SIGS_FATAL = 0
+	BB_FATAL_SIGS = 0
 		+ (1 << SIGHUP)
 		+ (1 << SIGINT)
 		+ (1 << SIGTERM)

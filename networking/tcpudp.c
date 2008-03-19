@@ -264,7 +264,7 @@ int tcpudpsvd_main(int argc ATTRIBUTE_UNUSED, char **argv)
 
 	sig_block(SIGCHLD);
 	signal(SIGCHLD, sig_child_handler);
-	bb_signals(BB_SIGS_FATAL, sig_term_handler);
+	bb_signals(BB_FATAL_SIGS, sig_term_handler);
 	signal(SIGPIPE, SIG_IGN);
 
 	if (max_per_host)

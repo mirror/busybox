@@ -46,7 +46,7 @@ int watchdog_main(int argc, char **argv)
 		bb_daemonize_or_rexec(DAEMON_CHDIR_ROOT, argv);
 	}
 
-	bb_signals(BB_SIGS_FATAL, watchdog_shutdown);
+	bb_signals(BB_FATAL_SIGS, watchdog_shutdown);
 
 	/* Use known fd # - avoid needing global 'int fd' */
 	xmove_fd(xopen(argv[argc - 1], O_WRONLY), 3);

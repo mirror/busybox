@@ -1400,7 +1400,7 @@ int less_main(int argc, char **argv)
 	term_less.c_cc[VTIME] = 0;
 
 	/* We want to restore term_orig on exit */
-	bb_signals(BB_SIGS_FATAL, sig_catcher);
+	bb_signals(BB_FATAL_SIGS, sig_catcher);
 
 	reinitialize();
 	while (1) {

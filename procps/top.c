@@ -108,8 +108,13 @@ enum { LINE_BUF_SIZE = COMMON_BUFSIZE - offsetof(struct globals, line_buf) };
 #define total_pcpu       (G.total_pcpu        )
 #define line_buf         (G.line_buf          )
 
-
-#define OPT_BATCH_MODE (option_mask32 & 0x4)
+enum {
+	OPT_d = (1 << 0),
+	OPT_n = (1 << 1),
+	OPT_b = (1 << 2),
+	OPT_EOF = (1 << 3), /* pseudo: "we saw EOF in stdin" */
+};
+#define OPT_BATCH_MODE (option_mask32 & OPT_b)
 
 
 #if ENABLE_FEATURE_USE_TERMIOS
@@ -165,7 +170,7 @@ static void get_jiffy_counts(void)
 	if (fscanf(fp, "cpu  %lld %lld %lld %lld %lld %lld %lld %lld",
 			&jif.usr,&jif.nic,&jif.sys,&jif.idle,
 			&jif.iowait,&jif.irq,&jif.softirq,&jif.steal) < 4) {
-		bb_error_msg_and_die("failed to read /proc/stat");
+		bb_error_msg_and_die("can't read /proc/stat");
 	}
 	fclose(fp);
 	jif.total = jif.usr + jif.nic + jif.sys + jif.idle
@@ -506,7 +511,7 @@ static void clearmems(void)
 
 static void reset_term(void)
 {
-	tcsetattr(0, TCSANOW, (void *) &initial_settings);
+	tcsetattr(0, TCSANOW, &initial_settings);
 	if (ENABLE_FEATURE_CLEAN_UP) {
 		clearmems();
 #if ENABLE_FEATURE_TOP_CPU_USAGE_PERCENTAGE
@@ -753,13 +758,13 @@ int top_main(int argc ATTRIBUTE_UNUSED, char **argv)
 
 	INIT_G();
 
-	interval = 5; /* default update rate is 5 seconds */
+	interval = 5; /* default update interval is 5 seconds */
 	iterations = 0; /* infinite */
 
-	/* do normal option parsing */
+	/* all args are options; -n NUM */
 	opt_complementary = "-:n+";
 	getopt32(argv, "d:n:b", &sinterval, &iterations);
-	if (option_mask32 & 0x1) {
+	if (option_mask32 & OPT_d) {
 		/* Need to limit it to not overflow poll timeout */
 		interval = xatou16(sinterval); // -d
 	}
@@ -772,12 +777,8 @@ int top_main(int argc ATTRIBUTE_UNUSED, char **argv)
 	/* unbuffered input, turn off echo */
 	new_settings.c_lflag &= ~(ISIG | ICANON | ECHO | ECHONL);
 
-	bb_signals(0
-		+ (1 << SIGTERM)
-		+ (1 << SIGINT)
-		, sig_catcher);
+	bb_signals(BB_FATAL_SIGS, sig_catcher);
 	tcsetattr(0, TCSANOW, (void *) &new_settings);
-	atexit(reset_term);
 #endif /* FEATURE_USE_TERMIOS */
 
 #if ENABLE_FEATURE_TOP_CPU_USAGE_PERCENTAGE
@@ -794,7 +795,8 @@ int top_main(int argc ATTRIBUTE_UNUSED, char **argv)
 		lines = 24; /* default */
 		col = 79;
 #if ENABLE_FEATURE_USE_TERMIOS
-		get_terminal_width_height(0, &col, &lines);
+		/* We output to stdout, we need size of stdout (not stdin)! */
+		get_terminal_width_height(STDOUT_FILENO, &col, &lines);
 		if (lines < 5 || col < 10) {
 			sleep(interval);
 			continue;
@@ -839,9 +841,10 @@ int top_main(int argc ATTRIBUTE_UNUSED, char **argv)
 				topmem[n].stack    = p->stack;
 #endif
 			}
-		}
+		} /* end of "while we read /proc" */
 		if (ntop == 0) {
-			bb_error_msg_and_die("no process info in /proc");
+			bb_error_msg("no process info in /proc");
+			break;
 		}
 
 		if (scan_mask == TOP_MASK) {
@@ -875,9 +878,14 @@ int top_main(int argc ATTRIBUTE_UNUSED, char **argv)
 #if !ENABLE_FEATURE_USE_TERMIOS
 		sleep(interval);
 #else
-		if (safe_poll(pfd, 1, interval * 1000) > 0) {
-			if (read(0, &c, 1) != 1)    /* signal */
-				break;
+		if (option_mask32 & (OPT_b|OPT_EOF))
+			 /* batch mode, or EOF on stdin ("top </dev/null") */
+			sleep(interval);
+		else if (safe_poll(pfd, 1, interval * 1000) > 0) {
+			if (safe_read(0, &c, 1) != 1) { /* error/EOF? */
+				option_mask32 |= OPT_EOF;
+				continue;
+			}
 			if (c == initial_settings.c_cc[VINTR])
 				break;
 			c |= 0x20; /* lowercase */
@@ -922,7 +930,9 @@ int top_main(int argc ATTRIBUTE_UNUSED, char **argv)
 #endif
 		}
 #endif /* FEATURE_USE_TERMIOS */
-	}
+	} /* end of "while (1)" */
+
 	bb_putchar('\n');
+	reset_term();
 	return EXIT_SUCCESS;
 }
