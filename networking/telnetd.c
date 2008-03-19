@@ -56,11 +56,7 @@ enum { BUFSIZE = (4 * 1024 - sizeof(struct tsession)) / 2 };
 /* Globals */
 static int maxfd;
 static struct tsession *sessions;
-#if ENABLE_LOGIN
 static const char *loginpath = "/bin/login";
-#else
-static const char *loginpath = DEFAULT_SHELL;
-#endif
 static const char *issuefile = "/etc/issue.net";
 
 
