@@ -83,9 +83,7 @@ enum {
 struct globals {
 	/* u16 TFTP_ERROR; u16 reason; both network-endian, then error text: */
 	uint8_t error_pkt[4 + 32];
-#if ENABLE_TFTPD
 	char *user_opt;
-#endif
 	/* used in tftpd_main(), a bit big for stack: */
 	char block_buf[TFTP_BLKSIZE_DEFAULT];
 };
@@ -183,7 +181,7 @@ static int tftp_protocol(
 	int open_mode, local_fd;
 	int retries, waittime_ms;
 	int io_bufsize = blksize + 4;
-	char *cp;
+	char *cp = cp; /* for compiler */
 	/* Can't use RESERVE_CONFIG_BUFFER here since the allocation
 	 * size varies meaning BUFFERS_GO_ON_STACK would fail */
 	/* We must keep the transmit and receive buffers seperate */
@@ -194,40 +192,8 @@ static int tftp_protocol(
 	socket_fd = xsocket(peer_lsa->u.sa.sa_family, SOCK_DGRAM, 0);
 	setsockopt_reuseaddr(socket_fd);
 
-#if ENABLE_TFTPD
-	if (user_opt) {
-		struct passwd *pw = getpwnam(user_opt); /* initgroups, setgid, setuid */
-		if (!pw)
-			bb_error_msg_and_die("unknown user '%s'", user_opt);
-		change_identity(pw);
-	}
-#endif
-
-	if (CMD_PUT(option_mask32)) {
-		open_mode = O_RDONLY;
-	} else {
-		open_mode = O_WRONLY | O_TRUNC | O_CREAT;
-#if ENABLE_TFTPD
-		if ((option_mask32 & (TFTPD_OPT+TFTPD_OPT_c)) == TFTPD_OPT) {
-			/* tftpd without -c */
-			open_mode = O_WRONLY | O_TRUNC;
-		}
-#endif
-	}
-	if (!(option_mask32 & TFTPD_OPT)) {
-		local_fd = CMD_GET(option_mask32) ? STDOUT_FILENO : STDIN_FILENO;
-		if (NOT_LONE_DASH(local_file))
-			local_fd = xopen(local_file, open_mode);
-	} else {
-		local_fd = open_or_warn(local_file, open_mode);
-		if (local_fd < 0) {
-			/*error_pkt_reason = ERR_NOFILE/ERR_ACCESS?*/
-			strcpy(error_pkt_str, "can't open file");
-			goto send_err_pkt;
-		}
-	}
-
 	block_nr = 1;
+
 	if (!ENABLE_TFTP || our_lsa) {
 		/* tftpd */
 
@@ -258,9 +224,48 @@ static int tftp_protocol(
 			 * that is, for "block 0" which is our OACK pkt */
 			opcode = TFTP_OACK;
 			cp = xbuf + 2;
+			/* to be continued, see below */
+		}
+#endif
+		if (user_opt) {
+			struct passwd *pw = getpwnam(user_opt);
+			if (!pw)
+				bb_error_msg_and_die("unknown user '%s'", user_opt);
+			change_identity(pw); /* initgroups, setgid, setuid */
+		}
+	}
+
+	/* Open local file (must be after changing user) */
+	if (CMD_PUT(option_mask32)) {
+		open_mode = O_RDONLY;
+	} else {
+		open_mode = O_WRONLY | O_TRUNC | O_CREAT;
+#if ENABLE_TFTPD
+		if ((option_mask32 & (TFTPD_OPT+TFTPD_OPT_c)) == TFTPD_OPT) {
+			/* tftpd without -c */
+			open_mode = O_WRONLY | O_TRUNC;
+		}
+#endif
+	}
+	if (!(option_mask32 & TFTPD_OPT)) {
+		local_fd = CMD_GET(option_mask32) ? STDOUT_FILENO : STDIN_FILENO;
+		if (NOT_LONE_DASH(local_file))
+			local_fd = xopen(local_file, open_mode);
+	} else {
+		local_fd = open_or_warn(local_file, open_mode);
+		if (local_fd < 0) {
+			/*error_pkt_reason = ERR_NOFILE/ERR_ACCESS?*/
+			strcpy(error_pkt_str, "can't open file");
+			goto send_err_pkt;
+		}
+	}
+
+	if (!ENABLE_TFTP || our_lsa) {
+#if ENABLE_FEATURE_TFTP_BLOCKSIZE
+		if (blksize != TFTP_BLKSIZE_DEFAULT) {
+			/* Create and send OACK packet. continued */
 			goto add_blksize_opt;
 		}
-		/* else: just fall into while (1) loop below */
 #endif
 	} else {
 		/* tftp */
