@@ -111,6 +111,7 @@ int adduser_main(int argc ATTRIBUTE_UNUSED, char **argv)
 
 	/* fill in the passwd struct */
 	pw.pw_name = argv[0];
+	die_if_bad_username(pw.pw_name);
 	if (!pw.pw_dir) {
 		/* create string for $HOME if not specified already */
 		pw.pw_dir = xasprintf("/home/%s", argv[0]);

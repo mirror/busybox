@@ -637,7 +637,11 @@ const char* get_cached_groupname(gid_t gid);
 void clear_username_cache(void);
 /* internally usernames are saved in fixed-sized char[] buffers */
 enum { USERNAME_MAX_SIZE = 16 - sizeof(int) };
-
+#if ENABLE_FEATURE_CHECK_NAMES
+void die_if_bad_username(const char* name);
+#else
+#define die_if_bad_username(name) ((void)(name))
+#endif
 
 int execable_file(const char *name);
 char *find_execable(const char *filename);

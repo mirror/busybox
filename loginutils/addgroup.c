@@ -173,8 +173,11 @@ int addgroup_main(int argc ATTRIBUTE_UNUSED, char **argv)
 #endif
 	} else
 #endif /* ENABLE_FEATURE_ADDUSER_TO_GROUP */
+	{
+		die_if_bad_username(argv[0]);
 		new_group(argv[0], gid);
 
+	}
 	/* Reached only on success */
 	return EXIT_SUCCESS;
 }
