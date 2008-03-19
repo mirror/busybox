@@ -38,10 +38,12 @@
 #define TFTP_ERROR 5
 #define TFTP_OACK  6
 
-/* error codes sent over network */
+/* error codes sent over network (we use only 0, 3 and 8) */
+/* generic (error message is included in the packet) */
 #define ERR_UNSPEC   0
 #define ERR_NOFILE   1
 #define ERR_ACCESS   2
+/* disk full or allocation exceeded */
 #define ERR_WRITE    3
 #define ERR_OP       4
 #define ERR_BAD_ID   5
@@ -71,7 +73,7 @@
 struct globals {
 	/* u16 TFTP_ERROR; u16 reason; both network-endian, then error text: */
 	uint8_t error_pkt[4 + 32];
-	/* used in tftpd_main(), a bit big fro stack: */
+	/* used in tftpd_main(), a bit big for stack: */
 	char block_buf[TFTP_BLKSIZE_DEFAULT];
 };
 #define G (*(struct globals*)&bb_common_bufsiz1)
@@ -420,13 +422,13 @@ static int tftp_protocol(
 
 		if (CMD_GET(cmd) && (opcode == TFTP_DATA)) {
 			if (recv_blk == block_nr) {
-				len = full_write(local_fd, &rbuf[4], len - 4);
-				if (len < 0) {
-					bb_perror_msg(bb_msg_write_error);
+				int sz = full_write(local_fd, &rbuf[4], len - 4);
+				if (sz != len - 4) {
+					strcpy(error_pkt_str, bb_msg_write_error);
 					error_pkt_reason = ERR_WRITE;
 					goto send_err_pkt;
 				}
-				if (len != blksize) {
+				if (sz != blksize) {
 					finished = 1;
 				}
 				continue; /* send ACK */
@@ -467,9 +469,10 @@ static int tftp_protocol(
 	return finished == 0; /* returns 1 on failure */
 
  send_read_err_pkt:
-	bb_perror_msg(bb_msg_read_error);
 	strcpy(error_pkt_str, bb_msg_read_error);
  send_err_pkt:
+	if (error_pkt_str[0])
+		bb_error_msg(error_pkt_str);
 	error_pkt[1] = TFTP_ERROR;
 	xsendto(socket_fd, error_pkt, 4 + 1 + strlen(error_pkt_str),
 			&peer_lsa->u.sa, peer_lsa->len);
@@ -652,9 +655,10 @@ int tftpd_main(int argc ATTRIBUTE_UNUSED, char **argv)
 #if ENABLE_FEATURE_TFTP_GET
 	if (!ENABLE_FEATURE_TFTP_PUT || opcode == TFTP_WRQ) {
 		if (opt_r) {
-			error_pkt_reason = ERR_WRITE;
-			/* will just send error pkt */
-			goto do_proto;
+			/* This would mean "disk full" - not true */
+			/*error_pkt_reason = ERR_WRITE;*/
+			error_msg = bb_msg_write_error;
+			goto err;
 		}
 		USE_GETPUT(cmd = 1;) /* CMD_GET: we will receive file's data */
 		open_mode = O_WRONLY | O_TRUNC;
@@ -662,6 +666,7 @@ int tftpd_main(int argc ATTRIBUTE_UNUSED, char **argv)
 #endif
 	local_fd = open(filename, open_mode);
 	if (local_fd < 0) {
+		/*error_pkt_reason = ERR_NOFILE/ERR_ACCESS?*/
 		error_msg = "can't open file";
  err:
 		strcpy(error_pkt_str, error_msg);
