@@ -108,7 +108,7 @@ int send_inform(struct dhcpMessage *oldpacket);
 
 /*** files.h ***/
 
-int read_config(const char *file);
+void read_config(const char *file);
 void write_leases(void);
 void read_leases(const char *file);
 struct option_set *find_option(struct option_set *opt_list, uint8_t code);

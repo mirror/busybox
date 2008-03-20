@@ -167,7 +167,7 @@ static int read_opt(const char *const_line, void *arg)
 	if (!opt)
 		return 0;
 
-	idx = index_in_strings(opt, dhcp_option_strings); /* NB: was strcasecmp! */
+	idx = index_in_strings(dhcp_option_strings, opt); /* NB: was strcasecmp! */
 	if (idx < 0)
 		return 0;
 	option = &dhcp_options[idx];
@@ -286,8 +286,6 @@ static const struct config_keyword keywords[] = {
 	{"start",        read_ip,  &(server_config.start_ip),     "192.168.0.20"},
 	{"end",          read_ip,  &(server_config.end_ip),       "192.168.0.254"},
 	{"interface",    read_str, &(server_config.interface),    "eth0"},
-	{"option",       read_opt, &(server_config.options),      ""},
-	{"opt",          read_opt, &(server_config.options),      ""},
 	/* Avoid "max_leases value not sane" warning by setting default
 	 * to default_end_ip - default_start_ip + 1: */
 	{"max_leases",   read_u32, &(server_config.max_leases),   "235"},
@@ -299,13 +297,17 @@ static const struct config_keyword keywords[] = {
 	{"min_lease",    read_u32, &(server_config.min_lease),    "60"},
 	{"lease_file",   read_str, &(server_config.lease_file),   LEASES_FILE},
 	{"pidfile",      read_str, &(server_config.pidfile),      "/var/run/udhcpd.pid"},
-	{"notify_file",  read_str, &(server_config.notify_file),  ""},
 	{"siaddr",       read_ip,  &(server_config.siaddr),       "0.0.0.0"},
+	/* keywords with no defaults must be last! */
+	{"option",       read_opt, &(server_config.options),      ""},
+	{"opt",          read_opt, &(server_config.options),      ""},
+	{"notify_file",  read_str, &(server_config.notify_file),  ""},
 	{"sname",        read_str, &(server_config.sname),        ""},
 	{"boot_file",    read_str, &(server_config.boot_file),    ""},
 	{"static_lease", read_staticlease, &(server_config.static_leases), ""},
 	/* ADDME: static lease */
 };
+enum { KWS_WITH_DEFAULTS = ARRAY_SIZE(keywords) - 6 };
 
 
 /*
@@ -315,28 +317,23 @@ static const struct config_keyword keywords[] = {
  */
 #define READ_CONFIG_BUF_SIZE 80
 
-int read_config(const char *file)
+void read_config(const char *file)
 {
 	FILE *in;
 	char buffer[READ_CONFIG_BUF_SIZE], *token, *line;
-	int i, lm = 0;
+	int i, lineno;
 
-	for (i = 0; i < ARRAY_SIZE(keywords); i++)
-		if (keywords[i].def[0])
-			keywords[i].handler(keywords[i].def, keywords[i].var);
+	for (i = 0; i < KWS_WITH_DEFAULTS; i++)
+		keywords[i].handler(keywords[i].def, keywords[i].var);
 
 	in = fopen_or_warn(file, "r");
-	if (!in) {
-		return 0;
-	}
+	if (!in)
+		return;
 
+	lineno = 0;
 	while (fgets(buffer, READ_CONFIG_BUF_SIZE, in)) {
-		char debug_orig[READ_CONFIG_BUF_SIZE];
-
-		lm++;
-		*strchrnul(buffer, '\n') = '\0';
-		if (ENABLE_FEATURE_UDHCP_DEBUG)
-			strcpy(debug_orig, buffer);
+		lineno++;
+		/* *strchrnul(buffer, '\n') = '\0'; - trim() will do it */
 		*strchrnul(buffer, '#') = '\0';
 
 		token = strtok(buffer, " \t");
@@ -344,29 +341,24 @@ int read_config(const char *file)
 		line = strtok(NULL, "");
 		if (!line) continue;
 
-		/* eat leading whitespace */
-		line = skip_whitespace(line);
-		/* eat trailing whitespace */
-		i = strlen(line) - 1;
-		while (i >= 0 && isspace(line[i]))
-			line[i--] = '\0';
+		trim(line); /* remove leading/trailing whitespace */
 
-		for (i = 0; i < ARRAY_SIZE(keywords); i++)
-			if (!strcasecmp(token, keywords[i].keyword))
+		for (i = 0; i < ARRAY_SIZE(keywords); i++) {
+			if (!strcasecmp(token, keywords[i].keyword)) {
 				if (!keywords[i].handler(line, keywords[i].var)) {
-					bb_error_msg("cannot parse line %d of %s", lm, file);
-					if (ENABLE_FEATURE_UDHCP_DEBUG)
-						bb_error_msg("cannot parse '%s'", debug_orig);
+					bb_error_msg("can't parse line %d in %s at '%s'",
+							lineno, file, line);
 					/* reset back to the default value */
 					keywords[i].handler(keywords[i].def, keywords[i].var);
 				}
+				break;
+			}
+		}
 	}
 	fclose(in);
 
 	server_config.start_ip = ntohl(server_config.start_ip);
 	server_config.end_ip = ntohl(server_config.end_ip);
-
-	return 1;
 }
 
 
