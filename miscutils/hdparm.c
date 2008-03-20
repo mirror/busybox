@@ -245,7 +245,12 @@ struct globals {
 	smallint set_readonly, get_readonly;
 	smallint set_unmask, get_unmask;
 	smallint set_mult, get_mult;
-	smallint set_dma_q, get_dma_q;
+#ifdef HDIO_GET_QDMA
+	smallint get_dma_q;
+#ifdef HDIO_SET_QDMA
+	smallint set_dma_q;
+#endif
+#endif
 	smallint set_nowerr, get_nowerr;
 	smallint set_keep, get_keep;
 	smallint set_io32bit, get_io32bit;
@@ -254,7 +259,9 @@ struct globals {
 	unsigned long readonly;
 	unsigned long unmask;
 	unsigned long mult;
+#ifdef HDIO_SET_QDMA
 	unsigned long dma_q;
+#endif
 	unsigned long nowerr;
 	unsigned long keep;
 	unsigned long io32bit;
@@ -278,7 +285,7 @@ struct globals {
 	smallint set_apmmode, get_apmmode;
 	int xfermode_requested;
 	unsigned long dkeep;
-	unsigned long standby_requested;
+	unsigned long standby_requested; /* 0..255 */
 	unsigned long lookahead;
 	unsigned long prefetch;
 	unsigned long defects;
@@ -1444,29 +1451,22 @@ static void bus_state_value(unsigned value)
 #endif
 
 #ifdef HDIO_DRIVE_CMD
-static void interpret_standby(unsigned standby)
+static void interpret_standby(uint8_t standby)
 {
-	unsigned t;
-
 	printf(" (");
-	if (standby == 0)
+	if (standby == 0) {
 		printf("off");
-	else if (standby == 252)
-		printf("21 minutes");
-	else if (standby == 253)
-		printf("vendor-specific");
-	else if (standby == 254)
-		printf("reserved");
-	else if (standby == 255)
-		printf("21 minutes + 15 seconds");
-	else if (standby <= 240) {
-		t = standby * 5;
-		printf("%u minutes + %u seconds", t / 60, t % 60);
+	} else if (standby <= 240 || standby == 252 || standby == 255) {
+		/* standby is in 5 sec units */
+		printf("%u minutes %u seconds", standby / 12, (standby*5) % 60);
 	} else if (standby <= 251) {
-		t = (standby - 240) * 30;
-		printf("%u hours + %u minutes", t / 60, t % 60);
-	} else
-		printf("illegal value");
+		unsigned t = (standby - 240); /* t is in 30 min units */;
+		printf("%u.%c hours", t / 2, (t & 1) ? '0' : '5');
+	}
+	if (standby == 253)
+		printf("vendor-specific");
+	if (standby == 254)
+		printf("reserved");
 	printf(")\n");
 }
 
@@ -1604,10 +1604,12 @@ static void process_dev(char *devname)
 		ioctl_or_warn(fd, HDIO_SET_DMA, (int *)dma);
 	}
 #endif /* FEATURE_HDPARM_HDIO_GETSET_DMA */
+#ifdef HDIO_SET_QDMA
 	if (set_dma_q) {
 		print_flag_on_off(get_dma_q, "DMA queue_depth", dma_q);
 		ioctl_or_warn(fd, HDIO_SET_QDMA, (int *)dma_q);
 	}
+#endif
 	if (set_nowerr) {
 		print_flag_on_off(get_nowerr, "nowerr", nowerr);
 		ioctl_or_warn(fd, HDIO_SET_NOWERR, (int *)nowerr);
@@ -1780,10 +1782,12 @@ static void process_dev(char *devname)
 		}
 	}
 #endif
+#ifdef HDIO_GET_QDMA
 	if (get_dma_q) {
 		if(!ioctl_or_warn(fd, HDIO_GET_QDMA, &parm))
 			print_value_on_off("queue_depth", parm);
 	}
+#endif
 	if (get_keep) {
 		if(!ioctl_or_warn(fd, HDIO_GET_KEEPSETTINGS, &parm))
 			print_value_on_off("keepsettings", parm);
@@ -2007,7 +2011,7 @@ int hdparm_main(int argc, char **argv)
 		do_flush |= do_timings |= (c == 't');
 		do_flush |= do_ctimings |= (c == 'T');
 #ifdef HDIO_DRIVE_CMD
-		if (c == 'S') parse_opts(&get_standby, &set_standby, &standby_requested, 0, INT_MAX);
+		if (c == 'S') parse_opts(&get_standby, &set_standby, &standby_requested, 0, 255);
 		if (c == 'D') parse_opts(&get_defects, &set_defects, &defects, 0, INT_MAX);
 		if (c == 'P') parse_opts(&get_prefetch, &set_prefetch, &prefetch, 0, INT_MAX);
 		parse_xfermode((c == 'X'), &get_xfermode, &set_xfermode, &xfermode_requested);

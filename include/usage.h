@@ -1415,7 +1415,7 @@
      "\n	-n	Get/set ignore-write-errors flag (0/1)" \
      "\n	-p	Set PIO mode on IDE interface chipset (0,1,2,3,4,...)" \
      "\n	-P	Set drive prefetch count" \
-     "\n	-q	Change next setting quietly" \
+/*   "\n	-q	Change next setting quietly" - not supported ib bbox */ \
      "\n	-Q	Get/set DMA tagged-queuing depth (if supported)" \
      "\n	-r	Get/set readonly flag (DANGEROUS to set)" \
 	USE_FEATURE_HDPARM_HDIO_SCAN_HWIF( \
