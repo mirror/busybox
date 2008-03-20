@@ -175,7 +175,7 @@ int crond_main(int argc ATTRIBUTE_UNUSED, char **argv)
 	if (!(opt & OPT_f)) {
 		/* close stdin, stdout, stderr.
 		 * close unused descriptors - don't need them. */
-		bb_daemonize_or_rexec(DAEMON_CLOSE_EXTRA_FDS, av);
+		bb_daemonize_or_rexec(DAEMON_CLOSE_EXTRA_FDS, argv);
 	}
 
 	if (!DebugOpt && LogFile == NULL) {
