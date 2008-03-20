@@ -517,7 +517,10 @@ static action*** parse_params(char **argv)
 	unsigned cur_action = 0;
 	USE_FEATURE_FIND_NOT( bool invert_flag = 0; )
 
-	/* 'static' doesn't work here! (gcc 4.1.2) */
+	/* This is the only place in busybox where we use nested function.
+	 * So far more standard alternatives were bigger. */
+	/* Suppress a warning "func without a prototype" */
+	auto action* alloc_action(int sizeof_struct, action_fp f);
 	action* alloc_action(int sizeof_struct, action_fp f)
 	{
 		action *ap;

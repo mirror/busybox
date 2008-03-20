@@ -52,7 +52,8 @@
 # define ATTRIBUTE_NORETURN __attribute__ ((__noreturn__))
 # define ATTRIBUTE_PACKED __attribute__ ((__packed__))
 # define ATTRIBUTE_ALIGNED(m) __attribute__ ((__aligned__(m)))
-# if __GNUC_PREREQ (3,0)
+/* __NO_INLINE__: some gcc's do not honor inlining! :( */
+# if __GNUC_PREREQ (3,0) && !defined(__NO_INLINE__)
 #  define ALWAYS_INLINE __attribute__ ((always_inline)) inline
 /* I've seen a toolchain where I needed __noinline__ instead of noinline */
 #  define NOINLINE      __attribute__((__noinline__))
