@@ -933,6 +933,8 @@ int top_main(int argc ATTRIBUTE_UNUSED, char **argv)
 	} /* end of "while (1)" */
 
 	bb_putchar('\n');
+#if ENABLE_FEATURE_USE_TERMIOS
 	reset_term();
+#endif
 	return EXIT_SUCCESS;
 }
