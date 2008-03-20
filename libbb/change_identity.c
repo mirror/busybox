@@ -35,7 +35,7 @@ void change_identity(const struct passwd *pw)
 {
 	if (initgroups(pw->pw_name, pw->pw_gid) == -1)
 		bb_perror_msg_and_die("can't set groups");
-	endgrent(); /* ?? */
+	endgrent(); /* helps to close a fd used internally by libc */
 	xsetgid(pw->pw_gid);
 	xsetuid(pw->pw_uid);
 }

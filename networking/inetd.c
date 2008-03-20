@@ -142,15 +142,15 @@
 /* Here's the scoop concerning the user[:group] feature:
  * 1) group is not specified:
  *      a) user = root: NO setuid() or setgid() is done
- *      b) other:       setgid(primary group as found in passwd)
- *                      initgroups(name, primary group)
+ *      b) other:       initgroups(name, primary group)
+ *                      setgid(primary group as found in passwd)
  *                      setuid()
  * 2) group is specified:
  *      a) user = root: setgid(specified group)
  *                      NO initgroups()
  *                      NO setuid()
- *      b) other:       setgid(specified group)
- *                      initgroups(name, specified group)
+ *      b) other:       initgroups(name, specified group)
+ *                      setgid(specified group)
  *                      setuid()
  */
 
@@ -1383,9 +1383,8 @@ int inetd_main(int argc ATTRIBUTE_UNUSED, char **argv)
 			if (pwd->pw_uid) {
 				if (sep->se_group)
 					pwd->pw_gid = grp->gr_gid;
-				xsetgid(pwd->pw_gid);
-				initgroups(pwd->pw_name, pwd->pw_gid);
-				xsetuid(pwd->pw_uid);
+				/* initgroups, setgid, setuid: */
+				change_identity(pwd);
 			} else if (sep->se_group) {
 				xsetgid(grp->gr_gid);
 				setgroups(1, &grp->gr_gid);

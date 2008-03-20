@@ -630,12 +630,11 @@ int initgroups(const char *user, gid_t gid)
 	char buff[PWD_BUFFER_SIZE];
 
 	rv = -1;
+	grfile = fopen(_PATH_GROUP, "r");
+	if (grfile != NULL) {
 
-	/* We alloc space for 8 gids at a time. */
-	group_list = (gid_t *) malloc(8*sizeof(gid_t *));
-	if (group_list
-	 && ((grfile = fopen(_PATH_GROUP, "r")) != NULL)
-	) {
+		/* We alloc space for 8 gids at a time. */
+		group_list = xmalloc(8 * sizeof(gid_t *));
 		*group_list = gid;
 		num_groups = 1;
 
@@ -645,13 +644,8 @@ int initgroups(const char *user, gid_t gid)
 				for (m = group.gr_mem; *m; m++) {
 					if (!strcmp(*m, user)) {
 						if (!(num_groups & 7)) {
-							gid_t *tmp = (gid_t *)
-								realloc(group_list,
-										(num_groups+8) * sizeof(gid_t *));
-							if (!tmp) {
-								rv = -1;
-								goto DO_CLOSE;
-							}
+							gid_t *tmp = xrealloc(group_list,
+									(num_groups+8) * sizeof(gid_t *));
 							group_list = tmp;
 						}
 						group_list[num_groups++] = group.gr_gid;
@@ -662,13 +656,10 @@ int initgroups(const char *user, gid_t gid)
 		}
 
 		rv = setgroups(num_groups, group_list);
-	DO_CLOSE:
+		free(group_list);
 		fclose(grfile);
 	}
 
-	/* group_list will be NULL if initial malloc failed, which may trigger
-	 * warnings from various malloc debuggers. */
-	free(group_list);
 	return rv;
 }
 
@@ -677,7 +668,7 @@ int putpwent(const struct passwd *__restrict p, FILE *__restrict f)
 	int rv = -1;
 
 	if (!p || !f) {
-		errno=EINVAL;
+		errno = EINVAL;
 	} else {
 		/* No extra thread locking is needed above what fprintf does. */
 		if (fprintf(f, "%s:%s:%lu:%lu:%s:%s:%s\n",
@@ -702,7 +693,7 @@ int putgrent(const struct group *__restrict p, FILE *__restrict f)
 	int rv = -1;
 
 	if (!p || !f) {				/* Sigh... glibc checks. */
-		errno=EINVAL;
+		errno = EINVAL;
 	} else {
 		if (fprintf(f, "%s:%s:%lu:",
 					p->gr_name, p->gr_passwd,

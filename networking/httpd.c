@@ -2340,7 +2340,7 @@ int httpd_main(int argc ATTRIBUTE_UNUSED, char **argv)
 #if ENABLE_FEATURE_HTTPD_SETUID
 	if (opt & OPT_SETUID) {
 		if (!get_uidgid(&ugid, s_ugid, 1))
-			bb_error_msg_and_die("unrecognized user[:group] "
+			bb_error_msg_and_die("unknown user[:group] "
 						"name '%s'", s_ugid);
 	}
 #endif
@@ -2389,10 +2389,8 @@ int httpd_main(int argc ATTRIBUTE_UNUSED, char **argv)
 #if ENABLE_FEATURE_HTTPD_RELOAD_CONFIG_SIGHUP
 	if (!(opt & OPT_INETD))
 		sighup_handler(0);
-	else /* do not install HUP handler in inetd mode */
 #endif
-		index_page = "index.html";
-		parse_conf(default_path_httpd_conf, FIRST_PARSE);
+	parse_conf(default_path_httpd_conf, FIRST_PARSE);
 
 	xfunc_error_retval = 0;
 	if (opt & OPT_INETD)
