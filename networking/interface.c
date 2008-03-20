@@ -560,9 +560,8 @@ static int if_readlist_proc(char *target)
 	if (!target)
 		proc_read = 1;
 
-	fh = fopen(_PATH_PROCNET_DEV, "r");
+	fh = fopen_or_warn(_PATH_PROCNET_DEV, "r");
 	if (!fh) {
-		bb_perror_msg("warning: cannot open %s, limiting output", _PATH_PROCNET_DEV);
 		return if_readconf();
 	}
 	fgets(buf, sizeof buf, fh);	/* eat line */

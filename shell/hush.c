@@ -891,7 +891,8 @@ static int builtin_cd(char **argv)
 static int builtin_exec(char **argv)
 {
 	if (argv[1] == NULL)
-		return EXIT_SUCCESS;   /* Really? */
+		return EXIT_SUCCESS; /* bash does this */
+// FIXME: if exec fails, bash does NOT exit! We do...
 	pseudo_exec_argv(argv + 1);
 	/* never returns */
 }

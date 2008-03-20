@@ -477,8 +477,7 @@ static void load_fs_info(const char *filename)
 	int     old_fstab = 1;
 	struct fs_info *fs;
 
-	if ((f = fopen(filename, "r")) == NULL) {
-		bb_perror_msg("WARNING: cannot open %s", filename);
+	if ((f = fopen_or_warn(filename, "r")) == NULL) {
 		return;
 	}
 	while (!feof(f)) {

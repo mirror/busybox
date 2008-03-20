@@ -91,7 +91,6 @@ static int print_route(struct sockaddr_nl *who ATTRIBUTE_UNUSED,
 	int host_len = -1;
 	SPRINT_BUF(b1);
 
-
 	if (n->nlmsg_type != RTM_NEWROUTE && n->nlmsg_type != RTM_DELROUTE) {
 		fprintf(stderr, "Not a route: %08x %08x %08x\n",
 			n->nlmsg_len, n->nlmsg_type, n->nlmsg_flags);
