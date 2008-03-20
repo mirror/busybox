@@ -378,7 +378,7 @@ config MORE
 config FEATURE_USE_TERMIOS
 	bool "Use termios to manipulate the screen"
 	default y
-	depends on MORE
+	depends on MORE || TOP
 	help
 	  This option allows utilities such as 'more' and 'top' to determine
 	  the size of the screen.  If you leave this disabled, your utilities
