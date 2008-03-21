@@ -167,7 +167,7 @@ static int read_opt(const char *const_line, void *arg)
 	if (!opt)
 		return 0;
 
-	idx = index_in_strings(opt, dhcp_option_strings); /* NB: was strcasecmp! */
+	idx = index_in_strings(dhcp_option_strings, opt); /* NB: was strcasecmp! */
 	if (idx < 0)
 		return 0;
 	option = &dhcp_options[idx];
