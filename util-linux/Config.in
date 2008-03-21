@@ -639,6 +639,7 @@ config FEATURE_MOUNT_LABEL
 	bool "Support specifiying devices by label or UUID"
 	default n
 	depends on MOUNT
+	select VOLUMEID
 	help
 	  This allows for specifying a device by label or uuid, rather than by
 	  name.  This feature utilizes the same functionality as findfs.

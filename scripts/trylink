@@ -116,7 +116,7 @@ try $CC $CFLAGS $LDFLAGS \
 	-Wl,--start-group $O_FILES $A_FILES -Wl,--end-group \
 	$l_list \
 || {
-    echo "Failed: $* $l_list"
+    echo "Failed: $l_list"
     cat $EXE.out
     exit 1
 }
