@@ -1211,7 +1211,7 @@ static void parse_prompt(const char *prmt_ptr)
 #endif
 
 #define setTermSettings(fd, argp) tcsetattr(fd, TCSANOW, argp)
-#define getTermSettings(fd, argp) tcgetattr(fd, argp);
+#define getTermSettings(fd, argp) tcgetattr(fd, argp)
 
 static sighandler_t previous_SIGWINCH_handler;
 
@@ -1270,9 +1270,10 @@ int read_line_input(const char *prompt, char *command, int maxsize, line_input_t
 	smalluint prevc;
 #endif
 
-	getTermSettings(0, (void *) &initial_settings);
-	/* Happens when e.g. stty -echo was run before */
-	if (!(initial_settings.c_lflag & ECHO)) {
+	if (getTermSettings(0, (void *) &initial_settings) < 0
+	 /* Happens when e.g. stty -echo was run before */
+	 || !(initial_settings.c_lflag & ECHO)
+	) {
 		parse_prompt(prompt);
 		fflush(stdout);
 		fgets(command, maxsize, stdin);

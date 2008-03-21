@@ -184,6 +184,7 @@ struct globals {
 #if ENABLE_FEATURE_VI_COLON
 	char *initial_cmds[3];  // currently 2 entries, NULL terminated
 #endif
+	char readbuffer[MAX_LINELEN];
 };
 #define G (*ptr_to_globals)
 #define text           (G.text          )
@@ -200,6 +201,10 @@ struct globals {
 #define term_orig      (G.term_orig     )
 #define term_vi        (G.term_vi       )
 #define initial_cmds   (G.initial_cmds  )
+#define readbuffer     (G.readbuffer    )
+#define INIT_G() do { \
+	PTR_TO_GLOBALS = xzalloc(sizeof(G)); \
+} while (0)
 
 static int init_text_buffer(char *); // init from file or create new
 static void edit_file(char *);	// edit one file
@@ -321,7 +326,7 @@ int vi_main(int argc, char **argv)
 	my_pid = getpid();
 #endif
 
-	PTR_TO_GLOBALS = xzalloc(sizeof(G));
+	INIT_G();
 
 #if ENABLE_FEATURE_VI_CRASHME
 	srand((long) my_pid);
@@ -2141,8 +2146,6 @@ static int mysleep(int hund)	// sleep for 'h' 1/100 seconds
 	pfd[0].events = POLLIN;
 	return safe_poll(pfd, 1, hund*10) > 0;
 }
-
-#define readbuffer bb_common_bufsiz1
 
 static int readed_for_parse;
 

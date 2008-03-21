@@ -207,7 +207,8 @@ static int recv_pack(unsigned char *buf, int len, struct sockaddr_ll *FROM)
 		}
 
 		if (last) {
-			printf(" %u.%03ums\n", last / 1000, last % 1000);
+			unsigned diff = MONOTONIC_US() - last;
+			printf(" %u.%03ums\n", diff / 1000, diff % 1000);
 		} else {
 			printf(" UNSOLICITED?\n");
 		}

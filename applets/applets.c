@@ -17,7 +17,7 @@
 #warning See sources.redhat.com/bugzilla/show_bug.cgi?id=3400
 #warning Note that glibc is unsuitable for static linking anyway.
 #warning If you still want to do it, remove -Wl,--gc-sections
-#warning from top-level Makefile and remove this warning.
+#warning from file scripts/trylink and remove this warning.
 #error Aborting compilation.
 #endif
 
