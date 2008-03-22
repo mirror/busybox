@@ -1950,7 +1950,7 @@ static void handle_incoming_and_exit(const len_and_sockaddr *fromAddr)
 			if ((STRNCASECMP(iobuf, "Content-length:") == 0)) {
 				/* extra read only for POST */
 				if (prequest != request_GET) {
-					tptr = tptr = skip_whitespace(iobuf + sizeof("Content-length:") - 1);
+					tptr = skip_whitespace(iobuf + sizeof("Content-length:") - 1);
 					if (!tptr[0])
 						send_headers_and_exit(HTTP_BAD_REQUEST);
 					errno = 0;
