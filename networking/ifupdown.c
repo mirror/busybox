@@ -19,7 +19,6 @@
 
 #include <sys/utsname.h>
 #include <fnmatch.h>
-#include <getopt.h>
 
 #include "libbb.h"
 

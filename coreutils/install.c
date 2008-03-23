@@ -9,9 +9,6 @@
  *           owner/group, will probably modify bb_make_directory(...)
  */
 
-#include <libgen.h>
-#include <getopt.h> /* struct option */
-
 #include "libbb.h"
 #include "libcoreutils/coreutils.h"
 

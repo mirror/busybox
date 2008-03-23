@@ -30,8 +30,6 @@
  * -u MASK      umask. Set the umask of the program executed to MASK.
  */
 
-#include <getopt.h>
-
 #include "libbb.h"
 
 struct globals {

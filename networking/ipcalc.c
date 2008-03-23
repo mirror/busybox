@@ -12,7 +12,6 @@
  * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  */
 
-#include <getopt.h>
 #include <sys/socket.h>
 #include <arpa/inet.h>
 

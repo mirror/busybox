@@ -19,7 +19,6 @@
 /* Nov 28, 2006      Yoshinori Sato <ysato@users.sourceforge.jp>: Add SELinux Support.
  */
 
-#include <getopt.h> /* struct option */
 #include "libbb.h"
 
 /* This is a NOFORK applet. Be very careful! */

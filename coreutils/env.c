@@ -29,7 +29,6 @@
  * - use xfunc_error_retval
  */
 
-#include <getopt.h> /* struct option */
 #include "libbb.h"
 
 #if ENABLE_FEATURE_ENV_LONG_OPTIONS

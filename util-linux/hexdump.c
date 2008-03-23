@@ -9,7 +9,6 @@
  * Licensed under GPLv2 or later, see file License in this tarball for details.
  */
 
-#include <getopt.h>
 #include "libbb.h"
 #include "dump.h"
 

@@ -50,7 +50,6 @@ diff -u -a std bbox >bbox.diff || { echo Different!; sleep 1; }
 */
 
 #include "libbb.h"
-#include <getopt.h>
 
 #define assert(a) ((void)0)
 

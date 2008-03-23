@@ -9,8 +9,6 @@
 #include "libbb.h"
 
 #if ENABLE_GETOPT_LONG
-#include <getopt.h>
-
 static const char chpasswd_longopts[] ALIGN1 =
 	"encrypted\0" No_argument "e"
 	"md5\0"       No_argument "m"

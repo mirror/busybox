@@ -10,7 +10,6 @@
  *
  */
 
-#include <getopt.h>
 #include "libbb.h"
 #include <linux/kd.h>
 

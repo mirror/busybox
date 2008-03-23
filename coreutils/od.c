@@ -17,7 +17,6 @@
 /* This one provides -t (busybox's own build script needs it) */
 #include "od_bloaty.c"
 #else
-#include <getopt.h>
 
 #include "dump.h"
 

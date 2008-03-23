@@ -7,7 +7,6 @@
  */
 
 #include <sched.h>
-#include <getopt.h> /* optind */
 #include "libbb.h"
 #ifndef _POSIX_PRIORITY_SCHEDULING
 #warning your system may be foobared

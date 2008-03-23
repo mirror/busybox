@@ -8,7 +8,6 @@
  * Licensed under the GPL v2 or later, see the file LICENSE in this tarball.
  */
 
-#include <getopt.h>
 #include <syslog.h>
 
 /* Override ENABLE_FEATURE_PIDFILE - ifupdown needs our pidfile to always exist */

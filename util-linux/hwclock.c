@@ -8,7 +8,6 @@
 */
 
 #include <sys/utsname.h>
-#include <getopt.h>
 #include "libbb.h"
 #include "rtc_.h"
 

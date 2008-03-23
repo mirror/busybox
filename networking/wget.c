@@ -6,7 +6,6 @@
  *
  */
 
-#include <getopt.h>	/* for struct option */
 #include "libbb.h"
 
 struct host_info {

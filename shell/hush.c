@@ -78,7 +78,6 @@
 
 
 #include <glob.h>      /* glob, of course */
-#include <getopt.h>    /* should be pretty obvious */
 /* #include <dmalloc.h> */
 
 #include "busybox.h" /* for APPLET_IS_NOFORK/NOEXEC */

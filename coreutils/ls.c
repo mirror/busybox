@@ -29,7 +29,6 @@
  * 1. requires lstat (BSD) - how do you do it without?
  */
 
-#include <getopt.h>
 #include "libbb.h"
 
 /* This is a NOEXEC applet. Be very careful! */

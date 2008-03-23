@@ -9,7 +9,6 @@
  */
 
 #include <mntent.h>
-#include <getopt.h>
 #include "libbb.h"
 
 /* ignored: -v -d -t -i */

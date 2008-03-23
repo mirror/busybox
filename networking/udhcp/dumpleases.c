@@ -2,7 +2,6 @@
 /*
  * Licensed under the GPL v2 or later, see the file LICENSE in this tarball.
  */
-#include <getopt.h>
 
 #include "common.h"
 #include "dhcpd.h"

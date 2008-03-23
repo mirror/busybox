@@ -7,7 +7,6 @@
  */
 
 #include <sched.h>
-#include <getopt.h> /* optind */
 #include "libbb.h"
 
 #if ENABLE_FEATURE_TASKSET_FANCY

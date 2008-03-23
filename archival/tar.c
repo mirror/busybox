@@ -24,7 +24,6 @@
  */
 
 #include <fnmatch.h>
-#include <getopt.h>
 #include "libbb.h"
 #include "unarchive.h"
 

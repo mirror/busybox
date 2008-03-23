@@ -7,7 +7,6 @@
  * Licensed under GPL v2 or later, see file LICENSE in this tarball for details.
  */
 
-#include <getopt.h>
 #include "libbb.h"
 
 int readlink_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;

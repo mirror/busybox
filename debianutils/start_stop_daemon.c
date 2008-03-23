@@ -11,7 +11,6 @@
 /* NB: we have a problem here with /proc/NN/exe usage, similar to
  * one fixed in killall/pidof */
 
-#include <getopt.h>
 #include <sys/resource.h>
 
 /* Override ENABLE_FEATURE_PIDFILE */
