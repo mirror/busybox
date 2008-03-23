@@ -3019,10 +3019,12 @@
        " 2990 andersen andersen R ps\n"
 
 #define pscan_trivial_usage \
-       "[-p MIN_PORT] [-P MAX_PORT] [-t TIMEOUT] [-T MIN_RTT] HOST"
+       "[-cb] [-p MIN_PORT] [-P MAX_PORT] [-t TIMEOUT] [-T MIN_RTT] HOST"
 #define pscan_full_usage \
        "Scan a host, print all open ports\n" \
      "\nOptions:" \
+     "\n	-c	Show closed ports too" \
+     "\n	-c	Show blocked ports too" \
      "\n	-p	Scan from this port (default 1)" \
      "\n	-P	Scan up to this port (default 1024)" \
      "\n	-t	Timeout (default 5000 ms)" \

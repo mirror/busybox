@@ -42,8 +42,10 @@ int pscan_main(int argc ATTRIBUTE_UNUSED, char **argv)
 	 * Rule of thumb: with min_rtt of N msec, scanning 1000 ports
 	 * will take N seconds at absolute minimum */
 	const char *opt_min_rtt = "5";          /* -T: default min rtt in msec */
+	const char *result_str;
 	len_and_sockaddr *lsap;
 	int s;
+	unsigned opt;
 	unsigned port, max_port, nports;
 	unsigned closed_ports = 0;
 	unsigned open_ports = 0;
@@ -51,16 +53,18 @@ int pscan_main(int argc ATTRIBUTE_UNUSED, char **argv)
 	unsigned timeout;
 	unsigned min_rtt;
 	unsigned rtt_4;
-	unsigned start;
+	unsigned start, diff;
 
 	opt_complementary = "=1"; /* exactly one non-option */
-	getopt32(argv, "p:P:t:T:", &opt_min_port, &opt_max_port, &opt_timeout, &opt_min_rtt);
+	opt = getopt32(argv, "cbp:P:t:T:", &opt_min_port, &opt_max_port, &opt_timeout, &opt_min_rtt);
 	argv += optind;
 	max_port = xatou_range(opt_max_port, 1, 65535);
 	port = xatou_range(opt_min_port, 1, max_port);
 	nports = max_port - port + 1;
-	rtt_4 = timeout = xatou_range(opt_timeout, 1, INT_MAX/1000 / 4) * 1000;
 	min_rtt = xatou_range(opt_min_rtt, 1, INT_MAX/1000 / 4) * 1000;
+	timeout = xatou_range(opt_timeout, 1, INT_MAX/1000 / 4) * 1000;
+	/* Initial rtt is BIG: */
+	rtt_4 = timeout;
 
 	DMSG("min_rtt %u timeout %u", min_rtt, timeout);
 
@@ -74,11 +78,12 @@ int pscan_main(int argc ATTRIBUTE_UNUSED, char **argv)
 		/* The SOCK_STREAM socket type is implemented on the TCP/IP protocol. */
 		set_nport(lsap, htons(port));
 		s = xsocket(lsap->u.sa.sa_family, SOCK_STREAM, 0);
-
 		/* We need unblocking socket so we don't need to wait for ETIMEOUT. */
 		/* Nonblocking connect typically "fails" with errno == EINPROGRESS */
 		ndelay_on(s);
+
 		DMSG("connect to port %u", port);
+		result_str = NULL;
 		start = MONOTONIC_US();
 		if (connect(s, &lsap->u.sa, lsap->len) == 0) {
 			/* Unlikely, for me even localhost fails :) */
@@ -92,35 +97,46 @@ int pscan_main(int argc ATTRIBUTE_UNUSED, char **argv)
 			bb_perror_nomsg_and_die();
 		}
 
+		diff = 0;
 		while (1) {
 			if (errno == ECONNREFUSED) {
-				DMSG("port %u: ECONNREFUSED", port);
+				if (opt & 1) /* -c: show closed too */
+					result_str = "closed";
 				closed_ports++;
 				break;
 			}
-			DERR("port %u errno %d @%u", port, errno, MONOTONIC_US() - start);
-			if ((MONOTONIC_US() - start) > rtt_4)
+			DERR("port %u errno %d @%u", port, errno, diff);
+
+			if (diff > rtt_4) {
+				if (opt & 2) /* -b: show blocked too */
+					result_str = "blocked";
 				break;
+			}
 			/* Can sleep (much) longer than specified delay.
 			 * We check rtt BEFORE we usleep, otherwise
-			 * on localhost we'll do zero writes done (!)
+			 * on localhost we'll have no writes done (!)
 			 * before we exceed (rather small) rtt */
 			usleep(rtt_4/8);
-			DMSG("write to port %u @%u", port, MONOTONIC_US() - start);
-			if (write(s, " ", 1) >= 0) { /* We were able to write to the socket */
  open:
+			diff = MONOTONIC_US() - start;
+			DMSG("write to port %u @%u", port, diff - start);
+			if (write(s, " ", 1) >= 0) { /* We were able to write to the socket */
 				open_ports++;
-				printf("%5u\ttcp\topen\t%s\n", port, port_name(port));
+				result_str = "open";
 				break;
 			}
 		}
-		DMSG("out of loop @%u", MONOTONIC_US() - start);
+		DMSG("out of loop @%u", diff);
+		if (result_str)
+			printf("%5u" "\t" "tcp" "\t" "%s" "\t" "%s" "\n",
+					port, result_str, port_name(port));
 
 		/* Estimate new rtt - we don't want to wait entire timeout
 		 * for each port. *4 allows for rise in net delay.
-		 * We increase rtt quickly (*4), decrease slowly (4/8 == 1/2)
+		 * We increase rtt quickly (rtt_4*4), decrease slowly
+		 * (diff is at least rtt_4/8, *4 == rtt_4/2)
 		 * because we don't want to accidentally miss ports. */
-		rtt_4 = (MONOTONIC_US() - start) * 4;
+		rtt_4 = diff * 4;
 		if (rtt_4 < min_rtt)
 			rtt_4 = min_rtt;
 		if (rtt_4 > timeout)
@@ -130,7 +146,7 @@ int pscan_main(int argc ATTRIBUTE_UNUSED, char **argv)
 	}
 	if (ENABLE_FEATURE_CLEAN_UP) free(lsap);
 
-	printf("%d closed, %d open, %d timed out ports\n",
+	printf("%d closed, %d open, %d timed out (or blocked) ports\n",
 					closed_ports,
 					open_ports,
 					nports - (closed_ports + open_ports));
