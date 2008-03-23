@@ -2108,10 +2108,10 @@
        "losetup -f will show the first loop free loop device\n\n"
 
 #define lpd_trivial_usage \
-       "SPOOLDIR"
+       "SPOOLDIR [HELPER [ARGS...]]"
 #define lpd_full_usage \
        "Example:" \
-     "\n	tcpsvd -E 0 515 softlimit -m 99999 lpd /var/spool"
+     "\n	tcpsvd -E 0 515 softlimit -m 999999 lpd /var/spool ./print"
 
 #define lpq_trivial_usage \
        "[-P queue[@host[:port]]] [-U USERNAME] [-d JOBID...] [-fs]"
