@@ -3024,7 +3024,7 @@
        "Scan a host, print all open ports\n" \
      "\nOptions:" \
      "\n	-c	Show closed ports too" \
-     "\n	-c	Show blocked ports too" \
+     "\n	-b	Show blocked ports too" \
      "\n	-p	Scan from this port (default 1)" \
      "\n	-P	Scan up to this port (default 1024)" \
      "\n	-t	Timeout (default 5000 ms)" \
