@@ -283,7 +283,7 @@ static char *make_temp(FILE *f, struct stat *sb)
 	char *name;
 	int fd;
 
-	if (S_ISREG(sb->st_mode))
+	if (S_ISREG(sb->st_mode) || S_ISBLK(sb->st_mode))
 		return NULL;
 	name = xstrdup("/tmp/difXXXXXX");
 	fd = mkstemp(name);
@@ -312,9 +312,15 @@ static NOINLINE int files_differ(FILE *f1, FILE *f2, int flags)
 {
 	size_t i, j;
 
+	/* Prevent making copies for "/dev/null" (too common) */
+	tempname1 = tempname2 = NULL;
+	if (flags & (D_EMPTY1 | D_EMPTY2)) {
+		return 1;
+	}
+	/* Deal with input from pipes etc */
 	tempname1 = make_temp(f1, &stb1);
 	tempname2 = make_temp(f2, &stb2);
-	if ((flags & (D_EMPTY1 | D_EMPTY2)) || stb1.st_size != stb2.st_size) {
+	if (stb1.st_size != stb2.st_size) {
 		return 1;
 	}
 	while (1) {
@@ -631,8 +637,8 @@ static NOINLINE void check(FILE *f1, FILE *f2)
 					J[i] = 0;
 					if (c != '\n' && c != EOF)
 						ctold += skipline(f1);
-// BUG? Should be "if (d != '\n' && d != EOF)" ?
-					if (d != '\n' && c != EOF)
+/* was buggy? "if (d != '\n' && c != EOF)" */
+					if (d != '\n' && d != EOF)
 						ctnew += skipline(f2);
 					break;
 				}
