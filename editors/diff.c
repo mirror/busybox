@@ -282,6 +282,9 @@ static int readhash(FILE *fp)
 }
 
 
+/* Our diff implementation is using seek.
+ * When we meet non-seekable file, we must make a temp copy.
+ */
 static char *make_temp(FILE *f, struct stat *sb)
 {
 	char *name;
@@ -1160,7 +1163,7 @@ static void do_diff(char *dir1, char *path1, char *dir2, char *path2)
 #if ENABLE_FEATURE_DIFF_DIR
 /* This function adds a filename to dl, the directory listing. */
 static int add_to_dirlist(const char *filename,
-		struct stat ATTRIBUTE_UNUSED *sb,
+		struct stat *sb ATTRIBUTE_UNUSED,
 		void *userdata,
 		int depth ATTRIBUTE_UNUSED)
 {
@@ -1178,15 +1181,15 @@ static char **get_recursive_dirlist(char *path)
 	dl_count = 0;
 	dl = xzalloc(sizeof(dl[0]));
 
-	/* If -r has been set, then the recursive_action function will be
-	 * used. Unfortunately, this outputs the root directory along with
-	 * the recursed paths, so use void *userdata to specify the string
-	 * length of the root directory - '(void*)(strlen(path)+)'.
-	 * add_to_dirlist then removes root dir prefix. */
+	/* We need to trim root directory prefix.
+	 * Using void *userdata to specify its length,
+	 * add_to_dirlist will remove it. */
 	if (option_mask32 & FLAG_r) {
 		recursive_action(path, ACTION_RECURSE|ACTION_FOLLOWLINKS,
-					add_to_dirlist, NULL,
-					(void*)(strlen(path)+1), 0);
+					add_to_dirlist, /* file_action */
+					NULL, /* dir_action */
+					(void*)(strlen(path) + 1),
+					0);
 	} else {
 		DIR *dp;
 		struct dirent *ep;
@@ -1328,12 +1331,12 @@ int diff_main(int argc ATTRIBUTE_UNUSED, char **argv)
 		/* NB: "diff dir      dir2/dir3/file" must become
 		 *     "diff dir/file dir2/dir3/file" */
 		char *slash = strrchr(f2, '/');
-		f1 = concat_path_file(f1, slash ? slash+1 : f2);
+		f1 = concat_path_file(f1, slash ? slash + 1 : f2);
 		xstat(f1, &stb1);
 	}
 	if (S_ISDIR(stb2.st_mode)) {
 		char *slash = strrchr(f1, '/');
-		f2 = concat_path_file(f2, slash ? slash+1 : f1);
+		f2 = concat_path_file(f2, slash ? slash + 1 : f1);
 		xstat(f2, &stb2);
 	}
 
