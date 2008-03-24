@@ -9,10 +9,11 @@
 
 /*
  * A typical usage of BB lpd looks as follows:
- * # tcpsvd -E 0 515 lpd SPOOLDIR [HELPER-PROG [ARGS...]]
+ * # tcpsvd -E 0 515 lpd [SPOOLDIR] [HELPER-PROG [ARGS...]]
  *
- * This means a network listener is started on port 515 (default for LP protocol).
- * When a client connection is made (via lpr) lpd first change its working directory to SPOOLDIR.
+ * This starts TCP listener on port 515 (default for LP protocol).
+ * When a client connection is made (via lpr) lpd first changes its
+ * working directory to SPOOLDIR (current dir is the default).
  *
  * SPOOLDIR is the spool directory which contains printing queues
  * and should have the following structure:
@@ -23,44 +24,50 @@
  *      <queueN>
  *
  * <queueX> can be of two types:
- *      A. a printer character device or an ordinary file a link to such;
+ *      A. a printer character device, an ordinary file or a link to such;
  *      B. a directory.
  *
  * In case A lpd just dumps the data it receives from client (lpr) to the
  * end of queue file/device. This is non-spooling mode.
  *
- * In case B lpd enters spooling mode. It reliably saves client data along with control info
- * in two unique files under the queue directory. These files are named dfAXXXHHHH and cfAXXXHHHH,
- * where XXX is the job number and HHHH is the client hostname. Unless a printing helper application
+ * In case B lpd enters spooling mode. It reliably saves client data along
+ * with control info in two unique files under the queue directory. These
+ * files are named dfAXXXHHHH and cfAXXXHHHH, where XXX is the job number
+ * and HHHH is the client hostname. Unless a printing helper application
  * is specified lpd is done at this point.
  *
- * NB: file names are produced by peer! They actually may be anything at all!
+ * NB: file names are produced by peer! They actually may be anything at all.
  * lpd only sanitizes them (by removing most non-alphanumerics).
  *
- * If HELPER-PROG (with optional arguments) is specified then lpd continues to process client data:
- *      1. it reads and parses control file (cfA...). The parse process results in setting environment
- *      variables whose values were passed in control file; when parsing is complete, lpd deletes
- *      control file.
- *      2. it spawns specified helper application. It is then the helper application who is responsible
- *      for both actual printing and deleting processed data file.
+ * If HELPER-PROG (with optional arguments) is specified then lpd continues
+ * to process client data:
+ *      1. it reads and parses control file (cfA...). The parse process
+ *      results in setting environment variables whose values were passed
+ *      in control file; when parsing is complete, lpd deletes control file.
+ *      2. it spawns specified helper application. It is then
+ *      the helper application who is responsible for both actual printing
+ *      and deleting of processed data file.
  *
- * A good lpr passes control files which when parsed provide the following variables:
+ * A good lpr passes control files which when parsed provides the following
+ * variables:
  * $H = host which issues the job
  * $P = user who prints
  * $C = class of printing (what is printed on banner page)
  * $J = the name of the job
  * $L = print banner page
  * $M = the user to whom a mail should be sent if a problem occurs
+ *
+ * We specifically filter out and NOT provide:
  * $l = name of datafile ("dfAxxx") - file whose content are to be printed
  *
- * lpd also provides $DATAFILE environment variable - the ACTUAL name
+ * lpd provides $DATAFILE instead - the ACTUAL name
  * of the datafile under which it was saved.
- * $l is not reliable (you are at mercy of remote peer), DON'T USE IT.
+ * $l would be not reliable (you would be at mercy of remote peer).
  *
  * Thus, a typical helper can be something like this:
  * #!/bin/sh
- * cat "$l" >/dev/lp0
- * mv -f "$l" save/
+ * cat ./"$DATAFILE" >/dev/lp0
+ * mv -f ./"$DATAFILE" save/
  */
 
 #include "libbb.h"
@@ -87,6 +94,8 @@ static void exec_helper(char **filenames, char **argv)
 	char *p, *q;
 	char var[2];
 
+	var[1] = '\0';
+
 	// read and delete ctrlfile
 	q = xmalloc_open_read_close(filenames[0], NULL);
 	unlink(filenames[0]);
@@ -97,11 +106,13 @@ static void exec_helper(char **filenames, char **argv)
 	 && isalpha(*q)
 	) {
 		*p++ = '\0';
-		// here q is a line of <SYM><VALUE>
-		// let us set environment string <SYM>=<VALUE>
-		var[0] = *q++;
-		var[1] = '\0';
-		xsetenv(var, q);
+		// q is a line of <SYM><VALUE>,
+		// we are setting environment string <SYM>=<VALUE>.
+		// Ignoring "l<datafile>", exporting others:
+		if (*q != 'l') {
+			var[0] = *q++;
+			xsetenv(var, q);
+		}
 		// next line, plz!
 		q = p;
 	}
@@ -110,7 +121,7 @@ static void exec_helper(char **filenames, char **argv)
 	// (no daemonization is done)
 	bb_daemonize_or_rexec(DAEMON_DEVNULL_STDIO | DAEMON_ONLY_SANITIZE, NULL);
 	BB_EXECVP(*argv, argv);
-	exit(0);
+	exit(127); // it IS error if helper cannot be executed!
 }
 
 static char *xmalloc_read_stdin(void)
@@ -124,7 +135,6 @@ int lpd_main(int argc, char *argv[]) MAIN_EXTERNALLY_VISIBLE;
 int lpd_main(int argc ATTRIBUTE_UNUSED, char *argv[])
 {
 	int spooling = spooling; // for compiler
-	int seen;
 	char *s, *queue;
 	char *filenames[2];
 
@@ -135,8 +145,8 @@ int lpd_main(int argc ATTRIBUTE_UNUSED, char *argv[])
 	// error messages of xfuncs will be sent over network
 	xdup2(STDOUT_FILENO, STDERR_FILENO);
 
-	filenames[0] = NULL; // ctrlfile name
-	filenames[1] = NULL; // datafile name
+	// nullify ctrl/data filenames
+	memset(filenames, 0, sizeof(filenames));
 
 	// read command
 	s = queue = xmalloc_read_stdin();
@@ -157,8 +167,7 @@ int lpd_main(int argc ATTRIBUTE_UNUSED, char *argv[])
 
 	// queue is a directory -> chdir to it and enter spooling mode
 	spooling = chdir(queue) + 1; // 0: cannot chdir, 1: done
-	seen = 0;
-	// we don't free(queue), we might need it later
+	// we don't free(s), we might need "queue" var later
 
 	while (1) {
 		char *fname;
@@ -175,7 +184,7 @@ int lpd_main(int argc ATTRIBUTE_UNUSED, char *argv[])
 		// N.B. we bail out on any error
 		s = xmalloc_read_stdin();
 		if (!s) { // (probably) EOF
-			if (spooling /* && 6 != spooling - always true */) {
+			if (spooling /* && 7 != spooling - always true */) {
 				// we didn't see both ctrlfile & datafile!
 				goto err_exit;
 			}
@@ -187,11 +196,10 @@ int lpd_main(int argc ATTRIBUTE_UNUSED, char *argv[])
 		// we understand only "control file" or "data file" cmds
 		if (2 != s[0] && 3 != s[0])
 			goto unsupported_cmd;
-		if (seen & (s[0] - 1)) {
+		if (spooling & (1 << (s[0]-1))) {
 			printf("Duplicated subcommand\n");
 			goto err_exit;
 		}
-		seen &= (s[0] - 1); // bit 1: ctrlfile; bit 2: datafile
 		// get filename
 		*strchrnul(s, '\n') = '\0';
 		fname = strchr(s, ' ');
@@ -243,9 +251,10 @@ int lpd_main(int argc ATTRIBUTE_UNUSED, char *argv[])
 			goto err_exit;
 		}
 		// get ACK and see whether it is NUL (ok)
-		if (safe_read(STDIN_FILENO, s, 1) != 1 || s[0] != 0) {
+		// (and don't trash s[0]!)
+		if (safe_read(STDIN_FILENO, &s[1], 1) != 1 || s[1] != 0) {
 			// don't send error msg to peer - it obviously
-			// don't follow the protocol, so probably
+			// doesn't follow the protocol, so probably
 			// it can't understand us either
 			goto err_exit;
 		}
@@ -254,14 +263,15 @@ int lpd_main(int argc ATTRIBUTE_UNUSED, char *argv[])
 			// chmod completely downloaded file as "readable+writable"
 			fchmod(fd, 0600);
 			// accumulate dump state
-			// N.B. after all files are dumped spooling should be 1+2+3==6
-			spooling += s[0];
+			// N.B. after all files are dumped spooling should be 1+2+4==7
+			spooling |= (1 << (s[0]-1)); // bit 1: ctrlfile; bit 2: datafile
 		}
+
 		free(s);
 		close(fd); // NB: can do close(-1). Who cares?
 
 		// spawn spool helper and exit if all files are dumped
-		if (6 == spooling && *argv) {
+		if (7 == spooling && *argv) {
 			// signal OK
 			safe_write(STDOUT_FILENO, "", 1);
 			// does not return (exits 0)
@@ -272,10 +282,10 @@ int lpd_main(int argc ATTRIBUTE_UNUSED, char *argv[])
  err_exit:
 	// don't keep corrupted files
 	if (spooling) {
-		if (filenames[0])
-			unlink(filenames[0]);
-		if (filenames[1])
-			unlink(filenames[1]);
+#define i spooling
+		for (i = 2; --i >= 0; )
+			if (filenames[i])
+				unlink(filenames[i]);
 	}
 	return EXIT_FAILURE;
 }
