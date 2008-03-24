@@ -14,14 +14,17 @@
 
 #include "libbb.h"
 
-#define FSIZE_MAX 32768
+// #define FSIZE_MAX 32768
+
+/* NOINLINEs added to prevent gcc from merging too much into diffreg()
+ * (it bites more than it can (efficiently) chew). */
 
 /*
  * Output flags
  */
-#define D_HEADER        1	/* Print a header/footer between files */
-#define D_EMPTY1        2	/* Treat first file as empty (/dev/null) */
-#define D_EMPTY2        4	/* Treat second file as empty (/dev/null) */
+#define D_HEADER        1       /* Print a header/footer between files */
+#define D_EMPTY1        2       /* Treat first file as empty (/dev/null) */
+#define D_EMPTY2        4       /* Treat second file as empty (/dev/null) */
 
 /*
  * Status values for print_status() and diffreg() return values
@@ -37,35 +40,33 @@
  * D_SKIPPED1 - skipped path1 as it is a special file
  * D_SKIPPED2 - skipped path2 as it is a special file
  */
-
-#define D_SAME		0
-#define D_DIFFER	(1<<0)
-#define D_BINARY	(1<<1)
-#define D_COMMON	(1<<2)
-#define D_ONLY		(1<<3)
-#define D_MISMATCH1	(1<<4)
-#define D_MISMATCH2	(1<<5)
-#define D_ERROR		(1<<6)
-#define D_SKIPPED1	(1<<7)
-#define D_SKIPPED2	(1<<8)
+#define D_SAME          0
+#define D_DIFFER        (1 << 0)
+#define D_BINARY        (1 << 1)
+#define D_COMMON        (1 << 2)
+/*#define D_ONLY        (1 << 3) - unused */
+#define D_MISMATCH1     (1 << 4)
+#define D_MISMATCH2     (1 << 5)
+#define D_ERROR         (1 << 6)
+#define D_SKIPPED1      (1 << 7)
+#define D_SKIPPED2      (1 << 8)
 
 /* Command line options */
-#define FLAG_a	(1<<0)
-#define FLAG_b	(1<<1)
-#define FLAG_d  (1<<2)
-#define FLAG_i	(1<<3)
-#define FLAG_L	(1<<4)
-#define FLAG_N	(1<<5)
-#define FLAG_q	(1<<6)
-#define FLAG_r	(1<<7)
-#define FLAG_s	(1<<8)
-#define FLAG_S	(1<<9)
-#define FLAG_t	(1<<10)
-#define FLAG_T	(1<<11)
-#define FLAG_U	(1<<12)
-#define	FLAG_w	(1<<13)
+#define FLAG_a  (1 << 0)
+#define FLAG_b  (1 << 1)
+#define FLAG_d  (1 << 2)
+#define FLAG_i  (1 << 3)
+#define FLAG_L  (1 << 4)
+#define FLAG_N  (1 << 5)
+#define FLAG_q  (1 << 6)
+#define FLAG_r  (1 << 7)
+#define FLAG_s  (1 << 8)
+#define FLAG_S  (1 << 9)
+#define FLAG_t  (1 << 10)
+#define FLAG_T  (1 << 11)
+#define FLAG_U  (1 << 12)
+#define FLAG_w  (1 << 13)
 
-#define g_read_buf bb_common_bufsiz1
 
 struct cand {
 	int x;
@@ -90,13 +91,16 @@ struct context_vec {
 	int d;          /* end line in new file */
 };
 
+
+#define g_read_buf bb_common_bufsiz1
+
 struct globals {
 	USE_FEATURE_DIFF_DIR(char **dl;)
 	USE_FEATURE_DIFF_DIR(int dl_count;)
+	int status;
 	/* This is the default number of lines of context. */
 	int context;
 	size_t max_context;
-	int status;
 	char *start;
 	const char *label1;
 	const char *label2;
@@ -157,23 +161,25 @@ struct globals {
 } while (0)
 
 
-static void print_only(const char *path, size_t dirlen, const char *entry)
+/*static void print_only(const char *path, size_t dirlen, const char *entry)*/
+static void print_only(const char *path, const char *entry)
 {
-	if (dirlen > 1)
-		dirlen--;
-	printf("Only in %.*s: %s\n", (int) dirlen, path, entry);
+	printf("Only in %s: %s\n", path, entry);
 }
 
-static void print_status(int val, char *path1, char *path2, char *entry)
+
+/*static void print_status(int val, char *path1, char *path2, char *entry)*/
+static void print_status(int val, char *_path1, char *_path2)
 {
-	const char *const _entry = entry ? entry : "";
-	char * const _path1 = entry ? concat_path_file(path1, _entry) : path1;
-	char * const _path2 = entry ? concat_path_file(path2, _entry) : path2;
+	/*const char *const _entry = entry ? entry : "";*/
+	/*char *const _path1 = entry ? concat_path_file(path1, _entry) : path1;*/
+	/*char *const _path2 = entry ? concat_path_file(path2, _entry) : path2;*/
 
 	switch (val) {
-	case D_ONLY:
-		print_only(path1, strlen(path1), entry);
+/*	case D_ONLY:
+		print_only(path1, entry);
 		break;
+*/
 	case D_COMMON:
 		printf("Common subdirectories: %s and %s\n", _path1, _path2);
 		break;
@@ -205,18 +211,23 @@ static void print_status(int val, char *path1, char *path2, char *entry)
 			   _path2);
 		break;
 	}
+/*
 	if (entry) {
 		free(_path1);
 		free(_path2);
 	}
+*/
 }
+
+
+/* Read line, return its nonzero hash. Return 0 if EOF.
+ *
+ * Hash function taken from Robert Sedgewick, Algorithms in C, 3d ed., p 578.
+ */
 static ALWAYS_INLINE int fiddle_sum(int sum, int t)
 {
 	return sum * 127 + t;
 }
-/*
- * Hash function taken from Robert Sedgewick, Algorithms in C, 3d ed., p 578.
- */
 static int readhash(FILE *fp)
 {
 	int i, t, space;
@@ -224,32 +235,34 @@ static int readhash(FILE *fp)
 
 	sum = 1;
 	space = 0;
+	i = 0;
 	if (!(option_mask32 & (FLAG_b | FLAG_w))) {
-		for (i = 0; (t = getc(fp)) != '\n'; i++) {
+		while ((t = getc(fp)) != '\n') {
 			if (t == EOF) {
 				if (i == 0)
 					return 0;
 				break;
 			}
 			sum = fiddle_sum(sum, t);
+			i = 1;
 		}
 	} else {
-		for (i = 0;;) {
+		while (1) {
 			switch (t = getc(fp)) {
 			case '\t':
 			case '\r':
 			case '\v':
 			case '\f':
 			case ' ':
-				space++;
+				space = 1;
 				continue;
 			default:
 				if (space && !(option_mask32 & FLAG_w)) {
-					i++;
+					i = 1;
 					space = 0;
 				}
 				sum = fiddle_sum(sum, t);
-				i++;
+				i = 1;
 				continue;
 			case EOF:
 				if (i == 0)
@@ -273,7 +286,7 @@ static int readhash(FILE *fp)
  * Check to see if the given files differ.
  * Returns 0 if they are the same, 1 if different, and -1 on error.
  */
-static int files_differ(FILE *f1, FILE *f2, int flags)
+static NOINLINE int files_differ(FILE *f1, FILE *f2, int flags)
 {
 	size_t i, j;
 
@@ -288,7 +301,7 @@ static int files_differ(FILE *f1, FILE *f2, int flags)
 		if (i != j)
 			return 1;
 		if (i == 0)
-			return (ferror(f1) || ferror(f2));
+			return (ferror(f1) || ferror(f2)) ? -1 : 0;
 		if (memcmp(g_read_buf,
 		           g_read_buf + COMMON_BUFSIZE/2, i) != 0)
 			return 1;
@@ -310,7 +323,7 @@ static void prepare(int i, FILE *fp /*, off_t filesize*/)
 
 	p = xmalloc((sz + 3) * sizeof(p[0]));
 	j = 0;
-	while ((h = readhash(fp))) {
+	while ((h = readhash(fp)) != 0) { /* while not EOF */
 		if (j == sz) {
 			sz = sz * 3 / 2;
 			p = xrealloc(p, (sz + 3) * sizeof(p[0]));
@@ -433,13 +446,13 @@ static int stone(int *a, int n, int *b, int *c)
 	int i, k, y, j, l;
 	int oldc, tc, oldl;
 	unsigned int numtries;
-
 #if ENABLE_FEATURE_DIFF_MINIMAL
 	const unsigned int bound =
 		(option_mask32 & FLAG_d) ? UINT_MAX : MAX(256, isqrt(n));
 #else
 	const unsigned int bound = MAX(256, isqrt(n));
 #endif
+
 	k = 0;
 	c[0] = newcand(0, 0, 0);
 	for (i = 1; i <= n; i++) {
@@ -500,7 +513,7 @@ static void unsort(struct line *f, int l, int *b)
 }
 
 
-static int skipline(FILE * f)
+static int skipline(FILE *f)
 {
 	int i, c;
 
@@ -516,7 +529,7 @@ static int skipline(FILE * f)
  *      to confounding by hashing (which result in "jackpot")
  *  2.  collect random access indexes to the two files
  */
-static void check(FILE * f1, FILE * f2)
+static NOINLINE void check(FILE *f1, FILE *f2)
 {
 	int i, j, jackpot, c, d;
 	long ctold, ctnew;
@@ -536,8 +549,7 @@ static void check(FILE * f1, FILE * f2)
 			ixnew[j] = ctnew += skipline(f2);
 			j++;
 		}
-		if ((option_mask32 & FLAG_b) || (option_mask32 & FLAG_w)
-			|| (option_mask32 & FLAG_i)) {
+		if (option_mask32 & (FLAG_b | FLAG_w | FLAG_i)) {
 			while (1) {
 				c = getc(f1);
 				d = getc(f2);
@@ -545,8 +557,9 @@ static void check(FILE * f1, FILE * f2)
 				 * GNU diff ignores a missing newline
 				 * in one file if bflag || wflag.
 				 */
-				if (((option_mask32 & FLAG_b) || (option_mask32 & FLAG_w)) &&
-					((c == EOF && d == '\n') || (c == '\n' && d == EOF))) {
+				if ((option_mask32 & (FLAG_b | FLAG_w))
+				 && ((c == EOF && d == '\n') || (c == '\n' && d == EOF))
+				) {
 					break;
 				}
 				ctold++;
@@ -556,12 +569,14 @@ static void check(FILE * f1, FILE * f2)
 						if (c == '\n')
 							break;
 						ctold++;
-					} while (isspace(c = getc(f1)));
+						c = getc(f1);
+					} while (isspace(c));
 					do {
 						if (d == '\n')
 							break;
 						ctnew++;
-					} while (isspace(d = getc(f2)));
+						d = getc(f2);
+					} while (isspace(d));
 				} else if (option_mask32 & FLAG_w) {
 					while (isspace(c) && c != '\n') {
 						c = getc(f1);
@@ -594,6 +609,7 @@ static void check(FILE * f1, FILE * f2)
 					J[i] = 0;
 					if (c != '\n' && c != EOF)
 						ctold += skipline(f1);
+// BUG? Should be "if (d != '\n' && d != EOF)" ?
 					if (d != '\n' && c != EOF)
 						ctnew += skipline(f2);
 					break;
@@ -628,9 +644,11 @@ static void sort(struct line *a, int n)
 				aim = &ai[m];
 				if (aim < ai)
 					break;	/* wraparound */
-				if (aim->value > ai[0].value ||
-					(aim->value == ai[0].value && aim->serial > ai[0].serial))
+				if (aim->value > ai[0].value
+				 || (aim->value == ai[0].value && aim->serial > ai[0].serial)
+				) {
 					break;
+				}
 				w.value = ai[0].value;
 				ai[0].value = aim->value;
 				aim->value = w.value;
@@ -654,7 +672,7 @@ static void uni_range(int a, int b)
 }
 
 
-static void fetch(long *f, int a, int b, FILE * lb, int ch)
+static void fetch(long *f, int a, int b, FILE *lb, int ch)
 {
 	int i, j, c, lastc, col, nc;
 
@@ -688,31 +706,31 @@ static void fetch(long *f, int a, int b, FILE * lb, int ch)
 }
 
 
-static int asciifile(FILE * f)
+#if ENABLE_FEATURE_DIFF_BINARY
+static int asciifile(FILE *f)
 {
-#if ENABLE_FEATURE_DIFF_BINARY
 	int i, cnt;
-#endif
 
-	if ((option_mask32 & FLAG_a) || f == NULL)
+	if (option_mask32 & FLAG_a)
 		return 1;
-
-#if ENABLE_FEATURE_DIFF_BINARY
 	rewind(f);
 	cnt = fread(g_read_buf, 1, COMMON_BUFSIZE, f);
 	for (i = 0; i < cnt; i++) {
 		if (!isprint(g_read_buf[i])
-		 && !isspace(g_read_buf[i])) {
+		 && !isspace(g_read_buf[i])
+		) {
 			return 0;
 		}
 	}
-#endif
 	return 1;
 }
+#else
+#define asciifile(f) 1
+#endif
 
 
 /* dump accumulated "unified" diff changes */
-static void dump_unified_vec(FILE * f1, FILE * f2)
+static void dump_unified_vec(FILE *f1, FILE *f2)
 {
 	struct context_vec *cvp = context_vec_start;
 	int lowa, upb, lowc, upd;
@@ -756,6 +774,7 @@ static void dump_unified_vec(FILE * f1, FILE * f2)
 #if 0
 		switch (ch) {
 		case 'c':
+// fetch() seeks!
 			fetch(ixold, lowa, a - 1, f1, ' ');
 			fetch(ixold, a, b, f1, '-');
 			fetch(ixnew, c, d, f2, '+');
@@ -808,8 +827,8 @@ static void print_header(const char *file1, const char *file2)
  * lines appended (beginning at b).  If c is greater than d then there are
  * lines missing from the to file.
  */
-static void change(char *file1, FILE * f1, char *file2, FILE * f2, int a,
-				   int b, int c, int d)
+static void change(char *file1, FILE *f1, char *file2, FILE *f2,
+			int a, int b, int c, int d)
 {
 	if ((a > b && c > d) || (option_mask32 & FLAG_q)) {
 		anychange = 1;
@@ -833,12 +852,14 @@ static void change(char *file1, FILE * f1, char *file2, FILE * f2, int a,
 		 * Print the context/unidiff header first time through.
 		 */
 		print_header(file1, file2);
-	} else if (a > context_vec_ptr->b + (2 * context) + 1 &&
-			   c > context_vec_ptr->d + (2 * context) + 1) {
+	} else if (a > context_vec_ptr->b + (2 * context) + 1
+	        && c > context_vec_ptr->d + (2 * context) + 1
+	) {
 		/*
 		 * If this change is more than 'context' lines from the
 		 * previous change, dump the record and reset it.
 		 */
+// dump_unified_vec() seeks!
 		dump_unified_vec(f1, f2);
 	}
 	context_vec_ptr++;
@@ -850,7 +871,7 @@ static void change(char *file1, FILE * f1, char *file2, FILE * f2, int a,
 }
 
 
-static void output(char *file1, FILE * f1, char *file2, FILE * f2)
+static void output(char *file1, FILE *f1, char *file2, FILE *f2)
 {
 	/* Note that j0 and j1 can't be used as they are defined in math.h.
 	 * This also allows the rather amusing variable 'j00'... */
@@ -870,12 +891,15 @@ static void output(char *file1, FILE * f1, char *file2, FILE * f2)
 			i1++;
 		j01 = J[i1 + 1] - 1;
 		J[i1] = j01;
+// change() seeks!
 		change(file1, f1, file2, f2, i0, i1, j00, j01);
 	}
 	if (m == 0) {
+// change() seeks!
 		change(file1, f1, file2, f2, 1, 0, 1, len[1]);
 	}
 	if (anychange != 0 && !(option_mask32 & FLAG_q)) {
+// dump_unified_vec() seeks!
 		dump_unified_vec(f1, f2);
 	}
 }
@@ -887,12 +911,12 @@ static void output(char *file1, FILE * f1, char *file2, FILE * f2)
  *
  * The major goal is to generate the match vector J.
  * J[i] is the index of the line in file1 corresponding
- * to line i file0. J[i] = 0 if there is no
+ * to line i in file0. J[i] = 0 if there is no
  * such line in file1.
  *
  * Lines are hashed so as to work in core. All potential
  * matches are located by sorting the lines of each file
- * on the hash (called ``value''). In particular, this
+ * on the hash (called "value"). In particular, this
  * collects the equivalence classes in file1 together.
  * Subroutine equiv replaces the value of each line in
  * file0 by the index of the first element of its
@@ -908,7 +932,7 @@ static void output(char *file1, FILE * f1, char *file2, FILE * f2)
  * The cleverness lies in routine stone. This marches
  * through the lines of file0, developing a vector klist
  * of "k-candidates". At step i a k-candidate is a matched
- * pair of lines x,y (x in file0 y in file1) such that
+ * pair of lines x,y (x in file0, y in file1) such that
  * there is a common subsequence of length k
  * between the first i lines of file0 and the first y
  * lines of file1, but there is no such subsequence for
@@ -939,14 +963,13 @@ static void output(char *file1, FILE * f1, char *file2, FILE * f2)
  * allocating what is needed and reusing what is not.
  * The core requirements for problems larger than somewhat
  * are (in words) 2*length(file0) + length(file1) +
- * 3*(number of k-candidates installed),  typically about
+ * 3*(number of k-candidates installed), typically about
  * 6n words for files of length n.
  */
-static unsigned diffreg(char *ofile1, char *ofile2, int flags)
+static unsigned diffreg(char *file1, char *file2, int flags)
 {
-	char *file1 = ofile1;
-	char *file2 = ofile2;
-	FILE *f1 = stdin, *f2 = stdin;
+	FILE *f1;
+	FILE *f2;
 	unsigned rval;
 	int i;
 
@@ -956,19 +979,19 @@ static unsigned diffreg(char *ofile1, char *ofile2, int flags)
 	if (S_ISDIR(stb1.st_mode) != S_ISDIR(stb2.st_mode))
 		return (S_ISDIR(stb1.st_mode) ? D_MISMATCH1 : D_MISMATCH2);
 
-	rval = D_SAME;
-
 	if (LONE_DASH(file1) && LONE_DASH(file2))
-		goto closem;
+		return D_SAME;
+
+	rval = D_SAME;
 
 	if (flags & D_EMPTY1)
 		f1 = xfopen(bb_dev_null, "r");
-	else if (NOT_LONE_DASH(file1))
-		f1 = xfopen(file1, "r");
+	else
+		f1 = xfopen_stdin(file1);
 	if (flags & D_EMPTY2)
 		f2 = xfopen(bb_dev_null, "r");
-	else if (NOT_LONE_DASH(file2))
-		f2 = xfopen(file2, "r");
+	else
+		f2 = xfopen_stdin(file2);
 
 /* We can't diff non-seekable stream - we use rewind(), fseek().
  * This can be fixed (volunteers?).
@@ -977,6 +1000,7 @@ static unsigned diffreg(char *ofile1, char *ofile2, int flags)
  * Check in main won't catch "diffing fifos buried in subdirectories"
  * failure scenario - not very likely in real life... */
 
+	/* Quick check whether they are different */
 	i = files_differ(f1, f2, flags);
 	if (i == 0)
 		goto closem;
@@ -992,6 +1016,7 @@ static unsigned diffreg(char *ofile1, char *ofile2, int flags)
 		goto closem;
 	}
 
+// Rewind inside!
 	prepare(0, f1 /*, stb1.st_size*/);
 	prepare(1, f2 /*, stb2.st_size*/);
 	prune();
@@ -1021,7 +1046,9 @@ static unsigned diffreg(char *ofile1, char *ofile2, int flags)
 
 	ixold = xrealloc(ixold, (len[0] + 2) * sizeof(long));
 	ixnew = xrealloc(ixnew, (len[1] + 2) * sizeof(long));
+// Rewind inside!
 	check(f1, f2);
+// Rewind inside!
 	output(file1, f1, file2, f2);
 
  closem:
@@ -1032,10 +1059,6 @@ static unsigned diffreg(char *ofile1, char *ofile2, int flags)
 	}
 	fclose_if_not_stdin(f1);
 	fclose_if_not_stdin(f2);
-	if (file1 != ofile1)
-		free(file1);
-	if (file2 != ofile2)
-		free(file2);
 	return rval;
 }
 
@@ -1086,7 +1109,7 @@ static void do_diff(char *dir1, char *path1, char *dir2, char *path2)
 	else
 		val = diffreg(fullpath1, fullpath2, flags);
 
-	print_status(val, fullpath1, fullpath2, NULL);
+	print_status(val, fullpath1, fullpath2 /*, NULL*/);
  ret:
 	free(fullpath1);
 	free(fullpath2);
@@ -1097,7 +1120,8 @@ static void do_diff(char *dir1, char *path1, char *dir2, char *path2)
 #if ENABLE_FEATURE_DIFF_DIR
 /* This function adds a filename to dl, the directory listing. */
 static int add_to_dirlist(const char *filename,
-		struct stat ATTRIBUTE_UNUSED * sb, void *userdata,
+		struct stat ATTRIBUTE_UNUSED *sb,
+		void *userdata,
 		int depth ATTRIBUTE_UNUSED)
 {
 	/* +2: with space for eventual trailing NULL */
@@ -1160,7 +1184,6 @@ static void diffdir(char *p1, char *p2)
 		*dp2 = '\0';
 
 	/* Get directory listings for p1 and p2. */
-
 	dirlist1 = get_dir(p1);
 	dirlist2 = get_dir(p2);
 
@@ -1190,13 +1213,13 @@ static void diffdir(char *p1, char *p2)
 			if (option_mask32 & FLAG_N)
 				do_diff(p1, dp1, p2, NULL);
 			else
-				print_only(p1, strlen(p1) + 1, dp1);
+				print_only(p1, dp1);
 			dirlist1++;
 		} else {
 			if (option_mask32 & FLAG_N)
 				do_diff(p1, NULL, p2, dp2);
 			else
-				print_only(p2, strlen(p2) + 1, dp2);
+				print_only(p2, dp2);
 			dirlist2++;
 		}
 	}
@@ -1237,7 +1260,6 @@ int diff_main(int argc ATTRIBUTE_UNUSED, char **argv)
 	 * Do sanity checks, fill in stb1 and stb2 and call the appropriate
 	 * driver routine.  Both drivers use the contents of stb1 and stb2.
 	 */
-
 	f1 = argv[0];
 	f2 = argv[1];
 	if (LONE_DASH(f1)) {
@@ -1272,7 +1294,7 @@ int diff_main(int argc ATTRIBUTE_UNUSED, char **argv)
  * This can be fixed (volunteers?) */
 		if (!S_ISREG(stb1.st_mode) || !S_ISREG(stb2.st_mode))
 			bb_error_msg_and_die("can't diff non-seekable stream");
-		print_status(diffreg(f1, f2, 0), f1, f2, NULL);
+		print_status(diffreg(f1, f2, 0), f1, f2 /*, NULL*/);
 	}
 	return status;
 }
