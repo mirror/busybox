@@ -95,54 +95,53 @@ struct context_vec {
 #define g_read_buf bb_common_bufsiz1
 
 struct globals {
-	USE_FEATURE_DIFF_DIR(char **dl;)
+	bool anychange;
+	smallint exit_status;
+	int opt_U_context;
+	size_t max_context;     /* size of context_vec_start */
 	USE_FEATURE_DIFF_DIR(int dl_count;)
-	int status;
-	/* This is the default number of lines of context. */
-	int context;
-	size_t max_context;
-	char *start;
+	USE_FEATURE_DIFF_DIR(char **dl;)
+	char *opt_S_start;
 	const char *label1;
 	const char *label2;
-	struct line *file[2];
-	int *J;          /* will be overlaid on class */
+	int *J;                 /* will be overlaid on class */
 	int clen;
-	int len[2];
-	int pref, suff;  /* length of prefix and suffix */
+	int pref, suff;         /* length of prefix and suffix */
+	int nlen[2];
 	int slen[2];
-	bool anychange;
-	long *ixnew;     /* will be overlaid on file[1] */
-	long *ixold;     /* will be overlaid on klist */
-	struct cand *clist;  /* merely a free storage pot for candidates */
-	int clistlen;    /* the length of clist */
-	struct line *sfile[2];   /* shortened by pruning common prefix/suffix */
+	int clistlen;           /* the length of clist */
+	struct cand *clist;     /* merely a free storage pot for candidates */
+	long *ixnew;            /* will be overlaid on nfile[1] */
+	long *ixold;            /* will be overlaid on klist */
+	struct line *nfile[2];
+	struct line *sfile[2];  /* shortened by pruning common prefix/suffix */
 	struct context_vec *context_vec_start;
 	struct context_vec *context_vec_end;
 	struct context_vec *context_vec_ptr;
-	struct stat stb1, stb2;
 	char *tempname1, *tempname2;
+	struct stat stb1, stb2;
 };
 #define G (*ptr_to_globals)
-#define dl                 (G.dl                )
-#define dl_count           (G.dl_count          )
-#define context            (G.context           )
+#define anychange          (G.anychange         )
+#define exit_status        (G.exit_status       )
+#define opt_U_context      (G.opt_U_context     )
 #define max_context        (G.max_context       )
-#define status             (G.status            )
-#define start              (G.start             )
+#define dl_count           (G.dl_count          )
+#define dl                 (G.dl                )
+#define opt_S_start        (G.opt_S_start       )
 #define label1             (G.label1            )
 #define label2             (G.label2            )
-#define file               (G.file              )
 #define J                  (G.J                 )
 #define clen               (G.clen              )
-#define len                (G.len               )
 #define pref               (G.pref              )
 #define suff               (G.suff              )
+#define nlen               (G.nlen              )
 #define slen               (G.slen              )
-#define anychange          (G.anychange         )
+#define clistlen           (G.clistlen          )
+#define clist              (G.clist             )
 #define ixnew              (G.ixnew             )
 #define ixold              (G.ixold             )
-#define clist              (G.clist             )
-#define clistlen           (G.clistlen          )
+#define nfile              (G.nfile             )
 #define sfile              (G.sfile             )
 #define context_vec_start  (G.context_vec_start )
 #define context_vec_end    (G.context_vec_end   )
@@ -153,7 +152,7 @@ struct globals {
 #define tempname2          (G.tempname2         )
 #define INIT_G() do { \
 	SET_PTR_TO_GLOBALS(xzalloc(sizeof(G))); \
-	context = 3; \
+	opt_U_context = 3; \
 	max_context = 64; \
 } while (0)
 
@@ -353,8 +352,8 @@ static void prepare(int i, FILE *fp /*, off_t filesize*/)
 		}
 		p[++j].value = h;
 	}
-	len[i] = j;
-	file[i] = p;
+	nlen[i] = j;
+	nfile[i] = p;
 }
 
 
@@ -362,16 +361,16 @@ static void prune(void)
 {
 	int i, j;
 
-	for (pref = 0; pref < len[0] && pref < len[1] &&
-		 file[0][pref + 1].value == file[1][pref + 1].value; pref++)
+	for (pref = 0; pref < nlen[0] && pref < nlen[1] &&
+		nfile[0][pref + 1].value == nfile[1][pref + 1].value; pref++)
 		continue;
-	for (suff = 0; suff < len[0] - pref && suff < len[1] - pref &&
-		 file[0][len[0] - suff].value == file[1][len[1] - suff].value;
-		 suff++)
+	for (suff = 0; suff < nlen[0] - pref && suff < nlen[1] - pref &&
+		nfile[0][nlen[0] - suff].value == nfile[1][nlen[1] - suff].value;
+		suff++)
 		continue;
 	for (j = 0; j < 2; j++) {
-		sfile[j] = file[j] + pref;
-		slen[j] = len[j] - pref - suff;
+		sfile[j] = nfile[j] + pref;
+		slen[j] = nlen[j] - pref - suff;
 		for (i = 0; i <= slen[j]; i++)
 			sfile[j][i].serial = i;
 	}
@@ -516,8 +515,8 @@ static void unravel(int p)
 	struct cand *q;
 	int i;
 
-	for (i = 0; i <= len[0]; i++)
-		J[i] = i <= pref ? i : i > len[0] - suff ? i + len[1] - len[0] : 0;
+	for (i = 0; i <= nlen[0]; i++)
+		J[i] = i <= pref ? i : i > nlen[0] - suff ? i + nlen[1] - nlen[0] : 0;
 	for (q = clist + p; q->y != 0; q = clist + q->pred)
 		J[q->x + pref] = q->y + pref;
 }
@@ -563,7 +562,7 @@ static NOINLINE void check(FILE *f1, FILE *f2)
 	ixold[0] = ixnew[0] = 0;
 	jackpot = 0;
 	ctold = ctnew = 0;
-	for (i = 1; i <= len[0]; i++) {
+	for (i = 1; i <= nlen[0]; i++) {
 		if (J[i] == 0) {
 			ixold[i] = ctold += skipline(f1);
 			continue;
@@ -645,7 +644,7 @@ static NOINLINE void check(FILE *f1, FILE *f2)
 		ixnew[j] = ctnew;
 		j++;
 	}
-	for (; j <= len[1]; j++)
+	for (; j <= nlen[1]; j++)
 		ixnew[j] = ctnew += skipline(f2);
 }
 
@@ -764,10 +763,10 @@ static void dump_unified_vec(FILE *f1, FILE *f2)
 		return;
 
 	b = d = 0;			/* gcc */
-	lowa = MAX(1, cvp->a - context);
-	upb = MIN(len[0], context_vec_ptr->b + context);
-	lowc = MAX(1, cvp->c - context);
-	upd = MIN(len[1], context_vec_ptr->d + context);
+	lowa = MAX(1, cvp->a - opt_U_context);
+	upb = MIN(nlen[0], context_vec_ptr->b + opt_U_context);
+	lowc = MAX(1, cvp->c - opt_U_context);
+	upd = MIN(nlen[1], context_vec_ptr->d + opt_U_context);
 
 	printf("@@ -");
 	uni_range(lowa, upb);
@@ -875,8 +874,8 @@ static void change(char *file1, FILE *f1, char *file2, FILE *f2,
 		 * Print the context/unidiff header first time through.
 		 */
 		print_header(file1, file2);
-	} else if (a > context_vec_ptr->b + (2 * context) + 1
-	        && c > context_vec_ptr->d + (2 * context) + 1
+	} else if (a > context_vec_ptr->b + (2 * opt_U_context) + 1
+	        && c > context_vec_ptr->d + (2 * opt_U_context) + 1
 	) {
 		/*
 		 * If this change is more than 'context' lines from the
@@ -902,9 +901,9 @@ static void output(char *file1, FILE *f1, char *file2, FILE *f2)
 
 	rewind(f1);
 	rewind(f2);
-	m = len[0];
+	m = nlen[0];
 	J[0] = 0;
-	J[m + 1] = len[1] + 1;
+	J[m + 1] = nlen[1] + 1;
 	for (i0 = 1; i0 <= m; i0 = i1 + 1) {
 		while (i0 <= m && J[i0] == J[i0 - 1] + 1)
 			i0++;
@@ -919,7 +918,7 @@ static void output(char *file1, FILE *f1, char *file2, FILE *f2)
 	}
 	if (m == 0) {
 // change() seeks!
-		change(file1, f1, file2, f2, 1, 0, 1, len[1]);
+		change(file1, f1, file2, f2, 1, 0, 1, nlen[1]);
 	}
 	if (anychange != 0 && !(option_mask32 & FLAG_q)) {
 // dump_unified_vec() seeks!
@@ -993,9 +992,9 @@ static void output(char *file1, FILE *f1, char *file2, FILE *f2)
  * are not both DIRectories. */
 static unsigned diffreg(char *file1, char *file2, int flags)
 {
-	int *member;     /* will be overlaid on file[1] */
-	int *class;      /* will be overlaid on file[0] */
-	int *klist;      /* will be overlaid on file[0] after class */
+	int *member;     /* will be overlaid on nfile[1] */
+	int *class;      /* will be overlaid on nfile[0] */
+	int *klist;      /* will be overlaid on nfile[0] after class */
 	FILE *f1;
 	FILE *f2;
 	unsigned rval;
@@ -1025,13 +1024,13 @@ static unsigned diffreg(char *file1, char *file2, int flags)
 	i = files_differ(f1, f2, flags);
 	if (i != 1) { /* not different? */
 		if (i != 0) /* error? */
-			status |= 2;
+			exit_status |= 2;
 		goto closem;
 	}
 
 	if (!asciifile(f1) || !asciifile(f2)) {
 		rval = D_BINARY;
-		status |= 1;
+		exit_status |= 1;
 		goto closem;
 	}
 
@@ -1042,11 +1041,11 @@ static unsigned diffreg(char *file1, char *file2, int flags)
 	sort(sfile[0], slen[0]);
 	sort(sfile[1], slen[1]);
 
-	member = (int *) file[1];
+	member = (int *) nfile[1];
 	equiv(sfile[0], slen[0], sfile[1], slen[1], member);
 	member = xrealloc(member, (slen[1] + 2) * sizeof(int));
 
-	class = (int *) file[0];
+	class = (int *) nfile[0];
 	unsort(sfile[0], slen[0], class);
 	class = xrealloc(class, (slen[0] + 2) * sizeof(int));
 
@@ -1058,13 +1057,13 @@ static unsigned diffreg(char *file1, char *file2, int flags)
 	free(member);
 	free(class);
 
-	J = xrealloc(J, (len[0] + 2) * sizeof(int));
+	J = xrealloc(J, (nlen[0] + 2) * sizeof(int));
 	unravel(klist[i]);
 	free(clist);
 	free(klist);
 
-	ixold = xrealloc(ixold, (len[0] + 2) * sizeof(long));
-	ixnew = xrealloc(ixnew, (len[1] + 2) * sizeof(long));
+	ixold = xrealloc(ixold, (nlen[0] + 2) * sizeof(long));
+	ixnew = xrealloc(ixnew, (nlen[1] + 2) * sizeof(long));
 // Rewind inside!
 	check(f1, f2);
 // Rewind inside!
@@ -1072,7 +1071,7 @@ static unsigned diffreg(char *file1, char *file2, int flags)
 
  closem:
 	if (anychange) {
-		status |= 1;
+		exit_status |= 1;
 		if (rval == D_SAME)
 			rval = D_DIFFER;
 	}
@@ -1216,10 +1215,10 @@ static void diffdir(char *p1, char *p2)
 	dirlist2 = get_recursive_dirlist(p2);
 
 	/* If -S was set, find the starting point. */
-	if (start) {
-		while (*dirlist1 != NULL && strcmp(*dirlist1, start) < 0)
+	if (opt_S_start) {
+		while (*dirlist1 != NULL && strcmp(*dirlist1, opt_S_start) < 0)
 			dirlist1++;
-		while (*dirlist2 != NULL && strcmp(*dirlist2, start) < 0)
+		while (*dirlist2 != NULL && strcmp(*dirlist2, opt_S_start) < 0)
 			dirlist2++;
 		if ((*dirlist1 == NULL) || (*dirlist2 == NULL))
 			bb_error_msg(bb_msg_invalid_arg, "NULL", "-S");
@@ -1268,7 +1267,7 @@ int diff_main(int argc ATTRIBUTE_UNUSED, char **argv)
 	opt_complementary = "=2:L::U+";
 	getopt32(argv, "abdiL:NqrsS:tTU:wu"
 			"p" /* ignored (for compatibility) */,
-			&L_arg, &start, &context);
+			&L_arg, &opt_S_start, &opt_U_context);
 	/*argc -= optind;*/
 	argv += optind;
 	while (L_arg) {
@@ -1307,7 +1306,7 @@ int diff_main(int argc ATTRIBUTE_UNUSED, char **argv)
 	if (S_ISDIR(stb1.st_mode) && S_ISDIR(stb2.st_mode)) {
 #if ENABLE_FEATURE_DIFF_DIR
 		diffdir(f1, f2);
-		return status;
+		return exit_status;
 #else
 		bb_error_msg_and_die("no support for directory comparison");
 #endif
@@ -1330,5 +1329,5 @@ int diff_main(int argc ATTRIBUTE_UNUSED, char **argv)
 	 * they are not both DIRestories */
 	print_status((gotstdin > 1 ? D_SAME : diffreg(f1, f2, 0)),
 			f1, f2 /*, NULL*/);
-	return status;
+	return exit_status;
 }
