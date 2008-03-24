@@ -34,8 +34,8 @@
  * D_BINARY - binary files differ
  * D_COMMON - subdirectory common to both dirs
  * D_ONLY - file only exists in one dir
- * D_MISMATCH1 - path1 a dir, path2 a file
- * D_MISMATCH2 - path1 a file, path2 a dir
+ * D_ISDIR1 - path1 a dir, path2 a file
+ * D_ISDIR2 - path1 a file, path2 a dir
  * D_ERROR - error occurred
  * D_SKIPPED1 - skipped path1 as it is a special file
  * D_SKIPPED2 - skipped path2 as it is a special file
@@ -45,8 +45,8 @@
 #define D_BINARY        (1 << 1)
 #define D_COMMON        (1 << 2)
 /*#define D_ONLY        (1 << 3) - unused */
-#define D_MISMATCH1     (1 << 4)
-#define D_MISMATCH2     (1 << 5)
+#define D_ISDIR1        (1 << 4)
+#define D_ISDIR2        (1 << 5)
 #define D_ERROR         (1 << 6)
 #define D_SKIPPED1      (1 << 7)
 #define D_SKIPPED2      (1 << 8)
@@ -123,6 +123,7 @@ struct globals {
 	struct context_vec *context_vec_end;
 	struct context_vec *context_vec_ptr;
 	struct stat stb1, stb2;
+	char *tempname1, *tempname2;
 };
 #define G (*ptr_to_globals)
 #define dl                 (G.dl                )
@@ -154,6 +155,8 @@ struct globals {
 #define context_vec_ptr    (G.context_vec_ptr   )
 #define stb1               (G.stb1              )
 #define stb2               (G.stb2              )
+#define tempname1          (G.tempname1         )
+#define tempname2          (G.tempname2         )
 #define INIT_G() do { \
 	SET_PTR_TO_GLOBALS(xzalloc(sizeof(G))); \
 	context = 3; \
@@ -194,11 +197,11 @@ static void print_status(int val, char *_path1, char *_path2)
 		if (option_mask32 & FLAG_s)
 			printf("Files %s and %s are identical\n", _path1, _path2);
 		break;
-	case D_MISMATCH1:
+	case D_ISDIR1:
 		printf("File %s is a %s while file %s is a %s\n",
 			   _path1, "directory", _path2, "regular file");
 		break;
-	case D_MISMATCH2:
+	case D_ISDIR2:
 		printf("File %s is a %s while file %s is a %s\n",
 			   _path1, "regular file", _path2, "directory");
 		break;
@@ -282,6 +285,32 @@ static int readhash(FILE *fp)
 }
 
 
+static char *make_temp(FILE *f, struct stat *sb)
+{
+	char *name;
+	int fd;
+
+	if (S_ISREG(sb->st_mode))
+		return NULL;
+	name = xstrdup("/tmp/difXXXXXX");
+	fd = mkstemp(name);
+	if (fd < 0)
+		bb_perror_msg_and_die("mkstemp");
+	if (bb_copyfd_eof(fileno(f), fd) < 0) {
+ clean_up:
+		unlink(name);
+		xfunc_die(); /* error message is printed by bb_copyfd_eof */
+	}
+	fstat(fd, sb);
+	close(fd);
+	if (freopen(name, "r+", f) == NULL) {
+		bb_perror_msg("freopen");
+		goto clean_up;
+	}
+	return name;
+}
+
+
 /*
  * Check to see if the given files differ.
  * Returns 0 if they are the same, 1 if different, and -1 on error.
@@ -290,9 +319,9 @@ static NOINLINE int files_differ(FILE *f1, FILE *f2, int flags)
 {
 	size_t i, j;
 
-	if ((flags & (D_EMPTY1 | D_EMPTY2)) || stb1.st_size != stb2.st_size
-	 || (stb1.st_mode & S_IFMT) != (stb2.st_mode & S_IFMT)
-	) {
+	tempname1 = make_temp(f1, &stb1);
+	tempname2 = make_temp(f2, &stb2);
+	if ((flags & (D_EMPTY1 | D_EMPTY2)) || stb1.st_size != stb2.st_size) {
 		return 1;
 	}
 	while (1) {
@@ -966,6 +995,8 @@ static void output(char *file1, FILE *f1, char *file2, FILE *f2)
  * 3*(number of k-candidates installed), typically about
  * 6n words for files of length n.
  */
+/* NB: files can be not REGular. The only sure thing that they
+ * are not both DIRectories. */
 static unsigned diffreg(char *file1, char *file2, int flags)
 {
 	FILE *f1;
@@ -976,12 +1007,11 @@ static unsigned diffreg(char *file1, char *file2, int flags)
 	anychange = 0;
 	context_vec_ptr = context_vec_start - 1;
 
+	/* Is any of them a directory? Then it's simple */
 	if (S_ISDIR(stb1.st_mode) != S_ISDIR(stb2.st_mode))
-		return (S_ISDIR(stb1.st_mode) ? D_MISMATCH1 : D_MISMATCH2);
+		return (S_ISDIR(stb1.st_mode) ? D_ISDIR1 : D_ISDIR2);
 
-	if (LONE_DASH(file1) && LONE_DASH(file2))
-		return D_SAME;
-
+	/* None of them are directories */
 	rval = D_SAME;
 
 	if (flags & D_EMPTY1)
@@ -993,20 +1023,12 @@ static unsigned diffreg(char *file1, char *file2, int flags)
 	else
 		f2 = xfopen_stdin(file2);
 
-/* We can't diff non-seekable stream - we use rewind(), fseek().
- * This can be fixed (volunteers?).
- * Meanwhile we should check it here by stat'ing input fds,
- * but I am lazy and check that in main() instead.
- * Check in main won't catch "diffing fifos buried in subdirectories"
- * failure scenario - not very likely in real life... */
-
 	/* Quick check whether they are different */
+	/* NB: copies non-REG files to tempfiles and fills tempname1/2 */
 	i = files_differ(f1, f2, flags);
-	if (i == 0)
-		goto closem;
-	else if (i != 1) {	/* 1 == ok */
-		/* error */
-		status |= 2;
+	if (i != 1) { /* not different? */
+		if (i != 0) /* error? */
+			status |= 2;
 		goto closem;
 	}
 
@@ -1059,6 +1081,14 @@ static unsigned diffreg(char *file1, char *file2, int flags)
 	}
 	fclose_if_not_stdin(f1);
 	fclose_if_not_stdin(f2);
+	if (tempname1) {
+		unlink(tempname1);
+		free(tempname1);
+	}
+	if (tempname2) {
+		unlink(tempname2);
+		free(tempname2);
+	}
 	return rval;
 }
 
@@ -1106,8 +1136,10 @@ static void do_diff(char *dir1, char *path1, char *dir2, char *path2)
 		val = D_SKIPPED1;
 	else if (!S_ISREG(stb2.st_mode) && !S_ISDIR(stb2.st_mode))
 		val = D_SKIPPED2;
-	else
+	else {
+		/* Both files are either REGular or DIRectories */
 		val = diffreg(fullpath1, fullpath2, flags);
+	}
 
 	print_status(val, fullpath1, fullpath2 /*, NULL*/);
  ret:
@@ -1133,7 +1165,7 @@ static int add_to_dirlist(const char *filename,
 
 
 /* This returns a sorted directory listing. */
-static char **get_dir(char *path)
+static char **get_recursive_dirlist(char *path)
 {
 	dl_count = 0;
 	dl = xzalloc(sizeof(dl[0]));
@@ -1143,7 +1175,6 @@ static char **get_dir(char *path)
 	 * the recursed paths, so use void *userdata to specify the string
 	 * length of the root directory - '(void*)(strlen(path)+)'.
 	 * add_to_dirlist then removes root dir prefix. */
-
 	if (option_mask32 & FLAG_r) {
 		recursive_action(path, ACTION_RECURSE|ACTION_FOLLOWLINKS,
 					add_to_dirlist, NULL,
@@ -1184,8 +1215,8 @@ static void diffdir(char *p1, char *p2)
 		*dp2 = '\0';
 
 	/* Get directory listings for p1 and p2. */
-	dirlist1 = get_dir(p1);
-	dirlist2 = get_dir(p2);
+	dirlist1 = get_recursive_dirlist(p1);
+	dirlist2 = get_recursive_dirlist(p2);
 
 	/* If -S was set, find the starting point. */
 	if (start) {
@@ -1204,7 +1235,7 @@ static void diffdir(char *p1, char *p2)
 	while (*dirlist1 != NULL || *dirlist2 != NULL) {
 		dp1 = *dirlist1;
 		dp2 = *dirlist2;
-		pos = dp1 == NULL ? 1 : dp2 == NULL ? -1 : strcmp(dp1, dp2);
+		pos = dp1 == NULL ? 1 : (dp2 == NULL ? -1 : strcmp(dp1, dp2));
 		if (pos == 0) {
 			do_diff(p1, dp1, p2, dp2);
 			dirlist1++;
@@ -1230,7 +1261,7 @@ static void diffdir(char *p1, char *p2)
 int diff_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int diff_main(int argc ATTRIBUTE_UNUSED, char **argv)
 {
-	bool gotstdin = 0;
+	int gotstdin = 0;
 	char *f1, *f2;
 	llist_t *L_arg = NULL;
 
@@ -1264,37 +1295,43 @@ int diff_main(int argc ATTRIBUTE_UNUSED, char **argv)
 	f2 = argv[1];
 	if (LONE_DASH(f1)) {
 		fstat(STDIN_FILENO, &stb1);
-		gotstdin = 1;
+		gotstdin++;
 	} else
 		xstat(f1, &stb1);
 	if (LONE_DASH(f2)) {
 		fstat(STDIN_FILENO, &stb2);
-		gotstdin = 1;
+		gotstdin++;
 	} else
 		xstat(f2, &stb2);
+
 	if (gotstdin && (S_ISDIR(stb1.st_mode) || S_ISDIR(stb2.st_mode)))
-		bb_error_msg_and_die("can't compare - to a directory");
+		bb_error_msg_and_die("can't compare stdin to a directory");
+
 	if (S_ISDIR(stb1.st_mode) && S_ISDIR(stb2.st_mode)) {
 #if ENABLE_FEATURE_DIFF_DIR
 		diffdir(f1, f2);
+		return status;
 #else
-		bb_error_msg_and_die("directory comparison not supported");
+		bb_error_msg_and_die("no support for directory comparison");
 #endif
-	} else {
-		if (S_ISDIR(stb1.st_mode)) {
-			f1 = concat_path_file(f1, f2);
-			xstat(f1, &stb1);
-		}
-		if (S_ISDIR(stb2.st_mode)) {
-			f2 = concat_path_file(f2, f1);
-			xstat(f2, &stb2);
-		}
-/* XXX: FIXME: */
-/* We can't diff e.g. stdin supplied by a pipe - we use rewind(), fseek().
- * This can be fixed (volunteers?) */
-		if (!S_ISREG(stb1.st_mode) || !S_ISREG(stb2.st_mode))
-			bb_error_msg_and_die("can't diff non-seekable stream");
-		print_status(diffreg(f1, f2, 0), f1, f2 /*, NULL*/);
 	}
+
+	if (S_ISDIR(stb1.st_mode)) { /* "diff dir file" */
+		/* NB: "diff dir      dir2/dir3/file" must become
+		 *     "diff dir/file dir2/dir3/file" */
+		char *slash = strrchr(f2, '/');
+		f1 = concat_path_file(f1, slash ? slash+1 : f2);
+		xstat(f1, &stb1);
+	}
+	if (S_ISDIR(stb2.st_mode)) {
+		char *slash = strrchr(f1, '/');
+		f2 = concat_path_file(f2, slash ? slash+1 : f1);
+		xstat(f2, &stb2);
+	}
+
+	/* diffreg can get non-regular files here,
+	 * they are not both DIRestories */
+	print_status((gotstdin > 1 ? D_SAME : diffreg(f1, f2, 0)),
+			f1, f2 /*, NULL*/);
 	return status;
 }
