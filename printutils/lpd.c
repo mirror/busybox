@@ -10,37 +10,40 @@
 /*
  * A typical usage of BB lpd looks as follows:
  * # tcpsvd -E 0 515 lpd SPOOLDIR [HELPER-PROG [ARGS...]]
- * 
- * This means a network listener is started on port 515 (default for LP protocol). 
+ *
+ * This means a network listener is started on port 515 (default for LP protocol).
  * When a client connection is made (via lpr) lpd first change its working directory to SPOOLDIR.
- * 
- * SPOOLDIR is the spool directory which contains printing queues 
+ *
+ * SPOOLDIR is the spool directory which contains printing queues
  * and should have the following structure:
- * 
+ *
  * SPOOLDIR/
  * 	<queue1>
  * 	...
  * 	<queueN>
- * 
+ *
  * <queueX> can be of two types:
  * 	A. a printer character device or an ordinary file a link to such;
  * 	B. a directory.
- * 
- * In case A lpd just dumps the data it receives from client (lpr) to the 
+ *
+ * In case A lpd just dumps the data it receives from client (lpr) to the
  * end of queue file/device. This is non-spooling mode.
- * 
- * In case B lpd enters spooling mode. It reliably saves client data along with control info 
- * in two unique files under the queue directory. These files are named dfAXXXHHHH and cfAXXXHHHH, 
- * where XXX is the job number and HHHH is the client hostname. Unless a printing helper application 
+ *
+ * In case B lpd enters spooling mode. It reliably saves client data along with control info
+ * in two unique files under the queue directory. These files are named dfAXXXHHHH and cfAXXXHHHH,
+ * where XXX is the job number and HHHH is the client hostname. Unless a printing helper application
  * is specified lpd is done at this point.
- * 
+ *
+ * NB: file names are produced by peer! They actually may be anything at all!
+ * lpd only sanitizes them (by removing most non-alphanumerics).
+ *
  * If HELPER-PROG (with optional arguments) is specified then lpd continues to process client data:
- * 	1. it reads and parses control file (cfA...). The parse process results in setting environment 
- * 	variables whose values were passed in control file; when parsing is complete, lpd deletes 
+ * 	1. it reads and parses control file (cfA...). The parse process results in setting environment
+ * 	variables whose values were passed in control file; when parsing is complete, lpd deletes
  * 	control file.
- * 	2. it spawns specified helper application. It is then the helper application who is responsible 
+ * 	2. it spawns specified helper application. It is then the helper application who is responsible
  * 	for both actual printing and deleting processed data file.
- * 
+ *
  * A good lpr passes control files which when parsed provide the following variables:
  * $H = host which issues the job
  * $P = user who prints
@@ -49,13 +52,17 @@
  * $L = print banner page
  * $M = the user to whom a mail should be sent if a problem occurs
  * $l = name of datafile ("dfAxxx") - file whose content are to be printed
- * 
+ *
+ * lpd also provides $DATAFILE environment variable - the ACTUAL name
+ * of the datafile under which it was saved.
+ * $l is not reliable (you are at mercy of remote peer), DON'T USE IT.
+ *
  * Thus, a typical helper can be something like this:
  * #!/bin/sh
  * cat "$l" >/dev/lp0
  * mv -f "$l" save/
- * 
  */
+
 #include "libbb.h"
 
 // strip argument of bad chars

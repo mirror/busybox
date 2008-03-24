@@ -67,7 +67,7 @@ int chrt_main(int argc ATTRIBUTE_UNUSED, char **argv)
 		fflush_stdout_and_exit(EXIT_SUCCESS);
 	}
 
-	argv += optind; 
+	argv += optind;
 	if (opt & OPT_p) {
 		pid_str = *argv++;
 		if (*argv) { /* "-p <priority> <pid> [...]" */

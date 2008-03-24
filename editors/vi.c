@@ -1718,7 +1718,7 @@ static int find_range(char ** start, char ** stop, char c)
 		p = t;
 	}
 
-	// backward char movements don't include start position 
+	// backward char movements don't include start position
 	if (q > p && strchr("^0bBh\b\177", c)) q--;
 
 	multiline = 0;

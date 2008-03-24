@@ -537,7 +537,7 @@ int sendgetmail_main(int argc ATTRIBUTE_UNUSED, char **argv)
 		// NOTE: we don't use xatou(buf) since buf is "nmsg nbytes"
 		// we only need nmsg and atoi is just exactly what we need
 		// if atoi fails to convert buf into number it returns 0
-		// in this case the following loop simply will not be executed 
+		// in this case the following loop simply will not be executed
 		nmsg = atoi(buf);
 		if (ENABLE_FEATURE_CLEAN_UP)
 			free(buf-4); // buf is "+OK " away from malloc'ed string

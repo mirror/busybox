@@ -2740,7 +2740,7 @@ static int forkexec(struct op *t, int *pin, int *pout, int no_fork, char **wp)
 	// longjmps away (at "Run builtin" below), leaving t->op_words clobbered!
 	// See http://bugs.busybox.net/view.php?id=846.
 	// Now we do not touch t->op_words, but separately pass wp as param list
-	// to builtins 
+	// to builtins
 	DBGPRINTF(("FORKEXEC: bltin %p, no_fork %d, owp %p\n", bltin,
 			no_fork, owp));
 	/* Don't fork if it is a lone builtin (not in pipe)

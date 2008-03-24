@@ -71,7 +71,7 @@ static void
 uuidcache_addentry(char *device, /*int major, int minor,*/ char *label, char *uuid)
 {
 	struct uuidCache_s *last;
-    
+
 	if (!uuidCache) {
 		last = uuidCache = xzalloc(sizeof(*uuidCache));
 	} else {

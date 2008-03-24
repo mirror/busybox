@@ -136,7 +136,7 @@ int patch_main(int argc ATTRIBUTE_UNUSED, char **argv)
 		src_stream = NULL;
 
 		if (backup_filename && !stat(original_filename, &saved_stat)) {
-			src_stream = xfopen((strcmp(original_filename, new_filename)) ? 
+			src_stream = xfopen((strcmp(original_filename, new_filename)) ?
 							    original_filename : backup_filename, "r");
 		}
 

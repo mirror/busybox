@@ -49,7 +49,7 @@ int lpqr_main(int argc ATTRIBUTE_UNUSED, char *argv[])
 		OPT_U           = 1 << 1, // -U username
 
 		LPR_V           = 1 << 2, // -V: be verbose
-		LPR_h           = 1 << 3, // -h: want banner printed    
+		LPR_h           = 1 << 3, // -h: want banner printed
 		LPR_C           = 1 << 4, // -C class: job "class" (? supposedly printed on banner)
 		LPR_J           = 1 << 5, // -J title: the job title for the banner page
 		LPR_m           = 1 << 6, // -m: send mail back to user

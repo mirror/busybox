@@ -168,7 +168,7 @@ int script_main(int argc ATTRIBUTE_UNUSED, char **argv)
 	/* child: make pty slave to be input, output, error; run shell */
 	close(pty); /* close pty master */
 	/* open pty slave to fd 0,1,2 */
-	close(0);               
+	close(0);
 	xopen(pty_line, O_RDWR); /* uses fd 0 */
 	xdup2(0, 1);
 	xdup2(0, 2);
