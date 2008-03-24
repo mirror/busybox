@@ -64,7 +64,7 @@ static char *sane(char *str)
 	char *s = str;
 	char *p = s;
 	while (*s) {
-		if (isalnum(*s) || '-' == *s) {
+		if (isalnum(*s) || '-' == *s || '_' == *s) {
 			*p++ = *s;
 		}
 		s++;
@@ -73,100 +73,85 @@ static char *sane(char *str)
 	return str;
 }
 
-/* vfork() disables some optimizations. Moving its use
- * to minimal, non-inlined function saves bytes */
-static NOINLINE void vfork_close_stdio_and_exec(char **argv)
+// we can use leaky setenv since we are about to exec or exit
+static void exec_helper(char **filenames, char **argv) ATTRIBUTE_NORETURN;
+static void exec_helper(char **filenames, char **argv)
 {
-	if (vfork() == 0) {
-		// CHILD
-		// we are the helper. we wanna be silent.
-		// this call reopens stdio fds to "/dev/null"
-		// (no daemonization is done)
-		bb_daemonize_or_rexec(DAEMON_DEVNULL_STDIO | DAEMON_ONLY_SANITIZE, NULL);
-		BB_EXECVP(*argv, argv);
-		_exit(127);
-	}
-}
+	char *p, *q;
+	char var[2];
 
-static void exec_helper(const char *fname, char **argv)
-{
-	char *p, *q, *file;
-	char *our_env[12];
-	int env_idx;
-
-	// read control file
-	file = q = xmalloc_open_read_close(fname, NULL);
-	// delete control file
-	unlink(fname);
+	// read and delete ctrlfile
+	q = xmalloc_open_read_close(filenames[0], NULL);
+	unlink(filenames[0]);
+	// provide datafile name
+	xsetenv("DATAFILE", filenames[1]);
 	// parse control file by "\n"
-	env_idx = 0;
 	while ((p = strchr(q, '\n')) != NULL
 	 && isalpha(*q)
-	 && env_idx < ARRAY_SIZE(our_env)
 	) {
 		*p++ = '\0';
 		// here q is a line of <SYM><VALUE>
 		// let us set environment string <SYM>=<VALUE>
-		// N.B. setenv is leaky!
-		// We have to use putenv(malloced_str),
-		// and unsetenv+free (in parent)
-		our_env[env_idx] = xasprintf("%c=%s", *q, q+1);
-		putenv(our_env[env_idx]);
-		env_idx++;
+		var[0] = *q++;
+		var[1] = '\0';
+		xsetenv(var, q);
 		// next line, plz!
 		q = p;
 	}
-	free(file);
-
-	vfork_close_stdio_and_exec(argv);
-
-	// PARENT (or vfork error)
-	// clean up...
-	while (--env_idx >= 0) {
-		*strchrnul(our_env[env_idx], '=') = '\0';
-		unsetenv(our_env[env_idx]);
-	}
+	// we are the helper, we wanna be silent.
+	// this call reopens stdio fds to "/dev/null"
+	// (no daemonization is done)
+	bb_daemonize_or_rexec(DAEMON_DEVNULL_STDIO | DAEMON_ONLY_SANITIZE, NULL);
+	BB_EXECVP(*argv, argv);
+	exit(0);
 }
 
 static char *xmalloc_read_stdin(void)
 {
-	size_t max = 4 * 1024; /* more than enough for commands! */
+	// SECURITY:
+	size_t max = 4 * 1024; // more than enough for commands!
 	return xmalloc_reads(STDIN_FILENO, NULL, &max);
 }
 
 int lpd_main(int argc, char *argv[]) MAIN_EXTERNALLY_VISIBLE;
 int lpd_main(int argc ATTRIBUTE_UNUSED, char *argv[])
 {
-	int spooling;
+	int spooling = spooling; // for compiler
+	int seen;
 	char *s, *queue;
-
-	// read command
-	s = xmalloc_read_stdin();
-
-	// we understand only "receive job" command
-	if (2 != *s) {
- unsupported_cmd:
-		printf("Command %02x %s\n",
-			(unsigned char)s[0], "is not supported");
-		return EXIT_FAILURE;
-	}
+	char *filenames[2];
 
 	// goto spool directory
 	if (*++argv)
 		xchdir(*argv++);
 
-	// parse command: "\x2QUEUE_NAME\n"
-	queue = s + 1;
-	*strchrnul(s, '\n') = '\0';
+	// error messages of xfuncs will be sent over network
+	xdup2(STDOUT_FILENO, STDERR_FILENO);
 
+	filenames[0] = NULL; // ctrlfile name
+	filenames[1] = NULL; // datafile name
+
+	// read command
+	s = queue = xmalloc_read_stdin();
+	// we understand only "receive job" command
+	if (2 != *queue) {
+ unsupported_cmd:
+		printf("Command %02x %s\n",
+			(unsigned char)s[0], "is not supported");
+		goto err_exit;
+	}
+
+	// parse command: "2 | QUEUE_NAME | '\n'"
+	queue++;
 	// protect against "/../" attacks
+	// *strchrnul(queue, '\n') = '\0'; - redundant, sane() will do
 	if (!*sane(queue))
 		return EXIT_FAILURE;
 
 	// queue is a directory -> chdir to it and enter spooling mode
-	spooling = chdir(queue) + 1; /* 0: cannot chdir, 1: done */
-
-	xdup2(STDOUT_FILENO, STDERR_FILENO);
+	spooling = chdir(queue) + 1; // 0: cannot chdir, 1: done
+	seen = 0;
+	// we don't free(queue), we might need it later
 
 	while (1) {
 		char *fname;
@@ -176,30 +161,65 @@ int lpd_main(int argc ATTRIBUTE_UNUSED, char *argv[])
 		int expected_len, real_len;
 
 		// signal OK
-		write(STDOUT_FILENO, "", 1);
+		safe_write(STDOUT_FILENO, "", 1);
 
 		// get subcommand
+		// valid s must be of form: "SUBCMD | LEN | space | FNAME"
+		// N.B. we bail out on any error
 		s = xmalloc_read_stdin();
-		if (!s)
-			return EXIT_SUCCESS; // probably EOF
+		if (!s) { // (probably) EOF
+			if (spooling /* && 6 != spooling - always true */) {
+				// we didn't see both ctrlfile & datafile!
+				goto err_exit;
+			}
+			// one of only two non-error exits
+			return EXIT_SUCCESS;
+		}
+
+		// validate input.
 		// we understand only "control file" or "data file" cmds
 		if (2 != s[0] && 3 != s[0])
 			goto unsupported_cmd;
-
+		if (seen & (s[0] - 1)) {
+			printf("Duplicated subcommand\n");
+			goto err_exit;
+		}
+		seen &= (s[0] - 1); // bit 1: ctrlfile; bit 2: datafile
+		// get filename
 		*strchrnul(s, '\n') = '\0';
-		// valid s must be of form: SUBCMD | LEN | SP | FNAME
-		// N.B. we bail out on any error
 		fname = strchr(s, ' ');
 		if (!fname) {
-			printf("Command %02x %s\n",
-				(unsigned char)s[0], "lacks filename");
-			return EXIT_FAILURE;
+// bad_fname:
+			printf("No or bad filename\n");
+			goto err_exit;
 		}
 		*fname++ = '\0';
+//		// s[0]==2: ctrlfile, must start with 'c'
+//		// s[0]==3: datafile, must start with 'd'
+//		if (fname[0] != s[0] + ('c'-2))
+//			goto bad_fname;
+		// get length
+		expected_len = bb_strtou(s + 1, NULL, 10);
+		if (errno || expected_len < 0) {
+			printf("Bad length\n");
+			goto err_exit;
+		}
+		if (2 == s[0] && expected_len > 16 * 1024) {
+			// SECURITY:
+			// ctrlfile can't be big (we want to read it back later!)
+			printf("File is too big\n");
+			goto err_exit;
+		}
+
+		// open the file
 		if (spooling) {
 			// spooling mode: dump both files
 			// job in flight has mode 0200 "only writable"
-			fd = xopen3(sane(fname), O_CREAT | O_WRONLY | O_TRUNC | O_EXCL, 0200);
+			sane(fname);
+			fd = open3_or_warn(fname, O_CREAT | O_WRONLY | O_TRUNC | O_EXCL, 0200);
+			if (fd < 0)
+				goto err_exit;
+			filenames[s[0] - 2] = xstrdup(fname);
 		} else {
 			// non-spooling mode:
 			// 2: control file (ignoring), 3: data file
@@ -207,35 +227,48 @@ int lpd_main(int argc ATTRIBUTE_UNUSED, char *argv[])
 			if (3 == s[0])
 				fd = xopen(queue, O_RDWR | O_APPEND);
 		}
-		expected_len = xatoi_u(s + 1);
+
+		// copy the file
 		real_len = bb_copyfd_size(STDIN_FILENO, fd, expected_len);
-		if (spooling && real_len != expected_len) {
-			unlink(fname); // don't keep corrupted files
+		if (real_len != expected_len) {
 			printf("Expected %d but got %d bytes\n",
 				expected_len, real_len);
-			return EXIT_FAILURE;
-		}
-		// chmod completely downloaded file as "readable+writable" ...
-		if (spooling) {
-			fchmod(fd, 0600);
-			// ... and accumulate dump state.
-			// N.B. after all files are dumped spooling should be 1+2+3==6
-			spooling += s[0];
-		}
-		close(fd); // NB: can do close(-1). Who cares?
-
-		// are all files dumped? -> spawn spool helper
-		if (6 == spooling && *argv) {
-			fname[0] = 'c'; // pass control file name
-			exec_helper(fname, argv);
+			goto err_exit;
 		}
 		// get ACK and see whether it is NUL (ok)
-		if (read(STDIN_FILENO, s, 1) != 1 || s[0] != 0) {
+		if (safe_read(STDIN_FILENO, s, 1) != 1 || s[0] != 0) {
 			// don't send error msg to peer - it obviously
 			// don't follow the protocol, so probably
 			// it can't understand us either
-			return EXIT_FAILURE;
+			goto err_exit;
+		}
+
+		if (spooling) {
+			// chmod completely downloaded file as "readable+writable"
+			fchmod(fd, 0600);
+			// accumulate dump state
+			// N.B. after all files are dumped spooling should be 1+2+3==6
+			spooling += s[0];
 		}
 		free(s);
-	} /* while (1) */
+		close(fd); // NB: can do close(-1). Who cares?
+
+		// spawn spool helper and exit if all files are dumped
+		if (6 == spooling && *argv) {
+			// signal OK
+			safe_write(STDOUT_FILENO, "", 1);
+			// does not return (exits 0)
+			exec_helper(filenames, argv);
+		}
+	} // while (1)
+
+ err_exit:
+	// don't keep corrupted files
+	if (spooling) {
+		if (filenames[0])
+			unlink(filenames[0]);
+		if (filenames[1])
+			unlink(filenames[1]);
+	}
+	return EXIT_FAILURE;
 }
