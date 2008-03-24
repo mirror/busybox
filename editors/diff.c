@@ -106,9 +106,6 @@ struct globals {
 	const char *label2;
 	struct line *file[2];
 	int *J;          /* will be overlaid on class */
-	int *class;      /* will be overlaid on file[0] */
-	int *klist;      /* will be overlaid on file[0] after class */
-	int *member;     /* will be overlaid on file[1] */
 	int clen;
 	int len[2];
 	int pref, suff;  /* length of prefix and suffix */
@@ -136,9 +133,6 @@ struct globals {
 #define label2             (G.label2            )
 #define file               (G.file              )
 #define J                  (G.J                 )
-#define class              (G.class             )
-#define klist              (G.klist             )
-#define member             (G.member            )
 #define clen               (G.clen              )
 #define len                (G.len               )
 #define pref               (G.pref              )
@@ -999,6 +993,9 @@ static void output(char *file1, FILE *f1, char *file2, FILE *f2)
  * are not both DIRectories. */
 static unsigned diffreg(char *file1, char *file2, int flags)
 {
+	int *member;     /* will be overlaid on file[1] */
+	int *class;      /* will be overlaid on file[0] */
+	int *klist;      /* will be overlaid on file[0] after class */
 	FILE *f1;
 	FILE *f2;
 	unsigned rval;
