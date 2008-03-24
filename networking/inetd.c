@@ -366,7 +366,7 @@ static len_and_sockaddr *xzalloc_lsa(int family)
 	lsa = xzalloc(LSA_LEN_SIZE + sz);
 	lsa->len = sz;
 	lsa->u.sa.sa_family = family;
-	return lsa;	
+	return lsa;
 }
 
 static void rearm_alarm(void)
@@ -1357,7 +1357,7 @@ int inetd_main(int argc ATTRIBUTE_UNUSED, char **argv)
 				/* peek at the packet and remember peer addr */
 				int r = recvfrom(ctrl, NULL, 0, MSG_PEEK|MSG_DONTWAIT,
 					&lsa->u.sa, &lsa->len);
-                    		if (r < 0)
+				if (r < 0)
 					goto do_exit1;
 				/* make this socket "connected" to peer addr:
 				 * only packets from this peer will be recv'ed,

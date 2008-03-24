@@ -89,7 +89,7 @@ void print_login_issue(const char *issue_file, const char *tty)
 void print_login_prompt(void)
 {
 	char *hostname = safe_gethostname();
-	
+
 	fputs(hostname, stdout);
 	fputs(LOGIN, stdout);
 	fflush(stdout);

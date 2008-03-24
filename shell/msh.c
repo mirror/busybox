@@ -159,7 +159,7 @@ static int mshdbg_rc = 0;
 /*
  * library and system definitions
  */
-typedef void xint;                     	/* base type of jmp_buf, for not broken compilers */
+typedef void xint;                      /* base type of jmp_buf, for not broken compilers */
 
 /*
  * shell components

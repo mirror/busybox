@@ -181,7 +181,7 @@ int volume_id_probe_vfat(struct volume_id *id, uint64_t off)
 	if (vs->heads == 0)
 		return -1;
 
-	/* cluster size check*/	
+	/* cluster size check */
 	if (vs->sectors_per_cluster == 0 ||
 	    (vs->sectors_per_cluster & (vs->sectors_per_cluster-1)))
 		return -1;

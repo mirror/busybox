@@ -74,7 +74,7 @@ int patch_main(int argc ATTRIBUTE_UNUSED, char **argv)
 	int patch_level;
 	int ret = 0;
 
-	xfunc_error_retval = 2;	
+	xfunc_error_retval = 2;
 	{
 		const char *p = "-1";
 		const char *i = "-"; /* compat */
@@ -114,7 +114,7 @@ int patch_main(int argc ATTRIBUTE_UNUSED, char **argv)
 		if (!patch_line || strncmp(patch_line, "+++ ", 4) != 0)
 			bb_error_msg_and_die("invalid patch");
 		new_filename = extract_filename_and_free_line(patch_line, patch_level);
-		
+
 		/* Get access rights from the file to be patched, -1 file does not exist */
 		if (stat(new_filename, &saved_stat) != 0) {
 			char *line_ptr;

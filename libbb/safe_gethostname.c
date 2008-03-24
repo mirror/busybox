@@ -45,7 +45,7 @@ char *safe_gethostname(void)
 	 * name and an 8-byte nodename), but this is true on Linux. The same holds
 	 * for setdomainname(2) and the domainname field.
 	 */
-	
+
 	/* Uname can fail only if you pass a bad pointer to it. */
 	uname(&uts);
 

@@ -419,7 +419,7 @@ int vi_main(int argc, char **argv)
 			/* fall through */
 
 		default:
-		    	bb_show_usage();
+			bb_show_usage();
 			return 1;
 		}
 	}

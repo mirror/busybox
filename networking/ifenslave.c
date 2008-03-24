@@ -5,19 +5,19 @@
  *
  * ifenslave.c: Configure network interfaces for parallel routing.
  *
- *	This program controls the Linux implementation of running multiple
- *	network interfaces in parallel.
+ *      This program controls the Linux implementation of running multiple
+ *      network interfaces in parallel.
  *
- * Author:	Donald Becker <becker@cesdis.gsfc.nasa.gov>
- *		Copyright 1994-1996 Donald Becker
+ * Author:      Donald Becker <becker@cesdis.gsfc.nasa.gov>
+ *              Copyright 1994-1996 Donald Becker
  *
- *		This program is free software; you can redistribute it
- *		and/or modify it under the terms of the GNU General Public
- *		License as published by the Free Software Foundation.
+ *              This program is free software; you can redistribute it
+ *              and/or modify it under the terms of the GNU General Public
+ *              License as published by the Free Software Foundation.
  *
- *	The author may be reached as becker@CESDIS.gsfc.nasa.gov, or C/O
- *	Center of Excellence in Space Data and Information Sciences
- *	   Code 930.5, Goddard Space Flight Center, Greenbelt MD 20771
+ *      The author may be reached as becker@CESDIS.gsfc.nasa.gov, or C/O
+ *      Center of Excellence in Space Data and Information Sciences
+ *         Code 930.5, Goddard Space Flight Center, Greenbelt MD 20771
  *
  *  Changes :
  *    - 2000/10/02 Willy Tarreau <willy at meta-x.org> :
@@ -79,23 +79,23 @@
  *         current version is 1.0.0 as a base line.
  *
  *    - 2003/05/22 - Jay Vosburgh <fubar at us dot ibm dot com>
- *	 - ifenslave -c was broken; it's now fixed
- *	 - Fixed problem with routes vanishing from master during enslave
- *	   processing.
+ *       - ifenslave -c was broken; it's now fixed
+ *       - Fixed problem with routes vanishing from master during enslave
+ *         processing.
  *
  *    - 2003/05/27 - Amir Noam <amir.noam at intel dot com>
- *	 - Fix backward compatibility issues:
- *	   For drivers not using ABI versions, slave was set down while
- *	   it should be left up before enslaving.
- *	   Also, master was not set down and the default set_mac_address()
- *	   would fail and generate an error message in the system log.
- * 	 - For opt_c: slave should not be set to the master's setting
- *	   while it is running. It was already set during enslave. To
- *	   simplify things, it is now handeled separately.
+ *       - Fix backward compatibility issues:
+ *         For drivers not using ABI versions, slave was set down while
+ *         it should be left up before enslaving.
+ *         Also, master was not set down and the default set_mac_address()
+ *         would fail and generate an error message in the system log.
+ *       - For opt_c: slave should not be set to the master's setting
+ *         while it is running. It was already set during enslave. To
+ *         simplify things, it is now handeled separately.
  *
  *    - 2003/12/01 - Shmulik Hen <shmulik.hen at intel dot com>
- *	 - Code cleanup and style changes
- *	   set version to 1.1.0
+ *       - Code cleanup and style changes
+ *         set version to 1.1.0
  */
 
 #include "libbb.h"

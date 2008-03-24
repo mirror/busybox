@@ -408,7 +408,7 @@ int sendgetmail_main(int argc ATTRIBUTE_UNUSED, char **argv)
 
 		// make a random string -- it will delimit message parts
 		srand(monotonic_us());
- 		boundary = xasprintf("%d-%d-%d", rand(), rand(), rand());
+		boundary = xasprintf("%d-%d-%d", rand(), rand(), rand());
 
 		// put common headers and body start
 		printf(
@@ -457,7 +457,7 @@ int sendgetmail_main(int argc ATTRIBUTE_UNUSED, char **argv)
 		printf("\r\n--%s--\r\n" "\r\n", boundary);
 
 		// leave "put message" mode
- 		smtp_check(".", 250);
+		smtp_check(".", 250);
 		// ... and say goodbye
 		smtp_check("QUIT", 221);
 
@@ -482,7 +482,7 @@ int sendgetmail_main(int argc ATTRIBUTE_UNUSED, char **argv)
 
 		// cache postprocess program
 		*fargs = *argv;
-		
+
 		// authenticate
 		if (!(opts & OPT_U)) {
 			//opts |= OPT_U;

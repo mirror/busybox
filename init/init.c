@@ -230,8 +230,8 @@ static void console_init(void)
 			/* Give me _ANY_ open descriptor! */
 			fd = xopen("/", O_RDONLY); /* we don't believe this can fail */
 		}
-    		while ((unsigned)fd < 2)
-            		fd = dup(fd);
+		while ((unsigned)fd < 2)
+			fd = dup(fd);
 		if (fd > 2)
 			close(fd);
 	}

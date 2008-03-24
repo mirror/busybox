@@ -32,13 +32,13 @@ struct ufs_super_block {
 	uint32_t	fs_time;
 	uint32_t	fs_size;
 	uint32_t	fs_dsize;
-	uint32_t	fs_ncg;	
+	uint32_t	fs_ncg;
 	uint32_t	fs_bsize;
 	uint32_t	fs_fsize;
 	uint32_t	fs_frag;
 	uint32_t	fs_minfree;
 	uint32_t	fs_rotdelay;
-	uint32_t	fs_rps;	
+	uint32_t	fs_rps;
 	uint32_t	fs_bmask;
 	uint32_t	fs_fmask;
 	uint32_t	fs_bshift;
@@ -63,7 +63,7 @@ struct ufs_super_block {
 	uint32_t	fs_cgsize;
 	uint32_t	fs_ntrak;
 	uint32_t	fs_nsect;
-	uint32_t	fs_spc;	
+	uint32_t	fs_spc;
 	uint32_t	fs_ncyl;
 	uint32_t	fs_cpg;
 	uint32_t	fs_ipg;
@@ -95,7 +95,7 @@ struct ufs_super_block {
 			uint32_t	fs_cgrotor;
 			uint32_t	fs_ocsp[28];
 			uint32_t	fs_contigdirs;
-			uint32_t	fs_csp;	
+			uint32_t	fs_csp;
 			uint32_t	fs_maxcluster;
 			uint32_t	fs_active;
 			int32_t		fs_old_cpc;
@@ -172,7 +172,7 @@ int volume_id_probe_ufs(struct volume_id *id, uint64_t off)
 
 	dbg("probing at offset 0x%llx", (unsigned long long) off);
 
-	for (i = 0; i < ARRAY_SIZE(offsets); i++) {	
+	for (i = 0; i < ARRAY_SIZE(offsets); i++) {
 		ufs = volume_id_get_buffer(id, off + (offsets[i] * 0x400), 0x800);
 		if (ufs == NULL)
 			return -1;

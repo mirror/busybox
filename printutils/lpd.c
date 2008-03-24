@@ -18,13 +18,13 @@
  * and should have the following structure:
  *
  * SPOOLDIR/
- * 	<queue1>
- * 	...
- * 	<queueN>
+ *      <queue1>
+ *      ...
+ *      <queueN>
  *
  * <queueX> can be of two types:
- * 	A. a printer character device or an ordinary file a link to such;
- * 	B. a directory.
+ *      A. a printer character device or an ordinary file a link to such;
+ *      B. a directory.
  *
  * In case A lpd just dumps the data it receives from client (lpr) to the
  * end of queue file/device. This is non-spooling mode.
@@ -38,11 +38,11 @@
  * lpd only sanitizes them (by removing most non-alphanumerics).
  *
  * If HELPER-PROG (with optional arguments) is specified then lpd continues to process client data:
- * 	1. it reads and parses control file (cfA...). The parse process results in setting environment
- * 	variables whose values were passed in control file; when parsing is complete, lpd deletes
- * 	control file.
- * 	2. it spawns specified helper application. It is then the helper application who is responsible
- * 	for both actual printing and deleting processed data file.
+ *      1. it reads and parses control file (cfA...). The parse process results in setting environment
+ *      variables whose values were passed in control file; when parsing is complete, lpd deletes
+ *      control file.
+ *      2. it spawns specified helper application. It is then the helper application who is responsible
+ *      for both actual printing and deleting processed data file.
  *
  * A good lpr passes control files which when parsed provide the following variables:
  * $H = host which issues the job
