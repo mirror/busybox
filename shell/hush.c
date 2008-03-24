@@ -1061,7 +1061,7 @@ static int builtin_read(char **argv)
 	char *string;
 	const char *name = argv[1] ? argv[1] : "REPLY";
 
-	string = xmalloc_reads(STDIN_FILENO, xasprintf("%s=", name));
+	string = xmalloc_reads(STDIN_FILENO, xasprintf("%s=", name), NULL);
 	return set_local_var(string, 0);
 }
 

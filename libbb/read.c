@@ -152,13 +152,14 @@ char *reads(int fd, char *buffer, size_t size)
 // Read one line a-la fgets. Reads byte-by-byte.
 // Useful when it is important to not read ahead.
 // Bytes are appended to pfx (which must be malloced, or NULL).
-char *xmalloc_reads(int fd, char *buf)
+char *xmalloc_reads(int fd, char *buf, size_t *maxsz_p)
 {
 	char *p;
-	int sz = buf ? strlen(buf) : 0;
+	size_t sz = buf ? strlen(buf) : 0;
+	size_t maxsz = maxsz_p ? *maxsz_p : MAXINT(size_t);
 
 	goto jump_in;
-	while (1) {
+	while (sz < maxsz) {
 		if (p - buf == sz) {
  jump_in:
 			buf = xrealloc(buf, sz + 128);
@@ -178,6 +179,8 @@ char *xmalloc_reads(int fd, char *buf)
 		p++;
 	}
 	*p++ = '\0';
+	if (maxsz_p)
+		*maxsz_p  = p - buf - 1;
 	return xrealloc(buf, p - buf);
 }
 

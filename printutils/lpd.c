@@ -58,8 +58,6 @@
  */
 #include "libbb.h"
 
-// TODO: xmalloc_reads is vulnerable to remote OOM attack!
-
 // strip argument of bad chars
 static char *sane(char *str)
 {
@@ -73,6 +71,21 @@ static char *sane(char *str)
 	}
 	*p = '\0';
 	return str;
+}
+
+/* vfork() disables some optimizations. Moving its use
+ * to minimal, non-inlined function saves bytes */
+static NOINLINE void vfork_close_stdio_and_exec(char **argv)
+{
+	if (vfork() == 0) {
+		// CHILD
+		// we are the helper. we wanna be silent.
+		// this call reopens stdio fds to "/dev/null"
+		// (no daemonization is done)
+		bb_daemonize_or_rexec(DAEMON_DEVNULL_STDIO | DAEMON_ONLY_SANITIZE, NULL);
+		BB_EXECVP(*argv, argv);
+		_exit(127);
+	}
 }
 
 static void exec_helper(const char *fname, char **argv)
@@ -103,24 +116,22 @@ static void exec_helper(const char *fname, char **argv)
 		// next line, plz!
 		q = p;
 	}
+	free(file);
 
-	if (vfork() == 0) {
-		// CHILD
-		// we are the helper. we wanna be silent
-		// this call reopens stdio fds to "/dev/null"
-		// (no daemonization is done)
-		bb_daemonize_or_rexec(DAEMON_DEVNULL_STDIO | DAEMON_ONLY_SANITIZE, NULL);
-		BB_EXECVP(*argv, argv);
-		_exit(127);
-	}
+	vfork_close_stdio_and_exec(argv);
 
 	// PARENT (or vfork error)
 	// clean up...
-	free(file);
 	while (--env_idx >= 0) {
 		*strchrnul(our_env[env_idx], '=') = '\0';
 		unsetenv(our_env[env_idx]);
 	}
+}
+
+static char *xmalloc_read_stdin(void)
+{
+	size_t max = 4 * 1024; /* more than enough for commands! */
+	return xmalloc_reads(STDIN_FILENO, NULL, &max);
 }
 
 int lpd_main(int argc, char *argv[]) MAIN_EXTERNALLY_VISIBLE;
@@ -130,7 +141,7 @@ int lpd_main(int argc ATTRIBUTE_UNUSED, char *argv[])
 	char *s, *queue;
 
 	// read command
-	s = xmalloc_reads(STDIN_FILENO, NULL);
+	s = xmalloc_read_stdin();
 
 	// we understand only "receive job" command
 	if (2 != *s) {
@@ -168,7 +179,7 @@ int lpd_main(int argc ATTRIBUTE_UNUSED, char *argv[])
 		write(STDOUT_FILENO, "", 1);
 
 		// get subcommand
-		s = xmalloc_reads(STDIN_FILENO, NULL);
+		s = xmalloc_read_stdin();
 		if (!s)
 			return EXIT_SUCCESS; // probably EOF
 		// we understand only "control file" or "data file" cmds

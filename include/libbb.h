@@ -529,7 +529,7 @@ extern char *reads(int fd, char *buf, size_t count);
 // Read one line a-la fgets. Reads byte-by-byte.
 // Useful when it is important to not read ahead.
 // Bytes are appended to pfx (which must be malloced, or NULL).
-extern char *xmalloc_reads(int fd, char *pfx);
+extern char *xmalloc_reads(int fd, char *pfx, size_t *maxsz_p);
 extern ssize_t read_close(int fd, void *buf, size_t count);
 extern ssize_t open_read_close(const char *filename, void *buf, size_t count);
 extern void *xmalloc_open_read_close(const char *filename, size_t *sizep);
