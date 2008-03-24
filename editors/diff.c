@@ -22,9 +22,13 @@
 /*
  * Output flags
  */
-#define D_HEADER        1       /* Print a header/footer between files */
-#define D_EMPTY1        2       /* Treat first file as empty (/dev/null) */
-#define D_EMPTY2        4       /* Treat second file as empty (/dev/null) */
+enum {
+	/* Print a header/footer between files */
+	/* D_HEADER = 1, - unused */
+	/* Treat file as empty (/dev/null) */
+	D_EMPTY1 = 2 * ENABLE_FEATURE_DIFF_DIR,
+	D_EMPTY2 = 4 * ENABLE_FEATURE_DIFF_DIR,
+};
 
 /*
  * Status values for print_status() and diffreg() return values
@@ -308,15 +312,11 @@ static char *make_temp(FILE *f, struct stat *sb)
  * Check to see if the given files differ.
  * Returns 0 if they are the same, 1 if different, and -1 on error.
  */
-static NOINLINE int files_differ(FILE *f1, FILE *f2, int flags)
+static NOINLINE int files_differ(FILE *f1, FILE *f2)
 {
 	size_t i, j;
 
 	/* Prevent making copies for "/dev/null" (too common) */
-	tempname1 = tempname2 = NULL;
-	if (flags & (D_EMPTY1 | D_EMPTY2)) {
-		return 1;
-	}
 	/* Deal with input from pipes etc */
 	tempname1 = make_temp(f1, &stb1);
 	tempname2 = make_temp(f2, &stb2);
@@ -1008,6 +1008,7 @@ static unsigned diffreg(char *file1, char *file2, int flags)
 
 	anychange = 0;
 	context_vec_ptr = context_vec_start - 1;
+	tempname1 = tempname2 = NULL;
 
 	/* Is any of them a directory? Then it's simple */
 	if (S_ISDIR(stb1.st_mode) != S_ISDIR(stb2.st_mode))
@@ -1025,13 +1026,18 @@ static unsigned diffreg(char *file1, char *file2, int flags)
 	else
 		f2 = xfopen_stdin(file2);
 
-	/* Quick check whether they are different */
-	/* NB: copies non-REG files to tempfiles and fills tempname1/2 */
-	i = files_differ(f1, f2, flags);
-	if (i != 1) { /* not different? */
-		if (i != 0) /* error? */
-			exit_status |= 2;
-		goto closem;
+	/* NB: if D_EMPTY1/2 is set, other file is always a regular file,
+	 * not pipe/fifo/chardev/etc - D_EMPTY is used by "diff -r" only,
+	 * and it never diffs non-ordinary files in subdirs. */
+	if (!(flags & (D_EMPTY1 | D_EMPTY2))) {
+		/* Quick check whether they are different */
+		/* NB: copies non-REG files to tempfiles and fills tempname1/2 */
+		i = files_differ(f1, f2);
+		if (i != 1) { /* not different? */
+			if (i != 0) /* error? */
+				exit_status |= 2;
+			goto closem;
+		}
 	}
 
 	if (!asciifile(f1) || !asciifile(f2)) {
@@ -1098,7 +1104,7 @@ static unsigned diffreg(char *file1, char *file2, int flags)
 #if ENABLE_FEATURE_DIFF_DIR
 static void do_diff(char *dir1, char *path1, char *dir2, char *path2)
 {
-	int flags = D_HEADER;
+	int flags = 0; /*D_HEADER;*/
 	int val;
 	char *fullpath1 = NULL; /* if -N */
 	char *fullpath2 = NULL;
