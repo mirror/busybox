@@ -87,43 +87,6 @@ static char *sane(char *str)
 	return str;
 }
 
-// we can use leaky setenv since we are about to exec or exit
-static void exec_helper(char **filenames, char **argv) ATTRIBUTE_NORETURN;
-static void exec_helper(char **filenames, char **argv)
-{
-	char *p, *q;
-	char var[2];
-
-	var[1] = '\0';
-
-	// read and delete ctrlfile
-	q = xmalloc_open_read_close(filenames[0], NULL);
-	unlink(filenames[0]);
-	// provide datafile name
-	xsetenv("DATAFILE", filenames[1]);
-	// parse control file by "\n"
-	while ((p = strchr(q, '\n')) != NULL
-	 && isalpha(*q)
-	) {
-		*p++ = '\0';
-		// q is a line of <SYM><VALUE>,
-		// we are setting environment string <SYM>=<VALUE>.
-		// Ignoring "l<datafile>", exporting others:
-		if (*q != 'l') {
-			var[0] = *q++;
-			xsetenv(var, q);
-		}
-		// next line, plz!
-		q = p;
-	}
-	// we are the helper, we wanna be silent.
-	// this call reopens stdio fds to "/dev/null"
-	// (no daemonization is done)
-	bb_daemonize_or_rexec(DAEMON_DEVNULL_STDIO | DAEMON_ONLY_SANITIZE, NULL);
-	BB_EXECVP(*argv, argv);
-	exit(127); // it IS error if helper cannot be executed!
-}
-
 static char *xmalloc_read_stdin(void)
 {
 	// SECURITY:
@@ -184,12 +147,42 @@ int lpd_main(int argc ATTRIBUTE_UNUSED, char *argv[])
 		// N.B. we bail out on any error
 		s = xmalloc_read_stdin();
 		if (!s) { // (probably) EOF
-			if (spooling /* && 7 != spooling - always true */) {
-				// we didn't see both ctrlfile & datafile!
-				goto err_exit;
+			char *p, *q, var[2];
+
+			// non-spooling mode or no spool helper specified
+			if (!spooling || !*argv)
+				return EXIT_SUCCESS; // the only non-error exit
+			// spooling mode but we didn't see both ctrlfile & datafile
+			if (spooling != 7)
+				goto err_exit; // reject job
+
+			// spooling mode and spool helper specified -> exec spool helper
+			// (we exit 127 if helper cannot be executed)
+			var[1] = '\0';
+			// read and delete ctrlfile
+			q = xmalloc_open_read_close(filenames[0], NULL);
+			unlink(filenames[0]);
+			// provide datafile name
+			// we can use leaky setenv since we are about to exec or exit
+			xsetenv("DATAFILE", filenames[1]);
+			// parse control file by "\n"
+			while ((p = strchr(q, '\n')) != NULL && isalpha(*q)) {
+				*p++ = '\0';
+				// q is a line of <SYM><VALUE>,
+				// we are setting environment string <SYM>=<VALUE>.
+				// Ignoring "l<datafile>", exporting others:
+				if (*q != 'l') {
+					var[0] = *q++;
+					xsetenv(var, q);
+				}
+				q = p; // next line
 			}
-			// one of only two non-error exits
-			return EXIT_SUCCESS;
+			// helper should not talk over network.
+			// this call reopens stdio fds to "/dev/null"
+			// (no daemonization is done)
+			bb_daemonize_or_rexec(DAEMON_DEVNULL_STDIO | DAEMON_ONLY_SANITIZE, NULL);
+			BB_EXECVP(*argv, argv);
+			exit(127);
 		}
 
 		// validate input.
@@ -269,14 +262,6 @@ int lpd_main(int argc ATTRIBUTE_UNUSED, char *argv[])
 
 		free(s);
 		close(fd); // NB: can do close(-1). Who cares?
-
-		// spawn spool helper and exit if all files are dumped
-		if (7 == spooling && *argv) {
-			// signal OK
-			safe_write(STDOUT_FILENO, "", 1);
-			// does not return (exits 0)
-			exec_helper(filenames, argv);
-		}
 	} // while (1)
 
  err_exit:
