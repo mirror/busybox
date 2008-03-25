@@ -558,22 +558,30 @@
        "world\n"
 
 #define date_trivial_usage \
-       "[OPTION]... [MMDDhhmm[[CC]YY][.ss]] [+FORMAT]"
+       "[OPTION]... [+FMT] [TIME]"
 #define date_full_usage \
-       "Display current time in the given FORMAT, or set system date\n" \
+       "Display time (using +FMT), or set time\n" \
      "\nOptions:" \
+     "\n	-u		Work in UTC (don't convert to local time)" \
      "\n	-R		Output RFC-822 compliant date string" \
-     "\n	-d STRING	Display time described by STRING, not 'now'" \
 	USE_FEATURE_DATE_ISOFMT( \
-     "\n	-I[TIMESPEC]	Output an ISO-8601 compliant date/time string" \
-     "\n			TIMESPEC='date' (or missing) for date only," \
+     "\n	-I[SPEC]	Output ISO-8601 compliant date string" \
+     "\n			SPEC='date' (default) for date only," \
      "\n			'hours', 'minutes', or 'seconds' for date and" \
      "\n			time to the indicated precision" \
-     "\n	-D hint		Use 'hint' as date format, via strptime()" \
 	) \
-     "\n	-s STRING	Set time described by STRING" \
-     "\n	-r FILE		Display the last modification time of FILE" \
-     "\n	-u		Print or sets Coordinated Universal Time" \
+     "\n	-d TIME		Display TIME, not 'now'" \
+     "\n	-r FILE		Display last modification time of FILE" \
+     "\n	[-s] TIME	Set time to TIME" \
+	USE_FEATURE_DATE_ISOFMT( \
+     "\n	-D FMT		Use FMT for str->date conversion" \
+	) \
+     "\n" \
+     "\nRecognized formats for TIME:" \
+     "\n	[hh:]mm:ss" \
+     "\n	mon.day-hh:mm[:ss]" \
+     "\n	year.mon.day-hh:mm[:ss]" \
+     "\n	MMDDhhmm[[YY]YY][.ss]" \
 
 #define date_example_usage \
        "$ date\n" \
