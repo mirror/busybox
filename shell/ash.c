@@ -11672,10 +11672,18 @@ typedef enum __rlimit_resource rlim_t;
 #endif
 
 /*
- * The read builtin.  The -e option causes backslashes to escape the
- * following character.
- *
+ * The read builtin. Options:
+ *      -r              Do not interpret '\' specially
+ *      -s              Turn off echo (tty only)
+ *      -n NCHARS       Read NCHARS max
+ *      -p PROMPT       Display PROMPT on stderr (if input is from tty)
+ *      -t SECONDS      Timeout after SECONDS (tty or pipe only)
+ *      -u FD           Read from given FD instead of fd 0
  * This uses unbuffered input, which may be avoidable in some cases.
+ * TODO: bash also has:
+ *      -a ARRAY        Read into array[0],[1],etc
+ *      -d DELIM        End on DELIM char, not newline
+ *      -e              Use line editing (tty only)
  */
 static int
 readcmd(int argc ATTRIBUTE_UNUSED, char **argv ATTRIBUTE_UNUSED)
@@ -11690,31 +11698,23 @@ readcmd(int argc ATTRIBUTE_UNUSED, char **argv ATTRIBUTE_UNUSED)
 	int startword;
 	int status;
 	int i;
+	int fd = 0;
 #if ENABLE_ASH_READ_NCHARS
-	int n_flag = 0;
-	int nchars = 0;
+	int nchars = 0; /* if != 0, -n is in effect */
 	int silent = 0;
 	struct termios tty, old_tty;
 #endif
 #if ENABLE_ASH_READ_TIMEOUT
-	fd_set set;
-	struct timeval ts;
-
-	ts.tv_sec = ts.tv_usec = 0;
+	unsigned end_ms = 0;
+	unsigned timeout = 0;
 #endif
 
 	rflag = 0;
 	prompt = NULL;
-#if ENABLE_ASH_READ_NCHARS && ENABLE_ASH_READ_TIMEOUT
-	while ((i = nextopt("p:rt:n:s")) != '\0')
-#elif ENABLE_ASH_READ_NCHARS
-	while ((i = nextopt("p:rn:s")) != '\0')
-#elif ENABLE_ASH_READ_TIMEOUT
-	while ((i = nextopt("p:rt:")) != '\0')
-#else
-	while ((i = nextopt("p:r")) != '\0')
-#endif
-	{
+	while ((i = nextopt("p:u:r"
+		USE_ASH_READ_TIMEOUT("t:")
+		USE_ASH_READ_NCHARS("n:s")
+	)) != '\0') {
 		switch (i) {
 		case 'p':
 			prompt = optionarg;
@@ -11724,7 +11724,7 @@ readcmd(int argc ATTRIBUTE_UNUSED, char **argv ATTRIBUTE_UNUSED)
 			nchars = bb_strtou(optionarg, NULL, 10);
 			if (nchars < 0 || errno)
 				ash_msg_and_raise_error("invalid count");
-			n_flag = nchars; /* just a flag "nchars is nonzero" */
+			/* nchars == 0: off (bash 3.2 does this too) */
 			break;
 		case 's':
 			silent = 1;
@@ -11732,6 +11732,11 @@ readcmd(int argc ATTRIBUTE_UNUSED, char **argv ATTRIBUTE_UNUSED)
 #endif
 #if ENABLE_ASH_READ_TIMEOUT
 		case 't':
+			timeout = bb_strtou(optionarg, NULL, 10);
+			if (errno || timeout > UINT_MAX / 2048)
+				ash_msg_and_raise_error("invalid timeout");
+			timeout *= 1000;
+#if 0 /* even bash have no -t N.NNN support */
 			ts.tv_sec = bb_strtou(optionarg, &p, 10);
 			ts.tv_usec = 0;
 			/* EINVAL means number is ok, but not terminated by NUL */
@@ -11755,16 +11760,22 @@ readcmd(int argc ATTRIBUTE_UNUSED, char **argv ATTRIBUTE_UNUSED)
 			if (!(ts.tv_sec | ts.tv_usec)) { /* both are 0? */
 				ash_msg_and_raise_error("invalid timeout");
 			}
+#endif /* if 0 */
 			break;
 #endif
 		case 'r':
 			rflag = 1;
 			break;
+		case 'u':
+			fd = bb_strtou(optionarg, NULL, 10);
+			if (fd < 0 || errno)
+				ash_msg_and_raise_error("invalid file descriptor");
+			break;
 		default:
 			break;
 		}
 	}
-	if (prompt && isatty(0)) {
+	if (prompt && isatty(fd)) {
 		out2str(prompt);
 	}
 	ap = argptr;
@@ -11774,46 +11785,48 @@ readcmd(int argc ATTRIBUTE_UNUSED, char **argv ATTRIBUTE_UNUSED)
 	if (ifs == NULL)
 		ifs = defifs;
 #if ENABLE_ASH_READ_NCHARS
-	if (n_flag || silent) {
-		if (tcgetattr(0, &tty) != 0) {
-			/* Not a tty */
-			n_flag = 0;
-			silent = 0;
-		} else {
-			old_tty = tty;
-			if (n_flag) {
-				tty.c_lflag &= ~ICANON;
-				tty.c_cc[VMIN] = nchars < 256 ? nchars : 255;
-			}
-			if (silent) {
-				tty.c_lflag &= ~(ECHO | ECHOK | ECHONL);
-			}
-			tcsetattr(0, TCSANOW, &tty);
+	tcgetattr(fd, &tty);
+	old_tty = tty;
+	if (nchars || silent) {
+		if (nchars) {
+			tty.c_lflag &= ~ICANON;
+			tty.c_cc[VMIN] = nchars < 256 ? nchars : 255;
 		}
+		if (silent) {
+			tty.c_lflag &= ~(ECHO | ECHOK | ECHONL);
+		}
+		/* if tcgetattr failed, tcsetattr will fail too.
+		 * Ignoring, it's harmless. */
+		tcsetattr(fd, TCSANOW, &tty);
 	}
 #endif
-#if ENABLE_ASH_READ_TIMEOUT
-	if (ts.tv_sec || ts.tv_usec) {
-		FD_ZERO(&set);
-		FD_SET(0, &set);
 
-		/* poll-based wait produces bigger code, using select */
-		i = select(1, &set, NULL, NULL, &ts);
-		if (!i) { /* timed out! */
-#if ENABLE_ASH_READ_NCHARS
-			if (n_flag)
-				tcsetattr(0, TCSANOW, &old_tty);
-#endif
-			return 1;
-		}
-	}
-#endif
 	status = 0;
 	startword = 1;
 	backslash = 0;
+#if ENABLE_ASH_READ_TIMEOUT
+	if (timeout) /* NB: ensuring end_ms is nonzero */
+		end_ms = ((unsigned)(monotonic_us() / 1000) + timeout) | 1;
+#endif
 	STARTSTACKSTR(p);
 	do {
-		if (nonblock_safe_read(0, &c, 1) != 1) {
+#if ENABLE_ASH_READ_TIMEOUT
+		if (end_ms) {
+			struct pollfd pfd[1];
+			pfd[0].fd = fd;
+			pfd[0].events = POLLIN;
+			timeout = end_ms - (unsigned)(monotonic_us() / 1000);
+			if ((int)timeout <= 0 /* already late? */
+			 || safe_poll(pfd, 1, timeout) != 1 /* no? wait... */
+			) { /* timed out! */
+#if ENABLE_ASH_READ_NCHARS
+				tcsetattr(fd, TCSANOW, &old_tty);
+#endif
+				return 1;
+			}
+		}
+#endif
+		if (nonblock_safe_read(fd, &c, 1) != 1) {
 			status = 1;
 			break;
 		}
@@ -11848,14 +11861,13 @@ readcmd(int argc ATTRIBUTE_UNUSED, char **argv ATTRIBUTE_UNUSED)
 	}
 /* end of do {} while: */
 #if ENABLE_ASH_READ_NCHARS
-	while (!n_flag || --nchars);
+	while (--nchars);
 #else
 	while (1);
 #endif
 
 #if ENABLE_ASH_READ_NCHARS
-	if (n_flag || silent)
-		tcsetattr(0, TCSANOW, &old_tty);
+	tcsetattr(fd, TCSANOW, &old_tty);
 #endif
 
 	STACKSTRNUL(p);
