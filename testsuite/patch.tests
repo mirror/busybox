@@ -1,0 +1,47 @@
+#!/bin/sh
+# Copyright 2008 by Denys Vlasenko
+# Licensed under GPL v2, see file LICENSE for details.
+
+. testing.sh
+
+# testing "test name" "options" "expected result" "file input" "stdin"
+
+testing "patch with old_file == new_file" \
+	"patch; echo $?; cat input" \
+"\
+patching file input
+0
+qwe
+asd
+zxc
+" \
+	"qwe\nzxc\n" \
+"\
+--- input	Jan 01 01:01:01 2000
++++ input	Jan 01 01:01:01 2000
+@@ -1,2 +1,3 @@
+ qwe
++asd
+ zxc
+" \
+
+testing "patch with nonexistent old_file" \
+	"strace -o zzz patch; echo $?; cat input" \
+"\
+patching file input
+0
+qwe
+asd
+zxc
+" \
+	"qwe\nzxc\n" \
+"\
+--- input.doesnt_exist	Jan 01 01:01:01 2000
++++ input	Jan 01 01:01:01 2000
+@@ -1,2 +1,3 @@
+ qwe
++asd
+ zxc
+" \
+
+exit $FAILCOUNT

@@ -87,7 +87,7 @@ int patch_main(int argc ATTRIBUTE_UNUSED, char **argv)
 	while (patch_line) {
 		FILE *src_stream;
 		FILE *dst_stream;
-		char *original_filename;
+		//char *old_filename;
 		char *new_filename;
 		char *backup_filename;
 		unsigned src_cur_line = 1;
@@ -102,10 +102,12 @@ int patch_main(int argc ATTRIBUTE_UNUSED, char **argv)
 		 */
 		do {
 			/* Extract the filename used before the patch was generated */
-			original_filename = extract_filename(patch_line, patch_level, "--- ");
+			new_filename = extract_filename(patch_line, patch_level, "--- ");
+			// was old_filename above
 			patch_line = xmalloc_getline(patch_file);
 			if (!patch_line) goto quit;
-		} while (!original_filename);
+		} while (!new_filename);
+		free(new_filename); // "source" filename is irrelevant
 
 		new_filename = extract_filename(patch_line, patch_level, "+++ ");
 		if (!new_filename) {
@@ -122,25 +124,15 @@ int patch_main(int argc ATTRIBUTE_UNUSED, char **argv)
 				*slash = '/';
 			}
 			backup_filename = NULL;
+			src_stream = NULL;
 			saved_stat.st_mode = 0644;
 		} else {
 			backup_filename = xasprintf("%s.orig", new_filename);
 			xrename(new_filename, backup_filename);
+			src_stream = xfopen(backup_filename, "r");
 		}
 		dst_stream = xfopen(new_filename, "w");
 		fchmod(fileno(dst_stream), saved_stat.st_mode);
-		src_stream = NULL;
-		if (backup_filename && stat(original_filename, &saved_stat) == 0) {
-			// strcmp() is never 0! Otherwise:
-			// original_filename == new_filename,
-			// stat(original_filename) == stat(new_filename),
-			// stat(new_filename) == 0,
-			// but we renamed new_filename if it existed!
-			// stat() must fail!
-			//src_stream = xfopen((strcmp(original_filename, new_filename)) ?
-			//			original_filename : backup_filename, "r");
-			src_stream = xfopen(original_filename, "r");
-		}
 
 		printf("patching file %s\n", new_filename);
 
@@ -224,15 +216,17 @@ int patch_main(int argc ATTRIBUTE_UNUSED, char **argv)
 			/* It worked, we can remove the backup */
 			if (backup_filename) {
 				unlink(backup_filename);
-				free(backup_filename);
 			}
 			if ((dest_cur_line == 0) || (dest_beg_line == 0)) {
 				/* The new patched file is empty, remove it */
 				xunlink(new_filename);
-				/* original_filename and new_filename may be the same file */
-				unlink(original_filename);
+				// /* old_filename and new_filename may be the same file */
+				// unlink(old_filename);
 			}
 		}
+		free(backup_filename);
+		//free(old_filename);
+		free(new_filename);
 	} /* end of "while there are patch lines" */
 quit:
 
