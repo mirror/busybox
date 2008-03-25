@@ -466,16 +466,21 @@ out2str(const char *p)
 #define VSQUOTE 0x80            /* inside double quotes--suppress splitting */
 
 /* values of VSTYPE field */
-#define VSNORMAL        0x1             /* normal variable:  $var or ${var} */
-#define VSMINUS         0x2             /* ${var-text} */
-#define VSPLUS          0x3             /* ${var+text} */
-#define VSQUESTION      0x4             /* ${var?message} */
-#define VSASSIGN        0x5             /* ${var=text} */
-#define VSTRIMRIGHT     0x6             /* ${var%pattern} */
-#define VSTRIMRIGHTMAX  0x7             /* ${var%%pattern} */
-#define VSTRIMLEFT      0x8             /* ${var#pattern} */
-#define VSTRIMLEFTMAX   0x9             /* ${var##pattern} */
-#define VSLENGTH        0xa             /* ${#var} */
+#define VSNORMAL        0x1     /* normal variable:  $var or ${var} */
+#define VSMINUS         0x2     /* ${var-text} */
+#define VSPLUS          0x3     /* ${var+text} */
+#define VSQUESTION      0x4     /* ${var?message} */
+#define VSASSIGN        0x5     /* ${var=text} */
+#define VSTRIMRIGHT     0x6     /* ${var%pattern} */
+#define VSTRIMRIGHTMAX  0x7     /* ${var%%pattern} */
+#define VSTRIMLEFT      0x8     /* ${var#pattern} */
+#define VSTRIMLEFTMAX   0x9     /* ${var##pattern} */
+#define VSLENGTH        0xa     /* ${#var} */
+#if ENABLE_ASH_BASH_COMPAT
+#define VSSUBSTR        0xc     /* ${var:position:length} */
+#define VSREPLACE       0xd     /* ${var/pattern/replacement} */
+#define VSREPLACEALL    0xe     /* ${var//pattern/replacement} */
+#endif
 
 static const char dolatstr[] ALIGN1 = {
 	CTLVAR, VSNORMAL|VSQUOTE, '@', '=', '\0'
@@ -3471,6 +3476,7 @@ getjob(const char *name, int getctl)
 	}
 
 	if (is_number(p)) {
+// TODO: number() instead? It does error checking...
 		num = atoi(p);
 		if (num < njobs) {
 			jp = jobtab + num - 1;
@@ -4178,15 +4184,17 @@ static char *cmdnextc;
 static void
 cmdputs(const char *s)
 {
+	static const char vstype[VSTYPE + 1][3] = {
+		"", "}", "-", "+", "?", "=",
+		"%", "%%", "#", "##"
+		USE_ASH_BASH_COMPAT(, ":", "/", "//")
+	};
+
 	const char *p, *str;
 	char c, cc[2] = " ";
 	char *nextc;
 	int subtype = 0;
 	int quoted = 0;
-	static const char vstype[VSTYPE + 1][4] = {
-		"", "}", "-", "+", "?", "=",
-		"%", "%%", "#", "##"
-	};
 
 	nextc = makestrspace((strlen(s) + 1) * 8, cmdnextc);
 	p = s;
@@ -5681,23 +5689,37 @@ static char *
 scanleft(char *startp, char *rmesc, char *rmescend ATTRIBUTE_UNUSED, char *str, int quotes,
 	int zero)
 {
-	char *loc;
-	char *loc2;
+	char *loc, *loc2, *full;
 	char c;
 
 	loc = startp;
 	loc2 = rmesc;
 	do {
-		int match;
+		int match = strlen(str);
 		const char *s = loc2;
+
 		c = *loc2;
 		if (zero) {
 			*loc2 = '\0';
 			s = rmesc;
 		}
-		match = pmatch(str, s);
+
+		// chop off end if its '*'
+		full = strrchr(str, '*');
+		if (full && full != str)
+			match--;
+
+		// If str starts with '*' replace with s.
+		if ((*str == '*') && strlen(s) >= match) {
+			full = xstrdup(s);
+			strncpy(full+strlen(s)-match+1, str+1, match-1);
+		} else
+			full = xstrndup(str, match);
+		match = strncmp(s, full, strlen(full));
+		free(full);
+
 		*loc2 = c;
-		if (match)
+		if (!match)
 			return loc;
 		if (quotes && *loc == CTLESC)
 			loc++;
@@ -5760,18 +5782,98 @@ varunset(const char *end, const char *var, const char *umsg, int varflags)
 	ash_msg_and_raise_error("%.*s: %s%s", end - var - 1, var, msg, tail);
 }
 
+#if ENABLE_ASH_BASH_COMPAT
+static char *
+parse_sub_pattern(char *arg, int inquotes)
+{
+	char *idx, *repl = NULL;
+	unsigned char c;
+
+	for (idx = arg; *arg; arg++) {
+		if (*arg == '/') {
+			/* Only the first '/' seen is our seperator */
+			if (!repl) {
+				*idx++ = '\0';
+				repl = idx;
+			} else
+				*idx++ = *arg;
+			} else if (*arg != '\\') {
+				*idx++ = *arg;
+			} else {
+				if (inquotes)
+					arg++;
+				else {
+					if (*(arg + 1) != '\\')
+						goto single_backslash;
+					arg += 2;
+				}
+
+			switch (*arg) {
+			case 'n':	c = '\n'; break;
+			case 'r':	c = '\r'; break;
+			case 't':	c = '\t'; break;
+			case 'v':	c = '\v'; break;
+			case 'f':	c = '\f'; break;
+			case 'b':	c = '\b'; break;
+			case 'a':	c = '\a'; break;
+			case '\\':
+				if (*(arg + 1) != '\\' && !inquotes)
+					goto single_backslash;
+				arg++;
+				/* FALLTHROUGH */
+			case '\0':
+				/* Trailing backslash, just stuff one in the buffer
+				 * and backup arg so the loop will exit.
+				 */
+				c = '\\';
+				if (!*arg)
+					arg--;
+				break;
+			default:
+				c = *arg;
+				if (isdigit(c)) {
+					/* It's an octal number, parse it. */
+					int i;
+					c = 0;
+
+					for (i = 0; *arg && i < 3; arg++, i++) {
+						if (*arg >= '8' || *arg < '0')
+							ash_msg_and_raise_error("Invalid octal char in pattern");
+// TODO: number() instead? It does error checking...
+						c = (c << 3) + atoi(arg);
+					}
+					/* back off one (so outer loop can do it) */
+					arg--;
+				}
+			}
+			*idx++ = c;
+		}
+	}
+	*idx = *arg;
+
+	return repl;
+
+ single_backslash:
+	ash_msg_and_raise_error("single backslash unexpected");
+	/* NOTREACHED */
+}
+#endif /* ENABLE_ASH_BASH_COMPAT */
+
 static const char *
 subevalvar(char *p, char *str, int strloc, int subtype,
 		int startloc, int varflags, int quotes, struct strlist *var_str_list)
 {
+	struct nodelist *saveargbackq = argbackq;
 	char *startp;
 	char *loc;
-	int saveherefd = herefd;
-	struct nodelist *saveargbackq = argbackq;
-	int amount;
 	char *rmesc, *rmescend;
+	USE_ASH_BASH_COMPAT(char *repl = NULL;)
+	USE_ASH_BASH_COMPAT(char null = '\0';)
+	USE_ASH_BASH_COMPAT(int pos, len, orig_len;)
+	int saveherefd = herefd;
+	int amount, workloc, resetloc;
 	int zero;
-	char *(*scan)(char *, char *, char *, char *, int , int);
+	char *(*scan)(char*, char*, char*, char*, int, int);
 
 	herefd = -1;
 	argstr(p, (subtype != VSASSIGN && subtype != VSQUESTION) ? EXP_CASE : 0,
@@ -5788,16 +5890,76 @@ subevalvar(char *p, char *str, int strloc, int subtype,
 		STADJUST(amount, expdest);
 		return startp;
 
+#if ENABLE_ASH_BASH_COMPAT
+	case VSSUBSTR:
+		loc = str = stackblock() + strloc;
+// TODO: number() instead? It does error checking...
+		pos = atoi(loc);
+		len = str - startp - 1;
+
+		/* *loc != '\0', guaranteed by parser */
+		if (quotes) {
+			char *ptr;
+
+			/* We must adjust the length by the number of escapes we find. */
+			for (ptr = startp; ptr < (str - 1); ptr++) {
+				if(*ptr == CTLESC) {
+					len--;
+					ptr++;
+				}
+			}
+		}
+		orig_len = len;
+
+		if (*loc++ == ':') {
+// TODO: number() instead? It does error checking...
+			len = atoi(loc);
+		} else {
+			len = orig_len;
+			while (*loc && *loc != ':')
+				loc++;
+			if (*loc++ == ':')
+// TODO: number() instead? It does error checking...
+				len = atoi(loc);
+		}
+		if (pos >= orig_len) {
+			pos = 0;
+			len = 0;
+		}
+		if (len > (orig_len - pos))
+			len = orig_len - pos;
+
+		for (str = startp; pos; str++, pos--) {
+			if (quotes && *str == CTLESC)
+				str++;
+		}
+		for (loc = startp; len; len--) {
+			if (quotes && *str == CTLESC)
+				*loc++ = *str++;
+			*loc++ = *str++;
+		}
+		*loc = '\0';
+		amount = loc - expdest;
+		STADJUST(amount, expdest);
+		return loc;
+#endif
+
 	case VSQUESTION:
 		varunset(p, str, startp, varflags);
 		/* NOTREACHED */
 	}
+	resetloc = expdest - (char *)stackblock();
 
-	subtype -= VSTRIMRIGHT;
-#if DEBUG
-	if (subtype < 0 || subtype > 3)
-		abort();
-#endif
+	/* We'll comeback here if we grow the stack while handling
+	 * a VSREPLACE or VSREPLACEALL, since our pointers into the
+	 * stack will need rebasing, and we'll need to remove our work
+	 * areas each time
+	 */
+ USE_ASH_BASH_COMPAT(restart:)
+
+	amount = expdest - ((char *)stackblock() + resetloc);
+	STADJUST(-amount, expdest);
+	startp = stackblock() + startloc;
 
 	rmesc = startp;
 	rmescend = stackblock() + strloc;
@@ -5811,7 +5973,93 @@ subevalvar(char *p, char *str, int strloc, int subtype,
 	rmescend--;
 	str = stackblock() + strloc;
 	preglob(str, varflags & VSQUOTE, 0);
+	workloc = expdest - (char *)stackblock();
 
+#if ENABLE_ASH_BASH_COMPAT
+	if (subtype == VSREPLACE || subtype == VSREPLACEALL) {
+		char *idx, *end, *restart_detect;
+
+		if(!repl) {
+			repl = parse_sub_pattern(str, varflags & VSQUOTE);
+			if (!repl)
+				repl = &null;
+		}
+
+		/* If there's no pattern to match, return the expansion unmolested */
+		if (*str == '\0')
+			return 0;
+
+		len = 0;
+		idx = startp;
+		end = str - 1;
+		while (idx < end) {
+			loc = scanright(idx, rmesc, rmescend, str, quotes, 1);
+			if (!loc) {
+				/* No match, advance */
+				restart_detect = stackblock();
+				STPUTC(*idx, expdest);
+				if (quotes && *idx == CTLESC) {
+					idx++;
+					len++;
+					STPUTC(*idx, expdest);
+				}
+				if (stackblock() != restart_detect)
+					goto restart;
+				idx++;
+				len++;
+				rmesc++;
+				continue;
+			}
+
+			if (subtype == VSREPLACEALL) {
+				while (idx < loc) {
+					if (quotes && *idx == CTLESC)
+						idx++;
+					idx++;
+					rmesc++;
+				}
+			} else
+				idx = loc;
+
+			for (loc = repl; *loc; loc++) {
+				restart_detect = stackblock();
+				STPUTC(*loc, expdest);
+				if (stackblock() != restart_detect)
+					goto restart;
+				len++;
+			}
+
+			if (subtype == VSREPLACE) {
+				while (*idx) {
+					restart_detect = stackblock();
+					STPUTC(*idx, expdest);
+					if (stackblock() != restart_detect)
+						goto restart;
+					len++;
+					idx++;
+				}
+				break;
+			}
+		}
+
+		/* We've put the replaced text into a buffer at workloc, now
+		 * move it to the right place and adjust the stack.
+		 */
+		startp = stackblock() + startloc;
+		STPUTC('\0', expdest);
+		memmove(startp, stackblock() + workloc, len);
+		startp[len++] = '\0';
+		amount = expdest - ((char *)stackblock() + startloc + len - 1);
+		STADJUST(-amount, expdest);
+		return startp;
+	}
+#endif /* ENABLE_ASH_BASH_COMPAT */
+
+	subtype -= VSTRIMRIGHT;
+#if DEBUG
+	if (subtype < 0 || subtype > 7)
+		abort();
+#endif
 	/* zero = subtype == VSTRIMLEFT || subtype == VSTRIMLEFTMAX */
 	zero = subtype >> 1;
 	/* VSTRIMLEFT/VSTRIMRIGHTMAX -> scanleft */
@@ -5925,6 +6173,7 @@ varvalue(char *name, int varflags, int flags, struct strlist *var_str_list)
 	case '7':
 	case '8':
 	case '9':
+// TODO: number() instead? It does error checking...
 		num = atoi(name);
 		if (num < 0 || num > shellparam.nparam)
 			return -1;
@@ -6063,6 +6312,11 @@ evalvar(char *p, int flag, struct strlist *var_str_list)
 	case VSTRIMLEFTMAX:
 	case VSTRIMRIGHT:
 	case VSTRIMRIGHTMAX:
+#if ENABLE_ASH_BASH_COMPAT
+	case VSSUBSTR:
+	case VSREPLACE:
+	case VSREPLACEALL:
+#endif
 		break;
 	default:
 		abort();
@@ -10459,8 +10713,15 @@ parsesub: {
 		if (subtype == 0) {
 			switch (c) {
 			case ':':
-				flags = VSNUL;
 				c = pgetc();
+#if ENABLE_ASH_BASH_COMPAT
+				if (c == ':' || c == '$' || isdigit(c)) {
+					pungetc();
+					subtype = VSSUBSTR;
+					break;
+				}
+#endif
+				flags = VSNUL;
 				/*FALLTHROUGH*/
 			default:
 				p = strchr(types, c);
@@ -10469,18 +10730,26 @@ parsesub: {
 				subtype = p - types + VSNORMAL;
 				break;
 			case '%':
-			case '#':
-				{
-					int cc = c;
-					subtype = c == '#' ? VSTRIMLEFT :
-					                     VSTRIMRIGHT;
-					c = pgetc();
-					if (c == cc)
-						subtype++;
-					else
-						pungetc();
-					break;
-				}
+			case '#': {
+				int cc = c;
+				subtype = c == '#' ? VSTRIMLEFT : VSTRIMRIGHT;
+				c = pgetc();
+				if (c == cc)
+					subtype++;
+				else
+					pungetc();
+				break;
+			}
+#if ENABLE_ASH_BASH_COMPAT
+			case '/':
+				subtype = VSREPLACE;
+				c = pgetc();
+				if (c == '/')
+					subtype++; /* VSREPLACEALL */
+				else
+					pungetc();
+				break;
+#endif
 			}
 		} else {
 			pungetc();
@@ -12621,7 +12890,7 @@ static const char op_tokens[] ALIGN1 = {
 	0
 };
 /* ptr to ")" */
-#define endexpression &op_tokens[sizeof(op_tokens)-7]
+#define endexpression (&op_tokens[sizeof(op_tokens)-7])
 
 static arith_t
 arith(const char *expr, int *perrcode)

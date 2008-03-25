@@ -47,6 +47,13 @@ config ASH
 comment "Ash Shell Options"
 	depends on ASH
 
+config ASH_BASH_COMPAT
+	bool "bash-compatible extensions"
+	default y
+	depends on ASH
+	help
+	  Enable bash-conpatible extensions.
+
 config ASH_JOB_CONTROL
 	bool "Job control"
 	default y
