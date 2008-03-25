@@ -589,14 +589,12 @@
 #define dc_trivial_usage \
        "expression..."
 #define dc_full_usage \
-       "This is a Tiny RPN calculator that understands the following operations:\n" \
-       "+, add, -, sub, *, mul, /, div, %, mod, **, exp, and, or, not, eor.\n" \
-       "For example: 'dc 2 2 add' -> 4, and 'dc 8 8 \\* 2 2 + /' -> 16.\n" \
-     "\nOptions:" \
-     "\np - Print the value on the top of the stack, without altering the stack" \
-     "\nf - Print the entire contents of the stack without altering anything" \
-     "\no - Pop the value off the top of the stack and use it to set the output radix" \
-     "\n    Only 10 and 16 are supported" \
+       "Tiny RPN calculator. Operations:\n" \
+       "+, add, -, sub, *, mul, /, div, %, mod, **, exp, and, or, not, eor,\n" \
+       "p - print top of the stack (without altering the stack),\n" \
+       "f - print entire stack, o - pop the value and set output radix\n" \
+       "(value must be 10 or 16).\n" \
+       "Examples: 'dc 2 2 add' -> 4, 'dc 8 8 * 2 2 + /' -> 16.\n" \
 
 #define dc_example_usage \
        "$ dc 2 2 + p\n" \
@@ -1178,14 +1176,14 @@
 #define fsck_minix_trivial_usage \
        "[-larvsmf] /dev/name"
 #define fsck_minix_full_usage \
-       "Perform a consistency check for MINIX filesystems\n" \
+       "Check MINIX filesystem\n" \
      "\nOptions:" \
      "\n	-l	List all filenames" \
      "\n	-r	Perform interactive repairs" \
      "\n	-a	Perform automatic repairs" \
      "\n	-v	Verbose" \
      "\n	-s	Output super-block information" \
-     "\n	-m	Activate MINIX-like \"mode not cleared\" warnings" \
+     "\n	-m	Show \"mode not cleared\" warnings" \
      "\n	-f	Force file system check" \
 
 #define ftpget_trivial_usage \
@@ -1547,7 +1545,7 @@
 #define hwclock_full_usage \
        "Query and set hardware clock (RTC)\n" \
      "\nOptions:" \
-     "\n	-r	Show time from hardware clock" \
+     "\n	-r	Show hardware clock time" \
      "\n	-s	Set system time from hardware clock" \
      "\n	-w	Set hardware clock to system time" \
      "\n	-u	Hardware clock is in UTC" \
@@ -2223,9 +2221,9 @@
 #define makedevs_full_usage \
        "Create a range of block or character special files\n\n" \
        "TYPEs include:\n" \
-       "	b:	Make a block (buffered) device\n" \
-       "	c or u:	Make a character (un-buffered) device\n" \
-       "	p:	Make a named pipe. MAJOR and MINOR are ignored for named pipes\n" \
+       "	b	Make a block device\n" \
+       "	c or u	Make a character device\n" \
+       "	p	Make a named pipe. MAJOR and MINOR are ignored\n" \
        "\n" \
        "FIRST specifies the number appended to NAME to create the first device.\n" \
        "LAST specifies the number of the last item that should be created\n" \
@@ -3174,7 +3172,7 @@
 #define route_full_usage \
        "Edit the kernel's routing tables\n" \
      "\nOptions:" \
-     "\n	-n	Dont resolve names" \
+     "\n	-n	Don't resolve names" \
      "\n	-e	Display other/more information" \
      "\n	-A inet" USE_FEATURE_IPV6("{6}") "	Select address family" \
 
