@@ -476,7 +476,7 @@ static const struct dhcp_client_t ext_dhcp_clients[] = {
 		"pump -i %iface% -k",
 	},
 	{ "udhcpc",
-		"udhcpc -R -n -p /var/run/udhcpc.%iface%.pid -i %iface%[[ -H %hostname%]][[ -c %clientid%]][[ -s %script%]]",
+		"udhcpc -R -n -p /var/run/udhcpc.%iface%.pid -i %iface%[[ -H %hostname%]][[ -c %clientid%]][[ -s %script%]][[ -t %retries%]]",
 		"kill `cat /var/run/udhcpc.%iface%.pid` 2>/dev/null",
 	},
 };
@@ -507,7 +507,7 @@ static int dhcp_up(struct interface_defn_t *ifd, execfn *exec)
 		return 0;
 #endif
 	return execute("udhcpc -R -n -p /var/run/udhcpc.%iface%.pid "
-			"-i %iface%[[ -H %hostname%]][[ -c %clientid%]][[ -s %script%]]",
+			"-i %iface%[[ -H %hostname%]][[ -c %clientid%]][[ -s %script%]][[ -t %retries%]]",
 			ifd, exec);
 }
 #else
