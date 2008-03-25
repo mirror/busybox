@@ -579,8 +579,7 @@
      "\n" \
      "\nRecognized formats for TIME:" \
      "\n	[hh:]mm:ss" \
-     "\n	mon.day-hh:mm[:ss]" \
-     "\n	year.mon.day-hh:mm[:ss]" \
+     "\n	[YYYY.]MM.DD-hh:mm[:ss]" \
      "\n	MMDDhhmm[[YY]YY][.ss]" \
 
 #define date_example_usage \
