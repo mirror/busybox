@@ -8470,7 +8470,9 @@ static const struct builtincmd builtintab[] = {
 	{ BUILTIN_SPEC_REG      ":", truecmd },
 #if ENABLE_ASH_BUILTIN_TEST
 	{ BUILTIN_REGULAR	"[", testcmd },
+#if ENABLE_ASH_BASH_COMPAT
 	{ BUILTIN_REGULAR	"[[", testcmd },
+#endif
 #endif
 #if ENABLE_ASH_ALIAS
 	{ BUILTIN_REG_ASSG      "alias", aliascmd },
@@ -8534,17 +8536,25 @@ static const struct builtincmd builtintab[] = {
 	{ BUILTIN_REGULAR       "wait", waitcmd },
 };
 
-
-#define COMMANDCMD (builtintab + 5 + \
-	2 * ENABLE_ASH_BUILTIN_TEST + \
-	ENABLE_ASH_ALIAS + \
-	ENABLE_ASH_JOB_CONTROL)
-#define EXECCMD (builtintab + 7 + \
-	2 * ENABLE_ASH_BUILTIN_TEST + \
-	ENABLE_ASH_ALIAS + \
-	ENABLE_ASH_JOB_CONTROL + \
-	ENABLE_ASH_CMDCMD + \
-	ENABLE_ASH_BUILTIN_ECHO)
+/* Should match the above table! */
+#define COMMANDCMD (builtintab + \
+	2 + \
+	1 * ENABLE_ASH_BUILTIN_TEST + \
+	1 * ENABLE_ASH_BUILTIN_TEST * ENABLE_ASH_BASH_COMPAT + \
+	1 * ENABLE_ASH_ALIAS + \
+	1 * ENABLE_ASH_JOB_CONTROL + \
+	3)
+#define EXECCMD (builtintab + \
+	2 + \
+	1 * ENABLE_ASH_BUILTIN_TEST + \
+	1 * ENABLE_ASH_BUILTIN_TEST * ENABLE_ASH_BASH_COMPAT + \
+	1 * ENABLE_ASH_ALIAS + \
+	1 * ENABLE_ASH_JOB_CONTROL + \
+	3 + \
+	1 * ENABLE_ASH_CMDCMD + \
+	1 + \
+	ENABLE_ASH_BUILTIN_ECHO + \
+	1)
 
 /*
  * Search the table of builtin commands.
@@ -10048,6 +10058,9 @@ simplecmd(void)
 	union node *vars, **vpp;
 	union node **rpp, *redir;
 	int savecheckkwd;
+#if ENABLE_ASH_BASH_COMPAT
+	smallint double_brackets_flag = 0;
+#endif
 
 	args = NULL;
 	app = &args;
@@ -10058,13 +10071,30 @@ simplecmd(void)
 
 	savecheckkwd = CHKALIAS;
 	for (;;) {
+		int t;
 		checkkwd = savecheckkwd;
-		switch (readtoken()) {
+		t = readtoken();
+		switch (t) {
+#if ENABLE_ASH_BASH_COMPAT
+		case TAND: /* "&&" */
+		case TOR: /* "||" */
+			if (!double_brackets_flag) {
+				tokpushback = 1;
+				goto out;
+			}
+			wordtext = (char *) (t == TAND ? "-a" : "-o");
+#endif
 		case TWORD:
 			n = stzalloc(sizeof(struct narg));
 			n->type = NARG;
 			/*n->narg.next = NULL; - stzalloc did it */
 			n->narg.text = wordtext;
+#if ENABLE_ASH_BASH_COMPAT
+			if (strcmp("[[", wordtext) == 0)
+				double_brackets_flag = 1;
+			else if (strcmp("]]", wordtext) == 0)
+				double_brackets_flag = 0;
+#endif
 			n->narg.backquote = backquotelist;
 			if (savecheckkwd && isassignment(wordtext)) {
 				*vpp = n;
