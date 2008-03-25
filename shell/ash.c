@@ -2230,7 +2230,8 @@ padvance(const char **path, const char *name)
 	if (*path == NULL)
 		return NULL;
 	start = *path;
-	for (p = start; *p && *p != ':' && *p != '%'; p++);
+	for (p = start; *p && *p != ':' && *p != '%'; p++)
+		continue;
 	len = p - start + strlen(name) + 2;     /* "2" is for '/' and '\0' */
 	while (stackblocksize() < len)
 		growstackblock();
@@ -2244,7 +2245,8 @@ padvance(const char **path, const char *name)
 	pathopt = NULL;
 	if (*p == '%') {
 		pathopt = ++p;
-		while (*p && *p != ':') p++;
+		while (*p && *p != ':')
+			p++;
 	}
 	if (*p == ':')
 		*path = p + 1;
@@ -8427,7 +8429,7 @@ static int exportcmd(int, char **);
 static int getoptscmd(int, char **);
 #endif
 #if !ENABLE_FEATURE_SH_EXTRA_QUIET
-static int helpcmd(int argc, char **argv);
+static int helpcmd(int, char **);
 #endif
 #if ENABLE_ASH_MATH_SUPPORT
 static int letcmd(int, char **);
@@ -8450,7 +8452,19 @@ static int ulimitcmd(int, char **);
 #define BUILTIN_REG_ASSG        "6"
 #define BUILTIN_SPEC_REG_ASSG   "7"
 
-/* make sure to keep these in proper order since it is searched via bsearch() */
+/* We do not handle [[ expr ]] bashism bash-compatibly,
+ * we make it a synonym of [ expr ].
+ * Basically, word splitting and pathname expansion should NOT be performed
+ * Examples:
+ * no word splitting:     a="a b"; [[ $a = "a b" ]]; echo $? should print "0"
+ * no pathname expansion: [[ /bin/m* = "/bin/m*" ]]; echo $? should print "0"
+ * Additional operators:
+ * || and && should work as -o and -a
+ * =~ regexp match
+ * Apart from the above, [[ expr ]] should work as [ expr ]
+ */
+
+/* Keep these in proper order since it is searched via bsearch() */
 static const struct builtincmd builtintab[] = {
 	{ BUILTIN_SPEC_REG      ".", dotcmd },
 	{ BUILTIN_SPEC_REG      ":", truecmd },
@@ -9339,7 +9353,8 @@ chkmail(void)
 			break;
 		if (*p == '\0')
 			continue;
-		for (q = p; *q; q++);
+		for (q = p; *q; q++)
+			continue;
 #if DEBUG
 		if (q[-1] != '/')
 			abort();
@@ -9382,7 +9397,8 @@ setparam(char **argv)
 	char **ap;
 	int nparam;
 
-	for (nparam = 0; argv[nparam]; nparam++);
+	for (nparam = 0; argv[nparam]; nparam++)
+		continue;
 	ap = newparam = ckmalloc((nparam + 1) * sizeof(*ap));
 	while (*argv) {
 		*ap++ = ckstrdup(*argv++);
@@ -9531,7 +9547,8 @@ shiftcmd(int argc ATTRIBUTE_UNUSED, char **argv)
 			free(*ap1);
 	}
 	ap2 = shellparam.p;
-	while ((*ap2++ = *ap1++) != NULL);
+	while ((*ap2++ = *ap1++) != NULL)
+		continue;
 #if ENABLE_ASH_GETOPTS
 	shellparam.optind = 1;
 	shellparam.optoff = -1;
@@ -10563,7 +10580,8 @@ checkend: {
 				char *p, *q;
 
 				p = line;
-				for (q = eofmark + 1; *q && *p == *q; p++, q++);
+				for (q = eofmark + 1; *q && *p == *q; p++, q++)
+					continue;
 				if (*p == '\n' && *q == '\0') {
 					c = PEOF;
 					plinno++;
@@ -11004,7 +11022,8 @@ xxreadtoken(void)
 #endif
 		) {
 			if (c == '#') {
-				while ((c = pgetc()) != '\n' && c != PEOF);
+				while ((c = pgetc()) != '\n' && c != PEOF)
+					continue;
 				pungetc();
 			} else if (c == '\\') {
 				if (pgetc() != '\n') {
@@ -11067,7 +11086,8 @@ xxreadtoken(void)
 #endif
 			continue;
 		case '#':
-			while ((c = pgetc()) != '\n' && c != PEOF);
+			while ((c = pgetc()) != '\n' && c != PEOF)
+				continue;
 			pungetc();
 			continue;
 		case '\\':
