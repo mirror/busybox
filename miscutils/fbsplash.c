@@ -1,0 +1,455 @@
+/* vi: set sw=4 ts=4: */
+/*
+ * splash implementation for busybox
+ *
+ * Copyright (C) 2008 Michele Sanges <michele.sanges@otomelara.it>,
+ * <michele.sanges@gmail.it>
+ *
+ * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
+ *
+ * Usage:
+ * - use kernel option 'vga=xxx' or otherwise enable framebuffer device.
+ * - put somewhere the fbsplash.ini file and image in .ppm format.
+ * - configure applet by editing .ini file.
+ * - run applet: $ setsid fbsplash [params] &
+ *	-c: hide cursor
+ *	-d /dev/fbN: framebuffer device (if not /dev/fb0)
+ *	-s path_of_image_file
+ * 	-i path_of_ini_file
+ * 	-f path_of_fifo (can be "-" for stdin)
+ * - if you want to run the applet only in presence of a kernel parameter
+ *   (for example fbsplash=on), type:
+ *   grep -q "fbsplash=on" </proc/cmdline && setsid fbsplash [params]
+ * - commands for fifo:
+ *   "NN" (ASCII decimal number) - percentage to show on progress bar.
+ *   "exit" (or just close fifo) - well you guessed it.
+ */
+
+/**
+ * 	Splash implementation for busybox
+ * \file: fbsplash.c
+ * \author Michele Sanges <michele.sanges@otomelara.it> <michele.sanges@gmail.com>
+ * \version 1.0.0
+ * \date 07/03/2008
+ */
+
+#include "libbb.h"
+#include <linux/fb.h>
+
+/* If you want logging messages on /tmp/fbsplash_log... */
+#define DEBUG 0
+
+#define BYTES_PER_PIXEL 2
+
+typedef unsigned short DATA;
+
+struct globals {
+#if DEBUG
+	bool bdebug_messages;	// enable/disable logging
+	FILE *logfile_fd;	// log file
+#endif
+	unsigned char *addr;	// pointer to framebuffer memory
+	unsigned nbar_width;	// progress bar width
+	unsigned nbar_height;	// progress bar height
+	unsigned nbar_posx;	// progress bar horizontal position
+	unsigned nbar_posy;	// progress bar vertical position
+	unsigned char nbar_colr;	// progress bar color red component
+	unsigned char nbar_colg;	// progress bar color green component
+	unsigned char nbar_colb;	// progress bar color blue component
+	const char *image_filename;
+	struct fb_var_screeninfo scr_var;
+	struct fb_fix_screeninfo scr_fix;
+};
+#define G (*ptr_to_globals)
+#define INIT_G() \
+	do { \
+		SET_PTR_TO_GLOBALS(xzalloc(sizeof(G))); \
+	} while (0)
+
+
+#if DEBUG
+#define DEBUG_MESSAGE(strMessage, args...) \
+	if (G.bdebug_messages) { \
+		fprintf(G.logfile_fd, "[%s][%s] - %s\n", \
+		__FILE__, __FUNCTION__, strMessage);	\
+	}
+#else
+#define DEBUG_MESSAGE(...) ((void)0)
+#endif
+
+
+/**
+ *	Open and initialize the framebuffer device
+ * \param *strfb_device pointer to framebuffer device
+ */
+static void fb_open(const char *strfb_device)
+{
+	int fbfd = xopen(strfb_device, O_RDWR);
+
+	// framebuffer properties
+	xioctl(fbfd, FBIOGET_VSCREENINFO, &G.scr_var);
+	xioctl(fbfd, FBIOGET_FSCREENINFO, &G.scr_fix);
+
+	if (G.scr_var.bits_per_pixel != 16)
+		bb_error_msg_and_die("only 16 bpp is supported");
+
+	// map the device in memory
+	G.addr = mmap(NULL,
+			G.scr_var.xres * G.scr_var.yres
+			* BYTES_PER_PIXEL /*(G.scr_var.bits_per_pixel / 8)*/ ,
+			PROT_WRITE, MAP_SHARED, fbfd, 0);
+	if (G.addr == MAP_FAILED)
+		bb_perror_msg_and_die("can't mmap %s", strfb_device);
+	close(fbfd);
+}
+
+
+/**
+ *	Draw hollow rectangle on framebuffer
+ * \param nx1pos,ny1pos upper left position
+ * \param nx2pos,ny2pos down right position
+ * \param nred24,ngreen24,nblue24 rgb color
+ */
+static void fb_drawrectangle(int nx1pos, int ny1pos, int nx2pos, int ny2pos,
+	unsigned char nred, unsigned char ngreen, unsigned char nblue)
+{
+	int cnt;
+	DATA thispix;
+	DATA *ptr1, *ptr2;
+
+	nred   >>= 3;  // 5-bit red
+	ngreen >>= 2;  // 6-bit green
+	nblue  >>= 3;  // 5-bit blue
+	thispix = nblue + (ngreen << 5) + (nred << (5+6));
+
+	// horizontal lines
+	ptr1 = (DATA*)(G.addr + (ny1pos * G.scr_var.xres + nx1pos) * BYTES_PER_PIXEL);
+	ptr2 = (DATA*)(G.addr + (ny2pos * G.scr_var.xres + nx1pos) * BYTES_PER_PIXEL);
+	cnt = nx2pos - nx1pos;
+	do {
+		*ptr1++ = thispix;
+		*ptr2++ = thispix;
+	} while (--cnt >= 0);
+
+	// vertical lines
+	ptr1 = (DATA*)(G.addr + (ny1pos * G.scr_var.xres + nx1pos) * BYTES_PER_PIXEL);
+	ptr2 = (DATA*)(G.addr + (ny1pos * G.scr_var.xres + nx2pos) * BYTES_PER_PIXEL);
+	cnt = ny2pos - ny1pos;
+	do {
+		*ptr1 = thispix; ptr1 += G.scr_var.xres;
+		*ptr2 = thispix; ptr2 += G.scr_var.xres;
+	} while (--cnt >= 0);
+}
+
+
+/**
+ *	Draw filled rectangle on framebuffer
+ * \param nx1pos,ny1pos upper left position
+ * \param nx2pos,ny2pos down right position
+ * \param nred24,ngreen24,nblue24 rgb color
+ */
+static void fb_drawfullrectangle(int nx1pos, int ny1pos, int nx2pos, int ny2pos,
+	unsigned char nred, unsigned char ngreen, unsigned char nblue)
+{
+	int cnt1, cnt2, nypos;
+	DATA thispix;
+	DATA *ptr;
+
+	nred   >>= 3;  // 5-bit red
+	ngreen >>= 2;  // 6-bit green
+	nblue  >>= 3;  // 5-bit blue
+	thispix = nblue + (ngreen << 5) + (nred << (5+6));
+	
+	cnt1 = ny2pos - ny1pos;
+	nypos = ny1pos;
+	do {
+		ptr = (DATA*)(G.addr + (nypos * G.scr_var.xres + nx1pos) * BYTES_PER_PIXEL);
+		cnt2 = nx2pos - nx1pos;
+		do {
+			*ptr++ = thispix;
+		} while (--cnt2 >= 0);
+		
+		nypos++;
+	} while (--cnt1 >= 0);
+}
+
+
+/**
+ *	Draw a progress bar on framebuffer
+ * \param nPercent percentage of loading
+ */
+static void fb_drawprogressbar(unsigned nPercent)
+{
+	int i, left_x, top_y, width, height;
+	// outer box
+	left_x = G.nbar_posx;
+	top_y = G.nbar_posy;
+	width = G.nbar_width - 1;
+	height = G.nbar_height - 1;
+	if ((height | width) < 0)
+		return;
+	// NB: "width" of 1 actually makes rect with width of 2!
+	fb_drawrectangle(
+			left_x, top_y,
+					left_x + width, top_y + height,
+			G.nbar_colr/2, G.nbar_colg/2, G.nbar_colb/2);
+
+	// inner "empty" rectangle
+	left_x++;
+	top_y++;
+	width -= 2;
+	height -= 2;
+	if ((height | width) < 0)
+		return;
+	fb_drawfullrectangle(
+			left_x,	top_y,
+					left_x + width, top_y + height,
+			G.nbar_colr, G.nbar_colg, G.nbar_colb);
+
+	if (nPercent > 0) {
+		// actual progress bar
+		width = width*nPercent/100;
+		i = height;
+		if (height == 0)
+			height++; // divide by 0 is bad
+		while (i >= 0) {
+			// draw one-line thick "rectangle"
+			// top line will have gray lvl 200, bottom one 100
+			unsigned gray_level = 100 + i*100/height;
+			fb_drawfullrectangle(
+					left_x, top_y, left_x + width, top_y,
+					gray_level, gray_level, gray_level);
+			top_y++;
+			i--;
+		}
+	}
+}
+
+
+/**
+ *	Draw image from PPM file
+ */
+static void fb_drawimage(void)
+{
+	char head[256];
+	char s[80];
+	FILE *theme_file;
+	unsigned char *pixline;
+	unsigned i, j, width, height, line_size;
+
+	memset(head, 0, sizeof(head));
+	theme_file = xfopen_stdin(G.image_filename);
+
+	// parse ppm header
+	while (1) {
+		if (fgets(s, sizeof(s), theme_file) == NULL)
+			bb_error_msg_and_die("bad PPM file '%s'", G.image_filename);
+
+		if (s[0] == '#')
+			continue;
+
+		if (strlen(head) + strlen(s) >= sizeof(head))
+			bb_error_msg_and_die("bad PPM file '%s'", G.image_filename);
+
+		strcat(head, s);
+		if (head[0] != 'P' || head[1] != '6')
+			bb_error_msg_and_die("bad PPM file '%s'", G.image_filename);
+
+		// width, height, max_color_val
+		if (sscanf(head, "P6 %u %u %u", &width, &height, &i) == 3)
+			break;
+// TODO: i must be <= 255!
+	}
+
+	line_size = width*3;
+	if (width > G.scr_var.xres)
+		width = G.scr_var.xres;
+	if (height > G.scr_var.yres)
+		height = G.scr_var.yres;
+
+	pixline = xmalloc(line_size);
+	for (j = 0; j < height; j++) {
+		unsigned char *pixel = pixline;
+		DATA *src = (DATA *)(G.addr + j * G.scr_fix.line_length);
+
+		if (fread(pixline, 1, line_size, theme_file) != line_size)
+			bb_error_msg_and_die("bad PPM file '%s'", G.image_filename);
+		for (i = 0; i < width; i++) {
+			unsigned thispix;
+			thispix = (((unsigned)pixel[0] << 8) & 0xf800)
+				| (((unsigned)pixel[1] << 3) & 0x07e0)
+				| (((unsigned)pixel[2] >> 3));
+			*src++ = thispix;
+			pixel += 3;
+		}
+	}
+	free(pixline);
+	fclose(theme_file);
+}
+
+
+/**
+ * Parse configuration file
+ */
+static void init(const char *ini_filename)
+{
+	static const char const param_names[] ALIGN1 =
+		"BAR_LEFT\0" "BAR_TOP\0"
+		"BAR_WIDTH\0" "BAR_HEIGHT\0"
+		"BAR_R\0" "BAR_G\0" "BAR_B\0"
+#if DEBUG
+		"DEBUG\0"
+#endif
+		;
+
+	FILE *inifile;
+	char *buf;
+
+	inifile = xfopen(ini_filename, "r");
+
+	while ((buf = xmalloc_getline(inifile)) != NULL) {
+		char *value_str;
+		int val;
+
+		if (*buf == '#') {  // it's a comment
+			free(buf);
+			continue;
+		}
+
+		value_str = strchr(buf, '=');
+		if (!value_str)
+			goto err;
+		*value_str++ = '\0';
+		val = xatoi_u(value_str);
+
+		switch (index_in_strings(param_names, buf)) {
+		case 0:
+			// progress bar horizontal position
+			G.nbar_posx = val;
+			break;
+		case 1:
+			// progress bar vertical position
+			G.nbar_posy = val;
+			break;
+		case 2:
+			// progress bar width
+			G.nbar_width = val;
+			break;
+		case 3:
+			// progress bar height
+			G.nbar_height = val;
+			break;
+		case 4:
+			// progress bar color - red component
+			G.nbar_colr = val;
+			break;
+		case 5:
+			// progress bar color - green component
+			G.nbar_colg = val;
+			break;
+		case 6:
+			// progress bar color - blue component
+			G.nbar_colb = val;
+			break;
+#if DEBUG
+		case 7:
+			G.bdebug_messages = val;
+			if (G.bdebug_messages)
+ 				G.logfile_fd = xfopen("/tmp/fbsplash_log", "w");
+			break;
+#endif
+ err:
+		default:
+			bb_error_msg_and_die("syntax error: '%s'", buf);
+		}
+		free(buf);
+	}
+	fclose(inifile);
+}
+
+
+int fbsplash_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
+int fbsplash_main(int argc ATTRIBUTE_UNUSED, char **argv)
+{
+	char num_buf[16];
+	const char *fb_device, *ini_filename, *fifo_filename;
+	int fd = fd; // for compiler
+	int len, num;
+	bool bCursorOff;
+
+	INIT_G();
+
+	// parse command line options
+	fb_device = "/dev/fb0";
+	ini_filename = NULL;
+	fifo_filename = NULL;
+	bCursorOff = 1 & getopt32(argv, "cs:d:i:f:",
+			&G.image_filename, &fb_device, &ini_filename, &fifo_filename);
+
+	// parse configuration file
+	if (ini_filename)
+		init(ini_filename);
+
+	// We must have -s IMG
+	if (!G.image_filename)
+		bb_show_usage();
+
+	if (fifo_filename) {
+		fd = STDIN_FILENO;
+		if (NOT_LONE_DASH(fifo_filename)) {
+			// open command fifo/pipe
+			fd = xopen(fifo_filename, O_RDONLY | O_NOCTTY);
+		}
+	}
+
+	fb_open(fb_device);
+
+	if (fifo_filename && bCursorOff) {
+		// hide cursor (BEFORE any fb ops)
+		full_write(STDOUT_FILENO, "\x1b" "[?25l", 6);
+	}
+
+	fb_drawimage();
+
+	if (fifo_filename) {
+		num = 0;
+		goto draw_bar;
+
+		while (1) {
+			// block on read, waiting for some input
+			len = safe_read(fd, num_buf, sizeof(num_buf) - 1);
+			if (len <= 0) // EOF/error
+				break;
+			num_buf[len] = '\0';
+			// parse command
+			if (strncmp(num_buf, "exit", 4) == 0) {
+				DEBUG_MESSAGE("exit");
+				break;
+			}
+			num = atoi(num_buf);
+			if (isdigit(num_buf[0]) && (num >= 0) && (num <= 100)) {
+#if DEBUG
+				char strVal[10];
+				sprintf(strVal, "%d", num);
+				DEBUG_MESSAGE(strVal);
+#endif
+ draw_bar:
+				fb_drawprogressbar(num);
+			}
+		}
+		if (bCursorOff) {
+			// restore cursor
+			full_write(STDOUT_FILENO, "\x1b" "[?25h", 6);
+		}
+		if (ENABLE_FEATURE_CLEAN_UP)
+			close(fd);
+	}
+
+#if DEBUG
+	if (ENABLE_FEATURE_CLEAN_UP)
+  		if (G.bdebug_messages)
+   			fclose(G.logfile_fd);
+#endif
+
+	return EXIT_SUCCESS;
+}

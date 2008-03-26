@@ -121,15 +121,17 @@
        "bar"
 
 #define fbsplash_trivial_usage \
-       "[-c] [-d DEV] [-s IMGFILE] [-i INIFILE] [-f CMD]"
+       "-s IMGFILE [-c] [-d DEV] [-i INIFILE] [-f CMD]"
 #define fbsplash_full_usage \
        "Options:\n" \
+     "\n	-s	Image" \
      "\n	-c	Hide cursor" \
      "\n	-d	Framebuffer device (default /dev/fb0)" \
-     "\n	-s	Splash image" \
-     "\n	-i	Config file" \
+     "\n	-i	Config file (var=value):" \
+     "\n			BAR_LEFT,BAR_TOP,BAR_WIDTH,BAR_HEIGHT" \
+     "\n			BAR_R,BAR_G,BAR_B" \
      "\n	-f	Control pipe (else exit after drawing image)" \
-     "\n		commands: 'NN' (% for progressbar) or 'exit'" \
+     "\n			commands: 'NN' (% for progress bar) or 'exit'" \
 
 #define brctl_trivial_usage \
        "COMMAND [BRIDGE [INTERFACE]]"
