@@ -97,7 +97,7 @@ static void fb_open(const char *strfb_device)
  *	Draw hollow rectangle on framebuffer
  * \param nx1pos,ny1pos upper left position
  * \param nx2pos,ny2pos down right position
- * \param nred24,ngreen24,nblue24 rgb color
+ * \param nred,ngreen,nblue rgb color
  */
 static void fb_drawrectangle(int nx1pos, int ny1pos, int nx2pos, int ny2pos,
 	unsigned char nred, unsigned char ngreen, unsigned char nblue)
@@ -135,7 +135,7 @@ static void fb_drawrectangle(int nx1pos, int ny1pos, int nx2pos, int ny2pos,
  *	Draw filled rectangle on framebuffer
  * \param nx1pos,ny1pos upper left position
  * \param nx2pos,ny2pos down right position
- * \param nred24,ngreen24,nblue24 rgb color
+ * \param nred,ngreen,nblue rgb color
  */
 static void fb_drawfullrectangle(int nx1pos, int ny1pos, int nx2pos, int ny2pos,
 	unsigned char nred, unsigned char ngreen, unsigned char nblue)
@@ -165,11 +165,12 @@ static void fb_drawfullrectangle(int nx1pos, int ny1pos, int nx2pos, int ny2pos,
 
 /**
  *	Draw a progress bar on framebuffer
- * \param nPercent percentage of loading
+ * \param percent percentage of loading
  */
-static void fb_drawprogressbar(unsigned nPercent)
+static void fb_drawprogressbar(unsigned percent)
 {
 	int i, left_x, top_y, width, height;
+
 	// outer box
 	left_x = G.nbar_posx;
 	top_y = G.nbar_posy;
@@ -195,9 +196,9 @@ static void fb_drawprogressbar(unsigned nPercent)
 					left_x + width, top_y + height,
 			G.nbar_colr, G.nbar_colg, G.nbar_colb);
 
-	if (nPercent > 0) {
+	if (percent > 0) {
 		// actual progress bar
-		width = width*nPercent/100;
+		width = width * percent / 100;
 		i = height;
 		if (height == 0)
 			height++; // divide by 0 is bad
@@ -294,9 +295,9 @@ static void init(const char *ini_filename)
 	FILE *inifile;
 	char *buf;
 
-	inifile = xfopen(ini_filename, "r");
+	inifile = xfopen_stdin(ini_filename);
 
-	while ((buf = xmalloc_getline(inifile)) != NULL) {
+	while ((buf = xmalloc_fgetline(inifile)) != NULL) {
 		char *value_str;
 		int val;
 
@@ -360,10 +361,8 @@ static void init(const char *ini_filename)
 int fbsplash_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int fbsplash_main(int argc ATTRIBUTE_UNUSED, char **argv)
 {
-	char num_buf[16];
 	const char *fb_device, *ini_filename, *fifo_filename;
-	int fd = fd; // for compiler
-	int len, num;
+	FILE *fp = fp; // for compiler
 	bool bCursorOff;
 
 	INIT_G();
@@ -383,13 +382,8 @@ int fbsplash_main(int argc ATTRIBUTE_UNUSED, char **argv)
 	if (!G.image_filename)
 		bb_show_usage();
 
-	if (fifo_filename) {
-		fd = STDIN_FILENO;
-		if (NOT_LONE_DASH(fifo_filename)) {
-			// open command fifo/pipe
-			fd = xopen(fifo_filename, O_RDONLY | O_NOCTTY);
-		}
-	}
+	if (fifo_filename)
+		fp = xfopen_stdin(fifo_filename);
 
 	fb_open(fb_device);
 
@@ -401,44 +395,37 @@ int fbsplash_main(int argc ATTRIBUTE_UNUSED, char **argv)
 	fb_drawimage();
 
 	if (fifo_filename) {
-		num = 0;
-		goto draw_bar;
+		unsigned num;
+		char *num_buf;
 
-		while (1) {
-			// block on read, waiting for some input
-			len = safe_read(fd, num_buf, sizeof(num_buf) - 1);
-			if (len <= 0) // EOF/error
-				break;
-			num_buf[len] = '\0';
-			// parse command
+		fb_drawprogressbar(0);
+		// Block on read, waiting for some input.
+		// Use of <stdio.h> style I/O allows to correctly
+		// handle a case when we have many buffered lines
+		// already in the pipe.
+		while ((num_buf = xmalloc_fgetline(fp)) != NULL) {
 			if (strncmp(num_buf, "exit", 4) == 0) {
 				DEBUG_MESSAGE("exit");
 				break;
 			}
 			num = atoi(num_buf);
-			if (isdigit(num_buf[0]) && (num >= 0) && (num <= 100)) {
+			if (isdigit(num_buf[0]) && (num <= 100)) {
 #if DEBUG
 				char strVal[10];
 				sprintf(strVal, "%d", num);
 				DEBUG_MESSAGE(strVal);
 #endif
- draw_bar:
 				fb_drawprogressbar(num);
 			}
+			free(num_buf);
 		}
 		if (bCursorOff) {
 			// restore cursor
 			full_write(STDOUT_FILENO, "\x1b" "[?25h", 6);
 		}
 		if (ENABLE_FEATURE_CLEAN_UP)
-			close(fd);
+			fclose(fp);
 	}
-
-#if DEBUG
-	if (ENABLE_FEATURE_CLEAN_UP)
-  		if (G.bdebug_messages)
-   			fclose(G.logfile_fd);
-#endif
 
 	return EXIT_SUCCESS;
 }
