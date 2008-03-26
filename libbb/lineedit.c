@@ -958,14 +958,16 @@ static void load_history(const char *fromfile)
 	FILE *fp;
 	int hi;
 
-	/* cleanup old */
-	for (hi = state->cnt_history; hi > 0;) {
-		hi--;
-		free(state->history[hi]);
-	}
+	/* NB: do not trash old history if file can't be opened */
 
 	fp = fopen(fromfile, "r");
 	if (fp) {
+		/* clean up old history */
+		for (hi = state->cnt_history; hi > 0;) {
+			hi--;
+			free(state->history[hi]);
+		}
+
 		for (hi = 0; hi < MAX_HISTORY;) {
 			char *hl = xmalloc_getline(fp);
 			int l;
@@ -982,8 +984,8 @@ static void load_history(const char *fromfile)
 			state->history[hi++] = hl;
 		}
 		fclose(fp);
+		state->cur_history = state->cnt_history = hi;
 	}
-	state->cur_history = state->cnt_history = hi;
 }
 
 /* state->flags is already checked to be nonzero */

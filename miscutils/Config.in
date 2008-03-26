@@ -194,12 +194,33 @@ config EJECT
 	  Used to eject cdroms.  (defaults to /dev/cdrom)
 
 config FEATURE_EJECT_SCSI
-  bool "SCSI support"
-  default n
-  depends on EJECT
-  help
-    Add the -s option to eject, this allows to eject SCSI-Devices and
-    usb-storage devices.
+	bool "SCSI support"
+	default n
+	depends on EJECT
+	help
+	  Add the -s option to eject, this allows to eject SCSI-Devices and
+	  usb-storage devices.
+
+config FBSPLASH
+	bool "fbsplash"
+	default n
+	help
+	  Shows splash image and progress bar on framebuffer device.
+	  Can be used during boot phase of an embedded device. ~2kb.
+	  Usage:
+	  - use kernel option 'vga=xxx' or otherwise enable fb device.
+	  - put somewhere the fbsplash.ini file and image in .ppm format.
+	  - $ setsid fbsplash [params] &
+	       -c: hide cursor
+	       -d /dev/fbN: framebuffer device (if not /dev/fb0)
+	       -s path_of_image_file
+	       -i path_of_ini_file
+	       -f path_of_fifo (can be "-" for stdin)
+	  - if you want to run applet only in presence of kernel parameter:
+	    grep -q "fbsplash=on" </proc/cmdline && setsid fbsplash [params] &
+	  - commands for fifo:
+	    "NN" (ASCII decimal number) - percentage to show on progress bar
+	    "exit" (or just close fifo) - well you guessed it
 
 config LAST
 	bool "last"

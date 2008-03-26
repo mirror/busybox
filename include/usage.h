@@ -120,6 +120,17 @@
        "$ basename /foo/bar.txt .txt\n" \
        "bar"
 
+#define fbsplash_trivial_usage \
+       "[-c] [-d DEV] [-s IMGFILE] [-i INIFILE] [-f CMD]"
+#define fbsplash_full_usage \
+       "Options:\n" \
+     "\n	-c	Hide cursor" \
+     "\n	-d	Framebuffer device (default /dev/fb0)" \
+     "\n	-s	Splash image" \
+     "\n	-i	Config file" \
+     "\n	-f	Control pipe (else exit after drawing image)" \
+     "\n		commands: 'NN' (% for progressbar) or 'exit'" \
+
 #define brctl_trivial_usage \
        "COMMAND [BRIDGE [INTERFACE]]"
 #define brctl_full_usage \
@@ -2838,10 +2849,11 @@
 	)
 
 #define patch_trivial_usage \
-       "[-p NUM] [-i DIFF]"
+       "[-p NUM] [-i DIFF] [-R]"
 #define patch_full_usage \
        "	-p NUM	Strip NUM leading components from file names" \
      "\n	-i DIFF	Read DIFF instead of stdin" \
+     "\n	-R	Reverse patch" \
 
 #define patch_example_usage \
        "$ patch -p1 < example.diff\n" \

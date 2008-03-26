@@ -21,7 +21,7 @@
 
 #include "libbb.h"
 
-static unsigned copy_lines(FILE *src_stream, FILE *dest_stream, unsigned lines_count)
+static unsigned copy_lines(FILE *src_stream, FILE *dst_stream, unsigned lines_count)
 {
 	while (src_stream && lines_count) {
 		char *line;
@@ -29,7 +29,7 @@ static unsigned copy_lines(FILE *src_stream, FILE *dest_stream, unsigned lines_c
 		if (line == NULL) {
 			break;
 		}
-		if (fputs(line, dest_stream) == EOF) {
+		if (fputs(line, dst_stream) == EOF) {
 			bb_perror_msg_and_die("error writing to new file");
 		}
 		free(line);
@@ -73,12 +73,14 @@ int patch_main(int argc ATTRIBUTE_UNUSED, char **argv)
 	FILE *patch_file;
 	int patch_level;
 	int ret = 0;
+	char plus = '+';
 
 	xfunc_error_retval = 2;
 	{
 		const char *p = "-1";
 		const char *i = "-"; /* compat */
-		getopt32(argv, "p:i:", &p, &i);
+		if (getopt32(argv, "p:i:R", &p, &i) & 4)
+			plus = '-';
 		patch_level = xatoi(p); /* can be negative! */
 		patch_file = xfopen_stdin(i);
 	}
@@ -91,8 +93,8 @@ int patch_main(int argc ATTRIBUTE_UNUSED, char **argv)
 		char *new_filename;
 		char *backup_filename;
 		unsigned src_cur_line = 1;
-		unsigned dest_cur_line = 0;
-		unsigned dest_beg_line;
+		unsigned dst_cur_line = 0;
+		unsigned dst_beg_line;
 		unsigned bad_hunk_count = 0;
 		unsigned hunk_count = 0;
 		smallint copy_trailing_lines_flag = 0;
@@ -143,15 +145,26 @@ int patch_main(int argc ATTRIBUTE_UNUSED, char **argv)
 			unsigned src_beg_line;
 			unsigned hunk_offset_start;
 			unsigned src_last_line = 1;
+			unsigned dst_last_line = 1;
 
-			if ((sscanf(patch_line, "@@ -%d,%d +%d", &src_beg_line, &src_last_line, &dest_beg_line) != 3)
-			 && (sscanf(patch_line, "@@ -%d +%d", &src_beg_line, &dest_beg_line) != 2)
-			) { /* No more hunks for this file */
+			if ((sscanf(patch_line, "@@ -%d,%d +%d,%d", &src_beg_line, &src_last_line, &dst_beg_line, &dst_last_line) < 3)
+			 && (sscanf(patch_line, "@@ -%d +%d,%d", &src_beg_line, &dst_beg_line, &dst_last_line) < 2)
+			) {
+				/* No more hunks for this file */
 				break;
+			}
+			if (plus != '+') {
+				/* reverse patch */
+				unsigned tmp = src_last_line;
+				src_last_line = dst_last_line;
+				dst_last_line = tmp;
+				tmp = src_beg_line;
+				src_beg_line = dst_beg_line;
+				dst_beg_line = tmp;
 			}
 			hunk_count++;
 
-			if (src_beg_line && dest_beg_line) {
+			if (src_beg_line && dst_beg_line) {
 				/* Copy unmodified lines upto start of hunk */
 				/* src_beg_line will be 0 if it's a new file */
 				count = src_beg_line - src_cur_line;
@@ -159,14 +172,15 @@ int patch_main(int argc ATTRIBUTE_UNUSED, char **argv)
 					bb_error_msg_and_die("bad src file");
 				}
 				src_cur_line += count;
-				dest_cur_line += count;
+				dst_cur_line += count;
 				copy_trailing_lines_flag = 1;
 			}
 			src_last_line += hunk_offset_start = src_cur_line;
+			dst_last_line += dst_cur_line;
 
 			while (1) {
 				free(patch_line);
-			        patch_line = xmalloc_fgets(patch_file);
+				patch_line = xmalloc_fgets(patch_file);
 				if (patch_line == NULL)
 					break; /* EOF */
 				if ((*patch_line != '-') && (*patch_line != '+')
@@ -174,7 +188,7 @@ int patch_main(int argc ATTRIBUTE_UNUSED, char **argv)
 				) {
 					break; /* End of hunk */
 				}
-				if (*patch_line != '+') { /* '-', ' ' or '\n' */
+				if (*patch_line != plus) { /* '-' or ' ' */
 					char *src_line = NULL;
 					if (src_cur_line == src_last_line)
 						break;
@@ -184,7 +198,8 @@ int patch_main(int argc ATTRIBUTE_UNUSED, char **argv)
 							int diff = strcmp(src_line, patch_line + 1);
 							src_cur_line++;
 							free(src_line);
-							if (diff) src_line = NULL;
+							if (diff)
+								src_line = NULL;
 						}
 					}
 					if (!src_line) {
@@ -192,12 +207,14 @@ int patch_main(int argc ATTRIBUTE_UNUSED, char **argv)
 						bad_hunk_count++;
 						break;
 					}
-					if (*patch_line == '-') {
+					if (*patch_line != ' ') { /* '-' */
 						continue;
 					}
 				}
+				if (dst_cur_line == dst_last_line)
+					break;
 				fputs(patch_line + 1, dst_stream);
-				dest_cur_line++;
+				dst_cur_line++;
 			} /* end of while loop handling one hunk */
 		} /* end of while loop handling one file */
 
@@ -217,7 +234,7 @@ int patch_main(int argc ATTRIBUTE_UNUSED, char **argv)
 			if (backup_filename) {
 				unlink(backup_filename);
 			}
-			if ((dest_cur_line == 0) || (dest_beg_line == 0)) {
+			if ((dst_cur_line == 0) || (dst_beg_line == 0)) {
 				/* The new patched file is empty, remove it */
 				xunlink(new_filename);
 				// /* old_filename and new_filename may be the same file */
@@ -228,8 +245,7 @@ int patch_main(int argc ATTRIBUTE_UNUSED, char **argv)
 		//free(old_filename);
 		free(new_filename);
 	} /* end of "while there are patch lines" */
-quit:
-
+ quit:
 	/* 0 = SUCCESS
 	 * 1 = Some hunks failed
 	 * 2 = More serious problems (exited earlier)
