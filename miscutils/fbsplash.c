@@ -1,7 +1,5 @@
 /* vi: set sw=4 ts=4: */
 /*
- * splash implementation for busybox
- *
  * Copyright (C) 2008 Michele Sanges <michele.sanges@otomelara.it>,
  * <michele.sanges@gmail.it>
  *
@@ -9,34 +7,25 @@
  *
  * Usage:
  * - use kernel option 'vga=xxx' or otherwise enable framebuffer device.
- * - put somewhere the fbsplash.ini file and image in .ppm format.
- * - configure applet by editing .ini file.
+ * - put somewhere fbsplash.cfg file and an image in .ppm format.
  * - run applet: $ setsid fbsplash [params] &
  *	-c: hide cursor
  *	-d /dev/fbN: framebuffer device (if not /dev/fb0)
- *	-s path_of_image_file
- * 	-i path_of_ini_file
- * 	-f path_of_fifo (can be "-" for stdin)
- * - if you want to run the applet only in presence of a kernel parameter
- *   (for example fbsplash=on), type:
+ *	-s path_to_image_file (can be "-" for stdin)
+ * 	-i path_to_cfg_file
+ * 	-f path_to_fifo (can be "-" for stdin)
+ * - if you want to run it only in presence of a kernel parameter
+ *   (for example fbsplash=on), use:
  *   grep -q "fbsplash=on" </proc/cmdline && setsid fbsplash [params]
  * - commands for fifo:
  *   "NN" (ASCII decimal number) - percentage to show on progress bar.
  *   "exit" (or just close fifo) - well you guessed it.
  */
 
-/**
- * 	Splash implementation for busybox
- * \file: fbsplash.c
- * \author Michele Sanges <michele.sanges@otomelara.it> <michele.sanges@gmail.com>
- * \version 1.0.0
- * \date 07/03/2008
- */
-
 #include "libbb.h"
 #include <linux/fb.h>
 
-/* If you want logging messages on /tmp/fbsplash_log... */
+/* If you want logging messages on /tmp/fbsplash.log... */
 #define DEBUG 0
 
 #define BYTES_PER_PIXEL 2
@@ -355,7 +344,7 @@ static void init(const char *ini_filename)
 		case 7:
 			G.bdebug_messages = val;
 			if (G.bdebug_messages)
- 				G.logfile_fd = xfopen("/tmp/fbsplash_log", "w");
+ 				G.logfile_fd = xfopen("/tmp/fbsplash.log", "w");
 			break;
 #endif
  err:

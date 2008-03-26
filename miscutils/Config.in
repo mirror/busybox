@@ -209,14 +209,14 @@ config FBSPLASH
 	  Can be used during boot phase of an embedded device. ~2kb.
 	  Usage:
 	  - use kernel option 'vga=xxx' or otherwise enable fb device.
-	  - put somewhere the fbsplash.ini file and image in .ppm format.
+	  - put somewhere fbsplash.cfg file and an image in .ppm format.
 	  - $ setsid fbsplash [params] &
-	       -c: hide cursor
-	       -d /dev/fbN: framebuffer device (if not /dev/fb0)
-	       -s path_of_image_file
-	       -i path_of_ini_file
-	       -f path_of_fifo (can be "-" for stdin)
-	  - if you want to run applet only in presence of kernel parameter:
+	    -c: hide cursor
+	    -d /dev/fbN: framebuffer device (if not /dev/fb0)
+	    -s path_to_image_file (can be "-" for stdin)
+	    -i path_to_cfg_file
+	    -f path_to_fifo (can be "-" for stdin)
+	  - if you want to run it only in presence of kernel parameter:
 	    grep -q "fbsplash=on" </proc/cmdline && setsid fbsplash [params] &
 	  - commands for fifo:
 	    "NN" (ASCII decimal number) - percentage to show on progress bar
