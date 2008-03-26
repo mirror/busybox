@@ -141,7 +141,7 @@ char *reads(int fd, char *buffer, size_t size)
 		off_t offset;
 		*p++ = '\0';
 		// avoid incorrect (unsigned) widening
-		offset = (off_t)(p-buffer) - (off_t)size;
+		offset = (off_t)(p - buffer) - (off_t)size;
 		// set fd position right after '\n'
 		if (offset && lseek(fd, offset, SEEK_CUR) == (off_t)-1)
 			return NULL;
@@ -149,8 +149,8 @@ char *reads(int fd, char *buffer, size_t size)
 	return buffer;
 }
 
-// Read one line a-la fgets. Reads byte-by-byte.
-// Useful when it is important to not read ahead.
+// Reads one line a-la fgets (but doesn't save terminating '\n').
+// Reads byte-by-byte. Useful when it is important to not read ahead.
 // Bytes are appended to pfx (which must be malloced, or NULL).
 char *xmalloc_reads(int fd, char *buf, size_t *maxsz_p)
 {
@@ -178,9 +178,10 @@ char *xmalloc_reads(int fd, char *buf, size_t *maxsz_p)
 			break;
 		p++;
 	}
-	*p++ = '\0';
+	*p = '\0';
 	if (maxsz_p)
-		*maxsz_p  = p - buf - 1;
+		*maxsz_p  = p - buf;
+	p++;
 	return xrealloc(buf, p - buf);
 }
 

@@ -524,15 +524,16 @@ extern ssize_t nonblock_safe_read(int fd, void *buf, size_t count);
 extern ssize_t full_read(int fd, void *buf, size_t count);
 extern void xread(int fd, void *buf, size_t count);
 extern unsigned char xread_char(int fd);
-// Read one line a-la fgets. Uses one read(), works only on seekable streams
+// Reads one line a-la fgets (but doesn't save terminating '\n').
+// Uses single full_read() call, works only on seekable streams.
 extern char *reads(int fd, char *buf, size_t count);
-// Read one line a-la fgets. Reads byte-by-byte.
-// Useful when it is important to not read ahead.
+// Reads one line a-la fgets (but doesn't save terminating '\n').
+// Reads byte-by-byte. Useful when it is important to not read ahead.
 // Bytes are appended to pfx (which must be malloced, or NULL).
 extern char *xmalloc_reads(int fd, char *pfx, size_t *maxsz_p);
-extern ssize_t read_close(int fd, void *buf, size_t count);
-extern ssize_t open_read_close(const char *filename, void *buf, size_t count);
-extern void *xmalloc_open_read_close(const char *filename, size_t *sizep);
+extern ssize_t read_close(int fd, void *buf, size_t maxsz);
+extern ssize_t open_read_close(const char *filename, void *buf, size_t maxsz);
+extern void *xmalloc_open_read_close(const char *filename, size_t *maxsz_p);
 
 extern ssize_t safe_write(int fd, const void *buf, size_t count);
 // NB: will return short write on error, not -1,
@@ -549,7 +550,7 @@ extern char *xmalloc_fgetline_str(FILE *file, const char *terminating_string);
 /* Reads up to (and including) "\n" or NUL byte */
 extern char *xmalloc_fgets(FILE *file);
 /* Chops off '\n' from the end, unlike fgets: */
-extern char *xmalloc_getline(FILE *file);
+extern char *xmalloc_fgetline(FILE *file);
 extern char *bb_get_chunk_from_file(FILE *file, int *end);
 extern void die_if_ferror(FILE *file, const char *msg);
 extern void die_if_ferror_stdout(void);

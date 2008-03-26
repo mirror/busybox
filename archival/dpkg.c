@@ -1162,7 +1162,7 @@ static char **create_list(const char *filename)
 		return NULL;
 	}
 
-	while ((line = xmalloc_getline(list_stream)) != NULL) {
+	while ((line = xmalloc_fgetline(list_stream)) != NULL) {
 		file_list = xrealloc(file_list, sizeof(char *) * (count + 2));
 		file_list[count] = line;
 		count++;

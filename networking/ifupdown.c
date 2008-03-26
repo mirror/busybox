@@ -693,13 +693,13 @@ static struct interfaces_file_t *read_interfaces(const char *filename)
 	defn = xzalloc(sizeof(*defn));
 	f = xfopen(filename, "r");
 
-	while ((buf = xmalloc_getline(f)) != NULL) {
+	while ((buf = xmalloc_fgetline(f)) != NULL) {
 #if ENABLE_DESKTOP
 		/* Trailing "\" concatenates lines */
 		char *p;
 		while ((p = last_char_is(buf, '\\')) != NULL) {
 			*p = '\0';
-			rest_of_line = xmalloc_getline(f);
+			rest_of_line = xmalloc_fgetline(f);
 			if (!rest_of_line)
 				break;
 			p = xasprintf("%s%s", buf, rest_of_line);
@@ -1051,7 +1051,7 @@ static char *run_mapping(char *physical, struct mapping_defn_t *map)
 		/* If the mapping script exited successfully, try to
 		 * grab a line of output and use that as the name of the
 		 * logical interface. */
-		char *new_logical = xmalloc_getline(out);
+		char *new_logical = xmalloc_fgetline(out);
 
 		if (new_logical) {
 			/* If we are able to read a line of output from the script,

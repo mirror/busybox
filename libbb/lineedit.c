@@ -969,7 +969,7 @@ static void load_history(const char *fromfile)
 		}
 
 		for (hi = 0; hi < MAX_HISTORY;) {
-			char *hl = xmalloc_getline(fp);
+			char *hl = xmalloc_fgetline(fp);
 			int l;
 
 			if (!hl)

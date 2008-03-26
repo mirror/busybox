@@ -115,7 +115,7 @@ int md5_sha1_sum_main(int argc ATTRIBUTE_UNUSED, char **argv)
 
 		pre_computed_stream = xfopen_stdin(argv[0]);
 
-		while ((line = xmalloc_getline(pre_computed_stream)) != NULL) {
+		while ((line = xmalloc_fgetline(pre_computed_stream)) != NULL) {
 			char *filename_ptr;
 
 			count_total++;

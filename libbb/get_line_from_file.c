@@ -57,7 +57,7 @@ char *xmalloc_fgets(FILE *file)
 }
 
 /* Get line.  Remove trailing \n */
-char *xmalloc_getline(FILE *file)
+char *xmalloc_fgetline(FILE *file)
 {
 	int i;
 	char *c = bb_get_chunk_from_file(file, &i);

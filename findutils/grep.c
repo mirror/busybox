@@ -172,7 +172,7 @@ static int grep_file(FILE *file)
 	enum { print_n_lines_after = 0 };
 #endif /* ENABLE_FEATURE_GREP_CONTEXT */
 
-	while ((line = xmalloc_getline(file)) != NULL) {
+	while ((line = xmalloc_fgetline(file)) != NULL) {
 		llist_t *pattern_ptr = pattern_head;
 		grep_list_data_t *gl = gl; /* for gcc */
 
@@ -364,7 +364,7 @@ static void load_regexes_from_file(llist_t *fopt)
 		fopt = cur->link;
 		free(cur);
 		f = xfopen(ffile, "r");
-		while ((line = xmalloc_getline(f)) != NULL) {
+		while ((line = xmalloc_fgetline(f)) != NULL) {
 			llist_add_to(&pattern_head,
 				new_grep_list_data(line, PATTERN_MEM_A));
 		}

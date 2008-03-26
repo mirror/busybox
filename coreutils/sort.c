@@ -150,9 +150,9 @@ static struct sort_key *add_key(void)
 #define GET_LINE(fp) \
 	((option_mask32 & FLAG_z) \
 	? bb_get_chunk_from_file(fp, NULL) \
-	: xmalloc_getline(fp))
+	: xmalloc_fgetline(fp))
 #else
-#define GET_LINE(fp) xmalloc_getline(fp)
+#define GET_LINE(fp) xmalloc_fgetline(fp)
 #endif
 
 /* Iterate through keys list and perform comparisons */

@@ -204,7 +204,7 @@ int dc_main(int argc ATTRIBUTE_UNUSED, char **argv)
 		char *line;
 		char *cursor;
 		char *token;
-		while ((line = xmalloc_getline(stdin)) != NULL) {
+		while ((line = xmalloc_fgetline(stdin)) != NULL) {
 			cursor = line;
 			while (1) {
 				token = get_token(&cursor);

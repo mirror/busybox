@@ -23,7 +23,7 @@ static void bb_dump_addfile(char *name)
 
 	fp = xfopen(name, "r");
 
-	while ((buf = xmalloc_getline(fp)) != NULL) {
+	while ((buf = xmalloc_fgetline(fp)) != NULL) {
 		p = skip_whitespace(buf);
 
 		if (*p && (*p != '#')) {
@@ -135,7 +135,7 @@ int hexdump_main(int argc, char **argv)
 		char *buf;
 		fp = xfopen(*argv, "r");
  jump_in:
-		while ((buf = xmalloc_getline(fp)) != NULL) {
+		while ((buf = xmalloc_fgetline(fp)) != NULL) {
 			p = buf;
 			while (1) {
 				/* skip address or previous byte */

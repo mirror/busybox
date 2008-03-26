@@ -22,7 +22,7 @@ int cryptpw_main(int argc ATTRIBUTE_UNUSED, char **argv)
 		crypt_make_salt(salt, 1, 0);     /* des */
 	}
 
-	puts(pw_encrypt(argv[optind] ? argv[optind] : xmalloc_getline(stdin), salt));
+	puts(pw_encrypt(argv[optind] ? argv[optind] : xmalloc_fgetline(stdin), salt));
 
 	return 0;
 }

@@ -68,7 +68,7 @@ static void make_device(char *path, int delete)
 		if (!fp)
 			goto end_parse;
 
-		while ((vline = line = xmalloc_getline(fp)) != NULL) {
+		while ((vline = line = xmalloc_fgetline(fp)) != NULL) {
 			int field;
 
 			/* A pristine copy for command execution. */

@@ -83,7 +83,7 @@ static void add_user_to_group(char **args,
 
 	if (!group_file) return;
 
-	while ((line = xmalloc_getline(group_file))) {
+	while ((line = xmalloc_fgetline(group_file)) != NULL) {
 		/* Find the group */
 		if (!strncmp(line, args[1], len)
 		 && line[len] == ':'

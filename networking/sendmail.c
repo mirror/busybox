@@ -170,7 +170,7 @@ static int smtp_checkp(const char *fmt, const char *param, int code)
 	// if code = -1 then just return this number
 	// if code != -1 then checks whether the number equals the code
 	// if not equal -> die saying msg
-	while ((answer = xmalloc_getline(stdin)) != NULL)
+	while ((answer = xmalloc_fgetline(stdin)) != NULL)
 		if (strlen(answer) <= 3 || '-' != answer[3])
 			break;
 	if (answer) {
@@ -211,7 +211,7 @@ static char *sane(char *str)
 static void pop3_checkr(const char *fmt, const char *param, char **ret)
 {
 	const char *msg = command(fmt, param);
-	char *answer = xmalloc_getline(stdin);
+	char *answer = xmalloc_fgetline(stdin);
 	if (answer && '+' == *answer) {
 		alarm(0);
 		if (ret)

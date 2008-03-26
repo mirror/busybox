@@ -71,7 +71,7 @@ int uniq_main(int argc ATTRIBUTE_UNUSED, char **argv)
 		dups = 0;
 
 		/* gnu uniq ignores newlines */
-		while ((s1 = xmalloc_getline(in)) != NULL) {
+		while ((s1 = xmalloc_fgetline(in)) != NULL) {
 			e1 = s1;
 			for (i = skip_fields; i; i--) {
 				e1 = skip_whitespace(e1);

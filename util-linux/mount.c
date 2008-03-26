@@ -362,7 +362,7 @@ static llist_t *get_block_backed_filesystems(void)
 		f = fopen(filesystems[i], "r");
 		if (!f) continue;
 
-		while ((buf = xmalloc_getline(f)) != 0) {
+		while ((buf = xmalloc_fgetline(f)) != NULL) {
 			if (!strncmp(buf, "nodev", 5) && isspace(buf[5]))
 				continue;
 			fs = skip_whitespace(buf);

@@ -391,7 +391,7 @@ static void load_fs_info(const char *filename)
 	}
 	while (1) {
 		int r;
-		char *buf = xmalloc_getline(f);
+		char *buf = xmalloc_fgetline(f);
 		if (!buf) break;
 		r = parse_fstab_line(buf, &fs);
 		free(buf);

@@ -85,7 +85,7 @@ int patch_main(int argc ATTRIBUTE_UNUSED, char **argv)
 		patch_file = xfopen_stdin(i);
 	}
 
-	patch_line = xmalloc_getline(patch_file);
+	patch_line = xmalloc_fgetline(patch_file);
 	while (patch_line) {
 		FILE *src_stream;
 		FILE *dst_stream;
@@ -106,7 +106,7 @@ int patch_main(int argc ATTRIBUTE_UNUSED, char **argv)
 			/* Extract the filename used before the patch was generated */
 			new_filename = extract_filename(patch_line, patch_level, "--- ");
 			// was old_filename above
-			patch_line = xmalloc_getline(patch_file);
+			patch_line = xmalloc_fgetline(patch_file);
 			if (!patch_line) goto quit;
 		} while (!new_filename);
 		free(new_filename); // "source" filename is irrelevant

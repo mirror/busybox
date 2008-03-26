@@ -97,7 +97,7 @@ int makedevs_main(int argc, char **argv)
 		printf("table=<stdin>\n");
 	}
 
-	while ((line = xmalloc_getline(table))) {
+	while ((line = xmalloc_fgetline(table)) != NULL) {
 		char type;
 		unsigned int mode = 0755;
 		unsigned int major = 0;

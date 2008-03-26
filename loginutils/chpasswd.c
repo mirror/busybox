@@ -33,7 +33,7 @@ int chpasswd_main(int argc ATTRIBUTE_UNUSED, char **argv)
 	USE_GETOPT_LONG(applet_long_options = chpasswd_longopts;)
 	opt = getopt32(argv, "em");
 
-	while ((name = xmalloc_getline(stdin)) != NULL) {
+	while ((name = xmalloc_fgetline(stdin)) != NULL) {
 		pass = strchr(name, ':');
 		if (!pass)
 			bb_error_msg_and_die("missing new password");

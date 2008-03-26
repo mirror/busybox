@@ -1028,7 +1028,7 @@ static void process_files(void)
 				if (rfile) {
 					char *line;
 
-					while ((line = xmalloc_getline(rfile))
+					while ((line = xmalloc_fgetline(rfile))
 							!= NULL)
 						append(line);
 					xprint_and_close_file(rfile);
@@ -1273,7 +1273,7 @@ int sed_main(int argc ATTRIBUTE_UNUSED, char **argv)
 		char *line;
 		FILE *cmdfile;
 		cmdfile = xfopen(opt_f->data, "r");
-		while ((line = xmalloc_getline(cmdfile)) != NULL) {
+		while ((line = xmalloc_fgetline(cmdfile)) != NULL) {
 			add_cmd(line);
 			free(line);
 		}
