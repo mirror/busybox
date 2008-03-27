@@ -1,0 +1,36 @@
+#!/bin/sh
+# Copyright 2008 by Denys Vlasenko
+# Licensed under GPL v2, see file LICENSE for details.
+
+. testing.sh
+
+# ls -ln is showing date. Need to remove that, it's variable
+# sed: (1) "maj, min" -> "maj,min" (2) coalesce spaces
+# cut: remove user, group, and date
+FILTER_LS="sed -e 's/,  */,/g' -e 's/  */ /g' | cut -d' ' -f 1,2,5,9-"
+
+# testing "test name" "options" "expected result" "file input" "stdin"
+
+rm -rf mdev.testdir
+mkdir mdev.testdir
+# We need mdev executable to be in chroot jail!
+# (will still fail with dynamically linked one, though...)
+cp ../busybox mdev.testdir/mdev
+mkdir mdev.testdir/dev
+mkdir -p mdev.testdir/sys/block/sda
+echo "8:0" >mdev.testdir/sys/block/sda/dev
+
+testing "mdev add /block/sda" \
+	"env - ACTION=add DEVPATH=/block/sda chroot mdev.testdir /mdev 2>&1;
+	ls -ln mdev.testdir/dev | $FILTER_LS" \
+"\
+mdev: /etc/mdev.conf: No such file or directory
+mdev: chdir(/lib/firmware): No such file or directory
+brw-rw---- 1 8,0 sda
+" \
+	"" ""
+
+# clean up
+rm -rf mdev.testdir
+
+exit $FAILCOUNT
