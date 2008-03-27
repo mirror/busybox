@@ -230,7 +230,7 @@ void udhcp_run_script(struct dhcpMessage *packet, const char *name)
 		/* exec script */
 		execle(client_config.script, client_config.script,
 		       name, NULL, envp);
-		bb_perror_msg_and_die("script %s failed", client_config.script);
+		bb_perror_msg_and_die("exec %s", client_config.script);
 	}
 	safe_waitpid(pid, NULL, 0);
 	for (curr = envp; *curr; curr++)

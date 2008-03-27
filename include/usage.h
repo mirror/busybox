@@ -2818,9 +2818,15 @@
        "to standard output. With no FILE or when FILE is -, read standard input."
 
 #define openvt_trivial_usage \
-       "VTNUM COMMAND [ARGS...]"
+       "[-c NUM] [-sw] [COMMAND [ARGS]]"
 #define openvt_full_usage \
-       "Start a command on a new virtual terminal"
+       "Start COMMAND on a new virtual terminal\n" \
+     "\nOptions:" \
+     "\n	-c	Use specified VT" \
+     "\n	-s	Switch to the VT" \
+/*   "\n	-l	Run COMMAND as login shell (by prepending '-')" */ \
+     "\n	-w	Wait for COMMAND to exit" \
+
 #define openvt_example_usage \
        "openvt 2 /bin/ash\n"
 
