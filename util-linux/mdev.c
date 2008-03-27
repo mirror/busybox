@@ -21,7 +21,11 @@ struct globals {
 
 #define MAX_SYSFS_DEPTH 3 /* prevent infinite loops in /sys symlinks */
 
+/* We use additional 64+ bytes in make_device() */
+#define SCRATCH_SIZE 80
+
 /* mknod in /dev based on a path like "/sys/block/hda/hda1" */
+/* NB: "mdev -s" may call us many times, do not leak memory/fds! */
 static void make_device(char *path, int delete)
 {
 	const char *device_name;
@@ -29,7 +33,7 @@ static void make_device(char *path, int delete)
 	int mode = 0660;
 	uid_t uid = 0;
 	gid_t gid = 0;
-	char *temp = path + strlen(path);
+	char *dev_maj_min = path + strlen(path);
 	char *command = NULL;
 	char *alias = NULL;
 
@@ -42,21 +46,20 @@ static void make_device(char *path, int delete)
 	 * also depend on path having writeable space after it.
 	 */
 	if (!delete) {
-		strcat(path, "/dev");
-		len = open_read_close(path, temp + 1, 64);
-		*temp++ = 0;
+		strcpy(dev_maj_min, "/dev");
+		len = open_read_close(path, dev_maj_min + 1, 64);
+		*dev_maj_min++ = '\0';
 		if (len < 1) {
-			if (ENABLE_FEATURE_MDEV_EXEC)
-				/* no "dev" file, so just try to run script */
-				*temp = 0;
-			else
+			if (!ENABLE_FEATURE_MDEV_EXEC)
 				return;
+			/* no "dev" file, so just try to run script */
+			*dev_maj_min = '\0';
 		}
 	}
 
 	/* Determine device name, type, major and minor */
 	device_name = bb_basename(path);
-	type = (path[5] == 'c' ? S_IFCHR : S_IFBLK);
+	type = (path[5] == 'c' ? S_IFCHR : S_IFBLK); /* "/sys/[c]lass"? */
 
 	if (ENABLE_FEATURE_MDEV_CONF) {
 		FILE *fp;
@@ -70,15 +73,18 @@ static void make_device(char *path, int delete)
 
 		while ((vline = line = xmalloc_fgetline(fp)) != NULL) {
 			int field;
-
-			/* A pristine copy for command execution. */
 			char *orig_line;
+
 			if (ENABLE_FEATURE_MDEV_EXEC)
-				orig_line = xstrdup(line);
+				orig_line = xstrdup(line); /* pristine copy for command execution. */
 
 			++lineno;
 
-			/* Three fields: regex, uid:gid, mode */
+// TODO: get rid of loop,
+// just linear skip_whitespace() style code will do!
+// (will also get rid of orig_line).
+
+			/* Fields: regex uid:gid mode [alias] [cmd] */
 			for (field = 0; field < (3 + ENABLE_FEATURE_MDEV_RENAME + ENABLE_FEATURE_MDEV_EXEC); ++field) {
 
 				/* Find a non-empty field */
@@ -117,9 +123,9 @@ static void make_device(char *path, int delete)
 					struct group *grp;
 
 					char *str_uid = val;
-					char *str_gid = strchr(val, ':');
-					if (str_gid)
-						*str_gid = '\0', ++str_gid;
+					char *str_gid = strchrnul(val, ':');
+					if (*str_gid)
+						*str_gid++ = '\0';
 
 					/* Parse UID */
 					pass = getpwnam(str_uid);
@@ -128,7 +134,7 @@ static void make_device(char *path, int delete)
 					else
 						uid = strtoul(str_uid, NULL, 10);
 
-					/* parse GID */
+					/* Parse GID */
 					grp = getgrnam(str_gid);
 					if (grp)
 						gid = grp->gr_gid;
@@ -144,8 +150,10 @@ static void make_device(char *path, int delete)
 
 					if (*val != '>')
 						++field;
-					else
+					else {
+						free(alias); /* don't leak in case we matched it on prev line */
 						alias = xstrdup(val + 1);
+					}
 
 				}
 
@@ -162,12 +170,17 @@ static void make_device(char *path, int delete)
 					}
 
 					/* Correlate the position in the "@$*" with the delete
-					 * step so that we get the proper behavior.
+					 * step so that we get the proper behavior:
+					 * @cmd: run on create
+					 * $cmd: run on delete
+					 * *cmd: run on both
 					 */
-					if ((s2 - s + 1) & (1 << delete))
+					if ((s2 - s + 1) /*1/2/3*/ & /*1/2*/ (1 + delete)) {
+						free(command); /* don't leak in case we matched it on prev line */
 						command = xstrdup(orig_line + (val + 1 - line));
+					}
 				}
-			}
+			} /* end of "for every field" */
 
 			/* Did everything parse happily? */
 			if (field <= 2)
@@ -177,21 +190,13 @@ static void make_device(char *path, int delete)
 			free(line);
 			if (ENABLE_FEATURE_MDEV_EXEC)
 				free(orig_line);
-		}
+		} /* end of "while line is read from /etc/mdev.conf" */
 
-		if (ENABLE_FEATURE_CLEAN_UP)
-			fclose(fp);
-
- end_parse:	/* nothing */ ;
+		fclose(fp);
 	}
+ end_parse:
 
-	if (!delete) {
-		if (sscanf(temp, "%d:%d", &major, &minor) != 2) {
-			if (ENABLE_FEATURE_MDEV_EXEC)
-				goto skip_creation;
-			else
-				return;
-		}
+	if (!delete && sscanf(dev_maj_min, "%u:%u", &major, &minor) == 2) {
 
 		if (ENABLE_FEATURE_MDEV_RENAME)
 			unlink(device_name);
@@ -208,39 +213,39 @@ static void make_device(char *path, int delete)
 			if (ENABLE_FEATURE_MDEV_RENAME && alias) {
 				char *dest;
 
-				temp = strrchr(alias, '/');
-				if (temp) {
-					if (temp[1] != '\0')
+				dest = strrchr(alias, '/');
+				if (dest) {
+					if (dest[1] != '\0')
 						/* given a file name, so rename it */
-						*temp = '\0';
+						*dest = '\0';
 					bb_make_directory(alias, 0755, FILEUTILS_RECUR);
 					dest = concat_path_file(alias, device_name);
+					free(alias);
 				} else
 					dest = alias;
 
-				rename(device_name, dest); // TODO: xrename?
+				rename(device_name, dest);
 				symlink(dest, device_name);
 
-				if (alias != dest)
-					free(alias);
 				free(dest);
 			}
 		}
- skip_creation: /* nothing */ ;
 	}
+
 	if (ENABLE_FEATURE_MDEV_EXEC && command) {
-		/* setenv will leak memory, so use putenv */
+		/* setenv will leak memory, use putenv/unsetenv/free */
 		char *s = xasprintf("MDEV=%s", device_name);
 		putenv(s);
 		if (system(command) == -1)
-			bb_perror_msg_and_die("cannot run %s", command);
+			bb_perror_msg_and_die("can't run '%s'", command);
 		s[4] = '\0';
 		unsetenv(s);
 		free(s);
 		free(command);
 	}
+
 	if (delete)
-		remove_file(device_name, FILEUTILS_FORCE);
+		unlink(device_name);
 }
 
 /* File callback for /sys/ traversal */
@@ -249,14 +254,15 @@ static int fileAction(const char *fileName,
                       void *userData,
                       int depth ATTRIBUTE_UNUSED)
 {
-	size_t len = strlen(fileName) - 4;
+	size_t len = strlen(fileName) - 4; /* can't underflow */
 	char *scratch = userData;
 
-	if (strcmp(fileName + len, "/dev"))
+	/* len check is for paranoid reasons */
+	if (strcmp(fileName + len, "/dev") || len >= PATH_MAX)
 		return FALSE;
 
 	strcpy(scratch, fileName);
-	scratch[len] = 0;
+	scratch[len] = '\0';
 	make_device(scratch, 0);
 
 	return TRUE;
@@ -287,12 +293,6 @@ static void load_firmware(const char *const firmware, const char *const sysfs_pa
 	int cnt;
 	int firmware_fd, loading_fd, data_fd;
 
-	/* check for $FIRMWARE from kernel */
-	/* XXX: dont bother: open(NULL) works same as open("no-such-file")
-	 * if (!firmware)
-	 *	return;
-	 */
-
 	/* check for /lib/firmware/$FIRMWARE */
 	xchdir("/lib/firmware");
 	firmware_fd = xopen(firmware, O_RDONLY);
@@ -304,16 +304,15 @@ static void load_firmware(const char *const firmware, const char *const sysfs_pa
 	xchdir(sysfs_path);
 	for (cnt = 0; cnt < 30; ++cnt) {
 		loading_fd = open("loading", O_WRONLY);
-		if (loading_fd == -1)
-			sleep(1);
-		else
-			break;
+		if (loading_fd != -1)
+			goto loading;
+		sleep(1);
 	}
-	if (loading_fd == -1)
-		goto out;
+	goto out;
 
+ loading:
 	/* tell kernel we're loading by `echo 1 > /sys/$DEVPATH/loading` */
-	if (write(loading_fd, "1", 1) != 1)
+	if (full_write(loading_fd, "1", 1) != 1)
 		goto out;
 
 	/* load firmware by `cat /lib/firmware/$FIRMWARE > /sys/$DEVPATH/data */
@@ -324,9 +323,9 @@ static void load_firmware(const char *const firmware, const char *const sysfs_pa
 
 	/* tell kernel result by `echo [0|-1] > /sys/$DEVPATH/loading` */
 	if (cnt > 0)
-		write(loading_fd, "0", 1);
+		full_write(loading_fd, "0", 1);
 	else
-		write(loading_fd, "-1", 2);
+		full_write(loading_fd, "-1", 2);
 
  out:
 	if (ENABLE_FEATURE_CLEAN_UP) {
@@ -341,16 +340,14 @@ int mdev_main(int argc, char **argv)
 {
 	char *action;
 	char *env_path;
-	RESERVE_CONFIG_BUFFER(temp,PATH_MAX);
+	RESERVE_CONFIG_BUFFER(temp, PATH_MAX + SCRATCH_SIZE);
 
 	xchdir("/dev");
 
-	if (argc == 2 && !strcmp(argv[1],"-s")) {
-
+	if (argc == 2 && !strcmp(argv[1], "-s")) {
 		/* Scan:
 		 * mdev -s
 		 */
-
 		struct stat st;
 
 		xstat("/", &st);
@@ -366,26 +363,27 @@ int mdev_main(int argc, char **argv)
 			fileAction, dirAction, temp, 0);
 
 	} else {
-
 		/* Hotplug:
 		 * env ACTION=... DEVPATH=... mdev
 		 * ACTION can be "add" or "remove"
 		 * DEVPATH is like "/block/sda" or "/class/input/mice"
 		 */
-
 		action = getenv("ACTION");
 		env_path = getenv("DEVPATH");
 		if (!action || !env_path)
 			bb_show_usage();
 
-		sprintf(temp, "/sys%s", env_path);
+		snprintf(temp, PATH_MAX, "/sys%s", env_path);
 		if (!strcmp(action, "remove"))
 			make_device(temp, 1);
 		else if (!strcmp(action, "add")) {
 			make_device(temp, 0);
 
-			if (ENABLE_FEATURE_MDEV_LOAD_FIRMWARE)
-				load_firmware(getenv("FIRMWARE"), temp);
+			if (ENABLE_FEATURE_MDEV_LOAD_FIRMWARE) {
+				char *fw = getenv("FIRMWARE");
+				if (fw)
+					load_firmware(fw, temp);
+			}
 		}
 	}
 

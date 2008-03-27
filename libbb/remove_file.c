@@ -82,8 +82,10 @@ int remove_file(const char *path, int flags)
 	}
 
 	/* !ISDIR */
-	if ((!(flags & FILEUTILS_FORCE) && access(path, W_OK) < 0
-			&& !S_ISLNK(path_stat.st_mode) && isatty(0))
+	if ((!(flags & FILEUTILS_FORCE)
+	     && access(path, W_OK) < 0
+	     && !S_ISLNK(path_stat.st_mode)
+	     && isatty(0))
 	 || (flags & FILEUTILS_INTERACTIVE)
 	) {
 		fprintf(stderr, "%s: remove '%s'? ", applet_name, path);
