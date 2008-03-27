@@ -394,7 +394,8 @@ int fbsplash_main(int argc ATTRIBUTE_UNUSED, char **argv)
 
 	fb_drawimage();
 
-	if (fifo_filename) {
+	if (fifo_filename) while (1) {
+		struct stat statbuf;
 		unsigned num;
 		char *num_buf;
 
@@ -402,11 +403,16 @@ int fbsplash_main(int argc ATTRIBUTE_UNUSED, char **argv)
 		// Block on read, waiting for some input.
 		// Use of <stdio.h> style I/O allows to correctly
 		// handle a case when we have many buffered lines
-		// already in the pipe.
+		// already in the pipe
 		while ((num_buf = xmalloc_fgetline(fp)) != NULL) {
 			if (strncmp(num_buf, "exit", 4) == 0) {
 				DEBUG_MESSAGE("exit");
-				break;
+ exit_cmd:
+				if (bCursorOff) {
+					// restore cursor
+					full_write(STDOUT_FILENO, "\x1b" "[?25h", 6);
+				}
+				return EXIT_SUCCESS;
 			}
 			num = atoi(num_buf);
 			if (isdigit(num_buf[0]) && (num <= 100)) {
@@ -419,13 +425,28 @@ int fbsplash_main(int argc ATTRIBUTE_UNUSED, char **argv)
 			}
 			free(num_buf);
 		}
-		if (bCursorOff) {
-			// restore cursor
-			full_write(STDOUT_FILENO, "\x1b" "[?25h", 6);
+		// We got EOF/error on fp
+		if (ferror(fp))
+			goto exit_cmd;
+		fclose(fp);
+		if (LONE_DASH(fifo_filename)
+		 || stat(fifo_filename, &statbuf) != 0
+		 || !S_ISFIFO(statbuf.st_mode)
+		) {
+			goto exit_cmd;
 		}
-		if (ENABLE_FEATURE_CLEAN_UP)
-			fclose(fp);
-	}
+		// It's really a named pipe!
+		// For named pipes, we want to support this:
+		//  mkfifo cmd_pipe
+		//  fbsplash -f cmd_pipe .... &
+		//  ...
+		//  echo 33 >cmd_pipe
+		//  ...
+		//  echo 66 >cmd_pipe
+		// This means that on EOF, we need to close/open cmd_pipe
+		// (just reading again works too, but it hogs CPU)
+		fp = xfopen_stdin(fifo_filename); // blocks on open
+	} // end of while (1)
 
 	return EXIT_SUCCESS;
 }
