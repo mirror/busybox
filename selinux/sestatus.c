@@ -78,10 +78,10 @@ static void read_config(char **pc, int npc, char **fc, int nfc)
 			section = 2;
 		} else {
 			if (section == 1 && pc_ofs < npc -1) {
-				pc[pc_ofs++] = strdup(buf);
+				pc[pc_ofs++] = xstrdup(buf);
 				pc[pc_ofs] = NULL;
 			} else if (section == 2 && fc_ofs < nfc - 1) {
-				fc[fc_ofs++] = strdup(buf);
+				fc[fc_ofs++] = xstrdup(buf);
 				fc[fc_ofs] = NULL;
 			}
 		}

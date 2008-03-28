@@ -285,7 +285,7 @@ static char *string_copy(const char *s)
 
 	if (!s)
 		return 0;
-	ret = strdup(s);
+	ret = xstrdup(s);
 	return ret;
 }
 

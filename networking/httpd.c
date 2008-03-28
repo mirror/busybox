@@ -800,7 +800,7 @@ static char *encodeString(const char *string)
 /*
  * Given a URL encoded string, convert it to plain ascii.
  * Since decoding always makes strings smaller, the decode is done in-place.
- * Thus, callers should strdup() the argument if they do not want the
+ * Thus, callers should xstrdup() the argument if they do not want the
  * argument modified.  The return is the original pointer, allowing this
  * function to be easily used as arguments to other functions.
  *
@@ -1725,9 +1725,7 @@ static int checkPerm(const char *path, const char *request)
 
 			if (strcmp(p, request) == 0) {
  set_remoteuser_var:
-				remoteuser = strdup(request);
-				if (remoteuser)
-					remoteuser[u - request] = '\0';
+				remoteuser = xstrndup(request, u - request);
 				return 1;   /* Ok */
 			}
 			/* unauthorized */
@@ -1990,13 +1988,13 @@ static void handle_incoming_and_exit(const len_and_sockaddr *fromAddr)
 #endif
 #if ENABLE_FEATURE_HTTPD_CGI
 			else if (STRNCASECMP(iobuf, "Cookie:") == 0) {
-				cookie = strdup(skip_whitespace(iobuf + sizeof("Cookie:")-1));
+				cookie = xstrdup(skip_whitespace(iobuf + sizeof("Cookie:")-1));
 			} else if (STRNCASECMP(iobuf, "Content-Type:") == 0) {
-				content_type = strdup(skip_whitespace(iobuf + sizeof("Content-Type:")-1));
+				content_type = xstrdup(skip_whitespace(iobuf + sizeof("Content-Type:")-1));
 			} else if (STRNCASECMP(iobuf, "Referer:") == 0) {
-				referer = strdup(skip_whitespace(iobuf + sizeof("Referer:")-1));
+				referer = xstrdup(skip_whitespace(iobuf + sizeof("Referer:")-1));
 			} else if (STRNCASECMP(iobuf, "User-Agent:") == 0) {
-				user_agent = strdup(skip_whitespace(iobuf + sizeof("User-Agent:")-1));
+				user_agent = xstrdup(skip_whitespace(iobuf + sizeof("User-Agent:")-1));
 			}
 #endif
 #if ENABLE_FEATURE_HTTPD_BASIC_AUTH
@@ -2377,7 +2375,7 @@ int httpd_main(int argc ATTRIBUTE_UNUSED, char **argv)
 	 * Besides, it is also smaller. */
 	{
 		char *p = getenv("PATH");
-		/* env strings themself are not freed, no need to strdup(p): */
+		/* env strings themself are not freed, no need to xstrdup(p): */
 		clearenv();
 		if (p)
 			putenv(p - 5);

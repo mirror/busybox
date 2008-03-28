@@ -119,7 +119,7 @@ int ed_main(int argc ATTRIBUTE_UNUSED, char **argv)
 static void doCommands(void)
 {
 	const char *cp;
-	char *endbuf, *newname, buf[USERSIZE];
+	char *endbuf, buf[USERSIZE];
 	int len, num1, num2;
 	smallint have1, have2;
 
@@ -168,162 +168,157 @@ static void doCommands(void)
 			num2 = num1;
 
 		switch (*cp++) {
-			case 'a':
-				addLines(num1 + 1);
-				break;
+		case 'a':
+			addLines(num1 + 1);
+			break;
 
-			case 'c':
-				deleteLines(num1, num2);
-				addLines(num1);
-				break;
+		case 'c':
+			deleteLines(num1, num2);
+			addLines(num1);
+			break;
 
-			case 'd':
-				deleteLines(num1, num2);
-				break;
+		case 'd':
+			deleteLines(num1, num2);
+			break;
 
-			case 'f':
-				if (*cp && !isblank(*cp)) {
-					bb_error_msg("bad file command");
-					break;
-				}
-				cp = skip_blank(cp);
-				if (*cp == '\0') {
-					if (fileName)
-						printf("\"%s\"\n", fileName);
-					else
-						printf("No file name\n");
-					break;
-				}
-				newname = strdup(cp);
-				if (newname == NULL) {
-					bb_error_msg("no memory for file name");
-					break;
-				}
-				free(fileName);
-				fileName = newname;
+		case 'f':
+			if (*cp && !isblank(*cp)) {
+				bb_error_msg("bad file command");
 				break;
-
-			case 'i':
-				addLines(num1);
+			}
+			cp = skip_blank(cp);
+			if (*cp == '\0') {
+				if (fileName)
+					printf("\"%s\"\n", fileName);
+				else
+					printf("No file name\n");
 				break;
+			}
+			free(fileName);
+			fileName = xstrdup(cp);
+			break;
 
-			case 'k':
-				cp = skip_blank(cp);
-				if ((*cp < 'a') || (*cp > 'z') || cp[1]) {
-					bb_error_msg("bad mark name");
-					break;
-				}
-				marks[*cp - 'a'] = num2;
+		case 'i':
+			addLines(num1);
+			break;
+
+		case 'k':
+			cp = skip_blank(cp);
+			if ((*cp < 'a') || (*cp > 'z') || cp[1]) {
+				bb_error_msg("bad mark name");
 				break;
+			}
+			marks[*cp - 'a'] = num2;
+			break;
 
-			case 'l':
-				printLines(num1, num2, TRUE);
+		case 'l':
+			printLines(num1, num2, TRUE);
+			break;
+
+		case 'p':
+			printLines(num1, num2, FALSE);
+			break;
+
+		case 'q':
+			cp = skip_blank(cp);
+			if (have1 || *cp) {
+				bb_error_msg("bad quit command");
 				break;
+			}
+			if (!dirty)
+				return;
+			len = read_line_input("Really quit? ", buf, 16, NULL);
+			/* read error/EOF - no way to continue */
+			if (len < 0)
+				return;
+			cp = skip_blank(buf);
+			if ((*cp | 0x20) == 'y') /* Y or y */
+				return;
+			break;
 
-			case 'p':
-				printLines(num1, num2, FALSE);
+		case 'r':
+			if (*cp && !isblank(*cp)) {
+				bb_error_msg("bad read command");
 				break;
-
-			case 'q':
-				cp = skip_blank(cp);
-				if (have1 || *cp) {
-					bb_error_msg("bad quit command");
-					break;
-				}
-				if (!dirty)
-					return;
-				len = read_line_input("Really quit? ", buf, 16, NULL);
-				/* read error/EOF - no way to continue */
-				if (len < 0)
-					return;
-				cp = skip_blank(buf);
-				if ((*cp | 0x20) == 'y') /* Y or y */
-					return;
+			}
+			cp = skip_blank(cp);
+			if (*cp == '\0') {
+				bb_error_msg("no file name");
 				break;
-
-			case 'r':
-				if (*cp && !isblank(*cp)) {
-					bb_error_msg("bad read command");
-					break;
-				}
-				cp = skip_blank(cp);
-				if (*cp == '\0') {
-					bb_error_msg("no file name");
-					break;
-				}
-				if (!have1)
-					num1 = lastNum;
-				if (readLines(cp, num1 + 1))
-					break;
-				if (fileName == NULL)
-					fileName = strdup(cp);
+			}
+			if (!have1)
+				num1 = lastNum;
+			if (readLines(cp, num1 + 1))
 				break;
+			if (fileName == NULL)
+				fileName = xstrdup(cp);
+			break;
 
-			case 's':
-				subCommand(cp, num1, num2);
+		case 's':
+			subCommand(cp, num1, num2);
+			break;
+
+		case 'w':
+			if (*cp && !isblank(*cp)) {
+				bb_error_msg("bad write command");
 				break;
-
-			case 'w':
-				if (*cp && !isblank(*cp)) {
-					bb_error_msg("bad write command");
-					break;
-				}
-				cp = skip_blank(cp);
-				if (!have1) {
-					num1 = 1;
-					num2 = lastNum;
-				}
-				if (*cp == '\0')
-					cp = fileName;
-				if (cp == NULL) {
-					bb_error_msg("no file name specified");
-					break;
-				}
-				writeLines(cp, num1, num2);
+			}
+			cp = skip_blank(cp);
+			if (!have1) {
+				num1 = 1;
+				num2 = lastNum;
+			}
+			if (*cp == '\0')
+				cp = fileName;
+			if (cp == NULL) {
+				bb_error_msg("no file name specified");
 				break;
+			}
+			writeLines(cp, num1, num2);
+			break;
 
-			case 'z':
-				switch (*cp) {
-				case '-':
-					printLines(curNum - 21, curNum, FALSE);
-					break;
-				case '.':
-					printLines(curNum - 11, curNum + 10, FALSE);
-					break;
-				default:
-					printLines(curNum, curNum + 21, FALSE);
-					break;
-				}
-				break;
-
-			case '.':
-				if (have1) {
-					bb_error_msg("no arguments allowed");
-					break;
-				}
-				printLines(curNum, curNum, FALSE);
-				break;
-
+		case 'z':
+			switch (*cp) {
 			case '-':
-				if (setCurNum(curNum - 1))
-					printLines(curNum, curNum, FALSE);
+				printLines(curNum - 21, curNum, FALSE);
 				break;
-
-			case '=':
-				printf("%d\n", num1);
+			case '.':
+				printLines(curNum - 11, curNum + 10, FALSE);
 				break;
-			case '\0':
-				if (have1) {
-					printLines(num2, num2, FALSE);
-					break;
-				}
-				if (setCurNum(curNum + 1))
-					printLines(curNum, curNum, FALSE);
-				break;
-
 			default:
-				bb_error_msg("unimplemented command");
+				printLines(curNum, curNum + 21, FALSE);
 				break;
+			}
+			break;
+
+		case '.':
+			if (have1) {
+				bb_error_msg("no arguments allowed");
+				break;
+			}
+			printLines(curNum, curNum, FALSE);
+			break;
+
+		case '-':
+			if (setCurNum(curNum - 1))
+				printLines(curNum, curNum, FALSE);
+			break;
+
+		case '=':
+			printf("%d\n", num1);
+			break;
+		case '\0':
+			if (have1) {
+				printLines(num2, num2, FALSE);
+				break;
+			}
+			if (setCurNum(curNum + 1))
+				printLines(curNum, curNum, FALSE);
+			break;
+
+		default:
+			bb_error_msg("unimplemented command");
+			break;
 		}
 	}
 }
