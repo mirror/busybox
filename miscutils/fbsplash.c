@@ -95,16 +95,15 @@ static void fb_open(const char *strfb_device)
 
 /**
  *	Draw hollow rectangle on framebuffer
- * \param nx1pos,ny1pos upper left position
- * \param nx2pos,ny2pos down right position
- * \param nred,ngreen,nblue rgb color
  */
-static void fb_drawrectangle(int nx1pos, int ny1pos, int nx2pos, int ny2pos,
-	unsigned char nred, unsigned char ngreen, unsigned char nblue)
+static void fb_drawrectangle(void)
 {
 	int cnt;
 	DATA thispix;
 	DATA *ptr1, *ptr2;
+	unsigned char nred = G.nbar_colr/2;
+	unsigned char ngreen =  G.nbar_colg/2;
+	unsigned char nblue = G.nbar_colb/2;
 
 	nred   >>= 3;  // 5-bit red
 	ngreen >>= 2;  // 6-bit green
@@ -112,18 +111,18 @@ static void fb_drawrectangle(int nx1pos, int ny1pos, int nx2pos, int ny2pos,
 	thispix = nblue + (ngreen << 5) + (nred << (5+6));
 
 	// horizontal lines
-	ptr1 = (DATA*)(G.addr + (ny1pos * G.scr_var.xres + nx1pos) * BYTES_PER_PIXEL);
-	ptr2 = (DATA*)(G.addr + (ny2pos * G.scr_var.xres + nx1pos) * BYTES_PER_PIXEL);
-	cnt = nx2pos - nx1pos;
+	ptr1 = (DATA*)(G.addr + (G.nbar_posy * G.scr_var.xres + G.nbar_posx) * BYTES_PER_PIXEL);
+	ptr2 = (DATA*)(G.addr + ((G.nbar_posy + G.nbar_height - 1) * G.scr_var.xres + G.nbar_posx) * BYTES_PER_PIXEL);
+	cnt = G.nbar_width - 1;
 	do {
 		*ptr1++ = thispix;
 		*ptr2++ = thispix;
 	} while (--cnt >= 0);
 
 	// vertical lines
-	ptr1 = (DATA*)(G.addr + (ny1pos * G.scr_var.xres + nx1pos) * BYTES_PER_PIXEL);
-	ptr2 = (DATA*)(G.addr + (ny1pos * G.scr_var.xres + nx2pos) * BYTES_PER_PIXEL);
-	cnt = ny2pos - ny1pos;
+	ptr1 = (DATA*)(G.addr + (G.nbar_posy * G.scr_var.xres + G.nbar_posx) * BYTES_PER_PIXEL);
+	ptr2 = (DATA*)(G.addr + (G.nbar_posy * G.scr_var.xres + G.nbar_posx + G.nbar_width - 1) * BYTES_PER_PIXEL);
+	cnt = G.nbar_posy + G.nbar_height - 1 - G.nbar_posy;
 	do {
 		*ptr1 = thispix; ptr1 += G.scr_var.xres;
 		*ptr2 = thispix; ptr2 += G.scr_var.xres;
@@ -179,10 +178,7 @@ static void fb_drawprogressbar(unsigned percent)
 	if ((height | width) < 0)
 		return;
 	// NB: "width" of 1 actually makes rect with width of 2!
-	fb_drawrectangle(
-			left_x, top_y,
-					left_x + width, top_y + height,
-			G.nbar_colr/2, G.nbar_colg/2, G.nbar_colb/2);
+	fb_drawrectangle();
 
 	// inner "empty" rectangle
 	left_x++;
@@ -279,9 +275,10 @@ static void fb_drawimage(void)
 
 
 /**
- * Parse configuration file
+ *	Parse configuration file
+ * \param *cfg_filename name of the configuration file
  */
-static void init(const char *ini_filename)
+static void init(const char *cfg_filename)
 {
 	static const char const param_names[] ALIGN1 =
 		"BAR_LEFT\0" "BAR_TOP\0"
@@ -295,7 +292,7 @@ static void init(const char *ini_filename)
 	FILE *inifile;
 	char *buf;
 
-	inifile = xfopen_stdin(ini_filename);
+	inifile = xfopen_stdin(cfg_filename);
 
 	while ((buf = xmalloc_fgetline(inifile)) != NULL) {
 		char *value_str;
@@ -361,7 +358,7 @@ static void init(const char *ini_filename)
 int fbsplash_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int fbsplash_main(int argc ATTRIBUTE_UNUSED, char **argv)
 {
-	const char *fb_device, *ini_filename, *fifo_filename;
+	const char *fb_device, *cfg_filename, *fifo_filename;
 	FILE *fp = fp; // for compiler
 	bool bCursorOff;
 
@@ -369,21 +366,18 @@ int fbsplash_main(int argc ATTRIBUTE_UNUSED, char **argv)
 
 	// parse command line options
 	fb_device = "/dev/fb0";
-	ini_filename = NULL;
+	cfg_filename = NULL;
 	fifo_filename = NULL;
 	bCursorOff = 1 & getopt32(argv, "cs:d:i:f:",
-			&G.image_filename, &fb_device, &ini_filename, &fifo_filename);
+			&G.image_filename, &fb_device, &cfg_filename, &fifo_filename);
 
 	// parse configuration file
-	if (ini_filename)
-		init(ini_filename);
+	if (cfg_filename)
+		init(cfg_filename);
 
 	// We must have -s IMG
 	if (!G.image_filename)
 		bb_show_usage();
-
-	if (fifo_filename)
-		fp = xfopen_stdin(fifo_filename);
 
 	fb_open(fb_device);
 
@@ -394,7 +388,12 @@ int fbsplash_main(int argc ATTRIBUTE_UNUSED, char **argv)
 
 	fb_drawimage();
 
-	if (fifo_filename) while (1) {
+	if (!fifo_filename)
+		return EXIT_SUCCESS;
+
+	fp = xfopen_stdin(fifo_filename);
+
+	while (1) {
 		struct stat statbuf;
 		unsigned num;
 		char *num_buf;
