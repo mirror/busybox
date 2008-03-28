@@ -160,7 +160,7 @@ int volume_id_probe_hfs_hfsplus(struct volume_id *id, uint64_t off)
 
 	buf = volume_id_get_buffer(id, off + HFS_SUPERBLOCK_OFFSET, 0x200);
 	if (buf == NULL)
-                return -1;
+		return -1;
 
 	hfs = (struct hfs_mdb *) buf;
 	if (hfs->signature[0] != 'B' || hfs->signature[1] != 'D')

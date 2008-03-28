@@ -13,14 +13,14 @@
 #define RPM_HEADER_MAGIC "\216\255\350"
 
 struct rpm_lead {
-    unsigned char magic[4];
-    uint8_t major, minor;
-    uint16_t type;
-    uint16_t archnum;
-    char name[66];
-    uint16_t osnum;
-    uint16_t signature_type;
-    char reserved[16];
+	unsigned char magic[4];
+	uint8_t major, minor;
+	uint16_t type;
+	uint16_t archnum;
+	char name[66];
+	uint16_t osnum;
+	uint16_t signature_type;
+	char reserved[16];
 };
 
 struct rpm_header {

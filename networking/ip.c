@@ -39,35 +39,35 @@ static int ip_do(int (*ip_func)(char **argv), char **argv)
 int ipaddr_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int ipaddr_main(int argc ATTRIBUTE_UNUSED, char **argv)
 {
-    return ip_do(do_ipaddr, argv);
+	return ip_do(do_ipaddr, argv);
 }
 #endif
 #if ENABLE_FEATURE_IP_LINK
 int iplink_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int iplink_main(int argc ATTRIBUTE_UNUSED, char **argv)
 {
-    return ip_do(do_iplink, argv);
+	return ip_do(do_iplink, argv);
 }
 #endif
 #if ENABLE_FEATURE_IP_ROUTE
 int iproute_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int iproute_main(int argc ATTRIBUTE_UNUSED, char **argv)
 {
-    return ip_do(do_iproute, argv);
+	return ip_do(do_iproute, argv);
 }
 #endif
 #if ENABLE_FEATURE_IP_RULE
 int iprule_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int iprule_main(int argc ATTRIBUTE_UNUSED, char **argv)
 {
-    return ip_do(do_iprule, argv);
+	return ip_do(do_iprule, argv);
 }
 #endif
 #if ENABLE_FEATURE_IP_TUNNEL
 int iptunnel_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int iptunnel_main(int argc ATTRIBUTE_UNUSED, char **argv)
 {
-    return ip_do(do_iptunnel, argv);
+	return ip_do(do_iptunnel, argv);
 }
 #endif
 

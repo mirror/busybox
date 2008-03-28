@@ -206,15 +206,13 @@ static void md5_hash_block(const void *buffer, md5_ctx_t *ctx)
 		   before the computation.  To reduce the work for the next steps
 		   we store the swapped words in the array CORRECT_WORDS.  */
 
-#  define OP(a, b, c, d, s, T)	\
-      do	\
-	{	\
-	  a += FF (b, c, d) + (*cwp++ = SWAP_LE32(*words)) + T; \
-	  ++words;	\
-	  CYCLIC (a, s);	\
-	  a += b;	\
-	}	\
-      while (0)
+#  define OP(a, b, c, d, s, T) \
+	do { \
+		a += FF (b, c, d) + (*cwp++ = SWAP_LE32(*words)) + T; \
+		++words; \
+		CYCLIC (a, s); \
+		a += b; \
+	} while (0)
 
 		/* It is unfortunate that C does not provide an operator for
 		   cyclic rotation.  Hope the C compiler is smart enough.  */
@@ -265,14 +263,12 @@ static void md5_hash_block(const void *buffer, md5_ctx_t *ctx)
 		   in CORRECT_WORDS.  Redefine the macro to take an additional first
 		   argument specifying the function to use.  */
 #  undef OP
-#  define OP(f, a, b, c, d, k, s, T)	\
-      do	\
-	{	\
-	  a += f (b, c, d) + correct_words[k] + T;	\
-	  CYCLIC (a, s);	\
-	  a += b;	\
-	}	\
-      while (0)
+#  define OP(f, a, b, c, d, k, s, T) \
+	do { \
+		a += f (b, c, d) + correct_words[k] + T; \
+		CYCLIC (a, s); \
+		a += b; \
+	} while (0)
 
 		/* Round 2.  */
 #  if MD5_SIZE_VS_SPEED == 1

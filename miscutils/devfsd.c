@@ -93,17 +93,17 @@
 /*  Never change this otherwise the binary interface will change   */
 
 struct devfsd_notify_struct
-{   /*  Use native C types to ensure same types in kernel and user space     */
-    unsigned int type;           /*  DEVFSD_NOTIFY_* value                   */
-    unsigned int mode;           /*  Mode of the inode or device entry       */
-    unsigned int major;          /*  Major number of device entry            */
-    unsigned int minor;          /*  Minor number of device entry            */
-    unsigned int uid;            /*  Uid of process, inode or device entry   */
-    unsigned int gid;            /*  Gid of process, inode or device entry   */
-    unsigned int overrun_count;  /*  Number of lost events                   */
-    unsigned int namelen;        /*  Number of characters not including '\0' */
-    /*  The device name MUST come last                                       */
-    char devname[DEVFS_PATHLEN]; /*  This will be '\0' terminated            */
+{	/*  Use native C types to ensure same types in kernel and user space     */
+	unsigned int type;           /*  DEVFSD_NOTIFY_* value                   */
+	unsigned int mode;           /*  Mode of the inode or device entry       */
+	unsigned int major;          /*  Major number of device entry            */
+	unsigned int minor;          /*  Minor number of device entry            */
+	unsigned int uid;            /*  Uid of process, inode or device entry   */
+	unsigned int gid;            /*  Gid of process, inode or device entry   */
+	unsigned int overrun_count;  /*  Number of lost events                   */
+	unsigned int namelen;        /*  Number of characters not including '\0' */
+	/*  The device name MUST come last                                       */
+	char devname[DEVFS_PATHLEN]; /*  This will be '\0' terminated            */
 };
 
 #define BUFFER_SIZE 16384

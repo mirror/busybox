@@ -158,10 +158,10 @@ static int generate_output(char **argv, int argc, const char *optstr, const stru
 
 	/* Reset getopt(3) (see libbb/getopt32.c for long rant) */
 #ifdef __GLIBC__
-        optind = 0;
+	optind = 0;
 #else /* BSD style */
-        optind = 1;
-        /* optreset = 1; */
+	optind = 1;
+	/* optreset = 1; */
 #endif
 
 	while (1) {
