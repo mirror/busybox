@@ -2,7 +2,8 @@ echo file number one > file1
 echo file number two > file2
 ln -s file2 link1
 mkdir dir1
-touch --date='Sat Jan 29 21:24:08 PST 2000' dir1/file3
+# why???
+#touch --date='Sat Jan 29 21:24:08 PST 2000' dir1/file3
 mkdir there
 busybox cp -a file1 file2 link1 dir1 there
 test -f there/file1

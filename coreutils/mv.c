@@ -71,7 +71,8 @@ int mv_main(int argc, char **argv)
 		}
 
  DO_MOVE:
-		if (dest_exists && !(flags & OPT_FILEUTILS_FORCE)
+		if (dest_exists
+		 && !(flags & OPT_FILEUTILS_FORCE)
 		 && ((access(dest, W_OK) < 0 && isatty(0))
 		    || (flags & OPT_FILEUTILS_INTERACTIVE))
 		) {
@@ -108,6 +109,9 @@ int mv_main(int argc, char **argv)
 						goto RET_1;
 					}
 				}
+				/* FILEUTILS_RECUR also prevents nasties like 
+				 * "read from device and write contents to dst"
+				 * instead of "create same device node" */
 				copy_flag = FILEUTILS_RECUR | FILEUTILS_PRESERVE_STATUS;
 #if ENABLE_SELINUX
 				copy_flag |= FILEUTILS_PRESERVE_SECURITY_CONTEXT;

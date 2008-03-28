@@ -223,8 +223,27 @@ extern char *skip_non_whitespace(const char *);
 //TODO: supply a pointer to char[11] buffer (avoid statics)?
 extern const char *bb_mode_string(mode_t mode);
 extern int is_directory(const char *name, int followLinks, struct stat *statBuf);
+enum {	/* DO NOT CHANGE THESE VALUES!  cp.c, mv.c, install.c depend on them. */
+	FILEUTILS_PRESERVE_STATUS = 1,
+	FILEUTILS_DEREFERENCE = 2,
+	FILEUTILS_RECUR = 4,
+	FILEUTILS_FORCE = 8,
+	FILEUTILS_INTERACTIVE = 0x10,
+	FILEUTILS_MAKE_HARDLINK = 0x20,
+	FILEUTILS_MAKE_SOFTLINK = 0x40,
+#if ENABLE_SELINUX
+	FILEUTILS_PRESERVE_SECURITY_CONTEXT = 0x80,
+	FILEUTILS_SET_SECURITY_CONTEXT = 0x100
+#endif
+};
+#define FILEUTILS_CP_OPTSTR "pdRfils" USE_SELINUX("c")
 extern int remove_file(const char *path, int flags);
+/* NB: without FILEUTILS_RECUR in flags, it will basically "cat"
+ * the source, not copy (unless "source" is a directory).
+ * This makes "cp /dev/null file" and "install /dev/null file" (!!!)
+ * work coreutils-compatibly. */
 extern int copy_file(const char *source, const char *dest, int flags);
+
 enum {
 	ACTION_RECURSE        = (1 << 0),
 	ACTION_FOLLOWLINKS    = (1 << 1),
@@ -1170,21 +1189,6 @@ void *md5_end(void *resbuf, md5_ctx_t *ctx);
 uint32_t *crc32_filltable(uint32_t *tbl256, int endian);
 
 
-enum {	/* DO NOT CHANGE THESE VALUES!  cp.c, mv.c, install.c depend on them. */
-	FILEUTILS_PRESERVE_STATUS = 1,
-	FILEUTILS_DEREFERENCE = 2,
-	FILEUTILS_RECUR = 4,
-	FILEUTILS_FORCE = 8,
-	FILEUTILS_INTERACTIVE = 0x10,
-	FILEUTILS_MAKE_HARDLINK = 0x20,
-	FILEUTILS_MAKE_SOFTLINK = 0x40,
-#if ENABLE_SELINUX
-	FILEUTILS_PRESERVE_SECURITY_CONTEXT = 0x80,
-	FILEUTILS_SET_SECURITY_CONTEXT = 0x100
-#endif
-};
-
-#define FILEUTILS_CP_OPTSTR "pdRfils" USE_SELINUX("c")
 extern const char *applet_name;
 /* "BusyBox vN.N.N (timestamp or extra_version)" */
 extern const char bb_banner[];

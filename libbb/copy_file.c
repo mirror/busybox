@@ -81,6 +81,7 @@ int copy_file(const char *source, const char *dest, int flags)
 	signed char dest_exists = 0;
 	signed char ovr;
 
+/* Inverse of cp -d ("cp without -d") */
 #define FLAGS_DEREF (flags & FILEUTILS_DEREFERENCE)
 
 	if ((FLAGS_DEREF ? stat : lstat)(source, &source_stat) < 0) {
@@ -229,12 +230,22 @@ int copy_file(const char *source, const char *dest, int flags)
 		return 0;
 	}
 
-	if (S_ISREG(source_stat.st_mode)
-	 /* DEREF uses stat, which never returns S_ISLNK() == true. */
+	if (/* "cp thing1 thing2" without -R: just open and read() from thing1 */
+	    !(flags & FILEUTILS_RECUR)
+	    /* "cp [-opts] regular_file thing2" */
+	 || S_ISREG(source_stat.st_mode)
+	 /* DEREF uses stat, which never returns S_ISLNK() == true.
+	  * So the below is never true: */
 	 /* || (FLAGS_DEREF && S_ISLNK(source_stat.st_mode)) */
 	) {
 		int src_fd;
 		int dst_fd;
+		mode_t new_mode;
+
+		if (!FLAGS_DEREF && S_ISLNK(source_stat.st_mode)) {
+			/* "cp -d symlink dst": create a link */
+			goto dont_cat;
+		}
 
 		if (ENABLE_FEATURE_PRESERVE_HARDLINKS && !FLAGS_DEREF) {
 			const char *link_target;
@@ -258,18 +269,24 @@ int copy_file(const char *source, const char *dest, int flags)
 		if (src_fd < 0)
 			return -1;
 
+		/* Do not try to open with weird mode fields */
+		new_mode = source_stat.st_mode;
+		if (!S_ISREG(source_stat.st_mode))
+			new_mode = 0666;
+
 		/* POSIX way is a security problem versus symlink attacks,
 		 * we do it only for non-symlinks, and only for non-recursive,
 		 * non-interactive cp. NB: it is still racy
 		 * for "cp file /home/bad_user/file" case
 		 * (user can rm file and create a link to /etc/passwd) */
 		if (DO_POSIX_CP
-		 || (dest_exists && !(flags & (FILEUTILS_RECUR|FILEUTILS_INTERACTIVE))
+		 || (dest_exists
+		     && !(flags & (FILEUTILS_RECUR|FILEUTILS_INTERACTIVE))
 		     && !S_ISLNK(dest_stat.st_mode))
 		) {
-			dst_fd = open(dest, O_WRONLY|O_CREAT|O_TRUNC, source_stat.st_mode);
+			dst_fd = open(dest, O_WRONLY|O_CREAT|O_TRUNC, new_mode);
 		} else  /* safe way: */
-			dst_fd = open(dest, O_WRONLY|O_CREAT|O_EXCL, source_stat.st_mode);
+			dst_fd = open(dest, O_WRONLY|O_CREAT|O_EXCL, new_mode);
 		if (dst_fd == -1) {
 			ovr = ask_and_unlink(dest, flags);
 			if (ovr <= 0) {
@@ -277,7 +294,7 @@ int copy_file(const char *source, const char *dest, int flags)
 				return ovr;
 			}
 			/* It shouldn't exist. If it exists, do not open (symlink attack?) */
-			dst_fd = open3_or_warn(dest, O_WRONLY|O_CREAT|O_EXCL, source_stat.st_mode);
+			dst_fd = open3_or_warn(dest, O_WRONLY|O_CREAT|O_EXCL, new_mode);
 			if (dst_fd < 0) {
 				close(src_fd);
 				return -1;
@@ -285,8 +302,7 @@ int copy_file(const char *source, const char *dest, int flags)
 		}
 
 #if ENABLE_SELINUX
-		if (((flags & FILEUTILS_PRESERVE_SECURITY_CONTEXT)
-		    || (flags & FILEUTILS_SET_SECURITY_CONTEXT))
+		if ((flags & (FILEUTILS_PRESERVE_SECURITY_CONTEXT|FILEUTILS_SET_SECURITY_CONTEXT))
 		 && is_selinux_enabled() > 0
 		) {
 			security_context_t con;
@@ -313,8 +329,13 @@ int copy_file(const char *source, const char *dest, int flags)
 		}
 		/* ...but read size is already checked by bb_copyfd_eof */
 		close(src_fd);
+		/* "cp /dev/something new_file" should not
+		 * copy mode of /dev/something */
+		if (!S_ISREG(source_stat.st_mode))
+			return retval;
 		goto preserve_mode_ugid_time;
 	}
+ dont_cat:
 
 	/* Source is a symlink or a special file */
 	/* We are lazy here, a bit lax with races... */
