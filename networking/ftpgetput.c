@@ -68,29 +68,6 @@ static int ftpcmd(const char *s1, const char *s2, FILE *stream, char *buf)
 	return n;
 }
 
-static int xconnect_ftpdata(ftp_host_info_t *server, char *buf)
-{
-	char *buf_ptr;
-	unsigned port_num;
-
-	/* Response is "NNN garbageN1,N2,N3,N4,P1,P2[)garbage]
-	 * Server's IP is N1.N2.N3.N4 (we ignore it)
-	 * Server's port for data connection is P1*256+P2 */
-	buf_ptr = strrchr(buf, ')');
-	if (buf_ptr) *buf_ptr = '\0';
-
-	buf_ptr = strrchr(buf, ',');
-	*buf_ptr = '\0';
-	port_num = xatoul_range(buf_ptr + 1, 0, 255);
-
-	buf_ptr = strrchr(buf, ',');
-	*buf_ptr = '\0';
-	port_num += xatoul_range(buf_ptr + 1, 0, 255) * 256;
-
-	set_nport(server->lsa, htons(port_num));
-	return xconnect_stream(server->lsa);
-}
-
 static FILE *ftp_login(ftp_host_info_t *server)
 {
 	FILE *control_stream;
@@ -125,6 +102,29 @@ static FILE *ftp_login(ftp_host_info_t *server)
 	return control_stream;
 }
 
+static int xconnect_ftpdata(ftp_host_info_t *server, char *buf)
+{
+	char *buf_ptr;
+	unsigned port_num;
+
+	/* Response is "NNN garbageN1,N2,N3,N4,P1,P2[)garbage]
+	 * Server's IP is N1.N2.N3.N4 (we ignore it)
+	 * Server's port for data connection is P1*256+P2 */
+	buf_ptr = strrchr(buf, ')');
+	if (buf_ptr) *buf_ptr = '\0';
+
+	buf_ptr = strrchr(buf, ',');
+	*buf_ptr = '\0';
+	port_num = xatoul_range(buf_ptr + 1, 0, 255);
+
+	buf_ptr = strrchr(buf, ',');
+	*buf_ptr = '\0';
+	port_num += xatoul_range(buf_ptr + 1, 0, 255) * 256;
+
+	set_nport(server->lsa, htons(port_num));
+	return xconnect_stream(server->lsa);
+}
+
 #if !ENABLE_FTPGET
 int ftp_receive(ftp_host_info_t *server, FILE *control_stream,
 		const char *local_path, char *server_path);
@@ -141,7 +141,25 @@ int ftp_receive(ftp_host_info_t *server, FILE *control_stream,
 	int fd_local = -1;
 	off_t beg_range = 0;
 
-	/* Connect to the data socket */
+/*
+TODO: PASV command will not work for IPv6. RFC2428 describes
+IPv6-capable "extended PASV" - EPSV.
+
+"EPSV [protocol]" asks server to bind to and listen on a data port
+in specified protocol. Protocol is 1 for IPv4, 2 for IPv6.
+If not specified, defaults to "same as used for control connection".
+If server understood you, it should answer "229 <some text>(|||port|)"
+where "|" are literal pipe chars and "port" is ASCII decimal port#.
+
+There is also an IPv6-capable replacement for PORT (EPRT),
+but we don't need that.
+
+TODO: fold in sending of PASV/EPSV and parsing of response into
+xconnect_ftpdata(). (Also, need to stop ignoring IP address in PASV
+response).
+*/
+
+	/* connect to the data socket */
 	if (ftpcmd("PASV", NULL, control_stream, buf) != 227) {
 		ftp_die("PASV", buf);
 	}
@@ -162,8 +180,9 @@ int ftp_receive(ftp_host_info_t *server, FILE *control_stream,
 
 	if (do_continue) {
 		struct stat sbuf;
-		if (lstat(local_path, &sbuf) < 0) {
-			bb_perror_msg_and_die("lstat");
+		/* lstat would be wrong here! */
+		if (stat(local_path, &sbuf) < 0) {
+			bb_perror_msg_and_die("stat");
 		}
 		if (sbuf.st_size > 0) {
 			beg_range = sbuf.st_size;
@@ -186,22 +205,25 @@ int ftp_receive(ftp_host_info_t *server, FILE *control_stream,
 		ftp_die("RETR", buf);
 	}
 
-	/* only make a local file if we know that one exists on the remote server */
+	/* make local _after_ we know that remote file exists */
 	if (fd_local == -1) {
-		if (do_continue) {
-			fd_local = xopen(local_path, O_APPEND | O_WRONLY);
-		} else {
-			fd_local = xopen(local_path, O_CREAT | O_TRUNC | O_WRONLY);
-		}
+		fd_local = xopen(local_path,
+			do_continue ? (O_APPEND | O_WRONLY)
+			            : (O_CREAT | O_TRUNC | O_WRONLY)
+		);
 	}
 
-	/* Copy the file */
-	if (filesize != -1) {
+// TODO: merge tail of ftp_receive and ftp_send starting from here
+
+	/* copy the file */
+	if (filesize != -1) { // NEVER HAPPENS, filesize is always -1
 		if (bb_copyfd_size(fd_data, fd_local, filesize) == -1)
 			return EXIT_FAILURE;
 	} else {
-		if (bb_copyfd_eof(fd_data, fd_local) == -1)
+		if (bb_copyfd_eof(fd_data, fd_local) == -1) {
+			/* error msg is already printed by bb_copyfd_eof */
 			return EXIT_FAILURE;
+		}
 	}
 
 	/* close it all down */
@@ -229,7 +251,7 @@ int ftp_send(ftp_host_info_t *server, FILE *control_stream,
 	int fd_local;
 	int response;
 
-	/*  Connect to the data socket */
+	/* connect to the data socket */
 	if (ftpcmd("PASV", NULL, control_stream, buf) != 227) {
 		ftp_die("PASV", buf);
 	}
@@ -241,6 +263,9 @@ int ftp_send(ftp_host_info_t *server, FILE *control_stream,
 		fd_local = xopen(local_path, O_RDONLY);
 		fstat(fd_local, &sbuf);
 
+// TODO: do we really need to send ALLO? It's ancient...
+// Doesn't it break "ftpput .. .. fifo" too?
+
 		sprintf(buf, "ALLO %"OFF_FMT"u", sbuf.st_size);
 		response = ftpcmd(buf, NULL, control_stream, buf);
 		switch (response) {
@@ -248,7 +273,7 @@ int ftp_send(ftp_host_info_t *server, FILE *control_stream,
 		case 202:
 			break;
 		default:
-			close(fd_local);
+			close(fd_local); // TODO: why bother?
 			ftp_die("ALLO", buf);
 			break;
 		}
@@ -259,13 +284,14 @@ int ftp_send(ftp_host_info_t *server, FILE *control_stream,
 	case 150:
 		break;
 	default:
-		close(fd_local);
+		close(fd_local); // TODO: why bother?
 		ftp_die("STOR", buf);
 	}
 
 	/* transfer the file  */
 	if (bb_copyfd_eof(fd_local, fd_data) == -1) {
-		exit(EXIT_FAILURE);
+		/* error msg is already printed by bb_copyfd_eof */
+		return EXIT_FAILURE;
 	}
 
 	/* close it all down */
