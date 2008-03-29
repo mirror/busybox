@@ -321,6 +321,13 @@ config FEATURE_MDEV_RENAME
 
 	  For more information, please see docs/mdev.txt
 
+config FEATURE_MDEV_RENAME_REGEXP
+	bool "Support regular expressions substitutions when renaming device"
+	default n
+	depends on FEATURE_MDEV_RENAME
+	help
+	  Add support for regular expressions substitutions when renaming device.
+
 config FEATURE_MDEV_EXEC
 	bool "Support command execution at device addition/removal"
 	default n

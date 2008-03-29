@@ -76,6 +76,23 @@ br--r--r-- 1 0 0 sda
 " \
 	"" ""
 
+# continuing to use directory structure from prev test
+rm -rf mdev.testdir/dev/*
+# here we complicate things by having non-matching group 1 and using %0
+echo "s([0-9])*d([a-z]+) 0:0 644 >sd/%2_%0" >mdev.testdir/etc/mdev.conf
+testing "mdev regexp substring match + replace" \
+	"env - ACTION=add DEVPATH=/block/sda chroot mdev.testdir /mdev 2>&1;
+	ls -lnR mdev.testdir/dev | $FILTER_LS2" \
+"\
+mdev.testdir/dev:
+drwxr-xr-x 2 0 0 sd
+lrwxrwxrwx 1 0 0 sda -> sd/a_sda
+
+mdev.testdir/dev/sd:
+brw-r--r-- 1 0 0 a_sda
+" \
+	"" ""
+
 # clean up
 rm -rf mdev.testdir
 

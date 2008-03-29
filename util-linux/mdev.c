@@ -84,6 +84,8 @@ static void make_device(char *path, int delete)
 			goto end_parse;
 
 		while ((line = xmalloc_fgetline(fp)) != NULL) {
+			regmatch_t off[1+9*ENABLE_FEATURE_MDEV_RENAME_REGEXP];
+
 			++lineno;
 			trim(line);
 			if (!line[0])
@@ -95,16 +97,24 @@ static void make_device(char *path, int delete)
 			next = next_field(line);
 			{
 				regex_t match;
-				regmatch_t off;
 				int result;
 
 				/* Is this it? */
 				xregcomp(&match, line, REG_EXTENDED);
-				result = regexec(&match, device_name, 1, &off, 0);
+				result = regexec(&match, device_name, ARRAY_SIZE(off), off, 0);
 				regfree(&match);
 
+				//bb_error_msg("matches:");
+				//for (int i = 0; i < ARRAY_SIZE(off); i++) {
+				//	if (off[i].rm_so < 0) continue;
+				//	bb_error_msg("match %d: '%.*s'\n", i,
+				//		(int)(off[i].rm_eo - off[i].rm_so),
+				//		device_name + off[i].rm_so);
+				//}
+
 				/* If not this device, skip rest of line */
-				if (result || off.rm_so || off.rm_eo != strlen(device_name))
+				/* (regexec returns whole pattern as "range" 0) */
+				if (result || off[0].rm_so || off[0].rm_eo != strlen(device_name))
 					goto next_line;
 			}
 
@@ -152,7 +162,35 @@ static void make_device(char *path, int delete)
 				val = next;
 				next = next_field(val);
 				if (*val == '>') {
+#if ENABLE_FEATURE_MDEV_RENAME_REGEXP
+					/* substitute %1..9 with off[1..9], if any */
+					char *s, *p;
+					unsigned i, n;
+
+					n = 0;
+					s = val;
+					while (*s && *s++ == '%')
+						n++;
+					
+					p = alias = xzalloc(strlen(val) + n * strlen(device_name));
+					s = val + 1;
+					while (*s) {
+						*p = *s;
+						if ('%' == *s) {
+							i = (s[1] - '0');
+							if (i <= 9 && off[i].rm_so >= 0) {
+								n = off[i].rm_eo - off[i].rm_so;
+								strncpy(p, device_name + off[i].rm_so, n);
+								p += n - 1;
+								s++;
+							}
+						}
+						p++;
+						s++;
+					}
+#else
 					alias = xstrdup(val + 1);
+#endif
 				}
 			}
 
