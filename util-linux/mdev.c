@@ -69,7 +69,9 @@ static void make_device(char *path, int delete)
 
 	/* Determine device name, type, major and minor */
 	device_name = bb_basename(path);
-	type = (path[5] == 'c' ? S_IFCHR : S_IFBLK); /* "/sys/[c]lass"? */
+	/* http://kernel.org/doc/pending/hotplug.txt says that only
+	 * "/sys/block/..." is for block devices. "sys/bus" etc is not! */
+	type = (strncmp(&path[5], "block/", 6) == 0 ? S_IFBLK : S_IFCHR);
 
 	if (ENABLE_FEATURE_MDEV_CONF) {
 		FILE *fp;
