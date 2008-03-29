@@ -57,11 +57,11 @@ static int file_to_dev_inode(const char *filename, dev_t *dev, ino_t *inode)
 
 static char *parse_net_arg(const char *arg, unsigned *port)
 {
-	char path[12], tproto[5];
+	char path[20], tproto[5];
 
 	if (sscanf(arg, "%u/%4s", port, tproto) != 2)
 		return NULL;
-	sprintf(path, "net/%s", tproto);
+	sprintf(path, "/proc/net/%s", tproto);
 	if (access(path, R_OK) != 0)
 		return NULL;
 	return xstrdup(tproto);
@@ -99,7 +99,7 @@ static inode_list *add_inode(inode_list *ilist, dev_t dev, ino_t inode)
 static inode_list *scan_proc_net(const char *proto,
 				unsigned port, inode_list *ilist)
 {
-	char path[12], line[MAX_LINE + 1];
+	char path[20], line[MAX_LINE + 1];
 	char addr[128];
 	ino_t tmp_inode;
 	dev_t tmp_dev;
@@ -109,7 +109,7 @@ static inode_list *scan_proc_net(const char *proto,
 
 	tmp_dev = find_socket_dev();
 
-	sprintf(path, "net/%s", proto);
+	sprintf(path, "/proc/net/%s", proto);
 	f = fopen(path, "r");
 	if (!f)
 		return ilist;
@@ -313,8 +313,6 @@ Find processes which use FILEs or PORTs
 
 	opt = getopt32(argv, OPTION_STRING);
 	argv += optind;
-
-	xchdir("/proc");
 
 	ilist = NULL;
 	pp = argv;
