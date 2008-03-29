@@ -203,21 +203,26 @@ static void make_device(char *path, int delete)
 			if (ENABLE_FEATURE_MDEV_RENAME && alias) {
 				char *dest;
 
+				/* ">bar/": rename to bar/device_name */
+				/* ">bar[/]baz": rename to bar[/]baz */
 				dest = strrchr(alias, '/');
-				if (dest) {
-					if (dest[1] != '\0')
-						/* given a file name, so rename it */
-						*dest = '\0';
+				if (dest) { /* ">bar/[baz]" ? */
+					*dest = '\0'; /* mkdir bar */
 					bb_make_directory(alias, 0755, FILEUTILS_RECUR);
-					dest = concat_path_file(alias, device_name);
-					free(alias);
-				} else
-					dest = alias;
+					*dest = '/';
+					if (dest[1] == '\0') { /* ">bar/" => ">bar/device_name" */
+						dest = alias;
+						alias = concat_path_file(alias, device_name);
+						free(dest);
+					}
+				}
 
-				rename(device_name, dest);
-				symlink(dest, device_name);
+				/* recreate device_name as a symlink to moved device node */
+				if (rename(device_name, alias) == 0) {
+					symlink(alias, device_name);
+				}
 
-				free(dest);
+				free(alias);
 			}
 		}
 	}

@@ -8,6 +8,8 @@
 # sed: (1) "maj, min" -> "maj,min" (2) coalesce spaces
 # cut: remove date
 FILTER_LS="sed -e 's/,  */,/g' -e 's/  */ /g' | cut -d' ' -f 1-5,9-"
+# cut: remove size+date
+FILTER_LS2="sed -e 's/,  */,/g' -e 's/  */ /g' | cut -d' ' -f 1-4,9-"
 
 # testing "test name" "options" "expected result" "file input" "stdin"
 
@@ -31,7 +33,7 @@ brw-rw---- 1 0 0 8,0 sda
 	"" ""
 
 # continuing to use directory structure from prev test
-rm mdev.testdir/dev/sda
+rm -rf mdev.testdir/dev/*
 echo ".* 1:1 666" >mdev.testdir/etc/mdev.conf
 echo "sda 2:2 444" >>mdev.testdir/etc/mdev.conf
 testing "mdev stops on first rule" \
@@ -39,6 +41,38 @@ testing "mdev stops on first rule" \
 	ls -ln mdev.testdir/dev | $FILTER_LS" \
 "\
 brw-rw-rw- 1 1 1 8,0 sda
+" \
+	"" ""
+
+# continuing to use directory structure from prev test
+rm -rf mdev.testdir/dev/*
+echo "sda 0:0 444 >disk/scsiA" >mdev.testdir/etc/mdev.conf
+testing "mdev move/symlink rule '>bar/baz'" \
+	"env - ACTION=add DEVPATH=/block/sda chroot mdev.testdir /mdev 2>&1;
+	ls -lnR mdev.testdir/dev | $FILTER_LS2" \
+"\
+mdev.testdir/dev:
+drwxr-xr-x 2 0 0 disk
+lrwxrwxrwx 1 0 0 sda -> disk/scsiA
+
+mdev.testdir/dev/disk:
+br--r--r-- 1 0 0 scsiA
+" \
+	"" ""
+
+# continuing to use directory structure from prev test
+rm -rf mdev.testdir/dev/*
+echo "sda 0:0 444 >disk/" >mdev.testdir/etc/mdev.conf
+testing "mdev move/symlink rule '>bar/'" \
+	"env - ACTION=add DEVPATH=/block/sda chroot mdev.testdir /mdev 2>&1;
+	ls -lnR mdev.testdir/dev | $FILTER_LS2" \
+"\
+mdev.testdir/dev:
+drwxr-xr-x 2 0 0 disk
+lrwxrwxrwx 1 0 0 sda -> disk/sda
+
+mdev.testdir/dev/disk:
+br--r--r-- 1 0 0 sda
 " \
 	"" ""
 
