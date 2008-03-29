@@ -6,8 +6,8 @@
 
 # ls -ln is showing date. Need to remove that, it's variable
 # sed: (1) "maj, min" -> "maj,min" (2) coalesce spaces
-# cut: remove user, group, and date
-FILTER_LS="sed -e 's/,  */,/g' -e 's/  */ /g' | cut -d' ' -f 1,2,5,9-"
+# cut: remove date
+FILTER_LS="sed -e 's/,  */,/g' -e 's/  */ /g' | cut -d' ' -f 1-5,9-"
 
 # testing "test name" "options" "expected result" "file input" "stdin"
 
@@ -16,6 +16,7 @@ mkdir mdev.testdir
 # We need mdev executable to be in chroot jail!
 # (will still fail with dynamically linked one, though...)
 cp ../busybox mdev.testdir/mdev
+mkdir mdev.testdir/etc
 mkdir mdev.testdir/dev
 mkdir -p mdev.testdir/sys/block/sda
 echo "8:0" >mdev.testdir/sys/block/sda/dev
@@ -25,7 +26,19 @@ testing "mdev add /block/sda" \
 	ls -ln mdev.testdir/dev | $FILTER_LS" \
 "\
 mdev: /etc/mdev.conf: No such file or directory
-brw-rw---- 1 8,0 sda
+brw-rw---- 1 0 0 8,0 sda
+" \
+	"" ""
+
+# continuing to use directory structure from prev test
+rm mdev.testdir/dev/sda
+echo ".* 1:1 666" >mdev.testdir/etc/mdev.conf
+echo "sda 2:2 444" >>mdev.testdir/etc/mdev.conf
+testing "mdev stops on first rule" \
+	"env - ACTION=add DEVPATH=/block/sda chroot mdev.testdir /mdev 2>&1;
+	ls -ln mdev.testdir/dev | $FILTER_LS" \
+"\
+brw-rw-rw- 1 1 1 8,0 sda
 " \
 	"" ""
 

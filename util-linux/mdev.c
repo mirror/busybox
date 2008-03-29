@@ -24,6 +24,16 @@ struct globals {
 /* We use additional 64+ bytes in make_device() */
 #define SCRATCH_SIZE 80
 
+static char *next_field(char *s)
+{
+	char *end = skip_non_whitespace(s);
+	s = skip_whitespace(end);
+	*end = '\0';
+	if (*s == '\0')
+		s = NULL;
+	return s;
+}
+
 /* mknod in /dev based on a path like "/sys/block/hda/hda1" */
 /* NB: "mdev -s" may call us many times, do not leak memory/fds! */
 static void make_device(char *path, int delete)
@@ -63,135 +73,115 @@ static void make_device(char *path, int delete)
 
 	if (ENABLE_FEATURE_MDEV_CONF) {
 		FILE *fp;
-		char *line, *vline;
+		char *line, *val, *next;
 		unsigned lineno = 0;
 
-		/* If we have a config file, look up the user settings */
+		/* If we have config file, look up user settings */
 		fp = fopen_or_warn("/etc/mdev.conf", "r");
 		if (!fp)
 			goto end_parse;
 
-		while ((vline = line = xmalloc_fgetline(fp)) != NULL) {
-			int field;
-			char *orig_line;
-
-			if (ENABLE_FEATURE_MDEV_EXEC)
-				orig_line = xstrdup(line); /* pristine copy for command execution. */
-
+		while ((line = xmalloc_fgetline(fp)) != NULL) {
 			++lineno;
-
-// TODO: get rid of loop,
-// just linear skip_whitespace() style code will do!
-// (will also get rid of orig_line).
+			trim(line);
+			if (!line[0])
+				goto next_line;
 
 			/* Fields: regex uid:gid mode [alias] [cmd] */
-			for (field = 0; field < (3 + ENABLE_FEATURE_MDEV_RENAME + ENABLE_FEATURE_MDEV_EXEC); ++field) {
 
-				/* Find a non-empty field */
-				char *val;
-				do {
-					val = strtok(vline, " \t");
-					vline = NULL;
-				} while (val && !*val);
-				if (!val) {
-					if (field)
-						break;
-					else
-						goto next_line;
-				}
+			/* 1st field: regex to match this device */
+			next = next_field(line);
+			{
+				regex_t match;
+				regmatch_t off;
+				int result;
 
-				if (field == 0) {
+				/* Is this it? */
+				xregcomp(&match, line, REG_EXTENDED);
+				result = regexec(&match, device_name, 1, &off, 0);
+				regfree(&match);
 
-					/* Regex to match this device */
-					regex_t match;
-					regmatch_t off;
-					int result;
+				/* If not this device, skip rest of line */
+				if (result || off.rm_so || off.rm_eo != strlen(device_name))
+					goto next_line;
+			}
 
-					/* Is this it? */
-					xregcomp(&match, val, REG_EXTENDED);
-					result = regexec(&match, device_name, 1, &off, 0);
-					regfree(&match);
+			/* This line matches: stop parsing the file
+			 * after parsing the rest of fields */
 
-					/* If not this device, skip rest of line */
-					if (result || off.rm_so || off.rm_eo != strlen(device_name))
-						goto next_line;
-
-				} else if (field == 1) {
-
-					/* uid:gid device ownership */
-					struct passwd *pass;
-					struct group *grp;
-
-					char *str_uid = val;
-					char *str_gid = strchrnul(val, ':');
-					if (*str_gid)
-						*str_gid++ = '\0';
-
-					/* Parse UID */
-					pass = getpwnam(str_uid);
-					if (pass)
-						uid = pass->pw_uid;
-					else
-						uid = strtoul(str_uid, NULL, 10);
-
-					/* Parse GID */
-					grp = getgrnam(str_gid);
-					if (grp)
-						gid = grp->gr_gid;
-					else
-						gid = strtoul(str_gid, NULL, 10);
-
-				} else if (field == 2) {
-
-					/* Mode device permissions */
-					mode = strtoul(val, NULL, 8);
-
-				} else if (ENABLE_FEATURE_MDEV_RENAME && field == 3) {
-
-					if (*val != '>')
-						++field;
-					else {
-						free(alias); /* don't leak in case we matched it on prev line */
-						alias = xstrdup(val + 1);
-					}
-
-				}
-
-				if (ENABLE_FEATURE_MDEV_EXEC && field == 3 + ENABLE_FEATURE_MDEV_RENAME) {
-
-					/* Optional command to run */
-					const char *s = "@$*";
-					const char *s2 = strchr(s, *val);
-
-					if (!s2) {
-						/* Force error */
-						field = 1;
-						break;
-					}
-
-					/* Correlate the position in the "@$*" with the delete
-					 * step so that we get the proper behavior:
-					 * @cmd: run on create
-					 * $cmd: run on delete
-					 * *cmd: run on both
-					 */
-					if ((s2 - s + 1) /*1/2/3*/ & /*1/2*/ (1 + delete)) {
-						free(command); /* don't leak in case we matched it on prev line */
-						command = xstrdup(orig_line + (val + 1 - line));
-					}
-				}
-			} /* end of "for every field" */
-
-			/* Did everything parse happily? */
-			if (field <= 2)
+			/* 2nd field: uid:gid - device ownership */
+			if (!next) /* field must exist */
 				bb_error_msg_and_die("bad line %u", lineno);
+			val = next;
+			next = next_field(val);
+			{
+				struct passwd *pass;
+				struct group *grp;
+				char *str_uid = val;
+				char *str_gid = strchrnul(val, ':');
 
+				if (*str_gid)
+					*str_gid++ = '\0';
+				/* Parse UID */
+				pass = getpwnam(str_uid);
+				if (pass)
+					uid = pass->pw_uid;
+				else
+					uid = strtoul(str_uid, NULL, 10);
+				/* Parse GID */
+				grp = getgrnam(str_gid);
+				if (grp)
+					gid = grp->gr_gid;
+				else
+					gid = strtoul(str_gid, NULL, 10);
+			}
+
+			/* 3rd field: mode - device permissions */
+			if (!next) /* field must exist */
+				bb_error_msg_and_die("bad line %u", lineno);
+			val = next;
+			next = next_field(val);
+			mode = strtoul(val, NULL, 8);
+
+			/* 4th field (opt): >alias */
+			if (ENABLE_FEATURE_MDEV_RENAME) {
+				if (!next)
+					break;
+				val = next;
+				next = next_field(val);
+				if (*val == '>') {
+					alias = xstrdup(val + 1);
+				}
+			}
+
+			/* The rest (opt): command to run */
+			if (!next)
+				break;
+			val = next;
+			if (ENABLE_FEATURE_MDEV_EXEC) {
+				const char *s = "@$*";
+				const char *s2 = strchr(s, *val);
+
+				if (!s2)
+					bb_error_msg_and_die("bad line %u", lineno);
+
+				/* Correlate the position in the "@$*" with the delete
+				 * step so that we get the proper behavior:
+				 * @cmd: run on create
+				 * $cmd: run on delete
+				 * *cmd: run on both
+				 */
+				if ((s2 - s + 1) /*1/2/3*/ & /*1/2*/ (1 + delete)) {
+					command = xstrdup(val + 1);
+				}
+			}
+			/* end of field parsing */
+			break; /* we found matching line, stop */
  next_line:
 			free(line);
-			if (ENABLE_FEATURE_MDEV_EXEC)
-				free(orig_line);
 		} /* end of "while line is read from /etc/mdev.conf" */
 
+		free(line); /* in case we used "break" to get here */
 		fclose(fp);
 	}
  end_parse:
