@@ -1413,6 +1413,10 @@ int inetd_main(int argc ATTRIBUTE_UNUSED, char **argv)
 	} /* for (;;) */
 }
 
+#if !BB_MMU
+static const char *const cat_args[] = { "cat", NULL };
+#endif
+
 /*
  * Internet services provided internally by inetd:
  */
@@ -1430,13 +1434,13 @@ static void echo_stream(int s, servtab_t *sep ATTRIBUTE_UNUSED)
 	}
 #else
 	/* We are after vfork here! */
-	static const char *const args[] = { "cat", NULL };
-	/* move network socket to stdin */
+	/* move network socket to stdin/stdout */
 	xmove_fd(s, STDIN_FILENO);
 	xdup2(STDIN_FILENO, STDOUT_FILENO);
 	/* no error messages please... */
-	xmove_fd(xopen("/dev/null", O_WRONLY), STDERR_FILENO);
-	BB_EXECVP("cat", (char**)args);
+	close(STDERR_FILENO);
+	xopen("/dev/null", O_WRONLY);
+	BB_EXECVP("cat", (char**)cat_args);
 	/* on failure we return to main, which does exit(1) */
 #endif
 }
@@ -1467,13 +1471,14 @@ static void discard_stream(int s, servtab_t *sep ATTRIBUTE_UNUSED)
 		continue;
 #else
 	/* We are after vfork here! */
-	static const char *const args[] = { "dd", "of=/dev/null", NULL };
 	/* move network socket to stdin */
 	xmove_fd(s, STDIN_FILENO);
-	xdup2(STDIN_FILENO, STDOUT_FILENO);
-	/* no error messages */
-	xmove_fd(xopen("/dev/null", O_WRONLY), STDERR_FILENO);
-	BB_EXECVP("dd", (char**)args);
+	/* discard output */
+	close(STDOUT_FILENO);
+	xopen("/dev/null", O_WRONLY);
+	/* no error messages please... */
+	xdup2(STDOUT_FILENO, STDERR_FILENO);
+	BB_EXECVP("cat", (char**)cat_args);
 	/* on failure we return to main, which does exit(1) */
 #endif
 }
