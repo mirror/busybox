@@ -256,10 +256,24 @@ USE_DESKTOP(long long) int unpack_gunzip(void)
 	return status;
 }
 
+/*
+ * Linux kernel build uses gzip -d -n. We accept and ignore it.
+ * Man page says:
+ * -n --no-name
+ * gzip: do not save the original file name and time stamp.
+ * (The original name is always saved if the name had to be truncated.)
+ * gunzip: do not restore the original file name/time even if present
+ * (remove only the gzip suffix from the compressed file name).
+ * This option is the default when decompressing.
+ * -N --name
+ * gzip: always save the original file name and time stamp (this is the default)
+ * gunzip: restore the original file name and time stamp if present.
+ */
+
 int gunzip_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int gunzip_main(int argc ATTRIBUTE_UNUSED, char **argv)
 {
-	getopt32(argv, "cfvdt");
+	getopt32(argv, "cfvdtn");
 	argv += optind;
 	/* if called as zcat */
 	if (applet_name[1] == 'c')
