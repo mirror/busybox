@@ -306,21 +306,25 @@ enum {
 	 * SIGPROF  Profiling timer expired
 	 * SIGSYS   Bad argument to routine
 	 * SIGTRAP  Trace/breakpoint trap
+	 *
+	 * The only known arch with some of these sigs not fitting
+	 * into 32 bits is parisc (SIGXCPU=33, SIGXFSZ=34, SIGSTKFLT=36).
+	 * Dance around with long long to guard against that...
 	 */
-	BB_FATAL_SIGS = 0
-		+ (1 << SIGHUP)
-		+ (1 << SIGINT)
-		+ (1 << SIGTERM)
-		+ (1 << SIGPIPE)   // Write to pipe with no readers
-		+ (1 << SIGQUIT)   // Quit from keyboard
-		+ (1 << SIGABRT)   // Abort signal from abort(3)
-		+ (1 << SIGALRM)   // Timer signal from alarm(2)
-		+ (1 << SIGVTALRM) // Virtual alarm clock
-		+ (1 << SIGXCPU)   // CPU time limit exceeded
-		+ (1 << SIGXFSZ)   // File size limit exceeded
-		+ (1 << SIGUSR1)   // Yes kids, these are also fatal!
-		+ (1 << SIGUSR2)
-		+ 0,
+	BB_FATAL_SIGS = (int)(0
+		+ (1LL << SIGHUP)
+		+ (1LL << SIGINT)
+		+ (1LL << SIGTERM)
+		+ (1LL << SIGPIPE)   // Write to pipe with no readers
+		+ (1LL << SIGQUIT)   // Quit from keyboard
+		+ (1LL << SIGABRT)   // Abort signal from abort(3)
+		+ (1LL << SIGALRM)   // Timer signal from alarm(2)
+		+ (1LL << SIGVTALRM) // Virtual alarm clock
+		+ (1LL << SIGXCPU)   // CPU time limit exceeded
+		+ (1LL << SIGXFSZ)   // File size limit exceeded
+		+ (1LL << SIGUSR1)   // Yes kids, these are also fatal!
+		+ (1LL << SIGUSR2)
+		+ 0),
 };
 void bb_signals(int sigs, void (*f)(int));
 /* Unlike signal() and bb_signals, sets handler with sigaction()
