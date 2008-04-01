@@ -115,7 +115,11 @@ int script_main(int argc ATTRIBUTE_UNUSED, char **argv)
 		/* TODO: don't use full_write's, use proper write buffering */
 		while (fd_count) {
 			/* not safe_poll! we want SIGCHLD to EINTR poll */
-			poll(ppfd, fd_count, -1);
+			if (poll(ppfd, fd_count, -1) < 0 && errno != EINTR) {
+				/* If child exits too quickly, we may get EIO:
+				 * for example, try "script -c true" */
+				break;
+			}
 			if (pfd[0].revents) {
 				count = safe_read(0, buf, sizeof(buf));
 				if (count <= 0) {
