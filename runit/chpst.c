@@ -114,6 +114,10 @@ static void edir(const char *directory_name)
 	if (!dir)
 		bb_perror_msg_and_die("opendir %s", directory_name);
 	for (;;) {
+		char buf[256];
+		char *tail;
+		int size;
+
 		errno = 0;
 		d = readdir(dir);
 		if (!d) {
@@ -135,31 +139,25 @@ static void edir(const char *directory_name)
 				bb_perror_msg_and_die("open %s/%s",
 						directory_name, d->d_name);
 		}
-		if (fd >= 0) {
-			char buf[256];
-			char *tail;
-			int size;
-
-			size = safe_read(fd, buf, sizeof(buf)-1);
-			if (size < 0)
-				bb_perror_msg_and_die("read %s/%s",
-						directory_name, d->d_name);
-			if (size == 0) {
-				unsetenv(d->d_name);
-				continue;
-			}
-			buf[size] = '\n';
-			tail = memchr(buf, '\n', sizeof(buf));
-			/* skip trailing whitespace */;
-			while (1) {
-				if (tail[0] == ' ') tail[0] = '\0';
-				if (tail[0] == '\t') tail[0] = '\0';
-				if (tail[0] == '\n') tail[0] = '\0';
-				if (tail == buf) break;
-				tail--;
-			}
-			xsetenv(d->d_name, buf);
+		size = full_read(fd, buf, sizeof(buf)-1);
+		close(fd);
+		if (size < 0)
+			bb_perror_msg_and_die("read %s/%s",
+					directory_name, d->d_name);
+		if (size == 0) {
+			unsetenv(d->d_name);
+			continue;
 		}
+		buf[size] = '\n';
+		tail = strchr(buf, '\n');
+		/* skip trailing whitespace */
+		while (1) {
+			*tail = '\0';
+			tail--;
+			if (tail < buf || !isspace(*tail))
+				break;
+		}
+		xsetenv(d->d_name, buf);
 	}
 	closedir(dir);
 	if (fchdir(wdir) == -1)
