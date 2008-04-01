@@ -42,7 +42,7 @@ int basename_main(int argc, char **argv)
 		n = strlen(*argv);
 		if ((m > n) && ((strcmp)(s+m-n, *argv) == 0)) {
 			m -= n;
-			s[m] = '\0';
+			/*s[m] = '\0'; - redundant */
 		}
 	}
 
