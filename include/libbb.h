@@ -848,23 +848,20 @@ extern void bb_verror_msg(const char *s, va_list p, const char *strerr);
 
 /* applets which are useful from another applets */
 int bb_cat(char** argv);
-int echo_main(int argc, char** argv) MAIN_EXTERNALLY_VISIBLE;
-int test_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int kill_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-#if ENABLE_ROUTE
-void bb_displayroutes(int noresolve, int netstatfmt);
-#endif
+/* If shell needs them, these three "exist" even if not enabled as applets */
+int echo_main(int argc, char** argv) USE_ECHO(MAIN_EXTERNALLY_VISIBLE);
+int test_main(int argc, char **argv) USE_TEST(MAIN_EXTERNALLY_VISIBLE);
+int kill_main(int argc, char **argv) USE_KILL(MAIN_EXTERNALLY_VISIBLE);
 int chown_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-#if ENABLE_GUNZIP
 int gunzip_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-#endif
-#if ENABLE_BUNZIP2
 int bunzip2_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-#endif
 int bbunpack(char **argv,
 	char* (*make_new_name)(char *filename),
 	USE_DESKTOP(long long) int (*unpacker)(void)
 );
+#if ENABLE_ROUTE
+void bb_displayroutes(int noresolve, int netstatfmt);
+#endif
 
 
 /* Networking */

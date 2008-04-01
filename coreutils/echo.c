@@ -27,10 +27,8 @@
 
 /* This is a NOFORK applet. Be very careful! */
 
-/* argc is unused, but removing it precludes compiler from
- * using call -> jump optimization */
+/* NB: can be used by shell even if not enabled as applet */
 
-int echo_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int echo_main(int argc ATTRIBUTE_UNUSED, char **argv)
 {
 	const char *arg;

@@ -36,6 +36,13 @@ static const char usage_messages[] ALIGN1 = ""
 
 /* Include generated applet names, pointers to <applet>_main, etc */
 #include "applet_tables.h"
+/* ...and if applet_tables generator says we have only one applet... */
+#ifdef SINGLE_APPLET_MAIN
+#undef ENABLE_FEATURE_INDIVIDUAL
+#define ENABLE_FEATURE_INDIVIDUAL 1
+#undef USE_FEATURE_INDIVIDUAL
+#define USE_FEATURE_INDIVIDUAL(...) __VA_ARGS__
+#endif
 
 
 #if ENABLE_FEATURE_COMPRESS_USAGE
@@ -77,6 +84,23 @@ static const char *unpack_usage_messages(void)
 void bb_show_usage(void)
 {
 	if (ENABLE_SHOW_USAGE) {
+#ifdef SINGLE_APPLET_STR
+		/* Imagine that this applet is "true". Dont suck in printf! */
+		const char *p;
+		const char *usage_string = p = unpack_usage_messages();
+
+		if (*p == '\b') {
+			write(2, "\nNo help available.\n\n",
+				sizeof("\nNo help available.\n\n") - 1);
+		} else {
+			write(2, "\nUsage: "SINGLE_APPLET_STR" ",
+				sizeof("\nUsage: "SINGLE_APPLET_STR" ") - 1);
+			write(2, p, strlen(p));
+			write(2, "\n\n", 2);
+		}
+		dealloc_usage_messages((char*)usage_string);
+#else
+// TODO: in this case, stdio is sucked in by busybox_main() anyway...
 		const char *format_string;
 		const char *p;
 		const char *usage_string = p = unpack_usage_messages();
@@ -84,18 +108,17 @@ void bb_show_usage(void)
 
 		if (ap < 0) /* never happens, paranoia */
 			xfunc_die();
-
 		while (ap) {
 			while (*p++) continue;
 			ap--;
 		}
-
 		fprintf(stderr, "%s multi-call binary\n", bb_banner);
 		format_string = "\nUsage: %s %s\n\n";
 		if (*p == '\b')
 			format_string = "\nNo help available.\n\n";
 		fprintf(stderr, format_string, applet_name, p);
 		dealloc_usage_messages((char*)usage_string);
+#endif
 	}
 	xfunc_die();
 }
@@ -123,6 +146,9 @@ int find_applet_by_name(const char *name)
 int *const bb_errno __attribute__ ((section (".data")));
 #endif
 
+void lbb_prepare(const char *applet
+		USE_FEATURE_INDIVIDUAL(, char **argv))
+				MAIN_EXTERNALLY_VISIBLE;
 void lbb_prepare(const char *applet
 		USE_FEATURE_INDIVIDUAL(, char **argv))
 {
@@ -157,6 +183,9 @@ const char *applet_name;
 #if !BB_MMU
 bool re_execed;
 #endif
+
+
+#if !ENABLE_FEATURE_INDIVIDUAL
 
 USE_FEATURE_SUID(static uid_t ruid;)  /* real uid */
 
@@ -660,6 +689,9 @@ void run_applet_and_exit(const char *name, char **argv)
 		exit(busybox_main(argv));
 }
 
+#endif /* !ENABLE_FEATURE_INDIVIDUAL */
+
+
 
 #if ENABLE_BUILD_LIBBUSYBOX
 int lbb_main(char **argv)
@@ -667,6 +699,11 @@ int lbb_main(char **argv)
 int main(int argc ATTRIBUTE_UNUSED, char **argv)
 #endif
 {
+#if ENABLE_FEATURE_INDIVIDUAL
+	/* Only one applet is selected by the user! */
+	lbb_prepare(SINGLE_APPLET_STR USE_FEATURE_INDIVIDUAL(, argv));
+	return SINGLE_APPLET_MAIN(argc, argv);
+#else
 	lbb_prepare("busybox" USE_FEATURE_INDIVIDUAL(, argv));
 
 #if !BB_MMU
@@ -685,4 +722,5 @@ int main(int argc ATTRIBUTE_UNUSED, char **argv)
 
 	run_applet_and_exit(applet_name, argv);
 	bb_error_msg_and_die("applet not found");
+#endif
 }

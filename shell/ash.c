@@ -8417,12 +8417,6 @@ returncmd(int argc ATTRIBUTE_UNUSED, char **argv)
 static int breakcmd(int, char **);
 static int dotcmd(int, char **);
 static int evalcmd(int, char **);
-#if ENABLE_ASH_BUILTIN_ECHO
-static int echocmd(int, char **);
-#endif
-#if ENABLE_ASH_BUILTIN_TEST
-static int testcmd(int, char **);
-#endif
 static int exitcmd(int, char **);
 static int exportcmd(int, char **);
 #if ENABLE_ASH_GETOPTS
@@ -8463,6 +8457,9 @@ static int ulimitcmd(int, char **);
  * =~ regexp match
  * Apart from the above, [[ expr ]] should work as [ expr ]
  */
+
+#define testcmd test_main
+#define echocmd echo_main
 
 /* Keep these in proper order since it is searched via bsearch() */
 static const struct builtincmd builtintab[] = {
@@ -11505,22 +11502,6 @@ exitcmd(int argc ATTRIBUTE_UNUSED, char **argv)
 	raise_exception(EXEXIT);
 	/* NOTREACHED */
 }
-
-#if ENABLE_ASH_BUILTIN_ECHO
-static int
-echocmd(int argc, char **argv)
-{
-	return echo_main(argc, argv);
-}
-#endif
-
-#if ENABLE_ASH_BUILTIN_TEST
-static int
-testcmd(int argc, char **argv)
-{
-	return test_main(argc, argv);
-}
-#endif
 
 /*
  * Read a file containing shell functions.

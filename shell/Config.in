@@ -36,7 +36,6 @@ endchoice
 config ASH
 	bool "ash"
 	default n
-	select TEST
 	help
 	  Tha 'ash' shell adds about 60k in the default configuration and is
 	  the most complete and most pedantically correct shell included with
@@ -111,7 +110,6 @@ config ASH_GETOPTS
 config ASH_BUILTIN_ECHO
 	bool "Builtin version of 'echo'"
 	default y
-	select ECHO
 	depends on ASH
 	help
 	  Enable support for echo, builtin to ash.
@@ -119,7 +117,6 @@ config ASH_BUILTIN_ECHO
 config ASH_BUILTIN_TEST
 	bool "Builtin version of 'test'"
 	default y
-	select TEST
 	depends on ASH
 	help
 	  Enable support for test, builtin to ash.
@@ -170,10 +167,6 @@ config ASH_EXPAND_PRMT
 config HUSH
 	bool "hush"
 	default n
-	select TRUE
-	select FALSE
-	select TEST
-	select ECHO
 	help
 	  hush is a very small shell (just 18k) and it has fairly complete
 	  Bourne shell grammar.  It even handles all the normal flow control
@@ -240,13 +233,9 @@ config LASH
 	help
 	  lash is deprecated and will be removed, please migrate to hush.
 
-
 config MSH
 	bool "msh"
 	default n
-	select TRUE
-	select FALSE
-	select TEST
 	help
 	  The minix shell (adds just 30k) is quite complete and handles things
 	  like for/do/done, case/esac and all the things you expect a Bourne

@@ -69,9 +69,14 @@ int main(int argc, char **argv)
 
 	/* Keep in sync with include/busybox.h! */
 
-	puts("/* This is a generated file, don't edit */");
+	puts("/* This is a generated file, don't edit */\n");
 
-	puts("const char applet_names[] ALIGN1 = \"\"\n");
+	if (NUM_APPLETS == 1) {
+		printf("#define SINGLE_APPLET_STR \"%s\"\n", applets[0].name);
+		printf("#define SINGLE_APPLET_MAIN %s_main\n\n", applets[0].name);
+	}
+
+	puts("const char applet_names[] ALIGN1 = \"\"");
 	for (i = 0; i < NUM_APPLETS; i++) {
 		printf("\"%s\" \"\\0\"\n", applets[i].name);
 	}

@@ -98,13 +98,13 @@ config FEATURE_INITRD
 
 config HALT
 	bool "poweroff, halt, and reboot"
-	default y
+	default n
 	help
 	  Stop all processes and either halt, reboot, or power off the system.
 
 config MESG
 	bool "mesg"
-	default y
+	default n
 	help
 	  Mesg controls access to your terminal by others.  It is typically
 	  used to allow or disallow other users to write to your terminal

@@ -285,6 +285,10 @@ const char *const bb_argv_dash[] = { "-", NULL };
 
 const char *opt_complementary;
 
+/* Many small applets don't want to suck in stdio.h only because
+ * they need to parse options by calling us */
+#define DONT_USE_PRINTF 1
+
 enum {
 	PARAM_STRING,
 	PARAM_LIST,
@@ -335,7 +339,8 @@ getopt32(char **argv, const char *applet_opts, ...)
 #define SHOW_USAGE_IF_ERROR     1
 #define ALL_ARGV_IS_OPTS        2
 #define FIRST_ARGV_IS_OPT       4
-#define FREE_FIRST_ARGV_IS_OPT  8
+#define FREE_FIRST_ARGV_IS_OPT  (8 * !DONT_USE_PRINTF)
+
 	int spec_flgs = 0;
 
 	argc = 0;
@@ -489,10 +494,16 @@ getopt32(char **argv, const char *applet_opts, ...)
 	va_end(p);
 
 	if (spec_flgs & FIRST_ARGV_IS_OPT) {
-		if (argv[1] && argv[1][0] != '-' && argv[1][0] != '\0') {
+		if (argv[1] && argv[1][0] != '-' && argv[1][1] != '\0') {
+#if DONT_USE_PRINTF
+			char *pp = alloca(strlen(argv[1]) + 2);
+			*pp++ = '-';
+			argv[1] = strcpy(pp, argv[1]);
+#else
 			argv[1] = xasprintf("-%s", argv[1]);
 			if (ENABLE_FEATURE_CLEAN_UP)
 				spec_flgs |= FREE_FIRST_ARGV_IS_OPT;
+#endif
 		}
 	}
 
@@ -573,7 +584,7 @@ getopt32(char **argv, const char *applet_opts, ...)
 		}
 	}
 
-#if (ENABLE_AR || ENABLE_TAR) && ENABLE_FEATURE_CLEAN_UP
+#if ENABLE_FEATURE_CLEAN_UP
 	if (spec_flgs & FREE_FIRST_ARGV_IS_OPT)
 		free(argv[1]);
 #endif

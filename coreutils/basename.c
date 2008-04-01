@@ -37,15 +37,16 @@ int basename_main(int argc, char **argv)
 	/* It should strip slash: /abc/def/ -> def */
 	s = bb_get_last_path_component_strip(*++argv);
 
+	m = strlen(s);
 	if (*++argv) {
 		n = strlen(*argv);
-		m = strlen(s);
 		if ((m > n) && ((strcmp)(s+m-n, *argv) == 0)) {
-			s[m-n] = '\0';
+			m -= n;
+			s[m] = '\0';
 		}
 	}
 
-	puts(s);
-
-	return fflush(stdout);
+	/* puts(s) will do, but we can do without stdio this way: */
+	s[m++] = '\n';
+	return full_write(STDOUT_FILENO, s, m) == m;
 }
