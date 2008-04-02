@@ -4116,7 +4116,7 @@
        "Adjust filesystem options on ext[23] filesystems"
 
 #define udhcpc_trivial_usage \
-       "[-Cfbnqtv] [-c CID] [-V VCLS] [-H HOSTNAME] [-i INTERFACE]\n" \
+       "[-Cfbnqtvo] [-c CID] [-V VCLS] [-H HOSTNAME] [-i INTERFACE]\n" \
        "	[-p pidfile] [-r IP] [-s script] [-O dhcp-option]..." USE_FEATURE_UDHCP_PORT(" [-P N]")
 #define udhcpc_full_usage \
 	USE_GETOPT_LONG( \
@@ -4127,17 +4127,18 @@
      "\n	-C,--clientid-none	Suppress default client identifier" \
      "\n	-p,--pidfile=file	Create pidfile" \
      "\n	-r,--request=IP		IP address to request" \
-     "\n	-s,--script=file	Run file at dhcp events (default /usr/share/udhcpc/default.script)" \
+     "\n	-s,--script=file	Run file at DHCP events (default "CONFIG_DHCPC_DEFAULT_SCRIPT")" \
      "\n	-t,--retries=N		Send up to N request packets" \
      "\n	-T,--timeout=N		Try to get a lease for N seconds (default 3)" \
      "\n	-A,--tryagain=N		Wait N seconds (default 20) after failure" \
+     "\n	-O,--request-option=OPT	Request DHCP option OPT (cumulative)" \
+     "\n	-o,--no-default-options	Do not request any options (unless -O is also given)" \
      "\n	-f,--foreground	Run in foreground" \
      "\n	-b,--background	Background if lease is not immediately obtained" \
      "\n	-S,--syslog	Log to syslog too" \
      "\n	-n,--now	Exit with failure if lease is not immediately obtained" \
      "\n	-q,--quit	Quit after obtaining lease" \
      "\n	-R,--release	Release IP on quit" \
-     "\n	-O,--request-option=OPT	Request DHCP option OPT from server" \
 	USE_FEATURE_UDHCP_PORT( \
      "\n	-P,--client-port N  Use port N instead of default 68" \
 	) \
@@ -4153,17 +4154,18 @@
      "\n	-C		Suppress default client identifier" \
      "\n	-p file		Create pidfile" \
      "\n	-r IP		IP address to request" \
-     "\n	-s file		Run file at dhcp events (default /usr/share/udhcpc/default.script)" \
+     "\n	-s file		Run file at DHCP events (default "CONFIG_DHCPC_DEFAULT_SCRIPT")" \
      "\n	-t N		Send up to N request packets" \
      "\n	-T N		Try to get a lease for N seconds (default 3)" \
      "\n	-A N		Wait N seconds (default 20) after failure" \
+     "\n	-O OPT		Request DHCP option OPT (cumulative)" \
+     "\n	-o		Do not request any options (unless -O is also given)" \
      "\n	-f		Run in foreground" \
      "\n	-b		Background if lease is not immediately obtained" \
      "\n	-S		Log to syslog too" \
      "\n	-n		Exit with failure if lease is not immediately obtained" \
      "\n	-q		Quit after obtaining lease" \
      "\n	-R		Release IP on quit" \
-     "\n	-O OPT		Request DHCP option OPT from server" \
 	USE_FEATURE_UDHCP_PORT( \
      "\n	-P N		Use port N instead of default 68" \
 	) \

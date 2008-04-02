@@ -182,6 +182,7 @@ int udhcpc_main(int argc ATTRIBUTE_UNUSED, char **argv)
 		OPT_W = 1 << 21,
 #endif
 		OPT_P = 1 << 22,
+		OPT_o = 1 << 23,
 	};
 #if ENABLE_GETOPT_LONG
 	static const char udhcpc_longopts[] ALIGN1 =
@@ -211,6 +212,7 @@ int udhcpc_main(int argc ATTRIBUTE_UNUSED, char **argv)
 #if ENABLE_FEATURE_UDHCP_PORT
 		"client-port\0"	   Required_argument "P"
 #endif
+		"no-default-options\0" No_argument   "o"
 		;
 #endif
 	/* Default options. */
@@ -230,7 +232,7 @@ int udhcpc_main(int argc ATTRIBUTE_UNUSED, char **argv)
 	opt = getopt32(argv, "c:CV:fbH:h:F:i:np:qRr:s:T:t:vSA:"
 		USE_FEATURE_UDHCPC_ARPING("aW:")
 		USE_FEATURE_UDHCP_PORT("P:")
-		"O:"
+		"O:o"
 		, &str_c, &str_V, &str_h, &str_h, &str_F
 		, &client_config.interface, &client_config.pidfile, &str_r
 		, &client_config.script
@@ -291,6 +293,8 @@ int udhcpc_main(int argc ATTRIBUTE_UNUSED, char **argv)
 		SERVER_PORT = CLIENT_PORT - 1;
 	}
 #endif
+	if (opt & OPT_o)
+		client_config.no_default_options = 1;
 	while (list_O) {
 		int n = index_in_strings(dhcp_option_strings, list_O->data);
 		if (n < 0)

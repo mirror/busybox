@@ -62,17 +62,20 @@ static void add_param_req_option(struct dhcpMessage *packet)
 	int end = end_option(packet->options);
 	int i, len = 0;
 
-	packet->options[end + OPT_CODE] = DHCP_PARAM_REQ;
 	for (i = 0; (c = dhcp_options[i].code) != 0; i++) {
-		if ((dhcp_options[i].flags & OPTION_REQ)
+		if (((dhcp_options[i].flags & OPTION_REQ)
+                     && !client_config.no_default_options)
 		 || (client_config.opt_mask[c >> 3] & (1 << (c & 7)))
 		) {
 			packet->options[end + OPT_DATA + len] = c;
 			len++;
 		}
 	}
-	packet->options[end + OPT_LEN] = len;
-	packet->options[end + OPT_DATA + len] = DHCP_END;
+	if (len) {
+		packet->options[end + OPT_CODE] = DHCP_PARAM_REQ;
+		packet->options[end + OPT_LEN] = len;
+		packet->options[end + OPT_DATA + len] = DHCP_END;
+	}
 }
 
 
@@ -107,7 +110,9 @@ int send_discover(uint32_t xid, uint32_t requested)
 	/* Explicitly saying that we want RFC-compliant packets helps
 	 * some buggy DHCP servers to NOT send bigger packets */
 	add_simple_option(packet.options, DHCP_MAX_SIZE, htons(576));
+
 	add_param_req_option(&packet);
+
 	bb_info_msg("Sending discover...");
 	return udhcp_send_raw_packet(&packet, INADDR_ANY, CLIENT_PORT, INADDR_BROADCAST,
 			SERVER_PORT, MAC_BCAST_ADDR, client_config.ifindex);
@@ -125,8 +130,8 @@ int send_selecting(uint32_t xid, uint32_t server, uint32_t requested)
 
 	add_simple_option(packet.options, DHCP_REQUESTED_IP, requested);
 	add_simple_option(packet.options, DHCP_SERVER_ID, server);
-
 	add_param_req_option(&packet);
+
 	addr.s_addr = requested;
 	bb_info_msg("Sending select for %s...", inet_ntoa(addr));
 	return udhcp_send_raw_packet(&packet, INADDR_ANY, CLIENT_PORT, INADDR_BROADCAST,

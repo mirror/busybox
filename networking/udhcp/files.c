@@ -396,6 +396,7 @@ void write_leases(void)
 	close(fp);
 
 	if (server_config.notify_file) {
+// TODO: vfork-based child creation
 		char *cmd = xasprintf("%s %s", server_config.notify_file, server_config.lease_file);
 		system(cmd);
 		free(cmd);
@@ -406,7 +407,7 @@ void write_leases(void)
 void read_leases(const char *file)
 {
 	int fp;
-	unsigned int i = 0;
+	unsigned i;
 	struct dhcpOfferedAddr lease;
 
 	fp = open_or_warn(file, O_RDONLY);
@@ -414,6 +415,7 @@ void read_leases(const char *file)
 		return;
 	}
 
+	i = 0;
 	while (i < server_config.max_leases
 	 && full_read(fp, &lease, sizeof(lease)) == sizeof(lease)
 	) {
@@ -422,7 +424,7 @@ void read_leases(const char *file)
 		if (y >= server_config.start_ip && y <= server_config.end_ip) {
 			lease.expires = ntohl(lease.expires);
 			if (!server_config.remaining)
-				lease.expires -= time(0);
+				lease.expires -= time(NULL);
 			if (!(add_lease(lease.chaddr, lease.yiaddr, lease.expires))) {
 				bb_error_msg("too many leases while loading %s", file);
 				break;

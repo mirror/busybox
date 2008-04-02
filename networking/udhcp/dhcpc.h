@@ -21,6 +21,7 @@ struct client_config_t {
 	char release_on_quit;           /* Perform release on quit */
 	char abort_if_no_lease;         /* Abort if no lease */
 	char background_if_no_lease;    /* Fork to background if no lease */
+	char no_default_options;        /* Do not include default optins in request */
 	const char *interface;          /* The name of the interface to use */
 	char *pidfile;                  /* Optionally store the process ID */
 	const char *script;             /* User script to run at dhcp events */
