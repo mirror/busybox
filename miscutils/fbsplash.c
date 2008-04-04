@@ -360,6 +360,8 @@ int fbsplash_main(int argc ATTRIBUTE_UNUSED, char **argv)
 {
 	const char *fb_device, *cfg_filename, *fifo_filename;
 	FILE *fp = fp; // for compiler
+	char *num_buf;
+	unsigned num;
 	bool bCursorOff;
 
 	INIT_G();
@@ -392,49 +394,7 @@ int fbsplash_main(int argc ATTRIBUTE_UNUSED, char **argv)
 		return EXIT_SUCCESS;
 
 	fp = xfopen_stdin(fifo_filename);
-
-	while (1) {
-		struct stat statbuf;
-		unsigned num;
-		char *num_buf;
-
-		fb_drawprogressbar(0);
-		// Block on read, waiting for some input.
-		// Use of <stdio.h> style I/O allows to correctly
-		// handle a case when we have many buffered lines
-		// already in the pipe
-		while ((num_buf = xmalloc_fgetline(fp)) != NULL) {
-			if (strncmp(num_buf, "exit", 4) == 0) {
-				DEBUG_MESSAGE("exit");
- exit_cmd:
-				if (bCursorOff) {
-					// restore cursor
-					full_write(STDOUT_FILENO, "\x1b" "[?25h", 6);
-				}
-				return EXIT_SUCCESS;
-			}
-			num = atoi(num_buf);
-			if (isdigit(num_buf[0]) && (num <= 100)) {
-#if DEBUG
-				char strVal[10];
-				sprintf(strVal, "%d", num);
-				DEBUG_MESSAGE(strVal);
-#endif
-				fb_drawprogressbar(num);
-			}
-			free(num_buf);
-		}
-		// We got EOF/error on fp
-		if (ferror(fp))
-			goto exit_cmd;
-		fclose(fp);
-		if (LONE_DASH(fifo_filename)
-		 || stat(fifo_filename, &statbuf) != 0
-		 || !S_ISFIFO(statbuf.st_mode)
-		) {
-			goto exit_cmd;
-		}
-		// It's really a named pipe!
+	if (fp != stdin) {
 		// For named pipes, we want to support this:
 		//  mkfifo cmd_pipe
 		//  fbsplash -f cmd_pipe .... &
@@ -442,10 +402,37 @@ int fbsplash_main(int argc ATTRIBUTE_UNUSED, char **argv)
 		//  echo 33 >cmd_pipe
 		//  ...
 		//  echo 66 >cmd_pipe
-		// This means that on EOF, we need to close/open cmd_pipe
-		// (just reading again works too, but it hogs CPU)
-		fp = xfopen_stdin(fifo_filename); // blocks on open
-	} // end of while (1)
+		// This means that we don't want fbsplash to get EOF
+		// when last writer closes input end.
+		// The simplest way is to open fifo for writing too
+		// and become an additional writer :)
+		open(fifo_filename, O_WRONLY); // errors are ignored
+	}
+
+	fb_drawprogressbar(0);
+	// Block on read, waiting for some input.
+	// Use of <stdio.h> style I/O allows to correctly
+	// handle a case when we have many buffered lines
+	// already in the pipe
+	while ((num_buf = xmalloc_fgetline(fp)) != NULL) {
+		if (strncmp(num_buf, "exit", 4) == 0) {
+			DEBUG_MESSAGE("exit");
+			break;
+		}
+		num = atoi(num_buf);
+		if (isdigit(num_buf[0]) && (num <= 100)) {
+#if DEBUG
+			char strVal[10];
+			sprintf(strVal, "%d", num);
+			DEBUG_MESSAGE(strVal);
+#endif
+			fb_drawprogressbar(num);
+		}
+		free(num_buf);
+	}
+
+	if (bCursorOff) // restore cursor
+		full_write(STDOUT_FILENO, "\x1b" "[?25h", 6);
 
 	return EXIT_SUCCESS;
 }
