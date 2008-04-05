@@ -307,13 +307,6 @@ config UNZIP
 comment "Common options for cpio and tar"
 	depends on CPIO || TAR
 
-config FEATURE_UNARCHIVE_TAPE
-	bool "Enable tape drive support"
-	default n
-	depends on CPIO || TAR
-	help
-	  I don't think this is needed anymore.
-
 comment "Common options for dpkg and dpkg_deb"
 	depends on DPKG || DPKG_DEB
 

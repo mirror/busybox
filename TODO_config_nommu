@@ -130,7 +130,6 @@ CONFIG_UNZIP=y
 #
 # Common options for cpio and tar
 #
-CONFIG_FEATURE_UNARCHIVE_TAPE=y
 
 #
 # Common options for dpkg and dpkg_deb
