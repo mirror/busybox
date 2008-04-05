@@ -172,7 +172,7 @@ static int cpio_o(void)
 				fflush(stdout);
 				/* We must abort if file got shorter too! */
 				if (bb_copyfd_size(fd, STDOUT_FILENO, st.st_size) != st.st_size) {
-					bb_error_msg_and_die("I/O error, of file '%s' was truncated", name);
+					bb_error_msg_and_die("I/O error or file '%s' was truncated", name);
 				}
 				bytes += st.st_size;
 				close(fd);
