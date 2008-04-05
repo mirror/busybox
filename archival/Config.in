@@ -78,6 +78,14 @@ config CPIO
 	  Unless you have a specific application which requires cpio, you should
 	  probably say N here.
 
+config FEATURE_CPIO_O
+	bool "Support for archive creation"
+	default n
+	depends on CPIO
+	help
+	  This implementation of cpio can create cpio archives in the "newc"
+	  format only.
+
 config DPKG
 	bool "dpkg"
 	default n

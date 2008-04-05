@@ -509,13 +509,20 @@
      "\n	-l,-s	Create (sym)links" \
 
 #define cpio_trivial_usage \
-       "-[dimtuv][F cpiofile]"
+       "-[dim" USE_FEATURE_CPIO_O("o") "tuv][F cpiofile]" \
+       USE_FEATURE_CPIO_O( "[H newc]" ) 
 #define cpio_full_usage \
-       "Extract or list files from a cpio archive\n" \
+       "Extract or list files from a cpio archive" \
+	USE_FEATURE_CPIO_O( ", or create a cpio archive" ) \
+     "\n" \
        "Main operation mode:" \
      "\n	d	Make leading directories" \
      "\n	i	Extract" \
      "\n	m	Preserve mtime" \
+	USE_FEATURE_CPIO_O( \
+     "\n	o	Create" \
+     "\n	H newc	Define format" \
+	) \
      "\n	t	List" \
      "\n	v	Verbose" \
      "\n	u	Unconditional overwrite" \
