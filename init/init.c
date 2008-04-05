@@ -33,14 +33,15 @@
 #endif
 
 /* Allowed init action types */
-#define SYSINIT     0x001
-#define RESPAWN     0x002
-#define ASKFIRST    0x004
-#define WAIT        0x008
-#define ONCE        0x010
-#define CTRLALTDEL  0x020
-#define SHUTDOWN    0x040
-#define RESTART     0x080
+#define SYSINIT     0x01
+#define RESPAWN     0x02
+/* like respawn, but wait for <Enter> to be pressed on tty: */
+#define ASKFIRST    0x04
+#define WAIT        0x08
+#define ONCE        0x10
+#define CTRLALTDEL  0x20
+#define SHUTDOWN    0x40
+#define RESTART     0x80
 
 #define STR_SYSINIT     "\x01"
 #define STR_RESPAWN     "\x02"
@@ -372,7 +373,10 @@ static pid_t run(const struct init_action *a)
 	sigemptyset(&nmask);
 	sigaddset(&nmask, SIGCHLD);
 	sigprocmask(SIG_BLOCK, &nmask, &omask);
-	pid = vfork();
+	if (BB_MMU && (a->action_type & ASKFIRST))
+		pid = fork();
+	else
+		pid = vfork();
 	sigprocmask(SIG_SETMASK, &omask, NULL);
 
 	if (pid < 0)
@@ -447,7 +451,8 @@ static pid_t run(const struct init_action *a)
 	}
 #endif
 
-	/* NB: on NOMMU we can't wait for input in child */
+	/* NB: on NOMMU we can't wait for input in child, so
+	 * "askfirst" will work the same as "respawn". */
 	if (BB_MMU && (a->action_type & ASKFIRST)) {
 		static const char press_enter[] ALIGN1 =
 #ifdef CUSTOMIZED_BANNER
@@ -499,7 +504,7 @@ static void run_actions(int action_type)
 
 	for (a = init_action_list; a; a = tmp) {
 		tmp = a->next;
-		if (a->action_type == action_type) {
+		if (a->action_type & action_type) {
 			// Pointless: run() will error out if open of device fails.
 			///* a->terminal of "" means "init's console" */
 			//if (a->terminal[0] && access(a->terminal, R_OK | W_OK)) {
@@ -784,6 +789,7 @@ static void parse_inittab(void)
 	fclose(file);
 }
 
+#if ENABLE_FEATURE_USE_INITTAB
 static void reload_signal(int sig ATTRIBUTE_UNUSED)
 {
 	struct init_action *a, *tmp;
@@ -827,8 +833,9 @@ static void reload_signal(int sig ATTRIBUTE_UNUSED)
 			delete_init_action(a);
 		}
 	}
-	run_actions(RESPAWN);
+	run_actions(RESPAWN | ASKFIRST);
 }
+#endif
 
 int init_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int init_main(int argc ATTRIBUTE_UNUSED, char **argv)
@@ -952,18 +959,16 @@ int init_main(int argc ATTRIBUTE_UNUSED, char **argv)
 	run_actions(ONCE);
 
 	/* Redefine SIGHUP to reread /etc/inittab */
-	if (ENABLE_FEATURE_USE_INITTAB)
-		signal(SIGHUP, reload_signal);
-	else
-		signal(SIGHUP, SIG_IGN);
+#if ENABLE_FEATURE_USE_INITTAB
+	signal(SIGHUP, reload_signal);
+#else
+	signal(SIGHUP, SIG_IGN);
+#endif
 
 	/* Now run the looping stuff for the rest of forever */
 	while (1) {
-		/* run the respawn stuff */
-		run_actions(RESPAWN);
-
-		/* run the askfirst stuff */
-		run_actions(ASKFIRST);
+		/* run the respawn/askfirst stuff */
+		run_actions(RESPAWN | ASKFIRST);
 
 		/* Don't consume all CPU time -- sleep a bit */
 		sleep(1);
