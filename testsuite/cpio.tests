@@ -1,0 +1,58 @@
+#!/bin/sh
+# Copyright 2008 by Denys Vlasenko
+# Licensed under GPL v2, see file LICENSE for details.
+
+. testing.sh
+
+# ls -ln is showing date. Need to remove that, it's variable
+# sed: coalesce spaces
+# cut: remove date
+FILTER_LS="sed 's/  */ /g' | cut -d' ' -f 1-5,9-"
+
+
+# newc cpio archive of directory cpio.testdir with empty x and y hardlinks
+hexdump="\
+00000000  42 5a 68 39 31 41 59 26  53 59 64 1e 91 8c 00 00
+00000010  48 7f 80 4c 48 08 00 28  01 ff e0 3f 24 14 00 0e
+00000020  20 dc 60 20 00 92 11 ea  a0 1a 00 00 00 03 20 8a
+00000030  93 d4 9a 68 1a 0d 1e 91  a1 a0 06 98 e3 5c 2f d9
+00000040  26 a1 25 24 20 ed 47 c7  21 40 2b 6e f2 e6 fe 98
+00000050  13 68 a8 bd 82 b2 4f 26  02 24 16 5b 22 16 72 74
+00000060  15 cd c1 a6 9e a6 5e 6c  16 37 35 01 99 c4 81 21
+00000070  29 28 4b 69 51 a9 3c 1a  9b 0a e1 e4 b4 af 85 73
+00000080  ba 23 10 59 e8 b3 e1 a1  63 05 8c 4f c5 dc 91 4e
+00000090  14 24 19 07 a4 63 00
+"
+
+rm -rf cpio.testdir
+
+# testing "test name" "options" "expected result" "file input" "stdin"
+
+testing "cpio extracts zero-sized hardlinks" \
+	"echo '$hexdump' | hexdump -R | bzcat | cpio -i; echo \$?;
+	ls -ln cpio.testdir | $FILTER_LS" \
+"\
+1 blocks
+0
+-rw-r--r-- 2 0 0 0 x
+-rw-r--r-- 2 0 0 0 y
+" \
+	"" ""
+
+# Currently fails. Numerous: "1 blocks" versus "1 block",
+# "1 block" must go to stderr, does not list cpio.testdir/x and cpio.testdir/y
+testing "cpio lists hardlinks" \
+	"echo '$hexdump' | hexdump -R | bzcat | cpio -t 2>&1; echo \$?" \
+"\
+1 block
+cpio.testdir
+cpio.testdir/x
+cpio.testdir/y
+0
+" \
+	"" ""
+
+# clean up
+rm -rf cpio.testdir
+
+exit $FAILCOUNT
