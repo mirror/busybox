@@ -138,6 +138,9 @@
 #define brctl_full_usage \
        "Manage ethernet bridges.\n" \
      "\nCommands:" \
+	USE_FEATURE_BRCTL_SHOW( \
+     "\n	show			Show a list of bridges" \
+	) \
      "\n	addbr BRIDGE		Create BRIDGE" \
      "\n	delbr BRIDGE		Delete BRIDGE" \
      "\n	addif BRIDGE IFACE	Add IFACE to BRIDGE" \
@@ -151,7 +154,8 @@
      "\n	setportprio BRIDGE PRIO		Set port priority" \
      "\n	setbridgeprio BRIDGE PRIO	Set bridge priority" \
      "\n	stp BRIDGE [1|0]		STP on/off" \
-	)
+	) \
+
 #define bunzip2_trivial_usage \
        "[OPTION]... [FILE]"
 #define bunzip2_full_usage \

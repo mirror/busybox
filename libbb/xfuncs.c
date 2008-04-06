@@ -704,17 +704,20 @@ int get_terminal_width_height(int fd, int *width, int *height)
 	return ret;
 }
 
-void ioctl_or_perror_and_die(int fd, int request, void *argp, const char *fmt,...)
+int ioctl_or_perror_and_die(int fd, int request, void *argp, const char *fmt,...)
 {
+	int ret;
 	va_list p;
 
-	if (ioctl(fd, request, argp) < 0) {
+	ret = ioctl(fd, request, argp);
+	if (ret < 0) {
 		va_start(p, fmt);
 		bb_verror_msg(fmt, p, strerror(errno));
 		/* xfunc_die can actually longjmp, so be nice */
 		va_end(p);
 		xfunc_die();
 	}
+	return ret;
 }
 
 int ioctl_or_perror(int fd, int request, void *argp, const char *fmt,...)
@@ -740,10 +743,14 @@ int bb_ioctl_or_warn(int fd, int request, void *argp, const char *ioctl_name)
 		bb_simple_perror_msg(ioctl_name);
 	return ret;
 }
-void bb_xioctl(int fd, int request, void *argp, const char *ioctl_name)
+int bb_xioctl(int fd, int request, void *argp, const char *ioctl_name)
 {
-	if (ioctl(fd, request, argp) < 0)
+	int ret;
+
+	ret = ioctl(fd, request, argp);
+	if (ret < 0)
 		bb_simple_perror_msg_and_die(ioctl_name);
+	return ret;
 }
 #else
 int bb_ioctl_or_warn(int fd, int request, void *argp)
@@ -755,9 +762,13 @@ int bb_ioctl_or_warn(int fd, int request, void *argp)
 		bb_perror_msg("ioctl %#x failed", request);
 	return ret;
 }
-void bb_xioctl(int fd, int request, void *argp)
+int bb_xioctl(int fd, int request, void *argp)
 {
-	if (ioctl(fd, request, argp) < 0)
+	int ret;
+
+	ret = ioctl(fd, request, argp);
+	if (ret < 0)
 		bb_perror_msg_and_die("ioctl %#x failed", request);
+	return ret;
 }
 #endif

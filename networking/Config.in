@@ -54,14 +54,6 @@ config BRCTL
 	  Manage ethernet bridges.
 	  Supports addbr/delbr and addif/delif.
 
-#config FEATURE_BRCTL_SHOW
-#	bool "Support show, showmac and showstp"
-#	default n
-#	depends on BRCTL
-#	help
-#	  Add support for option which print the current config:
-#	    showmacs, showstp, show
-
 config FEATURE_BRCTL_FANCY
 	bool "Fancy options"
 	default n
@@ -72,6 +64,14 @@ config FEATURE_BRCTL_FANCY
 	    setpathcost, setportprio, setbridgeprio,
 	    stp
 	  This adds about 600 bytes.
+
+config FEATURE_BRCTL_SHOW
+	bool "Support show, showmac and showstp"
+	default n
+	depends on BRCTL && FEATURE_BRCTL_FANCY
+	help
+	  Add support for option which prints the current config:
+	    showmacs, showstp, show
 
 config DNSD
 	bool "dnsd"
