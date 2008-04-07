@@ -2935,6 +2935,10 @@
      "\n	-c CNT		Send only CNT pings" \
      "\n	-s SIZE		Send SIZE data bytes in packets (default=56)" \
      "\n	-I iface/IP	Use interface or IP address as source" \
+     "\n	-W timeout	Seconds to wait for the first response (default:10)" \
+     "\n			(after all -c CNT packets are sent)" \
+     "\n	-w deadline	Seconds until ping exits (default:infinite)" \
+     "\n			(can exit earlier with -c CNT)" \
      "\n	-q		Quiet, only displays output at start" \
      "\n			and when finished" \
 

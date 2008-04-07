@@ -224,15 +224,17 @@ int ping_main(int argc ATTRIBUTE_UNUSED, char **argv)
 
 /* full(er) version */
 
-#define OPT_STRING ("qvc:s:I:4" USE_PING6("6"))
+#define OPT_STRING ("qvc:s:w:W:I:4" USE_PING6("6"))
 enum {
 	OPT_QUIET = 1 << 0,
 	OPT_VERBOSE = 1 << 1,
 	OPT_c = 1 << 2,
 	OPT_s = 1 << 3,
-	OPT_I = 1 << 4,
-	OPT_IPV4 = 1 << 5,
-	OPT_IPV6 = (1 << 6) * ENABLE_PING6,
+	OPT_w = 1 << 4,
+	OPT_W = 1 << 5,
+	OPT_I = 1 << 6,
+	OPT_IPV4 = 1 << 7,
+	OPT_IPV6 = (1 << 8) * ENABLE_PING6,
 };
 
 
@@ -246,6 +248,9 @@ struct globals {
 	uint16_t myid;
 	unsigned tmin, tmax; /* in us */
 	unsigned long long tsum; /* in us, sum of all times */
+	unsigned deadline;
+	unsigned timeout;
+	unsigned total_secs;
 	const char *hostname;
 	const char *dotted;
 	union {
@@ -271,6 +276,9 @@ struct globals {
 #define tmin         (G.tmin        )
 #define tmax         (G.tmax        )
 #define tsum         (G.tsum        )
+#define deadline     (G.deadline    )
+#define timeout      (G.timeout     )
+#define total_secs   (G.total_secs  )
 #define hostname     (G.hostname    )
 #define dotted       (G.dotted      )
 #define pingaddr     (G.pingaddr    )
@@ -280,6 +288,8 @@ void BUG_ping_globals_too_big(void);
 	if (sizeof(G) > COMMON_BUFSIZE) \
 		BUG_ping_globals_too_big(); \
 	pingsock = -1; \
+	datalen = DEFDATALEN; \
+	timeout = MAXWAIT; \
 	tmin = UINT_MAX; \
 } while (0)
 
@@ -292,7 +302,8 @@ void BUG_ping_globals_too_big(void);
 
 /**************************************************************************/
 
-static void pingstats(int junk ATTRIBUTE_UNUSED)
+static void print_stats_and_exit(int junk) ATTRIBUTE_NORETURN;
+static void print_stats_and_exit(int junk ATTRIBUTE_UNUSED)
 {
 	signal(SIGINT, SIG_IGN);
 
@@ -311,7 +322,8 @@ static void pingstats(int junk ATTRIBUTE_UNUSED)
 			tavg / 1000, tavg % 1000,
 			tmax / 1000, tmax % 1000);
 	}
-	exit(nreceived == 0); /* (nreceived == 0) is true (1) -- 'failure' */
+	/* if condition is true, exit with 1 -- 'failure' */
+	exit(nreceived == 0 || (deadline && nreceived < pingcount));
 }
 
 static void sendping_tail(void (*sp)(int), const void *pkt, int size_pkt)
@@ -327,13 +339,30 @@ static void sendping_tail(void (*sp)(int), const void *pkt, int size_pkt)
 	if (sz != size_pkt)
 		bb_error_msg_and_die(bb_msg_write_error);
 
-	signal(SIGALRM, sp);
-	if (pingcount == 0 || ntransmitted < pingcount) { /* schedule next in 1s */
+	if (pingcount == 0 || deadline || ntransmitted < pingcount) {
+		/* Didn't send all pings yet - schedule next in 1s */
+		signal(SIGALRM, sp);
+		if (deadline) {
+			total_secs += PINGINTERVAL;
+			if (total_secs >= deadline)
+				signal(SIGALRM, print_stats_and_exit);
+		}
 		alarm(PINGINTERVAL);
-	} else { /* done, wait for the last ping to come back */
-		/* todo, don't necessarily need to wait so long... */
-		signal(SIGALRM, pingstats);
-		alarm(MAXWAIT);
+	} else { /* -c NN, and all NN are sent (and no deadline) */
+		/* Wait for the last ping to come back.
+		 * -W timeout: wait for a response in seconds.
+		 * Affects only timeout in absense of any responses,
+		 * otherwise ping waits for two RTTs. */
+		unsigned expire = timeout;
+
+		if (nreceived) {
+			/* approx. 2*tmax, in seconds (2 RTT) */
+			expire = tmax / (512*1024);
+			if (expire == 0)
+				expire = 1;
+		}
+		signal(SIGALRM, print_stats_and_exit);
+		alarm(expire);
 	}
 }
 
@@ -549,7 +578,7 @@ static void ping4(len_and_sockaddr *lsa)
 	sockopt = 48 * 1024; /* explain why 48k? */
 	setsockopt(pingsock, SOL_SOCKET, SO_RCVBUF, &sockopt, sizeof(sockopt));
 
-	signal(SIGINT, pingstats);
+	signal(SIGINT, print_stats_and_exit);
 
 	/* start the ping's going ... */
 	sendping4(0);
@@ -568,7 +597,7 @@ static void ping4(len_and_sockaddr *lsa)
 			continue;
 		}
 		unpack4(packet, c, &from);
-		if (pingcount > 0 && nreceived >= pingcount)
+		if (pingcount && nreceived >= pingcount)
 			break;
 	}
 }
@@ -624,7 +653,7 @@ static void ping6(len_and_sockaddr *lsa)
 	if (if_index)
 		pingaddr.sin6.sin6_scope_id = if_index;
 
-	signal(SIGINT, pingstats);
+	signal(SIGINT, print_stats_and_exit);
 
 	/* start the ping's going ... */
 	sendping6(0);
@@ -659,7 +688,7 @@ static void ping6(len_and_sockaddr *lsa)
 			}
 		}
 		unpack6(packet, c, /*&from,*/ hoplimit);
-		if (pingcount > 0 && nreceived >= pingcount)
+		if (pingcount && nreceived >= pingcount)
 			break;
 	}
 }
@@ -691,11 +720,9 @@ int ping_main(int argc ATTRIBUTE_UNUSED, char **argv)
 
 	INIT_G();
 
-	datalen = DEFDATALEN;
-
-	/* exactly one argument needed, -v and -q don't mix */
-	opt_complementary = "=1:q--v:v--q";
-	getopt32(argv, OPT_STRING, &opt_c, &opt_s, &opt_I);
+	/* exactly one argument needed; -v and -q don't mix; -w NUM, -W NUM */
+	opt_complementary = "=1:q--v:v--q:w+:W+";
+	getopt32(argv, OPT_STRING, &opt_c, &opt_s, &deadline, &timeout, &opt_I);
 	if (option_mask32 & OPT_c)
 		pingcount = xatoul(opt_c); // -c
 	if (option_mask32 & OPT_s)
@@ -726,8 +753,8 @@ int ping_main(int argc ATTRIBUTE_UNUSED, char **argv)
 
 	dotted = xmalloc_sockaddr2dotted_noport(&lsa->u.sa);
 	ping(lsa);
-	pingstats(0);
-	return EXIT_SUCCESS;
+	print_stats_and_exit(0);
+	/*return EXIT_SUCCESS;*/
 }
 #endif /* FEATURE_FANCY_PING */
 
