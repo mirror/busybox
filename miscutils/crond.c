@@ -33,7 +33,11 @@
 #define SENDMAIL        "sendmail"
 #endif
 #ifndef SENDMAIL_ARGS
-#define SENDMAIL_ARGS   "-ti", "oem"
+#	if ENABLE_SENDMAIL
+#		define SENDMAIL_ARGS   "localhost", line->cl_MailTo
+#	else
+#		define SENDMAIL_ARGS   "-ti", "oem"
+#	endif
 #endif
 #ifndef CRONUPDATE
 #define CRONUPDATE      "cron.update"
@@ -59,6 +63,7 @@ typedef struct CronLine {
 #if ENABLE_FEATURE_CROND_CALL_SENDMAIL
 	int cl_MailPos;         /* 'empty file' size                    */
 	smallint cl_MailFlag;   /* running pid is for mail              */
+	char *cl_MailTo;	/* whom to mail results			*/
 #endif
 	/* ordered by size, not in natural order. makes code smaller: */
 	char cl_Dow[7];         /* 0-6, beginning sunday                */
@@ -449,6 +454,9 @@ static void SynchronizeFile(const char *fileName)
 	int maxEntries;
 	int maxLines;
 	char buf[1024];
+#if ENABLE_FEATURE_CROND_CALL_SENDMAIL
+	char *mailTo = NULL;
+#endif
 
 	if (!fileName)
 		return;
@@ -485,6 +493,14 @@ static void SynchronizeFile(const char *fileName)
 			if (DebugOpt) {
 				crondlog(LVL5 "user:%s entry:%s", fileName, buf);
 			}
+			/* check if line is setting MAILTO= */
+			if (0 == strncmp("MAILTO=", buf, 7)) {
+#if ENABLE_FEATURE_CROND_CALL_SENDMAIL
+				free(mailTo);
+				mailTo = (buf[7]) ? xstrdup(buf+7) : NULL;
+#endif /* otherwise just ignore such lines */
+				continue;
+			}
 			*pline = line = xzalloc(sizeof(CronLine));
 			/* parse date ranges */
 			ptr = ParseField(file->cf_User, line->cl_Mins, 60, 0, NULL, buf);
@@ -498,10 +514,14 @@ static void SynchronizeFile(const char *fileName)
 				continue;
 			}
 			/*
-			 * fix days and dow - if one is not * and the other
-			 * is *, the other is set to 0, and vise-versa
+			 * fix days and dow - if one is not "*" and the other
+			 * is "*", the other is set to 0, and vise-versa
 			 */
 			FixDayDow(line);
+#if ENABLE_FEATURE_CROND_CALL_SENDMAIL
+			/* copy mailto (can be NULL) */
+			line->cl_MailTo = xstrdup(mailTo);
+#endif
 			/* copy command */
 			line->cl_Shell = xstrdup(ptr);
 			if (DebugOpt) {
@@ -515,7 +535,7 @@ static void SynchronizeFile(const char *fileName)
 		FileBase = file;
 
 		if (maxLines == 0 || maxEntries == 0) {
-			crondlog(WARN9 "maximum number of lines reached for user %s", fileName);
+			crondlog(WARN9 "user %s: too many lines", fileName);
 		}
 	}
 	fclose(fi);
@@ -567,7 +587,7 @@ static void SynchronizeDir(void)
 
 		if (!dir)
 			crondlog(DIE9 "can't chdir(%s)", "."); /* exits */
-		while ((den = readdir(dir))) {
+		while ((den = readdir(dir)) != NULL) {
 			if (strchr(den->d_name, '.') != NULL) {
 				continue;
 			}
@@ -811,23 +831,25 @@ ForkJob(const char *user, CronLine *line, int mailFd,
 static void RunJob(const char *user, CronLine *line)
 {
 	char mailFile[128];
-	int mailFd;
+	int mailFd = -1;
 
 	line->cl_Pid = 0;
 	line->cl_MailFlag = 0;
 
-	/* open mail file - owner root so nobody can screw with it. */
-	snprintf(mailFile, sizeof(mailFile), "%s/cron.%s.%d", TMPDIR, user, getpid());
-	mailFd = open(mailFile, O_CREAT | O_TRUNC | O_WRONLY | O_EXCL | O_APPEND, 0600);
+	if (line->cl_MailTo) {
+		/* open mail file - owner root so nobody can screw with it. */
+		snprintf(mailFile, sizeof(mailFile), "%s/cron.%s.%d", TMPDIR, user, getpid());
+		mailFd = open(mailFile, O_CREAT | O_TRUNC | O_WRONLY | O_EXCL | O_APPEND, 0600);
 
-	if (mailFd >= 0) {
-		line->cl_MailFlag = 1;
-		fdprintf(mailFd, "To: %s\nSubject: cron: %s\n\n", user,
-			line->cl_Shell);
-		line->cl_MailPos = lseek(mailFd, 0, SEEK_CUR);
-	} else {
-		crondlog(ERR20 "cannot create mail file %s for user %s, "
-				"discarding output", mailFile, user);
+		if (mailFd >= 0) {
+			line->cl_MailFlag = 1;
+			fdprintf(mailFd, "To: %s\nSubject: cron: %s\n\n", user,
+				line->cl_Shell);
+			line->cl_MailPos = lseek(mailFd, 0, SEEK_CUR);
+		} else {
+			crondlog(ERR20 "cannot create mail file %s for user %s, "
+					"discarding output", mailFile, user);
+		}
 	}
 
 	ForkJob(user, line, mailFd, DEFAULT_SHELL, "-c", line->cl_Shell, mailFile);
@@ -877,7 +899,8 @@ static void EndJob(const char *user, CronLine *line)
 		close(mailFd);
 		return;
 	}
-	ForkJob(user, line, mailFd, SENDMAIL, SENDMAIL_ARGS, NULL);
+	if (line->cl_MailTo)
+		ForkJob(user, line, mailFd, SENDMAIL, SENDMAIL_ARGS, NULL);
 }
 
 #else /* crond without sendmail */
