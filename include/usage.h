@@ -634,7 +634,7 @@
 
 #define dd_trivial_usage \
        "[if=FILE] [of=FILE] " USE_FEATURE_DD_IBS_OBS("[ibs=N] [obs=N] ") "[bs=N] [count=N] [skip=N]\n" \
-       "	[seek=N]" USE_FEATURE_DD_IBS_OBS(" [conv=notrunc|noerror|sync]")
+       "	[seek=N]" USE_FEATURE_DD_IBS_OBS(" [conv=notrunc|noerror|sync|fsync]")
 #define dd_full_usage \
        "Copy a file with converting and formatting\n" \
      "\nOptions:" \
@@ -642,16 +642,20 @@
      "\n	of=FILE		Write to FILE instead of stdout" \
      "\n	bs=N		Read and write N bytes at a time" \
 	USE_FEATURE_DD_IBS_OBS( \
-     "\n	ibs=N		Read N bytes at a time") \
+     "\n	ibs=N		Read N bytes at a time" \
+	) \
 	USE_FEATURE_DD_IBS_OBS( \
-     "\n	obs=N		Write N bytes at a time") \
+     "\n	obs=N		Write N bytes at a time" \
+	) \
      "\n	count=N		Copy only N input blocks" \
      "\n	skip=N		Skip N input blocks" \
      "\n	seek=N		Skip N output blocks" \
 	USE_FEATURE_DD_IBS_OBS( \
      "\n	conv=notrunc	Don't truncate output file" \
      "\n	conv=noerror	Continue after read errors" \
-     "\n	conv=sync	Pad blocks with zeros") \
+     "\n	conv=sync	Pad blocks with zeros" \
+     "\n	conv=fsync	Physically write data out before finishing" \
+	) \
      "\n" \
      "\nNumbers may be suffixed by c (x1), w (x2), b (x512), kD (x1000), k (x1024)," \
      "\nMD (x1000000), M (x1048576), GD (x1000000000) or G (x1073741824)" \
