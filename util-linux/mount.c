@@ -23,7 +23,6 @@
 #include "libbb.h"
 
 #if ENABLE_FEATURE_MOUNT_LABEL
-/* For FEATURE_MOUNT_LABEL only */
 #include "volume_id.h"
 #endif
 
