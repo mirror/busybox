@@ -47,6 +47,7 @@ int main(int argc, char **argv)
 {
 	int i;
 	int ofs;
+	unsigned MAX_APPLET_NAME_LEN = 1;
 
 	qsort(applets, NUM_APPLETS, sizeof(applets[0]), cmp_name);
 
@@ -71,18 +72,21 @@ int main(int argc, char **argv)
 
 	puts("/* This is a generated file, don't edit */\n");
 
+	printf("#define NUM_APPLETS %u\n", NUM_APPLETS);
 	if (NUM_APPLETS == 1) {
 		printf("#define SINGLE_APPLET_STR \"%s\"\n", applets[0].name);
-		printf("#define SINGLE_APPLET_MAIN %s_main\n\n", applets[0].name);
+		printf("#define SINGLE_APPLET_MAIN %s_main\n", applets[0].name);
 	}
 
-	puts("const char applet_names[] ALIGN1 = \"\"");
+	puts("\nconst char applet_names[] ALIGN1 = \"\"");
 	for (i = 0; i < NUM_APPLETS; i++) {
 		printf("\"%s\" \"\\0\"\n", applets[i].name);
+		if (MAX_APPLET_NAME_LEN < strlen(applets[i].name))
+			MAX_APPLET_NAME_LEN = strlen(applets[i].name);
 	}
 	puts(";");
 
-	puts("int (*const applet_main[])(int argc, char **argv) = {");
+	puts("\nint (*const applet_main[])(int argc, char **argv) = {");
 	for (i = 0; i < NUM_APPLETS; i++) {
 		printf("%s_main,\n", applets[i].main);
 	}
@@ -113,8 +117,10 @@ int main(int argc, char **argv)
 		printf("0x%02x,\n", v);
 		i++;
 	}
-	puts("};");
+	puts("};\n");
 #endif
+
+	printf("#define MAX_APPLET_NAME_LEN %u\n", MAX_APPLET_NAME_LEN);
 
 	return 0;
 }

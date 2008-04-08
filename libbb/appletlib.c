@@ -12,6 +12,21 @@
  * Licensed under GPLv2 or later, see file License in this tarball for details.
  */
 
+/* We are trying to not use printf, this benefits the case when selected
+ * applets are really simple. Example:
+ *
+ * $ ./busybox
+ * ...
+ * Currently defined functions:
+ *         basename, false, true
+ *
+ * $ size busybox
+ *    text    data     bss     dec     hex filename
+ *    4473      52      72    4597    11f5 busybox
+ *
+ * FEATURE_INSTALLER or FEATURE_SUID will still link printf routines in. :(
+ */
+
 #include <assert.h>
 #include "busybox.h"
 
@@ -81,6 +96,11 @@ static const char *unpack_usage_messages(void)
 #endif /* FEATURE_COMPRESS_USAGE */
 
 
+static void full_write2_str(const char *str)
+{
+	full_write(2, str, strlen(str));
+}
+
 void bb_show_usage(void)
 {
 	if (ENABLE_SHOW_USAGE) {
@@ -90,18 +110,14 @@ void bb_show_usage(void)
 		const char *usage_string = p = unpack_usage_messages();
 
 		if (*p == '\b') {
-			write(2, "\nNo help available.\n\n",
-				sizeof("\nNo help available.\n\n") - 1);
+			full_write2_str("\nNo help available.\n\n");
 		} else {
-			write(2, "\nUsage: "SINGLE_APPLET_STR" ",
-				sizeof("\nUsage: "SINGLE_APPLET_STR" ") - 1);
-			write(2, p, strlen(p));
-			write(2, "\n\n", 2);
+			full_write2_str("\nUsage: "SINGLE_APPLET_STR" ");
+			full_write2_str(p);
+			full_write2_str("\n\n");
 		}
 		dealloc_usage_messages((char*)usage_string);
 #else
-// TODO: in this case, stdio is sucked in by busybox_main() anyway...
-		const char *format_string;
 		const char *p;
 		const char *usage_string = p = unpack_usage_messages();
 		int ap = find_applet_by_name(applet_name);
@@ -112,32 +128,52 @@ void bb_show_usage(void)
 			while (*p++) continue;
 			ap--;
 		}
-		fprintf(stderr, "%s multi-call binary\n", bb_banner);
-		format_string = "\nUsage: %s %s\n\n";
+		full_write2_str(bb_banner);
+		full_write2_str(" multi-call binary\n");
 		if (*p == '\b')
-			format_string = "\nNo help available.\n\n";
-		fprintf(stderr, format_string, applet_name, p);
+			full_write2_str("\nNo help available.\n\n");
+		else {
+			full_write2_str("\nUsage: ");
+			full_write2_str(applet_name);
+			full_write2_str(" ");
+			full_write2_str(p);
+			full_write2_str("\n\n");
+		}
 		dealloc_usage_messages((char*)usage_string);
 #endif
 	}
 	xfunc_die();
 }
 
-
+#if NUM_APPLETS > 8
 /* NB: any char pointer will work as well, not necessarily applet_names */
 static int applet_name_compare(const void *name, const void *v)
 {
 	int i = (const char *)v - applet_names;
 	return strcmp(name, APPLET_NAME(i));
 }
+#endif
 int find_applet_by_name(const char *name)
 {
+#if NUM_APPLETS > 8
 	/* Do a binary search to find the applet entry given the name. */
 	const char *p;
 	p = bsearch(name, applet_names, ARRAY_SIZE(applet_main), 1, applet_name_compare);
 	if (!p)
 		return -1;
 	return p - applet_names;
+#else
+	/* A version which does not pull in bsearch */
+	int i = 0;
+	const char *p = applet_names;
+	while (i < NUM_APPLETS) {
+		if (strcmp(name, p) == 0)
+			return i;
+		p += strlen(p) + 1;
+		i++;
+	}
+	return -1;
+#endif
 }
 
 
@@ -604,10 +640,11 @@ static int busybox_main(char **argv)
 			get_terminal_width_height(0, &output_width, NULL);
 		}
 		/* leading tab and room to wrap */
-		output_width -= sizeof("start-stop-daemon, ") + 8;
+		output_width -= MAX_APPLET_NAME_LEN + 8;
 
-		printf("%s multi-call binary\n", bb_banner); /* reuse const string... */
-		printf("Copyright (C) 1998-2007 Erik Andersen, Rob Landley, Denys Vlasenko\n"
+		full_write2_str(bb_banner); /* reuse const string... */
+		full_write2_str(" multi-call binary\n"
+		       "Copyright (C) 1998-2007 Erik Andersen, Rob Landley, Denys Vlasenko\n"
 		       "and others. Licensed under GPLv2.\n"
 		       "See source distribution for full notice.\n"
 		       "\n"
@@ -623,14 +660,18 @@ static int busybox_main(char **argv)
 		col = 0;
 		a = applet_names;
 		while (*a) {
+			int len;
 			if (col > output_width) {
-				puts(",");
+				full_write2_str(",\n");
 				col = 0;
 			}
-			col += printf("%s%s", (col ? ", " : "\t"), a);
-			a += strlen(a) + 1;
+			full_write2_str(col ? ", " : "\t");
+			full_write2_str(a);
+			len = strlen(a);
+			col += len + 2;
+			a += len + 1;
 		}
-		puts("\n");
+		full_write2_str("\n\n");
 		return 0;
 	}
 
@@ -659,7 +700,11 @@ static int busybox_main(char **argv)
 	 * "#!/bin/busybox"-style wrappers */
 	applet_name = bb_get_last_path_component_nostrip(argv[0]);
 	run_applet_and_exit(applet_name, argv);
-	bb_error_msg_and_die("applet not found");
+
+	/*bb_error_msg_and_die("applet not found"); - sucks in printf */
+	full_write2_str(applet_name);
+	full_write2_str(": applet not found\n");
+	xfunc_die();
 }
 
 void run_applet_no_and_exit(int applet_no, char **argv)
@@ -701,7 +746,8 @@ int main(int argc ATTRIBUTE_UNUSED, char **argv)
 {
 #if ENABLE_FEATURE_INDIVIDUAL
 	/* Only one applet is selected by the user! */
-	lbb_prepare(SINGLE_APPLET_STR USE_FEATURE_INDIVIDUAL(, argv));
+	/* applet_names in this case is just "applet\0\0" */
+	lbb_prepare(applet_names USE_FEATURE_INDIVIDUAL(, argv));
 	return SINGLE_APPLET_MAIN(argc, argv);
 #else
 	lbb_prepare("busybox" USE_FEATURE_INDIVIDUAL(, argv));
@@ -721,6 +767,10 @@ int main(int argc ATTRIBUTE_UNUSED, char **argv)
 	parse_config_file(); /* ...maybe, if FEATURE_SUID_CONFIG */
 
 	run_applet_and_exit(applet_name, argv);
-	bb_error_msg_and_die("applet not found");
+
+	/*bb_error_msg_and_die("applet not found"); - sucks in printf */
+	full_write2_str(applet_name);
+	full_write2_str(": applet not found\n");
+	xfunc_die();
 #endif
 }
