@@ -560,6 +560,7 @@ getopt32(char **argv, const char *applet_opts, ...)
 				llist_add_to_end((llist_t **)(on_off->optarg), optarg);
 		} else if (on_off->param_type == PARAM_INT) {
 			if (optarg)
+//TODO: xatoi_u indirectly pulls in printf machinery
 				*(unsigned*)(on_off->optarg) = xatoi_u(optarg);
 		} else if (on_off->optarg) {
 			if (optarg)

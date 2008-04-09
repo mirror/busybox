@@ -101,6 +101,7 @@ lib-y += wfopen_input.o
 lib-y += xatonum.o
 lib-y += xconnect.o
 lib-y += xfuncs.o
+lib-y += xfuncs_printf.o
 lib-y += xfunc_die.o
 lib-y += xgetcwd.o
 lib-y += xgethostbyname.o
