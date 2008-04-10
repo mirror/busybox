@@ -5,6 +5,7 @@
  * Written 2000 by Andi Kleen.
  * Busybox port 2002 by Nick Fedchik <nick@fedchik.org.ua>
  *			Glenn McGrath
+ * Extended matching support 2008 by Nico Erfurth <masta@perlgolf.de>
  *
  * Licensed under the GPL v2 or later, see the file LICENSE in this tarball.
  */
@@ -93,12 +94,10 @@ static void nameif_parse_selector(ethtable_t *ch, char *selector)
 			found_selector++;
 		} else {
 #endif
-			lmac = ether_aton(selector + (strncmp(selector, "mac=", 4) == 0 ? 4 : 0));
-			/* Check ascii selector, convert and copy to *mac */
-			if (lmac == NULL)
+			lmac = xmalloc(ETH_ALEN);
+			ch->mac = ether_aton_r(selector + (strncmp(selector, "mac=", 4) ? 0 : 4), lmac);
+			if (ch->mac == NULL)
 				bb_error_msg_and_die("cannot parse %s", selector);
-			ch->mac = xmalloc(ETH_ALEN);
-			memcpy(ch->mac, lmac, ETH_ALEN);
 #if  ENABLE_FEATURE_NAMEIF_EXTENDED
 			found_selector++;
 		};
@@ -115,13 +114,28 @@ static void prepend_new_eth_table(ethtable_t **clist, char *ifname, char *select
 	if (strlen(ifname) >= IF_NAMESIZE)
 		bb_error_msg_and_die("interface name '%s' too long", ifname);
 	ch = xzalloc(sizeof(*ch));
-	ch->ifname = ifname;
+	ch->ifname = xstrdup(ifname);
 	nameif_parse_selector(ch, selector);
 	ch->next = *clist;
 	if (*clist)
 		(*clist)->prev = ch;
 	*clist = ch;
 }
+
+#if ENABLE_FEATURE_CLEAN_UP
+static void delete_eth_table(ethtable_t *ch)
+{
+	free(ch->ifname);
+#if ENABLE_FEATURE_NAMEIF_EXTENDED
+	free(ch->bus_info);
+	free(ch->driver);
+#endif
+	free(ch->mac);
+	free(ch);
+};
+#else
+void delete_eth_table(ethtable_t *ch);
+#endif
 
 int nameif_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int nameif_main(int argc, char **argv)
@@ -156,14 +170,13 @@ int nameif_main(int argc, char **argv)
 			char *next;
 
 			line_ptr = skip_whitespace(line);
-			if ((line_ptr[0] == '#') || (line_ptr[0] == '\n')) {
-				free(line);
-				continue;
-			}
+			if ((line_ptr[0] == '#') || (line_ptr[0] == '\n'))
+				goto read_next_line;
 			next = skip_non_whitespace(line_ptr);
 			if (*next)
 				*next++ = '\0';
 			prepend_new_eth_table(&clist, line_ptr, next);
+			read_next_line:
 			free(line);
 		}
 		fclose(ifh);
@@ -187,7 +200,7 @@ int nameif_main(int argc, char **argv)
 
 		/* Find the current interface name and copy it to ifr.ifr_name */
 		line_ptr = skip_whitespace(line);
-		*skip_non_whitespace(line_ptr) = '\0';
+		*strpbrk(line_ptr, " \t\n:") = '\0';
 
 		memset(&ifr, 0, sizeof(struct ifreq));
 		strncpy(ifr.ifr_name, line_ptr, sizeof(ifr.ifr_name));
@@ -230,16 +243,15 @@ int nameif_main(int argc, char **argv)
 		else
 			clist = ch->next;
 		if (ch->next != NULL)
-			ch->next->prev = ch->prev;
-		if (ENABLE_FEATURE_CLEAN_UP) {
-			free(ch->ifname);
-			free(ch->mac);
-			free(ch);
-		}
+		ch->next->prev = ch->prev;
+		if (ENABLE_FEATURE_CLEAN_UP)
+			delete_eth_table(ch);
  next_line:
 		free(line);
 	}
 	if (ENABLE_FEATURE_CLEAN_UP) {
+		for (ch = clist; ch; ch = ch->next)
+			delete_eth_table(ch);
 		fclose(ifh);
 	};
 
