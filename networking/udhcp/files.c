@@ -26,13 +26,11 @@ static int read_ip(const char *line, void *arg)
 
 static int read_mac(const char *line, void *arg)
 {
-	uint8_t *mac_bytes = arg;
 	struct ether_addr *temp_ether_addr;
 
-	temp_ether_addr = ether_aton(line);
+	temp_ether_addr = ether_aton_r(line, (struct ether_addr *)arg);
 	if (temp_ether_addr == NULL)
 		return 0;
-	memcpy(mac_bytes, temp_ether_addr, 6);
 	return 1;
 }
 
