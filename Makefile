@@ -361,7 +361,8 @@ endif
 # of make so .config is not included in this case either (for *config).
 
 no-dot-config-targets := clean mrproper distclean \
-			 cscope TAGS tags help %docs check%
+			 cscope TAGS tags help %docs
+#bbox# check% is removed from above
 
 config-targets := 0
 mixed-targets  := 0

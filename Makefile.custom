@@ -46,9 +46,13 @@ ifneq ($(strip $(DO_INSTALL_LIBS)),n)
 	done
 endif
 
+# Not very elegant: copies testsuite to objdir...
+.PHONY: check
+.PHONY: test
 check test: busybox busybox.links
-	bindir=$(objtree) srcdir=$(srctree)/testsuite SED="$(SED)" \
-	$(SHELL) $(srctree)/testsuite/runtest $(if $(KBUILD_VERBOSE:0=),-v)
+	test -d $(objtree)/testsuite || cp -a $(srctree)/testsuite $(objtree)
+	bindir=$(objtree) srcdir=$(srctree)/testsuite \
+	$(SHELL) -c "cd $(objtree)/testsuite && $(srctree)/testsuite/runtest $(if $(KBUILD_VERBOSE:0=),-v)"
 
 .PHONY: release
 release: distclean
