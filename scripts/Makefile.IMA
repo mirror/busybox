@@ -145,8 +145,10 @@ include libbb/Kbuild
 lib-all-y += $(patsubst %,libbb/%,$(sort $(lib-y)))
 lib-y:=
 
+comma:=,
 busybox: $(usage_stuff) include/applet_tables.h
 	$(CC) $(CPPFLAGS) $(CFLAGS) $(EXTRA_CFLAGS) \
+		$(patsubst %,-Wl$(comma)%,$(LDFLAGS) $(EXTRA_LDFLAGS)) \
 		-DGCC_COMBINE=1 \
 		--combine $(WHOLE_PROGRAM) \
 		-funit-at-a-time -Wno-error -std=gnu99  \
