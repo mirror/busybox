@@ -47,10 +47,11 @@ ifneq ($(strip $(DO_INSTALL_LIBS)),n)
 endif
 
 # Not very elegant: copies testsuite to objdir...
+# (cp -pPR is POSIX-compliant (cp -dpR or cp -a would not be))
 .PHONY: check
 .PHONY: test
 check test: busybox busybox.links
-	test -d $(objtree)/testsuite || cp -a $(srctree)/testsuite $(objtree)
+	test -d $(objtree)/testsuite || cp -pPR $(srctree)/testsuite $(objtree)
 	bindir=$(objtree) srcdir=$(srctree)/testsuite \
 	$(SHELL) -c "cd $(objtree)/testsuite && $(srctree)/testsuite/runtest $(if $(KBUILD_VERBOSE:0=),-v)"
 
@@ -58,7 +59,7 @@ check test: busybox busybox.links
 release: distclean
 	cd ..; \
 	rm -r -f busybox-$(VERSION).$(PATCHLEVEL).$(SUBLEVEL)$(EXTRAVERSION); \
-	cp -a busybox busybox-$(VERSION).$(PATCHLEVEL).$(SUBLEVEL)$(EXTRAVERSION) && { \
+	cp -pPR busybox busybox-$(VERSION).$(PATCHLEVEL).$(SUBLEVEL)$(EXTRAVERSION) && { \
 	find busybox-$(VERSION).$(PATCHLEVEL).$(SUBLEVEL)$(EXTRAVERSION)/ -type d \
 		-name .svn \
 		-print \

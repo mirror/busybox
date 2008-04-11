@@ -44,7 +44,7 @@ int cp_main(int argc, char **argv)
 	// Soft- and hardlinking don't mix
 	// -P and -d are the same (-P is POSIX, -d is GNU)
 	// -r and -R are the same
-	// -R (and therefore -r) switches on -d (coreutils does this)
+	// -R (and therefore -r) turns on -d (coreutils does this)
 	// -a = -pdR
 	opt_complementary = "-2:l--s:s--l:Pd:rRd:Rd:apdR";
 	flags = getopt32(argv, FILEUTILS_CP_OPTSTR "arPHL");
