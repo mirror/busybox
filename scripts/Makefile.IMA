@@ -132,6 +132,9 @@ lib-y:=
 include editors/Kbuild
 lib-all-y += $(patsubst %,editors/%,$(sort $(lib-y)))
 lib-y:=
+include ipsvd/Kbuild
+lib-all-y += $(patsubst %,ipsvd/%,$(sort $(lib-y)))
+lib-y:=
 include printutils/Kbuild
 lib-all-y += $(patsubst %,printutils/%,$(sort $(lib-y)))
 lib-y:=
