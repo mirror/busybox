@@ -26,7 +26,6 @@ OBJDUMP         = $(CROSS_COMPILE)objdump
 
 CFLAGS := $(CFLAGS)
 CPPFLAGS+= -D"KBUILD_STR(s)=\#s" #-Q
-WHOLE_PROGRAM:=$(call cc-option,-fwhole-program,)
 
 include .config
 # We need some generic definitions
@@ -41,6 +40,7 @@ ifndef BB_VER
 BB_VER:=""
 endif
 
+WHOLE_PROGRAM:=$(call cc-option,-fwhole-program,)
 
 # pull in the config stuff
 lib-all-y := applets/applets.o
