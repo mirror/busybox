@@ -145,8 +145,10 @@ include libbb/Kbuild
 lib-all-y += $(patsubst %,libbb/%,$(sort $(lib-y)))
 lib-y:=
 
-busybox: $(usage_stuff)
-	$(CC) $(CPPFLAGS) $(CFLAGS) $(EXTRA_CFLAGS) --combine $(WHOLE_PROGRAM) \
+busybox: $(usage_stuff) include/applet_tables.h
+	$(CC) $(CPPFLAGS) $(CFLAGS) $(EXTRA_CFLAGS) \
+		-DGCC_COMBINE=1 \
+		--combine $(WHOLE_PROGRAM) \
 		-funit-at-a-time -Wno-error -std=gnu99  \
 		-o $(@)_unstripped $(lib-all-y:.o=.c) \
 		-Wl,--start-group -lcrypt -lm -Wl,--end-group
@@ -154,7 +156,13 @@ busybox: $(usage_stuff)
 	-$(STRIP) -s -R .note -R .comment -R .version $@
 
 applets/usage:
-	$(HOSTCC) -Wall -Wstrict-prototypes -O2 -fomit-frame-pointer      -I$(srctree)/include -o applets/usage applets/usage.c
+	$(HOSTCC) -Wall -Wstrict-prototypes -O2 -fomit-frame-pointer -I$(srctree)/include -o applets/usage applets/usage.c
+
+applets/applet_tables:
+	$(HOSTCC) -Wall -Wstrict-prototypes -O2 -fomit-frame-pointer -I$(srctree)/include -o applets/applet_tables applets/applet_tables.c
+
 include/usage_compressed.h: $(srctree)/include/usage.h applets/usage
 	$(srctree)/applets/usage_compressed include/usage_compressed.h applets
 
+include/applet_tables.h: $(srctree)/include/applets.h
+	applets/applet_tables include/applet_tables.h
