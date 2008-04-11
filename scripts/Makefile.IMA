@@ -6,11 +6,41 @@ objtree		:= $(CURDIR)
 src		:= $(srctree)
 obj		:= $(objtree)
 
+# Look for make include files relative to root of kernel src
+MAKEFLAGS += --include-dir=$(srctree)
+
 default: busybox
+
+ifndef HOSTCC
+HOSTCC = cc
+endif
+AS              = $(CROSS_COMPILE)as
+CC              = $(CROSS_COMPILE)gcc
+LD              = $(CC) -nostdlib
+CPP             = $(CC) -E
+AR              = $(CROSS_COMPILE)ar
+NM              = $(CROSS_COMPILE)nm
+STRIP           = $(CROSS_COMPILE)strip
+OBJCOPY         = $(CROSS_COMPILE)objcopy
+OBJDUMP         = $(CROSS_COMPILE)objdump
+
+CFLAGS := $(CFLAGS)
+CPPFLAGS+= -D"KBUILD_STR(s)=\#s" #-Q
+WHOLE_PROGRAM:=$(call cc-option,-fwhole-program,)
+
 include .config
+# We need some generic definitions
+include $(srctree)/scripts/Kbuild.include
+
+include Makefile.flags
 ifdef CONFIG_FEATURE_COMPRESS_USAGE
 usage_stuff = include/usage_compressed.h
 endif
+
+ifndef BB_VER
+BB_VER:=""
+endif
+
 
 # pull in the config stuff
 lib-all-y := applets/applets.o
@@ -109,25 +139,6 @@ include libbb/Kbuild
 lib-all-y += $(patsubst %,libbb/%,$(sort $(lib-y)))
 lib-y:=
 
-include Makefile.flags
-ifndef BB_VER
-BB_VER:=""
-endif
-
-CPPFLAGS+= -D"KBUILD_STR(s)=\#s" #-Q
-
-HOSTCC = gcc
-AS              = $(CROSS_COMPILE)as
-CC              = $(CROSS_COMPILE)gcc
-LD              = $(CC) -nostdlib
-CPP             = $(CC) -E
-AR              = $(CROSS_COMPILE)ar
-NM              = $(CROSS_COMPILE)nm
-STRIP           = $(CROSS_COMPILE)strip
-OBJCOPY         = $(CROSS_COMPILE)objcopy
-OBJDUMP         = $(CROSS_COMPILE)objdump
-
-WHOLE_PROGRAM:=$(call cc-option,-fwhole-program,)
 busybox: $(usage_stuff)
 	$(CC) $(CPPFLAGS) $(CFLAGS) $(EXTRA_CFLAGS) --combine $(WHOLE_PROGRAM) \
 		-funit-at-a-time -Wno-error -std=gnu99  \
