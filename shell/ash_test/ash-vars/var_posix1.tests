@@ -1,0 +1,13 @@
+var=ababcdcd
+
+echo ${var#ab}
+echo ${var#a*b}
+echo ${var##ab}
+echo ${var##a*b}
+echo ${var#?}
+
+echo ${var%cd}
+echo ${var%c*d}
+echo ${var%%cd}
+echo ${var%%c*d}
+echo ${var%?}
