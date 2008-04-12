@@ -8747,6 +8747,24 @@ evalcommand(union node *cmd, int flags)
 	/* Execute the command. */
 	switch (cmdentry.cmdtype) {
 	default:
+
+#if ENABLE_FEATURE_SH_NOFORK
+		{
+		/* TODO: don't rerun find_applet_by_name, find_command
+		 * already did it. Make it save applet_no somewhere */
+		int applet_no = find_applet_by_name(argv[0]);
+		if (applet_no >= 0 && APPLET_IS_NOFORK(applet_no)) {
+			struct nofork_save_area nofork_save;
+
+			listsetvar(varlist.list, VEXPORT|VSTACK);
+			save_nofork_data(&nofork_save);
+			/* run <applet>_main(), then restore nofork_save_area */
+			exitstatus = run_nofork_applet_prime(&nofork_save, applet_no, argv) & 0xff;
+			break;
+		}
+		}
+#endif
+
 		/* Fork off a child process if necessary. */
 		if (!(flags & EV_EXIT) || trap[0]) {
 			INT_OFF;

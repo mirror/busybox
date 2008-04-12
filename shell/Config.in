@@ -287,6 +287,23 @@ config FEATURE_SH_STANDALONE
 #	  that exact location with that exact name, this option will not work at
 #	  all.
 
+config FEATURE_SH_NOFORK
+	bool "Run 'nofork' applets directly"
+	default n
+	depends on (MSH || LASH || HUSH || ASH) && FEATURE_PREFER_APPLETS
+	help
+	  This option causes busybox shells [currently only ash]
+	  to not execute typical fork/exec/wait sequence, but call <applet>_main
+	  directly, if possible. (Sometimes it is not possible: for example,
+	  this is not possible in pipes).
+
+	  This will be done only for some applets (those which are marked
+	  NOFORK in include/applets.h).
+
+	  This may significantly speed up some shell scripts.
+
+	  This feature is relatively new. Use with care.
+
 config CTTYHACK
 	bool "cttyhack"
 	default n
