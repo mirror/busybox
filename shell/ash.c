@@ -6881,21 +6881,18 @@ static int builtinloc = -1;     /* index in path of %builtin, or -1 */
 
 
 static void
-tryexec(char *cmd, char **argv, char **envp)
+tryexec(USE_FEATURE_SH_STANDALONE(int applet_no,) char *cmd, char **argv, char **envp)
 {
 	int repeated = 0;
 
 #if ENABLE_FEATURE_SH_STANDALONE
-	if (strchr(cmd, '/') == NULL) {
-		int a = find_applet_by_name(cmd);
-		if (a >= 0) {
-			if (APPLET_IS_NOEXEC(a))
-				run_applet_no_and_exit(a, argv);
-			/* re-exec ourselves with the new arguments */
-			execve(bb_busybox_exec_path, argv, envp);
-			/* If they called chroot or otherwise made the binary no longer
-			 * executable, fall through */
-		}
+	if (applet_no >= 0) {
+		if (APPLET_IS_NOEXEC(applet_no))
+			run_applet_no_and_exit(applet_no, argv);
+		/* re-exec ourselves with the new arguments */
+		execve(bb_busybox_exec_path, argv, envp);
+		/* If they called chroot or otherwise made the binary no longer
+		 * executable, fall through */
 	}
 #endif
 
@@ -6931,7 +6928,6 @@ tryexec(char *cmd, char **argv, char **envp)
  * Exec a program.  Never returns.  If you change this routine, you may
  * have to change the find_command routine as well.
  */
-#define environment() listvars(VEXPORT, VUNSET, 0)
 static void shellexec(char **, const char *, int) ATTRIBUTE_NORETURN;
 static void
 shellexec(char **argv, const char *path, int idx)
@@ -6940,21 +6936,24 @@ shellexec(char **argv, const char *path, int idx)
 	int e;
 	char **envp;
 	int exerrno;
+#if ENABLE_FEATURE_SH_STANDALONE
+	int applet_no = -1;
+#endif
 
 	clearredir(1);
-	envp = environment();
-	if (strchr(argv[0], '/')
+	envp = listvars(VEXPORT, VUNSET, 0);
+	if (strchr(argv[0], '/') != NULL
 #if ENABLE_FEATURE_SH_STANDALONE
-	 || find_applet_by_name(argv[0]) >= 0
+	 || (applet_no = find_applet_by_name(argv[0])) >= 0
 #endif
 	) {
-		tryexec(argv[0], argv, envp);
+		tryexec(USE_FEATURE_SH_STANDALONE(applet_no,) argv[0], argv, envp);
 		e = errno;
 	} else {
 		e = ENOENT;
 		while ((cmdname = padvance(&path, argv[0])) != NULL) {
 			if (--idx < 0 && pathopt == NULL) {
-				tryexec(cmdname, argv, envp);
+				tryexec(USE_FEATURE_SH_STANDALONE(-1,) cmdname, argv, envp);
 				if (errno != ENOENT && errno != ENOTDIR)
 					e = errno;
 			}
@@ -11630,11 +11629,10 @@ find_command(char *name, struct cmdentry *entry, int act, const char *path)
 				if (bcmd)
 					goto builtin_success;
 				continue;
-			} else if (!(act & DO_NOFUNC)
-			 && prefix(pathopt, "func")) {
-				/* handled below */
-			} else {
-				/* ignore unimplemented options */
+			}
+			if ((act & DO_NOFUNC)
+			 || !prefix(pathopt, "func")
+			) {	/* ignore unimplemented options */
 				continue;
 			}
 		}
