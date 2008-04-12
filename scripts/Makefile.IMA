@@ -146,21 +146,36 @@ lib-all-y += $(patsubst %,libbb/%,$(sort $(lib-y)))
 lib-y:=
 
 comma:=,
-busybox: $(usage_stuff) include/applet_tables.h
+busybox_unstripped.o: $(usage_stuff) include/applet_tables.h include/autoconf.h
 	$(CC) $(CPPFLAGS) $(CFLAGS) $(EXTRA_CFLAGS) \
 		$(patsubst %,-Wl$(comma)%,$(LDFLAGS) $(EXTRA_LDFLAGS)) \
 		-DGCC_COMBINE=1 \
 		--combine $(WHOLE_PROGRAM) \
 		-funit-at-a-time -Wno-error -std=gnu99  \
-		-o $(@)_unstripped $(lib-all-y:.o=.c) \
-		-Wl,--start-group -lcrypt -lm -Wl,--end-group
+		-c -o busybox_unstripped.o \
+		$(lib-all-y:.o=.c)
+
+busybox: busybox_unstripped.o
+	$(srctree)/scripts/trylink \
+		busybox_unstripped \
+		"$(CC)" \
+		"$(CFLAGS)" \
+		"$(LDFLAGS)" \
+		"busybox_unstripped.o" \
+		"" \
+		"crypt m"
 	cp -f $(@)_unstripped $@
 	-$(STRIP) -s -R .note -R .comment -R .version $@
 
-applets/usage:
+# If .config is newer than include/autoconf.h, someone tinkered
+# with it and forgot to run make oldconfig.
+include/autoconf.h: .config
+	$(MAKE) -f $(srctree)/Makefile silentoldconfig
+
+applets/usage: include/autoconf.h
 	$(HOSTCC) -Wall -Wstrict-prototypes -O2 -fomit-frame-pointer -I$(srctree)/include -o applets/usage applets/usage.c
 
-applets/applet_tables:
+applets/applet_tables: include/autoconf.h
 	$(HOSTCC) -Wall -Wstrict-prototypes -O2 -fomit-frame-pointer -I$(srctree)/include -o applets/applet_tables applets/applet_tables.c
 
 include/usage_compressed.h: $(srctree)/include/usage.h applets/usage
