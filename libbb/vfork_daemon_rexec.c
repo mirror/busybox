@@ -148,9 +148,9 @@ int run_nofork_applet_prime(struct nofork_save_area *old, int applet_no, char **
 		rc = applet_main[applet_no](argc, tmp_argv);
 
 	/* The whole reason behind nofork_save_area is that <applet>_main
-	 * may exit non-locally! For example, in hush Ctrl-Z tries to
-	 * (modulo bugs) to dynamically create child (backgrounded task)
-	 * if it detects that Ctrl-Z was pressed when a NOFORK was running!
+	 * may exit non-locally! For example, in hush Ctrl-Z tries
+	 * (modulo bugs) to dynamically create a child (backgrounded task)
+	 * if it detects that Ctrl-Z was pressed when a NOFORK was running.
 	 * Testcase: interactive "rm -i".
 	 * Don't fool yourself into thinking "and <applet>_main() returns
 	 * quickly here" and removing "useless" nofork_save_area code. */
