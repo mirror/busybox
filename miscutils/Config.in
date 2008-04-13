@@ -372,6 +372,12 @@ config FEATURE_MAKEDEVS_TABLE
 
 endchoice
 
+config MAN
+	bool "man"
+	default n
+	help
+	  Format and display manual pages.
+
 config MICROCOM
 	bool "microcom"
 	default n

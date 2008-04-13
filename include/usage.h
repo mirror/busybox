@@ -2300,6 +2300,14 @@
        "/dev/hda[0-15]\n"
 #endif
 
+#define man_trivial_usage \
+       "[OPTION]... [MANPAGE]..."
+#define man_full_usage \
+       "Format and display manual page\n" \
+     "\nOptions:" \
+     "\n	-a      Display all pages" \
+     "\n	-w	Show page locations" \
+
 #define matchpathcon_trivial_usage \
        "[-n] [-N] [-f file_contexts_file] [-p prefix] [-V]"
 #define matchpathcon_full_usage \
