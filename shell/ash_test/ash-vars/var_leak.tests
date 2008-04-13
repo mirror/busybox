@@ -1,0 +1,9 @@
+# This currently fails with CONFIG_FEATURE_SH_NOFORK=y
+VAR=''
+VAR=qwe true
+echo "should be empty: '$VAR'"
+
+# This fails (always)
+VAR=''
+VAR=qwe exec 2>&1
+echo "should be empty: '$VAR'"
