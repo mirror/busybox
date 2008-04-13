@@ -6828,9 +6828,13 @@ struct builtincmd {
 #define IS_BUILTIN_ASSIGN(b)  ((b)->name[0] & 4)
 
 struct cmdentry {
-	int cmdtype;
+	smallint cmdtype;       /* CMDxxx */
 	union param {
 		int index;
+		/* index >= 0 for commands without path (slashes) */
+		/* (TODO: what exactly does the value mean? PATH position?) */
+		/* index == -1 for commands with slashes */
+		/* index == (-2 - applet_no) for NOFORK applets */
 		const struct builtincmd *cmd;
 		struct funcnode *func;
 	} u;
@@ -6867,7 +6871,7 @@ static void find_command(char *, struct cmdentry *, int, const char *);
 struct tblentry {
 	struct tblentry *next;  /* next entry in hash chain */
 	union param param;      /* definition of builtin function */
-	short cmdtype;          /* index identifying command */
+	smallint cmdtype;       /* CMDxxx */
 	char rehash;            /* if set, cd done since entry created */
 	char cmdname[ARB];      /* name of command */
 };
@@ -7355,7 +7359,7 @@ describe_command(char *command, int describe_command_verbose)
 	case CMDNORMAL: {
 		int j = entry.u.index;
 		char *p;
-		if (j == -1) {
+		if (j < 0) {
 			p = command;
 		} else {
 			do {
@@ -8747,22 +8751,17 @@ evalcommand(union node *cmd, int flags)
 	/* Execute the command. */
 	switch (cmdentry.cmdtype) {
 	default:
-
 #if ENABLE_FEATURE_SH_NOFORK
-		{
-		/* TODO: don't rerun find_applet_by_name, find_command
-		 * already did it. Make it save applet_no somewhere */
-		int applet_no = find_applet_by_name(argv[0]);
+	{
+		/* find_command() encodes applet_no as (-2 - applet_no) */
+		int applet_no = (- cmdentry.u.index - 2);
 		if (applet_no >= 0 && APPLET_IS_NOFORK(applet_no)) {
-			struct nofork_save_area nofork_save;
-
 			listsetvar(varlist.list, VEXPORT|VSTACK);
-			save_nofork_data(&nofork_save);
-			/* run <applet>_main(), then restore nofork_save_area */
-			exitstatus = run_nofork_applet_prime(&nofork_save, applet_no, argv) & 0xff;
+			/* run <applet>_main() */
+			exitstatus = run_nofork_applet(applet_no, argv);
 			break;
 		}
-		}
+	}
 #endif
 
 		/* Fork off a child process if necessary. */
@@ -11618,10 +11617,13 @@ find_command(char *name, struct cmdentry *entry, int act, const char *path)
 	}
 
 #if ENABLE_FEATURE_SH_STANDALONE
-	if (find_applet_by_name(name) >= 0) {
-		entry->cmdtype = CMDNORMAL;
-		entry->u.index = -1;
-		return;
+	{
+		int applet_no = find_applet_by_name(name);
+		if (applet_no >= 0) {
+			entry->cmdtype = CMDNORMAL;
+			entry->u.index = -2 - applet_no;
+			return;
+		}
 	}
 #endif
 
@@ -12691,7 +12693,7 @@ is_right_associativity(operator prec)
 	        || prec == PREC(TOK_CONDITIONAL));
 }
 
-typedef struct ARITCH_VAR_NUM {
+typedef struct {
 	arith_t val;
 	arith_t contidional_second_val;
 	char contidional_second_val_initialized;
@@ -12699,9 +12701,9 @@ typedef struct ARITCH_VAR_NUM {
 			   else is variable name */
 } v_n_t;
 
-typedef struct CHK_VAR_RECURSIVE_LOOPED {
+typedef struct chk_var_recursive_looped_t {
 	const char *var;
-	struct CHK_VAR_RECURSIVE_LOOPED *next;
+	struct chk_var_recursive_looped_t *next;
 } chk_var_recursive_looped_t;
 
 static chk_var_recursive_looped_t *prev_chk_var_recursive;

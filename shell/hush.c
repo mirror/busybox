@@ -1861,7 +1861,7 @@ static int run_pipe(struct pipe *pi)
 				//sp: if (child->sp)
 				argv_expanded = expand_strvec_to_strvec(argv + i);
 				debug_printf_exec(": run_nofork_applet '%s' '%s'...\n", argv_expanded[0], argv_expanded[1]);
-				rcode = run_nofork_applet_prime(&nofork_save, a, argv_expanded) & 0xff;
+				rcode = run_nofork_applet_prime(&nofork_save, a, argv_expanded);
 				free(argv_expanded);
 				restore_redirects(squirrel);
 				debug_printf_exec("run_pipe return %d\n", rcode);
