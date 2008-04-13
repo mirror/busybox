@@ -416,7 +416,7 @@ config READAHEAD
 	  This applet just calls the readahead(2) system call on each file.
 	  It is mainly useful in system startup scripts to preload files
 	  or executables before they are used.  When used at the right time
-	  (in particular when a CPU boundprocess is running) it can
+	  (in particular when a CPU bound process is running) it can
 	  significantly speed up system startup.
 
 	  As readahead(2) blocks until each file has been read, it is best to
