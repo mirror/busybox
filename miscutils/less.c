@@ -384,6 +384,10 @@ static void read_lines(void)
 		linepos = 0;
 	} /* end of "read lines until we reach cur_fline" loop */
 	fill_match_lines(old_max_fline);
+#if ENABLE_FEATURE_LESS_REGEXP
+	/* prevent us from being stuck in search for a match */
+	wanted_match = -1;
+#endif
 #undef readbuf
 }
 
@@ -904,13 +908,8 @@ static void goto_match(int match)
 		match = 0;
 	/* Try to find next match if eof isn't reached yet */
 	if (match >= num_matches && eof_error > 0) {
-		wanted_match = match;
+		wanted_match = match; /* "I want to read until I see N'th match" */
 		read_lines();
-		if (wanted_match >= num_matches) {
-			/* We still failed to find it. Prevent future
-			 * read_lines() from trying... */
-			wanted_match = num_matches - 1;
-		}
 	}
 	if (num_matches) {
 		normalize_match_pos(match);
