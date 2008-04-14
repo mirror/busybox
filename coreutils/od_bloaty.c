@@ -508,10 +508,10 @@ check_and_close(void)
 }
 
 /* If S points to a single valid modern od format string, put
-   a description of that format in *TSPEC, make *NEXT point at the
-   character following the just-decoded format (if *NEXT is non-NULL),
-   and return zero.  For example, if S were "d4afL"
-   *NEXT would be set to "afL" and *TSPEC would be
+   a description of that format in *TSPEC, return pointer to
+   character following the just-decoded format.
+   For example, if S were "d4afL", we will return a rtp to "afL"
+   and *TSPEC would be
 	{
 		fmt = SIGNED_DECIMAL;
 		size = INT or LONG; (whichever integral_type_size[4] resolves to)
@@ -521,9 +521,8 @@ check_and_close(void)
    S_ORIG is solely for reporting errors.  It should be the full format
    string argument. */
 
-static void
-decode_one_format(const char *s_orig, const char *s, const char **next,
-					   struct tspec *tspec)
+static const char *
+decode_one_format(const char *s_orig, const char *s, struct tspec *tspec)
 {
 	enum size_spec size_spec;
 	unsigned size;
@@ -536,7 +535,6 @@ decode_one_format(const char *s_orig, const char *s, const char **next,
 	unsigned field_width = 0;
 	int pos;
 
-	assert(tspec != NULL);
 
 	switch (*s) {
 	case 'd':
@@ -562,13 +560,14 @@ decode_one_format(const char *s_orig, const char *s, const char **next,
 				s = end;
 			}
 		} else {
-			static const uint8_t CSIL_sizeof[] = {
+			static const uint8_t CSIL_sizeof[4] = {
 				sizeof(char),
 				sizeof(short),
 				sizeof(int),
 				sizeof(long),
 			};
 			size = CSIL_sizeof[p - CSIL];
+			s++; /* skip C/S/I/L */
 		}
 
 #define ISPEC_TO_FORMAT(Spec, Min_format, Long_format, Max_format) \
@@ -716,8 +715,7 @@ decode_one_format(const char *s_orig, const char *s, const char **next,
 	if (tspec->hexl_mode_trailer)
 		s++;
 
-	if (next != NULL)
-		*next = s;
+	return s;
 }
 
 /* Decode the modern od format string S.  Append the decoded
@@ -733,7 +731,7 @@ decode_format_string(const char *s)
 		struct tspec tspec;
 		const char *next;
 
-		decode_one_format(s_orig, s, &next, &tspec);
+		next = decode_one_format(s_orig, s, &tspec);
 
 		assert(s != next);
 		s = next;

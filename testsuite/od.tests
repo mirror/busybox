@@ -1,0 +1,17 @@
+#!/bin/sh
+# Copyright 2008 by Denys Vlasenko
+# Licensed under GPL v2, see file LICENSE for details.
+
+. testing.sh
+
+# testing "test name" "options" "expected result" "file input" "stdin"
+
+testing "od -b" \
+	"echo HELLO | od -b" \
+"\
+0000000 110 105 114 114 117 012
+0000006
+" \
+	"" "HELLO"
+
+exit $FAILCOUNT
