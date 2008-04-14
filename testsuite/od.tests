@@ -7,9 +7,9 @@
 # testing "test name" "options" "expected result" "file input" "stdin"
 
 testing "od -b" \
-	"echo HELLO | od -b" \
+	"od -b" \
 "\
-0000000 110 105 114 114 117 012
+0000000 110 105 114 114 117
 0000006
 " \
 	"" "HELLO"
