@@ -5691,13 +5691,39 @@ static char *
 scanleft(char *startp, char *rmesc, char *rmescend ATTRIBUTE_UNUSED, char *str, int quotes,
 	int zero)
 {
-	char *loc, *loc2, *full;
+// This commented out code was added by James Simmons <jsimmons@infradead.org>
+// as part of a larger change when he added support for ${var/a/b}.
+// However, it broke # and % operators:
+//
+//var=ababcdcd
+//                 ok       bad
+//echo ${var#ab}   abcdcd   abcdcd
+//echo ${var##ab}  abcdcd   abcdcd
+//echo ${var#a*b}  abcdcd   ababcdcd  (!)
+//echo ${var##a*b} cdcd     cdcd
+//echo ${var#?}    babcdcd  ababcdcd  (!)
+//echo ${var##?}   babcdcd  babcdcd
+//echo ${var#*}    ababcdcd babcdcd   (!)
+//echo ${var##*}
+//echo ${var%cd}   ababcd   ababcd
+//echo ${var%%cd}  ababcd   abab      (!)
+//echo ${var%c*d}  ababcd   ababcd
+//echo ${var%%c*d} abab     ababcdcd  (!)
+//echo ${var%?}    ababcdc  ababcdc
+//echo ${var%%?}   ababcdc  ababcdcd  (!)
+//echo ${var%*}    ababcdcd ababcdcd
+//echo ${var%%*}
+//
+// Commenting it back out helped. Remove it completely if it really
+// is not needed.
+
+	char *loc, *loc2; //, *full;
 	char c;
 
 	loc = startp;
 	loc2 = rmesc;
 	do {
-		int match = strlen(str);
+		int match; // = strlen(str);
 		const char *s = loc2;
 
 		c = *loc2;
@@ -5705,23 +5731,24 @@ scanleft(char *startp, char *rmesc, char *rmescend ATTRIBUTE_UNUSED, char *str, 
 			*loc2 = '\0';
 			s = rmesc;
 		}
+		match = pmatch(str, s); // this line was deleted
 
-		// chop off end if its '*'
-		full = strrchr(str, '*');
-		if (full && full != str)
-			match--;
-
-		// If str starts with '*' replace with s.
-		if ((*str == '*') && strlen(s) >= match) {
-			full = xstrdup(s);
-			strncpy(full+strlen(s)-match+1, str+1, match-1);
-		} else
-			full = xstrndup(str, match);
-		match = strncmp(s, full, strlen(full));
-		free(full);
-
+//		// chop off end if its '*'
+//		full = strrchr(str, '*');
+//		if (full && full != str)
+//			match--;
+//
+//		// If str starts with '*' replace with s.
+//		if ((*str == '*') && strlen(s) >= match) {
+//			full = xstrdup(s);
+//			strncpy(full+strlen(s)-match+1, str+1, match-1);
+//		} else
+//			full = xstrndup(str, match);
+//		match = strncmp(s, full, strlen(full));
+//		free(full);
+//
 		*loc2 = c;
-		if (!match)
+		if (match) // if (!match)
 			return loc;
 		if (quotes && *loc == CTLESC)
 			loc++;
