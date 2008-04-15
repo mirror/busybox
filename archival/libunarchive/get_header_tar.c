@@ -217,9 +217,7 @@ char get_header_tar(archive_handle_t *archive_handle)
 	}
 	file_header->link_target = NULL;
 	if (!linkname && parse_names && tar.linkname[0]) {
-		/* we trash magic[0] here, it's ok */
-		tar.linkname[sizeof(tar.linkname)] = '\0';
-		file_header->link_target = xstrdup(tar.linkname);
+		file_header->link_target = xstrndup(tar.linkname, sizeof(tar.linkname));
 		/* FIXME: what if we have non-link object with link_target? */
 		/* Will link_target be free()ed? */
 	}
@@ -237,10 +235,12 @@ char get_header_tar(archive_handle_t *archive_handle)
 	file_header->name = NULL;
 	if (!longname && parse_names) {
 		/* we trash mode[0] here, it's ok */
-		tar.name[sizeof(tar.name)] = '\0';
+		//tar.name[sizeof(tar.name)] = '\0'; - gcc 4.3.0 would complain
+		tar.mode[0] = '\0';
 		if (tar.prefix[0]) {
 			/* and padding[0] */
-			tar.prefix[sizeof(tar.prefix)] = '\0';
+			//tar.prefix[sizeof(tar.prefix)] = '\0'; - gcc 4.3.0 would complain
+			tar.padding[0] = '\0';
 			file_header->name = concat_path_file(tar.prefix, tar.name);
 		} else
 			file_header->name = xstrdup(tar.name);

@@ -588,7 +588,6 @@ static const struct builtincmd builtincmds[] = {
 	{ NULL      , NULL       },
 };
 
-static struct op *scantree(struct op *);
 static struct op *dowholefile(int /*, int*/);
 
 
@@ -1278,6 +1277,7 @@ static int newfile(char *s)
 }
 
 
+#ifdef UNUSED
 struct op *scantree(struct op *head)
 {
 	struct op *dotnode;
@@ -1309,6 +1309,7 @@ struct op *scantree(struct op *head)
 
 	return NULL;
 }
+#endif
 
 
 static void onecommand(void)
