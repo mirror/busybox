@@ -75,7 +75,6 @@ static int send_pack(struct in_addr *src_addr,
 	struct arphdr *ah = (struct arphdr *) buf;
 	unsigned char *p = (unsigned char *) (ah + 1);
 
-	ah->ar_hrd = htons(ME->sll_hatype);
 	ah->ar_hrd = htons(ARPHRD_ETHER);
 	ah->ar_pro = htons(ETH_P_IP);
 	ah->ar_hln = ME->sll_halen;
