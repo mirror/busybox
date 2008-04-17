@@ -36,6 +36,18 @@
 #define LINUX_LVM       0x8e
 #define LINUX_RAID      0xfd
 
+
+enum {
+	OPT_b = 1 << 0,
+	OPT_C = 1 << 1,
+	OPT_H = 1 << 2,
+	OPT_l = 1 << 3,
+	OPT_S = 1 << 4,
+	OPT_u = 1 << 5,
+	OPT_s = (1 << 6) * ENABLE_FEATURE_FDISK_BLKSIZE,
+};
+
+
 /* Used for sector numbers. Today's disk sizes make it necessary */
 typedef unsigned long long ullong;
 
@@ -366,6 +378,13 @@ static ullong bb_BLKGETSIZE_sectors(int fd)
 		s |= (sector >> 2) & 0xc0;   \
 	} while (0)
 
+static void
+close_dev_fd(void)
+{
+	/* Not really closing, but making sure it is open, and to harmless place */
+	xmove_fd(xopen(bb_dev_null, O_RDONLY), dev_fd);
+}
+
 #if ENABLE_FEATURE_FDISK_WRITABLE
 /* read line; return 0 or first printable char */
 static int
@@ -660,7 +679,7 @@ static ullong total_number_of_sectors;
 static void fdisk_fatal(const char *why)
 {
 	if (listing) {
-		close(dev_fd);
+		close_dev_fd();
 		longjmp(listingbuf, 1);
 	}
 	bb_error_msg_and_die(why, disk_device);
@@ -1280,12 +1299,12 @@ static int get_boot(void)
 				return 1;
 			fdisk_fatal(unable_to_open);
 		}
-		xmove_fd(fd, dev_fd);
 		printf("'%s' is opened for read only\n", disk_device);
 	}
+	xmove_fd(fd, dev_fd);
 	if (512 != read(dev_fd, MBRbuffer, 512)) {
 		if (what == TRY_ONLY) {
-			close(dev_fd);
+			close_dev_fd();
 			return 1;
 		}
 		fdisk_fatal(unable_to_read);
@@ -2466,7 +2485,7 @@ reread_partition_table(int leave)
 
 	if (leave) {
 		if (ENABLE_FEATURE_CLEAN_UP)
-			close(dev_fd);
+			close_dev_fd();
 		exit(i != 0);
 	}
 }
@@ -2599,7 +2618,7 @@ xselect(void)
 			break;
 		case 'q':
 			if (ENABLE_FEATURE_CLEAN_UP)
-				close(dev_fd);
+				close_dev_fd();
 			bb_putchar('\n');
 			exit(0);
 		case 'r':
@@ -2708,7 +2727,7 @@ open_list_and_close(const char *device, int user_specified)
 #endif
 	}
  ret:
-	close(dev_fd);
+	close_dev_fd();
 }
 
 /* for fdisk -l: try all things in /proc/partitions
@@ -2758,19 +2777,9 @@ int fdisk_main(int argc, char **argv)
 	 *
 	 * Options -C, -H, -S set the geometry.
 	 */
-	enum {
-		OPT_b = 1 << 0,
-		OPT_C = 1 << 1,
-		OPT_H = 1 << 2,
-		OPT_l = 1 << 3,
-		OPT_S = 1 << 4,
-		OPT_u = 1 << 5,
-		OPT_s = (1 << 6) * ENABLE_FEATURE_FDISK_BLKSIZE,
-	};
-
 	INIT_G();
 
-	close(dev_fd); /* just in case */
+	close_dev_fd(); /* needed: fd 3 must not stay closed */
 
 	opt_complementary = "b+:C+:H+:S+"; /* numeric params */
 	opt = getopt32(argv, "b:C:H:lS:u" USE_FEATURE_FDISK_BLKSIZE("s"),
@@ -2933,7 +2942,8 @@ int fdisk_main(int argc, char **argv)
 			list_table(0);
 			break;
 		case 'q':
-			close(dev_fd);
+			if (ENABLE_FEATURE_CLEAN_UP)
+				close_dev_fd();
 			bb_putchar('\n');
 			return 0;
 		case 's':

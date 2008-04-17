@@ -414,7 +414,7 @@ bsd_select(void)
 			break;
 		case 'q':
 			if (ENABLE_FEATURE_CLEAN_UP)
-				close(dev_fd);
+				close_dev_fd();
 			exit(EXIT_SUCCESS);
 		case 'r':
 			return;
