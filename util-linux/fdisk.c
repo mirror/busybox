@@ -78,13 +78,13 @@ static const char ioctl_error[] ALIGN1 = "BLKGETSIZE ioctl failed on %s";
 static void fdisk_fatal(const char *why) ATTRIBUTE_NORETURN;
 
 enum label_type {
-	label_dos, label_sun, label_sgi, label_aix, label_osf
+	LABEL_DOS, LABEL_SUN, LABEL_SGI, LABEL_AIX, LABEL_OSF
 };
 
-#define LABEL_IS_DOS	(label_dos == current_label_type)
+#define LABEL_IS_DOS	(LABEL_DOS == current_label_type)
 
 #if ENABLE_FEATURE_SUN_LABEL
-#define LABEL_IS_SUN	(label_sun == current_label_type)
+#define LABEL_IS_SUN	(LABEL_SUN == current_label_type)
 #define STATIC_SUN static
 #else
 #define LABEL_IS_SUN	0
@@ -92,7 +92,7 @@ enum label_type {
 #endif
 
 #if ENABLE_FEATURE_SGI_LABEL
-#define LABEL_IS_SGI	(label_sgi == current_label_type)
+#define LABEL_IS_SGI	(LABEL_SGI == current_label_type)
 #define STATIC_SGI static
 #else
 #define LABEL_IS_SGI	0
@@ -100,7 +100,7 @@ enum label_type {
 #endif
 
 #if ENABLE_FEATURE_AIX_LABEL
-#define LABEL_IS_AIX	(label_aix == current_label_type)
+#define LABEL_IS_AIX	(LABEL_AIX == current_label_type)
 #define STATIC_AIX static
 #else
 #define LABEL_IS_AIX	0
@@ -108,14 +108,14 @@ enum label_type {
 #endif
 
 #if ENABLE_FEATURE_OSF_LABEL
-#define LABEL_IS_OSF	(label_osf == current_label_type)
+#define LABEL_IS_OSF	(LABEL_OSF == current_label_type)
 #define STATIC_OSF static
 #else
 #define LABEL_IS_OSF	0
 #define STATIC_OSF extern
 #endif
 
-enum action { fdisk, require, try_only, create_empty_dos, create_empty_sun };
+enum action { OPEN_MAIN, TRY_ONLY, CREATE_EMPTY_DOS, CREATE_EMPTY_SUN };
 
 static void update_units(void);
 #if ENABLE_FEATURE_FDISK_WRITABLE
@@ -263,14 +263,15 @@ static const char *const i386_sys_types[] = {
 	NULL
 };
 
+enum {
+	dev_fd = 3                  /* the disk */
+};
 
 /* Globals */
-
 struct globals {
 	char *line_ptr;
 
 	const char *disk_device;
-	int fd;                         /* the disk */
 	int g_partitions; // = 4;       /* maximum partition + 1 */
 	unsigned units_per_sector; // = 1;
 	unsigned sector_size; // = DEFAULT_SECTOR_SIZE;
@@ -295,7 +296,6 @@ struct globals {
 #define G (*ptr_to_globals)
 #define line_ptr        (G.line_ptr)
 #define disk_device          (G.disk_device         )
-#define fd                   (G.fd                  )
 #define g_partitions         (G.g_partitions        )
 #define units_per_sector     (G.units_per_sector    )
 #define sector_size          (G.sector_size         )
@@ -323,7 +323,7 @@ struct globals {
 
 
 /* TODO: move to libbb? */
-static ullong bb_BLKGETSIZE_sectors(void)
+static ullong bb_BLKGETSIZE_sectors(int fd)
 {
 	uint64_t v64;
 	unsigned long longsectors;
@@ -642,9 +642,6 @@ get_nr_sects(const struct partition *p)
 	return read4_little_endian(p->size4);
 }
 
-/* normally O_RDWR, -l option gives O_RDONLY */
-static int type_open = O_RDWR;
-
 static int ext_index;                   /* the prime extended partition */
 static smallint listing;                /* no aborts for fdisk -l */
 static smallint dos_compatible_flag = 1;
@@ -663,7 +660,7 @@ static ullong total_number_of_sectors;
 static void fdisk_fatal(const char *why)
 {
 	if (listing) {
-		close(fd);
+		close(dev_fd);
 		longjmp(listingbuf, 1);
 	}
 	bb_error_msg_and_die(why, disk_device);
@@ -674,11 +671,11 @@ seek_sector(ullong secno)
 {
 	secno *= sector_size;
 #if ENABLE_FDISK_SUPPORT_LARGE_DISKS
-	if (lseek64(fd, (off64_t)secno, SEEK_SET) == (off64_t) -1)
+	if (lseek64(dev_fd, (off64_t)secno, SEEK_SET) == (off64_t) -1)
 		fdisk_fatal(unable_to_seek);
 #else
 	if (secno > MAXINT(off_t)
-	 || lseek(fd, (off_t)secno, SEEK_SET) == (off_t) -1
+	 || lseek(dev_fd, (off_t)secno, SEEK_SET) == (off_t) -1
 	) {
 		fdisk_fatal(unable_to_seek);
 	}
@@ -690,7 +687,7 @@ static void
 write_sector(ullong secno, char *buf)
 {
 	seek_sector(secno);
-	if (write(fd, buf, sector_size) != sector_size)
+	if (write(dev_fd, buf, sector_size) != sector_size)
 		fdisk_fatal(unable_to_write);
 }
 #endif
@@ -702,7 +699,7 @@ read_pte(struct pte *pe, ullong offset)
 	pe->offset = offset;
 	pe->sectorbuffer = xmalloc(sector_size);
 	seek_sector(offset);
-	if (read(fd, pe->sectorbuffer, sector_size) != sector_size)
+	if (read(dev_fd, pe->sectorbuffer, sector_size) != sector_size)
 		fdisk_fatal(unable_to_read);
 #if ENABLE_FEATURE_FDISK_WRITABLE
 	pe->changed = 0;
@@ -1126,7 +1123,7 @@ create_doslabel(void)
 
 	printf(msg_building_new_label, "DOS disklabel");
 
-	current_label_type = label_dos;
+	current_label_type = LABEL_DOS;
 
 #if ENABLE_FEATURE_OSF_LABEL
 	possibly_osf_label = 0;
@@ -1139,7 +1136,7 @@ create_doslabel(void)
 	extended_offset = 0;
 	set_all_unchanged();
 	set_changed(0);
-	get_boot(create_empty_dos);
+	get_boot(CREATE_EMPTY_DOS);
 }
 #endif /* FEATURE_FDISK_WRITABLE */
 
@@ -1148,7 +1145,7 @@ get_sectorsize(void)
 {
 	if (!user_set_sector_size) {
 		int arg;
-		if (ioctl(fd, BLKSSZGET, &arg) == 0)
+		if (ioctl(dev_fd, BLKSSZGET, &arg) == 0)
 			sector_size = arg;
 		if (sector_size != DEFAULT_SECTOR_SIZE)
 			printf("Note: sector size is %d (not %d)\n",
@@ -1161,7 +1158,7 @@ get_kernel_geometry(void)
 {
 	struct hd_geometry geometry;
 
-	if (!ioctl(fd, HDIO_GETGEO, &geometry)) {
+	if (!ioctl(dev_fd, HDIO_GETGEO, &geometry)) {
 		kern_heads = geometry.heads;
 		kern_sectors = geometry.sectors;
 		/* never use geometry.cylinders - it is truncated */
@@ -1224,7 +1221,7 @@ get_geometry(void)
 	g_sectors = user_sectors ? user_sectors :
 		pt_sectors ? pt_sectors :
 		kern_sectors ? kern_sectors : 63;
-	total_number_of_sectors = bb_BLKGETSIZE_sectors();
+	total_number_of_sectors = bb_BLKGETSIZE_sectors(dev_fd);
 
 	sector_offset = 1;
 	if (dos_compatible_flag)
@@ -1236,7 +1233,9 @@ get_geometry(void)
 }
 
 /*
- * Read MBR.  Returns:
+ * Opens disk_device and optionally reads MBR.
+ *    FIXME: document what each 'what' value will do!
+ * Returns:
  *   -1: no 0xaa55 flag present (possibly entire disk BSD)
  *    0: found or created label
  *    1: I/O error
@@ -1248,82 +1247,80 @@ static int get_boot(void)
 #define get_boot(what) get_boot()
 #endif
 {
-	int i;
+	int i, fd;
 
 	g_partitions = 4;
-
 	for (i = 0; i < 4; i++) {
 		struct pte *pe = &ptes[i];
-
 		pe->part_table = pt_offset(MBRbuffer, i);
 		pe->ext_pointer = NULL;
 		pe->offset = 0;
 		pe->sectorbuffer = MBRbuffer;
 #if ENABLE_FEATURE_FDISK_WRITABLE
-		pe->changed = (what == create_empty_dos);
+		pe->changed = (what == CREATE_EMPTY_DOS);
 #endif
 	}
 
-#if ENABLE_FEATURE_SUN_LABEL
-	if (what == create_empty_sun && check_sun_label())
-		return 0;
-#endif
-
-	memset(MBRbuffer, 0, 512);
-
 #if ENABLE_FEATURE_FDISK_WRITABLE
-	if (what == create_empty_dos)
-		goto got_dos_table;             /* skip reading disk */
+// ALERT! highly idiotic design!
+// We end up here when we call get_boot() recursively
+// via get_boot() [table is bad] -> create_doslabel() -> get_boot(CREATE_EMPTY_DOS).
+// or get_boot() [table is bad] -> create_sunlabel() -> get_boot(CREATE_EMPTY_SUN).
+// (just factor out re-init of ptes[0,1,2,3] in a separate fn instead?)
+// So skip opening device _again_...
+	if (what == CREATE_EMPTY_DOS  USE_FEATURE_SUN_LABEL(|| what == CREATE_EMPTY_SUN))
+		goto created_table;
 
-	fd = open(disk_device, type_open);
+	fd = open(disk_device, (option_mask32 & OPT_l) ? O_RDONLY : O_RDWR);
+
 	if (fd < 0) {
 		fd = open(disk_device, O_RDONLY);
 		if (fd < 0) {
-			if (what == try_only)
+			if (what == TRY_ONLY)
 				return 1;
 			fdisk_fatal(unable_to_open);
-		} else
-			printf("You will not be able to write "
-				"the partition table\n");
+		}
+		xmove_fd(fd, dev_fd);
+		printf("'%s' is opened for read only\n", disk_device);
 	}
-
-	if (512 != read(fd, MBRbuffer, 512)) {
-		if (what == try_only)
+	if (512 != read(dev_fd, MBRbuffer, 512)) {
+		if (what == TRY_ONLY) {
+			close(dev_fd);
 			return 1;
+		}
 		fdisk_fatal(unable_to_read);
 	}
 #else
 	fd = open(disk_device, O_RDONLY);
 	if (fd < 0)
 		return 1;
-	if (512 != read(fd, MBRbuffer, 512))
+	if (512 != read(fd, MBRbuffer, 512)) {
+		close(fd);
 		return 1;
+	}
+	xmove_fd(fd, dev_fd);
 #endif
 
 	get_geometry();
-
 	update_units();
 
 #if ENABLE_FEATURE_SUN_LABEL
 	if (check_sun_label())
 		return 0;
 #endif
-
 #if ENABLE_FEATURE_SGI_LABEL
 	if (check_sgi_label())
 		return 0;
 #endif
-
 #if ENABLE_FEATURE_AIX_LABEL
 	if (check_aix_label())
 		return 0;
 #endif
-
 #if ENABLE_FEATURE_OSF_LABEL
 	if (check_osf_label()) {
 		possibly_osf_label = 1;
 		if (!valid_part_table_flag(MBRbuffer)) {
-			current_label_type = label_osf;
+			current_label_type = LABEL_OSF;
 			return 0;
 		}
 		printf("This disk has both DOS and BSD magic.\n"
@@ -1331,49 +1328,34 @@ static int get_boot(void)
 	}
 #endif
 
-#if ENABLE_FEATURE_FDISK_WRITABLE
- got_dos_table:
-#endif
-
-	if (!valid_part_table_flag(MBRbuffer)) {
 #if !ENABLE_FEATURE_FDISK_WRITABLE
+	if (!valid_part_table_flag(MBRbuffer))
 		return -1;
 #else
-		switch (what) {
-		case fdisk:
+	if (!valid_part_table_flag(MBRbuffer)) {
+		if (what == OPEN_MAIN) {
 			printf("Device contains neither a valid DOS "
 				  "partition table, nor Sun, SGI or OSF "
 				  "disklabel\n");
 #ifdef __sparc__
-#if ENABLE_FEATURE_SUN_LABEL
-			create_sunlabel();
-#endif
+			USE_FEATURE_SUN_LABEL(create_sunlabel();)
 #else
 			create_doslabel();
 #endif
 			return 0;
-		case try_only:
-			return -1;
-		case create_empty_dos:
-#if ENABLE_FEATURE_SUN_LABEL
-		case create_empty_sun:
-#endif
-			break;
-		default:
-			bb_error_msg_and_die("internal error");
 		}
-#endif /* FEATURE_FDISK_WRITABLE */
+		/* TRY_ONLY: */
+		return -1;
 	}
+ created_table:
+#endif /* FEATURE_FDISK_WRITABLE */
 
-#if ENABLE_FEATURE_FDISK_WRITABLE
-	warn_cylinders();
-#endif
+
+	USE_FEATURE_FDISK_WRITABLE(warn_cylinders();)
 	warn_geometry();
 
 	for (i = 0; i < 4; i++) {
-		struct pte *pe = &ptes[i];
-
-		if (IS_EXTENDED(pe->part_table->sys_ind)) {
+		if (IS_EXTENDED(ptes[i].part_table->sys_ind)) {
 			if (g_partitions != 4)
 				printf("Ignoring extra extended "
 					"partition %d\n", i + 1);
@@ -1384,16 +1366,13 @@ static int get_boot(void)
 
 	for (i = 3; i < g_partitions; i++) {
 		struct pte *pe = &ptes[i];
-
 		if (!valid_part_table_flag(pe->sectorbuffer)) {
 			printf("Warning: invalid flag 0x%02x,0x%02x of partition "
 				"table %d will be corrected by w(rite)\n",
 				pe->sectorbuffer[510],
 				pe->sectorbuffer[511],
 				i + 1);
-#if ENABLE_FEATURE_FDISK_WRITABLE
-			pe->changed = 1;
-#endif
+			USE_FEATURE_FDISK_WRITABLE(pe->changed = 1;)
 		}
 	}
 
@@ -2474,7 +2453,7 @@ reread_partition_table(int leave)
 	printf("Calling ioctl() to re-read partition table\n");
 	sync();
 	/* sleep(2); Huh? */
-	i = ioctl_or_perror(fd, BLKRRPART, NULL,
+	i = ioctl_or_perror(dev_fd, BLKRRPART, NULL,
 			"WARNING: rereading partition table "
 			"failed, kernel still uses old table");
 #if 0
@@ -2487,7 +2466,7 @@ reread_partition_table(int leave)
 
 	if (leave) {
 		if (ENABLE_FEATURE_CLEAN_UP)
-			close(fd);
+			close(dev_fd);
 		exit(i != 0);
 	}
 }
@@ -2619,7 +2598,8 @@ xselect(void)
 				x_list_table(0);
 			break;
 		case 'q':
-			close(fd);
+			if (ENABLE_FEATURE_CLEAN_UP)
+				close(dev_fd);
 			bb_putchar('\n');
 			exit(0);
 		case 'r':
@@ -2687,7 +2667,7 @@ is_ide_cdrom_or_tape(const char *device)
 
 
 static void
-trydev(const char *device, int user_specified)
+open_list_and_close(const char *device, int user_specified)
 {
 	int gb;
 
@@ -2697,46 +2677,44 @@ trydev(const char *device, int user_specified)
 	if (!user_specified)
 		if (is_ide_cdrom_or_tape(device))
 			return;
-	fd = open(disk_device, type_open);
-	if (fd >= 0) {
-		gb = get_boot(try_only);
-		if (gb > 0) {   /* I/O error */
-			close(fd);
-		} else if (gb < 0) { /* no DOS signature */
-			list_disk_geometry();
-			if (LABEL_IS_AIX) {
-				return;
-			}
-#if ENABLE_FEATURE_OSF_LABEL
-			if (bsd_trydev(device) < 0)
-#endif
-				printf("Disk %s doesn't contain a valid "
-					"partition table\n", device);
-			close(fd);
-		} else {
-			close(fd);
-			list_table(0);
-#if ENABLE_FEATURE_FDISK_WRITABLE
-			if (!LABEL_IS_SUN && g_partitions > 4){
-				delete_partition(ext_index);
-			}
-#endif
-		}
-	} else {
+
+	/* Open disk_device, save file descriptor to dev_fd */
+	errno = 0;
+	gb = get_boot(TRY_ONLY);
+	if (gb > 0) {   /* I/O error */
 		/* Ignore other errors, since we try IDE
 		   and SCSI hard disks which may not be
 		   installed on the system. */
-		if (errno == EACCES) {
-			printf("Cannot open %s\n", device);
-			return;
-		}
+		if (user_specified || errno == EACCES)
+			bb_perror_msg("can't open '%s'", device);
+		return;
 	}
+
+	if (gb < 0) { /* no DOS signature */
+		list_disk_geometry();
+		if (LABEL_IS_AIX)
+			goto ret;
+#if ENABLE_FEATURE_OSF_LABEL
+		if (bsd_trydev(device) < 0)
+#endif
+			printf("Disk %s doesn't contain a valid "
+				"partition table\n", device);
+	} else {
+		list_table(0);
+#if ENABLE_FEATURE_FDISK_WRITABLE
+		if (!LABEL_IS_SUN && g_partitions > 4) {
+			delete_partition(ext_index);
+		}
+#endif
+	}
+ ret:
+	close(dev_fd);
 }
 
 /* for fdisk -l: try all things in /proc/partitions
    that look like a partition name (do not end in a digit) */
 static void
-tryprocpt(void)
+list_devs_in_proc_partititons(void)
 {
 	FILE *procpt;
 	char line[100], ptname[100], devname[120], *s;
@@ -2753,7 +2731,7 @@ tryprocpt(void)
 		if (isdigit(s[-1]))
 			continue;
 		sprintf(devname, "/dev/%s", ptname);
-		trydev(devname, 0);
+		open_list_and_close(devname, 0);
 	}
 #if ENABLE_FEATURE_CLEAN_UP
 	fclose(procpt);
@@ -2792,6 +2770,8 @@ int fdisk_main(int argc, char **argv)
 
 	INIT_G();
 
+	close(dev_fd); /* just in case */
+
 	opt_complementary = "b+:C+:H+:S+"; /* numeric params */
 	opt = getopt32(argv, "b:C:H:lS:u" USE_FEATURE_FDISK_BLKSIZE("s"),
 				&sector_size, &user_cylinders, &user_heads, &user_sectors);
@@ -2819,16 +2799,15 @@ int fdisk_main(int argc, char **argv)
 	if (opt & OPT_l) {
 		nowarn = 1;
 #endif
-		type_open = O_RDONLY;
 		if (*argv) {
 			listing = 1;
 			do {
-				trydev(*argv, 1);
+				open_list_and_close(*argv, 1);
 			} while (*++argv);
 		} else {
 			/* we don't have device names, */
 			/* use /proc/partitions instead */
-			tryprocpt();
+			list_devs_in_proc_partititons();
 		}
 		return 0;
 #if ENABLE_FEATURE_FDISK_WRITABLE
@@ -2845,7 +2824,7 @@ int fdisk_main(int argc, char **argv)
 		for (j = 0; j < argc; j++) {
 			unsigned long long size;
 			fd = xopen(argv[j], O_RDONLY);
-			size = bb_BLKGETSIZE_sectors() / 2;
+			size = bb_BLKGETSIZE_sectors(fd) / 2;
 			close(fd);
 			if (argc == 1)
 				printf("%lld\n", size);
@@ -2861,7 +2840,7 @@ int fdisk_main(int argc, char **argv)
 		bb_show_usage();
 
 	disk_device = argv[0];
-	get_boot(fdisk);
+	get_boot(OPEN_MAIN);
 
 	if (LABEL_IS_OSF) {
 		/* OSF label, and no DOS label */
@@ -2869,7 +2848,7 @@ int fdisk_main(int argc, char **argv)
 			"disklabel mode\n", disk_device);
 		bsd_select();
 		/*Why do we do this?  It seems to be counter-intuitive*/
-		current_label_type = label_dos;
+		current_label_type = LABEL_DOS;
 		/* If we return we may want to make an empty DOS label? */
 	}
 
@@ -2954,7 +2933,7 @@ int fdisk_main(int argc, char **argv)
 			list_table(0);
 			break;
 		case 'q':
-			close(fd);
+			close(dev_fd);
 			bb_putchar('\n');
 			return 0;
 		case 's':

@@ -62,7 +62,7 @@ check_aix_label(void)
 	}
 	aix_other_endian = (aixlabel->magic == AIX_LABEL_MAGIC_SWAPPED);
 	update_units();
-	current_label_type = label_aix;
+	current_label_type = LABEL_AIX;
 	g_partitions = 1016;
 	aix_volumes = 15;
 	aix_info();

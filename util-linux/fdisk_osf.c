@@ -413,7 +413,8 @@ bsd_select(void)
 			xbsd_print_disklabel(0);
 			break;
 		case 'q':
-			close(fd);
+			if (ENABLE_FEATURE_CLEAN_UP)
+				close(dev_fd);
 			exit(EXIT_SUCCESS);
 		case 'r':
 			return;
@@ -627,12 +628,13 @@ xbsd_create_disklabel(void)
 #else
 				xbsd_part
 #endif
-				) == 1) {
+			) == 1) {
 				xbsd_print_disklabel(1);
 				return 1;
-			} else
-				return 0;
-		} else if (c == 'n')
+			}
+			return 0;
+		}
+		if (c == 'n')
 			return 0;
 	}
 }
@@ -766,9 +768,9 @@ xbsd_write_bootstrap(void)
 	sector = get_start_sect(xbsd_part);
 #endif
 
-	if (lseek(fd, sector * SECTOR_SIZE, SEEK_SET) == -1)
+	if (lseek(dev_fd, sector * SECTOR_SIZE, SEEK_SET) == -1)
 		fdisk_fatal(unable_to_seek);
-	if (BSD_BBSIZE != write(fd, disklabelbuffer, BSD_BBSIZE))
+	if (BSD_BBSIZE != write(dev_fd, disklabelbuffer, BSD_BBSIZE))
 		fdisk_fatal(unable_to_write);
 
 #if defined(__alpha__)
@@ -939,9 +941,9 @@ xbsd_readlabel(struct partition *p)
 	sector = 0;
 #endif
 
-	if (lseek(fd, sector * SECTOR_SIZE, SEEK_SET) == -1)
+	if (lseek(dev_fd, sector * SECTOR_SIZE, SEEK_SET) == -1)
 		fdisk_fatal(unable_to_seek);
-	if (BSD_BBSIZE != read(fd, disklabelbuffer, BSD_BBSIZE))
+	if (BSD_BBSIZE != read(dev_fd, disklabelbuffer, BSD_BBSIZE))
 		fdisk_fatal(unable_to_read);
 
 	memmove(d, &disklabelbuffer[BSD_LABELSECTOR * SECTOR_SIZE + BSD_LABELOFFSET],
@@ -985,14 +987,14 @@ xbsd_writelabel(struct partition *p)
 
 #if defined(__alpha__) && BSD_LABELSECTOR == 0
 	alpha_bootblock_checksum(disklabelbuffer);
-	if (lseek(fd, 0, SEEK_SET) == -1)
+	if (lseek(dev_fd, 0, SEEK_SET) == -1)
 		fdisk_fatal(unable_to_seek);
-	if (BSD_BBSIZE != write(fd, disklabelbuffer, BSD_BBSIZE))
+	if (BSD_BBSIZE != write(dev_fd, disklabelbuffer, BSD_BBSIZE))
 		fdisk_fatal(unable_to_write);
 #else
-	if (lseek(fd, sector * SECTOR_SIZE + BSD_LABELOFFSET, SEEK_SET) == -1)
+	if (lseek(dev_fd, sector * SECTOR_SIZE + BSD_LABELOFFSET, SEEK_SET) == -1)
 		fdisk_fatal(unable_to_seek);
-	if (sizeof(struct xbsd_disklabel) != write(fd, d, sizeof(struct xbsd_disklabel)))
+	if (sizeof(struct xbsd_disklabel) != write(dev_fd, d, sizeof(struct xbsd_disklabel)))
 		fdisk_fatal(unable_to_write);
 #endif
 	sync_disks();

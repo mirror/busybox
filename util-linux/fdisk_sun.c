@@ -42,7 +42,7 @@ guess_device_type(void)
 {
 	struct stat bootstat;
 
-	if (fstat(fd, &bootstat) < 0) {
+	if (fstat(dev_fd, &bootstat) < 0) {
 		scsi_disk = 0;
 		floppy = 0;
 	} else if (S_ISBLK(bootstat.st_mode)
@@ -98,7 +98,7 @@ check_sun_label(void)
 
 	if (sunlabel->magic != SUN_LABEL_MAGIC
 	 && sunlabel->magic != SUN_LABEL_MAGIC_SWAPPED) {
-		current_label_type = label_dos;
+		current_label_type = LABEL_DOS;
 		sun_other_endian = 0;
 		return 0;
 	}
@@ -116,7 +116,7 @@ check_sun_label(void)
 		g_sectors = SUN_SSWAP16(sunlabel->nsect);
 	}
 	update_units();
-	current_label_type = label_sun;
+	current_label_type = LABEL_SUN;
 	g_partitions = 8;
 	return 1;
 }
@@ -168,7 +168,7 @@ sun_autoconfigure_scsi(void)
 	char *q;
 	int i;
 
-	if (ioctl(fd, SCSI_IOCTL_GET_IDLUN, &id))
+	if (ioctl(dev_fd, SCSI_IOCTL_GET_IDLUN, &id))
 		return NULL;
 
 	sprintf(buffer,
@@ -272,7 +272,7 @@ create_sunlabel(void)
 		}
 	}
 	if (!p || floppy) {
-		if (!ioctl(fd, HDIO_GETGEO, &geometry)) {
+		if (!ioctl(dev_fd, HDIO_GETGEO, &geometry)) {
 			g_heads = geometry.heads;
 			g_sectors = geometry.sectors;
 			g_cylinders = geometry.cylinders;
@@ -346,7 +346,7 @@ create_sunlabel(void)
 
 	set_all_unchanged();
 	set_changed(0);
-	get_boot(create_empty_sun);
+	get_boot(CREATE_EMPTY_SUN);
 }
 
 static void
@@ -722,9 +722,9 @@ sun_write_table(void)
 	while (ush < (unsigned short *)(&sunlabel->csum))
 		csum ^= *ush++;
 	sunlabel->csum = csum;
-	if (lseek(fd, 0, SEEK_SET) < 0)
+	if (lseek(dev_fd, 0, SEEK_SET) < 0)
 		fdisk_fatal(unable_to_seek);
-	if (write(fd, sunlabel, SECTOR_SIZE) != SECTOR_SIZE)
+	if (write(dev_fd, sunlabel, SECTOR_SIZE) != SECTOR_SIZE)
 		fdisk_fatal(unable_to_write);
 }
 #endif /* SUN_LABEL */

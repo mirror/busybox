@@ -235,7 +235,7 @@ check_sgi_label(void)
 	if (sgilabel->magic != SGI_LABEL_MAGIC
 	 && sgilabel->magic != SGI_LABEL_MAGIC_SWAPPED
 	) {
-		current_label_type = label_dos;
+		current_label_type = LABEL_DOS;
 		return 0;
 	}
 
@@ -248,7 +248,7 @@ check_sgi_label(void)
 		printf("Detected sgi disklabel with wrong checksum\n");
 	}
 	update_units();
-	current_label_type = label_sgi;
+	current_label_type = LABEL_SGI;
 	g_partitions = 16;
 	sgi_volumes = 15;
 	return 1;
@@ -439,9 +439,9 @@ sgi_write_table(void)
 	assert(two_s_complement_32bit_sum(
 		(unsigned int*)sgilabel, sizeof(*sgilabel)) == 0);
 
-	if (lseek(fd, 0, SEEK_SET) < 0)
+	if (lseek(dev_fd, 0, SEEK_SET) < 0)
 		fdisk_fatal(unable_to_seek);
-	if (write(fd, sgilabel, SECTOR_SIZE) != SECTOR_SIZE)
+	if (write(dev_fd, sgilabel, SECTOR_SIZE) != SECTOR_SIZE)
 		fdisk_fatal(unable_to_write);
 	if (!strncmp((char*)sgilabel->directory[0].vol_file_name, "sgilabel", 8)) {
 		/*
@@ -450,9 +450,9 @@ sgi_write_table(void)
 		 */
 		sgiinfo *info = fill_sgiinfo();
 		int infostartblock = SGI_SSWAP32(sgilabel->directory[0].vol_file_start);
-		if (lseek(fd, infostartblock*SECTOR_SIZE, SEEK_SET) < 0)
+		if (lseek(dev_fd, infostartblock*SECTOR_SIZE, SEEK_SET) < 0)
 			fdisk_fatal(unable_to_seek);
-		if (write(fd, info, SECTOR_SIZE) != SECTOR_SIZE)
+		if (write(dev_fd, info, SECTOR_SIZE) != SECTOR_SIZE)
 			fdisk_fatal(unable_to_write);
 		free(info);
 	}
@@ -782,8 +782,8 @@ create_sgilabel(void)
 	printf(msg_building_new_label, "SGI disklabel");
 
 	sgi_other_endian = BB_LITTLE_ENDIAN;
-	res = ioctl(fd, BLKGETSIZE, &longsectors);
-	if (!ioctl(fd, HDIO_GETGEO, &geometry)) {
+	res = ioctl(dev_fd, BLKGETSIZE, &longsectors);
+	if (!ioctl(dev_fd, HDIO_GETGEO, &geometry)) {
 		g_heads = geometry.heads;
 		g_sectors = geometry.sectors;
 		if (res == 0) {
@@ -851,7 +851,7 @@ create_sgilabel(void)
 	//sgilabel->devparam.xylogics_writecont       = SGI_SSWAP16(0);
 	//memset( &(sgilabel->directory), 0, sizeof(struct volume_directory)*15 );
 	//memset( &(sgilabel->partitions), 0, sizeof(struct sgi_partinfo)*16 );
-	current_label_type = label_sgi;
+	current_label_type = LABEL_SGI;
 	g_partitions = 16;
 	sgi_volumes = 15;
 	sgi_set_entire();
