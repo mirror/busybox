@@ -1,0 +1,76 @@
+POST upload example:
+
+post_upload.htm
+===============
+<html>
+<body>
+<form action=/cgi-bin/post_upload.cgi method=post enctype=multipart/form-data>
+File to upload: <input type=file name=file1> <input type=submit>
+</form>
+
+
+post_upload.cgi
+===============
+#!/bin/sh
+
+# POST upload format:
+# -----------------------------29995809218093749221856446032^M
+# Content-Disposition: form-data; name="file1"; filename="..."^M
+# Content-Type: application/octet-stream^M
+# ^M    <--------- headers end with empty line
+# file contents
+# file contents
+# file contents
+# ^M    <--------- extra empty line
+# -----------------------------29995809218093749221856446032--^M
+
+# Beware: bashism $'\r' is used to handle ^M
+
+file=/tmp/$$-$RANDOM
+
+# CGI output must start with at least empty line (or headers)
+printf '\r\n'
+
+IFS=$'\r'
+read -r delim_line
+
+IFS=''
+delim_line="${delim_line}--"$'\r'
+
+while read -r line; do
+    test "$line" = '' && break
+    test "$line" = $'\r' && break
+done
+
+# This will not work well for binary files: bash 3.2 is upset
+# by reading NUL bytes and loses chunks of data.
+# If you are not bothered by having junk appended to the uploaded file,
+# consider using simple "cat >file" instead of the entire
+# fragment below.
+
+while read -r line; do
+
+    while test "$line" = $'\r'; do
+	read -r line
+	test "$line" = "$delim_line" && {
+	    # Aha! Empty line + delimiter! All done
+	    cat <<EOF
+<html>
+<body>
+File upload has been accepted
+EOF
+	    exit 0
+	}
+	# Empty line + NOT delimiter. Save empty line,
+	# and go check next line
+	printf "%s\n" $'\r' -vC >&3
+    done
+    # Not empty line - just save
+    printf "%s\n" "$line" -vC >&3
+done 3>"$file"
+
+cat <<EOF
+<html>
+<body>
+File upload was not terminated with '$delim_line' - ??!
+EOF
