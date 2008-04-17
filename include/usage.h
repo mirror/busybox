@@ -97,11 +97,6 @@
      "\n	-s sender	Sender IP address" \
      "\n	target		Target IP address" \
 
-//#define ash_trivial_usage \
-//       "[FILE]...\n" \
-//       "or: ash -c command [args]..."
-//#define ash_full_usage "\n\n" \
-//       "The ash shell"
 #define sh_trivial_usage NOUSAGE_STR
 #define sh_full_usage ""
 #define ash_trivial_usage NOUSAGE_STR

@@ -861,17 +861,22 @@ int top_main(int argc ATTRIBUTE_UNUSED, char **argv)
 #else
 			qsort(top, ntop, sizeof(top_status_t), (void*)(sort_function[0]));
 #endif /* FEATURE_TOP_CPU_USAGE_PERCENTAGE */
-		} else { /* TOPMEM */
+		}
+#if ENABLE_FEATURE_TOPMEM
+		else { /* TOPMEM */
 			qsort(topmem, ntop, sizeof(topmem_status_t), (void*)topmem_sort);
 		}
+#endif
 		count = lines;
 		if (OPT_BATCH_MODE || count > ntop) {
 			count = ntop;
 		}
 		if (scan_mask == TOP_MASK)
 			display_process_list(count, col);
+#if ENABLE_FEATURE_TOPMEM
 		else
 			display_topmem_process_list(count, col);
+#endif
 		clearmems();
 		if (iterations >= 0 && !--iterations)
 			break;
