@@ -107,6 +107,7 @@ int openvt_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int openvt_main(int argc ATTRIBUTE_UNUSED, char **argv)
 {
 	char vtname[sizeof(VC_FORMAT) + sizeof(int)*3];
+	struct vt_stat vtstat;
 	char *str_c;
 	int vtno;
 	int flags;
@@ -137,6 +138,7 @@ int openvt_main(int argc ATTRIBUTE_UNUSED, char **argv)
 	close(0);
 	/*setsid(); - BAD IDEA: after we exit, child is SIGHUPed... */
 	xopen(vtname, O_RDWR);
+	xioctl(0, VT_GETSTATE, &vtstat);	
 
 	if (flags & OPT_s) {
 		xioctl(0, VT_ACTIVATE, (void*)(ptrdiff_t)vtno);
@@ -163,9 +165,16 @@ int openvt_main(int argc ATTRIBUTE_UNUSED, char **argv)
 
 	vfork_child(argv);
 	if (flags & OPT_w) {
-		wait(NULL);
-// TODO: -ws handling should be here
+		/* We have only one child, wait for it */
+		safe_waitpid(-1, NULL, 0); /* loops on EINTR */
+		if (flags & OPT_s) {
+			xioctl(0, VT_ACTIVATE, (void*)(ptrdiff_t)(vtstat.v_active));
+			xioctl(0, VT_WAITACTIVE, (void*)(ptrdiff_t)(vtstat.v_active));
+			// Compat: even with -c N (try to) disallocate:
+			// # /usr/app/kbd-1.12/bin/openvt -f -c 9 -ws sleep 5
+			// openvt: could not deallocate console 9
+			xioctl(0, VT_DISALLOCATE, (void*)(ptrdiff_t)vtno);
+		}
 	}
-
 	return EXIT_SUCCESS;
 }
