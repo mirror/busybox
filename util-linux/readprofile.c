@@ -109,9 +109,9 @@ int readprofile_main(int argc ATTRIBUTE_UNUSED, char **argv)
 	 * Use an fd for the profiling buffer, to skip stdio overhead
 	 */
 	len = MAXINT(ssize_t);
-	buf = xmalloc_open_read_close(proFile, &len);
+	buf = xmalloc_xopen_read_close(proFile, &len);
 	if (!optNative) {
-		int entries = len/sizeof(*buf);
+		int entries = len / sizeof(*buf);
 		int big = 0, small = 0, i;
 		unsigned *p;
 

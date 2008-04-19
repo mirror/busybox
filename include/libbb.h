@@ -556,7 +556,10 @@ extern char *reads(int fd, char *buf, size_t count);
 extern char *xmalloc_reads(int fd, char *pfx, size_t *maxsz_p);
 extern ssize_t read_close(int fd, void *buf, size_t maxsz);
 extern ssize_t open_read_close(const char *filename, void *buf, size_t maxsz);
+/* Returns NULL if file can't be opened */
 extern void *xmalloc_open_read_close(const char *filename, size_t *maxsz_p);
+/* Never returns NULL */
+extern void *xmalloc_xopen_read_close(const char *filename, size_t *maxsz_p);
 
 extern ssize_t safe_write(int fd, const void *buf, size_t count);
 // NB: will return short write on error, not -1,
@@ -568,9 +571,9 @@ extern void xwrite(int fd, const void *buf, size_t count);
 extern void xprint_and_close_file(FILE *file);
 /* Reads up to (and including) TERMINATING_STRING: */
 extern char *xmalloc_fgets_str(FILE *file, const char *terminating_string);
-/* Chops off TERMINATING_STRING: from the end: */
+/* Chops off TERMINATING_STRING from the end: */
 extern char *xmalloc_fgetline_str(FILE *file, const char *terminating_string);
-/* Reads up to (and including) "\n" or NUL byte */
+/* Reads up to (and including) "\n" or NUL byte: */
 extern char *xmalloc_fgets(FILE *file);
 /* Chops off '\n' from the end, unlike fgets: */
 extern char *xmalloc_fgetline(FILE *file);

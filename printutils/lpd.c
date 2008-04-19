@@ -160,7 +160,7 @@ int lpd_main(int argc ATTRIBUTE_UNUSED, char *argv[])
 			// (we exit 127 if helper cannot be executed)
 			var[1] = '\0';
 			// read and delete ctrlfile
-			q = xmalloc_open_read_close(filenames[0], NULL);
+			q = xmalloc_xopen_read_close(filenames[0], NULL);
 			unlink(filenames[0]);
 			// provide datafile name
 			// we can use leaky setenv since we are about to exec or exit

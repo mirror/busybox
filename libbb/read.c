@@ -212,7 +212,9 @@ void *xmalloc_open_read_close(const char *filename, size_t *sizep)
 	int fd;
 	off_t len;
 
-	fd = xopen(filename, O_RDONLY);
+	fd = open(filename, O_RDONLY);
+	if (fd < 0)
+		return NULL;
 	/* /proc/N/stat files report len 0 here */
 	/* In order to make such files readable, we add small const */
 	len = xlseek(fd, 0, SEEK_END) | 0x3ff; /* + up to 1k */
@@ -227,5 +229,13 @@ void *xmalloc_open_read_close(const char *filename, size_t *sizep)
 	buf[size] = '\0';
 	if (sizep)
 		*sizep = size;
+	return buf;
+}
+
+void *xmalloc_xopen_read_close(const char *filename, size_t *sizep)
+{
+	void *buf = xmalloc_open_read_close(filename, sizep);
+	if (!buf)
+		bb_perror_msg_and_die("can't read '%s'", filename);
 	return buf;
 }

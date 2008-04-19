@@ -363,7 +363,7 @@ int chat_main(int argc ATTRIBUTE_UNUSED, char **argv)
 				if ('@' == *buf) {
 					// skip the @ and any following white-space
 					trim(++buf);
-					buf = loaded = xmalloc_open_read_close(buf, NULL);
+					buf = loaded = xmalloc_xopen_read_close(buf, NULL);
 				}
 
 				// expand escape sequences in command
