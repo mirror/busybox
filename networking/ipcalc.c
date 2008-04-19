@@ -181,7 +181,7 @@ int ipcalc_main(int argc, char **argv)
 				bb_herror_msg_and_die("cannot find hostname for %s", argv[0]);
 			}
 			str_tolower(hostinfo->h_name);
-			
+
 			printf("HOSTNAME=%s\n", hostinfo->h_name);
 		}
 	}
