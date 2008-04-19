@@ -2,6 +2,805 @@
 
 
 <ul>
+  <li><b>12 February 2008 -- BusyBox 1.9.1 (stable)</b>
+    <p><a href=http://busybox.net/downloads/busybox-1.9.1.tar.bz2>BusyBox 1.9.1</a>.
+    (<a href=http://busybox.net/cgi-bin/viewcvs.cgi/branches/busybox_1_9_stable/>svn</a>,
+    <a href=http://busybox.net/downloads/fixes-1.9.1/>patches</a>,
+    <a href=http://busybox.net/fix.html>how to add a patch</a>)</p>
+
+    <p>This is a bugfix-only release, with fixes to fsck,
+    iproute, mdev, mkswap, msh, nameif, stty, test, zcip.</p>
+    <p>hush has `command` expansion re-enabled for NOMMU, although it is
+    inherently unsafe (by virtue of NOMMU's use of vfork instead of fork).
+    The plan is to make this less likely to bite people in future versions.</p>
+  </li>
+
+  <li><b>24 December 2007 -- BusyBox 1.9.0 (unstable)</b>
+    <p><a href=http://busybox.net/downloads/busybox-1.9.0.tar.bz2>BusyBox 1.9.0</a>.
+    (<a href=http://busybox.net/cgi-bin/viewcvs.cgi/branches/busybox_1_9_stable/>svn</a>,
+    <a href=http://busybox.net/downloads/fixes-1.9.0/>patches</a>,
+    <a href=http://busybox.net/fix.html>how to add a patch</a>)</p>
+
+    <p>Sizes of busybox-1.8.2 and busybox-1.9.0 (with almost full config, static uclibc build):<pre>
+   text    data     bss     dec     hex filename
+ 792796     978    9724  803498   c42aa busybox-1.8.2
+ 783803     683    7508  791994   c15ba busybox-1.9.0
+</pre>
+    <p>Top 10 stack users:<pre>
+busybox-1.8.2:               busybox-1.9.0:
+input_tab             10428  echo_dg                4116
+umount_main            8252  bb_full_fd_action      4112
+rtnl_talk              8240  discard_dg             4096
+xrtnl_dump_filter      8240  echo_stream            4096
+sendMTFValues          5316  discard_stream         4096
+mainSort               4700  find_list_entry2       4096
+mkfs_minix_main        4288  readlink_main          4096
+grave                  4260  ipaddr_list_or_flush   3900
+unix_do_one            4156  iproute_list_or_flush  3680
+parse_prompt           4132  insmod_main            3152
+</pre>
+
+    <p>lash is deleted from this release. hush can be configured down to almost
+       the same size, but it is significantly less buggy. It even works
+       on NOMMU machines (interactive mode and backticks are not working on NOMMU,
+       though). "lash" applet is still available, but it runs hush.
+
+    <p>init has some changes in this release, please report if it causes
+       problems for you.
+
+    <p>Changes since previous release:
+      <ul>
+	<li>Build system improvements
+	<li>Testsuite additions
+	<li>Stack size reductions, code size reductions, data/bss reductions
+	<li>An option to prefer IPv4 address if host has both
+	<li>New applets: hd, sestatus
+	<li>Removed applets: lash
+	<li>hush: fixed a few bugs, wired up echo and test to be builtins
+	<li>init: simplify forking of children
+	<li>getty: special handling of '#' and '@' is removed
+	<li>[su]login: sanitize environment if called by non-root
+	<li>udhcpc: support "bad" servers which send oversized packets
+	  (Cristian Ionescu-Idbohrn &lt;cristian.ionescu-idbohrn at axis.com&gt;)
+	<li>udhcpc: -O option allows to specify which options to ask for
+	  (Stefan Hellermann &lt;stefan at the2masters.de&gt;)
+	<li>udhcpc: optionally check whether given IP is really free (by ARP ping)
+	  (Jonas Danielsson &lt;jonas.danielsson at axis.com&gt;)
+	<li>vi: now handles files with unlimited line length
+	<li>vi: speedup for huge line lengths
+	<li>vi: Del key works
+	<li>sed: support GNUism '\t'
+	<li>cp/mv/install: optionally use bigger buffer for bulk copying
+	<li>line editing: don't eat stack like crazy
+	<li>passwd: follows symlinked /etc/passwd
+	<li>renice: accepts priority with +N too
+	<li>netstat: wide output mode
+	<li>nameif: extended matching (Nico Erfurth &lt;masta at perlgolf.de&gt;)
+	<li>test: become NOFORK applet
+	<li>find: -iname (Alexander Griesser &lt;alexander.griesser at lkh-vil.or.at&gt;)
+	<li>df: -i option (show inode info) (Pascal Bellard &lt;pascal.bellard at ads-lu.com&gt;)
+	<li>hexdump: -R option (Pascal Bellard &lt;pascal.bellard at ads-lu.com&gt;)
+      </ul>
+    </p>
+
+  <li><b>23 November 2007 -- BusyBox 1.8.2 (stable), BusyBox 1.7.4 (stable)</b>
+    <p><a href=http://busybox.net/downloads/busybox-1.8.2.tar.bz2>BusyBox 1.8.2</a>.
+    (<a href=http://busybox.net/cgi-bin/viewcvs.cgi/branches/busybox_1_8_stable/>svn</a>,
+    <a href=http://busybox.net/downloads/fixes-1.8.2/>patches</a>,
+    <a href=http://busybox.net/fix.html>how to add a patch</a>)</p>
+    <p><a href=http://busybox.net/downloads/busybox-1.7.4.tar.bz2>BusyBox 1.7.4</a>.
+    (<a href=http://busybox.net/cgi-bin/viewcvs.cgi/branches/busybox_1_7_stable/>svn</a>,
+    <a href=http://busybox.net/downloads/fixes-1.7.4/>patches</a>,
+    <a href=http://busybox.net/fix.html>how to add a patch</a>)</p>
+
+    <p>These are bugfix-only releases.
+    1.8.2 contains fixes for inetd, lash, tar, tr, and build system.
+    1.7.4 contains a fix for inetd.</p>
+  </li>
+
+  <li><b>9 November 2007 -- BusyBox 1.8.1 (stable)</b>
+    <p><a href=http://busybox.net/downloads/busybox-1.8.1.tar.bz2>BusyBox 1.8.1</a>.
+    (<a href=http://busybox.net/cgi-bin/viewcvs.cgi/branches/busybox_1_8_stable/>svn</a>,
+    <a href=http://busybox.net/downloads/fixes-1.8.1/>patches</a>,
+    <a href=http://busybox.net/fix.html>how to add a patch</a>)</p>
+
+    <p>This is a bugfix-only release, with fixes to login (PAM), modprobe, syslogd, telnetd, unzip.</p>
+  </li>
+
+  <li><b>4 November 2007 -- BusyBox 1.8.0 (unstable)</b>
+    <p><a href=http://busybox.net/downloads/busybox-1.8.0.tar.bz2>BusyBox 1.8.0</a>.
+    (<a href=http://busybox.net/cgi-bin/viewcvs.cgi/branches/busybox_1_8_stable/>svn</a>,
+    <a href=http://busybox.net/downloads/fixes-1.8.0/>patches</a>,
+    <a href=http://busybox.net/fix.html>how to add a patch</a>)</p>
+
+    <p>Note: this is probably the very last release with lash. It will be dropped. Please migrate to hush.
+
+    <p>Applets which had many changes since 1.7.x:
+    <p>httpd:
+      <ul>
+	<li>does not clear environment, CGIs will see all environment variables which were set for httpd
+	<li>fix bug where we were trying to read more POSTDATA than content-length
+	<li>fix trivial bug (spotted by Alex Landau)
+	<li>optional support for partial downloads
+	<li>simplified CGI i/o loop (now it looks good to me)
+	<li>small auth and IPv6 fixes (Kim B. Heino &lt;Kim.Heino at bluegiga.com>)
+	<li>support for proxying connection to other http server (by Alex Landau &lt;landau_alex at yahoo.com>)
+      </ul>
+
+    <p>top:
+      <ul>
+	<li>TOPMEM feature - 's(how sizes)' command
+	<li>don't wait before final bailout (try top -b -n1)
+	<li>fix for command line wrapping
+      </ul>
+
+    <p>Build system improvements: libbusybox mode restored (it was lost in transition to new makefiles).
+
+    <p>Code and data size in comparison with 1.7.3:<pre>
+Equivalent .config, i386 uclibc static builds:
+   text    data     bss     dec     hex filename
+ 768123	   1055	  10768	 779946	  be6aa	busybox-1.7.3/busybox
+ 759693	    974	   9420	 770087	  bc027	busybox-1.8.0/busybox</pre>
+
+    <p>New applets:
+      <ul>
+	<li>microcom: new applet by Vladimir Dronnikov &lt;dronnikov at gmail.ru&gt;
+	<li>kbd_mode: new applet by Loic Grenie &lt;loic.grenie at gmail.com&gt;
+	<li>bzip2: port bzip2 1.0.4 to busybox, 9 kb of code
+	<li>pgrep, pkill: new applets by Loic Grenie &lt;loic.grenie at gmail.com&gt;
+	<li>setsebool: new applet (Yuichi Nakamura &lt;ynakam at hitachisoft.jp&gt;)
+      </ul>
+
+    <p>Other changes since previous release (abridged):
+      <ul>
+	<li>cp: -r and -R imply -d (coreutils compat)
+	<li>cp: detect and prevent infinite recursion
+	<li>cp: make it a bit closer to POSIX, but still refuse to open and overwrite symbolic link
+	<li>hdparm: reduce possibility of numeric overflow in -T
+	<li>hdparm: simplify timing measurement
+	<li>wget: -O FILE is allowed to overwrite existing file (compat)
+	<li>wget: allow dots in header field names
+	<li>telnetd: add -K option to close sessions as soon as child exits
+	<li>telnetd: don't SIGKILL child when closing the session, kernel will send SIGHUP for us
+	<li>ed: large cleanup, add line editing
+	<li>hush: feeble attempt at making it more NOMMU-friendly
+	<li>hush: fix glob()
+	<li>hush: stop doing manual accounting of open fd's, kernel can do it for us
+	<li>adduser: implement -S and fix uid selection
+	<li>ash: fix prompt expansion (Natanael Copa &lt;natanael.copa at gmail.com&gt;)
+	<li>ash: revert "cat | jobs" fix, it causes more problems than good
+	<li>find: fix -xdev behavior in the presence of two or more nested mount points
+	<li>grep: fix grep -F -e str1 -e str2 (was matching str2 only)
+	<li>grep: optimization: stop on first -e match
+	<li>gunzip: support concatenated gz files
+	<li>inetd: fix bug 1562 "inetd does not set argv[0] properly" (fix by Ilya Panfilov)
+	<li>install: 'support' (by ignoring) -v and -b
+	<li>install: fix bug in "install -c file dir" (tried to copy dir into dir too)
+	<li>ip: tunnel parameter parsing fix by Jean Wolter &lt;jw5 at os.inf.tu-dresden.de&gt;
+	<li>isrv: use monotonic_sec
+	<li>less: make 'f' key page forward
+	<li>libiproute: add missing break statements
+	<li>load_policy: update (Yuichi Nakamura &lt;ynakam at hitachisoft.jp&gt;)
+	<li>logger: fix a problem of losing all argv except first
+	<li>login: do reject wrong passwords with PAM auth
+	<li>losetup: support -f (Loic Grenie &lt;loic.grenie at gmail.com&gt;)
+	<li>fdisk: make fdisk compile on libc without llseek64
+	<li>libbb: by popular request allow PATH to be customized at build time
+	<li>mkswap: selinux support by KaiGai Kohei &lt;kaigai at ak.jp.nec.com&gt;
+	<li>mount: allow (and ignore) -i
+	<li>mount: ignore NFS bg option on NOMMU machines
+	<li>mount: mount helpers support (by Vladimir Dronnikov &lt;dronnikov at gmail.ru&gt;)
+	<li>passwd: handle Ctrl-C, restore termios on Ctrl-C
+	<li>passwd: SELinux support by KaiGai Kohei &lt;kaigai at ak.jp.nec.com&gt;
+	<li>ping: make -I ethN work too (-I addr already worked)
+	<li>ps: fix RSS parsing (rss field in /proc/PID/stat is in pages, not bytes)
+	<li>read_line_input: fix it to not do any fancy editing if echoing is disabled
+	<li>run_parts: make it sort executables by name (required by API)
+	<li>runsv: do not use clock_gettime if !MONOTONIC_CLOCK
+	<li>runsvdir: fix "linear wait time" bug
+	<li>sulogin: remove alarm handling, it is redundant there
+	<li>svlogd: compat: svlogd -tt should timestamp stderr too
+	<li>syslogd: bail out if you see null read from Unix socket
+	<li>syslogd: do not need to poll(), we can just block in read()
+	<li>tail: work correctly on /proc files (Kazuo TAKADA &lt;kztakada at sm.sony.co.jp&gt;)
+	<li>tar + gzip/bzip2/etc: support NOMMU machines (by Alex Landau &lt;landau_alex at yahoo.com&gt;)
+	<li>tar: strip leading '/' BEFORE memorizing hardlink's name
+	<li>tftp: fix infinite retry bug
+	<li>umount: support (by ignoring) -i; style fixes
+	<li>unzip: fix endianness bugs
+	<li>vi: don't wait 50 ms before reading ESC sequences
+	<li>watchdog: allow millisecond spec (-t 250ms)
+	<li>zcip: fix unaligned trap on ARM
+      </ul>
+    </p>
+
+  </li>
+
+  <li><b>4 November 2007 -- BusyBox 1.7.3 (stable)</b>
+    <p><a href=http://busybox.net/downloads/busybox-1.7.3.tar.bz2>BusyBox 1.7.3</a>.
+    (<a href=http://busybox.net/cgi-bin/viewcvs.cgi/branches/busybox_1_7_stable/>svn</a>,
+    <a href=http://busybox.net/downloads/fixes-1.7.3/>patches</a>,
+    <a href=http://busybox.net/fix.html>how to add a patch</a>)</p>
+
+    <p>This is a bugfix-only release, with fixes to ash, httpd, inetd, iptun, logger, login, tail.</p>
+  </li>
+
+  <li><b>30 September 2007 -- BusyBox 1.7.2 (stable)</b>
+    <p><a href=http://busybox.net/downloads/busybox-1.7.2.tar.bz2>BusyBox 1.7.2</a>.
+    (<a href=http://busybox.net/cgi-bin/viewcvs.cgi/branches/busybox_1_7_stable/>svn</a>,
+    <a href=http://busybox.net/downloads/fixes-1.7.2/>patches</a>,
+    <a href=http://busybox.net/fix.html>how to add a patch</a>)</p>
+
+    <p>This is a bugfix-only release, with fixes to install, find, login, httpd, runsvdir, chcon, setfiles, fdisk and line editing.</p>
+  </li>
+
+  <li><b>16 September 2007 -- BusyBox 1.7.1 (stable)</b>
+    <p><a href=http://busybox.net/downloads/busybox-1.7.1.tar.bz2>BusyBox 1.7.1</a>.
+    (<a href=http://busybox.net/cgi-bin/viewcvs.cgi/branches/busybox_1_7_stable/>svn</a>,
+    <a href=http://busybox.net/downloads/fixes-1.7.1/>patches</a>,
+    <a href=http://busybox.net/fix.html>how to add a patch</a>)</p>
+
+    <p>This is a bugfix-only release, with fixes to cp, runsv, tar, busybox --install and build system.</p>
+  </li>
+
+  <li><b>24 August 2007 -- BusyBox 1.7.0 (unstable)</b>
+    <p><a href=http://busybox.net/downloads/busybox-1.7.0.tar.bz2>BusyBox 1.7.0</a>.
+    (<a href=http://busybox.net/cgi-bin/viewcvs.cgi/branches/busybox_1_7_stable/>svn</a>,
+    <a href=http://busybox.net/downloads/fixes-1.7.0/>patches</a>,
+    <a href=http://busybox.net/fix.html>how to add a patch</a>)</p>
+
+    <p>Applets which had many changes since 1.6.x:
+    <p>httpd:
+      <ul>
+	<li>works in standalone mode on NOMMU machines now (partly by Alex Landau &lt;landau_alex at yahoo.com&gt;)
+	<li>indexer example is rewritten in C
+	<li>optional support for error pages (by Pierre Metras &lt;genepi at sympatico.ca&gt;)
+	<li>stop reading headers using 1-byte reads
+	<li>new option -v[v]: prints client addresses, HTTP codes returned, URLs
+	<li>extended -p PORT to -p [IP[v6]:]PORT
+	<li>sendfile support (by Pierre Metras &lt;genepi at sympatico.ca&gt;)
+	<li>add support for Status: CGI header
+	<li>fix CGI handling bug (we were closing wrong fd)
+	<li>CGI I/O loop still doesn't look 100% ok to me...
+      </ul>
+
+    <p>udhcp[cd]:
+      <ul>
+	<li>add -f "foreground" and -S "syslog" options
+	<li>fixed "ifupdown + udhcpc_without_pidfile_creation" bug
+	<li>new config option "Rewrite the lease file at every new acknowledge" (Mats Erik Andersson &lt;mats at blue2net.com&gt; (Blue2Net AB))
+	<li>consistently treat server_config.start/end IPs as host-order
+	<li>fix IP parsing for 64bit machines
+	<li>fix unsafe hton macro usage in read_opt()
+	<li>do not chdir to / when daemonizing
+      </ul>
+
+    <p>top, ps, killall, pidof:
+      <ul>
+	<li>simpler loadavg processing
+	<li>truncate usernames to 8 chars
+	<li>fix non-CONFIG_DESKTOP ps -ww (by rockeychu)
+	<li>improve /proc/PID/cmdinfo reading code
+	<li>use cmdline, not comm field (fixes problems with re-execed applets showing as processes with name "exe", and not being found by pidof/killall by applet name)
+	<li>reduce CPU usage in decimal conversion (optional) (corresponding speedup on kernel side is accepted in mainline Linux kernel, yay!)
+	<li>make percentile (0.1%) calculations configurable
+	<li>add config option and code for global CPU% display
+	<li>reorder columns, so that [P]PIDs are together and VSZ/%MEM are together - makes more sense
+      </ul>
+
+    <p>Build system improvements: doesn't link against libraries we don't need,
+	generates verbose link output and map file, allows for custom link
+	scripts (useful for removing extra padding, among other things).
+
+    <p>Code and data size in comparison with 1.6.1:<pre>
+Equivalent .config, i386 glibc dynamic builds:
+   text    data     bss     dec     hex filename
+ 672671    2768   16808  692247   a9017 busybox-1.6.1/busybox
+ 662948    2660   13528  679136   a5ce0 busybox-1.7.0/busybox
+ 662783    2631   13416  678830   a5bae busybox-1.7.0/busybox.customld
+
+Same .config built against static uclibc:
+ 765021    1059   11020  777100   bdb8c busybox-1.7.0/busybox_uc</pre>
+
+    <p>Code/data shrink done in applets: crond, hdparm, dd, cal, od, nc, expr, uuencode,
+	test, slattach, diff, ping, tr, syslogd, hwclock, zcip, find, pidof, ash, uudecode,
+	runit/*, in libbb.
+
+    <p>New applets:
+      <ul>
+	<li>pscan, expand, unexpand (from Tito &lt;farmatito at tiscali.it&gt;)
+	<li>setfiles, restorecon (by Yuichi Nakamura &lt;ynakam at hitachisoft.jp&gt;)
+	<li>chpasswd (by Alexander Shishkin &lt;virtuoso at slind.org&gt;)
+	<li>slattach, ttysize
+      </ul>
+
+    <p>Unfortunately, not much work is done on shells. This was mostly stalled
+	by lack of time (read: laziness) on my part to learn how to adapt existing
+	qemu-runnable image for a NOMMU architechture (available on qemu website)
+	for local testing of cross-compiled busybox on my machine.
+
+    <p>Other changes since previous release (abridged):
+      <ul>
+	<li>addgroup: disallow addgroup -g num user group; make -g 0 work (Tito &lt;farmatito at tiscali.it&gt;)
+	<li>adduser: close /etc/{passwd,shadow} before calling passwd etc. Spotted by Natanael Copa &lt;natanael.copa at gmail.com&gt;
+	<li>arping: -i should be -I, fixed
+	<li>ash: make "jobs | cat" work like in bash (was giving empty output)
+	<li>ash: recognize -l as --login equivalent; do not recognize +-login
+	<li>ash: fix buglet in DEBUG code (Nguyen Thai Ngoc Duy &lt;pclouds at gmail.com&gt;)
+	<li>ash: fix SEGV if type has zero parameters
+	<li>awk: fix -F 'regex' bug (miscounted fields if last field is empty)
+	<li>catv: catv without arguments was trying to use environ as argv (Alex Landau &lt;landau_alex at yahoo.com&gt;)
+	<li>catv: don't die on open error (emit warning)
+	<li>chown/chgrp: completely match coreutils 6.8 wrt symlink handling
+	<li>correct_password: do not print "no shadow passwd..." message
+	<li>crond: don't start sendmail with absolute path, don't report obsolete version (report true bbox version)
+	<li>dd: fix bug where we assume count=INT_MAX when count is unspecified
+	<li>devfsd: sanitization by Tito &lt;farmatito at tiscali.it&gt;
+	<li>echo: fix non-fancy echo
+	<li>fdisk: make it work with big disks (read: typical today's disks) even if CONFIG_LFS is unset
+	<li>find: -context support for SELinux (KaiGai Kohei &lt;kaigai at kaigai.gr.jp&gt;)
+	<li>find: add conditional support for -maxdepth and -regex, make -size match GNU find
+	<li>find: fix build failure on certain configs (found by Cristian Ionescu-Idbohrn &lt;cristian.ionescu-idbohrn at axis.com&gt;)
+	<li>fsck_minix: make it print bb version, not it's own (outdated/irrelevant) one
+	<li>grep: implement -m MAX_MATCHES, fix buglets with context printing
+	<li>grep: fix selection done by FEATURE_GREP_EGREP_ALIAS (Maxime Bizon &lt;mbizon at freebox.fr&gt; (Freebox))
+	<li>hush: add missing dependencies (Maxime Bizon &lt;mbizon at freebox.fr&gt; (Freebox))
+	<li>hush: fix read builtin to not read ahead past EOL and to not use insane amounts of stack
+	<li>ifconfig: make it work with ifaces with interface no. &gt; 255
+	<li>ifup/ifdown: make location of ifstate configurable
+	<li>ifupdown: make netmask parsing smaller and more strict (was accepting 255.0.255.0, 255.1234.0.0 etc...)
+	<li>install: fix -s (strip) option, fix install a b /a/link/to/dir
+	<li>libbb: consolidate ARRAY_SIZE macro (Walter Harms &lt;wharms at bfs.de&gt;)
+	<li>libbb: make /etc/network parsing configurable. -200 bytes when off
+	<li>libbb: nuke BB_GETOPT_ERROR, always die if there are mutually exclusive options
+	<li>libbb: xioctl and friends by Tito &lt;farmatito at tiscali.it&gt;
+	<li>login: optional support for PAM
+	<li>login: make /etc/nologin support configurable (-240 bytes)
+	<li>login: ask passwords even for wrong usernames
+	<li>md5_sha1_sum: fix mishandling when run as /bin/md5sum
+	<li>mdev: add support for firmware loading
+	<li>mdev: work even when CONFIG_SYSFS_DEPRECATED in kernel is off
+	<li>modprobe: add scanning of /lib/modules/`uname -r`/modules.symbols (by Yann E. MORIN &lt;yann.morin.1998 at anciens.enib.fr&gt;)
+	<li>more: fixes by Tristan Schmelcher &lt;tpkschme at engmail.uwaterloo.ca&gt;
+	<li>nc: make connecting to IPv4 from IPv6-enabled hosts easier (was requiring -s local_addr)
+	<li>passwd: fix bug "updating shadow even if user's record is in passwd"
+	<li>patch: fix -p -1 handling
+	<li>patch: fix bad line ending handling (Nguyen Thai Ngoc Duy &lt;pclouds at gmail.com&gt;)
+	<li>ping: display roundtrip times with 1/1000th of ms, not 1/10 ms precision.
+	<li>ping: fix incorrect handling of -I (Iouri Kharon &lt;bc-info at styx.cabel.net&gt;)
+	<li>ping: fix non-fancy ping6
+	<li>printenv: fix "printenv VAR1 VAR2" bug (spotted by Kalyanatejaswi Balabhadrapatruni &lt;kalyanatejaswi at yahoo.co.in&gt;)
+	<li>ps: fix -Z (by Yuichi Nakamura &lt;ynakam at hitachisoft.jp&gt;)
+	<li>rpm: add optional support for bz2 data. +50 bytes of code
+	<li>rpm: fix bogus "package is not installed" case
+	<li>sed: fix 'q' command handling (by Nguyen Thai Ngoc Duy &lt;pclouds at gmail.com&gt;)
+	<li>start_stop_daemon: NOMMU fixes by Alex Landau &lt;landau_alex at yahoo.com&gt;
+	<li>stat: fix option -Z SEGV
+	<li>strings: strings a b was processing a twice, fix that
+	<li>svlogd: fix timestamping, do not warn if config is missing
+	<li>syslogd, logread: get rid of head pointer, fix logread bug in the process
+	<li>syslogd: do not convert tabs to ^I, set syslog IPC buffer to mode 0644
+	<li>tar: improve OLDGNU compat, make old SUN compat configurable
+	<li>test: fix testing primary expressions like '"-u" = "-u"'
+	<li>uudecode: fix to base64 decode by Jorgen Cederlof &lt;jcz at google.com&gt;
+	<li>vi: multiple fixes by Natanael Copa &lt;natanael.copa at gmail.com&gt;
+	<li>wget: fix bug in base64 encoding (bug 1404). +10 bytes
+	<li>wget: lift 256 chars limitation on terminal width
+	<li>wget, zcip: use monotonic_sec instead of gettimeofday
+      </ul>
+    </p>
+  </li>
+
+  <li><b>30 June 2007 -- BusyBox 1.6.1 (stable)</b>
+    <p><a href=http://busybox.net/downloads/busybox-1.6.1.tar.bz2>BusyBox 1.6.1</a>.
+    (<a href=http://busybox.net/cgi-bin/viewcvs.cgi/branches/busybox_1_6_stable/>svn</a>,
+    <a href=http://busybox.net/downloads/fixes-1.6.1/>patches</a>,
+    <a href=http://busybox.net/fix.html>how to add a patch</a>)</p>
+
+    <p>This is a bugfix-only release, with fixes to echo, hush, and wget.</p>
+  </li>
+
+  <li><b>1 June 2007 -- BusyBox 1.6.0 (unstable)</b>
+    <p><a href=http://busybox.net/downloads/busybox-1.6.0.tar.bz2>BusyBox 1.6.0</a>.
+    (<a href=http://busybox.net/cgi-bin/viewcvs.cgi/branches/busybox_1_6_stable/>svn</a>,
+    <a href=http://busybox.net/downloads/fixes-1.6.0/>patches</a>,
+    <a href=http://busybox.net/fix.html>how to add a patch</a>)</p>
+
+    <p>Since this is a x.x.0 release, it probably does not deserve "stable"
+    label. Please help making 1.6.1 stable by testing 1.6.0.</p>
+    <p>Note that hush shell had many changes and (hopefully) is much improved now,
+    but there is a possibility that it regressed in some obscure cases. Please
+    report any such cases.</p>
+    <p>lash users please note: lash is going to be deprecated in busybox 1.7.0
+    and removed in the more distant future. Please migrate to hush.</p>
+    <p><a href=http://busybox.net/~vda/mem_usage-1.6.0.txt>Memory usage has decreased, but we can do better still</a></p>
+    <p>Other changes since previous release:
+    <ul>
+<li>NOFORK: audit small applets and mark some of them as NOFORK. Put big scary warnings in relevant places
+<li>NOFORK: factor out NOFORK/NOEXEC code from find. Use NOFORK/NOEXEC in find and xargs
+<li>NOFORK: remove potential xmalloc from NOFORK path in bb_full_fd_action
+<li>NOMMU: random fixes; compressed --help now works for NOMMU
+<li>SELinux: load_policy applet
+<li>[u]mount: extend -t option (Roy Marples &lt;uberlord at gentoo.org&gt;)
+<li>addgroup: clean up, fix adding users to existing groups and make it optional (Tito)
+<li>adduser: don't bomb out if shadow password file doesn't exist (from Tito &lt;farmatito at tiscali.it&gt;)
+<li>applet.c: do not even try to read config if run by real root; fix suid config handling
+<li>ash: fix infinite loop on exit if tty is not there anymore
+<li>ash: fix kill -l (by Mats Erik Andersson &lt;mats.andersson64 at comhem.se&gt;)
+<li>ash: implement type -p, costs less than 10 bytes (patch by Mats Erik Andersson &lt;mats.andersson64 at comhem.se&gt;)
+<li>awk: don't segfault on printf(%*s). Closes bug 1337
+<li>awk: guard against empty environment
+<li>awk: some 'lineno' vars were shorts, made them ints (code got smaller)
+<li>cat: stop using stdio.h opens
+<li>config system: clarify PREFER_APPLETS/SH_STANDALONE effects in help text
+<li>cryptpw: new applet (by Thomas Lundquist &lt;lists at zelow.no&gt;)
+<li>cttyhack: new applet
+<li>dd: NOEXEC fix; fix skip= parse error (spotted by Dirk Clemens &lt;develop at cle-mens.de&gt;)
+<li>deluser: add optional support for removing users from groups (by Tito &lt;farmatito at tiscali.it&gt;)
+<li>diff: fix SEGV (NULL deref) in diff -N
+<li>diff: fix segfault on empty dirs (Peter Korsgaard &lt;peter.korsgaard at barco.com&gt;)
+<li>dnsd: fix several buglets, make smaller; openlog(), so that applet's name is logged
+<li>dpkg: run_package_script() returns 0 if all ok and non-zero if failure. The result code was checked incorrectly in two places. (from Kim B. Heino &lt;Kim.Heino at bluegiga.com&gt;)
+<li>dpkg: use bitfields which are a bit closer to typical short/char. Code size -800 bytes
+<li>dumpleases: getopt32()-ization (from Mats Erik Andersson &lt;mats.andersson64 at comhem.se&gt;)
+<li>e2fsprogs: stop using statics in chattr. Minor code shrinkage (-130 bytes)
+<li>ether-wake: close bug 1317. Reorder fuctions to avoid forward refs while at it
+<li>ether-wake: save a few more bytes of code
+<li>find: -group, -depth (Natanael Copa &lt;natanael.copa at gmail.com&gt;)
+<li>find: add support for -delete, -path (by Natanael Copa)
+<li>find: fix -prune. Add big comment about it
+<li>find: improve usage text (Natanael Copa &lt;natanael.copa at gmail.com&gt;)
+<li>find: missed 'static' on const data; size and prune were mixed up; use index_in_str_array
+<li>find: un-DESKTOPize (Kai Schwenzfeier &lt;niteblade at gmx.net&gt;)
+<li>find_root_device: teach to deal with /dev/ subdirs (by Kirill K. Smirnov &lt;lich at math.spbu.ru&gt;)
+<li>find_root_device: use lstat - don't follow links
+<li>getopt32: fix llist_t options ordering. llist_rev is now unused
+<li>getopt: use getopt32 for option parsing - inspired by patch by Mats Erik Andersson &lt;mats.andersson64 at comhem.se&gt;
+<li>hdparm: fix multisector mode setting (from Toni Mirabete &lt;amirabete at catix.cat&gt;)
+<li>hdparm: make -T -t code smaller (-194 bytes), and output prettier
+<li>ifupdown: make it possible to use DHCP clients different from udhcp
+<li>ifupdown: reread state file before rewriting it. Fixes "ifup started another ifup" state corruption bug. Patch by Natanael Copa &lt;natanael.copa at gmail.com&gt;
+<li>ifupdown: small optimization (avoid doing useless work if we are not going to update state file)
+<li>ip: fix compilation if FEATURE_TR_CLASSES is off
+<li>ip: mv ip*_main into ip.c; use a dispatcher to save on needless duplication. Saves a minor 12b
+<li>ip: rewrite the ip applet to be less bloaty. Convert to index_in_(sub)str_array()
+<li>ip: set the scope properly. Thanks to Jean Wolter
+<li>iplink: shrink iplink; sanitize libiproute a bit (-916 bytes)
+<li>iproute: shrink a bit (-200 bytes)
+<li>kill: know much more signals; make code smaller; use common code for kill applet and ash kill builtin
+<li>klogd: remove dependency on syslogd
+<li>lash: "forking" applets are actually can be treated the same way as "non-forked". Also save a bit of space on trailing NULL array elements.
+<li>lash: fix kill buglet (didn't properly recognize ESRCH)
+<li>lash: make -c work; crush buffer overrun and free of non-malloced ptr (from Mats Erik Andersson &lt;mats.andersson64 at comhem.se&gt;)
+<li>lash: recognize and use NOFORK applets
+<li>less: fix case when regex search finds nothing; fix very obscure memory corruption bug; fix less &lt;HUGEFILE + [End] busy loop
+<li>libbb: add xsendto, xunlink, xpipe
+<li>libbb: fix segfault in reset_ino_dev_hashtable() when *hashtable was NULL
+<li>libbb: make pidfile writing configurable
+<li>libbb: make xsocket die with address family printed (if VERBOSE_RESOLUTION_ERRORS=y)
+<li>libbb: rework NOMMU helper API so that it makes more sense and easier to use
+<li>libiproute: audit callgraph, shortcut error paths into die() functions
+<li>lineedit: do not try to open NULL history file
+<li>lineedit: nuke two unused variables and code which sets them
+<li>login: remove setpgrp call (makes it work from shell prompt again); sanitize stdio descriptors (we are suid, need to be careful!)
+<li>login: shrink login and set_environment by ~100 bytes
+<li>mount: fix incorrect usage of strtok (inadvertently used NULL sometimes)
+<li>mount: fix mounting of symlinks (mount from util-linux allows that)
+<li>msh: data/bss reduction (more than 9k of it); fix "underscore bug" (a_b=1111 didn't work); fix obscure case with backticks and closed fd 1
+<li>nc: port nc 1.10 to busybox
+<li>netstat: fix for bogus state value for raw sockets
+<li>netstat: introduce -W: wide, ipv6-friendly output; shrink by ~500 bytes
+<li>nmeter: should die if stdout doesn't like him anymore
+<li>patch: do not try to delete same file twice
+<li>ping: fix wrong sign extension of packet id (bug 1373)
+<li>ps: add -o tty and -o rss support; make a bit smaller; work around libc bug: printf("%.*s\n", MAX_INT, buffer)
+<li>run_parts: rewrite
+<li>run_parts: do not check path portion of a name for "bad chars". Needed for ifupdown. Patch by Gabriel L. Somlo &lt;somlo at cmu.edu&gt;
+<li>sed: fix escaped newlines in -f
+<li>split: new applet
+<li>stat: remove superfluous bss user (flags) and manually unswitch some areas
+<li>stty: fix option parsing bug (spotted by Sascha Hauer &lt;s.hauer at pengutronix.de&gt;)
+<li>svlogd: fix 'SEGV on uninitialized data' and make it honor TERM
+<li>tail: fix SEGV on "tail -N"
+<li>ipsvd: tcpsvd,udpsvd are new applets, GPL-ed 'clones' of Dan Bernstein's tcpserver. Author: Gerrit Pape &lt;pape at smarden.org&gt;, http://smarden.sunsite.dk/ipsvd/
+<li>test: close bug 1371; plug a memory leak; code size reduction
+<li>tftp: code diet, and I think retransmits were broken
+<li>tr: fix bug where we did not reject invalid classes like '[[:alpha'. debloat while at it
+<li>udhcp: MAC_BCAST_ADDR and blank_chaddr are in fact constant, move to rodata; use pipe instead of socketpair
+<li>udhcp[cd]: stop using atexit magic fir pidfile removal; stop deleting our own pidfile if we daemonize
+<li>xargs: shrink code, ~80 bytes; simplify word list management
+<li>zcip: make it work on NOMMU (+ improve NOMMU support machinery)
+    </ul>
+    </p>
+  </li>
+
+  <li><b>20 May 2007 -- BusyBox 1.5.1 (stable)</b>
+    <p><a href=http://busybox.net/downloads/busybox-1.5.1.tar.bz2>BusyBox 1.5.1</a>.
+    (<a href=http://busybox.net/downloads/fixes-1.5.1/>patches</a>,
+    <a href=http://busybox.net/fix.html>how to add a patch</a>)</p>
+
+    <p>This is a bugfix-only release, with fixes to hdparm, hush, ifupdown, ps
+    and sed.</p>
+  </li>
+
+  <li><b>23 March 2007 -- BusyBox 1.5.0 (unstable)</b>
+    <p><a href=http://busybox.net/downloads/busybox-1.5.0.tar.bz2>BusyBox 1.5.0</a>.
+    (<a href=http://busybox.net/downloads/fixes-1.5.0/>patches</a>,
+    <a href=http://busybox.net/fix.html>how to add a patch</a>)</p>
+
+    <p>Since this is a x.x.0 release, it probably does not deserve "stable"
+    label. Please help making 1.5.1 stable by testing 1.5.0.</p>
+    <p>Notable changes since previous release:
+    <ul>
+    <li>find: added support for -user, -not, fixed -mtime, -mmin, -perm
+    <li>[de]archivers: merge common logic into one module
+    <li>ping[6]: unified code for both
+    <li>less: regex search improved
+    <li>ash: more readable code, testsuite added
+    <li>sed: several very obscure bugs fixed
+    <li>chown: -H, -L, -P support (required by POSIX)
+    <li>tar: handle (broken) checksums a-la Sun; tar restores mode again
+    <li>grep: implement -w, "implement" -a and -I by ignoring them
+    <li>cp: more sane behavior when overwriting existing files
+    <li>init: stop doing silly things with the console (-400 bytes)
+    <li>httpd: make httpd usable for NOMMU CPUs; fix POSTDATA handling bugs
+    <li>httpd: run interpreter for configured file extensions in any dir,
+        not only in /cgi-bin/
+    <li>chrt: new applet
+    <li>SELinux: SELinux-related code and -Z option added to several applets,
+        new SELinux-specific applets: chcon, runcon.
+    <li>Build system: produces link map, uses -Wwrite-strings to catch
+        improper usage of string constants.
+    <li>Data and bss section usage audited and reduced - should help NOMMU
+        targets.
+    <li>Applets with bug fixes: gunzip, vi, syslogd, dpkg, ls, adjtimex, resize,
+        sv, printf, diff, awk, sort, dpkg, diff, tftp
+    <li>Applets with usability improvements: swapon, more, ifup/ifdown, hwclock,
+        udhcpd, start_stop_daemon, cmp
+    <li>Applets with code cleaned up: telnet, fdisk, fsck_minix, mkfs_minix,
+        syslogd, swapon, runsv, svlogd, klogd
+    </ul>
+    </p>
+  </li>
+
+  <li><b>18 March 2007 -- BusyBox 1.4.2 (stable)</b>
+    <p><a href=http://busybox.net/downloads/busybox-1.4.2.tar.bz2>BusyBox 1.4.2</a>.
+    </p>
+
+    <p>This release includes only trivial fixes accumulated since 1.4.1.
+    </p>
+  </li>
+
+  <li><b>25 January 2007 -- BusyBox 1.4.1 (stable)</b>
+    <p><a href=http://busybox.net/downloads/busybox-1.4.1.tar.bz2>BusyBox 1.4.1</a>.
+    (<a href=http://busybox.net/downloads/fixes-1.4.1/>patches</a>)</p>
+
+    <p>This release includes only trivial fixes accumulated since 1.4.0.
+    </p>
+  </li>
+
+  <li><b>20 January 2007 -- BusyBox 1.4.0 (stable)</b>
+    <p><a href=http://busybox.net/downloads/busybox-1.4.0.tar.bz2>BusyBox 1.4.0</a>.
+    (<a href=http://busybox.net/downloads/fixes-1.4.0/>patches</a>)</p>
+
+    <p>Since this is a x.x.0 release, it probably is a bit less "stable"
+    than usual.</p>
+    <p>Changes since previous release:
+    <ul>
+    <li>e2fsprogs are mostly removed from busybox. Some smaller parts remain,
+    the rest of it sits disabled in e2fsprogs/old_e2fsprogs/*, because
+    it's too bloated. Really. I'm afraid it's about the only way we can
+    ever get e2fsprogs cleaned up.
+    <li>less: many improvements. Now can display binary files
+    (although I expect it to have trouble with displays where 8bit chars
+    don't have 1-to-1 char/glyph relationship). Regexp search is not buggy
+    anymore. Less does not read entire input up-front. Reads input
+    as it appears (yay!). Works rather nice as man pager. I recommend it
+    for general use now.
+    <li>IPv6: generic support is in place, many networking applets are
+    upgraded to be IPv6 capable. Probably some work remains, but it is
+    already much better than what we had previously.
+    <li>arp: new applet (thanks to Eric Spakman).
+    <li>fakeidentd: non-forking standalone server part was taking ~90%
+    of the applet. Factored it out (in fact, rewrote it).
+    <li>syslogd: mostly rewritten.
+    <li>decompress_unzip, gzip: sanitized a bit.
+    <li>sed: better hadling of NULs
+    <li>httpd: stop adding our own "Content-type:" to CGI output
+    <li>chown: user.grp works again.
+    <li>minor bugfixes to: passwd, date, tftp, start_stop_daemon, tar,
+    ps, ifupdown, time, su, stty, awk, ping[6], sort,...
+    </ul>
+    </p>
+  </li>
+
+  <li><b>20 January 2007 -- BusyBox 1.3.2 (stable)</b>
+    <p><a href=http://busybox.net/downloads/busybox-1.3.2.tar.bz2>BusyBox 1.3.2</a>.</p>
+
+    <p>This release includes only one trivial fix accumulated since 1.3.1
+    </p>
+  </li>
+
+  <li><b>27 December 2006 -- BusyBox 1.3.1 (stable)</b>
+    <p><a href=http://busybox.net/downloads/busybox-1.3.1.tar.bz2>BusyBox 1.3.1</a>.
+    (<a href=http://busybox.net/downloads/fixes-1.3.1/>patches</a>)</p>
+
+    <p>Closing 2006 with new release. It includes only trivial fixes accumulated since 1.3.0
+    </p>
+  </li>
+
+  <li><b>14 December 2006 -- BusyBox 1.3.0 (stable)</b>
+    <p><a href=http://busybox.net/downloads/busybox-1.3.0.tar.bz2>BusyBox 1.3.0</a>.
+    (<a href=http://busybox.net/downloads/fixes-1.3.0/>patches</a>)</p>
+
+    <p>This release has CONFIG_DESKTOP option which enables features
+    needed for busybox usage on desktop machine. For example, find, chmod
+    and chown get several less frequently used options, od is significantly
+    bigger but matches GNU coreutils, etc. Intended to eventually make
+    busybox a viable alternative for "standard" utilities for slightly
+    adventurous desktop users.
+    <p>Changes since previous release:
+    <ul>
+    <li>find: taking many more of standard options
+    <li>ps: POSIX-compliant -o implemented
+    <li>cp: added -s, -l
+    <li>grep: added -r, fixed -h
+    <li>watch: make it exec child like standard one does (was totally
+        incompatible)
+    <li>tar: fix limitations which were preventing bbox tar usage
+        on big directories: long names and linknames, pax headers
+        (Linux kernel tarballs have that). Fixed a number of obscure bugs.
+        Raised max file limit (now 64Gb). Security fixes (/../ attacks).
+    <li>httpd: added -i (inetd), -f (foreground), support for
+        directory indexer CGI (example is included), bugfixes.
+    <li>telnetd: fixed/improved IPv6 support, inetd+standalone support,
+        other fixes. Useful IPv6 stuff factored out into libbb.
+    <li>runit/*: new applets adapted from http://smarden.sunsite.dk/runit/
+        (these are my personal favorite small-and-beautiful toys)
+    <li>minor bugfixes to: login, dd, mount, umount, chmod, chown, ln, udhcp,
+        fdisk, ifconfig, sort, tee, mkswap, wget, insmod.
+    </ul>
+    <p>Note that GnuPG key used to sign this release is different.
+    1.2.2.1 is also signed post-factum now. Sorry for the mess.
+    </p>
+  </li>
+
+  <li><b>29 October 2006 -- BusyBox 1.2.2.1 (fix)</b>
+    <p><a href=http://busybox.net/downloads/busybox-1.2.2.1.tar.bz2>BusyBox 1.2.2.1</a>.</p>
+
+    <p>Added compile-time warning that static linking against glibc
+    produces buggy executables.
+  </li>
+
+  <li><b>24 October 2006 -- BusyBox 1.2.2 (stable)</b>
+    <p>It's a bit overdue, but
+    <a href=http://busybox.net/downloads/busybox-1.2.2.tar.bz2>here is
+    BusyBox 1.2.2</a>.</p>
+
+    <p>This release has dozens of fixes backported from the ongoing development
+    branch.  There are a couple of bugfixes to sed, two fixes to documentation
+    generation (BusyBox.html shouldn't have USE() macros in it anymore), fix
+    umount to report the right errno on failure and to umount block devices by
+    name with newer kernels, fix mount to handle symlinks properly, make mdev
+    delete device nodes when called for hotplug remove, fix a segfault
+    in traceroute, a minor portability fix to md5sum option parsing, a build
+    fix for httpd with old gccs, an options parsing tweak to hdparm, make test
+    fail gracefully when getgroups() returns -1, fix a race condition in
+    modprobe when two instances run at once (hotplug does this), make "tar xf
+    foo.tar dir/dir" extract all subdirectories, make our getty initialize the
+    terminal more like mingetty, an selinux build fix, an endianness fix in
+    ping6, fix for zcip defending addresses, clean up some global variables in
+    gzip to save memory, fix sulogin -tNNN, a help text tweak, several warning
+    fixes and build fixes, fixup dnsd a bit, and a partridge in a pear tree.</p>
+
+    <p>As <a href=http://lwn.net/Articles/202106/>Linux Weekly News noted</a>,
+    this is my (Rob's) last release of BusyBox.  The new maintainer is Denis
+    Vlasenko, I'm off to do <a href=http://landley.net/code>other things</a>.
+    </p>
+  </li>
+
+  <li><b>29 September 2006 -- New license email address.</b>
+    <p>The email address gpl@busybox.net is now the recommended way to contact
+    the Software Freedom Law Center to report BusyBox license violations.</p>
+
+  <li><b>31 July 2006 -- BusyBox 1.2.1 (stable)</b>
+    <p>Since nobody seems to have objected too loudly over the weekend, I
+    might as well point you all at
+    <a href="http://busybox.net/downloads/busybox-1.2.1.tar.bz2">Busybox
+    1.2.1</a>, a bugfix-only release with no new features.</p>
+
+    <p>It has three shell fixes (two to lash: going "var=value" without
+    saying "export" should now work, plus a missing null pointer check, and
+    one to ash when redirecting output to a file that fills up.)  Fix three
+    embarassing thinkos in the new dmesg command.  Two build tweaks
+    (dependencies for the compressed usage messages and running make in the
+    libbb subdirectory).  One fix to tar so it can extract git-generated
+    tarballs (rather than barfing on the pax extensions).  And a partridge
+    in a pear...  Ahem.</p>
+
+    <p>But wait, there's more!  A passwd changing fix so an empty
+    gecos field doesn't trigger a false objection that the new passwd contains
+    the gecos field.  Make all our setuid() and setgid() calls check the return
+    value in case somebody's using per-process resource limits that prevent
+    a user from having too many processes (and thus prevent a process from
+    switching away from root, in which case the process will now _die_ rather
+    than continue with root privileges).  A fix to adduser to make sure that
+    /etc/group gets updated.  And a fix to modprobe to look for modules.conf
+    in the right place on 2.6 kernels.</p>
+
+  <li><b>30 June 2006 -- BusyBox 1.2.0</b>
+    <p>The -devel branch has been stabilized and the result is
+    <a href="http://busybox.net/downloads/busybox-1.2.0.tar.bz2">Busybox
+    1.2.0</a>.  Lots of stuff changed, I need to work up a decent changelog
+    over the weekend.</p>
+
+    <p>I'm still experimenting with how long is best for the development
+    cycle, and since we've got some largeish projects queued up I'm going to
+    try a longer one.  Expect 1.3.0 in December.  (Expect 1.2.1 any time
+    we fix enough bugs. :)</p>
+
+    <p>Update: Here are <a href="http://busybox.net/downloads/busybox-1.2.0.fixes.patch">the first few bug fixes</a> that will go into 1.2.1.</p>
+
+  <li><b>17 May 2006 -- BusyBox 1.1.3 (stable)</b>
+    <p><a href="http://busybox.net/downloads/busybox-1.1.3.tar.bz2">BusyBox
+    1.1.3</a> is another bugfix release.  It makes passwd use salt, fixes a
+    memory freeing bug in ls, fixes "build all sources at once" mode, makes
+    mount -a not abort on the first failure, fixes msh so ctrl-c doesn't kill
+    background processes, makes patch work with patch hunks that don't have a
+    timestamp, make less's text search a lot more robust (the old one could
+    segfault), and fixes readlink -f when built against uClibc.</p>
+
+    <p>Expect 1.2.0 sometime next month, which won't be a bugfix release.</p>
+
+  <li><b>10 April 2006 -- BusyBox 1.1.2 (stable)</b>
+    <p>You can now download <a href="http://busybox.net/downloads/busybox-1.1.2.tar.bz2">BusyBox 1.1.2</a>, a bug fix release consisting of 11 patches
+    backported from the development branch: Some build fixes, several fixes
+    for mount and nfsmount, a fix for insmod on big endian systems, a fix for
+    find -xdev, and a fix for comm.  Check the file "changelog" in the tarball
+    for more info.</p>
+
+    <p>The next new development release (1.2.0) is slated for June.  A 1.1.3
+    will be released before then if more bug fixes crop up.  (The new plan is
+    to have a 1.x.0 new development release every 3 months, with 1.x.y stable
+    bugfix only releases based on that as appropriate.)</p>
+
+  <li><b>27 March 2006 -- Software Freedom Law Center representing BusyBox and uClibc</b>
+    <p>One issue Erik Andersen wanted to resolve when handing off BusyBox
+    maintainership to Rob Landley was license enforcement.  BusyBox and
+    uClibc's existing license enforcement efforts (pro-bono representation
+    by Erik's father's law firm, and the
+    <a href="http://www.busybox.net/shame.html">Hall of Shame</a>), haven't
+    scaled to match the popularity of the projects.  So we put our heads
+    together and did the obvious thing: ask Pamela Jones of
+    <a href="http://www.groklaw.net">Groklaw</a> for suggestions.  She
+    referred us to the fine folks at softwarefreedom.org.</p>
+
+    <p>As a result, we're pleased to announce that the
+    <a href="http://www.softwarefreedom.org">Software Freedom Law Center</a>
+    has agreed to represent BusyBox and uClibc.  We join a number of other
+    free and open source software projects (such as
+    <a href="http://lwn.net/Articles/141806/">X.org</a>,
+    <a href="http://lwn.net/Articles/135413/">Wine</a>, and
+    <a href="http://plone.org/foundation/newsitems/software-freedom-law-center-support/">Plone</a>
+    in being represented by a fairly cool bunch of lawyers, which is not a
+    phrase you get to use every day.</p>
+
+  <li><b>22 March 2006 -- BusyBox 1.1.1</b>
+    <p>The new maintainer is Rob Landley, and the new release is <a href="http://busybox.net/downloads/busybox-1.1.1.tar.bz2">BusyBox 1.1.1</a>.  Expect a "what's new" document in a few days.  (Also, Erik and I have have another announcement pending...)</p>
+    <p>Update: Rather than put out an endless stream of 1.1.1.x releases,
+    the various small fixes have been collected together into a
+    <a href="http://busybox.net/downloads/busybox-1.1.1.fixes.patch">patch</a>,
+    and new fixes will be appended to that as needed.  Expect 1.1.2 around
+    June.</p>
+  </li>
+  <li><b>11 January 2006 -- 1.1.0 is out</b>
+    <p>The new stable release is
+    <a href="http://www.busybox.net/downloads/busybox-1.1.0.tar.bz2">BusyBox
+    1.1.0</a>.  It has a number of improvements, including several new applets.
+    (It also has <a href="http://www.busybox.net/lists/busybox/2006-January/017733.html">a few rough spots</a>,
+    but we're trying out a "release early, release often" strategy to see how
+    that works.  Expect 1.1.1 sometime in March.)</p>
+
   <li><b>31 October 2005 -- 1.1.0-pre1</b>
     <p>The development branch of busybox is stable enough for wider testing, so
     you can now
