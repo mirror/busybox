@@ -69,9 +69,11 @@ int man_main(int argc ATTRIBUTE_UNUSED, char **argv)
 {
 	FILE *cf;
 	const char *pager;
-	char *man_path, *sec_list;
+	char **man_path_list;
+	char *sec_list;
 	char *cur_path, *cur_sect;
 	char *line, *value;
+	int count_mp, alloc_mp, cur_mp;
 	int opt;
 
 	opt_complementary = "-1"; /* at least one argument */
@@ -79,7 +81,12 @@ int man_main(int argc ATTRIBUTE_UNUSED, char **argv)
 	argv += optind;
 
 	sec_list = xstrdup("1:2:3:4:5:6:7:8:9");
-	man_path = xstrdup(getenv("MANPATH"));
+	alloc_mp = 10;
+	man_path_list = xmalloc(10 * sizeof(man_path_list[0])); 
+	count_mp = 0;
+	man_path_list[0] = xstrdup(getenv("MANPATH"));
+	if (man_path_list[0])
+		count_mp++;
 	pager = getenv("MANPAGER");
 	if (!pager) {
 		pager = getenv("PAGER");
@@ -98,8 +105,13 @@ int man_main(int argc ATTRIBUTE_UNUSED, char **argv)
 				value = skip_whitespace(&line[8]);
 				*skip_non_whitespace(value) = '\0';
 				if (strcmp("MANPATH", line) == 0) {
-					free(man_path);
-						man_path = xstrdup(value);
+					man_path_list[count_mp] = xstrdup(value);
+					count_mp++;
+					if (alloc_mp == count_mp) {
+						alloc_mp += 10;
+						man_path_list = xrealloc(man_path_list, alloc_mp * sizeof(man_path_list[0]));
+					}
+					/* thus man_path_list is always NULL terminated */
 				}
 				if (strcmp("MANSECT", line) == 0) {
 					free(sec_list);
@@ -112,37 +124,35 @@ int man_main(int argc ATTRIBUTE_UNUSED, char **argv)
 	}
 
 	do { /* for each argv[] */
-		cur_path = man_path;
-		do { /* for each MANPATH item */
-			char *next_path = strchrnul(cur_path, ':');
-			int path_len = next_path - cur_path;
+		cur_mp = 0;
+		while ((cur_path = man_path_list[cur_mp++]) != NULL) {
+			/* for each MANPATH */
+			do { /* for each MANPATH item */
+				char *next_path = strchrnul(cur_path, ':');
+				int path_len = next_path - cur_path;
+				cur_sect = sec_list;
+				do { /* for each section */
+					char *next_sect = strchrnul(cur_sect, ':');
+					int sect_len = next_sect - cur_sect;
 
-			cur_sect = sec_list;
-			do { /* for each section */
-				char *next_sect = strchrnul(cur_sect, ':');
-				int sect_len = next_sect - cur_sect;
-
-				char *man_filename = xasprintf("%.*s/man%.*s/%s.%.*s" ".bz2",
-							path_len, cur_path,
-			        			sect_len, cur_sect,
-			        			*argv,
-							sect_len, cur_sect);
-				if (show_manpage(pager, man_filename)) {
-					if (!(opt & OPT_a)) {
+					char *man_filename = xasprintf("%.*s/man%.*s/%s.%.*s" ".bz2",
+								path_len, cur_path,
+			        				sect_len, cur_sect,
+			        				*argv,
+								sect_len, cur_sect);
+					int found = show_manpage(pager, man_filename);
+					free(man_filename);
+					if (found && !(opt & OPT_a))
 						goto next_arg;
-					}
-				}
-				free(man_filename);
-
-				cur_sect = next_sect;
-				while (*cur_sect == ':')
-					cur_sect++;
-			} while (*cur_sect);
-
-			cur_path = next_path;
-			while (*cur_path == ':')
-				cur_path++;
-		} while (*cur_path);
+					cur_sect = next_sect;
+					while (*cur_sect == ':')
+						cur_sect++;
+				} while (*cur_sect);
+				cur_path = next_path;
+				while (*cur_path == ':')
+					cur_path++;
+			} while (*cur_path);
+		}
  next_arg:
 		argv++;
 	} while (*argv);
