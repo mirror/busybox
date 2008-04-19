@@ -29,10 +29,10 @@
  * - don't know how to retrieve ORIGDST for udp.
  */
 
-#include <limits.h>
-#include <linux/netfilter_ipv4.h> /* wants <limits.h> */
-
 #include "libbb.h"
+/* Wants <limits.h> etc, thus included after libbb.h: */
+#include <linux/netfilter_ipv4.h>
+
 // TODO: move into this file:
 #include "tcpudp_perhost.h"
 

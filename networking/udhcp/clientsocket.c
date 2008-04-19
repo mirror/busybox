@@ -22,11 +22,11 @@
  */
 
 #include <features.h>
+#include <asm/types.h>
 #if (defined(__GLIBC__) && __GLIBC__ >= 2 && __GLIBC_MINOR__ >= 1) || defined(_NEWLIB_VERSION)
 #include <netpacket/packet.h>
 #include <net/ethernet.h>
 #else
-#include <asm/types.h>
 #include <linux/if_packet.h>
 #include <linux/if_ether.h>
 #endif

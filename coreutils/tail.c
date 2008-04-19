@@ -163,8 +163,6 @@ int tail_main(int argc, char **argv)
 	fmt = header_fmt + 1;	/* Skip header leading newline on first output. */
 	i = 0;
 	do {
-		off_t current;
-
 		if (nfiles > header_threshhold) {
 			tail_xprint_header(fmt, argv[i]);
 			fmt = header_fmt;
@@ -173,19 +171,17 @@ int tail_main(int argc, char **argv)
 		/* Optimizing count-bytes case if the file is seekable.
 		 * Beware of backing up too far.
 		 * Also we exclude files with size 0 (because of /proc/xxx) */
-		current = lseek(fds[i], 0, SEEK_END);
-		if (current > 0) {
-			if (!from_top) {
+		if (COUNT_BYTES && !from_top) {
+			off_t current = lseek(fds[i], 0, SEEK_END);
+			if (current > 0) {
 				if (count == 0)
 					continue; /* showing zero lines is easy :) */
-				if (COUNT_BYTES) {
-					current -= count;
-					if (current < 0)
-						current = 0;
-					xlseek(fds[i], current, SEEK_SET);
-					bb_copyfd_size(fds[i], STDOUT_FILENO, count);
-					continue;
-				}
+				current -= count;
+				if (current < 0)
+					current = 0;
+				xlseek(fds[i], current, SEEK_SET);
+				bb_copyfd_size(fds[i], STDOUT_FILENO, count);
+				continue;
 			}
 		}
 

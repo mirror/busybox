@@ -50,6 +50,11 @@ int taskset_main(int argc ATTRIBUTE_UNUSED, char **argv)
 	char *pid_str;
 	char *aff = aff; /* for compiler */
 
+	/* NB: we mimic util-linux's taskset: -p does not take
+	 * an argument, i.e., "-pN" is NOT valid, only "-p N"!
+	 * Indeed, util-linux-2.13-pre7 uses:
+	 * getopt_long(argc, argv, "+pchV", ...), not "...p:..." */
+
 	opt_complementary = "-1"; /* at least 1 arg */
 	opt_p = getopt32(argv, "+p");
 	argv += optind;
