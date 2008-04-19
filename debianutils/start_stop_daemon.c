@@ -32,6 +32,7 @@ struct globals {
 	int user_id;
 	smallint quiet;
 	smallint signal_nr;
+	struct stat execstat;
 };
 #define G (*(struct globals*)&bb_common_bufsiz1)
 #define found             (G.found               )
@@ -42,6 +43,7 @@ struct globals {
 #define user_id           (G.user_id             )
 #define quiet             (G.quiet               )
 #define signal_nr         (G.signal_nr           )
+#define execstat          (G.execstat            )
 #define INIT_G() \
         do { \
 		user_id = -1; \
@@ -49,22 +51,18 @@ struct globals {
         } while (0)
 
 
-static int pid_is_exec(pid_t pid, const char *name)
+static int pid_is_exec(pid_t pid)
 {
+	struct stat st;
 	char buf[sizeof("/proc//exe") + sizeof(int)*3];
-	char *execbuf;
-	int n;
 
 	sprintf(buf, "/proc/%u/exe", pid);
-	n = strlen(name) + 1;
-	execbuf = xzalloc(n + 1);
-	readlink(buf, execbuf, n);
-	/* if readlink fails because link target is longer than strlen(name),
-	 * execbuf still contains "", and strcmp will return !0. */
-	n = strcmp(execbuf, name);
-	if (ENABLE_FEATURE_CLEAN_UP)
-		free(execbuf);
-	return !n; /* nonzero (true) if execbuf == name */
+	if (stat(buf, &st) < 0)
+		return 0;
+	if (st.st_dev == execstat.st_dev
+	 && st.st_ino == execstat.st_ino)
+		return 1;
+	return 0;
 }
 
 static int pid_is_user(int pid, int uid)
@@ -104,7 +102,7 @@ static void check(int pid)
 {
 	struct pid_list *p;
 
-	if (execname && !pid_is_exec(pid, execname)) {
+	if (execname && !pid_is_exec(pid)) {
 		return;
 	}
 	if (userspec && !pid_is_user(pid, user_id)) {
@@ -300,6 +298,8 @@ int start_stop_daemon_main(int argc ATTRIBUTE_UNUSED, char **argv)
 		if (errno)
 			user_id = xuname2uid(userspec);
 	}
+	if (execname)
+		xstat(execname, &execstat);
 
 	if (opt & CTX_STOP) {
 		int i = do_stop();
