@@ -250,7 +250,7 @@ enum {
 };
 
 int start_stop_daemon_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int start_stop_daemon_main(int argc, char **argv)
+int start_stop_daemon_main(int argc ATTRIBUTE_UNUSED, char **argv)
 {
 	unsigned opt;
 	char *signame;
@@ -292,7 +292,7 @@ int start_stop_daemon_main(int argc, char **argv)
 //		if (retry_arg)
 //			retries = xatoi_u(retry_arg);
 //	)
-	argc -= optind;
+	//argc -= optind;
 	argv += optind;
 
 	if (userspec) {
