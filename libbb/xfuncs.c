@@ -172,7 +172,7 @@ char *utoa_to_buf(unsigned n, char *buf, unsigned buflen)
 /* Convert signed integer to ascii, like utoa_to_buf() */
 char *itoa_to_buf(int n, char *buf, unsigned buflen)
 {
-	if (buflen && n<0) {
+	if (buflen && n < 0) {
 		n = -n;
 		*buf++ = '-';
 		buflen--;

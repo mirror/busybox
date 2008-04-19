@@ -191,7 +191,7 @@ static void parse_args(char **argv, int cmd, struct ip_tunnel_parm *p)
 			if (strchr(*argv, '.'))
 				p->i_key = p->o_key = get_addr32(*argv);
 			else {
-				if (get_unsigned(&uval, *argv, 0)<0) {
+				if (get_unsigned(&uval, *argv, 0) < 0) {
 					bb_error_msg_and_die("invalid value of \"key\"");
 				}
 				p->i_key = p->o_key = htonl(uval);
@@ -203,7 +203,7 @@ static void parse_args(char **argv, int cmd, struct ip_tunnel_parm *p)
 			if (strchr(*argv, '.'))
 				p->o_key = get_addr32(*argv);
 			else {
-				if (get_unsigned(&uval, *argv, 0)<0) {
+				if (get_unsigned(&uval, *argv, 0) < 0) {
 					bb_error_msg_and_die("invalid value of \"ikey\"");
 				}
 				p->i_key = htonl(uval);
@@ -215,7 +215,7 @@ static void parse_args(char **argv, int cmd, struct ip_tunnel_parm *p)
 			if (strchr(*argv, '.'))
 				p->o_key = get_addr32(*argv);
 			else {
-				if (get_unsigned(&uval, *argv, 0)<0) {
+				if (get_unsigned(&uval, *argv, 0) < 0) {
 					bb_error_msg_and_die("invalid value of \"okey\"");
 				}
 				p->o_key = htonl(uval);
