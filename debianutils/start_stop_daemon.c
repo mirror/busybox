@@ -32,6 +32,7 @@ struct globals {
 	int user_id;
 	smallint quiet;
 	smallint signal_nr;
+	struct stat execstat;
 };
 #define G (*(struct globals*)&bb_common_bufsiz1)
 #define found             (G.found               )
@@ -42,6 +43,7 @@ struct globals {
 #define user_id           (G.user_id             )
 #define quiet             (G.quiet               )
 #define signal_nr         (G.signal_nr           )
+#define execstat          (G.execstat            )
 #define INIT_G() \
         do { \
 		user_id = -1; \
@@ -51,13 +53,12 @@ struct globals {
 
 static int pid_is_exec(pid_t pid)
 {
-	struct stat st, execstat;
+	struct stat st;
 	char buf[sizeof("/proc//exe") + sizeof(int)*3];
 
 	sprintf(buf, "/proc/%u/exe", pid);
 	if (stat(buf, &st) < 0)
 		return 0;
-	xstat(execname, &execstat);
 	if (st.st_dev == execstat.st_dev
 	 && st.st_ino == execstat.st_ino)
 		return 1;
@@ -299,6 +300,8 @@ int start_stop_daemon_main(int argc ATTRIBUTE_UNUSED, char **argv)
 		if (errno)
 			user_id = xuname2uid(userspec);
 	}
+	if (execname)
+		xstat(execname, &execstat);
 
 	do_procinit(); /* Both start and stop needs to know current processes */
 
