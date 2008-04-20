@@ -208,25 +208,34 @@ ssize_t open_read_close(const char *filename, void *buf, size_t size)
 void *xmalloc_open_read_close(const char *filename, size_t *sizep)
 {
 	char *buf;
-	size_t size = sizep ? *sizep : INT_MAX;
+	size_t size;
 	int fd;
 	off_t len;
 
 	fd = open(filename, O_RDONLY);
 	if (fd < 0)
 		return NULL;
+
 	/* /proc/N/stat files report len 0 here */
 	/* In order to make such files readable, we add small const */
-	len = xlseek(fd, 0, SEEK_END) | 0x3ff; /* + up to 1k */
-	xlseek(fd, 0, SEEK_SET);
-	if (len < size)
-		size = len;
+	size = 0x3ff; /* read only 1k on unseekable files */
+	len = lseek(fd, 0, SEEK_END) | 0x3ff; /* + up to 1k */
+	if (len != (off_t)-1) {
+		xlseek(fd, 0, SEEK_SET);
+		size = sizep ? *sizep : INT_MAX;
+		if (len < size)
+			size = len;
+	}
+
 	buf = xmalloc(size + 1);
 	size = read_close(fd, buf, size);
-	if ((ssize_t)size < 0)
-		bb_perror_msg_and_die("'%s'", filename);
+	if ((ssize_t)size < 0) {
+		free(buf);
+		return NULL;
+	}
 	xrealloc(buf, size + 1);
 	buf[size] = '\0';
+
 	if (sizep)
 		*sizep = size;
 	return buf;

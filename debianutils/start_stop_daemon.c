@@ -32,7 +32,6 @@ struct globals {
 	int user_id;
 	smallint quiet;
 	smallint signal_nr;
-	struct stat execstat;
 };
 #define G (*(struct globals*)&bb_common_bufsiz1)
 #define found             (G.found               )
@@ -43,7 +42,6 @@ struct globals {
 #define user_id           (G.user_id             )
 #define quiet             (G.quiet               )
 #define signal_nr         (G.signal_nr           )
-#define execstat          (G.execstat            )
 #define INIT_G() \
         do { \
 		user_id = -1; \
@@ -53,12 +51,13 @@ struct globals {
 
 static int pid_is_exec(pid_t pid)
 {
-	struct stat st;
+	struct stat st, execstat;
 	char buf[sizeof("/proc//exe") + sizeof(int)*3];
 
 	sprintf(buf, "/proc/%u/exe", pid);
 	if (stat(buf, &st) < 0)
 		return 0;
+	xstat(execname, &execstat);
 	if (st.st_dev == execstat.st_dev
 	 && st.st_ino == execstat.st_ino)
 		return 1;
@@ -78,24 +77,21 @@ static int pid_is_user(int pid)
 
 static int pid_is_cmd(pid_t pid)
 {
-	char fname[sizeof("/proc//stat") + sizeof(int)*3];
-	char *buf;
-	int r = 0;
+	char buf[256]; /* is it big enough? */
+	char *p, *pe;
 
-	sprintf(fname, "/proc/%u/stat", pid);
-	buf = xmalloc_open_read_close(fname, NULL);
-	if (buf) {
-		char *p = strchr(buf, '(');
-		if (p) {
-			char *pe = strrchr(++p, ')');
-			if (pe) {
-				*pe = '\0';
-				r = !strcmp(p, cmdname);
-			}
-		}
-		free(buf);
-	}
-	return r;
+	sprintf(buf, "/proc/%u/stat", pid);
+	if (open_read_close(buf, buf, sizeof(buf) - 1) < 0)
+		return 0;
+	buf[sizeof(buf) - 1] = '\0'; /* paranoia */
+	p = strchr(buf, '(');
+	if (!p)
+		return 0;
+	pe = strrchr(++p, ')');
+	if (!pe)
+		return 0;
+	*pe = '\0';
+	return !strcmp(p, cmdname);
 }
 
 static void check(int pid)
@@ -303,8 +299,6 @@ int start_stop_daemon_main(int argc ATTRIBUTE_UNUSED, char **argv)
 		if (errno)
 			user_id = xuname2uid(userspec);
 	}
-	if (execname)
-		xstat(execname, &execstat);
 
 	do_procinit(); /* Both start and stop needs to know current processes */
 
