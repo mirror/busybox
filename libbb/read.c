@@ -211,6 +211,48 @@ void *xmalloc_open_read_close(const char *filename, size_t *sizep)
 	size_t size;
 	int fd;
 	off_t len;
+	struct stat st;
+
+	fd = open(filename, O_RDONLY);
+	if (fd < 0)
+		return NULL;
+
+	st.st_size = 0; /* in case fstat fail, define to 0 */
+	fstat(fd, &st);
+	/* /proc/N/stat files report len 0 here */
+	/* In order to make such files readable, we add small const */
+	len = st.st_size | 0x3ff; /* read only 1k on unseekable files */
+	size = sizep ? *sizep : INT_MAX;
+	if (len < size)
+		size = len;
+	buf = xmalloc(size + 1);
+	size = read_close(fd, buf, size);
+	if ((ssize_t)size < 0) {
+		free(buf);
+		return NULL;
+	}
+	xrealloc(buf, size + 1);
+	buf[size] = '\0';
+
+	if (sizep)
+		*sizep = size;
+	return buf;
+}
+
+#ifdef USING_LSEEK_TO_GET_SIZE
+/* Alternatively, file size can be obtained by lseek to the end.
+ * The code is slightly bigger. Retained in case fstat approach
+ * will not work for some weird cases (/proc, block devices, etc).
+ * (NB: lseek also can fail to work for some weird files) */
+
+// Read (potentially big) files in one go. File size is estimated by
+// lseek to end.
+void *xmalloc_open_read_close(const char *filename, size_t *sizep)
+{
+	char *buf;
+	size_t size;
+	int fd;
+	off_t len;
 
 	fd = open(filename, O_RDONLY);
 	if (fd < 0)
@@ -240,6 +282,7 @@ void *xmalloc_open_read_close(const char *filename, size_t *sizep)
 		*sizep = size;
 	return buf;
 }
+#endif
 
 void *xmalloc_xopen_read_close(const char *filename, size_t *sizep)
 {
