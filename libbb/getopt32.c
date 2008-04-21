@@ -497,8 +497,9 @@ getopt32(char **argv, const char *applet_opts, ...)
 		if (argv[1] && argv[1][0] != '-' && argv[1][1] != '\0') {
 #if DONT_USE_PRINTF
 			char *pp = alloca(strlen(argv[1]) + 2);
-			*pp++ = '-';
-			argv[1] = strcpy(pp, argv[1]);
+			*pp = '-';
+			strcpy(pp + 1, argv[1]);
+			argv[1] = pp;
 #else
 			argv[1] = xasprintf("-%s", argv[1]);
 			if (ENABLE_FEATURE_CLEAN_UP)
