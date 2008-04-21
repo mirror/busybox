@@ -451,7 +451,7 @@ void selinux_or_die(void)
 #endif
 }
 
-int ioctl_or_perror_and_die(int fd, int request, void *argp, const char *fmt,...)
+int ioctl_or_perror_and_die(int fd, unsigned request, void *argp, const char *fmt,...)
 {
 	int ret;
 	va_list p;
@@ -467,7 +467,7 @@ int ioctl_or_perror_and_die(int fd, int request, void *argp, const char *fmt,...
 	return ret;
 }
 
-int ioctl_or_perror(int fd, int request, void *argp, const char *fmt,...)
+int ioctl_or_perror(int fd, unsigned request, void *argp, const char *fmt,...)
 {
 	va_list p;
 	int ret = ioctl(fd, request, argp);
@@ -481,7 +481,7 @@ int ioctl_or_perror(int fd, int request, void *argp, const char *fmt,...)
 }
 
 #if ENABLE_IOCTL_HEX2STR_ERROR
-int bb_ioctl_or_warn(int fd, int request, void *argp, const char *ioctl_name)
+int bb_ioctl_or_warn(int fd, unsigned request, void *argp, const char *ioctl_name)
 {
 	int ret;
 
@@ -490,7 +490,7 @@ int bb_ioctl_or_warn(int fd, int request, void *argp, const char *ioctl_name)
 		bb_simple_perror_msg(ioctl_name);
 	return ret;
 }
-int bb_xioctl(int fd, int request, void *argp, const char *ioctl_name)
+int bb_xioctl(int fd, unsigned request, void *argp, const char *ioctl_name)
 {
 	int ret;
 
@@ -500,7 +500,7 @@ int bb_xioctl(int fd, int request, void *argp, const char *ioctl_name)
 	return ret;
 }
 #else
-int bb_ioctl_or_warn(int fd, int request, void *argp)
+int bb_ioctl_or_warn(int fd, unsigned request, void *argp)
 {
 	int ret;
 
@@ -509,7 +509,7 @@ int bb_ioctl_or_warn(int fd, int request, void *argp)
 		bb_perror_msg("ioctl %#x failed", request);
 	return ret;
 }
-int bb_xioctl(int fd, int request, void *argp)
+int bb_xioctl(int fd, unsigned request, void *argp)
 {
 	int ret;
 

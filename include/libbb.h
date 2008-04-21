@@ -1019,16 +1019,17 @@ extern int update_passwd(const char *filename, const char *username,
 /* NB: typically you want to pass fd 0, not 1. Think 'applet | grep something' */
 int get_terminal_width_height(int fd, int *width, int *height);
 
-int ioctl_or_perror(int fd, int request, void *argp, const char *fmt,...) __attribute__ ((format (printf, 4, 5)));
-int ioctl_or_perror_and_die(int fd, int request, void *argp, const char *fmt,...) __attribute__ ((format (printf, 4, 5)));
+/* NB: "unsigned request" is crucial! "int request" will break some arches! */
+int ioctl_or_perror(int fd, unsigned request, void *argp, const char *fmt,...) __attribute__ ((format (printf, 4, 5)));
+int ioctl_or_perror_and_die(int fd, unsigned request, void *argp, const char *fmt,...) __attribute__ ((format (printf, 4, 5)));
 #if ENABLE_IOCTL_HEX2STR_ERROR
-int bb_ioctl_or_warn(int fd, int request, void *argp, const char *ioctl_name);
-int bb_xioctl(int fd, int request, void *argp, const char *ioctl_name);
+int bb_ioctl_or_warn(int fd, unsigned request, void *argp, const char *ioctl_name);
+int bb_xioctl(int fd, unsigned request, void *argp, const char *ioctl_name);
 #define ioctl_or_warn(fd,request,argp) bb_ioctl_or_warn(fd,request,argp,#request)
 #define xioctl(fd,request,argp)        bb_xioctl(fd,request,argp,#request)
 #else
-int bb_ioctl_or_warn(int fd, int request, void *argp);
-int bb_xioctl(int fd, int request, void *argp);
+int bb_ioctl_or_warn(int fd, unsigned request, void *argp);
+int bb_xioctl(int fd, unsigned request, void *argp);
 #define ioctl_or_warn(fd,request,argp) bb_ioctl_or_warn(fd,request,argp)
 #define xioctl(fd,request,argp)        bb_xioctl(fd,request,argp)
 #endif
