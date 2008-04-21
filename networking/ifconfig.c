@@ -315,7 +315,7 @@ int ifconfig_main(int argc, char **argv)
 	sockfd = xsocket(AF_INET, SOCK_DGRAM, 0);
 
 	/* get interface name */
-	safe_strncpy(ifr.ifr_name, *argv, IFNAMSIZ);
+	strncpy(ifr.ifr_name, *argv, IFNAMSIZ);
 
 	/* Process the remaining arguments. */
 	while (*++argv != (char *) NULL) {

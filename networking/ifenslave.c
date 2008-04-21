@@ -148,6 +148,10 @@ static void change_active(char *master_ifname, char *slave_ifname);
 static int enslave(char *master_ifname, char *slave_ifname);
 static int release(char *master_ifname, char *slave_ifname);
 
+static void strncpy_IFNAMSIZ(char *dst, const char *src)
+{
+	strncpy(dst, src, IFNAMSIZ);
+}
 
 int ifenslave_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int ifenslave_main(int argc ATTRIBUTE_UNUSED, char **argv)
@@ -302,7 +306,7 @@ static void get_drv_info(char *master_ifname)
 	struct ethtool_drvinfo info;
 
 	memset(&ifr, 0, sizeof(ifr));
-	strncpy(ifr.ifr_name, master_ifname, IFNAMSIZ);
+	strncpy_IFNAMSIZ(ifr.ifr_name, master_ifname);
 	ifr.ifr_data = (caddr_t)&info;
 
 	info.cmd = ETHTOOL_GDRVINFO;
@@ -332,8 +336,8 @@ static void change_active(char *master_ifname, char *slave_ifname)
 			slave_ifname);
 	}
 
-	strncpy(ifr.ifr_name, master_ifname, IFNAMSIZ);
-	strncpy(ifr.ifr_slave, slave_ifname, IFNAMSIZ);
+	strncpy_IFNAMSIZ(ifr.ifr_name, master_ifname);
+	strncpy_IFNAMSIZ(ifr.ifr_slave, slave_ifname);
 	if (ioctl(skfd, SIOCBONDCHANGEACTIVE, &ifr) < 0
 	 && ioctl(skfd, BOND_CHANGE_ACTIVE_OLD, &ifr) < 0
 	) {
@@ -448,8 +452,8 @@ static int enslave(char *master_ifname, char *slave_ifname)
 	}
 
 	/* Do the real thing */
-	strncpy(ifr.ifr_name, master_ifname, IFNAMSIZ);
-	strncpy(ifr.ifr_slave, slave_ifname, IFNAMSIZ);
+	strncpy_IFNAMSIZ(ifr.ifr_name, master_ifname);
+	strncpy_IFNAMSIZ(ifr.ifr_slave, slave_ifname);
 	if (ioctl(skfd, SIOCBONDENSLAVE, &ifr) < 0
 	 && ioctl(skfd, BOND_ENSLAVE_OLD, &ifr) < 0
 	) {
@@ -484,8 +488,8 @@ static int release(char *master_ifname, char *slave_ifname)
 		return 1;
 	}
 
-	strncpy(ifr.ifr_name, master_ifname, IFNAMSIZ);
-	strncpy(ifr.ifr_slave, slave_ifname, IFNAMSIZ);
+	strncpy_IFNAMSIZ(ifr.ifr_name, master_ifname);
+	strncpy_IFNAMSIZ(ifr.ifr_slave, slave_ifname);
 	if (ioctl(skfd, SIOCBONDRELEASE, &ifr) < 0
 	 && ioctl(skfd, BOND_RELEASE_OLD, &ifr) < 0
 	) {
@@ -508,11 +512,11 @@ static int get_if_settings(char *ifname, struct dev_data *dd)
 {
 	int res;
 
-	strncpy(dd->mtu.ifr_name, ifname, IFNAMSIZ);
+	strncpy_IFNAMSIZ(dd->mtu.ifr_name, ifname);
 	res = ioctl(skfd, SIOCGIFMTU, &dd->mtu);
-	strncpy(dd->flags.ifr_name, ifname, IFNAMSIZ);
+	strncpy_IFNAMSIZ(dd->flags.ifr_name, ifname);
 	res |= ioctl(skfd, SIOCGIFFLAGS, &dd->flags);
-	strncpy(dd->hwaddr.ifr_name, ifname, IFNAMSIZ);
+	strncpy_IFNAMSIZ(dd->hwaddr.ifr_name, ifname);
 	res |= ioctl(skfd, SIOCGIFHWADDR, &dd->hwaddr);
 
 	return res;
@@ -520,7 +524,7 @@ static int get_if_settings(char *ifname, struct dev_data *dd)
 
 static int get_slave_flags(char *slave_ifname)
 {
-	strncpy(slave.flags.ifr_name, slave_ifname, IFNAMSIZ);
+	strncpy_IFNAMSIZ(slave.flags.ifr_name, slave_ifname);
 	return ioctl(skfd, SIOCGIFFLAGS, &slave.flags);
 }
 
@@ -528,7 +532,7 @@ static int set_master_hwaddr(char *master_ifname, struct sockaddr *hwaddr)
 {
 	struct ifreq ifr;
 
-	strncpy(ifr.ifr_name, master_ifname, IFNAMSIZ);
+	strncpy_IFNAMSIZ(ifr.ifr_name, master_ifname);
 	memcpy(&(ifr.ifr_hwaddr), hwaddr, sizeof(struct sockaddr));
 	return ioctl(skfd, SIOCSIFHWADDR, &ifr);
 }
@@ -537,7 +541,7 @@ static int set_slave_hwaddr(char *slave_ifname, struct sockaddr *hwaddr)
 {
 	struct ifreq ifr;
 
-	strncpy(ifr.ifr_name, slave_ifname, IFNAMSIZ);
+	strncpy_IFNAMSIZ(ifr.ifr_name, slave_ifname);
 	memcpy(&(ifr.ifr_hwaddr), hwaddr, sizeof(struct sockaddr));
 	return ioctl(skfd, SIOCSIFHWADDR, &ifr);
 }
@@ -547,7 +551,7 @@ static int set_slave_mtu(char *slave_ifname, int mtu)
 	struct ifreq ifr;
 
 	ifr.ifr_mtu = mtu;
-	strncpy(ifr.ifr_name, slave_ifname, IFNAMSIZ);
+	strncpy_IFNAMSIZ(ifr.ifr_name, slave_ifname);
 	return ioctl(skfd, SIOCSIFMTU, &ifr);
 }
 
@@ -556,7 +560,7 @@ static int set_if_flags(char *ifname, short flags)
 	struct ifreq ifr;
 
 	ifr.ifr_flags = flags;
-	strncpy(ifr.ifr_name, ifname, IFNAMSIZ);
+	strncpy_IFNAMSIZ(ifr.ifr_name, ifname);
 	return ioctl(skfd, SIOCSIFFLAGS, &ifr);
 }
 
@@ -580,7 +584,7 @@ static int clear_if_addr(char *ifname)
 {
 	struct ifreq ifr;
 
-	strncpy(ifr.ifr_name, ifname, IFNAMSIZ);
+	strncpy_IFNAMSIZ(ifr.ifr_name, ifname);
 	ifr.ifr_addr.sa_family = AF_INET;
 	memset(ifr.ifr_addr.sa_data, 0, sizeof(ifr.ifr_addr.sa_data));
 	return ioctl(skfd, SIOCSIFADDR, &ifr);
@@ -603,7 +607,7 @@ static int set_if_addr(char *master_ifname, char *slave_ifname)
 	int i;
 
 	for (i = 0; i < ARRAY_SIZE(ifra); i++) {
-		strncpy(ifr.ifr_name, master_ifname, IFNAMSIZ);
+		strncpy_IFNAMSIZ(ifr.ifr_name, master_ifname);
 		res = ioctl(skfd, ifra[i].g_ioctl, &ifr);
 		if (res < 0) {
 			ifr.ifr_addr.sa_family = AF_INET;
@@ -611,7 +615,7 @@ static int set_if_addr(char *master_ifname, char *slave_ifname)
 			       sizeof(ifr.ifr_addr.sa_data));
 		}
 
-		strncpy(ifr.ifr_name, slave_ifname, IFNAMSIZ);
+		strncpy_IFNAMSIZ(ifr.ifr_name, slave_ifname);
 		res = ioctl(skfd, ifra[i].s_ioctl, &ifr);
 		if (res < 0)
 			return res;

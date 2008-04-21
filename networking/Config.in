@@ -576,7 +576,7 @@ config NAMEIF
 	  Renamed interfaces MUST be in the down state.
 	  It is possible to use a file (default: /etc/mactab)
 	  with list of new interface names and MACs.
-	  Maximum interface name length: IF_NAMESIZE = 16
+	  Maximum interface name length: IFNAMSIZ = 16
 	  File fields are separated by space or tab.
 	  File format:
 	  # Comment

@@ -137,7 +137,7 @@ int brctl_main(int argc ATTRIBUTE_UNUSED, char **argv)
 
 				if (!if_indextoname(bridx[i], brname))
 					bb_perror_msg_and_die("can't get bridge name for index %d", i);
-				safe_strncpy(ifr.ifr_name, brname, IFNAMSIZ);
+				strncpy(ifr.ifr_name, brname, IFNAMSIZ);
 
 				arm_ioctl(args, BRCTL_GET_BRIDGE_INFO,
 							(unsigned long) &bi, 0);
@@ -191,7 +191,7 @@ int brctl_main(int argc ATTRIBUTE_UNUSED, char **argv)
 		if (!*argv) /* all but 'addif/delif' need at least two arguments */
 			bb_show_usage();
 
-		safe_strncpy(ifr.ifr_name, br, IFNAMSIZ);
+		strncpy(ifr.ifr_name, br, IFNAMSIZ);
 		if (key == ARG_addif || key == ARG_delif) { /* addif or delif */
 			brif = *argv;
 			ifr.ifr_ifindex = if_nametoindex(brif);

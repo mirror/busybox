@@ -321,23 +321,23 @@ struct user_net_device_stats {
 
 struct interface {
 	struct interface *next, *prev;
-	char name[IFNAMSIZ];	/* interface name        */
-	short type;			/* if type               */
-	short flags;		/* various flags         */
-	int metric;			/* routing metric        */
-	int mtu;			/* MTU value             */
-	int tx_queue_len;	/* transmit queue length */
-	struct ifmap map;	/* hardware setup        */
-	struct sockaddr addr;	/* IP address            */
-	struct sockaddr dstaddr;	/* P-P IP address        */
-	struct sockaddr broadaddr;	/* IP broadcast address  */
-	struct sockaddr netmask;	/* IP network mask       */
+	char name[IFNAMSIZ];                    /* interface name        */
+	short type;                             /* if type               */
+	short flags;                            /* various flags         */
+	int metric;                             /* routing metric        */
+	int mtu;                                /* MTU value             */
+	int tx_queue_len;                       /* transmit queue length */
+	struct ifmap map;                       /* hardware setup        */
+	struct sockaddr addr;                   /* IP address            */
+	struct sockaddr dstaddr;                /* P-P IP address        */
+	struct sockaddr broadaddr;              /* IP broadcast address  */
+	struct sockaddr netmask;                /* IP network mask       */
 	int has_ip;
-	char hwaddr[32];	/* HW address            */
+	char hwaddr[32];                        /* HW address            */
 	int statistics_valid;
-	struct user_net_device_stats stats;	/* statistics            */
-	int keepalive;		/* keepalive value for SLIP */
-	int outfill;		/* outfill value for SLIP */
+	struct user_net_device_stats stats;     /* statistics            */
+	int keepalive;                          /* keepalive value for SLIP */
+	int outfill;                            /* outfill value for SLIP */
 };
 
 
@@ -388,7 +388,7 @@ static struct interface *add_interface(char *name)
 	}
 
 	new = xzalloc(sizeof(*new));
-	safe_strncpy(new->name, name, IFNAMSIZ);
+	strncpy(new->name, name, IFNAMSIZ);
 	nextp = ife ? &ife->next : &int_list;
 	new->prev = ife;
 	new->next = *nextp;

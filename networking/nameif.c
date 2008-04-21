@@ -16,16 +16,11 @@
 #include <netinet/ether.h>
 #include <linux/sockios.h>
 
-/* Older versions of net/if.h do not appear to define IF_NAMESIZE. */
-#ifndef IF_NAMESIZE
-#  ifdef IFNAMSIZ
-#    define IF_NAMESIZE IFNAMSIZ
-#  else
-#    define IF_NAMESIZE 16
-#  endif
+#ifndef IFNAMSIZ
+#define IFNAMSIZ 16
 #endif
 
-/* take from linux/sockios.h */
+/* Taken from linux/sockios.h */
 #define SIOCSIFNAME	0x8923	/* set interface name */
 
 /* Octets in one Ethernet addr, from <linux/if_ether.h> */
@@ -111,7 +106,7 @@ static void nameif_parse_selector(ethtable_t *ch, char *selector)
 static void prepend_new_eth_table(ethtable_t **clist, char *ifname, char *selector)
 {
 	ethtable_t *ch;
-	if (strlen(ifname) >= IF_NAMESIZE)
+	if (strlen(ifname) >= IFNAMSIZ)
 		bb_error_msg_and_die("interface name '%s' too long", ifname);
 	ch = xzalloc(sizeof(*ch));
 	ch->ifname = xstrdup(ifname);
