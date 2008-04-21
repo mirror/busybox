@@ -717,6 +717,12 @@ config RTCWAKE
 	help
 	  Enter a system sleep state until specified wakeup time.
 
+config SCRIPT
+	bool "script"
+	default n
+	help
+	  The script makes typescript of terminal session.
+
 config SETARCH
 	bool "setarch"
 	default n

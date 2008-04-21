@@ -437,11 +437,11 @@ config RX
 	help
 	  Receive files using the Xmodem protocol.
 
-config SCRIPT
-	bool "script"
+config SETSID
+	bool "setsid"
 	default n
 	help
-	  The script makes typescript of terminal session.
+	  setsid runs a program in a new session
 
 config STRINGS
 	bool "strings"
@@ -449,12 +449,6 @@ config STRINGS
 	help
 	  strings prints the printable character sequences for each file
 	  specified.
-
-config SETSID
-	bool "setsid"
-	default n
-	help
-	  setsid runs a program in a new session
 
 config TASKSET
 	bool "taskset"
