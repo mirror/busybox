@@ -22,11 +22,13 @@ int open_transformer(int src_fd,
 
 #if BB_MMU
 	pid = fork();
+	if (pid == -1)
+		bb_perror_msg_and_die("can't fork");
 #else
 	pid = vfork();
-#endif
 	if (pid == -1)
-		bb_perror_msg_and_die("fork failed");
+		bb_perror_msg_and_die("can't vfork");
+#endif
 
 	if (pid == 0) {
 		/* child process */
@@ -49,7 +51,7 @@ int open_transformer(int src_fd,
 			argv[2] = (char*)"-";
 			argv[3] = NULL;
 			BB_EXECVP(transform_prog, argv);
-			bb_perror_msg_and_die("exec failed");
+			bb_perror_msg_and_die("can't exec %s", transform_prog);
 		}
 #endif
 		/* notreached */
