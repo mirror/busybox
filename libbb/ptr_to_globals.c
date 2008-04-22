@@ -5,6 +5,8 @@
  * Licensed under GPLv2, see file LICENSE in this tarball for details.
  */
 
+#include <errno.h>
+
 struct globals;
 
 #ifndef GCC_COMBINE
@@ -13,12 +15,21 @@ struct globals;
  * but here we make it live in R/W memory */
 struct globals *ptr_to_globals;
 
+#ifdef __GLIBC__
+int *bb_errno;
+#endif
+
+
 #else
+
 
 /* gcc -combine will see through and complain */
 /* Using alternative method which is more likely to break
  * on weird architectures, compilers, linkers and so on */
 struct globals *const ptr_to_globals __attribute__ ((section (".data")));
 
+#ifdef __GLIBC__
+int *const bb_errno __attribute__ ((section (".data")));
 #endif
 
+#endif

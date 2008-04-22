@@ -159,7 +159,7 @@ typedef int arith_t;
 
 
 /* We try to minimize both static and stack usage. */
-struct statics {
+struct test_statics {
 	char **t_wp;
 	const struct t_op *t_wp_op;
 	gid_t *group_array;
@@ -167,11 +167,10 @@ struct statics {
 	jmp_buf leaving;
 };
 
-/* Make it reside in writable memory, yet make compiler understand
- * that it is not going to change. */
-static struct statics *const ptr_to_statics __attribute__ ((section (".data")));
+/* See test_ptr_hack.c */
+extern struct test_statics *const test_ptr_to_statics;
 
-#define S (*ptr_to_statics)
+#define S (*test_ptr_to_statics)
 #define t_wp            (S.t_wp         )
 #define t_wp_op         (S.t_wp_op      )
 #define group_array     (S.group_array  )
@@ -179,11 +178,11 @@ static struct statics *const ptr_to_statics __attribute__ ((section (".data")));
 #define leaving         (S.leaving      )
 
 #define INIT_S() do { \
-	(*(struct statics**)&ptr_to_statics) = xzalloc(sizeof(S)); \
+	(*(struct test_statics**)&test_ptr_to_statics) = xzalloc(sizeof(S)); \
 	barrier(); \
 } while (0)
 #define DEINIT_S() do { \
-	free(ptr_to_statics); \
+	free(test_ptr_to_statics); \
 } while (0)
 
 static arith_t primary(enum token n);

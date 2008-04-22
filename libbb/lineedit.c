@@ -74,7 +74,7 @@ static const char null_str[] ALIGN1 = "";
 #endif
 
 /* We try to minimize both static and stack usage. */
-struct statics {
+struct lineedit_statics {
 	line_input_t *state;
 
 	volatile unsigned cmdedit_termw; /* = 80; */ /* actual terminal width */
@@ -120,11 +120,10 @@ struct statics {
 #endif
 };
 
-/* Make it reside in writable memory, yet make compiler understand
- * that it is not going to change. */
-static struct statics *const ptr_to_statics __attribute__ ((section (".data")));
+/* See lineedit_ptr_hack.c */
+extern struct lineedit_statics *const lineedit_ptr_to_statics;
 
-#define S (*ptr_to_statics)
+#define S (*lineedit_ptr_to_statics)
 #define state            (S.state           )
 #define cmdedit_termw    (S.cmdedit_termw   )
 #define previous_SIGWINCH_handler (S.previous_SIGWINCH_handler)
@@ -145,7 +144,7 @@ static struct statics *const ptr_to_statics __attribute__ ((section (".data")));
 #define delbuf           (S.delbuf          )
 
 #define INIT_S() do { \
-	(*(struct statics**)&ptr_to_statics) = xzalloc(sizeof(S)); \
+	(*(struct lineedit_statics**)&lineedit_ptr_to_statics) = xzalloc(sizeof(S)); \
 	barrier(); \
 	cmdedit_termw = 80; \
 	USE_FEATURE_EDITING_FANCY_PROMPT(num_ok_lines = 1;) \
@@ -163,7 +162,7 @@ static void deinit_S(void)
 	if (home_pwd_buf != null_str)
 		free(home_pwd_buf);
 #endif
-	free(ptr_to_statics);
+	free(lineedit_ptr_to_statics);
 }
 #define DEINIT_S() deinit_S()
 
