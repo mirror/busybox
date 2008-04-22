@@ -171,7 +171,7 @@ static void make_device(char *path, int delete)
 					s = val;
 					while (*s && *s++ == '%')
 						n++;
-					
+
 					p = alias = xzalloc(strlen(val) + n * strlen(device_name));
 					s = val + 1;
 					while (*s) {

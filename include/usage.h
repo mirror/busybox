@@ -521,7 +521,7 @@
 
 #define cpio_trivial_usage \
        "-[dim" USE_FEATURE_CPIO_O("o") "tuv][F cpiofile]" \
-       USE_FEATURE_CPIO_O( "[H newc]" ) 
+       USE_FEATURE_CPIO_O( "[H newc]" )
 #define cpio_full_usage "\n\n" \
        "Extract or list files from a cpio archive" \
 	USE_FEATURE_CPIO_O( ", or create a cpio archive" ) \

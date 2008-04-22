@@ -60,7 +60,7 @@ static int get_vt_fd(void)
 	/* Do we, by chance, already have it? */
 	for (fd = 0; fd < 3; fd++)
 		if (!not_vt_fd(fd))
-    			return fd;
+			return fd;
 	/* _only_ O_NONBLOCK: ask for neither read not write perms */
 	fd = open(DEV_CONSOLE, O_NONBLOCK);
 	if (fd >= 0 && !not_vt_fd(fd))
@@ -73,7 +73,7 @@ static int find_free_vtno(void)
 	int vtno;
 	int fd = get_vt_fd();
 
- 	errno = 0;
+	errno = 0;
 	/*xfunc_error_retval = 3; - do we need compat? */
 	if (ioctl(fd, VT_OPENQRY, &vtno) != 0 || vtno <= 0)
 		bb_perror_msg_and_die("can't find open VT");
@@ -138,7 +138,7 @@ int openvt_main(int argc ATTRIBUTE_UNUSED, char **argv)
 	close(0);
 	/*setsid(); - BAD IDEA: after we exit, child is SIGHUPed... */
 	xopen(vtname, O_RDWR);
-	xioctl(0, VT_GETSTATE, &vtstat);	
+	xioctl(0, VT_GETSTATE, &vtstat);
 
 	if (flags & OPT_s) {
 		xioctl(0, VT_ACTIVATE, (void*)(ptrdiff_t)vtno);

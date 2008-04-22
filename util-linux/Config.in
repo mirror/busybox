@@ -532,7 +532,7 @@ config FEATURE_VOLUMEID_SYSV
 ###	depends on VOLUMEID
 ###	help
 ###	  TODO
-### 
+###
 ### config FEATURE_VOLUMEID_MSDOS
 ###	bool "msdos filesystem"
 ###	default n

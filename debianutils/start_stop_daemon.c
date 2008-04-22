@@ -142,18 +142,18 @@ static void do_procinit(void)
 	procdir = xopendir("/proc");
 
 	pid = 0;
- 	while(1) {
- 		errno = 0; /* clear any previous error */
- 		entry = readdir(procdir);
+	while(1) {
+		errno = 0; /* clear any previous error */
+		entry = readdir(procdir);
 // TODO: check for exact errno(s) which mean that we got stale entry
- 		if (errno) /* Stale entry, process has died after opendir */
-  			continue;
- 		if (!entry) /* EOF, no more entries */
- 			break;
- 		pid = bb_strtou(entry->d_name, NULL, 10);
- 		if (errno) /* NaN */
- 			continue;
-  		check(pid);
+		if (errno) /* Stale entry, process has died after opendir */
+			continue;
+		if (!entry) /* EOF, no more entries */
+			break;
+		pid = bb_strtou(entry->d_name, NULL, 10);
+		if (errno) /* NaN */
+			continue;
+		check(pid);
 	}
 	closedir(procdir);
 	if (!pid)

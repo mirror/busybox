@@ -9,11 +9,11 @@
  * - use kernel option 'vga=xxx' or otherwise enable framebuffer device.
  * - put somewhere fbsplash.cfg file and an image in .ppm format.
  * - run applet: $ setsid fbsplash [params] &
- *	-c: hide cursor
- *	-d /dev/fbN: framebuffer device (if not /dev/fb0)
- *	-s path_to_image_file (can be "-" for stdin)
- * 	-i path_to_cfg_file
- * 	-f path_to_fifo (can be "-" for stdin)
+ *      -c: hide cursor
+ *      -d /dev/fbN: framebuffer device (if not /dev/fb0)
+ *      -s path_to_image_file (can be "-" for stdin)
+ *      -i path_to_cfg_file
+ *      -f path_to_fifo (can be "-" for stdin)
  * - if you want to run it only in presence of a kernel parameter
  *   (for example fbsplash=on), use:
  *   grep -q "fbsplash=on" </proc/cmdline && setsid fbsplash [params]
@@ -147,7 +147,7 @@ static void fb_drawfullrectangle(int nx1pos, int ny1pos, int nx2pos, int ny2pos,
 	ngreen >>= 2;  // 6-bit green
 	nblue  >>= 3;  // 5-bit blue
 	thispix = nblue + (ngreen << 5) + (nred << (5+6));
-	
+
 	cnt1 = ny2pos - ny1pos;
 	nypos = ny1pos;
 	do {
@@ -156,7 +156,7 @@ static void fb_drawfullrectangle(int nx1pos, int ny1pos, int nx2pos, int ny2pos,
 		do {
 			*ptr++ = thispix;
 		} while (--cnt2 >= 0);
-		
+
 		nypos++;
 	} while (--cnt1 >= 0);
 }
@@ -342,7 +342,7 @@ static void init(const char *cfg_filename)
 		case 7:
 			G.bdebug_messages = val;
 			if (G.bdebug_messages)
- 				G.logfile_fd = xfopen("/tmp/fbsplash.log", "w");
+				G.logfile_fd = xfopen("/tmp/fbsplash.log", "w");
 			break;
 #endif
  err:

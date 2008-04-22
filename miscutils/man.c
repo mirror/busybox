@@ -82,7 +82,7 @@ int man_main(int argc ATTRIBUTE_UNUSED, char **argv)
 
 	sec_list = xstrdup("1:2:3:4:5:6:7:8:9");
 	alloc_mp = 10;
-	man_path_list = xmalloc(10 * sizeof(man_path_list[0])); 
+	man_path_list = xmalloc(10 * sizeof(man_path_list[0]));
 	count_mp = 0;
 	man_path_list[0] = xstrdup(getenv("MANPATH"));
 	if (man_path_list[0])
@@ -137,8 +137,8 @@ int man_main(int argc ATTRIBUTE_UNUSED, char **argv)
 
 					char *man_filename = xasprintf("%.*s/man%.*s/%s.%.*s" ".bz2",
 								path_len, cur_path,
-			        				sect_len, cur_sect,
-			        				*argv,
+								sect_len, cur_sect,
+								*argv,
 								sect_len, cur_sect);
 					int found = show_manpage(pager, man_filename);
 					free(man_filename);

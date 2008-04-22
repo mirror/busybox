@@ -109,7 +109,7 @@ int mv_main(int argc, char **argv)
 						goto RET_1;
 					}
 				}
-				/* FILEUTILS_RECUR also prevents nasties like 
+				/* FILEUTILS_RECUR also prevents nasties like
 				 * "read from device and write contents to dst"
 				 * instead of "create same device node" */
 				copy_flag = FILEUTILS_RECUR | FILEUTILS_PRESERVE_STATUS;
