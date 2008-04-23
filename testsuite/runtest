@@ -10,19 +10,19 @@
 run_applet_testcase()
 {
 	local applet=$1
-	local testcase=$2
+	local testcase="$2"
 
 	local status
 	local uc_applet=$(echo $applet | tr a-z A-Z)
-	local testname=$(basename $testcase)
+	local testname=`basename "$testcase"`
 
 	if grep -q "^# CONFIG_${uc_applet} is not set$" $bindir/.config; then
 		echo "UNTESTED: $testname"
 		return 0
 	fi
 
-	if grep -q "^# FEATURE: " $testcase; then
-		local feature=`sed -ne 's/^# FEATURE: //p' $testcase`
+	if grep -q "^# FEATURE: " "$testcase"; then
+		local feature=`sed -ne 's/^# FEATURE: //p' "$testcase"`
 
 		if grep -q "^# ${feature} is not set$" $bindir/.config; then
 			echo "UNTESTED: $testname"
@@ -58,10 +58,19 @@ run_applet_tests()
 	local applet=$1
 	local status=0
 	for testcase in $tsdir/$applet/*; do
-		if [ "$testcase" = "$tsdir/$applet/CVS" ]; then
+		case `basename "$testcase"` in
+			\#*)
+				continue
+				;;
+			*\~)
+				continue
+				;;
+		esac
+		if [ "$testcase" = "$tsdir/$applet/CVS" ] ||
+		   [ "$testcase" = "$tsdir/$applet/.svn" ]; then
 			continue
 		fi
-		run_applet_testcase $applet $testcase
+		run_applet_testcase "$applet" "$testcase"
 		test $? = 0 || status=1
 	done
 	return $status
