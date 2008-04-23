@@ -1,2 +1,2 @@
-test x"`date -u`" = x"`busybox date -u`"
+test x"Wed Apr 23 11:22:33 UTC 2008" = x"`busybox date -u -d 11:22:33`"
 
