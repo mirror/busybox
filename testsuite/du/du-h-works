@@ -1,4 +1,4 @@
-[ -n "$d" ] || d=..
+d=/bin
 du -h "$d" > logfile.gnu
 busybox du -h "$d" > logfile.bb
 cmp logfile.gnu logfile.bb
