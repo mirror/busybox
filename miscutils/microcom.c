@@ -96,14 +96,6 @@ int microcom_main(int argc ATTRIBUTE_UNUSED, char **argv)
 	// error exit code if we fail to open the device
 	signalled = 1;
 
-	// put stdin to "raw mode" (if stdin is a TTY),
-	// handle one character at a time
-	if (isatty(STDIN_FILENO)) {
-		xget1(STDIN_FILENO, &tio, &tio0);
-		if (xset1(STDIN_FILENO, &tio, "stdin"))
-			goto done;
-	}
-
 	// open device
 	sfd = open_or_warn(argv[0], O_RDWR | O_NOCTTY | O_NONBLOCK);
 	if (sfd < 0)
@@ -112,11 +104,18 @@ int microcom_main(int argc ATTRIBUTE_UNUSED, char **argv)
 
 	// put device to "raw mode"
 	xget1(sfd, &tio, &tiosfd);
-//	tio.c_cflag |= (CREAD|HUPCL); // we just bail out on any device error
 	// set device speed
 	cfsetspeed(&tio, tty_value_to_baud(speed));
 	if (xset1(sfd, &tio, argv[0]))
-		goto restore0_and_done;
+		goto done;
+
+	// put stdin to "raw mode" (if stdin is a TTY),
+	// handle one character at a time
+	if (isatty(STDIN_FILENO)) {
+		xget1(STDIN_FILENO, &tio, &tio0);
+		if (xset1(STDIN_FILENO, &tio, "stdin"))
+			goto done;
+	}
 
 	// main loop: check with poll(), then read/write bytes across
 	pfd[0].fd = sfd;
@@ -169,7 +168,6 @@ skip_write: ;
 	// restore device mode
 	tcsetattr(sfd, TCSAFLUSH, &tiosfd);
 
-restore0_and_done:
 	if (isatty(STDIN_FILENO))
 		tcsetattr(STDIN_FILENO, TCSAFLUSH, &tio0);
 
