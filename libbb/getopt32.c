@@ -494,7 +494,7 @@ getopt32(char **argv, const char *applet_opts, ...)
 	va_end(p);
 
 	if (spec_flgs & FIRST_ARGV_IS_OPT) {
-		if (argv[1] && argv[1][0] != '-' && argv[1][1] != '\0') {
+		if (argv[1] && argv[1][0] != '-' && argv[1][0] != '\0') {
 #if DONT_USE_PRINTF
 			char *pp = alloca(strlen(argv[1]) + 2);
 			*pp = '-';
@@ -502,8 +502,7 @@ getopt32(char **argv, const char *applet_opts, ...)
 			argv[1] = pp;
 #else
 			argv[1] = xasprintf("-%s", argv[1]);
-			if (ENABLE_FEATURE_CLEAN_UP)
-				spec_flgs |= FREE_FIRST_ARGV_IS_OPT;
+			spec_flgs |= FREE_FIRST_ARGV_IS_OPT;
 #endif
 		}
 	}
@@ -586,10 +585,9 @@ getopt32(char **argv, const char *applet_opts, ...)
 		}
 	}
 
-#if ENABLE_FEATURE_CLEAN_UP
 	if (spec_flgs & FREE_FIRST_ARGV_IS_OPT)
 		free(argv[1]);
-#endif
+
 	/* check depending requires for given options */
 	for (on_off = complementary; on_off->opt_char; on_off++) {
 		if (on_off->requires && (flags & on_off->switch_on) &&
