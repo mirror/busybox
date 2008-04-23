@@ -93,9 +93,9 @@ int dd_main(int argc ATTRIBUTE_UNUSED, char **argv)
 		FLAG_COUNT   = 1 << 5,
 	};
 	static const char keywords[] ALIGN1 =
-		"bs=\0""count=\0""seek=\0""skip=\0""if=\0""of=\0"
+		"bs\0""count\0""seek\0""skip\0""if\0""of\0"
 #if ENABLE_FEATURE_DD_IBS_OBS
-		"ibs=\0""obs=\0""conv=\0"
+		"ibs\0""obs\0""conv\0"
 #endif
 		;
 #if ENABLE_FEATURE_DD_IBS_OBS
