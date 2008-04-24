@@ -1,2 +1,1 @@
 test x"`date`" = x"`busybox date`"
-
