@@ -517,8 +517,8 @@ static void exe_n_cwd_tab_completion(char *command, int type)
 
 	for (i = 0; i < npaths; i++) {
 		dir = opendir(paths[i]);
-		if (!dir)                       /* Don't print an error */
-			continue;
+		if (!dir)
+			continue; /* don't print an error */
 
 		while ((next = readdir(dir)) != NULL) {
 			int len1;
@@ -528,18 +528,21 @@ static void exe_n_cwd_tab_completion(char *command, int type)
 			if (strncmp(str_found, pfind, strlen(pfind)))
 				continue;
 			/* not see .name without .match */
-			if (*str_found == '.' && *pfind == 0) {
+			if (*str_found == '.' && *pfind == '\0') {
 				if (NOT_LONE_CHAR(paths[i], '/') || str_found[1])
 					continue;
 				str_found = ""; /* only "/" */
 			}
 			found = concat_path_file(paths[i], str_found);
-			/* hmm, remover in progress? */
-			if (lstat(found, &st) < 0)
+			/* hmm, remove in progress? */
+			/* NB: stat() first so that we see is it a directory;
+			 * but if that fails, use lstat() so that
+			 * we still match dangling links */
+			if (stat(found, &st) && lstat(found, &st))
 				goto cont;
 			/* find with dirs? */
 			if (paths[i] != dirbuf)
-				strcpy(found, next->d_name);    /* only name */
+				strcpy(found, next->d_name); /* only name */
 
 			len1 = strlen(found);
 			found = xrealloc(found, len1 + 2);
@@ -547,7 +550,7 @@ static void exe_n_cwd_tab_completion(char *command, int type)
 			found[len1+1] = '\0';
 
 			if (S_ISDIR(st.st_mode)) {
-				/* name is directory      */
+				/* name is a directory */
 				if (found[len1-1] != '/') {
 					found[len1] = '/';
 				}
@@ -565,7 +568,7 @@ static void exe_n_cwd_tab_completion(char *command, int type)
 		closedir(dir);
 	}
 	if (paths != path1) {
-		free(paths[0]);                 /* allocated memory only in first member */
+		free(paths[0]); /* allocated memory is only in first member */
 		free(paths);
 	}
 #undef dirbuf
