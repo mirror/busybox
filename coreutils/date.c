@@ -103,67 +103,67 @@ int date_main(int argc ATTRIBUTE_UNUSED, char **argv)
 		if (ENABLE_FEATURE_DATE_ISOFMT && (opt & DATE_OPT_HINT)) {
 			if (strptime(date_str, fmt_str2dt, &tm_time) == NULL)
 				bb_error_msg_and_die(bb_msg_invalid_date, date_str);
-		} else if (strchr(date_str, ':') != NULL) {
-			/* Parse input and assign appropriately to tm_time */
+		} else {
+			char end = '\0';
+			const char *last_colon = strrchr(date_str, ':');
 
-			if (sscanf(date_str, "%d:%d:%d", &tm_time.tm_hour, &tm_time.tm_min,
-								 &tm_time.tm_sec) == 3) {
-				/* no adjustments needed */
-			} else if (sscanf(date_str, "%d:%d", &tm_time.tm_hour,
-										&tm_time.tm_min) == 2) {
-				/* no adjustments needed */
-			} else if (sscanf(date_str, "%d.%d-%d:%d:%d", &tm_time.tm_mon,
-								&tm_time.tm_mday, &tm_time.tm_hour,
-								&tm_time.tm_min, &tm_time.tm_sec) == 5) {
-				/* Adjust dates from 1-12 to 0-11 */
-				tm_time.tm_mon -= 1;
-			} else if (sscanf(date_str, "%d.%d-%d:%d", &tm_time.tm_mon,
-								&tm_time.tm_mday,
-								&tm_time.tm_hour, &tm_time.tm_min) == 4) {
-				/* Adjust dates from 1-12 to 0-11 */
-				tm_time.tm_mon -= 1;
-			} else if (sscanf(date_str, "%d.%d.%d-%d:%d:%d", &tm_time.tm_year,
+			if (last_colon != NULL) {
+				/* Parse input and assign appropriately to tm_time */
+
+				if (sscanf(date_str, "%u:%u%c",
+								&tm_time.tm_hour,
+								&tm_time.tm_min,
+								&end) >= 2) {
+					/* no adjustments needed */
+				} else if (sscanf(date_str, "%u.%u-%u:%u%c",
 								&tm_time.tm_mon, &tm_time.tm_mday,
 								&tm_time.tm_hour, &tm_time.tm_min,
-									&tm_time.tm_sec) == 6) {
-				tm_time.tm_year -= 1900;	/* Adjust years */
-				tm_time.tm_mon -= 1;	/* Adjust dates from 1-12 to 0-11 */
-			} else if (sscanf(date_str, "%d.%d.%d-%d:%d", &tm_time.tm_year,
+								&end) >= 4) {
+					/* Adjust dates from 1-12 to 0-11 */
+					tm_time.tm_mon -= 1;
+				} else if (sscanf(date_str, "%u.%u.%u-%u:%u%c", &tm_time.tm_year,
 								&tm_time.tm_mon, &tm_time.tm_mday,
-								&tm_time.tm_hour, &tm_time.tm_min) == 5) {
-				tm_time.tm_year -= 1900;	/* Adjust years */
-				tm_time.tm_mon -= 1;	/* Adjust dates from 1-12 to 0-11 */
-			} else {
-				bb_error_msg_and_die(bb_msg_invalid_date, date_str);
-			}
-		} else {
-			int nr;
-			char *cp;
-
-			nr = sscanf(date_str, "%2d%2d%2d%2d%d", &tm_time.tm_mon,
-						&tm_time.tm_mday, &tm_time.tm_hour, &tm_time.tm_min,
-						&tm_time.tm_year);
-
-			if (nr < 4 || nr > 5) {
-				bb_error_msg_and_die(bb_msg_invalid_date, date_str);
-			}
-
-			cp = strchr(date_str, '.');
-			if (cp) {
-				nr = sscanf(cp + 1, "%2d", &tm_time.tm_sec);
-				if (nr != 1) {
+								&tm_time.tm_hour, &tm_time.tm_min,
+								&end) >= 5) {
+					tm_time.tm_year -= 1900; /* Adjust years */
+					tm_time.tm_mon -= 1; /* Adjust dates from 1-12 to 0-11 */
+				} else if (sscanf(date_str, "%u-%u-%u %u:%u%c", &tm_time.tm_year,
+								&tm_time.tm_mon, &tm_time.tm_mday,
+								&tm_time.tm_hour, &tm_time.tm_min,
+								&end) >= 5) {
+					tm_time.tm_year -= 1900; /* Adjust years */
+					tm_time.tm_mon -= 1; /* Adjust dates from 1-12 to 0-11 */
+//TODO: coreutils 6.9 also accepts "YYYY-MM-DD HH" (no minutes)
+				} else {
 					bb_error_msg_and_die(bb_msg_invalid_date, date_str);
 				}
+				if (end == ':') {
+					if (sscanf(last_colon + 1, "%u%c", &tm_time.tm_sec, &end) == 1)
+						end = '\0';
+					/* else end != NUL and we error out */
+				}
+			} else {
+				if (sscanf(date_str, "%2u%2u%2u%2u%u%c", &tm_time.tm_mon,
+							&tm_time.tm_mday, &tm_time.tm_hour, &tm_time.tm_min,
+							&tm_time.tm_year, &end) < 4)
+					bb_error_msg_and_die(bb_msg_invalid_date, date_str);
+				/* correct for century  - minor Y2K problem here? */
+				if (tm_time.tm_year >= 1900) {
+					tm_time.tm_year -= 1900;
+				}
+				/* adjust date */
+				tm_time.tm_mon -= 1;
+				if (end == '.') {
+					if (sscanf(strchr(date_str, '.') + 1, "%u%c",
+							&tm_time.tm_sec, &end) == 1)
+						end = '\0';
+					/* else end != NUL and we error out */
+				}
 			}
-
-			/* correct for century  - minor Y2K problem here? */
-			if (tm_time.tm_year >= 1900) {
-				tm_time.tm_year -= 1900;
+			if (end != '\0') {
+				bb_error_msg_and_die(bb_msg_invalid_date, date_str);
 			}
-			/* adjust date */
-			tm_time.tm_mon -= 1;
 		}
-
 		/* Correct any day of week and day of year etc. fields */
 		tm_time.tm_isdst = -1;	/* Be sure to recheck dst. */
 		tm = mktime(&tm_time);

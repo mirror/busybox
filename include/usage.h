@@ -612,8 +612,9 @@
 	) \
      "\n" \
      "\nRecognized formats for TIME:" \
-     "\n	[hh:]mm:ss" \
+     "\n	hh:mm[:ss]" \
      "\n	[YYYY.]MM.DD-hh:mm[:ss]" \
+     "\n	YYYY-MM-DD hh:mm[:ss]" \
      "\n	MMDDhhmm[[YY]YY][.ss]" \
 
 #define date_example_usage \
