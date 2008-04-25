@@ -166,10 +166,17 @@ static void deinit_S(void)
 }
 #define DEINIT_S() deinit_S()
 
+
 /* Put 'command_ps[cursor]', cursor++.
  * Advance cursor on screen. If we reached right margin, scroll text up
  * and remove terminal margin effect by printing 'next_char' */
+#define HACK_FOR_WRONG_WIDTH 1
+#if HACK_FOR_WRONG_WIDTH
+static void cmdedit_set_out_char(void)
+#define cmdedit_set_out_char(next_char) cmdedit_set_out_char()
+#else
 static void cmdedit_set_out_char(int next_char)
+#endif
 {
 	int c = (unsigned char)command_ps[cursor];
 
@@ -196,9 +203,21 @@ static void cmdedit_set_out_char(int next_char)
 		/* terminal is scrolled down */
 		cmdedit_y++;
 		cmdedit_x = 0;
+#if HACK_FOR_WRONG_WIDTH
+		/* This works better if our idea of term width is wrong
+		 * and it is actually wider (often happens on serial lines).
+		 * Printing CR,LF *forces* cursor to next line.
+		 * OTOH if terminal width is correct AND terminal does NOT
+		 * have automargin (IOW: it is moving cursor to next line
+		 * by itself (which is wrong for VT-10x terminals)),
+		 * this will break things: there will be one extra empty line */
+		puts("\r"); /* + implicit '\n' */
+#else
+		/* Works ok only if cmdedit_termw is correct */
 		/* destroy "(auto)margin" */
 		bb_putchar(next_char);
 		bb_putchar('\b');
+#endif
 	}
 // Huh? What if command_ps[cursor] == '\0' (we are at the end already?)
 	cursor++;
