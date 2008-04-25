@@ -66,6 +66,13 @@ struct globals {
 		count = -1; \
 	} while (0)
 
+// If GNUisms are not available...
+//static void *mempcpy(void *_dst, const void *_src, int n)
+//{
+//	memcpy(_dst, _src, n);
+//	return (char*)_dst + n;
+//}
+
 static int send_pack(struct in_addr *src_addr,
 			struct in_addr *dst_addr, struct sockaddr_ll *ME,
 			struct sockaddr_ll *HE)
@@ -81,20 +88,15 @@ static int send_pack(struct in_addr *src_addr,
 	ah->ar_pln = 4;
 	ah->ar_op = option_mask32 & ADVERT ? htons(ARPOP_REPLY) : htons(ARPOP_REQUEST);
 
-	memcpy(p, &ME->sll_addr, ah->ar_hln);
-	p += ME->sll_halen;
-
-	memcpy(p, src_addr, 4);
-	p += 4;
+	p = mempcpy(p, &ME->sll_addr, ah->ar_hln);
+	p = mempcpy(p, src_addr, 4);
 
 	if (option_mask32 & ADVERT)
-		memcpy(p, &ME->sll_addr, ah->ar_hln);
+		p = mempcpy(p, &ME->sll_addr, ah->ar_hln);
 	else
-		memcpy(p, &HE->sll_addr, ah->ar_hln);
-	p += ah->ar_hln;
+		p = mempcpy(p, &HE->sll_addr, ah->ar_hln);
 
-	memcpy(p, dst_addr, 4);
-	p += 4;
+	p = mempcpy(p, dst_addr, 4);
 
 	err = sendto(sock_fd, buf, p - buf, 0, (struct sockaddr *) HE, sizeof(*HE));
 	if (err == p - buf) {
