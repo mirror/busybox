@@ -37,7 +37,7 @@ run_applet_testcase()
 #	echo "Running testcase $testcase"
 	d="$tsdir" sh -x -e "$testcase" >"$testname.stdout.txt" 2>&1
 	status=$?
-	if [ $status != 0 ]; then
+	if [ $status -ne 0 ]; then
 		echo "FAIL: $testname"
 		if [ x"$VERBOSE" != x ]; then
 			cat "$testname.stdout.txt"
@@ -71,7 +71,7 @@ run_applet_tests()
 			continue
 		fi
 		run_applet_testcase "$applet" "$testcase"
-		test $? = 0 || status=1
+		test $? -eq 0 || status=1
 	done
 	return $status
 }
@@ -125,7 +125,7 @@ for applet in $applets; do
 	# Any old-style tests for this applet?
 	if [ "$applet" != "CVS" -a -d "$tsdir/$applet" ]; then
 		run_applet_tests "$applet"
-		test $? = 0 || status=1
+		test $? -eq 0 || status=1
 	fi
 
 	# Is this a new-style test?
@@ -139,14 +139,14 @@ for applet in $applets; do
 		fi
 #		echo "Running test ${tsdir:-.}/${applet}.tests"
 		PATH="$LINKSDIR:$tsdir:$bindir:$PATH" "${tsdir:-.}/${applet}.tests"
-		test $? = 0 || status=1
+		test $? -eq 0 || status=1
 	fi
 done
 
 # Leaving the dir makes it somewhat easier to run failed test by hand
 #rm -rf "$LINKSDIR"
 
-if [ $status != 0 -a x"$VERBOSE" = x ]; then
+if [ $status -ne 0 -a x"$VERBOSE" = x ]; then
 	echo "Failures detected, running with -v (verbose) will give more info"
 fi
 exit $status
