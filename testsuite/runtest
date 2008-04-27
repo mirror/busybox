@@ -82,8 +82,8 @@ run_applet_tests()
 
 
 lcwd=$(pwd)
-[ x"$tsdir" = x ] || tsdir="$lcwd"
-[ x"$bindir" = x ] || bindir="${lcwd%/*}" # one directory up from $lcwd
+[ x"$tsdir" != x ] || tsdir="$lcwd"
+[ x"$bindir" != x ] || bindir="${lcwd%/*}" # one directory up from $lcwd
 PATH="$bindir:$PATH"
 
 if [ x"$VERBOSE" = x ]; then
