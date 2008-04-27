@@ -16,16 +16,16 @@ run_applet_testcase()
 	local uc_applet=$(echo "$applet" | tr a-z A-Z)
 	local testname="$testcase"
 
-	testname=${testname##*/} # take basename
-	if grep -q "^# CONFIG_$uc_applet is not set$" "$bindir/.config"; then
+	testname="${testname##*/}" # take basename
+	if grep "^# CONFIG_$uc_applet is not set$" "$bindir/.config" >/dev/null; then
 		echo "UNTESTED: $testname"
 		return 0
 	fi
 
-	if grep -q "^# FEATURE: " "$testcase"; then
+	if grep "^# FEATURE: " "$testcase" >/dev/null; then
 		local feature=$(sed -ne 's/^# FEATURE: //p' "$testcase")
 
-		if grep -q "^# $feature is not set$" "$bindir/.config"; then
+		if grep "^# $feature is not set$" "$bindir/.config" >/dev/null; then
 			echo "UNTESTED: $testname"
 			return 0
 		fi
@@ -56,7 +56,7 @@ run_applet_testcase()
 # Run all old-style tests for given applet
 run_applet_tests()
 {
-	local applet=$1
+	local applet="$1"
 	local status=0
 
 	for testcase in "$tsdir/$applet"/*; do
@@ -82,8 +82,8 @@ run_applet_tests()
 
 
 lcwd=$(pwd)
-[ "$tsdir" ] || tsdir="$lcwd"
-[ "$bindir" ] || bindir="${lcwd%/*}" # one directory up from $lcwd
+[ x"$tsdir" = x ] || tsdir="$lcwd"
+[ x"$bindir" = x ] || bindir="${lcwd%/*}" # one directory up from $lcwd
 PATH="$bindir:$PATH"
 
 if [ x"$VERBOSE" = x ]; then
@@ -116,15 +116,17 @@ LINKSDIR="$bindir/runtest-tempdir-links"
 rm -rf "$LINKSDIR" 2>/dev/null
 mkdir "$LINKSDIR"
 for i in $implemented; do
-	ln -s "$bindir/busybox" "$LINKSDIR"/$i
+	ln -s "$bindir/busybox" "$LINKSDIR/$i"
 done
 
 # Set up option flags so tests can be selective.
-export OPTIONFLAGS=:$(sed -nr 's/^CONFIG_//p' $bindir/.config | sed 's/=.*//' | xargs | sed 's/ /:/g')
+export OPTIONFLAGS=:$(sed -nr 's/^CONFIG_//p' "$bindir/.config" | sed 's/=.*//' | xargs | sed 's/ /:/g')
 
 status=0
 for applet in $applets; do
-	if [ "$applet" = "links" ]; then continue; fi
+	if [ "$applet" = "links" ]; then
+		continue
+	fi
 
 	# Any old-style tests for this applet?
 	if [ "$applet" != "CVS" -a -d "$tsdir/$applet" ]; then
@@ -133,7 +135,7 @@ for applet in $applets; do
 	fi
 
 	# Is this a new-style test?
-	if [ -f "${applet}.tests" ]; then
+	if [ -f "$applet.tests" ]; then
 		if [ ! -h "$LINKSDIR/$applet" ]; then
 			# (avoiding bash'ism "${applet:0:4}")
 			if ! echo "$applet" | grep "^all_" >/dev/null; then
@@ -141,8 +143,8 @@ for applet in $applets; do
 				continue
 			fi
 		fi
-#		echo "Running test ${tsdir:-.}/${applet}.tests"
-		PATH="$LINKSDIR:$tsdir:$bindir:$PATH" "${tsdir:-.}/${applet}.tests"
+#		echo "Running test ${tsdir:-.}/$applet.tests"
+		PATH="$LINKSDIR:$tsdir:$bindir:$PATH" "${tsdir:-.}/$applet.tests"
 		test $? -eq 0 || status=1
 	fi
 done
