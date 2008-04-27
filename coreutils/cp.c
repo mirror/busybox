@@ -37,25 +37,27 @@ int cp_main(int argc, char **argv)
 		OPT_r = 1 << (sizeof(FILEUTILS_CP_OPTSTR)),
 		OPT_P = 1 << (sizeof(FILEUTILS_CP_OPTSTR)+1),
 		OPT_H = 1 << (sizeof(FILEUTILS_CP_OPTSTR)+2),
-		OPT_L = 1 << (sizeof(FILEUTILS_CP_OPTSTR)+3),
 	};
 
 	// Need at least two arguments
-	// Soft- and hardlinking don't mix
+	// Soft- and hardlinking doesn't mix
 	// -P and -d are the same (-P is POSIX, -d is GNU)
 	// -r and -R are the same
 	// -R (and therefore -r) turns on -d (coreutils does this)
 	// -a = -pdR
-	opt_complementary = "-2:l--s:s--l:Pd:rRd:Rd:apdR";
-	flags = getopt32(argv, FILEUTILS_CP_OPTSTR "arPHL");
+	opt_complementary = "-2:l--s:s--l:Pd:rRd:Rd:apdR:HL";
+	flags = getopt32(argv, FILEUTILS_CP_OPTSTR "arPH");
 	argc -= optind;
 	argv += optind;
-	flags ^= FILEUTILS_DEREFERENCE;		/* The sense of this flag was reversed. */
-	/* Default behavior of cp is to dereference, so we don't have to do
-	 * anything special when we are given -L.
-	 * The behavior of -H is *almost* like -L, but not quite, so let's
-	 * just ignore it too for fun.
-	if (flags & OPT_L) ...
+	flags ^= FILEUTILS_DEREFERENCE; /* the sense of this flag was reversed */
+	/* coreutils 6.9 compat:
+	 * by default, "cp" derefs symlinks (creates regular dest files),
+	 * but "cp -R" does not. We switch off deref if -r or -R (see above).
+	 * However, "cp -RL" must still deref symlinks: */
+	if (flags & FILEUTILS_DEREF_SOFTLINK) /* -L */
+		flags |= FILEUTILS_DEREFERENCE;
+	/* The behavior of -H is *almost* like -L, but not quite, so let's
+	 * just ignore it too for fun. TODO.
 	if (flags & OPT_H) ... // deref command-line params only
 	*/
 

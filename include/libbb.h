@@ -231,12 +231,13 @@ enum {	/* DO NOT CHANGE THESE VALUES!  cp.c, mv.c, install.c depend on them. */
 	FILEUTILS_INTERACTIVE = 0x10,
 	FILEUTILS_MAKE_HARDLINK = 0x20,
 	FILEUTILS_MAKE_SOFTLINK = 0x40,
+	FILEUTILS_DEREF_SOFTLINK = 0x80,
 #if ENABLE_SELINUX
-	FILEUTILS_PRESERVE_SECURITY_CONTEXT = 0x80,
-	FILEUTILS_SET_SECURITY_CONTEXT = 0x100
+	FILEUTILS_PRESERVE_SECURITY_CONTEXT = 0x100,
+	FILEUTILS_SET_SECURITY_CONTEXT = 0x200
 #endif
 };
-#define FILEUTILS_CP_OPTSTR "pdRfils" USE_SELINUX("c")
+#define FILEUTILS_CP_OPTSTR "pdRfilsL" USE_SELINUX("c")
 extern int remove_file(const char *path, int flags);
 /* NB: without FILEUTILS_RECUR in flags, it will basically "cat"
  * the source, not copy (unless "source" is a directory).
