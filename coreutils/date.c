@@ -79,6 +79,8 @@ int date_main(int argc ATTRIBUTE_UNUSED, char **argv)
 	if (!(opt & (DATE_OPT_SET | DATE_OPT_DATE))) {
 		opt |= DATE_OPT_SET;
 		date_str = argv[0]; /* can be NULL */
+	} else if (argv[0]) {
+		bb_show_usage();
 	}
 
 	/* Now we have parsed all the information except the date format
