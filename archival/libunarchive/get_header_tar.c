@@ -211,9 +211,12 @@ char get_header_tar(archive_handle_t *archive_handle)
 	/* getOctal trashes subsequent field, therefore we call it
 	 * on fields in reverse order */
 	if (tar.devmajor[0]) {
+		char t = tar.prefix[0];
+		/* we trash prefix[0] here, but we DO need it later! */
 		unsigned minor = GET_OCTAL(tar.devminor);
 		unsigned major = GET_OCTAL(tar.devmajor);
 		file_header->device = makedev(major, minor);
+		tar.prefix[0] = t;
 	}
 	file_header->link_target = NULL;
 	if (!linkname && parse_names && tar.linkname[0]) {
