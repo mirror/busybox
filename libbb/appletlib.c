@@ -216,7 +216,8 @@ bool re_execed;
 #endif
 
 
-#if !ENABLE_FEATURE_INDIVIDUAL
+/* If not built as a single-applet executable... */
+#if !defined(SINGLE_APPLET_MAIN)
 
 USE_FEATURE_SUID(static uid_t ruid;)  /* real uid */
 
@@ -729,7 +730,7 @@ void run_applet_and_exit(const char *name, char **argv)
 		exit(busybox_main(argv));
 }
 
-#endif /* !ENABLE_FEATURE_INDIVIDUAL */
+#endif /* !defined(SINGLE_APPLET_MAIN) */
 
 
 
@@ -739,7 +740,7 @@ int lbb_main(char **argv)
 int main(int argc ATTRIBUTE_UNUSED, char **argv)
 #endif
 {
-#if ENABLE_FEATURE_INDIVIDUAL
+#if defined(SINGLE_APPLET_MAIN)
 	/* Only one applet is selected by the user! */
 	/* applet_names in this case is just "applet\0\0" */
 	lbb_prepare(applet_names USE_FEATURE_INDIVIDUAL(, argv));
