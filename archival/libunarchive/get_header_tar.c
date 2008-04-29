@@ -112,7 +112,7 @@ char get_header_tar(archive_handle_t *archive_handle)
 	archive_handle->offset += 512;
 
 	/* If there is no filename its an empty header */
-	if (tar.name[0] == 0) {
+	if (tar.name[0] == 0 && tar.prefix[0] == 0) {
 		if (end) {
 			/* This is the second consecutive empty header! End of archive!
 			 * Read until the end to empty the pipe from gz or bz2
