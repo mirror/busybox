@@ -802,7 +802,7 @@ static const char tar_longopts[] ALIGN1 =
 #endif
 
 int tar_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int tar_main(int argc, char **argv)
+int tar_main(int argc ATTRIBUTE_UNUSED, char **argv)
 {
 	char (*get_header_ptr)(archive_handle_t *) = get_header_tar;
 	archive_handle_t *tar_handle;
@@ -852,6 +852,7 @@ int tar_main(int argc, char **argv)
 		, &verboseFlag // combined count for -t and -v
 		, &verboseFlag // combined count for -t and -v
 		);
+	argv += optind;
 
 	if (verboseFlag) tar_handle->action_header = header_verbose_list;
 	if (verboseFlag == 1) tar_handle->action_header = header_list;
@@ -897,21 +898,15 @@ int tar_main(int argc, char **argv)
 	tar_handle->accept = append_file_list_to_list(tar_handle->accept);
 #endif
 
-	/* Check if we are reading from stdin */
-	if (argv[optind] && *argv[optind] == '-') {
-		/* Default is to read from stdin, so just skip to next arg */
-		optind++;
-	}
-
 	/* Setup an array of filenames to work with */
 	/* TODO: This is the same as in ar, separate function ? */
-	while (optind < argc) {
+	while (*argv) {
 		/* kill trailing '/' unless the string is just "/" */
-		char *cp = last_char_is(argv[optind], '/');
-		if (cp > argv[optind])
+		char *cp = last_char_is(*argv, '/');
+		if (cp > *argv)
 			*cp = '\0';
-		llist_add_to_end(&tar_handle->accept, argv[optind]);
-		optind++;
+		llist_add_to_end(&tar_handle->accept, *argv);
+		argv++;
 	}
 
 	if (tar_handle->accept || tar_handle->reject)
