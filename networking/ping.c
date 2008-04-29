@@ -372,9 +372,10 @@ static void sendping4(int junk ATTRIBUTE_UNUSED)
 	 * *after* packet. Saves one if() */
 	struct icmp *pkt = alloca(datalen + ICMP_MINLEN + 4);
 
+	memset(pkt, 0, datalen + ICMP_MINLEN + 4);
 	pkt->icmp_type = ICMP_ECHO;
-	pkt->icmp_code = 0;
-	pkt->icmp_cksum = 0;
+	/*pkt->icmp_code = 0;*/
+	/*pkt->icmp_cksum = 0;*/
 	pkt->icmp_seq = htons(ntransmitted); /* don't ++ here, it can be a macro */
 	pkt->icmp_id = myid;
 
@@ -391,9 +392,10 @@ static void sendping6(int junk ATTRIBUTE_UNUSED)
 {
 	struct icmp6_hdr *pkt = alloca(datalen + sizeof(struct icmp6_hdr) + 4);
 
+	memset(pkt, 0, datalen + sizeof(struct icmp6_hdr) + 4);
 	pkt->icmp6_type = ICMP6_ECHO_REQUEST;
-	pkt->icmp6_code = 0;
-	pkt->icmp6_cksum = 0;
+	/*pkt->icmp6_code = 0;*/
+	/*pkt->icmp6_cksum = 0;*/
 	pkt->icmp6_seq = htons(ntransmitted); /* don't ++ here, it can be a macro */
 	pkt->icmp6_id = myid;
 
