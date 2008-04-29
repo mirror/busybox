@@ -54,7 +54,7 @@ run_applet_testcase()
 }
 
 # Run all old-style tests for given applet
-run_applet_tests()
+run_oldstyle_applet_tests()
 {
 	local applet="$1"
 	local status=0
@@ -68,11 +68,13 @@ run_applet_tests()
 			*\~)
 				continue
 				;;
+			"CVS")
+				continue
+				;;
+			.*)
+				continue
+				;;
 		esac
-		if [ "$testcase" = "$tsdir/$applet/CVS" ] ||
-		   [ "$testcase" = "$tsdir/$applet/.svn" ]; then
-			continue
-		fi
 		run_applet_testcase "$applet" "$testcase"
 		test $? -eq 0 || status=1
 	done
@@ -124,13 +126,21 @@ export OPTIONFLAGS=:$(sed -nr 's/^CONFIG_//p' "$bindir/.config" | sed 's/=.*//' 
 
 status=0
 for applet in $applets; do
-	if [ "$applet" = "links" ]; then
-		continue
-	fi
+	case "$applet" in
+		"links")
+			continue
+			;;
+		"CVS")
+			continue
+			;;
+		.*)
+			continue
+			;;
+	esac
 
 	# Any old-style tests for this applet?
-	if [ "$applet" != "CVS" -a -d "$tsdir/$applet" ]; then
-		run_applet_tests "$applet"
+	if [ -d "$tsdir/$applet" ]; then
+		run_oldstyle_applet_tests "$applet"
 		test $? -eq 0 || status=1
 	fi
 
@@ -143,8 +153,8 @@ for applet in $applets; do
 				continue
 			fi
 		fi
-#		echo "Running test ${tsdir:-.}/$applet.tests"
-		PATH="$LINKSDIR:$tsdir:$bindir:$PATH" "${tsdir:-.}/$applet.tests"
+#		echo "Running test $tsdir/$applet.tests"
+		PATH="$LINKSDIR:$tsdir:$bindir:$PATH" "$tsdir/$applet.tests"
 		test $? -eq 0 || status=1
 	fi
 done
