@@ -74,7 +74,7 @@
 /* -fwhole-program makes all symbols local. The attribute externally_visible
    forces a symbol global.  */
 # if __GNUC_PREREQ (4,1)
-#  define EXTERNALLY_VISIBLE __attribute__(( visibility("default") ));
+#  define EXTERNALLY_VISIBLE __attribute__(( visibility("default") ))
 //__attribute__ ((__externally_visible__))
 # else
 #  define EXTERNALLY_VISIBLE
