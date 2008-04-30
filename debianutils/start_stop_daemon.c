@@ -22,6 +22,24 @@ struct pid_list {
 	pid_t pid;
 };
 
+enum {
+	CTX_STOP       = (1 <<  0),
+	CTX_START      = (1 <<  1),
+	OPT_BACKGROUND = (1 <<  2), // -b
+	OPT_QUIET      = (1 <<  3), // -q
+	OPT_MAKEPID    = (1 <<  4), // -m
+	OPT_a          = (1 <<  5), // -a
+	OPT_n          = (1 <<  6), // -n
+	OPT_s          = (1 <<  7), // -s
+	OPT_u          = (1 <<  8), // -u
+	OPT_c          = (1 <<  9), // -c
+	OPT_x          = (1 << 10), // -x
+	OPT_p          = (1 << 11), // -p
+	OPT_OKNODO     = (1 << 12) * ENABLE_FEATURE_START_STOP_DAEMON_FANCY, // -o
+	OPT_VERBOSE    = (1 << 13) * ENABLE_FEATURE_START_STOP_DAEMON_FANCY, // -v
+	OPT_NICELEVEL  = (1 << 14) * ENABLE_FEATURE_START_STOP_DAEMON_FANCY, // -N
+};
+#define QUIET (option_mask32 & OPT_QUIET)
 
 struct globals {
 	struct pid_list *found;
@@ -30,7 +48,6 @@ struct globals {
 	char *execname;
 	char *pidfile;
 	int user_id;
-	smallint quiet;
 	smallint signal_nr;
 	struct stat execstat;
 };
@@ -41,7 +58,6 @@ struct globals {
 #define execname          (G.execname            )
 #define pidfile           (G.pidfile             )
 #define user_id           (G.user_id             )
-#define quiet             (G.quiet               )
 #define signal_nr         (G.signal_nr           )
 #define execstat          (G.execstat            )
 #define INIT_G() \
@@ -180,7 +196,7 @@ static int do_stop(void)
 		bb_error_msg_and_die("internal error, please report");
 
 	if (!found) {
-		if (!quiet)
+		if (!QUIET)
 			printf("no %s found; none killed\n", what);
 		killed = -1;
 		goto ret;
@@ -193,7 +209,7 @@ static int do_stop(void)
 			bb_perror_msg("warning: killing process %u", p->pid);
 		}
 	}
-	if (!quiet && killed) {
+	if (!QUIET && killed) {
 		printf("stopped %s (pid", what);
 		for (p = found; p; p = p->next)
 			if (p->pid < 0)
@@ -231,24 +247,6 @@ static const char start_stop_daemon_longopts[] ALIGN1 =
 	;
 #endif
 
-enum {
-	CTX_STOP       = 0x1,
-	CTX_START      = 0x2,
-	OPT_BACKGROUND = 0x4, // -b
-	OPT_QUIET      = 0x8, // -q
-	OPT_MAKEPID    = 0x10, // -m
-	OPT_a          = 0x20, // -a
-	OPT_n          = 0x40, // -n
-	OPT_s          = 0x80, // -s
-	OPT_u          = 0x100, // -u
-	OPT_c          = 0x200, // -c
-	OPT_x          = 0x400, // -x
-	OPT_p          = 0x800, // -p
-	OPT_OKNODO     = 0x1000 * ENABLE_FEATURE_START_STOP_DAEMON_FANCY, // -o
-	OPT_VERBOSE    = 0x2000 * ENABLE_FEATURE_START_STOP_DAEMON_FANCY, // -v
-	OPT_NICELEVEL  = 0x4000 * ENABLE_FEATURE_START_STOP_DAEMON_FANCY, // -N
-};
-
 int start_stop_daemon_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int start_stop_daemon_main(int argc ATTRIBUTE_UNUSED, char **argv)
 {
@@ -268,8 +266,13 @@ int start_stop_daemon_main(int argc ATTRIBUTE_UNUSED, char **argv)
 	applet_long_options = start_stop_daemon_longopts;
 #endif
 
-	/* Check required one context option was given */
-	opt_complementary = "K:S:K--S:S--K:m?p:K?xpun:S?xa";
+	/* -K or -S is required; they are mutually exclusive */
+	/* -p is required if -m is given */
+	/* -xpun (at least one) is required if -K is given */
+	/* -xa (at least one) is required if -S is given */
+	/* -q turns off -v */
+	opt_complementary = "K:S:K--S:S--K:m?p:K?xpun:S?xa"
+		USE_FEATURE_START_STOP_DAEMON_FANCY("q-v");
 	opt = getopt32(argv, "KSbqma:n:s:u:c:x:p:"
 		USE_FEATURE_START_STOP_DAEMON_FANCY("ovN:"),
 //		USE_FEATURE_START_STOP_DAEMON_FANCY("ovN:R:"),
@@ -277,8 +280,6 @@ int start_stop_daemon_main(int argc ATTRIBUTE_UNUSED, char **argv)
 		USE_FEATURE_START_STOP_DAEMON_FANCY(,&opt_N)
 //		USE_FEATURE_START_STOP_DAEMON_FANCY(,&retry_arg)
 	);
-
-	quiet = (opt & OPT_QUIET) && !(opt & OPT_VERBOSE);
 
 	if (opt & OPT_s) {
 		signal_nr = get_signum(signame);
@@ -311,7 +312,7 @@ int start_stop_daemon_main(int argc ATTRIBUTE_UNUSED, char **argv)
 	}
 
 	if (found) {
-		if (!quiet)
+		if (!QUIET)
 			printf("%s already running\n%d\n", execname, found->pid);
 		return !(opt & OPT_OKNODO);
 	}
