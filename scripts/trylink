@@ -66,7 +66,7 @@ check_libc_is_glibc() {
 	#if defined(__GLIBC__) && !defined(__UCLIBC__)
 	syntax error here
 	#endif
-	" >"$tempname"
+	" >"$tempname".c
     if $CC "$tempname".c -c -o "$tempname".o >/dev/null 2>&1; then
 	echo "$2";
     else
@@ -83,15 +83,15 @@ O_FILES="$5"
 A_FILES="$6"
 LDLIBS="$7"
 
-# The -Wl,--sort-section option is not supported by older versions of ld
-SORT_SECTION=`check_cc "-Wl,--sort-section -Wl,alignment" ""`
+# The --sort-section option is not supported by older versions of ld
+SORT_SECTION=`check_cc "-Wl,--sort-section,alignment" ""`
 
 # Static linking against glibc produces buggy executables
 # (glibc does not cope well with ld --gc-sections).
 # See sources.redhat.com/bugzilla/show_bug.cgi?id=3400
 # Note that glibc is unsuitable for static linking anyway.
 # We are removing -Wl,--gc-sections from link command line.
-GC_SECTION=`(
+GC_SECTIONS=`(
 . ./.config
 if test x"$CONFIG_STATIC" = x"y"; then
     check_libc_is_glibc "" "-Wl,--gc-sections"
@@ -112,7 +112,7 @@ try $CC $CFLAGS $LDFLAGS \
 	-o $EXE \
 	-Wl,--sort-common \
 	$SORT_SECTION \
-	$GC_SECTION \
+	$GC_SECTIONS \
 	-Wl,--start-group $O_FILES $A_FILES -Wl,--end-group \
 	$l_list \
 || {
@@ -136,7 +136,7 @@ while test "$LDLIBS"; do
 		-o $EXE \
 		-Wl,--sort-common \
 		$SORT_SECTION \
-		$GC_SECTION \
+		$GC_SECTIONS \
 		-Wl,--start-group $O_FILES $A_FILES -Wl,--end-group \
 		$l_list
 	if test $? = 0; then
@@ -165,7 +165,7 @@ if ! test -f busybox_ldscript; then
 	    -o $EXE \
 	    -Wl,--sort-common \
 	    $SORT_SECTION \
-	    $GC_SECTION \
+	    $GC_SECTIONS \
 	    -Wl,--start-group $O_FILES $A_FILES -Wl,--end-group \
 	    $l_list \
 	    -Wl,--warn-common \
@@ -187,7 +187,7 @@ else
 	    -o $EXE \
 	    -Wl,--sort-common \
 	    $SORT_SECTION \
-	    $GC_SECTION \
+	    $GC_SECTIONS \
 	    -Wl,-T -Wl,busybox_ldscript \
 	    -Wl,--start-group $O_FILES $A_FILES -Wl,--end-group \
 	    $l_list \
@@ -243,7 +243,7 @@ if test "$CONFIG_FEATURE_SHARED_BUSYBOX" = y; then
 	    -o $EXE \
 	    -Wl,--sort-common \
 	    $SORT_SECTION \
-	    $GC_SECTION \
+	    $GC_SECTIONS \
 	    -Wl,--start-group $O_FILES -Wl,--end-group \
 	    -L"$sharedlib_dir" -lbusybox \
 	    -Wl,--warn-common \
@@ -282,7 +282,7 @@ int main(int argc, char **argv)
 		-o $EXE \
 		-Wl,--sort-common \
 		$SORT_SECTION \
-		$GC_SECTION \
+		$GC_SECTIONS \
 		-L"$sharedlib_dir" -lbusybox \
 		-Wl,--warn-common \
 	|| {
