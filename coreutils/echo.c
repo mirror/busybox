@@ -108,15 +108,19 @@ int echo_main(int argc ATTRIBUTE_UNUSED, char **argv)
 				}
 #if !ENABLE_FEATURE_FANCY_ECHO
 				/* SUSv3 specifies that octal escapes must begin with '0'. */
-				if ( (((unsigned char)*arg) - '1') >= 7)
+				if ( ((int)(unsigned char)(*arg) - '0') >= 8) /* '8' or bigger */
 #endif
 				{
 					/* Since SUSv3 mandates a first digit of 0, 4-digit octals
 					* of the form \0### are accepted. */
-					if (*arg == '0' && ((unsigned char)(arg[1]) - '0') < 8) {
-						arg++;
+					if (*arg == '0') {
+						/* NB: don't turn "...\0" into "...\" */
+						if (arg[1] && ((unsigned char)(arg[1]) - '0') < 8) {
+							arg++;
+						}
 					}
-					/* bb_process_escape_sequence can handle nul correctly */
+					/* bb_process_escape_sequence handles NUL correctly
+					 * ("...\" case). */
 					c = bb_process_escape_sequence(&arg);
 				}
 			}
