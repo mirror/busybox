@@ -62,18 +62,12 @@ run_oldstyle_applet_tests()
 	for testcase in "$tsdir/$applet"/*; do
 		# switch on basename of $testcase
 		case "${testcase##*/}" in
-			\#*)
-				continue
-				;;
-			*\~)
-				continue
-				;;
-			"CVS")
-				continue
-				;;
-			.*)
-				continue
-				;;
+			.*)     continue ;;    # .svn, .git etc
+			*~)     continue ;;    # backup files
+			"CVS")  continue ;;
+			\#*)    continue ;;    # CVS merge residues
+			*.mine) continue ;;    # svn-produced junk
+			*.r[0-9]*) continue ;; # svn-produced junk
 		esac
 		run_applet_testcase "$applet" "$testcase"
 		test $? -eq 0 || status=1
@@ -122,22 +116,13 @@ for i in $implemented; do
 done
 
 # Set up option flags so tests can be selective.
-export OPTIONFLAGS=:$(sed -nr 's/^CONFIG_//p' "$bindir/.config" | sed 's/=.*//' | xargs | sed 's/ /:/g')
+export OPTIONFLAGS=:$(
+	sed -nr 's/^CONFIG_//p' "$bindir/.config" |
+	sed 's/=.*//' | xargs | sed 's/ /:/g'
+	)
 
 status=0
 for applet in $applets; do
-	case "$applet" in
-		"links")
-			continue
-			;;
-		"CVS")
-			continue
-			;;
-		.*)
-			continue
-			;;
-	esac
-
 	# Any old-style tests for this applet?
 	if [ -d "$tsdir/$applet" ]; then
 		run_oldstyle_applet_tests "$applet"
@@ -162,7 +147,7 @@ done
 # Leaving the dir makes it somewhat easier to run failed test by hand
 #rm -rf "$LINKSDIR"
 
-if [ $status -ne 0 -a x"$VERBOSE" = x ]; then
+if [ $status -ne 0 ] && [ x"$VERBOSE" = x ]; then
 	echo "Failures detected, running with -v (verbose) will give more info"
 fi
 exit $status
