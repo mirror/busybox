@@ -79,7 +79,7 @@ testing()
   cmp expected actual >/dev/null 2>/dev/null
   if [ $? -ne 0 ]
   then
-    FAILCOUNT=$[$FAILCOUNT+1]
+    FAILCOUNT=$(($FAILCOUNT + 1))
     echo "FAIL: $NAME"
     [ -n "$VERBOSE" ] && diff -u expected actual
   else
@@ -107,7 +107,8 @@ mkchroot()
   shift
   for i in "$@"
   do
-    [ "${i:0:1}" == "/" ] || i=$(which $i)
+    #bashism: [ "${i:0:1}" == "/" ] || i=$(which $i)
+    i=$(which $i) # no-op for /bin/prog
     [ -f "$dest/$i" ] && continue
     if [ -e "$i" ]
     then
