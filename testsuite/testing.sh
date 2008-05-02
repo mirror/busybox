@@ -4,28 +4,29 @@
 #
 # License is GPLv2, see LICENSE in the busybox tarball for full license text.
 
-# This file defines two functions, "testing" and "optionflag"
+# This file defines two functions, "testing" and "optional"
+# and a couple more...
 
 # The following environment variables may be set to enable optional behavior
 # in "testing":
 #    VERBOSE - Print the diff -u of each failed test case.
 #    DEBUG - Enable command tracing.
-#    SKIP - do not perform this test (this is set by "optionflag")
+#    SKIP - do not perform this test (this is set by "optional")
 #
 # The "testing" function takes five arguments:
-#	$1) Description to display when running command
-#	$2) Command line arguments to command
-#	$3) Expected result (on stdout)
-#	$4) Data written to file "input"
-#	$5) Data written to stdin
+#	$1) Test description
+#	$2) Command(s) to run. May have pipes, redirects, etc
+#	$3) Expected result on stdout
+#	$4) Data to be written to file "input"
+#	$5) Data to be written to stdin
 #
-# The exit value of testing is the exit value of the command it ran.
+# The exit value of testing is the exit value of $2 it ran.
 #
 # The environment variable "FAILCOUNT" contains a cumulative total of the
 # number of failed tests.
 
 # The "optional" function is used to skip certain tests, ala:
-#   optionflag CONFIG_FEATURE_THINGY
+#   optional CONFIG_FEATURE_THINGY
 #
 # The "optional" function checks the environment variable "OPTIONFLAGS",
 # which is either empty (in which case it always clears SKIP) or
@@ -35,15 +36,28 @@
 export FAILCOUNT=0
 export SKIP=
 
+# Helper for helpers. Oh my...
+test x"$ECHO" = x"" && {
+	ECHO="echo"
+	test x"`echo -ne`" = x"" || {
+		# Compile and use a replacement 'echo' which understands -e -n
+		ECHO="$PWD/echo-ne"
+		test -x "$ECHO" || {
+			gcc -Os -o "$ECHO" ../scripts/echo.c || exit 1
+		}
+	}
+	export ECHO
+}
+
 # Helper functions
 
 optional()
 {
-  option=`echo "$OPTIONFLAGS" | egrep "(^|:)$1(:|\$)"`
+  option=`echo ":$OPTIONFLAGS:" | grep ":$1:"`
   # Not set?
   if [ -z "$1" ] || [ -z "$OPTIONFLAGS" ] || [ ${#option} -ne 0 ]
   then
-    SKIP=""
+    SKIP=
     return
   fi
   SKIP=1
@@ -54,7 +68,7 @@ optional()
 testing()
 {
   NAME="$1"
-  [ -z "$1" ] && NAME=$2
+  [ -z "$1" ] && NAME="$2"
 
   if [ $# -ne 5 ]
   then
@@ -70,10 +84,10 @@ testing()
     return 0
   fi
 
-  echo -ne "$3" > expected
-  echo -ne "$4" > input
+  $ECHO -ne "$3" > expected
+  $ECHO -ne "$4" > input
   [ -z "$VERBOSE" ] || echo "echo '$5' | $2"
-  echo -ne "$5" | eval "$2" > actual
+  $ECHO -ne "$5" | eval "$2" > actual
   RETVAL=$?
 
   cmp expected actual >/dev/null 2>/dev/null
@@ -101,7 +115,7 @@ mkchroot()
 {
   [ $# -lt 2 ] && return
 
-  echo -n .
+  $ECHO -n .
 
   dest=$1
   shift
@@ -136,7 +150,7 @@ dochroot()
 
   # Copy utilities from command line arguments
 
-  echo -n "Setup chroot"
+  $ECHO -n "Setup chroot"
   mkchroot tmpdir4chroot $*
   echo
 
@@ -152,4 +166,3 @@ dochroot()
   umount -l tmpdir4chroot
   rmdir tmpdir4chroot
 }
-

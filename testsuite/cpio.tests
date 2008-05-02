@@ -4,6 +4,13 @@
 
 . testing.sh
 
+# check if hexdump supports the '-R' option
+hexdump -R </dev/null >/dev/null 2>&1 || {
+	echo "'hexdump -R' is not available" >&2
+	SKIP=1
+	exit 1
+}
+
 # ls -ln is showing date. Need to remove that, it's variable
 # sed: coalesce spaces
 # cut: remove date
@@ -24,6 +31,9 @@ hexdump="\
 00000090  14 24 19 07 a4 63 00
 "
 
+user=$(id -u)
+group=$(id -g)
+
 rm -rf cpio.testdir
 
 # testing "test name" "options" "expected result" "file input" "stdin"
@@ -34,8 +44,8 @@ testing "cpio extracts zero-sized hardlinks" \
 "\
 1 blocks
 0
--rw-r--r-- 2 0 0 0 x
--rw-r--r-- 2 0 0 0 y
+-rw-r--r-- 2 $user $group 0 x
+-rw-r--r-- 2 $user $group 0 y
 " \
 	"" ""
 
