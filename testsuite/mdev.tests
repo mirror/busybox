@@ -18,6 +18,8 @@ mkdir mdev.testdir
 # We need mdev executable to be in chroot jail!
 # (will still fail with dynamically linked one, though...)
 cp ../busybox mdev.testdir/mdev
+mkdir mdev.testdir/bin
+cp ../busybox mdev.testdir/bin/sh 2>/dev/null # for testing cmd feature
 mkdir mdev.testdir/etc
 mkdir mdev.testdir/dev
 mkdir -p mdev.testdir/sys/block/sda
@@ -90,6 +92,20 @@ lrwxrwxrwx 1 0 0 sda -> sd/a_sda
 
 mdev.testdir/dev/sd:
 brw-r--r-- 1 0 0 a_sda
+" \
+	"" ""
+
+# continuing to use directory structure from prev test
+rm -rf mdev.testdir/dev/*
+# here we complicate things by having non-matching group 1 and using %0
+echo "sda 0:0 644 @echo @echo TEST" >mdev.testdir/etc/mdev.conf
+testing "mdev command" \
+	"env - ACTION=add DEVPATH=/block/sda chroot mdev.testdir /mdev 2>&1;
+	ls -lnR mdev.testdir/dev | $FILTER_LS" \
+"\
+@echo TEST
+mdev.testdir/dev:
+brw-r--r-- 1 0 0 8,0 sda
 " \
 	"" ""
 

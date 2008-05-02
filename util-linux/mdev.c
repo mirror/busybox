@@ -156,43 +156,45 @@ static void make_device(char *path, int delete)
 			mode = strtoul(val, NULL, 8);
 
 			/* 4th field (opt): >alias */
-			if (ENABLE_FEATURE_MDEV_RENAME) {
-				if (!next)
-					break;
+#if ENABLE_FEATURE_MDEV_RENAME
+			if (!next)
+				break;
+			if (*next == '>') {
+#if ENABLE_FEATURE_MDEV_RENAME_REGEXP
+				char *s, *p;
+				unsigned i, n;
+
 				val = next;
 				next = next_field(val);
-				if (*val == '>') {
-#if ENABLE_FEATURE_MDEV_RENAME_REGEXP
-					/* substitute %1..9 with off[1..9], if any */
-					char *s, *p;
-					unsigned i, n;
+				/* substitute %1..9 with off[1..9], if any */
+				n = 0;
+				s = val;
+				while (*s && *s++ == '%')
+					n++;
 
-					n = 0;
-					s = val;
-					while (*s && *s++ == '%')
-						n++;
-
-					p = alias = xzalloc(strlen(val) + n * strlen(device_name));
-					s = val + 1;
-					while (*s) {
-						*p = *s;
-						if ('%' == *s) {
-							i = (s[1] - '0');
-							if (i <= 9 && off[i].rm_so >= 0) {
-								n = off[i].rm_eo - off[i].rm_so;
-								strncpy(p, device_name + off[i].rm_so, n);
-								p += n - 1;
-								s++;
-							}
+				p = alias = xzalloc(strlen(val) + n * strlen(device_name));
+				s = val + 1;
+				while (*s) {
+					*p = *s;
+					if ('%' == *s) {
+						i = (s[1] - '0');
+						if (i <= 9 && off[i].rm_so >= 0) {
+							n = off[i].rm_eo - off[i].rm_so;
+							strncpy(p, device_name + off[i].rm_so, n);
+							p += n - 1;
+							s++;
 						}
-						p++;
-						s++;
 					}
-#else
-					alias = xstrdup(val + 1);
-#endif
+					p++;
+					s++;
 				}
+#else
+				val = next;
+				next = next_field(val);
+				alias = xstrdup(val + 1);
+#endif
 			}
+#endif /* ENABLE_FEATURE_MDEV_RENAME */
 
 			/* The rest (opt): command to run */
 			if (!next)
