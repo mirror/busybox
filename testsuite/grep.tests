@@ -26,7 +26,9 @@ testing "grep - (specify stdin)" "grep two -" "two\n" "" \
 testing "grep input (specify file)" "grep two input" "two\n" \
 	"one\ntwo\nthree\nthree\nthree\n" ""
 
-testing "grep (no newline at EOL)" "grep bug" "bug" "bug" ""
+# GNU grep (version?) outputs a new line character after the located string
+# even if there is no new line character in the input
+testing "grep (no newline at EOL)" "grep bug input" "bug\n" "bug" ""
 
 >empty
 testing "grep two files" "grep two input empty 2>/dev/null" \
