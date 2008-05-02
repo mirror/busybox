@@ -26,7 +26,7 @@ testing "grep - (specify stdin)" "grep two -" "two\n" "" \
 testing "grep input (specify file)" "grep two input" "two\n" \
 	"one\ntwo\nthree\nthree\nthree\n" ""
 
-# GNU grep (version?) outputs a new line character after the located string
+# GNU grep 2.5.3 outputs a new line character after the located string
 # even if there is no new line character in the input
 testing "grep (no newline at EOL)" "grep bug input" "bug\n" "bug" ""
 
