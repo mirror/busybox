@@ -2437,11 +2437,16 @@ static int file_write(char * fn, char * first, char * last)
 		return -2;
 	}
 	charcnt = 0;
-	fd = open(fn, (O_WRONLY | O_CREAT | O_TRUNC), 0666);
+	/* By popular request we do not open file with O_TRUNC,
+	 * but instead ftruncate() it _after_ successful write.
+	 * Might reduce amount of data lost on power fail etc.
+	 */
+	fd = open(fn, (O_WRONLY | O_CREAT), 0666);
 	if (fd < 0)
 		return -1;
 	cnt = last - first + 1;
 	charcnt = full_write(fd, first, cnt);
+	ftruncate(fd, charcnt);
 	if (charcnt == cnt) {
 		// good write
 		//file_modified = FALSE; // the file has not been modified
