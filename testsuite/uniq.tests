@@ -41,6 +41,7 @@ testing "uniq input - (specify stdout)" "uniq input -" \
 #-c occurrences
 #-d dups only
 #-u
+#-w max chars
 
 # Test various command line options
 
@@ -59,6 +60,22 @@ aa	bb	cc9
 "cc	dd	ee8
 bb	cc	dd8
 aa	bb	cc9
+"
+testing "uniq -w (compare max characters)" "uniq -w 2" \
+"cc1
+" "" \
+"cc1
+cc2
+cc3
+"
+
+testing "uniq -s -w (skip fields and compare max chars)" \
+"uniq -s 2 -w 2" \
+"aaccaa
+" "" \
+"aaccaa
+aaccbb
+bbccaa
 "
 
 # -d is "Suppress the writing fo lines that are not repeated in the input."

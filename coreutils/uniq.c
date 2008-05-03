@@ -12,8 +12,6 @@
 
 #include "libbb.h"
 
-static const char uniq_opts[] ALIGN1 = "cdu" "f:s:" "cdu\0\1\2\4";
-
 static FILE *xgetoptfile_uniq_s(char **argv, int read0write2)
 {
 	const char *n;
@@ -31,9 +29,11 @@ int uniq_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int uniq_main(int argc ATTRIBUTE_UNUSED, char **argv)
 {
 	FILE *in, *out;
-	unsigned long dups, skip_fields, skip_chars, i;
 	const char *s0, *e0, *s1, *e1, *input_filename;
+	unsigned long dups;
+	unsigned skip_fields, skip_chars, max_chars;
 	unsigned opt;
+	unsigned i;
 
 	enum {
 		OPT_c = 0x1,
@@ -41,15 +41,14 @@ int uniq_main(int argc ATTRIBUTE_UNUSED, char **argv)
 		OPT_u = 0x4,
 		OPT_f = 0x8,
 		OPT_s = 0x10,
+		OPT_w = 0x20,
 	};
 
 	skip_fields = skip_chars = 0;
+	max_chars = -1;
 
-	opt = getopt32(argv, "cduf:s:", &s0, &s1);
-	if (opt & OPT_f)
-		skip_fields = xatoul(s0);
-	if (opt & OPT_s)
-		skip_chars = xatoul(s1);
+	opt_complementary = "f+:s+:w+";
+	opt = getopt32(argv, "cduf:s:w:", &skip_fields, &skip_chars, &max_chars);
 	argv += optind;
 
 	input_filename = *argv;
@@ -63,7 +62,7 @@ int uniq_main(int argc ATTRIBUTE_UNUSED, char **argv)
 		bb_show_usage();
 	}
 
-	s1 = e1 = NULL;				/* prime the pump */
+	s1 = e1 = NULL; /* prime the pump */
 
 	do {
 		s0 = s1;
@@ -81,16 +80,16 @@ int uniq_main(int argc ATTRIBUTE_UNUSED, char **argv)
 				++e1;
 			}
 
-			if (!s0 || strcmp(e0, e1)) {
+			if (!s0 || strncmp(e0, e1, max_chars)) {
 				break;
 			}
 
-			++dups;		 /* Note: Testing for overflow seems excessive. */
+			++dups;	 /* note: testing for overflow seems excessive. */
 		}
 
 		if (s0) {
 			if (!(opt & (OPT_d << !!dups))) { /* (if dups, opt & OPT_e) */
-				fprintf(out, "\0%d " + (opt & 1), dups + 1);
+				fprintf(out, "\0%ld " + (opt & 1), dups + 1); /* 1 == OPT_c */
 				fprintf(out, "%s\n", s0);
 			}
 			free((void *)s0);

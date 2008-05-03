@@ -4303,16 +4303,16 @@
 	)
 
 #define uniq_trivial_usage \
-       "[-fscdu]... [INPUT [OUTPUT]]"
+       "[-fscduw]... [INPUT [OUTPUT]]"
 #define uniq_full_usage "\n\n" \
-       "Discard all but one of successive identical lines from INPUT\n" \
-       "(or standard input), writing to OUTPUT (or standard output)\n" \
+       "Discard duplicate lines\n" \
      "\nOptions:" \
      "\n	-c	Prefix lines by the number of occurrences" \
      "\n	-d	Only print duplicate lines" \
      "\n	-u	Only print unique lines" \
-     "\n	-f N	Skip the first N fields" \
-     "\n	-s N	Skip the first N chars (after any skipped fields)" \
+     "\n	-f N	Skip first N fields" \
+     "\n	-s N	Skip first N chars (after any skipped fields)" \
+     "\n	-w N	Compare N characters in line" \
 
 #define uniq_example_usage \
        "$ echo -e \"a\\na\\nb\\nc\\nc\\na\" | sort | uniq\n" \
