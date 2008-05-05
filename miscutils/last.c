@@ -49,7 +49,7 @@ int last_main(int argc, char **argv ATTRIBUTE_UNUSED)
 				ut.ut_type = SHUTDOWN_TIME;
 			else if (strncmp(ut.ut_user, "reboot", 6) == 0)
 				ut.ut_type = BOOT_TIME;
-			else if (strncmp(ut.ut_user, "runlevel", 7) == 0)
+			else if (strncmp(ut.ut_user, "runlevel", 8) == 0)
 				ut.ut_type = RUN_LVL;
 		} else {
 			if (ut.ut_name[0] == '\0' || strcmp(ut.ut_name, "LOGIN") == 0) {
