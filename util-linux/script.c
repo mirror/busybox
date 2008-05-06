@@ -99,13 +99,12 @@ int script_main(int argc ATTRIBUTE_UNUSED, char **argv)
 		/* parent */
 #define buf bb_common_bufsiz1
 		struct pollfd pfd[2];
-		struct pollfd *ppfd = pfd;
 		int outfd, count, loop;
 
 		outfd = xopen(fname, mode);
-		pfd[0].fd = 0;
+		pfd[0].fd = pty;
 		pfd[0].events = POLLIN;
-		pfd[1].fd = pty;
+		pfd[1].fd = 0;
 		pfd[1].events = POLLIN;
 		ndelay_on(pty); /* this descriptor is not shared, can do this */
 		/* ndelay_on(0); - NO, stdin can be shared! Pity :( */
@@ -115,29 +114,17 @@ int script_main(int argc ATTRIBUTE_UNUSED, char **argv)
 		/* TODO: don't use full_write's, use proper write buffering */
 		while (fd_count) {
 			/* not safe_poll! we want SIGCHLD to EINTR poll */
-			if (poll(ppfd, fd_count, -1) < 0 && errno != EINTR) {
+			if (poll(pfd, fd_count, -1) < 0 && errno != EINTR) {
 				/* If child exits too quickly, we may get EIO:
 				 * for example, try "script -c true" */
 				break;
 			}
 			if (pfd[0].revents) {
-				count = safe_read(0, buf, sizeof(buf));
-				if (count <= 0) {
-					/* err/eof: don't read anymore */
-					pfd[0].revents = 0;
-					ppfd++;
-					fd_count--;
-				} else {
-					full_write(pty, buf, count);
-				}
-			}
-			if (pfd[1].revents) {
 				errno = 0;
 				count = safe_read(pty, buf, sizeof(buf));
 				if (count <= 0 && errno != EAGAIN) {
-					/* err/eof: don't read anymore */
-					pfd[1].revents = 0;
-					fd_count--;
+					/* err/eof from pty: exit */
+					goto restore;
 				}
 				if (count > 0) {
 					full_write(1, buf, count);
@@ -145,6 +132,16 @@ int script_main(int argc ATTRIBUTE_UNUSED, char **argv)
 					if (opt & 4) { /* -f */
 						fsync(outfd);
 					}
+				}
+			}
+			if (pfd[1].revents) {
+				count = safe_read(0, buf, sizeof(buf));
+				if (count <= 0) {
+					/* err/eof from stdin: don't read stdin anymore */
+					pfd[1].revents = 0;
+					fd_count--;
+				} else {
+					full_write(pty, buf, count);
 				}
 			}
 		}
@@ -161,7 +158,7 @@ int script_main(int argc ATTRIBUTE_UNUSED, char **argv)
 			full_write(1, buf, count);
 			full_write(outfd, buf, count);
 		}
-
+ restore:
 		if (attr_ok == 0)
 			tcsetattr(0, TCSAFLUSH, &tt);
 		if (!(opt & 8)) /* not -q */
