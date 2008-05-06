@@ -7,7 +7,6 @@
 # check if hexdump supports the '-R' option
 hexdump -R </dev/null >/dev/null 2>&1 || {
 	echo "'hexdump -R' is not available" >&2
-	SKIP=1
 	exit 1
 }
 
