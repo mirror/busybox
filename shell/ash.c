@@ -9486,7 +9486,7 @@ setparam(char **argv)
  * Oh well. Let's mimic that.
  */
 static int
-minus_o(char *name, int val)
+plus_minus_o(char *name, int val)
 {
 	int i;
 
@@ -9497,13 +9497,15 @@ minus_o(char *name, int val)
 				return 0;
 			}
 		}
-		ash_msg("illegal option -o %s", name);
+		ash_msg("illegal option %co %s", val ? '-' : '+', name);
 		return 1;
 	}
-	out1str("Current option settings\n");
 	for (i = 0; i < NOPTS; i++)
-		out1fmt("%-16s%s\n", optnames(i),
-				optlist[i] ? "on" : "off");
+		if (val) {
+			out1fmt("%-16s%s\n", optnames(i), optlist[i] ? "on" : "off");
+		} else {
+			out1fmt("set %co %s\n", optlist[i] ? '-' : '+', optnames(i));
+		}
 	return 0;
 }
 static void
@@ -9517,7 +9519,7 @@ setoption(int flag, int val)
 			return;
 		}
 	}
-	ash_msg_and_raise_error("illegal option -%c", flag);
+	ash_msg_and_raise_error("illegal option %c%c", val ? '-' : '+', flag);
 	/* NOTREACHED */
 }
 static int
@@ -9555,7 +9557,7 @@ options(int cmdline)
 			if (c == 'c' && cmdline) {
 				minusc = p;     /* command is after shell args */
 			} else if (c == 'o') {
-				if (minus_o(*argptr, val)) {
+				if (plus_minus_o(*argptr, val)) {
 					/* it already printed err message */
 					return 1; /* error */
 				}
