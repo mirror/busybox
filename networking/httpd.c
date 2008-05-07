@@ -613,7 +613,12 @@ static void parse_conf(const char *path, int flag)
 			/* then error page; find matching status */
 			for (i = 0; i < ARRAY_SIZE(http_response_type); i++) {
 				if (http_response_type[i] == status) {
-					http_error_page[i] = concat_path_file((*c == '/') ? NULL : home_httpd, c);
+					// We chdir to home_httpd, thus no need to
+					// concat_path_file(home_httpd, c)
+					//if (c[0] == '/' || home_httpd[0] != '/')
+						http_error_page[i] = xstrdup(c);
+					//else
+					//	http_error_page[i] = concat_path_file(home_httpd, c);
 					break;
 				}
 			}
@@ -1009,7 +1014,7 @@ static void send_headers(int responseNum)
 	}
 
 #if ENABLE_FEATURE_HTTPD_ERROR_PAGES
-	if (error_page && !access(error_page, R_OK)) {
+	if (error_page && access(error_page, R_OK) == 0) {
 		strcat(iobuf, "\r\n");
 		len += 2;
 
@@ -1313,49 +1318,49 @@ static void send_cgi_and_exit(
 {
 	struct fd_pair fromCgi;  /* CGI -> httpd pipe */
 	struct fd_pair toCgi;    /* httpd -> CGI pipe */
-	char *fullpath;
 	char *script;
-	char *purl;
 	int pid;
+
+	/* Make a copy. NB: caller guarantees:
+	 * url[0] == '/', url[1] != '/' */
+	url = xstrdup(url);
 
 	/*
 	 * We are mucking with environment _first_ and then vfork/exec,
-	 * this allows us to use vfork safely. Parent don't care about
+	 * this allows us to use vfork safely. Parent doesn't care about
 	 * these environment changes anyway.
 	 */
 
-	/*
-	 * Find PATH_INFO.
-	 */
-	purl = xstrdup(url);
-	script = purl;
+	/* Check for [dirs/]script.cgi/PATH_INFO */
+	script = (char*)url;
 	while ((script = strchr(script + 1, '/')) != NULL) {
-		/* have script.cgi/PATH_INFO or dirs/script.cgi[/PATH_INFO] */
 		struct stat sb;
 
 		*script = '\0';
-		if (!is_directory(purl + 1, 1, &sb)) {
+		if (!is_directory(url + 1, 1, &sb)) {
 			/* not directory, found script.cgi/PATH_INFO */
 			*script = '/';
 			break;
 		}
-		*script = '/';          /* is directory, find next '/' */
+		*script = '/'; /* is directory, find next '/' */
 	}
-	setenv1("PATH_INFO", script);   /* set /PATH_INFO or "" */
+	setenv1("PATH_INFO", script);   /* set to /PATH_INFO or "" */
 	setenv1("REQUEST_METHOD", request);
 	if (g_query) {
-		putenv(xasprintf("%s=%s?%s", "REQUEST_URI", purl, g_query));
+		putenv(xasprintf("%s=%s?%s", "REQUEST_URI", url, g_query));
 	} else {
-		setenv1("REQUEST_URI", purl);
+		setenv1("REQUEST_URI", url);
 	}
 	if (script != NULL)
 		*script = '\0';         /* cut off /PATH_INFO */
 
-	/* SCRIPT_FILENAME required by PHP in CGI mode */
-	fullpath = concat_path_file(home_httpd, purl);
-	setenv1("SCRIPT_FILENAME", fullpath);
+	/* SCRIPT_FILENAME is required by PHP in CGI mode */
+	if (home_httpd[0] == '/') {
+		char *fullpath = concat_path_file(home_httpd, url);
+		setenv1("SCRIPT_FILENAME", fullpath);
+	}
 	/* set SCRIPT_NAME as full path: /cgi-bin/dirs/script.cgi */
-	setenv1("SCRIPT_NAME", purl);
+	setenv1("SCRIPT_NAME", url);
 	/* http://hoohoo.ncsa.uiuc.edu/cgi/env.html:
 	 * QUERY_STRING: The information which follows the ? in the URL
 	 * which referenced this script. This is the query information.
@@ -1413,6 +1418,8 @@ static void send_cgi_and_exit(
 
 	if (!pid) {
 		/* Child process */
+		char *argv[3];
+
 		xfunc_error_retval = 242;
 
 		/* NB: close _first_, then move fds! */
@@ -1424,53 +1431,54 @@ static void send_cgi_and_exit(
 		 * If CGI really wants that, it can always do dup itself. */
 		/* dup2(1, 2); */
 
-		script = strrchr(fullpath, '/');
-		//fullpath is a result of concat_path_file and always has '/'
-		//if (!script)
-		//	goto error_execing_cgi;
-		*script = '\0';
-		/* chdiring to script's dir */
-		if (chdir(script == fullpath ? "/" : fullpath) == 0) {
-			char *argv[3];
+		/* Chdiring to script's dir */
+		script = strrchr(url, '/');
+		if (script != url) { /* paranoia */
+			*script = '\0';
+			if (chdir(url + 1) != 0) {
+				bb_perror_msg("chdir %s", url + 1);
+				goto error_execing_cgi;
+			}
+			// not needed: *script = '/';
+		}
+		script++;
 
-			*script++ = '/'; /* repair fullpath */
-			/* set argv[0] to name without path */
-			argv[0] = script;
-			argv[1] = NULL;
+		/* set argv[0] to name without path */
+		argv[0] = script;
+		argv[1] = NULL;
 
 #if ENABLE_FEATURE_HTTPD_CONFIG_WITH_SCRIPT_INTERPR
-			{
-				char *suffix = strrchr(script, '.');
+		{
+			char *suffix = strrchr(script, '.');
 
-				if (suffix) {
-					Htaccess *cur;
-					for (cur = script_i; cur; cur = cur->next) {
-						if (strcmp(cur->before_colon + 1, suffix) == 0) {
-							/* found interpreter name */
-							fullpath = cur->after_colon;
-							argv[0] = cur->after_colon;
-							argv[1] = script;
-							argv[2] = NULL;
-							break;
-						}
+			if (suffix) {
+				Htaccess *cur;
+				for (cur = script_i; cur; cur = cur->next) {
+					if (strcmp(cur->before_colon + 1, suffix) == 0) {
+						/* found interpreter name */
+						argv[0] = cur->after_colon;
+						argv[1] = script;
+						argv[2] = NULL;
+						break;
 					}
 				}
 			}
-#endif
-			/* restore default signal dispositions for CGI process */
-			bb_signals(0
-				| (1 << SIGCHLD)
-				| (1 << SIGPIPE)
-				| (1 << SIGHUP)
-				, SIG_DFL);
-
-			execv(fullpath, argv);
-			if (verbose)
-				bb_perror_msg("exec %s", fullpath);
-		} else if (verbose) {
-			bb_perror_msg("chdir %s", fullpath);
 		}
- //error_execing_cgi:
+#endif
+		/* restore default signal dispositions for CGI process */
+		bb_signals(0
+			| (1 << SIGCHLD)
+			| (1 << SIGPIPE)
+			| (1 << SIGHUP)
+			, SIG_DFL);
+
+		/* _NOT_ execvp. We do not search PATH. argv[0] is a filename
+		 * without any dir components and will only match a file
+		 * in the current directory */
+		execv(argv[0], argv);
+		if (verbose)
+			bb_perror_msg("exec %s", argv[0]);
+ error_execing_cgi:
 		/* send to stdout
 		 * (we are CGI here, our stdout is pumped to the net) */
 		send_headers_and_exit(HTTP_NOT_FOUND);
@@ -1889,7 +1897,7 @@ static void handle_incoming_and_exit(const len_and_sockaddr *fromAddr)
 
 	/* Canonicalize path */
 	/* Algorithm stolen from libbb bb_simplify_path(),
-	 * but don't strdup and reducing trailing slash and protect out root */
+	 * but don't strdup, retain trailing slash, protect root */
 	urlp = tptr = urlcopy;
 	do {
 		if (*urlp == '/') {
@@ -1898,11 +1906,11 @@ static void handle_incoming_and_exit(const len_and_sockaddr *fromAddr)
 				continue;
 			}
 			if (*tptr == '.') {
-				/* skip extra '.' */
+				/* skip extra "/./" */
 				if (tptr[1] == '/' || !tptr[1]) {
 					continue;
 				}
-				/* '..': be careful */
+				/* "..": be careful */
 				if (tptr[1] == '.' && (tptr[2] == '/' || !tptr[2])) {
 					++tptr;
 					if (urlp == urlcopy) /* protect root */
@@ -1914,11 +1922,10 @@ static void handle_incoming_and_exit(const len_and_sockaddr *fromAddr)
 		}
 		*++urlp = *tptr;
 	} while (*++tptr);
-	*++urlp = '\0';       /* so keep last character */
-	tptr = urlp;          /* end ptr */
+	*++urlp = '\0';       /* terminate after last character */
 
 	/* If URL is a directory, add '/' */
-	if (tptr[-1] != '/') {
+	if (urlp[-1] != '/') {
 		if (is_directory(urlcopy + 1, 1, &sb)) {
 			found_moved_temporarily = urlcopy;
 		}
@@ -2310,8 +2317,8 @@ int httpd_main(int argc ATTRIBUTE_UNUSED, char **argv)
 	/* -v counts, -i implies -f */
 	opt_complementary = "vv:if";
 	/* We do not "absolutize" path given by -h (home) opt.
-	 * If user gives relative path in -h, $SCRIPT_FILENAME can end up
-	 * relative too. */
+	 * If user gives relative path in -h,
+	 * $SCRIPT_FILENAME will not be set. */
 	opt = getopt32(argv, "c:d:h:"
 			USE_FEATURE_HTTPD_ENCODE_URL_STR("e:")
 			USE_FEATURE_HTTPD_BASIC_AUTH("r:")

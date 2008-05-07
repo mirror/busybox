@@ -8,9 +8,11 @@
  * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  */
 
-/* concatenate path and file name to new allocation buffer,
- * not adding '/' if path name already has '/'
-*/
+/* Concatenate path and filename to new allocated buffer.
+ * Add '/' only as needed (no duplicate // are produced).
+ * If path is NULL, it is assumed to be "/".
+ * filename should not be NULL.
+ */
 
 #include "libbb.h"
 

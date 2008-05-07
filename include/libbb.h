@@ -938,6 +938,10 @@ int bb_ask_confirmation(void);
 
 extern int bb_parse_mode(const char* s, mode_t* theMode);
 
+/* Concatenate path and filename to new allocated buffer.
+ * Add "/" only as needed (no duplicate "//" are produced).
+ * If path is NULL, it is assumed to be "/".
+ * filename should not be NULL. */
 char *concat_path_file(const char *path, const char *filename);
 char *concat_subpath_file(const char *path, const char *filename);
 const char *bb_basename(const char *name);
