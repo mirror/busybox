@@ -1457,6 +1457,13 @@ static void send_cgi_and_exit(
 				}
 			}
 #endif
+			/* restore default signal dispositions for CGI process */
+			bb_signals(0
+				| (1 << SIGCHLD)
+				| (1 << SIGPIPE)
+				| (1 << SIGHUP)
+				, SIG_DFL);
+
 			execv(fullpath, argv);
 			if (verbose)
 				bb_perror_msg("exec %s", fullpath);
