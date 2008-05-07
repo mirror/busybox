@@ -8,8 +8,45 @@
  * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  */
 
-/* NB: we have a problem here with /proc/NN/exe usage, similar to
- * one fixed in killall/pidof */
+/*
+This is how it is supposed to work:
+
+start-stop-daemon [OPTIONS] [--start|--stop] [[--] arguments...]
+
+One (only) of these must be given:
+        -S,--start              Start
+        -K,--stop               Stop
+
+Search for matching processes.
+If --stop is given, stop all matching processes (by sending a signal).
+If --start if given, start a new process unless a matching process was found.
+
+Options controlling process matching:
+        -u,--user USERNAME|UID  Only consider this user's processes
+        -n,--name PROCESS_NAME  Look for processes with matching argv[0]
+                                or /proc/$PID/exe or /proc/$PID/stat (comm field).
+                                Only basename is compared:
+                                "ntpd" == "./ntpd" == "/path/to/ntpd".
+[TODO: can PROCESS_NAME be a full pathname? Should we require full match then
+with /proc/$PID/exe or argv[0] (comm can't be matched, it never contains path)]
+        -x,--exec EXECUTABLE    Look for processes with matching /proc/$PID/exe.
+                                Match is performed using device+inode.
+        -p,--pidfile PID_FILE   Look for processes with PID from this file
+
+Options which are valid for --start only:
+        -x,--exec EXECUTABLE    Program to run (1st arg of execvp). Mandatory.
+        -a,--startas NAME       argv[0] (defaults to EXECUTABLE)
+        -b,--background         Put process into background
+        -N,--nicelevel N        Add N to process' nice level
+        -c,--chuid USER[:[GRP]] Change to specified user [and group]
+        -m,--make-pidfile       Write PID to the pidfile
+                                (both -m and -p must be given!)
+Misc options:
+        -s,--signal SIG         Signal to send (default:TERM)
+        -o,--oknodo             Exit with status 0 if nothing is done
+        -q,--quiet              Quiet
+        -v,--verbose            Verbose
+*/
 
 #include <sys/resource.h>
 
