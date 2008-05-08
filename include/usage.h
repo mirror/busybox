@@ -1275,8 +1275,8 @@
      "\n	-k	Kill found processes (otherwise display PIDs)" \
      "\n	-SIGNAL	Signal to send (default: TERM)" \
 
-#define getenforce_trivial_usage
-#define getenforce_full_usage
+#define getenforce_trivial_usage NOUSAGE_STR
+#define getenforce_full_usage ""
 
 #define getopt_trivial_usage \
        "[OPTIONS]..."
@@ -2097,9 +2097,9 @@
        "$ ls -l /tmp/ls\n" \
        "lrwxrwxrwx    1 root     root            7 Apr 12 18:39 ls -> BusyBox*\n"
 
-#define load_policy_trivial_usage
+#define load_policy_trivial_usage NOUSAGE_STR
 
-#define load_policy_full_usage
+#define load_policy_full_usage ""
 
 #define loadfont_trivial_usage \
        "< font"
@@ -3399,8 +3399,8 @@
        "$ echo \"foo\" | sed -e 's/f[a-zA-Z]o/bar/g'\n" \
        "bar\n"
 
-#define selinuxenabled_trivial_usage
-#define selinuxenabled_full_usage
+#define selinuxenabled_trivial_usage NOUSAGE_STR
+#define selinuxenabled_full_usage ""
 
 #define sendmail_trivial_usage \
        "[-w timeout] [-U user] [-P password] [-X]\n" \
@@ -3442,7 +3442,7 @@
 
 #define setenforce_trivial_usage \
        "[Enforcing | Permissive | 1 | 0]"
-#define setenforce_full_usage
+#define setenforce_full_usage ""
 
 #define setfiles_trivial_usage \
        "[-dnpqsvW] [-e dir]... [-o file] [-r alt_root_path]" \
