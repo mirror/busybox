@@ -11,7 +11,7 @@ CPPFLAGS += $(call cc-option,-std=gnu99,)
 
 CPPFLAGS += \
 	-Iinclude -Ilibbb \
-	$(if $(KBUILD_SRC),-Iinclude2 -I$(srctree)/include) -I$(srctree)/libbb \
+	$(if $(KBUILD_SRC),-Iinclude2 -I$(srctree)/include -I$(srctree)/libbb) \
 	-include include/autoconf.h \
 	-D_GNU_SOURCE -DNDEBUG \
 	$(if $(CONFIG_LFS),-D_LARGEFILE_SOURCE -D_LARGEFILE64_SOURCE -D_FILE_OFFSET_BITS=64) \
