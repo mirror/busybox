@@ -1613,27 +1613,31 @@
        "   # ifenslave -c bond0 eth0\n" \
 
 #define ifup_trivial_usage \
-       "[-ahinv] ifaces..."
+       "[-ain"USE_FEATURE_IFUPDOWN_MAPPING("m")"vf] ifaces..."
 #define ifup_full_usage \
        "Options:" \
      "\n	-a	De/configure all interfaces automatically" \
      "\n	-i FILE	Use FILE for interface definitions" \
      "\n	-n	Print out what would happen, but don't do it" \
+	USE_FEATURE_IFUPDOWN_MAPPING( \
      "\n		(note: doesn't disable mappings)" \
-     "\n	-v	Print out what would happen before doing it" \
      "\n	-m	Don't run any mappings" \
+	) \
+     "\n	-v	Print out what would happen before doing it" \
      "\n	-f	Force de/configuration" \
 
 #define ifdown_trivial_usage \
-       "[-ahinv] ifaces..."
+       "[-ain"USE_FEATURE_IFUPDOWN_MAPPING("m")"vf] ifaces..."
 #define ifdown_full_usage \
        "Options:" \
      "\n	-a	De/configure all interfaces automatically" \
      "\n	-i FILE	Use FILE for interface definitions" \
      "\n	-n	Print out what would happen, but don't do it" \
+	USE_FEATURE_IFUPDOWN_MAPPING( \
      "\n		(note: doesn't disable mappings)" \
-     "\n	-v	Print out what would happen before doing it" \
      "\n	-m	Don't run any mappings" \
+	) \
+     "\n	-v	Print out what would happen before doing it" \
      "\n	-f	Force de/configuration" \
 
 #define inetd_trivial_usage \
