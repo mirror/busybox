@@ -288,20 +288,20 @@ enum {
 	 * SIGSYS   Bad argument to routine
 	 * SIGTRAP  Trace/breakpoint trap
 	 */
-	BB_FATAL_SIGS = 0
-		+ (1 << SIGHUP)
-		+ (1 << SIGINT)
-		+ (1 << SIGTERM)
-		+ (1 << SIGPIPE)   // Write to pipe with no readers
-		+ (1 << SIGQUIT)   // Quit from keyboard
-		+ (1 << SIGABRT)   // Abort signal from abort(3)
-		+ (1 << SIGALRM)   // Timer signal from alarm(2)
-		+ (1 << SIGVTALRM) // Virtual alarm clock
-		+ (1 << SIGXCPU)   // CPU time limit exceeded
-		+ (1 << SIGXFSZ)   // File size limit exceeded
-		+ (1 << SIGUSR1)   // Yes kids, these are also fatal!
-		+ (1 << SIGUSR2)
-		+ 0,
+	BB_FATAL_SIGS = (int)(0
+		+ (1LL << SIGHUP)
+		+ (1LL << SIGINT)
+		+ (1LL << SIGTERM)
+		+ (1LL << SIGPIPE)   // Write to pipe with no readers
+		+ (1LL << SIGQUIT)   // Quit from keyboard
+		+ (1LL << SIGABRT)   // Abort signal from abort(3)
+		+ (1LL << SIGALRM)   // Timer signal from alarm(2)
+		+ (1LL << SIGVTALRM) // Virtual alarm clock
+		+ (1LL << SIGXCPU)   // CPU time limit exceeded
+		+ (1LL << SIGXFSZ)   // File size limit exceeded
+		+ (1LL << SIGUSR1)   // Yes kids, these are also fatal!
+		+ (1LL << SIGUSR2)
+		+ 0),
 };
 void bb_signals(int sigs, void (*f)(int));
 /* Unlike signal() and bb_signals, sets handler with sigaction()
@@ -995,16 +995,16 @@ extern int update_passwd(const char *filename, const char *username,
 /* NB: typically you want to pass fd 0, not 1. Think 'applet | grep something' */
 int get_terminal_width_height(int fd, int *width, int *height);
 
-int ioctl_or_perror(int fd, int request, void *argp, const char *fmt,...) __attribute__ ((format (printf, 4, 5)));
-void ioctl_or_perror_and_die(int fd, int request, void *argp, const char *fmt,...) __attribute__ ((format (printf, 4, 5)));
+int ioctl_or_perror(int fd, unsigned request, void *argp, const char *fmt,...) __attribute__ ((format (printf, 4, 5)));
+void ioctl_or_perror_and_die(int fd, unsigned request, void *argp, const char *fmt,...) __attribute__ ((format (printf, 4, 5)));
 #if ENABLE_IOCTL_HEX2STR_ERROR
-int bb_ioctl_or_warn(int fd, int request, void *argp, const char *ioctl_name);
-void bb_xioctl(int fd, int request, void *argp, const char *ioctl_name);
+int bb_ioctl_or_warn(int fd, unsigned request, void *argp, const char *ioctl_name);
+void bb_xioctl(int fd, unsigned request, void *argp, const char *ioctl_name);
 #define ioctl_or_warn(fd,request,argp) bb_ioctl_or_warn(fd,request,argp,#request)
 #define xioctl(fd,request,argp)        bb_xioctl(fd,request,argp,#request)
 #else
-int bb_ioctl_or_warn(int fd, int request, void *argp);
-void bb_xioctl(int fd, int request, void *argp);
+int bb_ioctl_or_warn(int fd, unsigned request, void *argp);
+void bb_xioctl(int fd, unsigned request, void *argp);
 #define ioctl_or_warn(fd,request,argp) bb_ioctl_or_warn(fd,request,argp)
 #define xioctl(fd,request,argp)        bb_xioctl(fd,request,argp)
 #endif

@@ -258,7 +258,7 @@ procps_status_t *procps_scan(procps_status_t* sp, int flags)
 				&sp->start_time,
 				&vsz,
 				&rss);
-			if (n != 10)
+			if (n != 11)
 				break;
 			/* vsz is in bytes and we want kb */
 			sp->vsz = vsz >> 10;

@@ -94,8 +94,10 @@ int taskset_main(int argc ATTRIBUTE_UNUSED, char **argv)
 		unsigned i;
 		/* Do not allow zero mask: */
 		unsigned long long m = xstrtoull_range(aff, 0, 1, ULLONG_MAX);
+		enum { CNT_BIT = CPU_SETSIZE < sizeof(m)*8 ? CPU_SETSIZE : sizeof(m)*8 };
+
 		CPU_ZERO(&mask);
-		for (i = 0; i < CPU_SETSIZE; i++) {
+		for (i = 0; i < CNT_BIT; i++) {
 			unsigned long long bit = (1ULL << i);
 			if (bit & m)
 				CPU_SET(i, &mask);

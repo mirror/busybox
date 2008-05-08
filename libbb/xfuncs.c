@@ -704,7 +704,7 @@ int get_terminal_width_height(int fd, int *width, int *height)
 	return ret;
 }
 
-void ioctl_or_perror_and_die(int fd, int request, void *argp, const char *fmt,...)
+void ioctl_or_perror_and_die(int fd, unsigned request, void *argp, const char *fmt,...)
 {
 	va_list p;
 
@@ -717,7 +717,7 @@ void ioctl_or_perror_and_die(int fd, int request, void *argp, const char *fmt,..
 	}
 }
 
-int ioctl_or_perror(int fd, int request, void *argp, const char *fmt,...)
+int ioctl_or_perror(int fd, unsigned request, void *argp, const char *fmt,...)
 {
 	va_list p;
 	int ret = ioctl(fd, request, argp);
@@ -731,7 +731,7 @@ int ioctl_or_perror(int fd, int request, void *argp, const char *fmt,...)
 }
 
 #if ENABLE_IOCTL_HEX2STR_ERROR
-int bb_ioctl_or_warn(int fd, int request, void *argp, const char *ioctl_name)
+int bb_ioctl_or_warn(int fd, unsigned request, void *argp, const char *ioctl_name)
 {
 	int ret;
 
@@ -740,13 +740,13 @@ int bb_ioctl_or_warn(int fd, int request, void *argp, const char *ioctl_name)
 		bb_simple_perror_msg(ioctl_name);
 	return ret;
 }
-void bb_xioctl(int fd, int request, void *argp, const char *ioctl_name)
+void bb_xioctl(int fd, unsigned request, void *argp, const char *ioctl_name)
 {
 	if (ioctl(fd, request, argp) < 0)
 		bb_simple_perror_msg_and_die(ioctl_name);
 }
 #else
-int bb_ioctl_or_warn(int fd, int request, void *argp)
+int bb_ioctl_or_warn(int fd, unsigned request, void *argp)
 {
 	int ret;
 
@@ -755,7 +755,7 @@ int bb_ioctl_or_warn(int fd, int request, void *argp)
 		bb_perror_msg("ioctl %#x failed", request);
 	return ret;
 }
-void bb_xioctl(int fd, int request, void *argp)
+void bb_xioctl(int fd, unsigned request, void *argp)
 {
 	if (ioctl(fd, request, argp) < 0)
 		bb_perror_msg_and_die("ioctl %#x failed", request);
