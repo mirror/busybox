@@ -106,7 +106,7 @@ int arpping(uint32_t test_ip, uint32_t from_ip, uint8_t *from_mac, const char *i
 				break;
 			}
 		}
-		timeout_ms -= (monotonic_us() - prevTime) / 1000;
+		timeout_ms -= ((unsigned)monotonic_us() - prevTime) / 1000;
 	} while (timeout_ms > 0);
 
  ret:
