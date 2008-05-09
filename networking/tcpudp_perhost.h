@@ -7,6 +7,10 @@
  * Licensed under GPLv2, see file LICENSE in this tarball for details.
  */
 
+#if __GNUC_PREREQ(4,1)
+# pragma GCC visibility push(hidden)
+#endif
+
 struct hcc {
 	char *ip;
 	int pid;
@@ -27,3 +31,7 @@ void ipsvd_perhost_remove(int pid);
 
 //unsigned ipsvd_perhost_setpid(int pid);
 //void ipsvd_perhost_free(void);
+
+#if __GNUC_PREREQ(4,1)
+# pragma GCC visibility pop
+#endif

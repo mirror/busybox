@@ -21,14 +21,12 @@
  *	POSIX Standard: 9.2.1 Group Database Access	<grp.h>
  */
 
-#if !ENABLE_USE_BB_PWD_GRP
-
-#include <grp.h>
-
-#else
-
 #ifndef	_GRP_H
 #define	_GRP_H 1
+
+#if __GNUC_PREREQ(4,1)
+# pragma GCC visibility push(hidden)
+#endif
 
 /* The group structure.	 */
 struct group {
@@ -128,6 +126,8 @@ extern int getgrouplist(__const char *__user, gid_t __group,
    of which USER is a member.  Also include GROUP.  */
 extern int initgroups(__const char *__user, gid_t __group);
 
+#if __GNUC_PREREQ(4,1)
+# pragma GCC visibility pop
+#endif
 
-#endif /* grp.h  */
 #endif

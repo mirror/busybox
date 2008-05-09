@@ -3,6 +3,10 @@
 #ifndef _OPTIONS_H
 #define _OPTIONS_H
 
+#if __GNUC_PREREQ(4,1)
+# pragma GCC visibility push(hidden)
+#endif
+
 #define TYPE_MASK	0x0F
 
 enum {
@@ -110,6 +114,10 @@ int add_simple_option(uint8_t *optionptr, uint8_t code, uint32_t data);
 #if ENABLE_FEATURE_RFC3397
 char *dname_dec(const uint8_t *cstr, int clen, const char *pre);
 uint8_t *dname_enc(const uint8_t *cstr, int clen, const char *src, int *retlen);
+#endif
+
+#if __GNUC_PREREQ(4,1)
+# pragma GCC visibility pop
 #endif
 
 #endif

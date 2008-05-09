@@ -8,6 +8,11 @@
 #include <linux/netlink.h>
 #include <linux/rtnetlink.h>
 
+
+#if __GNUC_PREREQ(4,1)
+# pragma GCC visibility push(hidden)
+#endif
+
 struct rtnl_handle
 {
 	int			fd;
@@ -42,5 +47,9 @@ extern int rta_addattr32(struct rtattr *rta, int maxlen, int type, uint32_t data
 extern int rta_addattr_l(struct rtattr *rta, int maxlen, int type, void *data, int alen);
 
 extern int parse_rtattr(struct rtattr *tb[], int max, struct rtattr *rta, int len);
+
+#if __GNUC_PREREQ(4,1)
+# pragma GCC visibility pop
+#endif
 
 #endif /* __LIBNETLINK_H__ */

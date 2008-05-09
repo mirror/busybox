@@ -8,6 +8,10 @@
  * Licensed under GPL version 2, see file LICENSE in this tarball for details.
  */
 
+#if __GNUC_PREREQ(4,1)
+# pragma GCC visibility push(hidden)
+#endif
+
 /* opaque structure */
 struct isrv_state_t;
 typedef struct isrv_state_t isrv_state_t;
@@ -31,3 +35,7 @@ void isrv_run(
 	int timeout,
 	int linger_timeout
 );
+
+#if __GNUC_PREREQ(4,1)
+# pragma GCC visibility pop
+#endif

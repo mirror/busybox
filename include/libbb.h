@@ -65,15 +65,21 @@
 #define setlocale(x,y) ((void)0)
 #endif
 
-#include "pwd_.h"
-#include "grp_.h"
-/* ifdef it out, because it may include <shadow.h> */
-/* and we may not even _have_ <shadow.h>! */
-#if ENABLE_FEATURE_SHADOWPASSWDS
-#include "shadow_.h"
+#ifdef DMALLOC
+#include <dmalloc.h>
 #endif
 
-/* Some libc's don't declare it, help them */
+#if !ENABLE_USE_BB_PWD_GRP
+# include <pwd.h>
+# include <grp.h>
+#endif
+#if ENABLE_FEATURE_SHADOWPASSWDS
+# if !ENABLE_USE_BB_SHADOW
+#  include <shadow.h>
+# endif
+#endif
+
+/* Some libc's forget to declare these, help them */
 extern char **environ;
 
 #if defined(__GLIBC__) && __GLIBC__ < 2
@@ -105,6 +111,23 @@ struct sysinfo {
 };
 int sysinfo(struct sysinfo* info);
 
+
+/* Make all declarations hidden (-fvisibility flag only affects definitions) */
+/* (don't include system headers after this until corresponding pop!) */
+#if __GNUC_PREREQ(4,1)
+# pragma GCC visibility push(hidden)
+#endif
+
+
+#if ENABLE_USE_BB_PWD_GRP
+# include "pwd_.h"
+# include "grp_.h"
+#endif
+#if ENABLE_FEATURE_SHADOWPASSWDS
+# if ENABLE_USE_BB_SHADOW
+#  include "shadow_.h"
+# endif
+#endif
 
 /* Tested to work correctly with all int types (IIRC :]) */
 #define MAXINT(T) (T)( \
@@ -1344,11 +1367,12 @@ extern const char bb_default_login_shell[];
 #undef isdigit
 #define isdigit(a) ((unsigned)((a) - '0') <= 9)
 
+#define ARRAY_SIZE(x) (sizeof(x) / sizeof((x)[0]))
 
-#ifdef DMALLOC
-#include <dmalloc.h>
+
+#if __GNUC_PREREQ(4,1)
+# pragma GCC visibility pop
 #endif
 
-#define ARRAY_SIZE(x) (sizeof(x) / sizeof((x)[0]))
 
 #endif /* __LIBBUSYBOX_H__ */

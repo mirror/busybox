@@ -12,7 +12,16 @@
 #define __BB_REGEX__
 
 #include <regex.h>
+
+#if __GNUC_PREREQ(4,1)
+# pragma GCC visibility push(hidden)
+#endif
+
 char* regcomp_or_errmsg(regex_t *preg, const char *regex, int cflags);
 void xregcomp(regex_t *preg, const char *regex, int cflags);
+
+#if __GNUC_PREREQ(4,1)
+# pragma GCC visibility pop
+#endif
 
 #endif

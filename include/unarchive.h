@@ -2,6 +2,10 @@
 #ifndef	__UNARCHIVE_H__
 #define	__UNARCHIVE_H__
 
+#if __GNUC_PREREQ(4,1)
+# pragma GCC visibility push(hidden)
+#endif
+
 #define ARCHIVE_PRESERVE_DATE           1
 #define ARCHIVE_CREATE_LEADING_DIRS     2
 #define ARCHIVE_EXTRACT_UNCONDITIONAL   4
@@ -124,6 +128,10 @@ extern int open_transformer(int src_fd,
 #else
 extern int open_transformer(int src_fd, const char *transform_prog);
 #define open_transformer(src_fd, transformer, transform_prog) open_transformer(src_fd, transform_prog)
+#endif
+
+#if __GNUC_PREREQ(4,1)
+# pragma GCC visibility pop
 #endif
 
 #endif

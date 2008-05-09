@@ -25,6 +25,10 @@ OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
 ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
+#if __GNUC_PREREQ(4,1)
+# pragma GCC visibility push(hidden)
+#endif
+
 extern unsigned byte_chr(char *s,unsigned n,int c);
 
 #define direntry struct dirent
@@ -95,3 +99,7 @@ typedef struct svstatus_t {
 struct ERR_svstatus_must_be_20_bytes {
 	char ERR_svstatus_must_be_20_bytes[sizeof(svstatus_t) == 20 ? 1 : -1];
 };
+
+#if __GNUC_PREREQ(4,1)
+# pragma GCC visibility pop
+#endif

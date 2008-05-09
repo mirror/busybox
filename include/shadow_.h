@@ -19,14 +19,12 @@
 
 /* Declaration of types and functions for shadow password suite */
 
-#if !ENABLE_USE_BB_SHADOW
-
-#include <shadow.h>
-
-#else
-
 #ifndef _SHADOW_H
 #define _SHADOW_H 1
+
+#if __GNUC_PREREQ(4,1)
+# pragma GCC visibility push(hidden)
+#endif
 
 /* Paths to the user database files */
 #ifndef _PATH_SHADOW
@@ -110,5 +108,8 @@ extern int lckpwdf(void);
 /* Unlock password file */
 extern int ulckpwdf(void);
 
-#endif /* shadow.h */
+#if __GNUC_PREREQ(4,1)
+# pragma GCC visibility pop
 #endif
+
+#endif /* shadow.h */

@@ -2,7 +2,9 @@
 #ifndef RT_NAMES_H_
 #define RT_NAMES_H_ 1
 
-#include <stdint.h>
+#if __GNUC_PREREQ(4,1)
+# pragma GCC visibility push(hidden)
+#endif
 
 extern const char* rtnl_rtprot_n2a(int id, char *buf, int len);
 extern const char* rtnl_rtscope_n2a(int id, char *buf, int len);
@@ -25,6 +27,10 @@ extern int ll_addr_a2n(unsigned char *lladdr, int len, char *arg);
 #ifdef UNUSED
 extern const char* ll_proto_n2a(unsigned short id, char *buf, int len);
 extern int ll_proto_a2n(unsigned short *id, char *buf);
+#endif
+
+#if __GNUC_PREREQ(4,1)
+# pragma GCC visibility pop
 #endif
 
 #endif

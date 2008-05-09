@@ -1,4 +1,9 @@
 /* vi: set sw=4 ts=4: */
+
+#if __GNUC_PREREQ(4,1)
+# pragma GCC visibility push(hidden)
+#endif
+
 #define	F_IGNORE	0x01		/* %_A */
 #define	F_SETREP	0x02		/* rep count set, not default */
 #define	F_ADDRESS	0x001		/* print offset */
@@ -48,3 +53,7 @@ extern int bb_dump_blocksize;				/* data block size */
 extern int bb_dump_length;			/* max bytes to read */
 extern enum _vflag bb_dump_vflag;
 extern off_t bb_dump_skip;                      /* bytes to skip */
+
+#if __GNUC_PREREQ(4,1)
+# pragma GCC visibility pop
+#endif

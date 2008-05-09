@@ -4,6 +4,10 @@
 #ifndef _DHCPD_H
 #define _DHCPD_H
 
+#if __GNUC_PREREQ(4,1)
+# pragma GCC visibility push(hidden)
+#endif
+
 /************************************/
 /* Defaults _you_ may want to tweak */
 /************************************/
@@ -113,5 +117,9 @@ void write_leases(void);
 void read_leases(const char *file);
 struct option_set *find_option(struct option_set *opt_list, uint8_t code);
 
+
+#if __GNUC_PREREQ(4,1)
+# pragma GCC visibility pop
+#endif
 
 #endif

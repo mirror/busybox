@@ -21,14 +21,12 @@
  *	POSIX Standard: 9.2.2 User Database Access	<pwd.h>
  */
 
-#if !ENABLE_USE_BB_PWD_GRP
-
-#include <pwd.h>
-
-#else
-
 #ifndef	_PWD_H
 #define	_PWD_H 1
+
+#if __GNUC_PREREQ(4,1)
+# pragma GCC visibility push(hidden)
+#endif
 
 /* The passwd structure.  */
 struct passwd {
@@ -118,5 +116,8 @@ extern int fgetpwent_r(FILE *__restrict __stream,
    will expect, but this need not be the format of the password file.  */
 extern int getpw(uid_t __uid, char *__buffer);
 
-#endif /* pwd.h  */
+#if __GNUC_PREREQ(4,1)
+# pragma GCC visibility pop
 #endif
+
+#endif /* pwd.h  */

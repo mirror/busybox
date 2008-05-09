@@ -21,6 +21,9 @@
 #include "libbb.h"
 #include "volume_id.h"
 
+#if __GNUC_PREREQ(4,1)
+# pragma GCC visibility push(hidden)
+#endif
 
 #define dbg(...) ((void)0)
 /* #define dbg(...) bb_error_msg(__VA_ARGS__) */
@@ -224,3 +227,7 @@ int volume_id_probe_udf(struct volume_id *id, uint64_t off);
 //int volume_id_probe_ufs(struct volume_id *id, uint64_t off);
 
 int volume_id_probe_xfs(struct volume_id *id, uint64_t off);
+
+#if __GNUC_PREREQ(4,1)
+# pragma GCC visibility pop
+#endif

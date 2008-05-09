@@ -9,11 +9,13 @@
 
 #include "libbb.h"
 
+#if __GNUC_PREREQ(4,1)
+# pragma GCC visibility push(hidden)
+#endif
+
 extern int rtc_adjtime_is_utc(void);
 extern int rtc_xopen(const char **default_rtc, int flags);
 extern time_t rtc_read_time(int fd, int utc);
-
-
 
 /*
  * Everything below this point has been copied from linux/rtc.h
@@ -69,5 +71,9 @@ struct linux_rtc_wkalrm {
 #define RTC_PF 0x40
 #define RTC_AF 0x20
 #define RTC_UF 0x10
+
+#if __GNUC_PREREQ(4,1)
+# pragma GCC visibility pop
+#endif
 
 #endif

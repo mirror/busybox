@@ -11,15 +11,18 @@
 #define _COMMON_H
 
 #include "libbb.h"
+#include <netinet/udp.h>
+#include <netinet/ip.h>
+
+#if __GNUC_PREREQ(4,1)
+# pragma GCC visibility push(hidden)
+#endif
 
 #define DEFAULT_SCRIPT   CONFIG_DHCPC_DEFAULT_SCRIPT
 
 extern const uint8_t MAC_BCAST_ADDR[6]; /* six all-ones */
 
 /*** packet.h ***/
-
-#include <netinet/udp.h>
-#include <netinet/ip.h>
 
 #define DHCP_OPTIONS_BUFSIZE  308
 
@@ -96,6 +99,10 @@ int arpping(uint32_t test_ip, uint32_t from_ip, uint8_t *from_mac, const char *i
 # define DEBUG(str, args...) bb_info_msg("### " str, ## args)
 #else
 # define DEBUG(str, args...) do {;} while (0)
+#endif
+
+#if __GNUC_PREREQ(4,1)
+# pragma GCC visibility pop
 #endif
 
 #endif

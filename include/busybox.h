@@ -9,6 +9,10 @@
 
 #include "libbb.h"
 
+#if __GNUC_PREREQ(4,1)
+# pragma GCC visibility push(hidden)
+#endif
+
 /* order matters: used as index into "install_dir[]" in appletlib.c */
 typedef enum bb_install_loc_t {
 	_BB_DIR_ROOT = 0,
@@ -67,5 +71,8 @@ int lbb_main(char **argv);
 #endif
 #endif
 
+#if __GNUC_PREREQ(4,1)
+# pragma GCC visibility pop
+#endif
 
 #endif	/* _BB_INTERNAL_H_ */

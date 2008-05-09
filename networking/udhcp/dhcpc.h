@@ -4,6 +4,10 @@
 #ifndef _DHCPC_H
 #define _DHCPC_H
 
+#if __GNUC_PREREQ(4,1)
+# pragma GCC visibility push(hidden)
+#endif
+
 #define INIT_SELECTING	0
 #define REQUESTING	1
 #define BOUND		2
@@ -60,5 +64,8 @@ int send_renew(uint32_t xid, uint32_t server, uint32_t ciaddr);
 int send_release(uint32_t server, uint32_t ciaddr);
 int get_raw_packet(struct dhcpMessage *payload, int fd);
 
+#if __GNUC_PREREQ(4,1)
+# pragma GCC visibility pop
+#endif
 
 #endif

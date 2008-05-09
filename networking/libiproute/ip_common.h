@@ -13,6 +13,10 @@
 #include <linux/if_link.h>
 #endif
 
+#if __GNUC_PREREQ(4,1)
+# pragma GCC visibility push(hidden)
+#endif
+
 extern char **ip_parse_common_args(char **argv);
 extern int print_neigh(struct sockaddr_nl *who, struct nlmsghdr *n, void *arg);
 extern int ipaddr_list_or_flush(char **argv, int flush);
@@ -29,4 +33,9 @@ extern int do_iplink(char **argv);
 extern int do_ipmonitor(char **argv);
 extern int do_multiaddr(char **argv);
 extern int do_multiroute(char **argv);
+
+#if __GNUC_PREREQ(4,1)
+# pragma GCC visibility pop
+#endif
+
 #endif /* ip_common.h */

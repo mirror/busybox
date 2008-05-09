@@ -7,6 +7,10 @@
  * Licensed under GPLv2, see file LICENSE in this tarball for details.
  */
 
+#if __GNUC_PREREQ(4,1)
+# pragma GCC visibility push(hidden)
+#endif
+
 /* Provides extern declarations of functions */
 #define DECLARE_STR_CONV(type, T, UT) \
 \
@@ -166,3 +170,7 @@ uint32_t bb_strtou32(const char *arg, char **endp, int base)
 /* Floating point */
 
 /* double bb_strtod(const char *arg, char **endp); */
+
+#if __GNUC_PREREQ(4,1)
+# pragma GCC visibility pop
+#endif
