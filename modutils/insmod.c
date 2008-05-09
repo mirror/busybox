@@ -840,14 +840,23 @@ arch_apply_relocation(struct obj_file *f,
 				struct obj_symbol *sym,
 				ElfW(RelM) *rel, ElfW(Addr) v)
 {
+#if defined(__arm__) || defined(__i386__) || defined(__mc68000__) \
+ || defined(__sh__) || defined(__s390__)
 	struct arch_file *ifile = (struct arch_file *) f;
+#endif
 	enum obj_reloc ret = obj_reloc_ok;
 	ElfW(Addr) *loc = (ElfW(Addr) *) (targsec->contents + rel->r_offset);
+#if defined(__arm__) || defined(__H8300H__) || defined(__H8300S__) \
+ || defined(__i386__) || defined(__mc68000__) || defined(__microblaze__) \
+ || defined(__mips__) || defined(__nios2__) || defined(__powerpc__) \
+ || defined(__s390__) || defined(__sh__) || defined(__x86_64__)
 	ElfW(Addr) dot = targsec->header.sh_addr + rel->r_offset;
+#endif
 #if defined(USE_GOT_ENTRIES) || defined(USE_PLT_ENTRIES)
 	struct arch_symbol *isym = (struct arch_symbol *) sym;
 #endif
-#if defined(__arm__) || defined(__i386__) || defined(__mc68000__) || defined(__sh__) || defined(__s390__)
+#if defined(__arm__) || defined(__i386__) || defined(__mc68000__) \
+ || defined(__sh__) || defined(__s390__)
 #if defined(USE_GOT_ENTRIES)
 	ElfW(Addr) got = ifile->got ? ifile->got->header.sh_addr : 0;
 #endif
