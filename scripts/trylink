@@ -169,7 +169,7 @@ if ! test -f busybox_ldscript; then
 	    -Wl,--start-group $O_FILES $A_FILES -Wl,--end-group \
 	    $l_list \
 	    -Wl,--warn-common \
-	    -Wl,-Map -Wl,$EXE.map \
+	    -Wl,-Map,$EXE.map \
 	    -Wl,--verbose \
     || {
 	cat $EXE.out
@@ -188,11 +188,11 @@ else
 	    -Wl,--sort-common \
 	    $SORT_SECTION \
 	    $GC_SECTIONS \
-	    -Wl,-T -Wl,busybox_ldscript \
+	    -Wl,-T,busybox_ldscript \
 	    -Wl,--start-group $O_FILES $A_FILES -Wl,--end-group \
 	    $l_list \
 	    -Wl,--warn-common \
-	    -Wl,-Map -Wl,$EXE.map \
+	    -Wl,-Map,$EXE.map \
 	    -Wl,--verbose \
     || {
 	cat $EXE.out
@@ -225,7 +225,7 @@ if test "$CONFIG_BUILD_LIBBUSYBOX" = y; then
 	    -Wl,--start-group $A_FILES -Wl,--end-group \
 	    $l_list \
 	    -Wl,--warn-common \
-	    -Wl,-Map -Wl,$EXE.map \
+	    -Wl,-Map,$EXE.map \
 	    -Wl,--verbose \
     || {
 	echo "Linking $EXE failed"
@@ -247,7 +247,7 @@ if test "$CONFIG_FEATURE_SHARED_BUSYBOX" = y; then
 	    -Wl,--start-group $O_FILES -Wl,--end-group \
 	    -L"$sharedlib_dir" -lbusybox \
 	    -Wl,--warn-common \
-	    -Wl,-Map -Wl,$EXE.map \
+	    -Wl,-Map,$EXE.map \
 	    -Wl,--verbose \
     || {
 	echo "Linking $EXE failed"
