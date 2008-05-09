@@ -533,7 +533,7 @@ int sendgetmail_main(int argc ATTRIBUTE_UNUSED, char **argv)
 			// so we reuse md5 space instead of xzalloc(16*2+1)
 #define md5_hex ((uint8_t *)&md5)
 //			uint8_t *md5_hex = (uint8_t *)&md5;
-			*bin2hex(md5_hex, s, 16) = '\0';
+			*bin2hex((char *)md5_hex, s, 16) = '\0';
 			// APOP
 			s = xasprintf("%s %s", opt_user, md5_hex);
 #undef md5_hex

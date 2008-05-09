@@ -200,7 +200,7 @@ static void arp_getdevhw(char *ifname, struct sockaddr *sa,
 		}
 		bb_error_msg("device '%s' has HW address %s '%s'",
 					 ifname, xhw->name,
-					 xhw->print((char *) &ifr.ifr_hwaddr.sa_data));
+					 xhw->print((unsigned char *) &ifr.ifr_hwaddr.sa_data));
 	}
 }
 

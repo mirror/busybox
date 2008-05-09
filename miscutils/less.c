@@ -731,7 +731,7 @@ static int less_getch(int pos)
  again:
 	less_gets_pos = pos;
 	memset(input, 0, sizeof(input));
-	getch_nowait(input, sizeof(input));
+	getch_nowait((char *)input, sizeof(input));
 	less_gets_pos = -1;
 
 	/* Detect escape sequences (i.e. arrow keys) and handle

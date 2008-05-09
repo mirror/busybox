@@ -208,8 +208,8 @@ int tr_main(int argc ATTRIBUTE_UNUSED, char **argv)
 		if (*argv) {
 			if (argv[0][0] == '\0')
 				bb_error_msg_and_die("STRING2 cannot be empty");
-			output_length = expand(*argv, output);
-			map(vector, tr_buf, input_length, output, output_length);
+			output_length = expand(*argv, (char *)output);
+			map(vector, (unsigned char *)tr_buf, input_length, output, output_length);
 		}
 		for (i = 0; i < input_length; i++)
 			invec[(unsigned char)tr_buf[i]] = TRUE;
