@@ -57,7 +57,7 @@ static void eject_scsi(const char *dev)
 	io_hdr.timeout = 2000;
 
 	for (i = 0; i < 3; i++) {
-		io_hdr.cmdp = (char*)sg_commands[i];
+		io_hdr.cmdp = (void *)sg_commands[i];
 		ioctl_or_perror_and_die(dev_fd, SG_IO, (void *)&io_hdr, "%s", dev);
 	}
 

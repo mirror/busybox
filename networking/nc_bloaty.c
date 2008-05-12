@@ -374,7 +374,7 @@ create new one, and bind() it. TODO */
 	 thing to emerge after all the intervening crud.  Doesn't work for UDP on
 	 any machines I've tested, but feel free to surprise me. */
 		char optbuf[40];
-		int x = sizeof(optbuf);
+		socklen_t x = sizeof(optbuf);
 
 		rr = getsockopt(netfd, IPPROTO_IP, IP_OPTIONS, optbuf, &x);
 		if (rr < 0)
@@ -487,7 +487,7 @@ static void oprint(int direction, unsigned char *p, unsigned bc)
 			memset(&stage[11], ' ', 16*3);
 			x = bc;
 		}
-		sprintf(&stage[1], " %8.8x ", obc);  /* xxx: still slow? */
+		sprintf((char *)&stage[1], " %8.8x ", obc);  /* xxx: still slow? */
 		bc -= x;          /* fix current count */
 		obc += x;         /* fix current offset */
 		op = &stage[11];  /* where hex starts */
@@ -627,8 +627,8 @@ Debug("got %d from the net, errno %d", rr, errno);
 		if (rnleft) {
 			rr = write(1, np, rnleft);
 			if (rr > 0) {
-				if (o_ofile)
-					oprint('<', np, rr);                /* log the stdout */
+				if (o_ofile) /* log the stdout */
+					oprint('<', (unsigned char *)np, rr);
 				np += rr;                        /* fix up ptrs and whatnot */
 				rnleft -= rr;                        /* will get sanity-checked above */
 				wrote_out += rr;                /* global count */
@@ -642,8 +642,8 @@ Debug("wrote %d to stdout, errno %d", rr, errno);
 				rr = rzleft;
 			rr = write(netfd, zp, rr);        /* one line, or the whole buffer */
 			if (rr > 0) {
-				if (o_ofile)
-					oprint('>', zp, rr);                /* log what got sent */
+				if (o_ofile) /* log what got sent */
+					oprint('>', (unsigned char *)zp, rr);
 				zp += rr;
 				rzleft -= rr;
 				wrote_net += rr;                /* global count */

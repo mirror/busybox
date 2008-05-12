@@ -93,7 +93,7 @@ static void attach_option(struct option_set **opt_list,
 #if ENABLE_FEATURE_RFC3397
 		if ((option->flags & TYPE_MASK) == OPTION_STR1035)
 			/* reuse buffer and length for RFC1035-formatted string */
-			buffer = dname_enc(NULL, 0, buffer, &length);
+			buffer = (char *)dname_enc(NULL, 0, buffer, &length);
 #endif
 
 		/* make a new option */
@@ -122,7 +122,7 @@ static void attach_option(struct option_set **opt_list,
 #if ENABLE_FEATURE_RFC3397
 		if ((option->flags & TYPE_MASK) == OPTION_STR1035)
 			/* reuse buffer and length for RFC1035-formatted string */
-			buffer = dname_enc(existing->data + 2,
+			buffer = (char *)dname_enc(existing->data + 2,
 					existing->data[OPT_LEN], buffer, &length);
 #endif
 		if (existing->data[OPT_LEN] + length <= 255) {
