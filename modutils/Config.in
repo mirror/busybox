@@ -92,7 +92,7 @@ config MODPROBE
 
 config FEATURE_MODPROBE_MULTIPLE_OPTIONS
 	bool
-	prompt "Multiple options parsing" if NITPICK
+	prompt "Multiple options parsing"
 	default y
 	depends on MODPROBE
 	help
@@ -109,7 +109,7 @@ config FEATURE_MODPROBE_MULTIPLE_OPTIONS
 
 config FEATURE_MODPROBE_FANCY_ALIAS
 	bool
-	prompt "Fancy alias parsing" if NITPICK
+	prompt "Fancy alias parsing"
 	default y
 	depends on MODPROBE && FEATURE_2_6_MODULES
 	help
