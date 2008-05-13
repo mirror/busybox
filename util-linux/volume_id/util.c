@@ -212,7 +212,7 @@ void *volume_id_get_buffer(struct volume_id *id, uint64_t off, size_t len)
 			}
 			dbg("got 0x%zx (%zi) bytes", buf_len, buf_len);
 			id->sbbuf_len = buf_len;
-			if (buf_len < off + len) {
+			if ((uint64_t)buf_len < off + len) {
 				dbg("requested 0x%zx bytes, got only 0x%zx bytes", len, buf_len);
 				return NULL;
 			}
@@ -243,7 +243,7 @@ void *volume_id_get_buffer(struct volume_id *id, uint64_t off, size_t len)
 		dbg("got 0x%zx (%zi) bytes", buf_len, buf_len);
 		id->seekbuf_off = off;
 		id->seekbuf_len = buf_len;
-		if (buf_len < len) {
+		if ((size_t)buf_len < len) {
 			dbg("requested 0x%zx bytes, got only 0x%zx bytes", len, buf_len);
 			return NULL;
 		}

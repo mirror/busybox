@@ -111,7 +111,7 @@ void xread(int fd, void *buf, size_t count)
 {
 	if (count) {
 		ssize_t size = full_read(fd, buf, count);
-		if (size != count)
+		if ((size_t)size != count)
 			bb_error_msg_and_die("short read");
 	}
 }
@@ -160,7 +160,7 @@ char *xmalloc_reads(int fd, char *buf, size_t *maxsz_p)
 
 	goto jump_in;
 	while (sz < maxsz) {
-		if (p - buf == sz) {
+		if ((size_t)(p - buf) == sz) {
  jump_in:
 			buf = xrealloc(buf, sz + 128);
 			p = buf + sz;

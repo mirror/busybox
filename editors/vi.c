@@ -2239,7 +2239,9 @@ static char readit(void)	// read (maybe cursor) key from stdin
 			pfd[0].events = POLLIN;
 			// keep reading while there are input chars, and room in buffer
 			// for a complete ESC sequence (assuming 8 chars is enough)
-			while (safe_poll(pfd, 1, 0) > 0 && n <= (sizeof(readbuffer) - 8)) {
+			while ((safe_poll(pfd, 1, 0) > 0)
+			 && ((size_t)n <= (sizeof(readbuffer) - 8))
+			) {
 				// read the rest of the ESC string
 				int r = safe_read(0, readbuffer + n, sizeof(readbuffer) - n);
 				if (r > 0)

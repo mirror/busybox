@@ -383,7 +383,7 @@ void md5_hash(const void *buffer, size_t len, md5_ctx_t *ctx)
 	// Process all input.
 
 	while (len) {
-		int i = 64 - ctx->buflen;
+		unsigned i = 64 - ctx->buflen;
 
 		// Copy data into aligned buffer.
 

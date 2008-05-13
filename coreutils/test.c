@@ -412,7 +412,7 @@ static int test_eaccess(char *path, int mode)
 static int filstat(char *nm, enum token mode)
 {
 	struct stat s;
-	int i = i; /* gcc 3.x thinks it can be used uninitialized */
+	unsigned i = i; /* gcc 3.x thinks it can be used uninitialized */
 
 	if (mode == FILSYM) {
 #ifdef S_IFLNK

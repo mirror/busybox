@@ -204,7 +204,7 @@ void xwrite(int fd, const void *buf, size_t count)
 {
 	if (count) {
 		ssize_t size = full_write(fd, buf, count);
-		if (size != count)
+		if ((size_t)size != count)
 			bb_error_msg_and_die("short write");
 	}
 }

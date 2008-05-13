@@ -120,8 +120,11 @@ static void make_device(char *path, int delete)
 
 				/* If not this device, skip rest of line */
 				/* (regexec returns whole pattern as "range" 0) */
-				if (result || off[0].rm_so || off[0].rm_eo != strlen(device_name))
+				if (result || off[0].rm_so
+				 || ((int)off[0].rm_eo != (int)strlen(device_name))
+				) {
 					goto next_line;
+				}
 			}
 
 			/* This line matches: stop parsing the file

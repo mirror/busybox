@@ -628,7 +628,7 @@ static int do_subst_command(sed_cmd_t *sed_cmd, char **line)
 {
 	char *oldline = *line;
 	int altered = 0;
-	int match_count = 0;
+	unsigned match_count = 0;
 	regex_t *current_regex;
 
 	/* Handle empty regex. */
@@ -665,7 +665,9 @@ static int do_subst_command(sed_cmd_t *sed_cmd, char **line)
 
 		/* If we aren't interested in this match, output old line to
 		   end of match and continue */
-		if (sed_cmd->which_match && sed_cmd->which_match != match_count) {
+		if (sed_cmd->which_match
+		 && (sed_cmd->which_match != match_count)
+		) {
 			for (i = 0; i < G.regmatch[0].rm_eo; i++)
 				pipe_putc(*oldline++);
 			continue;

@@ -38,7 +38,7 @@ static void eject_scsi(const char *dev)
 		{ START_STOP, 0, 0, 0, 2, 0 }
 	};
 
-	int i;
+	unsigned i;
 	unsigned char sense_buffer[32];
 	unsigned char inqBuff[2];
 	sg_io_hdr_t io_hdr;

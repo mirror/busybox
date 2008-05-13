@@ -65,7 +65,7 @@ static bool write_and_stats(const void *buf, size_t len, size_t obs,
 	ssize_t n = full_write_or_warn(buf, len, filename);
 	if (n < 0)
 		return 1;
-	if (n == obs)
+	if ((size_t)n == obs)
 		G.out_full++;
 	else if (n) /* > 0 */
 		G.out_part++;
@@ -312,7 +312,7 @@ int dd_main(int argc ATTRIBUTE_UNUSED, char **argv)
 			while (n) {
 				size_t d = obs - oc;
 
-				if (d > n)
+				if (d > (size_t)n)
 					d = n;
 				memcpy(obuf + oc, tmp, d);
 				n -= d;

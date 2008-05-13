@@ -92,7 +92,8 @@ int tail_main(int argc, char **argv)
 	size_t tailbufsize;
 	int taillen = 0;
 	int newlines_seen = 0;
-	int nfiles, nread, nwrite, seen, i, opt;
+	int nfiles, nread, nwrite, i, opt;
+	unsigned seen;
 
 	int *fds;
 	char *s, *buf;
@@ -210,7 +211,7 @@ int tail_main(int argc, char **argv)
 			} else if (count) {
 				if (COUNT_BYTES) {
 					taillen += nread;
-					if (taillen > count) {
+					if (taillen > (int)count) {
 						memmove(tailbuf, tailbuf + taillen - count, count);
 						taillen = count;
 					}
@@ -225,7 +226,7 @@ int tail_main(int argc, char **argv)
 						}
 					} while (k);
 
-					if (newlines_seen + newlines_in_buf < count) {
+					if (newlines_seen + newlines_in_buf < (int)count) {
 						newlines_seen += newlines_in_buf;
 						taillen += nread;
 					} else {
@@ -243,7 +244,7 @@ int tail_main(int argc, char **argv)
 						memmove(tailbuf, s, taillen);
 						newlines_seen = count - extra;
 					}
-					if (tailbufsize < taillen + BUFSIZ) {
+					if (tailbufsize < (size_t)taillen + BUFSIZ) {
 						tailbufsize = taillen + BUFSIZ;
 						tailbuf = xrealloc(tailbuf, tailbufsize);
 					}

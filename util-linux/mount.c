@@ -307,7 +307,7 @@ static long parse_mount_options(char *options, char **unrecognized)
 
 	// Loop through options
 	for (;;) {
-		int i;
+		size_t i;
 		char *comma = strchr(options, ',');
 		const char *option_str = mount_option_str;
 
@@ -1004,7 +1004,7 @@ static int nfsmount(struct mntent *mp, long vfsflags, char *filteropts)
 			bb_herror_msg("%s", hostname);
 			goto fail;
 		}
-		if (hp->h_length > sizeof(struct in_addr)) {
+		if ((size_t)hp->h_length > sizeof(struct in_addr)) {
 			bb_error_msg("got bad hp->h_length");
 			hp->h_length = sizeof(struct in_addr);
 		}
@@ -1279,15 +1279,14 @@ static int nfsmount(struct mntent *mp, long vfsflags, char *filteropts)
 			if (hp == NULL) {
 				bb_herror_msg("%s", mounthost);
 				goto fail;
-			} else {
-				if (hp->h_length > sizeof(struct in_addr)) {
-					bb_error_msg("got bad hp->h_length?");
-					hp->h_length = sizeof(struct in_addr);
-				}
-				mount_server_addr.sin_family = AF_INET;
-				memcpy(&mount_server_addr.sin_addr,
-						hp->h_addr, hp->h_length);
 			}
+			if ((size_t)hp->h_length > sizeof(struct in_addr)) {
+				bb_error_msg("got bad hp->h_length");
+				hp->h_length = sizeof(struct in_addr);
+			}
+			mount_server_addr.sin_family = AF_INET;
+			memcpy(&mount_server_addr.sin_addr,
+						hp->h_addr, hp->h_length);
 		}
 	}
 

@@ -145,7 +145,7 @@ static void crondlog(const char *ctl, ...)
 	int level = (ctl[0] & 0x1f);
 
 	va_start(va, ctl);
-	if (level >= LogLevel) {
+	if (level >= (int)LogLevel) {
 		/* Debug mode: all to (non-redirected) stderr, */
 		/* Syslog mode: all to syslog (logmode = LOGMODE_SYSLOG), */
 		if (!DebugOpt && LogFile) {
@@ -423,7 +423,7 @@ static char *ParseField(char *user, char *ary, int modvalue, int off,
 
 static void FixDayDow(CronLine *line)
 {
-	int i;
+	size_t i;
 	int weekUsed = 0;
 	int daysUsed = 0;
 

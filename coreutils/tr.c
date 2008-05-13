@@ -219,7 +219,7 @@ int tr_main(int argc ATTRIBUTE_UNUSED, char **argv)
 
 	for (;;) {
 		/* If we're out of input, flush output and read more input. */
-		if (in_index == read_chars) {
+		if ((ssize_t)in_index == read_chars) {
 			if (out_index) {
 				xwrite(STDOUT_FILENO, (char *)output, out_index);
 				out_index = 0;

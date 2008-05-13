@@ -130,7 +130,7 @@ int get_signum(const char *name)
 		return i;
 	if (strncasecmp(name, "SIG", 3) == 0)
 		name += 3;
-	for (i = 0; i < ARRAY_SIZE(signals); i++)
+	for (i = 0; (size_t)i < ARRAY_SIZE(signals); i++)
 		if (strcasecmp(name, signals[i]) == 0)
 			return i;
 
@@ -172,7 +172,7 @@ void print_signames(void)
 {
 	int signo;
 
-	for (signo = 1; signo < ARRAY_SIZE(signals); signo++) {
+	for (signo = 1; (size_t)signo < ARRAY_SIZE(signals); signo++) {
 		const char *name = signals[signo];
 		if (name[0])
 			puts(name);

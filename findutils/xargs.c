@@ -233,7 +233,7 @@ static xlist_t *process_stdin(xlist_t *list_arg,
 		}
 		if (s == NULL)
 			s = p = buf;
-		if ((p - buf) >= mc)
+		if ((size_t)(p - buf) >= mc)
 			bb_error_msg_and_die("argument line too long");
 		*p++ = (c == EOF ? '\0' : c);
 		if (c == EOF) { /* word's delimiter or EOF detected */

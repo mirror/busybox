@@ -41,7 +41,7 @@ static void expand(FILE *file, unsigned tab_size, unsigned opt)
 	char *line;
 	char *ptr;
 	int convert;
-	int pos;
+	unsigned pos;
 
 	/* Increment tab_size by 1 locally.*/
 	tab_size++;
@@ -80,7 +80,7 @@ static void unexpand(FILE *file, unsigned int tab_size, unsigned opt)
 	int convert;
 	int pos;
 	int i = 0;
-	int column = 0;
+	unsigned column = 0;
 
 	while ((line = xmalloc_fgets(file)) != NULL) {
 		convert = 1;

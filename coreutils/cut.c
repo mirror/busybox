@@ -64,7 +64,7 @@ static void cut_file(FILE *file, char delim)
 			/* print the chars specified in each cut list */
 			for (; cl_pos < nlists; cl_pos++) {
 				spos = cut_lists[cl_pos].startpos;
-				while (spos < strlen(line)) {
+				while (spos < (int)strlen(line)) {
 					if (!printed[spos]) {
 						printed[spos] = 'X';
 						putchar(line[spos]);
@@ -80,12 +80,12 @@ static void cut_file(FILE *file, char delim)
 
 			/* get out if we have no more lists to process or if the lines
 			 * are lower than what we're interested in */
-			if (linenum < spos || cl_pos >= nlists)
+			if (((int)linenum < spos) || (cl_pos >= nlists))
 				goto next_line;
 
 			/* if the line we're looking for is lower than the one we were
 			 * passed, it means we displayed it already, so move on */
-			while (spos < linenum) {
+			while (spos < (int)linenum) {
 				spos++;
 				/* go to the next list if we're at the end of this one */
 				if (spos > cut_lists[cl_pos].endpos
@@ -97,7 +97,7 @@ static void cut_file(FILE *file, char delim)
 					spos = cut_lists[cl_pos].startpos;
 					/* get out if the current line is lower than the one
 					 * we just became interested in */
-					if (linenum < spos)
+					if ((int)linenum < spos)
 						goto next_line;
 				}
 			}

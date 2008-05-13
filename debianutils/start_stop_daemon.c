@@ -126,7 +126,7 @@ static int pid_is_user(int pid)
 	sprintf(buf, "/proc/%u", pid);
 	if (stat(buf, &sb) != 0)
 		return 0;
-	return (sb.st_uid == user_id);
+	return (sb.st_uid == (uid_t)user_id);
 }
 
 static int pid_is_cmd(pid_t pid)

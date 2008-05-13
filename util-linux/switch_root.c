@@ -13,15 +13,15 @@
 // Make up for header deficiencies.
 
 #ifndef RAMFS_MAGIC
-#define RAMFS_MAGIC		0x858458f6
+#define RAMFS_MAGIC ((unsigned)0x858458f6)
 #endif
 
 #ifndef TMPFS_MAGIC
-#define TMPFS_MAGIC		0x01021994
+#define TMPFS_MAGIC ((unsigned)0x01021994)
 #endif
 
 #ifndef MS_MOVE
-#define MS_MOVE			8192
+#define MS_MOVE     8192
 #endif
 
 static dev_t rootdev;
@@ -91,10 +91,10 @@ int switch_root_main(int argc ATTRIBUTE_UNUSED, char **argv)
 	// we mean it.  (I could make this a CONFIG option, but I would get email
 	// from all the people who WILL eat their filesystems.)
 
-	if (lstat("/init", &st1) || !S_ISREG(st1.st_mode) || statfs("/", &stfs) ||
-		(stfs.f_type != RAMFS_MAGIC && stfs.f_type != TMPFS_MAGIC) ||
-		getpid() != 1)
-	{
+	if (lstat("/init", &st1) || !S_ISREG(st1.st_mode) || statfs("/", &stfs)
+	 || (((unsigned)stfs.f_type != RAMFS_MAGIC) && ((unsigned)stfs.f_type != TMPFS_MAGIC))
+	 || (getpid() != 1)
+	) {
 		bb_error_msg_and_die("not rootfs");
 	}
 

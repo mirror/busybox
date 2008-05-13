@@ -152,7 +152,7 @@ static const probe_fptr fs2[] = {
 
 int volume_id_probe_all(struct volume_id *id, uint64_t off, uint64_t size)
 {
-	int i;
+	size_t i;
 
 	if (id == NULL)
 		return -EINVAL;

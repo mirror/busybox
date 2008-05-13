@@ -262,7 +262,7 @@ static void input_backward(unsigned num)
 		return;
 	cursor -= num;
 
-	if (cmdedit_x >= num) {
+	if ((unsigned)cmdedit_x >= num) {
 		cmdedit_x -= num;
 		if (num <= 4) {
 			/* This is longer by 5 bytes on x86.
@@ -321,7 +321,7 @@ static void input_delete(int save)
 {
 	int j = cursor;
 
-	if (j == command_len)
+	if (j == (int)command_len)
 		return;
 
 #if ENABLE_FEATURE_EDITING_VI
@@ -830,7 +830,7 @@ static void input_tab(smallint *lastWasTab)
 
 	if (!*lastWasTab) {
 		char *tmp, *tmp1;
-		int len_found;
+		size_t len_found;
 /*		char matchBuf[MAX_LINELEN]; */
 #define matchBuf (S.input_tab__matchBuf)
 		int find_type;
@@ -1787,7 +1787,7 @@ int read_line_input(const char *prompt, char *command, int maxsize, line_input_t
 			if (vi_cmdmode)  /* Don't self-insert */
 				break;
 #endif
-			if (command_len >= (maxsize - 2))        /* Need to leave space for enter */
+			if ((int)command_len >= (maxsize - 2))        /* Need to leave space for enter */
 				break;
 
 			command_len++;

@@ -710,7 +710,7 @@ static void wrapf(const char *message, ...)
 {
 	char buf[128];
 	va_list args;
-	int buflen;
+	unsigned buflen;
 
 	va_start(args, message);
 	buflen = vsnprintf(buf, sizeof(buf), message, args);

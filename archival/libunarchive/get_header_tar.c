@@ -138,12 +138,12 @@ char get_header_tar(archive_handle_t *archive_handle)
 		/* tar gz/bz autodetect: check for gz/bz2 magic.
 		 * If it is the very first block, and we see the magic,
 		 * we can switch to get_header_tar_gz/bz2/lzma().
-		 * Needs seekable fd. I wish recv(MSG_PEEK) would work
+		 * Needs seekable fd. I wish recv(MSG_PEEK) works
 		 * on any fd... */
 		if (not_first)
 			goto err;
 #if ENABLE_FEATURE_TAR_GZIP
-		if (tar.name[0] == 0x1f && tar.name[1] == 0x8b) { /* gzip */
+		if (tar.name[0] == 0x1f && tar.name[1] == (char)0x8b) { /* gzip */
 			get_header_ptr = get_header_tar_gz;
 		} else
 #endif

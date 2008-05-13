@@ -59,7 +59,8 @@ static struct sort_key {
 
 static char *get_key(char *str, struct sort_key *key, int flags)
 {
-	int start = 0, end = 0, len, i, j;
+	int start = 0, end = 0, len, j;
+	unsigned i;
 
 	/* Special case whole string, so we don't have to make a copy */
 	if (key->range[0] == 1 && !key->range[1] && !key->range[2] && !key->range[3]

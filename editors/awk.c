@@ -676,7 +676,7 @@ static char nextchar(char **s)
 	return c;
 }
 
-static int ALWAYS_INLINE isalnum_(int c)
+static ALWAYS_INLINE int isalnum_(int c)
 {
 	return (isalnum(c) || c == '_');
 }
@@ -1682,7 +1682,7 @@ static void hashwalk_init(var *v, xhash *array)
 {
 	char **w;
 	hash_item *hi;
-	int i;
+	unsigned i;
 
 	if (v->type & VF_WALK)
 		free(v->x.walker);
@@ -1996,7 +1996,7 @@ static var *exec_builtin(node *op, var *res)
 	}
 
 	nargs = i;
-	if (nargs < (info >> 30))
+	if ((uint32_t)nargs < (info >> 30))
 		syntax_error(EMSG_TOO_FEW_ARGS);
 
 	switch (info & OPNMASK) {
