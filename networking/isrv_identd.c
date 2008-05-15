@@ -113,7 +113,7 @@ int fakeidentd_main(int argc ATTRIBUTE_UNUSED, char **argv)
 		strncpy(bogouser, argv[optind], sizeof(bogouser));
 
 	/* Daemonize if no -f and no -i and no -w */
-	if (!(opt & OPT_fiw));
+	if (!(opt & OPT_fiw))
 		bb_daemonize_or_rexec(0, argv);
 
 	/* Where to log in inetd modes? "Classic" inetd
