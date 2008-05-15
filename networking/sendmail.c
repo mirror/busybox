@@ -187,7 +187,7 @@ static int smtp_checkp(const char *fmt, const char *param, int code)
 	bb_error_msg_and_die("%s failed", msg);
 }
 
-static int inline smtp_check(const char *fmt, int code)
+static inline int smtp_check(const char *fmt, int code)
 {
 	return smtp_checkp(fmt, NULL, code);
 }
@@ -224,7 +224,7 @@ static void pop3_checkr(const char *fmt, const char *param, char **ret)
 	bb_error_msg_and_die("%s failed", msg);
 }
 
-static void inline pop3_check(const char *fmt, const char *param)
+static inline void pop3_check(const char *fmt, const char *param)
 {
 	pop3_checkr(fmt, param, NULL);
 }

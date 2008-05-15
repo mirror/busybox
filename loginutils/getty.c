@@ -479,7 +479,7 @@ static char *get_logname(char *logname, unsigned size_logname,
 			default:
 				if (!isascii(ascval) || !isprint(ascval)) {
 					/* ignore garbage characters */
-				} else if (bp - logname >= size_logname - 1) {
+				} else if ((int)(bp - logname) >= size_logname - 1) {
 					bb_error_msg_and_die("%s: input overrun", op->tty);
 				} else {
 					full_write(1, &c, 1); /* echo the character */

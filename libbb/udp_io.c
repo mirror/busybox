@@ -113,7 +113,7 @@ recv_from_to(int fd, void *buf, size_t len, int flags,
 	} u;
 	struct cmsghdr *cmsgptr;
 	struct msghdr msg;
-	socklen_t recv_length;
+	ssize_t recv_length;
 
 	iov[0].iov_base = buf;
 	iov[0].iov_len = len;

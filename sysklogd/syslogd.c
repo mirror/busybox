@@ -570,7 +570,7 @@ static void do_syslogd(void)
 	timestamp_and_log_internal("syslogd started: BusyBox v" BB_VER);
 
 	for (;;) {
-		size_t sz;
+		ssize_t sz;
 
 #if ENABLE_FEATURE_SYSLOGD_DUP
 		last_buf = recvbuf;

@@ -423,7 +423,7 @@ static char *ParseField(char *user, char *ary, int modvalue, int off,
 
 static void FixDayDow(CronLine *line)
 {
-	size_t i;
+	unsigned i;
 	int weekUsed = 0;
 	int daysUsed = 0;
 

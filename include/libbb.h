@@ -1367,7 +1367,7 @@ extern const char bb_default_login_shell[];
 #undef isdigit
 #define isdigit(a) ((unsigned)((a) - '0') <= 9)
 
-#define ARRAY_SIZE(x) (sizeof(x) / sizeof((x)[0]))
+#define ARRAY_SIZE(x) ((unsigned)(sizeof(x) / sizeof((x)[0])))
 
 
 #if __GNUC_PREREQ(4,1)

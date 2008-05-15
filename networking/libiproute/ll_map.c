@@ -75,7 +75,7 @@ int ll_remember_index(struct sockaddr_nl *who ATTRIBUTE_UNUSED,
 	if (tb[IFLA_ADDRESS]) {
 		int alen;
 		im->alen = alen = RTA_PAYLOAD(tb[IFLA_ADDRESS]);
-		if (alen > sizeof(im->addr))
+		if (alen > (int)sizeof(im->addr))
 			alen = sizeof(im->addr);
 		memcpy(im->addr, RTA_DATA(tb[IFLA_ADDRESS]), alen);
 	} else {

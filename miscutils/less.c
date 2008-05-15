@@ -297,7 +297,7 @@ static void read_lines(void)
 					new_linepos += 7;
 					new_linepos &= (~7);
 				}
-				if (new_linepos >= w)
+				if ((int)new_linepos >= w)
 					break;
 				linepos = new_linepos;
 			}
@@ -415,7 +415,7 @@ static void m_status_print(void)
 	printf(" lines %i-%i/%i ",
 			cur_fline + 1, cur_fline + max_displayed_line + 1,
 			max_fline + 1);
-	if (cur_fline >= max_fline - max_displayed_line) {
+	if (cur_fline >= (int)(max_fline - max_displayed_line)) {
 		printf("(END)"NORMAL);
 		if (num_files > 1 && current_file != num_files)
 			printf(HIGHLIGHT" - next: %s"NORMAL, files[current_file]);
@@ -444,7 +444,7 @@ static void status_print(void)
 #endif
 
 	clear_line();
-	if (cur_fline && cur_fline < max_fline - max_displayed_line) {
+	if (cur_fline && cur_fline < (int)(max_fline - max_displayed_line)) {
 		bb_putchar(':');
 		return;
 	}
@@ -587,7 +587,7 @@ static void print_ascii(const char *str)
 /* Print the buffer */
 static void buffer_print(void)
 {
-	int i;
+	unsigned i;
 
 	move_cursor(0, 0);
 	for (i = 0; i <= max_displayed_line; i++)
@@ -600,7 +600,7 @@ static void buffer_print(void)
 
 static void buffer_fill_and_print(void)
 {
-	int i;
+	unsigned i;
 	for (i = 0; i <= max_displayed_line && cur_fline + i <= max_fline; i++) {
 		buffer[i] = flines[cur_fline + i];
 	}
@@ -662,7 +662,7 @@ static void open_file_and_read_lines(void)
 /* Reinitialize everything for a new file - free the memory and start over */
 static void reinitialize(void)
 {
-	int i;
+	unsigned i;
 
 	if (flines) {
 		for (i = 0; i <= max_fline; i++)
@@ -763,7 +763,7 @@ static int less_getch(int pos)
 static char* less_gets(int sz)
 {
 	char c;
-	int i = 0;
+	unsigned i = 0;
 	char *result = xzalloc(1);
 
 	while (1) {
@@ -836,7 +836,7 @@ static void change_file(int direction)
 
 static void remove_current_file(void)
 {
-	int i;
+	unsigned i;
 
 	if (num_files < 2)
 		return;
@@ -974,7 +974,7 @@ static void regex_process(void)
 	match_pos = 0;
 	fill_match_lines(0);
 	while (match_pos < num_matches) {
-		if (match_lines[match_pos] > cur_fline)
+		if ((int)match_lines[match_pos] > cur_fline)
 			break;
 		match_pos++;
 	}
@@ -990,7 +990,7 @@ static void regex_process(void)
 
 static void number_process(int first_digit)
 {
-	int i;
+	unsigned i;
 	int num;
 	char num_input[sizeof(int)*4]; /* more than enough */
 	char keypress;
@@ -1120,7 +1120,7 @@ static void save_input_to_file(void)
 {
 	const char *msg = "";
 	char *current_line;
-	int i;
+	unsigned i;
 	FILE *fp;
 
 	print_statusline("Log file: ");
@@ -1204,7 +1204,7 @@ static char opp_bracket(char bracket)
 
 static void match_right_bracket(char bracket)
 {
-	int i;
+	unsigned i;
 
 	if (strchr(flines[cur_fline], bracket) == NULL) {
 		print_statusline("No bracket in top line");

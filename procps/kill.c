@@ -106,19 +106,19 @@ int kill_main(int argc, char **argv)
 	argc--;
 
 do_it_now:
+	pid = getpid();
 
 	if (killall5) {
 		pid_t sid;
 		procps_status_t* p = NULL;
 
+		/* Find out our own session id */
+		sid = getsid(pid);
 		/* Now stop all processes */
 		kill(-1, SIGSTOP);
-		/* Find out our own session id */
-		pid = getpid();
-		sid = getsid(pid);
 		/* Now kill all processes except our session */
 		while ((p = procps_scan(p, PSSCAN_PID|PSSCAN_SID))) {
-			if (p->sid != sid && p->pid != pid && p->pid != 1)
+			if (p->sid != (unsigned)sid && p->pid != (unsigned)pid && p->pid != 1)
 				kill(p->pid, signo);
 		}
 		/* And let them continue */
@@ -134,7 +134,6 @@ do_it_now:
 
 	if (killall) {
 		/* Looks like they want to do a killall.  Do that */
-		pid = getpid();
 		while (arg) {
 			pid_t* pidList;
 

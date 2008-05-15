@@ -604,7 +604,7 @@ static int set_if_addr(char *master_ifname, char *slave_ifname)
 
 	struct ifreq ifr;
 	int res;
-	int i;
+	unsigned i;
 
 	for (i = 0; i < ARRAY_SIZE(ifra); i++) {
 		strncpy_IFNAMSIZ(ifr.ifr_name, master_ifname);

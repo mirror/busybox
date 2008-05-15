@@ -598,7 +598,7 @@ static void install_links(const char *busybox, int use_symbolic_links)
 
 	int (*lf)(const char *, const char *);
 	char *fpc;
-	int i;
+	unsigned i;
 	int rc;
 
 	lf = link;

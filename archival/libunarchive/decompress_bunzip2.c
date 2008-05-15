@@ -103,7 +103,7 @@ static unsigned get_bits(bunzip_data *bd, int bits_wanted)
 	/* If we need to get more data from the byte buffer, do so.  (Loop getting
 	   one byte at a time to enforce endianness and avoid unaligned access.) */
 
-	while (bd->inbufBitCount < bits_wanted) {
+	while ((int)(bd->inbufBitCount) < bits_wanted) {
 
 		/* If we need to read more data from file into byte buffer, do so */
 
@@ -172,7 +172,7 @@ static int get_next_block(bunzip_data *bd)
 
 	if (get_bits(bd, 1)) return RETVAL_OBSOLETE_INPUT;
 	origPtr = get_bits(bd, 24);
-	if (origPtr > dbufSize) return RETVAL_DATA_ERROR;
+	if ((int)origPtr > dbufSize) return RETVAL_DATA_ERROR;
 
 	/* mapping table: if some byte values are never used (encoding things
 	   like ascii text), the compression code removes the gaps to have fewer
@@ -368,7 +368,7 @@ static int get_next_block(bunzip_data *bd)
 		   j = get_bits(bd, hufGroup->maxLen);
 		 */
 
-		while (bd->inbufBitCount < hufGroup->maxLen) {
+		while ((int)(bd->inbufBitCount) < hufGroup->maxLen) {
 			if (bd->inbufPos == bd->inbufCount) {
 				j = get_bits(bd, hufGroup->maxLen);
 				goto got_huff_bits;
@@ -505,7 +505,7 @@ static int get_next_block(bunzip_data *bd)
 	   it doesn't qualify as a run (hence writeRunCountdown=5). */
 
 	if (dbufCount) {
-		if (origPtr >= dbufCount) return RETVAL_DATA_ERROR;
+		if ((int)origPtr >= dbufCount) return RETVAL_DATA_ERROR;
 		bd->writePos = dbuf[origPtr];
 	    bd->writeCurrent = (unsigned char)(bd->writePos & 0xff);
 		bd->writePos >>= 8;

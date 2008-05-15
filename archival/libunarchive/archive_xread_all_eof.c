@@ -12,7 +12,7 @@ ssize_t archive_xread_all_eof(archive_handle_t *archive_handle,
 	ssize_t size;
 
 	size = full_read(archive_handle->src_fd, buf, count);
-	if (size != 0 && size != count) {
+	if (size != 0 && size != (ssize_t)count) {
 		bb_error_msg_and_die("short read: %u of %u",
 				(unsigned)size, (unsigned)count);
 	}

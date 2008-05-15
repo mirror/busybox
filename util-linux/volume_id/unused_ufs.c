@@ -167,7 +167,7 @@ int volume_id_probe_ufs(struct volume_id *id, uint64_t off)
 	static const short offsets[] = { 0, 8, 64, 256 };
 
 	uint32_t magic;
-	int i;
+	unsigned i;
 	struct ufs_super_block *ufs;
 
 	dbg("probing at offset 0x%llx", (unsigned long long) off);

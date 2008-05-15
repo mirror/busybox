@@ -98,10 +98,8 @@ __PF(ECONET,econet)
 
 const char *ll_proto_n2a(unsigned short id, char *buf, int len)
 {
-	int i;
-
+	unsigned i;
 	id = ntohs(id);
-
 	for (i = 0; i < ARRAY_SIZE(llproto_names); i++) {
 		 if (llproto_names[i].id == id)
 			return llproto_names[i].name;
@@ -112,7 +110,7 @@ const char *ll_proto_n2a(unsigned short id, char *buf, int len)
 
 int ll_proto_a2n(unsigned short *id, char *buf)
 {
-	int i;
+	unsigned i;
 	for (i = 0; i < ARRAY_SIZE(llproto_names); i++) {
 		 if (strcasecmp(llproto_names[i].name, buf) == 0) {
 			 *id = htons(llproto_names[i].id);

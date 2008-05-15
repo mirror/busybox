@@ -307,7 +307,7 @@ static long parse_mount_options(char *options, char **unrecognized)
 
 	// Loop through options
 	for (;;) {
-		size_t i;
+		unsigned i;
 		char *comma = strchr(options, ',');
 		const char *option_str = mount_option_str;
 

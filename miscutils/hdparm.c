@@ -1486,7 +1486,8 @@ static const char xfermode_name[][5] ALIGN1 = {
 
 static int translate_xfermode(const char *name)
 {
-	int val, i;
+	int val;
+	unsigned i;
 
 	for (i = 0; i < ARRAY_SIZE(xfermode_val); i++) {
 		if (!strncmp(name, xfermode_name[i], 5))

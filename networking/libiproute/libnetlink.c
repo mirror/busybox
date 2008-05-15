@@ -265,7 +265,7 @@ int rtnl_talk(struct rtnl_handle *rtnl, struct nlmsghdr *n,
 		if (msg.msg_namelen != sizeof(nladdr)) {
 			bb_error_msg_and_die("sender address length == %d", msg.msg_namelen);
 		}
-		for (h = (struct nlmsghdr*)buf; status >= sizeof(*h); ) {
+		for (h = (struct nlmsghdr*)buf; status >= (int)sizeof(*h); ) {
 //			int l_err;
 			int len = h->nlmsg_len;
 			int l = len - sizeof(*h);
@@ -293,7 +293,7 @@ int rtnl_talk(struct rtnl_handle *rtnl, struct nlmsghdr *n,
 
 			if (h->nlmsg_type == NLMSG_ERROR) {
 				struct nlmsgerr *err = (struct nlmsgerr*)NLMSG_DATA(h);
-				if (l < sizeof(struct nlmsgerr)) {
+				if (l < (int)sizeof(struct nlmsgerr)) {
 					bb_error_msg("ERROR truncated");
 				} else {
 					errno = - err->error;
@@ -336,7 +336,7 @@ int addattr32(struct nlmsghdr *n, int maxlen, int type, uint32_t data)
 {
 	int len = RTA_LENGTH(4);
 	struct rtattr *rta;
-	if (NLMSG_ALIGN(n->nlmsg_len) + len > maxlen)
+	if ((int)(NLMSG_ALIGN(n->nlmsg_len) + len) > maxlen)
 		return -1;
 	rta = (struct rtattr*)(((char*)n) + NLMSG_ALIGN(n->nlmsg_len));
 	rta->rta_type = type;
@@ -351,7 +351,7 @@ int addattr_l(struct nlmsghdr *n, int maxlen, int type, void *data, int alen)
 	int len = RTA_LENGTH(alen);
 	struct rtattr *rta;
 
-	if (NLMSG_ALIGN(n->nlmsg_len) + len > maxlen)
+	if ((int)(NLMSG_ALIGN(n->nlmsg_len) + len) > maxlen)
 		return -1;
 	rta = (struct rtattr*)(((char*)n) + NLMSG_ALIGN(n->nlmsg_len));
 	rta->rta_type = type;

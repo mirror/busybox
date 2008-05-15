@@ -59,7 +59,7 @@ int pidof_main(int argc ATTRIBUTE_UNUSED, char **argv)
 			if (opt & OPT_OMIT) {
 				llist_t *omits_p = omits;
 				while (omits_p) {
-					if (xatoul(omits_p->data) == *pl) {
+					if (xatoul(omits_p->data) == (unsigned long)(*pl)) {
 						goto omitting;
 					}
 					omits_p = omits_p->link;

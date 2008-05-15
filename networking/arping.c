@@ -174,7 +174,7 @@ static bool recv_pack(unsigned char *buf, int len, struct sockaddr_ll *FROM)
 	if (ah->ar_pro != htons(ETH_P_IP)
 		|| (ah->ar_pln != 4)
 		|| (ah->ar_hln != me.sll_halen)
-		|| (len < sizeof(*ah) + 2 * (4 + ah->ar_hln)))
+		|| (len < (int)(sizeof(*ah) + 2 * (4 + ah->ar_hln))))
 		return false;
 
 	memcpy(&src_ip, p + ah->ar_hln, 4);

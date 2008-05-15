@@ -187,7 +187,7 @@ const char *ll_type_n2a(int type, char *buf, int len)
 #endif /* FEATURE_IP_RARE_PROTOCOLS */
 	};
 
-	int i;
+	unsigned i;
 	const char *aname = arphrd_name;
 	for (i = 0; i < ARRAY_SIZE(arphrd_type); i++) {
 		if (arphrd_type[i] == type)

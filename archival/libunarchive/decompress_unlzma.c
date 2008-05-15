@@ -329,7 +329,7 @@ unpack_lzma_stream(int src_fd, int dst_fd)
 			if (buffer_pos == header.dict_size) {
 				buffer_pos = 0;
 				global_pos += header.dict_size;
-				if (full_write(dst_fd, buffer, header.dict_size) != header.dict_size)
+				if (full_write(dst_fd, buffer, header.dict_size) != (ssize_t)header.dict_size)
 					goto bad;
 				USE_DESKTOP(total_written += header.dict_size;)
 			}
@@ -480,7 +480,7 @@ unpack_lzma_stream(int src_fd, int dst_fd)
 				if (buffer_pos == header.dict_size) {
 					buffer_pos = 0;
 					global_pos += header.dict_size;
-					if (full_write(dst_fd, buffer, header.dict_size) != header.dict_size)
+					if (full_write(dst_fd, buffer, header.dict_size) != (ssize_t)header.dict_size)
 						goto bad;
 					USE_DESKTOP(total_written += header.dict_size;)
 				}
@@ -489,7 +489,7 @@ unpack_lzma_stream(int src_fd, int dst_fd)
 		}
 	}
 
-	if (full_write(dst_fd, buffer, buffer_pos) != buffer_pos) {
+	if (full_write(dst_fd, buffer, buffer_pos) != (ssize_t)buffer_pos) {
  bad:
 		rc_free(rc);
 		return -1;

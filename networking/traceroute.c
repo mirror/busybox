@@ -413,7 +413,7 @@ ifaddrlist(struct IFADDRLIST **ipaddrp)
 	ifc.ifc_buf = (caddr_t)ibuf;
 
 	if (ioctl(fd, SIOCGIFCONF, (char *)&ifc) < 0
-	 || ifc.ifc_len < sizeof(struct ifreq)
+	 || ifc.ifc_len < (int)sizeof(struct ifreq)
 	) {
 		if (errno == EINVAL)
 			bb_error_msg_and_die(

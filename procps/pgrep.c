@@ -115,7 +115,7 @@ int pgrep_main(int argc ATTRIBUTE_UNUSED, char **argv)
 			cmd = proc->comm;
 		/* NB: OPT_INVERT is always 0 or 1 */
 		if ((regexec(&re_buffer, cmd, 1, re_match, 0) == 0 /* match found */
-		     && (!OPT_ANCHOR || (re_match[0].rm_so == 0 && re_match[0].rm_eo == strlen(cmd)))) ^ OPT_INVERT
+		     && (!OPT_ANCHOR || (re_match[0].rm_so == 0 && re_match[0].rm_eo == (regoff_t)strlen(cmd)))) ^ OPT_INVERT
 		) {
 			matched_pid = proc->pid;
 			if (OPT_LAST) {

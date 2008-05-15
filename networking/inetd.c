@@ -750,7 +750,7 @@ static NOINLINE servtab_t *parse_one_line(void)
 			if (*p == '-') {
 				p++;
 				n = bb_strtou(p, &p, 10);
-				if (n > INT_MAX || n < sep->se_rpcver_lo)
+				if (n > INT_MAX || (int)n < sep->se_rpcver_lo)
 					goto bad_ver_spec;
 				sep->se_rpcver_hi = n;
 			}
@@ -812,7 +812,7 @@ static NOINLINE servtab_t *parse_one_line(void)
 	 && (sep->se_socktype == SOCK_STREAM
 	     || sep->se_socktype == SOCK_DGRAM)
 	) {
-		int i;
+		unsigned i;
 		for (i = 0; i < ARRAY_SIZE(builtins); i++)
 			if (strncmp(builtins[i].bi_service7, sep->se_service, 7) == 0)
 				goto found_bi;

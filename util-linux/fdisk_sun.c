@@ -230,8 +230,7 @@ static void
 create_sunlabel(void)
 {
 	struct hd_geometry geometry;
-	unsigned int ndiv;
-	int i;
+	unsigned ndiv;
 	unsigned char c;
 	const struct sun_predefined_drives *p = NULL;
 
@@ -241,6 +240,7 @@ create_sunlabel(void)
 	memset(MBRbuffer, 0, sizeof(MBRbuffer));
 	sunlabel->magic = SUN_SSWAP16(SUN_LABEL_MAGIC);
 	if (!floppy) {
+		unsigned i;
 		puts("Drive type\n"
 		 "   ?   auto configure\n"
 		 "   0   custom (with hardware detected defaults)");

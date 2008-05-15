@@ -600,7 +600,7 @@ static void parse_conf(const char *path, int flag)
 
 #if ENABLE_FEATURE_HTTPD_ERROR_PAGES
 		if (flag == FIRST_PARSE && *p0 == 'E') {
-			int i;
+			unsigned i;
 			/* error status code */
 			int status = atoi(++p0);
 			/* c already points at the character following ':' in parse loop */

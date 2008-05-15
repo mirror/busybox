@@ -310,7 +310,7 @@ static ps_out_t* new_out_t(void)
 
 static const ps_out_t* find_out_spec(const char *name)
 {
-	int i;
+	unsigned i;
 	for (i = 0; i < ARRAY_SIZE(out_spec); i++) {
 		if (!strcmp(name, out_spec[i].name))
 			return &out_spec[i];

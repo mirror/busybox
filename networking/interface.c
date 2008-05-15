@@ -525,7 +525,7 @@ static int if_readconf(void)
 		if (ioctl_or_warn(skfd, SIOCGIFCONF, &ifc) < 0) {
 			goto out;
 		}
-		if (ifc.ifc_len == sizeof(struct ifreq) * numreqs) {
+		if (ifc.ifc_len == (int)(sizeof(struct ifreq) * numreqs)) {
 			/* assume it overflowed and try again */
 			numreqs += 10;
 			continue;
@@ -862,7 +862,7 @@ const struct hwtype *get_hwntype(int type)
 /* return 1 if address is all zeros */
 static int hw_null_address(const struct hwtype *hw, void *ap)
 {
-	unsigned int i;
+	int i;
 	unsigned char *address = (unsigned char *) ap;
 
 	for (i = 0; i < hw->alen; i++)

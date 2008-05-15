@@ -1790,7 +1790,7 @@ extern struct globals_var *const ash_ptr_to_globals_var;
 #define vartab        (G_var.vartab       )
 #define varinit       (G_var.varinit      )
 #define INIT_G_var() do { \
-	int i; \
+	unsigned i; \
 	(*(struct globals_var**)&ash_ptr_to_globals_var) = xzalloc(sizeof(G_var)); \
 	barrier(); \
 	for (i = 0; i < ARRAY_SIZE(varinit_data); i++) { \
@@ -6223,7 +6223,7 @@ varvalue(char *name, int varflags, int flags, struct strlist *var_str_list)
 				if (!eq) /* stop at first non-assignment */
 					break;
 				eq++;
-				if (name_len == (eq - str)
+				if (name_len == (unsigned)(eq - str)
 				 && strncmp(str, name, name_len) == 0) {
 					p = eq;
 					/* goto value; - WRONG! */
@@ -9500,12 +9500,13 @@ plus_minus_o(char *name, int val)
 		ash_msg("illegal option %co %s", val ? '-' : '+', name);
 		return 1;
 	}
-	for (i = 0; i < NOPTS; i++)
+	for (i = 0; i < NOPTS; i++) {
 		if (val) {
 			out1fmt("%-16s%s\n", optnames(i), optlist[i] ? "on" : "off");
 		} else {
 			out1fmt("set %co %s\n", optlist[i] ? '-' : '+', optnames(i));
 		}
+	}
 	return 0;
 }
 static void
@@ -9699,7 +9700,7 @@ getopts(char *optstr, char *optvar, char **optfirst, int *param_optind, int *opt
 		return 1;
 	optnext = optfirst + *param_optind - 1;
 
-	if (*param_optind <= 1 || *optoff < 0 || strlen(optnext[-1]) < *optoff)
+	if (*param_optind <= 1 || *optoff < 0 || (int)strlen(optnext[-1]) < *optoff)
 		p = NULL;
 	else
 		p = optnext[-1] + *optoff;
@@ -11121,7 +11122,7 @@ xxreadtoken(void)
 						return readtoken1(c, BASESYNTAX, (char *) NULL, 0);
 					}
 
-					if (p - xxreadtoken_chars >= xxreadtoken_singles) {
+					if ((size_t)(p - xxreadtoken_chars) >= xxreadtoken_singles) {
 						if (pgetc() == *p) {    /* double occurrence? */
 							p += xxreadtoken_doubles + 1;
 						} else {
@@ -11817,7 +11818,8 @@ trapcmd(int argc ATTRIBUTE_UNUSED, char **argv ATTRIBUTE_UNUSED)
 static int
 helpcmd(int argc ATTRIBUTE_UNUSED, char **argv ATTRIBUTE_UNUSED)
 {
-	int col, i;
+	unsigned col;
+	unsigned i;
 
 	out1fmt("\nBuilt-in commands:\n-------------------\n");
 	for (col = 0, i = 0; i < ARRAY_SIZE(builtintab); i++) {
@@ -12479,6 +12481,7 @@ ulimitcmd(int argc ATTRIBUTE_UNUSED, char **argv ATTRIBUTE_UNUSED)
 
 			while ((c = *p++) >= '0' && c <= '9') {
 				val = (val * 10) + (long)(c - '0');
+				// val is actually 'unsigned long int' and can't get < 0
 				if (val < (rlim_t) 0)
 					break;
 			}

@@ -922,7 +922,7 @@ static int inflate_block(STATE_PARAM smallint *e)
 /* Two callsites, both in inflate_get_next_window */
 static void calculate_gunzip_crc(STATE_PARAM_ONLY)
 {
-	int n;
+	unsigned n;
 	for (n = 0; n < gunzip_outbuf_count; n++) {
 		gunzip_crc = gunzip_crc_table[((int) gunzip_crc ^ (gunzip_window[n])) & 0xff] ^ (gunzip_crc >> 8);
 	}
@@ -1003,7 +1003,7 @@ inflate_unzip_internal(STATE_PARAM int in, int out)
 	while (1) {
 		int r = inflate_get_next_window(PASS_STATE_ONLY);
 		nwrote = full_write(out, gunzip_window, gunzip_outbuf_count);
-		if (nwrote != gunzip_outbuf_count) {
+		if (nwrote != (ssize_t)gunzip_outbuf_count) {
 			bb_perror_msg("write");
 			n = -1;
 			goto ret;
@@ -1064,7 +1064,7 @@ static int top_up(STATE_PARAM unsigned n)
 {
 	int count = bytebuffer_size - bytebuffer_offset;
 
-	if (count < n) {
+	if (count < (int)n) {
 		memmove(bytebuffer, &bytebuffer[bytebuffer_offset], count);
 		bytebuffer_offset = 0;
 		bytebuffer_size = full_read(gunzip_src_fd, &bytebuffer[count], bytebuffer_max - count);

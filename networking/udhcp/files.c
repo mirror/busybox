@@ -319,7 +319,7 @@ void read_config(const char *file)
 {
 	FILE *in;
 	char buffer[READ_CONFIG_BUF_SIZE], *token, *line;
-	int i, lineno;
+	unsigned i, lineno;
 
 	for (i = 0; i < KWS_WITH_DEFAULTS; i++)
 		keywords[i].handler(keywords[i].def, keywords[i].var);
@@ -344,7 +344,7 @@ void read_config(const char *file)
 		for (i = 0; i < ARRAY_SIZE(keywords); i++) {
 			if (!strcasecmp(token, keywords[i].keyword)) {
 				if (!keywords[i].handler(line, keywords[i].var)) {
-					bb_error_msg("can't parse line %d in %s at '%s'",
+					bb_error_msg("can't parse line %u in %s at '%s'",
 							lineno, file, line);
 					/* reset back to the default value */
 					keywords[i].handler(keywords[i].def, keywords[i].var);

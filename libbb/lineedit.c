@@ -199,7 +199,7 @@ static void cmdedit_set_out_char(int next_char)
 	{
 		bb_putchar(c);
 	}
-	if (++cmdedit_x >= cmdedit_termw) {
+	if (++cmdedit_x >= (int)cmdedit_termw) {
 		/* terminal is scrolled down */
 		cmdedit_y++;
 		cmdedit_x = 0;
@@ -861,7 +861,8 @@ static void input_tab(smallint *lastWasTab)
 			exe_n_cwd_tab_completion(matchBuf, find_type);
 		/* Sort, then remove any duplicates found */
 		if (matches) {
-			int i, n = 0;
+			unsigned i;
+			int n = 0;
 			qsort_string_vector(matches, num_matches);
 			for (i = 0; i < num_matches - 1; ++i) {
 				if (matches[i] && matches[i+1]) { /* paranoia */

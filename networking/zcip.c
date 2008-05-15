@@ -162,7 +162,7 @@ static int run(char *argv[3], struct in_addr *ip)
 /**
  * Return milliseconds of random delay, up to "secs" seconds.
  */
-static unsigned ALWAYS_INLINE random_delay_ms(unsigned secs)
+static ALWAYS_INLINE unsigned random_delay_ms(unsigned secs)
 {
 	return rand() % (secs * 1000);
 }

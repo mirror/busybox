@@ -61,7 +61,7 @@ static int do_rd(int fd, void **paramp)
 	p = strpbrk(cur, "\r\n");
 	if (p)
 		*p = '\0';
-	if (!p && sz && buf->pos <= sizeof(buf->buf))
+	if (!p && sz && buf->pos <= (int)sizeof(buf->buf))
 		goto ok;
 	/* Terminate session. If we are in server mode, then
 	 * fd is still in nonblocking mode - we never block here */

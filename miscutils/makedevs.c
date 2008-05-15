@@ -99,12 +99,12 @@ int makedevs_main(int argc, char **argv)
 
 	while ((line = xmalloc_fgetline(table)) != NULL) {
 		char type;
-		unsigned int mode = 0755;
-		unsigned int major = 0;
-		unsigned int minor = 0;
-		unsigned int count = 0;
-		unsigned int increment = 0;
-		unsigned int start = 0;
+		unsigned mode = 0755;
+		unsigned major = 0;
+		unsigned minor = 0;
+		unsigned count = 0;
+		unsigned increment = 0;
+		unsigned start = 0;
 		char name[41];
 		char user[41];
 		char group[41];
@@ -121,7 +121,7 @@ int makedevs_main(int argc, char **argv)
 		{
 			if (*line=='\0' || *line=='#' || isspace(*line))
 				continue;
-			bb_error_msg("line %d invalid: '%s'", linenum, line);
+			bb_error_msg("invalid line %d: '%s'", linenum, line);
 			ret = EXIT_FAILURE;
 			continue;
 		}
@@ -140,7 +140,7 @@ int makedevs_main(int argc, char **argv)
 				ret = EXIT_FAILURE;
 				goto loop;
 			}
-			if ((mode != -1) && (chmod(full_name, mode) < 0)){
+			if (chmod(full_name, mode) < 0) {
 				bb_perror_msg("line %d: chmod failed for %s", linenum, full_name);
 				ret = EXIT_FAILURE;
 				goto loop;
@@ -157,7 +157,7 @@ int makedevs_main(int argc, char **argv)
 				ret = EXIT_FAILURE;
 				goto loop;
 			}
-			if ((mode != -1) && (chmod(full_name, mode) < 0)){
+			if (chmod(full_name, mode) < 0) {
 				bb_perror_msg("line %d: chmod failed for %s", linenum, full_name);
 				ret = EXIT_FAILURE;
 				goto loop;
@@ -180,7 +180,7 @@ int makedevs_main(int argc, char **argv)
 			}
 
 			if (count > 0) {
-				int i;
+				unsigned i;
 				char *full_name_inc;
 
 				full_name_inc = xmalloc(strlen(full_name) + 4);
@@ -195,7 +195,7 @@ int makedevs_main(int argc, char **argv)
 						bb_perror_msg("line %d: chown failed for %s", linenum, full_name_inc);
 						ret = EXIT_FAILURE;
 					}
-					if ((mode != -1) && (chmod(full_name_inc, mode) < 0)){
+					if (chmod(full_name_inc, mode) < 0) {
 						bb_perror_msg("line %d: chmod failed for %s", linenum, full_name_inc);
 						ret = EXIT_FAILURE;
 					}
@@ -211,7 +211,7 @@ int makedevs_main(int argc, char **argv)
 					bb_perror_msg("line %d: chown failed for %s", linenum, full_name);
 					ret = EXIT_FAILURE;
 				}
-				if ((mode != -1) && (chmod(full_name, mode) < 0)){
+				if (chmod(full_name, mode) < 0) {
 					bb_perror_msg("line %d: chmod failed for %s", linenum, full_name);
 					ret = EXIT_FAILURE;
 				}

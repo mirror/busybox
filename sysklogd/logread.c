@@ -70,7 +70,7 @@ static void interrupted(int sig ATTRIBUTE_UNUSED)
 int logread_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int logread_main(int argc ATTRIBUTE_UNUSED, char **argv)
 {
-	int cur;
+	unsigned cur;
 	int log_semid; /* ipc semaphore id */
 	int log_shmid; /* ipc shared memory id */
 	smallint follow = getopt32(argv, "f");

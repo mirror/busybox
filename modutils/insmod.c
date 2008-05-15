@@ -2041,7 +2041,7 @@ obj_add_symbol(struct obj_file *f, const char *name,
 	int n_type = ELF_ST_TYPE(info);
 	int n_binding = ELF_ST_BIND(info);
 
-	for (sym = f->symtab[hash]; sym; sym = sym->next)
+	for (sym = f->symtab[hash]; sym; sym = sym->next) {
 		if (f->symbol_cmp(sym->name, name) == 0) {
 			int o_secidx = sym->secidx;
 			int o_info = sym->info;
@@ -2100,14 +2100,14 @@ obj_add_symbol(struct obj_file *f, const char *name,
 				return sym;
 			}
 		}
+	}
 
 	/* Completely new symbol.  */
 	sym = arch_new_symbol();
 	sym->next = f->symtab[hash];
 	f->symtab[hash] = sym;
 	sym->ksymidx = -1;
-
-	if (ELF_ST_BIND(info) == STB_LOCAL && symidx != -1) {
+	if (ELF_ST_BIND(info) == STB_LOCAL && symidx != (unsigned long)(-1)) {
 		if (symidx >= f->local_symtab_size)
 			bb_error_msg("local symbol %s with index %ld exceeds local_symtab_size %ld",
 					name, (long) symidx, (long) f->local_symtab_size);
@@ -3313,7 +3313,7 @@ static struct obj_file *obj_load(FILE * fp, int loadprogbits ATTRIBUTE_UNUSED)
 {
 	struct obj_file *f;
 	ElfW(Shdr) * section_headers;
-	int shnum, i;
+	size_t shnum, i;
 	char *shstrtab;
 
 	/* Read the file header.  */
@@ -3585,7 +3585,7 @@ static int obj_gpl_license(struct obj_file *f, const char **license)
 		while (ptr < endptr) {
 			value = strchr(ptr, '=');
 			if (value && strncmp(ptr, "license", value-ptr) == 0) {
-				int i;
+				unsigned i;
 				if (license)
 					*license = value+1;
 				for (i = 0; i < ARRAY_SIZE(gpl_licenses); ++i) {
@@ -3724,7 +3724,8 @@ add_ksymoops_symbols(struct obj_file *f, const char *filename,
 	struct obj_symbol *sym;
 	char *name, *absolute_filename;
 	char str[STRVERSIONLEN];
-	int i, l, lm_name, lfilename, use_ksymtab, version;
+	unsigned i;
+	int l, lm_name, lfilename, use_ksymtab, version;
 	struct stat statbuf;
 
 	/* WARNING: was using realpath, but replaced by readlink to stop using
@@ -4127,7 +4128,7 @@ int insmod_main(int argc, char **argv)
 	m_size = obj_load_size(f);
 
 	m_addr = create_module(m_name, m_size);
-	if (m_addr == -1) switch (errno) {
+	if (m_addr == (ElfW(Addr))(-1)) switch (errno) {
 		case EEXIST:
 			bb_error_msg_and_die("a module named %s already exists", m_name);
 		case ENOMEM:

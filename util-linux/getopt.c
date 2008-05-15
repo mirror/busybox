@@ -147,7 +147,7 @@ static const char *normalize(const char *arg)
 static int generate_output(char **argv, int argc, const char *optstr, const struct option *longopts)
 {
 	int exit_code = 0; /* We assume everything will be OK */
-	unsigned opt;
+	int opt;
 #if ENABLE_GETOPT_LONG
 	int longindex;
 #endif
@@ -173,7 +173,7 @@ static int generate_output(char **argv, int argc, const char *optstr, const stru
 #else
 			getopt(argc, argv, optstr);
 #endif
-		if (opt == EOF)
+		if (opt == -1)
 			break;
 		if (opt == '?' || opt == ':' )
 			exit_code = 1;
@@ -190,7 +190,7 @@ static int generate_output(char **argv, int argc, const char *optstr, const stru
 				printf(" %s", normalize(optarg));
 			else {
 				printf(" -%c", opt);
-				charptr = strchr(optstr,opt);
+				charptr = strchr(optstr, opt);
 				if (charptr != NULL && *++charptr == ':')
 					printf(" %s",
 						normalize(optarg ? optarg : ""));
