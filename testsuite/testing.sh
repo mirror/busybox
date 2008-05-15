@@ -37,7 +37,7 @@ export FAILCOUNT=0
 export SKIP=
 
 # Helper for helpers. Oh my...
-test x"$ECHO" = x"" && {
+test x"$ECHO" != x"" || {
 	ECHO="echo"
 	test x"`echo -ne`" = x"" || {
 		# Compile and use a replacement 'echo' which understands -e -n
@@ -68,15 +68,15 @@ optional()
 testing()
 {
   NAME="$1"
-  [ -z "$1" ] && NAME="$2"
+  [ -n "$1" ] || NAME="$2"
 
   if [ $# -ne 5 ]
   then
     echo "Test $NAME has wrong number of arguments (must be 5) ($# $*)" >&2
-    exit
+    exit 1
   fi
 
-  [ -n "$DEBUG" ] && set -x
+  [ -z "$DEBUG" ] || set -x
 
   if [ -n "$SKIP" ]
   then
@@ -90,18 +90,17 @@ testing()
   $ECHO -ne "$5" | eval "$2" > actual
   RETVAL=$?
 
-  cmp expected actual >/dev/null 2>/dev/null
-  if [ $? -ne 0 ]
+  if cmp expected actual >/dev/null 2>/dev/null
   then
+    echo "PASS: $NAME"
+  else
     FAILCOUNT=$(($FAILCOUNT + 1))
     echo "FAIL: $NAME"
-    [ -n "$VERBOSE" ] && diff -u expected actual
-  else
-    echo "PASS: $NAME"
+    [ -z "$VERBOSE" ] || diff -u expected actual
   fi
   rm -f input expected actual
 
-  [ -n "$DEBUG" ] && set +x
+  [ -z "$DEBUG" ] || set +x
 
   return $RETVAL
 }
