@@ -21,26 +21,15 @@ CPPFLAGS += \
 CFLAGS += $(call cc-option,-Wall -Wshadow -Wwrite-strings,)
 CFLAGS += $(call cc-option,-Wundef -Wstrict-prototypes,)
 CFLAGS += $(call cc-option,-Wunused -Wunused-parameter,)
-# If you want to add "-Wmissing-prototypes -Wmissing-declarations" above
-# (or anything else for that matter) make sure that it is still possible
-# to build bbox without warnings. Current offender: find.c:alloc_action().
-# Looks more like gcc bug: gcc will warn on it with or without prototype.
-# But still, warning-free compile is a must, or else we will drown
-# in warnings pretty soon.
+CFLAGS += $(call cc-option,-Wmissing-prototypes -Wmissing-declarations,)
+# If you want to add more -Wsomething above, make sure that it is
+# still possible to build bbox without warnings.
 
 ifeq ($(CONFIG_WERROR),y)
 CFLAGS += $(call cc-option,-Werror,)
-else
-# for development, warn a little bit about unused results..
-CPPFLAGS += -D_FORTIFY_SOURCE=2
 endif
 # gcc 3.x emits bogus "old style proto" warning on find.c:alloc_action()
 CFLAGS += $(call cc-ifversion, -ge, 0400, -Wold-style-definition)
-
-# gcc emits bogus "no prev proto" warning on find.c:alloc_action()
-ifneq ($(CONFIG_WERROR),y)
-CFLAGS += $(call cc-option,-Wmissing-prototypes -Wmissing-declarations,)
-endif
 
 CFLAGS += $(call cc-option,-Os -fno-builtin-strlen -finline-limit=0 -fomit-frame-pointer -ffunction-sections -fdata-sections,)
 # -fno-guess-branch-probability: prohibit pseudo-random guessing
