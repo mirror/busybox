@@ -841,7 +841,7 @@ arch_apply_relocation(struct obj_file *f,
 				ElfW(RelM) *rel, ElfW(Addr) v)
 {
 #if defined(__arm__) || defined(__i386__) || defined(__mc68000__) \
- || defined(__sh__) || defined(__s390__)
+ || defined(__sh__) || defined(__s390__) || defined(__x86_64__)
 	struct arch_file *ifile = (struct arch_file *) f;
 #endif
 	enum obj_reloc ret = obj_reloc_ok;
