@@ -924,6 +924,9 @@ struct hwtype {
 };
 extern smallint interface_opt_a;
 int display_interfaces(char *ifname);
+#if ENABLE_FEATURE_HWIB
+int in_ib(const char *bufp, struct sockaddr *sap);
+#endif
 const struct aftype *get_aftype(const char *name);
 const struct hwtype *get_hwtype(const char *name);
 const struct hwtype *get_hwntype(int type);

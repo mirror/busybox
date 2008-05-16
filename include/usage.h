@@ -1628,7 +1628,7 @@
        "	[netmask ADDRESS] [dstaddr ADDRESS]\n" \
 	USE_FEATURE_IFCONFIG_SLIP( \
        "	[outfill NN] [keepalive NN]\n") \
-       "	" USE_FEATURE_IFCONFIG_HW("[hw ether ADDRESS] ") "[metric NN] [mtu NN]\n" \
+       "	" USE_FEATURE_IFCONFIG_HW("[hw ether" USE_FEATURE_HWIB("|infiniband")" ADDRESS] ") "[metric NN] [mtu NN]\n" \
        "	[[-]trailers] [[-]arp] [[-]allmulti]\n" \
        "	[multicast] [[-]promisc] [txqueuelen NN] [[-]dynamic]\n" \
 	USE_FEATURE_IFCONFIG_MEMSTART_IOADDR_IRQ( \

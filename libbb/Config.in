@@ -144,4 +144,11 @@ config IOCTL_HEX2STR_ERROR
 	  Use ioctl names rather than hex values in error messages
 	  (e.g. VT_DISALLOCATE rather than 0x5608). If disabled this
 	  saves about 1400 bytes.
+
+config FEATURE_HWIB
+	bool "Support infiniband HW"
+	default y
+	help
+	  Support for printing infiniband addresses in
+	  network applets.
 endmenu

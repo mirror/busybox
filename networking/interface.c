@@ -36,6 +36,13 @@
 #include "inet_common.h"
 #include "libbb.h"
 
+
+#if ENABLE_FEATURE_HWIB
+/* #include <linux/if_infiniband.h> */
+#undef INFINIBAND_ALEN
+#define INFINIBAND_ALEN 20
+#endif
+
 #if ENABLE_FEATURE_IPV6
 # define HAVE_AFINET6 1
 #else
@@ -805,6 +812,17 @@ static const struct hwtype sit_hwtype = {
 	.suppress_null_addr =	1
 };
 #endif
+#if ENABLE_FEATURE_HWIB
+static const struct hwtype ib_hwtype = {
+	.name =			"infiniband",
+	.title =		"InfiniBand",
+	.type =			ARPHRD_INFINIBAND,
+	.alen =			INFINIBAND_ALEN,
+	.print =		UNSPEC_print,
+	.input =		in_ib,
+};
+#endif
+
 
 static const struct hwtype *const hwtypes[] = {
 	&loop_hwtype,
@@ -813,6 +831,9 @@ static const struct hwtype *const hwtypes[] = {
 	&unspec_hwtype,
 #if ENABLE_FEATURE_IPV6
 	&sit_hwtype,
+#endif
+#if ENABLE_FEATURE_HWIB
+	&ib_hwtype,
 #endif
 	NULL
 };
@@ -1191,6 +1212,67 @@ static int if_print(char *ifname)
 		ife_print(ife);
 	return res;
 }
+
+#if ENABLE_FEATURE_HWIB
+/* Input an Infiniband address and convert to binary. */
+int in_ib(const char *bufp, struct sockaddr *sap)
+{
+    unsigned char *ptr;
+    char c;
+    const char *orig;
+    int i;
+    unsigned val;
+
+    sap->sa_family = ib_hwtype.type;
+    ptr = sap->sa_data;
+
+    i = 0;
+    orig = bufp;
+    while ((*bufp != '\0') && (i < INFINIBAND_ALEN)) {
+	val = 0;
+	c = *bufp++;
+	if (isdigit(c))
+	    val = c - '0';
+	else if (c >= 'a' && c <= 'f')
+	    val = c - 'a' + 10;
+	else if (c >= 'A' && c <= 'F')
+	    val = c - 'A' + 10;
+	else {
+	    errno = EINVAL;
+	    return (-1);
+	}
+	val <<= 4;
+	c = *bufp;
+	if (isdigit(c))
+	    val |= c - '0';
+	else if (c >= 'a' && c <= 'f')
+	    val |= c - 'a' + 10;
+	else if (c >= 'A' && c <= 'F')
+	    val |= c - 'A' + 10;
+	else if (c == ':' || c == 0)
+	    val >>= 4;
+	else {
+	    errno = EINVAL;
+	    return (-1);
+	}
+	if (c != 0)
+	    bufp++;
+	*ptr++ = (unsigned char) (val & 0377);
+	i++;
+
+	/* We might get a semicolon here - not required. */
+	if (*bufp == ':') {
+	    bufp++;
+	}
+    }
+#ifdef DEBUG
+fprintf(stderr, "in_ib(%s): %s\n", orig, UNSPEC_print(sap->sa_data));
+#endif
+    return (0);
+}
+#endif
+
+
 
 int display_interfaces(char *ifname)
 {
