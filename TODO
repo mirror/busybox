@@ -294,6 +294,8 @@ Minor stuff:
   See grep -r strtod
   Alot of duplication that wants cleanup.
 ---
+  in_ether duplicated in network/{interface,ifconfig}.c
+---
 
 
 Code cleanup:
