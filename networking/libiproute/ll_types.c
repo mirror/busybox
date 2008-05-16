@@ -21,6 +21,9 @@ const char *ll_type_n2a(int type, char *buf, int len)
 	/* 0,                  */ "generic" "\0"
 	/* ARPHRD_LOOPBACK,    */ "loopback" "\0"
 	/* ARPHRD_ETHER,       */ "ether" "\0"
+#ifdef ARPHRD_INFINIBAND
+	/* ARPHRD_INFINIBAND,  */ "infiniband" "\0"
+#endif
 #ifdef ARPHRD_IEEE802_TR
 	/* ARPHRD_IEEE802,     */ "ieee802" "\0"
 	/* ARPHRD_IEEE802_TR,  */ "tr" "\0"
@@ -107,6 +110,9 @@ const char *ll_type_n2a(int type, char *buf, int len)
 	0,                  /* "generic" "\0" */
 	ARPHRD_LOOPBACK,    /* "loopback" "\0" */
 	ARPHRD_ETHER,       /* "ether" "\0" */
+#ifdef ARPHRD_INFINIBAND
+	ARPHRD_INFINIBAND,  /* "infiniband" "\0" */
+#endif
 #ifdef ARPHRD_IEEE802_TR
 	ARPHRD_IEEE802,     /* "ieee802" "\0" */
 	ARPHRD_IEEE802_TR,  /* "tr" "\0" */
