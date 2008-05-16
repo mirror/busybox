@@ -15,13 +15,20 @@ require sysfs support in the kernel and have it mounted at /sys.  For dynamic
 updates, you also need to have hotplugging enabled in your kernel.
 
 Here's a typical code snippet from the init script:
+[0] mount -t proc proc /proc
 [1] mount -t sysfs sysfs /sys
 [2] echo /bin/mdev > /proc/sys/kernel/hotplug
 [3] mdev -s
 
+Alternatively, without procfs the above becomes:
+[1] mount -t sysfs sysfs /sys
+[2] sysctl -w kernel.hotplug=/bin/mdev
+[3] mdev -s
+
+
 Of course, a more "full" setup would entail executing this before the previous
 code snippet:
-[4] mount -t tmpfs mdev /dev
+[4] mount -t tmpfs -o size=64k,mode=0755 tmpfs /dev
 [5] mkdir /dev/pts
 [6] mount -t devpts devpts /dev/pts
 
@@ -87,5 +94,4 @@ properly initialize a device.  Place all such firmware files into the
 /lib/firmware/ directory.  At runtime, the kernel will invoke mdev with the
 filename of the firmware which mdev will load out of /lib/firmware/ and into
 the kernel via the sysfs interface.  The exact filename is hardcoded in the
-kernel, so look there if you need to want to know what to name the file in
-userspace.
+kernel, so look there if you need to know how to name the file in userspace.
