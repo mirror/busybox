@@ -130,9 +130,11 @@ static void parse_address(char *dev, int hatype, int halen, char *lla, struct if
 	memset(ifr, 0, sizeof(*ifr));
 	strncpy(ifr->ifr_name, dev, sizeof(ifr->ifr_name));
 	ifr->ifr_hwaddr.sa_family = hatype;
-	alen = ll_addr_a2n((unsigned char *)(ifr->ifr_hwaddr.sa_data), 14, lla);
+
+	alen = hatype == 1/*ARPHRD_ETHER*/ ? 14/*ETH_HLEN*/ : 19/*INFINIBAND_HLEN*/;
+	alen = ll_addr_a2n((unsigned char *)(ifr->ifr_hwaddr.sa_data), alen, lla);
 	if (alen < 0)
-		exit(1);
+		exit(EXIT_FAILURE);
 	if (alen != halen) {
 		bb_error_msg_and_die("wrong address (%s) length: expected %d bytes", lla, halen);
 	}
