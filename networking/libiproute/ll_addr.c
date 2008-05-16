@@ -64,11 +64,7 @@ int ll_addr_a2n(unsigned char *lladdr, int len, char *arg)
 				*cp = 0;
 				cp++;
 			}
-			if (sscanf(arg, "%x", &temp) != 1) {
-				bb_error_msg("\"%s\" is invalid lladdr", arg);
-				return -1;
-			}
-			if (temp < 0 || temp > 255) {
+			if (sscanf(arg, "%x", &temp) != 1 || (temp < 0 || temp > 255)) {
 				bb_error_msg("\"%s\" is invalid lladdr", arg);
 				return -1;
 			}
