@@ -184,6 +184,7 @@ static int insmod_ng_main(int argc, char **argv);
 /* Microblaze */
 #if defined(__microblaze__)
 #define USE_SINGLE
+#include <linux/elf-em.h>
 #define MATCH_MACHINE(x) (x == EM_XILINX_MICROBLAZE)
 #define SHT_RELM	SHT_RELA
 #define Elf32_RelM	Elf32_Rela
