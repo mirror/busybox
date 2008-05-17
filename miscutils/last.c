@@ -38,7 +38,8 @@ int last_main(int argc, char **argv ATTRIBUTE_UNUSED)
 	}
 	file = xopen(bb_path_wtmp_file, O_RDONLY);
 
-	printf("%-10s %-14s %-18s %-12.12s %s\n", "USER", "TTY", "HOST", "LOGIN", "TIME");
+	printf("%-10s %-14s %-18s %-12.12s %s\n",
+	       "USER", "TTY", "HOST", "LOGIN", "TIME");
 	while ((n = full_read(file, &ut, sizeof(ut))) > 0) {
 		if (n != sizeof(ut)) {
 			bb_perror_msg_and_die("short read");
@@ -63,8 +64,12 @@ int last_main(int argc, char **argv ATTRIBUTE_UNUSED)
 				ut.ut_type = USER_PROCESS;
 			}
 			if (strcmp(ut.ut_name, "date") == 0) {
-				if (ut.ut_line[0] == '|') ut.ut_type = OLD_TIME;
-				if (ut.ut_line[0] == '{') ut.ut_type = NEW_TIME;
+				if (ut.ut_line[0] == '|') {
+					ut.ut_type = OLD_TIME;
+				}
+				if (ut.ut_line[0] == '{') {
+					ut.ut_type = NEW_TIME;
+				}
 			}
 		}
 
@@ -81,8 +86,8 @@ int last_main(int argc, char **argv ATTRIBUTE_UNUSED)
 			}
 		}
 		t_tmp = (time_t)ut.ut_tv.tv_sec;
-		printf("%-10s %-14s %-18s %-12.12s\n", ut.ut_user, ut.ut_line, ut.ut_host,
-				ctime(&t_tmp) + 4);
+		printf("%-10s %-14s %-18s %-12.12s\n",
+		       ut.ut_user, ut.ut_line, ut.ut_host, ctime(&t_tmp) + 4);
 	}
 
 	fflush_stdout_and_exit(EXIT_SUCCESS);
