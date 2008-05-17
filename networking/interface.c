@@ -1224,7 +1224,7 @@ int in_ib(const char *bufp, struct sockaddr *sap)
     unsigned val;
 
     sap->sa_family = ib_hwtype.type;
-    ptr = sap->sa_data;
+    ptr = (unsigned char *) sap->sa_data;
 
     i = 0;
     orig = bufp;

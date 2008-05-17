@@ -514,7 +514,7 @@ static int in_ether(const char *bufp, struct sockaddr *sap)
 	unsigned char c;
 
 	sap->sa_family = ARPHRD_ETHER;
-	ptr = sap->sa_data;
+	ptr = (char *) sap->sa_data;
 
 	i = 0;
 	do {
