@@ -743,6 +743,13 @@ config SWAPONOFF
 	  space.  If you are not using any swap space, you can leave this
 	  option disabled.
 
+config FEATURE_SWAPON_PRI
+	bool "Support option -p in swapon"
+	default n
+	depends on SWAPONOFF
+	help
+	  Enable support for setting swap device priority in swapon.
+
 config SWITCH_ROOT
 	bool "switch_root"
 	default n

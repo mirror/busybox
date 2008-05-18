@@ -3809,11 +3809,14 @@
      "\n	-a	Stop swapping on all swap devices" \
 
 #define swapon_trivial_usage \
-       "[-a] [DEVICE]"
+       "[-a]" USE_FEATURE_SWAPON_PRI(" [-p pri]") " [DEVICE]"
 #define swapon_full_usage "\n\n" \
        "Start swapping on DEVICE\n" \
      "\nOptions:" \
      "\n	-a	Start swapping on all swap devices" \
+	USE_FEATURE_SWAPON_PRI( \
+     "\n	-p pri	Set swap device priority" \
+	) \
 
 #define switch_root_trivial_usage \
        "[-c /dev/console] NEW_ROOT NEW_INIT [ARGUMENTS_TO_INIT]"

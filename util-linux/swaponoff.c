@@ -11,6 +11,16 @@
 #include <mntent.h>
 #include <sys/swap.h>
 
+#if ENABLE_FEATURE_SWAPON_PRI
+struct globals {
+	int flags;
+};
+#define G (*(struct globals*)&bb_common_bufsiz1)
+#define g_flags (G.flags)
+#else
+#define g_flags 0
+#endif
+
 static int swap_enable_disable(char *device)
 {
 	int status;
@@ -26,7 +36,7 @@ static int swap_enable_disable(char *device)
 #endif
 
 	if (applet_name[5] == 'n')
-		status = swapon(device, 0);
+		status = swapon(device, g_flags);
 	else
 		status = swapoff(device);
 
@@ -63,15 +73,30 @@ int swap_on_off_main(int argc ATTRIBUTE_UNUSED, char **argv)
 {
 	int ret;
 
-	if (!argv[1])
-		bb_show_usage();
-
+#if !ENABLE_FEATURE_SWAPON_PRI
 	ret = getopt32(argv, "a");
-	if (ret)
+#else
+	opt_complementary = "p+";
+	ret = getopt32(argv, (applet_name[5] == 'n') ? "ap:" : "a", &g_flags);
+
+	if (ret & 2) { // -p
+		g_flags = SWAP_FLAG_PREFER |
+			((g_flags & SWAP_FLAG_PRIO_MASK) << SWAP_FLAG_PRIO_SHIFT);
+		ret &= 1;
+	}
+#endif
+
+	if (ret /* & 1: not needed */) // -a
 		return do_em_all();
 
+	argv += optind;
+	if (!*argv)
+		bb_show_usage();
+
 	/* ret = 0; redundant */
-	while (*++argv)
+	do {
 		ret += swap_enable_disable(*argv);
+	} while (*++argv);
+
 	return ret;
 }
