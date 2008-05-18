@@ -944,9 +944,12 @@ static void log_and_exit(void)
 	/* Paranoia. IE said to be buggy. It may send some extra data
 	 * or be confused by us just exiting without SHUT_WR. Oh well. */
 	shutdown(1, SHUT_WR);
+	/* Why??
+	(this also messes up stdin when user runs httpd -i from terminal)
 	ndelay_on(0);
 	while (read(0, iobuf, IOBUF_SIZE) > 0)
 		continue;
+	*/
 
 	if (verbose > 2)
 		bb_error_msg("closed");
@@ -1821,11 +1824,13 @@ static void handle_incoming_and_exit(const len_and_sockaddr *fromAddr)
 		rmt_ip = ntohl(fromAddr->u.sin6.sin6_addr.s6_addr32[3]);
 #endif
 	if (ENABLE_FEATURE_HTTPD_CGI || DEBUG || verbose) {
+		/* NB: can be NULL (user runs httpd -i by hand?) */
 		rmt_ip_str = xmalloc_sockaddr2dotted(&fromAddr->u.sa);
 	}
 	if (verbose) {
 		/* this trick makes -v logging much simpler */
-		applet_name = rmt_ip_str;
+		if (rmt_ip_str)
+			applet_name = rmt_ip_str;
 		if (verbose > 2)
 			bb_error_msg("connected");
 	}
@@ -2255,7 +2260,9 @@ static void mini_httpd_inetd(void)
 {
 	len_and_sockaddr fromAddr;
 
+	memset(&fromAddr, 0, sizeof(fromAddr));
 	fromAddr.len = LSA_SIZEOF_SA;
+	/* NB: can fail if user runs it by hand and types in http cmds */
 	getpeername(0, &fromAddr.u.sa, &fromAddr.len);
 	handle_incoming_and_exit(&fromAddr);
 }
