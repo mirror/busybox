@@ -117,6 +117,18 @@ config FEATURE_MODPROBE_FANCY_ALIAS
 	  mismatch between module name and file name, along with bus-specific
 	  aliases (such as pci:... or usb:... aliases).
 
+config FEATURE_MODPROBE_BLACKLIST
+	bool
+	prompt "Blacklist support"
+	default n
+	depends on MODPROBE && FEATURE_2_6_MODULES
+	help
+	  Say 'y' here to enable support for the 'blacklist' command in 
+	  modprobe.conf. This prevents the alias resolver to resolve 
+	  blacklisted modules. This is useful if you want to prevent your 
+	  hardware autodetection scripts to load modules like evdev, frame 
+	  buffer drivers etc.
+
 comment "Options common to multiple modutils"
 	depends on INSMOD || RMMOD || MODPROBE || LSMOD
 

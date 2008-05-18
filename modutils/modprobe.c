@@ -29,7 +29,8 @@ struct dep_t {	/* one-way list of dependency rules */
 	struct mod_opt_t *  m_options;	        /* the module options */
 
 	int     m_isalias  : 1;                 /* the module is an alias */
-	int     m_reserved : 15;                /* stuffin' */
+	int     m_isblacklisted : 1;
+	int     m_reserved : 14;                /* stuffin' */
 
 	int     m_depcnt   : 16;                /* the number of dependable module(s) */
 	char ** m_deparr;                       /* the list of dependable module(s) */
@@ -230,6 +231,13 @@ static char *parse_command_string(char *src, char **dst)
 #define parse_command_string(src, dst)	(0)
 #endif /* ENABLE_FEATURE_MODPROBE_MULTIPLE_OPTIONS */
 
+static int is_conf_command(char *buffer, const char *command)
+{ 
+	int len = strlen(command);
+	return ((strstr(buffer, command) == buffer) &&
+			isspace(buffer[len])); 
+}
+
 /*
  * This function reads aliases and default module options from a configuration file
  * (/etc/modprobe.conf syntax). It supports includes (only files, no directories).
@@ -260,7 +268,7 @@ static void include_conf(struct dep_t **first, struct dep_t **current, char *buf
 		if (continuation_line)
 			continue;
 
-		if ((strncmp(buffer, "alias", 5) == 0) && isspace(buffer[5])) {
+		if (is_conf_command(buffer, "alias")) {
 			char *alias, *mod;
 
 			if (parse_tag_value(buffer + 6, &alias, &mod)) {
@@ -284,7 +292,7 @@ static void include_conf(struct dep_t **first, struct dep_t **current, char *buf
 				}
 				/*(*current)->m_next = NULL; - done by xzalloc */
 			}
-		} else if ((strncmp(buffer, "options", 7) == 0) && isspace(buffer[7])) {
+		} else if (is_conf_command(buffer, "options")) {
 			char *mod, *opt;
 
 			/* split the line in the module/alias name, and options */
@@ -307,7 +315,7 @@ static void include_conf(struct dep_t **first, struct dep_t **current, char *buf
 					}
 				}
 			}
-		} else if ((strncmp(buffer, "include", 7) == 0) && isspace(buffer[7])) {
+		} else if (is_conf_command(buffer, "include")) {
 			int fdi;
 			char *filename;
 
@@ -317,6 +325,18 @@ static void include_conf(struct dep_t **first, struct dep_t **current, char *buf
 				include_conf(first, current, buffer, buflen, fdi);
 				close(fdi);
 			}
+		} else if (ENABLE_FEATURE_MODPROBE_BLACKLIST && 
+				(is_conf_command(buffer, "blacklist"))) {
+			char *mod;
+			struct dep_t *dt;
+
+			mod = skip_whitespace(buffer + 10);
+			for (dt = *first; dt; dt = dt->m_next) {
+				if (dt->m_isalias && strcmp(dt->m_deparr[0], mod) == 0)
+					break;
+			}
+			if (dt)
+				dt->m_isblacklisted = 1;
 		}
 	} /* while (reads(...)) */
 }
@@ -728,7 +748,8 @@ static void check_dep(char *mod, struct mod_list_t **head, struct mod_list_t **t
 
 	// resolve alias names
 	while (dt->m_isalias) {
-		if (dt->m_depcnt == 1) {
+		if (dt->m_depcnt == 1 && !(ENABLE_FEATURE_MODPROBE_BLACKLIST &&
+				dt->m_isblacklisted)) {
 			struct dep_t *adt;
 
 			for (adt = depend; adt; adt = adt->m_next) {
