@@ -1360,7 +1360,7 @@ growstackblock(void)
 		INT_ON;
 	} else {
 		char *oldspace = g_stacknxt;
-		int oldlen = g_stacknleft;
+		size_t oldlen = g_stacknleft;
 		char *p = stalloc(newlen);
 
 		/* free the space we just allocated */
@@ -1403,7 +1403,7 @@ growstackstr(void)
 		return stackblock();
 	}
 	growstackblock();
-	return stackblock() + len;
+	return (char *)stackblock() + len;
 }
 
 /*
@@ -1424,14 +1424,14 @@ makestrspace(size_t newlen, char *p)
 			break;
 		growstackblock();
 	}
-	return stackblock() + len;
+	return (char *)stackblock() + len;
 }
 
 static char *
 stack_nputstr(const char *s, size_t n, char *p)
 {
 	p = makestrspace(n, p);
-	p = memcpy(p, s, n) + n;
+	p = (char *)memcpy(p, s, n) + n;
 	return p;
 }
 
@@ -1536,7 +1536,7 @@ single_quote(const char *s)
 		q = p = makestrspace(len + 3, p);
 
 		*q++ = '\'';
-		q = memcpy(q, s, len) + len;
+		q = (char *)memcpy(q, s, len) + len;
 		*q++ = '\'';
 		s += len;
 
@@ -1549,7 +1549,7 @@ single_quote(const char *s)
 		q = p = makestrspace(len + 3, p);
 
 		*q++ = '"';
-		q = memcpy(q, s, len) + len;
+		q = (char *)memcpy(q, s, len) + len;
 		*q++ = '"';
 		s += len;
 
@@ -2079,10 +2079,10 @@ setvar(const char *name, const char *val, int flags)
 	}
 	INT_OFF;
 	nameeq = ckmalloc(namelen + vallen + 2);
-	p = memcpy(nameeq, name, namelen) + namelen;
+	p = (char *)memcpy(nameeq, name, namelen) + namelen;
 	if (val) {
 		*p++ = '=';
-		p = memcpy(p, val, vallen) + vallen;
+		p = (char *)memcpy(p, val, vallen) + vallen;
 	}
 	*p = '\0';
 	setvareq(nameeq, flags | VNOSAVE);
@@ -2364,7 +2364,7 @@ updatepwd(const char *dir)
 		new = stack_putstr(curdir, new);
 	}
 	new = makestrspace(strlen(dir) + 2, new);
-	lim = stackblock() + 1;
+	lim = (char *)stackblock() + 1;
 	if (*dir != '/') {
 		if (new[-1] != '/')
 			USTPUTC('/', new);
@@ -5157,7 +5157,7 @@ _rmescapes(char *str, int flag)
 		}
 		q = r;
 		if (len > 0) {
-			q = memcpy(q, str, len) + len;
+			q = (char *)memcpy(q, str, len) + len;
 		}
 	}
 	inquotes = (flag & RMESCAPE_QUOTED) ^ RMESCAPE_QUOTED;
@@ -5426,7 +5426,7 @@ expbackq(union node *cmd, int quoted, int quotes)
 	char *p;
 	char *dest;
 	int startloc;
-	int syntax = quoted? DQSYNTAX : BASESYNTAX;
+	int syntax = quoted ? DQSYNTAX : BASESYNTAX;
 	struct stackmark smark;
 
 	INT_OFF;
@@ -5910,7 +5910,7 @@ subevalvar(char *p, char *str, int strloc, int subtype,
 	STPUTC('\0', expdest);
 	herefd = saveherefd;
 	argbackq = saveargbackq;
-	startp = stackblock() + startloc;
+	startp = (char *)stackblock() + startloc;
 
 	switch (subtype) {
 	case VSASSIGN:
@@ -5988,19 +5988,19 @@ subevalvar(char *p, char *str, int strloc, int subtype,
 
 	amount = expdest - ((char *)stackblock() + resetloc);
 	STADJUST(-amount, expdest);
-	startp = stackblock() + startloc;
+	startp = (char *)stackblock() + startloc;
 
 	rmesc = startp;
-	rmescend = stackblock() + strloc;
+	rmescend = (char *)stackblock() + strloc;
 	if (quotes) {
 		rmesc = _rmescapes(startp, RMESCAPE_ALLOC | RMESCAPE_GROW);
 		if (rmesc != startp) {
 			rmescend = expdest;
-			startp = stackblock() + startloc;
+			startp = (char *)stackblock() + startloc;
 		}
 	}
 	rmescend--;
-	str = stackblock() + strloc;
+	str = (char *)stackblock() + strloc;
 	preglob(str, varflags & VSQUOTE, 0);
 	workloc = expdest - (char *)stackblock();
 
