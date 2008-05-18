@@ -185,13 +185,10 @@ static void print_direc(char *start, size_t length, int field_width, int precisi
 	free(p);
 }
 
-/* Print the text in FORMAT, using ARGV (with ARGC elements) for
-   arguments to any '%' directives.
-   Return the number of elements of ARGV used.  */
-
-static int print_formatted(char *format, int argc, char **argv)
+/* Print the text in FORMAT, using ARGV for arguments to any '%' directives.
+   Return advanced ARGV.  */
+static char **print_formatted(char *format, char **argv)
 {
-	int save_argc = argc;   /* Preserve original value.  */
 	char *f;                /* Pointer into 'format'.  */
 	char *direc_start;      /* Start of % directive.  */
 	size_t direc_length;    /* Length of % directive.  */
@@ -209,10 +206,9 @@ static int print_formatted(char *format, int argc, char **argv)
 				break;
 			}
 			if (*f == 'b') {
-				if (argc > 0) {
+				if (*argv) {
 					print_esc_string(*argv);
 					++argv;
-					--argc;
 				}
 				break;
 			}
@@ -223,10 +219,9 @@ static int print_formatted(char *format, int argc, char **argv)
 			if (*f == '*') {
 				++f;
 				++direc_length;
-				if (argc > 0) {
+				if (*argv) {
 					field_width = my_xstrtoul(*argv);
 					++argv;
-					--argc;
 				} else
 					field_width = 0;
 			} else {
@@ -241,10 +236,9 @@ static int print_formatted(char *format, int argc, char **argv)
 				if (*f == '*') {
 					++f;
 					++direc_length;
-					if (argc > 0) {
+					if (*argv) {
 						precision = my_xstrtoul(*argv);
 						++argv;
-						--argc;
 					} else
 						precision = 0;
 				} else
@@ -262,11 +256,10 @@ static int print_formatted(char *format, int argc, char **argv)
 			fprintf(stderr, "%%%c: invalid directive", *f);
 			*/
 			++direc_length;
-			if (argc > 0) {
+			if (*argv) {
 				print_direc(direc_start, direc_length, field_width,
 							precision, *argv);
 				++argv;
-				--argc;
 			} else
 				print_direc(direc_start, direc_length, field_width,
 							precision, "");
@@ -282,32 +275,35 @@ static int print_formatted(char *format, int argc, char **argv)
 		}
 	}
 
-	return save_argc - argc;
+	return argv;
 }
 
 int printf_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int printf_main(int argc, char **argv)
+int printf_main(int argc ATTRIBUTE_UNUSED, char **argv)
 {
 	char *format;
-	int args_used;
+	char **argv2;
 
-	if (argc <= 1 || argv[1][0] == '-') {
+	/* bash builtin errors out on "printf '-%s-\n' foo",
+	 * coreutils-6.9 works. Both work with "printf -- '-%s-\n' foo".
+	 * We will mimic coreutils. */
+	if (argv[1] && argv[1][0] == '-' && argv[1][1] == '-' && argv[1][2] == '\0')
+		argv++;
+	if (!argv[1])
 		bb_show_usage();
-	}
 
 	format = argv[1];
-	argc -= 2;
-	argv += 2;
+	argv2 = argv + 2;
 
 	do {
-		args_used = print_formatted(format, argc, argv);
-		argc -= args_used;
-		argv += args_used;
-	} while (args_used > 0 && argc > 0);
+		argv = argv2;
+		argv2 = print_formatted(format, argv);
+	} while (argv2 != argv && *argv2);
 
-/*	if (argc > 0)
+	/* coreutils compat (bash doesn't do this):
+	if (*argv)
 		fprintf(stderr, "excess args ignored");
-*/
+	*/
 
 	return EXIT_SUCCESS;
 }
