@@ -3613,46 +3613,65 @@
 	USE_GETOPT_LONG("--start|--stop") SKIP_GETOPT_LONG("-S|-K") \
        "] ... [-- arguments...]"
 #define start_stop_daemon_full_usage "\n\n" \
-       "Start and stop services\n" \
-     "\nOptions:" \
+       "Search for matching processes, and then\n" \
+       "-S: stop all matching processes.\n" \
+       "-K: start a process unless a matching process is found.\n" \
 	USE_GETOPT_LONG( \
-     "\n	-S,--start		Start" \
-     "\n	-K,--stop		Stop" \
-     "\n	-a,--startas pathname	Start process specified by pathname" \
-     "\n	-b,--background		Put process into background" \
-     "\n	-u,--user username|uid	Stop this user's processes" \
-     "\n	-x,--exec executable	Program to either start or check" \
-     "\n	-n,--name process-name	Stop processes with this name" \
-     "\n	-p,--pidfile pid-file	Save or load pid using a pid-file" \
-     "\n	-m,--make-pidfile	Create the -p file and enter pid in it" \
-     "\n	-q,--quiet		Quiet" \
+     "\nProcess matching:" \
+     "\n	-u,--user USERNAME|UID	Match only this user's processes" \
+     "\n	-n,--name NAME		Match processes with NAME" \
+     "\n				in comm field in /proc/PID/stat" \
+     "\n	-x,--exec EXECUTABLE	Match processes with this command" \
+     "\n				in /proc/PID/cmdline" \
+     "\n	-p,--pidfile FILE	Match a process with PID from the file" \
+     "\n	All specified conditions must match" \
+     "\n-K only:" \
+     "\n	-x,--exec EXECUTABLE	Program to run" \
+     "\n	-a,--startas NAME	Zeroth argument" \
+     "\n	-b,--background		Background" \
 	USE_FEATURE_START_STOP_DAEMON_FANCY( \
-     "\n	-o,--oknodo		Exit status 0 if nothing done" \
-     "\n	-v,--verbose		Verbose" \
-     "\n	-N,--nicelevel N	Add N to process's nice level" \
+     "\n	-N,--nicelevel N	Change nice level" \
 	) \
-     "\n	-s,--signal signal	Signal to send (default TERM)" \
-     "\n	-c,--chuid user[:[grp]]	Change to specified user/group" \
+     "\n	-c,--chuid USER[:[GRP]]	Change to user/group" \
+     "\n	-m,--make-pidfile	Write PID to the pidfile specified by -p" \
+     "\n-S only:" \
+     "\n	-s,--signal SIG		Signal to send" \
+     "\n	-t,--test		Match only, exit with 0 if a process is found" \
+     "\nOther:" \
+	USE_FEATURE_START_STOP_DAEMON_FANCY( \
+     "\n	-o,--oknodo		Exit with status 0 if nothing is done" \
+     "\n	-q,--quiet		Quiet" \
+	) \
+     "\n	-v,--verbose		Verbose" \
 	) \
 	SKIP_GETOPT_LONG( \
-     "\n	-S		Start" \
-     "\n	-K		Stop" \
-     "\n	-a pathname	Start process specified by pathname" \
-     "\n	-b		Put process into background" \
-     "\n	-u username|uid	Stop this user's processes" \
-     "\n	-x executable	Program to either start or check" \
-     "\n	-n process-name	Stop processes with this name" \
-     "\n	-p pid-file	Save or load pid using a pid-file" \
-     "\n	-m		Create the -p file and enter pid in it" \
-     "\n	-q		Quiet" \
+     "\nProcess matching:" \
+     "\n	-u USERNAME|UID	Match only this user's processes" \
+     "\n	-n NAME		Match processes with NAME" \
+     "\n			in comm field in /proc/PID/stat" \
+     "\n	-x EXECUTABLE	Match processes with this command" \
+     "\n			command in /proc/PID/cmdline" \
+     "\n	-p FILE		Match a process with PID from the file" \
+     "\n	All specified conditions must match" \
+     "\n-K only:" \
+     "\n	-x EXECUTABLE	Program to run" \
+     "\n	-a NAME		Zeroth argument" \
+     "\n	-b		Background" \
 	USE_FEATURE_START_STOP_DAEMON_FANCY( \
-     "\n	-o		Exit status 0 if nothing done" \
-     "\n	-v		Verbose" \
-     "\n	-N N		Add N to process's nice level" \
+     "\n	-N N		Change nice level" \
 	) \
-     "\n	-s signal	Signal to send (default TERM)" \
-     "\n	-c user[:[grp]]	Change to specified user/group" \
-	)
+     "\n	-c USER[:[GRP]]	Change to user/group" \
+     "\n	-m		Write PID to the pidfile specified by -p" \
+     "\n-S only:" \
+     "\n	-s SIG		Signal to send" \
+     "\n	-t		Match only, exit with 0 if a process is found" \
+     "\nOther:" \
+	USE_FEATURE_START_STOP_DAEMON_FANCY( \
+     "\n	-o		Exit with status 0 if nothing is done" \
+     "\n	-q		Quiet" \
+	) \
+     "\n	-v		Verbose" \
+	) \
 
 #define stat_trivial_usage \
        "[OPTION] FILE..."
