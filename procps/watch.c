@@ -28,7 +28,7 @@ int watch_main(int argc ATTRIBUTE_UNUSED, char **argv)
 {
 	unsigned opt;
 	unsigned period = 2;
-	int width, new_width;
+	unsigned width, new_width;
 	char *header;
 	char *cmd;
 
@@ -43,19 +43,19 @@ int watch_main(int argc ATTRIBUTE_UNUSED, char **argv)
 	while (*++argv)
 		cmd = xasprintf("%s %s", cmd, *argv); // leaks cmd
 
-	width = -1; // make sure first time new_width != width
+	width = (unsigned)-1; // make sure first time new_width != width
 	header = NULL;
 	while (1) {
 		printf("\033[H\033[J");
 		if (!(opt & 0x2)) { // no -t
-			const int time_len = sizeof("1234-67-90 23:56:89");
+			const unsigned time_len = sizeof("1234-67-90 23:56:89");
 			time_t t;
 
 			get_terminal_width_height(STDIN_FILENO, &new_width, NULL);
 			if (new_width != width) {
 				width = new_width;
 				free(header);
-				header = xasprintf("Every %us: %-*s", period, width, cmd);
+				header = xasprintf("Every %us: %-*s", period, (int)width, cmd);
 			}
 			time(&t);
 			if (time_len < width)

@@ -1048,7 +1048,7 @@ extern int update_passwd(const char *filename, const char *username,
 			const char *new_pw);
 
 /* NB: typically you want to pass fd 0, not 1. Think 'applet | grep something' */
-int get_terminal_width_height(int fd, int *width, int *height);
+int get_terminal_width_height(int fd, unsigned *width, unsigned *height);
 
 /* NB: "unsigned request" is crucial! "int request" will break some arches! */
 int ioctl_or_perror(int fd, unsigned request, void *argp, const char *fmt,...) __attribute__ ((format (printf, 4, 5)));

@@ -742,9 +742,10 @@ enum {
 int top_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int top_main(int argc ATTRIBUTE_UNUSED, char **argv)
 {
-	int count, lines, col;
-	unsigned interval;
+	int count;
 	int iterations;
+	unsigned lines, col;
+	unsigned interval;
 	char *sinterval;
 	SKIP_FEATURE_TOPMEM(const) unsigned scan_mask = TOP_MASK;
 #if ENABLE_FEATURE_USE_TERMIOS

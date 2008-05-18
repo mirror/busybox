@@ -136,7 +136,7 @@ static smallint last_file_modified = -1;
 static int fn_start;            // index of first cmd line file name
 static int save_argc;           // how many file names on cmd line
 static int cmdcnt;              // repetition count
-static int rows, columns;       // the terminal screen is this size
+static unsigned rows, columns;	 // the terminal screen is this size
 static int crow, ccol;          // cursor is on Crow x Ccol
 static int offset;              // chars scrolled off the screen to the left
 static char *status_buffer;     // mesages to the user
@@ -2837,7 +2837,7 @@ static void refresh(int full_screen)
 	char *tp, *sp;		// pointer into text[] and screen[]
 
 	if (ENABLE_FEATURE_VI_WIN_RESIZE) {
-		int c = columns, r = rows;
+		unsigned c = columns, r = rows;
 		get_terminal_width_height(0, &columns, &rows);
 		if (rows > MAX_SCR_ROWS) rows = MAX_SCR_ROWS;
 		if (columns > MAX_SCR_COLS) columns = MAX_SCR_COLS;

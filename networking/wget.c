@@ -54,9 +54,9 @@ enum {
 	STALLTIME = 5                   /* Seconds when xfer considered "stalled" */
 };
 
-static int getttywidth(void)
+static unsigned int getttywidth(void)
 {
-	int width;
+	unsigned width;
 	get_terminal_width_height(0, &width, NULL);
 	return width;
 }

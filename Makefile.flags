@@ -17,11 +17,15 @@ CPPFLAGS += \
 	$(if $(CONFIG_LFS),-D_LARGEFILE_SOURCE -D_LARGEFILE64_SOURCE -D_FILE_OFFSET_BITS=64) \
 	-D"BB_VER=KBUILD_STR($(BB_VER))" -DBB_BT=AUTOCONF_TIMESTAMP
 
-# flag checks are grouped together to speed the checks up a bit..
-CFLAGS += $(call cc-option,-Wall -Wshadow -Wwrite-strings,)
-CFLAGS += $(call cc-option,-Wundef -Wstrict-prototypes,)
+CFLAGS += $(call cc-option,-Wall,)
+CFLAGS += $(call cc-option,-Wshadow,)
+CFLAGS += $(call cc-option,-Wwrite-strings,)
+CFLAGS += $(call cc-option,-Wundef,)
+CFLAGS += $(call cc-option,-Wstrict-prototypes,)
 CFLAGS += $(call cc-option,-Wunused -Wunused-parameter,)
 CFLAGS += $(call cc-option,-Wmissing-prototypes -Wmissing-declarations,)
+# warn about C99 declaration after statement
+CFLAGS += $(call cc-option,-Wdeclaration-after-statement,)
 # If you want to add more -Wsomething above, make sure that it is
 # still possible to build bbox without warnings.
 

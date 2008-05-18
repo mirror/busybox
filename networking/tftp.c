@@ -246,7 +246,7 @@ static int tftp_protocol(
 		local_fd = open_or_warn(local_file, open_mode);
 		if (local_fd < 0) {
 			/*error_pkt_reason = ERR_NOFILE/ERR_ACCESS?*/
-			strcpy(error_pkt_str, "can't open file");
+			strcpy((char*)error_pkt_str, "can't open file");
 			goto send_err_pkt;
 		}
 	}
@@ -479,7 +479,7 @@ static int tftp_protocol(
 			if (recv_blk == block_nr) {
 				int sz = full_write(local_fd, &rbuf[4], len - 4);
 				if (sz != len - 4) {
-					strcpy(error_pkt_str, bb_msg_write_error);
+					strcpy((char*)error_pkt_str, bb_msg_write_error);
 					error_pkt_reason = ERR_WRITE;
 					goto send_err_pkt;
 				}
@@ -525,12 +525,12 @@ static int tftp_protocol(
 	return finished == 0; /* returns 1 on failure */
 
  send_read_err_pkt:
-	strcpy(error_pkt_str, bb_msg_read_error);
+	strcpy((char*)error_pkt_str, bb_msg_read_error);
  send_err_pkt:
 	if (error_pkt_str[0])
-		bb_error_msg(error_pkt_str);
+		bb_error_msg((char*)error_pkt_str);
 	error_pkt[1] = TFTP_ERROR;
-	xsendto(socket_fd, error_pkt, 4 + 1 + strlen(error_pkt_str),
+	xsendto(socket_fd, error_pkt, 4 + 1 + strlen((char*)error_pkt_str),
 			&peer_lsa->u.sa, peer_lsa->len);
 	return EXIT_FAILURE;
 }
@@ -715,7 +715,7 @@ int tftpd_main(int argc ATTRIBUTE_UNUSED, char **argv)
 
 	return result;
  err:
-	strcpy(error_pkt_str, error_msg);
+	strcpy((char*)error_pkt_str, error_msg);
 	goto do_proto;
 }
 

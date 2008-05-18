@@ -68,7 +68,7 @@ struct globals {
 	const char *autologin;
 #endif
 #if ENABLE_FEATURE_AUTOWIDTH
-	int	win_width, win_height;
+	unsigned win_width, win_height;
 #endif
 	/* same buffer used both for network and console read/write */
 	char    buf[DATABUFSIZE];

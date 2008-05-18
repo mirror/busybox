@@ -1318,7 +1318,7 @@ static void cmdedit_setwidth(unsigned w, int redraw_flg)
 
 static void win_changed(int nsig)
 {
-	int width;
+	unsigned width;
 	get_terminal_width_height(0, &width, NULL);
 	cmdedit_setwidth(width, nsig /* - just a yes/no flag */);
 	if (nsig == SIGWINCH)
@@ -1353,7 +1353,7 @@ int read_line_input(const char *prompt, char *command, int maxsize, line_input_t
 #if ENABLE_FEATURE_TAB_COMPLETION
 	smallint lastWasTab = FALSE;
 #endif
-	unsigned int ic;
+	unsigned ic;
 	unsigned char c;
 	smallint break_out = 0;
 #if ENABLE_FEATURE_EDITING_VI

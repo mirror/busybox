@@ -62,8 +62,8 @@ int more_main(int argc ATTRIBUTE_UNUSED, char **argv)
 	FILE *file;
 	FILE *cin;
 	int len;
-	int terminal_width;
-	int terminal_height;
+	unsigned terminal_width;
+	unsigned terminal_height;
 
 	INIT_G();
 

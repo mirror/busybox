@@ -73,7 +73,7 @@ static const char *unpack_usage_messages(void)
 
 	i = start_bunzip(&bd,
 			/* src_fd: */ -1,
-			/* inbuf:  */ packed_usage,
+			/* inbuf:  */ (void *)packed_usage,
 			/* len:    */ sizeof(packed_usage));
 	/* read_bunzip can longjmp to start_bunzip, and ultimately
 	 * end up here with i != 0 on read data errors! Not trivial */
@@ -628,7 +628,7 @@ static int busybox_main(char **argv)
 	if (!argv[1]) {
 		/* Called without arguments */
 		const char *a;
-		int col, output_width;
+		unsigned col, output_width;
  help:
 		output_width = 80;
 		if (ENABLE_FEATURE_AUTOWIDTH) {

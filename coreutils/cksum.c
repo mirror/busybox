@@ -34,7 +34,7 @@ int cksum_main(int argc ATTRIBUTE_UNUSED, char **argv)
 
 #define read_buf bb_common_bufsiz1
 		while ((bytes_read = safe_read(fd, read_buf, sizeof(read_buf))) > 0) {
-			cp = read_buf;
+			cp = (uint8_t *) read_buf;
 			length += bytes_read;
 			do {
 				crc = (crc << 8) ^ crc32_table[(crc >> 24) ^ *cp++];
