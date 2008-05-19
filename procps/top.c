@@ -523,7 +523,7 @@ static void reset_term(void)
 static void sig_catcher(int sig ATTRIBUTE_UNUSED)
 {
 	reset_term();
-	exit(1);
+	exit(EXIT_FAILURE);
 }
 #endif /* FEATURE_USE_TERMIOS */
 

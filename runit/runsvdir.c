@@ -343,7 +343,7 @@ int runsvdir_main(int argc ATTRIBUTE_UNUSED, char **argv)
 
 		switch (exitsoon) {
 		case 1:
-			_exit(0);
+			_exit(EXIT_SUCCESS);
 		case 2:
 			for (i = 0; i < svnum; i++)
 				if (sv[i].pid)

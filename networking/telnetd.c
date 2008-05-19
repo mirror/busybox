@@ -262,7 +262,7 @@ make_new_session(
 	BB_EXECVP(loginpath, (char **)login_argv);
 	/* _exit is safer with vfork, and we shouldn't send message
 	 * to remote clients anyway */
-	_exit(1); /*bb_perror_msg_and_die("execv %s", loginpath);*/
+	_exit(EXIT_FAILURE); /*bb_perror_msg_and_die("execv %s", loginpath);*/
 }
 
 /* Must match getopt32 string */
@@ -281,7 +281,7 @@ free_session(struct tsession *ts)
 	struct tsession *t = sessions;
 
 	if (option_mask32 & OPT_INETD)
-		exit(0);
+		exit(EXIT_SUCCESS);
 
 	/* Unlink this telnet session from the session list */
 	if (t == ts)
@@ -325,7 +325,7 @@ free_session(struct tsession *ts)
 
 #else /* !FEATURE_TELNETD_STANDALONE */
 
-/* Used in main() only, thus "return 0" actually is exit(0). */
+/* Used in main() only, thus "return 0" actually is exit(EXIT_SUCCESS). */
 #define free_session(ts) return 0
 
 #endif

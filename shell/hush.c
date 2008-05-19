@@ -1480,7 +1480,7 @@ static void pseudo_exec_argv(char **argv)
 	debug_printf_exec("execing '%s'\n", argv[0]);
 	execvp(argv[0], argv);
 	bb_perror_msg("cannot exec '%s'", argv[0]);
-	_exit(1);
+	_exit(EXIT_FAILURE);
 }
 
 /* Called after [v]fork() in run_pipe()

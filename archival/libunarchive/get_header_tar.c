@@ -99,7 +99,7 @@ char get_header_tar(archive_handle_t *archive_handle)
 	 * "tar: A lone zero block at N", where N = kilobyte
 	 * where EOF was met (not EOF block, actual EOF!),
 	 * and tar will exit with error code 0.
-	 * We will mimic exit(0), although we will not mimic
+	 * We will mimic exit(EXIT_SUCCESS), although we will not mimic
 	 * the message and we don't check whether we indeed
 	 * saw zero block directly before this. */
 	if (i == 0)

@@ -284,7 +284,7 @@ static void parse_args(char **argv, int cmd, struct ip_tunnel_parm *p)
 				struct ip_tunnel_parm old_p;
 				memset(&old_p, 0, sizeof(old_p));
 				if (do_get_ioctl(*argv, &old_p))
-					exit(1);
+					exit(EXIT_FAILURE);
 				*p = old_p;
 			}
 		}

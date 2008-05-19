@@ -85,7 +85,7 @@ int env_main(int argc ATTRIBUTE_UNUSED, char **argv)
 		puts(*ep);
 	}
 
-	fflush_stdout_and_exit(0);
+	fflush_stdout_and_exit(EXIT_SUCCESS);
 }
 
 /*

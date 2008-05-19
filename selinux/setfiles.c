@@ -612,7 +612,7 @@ int setfiles_main(int argc, char **argv)
 		optind++;
 
 		if (nerr)
-			exit(1);
+			exit(EXIT_FAILURE);
 	}
 
 	if (input_filename) {

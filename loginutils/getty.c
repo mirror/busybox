@@ -423,7 +423,7 @@ static char *get_logname(char *logname, unsigned size_logname,
 			/* Do not report trivial EINTR/EIO errors. */
 			if (read(0, &c, 1) < 1) {
 				if (errno == EINTR || errno == EIO)
-					exit(0);
+					exit(EXIT_SUCCESS);
 				bb_perror_msg_and_die("%s: read", op->tty);
 			}
 
@@ -475,7 +475,7 @@ static char *get_logname(char *logname, unsigned size_logname,
 				}
 				break;
 			case CTL('D'):
-				exit(0);
+				exit(EXIT_SUCCESS);
 			default:
 				if (!isascii(ascval) || !isprint(ascval)) {
 					/* ignore garbage characters */

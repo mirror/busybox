@@ -29,5 +29,5 @@ int printenv_main(int argc ATTRIBUTE_UNUSED, char **argv)
 		}
 	}
 
-	fflush_stdout_and_exit(0);
+	fflush_stdout_and_exit(EXIT_SUCCESS);
 }

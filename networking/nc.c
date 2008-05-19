@@ -183,7 +183,7 @@ int nc_main(int argc, char **argv)
 				nread = safe_read(fd, iobuf, sizeof(iobuf));
 				if (fd == cfd) {
 					if (nread < 1)
-						exit(0);
+						exit(EXIT_SUCCESS);
 					ofd = STDOUT_FILENO;
 				} else {
 					if (nread<1) {

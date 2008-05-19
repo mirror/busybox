@@ -588,15 +588,15 @@ int ipcs_main(int argc ATTRIBUTE_UNUSED, char **argv)
 	if (flags & flag_print) {
 		if (flags & flag_shm) {
 			print_shm(id);
-			fflush_stdout_and_exit(0);
+			fflush_stdout_and_exit(EXIT_SUCCESS);
 		}
 		if (flags & flag_sem) {
 			print_sem(id);
-			fflush_stdout_and_exit(0);
+			fflush_stdout_and_exit(EXIT_SUCCESS);
 		}
 		if (flags & flag_msg) {
 			print_msg(id);
-			fflush_stdout_and_exit(0);
+			fflush_stdout_and_exit(EXIT_SUCCESS);
 		}
 		bb_show_usage();
 	}
@@ -617,5 +617,5 @@ int ipcs_main(int argc ATTRIBUTE_UNUSED, char **argv)
 		do_msg();
 		bb_putchar('\n');
 	}
-	fflush_stdout_and_exit(0);
+	fflush_stdout_and_exit(EXIT_SUCCESS);
 }

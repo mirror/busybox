@@ -102,5 +102,5 @@ int vlock_main(int argc ATTRIBUTE_UNUSED, char **argv)
 
 	ioctl(STDIN_FILENO, VT_SETMODE, &ovtm);
 	tcsetattr(STDIN_FILENO, TCSANOW, &oterm);
-	fflush_stdout_and_exit(0);
+	fflush_stdout_and_exit(EXIT_SUCCESS);
 }

@@ -424,5 +424,5 @@ int time_main(int argc ATTRIBUTE_UNUSED, char **argv)
 		return WTERMSIG(res.waitstatus);
 	if (WIFEXITED(res.waitstatus))
 		return WEXITSTATUS(res.waitstatus);
-	fflush_stdout_and_exit(0);
+	fflush_stdout_and_exit(EXIT_SUCCESS);
 }

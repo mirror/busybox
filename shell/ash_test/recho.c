@@ -41,7 +41,7 @@ char	**argv;
 		strprint(argv[i]);
 		printf(">\n");
 	}
-	exit(0);
+	exit(EXIT_SUCCESS);
 }
 
 void

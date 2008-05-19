@@ -797,7 +797,7 @@ ForkJob(const char *user, CronLine *line, int mailFd,
 		if (mail_filename) {
 			fdprintf(1, "Exec failed: %s -c %s\n", prog, arg);
 		}
-		_exit(0);
+		_exit(EXIT_SUCCESS);
 	}
 
 	line->cl_Pid = pid;
@@ -930,7 +930,7 @@ static void RunJob(const char *user, CronLine *line)
 		execl(DEFAULT_SHELL, DEFAULT_SHELL, "-c", line->cl_Shell, NULL);
 		crondlog(ERR20 "can't exec, user %s cmd %s %s %s", user,
 				 DEFAULT_SHELL, "-c", line->cl_Shell);
-		_exit(0);
+		_exit(EXIT_SUCCESS);
 	}
 	if (pid < 0) {
 		/* FORK FAILED */

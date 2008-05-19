@@ -64,7 +64,7 @@ static void interrupted(int sig ATTRIBUTE_UNUSED)
 {
 	signal(SIGINT, SIG_IGN);
 	shmdt(shbuf);
-	exit(0);
+	exit(EXIT_SUCCESS);
 }
 
 int logread_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;

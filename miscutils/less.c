@@ -882,7 +882,7 @@ static void colon_process(void)
 		change_file(-1);
 		break;
 	case 'q':
-		less_exit(0);
+		less_exit(EXIT_SUCCESS);
 		break;
 	case 'x':
 		change_file(0);
@@ -1270,7 +1270,7 @@ static void keypress_process(int keypress)
 		buffer_line(cur_fline);
 		break;
 	case 'q': case 'Q':
-		less_exit(0);
+		less_exit(EXIT_SUCCESS);
 		break;
 #if ENABLE_FEATURE_LESS_MARKS
 	case 'm':

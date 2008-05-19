@@ -4789,7 +4789,7 @@ openhere(union node *redir)
 			full_write(pip[1], redir->nhere.doc->narg.text, len);
 		else
 			expandhere(redir->nhere.doc, pip[1]);
-		_exit(0);
+		_exit(EXIT_SUCCESS);
 	}
  out:
 	close(pip[1]);

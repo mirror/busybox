@@ -40,7 +40,7 @@ int open_transformer(int src_fd,
 			close(fd_pipe.wr); /* Send EOF */
 			close(src_fd);
 		}
-		exit(0);
+		exit(EXIT_SUCCESS);
 #else
 		{
 			char *argv[4];

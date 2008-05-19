@@ -1124,7 +1124,7 @@ static void clean_up_and_exit(int sig ATTRIBUTE_UNUSED)
 			close(sep->se_fd);
 	}
 	remove_pidfile(_PATH_INETDPID);
-	exit(0);
+	exit(EXIT_SUCCESS);
 }
 
 int inetd_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
@@ -1344,7 +1344,7 @@ int inetd_main(int argc ATTRIBUTE_UNUSED, char **argv)
 				else
 					sep->se_builtin->bi_dgram_fn(ctrl, sep);
 				if (pid) /* we did vfork */
-					_exit(1);
+					_exit(EXIT_FAILURE);
 				maybe_close(accepted_fd);
 				continue; /* -> check next fd in fd set */
 			}
@@ -1408,7 +1408,7 @@ int inetd_main(int argc ATTRIBUTE_UNUSED, char **argv)
 			/* eat packet in udp case */
 			if (sep->se_socktype != SOCK_STREAM)
 				recv(0, line, LINE_SIZE, MSG_DONTWAIT);
-			_exit(1);
+			_exit(EXIT_FAILURE);
 		} /* for (sep = servtab...) */
 	} /* for (;;) */
 }
@@ -1441,7 +1441,7 @@ static void echo_stream(int s, servtab_t *sep ATTRIBUTE_UNUSED)
 	close(STDERR_FILENO);
 	xopen("/dev/null", O_WRONLY);
 	BB_EXECVP("cat", (char**)cat_args);
-	/* on failure we return to main, which does exit(1) */
+	/* on failure we return to main, which does exit(EXIT_FAILURE) */
 #endif
 }
 static void echo_dg(int s, servtab_t *sep)
@@ -1479,7 +1479,7 @@ static void discard_stream(int s, servtab_t *sep ATTRIBUTE_UNUSED)
 	/* no error messages please... */
 	xdup2(STDOUT_FILENO, STDERR_FILENO);
 	BB_EXECVP("cat", (char**)cat_args);
-	/* on failure we return to main, which does exit(1) */
+	/* on failure we return to main, which does exit(EXIT_FAILURE) */
 #endif
 }
 /* ARGSUSED */

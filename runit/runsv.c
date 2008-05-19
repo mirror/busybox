@@ -640,7 +640,7 @@ int runsv_main(int argc ATTRIBUTE_UNUSED, char **argv)
 
 		if (svd[0].want == W_EXIT && svd[0].state == S_DOWN) {
 			if (svd[1].pid == 0)
-				_exit(0);
+				_exit(EXIT_SUCCESS);
 			if (svd[1].want != W_EXIT) {
 				svd[1].want = W_EXIT;
 				/* stopservice(&svd[1]); */

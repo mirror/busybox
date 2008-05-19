@@ -130,7 +130,7 @@ static void die_if_nologin(void)
 		fclose(fp);
 	} else
 		puts("\r\nSystem closed for routine maintenance\r");
-	exit(1);
+	exit(EXIT_FAILURE);
 }
 #else
 static ALWAYS_INLINE void die_if_nologin(void) {}
@@ -178,18 +178,18 @@ static void get_username_or_die(char *buf, int size_buf)
 	/* skip whitespace */
 	do {
 		c = getchar();
-		if (c == EOF) exit(1);
+		if (c == EOF) exit(EXIT_FAILURE);
 		if (c == '\n') {
-			if (!--cntdown) exit(1);
+			if (!--cntdown) exit(EXIT_FAILURE);
 			goto prompt;
 		}
 	} while (isspace(c));
 
 	*buf++ = c;
 	if (!fgets(buf, size_buf-2, stdin))
-		exit(1);
+		exit(EXIT_FAILURE);
 	if (!strchr(buf, '\n'))
-		exit(1);
+		exit(EXIT_FAILURE);
 	while (isgraph(*buf)) buf++;
 	*buf = '\0';
 }

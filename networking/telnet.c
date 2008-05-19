@@ -122,7 +122,7 @@ static void conescape(void)
 			" e	exit telnet\r\n");
 
 	if (read(0, &b, 1) <= 0)
-		doexit(1);
+		doexit(EXIT_FAILURE);
 
 	switch (b) {
 	case 'l':
@@ -143,7 +143,7 @@ static void conescape(void)
 		rawmode();
 		break;
 	case 'e':
-		doexit(0);
+		doexit(EXIT_SUCCESS);
 	}
 
 	write_str(1, "continuing...\r\n");
@@ -634,7 +634,7 @@ int telnet_main(int argc, char **argv)
 			{
 				len = read(0, G.buf, DATABUFSIZE);
 				if (len <= 0)
-					doexit(0);
+					doexit(EXIT_SUCCESS);
 				TRACE(0, ("Read con: %d\n", len));
 				handlenetoutput(len);
 			}
@@ -648,7 +648,7 @@ int telnet_main(int argc, char **argv)
 				len = read(G.netfd, G.buf, DATABUFSIZE);
 				if (len <= 0) {
 					write_str(1, "Connection closed by foreign host\r\n");
-					doexit(1);
+					doexit(EXIT_FAILURE);
 				}
 				TRACE(0, ("Read netfd (%d): %d\n", G.netfd, len));
 				handlenetinput(len);

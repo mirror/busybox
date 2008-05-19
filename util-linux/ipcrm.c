@@ -111,7 +111,7 @@ int ipcrm_main(int argc, char **argv)
 				what = SEM;
 
 			if (remove_ids(what, argc-2, &argv[2]))
-				fflush_stdout_and_exit(1);
+				fflush_stdout_and_exit(EXIT_FAILURE);
 			printf("resource(s) deleted\n");
 			return 0;
 		}

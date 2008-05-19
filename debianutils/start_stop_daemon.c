@@ -403,7 +403,7 @@ int start_stop_daemon_main(int argc ATTRIBUTE_UNUSED, char **argv)
 			/* parent */
 			/* why _exit? the child may have changed the stack,
 			 * so "return 0" may do bad things */
-			_exit(0);
+			_exit(EXIT_SUCCESS);
 		}
 		/* child */
 		setsid(); /* detach from controlling tty */

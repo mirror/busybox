@@ -552,7 +552,7 @@ static void NOINLINE vfork_compressor(int tar_fd, int gzip)
 		/* exec gzip/bzip2 program/applet */
 		BB_EXECLP(zip_exec, zip_exec, "-f", NULL);
 		vfork_exec_errno = errno;
-		_exit(1);
+		_exit(EXIT_FAILURE);
 	}
 
 	/* parent */

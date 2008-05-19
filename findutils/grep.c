@@ -35,7 +35,7 @@
 enum {
 	OPTBIT_l, /* list matched file names only */
 	OPTBIT_n, /* print line# */
-	OPTBIT_q, /* quiet - exit(0) of first match */
+	OPTBIT_q, /* quiet - exit(EXIT_SUCCESS) of first match */
 	OPTBIT_v, /* invert the match, to select non-matching lines */
 	OPTBIT_s, /* suppress errors about file open errors */
 	OPTBIT_c, /* count matches per file (suppresses normal output) */
@@ -224,7 +224,7 @@ static int grep_file(FILE *file)
 					 * "exit immediately with zero status
 					 * if any match is found,
 					 * even if errors were detected" */
-					exit(0);
+					exit(EXIT_SUCCESS);
 				}
 				/* if we're just printing filenames, we stop after the first match */
 				if (PRINT_FILES_WITH_MATCHES) {

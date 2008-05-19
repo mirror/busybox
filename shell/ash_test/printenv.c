@@ -45,7 +45,7 @@ main (argc, argv)
     {
       for (envp = environ; *envp; envp++)
 	puts (*envp);
-      exit (0);
+      exit(EXIT_SUCCESS);
     }
 
   /* printenv varname */
@@ -59,9 +59,9 @@ main (argc, argv)
 	  if (*eval == '=')
 	    {
 	      puts (eval + 1);
-	      exit (0);
+	      exit(EXIT_SUCCESS);
 	    }
 	}
     }
-  exit (1);
+  exit(EXIT_FAILURE);
 }

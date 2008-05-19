@@ -110,13 +110,13 @@ static void set_state(struct termios *state, int encap)
 	/* Set encapsulation (SLIP, CSLIP, etc) */
 	if (ioctl_or_warn(handle, SIOCSIFENCAP, &encap) < 0) {
  bad:
-		restore_state_and_exit(1);
+		restore_state_and_exit(EXIT_FAILURE);
 	}
 }
 
 static void sig_handler(int signo ATTRIBUTE_UNUSED)
 {
-	restore_state_and_exit(0);
+	restore_state_and_exit(EXIT_SUCCESS);
 }
 
 int slattach_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
@@ -239,5 +239,5 @@ int slattach_main(int argc ATTRIBUTE_UNUSED, char **argv)
 		system(extcmd);
 
 	/* Restore states and exit */
-	restore_state_and_exit(0);
+	restore_state_and_exit(EXIT_SUCCESS);
 }

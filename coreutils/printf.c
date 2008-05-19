@@ -266,7 +266,7 @@ static char **print_formatted(char *format, char **argv)
 			break;
 		case '\\':
 			if (*++f == 'c')
-				exit(0);
+				exit(EXIT_SUCCESS);
 			bb_putchar(bb_process_escape_sequence((const char **)&f));
 			f--;
 			break;

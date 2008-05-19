@@ -17,7 +17,7 @@ static void
 onintr(int sig ATTRIBUTE_UNUSED)
 {
 	tcsetattr(STDERR_FILENO, TCSANOW, &old_termios);
-	exit(1);
+	exit(EXIT_FAILURE);
 }
 
 int resize_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;

@@ -755,7 +755,7 @@ int ping_main(int argc ATTRIBUTE_UNUSED, char **argv)
 
 	dotted = xmalloc_sockaddr2dotted_noport(&lsa->u.sa);
 	ping(lsa);
-	print_stats_and_exit(0);
+	print_stats_and_exit(EXIT_SUCCESS);
 	/*return EXIT_SUCCESS;*/
 }
 #endif /* FEATURE_FANCY_PING */

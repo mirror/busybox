@@ -89,7 +89,7 @@ void kill_myself_with_sig(int sig)
 	signal(sig, SIG_DFL);
 	sig_unblock(sig);
 	raise(sig);
-	_exit(1); /* Should not reach it */
+	_exit(EXIT_FAILURE); /* Should not reach it */
 }
 
 void signal_SA_RESTART_empty_mask(int sig, void (*handler)(int))

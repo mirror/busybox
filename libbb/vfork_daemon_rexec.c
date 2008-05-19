@@ -230,7 +230,7 @@ void forkexit_or_rexec(char **argv)
 	if (pid < 0) /* wtf? */
 		bb_perror_msg_and_die("vfork");
 	if (pid) /* parent */
-		exit(0);
+		exit(EXIT_SUCCESS);
 	/* child - re-exec ourself */
 	re_exec(argv);
 }
@@ -244,7 +244,7 @@ void forkexit_or_rexec(void)
 	if (pid < 0) /* wtf? */
 		bb_perror_msg_and_die("fork");
 	if (pid) /* parent */
-		exit(0);
+		exit(EXIT_SUCCESS);
 	/* child */
 }
 #define forkexit_or_rexec(argv) forkexit_or_rexec()

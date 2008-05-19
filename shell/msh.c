@@ -2855,7 +2855,7 @@ static int forkexec(struct op *t, int *pin, int *pout, int no_fork, char **wp)
 	if (t->op_type == TPAREN)
 		_exit(execute(t->left, NOPIPE, NOPIPE, /* no_fork: */ 1));
 	if (wp[0] == NULL)
-		_exit(0);
+		_exit(EXIT_SUCCESS);
 
 	cp = rexecve(wp[0], wp, makenv(0, NULL));
 	prs(wp[0]);
@@ -4207,7 +4207,7 @@ static int grave(int quoted)
 	prs(argument_list[0]);
 	prs(": ");
 	err(cp);
-	_exit(1);
+	_exit(EXIT_FAILURE);
 }
 
 
@@ -4733,7 +4733,7 @@ static int filechar(struct ioarg *ap)
 		while (size == 0 || position >= size) {
 			size = read_line_input(current_prompt, filechar_cmdbuf, BUFSIZ, line_input_state);
 			if (size < 0) /* Error/EOF */
-				exit(0);
+				exit(EXIT_SUCCESS);
 			position = 0;
 			/* if Ctrl-C, size == 0 and loop will repeat */
 		}
@@ -5212,7 +5212,7 @@ int msh_main(int argc, char **argv)
 
 			name = *++argv;
 			if (newfile(name))
-				exit(1);		/* Exit on error */
+				exit(EXIT_FAILURE);		/* Exit on error */
 		}
 	}
 

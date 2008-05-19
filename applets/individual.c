@@ -22,5 +22,5 @@ void bb_show_usage(void)
 {
 	printf(APPLET_full_usage "\n");
 
-	exit(1);
+	exit(EXIT_FAILURE);
 }

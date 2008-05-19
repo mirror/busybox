@@ -283,9 +283,9 @@ static const char bb_msg_variable_not_found[] ALIGN1 = "variable: %s not found";
 #else
 #define info_logger(p, fmt, args...)
 #define msg_logger(p, fmt, args...)
-#define msg_logger_and_die(p, fmt, args...)           exit(1)
+#define msg_logger_and_die(p, fmt, args...)           exit(EXIT_FAILURE)
 #define error_logger(p, fmt, args...)
-#define error_logger_and_die(p, fmt, args...)         exit(1)
+#define error_logger_and_die(p, fmt, args...)         exit(EXIT_FAILURE)
 #endif
 
 static void safe_memcpy(char *dest, const char *src, int len)
@@ -402,7 +402,7 @@ int devfsd_main(int argc, char **argv)
 	dir_operation(SERVICE, mount_point, 0, NULL);
 
 	if (ENABLE_DEVFSD_FG_NP && no_polling)
-		exit(0);
+		exit(EXIT_SUCCESS);
 
 	if (ENABLE_DEVFSD_VERBOSE || ENABLE_DEBUG)
 		logmode = LOGMODE_BOTH;
