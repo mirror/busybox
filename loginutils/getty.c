@@ -344,7 +344,7 @@ static void auto_baud(char *buf, unsigned size_buf, struct termios *tp)
 	 * try to extract the speed of the dial-in call.
 	 */
 	sleep(1);
-	nread = safe_read(0, buf, size_buf - 1);
+	nread = safe_read(STDIN_FILENO, buf, size_buf - 1);
 	if (nread > 0) {
 		buf[nread] = '\0';
 		for (bp = buf; bp < buf + nread; bp++) {
@@ -421,7 +421,7 @@ static char *get_logname(char *logname, unsigned size_logname,
 		while (cp->eol == '\0') {
 
 			/* Do not report trivial EINTR/EIO errors. */
-			if (read(0, &c, 1) < 1) {
+			if (read(STDIN_FILENO, &c, 1) < 1) {
 				if (errno == EINTR || errno == EIO)
 					exit(EXIT_SUCCESS);
 				bb_perror_msg_and_die("%s: read", op->tty);
@@ -460,7 +460,7 @@ static char *get_logname(char *logname, unsigned size_logname,
 #endif
 				cp->erase = ascval;     /* set erase character */
 				if (bp > logname) {
-					full_write(1, erase[cp->parity], 3);
+					full_write(STDOUT_FILENO, erase[cp->parity], 3);
 					bp--;
 				}
 				break;
@@ -470,7 +470,7 @@ static char *get_logname(char *logname, unsigned size_logname,
 #endif
 				cp->kill = ascval;      /* set kill character */
 				while (bp > logname) {
-					full_write(1, erase[cp->parity], 3);
+					full_write(STDOUT_FILENO, erase[cp->parity], 3);
 					bp--;
 				}
 				break;
@@ -482,7 +482,7 @@ static char *get_logname(char *logname, unsigned size_logname,
 				} else if ((int)(bp - logname) >= size_logname - 1) {
 					bb_error_msg_and_die("%s: input overrun", op->tty);
 				} else {
-					full_write(1, &c, 1); /* echo the character */
+					full_write(STDOUT_FILENO, &c, 1); /* echo the character */
 					*bp++ = ascval; /* and store it */
 				}
 				break;
@@ -715,7 +715,7 @@ int getty_main(int argc ATTRIBUTE_UNUSED, char **argv)
 	/* Write the modem init string and DON'T flush the buffers */
 	if (options.flags & F_INITSTRING) {
 		debug("writing init string\n");
-		full_write(1, options.initstring, strlen(options.initstring));
+		full_write(STDOUT_FILENO, options.initstring, strlen(options.initstring));
 	}
 
 	/* Optionally detect the baud rate from the modem status message */
@@ -731,7 +731,7 @@ int getty_main(int argc ATTRIBUTE_UNUSED, char **argv)
 		char ch;
 
 		debug("waiting for cr-lf\n");
-		while (safe_read(0, &ch, 1) == 1) {
+		while (safe_read(STDIN_FILENO, &ch, 1) == 1) {
 			debug("read %x\n", (unsigned char)ch);
 			ch &= 0x7f;                     /* strip "parity bit" */
 			if (ch == '\n' || ch == '\r')
@@ -767,7 +767,7 @@ int getty_main(int argc ATTRIBUTE_UNUSED, char **argv)
 	termios_final(&options, &termios, &chardata);
 
 	/* Now the newline character should be properly written. */
-	full_write(1, "\n", 1);
+	full_write(STDOUT_FILENO, "\n", 1);
 
 	/* Let the login program take care of password validation. */
 	/* We use PATH because we trust that root doesn't set "bad" PATH,

@@ -888,7 +888,7 @@ int top_main(int argc ATTRIBUTE_UNUSED, char **argv)
 			 /* batch mode, or EOF on stdin ("top </dev/null") */
 			sleep(interval);
 		else if (safe_poll(pfd, 1, interval * 1000) > 0) {
-			if (safe_read(0, &c, 1) != 1) { /* error/EOF? */
+			if (safe_read(STDIN_FILENO, &c, 1) != 1) { /* error/EOF? */
 				option_mask32 |= OPT_EOF;
 				continue;
 			}

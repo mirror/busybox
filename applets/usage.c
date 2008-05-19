@@ -13,6 +13,6 @@ static const char usage_messages[] = ""
 
 int main(void)
 {
-	write(1, usage_messages, sizeof(usage_messages));
+	write(STDOUT_FILENO, usage_messages, sizeof(usage_messages));
 	return 0;
 }

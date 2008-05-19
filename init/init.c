@@ -175,7 +175,7 @@ static void message(int where, const char *fmt, ...)
 
 	if (where & L_CONSOLE) {
 		/* Send console messages to console so people will see them. */
-		full_write(2, msg, l);
+		full_write(STDERR_FILENO, msg, l);
 	}
 }
 
@@ -471,8 +471,8 @@ static pid_t run(const struct init_action *a)
 		messageD(L_LOG, "waiting for enter to start '%s'"
 					"(pid %d, tty '%s')\n",
 				a->command, getpid(), a->terminal);
-		full_write(1, press_enter, sizeof(press_enter) - 1);
-		while (safe_read(0, &c, 1) == 1 && c != '\n')
+		full_write(STDOUT_FILENO, press_enter, sizeof(press_enter) - 1);
+		while (safe_read(STDIN_FILENO, &c, 1) == 1 && c != '\n')
 			continue;
 	}
 

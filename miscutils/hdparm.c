@@ -1924,7 +1924,7 @@ static void identify_from_stdin(void)
 	unsigned char *b = (unsigned char *)buf;
 	int i;
 
-	xread(0, buf, 1280);
+	xread(STDIN_FILENO, buf, 1280);
 
 	// Convert the newline-separated hex data into an identify block.
 

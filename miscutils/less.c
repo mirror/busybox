@@ -273,7 +273,7 @@ static void read_lines(void)
 			/* if no unprocessed chars left, eat more */
 			if (readpos >= readeof) {
 				ndelay_on(0);
-				eof_error = safe_read(0, readbuf, sizeof(readbuf));
+				eof_error = safe_read(STDIN_FILENO, readbuf, sizeof(readbuf));
 				ndelay_off(0);
 				readpos = 0;
 				readeof = eof_error;

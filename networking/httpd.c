@@ -947,7 +947,7 @@ static void log_and_exit(void)
 	/* Why??
 	(this also messes up stdin when user runs httpd -i from terminal)
 	ndelay_on(0);
-	while (read(0, iobuf, IOBUF_SIZE) > 0)
+	while (read(STDIN_FILENO, iobuf, IOBUF_SIZE) > 0)
 		continue;
 	*/
 
@@ -1023,7 +1023,7 @@ static void send_headers(int responseNum)
 
 		if (DEBUG)
 			fprintf(stderr, "headers: '%s'\n", iobuf);
-		full_write(1, iobuf, len);
+		full_write(STDOUT_FILENO, iobuf, len);
 		if (DEBUG)
 			fprintf(stderr, "writing error page: '%s'\n", error_page);
 		return send_file_and_exit(error_page, SEND_BODY);
@@ -1062,7 +1062,7 @@ static void send_headers(int responseNum)
 	}
 	if (DEBUG)
 		fprintf(stderr, "headers: '%s'\n", iobuf);
-	if (full_write(1, iobuf, len) != len) {
+	if (full_write(STDOUT_FILENO, iobuf, len) != len) {
 		if (verbose > 1)
 			bb_perror_msg("error");
 		log_and_exit();
@@ -1090,7 +1090,7 @@ static int get_line(void)
 
 	while (1) {
 		if (hdr_cnt <= 0) {
-			hdr_cnt = safe_read(0, hdr_buf, sizeof(hdr_buf));
+			hdr_cnt = safe_read(STDIN_FILENO, hdr_buf, sizeof(hdr_buf));
 			if (hdr_cnt <= 0)
 				break;
 			hdr_ptr = hdr_buf;
@@ -1202,8 +1202,8 @@ static NOINLINE void cgi_io_loop_and_exit(int fromCgi_rd, int toCgi_wr, int post
 			 * and there *is* data to read from the peer
 			 * (POSTDATA) */
 			//count = post_len > (int)sizeof(hdr_buf) ? (int)sizeof(hdr_buf) : post_len;
-			//count = safe_read(0, hdr_buf, count);
-			count = safe_read(0, hdr_buf, sizeof(hdr_buf));
+			//count = safe_read(STDIN_FILENO, hdr_buf, count);
+			count = safe_read(STDIN_FILENO, hdr_buf, sizeof(hdr_buf));
 			if (count > 0) {
 				hdr_cnt = count;
 				hdr_ptr = hdr_buf;
@@ -1237,8 +1237,8 @@ static NOINLINE void cgi_io_loop_and_exit(int fromCgi_rd, int toCgi_wr, int post
 					/* eof (or error) and there was no "HTTP",
 					 * so write it, then write received data */
 					if (out_cnt) {
-						full_write(1, HTTP_200, sizeof(HTTP_200)-1);
-						full_write(1, rbuf, out_cnt);
+						full_write(STDOUT_FILENO, HTTP_200, sizeof(HTTP_200)-1);
+						full_write(STDOUT_FILENO, rbuf, out_cnt);
 					}
 					break; /* CGI stdout is closed, exiting */
 				}
@@ -1247,7 +1247,7 @@ static NOINLINE void cgi_io_loop_and_exit(int fromCgi_rd, int toCgi_wr, int post
 				/* "Status" header format is: "Status: 302 Redirected\r\n" */
 				if (out_cnt >= 8 && memcmp(rbuf, "Status: ", 8) == 0) {
 					/* send "HTTP/1.0 " */
-					if (full_write(1, HTTP_200, 9) != 9)
+					if (full_write(STDOUT_FILENO, HTTP_200, 9) != 9)
 						break;
 					rbuf += 8; /* skip "Status: " */
 					count = out_cnt - 8;
@@ -1256,7 +1256,7 @@ static NOINLINE void cgi_io_loop_and_exit(int fromCgi_rd, int toCgi_wr, int post
 					/* Did CGI add "HTTP"? */
 					if (memcmp(rbuf, HTTP_200, 4) != 0) {
 						/* there is no "HTTP", do it ourself */
-						if (full_write(1, HTTP_200, sizeof(HTTP_200)-1) != sizeof(HTTP_200)-1)
+						if (full_write(STDOUT_FILENO, HTTP_200, sizeof(HTTP_200)-1) != sizeof(HTTP_200)-1)
 							break;
 					}
 					/* Commented out:
@@ -1276,7 +1276,7 @@ static NOINLINE void cgi_io_loop_and_exit(int fromCgi_rd, int toCgi_wr, int post
 				if (count <= 0)
 					break;  /* eof (or error) */
 			}
-			if (full_write(1, rbuf, count) != count)
+			if (full_write(STDOUT_FILENO, rbuf, count) != count)
 				break;
 			if (DEBUG)
 				fprintf(stderr, "cgi read %d bytes: '%.*s'\n", count, count, rbuf);
@@ -1632,7 +1632,7 @@ static void send_file_and_exit(const char *url, int what)
 	while ((count = safe_read(f, iobuf, IOBUF_SIZE)) > 0) {
 		ssize_t n;
 		USE_FEATURE_HTTPD_RANGES(if (count > range_len) count = range_len;)
-		n = full_write(1, iobuf, count);
+		n = full_write(STDOUT_FILENO, iobuf, count);
 		if (count != n)
 			break;
 		USE_FEATURE_HTTPD_RANGES(range_len -= count;)

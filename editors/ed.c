@@ -825,7 +825,7 @@ static int printLines(int num1, int num2, int expandFlag)
 
 	while (num1 <= num2) {
 		if (!expandFlag) {
-			write(1, lp->data, lp->len);
+			write(STDOUT_FILENO, lp->data, lp->len);
 			setCurNum(num1++);
 			lp = lp->next;
 			continue;

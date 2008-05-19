@@ -562,7 +562,7 @@ static int readwrite(void)
 	/* if we have a timeout AND stdin is closed AND we haven't heard anything
 	 from the net during that time, assume it's dead and close it too. */
 		if (rr == 0) {
-			if (!FD_ISSET(0, &ding1))
+			if (!FD_ISSET(STDIN_FILENO, &ding1))
 				netretry--;                        /* we actually try a coupla times. */
 			if (!netretry) {
 				if (o_verbose > 1)                /* normally we don't care */
@@ -597,12 +597,12 @@ Debug("got %d from the net, errno %d", rr, errno);
 			goto shovel;
 
 	/* okay, suck more stdin */
-		if (FD_ISSET(0, &ding2)) {                /* stdin: ding! */
-			rr = read(0, bigbuf_in, BIGSIZ);
+		if (FD_ISSET(STDIN_FILENO, &ding2)) {                /* stdin: ding! */
+			rr = read(STDIN_FILENO, bigbuf_in, BIGSIZ);
 	/* Considered making reads here smaller for UDP mode, but 8192-byte
 	 mobygrams are kinda fun and exercise the reassembler. */
 			if (rr <= 0) {                        /* at end, or fukt, or ... */
-				FD_CLR(0, &ding1);                /* disable and close stdin */
+				FD_CLR(STDIN_FILENO, &ding1);                /* disable and close stdin */
 				close(0);
 			} else {
 				rzleft = rr;
@@ -625,7 +625,7 @@ Debug("got %d from the net, errno %d", rr, errno);
 			return 1;
 		}
 		if (rnleft) {
-			rr = write(1, np, rnleft);
+			rr = write(STDOUT_FILENO, np, rnleft);
 			if (rr > 0) {
 				if (o_ofile) /* log the stdout */
 					oprint('<', (unsigned char *)np, rr);
@@ -783,7 +783,7 @@ int nc_main(int argc, char **argv)
 	}
 #endif
 
-	FD_SET(0, &ding1);                        /* stdin *is* initially open */
+	FD_SET(STDIN_FILENO, &ding1);                        /* stdin *is* initially open */
 	if (proggie) {
 		close(0); /* won't need stdin */
 		option_mask32 &= ~OPT_o; /* -o with -e is meaningless! */

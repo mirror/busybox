@@ -2220,7 +2220,7 @@ static char readit(void)	// read (maybe cursor) key from stdin
 	// get input from User- are there already input chars in Q?
 	if (n <= 0) {
 		// the Q is empty, wait for a typed char
-		n = safe_read(0, readbuffer, sizeof(readbuffer));
+		n = safe_read(STDIN_FILENO, readbuffer, sizeof(readbuffer));
 		if (n < 0) {
 			if (errno == EBADF || errno == EFAULT || errno == EINVAL
 			 || errno == EIO)
@@ -2243,7 +2243,7 @@ static char readit(void)	// read (maybe cursor) key from stdin
 			 && ((size_t)n <= (sizeof(readbuffer) - 8))
 			) {
 				// read the rest of the ESC string
-				int r = safe_read(0, readbuffer + n, sizeof(readbuffer) - n);
+				int r = safe_read(STDIN_FILENO, readbuffer + n, sizeof(readbuffer) - n);
 				if (r > 0)
 					n += r;
 			}
@@ -4035,7 +4035,7 @@ static void crash_test()
 		printf("\n\n%d: \'%c\' %s\n\n\n%s[Hit return to continue]%s",
 			totalcmds, last_input_char, msg, SOs, SOn);
 		fflush(stdout);
-		while (safe_read(0, d, 1) > 0) {
+		while (safe_read(STDIN_FILENO, d, 1) > 0) {
 			if (d[0] == '\n' || d[0] == '\r')
 				break;
 		}

@@ -121,7 +121,7 @@ static void conescape(void)
 			" z	suspend telnet\r\n"
 			" e	exit telnet\r\n");
 
-	if (read(0, &b, 1) <= 0)
+	if (read(STDIN_FILENO, &b, 1) <= 0)
 		doexit(EXIT_FAILURE);
 
 	switch (b) {
@@ -256,7 +256,7 @@ static void handlenetinput(int len)
 	}
 
 	if (len)
-		write(1, G.buf, len);
+		write(STDOUT_FILENO, G.buf, len);
 }
 
 static void putiac(int c)
@@ -601,7 +601,7 @@ int telnet_main(int argc, char **argv)
 	ufds[0].events = ufds[1].events = POLLIN;
 #else
 	FD_ZERO(&readfds);
-	FD_SET(0, &readfds);
+	FD_SET(STDIN_FILENO, &readfds);
 	FD_SET(G.netfd, &readfds);
 	maxfd = G.netfd + 1;
 #endif
@@ -629,10 +629,10 @@ int telnet_main(int argc, char **argv)
 #ifdef USE_POLL
 			if (ufds[0].revents) /* well, should check POLLIN, but ... */
 #else
-			if (FD_ISSET(0, &rfds))
+			if (FD_ISSET(STDIN_FILENO, &rfds))
 #endif
 			{
-				len = read(0, G.buf, DATABUFSIZE);
+				len = read(STDIN_FILENO, G.buf, DATABUFSIZE);
 				if (len <= 0)
 					doexit(EXIT_SUCCESS);
 				TRACE(0, ("Read con: %d\n", len));

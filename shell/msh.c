@@ -743,7 +743,7 @@ static void print_tree(struct op *head)
 static void prs(const char *s)
 {
 	if (*s)
-		write(2, s, strlen(s));
+		write(STDERR_FILENO, s, strlen(s));
 }
 
 static void prn(unsigned u)
@@ -3384,7 +3384,7 @@ static int doread(struct op *t ATTRIBUTE_UNUSED, char **args)
 	}
 	for (wp = args + 1; *wp; wp++) {
 		for (cp = global_env.linep; !nl && cp < elinep - 1; cp++) {
-			nb = nonblock_safe_read(0, cp, sizeof(*cp));
+			nb = nonblock_safe_read(STDIN_FILENO, cp, sizeof(*cp));
 			if (nb != sizeof(*cp))
 				break;
 			nl = (*cp == '\n');
@@ -4522,7 +4522,7 @@ static int readc(void)
 static void ioecho(char c)
 {
 	if (FLAG['v'])
-		write(2, &c, sizeof c);
+		write(STDERR_FILENO, &c, sizeof c);
 }
 
 static void pushio(struct ioarg *argp, int (*fn) (struct ioarg *))

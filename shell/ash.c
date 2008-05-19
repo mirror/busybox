@@ -1258,7 +1258,7 @@ stunalloc(void *p)
 {
 #if DEBUG
 	if (!p || (g_stacknxt < (char *)p) || ((char *)p < g_stackp->space)) {
-		write(2, "stunalloc\n", 10);
+		write(STDERR_FILENO, "stunalloc\n", 10);
 		abort();
 	}
 #endif

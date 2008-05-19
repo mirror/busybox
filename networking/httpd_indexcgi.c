@@ -125,7 +125,7 @@ static void guarantee(int size)
 {
 	if (buffer + (BUFFER_SIZE-HEADROOM) - dst >= size)
 		return;
-	write(1, buffer, dst - buffer);
+	write(STDOUT_FILENO, buffer, dst - buffer);
 	dst = buffer;
 }
 

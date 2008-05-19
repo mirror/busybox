@@ -124,7 +124,7 @@ int script_main(int argc ATTRIBUTE_UNUSED, char **argv)
 					goto restore;
 				}
 				if (count > 0) {
-					full_write(1, buf, count);
+					full_write(STDOUT_FILENO, buf, count);
 					full_write(outfd, buf, count);
 					if (opt & 4) { /* -f */
 						fsync(outfd);
@@ -132,7 +132,7 @@ int script_main(int argc ATTRIBUTE_UNUSED, char **argv)
 				}
 			}
 			if (pfd[1].revents) {
-				count = safe_read(0, buf, sizeof(buf));
+				count = safe_read(STDIN_FILENO, buf, sizeof(buf));
 				if (count <= 0) {
 					/* err/eof from stdin: don't read stdin anymore */
 					pfd[1].revents = 0;
@@ -152,7 +152,7 @@ int script_main(int argc ATTRIBUTE_UNUSED, char **argv)
 		loop = 999;
 		/* pty is in O_NONBLOCK mode, we exit as soon as buffer is empty */
 		while (--loop && (count = safe_read(pty, buf, sizeof(buf))) > 0) {
-			full_write(1, buf, count);
+			full_write(STDOUT_FILENO, buf, count);
 			full_write(outfd, buf, count);
 		}
  restore:

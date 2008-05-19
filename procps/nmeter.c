@@ -98,7 +98,7 @@ static void print_outbuf(void)
 {
 	int sz = cur_outbuf - outbuf;
 	if (sz > 0) {
-		xwrite(1, outbuf, sz);
+		xwrite(STDOUT_FILENO, outbuf, sz);
 		cur_outbuf = outbuf;
 	}
 }

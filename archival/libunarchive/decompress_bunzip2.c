@@ -762,7 +762,7 @@ int main(int argc, char **argv)
 
 	if (i < 0)
 		fprintf(stderr,"%s\n", bunzip_errors[-i]);
-	else if (read(0, &c, 1))
+	else if (read(STDIN_FILENO, &c, 1))
 		fprintf(stderr,"Trailing garbage ignored\n");
 	return -i;
 }

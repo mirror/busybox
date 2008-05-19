@@ -98,7 +98,7 @@ int split_main(int argc ATTRIBUTE_UNUSED, char **argv)
 	}
 
 	while (1) {
-		bytes_read = safe_read(0, read_buffer, READ_BUFFER_SIZE);
+		bytes_read = safe_read(STDIN_FILENO, read_buffer, READ_BUFFER_SIZE);
 		if (!bytes_read)
 			break;
 		if (bytes_read < 0)
@@ -130,7 +130,7 @@ int split_main(int argc ATTRIBUTE_UNUSED, char **argv)
 				}
 			}
 
-			xwrite(1, src, to_write);
+			xwrite(STDOUT_FILENO, src, to_write);
 			bytes_read -= to_write;
 			src += to_write;
 		} while (bytes_read);

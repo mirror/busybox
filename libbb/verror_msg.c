@@ -56,7 +56,7 @@ void bb_verror_msg(const char *s, va_list p, const char* strerr)
 
 	if (logmode & LOGMODE_STDIO) {
 		fflush(stdout);
-		full_write(2, msg, used + msgeol_len);
+		full_write(STDERR_FILENO, msg, used + msgeol_len);
 	}
 	if (logmode & LOGMODE_SYSLOG) {
 		syslog(LOG_ERR, "%s", msg + applet_len);

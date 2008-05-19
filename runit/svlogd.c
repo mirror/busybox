@@ -748,7 +748,7 @@ static int buffer_pread(/*int fd, */char *s, unsigned len)
 		poll(&input, 1, i * 1000);
 		sigprocmask(SIG_BLOCK, &blocked_sigset, NULL);
 
-		i = ndelay_read(0, s, len);
+		i = ndelay_read(STDIN_FILENO, s, len);
 		if (i >= 0)
 			break;
 		if (errno == EINTR)
@@ -994,7 +994,7 @@ int svlogd_main(int argc, char **argv)
 				logmatch(ld);
 			if (ld->matcherr == 'e') {
 				/* runit-1.8.0 compat: if timestamping, do it on stderr too */
-				////full_write(2, printptr, printlen);
+				////full_write(STDERR_FILENO, printptr, printlen);
 				fwrite(printptr, 1, printlen, stderr);
 			}
 			if (ld->match != '+') continue;
@@ -1022,7 +1022,7 @@ int svlogd_main(int argc, char **argv)
 			for (i = 0; i < dirn; ++i) {
 				if (dir[i].fddir == -1) continue;
 				if (dir[i].matcherr == 'e') {
-					////full_write(2, lineptr, linelen);
+					////full_write(STDERR_FILENO, lineptr, linelen);
 					fwrite(lineptr, 1, linelen, stderr);
 				}
 				if (dir[i].match != '+') continue;
