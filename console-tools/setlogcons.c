@@ -17,15 +17,14 @@ int setlogcons_main(int argc ATTRIBUTE_UNUSED, char **argv)
 	struct {
 		char fn;
 		char subarg;
-	} arg;
-
-	arg.fn = 11;    /* redirect kernel messages */
-	arg.subarg = 0; /* to specified console (current as default) */
+	} arg = { 11, /* redirect kernel messages */
+			  0   /* to specified console (current as default) */
+			};
 
 	if (argv[1])
 		arg.subarg = xatou_range(argv[1], 0, 63);
 
 	xioctl(xopen(VC_1, O_RDONLY), TIOCLINUX, &arg);
 
-	return 0;
+	return EXIT_SUCCESS;
 }

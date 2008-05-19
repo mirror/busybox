@@ -164,11 +164,7 @@ make_new_session(
 	/*ts->buf2 = ts->buf1 + BUFSIZE;*/
 
 	/* Got a new connection, set up a tty. */
-	fd = getpty(tty_name);
-	if (fd < 0) {
-		bb_error_msg("can't create pty");
-		return NULL;
-	}
+	fd = xgetpty(tty_name);
 	if (fd > maxfd)
 		maxfd = fd;
 	ts->ptyfd = fd;

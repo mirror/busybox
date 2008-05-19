@@ -26,7 +26,7 @@ int reset_main(int argc ATTRIBUTE_UNUSED, char **argv ATTRIBUTE_UNUSED)
 
 	/* no options, no getopt */
 
-	if (isatty(0) && isatty(1)) {
+	if (isatty(STDIN_FILENO) && isatty(STDOUT_FILENO)) {
 		/* See 'man 4 console_codes' for details:
 		 * "ESC c"			-- Reset
 		 * "ESC ( K"		-- Select user mapping

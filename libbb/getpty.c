@@ -10,7 +10,7 @@
 
 #define DEBUG 0
 
-int getpty(char *line)
+int xgetpty(char *line)
 {
 	int p;
 #if ENABLE_FEATURE_DEVPTS
@@ -22,7 +22,7 @@ int getpty(char *line)
 		name = ptsname(p);
 		if (!name) {
 			bb_perror_msg("ptsname error (is /dev/pts mounted?)");
-			return -1;
+			goto fail;
 		}
 		safe_strncpy(line, name, GETPTY_BUFSIZE);
 		return p;
@@ -52,7 +52,9 @@ int getpty(char *line)
 		}
 	}
 #endif /* FEATURE_DEVPTS */
-	return -1;
+USE_FEATURE_DEVPTS( fail:)
+	bb_error_msg_and_die("open pty");
+	return -1; /* never get here */
 }
 
 

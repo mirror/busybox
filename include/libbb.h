@@ -281,8 +281,9 @@ extern int recursive_action(const char *fileName, unsigned flags,
 	void* userData, unsigned depth);
 extern int device_open(const char *device, int mode);
 enum { GETPTY_BUFSIZE = 16 }; /* more than enough for "/dev/ttyXXX" */
-extern int getpty(char *line);
+extern int xgetpty(char *line);
 extern int get_console_fd(void);
+extern void console_make_active(int fd, const int vt_num);
 extern char *find_block_device(const char *path);
 /* bb_copyfd_XX print read/write errors and return -1 if they occur */
 extern off_t bb_copyfd_eof(int fd1, int fd2);
@@ -590,6 +591,7 @@ extern ssize_t safe_write(int fd, const void *buf, size_t count);
 // if some data was written before error occurred
 extern ssize_t full_write(int fd, const void *buf, size_t count);
 extern void xwrite(int fd, const void *buf, size_t count);
+extern void xopen_xwrite_close(const char* file, const char *str);
 
 /* Reads and prints to stdout till eof, then closes FILE. Exits on error: */
 extern void xprint_and_close_file(FILE *file);

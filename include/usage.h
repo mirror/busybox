@@ -875,7 +875,7 @@
 #define dumpkmap_trivial_usage \
        "> keymap"
 #define dumpkmap_full_usage "\n\n" \
-       "Print out a binary keyboard translation table to standard output"
+       "Print a binary keyboard translation table to standard output"
 #define dumpkmap_example_usage \
        "$ dumpkmap > keymap\n"
 

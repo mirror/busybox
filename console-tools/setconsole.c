@@ -3,40 +3,34 @@
  *  setconsole.c - redirect system console output
  *
  *  Copyright (C) 2004,2005  Enrik Berkhan <Enrik.Berkhan@inka.de>
+ *  Copyright (C) 2008 Bernhard Fischer
  *
  * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  */
 
 #include "libbb.h"
 
-#if ENABLE_FEATURE_SETCONSOLE_LONG_OPTIONS
-static const char setconsole_longopts[] ALIGN1 =
-	"reset\0" No_argument "r"
-	;
-#endif
-
-#define OPT_SETCONS_RESET 1
-
 int setconsole_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int setconsole_main(int argc, char **argv)
+int setconsole_main(int ATTRIBUTE_UNUSED argc, char **argv)
 {
-	unsigned long flags;
 	const char *device = CURRENT_TTY;
+	bool reset;
 
 #if ENABLE_FEATURE_SETCONSOLE_LONG_OPTIONS
+	static const char setconsole_longopts[] ALIGN1 =
+		"reset\0" No_argument "r"
+		;
 	applet_long_options = setconsole_longopts;
 #endif
-	flags = getopt32(argv, "r");
+	/* at most one non-option argument */
+	opt_complementary = "?1";
+	reset = getopt32(argv, "r");
 
-	if (argc - optind > 1)
-		bb_show_usage();
-
-	if (argc - optind == 1) {
-		if (flags & OPT_SETCONS_RESET)
-			bb_show_usage();
-		device = argv[optind];
+	argv += 1 + reset;
+	if (*argv) {
+		device = *argv;
 	} else {
-		if (flags & OPT_SETCONS_RESET)
+		if (reset)
 			device = DEV_CONSOLE;
 	}
 

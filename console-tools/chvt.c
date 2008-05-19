@@ -9,25 +9,17 @@
 
 #include "libbb.h"
 
-/* From <linux/vt.h> */
-enum {
-	VT_ACTIVATE = 0x5606,   /* make vt active */
-	VT_WAITACTIVE = 0x5607  /* wait for vt active */
-};
-
 int chvt_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int chvt_main(int argc, char **argv)
 {
-	int fd, num;
+	int num;
 
 	if (argc != 2) {
 		bb_show_usage();
 	}
 
-	fd = get_console_fd();
 	num = xatou_range(argv[1], 1, 63);
 	/* double cast suppresses "cast to ptr from int of different size" */
-	xioctl(fd, VT_ACTIVATE, (void *)(ptrdiff_t)num);
-	xioctl(fd, VT_WAITACTIVE, (void *)(ptrdiff_t)num);
+	console_make_active(get_console_fd(), num);
 	return EXIT_SUCCESS;
 }

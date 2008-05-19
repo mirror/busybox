@@ -30,7 +30,7 @@
 
 static time_t rtc_time;
 
-static int may_wakeup(const char *rtcname)
+static bool may_wakeup(const char *rtcname)
 {
 	ssize_t ret;
 	char buf[128];
@@ -42,7 +42,7 @@ static int may_wakeup(const char *rtcname)
 	snprintf(buf, sizeof(buf), SYS_RTC_PATH, rtcname);
 	ret = open_read_close(buf, buf, sizeof(buf));
 	if (ret < 0)
-		return 0;
+		return false;
 
 	/* wakeup events could be disabled or not supported */
 	return strncmp(buf, "enabled\n", 8) == 0;
@@ -87,15 +87,6 @@ static void setup_alarm(int fd, time_t *wakeup)
 		wake.enabled = 1;
 		xioctl(fd, RTC_WKALM_SET, &wake);
 	}
-}
-
-static void suspend_system(const char *suspend)
-{
-	FILE *f = xfopen(SYS_POWER_PATH, "w");
-	fprintf(f, "%s\n", suspend);
-	fflush(f);
-	/* this executes after wake from suspend */
-	fclose(f);
 }
 
 #define RTCWAKE_OPT_AUTO         0x01
@@ -185,7 +176,7 @@ int rtcwake_main(int argc ATTRIBUTE_UNUSED, char **argv)
 	usleep(10 * 1000);
 
 	if (strcmp(suspend, "on"))
-		suspend_system(suspend);
+		xopen_xwrite_close(SYS_POWER_PATH, suspend);
 	else {
 		/* "fake" suspend ... we'll do the delay ourselves */
 		unsigned long data;

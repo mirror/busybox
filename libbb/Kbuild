@@ -98,6 +98,7 @@ lib-y += vfork_daemon_rexec.o
 lib-y += warn_ignoring_args.o
 lib-y += wfopen.o
 lib-y += wfopen_input.o
+lib-y += write.o
 lib-y += xatonum.o
 lib-y += xconnect.o
 lib-y += xfuncs.o

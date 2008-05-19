@@ -61,7 +61,8 @@ static int get_vt_fd(void)
 	for (fd = 0; fd < 3; fd++)
 		if (!not_vt_fd(fd))
 			return fd;
-	/* _only_ O_NONBLOCK: ask for neither read not write perms */
+	/* _only_ O_NONBLOCK: ask for neither read nor write perms */
+	/*FIXME: use? device_open(DEV_CONSOLE,0); */
 	fd = open(DEV_CONSOLE, O_NONBLOCK);
 	if (fd >= 0 && !not_vt_fd(fd))
 		return fd;
@@ -93,7 +94,7 @@ static NOINLINE void vfork_child(char **argv)
 		/* CHILD */
 		/* Try to make this VT our controlling tty */
 		setsid(); /* lose old ctty */
-		ioctl(0, TIOCSCTTY, 0 /* 0: don't forcibly steal */);
+		ioctl(STDIN_FILENO, TIOCSCTTY, 0 /* 0: don't forcibly steal */);
 		//bb_error_msg("our sid %d", getsid(0));
 		//bb_error_msg("our pgrp %d", getpgrp());
 		//bb_error_msg("VT's sid %d", tcgetsid(0));
@@ -135,14 +136,13 @@ int openvt_main(int argc ATTRIBUTE_UNUSED, char **argv)
 	sprintf(vtname, VC_FORMAT, vtno);
 	/* (Try to) clean up stray open fds above fd 2 */
 	bb_daemonize_or_rexec(DAEMON_CLOSE_EXTRA_FDS | DAEMON_ONLY_SANITIZE, NULL);
-	close(0);
+	close(STDIN_FILENO);
 	/*setsid(); - BAD IDEA: after we exit, child is SIGHUPed... */
 	xopen(vtname, O_RDWR);
-	xioctl(0, VT_GETSTATE, &vtstat);
+	xioctl(STDIN_FILENO, VT_GETSTATE, &vtstat);
 
 	if (flags & OPT_s) {
-		xioctl(0, VT_ACTIVATE, (void*)(ptrdiff_t)vtno);
-		xioctl(0, VT_WAITACTIVE, (void*)(ptrdiff_t)vtno);
+		console_make_active(STDIN_FILENO, vtno);
 	}
 
 	if (!argv[0]) {
@@ -153,14 +153,16 @@ int openvt_main(int argc ATTRIBUTE_UNUSED, char **argv)
 		/*argv[1] = NULL; - already is */
 	}
 
-	xdup2(0, STDOUT_FILENO);
-	xdup2(0, STDERR_FILENO);
+	xdup2(STDIN_FILENO, STDOUT_FILENO);
+	xdup2(STDIN_FILENO, STDERR_FILENO);
 
 #ifdef BLOAT
+	{
 	/* Handle -l (login shell) option */
 	const char *prog = argv[0];
 	if (flags & OPT_l)
 		argv[0] = xasprintf("-%s", argv[0]);
+	}
 #endif
 
 	vfork_child(argv);
@@ -168,12 +170,11 @@ int openvt_main(int argc ATTRIBUTE_UNUSED, char **argv)
 		/* We have only one child, wait for it */
 		safe_waitpid(-1, NULL, 0); /* loops on EINTR */
 		if (flags & OPT_s) {
-			xioctl(0, VT_ACTIVATE, (void*)(ptrdiff_t)(vtstat.v_active));
-			xioctl(0, VT_WAITACTIVE, (void*)(ptrdiff_t)(vtstat.v_active));
+			console_make_active(STDIN_FILENO, vtstat.v_active);
 			// Compat: even with -c N (try to) disallocate:
 			// # /usr/app/kbd-1.12/bin/openvt -f -c 9 -ws sleep 5
 			// openvt: could not deallocate console 9
-			xioctl(0, VT_DISALLOCATE, (void*)(ptrdiff_t)vtno);
+			xioctl(STDIN_FILENO, VT_DISALLOCATE, (void*)(ptrdiff_t)vtno);
 		}
 	}
 	return EXIT_SUCCESS;

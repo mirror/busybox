@@ -69,10 +69,7 @@ int script_main(int argc ATTRIBUTE_UNUSED, char **argv)
 		shell = DEFAULT_SHELL;
 	}
 
-	pty = getpty(pty_line);
-	if (pty < 0) {
-		bb_perror_msg_and_die("can't get pty");
-	}
+	pty = xgetpty(pty_line);
 
 	/* get current stdin's tty params */
 	attr_ok = tcgetattr(0, &tt);
