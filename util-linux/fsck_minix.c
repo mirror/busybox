@@ -378,7 +378,7 @@ static void check_mount(void)
 	struct mntent *mnt;
 	int cont;
 	int fd;
-
+//XXX:FIXME use find_mount_point()
 	f = setmntent(MOUNTED, "r");
 	if (f == NULL)
 		return;
@@ -405,7 +405,7 @@ static void check_mount(void)
 		cont = ask("Do you really want to continue", 0);
 	if (!cont) {
 		printf("Check aborted\n");
-		exit(0);
+		exit(EXIT_SUCCESS);
 	}
 }
 
