@@ -744,7 +744,7 @@ config SWAPONOFF
 	  option disabled.
 
 config FEATURE_SWAPON_PRI
-	bool "Support option -p in swapon"
+	bool "Support priority option -p"
 	default n
 	depends on SWAPONOFF
 	help
