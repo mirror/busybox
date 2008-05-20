@@ -99,7 +99,7 @@ stksizes: busybox_unstripped
 
 .PHONY: bigdata
 bigdata: busybox_unstripped
-	$(CROSS_COMPILE)nm --size-sort busybox_unstripped | grep -vi ' [tr] '
+	$(CROSS_COMPILE)nm --size-sort busybox_unstripped | grep -vi ' [trw] '
 
 # Documentation Targets
 .PHONY: doc
