@@ -493,7 +493,7 @@ int ps_main(int argc ATTRIBUTE_UNUSED, char **argv ATTRIBUTE_UNUSED)
 #if !ENABLE_FEATURE_PS_WIDE
 	enum { terminal_width = 79 };
 #else
-	int terminal_width;
+	unsigned terminal_width;
 	int w_count = 0;
 #endif
 
