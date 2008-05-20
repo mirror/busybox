@@ -174,6 +174,8 @@ int ifenslave_main(int argc ATTRIBUTE_UNUSED, char **argv)
 
 	applet_long_options = ifenslave_longopts;
 #endif
+	INIT_G();
+
 	opt = getopt32(argv, "cdf");
 	argv += optind;
 	if (opt & (opt-1)) /* options check */
