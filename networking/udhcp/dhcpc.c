@@ -143,10 +143,7 @@ int udhcpc_main(int argc ATTRIBUTE_UNUSED, char **argv)
 	uint32_t xid = 0;
 	uint32_t lease_seconds = 0; /* can be given as 32-bit quantity */
 	int packet_num;
-	/* t1, t2... what a wonderful names... */
-	unsigned t1 = t1; /* for gcc */
-	unsigned t2 = t2;
-	unsigned timestamp_got_lease = timestamp_got_lease;
+	unsigned already_waited_sec;
 	unsigned opt;
 	int max_fd;
 	int retval;
@@ -337,6 +334,7 @@ int udhcpc_main(int argc ATTRIBUTE_UNUSED, char **argv)
 	udhcp_run_script(NULL, "deconfig");
 	change_listen_mode(LISTEN_RAW);
 	packet_num = 0;
+	already_waited_sec = 0;
 
 	/* Main event loop. select() waits on signal pipe and possibly
 	 * on sockfd.
@@ -353,7 +351,7 @@ int udhcpc_main(int argc ATTRIBUTE_UNUSED, char **argv)
 		}
 		max_fd = udhcp_sp_fd_set(&rfds, sockfd);
 
-		tv.tv_sec = timeout;
+		tv.tv_sec = timeout - already_waited_sec;
 		tv.tv_usec = 0;
 		retval = 0; /* If we already timed out, fall through, else... */
 		if (tv.tv_sec > 0) {
@@ -373,6 +371,9 @@ int udhcpc_main(int argc ATTRIBUTE_UNUSED, char **argv)
 		 * resend discover/renew/whatever
 		 */
 		if (retval == 0) {
+			/* We will restart wait afresh in any case */
+			already_waited_sec = 0;
+
 			switch (state) {
 			case INIT_SELECTING:
 				if (packet_num < discover_retries) {
@@ -420,33 +421,29 @@ int udhcpc_main(int argc ATTRIBUTE_UNUSED, char **argv)
 				packet_num = 0;
 				continue;
 			case BOUND:
-				/* Lease is starting to run out, time to enter renewing state */
+				/* Half of the lease passed, time to enter renewing state */
 				change_listen_mode(LISTEN_KERNEL);
 				DEBUG("Entering renew state");
 				state = RENEWING;
 				/* fall right through */
 			case RENEWING:
-				/* Either set a new T1, or enter REBINDING state */
-				if ((t2 - t1) > (lease_seconds / (4*60*60) + 1)) {
+				if (timeout > 60) {
 					/* send a request packet */
 					send_renew(xid, server_addr, requested_ip); /* unicast */
-					t1 += (t2 - t1) / 2;
-					timeout = t1 - ((unsigned)monotonic_sec() - timestamp_got_lease);
+					timeout >>= 1;
 					continue;
 				}
 				/* Timed out, enter rebinding state */
 				DEBUG("Entering rebinding state");
 				state = REBINDING;
-				timeout = (t2 - t1);
 				continue;
 			case REBINDING:
 				/* Lease is *really* about to run out,
 				 * try to find DHCP server using broadcast */
-				if ((lease_seconds - t2) > (lease_seconds / (4*60*60) + 1)) {
+				if (timeout > 0) {
 					/* send a request packet */
 					send_renew(xid, 0, requested_ip); /* broadcast */
-					t2 += (lease_seconds - t2) / 2;
-					timeout = t2 - ((unsigned)monotonic_sec() - timestamp_got_lease);
+					timeout >>= 1;
 					continue;
 				}
 				/* Timed out, enter init state */
@@ -454,7 +451,7 @@ int udhcpc_main(int argc ATTRIBUTE_UNUSED, char **argv)
 				udhcp_run_script(NULL, "deconfig");
 				change_listen_mode(LISTEN_RAW);
 				state = INIT_SELECTING;
-				timeout = 0;
+				/*timeout = 0; - already is */
 				packet_num = 0;
 				continue;
 			/* case RELEASED: */
@@ -477,7 +474,7 @@ int udhcpc_main(int argc ATTRIBUTE_UNUSED, char **argv)
 			/* If this packet will turn out to be unrelated/bogus,
 			 * we will go back and wait for next one.
 			 * Be sure timeout is properly decreased. */
-			timeout -= (unsigned)monotonic_sec() - timestamp_before_wait;
+			already_waited_sec += (unsigned)monotonic_sec() - timestamp_before_wait;
 
 			if (len == -1) { /* error is severe, reopen socket */
 				DEBUG("error on read, %s, reopening socket", strerror(errno));
@@ -523,6 +520,7 @@ int udhcpc_main(int argc ATTRIBUTE_UNUSED, char **argv)
 					state = REQUESTING;
 					timeout = 0;
 					packet_num = 0;
+					already_waited_sec = 0;
 				}
 				continue;
 			case RENEW_REQUESTED:
@@ -538,6 +536,7 @@ int udhcpc_main(int argc ATTRIBUTE_UNUSED, char **argv)
 						/* can be misaligned, thus memcpy */
 						memcpy(&lease_seconds, temp, 4);
 						lease_seconds = ntohl(lease_seconds);
+						lease_seconds &= 0x0fffffff; /* paranoia: must not be negative */
 					}
 #if ENABLE_FEATURE_UDHCPC_ARPING
 					if (opt & OPT_a) {
@@ -557,20 +556,16 @@ int udhcpc_main(int argc ATTRIBUTE_UNUSED, char **argv)
 							requested_ip = 0;
 							timeout = tryagain_timeout;
 							packet_num = 0;
+							already_waited_sec = 0;
 							continue; /* back to main loop */
 						}
 					}
 #endif
 					/* enter bound state */
-					t1 = lease_seconds / 2;
-
-					/* little fixed point for n * .875 */
-					t2 = (lease_seconds * 7) >> 3;
+					timeout = lease_seconds / 2;
 					temp_addr.s_addr = packet.yiaddr;
 					bb_info_msg("Lease of %s obtained, lease time %u",
 						inet_ntoa(temp_addr), (unsigned)lease_seconds);
-					timestamp_got_lease = monotonic_sec();
-					timeout = t1;
 					requested_ip = packet.yiaddr;
 					udhcp_run_script(&packet,
 						   ((state == RENEWING || state == REBINDING) ? "renew" : "bound"));
@@ -585,6 +580,7 @@ int udhcpc_main(int argc ATTRIBUTE_UNUSED, char **argv)
 					if (!client_config.foreground)
 						client_background();
 
+					already_waited_sec = 0;
 					continue; /* back to main loop */
 				}
 				if (*message == DHCPNAK) {
@@ -599,6 +595,7 @@ int udhcpc_main(int argc ATTRIBUTE_UNUSED, char **argv)
 					requested_ip = 0;
 					timeout = 0;
 					packet_num = 0;
+					already_waited_sec = 0;
 				}
 				continue;
 			/* case BOUND, RELEASED: - ignore all packets */
