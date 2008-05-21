@@ -21,9 +21,8 @@ for f in sys.argv[1], sys.argv[2]:
 def getsizes(file):
     sym = {}
     for l in os.popen("nm --size-sort " + file).readlines():
-        l = l.strip()
 	# Skip empty lines
-        if not len(l): continue
+        if not len(l.strip()): continue
 	# Skip archive members
         if len(l.split()) == 1 and l.endswith(':'):
           continue
