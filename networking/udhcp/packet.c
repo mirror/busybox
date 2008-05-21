@@ -34,7 +34,7 @@ void udhcp_init_header(struct dhcpMessage *packet, char type)
 
 
 /* read a packet from socket fd, return -1 on read error, -2 on packet error */
-int udhcp_recv_packet(struct dhcpMessage *packet, int fd)
+int udhcp_recv_kernel_packet(struct dhcpMessage *packet, int fd)
 {
 	int bytes;
 	unsigned char *vendor;

@@ -61,7 +61,9 @@ uint16_t udhcp_checksum(void *addr, int count);
 
 void udhcp_init_header(struct dhcpMessage *packet, char type);
 
-int udhcp_recv_packet(struct dhcpMessage *packet, int fd);
+/*int udhcp_recv_raw_packet(struct dhcpMessage *payload, int fd); - in dhcpc.h */
+int udhcp_recv_kernel_packet(struct dhcpMessage *packet, int fd);
+
 int udhcp_send_raw_packet(struct dhcpMessage *payload,
 		uint32_t source_ip, int source_port,
 		uint32_t dest_ip, int dest_port,

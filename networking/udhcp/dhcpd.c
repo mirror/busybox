@@ -145,7 +145,7 @@ int udhcpd_main(int argc ATTRIBUTE_UNUSED, char **argv)
 		default: continue;	/* signal or error (probably EINTR) */
 		}
 
-		bytes = udhcp_recv_packet(&packet, server_socket); /* this waits for a packet - idle */
+		bytes = udhcp_recv_kernel_packet(&packet, server_socket); /* this waits for a packet - idle */
 		if (bytes < 0) {
 			if (bytes == -1 && errno != EINTR) {
 				DEBUG("error on read, %s, reopening socket", strerror(errno));
@@ -180,7 +180,7 @@ int udhcpd_main(int argc ATTRIBUTE_UNUSED, char **argv)
 		case DHCPDISCOVER:
 			DEBUG("Received DISCOVER");
 
-			if (sendOffer(&packet) < 0) {
+			if (send_offer(&packet) < 0) {
 				bb_error_msg("send OFFER failed");
 			}
 			break;
@@ -200,20 +200,19 @@ int udhcpd_main(int argc ATTRIBUTE_UNUSED, char **argv)
 					if (server_id_align == server_config.server && requested
 					 && requested_align == lease->yiaddr
 					) {
-						sendACK(&packet, lease->yiaddr);
+						send_ACK(&packet, lease->yiaddr);
 					}
 				} else if (requested) {
 					/* INIT-REBOOT State */
 					if (lease->yiaddr == requested_align)
-						sendACK(&packet, lease->yiaddr);
+						send_ACK(&packet, lease->yiaddr);
 					else
-						sendNAK(&packet);
+						send_NAK(&packet);
 				} else if (lease->yiaddr == packet.ciaddr) {
 					/* RENEWING or REBINDING State */
-					sendACK(&packet, lease->yiaddr);
-				} else {
-					/* don't know what to do!!!! */
-					sendNAK(&packet);
+					send_ACK(&packet, lease->yiaddr);
+				} else { /* don't know what to do!!!! */
+					send_NAK(&packet);
 				}
 
 			/* what to do if we have no record of the client */
@@ -229,13 +228,13 @@ int udhcpd_main(int argc ATTRIBUTE_UNUSED, char **argv)
 						memset(lease->chaddr, 0, 16);
 					/* make some contention for this address */
 					} else
-						sendNAK(&packet);
+						send_NAK(&packet);
 				} else {
 					uint32_t r = ntohl(requested_align);
 					if (r < server_config.start_ip
 				         || r > server_config.end_ip
 					) {
-						sendNAK(&packet);
+						send_NAK(&packet);
 					}
 					/* else remain silent */
 				}

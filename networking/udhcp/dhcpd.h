@@ -104,9 +104,9 @@ void printStaticLeases(struct static_lease **lease_struct);
 
 /*** serverpacket.h ***/
 
-int sendOffer(struct dhcpMessage *oldpacket);
-int sendNAK(struct dhcpMessage *oldpacket);
-int sendACK(struct dhcpMessage *oldpacket, uint32_t yiaddr);
+int send_offer(struct dhcpMessage *oldpacket);
+int send_NAK(struct dhcpMessage *oldpacket);
+int send_ACK(struct dhcpMessage *oldpacket, uint32_t yiaddr);
 int send_inform(struct dhcpMessage *oldpacket);
 
 

@@ -175,7 +175,7 @@ int send_release(uint32_t server, uint32_t ciaddr)
 
 
 /* Returns -1 on errors that are fatal for the socket, -2 for those that aren't */
-int get_raw_packet(struct dhcpMessage *payload, int fd)
+int udhcp_recv_raw_packet(struct dhcpMessage *payload, int fd)
 {
 	int bytes;
 	struct udp_dhcp_packet packet;
@@ -185,7 +185,7 @@ int get_raw_packet(struct dhcpMessage *payload, int fd)
 	bytes = safe_read(fd, &packet, sizeof(packet));
 	if (bytes < 0) {
 		DEBUG("Cannot read on raw listening socket - ignoring");
-		sleep(1); /* possible down interface, looping condition */
+		/* NB: possible down interface, etc. Caller should pause. */
 		return bytes; /* returns -1 */
 	}
 

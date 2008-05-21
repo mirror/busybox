@@ -62,7 +62,8 @@ int send_decline(uint32_t xid, uint32_t server, uint32_t requested);
 int send_renew(uint32_t xid, uint32_t server, uint32_t ciaddr);
 int send_renew(uint32_t xid, uint32_t server, uint32_t ciaddr);
 int send_release(uint32_t server, uint32_t ciaddr);
-int get_raw_packet(struct dhcpMessage *payload, int fd);
+
+int udhcp_recv_raw_packet(struct dhcpMessage *payload, int fd);
 
 #if __GNUC_PREREQ(4,1)
 # pragma GCC visibility pop

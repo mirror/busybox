@@ -147,9 +147,7 @@ int udhcpc_main(int argc ATTRIBUTE_UNUSED, char **argv)
 	unsigned opt;
 	int max_fd;
 	int retval;
-	int len;
 	struct timeval tv;
-	struct in_addr temp_addr;
 	struct dhcpMessage packet;
 	fd_set rfds;
 
@@ -380,7 +378,6 @@ int udhcpc_main(int argc ATTRIBUTE_UNUSED, char **argv)
 					if (packet_num == 0)
 						xid = random_xid();
 
-					/* send discover packet */
 					send_discover(xid, requested_ip); /* broadcast */
 
 					timeout = discover_timeout;
@@ -396,7 +393,7 @@ int udhcpc_main(int argc ATTRIBUTE_UNUSED, char **argv)
 					retval = 1;
 					goto ret;
 				}
-				/* wait to try again */
+				/* wait before trying again */
 				timeout = tryagain_timeout;
 				packet_num = 0;
 				continue;
@@ -404,11 +401,12 @@ int udhcpc_main(int argc ATTRIBUTE_UNUSED, char **argv)
 			case REQUESTING:
 				if (packet_num < discover_retries) {
 					/* send request packet */
-					if (state == RENEW_REQUESTED)
-						send_renew(xid, server_addr, requested_ip); /* unicast */
-					else send_selecting(xid, server_addr, requested_ip); /* broadcast */
+					if (state == RENEW_REQUESTED) /* unicast */
+						send_renew(xid, server_addr, requested_ip);
+					else /* broadcast */
+						send_selecting(xid, server_addr, requested_ip);
 
-					timeout = ((packet_num == 2) ? 10 : 2);
+					timeout = discover_timeout;
 					packet_num++;
 					continue;
 				}
@@ -436,7 +434,7 @@ int udhcpc_main(int argc ATTRIBUTE_UNUSED, char **argv)
 				/* Timed out, enter rebinding state */
 				DEBUG("Entering rebinding state");
 				state = REBINDING;
-				continue;
+				/* fall right through */
 			case REBINDING:
 				/* Lease is *really* about to run out,
 				 * try to find DHCP server using broadcast */
@@ -464,23 +462,24 @@ int udhcpc_main(int argc ATTRIBUTE_UNUSED, char **argv)
 		/* select() didn't timeout, something did happen. */
 		/* Is is a packet? */
 		if (listen_mode != LISTEN_NONE && FD_ISSET(sockfd, &rfds)) {
+			int len;
 			/* A packet is ready, read it */
 
 			if (listen_mode == LISTEN_KERNEL)
-				len = udhcp_recv_packet(&packet, sockfd);
+				len = udhcp_recv_kernel_packet(&packet, sockfd);
 			else
-				len = get_raw_packet(&packet, sockfd);
-
+				len = udhcp_recv_raw_packet(&packet, sockfd);
+			if (len == -1) { /* error is severe, reopen socket */
+				DEBUG("error on read, %s, reopening socket", strerror(errno));
+				sleep(discover_timeout); /* 3 seconds by default */
+				change_listen_mode(listen_mode); /* just close and reopen */
+			}
 			/* If this packet will turn out to be unrelated/bogus,
 			 * we will go back and wait for next one.
 			 * Be sure timeout is properly decreased. */
 			already_waited_sec += (unsigned)monotonic_sec() - timestamp_before_wait;
-
-			if (len == -1) { /* error is severe, reopen socket */
-				DEBUG("error on read, %s, reopening socket", strerror(errno));
-				change_listen_mode(listen_mode); /* just close and reopen */
-			}
-			if (len < 0) continue;
+			if (len < 0)
+				continue;
 
 			if (packet.xid != xid) {
 				DEBUG("Ignoring XID %x (our xid is %x)",
@@ -563,9 +562,12 @@ int udhcpc_main(int argc ATTRIBUTE_UNUSED, char **argv)
 #endif
 					/* enter bound state */
 					timeout = lease_seconds / 2;
-					temp_addr.s_addr = packet.yiaddr;
-					bb_info_msg("Lease of %s obtained, lease time %u",
-						inet_ntoa(temp_addr), (unsigned)lease_seconds);
+					{
+						struct in_addr temp_addr;
+						temp_addr.s_addr = packet.yiaddr;
+						bb_info_msg("Lease of %s obtained, lease time %u",
+							inet_ntoa(temp_addr), (unsigned)lease_seconds);
+					}
 					requested_ip = packet.yiaddr;
 					udhcp_run_script(&packet,
 						   ((state == RENEWING || state == REBINDING) ? "renew" : "bound"));

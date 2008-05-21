@@ -67,12 +67,9 @@ static int send_packet_to_client(struct dhcpMessage *payload, int force_broadcas
 /* send a dhcp packet, if force broadcast is set, the packet will be broadcast to the client */
 static int send_packet(struct dhcpMessage *payload, int force_broadcast)
 {
-	int ret;
-
 	if (payload->giaddr)
-		ret = send_packet_to_relay(payload);
-	else ret = send_packet_to_client(payload, force_broadcast);
-	return ret;
+		return send_packet_to_relay(payload);
+	return send_packet_to_client(payload, force_broadcast);
 }
 
 
@@ -100,7 +97,7 @@ static void add_bootp_options(struct dhcpMessage *packet)
 
 
 /* send a DHCP OFFER to a DHCP DISCOVER */
-int sendOffer(struct dhcpMessage *oldpacket)
+int send_offer(struct dhcpMessage *oldpacket)
 {
 	struct dhcpMessage packet;
 	struct dhcpOfferedAddr *lease = NULL;
@@ -188,7 +185,7 @@ int sendOffer(struct dhcpMessage *oldpacket)
 }
 
 
-int sendNAK(struct dhcpMessage *oldpacket)
+int send_NAK(struct dhcpMessage *oldpacket)
 {
 	struct dhcpMessage packet;
 
@@ -199,7 +196,7 @@ int sendNAK(struct dhcpMessage *oldpacket)
 }
 
 
-int sendACK(struct dhcpMessage *oldpacket, uint32_t yiaddr)
+int send_ACK(struct dhcpMessage *oldpacket, uint32_t yiaddr)
 {
 	struct dhcpMessage packet;
 	struct option_set *curr;
