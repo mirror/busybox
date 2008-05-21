@@ -343,8 +343,7 @@ int udhcpc_main(int argc ATTRIBUTE_UNUSED, char **argv)
 	 * "continue" statements in code below jump to the top of the loop.
 	 */
 	for (;;) {
-		tv.tv_sec = timeout;
-		tv.tv_usec = 0;
+		unsigned timestamp_before_wait;
 
 		if (listen_mode != LISTEN_NONE && sockfd < 0) {
 			if (listen_mode == LISTEN_KERNEL)
@@ -354,19 +353,20 @@ int udhcpc_main(int argc ATTRIBUTE_UNUSED, char **argv)
 		}
 		max_fd = udhcp_sp_fd_set(&rfds, sockfd);
 
+		tv.tv_sec = timeout;
+		tv.tv_usec = 0;
 		retval = 0; /* If we already timed out, fall through, else... */
 		if (tv.tv_sec > 0) {
+			timestamp_before_wait = (unsigned)monotonic_sec();
 			DEBUG("Waiting on select...");
 			retval = select(max_fd + 1, &rfds, NULL, NULL, &tv);
-		}
-
-		if (retval < 0) {
-			/* EINTR? signal was caught, don't panic */
-			if (errno != EINTR) {
+			if (retval < 0) {
+				/* EINTR? A signal was caught, don't panic */
+				if (errno == EINTR)
+					continue;
 				/* Else: an error occured, panic! */
 				bb_perror_msg_and_die("select");
 			}
-			continue;
 		}
 
 		/* If timeout dropped to zero, time to become active:
@@ -431,7 +431,7 @@ int udhcpc_main(int argc ATTRIBUTE_UNUSED, char **argv)
 					/* send a request packet */
 					send_renew(xid, server_addr, requested_ip); /* unicast */
 					t1 += (t2 - t1) / 2;
-					timeout = t1 - ((int)monotonic_sec() - timestamp_got_lease);
+					timeout = t1 - ((unsigned)monotonic_sec() - timestamp_got_lease);
 					continue;
 				}
 				/* Timed out, enter rebinding state */
@@ -446,7 +446,7 @@ int udhcpc_main(int argc ATTRIBUTE_UNUSED, char **argv)
 					/* send a request packet */
 					send_renew(xid, 0, requested_ip); /* broadcast */
 					t2 += (lease_seconds - t2) / 2;
-					timeout = t2 - ((int)monotonic_sec() - timestamp_got_lease);
+					timeout = t2 - ((unsigned)monotonic_sec() - timestamp_got_lease);
 					continue;
 				}
 				/* Timed out, enter init state */
@@ -473,6 +473,11 @@ int udhcpc_main(int argc ATTRIBUTE_UNUSED, char **argv)
 				len = udhcp_recv_packet(&packet, sockfd);
 			else
 				len = get_raw_packet(&packet, sockfd);
+
+			/* If this packet will turn out to be unrelated/bogus,
+			 * we will go back and wait for next one.
+			 * Be sure timeout is properly decreased. */
+			timeout -= (unsigned)monotonic_sec() - timestamp_before_wait;
 
 			if (len == -1) { /* error is severe, reopen socket */
 				DEBUG("error on read, %s, reopening socket", strerror(errno));
@@ -628,7 +633,7 @@ int udhcpc_main(int argc ATTRIBUTE_UNUSED, char **argv)
  ret0:
 	retval = 0;
  ret:
-	/*if (client_config.pidfile) - remove_pidfile has it's own check */
+	/*if (client_config.pidfile) - remove_pidfile has its own check */
 		remove_pidfile(client_config.pidfile);
 	return retval;
 }
