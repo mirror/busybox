@@ -7,7 +7,7 @@
  * Licensed under the GPLv2 or later, see the file LICENSE in this tarball.
  */
 
-#define HEADER_FORMAT     "%-8.8s %-12.12s %-*.*s %-16.16s %-7.7s %-12.12s\n"
+#define HEADER_FORMAT     "%-8.8s %-12.12s %-*.*s %-16.16s %-7.7s %s\n"
 #define HEADER_LINE       "USER", "TTY", \
 	INET_ADDRSTRLEN, INET_ADDRSTRLEN, "HOST", "LOGIN", "  TIME", ""
 #define HEADER_LINE_WIDE  "USER", "TTY", \
