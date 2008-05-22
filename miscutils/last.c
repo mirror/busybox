@@ -26,12 +26,6 @@
 #error struct utmp member char[] size(s) have changed!
 #endif
 
-#if ENABLE_FEATURE_LAST_FANCY
-
-#include "last_fancy.c"
-
-#else
-
 #if EMPTY != 0 || RUN_LVL != 1 || BOOT_TIME != 2 || NEW_TIME != 3 || \
 	OLD_TIME != 4
 #error Values for the ut_type field of struct utmp changed
@@ -131,5 +125,3 @@ int last_main(int argc, char **argv ATTRIBUTE_UNUSED)
 
 	fflush_stdout_and_exit(EXIT_SUCCESS);
 }
-
-#endif

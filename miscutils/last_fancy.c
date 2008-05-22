@@ -7,6 +7,13 @@
  * Licensed under the GPLv2 or later, see the file LICENSE in this tarball.
  */
 
+#include "libbb.h"
+#include <utmp.h>
+
+#ifndef SHUTDOWN_TIME
+#  define SHUTDOWN_TIME 254
+#endif
+
 #define HEADER_FORMAT     "%-8.8s %-12.12s %-*.*s %-16.16s %-7.7s %s\n"
 #define HEADER_LINE       "USER", "TTY", \
 	INET_ADDRSTRLEN, INET_ADDRSTRLEN, "HOST", "LOGIN", "  TIME", ""
