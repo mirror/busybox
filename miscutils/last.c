@@ -32,12 +32,32 @@
 
 #else
 
+#if EMPTY != 0 || RUN_LVL != 1 || BOOT_TIME != 2 || NEW_TIME != 3 || \
+	OLD_TIME != 4
+#error Values for the ut_type field of struct utmp changed
+#endif
+
 int last_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int last_main(int argc, char **argv ATTRIBUTE_UNUSED)
 {
 	struct utmp ut;
 	int n, file = STDIN_FILENO;
 	time_t t_tmp;
+	off_t pos;
+	static const char _ut_usr[] ALIGN1 =
+			"runlevel\0" "reboot\0" "shutdown\0";
+	static const char _ut_lin[] ALIGN1 =
+			"~\0" "{\0" "|\0" /* "LOGIN\0" "date\0" */;
+	enum {
+		TYPE_RUN_LVL = RUN_LVL,		/* 1 */
+		TYPE_BOOT_TIME = BOOT_TIME,	/* 2 */
+		TYPE_SHUTDOWN_TIME = SHUTDOWN_TIME
+	};
+	enum {
+		_TILDE = EMPTY,				/* 0 */
+		TYPE_NEW_TIME,	/* NEW_TIME, 3 */
+		TYPE_OLD_TIME	/* OLD_TIME, 4 */
+	};
 
 	if (argc > 1) {
 		bb_show_usage();
@@ -46,23 +66,33 @@ int last_main(int argc, char **argv ATTRIBUTE_UNUSED)
 
 	printf("%-10s %-14s %-18s %-12.12s %s\n",
 	       "USER", "TTY", "HOST", "LOGIN", "TIME");
+	/* yikes. We reverse over the file and that is a not too elegant way */
+	pos = xlseek(file, 0, SEEK_END);
+	pos = lseek(file, pos - sizeof(ut), SEEK_SET);
 	while ((n = full_read(file, &ut, sizeof(ut))) > 0) {
 		if (n != sizeof(ut)) {
 			bb_perror_msg_and_die("short read");
 		}
-
-		if (ut.ut_line[0] == '~') {
+		n = index_in_strings(_ut_lin, ut.ut_line);
+		if (n == _TILDE) { /* '~' */
+#if 1
+/* do we really need to be cautious here? */
+			n = index_in_strings(_ut_usr, ut.ut_user);
+			if (++n > 0)
+				ut.ut_type = n;
+#else
 			if (strncmp(ut.ut_user, "shutdown", 8) == 0)
 				ut.ut_type = SHUTDOWN_TIME;
 			else if (strncmp(ut.ut_user, "reboot", 6) == 0)
 				ut.ut_type = BOOT_TIME;
 			else if (strncmp(ut.ut_user, "runlevel", 8) == 0)
 				ut.ut_type = RUN_LVL;
+#endif
 		} else {
 			if (ut.ut_name[0] == '\0' || strcmp(ut.ut_name, "LOGIN") == 0) {
 				/* Don't bother.  This means we can't find how long
 				 * someone was logged in for.  Oh well. */
-				continue;
+				goto next;
 			}
 			if (ut.ut_type != DEAD_PROCESS
 			 && ut.ut_name[0] && ut.ut_line[0]
@@ -70,10 +100,10 @@ int last_main(int argc, char **argv ATTRIBUTE_UNUSED)
 				ut.ut_type = USER_PROCESS;
 			}
 			if (strcmp(ut.ut_name, "date") == 0) {
-				if (ut.ut_line[0] == '|') {
+				if (n == TYPE_OLD_TIME) { /* '|' */
 					ut.ut_type = OLD_TIME;
 				}
-				if (ut.ut_line[0] == '{') {
+				if (n == TYPE_NEW_TIME) { /* '{' */
 					ut.ut_type = NEW_TIME;
 				}
 			}
@@ -85,15 +115,18 @@ int last_main(int argc, char **argv ATTRIBUTE_UNUSED)
 				case NEW_TIME:
 				case RUN_LVL:
 				case SHUTDOWN_TIME:
-					continue;
+					goto next;
 				case BOOT_TIME:
 					strcpy(ut.ut_line, "system boot");
-					break;
 			}
 		}
 		t_tmp = (time_t)ut.ut_tv.tv_sec;
 		printf("%-10s %-14s %-18s %-12.12s\n",
 		       ut.ut_user, ut.ut_line, ut.ut_host, ctime(&t_tmp) + 4);
+ next:
+		if (!pos)
+			break; /* done. */
+		pos = lseek(file, pos - sizeof(ut), SEEK_SET);
 	}
 
 	fflush_stdout_and_exit(EXIT_SUCCESS);
