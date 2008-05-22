@@ -3509,9 +3509,9 @@
        "Show listing of the last users that logged into the system" \
 	USE_FEATURE_LAST_FANCY( "\n" \
      "\nOptions:" \
-     "\n	-H		Show header line" \
-     "\n	-W		Display with no host column truncation" \
-     "\n	-f file		Read from file instead of /var/log/wtmp" \
+/*   "\n	-H	Show header line" */ \
+     "\n	-W	Display with no host column truncation" \
+     "\n	-f file Read from file instead of /var/log/wtmp" \
 	)
 
 #define sha1sum_trivial_usage \
