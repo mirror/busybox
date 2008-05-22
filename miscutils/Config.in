@@ -229,6 +229,14 @@ config LAST
 	help
 	  'last' displays a list of the last users that logged into the system.
 
+config FEATURE_LAST_FANCY
+	bool "Fancy output"
+	default n
+	depends on LAST
+	help
+	  'last' displays detailed information about the last users that
+	  logged into the system (mimics sysvinit last). +900 bytes.
+
 config LESS
 	bool "less"
 	default n

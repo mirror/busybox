@@ -3504,9 +3504,15 @@
        "lash is deprecated, please use hush"
 
 #define last_trivial_usage \
-       ""
+       ""USE_FEATURE_LAST_FANCY("[-HW] [-f file]")
 #define last_full_usage "\n\n" \
-       "Show listing of the last users that logged into the system"
+       "Show listing of the last users that logged into the system" \
+	USE_FEATURE_LAST_FANCY( "\n" \
+     "\nOptions:" \
+     "\n	-H		Show header line" \
+     "\n	-W		Display with no host column truncation" \
+     "\n	-f file		Read from file instead of /var/log/wtmp" \
+	)
 
 #define sha1sum_trivial_usage \
        "[OPTION] [FILEs...]" \

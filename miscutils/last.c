@@ -26,6 +26,12 @@
 #error struct utmp member char[] size(s) have changed!
 #endif
 
+#if ENABLE_FEATURE_LAST_FANCY
+
+#include "last_fancy.c"
+
+#else
+
 int last_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int last_main(int argc, char **argv ATTRIBUTE_UNUSED)
 {
@@ -92,3 +98,5 @@ int last_main(int argc, char **argv ATTRIBUTE_UNUSED)
 
 	fflush_stdout_and_exit(EXIT_SUCCESS);
 }
+
+#endif
