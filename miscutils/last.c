@@ -73,7 +73,7 @@ int last_main(int argc, char **argv ATTRIBUTE_UNUSED)
 /* do we really need to be cautious here? */
 			n = index_in_strings(_ut_usr, ut.ut_user);
 			if (++n > 0)
-				ut.ut_type = n;
+				ut.ut_type = n != 3 ? n : SHUTDOWN_TIME;
 #else
 			if (strncmp(ut.ut_user, "shutdown", 8) == 0)
 				ut.ut_type = SHUTDOWN_TIME;
