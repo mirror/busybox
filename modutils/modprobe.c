@@ -332,7 +332,7 @@ static void include_conf(struct dep_t **first, struct dep_t **current, char *buf
 
 			mod = skip_whitespace(buffer + 10);
 			for (dt = *first; dt; dt = dt->m_next) {
-				if (dt->m_isalias && strcmp(dt->m_deparr[0], mod) == 0)
+				if (strcmp(dt->m_name, mod) == 0)
 					break;
 			}
 			if (dt)
@@ -748,12 +748,13 @@ static void check_dep(char *mod, struct mod_list_t **head, struct mod_list_t **t
 
 	// resolve alias names
 	while (dt->m_isalias) {
-		if (dt->m_depcnt == 1 && !(ENABLE_FEATURE_MODPROBE_BLACKLIST &&
-				dt->m_isblacklisted)) {
+		if (dt->m_depcnt == 1) {
 			struct dep_t *adt;
 
 			for (adt = depend; adt; adt = adt->m_next) {
-				if (check_pattern(adt->m_name, dt->m_deparr[0]) == 0)
+				if (check_pattern(adt->m_name, dt->m_deparr[0]) == 0 &&
+						!(ENABLE_FEATURE_MODPROBE_BLACKLIST &&
+							adt->m_isblacklisted))
 					break;
 			}
 			if (adt) {
