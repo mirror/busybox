@@ -46,7 +46,7 @@ static void make_device(char *path, int delete)
 	char *dev_maj_min = path + strlen(path);
 	char *command = NULL;
 	char *alias = NULL;
-	int aliaslink;
+	char aliaslink = aliaslink; /* for compiler */
 
 	/* Force the configuration file settings exactly. */
 	umask(0);
@@ -174,7 +174,7 @@ static void make_device(char *path, int delete)
 				char *s, *p;
 				unsigned i, n;
 
-				aliaslink = (*next == '>');
+				aliaslink = *next;
 				val = next;
 				next = next_field(val);
 				/* substitute %1..9 with off[1..9], if any */
@@ -200,7 +200,7 @@ static void make_device(char *path, int delete)
 					s++;
 				}
 #else
-				aliaslink = (*next == '>');
+				aliaslink = *next;
 				val = next;
 				next = next_field(val);
 				alias = xstrdup(val + 1);
@@ -271,8 +271,9 @@ static void make_device(char *path, int delete)
 					}
 				}
 
-				/* recreate device_name as a symlink to moved device node */
-				if (rename(device_name, alias) == 0 && aliaslink) 
+				/* move the device, and optionally
+				 * make a symlink to moved device node */
+				if (rename(device_name, alias) == 0 && aliaslink == '>') 
 					symlink(alias, device_name);
 
 				free(alias);
