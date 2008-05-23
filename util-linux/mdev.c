@@ -273,7 +273,7 @@ static void make_device(char *path, int delete)
 
 				/* move the device, and optionally
 				 * make a symlink to moved device node */
-				if (rename(device_name, alias) == 0 && aliaslink == '>') 
+				if (rename(device_name, alias) == 0 && aliaslink == '>')
 					symlink(alias, device_name);
 
 				free(alias);
