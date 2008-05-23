@@ -8,7 +8,7 @@
  */
 
 /* BB_AUDIT SUSv3 compliant */
-/* http://www.opengroup.org/onlinepubs/007904975/utilities/false.html */
+/* http://www.opengroup.org/onlinepubs/000095399/utilities/false.html */
 
 #include "libbb.h"
 
