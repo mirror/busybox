@@ -16,6 +16,7 @@ lib-$(CONFIG_DEVFSD)      += devfsd.o
 lib-$(CONFIG_EJECT)       += eject.o
 lib-$(CONFIG_FBSPLASH)    += fbsplash.o
 lib-$(CONFIG_HDPARM)      += hdparm.o
+lib-$(CONFIG_INOTIFYD)    += inotifyd.o
 lib-$(CONFIG_FEATURE_LAST_SMALL)+= last.o
 lib-$(CONFIG_FEATURE_LAST_FANCY)+= last_fancy.o
 lib-$(CONFIG_LESS)        += less.o

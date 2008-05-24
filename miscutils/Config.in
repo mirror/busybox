@@ -222,6 +222,12 @@ config FBSPLASH
 	    "NN" (ASCII decimal number) - percentage to show on progress bar
 	    "exit" - well you guessed it
 
+config INOTIFYD
+	bool "inotifyd"
+	default n
+	help
+	  Simple inotify daemon. Reports filesystem changes. Requires kernel >= 2.6.13
+
 config LAST
 	bool "last"
 	default n

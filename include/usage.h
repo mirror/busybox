@@ -1833,6 +1833,30 @@
 "	::shutdown:/bin/umount -a -r\n" \
 "	::shutdown:/sbin/swapoff -a\n"
 
+#define inotifyd_trivial_usage \
+	"/user/space/agent dir/or/file/being/watched[:mask] ..."
+#define inotifyd_full_usage "\n\n" \
+       "Spawn userspace agent on filesystem changes." \
+     "\nWhen a filesystem event matching the mask occurs" \
+     "\non specified file/directory an userspace agent is spawned" \
+     "\nwith the parameters:" \
+     "\n1. actual event(s)" \
+     "\n2. file/directory name" \
+     "\n3. name of subfile (if any), in case of watching a directory" \
+     "\n" \
+     "\n	a	File is accessed" \
+     "\n	c	File is modified" \
+     "\n	e	Metadata changed" \
+     "\n	w	Writtable file is closed" \
+     "\n	0	Unwrittable file is closed" \
+     "\n	r	File is opened" \
+     "\n	m	File is moved from X" \
+     "\n	y	File is moved to Y" \
+     "\n	n	Subfile is created" \
+     "\n	d	Subfile is deleted" \
+     "\n	D	Self is deleted" \
+     "\n	M	Self is moved" \
+
 #define insmod_trivial_usage \
 	USE_FEATURE_2_4_MODULES("[OPTION]... ") "MODULE [symbol=value]..."
 #define insmod_full_usage "\n\n" \
