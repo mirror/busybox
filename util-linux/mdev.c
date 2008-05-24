@@ -180,8 +180,9 @@ static void make_device(char *path, int delete)
 				/* substitute %1..9 with off[1..9], if any */
 				n = 0;
 				s = val;
-				while (*s && *s++ == '%')
-					n++;
+				while (*s)
+					if (*s++ == '%')
+						n++;
 
 				p = alias = xzalloc(strlen(val) + n * strlen(device_name));
 				s = val + 1;
