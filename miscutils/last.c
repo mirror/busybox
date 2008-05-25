@@ -118,9 +118,10 @@ int last_main(int argc, char **argv ATTRIBUTE_UNUSED)
 		printf("%-10s %-14s %-18s %-12.12s\n",
 		       ut.ut_user, ut.ut_line, ut.ut_host, ctime(&t_tmp) + 4);
  next:
-		if (!pos)
+		pos -= sizeof(ut);
+		if (pos <= 0)
 			break; /* done. */
-		pos = lseek(file, pos - sizeof(ut), SEEK_SET);
+		xlseek(file, pos, SEEK_SET);
 	}
 
 	fflush_stdout_and_exit(EXIT_SUCCESS);

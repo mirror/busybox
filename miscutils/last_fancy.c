@@ -57,11 +57,11 @@ static void show_entry(struct utmp *ut, int state, time_t dur_secs)
 	hours = mins / 60;
 	mins = mins % 60;
 
-	if (days) {
+//	if (days) {
 		sprintf(duration, "(%u+%02u:%02u)", days, hours, mins);
-	} else {
-		sprintf(duration, " (%02u:%02u)", hours, mins);
-	}
+//	} else {
+//		sprintf(duration, " (%02u:%02u)", hours, mins);
+//	}
 
 	logout_str = logout_time;
 	duration_str = duration;
@@ -100,13 +100,13 @@ static void show_entry(struct utmp *ut, int state, time_t dur_secs)
 static int get_ut_type(struct utmp *ut)
 {
 	if (ut->ut_line[0] == '~') {
-		if (strncmp(ut->ut_user, "shutdown", sizeof("shutdown")-1) == 0) {
+		if (strcmp(ut->ut_user, "shutdown") == 0) {
 			return SHUTDOWN_TIME;
 		}
-		if (strncmp(ut->ut_user, "reboot", sizeof("reboot")-1) == 0) {
+		if (strcmp(ut->ut_user, "reboot") == 0) {
 			return BOOT_TIME;
 		}
-		if (strncmp(ut->ut_user, "runlevel", sizeof("runlevel")-1) == 0) {
+		if (strcmp(ut->ut_user, "runlevel") == 0) {
 			return RUN_LVL;
 		}
 		return ut->ut_type;
@@ -172,31 +172,32 @@ int last_main(int argc ATTRIBUTE_UNUSED, char **argv)
 #endif
 
 	file = xopen(filename, O_RDONLY);
-	if (full_read(file, &ut, sizeof(ut)) != sizeof(ut)) {
+	{
+		/* in case the file is empty... */
 		struct stat st;
 		fstat(file, &st);
 		start_time = st.st_ctime;
-		goto exit;
 	}
-	start_time = ut.ut_time;
 
 	time(&down_time);
 	going_down = 0;
 	boot_down = NORMAL; /* 0 */
 	zlist = NULL;
 	boot_time = 0;
-	pos = 0;
+	/* get file size, rounding down to last full record */
+	pos = xlseek(file, 0, SEEK_END) / sizeof(ut) * sizeof(ut);
 	for (;;) {
 		pos -= (off_t)sizeof(ut);
-		/* Bug? What if file changes size?
-		 * What if size is not a multiple of sizeof(ut)? */
-		if (lseek(file, pos, SEEK_END) < 0) {
+		if (pos < 0) {
 			/* Beyond the beginning of the file boundary =>
 			 * the whole file has been read. */
 			break;
 		}
-		if (full_read(file, &ut, sizeof(ut)) != sizeof(ut))
-			break;
+		xlseek(file, pos, SEEK_SET);
+		xread(file, &ut, sizeof(ut));
+		/* rewritten by each record, eventially will have
+		 * first record's ut_time: */
+		start_time = ut.ut_time;
 
 		switch (get_ut_type(&ut)) {
 		case SHUTDOWN_TIME:
@@ -281,7 +282,6 @@ int last_main(int argc ATTRIBUTE_UNUSED, char **argv)
 		llist_free(zlist, free);
 	}
 
- exit:
 	printf("\nwtmp begins %s", ctime(&start_time));
 
 	if (ENABLE_FEATURE_CLEAN_UP)
