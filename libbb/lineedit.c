@@ -80,10 +80,9 @@ struct lineedit_statics {
 	volatile unsigned cmdedit_termw; /* = 80; */ /* actual terminal width */
 	sighandler_t previous_SIGWINCH_handler;
 
-
-	int cmdedit_x;           /* real x terminal position */
-	int cmdedit_y;           /* pseudoreal y terminal position */
-	int cmdedit_prmt_len;    /* length of prompt (without colors etc) */
+	unsigned cmdedit_x;        /* real x terminal position */
+	unsigned cmdedit_y;        /* pseudoreal y terminal position */
+	unsigned cmdedit_prmt_len; /* length of prompt (without colors etc) */
 
 	unsigned cursor;
 	unsigned command_len;
@@ -199,7 +198,7 @@ static void cmdedit_set_out_char(int next_char)
 	{
 		bb_putchar(c);
 	}
-	if (++cmdedit_x >= (int)cmdedit_termw) {
+	if (++cmdedit_x >= cmdedit_termw) {
 		/* terminal is scrolled down */
 		cmdedit_y++;
 		cmdedit_x = 0;
@@ -262,12 +261,12 @@ static void input_backward(unsigned num)
 		return;
 	cursor -= num;
 
-	if ((unsigned)cmdedit_x >= num) {
+	if (cmdedit_x >= num) {
 		cmdedit_x -= num;
 		if (num <= 4) {
 			/* This is longer by 5 bytes on x86.
-			 * Also gets mysteriously
-			 * miscompiled for some ARM users.
+			 * Also gets miscompiled for ARM users
+			 * (busybox.net/bugs/view.php?id=2274).
 			 * printf(("\b\b\b\b" + 4) - num);
 			 * return;
 			 */
@@ -282,9 +281,12 @@ static void input_backward(unsigned num)
 
 	/* Need to go one or more lines up */
 	num -= cmdedit_x;
-	count_y = 1 + (num / cmdedit_termw);
-	cmdedit_y -= count_y;
-	cmdedit_x = cmdedit_termw * count_y - num;
+	{
+		unsigned w = cmdedit_termw; /* volatile var */
+		count_y = 1 + (num / w);
+		cmdedit_y -= count_y;
+		cmdedit_x = w * count_y - num;
+	}
 	/* go to 1st column; go up; go to correct column */
 	printf("\r" "\033[%dA" "\033[%dC", count_y, cmdedit_x);
 }
@@ -292,10 +294,12 @@ static void input_backward(unsigned num)
 static void put_prompt(void)
 {
 	out1str(cmdedit_prompt);
-	cmdedit_x = cmdedit_prmt_len;
 	cursor = 0;
-// Huh? what if cmdedit_prmt_len >= width?
-	cmdedit_y = 0;                  /* new quasireal y */
+	{
+		unsigned w = cmdedit_termw; /* volatile var */
+		cmdedit_y = cmdedit_prmt_len / w; /* new quasireal y */
+		cmdedit_x = cmdedit_prmt_len % w;
+	}
 }
 
 /* draw prompt, editor line, and clear tail */
