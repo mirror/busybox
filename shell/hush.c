@@ -698,9 +698,18 @@ static const struct built_in_command bltins[] = {
 	BLTIN(NULL, NULL, NULL)
 };
 
+/* Signals are grouped, we handle them in batches */
+static void set_misc_sighandler(void (*handler)(int))
+{
+	bb_signals(0
+		+ (1 << SIGINT)
+		+ (1 << SIGQUIT)
+		+ (1 << SIGTERM)
+		, handler);
+}
+
 #if ENABLE_HUSH_JOB
 
-/* Signals are grouped, we handle them in batches */
 static void set_fatal_sighandler(void (*handler)(int))
 {
 	bb_signals(0
@@ -722,14 +731,6 @@ static void set_jobctrl_sighandler(void (*handler)(int))
 		+ (1 << SIGTSTP)
 		+ (1 << SIGTTIN)
 		+ (1 << SIGTTOU)
-		, handler);
-}
-static void set_misc_sighandler(void (*handler)(int))
-{
-	bb_signals(0
-		+ (1 << SIGINT)
-		+ (1 << SIGQUIT)
-		+ (1 << SIGTERM)
 		, handler);
 }
 /* SIGCHLD is special and handled separately */
@@ -814,7 +815,6 @@ static void hush_exit(int exitcode)
 
 #define set_fatal_sighandler(handler)   ((void)0)
 #define set_jobctrl_sighandler(handler) ((void)0)
-#define set_misc_sighandler(handler)    ((void)0)
 #define hush_exit(e)                    exit(e)
 
 #endif /* JOB */
@@ -3906,8 +3906,10 @@ int hush_main(int argc, char **argv)
 				/* give up */
 				interactive_fd = 0;
 		}
-		if (interactive_fd)
+		if (interactive_fd) {
 			fcntl(interactive_fd, F_SETFD, FD_CLOEXEC);
+			set_misc_sighandler(SIG_IGN);
+		}
 	}
 #endif
 
