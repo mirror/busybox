@@ -36,11 +36,6 @@ struct group {
 	char **gr_mem;          /* Member list. */
 };
 
-/* We don't reimplement this, just supplying prototype */
-/* The function itself is in libc */
-/* Set the group set for the current user to GROUPS (N of them).  */
-extern int setgroups(size_t __n, __const gid_t *__groups);
-
 
 #define setgrent     bb_internal_setgrent
 #define endgrent     bb_internal_endgrent

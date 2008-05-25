@@ -79,9 +79,11 @@
 # endif
 #endif
 
-/* Some libc's forget to declare these, help them */
+/* Some libc's forget to declare these, do it ourself */
 extern char **environ;
 
+/* Set the group set for the current user to GROUPS (N of them).  */
+int setgroups(size_t n, const gid_t *groups);
 #if defined(__GLIBC__) && __GLIBC__ < 2
 int vdprintf(int d, const char *format, va_list ap);
 #endif
