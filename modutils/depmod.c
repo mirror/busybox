@@ -37,11 +37,10 @@ static int fileAction(const char *fname, struct stat ATTRIBUTE_UNUSED *sb,
 
 	memset(buf1, 0, sizeof(buf1));
 	memset(depends, 0, sizeof(depends));
-	sprintf(buf1, "\n%s:", fname);
 
 	if (last_char_is(fname, 'o') == NULL) /* not a module */
 		goto done;
-	write((int)data, buf1, strlen(buf1));
+	fprintf((FILE*)data, "\n%s:", fname);
 //bb_info_msg("[%d] fname='%s'", (int)data, fname);
 	do {
 		/* search for a 'd' */
@@ -69,11 +68,8 @@ static int fileAction(const char *fname, struct stat ATTRIBUTE_UNUSED *sb,
 			_lst = _lst->link;
 		}
 		if (_lst && _lst->data) {
-			const char separator = ' ';
 //bb_info_msg("[%s] -> '%s'", deps, _lst->data);
-			write((int)data, &separator, 1);
-			write((int)data, _lst->data, strlen(_lst->data));
-
+			fprintf((FILE*)data, " %s", _lst->data);
 			deps += len;
 		}
 	}
@@ -89,9 +85,8 @@ int depmod_main(int ATTRIBUTE_UNUSED argc, char **argv)
 {
 	int retval = EXIT_SUCCESS;
 //	static const char moddir_base[] ALIGN1 = "/lib/modules/%s";
+	FILE *filedes = xfopen("/tmp/modules.dep", "w");
 
-	int fd = xopen3("/tmp/modules.dep", O_CREAT|O_WRONLY|O_TRUNC,
-					S_IWUSR|S_IRUSR|S_IRGRP|S_IROTH);
 	argv++;
 	do {
 		if (!recursive_action(*argv,
@@ -104,13 +99,13 @@ int depmod_main(int ATTRIBUTE_UNUSED argc, char **argv)
 				ACTION_RECURSE, /* flags */
 				fileAction, /* file action */
 				NULL, /* dir action */
-				(void*)fd, /* user data */
+				(void*)filedes, /* user data */
 				0)) { /* depth */
 			retval = EXIT_FAILURE;
 		}
 	} while (*++argv);
 
 	if (ENABLE_FEATURE_CLEAN_UP)
-		close(fd);
+		fclose(filedes);
 	return retval;
 }
