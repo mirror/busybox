@@ -11,6 +11,12 @@
 #include <libbb.h>
 #include <sys/utsname.h> /* uname() */
 
+#ifndef DEFAULT_MODULES_DIR
+#define DEFAULT_MODULES_DIR "/lib/modules"
+#endif
+#ifndef DEFAULT_DEPMOD_FILE
+#define DEFAULT_DEPMOD_FILE "modules.dep"
+#endif
 /*
  * Theory of operation:
  * - iterate over all modules and record their full path
@@ -106,7 +112,7 @@ int depmod_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int depmod_main(int ATTRIBUTE_UNUSED argc, char **argv)
 {
 	int retval = EXIT_SUCCESS;
-	char *moddir_base, *system_map, *chp;
+	char *moddir_base = NULL, *moddir, *system_map, *chp;
 	FILE *filedes = stdout;
 	enum {
 		ARG_a = (1<<0), /* All modules, ignore mods in argv */
@@ -119,36 +125,49 @@ int depmod_main(int ATTRIBUTE_UNUSED argc, char **argv)
 
 	getopt32(argv, "aAb:eF:n", &moddir_base, &system_map);
 	argv += optind;
-	if (*argv) /* got a version to use? */
+	if (*argv) {/* got a version to use? */
 		chp = *argv++;
-	else {
+//		if (memchr(chp, '/', strlen(chp)) != NULL) /* XXX: drop this */
+//			bb_show_usage();
+	} else {
 		struct utsname uts;
 		if (uname(&uts) < 0)
 			bb_simple_perror_msg_and_die("uname");
 		chp = xstrdup(uts.release);
 	}
-	moddir_base
-		= concat_path_file(option_mask32 & ARG_b ? moddir_base : "/lib/modules",
-							chp);
-	if (ENABLE_FEATURE_CLEAN_UP)
-		free(chp);
-	if (!(option_mask32 & ARG_n)) {
-		char *modules_dep = concat_path_file(moddir_base, "modules.dep");
-		filedes = xfopen(modules_dep, "w");
+	/* if no modules are given on the command-line, -a is on per default */
+	option_mask32 |= *argv == NULL;
+
+	moddir = concat_path_file(DEFAULT_MODULES_DIR, chp);
+//	if (ENABLE_FEATURE_CLEAN_UP)
+//		free(chp);
+	if (option_mask32 & ARG_b) {
+		char *old_moddir = moddir;
+		moddir = concat_path_file(moddir_base, moddir);
 		if (ENABLE_FEATURE_CLEAN_UP)
-			free(modules_dep);
+			free(old_moddir);
 	}
+
+	if (!(option_mask32 & ARG_n)) { /* --dry-run */
+		chp = concat_path_file(moddir, DEFAULT_DEPMOD_FILE);
+		filedes = xfopen(chp, "w");
+		if (ENABLE_FEATURE_CLEAN_UP)
+			free(chp);
+	}
+	/* have to do a full walk to collect all needed data */
+	if (!recursive_action(moddir,
+			ACTION_RECURSE, /* flags */
+			fill_lst, /* file action */
+			NULL, /* dir action */
+			NULL, /* user data */
+			0)) {
+		retval = EXIT_FAILURE;
+	} else
 	do {
-		chp = concat_path_file(moddir_base,
-				option_mask32 & ARG_a ? "/" : *argv++);
+		chp = concat_path_file(option_mask32 & ARG_a ?  moddir : moddir_base,
+				option_mask32 & ARG_a ? "" : *argv++);
 
 		if (!recursive_action(chp,
-				ACTION_RECURSE, /* flags */
-				fill_lst, /* file action */
-				NULL, /* dir action */
-				NULL, /* user data */
-				0) || /* depth */
-			!recursive_action(chp,
 				ACTION_RECURSE, /* flags */
 				fileAction, /* file action */
 				NULL, /* dir action */
@@ -158,12 +177,12 @@ int depmod_main(int ATTRIBUTE_UNUSED argc, char **argv)
 		}
 		if (ENABLE_FEATURE_CLEAN_UP)
 			free(chp);
-	} while (!(option_mask32 & ARG_a) || *argv);
+	} while (!(option_mask32 & ARG_a) && *argv);
 
 	if (ENABLE_FEATURE_CLEAN_UP) {
 		fclose(filedes);
 		llist_free(G.lst, free);
-		free(moddir_base);
+		free(moddir);
 	}
 	return retval;
 }
