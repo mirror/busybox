@@ -135,7 +135,18 @@
 #define SWAP_LE64(x) (x)
 #endif
 
+/* ---- Unaligned access ------------------------------------ */
+
+/* parameter is supposed to be an uint32_t* ptr */
+#if defined(i386) || defined(__x86_64__) /* + other arches? */
+#define get_unaligned_u32p(u32p) (*(u32p))
+#else
+/* performs reasonably well (gcc usually inlines memcpy here) */
+#define get_unaligned_u32p(u32p) ({ uint32_t __t; memcpy(&__t, (u32p), 4); __t; })
+#endif
+
 /* ---- Networking ------------------------------------------ */
+
 #ifndef __APPLE__
 # include <arpa/inet.h>
 # ifndef __socklen_t_defined
@@ -146,6 +157,7 @@ typedef int socklen_t;
 #endif
 
 /* ---- Compiler dependent settings ------------------------- */
+
 #if (defined __digital__ && defined __unix__) || defined __APPLE__
 # undef HAVE_MNTENT_H
 # undef HAVE_SYS_STATFS_H
@@ -163,9 +175,10 @@ __extension__ typedef unsigned long long __u64;
 #endif
 
 /*----- Kernel versioning ------------------------------------*/
+
 #define KERNEL_VERSION(a,b,c) (((a) << 16) + ((b) << 8) + (c))
 
-/* ---- miscellaneous --------------------------------------- */
+/* ---- Miscellaneous --------------------------------------- */
 
 #if defined(__GNU_LIBRARY__) && __GNU_LIBRARY__ < 5 && \
 	!defined(__dietlibc__) && \

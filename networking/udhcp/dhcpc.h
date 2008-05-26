@@ -8,15 +8,6 @@
 # pragma GCC visibility push(hidden)
 #endif
 
-#define INIT_SELECTING	0
-#define REQUESTING	1
-#define BOUND		2
-#define RENEWING	3
-#define REBINDING	4
-#define INIT_REBOOT	5
-#define RENEW_REQUESTED 6
-#define RELEASED	7
-
 struct client_config_t {
 	/* TODO: combine flag fields into single "unsigned opt" */
 	/* (can be set directly to the result of getopt32) */

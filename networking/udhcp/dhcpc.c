@@ -18,9 +18,6 @@
 #include "options.h"
 
 
-static int timeout; /* = 0. Must be signed */
-static uint32_t requested_ip; /* = 0 */
-static uint32_t server_addr;
 static int sockfd = -1;
 
 #define LISTEN_NONE 0
@@ -28,6 +25,14 @@ static int sockfd = -1;
 #define LISTEN_RAW 2
 static smallint listen_mode;
 
+#define INIT_SELECTING  0
+#define REQUESTING      1
+#define BOUND           2
+#define RENEWING        3
+#define REBINDING       4
+#define INIT_REBOOT     5
+#define RENEW_REQUESTED 6
+#define RELEASED        7
 static smallint state;
 
 /* struct client_config_t client_config is in bb_common_bufsiz1 */
@@ -71,7 +76,7 @@ static void perform_renew(void)
 
 
 /* perform a release */
-static void perform_release(void)
+static void perform_release(uint32_t requested_ip, uint32_t server_addr)
 {
 	char buffer[sizeof("255.255.255.255")];
 	struct in_addr temp_addr;
@@ -90,7 +95,6 @@ static void perform_release(void)
 
 	change_listen_mode(LISTEN_NONE);
 	state = RELEASED;
-	timeout = INT_MAX;
 }
 
 
@@ -140,9 +144,12 @@ int udhcpc_main(int argc ATTRIBUTE_UNUSED, char **argv)
 	int tryagain_timeout = 20;
 	int discover_timeout = 3;
 	int discover_retries = 3;
+	uint32_t server_addr = server_addr; /* for compiler */
+	uint32_t requested_ip = 0;
 	uint32_t xid = 0;
 	uint32_t lease_seconds = 0; /* can be given as 32-bit quantity */
 	int packet_num;
+	int timeout; /* must be signed */
 	unsigned already_waited_sec;
 	unsigned opt;
 	int max_fd;
@@ -332,6 +339,7 @@ int udhcpc_main(int argc ATTRIBUTE_UNUSED, char **argv)
 	udhcp_run_script(NULL, "deconfig");
 	change_listen_mode(LISTEN_RAW);
 	packet_num = 0;
+	timeout = 0;
 	already_waited_sec = 0;
 
 	/* Main event loop. select() waits on signal pipe and possibly
@@ -510,8 +518,8 @@ int udhcpc_main(int argc ATTRIBUTE_UNUSED, char **argv)
 						continue;
 						/* still selecting - this server looks bad */
 					}
-					/* can be misaligned, thus memcpy */
-					memcpy(&server_addr, temp, 4);
+					/* it IS unaligned sometimes, don't "optimize" */
+					server_addr = get_unaligned_u32p((uint32_t*)temp);
 					xid = packet.xid;
 					requested_ip = packet.yiaddr;
 
@@ -535,7 +543,9 @@ int udhcpc_main(int argc ATTRIBUTE_UNUSED, char **argv)
 						/* can be misaligned, thus memcpy */
 						memcpy(&lease_seconds, temp, 4);
 						lease_seconds = ntohl(lease_seconds);
-						lease_seconds &= 0x0fffffff; /* paranoia: must not be negative */
+						lease_seconds &= 0x0fffffff; /* paranoia: must not be prone to overflows */
+						if (lease_seconds < 10) /* and not too small */
+							lease_seconds = 10;
 					}
 #if ENABLE_FEATURE_UDHCPC_ARPING
 					if (opt & OPT_a) {
@@ -576,7 +586,7 @@ int udhcpc_main(int argc ATTRIBUTE_UNUSED, char **argv)
 					change_listen_mode(LISTEN_NONE);
 					if (client_config.quit_after_lease) {
 						if (client_config.release_on_quit)
-							perform_release();
+							perform_release(requested_ip, server_addr);
 						goto ret0;
 					}
 					if (!client_config.foreground)
@@ -618,12 +628,13 @@ int udhcpc_main(int argc ATTRIBUTE_UNUSED, char **argv)
 				timeout = 0;
 				break;
 			case SIGUSR2:
-				perform_release();
+				perform_release(requested_ip, server_addr);
+				timeout = INT_MAX;
 				break;
 			case SIGTERM:
 				bb_info_msg("Received SIGTERM");
 				if (client_config.release_on_quit)
-					perform_release();
+					perform_release(requested_ip, server_addr);
 				goto ret0;
 			}
 		}
