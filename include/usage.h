@@ -692,6 +692,12 @@
 #define deluser_full_usage "\n\n" \
        "Delete user USER from the system"
 
+#define depmod_trivial_usage \
+       ""
+#define depmod_full_usage \
+       "\n" \
+       "\n"
+
 #define devfsd_trivial_usage \
        "mntpnt [-v]" USE_DEVFSD_FG_NP("[-fg][-np]")
 #define devfsd_full_usage "\n\n" \

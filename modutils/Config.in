@@ -5,6 +5,12 @@
 
 menu "Linux Module Utilities"
 
+config DEPMOD
+	bool "depmod"
+	default n
+	help
+	  depmod generates modules.dep (FIXME: elaborate)
+
 config INSMOD
 	bool "insmod"
 	default n

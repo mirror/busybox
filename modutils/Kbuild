@@ -5,6 +5,7 @@
 # Licensed under the GPL v2, see the file LICENSE in this tarball.
 
 lib-y:=
+lib-$(CONFIG_DEPMOD)		+= depmod.o
 lib-$(CONFIG_INSMOD)		+= insmod.o
 lib-$(CONFIG_LSMOD)		+= lsmod.o
 lib-$(CONFIG_MODPROBE)		+= modprobe.o
