@@ -3,7 +3,7 @@
 busybox=../busybox
 
 i=4000
-echo "Before we started $i copies of 'busybox sleep 10':"
+echo "Before we started $i copies of '$busybox sleep 10':"
 $busybox nmeter '%t %[pn] %m' | head -3
 
 while test $i != 0; do
