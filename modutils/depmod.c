@@ -21,7 +21,7 @@ struct globals {
 static int fill_lst(const char *modulename, struct stat ATTRIBUTE_UNUSED *sb,
 					void ATTRIBUTE_UNUSED *data, int ATTRIBUTE_UNUSED depth)
 {
-	llist_add_to_end(&G.lst, strdup(modulename));
+	llist_add_to(&G.lst, strdup(modulename));
 	return TRUE;
 }
 
@@ -35,7 +35,6 @@ static int fileAction(const char *fname, struct stat ATTRIBUTE_UNUSED *sb,
 	RESERVE_CONFIG_BUFFER(depends, 512);
 	RESERVE_CONFIG_BUFFER(buf1, 512);
 
-	memset(buf1, 0, sizeof(buf1));
 	memset(depends, 0, sizeof(depends));
 
 	if (last_char_is(fname, 'o') == NULL) /* not a module */
@@ -55,7 +54,7 @@ static int fileAction(const char *fname, struct stat ATTRIBUTE_UNUSED *sb,
 	deps = depends;
 	while (*deps) {
 		llist_t * _lst = G.lst;
-		ptr = memchr(deps, ',', strlen(deps));
+		ptr = strchr(deps, ',');
 		if (ptr != NULL)
 			*(char*)ptr = '\0';
 		/* remember the length of the current dependency plus eventual 0 byte */
@@ -105,7 +104,9 @@ int depmod_main(int ATTRIBUTE_UNUSED argc, char **argv)
 		}
 	} while (*++argv);
 
-	if (ENABLE_FEATURE_CLEAN_UP)
+	if (ENABLE_FEATURE_CLEAN_UP) {
 		fclose(filedes);
+		llist_free(G.lst, free);
+	}
 	return retval;
 }
