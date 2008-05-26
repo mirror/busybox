@@ -27,7 +27,7 @@ struct globals {
 static int fill_lst(const char *modulename, struct stat ATTRIBUTE_UNUSED *sb,
 					void ATTRIBUTE_UNUSED *data, int ATTRIBUTE_UNUSED depth)
 {
-	llist_add_to(&G.lst, strdup(modulename));
+	llist_add_to(&G.lst, xstrdup(modulename));
 	return TRUE;
 }
 
@@ -69,7 +69,7 @@ static int fileAction(const char *fname, struct stat *sb,
 			break;
 		len -= ++ptr - the_module;
 	} while (1);
-	deps = depends = strdup (ptr + sizeof("depends=")-1);
+	deps = depends = xstrdup (ptr + sizeof("depends=")-1);
 //bb_info_msg(" depends='%s'", depends);
 	while (*deps) {
 		llist_t * _lst = G.lst;
@@ -106,18 +106,49 @@ int depmod_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int depmod_main(int ATTRIBUTE_UNUSED argc, char **argv)
 {
 	int retval = EXIT_SUCCESS;
-//	static const char moddir_base[] ALIGN1 = "/lib/modules/%s";
-	FILE *filedes = xfopen("/tmp/modules.dep", "w");
+	char *moddir_base, *system_map, *chp;
+	FILE *filedes = stdout;
+	enum {
+		ARG_a = (1<<0), /* All modules, ignore mods in argv */
+		ARG_A = (1<<1), /* Only emit .ko that are newer than modules.dep file */
+		ARG_b = (1<<2), /* not /lib/modules/$(uname -r)/ but this base-dir */
+		ARG_e = (1<<3), /* with -F, print unresolved symbols */
+		ARG_F = (1<<4), /* System.map that contains the symbols */
+		ARG_n = (1<<5)  /* dry-run, print to stdout only */
+	};
 
-	argv++;
+	getopt32(argv, "aAb:eF:n", &moddir_base, &system_map);
+	argv += optind;
+	if (*argv) /* got a version to use? */
+		chp = *argv++;
+	else {
+		struct utsname uts;
+		if (uname(&uts) < 0)
+			bb_simple_perror_msg_and_die("uname");
+		chp = xstrdup(uts.release);
+	}
+	moddir_base
+		= concat_path_file(option_mask32 & ARG_b ? moddir_base : "/lib/modules",
+							chp);
+	if (ENABLE_FEATURE_CLEAN_UP)
+		free(chp);
+	if (!(option_mask32 & ARG_n)) {
+		char *modules_dep = concat_path_file(moddir_base, "modules.dep");
+		filedes = xfopen(modules_dep, "w");
+		if (ENABLE_FEATURE_CLEAN_UP)
+			free(modules_dep);
+	}
 	do {
-		if (!recursive_action(*argv,
+		chp = concat_path_file(moddir_base,
+				option_mask32 & ARG_a ? "/" : *argv++);
+
+		if (!recursive_action(chp,
 				ACTION_RECURSE, /* flags */
 				fill_lst, /* file action */
 				NULL, /* dir action */
 				NULL, /* user data */
 				0) || /* depth */
-			!recursive_action(*argv,
+			!recursive_action(chp,
 				ACTION_RECURSE, /* flags */
 				fileAction, /* file action */
 				NULL, /* dir action */
@@ -125,11 +156,14 @@ int depmod_main(int ATTRIBUTE_UNUSED argc, char **argv)
 				0)) { /* depth */
 			retval = EXIT_FAILURE;
 		}
-	} while (*++argv);
+		if (ENABLE_FEATURE_CLEAN_UP)
+			free(chp);
+	} while (!(option_mask32 & ARG_a) || *argv);
 
 	if (ENABLE_FEATURE_CLEAN_UP) {
 		fclose(filedes);
 		llist_free(G.lst, free);
+		free(moddir_base);
 	}
 	return retval;
 }
