@@ -11,6 +11,17 @@
 #include <mntent.h>
 #include "libbb.h"
 
+#if defined(__dietlibc__)
+/* 16.12.2006, Sampo Kellomaki (sampo@iki.fi)
+ * dietlibc-0.30 does not have implementation of getmntent_r() */
+static struct mntent *getmntent_r(FILE* stream, struct mntent* result,
+		char* buffer ATTRIBUTE_UNUSED, int bufsize ATTRIBUTE_UNUSED)
+{
+	struct mntent* ment = getmntent(stream);
+	return memcpy(result, ment, sizeof(*ment));
+}
+#endif
+
 /* ignored: -v -d -t -i */
 #define OPTION_STRING           "fldnra" "vdt:i"
 #define OPT_FORCE               (1 << 0)

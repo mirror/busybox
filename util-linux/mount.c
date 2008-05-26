@@ -46,11 +46,11 @@
 #if defined(__dietlibc__)
 /* 16.12.2006, Sampo Kellomaki (sampo@iki.fi)
  * dietlibc-0.30 does not have implementation of getmntent_r() */
-static struct mntent *getmntent_r(FILE* stream, struct mntent* result, char* buffer, int bufsize)
+static struct mntent *getmntent_r(FILE* stream, struct mntent* result,
+		char* buffer ATTRIBUTE_UNUSED, int bufsize ATTRIBUTE_UNUSED)
 {
 	struct mntent* ment = getmntent(stream);
-	memcpy(result, ment, sizeof(struct mntent));
-	return result;
+	return memcpy(result, ment, sizeof(*ment));
 }
 #endif
 
