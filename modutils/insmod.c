@@ -673,8 +673,6 @@ static int obj_gpl_license(struct obj_file *f, const char **license);
 #define SPFX	""
 #endif
 
-
-#define _PATH_MODULES	"/lib/modules"
 enum { STRVERSIONLEN = 64 };
 
 /*======================================================================*/
@@ -3999,7 +3997,7 @@ int insmod_main(int argc, char **argv)
 			char *module_dir;
 			char *tmdn;
 
-			tmdn = concat_path_file(_PATH_MODULES, myuname.release);
+			tmdn = concat_path_file(CONFIG_DEFAULT_MODULES_DIR, myuname.release);
 			/* Jump through hoops in case /lib/modules/`uname -r`
 			 * is a symlink.  We do not want recursive_action to
 			 * follow symlinks, but we do want to follow the
@@ -4021,9 +4019,9 @@ int insmod_main(int argc, char **argv)
 
 			free(m_filename);
 			m_filename = NULL;
-			module_dir = xmalloc_readlink(_PATH_MODULES);
+			module_dir = xmalloc_readlink(CONFIG_DEFAULT_MODULES_DIR);
 			if (!module_dir)
-				module_dir = xstrdup(_PATH_MODULES);
+				module_dir = xstrdup(CONFIG_DEFAULT_MODULES_DIR);
 			/* No module found under /lib/modules/`uname -r`, this
 			 * time cast the net a bit wider.  Search /lib/modules/ */
 			r = recursive_action(module_dir, ACTION_RECURSE,

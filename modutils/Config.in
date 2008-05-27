@@ -136,7 +136,7 @@ config FEATURE_MODPROBE_BLACKLIST
 	  buffer drivers etc.
 
 comment "Options common to multiple modutils"
-	depends on INSMOD || RMMOD || MODPROBE || LSMOD
+	depends on INSMOD || RMMOD || MODPROBE || LSMOD || DEPMOD
 
 config FEATURE_CHECK_TAINTED_MODULE
 	# Simulate indentation
@@ -168,6 +168,23 @@ config FEATURE_2_6_MODULES
 	help
 	  Support module loading for newer 2.6.x Linux kernels.
 
+config DEFAULT_MODULES_DIR
+	# Simulate indentation
+	string "default directory containing modules"
+	default "/lib/modules"
+	depends on INSMOD || RMMOD || MODPROBE || DEPMOD
+	help
+	  Directory that contains kernel modules.
+	  Defaults to "/lib/modules"
+
+config DEFAULT_DEPMOD_FILE
+	# Simulate indentation
+	string "default name of modules.dep"
+	default "modules.dep"
+	depends on INSMOD || RMMOD || MODPROBE || DEPMOD
+	help
+	  Filename that contains kernel modules dependencies.
+	  Defaults to "modules.dep"
 
 config FEATURE_QUERY_MODULE_INTERFACE
 	bool

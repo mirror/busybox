@@ -11,12 +11,6 @@
 #include <libbb.h>
 #include <sys/utsname.h> /* uname() */
 
-#ifndef DEFAULT_MODULES_DIR
-#define DEFAULT_MODULES_DIR "/lib/modules"
-#endif
-#ifndef DEFAULT_DEPMOD_FILE
-#define DEFAULT_DEPMOD_FILE "modules.dep"
-#endif
 /*
  * Theory of operation:
  * - iterate over all modules and record their full path
@@ -138,7 +132,7 @@ int depmod_main(int ATTRIBUTE_UNUSED argc, char **argv)
 	/* if no modules are given on the command-line, -a is on per default */
 	option_mask32 |= *argv == NULL;
 
-	moddir = concat_path_file(DEFAULT_MODULES_DIR, chp);
+	moddir = concat_path_file(CONFIG_DEFAULT_MODULES_DIR, chp);
 //	if (ENABLE_FEATURE_CLEAN_UP)
 //		free(chp);
 	if (option_mask32 & ARG_b) {
@@ -149,7 +143,7 @@ int depmod_main(int ATTRIBUTE_UNUSED argc, char **argv)
 	}
 
 	if (!(option_mask32 & ARG_n)) { /* --dry-run */
-		chp = concat_path_file(moddir, DEFAULT_DEPMOD_FILE);
+		chp = concat_path_file(moddir, CONFIG_DEFAULT_DEPMOD_FILE);
 		filedes = xfopen(chp, "w");
 		if (ENABLE_FEATURE_CLEAN_UP)
 			free(chp);

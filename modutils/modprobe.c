@@ -364,15 +364,15 @@ static struct dep_t *build_dep(void)
 		k_version = un.release[2] - '0';
 	}
 
-	filename = xasprintf("/lib/modules/%s/modules.dep", un.release);
+	filename = xasprintf(CONFIG_DEFAULT_MODULES_DIR"/%s/"CONFIG_DEFAULT_DEPMOD_FILE, un.release);
 	fd = open(filename, O_RDONLY);
 	if (ENABLE_FEATURE_CLEAN_UP)
 		free(filename);
 	if (fd < 0) {
 		/* Ok, that didn't work.  Fall back to looking in /lib/modules */
-		fd = open("/lib/modules/modules.dep", O_RDONLY);
+		fd = open(CONFIG_DEFAULT_MODULES_DIR"/"CONFIG_DEFAULT_DEPMOD_FILE, O_RDONLY);
 		if (fd < 0) {
-			bb_error_msg_and_die("cannot parse modules.dep");
+			bb_error_msg_and_die("cannot parse " CONFIG_DEFAULT_DEPMOD_FILE);
 		}
 	}
 
@@ -522,11 +522,11 @@ static struct dep_t *build_dep(void)
 	/* Only 2.6 has a modules.alias file */
 	if (ENABLE_FEATURE_2_6_MODULES) {
 		/* Parse kernel-declared module aliases */
-		filename = xasprintf("/lib/modules/%s/modules.alias", un.release);
+		filename = xasprintf(CONFIG_DEFAULT_MODULES_DIR"/%s/modules.alias", un.release);
 		fd = open(filename, O_RDONLY);
 		if (fd < 0) {
 			/* Ok, that didn't work.  Fall back to looking in /lib/modules */
-			fd = open("/lib/modules/modules.alias", O_RDONLY);
+			fd = open(CONFIG_DEFAULT_MODULES_DIR"/modules.alias", O_RDONLY);
 		}
 		if (ENABLE_FEATURE_CLEAN_UP)
 			free(filename);
@@ -537,11 +537,11 @@ static struct dep_t *build_dep(void)
 		}
 
 		/* Parse kernel-declared symbol aliases */
-		filename = xasprintf("/lib/modules/%s/modules.symbols", un.release);
+		filename = xasprintf(CONFIG_DEFAULT_MODULES_DIR"/%s/modules.symbols", un.release);
 		fd = open(filename, O_RDONLY);
 		if (fd < 0) {
 			/* Ok, that didn't work.  Fall back to looking in /lib/modules */
-			fd = open("/lib/modules/modules.symbols", O_RDONLY);
+			fd = open(CONFIG_DEFAULT_MODULES_DIR"/modules.symbols", O_RDONLY);
 		}
 		if (ENABLE_FEATURE_CLEAN_UP)
 			free(filename);
@@ -895,7 +895,7 @@ int modprobe_main(int argc, char **argv)
 	depend = build_dep();
 
 	if (!depend)
-		bb_error_msg_and_die("cannot parse modules.dep");
+		bb_error_msg_and_die("cannot parse "CONFIG_DEFAULT_DEPMOD_FILE);
 
 	if (remove_opt) {
 		do {
