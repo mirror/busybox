@@ -955,6 +955,7 @@ arch_apply_relocation(struct obj_file *f,
 
 		case R_386_PLT32:
 		case R_386_PC32:
+		case R_386_GOTOFF:
 			*loc += v - dot;
 			break;
 
@@ -973,9 +974,6 @@ arch_apply_relocation(struct obj_file *f,
 
 		case R_386_GOT32:
 			goto bb_use_got;
-
-		case R_386_GOTOFF:
-			*loc += v - got;
 			break;
 
 #elif defined(__microblaze__)
@@ -4213,7 +4211,6 @@ int insmod_main(int argc ATTRIBUTE_UNUSED, char **argv)
 static int insmod_ng_main(int argc ATTRIBUTE_UNUSED, char **argv)
 #endif
 {
-	long ret;
 	size_t len;
 	int optlen;
 	void *map;
@@ -4234,6 +4231,11 @@ static int insmod_ng_main(int argc ATTRIBUTE_UNUSED, char **argv)
 
 #if 0
 	/* Any special reason why mmap? It isn't performace critical... */
+
+	/* yes, xmalloc'ing can use *alot* of RAM. Don't forget that there are
+	 * modules out there that are half a megabyte! mmap()ing is way nicer
+	 * for small mem boxes, i guess.
+	 */
 	int fd;
 	struct stat st;
 	unsigned long len;
@@ -4255,11 +4257,9 @@ static int insmod_ng_main(int argc ATTRIBUTE_UNUSED, char **argv)
 	map = xmalloc_open_read_close(filename, &len);
 #endif
 
-	ret = syscall(__NR_init_module, map, len, options);
-	if (ret != 0) {
+	if (syscall(__NR_init_module, map, len, options) != 0)
 		bb_error_msg_and_die("cannot insert '%s': %s",
 				filename, moderror(errno));
-	}
 
 	return 0;
 }
