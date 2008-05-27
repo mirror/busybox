@@ -745,14 +745,10 @@
        "/dev/sda3              8690864   8553540    137324  98% /\n"
 
 #define dhcprelay_trivial_usage \
-       "[client_device_list] [server_device]"
+       "[client1,client2,...] [server_device]"
 #define dhcprelay_full_usage "\n\n" \
-       "Relay dhcp requests from client devices to server device"
-
-#define dhcprelay_trivial_usage \
-       "[client_device_list] [server_device]"
-#define dhcprelay_full_usage "\n\n" \
-       "Relay dhcp requests from client devices to server device"
+       "Relay dhcp requests from client devices to server device.\n" \
+       "Pass clients as CSV"
 
 #define diff_trivial_usage \
        "[-abdiNqrTstw] [-L LABEL] [-S FILE] [-U LINES] FILE1 FILE2"
