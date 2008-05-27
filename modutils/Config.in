@@ -157,6 +157,9 @@ config FEATURE_2_4_MODULES
 	help
 	  Support module loading for 2.2.x and 2.4.x Linux kernels.
 
+	  Note:
+	  This is automatically enabled if 2.6 modules are not enabled.
+
 config FEATURE_2_6_MODULES
 	# Simulate indentation
 	bool "Support version 2.6.x Linux kernels"
