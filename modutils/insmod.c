@@ -4184,8 +4184,14 @@ int insmod_main(int argc, char **argv)
 #if ENABLE_FEATURE_2_6_MODULES
 
 #include <sys/mman.h>
+
+#ifdef __UCLIBC__
+extern int init_module(void *module, unsigned long len, const char *options);
+#else
 #include <asm/unistd.h>
 #include <sys/syscall.h>
+#define init_module(mod, len, opts) syscall(__NR_init_module, mod, len, opts)
+#endif
 
 /* We use error numbers in a loose translation... */
 static const char *moderror(int err)
@@ -4257,10 +4263,9 @@ static int insmod_ng_main(int argc ATTRIBUTE_UNUSED, char **argv)
 	map = xmalloc_open_read_close(filename, &len);
 #endif
 
-	if (syscall(__NR_init_module, map, len, options) != 0)
+	if (init_module(map, len, options) != 0)
 		bb_error_msg_and_die("cannot insert '%s': %s",
 				filename, moderror(errno));
-
 	return 0;
 }
 

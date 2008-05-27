@@ -8,7 +8,13 @@
  */
 
 #include "libbb.h"
-#include <sys/syscall.h>
+
+#ifdef __UCLIBC__
+extern int delete_module(const char *module, unsigned int flags);
+#else
+# include <sys/syscall.h>
+# define delete_module(mod, flags) syscall(__NR_delete_module, mod, flags)
+#endif
 
 #if ENABLE_FEATURE_2_6_MODULES
 static inline void filename2modname(char *modname, const char *afterslash)
@@ -59,7 +65,7 @@ int rmmod_main(int argc, char **argv)
 		size_t pnmod = -1; /* previous number of modules */
 
 		while (nmod != pnmod) {
-			if (syscall(__NR_delete_module, NULL, flags) != 0) {
+			if (delete_module(NULL, flags) != 0) {
 				if (errno == EFAULT)
 					return ret;
 				bb_perror_msg_and_die("rmmod");
@@ -84,7 +90,7 @@ int rmmod_main(int argc, char **argv)
 			filename2modname(misc_buf, bb_basename(argv[n]));
 		}
 
-		if (syscall(__NR_delete_module, ENABLE_FEATURE_2_6_MODULES ? misc_buf : argv[n], flags)) {
+		if (delete_module(ENABLE_FEATURE_2_6_MODULES ? misc_buf : argv[n], flags)) {
 			bb_simple_perror_msg(argv[n]);
 			ret = EXIT_FAILURE;
 		}
