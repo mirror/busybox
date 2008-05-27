@@ -4183,7 +4183,8 @@ int insmod_main(int argc, char **argv)
 
 #include <sys/mman.h>
 
-#ifdef __UCLIBC__
+#if defined __UCLIBC__ && !ENABLE_FEATURE_2_4_MODULES
+/* big time suckage. The old prototype above renders our nice fwd-decl wrong */
 extern int init_module(void *module, unsigned long len, const char *options);
 #else
 #include <asm/unistd.h>
