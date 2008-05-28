@@ -24,18 +24,18 @@ struct mod_opt_t {	/* one-way list of options to pass to a module */
 
 struct dep_t {	/* one-way list of dependency rules */
 	/* a dependency rule */
-	char *  m_name;                         /* the module name*/
-	char *  m_path;                         /* the module file path */
-	struct mod_opt_t *  m_options;	        /* the module options */
+	char *  m_name;                     /* the module name*/
+	char *  m_path;                     /* the module file path */
+	struct mod_opt_t *  m_options;	    /* the module options */
 
-	int     m_isalias  : 1;                 /* the module is an alias */
-	int     m_isblacklisted : 1;
-	int     m_reserved : 14;                /* stuffin' */
+	unsigned int m_isalias      :1;     /* the module is an alias */
+	unsigned int m_isblacklisted:1;     /* the module is blacklisted */
+	unsigned int m_reserved     :14;    /* stuffin' */
 
-	int     m_depcnt   : 16;                /* the number of dependable module(s) */
-	char ** m_deparr;                       /* the list of dependable module(s) */
+	unsigned int m_depcnt       :16;    /* the number of dependable module(s) */
+	char ** m_deparr;                   /* the list of dependable module(s) */
 
-	struct dep_t * m_next;                  /* the next dependency rule */
+	struct dep_t * m_next;              /* the next dependency rule */
 };
 
 struct mod_list_t {	/* two-way list of modules to process */
