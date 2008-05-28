@@ -216,6 +216,7 @@ static pid_list *scan_proc_pids(inode_list *ilist)
 	pid_t pid;
 	pid_list *plist;
 
+	xchdir("/proc");
 	d = opendir("/proc");
 	if (!d)
 		return NULL;
