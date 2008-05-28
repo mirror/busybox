@@ -115,7 +115,7 @@ static const char mconf_readme[] = N_(
 "-----------------------------\n"
 "Menuconfig supports the use of alternate configuration files for\n"
 "those who, for various reasons, find it necessary to switch\n"
-"between different busybox configurations.\n"
+"between different configurations.\n"
 "\n"
 "At the end of the main menu you will find two options.  One is\n"
 "for saving the current configuration to a file of your choosing.\n"
@@ -148,7 +148,7 @@ static const char mconf_readme[] = N_(
 "\n"
 "Optional personality available\n"
 "------------------------------\n"
-"If you prefer to have all of the busybox options listed in a single\n"
+"If you prefer to have all of the options listed in a single\n"
 "menu, rather than the default multimenu hierarchy, run the menuconfig\n"
 "with MENUCONFIG_MODE environment variable set to single_menu. Example:\n"
 "\n"
@@ -193,11 +193,11 @@ load_config_text[] = N_(
 	"last retrieved.  Leave blank to abort."),
 load_config_help[] = N_(
 	"\n"
-	"For various reasons, one may wish to keep several different busybox\n"
+	"For various reasons, one may wish to keep several different\n"
 	"configurations available on a single machine.\n"
 	"\n"
-	"If you have saved a previous configuration in a file other than \n"
-	"busybox's default, entering the name of the file here will allow you\n"
+	"If you have saved a previous configuration in a file other than\n"
+	"default, entering the name of the file here will allow you\n"
 	"to modify that configuration.\n"
 	"\n"
 	"If you are uncertain, then you have probably never used alternate\n"
@@ -207,7 +207,7 @@ save_config_text[] = N_(
 	"as an alternate.  Leave blank to abort."),
 save_config_help[] = N_(
 	"\n"
-	"For various reasons, one may wish to keep different busybox\n"
+	"For various reasons, one may wish to keep different\n"
 	"configurations available on a single machine.\n"
 	"\n"
 	"Entering a file name here will allow you to later retrieve, modify\n"
@@ -1070,7 +1070,7 @@ int main(int ac, char **av)
 	do {
 		cprint_init();
 		cprint("--yesno");
-		cprint(_("Do you wish to save your new busybox configuration?"));
+		cprint(_("Do you wish to save your new configuration?"));
 		cprint("5");
 		cprint("60");
 		stat = exec_conf();
@@ -1079,18 +1079,18 @@ int main(int ac, char **av)
 	if (stat == 0) {
 		if (conf_write(NULL)) {
 			fprintf(stderr, _("\n\n"
-				"Error during writing of the busybox configuration.\n"
-				"Your busybox configuration changes were NOT saved."
+				"Error during writing of the configuration.\n"
+				"Your configuration changes were NOT saved."
 				"\n\n"));
 			return 1;
 		}
 		printf(_("\n\n"
-			"*** End of busybox configuration.\n"
-			"*** Execute 'make' to build busybox or try 'make help'."
+			"*** End of configuration.\n"
+			"*** Execute 'make' to build the project or try 'make help'."
 			"\n\n"));
 	} else {
 		fprintf(stderr, _("\n\n"
-			"Your busybox configuration changes were NOT saved."
+			"Your configuration changes were NOT saved."
 			"\n\n"));
 	}
 

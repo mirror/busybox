@@ -605,7 +605,7 @@ int main(int ac, char **av)
 		check_conf(&rootmenu);
 	} while (conf_cnt);
 	if (conf_write(NULL)) {
-		fprintf(stderr, _("\n*** Error during writing of the busybox configuration.\n\n"));
+		fprintf(stderr, _("\n*** Error during writing of the configuration.\n\n"));
 		return 1;
 	}
 	return 0;

@@ -1299,7 +1299,7 @@ void ConfigMainWindow::closeEvent(QCloseEvent* e)
 
 void ConfigMainWindow::showIntro(void)
 {
-	static char str[] = "Welcome to the qconf graphical busybox configuration tool for Linux.\n\n"
+	static char str[] = "Welcome to the qconf graphical configuration tool.\n\n"
 		"For each option, a blank box indicates the feature is disabled, a check\n"
 		"indicates it is enabled, and a dot indicates that it is to be compiled\n"
 		"as a module.  Clicking on the box will cycle through the three states.\n\n"
@@ -1316,8 +1316,7 @@ void ConfigMainWindow::showIntro(void)
 
 void ConfigMainWindow::showAbout(void)
 {
-	static char str[] = "qconf is Copyright (C) 2002 Roman Zippel <zippel@linux-m68k.org>.\n\n"
-		"Bug reports and feature request can also be entered at http://bugs.busybox.net/\n";
+	static char str[] = "qconf is Copyright (C) 2002 Roman Zippel <zippel@linux-m68k.org>.\n";
 
 	QMessageBox::information(this, "qconf", str);
 }
