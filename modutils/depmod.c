@@ -19,6 +19,7 @@
  */
 struct globals {
 	llist_t *lst;
+	unsigned moddir_base_len;
 };
 #define G (*(struct globals*)&bb_common_bufsiz1)
 /* We have to zero it out because of NOEXEC */
@@ -27,7 +28,8 @@ struct globals {
 static int fill_lst(const char *modulename, struct stat ATTRIBUTE_UNUSED *sb,
 					void ATTRIBUTE_UNUSED *data, int ATTRIBUTE_UNUSED depth)
 {
-	llist_add_to(&G.lst, xstrdup(modulename));
+	if (last_char_is(modulename, 'o') != NULL) /* it is a module, remember it */
+		llist_add_to(&G.lst, xstrdup(modulename + G.moddir_base_len));
 	return TRUE;
 }
 
@@ -58,16 +60,16 @@ static int fileAction(const char *fname, struct stat *sb,
 
 	ptr = the_module;
 
-	fprintf((FILE*)data, "\n%s:", fname);
-//bb_info_msg("fname='%s'", fname);
+	fprintf((FILE*)data, "%s:", fname + G.moddir_base_len);
+//bb_info_msg("fname='%s'", fname + G.moddir_base_len);
 	do {
 		/* search for a 'd' */
-		ptr = memchr(ptr, 'd', len);
+		ptr = memchr(ptr, 'd', len - (ptr - the_module));
 		if (ptr == NULL) /* no d left, done */
 			goto done;
 		if (memcmp(ptr, "depends=", sizeof("depends=")-1) == 0)
 			break;
-		len -= ++ptr - the_module;
+		++ptr;
 	} while (1);
 	deps = depends = xstrdup (ptr + sizeof("depends=")-1);
 //bb_info_msg(" depends='%s'", depends);
@@ -80,8 +82,7 @@ static int fileAction(const char *fname, struct stat *sb,
 			*(char*)ptr = '\0';
 		/* remember the length of the current dependency plus eventual 0 byte */
 		len = strlen(deps) + (ptr != NULL);
-		buf1 = xmalloc(len + 3);
-		sprintf(buf1, "/%s.", deps); /* make sure we match the correct file */
+		buf1 = xasprintf("/%s.", deps); /* match the correct file */
 		while (_lst) {
 			ptr = strstr(_lst->data, buf1);
 			if (ptr != NULL)
@@ -96,6 +97,7 @@ static int fileAction(const char *fname, struct stat *sb,
 		}
 	}
 	free(depends);
+	fprintf((FILE*)data, "\n");
 done:
 	munmap(the_module, sb->st_size);
 skip:
@@ -105,7 +107,7 @@ skip:
 int depmod_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int depmod_main(int ATTRIBUTE_UNUSED argc, char **argv)
 {
-	int retval = EXIT_SUCCESS;
+	int ret;
 	char *moddir_base = NULL, *moddir, *system_map, *chp;
 	FILE *filedes = stdout;
 	enum {
@@ -119,27 +121,27 @@ int depmod_main(int ATTRIBUTE_UNUSED argc, char **argv)
 
 	getopt32(argv, "aAb:eF:n", &moddir_base, &system_map);
 	argv += optind;
-	if (*argv) {/* got a version to use? */
-		chp = *argv++;
-//		if (memchr(chp, '/', strlen(chp)) != NULL) /* XXX: drop this */
-//			bb_show_usage();
+
+	/* got a version to use? */
+	if (*argv && (sscanf(*argv, "%u.%u.%u", &ret, &ret, &ret) == 3)) {
+		moddir = concat_path_file(CONFIG_DEFAULT_MODULES_DIR, *argv++);
 	} else {
 		struct utsname uts;
 		if (uname(&uts) < 0)
 			bb_simple_perror_msg_and_die("uname");
-		chp = xstrdup(uts.release);
+		moddir = concat_path_file(CONFIG_DEFAULT_MODULES_DIR, uts.release);
 	}
 	/* if no modules are given on the command-line, -a is on per default */
 	option_mask32 |= *argv == NULL;
 
-	moddir = concat_path_file(CONFIG_DEFAULT_MODULES_DIR, chp);
-//	if (ENABLE_FEATURE_CLEAN_UP)
-//		free(chp);
 	if (option_mask32 & ARG_b) {
-		char *old_moddir = moddir;
-		moddir = concat_path_file(moddir_base, moddir);
-		if (ENABLE_FEATURE_CLEAN_UP)
-			free(old_moddir);
+		G.moddir_base_len = strlen(moddir_base);
+		if (ENABLE_FEATURE_CLEAN_UP) {
+			chp = moddir;
+			moddir = concat_path_file(moddir_base, moddir);
+			free (chp);
+		} else
+			moddir = concat_path_file(moddir_base, moddir);
 	}
 
 	if (!(option_mask32 & ARG_n)) { /* --dry-run */
@@ -148,6 +150,7 @@ int depmod_main(int ATTRIBUTE_UNUSED argc, char **argv)
 		if (ENABLE_FEATURE_CLEAN_UP)
 			free(chp);
 	}
+	ret = EXIT_SUCCESS;
 	/* have to do a full walk to collect all needed data */
 	if (!recursive_action(moddir,
 			ACTION_RECURSE, /* flags */
@@ -155,11 +158,10 @@ int depmod_main(int ATTRIBUTE_UNUSED argc, char **argv)
 			NULL, /* dir action */
 			NULL, /* user data */
 			0)) {
-		retval = EXIT_FAILURE;
+		ret = EXIT_FAILURE;
 	} else
 	do {
-		chp = concat_path_file(option_mask32 & ARG_a ?  moddir : moddir_base,
-				option_mask32 & ARG_a ? "" : *argv++);
+		chp = option_mask32 & ARG_a ? moddir : *argv++;
 
 		if (!recursive_action(chp,
 				ACTION_RECURSE, /* flags */
@@ -167,16 +169,14 @@ int depmod_main(int ATTRIBUTE_UNUSED argc, char **argv)
 				NULL, /* dir action */
 				(void*)filedes, /* user data */
 				0)) { /* depth */
-			retval = EXIT_FAILURE;
+			ret = EXIT_FAILURE;
 		}
-		if (ENABLE_FEATURE_CLEAN_UP)
-			free(chp);
 	} while (!(option_mask32 & ARG_a) && *argv);
 
 	if (ENABLE_FEATURE_CLEAN_UP) {
-		fclose(filedes);
+		fclose_if_not_stdin(filedes);
 		llist_free(G.lst, free);
 		free(moddir);
 	}
-	return retval;
+	return ret;
 }
