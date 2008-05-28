@@ -244,6 +244,7 @@ extern void chomp(char *s);
 extern void trim(char *s);
 extern char *skip_whitespace(const char *);
 extern char *skip_non_whitespace(const char *);
+extern char *strrstr(const char *haystack, const char *needle);
 
 //TODO: supply a pointer to char[11] buffer (avoid statics)?
 extern const char *bb_mode_string(mode_t mode);
