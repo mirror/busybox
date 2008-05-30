@@ -313,6 +313,7 @@ static long parse_mount_options(char *options, char **unrecognized)
 
 		if (comma) *comma = '\0';
 
+/* FIXME: use hasmntopt() */
 		// Find this option in mount_options
 		for (i = 0; i < ARRAY_SIZE(mount_options); i++) {
 			if (!strcasecmp(option_str, options)) {
