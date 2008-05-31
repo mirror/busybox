@@ -107,28 +107,28 @@ static void print_esc_string(char *str)
 	}
 }
 
-static void print_direc(char *start, size_t length, int field_width, int precision,
+static void print_direc(char *format, unsigned fmt_length,
+		int field_width, int precision,
 		const char *argument)
 {
-	char *p;		/* Null-terminated copy of % directive. */
+	char saved;
 
-	p = xmalloc((unsigned) (length + 1));
-	strncpy(p, start, length);
-	p[length] = 0;
+	saved = format[fmt_length];
+	format[fmt_length] = '\0';
 
-	switch (p[length - 1]) {
+	switch (p[fmt_length - 1]) {
 	case 'd':
 	case 'i':
 		if (field_width < 0) {
 			if (precision < 0)
-				printf(p, my_xstrtol(argument));
+				printf(format, my_xstrtol(argument));
 			else
-				printf(p, precision, my_xstrtol(argument));
+				printf(format, precision, my_xstrtol(argument));
 		} else {
 			if (precision < 0)
-				printf(p, field_width, my_xstrtol(argument));
+				printf(format, field_width, my_xstrtol(argument));
 			else
-				printf(p, field_width, precision, my_xstrtol(argument));
+				printf(format, field_width, precision, my_xstrtol(argument));
 		}
 		break;
 	case 'o':
@@ -137,14 +137,14 @@ static void print_direc(char *start, size_t length, int field_width, int precisi
 	case 'X':
 		if (field_width < 0) {
 			if (precision < 0)
-				printf(p, my_xstrtoul(argument));
+				printf(format, my_xstrtoul(argument));
 			else
-				printf(p, precision, my_xstrtoul(argument));
+				printf(format, precision, my_xstrtoul(argument));
 		} else {
 			if (precision < 0)
-				printf(p, field_width, my_xstrtoul(argument));
+				printf(format, field_width, my_xstrtoul(argument));
 			else
-				printf(p, field_width, precision, my_xstrtoul(argument));
+				printf(format, field_width, precision, my_xstrtoul(argument));
 		}
 		break;
 	case 'f':
@@ -154,48 +154,47 @@ static void print_direc(char *start, size_t length, int field_width, int precisi
 	case 'G':
 		if (field_width < 0) {
 			if (precision < 0)
-				printf(p, my_xstrtod(argument));
+				printf(format, my_xstrtod(argument));
 			else
-				printf(p, precision, my_xstrtod(argument));
+				printf(format, precision, my_xstrtod(argument));
 		} else {
 			if (precision < 0)
-				printf(p, field_width, my_xstrtod(argument));
+				printf(format, field_width, my_xstrtod(argument));
 			else
-				printf(p, field_width, precision, my_xstrtod(argument));
+				printf(format, field_width, precision, my_xstrtod(argument));
 		}
 		break;
 	case 'c':
-		printf(p, *argument);
+		printf(format, *argument);
 		break;
 	case 's':
 		if (field_width < 0) {
 			if (precision < 0)
-				printf(p, argument);
+				printf(format, argument);
 			else
-				printf(p, precision, argument);
+				printf(format, precision, argument);
 		} else {
 			if (precision < 0)
-				printf(p, field_width, argument);
+				printf(format, field_width, argument);
 			else
-				printf(p, field_width, precision, argument);
+				printf(format, field_width, precision, argument);
 		}
 		break;
 	}
 
-	free(p);
+	format[fmt_length] = saved;
 }
 
 /* Print the text in FORMAT, using ARGV for arguments to any '%' directives.
    Return advanced ARGV.  */
-static char **print_formatted(char *format, char **argv)
+static char **print_formatted(char *f, char **argv)
 {
-	char *f;                /* Pointer into 'format'.  */
 	char *direc_start;      /* Start of % directive.  */
-	size_t direc_length;    /* Length of % directive.  */
+	unsigned direc_length;  /* Length of % directive.  */
 	int field_width;        /* Arg to first '*', or -1 if none.  */
 	int precision;          /* Arg to second '*', or -1 if none.  */
 
-	for (f = format; *f; ++f) {
+	for (; *f; ++f) {
 		switch (*f) {
 		case '%':
 			direc_start = f++;
