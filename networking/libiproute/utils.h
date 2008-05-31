@@ -32,8 +32,7 @@ extern void incomplete_command(void) ATTRIBUTE_NORETURN;
 
 #define NEXT_ARG() do { if (!*++argv) incomplete_command(); } while (0)
 
-typedef struct
-{
+typedef struct {
 	uint8_t family;
 	uint8_t bytelen;
 	int16_t bitlen;

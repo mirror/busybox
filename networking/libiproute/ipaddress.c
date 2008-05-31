@@ -10,8 +10,6 @@
  *	Laszlo Valko <valko@linux.karinthy.hu> 990223: address label must be zero terminated
  */
 
-//#include <sys/socket.h>
-//#include <sys/ioctl.h>
 #include <fnmatch.h>
 #include <net/if.h>
 #include <net/if_arp.h>
@@ -22,20 +20,20 @@
 
 
 typedef struct filter_t {
-	int ifindex;
-	int family;
-	int oneline;
-	int showqueue;
-	inet_prefix pfx;
+	char *label;
+	char *flushb;
+	struct rtnl_handle *rth;
 	int scope, scopemask;
 	int flags, flagmask;
-	int up;
-	char *label;
-	int flushed;
-	char *flushb;
 	int flushp;
 	int flushe;
-	struct rtnl_handle *rth;
+	int ifindex;
+	family_t family;
+	smallint showqueue;
+	smallint oneline;
+	smallint up;
+	smallint flushed;
+	inet_prefix pfx;
 } filter_t;
 
 #define filter (*(filter_t*)&bb_common_bufsiz1)
@@ -45,7 +43,7 @@ static void print_link_flags(FILE *fp, unsigned flags, unsigned mdown)
 {
 	fprintf(fp, "<");
 	flags &= ~IFF_RUNNING;
-#define _PF(f) if (flags&IFF_##f) { \
+#define _PF(f) if (flags & IFF_##f) { \
 		  flags &= ~IFF_##f; \
 		  fprintf(fp, #f "%s", flags ? "," : ""); }
 	_PF(LOOPBACK);
@@ -112,7 +110,7 @@ static int print_linkinfo(struct sockaddr_nl ATTRIBUTE_UNUSED *who,
 
 	if (filter.ifindex && ifi->ifi_index != filter.ifindex)
 		return 0;
-	if (filter.up && !(ifi->ifi_flags&IFF_UP))
+	if (filter.up && !(ifi->ifi_flags & IFF_UP))
 		return 0;
 
 	memset(tb, 0, sizeof(tb));
@@ -229,9 +227,9 @@ static int print_addrinfo(struct sockaddr_nl ATTRIBUTE_UNUSED *who,
 
 	if (filter.ifindex && filter.ifindex != ifa->ifa_index)
 		return 0;
-	if ((filter.scope^ifa->ifa_scope)&filter.scopemask)
+	if ((filter.scope ^ ifa->ifa_scope) & filter.scopemask)
 		return 0;
-	if ((filter.flags^ifa->ifa_flags)&filter.flagmask)
+	if ((filter.flags ^ ifa->ifa_flags) & filter.flagmask)
 		return 0;
 	if (filter.label) {
 		const char *label;
@@ -265,7 +263,7 @@ static int print_addrinfo(struct sockaddr_nl ATTRIBUTE_UNUSED *who,
 		fn->nlmsg_flags = NLM_F_REQUEST;
 		fn->nlmsg_seq = ++filter.rth->seq;
 		filter.flushp = (((char*)fn) + n->nlmsg_len) - filter.flushb;
-		filter.flushed++;
+		filter.flushed = 1;
 		return 0;
 	}
 
@@ -315,19 +313,19 @@ static int print_addrinfo(struct sockaddr_nl ATTRIBUTE_UNUSED *who,
 				    abuf, sizeof(abuf)));
 	}
 	fprintf(fp, "scope %s ", rtnl_rtscope_n2a(ifa->ifa_scope, b1, sizeof(b1)));
-	if (ifa->ifa_flags&IFA_F_SECONDARY) {
+	if (ifa->ifa_flags & IFA_F_SECONDARY) {
 		ifa->ifa_flags &= ~IFA_F_SECONDARY;
 		fprintf(fp, "secondary ");
 	}
-	if (ifa->ifa_flags&IFA_F_TENTATIVE) {
+	if (ifa->ifa_flags & IFA_F_TENTATIVE) {
 		ifa->ifa_flags &= ~IFA_F_TENTATIVE;
 		fprintf(fp, "tentative ");
 	}
-	if (ifa->ifa_flags&IFA_F_DEPRECATED) {
+	if (ifa->ifa_flags & IFA_F_DEPRECATED) {
 		ifa->ifa_flags &= ~IFA_F_DEPRECATED;
 		fprintf(fp, "deprecated ");
 	}
-	if (!(ifa->ifa_flags&IFA_F_PERMANENT)) {
+	if (!(ifa->ifa_flags & IFA_F_PERMANENT)) {
 		fprintf(fp, "dynamic ");
 	} else
 		ifa->ifa_flags &= ~IFA_F_PERMANENT;
@@ -396,7 +394,8 @@ static int store_nlmsg(struct sockaddr_nl *who, struct nlmsghdr *n, void *arg)
 	memcpy(&h->h, n, n->nlmsg_len);
 	h->next = NULL;
 
-	for (lp = linfo; *lp; lp = &(*lp)->next) /* NOTHING */;
+	for (lp = linfo; *lp; lp = &(*lp)->next)
+		continue;
 	*lp = h;
 
 	ll_remember_index(who, n, NULL);

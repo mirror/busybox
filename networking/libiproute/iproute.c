@@ -24,7 +24,7 @@
 
 typedef struct filter_t {
 	int tb;
-	int flushed;
+	smallint flushed;
 	char *flushb;
 	int flushp;
 	int flushe;
@@ -189,7 +189,7 @@ static int print_route(struct sockaddr_nl *who ATTRIBUTE_UNUSED,
 		fn->nlmsg_flags = NLM_F_REQUEST;
 		fn->nlmsg_seq = ++filter.rth->seq;
 		filter.flushp = (((char*)fn) + n->nlmsg_len) - filter.flushb;
-		filter.flushed++;
+		filter.flushed = 1;
 		return 0;
 	}
 
