@@ -392,6 +392,15 @@ int mdev_main(int argc, char **argv)
 	char *env_path;
 	RESERVE_CONFIG_BUFFER(temp, PATH_MAX + SCRATCH_SIZE);
 
+#ifdef YOU_WANT_TO_DEBUG_HOTPLUG_EVENTS
+	/* Kernel cannot provide suitable stdio fds for us, do it ourself */
+	/* Replace LOGFILE by other file or device name if you need */
+#define LOGFILE "/dev/console"
+	xmove_fd(xopen("/dev/null", O_RDONLY), STDIN_FILENO);
+	xmove_fd(xopen(LOGFILE, O_WRONLY|O_APPEND), STDOUT_FILENO);
+	xmove_fd(xopen(LOGFILE, O_WRONLY|O_APPEND), STDERR_FILENO);
+#endif
+
 	xchdir("/dev");
 
 	if (argc == 2 && !strcmp(argv[1], "-s")) {
