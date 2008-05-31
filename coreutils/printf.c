@@ -116,7 +116,7 @@ static void print_direc(char *format, unsigned fmt_length,
 	saved = format[fmt_length];
 	format[fmt_length] = '\0';
 
-	switch (p[fmt_length - 1]) {
+	switch (format[fmt_length - 1]) {
 	case 'd':
 	case 'i':
 		if (field_width < 0) {
