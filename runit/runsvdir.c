@@ -141,8 +141,12 @@ static void runsvdir(void)
 	}
 	for (i = 0; i < svnum; i++)
 		sv[i].isgone = 1;
-	errno = 0;
-	while ((d = readdir(dir))) {
+
+	while (1) {
+		errno = 0;
+		d = readdir(dir);
+		if (!d)
+			break;
 		if (d->d_name[0] == '.')
 			continue;
 		if (stat(d->d_name, &s) == -1) {
@@ -194,6 +198,7 @@ static void runsvdir(void)
 		if (sv[i].pid)
 			kill(sv[i].pid, SIGTERM);
 		sv[i] = sv[--svnum];
+/* BUG? we deleted sv[i] by copying over sv[last], but we will not check this newly-copied one! */
 		check = 1;
 	}
 }
