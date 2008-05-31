@@ -443,8 +443,7 @@ static struct dep_t *build_dep(void)
 			/* It's a dep description continuation */
 			p = line_buffer;
 
-		while (p && *p && isblank(*p))
-			p++;
+		p = skip_whitespace(p);
 
 		/* p points to the first dependable module; if NULL, no dependable module */
 		if (p && *p) {
@@ -468,10 +467,8 @@ static struct dep_t *build_dep(void)
 
 				/* find the beginning of the module file name */
 				deps = bb_basename(p);
-				if (deps == p) {
-					while (isblank(*deps))
-						deps++;
-				}
+				if (deps == p)
+					deps = skip_whitespace(deps);
 
 				/* find the end of the module name in the file name */
 				if (ENABLE_FEATURE_2_6_MODULES
@@ -901,7 +898,7 @@ int modprobe_main(int argc, char **argv)
 		do {
 			/* argv[optind] can be NULL here */
 			if (mod_remove(argv[optind])) {
-				bb_error_msg("failed to remove module %s",
+				bb_error_msg("failed to %s module %s", "remove",
 						argv[optind]);
 				rc = EXIT_FAILURE;
 			}
@@ -911,7 +908,7 @@ int modprobe_main(int argc, char **argv)
 			bb_error_msg_and_die("no module or pattern provided");
 
 		if (mod_insert(argv[optind], argc - optind - 1, argv + optind + 1))
-			bb_error_msg_and_die("failed to load module %s", argv[optind]);
+			bb_error_msg_and_die("failed to %s module %s", "load", argv[optind]);
 	}
 
 	/* Here would be a good place to free up memory allocated during the dependencies build. */
