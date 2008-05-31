@@ -23,7 +23,7 @@ int index_in_strings(const char *strings, const char *key)
 {
 	int idx = 0;
 
-	while (strings[0]) {
+	while (*strings) {
 		if (strcmp(strings, key) == 0) {
 			return idx;
 		}
@@ -57,7 +57,7 @@ int index_in_substrings(const char *strings, const char *key)
 
 	if (len) {
 		int idx = 0;
-		while (strings[0]) {
+		while (*strings) {
 			if (strncmp(strings, key, len) == 0) {
 				return idx;
 			}
