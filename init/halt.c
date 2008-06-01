@@ -37,7 +37,6 @@ RB_AUTOBOOT
 	int which, flags, rc = 1;
 #if ENABLE_FEATURE_WTMP
 	struct utmp utmp;
-	struct timeval tv;
 	struct utsname uts;
 #endif
 
@@ -56,9 +55,7 @@ RB_AUTOBOOT
 		close(creat(bb_path_wtmp_file, 0664));
 	}
 	memset(&utmp, 0, sizeof(utmp));
-	gettimeofday(&tv, NULL);
-	utmp.ut_tv.tv_sec = tv.tv_sec;
-	utmp.ut_tv.tv_usec = tv.tv_usec;
+	utmp.ut_tv.tv_sec = time(NULL);
 	safe_strncpy(utmp.ut_user, "shutdown", UT_NAMESIZE);
 	utmp.ut_type = RUN_LVL;
 	safe_strncpy(utmp.ut_id, "~~", sizeof(utmp.ut_id));

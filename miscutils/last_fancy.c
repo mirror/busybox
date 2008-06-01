@@ -46,7 +46,7 @@ static void show_entry(struct utmp *ut, int state, time_t dur_secs)
 	const char *logout_str;
 	const char *duration_str;
 
-	safe_strncpy(login_time, ctime(&(ut->ut_time)), 17);
+	safe_strncpy(login_time, ctime(&(ut->ut_tv.tv_sec)), 17);
 	snprintf(logout_time, 8, "- %s", ctime(&dur_secs) + 11);
 
 	dur_secs = MAX(dur_secs - (time_t)ut->ut_tv.tv_sec, (time_t)0);
@@ -87,7 +87,7 @@ static void show_entry(struct utmp *ut, int state, time_t dur_secs)
 	}
 
 	printf(HEADER_FORMAT,
-		   ut->ut_name,
+		   ut->ut_user,
 		   ut->ut_line,
 		   show_wide ? INET6_ADDRSTRLEN : INET_ADDRSTRLEN,
 		   show_wide ? INET6_ADDRSTRLEN : INET_ADDRSTRLEN,
@@ -112,19 +112,19 @@ static int get_ut_type(struct utmp *ut)
 		return ut->ut_type;
 	}
 
-	if (ut->ut_name[0] == 0) {
+	if (ut->ut_user[0] == 0) {
 		return DEAD_PROCESS;
 	}
 
 	if ((ut->ut_type != DEAD_PROCESS)
-	 && (strcmp(ut->ut_name, "LOGIN") != 0)
-	 && ut->ut_name[0]
+	 && (strcmp(ut->ut_user, "LOGIN") != 0)
+	 && ut->ut_user[0]
 	 && ut->ut_line[0]
 	) {
 		ut->ut_type = USER_PROCESS;
 	}
 
-	if (strcmp(ut->ut_name, "date") == 0) {
+	if (strcmp(ut->ut_user, "date") == 0) {
 		if (ut->ut_line[0] == '|') {
 			return OLD_TIME;
 		}
@@ -196,18 +196,18 @@ int last_main(int argc ATTRIBUTE_UNUSED, char **argv)
 		xlseek(file, pos, SEEK_SET);
 		xread(file, &ut, sizeof(ut));
 		/* rewritten by each record, eventially will have
-		 * first record's ut_time: */
-		start_time = ut.ut_time;
+		 * first record's ut_tv.tv_sec: */
+		start_time = ut.ut_tv.tv_sec;
 
 		switch (get_ut_type(&ut)) {
 		case SHUTDOWN_TIME:
-			down_time = ut.ut_time;
+			down_time = ut.ut_tv.tv_sec;
 			boot_down = DOWN;
 			going_down = 1;
 			break;
 		case RUN_LVL:
 			if (is_runlevel_shutdown(&ut)) {
-				down_time = ut.ut_time;
+				down_time = ut.ut_tv.tv_sec;
 				going_down = 1;
 				boot_down = DOWN;
 			}
@@ -240,7 +240,7 @@ int last_main(int argc ATTRIBUTE_UNUSED, char **argv)
 					next = el->link;
 					if (strncmp(up->ut_line, ut.ut_line, UT_LINESIZE) == 0) {
 						if (show) {
-							show_entry(&ut, NORMAL, up->ut_time);
+							show_entry(&ut, NORMAL, up->ut_tv.tv_sec);
 							show = 0;
 						}
 						llist_unlink(&zlist, el);
@@ -271,7 +271,7 @@ int last_main(int argc ATTRIBUTE_UNUSED, char **argv)
 		}
 
 		if (going_down) {
-			boot_time = ut.ut_time;
+			boot_time = ut.ut_tv.tv_sec;
 			llist_free(zlist, free);
 			zlist = NULL;
 			going_down = 0;

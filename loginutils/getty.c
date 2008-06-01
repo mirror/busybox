@@ -605,7 +605,7 @@ static void update_utmp(const char *line, char *fakehost)
 	safe_strncpy(ut.ut_line, line, sizeof(ut.ut_line));
 	if (fakehost)
 		safe_strncpy(ut.ut_host, fakehost, sizeof(ut.ut_host));
-	ut.ut_time = time(NULL);
+	ut.ut_tv.tv_sec = time(NULL);
 	ut.ut_type = LOGIN_PROCESS;
 	ut.ut_pid = mypid;
 

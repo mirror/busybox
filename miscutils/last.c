@@ -83,17 +83,17 @@ int last_main(int argc, char **argv ATTRIBUTE_UNUSED)
 				ut.ut_type = RUN_LVL;
 #endif
 		} else {
-			if (ut.ut_name[0] == '\0' || strcmp(ut.ut_name, "LOGIN") == 0) {
+			if (ut.ut_user[0] == '\0' || strcmp(ut.ut_user, "LOGIN") == 0) {
 				/* Don't bother.  This means we can't find how long
 				 * someone was logged in for.  Oh well. */
 				goto next;
 			}
 			if (ut.ut_type != DEAD_PROCESS
-			 && ut.ut_name[0] && ut.ut_line[0]
+			 && ut.ut_user[0] && ut.ut_line[0]
 			) {
 				ut.ut_type = USER_PROCESS;
 			}
-			if (strcmp(ut.ut_name, "date") == 0) {
+			if (strcmp(ut.ut_user, "date") == 0) {
 				if (n == TYPE_OLD_TIME) { /* '|' */
 					ut.ut_type = OLD_TIME;
 				}

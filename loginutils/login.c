@@ -80,7 +80,7 @@ static void read_or_build_utent(struct utmp *utptr, int picky)
 		 * remotely meaningful by skipping "tty"... */
 		strncpy(utptr->ut_id, short_tty + 3, sizeof(utptr->ut_id));
 		strncpy(utptr->ut_user, "LOGIN", sizeof(utptr->ut_user));
-		utptr->ut_time = time(NULL);
+		utptr->ut_tv.tv_sec = time(NULL);
 	}
 	if (!picky)	/* root login */
 		memset(utptr->ut_host, 0, sizeof(utptr->ut_host));
@@ -96,7 +96,7 @@ static void write_utent(struct utmp *utptr, const char *username)
 {
 	utptr->ut_type = USER_PROCESS;
 	strncpy(utptr->ut_user, username, sizeof(utptr->ut_user));
-	utptr->ut_time = time(NULL);
+	utptr->ut_tv.tv_sec = time(NULL);
 	/* other fields already filled in by read_or_build_utent above */
 	setutent();
 	pututline(utptr);
