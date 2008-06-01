@@ -1,2 +1,2 @@
-./does_exist_for_sure
+./does_not_exist_for_sure
 echo $?
