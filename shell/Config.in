@@ -114,6 +114,13 @@ config ASH_BUILTIN_ECHO
 	help
 	  Enable support for echo, builtin to ash.
 
+config ASH_BUILTIN_PRINTF
+	bool "Builtin version of 'printf'"
+	default y
+	depends on ASH
+	help
+	  Enable support for printf, builtin to ash.
+
 config ASH_BUILTIN_TEST
 	bool "Builtin version of 'test'"
 	default y

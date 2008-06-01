@@ -61,7 +61,6 @@ static int fileAction(const char *fileName, struct stat *statbuf,
 	return FALSE;
 }
 
-int chown_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int chown_main(int argc ATTRIBUTE_UNUSED, char **argv)
 {
 	int retval = EXIT_SUCCESS;

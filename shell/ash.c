@@ -8488,17 +8488,18 @@ static int ulimitcmd(int, char **);
  * Apart from the above, [[ expr ]] should work as [ expr ]
  */
 
-#define testcmd test_main
-#define echocmd echo_main
+#define echocmd   echo_main
+#define printfcmd printf_main
+#define testcmd   test_main
 
 /* Keep these in proper order since it is searched via bsearch() */
 static const struct builtincmd builtintab[] = {
 	{ BUILTIN_SPEC_REG      ".", dotcmd },
 	{ BUILTIN_SPEC_REG      ":", truecmd },
 #if ENABLE_ASH_BUILTIN_TEST
-	{ BUILTIN_REGULAR	"[", testcmd },
+	{ BUILTIN_REGULAR       "[", testcmd },
 #if ENABLE_ASH_BASH_COMPAT
-	{ BUILTIN_REGULAR	"[[", testcmd },
+	{ BUILTIN_REGULAR       "[[", testcmd },
 #endif
 #endif
 #if ENABLE_ASH_ALIAS
@@ -8540,6 +8541,9 @@ static const struct builtincmd builtintab[] = {
 	{ BUILTIN_NOSPEC        "let", letcmd },
 #endif
 	{ BUILTIN_ASSIGN        "local", localcmd },
+#if ENABLE_ASH_BUILTIN_PRINTF
+	{ BUILTIN_REGULAR       "printf", printfcmd },
+#endif
 	{ BUILTIN_NOSPEC        "pwd", pwdcmd },
 	{ BUILTIN_REGULAR       "read", readcmd },
 	{ BUILTIN_SPEC_REG_ASSG "readonly", exportcmd },
@@ -8548,7 +8552,7 @@ static const struct builtincmd builtintab[] = {
 	{ BUILTIN_SPEC_REG      "shift", shiftcmd },
 	{ BUILTIN_SPEC_REG      "source", dotcmd },
 #if ENABLE_ASH_BUILTIN_TEST
-	{ BUILTIN_REGULAR	"test", testcmd },
+	{ BUILTIN_REGULAR       "test", testcmd },
 #endif
 	{ BUILTIN_SPEC_REG      "times", timescmd },
 	{ BUILTIN_SPEC_REG      "trap", trapcmd },

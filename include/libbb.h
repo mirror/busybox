@@ -878,13 +878,16 @@ extern void bb_verror_msg(const char *s, va_list p, const char *strerr);
 #endif
 
 
-/* applets which are useful from another applets */
+/* Applets which are useful from another applets */
 int bb_cat(char** argv);
-/* If shell needs them, these three "exist" even if not enabled as applets */
+/* If shell needs them, they exist even if not enabled as applets */
 int echo_main(int argc, char** argv) USE_ECHO(MAIN_EXTERNALLY_VISIBLE);
+int printf_main(int argc, char **argv) USE_PRINTF(MAIN_EXTERNALLY_VISIBLE);
 int test_main(int argc, char **argv) USE_TEST(MAIN_EXTERNALLY_VISIBLE);
 int kill_main(int argc, char **argv) USE_KILL(MAIN_EXTERNALLY_VISIBLE);
-int chown_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
+/* Similar, but used by chgrp, not shell */
+int chown_main(int argc, char **argv) USE_CHOWN(MAIN_EXTERNALLY_VISIBLE);
+/* Don't need USE_xxx() guard for these */
 int gunzip_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int bunzip2_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int bbunpack(char **argv,

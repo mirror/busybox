@@ -54,6 +54,7 @@ lib-$(CONFIG_NOHUP)     += nohup.o
 lib-$(CONFIG_OD)        += od.o
 lib-$(CONFIG_PRINTENV)  += printenv.o
 lib-$(CONFIG_PRINTF)    += printf.o
+lib-$(CONFIG_ASH_BUILTIN_PRINTF) += printf.o
 lib-$(CONFIG_PWD)       += pwd.o
 lib-$(CONFIG_READLINK)  += readlink.o
 lib-$(CONFIG_REALPATH)  += realpath.o

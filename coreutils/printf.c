@@ -193,6 +193,7 @@ static char **print_formatted(char *f, char **argv)
 	unsigned direc_length;  /* Length of % directive.  */
 	int field_width;        /* Arg to first '*', or -1 if none.  */
 	int precision;          /* Arg to second '*', or -1 if none.  */
+	char **saved_argv = argv;
 
 	for (; *f; ++f) {
 		switch (*f) {
@@ -264,8 +265,9 @@ static char **print_formatted(char *f, char **argv)
 							precision, "");
 			break;
 		case '\\':
-			if (*++f == 'c')
-				exit(EXIT_SUCCESS);
+			if (*++f == 'c') {
+				return saved_argv; /* causes main() to exit */
+			}
 			bb_putchar(bb_process_escape_sequence((const char **)&f));
 			f--;
 			break;
@@ -277,11 +279,21 @@ static char **print_formatted(char *f, char **argv)
 	return argv;
 }
 
-int printf_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int printf_main(int argc ATTRIBUTE_UNUSED, char **argv)
 {
 	char *format;
 	char **argv2;
+
+	/* We must check that stdout is not closed.
+	 * The reason for this is highly non-obvious. printf_main is used from shell.
+	 * Shell must correctly handle 'printf "%s" foo'
+	 * if stdout is closed. With stdio, output gets shoveled into
+	 * stdout buffer, and even fflush cannot clear it out. It seems that
+	 * even if libc receives EBADF on write attempts, it feels determined
+	 * to output data no matter what. So it will try later,
+	 * and possibly will clobber future output. Not good. */
+	if (dup2(1, 1) != 1)
+		return -1;
 
 	/* bash builtin errors out on "printf '-%s-\n' foo",
 	 * coreutils-6.9 works. Both work with "printf -- '-%s-\n' foo".
