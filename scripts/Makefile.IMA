@@ -1,4 +1,7 @@
 # This is completely unsupported.
+#
+# Uasge: make -f scripts/Makefile.IMA
+#
 # Fix COMBINED_COMPILE upstream (in the Kbuild) and propagate
 # the changes back
 srctree		:= $(if $(KBUILD_SRC),$(KBUILD_SRC),$(CURDIR))
@@ -10,6 +13,24 @@ obj		:= $(objtree)
 MAKEFLAGS += --include-dir=$(srctree)
 
 default: busybox
+
+include .config
+
+# Cross compiling and selecting different set of gcc/bin-utils
+ifeq ($(CROSS_COMPILE),)
+CROSS_COMPILE := $(subst ",,$(CONFIG_CROSS_COMPILER_PREFIX))
+endif
+
+ifneq ($(CROSS_COMPILE),)
+SUBARCH := $(shell echo $(CROSS_COMPILE) | cut -d- -f1)
+else
+SUBARCH := $(shell uname -m)
+endif
+SUBARCH := $(shell echo $(SUBARCH) | sed -e s/i.86/i386/ -e s/sun4u/sparc64/ \
+                                         -e s/arm.*/arm/ -e s/sa110/arm/ \
+                                         -e s/s390x/s390/ -e s/parisc64/parisc/ \
+                                         -e s/ppc.*/powerpc/ -e s/mips.*/mips/ )
+ARCH ?= $(SUBARCH)
 
 ifndef HOSTCC
 HOSTCC = cc
@@ -27,19 +48,11 @@ OBJDUMP         = $(CROSS_COMPILE)objdump
 CFLAGS := $(CFLAGS)
 CPPFLAGS+= -D"KBUILD_STR(s)=\#s" #-Q
 
-include .config
 # We need some generic definitions
 include $(srctree)/scripts/Kbuild.include
 
 include Makefile.flags
 
-SUBARCH := $(shell uname -m | sed -e s/i.86/i386/ -e s/sun4u/sparc64/ \
-				  -e s/arm.*/arm/ -e s/sa110/arm/ \
-				  -e s/s390x/s390/ -e s/parisc64/parisc/ \
-				  -e s/ppc.*/powerpc/ -e s/mips.*/mips/ )
-ARCH ?= $(SUBARCH)
-
-# Cross compiling and selecting different set of gcc/bin-utils
 -include $(srctree)/arch/$(ARCH)/Makefile
 ifdef CONFIG_FEATURE_COMPRESS_USAGE
 usage_stuff = include/usage_compressed.h

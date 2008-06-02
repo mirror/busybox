@@ -452,7 +452,7 @@ enum {
 /* The system calls unchanged between 2.0 and 2.1.  */
 
 unsigned long create_module(const char *, size_t);
-int delete_module(const char *);
+int delete_module(const char *module, unsigned int flags);
 
 
 #endif /* module.h */
@@ -4141,18 +4141,18 @@ int insmod_main(int argc, char **argv)
 	 * now we can load them directly into the kernel memory
 	 */
 	if (!obj_load_progbits(fp, f, (char*)m_addr)) {
-		delete_module(m_name);
+		delete_module(m_name, 0);
 		goto out;
 	}
 #endif
 
 	if (!obj_relocate(f, m_addr)) {
-		delete_module(m_name);
+		delete_module(m_name, 0);
 		goto out;
 	}
 
 	if (!new_init_module(m_name, f, m_size)) {
-		delete_module(m_name);
+		delete_module(m_name, 0);
 		goto out;
 	}
 
