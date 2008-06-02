@@ -26,7 +26,7 @@
 
 #define SYS_RTC_PATH   "/sys/class/rtc/%s/device/power/wakeup"
 #define SYS_POWER_PATH "/sys/power/state"
-#define DEFAULT_MODE   "suspend"
+#define DEFAULT_MODE   "standby"
 
 static time_t rtc_time;
 
