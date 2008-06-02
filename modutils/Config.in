@@ -25,6 +25,16 @@ config FEATURE_DEPMOD_PRUNE_FANCY
 
 	  If unsure, say N.
 
+config FEATURE_DEPMOD_ALIAS
+	bool "alias support"
+	default n
+	depends on DEPMOD
+	help
+	  By default modules.dep does not contain alias information.
+	  Enable this to emit aliases of the form:
+
+	    alias pcmcia:m*c*f03fn*pfn*pa*pb*pc*pd* parport_cs
+
 config INSMOD
 	bool "insmod"
 	default n

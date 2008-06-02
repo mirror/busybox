@@ -10,12 +10,6 @@
 #define _GNU_SOURCE
 #include <libbb.h>
 #include <sys/utsname.h> /* uname() */
-#if ENABLE_DEBUG
-#include <assert.h>
-#define dbg_assert assert
-#else
-#define dbg_assert(stuff) do {} while (0)
-#endif
 /*
  * Theory of operation:
  * - iterate over all modules and record their full path
@@ -26,33 +20,33 @@
 typedef struct dep_lst_t {
 	char *name;
 	llist_t *dependencies;
+	llist_t *aliases;
 	struct dep_lst_t *next;
 } dep_lst_t;
 
 struct globals {
 	dep_lst_t *lst; /* modules without their corresponding extension */
-	size_t moddir_base_len; /* length of the "-b basedir" */
 };
 #define G (*(struct globals*)&bb_common_bufsiz1)
 /* We have to zero it out because of NOEXEC */
 #define INIT_G() memset(&G, 0, sizeof(G))
 
-static int fill_lst(const char *modulename, struct stat ATTRIBUTE_UNUSED *sb,
-					void ATTRIBUTE_UNUSED *data, int ATTRIBUTE_UNUSED depth)
+static char* find_keyword(void *the_module, size_t len, const char * const word)
 {
-
-	/* We get a file here. If the file does not have ".ko" but an
-	 * intermittent dentry has, it's just their fault.
-	 */
-	if (strrstr(modulename, ".ko") != NULL) {
-		dep_lst_t *new = xzalloc(sizeof(dep_lst_t));
-		new->name = xstrdup(modulename + G.moddir_base_len);
-		new->next = G.lst;
-		G.lst = new;
-	}
-	return TRUE;
+	char *ptr = the_module;
+	do {
+		/* search for the first char in word */
+		ptr = memchr(ptr, *word, len - (ptr - (char*)the_module));
+		if (ptr == NULL) /* no occurance left, done */
+			return NULL;
+		if (!strncmp(ptr, word, strlen(word))) {
+			ptr += strlen(word);
+			break;
+		}
+		++ptr;
+	} while (1);
+	return ptr;
 }
-
 static int fileAction(const char *fname, struct stat *sb,
 					void ATTRIBUTE_UNUSED *data, int ATTRIBUTE_UNUSED depth)
 {
@@ -79,45 +73,37 @@ static int fileAction(const char *fname, struct stat *sb,
 	close(fd);
 	if (the_module == MAP_FAILED)
 		bb_perror_msg_and_die("mmap");
-	ptr = the_module;
-	this = G.lst;
-	do {
-		if (!strcmp(fname + G.moddir_base_len, this->name))
-			break;
-		this = this->next;
-	} while (this);
-	dbg_assert (this);
-//bb_info_msg("fname='%s'", fname + G.moddir_base_len);
-	do {
-		/* search for a 'd' */
-		ptr = memchr(ptr, 'd', len - (ptr - (char*)the_module));
-		if (ptr == NULL) /* no d left, done */
-			goto none;
-		if (!strncmp(ptr, "depends=", sizeof("depends=")-1))
-			break;
-		++ptr;
-	} while (1);
-	deps = depends = xstrdup (ptr + sizeof("depends=")-1);
+
+	this = xzalloc(sizeof(dep_lst_t));
+	this->name = xstrdup(fname);
+	this->next = G.lst;
+	G.lst = this;
+//bb_info_msg("fname='%s'", fname);
+	ptr = find_keyword(the_module, len, "depends=");
+	if (!*ptr)
+		goto d_none;
+	deps = depends = xstrdup(ptr);
 //bb_info_msg(" depends='%s'", depends);
 	while (deps) {
-		dep_lst_t *all = G.lst;
-
 		ptr = strsep(&deps, ",");
-		while (all) {
-			/* Compare the recorded filenames ignoring ".ko*" at the end.  */
-			char *tmp = bb_get_last_path_component_nostrip(all->name);
-			if (!strncmp(ptr, tmp, MAX(strlen(ptr),strrstr(tmp, ".ko") - tmp)))
-				break; /* found it */
-			all = all->next;
-		}
-		if (all) {
-			dbg_assert(all->name); /* this cannot be empty */
-//bb_info_msg("[%s] -> '%s'", (char*)ptr, all->name);
-			llist_add_to_end(&this->dependencies, all->name);
-		}
+//bb_info_msg("[%s] -> '%s'", fname, (char*)ptr);
+		llist_add_to_end(&this->dependencies, xstrdup(ptr));
 	}
 	free(depends);
- none:
+ d_none:
+	if (ENABLE_FEATURE_DEPMOD_ALIAS)
+	{
+		size_t pos = 0;
+		do {
+			ptr = find_keyword(the_module + pos, len - pos, "alias=");
+			if (ptr) {
+//bb_info_msg("[%s] alias '%s'", fname, (char*)ptr);
+					llist_add_to_end(&this->aliases, xstrdup(ptr));
+			} else
+				break;
+			pos = (ptr - (char*)the_module);
+		} while (1);
+	}
 	munmap(the_module, sb->st_size);
  skip:
 	return TRUE;
@@ -127,6 +113,7 @@ int depmod_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int depmod_main(int ATTRIBUTE_UNUSED argc, char **argv)
 {
 	int ret;
+	size_t moddir_base_len = 0; /* length of the "-b basedir" */
 	char *moddir_base = NULL, *moddir, *system_map, *chp;
 	FILE *filedes = stdout;
 	enum {
@@ -157,13 +144,8 @@ int depmod_main(int ATTRIBUTE_UNUSED argc, char **argv)
 	option_mask32 |= *argv == NULL;
 
 	if (option_mask32 & ARG_b) {
-		G.moddir_base_len = strlen(moddir_base);
-		if (ENABLE_FEATURE_CLEAN_UP) {
-			chp = moddir;
-			moddir = concat_path_file(moddir_base, moddir);
-			free (chp);
-		} else
-			moddir = concat_path_file(moddir_base, moddir);
+		moddir_base_len = strlen(moddir_base) + 1;
+		xchdir(moddir_base);
 	}
 
 	if (!(option_mask32 & ARG_n)) { /* --dry-run */
@@ -173,23 +155,8 @@ int depmod_main(int ATTRIBUTE_UNUSED argc, char **argv)
 			free(chp);
 	}
 	ret = EXIT_SUCCESS;
-	/* We have to do a full walk to collect all needed data.  */
-	if (!recursive_action(moddir,
-			ACTION_RECURSE, /* flags */
-			fill_lst, /* file action */
-			NULL, /* dir action */
-			NULL, /* user data */
-			0)) { /* depth */
-		if (ENABLE_FEATURE_CLEAN_UP)
-			ret = EXIT_FAILURE;
-		else
-			return EXIT_FAILURE;
-	}
-#if ENABLE_FEATURE_CLEAN_UP
-	else
-#endif
 	do {
-		chp = option_mask32 & ARG_a ? moddir : *argv++;
+		chp = option_mask32 & ARG_a ? moddir : (*argv + moddir_base_len);
 
 		if (!recursive_action(chp,
 				ACTION_RECURSE, /* flags */
@@ -199,8 +166,42 @@ int depmod_main(int ATTRIBUTE_UNUSED argc, char **argv)
 				0)) { /* depth */
 			ret = EXIT_FAILURE;
 		}
-	} while (!(option_mask32 & ARG_a) && *argv);
+	} while (!(option_mask32 & ARG_a) && *++argv);
 
+	{
+	dep_lst_t *mods = G.lst;
+
+	/* Fixup the module names in the depends list */
+	while (mods) {
+		llist_t *deps = NULL, *old_deps = mods->dependencies;
+		
+		while (old_deps) {
+			dep_lst_t *all = G.lst;
+			char *longname = NULL;
+			char *shortname = llist_pop(&old_deps);
+
+			while (all) {
+				char *nam = 
+					xstrdup(bb_get_last_path_component_nostrip(all->name));
+				char *tmp = strrstr(nam, ".ko");
+
+				*tmp = '\0';
+				if (!strcmp(nam, shortname)) {
+					if (ENABLE_FEATURE_CLEAN_UP)
+						free(nam);
+					longname = all->name;
+					break;
+				}
+				free(nam);
+				all = all->next;
+			}
+			llist_add_to_end(&deps, longname);
+		}
+		mods->dependencies = deps;
+		mods = mods->next;
+	}
+
+#if ENABLE_FEATURE_DEPMOD_PRUNE_FANCY
 	/* modprobe allegedly wants dependencies without duplicates, i.e.
 	 * mod1: mod2 mod3
 	 * mod2: mod3
@@ -211,9 +212,7 @@ int depmod_main(int ATTRIBUTE_UNUSED argc, char **argv)
 	 * mod2: mod3
 	 * mod3:
 	 */
-	{
-	dep_lst_t *mods = G.lst;
-#if ENABLE_FEATURE_DEPMOD_PRUNE_FANCY
+	mods = G.lst;
 	while (mods) {
 		llist_t *deps = mods->dependencies;
 		while (deps) {
@@ -241,15 +240,36 @@ int depmod_main(int ATTRIBUTE_UNUSED argc, char **argv)
 		}
 		mods = mods->next;
 	}
+#endif
 
 	mods = G.lst;
-#endif
 	/* Finally print them.  */
 	while (mods) {
 		fprintf(filedes, "%s:", mods->name);
-		while (mods->dependencies)
-			fprintf(filedes, " %s", (char*)llist_pop(&mods->dependencies));
+		/* If we did not resolve all modules, then it's likely that we just did
+		 * not see the names of all prerequisites (which will be NULL in this
+		 * case).  */
+		while (mods->dependencies) {
+			char *the_dep = llist_pop(&mods->dependencies);
+			if (the_dep)
+				fprintf(filedes, " %s", the_dep);
+		}
 		fprintf(filedes, "\n");
+		if (ENABLE_FEATURE_DEPMOD_ALIAS)
+		{
+			char *shortname =
+				xstrdup(bb_get_last_path_component_nostrip(mods->name));
+			char *tmp = strrstr(shortname, ".ko");
+
+			*tmp = '\0';
+		
+			while (mods->aliases) {
+				fprintf(filedes, "alias %s %s\n",
+					(char*)llist_pop(&mods->aliases),
+					shortname);
+			}
+			free(shortname);
+		}
 		mods = mods->next;
 	}
 	}
