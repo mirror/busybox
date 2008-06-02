@@ -11,6 +11,20 @@ config DEPMOD
 	help
 	  depmod generates modules.dep (FIXME: elaborate)
 
+config FEATURE_DEPMOD_PRUNE_FANCY
+	bool "fancy dependency pruning"
+	default n
+	depends on DEPMOD
+	help
+	  By default modules.dep contains all dependencies as listed by
+	  the modules.
+	  If you enable this option then we remove implied modules from
+	  the dependencies.
+	  This makes depmod somewhat bigger but generates a smaller
+	  modules.dep file.
+
+	  If unsure, say N.
+
 config INSMOD
 	bool "insmod"
 	default n
