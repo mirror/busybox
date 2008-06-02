@@ -221,7 +221,7 @@ int depmod_main(int ATTRIBUTE_UNUSED argc, char **argv)
 				if (!strcmp(all->name, deps->data)) {
 					llist_t *implied = all->dependencies;
 					while (implied) {
-						/* erm, nicer would be to just
+						/* XXX:FIXME: erm, it would be nicer to just
 						 * llist_unlink(&mods->dependencies, implied)  */
 						llist_t *prune = mods->dependencies;
 						while (prune) {
