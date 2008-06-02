@@ -31,6 +31,7 @@ typedef struct dep_lst_t {
 
 struct globals {
 	dep_lst_t *lst; /* modules without their corresponding extension */
+	size_t moddir_base_len; /* length of the "-b basedir" */
 };
 #define G (*(struct globals*)&bb_common_bufsiz1)
 /* We have to zero it out because of NOEXEC */
@@ -45,7 +46,7 @@ static int fill_lst(const char *modulename, struct stat ATTRIBUTE_UNUSED *sb,
 	 */
 	if (strrstr(modulename, ".ko") != NULL) {
 		dep_lst_t *new = xzalloc(sizeof(dep_lst_t));
-		new->name = xstrdup(modulename);
+		new->name = xstrdup(modulename + G.moddir_base_len);
 		new->next = G.lst;
 		G.lst = new;
 	}
@@ -81,12 +82,12 @@ static int fileAction(const char *fname, struct stat *sb,
 	ptr = the_module;
 	this = G.lst;
 	do {
-		if (!strcmp(fname, this->name))
+		if (!strcmp(fname + G.moddir_base_len, this->name))
 			break;
 		this = this->next;
 	} while (this);
 	dbg_assert (this);
-//bb_info_msg("fname='%s'", fname);
+//bb_info_msg("fname='%s'", fname + G.moddir_base_len);
 	do {
 		/* search for a 'd' */
 		ptr = memchr(ptr, 'd', len - (ptr - (char*)the_module));
@@ -156,7 +157,13 @@ int depmod_main(int ATTRIBUTE_UNUSED argc, char **argv)
 	option_mask32 |= *argv == NULL;
 
 	if (option_mask32 & ARG_b) {
-		xchdir(moddir_base);
+		G.moddir_base_len = strlen(moddir_base);
+		if (ENABLE_FEATURE_CLEAN_UP) {
+			chp = moddir;
+			moddir = concat_path_file(moddir_base, moddir);
+			free (chp);
+		} else
+			moddir = concat_path_file(moddir_base, moddir);
 	}
 
 	if (!(option_mask32 & ARG_n)) { /* --dry-run */
