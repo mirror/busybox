@@ -161,7 +161,7 @@ export srctree objtree VPATH TOPDIR
 # Default value for CROSS_COMPILE is not to prefix executables
 # Note: Some architectures assign CROSS_COMPILE in their arch/*/Makefile
 
-CROSS_COMPILE	?=
+CROSS_COMPILE ?=
 # bbox: we may have CONFIG_CROSS_COMPILER_PREFIX in .config,
 # and it has not been included yet... thus using an awkward syntax.
 ifeq ($(CROSS_COMPILE),)
@@ -186,8 +186,7 @@ SUBARCH := $(shell echo $(SUBARCH) | sed -e s/i.86/i386/ -e s/sun4u/sparc64/ \
 					 -e s/s390x/s390/ -e s/parisc64/parisc/ \
 					 -e s/ppc.*/powerpc/ -e s/mips.*/mips/ )
 
-ARCH		?= $(SUBARCH)
-$(warning ARCH=$(ARCH) SUBARCH=$(SUBARCH))
+ARCH ?= $(SUBARCH)
 
 # Architecture as present in compile.h
 UTS_MACHINE := $(ARCH)
