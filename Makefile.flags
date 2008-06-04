@@ -71,10 +71,6 @@ endif
 ifeq ($(CONFIG_PIE),y)
 CFLAGS_busybox += $(ARCH_PIE)
 CFLAGS += $(ARCH_FPIE)
-# No switch() jump tables. Code growth +1k, binary size down -12k
-# due to reduced number of code pointers.
-# (TODO: make overridable: some arches may want to not do this)
-CFLAGS += $(call cc-option,-fno-jump-tables)
 endif
 
 LDLIBS += m crypt
