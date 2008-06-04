@@ -194,7 +194,7 @@ config FEATURE_2_6_MODULES
 
 config DEFAULT_MODULES_DIR
 	# Simulate indentation
-	string "default directory containing modules"
+	string "Default directory containing modules"
 	default "/lib/modules"
 	depends on INSMOD || RMMOD || MODPROBE || DEPMOD
 	help
@@ -203,7 +203,7 @@ config DEFAULT_MODULES_DIR
 
 config DEFAULT_DEPMOD_FILE
 	# Simulate indentation
-	string "default name of modules.dep"
+	string "Default name of modules.dep"
 	default "modules.dep"
 	depends on INSMOD || RMMOD || MODPROBE || DEPMOD
 	help
@@ -215,6 +215,4 @@ config FEATURE_QUERY_MODULE_INTERFACE
 	default y
 	depends on FEATURE_2_4_MODULES && !FEATURE_2_6_MODULES
 
-
 endmenu
-
