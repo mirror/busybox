@@ -3308,7 +3308,7 @@
      "\n	-l,--local	 Clock is set to local time" \
      "\n	-u,--utc	 Clock is set to UTC time" \
      "\n	-d,--device=DEV	 Specify the RTC device" \
-     "\n	-m,--mode=MODE	 Set the sleep state (default: suspend)" \
+     "\n	-m,--mode=MODE	 Set the sleep state (default: standby)" \
      "\n	-s,--seconds=SEC Set the timeout in SEC seconds from now" \
      "\n	-t,--time=TIME	 Set the timeout to TIME seconds from epoch" \
 	) \
