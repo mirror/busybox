@@ -251,8 +251,8 @@ ifdef builtin-target
 quiet_cmd_link_o_target = LD      $@
 # If the list of objects to link is empty, just create an empty built-in.o
 cmd_link_o_target = $(if $(strip $(obj-y)),\
-		      $(LD) $(ld_flags) -r -o $@ $(filter $(obj-y), $^),\
-		      rm -f $@; $(AR) rcs $@)
+		$(LD) $(ld_flags) -r -o $@ $(filter $(obj-y), $^),\
+		rm -f $@; $(AR) rcs $@)
 
 $(builtin-target): $(obj-y) FORCE
 	$(call if_changed,link_o_target)

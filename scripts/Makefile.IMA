@@ -45,8 +45,8 @@ STRIP           = $(CROSS_COMPILE)strip
 OBJCOPY         = $(CROSS_COMPILE)objcopy
 OBJDUMP         = $(CROSS_COMPILE)objdump
 
-CFLAGS := $(CFLAGS)
-CPPFLAGS+= -D"KBUILD_STR(s)=\#s" #-Q
+CFLAGS   := $(CFLAGS)
+CPPFLAGS += -D"KBUILD_STR(s)=\#s" #-Q
 
 # We need some generic definitions
 include $(srctree)/scripts/Kbuild.include
@@ -180,7 +180,7 @@ busybox_unstripped.o: $(usage_stuff) include/applet_tables.h include/autoconf.h
 busybox: busybox_unstripped.o
 	$(srctree)/scripts/trylink \
 		busybox_unstripped \
-		"$(CC)" \
+		"$(CC) $(CFLAGS_busybox)" \
 		"$(CFLAGS)" \
 		"$(LDFLAGS)" \
 		"busybox_unstripped.o" \

@@ -262,6 +262,14 @@ config STATIC
 
 	  Most people will leave this set to 'N'.
 
+config PIE
+	bool "Build BusyBox as a position independent executable"
+	default n
+	depends on !STATIC
+	help
+	  (TODO: what is it and why/when is it useful?)
+	  Most people will leave this set to 'N'.
+
 config NOMMU
 	bool "Force NOMMU build"
 	default n
