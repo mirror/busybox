@@ -680,7 +680,6 @@ static int if_fetch(struct interface *ife)
 	return 0;
 }
 
-
 static int do_if_fetch(struct interface *ife)
 {
 	if (if_fetch(ife) < 0) {
@@ -1217,61 +1216,60 @@ static int if_print(char *ifname)
 /* Input an Infiniband address and convert to binary. */
 int in_ib(const char *bufp, struct sockaddr *sap)
 {
-    unsigned char *ptr;
-    char c;
-    const char *orig;
-    int i;
-    unsigned val;
+	unsigned char *ptr;
+	char c;
+	const char *orig;
+	int i;
+	unsigned val;
 
-    sap->sa_family = ib_hwtype.type;
-    ptr = (unsigned char *) sap->sa_data;
+	sap->sa_family = ib_hwtype.type;
+	ptr = (unsigned char *) sap->sa_data;
 
-    i = 0;
-    orig = bufp;
-    while ((*bufp != '\0') && (i < INFINIBAND_ALEN)) {
-	val = 0;
-	c = *bufp++;
-	if (isdigit(c))
-	    val = c - '0';
-	else if (c >= 'a' && c <= 'f')
-	    val = c - 'a' + 10;
-	else if (c >= 'A' && c <= 'F')
-	    val = c - 'A' + 10;
-	else {
-	    errno = EINVAL;
-	    return (-1);
-	}
-	val <<= 4;
-	c = *bufp;
-	if (isdigit(c))
-	    val |= c - '0';
-	else if (c >= 'a' && c <= 'f')
-	    val |= c - 'a' + 10;
-	else if (c >= 'A' && c <= 'F')
-	    val |= c - 'A' + 10;
-	else if (c == ':' || c == 0)
-	    val >>= 4;
-	else {
-	    errno = EINVAL;
-	    return (-1);
-	}
-	if (c != 0)
-	    bufp++;
-	*ptr++ = (unsigned char) (val & 0377);
-	i++;
+	i = 0;
+	orig = bufp;
+	while ((*bufp != '\0') && (i < INFINIBAND_ALEN)) {
+		val = 0;
+		c = *bufp++;
+		if (isdigit(c))
+			val = c - '0';
+		else if (c >= 'a' && c <= 'f')
+			val = c - 'a' + 10;
+		else if (c >= 'A' && c <= 'F')
+			val = c - 'A' + 10;
+		else {
+			errno = EINVAL;
+			return -1;
+		}
+		val <<= 4;
+		c = *bufp;
+		if (isdigit(c))
+			val |= c - '0';
+		else if (c >= 'a' && c <= 'f')
+			val |= c - 'a' + 10;
+		else if (c >= 'A' && c <= 'F')
+			val |= c - 'A' + 10;
+		else if (c == ':' || c == 0)
+			val >>= 4;
+		else {
+			errno = EINVAL;
+			return -1;
+		}
+		if (c != 0)
+			bufp++;
+		*ptr++ = (unsigned char) (val & 0377);
+		i++;
 
-	/* We might get a semicolon here - not required. */
-	if (*bufp == ':') {
-	    bufp++;
+		/* We might get a semicolon here - not required. */
+		if (*bufp == ':') {
+			bufp++;
+		}
 	}
-    }
 #ifdef DEBUG
-fprintf(stderr, "in_ib(%s): %s\n", orig, UNSPEC_print(sap->sa_data));
+	fprintf(stderr, "in_ib(%s): %s\n", orig, UNSPEC_print(sap->sa_data));
 #endif
-    return (0);
+	return 0;
 }
 #endif
-
 
 
 int display_interfaces(char *ifname)

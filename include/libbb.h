@@ -934,6 +934,8 @@ extern smallint interface_opt_a;
 int display_interfaces(char *ifname);
 #if ENABLE_FEATURE_HWIB
 int in_ib(const char *bufp, struct sockaddr *sap);
+#else
+#define in_ib(a, b) 1 /* fail */
 #endif
 const struct aftype *get_aftype(const char *name);
 const struct hwtype *get_hwtype(const char *name);

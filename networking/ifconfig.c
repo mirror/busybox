@@ -252,20 +252,13 @@ static const struct options OptArray[] = {
 /*
  * A couple of prototypes.
  */
-
 #if ENABLE_FEATURE_IFCONFIG_HW
 static int in_ether(const char *bufp, struct sockaddr *sap);
-# if ENABLE_FEATURE_HWIB
-extern int in_ib(const char *bufp, struct sockaddr *sap);
-# else
-#  define in_ib(a, b) 1 /* fail */
-# endif
 #endif
 
 /*
  * Our main function.
  */
-
 int ifconfig_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int ifconfig_main(int argc, char **argv)
 {
@@ -436,8 +429,7 @@ int ifconfig_main(int argc, char **argv)
 							bb_show_usage();
 						/*safe_strncpy(host, *argv, sizeof(host));*/
 						host = *argv;
-						if (hw_class == 1 ? in_ether(host, &sa)
-							: in_ib(host, &sa))
+						if (hw_class == 1 ? in_ether(host, &sa) : in_ib(host, &sa))
 							bb_error_msg_and_die("invalid hw-addr %s", host);
 						p = (char *) &sa;
 					}
