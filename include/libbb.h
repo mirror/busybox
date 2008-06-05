@@ -700,7 +700,7 @@ void die_if_bad_username(const char* name);
 #endif
 
 int execable_file(const char *name);
-char *find_execable(const char *filename);
+char *find_execable(const char *filename, char **PATHp);
 int exists_execable(const char *filename);
 
 /* BB_EXECxx always execs (it's not doing NOFORK/NOEXEC stuff),

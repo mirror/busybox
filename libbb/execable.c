@@ -19,15 +19,20 @@ int execable_file(const char *name)
 	return (!access(name, X_OK) && !stat(name, &s) && S_ISREG(s.st_mode));
 }
 
-/* search $PATH for an executable file;
+/* search (*PATHp) for an executable file;
  * return allocated string containing full path if found;
- * return NULL otherwise;
+ *  PATHp points to the component after the one where it was found
+ *  (or NULL),
+ *  you may call find_execable again with this PATHp to continue
+ *  (if it's not NULL).
+ * return NULL otherwise; (PATHp is undefined)
+ * in all cases (*PATHp) contents will be trashed (s/:/NUL/).
  */
-char *find_execable(const char *filename)
+char *find_execable(const char *filename, char **PATHp)
 {
-	char *path, *p, *n;
+	char *p, *n;
 
-	p = path = xstrdup(getenv("PATH"));
+	p = *PATHp;
 	while (p) {
 		n = strchr(p, ':');
 		if (n)
@@ -35,15 +40,14 @@ char *find_execable(const char *filename)
 		if (*p != '\0') { /* it's not a PATH="foo::bar" situation */
 			p = concat_path_file(p, filename);
 			if (execable_file(p)) {
-				free(path);
+				*PATHp = n;
 				return p;
 			}
 			free(p);
 		}
 		p = n;
-	}
-	free(path);
-	return NULL;
+	} /* on loop exit p == NULL */
+	return p;
 }
 
 /* search $PATH for an executable file;
@@ -52,7 +56,10 @@ char *find_execable(const char *filename)
  */
 int exists_execable(const char *filename)
 {
-	char *ret = find_execable(filename);
+	char *path = xstrdup(getenv("PATH"));
+	char *tmp = path;
+	char *ret = find_execable(filename, &tmp);
+	free(path);
 	if (ret) {
 		free(ret);
 		return 1;
