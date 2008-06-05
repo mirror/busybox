@@ -223,7 +223,7 @@ static char *UNSPEC_print(unsigned char *ptr)
 	char *pos;
 	unsigned int i;
 
-	if (!buff);
+	if (!buff)
 		buff = xmalloc(sizeof(struct sockaddr) * 3 + 1);
 	pos = buff;
 	for (i = 0; i < sizeof(struct sockaddr); i++) {

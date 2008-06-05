@@ -54,7 +54,7 @@ char **ip_parse_common_args(char **argv)
 				break;
 			}
 		}
-		arg = index_in_strings(ip_common_commands, opt);
+		arg = index_in_substrings(ip_common_commands, opt);
 		if (arg < 0)
 			bb_show_usage();
 		if (arg == ARG_oneline) {

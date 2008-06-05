@@ -208,6 +208,7 @@ static pid_list *scan_dir_links(const char *dname, pid_t pid,
 	return plist;
 }
 
+/* NB: does chdir internally */
 static pid_list *scan_proc_pids(inode_list *ilist)
 {
 	DIR *d;
@@ -215,7 +216,8 @@ static pid_list *scan_proc_pids(inode_list *ilist)
 	pid_t pid;
 	pid_list *plist;
 
-	d = opendir(".");
+	xchdir("/proc");
+	d = opendir("/proc");
 	if (!d)
 		return NULL;
 
@@ -329,7 +331,7 @@ Find processes which use FILEs or PORTs
 		pp++;
 	}
 
-	plist = scan_proc_pids(ilist);
+	plist = scan_proc_pids(ilist); /* changes dir to "/proc" */
 
 	if (!plist)
 		return EXIT_FAILURE;

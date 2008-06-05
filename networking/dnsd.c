@@ -194,7 +194,8 @@ static int table_lookup(uint16_t type, uint8_t * as, uint8_t * qs)
 			for (i = 1; i <= (int)(d->name[0]); i++)
 				if (tolower(qs[i]) != d->name[i])
 					break;
-			if (i > (int)(d->name[0])) {
+			if (i > (int)(d->name[0]) ||
+			    (d->name[0] == 1 && d->name[1] == '*')) {
 				strcpy((char *)as, d->ip);
 #if DEBUG
 				fprintf(stderr, " OK as:%s\n", as);
@@ -202,7 +203,8 @@ static int table_lookup(uint16_t type, uint8_t * as, uint8_t * qs)
 				return 0;
 			}
 		} else if (type == REQ_PTR) { /* search by IP-address */
-			if (!strncmp((char*)&d->rip[1], (char*)&qs[1], strlen(d->rip)-1)) {
+			if ((d->name[0] != 1 || d->name[1] != '*') &&
+			    !strncmp((char*)&d->rip[1], (char*)&qs[1], strlen(d->rip)-1)) {
 				strcpy((char *)as, d->name);
 				return 0;
 			}
@@ -401,7 +403,7 @@ int dnsd_main(int argc ATTRIBUTE_UNUSED, char **argv)
 		r = process_packet(buf);
 		if (r <= 0)
 			continue;
-		send_to_from(udps, buf, r, 0, &to->u.sa, &from->u.sa, lsa->len);
+		send_to_from(udps, buf, r, 0, &from->u.sa, &to->u.sa, lsa->len);
 	}
 	return 0;
 }
