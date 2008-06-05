@@ -122,11 +122,13 @@ int lsmod_main(int argc ATTRIBUTE_UNUSED, char **argv ATTRIBUTE_UNUSED)
 			if (!(info.flags & NEW_MOD_USED_ONCE))
 				printf(" (unused)");
 		}
-		if (count) printf(" [");
+		if (count)
+			printf(" [");
 		for (j = 0, dn = deps; j < count; dn += strlen(dn) + 1, j++) {
 			printf("%s%s", dn, (j==count-1)? "":" ");
 		}
-		if (count) printf("]");
+		if (count)
+			bb_putchar(']');
 
 		bb_putchar('\n');
 	}

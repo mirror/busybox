@@ -1108,7 +1108,7 @@ static void identify(uint16_t *val)
 		jj =  val[ERASE_TIME]     & ERASE_BITS;
 		kk =  val[ENH_ERASE_TIME] & ERASE_BITS;
 		if (jj || kk) {
-			printf("\t");
+			bb_putchar('\t');
 			if (jj) printf("%umin for %sSECURITY ERASE UNIT. ", jj==ERASE_BITS ? 508 : jj<<1, "");
 			if (kk) printf("%umin for %sSECURITY ERASE UNIT. ", kk==ERASE_BITS ? 508 : kk<<1, "ENHANCED ");
 			bb_putchar('\n');
@@ -1235,46 +1235,46 @@ static void dump_identity(const struct hd_driveid *id)
 	if (id->capability & 1) {
 		if (id->dma_1word | id->dma_mword) {
 			printf("\n DMA modes:  ");
-			if (id->dma_1word & 0x100) printf("*");
+			if (id->dma_1word & 0x100) bb_putchar('*');
 			if (id->dma_1word & 1) printf("sdma0 ");
-			if (id->dma_1word & 0x200) printf("*");
+			if (id->dma_1word & 0x200) bb_putchar('*');
 			if (id->dma_1word & 2) printf("sdma1 ");
-			if (id->dma_1word & 0x400) printf("*");
+			if (id->dma_1word & 0x400) bb_putchar('*');
 			if (id->dma_1word & 4) printf("sdma2 ");
-			if (id->dma_1word & 0xf800) printf("*");
+			if (id->dma_1word & 0xf800) bb_putchar('*');
 			if (id->dma_1word & 0xf8) printf("sdma? ");
-			if (id->dma_mword & 0x100) printf("*");
+			if (id->dma_mword & 0x100) bb_putchar('*');
 			if (id->dma_mword & 1) printf("mdma0 ");
-			if (id->dma_mword & 0x200) printf("*");
+			if (id->dma_mword & 0x200) bb_putchar('*');
 			if (id->dma_mword & 2) printf("mdma1 ");
-			if (id->dma_mword & 0x400) printf("*");
+			if (id->dma_mword & 0x400) bb_putchar('*');
 			if (id->dma_mword & 4) printf("mdma2 ");
-			if (id->dma_mword & 0xf800) printf("*");
+			if (id->dma_mword & 0xf800) bb_putchar('*');
 			if (id->dma_mword & 0xf8) printf("mdma? ");
 		}
 	}
 	if (((id->capability & 8) || (id->field_valid & 2)) && id->field_valid & 4) {
 		printf("\n UDMA modes: ");
-		if (id->dma_ultra & 0x100) printf("*");
+		if (id->dma_ultra & 0x100) bb_putchar('*');
 		if (id->dma_ultra & 0x001) printf("udma0 ");
-		if (id->dma_ultra & 0x200) printf("*");
+		if (id->dma_ultra & 0x200) bb_putchar('*');
 		if (id->dma_ultra & 0x002) printf("udma1 ");
-		if (id->dma_ultra & 0x400) printf("*");
+		if (id->dma_ultra & 0x400) bb_putchar('*');
 		if (id->dma_ultra & 0x004) printf("udma2 ");
 #ifdef __NEW_HD_DRIVE_ID
 		if (id->hw_config & 0x2000) {
 #else /* !__NEW_HD_DRIVE_ID */
 		if (id->word93 & 0x2000) {
 #endif /* __NEW_HD_DRIVE_ID */
-			if (id->dma_ultra & 0x0800) printf("*");
+			if (id->dma_ultra & 0x0800) bb_putchar('*');
 			if (id->dma_ultra & 0x0008) printf("udma3 ");
-			if (id->dma_ultra & 0x1000) printf("*");
+			if (id->dma_ultra & 0x1000) bb_putchar('*');
 			if (id->dma_ultra & 0x0010) printf("udma4 ");
-			if (id->dma_ultra & 0x2000) printf("*");
+			if (id->dma_ultra & 0x2000) bb_putchar('*');
 			if (id->dma_ultra & 0x0020) printf("udma5 ");
-			if (id->dma_ultra & 0x4000) printf("*");
+			if (id->dma_ultra & 0x4000) bb_putchar('*');
 			if (id->dma_ultra & 0x0040) printf("udma6 ");
-			if (id->dma_ultra & 0x8000) printf("*");
+			if (id->dma_ultra & 0x8000) bb_putchar('*');
 			if (id->dma_ultra & 0x0080) printf("udma7 ");
 		}
 	}

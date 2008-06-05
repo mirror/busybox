@@ -41,7 +41,7 @@ typedef struct filter_t {
 
 static void print_link_flags(unsigned flags, unsigned mdown)
 {
-	printf("<");
+	bb_putchar('<');
 	flags &= ~IFF_RUNNING;
 #define _PF(f) if (flags & IFF_##f) { \
 		  flags &= ~IFF_##f; \
