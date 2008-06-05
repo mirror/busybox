@@ -1,0 +1,27 @@
+#!/bin/sh
+
+set -e
+
+. testing.sh
+
+# Need this in order to not execute shell builtin
+bb="busybox "
+
+# testing "test name" "command" "expected result" "file input" "stdin"
+
+testing "printf produce no further output 1" \
+	"${bb}printf '\c' foo" \
+	"" \
+	"" ""
+
+testing "printf produce no further output 2" \
+	"${bb}printf '%s\c' foo \$HOME" \
+	"foo" \
+	"" ""
+
+testing "printf repeatedly use pattern for each argv" \
+	"${bb}printf '%s\n' foo \$HOME" \
+	"foo\n$HOME\n" \
+	"" ""
+
+exit $FAILCOUNT
