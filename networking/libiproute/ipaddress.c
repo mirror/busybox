@@ -18,6 +18,10 @@
 #include "rt_names.h"
 #include "utils.h"
 
+#ifndef IFF_LOWER_UP
+/* from linux/if.h */
+#define IFF_LOWER_UP	0x10000		/* driver signals L1 up*/
+#endif
 
 typedef struct filter_t {
 	char *label;
@@ -63,6 +67,7 @@ static void print_link_flags(unsigned flags, unsigned mdown)
 	_PF(NOTRAILERS);
 #endif
 	_PF(UP);
+	_PF(LOWER_UP);
 #undef _PF
 	if (flags)
 		printf("%x", flags);
