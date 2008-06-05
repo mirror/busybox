@@ -1339,8 +1339,10 @@ static void remove_package(const unsigned package_num, int noisy)
 	free_array(remove_files);
 	free_array(exclude_files);
 
-	/* rename <package>.conffile to <package>.list */
-	xrename(conffile_name, list_name);
+	/* rename <package>.conffiles to <package>.list
+	 * The conffiles control file isn't required in Debian packages, so don't
+	 * error out if it's missing.  */
+	rename(conffile_name, list_name);
 
 	/* Change package status */
 	set_status(status_num, "config-files", 3);
