@@ -1,5 +1,7 @@
 #!/bin/sh
 
+TOPDIR=$PWD
+
 test -x ash || {
     echo "No ./ash?! Perhaps you want to run 'ln -s ../../busybox ash'"
     exit
@@ -18,6 +20,8 @@ do_test()
 {
     test -d "$1" || return 0
     echo do_test "$1"
+    # $1 but with / replaced by # so that it can be used as filename part
+    noslash=`echo "$1" | sed 's:/:#:g'`
     (
     cd "$1" || { echo "cannot cd $1!"; exit 1; }
     for x in run-*; do
@@ -27,8 +31,8 @@ do_test()
 	    *.orig|*~) ;;
 	    #*) echo $x ; sh $x ;;
 	    *)
-	    sh "$x" >"../$1-$x.fail" 2>&1 && \
-	    { echo "$1/$x: ok"; rm "../$1-$x.fail"; } || echo "$1/$x: fail";
+	    sh "$x" >"$TOPDIR/$noslash-$x.fail" 2>&1 && \
+	    { echo "$1/$x: ok"; rm "$TOPDIR/$noslash-$x.fail"; } || echo "$1/$x: fail";
 	    ;;
 	esac
     done
@@ -40,7 +44,8 @@ do_test()
 	test -f "$name.right" || continue
 	{
 	    "$THIS_SH" "./$x" >"$name.xx" 2>&1
-	    diff -u "$name.xx" "$name.right" >"../$1-$x.fail" && rm -f "$name.xx" "../$1-$x.fail"
+	    diff -u "$name.xx" "$name.right" >"$TOPDIR/$noslash-$x.fail" \
+	    && rm -f "$name.xx" "$TOPDIR/$noslash-$x.fail"
 	} && echo "$1/$x: ok" || echo "$1/$x: fail"
     done
     )
@@ -52,6 +57,9 @@ do_test()
 if [ $# -lt 1 ]; then
     # All sub directories
     modules=`ls -d ash-*`
+    # If you want to test ash against hush and msh testsuites
+    # (have to copy hush_test and msh_test dirs to current dir first):
+    #modules=`ls -d ash-* hush_test/hush-* msh_test/msh-*`
 
     for module in $modules; do
 	do_test $module
