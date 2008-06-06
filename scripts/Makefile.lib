@@ -117,6 +117,7 @@ a_flags        = -Wp,-MD,$(depfile) $(NOSTDINC_FLAGS) $(CPPFLAGS) \
 
 cpp_flags      = -Wp,-MD,$(depfile) $(NOSTDINC_FLAGS) $(__cpp_flags)
 
+# TODO: seems to be a wrong thing to do! LDFLAGS contains gcc's flags!
 ld_flags       = $(LDFLAGS) $(EXTRA_LDFLAGS)
 
 # Finds the multi-part object the current object will be linked into
@@ -146,6 +147,8 @@ $(obj)/%:: $(src)/%_shipped
 # Linking
 # ---------------------------------------------------------------------------
 
+# TODO: LDFLAGS usually is supposed to contain gcc's flags, not ld's.
+# but here we feed them to ld!
 quiet_cmd_ld = LD      $@
 cmd_ld = $(LD) $(LDFLAGS) $(EXTRA_LDFLAGS) $(LDFLAGS_$(@F)) \
 	       $(filter-out FORCE,$^) -o $@

@@ -91,8 +91,13 @@ ifeq ($(CONFIG_DMALLOC),y)
 LDLIBS += dmalloc
 endif
 
-LDFLAGS_ELF2FLT = -Wl,-elf2flt
-ifneq (,$(findstring $(LDFLAGS_ELF2FLT),$(LDFLAGS)))
+# If a flat binary should be built, CFLAGS_busybox="-Wl,-elf2flt"
+# env var should be set for make invocation.
+# Here we check whether CFLAGS_busybox indeed contains that flag.
+# (For historical reasons, we also check LDFLAGS, which doesn't
+# seem to be entirely correct variable to put "-Wl,-elf2flt" into).
+W_ELF2FLT = -Wl,-elf2flt
+ifneq (,$(findstring $(W_ELF2FLT),$(LDFLAGS) $(CFLAGS_busybox)))
 SKIP_STRIP = y
 endif
 
