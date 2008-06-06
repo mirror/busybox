@@ -1287,7 +1287,7 @@ struct globals;
  * If you want to assign a value, use SET_PTR_TO_GLOBALS(x) */
 extern struct globals *const ptr_to_globals;
 /* At least gcc 3.4.6 on mipsel system needs optimization barrier */
-#define barrier() asm volatile("":::"memory")
+#define barrier() __asm__ __volatile__("":::"memory")
 #define SET_PTR_TO_GLOBALS(x) do { \
 	(*(struct globals**)&ptr_to_globals) = (x); \
 	barrier(); \
