@@ -2063,11 +2063,11 @@
      "\n	-l	List all signal names and numbers" \
 
 #define klogd_trivial_usage \
-       "[-c n] [-n]"
+       "[-c N] [-n]"
 #define klogd_full_usage "\n\n" \
        "Kernel logger\n" \
      "\nOptions:" \
-     "\n	-c n	Set the default log level of console messages to n" \
+     "\n	-c N	Only messages with level < N are printed to console" \
      "\n	-n	Run in foreground" \
 
 #define length_trivial_usage \

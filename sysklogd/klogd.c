@@ -21,10 +21,12 @@
 #include <syslog.h>
 #include <sys/klog.h>
 
-static void klogd_signal(int sig ATTRIBUTE_UNUSED)
+static void klogd_signal(int sig)
 {
-	klogctl(7, NULL, 0);
-	klogctl(0, NULL, 0);
+	/* FYI: cmd 7 is equivalent to setting console_loglevel to 7
+	 * via klogctl(8, NULL, 7). */
+	klogctl(7, NULL, 0); /* "7 -- Enable printk's to console" */
+	klogctl(0, NULL, 0); /* "0 -- Close the log. Currently a NOP" */
 	syslog(LOG_NOTICE, "klogd: exiting");
 	kill_myself_with_sig(sig);
 }
@@ -39,35 +41,33 @@ enum {
 int klogd_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int klogd_main(int argc ATTRIBUTE_UNUSED, char **argv)
 {
-	int i = i; /* silence gcc */
+	int i = 0;
 	char *start;
+	int opt;
 
-	/* do normal option parsing */
-	getopt32(argv, "c:n", &start);
-
-	if (option_mask32 & OPT_LEVEL) {
+	opt = getopt32(argv, "c:n", &start);
+	if (opt & OPT_LEVEL) {
 		/* Valid levels are between 1 and 8 */
-		i = xatoul_range(start, 1, 8);
+		i = xatou_range(start, 1, 8);
 	}
-
-	if (!(option_mask32 & OPT_FOREGROUND)) {
+	if (!(opt & OPT_FOREGROUND)) {
 		bb_daemonize_or_rexec(DAEMON_CHDIR_ROOT, argv);
 	}
 
 	openlog("kernel", 0, LOG_KERN);
 
-	/* Set up sig handlers */
 	bb_signals(0
 		+ (1 << SIGINT)
 		+ (1 << SIGTERM)
 		, klogd_signal);
 	signal(SIGHUP, SIG_IGN);
 
-	/* "Open the log. Currently a NOP." */
+	/* "Open the log. Currently a NOP" */
 	klogctl(1, NULL, 0);
 
-	/* Set level of kernel console messaging. */
-	if (option_mask32 & OPT_LEVEL)
+	/* "printk() prints a message on the console only if it has a loglevel
+	 * less than console_loglevel". Here we set console_loglevel = i. */
+	if (i)
 		klogctl(8, NULL, i);
 
 	syslog(LOG_NOTICE, "klogd started: %s", bb_banner);
@@ -80,11 +80,12 @@ int klogd_main(int argc ATTRIBUTE_UNUSED, char **argv)
 		int n;
 		int priority;
 
+		/* "2 -- Read from the log." */
 		n = klogctl(2, log_buffer, KLOGD_LOGBUF_SIZE - 1);
 		if (n < 0) {
 			if (errno == EINTR)
 				continue;
-			syslog(LOG_ERR, "klogd: error from klogctl(2): %d - %m",
+			syslog(LOG_ERR, "klogd: error %d in klogctl(2): %m",
 					errno);
 			break;
 		}
