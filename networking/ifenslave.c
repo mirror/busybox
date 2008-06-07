@@ -133,19 +133,7 @@ struct globals {
 } while (0)
 
 
-static void get_drv_info(char *master_ifname);
-static int get_if_settings(char *ifname, struct dev_data *dd);
-static int get_slave_flags(char *slave_ifname);
-static int set_hwaddr(char *ifname, struct sockaddr *hwaddr);
-static int set_mtu(char *ifname, int mtu);
-static int set_if_flags(char *ifname, int flags);
-static int set_if_up(char *ifname, int flags);
-static int set_if_down(char *ifname, int flags);
-static int clear_if_addr(char *ifname);
-static int set_if_addr(char *master_ifname, char *slave_ifname);
-static void change_active(char *master_ifname, char *slave_ifname);
-static int enslave(char *master_ifname, char *slave_ifname);
-static int release(char *master_ifname, char *slave_ifname);
+/* NOINLINEs are placed where it results in smaller code (gcc 4.3.1) */
 
 static void strncpy_IFNAMSIZ(char *dst, const char *src)
 {
@@ -163,173 +151,109 @@ static int set_ifrname_and_do_ioctl(unsigned request, struct ifreq *ifr, const c
 	return ioctl_on_skfd(request, ifr);
 }
 
-int ifenslave_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int ifenslave_main(int argc ATTRIBUTE_UNUSED, char **argv)
+static int get_if_settings(char *ifname, struct dev_data *dd)
 {
-	char *master_ifname, *slave_ifname;
-	int rv;
 	int res;
-	unsigned opt;
-	enum {
-		OPT_c = (1 << 0),
-		OPT_d = (1 << 1),
-		OPT_f = (1 << 2),
-	};
-#if ENABLE_GETOPT_LONG
-	static const char ifenslave_longopts[] ALIGN1 =
-		"change-active\0" No_argument "c"
-		"detach\0"        No_argument "d"
-		"force\0"         No_argument "f"
-		;
 
-	applet_long_options = ifenslave_longopts;
-#endif
-	INIT_G();
-
-	opt = getopt32(argv, "cdf");
-	argv += optind;
-	if (opt & (opt-1)) /* options check */
-		bb_show_usage();
-
-	master_ifname = *argv++;
-
-	/* No interface names - show all interfaces. */
-	if (!master_ifname) {
-		display_interfaces(NULL);
-		return EXIT_SUCCESS;
-	}
-
-	/* Open a basic socket */
-	xmove_fd(xsocket(AF_INET, SOCK_DGRAM, 0), skfd);
-
-	/* Exchange abi version with bonding module */
-	get_drv_info(master_ifname);
-
-	slave_ifname = *argv++;
-	if (!slave_ifname) {
-		if (opt & (OPT_d|OPT_c)) {
-			/* --change or --detach, and no slaves given -
-			 * show all interfaces. */
-			display_interfaces(slave_ifname /* == NULL */);
-			return 2; /* why 2? */
-		}
-		/* A single arg means show the
-		 * configuration for this interface
-		 */
-		display_interfaces(master_ifname);
-		return EXIT_SUCCESS;
-	}
-
-	res = get_if_settings(master_ifname, &master);
-	if (res) {
-		/* Probably a good reason not to go on */
-		bb_perror_msg_and_die("%s: can't get settings", master_ifname);
-	}
-
-	/* check if master is indeed a master;
-	 * if not then fail any operation
-	 */
-	if (!(master.flags.ifr_flags & IFF_MASTER))
-		bb_error_msg_and_die("%s is not a master", master_ifname);
-
-	/* check if master is up; if not then fail any operation */
-	if (!(master.flags.ifr_flags & IFF_UP))
-		bb_error_msg_and_die("%s is not up", master_ifname);
-
-	/* No opts: neither -c[hange] nor -d[etach] -> it's "enslave" then;
-	 * and -f[orce] is not there too */
-	if (!opt) {
-		/* The family '1' is ARPHRD_ETHER for ethernet. */
-		if (master.hwaddr.ifr_hwaddr.sa_family != 1) {
-			bb_error_msg_and_die(
-				"%s is not ethernet-like (-f overrides)",
-				master_ifname);
-		}
-	}
-
-	/* Accepts only one slave */
-	if (opt & OPT_c) {
-		/* change active slave */
-		if (get_slave_flags(slave_ifname)) {
-			bb_perror_msg_and_die(
-				"%s: can't get flags", slave_ifname);
-		}
-		change_active(master_ifname, slave_ifname);
-		return EXIT_SUCCESS;
-	}
-
-	/* Accept multiple slaves */
-	res = 0;
-	do {
-		if (opt & OPT_d) {
-			/* detach a slave interface from the master */
-			rv = get_slave_flags(slave_ifname);
-			if (rv) {
-				/* Can't work with this slave, */
-				/* remember the error and skip it */
-				bb_perror_msg(
-					"skipping %s: can't get flags",
-					slave_ifname);
-				res = rv;
-				continue;
-			}
-			rv = release(master_ifname, slave_ifname);
-			if (rv) {
-				bb_perror_msg(
-					"master %s, slave %s: "
-					"can't release",
-					master_ifname, slave_ifname);
-				res = rv;
-			}
-		} else {
-			/* attach a slave interface to the master */
-			rv = get_if_settings(slave_ifname, &slave);
-			if (rv) {
-				/* Can't work with this slave, */
-				/* remember the error and skip it */
-				bb_perror_msg(
-					"skipping %s: can't get settings",
-					slave_ifname);
-				res = rv;
-				continue;
-			}
-			rv = enslave(master_ifname, slave_ifname);
-			if (rv) {
-				bb_perror_msg(
-					"master %s, slave %s: "
-					"can't enslave",
-					master_ifname, slave_ifname);
-				res = rv;
-			}
-		}
-	} while ((slave_ifname = *argv++) != NULL);
-
-	if (ENABLE_FEATURE_CLEAN_UP) {
-		close(skfd);
-	}
+	res = set_ifrname_and_do_ioctl(SIOCGIFMTU, &dd->mtu, ifname);
+	res |= set_ifrname_and_do_ioctl(SIOCGIFFLAGS, &dd->flags, ifname);
+	res |= set_ifrname_and_do_ioctl(SIOCGIFHWADDR, &dd->hwaddr, ifname);
 
 	return res;
 }
 
-static void get_drv_info(char *master_ifname)
+static int get_slave_flags(char *slave_ifname)
+{
+	return set_ifrname_and_do_ioctl(SIOCGIFFLAGS, &slave.flags, slave_ifname);
+}
+
+static int set_hwaddr(char *ifname, struct sockaddr *hwaddr)
 {
 	struct ifreq ifr;
-	struct ethtool_drvinfo info;
 
-	memset(&ifr, 0, sizeof(ifr));
-	ifr.ifr_data = (caddr_t)&info;
-	info.cmd = ETHTOOL_GDRVINFO;
-	strncpy(info.driver, "ifenslave", 32);
-	snprintf(info.fw_version, 32, "%d", BOND_ABI_VERSION);
-	if (set_ifrname_and_do_ioctl(SIOCETHTOOL, &ifr, master_ifname) < 0) {
-		if (errno == EOPNOTSUPP)
-			return;
-		bb_perror_msg_and_die("%s: SIOCETHTOOL error", master_ifname);
+	memcpy(&(ifr.ifr_hwaddr), hwaddr, sizeof(*hwaddr));
+	return set_ifrname_and_do_ioctl(SIOCSIFHWADDR, &ifr, ifname);
+}
+
+static int set_mtu(char *ifname, int mtu)
+{
+	struct ifreq ifr;
+
+	ifr.ifr_mtu = mtu;
+	return set_ifrname_and_do_ioctl(SIOCSIFMTU, &ifr, ifname);
+}
+
+static int set_if_flags(char *ifname, int flags)
+{
+	struct ifreq ifr;
+
+	ifr.ifr_flags = flags;
+	return set_ifrname_and_do_ioctl(SIOCSIFFLAGS, &ifr, ifname);
+}
+
+static int set_if_up(char *ifname, int flags)
+{
+	int res = set_if_flags(ifname, flags | IFF_UP);
+	if (res)
+		bb_perror_msg("%s: can't up", ifname);
+	return res;
+}
+
+static int set_if_down(char *ifname, int flags)
+{
+	int res = set_if_flags(ifname, flags & ~IFF_UP);
+	if (res)
+		bb_perror_msg("%s: can't down", ifname);
+	return res;
+}
+
+static int clear_if_addr(char *ifname)
+{
+	struct ifreq ifr;
+
+	ifr.ifr_addr.sa_family = AF_INET;
+	memset(ifr.ifr_addr.sa_data, 0, sizeof(ifr.ifr_addr.sa_data));
+	return set_ifrname_and_do_ioctl(SIOCSIFADDR, &ifr, ifname);
+}
+
+static int set_if_addr(char *master_ifname, char *slave_ifname)
+{
+#if (SIOCGIFADDR | SIOCSIFADDR \
+  | SIOCGIFDSTADDR | SIOCSIFDSTADDR \
+  | SIOCGIFBRDADDR | SIOCSIFBRDADDR \
+  | SIOCGIFNETMASK | SIOCSIFNETMASK) <= 0xffff
+#define INT uint16_t
+#else
+#define INT int
+#endif
+	static const struct {
+		INT g_ioctl;
+		INT s_ioctl;
+	} ifra[] = {
+		{ SIOCGIFADDR,    SIOCSIFADDR    },
+		{ SIOCGIFDSTADDR, SIOCSIFDSTADDR },
+		{ SIOCGIFBRDADDR, SIOCSIFBRDADDR },
+		{ SIOCGIFNETMASK, SIOCSIFNETMASK },
+	};
+
+	struct ifreq ifr;
+	int res;
+	unsigned i;
+
+	for (i = 0; i < ARRAY_SIZE(ifra); i++) {
+		res = set_ifrname_and_do_ioctl(ifra[i].g_ioctl, &ifr, master_ifname);
+		if (res < 0) {
+			ifr.ifr_addr.sa_family = AF_INET;
+			memset(ifr.ifr_addr.sa_data, 0,
+			       sizeof(ifr.ifr_addr.sa_data));
+		}
+
+		res = set_ifrname_and_do_ioctl(ifra[i].s_ioctl, &ifr, slave_ifname);
+		if (res < 0)
+			return res;
 	}
 
-	abi_ver = bb_strtou(info.fw_version, NULL, 0);
-	if (errno)
-		bb_error_msg_and_die("%s: SIOCETHTOOL error", master_ifname);
+	return 0;
 }
 
 static void change_active(char *master_ifname, char *slave_ifname)
@@ -353,7 +277,7 @@ static void change_active(char *master_ifname, char *slave_ifname)
 	}
 }
 
-static int enslave(char *master_ifname, char *slave_ifname)
+static NOINLINE int enslave(char *master_ifname, char *slave_ifname)
 {
 	struct ifreq ifr;
 	int res;
@@ -502,107 +426,171 @@ static int release(char *master_ifname, char *slave_ifname)
 	return res;
 }
 
-static int get_if_settings(char *ifname, struct dev_data *dd)
-{
-	int res;
-
-	res = set_ifrname_and_do_ioctl(SIOCGIFMTU, &dd->mtu, ifname);
-	res |= set_ifrname_and_do_ioctl(SIOCGIFFLAGS, &dd->flags, ifname);
-	res |= set_ifrname_and_do_ioctl(SIOCGIFHWADDR, &dd->hwaddr, ifname);
-
-	return res;
-}
-
-static int get_slave_flags(char *slave_ifname)
-{
-	return set_ifrname_and_do_ioctl(SIOCGIFFLAGS, &slave.flags, slave_ifname);
-}
-
-static int set_hwaddr(char *ifname, struct sockaddr *hwaddr)
+static NOINLINE void get_drv_info(char *master_ifname)
 {
 	struct ifreq ifr;
+	struct ethtool_drvinfo info;
 
-	memcpy(&(ifr.ifr_hwaddr), hwaddr, sizeof(*hwaddr));
-	return set_ifrname_and_do_ioctl(SIOCSIFHWADDR, &ifr, ifname);
-}
-
-static int set_mtu(char *ifname, int mtu)
-{
-	struct ifreq ifr;
-
-	ifr.ifr_mtu = mtu;
-	return set_ifrname_and_do_ioctl(SIOCSIFMTU, &ifr, ifname);
-}
-
-static int set_if_flags(char *ifname, int flags)
-{
-	struct ifreq ifr;
-
-	ifr.ifr_flags = flags;
-	return set_ifrname_and_do_ioctl(SIOCSIFFLAGS, &ifr, ifname);
-}
-
-static int set_if_up(char *ifname, int flags)
-{
-	int res = set_if_flags(ifname, flags | IFF_UP);
-	if (res)
-		bb_perror_msg("%s: can't up", ifname);
-	return res;
-}
-
-static int set_if_down(char *ifname, int flags)
-{
-	int res = set_if_flags(ifname, flags & ~IFF_UP);
-	if (res)
-		bb_perror_msg("%s: can't down", ifname);
-	return res;
-}
-
-static int clear_if_addr(char *ifname)
-{
-	struct ifreq ifr;
-
-	ifr.ifr_addr.sa_family = AF_INET;
-	memset(ifr.ifr_addr.sa_data, 0, sizeof(ifr.ifr_addr.sa_data));
-	return set_ifrname_and_do_ioctl(SIOCSIFADDR, &ifr, ifname);
-}
-
-static int set_if_addr(char *master_ifname, char *slave_ifname)
-{
-#if (SIOCGIFADDR | SIOCSIFADDR \
-  | SIOCGIFDSTADDR | SIOCSIFDSTADDR \
-  | SIOCGIFBRDADDR | SIOCSIFBRDADDR \
-  | SIOCGIFNETMASK | SIOCSIFNETMASK) <= 0xffff
-#define INT uint16_t
-#else
-#define INT int
-#endif
-	static const struct {
-		INT g_ioctl;
-		INT s_ioctl;
-	} ifra[] = {
-		{ SIOCGIFADDR,    SIOCSIFADDR    },
-		{ SIOCGIFDSTADDR, SIOCSIFDSTADDR },
-		{ SIOCGIFBRDADDR, SIOCSIFBRDADDR },
-		{ SIOCGIFNETMASK, SIOCSIFNETMASK },
-	};
-
-	struct ifreq ifr;
-	int res;
-	unsigned i;
-
-	for (i = 0; i < ARRAY_SIZE(ifra); i++) {
-		res = set_ifrname_and_do_ioctl(ifra[i].g_ioctl, &ifr, master_ifname);
-		if (res < 0) {
-			ifr.ifr_addr.sa_family = AF_INET;
-			memset(ifr.ifr_addr.sa_data, 0,
-			       sizeof(ifr.ifr_addr.sa_data));
-		}
-
-		res = set_ifrname_and_do_ioctl(ifra[i].s_ioctl, &ifr, slave_ifname);
-		if (res < 0)
-			return res;
+	memset(&ifr, 0, sizeof(ifr));
+	ifr.ifr_data = (caddr_t)&info;
+	info.cmd = ETHTOOL_GDRVINFO;
+	strncpy(info.driver, "ifenslave", 32);
+	snprintf(info.fw_version, 32, "%d", BOND_ABI_VERSION);
+	if (set_ifrname_and_do_ioctl(SIOCETHTOOL, &ifr, master_ifname) < 0) {
+		if (errno == EOPNOTSUPP)
+			return;
+		bb_perror_msg_and_die("%s: SIOCETHTOOL error", master_ifname);
 	}
 
-	return 0;
+	abi_ver = bb_strtou(info.fw_version, NULL, 0);
+	if (errno)
+		bb_error_msg_and_die("%s: SIOCETHTOOL error", master_ifname);
+}
+
+int ifenslave_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
+int ifenslave_main(int argc ATTRIBUTE_UNUSED, char **argv)
+{
+	char *master_ifname, *slave_ifname;
+	int rv;
+	int res;
+	unsigned opt;
+	enum {
+		OPT_c = (1 << 0),
+		OPT_d = (1 << 1),
+		OPT_f = (1 << 2),
+	};
+#if ENABLE_GETOPT_LONG
+	static const char ifenslave_longopts[] ALIGN1 =
+		"change-active\0" No_argument "c"
+		"detach\0"        No_argument "d"
+		"force\0"         No_argument "f"
+		;
+
+	applet_long_options = ifenslave_longopts;
+#endif
+	INIT_G();
+
+	opt = getopt32(argv, "cdf");
+	argv += optind;
+	if (opt & (opt-1)) /* options check */
+		bb_show_usage();
+
+	master_ifname = *argv++;
+
+	/* No interface names - show all interfaces. */
+	if (!master_ifname) {
+		display_interfaces(NULL);
+		return EXIT_SUCCESS;
+	}
+
+	/* Open a basic socket */
+	xmove_fd(xsocket(AF_INET, SOCK_DGRAM, 0), skfd);
+
+	/* Exchange abi version with bonding module */
+	get_drv_info(master_ifname);
+
+	slave_ifname = *argv++;
+	if (!slave_ifname) {
+		if (opt & (OPT_d|OPT_c)) {
+			/* --change or --detach, and no slaves given -
+			 * show all interfaces. */
+			display_interfaces(slave_ifname /* == NULL */);
+			return 2; /* why 2? */
+		}
+		/* A single arg means show the
+		 * configuration for this interface
+		 */
+		display_interfaces(master_ifname);
+		return EXIT_SUCCESS;
+	}
+
+	res = get_if_settings(master_ifname, &master);
+	if (res) {
+		/* Probably a good reason not to go on */
+		bb_perror_msg_and_die("%s: can't get settings", master_ifname);
+	}
+
+	/* check if master is indeed a master;
+	 * if not then fail any operation
+	 */
+	if (!(master.flags.ifr_flags & IFF_MASTER))
+		bb_error_msg_and_die("%s is not a master", master_ifname);
+
+	/* check if master is up; if not then fail any operation */
+	if (!(master.flags.ifr_flags & IFF_UP))
+		bb_error_msg_and_die("%s is not up", master_ifname);
+
+	/* No opts: neither -c[hange] nor -d[etach] -> it's "enslave" then;
+	 * and -f[orce] is not there too */
+	if (!opt) {
+		/* The family '1' is ARPHRD_ETHER for ethernet. */
+		if (master.hwaddr.ifr_hwaddr.sa_family != 1) {
+			bb_error_msg_and_die(
+				"%s is not ethernet-like (-f overrides)",
+				master_ifname);
+		}
+	}
+
+	/* Accepts only one slave */
+	if (opt & OPT_c) {
+		/* change active slave */
+		if (get_slave_flags(slave_ifname)) {
+			bb_perror_msg_and_die(
+				"%s: can't get flags", slave_ifname);
+		}
+		change_active(master_ifname, slave_ifname);
+		return EXIT_SUCCESS;
+	}
+
+	/* Accept multiple slaves */
+	res = 0;
+	do {
+		if (opt & OPT_d) {
+			/* detach a slave interface from the master */
+			rv = get_slave_flags(slave_ifname);
+			if (rv) {
+				/* Can't work with this slave, */
+				/* remember the error and skip it */
+				bb_perror_msg(
+					"skipping %s: can't get flags",
+					slave_ifname);
+				res = rv;
+				continue;
+			}
+			rv = release(master_ifname, slave_ifname);
+			if (rv) {
+				bb_perror_msg(
+					"master %s, slave %s: "
+					"can't release",
+					master_ifname, slave_ifname);
+				res = rv;
+			}
+		} else {
+			/* attach a slave interface to the master */
+			rv = get_if_settings(slave_ifname, &slave);
+			if (rv) {
+				/* Can't work with this slave, */
+				/* remember the error and skip it */
+				bb_perror_msg(
+					"skipping %s: can't get settings",
+					slave_ifname);
+				res = rv;
+				continue;
+			}
+			rv = enslave(master_ifname, slave_ifname);
+			if (rv) {
+				bb_perror_msg(
+					"master %s, slave %s: "
+					"can't enslave",
+					master_ifname, slave_ifname);
+				res = rv;
+			}
+		}
+	} while ((slave_ifname = *argv++) != NULL);
+
+	if (ENABLE_FEATURE_CLEAN_UP) {
+		close(skfd);
+	}
+
+	return res;
 }
