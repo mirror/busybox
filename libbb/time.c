@@ -12,6 +12,12 @@
 #if ENABLE_MONOTONIC_SYSCALL
 #include <sys/syscall.h>
 
+/* Old glibc (< 2.3.4) does not provide this constant. We use syscall
+ * directly so this definition is safe. */
+#ifndef CLOCK_MONOTONIC
+#define CLOCK_MONOTONIC 1
+#endif
+
 /* libc has incredibly messy way of doing this,
  * typically requiring -lrt. We just skip all this mess */
 unsigned long long monotonic_us(void)
