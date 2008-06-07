@@ -56,10 +56,10 @@ static void list_attributes(const char *name)
 
 	if (flags & OPT_PF_LONG) {
 		printf("%-28s ", name);
-		print_flags(stdout, fsflags, PFOPT_LONG);
+		print_e2flags(stdout, fsflags, PFOPT_LONG);
 		bb_putchar('\n');
 	} else {
-		print_flags(stdout, fsflags, 0);
+		print_e2flags(stdout, fsflags, 0);
 		printf(" %s\n", name);
 	}
 

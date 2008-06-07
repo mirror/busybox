@@ -1304,6 +1304,14 @@ extern const char bb_default_login_shell[];
 /* "sh" */
 #define DEFAULT_SHELL_SHORT_NAME     (bb_default_login_shell+6)
 
+typedef struct masks_labels_t {
+	const char *labels;
+	const int masks[];
+} masks_labels_t;
+
+int print_flags_separated(const int *masks, const char *labels,
+		int flags, const char *separator);
+extern int print_flags(const masks_labels_t *ml, int flags);
 
 #if ENABLE_FEATURE_DEVFS
 # define CURRENT_VC "/dev/vc/0"

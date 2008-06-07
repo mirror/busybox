@@ -45,16 +45,15 @@ typedef struct filter_t {
 
 static void print_link_flags(unsigned flags, unsigned mdown)
 {
+	static const int flag_masks[] = {
+		IFF_LOOPBACK, IFF_BROADCAST, IFF_POINTOPOINT,
+		IFF_MULTICAST, IFF_NOARP, IFF_UP, IFF_LOWER_UP };
+	static const char flag_labels[] ALIGN1 =
+		"LOOPBACK\0""BROADCAST\0""POINTOPOINT\0"
+		"MULTICAST\0""NOARP\0""UP\0""LOWER_UP\0";
+
 	bb_putchar('<');
 	flags &= ~IFF_RUNNING;
-#define _PF(f) if (flags & IFF_##f) { \
-		  flags &= ~IFF_##f; \
-		  printf(#f "%s", flags ? "," : ""); }
-	_PF(LOOPBACK);
-	_PF(BROADCAST);
-	_PF(POINTOPOINT);
-	_PF(MULTICAST);
-	_PF(NOARP);
 #if 0
 	_PF(ALLMULTI);
 	_PF(PROMISC);
@@ -66,9 +65,7 @@ static void print_link_flags(unsigned flags, unsigned mdown)
 	_PF(PORTSEL);
 	_PF(NOTRAILERS);
 #endif
-	_PF(UP);
-	_PF(LOWER_UP);
-#undef _PF
+	flags = print_flags_separated(flag_masks, flag_labels, flags, ",");
 	if (flags)
 		printf("%x", flags);
 	if (mdown)

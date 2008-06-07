@@ -1228,54 +1228,46 @@ static void dump_identity(const struct hd_driveid *id)
 		if (id->tPIO >= 2) printf("pio2 ");
 	}
 	if (id->field_valid & 2) {
-		if (id->eide_pio_modes & 1) printf("pio3 ");
-		if (id->eide_pio_modes & 2) printf("pio4 ");
-		if (id->eide_pio_modes &~3) printf("pio? ");
+		static const masks_labels_t pio_modes = {
+			.masks = { 1, 2, ~3 },
+			.labels = "pio3 \0""pio4 \0""pio? \0",
+		};
+		print_flags(&pio_modes, id->eide_pio_modes);
 	}
 	if (id->capability & 1) {
 		if (id->dma_1word | id->dma_mword) {
+			static const int dma_wmode_masks[] = { 0x100, 1, 0x200, 2, 0x400, 4, 0xf800, 0xf8 };
 			printf("\n DMA modes:  ");
-			if (id->dma_1word & 0x100) bb_putchar('*');
-			if (id->dma_1word & 1) printf("sdma0 ");
-			if (id->dma_1word & 0x200) bb_putchar('*');
-			if (id->dma_1word & 2) printf("sdma1 ");
-			if (id->dma_1word & 0x400) bb_putchar('*');
-			if (id->dma_1word & 4) printf("sdma2 ");
-			if (id->dma_1word & 0xf800) bb_putchar('*');
-			if (id->dma_1word & 0xf8) printf("sdma? ");
-			if (id->dma_mword & 0x100) bb_putchar('*');
-			if (id->dma_mword & 1) printf("mdma0 ");
-			if (id->dma_mword & 0x200) bb_putchar('*');
-			if (id->dma_mword & 2) printf("mdma1 ");
-			if (id->dma_mword & 0x400) bb_putchar('*');
-			if (id->dma_mword & 4) printf("mdma2 ");
-			if (id->dma_mword & 0xf800) bb_putchar('*');
-			if (id->dma_mword & 0xf8) printf("mdma? ");
+			print_flags_separated(dma_wmode_masks,
+				"*\0""sdma0 \0""*\0""sdma1 \0""*\0""sdma2 \0""*\0""sdma? \0",
+				id->dma_1word, NULL);
+			print_flags_separated(dma_wmode_masks,
+				"*\0""mdma0\0""*\0""mdma1\0""*\0""mdma2\0""*\0""mdma?\0",
+				id->dma_mword, NULL);
 		}
 	}
 	if (((id->capability & 8) || (id->field_valid & 2)) && id->field_valid & 4) {
+		static const masks_labels_t ultra_modes1 = {
+			.masks = { 0x100, 0x001, 0x200, 0x002, 0x400, 0x004 },
+			.labels = "*\0""udma0 \0""*\0""udma1 \0""*\0""udma2 \0",
+		};
+			
 		printf("\n UDMA modes: ");
-		if (id->dma_ultra & 0x100) bb_putchar('*');
-		if (id->dma_ultra & 0x001) printf("udma0 ");
-		if (id->dma_ultra & 0x200) bb_putchar('*');
-		if (id->dma_ultra & 0x002) printf("udma1 ");
-		if (id->dma_ultra & 0x400) bb_putchar('*');
-		if (id->dma_ultra & 0x004) printf("udma2 ");
+		print_flags(&ultra_modes1, id->dma_ultra);
 #ifdef __NEW_HD_DRIVE_ID
 		if (id->hw_config & 0x2000) {
 #else /* !__NEW_HD_DRIVE_ID */
 		if (id->word93 & 0x2000) {
 #endif /* __NEW_HD_DRIVE_ID */
-			if (id->dma_ultra & 0x0800) bb_putchar('*');
-			if (id->dma_ultra & 0x0008) printf("udma3 ");
-			if (id->dma_ultra & 0x1000) bb_putchar('*');
-			if (id->dma_ultra & 0x0010) printf("udma4 ");
-			if (id->dma_ultra & 0x2000) bb_putchar('*');
-			if (id->dma_ultra & 0x0020) printf("udma5 ");
-			if (id->dma_ultra & 0x4000) bb_putchar('*');
-			if (id->dma_ultra & 0x0040) printf("udma6 ");
-			if (id->dma_ultra & 0x8000) bb_putchar('*');
-			if (id->dma_ultra & 0x0080) printf("udma7 ");
+			static const masks_labels_t ultra_modes2 = {
+				.masks = { 0x0800, 0x0008, 0x1000, 0x0010,
+					0x2000, 0x0020, 0x4000, 0x0040,
+					0x8000, 0x0080 },
+				.labels = "*\0""udma3 \0""*\0""udma4 \0"
+					"*\0""udma5 \0""*\0""udma6 \0"
+					"*\0""udma7 \0"
+			};
+			print_flags(&ultra_modes2, id->dma_ultra);
 		}
 	}
 	printf("\n AdvancedPM=%s", (!(id_regs[83] & 8)) ? "no" : "yes");

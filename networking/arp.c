@@ -313,6 +313,26 @@ static void
 arp_disp(const char *name, char *ip, int type, int arp_flags,
 		 char *hwa, char *mask, char *dev)
 {
+	static const int arp_masks[] = {
+		ATF_PERM, ATF_PUBL, 
+#ifdef HAVE_ATF_MAGIC
+		ATF_MAGIC,
+#endif
+#ifdef HAVE_ATF_DONTPUB
+		ATF_DONTPUB,
+#endif
+		ATF_USETRAILERS,
+	};
+	static const char arp_labels[] ALIGN1 = "PERM\0""PUP\0"
+#ifdef HAVE_ATF_MAGIC
+		"AUTO\0"
+#endif
+#ifdef HAVE_ATF_DONTPUB
+		"DONTPUB\0"
+#endif
+		"TRAIL\0"
+	;
+
 	const struct hwtype *xhw;
 
 	xhw = get_hwntype(type);
@@ -333,22 +353,8 @@ arp_disp(const char *name, char *ip, int type, int arp_flags,
 	if (arp_flags & ATF_NETMASK)
 		printf("netmask %s ", mask);
 
-	if (arp_flags & ATF_PERM)
-		printf("PERM ");
-	if (arp_flags & ATF_PUBL)
-		printf("PUP ");
-#ifdef HAVE_ATF_MAGIC
-	if (arp_flags & ATF_MAGIC)
-		printf("AUTO ");
-#endif
-#ifdef HAVE_ATF_DONTPUB
-	if (arp_flags & ATF_DONTPUB)
-		printf("DONTPUB ");
-#endif
-	if (arp_flags & ATF_USETRAILERS)
-		printf("TRAIL ");
-
-	printf("on %s\n", dev);
+	print_flags_separated(arp_masks, arp_labels, arp_flags, " ");
+	printf(" on %s\n", dev);
 }
 
 /* Display the contents of the ARP cache in the kernel. */

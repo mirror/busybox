@@ -192,7 +192,7 @@ static const char e2attr_flags_lname[] =
 	"Top_of_Directory_Hierarchies" "\0"
 	/* Another trailing NUL is added by compiler */;
 
-void print_flags(FILE *f, unsigned long flags, unsigned options)
+void print_e2flags(FILE *f, unsigned long flags, unsigned options)
 {
 	const uint32_t *fv;
 	const char *fn;

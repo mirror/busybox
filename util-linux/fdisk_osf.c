@@ -502,6 +502,8 @@ xbsd_print_disklabel(int show_all)
 	int i, j;
 
 	if (show_all) {
+		static const int d_masks[] = { BSD_D_REMOVABLE, BSD_D_ECC, BSD_D_BADSECT };
+
 #if defined(__alpha__)
 		printf("# %s:\n", disk_device);
 #else
@@ -513,13 +515,8 @@ xbsd_print_disklabel(int show_all)
 			printf("type: %d\n", lp->d_type);
 		printf("disk: %.*s\n", (int) sizeof(lp->d_typename), lp->d_typename);
 		printf("label: %.*s\n", (int) sizeof(lp->d_packname), lp->d_packname);
-		printf("flags:");
-		if (lp->d_flags & BSD_D_REMOVABLE)
-			printf(" removable");
-		if (lp->d_flags & BSD_D_ECC)
-			printf(" ecc");
-		if (lp->d_flags & BSD_D_BADSECT)
-			printf(" badsect");
+		printf("flags: ");
+		print_flags_separated(d_masks, "removable\0""ecc\0""badsect\0", lp->d_flags, " "); 
 		bb_putchar('\n');
 		/* On various machines the fields of *lp are short/int/long */
 		/* In order to avoid problems, we cast them all to long. */

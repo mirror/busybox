@@ -13,7 +13,7 @@
 #define EXT3_FEATURE_INCOMPAT_EXTENTS           0x0040
 #endif
 
-/* `options' for print_flags() */
+/* `options' for print_e2flags() */
 
 #define PFOPT_LONG  1 /* Must be 1 for compatibility with `int long_format'. */
 
