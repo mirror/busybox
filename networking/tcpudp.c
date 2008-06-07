@@ -31,6 +31,7 @@
 
 #include "libbb.h"
 /* Wants <limits.h> etc, thus included after libbb.h: */
+#include <linux/types.h> /* for __be32 etc */
 #include <linux/netfilter_ipv4.h>
 
 // TODO: move into this file:

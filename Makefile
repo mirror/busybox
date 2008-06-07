@@ -931,7 +931,7 @@ endif # CONFIG_MODULES
 
 # Directories & files removed with 'make clean'
 CLEAN_DIRS  += $(MODVERDIR)
-CLEAN_FILES +=	busybox* System.map .kernelrelease \
+CLEAN_FILES +=	busybox busybox_unstripped* System.map .kernelrelease \
                 .tmp_kallsyms* .tmp_version .tmp_busybox* .tmp_System.map
 
 # Directories & files removed with 'make mrproper'
