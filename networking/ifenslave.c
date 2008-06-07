@@ -116,7 +116,7 @@ struct dev_data {
 };
 
 
-enum { skfd = 3 };      /* AF_INET socket for ioctl() calls.*/
+enum { skfd = 3 };      /* AF_INET socket for ioctl() calls. */
 struct globals {
 	unsigned abi_ver;       /* userland - kernel ABI version */
 	smallint hwaddr_set;    /* Master's hwaddr is set */
@@ -136,12 +136,11 @@ struct globals {
 static void get_drv_info(char *master_ifname);
 static int get_if_settings(char *ifname, struct dev_data *dd);
 static int get_slave_flags(char *slave_ifname);
-static int set_master_hwaddr(char *master_ifname, struct sockaddr *hwaddr);
-static int set_slave_hwaddr(char *slave_ifname, struct sockaddr *hwaddr);
-static int set_slave_mtu(char *slave_ifname, int mtu);
-static int set_if_flags(char *ifname, short flags);
-static int set_if_up(char *ifname, short flags);
-static int set_if_down(char *ifname, short flags);
+static int set_hwaddr(char *ifname, struct sockaddr *hwaddr);
+static int set_mtu(char *ifname, int mtu);
+static int set_if_flags(char *ifname, int flags);
+static int set_if_up(char *ifname, int flags);
+static int set_if_down(char *ifname, int flags);
 static int clear_if_addr(char *ifname);
 static int set_if_addr(char *master_ifname, char *slave_ifname);
 static void change_active(char *master_ifname, char *slave_ifname);
@@ -151,6 +150,17 @@ static int release(char *master_ifname, char *slave_ifname);
 static void strncpy_IFNAMSIZ(char *dst, const char *src)
 {
 	strncpy(dst, src, IFNAMSIZ);
+}
+
+static int ioctl_on_skfd(unsigned request, struct ifreq *ifr)
+{
+	return ioctl(skfd, request, ifr);
+}
+
+static int set_ifrname_and_do_ioctl(unsigned request, struct ifreq *ifr, const char *ifname)
+{
+        strncpy_IFNAMSIZ(ifr->ifr_name, ifname);
+	return ioctl_on_skfd(request, ifr);
 }
 
 int ifenslave_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
@@ -167,10 +177,10 @@ int ifenslave_main(int argc ATTRIBUTE_UNUSED, char **argv)
 	};
 #if ENABLE_GETOPT_LONG
 	static const char ifenslave_longopts[] ALIGN1 =
-		"change-active" No_argument "c"
-		"detach"        No_argument "d"
-		"force"         No_argument "f"
-	;
+		"change-active\0" No_argument "c"
+		"detach\0"        No_argument "d"
+		"force\0"         No_argument "f"
+		;
 
 	applet_long_options = ifenslave_longopts;
 #endif
@@ -181,10 +191,9 @@ int ifenslave_main(int argc ATTRIBUTE_UNUSED, char **argv)
 	if (opt & (opt-1)) /* options check */
 		bb_show_usage();
 
-	/* Copy the interface name */
 	master_ifname = *argv++;
 
-	/* No remaining args means show all interfaces. */
+	/* No interface names - show all interfaces. */
 	if (!master_ifname) {
 		display_interfaces(NULL);
 		return EXIT_SUCCESS;
@@ -193,14 +202,16 @@ int ifenslave_main(int argc ATTRIBUTE_UNUSED, char **argv)
 	/* Open a basic socket */
 	xmove_fd(xsocket(AF_INET, SOCK_DGRAM, 0), skfd);
 
-	/* exchange abi version with bonding module */
+	/* Exchange abi version with bonding module */
 	get_drv_info(master_ifname);
 
 	slave_ifname = *argv++;
 	if (!slave_ifname) {
 		if (opt & (OPT_d|OPT_c)) {
-			display_interfaces(slave_ifname);
-			return 2; /* why? */
+			/* --change or --detach, and no slaves given -
+			 * show all interfaces. */
+			display_interfaces(slave_ifname /* == NULL */);
+			return 2; /* why 2? */
 		}
 		/* A single arg means show the
 		 * configuration for this interface
@@ -225,12 +236,11 @@ int ifenslave_main(int argc ATTRIBUTE_UNUSED, char **argv)
 	if (!(master.flags.ifr_flags & IFF_UP))
 		bb_error_msg_and_die("%s is not up", master_ifname);
 
-	/* Only for enslaving */
-	if (!(opt & (OPT_c|OPT_d))) {
-		sa_family_t master_family = master.hwaddr.ifr_hwaddr.sa_family;
-
+	/* No opts: neither -c[hange] nor -d[etach] -> it's "enslave" then;
+	 * and -f[orce] is not there too */
+	if (!opt) {
 		/* The family '1' is ARPHRD_ETHER for ethernet. */
-		if (master_family != 1 && !(opt & OPT_f)) {
+		if (master.hwaddr.ifr_hwaddr.sa_family != 1) {
 			bb_error_msg_and_die(
 				"%s is not ethernet-like (-f overrides)",
 				master_ifname);
@@ -240,8 +250,7 @@ int ifenslave_main(int argc ATTRIBUTE_UNUSED, char **argv)
 	/* Accepts only one slave */
 	if (opt & OPT_c) {
 		/* change active slave */
-		res = get_slave_flags(slave_ifname);
-		if (res) {
+		if (get_slave_flags(slave_ifname)) {
 			bb_perror_msg_and_die(
 				"%s: can't get flags", slave_ifname);
 		}
@@ -256,8 +265,8 @@ int ifenslave_main(int argc ATTRIBUTE_UNUSED, char **argv)
 			/* detach a slave interface from the master */
 			rv = get_slave_flags(slave_ifname);
 			if (rv) {
-				/* Can't work with this slave. */
-				/* remember the error and skip it*/
+				/* Can't work with this slave, */
+				/* remember the error and skip it */
 				bb_perror_msg(
 					"skipping %s: can't get flags",
 					slave_ifname);
@@ -276,8 +285,8 @@ int ifenslave_main(int argc ATTRIBUTE_UNUSED, char **argv)
 			/* attach a slave interface to the master */
 			rv = get_if_settings(slave_ifname, &slave);
 			if (rv) {
-				/* Can't work with this slave. */
-				/* remember the error and skip it*/
+				/* Can't work with this slave, */
+				/* remember the error and skip it */
 				bb_perror_msg(
 					"skipping %s: can't get settings",
 					slave_ifname);
@@ -308,14 +317,11 @@ static void get_drv_info(char *master_ifname)
 	struct ethtool_drvinfo info;
 
 	memset(&ifr, 0, sizeof(ifr));
-	strncpy_IFNAMSIZ(ifr.ifr_name, master_ifname);
 	ifr.ifr_data = (caddr_t)&info;
-
 	info.cmd = ETHTOOL_GDRVINFO;
 	strncpy(info.driver, "ifenslave", 32);
 	snprintf(info.fw_version, 32, "%d", BOND_ABI_VERSION);
-
-	if (ioctl(skfd, SIOCETHTOOL, &ifr) < 0) {
+	if (set_ifrname_and_do_ioctl(SIOCETHTOOL, &ifr, master_ifname) < 0) {
 		if (errno == EOPNOTSUPP)
 			return;
 		bb_perror_msg_and_die("%s: SIOCETHTOOL error", master_ifname);
@@ -324,8 +330,6 @@ static void get_drv_info(char *master_ifname)
 	abi_ver = bb_strtou(info.fw_version, NULL, 0);
 	if (errno)
 		bb_error_msg_and_die("%s: SIOCETHTOOL error", master_ifname);
-
-	return;
 }
 
 static void change_active(char *master_ifname, char *slave_ifname)
@@ -338,10 +342,9 @@ static void change_active(char *master_ifname, char *slave_ifname)
 			slave_ifname);
 	}
 
-	strncpy_IFNAMSIZ(ifr.ifr_name, master_ifname);
 	strncpy_IFNAMSIZ(ifr.ifr_slave, slave_ifname);
-	if (ioctl(skfd, SIOCBONDCHANGEACTIVE, &ifr) < 0
-	 && ioctl(skfd, BOND_CHANGE_ACTIVE_OLD, &ifr) < 0
+	if (set_ifrname_and_do_ioctl(SIOCBONDCHANGEACTIVE, &ifr, master_ifname)
+	 && ioctl_on_skfd(BOND_CHANGE_ACTIVE_OLD, &ifr)
 	) {
 		bb_perror_msg_and_die(
 			"master %s, slave %s: can't "
@@ -384,7 +387,7 @@ static int enslave(char *master_ifname, char *slave_ifname)
 	}
 
 	if (master.mtu.ifr_mtu != slave.mtu.ifr_mtu) {
-		res = set_slave_mtu(slave_ifname, master.mtu.ifr_mtu);
+		res = set_mtu(slave_ifname, master.mtu.ifr_mtu);
 		if (res) {
 			bb_perror_msg("%s: can't set MTU", slave_ifname);
 			return res;
@@ -400,9 +403,7 @@ static int enslave(char *master_ifname, char *slave_ifname)
 			 * the application sets the slave's
 			 * hwaddr
 			 */
-			res = set_slave_hwaddr(slave_ifname,
-					       &(master.hwaddr.ifr_hwaddr));
-			if (res) {
+			if (set_hwaddr(slave_ifname, &(master.hwaddr.ifr_hwaddr))) {
 				bb_perror_msg("%s: can't set hw address",
 						slave_ifname);
 				goto undo_mtu;
@@ -411,8 +412,7 @@ static int enslave(char *master_ifname, char *slave_ifname)
 			/* For old ABI the application needs to bring the
 			 * slave back up
 			 */
-			res = set_if_up(slave_ifname, slave.flags.ifr_flags);
-			if (res)
+			if (set_if_up(slave_ifname, slave.flags.ifr_flags))
 				goto undo_slave_mac;
 		}
 		/* The driver is using a new ABI,
@@ -428,14 +428,11 @@ static int enslave(char *master_ifname, char *slave_ifname)
 			/* For old ABI, the master needs to be
 			 * down before setting it's hwaddr
 			 */
-			res = set_if_down(master_ifname, master.flags.ifr_flags);
-			if (res)
+			if (set_if_down(master_ifname, master.flags.ifr_flags))
 				goto undo_mtu;
 		}
 
-		res = set_master_hwaddr(master_ifname,
-					&(slave.hwaddr.ifr_hwaddr));
-		if (res) {
+		if (set_hwaddr(master_ifname, &(slave.hwaddr.ifr_hwaddr))) {
 			bb_error_msg("%s: can't set hw address",
 				master_ifname);
 			goto undo_mtu;
@@ -445,8 +442,7 @@ static int enslave(char *master_ifname, char *slave_ifname)
 			/* For old ABI, bring the master
 			 * back up
 			 */
-			res = set_if_up(master_ifname, master.flags.ifr_flags);
-			if (res)
+			if (set_if_up(master_ifname, master.flags.ifr_flags))
 				goto undo_master_mac;
 		}
 
@@ -454,29 +450,26 @@ static int enslave(char *master_ifname, char *slave_ifname)
 	}
 
 	/* Do the real thing */
-	strncpy_IFNAMSIZ(ifr.ifr_name, master_ifname);
 	strncpy_IFNAMSIZ(ifr.ifr_slave, slave_ifname);
-	if (ioctl(skfd, SIOCBONDENSLAVE, &ifr) < 0
-	 && ioctl(skfd, BOND_ENSLAVE_OLD, &ifr) < 0
+	if (set_ifrname_and_do_ioctl(SIOCBONDENSLAVE, &ifr, master_ifname)
+	 && ioctl_on_skfd(BOND_ENSLAVE_OLD, &ifr)
 	) {
-		res = 1;
-	}
-
-	if (res)
 		goto undo_master_mac;
+	}
 
 	return 0;
 
 /* rollback (best effort) */
  undo_master_mac:
-	set_master_hwaddr(master_ifname, &(master.hwaddr.ifr_hwaddr));
+	set_hwaddr(master_ifname, &(master.hwaddr.ifr_hwaddr));
 	hwaddr_set = 0;
 	goto undo_mtu;
+
  undo_slave_mac:
-	set_slave_hwaddr(slave_ifname, &(slave.hwaddr.ifr_hwaddr));
+	set_hwaddr(slave_ifname, &(slave.hwaddr.ifr_hwaddr));
  undo_mtu:
-	set_slave_mtu(slave_ifname, slave.mtu.ifr_mtu);
-	return res;
+	set_mtu(slave_ifname, slave.mtu.ifr_mtu);
+	return 1;
 }
 
 static int release(char *master_ifname, char *slave_ifname)
@@ -490,10 +483,9 @@ static int release(char *master_ifname, char *slave_ifname)
 		return 1;
 	}
 
-	strncpy_IFNAMSIZ(ifr.ifr_name, master_ifname);
 	strncpy_IFNAMSIZ(ifr.ifr_slave, slave_ifname);
-	if (ioctl(skfd, SIOCBONDRELEASE, &ifr) < 0
-	 && ioctl(skfd, BOND_RELEASE_OLD, &ifr) < 0
+	if (set_ifrname_and_do_ioctl(SIOCBONDRELEASE, &ifr, master_ifname) < 0
+	 && ioctl_on_skfd(BOND_RELEASE_OLD, &ifr) < 0
 	) {
 		return 1;
 	}
@@ -505,7 +497,7 @@ static int release(char *master_ifname, char *slave_ifname)
 	}
 
 	/* set to default mtu */
-	set_slave_mtu(slave_ifname, 1500);
+	set_mtu(slave_ifname, 1500);
 
 	return res;
 }
@@ -514,59 +506,43 @@ static int get_if_settings(char *ifname, struct dev_data *dd)
 {
 	int res;
 
-	strncpy_IFNAMSIZ(dd->mtu.ifr_name, ifname);
-	res = ioctl(skfd, SIOCGIFMTU, &dd->mtu);
-	strncpy_IFNAMSIZ(dd->flags.ifr_name, ifname);
-	res |= ioctl(skfd, SIOCGIFFLAGS, &dd->flags);
-	strncpy_IFNAMSIZ(dd->hwaddr.ifr_name, ifname);
-	res |= ioctl(skfd, SIOCGIFHWADDR, &dd->hwaddr);
+	res = set_ifrname_and_do_ioctl(SIOCGIFMTU, &dd->mtu, ifname);
+	res |= set_ifrname_and_do_ioctl(SIOCGIFFLAGS, &dd->flags, ifname);
+	res |= set_ifrname_and_do_ioctl(SIOCGIFHWADDR, &dd->hwaddr, ifname);
 
 	return res;
 }
 
 static int get_slave_flags(char *slave_ifname)
 {
-	strncpy_IFNAMSIZ(slave.flags.ifr_name, slave_ifname);
-	return ioctl(skfd, SIOCGIFFLAGS, &slave.flags);
+	return set_ifrname_and_do_ioctl(SIOCGIFFLAGS, &slave.flags, slave_ifname);
 }
 
-static int set_master_hwaddr(char *master_ifname, struct sockaddr *hwaddr)
+static int set_hwaddr(char *ifname, struct sockaddr *hwaddr)
 {
 	struct ifreq ifr;
 
-	strncpy_IFNAMSIZ(ifr.ifr_name, master_ifname);
-	memcpy(&(ifr.ifr_hwaddr), hwaddr, sizeof(struct sockaddr));
-	return ioctl(skfd, SIOCSIFHWADDR, &ifr);
+	memcpy(&(ifr.ifr_hwaddr), hwaddr, sizeof(*hwaddr));
+	return set_ifrname_and_do_ioctl(SIOCSIFHWADDR, &ifr, ifname);
 }
 
-static int set_slave_hwaddr(char *slave_ifname, struct sockaddr *hwaddr)
-{
-	struct ifreq ifr;
-
-	strncpy_IFNAMSIZ(ifr.ifr_name, slave_ifname);
-	memcpy(&(ifr.ifr_hwaddr), hwaddr, sizeof(struct sockaddr));
-	return ioctl(skfd, SIOCSIFHWADDR, &ifr);
-}
-
-static int set_slave_mtu(char *slave_ifname, int mtu)
+static int set_mtu(char *ifname, int mtu)
 {
 	struct ifreq ifr;
 
 	ifr.ifr_mtu = mtu;
-	strncpy_IFNAMSIZ(ifr.ifr_name, slave_ifname);
-	return ioctl(skfd, SIOCSIFMTU, &ifr);
+	return set_ifrname_and_do_ioctl(SIOCSIFMTU, &ifr, ifname);
 }
 
-static int set_if_flags(char *ifname, short flags)
+static int set_if_flags(char *ifname, int flags)
 {
 	struct ifreq ifr;
 
 	ifr.ifr_flags = flags;
-	strncpy_IFNAMSIZ(ifr.ifr_name, ifname);
-	return ioctl(skfd, SIOCSIFFLAGS, &ifr);
+	return set_ifrname_and_do_ioctl(SIOCSIFFLAGS, &ifr, ifname);
 }
 
-static int set_if_up(char *ifname, short flags)
+static int set_if_up(char *ifname, int flags)
 {
 	int res = set_if_flags(ifname, flags | IFF_UP);
 	if (res)
@@ -574,7 +550,7 @@ static int set_if_up(char *ifname, short flags)
 	return res;
 }
 
-static int set_if_down(char *ifname, short flags)
+static int set_if_down(char *ifname, int flags)
 {
 	int res = set_if_flags(ifname, flags & ~IFF_UP);
 	if (res)
@@ -586,17 +562,24 @@ static int clear_if_addr(char *ifname)
 {
 	struct ifreq ifr;
 
-	strncpy_IFNAMSIZ(ifr.ifr_name, ifname);
 	ifr.ifr_addr.sa_family = AF_INET;
 	memset(ifr.ifr_addr.sa_data, 0, sizeof(ifr.ifr_addr.sa_data));
-	return ioctl(skfd, SIOCSIFADDR, &ifr);
+	return set_ifrname_and_do_ioctl(SIOCSIFADDR, &ifr, ifname);
 }
 
 static int set_if_addr(char *master_ifname, char *slave_ifname)
 {
+#if (SIOCGIFADDR | SIOCSIFADDR \
+  | SIOCGIFDSTADDR | SIOCSIFDSTADDR \
+  | SIOCGIFBRDADDR | SIOCSIFBRDADDR \
+  | SIOCGIFNETMASK | SIOCSIFNETMASK) <= 0xffff
+#define INT uint16_t
+#else
+#define INT int
+#endif
 	static const struct {
-		int g_ioctl;
-		int s_ioctl;
+		INT g_ioctl;
+		INT s_ioctl;
 	} ifra[] = {
 		{ SIOCGIFADDR,    SIOCSIFADDR    },
 		{ SIOCGIFDSTADDR, SIOCSIFDSTADDR },
@@ -609,16 +592,14 @@ static int set_if_addr(char *master_ifname, char *slave_ifname)
 	unsigned i;
 
 	for (i = 0; i < ARRAY_SIZE(ifra); i++) {
-		strncpy_IFNAMSIZ(ifr.ifr_name, master_ifname);
-		res = ioctl(skfd, ifra[i].g_ioctl, &ifr);
+		res = set_ifrname_and_do_ioctl(ifra[i].g_ioctl, &ifr, master_ifname);
 		if (res < 0) {
 			ifr.ifr_addr.sa_family = AF_INET;
 			memset(ifr.ifr_addr.sa_data, 0,
 			       sizeof(ifr.ifr_addr.sa_data));
 		}
 
-		strncpy_IFNAMSIZ(ifr.ifr_name, slave_ifname);
-		res = ioctl(skfd, ifra[i].s_ioctl, &ifr);
+		res = set_ifrname_and_do_ioctl(ifra[i].s_ioctl, &ifr, slave_ifname);
 		if (res < 0)
 			return res;
 	}
