@@ -1021,11 +1021,12 @@ static unsigned diffreg(char *file1, char *file2, int flags)
 	rval = D_SAME;
 
 	if (flags & D_EMPTY1)
-		f1 = xfopen(bb_dev_null, "r");
+		/* can't be stdin, but xfopen_stdin() is smaller code */
+		f1 = xfopen_stdin(bb_dev_null);
 	else
 		f1 = xfopen_stdin(file1);
 	if (flags & D_EMPTY2)
-		f2 = xfopen(bb_dev_null, "r");
+		f2 = xfopen_stdin(bb_dev_null);
 	else
 		f2 = xfopen_stdin(file2);
 
