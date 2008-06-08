@@ -43,7 +43,7 @@ int mktemp_main(int argc ATTRIBUTE_UNUSED, char **argv)
 
 	opt_complementary = "?1"; /* 1 argument max */
 	opt = getopt32(argv, "dqtp:", &path);
-	chp = argv[optind] ? argv[optind] : xstrdup("tmp.XXXXXXXXXX");
+	chp = argv[optind] ? argv[optind] : xstrdup("tmp.XXXXXX");
 
 	if (opt & (4|8)) { /* -t and/or -p */
 		const char *dir = getenv("TMPDIR");

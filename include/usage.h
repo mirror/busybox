@@ -2545,7 +2545,7 @@
        "[-dt] [-p DIR] [TEMPLATE]"
 #define mktemp_full_usage "\n\n" \
        "Create a temporary file with name based on TEMPLATE and print its name.\n" \
-       "TEMPLATE must end with XXXXXX (i.e., /tmp/temp.XXXXXX).\n" \
+       "TEMPLATE must end with XXXXXX (e.g. [/dir/]nameXXXXXX).\n" \
      "\nOptions:" \
      "\n	-d	Make a directory instead of a file" \
 /*   "\n	-q	Fail silently if an error occurs" - we ignore it */ \
