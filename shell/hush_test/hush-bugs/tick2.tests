@@ -1,0 +1,6 @@
+# Bag: backticks are executed even inside not-taken if
+if false; then
+    echo "FOO"
+    tmp=`echo BAR >&2`
+fi
+echo BAZ
