@@ -434,8 +434,9 @@ static NOINLINE void get_drv_info(char *master_ifname)
 	memset(&ifr, 0, sizeof(ifr));
 	ifr.ifr_data = (caddr_t)&info;
 	info.cmd = ETHTOOL_GDRVINFO;
-	strncpy(info.driver, "ifenslave", 32);
-	snprintf(info.fw_version, 32, "%d", BOND_ABI_VERSION);
+	/* both fields are 32 bytes long (long enough) */
+	strcpy(info.driver, "ifenslave");
+	strcpy(info.fw_version, utoa(BOND_ABI_VERSION));
 	if (set_ifrname_and_do_ioctl(SIOCETHTOOL, &ifr, master_ifname) < 0) {
 		if (errno == EOPNOTSUPP)
 			return;
