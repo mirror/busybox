@@ -261,9 +261,7 @@ static void change_active(char *master_ifname, char *slave_ifname)
 	struct ifreq ifr;
 
 	if (!(slave.flags.ifr_flags & IFF_SLAVE)) {
-		bb_error_msg_and_die(
-			"%s is not a slave",
-			slave_ifname);
+		bb_error_msg_and_die("%s is not a slave", slave_ifname);
 	}
 
 	strncpy_IFNAMSIZ(ifr.ifr_slave, slave_ifname);
@@ -402,8 +400,7 @@ static int release(char *master_ifname, char *slave_ifname)
 	int res = 0;
 
 	if (!(slave.flags.ifr_flags & IFF_SLAVE)) {
-		bb_error_msg("%s is not a slave",
-			slave_ifname);
+		bb_error_msg("%s is not a slave", slave_ifname);
 		return 1;
 	}
 
@@ -462,18 +459,19 @@ int ifenslave_main(int argc ATTRIBUTE_UNUSED, char **argv)
 	};
 #if ENABLE_GETOPT_LONG
 	static const char ifenslave_longopts[] ALIGN1 =
-		"change-active\0" No_argument "c"
-		"detach\0"        No_argument "d"
-		"force\0"         No_argument "f"
+		"change-active\0"  No_argument "c"
+		"detach\0"         No_argument "d"
+		"force\0"          No_argument "f"
+		/* "all-interfaces\0" No_argument "a" */
 		;
 
 	applet_long_options = ifenslave_longopts;
 #endif
 	INIT_G();
 
-	opt = getopt32(argv, "cdf");
+	opt = getopt32(argv, "cdfa");
 	argv += optind;
-	if (opt & (opt-1)) /* options check */
+	if (opt & (opt-1)) /* Only one option can be given */
 		bb_show_usage();
 
 	master_ifname = *argv++;
@@ -505,25 +503,25 @@ int ifenslave_main(int argc ATTRIBUTE_UNUSED, char **argv)
 		return EXIT_SUCCESS;
 	}
 
-	res = get_if_settings(master_ifname, &master);
-	if (res) {
+	if (get_if_settings(master_ifname, &master)) {
 		/* Probably a good reason not to go on */
 		bb_perror_msg_and_die("%s: can't get settings", master_ifname);
 	}
 
-	/* check if master is indeed a master;
+	/* Check if master is indeed a master;
 	 * if not then fail any operation
 	 */
 	if (!(master.flags.ifr_flags & IFF_MASTER))
 		bb_error_msg_and_die("%s is not a master", master_ifname);
 
-	/* check if master is up; if not then fail any operation */
+	/* Check if master is up; if not then fail any operation */
 	if (!(master.flags.ifr_flags & IFF_UP))
 		bb_error_msg_and_die("%s is not up", master_ifname);
 
-	/* No opts: neither -c[hange] nor -d[etach] -> it's "enslave" then;
-	 * and -f[orce] is not there too */
-	if (!opt) {
+#ifdef WHY_BOTHER
+	/* Neither -c[hange] nor -d[etach] -> it's "enslave" then;
+	 * and -f[orce] is not there too. Check that it's ethernet. */
+	if (!(opt & (OPT_d|OPT_c|OPT_f)) {
 		/* The family '1' is ARPHRD_ETHER for ethernet. */
 		if (master.hwaddr.ifr_hwaddr.sa_family != 1) {
 			bb_error_msg_and_die(
@@ -531,10 +529,11 @@ int ifenslave_main(int argc ATTRIBUTE_UNUSED, char **argv)
 				master_ifname);
 		}
 	}
+#endif
 
 	/* Accepts only one slave */
 	if (opt & OPT_c) {
-		/* change active slave */
+		/* Change active slave */
 		if (get_slave_flags(slave_ifname)) {
 			bb_perror_msg_and_die(
 				"%s: can't get flags", slave_ifname);
@@ -543,11 +542,11 @@ int ifenslave_main(int argc ATTRIBUTE_UNUSED, char **argv)
 		return EXIT_SUCCESS;
 	}
 
-	/* Accept multiple slaves */
+	/* Accepts multiple slaves */
 	res = 0;
 	do {
 		if (opt & OPT_d) {
-			/* detach a slave interface from the master */
+			/* Detach a slave interface from the master */
 			rv = get_slave_flags(slave_ifname);
 			if (rv) {
 				/* Can't work with this slave, */
@@ -560,14 +559,12 @@ int ifenslave_main(int argc ATTRIBUTE_UNUSED, char **argv)
 			}
 			rv = release(master_ifname, slave_ifname);
 			if (rv) {
-				bb_perror_msg(
-					"master %s, slave %s: "
-					"can't release",
-					master_ifname, slave_ifname);
+				bb_perror_msg("can't release %s from %s",
+					slave_ifname, master_ifname);
 				res = rv;
 			}
 		} else {
-			/* attach a slave interface to the master */
+			/* Attach a slave interface to the master */
 			rv = get_if_settings(slave_ifname, &slave);
 			if (rv) {
 				/* Can't work with this slave, */
@@ -580,10 +577,8 @@ int ifenslave_main(int argc ATTRIBUTE_UNUSED, char **argv)
 			}
 			rv = enslave(master_ifname, slave_ifname);
 			if (rv) {
-				bb_perror_msg(
-					"master %s, slave %s: "
-					"can't enslave",
-					master_ifname, slave_ifname);
+				bb_perror_msg("can't enslave %s to %s",
+					slave_ifname, master_ifname);
 				res = rv;
 			}
 		}
