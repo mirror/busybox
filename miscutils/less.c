@@ -172,16 +172,6 @@ static void set_tty_cooked(void)
 	tcsetattr(kbd_fd, TCSANOW, &term_orig);
 }
 
-/* Exit the program gracefully */
-static void less_exit(int code)
-{
-	bb_putchar('\n');
-	set_tty_cooked();
-	if (code < 0)
-		kill_myself_with_sig(- code); /* does not return */
-	exit(code);
-}
-
 /* Move the cursor to a position (x,y), where (0,0) is the
    top-left corner of the console */
 static void move_cursor(int line, int row)
@@ -203,6 +193,16 @@ static void print_statusline(const char *str)
 {
 	clear_line();
 	printf(HIGHLIGHT"%.*s"NORMAL, width - 1, str);
+}
+
+/* Exit the program gracefully */
+static void less_exit(int code)
+{
+	set_tty_cooked();
+	clear_line();
+	if (code < 0)
+		kill_myself_with_sig(- code); /* does not return */
+	exit(code);
 }
 
 #if ENABLE_FEATURE_LESS_REGEXP
@@ -538,6 +538,9 @@ static void print_found(const char *line)
  start:
 		/* Most of the time doesn't find the regex, optimize for that */
 		match_status = regexec(&pattern, line, 1, &match_structs, eflags);
+		/* if even "" matches, treat it as "not a match" */
+		if (match_structs.rm_so >= match_structs.rm_eo)
+			match_status = 1;
 	}
 
 	if (!growline) {

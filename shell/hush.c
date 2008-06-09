@@ -3218,7 +3218,6 @@ static int redirect_opt_num(o_string *o)
 }
 
 #if ENABLE_HUSH_TICK
-/* NB: currently disabled on NOMMU */
 static FILE *generate_stream_from_list(struct pipe *head)
 {
 	FILE *pf;
@@ -3229,6 +3228,10 @@ static FILE *generate_stream_from_list(struct pipe *head)
 /* By using vfork here, we suspend parent till child exits or execs.
  * If child will not do it before it fills the pipe, it can block forever
  * in write(STDOUT_FILENO), and parent (shell) will be also stuck.
+ * Try this script:
+ * yes "0123456789012345678901234567890" | dd bs=32 count=64k >TESTFILE
+ * huge=`cat TESTFILE` # will block here forever
+ * echo OK
  */
 	pid = BB_MMU ? fork() : vfork();
 	if (pid < 0)
