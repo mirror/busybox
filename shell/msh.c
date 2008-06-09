@@ -92,17 +92,17 @@ static char *itoa(int n)
 #ifdef MSHDEBUG
 static int mshdbg = MSHDEBUG;
 
-#define DBGPRINTF(x)	if (mshdbg>0) printf x
-#define DBGPRINTF0(x)	if (mshdbg>0) printf x
-#define DBGPRINTF1(x)	if (mshdbg>1) printf x
-#define DBGPRINTF2(x)	if (mshdbg>2) printf x
-#define DBGPRINTF3(x)	if (mshdbg>3) printf x
-#define DBGPRINTF4(x)	if (mshdbg>4) printf x
-#define DBGPRINTF5(x)	if (mshdbg>5) printf x
-#define DBGPRINTF6(x)	if (mshdbg>6) printf x
-#define DBGPRINTF7(x)	if (mshdbg>7) printf x
-#define DBGPRINTF8(x)	if (mshdbg>8) printf x
-#define DBGPRINTF9(x)	if (mshdbg>9) printf x
+#define DBGPRINTF(x)	if (mshdbg > 0) printf x
+#define DBGPRINTF0(x)	if (mshdbg > 0) printf x
+#define DBGPRINTF1(x)	if (mshdbg > 1) printf x
+#define DBGPRINTF2(x)	if (mshdbg > 2) printf x
+#define DBGPRINTF3(x)	if (mshdbg > 3) printf x
+#define DBGPRINTF4(x)	if (mshdbg > 4) printf x
+#define DBGPRINTF5(x)	if (mshdbg > 5) printf x
+#define DBGPRINTF6(x)	if (mshdbg > 6) printf x
+#define DBGPRINTF7(x)	if (mshdbg > 7) printf x
+#define DBGPRINTF8(x)	if (mshdbg > 8) printf x
+#define DBGPRINTF9(x)	if (mshdbg > 9) printf x
 
 static int mshdbg_rc = 0;
 
@@ -124,7 +124,7 @@ static int mshdbg_rc = 0;
 
 #define RCPRINTF(x) ((void)0)
 
-#endif							/* MSHDEBUG */
+#endif  /* MSHDEBUG */
 
 
 #if ENABLE_FEATURE_EDITING_FANCY_PROMPT
@@ -141,13 +141,13 @@ static int mshdbg_rc = 0;
  * shell
  */
 
-#define	LINELIM	  2100
-#define	NPUSH	  8				/* limit to input nesting */
+#define LINELIM   2100
+#define NPUSH     8             /* limit to input nesting */
 
 #undef NOFILE
-#define	NOFILE	  20			/* Number of open files */
-#define	NUFILE	  10			/* Number of user-accessible files */
-#define	FDBASE	  10			/* First file usable by Shell */
+#define NOFILE    20            /* Number of open files */
+#define NUFILE    10            /* Number of user-accessible files */
+#define FDBASE    10            /* First file usable by Shell */
 
 /*
  * values returned by wait
@@ -159,7 +159,7 @@ static int mshdbg_rc = 0;
 /*
  * library and system definitions
  */
-typedef void xint;                      /* base type of jmp_buf, for not broken compilers */
+typedef void xint;              /* base type of jmp_buf, for not broken compilers */
 
 /*
  * shell components
@@ -725,7 +725,7 @@ static void print_tree(struct op *head)
 		return;
 	}
 
-	DBGPRINTF(("NODE: %p,  left %p, right %p\n", head, head->left,
+	DBGPRINTF(("NODE: %p, left %p, right %p\n", head, head->left,
 			   head->right));
 
 	if (head->left)
@@ -4316,9 +4316,7 @@ static void globname(char *we, char *pp)
 	dname[NAME_MAX] = '\0';
 	while ((de = readdir(dirp)) != NULL) {
 		/* XXX Hmmm... What this could be? (abial) */
-		/*
-		   if (ent[j].d_ino == 0)
-		      continue;
+		/* if (ent[j].d_ino == 0) continue;
 		 */
 		strncpy(dname, de->d_name, NAME_MAX);
 		if (dname[0] == '.')
@@ -4825,7 +4823,7 @@ static int linechar(struct ioarg *ap)
 }
 
 /*
- * remap fd into Shell's fd space
+ * Remap fd into shell's fd space
  */
 static int remap(int fd)
 {
@@ -5211,7 +5209,7 @@ int msh_main(int argc, char **argv)
 
 /* Shell is non-interactive, activate printf-based debug */
 #ifdef MSHDEBUG
-			mshdbg = (int) (((char) (mshdbg_var->value[0])) - '0');
+			mshdbg = mshdbg_var->value[0] - '0';
 			if (mshdbg < 0)
 				mshdbg = 0;
 #endif
@@ -5219,7 +5217,7 @@ int msh_main(int argc, char **argv)
 
 			name = *++argv;
 			if (newfile(name))
-				exit(EXIT_FAILURE);		/* Exit on error */
+				exit(EXIT_FAILURE);  /* Exit on error */
 		}
 	}
 
