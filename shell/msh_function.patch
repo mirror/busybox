@@ -216,7 +216,7 @@ diff -d -urpN busybox.7/shell/msh.c busybox.8/shell/msh.c
 +	p->name = xstrdup(yylval.cp);
 +	//fprintf(stderr, "register function,%d,%d,%s\n", begin, end, p->name);
 +	KSDBG_PRINT_FUNCNAME;
-+	 /* io stream */
++	/* io stream */
 +	p->begin_addr = begin;
 +	p->end_addr = end;
 +}
@@ -251,7 +251,7 @@ diff -d -urpN busybox.7/shell/msh.c busybox.8/shell/msh.c
 +	frame[cur_frame].argv = dolv;
 +
 +	cur_frame++;
-+	/* do some argment parse and set arguments */
++	/* do some argument parse and set arguments */
 +	temp_argv = xmalloc(sizeof(char *));
 +	temp_argv[0] = xstrdup(f->name);
 +	temp_argc = 0;
@@ -273,7 +273,7 @@ diff -d -urpN busybox.7/shell/msh.c busybox.8/shell/msh.c
 +	}
 +	/*
 +	global_env.iop->argp->afpos--;
-+        global_env.iop->argp->afbuf->bufp--;
++	global_env.iop->argp->afbuf->bufp--;
 +	*/
 +	dolc = temp_argc;
 +	dolv = temp_argv;
