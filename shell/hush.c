@@ -3638,7 +3638,6 @@ static int parse_stream(o_string *dest, struct p_context *ctx,
 				debug_printf_parse("parse_stream return 1: \\<eof>\n");
 				return 1;
 			}
-			o_addqchr(dest, '\\', dest->o_quote);
 			o_addqchr(dest, i_getch(input), dest->o_quote);
 			break;
 		case '$':
@@ -3653,7 +3652,7 @@ static int parse_stream(o_string *dest, struct p_context *ctx,
 				ch = i_getch(input);
 				if (ch == EOF || ch == '\'')
 					break;
-				o_addchr(dest, ch);
+				o_addqchr(dest, ch, 1);
 			}
 			if (ch == EOF) {
 				syntax("unterminated '");
