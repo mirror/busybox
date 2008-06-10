@@ -341,8 +341,9 @@ typedef struct {
 	int maxlen;
 	smallint o_quote;
 	smallint nonnull;
+	smallint has_empty_slot;
 } o_string;
-#define NULL_O_STRING {NULL,0,0,0,0}
+#define NULL_O_STRING { NULL }
 /* used for initialization: o_string foo = NULL_O_STRING; */
 
 /* I can almost use ordinary FILE *.  Is open_memstream() universally
@@ -464,8 +465,6 @@ enum { run_list_level = 0 };
 } while (0)
 
 
-#define B_CHUNK  100
-#define B_NOSPAC 1
 #define JOB_STATUS_FORMAT "[%d] %-22s %.40s\n"
 
 #if 1
@@ -494,11 +493,6 @@ static void syntax_lineno(int line)
 #endif
 
 /* Index of subroutines: */
-/*   o_string manipulation: */
-static int b_check_space(o_string *o, int len);
-static int b_addchr(o_string *o, int ch);
-static void b_reset(o_string *o);
-static int b_addqchr(o_string *o, int ch, int quote);
 /*  in_str manipulations: */
 static int static_get(struct in_str *i);
 static int static_peek(struct in_str *i);
@@ -1176,28 +1170,10 @@ static int builtin_unset(char **argv)
 //	return EXIT_FAILURE;
 //}
 
-static int b_check_space(o_string *o, int len)
-{
-	/* It would be easy to drop a more restrictive policy
-	 * in here, such as setting a maximum string length */
-	if (o->length + len > o->maxlen) {
-		/* assert(data == NULL || o->maxlen != 0); */
-		o->maxlen += (2*len > B_CHUNK ? 2*len : B_CHUNK);
-		o->data = xrealloc(o->data, 1 + o->maxlen);
-	}
-	return o->data == NULL;
-}
-
-static int b_addchr(o_string *o, int ch)
-{
-	debug_printf("b_addchr: '%c' o->length=%d o=%p\n", ch, o->length, o);
-	if (b_check_space(o, 1))
-		return B_NOSPAC;
-	o->data[o->length] = ch;
-	o->length++;
-	o->data[o->length] = '\0';
-	return 0;
-}
+/*
+ * o_string support
+ */
+#define B_CHUNK  (32 * sizeof(char*))
 
 static void b_reset(o_string *o)
 {
@@ -1213,20 +1189,124 @@ static void b_free(o_string *o)
 	memset(o, 0, sizeof(*o));
 }
 
+static void b_grow_by(o_string *o, int len)
+{
+	if (o->length + len > o->maxlen) {
+		o->maxlen += (2*len > B_CHUNK ? 2*len : B_CHUNK);
+		o->data = xrealloc(o->data, 1 + o->maxlen);
+	}
+}
+
+static void b_addchr(o_string *o, int ch)
+{
+	debug_printf("b_addchr: '%c' o->length=%d o=%p\n", ch, o->length, o);
+	b_grow_by(o, 1);
+	o->data[o->length] = ch;
+	o->length++;
+	o->data[o->length] = '\0';
+}
+
+static void b_addstr(o_string *o, const char *str, int len)
+{
+	b_grow_by(o, len);
+	memcpy(&o->data[o->length], str, len);
+	o->length += len;
+	o->data[o->length] = '\0';
+}
+
 /* My analysis of quoting semantics tells me that state information
  * is associated with a destination, not a source.
  */
-static int b_addqchr(o_string *o, int ch, int quote)
+static void b_addqchr(o_string *o, int ch, int quote)
 {
 	if (quote && strchr("*?[\\", ch)) {
-		int rc;
-		rc = b_addchr(o, '\\');
-		if (rc)
-			return rc;
+		b_addchr(o, '\\');
 	}
-	return b_addchr(o, ch);
+	b_addchr(o, ch);
 }
 
+/* A special kind of o_string for $VAR and `cmd` expansion.
+ * It contains char* list[] at the beginning, which is grown in 16 element
+ * increments. Actual string data starts at the next multiple of 16.
+ * list[i] contains an INDEX (int!) into this string data.
+ * It means that if list[] needs to grow, data needs to be moved higher up
+ * but list[i]'s need not be modified.
+ * NB: remembering how many list[i]'s you have there is crucial.
+ * b_finalize_list() operation post-processes this structure - calculates
+ * and stores actual char* ptrs in list[]. Oh, it NULL terminates it as well.
+ */
+static int b_addptr(o_string *o, int n)
+{
+	char **list = (char**)o->data;
+	int string_start = ((n + 0xf) & ~0xf) * sizeof(list[0]);
+	int string_len = o->length - string_start;
+
+	if (!o->has_empty_slot) {
+		if (!(n & 0xf)) { /* 0, 0x10, 0x20...? */
+			/* list[n] points to string_start, make space for 16 more pointers */
+			o->maxlen += 0x10 * sizeof(list[0]);
+			o->data = xrealloc(o->data, o->maxlen + 1);
+    			list = (char**)o->data;
+			memmove(list + n + 0x10, list + n, string_len);
+			o->length += 0x10 * sizeof(list[0]);
+		}
+	} else {
+		/* We have empty slot at list[n], reuse without growth */
+		o->has_empty_slot = 0;
+	}
+	list[n] = (char*)string_len;
+	return n + 1;
+}
+
+static int b_get_last_ptr(o_string *o, int n)
+{
+	char **list = (char**)o->data;
+	int string_start = ((n + 0xf) & ~0xf) * sizeof(list[0]);
+
+	return ((int)list[n-1]) + string_start;
+}
+
+static char **b_finalize_list(o_string *o, int n)
+{
+	char **list = (char**)o->data;
+	int string_start;
+
+	b_addptr(o, n); /* force growth for list[n] if necessary */
+	string_start = ((n+1 + 0xf) & ~0xf) * sizeof(list[0]);
+	list[n] = NULL;
+	while (n) {
+		n--;
+		list[n] = o->data + (int)list[n] + string_start;
+	}
+	return list;
+}
+
+#ifdef DEBUG_EXPAND
+static void b_debug_list(const char *prefix, o_string *o, int n)
+{
+	char **list = (char**)o->data;
+	int string_start = ((n + 0xf) & ~0xf) * sizeof(list[0]);
+	int i = 0;
+	fprintf(stderr, "%s: list:%p n:%d string_start:%d length:%d maxlen:%d\n",
+			prefix, list, n, string_start, o->length, o->maxlen);
+	while (i < n) {
+		fprintf(stderr, " list[%d]=%d '%s'\n", i, (int)list[i],
+				o->data + (int)list[i] + string_start);
+		i++;
+	}
+	if (n) {
+		const char *p = o->data + (int)list[n] + string_start;
+		fprintf(stderr, " total_sz:%d\n", (p + strlen(p) + 1) - o->data);
+	}
+}
+#else
+#define b_debug_list(prefix, o, n) ((void)0)
+#endif
+
+
+/*
+ * in_str support
+ */
 static int static_get(struct in_str *i)
 {
 	int ch = *i->p++;
@@ -2461,106 +2541,25 @@ static int xglob(o_string *dest, char ***pglob)
  * followed by strings themself.
  * Caller can deallocate entire list by single free(list). */
 
-/* Helpers first:
- * count_XXX estimates size of the block we need. It's okay
- * to over-estimate sizes a bit, if it makes code simpler */
-static int count_ifs(const char *str)
-{
-	int cnt = 0;
-	debug_printf_expand("count_ifs('%s') ifs='%s'", str, ifs);
-	while (1) {
-		str += strcspn(str, ifs);
-		if (!*str) break;
-		str++; /* str += strspn(str, ifs); */
-		cnt++; /* cnt += strspn(str, ifs); - but this code is larger */
-	}
-	debug_printf_expand(" return %d\n", cnt);
-	return cnt;
-}
-
-static void count_var_expansion_space(int *countp, int *lenp, char *arg)
-{
-	char first_ch;
-	int i;
-	int len = *lenp;
-	int count = *countp;
-	const char *val;
-	char *p;
-
-	while ((p = strchr(arg, SPECIAL_VAR_SYMBOL))) {
-		len += p - arg;
-		arg = ++p;
-		p = strchr(p, SPECIAL_VAR_SYMBOL);
-		first_ch = arg[0];
-
-		switch (first_ch & 0x7f) {
-		/* high bit in 1st_ch indicates that var is double-quoted */
-		case '$': /* pid */
-		case '!': /* bg pid */
-		case '?': /* exitcode */
-		case '#': /* argc */
-			len += sizeof(int)*3 + 1; /* enough for int */
-			break;
-		case '*':
-		case '@':
-			for (i = 1; global_argv[i]; i++) {
-				len += strlen(global_argv[i]) + 1;
-				count++;
-				if (!(first_ch & 0x80))
-					count += count_ifs(global_argv[i]);
-			}
-			break;
-		default:
-			*p = '\0';
-			arg[0] = first_ch & 0x7f;
-			if (isdigit(arg[0])) {
-				i = xatoi_u(arg);
-				val = NULL;
-				if (i < global_argc)
-					val = global_argv[i];
-			} else
-				val = lookup_param(arg);
-			arg[0] = first_ch;
-			*p = SPECIAL_VAR_SYMBOL;
-
-			if (val) {
-				len += strlen(val) + 1;
-				if (!(first_ch & 0x80))
-					count += count_ifs(val);
-			}
-		}
-		arg = ++p;
-	}
-
-	len += strlen(arg) + 1;
-	count++;
-	*lenp = len;
-	*countp = count;
-}
-
 /* Store given string, finalizing the word and starting new one whenever
  * we encounter ifs char(s). This is used for expanding variable values.
  * End-of-string does NOT finalize word: think about 'echo -$VAR-' */
-static int expand_on_ifs(char **list, int n, char **posp, const char *str)
+static int expand_on_ifs(o_string *output, int n, const char *str)
 {
-	char *pos = *posp;
 	while (1) {
 		int word_len = strcspn(str, ifs);
 		if (word_len) {
-			memcpy(pos, str, word_len); /* store non-ifs chars */
-			pos += word_len;
+			b_addstr(output, str, word_len); /* store non-ifs chars */
 			str += word_len;
 		}
 		if (!*str)  /* EOL - do not finalize word */
 			break;
-		*pos++ = '\0';
-		if (n) debug_printf_expand("expand_on_ifs finalized list[%d]=%p '%s' "
-			"strlen=%d next=%p pos=%p\n", n-1, list[n-1], list[n-1],
-			strlen(list[n-1]), list[n-1] + strlen(list[n-1]) + 1, pos);
-		list[n++] = pos;
+		b_addchr(output, '\0');
+		b_debug_list("expand_on_ifs", output, n);
+		n = b_addptr(output, n);
 		str += strspn(str, ifs); /* skip ifs chars */
 	}
-	*posp = pos;
+	b_debug_list("expand_on_ifs[1]", output, n);
 	return n;
 }
 
@@ -2571,7 +2570,7 @@ static int expand_on_ifs(char **list, int n, char **posp, const char *str)
  * 'echo -$*-'. If you play here, you must run testsuite afterwards! */
 /* NB: another bug is that we cannot detect empty strings yet:
  * "" or $empty"" expands to zero words, has to expand to empty word */
-static int expand_vars_to_list(char **list, int n, char **posp, char *arg, char or_mask)
+static int expand_vars_to_list(o_string *output, int n, char *arg, char or_mask)
 {
 	/* or_mask is either 0 (normal case) or 0x80
 	 * (expansion of right-hand side of assignment == 1-element expand) */
@@ -2580,18 +2579,19 @@ static int expand_vars_to_list(char **list, int n, char **posp, char *arg, char 
 	int i;
 	const char *val;
 	char *p;
-	char *pos = *posp;
 
 	ored_ch = 0;
 
-	if (n) debug_printf_expand("expand_vars_to_list finalized list[%d]=%p '%s' "
-		"strlen=%d next=%p pos=%p\n", n-1, list[n-1], list[n-1],
-		strlen(list[n-1]), list[n-1] + strlen(list[n-1]) + 1, pos);
-	list[n++] = pos;
+	debug_printf_expand("expand_vars_to_list: arg '%s'\n", arg);
+	b_debug_list("expand_vars_to_list", output, n);
+	n = b_addptr(output, n);
+	b_debug_list("expand_vars_to_list[0]", output, n);
 
-	while ((p = strchr(arg, SPECIAL_VAR_SYMBOL))) {
-		memcpy(pos, arg, p - arg);
-		pos += (p - arg);
+	while ((p = strchr(arg, SPECIAL_VAR_SYMBOL)) != NULL) {
+		o_string subst_result = NULL_O_STRING;
+
+		b_addstr(output, arg, p - arg);
+		b_debug_list("expand_vars_to_list[1]", output, n);
 		arg = ++p;
 		p = strchr(p, SPECIAL_VAR_SYMBOL);
 
@@ -2620,16 +2620,15 @@ static int expand_vars_to_list(char **list, int n, char **posp, char *arg, char 
 				break;
 			if (!(first_ch & 0x80)) { /* unquoted $* or $@ */
 				while (global_argv[i]) {
-					n = expand_on_ifs(list, n, &pos, global_argv[i]);
+					n = expand_on_ifs(output, n, global_argv[i]);
 					debug_printf_expand("expand_vars_to_list: argv %d (last %d)\n", i, global_argc-1);
 					if (global_argv[i++][0] && global_argv[i]) {
 						/* this argv[] is not empty and not last:
 						 * put terminating NUL, start new word */
-						*pos++ = '\0';
-						if (n) debug_printf_expand("expand_vars_to_list 2 finalized list[%d]=%p '%s' "
-							"strlen=%d next=%p pos=%p\n", n-1, list[n-1], list[n-1],
-							strlen(list[n-1]), list[n-1] + strlen(list[n-1]) + 1, pos);
-						list[n++] = pos;
+						b_addchr(output, '\0');
+						b_debug_list("expand_vars_to_list[2]", output, n);
+						n = b_addptr(output, n);
+						b_debug_list("expand_vars_to_list[3]", output, n);
 					}
 				}
 			} else
@@ -2637,27 +2636,34 @@ static int expand_vars_to_list(char **list, int n, char **posp, char *arg, char 
 			 * and in this case should treat it like '$*' - see 'else...' below */
 			if (first_ch == ('@'|0x80) && !or_mask) { /* quoted $@ */
 				while (1) {
-					strcpy(pos, global_argv[i]);
-					pos += strlen(global_argv[i]);
+					b_addstr(output, global_argv[i], strlen(global_argv[i]));
 					if (++i >= global_argc)
 						break;
-					*pos++ = '\0';
-					if (n) debug_printf_expand("expand_vars_to_list 3 finalized list[%d]=%p '%s' "
-						"strlen=%d next=%p pos=%p\n", n-1, list[n-1], list[n-1],
-							strlen(list[n-1]), list[n-1] + strlen(list[n-1]) + 1, pos);
-					list[n++] = pos;
+					b_addchr(output, '\0');
+					b_debug_list("expand_vars_to_list[4]", output, n);
+					n = b_addptr(output, n);
 				}
 			} else { /* quoted $*: add as one word */
 				while (1) {
-					strcpy(pos, global_argv[i]);
-					pos += strlen(global_argv[i]);
+					b_addstr(output, global_argv[i], strlen(global_argv[i]));
 					if (!global_argv[++i])
 						break;
 					if (ifs[0])
-						*pos++ = ifs[0];
+						b_addchr(output, ifs[0]);
 				}
 			}
 			break;
+		case '`': {
+			struct in_str input;
+			*p = '\0';
+			arg++;
+			//bb_error_msg("SUBST '%s' first_ch %x", arg, first_ch);
+			setup_string_in_str(&input, arg);
+			process_command_subs(&subst_result, &input, NULL);
+			//bb_error_msg("RES '%s'", subst_result.data);
+			val = subst_result.data;
+			goto store_val;
+		}
 		default:
 			*p = '\0';
 			arg[0] = first_ch & 0x7f;
@@ -2669,66 +2675,52 @@ static int expand_vars_to_list(char **list, int n, char **posp, char *arg, char 
 			} else
 				val = lookup_param(arg);
 			arg[0] = first_ch;
+ store_val:
 			*p = SPECIAL_VAR_SYMBOL;
 			if (!(first_ch & 0x80)) { /* unquoted $VAR */
 				if (val) {
-					n = expand_on_ifs(list, n, &pos, val);
+					n = expand_on_ifs(output, n, val);
 					val = NULL;
 				}
-			} /* else: quoted $VAR, val will be appended at pos */
+			} /* else: quoted $VAR, val will be appended below */
 		}
-		if (val) {
-			strcpy(pos, val);
-			pos += strlen(val);
-		}
+		if (val)
+			b_addstr(output, val, strlen(val));
+
+		b_free(&subst_result);
 		arg = ++p;
-	}
-	debug_printf_expand("expand_vars_to_list adding tail '%s' at %p\n", arg, pos);
-	strcpy(pos, arg);
-	pos += strlen(arg) + 1;
-	if (pos == list[n-1] + 1) { /* expansion is empty */
+	} /* end of "while (SPECIAL_VAR_SYMBOL is found) ..." */
+
+	b_debug_list("expand_vars_to_list[a]", output, n);
+	b_addstr(output, arg, strlen(arg) + 1);
+	b_debug_list("expand_vars_to_list[b]", output, n);
+//TESTME
+	if (output->length - 1 == b_get_last_ptr(output, n)) { /* expansion is empty */
 		if (!(ored_ch & 0x80)) { /* all vars were not quoted... */
-			debug_printf_expand("expand_vars_to_list list[%d] empty, going back\n", n);
-			pos--;
 			n--;
+			/* allow to reuse list[n] later without re-growth */
+			output->has_empty_slot = 1;
 		}
 	}
 
-	*posp = pos;
 	return n;
 }
 
 static char **expand_variables(char **argv, char or_mask)
 {
 	int n;
-	int count = 1;
-	int len = 0;
-	char *pos, **v, **list;
+	char **list;
+	char **v;
+	o_string output = NULL_O_STRING;
 
-	v = argv;
-	if (!*v) debug_printf_expand("count_var_expansion_space: "
-			"argv[0]=NULL count=%d len=%d alloc_space=%d\n",
-			count, len, sizeof(char*) * count + len);
-	while (*v) {
-		count_var_expansion_space(&count, &len, *v);
-		debug_printf_expand("count_var_expansion_space: "
-			"'%s' count=%d len=%d alloc_space=%d\n",
-			*v, count, len, sizeof(char*) * count + len);
-		v++;
-	}
-	len += sizeof(char*) * count; /* total to alloc */
-	list = xmalloc(len);
-	pos = (char*)(list + count);
-	debug_printf_expand("list=%p, list[0] should be %p\n", list, pos);
 	n = 0;
 	v = argv;
 	while (*v)
-		n = expand_vars_to_list(list, n, &pos, *v++, or_mask);
+		n = expand_vars_to_list(&output, n, *v++, or_mask);
+	b_debug_list("expand_variables", &output, n);
 
-	if (n) debug_printf_expand("finalized list[%d]=%p '%s' "
-		"strlen=%d next=%p pos=%p\n", n-1, list[n-1], list[n-1],
-		strlen(list[n-1]), list[n-1] + strlen(list[n-1]) + 1, pos);
-	list[n] = NULL;
+	/* output.data (malloced) gets returned in "list" */
+	list = b_finalize_list(&output, n);
 
 #ifdef DEBUG_EXPAND
 	{
@@ -2737,12 +2729,8 @@ static char **expand_variables(char **argv, char or_mask)
 			debug_printf_expand("list[%d]=%p '%s'\n", m, list[m], list[m]);
 			m++;
 		}
-		debug_printf_expand("used_space=%d\n", pos - (char*)list);
 	}
 #endif
-	if (ENABLE_HUSH_DEBUG)
-		if (pos - (char*)list > len)
-			bb_error_msg_and_die("BUG in varexp");
 	return list;
 }
 
@@ -3391,6 +3379,116 @@ static const char *lookup_param(const char *src)
 	return NULL;
 }
 
+#if ENABLE_HUSH_TICK
+/* Subroutines for copying $(...) and `...` things */
+static void add_till_backquote(o_string *dest, struct in_str *input);
+/* '...' */
+static void add_till_single_quote(o_string *dest, struct in_str *input)
+{
+	while (1) {
+		int ch = b_getch(input);
+		if (ch == EOF)
+			break;
+		if (ch == '\'')
+			break;
+		b_addchr(dest, ch);
+	}
+}
+/* "...\"...`..`...." - do we need to handle "...$(..)..." too? */
+static void add_till_double_quote(o_string *dest, struct in_str *input)
+{
+	while (1) {
+		int ch = b_getch(input);
+		if (ch == '"')
+			break;
+		if (ch == '\\') {  /* \x. Copy both chars. */
+			b_addchr(dest, ch);
+			ch = b_getch(input);
+		}
+		if (ch == EOF)
+			break;
+		b_addchr(dest, ch);
+		if (ch == '`') {
+			add_till_backquote(dest, input);
+			b_addchr(dest, ch);
+			continue;
+		}
+//		if (ch == '$') ...
+	}
+}
+/* Process `cmd` - copy contents until "`" is seen. Complicated by
+ * \` quoting.
+ * "Within the backquoted style of command substitution, backslash
+ * shall retain its literal meaning, except when followed by: '$', '`', or '\'.
+ * The search for the matching backquote shall be satisfied by the first
+ * backquote found without a preceding backslash; during this search,
+ * if a non-escaped backquote is encountered within a shell comment,
+ * a here-document, an embedded command substitution of the $(command)
+ * form, or a quoted string, undefined results occur. A single-quoted
+ * or double-quoted string that begins, but does not end, within the
+ * "`...`" sequence produces undefined results."
+ * Example                               Output
+ * echo `echo '\'TEST\`echo ZZ\`BEST`    \TESTZZBEST
+ */
+static void add_till_backquote(o_string *dest, struct in_str *input)
+{
+	while (1) {
+		int ch = b_getch(input);
+//bb_error_msg("ADD '%c'", ch);
+		if (ch == '`')
+			break;
+		if (ch == '\\') {  /* \x. Copy both chars unless it is \` */
+			int ch2 = b_getch(input);
+			if (ch2 != '`' && ch2 != '$' && ch2 != '\\')
+				b_addchr(dest, ch);
+			ch = ch2;
+		}
+		if (ch == EOF)
+			break;
+		b_addchr(dest, ch);
+	}
+}
+/* Process $(cmd) - copy contents until ")" is seen. Complicated by
+ * quoting and nested ()s.
+ * "With the $(command) style of command substitution, all characters
+ * following the open parenthesis to the matching closing parenthesis
+ * constitute the command. Any valid shell script can be used for command,
+ * except a script consisting solely of redirections which produces
+ * unspecified results."
+ * Example                              Output
+ * echo $(echo '(TEST)' BEST)           (TEST) BEST
+ * echo $(echo 'TEST)' BEST)            TEST) BEST
+ * echo $(echo \(\(TEST\) BEST)         ((TEST) BEST
+ */
+static void add_till_closing_curly_brace(o_string *dest, struct in_str *input)
+{
+	int count = 0;
+	while (1) {
+		int ch = b_getch(input);
+		if (ch == EOF)
+			break;
+		if (ch == '(')
+			count++;
+		if (ch == ')')
+			if (--count < 0)
+				break;
+		b_addchr(dest, ch);
+		if (ch == '\'') {
+			add_till_single_quote(dest, input);
+			b_addchr(dest, ch);
+			continue;
+		}
+		if (ch == '"') {
+			add_till_double_quote(dest, input);
+			b_addchr(dest, ch);
+			continue;
+		}
+	}
+}
+#endif /* ENABLE_HUSH_TICK */
+
+//FIXME: remove ctx and sp
+
 /* return code: 0 for OK, 1 for syntax error */
 static int handle_dollar(o_string *dest, /*struct p_context *ctx,*/ struct in_str *input)
 {
@@ -3450,7 +3548,10 @@ static int handle_dollar(o_string *dest, /*struct p_context *ctx,*/ struct in_st
 #if ENABLE_HUSH_TICK
 		case '(':
 			b_getch(input);
-			process_command_subs(dest, /*ctx,*/ input, ")");
+			b_addchr(dest, SPECIAL_VAR_SYMBOL);
+			b_addchr(dest, quote_mask | '`');
+			add_till_closing_curly_brace(dest, input);
+			b_addchr(dest, SPECIAL_VAR_SYMBOL);
 			break;
 #endif
 		case '-':
@@ -3572,9 +3673,15 @@ static int parse_stream(o_string *dest, struct p_context *ctx,
 			dest->o_quote ^= 1; /* invert */
 			break;
 #if ENABLE_HUSH_TICK
-		case '`':
-			process_command_subs(dest, /*ctx,*/ input, "`");
+		case '`': {
+			//int pos = dest->length;
+			b_addchr(dest, SPECIAL_VAR_SYMBOL);
+			b_addchr(dest, dest->o_quote ? 0x80 | '`' : '`');
+			add_till_backquote(dest, input);
+			b_addchr(dest, SPECIAL_VAR_SYMBOL);
+			//bb_error_msg("RES '%s'", dest->data + pos);
 			break;
+		}
 #endif
 		case '>':
 			redir_fd = redirect_opt_num(dest);
