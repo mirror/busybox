@@ -516,8 +516,12 @@ static int free_pipe(struct pipe *pi, int indent);
 /*  really run the final data structures: */
 static int setup_redirects(struct child_prog *prog, int squirrel[]);
 static int run_list(struct pipe *pi);
-static void pseudo_exec_argv(char **argv) ATTRIBUTE_NORETURN;
-static void pseudo_exec(struct child_prog *child) ATTRIBUTE_NORETURN;
+#if BB_MMU
+#define pseudo_exec_argv(ptrs2free, argv)  pseudo_exec_argv(argv)
+#define      pseudo_exec(ptrs2free, child)      pseudo_exec(child)
+#endif
+static void pseudo_exec_argv(char **ptrs2free, char **argv) ATTRIBUTE_NORETURN;
+static void pseudo_exec(char **ptrs2free, struct child_prog *child) ATTRIBUTE_NORETURN;
 static int run_pipe(struct pipe *pi);
 /*   extended glob support: */
 static char **globhack(const char *src, char **strings);
@@ -617,6 +621,18 @@ static void free_strings(char **strings)
 		free(strings);
 	}
 }
+
+
+#if !BB_MMU
+#define EXTRA_PTRS 5 /* 1 for NULL, 1 for args, 3 for paranoid reasons */
+static char **alloc_ptrs(char **argv)
+{
+	char **v = argv;
+	while (*v)
+		v++;
+	return xzalloc((v - argv + EXTRA_PTRS) * sizeof(v[0]));
+}
+#endif
 
 
 /* Function prototypes for builtins */
@@ -891,9 +907,14 @@ static int builtin_exec(char **argv)
 {
 	if (argv[1] == NULL)
 		return EXIT_SUCCESS; /* bash does this */
+	{
+#if !BB_MMU
+		char **ptrs2free = alloc_ptrs(argv);
+#endif
 // FIXME: if exec fails, bash does NOT exit! We do...
-	pseudo_exec_argv(argv + 1);
-	/* never returns */
+		pseudo_exec_argv(ptrs2free, argv + 1);
+		/* never returns */
+	}
 }
 
 /* built-in 'exit' handler */
@@ -1421,7 +1442,7 @@ static void restore_redirects(int squirrel[])
  * XXX no exit() here.  If you don't exec, use _exit instead.
  * The at_exit handlers apparently confuse the calling process,
  * in particular stdin handling.  Not sure why? -- because of vfork! (vda) */
-static void pseudo_exec_argv(char **argv)
+static void pseudo_exec_argv(char **ptrs2free, char **argv)
 {
 	int i, rcode;
 	char *p;
@@ -1430,8 +1451,10 @@ static void pseudo_exec_argv(char **argv)
 	for (i = 0; is_assignment(argv[i]); i++) {
 		debug_printf_exec("pid %d environment modification: %s\n",
 				getpid(), argv[i]);
-// FIXME: vfork case??
 		p = expand_string_to_string(argv[i]);
+#if !BB_MMU
+		*ptrs2free++ = p;
+#endif
 		putenv(p);
 	}
 	argv += i;
@@ -1442,6 +1465,9 @@ static void pseudo_exec_argv(char **argv)
 		_exit(EXIT_SUCCESS);
 
 	argv = expand_strvec_to_strvec(argv);
+#if !BB_MMU
+	*ptrs2free++ = (char*) argv;
+#endif
 
 	/*
 	 * Check if the command matches any of the builtins.
@@ -1485,13 +1511,13 @@ static void pseudo_exec_argv(char **argv)
 
 /* Called after [v]fork() in run_pipe()
  */
-static void pseudo_exec(struct child_prog *child)
+static void pseudo_exec(char **ptrs2free, struct child_prog *child)
 {
 // FIXME: buggy wrt NOMMU! Must not modify any global data
 // until it does exec/_exit, but currently it does
 // (puts malloc'ed stuff into environment)
 	if (child->argv)
-		pseudo_exec_argv(child->argv);
+		pseudo_exec_argv(ptrs2free, child->argv);
 
 	if (child->group) {
 #if !BB_MMU
@@ -1880,10 +1906,16 @@ static int run_pipe(struct pipe *pi)
 	nextin = 0;
 
 	for (i = 0; i < pi->num_progs; i++) {
+#if !BB_MMU
+		char **ptrs2free = NULL;
+#endif
 		child = &(pi->progs[i]);
-		if (child->argv)
+		if (child->argv) {
 			debug_printf_exec(": pipe member '%s' '%s'...\n", child->argv[0], child->argv[1]);
-		else
+#if !BB_MMU
+			ptrs2free = alloc_ptrs(child->argv);
+#endif
+		} else
 			debug_printf_exec(": pipe member with no argv\n");
 
 		/* pipes are inserted between pairs of commands */
@@ -1925,9 +1957,11 @@ static int run_pipe(struct pipe *pi)
 			set_jobctrl_sighandler(SIG_DFL);
 			set_misc_sighandler(SIG_DFL);
 			signal(SIGCHLD, SIG_DFL);
-			pseudo_exec(child); /* does not return */
+			pseudo_exec(ptrs2free, child); /* does not return */
 		}
-
+#if !BB_MMU
+		free_strings(ptrs2free);
+#endif
 		if (child->pid < 0) { /* [v]fork failed */
 			/* Clearly indicate, was it fork or vfork */
 			bb_perror_msg(BB_MMU ? "fork" : "vfork");
