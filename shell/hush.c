@@ -1234,11 +1234,14 @@ static void o_addqchr(o_string *o, int ch, int quote)
 static int o_save_ptr(o_string *o, int n)
 {
 	char **list = (char**)o->data;
-	int string_start = ((n + 0xf) & ~0xf) * sizeof(list[0]);
-	int string_len = o->length - string_start;
+	int string_start;
+	int string_len;
 
 	if (!o->has_empty_slot) {
+		string_start = ((n + 0xf) & ~0xf) * sizeof(list[0]);
+		string_len = o->length - string_start;
 		if (!(n & 0xf)) { /* 0, 0x10, 0x20...? */
+			//bb_error_msg("list[%d]=%d string_start=%d (growing)", n, string_len, string_start);
 			/* list[n] points to string_start, make space for 16 more pointers */
 			o->maxlen += 0x10 * sizeof(list[0]);
 			o->data = xrealloc(o->data, o->maxlen + 1);
@@ -1246,8 +1249,12 @@ static int o_save_ptr(o_string *o, int n)
 			memmove(list + n + 0x10, list + n, string_len);
 			o->length += 0x10 * sizeof(list[0]);
 		}
+		//else bb_error_msg("list[%d]=%d string_start=%d", n, string_len, string_start);
 	} else {
 		/* We have empty slot at list[n], reuse without growth */
+		string_start = ((n+1 + 0xf) & ~0xf) * sizeof(list[0]); /* NB: n+1! */
+		string_len = o->length - string_start;
+		//bb_error_msg("list[%d]=%d string_start=%d (empty slot)", n, string_len, string_start);
 		o->has_empty_slot = 0;
 	}
 	list[n] = (char*)string_len;
@@ -2684,18 +2691,20 @@ static int expand_vars_to_list(o_string *output, int n, char *arg, char or_mask)
 		arg = ++p;
 	} /* end of "while (SPECIAL_VAR_SYMBOL is found) ..." */
 
-	o_debug_list("expand_vars_to_list[a]", output, n);
-	o_addstr(output, arg, strlen(arg) + 1);
-	o_debug_list("expand_vars_to_list[b]", output, n);
-//TESTME
-	if (output->length - 1 == o_get_last_ptr(output, n)) { /* expansion is empty */
-		if (!(ored_ch & 0x80)) { /* all vars were not quoted... */
-			n--;
-			/* allow to reuse list[n] later without re-growth */
-			output->has_empty_slot = 1;
+	{
+		int len = strlen(arg);
+		if (len) {
+			o_debug_list("expand_vars_to_list[a]", output, n);
+			o_addstr(output, arg, len + 1);
+			o_debug_list("expand_vars_to_list[b]", output, n);
+		} else if (output->length == o_get_last_ptr(output, n)) { /* expansion is empty */
+			if (!(ored_ch & 0x80)) { /* all vars were not quoted... */
+				n--;
+				/* allow to reuse list[n] later without re-growth */
+				output->has_empty_slot = 1;
+			}
 		}
 	}
-
 	return n;
 }
 
