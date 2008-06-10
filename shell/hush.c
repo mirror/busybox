@@ -2691,19 +2691,18 @@ static int expand_vars_to_list(o_string *output, int n, char *arg, char or_mask)
 		arg = ++p;
 	} /* end of "while (SPECIAL_VAR_SYMBOL is found) ..." */
 
-	{
-		int len = strlen(arg);
-		if (len) {
-			o_debug_list("expand_vars_to_list[a]", output, n);
-			o_addstr(output, arg, len + 1);
-			o_debug_list("expand_vars_to_list[b]", output, n);
-		} else if (output->length == o_get_last_ptr(output, n)) { /* expansion is empty */
-			if (!(ored_ch & 0x80)) { /* all vars were not quoted... */
-				n--;
-				/* allow to reuse list[n] later without re-growth */
-				output->has_empty_slot = 1;
-			}
-		}
+	if (arg[0]) {
+		o_debug_list("expand_vars_to_list[a]", output, n);
+		o_addstr(output, arg, strlen(arg) + 1);
+		o_debug_list("expand_vars_to_list[b]", output, n);
+	} else if (output->length == o_get_last_ptr(output, n) /* expansion is empty */
+	 && !(ored_ch & 0x80) /* and all vars were not quoted. */
+	) {
+		n--;
+		/* allow to reuse list[n] later without re-growth */
+		output->has_empty_slot = 1;
+	} else {
+		o_addchr(output, '\0');
 	}
 	return n;
 }
