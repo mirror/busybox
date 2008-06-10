@@ -1221,6 +1221,23 @@ static void o_addqchr(o_string *o, int ch, int quote)
 	o_addchr(o, ch);
 }
 
+static void o_addqstr(o_string *o, const char *str, int len, int quote)
+{
+	char ch;
+	if (!quote || str[strcspn(str, "*?[\\")] == '\0') {
+		o_addstr(o, str, len);
+		return;
+	}
+	while (len) {
+		ch = *str++;
+		if (ch && strchr("*?[\\", ch)) {
+			o_addchr(o, '\\');
+		}
+		o_addchr(o, ch);
+		len--;
+	}
+}
+
 /* A special kind of o_string for $VAR and `cmd` expansion.
  * It contains char* list[] at the beginning, which is grown in 16 element
  * increments. Actual string data starts at the next multiple of 16.
@@ -2445,7 +2462,7 @@ static int run_and_free_list(struct pipe *pi)
 	 * In the long run that function can be merged with run_list,
 	 * but doing that now would hobble the debugging effort. */
 	free_pipe_list(pi, /* indent: */ 0);
-	debug_printf_exec("run_nad_free_list return %d\n", rcode);
+	debug_printf_exec("run_and_free_list return %d\n", rcode);
 	return rcode;
 }
 
@@ -2549,7 +2566,7 @@ static int expand_on_ifs(o_string *output, int n, const char *str)
 	while (1) {
 		int word_len = strcspn(str, ifs);
 		if (word_len) {
-			o_addstr(output, str, word_len); /* store non-ifs chars */
+			o_addqstr(output, str, word_len, output->o_quote);
 			str += word_len;
 		}
 		if (!*str)  /* EOL - do not finalize word */
@@ -2590,7 +2607,7 @@ static int expand_vars_to_list(o_string *output, int n, char *arg, char or_mask)
 	while ((p = strchr(arg, SPECIAL_VAR_SYMBOL)) != NULL) {
 		o_string subst_result = NULL_O_STRING;
 
-		o_addstr(output, arg, p - arg);
+		o_addqstr(output, arg, p - arg, output->o_quote);
 		o_debug_list("expand_vars_to_list[1]", output, n);
 		arg = ++p;
 		p = strchr(p, SPECIAL_VAR_SYMBOL);
@@ -2636,7 +2653,7 @@ static int expand_vars_to_list(o_string *output, int n, char *arg, char or_mask)
 			 * and in this case should treat it like '$*' - see 'else...' below */
 			if (first_ch == ('@'|0x80) && !or_mask) { /* quoted $@ */
 				while (1) {
-					o_addstr(output, global_argv[i], strlen(global_argv[i]));
+					o_addqstr(output, global_argv[i], strlen(global_argv[i]), output->o_quote);
 					if (++i >= global_argc)
 						break;
 					o_addchr(output, '\0');
@@ -2645,7 +2662,7 @@ static int expand_vars_to_list(o_string *output, int n, char *arg, char or_mask)
 				}
 			} else { /* quoted $*: add as one word */
 				while (1) {
-					o_addstr(output, global_argv[i], strlen(global_argv[i]));
+					o_addqstr(output, global_argv[i], strlen(global_argv[i]), output->o_quote);
 					if (!global_argv[++i])
 						break;
 					if (ifs[0])
@@ -2684,8 +2701,9 @@ static int expand_vars_to_list(o_string *output, int n, char *arg, char or_mask)
 				}
 			} /* else: quoted $VAR, val will be appended below */
 		}
-		if (val)
-			o_addstr(output, val, strlen(val));
+		if (val) {
+			o_addqstr(output, val, strlen(val), output->o_quote);
+		}
 
 		o_free(&subst_result);
 		arg = ++p;
@@ -2693,7 +2711,7 @@ static int expand_vars_to_list(o_string *output, int n, char *arg, char or_mask)
 
 	if (arg[0]) {
 		o_debug_list("expand_vars_to_list[a]", output, n);
-		o_addstr(output, arg, strlen(arg) + 1);
+		o_addqstr(output, arg, strlen(arg) + 1, output->o_quote);
 		o_debug_list("expand_vars_to_list[b]", output, n);
 	} else if (output->length == o_get_last_ptr(output, n) /* expansion is empty */
 	 && !(ored_ch & 0x80) /* and all vars were not quoted. */
@@ -3389,7 +3407,7 @@ static void add_till_single_quote(o_string *dest, struct in_str *input)
 			break;
 		if (ch == '\'')
 			break;
-		o_addchr(dest, ch);
+		o_addqchr(dest, ch, 1);
 	}
 }
 /* "...\"...`..`...." - do we need to handle "...$(..)..." too? */
@@ -3400,15 +3418,15 @@ static void add_till_double_quote(o_string *dest, struct in_str *input)
 		if (ch == '"')
 			break;
 		if (ch == '\\') {  /* \x. Copy both chars. */
-			o_addchr(dest, ch);
+			o_addqchr(dest, ch, 1);
 			ch = i_getch(input);
 		}
 		if (ch == EOF)
 			break;
-		o_addchr(dest, ch);
+		o_addqchr(dest, ch, 1);
 		if (ch == '`') {
 			add_till_backquote(dest, input);
-			o_addchr(dest, ch);
+			o_addqchr(dest, ch, 1);
 			continue;
 		}
 //		if (ch == '$') ...
@@ -3432,18 +3450,17 @@ static void add_till_backquote(o_string *dest, struct in_str *input)
 {
 	while (1) {
 		int ch = i_getch(input);
-//bb_error_msg("ADD '%c'", ch);
 		if (ch == '`')
 			break;
 		if (ch == '\\') {  /* \x. Copy both chars unless it is \` */
 			int ch2 = i_getch(input);
 			if (ch2 != '`' && ch2 != '$' && ch2 != '\\')
-				o_addchr(dest, ch);
+				o_addqchr(dest, ch, 1);
 			ch = ch2;
 		}
 		if (ch == EOF)
 			break;
-		o_addchr(dest, ch);
+		o_addqchr(dest, ch, 1);
 	}
 }
 /* Process $(cmd) - copy contents until ")" is seen. Complicated by
@@ -3470,15 +3487,15 @@ static void add_till_closing_curly_brace(o_string *dest, struct in_str *input)
 		if (ch == ')')
 			if (--count < 0)
 				break;
-		o_addchr(dest, ch);
+		o_addqchr(dest, ch, 1);
 		if (ch == '\'') {
 			add_till_single_quote(dest, input);
-			o_addchr(dest, ch);
+			o_addqchr(dest, ch, 1);
 			continue;
 		}
 		if (ch == '"') {
 			add_till_double_quote(dest, input);
-			o_addchr(dest, ch);
+			o_addqchr(dest, ch, 1);
 			continue;
 		}
 	}
@@ -3638,7 +3655,25 @@ static int parse_stream(o_string *dest, struct p_context *ctx,
 				debug_printf_parse("parse_stream return 1: \\<eof>\n");
 				return 1;
 			}
-			o_addqchr(dest, i_getch(input), dest->o_quote);
+			/* bash:
+			 * "The backslash retains its special meaning [in "..."]
+			 * only when followed by one of the following characters:
+			 * $, `, ", \, or <newline>.  A double quote may be quoted
+			 * within double quotes by preceding it with a  backslash.
+			 * If enabled, history expansion will be performed unless
+			 * an ! appearing in double quotes is escaped using
+			 * a backslash. The backslash preceding the ! is not removed."
+			 */
+			if (dest->o_quote) {
+				if (strchr("$`\"\\", next) != NULL) {
+					o_addqchr(dest, i_getch(input), 1);
+				} else {
+					o_addqchr(dest, '\\', 1);
+				}
+			} else {
+				o_addchr(dest, '\\');
+				o_addchr(dest, i_getch(input));
+			}
 			break;
 		case '$':
 			if (handle_dollar(dest, input) != 0) {

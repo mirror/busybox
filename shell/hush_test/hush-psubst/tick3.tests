@@ -1,0 +1,11 @@
+#!/bin/sh
+TEST=Q
+# \` is special
+echo `echo '\'TEST\`echo ZZ\`BEST`
+# \$ and \\ are special
+echo `echo \\$TEST`
+echo `echo \$TEST`
+echo a`echo \\\\b`c
+# \" etc are NOT special (passed verbatim WITH \)!
+echo a`echo \"`c
+echo done:$?
