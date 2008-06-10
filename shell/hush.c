@@ -20,7 +20,7 @@
  *      rewrites.
  *
  * Other credits:
- *      b_addchr() derived from similar w_addchar function in glibc-2.2
+ *      o_addchr() derived from similar w_addchar function in glibc-2.2
  *      setup_redirect(), redirect_opt_num(), and big chunks of main()
  *      and many builtins derived from contributions by Erik Andersen
  *      miscellaneous bugfixes from Matt Kraai
@@ -293,10 +293,6 @@ struct child_prog {
 	smallint is_stopped;        /* is the program currently running? */
 	struct redir_struct *redirects; /* I/O redirections */
 	struct pipe *family;        /* pointer back to the child's parent pipe */
-	//sp counting seems to be broken... so commented out, grep for '//sp:'
-	//sp: int sp;               /* number of SPECIAL_VAR_SYMBOL */
-	//seems to be unused, grep for '//pt:'
-	//pt: int parse_type;
 };
 /* argv vector may contain variable references (^Cvar^C, ^C0^C etc)
  * and on execution these are substituted with their values.
@@ -361,8 +357,8 @@ struct in_str {
 	int (*get) (struct in_str *);
 	int (*peek) (struct in_str *);
 };
-#define b_getch(input) ((input)->get(input))
-#define b_peek(input) ((input)->peek(input))
+#define i_getch(input) ((input)->get(input))
+#define i_peek(input) ((input)->peek(input))
 
 enum {
 	CHAR_ORDINARY           = 0,
@@ -533,12 +529,12 @@ static int done_pipe(struct p_context *ctx, pipe_style type);
 static int redirect_dup_num(struct in_str *input);
 static int redirect_opt_num(o_string *o);
 #if ENABLE_HUSH_TICK
-static int process_command_subs(o_string *dest, /*struct p_context *ctx,*/
+static int process_command_subs(o_string *dest,
 		struct in_str *input, const char *subst_end);
 #endif
 static int parse_group(o_string *dest, struct p_context *ctx, struct in_str *input, int ch);
 static const char *lookup_param(const char *src);
-static int handle_dollar(o_string *dest, /*struct p_context *ctx,*/
+static int handle_dollar(o_string *dest,
 		struct in_str *input);
 static int parse_stream(o_string *dest, struct p_context *ctx, struct in_str *input0, const char *end_trigger);
 /*   setup: */
@@ -1175,7 +1171,7 @@ static int builtin_unset(char **argv)
  */
 #define B_CHUNK  (32 * sizeof(char*))
 
-static void b_reset(o_string *o)
+static void o_reset(o_string *o)
 {
 	o->length = 0;
 	o->nonnull = 0;
@@ -1183,13 +1179,13 @@ static void b_reset(o_string *o)
 		o->data[0] = '\0';
 }
 
-static void b_free(o_string *o)
+static void o_free(o_string *o)
 {
 	free(o->data);
 	memset(o, 0, sizeof(*o));
 }
 
-static void b_grow_by(o_string *o, int len)
+static void o_grow_by(o_string *o, int len)
 {
 	if (o->length + len > o->maxlen) {
 		o->maxlen += (2*len > B_CHUNK ? 2*len : B_CHUNK);
@@ -1197,18 +1193,18 @@ static void b_grow_by(o_string *o, int len)
 	}
 }
 
-static void b_addchr(o_string *o, int ch)
+static void o_addchr(o_string *o, int ch)
 {
-	debug_printf("b_addchr: '%c' o->length=%d o=%p\n", ch, o->length, o);
-	b_grow_by(o, 1);
+	debug_printf("o_addchr: '%c' o->length=%d o=%p\n", ch, o->length, o);
+	o_grow_by(o, 1);
 	o->data[o->length] = ch;
 	o->length++;
 	o->data[o->length] = '\0';
 }
 
-static void b_addstr(o_string *o, const char *str, int len)
+static void o_addstr(o_string *o, const char *str, int len)
 {
-	b_grow_by(o, len);
+	o_grow_by(o, len);
 	memcpy(&o->data[o->length], str, len);
 	o->length += len;
 	o->data[o->length] = '\0';
@@ -1217,12 +1213,12 @@ static void b_addstr(o_string *o, const char *str, int len)
 /* My analysis of quoting semantics tells me that state information
  * is associated with a destination, not a source.
  */
-static void b_addqchr(o_string *o, int ch, int quote)
+static void o_addqchr(o_string *o, int ch, int quote)
 {
 	if (quote && strchr("*?[\\", ch)) {
-		b_addchr(o, '\\');
+		o_addchr(o, '\\');
 	}
-	b_addchr(o, ch);
+	o_addchr(o, ch);
 }
 
 /* A special kind of o_string for $VAR and `cmd` expansion.
@@ -1232,10 +1228,10 @@ static void b_addqchr(o_string *o, int ch, int quote)
  * It means that if list[] needs to grow, data needs to be moved higher up
  * but list[i]'s need not be modified.
  * NB: remembering how many list[i]'s you have there is crucial.
- * b_finalize_list() operation post-processes this structure - calculates
+ * o_finalize_list() operation post-processes this structure - calculates
  * and stores actual char* ptrs in list[]. Oh, it NULL terminates it as well.
  */
-static int b_addptr(o_string *o, int n)
+static int o_save_ptr(o_string *o, int n)
 {
 	char **list = (char**)o->data;
 	int string_start = ((n + 0xf) & ~0xf) * sizeof(list[0]);
@@ -1258,7 +1254,7 @@ static int b_addptr(o_string *o, int n)
 	return n + 1;
 }
 
-static int b_get_last_ptr(o_string *o, int n)
+static int o_get_last_ptr(o_string *o, int n)
 {
 	char **list = (char**)o->data;
 	int string_start = ((n + 0xf) & ~0xf) * sizeof(list[0]);
@@ -1266,12 +1262,12 @@ static int b_get_last_ptr(o_string *o, int n)
 	return ((int)list[n-1]) + string_start;
 }
 
-static char **b_finalize_list(o_string *o, int n)
+static char **o_finalize_list(o_string *o, int n)
 {
 	char **list = (char**)o->data;
 	int string_start;
 
-	b_addptr(o, n); /* force growth for list[n] if necessary */
+	o_save_ptr(o, n); /* force growth for list[n] if necessary */
 	string_start = ((n+1 + 0xf) & ~0xf) * sizeof(list[0]);
 	list[n] = NULL;
 	while (n) {
@@ -1282,7 +1278,7 @@ static char **b_finalize_list(o_string *o, int n)
 }
 
 #ifdef DEBUG_EXPAND
-static void b_debug_list(const char *prefix, o_string *o, int n)
+static void o_debug_list(const char *prefix, o_string *o, int n)
 {
 	char **list = (char**)o->data;
 	int string_start = ((n + 0xf) & ~0xf) * sizeof(list[0]);
@@ -1300,7 +1296,7 @@ static void b_debug_list(const char *prefix, o_string *o, int n)
 	}
 }
 #else
-#define b_debug_list(prefix, o, n) ((void)0)
+#define o_debug_list(prefix, o, n) ((void)0)
 #endif
 
 
@@ -1931,7 +1927,6 @@ static int run_pipe(struct pipe *pi)
 		}
 		for (i = 0; is_assignment(argv[i]); i++) {
 			p = expand_string_to_string(argv[i]);
-			//sp: child->sp--;
 			putenv(p);
 		}
 		for (x = bltins; x->cmd; x++) {
@@ -1948,7 +1943,6 @@ static int run_pipe(struct pipe *pi)
 				 * things seem to work with glibc. */
 				setup_redirects(child, squirrel);
 				debug_printf_exec(": builtin '%s' '%s'...\n", x->cmd, argv[i+1]);
-				//sp: if (child->sp) /* btw we can do it unconditionally... */
 				argv_expanded = expand_strvec_to_strvec(argv + i);
 				rcode = x->function(argv_expanded) & 0xff;
 				free(argv_expanded);
@@ -1964,7 +1958,6 @@ static int run_pipe(struct pipe *pi)
 				setup_redirects(child, squirrel);
 				save_nofork_data(&nofork_save);
 				argv_expanded = argv + i;
-				//sp: if (child->sp)
 				argv_expanded = expand_strvec_to_strvec(argv + i);
 				debug_printf_exec(": run_nofork_applet '%s' '%s'...\n", argv_expanded[0], argv_expanded[1]);
 				rcode = run_nofork_applet_prime(&nofork_save, a, argv_expanded);
@@ -2549,17 +2542,17 @@ static int expand_on_ifs(o_string *output, int n, const char *str)
 	while (1) {
 		int word_len = strcspn(str, ifs);
 		if (word_len) {
-			b_addstr(output, str, word_len); /* store non-ifs chars */
+			o_addstr(output, str, word_len); /* store non-ifs chars */
 			str += word_len;
 		}
 		if (!*str)  /* EOL - do not finalize word */
 			break;
-		b_addchr(output, '\0');
-		b_debug_list("expand_on_ifs", output, n);
-		n = b_addptr(output, n);
+		o_addchr(output, '\0');
+		o_debug_list("expand_on_ifs", output, n);
+		n = o_save_ptr(output, n);
 		str += strspn(str, ifs); /* skip ifs chars */
 	}
-	b_debug_list("expand_on_ifs[1]", output, n);
+	o_debug_list("expand_on_ifs[1]", output, n);
 	return n;
 }
 
@@ -2583,15 +2576,15 @@ static int expand_vars_to_list(o_string *output, int n, char *arg, char or_mask)
 	ored_ch = 0;
 
 	debug_printf_expand("expand_vars_to_list: arg '%s'\n", arg);
-	b_debug_list("expand_vars_to_list", output, n);
-	n = b_addptr(output, n);
-	b_debug_list("expand_vars_to_list[0]", output, n);
+	o_debug_list("expand_vars_to_list", output, n);
+	n = o_save_ptr(output, n);
+	o_debug_list("expand_vars_to_list[0]", output, n);
 
 	while ((p = strchr(arg, SPECIAL_VAR_SYMBOL)) != NULL) {
 		o_string subst_result = NULL_O_STRING;
 
-		b_addstr(output, arg, p - arg);
-		b_debug_list("expand_vars_to_list[1]", output, n);
+		o_addstr(output, arg, p - arg);
+		o_debug_list("expand_vars_to_list[1]", output, n);
 		arg = ++p;
 		p = strchr(p, SPECIAL_VAR_SYMBOL);
 
@@ -2625,10 +2618,10 @@ static int expand_vars_to_list(o_string *output, int n, char *arg, char or_mask)
 					if (global_argv[i++][0] && global_argv[i]) {
 						/* this argv[] is not empty and not last:
 						 * put terminating NUL, start new word */
-						b_addchr(output, '\0');
-						b_debug_list("expand_vars_to_list[2]", output, n);
-						n = b_addptr(output, n);
-						b_debug_list("expand_vars_to_list[3]", output, n);
+						o_addchr(output, '\0');
+						o_debug_list("expand_vars_to_list[2]", output, n);
+						n = o_save_ptr(output, n);
+						o_debug_list("expand_vars_to_list[3]", output, n);
 					}
 				}
 			} else
@@ -2636,20 +2629,20 @@ static int expand_vars_to_list(o_string *output, int n, char *arg, char or_mask)
 			 * and in this case should treat it like '$*' - see 'else...' below */
 			if (first_ch == ('@'|0x80) && !or_mask) { /* quoted $@ */
 				while (1) {
-					b_addstr(output, global_argv[i], strlen(global_argv[i]));
+					o_addstr(output, global_argv[i], strlen(global_argv[i]));
 					if (++i >= global_argc)
 						break;
-					b_addchr(output, '\0');
-					b_debug_list("expand_vars_to_list[4]", output, n);
-					n = b_addptr(output, n);
+					o_addchr(output, '\0');
+					o_debug_list("expand_vars_to_list[4]", output, n);
+					n = o_save_ptr(output, n);
 				}
 			} else { /* quoted $*: add as one word */
 				while (1) {
-					b_addstr(output, global_argv[i], strlen(global_argv[i]));
+					o_addstr(output, global_argv[i], strlen(global_argv[i]));
 					if (!global_argv[++i])
 						break;
 					if (ifs[0])
-						b_addchr(output, ifs[0]);
+						o_addchr(output, ifs[0]);
 				}
 			}
 			break;
@@ -2685,17 +2678,17 @@ static int expand_vars_to_list(o_string *output, int n, char *arg, char or_mask)
 			} /* else: quoted $VAR, val will be appended below */
 		}
 		if (val)
-			b_addstr(output, val, strlen(val));
+			o_addstr(output, val, strlen(val));
 
-		b_free(&subst_result);
+		o_free(&subst_result);
 		arg = ++p;
 	} /* end of "while (SPECIAL_VAR_SYMBOL is found) ..." */
 
-	b_debug_list("expand_vars_to_list[a]", output, n);
-	b_addstr(output, arg, strlen(arg) + 1);
-	b_debug_list("expand_vars_to_list[b]", output, n);
+	o_debug_list("expand_vars_to_list[a]", output, n);
+	o_addstr(output, arg, strlen(arg) + 1);
+	o_debug_list("expand_vars_to_list[b]", output, n);
 //TESTME
-	if (output->length - 1 == b_get_last_ptr(output, n)) { /* expansion is empty */
+	if (output->length - 1 == o_get_last_ptr(output, n)) { /* expansion is empty */
 		if (!(ored_ch & 0x80)) { /* all vars were not quoted... */
 			n--;
 			/* allow to reuse list[n] later without re-growth */
@@ -2717,10 +2710,10 @@ static char **expand_variables(char **argv, char or_mask)
 	v = argv;
 	while (*v)
 		n = expand_vars_to_list(&output, n, *v++, or_mask);
-	b_debug_list("expand_variables", &output, n);
+	o_debug_list("expand_variables", &output, n);
 
 	/* output.data (malloced) gets returned in "list" */
-	list = b_finalize_list(&output, n);
+	list = o_finalize_list(&output, n);
 
 #ifdef DEBUG_EXPAND
 	{
@@ -3021,7 +3014,7 @@ static int reserved_word(o_string *dest, struct p_context *ctx)
 			if (ctx->res_w == RES_IN || ctx->res_w == RES_FOR) {
 				syntax("malformed for"); /* example: 'for if' */
 				ctx->res_w = RES_SNTX;
-				b_reset(dest);
+				o_reset(dest);
 				return 1;
 			}
 #endif
@@ -3032,7 +3025,7 @@ static int reserved_word(o_string *dest, struct p_context *ctx)
 		} else if (ctx->res_w == RES_NONE || !(ctx->old_flag & (1 << r->code))) {
 			syntax(NULL);
 			ctx->res_w = RES_SNTX;
-			b_reset(dest);
+			o_reset(dest);
 			return 1;
 		}
 		ctx->res_w = r->code;
@@ -3047,7 +3040,7 @@ static int reserved_word(o_string *dest, struct p_context *ctx)
 			*ctx = *old;   /* physical copy */
 			free(old);
 		}
-		b_reset(dest);
+		o_reset(dest);
 		return 1;
 	}
 	return 0;
@@ -3092,7 +3085,7 @@ static int done_word(o_string *dest, struct p_context *ctx)
 		return 1;
 	}
 
-	b_reset(dest);
+	o_reset(dest);
 	if (ctx->pending_redirect) {
 		/* NB: don't free_strings(ctx->pending_redirect->glob_word) here */
 		if (ctx->pending_redirect->glob_word
@@ -3151,8 +3144,6 @@ static int done_command(struct p_context *ctx)
 	/*child->is_stopped = 0;*/
 	/*child->group = NULL;*/
 	child->family = pi;
-	//sp: /*child->sp = 0;*/
-	//pt: child->parse_type = ctx->parse_type;
 
 	ctx->child = child;
 	/* but ctx->pipe and ctx->list_head remain unchanged */
@@ -3190,20 +3181,20 @@ static int done_pipe(struct p_context *ctx, pipe_style type)
 static int redirect_dup_num(struct in_str *input)
 {
 	int ch, d = 0, ok = 0;
-	ch = b_peek(input);
+	ch = i_peek(input);
 	if (ch != '&') return -1;
 
-	b_getch(input);  /* get the & */
-	ch = b_peek(input);
+	i_getch(input);  /* get the & */
+	ch = i_peek(input);
 	if (ch == '-') {
-		b_getch(input);
+		i_getch(input);
 		return -3;  /* "-" represents "close me" */
 	}
 	while (isdigit(ch)) {
 		d = d*10 + (ch-'0');
 		ok = 1;
-		b_getch(input);
-		ch = b_peek(input);
+		i_getch(input);
+		ch = i_peek(input);
 	}
 	if (ok) return d;
 
@@ -3235,7 +3226,7 @@ static int redirect_opt_num(o_string *o)
 	}
 	/* reuse num (and save an int) */
 	num = atoi(o->data);
-	b_reset(o);
+	o_reset(o);
 	return num;
 }
 
@@ -3285,7 +3276,6 @@ static FILE *generate_stream_from_list(struct pipe *head)
 
 /* Return code is exit status of the process that is run. */
 static int process_command_subs(o_string *dest,
-		/*struct p_context *ctx,*/
 		struct in_str *input,
 		const char *subst_end)
 {
@@ -3303,7 +3293,7 @@ static int process_command_subs(o_string *dest,
 		return retcode;  /* syntax error or EOF */
 	done_word(&result, &inner);
 	done_pipe(&inner, PIPE_SEQ);
-	b_free(&result);
+	o_free(&result);
 
 	p = generate_stream_from_list(inner.list_head);
 	if (p == NULL)
@@ -3313,16 +3303,16 @@ static int process_command_subs(o_string *dest,
 
 	/* now send results of command back into original context */
 	eol_cnt = 0;
-	while ((ch = b_getch(&pipe_str)) != EOF) {
+	while ((ch = i_getch(&pipe_str)) != EOF) {
 		if (ch == '\n') {
 			eol_cnt++;
 			continue;
 		}
 		while (eol_cnt) {
-			b_addqchr(dest, '\n', dest->o_quote);
+			o_addqchr(dest, '\n', dest->o_quote);
 			eol_cnt--;
 		}
-		b_addqchr(dest, ch, dest->o_quote);
+		o_addqchr(dest, ch, dest->o_quote);
 	}
 
 	debug_printf("done reading from pipe, pclose()ing\n");
@@ -3386,31 +3376,31 @@ static void add_till_backquote(o_string *dest, struct in_str *input);
 static void add_till_single_quote(o_string *dest, struct in_str *input)
 {
 	while (1) {
-		int ch = b_getch(input);
+		int ch = i_getch(input);
 		if (ch == EOF)
 			break;
 		if (ch == '\'')
 			break;
-		b_addchr(dest, ch);
+		o_addchr(dest, ch);
 	}
 }
 /* "...\"...`..`...." - do we need to handle "...$(..)..." too? */
 static void add_till_double_quote(o_string *dest, struct in_str *input)
 {
 	while (1) {
-		int ch = b_getch(input);
+		int ch = i_getch(input);
 		if (ch == '"')
 			break;
 		if (ch == '\\') {  /* \x. Copy both chars. */
-			b_addchr(dest, ch);
-			ch = b_getch(input);
+			o_addchr(dest, ch);
+			ch = i_getch(input);
 		}
 		if (ch == EOF)
 			break;
-		b_addchr(dest, ch);
+		o_addchr(dest, ch);
 		if (ch == '`') {
 			add_till_backquote(dest, input);
-			b_addchr(dest, ch);
+			o_addchr(dest, ch);
 			continue;
 		}
 //		if (ch == '$') ...
@@ -3433,19 +3423,19 @@ static void add_till_double_quote(o_string *dest, struct in_str *input)
 static void add_till_backquote(o_string *dest, struct in_str *input)
 {
 	while (1) {
-		int ch = b_getch(input);
+		int ch = i_getch(input);
 //bb_error_msg("ADD '%c'", ch);
 		if (ch == '`')
 			break;
 		if (ch == '\\') {  /* \x. Copy both chars unless it is \` */
-			int ch2 = b_getch(input);
+			int ch2 = i_getch(input);
 			if (ch2 != '`' && ch2 != '$' && ch2 != '\\')
-				b_addchr(dest, ch);
+				o_addchr(dest, ch);
 			ch = ch2;
 		}
 		if (ch == EOF)
 			break;
-		b_addchr(dest, ch);
+		o_addchr(dest, ch);
 	}
 }
 /* Process $(cmd) - copy contents until ")" is seen. Complicated by
@@ -3464,7 +3454,7 @@ static void add_till_closing_curly_brace(o_string *dest, struct in_str *input)
 {
 	int count = 0;
 	while (1) {
-		int ch = b_getch(input);
+		int ch = i_getch(input);
 		if (ch == EOF)
 			break;
 		if (ch == '(')
@@ -3472,51 +3462,47 @@ static void add_till_closing_curly_brace(o_string *dest, struct in_str *input)
 		if (ch == ')')
 			if (--count < 0)
 				break;
-		b_addchr(dest, ch);
+		o_addchr(dest, ch);
 		if (ch == '\'') {
 			add_till_single_quote(dest, input);
-			b_addchr(dest, ch);
+			o_addchr(dest, ch);
 			continue;
 		}
 		if (ch == '"') {
 			add_till_double_quote(dest, input);
-			b_addchr(dest, ch);
+			o_addchr(dest, ch);
 			continue;
 		}
 	}
 }
 #endif /* ENABLE_HUSH_TICK */
 
-//FIXME: remove ctx and sp
-
 /* return code: 0 for OK, 1 for syntax error */
-static int handle_dollar(o_string *dest, /*struct p_context *ctx,*/ struct in_str *input)
+static int handle_dollar(o_string *dest, struct in_str *input)
 {
-	int ch = b_peek(input);  /* first character after the $ */
+	int ch = i_peek(input);  /* first character after the $ */
 	unsigned char quote_mask = dest->o_quote ? 0x80 : 0;
 
 	debug_printf_parse("handle_dollar entered: ch='%c'\n", ch);
 	if (isalpha(ch)) {
-		b_addchr(dest, SPECIAL_VAR_SYMBOL);
-		//sp: ctx->child->sp++;
+		o_addchr(dest, SPECIAL_VAR_SYMBOL);
 		while (1) {
 			debug_printf_parse(": '%c'\n", ch);
-			b_getch(input);
-			b_addchr(dest, ch | quote_mask);
+			i_getch(input);
+			o_addchr(dest, ch | quote_mask);
 			quote_mask = 0;
-			ch = b_peek(input);
+			ch = i_peek(input);
 			if (!isalnum(ch) && ch != '_')
 				break;
 		}
-		b_addchr(dest, SPECIAL_VAR_SYMBOL);
+		o_addchr(dest, SPECIAL_VAR_SYMBOL);
 	} else if (isdigit(ch)) {
  make_one_char_var:
-		b_addchr(dest, SPECIAL_VAR_SYMBOL);
-		//sp: ctx->child->sp++;
+		o_addchr(dest, SPECIAL_VAR_SYMBOL);
 		debug_printf_parse(": '%c'\n", ch);
-		b_getch(input);
-		b_addchr(dest, ch | quote_mask);
-		b_addchr(dest, SPECIAL_VAR_SYMBOL);
+		i_getch(input);
+		o_addchr(dest, ch | quote_mask);
+		o_addchr(dest, SPECIAL_VAR_SYMBOL);
 	} else switch (ch) {
 		case '$': /* pid */
 		case '!': /* last bg pid */
@@ -3526,12 +3512,11 @@ static int handle_dollar(o_string *dest, /*struct p_context *ctx,*/ struct in_st
 		case '@': /* args */
 			goto make_one_char_var;
 		case '{':
-			b_addchr(dest, SPECIAL_VAR_SYMBOL);
-			//sp: ctx->child->sp++;
-			b_getch(input);
+			o_addchr(dest, SPECIAL_VAR_SYMBOL);
+			i_getch(input);
 			/* XXX maybe someone will try to escape the '}' */
 			while (1) {
-				ch = b_getch(input);
+				ch = i_getch(input);
 				if (ch == '}')
 					break;
 				if (!isalnum(ch) && ch != '_') {
@@ -3540,18 +3525,18 @@ static int handle_dollar(o_string *dest, /*struct p_context *ctx,*/ struct in_st
 					return 1;
 				}
 				debug_printf_parse(": '%c'\n", ch);
-				b_addchr(dest, ch | quote_mask);
+				o_addchr(dest, ch | quote_mask);
 				quote_mask = 0;
 			}
-			b_addchr(dest, SPECIAL_VAR_SYMBOL);
+			o_addchr(dest, SPECIAL_VAR_SYMBOL);
 			break;
 #if ENABLE_HUSH_TICK
 		case '(':
-			b_getch(input);
-			b_addchr(dest, SPECIAL_VAR_SYMBOL);
-			b_addchr(dest, quote_mask | '`');
+			i_getch(input);
+			o_addchr(dest, SPECIAL_VAR_SYMBOL);
+			o_addchr(dest, quote_mask | '`');
 			add_till_closing_curly_brace(dest, input);
-			b_addchr(dest, SPECIAL_VAR_SYMBOL);
+			o_addchr(dest, SPECIAL_VAR_SYMBOL);
 			break;
 #endif
 		case '-':
@@ -3561,7 +3546,7 @@ static int handle_dollar(o_string *dest, /*struct p_context *ctx,*/ struct in_st
 			return 1;
 			break;
 		default:
-			b_addqchr(dest, '$', dest->o_quote);
+			o_addqchr(dest, '$', dest->o_quote);
 	}
 	debug_printf_parse("handle_dollar return 0\n");
 	return 0;
@@ -3585,11 +3570,11 @@ static int parse_stream(o_string *dest, struct p_context *ctx,
 	while (1) {
 		m = CHAR_IFS;
 		next = '\0';
-		ch = b_getch(input);
+		ch = i_getch(input);
 		if (ch != EOF) {
 			m = charmap[ch];
 			if (ch != '\n')
-				next = b_peek(input);
+				next = i_peek(input);
 		}
 		debug_printf_parse(": ch=%c (%d) m=%d quote=%d\n",
 						ch, ch, m, dest->o_quote);
@@ -3601,7 +3586,7 @@ static int parse_stream(o_string *dest, struct p_context *ctx,
 				debug_printf_parse("parse_stream return 1: unterminated \"\n");
 				return 1;
 			}
-			b_addqchr(dest, ch, dest->o_quote);
+			o_addqchr(dest, ch, dest->o_quote);
 			continue;
 		}
 		if (m == CHAR_IFS) {
@@ -3630,13 +3615,13 @@ static int parse_stream(o_string *dest, struct p_context *ctx,
 		case '#':
 			if (dest->length == 0 && !dest->o_quote) {
 				while (1) {
-					ch = b_peek(input);
+					ch = i_peek(input);
 					if (ch == EOF || ch == '\n')
 						break;
-					b_getch(input);
+					i_getch(input);
 				}
 			} else {
-				b_addqchr(dest, ch, dest->o_quote);
+				o_addqchr(dest, ch, dest->o_quote);
 			}
 			break;
 		case '\\':
@@ -3645,11 +3630,11 @@ static int parse_stream(o_string *dest, struct p_context *ctx,
 				debug_printf_parse("parse_stream return 1: \\<eof>\n");
 				return 1;
 			}
-			b_addqchr(dest, '\\', dest->o_quote);
-			b_addqchr(dest, b_getch(input), dest->o_quote);
+			o_addqchr(dest, '\\', dest->o_quote);
+			o_addqchr(dest, i_getch(input), dest->o_quote);
 			break;
 		case '$':
-			if (handle_dollar(dest, /*ctx,*/ input) != 0) {
+			if (handle_dollar(dest, input) != 0) {
 				debug_printf_parse("parse_stream return 1: handle_dollar returned non-0\n");
 				return 1;
 			}
@@ -3657,10 +3642,10 @@ static int parse_stream(o_string *dest, struct p_context *ctx,
 		case '\'':
 			dest->nonnull = 1;
 			while (1) {
-				ch = b_getch(input);
+				ch = i_getch(input);
 				if (ch == EOF || ch == '\'')
 					break;
-				b_addchr(dest, ch);
+				o_addchr(dest, ch);
 			}
 			if (ch == EOF) {
 				syntax("unterminated '");
@@ -3675,10 +3660,10 @@ static int parse_stream(o_string *dest, struct p_context *ctx,
 #if ENABLE_HUSH_TICK
 		case '`': {
 			//int pos = dest->length;
-			b_addchr(dest, SPECIAL_VAR_SYMBOL);
-			b_addchr(dest, dest->o_quote ? 0x80 | '`' : '`');
+			o_addchr(dest, SPECIAL_VAR_SYMBOL);
+			o_addchr(dest, dest->o_quote ? 0x80 | '`' : '`');
 			add_till_backquote(dest, input);
-			b_addchr(dest, SPECIAL_VAR_SYMBOL);
+			o_addchr(dest, SPECIAL_VAR_SYMBOL);
 			//bb_error_msg("RES '%s'", dest->data + pos);
 			break;
 		}
@@ -3689,7 +3674,7 @@ static int parse_stream(o_string *dest, struct p_context *ctx,
 			redir_style = REDIRECT_OVERWRITE;
 			if (next == '>') {
 				redir_style = REDIRECT_APPEND;
-				b_getch(input);
+				i_getch(input);
 			}
 #if 0
 			else if (next == '(') {
@@ -3706,10 +3691,10 @@ static int parse_stream(o_string *dest, struct p_context *ctx,
 			redir_style = REDIRECT_INPUT;
 			if (next == '<') {
 				redir_style = REDIRECT_HEREIS;
-				b_getch(input);
+				i_getch(input);
 			} else if (next == '>') {
 				redir_style = REDIRECT_IO;
-				b_getch(input);
+				i_getch(input);
 			}
 #if 0
 			else if (next == '(') {
@@ -3727,7 +3712,7 @@ static int parse_stream(o_string *dest, struct p_context *ctx,
 		case '&':
 			done_word(dest, ctx);
 			if (next == '&') {
-				b_getch(input);
+				i_getch(input);
 				done_pipe(ctx, PIPE_AND);
 			} else {
 				done_pipe(ctx, PIPE_BG);
@@ -3736,7 +3721,7 @@ static int parse_stream(o_string *dest, struct p_context *ctx,
 		case '|':
 			done_word(dest, ctx);
 			if (next == '|') {
-				b_getch(input);
+				i_getch(input);
 				done_pipe(ctx, PIPE_OR);
 			} else {
 				/* we could pick up a file descriptor choice here
@@ -3836,14 +3821,14 @@ static int parse_and_run_stream(struct in_str *inp, int parse_flag)
 		} else {
 			if (ctx.old_flag != 0) {
 				free(ctx.stack);
-				b_reset(&temp);
+				o_reset(&temp);
 			}
 			temp.nonnull = 0;
 			temp.o_quote = 0;
 			inp->p = NULL;
 			free_pipe_list(ctx.list_head, /* indent: */ 0);
 		}
-		b_free(&temp);
+		o_free(&temp);
 	} while (rcode != -1 && !(parse_flag & PARSEFLAG_EXIT_FROM_LOOP));   /* loop on syntax errors, return on EOF */
 	return 0;
 }
