@@ -6,6 +6,6 @@
 
 lib-y:=
 lib-$(CONFIG_KLOGD)		+= klogd.o
-lib-$(CONFIG_LOGGER)		+= logger.o
+lib-$(CONFIG_LOGGER)		+= syslogd_and_logger.o
 lib-$(CONFIG_LOGREAD)		+= logread.o
-lib-$(CONFIG_SYSLOGD)		+= syslogd.o
+lib-$(CONFIG_SYSLOGD)		+= syslogd_and_logger.o

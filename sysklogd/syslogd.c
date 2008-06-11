@@ -13,10 +13,13 @@
  * Licensed under the GPL v2 or later, see the file LICENSE in this tarball.
  */
 
+/*
+ * Done in syslogd_and_logger.c:
 #include "libbb.h"
 #define SYSLOG_NAMES
 #define SYSLOG_NAMES_CONST
 #include <syslog.h>
+*/
 
 #include <paths.h>
 #include <sys/un.h>
@@ -192,8 +195,8 @@ enum {
 #error Please check CONFIG_FEATURE_IPC_SYSLOG_BUFFER_SIZE
 #endif
 
-/* our shared key */
-#define KEY_ID ((long)0x414e4547) /* "GENA" */
+/* our shared key (syslogd.c and logread.c must be in sync) */
+enum { KEY_ID = 0x414e4547 }; /* "GENA" */
 
 static void ipcsyslog_cleanup(void)
 {
@@ -211,7 +214,7 @@ static void ipcsyslog_cleanup(void)
 static void ipcsyslog_init(void)
 {
 	if (DEBUG)
-		printf("shmget(%lx, %d,...)\n", KEY_ID, G.shm_size);
+		printf("shmget(%x, %d,...)\n", (int)KEY_ID, G.shm_size);
 
 	G.shmid = shmget(KEY_ID, G.shm_size, IPC_CREAT | 0644);
 	if (G.shmid == -1) {
@@ -631,6 +634,7 @@ static void do_syslogd(void)
 			split_escape_and_log(recvbuf, sz);
 		}
 	} /* for (;;) */
+#undef recvbuf
 }
 
 int syslogd_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
@@ -682,3 +686,11 @@ int syslogd_main(int argc ATTRIBUTE_UNUSED, char **argv)
 	do_syslogd();
 	/* return EXIT_SUCCESS; */
 }
+
+/* Clean up. Needed because we are included from syslogd_and_logger.c */
+#undef G
+#undef GLOBALS
+#undef INIT_G
+#undef OPTION_STR
+#undef OPTION_DECL
+#undef OPTION_PARAM

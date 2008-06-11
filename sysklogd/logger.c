@@ -7,34 +7,13 @@
  * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  */
 
+/*
+ * Done in syslogd_and_logger.c:
 #include "libbb.h"
-#ifndef CONFIG_SYSLOGD
 #define SYSLOG_NAMES
 #define SYSLOG_NAMES_CONST
 #include <syslog.h>
-#else
-/* brokenness alert. Everybody except dietlibc get's this wrong by neither
- * providing a typedef nor an extern for facilitynames and prioritynames
- * in syslog.h.
- */
-# include <syslog.h>
-# ifndef __dietlibc__
-/* We have to do this since the header file does neither provide a sane type
- * for this structure nor extern definitions.  Argh.... bad libc, bad, bad...
- */
-typedef struct _code {
-	char *c_name; /* FIXME: this should be const char *const c_name ! */
-	int c_val;
-} CODE;
-#  ifdef __UCLIBC__
-extern const CODE prioritynames[];
-extern const CODE facilitynames[];
-#  else
-extern CODE prioritynames[];
-extern CODE facilitynames[];
-#  endif
-# endif
-#endif
+*/
 
 /* Decode a symbolic name to a numeric value
  * this function is based on code
@@ -87,6 +66,7 @@ static int pencode(char *s)
 	return ((lev & LOG_PRIMASK) | (fac & LOG_FACMASK));
 }
 
+#define strbuf bb_common_bufsiz1
 
 int logger_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int logger_main(int argc, char **argv)
@@ -113,7 +93,6 @@ int logger_main(int argc, char **argv)
 	argc -= optind;
 	argv += optind;
 	if (!argc) {
-#define strbuf bb_common_bufsiz1
 		while (fgets(strbuf, COMMON_BUFSIZE, stdin)) {
 			if (strbuf[0]
 			 && NOT_LONE_CHAR(strbuf, '\n')
@@ -139,6 +118,8 @@ int logger_main(int argc, char **argv)
 	return EXIT_SUCCESS;
 }
 
+/* Clean up. Needed because we are included from syslogd_and_logger.c */
+#undef strbuf
 
 /*-
  * Copyright (c) 1983, 1993

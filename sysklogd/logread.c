@@ -16,6 +16,7 @@
 
 #define DEBUG 0
 
+/* our shared key (syslogd.c and logread.c must be in sync) */
 enum { KEY_ID = 0x414e4547 }; /* "GENA" */
 
 struct shbuf_ds {
