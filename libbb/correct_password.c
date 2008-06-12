@@ -40,6 +40,7 @@ int correct_password(const struct passwd *pw)
 {
 	char *unencrypted, *encrypted;
 	const char *correct;
+	int r;
 #if ENABLE_FEATURE_SHADOWPASSWDS
 	/* Using _r function to avoid pulling in static buffers */
 	struct spwd spw;
@@ -72,6 +73,8 @@ int correct_password(const struct passwd *pw)
 		return 0;
 	}
 	encrypted = pw_encrypt(unencrypted, correct, 1);
+	r = (strcmp(encrypted, correct) == 0);
+	free(encrypted);
 	memset(unencrypted, 0, strlen(unencrypted));
-	return strcmp(encrypted, correct) == 0;
+	return r;
 }

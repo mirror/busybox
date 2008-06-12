@@ -1031,7 +1031,7 @@ extern int restricted_shell(const char *shell);
  */
 extern void setup_environment(const char *shell, int clear_env, int change_env, const struct passwd *pw);
 extern int correct_password(const struct passwd *pw);
-/* Returns a ptr to static storage */
+/* Returns a malloced string */
 extern char *pw_encrypt(const char *clear, const char *salt, int cleanup);
 extern int obscure(const char *old, const char *newval, const struct passwd *pwdp);
 /* rnd is additional random input. New one is returned.

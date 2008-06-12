@@ -65,6 +65,7 @@ int chpasswd_main(int argc ATTRIBUTE_UNUSED, char **argv)
 			bb_info_msg("Password for '%s' changed", name);
 		logmode = LOGMODE_STDIO;
 		free(name);
+		free(pass);
 	}
 
 	return 0;

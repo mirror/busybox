@@ -1721,7 +1721,6 @@ static int checkPerm(const char *path, const char *request)
 			}
 
 			if (ENABLE_FEATURE_HTTPD_AUTH_MD5) {
-				char *cipher;
 				char *pp;
 
 				if (strncmp(p, request, u - request) != 0) {
@@ -1732,9 +1731,10 @@ static int checkPerm(const char *path, const char *request)
 				if (pp && pp[1] == '$' && pp[2] == '1'
 				 && pp[3] == '$' && pp[4]
 				) {
-					pp++;
-					cipher = pw_encrypt(u+1, pp, 1);
-					if (strcmp(cipher, pp) == 0)
+					char *encrypted = pw_encrypt(u+1, ++pp, 1);
+					int r = strcmp(encrypted, pp);
+					free(encrypted);
+					if (r == 0)
 						goto set_remoteuser_var;   /* Ok */
 					/* unauthorized */
 					continue;

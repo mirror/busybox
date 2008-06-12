@@ -54,7 +54,7 @@ static void my_crypt_cleanup(void)
 
 char *pw_encrypt(const char *clear, const char *salt, int cleanup)
 {
-	static char *cipher;
+	char *encrypted;
 
 #if 0 /* was CONFIG_FEATURE_SHA1_PASSWORDS, but there is no such thing??? */
 	if (strncmp(salt, "$2$", 3) == 0) {
@@ -62,11 +62,10 @@ char *pw_encrypt(const char *clear, const char *salt, int cleanup)
 	}
 #endif
 
-	free(cipher);
-	cipher = my_crypt(clear, salt);
+	encrypted = my_crypt(clear, salt);
 
 	if (cleanup)
 		my_crypt_cleanup();
 
-	return cipher;
+	return encrypted;
 }

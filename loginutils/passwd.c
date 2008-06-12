@@ -16,22 +16,24 @@ static char* new_password(const struct passwd *pw, uid_t myuid, int algo)
 	char salt[sizeof("$N$XXXXXXXX")]; /* "$N$XXXXXXXX" or "XX" */
 	char *orig = (char*)"";
 	char *newp = NULL;
-	char *cipher = NULL;
 	char *cp = NULL;
 	char *ret = NULL; /* failure so far */
 
 	if (myuid && pw->pw_passwd[0]) {
+		char *encrypted;
+
 		orig = bb_askpass(0, "Old password:"); /* returns ptr to static */
 		if (!orig)
 			goto err_ret;
-		cipher = pw_encrypt(orig, pw->pw_passwd, 1); /* returns ptr to static */
-		if (strcmp(cipher, pw->pw_passwd) != 0) {
+		encrypted = pw_encrypt(orig, pw->pw_passwd, 1); /* returns malloced str */
+		if (strcmp(encrypted, pw->pw_passwd) != 0) {
 			syslog(LOG_WARNING, "incorrect password for '%s'",
 				pw->pw_name);
 			bb_do_delay(FAIL_DELAY);
 			puts("Incorrect password");
 			goto err_ret;
 		}
+		if (ENABLE_FEATURE_CLEAN_UP) free(encrypted);
 	}
 	orig = xstrdup(orig); /* or else bb_askpass() will destroy it */
 	newp = bb_askpass(0, "New password:"); /* returns ptr to static */
@@ -55,8 +57,8 @@ static char* new_password(const struct passwd *pw, uid_t myuid, int algo)
 		strcpy(salt, "$1$");
 		crypt_make_salt(salt + 3, 4, 0);
 	}
-	/* pw_encrypt returns ptr to static */
-	ret = xstrdup(pw_encrypt(newp, salt, 1));
+	/* pw_encrypt returns malloced str */
+	ret = pw_encrypt(newp, salt, 1);
 	/* whee, success! */
 
  err_ret:
@@ -64,7 +66,6 @@ static char* new_password(const struct passwd *pw, uid_t myuid, int algo)
 	if (ENABLE_FEATURE_CLEAN_UP) free(orig);
 	nuke_str(newp);
 	if (ENABLE_FEATURE_CLEAN_UP) free(newp);
-	nuke_str(cipher);
 	nuke_str(cp);
 	return ret;
 }

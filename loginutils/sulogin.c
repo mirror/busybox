@@ -72,6 +72,9 @@ int sulogin_main(int argc ATTRIBUTE_UNUSED, char **argv)
 #endif
 
 	while (1) {
+		char *encrypted;
+		int r;
+
 		/* cp points to a static buffer that is zeroed every time */
 		cp = bb_askpass(timeout,
 				"Give root password for system maintenance\n"
@@ -81,7 +84,10 @@ int sulogin_main(int argc ATTRIBUTE_UNUSED, char **argv)
 			bb_info_msg("Normal startup");
 			return 0;
 		}
-		if (strcmp(pw_encrypt(cp, pwd->pw_passwd, 1), pwd->pw_passwd) == 0) {
+		encrypted = pw_encrypt(cp, pwd->pw_passwd, 1);
+		r = strcmp(encrypted, pwd->pw_passwd);
+		free(encrypted);
+		if (r == 0) {
 			break;
 		}
 		bb_do_delay(FAIL_DELAY);
