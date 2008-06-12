@@ -1213,28 +1213,63 @@ static void o_addstr(o_string *o, const char *str, int len)
 /* My analysis of quoting semantics tells me that state information
  * is associated with a destination, not a source.
  */
-static void o_addqchr(o_string *o, int ch, int quote)
+static void o_addqchr(o_string *o, int ch)
 {
-	if (quote && strchr("*?[\\", ch)) {
-		o_addchr(o, '\\');
+	int sz = 1;
+	if (strchr("*?[\\", ch)) {
+		sz++;
+		o->data[o->length] = '\\';
+		o->length++;
 	}
-	o_addchr(o, ch);
+	o_grow_by(o, sz);
+	o->data[o->length] = ch;
+	o->length++;
+	o->data[o->length] = '\0';
 }
 
-static void o_addqstr(o_string *o, const char *str, int len, int quote)
+static void o_addQchr(o_string *o, int ch)
 {
-	char ch;
-	if (!quote || str[strcspn(str, "*?[\\")] == '\0') {
+	int sz = 1;
+	if (o->o_quote && strchr("*?[\\", ch)) {
+		sz++;
+		o->data[o->length] = '\\';
+		o->length++;
+	}
+	o_grow_by(o, sz);
+	o->data[o->length] = ch;
+	o->length++;
+	o->data[o->length] = '\0';
+}
+
+static void o_addQstr(o_string *o, const char *str, int len)
+{
+	if (!o->o_quote) {
 		o_addstr(o, str, len);
 		return;
 	}
 	while (len) {
+		char ch;
+		int sz;
+		int ordinary_cnt = strcspn(str, "*?[\\");
+		if (ordinary_cnt > len) /* paranoia */
+			ordinary_cnt = len;
+		o_addstr(o, str, ordinary_cnt);
+		if (ordinary_cnt == len)
+			return;
+		str += ordinary_cnt;
+		len -= ordinary_cnt - 1; /* we are processing + 1 char below */
+
 		ch = *str++;
-		if (ch && strchr("*?[\\", ch)) {
-			o_addchr(o, '\\');
+		sz = 1;
+		if (ch) { /* it is necessarily one of "*?[\\" */
+			sz++;
+			o->data[o->length] = '\\';
+			o->length++;
 		}
-		o_addchr(o, ch);
-		len--;
+		o_grow_by(o, sz);
+		o->data[o->length] = ch;
+		o->length++;
+		o->data[o->length] = '\0';
 	}
 }
 
@@ -2566,7 +2601,7 @@ static int expand_on_ifs(o_string *output, int n, const char *str)
 	while (1) {
 		int word_len = strcspn(str, ifs);
 		if (word_len) {
-			o_addqstr(output, str, word_len, output->o_quote);
+			o_addQstr(output, str, word_len);
 			str += word_len;
 		}
 		if (!*str)  /* EOL - do not finalize word */
@@ -2607,7 +2642,7 @@ static int expand_vars_to_list(o_string *output, int n, char *arg, char or_mask)
 	while ((p = strchr(arg, SPECIAL_VAR_SYMBOL)) != NULL) {
 		o_string subst_result = NULL_O_STRING;
 
-		o_addqstr(output, arg, p - arg, output->o_quote);
+		o_addQstr(output, arg, p - arg);
 		o_debug_list("expand_vars_to_list[1]", output, n);
 		arg = ++p;
 		p = strchr(p, SPECIAL_VAR_SYMBOL);
@@ -2653,7 +2688,7 @@ static int expand_vars_to_list(o_string *output, int n, char *arg, char or_mask)
 			 * and in this case should treat it like '$*' - see 'else...' below */
 			if (first_ch == ('@'|0x80) && !or_mask) { /* quoted $@ */
 				while (1) {
-					o_addqstr(output, global_argv[i], strlen(global_argv[i]), output->o_quote);
+					o_addQstr(output, global_argv[i], strlen(global_argv[i]));
 					if (++i >= global_argc)
 						break;
 					o_addchr(output, '\0');
@@ -2662,7 +2697,7 @@ static int expand_vars_to_list(o_string *output, int n, char *arg, char or_mask)
 				}
 			} else { /* quoted $*: add as one word */
 				while (1) {
-					o_addqstr(output, global_argv[i], strlen(global_argv[i]), output->o_quote);
+					o_addQstr(output, global_argv[i], strlen(global_argv[i]));
 					if (!global_argv[++i])
 						break;
 					if (ifs[0])
@@ -2702,7 +2737,7 @@ static int expand_vars_to_list(o_string *output, int n, char *arg, char or_mask)
 			} /* else: quoted $VAR, val will be appended below */
 		}
 		if (val) {
-			o_addqstr(output, val, strlen(val), output->o_quote);
+			o_addQstr(output, val, strlen(val));
 		}
 
 		o_free(&subst_result);
@@ -2711,7 +2746,7 @@ static int expand_vars_to_list(o_string *output, int n, char *arg, char or_mask)
 
 	if (arg[0]) {
 		o_debug_list("expand_vars_to_list[a]", output, n);
-		o_addqstr(output, arg, strlen(arg) + 1, output->o_quote);
+		o_addQstr(output, arg, strlen(arg) + 1);
 		o_debug_list("expand_vars_to_list[b]", output, n);
 	} else if (output->length == o_get_last_ptr(output, n) /* expansion is empty */
 	 && !(ored_ch & 0x80) /* and all vars were not quoted. */
@@ -3335,10 +3370,10 @@ static int process_command_subs(o_string *dest,
 			continue;
 		}
 		while (eol_cnt) {
-			o_addqchr(dest, '\n', dest->o_quote);
+			o_addQchr(dest, '\n');
 			eol_cnt--;
 		}
-		o_addqchr(dest, ch, dest->o_quote);
+		o_addQchr(dest, ch);
 	}
 
 	debug_printf("done reading from pipe, pclose()ing\n");
@@ -3407,7 +3442,7 @@ static void add_till_single_quote(o_string *dest, struct in_str *input)
 			break;
 		if (ch == '\'')
 			break;
-		o_addqchr(dest, ch, 1);
+		o_addqchr(dest, ch);
 	}
 }
 /* "...\"...`..`...." - do we need to handle "...$(..)..." too? */
@@ -3418,15 +3453,15 @@ static void add_till_double_quote(o_string *dest, struct in_str *input)
 		if (ch == '"')
 			break;
 		if (ch == '\\') {  /* \x. Copy both chars. */
-			o_addqchr(dest, ch, 1);
+			o_addqchr(dest, ch);
 			ch = i_getch(input);
 		}
 		if (ch == EOF)
 			break;
-		o_addqchr(dest, ch, 1);
+		o_addqchr(dest, ch);
 		if (ch == '`') {
 			add_till_backquote(dest, input);
-			o_addqchr(dest, ch, 1);
+			o_addqchr(dest, ch);
 			continue;
 		}
 //		if (ch == '$') ...
@@ -3455,12 +3490,12 @@ static void add_till_backquote(o_string *dest, struct in_str *input)
 		if (ch == '\\') {  /* \x. Copy both chars unless it is \` */
 			int ch2 = i_getch(input);
 			if (ch2 != '`' && ch2 != '$' && ch2 != '\\')
-				o_addqchr(dest, ch, 1);
+				o_addqchr(dest, ch);
 			ch = ch2;
 		}
 		if (ch == EOF)
 			break;
-		o_addqchr(dest, ch, 1);
+		o_addqchr(dest, ch);
 	}
 }
 /* Process $(cmd) - copy contents until ")" is seen. Complicated by
@@ -3487,22 +3522,22 @@ static void add_till_closing_curly_brace(o_string *dest, struct in_str *input)
 		if (ch == ')')
 			if (--count < 0)
 				break;
-		o_addqchr(dest, ch, 1);
+		o_addqchr(dest, ch);
 		if (ch == '\'') {
 			add_till_single_quote(dest, input);
-			o_addqchr(dest, ch, 1);
+			o_addqchr(dest, ch);
 			continue;
 		}
 		if (ch == '"') {
 			add_till_double_quote(dest, input);
-			o_addqchr(dest, ch, 1);
+			o_addqchr(dest, ch);
 			continue;
 		}
 		if (ch == '\\') { /* \x. Copy verbatim. Important for  \(, \) */
 			ch = i_getch(input);
 			if (ch == EOF)
 				break;
-			o_addqchr(dest, ch, 1);
+			o_addqchr(dest, ch);
 			continue;
 		}
 	}
@@ -3581,7 +3616,7 @@ static int handle_dollar(o_string *dest, struct in_str *input)
 			return 1;
 			break;
 		default:
-			o_addqchr(dest, '$', dest->o_quote);
+			o_addQchr(dest, '$');
 	}
 	debug_printf_parse("handle_dollar return 0\n");
 	return 0;
@@ -3621,7 +3656,7 @@ static int parse_stream(o_string *dest, struct p_context *ctx,
 				debug_printf_parse("parse_stream return 1: unterminated \"\n");
 				return 1;
 			}
-			o_addqchr(dest, ch, dest->o_quote);
+			o_addQchr(dest, ch);
 			continue;
 		}
 		if (m == CHAR_IFS) {
@@ -3656,7 +3691,7 @@ static int parse_stream(o_string *dest, struct p_context *ctx,
 					i_getch(input);
 				}
 			} else {
-				o_addqchr(dest, ch, dest->o_quote);
+				o_addQchr(dest, ch);
 			}
 			break;
 		case '\\':
@@ -3676,9 +3711,9 @@ static int parse_stream(o_string *dest, struct p_context *ctx,
 			 */
 			if (dest->o_quote) {
 				if (strchr("$`\"\\", next) != NULL) {
-					o_addqchr(dest, i_getch(input), 1);
+					o_addqchr(dest, i_getch(input));
 				} else {
-					o_addqchr(dest, '\\', 1);
+					o_addqchr(dest, '\\');
 				}
 			} else {
 				o_addchr(dest, '\\');
@@ -3697,7 +3732,7 @@ static int parse_stream(o_string *dest, struct p_context *ctx,
 				ch = i_getch(input);
 				if (ch == EOF || ch == '\'')
 					break;
-				o_addqchr(dest, ch, 1);
+				o_addqchr(dest, ch);
 			}
 			if (ch == EOF) {
 				syntax("unterminated '");
