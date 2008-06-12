@@ -27,7 +27,7 @@ extern void rtnl_close(struct rtnl_handle *rth);
 extern int xrtnl_wilddump_request(struct rtnl_handle *rth, int fam, int type);
 extern int rtnl_dump_request(struct rtnl_handle *rth, int type, void *req, int len);
 extern int xrtnl_dump_filter(struct rtnl_handle *rth,
-			int (*filter)(struct sockaddr_nl*, struct nlmsghdr *n, void*),
+			int (*filter)(const struct sockaddr_nl*, struct nlmsghdr *n, void*),
 			void *arg1);
 
 /* bbox doesn't use parameters no. 3, 4, 6, 7, stub them out */

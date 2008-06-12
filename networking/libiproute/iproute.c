@@ -78,7 +78,7 @@ static unsigned get_hz(void)
 	return hz_internal;
 }
 
-static int print_route(struct sockaddr_nl *who ATTRIBUTE_UNUSED,
+static int print_route(const struct sockaddr_nl *who ATTRIBUTE_UNUSED,
 		struct nlmsghdr *n, void *arg)
 {
 	FILE *fp = (FILE*)arg;

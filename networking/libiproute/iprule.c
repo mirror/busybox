@@ -40,7 +40,7 @@ static void usage(void)
 }
 */
 
-static int print_rule(struct sockaddr_nl *who ATTRIBUTE_UNUSED,
+static int print_rule(const struct sockaddr_nl *who ATTRIBUTE_UNUSED,
 					struct nlmsghdr *n, void *arg ATTRIBUTE_UNUSED)
 {
 	struct rtmsg *r = NLMSG_DATA(n);

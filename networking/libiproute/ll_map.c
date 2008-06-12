@@ -39,7 +39,7 @@ static struct idxmap *find_by_index(int idx)
 	return NULL;
 }
 
-int ll_remember_index(struct sockaddr_nl *who ATTRIBUTE_UNUSED,
+int ll_remember_index(const struct sockaddr_nl *who ATTRIBUTE_UNUSED,
 		struct nlmsghdr *n,
 		void *arg ATTRIBUTE_UNUSED)
 {

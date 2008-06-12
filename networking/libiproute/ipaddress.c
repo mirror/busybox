@@ -196,7 +196,7 @@ static int flush_update(void)
 	return 0;
 }
 
-static int print_addrinfo(struct sockaddr_nl *who ATTRIBUTE_UNUSED,
+static int print_addrinfo(const struct sockaddr_nl *who ATTRIBUTE_UNUSED,
 		struct nlmsghdr *n, void *arg ATTRIBUTE_UNUSED)
 {
 	struct ifaddrmsg *ifa = NLMSG_DATA(n);
@@ -380,7 +380,7 @@ static int print_selected_addrinfo(int ifindex, struct nlmsg_list *ainfo)
 }
 
 
-static int store_nlmsg(struct sockaddr_nl *who, struct nlmsghdr *n, void *arg)
+static int store_nlmsg(const struct sockaddr_nl *who, struct nlmsghdr *n, void *arg)
 {
 	struct nlmsg_list **linfo = (struct nlmsg_list**)arg;
 	struct nlmsg_list *h;
