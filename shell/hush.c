@@ -3498,6 +3498,13 @@ static void add_till_closing_curly_brace(o_string *dest, struct in_str *input)
 			o_addqchr(dest, ch, 1);
 			continue;
 		}
+		if (ch == '\\') { /* \x. Copy verbatim. Important for  \(, \) */
+			ch = i_getch(input);
+			if (ch == EOF)
+				break;
+			o_addqchr(dest, ch, 1);
+			continue;
+		}
 	}
 }
 #endif /* ENABLE_HUSH_TICK */
@@ -3556,13 +3563,16 @@ static int handle_dollar(o_string *dest, struct in_str *input)
 			o_addchr(dest, SPECIAL_VAR_SYMBOL);
 			break;
 #if ENABLE_HUSH_TICK
-		case '(':
+		case '(': {
+			//int pos = dest->length;
 			i_getch(input);
 			o_addchr(dest, SPECIAL_VAR_SYMBOL);
 			o_addchr(dest, quote_mask | '`');
 			add_till_closing_curly_brace(dest, input);
+			//bb_error_msg("RES '%s'", dest->data + pos);
 			o_addchr(dest, SPECIAL_VAR_SYMBOL);
 			break;
+		}
 #endif
 		case '-':
 		case '_':

@@ -1,4 +1,3 @@
-#!/bin/sh
 TEST=Q
 # \` is special
 echo `echo '\'TEST\`echo ZZ\`BEST`
