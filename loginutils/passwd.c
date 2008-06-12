@@ -24,7 +24,7 @@ static char* new_password(const struct passwd *pw, uid_t myuid, int algo)
 		orig = bb_askpass(0, "Old password:"); /* returns ptr to static */
 		if (!orig)
 			goto err_ret;
-		cipher = pw_encrypt(orig, pw->pw_passwd); /* returns ptr to static */
+		cipher = pw_encrypt(orig, pw->pw_passwd, 1); /* returns ptr to static */
 		if (strcmp(cipher, pw->pw_passwd) != 0) {
 			syslog(LOG_WARNING, "incorrect password for '%s'",
 				pw->pw_name);
@@ -56,7 +56,7 @@ static char* new_password(const struct passwd *pw, uid_t myuid, int algo)
 		crypt_make_salt(salt + 3, 4, 0);
 	}
 	/* pw_encrypt returns ptr to static */
-	ret = xstrdup(pw_encrypt(newp, salt));
+	ret = xstrdup(pw_encrypt(newp, salt, 1));
 	/* whee, success! */
 
  err_ret:

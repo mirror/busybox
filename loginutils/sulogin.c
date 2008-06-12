@@ -81,7 +81,7 @@ int sulogin_main(int argc ATTRIBUTE_UNUSED, char **argv)
 			bb_info_msg("Normal startup");
 			return 0;
 		}
-		if (strcmp(pw_encrypt(cp, pwd->pw_passwd), pwd->pw_passwd) == 0) {
+		if (strcmp(pw_encrypt(cp, pwd->pw_passwd, 1), pwd->pw_passwd) == 0) {
 			break;
 		}
 		bb_do_delay(FAIL_DELAY);

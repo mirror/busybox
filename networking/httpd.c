@@ -1733,7 +1733,7 @@ static int checkPerm(const char *path, const char *request)
 				 && pp[3] == '$' && pp[4]
 				) {
 					pp++;
-					cipher = pw_encrypt(u+1, pp);
+					cipher = pw_encrypt(u+1, pp, 1);
 					if (strcmp(cipher, pp) == 0)
 						goto set_remoteuser_var;   /* Ok */
 					/* unauthorized */
@@ -2352,7 +2352,7 @@ int httpd_main(int argc ATTRIBUTE_UNUSED, char **argv)
 #endif
 #if ENABLE_FEATURE_HTTPD_AUTH_MD5
 	if (opt & OPT_MD5) {
-		puts(pw_encrypt(pass, "$1$"));
+		puts(pw_encrypt(pass, "$1$", 1));
 		return 0;
 	}
 #endif

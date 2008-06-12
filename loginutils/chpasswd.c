@@ -47,7 +47,7 @@ int chpasswd_main(int argc ATTRIBUTE_UNUSED, char **argv)
 				strcpy(salt, "$1$");
 				rnd = crypt_make_salt(salt + 3, 4, rnd);
 			}
-			pass = pw_encrypt(pass, salt);
+			pass = pw_encrypt(pass, salt, 0);
 		}
 
 		/* This is rather complex: if user is not found in /etc/shadow,
