@@ -35,7 +35,7 @@ endif
 # gcc 3.x emits bogus "old style proto" warning on find.c:alloc_action()
 CFLAGS += $(call cc-ifversion, -ge, 0400, -Wold-style-definition)
 
-CFLAGS += $(call cc-option,-Os -fno-builtin-strlen -finline-limit=0 -fomit-frame-pointer -ffunction-sections -fdata-sections,)
+CFLAGS += $(call cc-option,-fno-builtin-strlen -finline-limit=0 -fomit-frame-pointer -ffunction-sections -fdata-sections,)
 # -fno-guess-branch-probability: prohibit pseudo-random guessing
 # of branch probabilities (hopefully makes bloatcheck more stable):
 CFLAGS += $(call cc-option,-fno-guess-branch-probability,)
@@ -46,8 +46,15 @@ CFLAGS += $(call cc-option,-falign-functions=1 -falign-jumps=1 -falign-labels=1 
 # be fixed..
 #CFLAGS+=$(call cc-option,-Wconversion,)
 
-ifeq ($(CONFIG_DEBUG),y)
-CFLAGS += $(call cc-option,-g)
+ifneq ($(CONFIG_DEBUG),y)
+CFLAGS += $(call cc-option,-Os,)
+else
+CFLAGS += $(call cc-option,-g,)
+ifeq ($(CONFIG_DEBUG_PESSIMIZE),y)
+CFLAGS += $(call cc-option,-O0,)
+else
+CFLAGS += $(call cc-option,-Os,)
+endif
 endif
 
 # If arch/$(ARCH)/Makefile did not override it (with, say, -fPIC)...

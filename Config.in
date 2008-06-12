@@ -396,6 +396,17 @@ config DEBUG
 
 	  Most people should answer N.
 
+config DEBUG_PESSIMIZE
+	bool "Disable compiler optimizations."
+	default n
+	depends on DEBUG
+	help
+	  The compiler's optimization of source code can eliminate and reorder
+	  code, resulting in an executable that's hard to understand when
+	  stepping through it with a debugger.  This switches it off, resulting
+	  in a much bigger executable that more closely matches the source
+	  code.
+
 config WERROR
 	bool "Abort compilation on any warning"
 	default n
@@ -403,18 +414,6 @@ config WERROR
 	  Selecting this will add -Werror to gcc command line.
 
 	  Most people should answer N.
-
-# Seems to be unused
-#config DEBUG_PESSIMIZE
-#	bool "Disable compiler optimizations."
-#	default n
-#	depends on DEBUG
-#	help
-#	  The compiler's optimization of source code can eliminate and reorder
-#	  code, resulting in an executable that's hard to understand when
-#	  stepping through it with a debugger.  This switches it off, resulting
-#	  in a much bigger executable that more closely matches the source
-#	  code.
 
 choice
 	prompt "Additional debugging library"
