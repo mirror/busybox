@@ -501,13 +501,14 @@ static void __md5_Transform(uint32_t state[4], const unsigned char block[64])
 }
 
 
-static void
-__md5_to64(char *s, unsigned long v, int n)
+static char*
+__md5_to64(char *s, unsigned v, int n)
 {
 	while (--n >= 0) {
 		*s++ = ascii64[v & 0x3f];
 		v >>= 6;
 	}
+	return s;
 }
 
 /*
@@ -515,7 +516,7 @@ __md5_to64(char *s, unsigned long v, int n)
  *
  * Use MD5 for what it is best at...
  */
-#define MD5_OUT_BUFSIZE 120
+#define MD5_OUT_BUFSIZE 36
 
 static char *
 md5_crypt(char passwd[120], const unsigned char *pw, const unsigned char *salt)
@@ -578,7 +579,6 @@ md5_crypt(char passwd[120], const unsigned char *pw, const unsigned char *salt)
 	passwd[2] = '$';
 	strncpy(passwd + 3, (char*)sp, sl);
 	passwd[sl + 3] = '$';
-	passwd[sl + 4] = '\0';
 
 	__md5_Final(final, &ctx);
 
@@ -607,15 +607,16 @@ md5_crypt(char passwd[120], const unsigned char *pw, const unsigned char *salt)
 		__md5_Final(final, &ctx1);
 	}
 
-	p = passwd + sl + 4; /*strlen(passwd);*/
+	p = passwd + sl + 4; /* 12 bytes max (sl is up to 8 bytes) */
 
+	/* Add 5*4+2 = 22 bytes of hash, + NUL byte. */
 	final[16] = final[5];
 	for (i = 0; i < 5; i++) {
 		l = (final[i] << 16) | (final[i+6] << 8) | final[i+12];
-		__md5_to64(p, l, 4); p += 4;
+		p = __md5_to64(p, l, 4);
 	}
 	l = final[11];
-	__md5_to64(p, l, 2); p += 2;
+	p = __md5_to64(p, l, 2);
 	*p = '\0';
 
 	/* Don't leave anything around in vm they could use. */

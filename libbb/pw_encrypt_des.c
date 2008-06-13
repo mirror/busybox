@@ -673,8 +673,6 @@ des_crypt(struct des_ctx *ctx, char output[21], const unsigned char *key, const 
 	return output;
 }
 
-// des_setkey never fails
-
 #undef C
 #undef init_perm
 #undef final_perm
