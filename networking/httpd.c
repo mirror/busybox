@@ -1664,70 +1664,76 @@ static int checkPermIP(void)
  *
  * Returns 1 if user_and_passwd is OK.
  */
-static int check_user_passwd(const char *path, const char *request)
+static int check_user_passwd(const char *path, const char *user_and_passwd)
 {
 	Htaccess *cur;
-	const char *p;
-	const char *p0;
-
 	const char *prev = NULL;
 
-	/* This could stand some work */
 	for (cur = g_auth; cur; cur = cur->next) {
-		size_t l;
+		const char *dir_prefix;
+		size_t len;
 
-		p0 = cur->before_colon;
-		if (prev != NULL && strcmp(prev, p0) != 0)
-			continue;       /* find next identical */
-		p = cur->after_colon;
+		dir_prefix = cur->before_colon;
+
+		/* WHY? */
+		/* If already saw a match, don't accept other different matches */
+		if (prev && strcmp(prev, dir_prefix) != 0)
+			continue;
+
 		if (DEBUG)
-			fprintf(stderr, "checkPerm: '%s' ? '%s'\n", p0, request);
+			fprintf(stderr, "checkPerm: '%s' ? '%s'\n", dir_prefix, user_and_passwd);
 
-		l = strlen(p0);
-		if (strncmp(p0, path, l) == 0
-		 && (l == 1 || path[l] == '/' || path[l] == '\0')
+		/* If it's not a prefix match, continue searching */
+		len = strlen(dir_prefix);
+		if (len != 1 /* dir_prefix "/" matches all, don't need to check */
+		 && (strncmp(dir_prefix, path, len) != 0
+		    || (path[len] != '/' && path[len] != '\0'))
 		) {
-			char *u;
-			/* path match found.  Check request */
-			/* for check next /path:user:password */
-			prev = p0;
-			u = strchr(request, ':');
-			if (u == NULL) {
-				/* bad request, ':' required */
-				break;
-			}
+			continue;
+		}
 
-			if (ENABLE_FEATURE_HTTPD_AUTH_MD5) {
-				char *pp;
+		/* Path match found */
+		prev = dir_prefix;
 
-				if (strncmp(p, request, u - request) != 0) {
-					/* user doesn't match */
+		if (ENABLE_FEATURE_HTTPD_AUTH_MD5) {
+			char *md5_passwd;
+
+			md5_passwd = strchr(cur->after_colon, ':');
+			if (md5_passwd && md5_passwd[1] == '$' && md5_passwd[2] == '1'
+			 && md5_passwd[3] == '$' && md5_passwd[4]
+			) {
+				char *encrypted;
+				int r, user_len_p1;
+
+				md5_passwd++;
+				user_len_p1 = md5_passwd - cur->after_colon;
+				/* comparing "user:" */
+				if (strncmp(cur->after_colon, user_and_passwd, user_len_p1) != 0) {
 					continue;
 				}
-				pp = strchr(p, ':');
-				if (pp && pp[1] == '$' && pp[2] == '1'
-				 && pp[3] == '$' && pp[4]
-				) {
-					char *encrypted = pw_encrypt(u+1, ++pp, 1);
-					int r = strcmp(encrypted, pp);
-					free(encrypted);
-					if (r == 0)
-						goto set_remoteuser_var;   /* Ok */
-					/* unauthorized */
-					continue;
-				}
-			}
 
-			if (strcmp(p, request) == 0) {
+				encrypted = pw_encrypt(
+					user_and_passwd + user_len_p1 /* cleartext pwd from user */,
+					md5_passwd /*salt */, 1 /* cleanup */);
+				r = strcmp(encrypted, md5_passwd);
+				free(encrypted);
+				if (r == 0)
+					goto set_remoteuser_var; /* Ok */
+				continue;
+			}
+		}
+
+		/* Comparing plaintext "user:pass" in one go */
+		if (strcmp(cur->after_colon, user_and_passwd) == 0) {
  set_remoteuser_var:
-				remoteuser = xstrndup(request, u - request);
-				return 1;   /* Ok */
-			}
-			/* unauthorized */
+			remoteuser = xstrndup(user_and_passwd,
+					strchrnul(user_and_passwd, ':') - user_and_passwd);
+			return 1; /* Ok */
 		}
 	} /* for */
 
-	return prev == NULL;
+	/* 0(bad) if prev is set: matches were found but passwd was wrong */
+	return (prev == NULL);
 }
 #endif  /* FEATURE_HTTPD_BASIC_AUTH */
 
@@ -2039,7 +2045,7 @@ static void handle_incoming_and_exit(const len_and_sockaddr *fromAddr)
 #if ENABLE_FEATURE_HTTPD_BASIC_AUTH
 	/* Case: no "Authorization:" was seen, but page does require passwd.
 	 * Check that with dummy user:pass */
-	if ((authorized <= 0) && check_user_passwd(urlcopy, ":") == 0) {
+	if ((authorized < 0) && check_user_passwd(urlcopy, ":") == 0) {
 		send_headers_and_exit(HTTP_UNAUTHORIZED);
 	}
 #endif
