@@ -9,14 +9,15 @@
 #endif
 
 struct client_config_t {
+	uint8_t arp[6];                 /* Our arp address */
 	/* TODO: combine flag fields into single "unsigned opt" */
 	/* (can be set directly to the result of getopt32) */
-	char foreground;                /* Do not fork */
-	char quit_after_lease;          /* Quit after obtaining lease */
-	char release_on_quit;           /* Perform release on quit */
-	char abort_if_no_lease;         /* Abort if no lease */
-	char background_if_no_lease;    /* Fork to background if no lease */
 	char no_default_options;        /* Do not include default optins in request */
+#if ENABLE_FEATURE_UDHCP_PORT
+	uint16_t port;
+#endif
+	int ifindex;                    /* Index number of the interface to use */
+	uint8_t opt_mask[256 / 8];      /* Bitmask of options to send (-O option) */
 	const char *interface;          /* The name of the interface to use */
 	char *pidfile;                  /* Optionally store the process ID */
 	const char *script;             /* User script to run at dhcp events */
@@ -24,16 +25,10 @@ struct client_config_t {
 	uint8_t *vendorclass;           /* Optional vendor class-id to use */
 	uint8_t *hostname;              /* Optional hostname to use */
 	uint8_t *fqdn;                  /* Optional fully qualified domain name to use */
-	int ifindex;                    /* Index number of the interface to use */
-#if ENABLE_FEATURE_UDHCP_PORT
-	uint16_t port;
-#endif
-	uint8_t arp[6];                 /* Our arp address */
-	uint8_t opt_mask[256 / 8];      /* Bitmask of options to send (-O option) */
 };
 
 /* server_config sits in 1st half of bb_common_bufsiz1 */
-#define client_config (*(struct client_config_t*)(&bb_common_bufsiz1[COMMON_BUFSIZE/2]))
+#define client_config (*(struct client_config_t*)(&bb_common_bufsiz1[COMMON_BUFSIZE / 2]))
 
 #if ENABLE_FEATURE_UDHCP_PORT
 #define CLIENT_PORT (client_config.port)

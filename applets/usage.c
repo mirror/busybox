@@ -5,6 +5,17 @@
  * object directory */
 #include "../include/autoconf.h"
 
+/* Since we can't use platform.h, have to do this again by hand: */
+#if ENABLE_NOMMU
+#define BB_MMU 0
+#define USE_FOR_NOMMU(...) __VA_ARGS__
+#define USE_FOR_MMU(...)
+#else
+#define BB_MMU 1
+#define USE_FOR_NOMMU(...)
+#define USE_FOR_MMU(...) __VA_ARGS__
+#endif
+
 static const char usage_messages[] = ""
 #define MAKE_USAGE
 #include "usage.h"

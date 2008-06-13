@@ -4246,7 +4246,9 @@
      "\n	-O,--request-option=OPT	Request DHCP option OPT (cumulative)" \
      "\n	-o,--no-default-options	Do not request any options (unless -O is also given)" \
      "\n	-f,--foreground	Run in foreground" \
+	USE_FOR_MMU( \
      "\n	-b,--background	Background if lease is not immediately obtained" \
+	) \
      "\n	-S,--syslog	Log to syslog too" \
      "\n	-n,--now	Exit with failure if lease is not immediately obtained" \
      "\n	-q,--quit	Quit after obtaining lease" \
@@ -4273,7 +4275,9 @@
      "\n	-O OPT		Request DHCP option OPT (cumulative)" \
      "\n	-o		Do not request any options (unless -O is also given)" \
      "\n	-f		Run in foreground" \
+	USE_FOR_MMU( \
      "\n	-b		Background if lease is not immediately obtained" \
+	) \
      "\n	-S		Log to syslog too" \
      "\n	-n		Exit with failure if lease is not immediately obtained" \
      "\n	-q		Quit after obtaining lease" \

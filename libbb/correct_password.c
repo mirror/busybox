@@ -59,7 +59,7 @@ int correct_password(const struct passwd *pw)
 		/* getspnam_r may return 0 yet set result to NULL.
 		 * At least glibc 2.4 does this. Be extra paranoid here. */
 		struct spwd *result = NULL;
-		int r = getspnam_r(pw->pw_name, &spw, buffer, sizeof(buffer), &result);
+		r = getspnam_r(pw->pw_name, &spw, buffer, sizeof(buffer), &result);
 		correct = (r || !result) ? "aa" : result->sp_pwdp;
 	}
 #endif

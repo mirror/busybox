@@ -248,12 +248,10 @@ typedef unsigned smalluint;
     (defined __UCLIBC__ && __UCLIBC_MAJOR__ >= 0 && __UCLIBC_MINOR__ >= 9 && \
     __UCLIBC_SUBLEVEL__ > 28 && !defined __ARCH_USE_MMU__)
 #define BB_MMU 0
-#define BB_NOMMU 1
 #define USE_FOR_NOMMU(...) __VA_ARGS__
 #define USE_FOR_MMU(...)
 #else
 #define BB_MMU 1
-/* BB_NOMMU is not defined in this case! */
 #define USE_FOR_NOMMU(...)
 #define USE_FOR_MMU(...) __VA_ARGS__
 #endif

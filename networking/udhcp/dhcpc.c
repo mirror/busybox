@@ -98,24 +98,15 @@ static void perform_release(uint32_t requested_ip, uint32_t server_addr)
 }
 
 
+#if BB_MMU
 static void client_background(void)
 {
-#if !BB_MMU
-	bb_error_msg("cannot background in uclinux (yet)");
-/* ... mainly because udhcpc calls client_background()
- * in _the _middle _of _udhcpc _run_, not at the start!
- * If that will be properly disabled for NOMMU, client_background()
- * will work on NOMMU too */
-#else
 	bb_daemonize(0);
 	logmode &= ~LOGMODE_STDIO;
 	/* rewrite pidfile, as our pid is different now */
 	write_pidfile(client_config.pidfile);
-#endif
-	/* Do not fork again. */
-	client_config.foreground = 1;
-	client_config.background_if_no_lease = 0;
 }
+#endif
 
 
 static uint8_t* alloc_dhcp_option(int code, const char *str, int extra)
@@ -138,9 +129,6 @@ int udhcpc_main(int argc ATTRIBUTE_UNUSED, char **argv)
 	char *str_c, *str_V, *str_h, *str_F, *str_r;
 	USE_FEATURE_UDHCP_PORT(char *str_P;)
 	llist_t *list_O = NULL;
-#if ENABLE_FEATURE_UDHCPC_ARPING
-	char *str_W;
-#endif
 	int tryagain_timeout = 20;
 	int discover_timeout = 3;
 	int discover_retries = 3;
@@ -158,41 +146,11 @@ int udhcpc_main(int argc ATTRIBUTE_UNUSED, char **argv)
 	struct dhcpMessage packet;
 	fd_set rfds;
 
-	enum {
-		OPT_c = 1 << 0,
-		OPT_C = 1 << 1,
-		OPT_V = 1 << 2,
-		OPT_f = 1 << 3,
-		OPT_b = 1 << 4,
-		OPT_H = 1 << 5,
-		OPT_h = 1 << 6,
-		OPT_F = 1 << 7,
-		OPT_i = 1 << 8,
-		OPT_n = 1 << 9,
-		OPT_p = 1 << 10,
-		OPT_q = 1 << 11,
-		OPT_R = 1 << 12,
-		OPT_r = 1 << 13,
-		OPT_s = 1 << 14,
-		OPT_T = 1 << 15,
-		OPT_t = 1 << 16,
-		OPT_v = 1 << 17,
-		OPT_S = 1 << 18,
-		OPT_A = 1 << 19,
-#if ENABLE_FEATURE_UDHCPC_ARPING
-		OPT_a = 1 << 20,
-		OPT_W = 1 << 21,
-#endif
-		OPT_P = 1 << 22,
-		OPT_o = 1 << 23,
-	};
 #if ENABLE_GETOPT_LONG
 	static const char udhcpc_longopts[] ALIGN1 =
 		"clientid\0"       Required_argument "c"
 		"clientid-none\0"  No_argument       "C"
 		"vendorclass\0"    Required_argument "V"
-		"foreground\0"     No_argument       "f"
-		"background\0"     No_argument       "b"
 		"hostname\0"       Required_argument "H"
 		"fqdn\0"           Required_argument "F"
 		"interface\0"      Required_argument "i"
@@ -207,16 +165,62 @@ int udhcpc_main(int argc ATTRIBUTE_UNUSED, char **argv)
 		"retries\0"        Required_argument "t"
 		"tryagain\0"       Required_argument "A"
 		"syslog\0"         No_argument       "S"
+		"request-option\0" Required_argument "O"
+		"no-default-options\0" No_argument   "o"
+		"foreground\0"     No_argument       "f"
+		"background\0"     No_argument       "b"
 #if ENABLE_FEATURE_UDHCPC_ARPING
 		"arping\0"         No_argument       "a"
 #endif
-		"request-option\0" Required_argument "O"
 #if ENABLE_FEATURE_UDHCP_PORT
 		"client-port\0"	   Required_argument "P"
 #endif
-		"no-default-options\0" No_argument   "o"
 		;
 #endif
+	enum {
+		OPT_c = 1 << 0,
+		OPT_C = 1 << 1,
+		OPT_V = 1 << 2,
+		OPT_H = 1 << 3,
+		OPT_h = 1 << 4,
+		OPT_F = 1 << 5,
+		OPT_i = 1 << 6, 
+		OPT_n = 1 << 7, 
+		OPT_p = 1 << 8,
+		OPT_q = 1 << 9,
+		OPT_R = 1 << 10,
+		OPT_r = 1 << 11,
+		OPT_s = 1 << 12,
+		OPT_T = 1 << 13,
+		OPT_t = 1 << 14,
+		OPT_v = 1 << 15,
+		OPT_S = 1 << 16,
+		OPT_A = 1 << 17,
+		OPT_O = 1 << 18,
+		OPT_o = 1 << 19,
+		OPT_f = 1 << 20,
+/* The rest has variable bit positions, need to be clever */
+		OPTBIT_f = 20,
+#if BB_MMU
+		OPTBIT_b,
+#endif
+#if ENABLE_FEATURE_UDHCPC_ARPING
+		OPTBIT_a,
+#endif
+#if ENABLE_FEATURE_UDHCP_PORT
+		OPTBIT_P,
+#endif
+#if BB_MMU
+		OPT_b = 1 << OPTBIT_b,
+#endif
+#if ENABLE_FEATURE_UDHCPC_ARPING
+		OPT_a = 1 << OPTBIT_a,
+#endif
+#if ENABLE_FEATURE_UDHCP_PORT
+		OPT_P = 1 << OPTBIT_P,
+#endif
+	};
+
 	/* Default options. */
 #if ENABLE_FEATURE_UDHCP_PORT
 	SERVER_PORT = 67;
@@ -231,28 +235,21 @@ int udhcpc_main(int argc ATTRIBUTE_UNUSED, char **argv)
 #if ENABLE_GETOPT_LONG
 	applet_long_options = udhcpc_longopts;
 #endif
-	opt = getopt32(argv, "c:CV:fbH:h:F:i:np:qRr:s:T:t:vSA:"
-		USE_FEATURE_UDHCPC_ARPING("aW:")
+	opt = getopt32(argv, "c:CV:H:h:F:i:np:qRr:s:T:t:vSA:O:of"
+		USE_FOR_MMU("b")
+		USE_FEATURE_UDHCPC_ARPING("a")
 		USE_FEATURE_UDHCP_PORT("P:")
-		"O:o"
 		, &str_c, &str_V, &str_h, &str_h, &str_F
-		, &client_config.interface, &client_config.pidfile, &str_r
-		, &client_config.script
-		, &discover_timeout, &discover_retries, &tryagain_timeout
-		USE_FEATURE_UDHCPC_ARPING(, &str_W)
-		USE_FEATURE_UDHCP_PORT(, &str_P)
+		, &client_config.interface, &client_config.pidfile, &str_r /* i,p */
+		, &client_config.script /* s */
+		, &discover_timeout, &discover_retries, &tryagain_timeout /* T,t,A */
 		, &list_O
+		USE_FEATURE_UDHCP_PORT(, &str_P)
 		);
-
 	if (opt & OPT_c)
 		client_config.clientid = alloc_dhcp_option(DHCP_CLIENT_ID, str_c, 0);
-	//if (opt & OPT_C)
 	if (opt & OPT_V)
 		client_config.vendorclass = alloc_dhcp_option(DHCP_VENDOR, str_V, 0);
-	if (opt & OPT_f)
-		client_config.foreground = 1;
-	if (opt & OPT_b)
-		client_config.background_if_no_lease = 1;
 	if (opt & (OPT_h|OPT_H))
 		client_config.hostname = alloc_dhcp_option(DHCP_HOST_NAME, str_h, 0);
 	if (opt & OPT_F) {
@@ -267,27 +264,11 @@ int udhcpc_main(int argc ATTRIBUTE_UNUSED, char **argv)
 		/* client_config.fqdn[OPT_DATA + 1] = 0; - redundant */
 		/* client_config.fqdn[OPT_DATA + 2] = 0; - redundant */
 	}
-	// if (opt & OPT_i) client_config.interface = ...
-	if (opt & OPT_n)
-		client_config.abort_if_no_lease = 1;
-	// if (opt & OPT_p) client_config.pidfile = ...
-	if (opt & OPT_q)
-		client_config.quit_after_lease = 1;
-	if (opt & OPT_R)
-		client_config.release_on_quit = 1;
 	if (opt & OPT_r)
 		requested_ip = inet_addr(str_r);
-	// if (opt & OPT_s) client_config.script = ...
-	// if (opt & OPT_T) discover_timeout = xatoi_u(str_T);
-	// if (opt & OPT_t) discover_retries = xatoi_u(str_t);
-	// if (opt & OPT_A) tryagain_timeout = xatoi_u(str_A);
 	if (opt & OPT_v) {
 		puts("version "BB_VER);
 		return 0;
-	}
-	if (opt & OPT_S) {
-		openlog(applet_name, LOG_PID, LOG_LOCAL0);
-		logmode |= LOGMODE_SYSLOG;
 	}
 #if ENABLE_FEATURE_UDHCP_PORT
 	if (opt & OPT_P) {
@@ -309,6 +290,17 @@ int udhcpc_main(int argc ATTRIBUTE_UNUSED, char **argv)
 	if (read_interface(client_config.interface, &client_config.ifindex,
 			   NULL, client_config.arp))
 		return 1;
+#if !BB_MMU
+	/* on NOMMU reexec (i.e., background) early */
+	if (!(opt & OPT_f)) {
+		bb_daemonize_or_rexec(0 /* flags */, argv);
+		logmode = 0;
+	}
+#endif
+	if (opt & OPT_S) {
+		openlog(applet_name, LOG_PID, LOG_LOCAL0);
+		logmode |= LOGMODE_SYSLOG;
+	}
 
 	/* Make sure fd 0,1,2 are open */
 	bb_sanitize_stdio();
@@ -317,9 +309,8 @@ int udhcpc_main(int argc ATTRIBUTE_UNUSED, char **argv)
 
 	/* Create pidfile */
 	write_pidfile(client_config.pidfile);
-	/* if (!..) bb_perror_msg("cannot create pidfile %s", pidfile); */
 
-	/* Goes to stdout and possibly syslog */
+	/* Goes to stdout (unless NOMMU) and possibly syslog */
 	bb_info_msg("%s (v"BB_VER") started", applet_name);
 
 	/* if not set, and not suppressed, setup the default client ID */
@@ -393,10 +384,15 @@ int udhcpc_main(int argc ATTRIBUTE_UNUSED, char **argv)
 					continue;
 				}
 				udhcp_run_script(NULL, "leasefail");
-				if (client_config.background_if_no_lease) {
+#if BB_MMU /* -b is not supported on NOMMU */
+				if (opt & OPT_b) { /* background if no lease */
 					bb_info_msg("No lease, forking to background");
 					client_background();
-				} else if (client_config.abort_if_no_lease) {
+					/* do not background again! */
+					opt = ((opt & ~OPT_b) | OPT_f);
+				} else
+#endif
+				if (opt & OPT_n) { /* abort if no lease */
 					bb_info_msg("No lease, failing");
 					retval = 1;
 					goto ret;
@@ -584,14 +580,18 @@ int udhcpc_main(int argc ATTRIBUTE_UNUSED, char **argv)
 
 					state = BOUND;
 					change_listen_mode(LISTEN_NONE);
-					if (client_config.quit_after_lease) {
-						if (client_config.release_on_quit)
+					if (opt & OPT_q) { /* quit after lease */
+						if (opt & OPT_R) /* release on quit */
 							perform_release(requested_ip, server_addr);
 						goto ret0;
 					}
-					if (!client_config.foreground)
+#if BB_MMU /* NOMMU case backgrounded earlier */
+					if (!(opt & OPT_f)) {
 						client_background();
-
+						/* do not background again! */
+						opt = ((opt & ~OPT_b) | OPT_f);
+					}
+#endif
 					already_waited_sec = 0;
 					continue; /* back to main loop */
 				}
@@ -633,7 +633,7 @@ int udhcpc_main(int argc ATTRIBUTE_UNUSED, char **argv)
 				break;
 			case SIGTERM:
 				bb_info_msg("Received SIGTERM");
-				if (client_config.release_on_quit)
+				if (opt & OPT_R) /* release on quit */
 					perform_release(requested_ip, server_addr);
 				goto ret0;
 			}
