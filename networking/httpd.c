@@ -2045,9 +2045,10 @@ static void handle_incoming_and_exit(const len_and_sockaddr *fromAddr)
 #if ENABLE_FEATURE_HTTPD_BASIC_AUTH
 	/* Case: no "Authorization:" was seen, but page does require passwd.
 	 * Check that with dummy user:pass */
-	if ((authorized < 0) && check_user_passwd(urlcopy, ":") == 0) {
+	if (authorized < 0)
+		authorized = check_user_passwd(urlcopy, ":");
+	if (!authorized)
 		send_headers_and_exit(HTTP_UNAUTHORIZED);
-	}
 #endif
 
 	if (found_moved_temporarily) {
