@@ -21,6 +21,18 @@ config DESKTOP
 	  Select this only if you plan to use busybox on full-blown
 	  desktop machine with common Linux distro, not on an embedded box.
 
+config FEATURE_ASSUME_UNICODE
+	bool "Assume that 1:1 char/glyph correspondence is not true"
+	default n
+	help
+	  This makes various applets aware that one byte is not
+	  one character on screen.
+
+	  Busybox aims to eventually work correctly with Unicode displays.
+	  Any older encodings are not guaranteed to work.
+	  Probably by the time when busybox will be fully Unicode-clean,
+	  other encodings will be mainly of historic interest.
+
 choice
 	prompt "Buffer allocation policy"
 	default FEATURE_BUFFERS_USE_MALLOC

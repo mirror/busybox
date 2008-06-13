@@ -31,6 +31,10 @@
 
 #include "libbb.h"
 
+#if ENABLE_FEATURE_ASSUME_UNICODE
+#include <wchar.h>
+#endif
+
 /* This is a NOEXEC applet. Be very careful! */
 
 
@@ -114,18 +118,6 @@ SPLIT_SUBDIR    = 2,
 #define ATTR(mode)	("\00\00\01\00\01\00\01\00"\
 			 "\00\00\01\00\01\00\00\01" [TYPEINDEX(mode)])
 
-/* colored LS support by JaWi, janwillem.janssen@lxtreme.nl */
-#if ENABLE_FEATURE_LS_COLOR
-static smallint show_color;
-/* long option entry used only for --color, which has no short option
- * equivalent */
-static const char ls_color_opt[] ALIGN1 =
-	"color\0" Optional_argument "\xff" /* no short equivalent */
-	;
-#else
-enum { show_color = 0 };
-#endif
-
 /*
  * a directory entry and its stat info are stored here
  */
@@ -137,25 +129,68 @@ struct dnode {                  /* the basic node */
 	USE_SELINUX(security_context_t sid;)
 	struct dnode *next;     /* point at the next node */
 };
-typedef struct dnode dnode_t;
 
 static struct dnode **list_dir(const char *);
 static struct dnode **dnalloc(int);
-static int list_single(struct dnode *);
+static int list_single(const struct dnode *);
 
-static unsigned all_fmt;
 
+struct globals {
+#if ENABLE_FEATURE_LS_COLOR
+	smallint show_color;
+#endif
+	smallint exit_failure;
+	unsigned all_fmt;
 #if ENABLE_FEATURE_AUTOWIDTH
-static unsigned tabstops = COLUMN_GAP;
-static unsigned terminal_width = TERMINAL_WIDTH;
+	unsigned tabstops; // = COLUMN_GAP;
+	unsigned terminal_width; // = TERMINAL_WIDTH;
+#endif
+#if ENABLE_FEATURE_LS_TIMESTAMPS
+	/* Do time() just once. Saves one syscall per file for "ls -l" */
+	time_t current_time_t;
+#endif
+};
+#define G (*(struct globals*)&bb_common_bufsiz1)
+#if ENABLE_FEATURE_LS_COLOR
+#define show_color     (G.show_color    )
+#else
+enum { show_color = 0 };
+#endif
+#define exit_failure   (G.exit_failure  )
+#define all_fmt        (G.all_fmt       )
+#if ENABLE_FEATURE_AUTOWIDTH
+#define tabstops       (G.tabstops      )
+#define terminal_width (G.terminal_width)
 #else
 enum {
 	tabstops = COLUMN_GAP,
 	terminal_width = TERMINAL_WIDTH,
 };
 #endif
+#define current_time_t (G.current_time_t)
+/* memset: we have to zero it out because of NOEXEC */
+#define INIT_G() { \
+	memset(&G, 0, sizeof(G)); \
+	tabstops = COLUMN_GAP; \
+	terminal_width = TERMINAL_WIDTH; \
+	USE_FEATURE_LS_TIMESTAMPS(time(&current_time_t);) \
+}
 
-static int status = EXIT_SUCCESS;
+
+#if ENABLE_FEATURE_ASSUME_UNICODE
+/* libbb candidate */
+static size_t mbstrlen(const char *string)
+{
+	size_t width = mbsrtowcs(NULL /*dest*/, &string,
+				MAXINT(size_t) /*len*/, NULL /*state*/);
+	if (width == (size_t)-1)
+		return strlen(string);
+	return width;
+}
+#else
+#define mbstrlen(string) strlen(string)
+#endif
+
 
 static struct dnode *my_stat(const char *fullname, const char *name, int force_follow)
 {
@@ -171,7 +206,7 @@ static struct dnode *my_stat(const char *fullname, const char *name, int force_f
 #endif
 		if (stat(fullname, &dstat)) {
 			bb_simple_perror_msg(fullname);
-			status = EXIT_FAILURE;
+			exit_failure = 1;
 			return 0;
 		}
 	} else {
@@ -182,7 +217,7 @@ static struct dnode *my_stat(const char *fullname, const char *name, int force_f
 #endif
 		if (lstat(fullname, &dstat)) {
 			bb_simple_perror_msg(fullname);
-			status = EXIT_FAILURE;
+			exit_failure = 1;
 			return 0;
 		}
 	}
@@ -395,7 +430,7 @@ static void showfiles(struct dnode **dn, int nfiles)
 	} else {
 		/* find the longest file name, use that as the column width */
 		for (i = 0; i < nfiles; i++) {
-			int len = strlen(dn[i]->name);
+			int len = mbstrlen(dn[i]->name);
 			if (column_width < len)
 				column_width = len;
 		}
@@ -494,7 +529,7 @@ static struct dnode **list_dir(const char *path)
 	nfiles = 0;
 	dir = warn_opendir(path);
 	if (dir == NULL) {
-		status = EXIT_FAILURE;
+		exit_failure = 1;
 		return NULL;	/* could not open the dir */
 	}
 	while ((entry = readdir(dir)) != NULL) {
@@ -538,13 +573,7 @@ static struct dnode **list_dir(const char *path)
 }
 
 
-#if ENABLE_FEATURE_LS_TIMESTAMPS
-/* Do time() just once. Saves one syscall per file for "ls -l" */
-/* Initialized in main() */
-static time_t current_time_t;
-#endif
-
-static int list_single(struct dnode *dn)
+static int list_single(const struct dnode *dn)
 {
 	int i, column = 0;
 
@@ -658,7 +687,12 @@ static int list_single(struct dnode *dn)
 						fgcolor(info.st_mode));
 			}
 #endif
+#if ENABLE_FEATURE_ASSUME_UNICODE
+			printf("%s", dn->name);
+			column += mbstrlen(dn->name);
+#else
 			column += printf("%s", dn->name);
+#endif
 			if (show_color) {
 				printf("\033[0m");
 			}
@@ -700,6 +734,7 @@ static int list_single(struct dnode *dn)
 
 	return column;
 }
+
 
 /* "[-]Cadil1", POSIX mandated options, busybox always supports */
 /* "[-]gnsx", POSIX non-mandated options, busybox always supports */
@@ -779,11 +814,18 @@ static const unsigned opt_flags[] = {
 };
 
 
-/* THIS IS A "SAFE" APPLET, main() MAY BE CALLED INTERNALLY FROM SHELL */
-/* BE CAREFUL! */
+/* colored LS support by JaWi, janwillem.janssen@lxtreme.nl */
+#if ENABLE_FEATURE_LS_COLOR
+/* long option entry used only for --color, which has no short option
+ * equivalent */
+static const char ls_color_opt[] ALIGN1 =
+	"color\0" Optional_argument "\xff" /* no short equivalent */
+	;
+#endif
+
 
 int ls_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int ls_main(int argc, char **argv)
+int ls_main(int argc ATTRIBUTE_UNUSED, char **argv)
 {
 	struct dnode **dnd;
 	struct dnode **dnf;
@@ -791,18 +833,13 @@ int ls_main(int argc, char **argv)
 	struct dnode *dn;
 	struct dnode *cur;
 	unsigned opt;
-	int nfiles = 0;
+	int nfiles;
 	int dnfiles;
 	int dndirs;
-	int oi;
-	int ac;
 	int i;
-	char **av;
 	USE_FEATURE_LS_COLOR(char *color_opt;)
 
-#if ENABLE_FEATURE_LS_TIMESTAMPS
-	time(&current_time_t);
-#endif
+	INIT_G();
 
 	all_fmt = LIST_SHORT |
 		(ENABLE_FEATURE_LS_SORTFILES * (SORT_NAME | SORT_FORWARD));
@@ -883,39 +920,27 @@ int ls_main(int argc, char **argv)
 	if (!(all_fmt & STYLE_MASK))
 		all_fmt |= (isatty(STDOUT_FILENO) ? STYLE_COLUMNS : STYLE_SINGLE);
 
-	/*
-	 * when there are no cmd line args we have to supply a default "." arg.
-	 * we will create a second argv array, "av" that will hold either
-	 * our created "." arg, or the real cmd line args.  The av array
-	 * just holds the pointers- we don't move the date the pointers
-	 * point to.
-	 */
-	ac = argc - optind;	/* how many cmd line args are left */
-	if (ac < 1) {
-		static const char *const dotdir[] = { "." };
+	argv += optind;
+	if (!argv[0])
+		*--argv = (char*)".";
 
-		av = (char **) dotdir;
-		ac = 1;
-	} else {
-		av = argv + optind;
-	}
-
-	/* now, everything is in the av array */
-	if (ac > 1)
-		all_fmt |= DISP_DIRNAME;	/* 2 or more items? label directories */
+	if (argv[1])
+		all_fmt |= DISP_DIRNAME; /* 2 or more items? label directories */
 
 	/* stuff the command line file names into a dnode array */
 	dn = NULL;
-	for (oi = 0; oi < ac; oi++) {
+	nfiles = 0;
+	do {
 		/* ls w/o -l follows links on command line */
-		cur = my_stat(av[oi], av[oi], !(all_fmt & STYLE_LONG));
+		cur = my_stat(*argv, *argv, !(all_fmt & STYLE_LONG));
+		argv++;
 		if (!cur)
 			continue;
 		cur->allocated = 0;
 		cur->next = dn;
 		dn = cur;
 		nfiles++;
-	}
+	} while (*argv);
 
 	/* now that we know how many files there are
 	 * allocate memory for an array to hold dnode pointers
@@ -950,5 +975,5 @@ int ls_main(int argc, char **argv)
 	}
 	if (ENABLE_FEATURE_CLEAN_UP)
 		dfree(dnp, nfiles);
-	return status;
+	return (exit_failure == 0);
 }
