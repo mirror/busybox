@@ -504,6 +504,9 @@ static int writeFileToTarball(const char *fileName, struct stat *statbuf,
 }
 
 #if ENABLE_FEATURE_TAR_GZIP || ENABLE_FEATURE_TAR_BZIP2
+#if !(ENABLE_FEATURE_TAR_GZIP && ENABLE_FEATURE_TAR_BZIP2)
+#define vfork_compressor(tar_fd, gzip) vfork_compressor(tar_fd)
+#endif
 /* Don't inline: vfork scares gcc and pessimizes code */
 static void NOINLINE vfork_compressor(int tar_fd, int gzip)
 {
