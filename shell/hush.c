@@ -3437,11 +3437,11 @@ static int parse_group(o_string *dest, struct p_context *ctx,
 		child->subshell = 1;
 	}
 	rcode = parse_stream(dest, &sub, input, endch);
-//vda: err chk?
-	done_word(dest, &sub); /* finish off the final word in the subcontext */
-	done_pipe(&sub, PIPE_SEQ);  /* and the final command there, too */
-	child->group = sub.list_head;
-
+	if (rcode == 0) {
+		done_word(dest, &sub); /* finish off the final word in the subcontext */
+		done_pipe(&sub, PIPE_SEQ);  /* and the final command there, too */
+		child->group = sub.list_head;
+	}
 	debug_printf_parse("parse_group return %d\n", rcode);
 	return rcode;
 	/* child remains "open", available for possible redirects */
@@ -3700,11 +3700,19 @@ static int parse_stream(o_string *dest, struct p_context *ctx,
 				done_pipe(ctx, PIPE_SEQ);
 			}
 		}
-		if ((end_trigger && strchr(end_trigger, ch))
-		 && !dest->o_quote && ctx->res_w == RES_NONE
-		) {
-			debug_printf_parse("parse_stream return 0: end_trigger char found\n");
-			return 0;
+		if (end_trigger) {
+			if (!dest->o_quote && strchr(end_trigger, ch)) {
+				/* Special case: (...word) makes last word terminate,
+				 * as if ';' is seen */
+				if (ch == ')') {
+					done_word(dest, ctx);
+					done_pipe(ctx, PIPE_SEQ);
+				}
+				if (ctx->res_w == RES_NONE) {
+					debug_printf_parse("parse_stream return 0: end_trigger char found\n");
+					return 0;
+				}
+			}
 		}
 		if (m == CHAR_IFS)
 			continue;
@@ -3757,14 +3765,14 @@ static int parse_stream(o_string *dest, struct p_context *ctx,
 			dest->nonnull = 1;
 			while (1) {
 				ch = i_getch(input);
-				if (ch == EOF || ch == '\'')
+				if (ch == EOF) {
+					syntax("unterminated '");
+					debug_printf_parse("parse_stream return 1: unterminated '\n");
+					return 1;
+				}
+				if (ch == '\'')
 					break;
 				o_addqchr(dest, ch);
-			}
-			if (ch == EOF) {
-				syntax("unterminated '");
-				debug_printf_parse("parse_stream return 1: unterminated '\n");
-				return 1;
 			}
 			break;
 		case '"':
@@ -3861,7 +3869,7 @@ static int parse_stream(o_string *dest, struct p_context *ctx,
 			if (ENABLE_HUSH_DEBUG)
 				bb_error_msg_and_die("BUG: unexpected %c\n", ch);
 		}
-	}
+	} /* while (1) */
 	/* Complain if quote?  No, maybe we just finished a command substitution
 	 * that was quoted.  Example:
 	 * $ echo "`cat foo` plus more"
@@ -3913,8 +3921,9 @@ static int parse_and_run_stream(struct in_str *inp, int parse_flag)
 	struct p_context ctx;
 	o_string temp = NULL_O_STRING;
 	int rcode;
+
 	do {
-// It always has PARSEFLAG_SEMICOLON, can we remove all checks for this bit?
+// parse_type always has PARSEFLAG_SEMICOLON, can we remove all checks for this bit?
 // After that, the whole parse_type fiels is not needed.
 		ctx.parse_type = parse_flag;
 		initialize_context(&ctx);
@@ -3938,17 +3947,21 @@ static int parse_and_run_stream(struct in_str *inp, int parse_flag)
 			debug_printf_exec("parse_stream_outer: run_and_free_list\n");
 			run_and_free_list(ctx.list_head);
 		} else {
+			/* We arrive here also if rcode == 1 (error in parse_stream) */
 			if (ctx.old_flag != 0) {
 				free(ctx.stack);
 				o_reset(&temp);
 			}
 			temp.nonnull = 0;
 			temp.o_quote = 0;
-			inp->p = NULL;
 			free_pipe_list(ctx.list_head, /* indent: */ 0);
+			/* Discard all unprocessed line input, force prompt on */
+			inp->p = NULL;
+			inp->promptme = 1;
 		}
 		o_free(&temp);
-	} while (rcode != -1 && !(parse_flag & PARSEFLAG_EXIT_FROM_LOOP));   /* loop on syntax errors, return on EOF */
+		/* loop on syntax errors, return on EOF: */
+	} while (rcode != -1 && !(parse_flag & PARSEFLAG_EXIT_FROM_LOOP));
 	return 0;
 }
 
