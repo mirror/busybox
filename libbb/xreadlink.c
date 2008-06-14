@@ -54,7 +54,6 @@ char *xmalloc_follow_symlinks(const char *path)
 	goto jump_in;
 
 	while (1) {
-
 		linkpath = xmalloc_readlink(buf);
 		if (!linkpath) {
 			/* not a symlink, or doesn't exist */

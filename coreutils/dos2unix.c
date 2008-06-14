@@ -24,24 +24,27 @@ static void convert(char *fn, int conv_type)
 {
 	FILE *in, *out;
 	int i;
-	char *name_buf = name_buf; /* for compiler */
+	char *temp_fn = temp_fn; /* for compiler */
+	char *resolved_fn = resolved_fn;
 
 	in = stdin;
 	out = stdout;
 	if (fn != NULL) {
-		in = xfopen(fn, "r");
-		/*
-		   The file is then created with mode read/write and
-		   permissions 0666 for glibc 2.0.6 and earlier or
-		   0600 for glibc 2.0.7 and later.
-		 */
-		name_buf = xasprintf("%sXXXXXX", fn);
-		i = mkstemp(name_buf);
+		struct stat st;
+
+		resolved_fn = xmalloc_follow_symlinks(fn);
+		if (resolved_fn == NULL)
+			bb_simple_perror_msg_and_die(fn);
+		in = xfopen(resolved_fn, "r");
+		fstat(fileno(in), &st);
+
+		temp_fn = xasprintf("%sXXXXXX", resolved_fn);
+		i = mkstemp(temp_fn);
 		if (i == -1
-		 || fchmod(i, 0600) == -1
+		 || fchmod(i, st.st_mode) == -1
 		 || !(out = fdopen(i, "w+"))
 		) {
-			bb_perror_nomsg_and_die();
+			bb_simple_perror_msg_and_die(temp_fn);
 		}
 	}
 
@@ -56,12 +59,12 @@ static void convert(char *fn, int conv_type)
 
 	if (fn != NULL) {
 		if (fclose(in) < 0 || fclose(out) < 0) {
-			unlink(name_buf);
+			unlink(temp_fn);
 			bb_perror_nomsg_and_die();
 		}
-// TODO: destroys symlinks. See how passwd handles this
-		xrename(name_buf, fn);
-		free(name_buf);
+		xrename(temp_fn, resolved_fn);
+		free(temp_fn);
+		free(resolved_fn);
 	}
 }
 
