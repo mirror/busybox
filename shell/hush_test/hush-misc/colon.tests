@@ -1,0 +1,6 @@
+false
+:
+echo $?
+# Extra ; after done is due to a bug
+(while :; do exit; done;)
+echo OK: $?

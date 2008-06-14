@@ -615,6 +615,7 @@ static int builtin_help(char **argv);
 static int builtin_pwd(char **argv);
 static int builtin_read(char **argv);
 static int builtin_test(char **argv);
+static int builtin_true(char **argv);
 static int builtin_set(char **argv);
 static int builtin_shift(char **argv);
 static int builtin_source(char **argv);
@@ -629,10 +630,10 @@ static int builtin_unset(char **argv);
  * For example, 'unset foo | whatever' will parse and run, but foo will
  * still be set at the end. */
 struct built_in_command {
-	const char *cmd;                /* name */
-	int (*function) (char **argv);  /* function ptr */
+	const char *cmd;
+	int (*function)(char **argv);
 #if ENABLE_HUSH_HELP
-	const char *descr;              /* description */
+	const char *descr;
 #define BLTIN(cmd, func, help) { cmd, func, help }
 #else
 #define BLTIN(cmd, func, help) { cmd, func }
@@ -642,24 +643,25 @@ struct built_in_command {
 /* For now, echo and test are unconditionally enabled.
  * Maybe make it configurable? */
 static const struct built_in_command bltins[] = {
+	BLTIN("."     , builtin_source, "Run commands in a file"),
+	BLTIN(":"     , builtin_true, "No-op"),
 	BLTIN("["     , builtin_test, "Test condition"),
 	BLTIN("[["    , builtin_test, "Test condition"),
 #if ENABLE_HUSH_JOB
 	BLTIN("bg"    , builtin_fg_bg, "Resume a job in the background"),
 #endif
 //	BLTIN("break" , builtin_not_written, "Exit for, while or until loop"),
-	BLTIN("cd"    , builtin_cd, "Change working directory"),
+	BLTIN("cd"    , builtin_cd, "Change directory"),
 //	BLTIN("continue", builtin_not_written, "Continue for, while or until loop"),
 	BLTIN("echo"  , builtin_echo, "Write strings to stdout"),
 	BLTIN("eval"  , builtin_eval, "Construct and run shell command"),
-	BLTIN("exec"  , builtin_exec, "Exec command, replacing this shell with the exec'd process"),
-	BLTIN("exit"  , builtin_exit, "Exit from shell"),
+	BLTIN("exec"  , builtin_exec, "Execute command, don't return to shell"),
+	BLTIN("exit"  , builtin_exit, "Exit"),
 	BLTIN("export", builtin_export, "Set environment variable"),
 #if ENABLE_HUSH_JOB
 	BLTIN("fg"    , builtin_fg_bg, "Bring job into the foreground"),
-	BLTIN("jobs"  , builtin_jobs, "Lists the active jobs"),
+	BLTIN("jobs"  , builtin_jobs, "List active jobs"),
 #endif
-// TODO: remove pwd? we have it as an applet...
 	BLTIN("pwd"   , builtin_pwd, "Print current directory"),
 	BLTIN("read"  , builtin_read, "Input environment variable"),
 //	BLTIN("return", builtin_not_written, "Return from a function"),
@@ -667,14 +669,12 @@ static const struct built_in_command bltins[] = {
 	BLTIN("shift" , builtin_shift, "Shift positional parameters"),
 //	BLTIN("trap"  , builtin_not_written, "Trap signals"),
 	BLTIN("test"  , builtin_test, "Test condition"),
-//	BLTIN("ulimit", builtin_not_written, "Controls resource limits"),
-	BLTIN("umask" , builtin_umask, "Sets file creation mask"),
+//	BLTIN("ulimit", builtin_not_written, "Control resource limits"),
+	BLTIN("umask" , builtin_umask, "Set file creation mask"),
 	BLTIN("unset" , builtin_unset, "Unset environment variable"),
-	BLTIN("."     , builtin_source, "Source-in and run commands in a file"),
 #if ENABLE_HUSH_HELP
 	BLTIN("help"  , builtin_help, "List shell built-in commands"),
 #endif
-	BLTIN(NULL, NULL, NULL)
 };
 
 /* Signals are grouped, we handle them in batches */
@@ -809,6 +809,12 @@ static const char *set_cwd(void)
 	return cwd;
 }
 
+
+/* built-in 'true' handler */
+static int builtin_true(char **argv ATTRIBUTE_UNUSED)
+{
+	return 0;
+}
 
 /* built-in 'test' handler */
 static int builtin_test(char **argv)
@@ -1005,7 +1011,7 @@ static int builtin_help(char **argv ATTRIBUTE_UNUSED)
 
 	printf("\nBuilt-in commands:\n");
 	printf("-------------------\n");
-	for (x = bltins; x->cmd; x++) {
+	for (x = bltins; x != &bltins[ARRAY_SIZE(bltins)]; x++) {
 		printf("%s\t%s\n", x->cmd, x->descr);
 	}
 	printf("\n\n");
@@ -1583,7 +1589,7 @@ static void pseudo_exec_argv(char **ptrs2free, char **argv)
 	 * easier to waste a few CPU cycles than it is to figure out
 	 * if this is one of those cases.
 	 */
-	for (x = bltins; x->cmd; x++) {
+	for (x = bltins; x != &bltins[ARRAY_SIZE(bltins)]; x++) {
 		if (strcmp(argv[0], x->cmd) == 0) {
 			debug_printf_exec("running builtin '%s'\n", argv[0]);
 			rcode = x->function(argv);
@@ -1965,7 +1971,7 @@ static int run_pipe(struct pipe *pi)
 			p = expand_string_to_string(argv[i]);
 			putenv(p);
 		}
-		for (x = bltins; x->cmd; x++) {
+		for (x = bltins; x != &bltins[ARRAY_SIZE(bltins)]; x++) {
 			if (strcmp(argv[i], x->cmd) == 0) {
 				if (x->function == builtin_exec && argv[i+1] == NULL) {
 					debug_printf("magic exec\n");

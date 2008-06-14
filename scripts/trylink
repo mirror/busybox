@@ -126,11 +126,12 @@ try $CC $CFLAGS $LDFLAGS \
 while test "$LDLIBS"; do
     $debug && echo "Trying libraries: $LDLIBS"
     all_needed=true
+    last_needed=false
     for one in $LDLIBS; do
 	without_one=`echo " $LDLIBS " | sed "s/ $one / /g" | xargs`
 	# "lib1 lib2 lib3" -> "-llib1 -llib2 -llib3"
 	l_list=`echo "$without_one" | sed -e 's/ / -l/g' -e 's/^/-l/' -e 's/^-l$//'`
-	test "x$l_list" != "x" && l_list="-Wl,--start-group $l_list -Wl,--end-group"
+	test x"$l_list" != x"" && l_list="-Wl,--start-group $l_list -Wl,--end-group"
 	$debug && echo "Trying -l options: '$l_list'"
 	try $CC $CFLAGS $LDFLAGS \
 		-o $EXE \
@@ -143,16 +144,19 @@ while test "$LDLIBS"; do
 	    echo " Library $one is not needed"
 	    LDLIBS="$without_one"
 	    all_needed=false
+	    last_needed=false
 	else
 	    echo " Library $one is needed"
+	    last_needed=true
 	fi
     done
     # All libs were needed, can't remove any
     $all_needed && break
-    # If there is no space char, the list has just one lib.
-    # I'm not sure that in this case lib really is 100% needed.
-    # Let's try linking without it anyway... thus commented out.
-    #{ echo "$LDLIBS" | grep -q ' '; } || break
+    # Optimization: was the last tried lib needed?
+    if $last_needed; then
+	# Was it the only one lib left? Don't test again then.
+	{ echo "$LDLIBS" | grep -q ' '; } || break
+    fi
 done
 
 # Make the binary with final, minimal list of libs

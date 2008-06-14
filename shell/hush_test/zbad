@@ -1,3 +1,0 @@
-# TODO: hush doesn't know ':' null command
-
-while :; do exit; done
