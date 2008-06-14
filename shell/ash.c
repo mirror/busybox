@@ -5835,7 +5835,7 @@ parse_sub_pattern(char *arg, int inquotes)
 			arg++; /* skip both \\, not just first one */
 		arg++;
 	}
-	*idx++ = c;
+	*idx = c; /* NUL */
 
 	return repl;
 }
