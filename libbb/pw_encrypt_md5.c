@@ -101,7 +101,6 @@ static const unsigned char __md5__magic[] = MD5_MAGIC_STR;
  * __md5_Encodes input (uint32_t) into output (unsigned char). Assumes len is
  * a multiple of 4.
  */
-
 static void
 __md5_Encode(unsigned char *output, uint32_t *input, unsigned int len)
 {
@@ -119,7 +118,6 @@ __md5_Encode(unsigned char *output, uint32_t *input, unsigned int len)
  * __md5_Decodes input (unsigned char) into output (uint32_t). Assumes len is
  * a multiple of 4.
  */
-
 static void
 __md5_Decode(uint32_t *output, const unsigned char *input, unsigned int len)
 {
@@ -166,7 +164,6 @@ __md5_Decode(uint32_t *output, const unsigned char *input, unsigned int len)
 	}
 
 /* MD5 initialization. Begins an MD5 operation, writing a new context. */
-
 static void __md5_Init(struct MD5Context *context)
 {
 	context->count[0] = context->count[1] = 0;
@@ -183,7 +180,6 @@ static void __md5_Init(struct MD5Context *context)
  * operation, processing another message block, and updating the
  * context.
  */
-
 static void __md5_Update(struct MD5Context *context, const unsigned char *input, unsigned int inputLen)
 {
 	unsigned int i, idx, partLen;
@@ -218,7 +214,6 @@ static void __md5_Update(struct MD5Context *context, const unsigned char *input,
 /*
  * MD5 padding. Adds padding followed by original length.
  */
-
 static void __md5_Pad(struct MD5Context *context)
 {
 	unsigned char bits[8];
@@ -244,7 +239,6 @@ static void __md5_Pad(struct MD5Context *context)
  * MD5 finalization. Ends an MD5 message-digest operation, writing the
  * the message digest and zeroizing the context.
  */
-
 static void __md5_Final(unsigned char digest[16], struct MD5Context *context)
 {
 	/* Do padding. */
@@ -258,7 +252,6 @@ static void __md5_Final(unsigned char digest[16], struct MD5Context *context)
 }
 
 /* MD5 basic transformation. Transforms state based on block. */
-
 static void __md5_Transform(uint32_t state[4], const unsigned char block[64])
 {
 	uint32_t a, b, c, d, x[16];
@@ -517,16 +510,15 @@ __md5_to64(char *s, unsigned v, int n)
  * Use MD5 for what it is best at...
  */
 #define MD5_OUT_BUFSIZE 36
-
 static char *
-md5_crypt(char passwd[120], const unsigned char *pw, const unsigned char *salt)
+NOINLINE
+md5_crypt(char passwd[MD5_OUT_BUFSIZE], const unsigned char *pw, const unsigned char *salt)
 {
 	const unsigned char *sp, *ep;
 	char *p;
 	unsigned char final[17];	/* final[16] exists only to aid in looping */
 	int sl, pl, i, pw_len;
 	struct MD5Context ctx, ctx1;
-	unsigned long l;
 
 	/* Refine the Salt first */
 	sp = salt;
@@ -612,11 +604,10 @@ md5_crypt(char passwd[120], const unsigned char *pw, const unsigned char *salt)
 	/* Add 5*4+2 = 22 bytes of hash, + NUL byte. */
 	final[16] = final[5];
 	for (i = 0; i < 5; i++) {
-		l = (final[i] << 16) | (final[i+6] << 8) | final[i+12];
+		unsigned l = (final[i] << 16) | (final[i+6] << 8) | final[i+12];
 		p = __md5_to64(p, l, 4);
 	}
-	l = final[11];
-	p = __md5_to64(p, l, 2);
+	p = __md5_to64(p, final[11], 2);
 	*p = '\0';
 
 	/* Don't leave anything around in vm they could use. */

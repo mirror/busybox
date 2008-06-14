@@ -400,7 +400,6 @@ des_init(struct des_ctx *ctx, const struct const_des_ctx *cctx)
 static void
 setup_salt(struct des_ctx *ctx, uint32_t salt)
 {
-//	const struct const_des_ctx *cctx = const_ctx;
 	uint32_t obit, saltbit;
 	int i;
 
@@ -422,7 +421,6 @@ setup_salt(struct des_ctx *ctx, uint32_t salt)
 static void
 des_setkey(struct des_ctx *ctx, const char *key)
 {
-//	const struct const_des_ctx *cctx = const_ctx;
 	uint32_t k0, k1, rawkey0, rawkey1;
 	int shifts, round;
 
@@ -498,7 +496,7 @@ des_setkey(struct des_ctx *ctx, const char *key)
 }
 
 
-static int
+static void
 do_des(struct des_ctx *ctx, uint32_t l_in, uint32_t r_in, uint32_t *l_out, uint32_t *r_out, int count)
 {
 	const struct const_des_ctx *cctx = const_ctx;
@@ -602,12 +600,12 @@ do_des(struct des_ctx *ctx, uint32_t l_in, uint32_t r_in, uint32_t *l_out, uint3
 		| fp_maskr[5][(r >> 16) & 0xff]
 		| fp_maskr[6][(r >> 8) & 0xff]
 		| fp_maskr[7][r & 0xff];
-	return 0;
 }
 
 #define DES_OUT_BUFSIZE 21
 
 static char *
+NOINLINE
 des_crypt(struct des_ctx *ctx, char output[21], const unsigned char *key, const unsigned char *setting)
 {
 	uint32_t salt, l, r0, r1, keybuf[2];
@@ -618,10 +616,11 @@ des_crypt(struct des_ctx *ctx, char output[21], const unsigned char *key, const 
 	 * and padding with zeros.
 	 */
 	q = (uint8_t *)keybuf;
-	while (q - (uint8_t *)keybuf - 8) {
-		*q++ = *key << 1;
-		if (*(q - 1))
+	while (q - (uint8_t *)keybuf != 8) {
+		*q = *key << 1;
+		if (*q)
 			key++;
+		q++;
 	}
 	des_setkey(ctx, (char *)keybuf);
 
@@ -658,7 +657,7 @@ des_crypt(struct des_ctx *ctx, char output[21], const unsigned char *key, const 
 	*p++ = ascii64[(l >> 6) & 0x3f];
 	*p++ = ascii64[l & 0x3f];
 
-	l = (r0 << 16) | ((r1 >> 16) & 0xffff);
+	l = ((r0 << 16) | (r1 >> 16));
 	*p++ = ascii64[(l >> 18) & 0x3f];
 	*p++ = ascii64[(l >> 12) & 0x3f];
 	*p++ = ascii64[(l >> 6) & 0x3f];
