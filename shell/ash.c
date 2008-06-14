@@ -5818,73 +5818,26 @@ parse_sub_pattern(char *arg, int inquotes)
 	char *idx, *repl = NULL;
 	unsigned char c;
 
-	for (idx = arg; *arg; arg++) {
-		if (*arg == '/') {
-			/* Only the first '/' seen is our seperator */
+	idx = arg;
+	while (1) {
+		c = *arg;
+		if (!c)
+			break;
+		if (c == '/') {
+			/* Only the first '/' seen is our separator */
 			if (!repl) {
-				*idx++ = '\0';
-				repl = idx;
-			} else
-				*idx++ = *arg;
-			} else if (*arg != '\\') {
-				*idx++ = *arg;
-			} else {
-				if (inquotes)
-					arg++;
-				else {
-					if (*(arg + 1) != '\\')
-						goto single_backslash;
-					arg += 2;
-				}
-
-			switch (*arg) {
-			case 'n':	c = '\n'; break;
-			case 'r':	c = '\r'; break;
-			case 't':	c = '\t'; break;
-			case 'v':	c = '\v'; break;
-			case 'f':	c = '\f'; break;
-			case 'b':	c = '\b'; break;
-			case 'a':	c = '\a'; break;
-			case '\\':
-				if (*(arg + 1) != '\\' && !inquotes)
-					goto single_backslash;
-				arg++;
-				/* FALLTHROUGH */
-			case '\0':
-				/* Trailing backslash, just stuff one in the buffer
-				 * and backup arg so the loop will exit.
-				 */
-				c = '\\';
-				if (!*arg)
-					arg--;
-				break;
-			default:
-				c = *arg;
-				if (isdigit(c)) {
-					/* It's an octal number, parse it. */
-					int i;
-					c = 0;
-
-					for (i = 0; *arg && i < 3; arg++, i++) {
-						if (*arg >= '8' || *arg < '0')
-							ash_msg_and_raise_error("Invalid octal char in pattern");
-// TODO: number() instead? It does error checking...
-						c = (c << 3) + atoi(arg);
-					}
-					/* back off one (so outer loop can do it) */
-					arg--;
-				}
+				repl = idx + 1;
+				c = '\0';
 			}
-			*idx++ = c;
 		}
+		*idx++ = c;
+		if (!inquotes && c == '\\' && arg[1] == '\\')
+			arg++; /* skip both \\, not just first one */
+		arg++;
 	}
-	*idx = *arg;
+	*idx++ = c;
 
 	return repl;
-
- single_backslash:
-	ash_msg_and_raise_error("single backslash unexpected");
-	/* NOTREACHED */
 }
 #endif /* ENABLE_ASH_BASH_COMPAT */
 
