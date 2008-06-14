@@ -1,8 +1,8 @@
 #!/bin/sh
 
 test -x hush || {
-    echo "No ./hush?! Perhaps you want to run 'ln -s ../../busybox hush'"
-    exit
+    echo "No ./hush - creating a link to ../../busybox"
+    ln -s ../../busybox hush
 }
 
 PATH="$PWD:$PATH" # for hush and recho/zecho/printenv

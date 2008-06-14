@@ -1,0 +1,16 @@
+echo ! printing !
+! false
+echo $?
+! true
+echo $?
+if ! false; then false; echo $?; fi
+echo $?
+if ! false; then ! false; echo $?; fi
+echo $?
+for a in ! a b c; do echo $a; done
+for a in ! a b c; do ! echo -n "$a "; echo $?; done
+for a in ! a b c; do ! /bin/echo -n "$a "; echo $?; done
+for a in ! a b c; do ! echo -n "$a " | false; echo $?; done
+for a in ! a b c; do ! echo -n "$a " | true; echo $?; done
+for a in ! a b c; do ! { echo -n "$a " | false; }; echo $?; done
+for a in ! a b c; do ! { echo -n "$a " | true; }; echo $?; done

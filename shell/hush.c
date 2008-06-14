@@ -20,10 +20,10 @@
  *      rewrites.
  *
  * Other credits:
- *      o_addchr() derived from similar w_addchar function in glibc-2.2
+ *      o_addchr() derived from similar w_addchar function in glibc-2.2.
  *      setup_redirect(), redirect_opt_num(), and big chunks of main()
  *      and many builtins derived from contributions by Erik Andersen
- *      miscellaneous bugfixes from Matt Kraai
+ *      miscellaneous bugfixes from Matt Kraai.
  *
  * There are two big (and related) architecture differences between
  * this parser and the lash parser.  One is that this version is
@@ -38,7 +38,6 @@
  *
  * Bash grammar not implemented: (how many of these were in original sh?)
  *      $_
- *      ! negation operator for pipes
  *      &> and >& redirection of stdout+stderr
  *      Brace Expansion
  *      Tilde Expansion
@@ -54,24 +53,16 @@
  *      reserved word execution woefully incomplete and buggy
  * to-do:
  *      port selected bugfixes from post-0.49 busybox lash - done?
- *      finish implementing reserved words: for, while, until, do, done
  *      change { and } from special chars to reserved words
  *      builtins: break, continue, eval, return, set, trap, ulimit
  *      test magic exec
- *      handle children going into background
- *      clean up recognition of null pipes
  *      check setting of global_argc and global_argv
- *      control-C handling, probably with longjmp
  *      follow IFS rules more precisely, including update semantics
  *      figure out what to do with backslash-newline
- *      explain why we use signal instead of sigaction
  *      propagate syntax errors, die on resource errors?
  *      continuation lines, both explicit and implicit - done?
  *      memory leak finding and plugging - done?
- *      more testing, especially quoting rules and redirection
- *      document how quoting rules not precisely followed for variable assignments
  *      maybe change charmap[] to use 2-bit entries
- *      (eventually) remove all the printf's
  *
  * Licensed under the GPL v2 or later, see the file LICENSE in this tarball.
  */
@@ -244,26 +235,6 @@ typedef enum {
 	RES_XXXX  = 12,
 	RES_SNTX  = 13
 } reserved_style;
-enum {
-	FLAG_END   = (1 << RES_NONE ),
-#if ENABLE_HUSH_IF
-	FLAG_IF    = (1 << RES_IF   ),
-	FLAG_THEN  = (1 << RES_THEN ),
-	FLAG_ELIF  = (1 << RES_ELIF ),
-	FLAG_ELSE  = (1 << RES_ELSE ),
-	FLAG_FI    = (1 << RES_FI   ),
-#endif
-#if ENABLE_HUSH_LOOPS
-	FLAG_FOR   = (1 << RES_FOR  ),
-	FLAG_WHILE = (1 << RES_WHILE),
-	FLAG_UNTIL = (1 << RES_UNTIL),
-	FLAG_DO    = (1 << RES_DO   ),
-	FLAG_DONE  = (1 << RES_DONE ),
-	FLAG_IN    = (1 << RES_IN   ),
-#endif
-	FLAG_START = (1 << RES_XXXX ),
-};
-
 /* This holds pointers to the various results of parsing */
 struct p_context {
 	struct child_prog *child;
@@ -271,7 +242,8 @@ struct p_context {
 	struct pipe *pipe;
 	struct redir_struct *pending_redirect;
 	smallint res_w;
-	smallint parse_type;        /* bitmask of PARSEFLAG_xxx, defines type of parser : ";$" common or special symbol */
+	smallint parse_type;        /* bitmask of PARSEFLAG_xxx, defines type of parser: ";$" common or special symbol */
+	smallint ctx_inverted;      /* "! cmd | cmd" */
 	int old_flag;               /* bitmask of FLAG_xxx, for figuring out valid reserved words */
 	struct p_context *stack;
 	/* How about quoting status? */
@@ -313,6 +285,7 @@ struct pipe {
 	char *cmdbuf;               /* buffer various argv's point into */
 	struct child_prog *progs;   /* array of commands in pipe */
 	int job_context;            /* bitmask defining current context */
+	smallint pi_inverted;       /* "! cmd | cmd" */
 	smallint followup;          /* PIPE_BG, PIPE_SEQ, PIPE_OR, PIPE_AND */
 	smallint res_word;          /* needed for if, for, while, until... */
 };
@@ -524,7 +497,7 @@ static int setup_redirect(struct p_context *ctx, int fd, redir_type style, struc
 static void initialize_context(struct p_context *ctx);
 static int done_word(o_string *dest, struct p_context *ctx);
 static int done_command(struct p_context *ctx);
-static int done_pipe(struct p_context *ctx, pipe_style type);
+static void done_pipe(struct p_context *ctx, pipe_style type);
 /*   primary string parsing: */
 static int redirect_dup_num(struct in_str *input);
 static int redirect_opt_num(o_string *o);
@@ -1648,9 +1621,6 @@ static void pseudo_exec_argv(char **ptrs2free, char **argv)
  */
 static void pseudo_exec(char **ptrs2free, struct child_prog *child)
 {
-// FIXME: buggy wrt NOMMU! Must not modify any global data
-// until it does exec/_exit, but currently it does
-// (puts malloc'ed stuff into environment)
 	if (child->argv)
 		pseudo_exec_argv(ptrs2free, child->argv);
 
@@ -1691,8 +1661,10 @@ static const char *get_cmdtext(struct pipe *pi)
 	if (pi->cmdtext)
 		return pi->cmdtext;
 	argv = pi->progs[0].argv;
-	if (!argv || !argv[0])
-		return (pi->cmdtext = xzalloc(1));
+	if (!argv || !argv[0]) {
+		pi->cmdtext = xzalloc(1);
+		return pi->cmdtext;
+	}
 
 	len = 0;
 	do len += strlen(*argv) + 1; while (*++argv);
@@ -1833,9 +1805,12 @@ static int checkjobs(struct pipe* fg_pipe)
 					if (dead) {
 						fg_pipe->progs[i].pid = 0;
 						fg_pipe->running_progs--;
-						if (i == fg_pipe->num_progs - 1)
+						if (i == fg_pipe->num_progs - 1) {
 							/* last process gives overall exitstatus */
 							rcode = WEXITSTATUS(status);
+							if (fg_pipe->pi_inverted)
+								rcode = !rcode;
+						}
 					} else {
 						fg_pipe->progs[i].is_stopped = 1;
 						fg_pipe->stopped_progs++;
@@ -1966,6 +1941,8 @@ static int run_pipe(struct pipe *pi)
 		rcode = run_list(child->group) & 0xff;
 		restore_redirects(squirrel);
 		debug_printf_exec("run_pipe return %d\n", rcode);
+		if (pi->pi_inverted)
+			rcode = !rcode;
 		return rcode;
 	}
 
@@ -2007,6 +1984,8 @@ static int run_pipe(struct pipe *pi)
 				free(argv_expanded);
 				restore_redirects(squirrel);
 				debug_printf_exec("run_pipe return %d\n", rcode);
+				if (pi->pi_inverted)
+					rcode = !rcode;
 				return rcode;
 			}
 		}
@@ -2023,6 +2002,8 @@ static int run_pipe(struct pipe *pi)
 				free(argv_expanded);
 				restore_redirects(squirrel);
 				debug_printf_exec("run_pipe return %d\n", rcode);
+				if (pi->pi_inverted)
+					rcode = !rcode;
 				return rcode;
 			}
 		}
@@ -2985,7 +2966,8 @@ static int setup_redirect(struct p_context *ctx, int fd, redir_type style,
 
 	/* Check for a '2>&1' type redirect */
 	redir->dup = redirect_dup_num(input);
-	if (redir->dup == -2) return 1;  /* syntax error */
+	if (redir->dup == -2)
+		return 1;  /* syntax error */
 	if (redir->dup != -1) {
 		/* Erik had a check here that the file descriptor in question
 		 * is legit; I postpone that to "run time"
@@ -3005,10 +2987,7 @@ static struct pipe *new_pipe(void)
 {
 	struct pipe *pi;
 	pi = xzalloc(sizeof(struct pipe));
-	/*pi->num_progs = 0;*/
-	/*pi->progs = NULL;*/
-	/*pi->next = NULL;*/
-	/*pi->followup = 0;  invalid */
+	/*pi->followup = 0; - deliberately invalid value */
 	if (RES_NONE)
 		pi->res_word = RES_NONE;
 	return pi;
@@ -3016,28 +2995,49 @@ static struct pipe *new_pipe(void)
 
 static void initialize_context(struct p_context *ctx)
 {
-	ctx->child = NULL;
+	smallint sv = ctx->parse_type;
+	memset(ctx, 0, sizeof(*ctx));
+	ctx->parse_type = sv;
 	ctx->pipe = ctx->list_head = new_pipe();
-	ctx->pending_redirect = NULL;
-	ctx->res_w = RES_NONE;
-	//only ctx->parse_type is not touched... is this intentional?
-	ctx->old_flag = 0;
-	ctx->stack = NULL;
-	done_command(ctx);   /* creates the memory for working child */
+	/* Create the memory for child, roughly:
+	 * ctx->pipe->progs = new struct child_prog;
+	 * ctx->pipe->progs[0].family = ctx->pipe;
+	 * ctx->child = &ctx->pipe->progs[0];
+	 */
+	done_command(ctx);
 }
 
-/* normal return is 0
- * if a reserved word is found, and processed, return 1
- * should handle if, then, elif, else, fi, for, while, until, do, done.
+/* If a reserved word is found and processed, parse context is modified
+ * and 1 is returned.
+ * Handles if, then, elif, else, fi, for, while, until, do, done.
  * case, function, and select are obnoxious, save those for later.
  */
 #if ENABLE_HUSH_IF || ENABLE_HUSH_LOOPS
-static int reserved_word(o_string *dest, struct p_context *ctx)
+static int reserved_word(const o_string *word, struct p_context *ctx)
 {
 	struct reserved_combo {
 		char literal[7];
-		unsigned char code;
+		unsigned char res;
 		int flag;
+	};
+	enum {
+		FLAG_END   = (1 << RES_NONE ),
+#if ENABLE_HUSH_IF
+		FLAG_IF    = (1 << RES_IF   ),
+		FLAG_THEN  = (1 << RES_THEN ),
+		FLAG_ELIF  = (1 << RES_ELIF ),
+		FLAG_ELSE  = (1 << RES_ELSE ),
+		FLAG_FI    = (1 << RES_FI   ),
+#endif
+#if ENABLE_HUSH_LOOPS
+		FLAG_FOR   = (1 << RES_FOR  ),
+		FLAG_WHILE = (1 << RES_WHILE),
+		FLAG_UNTIL = (1 << RES_UNTIL),
+		FLAG_DO    = (1 << RES_DO   ),
+		FLAG_DONE  = (1 << RES_DONE ),
+		FLAG_IN    = (1 << RES_IN   ),
+#endif
+		FLAG_START = (1 << RES_XXXX ),
 	};
 	/* Mostly a list of accepted follow-up reserved words.
 	 * FLAG_END means we are done with the sequence, and are ready
@@ -3046,6 +3046,7 @@ static int reserved_word(o_string *dest, struct p_context *ctx)
 	 */
 	static const struct reserved_combo reserved_list[] = {
 #if ENABLE_HUSH_IF
+		{ "!",     RES_NONE,  0 },
 		{ "if",    RES_IF,    FLAG_THEN | FLAG_START },
 		{ "then",  RES_THEN,  FLAG_ELIF | FLAG_ELSE | FLAG_FI },
 		{ "elif",  RES_ELIF,  FLAG_THEN },
@@ -3053,9 +3054,9 @@ static int reserved_word(o_string *dest, struct p_context *ctx)
 		{ "fi",    RES_FI,    FLAG_END  },
 #endif
 #if ENABLE_HUSH_LOOPS
-		{ "for",   RES_FOR,   FLAG_IN   | FLAG_START },
-		{ "while", RES_WHILE, FLAG_DO   | FLAG_START },
-		{ "until", RES_UNTIL, FLAG_DO   | FLAG_START },
+		{ "for",   RES_FOR,   FLAG_IN | FLAG_START },
+		{ "while", RES_WHILE, FLAG_DO | FLAG_START },
+		{ "until", RES_UNTIL, FLAG_DO | FLAG_START },
 		{ "in",    RES_IN,    FLAG_DO   },
 		{ "do",    RES_DO,    FLAG_DONE },
 		{ "done",  RES_DONE,  FLAG_END  }
@@ -3065,9 +3066,23 @@ static int reserved_word(o_string *dest, struct p_context *ctx)
 	const struct reserved_combo *r;
 
 	for (r = reserved_list;	r < reserved_list + ARRAY_SIZE(reserved_list); r++) {
-		if (strcmp(dest->data, r->literal) != 0)
+		if (strcmp(word->data, r->literal) != 0)
 			continue;
-		debug_printf("found reserved word %s, code %d\n", r->literal, r->code);
+		debug_printf("found reserved word %s, res %d\n", r->literal, r->res);
+		if (r->flag == 0) { /* '!' */
+			if (ctx->res_w == RES_IN) {
+				/* 'for a in ! a b c; ...' - ! isn't a keyword here */
+				break;
+			}
+			if (ctx->res_w == RES_FOR /* example: 'for ! a' */
+			 || ctx->ctx_inverted /* bash doesn't accept '! ! true' */
+			) {
+				syntax(NULL);
+				ctx->res_w = RES_SNTX;
+			}
+			ctx->ctx_inverted = 1;
+			return 1;
+		}
 		if (r->flag & FLAG_START) {
 			struct p_context *new;
 			debug_printf("push stack\n");
@@ -3075,7 +3090,6 @@ static int reserved_word(o_string *dest, struct p_context *ctx)
 			if (ctx->res_w == RES_IN || ctx->res_w == RES_FOR) {
 				syntax("malformed for"); /* example: 'for if' */
 				ctx->res_w = RES_SNTX;
-				o_reset(dest);
 				return 1;
 			}
 #endif
@@ -3083,13 +3097,12 @@ static int reserved_word(o_string *dest, struct p_context *ctx)
 			*new = *ctx;   /* physical copy */
 			initialize_context(ctx);
 			ctx->stack = new;
-		} else if (ctx->res_w == RES_NONE || !(ctx->old_flag & (1 << r->code))) {
+		} else if (ctx->res_w == RES_NONE || !(ctx->old_flag & (1 << r->res))) {
 			syntax(NULL);
 			ctx->res_w = RES_SNTX;
-			o_reset(dest);
 			return 1;
 		}
-		ctx->res_w = r->code;
+		ctx->res_w = r->res;
 		ctx->old_flag = r->flag;
 		if (ctx->old_flag & FLAG_END) {
 			struct p_context *old;
@@ -3101,52 +3114,55 @@ static int reserved_word(o_string *dest, struct p_context *ctx)
 			*ctx = *old;   /* physical copy */
 			free(old);
 		}
-		o_reset(dest);
 		return 1;
 	}
 	return 0;
 }
 #else
-#define reserved_word(dest, ctx) ((int)0)
+#define reserved_word(word, ctx) ((int)0)
 #endif
 
-/* Normal return is 0.
+/* Word is complete, look at it and update parsing context.
+ * Normal return is 0.
  * Syntax or xglob errors return 1. */
-static int done_word(o_string *dest, struct p_context *ctx)
+static int done_word(o_string *word, struct p_context *ctx)
 {
 	struct child_prog *child = ctx->child;
 	char ***glob_target;
 	int gr;
 
-	debug_printf_parse("done_word entered: '%s' %p\n", dest->data, child);
-	if (dest->length == 0 && !dest->nonnull) {
+	debug_printf_parse("done_word entered: '%s' %p\n", word->data, child);
+	if (word->length == 0 && !word->nonnull) {
 		debug_printf_parse("done_word return 0: true null, ignored\n");
 		return 0;
 	}
 	if (ctx->pending_redirect) {
 		glob_target = &ctx->pending_redirect->glob_word;
 	} else {
-		if (child->group) {
+		if (child->group) { /* TODO: example how to trigger? */
 			syntax(NULL);
 			debug_printf_parse("done_word return 1: syntax error, groups and arglists don't mix\n");
 			return 1;
 		}
 		if (!child->argv && (ctx->parse_type & PARSEFLAG_SEMICOLON)) {
-			debug_printf_parse(": checking '%s' for reserved-ness\n", dest->data);
-			if (reserved_word(dest, ctx)) {
+			debug_printf_parse(": checking '%s' for reserved-ness\n", word->data);
+			if (reserved_word(word, ctx)) {
+				o_reset(word);
 				debug_printf_parse("done_word return %d\n", (ctx->res_w == RES_SNTX));
 				return (ctx->res_w == RES_SNTX);
 			}
 		}
 		glob_target = &child->argv;
 	}
-	gr = xglob(dest, glob_target);
+//BUG! globbing should be done after variable expansion!
+//See glob_and_vars testcase
+	gr = xglob(word, glob_target);
 	if (gr != 0) {
 		debug_printf_parse("done_word return 1: xglob returned %d\n", gr);
 		return 1;
 	}
 
-	o_reset(dest);
+	o_reset(word);
 	if (ctx->pending_redirect) {
 		/* NB: don't free_strings(ctx->pending_redirect->glob_word) here */
 		if (ctx->pending_redirect->glob_word
@@ -3162,8 +3178,11 @@ static int done_word(o_string *dest, struct p_context *ctx)
 		ctx->pending_redirect = NULL;
 	}
 #if ENABLE_HUSH_LOOPS
-	if (ctx->res_w == RES_FOR) {
-		done_word(dest, ctx);
+	if (ctx->res_w == RES_FOR) { /* comment? */
+//TESTING
+//looks like (word->length == 0 && !word->nonnull) is true here, always
+//(due to o_reset). done_word would return at once. Why then?
+//		done_word(word, ctx);
 		done_pipe(ctx, PIPE_SEQ);
 	}
 #endif
@@ -3200,10 +3219,6 @@ static int done_command(struct p_context *ctx)
 	child = &pi->progs[pi->num_progs];
 
 	memset(child, 0, sizeof(*child));
-	/*child->redirects = NULL;*/
-	/*child->argv = NULL;*/
-	/*child->is_stopped = 0;*/
-	/*child->group = NULL;*/
 	child->family = pi;
 
 	ctx->child = child;
@@ -3212,7 +3227,7 @@ static int done_command(struct p_context *ctx)
 	return pi->num_progs; /* used only for 0/nonzero check */
 }
 
-static int done_pipe(struct p_context *ctx, pipe_style type)
+static void done_pipe(struct p_context *ctx, pipe_style type)
 {
 	struct pipe *new_p;
 	int not_null;
@@ -3221,6 +3236,8 @@ static int done_pipe(struct p_context *ctx, pipe_style type)
 	not_null = done_command(ctx);  /* implicit closure of previous command */
 	ctx->pipe->followup = type;
 	ctx->pipe->res_word = ctx->res_w;
+	ctx->pipe->pi_inverted = ctx->ctx_inverted;
+	ctx->ctx_inverted = 0;
 	/* Without this check, even just <enter> on command line generates
 	 * tree of three NOPs (!). Which is harmless but annoying.
 	 * IOW: it is safe to do it unconditionally. */
@@ -3228,11 +3245,15 @@ static int done_pipe(struct p_context *ctx, pipe_style type)
 		new_p = new_pipe();
 		ctx->pipe->next = new_p;
 		ctx->pipe = new_p;
-		ctx->child = NULL;
-		done_command(ctx);  /* set up new pipe to accept commands */
+		ctx->child = NULL; /* needed! */
+		/* Create the memory for child, roughly:
+		 * ctx->pipe->progs = new struct child_prog;
+		 * ctx->pipe->progs[0].family = ctx->pipe;
+    		 * ctx->child = &ctx->pipe->progs[0];
+		 */
+		done_command(ctx);
 	}
-	debug_printf_parse("done_pipe return 0\n");
-	return 0;
+	debug_printf_parse("done_pipe return\n");
 }
 
 /* peek ahead in the in_str to find out if we have a "&n" construct,
@@ -3826,7 +3847,8 @@ static int parse_stream(o_string *dest, struct p_context *ctx,
 			break;
 		case ')':
 		case '}':
-			syntax("unexpected }");   /* Proper use of this character is caught by end_trigger */
+			/* proper use of this character is caught by end_trigger */
+			syntax("unexpected } or )");
 			debug_printf_parse("parse_stream return 1: unexpected '}'\n");
 			return 1;
 		default:
@@ -3880,10 +3902,14 @@ static void update_charmap(void)
  * from builtin_source() and builtin_eval() */
 static int parse_and_run_stream(struct in_str *inp, int parse_flag)
 {
+//TODO: PARSEFLAG_SEMICOLON bit is always set in parse_flag. fishy
+//TODO: PARSEFLAG_REPARSING bit is never set (grep for it). wow
 	struct p_context ctx;
 	o_string temp = NULL_O_STRING;
 	int rcode;
 	do {
+// It always has PARSEFLAG_SEMICOLON, can we remove all checks for this bit?
+// After that, the whole parse_type fiels is not needed.
 		ctx.parse_type = parse_flag;
 		initialize_context(&ctx);
 		update_charmap();
@@ -3922,6 +3948,7 @@ static int parse_and_run_stream(struct in_str *inp, int parse_flag)
 
 static int parse_and_run_string(const char *s, int parse_flag)
 {
+//TODO: PARSEFLAG_SEMICOLON bit is always set in parse_flag. fishy
 	struct in_str input;
 	setup_string_in_str(&input, s);
 	return parse_and_run_stream(&input, parse_flag);
