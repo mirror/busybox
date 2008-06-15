@@ -13,9 +13,7 @@ struct client_config_t {
 	/* TODO: combine flag fields into single "unsigned opt" */
 	/* (can be set directly to the result of getopt32) */
 	char no_default_options;        /* Do not include default optins in request */
-#if ENABLE_FEATURE_UDHCP_PORT
-	uint16_t port;
-#endif
+	USE_FEATURE_UDHCP_PORT(uint16_t port;)
 	int ifindex;                    /* Index number of the interface to use */
 	uint8_t opt_mask[256 / 8];      /* Bitmask of options to send (-O option) */
 	const char *interface;          /* The name of the interface to use */
