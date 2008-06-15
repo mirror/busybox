@@ -169,12 +169,8 @@ int udhcpc_main(int argc ATTRIBUTE_UNUSED, char **argv)
 		"no-default-options\0" No_argument   "o"
 		"foreground\0"     No_argument       "f"
 		"background\0"     No_argument       "b"
-#if ENABLE_FEATURE_UDHCPC_ARPING
-		"arping\0"         No_argument       "a"
-#endif
-#if ENABLE_FEATURE_UDHCP_PORT
-		"client-port\0"	   Required_argument "P"
-#endif
+		USE_FEATURE_UDHCPC_ARPING("arping\0"	No_argument       "a")
+		USE_FEATURE_UDHCP_PORT("client-port\0"	Required_argument "P")
 		;
 #endif
 	enum {
@@ -201,40 +197,24 @@ int udhcpc_main(int argc ATTRIBUTE_UNUSED, char **argv)
 		OPT_f = 1 << 20,
 /* The rest has variable bit positions, need to be clever */
 		OPTBIT_f = 20,
-#if BB_MMU
-		OPTBIT_b,
-#endif
-#if ENABLE_FEATURE_UDHCPC_ARPING
-		OPTBIT_a,
-#endif
-#if ENABLE_FEATURE_UDHCP_PORT
-		OPTBIT_P,
-#endif
-#if BB_MMU
-		OPT_b = 1 << OPTBIT_b,
-#endif
-#if ENABLE_FEATURE_UDHCPC_ARPING
-		OPT_a = 1 << OPTBIT_a,
-#endif
-#if ENABLE_FEATURE_UDHCP_PORT
-		OPT_P = 1 << OPTBIT_P,
-#endif
+		USE_FOR_MMU(              OPTBIT_b,)
+		USE_FEATURE_UDHCPC_ARPING(OPTBIT_a,)
+		USE_FEATURE_UDHCP_PORT(   OPTBIT_P,)
+		USE_FOR_MMU(              OPT_b = 1 << OPTBIT_b,)
+		USE_FEATURE_UDHCPC_ARPING(OPT_a = 1 << OPTBIT_a,)
+		USE_FEATURE_UDHCP_PORT(   OPT_P = 1 << OPTBIT_P,)
 	};
 
 	/* Default options. */
-#if ENABLE_FEATURE_UDHCP_PORT
-	SERVER_PORT = 67;
-	CLIENT_PORT = 68;
-#endif
+	USE_FEATURE_UDHCP_PORT(SERVER_PORT = 67;)
+	USE_FEATURE_UDHCP_PORT(CLIENT_PORT = 68;)
 	client_config.interface = "eth0";
 	client_config.script = DEFAULT_SCRIPT;
 
 	/* Parse command line */
 	/* Cc: mutually exclusive; O: list; -T,-t,-A take numeric param */
 	opt_complementary = "c--C:C--c:O::T+:t+:A+";
-#if ENABLE_GETOPT_LONG
-	applet_long_options = udhcpc_longopts;
-#endif
+	USE_GETOPT_LONG(applet_long_options = udhcpc_longopts;)
 	opt = getopt32(argv, "c:CV:H:h:F:i:np:qRr:s:T:t:vSA:O:of"
 		USE_FOR_MMU("b")
 		USE_FEATURE_UDHCPC_ARPING("a")
@@ -257,7 +237,7 @@ int udhcpc_main(int argc ATTRIBUTE_UNUSED, char **argv)
 		/* Flags: 0000NEOS
 		S: 1 => Client requests Server to update A RR in DNS as well as PTR
 		O: 1 => Server indicates to client that DNS has been updated regardless
-		E: 1 => Name data is DNS format, i.e. <4>host<6>domain<4>com<0> not "host.domain.com"
+		E: 1 => Name data is DNS format, i.e. <4>host<6>domain<3>com<0> not "host.domain.com"
 		N: 1 => Client requests Server to not update DNS
 		*/
 		client_config.fqdn[OPT_DATA + 0] = 0x1;
