@@ -329,8 +329,7 @@ int getopt_main(int argc, char **argv)
 					&optstr, &name, &s_arg, &l_arg);
 	/* Effectuate the read options for the applet itself */
 	while (l_arg) {
-		long_options = add_long_options(long_options, l_arg->data);
-		l_arg = l_arg->link;
+		long_options = add_long_options(long_options, llist_pop(&l_arg));
 	}
 #endif
 

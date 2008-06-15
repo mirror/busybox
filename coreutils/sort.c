@@ -314,7 +314,7 @@ int sort_main(int argc ATTRIBUTE_UNUSED, char **argv)
 			0
 		};
 		struct sort_key *key = add_key();
-		char *str_k = lst_k->data;
+		char *str_k = llist_pop(&lst_k);
 		const char *temp2;
 
 		i = 0; /* i==0 before comma, 1 after (-k3,6) */
@@ -344,8 +344,6 @@ int sort_main(int argc ATTRIBUTE_UNUSED, char **argv)
 				str_k++;
 			}
 		}
-		/* leaking lst_k... */
-		lst_k = lst_k->link;
 	}
 #endif
 	/* global b strips leading and trailing spaces */

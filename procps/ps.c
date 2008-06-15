@@ -443,8 +443,7 @@ int ps_main(int argc ATTRIBUTE_UNUSED, char **argv)
 	USE_SELINUX(opt =) getopt32(argv, "Zo:aAdefl", &opt_o);
 	if (opt_o) {
 		do {
-			parse_o(opt_o->data);
-			opt_o = opt_o->link;
+			parse_o(llist_pop(&opt_o));
 		} while (opt_o);
 	} else {
 		/* Below: parse_o() needs char*, NOT const char*... */

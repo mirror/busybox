@@ -42,7 +42,7 @@ struct globals {
 #define cur   (G.cur  )
 #define cmd   (G.cmd  )
 
-enum { NUM_CMD = (COMMON_BUFSIZE - sizeof(struct globals)) / sizeof(cmd[0]) };
+enum { NUM_CMD = (COMMON_BUFSIZE - sizeof(G)) / sizeof(cmd[0]) - 1 };
 
 enum {
 	OPT_r = (1 << 0),
@@ -130,9 +130,7 @@ int run_parts_main(int argc ATTRIBUTE_UNUSED, char **argv)
 
 	n = 1;
 	while (arg_list && n < NUM_CMD) {
-		cmd[n] = arg_list->data;
-		arg_list = arg_list->link;
-		n++;
+		cmd[n++] = llist_pop(&arg_list);
 	}
 	/* cmd[n] = NULL; - is already zeroed out */
 

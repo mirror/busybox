@@ -659,16 +659,11 @@ int writeTarFile(int tar_fd, int verboseFlag,
 static llist_t *append_file_list_to_list(llist_t *list)
 {
 	FILE *src_stream;
-	llist_t *cur = list;
-	llist_t *tmp;
 	char *line;
 	llist_t *newlist = NULL;
 
-	while (cur) {
-		src_stream = xfopen(cur->data, "r");
-		tmp = cur;
-		cur = cur->link;
-		free(tmp);
+	while (list) {
+		src_stream = xfopen(llist_pop(&list), "r");
 		while ((line = xmalloc_fgetline(src_stream)) != NULL) {
 			/* kill trailing '/' unless the string is just "/" */
 			char *cp = last_char_is(line, '/');

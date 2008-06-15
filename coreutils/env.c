@@ -62,8 +62,7 @@ int env_main(int argc ATTRIBUTE_UNUSED, char **argv)
 		environ = cleanenv;
 	} else {
 		while (unset_env) {
-			unsetenv(unset_env->data);
-			unset_env = unset_env->link;
+			unsetenv(llist_pop(&unset_env));
 		}
 	}
 

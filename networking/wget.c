@@ -469,8 +469,7 @@ int wget_main(int argc ATTRIBUTE_UNUSED, char **argv)
 		}
 		extra_headers = cp = xmalloc(size);
 		while (headers_llist) {
-			cp += sprintf(cp, "%s\r\n", headers_llist->data);
-			headers_llist = headers_llist->link;
+			cp += sprintf(cp, "%s\r\n", (char*)llist_pop(&headers_llist));
 		}
 	}
 #endif

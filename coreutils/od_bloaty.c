@@ -1281,8 +1281,7 @@ int od_main(int argc, char **argv)
 	if (opt & OPT_o) decode_format_string("o2");
 	//if (opt & OPT_t)...
 	while (lst_t) {
-		decode_format_string(lst_t->data);
-		lst_t = lst_t->link;
+		decode_format_string(llist_pop(&lst_t));
 	}
 	if (opt & OPT_v) verbose = 1;
 	if (opt & OPT_x) decode_format_string("x2");

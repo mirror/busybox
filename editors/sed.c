@@ -1267,21 +1267,17 @@ int sed_main(int argc ATTRIBUTE_UNUSED, char **argv)
 	if (opt & 0x2) G.regex_type |= REG_EXTENDED; // -r
 	//if (opt & 0x4) G.be_quiet++; // -n
 	while (opt_e) { // -e
-		add_cmd_block(opt_e->data);
-		opt_e = opt_e->link;
-		/* we leak opt_e here... */
+		add_cmd_block(llist_pop(&opt_e));
 	}
 	while (opt_f) { // -f
 		char *line;
 		FILE *cmdfile;
-		cmdfile = xfopen(opt_f->data, "r");
+		cmdfile = xfopen(llist_pop(&opt_f), "r");
 		while ((line = xmalloc_fgetline(cmdfile)) != NULL) {
 			add_cmd(line);
 			free(line);
 		}
 		fclose(cmdfile);
-		opt_f = opt_f->link;
-		/* we leak opt_f here... */
 	}
 	/* if we didn't get a pattern from -e or -f, use argv[0] */
 	if (!(opt & 0x18)) {

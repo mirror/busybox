@@ -1289,14 +1289,9 @@ int diff_main(int argc ATTRIBUTE_UNUSED, char **argv)
 	while (L_arg) {
 		if (label1 && label2)
 			bb_show_usage();
-		if (!label1)
-			label1 = L_arg->data;
-		else { /* then label2 is NULL */
+		if (label1) /* then label2 is NULL */
 			label2 = label1;
-			label1 = L_arg->data;
-		}
-		/* we leak L_arg here... */
-		L_arg = L_arg->link;
+		label1 = llist_pop(&L_arg);
 	}
 
 	/*

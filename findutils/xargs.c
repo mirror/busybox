@@ -502,7 +502,7 @@ int xargs_main(int argc, char **argv)
 		if (child_error > 0 && child_error != 123) {
 			break;
 		}
-	}
+	} /* while */
 	if (ENABLE_FEATURE_CLEAN_UP)
 		free(max_chars);
 	return child_error;

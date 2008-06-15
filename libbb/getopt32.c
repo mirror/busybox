@@ -137,7 +137,7 @@ const char *opt_complementary
         opt_complementary = "vv:b::b-c:c-b";
         f = getopt32(argv, "vb:c", &my_b, &verbose_level);
         if (f & 2)       // -c after -b unsets -b flag
-                while (my_b) { dosomething_with(my_b->data); my_b = my_b->link; }
+                while (my_b) dosomething_with(llist_pop(&my_b));
         if (my_b)        // but llist is stored if -b is specified
                 free_llist(my_b);
         if (verbose_level) printf("verbose level is %d\n", verbose_level);

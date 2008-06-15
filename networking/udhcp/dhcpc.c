@@ -259,12 +259,11 @@ int udhcpc_main(int argc ATTRIBUTE_UNUSED, char **argv)
 	if (opt & OPT_o)
 		client_config.no_default_options = 1;
 	while (list_O) {
-		int n = index_in_strings(dhcp_option_strings, list_O->data);
+		int n = index_in_strings(dhcp_option_strings, llist_pop(&list_O));
 		if (n < 0)
 			bb_error_msg_and_die("unknown option '%s'", list_O->data);
 		n = dhcp_options[n].code;
 		client_config.opt_mask[n >> 3] |= 1 << (n & 7);
-		list_O = list_O->link;
 	}
 
 	if (read_interface(client_config.interface, &client_config.ifindex,
