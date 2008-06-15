@@ -9,6 +9,8 @@
 
 #include "libbb.h"
 
+#if ENABLE_USE_BB_CRYPT
+
 /*
  * DES and MD5 crypt implementations are taken from uclibc.
  * They were modified to not use static buffers.
@@ -69,3 +71,18 @@ char *pw_encrypt(const char *clear, const char *salt, int cleanup)
 
 	return encrypted;
 }
+
+#else /* if !ENABLE_USE_BB_CRYPT */
+
+char *pw_encrypt(const char *clear, const char *salt, int cleanup)
+{
+#if 0 /* was CONFIG_FEATURE_SHA1_PASSWORDS, but there is no such thing??? */
+	if (strncmp(salt, "$2$", 3) == 0) {
+		return xstrdup(sha1_crypt(clear));
+	}
+#endif
+
+	return xstrdup(crypt(clear, salt));
+}
+
+#endif
