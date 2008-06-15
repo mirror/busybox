@@ -56,6 +56,14 @@
  *	alignment).
  */
 
+
+/* Parts busybox doesn't need or had optimized */
+#define USE_PRECOMPUTED_u_sbox 1
+#define USE_REPETITIVE_SPEEDUP 0
+#define USE_ip_mask 0
+#define USE_de_keys 0
+
+
 /* A pile of data */
 static const uint8_t IP[64] = {
 	58, 50, 42, 34, 26, 18, 10,  2, 60, 52, 44, 36, 28, 20, 12,  4,
@@ -85,57 +93,93 @@ static const uint8_t comp_perm[48] = {
 /*
  * No E box is used, as it's replaced by some ANDs, shifts, and ORs.
  */
-
+#if !USE_PRECOMPUTED_u_sbox
 static const uint8_t sbox[8][64] = {
-	{
-		14,  4, 13,  1,  2, 15, 11,  8,  3, 10,  6, 12,  5,  9,  0,  7,
+	{	14,  4, 13,  1,  2, 15, 11,  8,  3, 10,  6, 12,  5,  9,  0,  7,
 		 0, 15,  7,  4, 14,  2, 13,  1, 10,  6, 12, 11,  9,  5,  3,  8,
 		 4,  1, 14,  8, 13,  6,  2, 11, 15, 12,  9,  7,  3, 10,  5,  0,
 		15, 12,  8,  2,  4,  9,  1,  7,  5, 11,  3, 14, 10,  0,  6, 13
 	},
-	{
-		15,  1,  8, 14,  6, 11,  3,  4,  9,  7,  2, 13, 12,  0,  5, 10,
+	{	15,  1,  8, 14,  6, 11,  3,  4,  9,  7,  2, 13, 12,  0,  5, 10,
 		 3, 13,  4,  7, 15,  2,  8, 14, 12,  0,  1, 10,  6,  9, 11,  5,
 		 0, 14,  7, 11, 10,  4, 13,  1,  5,  8, 12,  6,  9,  3,  2, 15,
 		13,  8, 10,  1,  3, 15,  4,  2, 11,  6,  7, 12,  0,  5, 14,  9
 	},
-	{
-		10,  0,  9, 14,  6,  3, 15,  5,  1, 13, 12,  7, 11,  4,  2,  8,
+	{	10,  0,  9, 14,  6,  3, 15,  5,  1, 13, 12,  7, 11,  4,  2,  8,
 		13,  7,  0,  9,  3,  4,  6, 10,  2,  8,  5, 14, 12, 11, 15,  1,
 		13,  6,  4,  9,  8, 15,  3,  0, 11,  1,  2, 12,  5, 10, 14,  7,
 		 1, 10, 13,  0,  6,  9,  8,  7,  4, 15, 14,  3, 11,  5,  2, 12
 	},
-	{
-		 7, 13, 14,  3,  0,  6,  9, 10,  1,  2,  8,  5, 11, 12,  4, 15,
+	{	 7, 13, 14,  3,  0,  6,  9, 10,  1,  2,  8,  5, 11, 12,  4, 15,
 		13,  8, 11,  5,  6, 15,  0,  3,  4,  7,  2, 12,  1, 10, 14,  9,
 		10,  6,  9,  0, 12, 11,  7, 13, 15,  1,  3, 14,  5,  2,  8,  4,
 		 3, 15,  0,  6, 10,  1, 13,  8,  9,  4,  5, 11, 12,  7,  2, 14
 	},
-	{
-		 2, 12,  4,  1,  7, 10, 11,  6,  8,  5,  3, 15, 13,  0, 14,  9,
+	{	 2, 12,  4,  1,  7, 10, 11,  6,  8,  5,  3, 15, 13,  0, 14,  9,
 		14, 11,  2, 12,  4,  7, 13,  1,  5,  0, 15, 10,  3,  9,  8,  6,
 		 4,  2,  1, 11, 10, 13,  7,  8, 15,  9, 12,  5,  6,  3,  0, 14,
 		11,  8, 12,  7,  1, 14,  2, 13,  6, 15,  0,  9, 10,  4,  5,  3
 	},
-	{
-		12,  1, 10, 15,  9,  2,  6,  8,  0, 13,  3,  4, 14,  7,  5, 11,
+	{	12,  1, 10, 15,  9,  2,  6,  8,  0, 13,  3,  4, 14,  7,  5, 11,
 		10, 15,  4,  2,  7, 12,  9,  5,  6,  1, 13, 14,  0, 11,  3,  8,
 		 9, 14, 15,  5,  2,  8, 12,  3,  7,  0,  4, 10,  1, 13, 11,  6,
 		 4,  3,  2, 12,  9,  5, 15, 10, 11, 14,  1,  7,  6,  0,  8, 13
 	},
-	{
-		 4, 11,  2, 14, 15,  0,  8, 13,  3, 12,  9,  7,  5, 10,  6,  1,
+	{	 4, 11,  2, 14, 15,  0,  8, 13,  3, 12,  9,  7,  5, 10,  6,  1,
 		13,  0, 11,  7,  4,  9,  1, 10, 14,  3,  5, 12,  2, 15,  8,  6,
 		 1,  4, 11, 13, 12,  3,  7, 14, 10, 15,  6,  8,  0,  5,  9,  2,
 		 6, 11, 13,  8,  1,  4, 10,  7,  9,  5,  0, 15, 14,  2,  3, 12
 	},
-	{
-		13,  2,  8,  4,  6, 15, 11,  1, 10,  9,  3, 14,  5,  0, 12,  7,
+	{	13,  2,  8,  4,  6, 15, 11,  1, 10,  9,  3, 14,  5,  0, 12,  7,
 		 1, 15, 13,  8, 10,  3,  7,  4, 12,  5,  6, 11,  0, 14,  9,  2,
 		 7, 11,  4,  1,  9, 12, 14,  2,  0,  6, 10, 13, 15,  3,  5,  8,
 		 2,  1, 14,  7,  4, 10,  8, 13, 15, 12,  9,  0,  3,  5,  6, 11
 	}
 };
+#else /* precomputed, with half-bytes packed into one byte */
+static const uint8_t u_sbox[8][32] = {
+	{	0x0e, 0xf4, 0x7d, 0x41, 0xe2, 0x2f, 0xdb, 0x18,
+		0xa3, 0x6a, 0xc6, 0xbc, 0x95, 0x59, 0x30, 0x87,
+		0xf4, 0xc1, 0x8e, 0x28, 0x4d, 0x96, 0x12, 0x7b,
+		0x5f, 0xbc, 0x39, 0xe7, 0xa3, 0x0a, 0x65, 0xd0,
+	},
+	{	0x3f, 0xd1, 0x48, 0x7e, 0xf6, 0x2b, 0x83, 0xe4,
+		0xc9, 0x07, 0x12, 0xad, 0x6c, 0x90, 0xb5, 0x5a,
+		0xd0, 0x8e, 0xa7, 0x1b, 0x3a, 0xf4, 0x4d, 0x21,
+		0xb5, 0x68, 0x7c, 0xc6, 0x09, 0x53, 0xe2, 0x9f,
+	},
+	{	0xda, 0x70, 0x09, 0x9e, 0x36, 0x43, 0x6f, 0xa5,
+		0x21, 0x8d, 0x5c, 0xe7, 0xcb, 0xb4, 0xf2, 0x18,
+		0x1d, 0xa6, 0xd4, 0x09, 0x68, 0x9f, 0x83, 0x70,
+		0x4b, 0xf1, 0xe2, 0x3c, 0xb5, 0x5a, 0x2e, 0xc7,
+	},
+	{	0xd7, 0x8d, 0xbe, 0x53, 0x60, 0xf6, 0x09, 0x3a,
+		0x41, 0x72, 0x28, 0xc5, 0x1b, 0xac, 0xe4, 0x9f,
+		0x3a, 0xf6, 0x09, 0x60, 0xac, 0x1b, 0xd7, 0x8d,
+		0x9f, 0x41, 0x53, 0xbe, 0xc5, 0x72, 0x28, 0xe4,
+	},
+	{	0xe2, 0xbc, 0x24, 0xc1, 0x47, 0x7a, 0xdb, 0x16,
+		0x58, 0x05, 0xf3, 0xaf, 0x3d, 0x90, 0x8e, 0x69,
+		0xb4, 0x82, 0xc1, 0x7b, 0x1a, 0xed, 0x27, 0xd8,
+		0x6f, 0xf9, 0x0c, 0x95, 0xa6, 0x43, 0x50, 0x3e,
+	},
+	{	0xac, 0xf1, 0x4a, 0x2f, 0x79, 0xc2, 0x96, 0x58,
+		0x60, 0x1d, 0xd3, 0xe4, 0x0e, 0xb7, 0x35, 0x8b,
+		0x49, 0x3e, 0x2f, 0xc5, 0x92, 0x58, 0xfc, 0xa3,
+		0xb7, 0xe0, 0x14, 0x7a, 0x61, 0x0d, 0x8b, 0xd6,
+	},
+	{	0xd4, 0x0b, 0xb2, 0x7e, 0x4f, 0x90, 0x18, 0xad,
+		0xe3, 0x3c, 0x59, 0xc7, 0x25, 0xfa, 0x86, 0x61,
+		0x61, 0xb4, 0xdb, 0x8d, 0x1c, 0x43, 0xa7, 0x7e,
+		0x9a, 0x5f, 0x06, 0xf8, 0xe0, 0x25, 0x39, 0xc2,
+	},
+	{	0x1d, 0xf2, 0xd8, 0x84, 0xa6, 0x3f, 0x7b, 0x41,
+		0xca, 0x59, 0x63, 0xbe, 0x05, 0xe0, 0x9c, 0x27,
+		0x27, 0x1b, 0xe4, 0x71, 0x49, 0xac, 0x8e, 0xd2,
+		0xf0, 0xc6, 0x9a, 0x0d, 0x3f, 0x53, 0x65, 0xb8,
+	},
+};
+#endif
 
 static const uint8_t pbox[32] = {
 	16,  7, 20, 21, 29, 12, 28, 17,  1, 15, 23, 26,  5, 18, 31, 10,
@@ -180,7 +224,10 @@ ascii_to_bin(char ch)
  * being initialized, and therefore doesn't need to be made 
  * reentrant. */
 struct const_des_ctx {
-	uint8_t	init_perm[64], final_perm[64]; /* referenced 2 times each */
+#if USE_ip_mask
+	uint8_t	init_perm[64]; /* referenced 2 times */
+#endif
+	uint8_t	final_perm[64]; /* 2 times */
 	uint8_t	m_sbox[4][4096]; /* 5 times */
 };
 #define C (*cctx)
@@ -191,22 +238,27 @@ struct const_des_ctx {
 static struct const_des_ctx*
 const_des_init(void)
 {
-	int i, j, b;
-	uint8_t	u_sbox[8][64];
+	unsigned i, j, b;
 	struct const_des_ctx *cctx;
+
+#if !USE_PRECOMPUTED_u_sbox
+	uint8_t	u_sbox[8][64];
 
 	cctx = xmalloc(sizeof(*cctx));
 
-	/*
-	 * Invert the S-boxes, reordering the input bits.
-	 */
+	/* Invert the S-boxes, reordering the input bits. */
 	for (i = 0; i < 8; i++) {
 		for (j = 0; j < 64; j++) {
 			b = (j & 0x20) | ((j & 1) << 4) | ((j >> 1) & 0xf);
 			u_sbox[i][j] = sbox[i][b];
 		}
 	}
-
+	for (i = 0; i < 8; i++) {
+		fprintf(stderr, "\t{\t");
+		for (j = 0; j < 64; j+=2)
+			fprintf(stderr, " 0x%02x,", u_sbox[i][j] + u_sbox[i][j+1]*16);
+		fprintf(stderr, "\n\t},\n");
+	}
 	/*
 	 * Convert the inverted S-boxes into 4 arrays of 8 bits.
 	 * Each will handle 12 bits of the S-box input.
@@ -217,24 +269,45 @@ const_des_init(void)
 				m_sbox[b][(i << 6) | j] =
 					(uint8_t)((u_sbox[(b << 1)][i] << 4) |
 						u_sbox[(b << 1) + 1][j]);
+#else
+	cctx = xmalloc(sizeof(*cctx));
+
+	/*
+	 * Convert the inverted S-boxes into 4 arrays of 8 bits.
+	 * Each will handle 12 bits of the S-box input.
+	 */
+	for (b = 0; b < 4; b++)
+	 for (i = 0; i < 64; i++)
+	  for (j = 0; j < 64; j++) {
+		uint8_t lo, hi;
+		hi = u_sbox[(b << 1)][i / 2];
+		if (!(i & 1))
+			hi <<= 4;
+		lo = u_sbox[(b << 1) + 1][j / 2];
+		if (j & 1)
+			lo >>= 4;
+		m_sbox[b][(i << 6) | j] = (hi & 0xf0) | (lo & 0x0f);
+	}
+#endif
 
 	/*
 	 * Set up the initial & final permutations into a useful form.
 	 */
 	for (i = 0; i < 64; i++) {
 		final_perm[i] = IP[i] - 1;
+#if USE_ip_mask
 		init_perm[final_perm[i]] = (uint8_t)i;
+#endif
 	}
 
 	return cctx;
 }
 
-#define WANT_REPETITIVE_SPEEDUP 0
 
 struct des_ctx {
 	const struct const_des_ctx *const_ctx;
 	uint32_t saltbits; /* referenced 5 times */
-#if WANT_REPETITIVE_SPEEDUP
+#if USE_REPETITIVE_SPEEDUP
 	uint32_t old_salt; /* 3 times */
 	uint32_t old_rawkey0, old_rawkey1; /* 3 times each */
 #endif
@@ -242,8 +315,12 @@ struct des_ctx {
 	uint8_t	inv_comp_perm[56]; /* 3 times */
 	uint8_t	inv_key_perm[64]; /* 3 times */
 	uint32_t en_keysl[16], en_keysr[16]; /* 2 times each */
-//	uint32_t de_keysl[16], de_keysr[16]; /* 2 times each */
+#if USE_de_keys
+	uint32_t de_keysl[16], de_keysr[16]; /* 2 times each */
+#endif
+#if USE_ip_mask
 	uint32_t ip_maskl[8][256], ip_maskr[8][256]; /* 9 times each */
+#endif
 	uint32_t fp_maskl[8][256], fp_maskr[8][256]; /* 9 times each */
 	uint32_t key_perm_maskl[8][128], key_perm_maskr[8][128]; /* 9 times */
 	uint32_t comp_maskl[8][128], comp_maskr[8][128]; /* 9 times each */
@@ -260,8 +337,8 @@ struct des_ctx {
 #define inv_key_perm    (D.inv_key_perm   )
 #define en_keysl        (D.en_keysl       )
 #define en_keysr        (D.en_keysr       )
-//#define de_keysl        (D.de_keysl       )
-//#define de_keysr        (D.de_keysr       )
+#define de_keysl        (D.de_keysl       )
+#define de_keysr        (D.de_keysr       )
 #define ip_maskl        (D.ip_maskl       )
 #define ip_maskr        (D.ip_maskr       )
 #define fp_maskl        (D.fp_maskl       )
@@ -277,14 +354,13 @@ des_init(struct des_ctx *ctx, const struct const_des_ctx *cctx)
 {
 	int i, j, b, k, inbit, obit;
 	uint32_t p;
-	uint32_t il, ir, fl, fr;
 	const uint32_t *bits28, *bits24;
 
 	if (!ctx)
 		ctx = xmalloc(sizeof(*ctx));
 	const_ctx = cctx;
 
-#if WANT_REPETITIVE_SPEEDUP
+#if USE_REPETITIVE_SPEEDUP
 	old_rawkey0 = old_rawkey1 = 0;
 	old_salt = 0;
 #endif
@@ -292,9 +368,7 @@ des_init(struct des_ctx *ctx, const struct const_des_ctx *cctx)
 	bits28 = bits32 + 4;
 	bits24 = bits28 + 4;
 
-	/*
-	 * Initialise the inverted key permutation.
-	 */
+	/* Initialise the inverted key permutation. */
 	for (i = 0; i < 64; i++) {
 		inv_key_perm[i] = 255;
 	}
@@ -308,9 +382,7 @@ des_init(struct des_ctx *ctx, const struct const_des_ctx *cctx)
 		inv_comp_perm[i] = 255;
 	}
 
-	/*
-	 * Invert the key compression permutation.
-	 */
+	/* Invert the key compression permutation. */
 	for (i = 0; i < 48; i++) {
 		inv_comp_perm[comp_perm[i] - 1] = (uint8_t)i;
 	}
@@ -320,19 +392,25 @@ des_init(struct des_ctx *ctx, const struct const_des_ctx *cctx)
 	 * and for the key initial and compression permutations.
 	 */
 	for (k = 0; k < 8; k++) {
+		uint32_t il, ir;
+		uint32_t fl, fr;
 		for (i = 0; i < 256; i++) {
+#if USE_ip_mask
 			il = 0;
 			ir = 0;
+#endif
 			fl = 0;
 			fr = 0;
 			for (j = 0; j < 8; j++) {
 				inbit = 8 * k + j;
 				if (i & bits8[j]) {
+#if USE_ip_mask
 					obit = init_perm[inbit];
 					if (obit < 32)
 						il |= bits32[obit];
 					else
 						ir |= bits32[obit - 32];
+#endif
 					obit = final_perm[inbit];
 					if (obit < 32)
 						fl |= bits32[obit];
@@ -340,8 +418,10 @@ des_init(struct des_ctx *ctx, const struct const_des_ctx *cctx)
 						fr |= bits32[obit - 32];
 				}
 			}
+#if USE_ip_mask
 			ip_maskl[k][i] = il;
 			ip_maskr[k][i] = ir;
+#endif
 			fp_maskl[k][i] = fl;
 			fp_maskr[k][i] = fr;
 		}
@@ -409,7 +489,7 @@ setup_salt(struct des_ctx *ctx, uint32_t salt)
 	uint32_t obit, saltbit;
 	int i;
 
-#if WANT_REPETITIVE_SPEEDUP
+#if USE_REPETITIVE_SPEEDUP
 	if (salt == old_salt)
 		return;
 	old_salt = salt;
@@ -435,7 +515,7 @@ des_setkey(struct des_ctx *ctx, const char *key)
 	rawkey0 = ntohl(*(const uint32_t *) key);
 	rawkey1 = ntohl(*(const uint32_t *) (key + 4));
 
-#if WANT_REPETITIVE_SPEEDUP
+#if USE_REPETITIVE_SPEEDUP
 	if ((rawkey0 | rawkey1)
 	 && rawkey0 == old_rawkey0
 	 && rawkey1 == old_rawkey1
@@ -453,7 +533,7 @@ des_setkey(struct des_ctx *ctx, const char *key)
 #endif
 
 	/*
-	 *	Do key permutation and split into two 28-bit subkeys.
+	 * Do key permutation and split into two 28-bit subkeys.
 	 */
 	k0 = key_perm_maskl[0][rawkey0 >> 25]
 	   | key_perm_maskl[1][(rawkey0 >> 17) & 0x7f]
@@ -472,7 +552,7 @@ des_setkey(struct des_ctx *ctx, const char *key)
 	   | key_perm_maskr[6][(rawkey1 >> 9) & 0x7f]
 	   | key_perm_maskr[7][(rawkey1 >> 1) & 0x7f];
 	/*
-	 *	Rotate subkeys and do compression permutation.
+	 * Rotate subkeys and do compression permutation.
 	 */
 	shifts = 0;
 	for (round = 0; round < 16; round++) {
@@ -483,7 +563,9 @@ des_setkey(struct des_ctx *ctx, const char *key)
 		t0 = (k0 << shifts) | (k0 >> (28 - shifts));
 		t1 = (k1 << shifts) | (k1 >> (28 - shifts));
 
-//		de_keysl[15 - round] =
+#if USE_de_keys
+		de_keysl[15 - round] =
+#endif
 		en_keysl[round] = comp_maskl[0][(t0 >> 21) & 0x7f]
 				| comp_maskl[1][(t0 >> 14) & 0x7f]
 				| comp_maskl[2][(t0 >> 7) & 0x7f]
@@ -493,7 +575,9 @@ des_setkey(struct des_ctx *ctx, const char *key)
 				| comp_maskl[6][(t1 >> 7) & 0x7f]
 				| comp_maskl[7][t1 & 0x7f];
 
-//		de_keysr[15 - round] =
+#if USE_de_keys
+		de_keysr[15 - round] =
+#endif
 		en_keysr[round] = comp_maskr[0][(t0 >> 21) & 0x7f]
 				| comp_maskr[1][(t0 >> 14) & 0x7f]
 				| comp_maskr[2][(t0 >> 7) & 0x7f]
@@ -519,7 +603,9 @@ do_des(struct des_ctx *ctx, /*uint32_t l_in, uint32_t r_in,*/ uint32_t *l_out, u
 	int round;
 
 	/* Do initial permutation (IP). */
-#if 0
+#if USE_ip_mask
+	uint32_t l_in = 0;
+	uint32_t r_in = 0;
 	l = ip_maskl[0][l_in >> 24]
 	  | ip_maskl[1][(l_in >> 16) & 0xff]
 	  | ip_maskl[2][(l_in >> 8) & 0xff]
@@ -588,9 +674,8 @@ do_des(struct des_ctx *ctx, /*uint32_t l_in, uint32_t r_in,*/ uint32_t *l_out, u
 		r = l;
 		l = f;
 	} while (--count);
-	/*
-	 * Do final permutation (inverse of IP).
-	 */
+
+	/* Do final permutation (inverse of IP). */
 	*l_out	= fp_maskl[0][l >> 24]
 		| fp_maskl[1][(l >> 16) & 0xff]
 		| fp_maskl[2][(l >> 8) & 0xff]
@@ -613,7 +698,8 @@ do_des(struct des_ctx *ctx, /*uint32_t l_in, uint32_t r_in,*/ uint32_t *l_out, u
 
 static char *
 NOINLINE
-des_crypt(struct des_ctx *ctx, char output[21], const unsigned char *key, const unsigned char *setting)
+des_crypt(struct des_ctx *ctx, char output[DES_OUT_BUFSIZE],
+		const unsigned char *key, const unsigned char *setting)
 {
 	uint32_t salt, l, r0, r1, keybuf[2];
 	uint8_t *p, *q;
@@ -679,7 +765,11 @@ des_crypt(struct des_ctx *ctx, char output[21], const unsigned char *key, const 
 	return output;
 }
 
-#undef WANT_REPETITIVE_SPEEDUP
+#undef USE_PRECOMPUTED_u_sbox
+#undef USE_REPETITIVE_SPEEDUP
+#undef USE_ip_mask
+#undef USE_de_keys
+
 #undef C
 #undef init_perm
 #undef final_perm
@@ -695,8 +785,8 @@ des_crypt(struct des_ctx *ctx, char output[21], const unsigned char *key, const 
 #undef inv_key_perm
 #undef en_keysl
 #undef en_keysr
-//#undef de_keysl
-//#undef de_keysr
+#undef de_keysl
+#undef de_keysr
 #undef ip_maskl
 #undef ip_maskr
 #undef fp_maskl
