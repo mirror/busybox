@@ -229,17 +229,20 @@ const_des_init(void)
 	return cctx;
 }
 
+#define WANT_REPETITIVE_SPEEDUP 0
 
 struct des_ctx {
 	const struct const_des_ctx *const_ctx;
 	uint32_t saltbits; /* referenced 5 times */
+#if WANT_REPETITIVE_SPEEDUP
 	uint32_t old_salt; /* 3 times */
 	uint32_t old_rawkey0, old_rawkey1; /* 3 times each */
+#endif
 	uint8_t	un_pbox[32]; /* 2 times */
 	uint8_t	inv_comp_perm[56]; /* 3 times */
 	uint8_t	inv_key_perm[64]; /* 3 times */
 	uint32_t en_keysl[16], en_keysr[16]; /* 2 times each */
-	uint32_t de_keysl[16], de_keysr[16]; /* 2 times each */
+//	uint32_t de_keysl[16], de_keysr[16]; /* 2 times each */
 	uint32_t ip_maskl[8][256], ip_maskr[8][256]; /* 9 times each */
 	uint32_t fp_maskl[8][256], fp_maskr[8][256]; /* 9 times each */
 	uint32_t key_perm_maskl[8][128], key_perm_maskr[8][128]; /* 9 times */
@@ -257,8 +260,8 @@ struct des_ctx {
 #define inv_key_perm    (D.inv_key_perm   )
 #define en_keysl        (D.en_keysl       )
 #define en_keysr        (D.en_keysr       )
-#define de_keysl        (D.de_keysl       )
-#define de_keysr        (D.de_keysr       )
+//#define de_keysl        (D.de_keysl       )
+//#define de_keysr        (D.de_keysr       )
 #define ip_maskl        (D.ip_maskl       )
 #define ip_maskr        (D.ip_maskr       )
 #define fp_maskl        (D.fp_maskl       )
@@ -273,16 +276,19 @@ static struct des_ctx*
 des_init(struct des_ctx *ctx, const struct const_des_ctx *cctx)
 {
 	int i, j, b, k, inbit, obit;
-	uint32_t *p, *il, *ir, *fl, *fr;
+	uint32_t p;
+	uint32_t il, ir, fl, fr;
 	const uint32_t *bits28, *bits24;
 
 	if (!ctx)
 		ctx = xmalloc(sizeof(*ctx));
 	const_ctx = cctx;
 
-	old_rawkey0 = old_rawkey1 = 0L;
-	saltbits = 0L;
-	old_salt = 0L;
+#if WANT_REPETITIVE_SPEEDUP
+	old_rawkey0 = old_rawkey1 = 0;
+	old_salt = 0;
+#endif
+	saltbits = 0;
 	bits28 = bits32 + 4;
 	bits24 = bits28 + 4;
 
@@ -315,35 +321,33 @@ des_init(struct des_ctx *ctx, const struct const_des_ctx *cctx)
 	 */
 	for (k = 0; k < 8; k++) {
 		for (i = 0; i < 256; i++) {
-			il = &ip_maskl[k][i];
-			ir = &ip_maskr[k][i];
-			fl = &fp_maskl[k][i];
-			fr = &fp_maskr[k][i];
-			*il = 0;
-			*ir = 0;
-			*fl = 0;
-			*fr = 0;
+			il = 0;
+			ir = 0;
+			fl = 0;
+			fr = 0;
 			for (j = 0; j < 8; j++) {
 				inbit = 8 * k + j;
 				if (i & bits8[j]) {
 					obit = init_perm[inbit];
 					if (obit < 32)
-						*il |= bits32[obit];
+						il |= bits32[obit];
 					else
-						*ir |= bits32[obit - 32];
+						ir |= bits32[obit - 32];
 					obit = final_perm[inbit];
 					if (obit < 32)
-						*fl |= bits32[obit];
+						fl |= bits32[obit];
 					else
-						*fr |= bits32[obit - 32];
+						fr |= bits32[obit - 32];
 				}
 			}
+			ip_maskl[k][i] = il;
+			ip_maskr[k][i] = ir;
+			fp_maskl[k][i] = fl;
+			fp_maskr[k][i] = fr;
 		}
 		for (i = 0; i < 128; i++) {
-			il = &key_perm_maskl[k][i];
-			ir = &key_perm_maskr[k][i];
-			*il = 0;
-			*ir = 0;
+			il = 0;
+			ir = 0;
 			for (j = 0; j < 7; j++) {
 				inbit = 8 * k + j;
 				if (i & bits8[j + 1]) {
@@ -351,15 +355,15 @@ des_init(struct des_ctx *ctx, const struct const_des_ctx *cctx)
 					if (obit == 255)
 						continue;
 					if (obit < 28)
-						*il |= bits28[obit];
+						il |= bits28[obit];
 					else
-						*ir |= bits28[obit - 28];
+						ir |= bits28[obit - 28];
 				}
 			}
-			il = &comp_maskl[k][i];
-			ir = &comp_maskr[k][i];
-			*il = 0;
-			*ir = 0;
+			key_perm_maskl[k][i] = il;
+			key_perm_maskr[k][i] = ir;
+			il = 0;
+			ir = 0;
 			for (j = 0; j < 7; j++) {
 				inbit = 7 * k + j;
 				if (i & bits8[j + 1]) {
@@ -367,11 +371,13 @@ des_init(struct des_ctx *ctx, const struct const_des_ctx *cctx)
 					if (obit == 255)
 						continue;
 					if (obit < 24)
-						*il |= bits24[obit];
+						il |= bits24[obit];
 					else
-						*ir |= bits24[obit - 24];
+						ir |= bits24[obit - 24];
 				}
 			}
+			comp_maskl[k][i] = il;
+			comp_maskr[k][i] = ir;
 		}
 	}
 
@@ -384,12 +390,12 @@ des_init(struct des_ctx *ctx, const struct const_des_ctx *cctx)
 
 	for (b = 0; b < 4; b++) {
 		for (i = 0; i < 256; i++) {
-			p = &psbox[b][i];
-			*p = 0;
+			p = 0;
 			for (j = 0; j < 8; j++) {
 				if (i & bits8[j])
-					*p |= bits32[un_pbox[8 * b + j]];
+					p |= bits32[un_pbox[8 * b + j]];
 			}
+			psbox[b][i] = p;
 		}
 	}
 
@@ -403,11 +409,13 @@ setup_salt(struct des_ctx *ctx, uint32_t salt)
 	uint32_t obit, saltbit;
 	int i;
 
+#if WANT_REPETITIVE_SPEEDUP
 	if (salt == old_salt)
 		return;
 	old_salt = salt;
+#endif
 
-	saltbits = 0L;
+	saltbits = 0;
 	saltbit = 1;
 	obit = 0x800000;
 	for (i = 0; i < 24; i++) {
@@ -427,6 +435,7 @@ des_setkey(struct des_ctx *ctx, const char *key)
 	rawkey0 = ntohl(*(const uint32_t *) key);
 	rawkey1 = ntohl(*(const uint32_t *) (key + 4));
 
+#if WANT_REPETITIVE_SPEEDUP
 	if ((rawkey0 | rawkey1)
 	 && rawkey0 == old_rawkey0
 	 && rawkey1 == old_rawkey1
@@ -441,6 +450,7 @@ des_setkey(struct des_ctx *ctx, const char *key)
 	}
 	old_rawkey0 = rawkey0;
 	old_rawkey1 = rawkey1;
+#endif
 
 	/*
 	 *	Do key permutation and split into two 28-bit subkeys.
@@ -473,7 +483,7 @@ des_setkey(struct des_ctx *ctx, const char *key)
 		t0 = (k0 << shifts) | (k0 >> (28 - shifts));
 		t1 = (k1 << shifts) | (k1 >> (28 - shifts));
 
-		de_keysl[15 - round] =
+//		de_keysl[15 - round] =
 		en_keysl[round] = comp_maskl[0][(t0 >> 21) & 0x7f]
 				| comp_maskl[1][(t0 >> 14) & 0x7f]
 				| comp_maskl[2][(t0 >> 7) & 0x7f]
@@ -483,7 +493,7 @@ des_setkey(struct des_ctx *ctx, const char *key)
 				| comp_maskl[6][(t1 >> 7) & 0x7f]
 				| comp_maskl[7][t1 & 0x7f];
 
-		de_keysr[15 - round] =
+//		de_keysr[15 - round] =
 		en_keysr[round] = comp_maskr[0][(t0 >> 21) & 0x7f]
 				| comp_maskr[1][(t0 >> 14) & 0x7f]
 				| comp_maskr[2][(t0 >> 7) & 0x7f]
@@ -497,26 +507,19 @@ des_setkey(struct des_ctx *ctx, const char *key)
 
 
 static void
-do_des(struct des_ctx *ctx, uint32_t l_in, uint32_t r_in, uint32_t *l_out, uint32_t *r_out, int count)
+do_des(struct des_ctx *ctx, /*uint32_t l_in, uint32_t r_in,*/ uint32_t *l_out, uint32_t *r_out, int count)
 {
 	const struct const_des_ctx *cctx = const_ctx;
 	/*
 	 * l_in, r_in, l_out, and r_out are in pseudo-"big-endian" format.
 	 */
-	uint32_t l, r, *kl, *kr, *kl1, *kr1;
+	uint32_t l, r, *kl, *kr;
 	uint32_t f = f; /* silence gcc */
 	uint32_t r48l, r48r;
 	int round;
 
-	/*
-	 * Encrypting
-	 */
-	kl1 = en_keysl;
-	kr1 = en_keysr;
-
-	/*
-	 *	Do initial permutation (IP).
-	 */
+	/* Do initial permutation (IP). */
+#if 0
 	l = ip_maskl[0][l_in >> 24]
 	  | ip_maskl[1][(l_in >> 16) & 0xff]
 	  | ip_maskl[2][(l_in >> 8) & 0xff]
@@ -533,18 +536,24 @@ do_des(struct des_ctx *ctx, uint32_t l_in, uint32_t r_in, uint32_t *l_out, uint3
 	  | ip_maskr[5][(r_in >> 16) & 0xff]
 	  | ip_maskr[6][(r_in >> 8) & 0xff]
 	  | ip_maskr[7][r_in & 0xff];
+#elif 0 /* -65 bytes (using the fact that l_in == r_in == 0) */
+	l = r = 0;
+	for (round = 0; round < 8; round++) {
+		l |= ip_maskl[round][0];
+		r |= ip_maskr[round][0];
+	}
+	bb_error_msg("l:%x r:%x", l, r); /* reports 0, 0 always! */
+#else /* using the fact that ip_maskX[] is constant (written to by des_init) */
+	l = r = 0;
+#endif
 
-	while (count--) {
-		/*
-		 * Do each round.
-		 */
-		kl = kl1;
-		kr = kr1;
+	do {
+		/* Do each round. */
+		kl = en_keysl;
+		kr = en_keysr;
 		round = 16;
-		while (round--) {
-			/*
-			 * Expand R to 48 bits (simulate the E-box).
-			 */
+		do {
+			/* Expand R to 48 bits (simulate the E-box). */
 			r48l	= ((r & 0x00000001) << 23)
 				| ((r & 0xf8000000) >> 9)
 				| ((r & 0x1f800000) >> 11)
@@ -571,16 +580,14 @@ do_des(struct des_ctx *ctx, uint32_t l_in, uint32_t r_in, uint32_t *l_out, uint3
 			  | psbox[1][m_sbox[1][r48l & 0xfff]]
 			  | psbox[2][m_sbox[2][r48r >> 12]]
 			  | psbox[3][m_sbox[3][r48r & 0xfff]];
-			/*
-			 * Now that we've permuted things, complete f().
-			 */
+			/* Now that we've permuted things, complete f(). */
 			f ^= l;
 			l = r;
 			r = f;
-		}
+		} while (--round);
 		r = l;
 		l = f;
-	}
+	} while (--count);
 	/*
 	 * Do final permutation (inverse of IP).
 	 */
@@ -646,7 +653,7 @@ des_crypt(struct des_ctx *ctx, char output[21], const unsigned char *key, const 
 	/*
 	 * Do it.
 	 */
-	do_des(ctx, 0L, 0L, &r0, &r1, 25 /* count */);
+	do_des(ctx, /*0, 0,*/ &r0, &r1, 25 /* count */);
 
 	/*
 	 * Now encode the result...
@@ -672,6 +679,7 @@ des_crypt(struct des_ctx *ctx, char output[21], const unsigned char *key, const 
 	return output;
 }
 
+#undef WANT_REPETITIVE_SPEEDUP
 #undef C
 #undef init_perm
 #undef final_perm
@@ -687,8 +695,8 @@ des_crypt(struct des_ctx *ctx, char output[21], const unsigned char *key, const 
 #undef inv_key_perm
 #undef en_keysl
 #undef en_keysr
-#undef de_keysl
-#undef de_keysr
+//#undef de_keysl
+//#undef de_keysr
 #undef ip_maskl
 #undef ip_maskr
 #undef fp_maskl
