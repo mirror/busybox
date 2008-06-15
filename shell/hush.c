@@ -178,11 +178,8 @@ void xxfree(void *ptr)
 #endif
 
 
-#define SPECIAL_VAR_SYMBOL   3
-
+#define SPECIAL_VAR_SYMBOL       3
 #define PARSEFLAG_EXIT_FROM_LOOP 1
-#define PARSEFLAG_SEMICOLON      (1 << 1)  /* symbol ';' is special for parser */
-#define PARSEFLAG_REPARSING      (1 << 2)  /* >= 2nd pass */
 
 typedef enum {
 	REDIRECT_INPUT     = 1,
@@ -242,11 +239,9 @@ struct p_context {
 	struct pipe *pipe;
 	struct redir_struct *pending_redirect;
 	smallint res_w;
-	smallint parse_type;        /* bitmask of PARSEFLAG_xxx, defines type of parser: ";$" common or special symbol */
 	smallint ctx_inverted;      /* "! cmd | cmd" */
 	int old_flag;               /* bitmask of FLAG_xxx, for figuring out valid reserved words */
 	struct p_context *stack;
-	/* How about quoting status? */
 };
 
 struct redir_struct {
@@ -585,7 +580,6 @@ static void free_strings(char **strings)
 	}
 }
 
-
 #if !BB_MMU
 #define EXTRA_PTRS 5 /* 1 for NULL, 1 for args, 3 for paranoid reasons */
 static char **alloc_ptrs(char **argv)
@@ -845,8 +839,7 @@ static int builtin_eval(char **argv)
 
 	if (argv[1]) {
 		char *str = expand_strvec_to_string(argv + 1);
-		parse_and_run_string(str, PARSEFLAG_EXIT_FROM_LOOP |
-					PARSEFLAG_SEMICOLON);
+		parse_and_run_string(str, PARSEFLAG_EXIT_FROM_LOOP);
 		free(str);
 		rcode = last_return_code;
 	}
@@ -893,7 +886,6 @@ static int builtin_exit(char **argv)
 	//puts("exit"); /* bash does it */
 // TODO: warn if we have background jobs: "There are stopped jobs"
 // On second consecutive 'exit', exit anyway.
-
 	if (argv[1] == NULL)
 		hush_exit(last_return_code);
 	/* mimic bash: exit 123abc == exit 255 + error msg */
@@ -1138,12 +1130,6 @@ static int builtin_unset(char **argv)
 	unset_local_var(argv[1]);
 	return EXIT_SUCCESS;
 }
-
-//static int builtin_not_written(char **argv)
-//{
-//	printf("builtin_%s not written\n", argv[0]);
-//	return EXIT_FAILURE;
-//}
 
 /*
  * o_string support
@@ -1635,12 +1621,6 @@ static void pseudo_exec(char **ptrs2free, struct child_prog *child)
 		bb_error_msg_and_die("nested lists are not supported on NOMMU");
 #else
 		int rcode;
-
-#if ENABLE_HUSH_INTERACTIVE
-// run_list_level now takes care of it?
-//		debug_printf_exec("pseudo_exec: setting interactive_fd=0\n");
-//		interactive_fd = 0;    /* crucial!!!! */
-#endif
 		debug_printf_exec("pseudo_exec: run_list\n");
 		rcode = run_list(child->group);
 		/* OK to leak memory by not calling free_pipe_list,
@@ -2263,7 +2243,6 @@ static int run_list(struct pipe *pi)
 #endif /* JOB */
 
 	for (; pi; pi = flag_restore ? rpipe : pi->next) {
-//why?		int save_num_progs;
 		rword = pi->res_word;
 #if ENABLE_HUSH_LOOPS
 		if (rword == RES_WHILE || rword == RES_UNTIL || rword == RES_FOR) {
@@ -2336,7 +2315,6 @@ static int run_list(struct pipe *pi)
 #endif
 		if (pi->num_progs == 0)
 			continue;
-//why?		save_num_progs = pi->num_progs;
 		debug_printf_exec(": run_pipe with %d members\n", pi->num_progs);
 		rcode = run_pipe(pi);
 		if (rcode != -1) {
@@ -2367,7 +2345,6 @@ static int run_list(struct pipe *pi)
 		}
 		debug_printf_exec(": setting last_return_code=%d\n", rcode);
 		last_return_code = rcode;
-//why?		pi->num_progs = save_num_progs;
 #if ENABLE_HUSH_IF
 		if (rword == RES_IF || rword == RES_ELIF)
 			next_if_code = rcode;  /* can be overwritten a number of times */
@@ -2487,10 +2464,6 @@ static int run_and_free_list(struct pipe *pi)
 	debug_printf_exec("run_and_free_list return %d\n", rcode);
 	return rcode;
 }
-
-/* Whoever decided to muck with glob internal data is AN IDIOT! */
-/* uclibc happily changed the way it works (and it has rights to do so!),
-   all hell broke loose (SEGVs) */
 
 /* The API for glob is arguably broken.  This routine pushes a non-matching
  * string into the output structure, removing non-backslashed backslashes.
@@ -3001,9 +2974,7 @@ static struct pipe *new_pipe(void)
 
 static void initialize_context(struct p_context *ctx)
 {
-	smallint sv = ctx->parse_type;
 	memset(ctx, 0, sizeof(*ctx));
-	ctx->parse_type = sv;
 	ctx->pipe = ctx->list_head = new_pipe();
 	/* Create the memory for child, roughly:
 	 * ctx->pipe->progs = new struct child_prog;
@@ -3150,7 +3121,7 @@ static int done_word(o_string *word, struct p_context *ctx)
 			debug_printf_parse("done_word return 1: syntax error, groups and arglists don't mix\n");
 			return 1;
 		}
-		if (!child->argv && (ctx->parse_type & PARSEFLAG_SEMICOLON)) {
+		if (!child->argv) {
 			debug_printf_parse(": checking '%s' for reserved-ness\n", word->data);
 			if (reserved_word(word, ctx)) {
 				o_reset(word);
@@ -3491,7 +3462,7 @@ static void add_till_double_quote(o_string *dest, struct in_str *input)
 			o_addqchr(dest, ch);
 			continue;
 		}
-//		if (ch == '$') ...
+		//if (ch == '$') ...
 	}
 }
 /* Process `cmd` - copy contents until "`" is seen. Complicated by
@@ -3916,20 +3887,13 @@ static void update_charmap(void)
  * from builtin_source() and builtin_eval() */
 static int parse_and_run_stream(struct in_str *inp, int parse_flag)
 {
-//TODO: PARSEFLAG_SEMICOLON bit is always set in parse_flag. fishy
-//TODO: PARSEFLAG_REPARSING bit is never set (grep for it). wow
 	struct p_context ctx;
 	o_string temp = NULL_O_STRING;
 	int rcode;
 
 	do {
-// parse_type always has PARSEFLAG_SEMICOLON, can we remove all checks for this bit?
-// After that, the whole parse_type fiels is not needed.
-		ctx.parse_type = parse_flag;
 		initialize_context(&ctx);
 		update_charmap();
-		if (!(parse_flag & PARSEFLAG_SEMICOLON) || (parse_flag & PARSEFLAG_REPARSING))
-			set_in_charmap(";$&|", CHAR_ORDINARY);
 #if ENABLE_HUSH_INTERACTIVE
 		inp->promptmode = 0; /* PS1 */
 #endif
@@ -3967,7 +3931,6 @@ static int parse_and_run_stream(struct in_str *inp, int parse_flag)
 
 static int parse_and_run_string(const char *s, int parse_flag)
 {
-//TODO: PARSEFLAG_SEMICOLON bit is always set in parse_flag. fishy
 	struct in_str input;
 	setup_string_in_str(&input, s);
 	return parse_and_run_stream(&input, parse_flag);
@@ -3978,7 +3941,7 @@ static int parse_and_run_file(FILE *f)
 	int rcode;
 	struct in_str input;
 	setup_file_in_str(&input, f);
-	rcode = parse_and_run_stream(&input, PARSEFLAG_SEMICOLON);
+	rcode = parse_and_run_stream(&input, 0 /* parse_flag */);
 	return rcode;
 }
 
@@ -4091,7 +4054,7 @@ int hush_main(int argc, char **argv)
 		case 'c':
 			global_argv = argv + optind;
 			global_argc = argc - optind;
-			opt = parse_and_run_string(optarg, PARSEFLAG_SEMICOLON);
+			opt = parse_and_run_string(optarg, 0 /* parse_flag */);
 			goto final_return;
 		case 'i':
 			/* Well, we cannot just declare interactiveness,
