@@ -36,10 +36,10 @@ config USE_BB_PWD_GRP
 	  (e.g. if user/group database is NOT stored in /etc/passwd etc),
 	  you must NOT use this option.
 
-	  If you enable this option, it will add about 1.5k to busybox.
+	  If you enable this option, it will add about 1.5k.
 
 config USE_BB_SHADOW
-	bool "Use busybox shadow password functions"
+	bool "Use internal shadow password functions"
 	default y
 	depends on USE_BB_PWD_GRP && FEATURE_SHADOWPASSWDS
 	help
@@ -52,28 +52,32 @@ config USE_BB_SHADOW
 
 	  Enabling this option will cause busybox to directly access the
 	  system's /etc/shadow file when handling shadow passwords.  This
-	  makes your system smaller and I will get fewer emails asking about
+	  makes your system smaller (and I will get fewer emails asking about
 	  how glibc NSS works).  When this option is enabled, you will not be
 	  able to use PAM to access shadow passwords from remote LDAP
 	  password servers and whatnot.
 
 config USE_BB_CRYPT
-	bool "Use internal DES and MD5 crypt functions rather than system functions"
+	bool "Use internal DES and MD5 crypt functions"
 	default y
 	help
+	  Busybox has internal DES and MD5 crypt functions.
+	  They produce results which are identical to corresponding
+	  standard C library functions.
+
 	  If you leave this disabled, busybox will use the system's
 	  crypt functions.  Most C libraries use large (~70k)
-	  static buffers in these functions, and also combine them
-	  with more general DES encryption/decryption routines.
+	  static buffers there, and also combine them with more general
+	  DES encryption/decryption.
+
 	  For busybox, having large static buffers is undesirable,
-	  especially on NOMMU machines.
+	  especially so on NOMMU machines. Busybox also doesn't
+	  need DES encryption/decryption and can do with smaller code.
 
-	  These functions produce results which are identical
-	  to corresponding C library functions.
-
-	  If you enable this option, it will add about 4.8k to busybox
+	  If you enable this option, it will add about 4.8k of code
 	  if you are building dynamically linked executable.
-	  In static build, it makes executable _smaller_ by about 1.2k.
+	  In static build, it makes code _smaller_ by about 1.2k,
+	  and likely many kilobytes less of bss.
 
 config ADDGROUP
 	bool "addgroup"
