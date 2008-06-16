@@ -148,6 +148,11 @@ static const char *indenter(int i)
  * Leak hunting. Use hush_leaktool.sh for post-processing.
  */
 #ifdef FOR_HUSH_LEAKTOOL
+/* suppress "warning: no previous prototype..." */
+void *xxmalloc(int lineno, size_t size);
+void *xxrealloc(int lineno, void *ptr, size_t size);
+char *xxstrdup(int lineno, const char *str);
+void xxfree(void *ptr);
 void *xxmalloc(int lineno, size_t size)
 {
 	void *ptr = xmalloc((size + 0xff) & ~0xff);
@@ -2474,72 +2479,6 @@ static int run_and_free_list(struct pipe *pi)
 	return rcode;
 }
 
-/* Remove non-backslashed backslashes and add to "strings" vector.
- * XXX broken if the last character is '\\', check that before calling.
- */
-static char **add_unq_string_to_strings(char **strings, const char *src)
-{
-	int cnt;
-	const char *s;
-	char *v, *dest;
-
-	for (cnt = 1, s = src; s && *s; s++) {
-		if (*s == '\\') s++;
-		cnt++;
-	}
-	v = dest = xmalloc(cnt);
-	for (s = src; s && *s; s++, dest++) {
-		if (*s == '\\') s++;
-		*dest = *s;
-	}
-	*dest = '\0';
-
-	return add_string_to_strings(strings, v);
-}
-
-/* XXX broken if the last character is '\\', check that before calling */
-static int glob_needed(const char *s)
-{
-	for (; *s; s++) {
-		if (*s == '\\')
-			s++;
-		if (strchr("*[?", *s))
-			return 1;
-	}
-	return 0;
-}
-
-static int xglob(char ***pglob, const char *pattern)
-{
-	if (glob_needed(pattern)) {
-		glob_t globdata;
-		int gr;
-
-		memset(&globdata, 0, sizeof(globdata));
-		gr = glob(pattern, 0, NULL, &globdata);
-		debug_printf("glob returned %d\n", gr);
-		if (gr == GLOB_NOSPACE)
-			bb_error_msg_and_die("out of memory during glob");
-		if (gr == GLOB_NOMATCH) {
-			globfree(&globdata);
-			goto literal;
-		}
-		if (gr != 0) { /* GLOB_ABORTED ? */
-			bb_error_msg("glob(3) error %d", gr);
-		}
-		if (globdata.gl_pathv && globdata.gl_pathv[0])
-			*pglob = add_strings_to_strings(1, *pglob, globdata.gl_pathv);
-		globfree(&globdata);
-		return gr;
-	}
-
- literal:
-	/* quote removal, or more accurately, backslash removal */
-	*pglob = add_unq_string_to_strings(*pglob, pattern);
-	debug_print_strings("after xglob", *pglob);
-	return 0;
-}
-
 /* expand_strvec_to_strvec() takes a list of strings, expands
  * all variable references within and returns a pointer to
  * a list of expanded strings, possibly with larger number
@@ -2596,7 +2535,9 @@ static int expand_vars_to_list(o_string *output, int n, char *arg, char or_mask)
 	o_debug_list("expand_vars_to_list[0]", output, n);
 
 	while ((p = strchr(arg, SPECIAL_VAR_SYMBOL)) != NULL) {
+#if ENABLE_HUSH_TICK
 		o_string subst_result = NULL_O_STRING;
+#endif
 
 		o_addQstr(output, arg, p - arg);
 		o_debug_list("expand_vars_to_list[1]", output, n);
@@ -2661,10 +2602,12 @@ static int expand_vars_to_list(o_string *output, int n, char *arg, char or_mask)
 				}
 			}
 			break;
+#if ENABLE_HUSH_TICK
 		case '`': {
 			struct in_str input;
 			*p = '\0';
 			arg++;
+//TODO: can we just stuff it into "output" directly?
 			//bb_error_msg("SUBST '%s' first_ch %x", arg, first_ch);
 			setup_string_in_str(&input, arg);
 			process_command_subs(&subst_result, &input, NULL);
@@ -2672,6 +2615,7 @@ static int expand_vars_to_list(o_string *output, int n, char *arg, char or_mask)
 			val = subst_result.data;
 			goto store_val;
 		}
+#endif
 		default:
 			*p = '\0';
 			arg[0] = first_ch & 0x7f;
@@ -2696,7 +2640,9 @@ static int expand_vars_to_list(o_string *output, int n, char *arg, char or_mask)
 			o_addQstr(output, val, strlen(val));
 		}
 
+#if ENABLE_HUSH_TICK
 		o_free(&subst_result);
+#endif
 		arg = ++p;
 	} /* end of "while (SPECIAL_VAR_SYMBOL is found) ..." */
 
@@ -2731,33 +2677,87 @@ static char **expand_variables(char **argv, char or_mask)
 
 	/* output.data (malloced in one block) gets returned in "list" */
 	list = o_finalize_list(&output, n);
-
-#ifdef DEBUG_EXPAND
-	{
-		int m = 0;
-		while (m <= n) {
-			debug_printf_expand("list[%d]=%p '%s'\n", m, list[m], list[m]);
-			m++;
-		}
-	}
-#endif
 	return list;
 }
 
+/* Remove non-backslashed backslashes and add to "strings" vector.
+ * XXX broken if the last character is '\\', check that before calling.
+ */
+static char **add_unq_string_to_strings(char **strings, const char *src)
+{
+	int cnt;
+	const char *s;
+	char *v, *dest;
+
+	for (cnt = 1, s = src; s && *s; s++) {
+		if (*s == '\\') s++;
+		cnt++;
+	}
+	v = dest = xmalloc(cnt);
+	for (s = src; s && *s; s++, dest++) {
+		if (*s == '\\') s++;
+		*dest = *s;
+	}
+	*dest = '\0';
+
+	return add_string_to_strings(strings, v);
+}
+
+/* XXX broken if the last character is '\\', check that before calling */
+static int glob_needed(const char *s)
+{
+	for (; *s; s++) {
+		if (*s == '\\')
+			s++;
+		if (strchr("*[?", *s))
+			return 1;
+	}
+	return 0;
+}
+
+static void xglob(char ***pglob, const char *pattern)
+{
+	if (glob_needed(pattern)) {
+		glob_t globdata;
+		int gr;
+
+		memset(&globdata, 0, sizeof(globdata));
+		gr = glob(pattern, 0, NULL, &globdata);
+		debug_printf("glob returned %d\n", gr);
+		if (gr == GLOB_NOSPACE)
+			bb_error_msg_and_die("out of memory during glob");
+		if (gr == GLOB_NOMATCH) {
+			globfree(&globdata);
+			goto literal;
+		}
+		if (gr != 0) { /* GLOB_ABORTED ? */
+			bb_error_msg("glob(3) error %d on '%s'", gr, pattern);
+//TODO: testcase for bad glob pattern behavior
+		}
+		if (globdata.gl_pathv && globdata.gl_pathv[0])
+			*pglob = add_strings_to_strings(1, *pglob, globdata.gl_pathv);
+		globfree(&globdata);
+		return;
+	}
+
+ literal:
+	/* quote removal, or more accurately, backslash removal */
+	*pglob = add_unq_string_to_strings(*pglob, pattern);
+	debug_print_strings("after xglob", *pglob);
+}
+
+//LEAK is here: callers expect result to be free()able, but we
+//actually require free_strings(). free() leaks strings.
 static char **expand_strvec_to_strvec(char **argv)
 {
 	char **exp;
-	char **res = NULL;
+	char **res = xzalloc(sizeof(res[0]));
 
 	debug_print_strings("expand_strvec_to_strvec: pre expand", argv);
 	exp = argv = expand_variables(argv, 0);
 	debug_print_strings("expand_strvec_to_strvec: post expand", argv);
 	while (*argv) {
-		int r = xglob(&res, *argv);
-		if (r)
-			bb_error_msg("xglob returned %d on '%s'", r, *argv);
-//TODO: testcase for bad glob pattern behavior
-		argv++;
+		xglob(&res, *argv++);
 	}
 	free(exp);
 	debug_print_strings("expand_strvec_to_strvec: res", res);
