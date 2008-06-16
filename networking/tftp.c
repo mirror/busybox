@@ -258,6 +258,8 @@ static int tftp_protocol(
 	}
 
 	if (!ENABLE_TFTP || our_lsa) {
+/* gcc 4.3.1 would NOT optimize it out as it should! */
+#if ENABLE_FEATURE_TFTP_BLOCKSIZE
 		if (blksize != TFTP_BLKSIZE_DEFAULT || tsize) {
 			/* Create and send OACK packet. */
 			/* For the download case, block_nr is still 1 -
@@ -266,6 +268,7 @@ static int tftp_protocol(
 			opcode = TFTP_OACK;
 			goto add_blksize_opt;
 		}
+#endif
 	} else {
 /* Removing it, or using if() statement instead of #if may lead to
  * "warning: null argument where non-null required": */
@@ -301,6 +304,7 @@ static int tftp_protocol(
 		strcpy(cp, "octet");
 		cp += sizeof("octet");
 
+#if ENABLE_FEATURE_TFTP_BLOCKSIZE
 		if (blksize == TFTP_BLKSIZE_DEFAULT)
 			goto send_pkt;
 
@@ -309,9 +313,11 @@ static int tftp_protocol(
 			bb_error_msg("remote filename is too long");
 			goto ret;
 		}
-		USE_FEATURE_TFTP_BLOCKSIZE(want_option_ack = 1;)
+		want_option_ack = 1;
+#endif
 #endif /* ENABLE_TFTP */
 
+#if ENABLE_FEATURE_TFTP_BLOCKSIZE
  add_blksize_opt:
 #if ENABLE_TFTPD
 		if (tsize) {
@@ -329,6 +335,7 @@ static int tftp_protocol(
 			cp += sizeof("blksize");
 			cp += snprintf(cp, 6, "%d", blksize) + 1;
 		}
+#endif
 		/* First packet is built, so skip packet generation */
 		goto send_pkt;
 	}
