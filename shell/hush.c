@@ -481,10 +481,6 @@ static int run_list(struct pipe *pi);
 static void pseudo_exec_argv(char **ptrs2free, char **argv) ATTRIBUTE_NORETURN;
 static void pseudo_exec(char **ptrs2free, struct child_prog *child) ATTRIBUTE_NORETURN;
 static int run_pipe(struct pipe *pi);
-/*   extended glob support: */
-static char **globhack(const char *src, char **strings);
-static int glob_needed(const char *s);
-static int xglob(o_string *dest, char ***pglob);
 /*   variable assignment: */
 static int is_assignment(const char *s);
 /*   data structure manipulation: */
@@ -589,6 +585,17 @@ static char **alloc_ptrs(char **argv)
 		v++;
 	return xzalloc((v - argv + EXTRA_PTRS) * sizeof(v[0]));
 }
+#endif
+
+#ifdef DEBUG_EXPAND
+static void debug_print_strings(const char *prefix, char **vv)
+{
+	fprintf(stderr, "%s:\n", prefix);
+	while (*vv)
+		fprintf(stderr, " '%s'\n", *vv++);
+}
+#else
+#define debug_print_strings(prefix, vv) ((void)0)
 #endif
 
 
@@ -2280,7 +2287,9 @@ static int run_list(struct pipe *pi)
 				if (!pi->next->progs->argv)
 					continue;
 				/* create list of variable values */
+				debug_print_strings("for_list made from", pi->next->progs->argv);
 				for_list = expand_strvec_to_strvec(pi->next->progs->argv);
+				debug_print_strings("for_list", for_list);
 				for_lcur = for_list;
 				for_varname = pi->progs->argv[0];
 				pi->progs->argv[0] = NULL;
@@ -2465,13 +2474,10 @@ static int run_and_free_list(struct pipe *pi)
 	return rcode;
 }
 
-/* The API for glob is arguably broken.  This routine pushes a non-matching
- * string into the output structure, removing non-backslashed backslashes.
- * If someone can prove me wrong, by performing this function within the
- * original glob(3) api, feel free to rewrite this routine into oblivion.
+/* Remove non-backslashed backslashes and add to "strings" vector.
  * XXX broken if the last character is '\\', check that before calling.
  */
-static char **globhack(const char *src, char **strings)
+static char **add_unq_string_to_strings(char **strings, const char *src)
 {
 	int cnt;
 	const char *s;
@@ -2503,33 +2509,20 @@ static int glob_needed(const char *s)
 	return 0;
 }
 
-static int xglob(o_string *dest, char ***pglob)
+static int xglob(char ***pglob, const char *pattern)
 {
-	/* short-circuit for null word */
-	/* we can code this better when the debug_printf's are gone */
-	if (dest->length == 0) {
-		if (dest->nonnull) {
-			/* bash man page calls this an "explicit" null */
-			*pglob = globhack(dest->data, *pglob);
-		}
-		return 0;
-	}
-
-	if (glob_needed(dest->data)) {
+	if (glob_needed(pattern)) {
 		glob_t globdata;
 		int gr;
 
 		memset(&globdata, 0, sizeof(globdata));
-		gr = glob(dest->data, 0, NULL, &globdata);
+		gr = glob(pattern, 0, NULL, &globdata);
 		debug_printf("glob returned %d\n", gr);
 		if (gr == GLOB_NOSPACE)
 			bb_error_msg_and_die("out of memory during glob");
 		if (gr == GLOB_NOMATCH) {
-			debug_printf("globhack returned %d\n", gr);
-			/* quote removal, or more accurately, backslash removal */
-			*pglob = globhack(dest->data, *pglob);
 			globfree(&globdata);
-			return 0;
+			goto literal;
 		}
 		if (gr != 0) { /* GLOB_ABORTED ? */
 			bb_error_msg("glob(3) error %d", gr);
@@ -2540,7 +2533,10 @@ static int xglob(o_string *dest, char ***pglob)
 		return gr;
 	}
 
-	*pglob = globhack(dest->data, *pglob);
+ literal:
+	/* quote removal, or more accurately, backslash removal */
+	*pglob = add_unq_string_to_strings(*pglob, pattern);
+	debug_print_strings("after xglob", *pglob);
 	return 0;
 }
 
@@ -2733,7 +2729,7 @@ static char **expand_variables(char **argv, char or_mask)
 		n = expand_vars_to_list(&output, n, *v++, or_mask);
 	o_debug_list("expand_variables", &output, n);
 
-	/* output.data (malloced) gets returned in "list" */
+	/* output.data (malloced in one block) gets returned in "list" */
 	list = o_finalize_list(&output, n);
 
 #ifdef DEBUG_EXPAND
@@ -2750,9 +2746,27 @@ static char **expand_variables(char **argv, char or_mask)
 
 static char **expand_strvec_to_strvec(char **argv)
 {
-	return expand_variables(argv, 0);
+	char **exp;
+	char **res = NULL;
+
+	debug_print_strings("expand_strvec_to_strvec: pre expand", argv);
+	exp = argv = expand_variables(argv, 0);
+	debug_print_strings("expand_strvec_to_strvec: post expand", argv);
+	while (*argv) {
+		int r = xglob(&res, *argv);
+		if (r)
+			bb_error_msg("xglob returned %d on '%s'", r, *argv);
+//TODO: testcase for bad glob pattern behavior
+		argv++;
+	}
+	free(exp);
+	debug_print_strings("expand_strvec_to_strvec: res", res);
+	return res;
 }
 
+/* used for expansion of right hand of assignments */
+/* NB: should NOT do globbing! "export v=/bin/c*; env | grep ^v=" outputs
+ * "v=/bin/c*" */
 static char *expand_string_to_string(const char *str)
 {
 	char *argv[2], **list;
@@ -2769,6 +2783,7 @@ static char *expand_string_to_string(const char *str)
 	return (char*)list;
 }
 
+/* used for eval */
 static char* expand_strvec_to_string(char **argv)
 {
 	char **list;
@@ -3106,7 +3121,6 @@ static int done_word(o_string *word, struct p_context *ctx)
 {
 	struct child_prog *child = ctx->child;
 	char ***glob_target;
-	int gr;
 
 	debug_printf_parse("done_word entered: '%s' %p\n", word->data, child);
 	if (word->length == 0 && !word->nonnull) {
@@ -3131,12 +3145,10 @@ static int done_word(o_string *word, struct p_context *ctx)
 		}
 		glob_target = &child->argv;
 	}
-//BUG! globbing should be done after variable expansion!
-//See glob_and_vars testcase
-	gr = xglob(word, glob_target);
-	if (gr != 0) {
-		debug_printf_parse("done_word return 1: xglob returned %d\n", gr);
-		return 1;
+
+	if (word->length || word->nonnull) {
+		*glob_target = add_string_to_strings(*glob_target, xstrdup(word->data));
+		debug_print_strings("glob_target appended", *glob_target);
 	}
 
 	o_reset(word);
@@ -3371,6 +3383,11 @@ static int process_command_subs(o_string *dest,
 			o_addQchr(dest, '\n');
 			eol_cnt--;
 		}
+		/* Even unquoted `echo '\'` results in two backslashes
+		 * (which are converted into one by globbing later) */
+		if (!dest->o_quote && ch == '\\') {
+			o_addchr(dest, ch);
+		}
 		o_addQchr(dest, ch);
 	}
 
@@ -3440,7 +3457,7 @@ static void add_till_single_quote(o_string *dest, struct in_str *input)
 			break;
 		if (ch == '\'')
 			break;
-		o_addqchr(dest, ch);
+		o_addchr(dest, ch);
 	}
 }
 /* "...\"...`..`...." - do we need to handle "...$(..)..." too? */
@@ -3451,15 +3468,15 @@ static void add_till_double_quote(o_string *dest, struct in_str *input)
 		if (ch == '"')
 			break;
 		if (ch == '\\') {  /* \x. Copy both chars. */
-			o_addqchr(dest, ch);
+			o_addchr(dest, ch);
 			ch = i_getch(input);
 		}
 		if (ch == EOF)
 			break;
-		o_addqchr(dest, ch);
+		o_addchr(dest, ch);
 		if (ch == '`') {
 			add_till_backquote(dest, input);
-			o_addqchr(dest, ch);
+			o_addchr(dest, ch);
 			continue;
 		}
 		//if (ch == '$') ...
@@ -3488,12 +3505,12 @@ static void add_till_backquote(o_string *dest, struct in_str *input)
 		if (ch == '\\') {  /* \x. Copy both chars unless it is \` */
 			int ch2 = i_getch(input);
 			if (ch2 != '`' && ch2 != '$' && ch2 != '\\')
-				o_addqchr(dest, ch);
+				o_addchr(dest, ch);
 			ch = ch2;
 		}
 		if (ch == EOF)
 			break;
-		o_addqchr(dest, ch);
+		o_addchr(dest, ch);
 	}
 }
 /* Process $(cmd) - copy contents until ")" is seen. Complicated by
@@ -3520,22 +3537,22 @@ static void add_till_closing_curly_brace(o_string *dest, struct in_str *input)
 		if (ch == ')')
 			if (--count < 0)
 				break;
-		o_addqchr(dest, ch);
+		o_addchr(dest, ch);
 		if (ch == '\'') {
 			add_till_single_quote(dest, input);
-			o_addqchr(dest, ch);
+			o_addchr(dest, ch);
 			continue;
 		}
 		if (ch == '"') {
 			add_till_double_quote(dest, input);
-			o_addqchr(dest, ch);
+			o_addchr(dest, ch);
 			continue;
 		}
 		if (ch == '\\') { /* \x. Copy verbatim. Important for  \(, \) */
 			ch = i_getch(input);
 			if (ch == EOF)
 				break;
-			o_addqchr(dest, ch);
+			o_addchr(dest, ch);
 			continue;
 		}
 	}
