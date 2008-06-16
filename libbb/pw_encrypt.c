@@ -14,10 +14,6 @@
 /*
  * DES and MD5 crypt implementations are taken from uclibc.
  * They were modified to not use static buffers.
- * Comparison with uclibc (before uclibc had 70k staic buffers reinstated):
- *   text    data     bss     dec     hex filename
- * 759909     604    6684  767197   bb4dd busybox_old
- * 759579     604    6684  766867   bb393 busybox_unstripped
  */
 /* Common for them */
 static const uint8_t ascii64[] = "./0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";

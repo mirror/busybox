@@ -516,7 +516,7 @@ xbsd_print_disklabel(int show_all)
 		printf("disk: %.*s\n", (int) sizeof(lp->d_typename), lp->d_typename);
 		printf("label: %.*s\n", (int) sizeof(lp->d_packname), lp->d_packname);
 		printf("flags: ");
-		print_flags_separated(d_masks, "removable\0""ecc\0""badsect\0", lp->d_flags, " "); 
+		print_flags_separated(d_masks, "removable\0""ecc\0""badsect\0", lp->d_flags, " ");
 		bb_putchar('\n');
 		/* On various machines the fields of *lp are short/int/long */
 		/* In order to avoid problems, we cast them all to long. */

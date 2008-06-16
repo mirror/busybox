@@ -181,7 +181,7 @@ int depmod_main(int ATTRIBUTE_UNUSED argc, char **argv)
 			char *shortname = llist_pop(&old_deps);
 
 			while (all) {
-				char *nam = 
+				char *nam =
 					xstrdup(bb_get_last_path_component_nostrip(all->name));
 				char *tmp = strrstr(nam, ".ko");
 

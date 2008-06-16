@@ -232,10 +232,10 @@ static char *parse_command_string(char *src, char **dst)
 #endif /* ENABLE_FEATURE_MODPROBE_MULTIPLE_OPTIONS */
 
 static int is_conf_command(char *buffer, const char *command)
-{ 
+{
 	int len = strlen(command);
 	return ((strstr(buffer, command) == buffer) &&
-			isspace(buffer[len])); 
+			isspace(buffer[len]));
 }
 
 /*
@@ -325,7 +325,7 @@ static void include_conf(struct dep_t **first, struct dep_t **current, char *buf
 				include_conf(first, current, buffer, buflen, fdi);
 				close(fdi);
 			}
-		} else if (ENABLE_FEATURE_MODPROBE_BLACKLIST && 
+		} else if (ENABLE_FEATURE_MODPROBE_BLACKLIST &&
 				(is_conf_command(buffer, "blacklist"))) {
 			char *mod;
 			struct dep_t *dt;

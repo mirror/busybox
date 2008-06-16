@@ -201,7 +201,7 @@ static const uint32_t bits32[32] =
 static const uint8_t bits8[8] = { 0x80, 0x40, 0x20, 0x10, 0x08, 0x04, 0x02, 0x01 };
 
 
-static int 
+static int
 ascii_to_bin(char ch)
 {
 	if (ch > 'z')
@@ -220,8 +220,8 @@ ascii_to_bin(char ch)
 }
 
 
-/* Static stuff that stays resident and doesn't change after 
- * being initialized, and therefore doesn't need to be made 
+/* Static stuff that stays resident and doesn't change after
+ * being initialized, and therefore doesn't need to be made
  * reentrant. */
 struct const_des_ctx {
 #if USE_ip_mask

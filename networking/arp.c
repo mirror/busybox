@@ -314,7 +314,7 @@ arp_disp(const char *name, char *ip, int type, int arp_flags,
 		 char *hwa, char *mask, char *dev)
 {
 	static const int arp_masks[] = {
-		ATF_PERM, ATF_PUBL, 
+		ATF_PERM, ATF_PUBL,
 #ifdef HAVE_ATF_MAGIC
 		ATF_MAGIC,
 #endif

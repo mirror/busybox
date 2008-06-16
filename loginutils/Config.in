@@ -71,8 +71,8 @@ config USE_BB_CRYPT
 	  DES encryption/decryption.
 
 	  For busybox, having large static buffers is undesirable,
-	  especially on NOMMU machines. Busybox also doesn't
-	  need DES encryption/decryption and can do with smaller code.
+	  especially on NOMMU machines. Busybox also doesn't need
+	  DES encryption/decryption and can do with smaller code.
 
 	  If you enable this option, it will add about 4.8k of code
 	  if you are building dynamically linked executable.
