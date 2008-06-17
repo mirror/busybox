@@ -244,7 +244,6 @@ typedef enum {
 	PIPE_BG  = 4,
 } pipe_style;
 
-/* might eventually control execution */
 typedef enum {
 	RES_NONE  = 0,
 #if ENABLE_HUSH_IF
@@ -265,6 +264,7 @@ typedef enum {
 	RES_XXXX  = 12,
 	RES_SNTX  = 13
 } reserved_style;
+
 /* This holds pointers to the various results of parsing */
 struct p_context {
 	struct child_prog *child;
@@ -298,6 +298,7 @@ struct child_prog {
  * and on execution these are substituted with their values.
  * Substitution can make _several_ words out of one argv[n]!
  * Example: argv[0]=='.^C*^C.' here: echo .$*.
+ * References of the form ^C`cmd arg^C are `cmd arg` substitutions.
  */
 
 struct pipe {
@@ -341,8 +342,8 @@ typedef struct {
 	smallint nonnull;
 	smallint has_empty_slot;
 } o_string;
+/* Used for initialization: o_string foo = NULL_O_STRING; */
 #define NULL_O_STRING { NULL }
-/* used for initialization: o_string foo = NULL_O_STRING; */
 
 /* I can almost use ordinary FILE *.  Is open_memstream() universally
  * available?  Where is it documented? */
@@ -572,7 +573,7 @@ static int glob_needed(const char *s)
 	return 0;
 }
 
-static char **add_strings_to_strings(int need_xstrdup, char **strings, char **add)
+static char **add_malloced_strings_to_strings(char **strings, char **add)
 {
 	int i;
 	unsigned count1;
@@ -597,19 +598,18 @@ static char **add_strings_to_strings(int need_xstrdup, char **strings, char **ad
 	v[count1 + count2] = NULL;
 	i = count2;
 	while (--i >= 0)
-		v[count1 + i] = need_xstrdup ? xstrdup(add[i]) : add[i];
+		v[count1 + i] = add[i];
 	return v;
 }
 
-/* 'add' should be a malloced pointer */
-static char **add_string_to_strings(char **strings, char *add)
+static char **add_malloced_string_to_strings(char **strings, char *add)
 {
 	char *v[2];
 
 	v[0] = add;
 	v[1] = NULL;
 
-	return add_strings_to_strings(0, strings, v);
+	return add_malloced_strings_to_strings(strings, v);
 }
 
 static void free_strings(char **strings)
@@ -712,6 +712,7 @@ static const struct built_in_command bltins[] = {
 	BLTIN("help"  , builtin_help, "List shell built-in commands"),
 #endif
 };
+
 
 /* Signals are grouped, we handle them in batches */
 static void set_misc_sighandler(void (*handler)(int))
@@ -846,333 +847,6 @@ static const char *set_cwd(void)
 }
 
 
-/* built-in 'true' handler */
-static int builtin_true(char **argv ATTRIBUTE_UNUSED)
-{
-	return 0;
-}
-
-/* built-in 'test' handler */
-static int builtin_test(char **argv)
-{
-	int argc = 0;
-	while (*argv) {
-		argc++;
-		argv++;
-	}
-	return test_main(argc, argv - argc);
-}
-
-/* built-in 'test' handler */
-static int builtin_echo(char **argv)
-{
-	int argc = 0;
-	while (*argv) {
-		argc++;
-		argv++;
-	}
-	return echo_main(argc, argv - argc);
-}
-
-/* built-in 'eval' handler */
-static int builtin_eval(char **argv)
-{
-	int rcode = EXIT_SUCCESS;
-
-	if (argv[1]) {
-		char *str = expand_strvec_to_string(argv + 1);
-		parse_and_run_string(str, PARSEFLAG_EXIT_FROM_LOOP);
-		free(str);
-		rcode = last_return_code;
-	}
-	return rcode;
-}
-
-/* built-in 'cd <path>' handler */
-static int builtin_cd(char **argv)
-{
-	const char *newdir;
-	if (argv[1] == NULL) {
-		// bash does nothing (exitcode 0) if HOME is ""; if it's unset,
-		// bash says "bash: cd: HOME not set" and does nothing (exitcode 1)
-		newdir = getenv("HOME") ? : "/";
-	} else
-		newdir = argv[1];
-	if (chdir(newdir)) {
-		printf("cd: %s: %s\n", newdir, strerror(errno));
-		return EXIT_FAILURE;
-	}
-	set_cwd();
-	return EXIT_SUCCESS;
-}
-
-/* built-in 'exec' handler */
-static int builtin_exec(char **argv)
-{
-	if (argv[1] == NULL)
-		return EXIT_SUCCESS; /* bash does this */
-	{
-#if !BB_MMU
-		char **ptrs2free = alloc_ptrs(argv);
-#endif
-// FIXME: if exec fails, bash does NOT exit! We do...
-		pseudo_exec_argv(ptrs2free, argv + 1);
-		/* never returns */
-	}
-}
-
-/* built-in 'exit' handler */
-static int builtin_exit(char **argv)
-{
-// TODO: bash does it ONLY on top-level sh exit (+interacive only?)
-	//puts("exit"); /* bash does it */
-// TODO: warn if we have background jobs: "There are stopped jobs"
-// On second consecutive 'exit', exit anyway.
-	if (argv[1] == NULL)
-		hush_exit(last_return_code);
-	/* mimic bash: exit 123abc == exit 255 + error msg */
-	xfunc_error_retval = 255;
-	/* bash: exit -2 == exit 254, no error msg */
-	hush_exit(xatoi(argv[1]) & 0xff);
-}
-
-/* built-in 'export VAR=value' handler */
-static int builtin_export(char **argv)
-{
-	const char *value;
-	char *name = argv[1];
-
-	if (name == NULL) {
-		// TODO:
-		// ash emits: export VAR='VAL'
-		// bash: declare -x VAR="VAL"
-		// (both also escape as needed (quotes, $, etc))
-		char **e = environ;
-		if (e)
-			while (*e)
-				puts(*e++);
-		return EXIT_SUCCESS;
-	}
-
-	value = strchr(name, '=');
-	if (!value) {
-		/* They are exporting something without a =VALUE */
-		struct variable *var;
-
-		var = get_local_var(name);
-		if (var) {
-			var->flg_export = 1;
-			putenv(var->varstr);
-		}
-		/* bash does not return an error when trying to export
-		 * an undefined variable.  Do likewise. */
-		return EXIT_SUCCESS;
-	}
-
-	set_local_var(xstrdup(name), 1);
-	return EXIT_SUCCESS;
-}
-
-#if ENABLE_HUSH_JOB
-/* built-in 'fg' and 'bg' handler */
-static int builtin_fg_bg(char **argv)
-{
-	int i, jobnum;
-	struct pipe *pi;
-
-	if (!interactive_fd)
-		return EXIT_FAILURE;
-	/* If they gave us no args, assume they want the last backgrounded task */
-	if (!argv[1]) {
-		for (pi = job_list; pi; pi = pi->next) {
-			if (pi->jobid == last_jobid) {
-				goto found;
-			}
-		}
-		bb_error_msg("%s: no current job", argv[0]);
-		return EXIT_FAILURE;
-	}
-	if (sscanf(argv[1], "%%%d", &jobnum) != 1) {
-		bb_error_msg("%s: bad argument '%s'", argv[0], argv[1]);
-		return EXIT_FAILURE;
-	}
-	for (pi = job_list; pi; pi = pi->next) {
-		if (pi->jobid == jobnum) {
-			goto found;
-		}
-	}
-	bb_error_msg("%s: %d: no such job", argv[0], jobnum);
-	return EXIT_FAILURE;
- found:
-	// TODO: bash prints a string representation
-	// of job being foregrounded (like "sleep 1 | cat")
-	if (*argv[0] == 'f') {
-		/* Put the job into the foreground.  */
-		tcsetpgrp(interactive_fd, pi->pgrp);
-	}
-
-	/* Restart the processes in the job */
-	debug_printf_jobs("reviving %d procs, pgrp %d\n", pi->num_progs, pi->pgrp);
-	for (i = 0; i < pi->num_progs; i++) {
-		debug_printf_jobs("reviving pid %d\n", pi->progs[i].pid);
-		pi->progs[i].is_stopped = 0;
-	}
-	pi->stopped_progs = 0;
-
-	i = kill(- pi->pgrp, SIGCONT);
-	if (i < 0) {
-		if (errno == ESRCH) {
-			delete_finished_bg_job(pi);
-			return EXIT_SUCCESS;
-		} else {
-			bb_perror_msg("kill (SIGCONT)");
-		}
-	}
-
-	if (*argv[0] == 'f') {
-		remove_bg_job(pi);
-		return checkjobs_and_fg_shell(pi);
-	}
-	return EXIT_SUCCESS;
-}
-#endif
-
-/* built-in 'help' handler */
-#if ENABLE_HUSH_HELP
-static int builtin_help(char **argv ATTRIBUTE_UNUSED)
-{
-	const struct built_in_command *x;
-
-	printf("\nBuilt-in commands:\n");
-	printf("-------------------\n");
-	for (x = bltins; x != &bltins[ARRAY_SIZE(bltins)]; x++) {
-		printf("%s\t%s\n", x->cmd, x->descr);
-	}
-	printf("\n\n");
-	return EXIT_SUCCESS;
-}
-#endif
-
-#if ENABLE_HUSH_JOB
-/* built-in 'jobs' handler */
-static int builtin_jobs(char **argv ATTRIBUTE_UNUSED)
-{
-	struct pipe *job;
-	const char *status_string;
-
-	for (job = job_list; job; job = job->next) {
-		if (job->running_progs == job->stopped_progs)
-			status_string = "Stopped";
-		else
-			status_string = "Running";
-
-		printf(JOB_STATUS_FORMAT, job->jobid, status_string, job->cmdtext);
-	}
-	return EXIT_SUCCESS;
-}
-#endif
-
-/* built-in 'pwd' handler */
-static int builtin_pwd(char **argv ATTRIBUTE_UNUSED)
-{
-	puts(set_cwd());
-	return EXIT_SUCCESS;
-}
-
-/* built-in 'read VAR' handler */
-static int builtin_read(char **argv)
-{
-	char *string;
-	const char *name = argv[1] ? argv[1] : "REPLY";
-
-	string = xmalloc_reads(STDIN_FILENO, xasprintf("%s=", name), NULL);
-	return set_local_var(string, 0);
-}
-
-/* built-in 'set [VAR=value]' handler */
-static int builtin_set(char **argv)
-{
-	char *temp = argv[1];
-	struct variable *e;
-
-	if (temp == NULL)
-		for (e = top_var; e; e = e->next)
-			puts(e->varstr);
-	else
-		set_local_var(xstrdup(temp), 0);
-
-	return EXIT_SUCCESS;
-}
-
-
-/* Built-in 'shift' handler */
-static int builtin_shift(char **argv)
-{
-	int n = 1;
-	if (argv[1]) {
-		n = atoi(argv[1]);
-	}
-	if (n >= 0 && n < global_argc) {
-		global_argv[n] = global_argv[0];
-		global_argc -= n;
-		global_argv += n;
-		return EXIT_SUCCESS;
-	}
-	return EXIT_FAILURE;
-}
-
-/* Built-in '.' handler (read-in and execute commands from file) */
-static int builtin_source(char **argv)
-{
-	FILE *input;
-	int status;
-
-	if (argv[1] == NULL)
-		return EXIT_FAILURE;
-
-	/* XXX search through $PATH is missing */
-	input = fopen(argv[1], "r");
-	if (!input) {
-		bb_error_msg("cannot open '%s'", argv[1]);
-		return EXIT_FAILURE;
-	}
-	close_on_exec_on(fileno(input));
-
-	/* Now run the file */
-	/* XXX argv and argc are broken; need to save old global_argv
-	 * (pointer only is OK!) on this stack frame,
-	 * set global_argv=argv+1, recurse, and restore. */
-	status = parse_and_run_file(input);
-	fclose(input);
-	return status;
-}
-
-static int builtin_umask(char **argv)
-{
-	mode_t new_umask;
-	const char *arg = argv[1];
-	char *end;
-	if (arg) {
-		new_umask = strtoul(arg, &end, 8);
-		if (*end != '\0' || end == arg) {
-			return EXIT_FAILURE;
-		}
-	} else {
-		new_umask = umask(0);
-		printf("%.3o\n", (unsigned) new_umask);
-	}
-	umask(new_umask);
-	return EXIT_SUCCESS;
-}
-
-/* built-in 'unset VAR' handler */
-static int builtin_unset(char **argv)
-{
-	/* bash always returns true */
-	unset_local_var(argv[1]);
-	return EXIT_SUCCESS;
-}
-
 /*
  * o_string support
  */
@@ -1282,7 +956,7 @@ static void o_addQstr(o_string *o, const char *str, int len)
 
 /* A special kind of o_string for $VAR and `cmd` expansion.
  * It contains char* list[] at the beginning, which is grown in 16 element
- * increments. Actual string data starts at the next multiple of 16.
+ * increments. Actual string data starts at the next multiple of 16 * (char*).
  * list[i] contains an INDEX (int!) into this string data.
  * It means that if list[] needs to grow, data needs to be moved higher up
  * but list[i]'s need not be modified.
@@ -1355,7 +1029,8 @@ static int o_get_last_ptr(o_string *o, int n)
 	return ((int)list[n-1]) + string_start;
 }
 
-/* Convert every \x to x in-place, return ptr past NUL. */
+/* o_glob performs globbing on last list[], saving each result
+ * as a new list[]. unbackslash() is just a helper */
 static char *unbackslash(char *src)
 {
 	char *dst = src;
@@ -1367,7 +1042,6 @@ static char *unbackslash(char *src)
 	}
 	return dst;
 }
-
 static int o_glob(o_string *o, int n)
 {
 	glob_t globdata;
@@ -1416,8 +1090,8 @@ static int o_glob(o_string *o, int n)
 	return n;
 }
 
-/* o_save_ptr_helper + but glob the string so far remembered
- * if o->o_glob == 1 */
+/* If o->o_glob == 1, glob the string so far remembered.
+ * Otherwise, just finish current list[] and start new */
 static int o_save_ptr(o_string *o, int n)
 {
 	if (o->o_glob)
@@ -1462,6 +1136,7 @@ static int static_peek(struct in_str *i)
 }
 
 #if ENABLE_HUSH_INTERACTIVE
+
 #if ENABLE_FEATURE_EDITING
 static void cmdedit_set_initial_prompt(void)
 {
@@ -1521,6 +1196,7 @@ static void get_user_input(struct in_str *i)
 #endif
 	i->p = user_input_buf;
 }
+
 #endif  /* INTERACTIVE */
 
 /* This is the magic location that prints prompts
@@ -1604,6 +1280,7 @@ static void setup_string_in_str(struct in_str *i, const char *s)
 	i->eof_flag = 0;
 }
 
+
 /* squirrel != NULL means we squirrel away copies of stdin, stdout,
  * and stderr if they are redirected. */
 static int setup_redirects(struct child_prog *prog, int squirrel[])
@@ -1658,6 +1335,7 @@ static void restore_redirects(int squirrel[])
 		}
 	}
 }
+
 
 /* Called after [v]fork() in run_pipe(), or from builtin_exec().
  * Never returns.
@@ -2589,6 +2267,7 @@ static int run_and_free_list(struct pipe *pi)
 	return rcode;
 }
 
+
 /* expand_strvec_to_strvec() takes a list of strings, expands
  * all variable references within and returns a pointer to
  * a list of expanded strings, possibly with larger number
@@ -2737,7 +2416,9 @@ static int expand_vars_to_list(o_string *output, int n, char *arg, char or_mask)
 			} else
 				val = lookup_param(arg);
 			arg[0] = first_ch;
+#if ENABLE_HUSH_TICK
  store_val:
+#endif
 			*p = SPECIAL_VAR_SYMBOL;
 			if (!(first_ch & 0x80)) { /* unquoted $VAR */
 				if (val) {
@@ -2801,7 +2482,7 @@ static char **expand_strvec_to_strvec(char **argv)
 	return expand_variables(argv, 0x100);
 }
 
-/* used for expansion of right hand of assignments */
+/* Used for expansion of right hand of assignments */
 /* NB: should NOT do globbing! "export v=/bin/c*; env | grep ^v=" outputs
  * "v=/bin/c*" */
 static char *expand_string_to_string(const char *str)
@@ -2820,7 +2501,7 @@ static char *expand_string_to_string(const char *str)
 	return (char*)list;
 }
 
-/* used for eval */
+/* Used for "eval" builtin */
 static char* expand_strvec_to_string(char **argv)
 {
 	char **list;
@@ -2842,7 +2523,8 @@ static char* expand_strvec_to_string(char **argv)
 	return (char*)list;
 }
 
-/* This is used to get/check local shell variables */
+
+/* Used to get/check local shell variables */
 static struct variable *get_local_var(const char *name)
 {
 	struct variable *cur;
@@ -3099,12 +2781,16 @@ static int reserved_word(const o_string *word, struct p_context *ctx)
 			continue;
 		debug_printf("found reserved word %s, res %d\n", r->literal, r->res);
 		if (r->flag == 0) { /* '!' */
+#if ENABLE_HUSH_LOOPS
 			if (ctx->res_w == RES_IN) {
 				/* 'for a in ! a b c; ...' - ! isn't a keyword here */
 				break;
 			}
-			if (ctx->res_w == RES_FOR /* example: 'for ! a' */
-			 || ctx->ctx_inverted /* bash doesn't accept '! ! true' */
+#endif
+			if (ctx->ctx_inverted /* bash doesn't accept '! ! true' */
+#if ENABLE_HUSH_LOOPS
+			 || ctx->res_w == RES_FOR /* example: 'for ! a' */
+#endif
 			) {
 				syntax(NULL);
 				ctx->res_w = RES_SNTX;
@@ -3152,8 +2838,7 @@ static int reserved_word(const o_string *word, struct p_context *ctx)
 #endif
 
 /* Word is complete, look at it and update parsing context.
- * Normal return is 0.
- * Syntax or xglob errors return 1. */
+ * Normal return is 0. Syntax errors return 1. */
 static int done_word(o_string *word, struct p_context *ctx)
 {
 	struct child_prog *child = ctx->child;
@@ -3184,7 +2869,7 @@ static int done_word(o_string *word, struct p_context *ctx)
 	}
 
 	if (word->length || word->nonnull) {
-		*glob_target = add_string_to_strings(*glob_target, xstrdup(word->data));
+		*glob_target = add_malloced_string_to_strings(*glob_target, xstrdup(word->data));
 		debug_print_strings("glob_target appended", *glob_target);
 	}
 
@@ -3282,9 +2967,9 @@ static void done_pipe(struct p_context *ctx, pipe_style type)
 	debug_printf_parse("done_pipe return\n");
 }
 
-/* peek ahead in the in_str to find out if we have a "&n" construct,
+/* Peek ahead in the in_str to find out if we have a "&n" construct,
  * as in "2>&1", that represents duplicating a file descriptor.
- * returns either -2 (syntax error), -1 (no &), or the number found.
+ * Return either -2 (syntax error), -1 (no &), or the number found.
  */
 static int redirect_dup_num(struct in_str *input)
 {
@@ -3395,7 +3080,7 @@ static int process_command_subs(o_string *dest,
 
 	initialize_context(&inner);
 
-	/* recursion to generate command */
+	/* Recursion to generate command */
 	retcode = parse_stream(&result, &inner, input, subst_end);
 	if (retcode != 0)
 		return retcode;  /* syntax error or EOF */
@@ -3409,7 +3094,7 @@ static int process_command_subs(o_string *dest,
 	close_on_exec_on(fileno(p));
 	setup_file_in_str(&pipe_str, p);
 
-	/* now send results of command back into original context */
+	/* Now send results of command back into original context */
 	eol_cnt = 0;
 	while ((ch = i_getch(&pipe_str)) != EOF) {
 		if (ch == '\n') {
@@ -3596,7 +3281,7 @@ static void add_till_closing_curly_brace(o_string *dest, struct in_str *input)
 }
 #endif /* ENABLE_HUSH_TICK */
 
-/* return code: 0 for OK, 1 for syntax error */
+/* Return code: 0 for OK, 1 for syntax error */
 static int handle_dollar(o_string *dest, struct in_str *input)
 {
 	int ch = i_peek(input);  /* first character after the $ */
@@ -3674,7 +3359,7 @@ static int handle_dollar(o_string *dest, struct in_str *input)
 	return 0;
 }
 
-/* return code is 0 for normal exit, 1 for syntax error */
+/* Return code is 0 for normal exit, 1 for syntax error */
 static int parse_stream(o_string *dest, struct p_context *ctx,
 	struct in_str *input, const char *end_trigger)
 {
@@ -3937,7 +3622,7 @@ static void update_charmap(void)
 	set_in_charmap(ifs, CHAR_IFS);  /* are ordinary if quoted */
 }
 
-/* most recursion does not come through here, the exception is
+/* Most recursion does not come through here, the exception is
  * from builtin_source() and builtin_eval() */
 static int parse_and_run_stream(struct in_str *inp, int parse_flag)
 {
@@ -3975,7 +3660,9 @@ static int parse_and_run_stream(struct in_str *inp, int parse_flag)
 			free_pipe_list(ctx.list_head, /* indent: */ 0);
 			/* Discard all unprocessed line input, force prompt on */
 			inp->p = NULL;
+#if ENABLE_HUSH_INTERACTIVE
 			inp->promptme = 1;
+#endif
 		}
 		o_free(&temp);
 		/* loop on syntax errors, return on EOF: */
@@ -4033,6 +3720,7 @@ static void setup_job_control(void)
 	tcsetpgrp(interactive_fd, getpid());
 }
 #endif
+
 
 int hush_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int hush_main(int argc, char **argv)
@@ -4230,3 +3918,318 @@ int lash_main(int argc, char **argv)
 	return hush_main(argc, argv);
 }
 #endif
+
+
+/*
+ * Built-ins
+ */
+static int builtin_true(char **argv ATTRIBUTE_UNUSED)
+{
+	return 0;
+}
+
+static int builtin_test(char **argv)
+{
+	int argc = 0;
+	while (*argv) {
+		argc++;
+		argv++;
+	}
+	return test_main(argc, argv - argc);
+}
+
+static int builtin_echo(char **argv)
+{
+	int argc = 0;
+	while (*argv) {
+		argc++;
+		argv++;
+	}
+	return echo_main(argc, argv - argc);
+}
+
+static int builtin_eval(char **argv)
+{
+	int rcode = EXIT_SUCCESS;
+
+	if (argv[1]) {
+		char *str = expand_strvec_to_string(argv + 1);
+		parse_and_run_string(str, PARSEFLAG_EXIT_FROM_LOOP);
+		free(str);
+		rcode = last_return_code;
+	}
+	return rcode;
+}
+
+static int builtin_cd(char **argv)
+{
+	const char *newdir;
+	if (argv[1] == NULL) {
+		// bash does nothing (exitcode 0) if HOME is ""; if it's unset,
+		// bash says "bash: cd: HOME not set" and does nothing (exitcode 1)
+		newdir = getenv("HOME") ? : "/";
+	} else
+		newdir = argv[1];
+	if (chdir(newdir)) {
+		printf("cd: %s: %s\n", newdir, strerror(errno));
+		return EXIT_FAILURE;
+	}
+	set_cwd();
+	return EXIT_SUCCESS;
+}
+
+static int builtin_exec(char **argv)
+{
+	if (argv[1] == NULL)
+		return EXIT_SUCCESS; /* bash does this */
+	{
+#if !BB_MMU
+		char **ptrs2free = alloc_ptrs(argv);
+#endif
+// FIXME: if exec fails, bash does NOT exit! We do...
+		pseudo_exec_argv(ptrs2free, argv + 1);
+		/* never returns */
+	}
+}
+
+static int builtin_exit(char **argv)
+{
+// TODO: bash does it ONLY on top-level sh exit (+interacive only?)
+	//puts("exit"); /* bash does it */
+// TODO: warn if we have background jobs: "There are stopped jobs"
+// On second consecutive 'exit', exit anyway.
+	if (argv[1] == NULL)
+		hush_exit(last_return_code);
+	/* mimic bash: exit 123abc == exit 255 + error msg */
+	xfunc_error_retval = 255;
+	/* bash: exit -2 == exit 254, no error msg */
+	hush_exit(xatoi(argv[1]) & 0xff);
+}
+
+static int builtin_export(char **argv)
+{
+	const char *value;
+	char *name = argv[1];
+
+	if (name == NULL) {
+		// TODO:
+		// ash emits: export VAR='VAL'
+		// bash: declare -x VAR="VAL"
+		// (both also escape as needed (quotes, $, etc))
+		char **e = environ;
+		if (e)
+			while (*e)
+				puts(*e++);
+		return EXIT_SUCCESS;
+	}
+
+	value = strchr(name, '=');
+	if (!value) {
+		/* They are exporting something without a =VALUE */
+		struct variable *var;
+
+		var = get_local_var(name);
+		if (var) {
+			var->flg_export = 1;
+			putenv(var->varstr);
+		}
+		/* bash does not return an error when trying to export
+		 * an undefined variable.  Do likewise. */
+		return EXIT_SUCCESS;
+	}
+
+	set_local_var(xstrdup(name), 1);
+	return EXIT_SUCCESS;
+}
+
+#if ENABLE_HUSH_JOB
+/* built-in 'fg' and 'bg' handler */
+static int builtin_fg_bg(char **argv)
+{
+	int i, jobnum;
+	struct pipe *pi;
+
+	if (!interactive_fd)
+		return EXIT_FAILURE;
+	/* If they gave us no args, assume they want the last backgrounded task */
+	if (!argv[1]) {
+		for (pi = job_list; pi; pi = pi->next) {
+			if (pi->jobid == last_jobid) {
+				goto found;
+			}
+		}
+		bb_error_msg("%s: no current job", argv[0]);
+		return EXIT_FAILURE;
+	}
+	if (sscanf(argv[1], "%%%d", &jobnum) != 1) {
+		bb_error_msg("%s: bad argument '%s'", argv[0], argv[1]);
+		return EXIT_FAILURE;
+	}
+	for (pi = job_list; pi; pi = pi->next) {
+		if (pi->jobid == jobnum) {
+			goto found;
+		}
+	}
+	bb_error_msg("%s: %d: no such job", argv[0], jobnum);
+	return EXIT_FAILURE;
+ found:
+	// TODO: bash prints a string representation
+	// of job being foregrounded (like "sleep 1 | cat")
+	if (*argv[0] == 'f') {
+		/* Put the job into the foreground.  */
+		tcsetpgrp(interactive_fd, pi->pgrp);
+	}
+
+	/* Restart the processes in the job */
+	debug_printf_jobs("reviving %d procs, pgrp %d\n", pi->num_progs, pi->pgrp);
+	for (i = 0; i < pi->num_progs; i++) {
+		debug_printf_jobs("reviving pid %d\n", pi->progs[i].pid);
+		pi->progs[i].is_stopped = 0;
+	}
+	pi->stopped_progs = 0;
+
+	i = kill(- pi->pgrp, SIGCONT);
+	if (i < 0) {
+		if (errno == ESRCH) {
+			delete_finished_bg_job(pi);
+			return EXIT_SUCCESS;
+		} else {
+			bb_perror_msg("kill (SIGCONT)");
+		}
+	}
+
+	if (*argv[0] == 'f') {
+		remove_bg_job(pi);
+		return checkjobs_and_fg_shell(pi);
+	}
+	return EXIT_SUCCESS;
+}
+#endif
+
+#if ENABLE_HUSH_HELP
+static int builtin_help(char **argv ATTRIBUTE_UNUSED)
+{
+	const struct built_in_command *x;
+
+	printf("\nBuilt-in commands:\n");
+	printf("-------------------\n");
+	for (x = bltins; x != &bltins[ARRAY_SIZE(bltins)]; x++) {
+		printf("%s\t%s\n", x->cmd, x->descr);
+	}
+	printf("\n\n");
+	return EXIT_SUCCESS;
+}
+#endif
+
+#if ENABLE_HUSH_JOB
+static int builtin_jobs(char **argv ATTRIBUTE_UNUSED)
+{
+	struct pipe *job;
+	const char *status_string;
+
+	for (job = job_list; job; job = job->next) {
+		if (job->running_progs == job->stopped_progs)
+			status_string = "Stopped";
+		else
+			status_string = "Running";
+
+		printf(JOB_STATUS_FORMAT, job->jobid, status_string, job->cmdtext);
+	}
+	return EXIT_SUCCESS;
+}
+#endif
+
+static int builtin_pwd(char **argv ATTRIBUTE_UNUSED)
+{
+	puts(set_cwd());
+	return EXIT_SUCCESS;
+}
+
+static int builtin_read(char **argv)
+{
+	char *string;
+	const char *name = argv[1] ? argv[1] : "REPLY";
+
+	string = xmalloc_reads(STDIN_FILENO, xasprintf("%s=", name), NULL);
+	return set_local_var(string, 0);
+}
+
+/* built-in 'set [VAR=value]' handler */
+static int builtin_set(char **argv)
+{
+	char *temp = argv[1];
+	struct variable *e;
+
+	if (temp == NULL)
+		for (e = top_var; e; e = e->next)
+			puts(e->varstr);
+	else
+		set_local_var(xstrdup(temp), 0);
+
+	return EXIT_SUCCESS;
+}
+
+static int builtin_shift(char **argv)
+{
+	int n = 1;
+	if (argv[1]) {
+		n = atoi(argv[1]);
+	}
+	if (n >= 0 && n < global_argc) {
+		global_argv[n] = global_argv[0];
+		global_argc -= n;
+		global_argv += n;
+		return EXIT_SUCCESS;
+	}
+	return EXIT_FAILURE;
+}
+
+static int builtin_source(char **argv)
+{
+	FILE *input;
+	int status;
+
+	if (argv[1] == NULL)
+		return EXIT_FAILURE;
+
+	/* XXX search through $PATH is missing */
+	input = fopen(argv[1], "r");
+	if (!input) {
+		bb_error_msg("cannot open '%s'", argv[1]);
+		return EXIT_FAILURE;
+	}
+	close_on_exec_on(fileno(input));
+
+	/* Now run the file */
+	/* XXX argv and argc are broken; need to save old global_argv
+	 * (pointer only is OK!) on this stack frame,
+	 * set global_argv=argv+1, recurse, and restore. */
+	status = parse_and_run_file(input);
+	fclose(input);
+	return status;
+}
+
+static int builtin_umask(char **argv)
+{
+	mode_t new_umask;
+	const char *arg = argv[1];
+	char *end;
+	if (arg) {
+		new_umask = strtoul(arg, &end, 8);
+		if (*end != '\0' || end == arg) {
+			return EXIT_FAILURE;
+		}
+	} else {
+		new_umask = umask(0);
+		printf("%.3o\n", (unsigned) new_umask);
+	}
+	umask(new_umask);
+	return EXIT_SUCCESS;
+}
+
+static int builtin_unset(char **argv)
+{
+	/* bash always returns true */
+	unset_local_var(argv[1]);
+	return EXIT_SUCCESS;
+}
