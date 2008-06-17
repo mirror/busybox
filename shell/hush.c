@@ -106,6 +106,7 @@
 #define debug_printf_expand(...) do {} while (0)
 #define debug_printf_glob(...)   do {} while (0)
 #define debug_printf_list(...)   do {} while (0)
+#define debug_printf_subst(...)  do {} while (0)
 #define debug_printf_clean(...)  do {} while (0)
 
 #ifndef debug_printf
@@ -143,6 +144,10 @@
 
 #ifndef debug_printf_list
 #define debug_printf_list(...) fprintf(stderr, __VA_ARGS__)
+#endif
+
+#ifndef debug_printf_subst
+#define debug_printf_subst(...) fprintf(stderr, __VA_ARGS__)
 #endif
 
 /* Keep unconditionally on for now */
@@ -516,8 +521,6 @@ static int run_list(struct pipe *pi);
 static void pseudo_exec_argv(char **ptrs2free, char **argv) ATTRIBUTE_NORETURN;
 static void pseudo_exec(char **ptrs2free, struct child_prog *child) ATTRIBUTE_NORETURN;
 static int run_pipe(struct pipe *pi);
-/*   variable assignment: */
-static int is_assignment(const char *s);
 /*   data structure manipulation: */
 static int setup_redirect(struct p_context *ctx, int fd, redir_type style, struct in_str *input);
 static void initialize_context(struct p_context *ctx);
@@ -571,6 +574,16 @@ static int glob_needed(const char *s)
 		s++;
 	}
 	return 0;
+}
+
+static int is_assignment(const char *s)
+{
+	if (!s || !isalpha(*s))
+		return 0;
+	s++;
+	while (isalnum(*s) || *s == '_')
+		s++;
+	return *s == '=';
 }
 
 static char **add_malloced_strings_to_strings(char **strings, char **add)
@@ -938,7 +951,7 @@ static void o_addQstr(o_string *o, const char *str, int len)
 		if (ordinary_cnt == len)
 			return;
 		str += ordinary_cnt;
-		len -= ordinary_cnt - 1; /* we are processing + 1 char below */
+		len -= ordinary_cnt + 1; /* we are processing + 1 char below */
 
 		ch = *str++;
 		sz = 1;
@@ -1000,7 +1013,7 @@ static int o_save_ptr_helper(o_string *o, int n)
 		string_start = ((n + 0xf) & ~0xf) * sizeof(list[0]);
 		string_len = o->length - string_start;
 		if (!(n & 0xf)) { /* 0, 0x10, 0x20...? */
-			debug_printf_list("list[%d]=%d string_start=%d (growing)", n, string_len, string_start);
+			debug_printf_list("list[%d]=%d string_start=%d (growing)\n", n, string_len, string_start);
 			/* list[n] points to string_start, make space for 16 more pointers */
 			o->maxlen += 0x10 * sizeof(list[0]);
 			o->data = xrealloc(o->data, o->maxlen + 1);
@@ -1008,12 +1021,12 @@ static int o_save_ptr_helper(o_string *o, int n)
 			memmove(list + n + 0x10, list + n, string_len);
 			o->length += 0x10 * sizeof(list[0]);
 		} else
-			debug_printf_list("list[%d]=%d string_start=%d", n, string_len, string_start);
+			debug_printf_list("list[%d]=%d string_start=%d\n", n, string_len, string_start);
 	} else {
 		/* We have empty slot at list[n], reuse without growth */
 		string_start = ((n+1 + 0xf) & ~0xf) * sizeof(list[0]); /* NB: n+1! */
 		string_len = o->length - string_start;
-		debug_printf_list("list[%d]=%d string_start=%d (empty slot)", n, string_len, string_start);
+		debug_printf_list("list[%d]=%d string_start=%d (empty slot)\n", n, string_len, string_start);
 		o->has_empty_slot = 0;
 	}
 	list[n] = (char*)string_len;
@@ -1048,15 +1061,15 @@ static int o_glob(o_string *o, int n)
 	int gr;
 	char *pattern;
 
-	debug_printf_glob("start o_glob: n:%d o->data:%p", n, o->data);
+	debug_printf_glob("start o_glob: n:%d o->data:%p\n", n, o->data);
 	if (!o->data)
 		return o_save_ptr_helper(o, n);
 	pattern = o->data + o_get_last_ptr(o, n);
-	debug_printf_glob("glob pattern '%s'", pattern);
+	debug_printf_glob("glob pattern '%s'\n", pattern);
 	if (!glob_needed(pattern)) {
  literal:
 		o->length = unbackslash(pattern) - o->data;
-		debug_printf_glob("glob pattern '%s' is literal", pattern);
+		debug_printf_glob("glob pattern '%s' is literal\n", pattern);
 		return o_save_ptr_helper(o, n);
 	}
 
@@ -1108,7 +1121,7 @@ static char **o_finalize_list(o_string *o, int n)
 	n = o_save_ptr(o, n); /* force growth for list[n] if necessary */
 	if (DEBUG_EXPAND)
 		debug_print_list("finalized", o, n);
-	debug_printf_expand("finalized n:%d", n);
+	debug_printf_expand("finalized n:%d\n", n);
 	list = (char**)o->data;
 	string_start = ((n + 0xf) & ~0xf) * sizeof(list[0]);
 	list[--n] = NULL;
@@ -2285,7 +2298,7 @@ static int expand_on_ifs(o_string *output, int n, const char *str)
 	while (1) {
 		int word_len = strcspn(str, ifs);
 		if (word_len) {
-			o_addQstr(output, str, word_len);
+			o_addstr(output, str, word_len);
 			str += word_len;
 		}
 		if (!*str)  /* EOL - do not finalize word */
@@ -2328,7 +2341,7 @@ static int expand_vars_to_list(o_string *output, int n, char *arg, char or_mask)
 		o_string subst_result = NULL_O_STRING;
 #endif
 
-		o_addQstr(output, arg, p - arg);
+		o_addstr(output, arg, p - arg);
 		debug_print_list("expand_vars_to_list[1]", output, n);
 		arg = ++p;
 		p = strchr(p, SPECIAL_VAR_SYMBOL);
@@ -2374,7 +2387,7 @@ static int expand_vars_to_list(o_string *output, int n, char *arg, char or_mask)
 			 * and in this case should treat it like '$*' - see 'else...' below */
 			if (first_ch == ('@'|0x80) && !or_mask) { /* quoted $@ */
 				while (1) {
-					o_addQstr(output, global_argv[i], strlen(global_argv[i]));
+					o_addQstr(output, global_argv[i], strlen(global_argv[i])); ///really Q?
 					if (++i >= global_argc)
 						break;
 					o_addchr(output, '\0');
@@ -2383,7 +2396,7 @@ static int expand_vars_to_list(o_string *output, int n, char *arg, char or_mask)
 				}
 			} else { /* quoted $*: add as one word */
 				while (1) {
-					o_addQstr(output, global_argv[i], strlen(global_argv[i]));
+					o_addQstr(output, global_argv[i], strlen(global_argv[i])); ///really Q?
 					if (!global_argv[++i])
 						break;
 					if (ifs[0])
@@ -2397,10 +2410,10 @@ static int expand_vars_to_list(o_string *output, int n, char *arg, char or_mask)
 			*p = '\0';
 			arg++;
 //TODO: can we just stuff it into "output" directly?
-			//bb_error_msg("SUBST '%s' first_ch %x", arg, first_ch);
+			debug_printf_subst("SUBST '%s' first_ch %x\n", arg, first_ch);
 			setup_string_in_str(&input, arg);
 			process_command_subs(&subst_result, &input, NULL);
-			//bb_error_msg("RES '%s'", subst_result.data);
+			debug_printf_subst("SUBST RES '%s'\n", subst_result.data);
 			val = subst_result.data;
 			goto store_val;
 		}
@@ -2421,14 +2434,16 @@ static int expand_vars_to_list(o_string *output, int n, char *arg, char or_mask)
 #endif
 			*p = SPECIAL_VAR_SYMBOL;
 			if (!(first_ch & 0x80)) { /* unquoted $VAR */
+				debug_printf_expand("unquoted '%s', output->o_quote:%d\n", val, output->o_quote);
 				if (val) {
 					n = expand_on_ifs(output, n, val);
 					val = NULL;
 				}
-			} /* else: quoted $VAR, val will be appended below */
+			} else /* quoted $VAR, val will be appended below */
+				debug_printf_expand("quoted '%s', output->o_quote:%d\n", val, output->o_quote);
 		}
 		if (val) {
-			o_addQstr(output, val, strlen(val));
+			o_addQstr(output, val, strlen(val)); ///maybe q?
 		}
 
 #if ENABLE_HUSH_TICK
@@ -2439,7 +2454,9 @@ static int expand_vars_to_list(o_string *output, int n, char *arg, char or_mask)
 
 	if (arg[0]) {
 		debug_print_list("expand_vars_to_list[a]", output, n);
-		o_addQstr(output, arg, strlen(arg) + 1);
+		/* this part is literal, and it was already pre-quoted
+		 * if needed (much earlier), do not use o_addQstr here! */
+		o_addstr(output, arg, strlen(arg) + 1);
 		debug_print_list("expand_vars_to_list[b]", output, n);
 	} else if (output->length == o_get_last_ptr(output, n) /* expansion is empty */
 	 && !(ored_ch & 0x80) /* and all vars were not quoted. */
@@ -2460,8 +2477,10 @@ static char **expand_variables(char **argv, int or_mask)
 	char **v;
 	o_string output = NULL_O_STRING;
 
-	if (or_mask & 0x100)
+	if (or_mask & 0x100) {
+		output.o_quote = 1;
 		output.o_glob = 1;
+	}
 
 	n = 0;
 	v = argv;
@@ -2635,16 +2654,6 @@ static void unset_local_var(const char *name)
 		prev = cur;
 		cur = cur->next;
 	}
-}
-
-static int is_assignment(const char *s)
-{
-	if (!s || !isalpha(*s))
-		return 0;
-	s++;
-	while (isalnum(*s) || *s == '_')
-		s++;
-	return *s == '=';
 }
 
 /* the src parameter allows us to peek forward to a possible &n syntax
@@ -3341,7 +3350,7 @@ static int handle_dollar(o_string *dest, struct in_str *input)
 			o_addchr(dest, SPECIAL_VAR_SYMBOL);
 			o_addchr(dest, quote_mask | '`');
 			add_till_closing_curly_brace(dest, input);
-			//bb_error_msg("RES '%s'", dest->data + pos);
+			//debug_printf_subst("SUBST RES2 '%s'\n", dest->data + pos);
 			o_addchr(dest, SPECIAL_VAR_SYMBOL);
 			break;
 		}
@@ -3496,7 +3505,7 @@ static int parse_stream(o_string *dest, struct p_context *ctx,
 			o_addchr(dest, dest->o_quote ? 0x80 | '`' : '`');
 			add_till_backquote(dest, input);
 			o_addchr(dest, SPECIAL_VAR_SYMBOL);
-			//bb_error_msg("RES '%s'", dest->data + pos);
+			//debug_printf_subst("SUBST RES3 '%s'\n", dest->data + pos);
 			break;
 		}
 #endif

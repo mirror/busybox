@@ -1,18 +1,10 @@
-## # bash zbad2
-## ZVAR=z.map
-## *.map
-## # hush zbad2
-## ZVAR=z.map
-## z.map  <====== !!!
-
-## hush does globbing for "VAR=val" too!
-## it should do it only for non-assignments.
-## even if word looks like assignment, it can be non-assignment:
-## ZVAR=*.map /bin/echo ZVAR=*.map
-## ^dont_glob           ^glob
-
->ZVAR=z.map
-ZVAR=*.map /bin/echo ZVAR=*.map
-ZVAR=*.map
+>ZVAR=z.tmp
+>z.tmp
+ZVAR=*.tmp echo ZVAR=*.tmp "ZVAR=*.tmp" "ZVAR=[z].tmp"
+ZVAR=*.tmp /bin/echo ZVAR=*.tmp "ZVAR=*.tmp" "ZVAR=[z].tmp"
+ZVAR=*.tmp
 echo "$ZVAR"
-rm ZVAR=z.map
+echo $ZVAR
+echo ZVAR=*.tmp "ZVAR=*.tmp" "ZVAR=[z].tmp"
+/bin/echo ZVAR=*.tmp "ZVAR=*.tmp" "ZVAR=[z].tmp"
+rm ZVAR=z.tmp z.tmp

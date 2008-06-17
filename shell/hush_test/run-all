@@ -1,5 +1,14 @@
 #!/bin/sh
 
+unset LANG LANGUAGE
+unset LC_COLLATE
+unset LC_CTYPE
+unset LC_MONETARY
+unset LC_MESSAGES
+unset LC_NUMERIC
+unset LC_TIME
+unset LC_ALL
+
 test -x hush || {
     echo "No ./hush - creating a link to ../../busybox"
     ln -s ../../busybox hush

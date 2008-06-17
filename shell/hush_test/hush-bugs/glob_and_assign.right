@@ -1,2 +1,6 @@
-ZVAR=z.map
-*.map
+ZVAR=z.tmp ZVAR=*.tmp ZVAR=[z].tmp
+ZVAR=z.tmp ZVAR=*.tmp ZVAR=[z].tmp
+*.tmp
+ZVAR=z.tmp z.tmp
+ZVAR=z.tmp ZVAR=*.tmp ZVAR=[z].tmp
+ZVAR=z.tmp ZVAR=*.tmp ZVAR=[z].tmp
