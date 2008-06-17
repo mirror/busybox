@@ -395,6 +395,7 @@ struct globals {
 	int run_list_level;
 	pid_t saved_task_pgrp;
 	pid_t saved_tty_pgrp;
+	pid_t root_pid;
 	int last_jobid;
 	struct pipe *job_list;
 	struct pipe *toplevel_list;
@@ -441,6 +442,7 @@ enum { run_list_level = 0 };
 #define run_list_level   (G.run_list_level  )
 #define saved_task_pgrp  (G.saved_task_pgrp )
 #define saved_tty_pgrp   (G.saved_tty_pgrp  )
+#define root_pid         (G.root_pid        )
 #define last_jobid       (G.last_jobid      )
 #define job_list         (G.job_list        )
 #define toplevel_list    (G.toplevel_list   )
@@ -2353,7 +2355,7 @@ static int expand_vars_to_list(o_string *output, int n, char *arg, char or_mask)
 		/* Highest bit in first_ch indicates that var is double-quoted */
 		case '$': /* pid */
 			/* FIXME: (echo $$) should still print pid of main shell */
-			val = utoa(getpid()); /* rootpid? */
+			val = utoa(root_pid);
 			break;
 		case '!': /* bg pid */
 			val = last_bg_pid ? utoa(last_bg_pid) : (char*)"";
@@ -3751,6 +3753,8 @@ int hush_main(int argc, char **argv)
 	struct variable *cur_var;
 
 	INIT_G();
+
+	root_pid = getpid();
 
 	/* Deal with HUSH_VERSION */
 	shell_ver = const_shell_ver; /* copying struct here */
