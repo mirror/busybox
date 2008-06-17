@@ -7,8 +7,7 @@
  * Licensed under GPLv2 or later, see file License in this tarball for details.
  */
 
-#include <string.h>
-#include <stdio.h>
+#include "libbb.h"
 
 /*
  * The strrstr() function finds the last occurrence of the substring needle
