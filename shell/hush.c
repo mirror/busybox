@@ -2004,7 +2004,7 @@ static int run_list(struct pipe *pi)
 		 || (rpipe->res_word == RES_FOR && rpipe->next->res_word != RES_IN)
 		) {
 			/* TODO: what is tested in the first condition? */
-			syntax("malformed for"); /* 2nd condition: not followed by IN */
+			syntax("malformed for"); /* 2nd condition: FOR not followed by IN */
 			debug_printf_exec("run_list lvl %d return 1\n", run_list_level);
 			return 1;
 		}
@@ -2898,7 +2898,8 @@ static int done_word(o_string *word, struct p_context *ctx)
 		ctx->pending_redirect = NULL;
 	}
 #if ENABLE_HUSH_LOOPS
-	if (ctx->res_w == RES_FOR) { /* comment? */
+	/* comment? is it forcing "for" to have just one word (variable name)? */
+	if (ctx->res_w == RES_FOR) {
 //TESTING
 //looks like (word->length == 0 && !word->nonnull) is true here, always
 //(due to o_reset). done_word would return at once. Why then?
@@ -2910,8 +2911,8 @@ static int done_word(o_string *word, struct p_context *ctx)
 	return 0;
 }
 
-/* The only possible error here is out of memory, in which case
- * xmalloc exits. */
+/* Command (member of a pipe) is complete. The only possible error here
+ * is out of memory, in which case xmalloc exits. */
 static int done_command(struct p_context *ctx)
 {
 	/* The child is really already in the pipe structure, so
@@ -2949,7 +2950,6 @@ static int done_command(struct p_context *ctx)
 
 static void done_pipe(struct p_context *ctx, pipe_style type)
 {
-	struct pipe *new_p;
 	int not_null;
 
 	debug_printf_parse("done_pipe entered, followup %d\n", type);
@@ -2960,9 +2960,11 @@ static void done_pipe(struct p_context *ctx, pipe_style type)
 	ctx->ctx_inverted = 0;
 	/* Without this check, even just <enter> on command line generates
 	 * tree of three NOPs (!). Which is harmless but annoying.
-	 * IOW: it is safe to do it unconditionally. */
-	if (not_null) {
-		new_p = new_pipe();
+	 * IOW: it is safe to do it unconditionally.
+	 * RES_IN case is for "for a in; do ..." (empty IN set)
+	 * to work. */
+	if (not_null || ctx->pipe->res_word == RES_IN) {
+		struct pipe *new_p = new_pipe();
 		ctx->pipe->next = new_p;
 		ctx->pipe = new_p;
 		ctx->child = NULL; /* needed! */
