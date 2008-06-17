@@ -6,7 +6,7 @@ do one of these bounce an email off the person it's listed under to see if they
 have any suggestions how they plan to go about it, and to minimize conflicts
 between your work and theirs.  But otherwise, all of these are fair game.
 
-Rob Landley <rob@landley.net>:
+Rob Landley suggested these:
   Add a libbb/platform.c
     Implement fdprintf() for platforms that haven't got one.
     Implement bb_realpath() that can handle NULL on non-glibc.
@@ -24,11 +24,6 @@ Rob Landley <rob@landley.net>:
     but less buggy :)
   init
     General cleanup (should use ENABLE_FEATURE_INIT_SYSLOG and ENABLE_FEATURE_INIT_DEBUG).
-  depmod
-    busybox lacks a way to update module deps when running from firmware without the
-    use of the depmod.pl (perl is to bloated for most embedded setups) and or orig
-    modutils. The orig depmod is rather pointless to have to add to a firmware image
-    in when we already have a insmod/rmmod and friends.
   Do a SUSv3 audit
     Look at the full Single Unix Specification version 3 (available online at
     "http://www.opengroup.org/onlinepubs/009695399/nfindex.html") and
@@ -146,7 +141,7 @@ man
   (How doclifter might work into this is anybody's guess.)
 ---
 ar
-  Write support?
+  Write support!
 ---
 stty / catv
   stty's visible() function and catv's guts are identical. Merge them into
@@ -282,10 +277,6 @@ Minor stuff:
 ---
   use bb_perror_msg where appropriate: See
   egrep "[^_]perror"
----
-  Remove superfluous fmt occurances: e.g.
-  fprintf(stderr, "%s: %s not found\n", "unalias", *argptr);
-  -> fprintf(stderr, "unalias: %s not found\n", *argptr);
 ---
   possible code duplication ingroup() and is_a_group_member()
 ---
