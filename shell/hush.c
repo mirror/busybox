@@ -104,6 +104,8 @@
 #define debug_printf_exec(...)   do {} while (0)
 #define debug_printf_jobs(...)   do {} while (0)
 #define debug_printf_expand(...) do {} while (0)
+#define debug_printf_glob(...)   do {} while (0)
+#define debug_printf_list(...)   do {} while (0)
 #define debug_printf_clean(...)  do {} while (0)
 
 #ifndef debug_printf
@@ -120,12 +122,27 @@
 
 #ifndef debug_printf_jobs
 #define debug_printf_jobs(...) fprintf(stderr, __VA_ARGS__)
-#define DEBUG_SHELL_JOBS 1
+#define DEBUG_JOBS 1
+#else
+#define DEBUG_JOBS 0
 #endif
 
 #ifndef debug_printf_expand
 #define debug_printf_expand(...) fprintf(stderr, __VA_ARGS__)
 #define DEBUG_EXPAND 1
+#else
+#define DEBUG_EXPAND 0
+#endif
+
+#ifndef debug_printf_glob
+#define debug_printf_glob(...) fprintf(stderr, __VA_ARGS__)
+#define DEBUG_GLOB 1
+#else
+#define DEBUG_GLOB 0
+#endif
+
+#ifndef debug_printf_list
+#define debug_printf_list(...) fprintf(stderr, __VA_ARGS__)
 #endif
 
 /* Keep unconditionally on for now */
@@ -141,6 +158,17 @@ static const char *indenter(int i)
 }
 #define debug_printf_clean(...) fprintf(stderr, __VA_ARGS__)
 #define DEBUG_CLEAN 1
+#endif
+
+#if DEBUG_EXPAND
+static void debug_print_strings(const char *prefix, char **vv)
+{
+	fprintf(stderr, "%s:\n", prefix);
+	while (*vv)
+		fprintf(stderr, " '%s'\n", *vv++);
+}
+#else
+#define debug_print_strings(prefix, vv) ((void)0)
 #endif
 
 
@@ -309,6 +337,7 @@ typedef struct {
 	int length;
 	int maxlen;
 	smallint o_quote;
+	smallint o_glob;
 	smallint nonnull;
 	smallint has_empty_slot;
 } o_string;
@@ -531,6 +560,18 @@ static int set_local_var(char *str, int flg_export);
 static void unset_local_var(const char *name);
 
 
+static int glob_needed(const char *s)
+{
+	while (*s) {
+		if (*s == '\\')
+			s++;
+		if (*s == '*' || *s == '[' || *s == '?')
+			return 1;
+		s++;
+	}
+	return 0;
+}
+
 static char **add_strings_to_strings(int need_xstrdup, char **strings, char **add)
 {
 	int i;
@@ -590,17 +631,6 @@ static char **alloc_ptrs(char **argv)
 		v++;
 	return xzalloc((v - argv + EXTRA_PTRS) * sizeof(v[0]));
 }
-#endif
-
-#ifdef DEBUG_EXPAND
-static void debug_print_strings(const char *prefix, char **vv)
-{
-	fprintf(stderr, "%s:\n", prefix);
-	while (*vv)
-		fprintf(stderr, " '%s'\n", *vv++);
-}
-#else
-#define debug_print_strings(prefix, vv) ((void)0)
 #endif
 
 
@@ -1260,7 +1290,33 @@ static void o_addQstr(o_string *o, const char *str, int len)
  * o_finalize_list() operation post-processes this structure - calculates
  * and stores actual char* ptrs in list[]. Oh, it NULL terminates it as well.
  */
-static int o_save_ptr(o_string *o, int n)
+#if DEBUG_EXPAND || DEBUG_GLOB
+static void debug_print_list(const char *prefix, o_string *o, int n)
+{
+	char **list = (char**)o->data;
+	int string_start = ((n + 0xf) & ~0xf) * sizeof(list[0]);
+	int i = 0;
+	fprintf(stderr, "%s: list:%p n:%d string_start:%d length:%d maxlen:%d\n",
+			prefix, list, n, string_start, o->length, o->maxlen);
+	while (i < n) {
+		fprintf(stderr, " list[%d]=%d '%s' %p\n", i, (int)list[i],
+				o->data + (int)list[i] + string_start,
+				o->data + (int)list[i] + string_start);
+		i++;
+	}
+	if (n) {
+		const char *p = o->data + (int)list[n - 1] + string_start;
+		fprintf(stderr, " total_sz:%d\n", (p + strlen(p) + 1) - o->data);
+	}
+}
+#else
+#define debug_print_list(prefix, o, n) ((void)0)
+#endif
+
+/* n = o_save_ptr_helper(str, n) "starts new string" by storing an index value
+ * in list[n] so that it points past last stored byte so far.
+ * It returns n+1. */
+static int o_save_ptr_helper(o_string *o, int n)
 {
 	char **list = (char**)o->data;
 	int string_start;
@@ -1270,26 +1326,27 @@ static int o_save_ptr(o_string *o, int n)
 		string_start = ((n + 0xf) & ~0xf) * sizeof(list[0]);
 		string_len = o->length - string_start;
 		if (!(n & 0xf)) { /* 0, 0x10, 0x20...? */
-			//bb_error_msg("list[%d]=%d string_start=%d (growing)", n, string_len, string_start);
+			debug_printf_list("list[%d]=%d string_start=%d (growing)", n, string_len, string_start);
 			/* list[n] points to string_start, make space for 16 more pointers */
 			o->maxlen += 0x10 * sizeof(list[0]);
 			o->data = xrealloc(o->data, o->maxlen + 1);
     			list = (char**)o->data;
 			memmove(list + n + 0x10, list + n, string_len);
 			o->length += 0x10 * sizeof(list[0]);
-		}
-		//else bb_error_msg("list[%d]=%d string_start=%d", n, string_len, string_start);
+		} else
+			debug_printf_list("list[%d]=%d string_start=%d", n, string_len, string_start);
 	} else {
 		/* We have empty slot at list[n], reuse without growth */
 		string_start = ((n+1 + 0xf) & ~0xf) * sizeof(list[0]); /* NB: n+1! */
 		string_len = o->length - string_start;
-		//bb_error_msg("list[%d]=%d string_start=%d (empty slot)", n, string_len, string_start);
+		debug_printf_list("list[%d]=%d string_start=%d (empty slot)", n, string_len, string_start);
 		o->has_empty_slot = 0;
 	}
 	list[n] = (char*)string_len;
 	return n + 1;
 }
 
+/* "What was our last o_save_ptr'ed position (byte offset relative o->data)?" */
 static int o_get_last_ptr(o_string *o, int n)
 {
 	char **list = (char**)o->data;
@@ -1298,42 +1355,95 @@ static int o_get_last_ptr(o_string *o, int n)
 	return ((int)list[n-1]) + string_start;
 }
 
+/* Convert every \x to x in-place, return ptr past NUL. */
+static char *unbackslash(char *src)
+{
+	char *dst = src;
+	while (1) {
+		if (*src == '\\')
+			src++;
+		if ((*dst++ = *src++) == '\0')
+			break;
+	}
+	return dst;
+}
+
+static int o_glob(o_string *o, int n)
+{
+	glob_t globdata;
+	int gr;
+	char *pattern;
+
+	debug_printf_glob("start o_glob: n:%d o->data:%p", n, o->data);
+	if (!o->data)
+		return o_save_ptr_helper(o, n);
+	pattern = o->data + o_get_last_ptr(o, n);
+	debug_printf_glob("glob pattern '%s'", pattern);
+	if (!glob_needed(pattern)) {
+ literal:
+		o->length = unbackslash(pattern) - o->data;
+		debug_printf_glob("glob pattern '%s' is literal", pattern);
+		return o_save_ptr_helper(o, n);
+	}
+
+	memset(&globdata, 0, sizeof(globdata));
+	gr = glob(pattern, 0, NULL, &globdata);
+	debug_printf_glob("glob('%s'):%d\n", pattern, gr);
+	if (gr == GLOB_NOSPACE)
+		bb_error_msg_and_die("out of memory during glob");
+	if (gr == GLOB_NOMATCH) {
+		globfree(&globdata);
+		goto literal;
+	}
+	if (gr != 0) { /* GLOB_ABORTED ? */
+//TODO: testcase for bad glob pattern behavior
+		bb_error_msg("glob(3) error %d on '%s'", gr, pattern);
+	}
+	if (globdata.gl_pathv && globdata.gl_pathv[0]) {
+		char **argv = globdata.gl_pathv;
+		o->length = pattern - o->data; /* "forget" pattern */
+		while (1) {
+			o_addstr(o, *argv, strlen(*argv) + 1);
+			n = o_save_ptr_helper(o, n);
+			argv++;
+			if (!*argv)
+				break;
+		}
+	}
+	globfree(&globdata);
+	if (DEBUG_GLOB)
+		debug_print_list("o_glob returning", o, n);
+	return n;
+}
+
+/* o_save_ptr_helper + but glob the string so far remembered
+ * if o->o_glob == 1 */
+static int o_save_ptr(o_string *o, int n)
+{
+	if (o->o_glob)
+		return o_glob(o, n); /* o_save_ptr_helper is inside */
+	return o_save_ptr_helper(o, n);
+}
+
+/* "Please convert list[n] to real char* ptrs, and NULL terminate it." */
 static char **o_finalize_list(o_string *o, int n)
 {
-	char **list = (char**)o->data;
+	char **list;
 	int string_start;
 
-	o_save_ptr(o, n); /* force growth for list[n] if necessary */
-	string_start = ((n+1 + 0xf) & ~0xf) * sizeof(list[0]);
-	list[n] = NULL;
+	n = o_save_ptr(o, n); /* force growth for list[n] if necessary */
+	if (DEBUG_EXPAND)
+		debug_print_list("finalized", o, n);
+	debug_printf_expand("finalized n:%d", n);
+	list = (char**)o->data;
+	string_start = ((n + 0xf) & ~0xf) * sizeof(list[0]);
+	list[--n] = NULL;
 	while (n) {
 		n--;
 		list[n] = o->data + (int)list[n] + string_start;
 	}
 	return list;
 }
-
-#ifdef DEBUG_EXPAND
-static void o_debug_list(const char *prefix, o_string *o, int n)
-{
-	char **list = (char**)o->data;
-	int string_start = ((n + 0xf) & ~0xf) * sizeof(list[0]);
-	int i = 0;
-	fprintf(stderr, "%s: list:%p n:%d string_start:%d length:%d maxlen:%d\n",
-			prefix, list, n, string_start, o->length, o->maxlen);
-	while (i < n) {
-		fprintf(stderr, " list[%d]=%d '%s'\n", i, (int)list[i],
-				o->data + (int)list[i] + string_start);
-		i++;
-	}
-	if (n) {
-		const char *p = o->data + (int)list[n] + string_start;
-		fprintf(stderr, " total_sz:%d\n", (p + strlen(p) + 1) - o->data);
-	}
-}
-#else
-#define o_debug_list(prefix, o, n) ((void)0)
-#endif
 
 
 /*
@@ -1782,7 +1892,7 @@ static int checkjobs(struct pipe* fg_pipe)
 	while ((childpid = waitpid(-1, &status, attributes)) > 0) {
 		const int dead = WIFEXITED(status) || WIFSIGNALED(status);
 
-#ifdef DEBUG_SHELL_JOBS
+#if DEBUG_JOBS
 		if (WIFSTOPPED(status))
 			debug_printf_jobs("pid %d stopped by sig %d (exitcode %d)\n",
 					childpid, WSTOPSIG(status), WEXITSTATUS(status));
@@ -2502,11 +2612,11 @@ static int expand_on_ifs(o_string *output, int n, const char *str)
 		if (!*str)  /* EOL - do not finalize word */
 			break;
 		o_addchr(output, '\0');
-		o_debug_list("expand_on_ifs", output, n);
+		debug_print_list("expand_on_ifs", output, n);
 		n = o_save_ptr(output, n);
 		str += strspn(str, ifs); /* skip ifs chars */
 	}
-	o_debug_list("expand_on_ifs[1]", output, n);
+	debug_print_list("expand_on_ifs[1]", output, n);
 	return n;
 }
 
@@ -2530,9 +2640,9 @@ static int expand_vars_to_list(o_string *output, int n, char *arg, char or_mask)
 	ored_ch = 0;
 
 	debug_printf_expand("expand_vars_to_list: arg '%s'\n", arg);
-	o_debug_list("expand_vars_to_list", output, n);
+	debug_print_list("expand_vars_to_list", output, n);
 	n = o_save_ptr(output, n);
-	o_debug_list("expand_vars_to_list[0]", output, n);
+	debug_print_list("expand_vars_to_list[0]", output, n);
 
 	while ((p = strchr(arg, SPECIAL_VAR_SYMBOL)) != NULL) {
 #if ENABLE_HUSH_TICK
@@ -2540,7 +2650,7 @@ static int expand_vars_to_list(o_string *output, int n, char *arg, char or_mask)
 #endif
 
 		o_addQstr(output, arg, p - arg);
-		o_debug_list("expand_vars_to_list[1]", output, n);
+		debug_print_list("expand_vars_to_list[1]", output, n);
 		arg = ++p;
 		p = strchr(p, SPECIAL_VAR_SYMBOL);
 
@@ -2575,9 +2685,9 @@ static int expand_vars_to_list(o_string *output, int n, char *arg, char or_mask)
 						/* this argv[] is not empty and not last:
 						 * put terminating NUL, start new word */
 						o_addchr(output, '\0');
-						o_debug_list("expand_vars_to_list[2]", output, n);
+						debug_print_list("expand_vars_to_list[2]", output, n);
 						n = o_save_ptr(output, n);
-						o_debug_list("expand_vars_to_list[3]", output, n);
+						debug_print_list("expand_vars_to_list[3]", output, n);
 					}
 				}
 			} else
@@ -2589,7 +2699,7 @@ static int expand_vars_to_list(o_string *output, int n, char *arg, char or_mask)
 					if (++i >= global_argc)
 						break;
 					o_addchr(output, '\0');
-					o_debug_list("expand_vars_to_list[4]", output, n);
+					debug_print_list("expand_vars_to_list[4]", output, n);
 					n = o_save_ptr(output, n);
 				}
 			} else { /* quoted $*: add as one word */
@@ -2647,9 +2757,9 @@ static int expand_vars_to_list(o_string *output, int n, char *arg, char or_mask)
 	} /* end of "while (SPECIAL_VAR_SYMBOL is found) ..." */
 
 	if (arg[0]) {
-		o_debug_list("expand_vars_to_list[a]", output, n);
+		debug_print_list("expand_vars_to_list[a]", output, n);
 		o_addQstr(output, arg, strlen(arg) + 1);
-		o_debug_list("expand_vars_to_list[b]", output, n);
+		debug_print_list("expand_vars_to_list[b]", output, n);
 	} else if (output->length == o_get_last_ptr(output, n) /* expansion is empty */
 	 && !(ored_ch & 0x80) /* and all vars were not quoted. */
 	) {
@@ -2662,106 +2772,33 @@ static int expand_vars_to_list(o_string *output, int n, char *arg, char or_mask)
 	return n;
 }
 
-static char **expand_variables(char **argv, char or_mask)
+static char **expand_variables(char **argv, int or_mask)
 {
 	int n;
 	char **list;
 	char **v;
 	o_string output = NULL_O_STRING;
 
+	if (or_mask & 0x100)
+		output.o_glob = 1;
+
 	n = 0;
 	v = argv;
-	while (*v)
-		n = expand_vars_to_list(&output, n, *v++, or_mask);
-	o_debug_list("expand_variables", &output, n);
+	while (*v) {
+		n = expand_vars_to_list(&output, n, *v, (char)or_mask);
+		v++;
+	}
+	debug_print_list("expand_variables", &output, n);
 
 	/* output.data (malloced in one block) gets returned in "list" */
 	list = o_finalize_list(&output, n);
+	debug_print_strings("expand_variables[1]", list);
 	return list;
 }
 
-/* Remove non-backslashed backslashes and add to "strings" vector.
- * XXX broken if the last character is '\\', check that before calling.
- */
-static char **add_unq_string_to_strings(char **strings, const char *src)
-{
-	int cnt;
-	const char *s;
-	char *v, *dest;
-
-	for (cnt = 1, s = src; s && *s; s++) {
-		if (*s == '\\') s++;
-		cnt++;
-	}
-	v = dest = xmalloc(cnt);
-	for (s = src; s && *s; s++, dest++) {
-		if (*s == '\\') s++;
-		*dest = *s;
-	}
-	*dest = '\0';
-
-	return add_string_to_strings(strings, v);
-}
-
-/* XXX broken if the last character is '\\', check that before calling */
-static int glob_needed(const char *s)
-{
-	for (; *s; s++) {
-		if (*s == '\\')
-			s++;
-		if (strchr("*[?", *s))
-			return 1;
-	}
-	return 0;
-}
-
-static void xglob(char ***pglob, const char *pattern)
-{
-	if (glob_needed(pattern)) {
-		glob_t globdata;
-		int gr;
-
-		memset(&globdata, 0, sizeof(globdata));
-		gr = glob(pattern, 0, NULL, &globdata);
-		debug_printf("glob returned %d\n", gr);
-		if (gr == GLOB_NOSPACE)
-			bb_error_msg_and_die("out of memory during glob");
-		if (gr == GLOB_NOMATCH) {
-			globfree(&globdata);
-			goto literal;
-		}
-		if (gr != 0) { /* GLOB_ABORTED ? */
-			bb_error_msg("glob(3) error %d on '%s'", gr, pattern);
-//TODO: testcase for bad glob pattern behavior
-		}
-		if (globdata.gl_pathv && globdata.gl_pathv[0])
-			*pglob = add_strings_to_strings(1, *pglob, globdata.gl_pathv);
-		globfree(&globdata);
-		return;
-	}
-
- literal:
-	/* quote removal, or more accurately, backslash removal */
-	*pglob = add_unq_string_to_strings(*pglob, pattern);
-	debug_print_strings("after xglob", *pglob);
-}
-
-//LEAK is here: callers expect result to be free()able, but we
-//actually require free_strings(). free() leaks strings.
 static char **expand_strvec_to_strvec(char **argv)
 {
-	char **exp;
-	char **res = xzalloc(sizeof(res[0]));
-
-	debug_print_strings("expand_strvec_to_strvec: pre expand", argv);
-	exp = argv = expand_variables(argv, 0);
-	debug_print_strings("expand_strvec_to_strvec: post expand", argv);
-	while (*argv) {
-		xglob(&res, *argv++);
-	}
-	free(exp);
-	debug_print_strings("expand_strvec_to_strvec: res", res);
-	return res;
+	return expand_variables(argv, 0x100);
 }
 
 /* used for expansion of right hand of assignments */
