@@ -7,73 +7,65 @@
  * Licensed under GPLv2 or later, see file License in this tarball for details.
  */
 
+#ifdef __DO_STRRSTR_TEST
+#include <stdlib.h>
+#include <string.h>
+#include <stdio.h>
+#else
 #include "libbb.h"
+#endif
 
 /*
  * The strrstr() function finds the last occurrence of the substring needle
  * in the string haystack. The terminating nul characters are not compared.
  */
-char *strrstr(const char *haystack, const char *needle)
+char* strrstr(const char *haystack, const char *needle)
 {
 	char *r = NULL;
-	
-	do {
+
+	if (!needle[0])
+		return (char*)haystack;
+	while (1) {
 		char *p = strstr(haystack, needle);
-		if (p)
-			r = p;
-	} while (*haystack++);
-	return r;
+		if (!p)
+			return r;
+		r = p;
+		haystack = p + 1;
+	}
 }
 
 #ifdef __DO_STRRSTR_TEST
-/* Test */
 int main(int argc, char **argv)
 {
-	int ret = 0;
-	int n;
-	char *tmp;
+	static const struct {
+		const char *h, *n;
+		int pos;
+	} test_array[] = {
+		/* 0123456789 */
+		{ "baaabaaab",  "aaa", 5  },
+		{ "baaabaaaab", "aaa", 6  },
+		{ "baaabaab",   "aaa", 1  },
+		{ "aaa",        "aaa", 0  },
+		{ "aaa",        "a",   2  },
+		{ "aaa",        "bbb", -1 },
+		{ "a",          "aaa", -1 },
+		{ "aaa",        "",    3  },
+		{ "",           "aaa", -1 },
+		{ "",           "",    0  },
+	};
 
-	ret |= !(n = ((tmp = strrstr("baaabaaab", "aaa")) != NULL && strcmp(tmp, "aaab") == 0));
-	printf("'baaabaaab'  vs. 'aaa'       : %s\n", n ? "PASSED" : "FAILED");
+	int i;
 
-	ret |= !(n = ((tmp = strrstr("baaabaaaab", "aaa")) != NULL && strcmp(tmp, "aaab") == 0));
-	printf("'baaabaaaab' vs. 'aaa'       : %s\n", n ? "PASSED" : "FAILED");
+	i = 0;
+	while (i < sizeof(test_array) / sizeof(test_array[0])) {
+		const char *r = strrstr(test_array[i].h, test_array[i].n);
+		printf("'%s' vs. '%s': '%s' - ", test_array[i].h, test_array[i].n, r);
+		if (r == NULL)
+			r = test_array[i].h - 1;
+		printf("%s\n", r == test_array[i].h + test_array[i].pos ? "PASSED" : "FAILED");
+		i++;
+	}
 
-	ret |= !(n = ((tmp = strrstr("baaabaab", "aaa")) != NULL && strcmp(tmp, "aaabaab") == 0));
-	printf("'baaabaab'   vs. 'aaa'       : %s\n", n ? "PASSED" : "FAILED");
-
-	ret |= !(n = (strrstr("aaa", "aaa") != NULL));
-	printf("'aaa'        vs. 'aaa'       : %s\n", n ? "PASSED" : "FAILED");
-
-	ret |= !(n = (strrstr("aaa", "a") != NULL));
-	printf("'aaa'        vs. 'a'         : %s\n", n ? "PASSED" : "FAILED");
-
-	ret |= !(n = (strrstr("aaa", "bbb") == NULL));
-	printf("'aaa'        vs. 'bbb'       : %s\n", n ? "PASSED" : "FAILED");
-
-	ret |= !(n = (strrstr("a", "aaa") == NULL));
-	printf("'a'          vs. 'aaa'       : %s\n", n ? "PASSED" : "FAILED");
-
-	ret |= !(n = ((tmp = strrstr("aaa", "")) != NULL && strcmp(tmp, "aaa") == 0));
-	printf("'aaa'        vs. ''          : %s\n", n ? "FAILED" : "PASSED");
-
-	ret |= !(n = (strrstr("", "aaa") == NULL));
-	printf("''           vs. 'aaa'       : %s\n", n ? "PASSED" : "FAILED");
-
-	ret |= !(n = ((tmp = strrstr("", "")) != NULL && strcmp(tmp, "") == 0));
-	printf("''           vs. ''          : %s\n", n ? "PASSED" : "FAILED");
-
-	/*ret |= !(n = (strrstr(NULL, NULL) == NULL));
-	printf("'NULL'       vs. 'NULL'      : %s\n", n ? "PASSED" : "FAILED");
-	ret |= !(n = (strrstr("", NULL) == NULL));
-	printf("''           vs. 'NULL'      : %s\n", n ? "PASSED" : "FAILED");
-	ret |= !(n = (strrstr(NULL, "") == NULL));
-	printf("'NULL'       vs. ''          : %s\n", n ? "PASSED" : "FAILED");
-	ret |= !(n = (strrstr("aaa", NULL) == NULL));
-	printf("'aaa'        vs. 'NULL'      : %s\n", n ? "PASSED" : "FAILED");
-	ret |= !(n = (strrstr(NULL, "aaa") == NULL));
-	printf("'NULL'       vs. 'aaa'       : %s\n", n ? "PASSED" : "FAILED");*/
-
-	return ret;
+	return 0;
 }
 #endif
