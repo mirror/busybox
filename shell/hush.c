@@ -342,6 +342,8 @@ typedef struct {
 	char *data;
 	int length;
 	int maxlen;
+	/* Misnomer! it's not "quoting", it's "protection against globbing"!
+	 * (by prepending \ to *, ?, [ and to \ too) */
 	smallint o_quote;
 	smallint o_glob;
 	smallint nonnull;
@@ -2398,8 +2400,10 @@ static int expand_vars_to_list(o_string *output, int n, char *arg, char or_mask)
 			if (!global_argv[i])
 				break;
 			if (!(first_ch & 0x80)) { /* unquoted $* or $@ */
+				smallint sv = output->o_quote;
+				/* unquoted var's contents should be globbed, so don't quote */
+				output->o_quote = 0;
 				while (global_argv[i]) {
-//see expand_on_ifs below - same??
 					n = expand_on_ifs(output, n, global_argv[i]);
 					debug_printf_expand("expand_vars_to_list: argv %d (last %d)\n", i, global_argc-1);
 					if (global_argv[i++][0] && global_argv[i]) {
@@ -2411,12 +2415,13 @@ static int expand_vars_to_list(o_string *output, int n, char *arg, char or_mask)
 						debug_print_list("expand_vars_to_list[3]", output, n);
 					}
 				}
+				output->o_quote = sv;
 			} else
 			/* If or_mask is nonzero, we handle assignment 'a=....$@.....'
 			 * and in this case should treat it like '$*' - see 'else...' below */
 			if (first_ch == ('@'|0x80) && !or_mask) { /* quoted $@ */
 				while (1) {
-					o_addQstr(output, global_argv[i], strlen(global_argv[i])); ///really Q?
+					o_addQstr(output, global_argv[i], strlen(global_argv[i]));
 					if (++i >= global_argc)
 						break;
 					o_addchr(output, '\0');
@@ -2425,7 +2430,7 @@ static int expand_vars_to_list(o_string *output, int n, char *arg, char or_mask)
 				}
 			} else { /* quoted $*: add as one word */
 				while (1) {
-					o_addQstr(output, global_argv[i], strlen(global_argv[i])); ///really Q?
+					o_addQstr(output, global_argv[i], strlen(global_argv[i]));
 					if (!global_argv[++i])
 						break;
 					if (ifs[0])
@@ -2482,7 +2487,7 @@ static int expand_vars_to_list(o_string *output, int n, char *arg, char or_mask)
 			}
 		}
 		if (val) {
-			o_addQstr(output, val, strlen(val)); ///maybe q?
+			o_addQstr(output, val, strlen(val));
 		}
 
 #if ENABLE_HUSH_TICK
@@ -2517,8 +2522,8 @@ static char **expand_variables(char **argv, int or_mask)
 	o_string output = NULL_O_STRING;
 
 	if (or_mask & 0x100) {
-		output.o_quote = 1;
-/* why? */
+		output.o_quote = 1; /* protect against globbing for "$var" */
+		/* (unquoted $var will temporarily switch it off) */
 		output.o_glob = 1;
 	}
 
