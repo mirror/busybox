@@ -24,7 +24,7 @@ char* strrstr(const char *haystack, const char *needle)
 	char *r = NULL;
 
 	if (!needle[0])
-		return (char*)haystack;
+		return (char*)haystack + strlen(haystack);
 	while (1) {
 		char *p = strstr(haystack, needle);
 		if (!p)
