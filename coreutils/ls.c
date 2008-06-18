@@ -139,7 +139,7 @@ struct globals {
 #if ENABLE_FEATURE_LS_COLOR
 	smallint show_color;
 #endif
-	smallint exit_failure;
+	smallint exit_code;
 	unsigned all_fmt;
 #if ENABLE_FEATURE_AUTOWIDTH
 	unsigned tabstops; // = COLUMN_GAP;
@@ -156,7 +156,7 @@ struct globals {
 #else
 enum { show_color = 0 };
 #endif
-#define exit_failure   (G.exit_failure  )
+#define exit_code      (G.exit_code     )
 #define all_fmt        (G.all_fmt       )
 #if ENABLE_FEATURE_AUTOWIDTH
 #define tabstops       (G.tabstops      )
@@ -206,7 +206,7 @@ static struct dnode *my_stat(const char *fullname, const char *name, int force_f
 #endif
 		if (stat(fullname, &dstat)) {
 			bb_simple_perror_msg(fullname);
-			exit_failure = 1;
+			exit_code = EXIT_FAILURE;
 			return 0;
 		}
 	} else {
@@ -217,7 +217,7 @@ static struct dnode *my_stat(const char *fullname, const char *name, int force_f
 #endif
 		if (lstat(fullname, &dstat)) {
 			bb_simple_perror_msg(fullname);
-			exit_failure = 1;
+			exit_code = EXIT_FAILURE;
 			return 0;
 		}
 	}
@@ -529,7 +529,7 @@ static struct dnode **list_dir(const char *path)
 	nfiles = 0;
 	dir = warn_opendir(path);
 	if (dir == NULL) {
-		exit_failure = 1;
+		exit_code = EXIT_FAILURE;
 		return NULL;	/* could not open the dir */
 	}
 	while ((entry = readdir(dir)) != NULL) {
@@ -975,5 +975,5 @@ int ls_main(int argc ATTRIBUTE_UNUSED, char **argv)
 	}
 	if (ENABLE_FEATURE_CLEAN_UP)
 		dfree(dnp, nfiles);
-	return (exit_failure == 0);
+	return exit_code;
 }
