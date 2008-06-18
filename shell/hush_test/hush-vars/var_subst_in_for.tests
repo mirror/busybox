@@ -1,5 +1,5 @@
 if test $# = 0; then
-    exec "$THIS_SH" var_subst_in_for.tests abc "d e"
+    exec "$THIS_SH" "$0" abc "d e"
 fi
 
 echo 'Testing: in x y z'
