@@ -227,8 +227,8 @@ typedef enum {
 	REDIRECT_IO        = 5
 } redir_type;
 
-/* The descrip member of this structure is only used to make debugging
- * output pretty */
+/* The descrip member of this structure is only used to make
+ * debugging output pretty */
 static const struct {
 	int mode;
 	signed char default_fd;
@@ -283,8 +283,8 @@ struct p_context {
 };
 
 struct redir_struct {
-	struct redir_struct *next;  /* pointer to the next redirect in the list */
-	redir_type type;            /* type of redirection */
+	struct redir_struct *next;
+	smallint /*redir_type*/ rd_type;
 	int fd;                     /* file descriptor being redirected */
 	int dup;                    /* -1, or file descriptor being duplicated */
 	char *rd_filename;          /* filename */
@@ -292,10 +292,10 @@ struct redir_struct {
 
 struct child_prog {
 	pid_t pid;                  /* 0 if exited */
+	smallint is_stopped;        /* is the program currently running? */
+	smallint subshell;          /* flag, non-zero if group must be forked */
 	char **argv;                /* program name and arguments */
 	struct pipe *group;         /* if non-NULL, first in group or subshell */
-	smallint subshell;          /* flag, non-zero if group must be forked */
-	smallint is_stopped;        /* is the program currently running? */
 	struct redir_struct *redirects; /* I/O redirections */
 	struct pipe *family;        /* pointer back to the child's parent pipe */
 };
@@ -346,7 +346,13 @@ typedef struct {
 	smallint o_glob;
 	smallint nonnull;
 	smallint has_empty_slot;
+	smallint o_assignment; /* 0:maybe, 1:yes, 2:no */
 } o_string;
+enum {
+	MAYBE_ASSIGNMENT = 0,
+	DEFINITELY_ASSIGNMENT = 1,
+	NOT_ASSIGNMENT = 2,
+};
 /* Used for initialization: o_string foo = NULL_O_STRING; */
 #define NULL_O_STRING { NULL }
 
@@ -586,6 +592,19 @@ static int is_assignment(const char *s)
 	while (isalnum(*s) || *s == '_')
 		s++;
 	return *s == '=';
+}
+
+/* Replace each \x with x in place, return ptr past NUL. */
+static char *unbackslash(char *src)
+{
+	char *dst = src;
+	while (1) {
+		if (*src == '\\')
+			src++;
+		if ((*dst++ = *src++) == '\0')
+			break;
+	}
+	return dst;
 }
 
 static char **add_malloced_strings_to_strings(char **strings, char **add)
@@ -906,6 +925,19 @@ static void o_addstr(o_string *o, const char *str, int len)
 	o->data[o->length] = '\0';
 }
 
+static void o_addstr_duplicate_backslash(o_string *o, const char *str, int len)
+{
+	while (len) {
+		o_addchr(o, *str);
+		if (*str++ == '\\'
+		 && (*str != '*' && *str != '?' && *str != '[')
+		) {
+			o_addchr(o, '\\');
+		}
+		len--;
+	}
+}
+
 /* My analysis of quoting semantics tells me that state information
  * is associated with a destination, not a source.
  */
@@ -1045,18 +1077,7 @@ static int o_get_last_ptr(o_string *o, int n)
 }
 
 /* o_glob performs globbing on last list[], saving each result
- * as a new list[]. unbackslash() is just a helper */
-static char *unbackslash(char *src)
-{
-	char *dst = src;
-	while (1) {
-		if (*src == '\\')
-			src++;
-		if ((*dst++ = *src++) == '\0')
-			break;
-	}
-	return dst;
-}
+ * as a new list[]. */
 static int o_glob(o_string *o, int n)
 {
 	glob_t globdata;
@@ -1310,7 +1331,8 @@ static int setup_redirects(struct child_prog *prog, int squirrel[])
 		}
 		if (redir->dup == -1) {
 			char *p;
-			mode = redir_table[redir->type].mode;
+			mode = redir_table[redir->rd_type].mode;
+//TODO: check redir to names like '\\'
 			p = expand_string_to_string(redir->rd_filename);
 			openfd = open_or_warn(p, mode);
 			free(p);
@@ -1765,6 +1787,7 @@ static int run_pipe(struct pipe *pi)
 		for (i = 0; is_assignment(argv[i]); i++) {
 			p = expand_string_to_string(argv[i]);
 			putenv(p);
+//FIXME: do we leak p?!
 		}
 		for (x = bltins; x != &bltins[ARRAY_SIZE(bltins)]; x++) {
 			if (strcmp(argv[i], x->cmd) == 0) {
@@ -2300,7 +2323,10 @@ static int expand_on_ifs(o_string *output, int n, const char *str)
 	while (1) {
 		int word_len = strcspn(str, ifs);
 		if (word_len) {
-			o_addstr(output, str, word_len);
+			if (output->o_quote || !output->o_glob)
+				o_addQstr(output, str, word_len);
+			else /* protect backslashes against globbing up :) */
+				o_addstr_duplicate_backslash(output, str, word_len);
 			str += word_len;
 		}
 		if (!*str)  /* EOL - do not finalize word */
@@ -2324,7 +2350,8 @@ static int expand_on_ifs(o_string *output, int n, const char *str)
 static int expand_vars_to_list(o_string *output, int n, char *arg, char or_mask)
 {
 	/* or_mask is either 0 (normal case) or 0x80
-	 * (expansion of right-hand side of assignment == 1-element expand) */
+	 * (expansion of right-hand side of assignment == 1-element expand.
+	 * It will also do no globbing, and thus we must not backslash-quote!) */
 
 	char first_ch, ored_ch;
 	int i;
@@ -2372,6 +2399,7 @@ static int expand_vars_to_list(o_string *output, int n, char *arg, char or_mask)
 				break;
 			if (!(first_ch & 0x80)) { /* unquoted $* or $@ */
 				while (global_argv[i]) {
+//see expand_on_ifs below - same??
 					n = expand_on_ifs(output, n, global_argv[i]);
 					debug_printf_expand("expand_vars_to_list: argv %d (last %d)\n", i, global_argc-1);
 					if (global_argv[i++][0] && global_argv[i]) {
@@ -2429,9 +2457,9 @@ static int expand_vars_to_list(o_string *output, int n, char *arg, char or_mask)
 			arg[0] = first_ch & 0x7f;
 			if (isdigit(arg[0])) {
 				i = xatoi_u(arg);
-				val = NULL;
 				if (i < global_argc)
 					val = global_argv[i];
+				/* else val remains NULL: $N with too big N */
 			} else
 				val = lookup_param(arg);
 			arg[0] = first_ch;
@@ -2442,11 +2470,16 @@ static int expand_vars_to_list(o_string *output, int n, char *arg, char or_mask)
 			if (!(first_ch & 0x80)) { /* unquoted $VAR */
 				debug_printf_expand("unquoted '%s', output->o_quote:%d\n", val, output->o_quote);
 				if (val) {
+					/* unquoted var's contents should be globbed, so don't quote */
+					smallint sv = output->o_quote;
+					output->o_quote = 0;
 					n = expand_on_ifs(output, n, val);
 					val = NULL;
+					output->o_quote = sv;
 				}
-			} else /* quoted $VAR, val will be appended below */
+			} else { /* quoted $VAR, val will be appended below */
 				debug_printf_expand("quoted '%s', output->o_quote:%d\n", val, output->o_quote);
+			}
 		}
 		if (val) {
 			o_addQstr(output, val, strlen(val)); ///maybe q?
@@ -2485,6 +2518,7 @@ static char **expand_variables(char **argv, int or_mask)
 
 	if (or_mask & 0x100) {
 		output.o_quote = 1;
+/* why? */
 		output.o_glob = 1;
 	}
 
@@ -2687,7 +2721,7 @@ static int setup_redirect(struct p_context *ctx, int fd, redir_type style,
 		child->redirects = redir;
 	}
 
-	redir->type = style;
+	redir->rd_type = style;
 	redir->fd = (fd == -1) ? redir_table[style].default_fd : fd;
 
 	debug_printf("Redirect type %d%s\n", redir->fd, redir_table[style].descrip);
@@ -2858,6 +2892,14 @@ static int done_word(o_string *word, struct p_context *ctx)
 {
 	struct child_prog *child = ctx->child;
 
+	/* If this word wasn't an assignment, next ones definitely
+	 * can't be assignments. Even if they look like ones. */
+	if (word->o_assignment != DEFINITELY_ASSIGNMENT) {
+		word->o_assignment = NOT_ASSIGNMENT;
+	} else {
+		word->o_assignment = MAYBE_ASSIGNMENT;
+	}
+
 	debug_printf_parse("done_word entered: '%s' %p\n", word->data, child);
 	if (word->length == 0 && word->nonnull == 0) {
 		debug_printf_parse("done_word return 0: true null, ignored\n");
@@ -2867,6 +2909,7 @@ static int done_word(o_string *word, struct p_context *ctx)
 		/* We do not glob in e.g. >*.tmp case. bash seems to glob here
 		 * only if run as "bash", not "sh" */
 		ctx->pending_redirect->rd_filename = xstrdup(word->data);
+		word->o_assignment = NOT_ASSIGNMENT;
 		debug_printf("word stored in rd_filename: '%s'\n", word->data);
 	} else {
 		if (child->group) { /* TODO: example how to trigger? */
@@ -2878,15 +2921,18 @@ static int done_word(o_string *word, struct p_context *ctx)
 			debug_printf_parse(": checking '%s' for reserved-ness\n", word->data);
 			if (reserved_word(word, ctx)) {
 				o_reset(word);
+				word->o_assignment = NOT_ASSIGNMENT;
 				debug_printf_parse("done_word return %d\n", (ctx->res_w == RES_SNTX));
 				return (ctx->res_w == RES_SNTX);
 			}
 		}
-		if (word->nonnull
-		/* && word->data[0] != */
+		if (word->nonnull /* we saw "xx" or 'xx' */
+		 /* optimization: and if it's ("" or '') or ($v... or `cmd`...): */
+		 && (word->data[0] == '\0' || word->data[0] == SPECIAL_VAR_SYMBOL)
+		 /* (otherwise it's "abc".... and is already safe) */
 		) {
-			/* Insert "empty variable" reference, this makes e.g. "", '',
-			 * $empty"" etc to not disappear */
+			/* Insert "empty variable" reference, this makes
+			 * e.g. "", $empty"" etc to not disappear */
 			o_addchr(word, SPECIAL_VAR_SYMBOL);
 			o_addchr(word, SPECIAL_VAR_SYMBOL);
 		}
@@ -3107,14 +3153,14 @@ static int process_command_subs(o_string *dest,
 			continue;
 		}
 		while (eol_cnt) {
-			o_addQchr(dest, '\n');
+			o_addchr(dest, '\n');
 			eol_cnt--;
 		}
-		/* Even unquoted `echo '\'` results in two backslashes
-		 * (which are converted into one by globbing later) */
-		if (!dest->o_quote && ch == '\\') {
-			o_addchr(dest, ch);
-		}
+//		/* Even unquoted `echo '\'` results in two backslashes
+//		 * (which are converted into one by globbing later) */
+//		if (!dest->o_quote && ch == '\\') {
+//			o_addchr(dest, ch);
+//		}
 		o_addQchr(dest, ch);
 	}
 
@@ -3364,13 +3410,19 @@ static int handle_dollar(o_string *dest, struct in_str *input)
 	return 0;
 }
 
-/* Return code is 0 for normal exit, 1 for syntax error */
+/* Scan input, call done_word() whenever full IFS delemited word was seen.
+ * call done_pipe if '\n' was seen (and end_trigger != NULL)
+ * Return if (non-quoted) char in end_trigger was seen; or on parse error. */
+/* Return code is 0 if end_trigger char is met,
+ * -1 on EOF (but if end_trigger == NULL then return 0)
+ * 1 for syntax error */
 static int parse_stream(o_string *dest, struct p_context *ctx,
 	struct in_str *input, const char *end_trigger)
 {
 	int ch, m;
 	int redir_fd;
 	redir_type redir_style;
+	int shadow_quote = dest->o_quote;
 	int next;
 
 	/* Only double-quote state is handled in the state variable dest->o_quote.
@@ -3385,13 +3437,14 @@ static int parse_stream(o_string *dest, struct p_context *ctx,
 		ch = i_getch(input);
 		if (ch != EOF) {
 			m = charmap[ch];
-			if (ch != '\n')
+			if (ch != '\n') {
 				next = i_peek(input);
+			}
 		}
 		debug_printf_parse(": ch=%c (%d) m=%d quote=%d\n",
 						ch, ch, m, dest->o_quote);
 		if (m == CHAR_ORDINARY
-		 || (m != CHAR_SPECIAL && dest->o_quote)
+		 || (m != CHAR_SPECIAL && shadow_quote)
 		) {
 			if (ch == EOF) {
 				syntax("unterminated \"");
@@ -3399,6 +3452,12 @@ static int parse_stream(o_string *dest, struct p_context *ctx,
 				return 1;
 			}
 			o_addQchr(dest, ch);
+			if (dest->o_assignment == MAYBE_ASSIGNMENT
+			 && ch == '='
+			 && is_assignment(dest->data)
+			) {
+				dest->o_assignment = DEFINITELY_ASSIGNMENT;
+			}
 			continue;
 		}
 		if (m == CHAR_IFS) {
@@ -3416,11 +3475,12 @@ static int parse_stream(o_string *dest, struct p_context *ctx,
 			}
 		}
 		if (end_trigger) {
-			if (!dest->o_quote && strchr(end_trigger, ch)) {
+			if (!shadow_quote && strchr(end_trigger, ch)) {
 				/* Special case: (...word) makes last word terminate,
 				 * as if ';' is seen */
 				if (ch == ')') {
 					done_word(dest, ctx);
+//err chk?
 					done_pipe(ctx, PIPE_SEQ);
 				}
 				if (ctx->res_w == RES_NONE) {
@@ -3431,9 +3491,16 @@ static int parse_stream(o_string *dest, struct p_context *ctx,
 		}
 		if (m == CHAR_IFS)
 			continue;
+
+		if (dest->o_assignment == MAYBE_ASSIGNMENT) {
+			/* ch is a special char and thus this word
+			 * cannot be an assignment: */
+			dest->o_assignment = NOT_ASSIGNMENT;
+		}
+
 		switch (ch) {
 		case '#':
-			if (dest->length == 0 && !dest->o_quote) {
+			if (dest->length == 0 && !shadow_quote) {
 				while (1) {
 					ch = i_peek(input);
 					if (ch == EOF || ch == '\n')
@@ -3459,7 +3526,7 @@ static int parse_stream(o_string *dest, struct p_context *ctx,
 			 * an ! appearing in double quotes is escaped using
 			 * a backslash. The backslash preceding the ! is not removed."
 			 */
-			if (dest->o_quote) {
+			if (shadow_quote) { //NOT SURE   dest->o_quote) {
 				if (strchr("$`\"\\", next) != NULL) {
 					o_addqchr(dest, i_getch(input));
 				} else {
@@ -3487,18 +3554,23 @@ static int parse_stream(o_string *dest, struct p_context *ctx,
 				}
 				if (ch == '\'')
 					break;
-				o_addqchr(dest, ch);
+				if (dest->o_assignment == NOT_ASSIGNMENT)
+					o_addqchr(dest, ch);
+				else
+					o_addchr(dest, ch);
 			}
 			break;
 		case '"':
 			dest->nonnull = 1;
-			dest->o_quote ^= 1; /* invert */
+			shadow_quote ^= 1; /* invert */
+			if (dest->o_assignment == NOT_ASSIGNMENT)
+				dest->o_quote ^= 1;
 			break;
 #if ENABLE_HUSH_TICK
 		case '`': {
 			//int pos = dest->length;
 			o_addchr(dest, SPECIAL_VAR_SYMBOL);
-			o_addchr(dest, dest->o_quote ? 0x80 | '`' : '`');
+			o_addchr(dest, shadow_quote /*or dest->o_quote??*/ ? 0x80 | '`' : '`');
 			add_till_backquote(dest, input);
 			o_addchr(dest, SPECIAL_VAR_SYMBOL);
 			//debug_printf_subst("SUBST RES3 '%s'\n", dest->data + pos);
@@ -3585,14 +3657,6 @@ static int parse_stream(o_string *dest, struct p_context *ctx,
 				bb_error_msg_and_die("BUG: unexpected %c\n", ch);
 		}
 	} /* while (1) */
-	/* Complain if quote?  No, maybe we just finished a command substitution
-	 * that was quoted.  Example:
-	 * $ echo "`cat foo` plus more"
-	 * and we just got the EOF generated by the subshell that ran "cat foo"
-	 * The only real complaint is if we got an EOF when end_trigger != NULL,
-	 * that is, we were really supposed to get end_trigger, and never got
-	 * one before the EOF.  Can't use the standard "syntax error" return code,
-	 * so that parse_stream_outer can distinguish the EOF and exit smoothly. */
 	debug_printf_parse("parse_stream return %d\n", -(end_trigger != NULL));
 	if (end_trigger)
 		return -1;
