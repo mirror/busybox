@@ -2354,7 +2354,6 @@ static int expand_vars_to_list(o_string *output, int n, char *arg, char or_mask)
 		switch (first_ch & 0x7f) {
 		/* Highest bit in first_ch indicates that var is double-quoted */
 		case '$': /* pid */
-			/* FIXME: (echo $$) should still print pid of main shell */
 			val = utoa(root_pid);
 			break;
 		case '!': /* bg pid */
@@ -2406,8 +2405,13 @@ static int expand_vars_to_list(o_string *output, int n, char *arg, char or_mask)
 				}
 			}
 			break;
+		case SPECIAL_VAR_SYMBOL: /* <SPECIAL_VAR_SYMBOL><SPECIAL_VAR_SYMBOL> */
+			/* "Empty variable", used to make "" etc to not disappear */
+			arg++;
+			ored_ch = 0x80;
+			break;
 #if ENABLE_HUSH_TICK
-		case '`': {
+		case '`': { /* <SPECIAL_VAR_SYMBOL>`cmd<SPECIAL_VAR_SYMBOL> */
 			struct in_str input;
 			*p = '\0';
 			arg++;
@@ -2420,7 +2424,7 @@ static int expand_vars_to_list(o_string *output, int n, char *arg, char or_mask)
 			goto store_val;
 		}
 #endif
-		default:
+		default: /* <SPECIAL_VAR_SYMBOL>varname<SPECIAL_VAR_SYMBOL> */
 			*p = '\0';
 			arg[0] = first_ch & 0x7f;
 			if (isdigit(arg[0])) {
@@ -2856,9 +2860,11 @@ static int done_word(o_string *word, struct p_context *ctx)
 	char ***glob_target;
 
 	debug_printf_parse("done_word entered: '%s' %p\n", word->data, child);
-	if (word->length == 0 && !word->nonnull) {
-		debug_printf_parse("done_word return 0: true null, ignored\n");
-		return 0;
+	if (word->length == 0) {
+		if (!word->nonnull) {
+			debug_printf_parse("done_word return 0: true null, ignored\n");
+			return 0;
+		}
 	}
 	if (ctx->pending_redirect) {
 		glob_target = &ctx->pending_redirect->glob_word;
@@ -2868,7 +2874,7 @@ static int done_word(o_string *word, struct p_context *ctx)
 			debug_printf_parse("done_word return 1: syntax error, groups and arglists don't mix\n");
 			return 1;
 		}
-		if (!child->argv) {
+		if (!child->argv) { /* if it's the first word... */
 			debug_printf_parse(": checking '%s' for reserved-ness\n", word->data);
 			if (reserved_word(word, ctx)) {
 				o_reset(word);
@@ -2876,10 +2882,18 @@ static int done_word(o_string *word, struct p_context *ctx)
 				return (ctx->res_w == RES_SNTX);
 			}
 		}
+		if (word->nonnull) {
+			/* Insert "empty variable" reference, this makes e.g. "", '',
+			 * $empty"" etc to not disappear */
+			o_addchr(word, SPECIAL_VAR_SYMBOL);
+			o_addchr(word, SPECIAL_VAR_SYMBOL);
+		}
 		glob_target = &child->argv;
 	}
 
-	if (word->length || word->nonnull) {
+//FIXME: we had globbing here, but now it's moved! Do we glob in e.g. ">*.tmp" now!?
+
+	/*if (word->length || word->nonnull) - true */ {
 		*glob_target = add_malloced_string_to_strings(*glob_target, xstrdup(word->data));
 		debug_print_strings("glob_target appended", *glob_target);
 	}
@@ -3026,11 +3040,10 @@ static int redirect_opt_num(o_string *o)
 	if (o->length == 0)
 		return -1;
 	for (num = 0; num < o->length; num++) {
-		if (!isdigit(*(o->data + num))) {
+		if (!isdigit(o->data[num])) {
 			return -1;
 		}
 	}
-	/* reuse num (and save an int) */
 	num = atoi(o->data);
 	o_reset(o);
 	return num;
@@ -3668,8 +3681,8 @@ static int parse_and_run_stream(struct in_str *inp, int parse_flag)
 				free(ctx.stack);
 				o_reset(&temp);
 			}
-			temp.nonnull = 0;
-			temp.o_quote = 0;
+			/*temp.nonnull = 0; - o_free does it below */
+			/*temp.o_quote = 0; - o_free does it below */
 			free_pipe_list(ctx.list_head, /* indent: */ 0);
 			/* Discard all unprocessed line input, force prompt on */
 			inp->p = NULL;
