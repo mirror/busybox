@@ -9549,7 +9549,7 @@ shiftcmd(int argc ATTRIBUTE_UNUSED, char **argv)
 	if (argv[1])
 		n = number(argv[1]);
 	if (n > shellparam.nparam)
-		ash_msg_and_raise_error("can't shift that many");
+		n = shellparam.nparam;
 	INT_OFF;
 	shellparam.nparam -= n;
 	for (ap1 = shellparam.p; --n >= 0; ap1++) {
@@ -11994,6 +11994,8 @@ typedef enum __rlimit_resource rlim_t;
 static int
 readcmd(int argc ATTRIBUTE_UNUSED, char **argv ATTRIBUTE_UNUSED)
 {
+	static const char *const arg_REPLY[] = { "REPLY", NULL };
+
 	char **ap;
 	int backslash;
 	char c;
@@ -12086,7 +12088,7 @@ readcmd(int argc ATTRIBUTE_UNUSED, char **argv ATTRIBUTE_UNUSED)
 	}
 	ap = argptr;
 	if (*ap == NULL)
-		ash_msg_and_raise_error("arg count");
+		ap = (char**)arg_REPLY;
 	ifs = bltinlookup("IFS");
 	if (ifs == NULL)
 		ifs = defifs;
