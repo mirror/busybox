@@ -287,7 +287,7 @@ struct redir_struct {
 	redir_type type;            /* type of redirection */
 	int fd;                     /* file descriptor being redirected */
 	int dup;                    /* -1, or file descriptor being duplicated */
-	char **glob_word;           /* *word.gl_pathv is the filename */
+	char *rd_filename;          /* filename */
 };
 
 struct child_prog {
@@ -1304,14 +1304,14 @@ static int setup_redirects(struct child_prog *prog, int squirrel[])
 	struct redir_struct *redir;
 
 	for (redir = prog->redirects; redir; redir = redir->next) {
-		if (redir->dup == -1 && redir->glob_word == NULL) {
+		if (redir->dup == -1 && redir->rd_filename == NULL) {
 			/* something went wrong in the parse.  Pretend it didn't happen */
 			continue;
 		}
 		if (redir->dup == -1) {
 			char *p;
 			mode = redir_table[redir->type].mode;
-			p = expand_string_to_string(redir->glob_word[0]);
+			p = expand_string_to_string(redir->rd_filename);
 			openfd = open_or_warn(p, mode);
 			free(p);
 			if (openfd < 0) {
@@ -2227,10 +2227,10 @@ static int free_pipe(struct pipe *pi, int indent)
 			debug_printf_clean("%s   redirect %d%s", indenter(indent), r->fd, redir_table[r->type].descrip);
 			if (r->dup == -1) {
 				/* guard against the case >$FOO, where foo is unset or blank */
-				if (r->glob_word) {
-					debug_printf_clean(" %s\n", r->glob_word[0]);
-					free_strings(r->glob_word);
-					r->glob_word = NULL;
+				if (r->rd_filename) {
+					debug_printf_clean(" %s\n", r->rd_filename);
+					free(r->rd_filename);
+					r->rd_filename = NULL;
 				}
 			} else {
 				debug_printf_clean("&%d\n", r->dup);
@@ -2680,7 +2680,7 @@ static int setup_redirect(struct p_context *ctx, int fd, redir_type style,
 	}
 	redir = xzalloc(sizeof(struct redir_struct));
 	/* redir->next = NULL; */
-	/* redir->glob_word = NULL; */
+	/* redir->rd_filename = NULL; */
 	if (last_redir) {
 		last_redir->next = redir;
 	} else {
@@ -2857,17 +2857,17 @@ static int reserved_word(const o_string *word, struct p_context *ctx)
 static int done_word(o_string *word, struct p_context *ctx)
 {
 	struct child_prog *child = ctx->child;
-	char ***glob_target;
 
 	debug_printf_parse("done_word entered: '%s' %p\n", word->data, child);
-	if (word->length == 0) {
-		if (!word->nonnull) {
-			debug_printf_parse("done_word return 0: true null, ignored\n");
-			return 0;
-		}
+	if (word->length == 0 && word->nonnull == 0) {
+		debug_printf_parse("done_word return 0: true null, ignored\n");
+		return 0;
 	}
 	if (ctx->pending_redirect) {
-		glob_target = &ctx->pending_redirect->glob_word;
+		/* We do not glob in e.g. >*.tmp case. bash seems to glob here
+		 * only if run as "bash", not "sh" */
+		ctx->pending_redirect->rd_filename = xstrdup(word->data);
+		debug_printf("word stored in rd_filename: '%s'\n", word->data);
 	} else {
 		if (child->group) { /* TODO: example how to trigger? */
 			syntax(NULL);
@@ -2882,46 +2882,25 @@ static int done_word(o_string *word, struct p_context *ctx)
 				return (ctx->res_w == RES_SNTX);
 			}
 		}
-		if (word->nonnull) {
+		if (word->nonnull
+		/* && word->data[0] != */
+		) {
 			/* Insert "empty variable" reference, this makes e.g. "", '',
 			 * $empty"" etc to not disappear */
 			o_addchr(word, SPECIAL_VAR_SYMBOL);
 			o_addchr(word, SPECIAL_VAR_SYMBOL);
 		}
-		glob_target = &child->argv;
-	}
-
-//FIXME: we had globbing here, but now it's moved! Do we glob in e.g. ">*.tmp" now!?
-
-	/*if (word->length || word->nonnull) - true */ {
-		*glob_target = add_malloced_string_to_strings(*glob_target, xstrdup(word->data));
-		debug_print_strings("glob_target appended", *glob_target);
+		child->argv = add_malloced_string_to_strings(child->argv, xstrdup(word->data));
+		debug_print_strings("word appended to argv", child->argv);
 	}
 
 	o_reset(word);
-	if (ctx->pending_redirect) {
-		/* NB: don't free_strings(ctx->pending_redirect->glob_word) here */
-		if (ctx->pending_redirect->glob_word
-		 && ctx->pending_redirect->glob_word[0]
-		 && ctx->pending_redirect->glob_word[1]
-		) {
-			/* more than one word resulted from globbing redir */
-			ctx->pending_redirect = NULL;
-			bb_error_msg("ambiguous redirect");
-			debug_printf_parse("done_word return 1: ambiguous redirect\n");
-			return 1;
-		}
-		ctx->pending_redirect = NULL;
-	}
+	ctx->pending_redirect = NULL;
+
 #if ENABLE_HUSH_LOOPS
-	/* comment? is it forcing "for" to have just one word (variable name)? */
-	if (ctx->res_w == RES_FOR) {
-//TESTING
-//looks like (word->length == 0 && !word->nonnull) is true here, always
-//(due to o_reset). done_word would return at once. Why then?
-//		done_word(word, ctx);
+	/* Force FOR to have just one word (variable name) */
+	if (ctx->res_w == RES_FOR)
 		done_pipe(ctx, PIPE_SEQ);
-	}
 #endif
 	debug_printf_parse("done_word return 0\n");
 	return 0;
