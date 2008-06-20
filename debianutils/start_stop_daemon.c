@@ -19,9 +19,10 @@ One (only) of these must be given:
 
 Search for matching processes.
 If --stop is given, stop all matching processes (by sending a signal).
-If --start if given, start a new process unless a matching process was found.
+If --start is given, start a new process unless a matching process was found.
 
-Options controlling process matching:
+Options controlling process matching
+(if multiple conditions are specified, all must match):
         -u,--user USERNAME|UID  Only consider this user's processes
         -n,--name PROCESS_NAME  Look for processes by matching PROCESS_NAME
                                 with comm field in /proc/$PID/stat.
@@ -34,7 +35,6 @@ with /proc/$PID/exe or argv[0] (comm can't be matched, it never contains path)]
                                 Unlike -n, we match against the full path:
                                 "ntpd" != "./ntpd" != "/path/to/ntpd"
         -p,--pidfile PID_FILE   Look for processes with PID from this file
-If multiple conditions are specified, all must match.
 
 Options which are valid for --start only:
         -x,--exec EXECUTABLE    Program to run (1st arg of execvp). Mandatory.
