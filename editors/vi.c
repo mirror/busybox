@@ -112,11 +112,19 @@ enum {
 	S_END_ALNUM = 5,	// used in skip_thing() for moving "dot"
 };
 
+
 /* vi.c expects chars to be unsigned. */
 /* busybox build system provides that, but it's better */
 /* to audit and fix the source */
 
-static smallint vi_setops;
+struct globals {
+	/* many references - keep near the top of globals */
+	char *text, *end;       // pointers to the user data in memory
+	char *dot;              // where all the action takes place
+	int text_size;		// size of the allocated buffer
+
+	/* the rest */
+	smallint vi_setops;
 #define VI_AUTOINDENT 1
 #define VI_SHOWMATCH  2
 #define VI_IGNORECASE 4
@@ -127,83 +135,76 @@ static smallint vi_setops;
 /* indicate error with beep or flash */
 #define err_method (vi_setops & VI_ERR_METHOD)
 
-
-static smallint editing;        // >0 while we are editing a file
-                                // [code audit says "can be 0 or 1 only"]
-static smallint cmd_mode;       // 0=command  1=insert 2=replace
-static smallint file_modified;  // buffer contents changed
-static smallint last_file_modified = -1;
-static int fn_start;            // index of first cmd line file name
-static int save_argc;           // how many file names on cmd line
-static int cmdcnt;              // repetition count
-static unsigned rows, columns;	 // the terminal screen is this size
-static int crow, ccol;          // cursor is on Crow x Ccol
-static int offset;              // chars scrolled off the screen to the left
-static char *status_buffer;     // mesages to the user
-#define STATUS_BUFFER_LEN  200
-static int have_status_msg;     // is default edit status needed?
-                                // [don't make smallint!]
-static int last_status_cksum;   // hash of current status line
-static char *current_filename;               // current file name
-//static char *text, *end;        // pointers to the user data in memory
-static char *screen;            // pointer to the virtual screen buffer
-static int screensize;          //            and its size
-static char *screenbegin;       // index into text[], of top line on the screen
-//static char *dot;               // where all the action takes place
-static int tabstop;
-static char erase_char;         // the users erase character
-static char last_input_char;    // last char read from user
-static char last_forward_char;  // last char searched for with 'f'
-
 #if ENABLE_FEATURE_VI_READONLY
-//static smallint vi_readonly, readonly;
-static smallint readonly_mode = 0;
+	smallint readonly_mode;
 #define SET_READONLY_FILE(flags)        ((flags) |= 0x01)
 #define SET_READONLY_MODE(flags)        ((flags) |= 0x02)
 #define UNSET_READONLY_FILE(flags)      ((flags) &= 0xfe)
 #else
-#define readonly_mode 0
-#define SET_READONLY_FILE(flags)
-#define SET_READONLY_MODE(flags)
-#define UNSET_READONLY_FILE(flags)
+#define SET_READONLY_FILE(flags)        ((void)0)
+#define SET_READONLY_MODE(flags)        ((void)0)
+#define UNSET_READONLY_FILE(flags)      ((void)0)
 #endif
+
+	smallint editing;        // >0 while we are editing a file
+	                         // [code audit says "can be 0 or 1 only"]
+	smallint cmd_mode;       // 0=command  1=insert 2=replace
+	int file_modified;       // buffer contents changed (counter, not flag!)
+	int last_file_modified; // = -1;
+	int fn_start;            // index of first cmd line file name
+	int save_argc;           // how many file names on cmd line
+	int cmdcnt;              // repetition count
+	unsigned rows, columns;	 // the terminal screen is this size
+	int crow, ccol;          // cursor is on Crow x Ccol
+	int offset;              // chars scrolled off the screen to the left
+	int have_status_msg;     // is default edit status needed?
+	                         // [don't make smallint!]
+	int last_status_cksum;   // hash of current status line
+	char *current_filename;
+	char *screenbegin;       // index into text[], of top line on the screen
+	char *screen;            // pointer to the virtual screen buffer
+	int screensize;          //            and its size
+	int tabstop;
+	char erase_char;         // the users erase character
+	char last_input_char;    // last char read from user
+	char last_forward_char;  // last char searched for with 'f'
 
 #if ENABLE_FEATURE_VI_DOT_CMD
-static smallint adding2q;		// are we currently adding user input to q
-static char *last_modifying_cmd;	// [MAX_INPUT_LEN] last modifying cmd for "."
-static smallint lmc_len;		// length of last_modifying_cmd
-static char *ioq, *ioq_start;           // pointer to string for get_one_char to "read"
+	smallint adding2q;	 // are we currently adding user input to q
+	int lmc_len;             // length of last_modifying_cmd
+	char *ioq, *ioq_start;   // pointer to string for get_one_char to "read"
 #endif
 #if ENABLE_FEATURE_VI_OPTIMIZE_CURSOR
-static int last_row;		// where the cursor was last moved to
+	int last_row;		 // where the cursor was last moved to
 #endif
 #if ENABLE_FEATURE_VI_USE_SIGNALS || ENABLE_FEATURE_VI_CRASHME
-static int my_pid;
+	int my_pid;
 #endif
 #if ENABLE_FEATURE_VI_DOT_CMD || ENABLE_FEATURE_VI_YANKMARK
-static char *modifying_cmds;            // cmds that modify text[]
+	char *modifying_cmds;    // cmds that modify text[]
 #endif
 #if ENABLE_FEATURE_VI_SEARCH
-static char *last_search_pattern;	// last pattern from a '/' or '?' search
+	char *last_search_pattern; // last pattern from a '/' or '?' search
 #endif
+	int chars_to_parse;
+	/* former statics */
+#if ENABLE_FEATURE_VI_YANKMARK
+	char *edit_file__cur_line;
+#endif
+	int refresh__old_offset;
+	int format_edit_status__tot;
 
-/* Moving biggest data to malloced space... */
-struct globals {
-	/* many references - keep near the top of globals */
-	char *text, *end;       // pointers to the user data in memory
-	char *dot;              // where all the action takes place
-	int text_size;		// size of the allocated buffer
+	/* a few references only */
 #if ENABLE_FEATURE_VI_YANKMARK
 	int YDreg, Ureg;        // default delete register and orig line for "U"
 	char *reg[28];          // named register a-z, "D", and "U" 0-25,26,27
 	char *mark[28];         // user marks points somewhere in text[]-  a-z and previous context ''
 	char *context_start, *context_end;
 #endif
-	/* a few references only */
 #if ENABLE_FEATURE_VI_USE_SIGNALS
-	sigjmp_buf restart;        // catch_sig()
+	sigjmp_buf restart;     // catch_sig()
 #endif
-	struct termios term_orig, term_vi;	// remember what the cooked mode was
+	struct termios term_orig, term_vi; // remember what the cooked mode was
 #if ENABLE_FEATURE_VI_COLON
 	char *initial_cmds[3];  // currently 2 entries, NULL terminated
 #endif
@@ -214,6 +215,12 @@ struct globals {
 #else
 	char readbuffer[32];
 #endif
+#define STATUS_BUFFER_LEN  200
+	char status_buffer[STATUS_BUFFER_LEN]; // messages to the user
+#if ENABLE_FEATURE_VI_DOT_CMD
+	char last_modifying_cmd[MAX_INPUT_LEN];	// last modifying cmd for "."
+#endif
+	char get_input_line__buf[MAX_INPUT_LEN]; /* former static */
 
 	char scr_out_buf[MAX_SCR_COLS + MAX_TABSTOP * 2];
 };
@@ -223,6 +230,50 @@ struct globals {
 #define end            (G.end           )
 #define dot            (G.dot           )
 #define reg            (G.reg           )
+
+#define vi_setops               (G.vi_setops          )
+#define editing                 (G.editing            )
+#define cmd_mode                (G.cmd_mode           )
+#define file_modified           (G.file_modified      )
+#define last_file_modified      (G.last_file_modified )
+#define fn_start                (G.fn_start           )
+#define save_argc               (G.save_argc          )
+#define cmdcnt                  (G.cmdcnt             )
+#define rows                    (G.rows               )
+#define columns                 (G.columns            )
+#define crow                    (G.crow               )
+#define ccol                    (G.ccol               )
+#define offset                  (G.offset             )
+#define status_buffer           (G.status_buffer      )
+#define have_status_msg         (G.have_status_msg    )
+#define last_status_cksum       (G.last_status_cksum  )
+#define current_filename        (G.current_filename   )
+#define screen                  (G.screen             )
+#define screensize              (G.screensize         )
+#define screenbegin             (G.screenbegin        )
+#define tabstop                 (G.tabstop            )
+#define erase_char              (G.erase_char         )
+#define last_input_char         (G.last_input_char    )
+#define last_forward_char       (G.last_forward_char  )
+#if ENABLE_FEATURE_VI_READONLY 
+#define readonly_mode           (G.readonly_mode      )
+#else                          
+#define readonly_mode           0  readonly_mode      )
+#endif                         
+#define adding2q                (G.adding2q           )
+#define lmc_len                 (G.lmc_len            )
+#define ioq                     (G.ioq                )
+#define ioq_start               (G.ioq_start          )
+#define last_row                (G.last_row           )
+#define my_pid                  (G.my_pid             )
+#define modifying_cmds          (G.modifying_cmds     )
+#define last_search_pattern     (G.last_search_pattern)
+#define chars_to_parse          (G.chars_to_parse     )
+                                   
+#define edit_file__cur_line     (G.edit_file__cur_line)
+#define refresh__old_offset     (G.refresh__old_offset)
+#define format_edit_status__tot (G.format_edit_status__tot)
+
 #define YDreg          (G.YDreg         )
 #define Ureg           (G.Ureg          )
 #define mark           (G.mark          )
@@ -234,9 +285,14 @@ struct globals {
 #define initial_cmds   (G.initial_cmds  )
 #define readbuffer     (G.readbuffer    )
 #define scr_out_buf    (G.scr_out_buf   )
+#define last_modifying_cmd  (G.last_modifying_cmd )
+#define get_input_line__buf (G.get_input_line__buf)
+
 #define INIT_G() do { \
 	SET_PTR_TO_GLOBALS(xzalloc(sizeof(G))); \
+	last_file_modified = -1; \
 } while (0)
+
 
 static int init_text_buffer(char *); // init from file or create new
 static void edit_file(char *);	// edit one file
@@ -355,22 +411,15 @@ int vi_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int vi_main(int argc, char **argv)
 {
 	int c;
-	RESERVE_CONFIG_BUFFER(STATUS_BUFFER, STATUS_BUFFER_LEN);
+
+	INIT_G();
 
 #if ENABLE_FEATURE_VI_USE_SIGNALS || ENABLE_FEATURE_VI_CRASHME
 	my_pid = getpid();
 #endif
-
-	INIT_G();
-
 #if ENABLE_FEATURE_VI_CRASHME
 	srand((long) my_pid);
 #endif
-
-	status_buffer = STATUS_BUFFER;
-	last_status_cksum = 0;
-	text = NULL;
-
 #ifdef NO_SUCH_APPLET_YET
 	/* If we aren't "vi", we are "view" */
 	if (ENABLE_FEATURE_VI_READONLY && applet_name[2]) {
@@ -379,9 +428,6 @@ int vi_main(int argc, char **argv)
 #endif
 
 	vi_setops = VI_AUTOINDENT | VI_SHOWMATCH | VI_IGNORECASE;
-#if ENABLE_FEATURE_VI_YANKMARK
-	memset(reg, 0, sizeof(reg)); // init the yank regs
-#endif
 #if ENABLE_FEATURE_VI_DOT_CMD || ENABLE_FEATURE_VI_YANKMARK
 	modifying_cmds = (char *) "aAcCdDiIJoOpPrRsxX<>~";	// cmds modifying text[]
 #endif
@@ -417,7 +463,6 @@ int vi_main(int argc, char **argv)
 		case 'H':
 			show_help();
 			/* fall through */
-
 		default:
 			bb_show_usage();
 			return 1;
@@ -451,9 +496,7 @@ static int init_text_buffer(char *fn)
 
 	/* allocate/reallocate text buffer */
 	free(text);
-	text_size = size * 2;
-	if (text_size < 10240)
-		text_size = 10240;	// have a minimum size for new files
+	text_size = size + 10240;
 	screenbegin = dot = end = text = xzalloc(text_size);
 
 	if (fn != current_filename) {
@@ -479,14 +522,13 @@ static int init_text_buffer(char *fn)
 
 static void edit_file(char *fn)
 {
+#if ENABLE_FEATURE_VI_YANKMARK
+#define cur_line edit_file__cur_line
+#endif
 	char c;
 	int size;
-
 #if ENABLE_FEATURE_VI_USE_SIGNALS
 	int sig;
-#endif
-#if ENABLE_FEATURE_VI_YANKMARK
-	static char *cur_line;
 #endif
 
 	editing = 1;	// 0 = exit, 1 = one file, 2 = multiple files
@@ -606,6 +648,7 @@ static void edit_file(char *fn)
 	place_cursor(rows, 0, FALSE);	// go to bottom of screen
 	clear_to_eol();		// Erase to end of line
 	cookmode();
+#undef cur_line
 }
 
 //----- The Colon commands -------------------------------------
@@ -1611,7 +1654,7 @@ static char *char_insert(char * p, char c) // insert the char c at 'p'
 		c = get_one_char();
 		*p = c;
 		p++;
-		file_modified++;	// has the file been modified
+		file_modified++;
 	} else if (c == 27) {	// Is this an ESC?
 		cmd_mode = 0;
 		cmdcnt = 0;
@@ -1654,12 +1697,9 @@ static char *char_insert(char * p, char c) // insert the char c at 'p'
 static char *stupid_insert(char * p, char c) // stupidly insert the char c at 'p'
 {
 	p = text_hole_make(p, 1);
-	if (p != 0) {
-		*p = c;
-		file_modified++;	// has the file been modified
-		p++;
-	}
-	return p;
+	*p = c;
+	//file_modified++; - done by text_hole_make()
+	return p + 1;
 }
 
 static int find_range(char ** start, char ** stop, char c)
@@ -1842,24 +1882,21 @@ static void showmatching(char *p)
 //  open a hole in text[]
 static char *text_hole_make(char * p, int size)	// at "p", make a 'size' byte hole
 {
-	char *src, *dest;
-	int cnt;
-
 	if (size <= 0)
-		goto thm0;
-	src = p;
-	dest = p + size;
-	cnt = end - src;	// the rest of buffer
-	if ( ((end + size) >= (text + text_size)) // TODO: realloc here
-			|| memmove(dest, src, cnt) != dest) {
-		status_line_bold("can't create room for new characters");
-		p = NULL;
-		goto thm0;
+		return p;
+	end += size;		// adjust the new END
+	if (end >= (text + text_size)) {
+		char *new_text;
+		text_size += end - (text + text_size) + 10240;
+		new_text = xrealloc(text, text_size);
+		screenbegin = new_text + (screenbegin - text);
+		dot         = new_text + (dot         - text);
+		end         = new_text + (end         - text);
+		p           = new_text + (p           - text);
+		text = new_text;
 	}
 	memset(p, ' ', size);	// clear new hole
-	end += size;		// adjust the new END
-	file_modified++;	// has the file been modified
- thm0:
+	file_modified++;
 	return p;
 }
 
@@ -1885,16 +1922,14 @@ static char *text_hole_delete(char * p, char * q) // delete "p" through "q", inc
 		goto thd0;
 	if (src >= end)
 		goto thd_atend;	// just delete the end of the buffer
-	if (memmove(dest, src, cnt) != dest) {
-		status_line_bold("can't delete the character");
-	}
+	memmove(dest, src, cnt);
  thd_atend:
 	end = end - hole_size;	// adjust the new END
 	if (dest >= end)
 		dest = end - 1;	// make sure dest in below end-1
 	if (end <= text)
 		dest = end = text;	// keep pointers valid
-	file_modified++;	// has the file been modified
+	file_modified++;
  thd0:
 	return dest;
 }
@@ -1973,8 +2008,6 @@ static void show_help(void)
 static void start_new_cmd_q(char c)
 {
 	// get buffer for new cmd
-	if (!last_modifying_cmd)
-		last_modifying_cmd = xzalloc(MAX_INPUT_LEN);
 	// if there is a current cmd count put it in the buffer first
 	if (cmdcnt > 0)
 		lmc_len = sprintf(last_modifying_cmd, "%d%c", cmdcnt, c);
@@ -2164,8 +2197,6 @@ static int mysleep(int hund)	// sleep for 'h' 1/100 seconds
 	return safe_poll(pfd, 1, hund*10) > 0;
 }
 
-static int chars_to_parse;
-
 //----- IO Routines --------------------------------------------
 static char readit(void)	// read (maybe cursor) key from stdin
 {
@@ -2300,13 +2331,11 @@ static char get_one_char(void)
 	} else {
 		// adding STDIN chars to q
 		c = readit();	// get the users input
-		if (last_modifying_cmd != NULL) {
-			if (lmc_len >= MAX_INPUT_LEN - 1) {
-				status_line_bold("last_modifying_cmd overrun");
-			} else {
-				// add new char to q
-				last_modifying_cmd[lmc_len++] = c;
-			}
+		if (lmc_len >= MAX_INPUT_LEN - 1) {
+			status_line_bold("last_modifying_cmd overrun");
+		} else {
+			// add new char to q
+			last_modifying_cmd[lmc_len++] = c;
 		}
 	}
 #else
@@ -2318,12 +2347,11 @@ static char get_one_char(void)
 // Get input line (uses "status line" area)
 static char *get_input_line(const char *prompt)
 {
-	static char *buf; // [MAX_INPUT_LEN]
+	// char [MAX_INPUT_LEN]
+#define buf get_input_line__buf
 
 	char c;
 	int i;
-
-	if (!buf) buf = xmalloc(MAX_INPUT_LEN);
 
 	strcpy(buf, prompt);
 	last_status_cksum = 0;	// force status update
@@ -2350,6 +2378,7 @@ static char *get_input_line(const char *prompt)
 	}
 	refresh(FALSE);
 	return buf;
+#undef buf
 }
 
 static int file_size(const char *fn) // what is the byte size of "fn"
@@ -2451,7 +2480,7 @@ static int file_write(char * fn, char * first, char * last)
 	ftruncate(fd, charcnt);
 	if (charcnt == cnt) {
 		// good write
-		//file_modified = FALSE; // the file has not been modified
+		//file_modified = FALSE;
 	} else {
 		charcnt = 0;
 	}
@@ -2701,8 +2730,10 @@ static void not_implemented(const char *s)
 // show file status on status line
 static int format_edit_status(void)
 {
-	static int tot;
 	static const char cmd_mode_indicator[] ALIGN1 = "-IR-";
+
+#define tot format_edit_status__tot
+
 	int cur, percent, ret, trunc_at;
 
 	// file_modified is now a counter rather than a flag.  this
@@ -2753,13 +2784,14 @@ static int format_edit_status(void)
 		return ret;  /* it all fit */
 
 	return trunc_at;  /* had to truncate */
+#undef tot
 }
 
 //----- Force refresh of all Lines -----------------------------
 static void redraw(int full_screen)
 {
 	place_cursor(0, 0, FALSE);	// put cursor in correct place
-	clear_to_eos();		// tel terminal to erase display
+	clear_to_eos();		// tell terminal to erase display
 	screen_erase();		// erase the internal screen buffer
 	last_status_cksum = 0;	// force status update
 	refresh(full_screen);	// this will redraw the entire display
@@ -2831,7 +2863,7 @@ static char* format_line(char *src /*, int li*/)
 //
 static void refresh(int full_screen)
 {
-	static int old_offset;
+#define old_offset refresh__old_offset
 
 	int li, changed;
 	char *tp, *sp;		// pointer into text[] and screen[]
@@ -2919,6 +2951,7 @@ static void refresh(int full_screen)
 	place_cursor(crow, ccol, TRUE);
 
 	old_offset = offset;
+#undef old_offset
 }
 
 //---------------------------------------------------------------------
@@ -3276,7 +3309,7 @@ static void do_cmd(char c)
 	case '.':			// .- repeat the last modifying command
 		// Stuff the last_modifying_cmd back into stdin
 		// and let it be re-executed.
-		if (last_modifying_cmd != NULL && lmc_len > 0) {
+		if (lmc_len > 0) {
 			last_modifying_cmd[lmc_len] = 0;
 			ioq = ioq_start = xstrdup(last_modifying_cmd);
 		}
@@ -3750,7 +3783,7 @@ static void do_cmd(char c)
 		c1 = get_one_char();	// get the replacement char
 		if (*dot != '\n') {
 			*dot = c1;
-			file_modified++;	// has the file been modified
+			file_modified++;
 		}
 		end_cmd_q();	// stop adding to q
 		break;
@@ -3795,10 +3828,10 @@ static void do_cmd(char c)
 		}				// repeat cnt
 		if (islower(*dot)) {
 			*dot = toupper(*dot);
-			file_modified++;	// has the file been modified
+			file_modified++;
 		} else if (isupper(*dot)) {
 			*dot = tolower(*dot);
-			file_modified++;	// has the file been modified
+			file_modified++;
 		}
 		dot_right();
 		end_cmd_q();	// stop adding to q
