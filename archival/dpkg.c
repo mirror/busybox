@@ -75,10 +75,21 @@ typedef struct status_node_s {
 	unsigned status:16; /* was:14 */        /* has to fit STATUS_HASH_PRIME */
 } status_node_t;
 
-/* Were statically declared here, but such a big bss is nommu-unfriendly */
-static char **name_hashtable;             /* [NAME_HASH_PRIME + 1] */
-static common_node_t **package_hashtable; /* [PACKAGE_HASH_PRIME + 1] */
-static status_node_t **status_hashtable;  /* [STATUS_HASH_PRIME + 1] */
+
+/* Globals */
+struct globals {
+	char          *name_hashtable[NAME_HASH_PRIME + 1];
+	common_node_t *package_hashtable[PACKAGE_HASH_PRIME + 1];
+	status_node_t *status_hashtable[STATUS_HASH_PRIME + 1];
+};
+#define G (*ptr_to_globals)
+#define name_hashtable    (G.name_hashtable   )
+#define package_hashtable (G.package_hashtable)
+#define status_hashtable  (G.status_hashtable )
+#define INIT_G() do { \
+	SET_PTR_TO_GLOBALS(xzalloc(sizeof(G))); \
+} while (0)
+
 
 /* Even numbers are for 'extras', like ored dependencies or null */
 enum edge_type_e {
@@ -311,7 +322,6 @@ static int test_version(const unsigned version1, const unsigned version2, const 
 	}
 	return FALSE;
 }
-
 
 static int search_package_hashtable(const unsigned name, const unsigned version, const unsigned operator)
 {
@@ -730,7 +740,6 @@ static const char *describe_status(int status_num)
 
 	return "is not installed or flagged to be installed";
 }
-
 
 static void index_status_file(const char *filename)
 {
@@ -1203,25 +1212,25 @@ static int remove_file_array(char **remove_names, char **exclude_names)
 	return (remove_flag == 0);
 }
 
-static int run_package_script(const char *package_name, const char *script_type)
+static void run_package_script_or_die(const char *package_name, const char *script_type)
 {
-	struct stat path_stat;
 	char *script_path;
 	int result;
 
 	script_path = xasprintf("/var/lib/dpkg/info/%s.%s", package_name, script_type);
 
-	/* If the file doesnt exist is isnt a fatal */
-	result = lstat(script_path, &path_stat) < 0 ? EXIT_SUCCESS : system(script_path);
+	/* If the file doesnt exist is isnt fatal */
+	result = access(script_path, F_OK) ? EXIT_SUCCESS : system(script_path);
 	free(script_path);
-	return result;
+	if (result)
+		bb_error_msg_and_die("%s failed, exit code %d", script_type, result);
 }
 
 /*
 The policy manual defines what scripts get called when and with
 what arguments. I realize that busybox does not support all of
 these scenarios, but it does support some of them; it does not,
-however, run them with any parameters in run_package_script().
+however, run them with any parameters in run_package_script_or_die().
 Here are the scripts:
 
 preinst install
@@ -1335,10 +1344,8 @@ static void remove_package(const unsigned package_num, int noisy)
 	if (noisy)
 		printf("Removing %s (%s)...\n", package_name, package_version);
 
-	/* run prerm script */
-	if (run_package_script(package_name, "prerm") != 0) {
-		bb_error_msg_and_die("script failed, prerm failure");
-	}
+	/* Run prerm script */
+	run_package_script_or_die(package_name, "prerm");
 
 	/* Create a list of files to remove, and a separate list of those to keep */
 	sprintf(list_name, "/var/lib/dpkg/info/%s.%s", package_name, "list");
@@ -1348,7 +1355,8 @@ static void remove_package(const unsigned package_num, int noisy)
 	exclude_files = create_list(conffile_name);
 
 	/* Some directories can't be removed straight away, so do multiple passes */
-	while (remove_file_array(remove_files, exclude_files)) /*repeat */;
+	while (remove_file_array(remove_files, exclude_files))
+		continue;
 	free_array(exclude_files);
 	free_array(remove_files);
 
@@ -1384,10 +1392,8 @@ static void purge_package(const unsigned package_num)
 
 	printf("Purging %s (%s)...\n", package_name, package_version);
 
-	/* run prerm script */
-	if (run_package_script(package_name, "prerm") != 0) {
-		bb_error_msg_and_die("script failed, prerm failure");
-	}
+	/* Run prerm script */
+	run_package_script_or_die(package_name, "prerm");
 
 	/* Create a list of files to remove */
 	sprintf(list_name, "/var/lib/dpkg/info/%s.%s", package_name, "list");
@@ -1405,10 +1411,8 @@ static void purge_package(const unsigned package_num)
 	free_array(remove_files);
 	free(exclude_files);
 
-	/* run postrm script */
-	if (run_package_script(package_name, "postrm") != 0) {
-		bb_error_msg_and_die("postrm failure.. set status to what?");
-	}
+	/* Run postrm script */
+	run_package_script_or_die(package_name, "postrm");
 
 	/* Change package status */
 	set_status(status_num, "not-installed", 3);
@@ -1532,10 +1536,7 @@ static void unpack_package(deb_file_t *deb_file)
 	unpack_ar_archive(archive_handle);
 
 	/* Run the preinst prior to extracting */
-	if (run_package_script(package_name, "preinst") != 0) {
-		/* when preinst returns exit code != 0 then quit installation process */
-		bb_error_msg_and_die("subprocess pre-installation script returned error");
-	}
+	run_package_script_or_die(package_name, "preinst");
 
 	/* Extract data.tar.gz to the root directory */
 	archive_handle = init_archive_deb_ar(deb_file->filename);
@@ -1573,10 +1574,9 @@ static void configure_package(deb_file_t *deb_file)
 	printf("Setting up %s (%s)...\n", package_name, package_version);
 
 	/* Run the postinst script */
-	if (run_package_script(package_name, "postinst") != 0) {
-		/* TODO: handle failure gracefully */
-		bb_error_msg_and_die("postinst failure.. set status to what?");
-	}
+	/* TODO: handle failure gracefully */
+	run_package_script_or_die(package_name, "postinst");
+
 	/* Change status to reflect success */
 	set_status(status_num, "install", 1);
 	set_status(status_num, "installed", 3);
@@ -1604,6 +1604,8 @@ int dpkg_main(int argc ATTRIBUTE_UNUSED, char **argv)
 		OPT_unpack = 0x40,
 	};
 
+	INIT_G();
+
 	opt = getopt32(argv, "CF:ilPru", &str_f);
 	//if (opt & OPT_configure) ... // -C
 	if (opt & OPT_force_ignore_depends) { // -F (--force in official dpkg)
@@ -1619,10 +1621,6 @@ int dpkg_main(int argc ATTRIBUTE_UNUSED, char **argv)
 	/* check for non-option argument if expected  */
 	if (!opt || (!argv[0] && !(opt && OPT_list_installed)))
 		bb_show_usage();
-
-	name_hashtable = xzalloc(sizeof(name_hashtable[0]) * (NAME_HASH_PRIME + 1));
-	package_hashtable = xzalloc(sizeof(package_hashtable[0]) * (PACKAGE_HASH_PRIME + 1));
-	status_hashtable = xzalloc(sizeof(status_hashtable[0]) * (STATUS_HASH_PRIME + 1));
 
 /*	puts("(Reading database ... xxxxx files and directories installed.)"); */
 	index_status_file("/var/lib/dpkg/status");
