@@ -1124,7 +1124,7 @@ static void colon(char *buf)
 		}
 #endif /* FEATURE_VI_SEARCH */
 	} else if (strncasecmp(cmd, "version", i) == 0) {  // show software version
-		status_line("%s", BB_VER " " BB_BT);
+		status_line(BB_VER " " BB_BT);
 	} else if (strncasecmp(cmd, "write", i) == 0  // write text to file
 	        || strncasecmp(cmd, "wq", i) == 0
 	        || strncasecmp(cmd, "wn", i) == 0
@@ -1540,7 +1540,7 @@ static char *new_screen(int ro, int co)
 }
 
 #if ENABLE_FEATURE_VI_SEARCH
-static int mycmp(const char * s1, const char * s2, int len)
+static int mycmp(const char *s1, const char *s2, int len)
 {
 	int i;
 
@@ -1552,7 +1552,7 @@ static int mycmp(const char * s1, const char * s2, int len)
 }
 
 // search for pattern starting at p
-static char *char_search(char * p, const char * pat, int dir, int range)
+static char *char_search(char *p, const char *pat, int dir, int range)
 {
 #ifndef REGEX_SEARCH
 	char *start, *stop;
@@ -1645,7 +1645,7 @@ static char *char_search(char * p, const char * pat, int dir, int range)
 }
 #endif /* FEATURE_VI_SEARCH */
 
-static char *char_insert(char * p, char c) // insert the char c at 'p'
+static char *char_insert(char *p, char c) // insert the char c at 'p'
 {
 	if (c == 22) {		// Is this an ctrl-V?
 		p = stupid_insert(p, '^');	// use ^ to indicate literal next
@@ -1694,7 +1694,7 @@ static char *char_insert(char * p, char c) // insert the char c at 'p'
 	return p;
 }
 
-static char *stupid_insert(char * p, char c) // stupidly insert the char c at 'p'
+static char *stupid_insert(char *p, char c) // stupidly insert the char c at 'p'
 {
 	p = text_hole_make(p, 1);
 	*p = c;
@@ -1702,7 +1702,7 @@ static char *stupid_insert(char * p, char c) // stupidly insert the char c at 'p
 	return p + 1;
 }
 
-static int find_range(char ** start, char ** stop, char c)
+static int find_range(char **start, char **stop, char c)
 {
 	char *save_dot, *p, *q, *t;
 	int cnt, multiline = 0;
@@ -1775,7 +1775,7 @@ static int find_range(char ** start, char ** stop, char c)
 	return multiline;
 }
 
-static int st_test(char * p, int type, int dir, char * tested)
+static int st_test(char *p, int type, int dir, char *tested)
 {
 	char c, c0, ci;
 	int test, inc;
@@ -1809,7 +1809,7 @@ static int st_test(char * p, int type, int dir, char * tested)
 	return test;
 }
 
-static char *skip_thing(char * p, int linecnt, int dir, int type)
+static char *skip_thing(char *p, int linecnt, int dir, int type)
 {
 	char c;
 
@@ -1827,7 +1827,7 @@ static char *skip_thing(char * p, int linecnt, int dir, int type)
 }
 
 // find matching char of pair  ()  []  {}
-static char *find_pair(char * p, const char c)
+static char *find_pair(char *p, const char c)
 {
 	char match, *q;
 	int dir, level;
@@ -1880,7 +1880,7 @@ static void showmatching(char *p)
 #endif /* FEATURE_VI_SETOPTS */
 
 //  open a hole in text[]
-static char *text_hole_make(char * p, int size)	// at "p", make a 'size' byte hole
+static char *text_hole_make(char *p, int size)	// at "p", make a 'size' byte hole
 {
 	if (size <= 0)
 		return p;
@@ -1901,7 +1901,7 @@ static char *text_hole_make(char * p, int size)	// at "p", make a 'size' byte ho
 }
 
 //  close a hole in text[]
-static char *text_hole_delete(char * p, char * q) // delete "p" through "q", inclusive
+static char *text_hole_delete(char *p, char *q) // delete "p" through "q", inclusive
 {
 	char *src, *dest;
 	int cnt, hole_size;
@@ -1937,7 +1937,7 @@ static char *text_hole_delete(char * p, char * q) // delete "p" through "q", inc
 // copy text into register, then delete text.
 // if dist <= 0, do not include, or go past, a NewLine
 //
-static char *yank_delete(char * start, char * stop, int dist, int yf)
+static char *yank_delete(char *start, char *stop, int dist, int yf)
 {
 	char *p;
 
@@ -2030,27 +2030,26 @@ static void end_cmd_q(void)
 #if ENABLE_FEATURE_VI_YANKMARK \
  || (ENABLE_FEATURE_VI_COLON && ENABLE_FEATURE_VI_SEARCH) \
  || ENABLE_FEATURE_VI_CRASHME
-static char *string_insert(char * p, char * s) // insert the string at 'p'
+static char *string_insert(char *p, char *s) // insert the string at 'p'
 {
 	int cnt, i;
 
 	i = strlen(s);
-	if (text_hole_make(p, i)) {
-		strncpy(p, s, i);
-		for (cnt = 0; *s != '\0'; s++) {
-			if (*s == '\n')
-				cnt++;
-		}
-#if ENABLE_FEATURE_VI_YANKMARK
-		status_line("Put %d lines (%d chars) from [%c]", cnt, i, what_reg());
-#endif
+	text_hole_make(p, i);
+	strncpy(p, s, i);
+	for (cnt = 0; *s != '\0'; s++) {
+		if (*s == '\n')
+			cnt++;
 	}
+#if ENABLE_FEATURE_VI_YANKMARK
+	status_line("Put %d lines (%d chars) from [%c]", cnt, i, what_reg());
+#endif
 	return p;
 }
 #endif
 
 #if ENABLE_FEATURE_VI_YANKMARK
-static char *text_yank(char * p, char * q, int dest)	// copy text into a register
+static char *text_yank(char *p, char *q, int dest)	// copy text into a register
 {
 	char *t;
 	int cnt;
@@ -2392,7 +2391,7 @@ static int file_size(const char *fn) // what is the byte size of "fn"
 	return cnt;
 }
 
-static int file_insert(const char * fn, char *p
+static int file_insert(const char *fn, char *p
 		USE_FEATURE_VI_READONLY(, int update_ro_status))
 {
 	int cnt = -1;
@@ -2404,18 +2403,11 @@ static int file_insert(const char * fn, char *p
 		status_line_bold("\"%s\" %s", fn, strerror(errno));
 		goto fi0;
 	}
-	if ((statbuf.st_mode & S_IFREG) == 0) {
+	if (!S_ISREG(statbuf.st_mode)) {
 		// This is not a regular file
 		status_line_bold("\"%s\" Not a regular file", fn);
 		goto fi0;
 	}
-	/* // this check is done by open()
-	if ((statbuf.st_mode & (S_IRUSR | S_IRGRP | S_IROTH)) == 0) {
-		// dont have any read permissions
-		status_line_bold("\"%s\" Not readable", fn);
-		goto fi0;
-	}
-	*/
 	if (p < text || p > end) {
 		status_line_bold("Trying to insert file outside of memory");
 		goto fi0;
@@ -2429,8 +2421,6 @@ static int file_insert(const char * fn, char *p
 	}
 	size = statbuf.st_size;
 	p = text_hole_make(p, size);
-	if (p == NULL)
-		goto fi0;
 	cnt = safe_read(fd, p, size);
 	if (cnt < 0) {
 		status_line_bold("\"%s\" %s", fn, strerror(errno));
@@ -2458,8 +2448,7 @@ static int file_insert(const char * fn, char *p
 	return cnt;
 }
 
-
-static int file_write(char * fn, char * first, char * last)
+static int file_write(char *fn, char *first, char *last)
 {
 	int fd, cnt, charcnt;
 
