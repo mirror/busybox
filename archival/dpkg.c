@@ -1152,9 +1152,9 @@ static int check_deps(deb_file_t **deb_file, int deb_start /*, int dep_max_count
 static char **create_list(const char *filename)
 {
 	FILE *list_stream;
-	char **file_list = NULL;
-	char *line = NULL;
-	int count = 0;
+	char **file_list;
+	char *line;
+	int count;
 
 	/* don't use [xw]fopen here, handle error ourself */
 	list_stream = fopen(filename, "r");
@@ -1162,17 +1162,15 @@ static char **create_list(const char *filename)
 		return NULL;
 	}
 
+	file_list = NULL;
+	count = 0;
 	while ((line = xmalloc_fgetline(list_stream)) != NULL) {
 		file_list = xrealloc(file_list, sizeof(char *) * (count + 2));
-		file_list[count] = line;
-		count++;
+		file_list[count++] = line;
+		file_list[count] = NULL;
 	}
 	fclose(list_stream);
 
-	if (count == 0) {
-		return NULL;
-	}
-	file_list[count] = NULL;
 	return file_list;
 }
 
