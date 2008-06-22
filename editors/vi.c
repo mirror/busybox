@@ -255,11 +255,11 @@ struct globals {
 #define erase_char              (G.erase_char         )
 #define last_input_char         (G.last_input_char    )
 #define last_forward_char       (G.last_forward_char  )
-#if ENABLE_FEATURE_VI_READONLY 
+#if ENABLE_FEATURE_VI_READONLY
 #define readonly_mode           (G.readonly_mode      )
-#else                          
-#define readonly_mode           0  readonly_mode      )
-#endif                         
+#else
+#define readonly_mode           0
+#endif
 #define adding2q                (G.adding2q           )
 #define lmc_len                 (G.lmc_len            )
 #define ioq                     (G.ioq                )
@@ -269,7 +269,7 @@ struct globals {
 #define modifying_cmds          (G.modifying_cmds     )
 #define last_search_pattern     (G.last_search_pattern)
 #define chars_to_parse          (G.chars_to_parse     )
-                                   
+
 #define edit_file__cur_line     (G.edit_file__cur_line)
 #define refresh__old_offset     (G.refresh__old_offset)
 #define format_edit_status__tot (G.format_edit_status__tot)
