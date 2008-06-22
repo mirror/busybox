@@ -1274,9 +1274,8 @@ static void sync_cursor(char *d, int *row, int *col)
 			// handle tabs like real vi
 			if (d == tp && cmd_mode) {
 				break;
-			} else {
-				co = next_tabstop(co);
 			}
+			co = next_tabstop(co);
 		} else if ((unsigned char)*tp < ' ' || *tp == 0x7f) {
 			co++; // display as ^X, use 2 columns
 		}
@@ -1326,7 +1325,7 @@ static char *begin_line(char *p) // return pointer to first char cur line
 	return p;
 }
 
-static char *end_line(char *p) // return pointer to NL of cur line line
+static char *end_line(char *p) // return pointer to NL of cur line
 {
 	if (p < end - 1) {
 		p = memchr(p, '\n', end - p - 1);
@@ -1348,7 +1347,7 @@ static char *dollar_line(char *p) // return pointer to just before NL line
 static char *prev_line(char *p) // return pointer first char prev line
 {
 	p = begin_line(p);	// goto begining of cur line
-	if (p[-1] == '\n' && p > text)
+	if (p > text && p[-1] == '\n')
 		p--;			// step to prev line
 	p = begin_line(p);	// goto begining of prev line
 	return p;
@@ -1357,7 +1356,7 @@ static char *prev_line(char *p) // return pointer first char prev line
 static char *next_line(char *p) // return pointer first char next line
 {
 	p = end_line(p);
-	if (*p == '\n' && p < end - 1)
+	if (p < end - 1 && *p == '\n')
 		p++;			// step to next line
 	return p;
 }
