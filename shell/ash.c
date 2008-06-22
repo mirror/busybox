@@ -184,9 +184,9 @@ struct globals_misc {
 #define EXSIG 5         /* trapped signal in wait(1) */
 
 	/* trap handler commands */
-	char *trap[NSIG];
 	smallint isloginsh;
-	char nullstr[1];                /* zero length string */
+	char *trap[NSIG];
+	char nullstr[1];        /* zero length string */
 	/*
 	 * Sigmode records the current value of the signal handlers for the various
 	 * modes.  A value of zero means that the current handler is not known.
@@ -216,8 +216,8 @@ extern struct globals_misc *const ash_ptr_to_globals_misc;
 #define intpending        (G_misc.intpending       )
 //#define exsig             (G_misc.exsig            )
 #define pendingsig        (G_misc.pendingsig       )
-#define trap      (G_misc.trap     )
 #define isloginsh (G_misc.isloginsh)
+#define trap      (G_misc.trap     )
 #define nullstr   (G_misc.nullstr  )
 #define sigmode   (G_misc.sigmode  )
 #define gotsig    (G_misc.gotsig   )
@@ -1012,7 +1012,7 @@ struct parsefile {
 };
 
 static struct parsefile basepf;         /* top level input file */
-static struct parsefile *parsefile = &basepf;  /* current input file */
+static struct parsefile *g_parsefile = &basepf;  /* current input file */
 static int startlinno;                 /* line # where last token started */
 static char *commandname;              /* currently executing command */
 static struct strlist *cmdenviron;     /* environment for builtin command */
@@ -1028,7 +1028,7 @@ ash_vmsg(const char *msg, va_list ap)
 	if (commandname) {
 		if (strcmp(arg0, commandname))
 			fprintf(stderr, "%s: ", commandname);
-		if (!iflag || parsefile->fd)
+		if (!iflag || g_parsefile->fd)
 			fprintf(stderr, "line %d: ", startlinno);
 	}
 	vfprintf(stderr, msg, ap);
@@ -3261,10 +3261,10 @@ static int forkshell(struct job *, union node *, int);
 static int waitforjob(struct job *);
 
 #if !JOBS
-enum { jobctl = 0 };
+enum { doing_jobctl = 0 };
 #define setjobctl(on) do {} while (0)
 #else
-static smallint jobctl;              /* true if doing job control */
+static smallint doing_jobctl;
 static void setjobctl(int);
 #endif
 
@@ -3562,7 +3562,7 @@ setjobctl(int on)
 	int fd;
 	int pgrp;
 
-	if (on == jobctl || rootshell == 0)
+	if (on == doing_jobctl || rootshell == 0)
 		return;
 	if (on) {
 		int ofd;
@@ -3621,7 +3621,7 @@ setjobctl(int on)
 		fd = -1;
 	}
 	ttyfd = fd;
-	jobctl = on;
+	doing_jobctl = on;
 }
 
 static int
@@ -3785,7 +3785,7 @@ static int
 waitproc(int wait_flags, int *status)
 {
 #if JOBS
-	if (jobctl)
+	if (doing_jobctl)
 		wait_flags |= WUNTRACED;
 #endif
 	/* NB: _not_ safe_waitpid, we need to detect EINTR */
@@ -4151,7 +4151,7 @@ makejob(/*union node *node,*/ int nprocs)
 		if (jp->state != JOBDONE || !jp->waited)
 			continue;
 #if JOBS
-		if (jobctl)
+		if (doing_jobctl)
 			continue;
 #endif
 		freejob(jp);
@@ -4161,7 +4161,7 @@ makejob(/*union node *node,*/ int nprocs)
 #if JOBS
 	/* jp->jobctl is a bitfield.
 	 * "jp->jobctl |= jobctl" likely to give awful code */
-	if (jobctl)
+	if (doing_jobctl)
 		jp->jobctl = 1;
 #endif
 	jp->prev_job = curjob;
@@ -4513,7 +4513,7 @@ forkchild(struct job *jp, /*union node *n,*/ int mode)
 	clear_traps();
 #if JOBS
 	/* do job control only in root shell */
-	jobctl = 0;
+	doing_jobctl = 0;
 	if (mode != FORK_NOJOB && jp->jobctl && !oldlvl) {
 		pid_t pgrp;
 
@@ -4584,7 +4584,7 @@ forkparent(struct job *jp, union node *n, int mode, pid_t pid)
 		ps->status = -1;
 		ps->cmd = nullstr;
 #if JOBS
-		if (jobctl && n)
+		if (doing_jobctl && n)
 			ps->cmd = commandtext(n);
 #endif
 	}
@@ -5359,13 +5359,13 @@ exptilde(char *startp, char *p, int flag)
  */
 struct backcmd {                /* result of evalbackcmd */
 	int fd;                 /* file descriptor to read from */
-	char *buf;              /* buffer */
 	int nleft;              /* number of chars in buffer */
+	char *buf;              /* buffer */
 	struct job *jp;         /* job structure for command */
 };
 
 /* These forward decls are needed to use "eval" code for backticks handling: */
-static int back_exitstatus; /* exit status of backquoted command */
+static smalluint back_exitstatus; /* exit status of backquoted command */
 #define EV_EXIT 01              /* exit after evaluating tree */
 static void evaltree(union node *, int);
 
@@ -6846,14 +6846,12 @@ static void find_command(char *, struct cmdentry *, int, const char *);
  * would make the command name "hash" a misnomer.
  */
 
-#define ARB 1                   /* actual size determined at run time */
-
 struct tblentry {
 	struct tblentry *next;  /* next entry in hash chain */
 	union param param;      /* definition of builtin function */
 	smallint cmdtype;       /* CMDxxx */
 	char rehash;            /* if set, cd done since entry created */
-	char cmdname[ARB];      /* name of command */
+	char cmdname[1];        /* name of command */
 };
 
 static struct tblentry **cmdtable;
@@ -6888,22 +6886,25 @@ tryexec(USE_FEATURE_SH_STANDALONE(int applet_no,) char *cmd, char **argv, char *
 #else
 	execve(cmd, argv, envp);
 #endif
-	if (repeated++) {
+	if (repeated) {
 		free(argv);
-	} else if (errno == ENOEXEC) {
+		return;
+	}
+	if (errno == ENOEXEC) {
 		char **ap;
 		char **new;
 
 		for (ap = argv; *ap; ap++)
-			;
-		ap = new = ckmalloc((ap - argv + 2) * sizeof(char *));
+			continue;
+		ap = new = ckmalloc((ap - argv + 2) * sizeof(ap[0]));
 		ap[1] = cmd;
 		ap[0] = cmd = (char *)DEFAULT_SHELL;
 		ap += 2;
 		argv++;
-		while ((*ap++ = *argv++))
+		while ((*ap++ = *argv++) != NULL)
 			continue;
 		argv = new;
+		repeated++;
 		goto repeat;
 	}
 }
@@ -7041,8 +7042,10 @@ cmdlookup(const char *name, int add)
 		pp = &cmdp->next;
 	}
 	if (add && cmdp == NULL) {
-		cmdp = *pp = ckzalloc(sizeof(struct tblentry) - ARB
-					+ strlen(name) + 1);
+		cmdp = *pp = ckzalloc(sizeof(struct tblentry)
+				+ strlen(name)
+				/* + 1 - already done because
+				 * tblentry::cmdname is char[1] */);
 		/*cmdp->next = NULL; - ckzalloc did it */
 		cmdp->cmdtype = CMDUNKNOWN;
 		strcpy(cmdp->cmdname, name);
@@ -7221,6 +7224,7 @@ changepath(const char *new)
 #define TWHILE 26
 #define TBEGIN 27
 #define TEND 28
+typedef smallint token_id_t;
 
 /* first char is indicating which tokens mark the end of a list */
 static const char *const tokname_array[] = {
@@ -8137,7 +8141,7 @@ evalpipe(union node *n, int flags)
 static void
 setinteractive(int on)
 {
-	static int is_interactive;
+	static smallint is_interactive;
 
 	if (++on == is_interactive)
 		return;
@@ -8163,15 +8167,6 @@ setinteractive(int on)
 #endif
 }
 
-#if ENABLE_FEATURE_EDITING_VI
-#define setvimode(on) do { \
-	if (on) line_input_state->flags |= VI_MODE; \
-	else line_input_state->flags &= ~VI_MODE; \
-} while (0)
-#else
-#define setvimode(on) viflag = 0   /* forcibly keep the option off */
-#endif
-
 static void
 optschanged(void)
 {
@@ -8180,7 +8175,14 @@ optschanged(void)
 #endif
 	setinteractive(iflag);
 	setjobctl(mflag);
-	setvimode(viflag);
+#if ENABLE_FEATURE_EDITING_VI
+	if (viflag)
+		line_input_state->flags |= VI_MODE;
+	else
+		line_input_state->flags &= ~VI_MODE;
+#else
+	viflag = 0; /* forcibly keep the option off */
+#endif
 }
 
 static struct localvar *localvars;
@@ -8558,7 +8560,6 @@ find_builtin(const char *name)
 /*
  * Execute a simple command.
  */
-static int back_exitstatus; /* exit status of backquoted command */
 static int
 isassignment(const char *p)
 {
@@ -8916,7 +8917,7 @@ static int parselleft;                  /* copy of parsefile->lleft */
 /* next character in input buffer */
 static char *parsenextc;                /* copy of parsefile->nextc */
 
-static int checkkwd;
+static smallint checkkwd;
 /* values of checkkwd variable */
 #define CHKALIAS        0x1
 #define CHKKWD          0x2
@@ -8925,7 +8926,7 @@ static int checkkwd;
 static void
 popstring(void)
 {
-	struct strpush *sp = parsefile->strpush;
+	struct strpush *sp = g_parsefile->strpush;
 
 	INT_OFF;
 #if ENABLE_ASH_ALIAS
@@ -8945,8 +8946,8 @@ popstring(void)
 	parsenextc = sp->prevstring;
 	parsenleft = sp->prevnleft;
 /*dprintf("*** calling popstring: restoring to '%s'\n", parsenextc);*/
-	parsefile->strpush = sp->prev;
-	if (sp != &(parsefile->basestrpush))
+	g_parsefile->strpush = sp->prev;
+	if (sp != &(g_parsefile->basestrpush))
 		free(sp);
 	INT_ON;
 }
@@ -8955,13 +8956,13 @@ static int
 preadfd(void)
 {
 	int nr;
-	char *buf =  parsefile->buf;
+	char *buf =  g_parsefile->buf;
 	parsenextc = buf;
 
 #if ENABLE_FEATURE_EDITING
  retry:
-	if (!iflag || parsefile->fd)
-		nr = nonblock_safe_read(parsefile->fd, buf, BUFSIZ - 1);
+	if (!iflag || g_parsefile->fd)
+		nr = nonblock_safe_read(g_parsefile->fd, buf, BUFSIZ - 1);
 	else {
 #if ENABLE_FEATURE_TAB_COMPLETION
 		line_input_state->path_lookup = pathval();
@@ -9020,9 +9021,9 @@ preadbuffer(void)
 	int more;
 	char savec;
 
-	while (parsefile->strpush) {
+	while (g_parsefile->strpush) {
 #if ENABLE_ASH_ALIAS
-		if (parsenleft == -1 && parsefile->strpush->ap &&
+		if (parsenleft == -1 && g_parsefile->strpush->ap &&
 			parsenextc[-1] != ' ' && parsenextc[-1] != '\t') {
 			return PEOA;
 		}
@@ -9031,7 +9032,7 @@ preadbuffer(void)
 		if (--parsenleft >= 0)
 			return signed_char2int(*parsenextc++);
 	}
-	if (parsenleft == EOF_NLEFT || parsefile->buf == NULL)
+	if (parsenleft == EOF_NLEFT || g_parsefile->buf == NULL)
 		return PEOF;
 	flush_stdout_stderr();
 
@@ -9172,12 +9173,12 @@ pushstring(char *s, struct alias *ap)
 	len = strlen(s);
 	INT_OFF;
 /*dprintf("*** calling pushstring: %s, %d\n", s, len);*/
-	if (parsefile->strpush) {
+	if (g_parsefile->strpush) {
 		sp = ckzalloc(sizeof(struct strpush));
-		sp->prev = parsefile->strpush;
-		parsefile->strpush = sp;
+		sp->prev = g_parsefile->strpush;
+		g_parsefile->strpush = sp;
 	} else
-		sp = parsefile->strpush = &(parsefile->basestrpush);
+		sp = g_parsefile->strpush = &(g_parsefile->basestrpush);
 	sp->prevstring = parsenextc;
 	sp->prevnleft = parsenleft;
 #if ENABLE_ASH_ALIAS
@@ -9201,22 +9202,22 @@ pushfile(void)
 {
 	struct parsefile *pf;
 
-	parsefile->nleft = parsenleft;
-	parsefile->lleft = parselleft;
-	parsefile->nextc = parsenextc;
-	parsefile->linno = plinno;
+	g_parsefile->nleft = parsenleft;
+	g_parsefile->lleft = parselleft;
+	g_parsefile->nextc = parsenextc;
+	g_parsefile->linno = plinno;
 	pf = ckzalloc(sizeof(*pf));
-	pf->prev = parsefile;
+	pf->prev = g_parsefile;
 	pf->fd = -1;
 	/*pf->strpush = NULL; - ckzalloc did it */
 	/*pf->basestrpush.prev = NULL;*/
-	parsefile = pf;
+	g_parsefile = pf;
 }
 
 static void
 popfile(void)
 {
-	struct parsefile *pf = parsefile;
+	struct parsefile *pf = g_parsefile;
 
 	INT_OFF;
 	if (pf->fd >= 0)
@@ -9224,12 +9225,12 @@ popfile(void)
 	free(pf->buf);
 	while (pf->strpush)
 		popstring();
-	parsefile = pf->prev;
+	g_parsefile = pf->prev;
 	free(pf);
-	parsenleft = parsefile->nleft;
-	parselleft = parsefile->lleft;
-	parsenextc = parsefile->nextc;
-	plinno = parsefile->linno;
+	parsenleft = g_parsefile->nleft;
+	parselleft = g_parsefile->lleft;
+	parsenextc = g_parsefile->nextc;
+	plinno = g_parsefile->linno;
 	INT_ON;
 }
 
@@ -9239,7 +9240,7 @@ popfile(void)
 static void
 popallfiles(void)
 {
-	while (parsefile != &basepf)
+	while (g_parsefile != &basepf)
 		popfile();
 }
 
@@ -9251,9 +9252,9 @@ static void
 closescript(void)
 {
 	popallfiles();
-	if (parsefile->fd > 0) {
-		close(parsefile->fd);
-		parsefile->fd = 0;
+	if (g_parsefile->fd > 0) {
+		close(g_parsefile->fd);
+		g_parsefile->fd = 0;
 	}
 }
 
@@ -9267,11 +9268,11 @@ setinputfd(int fd, int push)
 	close_on_exec_on(fd);
 	if (push) {
 		pushfile();
-		parsefile->buf = 0;
+		g_parsefile->buf = 0;
 	}
-	parsefile->fd = fd;
-	if (parsefile->buf == NULL)
-		parsefile->buf = ckmalloc(IBUFSIZ);
+	g_parsefile->fd = fd;
+	if (g_parsefile->buf == NULL)
+		g_parsefile->buf = ckmalloc(IBUFSIZ);
 	parselleft = parsenleft = 0;
 	plinno = 1;
 }
@@ -9316,7 +9317,7 @@ setinputstring(char *string)
 	pushfile();
 	parsenextc = string;
 	parsenleft = strlen(string);
-	parsefile->buf = NULL;
+	g_parsefile->buf = NULL;
 	plinno = 1;
 	INT_ON;
 }
@@ -9766,20 +9767,28 @@ getoptscmd(int argc, char **argv)
 
 /* ============ Shell parser */
 
+struct heredoc {
+	struct heredoc *next;   /* next here document in list */
+	union node *here;       /* redirection node */
+	char *eofmark;          /* string indicating end of input */
+	smallint striptabs;     /* if set, strip leading tabs */
+};
+
+static smallint tokpushback;           /* last token pushed back */
+static smallint parsebackquote;        /* nonzero if we are inside backquotes */
+static smallint quoteflag;             /* set if (part of) last token was quoted */
+static token_id_t lasttoken;           /* last token read (integer id Txxx) */
+static struct heredoc *heredoclist;    /* list of here documents to read */
+static char *wordtext;                 /* text of last word returned by readtoken */
+static struct nodelist *backquotelist;
+static union node *redirnode;
+static struct heredoc *heredoc;
 /*
  * NEOF is returned by parsecmd when it encounters an end of file.  It
  * must be distinct from NULL, so we use the address of a variable that
  * happens to be handy.
  */
-static smallint tokpushback;           /* last token pushed back */
 #define NEOF ((union node *)&tokpushback)
-static smallint parsebackquote;        /* nonzero if we are inside backquotes */
-static int lasttoken;                  /* last token read */
-static char *wordtext;                 /* text of last word returned by readtoken */
-static struct nodelist *backquotelist;
-static union node *redirnode;
-static struct heredoc *heredoc;
-static smallint quoteflag;             /* set if (part of) last token was quoted */
 
 static void raise_error_syntax(const char *) ATTRIBUTE_NORETURN;
 static void
@@ -9809,15 +9818,6 @@ raise_error_unexpected_syntax(int token)
 }
 
 #define EOFMARKLEN 79
-
-struct heredoc {
-	struct heredoc *next;   /* next here document in list */
-	union node *here;       /* redirection node */
-	char *eofmark;          /* string indicating end of input */
-	int striptabs;          /* if set, strip leading tabs */
-};
-
-static struct heredoc *heredoclist;    /* list of here documents to read */
 
 /* parsing is heavily cross-recursive, need these forward decls */
 static union node *andor(void);
@@ -11391,7 +11391,7 @@ cmdloop(int top)
 
 		setstackmark(&smark);
 #if JOBS
-		if (jobctl)
+		if (doing_jobctl)
 			showjobs(stderr, SHOW_CHANGED);
 #endif
 		inter = 0;
