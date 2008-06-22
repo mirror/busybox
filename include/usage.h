@@ -690,13 +690,10 @@
 #define deluser_trivial_usage \
        "USER"
 #define deluser_full_usage "\n\n" \
-       "Delete user USER from the system"
+       "Delete USER from the system"
 
-#define depmod_trivial_usage \
-       ""
-#define depmod_full_usage \
-       "\n" \
-       "\n"
+#define depmod_trivial_usage NOUSAGE_STR
+#define depmod_full_usage ""
 
 #define devfsd_trivial_usage \
        "mntpnt [-v]" USE_DEVFSD_FG_NP("[-fg][-np]")
