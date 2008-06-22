@@ -443,10 +443,8 @@ static struct dep_t *build_dep(void)
 			/* It's a dep description continuation */
 			p = line_buffer;
 
-		p = skip_whitespace(p);
-
 		/* p points to the first dependable module; if NULL, no dependable module */
-		if (p && *p) {
+		if (p && (p = skip_whitespace(p))[0] != '\0') {
 			char *end = &line_buffer[l-1];
 			const char *deps;
 			char *dep;
