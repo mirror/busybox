@@ -1460,19 +1460,19 @@ _STPUTC(int c, char *p)
 		if (l > m) \
 			(p) = makestrspace(l, q); \
 	} while (0)
-#define USTPUTC(c, p)           (*p++ = (c))
+#define USTPUTC(c, p)           (*(p)++ = (c))
 #define STACKSTRNUL(p) \
 	do { \
 		if ((p) == sstrend) \
-			p = growstackstr(); \
-		*p = '\0'; \
+			(p) = growstackstr(); \
+		*(p) = '\0'; \
 	} while (0)
-#define STUNPUTC(p)             (--p)
-#define STTOPC(p)               (p[-1])
-#define STADJUST(amount, p)     (p += (amount))
+#define STUNPUTC(p)             (--(p))
+#define STTOPC(p)               ((p)[-1])
+#define STADJUST(amount, p)     ((p) += (amount))
 
 #define grabstackstr(p)         stalloc((char *)(p) - (char *)stackblock())
-#define ungrabstackstr(s, p)    stunalloc((s))
+#define ungrabstackstr(s, p)    stunalloc(s)
 #define stackstrend()           ((void *)sstrend)
 
 
@@ -2687,10 +2687,10 @@ SIT(int c, int syntax)
 	) {
 		return CCTL;
 	} else {
-		s = strchr(spec_symbls, c);
-		if (s == NULL || *s == '\0')
+		s = strchrnul(spec_symbls, c);
+		if (*s == '\0')
 			return CWORD;
-		indx = syntax_index_table[(s - spec_symbls)];
+		indx = syntax_index_table[s - spec_symbls];
 	}
 	return S_I_T[indx][syntax];
 }
@@ -4201,7 +4201,7 @@ cmdputs(const char *s)
 	nextc = makestrspace((strlen(s) + 1) * 8, cmdnextc);
 	p = s;
 	while ((c = *p++) != 0) {
-		str = 0;
+		str = NULL;
 		switch (c) {
 		case CTLESC:
 			c = *p++;
@@ -10345,6 +10345,52 @@ parse_command(void)
 	return n1;
 }
 
+#if ENABLE_ASH_BASH_COMPAT
+static int decode_dollar_squote(void)
+{
+	static const char C_escapes[] ALIGN1 = "nrbtfav""x\\01234567";
+	int c, cnt;
+	char *p;
+	char buf[4];
+
+	c = pgetc();
+	p = strchr(C_escapes, c);
+	if (p) {
+		buf[0] = c;
+		p = buf;
+		cnt = 3;
+		if ((unsigned char)(c - '0') <= 7) { /* \ooo */
+			do {
+				c = pgetc();
+				*++p = c;
+			} while ((unsigned char)(c - '0') <= 7 && --cnt);
+			pungetc();
+		} else if (c == 'x') { /* \xHH */
+			do {
+				c = pgetc();
+				*++p = c;
+			} while (isxdigit(c) && --cnt);
+			pungetc();
+			if (cnt == 3) { /* \x but next char is "bad" */
+				c = 'x';
+				goto unrecognized;
+			}
+		} else { /* simple seq like \\ or \t */
+			p++;
+		}
+		*p = '\0';
+		p = buf;
+		c = bb_process_escape_sequence((void*)&p);
+	} else { /* unrecognized "\z": print both chars unless ' or " */
+		if (c != '\'' && c != '"') {
+ unrecognized:
+			c |= 0x100; /* "please encode \, then me" */
+		}
+	}
+	return c;
+}
+#endif
+
 /*
  * If eofmark is NULL, read a word or a redirection symbol.  If eofmark
  * is not NULL, read a here document.  In the latter case, eofmark is the
@@ -10356,14 +10402,12 @@ parse_command(void)
  * using goto's to implement the subroutine linkage.  The following macros
  * will run code that appears at the end of readtoken1.
  */
-
 #define CHECKEND()      {goto checkend; checkend_return:;}
 #define PARSEREDIR()    {goto parseredir; parseredir_return:;}
 #define PARSESUB()      {goto parsesub; parsesub_return:;}
 #define PARSEBACKQOLD() {oldstyle = 1; goto parsebackq; parsebackq_oldreturn:;}
 #define PARSEBACKQNEW() {oldstyle = 0; goto parsebackq; parsebackq_newreturn:;}
 #define PARSEARITH()    {goto parsearith; parsearith_return:;}
-
 static int
 readtoken1(int firstc, int syntax, char *eofmark, int striptabs)
 {
@@ -10384,6 +10428,8 @@ readtoken1(int firstc, int syntax, char *eofmark, int striptabs)
 	int arinest;         /* levels of arithmetic expansion */
 	int parenlevel;      /* levels of parens in arithmetic */
 	int dqvarnest;       /* levels of variables expansion within double quotes */
+
+	USE_ASH_BASH_COMPAT(smallint bash_dollar_squote = 0;)
 
 #if __GNUC__
 	/* Avoid longjmp clobbering */
@@ -10435,6 +10481,15 @@ readtoken1(int firstc, int syntax, char *eofmark, int striptabs)
 			case CCTL:
 				if (eofmark == NULL || dblquote)
 					USTPUTC(CTLESC, out);
+#if ENABLE_ASH_BASH_COMPAT
+				if (c == '\\' && bash_dollar_squote) {
+					c = decode_dollar_squote();
+					if (c & 0x100) {
+						USTPUTC('\\', out);
+						c = (unsigned char)c;
+					}
+				}
+#endif
 				USTPUTC(c, out);
 				break;
 			case CBACK:     /* backslash */
@@ -10453,11 +10508,9 @@ readtoken1(int firstc, int syntax, char *eofmark, int striptabs)
 						USTPUTC('\\', out);
 					}
 #endif
-					if (dblquote &&
-						c != '\\' && c != '`' &&
-						c != '$' && (
-							c != '"' ||
-							eofmark != NULL)
+					if (dblquote &&	c != '\\'
+					 && c != '`' &&	c != '$'
+					 && (c != '"' || eofmark != NULL)
 					) {
 						USTPUTC(CTLESC, out);
 						USTPUTC('\\', out);
@@ -10480,6 +10533,7 @@ readtoken1(int firstc, int syntax, char *eofmark, int striptabs)
 				dblquote = 1;
 				goto quotemark;
 			case CENDQUOTE:
+				USE_ASH_BASH_COMPAT(bash_dollar_squote = 0;)
 				if (eofmark != NULL && arinest == 0
 				 && varnest == 0
 				) {
@@ -10552,7 +10606,7 @@ readtoken1(int firstc, int syntax, char *eofmark, int striptabs)
 
 			}
 			c = pgetc_macro();
-		}
+		} /* for(;;) */
 	}
  endword:
 #if ENABLE_ASH_MATH_SUPPORT
@@ -10573,12 +10627,13 @@ readtoken1(int firstc, int syntax, char *eofmark, int striptabs)
 		if ((c == '>' || c == '<')
 		 && quotef == 0
 		 && len <= 2
-		 && (*out == '\0' || isdigit(*out))) {
+		 && (*out == '\0' || isdigit(*out))
+		) {
 			PARSEREDIR();
-			return lasttoken = TREDIR;
-		} else {
-			pungetc();
+			lasttoken = TREDIR;
+			return lasttoken;
 		}
+		pungetc();
 	}
 	quoteflag = quotef;
 	backquotelist = bqlist;
@@ -10697,8 +10752,8 @@ parseredir: {
 /* is_special(c) evaluates to 1 for c in "!#$*-0123456789?@"; 0 otherwise
  * (assuming ascii char codes, as the original implementation did) */
 #define is_special(c) \
-	((((unsigned int)c) - 33 < 32) \
-			&& ((0xc1ff920dUL >> (((unsigned int)c) - 33)) & 1))
+	(((unsigned)(c) - 33 < 32) \
+			&& ((0xc1ff920dU >> ((unsigned)(c) - 33)) & 1))
 parsesub: {
 	int subtype;
 	int typeloc;
@@ -10707,11 +10762,15 @@ parsesub: {
 	static const char types[] ALIGN1 = "}-+?=";
 
 	c = pgetc();
-	if (
-		c <= PEOA_OR_PEOF  ||
-		(c != '(' && c != '{' && !is_name(c) && !is_special(c))
+	if (c <= PEOA_OR_PEOF
+	 || (c != '(' && c != '{' && !is_name(c) && !is_special(c))
 	) {
-		USTPUTC('$', out);
+#if ENABLE_ASH_BASH_COMPAT
+		if (c == '\'')
+			bash_dollar_squote = 1;
+		else
+#endif
+			USTPUTC('$', out);
 		pungetc();
 	} else if (c == '(') {  /* $(command) or $((arith)) */
 		if (pgetc() == '(') {
