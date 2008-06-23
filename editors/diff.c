@@ -161,14 +161,14 @@ struct globals {
 } while (0)
 
 
-/*static void print_only(const char *path, size_t dirlen, const char *entry)*/
+#if ENABLE_FEATURE_DIFF_DIR
 static void print_only(const char *path, const char *entry)
 {
 	printf("Only in %s: %s\n", path, entry);
 }
+#endif
 
 
-/*static void print_status(int val, char *path1, char *path2, char *entry)*/
 static void print_status(int val, char *_path1, char *_path2)
 {
 	/*const char *const _entry = entry ? entry : "";*/

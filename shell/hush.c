@@ -399,11 +399,11 @@ struct globals {
 #if ENABLE_FEATURE_EDITING
 	line_input_t *line_input_state;
 #endif
+	pid_t root_pid;
 #if ENABLE_HUSH_JOB
 	int run_list_level;
 	pid_t saved_task_pgrp;
 	pid_t saved_tty_pgrp;
-	pid_t root_pid;
 	int last_jobid;
 	struct pipe *job_list;
 	struct pipe *toplevel_list;
@@ -446,11 +446,11 @@ enum { run_list_level = 0 };
 #if ENABLE_FEATURE_EDITING
 #define line_input_state (G.line_input_state)
 #endif
+#define root_pid         (G.root_pid        )
 #if ENABLE_HUSH_JOB
 #define run_list_level   (G.run_list_level  )
 #define saved_task_pgrp  (G.saved_task_pgrp )
 #define saved_tty_pgrp   (G.saved_tty_pgrp  )
-#define root_pid         (G.root_pid        )
 #define last_jobid       (G.last_jobid      )
 #define job_list         (G.job_list        )
 #define toplevel_list    (G.toplevel_list   )
@@ -1065,7 +1065,7 @@ static int o_save_ptr_helper(o_string *o, int n)
 		debug_printf_list("list[%d]=%d string_start=%d (empty slot)\n", n, string_len, string_start);
 		o->has_empty_slot = 0;
 	}
-	list[n] = (char*)string_len;
+	list[n] = (char*)(ptrdiff_t)string_len;
 	return n + 1;
 }
 
@@ -1075,7 +1075,7 @@ static int o_get_last_ptr(o_string *o, int n)
 	char **list = (char**)o->data;
 	int string_start = ((n + 0xf) & ~0xf) * sizeof(list[0]);
 
-	return ((int)list[n-1]) + string_start;
+	return ((int)(ptrdiff_t)list[n-1]) + string_start;
 }
 
 /* o_glob performs globbing on last list[], saving each result
@@ -1152,7 +1152,7 @@ static char **o_finalize_list(o_string *o, int n)
 	list[--n] = NULL;
 	while (n) {
 		n--;
-		list[n] = o->data + (int)list[n] + string_start;
+		list[n] = o->data + (int)(ptrdiff_t)list[n] + string_start;
 	}
 	return list;
 }
@@ -2012,6 +2012,7 @@ static int run_list(struct pipe *pi)
 #else
 	enum { if_code = 0, next_if_code = 0 };
 #endif
+// TODO: rword and ->res_word are not needed if !LOOPS and !IF
 	reserved_style rword;
 	reserved_style skip_more_for_this_rword = RES_XXXX;
 
@@ -3009,7 +3010,7 @@ static void done_pipe(struct p_context *ctx, pipe_style type)
 	 * IOW: it is safe to do it unconditionally.
 	 * RES_IN case is for "for a in; do ..." (empty IN set)
 	 * to work. */
-	if (not_null || ctx->pipe->res_word == RES_IN) {
+	if (not_null USE_HUSH_LOOPS(|| ctx->pipe->res_word == RES_IN)) {
 		struct pipe *new_p = new_pipe();
 		ctx->pipe->next = new_p;
 		ctx->pipe = new_p;

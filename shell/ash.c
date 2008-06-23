@@ -8983,7 +8983,7 @@ preadfd(void)
 		}
 	}
 #else
-	nr = nonblock_safe_read(parsefile->fd, buf, BUFSIZ - 1);
+	nr = nonblock_safe_read(g_parsefile->fd, buf, BUFSIZ - 1);
 #endif
 
 #if 0

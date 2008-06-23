@@ -171,8 +171,8 @@ enum {
 /* memset: we have to zero it out because of NOEXEC */
 #define INIT_G() { \
 	memset(&G, 0, sizeof(G)); \
-	tabstops = COLUMN_GAP; \
-	terminal_width = TERMINAL_WIDTH; \
+	USE_FEATURE_AUTOWIDTH(tabstops = COLUMN_GAP;) \
+	USE_FEATURE_AUTOWIDTH(terminal_width = TERMINAL_WIDTH;) \
 	USE_FEATURE_LS_TIMESTAMPS(time(&current_time_t);) \
 }
 

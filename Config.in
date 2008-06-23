@@ -293,10 +293,12 @@ config NOMMU
 
 	  Most people will leave this set to 'N'.
 
+# PIE can be made to work with BUILD_LIBBUSYBOX, but currently
+# build system does not support that
 config BUILD_LIBBUSYBOX
 	bool "Build shared libbusybox"
 	default n
-	depends on !FEATURE_PREFER_APPLETS
+	depends on !FEATURE_PREFER_APPLETS && !PIE
 	help
 	  Build a shared library libbusybox.so.N.N.N which contains all
 	  busybox code.
