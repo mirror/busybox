@@ -2249,7 +2249,7 @@ static int free_pipe(struct pipe *pi, int indent)
 			debug_printf_clean("%s   (nil)\n", indenter(indent));
 		}
 		for (r = child->redirects; r; r = rnext) {
-			debug_printf_clean("%s   redirect %d%s", indenter(indent), r->fd, redir_table[r->type].descrip);
+			debug_printf_clean("%s   redirect %d%s", indenter(indent), r->fd, redir_table[r->rd_type].descrip);
 			if (r->dup == -1) {
 				/* guard against the case >$FOO, where foo is unset or blank */
 				if (r->rd_filename) {
