@@ -11146,7 +11146,8 @@ xxreadtoken(void)
 						}
 					}
 				}
-				return lasttoken = xxreadtoken_tokens[p - xxreadtoken_chars];
+				lasttoken = xxreadtoken_tokens[p - xxreadtoken_chars];
+				return lasttoken;
 			}
 		}
 	} /* for */
@@ -12997,21 +12998,19 @@ arith(const char *expr, int *perrcode)
 	char arithval; /* Current character under analysis */
 	operator lasttok, op;
 	operator prec;
-
+	operator *stack, *stackptr;
 	const char *p = endexpression;
 	int errcode;
-
-	size_t datasizes = strlen(expr) + 2;
+	v_n_t *numstack, *numstackptr;
+	unsigned datasizes = strlen(expr) + 2;
 
 	/* Stack of integers */
 	/* The proof that there can be no more than strlen(startbuf)/2+1 integers
 	 * in any given correct or incorrect expression is left as an exercise to
 	 * the reader. */
-	v_n_t *numstack = alloca(((datasizes)/2)*sizeof(v_n_t)),
-				*numstackptr = numstack;
+	numstackptr = numstack = alloca((datasizes / 2) * sizeof(numstack[0]));
 	/* Stack of operator tokens */
-	operator *stack = alloca((datasizes) * sizeof(operator)),
-				*stackptr = stack;
+	stackptr = stack = alloca(datasizes * sizeof(stack[0]));
 
 	*stackptr++ = lasttok = TOK_LPAREN;     /* start off with a left paren */
 	*perrcode = errcode = 0;
@@ -13040,7 +13039,8 @@ arith(const char *expr, int *perrcode)
 			if (numstackptr != numstack+1) {
 				/* ... but if there isn't, it's bad */
  err:
-				return (*perrcode = -1);
+				*perrcode = -1;
+				return *perrcode;
 			}
 			if (numstack->var) {
 				/* expression is $((var)) only, lookup now */
