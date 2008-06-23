@@ -357,7 +357,7 @@ onsig(int signo)
 	gotsig[signo - 1] = 1;
 	pendingsig = signo;
 
-	if ( /* exsig || */ (signo == SIGINT && !trap[SIGINT])) {
+	if (/* exsig || */ (signo == SIGINT && !trap[SIGINT])) {
 		if (!suppressint) {
 			pendingsig = 0;
 			raise_interrupt(); /* does not return */
@@ -1595,7 +1595,7 @@ nextopt(const char *optstring)
 			return '\0';
 	}
 	c = *p++;
-	for (q = optstring; *q != c; ) {
+	for (q = optstring; *q != c;) {
 		if (*q == '\0')
 			ash_msg_and_raise_error("illegal option -%c", c);
 		if (*++q == ':')
@@ -6408,7 +6408,7 @@ ifsbreakup(char *string, struct arglist *arglist)
 						q = p;
 						if (*p == CTLESC)
 							p++;
-						if (strchr(ifs, *p) == NULL ) {
+						if (strchr(ifs, *p) == NULL) {
 							p = q;
 							break;
 						}
@@ -6600,7 +6600,7 @@ msort(struct strlist *list, int len)
 		return list;
 	half = len >> 1;
 	p = list;
-	for (n = half; --n >= 0; ) {
+	for (n = half; --n >= 0;) {
 		q = p;
 		p = p->next;
 	}
@@ -6960,7 +6960,7 @@ shellexec(char **argv, const char *path, int idx)
 	}
 	exitstatus = exerrno;
 	TRACE(("shellexec failed for %s, errno %d, suppressint %d\n",
-		argv[0], e, suppressint ));
+		argv[0], e, suppressint));
 	ash_msg_and_raise(EXEXEC, "%s: %s", argv[0], errmsg(e, "not found"));
 	/* NOTREACHED */
 }
@@ -7731,6 +7731,7 @@ static int evalskip;            /* set if we are skipping commands */
 #define SKIPEVAL       (1 << 4)
 static int skipcount;           /* number of levels to skip */
 static int funcnest;            /* depth of function calls */
+static int loopnest;            /* current loop nesting level */
 
 /* forward decl way out to parsing code - dotrap needs it */
 static int evalstring(char *s, int mask);
@@ -7901,8 +7902,6 @@ evaltree(union node *n, int flags)
 static
 #endif
 void evaltreenr(union node *, int) __attribute__ ((alias("evaltree"),__noreturn__));
-
-static int loopnest;            /* current loop nesting level */
 
 static void
 evalloop(union node *n, int flags)
@@ -9677,7 +9676,7 @@ getopts(char *optstr, char *optvar, char **optfirst, int *param_optind, int *opt
 	}
 
 	c = *p++;
-	for (q = optstr; *q != c; ) {
+	for (q = optstr; *q != c;) {
 		if (*q == '\0') {
 			if (optstr[0] == ':') {
 				s[0] = c;
@@ -13474,7 +13473,7 @@ int ash_main(int argc ATTRIBUTE_UNUSED, char **argv)
 
 	if (sflag || minusc == NULL) {
 #if ENABLE_FEATURE_EDITING_SAVEHISTORY
-		if ( iflag ) {
+		if (iflag) {
 			const char *hp = lookupvar("HISTFILE");
 
 			if (hp != NULL)
