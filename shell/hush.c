@@ -309,16 +309,14 @@ struct child_prog {
 struct pipe {
 	struct pipe *next;
 	int num_progs;              /* total number of programs in job */
-	int running_progs;          /* number of programs running (not exited) */
+	int alive_progs;            /* number of programs running (not exited) */
 	int stopped_progs;          /* number of programs alive, but stopped */
 #if ENABLE_HUSH_JOB
 	int jobid;                  /* job number */
 	pid_t pgrp;                 /* process group ID for the job */
 	char *cmdtext;              /* name of job */
 #endif
-	char *cmdbuf;               /* buffer various argv's point into */
 	struct child_prog *progs;   /* array of commands in pipe */
-	int job_context;            /* bitmask defining current context */
 	smallint pi_inverted;       /* "! cmd | cmd" */
 	smallint followup;          /* PIPE_BG, PIPE_SEQ, PIPE_OR, PIPE_AND */
 	smallint res_word;          /* needed for if, for, while, until... */
@@ -1564,7 +1562,7 @@ static void remove_bg_job(struct pipe *pi)
 		last_jobid = 0;
 }
 
-/* remove a backgrounded job */
+/* Remove a backgrounded job */
 static void delete_finished_bg_job(struct pipe *pi)
 {
 	remove_bg_job(pi);
@@ -1574,23 +1572,21 @@ static void delete_finished_bg_job(struct pipe *pi)
 }
 #endif /* JOB */
 
-/* Checks to see if any processes have exited -- if they
-   have, figure out why and see if a job has completed */
+/* Check to see if any processes have exited -- if they
+ * have, figure out why and see if a job has completed */
 static int checkjobs(struct pipe* fg_pipe)
 {
 	int attributes;
 	int status;
 #if ENABLE_HUSH_JOB
-	int prognum = 0;
 	struct pipe *pi;
 #endif
 	pid_t childpid;
 	int rcode = 0;
 
 	attributes = WUNTRACED;
-	if (fg_pipe == NULL) {
+	if (fg_pipe == NULL)
 		attributes |= WNOHANG;
-	}
 
 /* Do we do this right?
  * bash-3.00# sleep 20 | false
@@ -1607,8 +1603,8 @@ static int checkjobs(struct pipe* fg_pipe)
  wait_more:
 // TODO: safe_waitpid?
 	while ((childpid = waitpid(-1, &status, attributes)) > 0) {
+		int i;
 		const int dead = WIFEXITED(status) || WIFSIGNALED(status);
-
 #if DEBUG_JOBS
 		if (WIFSTOPPED(status))
 			debug_printf_jobs("pid %d stopped by sig %d (exitcode %d)\n",
@@ -1622,76 +1618,70 @@ static int checkjobs(struct pipe* fg_pipe)
 #endif
 		/* Were we asked to wait for fg pipe? */
 		if (fg_pipe) {
-			int i;
 			for (i = 0; i < fg_pipe->num_progs; i++) {
 				debug_printf_jobs("check pid %d\n", fg_pipe->progs[i].pid);
-				if (fg_pipe->progs[i].pid == childpid) {
-					/* printf("process %d exit %d\n", i, WEXITSTATUS(status)); */
-					if (dead) {
-						fg_pipe->progs[i].pid = 0;
-						fg_pipe->running_progs--;
-						if (i == fg_pipe->num_progs - 1) {
-							/* last process gives overall exitstatus */
-							rcode = WEXITSTATUS(status);
-							if (fg_pipe->pi_inverted)
-								rcode = !rcode;
-						}
-					} else {
-						fg_pipe->progs[i].is_stopped = 1;
-						fg_pipe->stopped_progs++;
+				if (fg_pipe->progs[i].pid != childpid)
+					continue;
+				/* printf("process %d exit %d\n", i, WEXITSTATUS(status)); */
+				if (dead) {
+					fg_pipe->progs[i].pid = 0;
+					fg_pipe->alive_progs--;
+					if (i == fg_pipe->num_progs - 1) {
+						/* last process gives overall exitstatus */
+						rcode = WEXITSTATUS(status);
+						if (fg_pipe->pi_inverted)
+							rcode = !rcode;
 					}
-					debug_printf_jobs("fg_pipe: running_progs %d stopped_progs %d\n",
-							fg_pipe->running_progs, fg_pipe->stopped_progs);
-					if (fg_pipe->running_progs - fg_pipe->stopped_progs <= 0) {
-						/* All processes in fg pipe have exited/stopped */
-#if ENABLE_HUSH_JOB
-						if (fg_pipe->running_progs)
-							insert_bg_job(fg_pipe);
-#endif
-						return rcode;
-					}
-					/* There are still running processes in the fg pipe */
-					goto wait_more;
+				} else {
+					fg_pipe->progs[i].is_stopped = 1;
+					fg_pipe->stopped_progs++;
 				}
+				debug_printf_jobs("fg_pipe: alive_progs %d stopped_progs %d\n",
+						fg_pipe->alive_progs, fg_pipe->stopped_progs);
+				if (fg_pipe->alive_progs - fg_pipe->stopped_progs <= 0) {
+					/* All processes in fg pipe have exited/stopped */
+#if ENABLE_HUSH_JOB
+					if (fg_pipe->alive_progs)
+						insert_bg_job(fg_pipe);
+#endif
+					return rcode;
+				}
+				/* There are still running processes in the fg pipe */
+				goto wait_more; /* do waitpid again */
 			}
-			/* fall through to searching process in bg pipes */
+			/* it wasnt fg_pipe, look for process in bg pipes */
 		}
 
 #if ENABLE_HUSH_JOB
 		/* We asked to wait for bg or orphaned children */
 		/* No need to remember exitcode in this case */
 		for (pi = job_list; pi; pi = pi->next) {
-			prognum = 0;
-			while (prognum < pi->num_progs) {
-				if (pi->progs[prognum].pid == childpid)
+			for (i = 0; i < pi->num_progs; i++) {
+				if (pi->progs[i].pid == childpid)
 					goto found_pi_and_prognum;
-				prognum++;
 			}
 		}
-#endif
-
 		/* Happens when shell is used as init process (init=/bin/sh) */
 		debug_printf("checkjobs: pid %d was not in our list!\n", childpid);
-		goto wait_more;
+		continue; /* do waitpid again */
 
-#if ENABLE_HUSH_JOB
  found_pi_and_prognum:
 		if (dead) {
 			/* child exited */
-			pi->progs[prognum].pid = 0;
-			pi->running_progs--;
-			if (!pi->running_progs) {
+			pi->progs[i].pid = 0;
+			pi->alive_progs--;
+			if (!pi->alive_progs) {
 				printf(JOB_STATUS_FORMAT, pi->jobid,
-							"Done", pi->cmdtext);
+						"Done", pi->cmdtext);
 				delete_finished_bg_job(pi);
 			}
 		} else {
 			/* child stopped */
+			pi->progs[i].is_stopped = 1;
 			pi->stopped_progs++;
-			pi->progs[prognum].is_stopped = 1;
 		}
 #endif
-	}
+	} /* while (waitpid succeeds)... */
 
 	/* wait found no children or failed */
 
@@ -1708,8 +1698,9 @@ static int checkjobs_and_fg_shell(struct pipe* fg_pipe)
 	/* Job finished, move the shell to the foreground */
 	p = getpgid(0); /* pgid of our process */
 	debug_printf_jobs("fg'ing ourself: getpgid(0)=%d\n", (int)p);
-	if (tcsetpgrp(interactive_fd, p) && errno != ENOTTY)
-		bb_perror_msg("tcsetpgrp-4a");
+	tcsetpgrp(interactive_fd, p);
+//	if (tcsetpgrp(interactive_fd, p) && errno != ENOTTY)
+//		bb_perror_msg("tcsetpgrp-4a");
 	return rcode;
 }
 #endif
@@ -1751,7 +1742,7 @@ static int run_pipe(struct pipe *pi)
 #if ENABLE_HUSH_JOB
 	pi->pgrp = -1;
 #endif
-	pi->running_progs = 1;
+	pi->alive_progs = 1;
 	pi->stopped_progs = 0;
 
 	/* Check if this is a simple builtin (not part of a pipe).
@@ -1841,7 +1832,7 @@ static int run_pipe(struct pipe *pi)
 	set_jobctrl_sighandler(SIG_IGN);
 
 	/* Going to fork a child per each pipe member */
-	pi->running_progs = 0;
+	pi->alive_progs = 0;
 	nextin = 0;
 
 	for (i = 0; i < pi->num_progs; i++) {
@@ -1905,7 +1896,7 @@ static int run_pipe(struct pipe *pi)
 			/* Clearly indicate, was it fork or vfork */
 			bb_perror_msg(BB_MMU ? "fork" : "vfork");
 		} else {
-			pi->running_progs++;
+			pi->alive_progs++;
 #if ENABLE_HUSH_JOB
 			/* Second and next children need to know pid of first one */
 			if (pi->pgrp < 0)
@@ -1921,12 +1912,12 @@ static int run_pipe(struct pipe *pi)
 		nextin = pipefds[0];
 	}
 
-	if (!pi->running_progs) {
+	if (!pi->alive_progs) {
 		debug_printf_exec("run_pipe return 1 (all forks failed, no children)\n");
 		return 1;
 	}
 
-	debug_printf_exec("run_pipe return -1 (%u children started)\n", pi->running_progs);
+	debug_printf_exec("run_pipe return -1 (%u children started)\n", pi->alive_progs);
 	return -1;
 }
 
@@ -4205,7 +4196,7 @@ static int builtin_jobs(char **argv ATTRIBUTE_UNUSED)
 	const char *status_string;
 
 	for (job = job_list; job; job = job->next) {
-		if (job->running_progs == job->stopped_progs)
+		if (job->alive_progs == job->stopped_progs)
 			status_string = "Stopped";
 		else
 			status_string = "Running";
