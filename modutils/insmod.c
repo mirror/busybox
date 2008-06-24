@@ -4235,12 +4235,15 @@ static int insmod_ng_main(int argc ATTRIBUTE_UNUSED, char **argv)
 	}
 
 #if 0
-	/* Any special reason why mmap? It isn't performace critical... */
-
-	/* yes, xmalloc'ing can use *alot* of RAM. Don't forget that there are
+	/* Any special reason why mmap? It isn't performance critical. -vda */
+	/* Yes, xmalloc'ing can use *alot* of RAM. Don't forget that there are
 	 * modules out there that are half a megabyte! mmap()ing is way nicer
-	 * for small mem boxes, i guess.
-	 */
+	 * for small mem boxes, i guess. */
+	/* But after load, these modules will take up that 0.5mb in kernel
+	 * anyway. Using malloc here causes only a transient spike to 1mb,
+	 * after module is loaded, we go back to normal 0.5mb usage
+	 * (in kernel). Also, mmap isn't magic - when we touch mapped data,
+	 * we use memory. -vda */
 	int fd;
 	struct stat st;
 	unsigned long len;

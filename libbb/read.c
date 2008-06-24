@@ -203,8 +203,8 @@ ssize_t open_read_close(const char *filename, void *buf, size_t size)
 	return read_close(fd, buf, size);
 }
 
-// Read (potentially big) files in one go. File size is estimated by
-// lseek to end.
+// Read (potentially big) files in one go. File size is estimated
+// by stat.
 void *xmalloc_open_read_close(const char *filename, size_t *sizep)
 {
 	char *buf;
