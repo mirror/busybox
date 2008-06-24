@@ -1894,6 +1894,7 @@ static char *text_hole_make(char *p, int size)	// at "p", make a 'size' byte hol
 		p           = new_text + (p           - text);
 		text = new_text;
 	}
+	memmove(p + size, p, end - p);
 	memset(p, ' ', size);	// clear new hole
 	file_modified++;
 	return p;
