@@ -407,7 +407,7 @@ static int mount_it_now(struct mntent *mp, long vfsflags, char *filteropts)
 				vfsflags, filteropts);
 
 		// If mount failed, try
-		// helper program <mnt_type>
+		// helper program mount.<mnt_type>
 		if (ENABLE_FEATURE_MOUNT_HELPERS && rc) {
 			char *args[6];
 			int errno_save = errno;
@@ -1727,11 +1727,11 @@ static int singlemount(struct mntent *mp, int ignore_busy)
 static const char must_be_root[] ALIGN1 = "you must be root";
 
 int mount_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int mount_main(int argc, char **argv)
+int mount_main(int argc ATTRIBUTE_UNUSED, char **argv)
 {
 	char *cmdopts = xstrdup("");
 	char *fstype = NULL;
-	char *storage_path = NULL;
+	char *storage_path;
 	char *opt_o;
 	const char *fstabname;
 	FILE *fstab;
@@ -1740,43 +1740,35 @@ int mount_main(int argc, char **argv)
 	struct mntent mtpair[2], *mtcur = mtpair;
 	SKIP_DESKTOP(const int nonroot = 0;)
 
-	USE_DESKTOP( int nonroot = ) sanitize_env_if_suid();
+	USE_DESKTOP(int nonroot = ) sanitize_env_if_suid();
 
 	// Parse long options, like --bind and --move.  Note that -o option
 	// and --option are synonymous.  Yes, this means --remount,rw works.
-
-	for (i = j = 0; i < argc; i++) {
-		if (argv[i][0] == '-' && argv[i][1] == '-') {
-			append_mount_options(&cmdopts, argv[i]+2);
-		} else argv[j++] = argv[i];
+	for (i = j = 1; argv[i]; i++) {
+		if (argv[i][0] == '-' && argv[i][1] == '-')
+			append_mount_options(&cmdopts, argv[i] + 2);
+		else
+			argv[j++] = argv[i];
 	}
 	argv[j] = NULL;
-	argc = j;
 
 	// Parse remaining options
-
-#if ENABLE_FEATURE_MOUNT_VERBOSE
-	opt_complementary = "vv"; // -v is a counter
-#endif
+	// Max 2 params; -v is a counter
+	opt_complementary = "?2" USE_FEATURE_MOUNT_VERBOSE(":vv");
 	opt = getopt32(argv, OPTION_STR, &opt_o, &fstype
 			USE_FEATURE_MOUNT_VERBOSE(, &verbose));
 	if (opt & OPT_o) append_mount_options(&cmdopts, opt_o); // -o
 	if (opt & OPT_r) append_mount_options(&cmdopts, "ro"); // -r
 	if (opt & OPT_w) append_mount_options(&cmdopts, "rw"); // -w
 	argv += optind;
-	argc -= optind;
-
-	// Three or more non-option arguments?  Die with a usage message.
-
-	if (argc > 2) bb_show_usage();
 
 	// If we have no arguments, show currently mounted filesystems
-
-	if (!argc) {
+	if (!argv[0]) {
 		if (!(opt & OPT_a)) {
 			FILE *mountTable = setmntent(bb_path_mtab_file, "r");
 
-			if (!mountTable) bb_error_msg_and_die("no %s", bb_path_mtab_file);
+			if (!mountTable)
+				bb_error_msg_and_die("no %s", bb_path_mtab_file);
 
 			while (getmntent_r(mountTable, &mtpair[0], getmntent_buf,
 								GETMNTENT_BUFSIZE))
@@ -1790,152 +1782,148 @@ int mount_main(int argc, char **argv)
 							mtpair->mnt_dir, mtpair->mnt_type,
 							mtpair->mnt_opts);
 			}
-			if (ENABLE_FEATURE_CLEAN_UP) endmntent(mountTable);
+			if (ENABLE_FEATURE_CLEAN_UP)
+				endmntent(mountTable);
 			return EXIT_SUCCESS;
 		}
-	} else storage_path = bb_simplify_path(argv[0]);
-
-	// When we have two arguments, the second is the directory and we can
-	// skip looking at fstab entirely.  We can always abspath() the directory
-	// argument when we get it.
-
-	if (argc == 2) {
-		if (nonroot)
-			bb_error_msg_and_die(must_be_root);
-		mtpair->mnt_fsname = argv[0];
-		mtpair->mnt_dir = argv[1];
-		mtpair->mnt_type = fstype;
-		mtpair->mnt_opts = cmdopts;
-		if (ENABLE_FEATURE_MOUNT_LABEL) {
-			resolve_mount_spec(&mtpair->mnt_fsname);
+		storage_path = NULL;
+	} else {
+		// When we have two arguments, the second is the directory and we can
+		// skip looking at fstab entirely.  We can always abspath() the directory
+		// argument when we get it.
+		if (argv[1]) {
+			if (nonroot)
+				bb_error_msg_and_die(must_be_root);
+			mtpair->mnt_fsname = argv[0];
+			mtpair->mnt_dir = argv[1];
+			mtpair->mnt_type = fstype;
+			mtpair->mnt_opts = cmdopts;
+			if (ENABLE_FEATURE_MOUNT_LABEL) {
+				resolve_mount_spec(&mtpair->mnt_fsname);
+			}
+			rc = singlemount(mtpair, 0);
+			return rc;
 		}
-		rc = singlemount(mtpair, 0);
-		goto clean_up;
+		storage_path = bb_simplify_path(argv[0]); // malloced
 	}
+
+	// Past this point, we are handling either "mount -a [opts]"
+	// or "mount [opts] single_param"
 
 	i = parse_mount_options(cmdopts, 0); // FIXME: should be "long", not "int"
 	if (nonroot && (i & ~MS_SILENT)) // Non-root users cannot specify flags
 		bb_error_msg_and_die(must_be_root);
 
 	// If we have a shared subtree flag, don't worry about fstab or mtab.
-
 	if (ENABLE_FEATURE_MOUNT_FLAGS
 	 && (i & (MS_SHARED | MS_PRIVATE | MS_SLAVE | MS_UNBINDABLE))
 	) {
-		rc = verbose_mount("", argv[0], "", i, "");
-		if (rc) bb_simple_perror_msg_and_die(argv[0]);
-		goto clean_up;
+		rc = verbose_mount(/*source:*/ "", /*target:*/ argv[0],
+				/*type:*/ "", /*flags:*/ i, /*data:*/ "");
+		if (rc)
+			bb_simple_perror_msg_and_die(argv[0]);
+		return rc;
 	}
 
 	// Open either fstab or mtab
-
 	fstabname = "/etc/fstab";
 	if (i & MS_REMOUNT) {
+		// WARNING. I am not sure this matches util-linux's
+		// behavior. It's possible util-linux does not
+		// take -o opts from mtab (takes only mount source).
 		fstabname = bb_path_mtab_file;
 	}
 	fstab = setmntent(fstabname, "r");
 	if (!fstab)
 		bb_perror_msg_and_die("cannot read %s", fstabname);
 
-	// Loop through entries until we find what we're looking for.
-
+	// Loop through entries until we find what we're looking for
 	memset(mtpair, 0, sizeof(mtpair));
 	for (;;) {
-		struct mntent *mtnext = (mtcur==mtpair ? mtpair+1 : mtpair);
+		struct mntent *mtother = (mtcur==mtpair ? mtpair+1 : mtpair);
 
 		// Get next fstab entry
-
 		if (!getmntent_r(fstab, mtcur, getmntent_buf
 					+ (mtcur==mtpair ? GETMNTENT_BUFSIZE/2 : 0),
-				GETMNTENT_BUFSIZE/2))
-		{
-			// Were we looking for something specific?
-
-			if (argc) {
-
-				// If we didn't find anything, complain.
-
-				if (!mtnext->mnt_fsname)
-					bb_error_msg_and_die("can't find %s in %s",
-						argv[0], fstabname);
-
-				mtcur = mtnext;
-				if (nonroot) {
-					// fstab must have "users" or "user"
-					if (!(parse_mount_options(mtcur->mnt_opts, 0) & MOUNT_USERS))
-						bb_error_msg_and_die(must_be_root);
-				}
-
-				// Mount the last thing we found.
-
-				mtcur->mnt_opts = xstrdup(mtcur->mnt_opts);
-				append_mount_options(&(mtcur->mnt_opts), cmdopts);
-				if (ENABLE_FEATURE_MOUNT_LABEL) {
-					resolve_mount_spec(&mtpair->mnt_fsname);
-				}
-				rc = singlemount(mtcur, 0);
-				free(mtcur->mnt_opts);
-			}
-			goto clean_up;
+				GETMNTENT_BUFSIZE/2)
+		) { // End of fstab/mtab is reached
+			mtcur = mtother; // the thing we found last time
+			break;
 		}
 
-		/* If we're trying to mount something specific and this isn't it,
-		 * skip it.  Note we must match both the exact text in fstab (ala
-		 * "proc") or a full path from root */
-
-		if (argc) {
+		// If we're trying to mount something specific and this isn't it,
+		// skip it.  Note we must match the exact text in fstab (ala
+		// "proc") or a full path from root
+		if (argv[0]) {
 
 			// Is this what we're looking for?
-
 			if (strcmp(argv[0], mtcur->mnt_fsname) &&
 			   strcmp(storage_path, mtcur->mnt_fsname) &&
 			   strcmp(argv[0], mtcur->mnt_dir) &&
 			   strcmp(storage_path, mtcur->mnt_dir)) continue;
 
-			// Remember this entry.  Something later may have overmounted
-			// it, and we want the _last_ match.
+			// Remember this entry.  Something later may have
+			// overmounted it, and we want the _last_ match.
+			mtcur = mtother;
 
-			mtcur = mtnext;
-
-		// If we're mounting all.
-
+		// If we're mounting all
 		} else {
 			// Do we need to match a filesystem type?
 			if (fstype && match_fstype(mtcur, fstype))
 				continue;
 
 			// Skip noauto and swap anyway.
-
 			if (parse_mount_options(mtcur->mnt_opts, 0) & (MOUNT_NOAUTO | MOUNT_SWAP))
 				continue;
 
 			// No, mount -a won't mount anything,
-			// even user mounts, for mere humans.
-
+			// even user mounts, for mere humans
 			if (nonroot)
 				bb_error_msg_and_die(must_be_root);
 
-			// Mount this thing.
+			// Mount this thing
 			if (ENABLE_FEATURE_MOUNT_LABEL)
 				resolve_mount_spec(&mtpair->mnt_fsname);
 
 			// NFS mounts want this to be xrealloc-able
 			mtcur->mnt_opts = xstrdup(mtcur->mnt_opts);
 			if (singlemount(mtcur, 1)) {
-				/* Count number of failed mounts */
+				// Count number of failed mounts
 				rc++;
 			}
 			free(mtcur->mnt_opts);
 		}
 	}
-	if (ENABLE_FEATURE_CLEAN_UP) endmntent(fstab);
 
- clean_up:
+	// End of fstab/mtab is reached.
+	// Were we looking for something specific?
+	if (argv[0]) {
+		// If we didn't find anything, complain
+		if (!mtcur->mnt_fsname)
+			bb_error_msg_and_die("can't find %s in %s",
+				argv[0], fstabname);
+		if (nonroot) {
+			// fstab must have "users" or "user"
+			if (!(parse_mount_options(mtcur->mnt_opts, 0) & MOUNT_USERS))
+				bb_error_msg_and_die(must_be_root);
+		}
 
+		// Mount the last thing we found
+		mtcur->mnt_opts = xstrdup(mtcur->mnt_opts);
+		append_mount_options(&(mtcur->mnt_opts), cmdopts);
+		if (ENABLE_FEATURE_MOUNT_LABEL) {
+			resolve_mount_spec(&mtpair->mnt_fsname);
+		}
+		rc = singlemount(mtcur, 0);
+		if (ENABLE_FEATURE_CLEAN_UP)
+			free(mtcur->mnt_opts);
+	}
+
+	if (ENABLE_FEATURE_CLEAN_UP)
+		endmntent(fstab);
 	if (ENABLE_FEATURE_CLEAN_UP) {
 		free(storage_path);
 		free(cmdopts);
 	}
-
 	return rc;
 }
