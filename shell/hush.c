@@ -150,9 +150,6 @@
 #define debug_printf_subst(...) fprintf(stderr, __VA_ARGS__)
 #endif
 
-/* Keep unconditionally on for now */
-#define ENABLE_HUSH_DEBUG 1
-
 #ifndef debug_printf_clean
 /* broken, of course, but OK for testing */
 static const char *indenter(int i)
@@ -175,7 +172,6 @@ static void debug_print_strings(const char *prefix, char **vv)
 #else
 #define debug_print_strings(prefix, vv) ((void)0)
 #endif
-
 
 /*
  * Leak hunting. Use hush_leaktool.sh for post-processing.
@@ -213,6 +209,20 @@ void xxfree(void *ptr)
 #define xrealloc(p, s) xxrealloc(__LINE__, p, s)
 #define xstrdup(s)     xxstrdup(__LINE__, s)
 #define free(p)        xxfree(p)
+#endif
+
+
+/* Keep unconditionally on for now */
+#define HUSH_DEBUG 1
+/* Do we support ANY keywords? */
+#if ENABLE_HUSH_IF || ENABLE_HUSH_LOOPS
+#define HAS_KEYWORDS 1
+#define IF_HAS_KEYWORDS(...) __VA_ARGS__
+#define IF_HAS_NO_KEYWORDS(...)
+#else
+#define HAS_KEYWORDS 0
+#define IF_HAS_KEYWORDS(...)
+#define IF_HAS_NO_KEYWORDS(...) __VA_ARGS__
 #endif
 
 
@@ -276,18 +286,20 @@ struct p_context {
 	struct pipe *list_head;
 	struct pipe *pipe;
 	struct redir_struct *pending_redirect;
-	smallint res_w;
-	smallint ctx_inverted;      /* "! cmd | cmd" */
-	int old_flag;               /* bitmask of FLAG_xxx, for figuring out valid reserved words */
+#if HAS_KEYWORDS
+	smallint ctx_res_w;
+	smallint ctx_inverted; /* "! cmd | cmd" */
+	int old_flag; /* bitmask of FLAG_xxx, for figuring out valid reserved words */
 	struct p_context *stack;
+#endif
 };
 
 struct redir_struct {
 	struct redir_struct *next;
-	smallint /*redir_type*/ rd_type;
+	char *rd_filename;          /* filename */
 	int fd;                     /* file descriptor being redirected */
 	int dup;                    /* -1, or file descriptor being duplicated */
-	char *rd_filename;          /* filename */
+	smallint /*enum redir_type*/ rd_type;
 };
 
 struct child_prog {
@@ -317,9 +329,9 @@ struct pipe {
 	char *cmdtext;              /* name of job */
 #endif
 	struct child_prog *progs;   /* array of commands in pipe */
-	smallint pi_inverted;       /* "! cmd | cmd" */
 	smallint followup;          /* PIPE_BG, PIPE_SEQ, PIPE_OR, PIPE_AND */
-	smallint res_word;          /* needed for if, for, while, until... */
+	IF_HAS_KEYWORDS(smallint pi_inverted;) /* "! cmd | cmd" */
+	IF_HAS_KEYWORDS(smallint res_word;) /* needed for if, for, while, until... */
 };
 
 /* On program start, environ points to initial environment.
@@ -1629,8 +1641,7 @@ static int checkjobs(struct pipe* fg_pipe)
 					if (i == fg_pipe->num_progs - 1) {
 						/* last process gives overall exitstatus */
 						rcode = WEXITSTATUS(status);
-						if (fg_pipe->pi_inverted)
-							rcode = !rcode;
+						IF_HAS_KEYWORDS(if (fg_pipe->pi_inverted) rcode = !rcode;)
 					}
 				} else {
 					fg_pipe->progs[i].is_stopped = 1;
@@ -1757,8 +1768,7 @@ static int run_pipe(struct pipe *pi)
 		rcode = run_list(child->group) & 0xff;
 		restore_redirects(squirrel);
 		debug_printf_exec("run_pipe return %d\n", rcode);
-		if (pi->pi_inverted)
-			rcode = !rcode;
+		IF_HAS_KEYWORDS(if (pi->pi_inverted) rcode = !rcode;)
 		return rcode;
 	}
 
@@ -1801,8 +1811,7 @@ static int run_pipe(struct pipe *pi)
 				free(argv_expanded);
 				restore_redirects(squirrel);
 				debug_printf_exec("run_pipe return %d\n", rcode);
-				if (pi->pi_inverted)
-					rcode = !rcode;
+				IF_HAS_KEYWORDS(if (pi->pi_inverted) rcode = !rcode;)
 				return rcode;
 			}
 		}
@@ -1819,8 +1828,7 @@ static int run_pipe(struct pipe *pi)
 				free(argv_expanded);
 				restore_redirects(squirrel);
 				debug_printf_exec("run_pipe return %d\n", rcode);
-				if (pi->pi_inverted)
-					rcode = !rcode;
+				IF_HAS_KEYWORDS(if (pi->pi_inverted) rcode = !rcode;)
 				return rcode;
 			}
 		}
@@ -2003,8 +2011,7 @@ static int run_list(struct pipe *pi)
 #else
 	enum { if_code = 0, next_if_code = 0 };
 #endif
-// TODO: rword and ->res_word are not needed if !LOOPS and !IF
-	reserved_style rword;
+	reserved_style rword IF_HAS_NO_KEYWORDS(= RES_NONE);
 	reserved_style skip_more_for_this_rword = RES_XXXX;
 
 	debug_printf_exec("run_list start lvl %d\n", run_list_level + 1);
@@ -2075,7 +2082,8 @@ static int run_list(struct pipe *pi)
 #endif /* JOB */
 
 	for (; pi; pi = flag_restore ? rpipe : pi->next) {
-		rword = pi->res_word;
+		IF_HAS_KEYWORDS(rword = pi->res_word;)
+		IF_HAS_NO_KEYWORDS(rword = RES_NONE;)
 #if ENABLE_HUSH_LOOPS
 		if (rword == RES_WHILE || rword == RES_UNTIL || rword == RES_FOR) {
 			flag_restore = 0;
@@ -2272,7 +2280,9 @@ static int free_pipe_list(struct pipe *head, int indent)
 	struct pipe *pi, *next;
 
 	for (pi = head; pi; pi = next) {
+#if HAS_KEYWORDS
 		debug_printf_clean("%s pipe reserved mode %d\n", indenter(indent), pi->res_word);
+#endif
 		rcode = free_pipe(pi, indent);
 		debug_printf_clean("%s pipe followup code %d\n", indenter(indent), pi->followup);
 		next = pi->next;
@@ -2548,7 +2558,7 @@ static char *expand_string_to_string(const char *str)
 	argv[0] = (char*)str;
 	argv[1] = NULL;
 	list = expand_variables(argv, 0x80); /* 0x80: make one-element expansion */
-	if (ENABLE_HUSH_DEBUG)
+	if (HUSH_DEBUG)
 		if (!list[0] || list[1])
 			bb_error_msg_and_die("BUG in varexp2");
 	/* actually, just move string 2*sizeof(char*) bytes back */
@@ -2567,7 +2577,7 @@ static char* expand_strvec_to_string(char **argv)
 	if (list[0]) {
 		int n = 1;
 		while (list[n]) {
-			if (ENABLE_HUSH_DEBUG)
+			if (HUSH_DEBUG)
 				if (list[n-1] + strlen(list[n-1]) + 1 != list[n])
 					bb_error_msg_and_die("BUG in varexp3");
 			list[n][-1] = ' '; /* TODO: or to ifs[0]? */
@@ -2747,8 +2757,7 @@ static struct pipe *new_pipe(void)
 	struct pipe *pi;
 	pi = xzalloc(sizeof(struct pipe));
 	/*pi->followup = 0; - deliberately invalid value */
-	if (RES_NONE)
-		pi->res_word = RES_NONE;
+	/*pi->res_word = RES_NONE; - RES_NONE is 0 anyway */
 	return pi;
 }
 
@@ -2769,7 +2778,7 @@ static void initialize_context(struct p_context *ctx)
  * Handles if, then, elif, else, fi, for, while, until, do, done.
  * case, function, and select are obnoxious, save those for later.
  */
-#if ENABLE_HUSH_IF || ENABLE_HUSH_LOOPS
+#if HAS_KEYWORDS
 static int reserved_word(const o_string *word, struct p_context *ctx)
 {
 	struct reserved_combo {
@@ -2828,18 +2837,18 @@ static int reserved_word(const o_string *word, struct p_context *ctx)
 		debug_printf("found reserved word %s, res %d\n", r->literal, r->res);
 		if (r->flag == 0) { /* '!' */
 #if ENABLE_HUSH_LOOPS
-			if (ctx->res_w == RES_IN) {
+			if (ctx->ctx_res_w == RES_IN) {
 				/* 'for a in ! a b c; ...' - ! isn't a keyword here */
 				break;
 			}
 #endif
 			if (ctx->ctx_inverted /* bash doesn't accept '! ! true' */
 #if ENABLE_HUSH_LOOPS
-			 || ctx->res_w == RES_FOR /* example: 'for ! a' */
+			 || ctx->ctx_res_w == RES_FOR /* example: 'for ! a' */
 #endif
 			) {
 				syntax(NULL);
-				ctx->res_w = RES_SNTX;
+				IF_HAS_KEYWORDS(ctx->ctx_res_w = RES_SNTX;)
 			}
 			ctx->ctx_inverted = 1;
 			return 1;
@@ -2848,9 +2857,9 @@ static int reserved_word(const o_string *word, struct p_context *ctx)
 			struct p_context *new;
 			debug_printf("push stack\n");
 #if ENABLE_HUSH_LOOPS
-			if (ctx->res_w == RES_IN || ctx->res_w == RES_FOR) {
+			if (ctx->ctx_res_w == RES_IN || ctx->ctx_res_w == RES_FOR) {
 				syntax("malformed for"); /* example: 'for if' */
-				ctx->res_w = RES_SNTX;
+				ctx->ctx_res_w = RES_SNTX;
 				return 1;
 			}
 #endif
@@ -2858,12 +2867,12 @@ static int reserved_word(const o_string *word, struct p_context *ctx)
 			*new = *ctx;   /* physical copy */
 			initialize_context(ctx);
 			ctx->stack = new;
-		} else if (ctx->res_w == RES_NONE || !(ctx->old_flag & (1 << r->res))) {
+		} else if (ctx->ctx_res_w == RES_NONE || !(ctx->old_flag & (1 << r->res))) {
 			syntax(NULL);
-			ctx->res_w = RES_SNTX;
+			ctx->ctx_res_w = RES_SNTX;
 			return 1;
 		}
-		ctx->res_w = r->res;
+		ctx->ctx_res_w = r->res;
 		ctx->old_flag = r->flag;
 		if (ctx->old_flag & FLAG_END) {
 			struct p_context *old;
@@ -2879,8 +2888,6 @@ static int reserved_word(const o_string *word, struct p_context *ctx)
 	}
 	return 0;
 }
-#else
-#define reserved_word(word, ctx) ((int)0)
 #endif
 
 /* Word is complete, look at it and update parsing context.
@@ -2914,15 +2921,17 @@ static int done_word(o_string *word, struct p_context *ctx)
 			debug_printf_parse("done_word return 1: syntax error, groups and arglists don't mix\n");
 			return 1;
 		}
+#if HAS_KEYWORDS
 		if (!child->argv) { /* if it's the first word... */
 			debug_printf_parse(": checking '%s' for reserved-ness\n", word->data);
 			if (reserved_word(word, ctx)) {
 				o_reset(word);
 				word->o_assignment = NOT_ASSIGNMENT;
-				debug_printf_parse("done_word return %d\n", (ctx->res_w == RES_SNTX));
-				return (ctx->res_w == RES_SNTX);
+				debug_printf_parse("done_word return %d\n", (ctx->ctx_res_w == RES_SNTX));
+				return (ctx->ctx_res_w == RES_SNTX);
 			}
 		}
+#endif
 		if (word->nonnull /* we saw "xx" or 'xx' */
 		 /* optimization: and if it's ("" or '') or ($v... or `cmd`...): */
 		 && (word->data[0] == '\0' || word->data[0] == SPECIAL_VAR_SYMBOL)
@@ -2942,7 +2951,7 @@ static int done_word(o_string *word, struct p_context *ctx)
 
 #if ENABLE_HUSH_LOOPS
 	/* Force FOR to have just one word (variable name) */
-	if (ctx->res_w == RES_FOR)
+	if (ctx->ctx_res_w == RES_FOR)
 		done_pipe(ctx, PIPE_SEQ);
 #endif
 	debug_printf_parse("done_word return 0\n");
@@ -2993,9 +3002,9 @@ static void done_pipe(struct p_context *ctx, pipe_style type)
 	debug_printf_parse("done_pipe entered, followup %d\n", type);
 	not_null = done_command(ctx);  /* implicit closure of previous command */
 	ctx->pipe->followup = type;
-	ctx->pipe->res_word = ctx->res_w;
-	ctx->pipe->pi_inverted = ctx->ctx_inverted;
-	ctx->ctx_inverted = 0;
+	IF_HAS_KEYWORDS(ctx->pipe->res_word = ctx->ctx_res_w;)
+	IF_HAS_KEYWORDS(ctx->pipe->pi_inverted = ctx->ctx_inverted;)
+	IF_HAS_KEYWORDS(ctx->ctx_inverted = 0;)
 	/* Without this check, even just <enter> on command line generates
 	 * tree of three NOPs (!). Which is harmless but annoying.
 	 * IOW: it is safe to do it unconditionally.
@@ -3480,7 +3489,7 @@ static int parse_stream(o_string *dest, struct p_context *ctx,
 //err chk?
 					done_pipe(ctx, PIPE_SEQ);
 				}
-				if (ctx->res_w == RES_NONE) {
+				if (!HAS_KEYWORDS IF_HAS_KEYWORDS(|| ctx->ctx_res_w == RES_NONE)) {
 					debug_printf_parse("parse_stream return 0: end_trigger char found\n");
 					return 0;
 				}
@@ -3650,7 +3659,7 @@ static int parse_stream(o_string *dest, struct p_context *ctx,
 			debug_printf_parse("parse_stream return 1: unexpected '}'\n");
 			return 1;
 		default:
-			if (ENABLE_HUSH_DEBUG)
+			if (HUSH_DEBUG)
 				bb_error_msg_and_die("BUG: unexpected %c\n", ch);
 		}
 	} /* while (1) */
@@ -3706,10 +3715,12 @@ static int parse_and_run_stream(struct in_str *inp, int parse_flag)
 		 * Example: "sleep 9999; echo TEST" + ctrl-C:
 		 * TEST should be printed */
 		rcode = parse_stream(&temp, &ctx, inp, ";\n");
+#if HAS_KEYWORDS
 		if (rcode != 1 && ctx.old_flag != 0) {
 			syntax(NULL);
 		}
-		if (rcode != 1 && ctx.old_flag == 0) {
+#endif
+		if (rcode != 1 IF_HAS_KEYWORDS(&& ctx.old_flag == 0)) {
 			done_word(&temp, &ctx);
 			done_pipe(&ctx, PIPE_SEQ);
 			debug_print_tree(ctx.list_head, 0);
@@ -3717,10 +3728,12 @@ static int parse_and_run_stream(struct in_str *inp, int parse_flag)
 			run_and_free_list(ctx.list_head);
 		} else {
 			/* We arrive here also if rcode == 1 (error in parse_stream) */
+#if HAS_KEYWORDS
 			if (ctx.old_flag != 0) {
 				free(ctx.stack);
 				o_reset(&temp);
 			}
+#endif
 			/*temp.nonnull = 0; - o_free does it below */
 			/*temp.o_quote = 0; - o_free does it below */
 			free_pipe_list(ctx.list_head, /* indent: */ 0);
