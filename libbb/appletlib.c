@@ -638,6 +638,7 @@ static int busybox_main(char **argv)
 		/* leading tab and room to wrap */
 		output_width -= MAX_APPLET_NAME_LEN + 8;
 
+		dup2(1, 2);
 		full_write2_str(bb_banner); /* reuse const string... */
 		full_write2_str(" multi-call binary\n"
 		       "Copyright (C) 1998-2008 Erik Andersen, Rob Landley, Denys Vlasenko\n"
