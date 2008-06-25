@@ -1059,6 +1059,7 @@ static int nfsmount(struct mntent *mp, long vfsflags, char *filteropts)
 	if (filteropts)	for (opt = strtok(filteropts, ","); opt; opt = strtok(NULL, ",")) {
 		char *opteq = strchr(opt, '=');
 		if (opteq) {
+			int val, idx;
 			static const char options[] ALIGN1 =
 				/* 0 */ "rsize\0"
 				/* 1 */ "wsize\0"
@@ -1081,87 +1082,92 @@ static int nfsmount(struct mntent *mp, long vfsflags, char *filteropts)
 				/* 18 */ "proto\0"
 				/* 19 */ "namlen\0"
 				/* 20 */ "addr\0";
-			int val = xatoi_u(opteq + 1);
-			*opteq = '\0';
-			switch (index_in_strings(options, opt)) {
+
+			*opteq++ = '\0';
+			idx = index_in_strings(options, opt);
+			switch (idx) {
+			case 12: // "mounthost"
+				mounthost = xstrndup(opteq,
+						strcspn(opteq, " \t\n\r,"));
+				continue;
+			case 18: // "proto"
+				if (!strncmp(opteq, "tcp", 3))
+					tcp = 1;
+				else if (!strncmp(opteq, "udp", 3))
+					tcp = 0;
+				else
+					bb_error_msg("warning: unrecognized proto= option");
+				continue;
+			case 20: // "addr" - ignore
+				continue;
+			}
+
+			val = xatoi_u(opteq);
+			switch (idx) {
 			case 0: // "rsize"
 				data.rsize = val;
-				break;
+				continue;
 			case 1: // "wsize"
 				data.wsize = val;
-				break;
+				continue;
 			case 2: // "timeo"
 				data.timeo = val;
-				break;
+				continue;
 			case 3: // "retrans"
 				data.retrans = val;
-				break;
+				continue;
 			case 4: // "acregmin"
 				data.acregmin = val;
-				break;
+				continue;
 			case 5: // "acregmax"
 				data.acregmax = val;
-				break;
+				continue;
 			case 6: // "acdirmin"
 				data.acdirmin = val;
-				break;
+				continue;
 			case 7: // "acdirmax"
 				data.acdirmax = val;
-				break;
+				continue;
 			case 8: // "actimeo"
 				data.acregmin = val;
 				data.acregmax = val;
 				data.acdirmin = val;
 				data.acdirmax = val;
-				break;
+				continue;
 			case 9: // "retry"
 				retry = val;
-				break;
+				continue;
 			case 10: // "port"
 				port = val;
-				break;
+				continue;
 			case 11: // "mountport"
 				mountport = val;
-				break;
-			case 12: // "mounthost"
-				mounthost = xstrndup(opteq+1,
-						strcspn(opteq+1," \t\n\r,"));
-				break;
+				continue;
 			case 13: // "mountprog"
 				mountprog = val;
-				break;
+				continue;
 			case 14: // "mountvers"
 				mountvers = val;
-				break;
+				continue;
 			case 15: // "nfsprog"
 				nfsprog = val;
-				break;
+				continue;
 			case 16: // "nfsvers"
 			case 17: // "vers"
 				nfsvers = val;
-				break;
-			case 18: // "proto"
-				if (!strncmp(opteq+1, "tcp", 3))
-					tcp = 1;
-				else if (!strncmp(opteq+1, "udp", 3))
-					tcp = 0;
-				else
-					bb_error_msg("warning: unrecognized proto= option");
-				break;
+				continue;
 			case 19: // "namlen"
-				if (nfs_mount_version >= 2)
+				//if (nfs_mount_version >= 2)
 					data.namlen = val;
-				else
-					bb_error_msg("warning: option namlen is not supported\n");
-				break;
-			case 20: // "addr" - ignore
-				break;
+				//else
+				//	bb_error_msg("warning: option namlen is not supported\n");
+				continue;
 			default:
 				bb_error_msg("unknown nfs mount parameter: %s=%d", opt, val);
 				goto fail;
 			}
 		}
-		else {
+		else { /* not of the form opt=val */
 			static const char options[] ALIGN1 =
 				"bg\0"
 				"fg\0"

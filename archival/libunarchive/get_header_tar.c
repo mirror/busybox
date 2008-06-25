@@ -99,7 +99,7 @@ char get_header_tar(archive_handle_t *archive_handle)
 	 * "tar: A lone zero block at N", where N = kilobyte
 	 * where EOF was met (not EOF block, actual EOF!),
 	 * and tar will exit with error code 0.
-	 * We will mimic exit(0), although we will not mimic
+	 * We will mimic exit(EXIT_SUCCESS), although we will not mimic
 	 * the message and we don't check whether we indeed
 	 * saw zero block directly before this. */
 	if (i == 0)
@@ -138,12 +138,12 @@ char get_header_tar(archive_handle_t *archive_handle)
 		/* tar gz/bz autodetect: check for gz/bz2 magic.
 		 * If it is the very first block, and we see the magic,
 		 * we can switch to get_header_tar_gz/bz2/lzma().
-		 * Needs seekable fd. I wish recv(MSG_PEEK) would work
+		 * Needs seekable fd. I wish recv(MSG_PEEK) works
 		 * on any fd... */
 		if (not_first)
 			goto err;
 #if ENABLE_FEATURE_TAR_GZIP
-		if (tar.name[0] == 0x1f && tar.name[1] == 0x8b) { /* gzip */
+		if (tar.name[0] == 0x1f && tar.name[1] == (char)0x8b) { /* gzip */
 			get_header_ptr = get_header_tar_gz;
 		} else
 #endif
@@ -220,9 +220,7 @@ char get_header_tar(archive_handle_t *archive_handle)
 	}
 	file_header->link_target = NULL;
 	if (!linkname && parse_names && tar.linkname[0]) {
-		/* we trash magic[0] here, it's ok */
-		tar.linkname[sizeof(tar.linkname)] = '\0';
-		file_header->link_target = xstrdup(tar.linkname);
+		file_header->link_target = xstrndup(tar.linkname, sizeof(tar.linkname));
 		/* FIXME: what if we have non-link object with link_target? */
 		/* Will link_target be free()ed? */
 	}
@@ -240,10 +238,12 @@ char get_header_tar(archive_handle_t *archive_handle)
 	file_header->name = NULL;
 	if (!longname && parse_names) {
 		/* we trash mode[0] here, it's ok */
-		tar.name[sizeof(tar.name)] = '\0';
+		//tar.name[sizeof(tar.name)] = '\0'; - gcc 4.3.0 would complain
+		tar.mode[0] = '\0';
 		if (tar.prefix[0]) {
 			/* and padding[0] */
-			tar.prefix[sizeof(tar.prefix)] = '\0';
+			//tar.prefix[sizeof(tar.prefix)] = '\0'; - gcc 4.3.0 would complain
+			tar.padding[0] = '\0';
 			file_header->name = concat_path_file(tar.prefix, tar.name);
 		} else
 			file_header->name = xstrdup(tar.name);

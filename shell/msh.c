@@ -92,17 +92,17 @@ static char *itoa(int n)
 #ifdef MSHDEBUG
 static int mshdbg = MSHDEBUG;
 
-#define DBGPRINTF(x)	if (mshdbg>0) printf x
-#define DBGPRINTF0(x)	if (mshdbg>0) printf x
-#define DBGPRINTF1(x)	if (mshdbg>1) printf x
-#define DBGPRINTF2(x)	if (mshdbg>2) printf x
-#define DBGPRINTF3(x)	if (mshdbg>3) printf x
-#define DBGPRINTF4(x)	if (mshdbg>4) printf x
-#define DBGPRINTF5(x)	if (mshdbg>5) printf x
-#define DBGPRINTF6(x)	if (mshdbg>6) printf x
-#define DBGPRINTF7(x)	if (mshdbg>7) printf x
-#define DBGPRINTF8(x)	if (mshdbg>8) printf x
-#define DBGPRINTF9(x)	if (mshdbg>9) printf x
+#define DBGPRINTF(x)	if (mshdbg > 0) printf x
+#define DBGPRINTF0(x)	if (mshdbg > 0) printf x
+#define DBGPRINTF1(x)	if (mshdbg > 1) printf x
+#define DBGPRINTF2(x)	if (mshdbg > 2) printf x
+#define DBGPRINTF3(x)	if (mshdbg > 3) printf x
+#define DBGPRINTF4(x)	if (mshdbg > 4) printf x
+#define DBGPRINTF5(x)	if (mshdbg > 5) printf x
+#define DBGPRINTF6(x)	if (mshdbg > 6) printf x
+#define DBGPRINTF7(x)	if (mshdbg > 7) printf x
+#define DBGPRINTF8(x)	if (mshdbg > 8) printf x
+#define DBGPRINTF9(x)	if (mshdbg > 9) printf x
 
 static int mshdbg_rc = 0;
 
@@ -124,7 +124,7 @@ static int mshdbg_rc = 0;
 
 #define RCPRINTF(x) ((void)0)
 
-#endif							/* MSHDEBUG */
+#endif  /* MSHDEBUG */
 
 
 #if ENABLE_FEATURE_EDITING_FANCY_PROMPT
@@ -141,13 +141,13 @@ static int mshdbg_rc = 0;
  * shell
  */
 
-#define	LINELIM	  2100
-#define	NPUSH	  8				/* limit to input nesting */
+#define LINELIM   2100
+#define NPUSH     8             /* limit to input nesting */
 
 #undef NOFILE
-#define	NOFILE	  20			/* Number of open files */
-#define	NUFILE	  10			/* Number of user-accessible files */
-#define	FDBASE	  10			/* First file usable by Shell */
+#define NOFILE    20            /* Number of open files */
+#define NUFILE    10            /* Number of user-accessible files */
+#define FDBASE    10            /* First file usable by Shell */
 
 /*
  * values returned by wait
@@ -159,7 +159,7 @@ static int mshdbg_rc = 0;
 /*
  * library and system definitions
  */
-typedef void xint;                     	/* base type of jmp_buf, for not broken compilers */
+typedef void xint;              /* base type of jmp_buf, for not broken compilers */
 
 /*
  * shell components
@@ -588,14 +588,13 @@ static const struct builtincmd builtincmds[] = {
 	{ NULL      , NULL       },
 };
 
-static struct op *scantree(struct op *);
 static struct op *dowholefile(int /*, int*/);
 
 
 /* Globals */
 static char **dolv;
 static int dolc;
-static int exstat;
+static uint8_t exstat;
 static smallint gflg;                   /* (seems to be a parse error indicator) */
 static smallint interactive;            /* Is this an interactive shell */
 static smallint execflg;
@@ -726,7 +725,7 @@ static void print_tree(struct op *head)
 		return;
 	}
 
-	DBGPRINTF(("NODE: %p,  left %p, right %p\n", head, head->left,
+	DBGPRINTF(("NODE: %p, left %p, right %p\n", head, head->left,
 			   head->right));
 
 	if (head->left)
@@ -744,7 +743,7 @@ static void print_tree(struct op *head)
 static void prs(const char *s)
 {
 	if (*s)
-		write(2, s, strlen(s));
+		write(STDERR_FILENO, s, strlen(s));
 }
 
 static void prn(unsigned u)
@@ -807,7 +806,8 @@ static void warn(const char *s)
 {
 	if (*s) {
 		prs(s);
-		exstat = -1;
+		if (!exstat)
+			exstat = 255;
 	}
 	prs("\n");
 	if (FLAG['e'])
@@ -1278,6 +1278,7 @@ static int newfile(char *s)
 }
 
 
+#ifdef UNUSED
 struct op *scantree(struct op *head)
 {
 	struct op *dotnode;
@@ -1309,6 +1310,7 @@ struct op *scantree(struct op *head)
 
 	return NULL;
 }
+#endif
 
 
 static void onecommand(void)
@@ -2740,7 +2742,7 @@ static int forkexec(struct op *t, int *pin, int *pout, int no_fork, char **wp)
 	// longjmps away (at "Run builtin" below), leaving t->op_words clobbered!
 	// See http://bugs.busybox.net/view.php?id=846.
 	// Now we do not touch t->op_words, but separately pass wp as param list
-	// to builtins 
+	// to builtins
 	DBGPRINTF(("FORKEXEC: bltin %p, no_fork %d, owp %p\n", bltin,
 			no_fork, owp));
 	/* Don't fork if it is a lone builtin (not in pipe)
@@ -2854,7 +2856,7 @@ static int forkexec(struct op *t, int *pin, int *pout, int no_fork, char **wp)
 	if (t->op_type == TPAREN)
 		_exit(execute(t->left, NOPIPE, NOPIPE, /* no_fork: */ 1));
 	if (wp[0] == NULL)
-		_exit(0);
+		_exit(EXIT_SUCCESS);
 
 	cp = rexecve(wp[0], wp, makenv(0, NULL));
 	prs(wp[0]);
@@ -3006,7 +3008,7 @@ static int waitfor(int lastpid, int canintr)
 					prs(" - core dumped");
 				if (rv >= ARRAY_SIZE(signame) || signame[rv])
 					prs("\n");
-				rv = -1;
+				rv |= 0x80;
 			} else
 				rv = WAITVAL(s);
 		}
@@ -3070,8 +3072,6 @@ static const char *rexecve(char *c, char **v, char **envp)
 		if (tp != global_env.linep)
 			*tp++ = '/';
 		strcpy(tp, c);
-		//for (i = 0; (*tp++ = c[i++]) != '\0';)
-		//	continue;
 
 		DBGPRINTF3(("REXECVE: global_env.linep is %s\n", global_env.linep));
 
@@ -3079,10 +3079,13 @@ static const char *rexecve(char *c, char **v, char **envp)
 
 		switch (errno) {
 		case ENOEXEC:
+			/* File is executable but file format isnt recognized */
+			/* Run it as a shell script */
+			/* (execve above didnt do it itself, unlike execvp) */
 			*v = global_env.linep;
 			v--;
 			tp = *v;
-			*v = global_env.linep;
+			*v = (char*)DEFAULT_SHELL;
 			execve(DEFAULT_SHELL, v, envp);
 			*v = tp;
 			return "no shell";
@@ -3094,7 +3097,12 @@ static const char *rexecve(char *c, char **v, char **envp)
 			return "argument list too long";
 		}
 	}
-	return errno == ENOENT ? "not found" : "cannot execute";
+	if (errno == ENOENT) {
+		exstat = 127; /* standards require this */
+		return "not found";
+	}
+	exstat = 126; /* mimic bash */
+	return "cannot execute";
 }
 
 /*
@@ -3383,7 +3391,7 @@ static int doread(struct op *t ATTRIBUTE_UNUSED, char **args)
 	}
 	for (wp = args + 1; *wp; wp++) {
 		for (cp = global_env.linep; !nl && cp < elinep - 1; cp++) {
-			nb = nonblock_safe_read(0, cp, sizeof(*cp));
+			nb = nonblock_safe_read(STDIN_FILENO, cp, sizeof(*cp));
 			if (nb != sizeof(*cp))
 				break;
 			nl = (*cp == '\n');
@@ -4206,7 +4214,7 @@ static int grave(int quoted)
 	prs(argument_list[0]);
 	prs(": ");
 	err(cp);
-	_exit(1);
+	_exit(EXIT_FAILURE);
 }
 
 
@@ -4308,9 +4316,7 @@ static void globname(char *we, char *pp)
 	dname[NAME_MAX] = '\0';
 	while ((de = readdir(dirp)) != NULL) {
 		/* XXX Hmmm... What this could be? (abial) */
-		/*
-		   if (ent[j].d_ino == 0)
-		      continue;
+		/* if (ent[j].d_ino == 0) continue;
 		 */
 		strncpy(dname, de->d_name, NAME_MAX);
 		if (dname[0] == '.')
@@ -4521,7 +4527,7 @@ static int readc(void)
 static void ioecho(char c)
 {
 	if (FLAG['v'])
-		write(2, &c, sizeof c);
+		write(STDERR_FILENO, &c, sizeof c);
 }
 
 static void pushio(struct ioarg *argp, int (*fn) (struct ioarg *))
@@ -4732,7 +4738,7 @@ static int filechar(struct ioarg *ap)
 		while (size == 0 || position >= size) {
 			size = read_line_input(current_prompt, filechar_cmdbuf, BUFSIZ, line_input_state);
 			if (size < 0) /* Error/EOF */
-				exit(0);
+				exit(EXIT_SUCCESS);
 			position = 0;
 			/* if Ctrl-C, size == 0 and loop will repeat */
 		}
@@ -4817,7 +4823,7 @@ static int linechar(struct ioarg *ap)
 }
 
 /*
- * remap fd into Shell's fd space
+ * Remap fd into shell's fd space
  */
 static int remap(int fd)
 {
@@ -5203,7 +5209,7 @@ int msh_main(int argc, char **argv)
 
 /* Shell is non-interactive, activate printf-based debug */
 #ifdef MSHDEBUG
-			mshdbg = (int) (((char) (mshdbg_var->value[0])) - '0');
+			mshdbg = mshdbg_var->value[0] - '0';
 			if (mshdbg < 0)
 				mshdbg = 0;
 #endif
@@ -5211,7 +5217,7 @@ int msh_main(int argc, char **argv)
 
 			name = *++argv;
 			if (newfile(name))
-				exit(1);		/* Exit on error */
+				exit(EXIT_FAILURE);  /* Exit on error */
 		}
 	}
 
