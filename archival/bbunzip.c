@@ -73,6 +73,12 @@ int bbunpack(char **argv,
 				bb_error_msg("%s: unknown suffix - ignored", filename);
 				goto err;
 			}
+
+			/* -f: overwrite existing output files */
+			if (option_mask32 & OPT_FORCE) {
+				unlink(new_name);
+			}
+
 			/* O_EXCL: "real" bunzip2 doesn't overwrite files */
 			/* GNU gunzip does not bail out, but goes to next file */
 			if (open_to_or_warn(STDOUT_FILENO, new_name, O_WRONLY | O_CREAT | O_EXCL,
