@@ -1,6 +1,52 @@
 <!--#include file="header.html" -->
 
 <ul>
+  <li><b>25 June 2008 -- BusyBox 1.11.0 (unstable), BusyBox 1.10.4 (stable)</b>
+    <p><a href=http://busybox.net/downloads/busybox-1.11.0.tar.bz2>BusyBox 1.11.0</a>.
+    (<a href=http://busybox.net/cgi-bin/viewcvs.cgi/branches/busybox_1_11_stable/>svn</a>,
+    <a href=http://busybox.net/downloads/fixes-1.11.0/>patches</a>,
+    <a href=http://busybox.net/fix.html>how to add a patch</a>)</p>
+    <p><a href=http://busybox.net/downloads/busybox-1.10.4.tar.bz2>BusyBox 1.10.4</a>.
+    (<a href=http://busybox.net/cgi-bin/viewcvs.cgi/branches/busybox_1_10_stable/>svn</a>,
+    <a href=http://busybox.net/downloads/fixes-1.10.4/>patches</a>,
+    <a href=http://busybox.net/fix.html>how to add a patch</a>)</p>
+    <p>Sizes of busybox-1.10.4 and busybox-1.11.0 (with equivalent config, static uclibc build):<pre>
+   text    data     bss     dec     hex filename
+ 800675     636    7080  808391   c55c7 busybox-1.10.4
+ 798392     611    6900  805903   c4c0f busybox-1.11.0
+</pre>
+
+    <p>New applets: inotify (Vladimir Dronnikov), man (Ivana Varekova),
+    fbsplash (Michele Sanges), depmod (Bernhard Fischer)
+
+    <p>Changes since previous release:
+      <ul>
+	<li>build system: reinstate CONFIG_CROSS_COMPILE_PREFIX
+	<li>ash: optional bash compatibility features added; other fixes
+	<li>hush: lots and lots of fixes
+	<li>msh: fix the case where the file has exec bit but can't be run directly (run "$SHELL $file" instead)
+	<li>msh: fix exit codes when command is not found or can't be execed
+	<li>udhcpc: added workaround for buggy kernels
+	<li>mount: fix mishandling of proto=tcp/udp
+	<li>diff: make it work on non-seekable streams
+	<li>openvt: made more compatible with "standard" one
+	<li>mdev: fix block/char device detection
+	<li>ping: add -w, -W support (James Simmons)
+	<li>crond: add handling of "MAILTO=user" lines
+	<li>start-stop-daemon: make --exec follow symlinks (Joakim Tjernlund)
+	<li>date: make it accept ISO date format
+	<li>echo: fix echo -e -n "msg\n\0" (David Pinedo)
+	<li>httpd: fix several bugs triggered by realtive path in -h DIR
+	<li>printf: fix printf -%s- foo, printf -- -%s- foo
+	<li>syslogd: do not error out on missing files to rotate
+	<li>ls: support Unicode in names
+	<li>ip: support for the LOWER_UP flag (Natanael Copa)
+	<li>mktemp: make argument optional (coreutil 6.12 compat)
+	<li>libiproute: fix option parsing, so that "ip -o link" works again
+	<li>other fixes and code size reductions in many applets
+      </ul>
+    </p>
+
   <li><b>12 June 2008 -- Sponsors!</b>
     <p>We want to thank the following companies which are providing support
     for BusyBox project:
@@ -29,12 +75,6 @@
     <p>
     Bugfix-only release for 1.10.x branch. It contains fixes for dnsd, fuser, hush,
     ip, mdev and syslogd.
-    <p>
-    <a href=http://busybox.net/~vda/HOWTO/i486-linux-uclibc/HOWTO.txt>
-    How to build static busybox for i486-linux-uclibc</a>
-    <p>
-    The email address gpl@busybox.net is the recommended way to contact
-    the Software Freedom Law Center to report BusyBox license violations.
     </p>
 
   <li><b>8 May 2008 -- BusyBox 1.10.2 (stable)</b>
