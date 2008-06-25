@@ -149,7 +149,7 @@ static ALWAYS_INLINE unsigned div_roundup(unsigned size, unsigned n)
 #else
 # define SB_ZONES               (version2 ? SB.s_zones : SB.s_nzones)
 # define INODE_BLOCKS           div_roundup(SB_INODES, \
-                                version2 ? MINIX2_INODES_PER_BLOCK : MINIX1_INODES_PER_BLOCK)
+                                (version2 ? MINIX2_INODES_PER_BLOCK : MINIX1_INODES_PER_BLOCK))
 #endif
 
 #define INODE_BUFFER_SIZE       (INODE_BLOCKS * BLOCK_SIZE)

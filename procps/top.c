@@ -89,12 +89,11 @@ struct globals {
 enum { LINE_BUF_SIZE = COMMON_BUFSIZE - offsetof(struct globals, line_buf) };
 
 #define G (*(struct globals*)&bb_common_bufsiz1)
-#define INIT_G() \
-	do { \
-		struct G_sizecheck { \
-			char G_sizecheck[sizeof(G) > COMMON_BUFSIZE ? -1 : 1]; \
-		}; \
-	} while (0)
+#define INIT_G() do { \
+	struct G_sizecheck { \
+		char G_sizecheck[sizeof(G) > COMMON_BUFSIZE ? -1 : 1]; \
+	}; \
+} while (0)
 #define top              (G.top               )
 #define ntop             (G.ntop              )
 #define sort_field       (G.sort_field        )

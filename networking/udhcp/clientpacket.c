@@ -64,7 +64,7 @@ static void add_param_req_option(struct dhcpMessage *packet)
 
 	for (i = 0; (c = dhcp_options[i].code) != 0; i++) {
 		if (((dhcp_options[i].flags & OPTION_REQ)
-                     && !client_config.no_default_options)
+		     && !client_config.no_default_options)
 		 || (client_config.opt_mask[c >> 3] & (1 << (c & 7)))
 		) {
 			packet->options[end + OPT_DATA + len] = c;

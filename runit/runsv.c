@@ -103,10 +103,9 @@ struct globals {
 #define logpipe      (G.logpipe     )
 #define dir          (G.dir         )
 #define svd          (G.svd         )
-#define INIT_G() \
-	do { \
-		pidchanged = 1; \
-	} while (0)
+#define INIT_G() do { \
+	pidchanged = 1; \
+} while (0)
 
 static void fatal2_cannot(const char *m1, const char *m2)
 {

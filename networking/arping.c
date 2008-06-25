@@ -61,10 +61,9 @@ struct globals {
 #define received   (G.received  )
 #define brd_recv   (G.brd_recv  )
 #define req_recv   (G.req_recv  )
-#define INIT_G() \
-	do { \
-		count = -1; \
-	} while (0)
+#define INIT_G() do { \
+	count = -1; \
+} while (0)
 
 // If GNUisms are not available...
 //static void *mempcpy(void *_dst, const void *_src, int n)

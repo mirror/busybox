@@ -1251,7 +1251,7 @@ static void dump_identity(const struct hd_driveid *id)
 			.masks = { 0x100, 0x001, 0x200, 0x002, 0x400, 0x004 },
 			.labels = "*\0""udma0 \0""*\0""udma1 \0""*\0""udma2 \0",
 		};
-			
+
 		printf("\n UDMA modes: ");
 		print_flags(&ultra_modes1, id->dma_ultra);
 #ifdef __NEW_HD_DRIVE_ID

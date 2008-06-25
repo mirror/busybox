@@ -105,11 +105,10 @@ struct globals {
 #define pidfile           (G.pidfile             )
 #define user_id           (G.user_id             )
 #define signal_nr         (G.signal_nr           )
-#define INIT_G() \
-        do { \
-		user_id = -1; \
-		signal_nr = 15; \
-        } while (0)
+#define INIT_G() do { \
+	user_id = -1; \
+	signal_nr = 15; \
+} while (0)
 
 #ifdef OLDER_VERSION_OF_X
 /* -x,--exec EXECUTABLE

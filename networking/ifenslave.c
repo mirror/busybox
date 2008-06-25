@@ -147,7 +147,7 @@ static int ioctl_on_skfd(unsigned request, struct ifreq *ifr)
 
 static int set_ifrname_and_do_ioctl(unsigned request, struct ifreq *ifr, const char *ifname)
 {
-        strncpy_IFNAMSIZ(ifr->ifr_name, ifname);
+	strncpy_IFNAMSIZ(ifr->ifr_name, ifname);
 	return ioctl_on_skfd(request, ifr);
 }
 

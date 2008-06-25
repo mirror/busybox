@@ -244,15 +244,15 @@ static ALWAYS_INLINE unsigned div_roundup(unsigned size, unsigned n)
 	return (size + n-1) / n;
 }
 
-#if ENABLE_FEATURE_MINIX2
-#define INODE_BLOCKS div_roundup(INODES, (version2 ? MINIX2_INODES_PER_BLOCK \
-				    : MINIX1_INODES_PER_BLOCK))
+#if !ENABLE_FEATURE_MINIX2
+#define INODE_BLOCKS            div_roundup(INODES, MINIX1_INODES_PER_BLOCK)
 #else
-#define INODE_BLOCKS div_roundup(INODES, MINIX1_INODES_PER_BLOCK)
+#define INODE_BLOCKS            div_roundup(INODES, \
+                                (version2 ? MINIX2_INODES_PER_BLOCK : MINIX1_INODES_PER_BLOCK))
 #endif
 
-#define INODE_BUFFER_SIZE (INODE_BLOCKS * BLOCK_SIZE)
-#define NORM_FIRSTZONE    (2 + IMAPS + ZMAPS + INODE_BLOCKS)
+#define INODE_BUFFER_SIZE       (INODE_BLOCKS * BLOCK_SIZE)
+#define NORM_FIRSTZONE          (2 + IMAPS + ZMAPS + INODE_BLOCKS)
 
 /* Before you ask "where they come from?": */
 /* setbit/clrbit are supplied by sys/param.h */

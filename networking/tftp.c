@@ -92,9 +92,7 @@ struct globals {
 #define block_buf        (G.block_buf   )
 #define user_opt         (G.user_opt    )
 #define error_pkt        (G.error_pkt   )
-#define INIT_G() \
-	do { \
-	} while (0)
+#define INIT_G() do { } while (0)
 
 #define error_pkt_reason (error_pkt[3])
 #define error_pkt_str    (error_pkt + 4)

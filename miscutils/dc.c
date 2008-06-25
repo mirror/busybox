@@ -19,8 +19,7 @@ enum { STACK_SIZE = (COMMON_BUFSIZE - offsetof(struct globals, stack)) / sizeof(
 #define pointer   (G.pointer   )
 #define base      (G.base      )
 #define stack     (G.stack     )
-#define INIT_G() do { \
-} while (0)
+#define INIT_G() do { } while (0)
 
 
 static void push(double a)

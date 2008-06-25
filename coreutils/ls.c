@@ -169,12 +169,12 @@ enum {
 #endif
 #define current_time_t (G.current_time_t)
 /* memset: we have to zero it out because of NOEXEC */
-#define INIT_G() { \
+#define INIT_G() do { \
 	memset(&G, 0, sizeof(G)); \
 	USE_FEATURE_AUTOWIDTH(tabstops = COLUMN_GAP;) \
 	USE_FEATURE_AUTOWIDTH(terminal_width = TERMINAL_WIDTH;) \
 	USE_FEATURE_LS_TIMESTAMPS(time(&current_time_t);) \
-}
+} while (0)
 
 
 #if ENABLE_FEATURE_ASSUME_UNICODE

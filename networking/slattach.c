@@ -25,7 +25,7 @@ struct globals {
 #define handle       (G.handle      )
 #define saved_disc   (G.saved_disc  )
 #define saved_state  (G.saved_state )
-#define INIT_G() do {} while (0)
+#define INIT_G() do { } while (0)
 
 
 /*

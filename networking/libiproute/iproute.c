@@ -582,7 +582,7 @@ static int iproute_list_or_flush(char **argv, int flush)
 				if (rtnl_rttable_a2n(&tid, *argv))
 					invarg(*argv, "table");
 				filter.tb = tid;
-#else				
+#else
 				invarg(*argv, "table");
 #endif
 			}

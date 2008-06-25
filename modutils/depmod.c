@@ -174,7 +174,7 @@ int depmod_main(int ATTRIBUTE_UNUSED argc, char **argv)
 	/* Fixup the module names in the depends list */
 	while (mods) {
 		llist_t *deps = NULL, *old_deps = mods->dependencies;
-		
+
 		while (old_deps) {
 			dep_lst_t *all = G.lst;
 			char *longname = NULL;
@@ -262,7 +262,7 @@ int depmod_main(int ATTRIBUTE_UNUSED argc, char **argv)
 			char *tmp = strrstr(shortname, ".ko");
 
 			*tmp = '\0';
-		
+
 			while (mods->aliases) {
 				fprintf(filedes, "alias %s %s\n",
 					(char*)llist_pop(&mods->aliases),

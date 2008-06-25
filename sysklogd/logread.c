@@ -39,10 +39,9 @@ struct globals {
 #define SMrup (G.SMrup)
 #define SMrdn (G.SMrdn)
 #define shbuf (G.shbuf)
-#define INIT_G() \
-	do { \
-		memcpy(SMrup, init_sem, sizeof(init_sem)); \
-	} while (0)
+#define INIT_G() do { \
+	memcpy(SMrup, init_sem, sizeof(init_sem)); \
+} while (0)
 
 static void error_exit(const char *str) ATTRIBUTE_NORETURN;
 static void error_exit(const char *str)

@@ -1063,7 +1063,7 @@ static int o_save_ptr_helper(o_string *o, int n)
 			/* list[n] points to string_start, make space for 16 more pointers */
 			o->maxlen += 0x10 * sizeof(list[0]);
 			o->data = xrealloc(o->data, o->maxlen + 1);
-    			list = (char**)o->data;
+			list = (char**)o->data;
 			memmove(list + n + 0x10, list + n, string_len);
 			o->length += 0x10 * sizeof(list[0]);
 		} else
@@ -3018,7 +3018,7 @@ static void done_pipe(struct p_context *ctx, pipe_style type)
 		/* Create the memory for child, roughly:
 		 * ctx->pipe->progs = new struct child_prog;
 		 * ctx->pipe->progs[0].family = ctx->pipe;
-    		 * ctx->child = &ctx->pipe->progs[0];
+		 * ctx->child = &ctx->pipe->progs[0];
 		 */
 		done_command(ctx);
 	}
