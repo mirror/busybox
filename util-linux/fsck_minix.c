@@ -121,8 +121,9 @@ enum { version2 = 0 };
 
 enum { MAX_DEPTH = 32 };
 
+enum { dev_fd = 3 };
+
 struct globals {
-	int dev_fd;
 #if ENABLE_FEATURE_MINIX2
 	smallint version2;
 #endif
@@ -158,7 +159,6 @@ struct globals {
 };
 
 #define G (*ptr_to_globals)
-#define dev_fd             (G.dev_fd             )
 #if ENABLE_FEATURE_MINIX2
 #define version2           (G.version2           )
 #endif
@@ -1223,7 +1223,7 @@ int fsck_minix_main(int argc ATTRIBUTE_UNUSED, char **argv)
 		if (!isatty(0) || !isatty(1))
 			die("need terminal for interactive repairs");
 	}
-	dev_fd = xopen(device_name, OPT_repair ? O_RDWR : O_RDONLY);
+	xmove_fd(xopen(device_name, OPT_repair ? O_RDWR : O_RDONLY), dev_fd);
 
 	/*sync(); paranoia? */
 	read_superblock();
