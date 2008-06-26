@@ -34,9 +34,19 @@ static int true_action(const char *fileName ATTRIBUTE_UNUSED,
  * recursive_action() return 0, but it doesn't stop directory traversal
  * (fileAction/dirAction will be called on each file).
  *
- * if !depthFirst, dirAction return value of 0 (FALSE) or 2 (SKIP)
- * prevents recursion into that directory, instead
- * recursive_action() returns 0 (if FALSE) or 1 (if SKIP).
+ * If !ACTION_RECURSE, dirAction is called on the directory and its
+ * return value is returned from recursive_action(). No recursion.
+ *
+ * If ACTION_RECURSE, recursive_action() is called on each directory.
+ * If any one of these calls returns 0, current recursive_action() returns 0.
+ *
+ * If ACTION_DEPTHFIRST, dirAction is called after recurse.
+ * If it returns 0, the warning is printed and recursive_action() returns 0.
+ *
+ * If !ACTION_DEPTHFIRST, dirAction is called before we recurse.
+ * Return value of 0 (FALSE) or 2 (SKIP) prevents recursion
+ * into that directory, instead recursive_action() returns 0 (if FALSE)
+ * or 1 (if SKIP)
  *
  * followLinks=0/1 differs mainly in handling of links to dirs.
  * 0: lstat(statbuf). Calls fileAction on link name even if points to dir.
@@ -59,7 +69,8 @@ int recursive_action(const char *fileName,
 	if (!dirAction) dirAction = true_action;
 
 	status = ACTION_FOLLOWLINKS; /* hijack a variable for bitmask... */
-	if (!depth) status = ACTION_FOLLOWLINKS | ACTION_FOLLOWLINKS_L0;
+	if (!depth)
+		status = ACTION_FOLLOWLINKS | ACTION_FOLLOWLINKS_L0;
 	status = ((flags & status) ? stat : lstat)(fileName, &statbuf);
 	if (status < 0) {
 #ifdef DEBUG_RECURS_ACTION
@@ -105,8 +116,9 @@ int recursive_action(const char *fileName,
 		nextFile = concat_subpath_file(fileName, next->d_name);
 		if (nextFile == NULL)
 			continue;
-		/* now descend into it (NB: ACTION_RECURSE is set in flags) */
-		if (!recursive_action(nextFile, flags, fileAction, dirAction, userData, depth+1))
+		/* process every file (NB: ACTION_RECURSE is set in flags) */
+		if (!recursive_action(nextFile, flags, fileAction, dirAction,
+						userData, depth + 1))
 			status = FALSE;
 		free(nextFile);
 	}
@@ -117,9 +129,7 @@ int recursive_action(const char *fileName,
 			goto done_nak_warn;
 	}
 
-	if (!status)
-		return FALSE;
-	return TRUE;
+	return status;
 
  done_nak_warn:
 	bb_simple_perror_msg(fileName);

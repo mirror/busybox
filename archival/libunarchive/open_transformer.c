@@ -40,7 +40,8 @@ int open_transformer(int src_fd,
 			close(fd_pipe.wr); /* Send EOF */
 			close(src_fd);
 		}
-		exit(EXIT_SUCCESS);
+		/* must be _exit! bug was actually seen here */
+		_exit(EXIT_SUCCESS);
 #else
 		{
 			char *argv[4];
@@ -60,5 +61,7 @@ int open_transformer(int src_fd,
 	/* parent process */
 	close(fd_pipe.wr); /* Don't want to write to the child */
 
-	return fd_pipe.rd;
+//TODO: get rid of return value (become void)?
+	xmove_fd(fd_pipe.rd, src_fd);
+	return src_fd;
 }
