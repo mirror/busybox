@@ -1807,7 +1807,7 @@ check_consistency(const struct partition *p, int partition)
 		printf("Partition %d has different physical/logical "
 			"beginnings (non-Linux?):\n", partition + 1);
 		printf("     phys=(%d, %d, %d) ", pbc, pbh, pbs);
-		printf("logical=(%d, %d, %d)\n",lbc, lbh, lbs);
+		printf("logical=(%d, %d, %d)\n", lbc, lbh, lbs);
 	}
 
 /* Same physical / logical ending? */

@@ -429,9 +429,9 @@ static int probe_ocfs(int fd __BLKID_ATTR((unused)),
 
 	major = ocfsmajor(ovh);
 	if (major == 1)
-		blkid_set_tag(dev,"SEC_TYPE","ocfs1",sizeof("ocfs1"));
+		blkid_set_tag(dev, "SEC_TYPE", "ocfs1", sizeof("ocfs1"));
 	else if (major >= 9)
-		blkid_set_tag(dev,"SEC_TYPE","ntocfs",sizeof("ntocfs"));
+		blkid_set_tag(dev, "SEC_TYPE", "ntocfs", sizeof("ntocfs"));
 
 	blkid_set_tag(dev, "LABEL", (const char*)ovl.label, ocfslabellen(ovl));
 	blkid_set_tag(dev, "MOUNT", (const char*)ovh.mount, ocfsmountlen(ovh));

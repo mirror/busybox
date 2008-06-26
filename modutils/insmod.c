@@ -2893,7 +2893,7 @@ new_init_module(const char *m_name, struct obj_file *f, unsigned long m_size)
 
 	sec = obj_find_section(f, ".this");
 	if (!sec || !sec->contents) {
-		bb_perror_msg_and_die("corrupt module %s?",m_name);
+		bb_perror_msg_and_die("corrupt module %s?", m_name);
 	}
 	module = (struct new_module *) sec->contents;
 	m_addr = sec->header.sh_addr;

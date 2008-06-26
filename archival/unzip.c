@@ -308,7 +308,7 @@ int unzip_main(int argc, char **argv)
 			} else if (last_char_is(dst_fn, '/')) { /* Extract directory */
 				if (stat(dst_fn, &stat_buf) == -1) {
 					if (errno != ENOENT) {
-						bb_perror_msg_and_die("cannot stat '%s'",dst_fn);
+						bb_perror_msg_and_die("cannot stat '%s'", dst_fn);
 					}
 					if (verbose) {
 						printf("   creating: %s\n", dst_fn);
@@ -328,7 +328,7 @@ int unzip_main(int argc, char **argv)
  _check_file:
 				if (stat(dst_fn, &stat_buf) == -1) { /* File does not exist */
 					if (errno != ENOENT) {
-						bb_perror_msg_and_die("cannot stat '%s'",dst_fn);
+						bb_perror_msg_and_die("cannot stat '%s'", dst_fn);
 					}
 					i = 'y';
 				} else { /* File already exists */
@@ -345,7 +345,7 @@ int unzip_main(int argc, char **argv)
 							i = key_buf[0];
 						}
 					} else { /* File is not regular file */
-						bb_error_msg_and_die("'%s' exists but is not regular file",dst_fn);
+						bb_error_msg_and_die("'%s' exists but is not regular file", dst_fn);
 					}
 				}
 			}

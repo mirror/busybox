@@ -1091,7 +1091,7 @@ static int get_uid_gid(int flag, const char *string)
 		msg = "group";
 
 	if (ENABLE_DEVFSD_VERBOSE)
-		msg_logger(LOG_ERR,"unknown %s: %s, defaulting to %cid=0",  msg, string, msg[0]);
+		msg_logger(LOG_ERR, "unknown %s: %s, defaulting to %cid=0",  msg, string, msg[0]);
 	return 0;
 }/*  End Function get_uid_gid  */
 
@@ -1732,7 +1732,7 @@ static const char *expand_variable(char *buffer, unsigned int length,
 				--open_braces;
 				break;
 			case '\0':
-				info_logger(LOG_INFO,"\"}\" not found in: %s", input);
+				info_logger(LOG_INFO, "\"}\" not found in: %s", input);
 				return NULL;
 			default:
 				break;

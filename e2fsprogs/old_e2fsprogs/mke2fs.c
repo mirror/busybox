@@ -176,7 +176,7 @@ static void mke2fs_error_msg_and_die(int retval, const char *fmt, ...)
 
 	if (retval) {
 		va_start(ap, fmt);
-		fprintf(stderr,"\nCould not ");
+		fprintf(stderr, "\nCould not ");
 		vfprintf(stderr, fmt, ap);
 		fprintf(stderr, "\n");
 		va_end(ap);
@@ -209,7 +209,7 @@ static void mke2fs_warning_msg(int retval, char *fmt, ... )
 
 	if (retval) {
 		va_start(ap, fmt);
-		fprintf(stderr,"\nWarning: ");
+		fprintf(stderr, "\nWarning: ");
 		vfprintf(stderr, fmt, ap);
 		fprintf(stderr, "\n");
 		va_end(ap);

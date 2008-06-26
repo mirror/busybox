@@ -255,9 +255,9 @@ static struct option *add_long_options(struct option *long_options, char *option
 
 static void set_shell(const char *new_shell)
 {
-	if (!strcmp(new_shell,"bash") || !strcmp(new_shell,"sh"))
+	if (!strcmp(new_shell, "bash") || !strcmp(new_shell, "sh"))
 		return;
-	if (!strcmp(new_shell,"tcsh") || !strcmp(new_shell,"csh"))
+	if (!strcmp(new_shell, "tcsh") || !strcmp(new_shell, "csh"))
 		option_mask32 |= SHELL_IS_TCSH;
 	else
 		bb_error_msg("unknown shell '%s', assuming bash", new_shell);

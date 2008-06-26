@@ -50,7 +50,7 @@ static char *extract_filename(char *line, int patch_level, const char *pat)
 
 	if (strncmp(line, pat, 4) == 0) {
 		/* Terminate string at end of source filename */
-		line[strcspn(line,"\t\n\r")] = '\0';
+		line[strcspn(line, "\t\n\r")] = '\0';
 
 		/* Skip over (patch_level) number of leading directories */
 		while (patch_level--) {
