@@ -143,10 +143,12 @@ static unsigned get_bits(bunzip_data *bd, int bits_wanted)
 static int get_next_block(bunzip_data *bd)
 {
 	struct group_data *hufGroup;
-	int dbufCount, nextSym, dbufSize, groupCount, *base, *limit, selector,
+	int dbufCount, nextSym, dbufSize, groupCount, *base, selector,
 		i, j, k, t, runPos, symCount, symTotal, nSelectors, byteCount[256];
 	unsigned char uc, symToByte[256], mtfSymbol[256], *selectors;
-	unsigned *dbuf, origPtr;
+	/* limit was int* but was changed to unsigned* - grep for '[x]'
+	 * in comment to see where it is important. -- vda */
+	unsigned *dbuf, *limit, origPtr;
 
 	dbuf = bd->dbuf;
 	dbufSize = bd->dbufSize;
@@ -288,7 +290,7 @@ static int get_next_block(bunzip_data *bd)
 		   entry.  We do this again when using them (during symbol decoding).*/
 
 		base = hufGroup->base - 1;
-		limit = hufGroup->limit - 1;
+		limit = (unsigned*)hufGroup->limit - 1;
 
 		/* Calculate permute[].  Concurently, initialize temp[] and limit[]. */
 
@@ -326,6 +328,7 @@ static int get_next_block(bunzip_data *bd)
 			base[i+1] = pp - t;
 		}
 		limit[maxLen+1] = INT_MAX; /* Sentinel value for reading next sym. */
+		/* [x] was observed to occasionally have -1 here: -- vda */
 		limit[maxLen] = pp + temp[maxLen] - 1;
 		base[minLen] = 0;
 	}
@@ -353,7 +356,7 @@ static int get_next_block(bunzip_data *bd)
 		if (selector >= nSelectors) return RETVAL_DATA_ERROR;
 		hufGroup = bd->groups + selectors[selector++];
 		base = hufGroup->base - 1;
-		limit = hufGroup->limit - 1;
+		limit = (unsigned*)hufGroup->limit - 1;
  continue_this_group:
 
 		/* Read next Huffman-coded symbol. */
@@ -384,7 +387,7 @@ static int get_next_block(bunzip_data *bd)
 		/* Figure how how many bits are in next symbol and unget extras */
 
 		i = hufGroup->minLen;
-		while (j > limit[i]) ++i;
+		while ((unsigned)j > limit[i]) ++i;
 		bd->inbufBitCount += (hufGroup->maxLen - i);
 
 		/* Huffman decode value to get nextSym (with bounds checking) */
@@ -507,7 +510,7 @@ static int get_next_block(bunzip_data *bd)
 	if (dbufCount) {
 		if ((int)origPtr >= dbufCount) return RETVAL_DATA_ERROR;
 		bd->writePos = dbuf[origPtr];
-	    bd->writeCurrent = (unsigned char)(bd->writePos & 0xff);
+		bd->writeCurrent = (unsigned char)(bd->writePos & 0xff);
 		bd->writePos >>= 8;
 		bd->writeRunCountdown = 5;
 	}
