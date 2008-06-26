@@ -19,8 +19,8 @@ int print_flags_separated(const int *masks, const char *labels, int flags, const
 				labels);
 			need_separator = separator;
 			flags &= ~ *masks;
-			masks++;
 		}
+		masks++;
 		labels += strlen(labels) + 1;
 	}
 	return flags;
