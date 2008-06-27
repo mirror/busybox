@@ -204,32 +204,33 @@ struct globals_misc {
 
 	/* Rarely referenced stuff */
 #if ENABLE_ASH_RANDOM_SUPPORT
-	int32_t random_galois_LFSR; /* Galois LFSR (fast but weak) */
-	uint32_t random_LCG; /* LCG1 (fast but weak) */
+	/* Random number generators */
+	int32_t random_galois_LFSR; /* Galois LFSR (fast but weak). signed! */
+	uint32_t random_LCG;        /* LCG (fast but weak) */
 #endif
 	pid_t backgndpid;        /* pid of last background process */
 	smallint job_warning;    /* user was warned about stopped jobs (can be 2, 1 or 0). */
 };
 extern struct globals_misc *const ash_ptr_to_globals_misc;
 #define G_misc (*ash_ptr_to_globals_misc)
-#define rootpid   (G_misc.rootpid  )
-#define shlvl     (G_misc.shlvl    )
-#define minusc    (G_misc.minusc   )
-#define curdir    (G_misc.curdir   )
-#define physdir   (G_misc.physdir  )
-#define arg0      (G_misc.arg0     )
+#define rootpid     (G_misc.rootpid    )
+#define shlvl       (G_misc.shlvl      )
+#define minusc      (G_misc.minusc     )
+#define curdir      (G_misc.curdir     )
+#define physdir     (G_misc.physdir    )
+#define arg0        (G_misc.arg0       )
 #define exception_handler (G_misc.exception_handler)
 #define exception         (G_misc.exception        )
 #define suppressint       (G_misc.suppressint      )
 #define intpending        (G_misc.intpending       )
 //#define exsig             (G_misc.exsig            )
 #define pendingsig        (G_misc.pendingsig       )
-#define isloginsh  (G_misc.isloginsh )
-#define nullstr    (G_misc.nullstr   )
-#define optlist    (G_misc.optlist   )
-#define sigmode    (G_misc.sigmode   )
-#define gotsig     (G_misc.gotsig    )
-#define trap       (G_misc.trap      )
+#define isloginsh   (G_misc.isloginsh  )
+#define nullstr     (G_misc.nullstr    )
+#define optlist     (G_misc.optlist    )
+#define sigmode     (G_misc.sigmode    )
+#define gotsig      (G_misc.gotsig     )
+#define trap        (G_misc.trap       )
 #define random_galois_LFSR (G_misc.random_galois_LFSR)
 #define random_LCG         (G_misc.random_LCG        )
 #define backgndpid  (G_misc.backgndpid )
