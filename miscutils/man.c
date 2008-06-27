@@ -35,7 +35,9 @@ static int run_pipe(const char *unpacker, const char *pager, char *man_filename)
 		return 1;
 	}
 
-	cmd = xasprintf("%s '%s' | gtbl | nroff -Tlatin1 -mandoc | %s",
+	/* "2>&1" added so that nroff errors are shown in pager too.
+	 * Otherwise it may show just empty screen */
+	cmd = xasprintf("%s '%s' | gtbl | nroff -Tlatin1 -mandoc 2>&1 | %s",
 			unpacker, man_filename, pager);
 	system(cmd);
 	free(cmd);
@@ -122,6 +124,11 @@ int man_main(int argc ATTRIBUTE_UNUSED, char **argv)
 		}
 		fclose(cf);
 	}
+
+// TODO: my man3/getpwuid.3.gz contains just one line:
+// .so man3/getpwnam.3
+// (and I _dont_ have man3/getpwnam.3, I have man3/getpwnam.3.gz)
+// need to support this...
 
 	not_found = 0;
 	do { /* for each argv[] */

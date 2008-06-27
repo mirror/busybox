@@ -240,14 +240,14 @@ static void print_stat(char *pformat, const char m,
 	} else if (m == 'U') {
 		setpwent();
 		pw_ent = getpwuid(statbuf->st_uid);
-		printfs(pformat, (pw_ent != 0L) ? pw_ent->pw_name : "UNKNOWN");
+		printfs(pformat, (pw_ent != NULL) ? pw_ent->pw_name : "UNKNOWN");
 	} else if (m == 'g') {
 		strcat(pformat, "lu");
 		printf(pformat, (unsigned long) statbuf->st_gid);
 	} else if (m == 'G') {
 		setgrent();
 		gw_ent = getgrgid(statbuf->st_gid);
-		printfs(pformat, (gw_ent != 0L) ? gw_ent->gr_name : "UNKNOWN");
+		printfs(pformat, (gw_ent != NULL) ? gw_ent->gr_name : "UNKNOWN");
 	} else if (m == 't') {
 		strcat(pformat, "lx");
 		printf(pformat, (unsigned long) major(statbuf->st_rdev));
@@ -609,9 +609,9 @@ static bool do_stat(const char *filename, const char *format)
 		       (unsigned long) (statbuf.st_mode & (S_ISUID|S_ISGID|S_ISVTX|S_IRWXU|S_IRWXG|S_IRWXO)),
 		       bb_mode_string(statbuf.st_mode),
 		       (unsigned long) statbuf.st_uid,
-		       (pw_ent != 0L) ? pw_ent->pw_name : "UNKNOWN",
+		       (pw_ent != NULL) ? pw_ent->pw_name : "UNKNOWN",
 		       (unsigned long) statbuf.st_gid,
-		       (gw_ent != 0L) ? gw_ent->gr_name : "UNKNOWN");
+		       (gw_ent != NULL) ? gw_ent->gr_name : "UNKNOWN");
 #if ENABLE_SELINUX
 		printf("   S_Context: %lc\n", *scontext);
 #endif
