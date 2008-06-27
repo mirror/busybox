@@ -204,7 +204,7 @@ int cpio_main(int argc ATTRIBUTE_UNUSED, char **argv)
 	archive_handle = init_handle();
 	archive_handle->src_fd = STDIN_FILENO;
 	archive_handle->seek = seek_by_read;
-	archive_handle->flags = ARCHIVE_EXTRACT_NEWER | ARCHIVE_PRESERVE_DATE;
+	archive_handle->flags = ARCHIVE_EXTRACT_NEWER;
 
 #if ENABLE_FEATURE_CPIO_O
 	opt = getopt32(argv, "ituvF:dmoH:", &cpio_filename, &cpio_fmt);
@@ -257,6 +257,9 @@ int cpio_main(int argc ATTRIBUTE_UNUSED, char **argv)
 	}
 	if (opt & CPIO_OPT_CREATE_LEADING_DIR) {
 		archive_handle->flags |= ARCHIVE_CREATE_LEADING_DIRS;
+	}
+	if (opt & CPIO_OPT_PRESERVE_MTIME) {
+		archive_handle->flags |= ARCHIVE_PRESERVE_DATE;
 	}
 
 	while (*argv) {
