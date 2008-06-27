@@ -45,7 +45,7 @@ typedef struct {
 
 
 /* Called twice: once at startup and once in rc_normalize() */
-static void rc_read(rc_t * rc)
+static void rc_read(rc_t *rc)
 {
 	int buffer_size = safe_read(rc->fd, RC_BUFFER, RC_BUFFER_SIZE);
 	if (buffer_size <= 0)
@@ -58,9 +58,9 @@ static void rc_read(rc_t * rc)
 static rc_t* rc_init(int fd) /*, int buffer_size) */
 {
 	int i;
-	rc_t* rc;
+	rc_t *rc;
 
-	rc = xmalloc(sizeof(rc_t) + RC_BUFFER_SIZE);
+	rc = xmalloc(sizeof(*rc) + RC_BUFFER_SIZE);
 
 	rc->fd = fd;
 	/* rc->buffer_size = buffer_size; */
@@ -78,21 +78,20 @@ static rc_t* rc_init(int fd) /*, int buffer_size) */
 }
 
 /* Called once  */
-static ALWAYS_INLINE void rc_free(rc_t * rc)
+static ALWAYS_INLINE void rc_free(rc_t *rc)
 {
-	if (ENABLE_FEATURE_CLEAN_UP)
-		free(rc);
+	free(rc);
 }
 
 /* Called twice, but one callsite is in speed_inline'd rc_is_bit_0_helper() */
-static void rc_do_normalize(rc_t * rc)
+static void rc_do_normalize(rc_t *rc)
 {
 	if (rc->ptr >= rc->buffer_end)
 		rc_read(rc);
 	rc->range <<= 8;
 	rc->code = (rc->code << 8) | *rc->ptr++;
 }
-static ALWAYS_INLINE void rc_normalize(rc_t * rc)
+static ALWAYS_INLINE void rc_normalize(rc_t *rc)
 {
 	if (rc->range < (1 << RC_TOP_BITS)) {
 		rc_do_normalize(rc);
@@ -105,25 +104,25 @@ static ALWAYS_INLINE void rc_normalize(rc_t * rc)
  * Thus rc_is_bit_0 is always inlined, and rc_is_bit_0_helper is inlined
  * only if we compile for speed.
  */
-static speed_inline uint32_t rc_is_bit_0_helper(rc_t * rc, uint16_t * p)
+static speed_inline uint32_t rc_is_bit_0_helper(rc_t *rc, uint16_t *p)
 {
 	rc_normalize(rc);
 	rc->bound = *p * (rc->range >> RC_MODEL_TOTAL_BITS);
 	return rc->bound;
 }
-static ALWAYS_INLINE int rc_is_bit_0(rc_t * rc, uint16_t * p)
+static ALWAYS_INLINE int rc_is_bit_0(rc_t *rc, uint16_t *p)
 {
 	uint32_t t = rc_is_bit_0_helper(rc, p);
 	return rc->code < t;
 }
 
 /* Called ~10 times, but very small, thus inlined */
-static speed_inline void rc_update_bit_0(rc_t * rc, uint16_t * p)
+static speed_inline void rc_update_bit_0(rc_t *rc, uint16_t *p)
 {
 	rc->range = rc->bound;
 	*p += ((1 << RC_MODEL_TOTAL_BITS) - *p) >> RC_MOVE_BITS;
 }
-static speed_inline void rc_update_bit_1(rc_t * rc, uint16_t * p)
+static speed_inline void rc_update_bit_1(rc_t *rc, uint16_t *p)
 {
 	rc->range -= rc->bound;
 	rc->code -= rc->bound;
@@ -131,7 +130,7 @@ static speed_inline void rc_update_bit_1(rc_t * rc, uint16_t * p)
 }
 
 /* Called 4 times in unlzma loop */
-static int rc_get_bit(rc_t * rc, uint16_t * p, int *symbol)
+static int rc_get_bit(rc_t *rc, uint16_t *p, int *symbol)
 {
 	if (rc_is_bit_0(rc, p)) {
 		rc_update_bit_0(rc, p);
@@ -145,7 +144,7 @@ static int rc_get_bit(rc_t * rc, uint16_t * p, int *symbol)
 }
 
 /* Called once */
-static ALWAYS_INLINE int rc_direct_bit(rc_t * rc)
+static ALWAYS_INLINE int rc_direct_bit(rc_t *rc)
 {
 	rc_normalize(rc);
 	rc->range >>= 1;
@@ -158,7 +157,7 @@ static ALWAYS_INLINE int rc_direct_bit(rc_t * rc)
 
 /* Called twice */
 static speed_inline void
-rc_bit_tree_decode(rc_t * rc, uint16_t * p, int num_levels, int *symbol)
+rc_bit_tree_decode(rc_t *rc, uint16_t *p, int num_levels, int *symbol)
 {
 	int i = num_levels;
 
@@ -489,12 +488,16 @@ unpack_lzma_stream(int src_fd, int dst_fd)
 		}
 	}
 
-	if (full_write(dst_fd, buffer, buffer_pos) != (ssize_t)buffer_pos) {
+	{
+		SKIP_DESKTOP(int total_written = 0; /* success */)
+		USE_DESKTOP(total_written += buffer_pos;)
+		if (full_write(dst_fd, buffer, buffer_pos) != (ssize_t)buffer_pos) {
  bad:
+			total_written = -1; /* failure */
+		}
 		rc_free(rc);
-		return -1;
+		free(p);
+		free(buffer);
+		return total_written;
 	}
-	rc_free(rc);
-	USE_DESKTOP(total_written += buffer_pos;)
-	return USE_DESKTOP(total_written) + 0;
 }
