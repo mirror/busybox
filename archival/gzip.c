@@ -2049,9 +2049,9 @@ int gzip_main(int argc ATTRIBUTE_UNUSED, char **argv)
 	unsigned opt;
 
 	/* Must match bbunzip's constants OPT_STDOUT, OPT_FORCE! */
-	opt = getopt32(argv, "cfv" USE_GUNZIP("d") "q123456789n" );
+	opt = getopt32(argv, "cfv" USE_GUNZIP("dt") "q123456789n");
 #if ENABLE_GUNZIP /* gunzip_main may not be visible... */
-	if (opt & 0x8) // -d
+	if (opt & 0x18) // -d and/or -t
 		return gunzip_main(argc, argv);
 #endif
 	option_mask32 &= 0x7; /* ignore -q, -0..9 */
@@ -2062,6 +2062,7 @@ int gzip_main(int argc ATTRIBUTE_UNUSED, char **argv)
 
 	SET_PTR_TO_GLOBALS(xzalloc(sizeof(struct globals) + sizeof(struct globals2))
 			+ sizeof(struct globals));
+	barrier();
 	G2.l_desc.dyn_tree    = G2.dyn_ltree;
 	G2.l_desc.static_tree = G2.static_ltree;
 	G2.l_desc.extra_bits  = extra_lbits;
