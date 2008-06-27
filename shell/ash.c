@@ -110,27 +110,6 @@ static const char *const optletters_optnames[] = {
 
 enum { NOPTS = ARRAY_SIZE(optletters_optnames) };
 
-static char optlist[NOPTS] ALIGN1;
-
-#define eflag optlist[0]
-#define fflag optlist[1]
-#define Iflag optlist[2]
-#define iflag optlist[3]
-#define mflag optlist[4]
-#define nflag optlist[5]
-#define sflag optlist[6]
-#define xflag optlist[7]
-#define vflag optlist[8]
-#define Cflag optlist[9]
-#define aflag optlist[10]
-#define bflag optlist[11]
-#define uflag optlist[12]
-#define viflag optlist[13]
-#if DEBUG
-#define nolog optlist[14]
-#define debug optlist[15]
-#endif
-
 
 /* ============ Misc data */
 
@@ -183,10 +162,30 @@ struct globals_misc {
 #define EXEXIT 4        /* exit the shell */
 #define EXSIG 5         /* trapped signal in wait(1) */
 
-	/* trap handler commands */
 	smallint isloginsh;
-	char *trap[NSIG];
 	char nullstr[1];        /* zero length string */
+
+	char optlist[NOPTS];
+#define eflag optlist[0]
+#define fflag optlist[1]
+#define Iflag optlist[2]
+#define iflag optlist[3]
+#define mflag optlist[4]
+#define nflag optlist[5]
+#define sflag optlist[6]
+#define xflag optlist[7]
+#define vflag optlist[8]
+#define Cflag optlist[9]
+#define aflag optlist[10]
+#define bflag optlist[11]
+#define uflag optlist[12]
+#define viflag optlist[13]
+#if DEBUG
+#define nolog optlist[14]
+#define debug optlist[15]
+#endif
+
+	/* trap handler commands */
 	/*
 	 * Sigmode records the current value of the signal handlers for the various
 	 * modes.  A value of zero means that the current handler is not known.
@@ -201,6 +200,7 @@ struct globals_misc {
 
 	/* indicates specified signal received */
 	char gotsig[NSIG - 1];
+	char *trap[NSIG];
 };
 extern struct globals_misc *const ash_ptr_to_globals_misc;
 #define G_misc (*ash_ptr_to_globals_misc)
@@ -217,10 +217,11 @@ extern struct globals_misc *const ash_ptr_to_globals_misc;
 //#define exsig             (G_misc.exsig            )
 #define pendingsig        (G_misc.pendingsig       )
 #define isloginsh (G_misc.isloginsh)
-#define trap      (G_misc.trap     )
 #define nullstr   (G_misc.nullstr  )
+#define optlist   (G_misc.optlist  )
 #define sigmode   (G_misc.sigmode  )
 #define gotsig    (G_misc.gotsig   )
+#define trap      (G_misc.trap     )
 #define INIT_G_misc() do { \
 	(*(struct globals_misc**)&ash_ptr_to_globals_misc) = xzalloc(sizeof(G_misc)); \
 	barrier(); \
@@ -237,11 +238,10 @@ extern struct globals_misc *const ash_ptr_to_globals_misc;
  * much more efficient and portable.  (But hacking the kernel is so much
  * more fun than worrying about efficiency and portability. :-))
  */
-#define INT_OFF \
-	do { \
-		suppressint++; \
-		xbarrier(); \
-	} while (0)
+#define INT_OFF do { \
+	suppressint++; \
+	xbarrier(); \
+} while (0)
 
 /*
  * Called to raise an exception.  Since C doesn't include exceptions, we
@@ -311,30 +311,27 @@ force_int_on(void)
 }
 #define FORCE_INT_ON force_int_on()
 #else
-#define INT_ON \
-	do { \
-		xbarrier(); \
-		if (--suppressint == 0 && intpending) \
-			raise_interrupt(); \
-	} while (0)
-#define FORCE_INT_ON \
-	do { \
-		xbarrier(); \
-		suppressint = 0; \
-		if (intpending) \
-			raise_interrupt(); \
-	} while (0)
+#define INT_ON do { \
+	xbarrier(); \
+	if (--suppressint == 0 && intpending) \
+		raise_interrupt(); \
+} while (0)
+#define FORCE_INT_ON do { \
+	xbarrier(); \
+	suppressint = 0; \
+	if (intpending) \
+		raise_interrupt(); \
+} while (0)
 #endif /* ASH_OPTIMIZE_FOR_SIZE */
 
 #define SAVE_INT(v) ((v) = suppressint)
 
-#define RESTORE_INT(v) \
-	do { \
-		xbarrier(); \
-		suppressint = (v); \
-		if (suppressint == 0 && intpending) \
-			raise_interrupt(); \
-	} while (0)
+#define RESTORE_INT(v) do { \
+	xbarrier(); \
+	suppressint = (v); \
+	if (suppressint == 0 && intpending) \
+		raise_interrupt(); \
+} while (0)
 
 /*
  * Ignore a signal. Only one usage site - in forkchild()
@@ -985,9 +982,7 @@ struct strlist {
 	char *text;
 };
 
-#if ENABLE_ASH_ALIAS
 struct alias;
-#endif
 
 struct strpush {
 	struct strpush *prev;   /* preceding string on stack */
@@ -1452,21 +1447,19 @@ _STPUTC(int c, char *p)
 
 #define STARTSTACKSTR(p)        ((p) = stackblock())
 #define STPUTC(c, p)            ((p) = _STPUTC((c), (p)))
-#define CHECKSTRSPACE(n, p) \
-	do { \
-		char *q = (p); \
-		size_t l = (n); \
-		size_t m = sstrend - q; \
-		if (l > m) \
-			(p) = makestrspace(l, q); \
-	} while (0)
+#define CHECKSTRSPACE(n, p) do { \
+	char *q = (p); \
+	size_t l = (n); \
+	size_t m = sstrend - q; \
+	if (l > m) \
+		(p) = makestrspace(l, q); \
+} while (0)
 #define USTPUTC(c, p)           (*(p)++ = (c))
-#define STACKSTRNUL(p) \
-	do { \
-		if ((p) == sstrend) \
-			(p) = growstackstr(); \
-		*(p) = '\0'; \
-	} while (0)
+#define STACKSTRNUL(p) do { \
+	if ((p) == sstrend) \
+		(p) = growstackstr(); \
+	*(p) = '\0'; \
+} while (0)
 #define STUNPUTC(p)             (--(p))
 #define STTOPC(p)               ((p)[-1])
 #define STADJUST(amount, p)     ((p) += (amount))
