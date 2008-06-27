@@ -10,7 +10,7 @@ enum {
 	OPT_w = 2, /* print path */
 };
 
-/* This is what I see on my desktop system deing executed:
+/* This is what I see on my desktop system being executed:
 
 (
 echo ".ll 12.4i"
@@ -74,7 +74,7 @@ int man_main(int argc ATTRIBUTE_UNUSED, char **argv)
 	char *cur_path, *cur_sect;
 	char *line, *value;
 	int count_mp, alloc_mp, cur_mp;
-	int opt;
+	int opt, not_found;
 
 	opt_complementary = "-1"; /* at least one argument */
 	opt = getopt32(argv, "+aw");
@@ -123,7 +123,9 @@ int man_main(int argc ATTRIBUTE_UNUSED, char **argv)
 		fclose(cf);
 	}
 
+	not_found = 0;
 	do { /* for each argv[] */
+		int found = 0;
 		cur_mp = 0;
 		while ((cur_path = man_path_list[cur_mp++]) != NULL) {
 			/* for each MANPATH */
@@ -140,7 +142,7 @@ int man_main(int argc ATTRIBUTE_UNUSED, char **argv)
 								sect_len, cur_sect,
 								*argv,
 								sect_len, cur_sect);
-					int found = show_manpage(pager, man_filename);
+					found |= show_manpage(pager, man_filename);
 					free(man_filename);
 					if (found && !(opt & OPT_a))
 						goto next_arg;
@@ -153,9 +155,13 @@ int man_main(int argc ATTRIBUTE_UNUSED, char **argv)
 					cur_path++;
 			} while (*cur_path);
 		}
+		if (!found) {
+			bb_error_msg("no manual entry for '%s'", *argv);
+			not_found = 1;
+		}
  next_arg:
 		argv++;
 	} while (*argv);
 
-	return EXIT_SUCCESS;
+	return not_found;
 }
