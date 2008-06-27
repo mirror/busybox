@@ -61,6 +61,8 @@ static void uuencode(char *fname, const char *text)
 	}
 	if (fname)
 		close(fd);
+#undef src_buf
+#undef len
 }
 
 struct globals {
@@ -82,7 +84,7 @@ struct globals {
 	xargs[1] = "s_client"; \
 	xargs[2] = "-quiet"; \
 	xargs[3] = "-connect"; \
-	/*xargs[4] = "server[:port]";*/ \
+	/*xargs[4] = "localhost";*/ \
 	xargs[5] = "-tls1"; \
 	xargs[6] = "-starttls"; \
 	xargs[7] = "smtp"; \
@@ -115,6 +117,16 @@ static void signal_handler(int signo)
 	if (wait_any_nohang(&err) > 0)
 		if (WIFEXITED(err) && WEXITSTATUS(err))
 			bb_error_msg_and_die("child exited (%d)", WEXITSTATUS(err));
+#undef err
+}
+
+/* libbb candidate */
+static pid_t vfork_or_die(void)
+{
+	pid_t pid = vfork();
+	if (pid < 0)
+		bb_perror_msg_and_die("vfork");
+	return pid;
 }
 
 static void launch_helper(const char **argv)
@@ -122,12 +134,11 @@ static void launch_helper(const char **argv)
 	// setup vanilla unidirectional pipes interchange
 	int idx;
 	int pipes[4];
+
 	xpipe(pipes);
 	xpipe(pipes+2);
-	helper_pid = vfork();
-	if (helper_pid < 0)
-		bb_perror_msg_and_die("vfork");
-	idx = (!helper_pid)*2;
+	helper_pid = vfork_or_die();
+	idx = (!helper_pid) * 2;
 	xdup2(pipes[idx], STDIN_FILENO);
 	xdup2(pipes[3-idx], STDOUT_FILENO);
 	if (ENABLE_FEATURE_CLEAN_UP)
@@ -255,29 +266,31 @@ int sendgetmail_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int sendgetmail_main(int argc ATTRIBUTE_UNUSED, char **argv)
 {
 	llist_t *opt_recipients = NULL;
-
+	llist_t *opt_attachments = NULL;
+	char *opt_from;
 	const char *opt_user;
 	const char *opt_pass;
-
 	enum {
 		OPT_w = 1 << 0,         // network timeout
-		OPT_U = 1 << 1,         // user
-		OPT_P = 1 << 2,         // password
-		OPT_X = 1 << 3,         // connect using openssl s_client helper
+		OPT_H = 1 << 1,         // server[:port]
+		OPT_U = 1 << 2,         // user
+		OPT_P = 1 << 3,         // password
+		OPT_X = 1 << 4,         // connect using openssl s_client helper
 
-		OPTS_n = 1 << 4,        // sendmail: request notification
-		OPTF_t = 1 << 4,        // fetchmail: use "TOP" not "RETR"
+		OPTS_t = 1 << 5,        // sendmail: read addresses from body
+		OPTF_t = 1 << 5,        // fetchmail: use "TOP" not "RETR"
 
-		OPTS_s = 1 << 5,        // sendmail: subject
-		OPTF_z = 1 << 5,        // fetchmail: delete from server
+		OPTS_s = 1 << 6,        // sendmail: subject
+		OPTF_z = 1 << 6,        // fetchmail: delete from server
 
-		OPTS_c = 1 << 6,        // sendmail: assumed charset
-		OPTS_t = 1 << 7,        // sendmail: recipient(s)
-		OPTS_i = 1 << 8,        // sendmail: ignore lone dots in message body (implied)
+		OPTS_c = 1 << 7,        // sendmail: assumed charset
+		OPTS_a = 1 << 8,        // sendmail: attachment(s)
+		OPTS_i = 1 << 9,        // sendmail: ignore lone dots in message body (implied)
+
+		OPTS_n = 1 << 10,       // sendmail: request notification
 	};
-
 	const char *options;
-	unsigned opts;
+	int opts;
 
 	// init global variables
 	INIT_G();
@@ -289,25 +302,30 @@ int sendgetmail_main(int argc ATTRIBUTE_UNUSED, char **argv)
 		// SENDMAIL
 		// save initial stdin (body or attachements can be piped!)
 		xdup2(STDIN_FILENO, INITIAL_STDIN_FILENO);
-		opt_complementary = "-2:w+:t::";
-		options = "w:U:P:X" "ns:c:t:i";
+		opt_complementary = "w+:a::";
+		options = "w:H:U:P:Xt" "s:c:a:inf:";
+		// body is pseudo attachment read from stdin
+		llist_add_to_end(&opt_attachments, (char *)"-");
 	} else {
 		// FETCHMAIL
 		opt_after_connect = NULL;
-		opt_complementary = "-2:w+:P";
-		options = "w:U:P:X" "tz";
+		opt_complementary = "-1:w+:P";
+		options = "w:H:U:P:Xt" "z";
 	}
 	opts = getopt32(argv, options,
-		&timeout, &opt_user, &opt_pass,
-		&opt_subject, &opt_charset, &opt_recipients
+		&timeout, &opt_connect, &opt_user, &opt_pass,
+		&opt_subject, &opt_charset, &opt_attachments, &opt_from
 	);
 	//argc -= optind;
 	argv += optind;
 
-	// first argument is remote server[:port]
-	opt_connect = *argv++;
-
 	// connect to server
+	// host[:port] not specified ? -> use $HOST. no $HOST ? -> use localhost
+	if (!(opts & OPT_H)) {
+		opt_connect = getenv("HOST");
+		if (!opt_connect)
+			opt_connect = "127.0.0.1";
+	}
 	// SSL ordered? ->
 	if (opts & OPT_X) {
 		// ... use openssl helper
@@ -323,20 +341,27 @@ int sendgetmail_main(int argc ATTRIBUTE_UNUSED, char **argv)
 	}
 
 #if ENABLE_FETCHMAIL
-	// we are sendmail?
+	// are we sendmail?
 	if (opt_after_connect)
 #endif
-	{
 /***************************************************
  * SENDMAIL
  ***************************************************/
-
-		char *opt_from;
+	{
 		int code;
 		char *boundary;
 		const char *fmt;
 		const char *p;
 		char *q;
+		llist_t *l;
+
+		// recipients specified as arguments
+		while (*argv) {
+			// loose test on email address validity
+			if (strchr(sane(*argv), '@'))
+				llist_add_to_end(&opt_recipients, *argv);
+			argv++;
+		}
 
 		// we didn't use SSL helper? ->
 		if (!(opts & OPT_X)) {
@@ -344,13 +369,13 @@ int sendgetmail_main(int argc ATTRIBUTE_UNUSED, char **argv)
 			smtp_check(NULL, 220);
 		}
 
-		// get the sender
-		opt_from = sane(*argv++);
-
-		// if no recipients _and_ no body files specified -> enter all-included mode
+		// if -t specified or no recipients specified -> enter all-included mode
 		// i.e. scan stdin for To: and Subject: lines ...
 		// ... and then use the rest of stdin as message body
-		if (!opt_recipients && !*argv) {
+		// N.B. subject read from body has priority
+		// over that specified on command line.
+		// recipients are merged
+		if (opts & OPTS_t || !opt_recipients) {
 			// fetch recipients and (optionally) subject
 			char *s;
 			while ((s = xmalloc_reads(INITIAL_STDIN_FILENO, NULL, NULL)) != NULL) {
@@ -366,13 +391,11 @@ int sendgetmail_main(int argc ATTRIBUTE_UNUSED, char **argv)
 						break; // empty line
 				}
 			}
-			// order to read body from stdin
-			*--argv = (char *)"-";
 		}
 
 		// introduce to server
 		// we should start with modern EHLO
-		if (250 != smtp_checkp("EHLO %s", opt_from, -1)) {
+		if (250 != smtp_checkp("EHLO %s", sane(opt_from), -1)) {
 			smtp_checkp("HELO %s", opt_from, 250);
 		}
 
@@ -404,8 +427,8 @@ int sendgetmail_main(int argc ATTRIBUTE_UNUSED, char **argv)
 		}
 
 		// set recipients
-		for (llist_t *to = opt_recipients; to; to = to->link) {
-			smtp_checkp("RCPT TO:<%s>", sane(to->data), 250);
+		for (l = opt_recipients; l; l = l->link) {
+			smtp_checkp("RCPT TO:<%s>", sane(l->data), 250);
 		}
 
 		// enter "put message" mode
@@ -413,8 +436,8 @@ int sendgetmail_main(int argc ATTRIBUTE_UNUSED, char **argv)
 
 		// put address headers
 		printf("From: %s\r\n", opt_from);
-		for (llist_t *to = opt_recipients; to; to = to->link) {
-			printf("To: %s\r\n", to->data);
+		for (l = opt_recipients; l; l = l->link) {
+			printf("To: %s\r\n", l->data);
 		}
 
 		// put encoded subject
@@ -455,7 +478,8 @@ int sendgetmail_main(int argc ATTRIBUTE_UNUSED, char **argv)
 		;
 		p = opt_charset;
 		q = (char *)"";
-		while (*argv) {
+		l = opt_attachments;
+		while (l) {
 			printf(
 				fmt
 				, boundary
@@ -472,9 +496,10 @@ int sendgetmail_main(int argc ATTRIBUTE_UNUSED, char **argv)
 				"%s; filename=\"%s\"\r\n"
 				"%s"
 			;
-			uuencode(*argv, NULL);
-			if (*(++argv))
-				q = bb_get_last_path_component_strip(*argv);
+			uuencode(l->data, NULL);
+			l = l->link;
+			if (l)
+				q = bb_get_last_path_component_strip(l->data);
 		}
 
 		// put message terminator
@@ -484,12 +509,12 @@ int sendgetmail_main(int argc ATTRIBUTE_UNUSED, char **argv)
 		smtp_check(".", 250);
 		// ... and say goodbye
 		smtp_check("QUIT", 221);
-
+	}
 #if ENABLE_FETCHMAIL
-	} else {
 /***************************************************
  * FETCHMAIL
  ***************************************************/
+	else {
 
 		char *buf;
 		unsigned nmsg;
@@ -570,7 +595,8 @@ int sendgetmail_main(int argc ATTRIBUTE_UNUSED, char **argv)
 		for (; nmsg; nmsg--) {
 
 			// generate unique filename
-			char *filename = xasprintf("tmp/%llu.%u.%s", monotonic_us(), pid, hostname);
+			char *filename = xasprintf("tmp/%llu.%u.%s",
+					monotonic_us(), (unsigned)pid, hostname);
 			char *target;
 			int rc;
 
@@ -604,8 +630,8 @@ int sendgetmail_main(int argc ATTRIBUTE_UNUSED, char **argv)
 
 		// Bye
 		pop3_check("QUIT", NULL);
-#endif // ENABLE_FETCHMAIL
 	}
+#endif // ENABLE_FETCHMAIL
 
 	return 0;
 }

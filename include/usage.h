@@ -1088,11 +1088,12 @@
      "\n	-S SECTORS" \
 
 #define fetchmail_trivial_usage \
-       "[-w timeout] [-U user] -P password [-X] [-t] [-z] server[:port] maildir [prog]"
+       "[-w timeout] [-H server[:port]] [-U user] -P password [-X] [-t] [-z] maildir [prog]"
 #define fetchmail_full_usage "\n\n" \
        "Fetch content of remote mailbox to local Maildir.\n" \
      "\nOptions:" \
      "\n	-w timeout	Set timeout on network operations" \
+     "\n	-H server[:port] Set server" \
      "\n	-U username	Authenticate with specified username/password" \
      "\n	-P password" \
      "\n	-X		Use openssl connection helper for secured servers" \
@@ -3425,19 +3426,23 @@
 #define selinuxenabled_full_usage ""
 
 #define sendmail_trivial_usage \
-       "[-w timeout] [-U user] [-P password] [-X]\n" \
-       "-t to [-t to]... [-n] [-s subject] [-c charset] server[:port] from [body] [attachment ...]"
+       "[-w timeout] [-H server[:port]] [-U user] [-P password] [-X]\n" \
+       "[-c charset] [-n] [-i] [-s subject] [-a attach]... [-t] [-f sender] [rcpt]..."
 #define sendmail_full_usage "\n\n" \
        "Send an email.\n" \
      "\nOptions:" \
      "\n	-w timeout	Set timeout on network operations" \
+     "\n	-H server[:port] Set server" \
      "\n	-U username	Authenticate with specified username/password" \
      "\n	-P password" \
-     "\n	-t address	Recipient(s). May be repeated" \
      "\n	-X		Use openssl connection helper for secured servers" \
-     "\n	-n		Request delivery notification to sender" \
-     "\n	-s subject	Subject" \
      "\n	-c charset	Assumed charset for body and subject [utf-8]" \
+     "\n	-n		Request delivery notification to sender" \
+     "\n	-i		Ignore single dots in mail body. Implied" \
+     "\n	-s subject	Subject" \
+     "\n	-a file		File to attach. May be multiple" \
+     "\n	-t		Read recipients and subject from body" \
+     "\n	-f		Set sender address" \
 
 #define seq_trivial_usage \
        "[first [increment]] last"
