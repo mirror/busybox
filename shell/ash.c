@@ -201,6 +201,14 @@ struct globals_misc {
 	/* indicates specified signal received */
 	char gotsig[NSIG - 1];
 	char *trap[NSIG];
+
+	/* Rarely referenced stuff */
+#if ENABLE_ASH_RANDOM_SUPPORT
+	int32_t random_galois_LFSR; /* Galois LFSR (fast but weak) */
+	uint32_t random_LCG; /* LCG1 (fast but weak) */
+#endif
+	pid_t backgndpid;        /* pid of last background process */
+	smallint job_warning;    /* user was warned about stopped jobs (can be 2, 1 or 0). */
 };
 extern struct globals_misc *const ash_ptr_to_globals_misc;
 #define G_misc (*ash_ptr_to_globals_misc)
@@ -216,12 +224,16 @@ extern struct globals_misc *const ash_ptr_to_globals_misc;
 #define intpending        (G_misc.intpending       )
 //#define exsig             (G_misc.exsig            )
 #define pendingsig        (G_misc.pendingsig       )
-#define isloginsh (G_misc.isloginsh)
-#define nullstr   (G_misc.nullstr  )
-#define optlist   (G_misc.optlist  )
-#define sigmode   (G_misc.sigmode  )
-#define gotsig    (G_misc.gotsig   )
-#define trap      (G_misc.trap     )
+#define isloginsh  (G_misc.isloginsh )
+#define nullstr    (G_misc.nullstr   )
+#define optlist    (G_misc.optlist   )
+#define sigmode    (G_misc.sigmode   )
+#define gotsig     (G_misc.gotsig    )
+#define trap       (G_misc.trap      )
+#define random_galois_LFSR (G_misc.random_galois_LFSR)
+#define random_LCG         (G_misc.random_LCG        )
+#define backgndpid  (G_misc.backgndpid )
+#define job_warning (G_misc.job_warning)
 #define INIT_G_misc() do { \
 	(*(struct globals_misc**)&ash_ptr_to_globals_misc) = xzalloc(sizeof(G_misc)); \
 	barrier(); \
@@ -1006,12 +1018,12 @@ struct parsefile {
 	struct strpush basestrpush; /* so pushing one is fast */
 };
 
-static struct parsefile basepf;         /* top level input file */
+static struct parsefile basepf;        /* top level input file */
 static struct parsefile *g_parsefile = &basepf;  /* current input file */
 static int startlinno;                 /* line # where last token started */
 static char *commandname;              /* currently executing command */
 static struct strlist *cmdenviron;     /* environment for builtin command */
-static int exitstatus;                 /* exit status of last command */
+static uint8_t exitstatus;             /* exit status of last command */
 
 
 /* ============ Message printing */
@@ -1605,29 +1617,6 @@ nextopt(const char *optstring)
 }
 
 
-/* ============ Math support definitions */
-
-#if ENABLE_ASH_MATH_SUPPORT_64
-typedef int64_t arith_t;
-#define arith_t_type long long
-#else
-typedef long arith_t;
-#define arith_t_type long
-#endif
-
-#if ENABLE_ASH_MATH_SUPPORT
-static arith_t dash_arith(const char *);
-static arith_t arith(const char *expr, int *perrcode);
-#endif
-
-#if ENABLE_ASH_RANDOM_SUPPORT
-static unsigned long rseed;
-#ifndef DYNAMIC_VAR
-#define DYNAMIC_VAR
-#endif
-#endif
-
-
 /* ============ Shell variables */
 
 /*
@@ -1694,7 +1683,7 @@ struct localvar {
 #define VNOFUNC         0x40    /* don't call the callback function */
 #define VNOSET          0x80    /* do not set variable - just readonly test */
 #define VNOSAVE         0x100   /* when text is on the heap before setvareq */
-#ifdef DYNAMIC_VAR
+#if ENABLE_ASH_RANDOM_SUPPORT
 # define VDYNAMIC       0x200   /* dynamic variable */
 #else
 # define VDYNAMIC       0
@@ -1966,7 +1955,7 @@ lookupvar(const char *name)
 
 	v = *findvar(hashvar(name), name);
 	if (v) {
-#ifdef DYNAMIC_VAR
+#if ENABLE_ASH_RANDOM_SUPPORT
 	/*
 	 * Dynamic variables are implemented roughly the same way they are
 	 * in bash. Namely, they're "special" so long as they aren't unset.
@@ -2127,7 +2116,7 @@ unsetvar(const char *s)
 		retval = 1;
 		if (flags & VREADONLY)
 			goto out;
-#ifdef DYNAMIC_VAR
+#if ENABLE_ASH_RANDOM_SUPPORT
 		vp->flags &= ~VDYNAMIC;
 #endif
 		if (flags & VUNSET)
@@ -3243,9 +3232,6 @@ struct job {
 	struct job *prev_job;   /* previous job */
 };
 
-static pid_t backgndpid;        /* pid of last background process */
-static smallint job_warning;    /* user was warned about stopped jobs (can be 2, 1 or 0). */
-
 static struct job *makejob(/*union node *,*/ int);
 #if !JOBS
 #define forkshell(job, node, mode) forkshell(job, mode)
@@ -3257,7 +3243,7 @@ static int waitforjob(struct job *);
 enum { doing_jobctl = 0 };
 #define setjobctl(on) do {} while (0)
 #else
-static smallint doing_jobctl;
+static smallint doing_jobctl; //references:8
 static void setjobctl(int);
 #endif
 
@@ -3356,17 +3342,17 @@ setsignal(int signo)
 
 #if JOBS
 /* pgrp of shell on invocation */
-static int initialpgrp;
-static int ttyfd = -1;
+static int initialpgrp; //references:2
+static int ttyfd = -1; //5
 #endif
 /* array of jobs */
-static struct job *jobtab;
+static struct job *jobtab; //5
 /* size of array */
-static unsigned njobs;
+static unsigned njobs; //4
 /* current job */
-static struct job *curjob;
+static struct job *curjob; //lots
 /* number of presumed living untracked jobs */
-static int jobless;
+static int jobless; //4
 
 static void
 set_curjob(struct job *jp, unsigned mode)
@@ -5041,6 +5027,19 @@ redirectsafe(union node *redir, int flags)
  * We have to deal with backquotes, shell variables, and file metacharacters.
  */
 
+#if ENABLE_ASH_MATH_SUPPORT_64
+typedef int64_t arith_t;
+#define arith_t_type long long
+#else
+typedef long arith_t;
+#define arith_t_type long
+#endif
+
+#if ENABLE_ASH_MATH_SUPPORT
+static arith_t dash_arith(const char *);
+static arith_t arith(const char *expr, int *perrcode);
+#endif
+
 /*
  * expandarg flags
  */
@@ -5358,7 +5357,7 @@ struct backcmd {                /* result of evalbackcmd */
 };
 
 /* These forward decls are needed to use "eval" code for backticks handling: */
-static smalluint back_exitstatus; /* exit status of backquoted command */
+static uint8_t back_exitstatus; /* exit status of backquoted command */
 #define EV_EXIT 01              /* exit after evaluating tree */
 static void evaltree(union node *, int);
 
@@ -9619,18 +9618,33 @@ setcmd(int argc ATTRIBUTE_UNUSED, char **argv ATTRIBUTE_UNUSED)
 static void
 change_random(const char *value)
 {
+	/* Galois LFSR parameter */
+	/* Taps at 32 31 29 1: */
+	enum { MASK = 0x8000000b };
+	/* Another example - taps at 32 31 30 10: */
+	/* MASK = 0x00400007 */
+
 	if (value == NULL) {
 		/* "get", generate */
-		char buf[16];
+		uint32_t t;
 
-		rseed = rseed * 1103515245 + 12345;
-		sprintf(buf, "%d", (unsigned int)((rseed & 32767)));
+		/* LCG has period of 2^32 and alternating lowest bit */
+		random_LCG = 1664525 * random_LCG + 1013904223;
+		/* Galois LFSR has period of 2^32-1 = 3 * 5 * 17 * 257 * 65537 */
+		t = (random_galois_LFSR << 1);
+		if (random_galois_LFSR < 0) /* if we just shifted 1 out of msb... */
+			t ^= MASK;
+		random_galois_LFSR = t;
+		/* Both are weak, xoring them gives better randomness
+		 * and ~2^64 period. & 0x7fff is probably bash compat
+		 * for $RANDOM range. */
+		t = (t ^ random_LCG) & 0x7fff;
 		/* set without recursion */
-		setvar(vrandom.text, buf, VNOFUNC);
+		setvar(vrandom.text, utoa(t), VNOFUNC);
 		vrandom.flags &= ~VNOFUNC;
 	} else {
 		/* set/reset */
-		rseed = strtoul(value, (char **)NULL, 10);
+		random_galois_LFSR = random_LCG = strtoul(value, (char **)NULL, 10);
 	}
 }
 #endif
@@ -13417,7 +13431,7 @@ int ash_main(int argc ATTRIBUTE_UNUSED, char **argv)
 	rootpid = getpid();
 
 #if ENABLE_ASH_RANDOM_SUPPORT
-	rseed = rootpid + time(NULL);
+	random_galois_LFSR = random_LCG = rootpid + time(NULL);
 #endif
 	init();
 	setstackmark(&smark);
