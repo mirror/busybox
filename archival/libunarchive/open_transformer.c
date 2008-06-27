@@ -11,8 +11,8 @@
  * On MMU machine, the transform_prog is removed by macro magic
  * in include/unarchive.h. On NOMMU, transformer is removed.
  */
-int open_transformer(int src_fd,
-	USE_DESKTOP(long long) int (*transformer)(int src_fd, int dst_fd),
+int FAST_FUNC open_transformer(int src_fd,
+	USE_DESKTOP(long long) int FAST_FUNC (*transformer)(int src_fd, int dst_fd),
 	const char *transform_prog)
 {
 	struct fd_pair fd_pipe;

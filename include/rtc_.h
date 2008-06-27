@@ -13,9 +13,9 @@
 # pragma GCC visibility push(hidden)
 #endif
 
-extern int rtc_adjtime_is_utc(void);
-extern int rtc_xopen(const char **default_rtc, int flags);
-extern time_t rtc_read_time(int fd, int utc);
+extern int rtc_adjtime_is_utc(void) FAST_FUNC;
+extern int rtc_xopen(const char **default_rtc, int flags) FAST_FUNC;
+extern time_t rtc_read_time(int fd, int utc) FAST_FUNC;
 
 /*
  * Everything below this point has been copied from linux/rtc.h

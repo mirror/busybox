@@ -12,7 +12,7 @@
 /* Wrapper which restarts poll on EINTR or ENOMEM.
  * On other errors does perror("poll") and returns.
  * Warning! May take longer than timeout_ms to return! */
-int safe_poll(struct pollfd *ufds, nfds_t nfds, int timeout)
+int FAST_FUNC safe_poll(struct pollfd *ufds, nfds_t nfds, int timeout)
 {
 	while (1) {
 		int n = poll(ufds, nfds, timeout);

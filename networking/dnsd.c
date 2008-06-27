@@ -109,7 +109,7 @@ static void undot(uint8_t * rip)
  * Presently the dot is copied into name without
  * converting to a length/string substring for that label.
  */
-static int getfileentry(FILE * fp, struct dns_entry *s)
+static int getfileentry(FILE *fp, struct dns_entry *s)
 {
 	unsigned int a,b,c,d;
 	char *line, *r, *name;

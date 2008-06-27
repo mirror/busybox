@@ -33,7 +33,7 @@
  * This is an illegal first character for a hostname.
  * The returned malloced string must be freed by the caller.
  */
-char *safe_gethostname(void)
+char* FAST_FUNC safe_gethostname(void)
 {
 	struct utsname uts;
 

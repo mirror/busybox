@@ -6,7 +6,7 @@
 #include "libbb.h"
 #include "unarchive.h"
 
-archive_handle_t *init_handle(void)
+archive_handle_t* FAST_FUNC init_handle(void)
 {
 	archive_handle_t *archive_handle;
 

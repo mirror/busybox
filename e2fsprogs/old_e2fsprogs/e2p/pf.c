@@ -48,7 +48,7 @@ static const struct flags_name flags_array[] = {
 	{ 0, NULL, NULL }
 };
 
-void print_flags (FILE * f, unsigned long flags, unsigned options)
+void print_flags (FILE *f, unsigned long flags, unsigned options)
 {
 	int long_opt = (options & PFOPT_LONG);
 	const struct flags_name *fp;

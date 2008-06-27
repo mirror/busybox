@@ -10,7 +10,7 @@
  * NOTE: This function returns a malloced char* that you will have to free
  * yourself.
  */
-char *xmalloc_readlink(const char *path)
+char* FAST_FUNC xmalloc_readlink(const char *path)
 {
 	enum { GROWBY = 80 }; /* how large we will grow strings by */
 
@@ -42,7 +42,7 @@ char *xmalloc_readlink(const char *path)
  * those at the tail.
  * A malloced char* is returned, which must be freed by the caller.
  */
-char *xmalloc_follow_symlinks(const char *path)
+char* FAST_FUNC xmalloc_follow_symlinks(const char *path)
 {
 	char *buf;
 	char *lpc;
@@ -84,7 +84,7 @@ char *xmalloc_follow_symlinks(const char *path)
 	}
 }
 
-char *xmalloc_readlink_or_warn(const char *path)
+char* FAST_FUNC xmalloc_readlink_or_warn(const char *path)
 {
 	char *buf = xmalloc_readlink(path);
 	if (!buf) {
@@ -96,7 +96,7 @@ char *xmalloc_readlink_or_warn(const char *path)
 
 /* UNUSED */
 #if 0
-char *xmalloc_realpath(const char *path)
+char* FAST_FUNC xmalloc_realpath(const char *path)
 {
 #if defined(__GLIBC__) && !defined(__UCLIBC__)
 	/* glibc provides a non-standard extension */

@@ -299,7 +299,7 @@ static void make_device(char *path, int delete)
 }
 
 /* File callback for /sys/ traversal */
-static int fileAction(const char *fileName,
+static int FAST_FUNC fileAction(const char *fileName,
 		struct stat *statbuf ATTRIBUTE_UNUSED,
 		void *userData,
 		int depth ATTRIBUTE_UNUSED)
@@ -319,7 +319,7 @@ static int fileAction(const char *fileName,
 }
 
 /* Directory callback for /sys/ traversal */
-static int dirAction(const char *fileName ATTRIBUTE_UNUSED,
+static int FAST_FUNC dirAction(const char *fileName ATTRIBUTE_UNUSED,
 		struct stat *statbuf ATTRIBUTE_UNUSED,
 		void *userData ATTRIBUTE_UNUSED,
 		int depth)

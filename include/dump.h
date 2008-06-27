@@ -44,9 +44,9 @@ typedef struct _fs {			/* format strings */
 	int bcnt;
 } FS;
 
-extern void bb_dump_add(const char *fmt);
-extern int bb_dump_dump(char **argv);
-extern int bb_dump_size(FS * fs);
+extern void bb_dump_add(const char *fmt) FAST_FUNC;
+extern int bb_dump_dump(char **argv) FAST_FUNC;
+extern int bb_dump_size(FS * fs) FAST_FUNC;
 
 extern FS *bb_dump_fshead;		/* head of format strings */
 extern int bb_dump_blocksize;				/* data block size */

@@ -13,7 +13,7 @@
 smallint logmode = LOGMODE_STDIO;
 const char *msg_eol = "\n";
 
-void bb_verror_msg(const char *s, va_list p, const char* strerr)
+void FAST_FUNC bb_verror_msg(const char *s, va_list p, const char* strerr)
 {
 	char *msg;
 	int applet_len, strerr_len, msgeol_len, used;
@@ -70,7 +70,7 @@ void bb_verror_msg(const char *s, va_list p, const char* strerr)
 /* Code size is approximately the same, but currently it's the only user
  * of writev in entire bbox. __libc_writev in uclibc is ~50 bytes. */
 
-void bb_verror_msg(const char *s, va_list p, const char* strerr)
+void FAST_FUNC bb_verror_msg(const char *s, va_list p, const char* strerr)
 {
 	int strerr_len, msgeol_len;
 	struct iovec iov[3];

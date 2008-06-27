@@ -17,8 +17,8 @@
 # pragma GCC visibility push(hidden)
 #endif
 
-char* regcomp_or_errmsg(regex_t *preg, const char *regex, int cflags);
-void xregcomp(regex_t *preg, const char *regex, int cflags);
+char* regcomp_or_errmsg(regex_t *preg, const char *regex, int cflags) FAST_FUNC;
+void xregcomp(regex_t *preg, const char *regex, int cflags) FAST_FUNC;
 
 #if __GNUC_PREREQ(4,1)
 # pragma GCC visibility pop

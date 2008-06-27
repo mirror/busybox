@@ -13,7 +13,7 @@
  * return 1 if found;
  * return 0 otherwise;
  */
-int execable_file(const char *name)
+int FAST_FUNC execable_file(const char *name)
 {
 	struct stat s;
 	return (!access(name, X_OK) && !stat(name, &s) && S_ISREG(s.st_mode));
@@ -28,7 +28,7 @@ int execable_file(const char *name)
  * return NULL otherwise; (PATHp is undefined)
  * in all cases (*PATHp) contents will be trashed (s/:/NUL/).
  */
-char *find_execable(const char *filename, char **PATHp)
+char* FAST_FUNC find_execable(const char *filename, char **PATHp)
 {
 	char *p, *n;
 
@@ -54,7 +54,7 @@ char *find_execable(const char *filename, char **PATHp)
  * return 1 if found;
  * return 0 otherwise;
  */
-int exists_execable(const char *filename)
+int FAST_FUNC exists_execable(const char *filename)
 {
 	char *path = xstrdup(getenv("PATH"));
 	char *tmp = path;
@@ -70,7 +70,7 @@ int exists_execable(const char *filename)
 #if ENABLE_FEATURE_PREFER_APPLETS
 /* just like the real execvp, but try to launch an applet named 'file' first
  */
-int bb_execvp(const char *file, char *const argv[])
+int FAST_FUNC bb_execvp(const char *file, char *const argv[])
 {
 	return execvp(find_applet_by_name(file) >= 0 ? bb_busybox_exec_path : file,
 					argv);

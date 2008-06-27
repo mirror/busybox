@@ -15,7 +15,7 @@
  * Return TRUE if fileName is a directory.
  * Nonexistent files return FALSE.
  */
-int is_directory(const char *fileName, const int followLinks, struct stat *statBuf)
+int FAST_FUNC is_directory(const char *fileName, const int followLinks, struct stat *statBuf)
 {
 	int status;
 	struct stat astatBuf;

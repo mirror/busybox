@@ -9,7 +9,7 @@
 
 #include "libbb.h"
 
-void bb_warn_ignoring_args(int n)
+void FAST_FUNC bb_warn_ignoring_args(int n)
 {
 	if (n) {
 		bb_error_msg("ignoring all arguments");

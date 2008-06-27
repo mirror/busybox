@@ -47,7 +47,7 @@ static char* find_keyword(void *the_module, size_t len, const char * const word)
 	} while (1);
 	return ptr;
 }
-static int fileAction(const char *fname, struct stat *sb,
+static int FAST_FUNC fileAction(const char *fname, struct stat *sb,
 					void ATTRIBUTE_UNUSED *data, int ATTRIBUTE_UNUSED depth)
 {
 	size_t len = sb->st_size;

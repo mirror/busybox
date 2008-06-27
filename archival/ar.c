@@ -16,7 +16,7 @@
 #include "libbb.h"
 #include "unarchive.h"
 
-static void header_verbose_list_ar(const file_header_t *file_header)
+static void FAST_FUNC header_verbose_list_ar(const file_header_t *file_header)
 {
 	const char *mode = bb_mode_string(file_header->mode);
 	char *mtime;

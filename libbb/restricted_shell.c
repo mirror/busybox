@@ -32,7 +32,7 @@
 
 /* Return 1 if SHELL is a restricted shell (one not returned by
    getusershell), else 0, meaning it is a standard shell.  */
-int restricted_shell(const char *shell)
+int FAST_FUNC restricted_shell(const char *shell)
 {
 	char *line;
 

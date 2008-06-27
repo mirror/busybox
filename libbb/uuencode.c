@@ -39,7 +39,7 @@ const char bb_uuenc_tbl_std[65] ALIGN1 = {
  * buffer of at least 1+BASE64_LENGTH(length) bytes.
  * where BASE64_LENGTH(len) = (4 * ((LENGTH + 2) / 3))
  */
-void bb_uuencode(char *p, const void *src, int length, const char *tbl)
+void FAST_FUNC bb_uuencode(char *p, const void *src, int length, const char *tbl)
 {
 	const unsigned char *s = src;
 

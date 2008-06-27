@@ -70,7 +70,7 @@
  * be stored in the compressed file.
  */
 
-USE_DESKTOP(long long) int
+USE_DESKTOP(long long) int FAST_FUNC
 uncompress(int fd_in, int fd_out)
 {
 	USE_DESKTOP(long long total_written = 0;)

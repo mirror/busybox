@@ -24,7 +24,7 @@ static int i64c(int i)
 	return ('a' - 38 + i);
 }
 
-int crypt_make_salt(char *p, int cnt, int x)
+int FAST_FUNC crypt_make_salt(char *p, int cnt, int x)
 {
 	x += getpid() + time(NULL);
 	do {

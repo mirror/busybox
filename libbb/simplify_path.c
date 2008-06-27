@@ -9,7 +9,7 @@
 
 #include "libbb.h"
 
-char *bb_simplify_path(const char *path)
+char* FAST_FUNC bb_simplify_path(const char *path)
 {
 	char *s, *start, *p;
 

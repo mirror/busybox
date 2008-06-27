@@ -7,7 +7,7 @@
 #include "libbb.h"
 #include "unarchive.h"
 
-char get_header_ar(archive_handle_t *archive_handle)
+char FAST_FUNC get_header_ar(archive_handle_t *archive_handle)
 {
 	int err;
 	file_header_t *typed = archive_handle->file_header;

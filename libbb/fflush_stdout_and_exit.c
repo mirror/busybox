@@ -13,7 +13,7 @@
 
 #include "libbb.h"
 
-void fflush_stdout_and_exit(int retval)
+void FAST_FUNC fflush_stdout_and_exit(int retval)
 {
 	if (fflush(stdout))
 		bb_perror_msg_and_die(bb_msg_standard_output);

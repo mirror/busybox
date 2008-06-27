@@ -19,7 +19,7 @@
  * The strrstr() function finds the last occurrence of the substring needle
  * in the string haystack. The terminating nul characters are not compared.
  */
-char* strrstr(const char *haystack, const char *needle)
+char* FAST_FUNC strrstr(const char *haystack, const char *needle)
 {
 	char *r = NULL;
 

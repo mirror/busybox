@@ -10,7 +10,7 @@
 #include "libbb.h"
 
 #if defined(__GLIBC__) && __GLIBC__ < 2
-int vdprintf(int d, const char *format, va_list ap)
+int FAST_FUNC vdprintf(int d, const char *format, va_list ap)
 {
 	char buf[BUF_SIZE];
 	int len;

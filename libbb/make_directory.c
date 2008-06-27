@@ -26,7 +26,7 @@
 
 /* This function is used from NOFORK applets. It must not allocate anything */
 
-int bb_make_directory (char *path, long mode, int flags)
+int FAST_FUNC bb_make_directory(char *path, long mode, int flags)
 {
 	mode_t mask;
 	const char *fail_msg;

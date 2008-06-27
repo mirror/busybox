@@ -89,7 +89,7 @@ struct in6_ifreq {
 #endif
 
 /* Display an Internet socket address. */
-static const char *INET_sprint(struct sockaddr *sap, int numeric)
+static const char* FAST_FUNC INET_sprint(struct sockaddr *sap, int numeric)
 {
 	static char *buff;
 
@@ -143,7 +143,7 @@ static int INET_getsock(char *bufp, struct sockaddr *sap)
 }
 #endif
 
-static int INET_input(/*int type,*/ const char *bufp, struct sockaddr *sap)
+static int FAST_FUNC INET_input(/*int type,*/ const char *bufp, struct sockaddr *sap)
 {
 	return INET_resolve(bufp, (struct sockaddr_in *) sap, 0);
 /*
@@ -159,19 +159,19 @@ static int INET_input(/*int type,*/ const char *bufp, struct sockaddr *sap)
 }
 
 static const struct aftype inet_aftype = {
-	.name =		"inet",
-	.title =	"DARPA Internet",
-	.af =		AF_INET,
-	.alen =		4,
-	.sprint =	INET_sprint,
-	.input =	INET_input,
+	.name   = "inet",
+	.title  = "DARPA Internet",
+	.af     = AF_INET,
+	.alen   = 4,
+	.sprint = INET_sprint,
+	.input  = INET_input,
 };
 
 #ifdef HAVE_AFINET6
 
 /* Display an Internet socket address. */
 /* dirty! struct sockaddr usually doesn't suffer for inet6 addresses, fst. */
-static const char *INET6_sprint(struct sockaddr *sap, int numeric)
+static const char* FAST_FUNC INET6_sprint(struct sockaddr *sap, int numeric)
 {
 	static char *buff;
 
@@ -198,7 +198,7 @@ static int INET6_getsock(char *bufp, struct sockaddr *sap)
 }
 #endif
 
-static int INET6_input(/*int type,*/ const char *bufp, struct sockaddr *sap)
+static int FAST_FUNC INET6_input(/*int type,*/ const char *bufp, struct sockaddr *sap)
 {
 	return INET6_resolve(bufp, (struct sockaddr_in6 *) sap);
 /*
@@ -212,18 +212,18 @@ static int INET6_input(/*int type,*/ const char *bufp, struct sockaddr *sap)
 }
 
 static const struct aftype inet6_aftype = {
-	.name =		"inet6",
-	.title =	"IPv6",
-	.af =		AF_INET6,
-	.alen =		sizeof(struct in6_addr),
-	.sprint =	INET6_sprint,
-	.input =	INET6_input,
+	.name   = "inet6",
+	.title  = "IPv6",
+	.af     = AF_INET6,
+	.alen   = sizeof(struct in6_addr),
+	.sprint = INET6_sprint,
+	.input  = INET6_input,
 };
 
 #endif /* HAVE_AFINET6 */
 
 /* Display an UNSPEC address. */
-static char *UNSPEC_print(unsigned char *ptr)
+static char* FAST_FUNC UNSPEC_print(unsigned char *ptr)
 {
 	static char *buff;
 
@@ -244,7 +244,7 @@ static char *UNSPEC_print(unsigned char *ptr)
 }
 
 /* Display an UNSPEC socket address. */
-static const char *UNSPEC_sprint(struct sockaddr *sap, int numeric ATTRIBUTE_UNUSED)
+static const char* FAST_FUNC UNSPEC_sprint(struct sockaddr *sap, int numeric ATTRIBUTE_UNUSED)
 {
 	if (sap->sa_family == 0xFFFF || sap->sa_family == 0)
 		return "[NONE SET]";
@@ -270,7 +270,7 @@ static const struct aftype *const aftypes[] = {
 };
 
 /* Check our protocol family table for this family. */
-const struct aftype *get_aftype(const char *name)
+const struct aftype* FAST_FUNC get_aftype(const char *name)
 {
 	const struct aftype *const *afp;
 
@@ -720,7 +720,7 @@ static const struct hwtype loop_hwtype = {
 #endif
 
 /* Display an Ethernet address in readable format. */
-static char *pr_ether(unsigned char *ptr)
+static char* FAST_FUNC ether_print(unsigned char *ptr)
 {
 	static char *buff;
 
@@ -732,15 +732,15 @@ static char *pr_ether(unsigned char *ptr)
 	return buff;
 }
 
-static int in_ether(const char *bufp, struct sockaddr *sap);
+static int FAST_FUNC ether_input(const char *bufp, struct sockaddr *sap);
 
 static const struct hwtype ether_hwtype = {
-	.name =		"ether",
-	.title =	"Ethernet",
-	.type =		ARPHRD_ETHER,
-	.alen =		ETH_ALEN,
-	.print =	pr_ether,
-	.input =	in_ether
+	.name  = "ether",
+	.title = "Ethernet",
+	.type  = ARPHRD_ETHER,
+	.alen  = ETH_ALEN,
+	.print = ether_print,
+	.input = ether_input
 };
 
 static unsigned hexchar2int(char c)
@@ -754,7 +754,7 @@ static unsigned hexchar2int(char c)
 }
 
 /* Input an Ethernet address and convert to binary. */
-static int in_ether(const char *bufp, struct sockaddr *sap)
+static int FAST_FUNC ether_input(const char *bufp, struct sockaddr *sap)
 {
 	unsigned char *ptr;
 	char c;
@@ -813,12 +813,12 @@ static const struct hwtype sit_hwtype = {
 #endif
 #if ENABLE_FEATURE_HWIB
 static const struct hwtype ib_hwtype = {
-	.name =			"infiniband",
-	.title =		"InfiniBand",
-	.type =			ARPHRD_INFINIBAND,
-	.alen =			INFINIBAND_ALEN,
-	.print =		UNSPEC_print,
-	.input =		in_ib,
+	.name  = "infiniband",
+	.title = "InfiniBand",
+	.type  = ARPHRD_INFINIBAND,
+	.alen  = INFINIBAND_ALEN,
+	.print = UNSPEC_print,
+	.input = in_ib,
 };
 #endif
 
@@ -852,7 +852,7 @@ static const char *const if_port_text[] = {
 #endif
 
 /* Check our hardware type table for this type. */
-const struct hwtype *get_hwtype(const char *name)
+const struct hwtype* FAST_FUNC get_hwtype(const char *name)
 {
 	const struct hwtype *const *hwp;
 
@@ -866,7 +866,7 @@ const struct hwtype *get_hwtype(const char *name)
 }
 
 /* Check our hardware type table for this type. */
-const struct hwtype *get_hwntype(int type)
+const struct hwtype* FAST_FUNC get_hwntype(int type)
 {
 	const struct hwtype *const *hwp;
 
@@ -1214,7 +1214,7 @@ static int if_print(char *ifname)
 
 #if ENABLE_FEATURE_HWIB
 /* Input an Infiniband address and convert to binary. */
-int in_ib(const char *bufp, struct sockaddr *sap)
+int FAST_FUNC in_ib(const char *bufp, struct sockaddr *sap)
 {
 	unsigned char *ptr;
 	char c;
@@ -1272,7 +1272,7 @@ int in_ib(const char *bufp, struct sockaddr *sap)
 #endif
 
 
-int display_interfaces(char *ifname)
+int FAST_FUNC display_interfaces(char *ifname)
 {
 	int status;
 

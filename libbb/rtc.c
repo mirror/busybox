@@ -11,7 +11,7 @@
 # define ADJTIME_PATH "/etc/adjtime"
 #endif
 
-int rtc_adjtime_is_utc(void)
+int FAST_FUNC rtc_adjtime_is_utc(void)
 {
 	int utc = 0;
 	FILE *f = fopen(ADJTIME_PATH, "r");
@@ -40,7 +40,7 @@ int rtc_adjtime_is_utc(void)
 	return utc;
 }
 
-int rtc_xopen(const char **default_rtc, int flags)
+int FAST_FUNC rtc_xopen(const char **default_rtc, int flags)
 {
 	int rtc;
 
@@ -59,7 +59,7 @@ int rtc_xopen(const char **default_rtc, int flags)
 	return xopen(*default_rtc, flags);
 }
 
-time_t rtc_read_time(int fd, int utc)
+time_t FAST_FUNC rtc_read_time(int fd, int utc)
 {
 	struct tm tm;
 	char *oldtz = 0;

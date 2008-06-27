@@ -9,7 +9,7 @@
 
 #include "libbb.h"
 
-const char *bb_basename(const char *name)
+const char* FAST_FUNC bb_basename(const char *name)
 {
 	const char *cp = strrchr(name, '/');
 	if (cp)

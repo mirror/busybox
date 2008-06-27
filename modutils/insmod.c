@@ -791,7 +791,7 @@ static char *m_fullName;
 /*======================================================================*/
 
 
-static int check_module_name_match(const char *filename,
+static int FAST_FUNC check_module_name_match(const char *filename,
 		struct stat *statbuf ATTRIBUTE_UNUSED,
 		void *userdata, int depth ATTRIBUTE_UNUSED)
 {
@@ -3306,7 +3306,7 @@ static int obj_create_image(struct obj_file *f, char *image)
 
 /*======================================================================*/
 
-static struct obj_file *obj_load(FILE * fp, int loadprogbits ATTRIBUTE_UNUSED)
+static struct obj_file *obj_load(FILE *fp, int loadprogbits ATTRIBUTE_UNUSED)
 {
 	struct obj_file *f;
 	ElfW(Shdr) * section_headers;
@@ -3512,7 +3512,7 @@ static struct obj_file *obj_load(FILE * fp, int loadprogbits ATTRIBUTE_UNUSED)
  * kernel for the module
  */
 
-static int obj_load_progbits(FILE * fp, struct obj_file* f, char* imagebase)
+static int obj_load_progbits(FILE *fp, struct obj_file *f, char *imagebase)
 {
 	ElfW(Addr) base = f->baseaddr;
 	struct obj_section* sec;

@@ -28,7 +28,7 @@ static char *type = NULL;
 static char *range = NULL;
 static char *specified_context = NULL;
 
-static int change_filedir_context(
+static int FAST_FUNC change_filedir_context(
 		const char *fname,
 		struct stat *stbuf ATTRIBUTE_UNUSED,
 		void *userData ATTRIBUTE_UNUSED,

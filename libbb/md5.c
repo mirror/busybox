@@ -24,7 +24,7 @@
 /* Initialize structure containing state of computation.
  * (RFC 1321, 3.3: Step 3)
  */
-void md5_begin(md5_ctx_t *ctx)
+void FAST_FUNC md5_begin(md5_ctx_t *ctx)
 {
 	ctx->A = 0x67452301;
 	ctx->B = 0xefcdab89;
@@ -371,7 +371,7 @@ static void md5_hash_block(const void *buffer, md5_ctx_t *ctx)
  * This function's internal buffer remembers previous data until it has 64
  * bytes worth to pass on.  Call md5_end() to flush this buffer. */
 
-void md5_hash(const void *buffer, size_t len, md5_ctx_t *ctx)
+void FAST_FUNC md5_hash(const void *buffer, size_t len, md5_ctx_t *ctx)
 {
 	char *buf=(char *)buffer;
 
@@ -410,7 +410,7 @@ void md5_hash(const void *buffer, size_t len, md5_ctx_t *ctx)
  * IMPORTANT: On some systems it is required that RESBUF is correctly
  * aligned for a 32 bits value.
  */
-void *md5_end(void *resbuf, md5_ctx_t *ctx)
+void* FAST_FUNC md5_end(void *resbuf, md5_ctx_t *ctx)
 {
 	char *buf = ctx->buffer;
 	int i;

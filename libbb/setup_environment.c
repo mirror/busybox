@@ -30,7 +30,7 @@
 
 #include "libbb.h"
 
-void setup_environment(const char *shell, int clear_env, int change_env, const struct passwd *pw)
+void FAST_FUNC setup_environment(const char *shell, int clear_env, int change_env, const struct passwd *pw)
 {
 	if (clear_env) {
 		const char *term;

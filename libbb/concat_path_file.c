@@ -16,7 +16,7 @@
 
 #include "libbb.h"
 
-char *concat_path_file(const char *path, const char *filename)
+char* FAST_FUNC concat_path_file(const char *path, const char *filename)
 {
 	char *lc;
 

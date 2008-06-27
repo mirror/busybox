@@ -498,7 +498,7 @@ static void syntax(const char *msg)
 	/* Was using fancy stuff:
 	 * (interactive_fd ? bb_error_msg : bb_error_msg_and_die)(...params...)
 	 * but it SEGVs. ?! Oh well... explicit temp ptr works around that */
-	void (*fp)(const char *s, ...);
+	void FAST_FUNC (*fp)(const char *s, ...);
 
 	fp = (interactive_fd ? bb_error_msg : bb_error_msg_and_die);
 	fp(msg ? "%s: %s" : "syntax error", "syntax error", msg);

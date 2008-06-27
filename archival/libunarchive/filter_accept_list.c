@@ -11,7 +11,7 @@
 /*
  * Accept names that are in the accept list, ignoring reject list.
  */
-char filter_accept_list(archive_handle_t *archive_handle)
+char FAST_FUNC filter_accept_list(archive_handle_t *archive_handle)
 {
 	if (find_list_entry(archive_handle->accept, archive_handle->file_header->name))
 		return EXIT_SUCCESS;

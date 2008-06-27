@@ -23,7 +23,7 @@
   resulting sed_cmd_t structures are appended to a linked list
   (G.sed_cmd_head/G.sed_cmd_tail).
 
-  add_input_file() adds a FILE * to the list of input files.  We need to
+  add_input_file() adds a FILE* to the list of input files.  We need to
   know all input sources ahead of time to find the last line for the $ match.
 
   process_files() does actual sedding, reading data lines from each input FILE *

@@ -12,7 +12,7 @@
 
 #include "libbb.h"
 
-int match_fstype(const struct mntent *mt, const char *fstype)
+int FAST_FUNC match_fstype(const struct mntent *mt, const char *fstype)
 {
 	int no = 0;
 	int len;

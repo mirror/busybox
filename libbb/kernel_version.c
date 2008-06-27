@@ -16,7 +16,7 @@
  *
  *     if (get_linux_version_code() > KERNEL_VERSION(2,2,11)) { <stuff> }
  */
-int get_linux_version_code(void)
+int FAST_FUNC get_linux_version_code(void)
 {
 	struct utsname name;
 	char *s;

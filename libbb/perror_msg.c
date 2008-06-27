@@ -9,7 +9,7 @@
 
 #include "libbb.h"
 
-void bb_perror_msg(const char *s, ...)
+void FAST_FUNC bb_perror_msg(const char *s, ...)
 {
 	va_list p;
 
@@ -19,7 +19,7 @@ void bb_perror_msg(const char *s, ...)
 	va_end(p);
 }
 
-void bb_simple_perror_msg(const char *s)
+void FAST_FUNC bb_simple_perror_msg(const char *s)
 {
 	bb_perror_msg("%s", s);
 }

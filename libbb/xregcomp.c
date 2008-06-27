@@ -11,7 +11,7 @@
 #include "libbb.h"
 #include "xregex.h"
 
-char* regcomp_or_errmsg(regex_t *preg, const char *regex, int cflags)
+char* FAST_FUNC regcomp_or_errmsg(regex_t *preg, const char *regex, int cflags)
 {
 	int ret = regcomp(preg, regex, cflags);
 	if (ret) {
@@ -23,7 +23,7 @@ char* regcomp_or_errmsg(regex_t *preg, const char *regex, int cflags)
 	return NULL;
 }
 
-void xregcomp(regex_t *preg, const char *regex, int cflags)
+void FAST_FUNC xregcomp(regex_t *preg, const char *regex, int cflags)
 {
 	char *errmsg = regcomp_or_errmsg(preg, regex, cflags);
 	if (errmsg) {

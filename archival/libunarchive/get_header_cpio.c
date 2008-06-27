@@ -17,7 +17,7 @@ typedef struct hardlinks_s {
 	char name[1];
 } hardlinks_t;
 
-char get_header_cpio(archive_handle_t *archive_handle)
+char FAST_FUNC get_header_cpio(archive_handle_t *archive_handle)
 {
 	static hardlinks_t *saved_hardlinks = NULL;
 	static hardlinks_t *saved_hardlinks_created = NULL;

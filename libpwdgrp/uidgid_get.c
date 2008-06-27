@@ -28,7 +28,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "libbb.h"
 
 /* Always sets uid and gid */
-int get_uidgid(struct bb_uidgid_t *u, const char *ug, int numeric_ok)
+int FAST_FUNC get_uidgid(struct bb_uidgid_t *u, const char *ug, int numeric_ok)
 {
 	struct passwd *pwd;
 	struct group *gr;
@@ -84,7 +84,7 @@ int get_uidgid(struct bb_uidgid_t *u, const char *ug, int numeric_ok)
  * "user:group" sets uid and gid
  * ('unset' uid or gid is actually set to -1)
  */
-void parse_chown_usergroup_or_die(struct bb_uidgid_t *u, char *user_group)
+void FAST_FUNC parse_chown_usergroup_or_die(struct bb_uidgid_t *u, char *user_group)
 {
 	char *group;
 

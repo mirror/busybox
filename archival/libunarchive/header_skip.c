@@ -5,6 +5,6 @@
 #include "libbb.h"
 #include "unarchive.h"
 
-void header_skip(const file_header_t *file_header ATTRIBUTE_UNUSED)
+void FAST_FUNC header_skip(const file_header_t *file_header ATTRIBUTE_UNUSED)
 {
 }

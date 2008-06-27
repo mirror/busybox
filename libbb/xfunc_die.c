@@ -17,7 +17,7 @@ int die_sleep;
 jmp_buf die_jmp;
 #endif
 
-void xfunc_die(void)
+void FAST_FUNC xfunc_die(void)
 {
 	if (die_sleep) {
 		if ((ENABLE_FEATURE_PREFER_APPLETS || ENABLE_HUSH)

@@ -14,20 +14,20 @@
 /* Provides extern declarations of functions */
 #define DECLARE_STR_CONV(type, T, UT) \
 \
-unsigned type xstrto##UT##_range_sfx(const char *str, int b, unsigned type l, unsigned type u, const struct suffix_mult *sfx); \
-unsigned type xstrto##UT##_range(const char *str, int b, unsigned type l, unsigned type u); \
-unsigned type xstrto##UT##_sfx(const char *str, int b, const struct suffix_mult *sfx); \
-unsigned type xstrto##UT(const char *str, int b); \
-unsigned type xato##UT##_range_sfx(const char *str, unsigned type l, unsigned type u, const struct suffix_mult *sfx); \
-unsigned type xato##UT##_range(const char *str, unsigned type l, unsigned type u); \
-unsigned type xato##UT##_sfx(const char *str, const struct suffix_mult *sfx); \
-unsigned type xato##UT(const char *str); \
-type xstrto##T##_range_sfx(const char *str, int b, type l, type u, const struct suffix_mult *sfx); \
-type xstrto##T##_range(const char *str, int b, type l, type u); \
-type xato##T##_range_sfx(const char *str, type l, type u, const struct suffix_mult *sfx); \
-type xato##T##_range(const char *str, type l, type u); \
-type xato##T##_sfx(const char *str, const struct suffix_mult *sfx); \
-type xato##T(const char *str); \
+unsigned type xstrto##UT##_range_sfx(const char *str, int b, unsigned type l, unsigned type u, const struct suffix_mult *sfx) FAST_FUNC; \
+unsigned type xstrto##UT##_range(const char *str, int b, unsigned type l, unsigned type u) FAST_FUNC; \
+unsigned type xstrto##UT##_sfx(const char *str, int b, const struct suffix_mult *sfx) FAST_FUNC; \
+unsigned type xstrto##UT(const char *str, int b) FAST_FUNC; \
+unsigned type xato##UT##_range_sfx(const char *str, unsigned type l, unsigned type u, const struct suffix_mult *sfx) FAST_FUNC; \
+unsigned type xato##UT##_range(const char *str, unsigned type l, unsigned type u) FAST_FUNC; \
+unsigned type xato##UT##_sfx(const char *str, const struct suffix_mult *sfx) FAST_FUNC; \
+unsigned type xato##UT(const char *str) FAST_FUNC; \
+type xstrto##T##_range_sfx(const char *str, int b, type l, type u, const struct suffix_mult *sfx) FAST_FUNC; \
+type xstrto##T##_range(const char *str, int b, type l, type u) FAST_FUNC; \
+type xato##T##_range_sfx(const char *str, type l, type u, const struct suffix_mult *sfx) FAST_FUNC; \
+type xato##T##_range(const char *str, type l, type u) FAST_FUNC; \
+type xato##T##_sfx(const char *str, const struct suffix_mult *sfx) FAST_FUNC; \
+type xato##T(const char *str) FAST_FUNC; \
 
 /* Unsigned long long functions always exist */
 DECLARE_STR_CONV(long long, ll, ull)
@@ -122,8 +122,8 @@ static ALWAYS_INLINE uint32_t xatou32(const char *numstr)
  *    return value is all-ones in this case.
  */
 
-unsigned long long bb_strtoull(const char *arg, char **endp, int base);
-long long bb_strtoll(const char *arg, char **endp, int base);
+unsigned long long bb_strtoull(const char *arg, char **endp, int base) FAST_FUNC;
+long long bb_strtoll(const char *arg, char **endp, int base) FAST_FUNC;
 
 #if ULONG_MAX == ULLONG_MAX
 static ALWAYS_INLINE
@@ -133,8 +133,8 @@ static ALWAYS_INLINE
 long bb_strtol(const char *arg, char **endp, int base)
 { return bb_strtoll(arg, endp, base); }
 #else
-unsigned long bb_strtoul(const char *arg, char **endp, int base);
-long bb_strtol(const char *arg, char **endp, int base);
+unsigned long bb_strtoul(const char *arg, char **endp, int base) FAST_FUNC;
+long bb_strtol(const char *arg, char **endp, int base) FAST_FUNC;
 #endif
 
 #if UINT_MAX == ULLONG_MAX
@@ -152,8 +152,8 @@ static ALWAYS_INLINE
 int bb_strtoi(const char *arg, char **endp, int base)
 { return bb_strtol(arg, endp, base); }
 #else
-unsigned bb_strtou(const char *arg, char **endp, int base);
-int bb_strtoi(const char *arg, char **endp, int base);
+unsigned bb_strtou(const char *arg, char **endp, int base) FAST_FUNC;
+int bb_strtoi(const char *arg, char **endp, int base) FAST_FUNC;
 #endif
 
 int BUG_bb_strtou32_unimplemented(void);

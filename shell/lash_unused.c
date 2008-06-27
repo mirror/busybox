@@ -116,11 +116,11 @@ static int builtin_read(struct child_prog *cmd);
 /* function prototypes for shell stuff */
 static void checkjobs(struct jobset *job_list);
 static void remove_job(struct jobset *j_list, struct job *job);
-static int get_command_bufsiz(FILE * source, char *command);
+static int get_command_bufsiz(FILE *source, char *command);
 static int parse_command(char **command_ptr, struct job *job, int *inbg);
 static int run_command(struct job *newjob, int inbg, int outpipe[2]);
 static int pseudo_exec(struct child_prog *cmd) ATTRIBUTE_NORETURN;
-static int busy_loop(FILE * input);
+static int busy_loop(FILE *input);
 
 
 /* Table of built-in functions (these are non-forking builtins, meaning they
@@ -643,7 +643,7 @@ static inline const char* setup_prompt_string(void)
 static line_input_t *line_input_state;
 #endif
 
-static int get_command_bufsiz(FILE * source, char *command)
+static int get_command_bufsiz(FILE *source, char *command)
 {
 	const char *prompt_str;
 
@@ -1326,7 +1326,7 @@ static int run_command(struct job *newjob, int inbg, int outpipe[2])
 	return 0;
 }
 
-static int busy_loop(FILE * input)
+static int busy_loop(FILE *input)
 {
 	char *command;
 	char *next_command = NULL;

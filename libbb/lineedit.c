@@ -1352,7 +1352,7 @@ static void win_changed(int nsig)
  * 0  on ctrl-C (the line entered is still returned in 'command'),
  * >0 length of input string, including terminating '\n'
  */
-int read_line_input(const char *prompt, char *command, int maxsize, line_input_t *st)
+int FAST_FUNC read_line_input(const char *prompt, char *command, int maxsize, line_input_t *st)
 {
 #if ENABLE_FEATURE_TAB_COMPLETION
 	smallint lastWasTab = FALSE;
@@ -1845,7 +1845,7 @@ int read_line_input(const char *prompt, char *command, int maxsize, line_input_t
 	return command_len;
 }
 
-line_input_t *new_line_input_t(int flags)
+line_input_t* FAST_FUNC new_line_input_t(int flags)
 {
 	line_input_t *n = xzalloc(sizeof(*n));
 	n->flags = flags;
@@ -1855,7 +1855,7 @@ line_input_t *new_line_input_t(int flags)
 #else
 
 #undef read_line_input
-int read_line_input(const char* prompt, char* command, int maxsize)
+int FAST_FUNC read_line_input(const char* prompt, char* command, int maxsize)
 {
 	fputs(prompt, stdout);
 	fflush(stdout);

@@ -476,7 +476,7 @@ static void set_flags(char *flagstr, int flags)
 }
 
 /* also used in netstat */
-void bb_displayroutes(int noresolve, int netstatfmt)
+void FAST_FUNC bb_displayroutes(int noresolve, int netstatfmt)
 {
 	char devname[64], flags[16], *sdest, *sgw;
 	unsigned long d, g, m;

@@ -101,7 +101,7 @@ static void full_write2_str(const char *str)
 	full_write(STDERR_FILENO, str, strlen(str));
 }
 
-void bb_show_usage(void)
+void FAST_FUNC bb_show_usage(void)
 {
 	if (ENABLE_SHOW_USAGE) {
 #ifdef SINGLE_APPLET_STR
@@ -153,7 +153,7 @@ static int applet_name_compare(const void *name, const void *v)
 	return strcmp(name, APPLET_NAME(i));
 }
 #endif
-int find_applet_by_name(const char *name)
+int FAST_FUNC find_applet_by_name(const char *name)
 {
 #if NUM_APPLETS > 8
 	/* Do a binary search to find the applet entry given the name. */
@@ -704,7 +704,7 @@ static int busybox_main(char **argv)
 	xfunc_die();
 }
 
-void run_applet_no_and_exit(int applet_no, char **argv)
+void FAST_FUNC run_applet_no_and_exit(int applet_no, char **argv)
 {
 	int argc = 1;
 
@@ -722,7 +722,7 @@ void run_applet_no_and_exit(int applet_no, char **argv)
 	exit(applet_main[applet_no](argc, argv));
 }
 
-void run_applet_and_exit(const char *name, char **argv)
+void FAST_FUNC run_applet_and_exit(const char *name, char **argv)
 {
 	int applet = find_applet_by_name(name);
 	if (applet >= 0)

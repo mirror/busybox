@@ -13,7 +13,7 @@
 
 smallint wrote_pidfile;
 
-void write_pidfile(const char *path)
+void FAST_FUNC write_pidfile(const char *path)
 {
 	int pid_fd;
 	char *end;

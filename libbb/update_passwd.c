@@ -36,7 +36,7 @@ static void check_selinux_update_passwd(const char *username)
 #define check_selinux_update_passwd(username) ((void)0)
 #endif
 
-int update_passwd(const char *filename, const char *username,
+int FAST_FUNC update_passwd(const char *filename, const char *username,
 			const char *new_pw)
 {
 	struct stat sb;

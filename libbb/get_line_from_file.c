@@ -16,7 +16,7 @@
  * must be free'ed by the caller.  If end is NULL '\n' isn't considered
  * end of line.  If end isn't NULL, length of the chunk read is stored in it.
  * Return NULL if EOF/error */
-char *bb_get_chunk_from_file(FILE *file, int *end)
+char* FAST_FUNC bb_get_chunk_from_file(FILE *file, int *end)
 {
 	int ch;
 	int idx = 0;
@@ -49,7 +49,7 @@ char *bb_get_chunk_from_file(FILE *file, int *end)
 }
 
 /* Get line, including trailing \n if any */
-char *xmalloc_fgets(FILE *file)
+char* FAST_FUNC xmalloc_fgets(FILE *file)
 {
 	int i;
 
@@ -57,7 +57,7 @@ char *xmalloc_fgets(FILE *file)
 }
 
 /* Get line.  Remove trailing \n */
-char *xmalloc_fgetline(FILE *file)
+char* FAST_FUNC xmalloc_fgetline(FILE *file)
 {
 	int i;
 	char *c = bb_get_chunk_from_file(file, &i);

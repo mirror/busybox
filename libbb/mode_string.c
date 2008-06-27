@@ -51,7 +51,7 @@ static const char type_chars[16] ALIGN1 = "?pc?d?b?-?l?s???";
 /*                                  0123456789abcdef */
 static const char mode_chars[7] ALIGN1 = "rwxSTst";
 
-const char *bb_mode_string(mode_t mode)
+const char* FAST_FUNC bb_mode_string(mode_t mode)
 {
 	static char buf[12];
 	char *p = buf;
@@ -91,7 +91,7 @@ static const char type_chars[16] = "?pc?d?b?-?l?s???";
 /*                                  0123456789abcdef */
 static const char mode_chars[7] = "rwxSTst";
 
-const char *bb_mode_string(mode_t mode)
+const char* FAST_FUNC bb_mode_string(mode_t mode)
 {
 	static char buf[12];
 	char *p = buf;

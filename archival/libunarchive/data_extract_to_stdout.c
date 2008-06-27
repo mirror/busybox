@@ -6,7 +6,7 @@
 #include "libbb.h"
 #include "unarchive.h"
 
-void data_extract_to_stdout(archive_handle_t *archive_handle)
+void FAST_FUNC data_extract_to_stdout(archive_handle_t *archive_handle)
 {
 	bb_copyfd_exact_size(archive_handle->src_fd,
 			STDOUT_FILENO,

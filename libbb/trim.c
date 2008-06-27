@@ -10,7 +10,7 @@
 
 #include "libbb.h"
 
-void trim(char *s)
+void FAST_FUNC trim(char *s)
 {
 	size_t len = strlen(s);
 	size_t lws;

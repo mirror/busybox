@@ -9,7 +9,7 @@
 /*  If we are reading through a pipe, or from stdin then we can't lseek,
  *  we must read and discard the data to skip over it.
  */
-void seek_by_read(const archive_handle_t *archive_handle, unsigned jump_size)
+void FAST_FUNC seek_by_read(const archive_handle_t *archive_handle, unsigned jump_size)
 {
 	if (jump_size)
 		bb_copyfd_exact_size(archive_handle->src_fd, -1, jump_size);

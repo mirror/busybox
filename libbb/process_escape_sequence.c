@@ -16,7 +16,7 @@
 #undef _tolower
 #define _tolower(X) ((X)|((char) 0x20))
 
-char bb_process_escape_sequence(const char **ptr)
+char FAST_FUNC bb_process_escape_sequence(const char **ptr)
 {
 	static const char charmap[] ALIGN1 = {
 		'a',  'b',  'f',  'n',  'r',  't',  'v',  '\\', 0,

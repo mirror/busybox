@@ -9,7 +9,7 @@
 
 #include "libbb.h"
 
-FILE *fopen_or_warn(const char *path, const char *mode)
+FILE* FAST_FUNC fopen_or_warn(const char *path, const char *mode)
 {
 	FILE *fp = fopen(path, mode);
 	if (!fp) {

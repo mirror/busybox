@@ -13,7 +13,7 @@
 
 #include "libbb.h"
 
-int bb_ask_confirmation(void)
+int FAST_FUNC bb_ask_confirmation(void)
 {
 	int retval = 0;
 	int first = 1;

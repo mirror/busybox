@@ -9,7 +9,7 @@
 
 #include "libbb.h"
 
-void fputc_printable(int ch, FILE *file)
+void FAST_FUNC fputc_printable(int ch, FILE *file)
 {
 	if ((ch & (0x80 + PRINTABLE_META)) == (0x80 + PRINTABLE_META)) {
 		fputs("M-", file);

@@ -152,7 +152,7 @@ int uudecode_main(int argc ATTRIBUTE_UNUSED, char **argv)
 
 	/* Search for the start of the encoding */
 	while ((line = xmalloc_fgetline(src_stream)) != NULL) {
-		void (*decode_fn_ptr)(FILE * src, FILE * dst);
+		void (*decode_fn_ptr)(FILE *src, FILE *dst);
 		char *line_ptr;
 		FILE *dst_stream;
 		int mode;

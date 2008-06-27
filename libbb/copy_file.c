@@ -71,7 +71,7 @@ static int ask_and_unlink(const char *dest, int flags)
  *  0 copy is made or user answered "no" in interactive mode
  *    (failures to preserve mode/owner/times are not reported in exit code)
  */
-int copy_file(const char *source, const char *dest, int flags)
+int FAST_FUNC copy_file(const char *source, const char *dest, int flags)
 {
 	/* This is a recursive function, try to minimize stack usage */
 	/* NB: each struct stat is ~100 bytes */

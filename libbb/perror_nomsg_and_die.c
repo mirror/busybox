@@ -11,11 +11,12 @@
  * modified definition without "attribute (format)"
  * instead of including libbb.h */
 //#include "libbb.h"
-extern void bb_perror_msg_and_die(const char *s, ...);
+#include "platform.h"
+extern void bb_perror_msg_and_die(const char *s, ...) FAST_FUNC;
 
 /* suppress gcc "no previous prototype" warning */
-void bb_perror_nomsg_and_die(void);
-void bb_perror_nomsg_and_die(void)
+void FAST_FUNC bb_perror_nomsg_and_die(void);
+void FAST_FUNC bb_perror_nomsg_and_die(void)
 {
 	bb_perror_msg_and_die(0);
 }

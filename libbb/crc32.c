@@ -16,7 +16,7 @@
 
 #include "libbb.h"
 
-uint32_t *crc32_filltable(uint32_t *crc_table, int endian)
+uint32_t* FAST_FUNC crc32_filltable(uint32_t *crc_table, int endian)
 {
 	uint32_t polynomial = endian ? 0x04c11db7 : 0xedb88320;
 	uint32_t c;

@@ -9,7 +9,7 @@
 #include "unarchive.h"
 
 /* Accept any non-null name, its not really a filter at all */
-char filter_accept_all(archive_handle_t *archive_handle)
+char FAST_FUNC filter_accept_all(archive_handle_t *archive_handle)
 {
 	if (archive_handle->file_header->name)
 		return EXIT_SUCCESS;

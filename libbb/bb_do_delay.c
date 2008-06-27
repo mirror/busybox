@@ -9,7 +9,7 @@
 
 #include "libbb.h"
 
-void bb_do_delay(int seconds)
+void FAST_FUNC bb_do_delay(int seconds)
 {
 	time_t start, now;
 

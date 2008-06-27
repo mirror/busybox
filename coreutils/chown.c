@@ -41,7 +41,7 @@ typedef int (*chown_fptr)(const char *, uid_t, gid_t);
 
 static struct bb_uidgid_t ugid = { -1, -1 };
 
-static int fileAction(const char *fileName, struct stat *statbuf,
+static int FAST_FUNC fileAction(const char *fileName, struct stat *statbuf,
 		void *cf, int depth ATTRIBUTE_UNUSED)
 {
 	uid_t u = (ugid.uid == (uid_t)-1) ? statbuf->st_uid : ugid.uid;

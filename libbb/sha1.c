@@ -83,7 +83,7 @@ static void sha1_compile(sha1_ctx_t *ctx)
 	ctx->hash[4] += e;
 }
 
-void sha1_begin(sha1_ctx_t *ctx)
+void FAST_FUNC sha1_begin(sha1_ctx_t *ctx)
 {
 	ctx->count[0] = ctx->count[1] = 0;
 	ctx->hash[0] = 0x67452301;
@@ -95,7 +95,7 @@ void sha1_begin(sha1_ctx_t *ctx)
 
 /* SHA1 hash data in an array of bytes into hash buffer and call the        */
 /* hash_compile function as required.                                       */
-void sha1_hash(const void *data, size_t length, sha1_ctx_t *ctx)
+void FAST_FUNC sha1_hash(const void *data, size_t length, sha1_ctx_t *ctx)
 {
 	uint32_t pos = (uint32_t) (ctx->count[0] & SHA1_MASK);
 	uint32_t freeb = SHA1_BLOCK_SIZE - pos;
@@ -116,7 +116,7 @@ void sha1_hash(const void *data, size_t length, sha1_ctx_t *ctx)
 	memcpy(((unsigned char *) ctx->wbuf) + pos, sp, length);
 }
 
-void *sha1_end(void *resbuf, sha1_ctx_t *ctx)
+void* FAST_FUNC sha1_end(void *resbuf, sha1_ctx_t *ctx)
 {
 	/* SHA1 Final padding and digest calculation  */
 #if BB_BIG_ENDIAN

@@ -374,7 +374,7 @@ ACTF(context)
 #endif
 
 
-static int fileAction(const char *fileName,
+static int FAST_FUNC fileAction(const char *fileName,
 		struct stat *statbuf,
 		void *userData SKIP_FEATURE_FIND_MAXDEPTH(ATTRIBUTE_UNUSED),
 		int depth SKIP_FEATURE_FIND_MAXDEPTH(ATTRIBUTE_UNUSED))

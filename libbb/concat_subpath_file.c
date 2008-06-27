@@ -15,7 +15,7 @@
 
 #include "libbb.h"
 
-char *concat_subpath_file(const char *path, const char *f)
+char* FAST_FUNC concat_subpath_file(const char *path, const char *f)
 {
 	if (f && DOT_OR_DOTDOT(f))
 		return NULL;

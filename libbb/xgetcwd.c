@@ -14,7 +14,7 @@
    If argument is not NULL (previous usage allocate memory), call free()
 */
 
-char *
+char* FAST_FUNC
 xrealloc_getcwd_or_warn(char *cwd)
 {
 #define PATH_INCR 64

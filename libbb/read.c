@@ -9,7 +9,7 @@
 
 #include "libbb.h"
 
-ssize_t safe_read(int fd, void *buf, size_t count)
+ssize_t FAST_FUNC safe_read(int fd, void *buf, size_t count)
 {
 	ssize_t n;
 
@@ -56,7 +56,7 @@ ssize_t safe_read(int fd, void *buf, size_t count)
  * which detects EAGAIN and uses poll() to wait on the fd.
  * Thankfully, poll() doesn't care about O_NONBLOCK flag.
  */
-ssize_t nonblock_safe_read(int fd, void *buf, size_t count)
+ssize_t FAST_FUNC nonblock_safe_read(int fd, void *buf, size_t count)
 {
 	struct pollfd pfd[1];
 	ssize_t n;
@@ -78,7 +78,7 @@ ssize_t nonblock_safe_read(int fd, void *buf, size_t count)
  * Returns the amount read, or -1 on an error.
  * A short read is returned on an end of file.
  */
-ssize_t full_read(int fd, void *buf, size_t len)
+ssize_t FAST_FUNC full_read(int fd, void *buf, size_t len)
 {
 	ssize_t cc;
 	ssize_t total;
@@ -107,7 +107,7 @@ ssize_t full_read(int fd, void *buf, size_t len)
 }
 
 // Die with an error message if we can't read the entire buffer.
-void xread(int fd, void *buf, size_t count)
+void FAST_FUNC xread(int fd, void *buf, size_t count)
 {
 	if (count) {
 		ssize_t size = full_read(fd, buf, count);
@@ -117,7 +117,7 @@ void xread(int fd, void *buf, size_t count)
 }
 
 // Die with an error message if we can't read one character.
-unsigned char xread_char(int fd)
+unsigned char FAST_FUNC xread_char(int fd)
 {
 	char tmp;
 	xread(fd, &tmp, 1);
@@ -125,7 +125,7 @@ unsigned char xread_char(int fd)
 }
 
 // Read one line a-la fgets. Works only on seekable streams
-char *reads(int fd, char *buffer, size_t size)
+char* FAST_FUNC reads(int fd, char *buffer, size_t size)
 {
 	char *p;
 
@@ -152,7 +152,7 @@ char *reads(int fd, char *buffer, size_t size)
 // Reads one line a-la fgets (but doesn't save terminating '\n').
 // Reads byte-by-byte. Useful when it is important to not read ahead.
 // Bytes are appended to pfx (which must be malloced, or NULL).
-char *xmalloc_reads(int fd, char *buf, size_t *maxsz_p)
+char* FAST_FUNC xmalloc_reads(int fd, char *buf, size_t *maxsz_p)
 {
 	char *p;
 	size_t sz = buf ? strlen(buf) : 0;
@@ -185,7 +185,7 @@ char *xmalloc_reads(int fd, char *buf, size_t *maxsz_p)
 	return xrealloc(buf, p - buf);
 }
 
-ssize_t read_close(int fd, void *buf, size_t size)
+ssize_t FAST_FUNC read_close(int fd, void *buf, size_t size)
 {
 	/*int e;*/
 	size = full_read(fd, buf, size);
@@ -195,7 +195,7 @@ ssize_t read_close(int fd, void *buf, size_t size)
 	return size;
 }
 
-ssize_t open_read_close(const char *filename, void *buf, size_t size)
+ssize_t FAST_FUNC open_read_close(const char *filename, void *buf, size_t size)
 {
 	int fd = open(filename, O_RDONLY);
 	if (fd < 0)
@@ -205,7 +205,7 @@ ssize_t open_read_close(const char *filename, void *buf, size_t size)
 
 // Read (potentially big) files in one go. File size is estimated
 // by stat.
-void *xmalloc_open_read_close(const char *filename, size_t *sizep)
+void* FAST_FUNC xmalloc_open_read_close(const char *filename, size_t *sizep)
 {
 	char *buf;
 	size_t size;
@@ -247,7 +247,7 @@ void *xmalloc_open_read_close(const char *filename, size_t *sizep)
 
 // Read (potentially big) files in one go. File size is estimated by
 // lseek to end.
-void *xmalloc_open_read_close(const char *filename, size_t *sizep)
+void* FAST_FUNC xmalloc_open_read_close(const char *filename, size_t *sizep)
 {
 	char *buf;
 	size_t size;
@@ -284,7 +284,7 @@ void *xmalloc_open_read_close(const char *filename, size_t *sizep)
 }
 #endif
 
-void *xmalloc_xopen_read_close(const char *filename, size_t *sizep)
+void* FAST_FUNC xmalloc_xopen_read_close(const char *filename, size_t *sizep)
 {
 	void *buf = xmalloc_open_read_close(filename, sizep);
 	if (!buf)

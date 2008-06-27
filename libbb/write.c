@@ -11,7 +11,7 @@
 
 /* Open file and write string str to it, close file.
  * Die on any open or write-error.  */
-void xopen_xwrite_close(const char* file, const char* str)
+void FAST_FUNC xopen_xwrite_close(const char* file, const char* str)
 {
 	int fd = xopen(file, O_WRONLY);
 

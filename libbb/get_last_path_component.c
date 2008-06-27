@@ -14,7 +14,7 @@
  * "abc/def"  -> "def"
  * "abc/def/" -> ""
  */
-char *bb_get_last_path_component_nostrip(const char *path)
+char* FAST_FUNC bb_get_last_path_component_nostrip(const char *path)
 {
 	char *slash = strrchr(path, '/');
 
@@ -30,7 +30,7 @@ char *bb_get_last_path_component_nostrip(const char *path)
  * "abc/def"  -> "def"
  * "abc/def/" -> "def" !!
  */
-char *bb_get_last_path_component_strip(char *path)
+char* FAST_FUNC bb_get_last_path_component_strip(char *path)
 {
 	char *slash = last_char_is(path, '/');
 

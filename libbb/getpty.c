@@ -10,7 +10,7 @@
 
 #define DEBUG 0
 
-int xgetpty(char *line)
+int FAST_FUNC xgetpty(char *line)
 {
 	int p;
 #if ENABLE_FEATURE_DEVPTS

@@ -157,7 +157,7 @@ static const char *obscure_msg(const char *old_p, const char *new_p, const struc
 	return NULL;
 }
 
-int obscure(const char *old, const char *newval, const struct passwd *pw)
+int FAST_FUNC obscure(const char *old, const char *newval, const struct passwd *pw)
 {
 	const char *msg;
 

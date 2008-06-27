@@ -72,7 +72,7 @@ static void new_group(char *group, gid_t gid)
 #if ENABLE_FEATURE_ADDUSER_TO_GROUP
 static void add_user_to_group(char **args,
 		const char *path,
-		FILE *(*fopen_func)(const char *fileName, const char *mode))
+		FILE* FAST_FUNC (*fopen_func)(const char *fileName, const char *mode))
 {
 	char *line;
 	int len = strlen(args[1]);

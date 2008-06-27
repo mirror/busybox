@@ -59,12 +59,12 @@ unsigned bb_strtoui(const char *str, char **end, int b)
 
 /* A few special cases */
 
-int xatoi_u(const char *numstr)
+int FAST_FUNC xatoi_u(const char *numstr)
 {
 	return xatou_range(numstr, 0, INT_MAX);
 }
 
-uint16_t xatou16(const char *numstr)
+uint16_t FAST_FUNC xatou16(const char *numstr)
 {
 	return xatou_range(numstr, 0, 0xffff);
 }

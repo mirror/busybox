@@ -13,7 +13,7 @@
  * This asks kernel to let us know dst addr/port of incoming packets
  * We don't check for errors here. Not supported == won't be used
  */
-void
+void FAST_FUNC
 socket_want_pktinfo(int fd)
 {
 #ifdef IP_PKTINFO
@@ -25,7 +25,7 @@ socket_want_pktinfo(int fd)
 }
 
 
-ssize_t
+ssize_t FAST_FUNC
 send_to_from(int fd, void *buf, size_t len, int flags,
 		const struct sockaddr *to,
 		const struct sockaddr *from,
@@ -100,7 +100,7 @@ send_to_from(int fd, void *buf, size_t len, int flags,
  * _Only_ IP/IPv6 address part of 'to' is _maybe_ modified.
  * Typical usage is to preinit 'to' with "default" value
  * before calling recv_from_to(). */
-ssize_t
+ssize_t FAST_FUNC
 recv_from_to(int fd, void *buf, size_t len, int flags,
 		struct sockaddr *from, struct sockaddr *to,
 		socklen_t sa_size)

@@ -25,17 +25,17 @@
 #include "libbb.h"
 
 /* Turn on nonblocking I/O on a fd */
-int ndelay_on(int fd)
+int FAST_FUNC ndelay_on(int fd)
 {
 	return fcntl(fd, F_SETFL, fcntl(fd,F_GETFL) | O_NONBLOCK);
 }
 
-int ndelay_off(int fd)
+int FAST_FUNC ndelay_off(int fd)
 {
 	return fcntl(fd, F_SETFL, fcntl(fd,F_GETFL) & ~O_NONBLOCK);
 }
 
-int close_on_exec_on(int fd)
+int FAST_FUNC close_on_exec_on(int fd)
 {
 	return fcntl(fd, F_SETFD, FD_CLOEXEC);
 }
@@ -43,7 +43,7 @@ int close_on_exec_on(int fd)
 /* Convert unsigned long long value into compact 4-char
  * representation. Examples: "1234", "1.2k", " 27M", "123T"
  * String is not terminated (buf[4] is untouched) */
-void smart_ulltoa4(unsigned long long ul, char buf[5], const char *scale)
+void FAST_FUNC smart_ulltoa4(unsigned long long ul, char buf[5], const char *scale)
 {
 	const char *fmt;
 	char c;
@@ -91,7 +91,7 @@ void smart_ulltoa4(unsigned long long ul, char buf[5], const char *scale)
 
 /* Convert unsigned long long value into compact 5-char representation.
  * String is not terminated (buf[5] is untouched) */
-void smart_ulltoa5(unsigned long long ul, char buf[6], const char *scale)
+void FAST_FUNC smart_ulltoa5(unsigned long long ul, char buf[6], const char *scale)
 {
 	const char *fmt;
 	char c;
@@ -149,7 +149,7 @@ void smart_ulltoa5(unsigned long long ul, char buf[6], const char *scale)
 // A truncated result contains the first few digits of the result ala strncpy.
 // Returns a pointer past last generated digit, does _not_ store NUL.
 void BUG_sizeof_unsigned_not_4(void);
-char *utoa_to_buf(unsigned n, char *buf, unsigned buflen)
+char* FAST_FUNC utoa_to_buf(unsigned n, char *buf, unsigned buflen)
 {
 	unsigned i, out, res;
 	if (sizeof(unsigned) != 4)
@@ -170,7 +170,7 @@ char *utoa_to_buf(unsigned n, char *buf, unsigned buflen)
 }
 
 /* Convert signed integer to ascii, like utoa_to_buf() */
-char *itoa_to_buf(int n, char *buf, unsigned buflen)
+char* FAST_FUNC itoa_to_buf(int n, char *buf, unsigned buflen)
 {
 	if (buflen && n < 0) {
 		n = -n;
@@ -190,7 +190,7 @@ char *itoa_to_buf(int n, char *buf, unsigned buflen)
 static char local_buf[sizeof(int) * 3];
 
 // Convert unsigned integer to ascii using a static buffer (returned).
-char *utoa(unsigned n)
+char* FAST_FUNC utoa(unsigned n)
 {
 	*(utoa_to_buf(n, local_buf, sizeof(local_buf))) = '\0';
 
@@ -198,7 +198,7 @@ char *utoa(unsigned n)
 }
 
 /* Convert signed integer to ascii using a static buffer (returned). */
-char *itoa(int n)
+char* FAST_FUNC itoa(int n)
 {
 	*(itoa_to_buf(n, local_buf, sizeof(local_buf))) = '\0';
 
@@ -206,7 +206,7 @@ char *itoa(int n)
 }
 
 /* Emit a string of hex representation of bytes */
-char *bin2hex(char *p, const char *cp, int count)
+char* FAST_FUNC bin2hex(char *p, const char *cp, int count)
 {
 	while (count) {
 		unsigned char c = *cp++;
@@ -220,7 +220,7 @@ char *bin2hex(char *p, const char *cp, int count)
 
 /* Return how long the file at fd is, if there's any way to determine it. */
 #ifdef UNUSED
-off_t fdlength(int fd)
+off_t FAST_FUNC fdlength(int fd)
 {
 	off_t bottom = 0, top = 0, pos;
 	long size;
@@ -262,7 +262,7 @@ off_t fdlength(int fd)
 
 /* It is perfectly ok to pass in a NULL for either width or for
  * height, in which case that value will not be set.  */
-int get_terminal_width_height(int fd, unsigned *width, unsigned *height)
+int FAST_FUNC get_terminal_width_height(int fd, unsigned *width, unsigned *height)
 {
 	struct winsize win = { 0, 0, 0, 0 };
 	int ret = ioctl(fd, TIOCGWINSZ, &win);

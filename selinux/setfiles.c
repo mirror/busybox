@@ -391,7 +391,7 @@ static int restore(const char *file)
  * This function is called by recursive_action on each file during
  * the directory traversal.
  */
-static int apply_spec(
+static int FAST_FUNC apply_spec(
 		const char *file,
 		struct stat *sb,
 		void *userData ATTRIBUTE_UNUSED,

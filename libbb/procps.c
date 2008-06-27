@@ -30,7 +30,7 @@ static void clear_cache(cache_t *cp)
 	cp->cache = NULL;
 	cp->size = 0;
 }
-void clear_username_cache(void)
+void FAST_FUNC clear_username_cache(void)
 {
 	clear_cache(&username);
 	clear_cache(&groupname);
@@ -52,7 +52,7 @@ static int get_cached(cache_t *cp, unsigned id)
 }
 #endif
 
-typedef char* ug_func(char *name, int bufsize, long uid);
+typedef char* FAST_FUNC ug_func(char *name, int bufsize, long uid);
 static char* get_cached(cache_t *cp, unsigned id, ug_func* fp)
 {
 	int i;
@@ -66,11 +66,11 @@ static char* get_cached(cache_t *cp, unsigned id, ug_func* fp)
 	fp(cp->cache[i].name, sizeof(cp->cache[i].name), id);
 	return cp->cache[i].name;
 }
-const char* get_cached_username(uid_t uid)
+const char* FAST_FUNC get_cached_username(uid_t uid)
 {
 	return get_cached(&username, uid, bb_getpwuid);
 }
-const char* get_cached_groupname(gid_t gid)
+const char* FAST_FUNC get_cached_groupname(gid_t gid)
 {
 	return get_cached(&groupname, gid, bb_getgrgid);
 }
@@ -78,7 +78,7 @@ const char* get_cached_groupname(gid_t gid)
 
 #define PROCPS_BUFSIZE 1024
 
-static int read_to_buf(const char *filename, void *buf)
+static int FAST_FUNC read_to_buf(const char *filename, void *buf)
 {
 	int fd;
 	/* open_read_close() would do two reads, checking for EOF.
@@ -93,7 +93,7 @@ static int read_to_buf(const char *filename, void *buf)
 	return ret;
 }
 
-static procps_status_t *alloc_procps_scan(void)
+static procps_status_t* FAST_FUNC alloc_procps_scan(void)
 {
 	unsigned n = getpagesize();
 	procps_status_t* sp = xzalloc(sizeof(procps_status_t));
@@ -107,7 +107,7 @@ static procps_status_t *alloc_procps_scan(void)
 	return sp;
 }
 
-void free_procps_scan(procps_status_t* sp)
+void FAST_FUNC free_procps_scan(procps_status_t* sp)
 {
 	closedir(sp->dir);
 	free(sp->argv0);
@@ -163,7 +163,7 @@ static char *skip_fields(char *str, int count)
 #endif
 
 void BUG_comm_size(void);
-procps_status_t *procps_scan(procps_status_t* sp, int flags)
+procps_status_t* FAST_FUNC procps_scan(procps_status_t* sp, int flags)
 {
 	struct dirent *entry;
 	char buf[PROCPS_BUFSIZE];
@@ -402,7 +402,7 @@ procps_status_t *procps_scan(procps_status_t* sp, int flags)
 	return sp;
 }
 
-void read_cmdline(char *buf, int col, unsigned pid, const char *comm)
+void FAST_FUNC read_cmdline(char *buf, int col, unsigned pid, const char *comm)
 {
 	ssize_t sz;
 	char filename[sizeof("/proc//cmdline") + sizeof(int)*3];

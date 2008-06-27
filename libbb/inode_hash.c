@@ -27,7 +27,7 @@ static ino_dev_hashtable_bucket_t **ino_dev_hashtable;
  * Return name if statbuf->st_ino && statbuf->st_dev are recorded in
  * ino_dev_hashtable, else return NULL
  */
-char *is_in_ino_dev_hashtable(const struct stat *statbuf)
+char* FAST_FUNC is_in_ino_dev_hashtable(const struct stat *statbuf)
 {
 	ino_dev_hashtable_bucket_t *bucket;
 
@@ -47,7 +47,7 @@ char *is_in_ino_dev_hashtable(const struct stat *statbuf)
 }
 
 /* Add statbuf to statbuf hash table */
-void add_to_ino_dev_hashtable(const struct stat *statbuf, const char *name)
+void FAST_FUNC add_to_ino_dev_hashtable(const struct stat *statbuf, const char *name)
 {
 	int i;
 	ino_dev_hashtable_bucket_t *bucket;
@@ -69,7 +69,7 @@ void add_to_ino_dev_hashtable(const struct stat *statbuf, const char *name)
 
 #if ENABLE_FEATURE_CLEAN_UP
 /* Clear statbuf hash table */
-void reset_ino_dev_hashtable(void)
+void FAST_FUNC reset_ino_dev_hashtable(void)
 {
 	int i;
 	ino_dev_hashtable_bucket_t *bucket;

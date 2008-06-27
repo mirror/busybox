@@ -316,7 +316,7 @@ const char *applet_long_options;
 
 uint32_t option_mask32;
 
-uint32_t
+uint32_t FAST_FUNC
 getopt32(char **argv, const char *applet_opts, ...)
 {
 	int argc;

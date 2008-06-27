@@ -229,7 +229,7 @@ enum {
 };
 
 
-USE_DESKTOP(long long) int
+USE_DESKTOP(long long) int FAST_FUNC
 unpack_lzma_stream(int src_fd, int dst_fd)
 {
 	USE_DESKTOP(long long total_written = 0;)

@@ -9,7 +9,7 @@
 
 #include "libbb.h"
 
-void bb_error_msg(const char *s, ...)
+void FAST_FUNC bb_error_msg(const char *s, ...)
 {
 	va_list p;
 

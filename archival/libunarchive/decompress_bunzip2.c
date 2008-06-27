@@ -526,7 +526,7 @@ static int get_next_block(bunzip_data *bd)
    are ignored, data is written to out_fd and return is RETVAL_OK or error.
 */
 
-int read_bunzip(bunzip_data *bd, char *outbuf, int len)
+int FAST_FUNC read_bunzip(bunzip_data *bd, char *outbuf, int len)
 {
 	const unsigned *dbuf;
 	int pos, current, previous, gotcount;
@@ -643,7 +643,7 @@ int read_bunzip(bunzip_data *bd, char *outbuf, int len)
    should work for NOFORK applets too, we must be extremely careful to not leak
    any allocations! */
 
-int start_bunzip(bunzip_data **bdp, int in_fd, const unsigned char *inbuf,
+int FAST_FUNC start_bunzip(bunzip_data **bdp, int in_fd, const unsigned char *inbuf,
 						int len)
 {
 	bunzip_data *bd;
@@ -699,7 +699,7 @@ int start_bunzip(bunzip_data **bdp, int in_fd, const unsigned char *inbuf,
 	return RETVAL_OK;
 }
 
-void dealloc_bunzip(bunzip_data *bd)
+void FAST_FUNC dealloc_bunzip(bunzip_data *bd)
 {
 	free(bd->dbuf);
 	free(bd);
@@ -708,7 +708,7 @@ void dealloc_bunzip(bunzip_data *bd)
 
 /* Decompress src_fd to dst_fd.  Stops at end of bzip data, not end of file. */
 
-USE_DESKTOP(long long) int
+USE_DESKTOP(long long) int FAST_FUNC
 unpack_bz2_stream(int src_fd, int dst_fd)
 {
 	USE_DESKTOP(long long total_written = 0;)

@@ -6,7 +6,7 @@
 #include "libbb.h"
 #include "unarchive.h"
 
-void unpack_ar_archive(archive_handle_t *ar_archive)
+void FAST_FUNC unpack_ar_archive(archive_handle_t *ar_archive)
 {
 	char magic[7];
 

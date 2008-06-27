@@ -55,12 +55,12 @@ static char *xmalloc_fgets_internal(FILE *file, const char *terminating_string, 
  * including terminating string.
  * Non-terminated string can be returned if EOF is reached.
  * Return NULL if EOF is reached immediately.  */
-char *xmalloc_fgets_str(FILE *file, const char *terminating_string)
+char* FAST_FUNC xmalloc_fgets_str(FILE *file, const char *terminating_string)
 {
 	return xmalloc_fgets_internal(file, terminating_string, 0);
 }
 
-char *xmalloc_fgetline_str(FILE *file, const char *terminating_string)
+char* FAST_FUNC xmalloc_fgetline_str(FILE *file, const char *terminating_string)
 {
 	return xmalloc_fgets_internal(file, terminating_string, 1);
 }

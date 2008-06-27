@@ -38,7 +38,7 @@ static int open_a_console(const char *fnam)
  * if someone else used X (which does a chown on /dev/console).
  */
 
-int get_console_fd(void)
+int FAST_FUNC get_console_fd(void)
 {
 	static const char *const console_names[] = {
 		DEV_CONSOLE, CURRENT_VC, CURRENT_TTY
@@ -75,7 +75,7 @@ enum {
 	VT_WAITACTIVE = 0x5607  /* wait for vt active */
 };
 
-void console_make_active(int fd, const int vt_num)
+void FAST_FUNC console_make_active(int fd, const int vt_num)
 {
 	xioctl(fd, VT_ACTIVATE, (void *)(ptrdiff_t)vt_num);
 	xioctl(fd, VT_WAITACTIVE, (void *)(ptrdiff_t)vt_num);

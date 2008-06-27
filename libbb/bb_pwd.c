@@ -45,7 +45,7 @@ static char* bb_getug(char *buffer, int bufsize, char *idname, long id, char pre
  * bb_getXXXid(NULL, -1, id) - return user/group name or exit
  */
 /* gets a username given a uid */
-char* bb_getpwuid(char *name, int bufsize, long uid)
+char* FAST_FUNC bb_getpwuid(char *name, int bufsize, long uid)
 {
 	struct passwd *myuser = getpwuid(uid);
 
@@ -54,7 +54,7 @@ char* bb_getpwuid(char *name, int bufsize, long uid)
 			uid, 'u');
 }
 /* gets a groupname given a gid */
-char* bb_getgrgid(char *group, int bufsize, long gid)
+char* FAST_FUNC bb_getgrgid(char *group, int bufsize, long gid)
 {
 	struct group *mygroup = getgrgid(gid);
 
@@ -64,7 +64,7 @@ char* bb_getgrgid(char *group, int bufsize, long gid)
 }
 
 /* returns a gid given a group name */
-long xgroup2gid(const char *name)
+long FAST_FUNC xgroup2gid(const char *name)
 {
 	struct group *mygroup;
 
@@ -76,7 +76,7 @@ long xgroup2gid(const char *name)
 }
 
 /* returns a uid given a username */
-long xuname2uid(const char *name)
+long FAST_FUNC xuname2uid(const char *name)
 {
 	struct passwd *myuser;
 
@@ -87,8 +87,8 @@ long xuname2uid(const char *name)
 	return myuser->pw_uid;
 }
 
-unsigned long get_ug_id(const char *s,
-		long (*xname2id)(const char *))
+unsigned long FAST_FUNC get_ug_id(const char *s,
+		long FAST_FUNC (*xname2id)(const char *))
 {
 	unsigned long r;
 

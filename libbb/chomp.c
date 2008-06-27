@@ -10,7 +10,7 @@
 
 #include "libbb.h"
 
-void chomp(char *s)
+void FAST_FUNC chomp(char *s)
 {
 	char *lc = last_char_is(s, '\n');
 

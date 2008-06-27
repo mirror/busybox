@@ -20,7 +20,7 @@
 
 /* This does a fork/exec in one call, using vfork().  Returns PID of new child,
  * -1 for failure.  Runs argv[0], searching path if that has no / in it. */
-pid_t spawn(char **argv)
+pid_t FAST_FUNC spawn(char **argv)
 {
 	/* Compiler should not optimize stores here */
 	volatile int failed;
@@ -58,7 +58,7 @@ pid_t spawn(char **argv)
 }
 
 /* Die with an error message if we can't spawn a child process. */
-pid_t xspawn(char **argv)
+pid_t FAST_FUNC xspawn(char **argv)
 {
 	pid_t pid = spawn(argv);
 	if (pid < 0)
@@ -66,7 +66,7 @@ pid_t xspawn(char **argv)
 	return pid;
 }
 
-int safe_waitpid(int pid, int *wstat, int options)
+int FAST_FUNC safe_waitpid(int pid, int *wstat, int options)
 {
 	int r;
 
@@ -76,13 +76,13 @@ int safe_waitpid(int pid, int *wstat, int options)
 	return r;
 }
 
-int wait_any_nohang(int *wstat)
+int FAST_FUNC wait_any_nohang(int *wstat)
 {
 	return safe_waitpid(-1, wstat, WNOHANG);
 }
 
 // Wait for the specified child PID to exit, returning child's error return.
-int wait4pid(int pid)
+int FAST_FUNC wait4pid(int pid)
 {
 	int status;
 
@@ -101,7 +101,7 @@ int wait4pid(int pid)
 }
 
 #if ENABLE_FEATURE_PREFER_APPLETS
-void save_nofork_data(struct nofork_save_area *save)
+void FAST_FUNC save_nofork_data(struct nofork_save_area *save)
 {
 	memcpy(&save->die_jmp, &die_jmp, sizeof(die_jmp));
 	save->applet_name = applet_name;
@@ -111,7 +111,7 @@ void save_nofork_data(struct nofork_save_area *save)
 	save->saved = 1;
 }
 
-void restore_nofork_data(struct nofork_save_area *save)
+void FAST_FUNC restore_nofork_data(struct nofork_save_area *save)
 {
 	memcpy(&die_jmp, &save->die_jmp, sizeof(die_jmp));
 	applet_name = save->applet_name;
@@ -120,7 +120,7 @@ void restore_nofork_data(struct nofork_save_area *save)
 	die_sleep = save->die_sleep;
 }
 
-int run_nofork_applet_prime(struct nofork_save_area *old, int applet_no, char **argv)
+int FAST_FUNC run_nofork_applet_prime(struct nofork_save_area *old, int applet_no, char **argv)
 {
 	int rc, argc;
 
@@ -166,7 +166,7 @@ int run_nofork_applet_prime(struct nofork_save_area *old, int applet_no, char **
 	return rc & 0xff; /* don't confuse people with "exitcodes" >255 */
 }
 
-int run_nofork_applet(int applet_no, char **argv)
+int FAST_FUNC run_nofork_applet(int applet_no, char **argv)
 {
 	struct nofork_save_area old;
 
@@ -176,7 +176,7 @@ int run_nofork_applet(int applet_no, char **argv)
 }
 #endif /* FEATURE_PREFER_APPLETS */
 
-int spawn_and_wait(char **argv)
+int FAST_FUNC spawn_and_wait(char **argv)
 {
 	int rc;
 #if ENABLE_FEATURE_PREFER_APPLETS
@@ -210,7 +210,7 @@ int spawn_and_wait(char **argv)
 }
 
 #if !BB_MMU
-void re_exec(char **argv)
+void FAST_FUNC re_exec(char **argv)
 {
 	/* high-order bit of first char in argv[0] is a hidden
 	 * "we have (already) re-execed, don't do it again" flag */
@@ -219,7 +219,7 @@ void re_exec(char **argv)
 	bb_perror_msg_and_die("exec %s", bb_busybox_exec_path);
 }
 
-void forkexit_or_rexec(char **argv)
+void FAST_FUNC forkexit_or_rexec(char **argv)
 {
 	pid_t pid;
 	/* Maybe we are already re-execed and come here again? */
@@ -237,7 +237,7 @@ void forkexit_or_rexec(char **argv)
 #else
 /* Dance around (void)...*/
 #undef forkexit_or_rexec
-void forkexit_or_rexec(void)
+void FAST_FUNC forkexit_or_rexec(void)
 {
 	pid_t pid;
 	pid = fork();
@@ -252,7 +252,7 @@ void forkexit_or_rexec(void)
 
 /* Due to a #define in libbb.h on MMU systems we actually have 1 argument -
  * char **argv "vanishes" */
-void bb_daemonize_or_rexec(int flags, char **argv)
+void FAST_FUNC bb_daemonize_or_rexec(int flags, char **argv)
 {
 	int fd;
 
@@ -286,7 +286,7 @@ void bb_daemonize_or_rexec(int flags, char **argv)
 	}
 }
 
-void bb_sanitize_stdio(void)
+void FAST_FUNC bb_sanitize_stdio(void)
 {
 	bb_daemonize_or_rexec(DAEMON_ONLY_SANITIZE, NULL);
 }

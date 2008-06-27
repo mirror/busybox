@@ -97,6 +97,13 @@
 # endif
 #endif
 
+#if __GNUC_PREREQ(3,0) && defined(i386)
+/* || defined(__x86_64__)? */
+# define FAST_FUNC __attribute__((regparm(3)))
+#else
+# define FAST_FUNC
+#endif
+
 /* ---- Endian Detection ------------------------------------ */
 
 #if (defined __digital__ && defined __unix__)

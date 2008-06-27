@@ -8,7 +8,7 @@
 
 #include "libbb.h"
 
-int create_icmp_socket(void)
+int FAST_FUNC create_icmp_socket(void)
 {
 	int sock;
 #if 0

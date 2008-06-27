@@ -48,7 +48,7 @@ and therefore comm field contains "exe".
  *  Returns a list of all matching PIDs
  *  It is the caller's duty to free the returned pidlist.
  */
-pid_t* find_pid_by_name(const char* procName)
+pid_t* FAST_FUNC find_pid_by_name(const char* procName)
 {
 	pid_t* pidList;
 	int i = 0;
@@ -74,7 +74,7 @@ pid_t* find_pid_by_name(const char* procName)
 	return pidList;
 }
 
-pid_t *pidlist_reverse(pid_t *pidList)
+pid_t* FAST_FUNC pidlist_reverse(pid_t *pidList)
 {
 	int i = 0;
 	while (pidList[i])

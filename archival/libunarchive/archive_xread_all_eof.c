@@ -6,7 +6,7 @@
 #include "libbb.h"
 #include "unarchive.h"
 
-ssize_t archive_xread_all_eof(archive_handle_t *archive_handle,
+ssize_t FAST_FUNC archive_xread_all_eof(archive_handle_t *archive_handle,
 			unsigned char *buf, size_t count)
 {
 	ssize_t size;

@@ -14,7 +14,7 @@
 
 #include "libbb.h"
 
-FILE *fopen_or_warn_stdin(const char *filename)
+FILE* FAST_FUNC fopen_or_warn_stdin(const char *filename)
 {
 	FILE *fp = stdin;
 
@@ -26,7 +26,7 @@ FILE *fopen_or_warn_stdin(const char *filename)
 	return fp;
 }
 
-FILE *xfopen_stdin(const char *filename)
+FILE* FAST_FUNC xfopen_stdin(const char *filename)
 {
 	FILE *fp = fopen_or_warn_stdin(filename);
 	if (fp)
@@ -34,7 +34,7 @@ FILE *xfopen_stdin(const char *filename)
 	xfunc_die();	/* We already output an error message. */
 }
 
-int open_or_warn_stdin(const char *filename)
+int FAST_FUNC open_or_warn_stdin(const char *filename)
 {
 	int fd = STDIN_FILENO;
 

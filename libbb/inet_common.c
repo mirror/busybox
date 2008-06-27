@@ -11,7 +11,7 @@
 #include "libbb.h"
 #include "inet_common.h"
 
-int INET_resolve(const char *name, struct sockaddr_in *s_in, int hostfirst)
+int FAST_FUNC INET_resolve(const char *name, struct sockaddr_in *s_in, int hostfirst)
 {
 	struct hostent *hp;
 #if ENABLE_FEATURE_ETC_NETWORKS
@@ -81,7 +81,7 @@ int INET_resolve(const char *name, struct sockaddr_in *s_in, int hostfirst)
  *          & 0x4000: host instead of net,
  *          & 0x0fff: don't resolve
  */
-char *INET_rresolve(struct sockaddr_in *s_in, int numeric, uint32_t netmask)
+char* FAST_FUNC INET_rresolve(struct sockaddr_in *s_in, int numeric, uint32_t netmask)
 {
 	/* addr-to-name cache */
 	struct addr {
@@ -165,7 +165,7 @@ char *INET_rresolve(struct sockaddr_in *s_in, int numeric, uint32_t netmask)
 
 #if ENABLE_FEATURE_IPV6
 
-int INET6_resolve(const char *name, struct sockaddr_in6 *sin6)
+int FAST_FUNC INET6_resolve(const char *name, struct sockaddr_in6 *sin6)
 {
 	struct addrinfo req, *ai;
 	int s;
@@ -189,7 +189,7 @@ int INET6_resolve(const char *name, struct sockaddr_in6 *sin6)
 #endif
 
 
-char *INET6_rresolve(struct sockaddr_in6 *sin6, int numeric)
+char* FAST_FUNC INET6_rresolve(struct sockaddr_in6 *sin6, int numeric)
 {
 	char name[128];
 	int s;

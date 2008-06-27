@@ -18,7 +18,7 @@
 static const char fmtstr_d[] ALIGN1 = "%A, %d %B %Y";
 static const char fmtstr_t[] ALIGN1 = "%H:%M:%S";
 
-void print_login_issue(const char *issue_file, const char *tty)
+void FAST_FUNC print_login_issue(const char *issue_file, const char *tty)
 {
 	FILE *fd;
 	int c;
@@ -86,7 +86,7 @@ void print_login_issue(const char *issue_file, const char *tty)
 	fflush(stdout);
 }
 
-void print_login_prompt(void)
+void FAST_FUNC print_login_prompt(void)
 {
 	char *hostname = safe_gethostname();
 
@@ -112,7 +112,7 @@ static const char forbid[] ALIGN1 =
 	"LD_NOWARN" "\0"
 	"LD_KEEPDIR" "\0";
 
-int sanitize_env_if_suid(void)
+int FAST_FUNC sanitize_env_if_suid(void)
 {
 	const char *p;
 

@@ -1482,7 +1482,7 @@ static char *deb_extract_control_file_to_buffer(archive_handle_t *ar_handle, lli
 	return ar_handle->sub_archive->buffer;
 }
 
-static void data_extract_all_prefix(archive_handle_t *archive_handle)
+static void FAST_FUNC data_extract_all_prefix(archive_handle_t *archive_handle)
 {
 	char *name_ptr = archive_handle->file_header->name;
 

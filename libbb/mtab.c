@@ -11,7 +11,7 @@
 #include "libbb.h"
 
 #if ENABLE_FEATURE_MTAB_SUPPORT
-void erase_mtab(const char *name)
+void FAST_FUNC erase_mtab(const char *name)
 {
 	struct mntent *entries = NULL;
 	int i, count = 0;

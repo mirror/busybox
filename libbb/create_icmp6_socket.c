@@ -9,7 +9,7 @@
 #include "libbb.h"
 
 #if ENABLE_FEATURE_IPV6
-int create_icmp6_socket(void)
+int FAST_FUNC create_icmp6_socket(void)
 {
 	int sock;
 #if 0

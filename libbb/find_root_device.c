@@ -62,7 +62,7 @@ static char *find_block_device_in_dir(struct arena *ap)
 	return retpath;
 }
 
-char *find_block_device(const char *path)
+char* FAST_FUNC find_block_device(const char *path)
 {
 	struct arena a;
 

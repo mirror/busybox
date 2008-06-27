@@ -22,7 +22,7 @@
  * is so stinking huge.
  */
 
-static int true_action(const char *fileName ATTRIBUTE_UNUSED,
+static int FAST_FUNC true_action(const char *fileName ATTRIBUTE_UNUSED,
 		struct stat *statbuf ATTRIBUTE_UNUSED,
 		void* userData ATTRIBUTE_UNUSED,
 		int depth ATTRIBUTE_UNUSED)
@@ -53,10 +53,10 @@ static int true_action(const char *fileName ATTRIBUTE_UNUSED,
  * 1: stat(statbuf). Calls dirAction and optionally recurse on link to dir.
  */
 
-int recursive_action(const char *fileName,
+int FAST_FUNC recursive_action(const char *fileName,
 		unsigned flags,
-		int (*fileAction)(const char *fileName, struct stat *statbuf, void* userData, int depth),
-		int (*dirAction)(const char *fileName, struct stat *statbuf, void* userData, int depth),
+		int FAST_FUNC (*fileAction)(const char *fileName, struct stat *statbuf, void* userData, int depth),
+		int FAST_FUNC (*dirAction)(const char *fileName, struct stat *statbuf, void* userData, int depth),
 		void* userData,
 		unsigned depth)
 {

@@ -19,7 +19,7 @@
 
 static void del_line_matching(char **args,
 		const char *filename,
-		FILE *(*fopen_func)(const char *fileName, const char *mode))
+		FILE* FAST_FUNC (*fopen_func)(const char *fileName, const char *mode))
 {
 	FILE *passwd;
 	smallint error = NAME_NOT_FOUND;

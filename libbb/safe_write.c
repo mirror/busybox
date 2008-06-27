@@ -9,7 +9,7 @@
 
 #include "libbb.h"
 
-ssize_t safe_write(int fd, const void *buf, size_t count)
+ssize_t FAST_FUNC safe_write(int fd, const void *buf, size_t count)
 {
 	ssize_t n;
 

@@ -77,7 +77,7 @@ static int bb_alphasort(const void *p1, const void *p2)
 	return (option_mask32 & OPT_r) ? -r : r;
 }
 
-static int act(const char *file, struct stat *statbuf, void *args ATTRIBUTE_UNUSED, int depth)
+static int FAST_FUNC act(const char *file, struct stat *statbuf, void *args ATTRIBUTE_UNUSED, int depth)
 {
 	if (depth == 1)
 		return TRUE;

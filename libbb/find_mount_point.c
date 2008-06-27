@@ -17,7 +17,7 @@
  * Given any other file (or directory), find the mount table entry for its
  * filesystem.
  */
-struct mntent *find_mount_point(const char *name, const char *table)
+struct mntent* FAST_FUNC find_mount_point(const char *name, const char *table)
 {
 	struct stat s;
 	dev_t mountDevice;

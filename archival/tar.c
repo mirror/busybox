@@ -396,7 +396,7 @@ static int exclude_file(const llist_t *excluded_files, const char *file)
 #define exclude_file(excluded_files, file) 0
 #endif
 
-static int writeFileToTarball(const char *fileName, struct stat *statbuf,
+static int FAST_FUNC writeFileToTarball(const char *fileName, struct stat *statbuf,
 			void *userData, int depth ATTRIBUTE_UNUSED)
 {
 	struct TarBallInfo *tbInfo = (struct TarBallInfo *) userData;
@@ -680,7 +680,7 @@ static llist_t *append_file_list_to_list(llist_t *list)
 #endif
 
 #if ENABLE_FEATURE_TAR_COMPRESS
-static char get_header_tar_Z(archive_handle_t *archive_handle)
+static char FAST_FUNC get_header_tar_Z(archive_handle_t *archive_handle)
 {
 	/* Can't lseek over pipes */
 	archive_handle->seek = seek_by_read;
@@ -802,7 +802,7 @@ static const char tar_longopts[] ALIGN1 =
 int tar_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int tar_main(int argc ATTRIBUTE_UNUSED, char **argv)
 {
-	char (*get_header_ptr)(archive_handle_t *) = get_header_tar;
+	char FAST_FUNC (*get_header_ptr)(archive_handle_t *) = get_header_tar;
 	archive_handle_t *tar_handle;
 	char *base_dir = NULL;
 	const char *tar_filename = "-";

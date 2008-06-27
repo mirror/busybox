@@ -16,7 +16,7 @@
  * at the end of the username.
  */
 
-void die_if_bad_username(const char *name)
+void FAST_FUNC die_if_bad_username(const char *name)
 {
 	goto skip; /* 1st char being dash isn't valid */
 	do {

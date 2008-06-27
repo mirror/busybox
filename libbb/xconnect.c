@@ -9,16 +9,16 @@
 #include <netinet/in.h>
 #include "libbb.h"
 
-void setsockopt_reuseaddr(int fd)
+void FAST_FUNC setsockopt_reuseaddr(int fd)
 {
 	setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &const_int_1, sizeof(const_int_1));
 }
-int setsockopt_broadcast(int fd)
+int FAST_FUNC setsockopt_broadcast(int fd)
 {
 	return setsockopt(fd, SOL_SOCKET, SO_BROADCAST, &const_int_1, sizeof(const_int_1));
 }
 
-void xconnect(int s, const struct sockaddr *s_addr, socklen_t addrlen)
+void FAST_FUNC xconnect(int s, const struct sockaddr *s_addr, socklen_t addrlen)
 {
 	if (connect(s, s_addr, addrlen) < 0) {
 		if (ENABLE_FEATURE_CLEAN_UP)
@@ -35,7 +35,7 @@ void xconnect(int s, const struct sockaddr *s_addr, socklen_t addrlen)
  * If "port" is a number use it as the port.
  * If "port" is a name it is looked up in /etc/services, if it isnt found return
  * default_port */
-unsigned bb_lookup_port(const char *port, const char *protocol, unsigned default_port)
+unsigned FAST_FUNC bb_lookup_port(const char *port, const char *protocol, unsigned default_port)
 {
 	unsigned port_nr = default_port;
 	if (port) {
@@ -60,7 +60,7 @@ unsigned bb_lookup_port(const char *port, const char *protocol, unsigned default
 /* "Old" networking API - only IPv4 */
 
 /*
-void bb_lookup_host(struct sockaddr_in *s_in, const char *host)
+void FAST_FUNC bb_lookup_host(struct sockaddr_in *s_in, const char *host)
 {
 	struct hostent *he;
 
@@ -71,7 +71,7 @@ void bb_lookup_host(struct sockaddr_in *s_in, const char *host)
 }
 
 
-int xconnect_tcp_v4(struct sockaddr_in *s_addr)
+int FAST_FUNC xconnect_tcp_v4(struct sockaddr_in *s_addr)
 {
 	int s = xsocket(AF_INET, SOCK_STREAM, 0);
 	xconnect(s, (struct sockaddr*) s_addr, sizeof(*s_addr));
@@ -82,7 +82,7 @@ int xconnect_tcp_v4(struct sockaddr_in *s_addr)
 /* "New" networking API */
 
 
-int get_nport(const struct sockaddr *sa)
+int FAST_FUNC get_nport(const struct sockaddr *sa)
 {
 #if ENABLE_FEATURE_IPV6
 	if (sa->sa_family == AF_INET6) {
@@ -96,7 +96,7 @@ int get_nport(const struct sockaddr *sa)
 	return -1;
 }
 
-void set_nport(len_and_sockaddr *lsa, unsigned port)
+void FAST_FUNC set_nport(len_and_sockaddr *lsa, unsigned port)
 {
 #if ENABLE_FEATURE_IPV6
 	if (lsa->u.sa.sa_family == AF_INET6) {
@@ -205,34 +205,34 @@ USE_FEATURE_IPV6(sa_family_t af,)
 #endif
 
 #if ENABLE_FEATURE_IPV6
-len_and_sockaddr* host_and_af2sockaddr(const char *host, int port, sa_family_t af)
+len_and_sockaddr* FAST_FUNC host_and_af2sockaddr(const char *host, int port, sa_family_t af)
 {
 	return str2sockaddr(host, port, af, 0);
 }
 
-len_and_sockaddr* xhost_and_af2sockaddr(const char *host, int port, sa_family_t af)
+len_and_sockaddr* FAST_FUNC xhost_and_af2sockaddr(const char *host, int port, sa_family_t af)
 {
 	return str2sockaddr(host, port, af, DIE_ON_ERROR);
 }
 #endif
 
-len_and_sockaddr* host2sockaddr(const char *host, int port)
+len_and_sockaddr* FAST_FUNC host2sockaddr(const char *host, int port)
 {
 	return str2sockaddr(host, port, AF_UNSPEC, 0);
 }
 
-len_and_sockaddr* xhost2sockaddr(const char *host, int port)
+len_and_sockaddr* FAST_FUNC xhost2sockaddr(const char *host, int port)
 {
 	return str2sockaddr(host, port, AF_UNSPEC, DIE_ON_ERROR);
 }
 
-len_and_sockaddr* xdotted2sockaddr(const char *host, int port)
+len_and_sockaddr* FAST_FUNC xdotted2sockaddr(const char *host, int port)
 {
 	return str2sockaddr(host, port, AF_UNSPEC, AI_NUMERICHOST | DIE_ON_ERROR);
 }
 
 #undef xsocket_type
-int xsocket_type(len_and_sockaddr **lsap, USE_FEATURE_IPV6(int family,) int sock_type)
+int FAST_FUNC xsocket_type(len_and_sockaddr **lsap, USE_FEATURE_IPV6(int family,) int sock_type)
 {
 	SKIP_FEATURE_IPV6(enum { family = AF_INET };)
 	len_and_sockaddr *lsa;
@@ -264,7 +264,7 @@ int xsocket_type(len_and_sockaddr **lsap, USE_FEATURE_IPV6(int family,) int sock
 	return fd;
 }
 
-int xsocket_stream(len_and_sockaddr **lsap)
+int FAST_FUNC xsocket_stream(len_and_sockaddr **lsap)
 {
 	return xsocket_type(lsap, USE_FEATURE_IPV6(AF_UNSPEC,) SOCK_STREAM);
 }
@@ -288,18 +288,18 @@ static int create_and_bind_or_die(const char *bindaddr, int port, int sock_type)
 	return fd;
 }
 
-int create_and_bind_stream_or_die(const char *bindaddr, int port)
+int FAST_FUNC create_and_bind_stream_or_die(const char *bindaddr, int port)
 {
 	return create_and_bind_or_die(bindaddr, port, SOCK_STREAM);
 }
 
-int create_and_bind_dgram_or_die(const char *bindaddr, int port)
+int FAST_FUNC create_and_bind_dgram_or_die(const char *bindaddr, int port)
 {
 	return create_and_bind_or_die(bindaddr, port, SOCK_DGRAM);
 }
 
 
-int create_and_connect_stream_or_die(const char *peer, int port)
+int FAST_FUNC create_and_connect_stream_or_die(const char *peer, int port)
 {
 	int fd;
 	len_and_sockaddr *lsa;
@@ -312,7 +312,7 @@ int create_and_connect_stream_or_die(const char *peer, int port)
 	return fd;
 }
 
-int xconnect_stream(const len_and_sockaddr *lsa)
+int FAST_FUNC xconnect_stream(const len_and_sockaddr *lsa)
 {
 	int fd = xsocket(lsa->u.sa.sa_family, SOCK_STREAM, 0);
 	xconnect(fd, &lsa->u.sa, lsa->len);
@@ -322,7 +322,7 @@ int xconnect_stream(const len_and_sockaddr *lsa)
 /* We hijack this constant to mean something else */
 /* It doesn't hurt because we will add this bit anyway */
 #define IGNORE_PORT NI_NUMERICSERV
-static char* sockaddr2str(const struct sockaddr *sa, int flags)
+static char* FAST_FUNC sockaddr2str(const struct sockaddr *sa, int flags)
 {
 	char host[128];
 	char serv[16];
@@ -361,26 +361,26 @@ static char* sockaddr2str(const struct sockaddr *sa, int flags)
 	/*return xstrdup(host);*/
 }
 
-char* xmalloc_sockaddr2host(const struct sockaddr *sa)
+char* FAST_FUNC xmalloc_sockaddr2host(const struct sockaddr *sa)
 {
 	return sockaddr2str(sa, 0);
 }
 
-char* xmalloc_sockaddr2host_noport(const struct sockaddr *sa)
+char* FAST_FUNC xmalloc_sockaddr2host_noport(const struct sockaddr *sa)
 {
 	return sockaddr2str(sa, IGNORE_PORT);
 }
 
-char* xmalloc_sockaddr2hostonly_noport(const struct sockaddr *sa)
+char* FAST_FUNC xmalloc_sockaddr2hostonly_noport(const struct sockaddr *sa)
 {
 	return sockaddr2str(sa, NI_NAMEREQD | IGNORE_PORT);
 }
-char* xmalloc_sockaddr2dotted(const struct sockaddr *sa)
+char* FAST_FUNC xmalloc_sockaddr2dotted(const struct sockaddr *sa)
 {
 	return sockaddr2str(sa, NI_NUMERICHOST);
 }
 
-char* xmalloc_sockaddr2dotted_noport(const struct sockaddr *sa)
+char* FAST_FUNC xmalloc_sockaddr2dotted_noport(const struct sockaddr *sa)
 {
 	return sockaddr2str(sa, NI_NUMERICHOST | IGNORE_PORT);
 }

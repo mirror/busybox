@@ -44,7 +44,7 @@ typedef struct {
 } bb_loop_info;
 #endif
 
-char *query_loop(const char *device)
+char* FAST_FUNC query_loop(const char *device)
 {
 	int fd;
 	bb_loop_info loopinfo;
@@ -61,7 +61,7 @@ char *query_loop(const char *device)
 }
 
 
-int del_loop(const char *device)
+int FAST_FUNC del_loop(const char *device)
 {
 	int fd, rc;
 
@@ -79,7 +79,7 @@ int del_loop(const char *device)
    search will re-use an existing loop device already bound to that
    file/offset if it finds one.
  */
-int set_loop(char **device, const char *file, unsigned long long offset)
+int FAST_FUNC set_loop(char **device, const char *file, unsigned long long offset)
 {
 	char dev[LOOP_NAMESIZE];
 	char *try;

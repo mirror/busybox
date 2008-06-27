@@ -8,7 +8,7 @@
 #include "libbb.h"
 #include "unarchive.h"
 
-void data_extract_to_buffer(archive_handle_t *archive_handle)
+void FAST_FUNC data_extract_to_buffer(archive_handle_t *archive_handle)
 {
 	unsigned int size = archive_handle->file_header->size;
 

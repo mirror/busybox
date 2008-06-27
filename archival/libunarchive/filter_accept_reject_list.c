@@ -11,7 +11,7 @@
 /*
  * Accept names that are in the accept list and not in the reject list
  */
-char filter_accept_reject_list(archive_handle_t *archive_handle)
+char FAST_FUNC filter_accept_reject_list(archive_handle_t *archive_handle)
 {
 	const char *key;
 	const llist_t *reject_entry;

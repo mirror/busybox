@@ -48,7 +48,7 @@ static unsigned long long handle_errors(unsigned long long v, char **endp, char 
 }
 
 
-unsigned long long bb_strtoull(const char *arg, char **endp, int base)
+unsigned long long FAST_FUNC bb_strtoull(const char *arg, char **endp, int base)
 {
 	unsigned long long v;
 	char *endptr;
@@ -63,7 +63,7 @@ unsigned long long bb_strtoull(const char *arg, char **endp, int base)
 	return handle_errors(v, endp, endptr);
 }
 
-long long bb_strtoll(const char *arg, char **endp, int base)
+long long FAST_FUNC bb_strtoll(const char *arg, char **endp, int base)
 {
 	unsigned long long v;
 	char *endptr;
@@ -75,7 +75,7 @@ long long bb_strtoll(const char *arg, char **endp, int base)
 }
 
 #if ULONG_MAX != ULLONG_MAX
-unsigned long bb_strtoul(const char *arg, char **endp, int base)
+unsigned long FAST_FUNC bb_strtoul(const char *arg, char **endp, int base)
 {
 	unsigned long v;
 	char *endptr;
@@ -86,7 +86,7 @@ unsigned long bb_strtoul(const char *arg, char **endp, int base)
 	return handle_errors(v, endp, endptr);
 }
 
-long bb_strtol(const char *arg, char **endp, int base)
+long FAST_FUNC bb_strtol(const char *arg, char **endp, int base)
 {
 	long v;
 	char *endptr;
@@ -99,7 +99,7 @@ long bb_strtol(const char *arg, char **endp, int base)
 #endif
 
 #if UINT_MAX != ULONG_MAX
-unsigned bb_strtou(const char *arg, char **endp, int base)
+unsigned FAST_FUNC bb_strtou(const char *arg, char **endp, int base)
 {
 	unsigned long v;
 	char *endptr;
@@ -111,7 +111,7 @@ unsigned bb_strtou(const char *arg, char **endp, int base)
 	return handle_errors(v, endp, endptr);
 }
 
-int bb_strtoi(const char *arg, char **endp, int base)
+int FAST_FUNC bb_strtoi(const char *arg, char **endp, int base)
 {
 	long v;
 	char *endptr;
@@ -131,7 +131,7 @@ int bb_strtoi(const char *arg, char **endp, int base)
 
 #include <math.h>  /* just for HUGE_VAL */
 #define NOT_DIGIT(a) (((unsigned char)(a-'0')) > 9)
-double bb_strtod(const char *arg, char **endp)
+double FAST_FUNC bb_strtod(const char *arg, char **endp)
 {
 	double v;
 	char *endptr;

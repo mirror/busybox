@@ -10,7 +10,7 @@
 #include "libbb.h"
 #include <syslog.h>
 
-void bb_info_msg(const char *s, ...)
+void FAST_FUNC bb_info_msg(const char *s, ...)
 {
 	va_list p;
 	/* va_copy is used because it is not portable

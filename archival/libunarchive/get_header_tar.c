@@ -43,7 +43,7 @@ static unsigned long long getOctal(char *str, int len)
 #define GET_OCTAL(a) getOctal((a), sizeof(a))
 
 void BUG_tar_header_size(void);
-char get_header_tar(archive_handle_t *archive_handle)
+char FAST_FUNC get_header_tar(archive_handle_t *archive_handle)
 {
 	static smallint end;
 #if ENABLE_FEATURE_TAR_AUTODETECT
@@ -133,7 +133,7 @@ char get_header_tar(archive_handle_t *archive_handle)
 	     || memcmp(tar.magic, "\0\0\0\0", 5) != 0)
 	) {
 #if ENABLE_FEATURE_TAR_AUTODETECT
-		char (*get_header_ptr)(archive_handle_t *);
+		char FAST_FUNC (*get_header_ptr)(archive_handle_t *);
 
 		/* tar gz/bz autodetect: check for gz/bz2 magic.
 		 * If it is the very first block, and we see the magic,

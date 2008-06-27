@@ -1163,7 +1163,7 @@ static void do_diff(char *dir1, char *path1, char *dir2, char *path2)
 
 #if ENABLE_FEATURE_DIFF_DIR
 /* This function adds a filename to dl, the directory listing. */
-static int add_to_dirlist(const char *filename,
+static int FAST_FUNC add_to_dirlist(const char *filename,
 		struct stat *sb ATTRIBUTE_UNUSED,
 		void *userdata,
 		int depth ATTRIBUTE_UNUSED)

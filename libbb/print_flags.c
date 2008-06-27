@@ -9,7 +9,7 @@
 #include <libbb.h>
 
 /* returns a set with the flags not printed */
-int print_flags_separated(const int *masks, const char *labels, int flags, const char *separator)
+int FAST_FUNC print_flags_separated(const int *masks, const char *labels, int flags, const char *separator)
 {
 	const char *need_separator = NULL;
 	while (*labels) {
@@ -19,14 +19,14 @@ int print_flags_separated(const int *masks, const char *labels, int flags, const
 				labels);
 			need_separator = separator;
 			flags &= ~ *masks;
+			masks++;
 		}
-		masks++;
 		labels += strlen(labels) + 1;
 	}
 	return flags;
 }
 
-int print_flags(const masks_labels_t *ml, int flags)
+int FAST_FUNC print_flags(const masks_labels_t *ml, int flags)
 {
 	return print_flags_separated(ml->masks, ml->labels, flags, NULL);
 }

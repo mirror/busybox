@@ -6,7 +6,7 @@
 #include "libbb.h"
 #include "unarchive.h"
 
-char get_header_tar_gz(archive_handle_t *archive_handle)
+char FAST_FUNC get_header_tar_gz(archive_handle_t *archive_handle)
 {
 #if BB_MMU
 	unsigned char magic[2];

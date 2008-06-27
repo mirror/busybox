@@ -7,7 +7,7 @@
 
 /* returns the array index of the string */
 /* (index of first match is returned, or -1) */
-int index_in_str_array(const char *const string_array[], const char *key)
+int FAST_FUNC index_in_str_array(const char *const string_array[], const char *key)
 {
 	int i;
 
@@ -19,7 +19,7 @@ int index_in_str_array(const char *const string_array[], const char *key)
 	return -1;
 }
 
-int index_in_strings(const char *strings, const char *key)
+int FAST_FUNC index_in_strings(const char *strings, const char *key)
 {
 	int idx = 0;
 
@@ -36,7 +36,7 @@ int index_in_strings(const char *strings, const char *key)
 /* returns the array index of the string, even if it matches only a beginning */
 /* (index of first match is returned, or -1) */
 #ifdef UNUSED
-int index_in_substr_array(const char *const string_array[], const char *key)
+int FAST_FUNC index_in_substr_array(const char *const string_array[], const char *key)
 {
 	int i;
 	int len = strlen(key);
@@ -51,7 +51,7 @@ int index_in_substr_array(const char *const string_array[], const char *key)
 }
 #endif
 
-int index_in_substrings(const char *strings, const char *key)
+int FAST_FUNC index_in_substrings(const char *strings, const char *key)
 {
 	int len = strlen(key);
 
@@ -68,7 +68,7 @@ int index_in_substrings(const char *strings, const char *key)
 	return -1;
 }
 
-const char *nth_string(const char *strings, int n)
+const char* FAST_FUNC nth_string(const char *strings, int n)
 {
 	while (n) {
 		n--;

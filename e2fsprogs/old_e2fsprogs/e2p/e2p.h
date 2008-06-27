@@ -37,9 +37,9 @@ int iterate_on_dir (const char * dir_name,
 /*void list_super(struct ext2_super_block * s);*/
 void list_super2(struct ext2_super_block * s, FILE *f);
 #define list_super(s) list_super2(s, stdout)
-void print_fs_errors (FILE * f, unsigned short errors);
-void print_flags (FILE * f, unsigned long flags, unsigned options);
-void print_fs_state (FILE * f, unsigned short state);
+void print_fs_errors (FILE *f, unsigned short errors);
+void print_flags (FILE *f, unsigned long flags, unsigned options);
+void print_fs_state (FILE *f, unsigned short state);
 int setflags (int fd, unsigned long flags);
 int setversion (int fd, unsigned long version);
 

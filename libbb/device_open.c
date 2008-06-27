@@ -10,7 +10,7 @@
 #include "libbb.h"
 
 /* try to open up the specified device */
-int device_open(const char *device, int mode)
+int FAST_FUNC device_open(const char *device, int mode)
 {
 	int m, f, fd;
 

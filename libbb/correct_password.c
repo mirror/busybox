@@ -36,7 +36,7 @@
  *
  * NULL pw means "just fake it for login with bad username" */
 
-int correct_password(const struct passwd *pw)
+int FAST_FUNC correct_password(const struct passwd *pw)
 {
 	char *unencrypted, *encrypted;
 	const char *correct;

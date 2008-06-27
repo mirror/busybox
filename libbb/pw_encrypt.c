@@ -50,7 +50,7 @@ static void my_crypt_cleanup(void)
 	des_ctx = NULL;
 }
 
-char *pw_encrypt(const char *clear, const char *salt, int cleanup)
+char* FAST_FUNC pw_encrypt(const char *clear, const char *salt, int cleanup)
 {
 	char *encrypted;
 
@@ -70,7 +70,7 @@ char *pw_encrypt(const char *clear, const char *salt, int cleanup)
 
 #else /* if !ENABLE_USE_BB_CRYPT */
 
-char *pw_encrypt(const char *clear, const char *salt, int cleanup)
+char* FAST_FUNC pw_encrypt(const char *clear, const char *salt, int cleanup)
 {
 #if 0 /* was CONFIG_FEATURE_SHA1_PASSWORDS, but there is no such thing??? */
 	if (strncmp(salt, "$2$", 3) == 0) {

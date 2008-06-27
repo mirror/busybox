@@ -1659,12 +1659,12 @@ static char *char_insert(char *p, char c) // insert the char c at 'p'
 		cmdcnt = 0;
 		end_cmd_q();	// stop adding to q
 		last_status_cksum = 0;	// force status update
-		if ((p > text) && (p[-1] != '\n')) {
+		if ((p[-1] != '\n') && (dot > text)) {
 			p--;
 		}
 	} else if (c == erase_char || c == 8 || c == 127) { // Is this a BS
 		//     123456789
-		if ((p > text) && (p[-1] != '\n')) {
+		if ((p[-1] != '\n') && (dot>text)) {
 			p--;
 			p = text_hole_delete(p, p);	// shrink buffer 1 char
 		}

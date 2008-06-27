@@ -33,7 +33,7 @@ static const char size_conv_str[] ALIGN1 =
 
 static const char lcc[] ALIGN1 = "diouxX";
 
-int bb_dump_size(FS * fs)
+int FAST_FUNC bb_dump_size(FS *fs)
 {
 	FU *fu;
 	int bcnt, cur_size;
@@ -652,7 +652,7 @@ static void display(void)
 	}
 }
 
-int bb_dump_dump(char **argv)
+int FAST_FUNC bb_dump_dump(char **argv)
 {
 	FS *tfs;
 
@@ -674,7 +674,7 @@ int bb_dump_dump(char **argv)
 	return exitval;
 }
 
-void bb_dump_add(const char *fmt)
+void FAST_FUNC bb_dump_add(const char *fmt)
 {
 	const char *p;
 	char *p1;

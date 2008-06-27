@@ -34,7 +34,7 @@
  * symbolic links encountered during recursive directory traversals.
  */
 
-static int fileAction(const char *fileName, struct stat *statbuf, void* param, int depth)
+static int FAST_FUNC fileAction(const char *fileName, struct stat *statbuf, void* param, int depth)
 {
 	mode_t newmode;
 

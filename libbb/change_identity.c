@@ -31,7 +31,7 @@
 #include "libbb.h"
 
 /* Become the user and group(s) specified by PW.  */
-void change_identity(const struct passwd *pw)
+void FAST_FUNC change_identity(const struct passwd *pw)
 {
 	if (initgroups(pw->pw_name, pw->pw_gid) == -1)
 		bb_perror_msg_and_die("can't set groups");

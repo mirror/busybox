@@ -6,7 +6,7 @@
 #include "libbb.h"
 #include "unarchive.h"
 
-void data_align(archive_handle_t *archive_handle, unsigned boundary)
+void FAST_FUNC data_align(archive_handle_t *archive_handle, unsigned boundary)
 {
 	unsigned skip_amount = (boundary - (archive_handle->offset % boundary)) % boundary;
 
