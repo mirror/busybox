@@ -102,9 +102,9 @@
  * on non-static, busybox internal functions. Recent versions of gcc
  * optimize statics automatically. FAST_FUNC on static is required
  * only if you need to match a function pointer's type */
-#if __GNUC_PREREQ(3,0) && defined(i386)
-/* || defined(__x86_64__)? */
-# define FAST_FUNC __attribute__((regparm(3)))
+#if __GNUC_PREREQ(3,0) && defined(i386) /* || defined(__x86_64__)? */
+/* stdcall makes callee to pop arguments from stack, not caller */
+# define FAST_FUNC __attribute__((regparm(3),stdcall))
 /* #elif ... - add your favorite arch today! */
 #else
 # define FAST_FUNC
