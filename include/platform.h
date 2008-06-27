@@ -97,9 +97,15 @@
 # endif
 #endif
 
+/* FAST_FUNC is a qualifier which (possibly) makes function call faster
+ * and/or smaller by using modified ABI. It is usually only needed
+ * on non-static, busybox internal functions. Recent versions of gcc
+ * optimize statics automatically. FAST_FUNC on static is required
+ * only if you need to match a function pointer's type */
 #if __GNUC_PREREQ(3,0) && defined(i386)
 /* || defined(__x86_64__)? */
 # define FAST_FUNC __attribute__((regparm(3)))
+/* #elif ... - add your favorite arch today! */
 #else
 # define FAST_FUNC
 #endif
@@ -145,8 +151,9 @@
 /* ---- Unaligned access ------------------------------------ */
 
 /* parameter is supposed to be an uint32_t* ptr */
-#if defined(i386) || defined(__x86_64__) /* + other arches? */
+#if defined(i386) || defined(__x86_64__)
 #define get_unaligned_u32p(u32p) (*(u32p))
+/* #elif ... - add your favorite arch today! */
 #else
 /* performs reasonably well (gcc usually inlines memcpy here) */
 #define get_unaligned_u32p(u32p) ({ uint32_t __t; memcpy(&__t, (u32p), 4); __t; })
