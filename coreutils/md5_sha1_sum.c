@@ -33,8 +33,8 @@ static uint8_t *hash_file(const char *filename, hash_algo_t hash_algo)
 	} context;
 	uint8_t *hash_value = NULL;
 	RESERVE_CONFIG_UBUFFER(in_buf, 4096);
-	void (*update)(const void*, size_t, void*);
-	void (*final)(void*, void*);
+	void FAST_FUNC (*update)(const void*, size_t, void*);
+	void FAST_FUNC (*final)(void*, void*);
 
 	src_fd = open_or_warn_stdin(filename);
 	if (src_fd < 0) {
@@ -44,13 +44,13 @@ static uint8_t *hash_file(const char *filename, hash_algo_t hash_algo)
 	/* figure specific hash algorithims */
 	if (ENABLE_MD5SUM && hash_algo==HASH_MD5) {
 		md5_begin(&context.md5);
-		update = (void (*)(const void*, size_t, void*))md5_hash;
-		final = (void (*)(void*, void*))md5_end;
+		update = (void*)md5_hash;
+		final = (void*)md5_end;
 		hash_len = 16;
 	} else if (ENABLE_SHA1SUM && hash_algo==HASH_SHA1) {
 		sha1_begin(&context.sha1);
-		update = (void (*)(const void*, size_t, void*))sha1_hash;
-		final = (void (*)(void*, void*))sha1_end;
+		update = (void*)sha1_hash;
+		final = (void*)sha1_end;
 		hash_len = 20;
 	} else {
 		bb_error_msg_and_die("algorithm not supported");
