@@ -281,7 +281,7 @@ static void collect_literal(s_stat *s ATTRIBUTE_UNUSED)
 
 static s_stat* init_literal(void)
 {
-	s_stat *s = xzalloc(sizeof(s_stat));
+	s_stat *s = xzalloc(sizeof(*s));
 	s->collect = collect_literal;
 	return (s_stat*)s;
 }
