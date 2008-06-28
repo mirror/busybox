@@ -15,17 +15,23 @@
  */
 
 /*
-   Usage and known bugs:
-   Terminal key codes are not extensive, and more will probably
-   need to be added. This version was created on Debian GNU/Linux 2.x.
-   Delete, Backspace, Home, End, and the arrow keys were tested
-   to work in an Xterm and console. Ctrl-A also works as Home.
-   Ctrl-E also works as End.
-
-   Small bugs (simple effect):
-   - not true viewing if terminal size (x*y symbols) less
-     size (prompt + editor's line + 2 symbols)
-   - not true viewing if length prompt less terminal width
+ * Usage and known bugs:
+ * Terminal key codes are not extensive, and more will probably
+ * need to be added. This version was created on Debian GNU/Linux 2.x.
+ * Delete, Backspace, Home, End, and the arrow keys were tested
+ * to work in an Xterm and console. Ctrl-A also works as Home.
+ * Ctrl-E also works as End.
+ *
+ * lineedit does not know that the terminal escape sequences do not
+ * take up space on the screen. The redisplay code assumes, unless
+ * told otherwise, that each character in the prompt is a printable
+ * character that takes up one character position on the screen.
+ * You need to tell lineedit that some sequences of characters
+ * in the prompt take up no screen space. Compatibly with readline,
+ * use the \[ escape to begin a sequence of non-printing characters,
+ * and the \] escape to signal the end of such a sequence. Example:
+ *
+ * PS1='\[\033[01;32m\]\u@\h\[\033[01;34m\] \w \$\[\033[00m\] '
  */
 
 #include "libbb.h"
