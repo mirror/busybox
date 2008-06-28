@@ -281,14 +281,14 @@ static void collect_literal(s_stat *s ATTRIBUTE_UNUSED)
 
 static s_stat* init_literal(void)
 {
-	s_stat *s = xmalloc(sizeof(s_stat));
+	s_stat *s = xzalloc(sizeof(s_stat));
 	s->collect = collect_literal;
 	return (s_stat*)s;
 }
 
 static s_stat* init_delay(const char *param)
 {
-	delta = bb_strtoi(param, NULL, 0) * 1000;
+	delta = strtoul(param, NULL, 0) * 1000; /* param can be "" */
 	deltanz = delta > 0 ? delta : 1;
 	need_seconds = (1000000%deltanz) != 0;
 	return NULL;
@@ -369,13 +369,13 @@ static void collect_cpu(cpu_stat *s)
 static s_stat* init_cpu(const char *param)
 {
 	int sz;
-	cpu_stat *s = xmalloc(sizeof(cpu_stat));
+	cpu_stat *s = xzalloc(sizeof(*s));
 	s->collect = collect_cpu;
-	sz = strtol(param, NULL, 0);
+	sz = strtoul(param, NULL, 0); /* param can be "" */
 	if (sz < 10) sz = 10;
 	if (sz > 1000) sz = 1000;
-	s->bar = xmalloc(sz+1);
-	s->bar[sz] = '\0';
+	s->bar = xzalloc(sz+1);
+	/*s->bar[sz] = '\0'; - xzalloc did it */
 	s->bar_sz = sz;
 	return (s_stat*)s;
 }
@@ -404,13 +404,13 @@ static void collect_int(int_stat *s)
 
 static s_stat* init_int(const char *param)
 {
-	int_stat *s = xmalloc(sizeof(int_stat));
+	int_stat *s = xzalloc(sizeof(*s));
 	s->collect = collect_int;
-	if (param[0]=='\0') {
+	if (param[0] == '\0') {
 		s->no = 1;
 	} else {
-		int n = strtoul(param, NULL, 0);
-		s->no = n+2;
+		int n = xatoi_u(param);
+		s->no = n + 2;
 	}
 	return (s_stat*)s;
 }
@@ -438,7 +438,7 @@ static void collect_ctx(ctx_stat *s)
 
 static s_stat* init_ctx(const char *param ATTRIBUTE_UNUSED)
 {
-	ctx_stat *s = xmalloc(sizeof(ctx_stat));
+	ctx_stat *s = xzalloc(sizeof(*s));
 	s->collect = collect_ctx;
 	return (s_stat*)s;
 }
@@ -480,7 +480,7 @@ static void collect_blk(blk_stat *s)
 
 static s_stat* init_blk(const char *param ATTRIBUTE_UNUSED)
 {
-	blk_stat *s = xmalloc(sizeof(blk_stat));
+	blk_stat *s = xzalloc(sizeof(*s));
 	s->collect = collect_blk;
 	s->lookfor = "page";
 	return (s_stat*)s;
@@ -520,7 +520,7 @@ static void collect_fork(fork_stat *s)
 
 static s_stat* init_fork(const char *param)
 {
-	fork_stat *s = xmalloc(sizeof(fork_stat));
+	fork_stat *s = xzalloc(sizeof(*s));
 	if (*param == 'n') {
 		s->collect = collect_thread_nr;
 	} else {
@@ -560,16 +560,14 @@ static void collect_if(if_stat *s)
 
 static s_stat* init_if(const char *device)
 {
-	if_stat *s = xmalloc(sizeof(if_stat));
+	if_stat *s = xzalloc(sizeof(*s));
 
 	if (!device || !device[0])
 		bb_show_usage();
 	s->collect = collect_if;
 
 	s->device = device;
-	s->device_colon = xmalloc(strlen(device)+2);
-	strcpy(s->device_colon, device);
-	strcat(s->device_colon, ":");
+	s->device_colon = xasprintf("%s:", device);
 	return (s_stat*)s;
 }
 
@@ -650,7 +648,7 @@ static void collect_mem(mem_stat *s)
 
 static s_stat* init_mem(const char *param)
 {
-	mem_stat *s = xmalloc(sizeof(mem_stat));
+	mem_stat *s = xzalloc(sizeof(*s));
 	s->collect = collect_mem;
 	s->opt = param[0];
 	return (s_stat*)s;
@@ -675,7 +673,7 @@ static void collect_swp(swp_stat *s ATTRIBUTE_UNUSED)
 
 static s_stat* init_swp(const char *param ATTRIBUTE_UNUSED)
 {
-	swp_stat *s = xmalloc(sizeof(swp_stat));
+	swp_stat *s = xzalloc(sizeof(*s));
 	s->collect = collect_swp;
 	return (s_stat*)s;
 }
@@ -698,7 +696,7 @@ static void collect_fd(fd_stat *s ATTRIBUTE_UNUSED)
 
 static s_stat* init_fd(const char *param ATTRIBUTE_UNUSED)
 {
-	fd_stat *s = xmalloc(sizeof(fd_stat));
+	fd_stat *s = xzalloc(sizeof(*s));
 	s->collect = collect_fd;
 	return (s_stat*)s;
 }
@@ -731,10 +729,10 @@ static void collect_time(time_stat *s)
 static s_stat* init_time(const char *param)
 {
 	int prec;
-	time_stat *s = xmalloc(sizeof(time_stat));
+	time_stat *s = xzalloc(sizeof(*s));
 
 	s->collect = collect_time;
-	prec = param[0]-'0';
+	prec = param[0] - '0';
 	if (prec < 0) prec = 0;
 	else if (prec > 6) prec = 6;
 	s->prec = prec;
@@ -834,7 +832,7 @@ int nmeter_main(int argc, char **argv)
 		s = init_functions[p-options](param);
 		if (s) {
 			s->label = prev;
-			s->next = 0;
+			/*s->next = NULL; - all initXXX funcs use xzalloc */
 			if (!first)
 				first = s;
 			else
@@ -849,7 +847,7 @@ int nmeter_main(int argc, char **argv)
 	if (prev[0]) {
 		s = init_literal();
 		s->label = prev;
-		s->next = 0;
+		/*s->next = NULL; - all initXXX funcs use xzalloc */
 		if (!first)
 			first = s;
 		else
