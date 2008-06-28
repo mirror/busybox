@@ -21,24 +21,55 @@
 
 /* This is a NOFORK applet. Be very careful! */
 
+/* coreutils implements:
+ * -a   change only the access time
+ * -c, --no-create
+ *      do not create any files
+ * -d, --date=STRING
+ *      parse STRING and use it instead of current time
+ * -f   (ignored, BSD compat)
+ * -m   change only the modification time
+ * -r, --reference=FILE
+ *      use this file's times instead of current time
+ * -t STAMP
+ *      use [[CC]YY]MMDDhhmm[.ss] instead of current time
+ * --time=WORD
+ *      change the specified time: WORD is access, atime, or use
+ */
+
 int touch_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int touch_main(int argc ATTRIBUTE_UNUSED, char **argv)
 {
+#if ENABLE_DESKTOP
+	struct utimbuf timebuf;
+	char *reference_file = NULL;
+#else
+#define reference_file NULL
+#define timebuf        (*(struct utimbuf*)NULL)
+#endif
 	int fd;
 	int status = EXIT_SUCCESS;
-	int flags = getopt32(argv, "cf");
+	int flags = getopt32(argv, "c" USE_DESKTOP("r:")
+				/*ignored:*/ "fma"
+				USE_DESKTOP(, &reference_file));
 
-	flags &= 1; /* ignoring -f (BSD compat thingy) */
+	flags &= 1; /* only -c bit is left */
 	argv += optind;
-
 	if (!*argv) {
 		bb_show_usage();
 	}
 
+	if (reference_file) {
+		struct stat stbuf;
+		xstat(reference_file, &stbuf);
+		timebuf.actime = stbuf.st_atime;
+		timebuf.modtime = stbuf.st_mtime;
+	}
+
 	do {
-		if (utime(*argv, NULL)) {
-			if (errno == ENOENT) {	/* no such file */
-				if (flags) {	/* Creation is disabled, so ignore. */
+		if (utime(*argv, reference_file ? &timebuf : NULL)) {
+			if (errno == ENOENT) { /* no such file */
+				if (flags) { /* creation is disabled, so ignore */
 					continue;
 				}
 				/* Try to create the file. */
@@ -46,6 +77,8 @@ int touch_main(int argc ATTRIBUTE_UNUSED, char **argv)
 						  S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH
 						  );
 				if ((fd >= 0) && !close(fd)) {
+					if (reference_file)
+						utime(*argv, &timebuf);
 					continue;
 				}
 			}
