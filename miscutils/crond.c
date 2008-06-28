@@ -33,11 +33,7 @@
 #define SENDMAIL        "sendmail"
 #endif
 #ifndef SENDMAIL_ARGS
-#	if ENABLE_SENDMAIL
-#		define SENDMAIL_ARGS   "localhost", line->cl_MailTo
-#	else
-#		define SENDMAIL_ARGS   "-ti", "oem"
-#	endif
+#define SENDMAIL_ARGS   "-ti", "oem"
 #endif
 #ifndef CRONUPDATE
 #define CRONUPDATE      "cron.update"

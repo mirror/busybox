@@ -1088,18 +1088,16 @@
      "\n	-S SECTORS" \
 
 #define fetchmail_trivial_usage \
-       "[-w timeout] [-H server[:port]] [-U user] -P password [-X] [-t] [-z] maildir [prog]"
+       "[-w timeout] [-H [user:pass@]server[:port]] [-S] [-t] [-z] maildir [prog]"
 #define fetchmail_full_usage "\n\n" \
-       "Fetch content of remote mailbox to local Maildir.\n" \
+       "Fetch content of remote mailbox to local maildir\n" \
      "\nOptions:" \
-     "\n	-w timeout	Set timeout on network operations" \
-     "\n	-H server[:port] Set server" \
-     "\n	-U username	Authenticate with specified username/password" \
-     "\n	-P password" \
-     "\n	-X		Use openssl connection helper for secured servers" \
+     "\n	-w timeout	Network timeout" \
+     "\n	-H [user:pass@]server[:port] Server" \
+     "\n	-S		Use openssl connection helper for secure servers" \
      "\n	-t		Get only headers" \
      "\n	-z		Delete messages on server" \
-     "\n	prog		Run prog <message_file> on message delivery" \
+     "\n	prog		Run 'prog <message_file>' on message delivery" \
 
 #define findfs_trivial_usage \
        "LABEL=label or UUID=uuid"
@@ -3123,7 +3121,7 @@
        "  742 andersen andersen S [bash]\n" \
        "  743 andersen andersen S -bash\n" \
        "  745 root     root     S [getty]\n" \
-       " 2990 andersen andersen R ps\n"
+       " 2990 andersen andersen R ps\n" \
 
 #define pscan_trivial_usage \
        "[-cb] [-p MIN_PORT] [-P MAX_PORT] [-t TIMEOUT] [-T MIN_RTT] HOST"
@@ -3426,33 +3424,31 @@
 #define selinuxenabled_full_usage ""
 
 #define sendmail_trivial_usage \
-       "[-w timeout] [-H server[:port]] [-U user] [-P password] [-X]\n" \
-       "[-c charset] [-n] [-i] [-s subject] [-a attach]... [-t] [-f sender] [rcpt]..."
+       "[-w timeout] [-H [user:pass@]server[:port]] [-S]\n" \
+       "[-c charset] [-N type] [-i] [-s subject] [-a attach]... [-t] [-f sender] [rcpt]..."
 #define sendmail_full_usage "\n\n" \
-       "Send an email.\n" \
+       "Send an email\n" \
      "\nOptions:" \
-     "\n	-w timeout	Set timeout on network operations" \
-     "\n	-H server[:port] Set server" \
-     "\n	-U username	Authenticate with specified username/password" \
-     "\n	-P password" \
-     "\n	-X		Use openssl connection helper for secured servers" \
-     "\n	-c charset	Assumed charset for body and subject [utf-8]" \
-     "\n	-n		Request delivery notification to sender" \
+     "\n	-w timeout	Network timeout" \
+     "\n	-H [user:pass@]server[:port] Server" \
+     "\n	-S		Use openssl connection helper for secure servers" \
+     "\n	-c charset	Assume charset for body and subject (utf-8)" \
+     "\n	-N type		Request delivery notification. Type is ignored" \
      "\n	-i		Ignore single dots in mail body. Implied" \
      "\n	-s subject	Subject" \
      "\n	-a file		File to attach. May be multiple" \
      "\n	-t		Read recipients and subject from body" \
-     "\n	-f		Set sender address" \
+     "\n	-f sender	Sender" \
 
 #define seq_trivial_usage \
        "[first [increment]] last"
 #define seq_full_usage "\n\n" \
        "Print numbers from FIRST to LAST, in steps of INCREMENT.\n" \
-       "FIRST, INCREMENT default to 1" \
-       "\n\nArguments:\n" \
-       "	LAST\n" \
-       "	FIRST LAST\n" \
-       "	FIRST INCREMENT LAST"
+       "FIRST, INCREMENT default to 1\n" \
+     "\nArguments:" \
+     "\n	LAST" \
+     "\n	FIRST LAST" \
+     "\n	FIRST INCREMENT LAST" \
 
 #define sestatus_trivial_usage \
        "[-vb]"
@@ -3764,7 +3760,7 @@
        " %S	Fundamental block size (for block counts)\n" \
        " %t	Type in hex\n" \
        " %T	Type in human readable form" \
-	)
+	) \
 
 #define strings_trivial_usage \
        "[-afo] [-n length] [file...]"
@@ -3821,9 +3817,9 @@
        "up: if service isn't running, start it. If service stops, restart it\n" \
        "once: like 'up', but if service stops, don't restart it\n" \
        "down: send TERM and CONT signals. If ./run exits, start ./finish\n" \
-       "    if it exists. After it stops, do not restart service\n" \
+       "	if it exists. After it stops, do not restart service\n" \
        "exit: send TERM and CONT signals to service and log service. If they exit,\n" \
-       "    runsv exits too\n" \
+       "	runsv exits too\n" \
        "pause, cont, hup, alarm, interrupt, quit, 1, 2, term, kill: send\n" \
        "STOP, CONT, HUP, ALRM, INT, QUIT, USR1, USR2, TERM, KILL signal to service" \
 
@@ -3930,10 +3926,10 @@
      "\n	-q		Never output headers giving file names" \
      "\n	-s SEC		Wait SEC seconds between reads with -f" \
      "\n	-v		Always output headers giving file names" \
-     "\n\n" \
-       "If the first character of N (bytes or lines) is a '+', output begins with\n" \
-       "the Nth item from the start of each file, otherwise, print the last N items\n" \
-       "in the file. N bytes may be suffixed by k (x1024), b (x512), or m (1024^2)." ) \
+     "\n" \
+     "\nIf the first character of N (bytes or lines) is a '+', output begins with" \
+     "\nthe Nth item from the start of each file, otherwise, print the last N items" \
+     "\nin the file. N bytes may be suffixed by k (x1024), b (x512), or m (1024^2)." ) \
 
 #define tail_example_usage \
        "$ tail -n 1 /etc/resolv.conf\n" \

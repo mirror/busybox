@@ -262,32 +262,49 @@ static void pop3_message(const char *filename)
 }
 #endif
 
+static char *parse_url(char *url, char **user, char **pass)
+{
+	// parse [user[:pass]@]host
+	// return host
+	char *s = strchr(url, '@');
+	*user = *pass = NULL;
+	if (s) {
+		*s++ = '\0';
+		*user = url;
+		url = s;
+		s = strchr(*user, ':');
+		if (s) {
+			*s++ = '\0';
+			*pass = s;
+		}
+	}
+	return url;
+}
+
 int sendgetmail_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int sendgetmail_main(int argc ATTRIBUTE_UNUSED, char **argv)
 {
 	llist_t *opt_recipients = NULL;
 	llist_t *opt_attachments = NULL;
 	char *opt_from;
-	const char *opt_user;
-	const char *opt_pass;
+	char *opt_user;
+	char *opt_pass;
 	enum {
 		OPT_w = 1 << 0,         // network timeout
-		OPT_H = 1 << 1,         // server[:port]
-		OPT_U = 1 << 2,         // user
-		OPT_P = 1 << 3,         // password
-		OPT_X = 1 << 4,         // connect using openssl s_client helper
+		OPT_H = 1 << 1,         // [user:password@]server[:port]
+		OPT_S = 1 << 2,         // connect using openssl s_client helper
 
-		OPTS_t = 1 << 5,        // sendmail: read addresses from body
-		OPTF_t = 1 << 5,        // fetchmail: use "TOP" not "RETR"
+		OPTS_t = 1 << 3,        // sendmail: read addresses from body
+		OPTF_t = 1 << 3,        // fetchmail: use "TOP" not "RETR"
 
-		OPTS_s = 1 << 6,        // sendmail: subject
-		OPTF_z = 1 << 6,        // fetchmail: delete from server
+		OPTS_s = 1 << 4,        // sendmail: subject
+		OPTF_z = 1 << 4,        // fetchmail: delete from server
 
-		OPTS_c = 1 << 7,        // sendmail: assumed charset
-		OPTS_a = 1 << 8,        // sendmail: attachment(s)
-		OPTS_i = 1 << 9,        // sendmail: ignore lone dots in message body (implied)
+		OPTS_c = 1 << 5,        // sendmail: assumed charset
+		OPTS_a = 1 << 6,        // sendmail: attachment(s)
+		OPTS_i = 1 << 7,        // sendmail: ignore lone dots in message body (implied)
 
-		OPTS_n = 1 << 10,       // sendmail: request notification
+		OPTS_N = 1 << 8,        // sendmail: request notification
 	};
 	const char *options;
 	int opts;
@@ -303,18 +320,18 @@ int sendgetmail_main(int argc ATTRIBUTE_UNUSED, char **argv)
 		// save initial stdin (body or attachements can be piped!)
 		xdup2(STDIN_FILENO, INITIAL_STDIN_FILENO);
 		opt_complementary = "w+:a::";
-		options = "w:H:U:P:Xt" "s:c:a:inf:";
+		options = "w:H:St" "s:c:a:iN:f:";
 		// body is pseudo attachment read from stdin
 		llist_add_to_end(&opt_attachments, (char *)"-");
 	} else {
 		// FETCHMAIL
 		opt_after_connect = NULL;
-		opt_complementary = "-1:w+:P";
-		options = "w:H:U:P:Xt" "z";
+		opt_complementary = "-1:w+";
+		options = "w:H:St" "z";
 	}
 	opts = getopt32(argv, options,
-		&timeout, &opt_connect, &opt_user, &opt_pass,
-		&opt_subject, &opt_charset, &opt_attachments, &opt_from
+		&timeout /* -w */, &opt_connect /* -H */,
+		&opt_subject, &opt_charset, &opt_attachments, NULL, &opt_from
 	);
 	//argc -= optind;
 	argv += optind;
@@ -326,8 +343,14 @@ int sendgetmail_main(int argc ATTRIBUTE_UNUSED, char **argv)
 		if (!opt_connect)
 			opt_connect = "127.0.0.1";
 	}
+	// fetch username and password, if any
+	// NB: parse_url modifies opt_connect[] ONLY if '@' is there.
+	// Thus "127.0.0.1" won't be modified, an is ok that it is RO.
+	opt_connect = parse_url((char*)opt_connect, &opt_user, &opt_pass);
+//	bb_error_msg("H[%s] U[%s] P[%s]", opt_connect, opt_user, opt_pass);
+
 	// SSL ordered? ->
-	if (opts & OPT_X) {
+	if (opts & OPT_S) {
 		// ... use openssl helper
 		launch_helper(xargs);
 	// no SSL ordered? ->
@@ -340,10 +363,8 @@ int sendgetmail_main(int argc ATTRIBUTE_UNUSED, char **argv)
 		xdup2(STDIN_FILENO, STDOUT_FILENO);
 	}
 
-#if ENABLE_FETCHMAIL
 	// are we sendmail?
-	if (opt_after_connect)
-#endif
+	if (!ENABLE_FETCHMAIL || opt_after_connect)
 /***************************************************
  * SENDMAIL
  ***************************************************/
@@ -364,7 +385,7 @@ int sendgetmail_main(int argc ATTRIBUTE_UNUSED, char **argv)
 		}
 
 		// we didn't use SSL helper? ->
-		if (!(opts & OPT_X)) {
+		if (!(opts & OPT_S)) {
 			// ... wait for initial server OK
 			smtp_check(NULL, 220);
 		}
@@ -402,14 +423,13 @@ int sendgetmail_main(int argc ATTRIBUTE_UNUSED, char **argv)
 		// set sender
 		// NOTE: if password has not been specified
 		// then no authentication is possible
-		code = (opts & OPT_P) ? -1 : 250;
+		code = (opt_pass) ? -1 : 250;
 		// first try softly without authentication
 		while (250 != smtp_checkp("MAIL FROM:<%s>", opt_from, code)) {
 			// MAIL FROM failed -> authentication needed
 			// have we got username?
-			if (!(opts & OPT_U)) {
+			if (!opt_user) {
 				// no! fetch it from "from" option
-				//opts |= OPT_U;
 				opt_user = xstrdup(opt_from);
 				*strchrnul(opt_user, '@') = '\0';
 			}
@@ -450,7 +470,7 @@ int sendgetmail_main(int argc ATTRIBUTE_UNUSED, char **argv)
 		}
 
 		// put notification
-		if (opts & OPTS_n)
+		if (opts & OPTS_N)
 			printf("Disposition-Notification-To: %s\r\n", opt_from);
 
 		// make a random string -- it will delimit message parts
@@ -515,7 +535,6 @@ int sendgetmail_main(int argc ATTRIBUTE_UNUSED, char **argv)
  * FETCHMAIL
  ***************************************************/
 	else {
-
 		char *buf;
 		unsigned nmsg;
 		char *hostname;
@@ -533,10 +552,13 @@ int sendgetmail_main(int argc ATTRIBUTE_UNUSED, char **argv)
 		*fargs = *argv;
 
 		// authenticate
-		if (!(opts & OPT_U)) {
-			//opts |= OPT_U;
+		if (!opt_user) {
 			// N.B. IMHO getenv("USER") can be way easily spoofed!
 			opt_user = bb_getpwuid(NULL, -1, getuid());
+		}
+		// password is mandatory
+		if (!opt_pass) {
+			bb_error_msg_and_die("no password");
 		}
 
 		// get server greeting
