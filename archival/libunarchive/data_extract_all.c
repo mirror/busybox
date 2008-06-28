@@ -12,14 +12,14 @@ void FAST_FUNC data_extract_all(archive_handle_t *archive_handle)
 	int dst_fd;
 	int res;
 
-	if (archive_handle->flags & ARCHIVE_CREATE_LEADING_DIRS) {
+	if (archive_handle->ah_flags & ARCHIVE_CREATE_LEADING_DIRS) {
 		char *name = xstrdup(file_header->name);
 		bb_make_directory(dirname(name), -1, FILEUTILS_RECUR);
 		free(name);
 	}
 
 	/* Check if the file already exists */
-	if (archive_handle->flags & ARCHIVE_EXTRACT_UNCONDITIONAL) {
+	if (archive_handle->ah_flags & ARCHIVE_EXTRACT_UNCONDITIONAL) {
 		/* Remove the entry if it exists */
 		if (((file_header->mode & S_IFMT) != S_IFDIR)
 		 && (unlink(file_header->name) == -1)
@@ -29,7 +29,7 @@ void FAST_FUNC data_extract_all(archive_handle_t *archive_handle)
 					file_header->name);
 		}
 	}
-	else if (archive_handle->flags & ARCHIVE_EXTRACT_NEWER) {
+	else if (archive_handle->ah_flags & ARCHIVE_EXTRACT_NEWER) {
 		/* Remove the existing entry if its older than the extracted entry */
 		struct stat statbuf;
 		if (lstat(file_header->name, &statbuf) == -1) {
@@ -38,7 +38,7 @@ void FAST_FUNC data_extract_all(archive_handle_t *archive_handle)
 			}
 		}
 		else if (statbuf.st_mtime <= file_header->mtime) {
-			if (!(archive_handle->flags & ARCHIVE_EXTRACT_QUIET)) {
+			if (!(archive_handle->ah_flags & ARCHIVE_EXTRACT_QUIET)) {
 				bb_error_msg("%s not created: newer or "
 					"same age file exists", file_header->name);
 			}
@@ -58,7 +58,7 @@ void FAST_FUNC data_extract_all(archive_handle_t *archive_handle)
 	) {
 		/* hard link */
 		res = link(file_header->link_target, file_header->name);
-		if ((res == -1) && !(archive_handle->flags & ARCHIVE_EXTRACT_QUIET)) {
+		if ((res == -1) && !(archive_handle->ah_flags & ARCHIVE_EXTRACT_QUIET)) {
 			bb_perror_msg("cannot create %slink "
 					"from %s to %s", "hard",
 					file_header->name,
@@ -78,7 +78,7 @@ void FAST_FUNC data_extract_all(archive_handle_t *archive_handle)
 		case S_IFDIR:
 			res = mkdir(file_header->name, file_header->mode);
 			if ((res == -1) && (errno != EISDIR)
-			 && !(archive_handle->flags & ARCHIVE_EXTRACT_QUIET)
+			 && !(archive_handle->ah_flags & ARCHIVE_EXTRACT_QUIET)
 			) {
 				bb_perror_msg("cannot make dir %s", file_header->name);
 			}
@@ -87,7 +87,7 @@ void FAST_FUNC data_extract_all(archive_handle_t *archive_handle)
 			/* Symlink */
 			res = symlink(file_header->link_target, file_header->name);
 			if ((res == -1)
-			 && !(archive_handle->flags & ARCHIVE_EXTRACT_QUIET)
+			 && !(archive_handle->ah_flags & ARCHIVE_EXTRACT_QUIET)
 			) {
 				bb_perror_msg("cannot create %slink "
 					"from %s to %s", "sym",
@@ -101,7 +101,7 @@ void FAST_FUNC data_extract_all(archive_handle_t *archive_handle)
 		case S_IFIFO:
 			res = mknod(file_header->name, file_header->mode, file_header->device);
 			if ((res == -1)
-			 && !(archive_handle->flags & ARCHIVE_EXTRACT_QUIET)
+			 && !(archive_handle->ah_flags & ARCHIVE_EXTRACT_QUIET)
 			) {
 				bb_perror_msg("cannot create node %s", file_header->name);
 			}
@@ -111,7 +111,7 @@ void FAST_FUNC data_extract_all(archive_handle_t *archive_handle)
 		}
 	}
 
-	if (!(archive_handle->flags & ARCHIVE_NOPRESERVE_OWN)) {
+	if (!(archive_handle->ah_flags & ARCHIVE_NOPRESERVE_OWN)) {
 #if ENABLE_FEATURE_TAR_UNAME_GNAME
 		uid_t uid = file_header->uid;
 		gid_t gid = file_header->gid;
@@ -133,11 +133,11 @@ void FAST_FUNC data_extract_all(archive_handle_t *archive_handle)
 		/* uclibc has no lchmod, glibc is even stranger -
 		 * it has lchmod which seems to do nothing!
 		 * so we use chmod... */
-		if (!(archive_handle->flags & ARCHIVE_NOPRESERVE_PERM)) {
+		if (!(archive_handle->ah_flags & ARCHIVE_NOPRESERVE_PERM)) {
 			chmod(file_header->name, file_header->mode);
 		}
 		/* same for utime */
-		if (archive_handle->flags & ARCHIVE_PRESERVE_DATE) {
+		if (archive_handle->ah_flags & ARCHIVE_PRESERVE_DATE) {
 			struct utimbuf t;
 			t.actime = t.modtime = file_header->mtime;
 			utime(file_header->name, &t);

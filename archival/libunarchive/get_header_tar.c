@@ -14,26 +14,13 @@
 #include "libbb.h"
 #include "unarchive.h"
 
-#if ENABLE_FEATURE_TAR_GNU_EXTENSIONS
-static char *longname;
-static char *linkname;
-#else
-enum {
-	longname = 0,
-	linkname = 0,
-};
-#endif
-
 /* NB: _DESTROYS_ str[len] character! */
 static unsigned long long getOctal(char *str, int len)
 {
 	unsigned long long v;
-	/* Actually, tar header allows leading spaces also.
-	 * Oh well, we will be liberal and skip this...
-	 * The only downside probably is that we allow "-123" too :)
-	if (*str < '0' || *str > '7')
-		bb_error_msg_and_die("corrupted octal value in tar header");
-	*/
+	/* NB: leading spaces are allowed. Using strtoull to handle that.
+	 * The downside is that we accept e.g. "-123" too :)
+	 */
 	str[len] = '\0';
 	v = strtoull(str, &str, 8);
 	if (*str && (!ENABLE_FEATURE_TAR_OLDGNU_COMPATIBILITY || *str != ' '))
@@ -45,11 +32,6 @@ static unsigned long long getOctal(char *str, int len)
 void BUG_tar_header_size(void);
 char FAST_FUNC get_header_tar(archive_handle_t *archive_handle)
 {
-	static smallint end;
-#if ENABLE_FEATURE_TAR_AUTODETECT
-	static smallint not_first;
-#endif
-
 	file_header_t *file_header = archive_handle->file_header;
 	struct {
 		/* ustar header, Posix 1003.1 */
@@ -65,7 +47,7 @@ char FAST_FUNC get_header_tar(archive_handle_t *archive_handle)
 		/* POSIX:   "ustar" NUL "00" */
 		/* GNU tar: "ustar  " NUL */
 		/* Normally it's defined as magic[6] followed by
-		 * version[2], but we put them together to save code.
+		 * version[2], but we put them together to simplify code
 		 */
 		char magic[8];      /* 257-264 */
 		char uname[32];     /* 265-296 */
@@ -82,6 +64,22 @@ char FAST_FUNC get_header_tar(archive_handle_t *archive_handle)
 #endif
 	int parse_names;
 
+	/* Our "private data" */
+#define p_end (*(smallint *)(&archive_handle->ah_priv[0]))
+#if ENABLE_FEATURE_TAR_GNU_EXTENSIONS
+#define p_longname (*(char* *)(&archive_handle->ah_priv[1]))
+#define p_linkname (*(char* *)(&archive_handle->ah_priv[2]))
+#else
+#define p_longname 0
+#define p_linkname 0
+#endif
+//	if (!archive_handle->ah_priv_inited) {
+//		archive_handle->ah_priv_inited = 1;
+//		p_end = 0;
+//		USE_FEATURE_TAR_GNU_EXTENSIONS(p_longname = NULL;)
+//		USE_FEATURE_TAR_GNU_EXTENSIONS(p_linkname = NULL;)
+//	}
+
 	if (sizeof(tar) != 512)
 		BUG_tar_header_size();
 
@@ -95,7 +93,7 @@ char FAST_FUNC get_header_tar(archive_handle_t *archive_handle)
 
 #if ENABLE_DESKTOP
 	i = full_read(archive_handle->src_fd, &tar, 512);
-	/* if GNU tar sees EOF in above read, it says:
+	/* If GNU tar sees EOF in above read, it says:
 	 * "tar: A lone zero block at N", where N = kilobyte
 	 * where EOF was met (not EOF block, actual EOF!),
 	 * and tar will exit with error code 0.
@@ -113,18 +111,18 @@ char FAST_FUNC get_header_tar(archive_handle_t *archive_handle)
 
 	/* If there is no filename its an empty header */
 	if (tar.name[0] == 0 && tar.prefix[0] == 0) {
-		if (end) {
-			/* This is the second consecutive empty header! End of archive!
+		if (p_end) {
+			/* Second consecutive empty header - end of archive.
 			 * Read until the end to empty the pipe from gz or bz2
 			 */
 			while (full_read(archive_handle->src_fd, &tar, 512) == 512)
 				continue;
 			return EXIT_FAILURE;
 		}
-		end = 1;
+		p_end = 1;
 		return EXIT_SUCCESS;
 	}
-	end = 0;
+	p_end = 0;
 
 	/* Check header has valid magic, "ustar" is for the proper tar,
 	 * five NULs are for the old tar format  */
@@ -136,12 +134,10 @@ char FAST_FUNC get_header_tar(archive_handle_t *archive_handle)
 		char FAST_FUNC (*get_header_ptr)(archive_handle_t *);
 
 		/* tar gz/bz autodetect: check for gz/bz2 magic.
-		 * If it is the very first block, and we see the magic,
+		 * If we see the magic, and it is the very first block,
 		 * we can switch to get_header_tar_gz/bz2/lzma().
 		 * Needs seekable fd. I wish recv(MSG_PEEK) works
 		 * on any fd... */
-		if (not_first)
-			goto err;
 #if ENABLE_FEATURE_TAR_GZIP
 		if (tar.name[0] == 0x1f && tar.name[1] == (char)0x8b) { /* gzip */
 			get_header_ptr = get_header_tar_gz;
@@ -155,6 +151,9 @@ char FAST_FUNC get_header_tar(archive_handle_t *archive_handle)
 		} else
 #endif
 			goto err;
+		/* Two different causes for lseek() != 0:
+		 * unseekable fd (would like to support that too, but...),
+		 * or not first block (false positive, it's not .gz/.bz2!) */
 		if (lseek(archive_handle->src_fd, -512, SEEK_CUR) != 0)
 			goto err;
 		while (get_header_ptr(archive_handle) == EXIT_SUCCESS)
@@ -164,10 +163,6 @@ char FAST_FUNC get_header_tar(archive_handle_t *archive_handle)
 #endif /* FEATURE_TAR_AUTODETECT */
 		bb_error_msg_and_die("invalid tar magic");
 	}
-
-#if ENABLE_FEATURE_TAR_AUTODETECT
-	not_first = 1;
-#endif
 
 	/* Do checksum on headers.
 	 * POSIX says that checksum is done on unsigned bytes, but
@@ -219,7 +214,7 @@ char FAST_FUNC get_header_tar(archive_handle_t *archive_handle)
 		tar.prefix[0] = t;
 	}
 	file_header->link_target = NULL;
-	if (!linkname && parse_names && tar.linkname[0]) {
+	if (!p_linkname && parse_names && tar.linkname[0]) {
 		file_header->link_target = xstrndup(tar.linkname, sizeof(tar.linkname));
 		/* FIXME: what if we have non-link object with link_target? */
 		/* Will link_target be free()ed? */
@@ -236,7 +231,7 @@ char FAST_FUNC get_header_tar(archive_handle_t *archive_handle)
 	file_header->mode = 07777 & GET_OCTAL(tar.mode);
 
 	file_header->name = NULL;
-	if (!longname && parse_names) {
+	if (!p_longname && parse_names) {
 		/* we trash mode[0] here, it's ok */
 		//tar.name[sizeof(tar.name)] = '\0'; - gcc 4.3.0 would complain
 		tar.mode[0] = '\0';
@@ -284,20 +279,20 @@ char FAST_FUNC get_header_tar(archive_handle_t *archive_handle)
 #if ENABLE_FEATURE_TAR_GNU_EXTENSIONS
 	case 'L':
 		/* free: paranoia: tar with several consecutive longnames */
-		free(longname);
+		free(p_longname);
 		/* For paranoia reasons we allocate extra NUL char */
-		longname = xzalloc(file_header->size + 1);
+		p_longname = xzalloc(file_header->size + 1);
 		/* We read ASCIZ string, including NUL */
-		xread(archive_handle->src_fd, longname, file_header->size);
+		xread(archive_handle->src_fd, p_longname, file_header->size);
 		archive_handle->offset += file_header->size;
 		/* return get_header_tar(archive_handle); */
 		/* gcc 4.1.1 didn't optimize it into jump */
 		/* so we will do it ourself, this also saves stack */
 		goto again;
 	case 'K':
-		free(linkname);
-		linkname = xzalloc(file_header->size + 1);
-		xread(archive_handle->src_fd, linkname, file_header->size);
+		free(p_linkname);
+		p_linkname = xzalloc(file_header->size + 1);
+		xread(archive_handle->src_fd, p_linkname, file_header->size);
 		archive_handle->offset += file_header->size;
 		/* return get_header_tar(archive_handle); */
 		goto again;
@@ -324,13 +319,13 @@ char FAST_FUNC get_header_tar(archive_handle_t *archive_handle)
 	}
 
 #if ENABLE_FEATURE_TAR_GNU_EXTENSIONS
-	if (longname) {
-		file_header->name = longname;
-		longname = NULL;
+	if (p_longname) {
+		file_header->name = p_longname;
+		p_longname = NULL;
 	}
-	if (linkname) {
-		file_header->link_target = linkname;
-		linkname = NULL;
+	if (p_linkname) {
+		file_header->link_target = p_linkname;
+		p_linkname = NULL;
 	}
 #endif
 	if (!strncmp(file_header->name, "/../"+1, 3)
@@ -349,7 +344,7 @@ char FAST_FUNC get_header_tar(archive_handle_t *archive_handle)
 		/* Note that we kill the '/' only after action_header() */
 		/* (like GNU tar 1.15.1: verbose mode outputs "dir/dir/") */
 		if (cp) *cp = '\0';
-		archive_handle->flags |= ARCHIVE_EXTRACT_QUIET;
+		archive_handle->ah_flags |= ARCHIVE_EXTRACT_QUIET;
 		archive_handle->action_data(archive_handle);
 		llist_add_to(&(archive_handle->passed), file_header->name);
 	} else {

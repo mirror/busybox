@@ -110,7 +110,7 @@ char FAST_FUNC get_header_ar(archive_handle_t *archive_handle)
 		archive_handle->action_header(typed);
 		if (archive_handle->sub_archive) {
 			while (archive_handle->action_data_subarchive(archive_handle->sub_archive) == EXIT_SUCCESS)
-				/* repeat */;
+				continue;
 		} else {
 			archive_handle->action_data(archive_handle);
 		}

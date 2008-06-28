@@ -9,7 +9,7 @@
 #include "libbb.h"
 #include "unarchive.h"
 
-char FAST_FUNC get_header_tar_lzma(archive_handle_t * archive_handle)
+char FAST_FUNC get_header_tar_lzma(archive_handle_t *archive_handle)
 {
 	/* Can't lseek over pipes */
 	archive_handle->seek = seek_by_read;

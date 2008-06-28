@@ -63,7 +63,7 @@ int ar_main(int argc, char **argv)
 		archive_handle->action_data = data_extract_all;
 	}
 	if (opt & AR_OPT_PRESERVE_DATE) {
-		archive_handle->flags |= ARCHIVE_PRESERVE_DATE;
+		archive_handle->ah_flags |= ARCHIVE_PRESERVE_DATE;
 	}
 	if (opt & AR_OPT_VERBOSE) {
 		archive_handle->action_header = header_verbose_list_ar;

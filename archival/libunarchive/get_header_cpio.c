@@ -19,15 +19,20 @@ typedef struct hardlinks_s {
 
 char FAST_FUNC get_header_cpio(archive_handle_t *archive_handle)
 {
-	static hardlinks_t *saved_hardlinks = NULL;
-	static hardlinks_t *saved_hardlinks_created = NULL;
-
 	file_header_t *file_header = archive_handle->file_header;
 	char cpio_header[110];
 	char dummy[16];
 	int namesize;
 	int major, minor, nlink, mode, inode;
 	unsigned size, uid, gid, mtime;
+
+#define saved_hardlinks         (*(hardlinks_t **)(&archive_handle->ah_priv[0]))
+#define saved_hardlinks_created (*(hardlinks_t **)(&archive_handle->ah_priv[1]))
+//	if (!archive_handle->ah_priv_inited) {
+//		archive_handle->ah_priv_inited = 1;
+//		saved_hardlinks = NULL;
+//		saved_hardlinks_created = NULL;
+//	}
 
 	/* There can be padding before archive header */
 	data_align(archive_handle, 4);

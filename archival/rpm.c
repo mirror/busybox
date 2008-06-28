@@ -202,10 +202,9 @@ static void extract_cpio_gz(int fd)
 	archive_handle->seek = seek_by_read;
 	//archive_handle->action_header = header_list;
 	archive_handle->action_data = data_extract_all;
-	archive_handle->flags |= ARCHIVE_PRESERVE_DATE;
-	archive_handle->flags |= ARCHIVE_CREATE_LEADING_DIRS;
+	archive_handle->ah_flags = ARCHIVE_PRESERVE_DATE | ARCHIVE_CREATE_LEADING_DIRS;
 	archive_handle->src_fd = fd;
-	archive_handle->offset = 0;
+	/*archive_handle->offset = 0; - init_handle() did it */
 
 	xread(archive_handle->src_fd, &magic, 2);
 #if BB_MMU

@@ -1532,7 +1532,7 @@ static void unpack_package(deb_file_t *deb_file)
 	archive_handle->sub_archive->filter = filter_accept_list;
 	archive_handle->sub_archive->action_data = data_extract_all_prefix;
 	archive_handle->sub_archive->buffer = info_prefix;
-	archive_handle->sub_archive->flags |= ARCHIVE_EXTRACT_UNCONDITIONAL;
+	archive_handle->sub_archive->ah_flags |= ARCHIVE_EXTRACT_UNCONDITIONAL;
 	unpack_ar_archive(archive_handle);
 
 	/* Run the preinst prior to extracting */
@@ -1543,7 +1543,7 @@ static void unpack_package(deb_file_t *deb_file)
 	init_archive_deb_data(archive_handle);
 	archive_handle->sub_archive->action_data = data_extract_all_prefix;
 	archive_handle->sub_archive->buffer = (char*)"/"; /* huh? */
-	archive_handle->sub_archive->flags |= ARCHIVE_EXTRACT_UNCONDITIONAL;
+	archive_handle->sub_archive->ah_flags |= ARCHIVE_EXTRACT_UNCONDITIONAL;
 	unpack_ar_archive(archive_handle);
 
 	/* Create the list file */

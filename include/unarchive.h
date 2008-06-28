@@ -30,7 +30,7 @@ typedef struct file_header_t {
 } file_header_t;
 
 typedef struct archive_handle_t {
-	/* define if the header and data component should be processed */
+	/* Define if the header and data component should be processed */
 	char FAST_FUNC (*filter)(struct archive_handle_t *);
 	llist_t *accept;
 	/* List of files that have been rejected */
@@ -41,10 +41,10 @@ typedef struct archive_handle_t {
 	/* Contains the processed header entry */
 	file_header_t *file_header;
 
-	/* process the header component, e.g. tar -t */
+	/* Process the header component, e.g. tar -t */
 	void FAST_FUNC (*action_header)(const file_header_t *);
 
-	/* process the data component, e.g. extract to filesystem */
+	/* Process the data component, e.g. extract to filesystem */
 	void FAST_FUNC (*action_data)(struct archive_handle_t *);
 
 	/* How to process any sub archive, e.g. get_header_tar_gz */
@@ -66,7 +66,11 @@ typedef struct archive_handle_t {
 	char *buffer;
 
 	/* Flags and misc. stuff */
-	unsigned char flags;
+	unsigned char ah_flags;
+
+	/* "Private" storage for archivers */
+//	unsigned char ah_priv_inited;
+	void *ah_priv[8];
 
 } archive_handle_t;
 

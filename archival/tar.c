@@ -814,9 +814,9 @@ int tar_main(int argc ATTRIBUTE_UNUSED, char **argv)
 
 	/* Initialise default values */
 	tar_handle = init_handle();
-	tar_handle->flags = ARCHIVE_CREATE_LEADING_DIRS
-	                  | ARCHIVE_PRESERVE_DATE
-	                  | ARCHIVE_EXTRACT_UNCONDITIONAL;
+	tar_handle->ah_flags = ARCHIVE_CREATE_LEADING_DIRS
+	                     | ARCHIVE_PRESERVE_DATE
+	                     | ARCHIVE_EXTRACT_UNCONDITIONAL;
 
 	/* Prepend '-' to the first argument if required */
 	opt_complementary = "--:" // first arg is options
@@ -862,13 +862,13 @@ int tar_main(int argc ATTRIBUTE_UNUSED, char **argv)
 		tar_handle->action_data = data_extract_to_stdout;
 
 	if (opt & OPT_KEEP_OLD)
-		tar_handle->flags &= ~ARCHIVE_EXTRACT_UNCONDITIONAL;
+		tar_handle->ah_flags &= ~ARCHIVE_EXTRACT_UNCONDITIONAL;
 
 	if (opt & OPT_NOPRESERVE_OWN)
-		tar_handle->flags |= ARCHIVE_NOPRESERVE_OWN;
+		tar_handle->ah_flags |= ARCHIVE_NOPRESERVE_OWN;
 
 	if (opt & OPT_NOPRESERVE_PERM)
-		tar_handle->flags |= ARCHIVE_NOPRESERVE_PERM;
+		tar_handle->ah_flags |= ARCHIVE_NOPRESERVE_PERM;
 
 	if (opt & OPT_GZIP)
 		get_header_ptr = get_header_tar_gz;
