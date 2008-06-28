@@ -228,7 +228,7 @@ static int rdval_loadavg(const char* p, ullong *vec, ...)
 //   3  1 hda1 0 0 0 0 <- ignore if only 4 fields
 static int rdval_diskstats(const char* p, ullong *vec)
 {
-	ullong rd = 0; // to avoid "warning: 'rd' might be used uninitialized"
+	ullong rd = rd; // for compiler
 	int indexline = 0;
 	vec[0] = 0;
 	vec[1] = 0;
