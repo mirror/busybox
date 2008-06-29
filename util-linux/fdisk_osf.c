@@ -688,13 +688,12 @@ xbsd_get_bootstrap(char *path, void *ptr, int size)
 {
 	int fdb;
 
-	fdb = open(path, O_RDONLY);
+	fdb = open_or_warn(path, O_RDONLY);
 	if (fdb < 0) {
-		perror(path);
 		return 0;
 	}
-	if (read(fdb, ptr, size) < 0) {
-		perror(path);
+	if (full_read(fdb, ptr, size) < 0) {
+		bb_simple_perror_msg(path);
 		close(fdb);
 		return 0;
 	}
@@ -765,10 +764,8 @@ xbsd_write_bootstrap(void)
 	sector = get_start_sect(xbsd_part);
 #endif
 
-	if (lseek(dev_fd, sector * SECTOR_SIZE, SEEK_SET) == -1)
-		fdisk_fatal(unable_to_seek);
-	if (BSD_BBSIZE != write(dev_fd, disklabelbuffer, BSD_BBSIZE))
-		fdisk_fatal(unable_to_write);
+	seek_sector(sector);
+	xwrite(dev_fd, disklabelbuffer, BSD_BBSIZE);
 
 #if defined(__alpha__)
 	printf("Bootstrap installed on %s\n", disk_device);
@@ -938,9 +935,8 @@ xbsd_readlabel(struct partition *p)
 	sector = 0;
 #endif
 
-	if (lseek(dev_fd, sector * SECTOR_SIZE, SEEK_SET) == -1)
-		fdisk_fatal(unable_to_seek);
-	if (BSD_BBSIZE != read(dev_fd, disklabelbuffer, BSD_BBSIZE))
+	seek_sector(sector);
+	if (BSD_BBSIZE != full_read(dev_fd, disklabelbuffer, BSD_BBSIZE))
 		fdisk_fatal(unable_to_read);
 
 	memmove(d, &disklabelbuffer[BSD_LABELSECTOR * SECTOR_SIZE + BSD_LABELOFFSET],
@@ -984,15 +980,12 @@ xbsd_writelabel(struct partition *p)
 
 #if defined(__alpha__) && BSD_LABELSECTOR == 0
 	alpha_bootblock_checksum(disklabelbuffer);
-	if (lseek(dev_fd, 0, SEEK_SET) == -1)
-		fdisk_fatal(unable_to_seek);
-	if (BSD_BBSIZE != write(dev_fd, disklabelbuffer, BSD_BBSIZE))
-		fdisk_fatal(unable_to_write);
+	seek_sector(0);
+	xwrite(dev_fd, disklabelbuffer, BSD_BBSIZE);
 #else
-	if (lseek(dev_fd, sector * SECTOR_SIZE + BSD_LABELOFFSET, SEEK_SET) == -1)
-		fdisk_fatal(unable_to_seek);
-	if (sizeof(struct xbsd_disklabel) != write(dev_fd, d, sizeof(struct xbsd_disklabel)))
-		fdisk_fatal(unable_to_write);
+	seek_sector(sector);
+	lseek(dev_fd, BSD_LABELOFFSET, SEEK_CUR);
+	xwrite(dev_fd, d, sizeof(*d));
 #endif
 	sync_disks();
 	return 1;

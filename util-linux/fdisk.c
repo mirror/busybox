@@ -20,21 +20,22 @@
 # define USE_FEATURE_FDISK_BLKSIZE(a)
 #endif
 
-#define DEFAULT_SECTOR_SIZE     512
-#define MAX_SECTOR_SIZE 2048
-#define SECTOR_SIZE     512     /* still used in osf/sgi/sun code */
-#define MAXIMUM_PARTS   60
+#define DEFAULT_SECTOR_SIZE      512
+#define DEFAULT_SECTOR_SIZE_STR "512"
+#define MAX_SECTOR_SIZE         2048
+#define SECTOR_SIZE              512 /* still used in osf/sgi/sun code */
+#define MAXIMUM_PARTS             60
 
-#define ACTIVE_FLAG     0x80
+#define ACTIVE_FLAG             0x80
 
-#define EXTENDED        0x05
-#define WIN98_EXTENDED  0x0f
-#define LINUX_PARTITION 0x81
-#define LINUX_SWAP      0x82
-#define LINUX_NATIVE    0x83
-#define LINUX_EXTENDED  0x85
-#define LINUX_LVM       0x8e
-#define LINUX_RAID      0xfd
+#define EXTENDED                0x05
+#define WIN98_EXTENDED          0x0f
+#define LINUX_PARTITION         0x81
+#define LINUX_SWAP              0x82
+#define LINUX_NATIVE            0x83
+#define LINUX_EXTENDED          0x85
+#define LINUX_LVM               0x8e
+#define LINUX_RAID              0xfd
 
 
 enum {
@@ -290,11 +291,24 @@ struct globals {
 	unsigned user_set_sector_size;
 	unsigned sector_offset; // = 1;
 	unsigned g_heads, g_sectors, g_cylinders;
-	enum label_type current_label_type;
+	smallint /* enum label_type */ current_label_type;
 	smallint display_in_cyl_units; // = 1;
 #if ENABLE_FEATURE_OSF_LABEL
 	smallint possibly_osf_label;
 #endif
+
+	smallint listing;               /* no aborts for fdisk -l */
+	smallint dos_compatible_flag; // = 1;
+#if ENABLE_FEATURE_FDISK_WRITABLE
+	//int dos_changed;
+	smallint nowarn;                /* no warnings for fdisk -l/-s */
+#endif
+	int ext_index;                  /* the prime extended partition */
+	unsigned user_cylinders, user_heads, user_sectors;
+	unsigned pt_heads, pt_sectors;
+	unsigned kern_heads, kern_sectors;
+	ullong extended_offset;         /* offset of link pointers */
+	ullong total_number_of_sectors;
 
 	jmp_buf listingbuf;
 	char line_buffer[80];
@@ -319,6 +333,19 @@ struct globals {
 #define current_label_type   (G.current_label_type  )
 #define display_in_cyl_units (G.display_in_cyl_units)
 #define possibly_osf_label   (G.possibly_osf_label  )
+#define listing                 (G.listing                )
+#define dos_compatible_flag     (G.dos_compatible_flag    )
+#define nowarn                  (G.nowarn                 )
+#define ext_index               (G.ext_index              )
+#define user_cylinders          (G.user_cylinders         )
+#define user_heads              (G.user_heads             )
+#define user_sectors            (G.user_sectors           )
+#define pt_heads                (G.pt_heads               )
+#define pt_sectors              (G.pt_sectors             )
+#define kern_heads              (G.kern_heads             )
+#define kern_sectors            (G.kern_sectors           )
+#define extended_offset         (G.extended_offset        )
+#define total_number_of_sectors (G.total_number_of_sectors)
 #define listingbuf      (G.listingbuf)
 #define line_buffer     (G.line_buffer)
 #define partname_buffer (G.partname_buffer)
@@ -331,6 +358,7 @@ struct globals {
 	g_partitions = 4; \
 	display_in_cyl_units = 1; \
 	units_per_sector = 1; \
+	dos_compatible_flag = 1; \
 } while (0)
 
 
@@ -661,21 +689,6 @@ get_nr_sects(const struct partition *p)
 	return read4_little_endian(p->size4);
 }
 
-static int ext_index;                   /* the prime extended partition */
-static smallint listing;                /* no aborts for fdisk -l */
-static smallint dos_compatible_flag = 1;
-#if ENABLE_FEATURE_FDISK_WRITABLE
-//static int dos_changed;
-static smallint nowarn;                 /* no warnings for fdisk -l/-s */
-#endif
-
-static unsigned user_cylinders, user_heads, user_sectors;
-static unsigned pt_heads, pt_sectors;
-static unsigned kern_heads, kern_sectors;
-
-static ullong extended_offset;            /* offset of link pointers */
-static ullong total_number_of_sectors;
-
 static void fdisk_fatal(const char *why)
 {
 	if (listing) {
@@ -706,8 +719,7 @@ static void
 write_sector(ullong secno, char *buf)
 {
 	seek_sector(secno);
-	if (write(dev_fd, buf, sector_size) != sector_size)
-		fdisk_fatal(unable_to_write);
+	xwrite(dev_fd, buf, sector_size);
 }
 #endif
 
@@ -716,9 +728,10 @@ static void
 read_pte(struct pte *pe, ullong offset)
 {
 	pe->offset = offset;
-	pe->sectorbuffer = xmalloc(sector_size);
+	pe->sectorbuffer = xzalloc(sector_size);
 	seek_sector(offset);
-	if (read(dev_fd, pe->sectorbuffer, sector_size) != sector_size)
+	/* xread would make us abort - bad for fdisk -l */
+	if (full_read(dev_fd, pe->sectorbuffer, sector_size) != sector_size)
 		fdisk_fatal(unable_to_read);
 #if ENABLE_FEATURE_FDISK_WRITABLE
 	pe->changed = 0;
@@ -1167,8 +1180,9 @@ get_sectorsize(void)
 		if (ioctl(dev_fd, BLKSSZGET, &arg) == 0)
 			sector_size = arg;
 		if (sector_size != DEFAULT_SECTOR_SIZE)
-			printf("Note: sector size is %d (not %d)\n",
-				   sector_size, DEFAULT_SECTOR_SIZE);
+			printf("Note: sector size is %d "
+				"(not " DEFAULT_SECTOR_SIZE_STR ")\n",
+				sector_size);
 	}
 }
 
@@ -1302,7 +1316,7 @@ static int get_boot(void)
 		printf("'%s' is opened for read only\n", disk_device);
 	}
 	xmove_fd(fd, dev_fd);
-	if (512 != read(dev_fd, MBRbuffer, 512)) {
+	if (512 != full_read(dev_fd, MBRbuffer, 512)) {
 		if (what == TRY_ONLY) {
 			close_dev_fd();
 			return 1;
@@ -1313,7 +1327,7 @@ static int get_boot(void)
 	fd = open(disk_device, O_RDONLY);
 	if (fd < 0)
 		return 1;
-	if (512 != read(fd, MBRbuffer, 512)) {
+	if (512 != full_read(fd, MBRbuffer, 512)) {
 		close(fd);
 		return 1;
 	}

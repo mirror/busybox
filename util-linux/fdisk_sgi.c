@@ -439,10 +439,7 @@ sgi_write_table(void)
 	assert(two_s_complement_32bit_sum(
 		(unsigned int*)sgilabel, sizeof(*sgilabel)) == 0);
 
-	if (lseek(dev_fd, 0, SEEK_SET) < 0)
-		fdisk_fatal(unable_to_seek);
-	if (write(dev_fd, sgilabel, SECTOR_SIZE) != SECTOR_SIZE)
-		fdisk_fatal(unable_to_write);
+	write_sector(0, sgilabel);
 	if (!strncmp((char*)sgilabel->directory[0].vol_file_name, "sgilabel", 8)) {
 		/*
 		 * keep this habit of first writing the "sgilabel".
@@ -450,10 +447,7 @@ sgi_write_table(void)
 		 */
 		sgiinfo *info = fill_sgiinfo();
 		int infostartblock = SGI_SSWAP32(sgilabel->directory[0].vol_file_start);
-		if (lseek(dev_fd, infostartblock*SECTOR_SIZE, SEEK_SET) < 0)
-			fdisk_fatal(unable_to_seek);
-		if (write(dev_fd, info, SECTOR_SIZE) != SECTOR_SIZE)
-			fdisk_fatal(unable_to_write);
+		write_sector(infostartblock, info);
 		free(info);
 	}
 }
