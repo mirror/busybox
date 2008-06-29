@@ -86,8 +86,6 @@ struct partition {
 static const char unable_to_open[] ALIGN1 = "cannot open %s";
 static const char unable_to_read[] ALIGN1 = "cannot read from %s";
 static const char unable_to_seek[] ALIGN1 = "cannot seek on %s";
-static const char unable_to_write[] ALIGN1 = "cannot write to %s";
-static const char ioctl_error[] ALIGN1 = "BLKGETSIZE ioctl failed on %s";
 static void fdisk_fatal(const char *why) ATTRIBUTE_NORETURN;
 
 enum label_type {
@@ -320,7 +318,7 @@ struct globals {
 	struct pte ptes[MAXIMUM_PARTS];
 };
 #define G (*ptr_to_globals)
-#define line_ptr        (G.line_ptr)
+#define line_ptr             (G.line_ptr            )
 #define disk_device          (G.disk_device         )
 #define g_partitions         (G.g_partitions        )
 #define units_per_sector     (G.units_per_sector    )
@@ -346,11 +344,11 @@ struct globals {
 #define kern_sectors            (G.kern_sectors           )
 #define extended_offset         (G.extended_offset        )
 #define total_number_of_sectors (G.total_number_of_sectors)
-#define listingbuf      (G.listingbuf)
-#define line_buffer     (G.line_buffer)
+#define listingbuf      (G.listingbuf     )
+#define line_buffer     (G.line_buffer    )
 #define partname_buffer (G.partname_buffer)
-#define MBRbuffer       (G.MBRbuffer)
-#define ptes            (G.ptes)
+#define MBRbuffer       (G.MBRbuffer      )
+#define ptes            (G.ptes           )
 #define INIT_G() do { \
 	SET_PTR_TO_GLOBALS(xzalloc(sizeof(G))); \
 	sector_size = DEFAULT_SECTOR_SIZE; \
@@ -369,7 +367,7 @@ static ullong bb_BLKGETSIZE_sectors(int fd)
 	unsigned long longsectors;
 
 	if (ioctl(fd, BLKGETSIZE64, &v64) == 0) {
-		/* got bytes, convert to 512 byte sectors */
+		/* Got bytes, convert to 512 byte sectors */
 		return (v64 >> 9);
 	}
 	/* Needs temp of type long */
@@ -414,7 +412,7 @@ close_dev_fd(void)
 }
 
 #if ENABLE_FEATURE_FDISK_WRITABLE
-/* read line; return 0 or first printable char */
+/* Read line; return 0 or first printable char */
 static int
 read_line(const char *prompt)
 {
@@ -435,7 +433,7 @@ read_line(const char *prompt)
 #endif
 
 /*
- * return partition name - uses static storage
+ * Return partition name - uses static storage
  */
 static const char *
 partname(const char *dev, int pno, int lth)
