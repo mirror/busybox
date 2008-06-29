@@ -22,13 +22,13 @@ struct rtnl_handle
 	uint32_t		dump;
 };
 
-extern int xrtnl_open(struct rtnl_handle *rth);
-extern void rtnl_close(struct rtnl_handle *rth);
-extern int xrtnl_wilddump_request(struct rtnl_handle *rth, int fam, int type);
-extern int rtnl_dump_request(struct rtnl_handle *rth, int type, void *req, int len);
+extern int xrtnl_open(struct rtnl_handle *rth) FAST_FUNC;
+extern void rtnl_close(struct rtnl_handle *rth) FAST_FUNC;
+extern int xrtnl_wilddump_request(struct rtnl_handle *rth, int fam, int type) FAST_FUNC;
+extern int rtnl_dump_request(struct rtnl_handle *rth, int type, void *req, int len) FAST_FUNC;
 extern int xrtnl_dump_filter(struct rtnl_handle *rth,
 			int (*filter)(const struct sockaddr_nl*, struct nlmsghdr *n, void*),
-			void *arg1);
+			void *arg1) FAST_FUNC;
 
 /* bbox doesn't use parameters no. 3, 4, 6, 7, stub them out */
 #define rtnl_talk(rtnl, n, peer, groups, answer, junk, jarg) \
@@ -36,17 +36,17 @@ extern int xrtnl_dump_filter(struct rtnl_handle *rth,
 extern int rtnl_talk(struct rtnl_handle *rtnl, struct nlmsghdr *n, pid_t peer,
 			unsigned groups, struct nlmsghdr *answer,
 			int (*junk)(struct sockaddr_nl *,struct nlmsghdr *n, void *),
-			void *jarg);
+			void *jarg) FAST_FUNC;
 
-extern int rtnl_send(struct rtnl_handle *rth, char *buf, int);
+extern int rtnl_send(struct rtnl_handle *rth, char *buf, int) FAST_FUNC;
 
 
-extern int addattr32(struct nlmsghdr *n, int maxlen, int type, uint32_t data);
-extern int addattr_l(struct nlmsghdr *n, int maxlen, int type, void *data, int alen);
-extern int rta_addattr32(struct rtattr *rta, int maxlen, int type, uint32_t data);
-extern int rta_addattr_l(struct rtattr *rta, int maxlen, int type, void *data, int alen);
+extern int addattr32(struct nlmsghdr *n, int maxlen, int type, uint32_t data) FAST_FUNC;
+extern int addattr_l(struct nlmsghdr *n, int maxlen, int type, void *data, int alen) FAST_FUNC;
+extern int rta_addattr32(struct rtattr *rta, int maxlen, int type, uint32_t data) FAST_FUNC;
+extern int rta_addattr_l(struct rtattr *rta, int maxlen, int type, void *data, int alen) FAST_FUNC;
 
-extern int parse_rtattr(struct rtattr *tb[], int max, struct rtattr *rta, int len);
+extern int parse_rtattr(struct rtattr *tb[], int max, struct rtattr *rta, int len) FAST_FUNC;
 
 #if __GNUC_PREREQ(4,1)
 # pragma GCC visibility pop

@@ -17,12 +17,12 @@
 #include "libbb.h"
 #include "libnetlink.h"
 
-void rtnl_close(struct rtnl_handle *rth)
+void FAST_FUNC rtnl_close(struct rtnl_handle *rth)
 {
 	close(rth->fd);
 }
 
-int xrtnl_open(struct rtnl_handle *rth/*, unsigned subscriptions*/)
+int FAST_FUNC xrtnl_open(struct rtnl_handle *rth/*, unsigned subscriptions*/)
 {
 	socklen_t addr_len;
 
@@ -46,7 +46,7 @@ int xrtnl_open(struct rtnl_handle *rth/*, unsigned subscriptions*/)
 	return 0;
 }
 
-int xrtnl_wilddump_request(struct rtnl_handle *rth, int family, int type)
+int FAST_FUNC xrtnl_wilddump_request(struct rtnl_handle *rth, int family, int type)
 {
 	struct {
 		struct nlmsghdr nlh;
@@ -68,7 +68,7 @@ int xrtnl_wilddump_request(struct rtnl_handle *rth, int family, int type)
 				 (struct sockaddr*)&nladdr, sizeof(nladdr));
 }
 
-int rtnl_send(struct rtnl_handle *rth, char *buf, int len)
+int FAST_FUNC rtnl_send(struct rtnl_handle *rth, char *buf, int len)
 {
 	struct sockaddr_nl nladdr;
 
@@ -78,7 +78,7 @@ int rtnl_send(struct rtnl_handle *rth, char *buf, int len)
 	return xsendto(rth->fd, buf, len, (struct sockaddr*)&nladdr, sizeof(nladdr));
 }
 
-int rtnl_dump_request(struct rtnl_handle *rth, int type, void *req, int len)
+int FAST_FUNC rtnl_dump_request(struct rtnl_handle *rth, int type, void *req, int len)
 {
 	struct nlmsghdr nlh;
 	struct sockaddr_nl nladdr;
@@ -194,7 +194,7 @@ static int rtnl_dump_filter(struct rtnl_handle *rth,
 	return retval;
 }
 
-int xrtnl_dump_filter(struct rtnl_handle *rth,
+int FAST_FUNC xrtnl_dump_filter(struct rtnl_handle *rth,
 		int (*filter)(const struct sockaddr_nl *, struct nlmsghdr *, void *),
 		void *arg1)
 {
@@ -204,7 +204,7 @@ int xrtnl_dump_filter(struct rtnl_handle *rth,
 	return ret;
 }
 
-int rtnl_talk(struct rtnl_handle *rtnl, struct nlmsghdr *n,
+int FAST_FUNC rtnl_talk(struct rtnl_handle *rtnl, struct nlmsghdr *n,
 	      pid_t peer, unsigned groups,
 	      struct nlmsghdr *answer,
 	      int (*junk)(struct sockaddr_nl *, struct nlmsghdr *, void *),
@@ -332,7 +332,7 @@ int rtnl_talk(struct rtnl_handle *rtnl, struct nlmsghdr *n,
 	return retval;
 }
 
-int addattr32(struct nlmsghdr *n, int maxlen, int type, uint32_t data)
+int FAST_FUNC addattr32(struct nlmsghdr *n, int maxlen, int type, uint32_t data)
 {
 	int len = RTA_LENGTH(4);
 	struct rtattr *rta;
@@ -346,7 +346,7 @@ int addattr32(struct nlmsghdr *n, int maxlen, int type, uint32_t data)
 	return 0;
 }
 
-int addattr_l(struct nlmsghdr *n, int maxlen, int type, void *data, int alen)
+int FAST_FUNC addattr_l(struct nlmsghdr *n, int maxlen, int type, void *data, int alen)
 {
 	int len = RTA_LENGTH(alen);
 	struct rtattr *rta;
@@ -361,7 +361,7 @@ int addattr_l(struct nlmsghdr *n, int maxlen, int type, void *data, int alen)
 	return 0;
 }
 
-int rta_addattr32(struct rtattr *rta, int maxlen, int type, uint32_t data)
+int FAST_FUNC rta_addattr32(struct rtattr *rta, int maxlen, int type, uint32_t data)
 {
 	int len = RTA_LENGTH(4);
 	struct rtattr *subrta;
@@ -377,7 +377,7 @@ int rta_addattr32(struct rtattr *rta, int maxlen, int type, uint32_t data)
 	return 0;
 }
 
-int rta_addattr_l(struct rtattr *rta, int maxlen, int type, void *data, int alen)
+int FAST_FUNC rta_addattr_l(struct rtattr *rta, int maxlen, int type, void *data, int alen)
 {
 	struct rtattr *subrta;
 	int len = RTA_LENGTH(alen);
@@ -394,7 +394,7 @@ int rta_addattr_l(struct rtattr *rta, int maxlen, int type, void *data, int alen
 }
 
 
-int parse_rtattr(struct rtattr *tb[], int max, struct rtattr *rta, int len)
+int FAST_FUNC parse_rtattr(struct rtattr *tb[], int max, struct rtattr *rta, int len)
 {
 	while (RTA_OK(rta, len)) {
 		if (rta->rta_type <= max) {
