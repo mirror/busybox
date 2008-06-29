@@ -9615,7 +9615,6 @@ setcmd(int argc ATTRIBUTE_UNUSED, char **argv ATTRIBUTE_UNUSED)
 }
 
 #if ENABLE_ASH_RANDOM_SUPPORT
-/* Roughly copied from bash.. */
 static void
 change_random(const char *value)
 {
@@ -9636,10 +9635,11 @@ change_random(const char *value)
 		if (random_galois_LFSR < 0) /* if we just shifted 1 out of msb... */
 			t ^= MASK;
 		random_galois_LFSR = t;
-		/* Both are weak, xoring them gives better randomness
+		/* Both are weak, combining them gives better randomness
 		 * and ~2^64 period. & 0x7fff is probably bash compat
-		 * for $RANDOM range. */
-		t = (t ^ random_LCG) & 0x7fff;
+		 * for $RANDOM range. Combining with subtraction is
+		 * just for fun. + and ^ would work equally well. */
+		t = (t - random_LCG) & 0x7fff;
 		/* set without recursion */
 		setvar(vrandom.text, utoa(t), VNOFUNC);
 		vrandom.flags &= ~VNOFUNC;
@@ -13432,7 +13432,9 @@ int ash_main(int argc ATTRIBUTE_UNUSED, char **argv)
 	rootpid = getpid();
 
 #if ENABLE_ASH_RANDOM_SUPPORT
-	random_galois_LFSR = random_LCG = rootpid + time(NULL);
+	/* Can use monotonic_ns() for better randomness but for now it is
+	 * not used anywhere else in busybox... so avoid bloat */
+	random_galois_LFSR = random_LCG = rootpid + monotonic_us();
 #endif
 	init();
 	setstackmark(&smark);

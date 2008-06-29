@@ -237,6 +237,7 @@ extern int *const bb_errno;
 #define errno (*bb_errno)
 #endif
 
+unsigned long long monotonic_ns(void) FAST_FUNC;
 unsigned long long monotonic_us(void) FAST_FUNC;
 unsigned monotonic_sec(void) FAST_FUNC;
 
