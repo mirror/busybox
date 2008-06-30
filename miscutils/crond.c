@@ -788,7 +788,7 @@ ForkJob(const char *user, CronLine *line, int mailFd,
 			xmove_fd(mailFd, mail_filename ? 1 : 0);
 			dup2(1, 2);
 		}
-		execl(prog, prog, cmd, arg, NULL);
+		execlp(prog, prog, cmd, arg, NULL);
 		crondlog(ERR20 "can't exec, user %s cmd %s %s %s", user, prog, cmd, arg);
 		if (mail_filename) {
 			fdprintf(1, "Exec failed: %s -c %s\n", prog, arg);
