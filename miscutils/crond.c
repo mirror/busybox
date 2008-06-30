@@ -839,7 +839,7 @@ static void RunJob(const char *user, CronLine *line)
 
 		if (mailFd >= 0) {
 			line->cl_MailFlag = 1;
-			fdprintf(mailFd, "To: %s\nSubject: cron: %s\n\n", user,
+			fdprintf(mailFd, "To: %s\nSubject: cron: %s\n\n", line->cl_MailTo,
 				line->cl_Shell);
 			line->cl_MailPos = lseek(mailFd, 0, SEEK_CUR);
 		} else {

@@ -305,6 +305,7 @@ int sendgetmail_main(int argc ATTRIBUTE_UNUSED, char **argv)
 		OPTS_i = 1 << 7,        // sendmail: ignore lone dots in message body (implied)
 
 		OPTS_N = 1 << 8,        // sendmail: request notification
+		OPTS_f = 1 << 9,        // sendmail: sender address
 	};
 	const char *options;
 	int opts;
@@ -317,7 +318,7 @@ int sendgetmail_main(int argc ATTRIBUTE_UNUSED, char **argv)
 	// and is NOT NULL if we are called as sendmail
 	if (!ENABLE_FETCHMAIL || 's' == applet_name[0]) {
 		// SENDMAIL
-		// save initial stdin (body or attachements can be piped!)
+		// save initial stdin since body is piped!
 		xdup2(STDIN_FILENO, INITIAL_STDIN_FILENO);
 		opt_complementary = "w+:a::";
 		options = "w:H:St" "s:c:a:iN:f:";
@@ -337,9 +338,9 @@ int sendgetmail_main(int argc ATTRIBUTE_UNUSED, char **argv)
 	argv += optind;
 
 	// connect to server
-	// host[:port] not specified ? -> use $HOST. no $HOST ? -> use localhost
+	// host[:port] not specified ? -> use $HOSTNAME. no $HOSTNAME ? -> use localhost
 	if (!(opts & OPT_H)) {
-		opt_connect = getenv("HOST");
+		opt_connect = getenv("HOSTNAME");
 		if (!opt_connect)
 			opt_connect = "127.0.0.1";
 	}
@@ -348,6 +349,12 @@ int sendgetmail_main(int argc ATTRIBUTE_UNUSED, char **argv)
 	// Thus "127.0.0.1" won't be modified, an is ok that it is RO.
 	opt_connect = parse_url((char*)opt_connect, &opt_user, &opt_pass);
 //	bb_error_msg("H[%s] U[%s] P[%s]", opt_connect, opt_user, opt_pass);
+
+	// username must be defined!
+	if (!opt_user) {
+		// N.B. IMHO getenv("USER") can be way easily spoofed!
+		opt_user = bb_getpwuid(NULL, -1, getuid());
+	}
 
 	// SSL ordered? ->
 	if (opts & OPT_S) {
@@ -384,12 +391,6 @@ int sendgetmail_main(int argc ATTRIBUTE_UNUSED, char **argv)
 			argv++;
 		}
 
-		// we didn't use SSL helper? ->
-		if (!(opts & OPT_S)) {
-			// ... wait for initial server OK
-			smtp_check(NULL, 220);
-		}
-
 		// if -t specified or no recipients specified -> enter all-included mode
 		// i.e. scan stdin for To: and Subject: lines ...
 		// ... and then use the rest of stdin as message body
@@ -402,7 +403,10 @@ int sendgetmail_main(int argc ATTRIBUTE_UNUSED, char **argv)
 			while ((s = xmalloc_reads(INITIAL_STDIN_FILENO, NULL, NULL)) != NULL) {
 				if (0 == strncmp("To: ", s, 4)) {
 					llist_add_to_end(&opt_recipients, s+4);
-				} else if (0 == strncmp("Subject: ", s, 9)) {
+/*				} else if (0 == strncmp("From: ", s, 6)) {
+					opt_from = s+6;
+					opts |= OPTS_f;
+*/				} else if (0 == strncmp("Subject: ", s, 9)) {
 					opt_subject = s+9;
 					opts |= OPTS_s;
 				} else {
@@ -414,7 +418,21 @@ int sendgetmail_main(int argc ATTRIBUTE_UNUSED, char **argv)
 			}
 		}
 
+		// got no sender address? -> use username as a resort
+		if (!(opts & OPTS_f)) {
+			char *domain = safe_getdomainname();
+			opt_from = xasprintf("%s@%s", opt_user, domain);
+			free(domain);
+		}
+
 		// introduce to server
+
+		// we didn't use SSL helper? ->
+		if (!(opts & OPT_S)) {
+			// ... wait for initial server OK
+			smtp_check(NULL, 220);
+		}
+
 		// we should start with modern EHLO
 		if (250 != smtp_checkp("EHLO %s", sane(opt_from), -1)) {
 			smtp_checkp("HELO %s", opt_from, 250);
@@ -427,16 +445,8 @@ int sendgetmail_main(int argc ATTRIBUTE_UNUSED, char **argv)
 		// first try softly without authentication
 		while (250 != smtp_checkp("MAIL FROM:<%s>", opt_from, code)) {
 			// MAIL FROM failed -> authentication needed
-			// have we got username?
-			if (!opt_user) {
-				// no! fetch it from "from" option
-				opt_user = xstrdup(opt_from);
-				*strchrnul(opt_user, '@') = '\0';
-			}
-			// now we've got username
-			// so try to authenticate
 			if (334 == smtp_check("AUTH LOGIN", -1)) {
-				uuencode(NULL, opt_user);
+				uuencode(NULL, opt_user); // opt_user != NULL
 				smtp_check("", 334);
 				uuencode(NULL, opt_pass);
 				smtp_check("", 235);
@@ -552,10 +562,7 @@ int sendgetmail_main(int argc ATTRIBUTE_UNUSED, char **argv)
 		*fargs = *argv;
 
 		// authenticate
-		if (!opt_user) {
-			// N.B. IMHO getenv("USER") can be way easily spoofed!
-			opt_user = bb_getpwuid(NULL, -1, getuid());
-		}
+
 		// password is mandatory
 		if (!opt_pass) {
 			bb_error_msg_and_die("no password");

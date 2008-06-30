@@ -48,6 +48,19 @@ char* FAST_FUNC safe_gethostname(void)
 
 	/* Uname can fail only if you pass a bad pointer to it. */
 	uname(&uts);
+	return xstrndup(!uts.nodename[0] ? "?" : uts.nodename, sizeof(uts.nodename));
+}
 
-	return xstrndup(!*(uts.nodename) ? "?" : uts.nodename, sizeof(uts.nodename));
+/*
+ * On success return the current malloced and NUL terminated domainname.
+ * On error return malloced and NUL terminated string "?".
+ * This is an illegal first character for a domainname.
+ * The returned malloced string must be freed by the caller.
+ */
+char* FAST_FUNC safe_getdomainname(void)
+{
+	struct utsname uts;
+
+	uname(&uts);
+	return xstrndup(!uts.domainname[0] ? "?" : uts.domainname, sizeof(uts.domainname));
 }
