@@ -132,11 +132,10 @@ static void readfile_z(char *buf, int sz, const char* fname)
 
 	int fd = xopen(fname, O_RDONLY);
 	buf[0] = '\0';
-	if (fd >= 0) {
-		sz = read(fd, buf, sz-1);
-		if (sz > 0) buf[sz] = '\0';
-		close(fd);
-	}
+	sz = read(fd, buf, sz - 1);
+	if (sz > 0)
+		buf[sz] = '\0';
+	close(fd);
 }
 
 static const char* get_file(proc_file *pf)
