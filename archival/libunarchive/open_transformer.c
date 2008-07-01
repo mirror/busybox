@@ -20,14 +20,7 @@ int FAST_FUNC open_transformer(int src_fd,
 
 	xpiped_pair(fd_pipe);
 
-#if BB_MMU
-	pid = fork();
-	if (pid == -1)
-		bb_perror_msg_and_die("can't fork");
-#else
-	pid = xvfork();
-#endif
-
+	pid = BB_MMU ? xfork() : xvfork();
 	if (pid == 0) {
 		/* child process */
 		close(fd_pipe.rd); /* We don't want to read from the parent */

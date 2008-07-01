@@ -1303,7 +1303,7 @@ int inetd_main(int argc ATTRIBUTE_UNUSED, char **argv)
 					pid = vfork();
 
 				if (pid < 0) { /* fork error */
-					bb_perror_msg("fork");
+					bb_perror_msg(BB_MMU ? "vfork" + 1 : "vfork");
 					sleep(1);
 					restore_sigmask(&omask);
 					maybe_close(accepted_fd);

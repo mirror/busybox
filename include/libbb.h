@@ -719,6 +719,9 @@ int bb_execvp(const char *file, char *const argv[]) FAST_FUNC;
 #define BB_EXECLP(prog,cmd,...) execlp(prog,cmd, __VA_ARGS__)
 #endif
 
+#if BB_MMU
+pid_t xfork(void) FAST_FUNC;
+#endif
 pid_t xvfork(void) FAST_FUNC;
 
 /* NOMMU friendy fork+exec */

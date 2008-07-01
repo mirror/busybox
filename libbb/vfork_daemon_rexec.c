@@ -238,9 +238,7 @@ void FAST_FUNC forkexit_or_rexec(char **argv)
 void FAST_FUNC forkexit_or_rexec(void)
 {
 	pid_t pid;
-	pid = fork();
-	if (pid < 0) /* wtf? */
-		bb_perror_msg_and_die("fork");
+	pid = xfork();
 	if (pid) /* parent */
 		exit(EXIT_SUCCESS);
 	/* child */

@@ -890,6 +890,7 @@ get_mountport(struct pmap *pm_mnt,
 }
 
 #if BB_MMU
+/* Unlike bb_daemonize(), parent does NOT exit here, but returns 0 */
 static int daemonize(void)
 {
 	int fd;
