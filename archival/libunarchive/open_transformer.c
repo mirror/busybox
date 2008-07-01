@@ -23,11 +23,11 @@ int FAST_FUNC open_transformer(int src_fd,
 #if BB_MMU
 	pid = fork();
 	if (pid == -1)
-		bb_perror_msg_and_die("can't fork");
+		bb_perror_msg_and_die("vfork" + 1);
 #else
 	pid = vfork();
 	if (pid == -1)
-		bb_perror_msg_and_die("can't vfork");
+		bb_perror_msg_and_die("vfork");
 #endif
 
 	if (pid == 0) {

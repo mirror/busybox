@@ -120,15 +120,6 @@ static void signal_handler(int signo)
 #undef err
 }
 
-/* libbb candidate */
-static pid_t vfork_or_die(void)
-{
-	pid_t pid = vfork();
-	if (pid < 0)
-		bb_perror_msg_and_die("vfork");
-	return pid;
-}
-
 static void launch_helper(const char **argv)
 {
 	// setup vanilla unidirectional pipes interchange
@@ -137,7 +128,9 @@ static void launch_helper(const char **argv)
 
 	xpipe(pipes);
 	xpipe(pipes+2);
-	helper_pid = vfork_or_die();
+	helper_pid = vfork();
+	if (helper_pid < 0)
+		bb_perror_msg_and_die("vfork");
 	idx = (!helper_pid) * 2;
 	xdup2(pipes[idx], STDIN_FILENO);
 	xdup2(pipes[3-idx], STDOUT_FILENO);

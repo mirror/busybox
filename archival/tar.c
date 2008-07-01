@@ -538,7 +538,7 @@ static void NOINLINE vfork_compressor(int tar_fd, int gzip)
 
 	gzipPid = vfork();
 	if (gzipPid < 0)
-		bb_perror_msg_and_die("can't vfork");
+		bb_perror_msg_and_die("vfork");
 
 	if (gzipPid == 0) {
 		/* child */
