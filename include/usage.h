@@ -3638,9 +3638,7 @@
        "$ cat TODO | split -a 2 -l 2 TODO_\n"
 
 #define start_stop_daemon_trivial_usage \
-       "[OPTIONS] [" \
-	USE_GETOPT_LONG("--start|--stop") SKIP_GETOPT_LONG("-S|-K") \
-       "] ... [-- arguments...]"
+       "[OPTIONS] [-S|-K] ... [-- arguments...]"
 #define start_stop_daemon_full_usage "\n\n" \
        "Search for matching processes, and then\n" \
        "-S: stop all matching processes.\n" \
