@@ -418,7 +418,7 @@ int start_stop_daemon_main(int argc ATTRIBUTE_UNUSED, char **argv)
 		/* Redirect stdio to /dev/null, close extra FDs.
 		 * We do not actually daemonize because of DAEMON_ONLY_SANITIZE */
 		bb_daemonize_or_rexec(DAEMON_DEVNULL_STDIO
-			DAEMON_CLOSE_EXTRA_FDS
+			+ DAEMON_CLOSE_EXTRA_FDS
 			+ DAEMON_ONLY_SANITIZE,
 			NULL /* argv, unused */ );
 #endif
