@@ -167,8 +167,9 @@ config DEVFSD_FG_NP
 	default n
 	depends on DEVFSD
 	help
-		-fg	Run the daemon in the foreground.
-		-np	Exit  after  parsing  the configuration file. Do not poll for events.
+	  -fg  Run the daemon in the foreground.
+	  -np  Exit after parsing the configuration file.
+	       Do not poll for events.
 
 config DEVFSD_VERBOSE
 	bool "Increases logging (and size)"
@@ -226,7 +227,8 @@ config INOTIFYD
 	bool "inotifyd"
 	default n
 	help
-	  Simple inotify daemon. Reports filesystem changes. Requires kernel >= 2.6.13
+	  Simple inotify daemon. Reports filesystem changes. Requires
+	  kernel >= 2.6.13
 
 config LAST
 	bool "last"
@@ -503,8 +505,9 @@ config TTYSIZE
 	default n
 	help
 	  A replacement for "stty size". Unlike stty, can report only width,
-	  only height, or both, in any order. It also does not complain on error,
-	  but returns default 80x24. Usage in shell scripts: width=`ttysize w`.
+	  only height, or both, in any order. It also does not complain on
+	  error, but returns default 80x24.
+	  Usage in shell scripts: width=`ttysize w`.
 
 config WATCHDOG
 	bool "watchdog"
