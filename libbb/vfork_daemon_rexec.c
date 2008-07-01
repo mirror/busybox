@@ -226,7 +226,9 @@ void FAST_FUNC forkexit_or_rexec(char **argv)
 	if (re_execed)
 		return;
 
-	pid = xvfork();
+	pid = vfork();
+	if (pid < 0) /* wtf? */
+		bb_perror_msg_and_die("vfork");
 	if (pid) /* parent */
 		exit(EXIT_SUCCESS);
 	/* child - re-exec ourself */
@@ -238,7 +240,9 @@ void FAST_FUNC forkexit_or_rexec(char **argv)
 void FAST_FUNC forkexit_or_rexec(void)
 {
 	pid_t pid;
-	pid = xfork();
+	pid = fork();
+	if (pid < 0) /* wtf? */
+		bb_perror_msg_and_die("fork");
 	if (pid) /* parent */
 		exit(EXIT_SUCCESS);
 	/* child */

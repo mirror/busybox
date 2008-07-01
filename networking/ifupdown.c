@@ -1008,9 +1008,12 @@ static int popen2(FILE **in, FILE **out, char *command, char *param)
 	xpiped_pair(outfd);
 
 	fflush(NULL);
-	pid = xvfork();
+	pid = vfork();
 
-	if (pid == 0) { /* child */
+	switch (pid) {
+	case -1:  /* failure */
+		bb_perror_msg_and_die("vfork");
+	case 0:  /* child */
 		/* NB: close _first_, then move fds! */
 		close(infd.wr);
 		close(outfd.rd);

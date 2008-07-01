@@ -372,7 +372,9 @@ static void run_command(char *const *cmd, resource_t *resp)
 	void (*quit_signal)(int);
 
 	resp->elapsed_ms = monotonic_us() / 1000;
-	pid = xvfork();		/* Run CMD as child process.  */
+	pid = vfork();		/* Run CMD as child process.  */
+	if (pid < 0)
+		bb_error_msg_and_die("cannot fork");
 	if (pid == 0) {	/* If child.  */
 		/* Don't cast execvp arguments; that causes errors on some systems,
 		   versus merely warnings if the cast is left off.  */

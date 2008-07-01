@@ -1902,7 +1902,7 @@ static int run_pipe(struct pipe *pi)
 #endif
 		if (child->pid < 0) { /* [v]fork failed */
 			/* Clearly indicate, was it fork or vfork */
-			bb_perror_msg(BB_MMU ? "vfork" + 1 : "vfork");
+			bb_perror_msg(BB_MMU ? "fork" : "vfork");
 		} else {
 			pi->alive_progs++;
 #if ENABLE_HUSH_JOB
@@ -3096,7 +3096,9 @@ static FILE *generate_stream_from_list(struct pipe *head)
  * huge=`cat TESTFILE` # will block here forever
  * echo OK
  */
-	pid = BB_MMU ? xfork() : xvfork();
+	pid = BB_MMU ? fork() : vfork();
+	if (pid < 0)
+		bb_perror_msg_and_die(BB_MMU ? "fork" : "vfork");
 	if (pid == 0) { /* child */
 		if (ENABLE_HUSH_JOB)
 			die_sleep = 0; /* let nofork's xfuncs die */
