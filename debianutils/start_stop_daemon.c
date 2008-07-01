@@ -404,9 +404,7 @@ int start_stop_daemon_main(int argc ATTRIBUTE_UNUSED, char **argv)
 		/* DAEMON_DEVNULL_STDIO is superfluous -
 		 * it's always done by bb_daemonize() */
 #else
-		pid_t pid = vfork();
-		if (pid < 0) /* error */
-			bb_perror_msg_and_die("vfork");
+		pid_t pid = xvfork();
 		if (pid != 0) {
 			/* parent */
 			/* why _exit? the child may have changed the stack,

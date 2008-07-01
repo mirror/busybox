@@ -25,9 +25,7 @@ int FAST_FUNC open_transformer(int src_fd,
 	if (pid == -1)
 		bb_perror_msg_and_die("can't fork");
 #else
-	pid = vfork();
-	if (pid == -1)
-		bb_perror_msg_and_die("can't vfork");
+	pid = xvfork();
 #endif
 
 	if (pid == 0) {

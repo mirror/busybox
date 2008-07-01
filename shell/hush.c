@@ -3096,9 +3096,11 @@ static FILE *generate_stream_from_list(struct pipe *head)
  * huge=`cat TESTFILE` # will block here forever
  * echo OK
  */
-	pid = BB_MMU ? fork() : vfork();
+	pid = BB_MMU ? fork() : xvfork();
+#if BB_MMU
 	if (pid < 0)
-		bb_perror_msg_and_die(BB_MMU ? "fork" : "vfork");
+		bb_perror_msg_and_die("fork");
+#endif
 	if (pid == 0) { /* child */
 		if (ENABLE_HUSH_JOB)
 			die_sleep = 0; /* let nofork's xfuncs die */
