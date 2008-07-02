@@ -89,7 +89,7 @@ int uname_main(int argc, char **argv)
 	delta = utsname_offset;
 	do {
 		if (toprint & 1) {
-			printf(((char *)(&uname_info)) + *delta);
+			printf("%s", ((char *)(&uname_info)) + *delta);
 			if (toprint > 1) {
 				bb_putchar(' ');
 			}
