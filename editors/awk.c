@@ -2028,9 +2028,7 @@ static var *exec_builtin(node *op, var *res)
 		if (i < 0) i = 0;
 		n = (nargs > 2) ? getvar_i(av[2]) : l-i;
 		if (n < 0) n = 0;
-		s = xzalloc(n + 1);
-		strncpy(s, as[0]+i, n);
-		/*s[n] = '\0'; - xzalloc did it */
+		s = xstrndup(as[0]+i, n);
 		setvar_p(res, s);
 		break;
 
