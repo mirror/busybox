@@ -852,11 +852,11 @@ static var *nvalloc(int n)
 
 	if (!g_cb) {
 		size = (n <= MINNVBLOCK) ? MINNVBLOCK : n;
-		g_cb = xmalloc(sizeof(nvblock) + size * sizeof(var));
+		g_cb = xzalloc(sizeof(nvblock) + size * sizeof(var));
 		g_cb->size = size;
 		g_cb->pos = g_cb->nv;
 		g_cb->prev = pb;
-		g_cb->next = NULL;
+		/*g_cb->next = NULL; - xzalloc did it */
 		if (pb) pb->next = g_cb;
 	}
 
@@ -2028,9 +2028,9 @@ static var *exec_builtin(node *op, var *res)
 		if (i < 0) i = 0;
 		n = (nargs > 2) ? getvar_i(av[2]) : l-i;
 		if (n < 0) n = 0;
-		s = xmalloc(n+1);
+		s = xzalloc(n + 1);
 		strncpy(s, as[0]+i, n);
-		s[n] = '\0';
+		/*s[n] = '\0'; - xzalloc did it */
 		setvar_p(res, s);
 		break;
 
