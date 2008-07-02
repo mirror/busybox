@@ -24,7 +24,7 @@
 	<li>build system: reinstate CONFIG_CROSS_COMPILE_PREFIX
 	<li>ash: optional bash compatibility features added; other fixes
 	<li>hush: lots and lots of fixes
-	<li>msh: fix the case where the file has exec bit but can't be run directly (run "$SHELL $file" instead)
+	<li>msh: fix the case where the file has exec bit but can't be run directly (runs "$SHELL file" instead)
 	<li>msh: fix exit codes when command is not found or can't be execed
 	<li>udhcpc: added workaround for buggy kernels
 	<li>mount: fix mishandling of proto=tcp/udp
@@ -36,7 +36,7 @@
 	<li>start-stop-daemon: make --exec follow symlinks (Joakim Tjernlund)
 	<li>date: make it accept ISO date format
 	<li>echo: fix echo -e -n "msg\n\0" (David Pinedo)
-	<li>httpd: fix several bugs triggered by realtive path in -h DIR
+	<li>httpd: fix several bugs triggered by relative path in -h DIR
 	<li>printf: fix printf -%s- foo, printf -- -%s- foo
 	<li>syslogd: do not error out on missing files to rotate
 	<li>ls: support Unicode in names
