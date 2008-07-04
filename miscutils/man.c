@@ -23,7 +23,7 @@ echo ".pl \n(nlu+10"
 
 */
 
-static int run_pipe(const char *unpacker, const char *pager, char *man_filename)
+static int run_pipe(const char *unpacker, const char *pager, char *man_filename, int cat)
 {
 	char *cmd;
 
@@ -35,9 +35,10 @@ static int run_pipe(const char *unpacker, const char *pager, char *man_filename)
 		return 1;
 	}
 
-	/* "2>&1" added so that nroff errors are shown in pager too.
+	/* "2>&1" is added so that nroff errors are shown in pager too.
 	 * Otherwise it may show just empty screen */
-	cmd = xasprintf("%s '%s' | gtbl | nroff -Tlatin1 -mandoc 2>&1 | %s",
+	cmd = xasprintf(cat ? "%s '%s' | %s"
+			: "%s '%s' | gtbl | nroff -Tlatin1 -mandoc 2>&1 | %s",
 			unpacker, man_filename, pager);
 	system(cmd);
 	free(cmd);
@@ -45,22 +46,22 @@ static int run_pipe(const char *unpacker, const char *pager, char *man_filename)
 }
 
 /* man_filename is of the form "/dir/dir/dir/name.s.bz2" */
-static int show_manpage(const char *pager, char *man_filename)
+static int show_manpage(const char *pager, char *man_filename, int cat)
 {
 	int len;
 
-	if (run_pipe("bunzip2 -c", pager, man_filename))
+	if (run_pipe("bunzip2 -c", pager, man_filename, cat))
 		return 1;
 
 	len = strlen(man_filename) - 1;
 
 	man_filename[len] = '\0'; /* ".bz2" -> ".gz" */
 	man_filename[len - 2] = 'g';
-	if (run_pipe("gunzip -c", pager, man_filename))
+	if (run_pipe("gunzip -c", pager, man_filename, cat))
 		return 1;
 
 	man_filename[len - 3] = '\0'; /* ".gz" -> "" */
-	if (run_pipe("cat", pager, man_filename))
+	if (run_pipe("cat", pager, man_filename, cat))
 		return 1;
 
 	return 0;
@@ -145,14 +146,30 @@ int man_main(int argc ATTRIBUTE_UNUSED, char **argv)
 				do { /* for each section */
 					char *next_sect = strchrnul(cur_sect, ':');
 					int sect_len = next_sect - cur_sect;
+					char *man_filename;
+					int found_here;
 
-					char *man_filename = xasprintf("%.*s/man%.*s/%s.%.*s" ".bz2",
-								path_len, cur_path,
-								sect_len, cur_sect,
-								*argv,
-								sect_len, cur_sect);
-					found |= show_manpage(pager, man_filename);
+					/* Search for cat page first */
+					man_filename = xasprintf("%.*s/%s%.*s/%s.%.*s" ".bz2",
+							path_len, cur_path,
+							"cat",
+							sect_len, cur_sect,
+							*argv,
+							sect_len, cur_sect);
+					found_here = show_manpage(pager, man_filename, 1);
 					free(man_filename);
+					if (!found_here) {
+						man_filename = xasprintf("%.*s/%s%.*s/%s.%.*s" ".bz2",
+							path_len, cur_path,
+							"man",
+							sect_len, cur_sect,
+							*argv,
+							sect_len, cur_sect);
+						found_here = show_manpage(pager, man_filename, 0);
+						free(man_filename);
+					}
+					found |= found_here;
+
 					if (found && !(opt & OPT_a))
 						goto next_arg;
 					cur_sect = next_sect;
