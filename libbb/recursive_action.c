@@ -111,16 +111,23 @@ int FAST_FUNC recursive_action(const char *fileName,
 	}
 	status = TRUE;
 	while ((next = readdir(dir)) != NULL) {
+		/*int s;*/
 		char *nextFile;
 
 		nextFile = concat_subpath_file(fileName, next->d_name);
 		if (nextFile == NULL)
 			continue;
 		/* process every file (NB: ACTION_RECURSE is set in flags) */
-		if (!recursive_action(nextFile, flags, fileAction, dirAction,
-						userData, depth + 1))
-			status = FALSE;
+		/*s =*/ recursive_action(nextFile, flags, fileAction, dirAction,
+						userData, depth + 1);
 		free(nextFile);
+//#define RECURSE_RESULT_ABORT 3
+//		if (s == RECURSE_RESULT_ABORT) {
+//			closedir(dir);
+//			return s;
+//		}
+//		if (s == FALSE)
+//			status = FALSE;
 	}
 	closedir(dir);
 
