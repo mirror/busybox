@@ -75,7 +75,7 @@ int man_main(int argc ATTRIBUTE_UNUSED, char **argv)
 	char *sec_list;
 	char *cur_path, *cur_sect;
 	char *line, *value;
-	int count_mp, alloc_mp, cur_mp;
+	int count_mp, cur_mp;
 	int opt, not_found;
 
 	opt_complementary = "-1"; /* at least one argument */
@@ -83,8 +83,8 @@ int man_main(int argc ATTRIBUTE_UNUSED, char **argv)
 	argv += optind;
 
 	sec_list = xstrdup("1:2:3:4:5:6:7:8:9");
-	alloc_mp = 10;
-	man_path_list = xmalloc(10 * sizeof(man_path_list[0]));
+	/* Last valid man_path_list[] is [0x10] */
+	man_path_list = xzalloc(0x11 * sizeof(man_path_list[0]));
 	count_mp = 0;
 	man_path_list[0] = xstrdup(getenv("MANPATH"));
 	if (man_path_list[0])
@@ -109,11 +109,13 @@ int man_main(int argc ATTRIBUTE_UNUSED, char **argv)
 				if (strcmp("MANPATH", line) == 0) {
 					man_path_list[count_mp] = xstrdup(value);
 					count_mp++;
-					if (alloc_mp == count_mp) {
-						alloc_mp += 10;
-						man_path_list = xrealloc(man_path_list, alloc_mp * sizeof(man_path_list[0]));
+					/* man_path_list is NULL terminated */
+					man_path_list[count_mp] = NULL;
+					if (!(count_mp & 0xf)) { /* 0x10, 0x20 etc */
+						/* so that last valid man_path_list[] is [count_mp + 0x10] */
+						man_path_list = xrealloc(man_path_list,
+							(count_mp + 0x11) * sizeof(man_path_list[0]));
 					}
-					/* thus man_path_list is always NULL terminated */
 				}
 				if (strcmp("MANSECT", line) == 0) {
 					free(sec_list);
