@@ -27,7 +27,7 @@ echo ".pl \n(nlu+10"
 #define STR_catNULmanNUL "cat\0man"
 #define STR_cat          "cat\0man"
 
-static int run_pipe(const char *unpacker, const char *pager, char *man_filename, int cat)
+static int run_pipe(const char *unpacker, const char *pager, char *man_filename, int man)
 {
 	char *cmd;
 
@@ -41,31 +41,32 @@ static int run_pipe(const char *unpacker, const char *pager, char *man_filename,
 
 	/* "2>&1" is added so that nroff errors are shown in pager too.
 	 * Otherwise it may show just empty screen */
-	cmd = xasprintf(cat ? "%s '%s' | %s"
-			: "%s '%s' | gtbl | nroff -Tlatin1 -mandoc 2>&1 | %s",
-			unpacker, man_filename, pager);
+	cmd = xasprintf(
+		man ? "%s '%s' | gtbl | nroff -Tlatin1 -mandoc 2>&1 | %s"
+		    : "%s '%s' | %s",
+		unpacker, man_filename, pager);
 	system(cmd);
 	free(cmd);
 	return 1;
 }
 
 /* man_filename is of the form "/dir/dir/dir/name.s.bz2" */
-static int show_manpage(const char *pager, char *man_filename, int cat)
+static int show_manpage(const char *pager, char *man_filename, int man)
 {
 	int len;
 
-	if (run_pipe("bunzip2 -c", pager, man_filename, cat))
+	if (run_pipe("bunzip2 -c", pager, man_filename, man))
 		return 1;
 
 	len = strlen(man_filename) - 1;
 
 	man_filename[len] = '\0'; /* ".bz2" -> ".gz" */
 	man_filename[len - 2] = 'g';
-	if (run_pipe("gunzip -c", pager, man_filename, cat))
+	if (run_pipe("gunzip -c", pager, man_filename, man))
 		return 1;
 
 	man_filename[len - 3] = '\0'; /* ".gz" -> "" */
-	if (run_pipe(STR_cat, pager, man_filename, cat))
+	if (run_pipe(STR_cat, pager, man_filename, man))
 		return 1;
 
 	return 0;
