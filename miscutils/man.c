@@ -23,6 +23,10 @@ echo ".pl \n(nlu+10"
 
 */
 
+/* Trick gcc to reuse "cat" string. */
+#define STR_catNULmanNUL "cat\0man"
+#define STR_cat          "cat\0man"
+
 static int run_pipe(const char *unpacker, const char *pager, char *man_filename, int cat)
 {
 	char *cmd;
@@ -61,7 +65,7 @@ static int show_manpage(const char *pager, char *man_filename, int cat)
 		return 1;
 
 	man_filename[len - 3] = '\0'; /* ".gz" -> "" */
-	if (run_pipe("cat", pager, man_filename, cat))
+	if (run_pipe(STR_cat, pager, man_filename, cat))
 		return 1;
 
 	return 0;
@@ -147,28 +151,22 @@ int man_main(int argc ATTRIBUTE_UNUSED, char **argv)
 					char *next_sect = strchrnul(cur_sect, ':');
 					int sect_len = next_sect - cur_sect;
 					char *man_filename;
-					int found_here;
+					int cat0man1 = 0;
 
-					/* Search for cat page first */
-					man_filename = xasprintf("%.*s/%s%.*s/%s.%.*s" ".bz2",
-							path_len, cur_path,
-							"cat",
-							sect_len, cur_sect,
-							*argv,
-							sect_len, cur_sect);
-					found_here = show_manpage(pager, man_filename, 1);
-					free(man_filename);
-					if (!found_here) {
+					/* Search for cat, then man page */
+					while (cat0man1 < 2) {
+						int found_here;
 						man_filename = xasprintf("%.*s/%s%.*s/%s.%.*s" ".bz2",
-							path_len, cur_path,
-							"man",
-							sect_len, cur_sect,
-							*argv,
-							sect_len, cur_sect);
-						found_here = show_manpage(pager, man_filename, 0);
+								path_len, cur_path,
+								STR_catNULmanNUL + cat0man1 * 4,
+								sect_len, cur_sect,
+								*argv,
+								sect_len, cur_sect);
+						found_here = show_manpage(pager, man_filename, cat0man1);
+						found |= found_here;
+						cat0man1 += found_here + 1;
 						free(man_filename);
 					}
-					found |= found_here;
 
 					if (found && !(opt & OPT_a))
 						goto next_arg;
