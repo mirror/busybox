@@ -508,7 +508,7 @@ static void syntax(const char *msg)
 /* Debug */
 static void syntax_lineno(int line)
 {
-	void (*fp)(const char *s, ...);
+	void FAST_FUNC (*fp)(const char *s, ...);
 
 	fp = (interactive_fd ? bb_error_msg : bb_error_msg_and_die);
 	fp("syntax error hush.c:%d", line);
@@ -2026,11 +2026,12 @@ static int run_list(struct pipe *pi)
 			debug_printf_exec("run_list lvl %d return 1\n", run_list_level);
 			return 1;
 		}
-		if ((rpipe->res_word == RES_IN && rpipe->next->res_word == RES_IN && rpipe->next->progs[0].argv != NULL)
-		 || (rpipe->res_word == RES_FOR && rpipe->next->res_word != RES_IN)
+		if (/* Extra statement after IN: "for a in a b; echo Hi; do ...; done" ? */
+		    (rpipe->res_word == RES_IN && rpipe->next->res_word == RES_IN && rpipe->next->progs[0].argv != NULL)
+		/* FOR not followed by IN or DO ("for var; do..." case)? */
+		 || (rpipe->res_word == RES_FOR && (rpipe->next->res_word != RES_IN && rpipe->next->res_word != RES_DO))
 		) {
-			/* TODO: what is tested in the first condition? */
-			syntax("malformed for"); /* 2nd condition: FOR not followed by IN */
+			syntax("malformed for");
 			debug_printf_exec("run_list lvl %d return 1\n", run_list_level);
 			return 1;
 		}
@@ -2116,12 +2117,25 @@ static int run_list(struct pipe *pi)
 		if (rword == RES_FOR && pi->num_progs) {
 			if (!for_lcur) {
 				/* first loop through for */
-				/* if no variable values after "in" we skip "for" */
-				if (!pi->next->progs->argv)
-					continue;
+
+				static const char encoded_dollar_at[] ALIGN1 = {
+					SPECIAL_VAR_SYMBOL, '@' | 0x80, SPECIAL_VAR_SYMBOL, '\0'
+				}; /* encoded representation of "$@" */
+				static const char *const encoded_dollar_at_argv[] = {
+					encoded_dollar_at, NULL
+				}; /* argv list with one element: "$@" */
+				char **vals;
+
+				vals = (char**)encoded_dollar_at_argv;
+				if (rpipe->next->res_word == RES_IN) {
+					/* if no variable values after "in" we skip "for" */
+					if (!pi->next->progs->argv)
+						continue;
+					vals = pi->next->progs->argv;
+				} /* else: "for var; do..." -> assume "$@" list */
 				/* create list of variable values */
-				debug_print_strings("for_list made from", pi->next->progs->argv);
-				for_list = expand_strvec_to_strvec(pi->next->progs->argv);
+				debug_print_strings("for_list made from", vals);
+				for_list = expand_strvec_to_strvec(vals);
 				debug_print_strings("for_list", for_list);
 				for_lcur = for_list;
 				for_varname = pi->progs->argv[0];
@@ -2707,7 +2721,7 @@ static void unset_local_var(const char *name)
 	}
 }
 
-/* the src parameter allows us to peek forward to a possible &n syntax
+/* The src parameter allows us to peek forward to a possible &n syntax
  * for file descriptor duplication, e.g., "2>&1".
  * Return code is 0 normally, 1 if a syntax error is detected in src.
  * Resource errors (in xmalloc) cause the process to exit */
@@ -2824,7 +2838,7 @@ static int reserved_word(const o_string *word, struct p_context *ctx)
 		{ "fi",    RES_FI,    FLAG_END  },
 #endif
 #if ENABLE_HUSH_LOOPS
-		{ "for",   RES_FOR,   FLAG_IN | FLAG_START },
+		{ "for",   RES_FOR,   FLAG_IN | FLAG_DO | FLAG_START },
 		{ "while", RES_WHILE, FLAG_DO | FLAG_START },
 		{ "until", RES_UNTIL, FLAG_DO | FLAG_START },
 		{ "in",    RES_IN,    FLAG_DO   },
@@ -2936,12 +2950,12 @@ static int done_word(o_string *word, struct p_context *ctx)
 			}
 		}
 #endif
-		if (word->nonnull /* word had "xx" or 'xx' at least as part of it */
+		if (word->nonnull /* word had "xx" or 'xx' at least as part of it. */
 		 /* optimization: and if it's ("" or '') or ($v... or `cmd`...): */
 		 && (word->data[0] == '\0' || word->data[0] == SPECIAL_VAR_SYMBOL)
 		 /* (otherwise it's "abc".... and is already safe) */
 		) {
-			/* but exclude "$@"! it expands to no word despite "" */
+			/* but exclude "$@" - it expands to no word despite "" */
 			char *p = word->data;
 			while (p[0] == SPECIAL_VAR_SYMBOL
 			    && (p[1] & 0x7f) == '@'
