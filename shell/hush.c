@@ -2380,7 +2380,10 @@ static int expand_vars_to_list(o_string *output, int n, char *arg, char or_mask)
 		p = strchr(p, SPECIAL_VAR_SYMBOL);
 
 		first_ch = arg[0] | or_mask; /* forced to "quoted" if or_mask = 0x80 */
-		ored_ch |= first_ch;
+		/* "$@" is special. Even if quoted, it can still
+		 * expand to nothing (not even an empty string) */
+		if ((first_ch & 0x7f) != '@')
+			ored_ch |= first_ch;
 		val = NULL;
 		switch (first_ch & 0x7f) {
 		/* Highest bit in first_ch indicates that var is double-quoted */
@@ -2401,6 +2404,7 @@ static int expand_vars_to_list(o_string *output, int n, char *arg, char or_mask)
 			i = 1;
 			if (!global_argv[i])
 				break;
+			ored_ch |= first_ch; /* do it for "$@" _now_, when we know it's not empty */
 			if (!(first_ch & 0x80)) { /* unquoted $* or $@ */
 				smallint sv = output->o_quote;
 				/* unquoted var's contents should be globbed, so don't quote */
@@ -2932,15 +2936,25 @@ static int done_word(o_string *word, struct p_context *ctx)
 			}
 		}
 #endif
-		if (word->nonnull /* we saw "xx" or 'xx' */
+		if (word->nonnull /* word had "xx" or 'xx' at least as part of it */
 		 /* optimization: and if it's ("" or '') or ($v... or `cmd`...): */
 		 && (word->data[0] == '\0' || word->data[0] == SPECIAL_VAR_SYMBOL)
 		 /* (otherwise it's "abc".... and is already safe) */
 		) {
-			/* Insert "empty variable" reference, this makes
-			 * e.g. "", $empty"" etc to not disappear */
-			o_addchr(word, SPECIAL_VAR_SYMBOL);
-			o_addchr(word, SPECIAL_VAR_SYMBOL);
+			/* but exclude "$@"! it expands to no word despite "" */
+			char *p = word->data;
+			while (p[0] == SPECIAL_VAR_SYMBOL
+			    && (p[1] & 0x7f) == '@'
+			    && p[2] == SPECIAL_VAR_SYMBOL
+			) {
+				p += 3;
+			}
+			if (p == word->data || p[0] != '\0') {
+				/* Insert "empty variable" reference, this makes
+				 * e.g. "", $empty"" etc to not disappear */
+				o_addchr(word, SPECIAL_VAR_SYMBOL);
+				o_addchr(word, SPECIAL_VAR_SYMBOL);
+			}
 		}
 		child->argv = add_malloced_string_to_strings(child->argv, xstrdup(word->data));
 		debug_print_strings("word appended to argv", child->argv);
