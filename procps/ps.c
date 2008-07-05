@@ -422,7 +422,7 @@ static void format_process(const procps_status_t *ps)
 }
 
 int ps_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int ps_main(int argc ATTRIBUTE_UNUSED, char **argv)
+int ps_main(int argc UNUSED_PARAM, char **argv)
 {
 	procps_status_t *p;
 	llist_t* opt_o = NULL;
@@ -483,7 +483,7 @@ int ps_main(int argc ATTRIBUTE_UNUSED, char **argv)
 
 
 int ps_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int ps_main(int argc ATTRIBUTE_UNUSED, char **argv ATTRIBUTE_UNUSED)
+int ps_main(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
 {
 	procps_status_t *p = NULL;
 	int len;

@@ -678,7 +678,7 @@ static const char secu_str[] ALIGN1 =
 ;
 
 // Parse 512 byte disk identification block and print much crap.
-static void identify(uint16_t *val) ATTRIBUTE_NORETURN;
+static void identify(uint16_t *val) NORETURN;
 static void identify(uint16_t *val)
 {
 	uint16_t ii, jj, kk;
@@ -1908,7 +1908,7 @@ static int fromhex(unsigned char c)
 	bb_error_msg_and_die("bad char: '%c' 0x%02x", c, c);
 }
 
-static void identify_from_stdin(void) ATTRIBUTE_NORETURN;
+static void identify_from_stdin(void) NORETURN;
 static void identify_from_stdin(void)
 {
 	uint16_t sbuf[256];

@@ -371,9 +371,9 @@ static void load_regexes_from_file(llist_t *fopt)
 }
 
 static int FAST_FUNC file_action_grep(const char *filename,
-			struct stat *statbuf ATTRIBUTE_UNUSED,
+			struct stat *statbuf UNUSED_PARAM,
 			void* matched,
-			int depth ATTRIBUTE_UNUSED)
+			int depth UNUSED_PARAM)
 {
 	FILE *file = fopen(filename, "r");
 	if (file == NULL) {

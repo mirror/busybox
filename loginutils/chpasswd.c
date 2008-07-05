@@ -19,7 +19,7 @@ static const char chpasswd_longopts[] ALIGN1 =
 #define OPT_MD5		2
 
 int chpasswd_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int chpasswd_main(int argc ATTRIBUTE_UNUSED, char **argv)
+int chpasswd_main(int argc UNUSED_PARAM, char **argv)
 {
 	char *name, *pass;
 	char salt[sizeof("$N$XXXXXXXX")];

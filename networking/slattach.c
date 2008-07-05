@@ -64,7 +64,7 @@ static int set_termios_state_or_warn(struct termios *state)
  * Go on after errors: we want to restore as many controlled ttys
  * as possible.
  */
-static void restore_state_and_exit(int exitcode) ATTRIBUTE_NORETURN;
+static void restore_state_and_exit(int exitcode) NORETURN;
 static void restore_state_and_exit(int exitcode)
 {
 	struct termios state;
@@ -114,13 +114,13 @@ static void set_state(struct termios *state, int encap)
 	}
 }
 
-static void sig_handler(int signo ATTRIBUTE_UNUSED)
+static void sig_handler(int signo UNUSED_PARAM)
 {
 	restore_state_and_exit(EXIT_SUCCESS);
 }
 
 int slattach_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int slattach_main(int argc ATTRIBUTE_UNUSED, char **argv)
+int slattach_main(int argc UNUSED_PARAM, char **argv)
 {
 	/* Line discipline code table */
 	static const char proto_names[] ALIGN1 =

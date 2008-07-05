@@ -14,7 +14,7 @@
 /* This is a NOFORK applet. Be very careful! */
 
 int hostid_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int hostid_main(int argc, char ATTRIBUTE_UNUSED **argv)
+int hostid_main(int argc, char **argv UNUSED_PARAM)
 {
 	if (argc > 1) {
 		bb_show_usage();

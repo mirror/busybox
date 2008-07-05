@@ -71,7 +71,7 @@ static unsigned sum_file(const char *file, unsigned type)
 }
 
 int sum_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int sum_main(int argc ATTRIBUTE_UNUSED, char **argv)
+int sum_main(int argc UNUSED_PARAM, char **argv)
 {
 	unsigned n;
 	unsigned type = SUM_BSD;

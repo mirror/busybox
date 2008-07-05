@@ -81,12 +81,12 @@ struct partition {
 	unsigned char end_cyl;          /* end cylinder */
 	unsigned char start4[4];        /* starting sector counting from 0 */
 	unsigned char size4[4];         /* nr of sectors in partition */
-} ATTRIBUTE_PACKED;
+} PACKED;
 
 static const char unable_to_open[] ALIGN1 = "cannot open %s";
 static const char unable_to_read[] ALIGN1 = "cannot read from %s";
 static const char unable_to_seek[] ALIGN1 = "cannot seek on %s";
-static void fdisk_fatal(const char *why) ATTRIBUTE_NORETURN;
+static void fdisk_fatal(const char *why) NORETURN;
 
 enum label_type {
 	LABEL_DOS, LABEL_SUN, LABEL_SGI, LABEL_AIX, LABEL_OSF

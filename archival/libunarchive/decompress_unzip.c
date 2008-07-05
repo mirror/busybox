@@ -244,7 +244,7 @@ static void huft_free_all(STATE_PARAM_ONLY)
 	inflate_codes_td = NULL;
 }
 
-static void abort_unzip(STATE_PARAM_ONLY) ATTRIBUTE_NORETURN;
+static void abort_unzip(STATE_PARAM_ONLY) NORETURN;
 static void abort_unzip(STATE_PARAM_ONLY)
 {
 	huft_free_all(PASS_STATE_ONLY);

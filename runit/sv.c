@@ -176,7 +176,7 @@ struct globals {
 #define INIT_G() do { } while (0)
 
 
-static void fatal_cannot(const char *m1) ATTRIBUTE_NORETURN;
+static void fatal_cannot(const char *m1) NORETURN;
 static void fatal_cannot(const char *m1)
 {
 	bb_perror_msg("fatal: cannot %s", m1);
@@ -293,7 +293,7 @@ static unsigned svstatus_print(const char *m)
 	return pid ? 1 : 2;
 }
 
-static int status(const char *unused ATTRIBUTE_UNUSED)
+static int status(const char *unused UNUSED_PARAM)
 {
 	int r;
 

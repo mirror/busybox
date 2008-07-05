@@ -38,7 +38,7 @@
  */
 
 int touch_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int touch_main(int argc ATTRIBUTE_UNUSED, char **argv)
+int touch_main(int argc UNUSED_PARAM, char **argv)
 {
 #if ENABLE_DESKTOP
 	struct utimbuf timebuf;

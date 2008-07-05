@@ -541,7 +541,7 @@ static int try_to_resolve_remote(void)
 }
 #endif
 
-static void do_syslogd(void) ATTRIBUTE_NORETURN;
+static void do_syslogd(void) NORETURN;
 static void do_syslogd(void)
 {
 	int sock_fd;
@@ -638,7 +638,7 @@ static void do_syslogd(void)
 }
 
 int syslogd_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int syslogd_main(int argc ATTRIBUTE_UNUSED, char **argv)
+int syslogd_main(int argc UNUSED_PARAM, char **argv)
 {
 	char OPTION_DECL;
 

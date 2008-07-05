@@ -34,7 +34,7 @@ static const struct suffix_mult sfx[] = {
 #endif
 
 int sleep_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int sleep_main(int argc ATTRIBUTE_UNUSED, char **argv)
+int sleep_main(int argc UNUSED_PARAM, char **argv)
 {
 	unsigned duration;
 

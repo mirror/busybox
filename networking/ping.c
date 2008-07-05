@@ -80,7 +80,7 @@ static int in_cksum(unsigned short *buf, int sz)
 
 static char *hostname;
 
-static void noresp(int ign ATTRIBUTE_UNUSED)
+static void noresp(int ign UNUSED_PARAM)
 {
 	printf("No response from %s\n", hostname);
 	exit(EXIT_FAILURE);
@@ -174,7 +174,7 @@ static void ping6(len_and_sockaddr *lsa)
 #endif
 
 int ping_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int ping_main(int argc ATTRIBUTE_UNUSED, char **argv)
+int ping_main(int argc UNUSED_PARAM, char **argv)
 {
 	len_and_sockaddr *lsa;
 #if ENABLE_PING6
@@ -302,8 +302,8 @@ void BUG_ping_globals_too_big(void);
 
 /**************************************************************************/
 
-static void print_stats_and_exit(int junk) ATTRIBUTE_NORETURN;
-static void print_stats_and_exit(int junk ATTRIBUTE_UNUSED)
+static void print_stats_and_exit(int junk) NORETURN;
+static void print_stats_and_exit(int junk UNUSED_PARAM)
 {
 	signal(SIGINT, SIG_IGN);
 
@@ -366,7 +366,7 @@ static void sendping_tail(void (*sp)(int), const void *pkt, int size_pkt)
 	}
 }
 
-static void sendping4(int junk ATTRIBUTE_UNUSED)
+static void sendping4(int junk UNUSED_PARAM)
 {
 	/* +4 reserves a place for timestamp, which may end up sitting
 	 * *after* packet. Saves one if() */
@@ -388,7 +388,7 @@ static void sendping4(int junk ATTRIBUTE_UNUSED)
 	sendping_tail(sendping4, pkt, datalen + ICMP_MINLEN);
 }
 #if ENABLE_PING6
-static void sendping6(int junk ATTRIBUTE_UNUSED)
+static void sendping6(int junk UNUSED_PARAM)
 {
 	struct icmp6_hdr *pkt = alloca(datalen + sizeof(struct icmp6_hdr) + 4);
 
@@ -714,7 +714,7 @@ static void ping(len_and_sockaddr *lsa)
 }
 
 int ping_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int ping_main(int argc ATTRIBUTE_UNUSED, char **argv)
+int ping_main(int argc UNUSED_PARAM, char **argv)
 {
 	len_and_sockaddr *lsa;
 	char *opt_c, *opt_s;

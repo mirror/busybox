@@ -26,7 +26,7 @@
 
 
 int uptime_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int uptime_main(int argc ATTRIBUTE_UNUSED, char **argv ATTRIBUTE_UNUSED)
+int uptime_main(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
 {
 	int updays, uphours, upminutes;
 	struct sysinfo info;

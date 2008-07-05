@@ -1164,9 +1164,9 @@ static void do_diff(char *dir1, char *path1, char *dir2, char *path2)
 #if ENABLE_FEATURE_DIFF_DIR
 /* This function adds a filename to dl, the directory listing. */
 static int FAST_FUNC add_to_dirlist(const char *filename,
-		struct stat *sb ATTRIBUTE_UNUSED,
+		struct stat *sb UNUSED_PARAM,
 		void *userdata,
-		int depth ATTRIBUTE_UNUSED)
+		int depth UNUSED_PARAM)
 {
 	/* +2: with space for eventual trailing NULL */
 	dl = xrealloc(dl, (dl_count+2) * sizeof(dl[0]));
@@ -1271,7 +1271,7 @@ static void diffdir(char *p1, char *p2)
 
 
 int diff_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int diff_main(int argc ATTRIBUTE_UNUSED, char **argv)
+int diff_main(int argc UNUSED_PARAM, char **argv)
 {
 	int gotstdin = 0;
 	char *f1, *f2;

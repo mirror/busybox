@@ -31,7 +31,7 @@ static const char *port_name(unsigned port)
 #define MONOTONIC_US() ((unsigned)monotonic_us())
 
 int pscan_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int pscan_main(int argc ATTRIBUTE_UNUSED, char **argv)
+int pscan_main(int argc UNUSED_PARAM, char **argv)
 {
 	const char *opt_max_port = "1024";      /* -P: default max port */
 	const char *opt_min_port = "1";         /* -p: default min port */

@@ -300,9 +300,9 @@ static void make_device(char *path, int delete)
 
 /* File callback for /sys/ traversal */
 static int FAST_FUNC fileAction(const char *fileName,
-		struct stat *statbuf ATTRIBUTE_UNUSED,
+		struct stat *statbuf UNUSED_PARAM,
 		void *userData,
-		int depth ATTRIBUTE_UNUSED)
+		int depth UNUSED_PARAM)
 {
 	size_t len = strlen(fileName) - 4; /* can't underflow */
 	char *scratch = userData;
@@ -319,9 +319,9 @@ static int FAST_FUNC fileAction(const char *fileName,
 }
 
 /* Directory callback for /sys/ traversal */
-static int FAST_FUNC dirAction(const char *fileName ATTRIBUTE_UNUSED,
-		struct stat *statbuf ATTRIBUTE_UNUSED,
-		void *userData ATTRIBUTE_UNUSED,
+static int FAST_FUNC dirAction(const char *fileName UNUSED_PARAM,
+		struct stat *statbuf UNUSED_PARAM,
+		void *userData UNUSED_PARAM,
 		int depth)
 {
 	return (depth >= MAX_SYSFS_DEPTH ? SKIP : TRUE);

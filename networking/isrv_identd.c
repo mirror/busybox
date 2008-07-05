@@ -76,7 +76,7 @@ static int do_rd(int fd, void **paramp)
 	return retval;
 }
 
-static int do_timeout(void **paramp ATTRIBUTE_UNUSED)
+static int do_timeout(void **paramp UNUSED_PARAM)
 {
 	return 1; /* terminate session */
 }
@@ -93,7 +93,7 @@ static void inetd_mode(void)
 }
 
 int fakeidentd_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int fakeidentd_main(int argc ATTRIBUTE_UNUSED, char **argv)
+int fakeidentd_main(int argc UNUSED_PARAM, char **argv)
 {
 	enum {
 		OPT_foreground = 0x1,

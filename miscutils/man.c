@@ -73,7 +73,7 @@ static int show_manpage(const char *pager, char *man_filename, int man)
 }
 
 int man_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int man_main(int argc ATTRIBUTE_UNUSED, char **argv)
+int man_main(int argc UNUSED_PARAM, char **argv)
 {
 	FILE *cf;
 	const char *pager;

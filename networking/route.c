@@ -641,7 +641,7 @@ static const char tbl_verb[] ALIGN1 =
 ;
 
 int route_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int route_main(int argc ATTRIBUTE_UNUSED, char **argv)
+int route_main(int argc UNUSED_PARAM, char **argv)
 {
 	unsigned opt;
 	int what;

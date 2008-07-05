@@ -446,7 +446,7 @@ static NOINLINE void get_drv_info(char *master_ifname)
 }
 
 int ifenslave_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int ifenslave_main(int argc ATTRIBUTE_UNUSED, char **argv)
+int ifenslave_main(int argc UNUSED_PARAM, char **argv)
 {
 	char *master_ifname, *slave_ifname;
 	int rv;

@@ -15,7 +15,7 @@
 #define SIZE			8
 
 int strings_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int strings_main(int argc ATTRIBUTE_UNUSED, char **argv)
+int strings_main(int argc UNUSED_PARAM, char **argv)
 {
 	int n, c, status = EXIT_SUCCESS;
 	unsigned opt;

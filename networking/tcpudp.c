@@ -144,7 +144,7 @@ static void connection_status(void)
 		bb_error_msg("status %u/%u", cnum, cmax);
 }
 
-static void sig_child_handler(int sig ATTRIBUTE_UNUSED)
+static void sig_child_handler(int sig UNUSED_PARAM)
 {
 	int wstat;
 	int pid;
@@ -162,7 +162,7 @@ static void sig_child_handler(int sig ATTRIBUTE_UNUSED)
 }
 
 int tcpudpsvd_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int tcpudpsvd_main(int argc ATTRIBUTE_UNUSED, char **argv)
+int tcpudpsvd_main(int argc UNUSED_PARAM, char **argv)
 {
 	char *str_C, *str_t;
 	char *user;

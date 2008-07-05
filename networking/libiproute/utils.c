@@ -279,7 +279,7 @@ int inet_addr_match(inet_prefix * a, inet_prefix * b, int bits)
 	return 0;
 }
 
-const char *rt_addr_n2a(int af, int ATTRIBUTE_UNUSED len,
+const char *rt_addr_n2a(int af, int UNUSED_PARAM len,
 		void *addr, char *buf, int buflen)
 {
 	switch (af) {

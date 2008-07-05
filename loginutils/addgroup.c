@@ -123,7 +123,7 @@ static void add_user_to_group(char **args,
  * will add an existing user to an existing group.
  */
 int addgroup_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int addgroup_main(int argc ATTRIBUTE_UNUSED, char **argv)
+int addgroup_main(int argc UNUSED_PARAM, char **argv)
 {
 	char *group;
 	gid_t gid = 0;

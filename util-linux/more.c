@@ -36,7 +36,7 @@ struct globals {
 #define setTermSettings(fd, argp) tcsetattr(fd, TCSANOW, argp)
 #define getTermSettings(fd, argp) tcgetattr(fd, argp)
 
-static void gotsig(int sig ATTRIBUTE_UNUSED)
+static void gotsig(int sig UNUSED_PARAM)
 {
 	bb_putchar('\n');
 	setTermSettings(cin_fileno, &initial_settings);
@@ -51,7 +51,7 @@ static void gotsig(int sig ATTRIBUTE_UNUSED)
 #define CONVERTED_TAB_SIZE 8
 
 int more_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int more_main(int argc ATTRIBUTE_UNUSED, char **argv)
+int more_main(int argc UNUSED_PARAM, char **argv)
 {
 	int c = c; /* for gcc */
 	int lines;

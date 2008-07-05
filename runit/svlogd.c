@@ -788,14 +788,14 @@ static int buffer_pread(/*int fd, */char *s, unsigned len)
 	return i;
 }
 
-static void sig_term_handler(int sig_no ATTRIBUTE_UNUSED)
+static void sig_term_handler(int sig_no UNUSED_PARAM)
 {
 	if (verbose)
 		bb_error_msg(INFO"sig%s received", "term");
 	exitasap = 1;
 }
 
-static void sig_child_handler(int sig_no ATTRIBUTE_UNUSED)
+static void sig_child_handler(int sig_no UNUSED_PARAM)
 {
 	int pid, l;
 
@@ -812,14 +812,14 @@ static void sig_child_handler(int sig_no ATTRIBUTE_UNUSED)
 	}
 }
 
-static void sig_alarm_handler(int sig_no ATTRIBUTE_UNUSED)
+static void sig_alarm_handler(int sig_no UNUSED_PARAM)
 {
 	if (verbose)
 		bb_error_msg(INFO"sig%s received", "alarm");
 	rotateasap = 1;
 }
 
-static void sig_hangup_handler(int sig_no ATTRIBUTE_UNUSED)
+static void sig_hangup_handler(int sig_no UNUSED_PARAM)
 {
 	if (verbose)
 		bb_error_msg(INFO"sig%s received", "hangup");

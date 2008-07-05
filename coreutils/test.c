@@ -187,7 +187,7 @@ extern struct test_statics *const test_ptr_to_statics;
 
 static arith_t primary(enum token n);
 
-static void syntax(const char *op, const char *msg) ATTRIBUTE_NORETURN;
+static void syntax(const char *op, const char *msg) NORETURN;
 static void syntax(const char *op, const char *msg)
 {
 	if (op && *op) {

@@ -23,7 +23,7 @@ struct dhcpOfferedAddr *leases;
 
 
 int udhcpd_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int udhcpd_main(int argc ATTRIBUTE_UNUSED, char **argv)
+int udhcpd_main(int argc UNUSED_PARAM, char **argv)
 {
 	fd_set rfds;
 	struct timeval tv;

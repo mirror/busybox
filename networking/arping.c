@@ -107,7 +107,7 @@ static int send_pack(struct in_addr *src_addr,
 	return err;
 }
 
-static void finish(void) ATTRIBUTE_NORETURN;
+static void finish(void) NORETURN;
 static void finish(void)
 {
 	if (!(option_mask32 & QUIET)) {
@@ -245,7 +245,7 @@ static bool recv_pack(unsigned char *buf, int len, struct sockaddr_ll *FROM)
 }
 
 int arping_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int arping_main(int argc ATTRIBUTE_UNUSED, char **argv)
+int arping_main(int argc UNUSED_PARAM, char **argv)
 {
 	const char *device = "eth0";
 	char *source = NULL;

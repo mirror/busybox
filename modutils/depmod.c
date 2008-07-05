@@ -48,7 +48,7 @@ static char* find_keyword(void *the_module, size_t len, const char * const word)
 	return ptr;
 }
 static int FAST_FUNC fileAction(const char *fname, struct stat *sb,
-					void ATTRIBUTE_UNUSED *data, int ATTRIBUTE_UNUSED depth)
+					void UNUSED_PARAM *data, int UNUSED_PARAM depth)
 {
 	size_t len = sb->st_size;
 	void *the_module;
@@ -110,7 +110,7 @@ static int FAST_FUNC fileAction(const char *fname, struct stat *sb,
 }
 
 int depmod_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int depmod_main(int ATTRIBUTE_UNUSED argc, char **argv)
+int depmod_main(int argc UNUSED_PARAM, char **argv)
 {
 	int ret;
 	size_t moddir_base_len = 0; /* length of the "-b basedir" */

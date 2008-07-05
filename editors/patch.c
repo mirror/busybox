@@ -66,7 +66,7 @@ static char *extract_filename(char *line, int patch_level, const char *pat)
 }
 
 int patch_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int patch_main(int argc ATTRIBUTE_UNUSED, char **argv)
+int patch_main(int argc UNUSED_PARAM, char **argv)
 {
 	struct stat saved_stat;
 	char *patch_line;

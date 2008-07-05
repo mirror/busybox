@@ -48,27 +48,27 @@
 # define __const const
 #endif
 
-#define ATTRIBUTE_UNUSED __attribute__ ((__unused__))
-#define ATTRIBUTE_NORETURN __attribute__ ((__noreturn__))
-#define ATTRIBUTE_PACKED __attribute__ ((__packed__))
-#define ATTRIBUTE_ALIGNED(m) __attribute__ ((__aligned__(m)))
+#define UNUSED_PARAM __attribute__ ((__unused__))
+#define NORETURN __attribute__ ((__noreturn__))
+#define PACKED __attribute__ ((__packed__))
+#define ALIGNED(m) __attribute__ ((__aligned__(m)))
 /* __NO_INLINE__: some gcc's do not honor inlining! :( */
 #if __GNUC_PREREQ(3,0) && !defined(__NO_INLINE__)
 # define ALWAYS_INLINE __attribute__ ((always_inline)) inline
 /* I've seen a toolchain where I needed __noinline__ instead of noinline */
 # define NOINLINE      __attribute__((__noinline__))
 # if !ENABLE_WERROR
-#  define ATTRIBUTE_DEPRECATED __attribute__ ((__deprecated__))
-#  define ATTRIBUTE_UNUSED_RESULT __attribute__ ((warn_unused_result))
+#  define DEPRECATED __attribute__ ((__deprecated__))
+#  define UNUSED_PARAM_RESULT __attribute__ ((warn_unused_result))
 # else
-#  define ATTRIBUTE_DEPRECATED /* n/a */
-#  define ATTRIBUTE_UNUSED_RESULT /* n/a */
+#  define DEPRECATED /* n/a */
+#  define UNUSED_PARAM_RESULT /* n/a */
 # endif
 #else
 # define ALWAYS_INLINE inline /* n/a */
 # define NOINLINE /* n/a */
-# define ATTRIBUTE_DEPRECATED /* n/a */
-# define ATTRIBUTE_UNUSED_RESULT /* n/a */
+# define DEPRECATED /* n/a */
+# define UNUSED_PARAM_RESULT /* n/a */
 #endif
 
 /* -fwhole-program makes all symbols local. The attribute externally_visible

@@ -13,7 +13,7 @@
 #define OPT_FOREGROUND 0x01
 #define OPT_TIMER      0x02
 
-static void watchdog_shutdown(int sig ATTRIBUTE_UNUSED)
+static void watchdog_shutdown(int sig UNUSED_PARAM)
 {
 	static const char V = 'V';
 

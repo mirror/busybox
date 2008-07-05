@@ -261,7 +261,7 @@ extern struct globals_misc *const ash_ptr_to_globals_misc;
  * just do a longjmp to the exception handler.  The type of exception is
  * stored in the global variable "exception".
  */
-static void raise_exception(int) ATTRIBUTE_NORETURN;
+static void raise_exception(int) NORETURN;
 static void
 raise_exception(int e)
 {
@@ -281,7 +281,7 @@ raise_exception(int e)
  * are held using the INT_OFF macro.  (The test for iflag is just
  * defensive programming.)
  */
-static void raise_interrupt(void) ATTRIBUTE_NORETURN;
+static void raise_interrupt(void) NORETURN;
 static void
 raise_interrupt(void)
 {
@@ -1048,7 +1048,7 @@ ash_vmsg(const char *msg, va_list ap)
  * is not NULL then error prints an error message using printf style
  * formatting.  It then raises the error exception.
  */
-static void ash_vmsg_and_raise(int, const char *, va_list) ATTRIBUTE_NORETURN;
+static void ash_vmsg_and_raise(int, const char *, va_list) NORETURN;
 static void
 ash_vmsg_and_raise(int cond, const char *msg, va_list ap)
 {
@@ -1068,7 +1068,7 @@ ash_vmsg_and_raise(int cond, const char *msg, va_list ap)
 	/* NOTREACHED */
 }
 
-static void ash_msg_and_raise_error(const char *, ...) ATTRIBUTE_NORETURN;
+static void ash_msg_and_raise_error(const char *, ...) NORETURN;
 static void
 ash_msg_and_raise_error(const char *msg, ...)
 {
@@ -1080,7 +1080,7 @@ ash_msg_and_raise_error(const char *msg, ...)
 	va_end(ap);
 }
 
-static void ash_msg_and_raise(int, const char *, ...) ATTRIBUTE_NORETURN;
+static void ash_msg_and_raise(int, const char *, ...) NORETURN;
 static void
 ash_msg_and_raise(int cond, const char *msg, ...)
 {
@@ -2462,7 +2462,7 @@ docd(const char *dest, int flags)
 }
 
 static int
-cdcmd(int argc ATTRIBUTE_UNUSED, char **argv ATTRIBUTE_UNUSED)
+cdcmd(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
 {
 	const char *dest;
 	const char *path;
@@ -2526,7 +2526,7 @@ cdcmd(int argc ATTRIBUTE_UNUSED, char **argv ATTRIBUTE_UNUSED)
 }
 
 static int
-pwdcmd(int argc ATTRIBUTE_UNUSED, char **argv ATTRIBUTE_UNUSED)
+pwdcmd(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
 {
 	int flags;
 	const char *dir = curdir;
@@ -3128,7 +3128,7 @@ printalias(const struct alias *ap)
  * TODO - sort output
  */
 static int
-aliascmd(int argc ATTRIBUTE_UNUSED, char **argv)
+aliascmd(int argc UNUSED_PARAM, char **argv)
 {
 	char *n, *v;
 	int ret = 0;
@@ -3163,7 +3163,7 @@ aliascmd(int argc ATTRIBUTE_UNUSED, char **argv)
 }
 
 static int
-unaliascmd(int argc ATTRIBUTE_UNUSED, char **argv ATTRIBUTE_UNUSED)
+unaliascmd(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
 {
 	int i;
 
@@ -3670,7 +3670,7 @@ restartjob(struct job *jp, int mode)
 }
 
 static int
-fg_bgcmd(int argc ATTRIBUTE_UNUSED, char **argv)
+fg_bgcmd(int argc UNUSED_PARAM, char **argv)
 {
 	struct job *jp;
 	FILE *out;
@@ -3957,7 +3957,7 @@ showjobs(FILE *out, int mode)
 }
 
 static int
-jobscmd(int argc ATTRIBUTE_UNUSED, char **argv)
+jobscmd(int argc UNUSED_PARAM, char **argv)
 {
 	int mode, m;
 
@@ -4010,7 +4010,7 @@ getstatus(struct job *job)
 }
 
 static int
-waitcmd(int argc ATTRIBUTE_UNUSED, char **argv)
+waitcmd(int argc UNUSED_PARAM, char **argv)
 {
 	struct job *job;
 	int retval;
@@ -5681,7 +5681,7 @@ argstr(char *p, int flag, struct strlist *var_str_list)
 }
 
 static char *
-scanleft(char *startp, char *rmesc, char *rmescend ATTRIBUTE_UNUSED, char *str, int quotes,
+scanleft(char *startp, char *rmesc, char *rmescend UNUSED_PARAM, char *str, int quotes,
 	int zero)
 {
 // This commented out code was added by James Simmons <jsimmons@infradead.org>
@@ -5785,7 +5785,7 @@ scanright(char *startp, char *rmesc, char *rmescend, char *str, int quotes,
 	return 0;
 }
 
-static void varunset(const char *, const char *, const char *, int) ATTRIBUTE_NORETURN;
+static void varunset(const char *, const char *, const char *, int) NORETURN;
 static void
 varunset(const char *end, const char *var, const char *umsg, int varflags)
 {
@@ -6906,7 +6906,7 @@ tryexec(USE_FEATURE_SH_STANDALONE(int applet_no,) char *cmd, char **argv, char *
  * Exec a program.  Never returns.  If you change this routine, you may
  * have to change the find_command routine as well.
  */
-static void shellexec(char **, const char *, int) ATTRIBUTE_NORETURN;
+static void shellexec(char **, const char *, int) NORETURN;
 static void
 shellexec(char **argv, const char *path, int idx)
 {
@@ -7083,7 +7083,7 @@ addcmdentry(char *name, struct cmdentry *entry)
 }
 
 static int
-hashcmd(int argc ATTRIBUTE_UNUSED, char **argv ATTRIBUTE_UNUSED)
+hashcmd(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
 {
 	struct tblentry **pp;
 	struct tblentry *cmdp;
@@ -7385,7 +7385,7 @@ describe_command(char *command, int describe_command_verbose)
 }
 
 static int
-typecmd(int argc ATTRIBUTE_UNUSED, char **argv)
+typecmd(int argc UNUSED_PARAM, char **argv)
 {
 	int i = 1;
 	int err = 0;
@@ -7404,7 +7404,7 @@ typecmd(int argc ATTRIBUTE_UNUSED, char **argv)
 
 #if ENABLE_ASH_CMDCMD
 static int
-commandcmd(int argc ATTRIBUTE_UNUSED, char **argv ATTRIBUTE_UNUSED)
+commandcmd(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
 {
 	int c;
 	enum {
@@ -8341,7 +8341,7 @@ mklocal(char *name)
  * The "local" command.
  */
 static int
-localcmd(int argc ATTRIBUTE_UNUSED, char **argv)
+localcmd(int argc UNUSED_PARAM, char **argv)
 {
 	char *name;
 
@@ -8353,19 +8353,19 @@ localcmd(int argc ATTRIBUTE_UNUSED, char **argv)
 }
 
 static int
-falsecmd(int argc ATTRIBUTE_UNUSED, char **argv ATTRIBUTE_UNUSED)
+falsecmd(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
 {
 	return 1;
 }
 
 static int
-truecmd(int argc ATTRIBUTE_UNUSED, char **argv ATTRIBUTE_UNUSED)
+truecmd(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
 {
 	return 0;
 }
 
 static int
-execcmd(int argc ATTRIBUTE_UNUSED, char **argv)
+execcmd(int argc UNUSED_PARAM, char **argv)
 {
 	if (argv[1]) {
 		iflag = 0;              /* exit on error */
@@ -8380,7 +8380,7 @@ execcmd(int argc ATTRIBUTE_UNUSED, char **argv)
  * The return command.
  */
 static int
-returncmd(int argc ATTRIBUTE_UNUSED, char **argv)
+returncmd(int argc UNUSED_PARAM, char **argv)
 {
 	/*
 	 * If called outside a function, do what ksh does;
@@ -8561,7 +8561,7 @@ isassignment(const char *p)
 	return *q == '=';
 }
 static int
-bltincmd(int argc ATTRIBUTE_UNUSED, char **argv ATTRIBUTE_UNUSED)
+bltincmd(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
 {
 	/* Preserve exitstatus of a previous possible redirection
 	 * as POSIX mandates */
@@ -8874,7 +8874,7 @@ prehash(union node *n)
  * in the standard shell so we don't make it one here.
  */
 static int
-breakcmd(int argc ATTRIBUTE_UNUSED, char **argv)
+breakcmd(int argc UNUSED_PARAM, char **argv)
 {
 	int n = argv[1] ? number(argv[1]) : 1;
 
@@ -9377,7 +9377,7 @@ chkmail(void)
 }
 
 static void
-changemail(const char *val ATTRIBUTE_UNUSED)
+changemail(const char *val UNUSED_PARAM)
 {
 	mail_var_path_changed = 1;
 }
@@ -9533,7 +9533,7 @@ options(int cmdline)
  * The shift builtin command.
  */
 static int
-shiftcmd(int argc ATTRIBUTE_UNUSED, char **argv)
+shiftcmd(int argc UNUSED_PARAM, char **argv)
 {
 	int n;
 	char **ap1, **ap2;
@@ -9595,7 +9595,7 @@ showvars(const char *sep_prefix, int on, int off)
  * The set command builtin.
  */
 static int
-setcmd(int argc ATTRIBUTE_UNUSED, char **argv ATTRIBUTE_UNUSED)
+setcmd(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
 {
 	int retval;
 
@@ -9797,7 +9797,7 @@ static struct heredoc *heredoc;
  */
 #define NEOF ((union node *)&tokpushback)
 
-static void raise_error_syntax(const char *) ATTRIBUTE_NORETURN;
+static void raise_error_syntax(const char *) NORETURN;
 static void
 raise_error_syntax(const char *msg)
 {
@@ -9810,7 +9810,7 @@ raise_error_syntax(const char *msg)
  * is the token that is expected, or -1 if more than one type of token can
  * occur at this point.
  */
-static void raise_error_unexpected_syntax(int) ATTRIBUTE_NORETURN;
+static void raise_error_unexpected_syntax(int) NORETURN;
 static void
 raise_error_unexpected_syntax(int token)
 {
@@ -11414,7 +11414,7 @@ evalstring(char *s, int mask)
  * The eval command.
  */
 static int
-evalcmd(int argc ATTRIBUTE_UNUSED, char **argv)
+evalcmd(int argc UNUSED_PARAM, char **argv)
 {
 	char *p;
 	char *concat;
@@ -11563,7 +11563,7 @@ dotcmd(int argc, char **argv)
 }
 
 static int
-exitcmd(int argc ATTRIBUTE_UNUSED, char **argv)
+exitcmd(int argc UNUSED_PARAM, char **argv)
 {
 	if (stoppedjobs())
 		return 0;
@@ -11787,7 +11787,7 @@ find_command(char *name, struct cmdentry *entry, int act, const char *path)
  * The trap builtin.
  */
 static int
-trapcmd(int argc ATTRIBUTE_UNUSED, char **argv ATTRIBUTE_UNUSED)
+trapcmd(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
 {
 	char *action;
 	char **ap;
@@ -11840,7 +11840,7 @@ trapcmd(int argc ATTRIBUTE_UNUSED, char **argv ATTRIBUTE_UNUSED)
  * Lists available builtins
  */
 static int
-helpcmd(int argc ATTRIBUTE_UNUSED, char **argv ATTRIBUTE_UNUSED)
+helpcmd(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
 {
 	unsigned col;
 	unsigned i;
@@ -11876,7 +11876,7 @@ helpcmd(int argc ATTRIBUTE_UNUSED, char **argv ATTRIBUTE_UNUSED)
  * The export and readonly commands.
  */
 static int
-exportcmd(int argc ATTRIBUTE_UNUSED, char **argv)
+exportcmd(int argc UNUSED_PARAM, char **argv)
 {
 	struct var *vp;
 	char *name;
@@ -11927,7 +11927,7 @@ unsetfunc(const char *name)
  * with the same name.
  */
 static int
-unsetcmd(int argc ATTRIBUTE_UNUSED, char **argv ATTRIBUTE_UNUSED)
+unsetcmd(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
 {
 	char **ap;
 	int i;
@@ -11965,7 +11965,7 @@ static const unsigned char timescmd_str[] ALIGN1 = {
 };
 
 static int
-timescmd(int argc ATTRIBUTE_UNUSED, char **argv ATTRIBUTE_UNUSED)
+timescmd(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
 {
 	long clk_tck, s, t;
 	const unsigned char *p;
@@ -12017,7 +12017,7 @@ dash_arith(const char *s)
  *  Copyright (C) 2003 Vladimir Oleynik <dzo@simtreas.ru>
  */
 static int
-letcmd(int argc ATTRIBUTE_UNUSED, char **argv)
+letcmd(int argc UNUSED_PARAM, char **argv)
 {
 	arith_t i;
 
@@ -12059,7 +12059,7 @@ typedef enum __rlimit_resource rlim_t;
  *      -e              Use line editing (tty only)
  */
 static int
-readcmd(int argc ATTRIBUTE_UNUSED, char **argv ATTRIBUTE_UNUSED)
+readcmd(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
 {
 	static const char *const arg_REPLY[] = { "REPLY", NULL };
 
@@ -12256,7 +12256,7 @@ readcmd(int argc ATTRIBUTE_UNUSED, char **argv ATTRIBUTE_UNUSED)
 }
 
 static int
-umaskcmd(int argc ATTRIBUTE_UNUSED, char **argv)
+umaskcmd(int argc UNUSED_PARAM, char **argv)
 {
 	static const char permuser[3] ALIGN1 = "ugo";
 	static const char permmode[3] ALIGN1 = "rwx";
@@ -12431,7 +12431,7 @@ printlim(enum limtype how, const struct rlimit *limit,
 }
 
 static int
-ulimitcmd(int argc ATTRIBUTE_UNUSED, char **argv ATTRIBUTE_UNUSED)
+ulimitcmd(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
 {
 	int c;
 	rlim_t val = 0;
@@ -13194,7 +13194,7 @@ arith(const char *expr, int *perrcode)
 /*
  * Called to exit the shell.
  */
-static void exitshell(void) ATTRIBUTE_NORETURN;
+static void exitshell(void) NORETURN;
 static void
 exitshell(void)
 {
@@ -13373,7 +13373,7 @@ extern int etext();
  * is used to figure out how far we had gotten.
  */
 int ash_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int ash_main(int argc ATTRIBUTE_UNUSED, char **argv)
+int ash_main(int argc UNUSED_PARAM, char **argv)
 {
 	char *shinit;
 	volatile int state;

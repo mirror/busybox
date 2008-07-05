@@ -196,8 +196,8 @@ static int flush_update(void)
 	return 0;
 }
 
-static int print_addrinfo(const struct sockaddr_nl *who ATTRIBUTE_UNUSED,
-		struct nlmsghdr *n, void *arg ATTRIBUTE_UNUSED)
+static int print_addrinfo(const struct sockaddr_nl *who UNUSED_PARAM,
+		struct nlmsghdr *n, void *arg UNUSED_PARAM)
 {
 	struct ifaddrmsg *ifa = NLMSG_DATA(n);
 	int len = n->nlmsg_len;

@@ -396,7 +396,7 @@ static void run_command(char *const *cmd, resource_t *resp)
 }
 
 int time_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int time_main(int argc ATTRIBUTE_UNUSED, char **argv)
+int time_main(int argc UNUSED_PARAM, char **argv)
 {
 	resource_t res;
 	const char *output_format = default_format;

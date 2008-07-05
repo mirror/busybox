@@ -12,7 +12,7 @@
 
 enum { RFC_868_BIAS = 2208988800UL };
 
-static void socket_timeout(int sig ATTRIBUTE_UNUSED)
+static void socket_timeout(int sig UNUSED_PARAM)
 {
 	bb_error_msg_and_die("timeout connecting to time server");
 }
@@ -43,7 +43,7 @@ static time_t askremotedate(const char *host)
 }
 
 int rdate_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int rdate_main(int argc ATTRIBUTE_UNUSED, char **argv)
+int rdate_main(int argc UNUSED_PARAM, char **argv)
 {
 	time_t remote_time;
 	unsigned long flags;

@@ -13,7 +13,7 @@
 #include "libbb.h"
 
 /* do nothing signal handler */
-static void askpass_timeout(int ATTRIBUTE_UNUSED ignore)
+static void askpass_timeout(int UNUSED_PARAM ignore)
 {
 }
 

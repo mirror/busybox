@@ -292,7 +292,7 @@ static int xargs_ask_confirmation(void)
 
 #if ENABLE_FEATURE_XARGS_SUPPORT_ZERO_TERM
 static xlist_t *process0_stdin(xlist_t *list_arg,
-		const char *eof_str ATTRIBUTE_UNUSED, size_t mc, char *buf)
+		const char *eof_str UNUSED_PARAM, size_t mc, char *buf)
 {
 	int c;                  /* current char */
 	char *s = NULL;         /* start word */

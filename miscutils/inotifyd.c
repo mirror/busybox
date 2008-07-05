@@ -56,7 +56,7 @@ extern int inotify_init(void);
 extern int inotify_add_watch(int fd, const char *path, uint32_t mask);
 
 int inotifyd_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int inotifyd_main(int argc ATTRIBUTE_UNUSED, char **argv)
+int inotifyd_main(int argc UNUSED_PARAM, char **argv)
 {
 	unsigned mask = IN_ALL_EVENTS; // assume we want all events
 	struct pollfd pfd;

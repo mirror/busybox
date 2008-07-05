@@ -105,7 +105,7 @@ static NOINLINE void vfork_child(char **argv)
 }
 
 int openvt_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int openvt_main(int argc ATTRIBUTE_UNUSED, char **argv)
+int openvt_main(int argc UNUSED_PARAM, char **argv)
 {
 	char vtname[sizeof(VC_FORMAT) + sizeof(int)*3];
 	struct vt_stat vtstat;

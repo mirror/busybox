@@ -159,7 +159,7 @@ static void crondlog(const char *ctl, ...)
 }
 
 int crond_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int crond_main(int argc ATTRIBUTE_UNUSED, char **argv)
+int crond_main(int argc UNUSED_PARAM, char **argv)
 {
 	unsigned opt;
 

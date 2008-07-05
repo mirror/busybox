@@ -193,7 +193,7 @@ static char *get_token(char **buffer)
 }
 
 int dc_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int dc_main(int argc ATTRIBUTE_UNUSED, char **argv)
+int dc_main(int argc UNUSED_PARAM, char **argv)
 {
 	INIT_G();
 

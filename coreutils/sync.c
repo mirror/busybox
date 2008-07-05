@@ -14,7 +14,7 @@
 /* This is a NOFORK applet. Be very careful! */
 
 int sync_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int sync_main(int argc, char **argv ATTRIBUTE_UNUSED)
+int sync_main(int argc, char **argv UNUSED_PARAM)
 {
 	/* coreutils-6.9 compat */
 	bb_warn_ignoring_args(argc - 1);

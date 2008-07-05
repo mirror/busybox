@@ -26,7 +26,7 @@ static FILE *xgetoptfile_uniq_s(char **argv, int read0write2)
 }
 
 int uniq_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int uniq_main(int argc ATTRIBUTE_UNUSED, char **argv)
+int uniq_main(int argc UNUSED_PARAM, char **argv)
 {
 	FILE *in, *out;
 	const char *s0, *e0, *s1, *e1, *input_filename;

@@ -35,7 +35,7 @@
 #endif
 
 int last_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int last_main(int argc, char **argv ATTRIBUTE_UNUSED)
+int last_main(int argc, char **argv UNUSED_PARAM)
 {
 	struct utmp ut;
 	int n, file = STDIN_FILENO;

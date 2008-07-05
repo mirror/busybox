@@ -301,9 +301,9 @@ static char* pathname_2_modname(const char *pathname)
 }
 
 static FAST_FUNC int fileAction(const char *pathname,
-		struct stat *sb ATTRIBUTE_UNUSED,
+		struct stat *sb UNUSED_PARAM,
 		void *data,
-		int depth ATTRIBUTE_UNUSED)
+		int depth UNUSED_PARAM)
 {
 	int cur;
 	char *name;
@@ -581,7 +581,7 @@ Options:
 */
 
 int modprobe_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int modprobe_main(int ATTRIBUTE_UNUSED argc, char **argv)
+int modprobe_main(int argc UNUSED_PARAM, char **argv)
 {
 	struct utsname uts;
 	char applet0 = applet_name[0];

@@ -71,7 +71,7 @@ static char* new_password(const struct passwd *pw, uid_t myuid, int algo)
 }
 
 int passwd_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int passwd_main(int argc ATTRIBUTE_UNUSED, char **argv)
+int passwd_main(int argc UNUSED_PARAM, char **argv)
 {
 	enum {
 		OPT_algo = 0x1, /* -a - password algorithm */

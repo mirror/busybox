@@ -78,7 +78,7 @@ errcode_t ext2fs_get_device_size(const char *file, int blocksize,
 
 	dev = CreateFile(file, GENERIC_READ,
 			 FILE_SHARE_READ | FILE_SHARE_WRITE ,
-			 NULL,  OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL,  NULL);
+			 NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
 
 	if (dev == INVALID_HANDLE_VALUE)
 		return EBADF;

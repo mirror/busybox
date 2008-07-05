@@ -24,7 +24,7 @@
  || ENABLE_FEATURE_IP_TUNNEL \
  || ENABLE_FEATURE_IP_RULE
 
-static int ATTRIBUTE_NORETURN ip_print_help(char ATTRIBUTE_UNUSED **argv)
+static int NORETURN ip_print_help(char **argv UNUSED_PARAM)
 {
 	bb_show_usage();
 }
@@ -37,35 +37,35 @@ static int ip_do(int (*ip_func)(char **argv), char **argv)
 
 #if ENABLE_FEATURE_IP_ADDRESS
 int ipaddr_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int ipaddr_main(int argc ATTRIBUTE_UNUSED, char **argv)
+int ipaddr_main(int argc UNUSED_PARAM, char **argv)
 {
 	return ip_do(do_ipaddr, argv);
 }
 #endif
 #if ENABLE_FEATURE_IP_LINK
 int iplink_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int iplink_main(int argc ATTRIBUTE_UNUSED, char **argv)
+int iplink_main(int argc UNUSED_PARAM, char **argv)
 {
 	return ip_do(do_iplink, argv);
 }
 #endif
 #if ENABLE_FEATURE_IP_ROUTE
 int iproute_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int iproute_main(int argc ATTRIBUTE_UNUSED, char **argv)
+int iproute_main(int argc UNUSED_PARAM, char **argv)
 {
 	return ip_do(do_iproute, argv);
 }
 #endif
 #if ENABLE_FEATURE_IP_RULE
 int iprule_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int iprule_main(int argc ATTRIBUTE_UNUSED, char **argv)
+int iprule_main(int argc UNUSED_PARAM, char **argv)
 {
 	return ip_do(do_iprule, argv);
 }
 #endif
 #if ENABLE_FEATURE_IP_TUNNEL
 int iptunnel_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int iptunnel_main(int argc ATTRIBUTE_UNUSED, char **argv)
+int iptunnel_main(int argc UNUSED_PARAM, char **argv)
 {
 	return ip_do(do_iptunnel, argv);
 }
@@ -73,7 +73,7 @@ int iptunnel_main(int argc ATTRIBUTE_UNUSED, char **argv)
 
 
 int ip_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int ip_main(int argc ATTRIBUTE_UNUSED, char **argv)
+int ip_main(int argc UNUSED_PARAM, char **argv)
 {
 	static const char keywords[] ALIGN1 =
 		USE_FEATURE_IP_ADDRESS("address\0")

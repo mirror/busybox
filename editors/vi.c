@@ -2141,7 +2141,7 @@ static void cookmode(void)
 
 //----- Come here when we get a window resize signal ---------
 #if ENABLE_FEATURE_VI_USE_SIGNALS
-static void winch_sig(int sig ATTRIBUTE_UNUSED)
+static void winch_sig(int sig UNUSED_PARAM)
 {
 	// FIXME: do it in main loop!!!
 	signal(SIGWINCH, winch_sig);
@@ -2155,7 +2155,7 @@ static void winch_sig(int sig ATTRIBUTE_UNUSED)
 }
 
 //----- Come here when we get a continue signal -------------------
-static void cont_sig(int sig ATTRIBUTE_UNUSED)
+static void cont_sig(int sig UNUSED_PARAM)
 {
 	rawmode();			// terminal to "raw"
 	last_status_cksum = 0;	// force status update
@@ -2167,7 +2167,7 @@ static void cont_sig(int sig ATTRIBUTE_UNUSED)
 }
 
 //----- Come here when we get a Suspend signal -------------------
-static void suspend_sig(int sig ATTRIBUTE_UNUSED)
+static void suspend_sig(int sig UNUSED_PARAM)
 {
 	place_cursor(rows - 1, 0, FALSE);	// go to bottom of screen
 	clear_to_eol();		// Erase to end of line

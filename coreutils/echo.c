@@ -29,7 +29,7 @@
 
 /* NB: can be used by shell even if not enabled as applet */
 
-int echo_main(int argc ATTRIBUTE_UNUSED, char **argv)
+int echo_main(int argc UNUSED_PARAM, char **argv)
 {
 	const char *arg;
 #if !ENABLE_FEATURE_FANCY_ECHO

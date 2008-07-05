@@ -274,7 +274,7 @@ typedef struct a { \
 S_STAT(s_stat)
 S_STAT_END(s_stat)
 
-static void collect_literal(s_stat *s ATTRIBUTE_UNUSED)
+static void collect_literal(s_stat *s UNUSED_PARAM)
 {
 }
 
@@ -293,7 +293,7 @@ static s_stat* init_delay(const char *param)
 	return NULL;
 }
 
-static s_stat* init_cr(const char *param ATTRIBUTE_UNUSED)
+static s_stat* init_cr(const char *param UNUSED_PARAM)
 {
 	final_str = "\r";
 	return (s_stat*)0;
@@ -435,7 +435,7 @@ static void collect_ctx(ctx_stat *s)
 	scale(data[0] - old);
 }
 
-static s_stat* init_ctx(const char *param ATTRIBUTE_UNUSED)
+static s_stat* init_ctx(const char *param UNUSED_PARAM)
 {
 	ctx_stat *s = xzalloc(sizeof(*s));
 	s->collect = collect_ctx;
@@ -477,7 +477,7 @@ static void collect_blk(blk_stat *s)
 	scale(data[1]*512);
 }
 
-static s_stat* init_blk(const char *param ATTRIBUTE_UNUSED)
+static s_stat* init_blk(const char *param UNUSED_PARAM)
 {
 	blk_stat *s = xzalloc(sizeof(*s));
 	s->collect = collect_blk;
@@ -490,7 +490,7 @@ S_STAT(fork_stat)
 	ullong old;
 S_STAT_END(fork_stat)
 
-static void collect_thread_nr(fork_stat *s ATTRIBUTE_UNUSED)
+static void collect_thread_nr(fork_stat *s UNUSED_PARAM)
 {
 	ullong data[1];
 
@@ -657,7 +657,7 @@ static s_stat* init_mem(const char *param)
 S_STAT(swp_stat)
 S_STAT_END(swp_stat)
 
-static void collect_swp(swp_stat *s ATTRIBUTE_UNUSED)
+static void collect_swp(swp_stat *s UNUSED_PARAM)
 {
 	ullong s_total[1];
 	ullong s_free[1];
@@ -670,7 +670,7 @@ static void collect_swp(swp_stat *s ATTRIBUTE_UNUSED)
 	scale((s_total[0]-s_free[0]) << 10);
 }
 
-static s_stat* init_swp(const char *param ATTRIBUTE_UNUSED)
+static s_stat* init_swp(const char *param UNUSED_PARAM)
 {
 	swp_stat *s = xzalloc(sizeof(*s));
 	s->collect = collect_swp;
@@ -681,7 +681,7 @@ static s_stat* init_swp(const char *param ATTRIBUTE_UNUSED)
 S_STAT(fd_stat)
 S_STAT_END(fd_stat)
 
-static void collect_fd(fd_stat *s ATTRIBUTE_UNUSED)
+static void collect_fd(fd_stat *s UNUSED_PARAM)
 {
 	ullong data[2];
 
@@ -693,7 +693,7 @@ static void collect_fd(fd_stat *s ATTRIBUTE_UNUSED)
 	scale(data[0] - data[1]);
 }
 
-static s_stat* init_fd(const char *param ATTRIBUTE_UNUSED)
+static s_stat* init_fd(const char *param UNUSED_PARAM)
 {
 	fd_stat *s = xzalloc(sizeof(*s));
 	s->collect = collect_fd;

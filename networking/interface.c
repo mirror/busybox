@@ -244,7 +244,7 @@ static char* FAST_FUNC UNSPEC_print(unsigned char *ptr)
 }
 
 /* Display an UNSPEC socket address. */
-static const char* FAST_FUNC UNSPEC_sprint(struct sockaddr *sap, int numeric ATTRIBUTE_UNUSED)
+static const char* FAST_FUNC UNSPEC_sprint(struct sockaddr *sap, int numeric UNUSED_PARAM)
 {
 	if (sap->sa_family == 0xFFFF || sap->sa_family == 0)
 		return "[NONE SET]";

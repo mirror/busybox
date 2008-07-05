@@ -89,7 +89,7 @@ static char *skip_blank(const char *cp)
 
 
 int ed_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int ed_main(int argc ATTRIBUTE_UNUSED, char **argv)
+int ed_main(int argc UNUSED_PARAM, char **argv)
 {
 	INIT_G();
 

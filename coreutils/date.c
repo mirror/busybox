@@ -39,7 +39,7 @@ static void maybe_set_utc(int opt)
 }
 
 int date_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int date_main(int argc ATTRIBUTE_UNUSED, char **argv)
+int date_main(int argc UNUSED_PARAM, char **argv)
 {
 	struct tm tm_time;
 	time_t tm;

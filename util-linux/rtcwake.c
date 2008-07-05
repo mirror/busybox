@@ -98,7 +98,7 @@ static void setup_alarm(int fd, time_t *wakeup)
 #define RTCWAKE_OPT_TIME         0x40
 
 int rtcwake_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int rtcwake_main(int argc ATTRIBUTE_UNUSED, char **argv)
+int rtcwake_main(int argc UNUSED_PARAM, char **argv)
 {
 	unsigned opt;
 	const char *rtcname = NULL;

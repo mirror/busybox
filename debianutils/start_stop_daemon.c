@@ -320,7 +320,7 @@ static const char start_stop_daemon_longopts[] ALIGN1 =
 #endif
 
 int start_stop_daemon_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int start_stop_daemon_main(int argc ATTRIBUTE_UNUSED, char **argv)
+int start_stop_daemon_main(int argc UNUSED_PARAM, char **argv)
 {
 	unsigned opt;
 	char *signame;

@@ -14,7 +14,7 @@
 #include "libcoreutils/coreutils.h"
 
 int mkfifo_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int mkfifo_main(int argc ATTRIBUTE_UNUSED, char **argv)
+int mkfifo_main(int argc UNUSED_PARAM, char **argv)
 {
 	mode_t mode;
 	int retval = EXIT_SUCCESS;

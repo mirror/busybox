@@ -81,7 +81,7 @@ static const char opcode_name[] ALIGN1 =
 	"weof"            "\0";
 
 int mt_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int mt_main(int argc ATTRIBUTE_UNUSED, char **argv)
+int mt_main(int argc UNUSED_PARAM, char **argv)
 {
 	const char *file = "/dev/tape";
 	struct mtop op;

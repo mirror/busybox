@@ -177,7 +177,7 @@ static void unarm(void)
 }
 
 /* timeout and other signal handling cruft */
-static void tmtravel(int sig ATTRIBUTE_UNUSED)
+static void tmtravel(int sig UNUSED_PARAM)
 {
 	unarm();
 	longjmp(jbuf, 1);
@@ -222,7 +222,7 @@ Debug("findline returning whole thing: %d", siz);
  that would be security-critical, which is why it's ifdefed out by default.
  Use at your own hairy risk; if you leave shells lying around behind open
  listening ports you deserve to lose!! */
-static int doexec(char **proggie) ATTRIBUTE_NORETURN;
+static int doexec(char **proggie) NORETURN;
 static int doexec(char **proggie)
 {
 	xmove_fd(netfd, 0);

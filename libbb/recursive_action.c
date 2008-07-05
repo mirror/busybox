@@ -22,10 +22,10 @@
  * is so stinking huge.
  */
 
-static int FAST_FUNC true_action(const char *fileName ATTRIBUTE_UNUSED,
-		struct stat *statbuf ATTRIBUTE_UNUSED,
-		void* userData ATTRIBUTE_UNUSED,
-		int depth ATTRIBUTE_UNUSED)
+static int FAST_FUNC true_action(const char *fileName UNUSED_PARAM,
+		struct stat *statbuf UNUSED_PARAM,
+		void* userData UNUSED_PARAM,
+		int depth UNUSED_PARAM)
 {
 	return TRUE;
 }

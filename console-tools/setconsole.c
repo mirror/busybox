@@ -11,7 +11,7 @@
 #include "libbb.h"
 
 int setconsole_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int setconsole_main(int ATTRIBUTE_UNUSED argc, char **argv)
+int setconsole_main(int argc UNUSED_PARAM, char **argv)
 {
 	const char *device = CURRENT_TTY;
 	bool reset;

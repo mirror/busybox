@@ -213,7 +213,7 @@ static int receive(/*int read_fd, */int file_fd)
 	} /* for (;;) */
 }
 
-static void sigalrm_handler(int ATTRIBUTE_UNUSED signum)
+static void sigalrm_handler(int UNUSED_PARAM signum)
 {
 }
 

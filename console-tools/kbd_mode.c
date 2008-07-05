@@ -14,7 +14,7 @@
 #include <linux/kd.h>
 
 int kbd_mode_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int kbd_mode_main(int ATTRIBUTE_UNUSED argc, char **argv)
+int kbd_mode_main(int argc UNUSED_PARAM, char **argv)
 {
 	int fd;
 	unsigned opt;

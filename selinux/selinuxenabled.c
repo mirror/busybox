@@ -8,7 +8,7 @@
 #include "libbb.h"
 
 int selinuxenabled_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int selinuxenabled_main(int argc ATTRIBUTE_UNUSED, char **argv ATTRIBUTE_UNUSED)
+int selinuxenabled_main(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
 {
 	return !is_selinux_enabled();
 }

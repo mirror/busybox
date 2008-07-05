@@ -101,7 +101,7 @@ static void iacflush(void)
 
 #define write_str(fd, str) write(fd, str, sizeof(str) - 1)
 
-static void doexit(int ev) ATTRIBUTE_NORETURN;
+static void doexit(int ev) NORETURN;
 static void doexit(int ev)
 {
 	cookmode();

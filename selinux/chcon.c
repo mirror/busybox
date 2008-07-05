@@ -30,9 +30,9 @@ static char *specified_context = NULL;
 
 static int FAST_FUNC change_filedir_context(
 		const char *fname,
-		struct stat *stbuf ATTRIBUTE_UNUSED,
-		void *userData ATTRIBUTE_UNUSED,
-		int depth ATTRIBUTE_UNUSED)
+		struct stat *stbuf UNUSED_PARAM,
+		void *userData UNUSED_PARAM,
+		int depth UNUSED_PARAM)
 {
 	context_t context = NULL;
 	security_context_t file_context = NULL;
@@ -125,7 +125,7 @@ static const char chcon_longopts[] ALIGN1 =
 #endif
 
 int chcon_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int chcon_main(int argc ATTRIBUTE_UNUSED, char **argv)
+int chcon_main(int argc UNUSED_PARAM, char **argv)
 {
 	char *reference_file;
 	char *fname;

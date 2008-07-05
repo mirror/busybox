@@ -41,7 +41,7 @@ enum {
 static /*volatile*/ smallint exitcode;
 
 // trap for critical signals
-static void signal_handler(ATTRIBUTE_UNUSED int signo)
+static void signal_handler(UNUSED_PARAM int signo)
 {
 	// report I/O error condition
 	exitcode = ERR_IO;
@@ -103,7 +103,7 @@ static size_t unescape(char *s, int *nocr)
 
 
 int chat_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int chat_main(int argc ATTRIBUTE_UNUSED, char **argv)
+int chat_main(int argc UNUSED_PARAM, char **argv)
 {
 // should we dump device output? to what fd? by default no.
 // this can be controlled later via ECHO {ON|OFF} chat directive

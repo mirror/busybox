@@ -33,7 +33,7 @@ typedef unsigned char Bool;
 #define False ((Bool)0)
 
 #if BZ_LIGHT_DEBUG
-static void bz_assert_fail(int errcode) ATTRIBUTE_NORETURN;
+static void bz_assert_fail(int errcode) NORETURN;
 #define AssertH(cond, errcode) \
 do { \
 	if (!(cond)) \
@@ -170,7 +170,7 @@ typedef struct EState {
 
 	/* map of bytes used in block */
 	int32_t  nInUse;
-	Bool     inUse[256] __attribute__(( aligned(sizeof(long)) ));
+	Bool     inUse[256] ALIGNED(sizeof(long));
 	uint8_t  unseqToSeq[256];
 
 	/* stuff for coding the MTF values */

@@ -39,7 +39,7 @@ enum {
 };
 
 int klogd_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int klogd_main(int argc ATTRIBUTE_UNUSED, char **argv)
+int klogd_main(int argc UNUSED_PARAM, char **argv)
 {
 	int i = 0;
 	char *start;

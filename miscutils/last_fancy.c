@@ -148,7 +148,7 @@ static int is_runlevel_shutdown(struct utmp *ut)
 }
 
 int last_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int last_main(int argc ATTRIBUTE_UNUSED, char **argv)
+int last_main(int argc UNUSED_PARAM, char **argv)
 {
 	struct utmp ut;
 	const char *filename = _PATH_WTMP;

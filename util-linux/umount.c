@@ -15,7 +15,7 @@
 /* 16.12.2006, Sampo Kellomaki (sampo@iki.fi)
  * dietlibc-0.30 does not have implementation of getmntent_r() */
 static struct mntent *getmntent_r(FILE* stream, struct mntent* result,
-		char* buffer ATTRIBUTE_UNUSED, int bufsize ATTRIBUTE_UNUSED)
+		char* buffer UNUSED_PARAM, int bufsize UNUSED_PARAM)
 {
 	struct mntent* ment = getmntent(stream);
 	return memcpy(result, ment, sizeof(*ment));
@@ -37,7 +37,7 @@ static struct mntent *getmntent_r(FILE* stream, struct mntent* result,
 //#define MNT_DETACH 0x00000002 /* Just detach from the tree */
 
 int umount_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int umount_main(int argc ATTRIBUTE_UNUSED, char **argv)
+int umount_main(int argc UNUSED_PARAM, char **argv)
 {
 	int doForce;
 	char *const path = xmalloc(PATH_MAX + 2); /* to save stack */

@@ -141,7 +141,7 @@ char* make_new_name_bzip2(char *filename)
 }
 
 int bzip2_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int bzip2_main(int argc ATTRIBUTE_UNUSED, char **argv)
+int bzip2_main(int argc UNUSED_PARAM, char **argv)
 {
 	unsigned opt;
 

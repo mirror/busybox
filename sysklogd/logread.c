@@ -43,7 +43,7 @@ struct globals {
 	memcpy(SMrup, init_sem, sizeof(init_sem)); \
 } while (0)
 
-static void error_exit(const char *str) ATTRIBUTE_NORETURN;
+static void error_exit(const char *str) NORETURN;
 static void error_exit(const char *str)
 {
 	//release all acquired resources
@@ -60,7 +60,7 @@ static void sem_up(int semid)
 		error_exit("semop[SMrup]");
 }
 
-static void interrupted(int sig ATTRIBUTE_UNUSED)
+static void interrupted(int sig UNUSED_PARAM)
 {
 	signal(SIGINT, SIG_IGN);
 	shmdt(shbuf);
@@ -68,7 +68,7 @@ static void interrupted(int sig ATTRIBUTE_UNUSED)
 }
 
 int logread_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int logread_main(int argc ATTRIBUTE_UNUSED, char **argv)
+int logread_main(int argc UNUSED_PARAM, char **argv)
 {
 	unsigned cur;
 	int log_semid; /* ipc semaphore id */

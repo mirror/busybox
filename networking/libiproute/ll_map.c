@@ -39,9 +39,9 @@ static struct idxmap *find_by_index(int idx)
 	return NULL;
 }
 
-int ll_remember_index(const struct sockaddr_nl *who ATTRIBUTE_UNUSED,
+int ll_remember_index(const struct sockaddr_nl *who UNUSED_PARAM,
 		struct nlmsghdr *n,
-		void *arg ATTRIBUTE_UNUSED)
+		void *arg UNUSED_PARAM)
 {
 	int h;
 	struct ifinfomsg *ifi = NLMSG_DATA(n);

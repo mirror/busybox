@@ -499,7 +499,7 @@ static void chain_group(void);
 static var *evaluate(node *, var *);
 static rstream *next_input_file(void);
 static int fmt_num(char *, int, const char *, double, int);
-static int awk_exit(int) ATTRIBUTE_NORETURN;
+static int awk_exit(int) NORETURN;
 
 /* ---- error handling ---- */
 
@@ -521,7 +521,7 @@ static void zero_out_var(var * vp)
 	memset(vp, 0, sizeof(*vp));
 }
 
-static void syntax_error(const char *const message) ATTRIBUTE_NORETURN;
+static void syntax_error(const char *const message) NORETURN;
 static void syntax_error(const char *const message)
 {
 	bb_error_msg_and_die("%s:%i: %s", g_progname, g_lineno, message);

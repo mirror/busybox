@@ -282,13 +282,13 @@ static void slimit(void)
 }
 
 /* argv[0] */
-static void setuidgid(int, char **) ATTRIBUTE_NORETURN;
-static void envuidgid(int, char **) ATTRIBUTE_NORETURN;
-static void envdir(int, char **) ATTRIBUTE_NORETURN;
-static void softlimit(int, char **) ATTRIBUTE_NORETURN;
+static void setuidgid(int, char **) NORETURN;
+static void envuidgid(int, char **) NORETURN;
+static void envdir(int, char **) NORETURN;
+static void softlimit(int, char **) NORETURN;
 
 int chpst_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int chpst_main(int argc ATTRIBUTE_UNUSED, char **argv)
+int chpst_main(int argc UNUSED_PARAM, char **argv)
 {
 	INIT_G();
 
@@ -347,7 +347,7 @@ int chpst_main(int argc ATTRIBUTE_UNUSED, char **argv)
 	bb_perror_msg_and_die("exec %s", argv[0]);
 }
 
-static void setuidgid(int argc ATTRIBUTE_UNUSED, char **argv)
+static void setuidgid(int argc UNUSED_PARAM, char **argv)
 {
 	const char *account;
 
@@ -359,7 +359,7 @@ static void setuidgid(int argc ATTRIBUTE_UNUSED, char **argv)
 	bb_perror_msg_and_die("exec %s", argv[0]);
 }
 
-static void envuidgid(int argc ATTRIBUTE_UNUSED, char **argv)
+static void envuidgid(int argc UNUSED_PARAM, char **argv)
 {
 	const char *account;
 
@@ -371,7 +371,7 @@ static void envuidgid(int argc ATTRIBUTE_UNUSED, char **argv)
 	bb_perror_msg_and_die("exec %s", argv[0]);
 }
 
-static void envdir(int argc ATTRIBUTE_UNUSED, char **argv)
+static void envdir(int argc UNUSED_PARAM, char **argv)
 {
 	const char *dir;
 
@@ -383,7 +383,7 @@ static void envdir(int argc ATTRIBUTE_UNUSED, char **argv)
 	bb_perror_msg_and_die("exec %s", argv[0]);
 }
 
-static void softlimit(int argc ATTRIBUTE_UNUSED, char **argv)
+static void softlimit(int argc UNUSED_PARAM, char **argv)
 {
 	char *a,*c,*d,*f,*l,*m,*o,*p,*r,*s,*t;
 	getopt32(argv, "+a:c:d:f:l:m:o:p:r:s:t:",

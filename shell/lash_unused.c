@@ -119,7 +119,7 @@ static void remove_job(struct jobset *j_list, struct job *job);
 static int get_command_bufsiz(FILE *source, char *command);
 static int parse_command(char **command_ptr, struct job *job, int *inbg);
 static int run_command(struct job *newjob, int inbg, int outpipe[2]);
-static int pseudo_exec(struct child_prog *cmd) ATTRIBUTE_NORETURN;
+static int pseudo_exec(struct child_prog *cmd) NORETURN;
 static int busy_loop(FILE *input);
 
 
@@ -177,7 +177,7 @@ static inline void debug_printf(const char *format, ...)
 	va_end(args);
 }
 #else
-static inline void debug_printf(const char ATTRIBUTE_UNUSED *format, ...) { }
+static inline void debug_printf(const char UNUSED_PARAM *format, ...) { }
 #endif
 
 /*
@@ -308,7 +308,7 @@ static int builtin_fg_bg(struct child_prog *child)
 }
 
 /* built-in 'help' handler */
-static int builtin_help(struct child_prog ATTRIBUTE_UNUSED *dummy)
+static int builtin_help(struct child_prog UNUSED_PARAM *dummy)
 {
 	const struct built_in_command *x;
 
@@ -342,7 +342,7 @@ static int builtin_jobs(struct child_prog *child)
 
 
 /* built-in 'pwd' handler */
-static int builtin_pwd(struct child_prog ATTRIBUTE_UNUSED *dummy)
+static int builtin_pwd(struct child_prog UNUSED_PARAM *dummy)
 {
 	update_cwd();
 	puts(cwd);

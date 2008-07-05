@@ -741,7 +741,7 @@ static void action_permissions(const struct devfsd_notify_struct *info,
 }   /*  End Function action_permissions  */
 
 static void action_modload(const struct devfsd_notify_struct *info,
-			    const struct config_entry_struct *entry ATTRIBUTE_UNUSED)
+			    const struct config_entry_struct *entry UNUSED_PARAM)
 /*  [SUMMARY] Load a module.
     <info> The devfs change.
     <entry> The config file entry.

@@ -792,8 +792,8 @@ static char *m_fullName;
 
 
 static int FAST_FUNC check_module_name_match(const char *filename,
-		struct stat *statbuf ATTRIBUTE_UNUSED,
-		void *userdata, int depth ATTRIBUTE_UNUSED)
+		struct stat *statbuf UNUSED_PARAM,
+		void *userdata, int depth UNUSED_PARAM)
 {
 	char *fullname = (char *) userdata;
 	char *tmp;
@@ -3306,7 +3306,7 @@ static int obj_create_image(struct obj_file *f, char *image)
 
 /*======================================================================*/
 
-static struct obj_file *obj_load(FILE *fp, int loadprogbits ATTRIBUTE_UNUSED)
+static struct obj_file *obj_load(FILE *fp, int loadprogbits UNUSED_PARAM)
 {
 	struct obj_file *f;
 	ElfW(Shdr) * section_headers;
@@ -4211,9 +4211,9 @@ static const char *moderror(int err)
 
 #if !ENABLE_FEATURE_2_4_MODULES
 int insmod_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int insmod_main(int argc ATTRIBUTE_UNUSED, char **argv)
+int insmod_main(int argc UNUSED_PARAM, char **argv)
 #else
-static int insmod_ng_main(int argc ATTRIBUTE_UNUSED, char **argv)
+static int insmod_ng_main(int argc UNUSED_PARAM, char **argv)
 #endif
 {
 	size_t len;

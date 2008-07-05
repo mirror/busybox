@@ -21,7 +21,7 @@ extern char **ip_parse_common_args(char **argv);
 extern int print_neigh(struct sockaddr_nl *who, struct nlmsghdr *n, void *arg);
 extern int ipaddr_list_or_flush(char **argv, int flush);
 extern int iproute_monitor(char **argv);
-extern void iplink_usage(void) ATTRIBUTE_NORETURN;
+extern void iplink_usage(void) NORETURN;
 extern void ipneigh_reset_filter(void);
 
 extern int do_ipaddr(char **argv);

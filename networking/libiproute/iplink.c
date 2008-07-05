@@ -154,7 +154,7 @@ static void set_address(struct ifreq *ifr, int brd)
 }
 
 
-static void die_must_be_on_off(const char *msg) ATTRIBUTE_NORETURN;
+static void die_must_be_on_off(const char *msg) NORETURN;
 static void die_must_be_on_off(const char *msg)
 {
 	bb_error_msg_and_die("argument of \"%s\" must be \"on\" or \"off\"", msg);

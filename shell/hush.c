@@ -538,8 +538,8 @@ static int run_list(struct pipe *pi);
 #define pseudo_exec_argv(ptrs2free, argv)  pseudo_exec_argv(argv)
 #define      pseudo_exec(ptrs2free, child)      pseudo_exec(child)
 #endif
-static void pseudo_exec_argv(char **ptrs2free, char **argv) ATTRIBUTE_NORETURN;
-static void pseudo_exec(char **ptrs2free, struct child_prog *child) ATTRIBUTE_NORETURN;
+static void pseudo_exec_argv(char **ptrs2free, char **argv) NORETURN;
+static void pseudo_exec(char **ptrs2free, struct child_prog *child) NORETURN;
 static int run_pipe(struct pipe *pi);
 /*   data structure manipulation: */
 static int setup_redirect(struct p_context *ctx, int fd, redir_type style, struct in_str *input);
@@ -805,14 +805,14 @@ static void set_every_sighandler(void (*handler)(int))
 	signal(SIGCHLD, handler);
 }
 
-static void handler_ctrl_c(int sig ATTRIBUTE_UNUSED)
+static void handler_ctrl_c(int sig UNUSED_PARAM)
 {
 	debug_printf_jobs("got sig %d\n", sig);
 // as usual we can have all kinds of nasty problems with leaked malloc data here
 	siglongjmp(toplevel_jb, 1);
 }
 
-static void handler_ctrl_z(int sig ATTRIBUTE_UNUSED)
+static void handler_ctrl_z(int sig UNUSED_PARAM)
 {
 	pid_t pid;
 
@@ -849,7 +849,7 @@ static void handler_ctrl_z(int sig ATTRIBUTE_UNUSED)
  * (will faithfully resend signal to itself, producing correct exit state)
  * or called directly with -EXITCODE.
  * We also call it if xfunc is exiting. */
-static void sigexit(int sig) ATTRIBUTE_NORETURN;
+static void sigexit(int sig) NORETURN;
 static void sigexit(int sig)
 {
 	/* Disable all signals: job control, SIGPIPE, etc. */
@@ -866,7 +866,7 @@ static void sigexit(int sig)
 }
 
 /* Restores tty foreground process group, and exits. */
-static void hush_exit(int exitcode) ATTRIBUTE_NORETURN;
+static void hush_exit(int exitcode) NORETURN;
 static void hush_exit(int exitcode)
 {
 	fflush(NULL); /* flush all streams */
@@ -4004,7 +4004,7 @@ int lash_main(int argc, char **argv)
 /*
  * Built-ins
  */
-static int builtin_true(char **argv ATTRIBUTE_UNUSED)
+static int builtin_true(char **argv UNUSED_PARAM)
 {
 	return 0;
 }
@@ -4188,7 +4188,7 @@ static int builtin_fg_bg(char **argv)
 #endif
 
 #if ENABLE_HUSH_HELP
-static int builtin_help(char **argv ATTRIBUTE_UNUSED)
+static int builtin_help(char **argv UNUSED_PARAM)
 {
 	const struct built_in_command *x;
 
@@ -4203,7 +4203,7 @@ static int builtin_help(char **argv ATTRIBUTE_UNUSED)
 #endif
 
 #if ENABLE_HUSH_JOB
-static int builtin_jobs(char **argv ATTRIBUTE_UNUSED)
+static int builtin_jobs(char **argv UNUSED_PARAM)
 {
 	struct pipe *job;
 	const char *status_string;
@@ -4220,7 +4220,7 @@ static int builtin_jobs(char **argv ATTRIBUTE_UNUSED)
 }
 #endif
 
-static int builtin_pwd(char **argv ATTRIBUTE_UNUSED)
+static int builtin_pwd(char **argv UNUSED_PARAM)
 {
 	puts(set_cwd());
 	return EXIT_SUCCESS;

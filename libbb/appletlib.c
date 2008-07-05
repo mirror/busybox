@@ -738,7 +738,7 @@ void FAST_FUNC run_applet_and_exit(const char *name, char **argv)
 #if ENABLE_BUILD_LIBBUSYBOX
 int lbb_main(char **argv)
 #else
-int main(int argc ATTRIBUTE_UNUSED, char **argv)
+int main(int argc UNUSED_PARAM, char **argv)
 #endif
 {
 #if defined(SINGLE_APPLET_MAIN)

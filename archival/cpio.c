@@ -191,7 +191,7 @@ static int cpio_o(void)
 #endif
 
 int cpio_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int cpio_main(int argc ATTRIBUTE_UNUSED, char **argv)
+int cpio_main(int argc UNUSED_PARAM, char **argv)
 {
 	archive_handle_t *archive_handle;
 	char *cpio_filename;

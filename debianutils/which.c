@@ -13,7 +13,7 @@
 #include "libbb.h"
 
 int which_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int which_main(int argc ATTRIBUTE_UNUSED, char **argv)
+int which_main(int argc UNUSED_PARAM, char **argv)
 {
 	USE_DESKTOP(int opt;)
 	int status = EXIT_SUCCESS;

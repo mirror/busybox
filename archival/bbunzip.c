@@ -165,7 +165,7 @@ USE_DESKTOP(long long) int unpack_bunzip2(void)
 }
 
 int bunzip2_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int bunzip2_main(int argc ATTRIBUTE_UNUSED, char **argv)
+int bunzip2_main(int argc UNUSED_PARAM, char **argv)
 {
 	getopt32(argv, "cfvdt");
 	argv += optind;
@@ -277,7 +277,7 @@ USE_DESKTOP(long long) int unpack_gunzip(void)
  */
 
 int gunzip_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int gunzip_main(int argc ATTRIBUTE_UNUSED, char **argv)
+int gunzip_main(int argc UNUSED_PARAM, char **argv)
 {
 	getopt32(argv, "cfvdtn");
 	argv += optind;
@@ -315,7 +315,7 @@ USE_DESKTOP(long long) int unpack_unlzma(void)
 }
 
 int unlzma_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int unlzma_main(int argc ATTRIBUTE_UNUSED, char **argv)
+int unlzma_main(int argc UNUSED_PARAM, char **argv)
 {
 	getopt32(argv, "cf");
 	argv += optind;
@@ -357,7 +357,7 @@ USE_DESKTOP(long long) int unpack_uncompress(void)
 }
 
 int uncompress_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int uncompress_main(int argc ATTRIBUTE_UNUSED, char **argv)
+int uncompress_main(int argc UNUSED_PARAM, char **argv)
 {
 	getopt32(argv, "cf");
 	argv += optind;

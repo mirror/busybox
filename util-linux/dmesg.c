@@ -13,7 +13,7 @@
 #include "libbb.h"
 
 int dmesg_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int dmesg_main(int argc ATTRIBUTE_UNUSED, char **argv)
+int dmesg_main(int argc UNUSED_PARAM, char **argv)
 {
 	int len;
 	char *buf;

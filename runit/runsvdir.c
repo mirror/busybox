@@ -89,11 +89,11 @@ static void warnx(const char *m1)
 	warn3x(m1, "", "");
 }
 
-static void s_term(int sig_no ATTRIBUTE_UNUSED)
+static void s_term(int sig_no UNUSED_PARAM)
 {
 	exitsoon = 1;
 }
-static void s_hangup(int sig_no ATTRIBUTE_UNUSED)
+static void s_hangup(int sig_no UNUSED_PARAM)
 {
 	exitsoon = 2;
 }
@@ -229,7 +229,7 @@ static int setup_log(void)
 }
 
 int runsvdir_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int runsvdir_main(int argc ATTRIBUTE_UNUSED, char **argv)
+int runsvdir_main(int argc UNUSED_PARAM, char **argv)
 {
 	struct stat s;
 	dev_t last_dev = last_dev; /* for gcc */

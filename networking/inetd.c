@@ -887,7 +887,7 @@ static int same_serv_addr_proto(servtab_t *old, servtab_t *new)
 	return 1;
 }
 
-static void reread_config_file(int sig ATTRIBUTE_UNUSED)
+static void reread_config_file(int sig UNUSED_PARAM)
 {
 	servtab_t *sep, *cp, **sepp;
 	len_and_sockaddr *lsa;
@@ -1057,7 +1057,7 @@ static void reread_config_file(int sig ATTRIBUTE_UNUSED)
 	restore_sigmask(&omask);
 }
 
-static void reap_child(int sig ATTRIBUTE_UNUSED)
+static void reap_child(int sig UNUSED_PARAM)
 {
 	pid_t pid;
 	int status;
@@ -1084,7 +1084,7 @@ static void reap_child(int sig ATTRIBUTE_UNUSED)
 	errno = save_errno;
 }
 
-static void retry_network_setup(int sig ATTRIBUTE_UNUSED)
+static void retry_network_setup(int sig UNUSED_PARAM)
 {
 	servtab_t *sep;
 
@@ -1100,7 +1100,7 @@ static void retry_network_setup(int sig ATTRIBUTE_UNUSED)
 	}
 }
 
-static void clean_up_and_exit(int sig ATTRIBUTE_UNUSED)
+static void clean_up_and_exit(int sig UNUSED_PARAM)
 {
 	servtab_t *sep;
 
@@ -1128,7 +1128,7 @@ static void clean_up_and_exit(int sig ATTRIBUTE_UNUSED)
 }
 
 int inetd_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int inetd_main(int argc ATTRIBUTE_UNUSED, char **argv)
+int inetd_main(int argc UNUSED_PARAM, char **argv)
 {
 	struct sigaction sa, saved_pipe_handler;
 	servtab_t *sep, *sep2;
@@ -1423,7 +1423,7 @@ static const char *const cat_args[] = { "cat", NULL };
 #if ENABLE_FEATURE_INETD_SUPPORT_BUILTIN_ECHO
 /* Echo service -- echo data back. */
 /* ARGSUSED */
-static void echo_stream(int s, servtab_t *sep ATTRIBUTE_UNUSED)
+static void echo_stream(int s, servtab_t *sep UNUSED_PARAM)
 {
 #if BB_MMU
 	while (1) {
@@ -1464,7 +1464,7 @@ static void echo_dg(int s, servtab_t *sep)
 #if ENABLE_FEATURE_INETD_SUPPORT_BUILTIN_DISCARD
 /* Discard service -- ignore data. MMU arches only. */
 /* ARGSUSED */
-static void discard_stream(int s, servtab_t *sep ATTRIBUTE_UNUSED)
+static void discard_stream(int s, servtab_t *sep UNUSED_PARAM)
 {
 #if BB_MMU
 	while (safe_read(s, line, LINE_SIZE) > 0)
@@ -1483,7 +1483,7 @@ static void discard_stream(int s, servtab_t *sep ATTRIBUTE_UNUSED)
 #endif
 }
 /* ARGSUSED */
-static void discard_dg(int s, servtab_t *sep ATTRIBUTE_UNUSED)
+static void discard_dg(int s, servtab_t *sep UNUSED_PARAM)
 {
 	/* dgram builtins are non-forking - DONT BLOCK! */
 	recv(s, line, LINE_SIZE, MSG_DONTWAIT);
@@ -1504,7 +1504,7 @@ static void init_ring(void)
 }
 /* Character generator. MMU arches only. */
 /* ARGSUSED */
-static void chargen_stream(int s, servtab_t *sep ATTRIBUTE_UNUSED)
+static void chargen_stream(int s, servtab_t *sep UNUSED_PARAM)
 {
 	char *rs;
 	int len;
@@ -1581,7 +1581,7 @@ static uint32_t machtime(void)
 	return htonl((uint32_t)(tv.tv_sec + 2208988800));
 }
 /* ARGSUSED */
-static void machtime_stream(int s, servtab_t *sep ATTRIBUTE_UNUSED)
+static void machtime_stream(int s, servtab_t *sep UNUSED_PARAM)
 {
 	uint32_t result;
 
@@ -1606,7 +1606,7 @@ static void machtime_dg(int s, servtab_t *sep)
 #if ENABLE_FEATURE_INETD_SUPPORT_BUILTIN_DAYTIME
 /* Return human-readable time of day */
 /* ARGSUSED */
-static void daytime_stream(int s, servtab_t *sep ATTRIBUTE_UNUSED)
+static void daytime_stream(int s, servtab_t *sep UNUSED_PARAM)
 {
 	time_t t;
 

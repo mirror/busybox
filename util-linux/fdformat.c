@@ -41,7 +41,7 @@ struct format_descr {
 #define FD_FILL_BYTE 0xF6 /* format fill byte. */
 
 int fdformat_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int fdformat_main(int argc ATTRIBUTE_UNUSED, char **argv)
+int fdformat_main(int argc UNUSED_PARAM, char **argv)
 {
 	int fd, n, cyl, read_bytes, verify;
 	unsigned char *data;

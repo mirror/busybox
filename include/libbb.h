@@ -295,7 +295,7 @@ extern off_t bb_copyfd_size(int fd1, int fd2, off_t size) FAST_FUNC;
 extern void bb_copyfd_exact_size(int fd1, int fd2, off_t size) FAST_FUNC;
 /* "short" copy can be detected by return value < size */
 /* this helper yells "short read!" if param is not -1 */
-extern void complain_copyfd_and_die(off_t sz) ATTRIBUTE_NORETURN FAST_FUNC;
+extern void complain_copyfd_and_die(off_t sz) NORETURN FAST_FUNC;
 extern char bb_process_escape_sequence(const char **ptr) FAST_FUNC;
 /* xxxx_strip version can modify its parameter:
  * "/"        -> "/"
@@ -365,7 +365,7 @@ void signal_no_SA_RESTART_empty_mask(int sig, void (*handler)(int)) FAST_FUNC;
 /* syscalls like read() won't be interrupted (though select/poll will be): */
 void signal_SA_RESTART_empty_mask(int sig, void (*handler)(int)) FAST_FUNC;
 void wait_for_any_sig(void) FAST_FUNC;
-void kill_myself_with_sig(int sig) ATTRIBUTE_NORETURN FAST_FUNC;
+void kill_myself_with_sig(int sig) NORETURN FAST_FUNC;
 void sig_block(int sig) FAST_FUNC;
 void sig_unblock(int sig) FAST_FUNC;
 /* Will do sigaction(signum, act, NULL): */
@@ -611,7 +611,7 @@ extern char *bb_get_chunk_from_file(FILE *file, int *end) FAST_FUNC;
 extern void die_if_ferror(FILE *file, const char *msg) FAST_FUNC;
 extern void die_if_ferror_stdout(void) FAST_FUNC;
 extern void xfflush_stdout(void) FAST_FUNC;
-extern void fflush_stdout_and_exit(int retval) ATTRIBUTE_NORETURN FAST_FUNC;
+extern void fflush_stdout_and_exit(int retval) NORETURN FAST_FUNC;
 extern int fclose_if_not_stdin(FILE *file) FAST_FUNC;
 extern FILE *xfopen(const char *filename, const char *mode) FAST_FUNC;
 /* Prints warning to stderr and returns NULL on failure: */
@@ -789,7 +789,7 @@ enum {
 # define bb_daemonize_or_rexec(flags, argv) bb_daemonize_or_rexec(flags)
 # define bb_daemonize(flags)                bb_daemonize_or_rexec(flags, bogus)
 #else
-  void re_exec(char **argv) ATTRIBUTE_NORETURN FAST_FUNC;
+  void re_exec(char **argv) NORETURN FAST_FUNC;
   void forkexit_or_rexec(char **argv) FAST_FUNC;
   extern bool re_execed;
   int  BUG_fork_is_unavailable_on_nommu(void) FAST_FUNC;
@@ -855,8 +855,8 @@ extern smallint logmode;
 extern int die_sleep;
 extern int xfunc_error_retval;
 extern jmp_buf die_jmp;
-extern void xfunc_die(void) ATTRIBUTE_NORETURN FAST_FUNC;
-extern void bb_show_usage(void) ATTRIBUTE_NORETURN FAST_FUNC;
+extern void xfunc_die(void) NORETURN FAST_FUNC;
+extern void bb_show_usage(void) NORETURN FAST_FUNC;
 extern void bb_error_msg(const char *s, ...) __attribute__ ((format (printf, 1, 2))) FAST_FUNC;
 extern void bb_error_msg_and_die(const char *s, ...) __attribute__ ((noreturn, format (printf, 1, 2))) FAST_FUNC;
 extern void bb_perror_msg(const char *s, ...) __attribute__ ((format (printf, 1, 2))) FAST_FUNC;
@@ -865,7 +865,7 @@ extern void bb_perror_msg_and_die(const char *s, ...) __attribute__ ((noreturn, 
 extern void bb_simple_perror_msg_and_die(const char *s) __attribute__ ((noreturn)) FAST_FUNC;
 extern void bb_herror_msg(const char *s, ...) __attribute__ ((format (printf, 1, 2))) FAST_FUNC;
 extern void bb_herror_msg_and_die(const char *s, ...) __attribute__ ((noreturn, format (printf, 1, 2))) FAST_FUNC;
-extern void bb_perror_nomsg_and_die(void) ATTRIBUTE_NORETURN FAST_FUNC;
+extern void bb_perror_nomsg_and_die(void) NORETURN FAST_FUNC;
 extern void bb_perror_nomsg(void) FAST_FUNC;
 extern void bb_info_msg(const char *s, ...) __attribute__ ((format (printf, 1, 2))) FAST_FUNC;
 extern void bb_verror_msg(const char *s, va_list p, const char *strerr) FAST_FUNC;
@@ -947,7 +947,7 @@ const struct hwtype *get_hwntype(int type) FAST_FUNC;
 extern int find_applet_by_name(const char *name) FAST_FUNC;
 /* Returns only if applet is not found. */
 extern void run_applet_and_exit(const char *name, char **argv) FAST_FUNC;
-extern void run_applet_no_and_exit(int a, char **argv) ATTRIBUTE_NORETURN FAST_FUNC;
+extern void run_applet_no_and_exit(int a, char **argv) NORETURN FAST_FUNC;
 #endif
 
 #ifdef HAVE_MNTENT_H
@@ -1001,7 +1001,7 @@ char *bb_simplify_path(const char *path) FAST_FUNC;
 #define FAIL_DELAY 3
 extern void bb_do_delay(int seconds) FAST_FUNC;
 extern void change_identity(const struct passwd *pw) FAST_FUNC;
-extern void run_shell(const char *shell, int loginshell, const char *command, const char **additional_args) ATTRIBUTE_NORETURN FAST_FUNC;
+extern void run_shell(const char *shell, int loginshell, const char *command, const char **additional_args) NORETURN FAST_FUNC;
 extern void run_shell(const char *shell, int loginshell, const char *command, const char **additional_args) FAST_FUNC;
 #if ENABLE_SELINUX
 extern void renew_current_security_context(void) FAST_FUNC;

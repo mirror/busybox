@@ -155,7 +155,7 @@ static int read_opt(const char *const_line, void *arg)
 	char *line;
 	const struct dhcp_option *option;
 	int retval, length, idx;
-	char buffer[8] __attribute__((aligned(4)));
+	char buffer[8] ALIGNED(4);
 	uint16_t *result_u16 = (uint16_t *) buffer;
 	uint32_t *result_u32 = (uint32_t *) buffer;
 

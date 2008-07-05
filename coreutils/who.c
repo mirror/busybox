@@ -41,7 +41,7 @@ static void idle_string(char *str6, time_t t)
 }
 
 int who_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int who_main(int argc ATTRIBUTE_UNUSED, char **argv)
+int who_main(int argc UNUSED_PARAM, char **argv)
 {
 	char str6[6];
 	struct utmp *ut;

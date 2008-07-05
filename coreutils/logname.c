@@ -25,7 +25,7 @@
 /* This is a NOFORK applet. Be very careful! */
 
 int logname_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int logname_main(int argc, char ATTRIBUTE_UNUSED **argv)
+int logname_main(int argc, char **argv UNUSED_PARAM)
 {
 	char buf[128];
 

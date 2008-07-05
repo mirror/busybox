@@ -28,7 +28,7 @@ extern char _SL_;
 #define SPRINT_BSIZE 64
 #define SPRINT_BUF(x)	char x[SPRINT_BSIZE]
 
-extern void incomplete_command(void) ATTRIBUTE_NORETURN;
+extern void incomplete_command(void) NORETURN;
 
 #define NEXT_ARG() do { if (!*++argv) incomplete_command(); } while (0)
 
@@ -76,9 +76,9 @@ extern int get_s8(int8_t *val, char *arg, int base);
 extern const char *format_host(int af, int len, void *addr, char *buf, int buflen);
 extern const char *rt_addr_n2a(int af, int len, void *addr, char *buf, int buflen);
 
-void invarg(const char *, const char *) ATTRIBUTE_NORETURN;
-void duparg(const char *, const char *) ATTRIBUTE_NORETURN;
-void duparg2(const char *, const char *) ATTRIBUTE_NORETURN;
+void invarg(const char *, const char *) NORETURN;
+void duparg(const char *, const char *) NORETURN;
+void duparg2(const char *, const char *) NORETURN;
 int inet_addr_match(inet_prefix *a, inet_prefix *b, int bits);
 
 const char *dnet_ntop(int af, const void *addr, char *str, size_t len);

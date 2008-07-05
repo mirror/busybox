@@ -43,13 +43,13 @@ struct dhcpMessage {
 	uint8_t file[128];
 	uint32_t cookie;
 	uint8_t options[DHCP_OPTIONS_BUFSIZE + CONFIG_UDHCPC_SLACK_FOR_BUGGY_SERVERS];
-} ATTRIBUTE_PACKED;
+} PACKED;
 
 struct udp_dhcp_packet {
 	struct iphdr ip;
 	struct udphdr udp;
 	struct dhcpMessage data;
-} ATTRIBUTE_PACKED;
+} PACKED;
 
 /* Let's see whether compiler understood us right */
 struct BUG_bad_sizeof_struct_udp_dhcp_packet {

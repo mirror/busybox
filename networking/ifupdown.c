@@ -512,8 +512,8 @@ static int dhcp_up(struct interface_defn_t *ifd, execfn *exec)
 			ifd, exec);
 }
 #else
-static int dhcp_up(struct interface_defn_t *ifd ATTRIBUTE_UNUSED,
-		execfn *exec ATTRIBUTE_UNUSED)
+static int dhcp_up(struct interface_defn_t *ifd UNUSED_PARAM,
+		execfn *exec UNUSED_PARAM)
 {
 	return 0; /* no dhcp support */
 }
@@ -537,14 +537,14 @@ static int dhcp_down(struct interface_defn_t *ifd, execfn *exec)
 	               "`cat /var/run/udhcpc.%iface%.pid` 2>/dev/null", ifd, exec);
 }
 #else
-static int dhcp_down(struct interface_defn_t *ifd ATTRIBUTE_UNUSED,
-		execfn *exec ATTRIBUTE_UNUSED)
+static int dhcp_down(struct interface_defn_t *ifd UNUSED_PARAM,
+		execfn *exec UNUSED_PARAM)
 {
 	return 0; /* no dhcp support */
 }
 #endif
 
-static int manual_up_down(struct interface_defn_t *ifd ATTRIBUTE_UNUSED, execfn *exec ATTRIBUTE_UNUSED)
+static int manual_up_down(struct interface_defn_t *ifd UNUSED_PARAM, execfn *exec UNUSED_PARAM)
 {
 	return 1;
 }

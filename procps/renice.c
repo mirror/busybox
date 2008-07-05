@@ -27,7 +27,7 @@ void BUG_bad_PRIO_PGRP(void);
 void BUG_bad_PRIO_USER(void);
 
 int renice_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int renice_main(int argc ATTRIBUTE_UNUSED, char **argv)
+int renice_main(int argc UNUSED_PARAM, char **argv)
 {
 	static const char Xetpriority_msg[] ALIGN1 = "%cetpriority";
 

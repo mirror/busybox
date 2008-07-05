@@ -1122,13 +1122,13 @@ static void parse_args(char **argv)
 		max_running = xatoi(tmp);
 }
 
-static void signal_cancel(int sig ATTRIBUTE_UNUSED)
+static void signal_cancel(int sig UNUSED_PARAM)
 {
 	cancel_requested = 1;
 }
 
 int fsck_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int fsck_main(int argc ATTRIBUTE_UNUSED, char **argv)
+int fsck_main(int argc UNUSED_PARAM, char **argv)
 {
 	int i, status;
 	/*int interactive;*/

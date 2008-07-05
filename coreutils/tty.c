@@ -13,7 +13,7 @@
 #include "libbb.h"
 
 int tty_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int tty_main(int argc, char **argv SKIP_INCLUDE_SUSv2(ATTRIBUTE_UNUSED))
+int tty_main(int argc, char **argv SKIP_INCLUDE_SUSv2(UNUSED_PARAM))
 {
 	const char *s;
 	USE_INCLUDE_SUSv2(int silent;)	/* Note: No longer relevant in SUSv3. */

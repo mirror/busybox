@@ -8,14 +8,14 @@
 #include "libbb.h"
 #include <syslog.h>
 
-//static void catchalarm(int ATTRIBUTE_UNUSED junk)
+//static void catchalarm(int UNUSED_PARAM junk)
 //{
 //	exit(EXIT_FAILURE);
 //}
 
 
 int sulogin_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int sulogin_main(int argc ATTRIBUTE_UNUSED, char **argv)
+int sulogin_main(int argc UNUSED_PARAM, char **argv)
 {
 	char *cp;
 	int timeout = 0;

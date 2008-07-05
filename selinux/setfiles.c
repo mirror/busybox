@@ -99,7 +99,7 @@ enum {
 #define FLAG_R               (option_mask32 & OPT_R)
 
 
-static void qprintf(const char *fmt ATTRIBUTE_UNUSED, ...)
+static void qprintf(const char *fmt UNUSED_PARAM, ...)
 {
 	/* quiet, do nothing */
 }
@@ -394,8 +394,8 @@ static int restore(const char *file)
 static int FAST_FUNC apply_spec(
 		const char *file,
 		struct stat *sb,
-		void *userData ATTRIBUTE_UNUSED,
-		int depth ATTRIBUTE_UNUSED)
+		void *userData UNUSED_PARAM,
+		int depth UNUSED_PARAM)
 {
 	if (!follow_mounts) {
 		/* setfiles does not process across different mount points */

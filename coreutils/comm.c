@@ -36,7 +36,7 @@ static void writeline(char *line, int class, int flags)
 }
 
 int comm_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int comm_main(int argc ATTRIBUTE_UNUSED, char **argv)
+int comm_main(int argc UNUSED_PARAM, char **argv)
 {
 #define LINE_LEN 100
 #define BB_EOF_0 0x1

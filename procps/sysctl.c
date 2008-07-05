@@ -57,7 +57,7 @@ enum {
 };
 
 int sysctl_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int sysctl_main(int argc ATTRIBUTE_UNUSED, char **argv)
+int sysctl_main(int argc UNUSED_PARAM, char **argv)
 {
 	int retval;
 	int opt;

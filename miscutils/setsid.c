@@ -17,7 +17,7 @@
 #include "libbb.h"
 
 int setsid_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int setsid_main(int argc ATTRIBUTE_UNUSED, char **argv)
+int setsid_main(int argc UNUSED_PARAM, char **argv)
 {
 	if (!argv[1])
 		bb_show_usage();

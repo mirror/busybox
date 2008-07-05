@@ -136,7 +136,7 @@ static void read_base64(FILE *src_stream, FILE *dst_stream)
 }
 
 int uudecode_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int uudecode_main(int argc ATTRIBUTE_UNUSED, char **argv)
+int uudecode_main(int argc UNUSED_PARAM, char **argv)
 {
 	FILE *src_stream;
 	char *outname = NULL;

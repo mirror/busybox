@@ -1583,7 +1583,7 @@ static void configure_package(deb_file_t *deb_file)
 }
 
 int dpkg_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int dpkg_main(int argc ATTRIBUTE_UNUSED, char **argv)
+int dpkg_main(int argc UNUSED_PARAM, char **argv)
 {
 	deb_file_t **deb_file = NULL;
 	status_node_t *status_node;

@@ -70,4 +70,4 @@ const char bb_path_wtmp_file[] ALIGN1 =
 /* We use it for "global" data via *(struct global*)&bb_common_bufsiz1.
  * Since gcc insists on aligning struct global's members, it would be a pity
  * (and an alignment fault on some CPUs) to mess it up. */
-char bb_common_bufsiz1[COMMON_BUFSIZE] __attribute__(( aligned(sizeof(long long)) ));
+char bb_common_bufsiz1[COMMON_BUFSIZE] ALIGNED(sizeof(long long));

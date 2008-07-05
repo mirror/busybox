@@ -692,7 +692,7 @@ static void set_speed_or_die(enum speed_setting type, const char *const arg,
 	}
 }
 
-static ATTRIBUTE_NORETURN void perror_on_device_and_die(const char *fmt)
+static NORETURN void perror_on_device_and_die(const char *fmt)
 {
 	bb_perror_msg_and_die(fmt, G.device_name);
 }
@@ -851,7 +851,7 @@ static int recover_mode(const char *arg, struct termios *mode)
 }
 
 static void display_recoverable(const struct termios *mode,
-				int ATTRIBUTE_UNUSED dummy)
+				int UNUSED_PARAM dummy)
 {
 	int i;
 	printf("%lx:%lx:%lx:%lx",

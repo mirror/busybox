@@ -206,7 +206,7 @@ static void motd(void)
 	}
 }
 
-static void alarm_handler(int sig ATTRIBUTE_UNUSED)
+static void alarm_handler(int sig UNUSED_PARAM)
 {
 	/* This is the escape hatch!  Poor serial line users and the like
 	 * arrive here when their connection is broken.
@@ -221,7 +221,7 @@ static void alarm_handler(int sig ATTRIBUTE_UNUSED)
 }
 
 int login_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int login_main(int argc ATTRIBUTE_UNUSED, char **argv)
+int login_main(int argc UNUSED_PARAM, char **argv)
 {
 	enum {
 		LOGIN_OPT_f = (1<<0),

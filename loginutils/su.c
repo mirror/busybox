@@ -12,7 +12,7 @@
 #define SU_OPT_l (4)
 
 int su_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int su_main(int argc ATTRIBUTE_UNUSED, char **argv)
+int su_main(int argc UNUSED_PARAM, char **argv)
 {
 	unsigned flags;
 	char *opt_shell = NULL;

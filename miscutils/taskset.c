@@ -40,7 +40,7 @@ static char *__from_cpuset(cpu_set_t *mask)
 
 
 int taskset_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int taskset_main(int argc ATTRIBUTE_UNUSED, char **argv)
+int taskset_main(int argc UNUSED_PARAM, char **argv)
 {
 	cpu_set_t mask;
 	pid_t pid = 0;

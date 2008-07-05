@@ -519,7 +519,7 @@ static void reset_term(void)
 	}
 }
 
-static void sig_catcher(int sig ATTRIBUTE_UNUSED)
+static void sig_catcher(int sig UNUSED_PARAM)
 {
 	reset_term();
 	exit(EXIT_FAILURE);
@@ -739,7 +739,7 @@ enum {
 };
 
 int top_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int top_main(int argc ATTRIBUTE_UNUSED, char **argv)
+int top_main(int argc UNUSED_PARAM, char **argv)
 {
 	int count;
 	int iterations;

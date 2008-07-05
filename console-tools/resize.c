@@ -14,14 +14,14 @@
 #define old_termios (*(struct termios*)&bb_common_bufsiz1)
 
 static void
-onintr(int sig ATTRIBUTE_UNUSED)
+onintr(int sig UNUSED_PARAM)
 {
 	tcsetattr(STDERR_FILENO, TCSANOW, &old_termios);
 	exit(EXIT_FAILURE);
 }
 
 int resize_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int resize_main(int argc ATTRIBUTE_UNUSED, char **argv ATTRIBUTE_UNUSED)
+int resize_main(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
 {
 	struct termios new;
 	struct winsize w = { 0, 0, 0, 0 };

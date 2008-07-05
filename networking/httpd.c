@@ -338,7 +338,7 @@ enum {
 	SEND_BODY        = (1 << 1),
 	SEND_HEADERS_AND_BODY = SEND_HEADERS + SEND_BODY,
 };
-static void send_file_and_exit(const char *url, int what) ATTRIBUTE_NORETURN;
+static void send_file_and_exit(const char *url, int what) NORETURN;
 
 static void free_llist(has_next_ptr **pptr)
 {
@@ -919,7 +919,7 @@ static int openServer(void)
 /*
  * Log the connection closure and exit.
  */
-static void log_and_exit(void) ATTRIBUTE_NORETURN;
+static void log_and_exit(void) NORETURN;
 static void log_and_exit(void)
 {
 	/* Paranoia. IE said to be buggy. It may send some extra data
@@ -1050,7 +1050,7 @@ static void send_headers(int responseNum)
 	}
 }
 
-static void send_headers_and_exit(int responseNum) ATTRIBUTE_NORETURN;
+static void send_headers_and_exit(int responseNum) NORETURN;
 static void send_headers_and_exit(int responseNum)
 {
 	send_headers(responseNum);
@@ -1094,7 +1094,7 @@ static int get_line(void)
 #if ENABLE_FEATURE_HTTPD_CGI || ENABLE_FEATURE_HTTPD_PROXY
 
 /* gcc 4.2.1 fares better with NOINLINE */
-static NOINLINE void cgi_io_loop_and_exit(int fromCgi_rd, int toCgi_wr, int post_len) ATTRIBUTE_NORETURN;
+static NOINLINE void cgi_io_loop_and_exit(int fromCgi_rd, int toCgi_wr, int post_len) NORETURN;
 static NOINLINE void cgi_io_loop_and_exit(int fromCgi_rd, int toCgi_wr, int post_len)
 {
 	enum { FROM_CGI = 1, TO_CGI = 2 }; /* indexes in pfd[] */
@@ -1292,7 +1292,7 @@ static void send_cgi_and_exit(
 		const char *request,
 		int post_len,
 		const char *cookie,
-		const char *content_type) ATTRIBUTE_NORETURN;
+		const char *content_type) NORETURN;
 static void send_cgi_and_exit(
 		const char *url,
 		const char *request,
@@ -1752,8 +1752,8 @@ static Htaccess_Proxy *find_proxy_entry(const char *url)
 /*
  * Handle timeouts
  */
-static void exit_on_signal(int sig) ATTRIBUTE_NORETURN;
-static void exit_on_signal(int sig ATTRIBUTE_UNUSED)
+static void exit_on_signal(int sig) NORETURN;
+static void exit_on_signal(int sig UNUSED_PARAM)
 {
 	send_headers_and_exit(HTTP_REQUEST_TIMEOUT);
 }
@@ -1761,7 +1761,7 @@ static void exit_on_signal(int sig ATTRIBUTE_UNUSED)
 /*
  * Handle an incoming http request and exit.
  */
-static void handle_incoming_and_exit(const len_and_sockaddr *fromAddr) ATTRIBUTE_NORETURN;
+static void handle_incoming_and_exit(const len_and_sockaddr *fromAddr) NORETURN;
 static void handle_incoming_and_exit(const len_and_sockaddr *fromAddr)
 {
 	static const char request_GET[] ALIGN1 = "GET";
@@ -2151,7 +2151,7 @@ static void handle_incoming_and_exit(const len_and_sockaddr *fromAddr)
  * Never returns.
  */
 #if BB_MMU
-static void mini_httpd(int server_socket) ATTRIBUTE_NORETURN;
+static void mini_httpd(int server_socket) NORETURN;
 static void mini_httpd(int server_socket)
 {
 	/* NB: it's best to not use xfuncs in this loop before fork().
@@ -2190,7 +2190,7 @@ static void mini_httpd(int server_socket)
 	/* never reached */
 }
 #else
-static void mini_httpd_nommu(int server_socket, int argc, char **argv) ATTRIBUTE_NORETURN;
+static void mini_httpd_nommu(int server_socket, int argc, char **argv) NORETURN;
 static void mini_httpd_nommu(int server_socket, int argc, char **argv)
 {
 	char *argv_copy[argc + 2];
@@ -2241,7 +2241,7 @@ static void mini_httpd_nommu(int server_socket, int argc, char **argv)
  * Process a HTTP connection on stdin/out.
  * Never returns.
  */
-static void mini_httpd_inetd(void) ATTRIBUTE_NORETURN;
+static void mini_httpd_inetd(void) NORETURN;
 static void mini_httpd_inetd(void)
 {
 	len_and_sockaddr fromAddr;
@@ -2289,7 +2289,7 @@ enum {
 
 
 int httpd_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int httpd_main(int argc ATTRIBUTE_UNUSED, char **argv)
+int httpd_main(int argc UNUSED_PARAM, char **argv)
 {
 	int server_socket = server_socket; /* for gcc */
 	unsigned opt;

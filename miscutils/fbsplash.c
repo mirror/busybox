@@ -355,7 +355,7 @@ static void init(const char *cfg_filename)
 
 
 int fbsplash_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int fbsplash_main(int argc ATTRIBUTE_UNUSED, char **argv)
+int fbsplash_main(int argc UNUSED_PARAM, char **argv)
 {
 	const char *fb_device, *cfg_filename, *fifo_filename;
 	FILE *fp = fp; // for compiler

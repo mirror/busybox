@@ -41,7 +41,7 @@ struct globals {
 #define INIT_G() memset(&G, 0, sizeof(G))
 
 
-static void dd_output_status(int ATTRIBUTE_UNUSED cur_signal)
+static void dd_output_status(int UNUSED_PARAM cur_signal)
 {
 	/* Deliberately using %u, not %d */
 	fprintf(stderr, "%"OFF_FMT"u+%"OFF_FMT"u records in\n"
@@ -79,7 +79,7 @@ static bool write_and_stats(const void *buf, size_t len, size_t obs,
 #endif
 
 int dd_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int dd_main(int argc ATTRIBUTE_UNUSED, char **argv)
+int dd_main(int argc UNUSED_PARAM, char **argv)
 {
 	enum {
 		/* Must be in the same order as OP_conv_XXX! */

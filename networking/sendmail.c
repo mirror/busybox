@@ -275,7 +275,7 @@ static char *parse_url(char *url, char **user, char **pass)
 }
 
 int sendgetmail_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int sendgetmail_main(int argc ATTRIBUTE_UNUSED, char **argv)
+int sendgetmail_main(int argc UNUSED_PARAM, char **argv)
 {
 	llist_t *opt_recipients = NULL;
 	llist_t *opt_attachments = NULL;

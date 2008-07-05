@@ -279,7 +279,7 @@ static char **print_formatted(char *f, char **argv)
 	return argv;
 }
 
-int printf_main(int argc ATTRIBUTE_UNUSED, char **argv)
+int printf_main(int argc UNUSED_PARAM, char **argv)
 {
 	char *format;
 	char **argv2;

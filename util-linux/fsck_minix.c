@@ -289,7 +289,7 @@ static void recursive_check(unsigned ino);
 static void recursive_check2(unsigned ino);
 #endif
 
-static void die(const char *str) ATTRIBUTE_NORETURN;
+static void die(const char *str) NORETURN;
 static void die(const char *str)
 {
 	if (termios_set)
@@ -1204,7 +1204,7 @@ void check2(void);
 #endif
 
 int fsck_minix_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int fsck_minix_main(int argc ATTRIBUTE_UNUSED, char **argv)
+int fsck_minix_main(int argc UNUSED_PARAM, char **argv)
 {
 	struct termios tmp;
 	int retcode = 0;

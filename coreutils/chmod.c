@@ -68,7 +68,7 @@ static int FAST_FUNC fileAction(const char *fileName, struct stat *statbuf, void
 }
 
 int chmod_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int chmod_main(int argc ATTRIBUTE_UNUSED, char **argv)
+int chmod_main(int argc UNUSED_PARAM, char **argv)
 {
 	int retval = EXIT_SUCCESS;
 	char *arg, **argp;

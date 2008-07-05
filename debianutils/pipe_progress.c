@@ -15,7 +15,7 @@
  * Activity is indicated by a '.' to stderr
  */
 int pipe_progress_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int pipe_progress_main(int argc ATTRIBUTE_UNUSED, char **argv ATTRIBUTE_UNUSED)
+int pipe_progress_main(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
 {
 	RESERVE_CONFIG_BUFFER(buf, PIPE_PROGRESS_SIZE);
 	time_t t = time(NULL);

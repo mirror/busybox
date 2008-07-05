@@ -39,7 +39,7 @@ struct BUG_G_too_big {
 #define INIT_G() do { } while (0)
 
 
-static void ftp_die(const char *msg) ATTRIBUTE_NORETURN;
+static void ftp_die(const char *msg) NORETURN;
 static void ftp_die(const char *msg)
 {
 	char *cp = buf; /* buf holds peer's response */
@@ -276,7 +276,7 @@ static const char ftpgetput_longopts[] ALIGN1 =
 #endif
 
 int ftpgetput_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int ftpgetput_main(int argc ATTRIBUTE_UNUSED, char **argv)
+int ftpgetput_main(int argc UNUSED_PARAM, char **argv)
 {
 	unsigned opt;
 	const char *port = "ftp";

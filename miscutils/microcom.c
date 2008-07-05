@@ -41,7 +41,7 @@ static int xset1(int fd, struct termios *tio, const char *device)
 }
 
 int microcom_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int microcom_main(int argc ATTRIBUTE_UNUSED, char **argv)
+int microcom_main(int argc UNUSED_PARAM, char **argv)
 {
 	int sfd;
 	int nfd;

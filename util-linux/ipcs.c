@@ -559,7 +559,7 @@ static void print_sem(int semid)
 }
 
 int ipcs_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int ipcs_main(int argc ATTRIBUTE_UNUSED, char **argv)
+int ipcs_main(int argc UNUSED_PARAM, char **argv)
 {
 	int id = 0;
 	unsigned flags = 0;

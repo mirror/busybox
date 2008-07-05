@@ -327,7 +327,7 @@ static void interrupt(int sig)
 }
 
 int dnsd_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int dnsd_main(int argc ATTRIBUTE_UNUSED, char **argv)
+int dnsd_main(int argc UNUSED_PARAM, char **argv)
 {
 	const char *listen_interface = "0.0.0.0";
 	char *sttl, *sport;

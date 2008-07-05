@@ -37,7 +37,7 @@ static int printf_full(unsigned int id, const char *arg, const char prefix)
 }
 
 int id_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int id_main(int argc ATTRIBUTE_UNUSED, char **argv)
+int id_main(int argc UNUSED_PARAM, char **argv)
 {
 	struct passwd *p;
 	uid_t uid;

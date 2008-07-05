@@ -47,7 +47,7 @@
 /* 16.12.2006, Sampo Kellomaki (sampo@iki.fi)
  * dietlibc-0.30 does not have implementation of getmntent_r() */
 static struct mntent *getmntent_r(FILE* stream, struct mntent* result,
-		char* buffer ATTRIBUTE_UNUSED, int bufsize ATTRIBUTE_UNUSED)
+		char* buffer UNUSED_PARAM, int bufsize UNUSED_PARAM)
 {
 	struct mntent* ment = getmntent(stream);
 	return memcpy(result, ment, sizeof(*ment));
@@ -914,7 +914,7 @@ static inline int daemonize(void) { return -ENOSYS; }
 #endif
 
 // TODO
-static inline int we_saw_this_host_before(const char *hostname ATTRIBUTE_UNUSED)
+static inline int we_saw_this_host_before(const char *hostname UNUSED_PARAM)
 {
 	return 0;
 }
@@ -1733,7 +1733,7 @@ static int singlemount(struct mntent *mp, int ignore_busy)
 static const char must_be_root[] ALIGN1 = "you must be root";
 
 int mount_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int mount_main(int argc ATTRIBUTE_UNUSED, char **argv)
+int mount_main(int argc UNUSED_PARAM, char **argv)
 {
 	char *cmdopts = xstrdup("");
 	char *fstype = NULL;

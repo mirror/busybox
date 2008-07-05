@@ -397,7 +397,7 @@ static int exclude_file(const llist_t *excluded_files, const char *file)
 #endif
 
 static int FAST_FUNC writeFileToTarball(const char *fileName, struct stat *statbuf,
-			void *userData, int depth ATTRIBUTE_UNUSED)
+			void *userData, int depth UNUSED_PARAM)
 {
 	struct TarBallInfo *tbInfo = (struct TarBallInfo *) userData;
 	const char *header_name;
@@ -800,7 +800,7 @@ static const char tar_longopts[] ALIGN1 =
 #endif
 
 int tar_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int tar_main(int argc ATTRIBUTE_UNUSED, char **argv)
+int tar_main(int argc UNUSED_PARAM, char **argv)
 {
 	char FAST_FUNC (*get_header_ptr)(archive_handle_t *) = get_header_tar;
 	archive_handle_t *tar_handle;

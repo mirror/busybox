@@ -273,7 +273,7 @@ typedef struct outdata {
 	unsigned char seq;             /* sequence number of this packet */
 	unsigned char ttl;             /* ttl packet left with */
 // UNUSED. Retaining to have the same packet size.
-	struct timeval tv_UNUSED ATTRIBUTE_PACKED; /* time packet left */
+	struct timeval tv_UNUSED PACKED; /* time packet left */
 } outdata_t;
 
 struct IFADDRLIST {

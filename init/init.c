@@ -96,7 +96,7 @@ static const char *const environment[] = {
 
 /* Function prototypes */
 static void delete_init_action(struct init_action *a);
-static void halt_reboot_pwoff(int sig) ATTRIBUTE_NORETURN;
+static void halt_reboot_pwoff(int sig) NORETURN;
 
 static void waitfor(pid_t pid)
 {
@@ -110,7 +110,7 @@ static void waitfor(pid_t pid)
 		continue;
 }
 
-static void loop_forever(void) ATTRIBUTE_NORETURN;
+static void loop_forever(void) NORETURN;
 static void loop_forever(void)
 {
 	while (1)
@@ -594,7 +594,7 @@ static void halt_reboot_pwoff(int sig)
 
 /* Handler for QUIT - exec "restart" action,
  * else (no such action defined) do nothing */
-static void exec_restart_action(int sig ATTRIBUTE_UNUSED)
+static void exec_restart_action(int sig UNUSED_PARAM)
 {
 	struct init_action *a;
 
@@ -617,13 +617,13 @@ static void exec_restart_action(int sig ATTRIBUTE_UNUSED)
 	}
 }
 
-static void ctrlaltdel_signal(int sig ATTRIBUTE_UNUSED)
+static void ctrlaltdel_signal(int sig UNUSED_PARAM)
 {
 	run_actions(CTRLALTDEL);
 }
 
 /* The SIGSTOP & SIGTSTP handler */
-static void stop_handler(int sig ATTRIBUTE_UNUSED)
+static void stop_handler(int sig UNUSED_PARAM)
 {
 	int saved_errno = errno;
 
@@ -635,7 +635,7 @@ static void stop_handler(int sig ATTRIBUTE_UNUSED)
 }
 
 /* The SIGCONT handler */
-static void cont_handler(int sig ATTRIBUTE_UNUSED)
+static void cont_handler(int sig UNUSED_PARAM)
 {
 	got_cont = 1;
 }
@@ -790,7 +790,7 @@ static void parse_inittab(void)
 }
 
 #if ENABLE_FEATURE_USE_INITTAB
-static void reload_signal(int sig ATTRIBUTE_UNUSED)
+static void reload_signal(int sig UNUSED_PARAM)
 {
 	struct init_action *a, *tmp;
 
@@ -838,7 +838,7 @@ static void reload_signal(int sig ATTRIBUTE_UNUSED)
 #endif
 
 int init_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int init_main(int argc ATTRIBUTE_UNUSED, char **argv)
+int init_main(int argc UNUSED_PARAM, char **argv)
 {
 	struct init_action *a;
 	pid_t wpid;

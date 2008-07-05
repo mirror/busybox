@@ -11,7 +11,7 @@
 #include "libbb.h"
 
 int printenv_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int printenv_main(int argc ATTRIBUTE_UNUSED, char **argv)
+int printenv_main(int argc UNUSED_PARAM, char **argv)
 {
 	/* no variables specified, show whole env */
 	if (!argv[1]) {

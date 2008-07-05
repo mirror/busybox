@@ -49,7 +49,7 @@ static const unsigned short utsname_offset[] = {
 };
 
 int uname_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int uname_main(int argc ATTRIBUTE_UNUSED, char **argv)
+int uname_main(int argc UNUSED_PARAM, char **argv)
 {
 	uname_info_t uname_info;
 #if defined(__sparc__) && defined(__linux__)

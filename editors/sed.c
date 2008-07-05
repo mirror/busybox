@@ -1233,7 +1233,7 @@ static void add_cmd_block(char *cmdstr)
 }
 
 int sed_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int sed_main(int argc ATTRIBUTE_UNUSED, char **argv)
+int sed_main(int argc UNUSED_PARAM, char **argv)
 {
 	enum {
 		OPT_in_place = 1 << 0,

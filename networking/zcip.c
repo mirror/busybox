@@ -39,7 +39,7 @@
 struct arp_packet {
 	struct ether_header eth;
 	struct ether_arp arp;
-} ATTRIBUTE_PACKED;
+} PACKED;
 
 enum {
 /* 169.254.0.0 */

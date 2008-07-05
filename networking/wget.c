@@ -188,7 +188,7 @@ static void progressmeter(int flag)
  */
 #else /* FEATURE_WGET_STATUSBAR */
 
-static ALWAYS_INLINE void progressmeter(int flag ATTRIBUTE_UNUSED) { }
+static ALWAYS_INLINE void progressmeter(int flag UNUSED_PARAM) { }
 
 #endif
 
@@ -386,7 +386,7 @@ static char *gethdr(char *buf, size_t bufsiz, FILE *fp /*, int *istrunc*/)
 
 
 int wget_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int wget_main(int argc ATTRIBUTE_UNUSED, char **argv)
+int wget_main(int argc UNUSED_PARAM, char **argv)
 {
 	char buf[512];
 	struct host_info server, target;

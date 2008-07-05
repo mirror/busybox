@@ -236,7 +236,7 @@ static void pass_back(struct dhcpMessage *p, int packet_len, int *fds)
 }
 
 static void dhcprelay_loop(int *fds, int num_sockets, int max_socket, char **clients,
-		struct sockaddr_in *server_addr, uint32_t gw_ip) ATTRIBUTE_NORETURN;
+		struct sockaddr_in *server_addr, uint32_t gw_ip) NORETURN;
 static void dhcprelay_loop(int *fds, int num_sockets, int max_socket, char **clients,
 		struct sockaddr_in *server_addr, uint32_t gw_ip)
 {

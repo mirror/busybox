@@ -18,7 +18,7 @@ int stty_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 #endif
 
 int reset_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int reset_main(int argc ATTRIBUTE_UNUSED, char **argv ATTRIBUTE_UNUSED)
+int reset_main(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
 {
 	static const char *const args[] = {
 		"stty", "sane", NULL
