@@ -385,7 +385,11 @@ static module_info* find_alias(const char *alias)
 		/* Does matching substring exist? */
 		replace(desc, ' ', '\0');
 		for (s = desc; *s; s += strlen(s) + 1) {
-			if (strcmp(s, alias) == 0) {
+			/* aliases in module bodies can be defined with
+			 * shell patterns. Example:
+			 * "pci:v000010DEd000000D9sv*sd*bc*sc*i*".
+			 * Plain strcmp() won't catch that */
+			if (fnmatch(s, alias, 0) == 0) {
 				free(desc);
 				dbg1_error_msg("found alias '%s' in module '%s'",
 						alias, modinfo[i].pathname);
