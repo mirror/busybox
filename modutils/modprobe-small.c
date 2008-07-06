@@ -62,10 +62,10 @@ static void *xmalloc_read(int fd, size_t *sizep)
 }
 
 
-//#define dbg1_error_msg(...) ((void)0)
-//#define dbg2_error_msg(...) ((void)0)
-#define dbg1_error_msg(...) bb_error_msg(__VA_ARGS__)
-#define dbg2_error_msg(...) bb_error_msg(__VA_ARGS__)
+#define dbg1_error_msg(...) ((void)0)
+#define dbg2_error_msg(...) ((void)0)
+//#define dbg1_error_msg(...) bb_error_msg(__VA_ARGS__)
+//#define dbg2_error_msg(...) bb_error_msg(__VA_ARGS__)
 
 extern int init_module(void *module, unsigned long len, const char *options);
 extern int delete_module(const char *module, unsigned flags);
