@@ -19,7 +19,8 @@ struct globals {
 #define root_major (G.root_major)
 #define root_minor (G.root_minor)
 
-#define MAX_SYSFS_DEPTH 3 /* prevent infinite loops in /sys symlinks */
+/* Prevent infinite loops in /sys symlinks */
+#define MAX_SYSFS_DEPTH 3
 
 /* We use additional 64+ bytes in make_device() */
 #define SCRATCH_SIZE 80
@@ -392,11 +393,17 @@ int mdev_main(int argc, char **argv)
 	char *env_path;
 	RESERVE_CONFIG_BUFFER(temp, PATH_MAX + SCRATCH_SIZE);
 
-#ifdef YOU_WANT_TO_DEBUG_HOTPLUG_EVENTS
+	/* We can be called as hotplug helper */
 	/* Kernel cannot provide suitable stdio fds for us, do it ourself */
+#if 1
+	bb_sanitize_stdio();
+#else
+	/* Debug code */
 	/* Replace LOGFILE by other file or device name if you need */
 #define LOGFILE "/dev/console"
-	xmove_fd(xopen("/dev/null", O_RDONLY), STDIN_FILENO);
+	/* Just making sure fd 0 is not closed,
+	 * we don't really intend to read from it */
+	xmove_fd(xopen("/", O_RDONLY), STDIN_FILENO);
 	xmove_fd(xopen(LOGFILE, O_WRONLY|O_APPEND), STDOUT_FILENO);
 	xmove_fd(xopen(LOGFILE, O_WRONLY|O_APPEND), STDERR_FILENO);
 #endif
@@ -414,11 +421,11 @@ int mdev_main(int argc, char **argv)
 		root_minor = minor(st.st_dev);
 
 		recursive_action("/sys/block",
-			ACTION_RECURSE | ACTION_FOLLOWLINKS,
+			ACTION_RECURSE /* no ACTION_FOLLOWLINKS! */,
 			fileAction, dirAction, temp, 0);
 
 		recursive_action("/sys/class",
-			ACTION_RECURSE | ACTION_FOLLOWLINKS,
+			ACTION_RECURSE /* no ACTION_FOLLOWLINKS! */,
 			fileAction, dirAction, temp, 0);
 
 	} else {

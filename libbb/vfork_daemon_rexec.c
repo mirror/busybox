@@ -265,7 +265,14 @@ void FAST_FUNC bb_daemonize_or_rexec(int flags, char **argv)
 		close(2);
 	}
 
-	fd = xopen(bb_dev_null, O_RDWR);
+	fd = open(bb_dev_null, O_RDWR);
+	if (fd < 0) {
+		/* NB: we can be called as bb_sanitize_stdio() from init
+		 * or mdev, and there /dev/null may legitimately not (yet) exist!
+		 * Do not use xopen above, but obtain _ANY_ open descriptor,
+		 * even bogus one as below. */
+		fd = xopen("/", O_RDONLY); /* don't believe this can fail */
+	}
 
 	while ((unsigned)fd < 2)
 		fd = dup(fd); /* have 0,1,2 open at least to /dev/null */

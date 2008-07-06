@@ -221,20 +221,7 @@ static void console_init(void)
 	} else {
 		/* Make sure fd 0,1,2 are not closed
 		 * (so that they won't be used by future opens) */
-
-		/* bb_sanitize_stdio(); - WRONG.
-		 * It fails if "/dev/null" doesnt exist, and for init
-		 * this is a real possibility! Open code it instead. */
-
-		int fd = open(bb_dev_null, O_RDWR);
-		if (fd < 0) {
-			/* Give me _ANY_ open descriptor! */
-			fd = xopen("/", O_RDONLY); /* we don't believe this can fail */
-		}
-		while ((unsigned)fd < 2)
-			fd = dup(fd);
-		if (fd > 2)
-			close(fd);
+		bb_sanitize_stdio();
 	}
 
 	s = getenv("TERM");
