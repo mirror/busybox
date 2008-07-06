@@ -1344,7 +1344,7 @@ static int setup_redirects(struct child_prog *prog, int squirrel[])
 		if (redir->dup == -1) {
 			char *p;
 			mode = redir_table[redir->rd_type].mode;
-//TODO: check redir to names like '\\'
+//TODO: check redir for names like '\\'
 			p = expand_string_to_string(redir->rd_filename);
 			openfd = open_or_warn(p, mode);
 			free(p);
@@ -2854,17 +2854,7 @@ static int reserved_word(const o_string *word, struct p_context *ctx)
 			continue;
 		debug_printf("found reserved word %s, res %d\n", r->literal, r->res);
 		if (r->flag == 0) { /* '!' */
-#if ENABLE_HUSH_LOOPS
-			if (ctx->ctx_res_w == RES_IN) {
-				/* 'for a in ! a b c; ...' - ! isn't a keyword here */
-				break;
-			}
-#endif
-			if (ctx->ctx_inverted /* bash doesn't accept '! ! true' */
-#if ENABLE_HUSH_LOOPS
-			 || ctx->ctx_res_w == RES_FOR /* example: 'for ! a' */
-#endif
-			) {
+			if (ctx->ctx_inverted) { /* bash doesn't accept '! ! true' */
 				syntax(NULL);
 				IF_HAS_KEYWORDS(ctx->ctx_res_w = RES_SNTX;)
 			}
@@ -2885,7 +2875,7 @@ static int reserved_word(const o_string *word, struct p_context *ctx)
 			*new = *ctx;   /* physical copy */
 			initialize_context(ctx);
 			ctx->stack = new;
-		} else if (ctx->ctx_res_w == RES_NONE || !(ctx->old_flag & (1 << r->res))) {
+		} else if (/*ctx->ctx_res_w == RES_NONE ||*/ !(ctx->old_flag & (1 << r->res))) {
 			syntax(NULL);
 			ctx->ctx_res_w = RES_SNTX;
 			return 1;
@@ -2940,7 +2930,10 @@ static int done_word(o_string *word, struct p_context *ctx)
 			return 1;
 		}
 #if HAS_KEYWORDS
-		if (!child->argv) { /* if it's the first word... */
+		if (!child->argv /* if it's the first word... */
+		 && ctx->ctx_res_w != RES_FOR /* ...not after FOR or IN */
+		 && ctx->ctx_res_w != RES_IN
+		) {
 			debug_printf_parse(": checking '%s' for reserved-ness\n", word->data);
 			if (reserved_word(word, ctx)) {
 				o_reset(word);
@@ -2953,9 +2946,9 @@ static int done_word(o_string *word, struct p_context *ctx)
 		if (word->nonnull /* word had "xx" or 'xx' at least as part of it. */
 		 /* optimization: and if it's ("" or '') or ($v... or `cmd`...): */
 		 && (word->data[0] == '\0' || word->data[0] == SPECIAL_VAR_SYMBOL)
-		 /* (otherwise it's "abc".... and is already safe) */
+		 /* (otherwise it's known to be not empty and is already safe) */
 		) {
-			/* but exclude "$@" - it expands to no word despite "" */
+			/* exclude "$@" - it can expand to no word despite "" */
 			char *p = word->data;
 			while (p[0] == SPECIAL_VAR_SYMBOL
 			    && (p[1] & 0x7f) == '@'
@@ -2964,7 +2957,9 @@ static int done_word(o_string *word, struct p_context *ctx)
 				p += 3;
 			}
 			if (p == word->data || p[0] != '\0') {
-				/* Insert "empty variable" reference, this makes
+				/* saw no "$@", or not only "$@" but some
+				 * real text is there too */
+				/* insert "empty variable" reference, this makes
 				 * e.g. "", $empty"" etc to not disappear */
 				o_addchr(word, SPECIAL_VAR_SYMBOL);
 				o_addchr(word, SPECIAL_VAR_SYMBOL);
@@ -2979,8 +2974,13 @@ static int done_word(o_string *word, struct p_context *ctx)
 
 #if ENABLE_HUSH_LOOPS
 	/* Force FOR to have just one word (variable name) */
-	if (ctx->ctx_res_w == RES_FOR)
+	/* NB: basically, this makes hush see "for v in ..." syntax as if
+	 * as it is "for v; in ...". FOR and IN become two pipe structs
+	 * in parse tree. */
+	if (ctx->ctx_res_w == RES_FOR) {
+//TODO: check that child->argv[0] is a valid variable name!
 		done_pipe(ctx, PIPE_SEQ);
+	}
 #endif
 	debug_printf_parse("done_word return 0\n");
 	return 0;
@@ -3030,19 +3030,28 @@ static void done_pipe(struct p_context *ctx, pipe_style type)
 	debug_printf_parse("done_pipe entered, followup %d\n", type);
 	not_null = done_command(ctx);  /* implicit closure of previous command */
 	ctx->pipe->followup = type;
-	IF_HAS_KEYWORDS(ctx->pipe->res_word = ctx->ctx_res_w;)
 	IF_HAS_KEYWORDS(ctx->pipe->pi_inverted = ctx->ctx_inverted;)
 	IF_HAS_KEYWORDS(ctx->ctx_inverted = 0;)
+	IF_HAS_KEYWORDS(ctx->pipe->res_word = ctx->ctx_res_w;)
 	/* Without this check, even just <enter> on command line generates
 	 * tree of three NOPs (!). Which is harmless but annoying.
 	 * IOW: it is safe to do it unconditionally.
-	 * RES_IN case is for "for a in; do ..." (empty IN set)
-	 * to work. */
-	if (not_null USE_HUSH_LOOPS(|| ctx->pipe->res_word == RES_IN)) {
+	 * RES_NONE case is for "for a in; do ..." (empty IN set)
+	 * to work, possibly other cases too. */
+	if (not_null IF_HAS_KEYWORDS(|| ctx->ctx_res_w != RES_NONE)) {
 		struct pipe *new_p = new_pipe();
 		ctx->pipe->next = new_p;
 		ctx->pipe = new_p;
 		ctx->child = NULL; /* needed! */
+		/* RES_IF, RES_WHILE etc are "sticky" -
+		 * they remain set for commands inside if/while.
+		 * This is used to control execution.
+		 * RES_FOR and RES_IN are NOT sticky (needed to support
+		 * cases where variable or value happens to match a keyword):
+		 */
+		if (ctx->ctx_res_w == RES_FOR
+		 || ctx->ctx_res_w == RES_IN)
+			ctx->ctx_res_w = RES_NONE;
 		/* Create the memory for child, roughly:
 		 * ctx->pipe->progs = new struct child_prog;
 		 * ctx->pipe->progs[0].family = ctx->pipe;
@@ -3444,7 +3453,7 @@ static int handle_dollar(o_string *dest, struct in_str *input)
 	return 0;
 }
 
-/* Scan input, call done_word() whenever full IFS delemited word was seen.
+/* Scan input, call done_word() whenever full IFS delimited word was seen.
  * call done_pipe if '\n' was seen (and end_trigger != NULL)
  * Return if (non-quoted) char in end_trigger was seen; or on parse error. */
 /* Return code is 0 if end_trigger char is met,
@@ -3517,7 +3526,9 @@ static int parse_stream(o_string *dest, struct p_context *ctx,
 //err chk?
 					done_pipe(ctx, PIPE_SEQ);
 				}
-				if (!HAS_KEYWORDS IF_HAS_KEYWORDS(|| ctx->ctx_res_w == RES_NONE)) {
+				if (!HAS_KEYWORDS
+				 IF_HAS_KEYWORDS(|| (ctx->ctx_res_w == RES_NONE && ctx->old_flag == 0))
+				) {
 					debug_printf_parse("parse_stream return 0: end_trigger char found\n");
 					return 0;
 				}
