@@ -420,14 +420,17 @@ int mdev_main(int argc, char **argv)
 		root_major = major(st.st_dev);
 		root_minor = minor(st.st_dev);
 
+		/* ACTION_FOLLOWLINKS is needed since in newer kernels
+		 * /sys/block/loop* (for example) are symlinks to dirs,
+		 * not real directories.
+		 * (kernel's CONFIG_SYSFS_DEPRECATED makes them real dirs,
+		 * but we can't enforce that on users) */
 		recursive_action("/sys/block",
-			ACTION_RECURSE /* no ACTION_FOLLOWLINKS! */,
+			ACTION_RECURSE | ACTION_FOLLOWLINKS,
 			fileAction, dirAction, temp, 0);
-
 		recursive_action("/sys/class",
-			ACTION_RECURSE /* no ACTION_FOLLOWLINKS! */,
+			ACTION_RECURSE | ACTION_FOLLOWLINKS,
 			fileAction, dirAction, temp, 0);
-
 	} else {
 		/* Hotplug:
 		 * env ACTION=... DEVPATH=... mdev
