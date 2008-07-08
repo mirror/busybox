@@ -675,7 +675,7 @@ static struct interfaces_file_t *read_interfaces(const char *filename)
 	 * the last character a backslash.
 	 *
 	 * Seen elsewhere in example config file:
-	 * A "#" character in the very first column makes the rest of the line
+	 * A first non-blank "#" character makes the rest of the line
 	 * be ignored. Blank lines are ignored. Lines may be indented freely.
 	 * A "\" character at the very end of the line indicates the next line
 	 * should be treated as a continuation of the current one.
@@ -711,7 +711,7 @@ static struct interfaces_file_t *read_interfaces(const char *filename)
 #endif
 		rest_of_line = buf;
 		first_word = next_word(&rest_of_line);
-		if (!first_word || *buf == '#') {
+		if (!first_word || *first_word == '#') {
 			free(buf);
 			continue; /* blank/comment line */
 		}
