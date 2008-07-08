@@ -303,9 +303,8 @@ static const ps_out_t out_spec[] = {
 
 static ps_out_t* new_out_t(void)
 {
-	int i = out_cnt++;
-	out = xrealloc(out, out_cnt * sizeof(*out));
-	return &out[i];
+	out = xrealloc_vector(out, 2, out_cnt);
+	return &out[out_cnt++];
 }
 
 static const ps_out_t* find_out_spec(const char *name)

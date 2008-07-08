@@ -382,9 +382,8 @@ static int search_for_provides(int needle, int start_at)
  */
 static void add_edge_to_node(common_node_t *node, edge_t *edge)
 {
-	node->num_of_edges++;
-	node->edge = xrealloc(node->edge, sizeof(edge_t) * (node->num_of_edges + 1));
-	node->edge[node->num_of_edges - 1] = edge;
+	node->edge = xrealloc_vector(node->edge, 2, node->num_of_edges);
+	node->edge[node->num_of_edges++] = edge;
 }
 
 /*
@@ -972,7 +971,7 @@ static int check_deps(deb_file_t **deb_file, int deb_start /*, int dep_max_count
 	 * installed package for conflicts*/
 	while (deb_file[i] != NULL) {
 		const unsigned package_num = deb_file[i]->package;
-		conflicts = xrealloc(conflicts, sizeof(int) * (conflicts_num + 1));
+		conflicts = xrealloc_vector(conflicts, 2, conflicts_num);
 		conflicts[conflicts_num] = package_num;
 		conflicts_num++;
 		/* add provides to conflicts list */
@@ -989,7 +988,7 @@ static int check_deps(deb_file_t **deb_file, int deb_start /*, int dep_max_count
 					new_node->version = package_hashtable[package_num]->edge[j]->version;
 					package_hashtable[conflicts_package_num] = new_node;
 				}
-				conflicts = xrealloc(conflicts, sizeof(int) * (conflicts_num + 1));
+				conflicts = xrealloc_vector(conflicts, 2, conflicts_num);
 				conflicts[conflicts_num] = conflicts_package_num;
 				conflicts_num++;
 			}
@@ -1170,7 +1169,8 @@ static char **create_list(const char *filename)
 	file_list = NULL;
 	count = 0;
 	while ((line = xmalloc_fgetline(list_stream)) != NULL) {
-		file_list = xrealloc(file_list, sizeof(char *) * (count + 2));
+//TODO: zeroing xrealloc_vector? 
+		file_list = xrealloc_vector(file_list, 2, count);
 		file_list[count++] = line;
 		file_list[count] = NULL;
 	}
@@ -1634,7 +1634,7 @@ int dpkg_main(int argc UNUSED_PARAM, char **argv)
 	/* Read arguments and store relevant info in structs */
 	while (*argv) {
 		/* deb_count = nb_elem - 1 and we need nb_elem + 1 to allocate terminal node [NULL pointer] */
-		deb_file = xrealloc(deb_file, sizeof(deb_file[0]) * (deb_count + 2));
+		deb_file = xrealloc_vector(deb_file, 2, deb_count);
 		deb_file[deb_count] = xzalloc(sizeof(deb_file[0][0]));
 		if (opt & (OPT_install | OPT_unpack)) {
 			/* -i/-u: require filename */

@@ -482,10 +482,8 @@ static struct dep_t *build_dep(void)
 				dep = xstrndup(deps, next - deps - ext + 1);
 
 				/* Add the new dependable module name */
-				current->m_depcnt++;
-				current->m_deparr = xrealloc(current->m_deparr,
-						sizeof(char *) * current->m_depcnt);
-				current->m_deparr[current->m_depcnt - 1] = dep;
+				current->m_deparr = xrealloc_vector(current->m_deparr, 2, current->m_depcnt);
+				current->m_deparr[current->m_depcnt++] = dep;
 
 				p = next + 2;
 			} while (next < end);

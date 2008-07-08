@@ -317,9 +317,7 @@ static FAST_FUNC int fileAction(const char *pathname,
 	}
 
 	cur = module_count++;
-	if (!(cur & 0xfff)) {
-		modinfo = xrealloc(modinfo, sizeof(modinfo[0]) * (cur + 0x1001));
-	}
+	modinfo = xrealloc_vector(modinfo, 12, cur);
 	modinfo[cur].pathname = xstrdup(pathname);
 	modinfo[cur].desc = NULL;
 	modinfo[cur+1].pathname = NULL;

@@ -245,7 +245,7 @@ static void rewrite(FS * fs)
 			{
 				savech = *p3;
 				*p3 = '\0';
-				pr->fmt = xrealloc(pr->fmt, strlen(pr->fmt)+(p3-p2)+1);
+				pr->fmt = xrealloc(pr->fmt, strlen(pr->fmt) + (p3-p2) + 1);
 				strcat(pr->fmt, p2);
 				*p3 = savech;
 				p2 = p3;

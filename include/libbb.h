@@ -564,10 +564,14 @@ void fputc_printable(int ch, FILE *file) FAST_FUNC;
 
 /* dmalloc will redefine these to it's own implementation. It is safe
  * to have the prototypes here unconditionally.  */
-extern void *malloc_or_warn(size_t size) FAST_FUNC;
-extern void *xmalloc(size_t size) FAST_FUNC;
-extern void *xzalloc(size_t size) FAST_FUNC;
-extern void *xrealloc(void *old, size_t size) FAST_FUNC;
+void *malloc_or_warn(size_t size) FAST_FUNC;
+void *xmalloc(size_t size) FAST_FUNC;
+void *xzalloc(size_t size) FAST_FUNC;
+void *xrealloc(void *old, size_t size) FAST_FUNC;
+#define xrealloc_vector(vector, shift, idx) \
+	xrealloc_vector_helper((vector), (sizeof((vector)[0]) << 8) + (shift), (idx))
+void* xrealloc_vector_helper(void *vector, unsigned sizeof_and_shift, int idx) FAST_FUNC;
+
 
 extern ssize_t safe_read(int fd, void *buf, size_t count) FAST_FUNC;
 extern ssize_t nonblock_safe_read(int fd, void *buf, size_t count) FAST_FUNC;

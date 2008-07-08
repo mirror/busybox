@@ -1473,8 +1473,10 @@ static regex_t *as_regex(node *op, regex_t *preg)
 /* gradually increasing buffer */
 static void qrealloc(char **b, int n, int *size)
 {
-	if (!*b || n >= *size)
-		*b = xrealloc(*b, *size = n + (n>>1) + 80);
+	if (!*b || n >= *size) {
+		*size = n + (n>>1) + 80;
+		*b = xrealloc(*b, *size);
+	}
 }
 
 /* resize field storage space */

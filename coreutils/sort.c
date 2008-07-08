@@ -360,8 +360,7 @@ int sort_main(int argc UNUSED_PARAM, char **argv)
 		for (;;) {
 			line = GET_LINE(fp);
 			if (!line) break;
-			if (!(linecount & 63))
-				lines = xrealloc(lines, sizeof(char *) * (linecount + 64));
+			lines = xrealloc_vector(lines, 6, linecount);
 			lines[linecount++] = line;
 		}
 		fclose_if_not_stdin(fp);

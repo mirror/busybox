@@ -322,7 +322,7 @@ static void read_lines(void)
 		}
  reached_eof:
 		last_terminated = terminated;
-		flines = xrealloc(flines, (max_fline+1) * sizeof(char *));
+		flines = xrealloc_vector(flines, 8, max_fline);
 		if (option_mask32 & FLAG_N) {
 			/* Width of 7 preserves tab spacing in the text */
 			flines[max_fline] = xasprintf(
@@ -332,7 +332,7 @@ static void read_lines(void)
 			if (terminated)
 				max_lineno++;
 		} else {
-			flines[max_fline] = xrealloc(current_line, strlen(current_line)+1);
+			flines[max_fline] = xrealloc(current_line, strlen(current_line) + 1);
 		}
 		if (max_fline >= MAXLINES) {
 			eof_error = 0; /* Pretend we saw EOF */
@@ -933,7 +933,7 @@ static void fill_match_lines(unsigned pos)
 		/* and we didn't match it last time */
 		 && !(num_matches && match_lines[num_matches-1] == pos)
 		) {
-			match_lines = xrealloc(match_lines, (num_matches+1) * sizeof(int));
+			match_lines = xrealloc_vector(match_lines, 4, num_matches);
 			match_lines[num_matches++] = pos;
 		}
 		pos++;

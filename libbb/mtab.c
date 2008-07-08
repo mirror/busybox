@@ -27,14 +27,14 @@ void FAST_FUNC erase_mtab(const char *name)
 	}
 
 	while ((m = getmntent(mountTable)) != 0) {
+		entries = xrealloc(entries, 3, count);
+		entries[count].mnt_fsname = xstrdup(m->mnt_fsname);
+		entries[count].mnt_dir = xstrdup(m->mnt_dir);
+		entries[count].mnt_type = xstrdup(m->mnt_type);
+		entries[count].mnt_opts = xstrdup(m->mnt_opts);
+		entries[count].mnt_freq = m->mnt_freq;
+		entries[count].mnt_passno = m->mnt_passno;
 		i = count++;
-		entries = xrealloc(entries, count * sizeof(entries[0]));
-		entries[i].mnt_fsname = xstrdup(m->mnt_fsname);
-		entries[i].mnt_dir = xstrdup(m->mnt_dir);
-		entries[i].mnt_type = xstrdup(m->mnt_type);
-		entries[i].mnt_opts = xstrdup(m->mnt_opts);
-		entries[i].mnt_freq = m->mnt_freq;
-		entries[i].mnt_passno = m->mnt_passno;
 	}
 	endmntent(mountTable);
 

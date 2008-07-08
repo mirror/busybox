@@ -1028,13 +1028,13 @@ static void parse_args(char **argv)
 // FIXME: must check that arg is a blkdev, or resolve
 // "/path", "UUID=xxx" or "LABEL=xxx" into block device name
 // ("UUID=xxx"/"LABEL=xxx" can probably shifted to fsck.auto duties)
-			devices = xrealloc(devices, (num_devices+1) * sizeof(devices[0]));
+			devices = xrealloc_vector(devices, 2, num_devices);
 			devices[num_devices++] = xstrdup(arg);
 			continue;
 		}
 
 		if (arg[0] != '-' || opts_for_fsck) {
-			args = xrealloc(args, (num_args+1) * sizeof(args[0]));
+			args = xrealloc_vector(args, 2, num_args);
 			args[num_args++] = xstrdup(arg);
 			continue;
 		}
@@ -1111,7 +1111,7 @@ static void parse_args(char **argv)
 		if (optpos) {
 			options[0] = '-';
 			options[optpos + 1] = '\0';
-			args = xrealloc(args, (num_args+1) * sizeof(args[0]));
+			args = xrealloc_vector(args, 2, num_args);
 			args[num_args++] = options;
 		}
 	}

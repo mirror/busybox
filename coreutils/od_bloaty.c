@@ -735,9 +735,9 @@ decode_format_string(const char *s)
 
 		assert(s != next);
 		s = next;
+		spec = xrealloc_vector(spec, 4, n_specs);
+		memcpy(&spec[n_specs], &tspec, sizeof(spec[0]));
 		n_specs++;
-		spec = xrealloc(spec, n_specs * sizeof(*spec));
-		memcpy(&spec[n_specs-1], &tspec, sizeof *spec);
 	}
 }
 

@@ -2201,7 +2201,7 @@ static struct obj_section *obj_create_alloced_section(struct obj_file *f,
 	int newidx = f->header.e_shnum++;
 	struct obj_section *sec;
 
-	f->sections = xrealloc(f->sections, (newidx + 1) * sizeof(sec));
+	f->sections = xrealloc_vector(f->sections, 2, newidx);
 	f->sections[newidx] = sec = arch_new_section();
 
 	sec->header.sh_type = SHT_PROGBITS;
@@ -2250,7 +2250,8 @@ static void *obj_extend_section(struct obj_section *sec, unsigned long more)
 {
 	unsigned long oldsize = sec->header.sh_size;
 	if (more) {
-		sec->contents = xrealloc(sec->contents, sec->header.sh_size += more);
+		sec->header.sh_size += more;
+		sec->contents = xrealloc(sec->contents, sec->header.sh_size);
 	}
 	return sec->contents + oldsize;
 }
@@ -2736,7 +2737,8 @@ static void new_get_kernel_symbols(void)
  retry_kern_sym_load:
 	if (query_module(NULL, QM_SYMBOLS, syms, bufsize, &ret)) {
 		if (errno == ENOSPC && bufsize < ret) {
-			syms = xrealloc(syms, bufsize = ret);
+			bufsize = ret;
+			syms = xrealloc(syms, bufsize);
 			goto retry_kern_sym_load;
 		}
 		bb_perror_msg_and_die("kernel: QM_SYMBOLS");
@@ -3080,7 +3082,7 @@ static void obj_allocate_commons(struct obj_file *f)
 		if (i == f->header.e_shnum) {
 			struct obj_section *sec;
 
-			f->sections = xrealloc(f->sections, (i + 1) * sizeof(sec));
+			f->sections = xrealloc(f->sections, 2, i);
 			f->sections[i] = sec = arch_new_section();
 			f->header.e_shnum = i + 1;
 

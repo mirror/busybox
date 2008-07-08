@@ -332,7 +332,7 @@ static long parse_mount_options(char *options, char **unrecognized)
 		if (unrecognized && i == ARRAY_SIZE(mount_options)) {
 			// Add it to strflags, to pass on to kernel
 			i = *unrecognized ? strlen(*unrecognized) : 0;
-			*unrecognized = xrealloc(*unrecognized, i+strlen(options)+2);
+			*unrecognized = xrealloc(*unrecognized, i + strlen(options) + 2);
 
 			// Comma separated if it's not the first one
 			if (i) (*unrecognized)[i++] = ',';

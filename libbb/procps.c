@@ -45,8 +45,8 @@ static int get_cached(cache_t *cp, unsigned id)
 	for (i = 0; i < cp->size; i++)
 		if (cp->cache[i].id == id)
 			return i;
-	i = cp->size++;
-	cp->cache = xrealloc(cp->cache, cp->size * sizeof(*cp->cache));
+	i = cp->size;
+	cp->cache = xrealloc_vector(cp->cache, 2, cp->size++);
 	cp->cache[i++].id = id;
 	return -i;
 }
@@ -59,8 +59,8 @@ static char* get_cached(cache_t *cp, unsigned id, ug_func* fp)
 	for (i = 0; i < cp->size; i++)
 		if (cp->cache[i].id == id)
 			return cp->cache[i].name;
-	i = cp->size++;
-	cp->cache = xrealloc(cp->cache, cp->size * sizeof(*cp->cache));
+	i = cp->size;
+	cp->cache = xrealloc_vector(cp->cache, 2, cp->size++);
 	cp->cache[i].id = id;
 	/* Never fails. Generates numeric string if name isn't found */
 	fp(cp->cache[i].name, sizeof(cp->cache[i].name), id);

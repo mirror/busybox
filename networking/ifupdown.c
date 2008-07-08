@@ -721,11 +721,7 @@ static struct interfaces_file_t *read_interfaces(const char *filename)
 			currmap = xzalloc(sizeof(*currmap));
 
 			while ((first_word = next_word(&rest_of_line)) != NULL) {
-				if (currmap->n_matches >= currmap->max_matches) {
-					currmap->max_matches = currmap->max_matches * 2 + 1;
-					currmap->match = xrealloc(currmap->match,
-						sizeof(*currmap->match) * currmap->max_matches);
-				}
+				currmap->match = xrealloc_vector(currmap->match, 4, currmap->n_matches);
 				currmap->match[currmap->n_matches++] = xstrdup(first_word);
 			}
 			/*currmap->max_mappings = 0; - done by xzalloc */

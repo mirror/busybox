@@ -90,7 +90,7 @@ static int FAST_FUNC act(const char *file, struct stat *statbuf, void *args UNUS
 		return SKIP;
 	}
 
-	names = xrealloc(names, (cur + 2) * sizeof(names[0]));
+	names = xrealloc_vector(names, 4, cur);
 	names[cur++] = xstrdup(file);
 	names[cur] = NULL;
 

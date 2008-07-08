@@ -279,12 +279,12 @@ static rpm_index **rpm_gettags(int fd, int *num_tags)
 			tmpindex->type = ntohl(tmpindex->type);
 			tmpindex->count = ntohl(tmpindex->count);
 			tmpindex->offset = storepos + ntohl(tmpindex->offset);
-			if (pass==0)
+			if (pass == 0)
 				tmpindex->tag -= 743;
 		}
 		xlseek(fd, header.size, SEEK_CUR); /* Seek past store */
 		/* Skip padding to 8 byte boundary after reading signature headers */
-		if (pass==0)
+		if (pass == 0)
 			xlseek(fd, (8 - (xlseek(fd,0,SEEK_CUR) % 8)) % 8, SEEK_CUR);
 	}
 	tags = xrealloc(tags, tagindex * sizeof(struct rpmtag *)); /* realloc tags to save space */

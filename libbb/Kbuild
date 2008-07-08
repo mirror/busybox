@@ -109,6 +109,7 @@ lib-y += xfunc_die.o
 lib-y += xgetcwd.o
 lib-y += xgethostbyname.o
 lib-y += xreadlink.o
+lib-y += xrealloc_vector.o
 
 # conditionally compiled objects:
 lib-$(CONFIG_FEATURE_MOUNT_LOOP) += loop.o

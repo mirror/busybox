@@ -42,7 +42,7 @@ char* FAST_FUNC bb_get_chunk_from_file(FILE *file, int *end)
 		//	free(linebuf);
 		//	return NULL;
 		//}
-		linebuf = xrealloc(linebuf, idx+1);
+		linebuf = xrealloc(linebuf, idx + 1);
 		linebuf[idx] = '\0';
 	}
 	return linebuf;

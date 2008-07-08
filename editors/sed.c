@@ -732,8 +732,7 @@ static void flush_append(void)
 
 static void add_input_file(FILE *file)
 {
-	G.input_file_list = xrealloc(G.input_file_list,
-			(G.input_file_count + 1) * sizeof(FILE *));
+	G.input_file_list = xrealloc_vector(G.input_file_list, 2, G.input_file_count);
 	G.input_file_list[G.input_file_count++] = file;
 }
 

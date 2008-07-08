@@ -241,9 +241,10 @@ int cut_main(int argc UNUSED_PARAM, char **argv)
 			}
 
 			/* add the new list */
-			cut_lists = xrealloc(cut_lists, sizeof(struct cut_list) * (++nlists));
-			cut_lists[nlists-1].startpos = s;
-			cut_lists[nlists-1].endpos = e;
+			cut_lists = xrealloc_vector(cut_lists, 4, nlists);
+			cut_lists[nlists].startpos = s;
+			cut_lists[nlists].endpos = e;
+			nlists++;
 		}
 
 		/* make sure we got some cut positions out of all that */

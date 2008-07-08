@@ -400,11 +400,8 @@ static void free_tab_completion_data(void)
 
 static void add_match(char *matched)
 {
-	int nm = num_matches;
-	int nm1 = nm + 1;
-
-	matches = xrealloc(matches, nm1 * sizeof(char *));
-	matches[nm] = matched;
+	matches = xrealloc_vector(matches, 4, num_matches);
+	matches[num_matches] = matched;
 	num_matches++;
 }
 

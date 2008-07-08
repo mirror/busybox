@@ -643,11 +643,7 @@ int initgroups(const char *user, gid_t gid)
 			if (group.gr_gid != gid) {
 				for (m = group.gr_mem; *m; m++) {
 					if (!strcmp(*m, user)) {
-						if (!(num_groups & 7)) {
-							gid_t *tmp = xrealloc(group_list,
-									(num_groups+8) * sizeof(gid_t *));
-							group_list = tmp;
-						}
+						group_list = xrealloc_vector(group_list, 3, num_groups);
 						group_list[num_groups++] = group.gr_gid;
 						break;
 					}

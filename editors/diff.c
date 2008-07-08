@@ -1059,6 +1059,7 @@ static unsigned diffreg(char *file1, char *file2, int flags)
 
 	member = (int *) nfile[1];
 	equiv(sfile[0], slen[0], sfile[1], slen[1], member);
+//TODO: xrealloc_vector?
 	member = xrealloc(member, (slen[1] + 2) * sizeof(int));
 
 	class = (int *) nfile[0];
@@ -1168,8 +1169,7 @@ static int FAST_FUNC add_to_dirlist(const char *filename,
 		void *userdata,
 		int depth UNUSED_PARAM)
 {
-	/* +2: with space for eventual trailing NULL */
-	dl = xrealloc(dl, (dl_count+2) * sizeof(dl[0]));
+	dl = xrealloc_vector(dl, 5, dl_count);
 	dl[dl_count] = xstrdup(filename + (int)(ptrdiff_t)userdata);
 	dl_count++;
 	return TRUE;

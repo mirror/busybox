@@ -117,11 +117,7 @@ int man_main(int argc UNUSED_PARAM, char **argv)
 					count_mp++;
 					/* man_path_list is NULL terminated */
 					man_path_list[count_mp] = NULL;
-					if (!(count_mp & 0xf)) { /* 0x10, 0x20 etc */
-						/* so that last valid man_path_list[] is [count_mp + 0x10] */
-						man_path_list = xrealloc(man_path_list,
-							(count_mp + 0x11) * sizeof(man_path_list[0]));
-					}
+					man_path_list = xrealloc_vector(man_path_list, 4, count_mp);
 				}
 				if (strcmp("MANSECT", line) == 0) {
 					free(sec_list);
