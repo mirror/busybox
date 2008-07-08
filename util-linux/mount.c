@@ -135,6 +135,8 @@ static const int32_t mount_options[] = {
 		/* "noatime"     */ MS_NOATIME,
 		/* "diratime"    */ ~MS_NODIRATIME,
 		/* "nodiratime"  */ MS_NODIRATIME,
+		/* "mand"        */ MS_MANDLOCK,
+		/* "nomand"      */ ~MS_MANDLOCK,
 		/* "loud"        */ ~MS_SILENT,
 
 		// action flags
@@ -185,6 +187,8 @@ static const char mount_option_str[] =
 		"noatime" "\0"
 		"diratime" "\0"
 		"nodiratime" "\0"
+		"mand" "\0"
+		"nomand" "\0"
 		"loud" "\0"
 
 		// action flags
