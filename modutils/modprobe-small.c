@@ -14,14 +14,17 @@
 #include <sys/utsname.h> /* uname() */
 #include <fnmatch.h>
 
+extern int init_module(void *module, unsigned long len, const char *options);
+extern int delete_module(const char *module, unsigned flags);
+extern int query_module(const char *name, int which, void *buf, size_t bufsize, size_t *ret);
+
+
 #define dbg1_error_msg(...) ((void)0)
 #define dbg2_error_msg(...) ((void)0)
 //#define dbg1_error_msg(...) bb_error_msg(__VA_ARGS__)
 //#define dbg2_error_msg(...) bb_error_msg(__VA_ARGS__)
 
-extern int init_module(void *module, unsigned long len, const char *options);
-extern int delete_module(const char *module, unsigned flags);
-extern int query_module(const char *name, int which, void *buf, size_t bufsize, size_t *ret);
+#define DEPFILE_BB CONFIG_DEFAULT_DEPMOD_FILE".bb"
 
 enum {
 	OPT_q = (1 << 0), /* be quiet */
@@ -61,6 +64,12 @@ static void appendc(char c)
 {
 	if (stringbuf_idx < sizeof(stringbuf))
 		stringbuf[stringbuf_idx++] = c;
+}
+
+static void bksp(void)
+{
+	if (stringbuf_idx)
+		stringbuf_idx--;
 }
 
 static void append(const char *s)
@@ -113,6 +122,19 @@ static void replace(char *s, char what, char with)
 			*s = with;
 		++s;
 	}
+}
+
+/* Take "word word", return malloced "word",NUL,"word",NUL,NUL */
+static char* str_2_list(const char *str)
+{
+	int len = strlen(str) + 1;
+	char *dst = xmalloc(len + 1);
+
+	dst[len] = '\0';
+	memcpy(dst, str, len);
+//TODO: protect against 2+ spaces: "word  word"
+	replace(dst, ' ', '\0');
+	return dst;
 }
 
 #if ENABLE_FEATURE_MODPROBE_SMALL_ZIPPED
@@ -187,13 +209,13 @@ static int load_module(const char *fname, const char *options)
 #endif
 }
 
-static char* parse_module(const char *pathname, const char *name)
+static char* parse_module(const char *pathname)
 {
 	char *module_image;
 	char *ptr;
 	size_t len;
 	size_t pos;
-	dbg1_error_msg("parse_module('%s','%s')", pathname, name);
+	dbg1_error_msg("parse_module('%s')", pathname);
 
 	/* Read (possibly compressed) module */
 	len = 64 * 1024 * 1024; /* 64 Mb at most */
@@ -202,11 +224,7 @@ static char* parse_module(const char *pathname, const char *name)
 	reset_stringbuf();
 
 	/* First desc line's format is
-	 * "modname alias1 symbol:sym1 alias2 symbol:sym2 " (note trailing ' ')
-	 */
-	append(name);
-	appendc(' ');
-	/* Aliases */
+	 * "alias1 symbol:sym1 alias2 symbol:sym2" */
 	pos = 0;
 	while (1) {
 		ptr = find_keyword(module_image + pos, len - pos, "alias=");
@@ -217,19 +235,20 @@ static char* parse_module(const char *pathname, const char *name)
 			/* DOCME: __ksymtab_gpl and __ksymtab_strings occur
 			 * in many modules. What do they mean? */
 			if (strcmp(ptr, "gpl") != 0 && strcmp(ptr, "strings") != 0) {
-				dbg2_error_msg("alias: 'symbol:%s'", ptr);
+				dbg2_error_msg("alias:'symbol:%s'", ptr);
 				append("symbol:");
 			}
 		} else {
-			dbg2_error_msg("alias: '%s'", ptr);
+			dbg2_error_msg("alias:'%s'", ptr);
 		}
 		append(ptr);
 		appendc(' ');
 		pos = (ptr - module_image);
 	}
+	bksp(); /* remove last ' ' */
 	appendc('\0');
 
-	/* Second line: "dependency1 depandency2 " (note trailing ' ') */
+	/* Second line: "dependency1 depandency2" */
 	ptr = find_keyword(module_image, len, "depends=");
 	if (ptr && *ptr) {
 		replace(ptr, ',', ' ');
@@ -237,28 +256,31 @@ static char* parse_module(const char *pathname, const char *name)
 		dbg2_error_msg("dep:'%s'", ptr);
 		append(ptr);
 	}
-	appendc(' '); appendc('\0');
+	appendc('\0');
 
 	free(module_image);
 	return copy_stringbuf();
 }
 
-static char* pathname_2_modname(const char *pathname)
+static int pathname_matches_modname(const char *pathname, const char *modname)
 {
 	const char *fname = bb_get_last_path_component_nostrip(pathname);
 	const char *suffix = strrstr(fname, ".ko");
+//TODO: can do without malloc?
 	char *name = xstrndup(fname, suffix - fname);
+	int r;
 	replace(name, '-', '_');
-	return name;
+	r = (strcmp(name, modname) == 0);
+	free(name);
+	return r;
 }
 
 static FAST_FUNC int fileAction(const char *pathname,
 		struct stat *sb UNUSED_PARAM,
-		void *data,
+		void *modname_to_match,
 		int depth UNUSED_PARAM)
 {
 	int cur;
-	char *name;
 	const char *fname;
 
 	pathname += 2; /* skip "./" */
@@ -270,21 +292,20 @@ static FAST_FUNC int fileAction(const char *pathname,
 
 	cur = module_count++;
 	modinfo = xrealloc_vector(modinfo, 12, cur);
+//TODO: use zeroing version of xrealloc_vector?
 	modinfo[cur].pathname = xstrdup(pathname);
 	modinfo[cur].desc = NULL;
 	modinfo[cur+1].pathname = NULL;
 	modinfo[cur+1].desc = NULL;
 
-	name = pathname_2_modname(fname);
-	if (strcmp(name, data) != 0) {
-		free(name);
+	if (!pathname_matches_modname(fname, modname_to_match)) {
 		dbg1_error_msg("'%s' module name doesn't match", pathname);
 		return TRUE; /* module name doesn't match, continue search */
 	}
 
 	dbg1_error_msg("'%s' module name matches", pathname);
 	module_found_idx = cur;
-	modinfo[cur].desc = parse_module(pathname, name);
+	modinfo[cur].desc = parse_module(pathname);
 
 	if (!(option_mask32 & OPT_r)) {
 		if (load_module(pathname, module_load_options) == 0) {
@@ -292,11 +313,9 @@ static FAST_FUNC int fileAction(const char *pathname,
 			 * This can happen ONLY for "top-level" module load,
 			 * not a dep, because deps dont do dirscan. */
 			exit(EXIT_SUCCESS);
-			/*free(name);return RECURSE_RESULT_ABORT;*/
 		}
 	}
 
-	free(name);
 	return TRUE;
 }
 
@@ -308,16 +327,13 @@ static module_info* find_alias(const char *alias)
 	/* First try to find by name (cheaper) */
 	i = 0;
 	while (modinfo[i].pathname) {
-		char *name = pathname_2_modname(modinfo[i].pathname);
-		if (strcmp(name, alias) == 0) {
+		if (pathname_matches_modname(modinfo[i].pathname, alias)) {
 			dbg1_error_msg("found '%s' in module '%s'",
 					alias, modinfo[i].pathname);
 			if (!modinfo[i].desc)
-				modinfo[i].desc = parse_module(modinfo[i].pathname, name);
-			free(name);
+				modinfo[i].desc = parse_module(modinfo[i].pathname);
 			return &modinfo[i];
 		}
-		free(name);
 		i++;
 	}
 
@@ -326,16 +342,13 @@ static module_info* find_alias(const char *alias)
 	while (modinfo[i].pathname) {
 		char *desc, *s;
 		if (!modinfo[i].desc) {
-			char *name = pathname_2_modname(modinfo[i].pathname);
-			modinfo[i].desc = parse_module(modinfo[i].pathname, name);
-			free(name);
+			modinfo[i].desc = parse_module(modinfo[i].pathname);
 		}
-		/* "modname alias1 symbol:sym1 alias2 symbol:sym2 " */
-		desc = xstrdup(modinfo[i].desc);
+		/* "alias1 symbol:sym1 alias2 symbol:sym2" */
+		desc = str_2_list(modinfo[i].desc);
 		/* Does matching substring exist? */
-		replace(desc, ' ', '\0');
 		for (s = desc; *s; s += strlen(s) + 1) {
-			/* aliases in module bodies can be defined with
+			/* Aliases in module bodies can be defined with
 			 * shell patterns. Example:
 			 * "pci:v000010DEd000000D9sv*sd*bc*sc*i*".
 			 * Plain strcmp() won't catch that */
@@ -463,10 +476,8 @@ static void process_module(char *name, const char *cmdline_options)
 	}
 
 	/* Second line of desc contains dependencies */
-	deps = xstrdup(info->desc + strlen(info->desc) + 1);
+	deps = str_2_list(info->desc + strlen(info->desc) + 1);
 
-	/* Transform deps to string list */
-	replace(deps, ' ', '\0');
 	/* Iterate thru dependencies, trying to (un)load them */
 	for (s = deps; *s; s += strlen(s) + 1) {
 		//if (strcmp(name, s) != 0) // N.B. do loops exist?
@@ -481,12 +492,12 @@ static void process_module(char *name, const char *cmdline_options)
 		errno = 0;
 		if (load_module(info->pathname, options) != 0) {
 			if (EEXIST != errno) {
-				bb_error_msg("insert '%s' %s: %s",
-						info->pathname, options,
+				bb_error_msg("'%s': %s",
+						info->pathname,
 						moderror(errno));
 			} else {
-				dbg1_error_msg("insert '%s' %s: %s",
-						info->pathname, options,
+				dbg1_error_msg("'%s': %s",
+						info->pathname,
 						moderror(errno));
 			}
 		}
