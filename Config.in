@@ -298,7 +298,7 @@ config NOMMU
 config BUILD_LIBBUSYBOX
 	bool "Build shared libbusybox"
 	default n
-	depends on !FEATURE_PREFER_APPLETS && !PIE
+	depends on !FEATURE_PREFER_APPLETS && !PIE && !STATIC
 	help
 	  Build a shared library libbusybox.so.N.N.N which contains all
 	  busybox code.
@@ -330,7 +330,7 @@ config BUILD_LIBBUSYBOX
 config FEATURE_INDIVIDUAL
 	bool "Produce a binary for each applet, linked against libbusybox"
 	default y
-	depends on !STATIC && BUILD_LIBBUSYBOX
+	depends on BUILD_LIBBUSYBOX
 	help
 	  If your CPU architecture doesn't allow for sharing text/rodata
 	  sections of running binaries, but allows for runtime dynamic
@@ -348,7 +348,7 @@ config FEATURE_INDIVIDUAL
 config FEATURE_SHARED_BUSYBOX
 	bool "Produce additional busybox binary linked against libbusybox"
 	default y
-	depends on !STATIC && BUILD_LIBBUSYBOX
+	depends on BUILD_LIBBUSYBOX
 	help
 	  Build busybox, dynamically linked against libbusybox.so.N.N.N.
 
