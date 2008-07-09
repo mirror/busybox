@@ -48,8 +48,12 @@ static void show_entry(struct utmp *ut, int state, time_t dur_secs)
 	char logout_time[8];
 	const char *logout_str;
 	const char *duration_str;
+	time_t tmp;
 
-	safe_strncpy(login_time, ctime(&(ut->ut_tv.tv_sec)), 17);
+	/* manpages say ut_tv.tv_sec *is* time_t,
+	 * but some systems have it wrong */
+        tmp = ut->ut_tv.tv_sec;
+	safe_strncpy(login_time, ctime(&tmp), 17);
 	snprintf(logout_time, 8, "- %s", ctime(&dur_secs) + 11);
 
 	dur_secs = MAX(dur_secs - (time_t)ut->ut_tv.tv_sec, (time_t)0);
