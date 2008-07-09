@@ -75,7 +75,7 @@ struct partition {
 	unsigned char head;             /* starting head */
 	unsigned char sector;           /* starting sector */
 	unsigned char cyl;              /* starting cylinder */
-	unsigned char sys_ind;          /* What partition type */
+	unsigned char sys_ind;          /* what partition type */
 	unsigned char end_head;         /* end head */
 	unsigned char end_sector;       /* end sector */
 	unsigned char end_cyl;          /* end cylinder */
@@ -86,7 +86,6 @@ struct partition {
 static const char unable_to_open[] ALIGN1 = "cannot open %s";
 static const char unable_to_read[] ALIGN1 = "cannot read from %s";
 static const char unable_to_seek[] ALIGN1 = "cannot seek on %s";
-static void fdisk_fatal(const char *why) NORETURN;
 
 enum label_type {
 	LABEL_DOS, LABEL_SUN, LABEL_SGI, LABEL_AIX, LABEL_OSF
@@ -518,7 +517,8 @@ write_part_table_flag(char *b)
 static char
 read_nonempty(const char *mesg)
 {
-	while (!read_line(mesg)) /* repeat */;
+	while (!read_line(mesg))
+		continue;
 	return *line_ptr;
 }
 
@@ -551,6 +551,41 @@ read_hex(const char *const *sys)
 	}
 }
 #endif /* FEATURE_FDISK_WRITABLE */
+
+static void fdisk_fatal(const char *why)
+{
+	if (listing) {
+		close_dev_fd();
+		longjmp(listingbuf, 1);
+	}
+	bb_error_msg_and_die(why, disk_device);
+}
+
+static void
+seek_sector(ullong secno)
+{
+	secno *= sector_size;
+#if ENABLE_FDISK_SUPPORT_LARGE_DISKS
+	if (lseek64(dev_fd, (off64_t)secno, SEEK_SET) == (off64_t) -1)
+		fdisk_fatal(unable_to_seek);
+#else
+	if (secno > MAXINT(off_t)
+	 || lseek(dev_fd, (off_t)secno, SEEK_SET) == (off_t) -1
+	) {
+		fdisk_fatal(unable_to_seek);
+	}
+#endif
+}
+
+#if ENABLE_FEATURE_FDISK_WRITABLE
+static void
+write_sector(ullong secno, const void *buf)
+{
+	seek_sector(secno);
+	xwrite(dev_fd, buf, sector_size);
+}
+#endif
+
 
 #include "fdisk_aix.c"
 
@@ -640,6 +675,7 @@ STATIC_SUN void verify_sun(void);
 STATIC_SUN void sun_write_table(void);
 #include "fdisk_sun.c"
 
+
 #if ENABLE_FEATURE_FDISK_WRITABLE
 /* start_sect and nr_sects are stored little endian on all machines */
 /* moreover, they are not aligned correctly */
@@ -686,40 +722,6 @@ get_nr_sects(const struct partition *p)
 {
 	return read4_little_endian(p->size4);
 }
-
-static void fdisk_fatal(const char *why)
-{
-	if (listing) {
-		close_dev_fd();
-		longjmp(listingbuf, 1);
-	}
-	bb_error_msg_and_die(why, disk_device);
-}
-
-static void
-seek_sector(ullong secno)
-{
-	secno *= sector_size;
-#if ENABLE_FDISK_SUPPORT_LARGE_DISKS
-	if (lseek64(dev_fd, (off64_t)secno, SEEK_SET) == (off64_t) -1)
-		fdisk_fatal(unable_to_seek);
-#else
-	if (secno > MAXINT(off_t)
-	 || lseek(dev_fd, (off_t)secno, SEEK_SET) == (off_t) -1
-	) {
-		fdisk_fatal(unable_to_seek);
-	}
-#endif
-}
-
-#if ENABLE_FEATURE_FDISK_WRITABLE
-static void
-write_sector(ullong secno, char *buf)
-{
-	seek_sector(secno);
-	xwrite(dev_fd, buf, sector_size);
-}
-#endif
 
 /* Allocate a buffer and read a partition table sector */
 static void
@@ -937,7 +939,8 @@ list_types(const char *const *sys)
 	unsigned done, next, size;
 	int i;
 
-	for (size = 0; sys[size]; size++) /* */;
+	for (size = 0; sys[size]; size++)
+		continue;
 
 	done = 0;
 	for (i = COLS-1; i >= 0; i--) {
