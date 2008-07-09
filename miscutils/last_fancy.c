@@ -52,7 +52,7 @@ static void show_entry(struct utmp *ut, int state, time_t dur_secs)
 
 	/* manpages say ut_tv.tv_sec *is* time_t,
 	 * but some systems have it wrong */
-        tmp = ut->ut_tv.tv_sec;
+	tmp = ut->ut_tv.tv_sec;
 	safe_strncpy(login_time, ctime(&tmp), 17);
 	snprintf(logout_time, 8, "- %s", ctime(&dur_secs) + 11);
 
