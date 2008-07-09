@@ -842,6 +842,9 @@ static void yy_flex_strncpy (char *,yyconst char *,int );
 static int yy_flex_strlen (yyconst char * );
 #endif
 
+//bbox: suppressing "defined but not used" warning
+#define YY_NO_INPUT 1
+
 #ifndef YY_NO_INPUT
 
 #ifdef __cplusplus
