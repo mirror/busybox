@@ -2931,8 +2931,10 @@ static int done_word(o_string *word, struct p_context *ctx)
 		}
 #if HAS_KEYWORDS
 		if (!child->argv /* if it's the first word... */
+#if ENABLE_HUSH_LOOPS
 		 && ctx->ctx_res_w != RES_FOR /* ...not after FOR or IN */
 		 && ctx->ctx_res_w != RES_IN
+#endif
 		) {
 			debug_printf_parse(": checking '%s' for reserved-ness\n", word->data);
 			if (reserved_word(word, ctx)) {
@@ -3049,9 +3051,11 @@ static void done_pipe(struct p_context *ctx, pipe_style type)
 		 * RES_FOR and RES_IN are NOT sticky (needed to support
 		 * cases where variable or value happens to match a keyword):
 		 */
+#if ENABLE_HUSH_LOOPS
 		if (ctx->ctx_res_w == RES_FOR
 		 || ctx->ctx_res_w == RES_IN)
 			ctx->ctx_res_w = RES_NONE;
+#endif
 		/* Create the memory for child, roughly:
 		 * ctx->pipe->progs = new struct child_prog;
 		 * ctx->pipe->progs[0].family = ctx->pipe;
