@@ -3082,7 +3082,7 @@ static void obj_allocate_commons(struct obj_file *f)
 		if (i == f->header.e_shnum) {
 			struct obj_section *sec;
 
-			f->sections = xrealloc(f->sections, 2, i);
+			f->sections = xrealloc_vector(f->sections, 2, i);
 			f->sections[i] = sec = arch_new_section();
 			f->header.e_shnum = i + 1;
 
