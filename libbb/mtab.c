@@ -13,8 +13,8 @@
 #if ENABLE_FEATURE_MTAB_SUPPORT
 void FAST_FUNC erase_mtab(const char *name)
 {
-	struct mntent *entries = NULL;
-	int i, count = 0;
+	struct mntent *entries;
+	int i, count;
 	FILE *mountTable;
 	struct mntent *m;
 
@@ -26,18 +26,21 @@ void FAST_FUNC erase_mtab(const char *name)
 		return;
 	}
 
+	entries = NULL;
+	count = 0;
 	while ((m = getmntent(mountTable)) != 0) {
-		entries = xrealloc(entries, 3, count);
+		entries = xrealloc_vector(entries, 3, count);
 		entries[count].mnt_fsname = xstrdup(m->mnt_fsname);
 		entries[count].mnt_dir = xstrdup(m->mnt_dir);
 		entries[count].mnt_type = xstrdup(m->mnt_type);
 		entries[count].mnt_opts = xstrdup(m->mnt_opts);
 		entries[count].mnt_freq = m->mnt_freq;
 		entries[count].mnt_passno = m->mnt_passno;
-		i = count++;
+		count++;
 	}
 	endmntent(mountTable);
 
+//TODO: make update atomic
 	mountTable = setmntent(bb_path_mtab_file, "w");
 	if (mountTable) {
 		for (i = 0; i < count; i++) {
