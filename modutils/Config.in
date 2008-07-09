@@ -31,7 +31,7 @@ config MODPROBE_SMALL
 	  than "non-small" modutils.
 
 config FEATURE_MODPROBE_SMALL_OPTIONS_ON_CMDLINE
-	bool "module options on cmdline"
+	bool "Accept module options on modprobe command line"
 	default n
 	depends on MODPROBE_SMALL
 	help

@@ -14,54 +14,6 @@
 #include <sys/utsname.h> /* uname() */
 #include <fnmatch.h>
 
-/* libbb candidate */
-static void *xmalloc_read(int fd, size_t *sizep)
-{
-	char *buf;
-	size_t size, rd_size, total;
-	off_t to_read;
-	struct stat st;
-
-	to_read = sizep ? *sizep : INT_MAX; /* max to read */
-
-	/* Estimate file size */
-	st.st_size = 0; /* in case fstat fails, assume 0 */
-	fstat(fd, &st);
-	/* /proc/N/stat files report st_size 0 */
-	/* In order to make such files readable, we add small const */
-	size = (st.st_size | 0x3ff) + 1;
-
-	total = 0;
-	buf = NULL;
-	while (1) {
-		if (to_read < size)
-			size = to_read;
-		buf = xrealloc(buf, total + size + 1);
-		rd_size = full_read(fd, buf + total, size);
-		if ((ssize_t)rd_size < 0) { /* error */
-			free(buf);
-			return NULL;
-		}
-		total += rd_size;
-		if (rd_size < size) /* EOF */
-			break;
-		to_read -= rd_size;
-		if (to_read <= 0)
-			break;
-		/* grow by 1/8, but in [1k..64k] bounds */
-		size = ((total / 8) | 0x3ff) + 1;
-		if (size > 64*1024)
-			size = 64*1024;
-	}
-	xrealloc(buf, total + 1);
-	buf[total] = '\0';
-
-	if (sizep)
-		*sizep = total;
-	return buf;
-}
-
-
 #define dbg1_error_msg(...) ((void)0)
 #define dbg2_error_msg(...) ((void)0)
 //#define dbg1_error_msg(...) bb_error_msg(__VA_ARGS__)

@@ -56,16 +56,20 @@ int who_main(int argc UNUSED_PARAM, char **argv)
 	printf("USER       TTY      IDLE      TIME            HOST\n");
 	while ((ut = getutent()) != NULL) {
 		if (ut->ut_user[0] && (opt || ut->ut_type == USER_PROCESS)) {
+			time_t tmp;
 			/* ut->ut_line is device name of tty - "/dev/" */
 			name = concat_path_file("/dev", ut->ut_line);
 			str6[0] = '?';
 			str6[1] = '\0';
 			if (stat(name, &st) == 0)
 				idle_string(str6, st.st_atime);
+			/* manpages say ut_tv.tv_sec *is* time_t,
+			 * but some systems have it wrong */
+			tmp = ut->ut_tv.tv_sec;
 			/* 15 chars for time:   Nov 10 19:33:20 */
 			printf("%-10s %-8s %-9s %-15.15s %s\n",
 					ut->ut_user, ut->ut_line, str6,
-					ctime(&(ut->ut_tv.tv_sec)) + 4, ut->ut_host);
+					ctime(&tmp) + 4, ut->ut_host);
 			if (ENABLE_FEATURE_CLEAN_UP)
 				free(name);
 		}
