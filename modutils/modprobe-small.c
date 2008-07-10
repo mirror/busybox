@@ -33,7 +33,8 @@ enum {
 
 typedef struct module_info {
 	char *pathname;
-	char *desc;
+	char *aliases;
+	char *deps;
 } module_info;
 
 /*
@@ -209,7 +210,7 @@ static int load_module(const char *fname, const char *options)
 #endif
 }
 
-static char* parse_module(const char *pathname)
+static void parse_module(module_info *info, const char *pathname)
 {
 	char *module_image;
 	char *ptr;
@@ -220,11 +221,10 @@ static char* parse_module(const char *pathname)
 	/* Read (possibly compressed) module */
 	len = 64 * 1024 * 1024; /* 64 Mb at most */
 	module_image = read_module(pathname, &len);
+//TODO: optimize redundant module body reads
 
+	/* "alias1 symbol:sym1 alias2 symbol:sym2" */
 	reset_stringbuf();
-
-	/* First desc line's format is
-	 * "alias1 symbol:sym1 alias2 symbol:sym2" */
 	pos = 0;
 	while (1) {
 		ptr = find_keyword(module_image + pos, len - pos, "alias=");
@@ -247,8 +247,10 @@ static char* parse_module(const char *pathname)
 	}
 	bksp(); /* remove last ' ' */
 	appendc('\0');
+	info->aliases = copy_stringbuf();
 
-	/* Second line: "dependency1 depandency2" */
+	/* "dependency1 depandency2" */
+	reset_stringbuf();
 	ptr = find_keyword(module_image, len, "depends=");
 	if (ptr && *ptr) {
 		replace(ptr, ',', ' ');
@@ -257,9 +259,9 @@ static char* parse_module(const char *pathname)
 		append(ptr);
 	}
 	appendc('\0');
+	info->deps = copy_stringbuf();
 
 	free(module_image);
-	return copy_stringbuf();
 }
 
 static int pathname_matches_modname(const char *pathname, const char *modname)
@@ -294,9 +296,8 @@ static FAST_FUNC int fileAction(const char *pathname,
 	modinfo = xrealloc_vector(modinfo, 12, cur);
 //TODO: use zeroing version of xrealloc_vector?
 	modinfo[cur].pathname = xstrdup(pathname);
-	modinfo[cur].desc = NULL;
+	modinfo[cur].aliases = NULL;
 	modinfo[cur+1].pathname = NULL;
-	modinfo[cur+1].desc = NULL;
 
 	if (!pathname_matches_modname(fname, modname_to_match)) {
 		dbg1_error_msg("'%s' module name doesn't match", pathname);
@@ -305,7 +306,7 @@ static FAST_FUNC int fileAction(const char *pathname,
 
 	dbg1_error_msg("'%s' module name matches", pathname);
 	module_found_idx = cur;
-	modinfo[cur].desc = parse_module(pathname);
+	parse_module(&modinfo[cur], pathname);
 
 	if (!(option_mask32 & OPT_r)) {
 		if (load_module(pathname, module_load_options) == 0) {
@@ -319,6 +320,43 @@ static FAST_FUNC int fileAction(const char *pathname,
 	return TRUE;
 }
 
+static void load_dep_bb(void)
+{
+	char *line;
+	FILE *fp = fopen(DEPFILE_BB, "r");
+
+	if (!fp)
+		return;
+
+	while ((line = xmalloc_fgetline(fp)) != NULL) {
+		char* space;
+		int cur;
+
+		if (!line[0]) {
+			free(line);
+			continue;
+		}
+		space = strchrnul(line, ' ');
+		cur = module_count++;
+		modinfo = xrealloc_vector(modinfo, 12, cur);
+//TODO: use zeroing version of xrealloc_vector?
+		modinfo[cur+1].pathname = NULL;
+		modinfo[cur].pathname = line; /* we take ownership of malloced block here */
+		if (*space)
+			*space++ = '\0';
+		modinfo[cur].aliases = space;
+		modinfo[cur].deps = xmalloc_fgetline(fp) ? : xzalloc(1);
+		if (modinfo[cur].deps[0]) {
+			/* deps are not "", so next line must be empty */
+			line = xmalloc_fgetline(fp);
+			/* Refuse to work with damaged config file */
+			if (line && line[0])
+				bb_error_msg_and_die("error in %s at '%s'", DEPFILE_BB, line);
+			free(line);
+		}
+	}
+}
+
 static module_info* find_alias(const char *alias)
 {
 	int i;
@@ -330,8 +368,9 @@ static module_info* find_alias(const char *alias)
 		if (pathname_matches_modname(modinfo[i].pathname, alias)) {
 			dbg1_error_msg("found '%s' in module '%s'",
 					alias, modinfo[i].pathname);
-			if (!modinfo[i].desc)
-				modinfo[i].desc = parse_module(modinfo[i].pathname);
+			if (!modinfo[i].aliases) {
+				parse_module(&modinfo[i], modinfo[i].pathname);
+			}
 			return &modinfo[i];
 		}
 		i++;
@@ -341,11 +380,11 @@ static module_info* find_alias(const char *alias)
 	i = 0;
 	while (modinfo[i].pathname) {
 		char *desc, *s;
-		if (!modinfo[i].desc) {
-			modinfo[i].desc = parse_module(modinfo[i].pathname);
+		if (!modinfo[i].aliases) {
+			parse_module(&modinfo[i], modinfo[i].pathname);
 		}
 		/* "alias1 symbol:sym1 alias2 symbol:sym2" */
-		desc = str_2_list(modinfo[i].desc);
+		desc = str_2_list(modinfo[i].aliases);
 		/* Does matching substring exist? */
 		for (s = desc; *s; s += strlen(s) + 1) {
 			/* Aliases in module bodies can be defined with
@@ -475,10 +514,8 @@ static void process_module(char *name, const char *cmdline_options)
 		goto ret;
 	}
 
-	/* Second line of desc contains dependencies */
-	deps = str_2_list(info->desc + strlen(info->desc) + 1);
-
 	/* Iterate thru dependencies, trying to (un)load them */
+	deps = str_2_list(info->deps);
 	for (s = deps; *s; s += strlen(s) + 1) {
 		//if (strcmp(name, s) != 0) // N.B. do loops exist?
 		dbg1_error_msg("recurse on dep '%s'", s);
@@ -599,6 +636,8 @@ int modprobe_main(int argc UNUSED_PARAM, char **argv)
 	if ('r' != applet0)
 		argv[1] = NULL;
 #endif
+
+	load_dep_bb();
 
 	/* Load/remove modules.
 	 * Only rmmod loops here, insmod/modprobe has only argv[0] */
