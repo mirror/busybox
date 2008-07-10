@@ -45,7 +45,6 @@ int ar_main(int argc, char **argv)
 
 	archive_handle_t *archive_handle;
 	unsigned opt;
-	char magic[8];
 
 	archive_handle = init_handle();
 
@@ -82,14 +81,7 @@ int ar_main(int argc, char **argv)
 		llist_add_to(&(archive_handle->accept), argv[optind++]);
 	}
 
-	xread(archive_handle->src_fd, magic, 7);
-	if (strncmp(magic, "!<arch>", 7) != 0) {
-		bb_error_msg_and_die("invalid ar magic");
-	}
-	archive_handle->offset += 7;
-
-	while (get_header_ar(archive_handle) == EXIT_SUCCESS)
-		continue;
+	unpack_ar_archive(archive_handle);
 
 	return EXIT_SUCCESS;
 }

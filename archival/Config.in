@@ -90,10 +90,11 @@ config DPKG
 	bool "dpkg"
 	default n
 	help
-	  dpkg is a medium-level tool to install, build, remove and manage Debian packages.
+	  dpkg is a medium-level tool to install, build, remove and manage
+	  Debian packages.
 
-	  This implementation of dpkg has a number of limitations, you should use the
-	  official dpkg if possible.
+	  This implementation of dpkg has a number of limitations,
+	  you should use the official dpkg if possible.
 
 config DPKG_DEB
 	bool "dpkg_deb"
@@ -103,8 +104,8 @@ config DPKG_DEB
 
 	  This implementation of dpkg-deb cannot pack archives.
 
-	  Unless you have a specific application which requires dpkg-deb, you should
-	  probably say N here.
+	  Unless you have a specific application which requires dpkg-deb,
+	  say N here.
 
 config FEATURE_DPKG_DEB_EXTRACT_ONLY
 	bool "Extract only (-x)"

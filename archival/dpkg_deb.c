@@ -20,8 +20,8 @@ int dpkg_deb_main(int argc, char **argv)
 	archive_handle_t *tar_archive;
 	llist_t *control_tar_llist = NULL;
 	unsigned opt;
-	const char *extract_dir = NULL;
-	short argcount = 1;
+	const char *extract_dir;
+	int need_args;
 
 	/* Setup the tar archive handle */
 	tar_archive = init_handle();
@@ -43,17 +43,21 @@ int dpkg_deb_main(int argc, char **argv)
 
 	opt_complementary = "c--efXx:e--cfXx:f--ceXx:X--cefx:x--cefX";
 	opt = getopt32(argv, "cefXx");
+	argv += optind;
+	argc -= optind;
 
 	if (opt & DPKG_DEB_OPT_CONTENTS) {
 		tar_archive->action_header = header_verbose_list;
 	}
+	extract_dir = NULL;
+	need_args = 1;
 	if (opt & DPKG_DEB_OPT_CONTROL) {
 		ar_archive->accept = control_tar_llist;
 		tar_archive->action_data = data_extract_all;
-		if (optind + 1 == argc) {
+		if (1 == argc) {
 			extract_dir = "./DEBIAN";
 		} else {
-			argcount++;
+			need_args++;
 		}
 	}
 	if (opt & DPKG_DEB_OPT_FIELD) {
@@ -70,28 +74,31 @@ int dpkg_deb_main(int argc, char **argv)
 	}
 	if (opt & (DPKG_DEB_OPT_EXTRACT_VERBOSE | DPKG_DEB_OPT_EXTRACT)) {
 		tar_archive->action_data = data_extract_all;
-		argcount = 2;
+		need_args = 2;
 	}
 
-	if ((optind + argcount) != argc) {
+	if (need_args != argc) {
 		bb_show_usage();
 	}
 
-	tar_archive->src_fd = ar_archive->src_fd = xopen(argv[optind++], O_RDONLY);
+	tar_archive->src_fd = ar_archive->src_fd = xopen(argv[0], O_RDONLY);
 
-	/* Workout where to extract the files */
+	/* Work out where to extract the files */
 	/* 2nd argument is a dir name */
-	if (argv[optind]) {
-		extract_dir = argv[optind];
+	if (argv[1]) {
+		extract_dir = argv[1];
 	}
 	if (extract_dir) {
 		mkdir(extract_dir, 0777); /* bb_make_directory(extract_dir, 0777, 0) */
 		xchdir(extract_dir);
 	}
+
+	/* Do it */
 	unpack_ar_archive(ar_archive);
 
 	/* Cleanup */
-	close(ar_archive->src_fd);
+	if (ENABLE_FEATURE_CLEAN_UP)
+		close(ar_archive->src_fd);
 
 	return EXIT_SUCCESS;
 }

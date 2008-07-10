@@ -92,22 +92,32 @@ char FAST_FUNC get_header_tar(archive_handle_t *archive_handle)
  again_after_align:
 
 #if ENABLE_DESKTOP
+	/* to prevent misdetection of bz2 sig */
+	*(uint32_t*)(&tar) = 0;
 	i = full_read(archive_handle->src_fd, &tar, 512);
 	/* If GNU tar sees EOF in above read, it says:
 	 * "tar: A lone zero block at N", where N = kilobyte
 	 * where EOF was met (not EOF block, actual EOF!),
-	 * and tar will exit with error code 0.
+	 * and exits with EXIT_SUCCESS.
 	 * We will mimic exit(EXIT_SUCCESS), although we will not mimic
 	 * the message and we don't check whether we indeed
 	 * saw zero block directly before this. */
-	if (i == 0)
+	if (i == 0) {
 		xfunc_error_retval = 0;
-	if (i != 512)
+ short_read:
 		bb_error_msg_and_die("short read");
+	}
+	if (i != 512) {
+		if (ENABLE_FEATURE_TAR_AUTODETECT)
+			goto autodetect;
+		goto short_read;
+	}
+
 #else
-	xread(archive_handle->src_fd, &tar, 512);
+	i = 512;
+	xread(archive_handle->src_fd, &tar, i);
 #endif
-	archive_handle->offset += 512;
+	archive_handle->offset += i;
 
 	/* If there is no filename its an empty header */
 	if (tar.name[0] == 0 && tar.prefix[0] == 0) {
@@ -133,6 +143,7 @@ char FAST_FUNC get_header_tar(archive_handle_t *archive_handle)
 #if ENABLE_FEATURE_TAR_AUTODETECT
 		char FAST_FUNC (*get_header_ptr)(archive_handle_t *);
 
+ USE_DESKTOP(autodetect:)
 		/* tar gz/bz autodetect: check for gz/bz2 magic.
 		 * If we see the magic, and it is the very first block,
 		 * we can switch to get_header_tar_gz/bz2/lzma().
@@ -154,7 +165,7 @@ char FAST_FUNC get_header_tar(archive_handle_t *archive_handle)
 		/* Two different causes for lseek() != 0:
 		 * unseekable fd (would like to support that too, but...),
 		 * or not first block (false positive, it's not .gz/.bz2!) */
-		if (lseek(archive_handle->src_fd, -512, SEEK_CUR) != 0)
+		if (lseek(archive_handle->src_fd, -i, SEEK_CUR) != 0)
 			goto err;
 		while (get_header_ptr(archive_handle) == EXIT_SUCCESS)
 			continue;
@@ -328,7 +339,7 @@ char FAST_FUNC get_header_tar(archive_handle_t *archive_handle)
 		p_linkname = NULL;
 	}
 #endif
-	if (!strncmp(file_header->name, "/../"+1, 3)
+	if (strncmp(file_header->name, "/../"+1, 3) == 0
 	 || strstr(file_header->name, "/../")
 	) {
 		bb_error_msg_and_die("name with '..' encountered: '%s'",
@@ -340,7 +351,7 @@ char FAST_FUNC get_header_tar(archive_handle_t *archive_handle)
 	cp = last_char_is(file_header->name, '/');
 
 	if (archive_handle->filter(archive_handle) == EXIT_SUCCESS) {
-		archive_handle->action_header(archive_handle->file_header);
+		archive_handle->action_header(/*archive_handle->*/ file_header);
 		/* Note that we kill the '/' only after action_header() */
 		/* (like GNU tar 1.15.1: verbose mode outputs "dir/dir/") */
 		if (cp) *cp = '\0';

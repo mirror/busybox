@@ -47,11 +47,13 @@ typedef struct archive_handle_t {
 	/* Process the data component, e.g. extract to filesystem */
 	void FAST_FUNC (*action_data)(struct archive_handle_t *);
 
+#if ENABLE_DPKG || ENABLE_DPKG_DEB
+	/* "subarchive" is used only by dpkg[-deb] applets */
 	/* How to process any sub archive, e.g. get_header_tar_gz */
 	char FAST_FUNC (*action_data_subarchive)(struct archive_handle_t *);
-
 	/* Contains the handle to a sub archive */
 	struct archive_handle_t *sub_archive;
+#endif
 
 	/* The raw stream as read from disk or stdin */
 	int src_fd;

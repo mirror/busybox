@@ -8,6 +8,8 @@
 #include "libbb.h"
 #include "unarchive.h"
 
+/* Built and used only if ENABLE_DPKG || ENABLE_DPKG_DEB */
+
 /*
  * Reassign the subarchive metadata parser based on the filename extension
  * e.g. if its a .tar.gz modify archive_handle->sub_archive to process a .tar.gz
@@ -19,23 +21,25 @@ char FAST_FUNC filter_accept_list_reassign(archive_handle_t *archive_handle)
 	if (find_list_entry(archive_handle->accept, archive_handle->file_header->name)) {
 		const char *name_ptr;
 
-		/* Extract the last 2 extensions */
+		/* Find extension */
 		name_ptr = strrchr(archive_handle->file_header->name, '.');
 
 		/* Modify the subarchive handler based on the extension */
-#if ENABLE_FEATURE_DEB_TAR_GZ
-		if (strcmp(name_ptr, ".gz") == 0) {
+		if (ENABLE_FEATURE_DEB_TAR_GZ
+		 && strcmp(name_ptr, ".gz") == 0
+		) {
 			archive_handle->action_data_subarchive = get_header_tar_gz;
 			return EXIT_SUCCESS;
 		}
-#endif
-#if ENABLE_FEATURE_DEB_TAR_BZ2
-		if (strcmp(name_ptr, ".bz2") == 0) {
+		if (ENABLE_FEATURE_DEB_TAR_BZ2
+		 && strcmp(name_ptr, ".bz2") == 0
+		) {
 			archive_handle->action_data_subarchive = get_header_tar_bz2;
 			return EXIT_SUCCESS;
 		}
-#endif
-		if (ENABLE_FEATURE_DEB_TAR_LZMA && !strcmp(name_ptr, ".lzma")) {
+		if (ENABLE_FEATURE_DEB_TAR_LZMA
+		 && strcmp(name_ptr, ".lzma") == 0
+		) {
 			archive_handle->action_data_subarchive = get_header_tar_lzma;
 			return EXIT_SUCCESS;
 		}
