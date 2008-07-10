@@ -44,6 +44,7 @@ struct globals {
 	module_info *modinfo;
 	char *module_load_options;
 	smallint dep_bb_seen;
+	smallint wrote_dep_bb_ok;
 	int module_count;
 	int module_found_idx;
 	int stringbuf_idx;
@@ -53,6 +54,7 @@ struct globals {
 #define G (*ptr_to_globals)
 #define modinfo             (G.modinfo            )
 #define dep_bb_seen         (G.dep_bb_seen        )
+#define wrote_dep_bb_ok     (G.wrote_dep_bb_ok    )
 #define module_count        (G.module_count       )
 #define module_found_idx    (G.module_found_idx   )
 #define module_load_options (G.module_load_options)
@@ -236,15 +238,16 @@ static void parse_module(module_info *info, const char *pathname)
 				break;
 			/* DOCME: __ksymtab_gpl and __ksymtab_strings occur
 			 * in many modules. What do they mean? */
-			if (strcmp(ptr, "gpl") != 0 && strcmp(ptr, "strings") != 0) {
-				dbg2_error_msg("alias:'symbol:%s'", ptr);
-				append("symbol:");
-			}
+			if (strcmp(ptr, "gpl") == 0 || strcmp(ptr, "strings") == 0)
+				goto skip;
+			dbg2_error_msg("alias:'symbol:%s'", ptr);
+			append("symbol:");
 		} else {
 			dbg2_error_msg("alias:'%s'", ptr);
 		}
 		append(ptr);
 		appendc(' ');
+ skip:
 		pos = (ptr - module_image);
 	}
 	bksp(); /* remove last ' ' */
@@ -379,6 +382,10 @@ static int start_dep_bb_writeout(void)
 {
 	int fd;
 
+	/* depmod -n: write result to stdout */
+	if (applet_name[0] == 'd' && (option_mask32 & 1))
+		return STDOUT_FILENO;
+
 	fd = open(DEPFILE_BB".new", O_WRONLY | O_CREAT | O_TRUNC | O_EXCL, 0644);
 	if (fd < 0) {
 		if (errno == EEXIST) {
@@ -421,13 +428,19 @@ static void write_out_dep_bb(int fd)
 	}
 	/* Badly formatted depfile is a no-no. Be paranoid. */
 	errno = 0;
-	if (ferror(fp) | fclose(fp))
+	if (ferror(fp) | fclose(fp)) /* | instead of || is intended */
 		goto err;
+
+	if (fd == STDOUT_FILENO) /* it was depmod -n */
+		goto ok;
+
 	if (rename(DEPFILE_BB".new", DEPFILE_BB) != 0) {
  err:
 		bb_perror_msg("can't create %s", DEPFILE_BB);
 		unlink(DEPFILE_BB".new");
 	} else {
+ ok:
+		wrote_dep_bb_ok = 1;
 		dbg1_error_msg("created "DEPFILE_BB);
 	}
 }
@@ -525,8 +538,10 @@ static int already_loaded(const char *name)
 #endif
 
 /*
- Given modules definition and module name (or alias, or symbol)
- load/remove the module respecting dependencies
+ * Given modules definition and module name (or alias, or symbol)
+ * load/remove the module respecting dependencies.
+ * NB: also called by depmod with bogus name "/",
+ * just in order to force modprobe.dep.bb creation.
 */
 #if !ENABLE_FEATURE_MODPROBE_SMALL_OPTIONS_ON_CMDLINE
 #define process_module(a,b) process_module(a)
@@ -605,8 +620,10 @@ static void process_module(char *name, const char *cmdline_options)
 		 * will try to remove them, too." */
 	}
 
-	if (!info) { /* both dirscan and find_alias found nothing */
-		bb_error_msg("module '%s' not found", name);
+	if (!info) {
+		/* both dirscan and find_alias found nothing */
+		if (applet_name[0] != 'd') /* it wasn't depmod */
+			bb_error_msg("module '%s' not found", name);
 //TODO: _and_die()?
 		goto ret;
 	}
@@ -644,39 +661,51 @@ static void process_module(char *name, const char *cmdline_options)
 #undef cmdline_options
 
 
-/* For reference, module-init-tools-0.9.15-pre2 options:
+/* For reference, module-init-tools v3.4 options:
 
 # insmod
 Usage: insmod filename [args]
 
 # rmmod --help
 Usage: rmmod [-fhswvV] modulename ...
- -f (or --force) forces a module unload, and may crash your machine.
+ -f (or --force) forces a module unload, and may crash your
+    machine. This requires the Forced Module Removal option
+    when the kernel was compiled.
+ -h (or --help) prints this help text
  -s (or --syslog) says use syslog, not stderr
  -v (or --verbose) enables more messages
+ -V (or --version) prints the version code
  -w (or --wait) begins a module removal even if it is used
     and will stop new users from accessing the module (so it
     should eventually fall to zero).
 
 # modprobe
-Usage: modprobe [--verbose|--version|--config|--remove] filename [options]
+Usage: modprobe [-v] [-V] [-C config-file] [-n] [-i] [-q] [-b]
+    [-o <modname>] [ --dump-modversions ] <modname> [parameters...]
+modprobe -r [-n] [-i] [-v] <modulename> ...
+modprobe -l -t <dirname> [ -a <modulename> ...]
 
 # depmod --help
-depmod 0.9.15-pre2 -- part of module-init-tools
-depmod -[aA] [-n -e -v -q -V -r -u] [-b basedirectory] [forced_version]
-depmod [-n -e -v -q -r -u] [-F kernelsyms] module1.o module2.o ...
-If no arguments (except options) are given, "depmod -a" is assumed
-
+depmod 3.4 -- part of module-init-tools
+depmod -[aA] [-n -e -v -q -V -r -u]
+      [-b basedirectory] [forced_version]
+depmod [-n -e -v -q -r -u] [-F kernelsyms] module1.ko module2.ko ...
+If no arguments (except options) are given, "depmod -a" is assumed.
 depmod will output a dependancy list suitable for the modprobe utility.
-
 Options:
-        -a, --all               Probe all modules
-        -n, --show              Write the dependency file on stdout only
-        -b basedirectory
-        --basedir basedirectory Use an image of a module tree.
-        -F kernelsyms
-        --filesyms kernelsyms   Use the file instead of the
-                                current kernel symbols.
+    -a, --all            Probe all modules
+    -A, --quick          Only does the work if there's a new module
+    -n, --show           Write the dependency file on stdout only
+    -e, --errsyms        Report not supplied symbols
+    -V, --version        Print the release version
+    -v, --verbose        Enable verbose mode
+    -h, --help           Print this usage message
+The following options are useful for people managing distributions:
+    -b basedirectory
+        --basedir basedirectory    Use an image of a module tree.
+    -F kernelsyms
+        --filesyms kernelsyms      Use the file instead of the
+                                   current kernel symbols.
 */
 
 int modprobe_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
@@ -686,10 +715,6 @@ int modprobe_main(int argc UNUSED_PARAM, char **argv)
 	char applet0 = applet_name[0];
 	USE_FEATURE_MODPROBE_SMALL_OPTIONS_ON_CMDLINE(char *options;)
 
-	/* depmod is a stub */
-	if ('d' == applet0)
-		return EXIT_SUCCESS;
-
 	/* are we lsmod? -> just dump /proc/modules */
 	if ('l' == applet0) {
 		xprint_and_close_file(xfopen("/proc/modules", "r"));
@@ -697,6 +722,45 @@ int modprobe_main(int argc UNUSED_PARAM, char **argv)
 	}
 
 	INIT_G();
+
+	/* Prevent ugly corner cases with no modules at all */
+	modinfo = xzalloc(sizeof(modinfo[0]));
+
+	/* Goto modules directory */
+	xchdir(CONFIG_DEFAULT_MODULES_DIR);
+	uname(&uts); /* never fails */
+
+	/* depmod? */
+	if ('d' == applet0) {
+		/* Supported:
+		 * -n: print result to stdout
+		 * -a: process all modules (default)
+		 * optional VERSION parameter
+		 * Ignored:
+		 * -A: do work only if a module is newer than depfile
+		 * -e: report any symbols which a module needs
+		 *  which are not supplied by other modules or the kernel
+		 * -F FILE: System.map (symbols for -e)
+		 * -q, -r, -u: noop?
+		 * Not supported:
+		 * -b BASEDIR: (TODO!) modules are in
+		 *  $BASEDIR/lib/modules/$VERSION
+		 * -v: human readable deps to stdout
+		 * -V: version (don't want to support it - people may depend
+		 *  on it as an indicator of "standard" depmod)
+		 * -h: help (well duh)
+		 * module1.o module2.o parameters (just ignored for now)
+		 */
+		getopt32(argv, "na" "AeF:qru" /* "b:vV", NULL */, NULL);
+		argv += optind;
+		/* if (argv[0] && argv[1]) bb_show_usage(); */
+		/* Goto $VERSION directory */
+		xchdir(argv[0] ? argv[0] : uts.release);
+		/* Force full module scan by asking to find a bogus module.
+		 * This will generate modules.dep.bb as a side effect. */
+		process_module((char*)"/", NULL);
+		return !wrote_dep_bb_ok;
+	}
 
 	/* insmod, modprobe, rmmod require at least one argument */
 	opt_complementary = "-1";
@@ -710,9 +774,7 @@ int modprobe_main(int argc UNUSED_PARAM, char **argv)
 		option_mask32 |= OPT_r;
 	}
 
-	/* goto modules directory */
-	xchdir(CONFIG_DEFAULT_MODULES_DIR);
-	uname(&uts); /* never fails */
+	/* Goto $VERSION directory */
 	xchdir(uts.release);
 
 #if ENABLE_FEATURE_MODPROBE_SMALL_OPTIONS_ON_CMDLINE
@@ -733,9 +795,6 @@ int modprobe_main(int argc UNUSED_PARAM, char **argv)
 	if ('r' != applet0)
 		argv[1] = NULL;
 #endif
-
-	/* Prevent ugly corner cases with no modules at all */
-	modinfo = xzalloc(sizeof(modinfo[0]));
 
 	/* Try to load modprobe.dep.bb */
 	load_dep_bb();

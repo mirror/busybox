@@ -11,13 +11,21 @@ config MODPROBE_SMALL
 	help
 	  Simplified modutils.
 
-	  With this option modprobe does not use or require
-	  modules.dep or /etc/modules.conf files.
+	  With this option modprobe does not require modules.dep file
+	  and does not use /etc/modules.conf file.
 	  It scans module files in /lib/modules/`uname -r` and
 	  determines dependencies and module alias names on the fly.
 	  This may make module loading slower, most notably
 	  when one needs to load module by alias (this requires
 	  scanning through module _bodies_).
+
+	  At the first attempt to load a module by alias modprobe
+	  will try to generate modules.dep.bb file in order to speed up
+	  future loads by alias. Failure to do so (read-only /lib/modules,
+	  etc) is not reported, and future modprobes will be slow too.
+
+	  NB: modules.dep.bb file format is not compatible
+	  with modules.dep file as created/used by standard module tools.
 
 	  Additional module parameters can be stored in
 	  /etc/modules/$module_name files.
@@ -25,9 +33,9 @@ config MODPROBE_SMALL
 	  Apart from modprobe, other utilities are also provided:
 	  - insmod is an alias to modprobe
 	  - rmmod is an alias to modprobe -r
-	  - depmod is provided but does nothing
+	  - depmod generates modules.dep.bb
 
-	  As of 2008-07, this code is experimental. It it 15kb smaller
+	  As of 2008-07, this code is experimental. It it 14kb smaller
 	  than "non-small" modutils.
 
 config FEATURE_MODPROBE_SMALL_OPTIONS_ON_CMDLINE
