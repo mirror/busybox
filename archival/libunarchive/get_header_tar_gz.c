@@ -25,7 +25,7 @@ char FAST_FUNC get_header_tar_gz(archive_handle_t *archive_handle)
 	}
 #endif
 
-	archive_handle->src_fd = open_transformer(archive_handle->src_fd, unpack_gz_stream, "gunzip");
+	open_transformer(archive_handle->src_fd, unpack_gz_stream, "gunzip");
 	archive_handle->offset = 0;
 	while (get_header_tar(archive_handle) == EXIT_SUCCESS)
 		continue;

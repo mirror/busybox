@@ -8,6 +8,9 @@
  */
 
 #include "libbb.h"
+#if ENABLE_FEATURE_MODPROBE_SMALL_ZIPPED
+#include "unarchive.h"
+#endif
 
 ssize_t FAST_FUNC safe_read(int fd, void *buf, size_t count)
 {
@@ -206,14 +209,14 @@ ssize_t FAST_FUNC open_read_close(const char *filename, void *buf, size_t size)
 
 // Read (potentially big) files in one go. File size is estimated
 // by stat. Extra '\0' byte is appended.
-void* FAST_FUNC xmalloc_read(int fd, size_t *sizep)
+void* FAST_FUNC xmalloc_read(int fd, size_t *maxsz_p)
 {
 	char *buf;
 	size_t size, rd_size, total;
-	off_t to_read;
+	size_t to_read;
 	struct stat st;
 
-	to_read = sizep ? *sizep : MAXINT(ssize_t); /* max to read */
+	to_read = maxsz_p ? *maxsz_p : MAXINT(ssize_t); /* max to read */
 
 	/* Estimate file size */
 	st.st_size = 0; /* in case fstat fails, assume 0 */
@@ -229,16 +232,16 @@ void* FAST_FUNC xmalloc_read(int fd, size_t *sizep)
 			size = to_read;
 		buf = xrealloc(buf, total + size + 1);
 		rd_size = full_read(fd, buf + total, size);
-		if ((ssize_t)rd_size < 0) { /* error */
+		if ((ssize_t)rd_size == (ssize_t)(-1)) { /* error */
 			free(buf);
 			return NULL;
 		}
 		total += rd_size;
 		if (rd_size < size) /* EOF */
 			break;
-		to_read -= rd_size;
-		if (to_read <= 0)
+		if (to_read <= rd_size)
 			break;
+		to_read -= rd_size;
 		/* grow by 1/8, but in [1k..64k] bounds */
 		size = ((total / 8) | 0x3ff) + 1;
 		if (size > 64*1024)
@@ -247,8 +250,8 @@ void* FAST_FUNC xmalloc_read(int fd, size_t *sizep)
 	xrealloc(buf, total + 1);
 	buf[total] = '\0';
 
-	if (sizep)
-		*sizep = total;
+	if (maxsz_p)
+		*maxsz_p = total;
 	return buf;
 }
 
@@ -260,7 +263,7 @@ void* FAST_FUNC xmalloc_read(int fd, size_t *sizep)
 
 // Read (potentially big) files in one go. File size is estimated by
 // lseek to end.
-void* FAST_FUNC xmalloc_open_read_close(const char *filename, size_t *sizep)
+void* FAST_FUNC xmalloc_open_read_close(const char *filename, size_t *maxsz_p)
 {
 	char *buf;
 	size_t size;
@@ -277,7 +280,7 @@ void* FAST_FUNC xmalloc_open_read_close(const char *filename, size_t *sizep)
 	len = lseek(fd, 0, SEEK_END) | 0x3ff; /* + up to 1k */
 	if (len != (off_t)-1) {
 		xlseek(fd, 0, SEEK_SET);
-		size = sizep ? *sizep : INT_MAX;
+		size = maxsz_p ? *maxsz_p : INT_MAX;
 		if (len < size)
 			size = len;
 	}
@@ -291,15 +294,15 @@ void* FAST_FUNC xmalloc_open_read_close(const char *filename, size_t *sizep)
 	xrealloc(buf, size + 1);
 	buf[size] = '\0';
 
-	if (sizep)
-		*sizep = size;
+	if (maxsz_p)
+		*maxsz_p = size;
 	return buf;
 }
 #endif
 
 // Read (potentially big) files in one go. File size is estimated
 // by stat.
-void* FAST_FUNC xmalloc_open_read_close(const char *filename, size_t *sizep)
+void* FAST_FUNC xmalloc_open_read_close(const char *filename, size_t *maxsz_p)
 {
 	char *buf;
 	int fd;
@@ -308,15 +311,42 @@ void* FAST_FUNC xmalloc_open_read_close(const char *filename, size_t *sizep)
 	if (fd < 0)
 		return NULL;
 
-	buf = xmalloc_read(fd, sizep);
+	buf = xmalloc_read(fd, maxsz_p);
 	close(fd);
 	return buf;
 }
 
-void* FAST_FUNC xmalloc_xopen_read_close(const char *filename, size_t *sizep)
+void* FAST_FUNC xmalloc_xopen_read_close(const char *filename, size_t *maxsz_p)
 {
-	void *buf = xmalloc_open_read_close(filename, sizep);
+	void *buf = xmalloc_open_read_close(filename, maxsz_p);
 	if (!buf)
 		bb_perror_msg_and_die("can't read '%s'", filename);
 	return buf;
 }
+
+#if ENABLE_FEATURE_MODPROBE_SMALL_ZIPPED
+void* FAST_FUNC xmalloc_open_zipped_read_close(const char *fname, size_t *maxsz_p)
+{
+	char *image;
+	char *suffix;
+
+	int fd = open(fname, O_RDONLY);
+	if (fd < 0)
+		return NULL;
+
+	suffix = strrchr(fname, '.');
+	if (suffix) {
+		if (strcmp(suffix, ".gz") == 0)
+			open_transformer(fd, unpack_gz_stream, "gunzip");
+		else if (strcmp(suffix, ".bz2") == 0)
+			open_transformer(fd, unpack_bz2_stream, "bunzip2");
+	}
+
+	image = xmalloc_read(fd, maxsz_p);
+	if (!image)
+		bb_perror_msg("read error from '%s'", fname);
+	close(fd);
+
+	return image;
+}
+#endif

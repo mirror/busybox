@@ -43,6 +43,8 @@ lib-$(CONFIG_FEATURE_DEB_TAR_GZ)        += open_transformer.o
 lib-$(CONFIG_FEATURE_DEB_TAR_BZ2)       += open_transformer.o
 lib-$(CONFIG_FEATURE_DEB_TAR_LZMA)      += open_transformer.o
 
+lib-$(CONFIG_FEATURE_MODPROBE_SMALL_ZIPPED) += open_transformer.o decompress_unzip.o decompress_bunzip2.o
+
 lib-$(CONFIG_AR)                        += get_header_ar.o unpack_ar_archive.o
 lib-$(CONFIG_BUNZIP2)                   += decompress_bunzip2.o
 lib-$(CONFIG_UNLZMA)                    += decompress_unlzma.o

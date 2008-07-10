@@ -583,15 +583,18 @@ extern unsigned char xread_char(int fd) FAST_FUNC;
 // Reads one line a-la fgets (but doesn't save terminating '\n').
 // Uses single full_read() call, works only on seekable streams.
 extern char *reads(int fd, char *buf, size_t count) FAST_FUNC;
+extern ssize_t read_close(int fd, void *buf, size_t maxsz) FAST_FUNC;
+extern ssize_t open_read_close(const char *filename, void *buf, size_t maxsz) FAST_FUNC;
 // Reads one line a-la fgets (but doesn't save terminating '\n').
 // Reads byte-by-byte. Useful when it is important to not read ahead.
 // Bytes are appended to pfx (which must be malloced, or NULL).
 extern char *xmalloc_reads(int fd, char *pfx, size_t *maxsz_p) FAST_FUNC;
-extern ssize_t read_close(int fd, void *buf, size_t maxsz) FAST_FUNC;
-extern ssize_t open_read_close(const char *filename, void *buf, size_t maxsz) FAST_FUNC;
-extern void *xmalloc_read(int fd, size_t *sizep) FAST_FUNC;
+/* Reads block up to *maxsz_p (default: MAX_INT(ssize_t)) */
+extern void *xmalloc_read(int fd, size_t *maxsz_p) FAST_FUNC;
 /* Returns NULL if file can't be opened */
 extern void *xmalloc_open_read_close(const char *filename, size_t *maxsz_p) FAST_FUNC;
+/* Autodetects .gz etc */
+extern void *xmalloc_open_zipped_read_close(const char *fname, size_t *maxsz_p) FAST_FUNC;
 /* Never returns NULL */
 extern void *xmalloc_xopen_read_close(const char *filename, size_t *maxsz_p) FAST_FUNC;
 

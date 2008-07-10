@@ -143,34 +143,6 @@ static char* str_2_list(const char *str)
 }
 
 #if ENABLE_FEATURE_MODPROBE_SMALL_ZIPPED
-static char *xmalloc_open_zipped_read_close(const char *fname, size_t *sizep)
-{
-	size_t len;
-	char *image;
-	char *suffix;
-
-	int fd = open_or_warn(fname, O_RDONLY);
-	if (fd < 0)
-		return NULL;
-
-	suffix = strrchr(fname, '.');
-	if (suffix) {
-		if (strcmp(suffix, ".gz") == 0)
-			fd = open_transformer(fd, unpack_gz_stream, "gunzip");
-		else if (strcmp(suffix, ".bz2") == 0)
-			fd = open_transformer(fd, unpack_bz2_stream, "bunzip2");
-	}
-
-	len = (sizep) ? *sizep : 64 * 1024 * 1024;
-	image = xmalloc_read(fd, &len);
-	if (!image)
-		bb_perror_msg("read error from '%s'", fname);
-	close(fd);
-
-	if (sizep)
-		*sizep = len;
-	return image;
-}
 # define read_module xmalloc_open_zipped_read_close
 #else
 # define read_module xmalloc_open_read_close

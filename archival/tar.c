@@ -692,7 +692,7 @@ static char FAST_FUNC get_header_tar_Z(archive_handle_t *archive_handle)
 		bb_error_msg_and_die("invalid magic");
 	}
 
-	archive_handle->src_fd = open_transformer(archive_handle->src_fd, uncompress, "uncompress");
+	open_transformer(archive_handle->src_fd, uncompress, "uncompress");
 	archive_handle->offset = 0;
 	while (get_header_tar(archive_handle) == EXIT_SUCCESS)
 		continue;

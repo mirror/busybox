@@ -126,12 +126,12 @@ extern USE_DESKTOP(long long) int unpack_gz_stream(int src_fd, int dst_fd) FAST_
 extern USE_DESKTOP(long long) int unpack_lzma_stream(int src_fd, int dst_fd) FAST_FUNC;
 
 #if BB_MMU
-extern int open_transformer(int src_fd,
+extern void open_transformer(int fd,
 	USE_DESKTOP(long long) int FAST_FUNC (*transformer)(int src_fd, int dst_fd)) FAST_FUNC;
-#define open_transformer(src_fd, transformer, transform_prog) open_transformer(src_fd, transformer)
+#define open_transformer(fd, transformer, transform_prog) open_transformer(fd, transformer)
 #else
 extern int open_transformer(int src_fd, const char *transform_prog) FAST_FUNC;
-#define open_transformer(src_fd, transformer, transform_prog) open_transformer(src_fd, transform_prog)
+#define open_transformer(fd, transformer, transform_prog) open_transformer(fd, transform_prog)
 #endif
 
 #if __GNUC_PREREQ(4,1)
