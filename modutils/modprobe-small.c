@@ -43,6 +43,7 @@ typedef struct module_info {
 struct globals {
 	module_info *modinfo;
 	char *module_load_options;
+	smallint dep_bb_seen;
 	int module_count;
 	int module_found_idx;
 	int stringbuf_idx;
@@ -51,6 +52,7 @@ struct globals {
 };
 #define G (*ptr_to_globals)
 #define modinfo             (G.modinfo            )
+#define dep_bb_seen         (G.dep_bb_seen        )
 #define module_count        (G.module_count       )
 #define module_found_idx    (G.module_found_idx   )
 #define module_load_options (G.module_load_options)
@@ -320,13 +322,28 @@ static FAST_FUNC int fileAction(const char *pathname,
 	return TRUE;
 }
 
-static void load_dep_bb(void)
+static int load_dep_bb(void)
 {
 	char *line;
 	FILE *fp = fopen(DEPFILE_BB, "r");
 
 	if (!fp)
-		return;
+		return 0;
+
+	dep_bb_seen = 1;
+	dbg1_error_msg("loading "DEPFILE_BB);
+
+	/* Why? There is a rare scenario: we did not find modprobe.dep.bb,
+	 * we scanned the dir and found no module by name, then we search
+	 * for alias (full scan), and we decided to generate modprobe.dep.bb.
+	 * But we see modprobe.dep.bb.new! Other modprobe is at work!
+	 * We wait and other modprobe renames it to modprobe.dep.bb.
+	 * Now we can use it.
+	 * But we already have modinfo[] filled, and "module_count = 0"
+	 * makes us start anew. Yes, we leak modinfo[].xxx pointers -
+	 * there is not much of data there anyway. */
+	module_count = 0;
+	memset(&modinfo[0], 0, sizeof(modinfo[0]));
 
 	while ((line = xmalloc_fgetline(fp)) != NULL) {
 		char* space;
@@ -355,13 +372,74 @@ static void load_dep_bb(void)
 			free(line);
 		}
 	}
+	return 1;
+}
+
+static int start_dep_bb_writeout(void)
+{
+	int fd;
+
+	fd = open(DEPFILE_BB".new", O_WRONLY | O_CREAT | O_TRUNC | O_EXCL, 0644);
+	if (fd < 0) {
+		if (errno == EEXIST) {
+			int count = 5 * 20;
+			dbg1_error_msg(DEPFILE_BB".new exists, waiting for "DEPFILE_BB);
+			while (1) {
+				usleep(1000*1000 / 20);
+				if (load_dep_bb()) {
+					dbg1_error_msg(DEPFILE_BB" appeared");
+					return -2; /* magic number */
+				}
+				if (!--count)
+					break;
+			}
+			bb_error_msg("deleting stale %s", DEPFILE_BB".new");
+			fd = open_or_warn(DEPFILE_BB".new", O_WRONLY | O_CREAT | O_TRUNC);
+		}
+	}
+	dbg1_error_msg("opened "DEPFILE_BB".new:%d", fd);
+	return fd;
+}
+
+static void write_out_dep_bb(int fd)
+{
+	int i;
+	FILE *fp;
+
+	/* We want good error reporting. fdprintf is not good enough. */
+	fp = fdopen(fd, "w");
+	if (!fp) {
+		close(fd);
+		goto err;
+	}
+	i = 0;
+	while (modinfo[i].pathname) {
+		fprintf(fp, "%s%s%s\n" "%s%s\n",
+			modinfo[i].pathname, modinfo[i].aliases[0] ? " " : "", modinfo[i].aliases,
+			modinfo[i].deps, modinfo[i].deps[0] ? "\n" : "");
+		i++;
+	}
+	/* Badly formatted depfile is a no-no. Be paranoid. */
+	errno = 0;
+	if (ferror(fp) | fclose(fp))
+		goto err;
+	if (rename(DEPFILE_BB".new", DEPFILE_BB) != 0) {
+ err:
+		bb_perror_msg("can't create %s", DEPFILE_BB);
+		unlink(DEPFILE_BB".new");
+	} else {
+		dbg1_error_msg("created "DEPFILE_BB);
+	}
 }
 
 static module_info* find_alias(const char *alias)
 {
 	int i;
+	int dep_bb_fd;
+	module_info *result;
 	dbg1_error_msg("find_alias('%s')", alias);
 
+ try_again:
 	/* First try to find by name (cheaper) */
 	i = 0;
 	while (modinfo[i].pathname) {
@@ -376,13 +454,22 @@ static module_info* find_alias(const char *alias)
 		i++;
 	}
 
+	/* Ok, we definitely have to scan module bodies. This is a good
+	 * moment to generate modprobe.dep.bb, if it does not exist yet */
+	dep_bb_fd = dep_bb_seen ? -1 : start_dep_bb_writeout();
+	if (dep_bb_fd == -2) /* modprobe.dep.bb appeared? */
+		goto try_again;
+
 	/* Scan all module bodies, extract modinfo (it contains aliases) */
 	i = 0;
+	result = NULL;
 	while (modinfo[i].pathname) {
 		char *desc, *s;
 		if (!modinfo[i].aliases) {
 			parse_module(&modinfo[i], modinfo[i].pathname);
 		}
+		if (result)
+			continue;
 		/* "alias1 symbol:sym1 alias2 symbol:sym2" */
 		desc = str_2_list(modinfo[i].aliases);
 		/* Does matching substring exist? */
@@ -392,17 +479,25 @@ static module_info* find_alias(const char *alias)
 			 * "pci:v000010DEd000000D9sv*sd*bc*sc*i*".
 			 * Plain strcmp() won't catch that */
 			if (fnmatch(s, alias, 0) == 0) {
-				free(desc);
 				dbg1_error_msg("found alias '%s' in module '%s'",
 						alias, modinfo[i].pathname);
-				return &modinfo[i];
+				result = &modinfo[i];
+				break;
 			}
 		}
 		free(desc);
+		if (result && dep_bb_fd < 0)
+			return result;
 		i++;
 	}
-	dbg1_error_msg("find_alias '%s' returns NULL", alias);
-	return NULL;
+
+	/* Create module.dep.bb if needed */
+	if (dep_bb_fd >= 0) {
+		write_out_dep_bb(dep_bb_fd);
+	}
+
+	dbg1_error_msg("find_alias '%s' returns %p", alias, result);
+	return result;
 }
 
 #if ENABLE_FEATURE_MODPROBE_SMALL_CHECK_ALREADY_LOADED
@@ -497,7 +592,7 @@ static void process_module(char *name, const char *cmdline_options)
 
 	/* rmmod? unload it by name */
 	if (is_rmmod) {
-		if (delete_module(name, O_NONBLOCK|O_EXCL) != 0
+		if (delete_module(name, O_NONBLOCK | O_EXCL) != 0
 		 && !(option_mask32 & OPT_q)
 		) {
 			bb_perror_msg("remove '%s'", name);
@@ -511,6 +606,8 @@ static void process_module(char *name, const char *cmdline_options)
 	}
 
 	if (!info) { /* both dirscan and find_alias found nothing */
+		bb_error_msg("module '%s' not found", name);
+//TODO: _and_die()?
 		goto ret;
 	}
 
@@ -637,6 +734,10 @@ int modprobe_main(int argc UNUSED_PARAM, char **argv)
 		argv[1] = NULL;
 #endif
 
+	/* Prevent ugly corner cases with no modules at all */
+	modinfo = xzalloc(sizeof(modinfo[0]));
+
+	/* Try to load modprobe.dep.bb */
 	load_dep_bb();
 
 	/* Load/remove modules.
