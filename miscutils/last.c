@@ -117,6 +117,8 @@ int last_main(int argc, char **argv UNUSED_PARAM)
 					strcpy(ut.ut_line, "system boot");
 			}
 		}
+		/* manpages say ut_tv.tv_sec *is* time_t,
+		 * but some systems have it wrong */
 		t_tmp = (time_t)ut.ut_tv.tv_sec;
 		printf("%-10s %-14s %-18s %-12.12s\n",
 		       ut.ut_user, ut.ut_line, ut.ut_host, ctime(&t_tmp) + 4);

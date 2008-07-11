@@ -11,31 +11,53 @@
 
 #if ENABLE_FEATURE_TASKSET_FANCY
 #define TASKSET_PRINTF_MASK "%s"
-#define from_cpuset(x) __from_cpuset(&x)
 /* craft a string from the mask */
-static char *__from_cpuset(cpu_set_t *mask)
+static char *from_cpuset(cpu_set_t *mask)
 {
 	int i;
-	char *ret = 0, *str = xzalloc(9);
+	char *ret = NULL;
+	char *str = xzalloc((CPU_SETSIZE / 4) + 1); /* we will leak it */
 
 	for (i = CPU_SETSIZE - 4; i >= 0; i -= 4) {
-		char val = 0;
+		int val = 0;
 		int off;
 		for (off = 0; off <= 3; ++off)
-			if (CPU_ISSET(i+off, mask))
-				val |= 1<<off;
-
+			if (CPU_ISSET(i + off, mask))
+				val |= 1 << off;
 		if (!ret && val)
 			ret = str;
-		*str++ = (val-'0'<=9) ? (val+48) : (val+87);
+		*str++ = bb_hexdigits_upcase[val] | 0x20;
 	}
 	return ret;
 }
 #else
-#define TASKSET_PRINTF_MASK "%x"
-/* (void*) cast is for battling gcc: */
-/* "dereferencing type-punned pointer will break strict-aliasing rules" */
-#define from_cpuset(mask) (*(unsigned*)(void*)&(mask))
+#define TASKSET_PRINTF_MASK "%llx"
+static unsigned long long from_cpuset(cpu_set_t *mask)
+{
+	struct BUG_CPU_SETSIZE_is_too_small {
+		char BUG_CPU_SETSIZE_is_too_small[
+			CPU_SETSIZE < sizeof(int) ? -1 : 1];
+	};
+	char *p = (void*)mask;
+
+	/* Take the least significant bits. Careful!
+	 * Consider both CPU_SETSIZE=4 and CPU_SETSIZE=1024 cases
+	 */
+#if BB_BIG_ENDIAN
+	/* For big endian, it means LAST bits */
+	if (CPU_SETSIZE < sizeof(long))
+		p += CPU_SETSIZE - sizeof(int);
+	else if (CPU_SETSIZE < sizeof(long long))
+		p += CPU_SETSIZE - sizeof(long);
+	else
+		p += CPU_SETSIZE - sizeof(long long);
+#endif
+	if (CPU_SETSIZE < sizeof(long))
+		return *(unsigned*)p;
+	if (CPU_SETSIZE < sizeof(long long))
+		return *(unsigned long*)p;
+	return *(unsigned long long*)p;
+}
 #endif
 
 
@@ -78,7 +100,7 @@ int taskset_main(int argc UNUSED_PARAM, char **argv)
 		if (sched_getaffinity(pid, sizeof(mask), &mask) < 0)
 			bb_perror_msg_and_die("can't %cet pid %d's affinity", 'g', pid);
 		printf("pid %d's %s affinity mask: "TASKSET_PRINTF_MASK"\n",
-				pid, current_new, from_cpuset(mask));
+				pid, current_new, from_cpuset(&mask));
 		if (!*argv) {
 			/* Either it was just "-p <pid>",
 			 * or it was "-p <aff> <pid>" and we came here
