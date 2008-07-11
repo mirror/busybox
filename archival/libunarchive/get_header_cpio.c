@@ -7,8 +7,8 @@
 #include "libbb.h"
 #include "unarchive.h"
 
-typedef struct hardlinks_s {
-	struct hardlinks_s *next;
+typedef struct hardlinks_t {
+	struct hardlinks_t *next;
 	int inode; /* TODO: must match maj/min too! */
 	int mode ;
 	int mtime; /* These three are useful only in corner case */
@@ -149,6 +149,7 @@ char FAST_FUNC get_header_cpio(archive_handle_t *archive_handle)
 				free(make_me);
 				goto next_link;
 			}
+			cur = cur->next;
 		}
 		/* Oops... no file with such inode was created... do it now
 		 * (happens when hardlinked files are empty (zero length)) */
