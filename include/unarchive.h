@@ -132,7 +132,7 @@ extern void open_transformer(int fd,
 	USE_DESKTOP(long long) int FAST_FUNC (*transformer)(int src_fd, int dst_fd)) FAST_FUNC;
 #define open_transformer(fd, transformer, transform_prog) open_transformer(fd, transformer)
 #else
-extern int open_transformer(int src_fd, const char *transform_prog) FAST_FUNC;
+extern void open_transformer(int src_fd, const char *transform_prog) FAST_FUNC;
 #define open_transformer(fd, transformer, transform_prog) open_transformer(fd, transform_prog)
 #endif
 

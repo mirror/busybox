@@ -108,8 +108,7 @@ char FAST_FUNC get_header_tar(archive_handle_t *archive_handle)
 		bb_error_msg_and_die("short read");
 	}
 	if (i != 512) {
-		if (ENABLE_FEATURE_TAR_AUTODETECT)
-			goto autodetect;
+		USE_FEATURE_TAR_AUTODETECT(goto autodetect;)
 		goto short_read;
 	}
 
