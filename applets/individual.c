@@ -14,13 +14,11 @@ const char *applet_name;
 int main(int argc, char **argv)
 {
 	applet_name = argv[0];
-
 	return APPLET_main(argc,argv);
 }
 
 void bb_show_usage(void)
 {
-	printf(APPLET_full_usage "\n");
-
+	fputs(APPLET_full_usage "\n", stdout);
 	exit(EXIT_FAILURE);
 }

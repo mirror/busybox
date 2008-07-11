@@ -298,7 +298,7 @@ config NOMMU
 config BUILD_LIBBUSYBOX
 	bool "Build shared libbusybox"
 	default n
-	depends on !FEATURE_PREFER_APPLETS && !PIE
+	depends on !FEATURE_PREFER_APPLETS && !PIE && !STATIC
 	help
 	  Build a shared library libbusybox.so.N.N.N which contains all
 	  busybox code.

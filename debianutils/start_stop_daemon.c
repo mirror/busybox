@@ -326,7 +326,9 @@ int start_stop_daemon_main(int argc ATTRIBUTE_UNUSED, char **argv)
 	char *signame;
 	char *startas;
 	char *chuid;
+#ifdef OLDER_VERSION_OF_X
 	struct stat execstat;
+#endif
 #if ENABLE_FEATURE_START_STOP_DAEMON_FANCY
 //	char *retry_arg = NULL;
 //	int retries = -1;
@@ -361,6 +363,8 @@ int start_stop_daemon_main(int argc ATTRIBUTE_UNUSED, char **argv)
 
 	if (!(opt & OPT_a))
 		startas = execname;
+	if (!execname) /* in case -a is given and -x is not */
+		execname = startas;
 
 //	USE_FEATURE_START_STOP_DAEMON_FANCY(
 //		if (retry_arg)
@@ -374,7 +378,8 @@ int start_stop_daemon_main(int argc ATTRIBUTE_UNUSED, char **argv)
 		if (errno)
 			user_id = xuname2uid(userspec);
 	}
-	do_procinit(); /* Both start and stop needs to know current processes */
+	/* Both start and stop need to know current processes */
+	do_procinit();
 
 	if (opt & CTX_STOP) {
 		int i = do_stop();
@@ -383,17 +388,21 @@ int start_stop_daemon_main(int argc ATTRIBUTE_UNUSED, char **argv)
 
 	if (found) {
 		if (!QUIET)
-			printf("%s already running\n%d\n", execname, found->pid);
+			printf("%s is already running\n%u\n", execname, (unsigned)found->pid);
 		return !(opt & OPT_OKNODO);
 	}
 
+#ifdef OLDER_VERSION_OF_X
 	if (execname)
 		xstat(execname, &execstat);
+#endif
 
 	*--argv = startas;
 	if (opt & OPT_BACKGROUND) {
 #if BB_MMU
-		bb_daemonize(0);
+		bb_daemonize(DAEMON_DEVNULL_STDIO + DAEMON_CLOSE_EXTRA_FDS);
+		/* DAEMON_DEVNULL_STDIO is superfluous -
+		 * it's always done by bb_daemonize() */
 #else
 		pid_t pid = vfork();
 		if (pid < 0) /* error */
@@ -404,19 +413,18 @@ int start_stop_daemon_main(int argc ATTRIBUTE_UNUSED, char **argv)
 			 * so "return 0" may do bad things */
 			_exit(EXIT_SUCCESS);
 		}
-		/* child */
+		/* Child */
 		setsid(); /* detach from controlling tty */
 		/* Redirect stdio to /dev/null, close extra FDs.
 		 * We do not actually daemonize because of DAEMON_ONLY_SANITIZE */
-		bb_daemonize_or_rexec(
-			DAEMON_DEVNULL_STDIO
+		bb_daemonize_or_rexec(DAEMON_DEVNULL_STDIO
 			+ DAEMON_CLOSE_EXTRA_FDS
 			+ DAEMON_ONLY_SANITIZE,
 			NULL /* argv, unused */ );
 #endif
 	}
 	if (opt & OPT_MAKEPID) {
-		/* user wants _us_ to make the pidfile */
+		/* User wants _us_ to make the pidfile */
 		write_pidfile(pidfile);
 	}
 	if (opt & OPT_c) {
@@ -434,6 +442,6 @@ int start_stop_daemon_main(int argc ATTRIBUTE_UNUSED, char **argv)
 		}
 	}
 #endif
-	execv(startas, argv);
+	execvp(startas, argv);
 	bb_perror_msg_and_die("cannot start %s", startas);
 }
