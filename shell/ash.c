@@ -1575,14 +1575,14 @@ static char *optionarg;                /* set by nextopt (like getopt) */
 static char *optptr;                   /* used by nextopt */
 
 /*
- * XXX - should get rid of.  have all builtins use getopt(3).  the
- * library getopt must have the BSD extension static variable "optreset"
- * otherwise it can't be used within the shell safely.
+ * XXX - should get rid of. Have all builtins use getopt(3).
+ * The library getopt must have the BSD extension static variable
+ * "optreset", otherwise it can't be used within the shell safely.
  *
- * Standard option processing (a la getopt) for builtin routines.  The
- * only argument that is passed to nextopt is the option string; the
- * other arguments are unnecessary.  It return the character, or '\0' on
- * end of input.
+ * Standard option processing (a la getopt) for builtin routines.
+ * The only argument that is passed to nextopt is the option string;
+ * the other arguments are unnecessary. It returns the character,
+ * or '\0' on end of input.
  */
 static int
 nextopt(const char *optstring)
@@ -1593,13 +1593,20 @@ nextopt(const char *optstring)
 
 	p = optptr;
 	if (p == NULL || *p == '\0') {
+		/* We ate entire "-param", take next one */
 		p = *argptr;
-		if (p == NULL || *p != '-' || *++p == '\0')
+		if (p == NULL)
+			return '\0';
+		if (*p != '-')
+			return '\0';
+		if (*++p == '\0') /* just "-" ? */
 			return '\0';
 		argptr++;
-		if (LONE_DASH(p))        /* check for "--" */
+		if (LONE_DASH(p)) /* "--" ? */
 			return '\0';
+		/* p => next "-param" */
 	}
+	/* p => some option char in the middle of a "-param" */
 	c = *p++;
 	for (q = optstring; *q != c;) {
 		if (*q == '\0')
@@ -1608,8 +1615,11 @@ nextopt(const char *optstring)
 			q++;
 	}
 	if (*++q == ':') {
-		if (*p == '\0' && (p = *argptr++) == NULL)
-			ash_msg_and_raise_error("no arg for -%c option", c);
+		if (*p == '\0') {
+			p = *argptr++;
+			if (p == NULL)
+				ash_msg_and_raise_error("no arg for -%c option", c);
+		}
 		optionarg = p;
 		p = NULL;
 	}
@@ -7421,8 +7431,10 @@ commandcmd(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
 		else if (c != 'p')
 			abort();
 #endif
-	if (verify)
+	/* Mimic bash: just "command -v" doesn't complain, it's a nop */
+	if (verify && (*argptr != NULL)) {
 		return describe_command(*argptr, verify - VERIFY_BRIEF);
+	}
 
 	return 0;
 }
