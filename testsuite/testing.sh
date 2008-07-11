@@ -36,19 +36,6 @@
 export FAILCOUNT=0
 export SKIP=
 
-# Helper for helpers. Oh my...
-test x"$ECHO" != x"" || {
-	ECHO="echo"
-	test x"`echo -ne`" = x"" || {
-		# Compile and use a replacement 'echo' which understands -e -n
-		ECHO="$PWD/echo-ne"
-		test -x "$ECHO" || {
-			gcc -Os -o "$ECHO" ../scripts/echo.c || exit 1
-		}
-	}
-	export ECHO
-}
-
 # Helper functions
 
 optional()

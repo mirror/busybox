@@ -3,6 +3,19 @@
 # Usage:
 # runtest [applet1] [applet2...]
 
+# Helper for helpers. Oh my...
+test x"$ECHO" != x"" || {
+	ECHO="echo"
+	test x"`echo -ne`" = x"" || {
+		# Compile and use a replacement 'echo' which understands -e -n
+		ECHO="$PWD/echo-ne"
+		test -x "$ECHO" || {
+			gcc -Os -o "$ECHO" ../scripts/echo.c || exit 1
+		}
+	}
+	export ECHO
+}
+
 # Run one old-style test.
 # Tests are stored in applet/testcase shell scripts.
 # They are run using "sh -x -e applet/testcase".

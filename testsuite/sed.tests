@@ -163,7 +163,7 @@ testing "sed match EOF two files" "sed -e '"'$p'"' input -" \
 #00000010  0a 74 68 72 65 65 0a 6f  6f 6b 0a 6f 6f 6b 0a 66  |.three.ook.ook.f|
 #00000020  6f 75 72                                          |our|
 # which looks buggy to me.
-echo -ne "three\nfour" > input2
+$ECHO -ne "three\nfour" > input2
 testing "sed match EOF inline" \
 	"sed -e '"'$i ook'"' -i input input2 && cat input input2" \
 	"one\nook\ntwothree\nook\nfour" "one\ntwo" ""
