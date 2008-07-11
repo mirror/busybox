@@ -4,13 +4,7 @@
 
 . testing.sh
 
-# check if hexdump supports the '-R' option
-hexdump -R </dev/null >/dev/null 2>&1 || {
-	echo "'hexdump -R' is not available" >&2
-	exit 1
-}
-
-# ls -ln is showing date. Need to remove that, it's variable
+# ls -ln shows date. Need to remove that, it's variable.
 # sed: coalesce spaces
 # cut: remove date
 FILTER_LS="sed 's/  */ /g' | cut -d' ' -f 1-5,9-"
@@ -18,28 +12,27 @@ FILTER_LS="sed 's/  */ /g' | cut -d' ' -f 1-5,9-"
 
 # newc cpio archive of directory cpio.testdir with empty x and y hardlinks
 hexdump="\
-00000000  42 5a 68 39 31 41 59 26  53 59 64 1e 91 8c 00 00
-00000010  48 7f 80 4c 48 08 00 28  01 ff e0 3f 24 14 00 0e
-00000020  20 dc 60 20 00 92 11 ea  a0 1a 00 00 00 03 20 8a
-00000030  93 d4 9a 68 1a 0d 1e 91  a1 a0 06 98 e3 5c 2f d9
-00000040  26 a1 25 24 20 ed 47 c7  21 40 2b 6e f2 e6 fe 98
-00000050  13 68 a8 bd 82 b2 4f 26  02 24 16 5b 22 16 72 74
-00000060  15 cd c1 a6 9e a6 5e 6c  16 37 35 01 99 c4 81 21
-00000070  29 28 4b 69 51 a9 3c 1a  9b 0a e1 e4 b4 af 85 73
-00000080  ba 23 10 59 e8 b3 e1 a1  63 05 8c 4f c5 dc 91 4e
-00000090  14 24 19 07 a4 63 00
-"
+\x42\x5a\x68\x39\x31\x41\x59\x26\x53\x59\x64\x1e\x91\x8c\x00\x00\
+\x48\x7f\x80\x4c\x48\x08\x00\x28\x01\xff\xe0\x3f\x24\x14\x00\x0e\
+\x20\xdc\x60\x20\x00\x92\x11\xea\xa0\x1a\x00\x00\x00\x03\x20\x8a\
+\x93\xd4\x9a\x68\x1a\x0d\x1e\x91\xa1\xa0\x06\x98\xe3\x5c\x2f\xd9\
+\x26\xa1\x25\x24\x20\xed\x47\xc7\x21\x40\x2b\x6e\xf2\xe6\xfe\x98\
+\x13\x68\xa8\xbd\x82\xb2\x4f\x26\x02\x24\x16\x5b\x22\x16\x72\x74\
+\x15\xcd\xc1\xa6\x9e\xa6\x5e\x6c\x16\x37\x35\x01\x99\xc4\x81\x21\
+\x29\x28\x4b\x69\x51\xa9\x3c\x1a\x9b\x0a\xe1\xe4\xb4\xaf\x85\x73\
+\xba\x23\x10\x59\xe8\xb3\xe1\xa1\x63\x05\x8c\x4f\xc5\xdc\x91\x4e\
+\x14\x24\x19\x07\xa4\x63\x00"
 
 user=$(id -u)
 group=$(id -g)
 
-rm -rf cpio.testdir
+rm -rf cpio.testdir cpio.testdir2 2>/dev/null
 
-# testing "test name" "options" "expected result" "file input" "stdin"
+# testing "test name" "command" "expected result" "file input" "stdin"
 
 testing "cpio extracts zero-sized hardlinks" \
-	"echo '$hexdump' | hexdump -R | bzcat | cpio -i; echo \$?;
-	ls -ln cpio.testdir | $FILTER_LS" \
+"$ECHO -ne '$hexdump' | bzcat | cpio -i; echo \$?;
+ls -ln cpio.testdir | $FILTER_LS" \
 "\
 1 blocks
 0
@@ -51,7 +44,7 @@ testing "cpio extracts zero-sized hardlinks" \
 # Currently fails. Numerous: "1 blocks" versus "1 block",
 # "1 block" must go to stderr, does not list cpio.testdir/x and cpio.testdir/y
 testing "cpio lists hardlinks" \
-	"echo '$hexdump' | hexdump -R | bzcat | cpio -t 2>&1; echo \$?" \
+"$ECHO -ne '$hexdump' | bzcat | cpio -t 2>&1; echo \$?" \
 "\
 1 block
 cpio.testdir
@@ -61,7 +54,30 @@ cpio.testdir/y
 " \
 	"" ""
 
-# clean up
-rm -rf cpio.testdir
+# More complex case
+rm -rf cpio.testdir cpio.testdir2 2>/dev/null
+mkdir cpio.testdir
+touch cpio.testdir/solo
+touch cpio.testdir/empty
+echo x >cpio.testdir/nonempty
+ln cpio.testdir/empty cpio.testdir/empty1
+ln cpio.testdir/nonempty cpio.testdir/nonempty1
+mkdir cpio.testdir2
+
+testing "cpio extracts zero-sized hardlinks 2" \
+"find cpio.testdir | cpio -H newc --create | (cd cpio.testdir2 && cpio -i); echo \$?;
+ls -ln cpio.testdir2/cpio.testdir | $FILTER_LS" \
+"\
+0
+-rw-r--r-- 2 $user $group 0 empty
+-rw-r--r-- 2 $user $group 0 empty1
+-rw-r--r-- 2 $user $group 2 nonempty
+-rw-r--r-- 2 $user $group 2 nonempty1
+-rw-r--r-- 1 $user $group 0 solo
+" \
+	"" ""
+
+# Clean up
+rm -rf cpio.testdir cpio.testdir2 2>/dev/null
 
 exit $FAILCOUNT
