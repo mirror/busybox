@@ -37,6 +37,7 @@ char FAST_FUNC get_header_cpio(archive_handle_t *archive_handle)
 	/* There can be padding before archive header */
 	data_align(archive_handle, 4);
 
+//TODO: this function is used only here, make it static?
 	if (archive_xread_all_eof(archive_handle, (unsigned char*)cpio_header, 110) == 0) {
 		goto create_hardlinks;
 	}
@@ -61,6 +62,7 @@ char FAST_FUNC get_header_cpio(archive_handle_t *archive_handle)
 	file_header->mtime = mtime;
 	file_header->size = size;
 
+	namesize &= 0x1fff; /* paranoia: names can't be that long */
 	file_header->name = xzalloc(namesize + 1);
 	/* Read in filename */
 	xread(archive_handle->src_fd, file_header->name, namesize);
