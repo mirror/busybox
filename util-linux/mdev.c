@@ -35,6 +35,30 @@ static char *next_field(char *s)
 	return s;
 }
 
+/* Builds an alias path.
+ * This function potentionally reallocates the alias parameter.
+ */
+static char *build_alias(char *alias, const char *device_name)
+{
+	char *dest;
+
+	/* ">bar/": rename to bar/device_name */
+	/* ">bar[/]baz": rename to bar[/]baz */
+	dest = strrchr(alias, '/');
+	if (dest) { /* ">bar/[baz]" ? */
+		*dest = '\0'; /* mkdir bar */
+		bb_make_directory(alias, 0755, FILEUTILS_RECUR);
+		*dest = '/';
+		if (dest[1] == '\0') { /* ">bar/" => ">bar/device_name" */
+			dest = alias;
+			alias = concat_path_file(alias, device_name);
+			free(dest);
+		}
+	}
+
+	return alias;
+}
+
 /* mknod in /dev based on a path like "/sys/block/hda/hda1" */
 /* NB: "mdev -s" may call us many times, do not leak memory/fds! */
 static void make_device(char *path, int delete)
@@ -257,21 +281,7 @@ static void make_device(char *path, int delete)
 			chown(device_name, uid, gid);
 
 			if (ENABLE_FEATURE_MDEV_RENAME && alias) {
-				char *dest;
-
-				/* ">bar/": rename to bar/device_name */
-				/* ">bar[/]baz": rename to bar[/]baz */
-				dest = strrchr(alias, '/');
-				if (dest) { /* ">bar/[baz]" ? */
-					*dest = '\0'; /* mkdir bar */
-					bb_make_directory(alias, 0755, FILEUTILS_RECUR);
-					*dest = '/';
-					if (dest[1] == '\0') { /* ">bar/" => ">bar/device_name" */
-						dest = alias;
-						alias = concat_path_file(alias, device_name);
-						free(dest);
-					}
-				}
+				alias = build_alias(alias, device_name);
 
 				/* move the device, and optionally
 				 * make a symlink to moved device node */
@@ -295,8 +305,16 @@ static void make_device(char *path, int delete)
 		free(command);
 	}
 
-	if (delete)
+	if (delete) {
 		unlink(device_name);
+		/* At creation time, device might have been moved
+		 * and a symlink might have been created. Undo that. */
+		if (ENABLE_FEATURE_MDEV_RENAME && alias) {
+			alias = build_alias(alias, device_name);
+			unlink(alias);
+			free(alias);
+		}
+	}
 }
 
 /* File callback for /sys/ traversal */
@@ -309,7 +327,7 @@ static int FAST_FUNC fileAction(const char *fileName,
 	char *scratch = userData;
 
 	/* len check is for paranoid reasons */
-	if (strcmp(fileName + len, "/dev") || len >= PATH_MAX)
+	if (strcmp(fileName + len, "/dev") != 0 || len >= PATH_MAX)
 		return FALSE;
 
 	strcpy(scratch, fileName);
@@ -387,7 +405,7 @@ static void load_firmware(const char *const firmware, const char *const sysfs_pa
 }
 
 int mdev_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int mdev_main(int argc, char **argv)
+int mdev_main(int argc UNUSED_PARAM, char **argv)
 {
 	char *action;
 	char *env_path;
@@ -410,7 +428,7 @@ int mdev_main(int argc, char **argv)
 
 	xchdir("/dev");
 
-	if (argc == 2 && !strcmp(argv[1], "-s")) {
+	if (argv[1] && !strcmp(argv[1], "-s")) {
 		/* Scan:
 		 * mdev -s
 		 */
