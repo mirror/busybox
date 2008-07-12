@@ -96,13 +96,11 @@ static void make_device(char *path, int delete)
 	/* Determine device name, type, major and minor */
 	device_name = bb_basename(path);
 	/* http://kernel.org/doc/pending/hotplug.txt says that only
-	 * "/sys/block/..." is for block devices. "/sys/bus" etc is not!
-	 * Since kernel 2.6.25 block devices are also in /sys/class/block. */
-	/* TODO: would it be acceptable to just use strstr(path, "/block/")? */
-	if (strncmp(&path[5], "class/block/"+6, 6) != 0
-	 && strncmp(&path[5], "class/block/", 12) != 0)
-	        type = S_IFCHR;
-	else
+	 * "/sys/block/..." is for block devices. "/sys/bus" etc is not.
+	 * But since 2.6.25 block devices are also in /sys/class/block.
+	 * We use strstr("/block/") to forestall future surprises. */
+        type = S_IFCHR;
+	if (strstr(path, "/block/"))
 	        type = S_IFBLK;
 
 	if (ENABLE_FEATURE_MDEV_CONF) {
