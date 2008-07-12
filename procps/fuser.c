@@ -114,7 +114,7 @@ static inode_list *scan_proc_net(const char *proto,
 		return ilist;
 
 	while (fgets(line, MAX_LINE, f)) {
-		char addr[64];
+		char addr[68];
 		if (sscanf(line, "%*d: %64[0-9A-Fa-f]:%x %*x:%*x %*x %*x:%*x "
 				"%*x:%*x %*x %*d %*d %llu",
 				addr, &tmp_port, &uint64_inode) == 3
