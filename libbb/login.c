@@ -20,7 +20,7 @@ static const char fmtstr_t[] ALIGN1 = "%H:%M:%S";
 
 void FAST_FUNC print_login_issue(const char *issue_file, const char *tty)
 {
-	FILE *fd;
+	FILE *fp;
 	int c;
 	char buf[256+1];
 	const char *outbuf;
@@ -32,10 +32,10 @@ void FAST_FUNC print_login_issue(const char *issue_file, const char *tty)
 
 	puts("\r");	/* start a new line */
 
-	fd = fopen(issue_file, "r");
-	if (!fd)
+	fp = fopen(issue_file, "r");
+	if (!fp)
 		return;
-	while ((c = fgetc(fd)) != EOF) {
+	while ((c = fgetc(fp)) != EOF) {
 		outbuf = buf;
 		buf[0] = c;
 		buf[1] = '\0';
@@ -44,7 +44,7 @@ void FAST_FUNC print_login_issue(const char *issue_file, const char *tty)
 			buf[2] = '\0';
 		}
 		if (c == '\\' || c == '%') {
-			c = fgetc(fd);
+			c = fgetc(fp);
 			switch (c) {
 			case 's':
 				outbuf = uts.sysname;
@@ -64,8 +64,7 @@ void FAST_FUNC print_login_issue(const char *issue_file, const char *tty)
 				break;
 			case 'D':
 			case 'o':
-				c = getdomainname(buf, sizeof(buf) - 1);
-				buf[c >= 0 ? c : 0] = '\0';
+				outbuf = uts.domainname;
 				break;
 			case 'd':
 				strftime(buf, sizeof(buf), fmtstr_d, localtime(&t));
@@ -82,7 +81,7 @@ void FAST_FUNC print_login_issue(const char *issue_file, const char *tty)
 		}
 		fputs(outbuf, stdout);
 	}
-	fclose(fd);
+	fclose(fp);
 	fflush(stdout);
 }
 
