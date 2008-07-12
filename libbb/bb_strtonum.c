@@ -124,33 +124,3 @@ int FAST_FUNC bb_strtoi(const char *arg, char **endp, int base)
 	return handle_errors(v, endp, endptr);
 }
 #endif
-
-/* Floating point */
-
-#if 0
-
-#include <math.h>  /* just for HUGE_VAL */
-#define NOT_DIGIT(a) (((unsigned char)(a-'0')) > 9)
-double FAST_FUNC bb_strtod(const char *arg, char **endp)
-{
-	double v;
-	char *endptr;
-
-	if (arg[0] != '-' && NOT_DIGIT(arg[0])) goto err;
-	errno = 0;
-	v = strtod(arg, &endptr);
-	if (endp) *endp = endptr;
-	if (endptr[0]) {
-		/* "1234abcg" or out-of-range? */
-		if (isalnum(endptr[0]) || errno) {
- err:
-			errno = ERANGE;
-			return HUGE_VAL;
-		}
-		/* good number, just suspicious terminator */
-		errno = EINVAL;
-	}
-	return v;
-}
-
-#endif

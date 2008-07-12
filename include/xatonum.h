@@ -169,7 +169,7 @@ uint32_t bb_strtou32(const char *arg, char **endp, int base)
 
 /* Floating point */
 
-/* double bb_strtod(const char *arg, char **endp); */
+double bb_strtod(const char *arg, char **endp) FAST_FUNC;
 
 #if __GNUC_PREREQ(4,1)
 # pragma GCC visibility pop
