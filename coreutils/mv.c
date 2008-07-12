@@ -26,16 +26,13 @@ static const char mv_longopts[] ALIGN1 =
 #define OPT_FILEUTILS_FORCE       1
 #define OPT_FILEUTILS_INTERACTIVE 2
 
-static const char fmt[] ALIGN1 =
-	"cannot overwrite %sdirectory with %sdirectory";
-
 int mv_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int mv_main(int argc, char **argv)
 {
 	struct stat dest_stat;
 	const char *last;
 	const char *dest;
-	unsigned long flags;
+	unsigned flags;
 	int dest_exists;
 	int status = 0;
 	int copy_flag = 0;
@@ -57,7 +54,7 @@ int mv_main(int argc, char **argv)
 			return EXIT_FAILURE;
 		}
 
-		if (!(dest_exists & 2)) {
+		if (!(dest_exists & 2)) { /* last is not a directory */
 			dest = last;
 			goto DO_MOVE;
 		}
@@ -88,10 +85,13 @@ int mv_main(int argc, char **argv)
 			int source_exists;
 
 			if (errno != EXDEV
-			 || (source_exists = cp_mv_stat(*argv, &source_stat)) < 1
+			 || (source_exists = cp_mv_stat2(*argv, &source_stat, lstat)) < 1
 			) {
 				bb_perror_msg("cannot rename '%s'", *argv);
 			} else {
+				static const char fmt[] ALIGN1 =
+					"cannot overwrite %sdirectory with %sdirectory";
+
 				if (dest_exists) {
 					if (dest_exists == 3) {
 						if (source_exists != 3) {
