@@ -27,13 +27,11 @@ find "$@" -type f \
     # shell testsuite entries are not to be touched too
     test "YES" = "${name/*.right/YES}" && continue
 
-    if test "YES" = "${name/*.[ch]/YES}" \
+    if test "YES" = "${name/*.[chsS]/YES}" \
 	-o "YES" = "${name/*.sh/YES}" \
 	-o "YES" = "${name/*.txt/YES}" \
 	-o "YES" = "${name/*.html/YES}" \
 	-o "YES" = "${name/*.htm/YES}" \
-	-o "YES" = "${name/*Makefile*/YES}" \
-	-o "YES" = "${name/*Kbuild*/YES}" \
 	-o "YES" = "${name/*Config.in*/YES}" \
     ; then
     # More aggressive whitespace fixes for known file types
@@ -42,6 +40,18 @@ find "$@" -type f \
 	| sed -e "$tab8sptab_tabtabtab" -e "$tab8sptab_tabtabtab" \
 	      -e "$tab8sptab_tabtabtab" -e "$tab8sptab_tabtabtab" \
 	| sed "$begin17sptab_tab" \
+	| sed -e "$tab17sptab_tabtab" -e "$tab17sptab_tabtab" \
+	      -e "$tab17sptab_tabtab" -e "$tab17sptab_tabtab" \
+	      -e "$tab17sptab_tabtab" -e "$tab17sptab_tabtab" \
+	| sed "$trailingws_"
+    elif test "YES" = "${name/*Makefile*/YES}" \
+	-o "YES" = "${name/*Kbuild*/YES}" \
+    ; then
+    # For Makefiles, never convert "1-7spaces+tab" into "tabtab"
+	echo "Makefile: $name" >&2
+	cat "$name" \
+	| sed -e "$tab8sptab_tabtabtab" -e "$tab8sptab_tabtabtab" \
+	      -e "$tab8sptab_tabtabtab" -e "$tab8sptab_tabtabtab" \
 	| sed -e "$tab17sptab_tabtab" -e "$tab17sptab_tabtab" \
 	      -e "$tab17sptab_tabtab" -e "$tab17sptab_tabtab" \
 	      -e "$tab17sptab_tabtab" -e "$tab17sptab_tabtab" \
