@@ -23,7 +23,7 @@
 #include "libbb.h"
 #include "coreutils.h"
 
-int cp_mv_stat2(const char *fn, struct stat *fn_stat, stat_func sf)
+int FAST_FUNC cp_mv_stat2(const char *fn, struct stat *fn_stat, stat_func sf)
 {
 	if (sf(fn, fn_stat) < 0) {
 		if (errno != ENOENT) {
@@ -44,7 +44,7 @@ int cp_mv_stat2(const char *fn, struct stat *fn_stat, stat_func sf)
 	return 1;
 }
 
-int cp_mv_stat(const char *fn, struct stat *fn_stat)
+int FAST_FUNC cp_mv_stat(const char *fn, struct stat *fn_stat)
 {
 	return cp_mv_stat2(fn, fn_stat, stat);
 }
