@@ -561,8 +561,8 @@ static void INET6_displayroutes(void)
 	while (1) {
 		int r;
 		r = fscanf(fp, "%32s%x%*s%x%32s%x%x%x%x%s\n",
-				   addr6x+14, &prefix_len, &slen, addr6x+40+7,
-				   &metric, &use, &refcnt, &iflags, iface);
+				addr6x+14, &prefix_len, &slen, addr6x+40+7,
+				&metric, &use, &refcnt, &iflags, iface);
 		if (r != 9) {
 			if ((r < 0) && feof(fp)) { /* EOF with no (nonspace) chars read. */
 				break;

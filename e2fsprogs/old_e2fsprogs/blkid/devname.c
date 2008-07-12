@@ -237,7 +237,7 @@ evms_probe_all(blkid_cache cache)
 	if (!procpt)
 		return 0;
 	while (fgets(line, sizeof(line), procpt)) {
-		if (sscanf (line, " %d %d %d %*s %*s %[^\n ]",
+		if (sscanf(line, " %d %d %d %*s %*s %[^\n ]",
 			    &ma, &mi, &sz, device) != 4)
 			continue;
 

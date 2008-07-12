@@ -100,7 +100,6 @@ static inode_list *scan_proc_net(const char *proto,
 				unsigned port, inode_list *ilist)
 {
 	char path[20], line[MAX_LINE + 1];
-	char addr[128];
 	ino_t tmp_inode;
 	dev_t tmp_dev;
 	long long uint64_inode;
@@ -115,13 +114,15 @@ static inode_list *scan_proc_net(const char *proto,
 		return ilist;
 
 	while (fgets(line, MAX_LINE, f)) {
+		char addr[64];
 		if (sscanf(line, "%*d: %64[0-9A-Fa-f]:%x %*x:%*x %*x %*x:%*x "
 				"%*x:%*x %*x %*d %*d %llu",
 				addr, &tmp_port, &uint64_inode) == 3
 		) {
-			if (strlen(addr) == 8 && (option_mask32 & OPT_IP6))
+			int len = strlen(addr);
+			if (len == 8 && (option_mask32 & OPT_IP6))
 				continue;
-			if (strlen(addr) > 8 && (option_mask32 & OPT_IP4))
+			if (len > 8 && (option_mask32 & OPT_IP4))
 				continue;
 			if (tmp_port == port) {
 				tmp_inode = uint64_inode;

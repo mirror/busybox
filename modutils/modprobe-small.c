@@ -9,7 +9,6 @@
  */
 
 #include "libbb.h"
-#include "unarchive.h"
 
 #include <sys/utsname.h> /* uname() */
 #include <fnmatch.h>

@@ -364,7 +364,7 @@ char FAST_FUNC get_header_tar(archive_handle_t *archive_handle)
 	archive_handle->offset += file_header->size;
 
 	free(file_header->link_target);
-	/* Do not free(file_header->name)! */
+	/* Do not free(file_header->name)! (why?) */
 #if ENABLE_FEATURE_TAR_UNAME_GNAME
 	free(file_header->uname);
 	free(file_header->gname);

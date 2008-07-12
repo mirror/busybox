@@ -105,8 +105,6 @@ extern char get_header_tar_gz(archive_handle_t *archive_handle) FAST_FUNC;
 extern void seek_by_jump(const archive_handle_t *archive_handle, unsigned amount) FAST_FUNC;
 extern void seek_by_read(const archive_handle_t *archive_handle, unsigned amount) FAST_FUNC;
 
-extern ssize_t archive_xread_all_eof(archive_handle_t *archive_handle, unsigned char *buf, size_t count) FAST_FUNC;
-
 extern void data_align(archive_handle_t *archive_handle, unsigned boundary) FAST_FUNC;
 extern const llist_t *find_list_entry(const llist_t *list, const char *filename) FAST_FUNC;
 extern const llist_t *find_list_entry2(const llist_t *list, const char *filename) FAST_FUNC;
