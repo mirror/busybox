@@ -1656,12 +1656,12 @@ struct shparam {
 static void
 freeparam(volatile struct shparam *param)
 {
-	char **ap;
-
 	if (param->malloced) {
-		for (ap = param->p; *ap; ap++)
-			free(*ap);
-		free(param->p);
+		char **ap, **ap1;
+		ap = ap1 = param->p;
+		while (*ap)
+			free(*ap++);
+		free(ap1);
 	}
 }
 
