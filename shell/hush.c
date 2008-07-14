@@ -322,7 +322,6 @@ struct child_prog {
 	char **argv;                /* program name and arguments */
 	struct pipe *group;         /* if non-NULL, first in group or subshell */
 	struct redir_struct *redirects; /* I/O redirections */
-	struct pipe *family;        /* pointer back to the child's parent pipe */
 };
 /* argv vector may contain variable references (^Cvar^C, ^C0^C etc)
  * and on execution these are substituted with their values.
@@ -2830,7 +2829,6 @@ static void initialize_context(struct p_context *ctx)
 	ctx->pipe = ctx->list_head = new_pipe();
 	/* Create the memory for child, roughly:
 	 * ctx->pipe->progs = new struct child_prog;
-	 * ctx->pipe->progs[0].family = ctx->pipe;
 	 * ctx->child = &ctx->pipe->progs[0];
 	 */
 	done_command(ctx);
@@ -2960,6 +2958,7 @@ static int done_word(o_string *word, struct p_context *ctx)
 {
 	struct child_prog *child = ctx->child;
 
+	debug_printf_parse("done_word entered: '%s' %p\n", word->data, child);
 	/* If this word wasn't an assignment, next ones definitely
 	 * can't be assignments. Even if they look like ones. */
 	if (word->o_assignment != DEFINITELY_ASSIGNMENT) {
@@ -2967,8 +2966,6 @@ static int done_word(o_string *word, struct p_context *ctx)
 	} else {
 		word->o_assignment = MAYBE_ASSIGNMENT;
 	}
-
-	debug_printf_parse("done_word entered: '%s' %p\n", word->data, child);
 	if (word->length == 0 && word->nonnull == 0) {
 		debug_printf_parse("done_word return 0: true null, ignored\n");
 		return 0;
@@ -2980,15 +2977,17 @@ static int done_word(o_string *word, struct p_context *ctx)
 		word->o_assignment = NOT_ASSIGNMENT;
 		debug_printf("word stored in rd_filename: '%s'\n", word->data);
 	} else {
-//		if (child->group) { /* TODO: example how to trigger? */
-//			syntax(NULL);
-//			debug_printf_parse("done_word return 1: syntax error, groups and arglists don't mix\n");
-//			return 1;
-//		}
+		/* "{ echo foo; } echo bar" - bad */
+		/* NB: bash allows e.g. "if true; then { echo foo; } fi". TODO? */
+		if (child->group) {
+			syntax(NULL);
+			debug_printf_parse("done_word return 1: syntax error, groups and arglists don't mix\n");
+			return 1;
+		}
 #if HAS_KEYWORDS
 #if ENABLE_HUSH_CASE
 		if (ctx->ctx_dsemicolon) {
-			/* already done when ctx_dsemicolon was set to 1 */
+			/* already done when ctx_dsemicolon was set to 1: */
 			/* ctx->ctx_res_w = RES_MATCH; */
 			ctx->ctx_dsemicolon = 0;
 		} else
@@ -3085,9 +3084,7 @@ static int done_command(struct p_context *ctx)
 	 * child structure is not counted in pi->num_progs. */
 	pi->progs = xrealloc(pi->progs, sizeof(*pi->progs) * (pi->num_progs+1));
 	child = &pi->progs[pi->num_progs];
-
 	memset(child, 0, sizeof(*child));
-	child->family = pi;
 
 	ctx->child = child;
 	/* but ctx->pipe and ctx->list_head remain unchanged */
@@ -3100,22 +3097,28 @@ static void done_pipe(struct p_context *ctx, pipe_style type)
 	int not_null;
 
 	debug_printf_parse("done_pipe entered, followup %d\n", type);
-	not_null = done_command(ctx);  /* implicit closure of previous command */
+	/* Close previous command */
+	not_null = done_command(ctx);
 	ctx->pipe->followup = type;
 	IF_HAS_KEYWORDS(ctx->pipe->pi_inverted = ctx->ctx_inverted;)
 	IF_HAS_KEYWORDS(ctx->ctx_inverted = 0;)
 	IF_HAS_KEYWORDS(ctx->pipe->res_word = ctx->ctx_res_w;)
+
 	/* Without this check, even just <enter> on command line generates
 	 * tree of three NOPs (!). Which is harmless but annoying.
 	 * IOW: it is safe to do it unconditionally.
 	 * RES_NONE case is for "for a in; do ..." (empty IN set)
 	 * to work, possibly other cases too. */
 	if (not_null IF_HAS_KEYWORDS(|| ctx->ctx_res_w != RES_NONE)) {
-		struct pipe *new_p = new_pipe();
+		struct pipe *new_p;
+		debug_printf_parse("done_pipe: adding new pipe: "
+				" not_null:%d ctx->ctx_res_w:%d\n",
+				not_null, ctx->ctx_res_w);
+		new_p = new_pipe();
 		ctx->pipe->next = new_p;
 		ctx->pipe = new_p;
 		ctx->child = NULL; /* needed! */
-		/* RES_IF, RES_WHILE etc are "sticky" -
+		/* RES_THEN, RES_DO etc are "sticky" -
 		 * they remain set for commands inside if/while.
 		 * This is used to control execution.
 		 * RES_FOR and RES_IN are NOT sticky (needed to support
@@ -3132,7 +3135,6 @@ static void done_pipe(struct p_context *ctx, pipe_style type)
 #endif
 		/* Create the memory for child, roughly:
 		 * ctx->pipe->progs = new struct child_prog;
-		 * ctx->pipe->progs[0].family = ctx->pipe;
 		 * ctx->child = &ctx->pipe->progs[0];
 		 */
 		done_command(ctx);
