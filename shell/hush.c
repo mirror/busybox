@@ -2986,7 +2986,9 @@ static int done_word(o_string *word, struct p_context *ctx)
 		}
 #if HAS_KEYWORDS
 #if ENABLE_HUSH_CASE
-		if (ctx->ctx_dsemicolon) {
+		if (ctx->ctx_dsemicolon
+		 && strcmp(word->data, "esac") != 0 /* not "... pattern) cmd;; esac" */
+		) {
 			/* already done when ctx_dsemicolon was set to 1: */
 			/* ctx->ctx_res_w = RES_MATCH; */
 			ctx->ctx_dsemicolon = 0;
@@ -3112,7 +3114,7 @@ static void done_pipe(struct p_context *ctx, pipe_style type)
 	if (not_null IF_HAS_KEYWORDS(|| ctx->ctx_res_w != RES_NONE)) {
 		struct pipe *new_p;
 		debug_printf_parse("done_pipe: adding new pipe: "
-				" not_null:%d ctx->ctx_res_w:%d\n",
+				"not_null:%d ctx->ctx_res_w:%d\n",
 				not_null, ctx->ctx_res_w);
 		new_p = new_pipe();
 		ctx->pipe->next = new_p;

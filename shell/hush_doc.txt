@@ -72,10 +72,32 @@ Dummy trailing pipes with no commands are artifacts of imperfect
 parsing algorithm - done_pipe() appends new pipe struct beforehand
 and last one ends up empty and unused.
 
+"for" and "case" statements (ab)use progs[] to keep their data
+instead of argv vector progs[] usually do. "for" keyword is forcing
+pipe termination after first word, which makes hush see
+"for v in..." as "for v; in...". "case" keyword does the same.
+Other judiciuosly placed hacks make hush see
+"case word in a) cmd1;; b) cmd2;; esac" as if it was
+"case word; match a; cmd; match b; cmd2; esac"
+("match" is a fictitious keyword here):
+
+"case word in a) cmd1;; b) cmd2; esac" -
+pipe 0 res_word=NONE followup=1 SEQ
+ prog 0 group {}:
+  pipe 0 res_word=CASE followup=SEQ prog[0] 'word'
+  pipe 1 res_word=MATCH followup=SEQ prog[0] 'a'
+  pipe 2 res_word=CASEI followup=SEQ prog[0] 'cmd1'
+  pipe 3 res_word=MATCH followup=SEQ prog[0] 'b'
+  pipe 4 res_word=CASEI followup=SEQ prog[0] 'cmd2'
+  pipe 5 res_word=CASEI followup=SEQ prog[0] 'cmd3'
+  pipe 6 res_word=ESAC followup=SEQ
+  pipe 7 res_word=NONE followup=(null)
+pipe 1 res_word=NONE followup=1 SEQ
+
 
 2008-01
 
-	This is how hush runs commands:
+	Command execution
 
 /* callsite: process_command_subs */
 generate_stream_from_list(struct pipe *head) - handles `cmds`
