@@ -73,6 +73,9 @@
 
 #include "busybox.h" /* for APPLET_IS_NOFORK/NOEXEC */
 
+// TEMP
+#define ENABLE_HUSH_CASE 0
+
 
 #if !BB_MMU && ENABLE_HUSH_TICK
 //#undef ENABLE_HUSH_TICK
@@ -262,22 +265,29 @@ typedef enum {
 typedef enum {
 	RES_NONE  = 0,
 #if ENABLE_HUSH_IF
-	RES_IF    = 1,
-	RES_THEN  = 2,
-	RES_ELIF  = 3,
-	RES_ELSE  = 4,
-	RES_FI    = 5,
+	RES_IF    ,
+	RES_THEN  ,
+	RES_ELIF  ,
+	RES_ELSE  ,
+	RES_FI    ,
 #endif
 #if ENABLE_HUSH_LOOPS
-	RES_FOR   = 6,
-	RES_WHILE = 7,
-	RES_UNTIL = 8,
-	RES_DO    = 9,
-	RES_DONE  = 10,
-	RES_IN    = 11,
+	RES_FOR   ,
+	RES_WHILE ,
+	RES_UNTIL ,
+	RES_DO    ,
+	RES_DONE  ,
+	RES_IN    ,
 #endif
-	RES_XXXX  = 12,
-	RES_SNTX  = 13
+#if ENABLE_HUSH_CASE
+	RES_CASE  ,
+	/* two pseudo-keywords support contrived "case" syntax: */
+	RES_MATCH , /* "word)" */
+	RES_CASEI , /* "this command is inside CASE" */
+	RES_ESAC  ,
+#endif
+	RES_XXXX  ,
+	RES_SNTX
 } reserved_style;
 
 /* This holds pointers to the various results of parsing */
@@ -289,6 +299,9 @@ struct p_context {
 #if HAS_KEYWORDS
 	smallint ctx_res_w;
 	smallint ctx_inverted; /* "! cmd | cmd" */
+#if ENABLE_HUSH_CASE
+	smallint ctx_dsemicolon; /* ";;" seen */
+#endif
 	int old_flag; /* bitmask of FLAG_xxx, for figuring out valid reserved words */
 	struct p_context *stack;
 #endif
@@ -350,7 +363,7 @@ struct variable {
 
 typedef struct {
 	char *data;
-	int length;
+	int length; /* position where data is appended */
 	int maxlen;
 	/* Misnomer! it's not "quoting", it's "protection against globbing"!
 	 * (by prepending \ to *, ?, [ and to \ too) */
@@ -1955,6 +1968,12 @@ static void debug_print_tree(struct pipe *pi, int lvl)
 		[RES_DONE ] = "DONE" ,
 		[RES_IN   ] = "IN"   ,
 #endif
+#if ENABLE_HUSH_CASE
+		[RES_CASE ] = "CASE" ,
+		[RES_MATCH] = "MATCH",
+		[RES_CASEI] = "CASEI",
+		[RES_ESAC ] = "ESAC" ,
+#endif
 		[RES_XXXX ] = "XXXX" ,
 		[RES_SNTX ] = "SNTX" ,
 	};
@@ -2003,6 +2022,9 @@ static int run_list(struct pipe *pi)
 	char **for_list = NULL;
 	int flag_rep = 0;
 #endif
+#if ENABLE_HUSH_CASE
+	char *case_word = NULL;
+#endif
 	int flag_skip = 1;
 	int rcode = 0; /* probably for gcc only */
 	int flag_restore = 0;
@@ -2019,17 +2041,20 @@ static int run_list(struct pipe *pi)
 #if ENABLE_HUSH_LOOPS
 	/* check syntax for "for" */
 	for (rpipe = pi; rpipe; rpipe = rpipe->next) {
-		if ((rpipe->res_word == RES_IN || rpipe->res_word == RES_FOR)
-		 && (rpipe->next == NULL)
-		) {
-			syntax("malformed for"); /* no IN or no commands after IN */
+		if (rpipe->res_word != RES_FOR && rpipe->res_word != RES_IN)
+			continue;
+		/* current word is FOR or IN (BOLD in comments below) */
+		if (rpipe->next == NULL) {
+			syntax("malformed for");
 			debug_printf_exec("run_list lvl %d return 1\n", run_list_level);
 			return 1;
 		}
-		if (/* Extra statement after IN: "for a in a b; echo Hi; do ...; done" ? */
-		    (rpipe->res_word == RES_IN && rpipe->next->res_word == RES_IN && rpipe->next->progs[0].argv != NULL)
-		/* FOR not followed by IN or DO ("for var; do..." case)? */
-		 || (rpipe->res_word == RES_FOR && (rpipe->next->res_word != RES_IN && rpipe->next->res_word != RES_DO))
+		/* "FOR v; do ..." and "for v IN a b; do..." are ok */
+		if (rpipe->next->res_word == RES_DO)
+			continue;
+		/* next word is not "do". It must be "in" then ("FOR v in ...") */
+		if (rpipe->res_word == RES_IN /* "for v IN a b; not_do..."? */
+		 || rpipe->next->res_word != RES_IN /* FOR v not_do_and_not_in..."? */
 		) {
 			syntax("malformed for");
 			debug_printf_exec("run_list lvl %d return 1\n", run_list_level);
@@ -2136,8 +2161,8 @@ static int run_list(struct pipe *pi)
 				/* create list of variable values */
 				debug_print_strings("for_list made from", vals);
 				for_list = expand_strvec_to_strvec(vals);
-				debug_print_strings("for_list", for_list);
 				for_lcur = for_list;
+				debug_print_strings("for_list", for_list);
 				for_varname = pi->progs->argv[0];
 				pi->progs->argv[0] = NULL;
 				flag_rep = 1;
@@ -2169,6 +2194,26 @@ static int run_list(struct pipe *pi)
 			}
 		}
 #endif
+#if ENABLE_HUSH_CASE
+		if (rword == RES_CASE) {
+			case_word = pi->progs->argv[0];
+			continue;
+		}
+		if (rword == RES_MATCH) {
+			if (case_word) {
+				next_if_code = strcmp(case_word, pi->progs->argv[0]);
+				if (next_if_code == 0)
+					case_word = NULL;
+				continue;
+			}
+			break;
+		}
+		if (rword == RES_CASEI) {
+			if (next_if_code != 0)
+				continue;
+		}
+#endif
+
 		if (pi->num_progs == 0)
 			continue;
 		debug_printf_exec(": run_pipe with %d members\n", pi->num_progs);
@@ -2193,8 +2238,7 @@ static int run_list(struct pipe *pi)
 				rcode = checkjobs_and_fg_shell(pi);
 			} else
 #endif
-			{
-				/* this one just waits for completion */
+			{ /* this one just waits for completion */
 				rcode = checkjobs(pi);
 			}
 			debug_printf_exec(": checkjobs returned %d\n", rcode);
@@ -2217,12 +2261,13 @@ static int run_list(struct pipe *pi)
 			skip_more_for_this_rword = rword;
 		}
 		checkjobs(NULL);
-	}
+	} /* for (pi) */
 
 #if ENABLE_HUSH_JOB
 	if (ctrl_z_flag) {
 		/* ctrl-Z forked somewhere in the past, we are the child,
 		 * and now we completed running the list. Exit. */
+//TODO: _exit?
 		exit(rcode);
 	}
  ret:
@@ -2821,6 +2866,10 @@ static int reserved_word(const o_string *word, struct p_context *ctx)
 		FLAG_DONE  = (1 << RES_DONE ),
 		FLAG_IN    = (1 << RES_IN   ),
 #endif
+#if ENABLE_HUSH_CASE
+		FLAG_MATCH = (1 << RES_MATCH),
+		FLAG_ESAC  = (1 << RES_ESAC ),
+#endif
 		FLAG_START = (1 << RES_XXXX ),
 	};
 	/* Mostly a list of accepted follow-up reserved words.
@@ -2843,16 +2892,30 @@ static int reserved_word(const o_string *word, struct p_context *ctx)
 		{ "until", RES_UNTIL, FLAG_DO | FLAG_START },
 		{ "in",    RES_IN,    FLAG_DO   },
 		{ "do",    RES_DO,    FLAG_DONE },
-		{ "done",  RES_DONE,  FLAG_END  }
+		{ "done",  RES_DONE,  FLAG_END  },
+#endif
+#if ENABLE_HUSH_CASE
+		{ "case",  RES_CASE,  FLAG_MATCH | FLAG_START },
+		{ "esac",  RES_ESAC,  FLAG_END  },
 #endif
 	};
-
+#if ENABLE_HUSH_CASE
+	static const struct reserved_combo reserved_match = {
+		"" /* "match" */, RES_MATCH, FLAG_MATCH | FLAG_ESAC
+	};
+#endif
 	const struct reserved_combo *r;
 
 	for (r = reserved_list;	r < reserved_list + ARRAY_SIZE(reserved_list); r++) {
 		if (strcmp(word->data, r->literal) != 0)
 			continue;
 		debug_printf("found reserved word %s, res %d\n", r->literal, r->res);
+#if ENABLE_HUSH_CASE
+		if (r->res == RES_IN && ctx->ctx_res_w == RES_CASE)
+			/* "case word IN ..." - IN part starts first match part */
+			r = &reserved_match;
+		else
+#endif
 		if (r->flag == 0) { /* '!' */
 			if (ctx->ctx_inverted) { /* bash doesn't accept '! ! true' */
 				syntax(NULL);
@@ -2864,13 +2927,6 @@ static int reserved_word(const o_string *word, struct p_context *ctx)
 		if (r->flag & FLAG_START) {
 			struct p_context *new;
 			debug_printf("push stack\n");
-#if ENABLE_HUSH_LOOPS
-			if (ctx->ctx_res_w == RES_IN || ctx->ctx_res_w == RES_FOR) {
-				syntax("malformed for"); /* example: 'for if' */
-				ctx->ctx_res_w = RES_SNTX;
-				return 1;
-			}
-#endif
 			new = xmalloc(sizeof(*new));
 			*new = *ctx;   /* physical copy */
 			initialize_context(ctx);
@@ -2924,12 +2980,20 @@ static int done_word(o_string *word, struct p_context *ctx)
 		word->o_assignment = NOT_ASSIGNMENT;
 		debug_printf("word stored in rd_filename: '%s'\n", word->data);
 	} else {
-		if (child->group) { /* TODO: example how to trigger? */
-			syntax(NULL);
-			debug_printf_parse("done_word return 1: syntax error, groups and arglists don't mix\n");
-			return 1;
-		}
+//		if (child->group) { /* TODO: example how to trigger? */
+//			syntax(NULL);
+//			debug_printf_parse("done_word return 1: syntax error, groups and arglists don't mix\n");
+//			return 1;
+//		}
 #if HAS_KEYWORDS
+#if ENABLE_HUSH_CASE
+		if (ctx->ctx_dsemicolon) {
+			/* already done when ctx_dsemicolon was set to 1 */
+			/* ctx->ctx_res_w = RES_MATCH; */
+			ctx->ctx_dsemicolon = 0;
+		} else
+#endif
+
 		if (!child->argv /* if it's the first word... */
 #if ENABLE_HUSH_LOOPS
 		 && ctx->ctx_res_w != RES_FOR /* ...not after FOR or IN */
@@ -2981,6 +3045,12 @@ static int done_word(o_string *word, struct p_context *ctx)
 	 * in parse tree. */
 	if (ctx->ctx_res_w == RES_FOR) {
 //TODO: check that child->argv[0] is a valid variable name!
+		done_pipe(ctx, PIPE_SEQ);
+	}
+#endif
+#if ENABLE_HUSH_CASE
+	/* Force CASE to have just one word */
+	if (ctx->ctx_res_w == RES_CASE) {
 		done_pipe(ctx, PIPE_SEQ);
 	}
 #endif
@@ -3055,6 +3125,10 @@ static void done_pipe(struct p_context *ctx, pipe_style type)
 		if (ctx->ctx_res_w == RES_FOR
 		 || ctx->ctx_res_w == RES_IN)
 			ctx->ctx_res_w = RES_NONE;
+#endif
+#if ENABLE_HUSH_CASE
+		if (ctx->ctx_res_w == RES_MATCH)
+			ctx->ctx_res_w = RES_CASEI;
 #endif
 		/* Create the memory for child, roughly:
 		 * ctx->pipe->progs = new struct child_prog;
@@ -3458,10 +3532,9 @@ static int handle_dollar(o_string *dest, struct in_str *input)
 }
 
 /* Scan input, call done_word() whenever full IFS delimited word was seen.
- * call done_pipe if '\n' was seen (and end_trigger != NULL)
- * Return if (non-quoted) char in end_trigger was seen; or on parse error. */
-/* Return code is 0 if end_trigger char is met,
- * -1 on EOF (but if end_trigger == NULL then return 0)
+ * Call done_pipe if '\n' was seen (and end_trigger != NULL).
+ * Return code is 0 if end_trigger char is met,
+ * -1 on EOF (but if end_trigger == NULL then return 0),
  * 1 for syntax error */
 static int parse_stream(o_string *dest, struct p_context *ctx,
 	struct in_str *input, const char *end_trigger)
@@ -3664,8 +3737,26 @@ static int parse_stream(o_string *dest, struct p_context *ctx,
 			setup_redirect(ctx, redir_fd, redir_style, input);
 			break;
 		case ';':
+#if ENABLE_HUSH_CASE
+ case_semi:
+#endif
 			done_word(dest, ctx);
 			done_pipe(ctx, PIPE_SEQ);
+#if ENABLE_HUSH_CASE
+			/* Eat multiple semicolons, detect
+			 * whether it means something special */
+			while (1) {
+				ch = i_peek(input);
+				if (ch != ';')
+					break;
+				i_getch(input);
+				if (ctx->ctx_res_w == RES_CASEI) {
+					ctx->ctx_dsemicolon = 1;
+					ctx->ctx_res_w = RES_MATCH;
+					break;
+				}
+			}
+#endif
 			break;
 		case '&':
 			done_word(dest, ctx);
@@ -3689,6 +3780,13 @@ static int parse_stream(o_string *dest, struct p_context *ctx,
 			}
 			break;
 		case '(':
+#if ENABLE_HUSH_CASE
+			if (dest->length == 0 // && argv[0] == NULL
+			 && ctx->ctx_res_w == RES_MATCH
+			) {
+				continue;
+			}
+#endif
 		case '{':
 			if (parse_group(dest, ctx, input, ch) != 0) {
 				debug_printf_parse("parse_stream return 1: parse_group returned non-0\n");
@@ -3696,6 +3794,10 @@ static int parse_stream(o_string *dest, struct p_context *ctx,
 			}
 			break;
 		case ')':
+#if ENABLE_HUSH_CASE
+			if (ctx->ctx_res_w == RES_MATCH)
+				goto case_semi;
+#endif
 		case '}':
 			/* proper use of this character is caught by end_trigger */
 			syntax("unexpected } or )");
