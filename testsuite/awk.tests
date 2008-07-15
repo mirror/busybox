@@ -1,12 +1,11 @@
 #!/bin/sh
 
-# awk tests.
 # Copyright 2007 by Denys Vlasenko <vda.linux@googlemail.com>
 # Licensed under GPL v2, see file LICENSE for details.
 
 . testing.sh
 
-# testing "description" "arguments" "result" "infile" "stdin"
+# testing "description" "command" "result" "infile" "stdin"
 
 testing "awk -F case 0" "awk -F '[#]' '{ print NF }'" ""    "" ""
 testing "awk -F case 1" "awk -F '[#]' '{ print NF }'" "0\n" "" "\n"
