@@ -618,7 +618,7 @@ extern char *xmalloc_fgets(FILE *file) FAST_FUNC;
 /* Chops off '\n' from the end, unlike fgets: */
 extern char *xmalloc_fgetline(FILE *file) FAST_FUNC;
 /* Same, but doesn't try to conserve space (may have some slack after the end) */
-extern char *xmalloc_fgetline_fast(FILE *file) FAST_FUNC;
+/* extern char *xmalloc_fgetline_fast(FILE *file) FAST_FUNC; */
 
 extern void die_if_ferror(FILE *file, const char *msg) FAST_FUNC;
 extern void die_if_ferror_stdout(void) FAST_FUNC;
@@ -1006,6 +1006,7 @@ typedef struct parser_t {
 } parser_t;
 extern FILE* config_open(parser_t *parser, const char *filename) FAST_FUNC;
 #endif
+/* TODO: add define magic to collapse ntokens/mintokens/comment into one int param */
 extern char* config_read(parser_t *parser, char **tokens, int ntokens, int mintokens, const char *delims, char comment) FAST_FUNC;
 extern void config_close(parser_t *parser) FAST_FUNC;
 

@@ -68,12 +68,24 @@ char* FAST_FUNC xmalloc_fgetline(FILE *file)
 	return c;
 }
 
+#if 0
 /* Faster routines (~twice as fast). +170 bytes. Unused as of 2008-07.
  *
  * NB: they stop at NUL byte too.
  * Performance is important here. Think "grep 50gigabyte_file"...
- * Iironically, grep can't use it because of NUL issue.
+ * Ironically, grep can't use it because of NUL issue.
  * We sorely need C lib to provide fgets which reports size!
+ *
+ * Update:
+ * Actually, uclibc and glibc have it. man getline. It's GNUism,
+ *   but very useful one (if it's as fast as this code).
+ * TODO:
+ * - currently, sed and sort use bb_get_chunk_from_file and heavily
+ *   depend on its "stop on \n or \0" behavior, and STILL they fail
+ *   to handle all cases with embedded NULs correctly. So:
+ * - audit sed and sort; convert them to getline FIRST.
+ * - THEN ditch bb_get_chunk_from_file, replace it with getline.
+ * - provide getline implementation for non-GNU systems.
  */
 
 static char* xmalloc_fgets_internal(FILE *file, int *sizep)
@@ -118,7 +130,6 @@ char* FAST_FUNC xmalloc_fgetline_fast(FILE *file)
 	return r; /* not xrealloc(r, sz + 1)! */
 }
 
-#if 0
 char* FAST_FUNC xmalloc_fgets(FILE *file)
 {
 	int sz;
