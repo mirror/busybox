@@ -987,6 +987,28 @@ int bb_ask_confirmation(void) FAST_FUNC;
 
 extern int bb_parse_mode(const char* s, mode_t* theMode) FAST_FUNC;
 
+/*
+ * Uniform config file parser helpers
+ */
+#define PARSER_STDIO_BASED 1
+#if !PARSER_STDIO_BASED
+typedef struct parser_t {
+	char *data;
+	char *line;
+	int lineno;
+} parser_t;
+extern char* config_open(parser_t *parser, const char *filename) FAST_FUNC;
+#else
+typedef struct parser_t {
+	FILE *fp;
+	char *line;
+	int lineno;
+} parser_t;
+extern FILE* config_open(parser_t *parser, const char *filename) FAST_FUNC;
+#endif
+extern char* config_read(parser_t *parser, char **tokens, int ntokens, int mintokens, const char *delims, char comment) FAST_FUNC;
+extern void config_close(parser_t *parser) FAST_FUNC;
+
 /* Concatenate path and filename to new allocated buffer.
  * Add "/" only as needed (no duplicate "//" are produced).
  * If path is NULL, it is assumed to be "/".

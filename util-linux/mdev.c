@@ -25,16 +25,6 @@ struct globals {
 /* We use additional 64+ bytes in make_device() */
 #define SCRATCH_SIZE 80
 
-static char *next_field(char *s)
-{
-	char *end = skip_non_whitespace(s);
-	s = skip_whitespace(end);
-	*end = '\0';
-	if (*s == '\0')
-		s = NULL;
-	return s;
-}
-
 /* Builds an alias path.
  * This function potentionally reallocates the alias parameter.
  */
@@ -104,33 +94,26 @@ static void make_device(char *path, int delete)
 	        type = S_IFBLK;
 
 	if (ENABLE_FEATURE_MDEV_CONF) {
-		FILE *fp;
-		char *line, *val, *next;
-		unsigned lineno = 0;
+		parser_t parser;
+		char *tokens[5];
 
 		/* If we have config file, look up user settings */
-		fp = fopen_or_warn("/etc/mdev.conf", "r");
-		if (!fp)
+		if (!config_open(&parser, "/etc/mdev.conf"))
 			goto end_parse;
 
-		while ((line = xmalloc_fgetline(fp)) != NULL) {
+		while (config_read(&parser, tokens, 4, 3, " \t", '#')) {
 			regmatch_t off[1+9*ENABLE_FEATURE_MDEV_RENAME_REGEXP];
-
-			++lineno;
-			trim(line);
-			if (!line[0])
-				goto next_line;
+			char *val;
 
 			/* Fields: regex uid:gid mode [alias] [cmd] */
 
 			/* 1st field: regex to match this device */
-			next = next_field(line);
 			{
 				regex_t match;
 				int result;
 
 				/* Is this it? */
-				xregcomp(&match, line, REG_EXTENDED);
+				xregcomp(&match, tokens[0], REG_EXTENDED);
 				result = regexec(&match, device_name, ARRAY_SIZE(off), off, 0);
 				regfree(&match);
 
@@ -147,7 +130,7 @@ static void make_device(char *path, int delete)
 				if (result || off[0].rm_so
 				 || ((int)off[0].rm_eo != (int)strlen(device_name))
 				) {
-					goto next_line;
+					continue;
 				}
 			}
 
@@ -155,15 +138,11 @@ static void make_device(char *path, int delete)
 			 * after parsing the rest of fields */
 
 			/* 2nd field: uid:gid - device ownership */
-			if (!next) /* field must exist */
-				bb_error_msg_and_die("bad line %u", lineno);
-			val = next;
-			next = next_field(val);
 			{
 				struct passwd *pass;
 				struct group *grp;
-				char *str_uid = val;
-				char *str_gid = strchrnul(val, ':');
+				char *str_uid = tokens[1];
+				char *str_gid = strchrnul(str_uid, ':');
 
 				if (*str_gid)
 					*str_gid++ = '\0';
@@ -182,33 +161,30 @@ static void make_device(char *path, int delete)
 			}
 
 			/* 3rd field: mode - device permissions */
-			if (!next) /* field must exist */
-				bb_error_msg_and_die("bad line %u", lineno);
-			val = next;
-			next = next_field(val);
-			mode = strtoul(val, NULL, 8);
+			mode = strtoul(tokens[2], NULL, 8);
 
+			val = tokens[3];
 			/* 4th field (opt): >alias */
 #if ENABLE_FEATURE_MDEV_RENAME
-			if (!next)
+			if (!val)
 				break;
-			if (*next == '>' || *next == '=') {
-#if ENABLE_FEATURE_MDEV_RENAME_REGEXP
+			aliaslink = *val;
+			if (aliaslink == '>' || aliaslink == '=') {
 				char *s, *p;
 				unsigned i, n;
-
-				aliaslink = *next;
-				val = next;
-				next = next_field(val);
+				char *a = val;
+				s = strchr(val, ' ');
+				val = (s && s[1]) ? s+1 : NULL;
+#if ENABLE_FEATURE_MDEV_RENAME_REGEXP
 				/* substitute %1..9 with off[1..9], if any */
 				n = 0;
-				s = val;
+				s = a;
 				while (*s)
 					if (*s++ == '%')
 						n++;
 
-				p = alias = xzalloc(strlen(val) + n * strlen(device_name));
-				s = val + 1;
+				p = alias = xzalloc(strlen(a) + n * strlen(device_name));
+				s = a + 1;
 				while (*s) {
 					*p = *s;
 					if ('%' == *s) {
@@ -224,24 +200,20 @@ static void make_device(char *path, int delete)
 					s++;
 				}
 #else
-				aliaslink = *next;
-				val = next;
-				next = next_field(val);
-				alias = xstrdup(val + 1);
+				alias = xstrdup(a + 1);
 #endif
 			}
 #endif /* ENABLE_FEATURE_MDEV_RENAME */
 
 			/* The rest (opt): command to run */
-			if (!next)
+			if (!val)
 				break;
-			val = next;
 			if (ENABLE_FEATURE_MDEV_EXEC) {
 				const char *s = "@$*";
 				const char *s2 = strchr(s, *val);
 
 				if (!s2)
-					bb_error_msg_and_die("bad line %u", lineno);
+					bb_error_msg_and_die("bad line %u", parser.lineno);
 
 				/* Correlate the position in the "@$*" with the delete
 				 * step so that we get the proper behavior:
@@ -255,12 +227,9 @@ static void make_device(char *path, int delete)
 			}
 			/* end of field parsing */
 			break; /* we found matching line, stop */
- next_line:
-			free(line);
 		} /* end of "while line is read from /etc/mdev.conf" */
 
-		free(line); /* in case we used "break" to get here */
-		fclose(fp);
+		config_close(&parser);
 	}
  end_parse:
 

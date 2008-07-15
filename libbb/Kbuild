@@ -63,6 +63,7 @@ lib-y += mode_string.o
 lib-y += mtab_file.o
 lib-y += obscure.o
 lib-y += parse_mode.o
+lib-y += parse_config.o
 lib-y += perror_msg.o
 lib-y += perror_msg_and_die.o
 lib-y += perror_nomsg.o
