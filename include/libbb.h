@@ -607,6 +607,8 @@ extern void xopen_xwrite_close(const char* file, const char *str) FAST_FUNC;
 
 /* Reads and prints to stdout till eof, then closes FILE. Exits on error: */
 extern void xprint_and_close_file(FILE *file) FAST_FUNC;
+
+extern char *bb_get_chunk_from_file(FILE *file, int *end) FAST_FUNC;
 /* Reads up to (and including) TERMINATING_STRING: */
 extern char *xmalloc_fgets_str(FILE *file, const char *terminating_string) FAST_FUNC;
 /* Chops off TERMINATING_STRING from the end: */
@@ -615,7 +617,9 @@ extern char *xmalloc_fgetline_str(FILE *file, const char *terminating_string) FA
 extern char *xmalloc_fgets(FILE *file) FAST_FUNC;
 /* Chops off '\n' from the end, unlike fgets: */
 extern char *xmalloc_fgetline(FILE *file) FAST_FUNC;
-extern char *bb_get_chunk_from_file(FILE *file, int *end) FAST_FUNC;
+/* Same, but doesn't try to conserve space (may have some slack after the end) */
+extern char *xmalloc_fgetline_fast(FILE *file) FAST_FUNC;
+
 extern void die_if_ferror(FILE *file, const char *msg) FAST_FUNC;
 extern void die_if_ferror_stdout(void) FAST_FUNC;
 extern void xfflush_stdout(void) FAST_FUNC;
