@@ -374,8 +374,6 @@ static void load_firmware(const char *const firmware, const char *const sysfs_pa
 int mdev_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int mdev_main(int argc UNUSED_PARAM, char **argv)
 {
-	char *action;
-	char *env_path;
 	RESERVE_CONFIG_BUFFER(temp, PATH_MAX + SCRATCH_SIZE);
 
 	/* We can be called as hotplug helper */
@@ -417,8 +415,14 @@ int mdev_main(int argc UNUSED_PARAM, char **argv)
 			ACTION_RECURSE | ACTION_FOLLOWLINKS,
 			fileAction, dirAction, temp, 0);
 	} else {
+		char *seq;
+		char *action;
+		char *env_path;
+		char seqbuf[sizeof(int)*3 + 2];
+		int seqlen = seqlen; /* for compiler */
+
 		/* Hotplug:
-		 * env ACTION=... DEVPATH=... mdev
+		 * env ACTION=... DEVPATH=... [SEQNUM=...] mdev
 		 * ACTION can be "add" or "remove"
 		 * DEVPATH is like "/block/sda" or "/class/input/mice"
 		 */
@@ -426,6 +430,23 @@ int mdev_main(int argc UNUSED_PARAM, char **argv)
 		env_path = getenv("DEVPATH");
 		if (!action || !env_path)
 			bb_show_usage();
+
+		seq = getenv("SEQNUM");
+		if (seq) {
+			int timeout = 2000 / 32;
+			do {
+				seqlen = open_read_close("mdev.seq", seqbuf, sizeof(seqbuf-1));
+				if (seqlen < 0)
+					break;
+				seqbuf[seqlen] = '\0';
+				if (seqbuf[0] == '\n' /* seed file? */
+				 || strcmp(seq, seqbuf) == 0 /* correct idx? */
+				) {
+					break;
+				}
+				usleep(32*1000);
+			} while (--timeout);
+		}
 
 		snprintf(temp, PATH_MAX, "/sys%s", env_path);
 		if (!strcmp(action, "remove"))
@@ -438,6 +459,10 @@ int mdev_main(int argc UNUSED_PARAM, char **argv)
 				if (fw)
 					load_firmware(fw, temp);
 			}
+		}
+
+		if (seq && seqlen >= 0) {
+			xopen_xwrite_close("mdev.seq", utoa(xatou(seq) + 1));
 		}
 	}
 

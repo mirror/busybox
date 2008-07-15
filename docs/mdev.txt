@@ -95,3 +95,26 @@ properly initialize a device.  Place all such firmware files into the
 filename of the firmware which mdev will load out of /lib/firmware/ and into
 the kernel via the sysfs interface.  The exact filename is hardcoded in the
 kernel, so look there if you need to know how to name the file in userspace.
+
+------------
+ SEQUENCING
+------------
+
+Kernel does not serialize hotplug events. It increments SEQNUM environmental
+variable for each successive hotplug invocation. Normally, mdev doesn't care.
+This may reorder hotplug and hot-unplug events, with typical symptoms of
+device nodes sometimes not created as expected.
+
+However, if /dev/mdev.seq file is found, mdev will compare its
+contents with SEQNUM. It will retry up to two seconds, waiting for them
+to match. If they match exactly (not even trailing '\n' is allowed),
+or if two seconds pass, mdev runs as usual, then it rewrites /dev/mdev.seq
+with SEQNUM+1.
+
+IOW: this will serialize concurrent mdev invocations.
+
+If you want to activate this feature, execute "echo >/dev/mdev.seq" prior to
+setting mdev to be the hotplug handler. This writes single '\n' to the file.
+NB: mdev recognizes /dev/mdev.seq consisting of single '\n' characher
+as a special case. IOW: this will not make your first hotplug event
+to stall for two seconds.
