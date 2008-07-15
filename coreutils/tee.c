@@ -50,10 +50,13 @@ int tee_main(int argc, char **argv)
 	files[0] = stdout;
 	goto GOT_NEW_FILE;
 	do {
-		*fp = fopen_or_warn(*argv, mode);
-		if (*fp == NULL) {
-			retval = EXIT_FAILURE;
-			continue;
+		*fp = stdout;
+		if (NOT_LONE_DASH(*argv)) {
+			*fp = fopen_or_warn(*argv, mode);
+			if (*fp == NULL) {
+				retval = EXIT_FAILURE;
+				continue;
+			}
 		}
 		*np = *argv++;
  GOT_NEW_FILE:
