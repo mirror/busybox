@@ -394,7 +394,7 @@ int sendgetmail_main(int argc UNUSED_PARAM, char **argv)
 			// fetch recipients and (optionally) subject
 			char *s;
 			while ((s = xmalloc_reads(INITIAL_STDIN_FILENO, NULL, NULL)) != NULL) {
-				if (0 == strncmp("To: ", s, 4)) {
+				if (0 == strncasecmp("To: ", s, 4) || 0 == strncasecmp("Cc: ", s, 4)) {
 					llist_add_to_end(&opt_recipients, s+4);
 /*				} else if (0 == strncmp("From: ", s, 6)) {
 					opt_from = s+6;
