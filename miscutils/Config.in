@@ -342,7 +342,7 @@ config FEATURE_HDPARM_HDIO_UNREGISTER_HWIF
 	  This is dangerous stuff, so you should probably say N.
 
 config FEATURE_HDPARM_HDIO_DRIVE_RESET
-	bool "perform device reset (DANGEROUS)"
+	bool "Perform device reset (DANGEROUS)"
 	default n
 	depends on HDPARM
 	help
@@ -350,7 +350,7 @@ config FEATURE_HDPARM_HDIO_DRIVE_RESET
 	  This is dangerous stuff, so you should probably say N.
 
 config FEATURE_HDPARM_HDIO_TRISTATE_HWIF
-	bool "tristate device for hotswap (DANGEROUS)"
+	bool "Tristate device for hotswap (DANGEROUS)"
 	default n
 	depends on HDPARM
 	help
@@ -359,7 +359,7 @@ config FEATURE_HDPARM_HDIO_TRISTATE_HWIF
 	  stuff, so you should probably say N.
 
 config FEATURE_HDPARM_HDIO_GETSET_DMA
-	bool "get/set using_dma flag (DANGEROUS)"
+	bool "Get/set using_dma flag (DANGEROUS)"
 	default n
 	depends on HDPARM
 	help

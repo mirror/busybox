@@ -23,7 +23,7 @@
 /* This is a NOFORK applet. Be very careful! */
 
 
-#if ENABLE_FEATURE_FANCY_SLEEP
+#if ENABLE_FEATURE_FANCY_SLEEP || ENABLE_FEATURE_FLOAT_SLEEP
 static const struct suffix_mult sfx[] = {
 	{ "s", 1 },
 	{ "m", 60 },
@@ -36,7 +36,7 @@ static const struct suffix_mult sfx[] = {
 int sleep_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int sleep_main(int argc UNUSED_PARAM, char **argv)
 {
-#if ENABLE_FEATURE_FANCY_SLEEP && ENABLE_DESKTOP
+#if ENABLE_FEATURE_FLOAT_SLEEP
 	double duration;
 	struct timespec ts;
 #else
@@ -47,7 +47,7 @@ int sleep_main(int argc UNUSED_PARAM, char **argv)
 	if (!*argv)
 		bb_show_usage();
 
-#if ENABLE_FEATURE_FANCY_SLEEP && ENABLE_DESKTOP
+#if ENABLE_FEATURE_FLOAT_SLEEP
 
 	duration = 0;
 	do {

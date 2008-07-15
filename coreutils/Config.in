@@ -509,17 +509,32 @@ config SHA1SUM
 	  Compute and check SHA1 message digest
 
 config SLEEP
-	bool "sleep (single integer arg with no suffix)"
+	bool "sleep"
 	default n
 	help
-	  sleep is used to pause for a specified number of seconds,
+	  sleep is used to pause for a specified number of seconds.
+	  It comes in 3 versions:
+	  - small: takes one integer parameter
+	  - fancy: takes multiple integer arguments with suffixes:
+	    sleep 1d 2h 3m 15s
+	  - fancy with fractional numbers:
+	    sleep 2.3s 4.5h sleeps for 16202.3 seconds
+	  Last one is "the most compatible" with coreutils sleep,
+	  but it adds around 1k of code.
 
 config FEATURE_FANCY_SLEEP
-	bool "Enable multiple integer args and optional time suffixes"
+	bool "Enable multiple arguments and s/m/h/d suffixes"
 	default n
 	depends on SLEEP
 	help
 	  Allow sleep to pause for specified minutes, hours, and days.
+
+config FEATURE_FLOAT_SLEEP
+	bool "Enable fractional arguments"
+	default n
+	depends on FEATURE_FANCY_SLEEP
+	help
+	  Allow for fractional numeric parameters.
 
 config SORT
 	bool "sort"
@@ -532,7 +547,7 @@ config FEATURE_SORT_BIG
 	default y
 	depends on SORT
 	help
-	  Without this, sort only supports  -r, -u, and an integer version
+	  Without this, sort only supports -r, -u, and an integer version
 	  of -n.  Selecting this adds sort keys, floating point support, and
 	  more.  This adds a little over 3k to a nonstatic build on x86.
 
