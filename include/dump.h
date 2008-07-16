@@ -22,7 +22,7 @@ enum _vflag { ALL, DUP, FIRST, WAIT };	/* -v values */
 
 typedef struct _pr {
 	struct _pr *nextpr;		/* next print unit */
-	unsigned int flags;			/* flag values */
+	unsigned flags;			/* flag values */
 	int bcnt;			/* byte count */
 	char *cchar;			/* conversion character */
 	char *fmt;			/* printf format */
@@ -32,7 +32,7 @@ typedef struct _pr {
 typedef struct _fu {
 	struct _fu *nextfu;		/* next format unit */
 	struct _pr *nextpr;		/* next print unit */
-	unsigned int flags;			/* flag values */
+	unsigned flags;			/* flag values */
 	int reps;			/* repetition count */
 	int bcnt;			/* byte count */
 	char *fmt;			/* format string */
@@ -48,11 +48,11 @@ extern void bb_dump_add(const char *fmt) FAST_FUNC;
 extern int bb_dump_dump(char **argv) FAST_FUNC;
 extern int bb_dump_size(FS * fs) FAST_FUNC;
 
-extern FS *bb_dump_fshead;		/* head of format strings */
-extern int bb_dump_blocksize;				/* data block size */
-extern int bb_dump_length;			/* max bytes to read */
-extern enum _vflag bb_dump_vflag;
-extern off_t bb_dump_skip;                      /* bytes to skip */
+extern FS *bb_dump_fshead;              /* head of format strings */
+extern int bb_dump_blocksize;           /* data block size */
+extern int bb_dump_length;              /* max bytes to read */
+extern smallint /*enum _vflag*/ bb_dump_vflag;
+extern off_t bb_dump_skip;              /* bytes to skip */
 
 #if __GNUC_PREREQ(4,1)
 # pragma GCC visibility pop
