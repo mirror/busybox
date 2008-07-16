@@ -262,7 +262,7 @@ int cpio_main(int argc UNUSED_PARAM, char **argv)
 		CPIO_OPT_FORMAT             = (1 << 8),
 	};
 
-#if ENABLE_GETOPT_LONG && ENABLE_DESKTOP
+#if ENABLE_GETOPT_LONG
 	applet_long_options =
 		"extract\0"      No_argument       "i"
 		"list\0"         No_argument       "t"
