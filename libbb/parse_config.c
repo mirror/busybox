@@ -19,7 +19,7 @@ Typical usage:
 	// open file
 	if (config_open(filename, &p)) {
 		// parse line-by-line
-		while (*config_read(&p, t, 3, 0, delimiters, comment_char)) { // 0..3 tokens
+		while (*config_read(&p, t, 3, 0, delimiters, comment_char) >= 0) { // 0..3 tokens
 			// use tokens
 			bb_error_msg("TOKENS: [%s][%s][%s]", t[0], t[1], t[2]);
 		}
@@ -77,7 +77,7 @@ int FAST_FUNC config_read(parser_t *parser, char **tokens, int ntokens, int mint
 //TODO: speed up xmalloc_fgetline by internally using fgets, not fgetc
 		line = xmalloc_fgetline(parser->fp);
 		if (!line)
-			return line;
+			return -1;
 
 		parser->lineno++;
 		// handle continuations. Tito's code stolen :)

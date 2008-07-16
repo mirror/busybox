@@ -163,7 +163,7 @@ int nameif_main(int argc, char **argv)
 		struct parser_t parser;
 		if (config_open(&parser, fname)) {
 			char *tokens[2];
-			while (config_read(&parser, tokens, 2, 2, " \t", '#'))
+			while (config_read(&parser, tokens, 2, 2, " \t", '#') >= 0)
 				prepend_new_eth_table(&clist, tokens[0], tokens[1]);
 			config_close(&parser);
 		}

@@ -101,7 +101,7 @@ static void make_device(char *path, int delete)
 		if (!config_open(&parser, "/etc/mdev.conf"))
 			goto end_parse;
 
-		while (config_read(&parser, tokens, 4, 3, " \t", '#')) {
+		while (config_read(&parser, tokens, 4, 3, " \t", '#') >= 0) {
 			regmatch_t off[1+9*ENABLE_FEATURE_MDEV_RENAME_REGEXP];
 			char *val;
 

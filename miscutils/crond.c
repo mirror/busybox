@@ -468,7 +468,7 @@ static void SynchronizeFile(const char *fileName)
 		file->cf_User = xstrdup(fileName);
 		pline = &file->cf_LineBase;
 
-		while (--maxLines && (n=config_read(&parser, tokens, 6, 0, " \t", '#')) > 0) {
+		while (--maxLines && (n=config_read(&parser, tokens, 6, 0, " \t", '#')) >= 0) {
 			CronLine *line;
 
 			if (DebugOpt) {
