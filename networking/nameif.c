@@ -160,21 +160,13 @@ int nameif_main(int argc, char **argv)
 			prepend_new_eth_table(&clist, ifname, *argv++);
 		}
 	} else {
-		ifh = xfopen(fname, "r");
-		while ((line = xmalloc_fgets(ifh)) != NULL) {
-			char *next;
-
-			line_ptr = skip_whitespace(line);
-			if ((line_ptr[0] == '#') || (line_ptr[0] == '\n'))
-				goto read_next_line;
-			next = skip_non_whitespace(line_ptr);
-			if (*next)
-				*next++ = '\0';
-			prepend_new_eth_table(&clist, line_ptr, next);
-			read_next_line:
-			free(line);
+		struct parser_t parser;
+		if (config_open(&parser, fname)) {
+			char *tokens[2];
+			while (config_read(&parser, tokens, 2, 2, " \t", '#'))
+				prepend_new_eth_table(&clist, tokens[0], tokens[1]);
+			config_close(&parser);
 		}
-		fclose(ifh);
 	}
 
 	ctl_sk = xsocket(PF_INET, SOCK_DGRAM, 0);

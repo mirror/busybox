@@ -985,30 +985,20 @@ extern int set_loop(char **devname, const char *file, unsigned long long offset)
 char *bb_askpass(int timeout, const char * prompt) FAST_FUNC;
 int bb_ask_confirmation(void) FAST_FUNC;
 
-extern int bb_parse_mode(const char* s, mode_t* theMode) FAST_FUNC;
+int bb_parse_mode(const char* s, mode_t* theMode) FAST_FUNC;
 
 /*
  * Uniform config file parser helpers
  */
-#define PARSER_STDIO_BASED 1
-#if !PARSER_STDIO_BASED
-typedef struct parser_t {
-	char *data;
-	char *line;
-	int lineno;
-} parser_t;
-extern char* config_open(parser_t *parser, const char *filename) FAST_FUNC;
-#else
 typedef struct parser_t {
 	FILE *fp;
-	char *line;
+	char *line, *data;
 	int lineno;
 } parser_t;
-extern FILE* config_open(parser_t *parser, const char *filename) FAST_FUNC;
-#endif
+FILE* config_open(parser_t *parser, const char *filename) FAST_FUNC;
 /* TODO: add define magic to collapse ntokens/mintokens/comment into one int param */
-extern char* config_read(parser_t *parser, char **tokens, int ntokens, int mintokens, const char *delims, char comment) FAST_FUNC;
-extern void config_close(parser_t *parser) FAST_FUNC;
+int config_read(parser_t *parser, char **tokens, int ntokens, int mintokens, const char *delims, char comment) FAST_FUNC;
+void config_close(parser_t *parser) FAST_FUNC;
 
 /* Concatenate path and filename to new allocated buffer.
  * Add "/" only as needed (no duplicate "//" are produced).

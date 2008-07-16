@@ -31,101 +31,6 @@ Typical usage:
 
 */
 
-#if !PARSER_STDIO_BASED
-
-char* FAST_FUNC config_open(parser_t *parser, const char *filename)
-{
-	// empty file configures nothing!
-	char *data = xmalloc_open_read_close(filename, NULL);
-	if (!data)
-		return data;
-
-	// convert 0x5c 0x0a (backslashes at the very end of line) to 0x20 0x20 (spaces)
-	for (char *s = data; (s = strchr(s, '\\')) != NULL; ++s)
-		if ('\n' == s[1]) {
-			s[0] = s[1] = ' ';
-		}
-
-	// init parser
-	parser->line = parser->data = data;
-	parser->lineno = 0;
-
-	return data;
-}
-
-void FAST_FUNC config_close(parser_t *parser)
-{
-	// for now just free config data
-	free(parser->data);
-}
-
-char* FAST_FUNC config_read(parser_t *parser, char **tokens, int ntokens, int mintokens, const char *delims, char comment)
-{
-	char *ret, *line;
-	int noreduce = (ntokens<0); // do not treat subsequent delimiters as one delimiter
-	if (ntokens < 0)
-		ntokens = -ntokens;
-	ret = line = parser->line;
-	// nullify tokens
-	memset(tokens, 0, sizeof(void *) * ntokens);
-	// now split to lines
-	while (*line) {
-		int token_num = 0;
-		// limit the line
-		char *ptr = strchrnul(line, '\n');
-		*ptr++ = '\0';
-		// line number
-		parser->lineno++;
-		// comments mean EOLs
-		if (comment)
-			*strchrnul(line, comment) = '\0';
-		// skip leading delimiters
-		while (*line && strchr(delims, *line))
-			line++;
-		// skip empty lines
-		if (*line) {
-			char *s;
-			// now split line to tokens
-			s = line;
-			while (s) {
-				char *p;
-				// get next token
-				if (token_num+1 >= ntokens)
-					break;
-				p = s;
-				while (*p && !strchr(delims, *p))
-					p++;
-				if (!*p)
-					break;
-				*p++ = '\0';
-				// pin token
-				if (noreduce || *s) {
-					tokens[token_num++] = s;
-//bb_error_msg("L[%d] T[%s]", token_num, s);
-				}
-				s = p;
-	 		}
-			// non-empty remainder is also a token. So if ntokens == 0, we just return the whole line
-			if (s && (noreduce || *s))
-				tokens[token_num++] = s;
-			// sanity check: have we got all required tokens?
-			if (token_num < mintokens)
-				bb_error_msg_and_die("bad line %u, %d tokens found, %d needed", parser->lineno, token_num, mintokens);
-			// advance data for the next call
-			line = ptr;
-			break;
-		}
-		// line didn't contain any token -> try next line
-		ret = line = ptr;
- 	}
-	parser->line = line;
-
-	// return current line. caller must check *ret to determine whether to continue
-	return ret;
-}
-
-#else // stdio-based
-
 FILE* FAST_FUNC config_open(parser_t *parser, const char *filename)
 {
 	// empty file configures nothing!
@@ -142,10 +47,12 @@ FILE* FAST_FUNC config_open(parser_t *parser, const char *filename)
 
 void FAST_FUNC config_close(parser_t *parser)
 {
+	free(parser->line);
+	free(parser->data);
 	fclose(parser->fp);
 }
 
-char* FAST_FUNC config_read(parser_t *parser, char **tokens, int ntokens, int mintokens, const char *delims, char comment)
+int FAST_FUNC config_read(parser_t *parser, char **tokens, int ntokens, int mintokens, const char *delims, char comment)
 {
 	char *line, *q;
 	int token_num, len;
@@ -160,6 +67,8 @@ char* FAST_FUNC config_read(parser_t *parser, char **tokens, int ntokens, int mi
 	// free used line
 	free(parser->line);
 	parser->line = NULL;
+	free(parser->data);
+	parser->data = NULL;
 
 	while (1) {
 		int n;
@@ -211,6 +120,7 @@ char* FAST_FUNC config_read(parser_t *parser, char **tokens, int ntokens, int mi
 
 	// store line
 	parser->line = line = xrealloc(line, len + 1);
+	parser->data = xstrdup(line);
 
 	// now split line to tokens
 //TODO: discard consecutive delimiters?
@@ -241,7 +151,5 @@ char* FAST_FUNC config_read(parser_t *parser, char **tokens, int ntokens, int mi
 		bb_error_msg_and_die("bad line %u: %d tokens found, %d needed",
 				parser->lineno, token_num, mintokens);
 
-	return parser->line; // maybe token_num instead?
+	return token_num;
 }
-
-#endif
