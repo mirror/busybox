@@ -375,6 +375,7 @@ int sendgetmail_main(int argc UNUSED_PARAM, char **argv)
 		const char *p;
 		char *q;
 		llist_t *l;
+		llist_t *headers = NULL;
 
 		// recipients specified as arguments
 		while (*argv) {
@@ -390,6 +391,7 @@ int sendgetmail_main(int argc UNUSED_PARAM, char **argv)
 		// N.B. subject read from body has priority
 		// over that specified on command line.
 		// recipients are merged
+		// N.B. other headers are collected and will be dumped verbatim
 		if (opts & OPTS_t || !opt_recipients) {
 			// fetch recipients and (optionally) subject
 			char *s;
@@ -402,11 +404,12 @@ int sendgetmail_main(int argc UNUSED_PARAM, char **argv)
 */				} else if (0 == strncmp("Subject: ", s, 9)) {
 					opt_subject = s+9;
 					opts |= OPTS_s;
+				} else if (s[0]) {
+					// misc header
+					llist_add_to_end(&headers, s);
 				} else {
-					char first = s[0];
 					free(s);
-					if (!first)
-						break; // empty line
+					break; // empty line
 				}
 			}
 		}
@@ -475,6 +478,11 @@ int sendgetmail_main(int argc UNUSED_PARAM, char **argv)
 		// put notification
 		if (opts & OPTS_N)
 			printf("Disposition-Notification-To: %s\r\n", opt_from);
+
+		// put headers we could have preread with -t
+		for (l = headers; l; l = l->link) {
+			printf("%s\r\n", l->data);
+		}
 
 		// make a random string -- it will delimit message parts
 		srand(monotonic_us());
