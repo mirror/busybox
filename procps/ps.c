@@ -24,8 +24,8 @@ enum { MAX_WIDTH = 2*1024 };
 
 
 #if ENABLE_SELINUX
-#define SELINIX_O_PREFIX "label,"
-#define DEFAULT_O_STR    (SELINIX_O_PREFIX "pid,user" USE_FEATURE_PS_TIME(",time") ",args")
+#define SELINUX_O_PREFIX "label,"
+#define DEFAULT_O_STR    (SELINUX_O_PREFIX "pid,user" USE_FEATURE_PS_TIME(",time") ",args")
 #else
 #define DEFAULT_O_STR    ("pid,user" USE_FEATURE_PS_TIME(",time") ",args")
 #endif
@@ -449,7 +449,7 @@ int ps_main(int argc UNUSED_PARAM, char **argv)
 #if ENABLE_SELINUX
 		if (!(opt & 1) || !is_selinux_enabled()) {
 			/* no -Z or no SELinux: do not show LABEL */
-			strcpy(default_o, DEFAULT_O_STR + sizeof(SELINIX_O_PREFIX)-1);
+			strcpy(default_o, DEFAULT_O_STR + sizeof(SELINUX_O_PREFIX)-1);
 		} else
 #endif
 		{
