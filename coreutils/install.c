@@ -76,8 +76,9 @@ int install_main(int argc, char **argv)
 	const char *mode_str;
 	int copy_flags = FILEUTILS_DEREFERENCE | FILEUTILS_FORCE;
 	int flags;
+	int min_args = 1;
 	int ret = EXIT_SUCCESS;
-	int isdir;
+	int isdir = 0;
 #if ENABLE_SELINUX
 	security_context_t scontext;
 	bool use_default_selinux_context = 1;
@@ -133,58 +134,38 @@ int install_main(int argc, char **argv)
 		bb_parse_mode(mode_str, &mode);
 	uid = (flags & OPT_OWNER) ? get_ug_id(uid_str, xuname2uid) : getuid();
 	gid = (flags & OPT_GROUP) ? get_ug_id(gid_str, xgroup2gid) : getgid();
-	if (flags & (OPT_OWNER|OPT_GROUP))
-		umask(0);
-
-	/* Create directories
-	 * don't use bb_make_directory() as it can't change uid or gid
-	 * perhaps bb_make_directory() should be improved.
-	 */
-	if (flags & OPT_DIRECTORY) {
-		while ((arg = *argv++) != NULL) {
-			char *slash = arg;
-			while (1) {
-				slash = strchr(slash + 1, '/');
-				if (slash)
-					*slash = '\0';
-				if (mkdir(arg, mode | 0111) == -1) {
-					if (errno != EEXIST) {
-						bb_perror_msg("cannot create %s", arg);
-						ret = EXIT_FAILURE;
-						break;
-					}
-				} /* dir was created, chown? */
-				else if ((flags & (OPT_OWNER|OPT_GROUP))
-				 && lchown(arg, uid, gid) == -1
-				) {
-					bb_perror_msg("cannot change ownership of %s", arg);
-					ret = EXIT_FAILURE;
-					break;
-				}
-				if (!slash)
-					break;
-				*slash = '/';
-			}
-		}
-		return ret;
-	}
-
-	if (argc < 2)
-		bb_show_usage();
 
 	last = argv[argc - 1];
-	argv[argc - 1] = NULL;
-	/* coreutils install resolves link in this case, don't use lstat */
-	isdir = stat(last, &statbuf) < 0 ? 0 : S_ISDIR(statbuf.st_mode);
+	if (!(flags & OPT_DIRECTORY)) {
+		argv[argc - 1] = NULL;
+		min_args++;
+
+		/* coreutils install resolves link in this case, don't use lstat */
+		isdir = stat(last, &statbuf) < 0 ? 0 : S_ISDIR(statbuf.st_mode);
+	}
+
+	if (argc < min_args)
+		bb_show_usage();
 
 	while ((arg = *argv++) != NULL) {
 		char *dest = last;
-		if (isdir)
-			dest = concat_path_file(last, basename(arg));
-		if (copy_file(arg, dest, copy_flags)) {
-			/* copy is not made */
-			ret = EXIT_FAILURE;
-			goto next;
+		if (flags & OPT_DIRECTORY) {
+			dest = arg;
+			/* GNU coreutils 6.9 does not set uid:gid
+			 * on intermediate created directories
+			 * (only on last one) */
+			if (bb_make_directory(dest, 0755, FILEUTILS_RECUR)) {
+				ret = EXIT_FAILURE;
+				goto next;
+			}
+		} else {
+			if (isdir)
+				dest = concat_path_file(last, basename(arg));
+			if (copy_file(arg, dest, copy_flags)) {
+				/* copy is not made */
+				ret = EXIT_FAILURE;
+				goto next;
+			}
 		}
 
 		/* Set the file mode */
