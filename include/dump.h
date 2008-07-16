@@ -18,10 +18,10 @@
 #define	F_UINT		0x200		/* %[ouXx] */
 #define	F_TEXT		0x400		/* no conversions */
 
-enum _vflag { ALL, DUP, FIRST, WAIT };	/* -v values */
+enum dump_vflag_t { ALL, DUP, FIRST, WAIT };	/* -v values */
 
-typedef struct _pr {
-	struct _pr *nextpr;		/* next print unit */
+typedef struct PR {
+	struct PR *nextpr;		/* next print unit */
 	unsigned flags;			/* flag values */
 	int bcnt;			/* byte count */
 	char *cchar;			/* conversion character */
@@ -29,30 +29,31 @@ typedef struct _pr {
 	char *nospace;			/* no whitespace version */
 } PR;
 
-typedef struct _fu {
-	struct _fu *nextfu;		/* next format unit */
-	struct _pr *nextpr;		/* next print unit */
+typedef struct FU {
+	struct FU *nextfu;		/* next format unit */
+	struct PR *nextpr;		/* next print unit */
 	unsigned flags;			/* flag values */
 	int reps;			/* repetition count */
 	int bcnt;			/* byte count */
 	char *fmt;			/* format string */
 } FU;
 
-typedef struct _fs {			/* format strings */
-	struct _fs *nextfs;		/* linked list of format strings */
-	struct _fu *nextfu;		/* linked list of format units */
+typedef struct FS {			/* format strings */
+	struct FS *nextfs;		/* linked list of format strings */
+	struct FU *nextfu;		/* linked list of format units */
 	int bcnt;
 } FS;
 
-extern void bb_dump_add(const char *fmt) FAST_FUNC;
-extern int bb_dump_dump(char **argv) FAST_FUNC;
-extern int bb_dump_size(FS * fs) FAST_FUNC;
+typedef struct dumper_t {
+	off_t dump_skip;                /* bytes to skip */
+	int dump_length;                /* max bytes to read */
+	smallint dump_vflag; /*enum dump_vflag_t*/
+	FS *fshead;
+} dumper_t;
 
-extern FS *bb_dump_fshead;              /* head of format strings */
-extern int bb_dump_blocksize;           /* data block size */
-extern int bb_dump_length;              /* max bytes to read */
-extern smallint /*enum _vflag*/ bb_dump_vflag;
-extern off_t bb_dump_skip;              /* bytes to skip */
+dumper_t* alloc_dumper(void) FAST_FUNC;
+extern void bb_dump_add(dumper_t *dumper, const char *fmt) FAST_FUNC;
+extern int bb_dump_dump(dumper_t *dumper, char **argv) FAST_FUNC;
 
 #if __GNUC_PREREQ(4,1)
 # pragma GCC visibility pop
