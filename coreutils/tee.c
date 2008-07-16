@@ -55,12 +55,14 @@ int tee_main(int argc, char **argv)
 			*fp = fopen_or_warn(*argv, mode);
 			if (*fp == NULL) {
 				retval = EXIT_FAILURE;
+				argv++;
 				continue;
 			}
 		}
 		*np = *argv++;
  GOT_NEW_FILE:
-		setbuf(*fp++, NULL);	/* tee must not buffer output. */
+		setbuf(*fp, NULL);	/* tee must not buffer output. */
+		fp++;
 		np++;
 	} while (*argv);
 	/* names[0] will be filled later */
