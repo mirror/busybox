@@ -69,7 +69,7 @@ config ASH_READ_NCHARS
 	  'read -s' will read without echoing the user's input.
 
 config ASH_READ_TIMEOUT
-	bool "'read -t S' support."
+	bool "'read -t S' support"
 	default n
 	depends on ASH
 	help

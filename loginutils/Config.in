@@ -101,7 +101,7 @@ config DELGROUP
 	  Utility for deleting a group account.
 
 config FEATURE_DEL_USER_FROM_GROUP
-	bool "Support for removing users from groups."
+	bool "Support for removing users from groups"
 	default n
 	depends on DELGROUP
 	help

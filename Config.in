@@ -411,7 +411,7 @@ config DEBUG
 	  Most people should answer N.
 
 config DEBUG_PESSIMIZE
-	bool "Disable compiler optimizations."
+	bool "Disable compiler optimizations"
 	default n
 	depends on DEBUG
 	help
