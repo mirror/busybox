@@ -167,6 +167,8 @@ config TAR
 	  create compressed archives. It's probably the most widely used
 	  UNIX archive program.
 
+if TAR
+
 config FEATURE_TAR_CREATE
 	bool "Enable archive creation"
 	default y
@@ -208,12 +210,12 @@ config FEATURE_TAR_COMPRESS
 	  when extracting .tar.Z archives.
 
 config FEATURE_TAR_AUTODETECT
-	bool "Let tar autodetect gz/bz2 compresses tarballs"
+	bool "Autodetect gz/bz2 compresses tarballs"
 	default n
 	depends on FEATURE_TAR_GZIP || FEATURE_TAR_BZIP2
 	help
 	  With this option tar can automatically detect gzip/bzip2 compressed
-	  tarballs. Currently it works only on seekable streams.
+	  tarballs. Currently it works only on files (not pipes etc).
 
 config FEATURE_TAR_FROM
 	bool "Enable -X (exclude from) and -T (include from) options)"
@@ -264,6 +266,8 @@ config FEATURE_TAR_UNAME_GNAME
 	  Enables use of user and group names in tar. This affects contents
 	  listings (-t) and preserving permissions when unpacking (-p).
 	  +200 bytes.
+
+endif #tar
 
 config UNCOMPRESS
 	bool "uncompress"
