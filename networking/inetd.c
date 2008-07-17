@@ -1368,11 +1368,11 @@ int inetd_main(int argc UNUSED_PARAM, char **argv)
 			/* prepare env and exec program */
 			pwd = getpwnam(sep->se_user);
 			if (pwd == NULL) {
-				bb_error_msg("%s: no such user", sep->se_user);
+				bb_error_msg("%s: no such %s", sep->se_user, "user");
 				goto do_exit1;
 			}
 			if (sep->se_group && (grp = getgrnam(sep->se_group)) == NULL) {
-				bb_error_msg("%s: no such group", sep->se_group);
+				bb_error_msg("%s: no such %s", sep->se_group, "group");
 				goto do_exit1;
 			}
 			if (real_uid != 0 && real_uid != pwd->pw_uid) {
@@ -1439,7 +1439,7 @@ static void echo_stream(int s, servtab_t *sep UNUSED_PARAM)
 	xdup2(STDIN_FILENO, STDOUT_FILENO);
 	/* no error messages please... */
 	close(STDERR_FILENO);
-	xopen("/dev/null", O_WRONLY);
+	xopen(bb_dev_null, O_WRONLY);
 	BB_EXECVP("cat", (char**)cat_args);
 	/* on failure we return to main, which does exit(EXIT_FAILURE) */
 #endif
@@ -1475,7 +1475,7 @@ static void discard_stream(int s, servtab_t *sep UNUSED_PARAM)
 	xmove_fd(s, STDIN_FILENO);
 	/* discard output */
 	close(STDOUT_FILENO);
-	xopen("/dev/null", O_WRONLY);
+	xopen(bb_dev_null, O_WRONLY);
 	/* no error messages please... */
 	xdup2(STDOUT_FILENO, STDERR_FILENO);
 	BB_EXECVP("cat", (char**)cat_args);
