@@ -30,12 +30,6 @@ static unsigned long long handle_errors(unsigned long long v, char **endp, char 
 {
 	if (endp) *endp = endptr;
 
-	/* Check for the weird "feature":
-	 * a "-" string is apparently a valid "number" for strto[u]l[l]!
-	 * It returns zero and errno is 0! :( */
-	if (endptr[-1] == '-')
-		return ret_ERANGE();
-
 	/* errno is already set to ERANGE by strtoXXX if value overflowed */
 	if (endptr[0]) {
 		/* "1234abcg" or out-of-range? */
@@ -44,6 +38,11 @@ static unsigned long long handle_errors(unsigned long long v, char **endp, char 
 		/* good number, just suspicious terminator */
 		errno = EINVAL;
 	}
+	/* Check for the weird "feature":
+	 * a "-" string is apparently a valid "number" for strto[u]l[l]!
+	 * It returns zero and errno is 0! :( */
+	if (endptr[-1] == '-')
+		return ret_ERANGE();
 	return v;
 }
 
