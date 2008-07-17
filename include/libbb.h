@@ -1166,6 +1166,7 @@ typedef struct procps_status_t {
 	uint8_t shift_pages_to_bytes;
 	uint8_t shift_pages_to_kb;
 /* Fields are set to 0/NULL if failed to determine (or not requested) */
+	uint16_t argv_len;
 	char *argv0;
 	USE_SELINUX(char *context;)
 	/* Everything below must contain no ptrs to malloc'ed data:
@@ -1213,7 +1214,7 @@ enum {
 	PSSCAN_UTIME    = 1 << 13,
 	PSSCAN_TTY      = 1 << 14,
 	PSSCAN_SMAPS	= (1 << 15) * ENABLE_FEATURE_TOPMEM,
-	PSSCAN_ARGVN    = (1 << 16) * (ENABLE_PGREP | ENABLE_PKILL),
+	PSSCAN_ARGVN    = (1 << 16) * (ENABLE_PGREP || ENABLE_PKILL || ENABLE_PIDOF),
 	USE_SELINUX(PSSCAN_CONTEXT = 1 << 17,)
 	PSSCAN_START_TIME = 1 << 18,
 	/* These are all retrieved from proc/NN/stat in one go: */

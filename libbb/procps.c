@@ -78,7 +78,7 @@ const char* FAST_FUNC get_cached_groupname(gid_t gid)
 
 #define PROCPS_BUFSIZE 1024
 
-static int FAST_FUNC read_to_buf(const char *filename, void *buf)
+static int read_to_buf(const char *filename, void *buf)
 {
 	int fd;
 	/* open_read_close() would do two reads, checking for EOF.
@@ -385,16 +385,15 @@ procps_status_t* FAST_FUNC procps_scan(procps_status_t* sp, int flags)
 			n = read_to_buf(filename, buf);
 			if (n <= 0)
 				break;
-#if ENABLE_PGREP || ENABLE_PKILL
 			if (flags & PSSCAN_ARGVN) {
-				do {
-					n--;
-					if (buf[n] == '\0')
-						buf[n] = ' ';
-				} while (n);
+				sp->argv_len = n;
+				sp->argv0 = xmalloc(n + 1);
+				memcpy(sp->argv0, buf, n + 1);
+				/* sp->argv0[n] = '\0'; - buf has it */
+			} else {
+				sp->argv_len = 0;
+				sp->argv0 = xstrdup(buf);
 			}
-#endif
-			sp->argv0 = xstrdup(buf);
 		}
 #endif
 		break;

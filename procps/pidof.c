@@ -22,7 +22,6 @@ int pidof_main(int argc UNUSED_PARAM, char **argv)
 	unsigned first = 1;
 	unsigned opt;
 #if ENABLE_FEATURE_PIDOF_OMIT
-	char ppid_str[sizeof(int)*3 + 1];
 	llist_t *omits = NULL; /* list of pids to omit */
 	opt_complementary = "o::";
 #endif
@@ -39,8 +38,7 @@ int pidof_main(int argc UNUSED_PARAM, char **argv)
 		while (omits_p) {
 			/* are we asked to exclude the parent's process ID?  */
 			if (strcmp(omits_p->data, "%PPID") == 0) {
-				sprintf(ppid_str, "%u", (unsigned)getppid());
-				omits_p->data = ppid_str;
+				omits_p->data = utoa((unsigned)getppid());
 			}
 			omits_p = omits_p->link;
 		}
