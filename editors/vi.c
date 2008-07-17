@@ -2492,6 +2492,14 @@ static int file_write(char *fn, char *first, char *last)
 static void place_cursor(int row, int col, int optimize)
 {
 	char cm1[sizeof(CMrc) + sizeof(int)*3 * 2];
+#if ENABLE_FEATURE_VI_OPTIMIZE_CURSOR
+	enum {
+		SZ_UP = sizeof(CMup),
+		SZ_DN = sizeof(CMdown),
+		SEQ_SIZE = SZ_UP > SZ_DN ? SZ_UP : SZ_DN,
+	};
+	char cm2[SEQ_SIZE * 5 + 32]; // bigger than worst case size
+#endif
 	char *cm;
 
 	if (row < 0) row = 0;
@@ -2505,12 +2513,6 @@ static void place_cursor(int row, int col, int optimize)
 
 #if ENABLE_FEATURE_VI_OPTIMIZE_CURSOR
 	if (optimize && col < 16) {
-		enum {
-			SZ_UP = sizeof(CMup),
-			SZ_DN = sizeof(CMdown),
-			SEQ_SIZE = SZ_UP > SZ_DN ? SZ_UP : SZ_DN,
-		};
-		char cm2[SEQ_SIZE * 5 + 32]; // bigger than worst case size
 		char *screenp;
 		int Rrow = last_row;
 		int diff = Rrow - row;
