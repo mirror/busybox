@@ -33,7 +33,8 @@
    The 'format' argument is re-used as many times as necessary
    to convert all of the given arguments.
 
-   David MacKenzie <djm@gnu.ai.mit.edu> */
+   David MacKenzie <djm@gnu.ai.mit.edu>
+*/
 
 
 //   19990508 Busy Boxed! Dave Cinege
@@ -251,10 +252,12 @@ static char **print_formatted(char *f, char **argv)
 				++f;
 				++direc_length;
 			}
-			/*
-			if (!strchr ("diouxXfeEgGcs", *f))
-			fprintf(stderr, "%%%c: invalid directive", *f);
-			*/
+			/* needed - try "printf %" without it */
+			if (!strchr("diouxXfeEgGcs", *f)) {
+				bb_error_msg("invalid directive '%s'", direc_start);
+				/* causes main() to exit with error */
+				return saved_argv - 1;
+			}
 			++direc_length;
 			if (*argv) {
 				print_direc(direc_start, direc_length, field_width,
@@ -285,7 +288,8 @@ int printf_main(int argc UNUSED_PARAM, char **argv)
 	char **argv2;
 
 	/* We must check that stdout is not closed.
-	 * The reason for this is highly non-obvious. printf_main is used from shell.
+	 * The reason for this is highly non-obvious.
+	 * printf_main is used from shell.
 	 * Shell must correctly handle 'printf "%s" foo'
 	 * if stdout is closed. With stdio, output gets shoveled into
 	 * stdout buffer, and even fflush cannot clear it out. It seems that
@@ -298,7 +302,7 @@ int printf_main(int argc UNUSED_PARAM, char **argv)
 	/* bash builtin errors out on "printf '-%s-\n' foo",
 	 * coreutils-6.9 works. Both work with "printf -- '-%s-\n' foo".
 	 * We will mimic coreutils. */
-	if (argv[1] && argv[1][0] == '-' && argv[1][1] == '-' && argv[1][2] == '\0')
+	if (argv[1] && argv[1][0] == '-' && argv[1][1] == '-' && !argv[1][2])
 		argv++;
 	if (!argv[1])
 		bb_show_usage();
@@ -309,12 +313,12 @@ int printf_main(int argc UNUSED_PARAM, char **argv)
 	do {
 		argv = argv2;
 		argv2 = print_formatted(format, argv);
-	} while (argv2 != argv && *argv2);
+	} while (argv2 > argv && *argv2);
 
 	/* coreutils compat (bash doesn't do this):
 	if (*argv)
 		fprintf(stderr, "excess args ignored");
 	*/
 
-	return EXIT_SUCCESS;
+	return (argv2 < argv); /* if true, print_formatted errored out */
 }

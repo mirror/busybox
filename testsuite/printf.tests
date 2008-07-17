@@ -24,4 +24,10 @@ testing "printf repeatedly use pattern for each argv" \
 	"foo\n$HOME\n" \
 	"" ""
 
+# Why ()s are necessary I have no idea...
+testing "printf aborts on bare %" \
+	"(${bb}printf '%' a b c) 2>&1; echo \$?" \
+	"printf: invalid directive '%'\n""1\n" \
+	"" ""
+
 exit $FAILCOUNT
