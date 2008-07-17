@@ -59,7 +59,7 @@ void FAST_FUNC config_close(parser_t *parser)
 int FAST_FUNC config_read(parser_t *parser, char **tokens, int ntokens, int mintokens, const char*delims,char comment)
 {
 	char *line, *q;
-	int ii;
+	int ii, seen;
 	/* do not treat subsequent delimiters as one delimiter */
 	bool noreduce = (ntokens < 0);
 	if (noreduce)
@@ -69,9 +69,6 @@ int FAST_FUNC config_read(parser_t *parser, char **tokens, int ntokens, int mint
 	config_free_data(parser);
 
 	while (1) {
-		int n;
-
-		// get fresh line
 //TODO: speed up xmalloc_fgetline by internally using fgets, not fgetc
 		line = xmalloc_fgetline(parser->fp);
 		if (!line)
@@ -102,10 +99,10 @@ int FAST_FUNC config_read(parser_t *parser, char **tokens, int ntokens, int mint
 			ii = q - line;
 		}
 		// skip leading delimiters
-		n = strspn(line, delims);
-		if (n) {
-			ii -= n;
-			strcpy(line, line + n);
+		seen = strspn(line, delims);
+		if (seen) {
+			ii -= seen;
+			strcpy(line, line + seen);
 		}
 		if (ii)
 			break;
@@ -121,9 +118,8 @@ int FAST_FUNC config_read(parser_t *parser, char **tokens, int ntokens, int mint
 	parser->line = line = xrealloc(line, ii + 1);
 	parser->data = xstrdup(line);
 
-	// now split line to tokens
-//TODO: discard consecutive delimiters?
-	ii = 0;
+	/* now split line to tokens */
+	ii = noreduce ? seen : 0;
 	ntokens--; // now it's max allowed token no
 	while (1) {
 		// get next token

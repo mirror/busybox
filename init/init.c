@@ -43,6 +43,7 @@
 #define SHUTDOWN    0x40
 #define RESTART     0x80
 
+/*
 #define STR_SYSINIT     "\x01"
 #define STR_RESPAWN     "\x02"
 #define STR_ASKFIRST    "\x04"
@@ -51,7 +52,7 @@
 #define STR_CTRLALTDEL  "\x20"
 #define STR_SHUTDOWN    "\x40"
 #define STR_RESTART     "\x80"
-
+*/
 /* Set up a linked list of init_actions, to be read from inittab */
 struct init_action {
 	struct init_action *next;
@@ -558,12 +559,11 @@ static void kill_all_processes(void)
 
 static void halt_reboot_pwoff(int sig)
 {
-	const char *m;
+	const char *m = "halt";
 	int rb;
 
 	kill_all_processes();
 
-	m = "halt";
 	rb = RB_HALT_SYSTEM;
 	if (sig == SIGTERM) {
 		m = "reboot";
@@ -687,6 +687,7 @@ static void delete_init_action(struct init_action *action)
  */
 static void parse_inittab(void)
 {
+#if 0
 	FILE *file;
 	char buf[COMMAND_SIZE];
 
@@ -774,6 +775,67 @@ static void parse_inittab(void)
  next_line: ;
 	}
 	fclose(file);
+#else
+	char *token[4];
+	static const char actions[] ALIGN1 = {
+	  "sysinit\0""respawn\0""askfirst\0""wait\0""once\0"
+	  "ctrlaltdel\0""shutdown\0""restart\0"
+	};
+	enum {STR_SYSINIT=0, STR_RESPAWN, STR_ASKFIRST, STR_WAIT, STR_ONCE,
+	  STR_CTRLALTDEL, STR_SHUTDOWN, STR_RESTART};
+
+	parser_t *parser = config_open(INITTAB);
+	/* No inittab file -- set up some default behavior */
+	if (parser == NULL) {
+		/* Reboot on Ctrl-Alt-Del */
+		new_init_action(CTRLALTDEL, "reboot", "");
+		/* Umount all filesystems on halt/reboot */
+		new_init_action(SHUTDOWN, "umount -a -r", "");
+		/* Swapoff on halt/reboot */
+		if (ENABLE_SWAPONOFF)
+			new_init_action(SHUTDOWN, "swapoff -a", "");
+		/* Prepare to restart init when a QUIT is received */
+		new_init_action(RESTART, "init", "");
+		/* Askfirst shell on tty1-4 */
+		new_init_action(ASKFIRST, bb_default_login_shell, "");
+		new_init_action(ASKFIRST, bb_default_login_shell, VC_2);
+		new_init_action(ASKFIRST, bb_default_login_shell, VC_3);
+		new_init_action(ASKFIRST, bb_default_login_shell, VC_4);
+		/* sysinit */
+		new_init_action(SYSINIT, INIT_SCRIPT, "");
+
+		return;
+	}
+	/* optional_tty:ignored_runlevel:action:command
+	 * i.e. 4 tokens, minimum number of tokens is 2 ("::sysinit:echo foo")
+	 * We require tokens not to be collapsed -- need exactly 4 tokens.
+	 */
+	while (config_read(parser, token, -4, 2, ":", '#') >= 0) {
+		int action = -1;
+		char *tty = token[0];
+		char *action_string = token[2];
+		char *command = token[3];
+
+		if (action_string)
+			action = index_in_strings(actions, action_string);
+		if (action < 0 || !command || !strlen(command))
+			goto bad_entry;
+		if (tty) {
+			/* turn .*TTY -> /dev/TTY */
+			if (!strncmp(tty, "/dev/", 5))
+				tty += 5;
+			tty = concat_path_file("/dev/", tty);
+		} else
+			tty = ""; /* XXX: ugh. */
+		new_init_action (1<<action, command, tty);
+		if (ENABLE_FEATURE_CLEAN_UP)
+			free(tty);
+		continue;
+ bad_entry:
+		message(L_LOG | L_CONSOLE, "Bad inittab entry: %s", parser->line);
+	}
+	config_close(parser);
+#endif
 }
 
 #if ENABLE_FEATURE_USE_INITTAB
@@ -866,7 +928,7 @@ int init_main(int argc UNUSED_PARAM, char **argv)
 	/* Figure out where the default console should be */
 	console_init();
 	set_sane_term();
-	chdir("/");
+	xchdir("/");
 	setsid();
 	{
 		const char *const *e;
@@ -875,7 +937,8 @@ int init_main(int argc UNUSED_PARAM, char **argv)
 			putenv((char *) *e);
 	}
 
-	if (argv[1]) setenv("RUNLEVEL", argv[1], 1);
+	if (argv[1])
+		setenv("RUNLEVEL", argv[1], 1);
 
 	/* Hello world */
 	message(MAYBE_CONSOLE | L_LOG, "init started: %s", bb_banner);
@@ -900,6 +963,7 @@ int init_main(int argc UNUSED_PARAM, char **argv)
 	if (argv[1]
 	 && (!strcmp(argv[1], "single") || !strcmp(argv[1], "-s") || LONE_CHAR(argv[1], '1'))
 	) {
+		/* ??? shouldn't we set RUNLEVEL="b" here? */
 		/* Start a shell on console */
 		new_init_action(RESPAWN, bb_default_login_shell, "");
 	} else {
