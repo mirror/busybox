@@ -777,12 +777,10 @@ static void parse_inittab(void)
 	fclose(file);
 #else
 	char *token[4];
-	static const char actions[] ALIGN1 = {
-	  "sysinit\0""respawn\0""askfirst\0""wait\0""once\0"
-	  "ctrlaltdel\0""shutdown\0""restart\0"
-	};
-	enum {STR_SYSINIT=0, STR_RESPAWN, STR_ASKFIRST, STR_WAIT, STR_ONCE,
-	  STR_CTRLALTDEL, STR_SHUTDOWN, STR_RESTART};
+	/* order must correspond to SYSINIT..RESTART constants */
+	static const char actions[] ALIGN1 =
+		"sysinit\0""respawn\0""askfirst\0""wait\0""once\0"
+		"ctrlaltdel\0""shutdown\0""restart\0";
 
 	parser_t *parser = config_open(INITTAB);
 	/* No inittab file -- set up some default behavior */
@@ -798,6 +796,7 @@ static void parse_inittab(void)
 		new_init_action(RESTART, "init", "");
 		/* Askfirst shell on tty1-4 */
 		new_init_action(ASKFIRST, bb_default_login_shell, "");
+//TODO: VC_1 instead of ""? "" is console -> ctty problems -> angry users
 		new_init_action(ASKFIRST, bb_default_login_shell, VC_2);
 		new_init_action(ASKFIRST, bb_default_login_shell, VC_3);
 		new_init_action(ASKFIRST, bb_default_login_shell, VC_4);
@@ -807,28 +806,25 @@ static void parse_inittab(void)
 		return;
 	}
 	/* optional_tty:ignored_runlevel:action:command
-	 * i.e. 4 tokens, minimum number of tokens is 2 ("::sysinit:echo foo")
-	 * We require tokens not to be collapsed -- need exactly 4 tokens.
+	 * Delims are not to be collapsed and need exactly 4 tokens
 	 */
-	while (config_read(parser, token, -4, 2, ":", '#') >= 0) {
-		int action = -1;
+	while (config_read(parser, token, -4, 0, ":", '#') >= 0) {
+		int action;
 		char *tty = token[0];
-		char *action_string = token[2];
-		char *command = token[3];
 
-		if (action_string)
-			action = index_in_strings(actions, action_string);
-		if (action < 0 || !command || !strlen(command))
+		if (!token[3]) /* less than 4 tokens */
 			goto bad_entry;
-		if (tty) {
-			/* turn .*TTY -> /dev/TTY */
-			if (!strncmp(tty, "/dev/", 5))
+		action = index_in_strings(actions, token[2]);
+		if (action < 0 || !token[3][0]) /* token[3]: command */
+			goto bad_entry;
+		/* turn .*TTY -> /dev/TTY */
+		if (tty[0]) {
+			if (strncmp(tty, "/dev/", 5) == 0)
 				tty += 5;
 			tty = concat_path_file("/dev/", tty);
-		} else
-			tty = ""; /* XXX: ugh. */
-		new_init_action (1<<action, command, tty);
-		if (ENABLE_FEATURE_CLEAN_UP)
+		}
+		new_init_action(1 << action, token[3], tty);
+		if (tty[0])
 			free(tty);
 		continue;
  bad_entry:

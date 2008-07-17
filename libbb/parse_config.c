@@ -56,16 +56,16 @@ void FAST_FUNC config_close(parser_t *parser)
 	fclose(parser->fp);
 }
 
-int FAST_FUNC config_read(parser_t *parser, char **tokens, int ntokens, int mintokens, const char*delims,char comment)
+int FAST_FUNC config_read(parser_t *parser, char **tokens, int ntokens, int mintokens, const char *delims, char comment)
 {
 	char *line, *q;
 	int ii, seen;
-	/* do not treat subsequent delimiters as one delimiter */
+	/* do not treat consecutive delimiters as one delimiter */
 	bool noreduce = (ntokens < 0);
 	if (noreduce)
 		ntokens = -ntokens;
 
-	memset(tokens, 0, sizeof(void *) * ntokens);
+	memset(tokens, 0, sizeof(tokens[0]) * ntokens);
 	config_free_data(parser);
 
 	while (1) {
