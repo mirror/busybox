@@ -995,7 +995,7 @@ typedef struct parser_t {
 	char *line, *data;
 	int lineno;
 } parser_t;
-FILE* config_open(parser_t *parser, const char *filename) FAST_FUNC;
+parser_t* config_open(const char *filename) FAST_FUNC;
 /* TODO: add define magic to collapse ntokens/mintokens/comment into one int param */
 int config_read(parser_t *parser, char **tokens, int ntokens, int mintokens, const char *delims, char comment) FAST_FUNC;
 void config_close(parser_t *parser) FAST_FUNC;

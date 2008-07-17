@@ -94,14 +94,14 @@ static void make_device(char *path, int delete)
 	        type = S_IFBLK;
 
 	if (ENABLE_FEATURE_MDEV_CONF) {
-		parser_t parser;
+		parser_t *parser = config_open("/etc/mdev.conf");
 		char *tokens[5];
 
 		/* If we have config file, look up user settings */
-		if (!config_open(&parser, "/etc/mdev.conf"))
+		if (!parser)
 			goto end_parse;
 
-		while (config_read(&parser, tokens, 4, 3, " \t", '#') >= 0) {
+		while (config_read(parser, tokens, 4, 3, " \t", '#') >= 0) {
 			regmatch_t off[1+9*ENABLE_FEATURE_MDEV_RENAME_REGEXP];
 			char *val;
 
@@ -213,7 +213,7 @@ static void make_device(char *path, int delete)
 				const char *s2 = strchr(s, *val);
 
 				if (!s2)
-					bb_error_msg_and_die("bad line %u", parser.lineno);
+					bb_error_msg_and_die("bad line %u", parser->lineno);
 
 				/* Correlate the position in the "@$*" with the delete
 				 * step so that we get the proper behavior:
@@ -229,7 +229,7 @@ static void make_device(char *path, int delete)
 			break; /* we found matching line, stop */
 		} /* end of "while line is read from /etc/mdev.conf" */
 
-		config_close(&parser);
+		config_close(parser);
 	}
  end_parse:
 

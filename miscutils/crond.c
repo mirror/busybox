@@ -443,7 +443,7 @@ static void FixDayDow(CronLine *line)
 
 static void SynchronizeFile(const char *fileName)
 {
-	struct parser_t parser;
+	struct parser_t *parser;
 	struct stat sbuf;
 	int maxLines;
 	char *tokens[6];
@@ -455,12 +455,13 @@ static void SynchronizeFile(const char *fileName)
 		return;
 
 	DeleteFile(fileName);
-	if (!config_open(&parser, fileName))
+	parser = config_open(fileName);
+	if (!parser)
 		return;
 
 	maxLines = (strcmp(fileName, "root") == 0) ? 65535 : MAXLINES;
 
-	if (fstat(fileno(parser.fp), &sbuf) == 0 && sbuf.st_uid == DaemonUid) {
+	if (fstat(fileno(parser->fp), &sbuf) == 0 && sbuf.st_uid == DaemonUid) {
 		CronFile *file = xzalloc(sizeof(CronFile));
 		CronLine **pline;
 		int n;
@@ -468,11 +469,11 @@ static void SynchronizeFile(const char *fileName)
 		file->cf_User = xstrdup(fileName);
 		pline = &file->cf_LineBase;
 
-		while (--maxLines && (n=config_read(&parser, tokens, 6, 0, " \t", '#')) >= 0) {
+		while (--maxLines && (n=config_read(parser, tokens, 6, 0, " \t", '#')) >= 0) {
 			CronLine *line;
 
 			if (DebugOpt) {
-				crondlog(LVL5 "user:%s entry:%s", fileName, parser.data);
+				crondlog(LVL5 "user:%s entry:%s", fileName, parser->data);
 			}
 
 			/* check if line is setting MAILTO= */
@@ -519,7 +520,7 @@ static void SynchronizeFile(const char *fileName)
 			crondlog(WARN9 "user %s: too many lines", fileName);
 		}
 	}
-	config_close(&parser);
+	config_close(parser);
 }
 
 static void CheckUpdates(void)
