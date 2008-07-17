@@ -122,7 +122,7 @@ bugs:
 	illegal instruction
 
     i am using debian unstable, kernel version 2.4.25-vrs2 on a netwinder,
-    and the latest uclibc from cvs.  thanks for the wonderful program!
+    and the latest uclibc from cvs.
 
 	-diligent
 
@@ -173,10 +173,8 @@ Portability:
   you're into that sort of thing, start small (selecting just a few applets)
   and work your way up.
 
-  Shaun Jackman has recently (2005) ported busybox to a combination of newlib
-  and libgloss, and some of his patches have been integrated.  This platform
-  may join glibc/uclibc and Linux as a supported combination with the 1.1
-  release, but is not supported in 1.0.
+  In 2005 Shaun Jackman has ported busybox to a combination of newlib
+  and libgloss, and some of his patches have been integrated.
 
 Supported hardware:
 
@@ -197,5 +195,5 @@ Supported hardware:
 
 Please feed suggestions, bug reports, insults, and bribes back to the busybox
 maintainer:
-	Denis Vlasenko
+	Denys Vlasenko
         <vda.linux@googlemail.com>
