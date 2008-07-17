@@ -274,10 +274,14 @@ static char *parse_url(char *url, char **user, char **pass)
 	return url;
 }
 
+static void rcptto(const char *s)
+{
+	smtp_checkp("RCPT TO:<%s>", s, 250);
+}
+
 int sendgetmail_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int sendgetmail_main(int argc UNUSED_PARAM, char **argv)
 {
-	llist_t *opt_recipients = NULL;
 	llist_t *opt_attachments = NULL;
 	char *opt_from;
 	char *opt_user;
@@ -377,48 +381,12 @@ int sendgetmail_main(int argc UNUSED_PARAM, char **argv)
 		llist_t *l;
 		llist_t *headers = NULL;
 
-		// recipients specified as arguments
-		while (*argv) {
-			// loose test on email address validity
-			if (strchr(sane(*argv), '@'))
-				llist_add_to_end(&opt_recipients, *argv);
-			argv++;
-		}
-
-		// if -t specified or no recipients specified -> enter all-included mode
-		// i.e. scan stdin for To: and Subject: lines ...
-		// ... and then use the rest of stdin as message body
-		// N.B. subject read from body has priority
-		// over that specified on command line.
-		// recipients are merged
-		// N.B. other headers are collected and will be dumped verbatim
-		if (opts & OPTS_t || !opt_recipients) {
-			// fetch recipients and (optionally) subject
-			char *s;
-			while ((s = xmalloc_reads(INITIAL_STDIN_FILENO, NULL, NULL)) != NULL) {
-				if (0 == strncasecmp("To: ", s, 4) || 0 == strncasecmp("Cc: ", s, 4)) {
-					llist_add_to_end(&opt_recipients, s+4);
-/*				} else if (0 == strncmp("From: ", s, 6)) {
-					opt_from = s+6;
-					opts |= OPTS_f;
-*/				} else if (0 == strncmp("Subject: ", s, 9)) {
-					opt_subject = s+9;
-					opts |= OPTS_s;
-				} else if (s[0]) {
-					// misc header
-					llist_add_to_end(&headers, s);
-				} else {
-					free(s);
-					break; // empty line
-				}
-			}
-		}
-
 		// got no sender address? -> use username as a resort
 		if (!(opts & OPTS_f)) {
 			char *domain = safe_getdomainname();
 			opt_from = xasprintf("%s@%s", opt_user, domain);
-			free(domain);
+			if (ENABLE_FEATURE_CLEAN_UP)
+				free(domain);
 		}
 
 		// introduce to server
@@ -452,19 +420,63 @@ int sendgetmail_main(int argc UNUSED_PARAM, char **argv)
 			code = 250;
 		}
 
-		// set recipients
-		for (l = opt_recipients; l; l = l->link) {
-			smtp_checkp("RCPT TO:<%s>", sane(l->data), 250);
+		// recipients specified as arguments
+		while (*argv) {
+			// loose test on email address validity
+			if (strchr(sane(*argv), '@')) {
+				rcptto(sane(*argv));
+				llist_add_to_end(&headers, xasprintf("To: %s", *argv));
+			}
+			argv++;
+		}
+
+		// if -t specified or no recipients specified -> enter all-included mode
+		// i.e. scan stdin for To:, Cc:, Bcc:, and Subject: lines ...
+		// ... and then use the rest of stdin as message body
+		// N.B. subject read from body has priority
+		// over that specified on command line.
+		// recipients are merged
+		// N.B. other headers are collected and will be dumped verbatim
+		if (opts & OPTS_t || !headers) {
+			// fetch recipients and (optionally) subject
+			char *s;
+			while ((s = xmalloc_reads(INITIAL_STDIN_FILENO, NULL, NULL)) != NULL) {
+				if (0 == strncasecmp("To: ", s, 4) || 0 == strncasecmp("Cc: ", s, 4)) {
+					rcptto(sane(s+4));
+					llist_add_to_end(&headers, s);
+				} else if (0 == strncasecmp("Bcc: ", s, 5)) {
+					rcptto(sane(s+5));
+					if (ENABLE_FEATURE_CLEAN_UP)
+						free(s);
+					// N.B. Bcc vanishes from headers!
+/*				} else if (0 == strncmp("From: ", s, 6)) {
+					opt_from = s+6;
+					opts |= OPTS_f;
+*/				} else if (0 == strncmp("Subject: ", s, 9)) {
+					opt_subject = s+9;
+					opts |= OPTS_s;
+				} else if (s[0]) {
+					// misc header
+					llist_add_to_end(&headers, s);
+				} else {
+					free(s);
+					break; // empty line
+				}
+			}
 		}
 
 		// enter "put message" mode
 		smtp_check("DATA", 354);
 
-		// put address headers
-		printf("From: %s\r\n", opt_from);
-		for (l = opt_recipients; l; l = l->link) {
-			printf("To: %s\r\n", l->data);
+		// put headers we could have preread with -t
+		for (l = headers; l; l = l->link) {
+			printf("%s\r\n", l->data);
+			if (ENABLE_FEATURE_CLEAN_UP)
+				free(l->data);
 		}
+
+		// put address header
+		printf("From: %s\r\n", opt_from);
 
 		// put encoded subject
 		if (opts & OPTS_c)
@@ -478,11 +490,6 @@ int sendgetmail_main(int argc UNUSED_PARAM, char **argv)
 		// put notification
 		if (opts & OPTS_N)
 			printf("Disposition-Notification-To: %s\r\n", opt_from);
-
-		// put headers we could have preread with -t
-		for (l = headers; l; l = l->link) {
-			printf("%s\r\n", l->data);
-		}
 
 		// make a random string -- it will delimit message parts
 		srand(monotonic_us());
