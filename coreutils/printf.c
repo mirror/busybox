@@ -63,11 +63,8 @@ typedef void FAST_FUNC (*converter)(const char *arg, void *result);
 
 static int multiconvert(const char *arg, void *result, converter convert)
 {
-	char s[sizeof(int)*3 + 2];
-
 	if (*arg == '"' || *arg == '\'') {
-		sprintf(s, "%d", (unsigned char)arg[1]);
-		arg = s;
+		arg = utoa((unsigned char)arg[1]);
 	}
 	errno = 0;
 	convert(arg, result);
@@ -289,10 +286,22 @@ static char **print_formatted(char *f, char **argv)
 					}
 				}
 			}
+			/* Remove size modifiers - "%Ld" would try to printf
+			 * long long, we pass long, and it spews garbage */
 			if ((*f | 0x20) == 'l' || *f == 'h' || *f == 'z') {
-				++f;
-				++direc_length;
+				strcpy(f, f + 1);
 			}
+//FIXME: actually, the same happens with bare "%d":
+//it printfs an int, but we pass long!
+//What saves us is that on most arches stack slot
+//is pointer-sized -> long-sized -> ints are promoted to longs
+// for variadic functions -> printf("%d", int_v) is in reality
+// indistinqushable from printf("%d", long_v) ->
+// since printf("%d", int_v) works, printf("%d", long_v) has to work.
+//But "clean" solution would be to add "l" to d,i,o,x,X.
+//Probably makes sense to go all the way to "ll" then.
+//Coreutils support long long-sized arguments.
+
 			/* needed - try "printf %" without it */
 			if (!strchr("diouxXfeEgGcs", *f)) {
 				bb_error_msg("%s: invalid format", direc_start);

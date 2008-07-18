@@ -74,6 +74,11 @@ testing "printf understands %ld" \
 	"-5\n""0\n" \
 	"" ""
 
+testing "printf understands %Ld" \
+	"${bb}printf '%Ld\n' -5 2>&1; echo \$?" \
+	"-5\n""0\n" \
+	"" ""
+
 # We are "more correct" here than bash/coreutils: they happily print -2
 # as if it is a huge unsigned number
 testing "printf handles %u -N" \
