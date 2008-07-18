@@ -18,6 +18,16 @@
  * errno = ERANGE if value is out of range, missing, etc.
  * errno = ERANGE if value had minus sign for strtouXX (even "-0" is not ok )
  *    return value is all-ones in this case.
+ *
+ * Test code:
+ * char *endptr;
+ * const char *minus = "-";
+ * errno = 0;
+ * bb_strtoi(minus, &endptr, 0); // must set ERANGE
+ * printf("minus:%p endptr:%p errno:%d EINVAL:%d\n", minus, endptr, errno, EINVAL);
+ * errno = 0;
+ * bb_strtoi("-0-", &endptr, 0); // must set EINVAL and point to second '-'
+ * printf("endptr[0]:%c errno:%d EINVAL:%d\n", endptr[0], errno, EINVAL);
  */
 
 static unsigned long long ret_ERANGE(void)
@@ -38,11 +48,6 @@ static unsigned long long handle_errors(unsigned long long v, char **endp, char 
 		/* good number, just suspicious terminator */
 		errno = EINVAL;
 	}
-	/* Check for the weird "feature":
-	 * a "-" string is apparently a valid "number" for strto[u]l[l]!
-	 * It returns zero and errno is 0! :( */
-	if (endptr[-1] == '-')
-		return ret_ERANGE();
 	return v;
 }
 
@@ -67,7 +72,12 @@ long long FAST_FUNC bb_strtoll(const char *arg, char **endp, int base)
 	unsigned long long v;
 	char *endptr;
 
-	if (arg[0] != '-' && !isalnum(arg[0])) return ret_ERANGE();
+	/* Check for the weird "feature":
+	 * a "-" string is apparently a valid "number" for strto[u]l[l]!
+	 * It returns zero and errno is 0! :( */
+	char first = (arg[0] != '-' ? arg[0] : arg[1]);
+	if (!isalnum(first)) return ret_ERANGE();
+
 	errno = 0;
 	v = strtoll(arg, &endptr, base);
 	return handle_errors(v, endp, endptr);
@@ -90,7 +100,9 @@ long FAST_FUNC bb_strtol(const char *arg, char **endp, int base)
 	long v;
 	char *endptr;
 
-	if (arg[0] != '-' && !isalnum(arg[0])) return ret_ERANGE();
+	char first = (arg[0] != '-' ? arg[0] : arg[1]);
+	if (!isalnum(first)) return ret_ERANGE();
+
 	errno = 0;
 	v = strtol(arg, &endptr, base);
 	return handle_errors(v, endp, endptr);
@@ -115,7 +127,9 @@ int FAST_FUNC bb_strtoi(const char *arg, char **endp, int base)
 	long v;
 	char *endptr;
 
-	if (arg[0] != '-' && !isalnum(arg[0])) return ret_ERANGE();
+	char first = (arg[0] != '-' ? arg[0] : arg[1]);
+	if (!isalnum(first)) return ret_ERANGE();
+
 	errno = 0;
 	v = strtol(arg, &endptr, base);
 	if (v > INT_MAX) return ret_ERANGE();
