@@ -482,10 +482,6 @@ config INCLUDE_SUSv2
 config PARSE
 	bool "Uniform config file parser debugging applet: parse"
 
-config FEATURE_PARSE_COPY
-	bool "Keep a copy of current line"
-	depends on PARSE
-
 endmenu
 
 menu 'Installation Options'

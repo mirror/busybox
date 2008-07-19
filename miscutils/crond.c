@@ -470,14 +470,12 @@ static void SynchronizeFile(const char *fileName)
 		pline = &file->cf_LineBase;
 
 		while (--maxLines
-		 && (n = config_read(parser, tokens, 6, 1, "# \t", PARSE_LAST_IS_GREEDY))
+		 && (n = config_read(parser, tokens, 6, 1, "# \t", PARSE_LAST_IS_GREEDY|PARSE_KEEP_COPY))
 		) {
 			CronLine *line;
 
-			USE_FEATURE_PARSE_COPY(
-				if (DebugOpt)
-					crondlog(LVL5 "user:%s entry:%s", fileName, parser->data);
-			)
+			if (DebugOpt)
+				crondlog(LVL5 "user:%s entry:%s", fileName, parser->data);
 
 			/* check if line is setting MAILTO= */
 			if (0 == strncmp(tokens[0], "MAILTO=", 7)) {

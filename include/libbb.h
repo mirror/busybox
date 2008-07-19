@@ -990,14 +990,18 @@ int bb_parse_mode(const char* s, mode_t* theMode) FAST_FUNC;
 /*
  * Config file parser
  */
-#define PARSE_DONT_REDUCE       0x00010000 // do not treat consecutive delimiters as one
-#define PARSE_DONT_TRIM         0x00020000 // do not trim line of leading and trailing delimiters
-#define PARSE_LAST_IS_GREEDY    0x00040000 // last token takes whole remainder of the line
-//#define PARSE_DONT_NULL         0x00080000 // do not set tokens[] to NULL
+enum {
+	PARSE_DONT_REDUCE    = 0x00010000, // do not treat consecutive delimiters as one
+	PARSE_DONT_TRIM      = 0x00020000, // do not trim line of leading and trailing delimiters
+	PARSE_LAST_IS_GREEDY = 0x00040000, // last token takes whole remainder of the line
+//	PARSE_DONT_NULL      = 0x00080000, // do not set tokens[] to NULL
+	// keep a copy of current line
+	PARSE_KEEP_COPY      = 0x00200000 * ENABLE_DEBUG_CROND_OPTION,
+};
 typedef struct parser_t {
 	FILE *fp;
 	char *line;
-	USE_FEATURE_PARSE_COPY(char *data;)
+	char *data;
 	int lineno;
 } parser_t;
 parser_t* config_open(const char *filename) FAST_FUNC;

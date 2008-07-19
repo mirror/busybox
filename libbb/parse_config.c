@@ -75,10 +75,10 @@ static void config_free_data(parser_t *const parser)
 {
 	free(parser->line);
 	parser->line = NULL;
-	USE_FEATURE_PARSE_COPY(
+	if (PARSE_KEEP_COPY) { /* compile-time constant */
 		free(parser->data);
 		parser->data = NULL;
-	)
+	}
 }
 
 void FAST_FUNC config_close(parser_t *parser)
@@ -179,9 +179,9 @@ int FAST_FUNC config_read(parser_t *parser, char **tokens, unsigned flags, const
 
 	// store line
 	parser->line = line = xrealloc(line, ii + 1);
-	USE_FEATURE_PARSE_COPY(
+	if (flags & PARSE_KEEP_COPY) {
 		parser->data = xstrdup(line);
-	)
+	}
 
 	/* now split line to tokens */
 	ntokens--; // now it's max allowed token no
