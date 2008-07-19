@@ -47,6 +47,8 @@
 	operand ::= <any legal UNIX file name>
 */
 
+#define TEST_DEBUG 0
+
 enum token {
 	EOI,
 	FILRD,
@@ -95,6 +97,79 @@ enum token {
 #define is_file_access(a) (((unsigned char)((a) - FILRD)) <= 2)
 #define is_file_type(a)   (((unsigned char)((a) - FILREG)) <= 5)
 #define is_file_bit(a)    (((unsigned char)((a) - FILSUID)) <= 2)
+
+#if TEST_DEBUG
+int depth;
+#define nest_msg(...) do { \
+	depth++; \
+	fprintf(stderr, "%*s", depth*2, ""); \
+	fprintf(stderr, __VA_ARGS__); \
+} while (0)
+#define unnest_msg(...) do { \
+	fprintf(stderr, "%*s", depth*2, ""); \
+	fprintf(stderr, __VA_ARGS__); \
+	depth--; \
+} while (0)
+#define dbg_msg(...) do { \
+	fprintf(stderr, "%*s", depth*2, ""); \
+	fprintf(stderr, __VA_ARGS__); \
+} while (0)
+#define unnest_msg_and_return(expr, ...) do { \
+	number_t __res = (expr); \
+	fprintf(stderr, "%*s", depth*2, ""); \
+	fprintf(stderr, __VA_ARGS__, res); \
+	depth--; \
+	return __res; \
+} while (0)
+static const char *const TOKSTR[] = {
+	"EOI",
+	"FILRD",
+	"FILWR",
+	"FILEX",
+	"FILEXIST",
+	"FILREG",
+	"FILDIR",
+	"FILCDEV",
+	"FILBDEV",
+	"FILFIFO",
+	"FILSOCK",
+	"FILSYM",
+	"FILGZ",
+	"FILTT",
+	"FILSUID",
+	"FILSGID",
+	"FILSTCK",
+	"FILNT",
+	"FILOT",
+	"FILEQ",
+	"FILUID",
+	"FILGID",
+	"STREZ",
+	"STRNZ",
+	"STREQ",
+	"STRNE",
+	"STRLT",
+	"STRGT",
+	"INTEQ",
+	"INTNE",
+	"INTGE",
+	"INTGT",
+	"INTLE",
+	"INTLT",
+	"UNOT",
+	"BAND",
+	"BOR",
+	"LPAREN",
+	"RPAREN",
+	"OPERAND"
+};
+#else
+#define nest_msg(...)   ((void)0)
+#define unnest_msg(...) ((void)0)
+#define dbg_msg(...)    ((void)0)
+#define unnest_msg_and_return(expr, ...) return expr
+#endif
+
 enum token_types {
 	UNOP,
 	BINOP,
@@ -103,10 +178,12 @@ enum token_types {
 	PAREN
 };
 
-static const struct t_op {
+struct operator_t {
 	char op_text[4];
 	unsigned char op_num, op_type;
-} ops[] = {
+};
+
+static const struct operator_t ops[] = {
 	{ "-r", FILRD   , UNOP   },
 	{ "-w", FILWR   , UNOP   },
 	{ "-x", FILEX   , UNOP   },
@@ -152,16 +229,18 @@ static const struct t_op {
 
 
 #if ENABLE_FEATURE_TEST_64
-typedef int64_t arith_t;
+typedef int64_t number_t;
 #else
-typedef int arith_t;
+typedef int number_t;
 #endif
 
 
 /* We try to minimize both static and stack usage. */
 struct test_statics {
-	char **t_wp;
-	const struct t_op *t_wp_op;
+	char **args;
+	/* set only by check_operator(), either to bogus struct
+	 * or points to matching operator_t struct. Never NULL. */
+	const struct operator_t *last_operator;
 	gid_t *group_array;
 	int ngroups;
 	jmp_buf leaving;
@@ -171,8 +250,8 @@ struct test_statics {
 extern struct test_statics *const test_ptr_to_statics;
 
 #define S (*test_ptr_to_statics)
-#define t_wp            (S.t_wp         )
-#define t_wp_op         (S.t_wp_op      )
+#define args            (S.args         )
+#define last_operator   (S.last_operator)
 #define group_array     (S.group_array  )
 #define ngroups         (S.ngroups      )
 #define leaving         (S.leaving      )
@@ -185,7 +264,7 @@ extern struct test_statics *const test_ptr_to_statics;
 	free(test_ptr_to_statics); \
 } while (0)
 
-static arith_t primary(enum token n);
+static number_t primary(enum token n);
 
 static void syntax(const char *op, const char *msg) NORETURN;
 static void syntax(const char *op, const char *msg)
@@ -200,7 +279,7 @@ static void syntax(const char *op, const char *msg)
 
 /* atoi with error detection */
 //XXX: FIXME: duplicate of existing libbb function?
-static arith_t getn(const char *s)
+static number_t getn(const char *s)
 {
 	char *p;
 #if ENABLE_FEATURE_TEST_64
@@ -253,11 +332,15 @@ static int equalf(const char *f1, const char *f2)
 */
 
 
-static enum token t_lex(char *s)
+static enum token check_operator(char *s)
 {
-	const struct t_op *op;
+	static const struct operator_t no_op = {
+		.op_num = -1,
+		.op_type = -1
+	};
+	const struct operator_t *op;
 
-	t_wp_op = NULL;
+	last_operator = &no_op;
 	if (s == NULL) {
 		return EOI;
 	}
@@ -265,7 +348,7 @@ static enum token t_lex(char *s)
 	op = ops;
 	do {
 		if (strcmp(s, op->op_text) == 0) {
-			t_wp_op = op;
+			last_operator = op;
 			return op->op_num;
 		}
 		op++;
@@ -278,14 +361,14 @@ static enum token t_lex(char *s)
 static int binop(void)
 {
 	const char *opnd1, *opnd2;
-	struct t_op const *op;
-	arith_t val1, val2;
+	const struct operator_t *op;
+	number_t val1, val2;
 
-	opnd1 = *t_wp;
-	(void) t_lex(*++t_wp);
-	op = t_wp_op;
+	opnd1 = *args;
+	check_operator(*++args);
+	op = last_operator;
 
-	opnd2 = *++t_wp;
+	opnd2 = *++args;
 	if (opnd2 == NULL)
 		syntax(op->op_text, "argument expected");
 
@@ -482,72 +565,117 @@ static int filstat(char *nm, enum token mode)
 }
 
 
-static arith_t nexpr(enum token n)
+static number_t nexpr(enum token n)
 {
-	if (n == UNOT)
-		return !nexpr(t_lex(*++t_wp));
-	return primary(n);
-}
+	number_t res;
 
-
-static arith_t aexpr(enum token n)
-{
-	arith_t res;
-
-	res = nexpr(n);
-	if (t_lex(*++t_wp) == BAND)
-		return aexpr(t_lex(*++t_wp)) && res;
-	t_wp--;
-	return res;
-}
-
-
-static arith_t oexpr(enum token n)
-{
-	arith_t res;
-
-	res = aexpr(n);
-	if (t_lex(*++t_wp) == BOR) {
-		return oexpr(t_lex(*++t_wp)) || res;
+	nest_msg(">nexpr(%s)\n", TOKSTR[n]);
+	if (n == UNOT) {
+		res = !nexpr(check_operator(*++args));
+		unnest_msg("<nexpr:%lld\n", res);
+		return res;
 	}
-	t_wp--;
+	res = primary(n);
+	unnest_msg("<nexpr:%lld\n", res);
 	return res;
 }
 
 
-
-static arith_t primary(enum token n)
+static number_t aexpr(enum token n)
 {
-	arith_t res;
+	number_t res;
 
+	nest_msg(">aexpr(%s)\n", TOKSTR[n]);
+	res = nexpr(n);
+	dbg_msg("aexpr: nexpr:%lld, next args:%s\n", res, args[1]);
+	if (check_operator(*++args) == BAND) {
+		dbg_msg("aexpr: arg is AND, next args:%s\n", args[1]);
+		res = aexpr(check_operator(*++args)) && res;
+		unnest_msg("<aexpr:%lld\n", res);
+		return res;
+	}
+	args--;
+	unnest_msg("<aexpr:%lld, args:%s\n", res, args[0]);
+	return res;
+}
+
+
+static number_t oexpr(enum token n)
+{
+	number_t res;
+
+	nest_msg(">oexpr(%s)\n", TOKSTR[n]);
+	res = aexpr(n);
+	dbg_msg("oexpr: aexpr:%lld, next args:%s\n", res, args[1]);
+	if (check_operator(*++args) == BOR) {
+		dbg_msg("oexpr: next arg is OR, next args:%s\n", args[1]);
+		res = oexpr(check_operator(*++args)) || res;
+		unnest_msg("<oexpr:%lld\n", res);
+		return res;
+	}
+	args--;
+	unnest_msg("<oexpr:%lld, args:%s\n", res, args[0]);
+	return res;
+}
+
+
+static number_t primary(enum token n)
+{
+#if TEST_DEBUG
+	number_t res = res; /* for compiler */
+#else
+	number_t res;
+#endif
+	const struct operator_t *args0_op;
+
+	nest_msg(">primary(%s)\n", TOKSTR[n]);
 	if (n == EOI) {
 		syntax(NULL, "argument expected");
 	}
 	if (n == LPAREN) {
-		res = oexpr(t_lex(*++t_wp));
-		if (t_lex(*++t_wp) != RPAREN)
+		res = oexpr(check_operator(*++args));
+		if (check_operator(*++args) != RPAREN)
 			syntax(NULL, "closing paren expected");
+		unnest_msg("<primary:%lld\n", res);
 		return res;
 	}
-	if (t_wp_op && t_wp_op->op_type == UNOP) {
+
+	/* coreutils 6.9 checks "is args[1] binop and args[2] exist?" first,
+	 * do the same */
+	args0_op = last_operator;
+	/* last_operator = operator at args[1] */
+	if (check_operator(args[1]) != EOI) { /* if args[1] != NULL */
+		if (args[2]) {
+			// coreutils also does this:
+			// if (args[3] && args[0]="-l" && args[2] is BINOP)
+			//	return binop(1 /* prepended by -l */);
+			if (last_operator->op_type == BINOP)
+				unnest_msg_and_return(binop(), "<primary: binop:%lld\n");
+		}
+	}
+	/* check "is args[0] unop?" second */
+	if (args0_op->op_type == UNOP) {
 		/* unary expression */
-		if (*++t_wp == NULL)
-			syntax(t_wp_op->op_text, "argument expected");
+		if (args[1] == NULL)
+//			syntax(args0_op->op_text, "argument expected");
+			goto check_emptiness;
+		args++;
 		if (n == STREZ)
-			return t_wp[0][0] == '\0';
+			unnest_msg_and_return(args[0][0] == '\0', "<primary:%lld\n");
 		if (n == STRNZ)
-			return t_wp[0][0] != '\0';
+			unnest_msg_and_return(args[0][0] != '\0', "<primary:%lld\n");
 		if (n == FILTT)
-			return isatty(getn(*t_wp));
-		return filstat(*t_wp, n);
+			unnest_msg_and_return(isatty(getn(*args)), "<primary: isatty(%s)%lld\n", *args);
+		unnest_msg_and_return(filstat(*args, n), "<primary: filstat(%s):%lld\n", *args);
 	}
 
-	t_lex(t_wp[1]);
-	if (t_wp_op && t_wp_op->op_type == BINOP) {
-		return binop();
+	/*check_operator(args[1]); - already done */
+	if (last_operator->op_type == BINOP) {
+		/* args[2] is known to be NULL, isn't it bound to fail? */
+		unnest_msg_and_return(binop(), "<primary:%lld\n");
 	}
-
-	return t_wp[0][0] != '\0';
+ check_emptiness:
+	unnest_msg_and_return(args[0][0] != '\0', "<primary:%lld\n");
 }
 
 
@@ -555,7 +683,7 @@ int test_main(int argc, char **argv)
 {
 	int res;
 	const char *arg0;
-	bool negate = 0;
+//	bool negate = 0;
 
 	arg0 = bb_basename(argv[0]);
 	if (arg0[0] == '[') {
@@ -599,6 +727,8 @@ int test_main(int argc, char **argv)
 		res = 1;
 		goto ret;
 	}
+#if 0
+// Now it's fixed in the parser and should not be needed
 	if (LONE_CHAR(argv[0], '!') && argv[1]) {
 		negate = 1;
 		//argc--;
@@ -609,10 +739,10 @@ int test_main(int argc, char **argv)
 		goto ret;
 	}
 	if (argv[2] && !argv[3]) {
-		t_lex(argv[1]);
-		if (t_wp_op && t_wp_op->op_type == BINOP) {
+		check_operator(argv[1]);
+		if (last_operator->op_type == BINOP) {
 			/* "test [!] arg1 <binary_op> arg2" */
-			t_wp = &argv[0];
+			args = &argv[0];
 			res = (binop() == 0);
 			goto ret;
 		}
@@ -624,14 +754,17 @@ int test_main(int argc, char **argv)
 		//argc++;
 		argv--;
 	}
-	t_wp = &argv[0];
-	res = !oexpr(t_lex(*t_wp));
+#endif
+	args = &argv[0];
+	res = !oexpr(check_operator(*args));
 
-	if (*t_wp != NULL && *++t_wp != NULL) {
-		bb_error_msg("%s: unknown operand", *t_wp);
+	if (*args != NULL && *++args != NULL) {
+		/* TODO: example when this happens? */
+		bb_error_msg("%s: unknown operand", *args);
 		res = 2;
 	}
  ret:
 	DEINIT_S();
-	return negate ? !res : res;
+//	return negate ? !res : res;
+	return res;
 }

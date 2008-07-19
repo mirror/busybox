@@ -196,8 +196,12 @@ void lbb_prepare(const char *applet
 #if ENABLE_FEATURE_INDIVIDUAL
 	/* Redundant for busybox (run_applet_and_exit covers that case)
 	 * but needed for "individual applet" mode */
-	if (argv[1] && strcmp(argv[1], "--help") == 0)
-		bb_show_usage();
+	if (argv[1] && !argv[2] && strcmp(argv[1], "--help") == 0) {
+		/* Special case. POSIX says "test --help"
+		 * should be no different from e.g. "test --foo".  */
+		if (!ENABLE_TEST || strcmp(applet_name, "test") != 0)
+			bb_show_usage();
+	}
 #endif
 }
 
@@ -715,8 +719,13 @@ void FAST_FUNC run_applet_no_and_exit(int applet_no, char **argv)
 	xfunc_error_retval = EXIT_FAILURE;
 
 	applet_name = APPLET_NAME(applet_no);
-	if (argc == 2 && !strcmp(argv[1], "--help"))
-		bb_show_usage();
+	if (argc == 2 && strcmp(argv[1], "--help") == 0) {
+		/* Special case. POSIX says "test --help"
+		 * should be no different from e.g. "test --foo".  */
+//TODO: just compare applet_no with APPLET_NO_test
+		if (!ENABLE_TEST || strcmp(applet_name, "test") != 0)
+			bb_show_usage();
+	}
 	if (ENABLE_FEATURE_SUID)
 		check_suid(applet_no);
 	exit(applet_main[applet_no](argc, argv));
