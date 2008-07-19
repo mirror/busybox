@@ -2903,6 +2903,11 @@
 #define openvt_example_usage \
        "openvt 2 /bin/ash\n"
 
+#define parse_trivial_usage \
+       "[-n maxtokens] [-m mintokens] [-d delims] [-f flags] file ..."
+#define parse_full_usage "\n\n" \
+       "[-n maxtokens] [-m mintokens] [-d delims] [-f flags] file ..."
+
 #define passwd_trivial_usage \
        "[OPTION] [name]"
 #define passwd_full_usage "\n\n" \

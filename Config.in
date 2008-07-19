@@ -479,6 +479,13 @@ config INCLUDE_SUSv2
 	  will be supported in head, tail, and fold.  (Note: should
 	  affect renice too.)
 
+config PARSE
+	bool "Uniform config file parser debugging applet: parse"
+
+config FEATURE_PARSE_COPY
+	bool "Keep a copy of current line"
+	depends on PARSE
+
 endmenu
 
 menu 'Installation Options'

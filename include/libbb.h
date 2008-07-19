@@ -988,16 +988,22 @@ int bb_ask_confirmation(void) FAST_FUNC;
 int bb_parse_mode(const char* s, mode_t* theMode) FAST_FUNC;
 
 /*
- * Uniform config file parser helpers
+ * Config file parser
  */
+#define PARSE_DONT_REDUCE       0x00010000 // do not treat consecutive delimiters as one
+#define PARSE_DONT_TRIM         0x00020000 // do not trim line of leading and trailing delimiters
+#define PARSE_LAST_IS_GREEDY    0x00040000 // last token takes whole remainder of the line
+//#define PARSE_DONT_NULL         0x00080000 // do not set tokens[] to NULL
 typedef struct parser_t {
 	FILE *fp;
-	char *line, *data;
+	char *line;
+	USE_FEATURE_PARSE_COPY(char *data;)
 	int lineno;
 } parser_t;
 parser_t* config_open(const char *filename) FAST_FUNC;
-/* TODO: add define magic to collapse ntokens/mintokens/comment into one int param */
-int config_read(parser_t *parser, char **tokens, int ntokens, int mintokens, const char *delims, char comment) FAST_FUNC;
+int config_read(parser_t *parser, char **tokens, unsigned flags, const char *delims) FAST_FUNC;
+#define config_read(parser, tokens, max, min, str, flags) \
+	config_read(parser, tokens, ((flags) | (((min) & 0xFF) << 8) | ((max) & 0xFF)), str)
 void config_close(parser_t *parser) FAST_FUNC;
 
 /* Concatenate path and filename to new allocated buffer.

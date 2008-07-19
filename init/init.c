@@ -808,7 +808,7 @@ static void parse_inittab(void)
 	/* optional_tty:ignored_runlevel:action:command
 	 * Delims are not to be collapsed and need exactly 4 tokens
 	 */
-	while (config_read(parser, token, -4, 0, ":", '#') >= 0) {
+ 	while (config_read(parser, token, 4, 0, "#:", PARSE_DONT_TRIM|PARSE_DONT_REDUCE|PARSE_LAST_IS_GREEDY)) {
 		int action;
 		char *tty = token[0];
 
@@ -828,7 +828,7 @@ static void parse_inittab(void)
 			free(tty);
 		continue;
  bad_entry:
-		message(L_LOG | L_CONSOLE, "Bad inittab entry: %s", parser->line);
+		message(L_LOG | L_CONSOLE, "Bad inittab entry at line %d", parser->lineno);
 	}
 	config_close(parser);
 #endif

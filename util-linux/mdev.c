@@ -101,7 +101,7 @@ static void make_device(char *path, int delete)
 		if (!parser)
 			goto end_parse;
 
-		while (config_read(parser, tokens, 4, 3, " \t", '#') >= 0) {
+		while (config_read(parser, tokens, 4, 3, "# \t", PARSE_LAST_IS_GREEDY)) {
 			regmatch_t off[1+9*ENABLE_FEATURE_MDEV_RENAME_REGEXP];
 			char *val;
 

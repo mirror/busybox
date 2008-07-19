@@ -469,12 +469,15 @@ static void SynchronizeFile(const char *fileName)
 		file->cf_User = xstrdup(fileName);
 		pline = &file->cf_LineBase;
 
-		while (--maxLines && (n=config_read(parser, tokens, 6, 0, " \t", '#')) >= 0) {
+		while (--maxLines
+		 && (n = config_read(parser, tokens, 6, 1, "# \t", PARSE_LAST_IS_GREEDY))
+		) {
 			CronLine *line;
 
-			if (DebugOpt) {
-				crondlog(LVL5 "user:%s entry:%s", fileName, parser->data);
-			}
+			USE_FEATURE_PARSE_COPY(
+				if (DebugOpt)
+					crondlog(LVL5 "user:%s entry:%s", fileName, parser->data);
+			)
 
 			/* check if line is setting MAILTO= */
 			if (0 == strncmp(tokens[0], "MAILTO=", 7)) {
@@ -485,7 +488,7 @@ static void SynchronizeFile(const char *fileName)
 				continue;
 			}
 			/* check if a minimum of tokens is specified */
-			if (n < 5)
+			if (n < 6)
 				continue;
 			*pline = line = xzalloc(sizeof(CronLine));
 			/* parse date ranges */

@@ -1,0 +1,64 @@
+#!/bin/sh
+
+# Copyright 2008 by Denys Vlasenko <vda.linux@googlemail.com>
+# Licensed under GPL v2, see file LICENSE for details.
+
+. testing.sh
+
+NO_REDUCE=65536
+NO_TRIM=131072
+GREEDY=262144
+
+# testing "description" "command" "result" "infile" "stdin"
+
+testing "mdev.conf" \
+	"parse -n 4 -m 3 -f $GREEDY -" \
+	"[sda][0:0][644][@echo @echo TEST]\n" \
+	"-" \
+	" sda 0:0 644 @echo @echo TEST # echo trap\n"
+
+testing "notrim" \
+	"parse -n 4 -m 3 -f $(($GREEDY+$NO_TRIM)) -" \
+	"[][sda][0:0][644 @echo @echo TEST ]\n" \
+	"-" \
+	" sda 0:0 644 @echo @echo TEST \n"
+
+FILE=__parse.fstab
+cat >$FILE <<EOF
+#
+# Device         Point               System                       Options
+#_______________________________________________________________
+/dev/hdb3       /                       ext2                 defaults      1          0
+   /dev/hdb1       /dosc               hpfs                 ro      1          0
+ /dev/fd0          /dosa              vfat                  rw,user,noauto,nohide	 0		0
+	/dev/fd1          /dosb              vfat                  rw,user,noauto,nohide	 0		0
+#
+ /dev/cdrom     /cdrom            iso9660          ro,user,noauto,nohide	 0		0
+/dev/hdb5       /redhat            ext2                 rw,root,noauto,nohide	 0		0 #sssd
+	/dev/hdb6       /win2home     ntfs                  rw,root,noauto,nohide	 0		0# ssdsd
+/dev/hdb7       /win2skul        ntfs                  rw,root,noauto,nohide none	 0		0
+none     /dev/pts           devpts             gid=5,mode=620                 0    0 
+     none                /proc               proc                defaults     0          0
+EOF
+
+cat >$FILE.res <<EOF
+[/dev/hdb3][/][ext2][defaults][1][0]
+[/dev/hdb1][/dosc][hpfs][ro][1][0]
+[/dev/fd0][/dosa][vfat][rw,user,noauto,nohide][0][0]
+[/dev/fd1][/dosb][vfat][rw,user,noauto,nohide][0][0]
+[/dev/cdrom][/cdrom][iso9660][ro,user,noauto,nohide][0][0]
+[/dev/hdb5][/redhat][ext2][rw,root,noauto,nohide][0][0]
+[/dev/hdb6][/win2home][ntfs][rw,root,noauto,nohide][0][0]
+[/dev/hdb7][/win2skul][ntfs][rw,root,noauto,nohide][none][0]
+[none][/dev/pts][devpts][gid=5,mode=620][0][0]
+[none][/proc][proc][defaults][0][0]
+EOF
+
+testing "polluted fstab" \
+	"parse -n 6 -m 6 $FILE" \
+	"`cat $FILE.res`\n" \
+	"" \
+	""
+rm -f $FILE $FILE.res
+
+exit $FAILCOUNT
