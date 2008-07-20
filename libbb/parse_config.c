@@ -25,7 +25,7 @@ int parse_main(int argc UNUSED_PARAM, char **argv)
 		if (p) {
 			int n;
 			char **t = xmalloc(sizeof(char *) * ntokens);
-			while ((n = config_read(p, t, ntokens, mintokens, delims, flags)) > 0) {
+			while ((n = config_read(p, t, ntokens, mintokens, delims, flags)) != 0) {
 				for (int i = 0; i < n; ++i)
 					printf("[%s]", t[i]);
 				puts("");
@@ -114,10 +114,8 @@ int FAST_FUNC config_read(parser_t *parser, char **tokens, unsigned flags, const
 	int ntokens = flags & 0xFF;
 	int mintokens = (flags & 0xFF00) >> 8;
 
-	/*
 	// N.B. this could only be used in read-in-one-go version, or when tokens use xstrdup(). TODO
-	if (!parser->lineno || !(flags & PARSE_DONT_NULL))
-	*/
+	//if (!parser->lineno || !(flags & PARSE_DONT_NULL))
 		memset(tokens, 0, sizeof(tokens[0]) * ntokens);
 	config_free_data(parser);
 
@@ -171,7 +169,7 @@ int FAST_FUNC config_read(parser_t *parser, char **tokens, unsigned flags, const
 			break;
 
  next_line:
-		/* skip empty line */
+		// skip empty line
 		free(line);
 	}
 
@@ -183,9 +181,9 @@ int FAST_FUNC config_read(parser_t *parser, char **tokens, unsigned flags, const
 		parser->data = xstrdup(line);
 	}
 
-	/* now split line to tokens */
+	// split line to tokens
 	ntokens--; // now it's max allowed token no
-	// N.B, non-empty remainder is also a token,
+	// N.B. non-empty remainder is also a token,
 	// so if ntokens <= 1, we just return the whole line
 	// N.B. if PARSE_LAST_IS_GREEDY is set the remainder of the line is stuck to the last token
 	for (ii = 0; *line && ii <= ntokens; ) {
@@ -193,7 +191,10 @@ int FAST_FUNC config_read(parser_t *parser, char **tokens, unsigned flags, const
 		// get next token
 		// at the last token and need greedy token ->
 		if ((flags & PARSE_LAST_IS_GREEDY) && (ii == ntokens)) {
-			// ... don't cut the line
+			// skip possible delimiters
+			if (!(flags & PARSE_DONT_REDUCE))
+				line += strspn(line, delims);
+			// don't cut the line
 			q = line + strlen(line);
 		} else {
 			// vanilla token. cut the line at the first delim
