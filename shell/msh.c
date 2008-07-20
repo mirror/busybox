@@ -2573,6 +2573,10 @@ static int execute(struct op *t, int *pin, int *pout, int no_fork)
 		while (setjmp(bc.brkpt))
 			if (isbreak)
 				goto broken;
+		/* Restore areanum value. It may be incremented by execute()
+		 * below, and then "continue" may jump back to setjmp above */
+		areanum = a + 1;
+		freearea(areanum + 1);
 		brkset(&bc);
 		for (t1 = t->left; i-- && *wp != NULL;) {
 			setval(vp, *wp++);
@@ -2586,6 +2590,10 @@ static int execute(struct op *t, int *pin, int *pout, int no_fork)
 		while (setjmp(bc.brkpt))
 			if (isbreak)
 				goto broken;
+		/* Restore areanum value. It may be incremented by execute()
+		 * below, and then "continue" may jump back to setjmp above */
+		areanum = a + 1;
+		freearea(areanum + 1);
 		brkset(&bc);
 		t1 = t->left;
 		while ((execute(t1, pin, pout, /* no_fork: */ 0) == 0) == (t->op_type == TWHILE))
