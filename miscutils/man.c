@@ -75,12 +75,11 @@ static int show_manpage(const char *pager, char *man_filename, int man)
 int man_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int man_main(int argc UNUSED_PARAM, char **argv)
 {
-	FILE *cf;
+	parser_t *parser;
 	const char *pager;
 	char **man_path_list;
 	char *sec_list;
 	char *cur_path, *cur_sect;
-	char *line, *value;
 	int count_mp, cur_mp;
 	int opt, not_found;
 
@@ -103,30 +102,24 @@ int man_main(int argc UNUSED_PARAM, char **argv)
 	}
 
 	/* Parse man.conf */
-	cf = fopen_or_warn("/etc/man.conf", "r");
-	if (cf) {
+	parser = config_open("/etc/man.conf");
+	if (parser) {
 		/* go through man configuration file and search relevant paths, sections */
-		while ((line = xmalloc_fgetline(cf)) != NULL) {
-			trim(line); /* remove whitespace at the beginning/end */
-			if (isspace(line[7])) {
-				line[7] = '\0';
-				value = skip_whitespace(&line[8]);
-				*skip_non_whitespace(value) = '\0';
-				if (strcmp("MANPATH", line) == 0) {
-					man_path_list[count_mp] = xstrdup(value);
-					count_mp++;
-					/* man_path_list is NULL terminated */
-					man_path_list[count_mp] = NULL;
-					man_path_list = xrealloc_vector(man_path_list, 4, count_mp);
-				}
-				if (strcmp("MANSECT", line) == 0) {
-					free(sec_list);
-					sec_list = xstrdup(value);
-				}
+		char *token[2];
+		while (config_read(parser, token, 2, 2, "# \t", PARSE_LAST_IS_GREEDY)) {
+			if (strcmp("MANPATH", token[0]) == 0) {
+				man_path_list = xrealloc_vector(man_path_list, 4, count_mp);
+				man_path_list[count_mp] = xstrdup(token[1]);
+				count_mp++;
+				/* man_path_list is NULL terminated */
+				man_path_list[count_mp] = NULL;
 			}
-			free(line);
+			if (strcmp("MANSECT", token[0]) == 0) {
+				free(sec_list);
+				sec_list = xstrdup(token[1]);
+			}
 		}
-		fclose(cf);
+		config_close(parser);
 	}
 
 // TODO: my man3/getpwuid.3.gz contains just one line:
