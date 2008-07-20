@@ -932,8 +932,9 @@ endif # CONFIG_MODULES
 # make distclean Remove editor backup files, patch leftover files and the like
 
 # Directories & files removed with 'make clean'
-CLEAN_DIRS  += $(MODVERDIR)
-CLEAN_FILES +=	busybox busybox_unstripped* System.map .kernelrelease \
+CLEAN_DIRS  += $(MODVERDIR) _install 0_lib
+CLEAN_FILES +=	busybox busybox_unstripped* busybox.links \
+                System.map .kernelrelease \
                 .tmp_kallsyms* .tmp_version .tmp_busybox* .tmp_System.map
 
 # Directories & files removed with 'make mrproper'
@@ -944,7 +945,8 @@ MRPROPER_FILES += .config .config.old include/asm .version .old_version \
 		  include/usage_compressed.h \
 		  include/applet_tables.h \
 		  applets/usage \
-		  .kernelrelease Module.symvers tags TAGS cscope*
+		  .kernelrelease Module.symvers tags TAGS cscope* \
+		  busybox_old
 
 # clean - Delete most, but leave enough to build external modules
 #
