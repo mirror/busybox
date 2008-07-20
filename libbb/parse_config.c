@@ -199,7 +199,8 @@ int FAST_FUNC config_read(parser_t *parser, char **tokens, unsigned flags, const
 		} else {
 			// vanilla token. cut the line at the first delim
 			q = line + strcspn(line, delims);
-			*q++ = '\0';
+			if (*q) // watch out: do not step past the line end!
+				*q++ = '\0';
 		}
 		// pin token
 		if ((flags & (PARSE_DONT_REDUCE|PARSE_DONT_TRIM)) || *line) {
@@ -207,6 +208,7 @@ int FAST_FUNC config_read(parser_t *parser, char **tokens, unsigned flags, const
 			tokens[ii++] = line;
 		}
 		line = q;
+		//bb_info_msg("A[%s]", line);
 	}
 
 	if (ii < mintokens)
