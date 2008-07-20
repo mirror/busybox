@@ -47,31 +47,17 @@ static void display_boolean(void)
 
 static void read_config(char **pc, int npc, char **fc, int nfc)
 {
-	char buf[256];
-	FILE *fp;
+	char *buf;
+	parser_t *parser;
 	int pc_ofs = 0, fc_ofs = 0, section = -1;
 
 	pc[0] = fc[0] = NULL;
 
-	fp = fopen("/etc/sestatus.conf", "rb");
-	if (fp == NULL)
+	parser = config_open("/etc/sestatus.conf");
+	if (!parser)
 		return;
 
-	while (fgets(buf, sizeof(buf), fp) != NULL) {
-		int i, c;
-
-		/* kills comments */
-		for (i = 0; (c = buf[i]) != '\0'; i++) {
-			if (c == '#') {
-				buf[i] = '\0';
-				break;
-			}
-		}
-		trim(buf);
-
-		if (buf[0] == '\0')
-			continue;
-
+	while (config_read(parser, &buf, 1, 1, "# \t", PARSE_LAST_IS_GREEDY)) {
 		if (strcmp(buf, "[process]") == 0) {
 			section = 1;
 		} else if (strcmp(buf, "[files]") == 0) {
@@ -86,7 +72,7 @@ static void read_config(char **pc, int npc, char **fc, int nfc)
 			}
 		}
 	}
-	fclose(fp);
+	config_close(parser);
 }
 
 static void display_verbose(void)

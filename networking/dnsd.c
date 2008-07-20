@@ -102,74 +102,46 @@ static void undot(uint8_t * rip)
 }
 
 /*
- * Read one line of hostname/IP from file
- * Returns 0 for each valid entry read, -1 at EOF
- * Assumes all host names are lower case only
- * Hostnames with more than one label are not handled correctly.
- * Presently the dot is copied into name without
- * converting to a length/string substring for that label.
- */
-static int getfileentry(FILE *fp, struct dns_entry *s)
-{
-	unsigned int a,b,c,d;
-	char *line, *r, *name;
-
- restart:
-	line = r = xmalloc_fgets(fp);
-	if (!r)
-		return -1;
-	while (*r == ' ' || *r == '\t') {
-		r++;
-		if (!*r || *r == '#' || *r == '\n') {
-			free(line);
-			goto restart; /* skipping empty/blank and commented lines  */
-		}
-	}
-	name = r;
-	while (*r != ' ' && *r != '\t')
-		r++;
-	*r++ = '\0';
-	if (sscanf(r, ".%u.%u.%u.%u"+1, &a, &b, &c, &d) != 4) {
-		free(line);
-		goto restart; /* skipping wrong lines */
-	}
-
-	sprintf(s->ip, ".%u.%u.%u.%u"+1, a, b, c, d);
-	sprintf(s->rip, ".%u.%u.%u.%u", d, c, b, a);
-	undot((uint8_t*)s->rip);
-	convname(s->name, (uint8_t*)name);
-
-	if (OPT_verbose)
-		fprintf(stderr, "\tname:%s, ip:%s\n", &(s->name[1]),s->ip);
-
-	free(line);
-	return 0;
-}
-
-/*
  * Read hostname/IP records from file
  */
 static void dnsentryinit(void)
 {
-	FILE *fp;
+	parser_t *parser;
 	struct dns_entry *m, *prev;
 
 	prev = dnsentry = NULL;
-	fp = xfopen(fileconf, "r");
+	parser = config_open(fileconf);
+	if (parser) {
+		char *token[2];
+		while (config_read(parser, token, 2, 0, "# \t", 0)) {
+			unsigned int a,b,c,d;
+			/*
+			 * Assumes all host names are lower case only
+			 * Hostnames with more than one label are not handled correctly.
+			 * Presently the dot is copied into name without
+			 * converting to a length/string substring for that label.
+			 */
+			if (!token[1] || sscanf(token[1], ".%u.%u.%u.%u"+1, &a, &b, &c, &d) != 4)
+				continue;
 
-	while (1) {
-		m = xzalloc(sizeof(*m));
-		/*m->next = NULL;*/
-		if (getfileentry(fp, m))
-			break;
+			m = xzalloc(sizeof(*m));
+			/*m->next = NULL;*/
+			sprintf(m->ip, ".%u.%u.%u.%u"+1, a, b, c, d);
+			sprintf(m->rip, ".%u.%u.%u.%u", d, c, b, a);
+			undot((uint8_t*)m->rip);
+			convname(m->name, (uint8_t*)token[0]);
 
-		if (prev == NULL)
-			dnsentry = m;
-		else
-			prev->next = m;
-		prev = m;
+			if (OPT_verbose)
+				fprintf(stderr, "\tname:%s, ip:%s\n", &(m->name[1]), m->ip);
+
+			if (prev == NULL)
+				dnsentry = m;
+			else
+				prev->next = m;
+			prev = m;
+		}
+		config_close(parser);
 	}
-	fclose(fp);
 }
 
 /*
