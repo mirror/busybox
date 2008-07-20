@@ -266,26 +266,31 @@ char FAST_FUNC get_header_tar(archive_handle_t *archive_handle)
 	case '0':
 #if ENABLE_FEATURE_TAR_OLDGNU_COMPATIBILITY
 		if (last_char_is(file_header->name, '/')) {
-			file_header->mode |= S_IFDIR;
-		} else
+			goto set_dir;
+		}
 #endif
 		file_header->mode |= S_IFREG;
 		break;
 	case '2':
 		file_header->mode |= S_IFLNK;
+		/* have seen tarballs with size field containing
+		 * the size of the link target's name */
+ size0:
+		file_header->size = 0;
 		break;
 	case '3':
 		file_header->mode |= S_IFCHR;
-		break;
+		goto size0; /* paranoia */
 	case '4':
 		file_header->mode |= S_IFBLK;
-		break;
+		goto size0;
 	case '5':
+ set_dir:
 		file_header->mode |= S_IFDIR;
-		break;
+		goto size0;
 	case '6':
 		file_header->mode |= S_IFIFO;
-		break;
+		goto size0;
 #if ENABLE_FEATURE_TAR_GNU_EXTENSIONS
 	case 'L':
 		/* free: paranoia: tar with several consecutive longnames */

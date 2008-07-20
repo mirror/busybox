@@ -8,7 +8,9 @@
 
 void FAST_FUNC seek_by_jump(const archive_handle_t *archive_handle, unsigned amount)
 {
-	if (lseek(archive_handle->src_fd, (off_t) amount, SEEK_CUR) == (off_t) -1) {
+	if (amount
+	 && lseek(archive_handle->src_fd, (off_t) amount, SEEK_CUR) == (off_t) -1
+	) {
 		if (errno == ESPIPE)
 			seek_by_read(archive_handle, amount);
 		else
