@@ -37,6 +37,7 @@
  *
  * httpd.conf has the following format:
  *
+ * H:/serverroot     # define the server root. It will override -h
  * A:172.20.         # Allow address from 172.20.0.0/16
  * A:10.0.0.0/25     # Allow any address from 10.0.0.0-10.0.0.127
  * A:10.0.0.0/255.255.255.128  # Allow any address that previous set
@@ -684,6 +685,13 @@ static void parse_conf(const char *path, int flag)
 #endif
 		if (*p0 == 'I') {
 			index_page = xstrdup(after_colon);
+			continue;
+		}
+
+		/* Do not allow jumping around using H in subdir's configs */
+		if (flag == FIRST_PARSE && *p0 == 'H') {
+			home_httpd = xstrdup(after_colon);
+			xchdir(home_httpd);
 			continue;
 		}
 
@@ -2256,8 +2264,7 @@ static void mini_httpd_inetd(void)
 #if ENABLE_FEATURE_HTTPD_RELOAD_CONFIG_SIGHUP
 static void sighup_handler(int sig)
 {
-	parse_conf(default_path_httpd_conf, sig == SIGHUP ? SIGNALED_PARSE : FIRST_PARSE);
-
+	parse_conf(default_path_httpd_conf, sig ? SIGNALED_PARSE : FIRST_PARSE);
 	signal_SA_RESTART_empty_mask(SIGHUP, sighup_handler);
 }
 #endif
@@ -2392,10 +2399,14 @@ int httpd_main(int argc UNUSED_PARAM, char **argv)
 #endif
 
 #if ENABLE_FEATURE_HTTPD_RELOAD_CONFIG_SIGHUP
-	if (!(opt & OPT_INETD))
+	if (!(opt & OPT_INETD)) {
+		/* runs parse_conf() inside */
 		sighup_handler(0);
+	} else
 #endif
-	parse_conf(default_path_httpd_conf, FIRST_PARSE);
+	{
+		parse_conf(default_path_httpd_conf, FIRST_PARSE);
+	}
 
 	xfunc_error_retval = 0;
 	if (opt & OPT_INETD)
