@@ -276,7 +276,7 @@ static void open_stdio_to_tty(const char* tty_name, int exit_on_failure)
 		/* fd can be only < 0 or 0: */
 		fd = device_open(tty_name, O_RDWR);
 		if (fd) {
-			message(L_LOG | L_CONSOLE, "Can't open %s: %s",
+			message(L_LOG | L_CONSOLE, "can't open %s: %s",
 				tty_name, strerror(errno));
 			if (exit_on_failure)
 				_exit(EXIT_FAILURE);
@@ -336,7 +336,7 @@ static void init_exec(const char *command)
 			ioctl(STDIN_FILENO, TIOCSCTTY, 0 /*only try, don't steal*/);
 	}
 	BB_EXECVP(cmd[0] + dash, cmd);
-	message(L_LOG | L_CONSOLE, "Cannot run '%s': %s", cmd[0], strerror(errno));
+	message(L_LOG | L_CONSOLE, "cannot run '%s': %s", cmd[0], strerror(errno));
 	/* returns if execvp fails */
 }
 
@@ -357,7 +357,7 @@ static pid_t run(const struct init_action *a)
 	sigprocmask(SIG_SETMASK, &omask, NULL);
 
 	if (pid < 0)
-		message(L_LOG | L_CONSOLE, "Can't fork");
+		message(L_LOG | L_CONSOLE, "can't fork");
 	if (pid)
 		return pid;
 
@@ -391,7 +391,7 @@ static pid_t run(const struct init_action *a)
 		/* Now fork off another process to just hang around */
 		pid = fork();
 		if (pid < 0) {
-			message(L_LOG | L_CONSOLE, "Can't fork");
+			message(L_LOG | L_CONSOLE, "can't fork");
 			_exit(EXIT_FAILURE);
 		}
 
@@ -412,7 +412,7 @@ static pid_t run(const struct init_action *a)
 			/* Use a temporary process to steal the controlling tty. */
 			pid = fork();
 			if (pid < 0) {
-				message(L_LOG | L_CONSOLE, "Can't fork");
+				message(L_LOG | L_CONSOLE, "can't fork");
 				_exit(EXIT_FAILURE);
 			}
 			if (pid == 0) {
@@ -879,7 +879,7 @@ int init_main(int argc UNUSED_PARAM, char **argv)
 			BB_EXECVP(argv[0], argv);
 		} else if (enforce > 0) {
 			/* SELinux in enforcing mode but load_policy failed */
-			message(L_CONSOLE, "Cannot load SELinux Policy. "
+			message(L_CONSOLE, "cannot load SELinux Policy. "
 				"Machine is in enforcing mode. Halting now.");
 			exit(EXIT_FAILURE);
 		}

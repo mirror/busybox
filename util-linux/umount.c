@@ -69,7 +69,7 @@ int umount_main(int argc UNUSED_PARAM, char **argv)
 	fp = setmntent(bb_path_mtab_file, "r");
 	if (!fp) {
 		if (opt & OPT_ALL)
-			bb_error_msg_and_die("cannot open %s", bb_path_mtab_file);
+			bb_error_msg_and_die("can't open %s", bb_path_mtab_file);
 	} else {
 		while (getmntent_r(fp, &me, path, PATH_MAX)) {
 			/* Match fstype if passed */
@@ -132,13 +132,13 @@ int umount_main(int argc UNUSED_PARAM, char **argv)
 				const char *msg = "%s busy - remounted read-only";
 				curstat = mount(m->device, zapit, NULL, MS_REMOUNT|MS_RDONLY, NULL);
 				if (curstat) {
-					msg = "cannot remount %s read-only";
+					msg = "can't remount %s read-only";
 					status = EXIT_FAILURE;
 				}
 				bb_error_msg(msg, m->device);
 			} else {
 				status = EXIT_FAILURE;
-				bb_perror_msg("cannot %sumount %s", (doForce ? "forcibly " : ""), zapit);
+				bb_perror_msg("can't %sumount %s", (doForce ? "forcibly " : ""), zapit);
 			}
 		} else {
 			// De-allocate the loop device.  This ioctl should be ignored on

@@ -179,7 +179,7 @@ struct globals {
 static void fatal_cannot(const char *m1) NORETURN;
 static void fatal_cannot(const char *m1)
 {
-	bb_perror_msg("fatal: cannot %s", m1);
+	bb_perror_msg("fatal: can't %s", m1);
 	_exit(151);
 }
 

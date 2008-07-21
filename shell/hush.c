@@ -1466,7 +1466,7 @@ static void pseudo_exec_argv(char **ptrs2free, char **argv)
 
 	debug_printf_exec("execing '%s'\n", argv[0]);
 	execvp(argv[0], argv);
-	bb_perror_msg("cannot exec '%s'", argv[0]);
+	bb_perror_msg("can't exec '%s'", argv[0]);
 	_exit(EXIT_FAILURE);
 }
 
@@ -4425,7 +4425,7 @@ static int builtin_source(char **argv)
 	/* XXX search through $PATH is missing */
 	input = fopen(argv[1], "r");
 	if (!input) {
-		bb_error_msg("cannot open '%s'", argv[1]);
+		bb_error_msg("can't open '%s'", argv[1]);
 		return EXIT_FAILURE;
 	}
 	close_on_exec_on(fileno(input));

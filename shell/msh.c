@@ -1268,7 +1268,7 @@ static int newfile(char *s)
 		f = open(s, O_RDONLY);
 		if (f < 0) {
 			prs(s);
-			err(": cannot open");
+			err(": can't open");
 			return 1;
 		}
 	}
@@ -2770,7 +2770,7 @@ static int forkexec(struct op *t, int *pin, int *pout, int no_fork, char **wp)
 		DBGPRINTF3(("FORKEXEC: calling vfork()...\n"));
 		newpid = vfork();
 		if (newpid == -1) {
-			DBGPRINTF(("FORKEXEC: ERROR, cannot vfork()!\n"));
+			DBGPRINTF(("FORKEXEC: ERROR, can't vfork()!\n"));
 			return -1;
 		}
 
@@ -2820,7 +2820,7 @@ static int forkexec(struct op *t, int *pin, int *pout, int no_fork, char **wp)
 	if (iopp) {
 		if (bltin && bltin != doexec) {
 			prs(bltin_name);
-			err(": cannot redirect shell command");
+			err(": can't redirect shell command");
 			if (forked)
 				_exit(-1);
 			return -1;
@@ -2840,7 +2840,7 @@ static int forkexec(struct op *t, int *pin, int *pout, int no_fork, char **wp)
 			/* Builtin in pipe: disallowed */
 			/* TODO: allow "exec"? */
 			prs(bltin_name);
-			err(": cannot run builtin as part of pipe");
+			err(": can't run builtin as part of pipe");
 			if (forked)
 				_exit(-1);
 			return -1;
@@ -2955,7 +2955,7 @@ static int iosetup(struct ioword *iop, int pipein, int pipeout)
 
 	if (u < 0) {
 		prs(cp);
-		prs(": cannot ");
+		prs(": can't ");
 		warn(msg);
 		return 1;
 	}
@@ -3110,7 +3110,7 @@ static const char *rexecve(char *c, char **v, char **envp)
 		return "not found";
 	}
 	exstat = 126; /* mimic bash */
-	return "cannot execute";
+	return "can't execute";
 }
 
 /*
@@ -3996,7 +3996,7 @@ static int dollar(int quoted)
 		switch (c) {
 		case '=':
 			if (isdigit(*s)) {
-				err("cannot use ${...=...} with $n");
+				err("can't use ${...=...} with $n");
 				gflg = 1;
 				break;
 			}

@@ -83,9 +83,9 @@ struct partition {
 	unsigned char size4[4];         /* nr of sectors in partition */
 } PACKED;
 
-static const char unable_to_open[] ALIGN1 = "cannot open %s";
-static const char unable_to_read[] ALIGN1 = "cannot read from %s";
-static const char unable_to_seek[] ALIGN1 = "cannot seek on %s";
+static const char unable_to_open[] ALIGN1 = "can't open %s";
+static const char unable_to_read[] ALIGN1 = "can't read from %s";
+static const char unable_to_seek[] ALIGN1 = "can't seek on %s";
 
 enum label_type {
 	LABEL_DOS, LABEL_SUN, LABEL_SGI, LABEL_AIX, LABEL_OSF

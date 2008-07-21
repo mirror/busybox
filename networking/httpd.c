@@ -1568,7 +1568,7 @@ static void send_file_and_exit(const char *url, int what)
 	f = open(url, O_RDONLY);
 	if (f < 0) {
 		if (DEBUG)
-			bb_perror_msg("cannot open '%s'", url);
+			bb_perror_msg("can't open '%s'", url);
 		/* Error pages are sent by using send_file_and_exit(SEND_BODY).
 		 * IOW: it is unsafe to call send_headers_and_exit
 		 * if what is SEND_BODY! Can recurse! */

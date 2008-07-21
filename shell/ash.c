@@ -3534,7 +3534,7 @@ static void
 xtcsetpgrp(int fd, pid_t pgrp)
 {
 	if (tcsetpgrp(fd, pgrp))
-		ash_msg_and_raise_error("cannot set tty process group (%m)");
+		ash_msg_and_raise_error("can't set tty process group (%m)");
 }
 
 /*
@@ -4844,9 +4844,9 @@ openredirect(union node *redir)
 
 	return f;
  ecreate:
-	ash_msg_and_raise_error("cannot create %s: %s", fname, errmsg(errno, "nonexistent directory"));
+	ash_msg_and_raise_error("can't create %s: %s", fname, errmsg(errno, "nonexistent directory"));
  eopen:
-	ash_msg_and_raise_error("cannot open %s: %s", fname, errmsg(errno, "no such file"));
+	ash_msg_and_raise_error("can't open %s: %s", fname, errmsg(errno, "no such file"));
 }
 
 /*

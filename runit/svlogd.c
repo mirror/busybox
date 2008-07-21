@@ -145,12 +145,12 @@ static void pause_nomem(void)
 }
 static void pause1cannot(const char *m0)
 {
-	bb_perror_msg(PAUSE"cannot %s", m0);
+	bb_perror_msg(PAUSE"can't %s", m0);
 	sleep(3);
 }
 static void pause2cannot(const char *m0, const char *m1)
 {
-	bb_perror_msg(PAUSE"cannot %s %s", m0, m1);
+	bb_perror_msg(PAUSE"can't %s %s", m0, m1);
 	sleep(3);
 }
 
@@ -246,7 +246,7 @@ static void processorstart(struct logdir *ld)
 		fd = open_read("state");
 		if (fd == -1) {
 			if (errno != ENOENT)
-				bb_perror_msg_and_die(FATAL"cannot %s processor %s", "open state for", ld->name);
+				bb_perror_msg_and_die(FATAL"can't %s processor %s", "open state for", ld->name);
 			close(xopen("state", O_WRONLY|O_NDELAY|O_TRUNC|O_CREAT));
 			fd = xopen("state", O_RDONLY|O_NDELAY);
 		}
@@ -260,7 +260,7 @@ static void processorstart(struct logdir *ld)
 		prog[2] = ld->processor;
 		prog[3] = NULL;
 		execv("/bin/sh", prog);
-		bb_perror_msg_and_die(FATAL"cannot %s processor %s", "run", ld->name);
+		bb_perror_msg_and_die(FATAL"can't %s processor %s", "run", ld->name);
 	}
 	ld->fnsave[26] = sv_ch; /* ...restore */
 	ld->ppid = pid;
@@ -300,7 +300,7 @@ static unsigned processorstop(struct logdir *ld)
 		pause2cannot("set mode of processed", ld->name);
 	ld->fnsave[26] = 'u';
 	if (unlink(ld->fnsave) == -1)
-		bb_error_msg(WARNING"cannot unlink: %s/%s", ld->name, ld->fnsave);
+		bb_error_msg(WARNING"can't unlink: %s/%s", ld->name, ld->fnsave);
 	while (rename("newstate", "state") == -1)
 		pause2cannot("rename state", ld->name);
 	if (verbose)
@@ -325,7 +325,7 @@ static void rmoldest(struct logdir *ld)
 		if ((f->d_name[0] == '@') && (strlen(f->d_name) == 27)) {
 			if (f->d_name[26] == 't') {
 				if (unlink(f->d_name) == -1)
-					warn2("cannot unlink processor leftover", f->d_name);
+					warn2("can't unlink processor leftover", f->d_name);
 			} else {
 				++n;
 				if (strcmp(f->d_name, oldest) < 0)
@@ -335,14 +335,14 @@ static void rmoldest(struct logdir *ld)
 		}
 	}
 	if (errno)
-		warn2("cannot read directory", ld->name);
+		warn2("can't read directory", ld->name);
 	closedir(d);
 
 	if (ld->nmax && (n > ld->nmax)) {
 		if (verbose)
 			bb_error_msg(INFO"delete: %s/%s", ld->name, oldest);
 		if ((*oldest == '@') && (unlink(oldest) == -1))
-			warn2("cannot unlink oldest logfile", ld->name);
+			warn2("can't unlink oldest logfile", ld->name);
 	}
 }
 
@@ -451,7 +451,7 @@ static int buffer_pwrite(int n, char *s, unsigned len)
 					if (strcmp(f->d_name, oldest) < 0)
 						memcpy(oldest, f->d_name, 27);
 				}
-			if (errno) warn2("cannot read directory, want remove old logfile",
+			if (errno) warn2("can't read directory, want remove old logfile",
 					ld->name);
 			closedir(d);
 			errno = ENOSPC;
@@ -461,7 +461,7 @@ static int buffer_pwrite(int n, char *s, unsigned len)
 							ld->name, oldest);
 					errno = 0;
 					if (unlink(oldest) == -1) {
-						warn2("cannot unlink oldest logfile", ld->name);
+						warn2("can't unlink oldest logfile", ld->name);
 						errno = ENOSPC;
 					}
 					while (fchdir(fdwdir) == -1)
@@ -518,13 +518,13 @@ static unsigned logdir_open(struct logdir *ld, const char *fn)
 
 	ld->fddir = open(fn, O_RDONLY|O_NDELAY);
 	if (ld->fddir == -1) {
-		warn2("cannot open log directory", (char*)fn);
+		warn2("can't open log directory", (char*)fn);
 		return 0;
 	}
 	close_on_exec_on(ld->fddir);
 	if (fchdir(ld->fddir) == -1) {
 		logdir_close(ld);
-		warn2("cannot change directory", (char*)fn);
+		warn2("can't change directory", (char*)fn);
 		return 0;
 	}
 	ld->fdlock = open("lock", O_WRONLY|O_NDELAY|O_APPEND|O_CREAT, 0600);
@@ -532,7 +532,7 @@ static unsigned logdir_open(struct logdir *ld, const char *fn)
 	 || (lock_exnb(ld->fdlock) == -1)
 	) {
 		logdir_close(ld);
-		warn2("cannot lock directory", (char*)fn);
+		warn2("can't lock directory", (char*)fn);
 		while (fchdir(fdwdir) == -1)
 			pause1cannot("change to initial working directory");
 		return 0;
@@ -651,7 +651,7 @@ static unsigned logdir_open(struct logdir *ld, const char *fn)
 	} else {
 		if (errno != ENOENT) {
 			logdir_close(ld);
-			warn2("cannot stat current", ld->name);
+			warn2("can't stat current", ld->name);
 			while (fchdir(fdwdir) == -1)
 				pause1cannot("change to initial working directory");
 			return 0;
@@ -754,7 +754,7 @@ static int buffer_pread(/*int fd, */char *s, unsigned len)
 		if (errno == EINTR)
 			continue;
 		if (errno != EAGAIN) {
-			warn("cannot read standard input");
+			warn("can't read standard input");
 			break;
 		}
 		/* else: EAGAIN - normal, repeat silently */
