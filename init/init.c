@@ -86,7 +86,6 @@ static const char *const environment[] = {
 };
 
 /* Function prototypes */
-static void delete_init_action(struct init_action *a);
 static void halt_reboot_pwoff(int sig) NORETURN;
 
 static void waitfor(pid_t pid)
@@ -474,6 +473,23 @@ static pid_t run(const struct init_action *a)
 	_exit(-1);
 }
 
+static void delete_init_action(struct init_action *action)
+{
+	struct init_action *a, *b = NULL;
+
+	for (a = init_action_list; a; b = a, a = a->next) {
+		if (a == action) {
+			if (b == NULL) {
+				init_action_list = a->next;
+			} else {
+				b->next = a->next;
+			}
+			free(a);
+			break;
+		}
+	}
+}
+
 /* Run all commands of a particular type */
 static void run_actions(int action_type)
 {
@@ -647,23 +663,6 @@ static void new_init_action(uint8_t action_type, const char *command, const char
 	safe_strncpy(a->terminal, cons, sizeof(a->terminal));
 	messageD(L_LOG | L_CONSOLE, "command='%s' action=%d tty='%s'\n",
 		a->command, a->action_type, a->terminal);
-}
-
-static void delete_init_action(struct init_action *action)
-{
-	struct init_action *a, *b = NULL;
-
-	for (a = init_action_list; a; b = a, a = a->next) {
-		if (a == action) {
-			if (b == NULL) {
-				init_action_list = a->next;
-			} else {
-				b->next = a->next;
-			}
-			free(a);
-			break;
-		}
-	}
 }
 
 /* NOTE that if CONFIG_FEATURE_USE_INITTAB is NOT defined,
