@@ -29,7 +29,7 @@
  * 28.02.93  -	added support for different directory entry sizes..
  *
  * Sat Mar  6 18:59:42 1993, faith@cs.unc.edu: Output namelen with
- *                           super-block information
+ *                           superblock information
  *
  * Sat Oct  9 11:17:11 1993, faith@cs.unc.edu: make exit status conform
  *                           to that required by fsutil
@@ -79,7 +79,7 @@
  *	-a for automatic repairs (not implemented)
  *	-r for repairs (interactive) (not implemented)
  *	-v for verbose (tells how many files)
- *	-s for super-block info
+ *	-s for superblock info
  *	-m for minix-like "mode not cleared" warnings
  *	-f force filesystem check even if filesystem marked as valid
  *
@@ -148,7 +148,7 @@ struct globals {
 
 	/* Bigger stuff */
 	struct termios sv_termios;
-	char super_block_buffer[BLOCK_SIZE];
+	char superblock_buffer[BLOCK_SIZE];
 	char add_zone_ind_blk[BLOCK_SIZE];
 	char add_zone_dind_blk[BLOCK_SIZE];
 	USE_FEATURE_MINIX2(char add_zone_tind_blk[BLOCK_SIZE];)
@@ -183,7 +183,7 @@ struct globals {
 #define name_depth         (G.name_depth         )
 #define name_component     (G.name_component     )
 #define sv_termios         (G.sv_termios         )
-#define super_block_buffer (G.super_block_buffer )
+#define superblock_buffer  (G.superblock_buffer )
 #define add_zone_ind_blk   (G.add_zone_ind_blk   )
 #define add_zone_dind_blk  (G.add_zone_dind_blk  )
 #define add_zone_tind_blk  (G.add_zone_tind_blk  )
@@ -223,7 +223,7 @@ enum {
 #define Inode1 (((struct minix1_inode *) inode_buffer)-1)
 #define Inode2 (((struct minix2_inode *) inode_buffer)-1)
 
-#define Super (*(struct minix_super_block *)(super_block_buffer))
+#define Super (*(struct minix_superblock *)(superblock_buffer))
 
 #if ENABLE_FEATURE_MINIX2
 # define ZONES    ((unsigned)(version2 ? Super.s_zones : Super.s_nzones))
@@ -560,7 +560,7 @@ static int map_block2(struct minix2_inode *inode, unsigned blknr)
 }
 #endif
 
-static void write_super_block(void)
+static void write_superblock(void)
 {
 	/*
 	 * Set the state of the filesystem based on whether or not there
@@ -572,13 +572,13 @@ static void write_super_block(void)
 		Super.s_state &= ~MINIX_ERROR_FS;
 
 	xlseek(dev_fd, BLOCK_SIZE, SEEK_SET);
-	if (BLOCK_SIZE != full_write(dev_fd, super_block_buffer, BLOCK_SIZE))
-		die("cannot write super-block");
+	if (BLOCK_SIZE != full_write(dev_fd, superblock_buffer, BLOCK_SIZE))
+		die("cannot write superblock");
 }
 
 static void write_tables(void)
 {
-	write_super_block();
+	write_superblock();
 
 	if (IMAPS * BLOCK_SIZE != write(dev_fd, inode_map, IMAPS * BLOCK_SIZE))
 		die("cannot write inode map");
@@ -614,8 +614,8 @@ static void get_dirsize(void)
 static void read_superblock(void)
 {
 	xlseek(dev_fd, BLOCK_SIZE, SEEK_SET);
-	if (BLOCK_SIZE != full_read(dev_fd, super_block_buffer, BLOCK_SIZE))
-		die("cannot read super block");
+	if (BLOCK_SIZE != full_read(dev_fd, superblock_buffer, BLOCK_SIZE))
+		die("cannot read superblock");
 	/* already initialized to:
 	namelen = 14;
 	dirsize = 16;
@@ -634,13 +634,13 @@ static void read_superblock(void)
 		version2 = 1;
 #endif
 	} else
-		die("bad magic number in super-block");
+		die("bad magic number in superblock");
 	if (ZONESIZE != 0 || BLOCK_SIZE != 1024)
 		die("only 1k blocks/zones supported");
 	if (IMAPS * BLOCK_SIZE * 8 < INODES + 1)
-		die("bad s_imap_blocks field in super-block");
+		die("bad s_imap_blocks field in superblock");
 	if (ZMAPS * BLOCK_SIZE * 8 < ZONES - FIRSTZONE + 1)
-		die("bad s_zmap_blocks field in super-block");
+		die("bad s_zmap_blocks field in superblock");
 }
 
 static void read_tables(void)
@@ -1296,7 +1296,7 @@ int fsck_minix_main(int argc UNUSED_PARAM, char **argv)
 		printf("FILE SYSTEM HAS BEEN CHANGED\n");
 		sync();
 	} else if (OPT_repair)
-		write_super_block();
+		write_superblock();
 
 	if (OPT_manual)
 		tcsetattr(0, TCSANOW, &sv_termios);

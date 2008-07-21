@@ -1219,7 +1219,7 @@
      "\n	-r	Perform interactive repairs" \
      "\n	-a	Perform automatic repairs" \
      "\n	-v	Verbose" \
-     "\n	-s	Output super-block information" \
+     "\n	-s	Output superblock information" \
      "\n	-m	Show \"mode not cleared\" warnings" \
      "\n	-f	Force file system check" \
 

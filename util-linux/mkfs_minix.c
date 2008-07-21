@@ -109,7 +109,7 @@ struct globals {
 	unsigned currently_testing;
 
 	char root_block[BLOCK_SIZE];
-	char super_block_buffer[BLOCK_SIZE];
+	char superblock_buffer[BLOCK_SIZE];
 	char boot_block_buffer[512];
 	unsigned short good_blocks_table[MAX_GOOD_BLOCKS];
 	/* check_blocks(): buffer[] was the biggest static in entire bbox */
@@ -133,7 +133,7 @@ static ALWAYS_INLINE unsigned div_roundup(unsigned size, unsigned n)
 #define INODE_BUF1              (((struct minix1_inode*)G.inode_buffer) - 1)
 #define INODE_BUF2              (((struct minix2_inode*)G.inode_buffer) - 1)
 
-#define SB                      (*(struct minix_super_block*)G.super_block_buffer)
+#define SB                      (*(struct minix_superblock*)G.superblock_buffer)
 
 #define SB_INODES               (SB.s_ninodes)
 #define SB_IMAPS                (SB.s_imap_blocks)
@@ -235,7 +235,7 @@ static int get_size(const char *file)
 
 static void write_tables(void)
 {
-	/* Mark the super block valid. */
+	/* Mark the superblock valid. */
 	SB.s_state |= MINIX_VALID_FS;
 	SB.s_state &= ~MINIX_ERROR_FS;
 
@@ -249,7 +249,7 @@ static void write_tables(void)
 	xlseek(dev_fd, BLOCK_SIZE, SEEK_SET);
 
 	msg_eol = "cannot write superblock";
-	xwrite(dev_fd, G.super_block_buffer, BLOCK_SIZE);
+	xwrite(dev_fd, G.superblock_buffer, BLOCK_SIZE);
 
 	msg_eol = "cannot write inode map";
 	xwrite(dev_fd, G.inode_map, SB_IMAPS * BLOCK_SIZE);
@@ -556,7 +556,7 @@ static void setup_tables(void)
 	unsigned sb_zmaps;
 	unsigned i;
 
-	/* memset(G.super_block_buffer, 0, BLOCK_SIZE); */
+	/* memset(G.superblock_buffer, 0, BLOCK_SIZE); */
 	/* memset(G.boot_block_buffer, 0, 512); */
 	SB_MAGIC = G.magic;
 	SB_ZONE_SIZE = 0;
