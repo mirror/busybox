@@ -66,12 +66,12 @@ RB_AUTOBOOT
 #endif /* !ENABLE_FEATURE_WTMP */
 
 	if (flags & 8) /* -w */
-		return 0;
+		return EXIT_SUCCESS;
 	if (!(flags & 2)) /* no -n */
 		sync();
 
 	/* Perform action. */
-	if (ENABLE_INIT && !(flags & 4)) {
+	if (ENABLE_INIT && !(flags & 4)) { /* no -f */
 		if (ENABLE_FEATURE_INITRD) {
 			pid_t *pidlist = find_pid_by_name("linuxrc");
 			if (pidlist[0] > 0)
