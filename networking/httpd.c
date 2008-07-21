@@ -2351,9 +2351,7 @@ int httpd_main(int argc UNUSED_PARAM, char **argv)
 #endif
 #if ENABLE_FEATURE_HTTPD_SETUID
 	if (opt & OPT_SETUID) {
-		if (!get_uidgid(&ugid, s_ugid, 1))
-			bb_error_msg_and_die("unknown user[:group] "
-						"name '%s'", s_ugid);
+		xget_uidgid(&ugid, s_ugid);
 	}
 #endif
 

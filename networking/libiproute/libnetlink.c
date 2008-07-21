@@ -37,7 +37,7 @@ int FAST_FUNC xrtnl_open(struct rtnl_handle *rth/*, unsigned subscriptions*/)
 	xbind(rth->fd, (struct sockaddr*)&rth->local, sizeof(rth->local));
 	addr_len = sizeof(rth->local);
 	if (getsockname(rth->fd, (struct sockaddr*)&rth->local, &addr_len) < 0)
-		bb_perror_msg_and_die("cannot getsockname");
+		bb_perror_msg_and_die("getsockname");
 	if (addr_len != sizeof(rth->local))
 		bb_error_msg_and_die("wrong address length %d", addr_len);
 	if (rth->local.nl_family != AF_NETLINK)

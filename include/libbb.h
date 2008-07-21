@@ -691,6 +691,8 @@ struct bb_uidgid_t {
 };
 /* always sets uid and gid */
 int get_uidgid(struct bb_uidgid_t*, const char*, int numeric_ok) FAST_FUNC;
+/* always sets uid and gid, allows numeric; exits on failure */
+void xget_uidgid(struct bb_uidgid_t*, const char*) FAST_FUNC;
 /* chown-like handling of "user[:[group]" */
 void parse_chown_usergroup_or_die(struct bb_uidgid_t *u, char *user_group) FAST_FUNC;
 /* bb_getpwuid, bb_getgrgid:

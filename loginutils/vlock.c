@@ -40,7 +40,7 @@ int vlock_main(int argc UNUSED_PARAM, char **argv)
 	struct vt_mode ovtm;
 	uid_t uid;
 	struct passwd *pw;
-
+/* XXX: xgetpwuid */
 	uid = getuid();
 	pw = getpwuid(uid);
 	if (pw == NULL)

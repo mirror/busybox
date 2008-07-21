@@ -225,7 +225,7 @@ static int tftp_protocol(
 		if (user_opt) {
 			struct passwd *pw = getpwnam(user_opt);
 			if (!pw)
-				bb_error_msg_and_die("unknown user '%s'", user_opt);
+				bb_error_msg_and_die("unknown user %s", user_opt);
 			change_identity(pw); /* initgroups, setgid, setuid */
 		}
 	}

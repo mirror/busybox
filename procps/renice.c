@@ -84,7 +84,7 @@ int renice_main(int argc UNUSED_PARAM, char **argv)
 			struct passwd *p;
 			p = getpwnam(arg);
 			if (!p) {
-				bb_error_msg("unknown user: %s", arg);
+				bb_error_msg("unknown user %s", arg);
 				goto HAD_ERROR;
 			}
 			who = p->pw_uid;

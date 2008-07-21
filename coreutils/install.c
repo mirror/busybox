@@ -170,7 +170,7 @@ int install_main(int argc, char **argv)
 
 		/* Set the file mode */
 		if ((flags & OPT_MODE) && chmod(dest, mode) == -1) {
-			bb_perror_msg("cannot change permissions of %s", dest);
+			bb_perror_msg("can't change %s of %s", "permissions", dest);
 			ret = EXIT_FAILURE;
 		}
 #if ENABLE_SELINUX
@@ -181,7 +181,7 @@ int install_main(int argc, char **argv)
 		if ((flags & (OPT_OWNER|OPT_GROUP))
 		 && lchown(dest, uid, gid) == -1
 		) {
-			bb_perror_msg("cannot change ownership of %s", dest);
+			bb_perror_msg("can't change %s of %s", "ownership", dest);
 			ret = EXIT_FAILURE;
 		}
 		if (flags & OPT_STRIP) {

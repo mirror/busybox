@@ -76,6 +76,11 @@ int FAST_FUNC get_uidgid(struct bb_uidgid_t *u, const char *ug, int numeric_ok)
 	}
 	return 1;
 }
+void FAST_FUNC xget_uidgid(struct bb_uidgid_t *u, const char *ug)
+{
+    if (!get_uidgid(u, ug, 1))
+	bb_error_msg_and_die("unknown user/group %s", ug);
+}
 
 /* chown-like:
  * "user" sets uid only,
@@ -106,8 +111,7 @@ void FAST_FUNC parse_chown_usergroup_or_die(struct bb_uidgid_t *u, char *user_gr
 	} else {
 		if (!group[1]) /* "user:" */
 			*group = '\0';
-		if (!get_uidgid(u, user_group, 1))
-			bb_error_msg_and_die("unknown user/group %s", user_group);
+		xget_uidgid(u, user_group);
 	}
 }
 

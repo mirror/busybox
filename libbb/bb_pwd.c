@@ -82,7 +82,7 @@ long FAST_FUNC xuname2uid(const char *name)
 
 	myuser = getpwnam(name);
 	if (myuser == NULL)
-		bb_error_msg_and_die("unknown user name: %s", name);
+		bb_error_msg_and_die("unknown user %s", name);
 
 	return myuser->pw_uid;
 }

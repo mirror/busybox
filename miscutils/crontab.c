@@ -129,11 +129,11 @@ int crontab_main(int argc UNUSED_PARAM, char **argv)
 		if (!pas)
 			bb_error_msg_and_die("user %s is not known", user_name);
 	} else {
+/* XXX: xgetpwuid */
 		uid_t my_uid = getuid();
 		pas = getpwuid(my_uid);
 		if (!pas)
-			bb_perror_msg_and_die("no user record for UID %u",
-					(unsigned)my_uid);
+			bb_perror_msg_and_die("unknown uid %d", (int)my_uid);
 	}
 
 #define user_name DONT_USE_ME_BEYOND_THIS_POINT
