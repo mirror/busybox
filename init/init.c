@@ -43,16 +43,6 @@
 #define SHUTDOWN    0x40
 #define RESTART     0x80
 
-/*
-#define STR_SYSINIT     "\x01"
-#define STR_RESPAWN     "\x02"
-#define STR_ASKFIRST    "\x04"
-#define STR_WAIT        "\x08"
-#define STR_ONCE        "\x10"
-#define STR_CTRLALTDEL  "\x20"
-#define STR_SHUTDOWN    "\x40"
-#define STR_RESTART     "\x80"
-*/
 /* Set up a linked list of init_actions, to be read from inittab */
 struct init_action {
 	struct init_action *next;
@@ -142,7 +132,7 @@ static void message(int where, const char *fmt, ...)
 	if (ENABLE_FEATURE_INIT_SYSLOG) {
 		/* Log the message to syslogd */
 		if (where & L_LOG) {
-			/* don't out "\r" */
+			/* don't print out "\r" */
 			openlog(applet_name, 0, LOG_DAEMON);
 			syslog(LOG_INFO, "init: %s", msg + 1);
 			closelog();
@@ -156,7 +146,7 @@ static void message(int where, const char *fmt, ...)
 		 * It's mine, all mine!  Muhahahaha! */
 		if (log_fd < 0) {
 			if (!log_console) {
-				log_fd = 2;
+				log_fd = STDERR_FILENO;
 			} else {
 				log_fd = device_open(log_console, O_WRONLY | O_NONBLOCK | O_NOCTTY);
 				if (log_fd < 0) {
@@ -169,7 +159,7 @@ static void message(int where, const char *fmt, ...)
 		}
 		if (where & L_LOG) {
 			full_write(log_fd, msg, l);
-			if (log_fd == 2)
+			if (log_fd == STDERR_FILENO)
 				return; /* don't print dup messages */
 		}
 	}
@@ -210,13 +200,14 @@ static void console_init(void)
 	char *s;
 
 	s = getenv("CONSOLE");
-	if (!s) s = getenv("console");
+	if (!s)
+		s = getenv("console");
 	if (s) {
 		int fd = open(s, O_RDWR | O_NONBLOCK | O_NOCTTY);
 		if (fd >= 0) {
-			dup2(fd, 0);
-			dup2(fd, 1);
-			xmove_fd(fd, 2);
+			dup2(fd, STDIN_FILENO);
+			dup2(fd, STDOUT_FILENO);
+			xmove_fd(fd, STDERR_FILENO);
 		}
 		messageD(L_LOG, "console='%s'", s);
 	} else {
@@ -255,7 +246,7 @@ static void set_sane_term(void)
 	tty.c_cc[VSTOP] = 19;	/* C-s */
 	tty.c_cc[VSUSP] = 26;	/* C-z */
 
-	/* use line dicipline 0 */
+	/* use line discipline 0 */
 	tty.c_line = 0;
 
 	/* Make it be sane */
@@ -282,7 +273,7 @@ static void open_stdio_to_tty(const char* tty_name, int exit_on_failure)
 	/* empty tty_name means "use init's tty", else... */
 	if (tty_name[0]) {
 		int fd;
-		close(0);
+		close(STDIN_FILENO);
 		/* fd can be only < 0 or 0: */
 		fd = device_open(tty_name, O_RDWR);
 		if (fd) {
@@ -292,12 +283,12 @@ static void open_stdio_to_tty(const char* tty_name, int exit_on_failure)
 				_exit(EXIT_FAILURE);
 			if (ENABLE_DEBUG_INIT)
 				_exit(2);
-		/* NB: we don't reach this if we were called after vfork.
-		 * Thus halt_reboot_pwoff() itself need not be vfork-safe. */
+			/* NB: we don't reach this if we were called after vfork.
+			 * Thus halt_reboot_pwoff() itself need not be vfork-safe. */
 			halt_reboot_pwoff(SIGUSR1); /* halt the system */
 		}
-		dup2(0, 1);
-		dup2(0, 2);
+		dup2(STDIN_FILENO, STDOUT_FILENO);
+		dup2(STDIN_FILENO, STDERR_FILENO);
 	}
 	set_sane_term();
 }
@@ -346,8 +337,7 @@ static void init_exec(const char *command)
 			ioctl(STDIN_FILENO, TIOCSCTTY, 0 /*only try, don't steal*/);
 	}
 	BB_EXECVP(cmd[0] + dash, cmd);
-	message(L_LOG | L_CONSOLE, "Cannot run '%s': %s",
-			cmd[0], strerror(errno));
+	message(L_LOG | L_CONSOLE, "Cannot run '%s': %s", cmd[0], strerror(errno));
 	/* returns if execvp fails */
 }
 
@@ -434,7 +424,6 @@ static pid_t run(const struct init_action *a)
 			waitfor(pid);
 			_exit(EXIT_SUCCESS);
 		}
-
 		/* Child - fall though to actually execute things */
 	}
 #endif
@@ -640,8 +629,7 @@ static void new_init_action(uint8_t action_type, const char *command, const char
 		/* don't enter action if it's already in the list,
 		 * but do overwrite existing actions */
 		if ((strcmp(a->command, command) == 0)
-		 && (strcmp(a->terminal, cons) == 0)
-		) {
+			&& (strcmp(a->terminal, cons) == 0)) {
 			a->action_type = action_type;
 			return;
 		}
@@ -687,95 +675,6 @@ static void delete_init_action(struct init_action *action)
  */
 static void parse_inittab(void)
 {
-#if 0
-	FILE *file;
-	char buf[COMMAND_SIZE];
-
-	if (ENABLE_FEATURE_USE_INITTAB)
-		file = fopen(INITTAB, "r");
-	else
-		file = NULL;
-
-	/* No inittab file -- set up some default behavior */
-	if (file == NULL) {
-		/* Reboot on Ctrl-Alt-Del */
-		new_init_action(CTRLALTDEL, "reboot", "");
-		/* Umount all filesystems on halt/reboot */
-		new_init_action(SHUTDOWN, "umount -a -r", "");
-		/* Swapoff on halt/reboot */
-		if (ENABLE_SWAPONOFF)
-			new_init_action(SHUTDOWN, "swapoff -a", "");
-		/* Prepare to restart init when a QUIT is received */
-		new_init_action(RESTART, "init", "");
-		/* Askfirst shell on tty1-4 */
-		new_init_action(ASKFIRST, bb_default_login_shell, "");
-		new_init_action(ASKFIRST, bb_default_login_shell, VC_2);
-		new_init_action(ASKFIRST, bb_default_login_shell, VC_3);
-		new_init_action(ASKFIRST, bb_default_login_shell, VC_4);
-		/* sysinit */
-		new_init_action(SYSINIT, INIT_SCRIPT, "");
-
-		return;
-	}
-
-	while (fgets(buf, COMMAND_SIZE, file) != NULL) {
-		static const char actions[] =
-			STR_SYSINIT    "sysinit\0"
-			STR_RESPAWN    "respawn\0"
-			STR_ASKFIRST   "askfirst\0"
-			STR_WAIT       "wait\0"
-			STR_ONCE       "once\0"
-			STR_CTRLALTDEL "ctrlaltdel\0"
-			STR_SHUTDOWN   "shutdown\0"
-			STR_RESTART    "restart\0"
-		;
-		char tmpConsole[CONSOLE_NAME_SIZE];
-		char *id, *runlev, *action, *command;
-		const char *a;
-
-		/* Skip leading spaces */
-		id = skip_whitespace(buf);
-		/* Trim the trailing '\n' */
-		*strchrnul(id, '\n') = '\0';
-		/* Skip the line if it is a comment */
-		if (*id == '#' || *id == '\0')
-			continue;
-
-		/* Line is: "id:runlevel_ignored:action:command" */
-		runlev = strchr(id, ':');
-		if (runlev == NULL /*|| runlev[1] == '\0' - not needed */)
-			goto bad_entry;
-		action = strchr(runlev + 1, ':');
-		if (action == NULL /*|| action[1] == '\0' - not needed */)
-			goto bad_entry;
-		command = strchr(action + 1, ':');
-		if (command == NULL || command[1] == '\0')
-			goto bad_entry;
-
-		*command = '\0'; /* action => ":action\0" now */
-		for (a = actions; a[0]; a += strlen(a) + 1) {
-			if (strcmp(a + 1, action + 1) == 0) {
-				*runlev = '\0';
-				if (*id != '\0') {
-					if (strncmp(id, "/dev/", 5) == 0)
-						id += 5;
-					strcpy(tmpConsole, "/dev/");
-					safe_strncpy(tmpConsole + 5, id,
-						sizeof(tmpConsole) - 5);
-					id = tmpConsole;
-				}
-				new_init_action((uint8_t)a[0], command + 1, id);
-				goto next_line;
-			}
-		}
-		*command = ':';
-		/* Choke on an unknown action */
- bad_entry:
-		message(L_LOG | L_CONSOLE, "Bad inittab entry: %s", id);
- next_line: ;
-	}
-	fclose(file);
-#else
 	char *token[4];
 	/* order must correspond to SYSINIT..RESTART constants */
 	static const char actions[] ALIGN1 =
@@ -808,7 +707,7 @@ static void parse_inittab(void)
 	/* optional_tty:ignored_runlevel:action:command
 	 * Delims are not to be collapsed and need exactly 4 tokens
 	 */
- 	while (config_read(parser, token, 4, 0, "#:", PARSE_DONT_TRIM|PARSE_DONT_REDUCE|PARSE_LAST_IS_GREEDY)) {
+	while (config_read(parser, token, 4, 0, "#:", PARSE_DONT_TRIM|PARSE_DONT_REDUCE|PARSE_LAST_IS_GREEDY)) {
 		int action;
 		char *tty = token[0];
 
@@ -828,10 +727,10 @@ static void parse_inittab(void)
 			free(tty);
 		continue;
  bad_entry:
-		message(L_LOG | L_CONSOLE, "Bad inittab entry at line %d", parser->lineno);
+		message(L_LOG | L_CONSOLE, "Bad inittab entry at line %d",
+				parser->lineno);
 	}
 	config_close(parser);
-#endif
 }
 
 #if ENABLE_FEATURE_USE_INITTAB
