@@ -229,11 +229,10 @@ make_new_session(
 	/* open the child's side of the tty. */
 	/* NB: setsid() disconnects from any previous ctty's. Therefore
 	 * we must open child's side of the tty AFTER setsid! */
-	fd = xopen(tty_name, O_RDWR); /* becomes our ctty */
-	dup2(fd, 0);
-	dup2(fd, 1);
-	dup2(fd, 2);
-	while (fd > 2) close(fd--);
+	close(0);
+	xopen(tty_name, O_RDWR); /* becomes our ctty */
+	xdup2(0, 1);
+	xdup2(0, 2);
 	tcsetpgrp(0, getpid()); /* switch this tty's process group to us */
 
 	/* The pseudo-terminal allocated to the client is configured to operate in
@@ -252,7 +251,7 @@ make_new_session(
 	 * issue files, and they may block writing to fd 1,
 	 * (parent is supposed to read it, but parent waits
 	 * for vforked child to exec!) */
-	print_login_issue(issuefile, NULL);
+	print_login_issue(issuefile, tty_name);
 
 	/* Exec shell / login / whatever */
 	login_argv[0] = loginpath;

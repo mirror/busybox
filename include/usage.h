@@ -4015,8 +4015,8 @@
 #define telnet_full_usage "\n\n" \
        "Connect to telnet server\n" \
      "\nOptions:" \
-     "\n	-a	Attempt an automatic login with USER variable" \
-     "\n	-l USER	Attempt an automatic login with USER argument" \
+     "\n	-a	Automatic login with $USER variable" \
+     "\n	-l USER	Automatic login as USER" \
 
 #else
 #define telnet_trivial_usage \
@@ -4047,8 +4047,8 @@
 #define test_trivial_usage \
        "EXPRESSION ]"
 #define test_full_usage "\n\n" \
-       "Check file types and compares values returning an exit code\n" \
-       "determined by the value of EXPRESSION"
+       "Check file types, compare values etc. Return a 0/1 exit code\n" \
+       "depending on logical value of EXPRESSION"
 #define test_example_usage \
        "$ test 1 -eq 2\n" \
        "$ echo $?\n" \
