@@ -3848,7 +3848,7 @@ static void print_load_map(struct obj_file *f)
 				a);
 	}
 #if ENABLE_FEATURE_INSMOD_LOAD_MAP_FULL
-	/* Quick reference which section indicies are loaded.  */
+	/* Quick reference which section indices are loaded.  */
 
 	i = f->header.e_shnum;
 	loaded = alloca(sizeof(int) * i);
