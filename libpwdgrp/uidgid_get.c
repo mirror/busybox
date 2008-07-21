@@ -78,8 +78,8 @@ int FAST_FUNC get_uidgid(struct bb_uidgid_t *u, const char *ug, int numeric_ok)
 }
 void FAST_FUNC xget_uidgid(struct bb_uidgid_t *u, const char *ug)
 {
-    if (!get_uidgid(u, ug, 1))
-	bb_error_msg_and_die("unknown user/group %s", ug);
+	if (!get_uidgid(u, ug, 1))
+		bb_error_msg_and_die("unknown user/group %s", ug);
 }
 
 /* chown-like:

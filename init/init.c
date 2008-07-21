@@ -645,7 +645,8 @@ static void new_init_action(uint8_t action_type, const char *command, const char
 		/* don't enter action if it's already in the list,
 		 * but do overwrite existing actions */
 		if ((strcmp(a->command, command) == 0)
-			&& (strcmp(a->terminal, cons) == 0)) {
+		 && (strcmp(a->terminal, cons) == 0)
+		) {
 			a->action_type = action_type;
 			return;
 		}
