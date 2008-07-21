@@ -299,7 +299,7 @@ static FAST_FUNC int fileAction(const char *pathname,
 static int load_dep_bb(void)
 {
 	char *line;
-	FILE *fp = fopen(DEPFILE_BB, "r");
+	FILE *fp = fopen_for_read(DEPFILE_BB);
 
 	if (!fp)
 		return 0;
@@ -492,7 +492,7 @@ static int already_loaded(const char *name)
 	char *line;
 	FILE* modules;
 
-	modules = xfopen("/proc/modules", "r");
+	modules = xfopen_for_read("/proc/modules");
 	while ((line = xmalloc_fgets(modules)) != NULL) {
 		if (strncmp(line, name, len) == 0 && line[len] == ' ') {
 			free(line);
@@ -688,7 +688,7 @@ int modprobe_main(int argc UNUSED_PARAM, char **argv)
 
 	/* are we lsmod? -> just dump /proc/modules */
 	if ('l' == applet0) {
-		xprint_and_close_file(xfopen("/proc/modules", "r"));
+		xprint_and_close_file(xfopen_for_read("/proc/modules"));
 		return EXIT_SUCCESS;
 	}
 

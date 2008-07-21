@@ -179,7 +179,7 @@ int uudecode_main(int argc UNUSED_PARAM, char **argv)
 		}
 		dst_stream = stdout;
 		if (NOT_LONE_DASH(outname)) {
-			dst_stream = xfopen(outname, "w");
+			dst_stream = xfopen_for_write(outname);
 			fchmod(fileno(dst_stream), mode & (S_IRWXU | S_IRWXG | S_IRWXO));
 		}
 		free(line);

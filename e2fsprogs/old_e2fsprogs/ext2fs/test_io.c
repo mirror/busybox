@@ -180,7 +180,7 @@ static errcode_t test_open(const char *name, int flags, io_channel *channel)
 
 	data->outfile = NULL;
 	if ((value = getenv("TEST_IO_LOGFILE")) != NULL)
-		data->outfile = fopen(value, "w");
+		data->outfile = fopen_for_write(value);
 	if (!data->outfile)
 		data->outfile = stderr;
 

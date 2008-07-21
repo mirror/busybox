@@ -692,7 +692,7 @@ static struct interfaces_file_t *read_interfaces(const char *filename)
 	enum { NONE, IFACE, MAPPING } currently_processing = NONE;
 
 	defn = xzalloc(sizeof(*defn));
-	f = xfopen(filename, "r");
+	f = xfopen_for_read(filename);
 
 	while ((buf = xmalloc_fgetline(f)) != NULL) {
 #if ENABLE_DESKTOP
@@ -1090,7 +1090,7 @@ static llist_t *find_iface_state(llist_t *state_list, const char *iface)
 static llist_t *read_iface_state(void)
 {
 	llist_t *state_list = NULL;
-	FILE *state_fp = fopen(CONFIG_IFUPDOWN_IFSTATE_PATH, "r");
+	FILE *state_fp = fopen_for_read(CONFIG_IFUPDOWN_IFSTATE_PATH);
 
 	if (state_fp) {
 		char *start, *end_ptr;
@@ -1256,7 +1256,7 @@ int ifupdown_main(int argc, char **argv)
 			}
 
 			/* Actually write the new state */
-			state_fp = xfopen(CONFIG_IFUPDOWN_IFSTATE_PATH, "w");
+			state_fp = xfopen_for_write(CONFIG_IFUPDOWN_IFSTATE_PATH);
 			state = state_list;
 			while (state) {
 				if (state->data) {

@@ -277,7 +277,7 @@ static int xargs_ask_confirmation(void)
 	FILE *tty_stream;
 	int c, savec;
 
-	tty_stream = xfopen(CURRENT_TTY, "r");
+	tty_stream = xfopen_for_read(CURRENT_TTY);
 	fputs(" ?...", stderr);
 	fflush(stderr);
 	c = savec = getc(tty_stream);

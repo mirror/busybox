@@ -316,7 +316,7 @@ static void parse_config_file(void)
 	 || !S_ISREG(st.st_mode)                /* Not a regular file? */
 	 || (st.st_uid != 0)                    /* Not owned by root? */
 	 || (st.st_mode & (S_IWGRP | S_IWOTH))  /* Writable by non-root? */
-	 || !(f = fopen(config_file, "r"))      /* Cannot open? */
+	 || !(f = fopen_for_read(config_file))      /* Cannot open? */
 	) {
 		return;
 	}

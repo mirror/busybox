@@ -249,7 +249,7 @@ static int is_swap_device(const char *file)
 		file_dev = st_buf.st_rdev;
 #endif	/* __GNU__ */
 
-	if (!(f = fopen("/proc/swaps", "r")))
+	if (!(f = fopen_for_read("/proc/swaps")))
 		return 0;
 	/* Skip the first line */
 	fgets(buf, sizeof(buf), f);

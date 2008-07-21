@@ -663,7 +663,7 @@ static llist_t *append_file_list_to_list(llist_t *list)
 	llist_t *newlist = NULL;
 
 	while (list) {
-		src_stream = xfopen(llist_pop(&list), "r");
+		src_stream = xfopen_for_read(llist_pop(&list));
 		while ((line = xmalloc_fgetline(src_stream)) != NULL) {
 			/* kill trailing '/' unless the string is just "/" */
 			char *cp = last_char_is(line, '/');

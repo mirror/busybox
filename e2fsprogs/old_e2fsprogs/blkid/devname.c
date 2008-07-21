@@ -152,7 +152,7 @@ static dev_t lvm_get_devno(const char *lvm_device)
 	dev_t ret = 0;
 
 	DBG(DEBUG_DEVNAME, printf("opening %s\n", lvm_device));
-	if ((lvf = fopen(lvm_device, "r")) == NULL) {
+	if ((lvf = fopen_for_read(lvm_device)) == NULL) {
 		DBG(DEBUG_DEVNAME, printf("%s: (%d) %s\n", lvm_device, errno,
 					  strerror(errno)));
 		return 0;
@@ -233,7 +233,7 @@ evms_probe_all(blkid_cache cache)
 	FILE *procpt;
 	char device[110];
 
-	procpt = fopen(PROC_EVMS_VOLUMES, "r");
+	procpt = fopen_for_read(PROC_EVMS_VOLUMES);
 	if (!procpt)
 		return 0;
 	while (fgets(line, sizeof(line), procpt)) {
@@ -282,7 +282,7 @@ int blkid_probe_all(blkid_cache cache)
 	lvm_probe_all(cache);
 #endif
 
-	proc = fopen(PROC_PARTITIONS, "r");
+	proc = fopen_for_read(PROC_PARTITIONS);
 	if (!proc)
 		return -BLKID_ERR_PROC;
 

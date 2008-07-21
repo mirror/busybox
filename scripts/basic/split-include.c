@@ -154,7 +154,7 @@ int main(int argc, const char * argv [])
 	    }
 
 	    /* Write the file. */
-	    if ((fp_target = fopen(ptarget, "w" )) == NULL)
+	    if ((fp_target = fopen(ptarget,  "w")) == NULL)
 		ERROR_EXIT(ptarget);
 	    fputs(line, fp_target);
 	    if (ferror(fp_target) || fclose(fp_target) != 0)

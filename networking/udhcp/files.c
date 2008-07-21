@@ -321,9 +321,7 @@ void read_config(const char *file)
 	if (!parser)
 		return;
 
-	while (config_read(parser, token, 2, 0, "# \t", PARSE_LAST_IS_GREEDY)) {
-		if (!token[1])
-			continue;
+	while (config_read(parser, token, 2, 2, "# \t", PARSE_LAST_IS_GREEDY)) {
 		for (k = keywords, i = 0; i < ARRAY_SIZE(keywords); k++, i++) {
 			if (!strcasecmp(token[0], k->keyword)) {
 				if (!k->handler(token[1], k->var)) {

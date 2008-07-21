@@ -4012,7 +4012,7 @@ int hush_main(int argc, char **argv)
 
 	if (argv[0] && argv[0][0] == '-') {
 		debug_printf("sourcing /etc/profile\n");
-		input = fopen("/etc/profile", "r");
+		input = fopen_for_read("/etc/profile");
 		if (input != NULL) {
 			close_on_exec_on(fileno(input));
 			parse_and_run_file(input);
@@ -4116,7 +4116,7 @@ int hush_main(int argc, char **argv)
 		debug_printf("\nrunning script '%s'\n", argv[optind]);
 		global_argv = argv + optind;
 		global_argc = argc - optind;
-		input = xfopen(argv[optind], "r");
+		input = xfopen_for_read(argv[optind]);
 		fcntl(fileno(input), F_SETFD, FD_CLOEXEC);
 		opt = parse_and_run_file(input);
 	}
@@ -4423,7 +4423,7 @@ static int builtin_source(char **argv)
 		return EXIT_FAILURE;
 
 	/* XXX search through $PATH is missing */
-	input = fopen(argv[1], "r");
+	input = fopen_for_read(argv[1]);
 	if (!input) {
 		bb_error_msg("can't open '%s'", argv[1]);
 		return EXIT_FAILURE;

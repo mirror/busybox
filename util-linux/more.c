@@ -72,7 +72,7 @@ int more_main(int argc UNUSED_PARAM, char **argv)
 	 * is not a tty and turns into cat. This makes sense. */
 	if (!isatty(STDOUT_FILENO))
 		return bb_cat(argv);
-	cin = fopen(CURRENT_TTY, "r");
+	cin = fopen_for_read(CURRENT_TTY);
 	if (!cin)
 		return bb_cat(argv);
 

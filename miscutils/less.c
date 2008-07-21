@@ -1129,7 +1129,7 @@ static void save_input_to_file(void)
 	print_statusline("Log file: ");
 	current_line = less_gets(sizeof("Log file: ")-1);
 	if (current_line[0]) {
-		fp = fopen(current_line, "w");
+		fp = fopen_for_write(current_line);
 		if (!fp) {
 			msg = "Error opening log file";
 			goto ret;

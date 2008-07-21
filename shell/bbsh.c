@@ -206,7 +206,7 @@ int bbsh_main(int argc, char **argv)
 
 	getopt32(argv, "c:", &command);
 
-	f = argv[optind] ? xfopen(argv[optind],"r") : NULL;
+	f = argv[optind] ? xfopen_for_read(argv[optind]) : NULL;
 	if (command) handle(command);
 	else {
 		unsigned cmdlen=0;

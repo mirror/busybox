@@ -150,7 +150,7 @@ int depmod_main(int argc UNUSED_PARAM, char **argv)
 
 	if (!(option_mask32 & ARG_n)) { /* --dry-run */
 		chp = concat_path_file(moddir, CONFIG_DEFAULT_DEPMOD_FILE);
-		filedes = xfopen(chp, "w");
+		filedes = xfopen_for_write(chp);
 		if (ENABLE_FEATURE_CLEAN_UP)
 			free(chp);
 	}

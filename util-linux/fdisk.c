@@ -2684,7 +2684,7 @@ is_ide_cdrom_or_tape(const char *device)
 		return 0;
 
 	snprintf(buf, sizeof(buf), "/proc/ide/%s/media", device+5);
-	procf = fopen(buf, "r");
+	procf = fopen_for_read(buf);
 	if (procf != NULL && fgets(buf, sizeof(buf), procf))
 		is_ide = (!strncmp(buf, "cdrom", 5) ||
 			  !strncmp(buf, "tape", 4));

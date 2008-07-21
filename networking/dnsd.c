@@ -113,7 +113,7 @@ static void dnsentryinit(void)
 	parser = config_open(fileconf);
 	if (parser) {
 		char *token[2];
-		while (config_read(parser, token, 2, 0, "# \t", 0)) {
+		while (config_read(parser, token, 2, 2, "# \t", 0)) {
 			unsigned int a,b,c,d;
 			/*
 			 * Assumes all host names are lower case only
@@ -121,7 +121,8 @@ static void dnsentryinit(void)
 			 * Presently the dot is copied into name without
 			 * converting to a length/string substring for that label.
 			 */
-			if (!token[1] || sscanf(token[1], ".%u.%u.%u.%u"+1, &a, &b, &c, &d) != 4)
+//			if (!token[1] || sscanf(token[1], ".%u.%u.%u.%u"+1, &a, &b, &c, &d) != 4)
+			if (sscanf(token[1], ".%u.%u.%u.%u"+1, &a, &b, &c, &d) != 4)
 				continue;
 
 			m = xzalloc(sizeof(*m));

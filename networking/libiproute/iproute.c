@@ -64,7 +64,7 @@ static unsigned get_hz(void)
 	if (hz_internal)
 		return hz_internal;
 
-	fp = fopen("/proc/net/psched", "r");
+	fp = fopen_for_read("/proc/net/psched");
 	if (fp) {
 		unsigned nom, denom;
 

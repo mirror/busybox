@@ -122,7 +122,7 @@ static void die_if_nologin(void)
 	if (access("/etc/nologin", F_OK))
 		return;
 
-	fp = fopen("/etc/nologin", "r");
+	fp = fopen_for_read("/etc/nologin");
 	if (fp) {
 		while ((c = getc(fp)) != EOF)
 			bb_putchar((c=='\n') ? '\r' : c);
@@ -139,30 +139,20 @@ static ALWAYS_INLINE void die_if_nologin(void) {}
 #if ENABLE_FEATURE_SECURETTY && !ENABLE_PAM
 static int check_securetty(void)
 {
-	FILE *fp;
-	int i;
-	char buf[256];
-
-	fp = fopen("/etc/securetty", "r");
-	if (!fp) {
-		/* A missing securetty file is not an error. */
-		return 1;
-	}
-	while (fgets(buf, sizeof(buf)-1, fp)) {
-		for (i = strlen(buf)-1; i >= 0; --i) {
-			if (!isspace(buf[i]))
+	char *buf;
+	int ret = 1;
+	parser_t *parser = config_open2("/etc/securetty", fopen_for_read);
+	/* N.B. A missing securetty file is not an error. */
+	if (parser) {
+		while (config_read(parser, &buf, 1, 1, "# \t", 0)) {
+			if (strcmp(buf, short_tty) == 0)
 				break;
 		}
-		buf[++i] = '\0';
-		if (!buf[0] || (buf[0] == '#'))
-			continue;
-		if (strcmp(buf, short_tty) == 0) {
-			fclose(fp);
-			return 1;
-		}
+		config_close(parser);
+		// buf != NULL here iff config file was empty (OK) or buf equals short_tty (OK)
+		ret = buf != NULL;
 	}
-	fclose(fp);
-	return 0;
+	return ret;
 }
 #else
 static ALWAYS_INLINE int check_securetty(void) { return 1; }

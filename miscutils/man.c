@@ -106,9 +106,7 @@ int man_main(int argc UNUSED_PARAM, char **argv)
 	if (parser) {
 		/* go through man configuration file and search relevant paths, sections */
 		char *token[2];
-		while (config_read(parser, token, 2, 0, "# \t", PARSE_LAST_IS_GREEDY)) {
-			if (!token[1])
-				continue;
+		while (config_read(parser, token, 2, 2, "# \t", PARSE_LAST_IS_GREEDY)) {
 			if (strcmp("MANPATH", token[0]) == 0) {
 				man_path_list[count_mp] = xstrdup(token[1]);
 				count_mp++;

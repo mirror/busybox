@@ -98,10 +98,11 @@ static int sysctl_preload_file_and_exit(const char *filename)
 	if (!parser)
 		return 1;
 
-	while (config_read(parser, token, 2, 0, "# \t=", PARSE_LAST_IS_GREEDY)) { // TODO: ';' is comment char too
-		if (!token[1]) {
-			bb_error_msg(WARN_BAD_LINE, filename, parser->lineno);
-		} else {
+	while (config_read(parser, token, 2, 2, "# \t=", PARSE_LAST_IS_GREEDY)) { // TODO: ';' is comment char too
+//		if (!token[1]) {
+//			bb_error_msg(WARN_BAD_LINE, filename, parser->lineno);
+//		} else {
+		{
 #if 0
 			char *s = xasprintf("%s=%s", token[0], token[1]);
 			sysctl_write_setting(s);
@@ -205,7 +206,7 @@ static int sysctl_read_setting(const char *name)
 	while ((cptr = strchr(outname, '/')) != NULL)
 		*cptr = '.';
 
-	fp = fopen(tmpname, "r");
+	fp = fopen_for_read(tmpname);
 	if (fp == NULL) {
 		switch (errno) {
 		case ENOENT:

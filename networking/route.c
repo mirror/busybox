@@ -484,7 +484,7 @@ void FAST_FUNC bb_displayroutes(int noresolve, int netstatfmt)
 	struct sockaddr_in s_addr;
 	struct in_addr mask;
 
-	FILE *fp = xfopen("/proc/net/route", "r");
+	FILE *fp = xfopen_for_read("/proc/net/route");
 
 	printf("Kernel IP routing table\n"
 	       "Destination     Gateway         Genmask         Flags %s Iface\n",
@@ -552,7 +552,7 @@ static void INET6_displayroutes(void)
 	int iflags, metric, refcnt, use, prefix_len, slen;
 	struct sockaddr_in6 snaddr6;
 
-	FILE *fp = xfopen("/proc/net/ipv6_route", "r");
+	FILE *fp = xfopen_for_read("/proc/net/ipv6_route");
 
 	printf("Kernel IPv6 routing table\n%-44s%-40s"
 			  "Flags Metric Ref    Use Iface\n",

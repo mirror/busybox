@@ -508,7 +508,7 @@ findsaddr(const struct sockaddr_in *to, struct sockaddr_in *from)
 	struct IFADDRLIST *al;
 	char buf[256], tdevice[256], device[256];
 
-	f = xfopen("/proc/net/route", "r");
+	f = xfopen_for_read("/proc/net/route");
 
 	/* Find the appropriate interface */
 	n = 0;

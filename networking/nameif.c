@@ -170,7 +170,7 @@ int nameif_main(int argc, char **argv)
 	}
 
 	ctl_sk = xsocket(PF_INET, SOCK_DGRAM, 0);
-	ifh = xfopen("/proc/net/dev", "r");
+	ifh = xfopen_for_read("/proc/net/dev");
 
 	linenum = 0;
 	while (clist) {

@@ -529,7 +529,7 @@ static void CheckUpdates(void)
 	FILE *fi;
 	char buf[256];
 
-	fi = fopen(CRONUPDATE, "r");
+	fi = fopen_for_read(CRONUPDATE);
 	if (fi != NULL) {
 		unlink(CRONUPDATE);
 		while (fgets(buf, sizeof(buf), fi) != NULL) {

@@ -681,7 +681,7 @@ static void parse_inittab(void)
 		"sysinit\0""respawn\0""askfirst\0""wait\0""once\0"
 		"ctrlaltdel\0""shutdown\0""restart\0";
 
-	parser_t *parser = config_open(INITTAB);
+	parser_t *parser = config_open2(INITTAB, fopen_for_read);
 	/* No inittab file -- set up some default behavior */
 	if (parser == NULL) {
 		/* Reboot on Ctrl-Alt-Del */

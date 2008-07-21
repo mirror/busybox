@@ -668,7 +668,7 @@ int getty_main(int argc UNUSED_PARAM, char **argv)
 	logmode = LOGMODE_BOTH;
 
 #ifdef DEBUGGING
-	dbf = xfopen(DEBUGTERM, "w");
+	dbf = xfopen_for_write(DEBUGTERM);
 	for (n = 1; argv[n]; n++) {
 		debug(argv[n]);
 		debug("\n");

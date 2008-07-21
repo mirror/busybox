@@ -2400,7 +2400,7 @@ static var *evaluate(node *op, var *res)
 						X.rsm->F = popen(L.s, "r");
 						X.rsm->is_pipe = TRUE;
 					} else {
-						X.rsm->F = fopen(L.s, "r");		/* not xfopen! */
+						X.rsm->F = fopen_for_read(L.s);		/* not xfopen! */
 					}
 				}
 			} else {

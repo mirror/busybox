@@ -363,7 +363,7 @@ static llist_t *get_block_backed_filesystems(void)
 	FILE *f;
 
 	for (i = 0; i < 2; i++) {
-		f = fopen(filesystems[i], "r");
+		f = fopen_for_read(filesystems[i]);
 		if (!f) continue;
 
 		while ((buf = xmalloc_fgetline(f)) != NULL) {

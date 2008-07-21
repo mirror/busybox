@@ -164,7 +164,7 @@ static int mult_lvl_cmp(void* a, void* b)
 
 static void get_jiffy_counts(void)
 {
-	FILE* fp = xfopen("stat", "r");
+	FILE* fp = xfopen_for_read("stat");
 	prev_jif = jif;
 	if (fscanf(fp, "cpu  %lld %lld %lld %lld %lld %lld %lld %lld",
 			&jif.usr,&jif.nic,&jif.sys,&jif.idle,
@@ -268,7 +268,7 @@ static unsigned long display_header(int scr_width)
 #endif
 
 	/* read memory info */
-	fp = xfopen("meminfo", "r");
+	fp = xfopen_for_read("meminfo");
 
 	/*
 	 * Old kernels (such as 2.4.x) had a nice summary of memory info that
@@ -617,7 +617,7 @@ static void display_topmem_header(int scr_width)
 	memset(&Z, 0, sizeof(Z));
 
 	/* read memory info */
-	fp = xfopen("meminfo", "r");
+	fp = xfopen_for_read("meminfo");
 	while (fgets(linebuf, sizeof(linebuf), fp)) {
 		char *p;
 

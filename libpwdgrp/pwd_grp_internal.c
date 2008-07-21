@@ -32,7 +32,7 @@ int GETXXKEY_R_FUNC(GETXXKEY_R_KEYTYPE key,
 
 	*result = NULL;
 
-	stream = fopen(GETXXKEY_R_PATHNAME, "r");
+	stream = fopen_for_read(GETXXKEY_R_PATHNAME);
 	if (!stream)
 		return errno;
 	while (1) {

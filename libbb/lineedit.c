@@ -989,7 +989,7 @@ static void load_history(const char *fromfile)
 
 	/* NB: do not trash old history if file can't be opened */
 
-	fp = fopen(fromfile, "r");
+	fp = fopen_for_read(fromfile);
 	if (fp) {
 		/* clean up old history */
 		for (hi = state->cnt_history; hi > 0;) {
@@ -1022,7 +1022,7 @@ static void save_history(const char *tofile)
 {
 	FILE *fp;
 
-	fp = fopen(tofile, "w");
+	fp = fopen_for_write(tofile);
 	if (fp) {
 		int i;
 

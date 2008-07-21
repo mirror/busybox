@@ -165,7 +165,7 @@ uuidcache_init_partitions(void)
 	int handleOnFirst;
 	char *chptr;
 
-	procpt = xfopen("/proc/partitions", "r");
+	procpt = xfopen_for_read("/proc/partitions");
 /*
 # cat /proc/partitions
 major minor  #blocks  name
@@ -259,7 +259,7 @@ uuidcache_init_cdroms(void)
 	int ma, mi;
 	FILE *proccd;
 
-	proccd = fopen(PROC_CDROMS, "r");
+	proccd = fopen_for_read(PROC_CDROMS);
 	if (!proccd) {
 //		static smallint warn = 0;
 //		if (!warn) {

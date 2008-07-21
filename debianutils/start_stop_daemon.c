@@ -204,7 +204,7 @@ static void do_pidfile(void)
 	FILE *f;
 	unsigned pid;
 
-	f = fopen(pidfile, "r");
+	f = fopen_for_read(pidfile);
 	if (f) {
 		if (fscanf(f, "%u", &pid) == 1)
 			check(pid);

@@ -14,7 +14,7 @@
 int FAST_FUNC rtc_adjtime_is_utc(void)
 {
 	int utc = 0;
-	FILE *f = fopen(ADJTIME_PATH, "r");
+	FILE *f = fopen_for_read(ADJTIME_PATH);
 
 	if (f) {
 		RESERVE_CONFIG_BUFFER(buffer, 128);

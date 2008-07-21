@@ -59,16 +59,21 @@ Typical usage:
 
 */
 
-parser_t* FAST_FUNC config_open(const char *filename)
+parser_t* FAST_FUNC config_open2(const char *filename, FILE* FAST_FUNC (*fopen_func)(const char *path))
 {
 	parser_t *parser = xzalloc(sizeof(parser_t));
 	/* empty file configures nothing */
-	parser->fp = fopen_or_warn_stdin(filename);
+	parser->fp = fopen_func(filename);
 	if (parser->fp)
 		return parser;
 	if (ENABLE_FEATURE_CLEAN_UP)
 		free(parser);
 	return NULL;
+}
+
+parser_t* FAST_FUNC config_open(const char *filename)
+{
+	return config_open2(filename, fopen_or_warn_stdin);
 }
 
 static void config_free_data(parser_t *const parser)
@@ -114,6 +119,7 @@ int FAST_FUNC config_read(parser_t *parser, char **tokens, unsigned flags, const
 	int ntokens = flags & 0xFF;
 	int mintokens = (flags & 0xFF00) >> 8;
 
+ again:
 	// N.B. this could only be used in read-in-one-go version, or when tokens use xstrdup(). TODO
 	//if (!parser->lineno || !(flags & PARSE_DONT_NULL))
 		memset(tokens, 0, sizeof(tokens[0]) * ntokens);
@@ -211,9 +217,13 @@ int FAST_FUNC config_read(parser_t *parser, char **tokens, unsigned flags, const
 		//bb_info_msg("A[%s]", line);
 	}
 
-	if (ii < mintokens)
-		bb_error_msg_and_die("bad line %u: %d tokens found, %d needed",
-				parser->lineno, ii, mintokens);
+	if (ii < mintokens) {
+		bb_error_msg("bad line %u: %d tokens found, %d needed",
+ 				parser->lineno, ii, mintokens);
+		if (flags & PARSE_MIN_DIE)
+			xfunc_die();
+		goto again;
+	}
 
 	return ii;
 }

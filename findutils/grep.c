@@ -375,7 +375,7 @@ static int FAST_FUNC file_action_grep(const char *filename,
 			void* matched,
 			int depth UNUSED_PARAM)
 {
-	FILE *file = fopen(filename, "r");
+	FILE *file = fopen_for_read(filename);
 	if (file == NULL) {
 		if (!SUPPRESS_ERR_MSGS)
 			bb_simple_perror_msg(filename);
@@ -514,7 +514,7 @@ int grep_main(int argc, char **argv)
 				}
 			}
 			/* else: fopen(dir) will succeed, but reading won't */
-			file = fopen(cur_file, "r");
+			file = fopen_for_read(cur_file);
 			if (file == NULL) {
 				if (!SUPPRESS_ERR_MSGS)
 					bb_simple_perror_msg(cur_file);

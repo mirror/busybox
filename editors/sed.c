@@ -438,7 +438,7 @@ static const char *parse_cmd_args(sed_cmd_t *sed_cmd, const char *cmdstr)
 			bb_error_msg_and_die("command only uses one address");
 		cmdstr += parse_file_cmd(/*sed_cmd,*/ cmdstr, &sed_cmd->string);
 		if (sed_cmd->cmd == 'w') {
-			sed_cmd->sw_file = xfopen(sed_cmd->string, "w");
+			sed_cmd->sw_file = xfopen_for_write(sed_cmd->string);
 			sed_cmd->sw_last_char = '\n';
 		}
 	/* handle branch commands */
@@ -1025,7 +1025,7 @@ static void process_files(void)
 			{
 				FILE *rfile;
 
-				rfile = fopen(sed_cmd->string, "r");
+				rfile = fopen_for_read(sed_cmd->string);
 				if (rfile) {
 					char *line;
 
@@ -1271,7 +1271,7 @@ int sed_main(int argc UNUSED_PARAM, char **argv)
 	while (opt_f) { // -f
 		char *line;
 		FILE *cmdfile;
-		cmdfile = xfopen(llist_pop(&opt_f), "r");
+		cmdfile = xfopen_for_read(llist_pop(&opt_f));
 		while ((line = xmalloc_fgetline(cmdfile)) != NULL) {
 			add_cmd(line);
 			free(line);

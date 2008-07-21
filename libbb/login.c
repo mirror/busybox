@@ -32,7 +32,7 @@ void FAST_FUNC print_login_issue(const char *issue_file, const char *tty)
 
 	puts("\r");	/* start a new line */
 
-	fp = fopen(issue_file, "r");
+	fp = fopen_for_read(issue_file);
 	if (!fp)
 		return;
 	while ((c = fgetc(fp)) != EOF) {

@@ -35,7 +35,7 @@ static void convert(char *fn, int conv_type)
 		resolved_fn = xmalloc_follow_symlinks(fn);
 		if (resolved_fn == NULL)
 			bb_simple_perror_msg_and_die(fn);
-		in = xfopen(resolved_fn, "r");
+		in = xfopen_for_read(resolved_fn);
 		fstat(fileno(in), &st);
 
 		temp_fn = xasprintf("%sXXXXXX", resolved_fn);

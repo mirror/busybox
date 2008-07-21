@@ -459,7 +459,7 @@ static void read_config_file(char *path, int optional, unsigned long *event_mask
 			free(p);
 			return;
 		}
-		fp = fopen(path, "r");
+		fp = fopen_for_read(path);
 		if (fp != NULL) {
 			while (fgets(buf, STRING_LENGTH, fp) != NULL) {
 				/*  Skip whitespace  */

@@ -341,7 +341,7 @@ static void init(const char *cfg_filename)
 		case 7:
 			G.bdebug_messages = val;
 			if (G.bdebug_messages)
-				G.logfile_fd = xfopen("/tmp/fbsplash.log", "w");
+				G.logfile_fd = xfopen_for_write("/tmp/fbsplash.log");
 			break;
 #endif
  err:

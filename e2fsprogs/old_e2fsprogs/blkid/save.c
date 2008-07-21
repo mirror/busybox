@@ -102,7 +102,7 @@ int blkid_flush_cache(blkid_cache cache)
 	}
 
 	if (!file) {
-		file = fopen(filename, "w");
+		file = fopen_for_write(filename);
 		opened = filename;
 	}
 

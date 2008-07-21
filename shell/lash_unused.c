@@ -1513,7 +1513,7 @@ int lash_main(int argc, char **argv)
 
 	if (global_argv[0] && global_argv[0][0] == '-') {
 		FILE *prof_input;
-		prof_input = fopen("/etc/profile", "r");
+		prof_input = fopen_for_read("/etc/profile");
 		if (prof_input) {
 			llist_add_to(&close_me_list, (void *)(long)fileno(prof_input));
 			/* Now run the file */
@@ -1553,7 +1553,7 @@ int lash_main(int argc, char **argv)
 		}
 	} else if (!local_pending_command && global_argv[optind]) {
 		//printf( "optind=%d  argv[optind]='%s'\n", optind, argv[optind]);
-		input = xfopen(global_argv[optind], "r");
+		input = xfopen_for_read(global_argv[optind]);
 		/* be lazy, never mark this closed */
 		llist_add_to(&close_me_list, (void *)(long)fileno(input));
 	}

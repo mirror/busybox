@@ -464,7 +464,7 @@ int getpwent_r(struct passwd *__restrict resultbuf,
 	*result = NULL;				/* In case of error... */
 
 	if (!pwf) {
-		pwf = fopen(_PATH_PASSWD, "r");
+		pwf = fopen_for_read(_PATH_PASSWD);
 		if (!pwf) {
 			rv = errno;
 			goto ERR;
@@ -511,7 +511,7 @@ int getgrent_r(struct group *__restrict resultbuf,
 	*result = NULL;				/* In case of error... */
 
 	if (!grf) {
-		grf = fopen(_PATH_GROUP, "r");
+		grf = fopen_for_read(_PATH_GROUP);
 		if (!grf) {
 			rv = errno;
 			goto ERR;
@@ -558,7 +558,7 @@ int getspent_r(struct spwd *resultbuf, char *buffer,
 	*result = NULL;				/* In case of error... */
 
 	if (!spf) {
-		spf = fopen(_PATH_SHADOW, "r");
+		spf = fopen_for_read(_PATH_SHADOW);
 		if (!spf) {
 			rv = errno;
 			goto ERR;
@@ -630,7 +630,7 @@ int initgroups(const char *user, gid_t gid)
 	char buff[PWD_BUFFER_SIZE];
 
 	rv = -1;
-	grfile = fopen(_PATH_GROUP, "r");
+	grfile = fopen_for_read(_PATH_GROUP);
 	if (grfile != NULL) {
 
 		/* We alloc space for 8 gids at a time. */

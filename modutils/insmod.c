@@ -3992,7 +3992,7 @@ int insmod_main(int argc, char **argv)
 
 	/* Get a filedesc for the module.  Check that we have a complete path */
 	if (stat(arg1, &st) < 0 || !S_ISREG(st.st_mode)
-	 || (fp = fopen(arg1, "r")) == NULL
+	 || (fp = fopen_for_read(arg1)) == NULL
 	) {
 		/* Hmm.  Could not open it.  First search under /lib/modules/`uname -r`,
 		 * but do not error out yet if we fail to find it... */
@@ -4016,7 +4016,7 @@ int insmod_main(int argc, char **argv)
 		}
 
 		/* Check if we have found anything yet */
-		if (!m_filename || ((fp = fopen(m_filename, "r")) == NULL)) {
+		if (!m_filename || ((fp = fopen_for_read(m_filename)) == NULL)) {
 			int r;
 			char *module_dir;
 
@@ -4033,7 +4033,7 @@ int insmod_main(int argc, char **argv)
 				bb_error_msg_and_die("%s: module not found", m_fullName);
 			free(module_dir);
 			if (m_filename == NULL
-			 || ((fp = fopen(m_filename, "r")) == NULL)
+			 || ((fp = fopen_for_read(m_filename)) == NULL)
 			) {
 				bb_error_msg_and_die("%s: module not found", m_fullName);
 			}

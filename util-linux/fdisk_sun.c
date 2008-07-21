@@ -181,7 +181,7 @@ sun_autoconfigure_scsi(void)
 		id[0] & 0xff,
 		(id[0]>>8) & 0xff
 	);
-	pfd = fopen("/proc/scsi/scsi", "r");
+	pfd = fopen_for_read("/proc/scsi/scsi");
 	if (!pfd) {
 		return NULL;
 	}

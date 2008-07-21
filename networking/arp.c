@@ -382,7 +382,7 @@ static int arp_show(char *name)
 		}
 		host = xstrdup(ap->sprint(&sa, 1));
 	}
-	fp = xfopen("/proc/net/arp", "r");
+	fp = xfopen_for_read("/proc/net/arp");
 	/* Bypass header -- read one line */
 	fgets(line, sizeof(line), fp);
 

@@ -518,7 +518,7 @@ static void parse_conf(const char *path, int flag)
 		sprintf((char *)filename, "%s/%s", path, httpd_conf);
 	}
 
-	while ((f = fopen(filename, "r")) == NULL) {
+	while ((f = fopen_for_read(filename)) == NULL) {
 		if (flag == SUBDIR_PARSE || flag == FIND_FROM_HTTPD_ROOT) {
 			/* config file not found, no changes to config */
 			return;

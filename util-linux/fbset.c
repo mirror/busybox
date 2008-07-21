@@ -178,7 +178,7 @@ static int readmode(struct fb_var_screeninfo *base, const char *fn,
 	char buf[256];
 	char *p = buf;
 
-	f = xfopen(fn, "r");
+	f = xfopen_for_read(fn);
 	while (!feof(f)) {
 		fgets(buf, sizeof(buf), f);
 		p = strstr(buf, "mode ");

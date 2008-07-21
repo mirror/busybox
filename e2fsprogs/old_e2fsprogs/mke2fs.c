@@ -225,7 +225,7 @@ static void read_bb_file(ext2_filsys fs, badblocks_list *bb_list,
 	FILE		*f;
 	errcode_t	retval;
 
-	f = xfopen(bad_blocks_file, "r");
+	f = xfopen_for_read(bad_blocks_file);
 	retval = ext2fs_read_bb_FILE(fs, f, bb_list, invalid_block);
 	fclose (f);
 	mke2fs_error_msg_and_die(retval, "read bad blocks from list");

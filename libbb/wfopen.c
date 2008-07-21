@@ -18,3 +18,23 @@ FILE* FAST_FUNC fopen_or_warn(const char *path, const char *mode)
 	}
 	return fp;
 }
+
+FILE* FAST_FUNC fopen_for_read(const char *path)
+{
+	return fopen(path, "r");
+}
+
+FILE* FAST_FUNC xfopen_for_read(const char *path)
+{
+	return xfopen(path, "r");
+}
+
+FILE* FAST_FUNC fopen_for_write(const char *path)
+{
+	return fopen(path, "w");
+}
+
+FILE* FAST_FUNC xfopen_for_write(const char *path)
+{
+	return xfopen(path, "w");
+}

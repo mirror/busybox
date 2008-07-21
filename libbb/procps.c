@@ -308,7 +308,7 @@ procps_status_t* FAST_FUNC procps_scan(procps_status_t* sp, int flags)
 			FILE *file;
 
 			strcpy(filename_tail, "/smaps");
-			file = fopen(filename, "r");
+			file = fopen_for_read(filename);
 			if (!file)
 				break;
 			while (fgets(buf, sizeof(buf), file)) {

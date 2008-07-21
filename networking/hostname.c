@@ -16,28 +16,19 @@
 
 static void do_sethostname(char *s, int isfile)
 {
-	FILE *f;
-
 	if (!s)
 		return;
-	if (!isfile) {
-		if (sethostname(s, strlen(s)) < 0) {
-			if (errno == EPERM)
-				bb_error_msg_and_die(bb_msg_perm_denied_are_you_root);
-			bb_perror_msg_and_die("sethostname");
-		}
-	} else {
-		f = xfopen(s, "r");
-#define strbuf bb_common_bufsiz1
-		while (fgets(strbuf, sizeof(strbuf), f) != NULL) {
-			if (strbuf[0] == '#') {
-				continue;
-			}
-			chomp(strbuf);
-			do_sethostname(strbuf, 0);
+	if (isfile) {
+		parser_t *parser = config_open2(s, xfopen_for_read);
+		while (config_read(parser, &s, 1, 1, "# \t", 0)) {
+			do_sethostname(s, 0);
 		}
 		if (ENABLE_FEATURE_CLEAN_UP)
-			fclose(f);
+			config_close(parser);
+	} else if (sethostname(s, strlen(s)) < 0) {
+		if (errno == EPERM)
+			bb_error_msg_and_die(bb_msg_perm_denied_are_you_root);
+		bb_perror_msg_and_die("sethostname");
 	}
 }
 
@@ -98,5 +89,5 @@ int hostname_main(int argc, char **argv)
 	}
 	if (ENABLE_FEATURE_CLEAN_UP)
 		free(buf);
-	return 0;
+	return EXIT_SUCCESS;
 }

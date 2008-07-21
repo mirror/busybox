@@ -109,7 +109,7 @@ static inode_list *scan_proc_net(const char *proto,
 	tmp_dev = find_socket_dev();
 
 	sprintf(path, "/proc/net/%s", proto);
-	f = fopen(path, "r");
+	f = fopen_for_read(path);
 	if (!f)
 		return ilist;
 
@@ -158,7 +158,7 @@ static pid_list *scan_pid_maps(const char *fname, pid_t pid,
 	long long uint64_inode;
 	dev_t dev;
 
-	file = fopen(fname, "r");
+	file = fopen_for_read(fname);
 	if (!file)
 		return plist;
 	while (fgets(line, MAX_LINE, file)) {

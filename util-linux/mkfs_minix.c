@@ -540,7 +540,7 @@ static void get_list_blocks(char *filename)
 	FILE *listfile;
 	unsigned long blockno;
 
-	listfile = xfopen(filename, "r");
+	listfile = xfopen_for_read(filename);
 	while (!feof(listfile)) {
 		fscanf(listfile, "%ld\n", &blockno);
 		mark_zone(blockno);

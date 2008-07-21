@@ -990,7 +990,7 @@ static void ife_print(struct interface *ptr)
 #define IPV6_ADDR_MAPPED        0x1000U
 #define IPV6_ADDR_RESERVED      0x2000U	/* reserved address space */
 
-	f = fopen(_PATH_PROCNET_IFINET6, "r");
+	f = fopen_for_read(_PATH_PROCNET_IFINET6);
 	if (f != NULL) {
 		while (fscanf
 			   (f, "%4s%4s%4s%4s%4s%4s%4s%4s %08x %02x %02x %02x %20s\n",

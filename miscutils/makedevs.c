@@ -80,7 +80,7 @@ int makedevs_main(int argc, char **argv)
 
 	getopt32(argv, "d:", &line);
 	if (line)
-		table = xfopen(line, "r");
+		table = xfopen_for_read(line);
 
 	if (optind >= argc || (rootdir=argv[optind])==NULL) {
 		bb_error_msg_and_die("root directory not specified");

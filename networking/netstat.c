@@ -466,7 +466,7 @@ static void do_info(const char *file, const char *name, int (*proc)(int, char *)
 	FILE *procinfo;
 	char *buffer;
 
-	procinfo = fopen(file, "r");
+	procinfo = fopen_for_read(file);
 	if (procinfo == NULL) {
 		if (errno != ENOENT) {
 			bb_simple_perror_msg(file);

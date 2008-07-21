@@ -748,7 +748,7 @@ static void index_status_file(const char *filename)
 	status_node_t *status_node = NULL;
 	unsigned status_num;
 
-	status_file = xfopen(filename, "r");
+	status_file = xfopen_for_read(filename);
 	while ((control_buffer = xmalloc_fgetline_str(status_file, "\n\n")) != NULL) {
 		const unsigned package_num = fill_package_struct(control_buffer);
 		if (package_num != -1) {
@@ -790,8 +790,8 @@ static void write_buffer_no_status(FILE *new_status_file, const char *control_bu
 /* This could do with a cleanup */
 static void write_status_file(deb_file_t **deb_file)
 {
-	FILE *old_status_file = xfopen("/var/lib/dpkg/status", "r");
-	FILE *new_status_file = xfopen("/var/lib/dpkg/status.udeb", "w");
+	FILE *old_status_file = xfopen_for_read("/var/lib/dpkg/status");
+	FILE *new_status_file = xfopen_for_write("/var/lib/dpkg/status.udeb");
 	char *package_name;
 	char *status_from_file;
 	char *control_buffer = NULL;
@@ -1161,7 +1161,7 @@ static char **create_list(const char *filename)
 	int count;
 
 	/* don't use [xw]fopen here, handle error ourself */
-	list_stream = fopen(filename, "r");
+	list_stream = fopen_for_read(filename);
 	if (list_stream == NULL) {
 		return NULL;
 	}
@@ -1548,7 +1548,7 @@ static void unpack_package(deb_file_t *deb_file)
 
 	/* Create the list file */
 	list_filename = xasprintf("/var/lib/dpkg/info/%s.%s", package_name, "list");
-	out_stream = xfopen(list_filename, "w");
+	out_stream = xfopen_for_write(list_filename);
 	while (archive_handle->sub_archive->passed) {
 		/* the leading . has been stripped by data_extract_all_prefix already */
 		fputs(archive_handle->sub_archive->passed->data, out_stream);

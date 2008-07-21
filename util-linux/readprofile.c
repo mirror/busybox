@@ -144,7 +144,7 @@ int readprofile_main(int argc UNUSED_PARAM, char **argv)
 
 	total = 0;
 
-	map = xfopen(mapFile, "r");
+	map = xfopen_for_read(mapFile);
 
 	while (fgets(mapline, S_LEN, map)) {
 		if (sscanf(mapline, "%llx %s %s", &fn_add, mode, fn_name) != 3)

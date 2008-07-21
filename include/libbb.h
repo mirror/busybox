@@ -631,6 +631,10 @@ extern FILE *fopen_or_warn(const char *filename, const char *mode) FAST_FUNC;
 /* "Opens" stdin if filename is special, else just opens file: */
 extern FILE *xfopen_stdin(const char *filename) FAST_FUNC;
 extern FILE *fopen_or_warn_stdin(const char *filename) FAST_FUNC;
+extern FILE* fopen_for_read(const char *path) FAST_FUNC;
+extern FILE* xfopen_for_read(const char *path) FAST_FUNC;
+extern FILE* fopen_for_write(const char *path) FAST_FUNC;
+extern FILE* xfopen_for_write(const char *path) FAST_FUNC;
 
 int bb_pstrcmp(const void *a, const void *b) /* not FAST_FUNC! */;
 void qsort_string_vector(char **sv, unsigned count) FAST_FUNC;
@@ -993,10 +997,12 @@ int bb_parse_mode(const char* s, mode_t* theMode) FAST_FUNC;
  * Config file parser
  */
 enum {
+	PARSE_VANILLA        = 0x00000000, // trim line, collapse delimiters, warn and continue if less than mintokens
 	PARSE_DONT_REDUCE    = 0x00010000, // do not treat consecutive delimiters as one
 	PARSE_DONT_TRIM      = 0x00020000, // do not trim line of leading and trailing delimiters
 	PARSE_LAST_IS_GREEDY = 0x00040000, // last token takes whole remainder of the line
 //	PARSE_DONT_NULL      = 0x00080000, // do not set tokens[] to NULL
+	PARSE_MIN_DIE        = 0x00100000, // die if less tokens found
 	// keep a copy of current line
 	PARSE_KEEP_COPY      = 0x00200000 * ENABLE_DEBUG_CROND_OPTION,
 };
@@ -1007,6 +1013,7 @@ typedef struct parser_t {
 	int lineno;
 } parser_t;
 parser_t* config_open(const char *filename) FAST_FUNC;
+parser_t* config_open2(const char *filename, FILE* FAST_FUNC (*fopen_func)(const char *path)) FAST_FUNC;
 int config_read(parser_t *parser, char **tokens, unsigned flags, const char *delims) FAST_FUNC;
 #define config_read(parser, tokens, max, min, str, flags) \
 	config_read(parser, tokens, ((flags) | (((min) & 0xFF) << 8) | ((max) & 0xFF)), str)

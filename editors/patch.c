@@ -131,9 +131,9 @@ int patch_main(int argc UNUSED_PARAM, char **argv)
 		} else {
 			backup_filename = xasprintf("%s.orig", new_filename);
 			xrename(new_filename, backup_filename);
-			src_stream = xfopen(backup_filename, "r");
+			src_stream = xfopen_for_read(backup_filename);
 		}
-		dst_stream = xfopen(new_filename, "w");
+		dst_stream = xfopen_for_write(new_filename);
 		fchmod(fileno(dst_stream), saved_stat.st_mode);
 
 		printf("patching file %s\n", new_filename);

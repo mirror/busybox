@@ -12672,7 +12672,7 @@ static int is_on_batt(void)
 	unsigned int    acflag;
 	struct dirent*  de;
 
-	f = fopen("/proc/apm", "r");
+	f = fopen_for_read("/proc/apm");
 	if (f) {
 		if (fscanf(f, "%s %s %s %x", tmp, tmp, tmp, &acflag) != 4)
 			acflag = 1;
@@ -12686,7 +12686,7 @@ static int is_on_batt(void)
 				continue;
 			snprintf(fname, 80, "/proc/acpi/ac_adapter/%s/state",
 				 de->d_name);
-			f = fopen(fname, "r");
+			f = fopen_for_read(fname);
 			if (!f)
 				continue;
 			if (fscanf(f, "%s %s", tmp2, tmp) != 2)
