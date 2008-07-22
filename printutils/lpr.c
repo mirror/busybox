@@ -149,6 +149,7 @@ int lpqr_main(int argc UNUSED_PARAM, char *argv[])
 
 	// process files
 	do {
+		unsigned cflen;
 		int dfd;
 		struct stat st;
 		char *c;
@@ -194,23 +195,30 @@ int lpqr_main(int argc UNUSED_PARAM, char *argv[])
 		);
 		// delete possible "\nX\n" patterns
 		c = controlfile;
+		cflen = (unsigned)strlen(controlfile);
 		while ((c = strchr(c, '\n')) != NULL) {
-			c++;
-			while (c[0] && c[1] == '\n')
-				memmove(c, c+2, strlen(c+1)); /* strlen(c+1) == strlen(c+2) + 1 */
+			if (c[1] && c[2] == '\n') {
+				/* can't use strcpy, results are undefined */
+				memmove(c, c+2, cflen - (c-controlfile) - 1);
+				cflen -= 2;
+			} else {
+				c++;
+			}
 		}
 
 		// send control file
 		if (opts & LPR_V)
 			bb_error_msg("sending control file");
+		/* "Acknowledgement processing must occur as usual
+		 * after the command is sent." */
+		fdprintf(fd, "\x2" "%u c%s\n", cflen, remote_filename);
+		get_response_or_say_and_die(fd, "sending control file");
 		/* "Once all of the contents have
 		 * been delivered, an octet of zero bits is sent as
 		 * an indication that the file being sent is complete.
 		 * A second level of acknowledgement processing
 		 * must occur at this point." */
-		fdprintf(fd, "\x2" "%u c%s\n" "%s" "%c",
-				(unsigned)strlen(controlfile),
-				remote_filename, controlfile, '\0');
+		full_write(fd, controlfile, cflen + 1); /* writes NUL byte too */
 		get_response_or_say_and_die(fd, "sending control file");
 
 		// send data file, with name "dfaXXX"
@@ -219,6 +227,7 @@ int lpqr_main(int argc UNUSED_PARAM, char *argv[])
 		st.st_size = 0; /* paranoia: fstat may theoretically fail */
 		fstat(dfd, &st);
 		fdprintf(fd, "\x3" "%"OFF_FMT"u d%s\n", st.st_size, remote_filename);
+		get_response_or_say_and_die(fd, "sending data file");
 		if (bb_copyfd_size(dfd, fd, st.st_size) != st.st_size) {
 			// We're screwed. We sent less bytes than we advertised.
 			bb_error_msg_and_die("local file changed size?!");

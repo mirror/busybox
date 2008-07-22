@@ -236,6 +236,9 @@ int lpd_main(int argc UNUSED_PARAM, char *argv[])
 				fd = xopen(queue, O_RDWR | O_APPEND);
 		}
 
+		// signal OK
+		safe_write(STDOUT_FILENO, "", 1);
+
 		// copy the file
 		real_len = bb_copyfd_size(STDIN_FILENO, fd, expected_len);
 		if (real_len != expected_len) {
@@ -243,7 +246,7 @@ int lpd_main(int argc UNUSED_PARAM, char *argv[])
 				expected_len, real_len);
 			goto err_exit;
 		}
-		// get ACK and see whether it is NUL (ok)
+		// get EOF indicator, see whether it is NUL (ok)
 		// (and don't trash s[0]!)
 		if (safe_read(STDIN_FILENO, &s[1], 1) != 1 || s[1] != 0) {
 			// don't send error msg to peer - it obviously
@@ -262,6 +265,9 @@ int lpd_main(int argc UNUSED_PARAM, char *argv[])
 
 		free(s);
 		close(fd); // NB: can do close(-1). Who cares?
+
+		// NB: don't do "signal OK" write here, it will be done
+		// at the top of the loop
 	} // while (1)
 
  err_exit:
