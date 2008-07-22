@@ -18,11 +18,11 @@
 
 #define OPT_STR     ("Rh" USE_DESKTOP("vcfLHP"))
 #define BIT_RECURSE 1
-#define OPT_RECURSE (option_mask32 & 1)
-#define OPT_NODEREF (option_mask32 & 2)
-#define OPT_VERBOSE (USE_DESKTOP(option_mask32 & 0x04) SKIP_DESKTOP(0))
-#define OPT_CHANGED (USE_DESKTOP(option_mask32 & 0x08) SKIP_DESKTOP(0))
-#define OPT_QUIET   (USE_DESKTOP(option_mask32 & 0x10) SKIP_DESKTOP(0))
+#define OPT_RECURSE (opt & 1)
+#define OPT_NODEREF (opt & 2)
+#define OPT_VERBOSE (USE_DESKTOP(opt & 0x04) SKIP_DESKTOP(0))
+#define OPT_CHANGED (USE_DESKTOP(opt & 0x08) SKIP_DESKTOP(0))
+#define OPT_QUIET   (USE_DESKTOP(opt & 0x10) SKIP_DESKTOP(0))
 /* POSIX options
  * -L traverse every symbolic link to a directory encountered
  * -H if a command line argument is a symbolic link to a directory, traverse it
@@ -32,22 +32,27 @@
  * The last option specified shall determine the behavior of the utility." */
 /* -L */
 #define BIT_TRAVERSE 0x20
-#define OPT_TRAVERSE (USE_DESKTOP(option_mask32 & BIT_TRAVERSE) SKIP_DESKTOP(0))
+#define OPT_TRAVERSE (USE_DESKTOP(opt & BIT_TRAVERSE) SKIP_DESKTOP(0))
 /* -H or -L */
 #define BIT_TRAVERSE_TOP (0x20|0x40)
-#define OPT_TRAVERSE_TOP (USE_DESKTOP(option_mask32 & BIT_TRAVERSE_TOP) SKIP_DESKTOP(0))
+#define OPT_TRAVERSE_TOP (USE_DESKTOP(opt & BIT_TRAVERSE_TOP) SKIP_DESKTOP(0))
 
 typedef int (*chown_fptr)(const char *, uid_t, gid_t);
 
-static struct bb_uidgid_t ugid = { -1, -1 };
+struct param_t {
+	struct bb_uidgid_t ugid;
+	chown_fptr chown_func;
+};
 
 static int FAST_FUNC fileAction(const char *fileName, struct stat *statbuf,
-		void *cf, int depth UNUSED_PARAM)
+		void *vparam, int depth UNUSED_PARAM)
 {
-	uid_t u = (ugid.uid == (uid_t)-1) ? statbuf->st_uid : ugid.uid;
-	gid_t g = (ugid.gid == (gid_t)-1) ? statbuf->st_gid : ugid.gid;
+#define param  (*(struct param_t*)vparam)
+#define opt option_mask32
+	uid_t u = (param.ugid.uid == (uid_t)-1) ? statbuf->st_uid : param.ugid.uid;
+	gid_t g = (param.ugid.gid == (gid_t)-1) ? statbuf->st_gid : param.ugid.gid;
 
-	if (!((chown_fptr)cf)(fileName, u, g)) {
+	if (param.chown_func(fileName, u, g) == 0) {
 		if (OPT_VERBOSE
 		 || (OPT_CHANGED && (statbuf->st_uid != u || statbuf->st_gid != g))
 		) {
@@ -59,25 +64,30 @@ static int FAST_FUNC fileAction(const char *fileName, struct stat *statbuf,
 	if (!OPT_QUIET)
 		bb_simple_perror_msg(fileName);	/* A filename can have % in it... */
 	return FALSE;
+#undef opt
+#undef param
 }
 
 int chown_main(int argc UNUSED_PARAM, char **argv)
 {
 	int retval = EXIT_SUCCESS;
-	int flags;
-	chown_fptr chown_func;
+	int opt, flags;
+	struct param_t param;
+
+	param.ugid.uid = -1;
+	param.ugid.gid = -1;
+	param.chown_func = chown;
 
 	opt_complementary = "-2";
-	getopt32(argv, OPT_STR);
+	opt = getopt32(argv, OPT_STR);
 	argv += optind;
 
 	/* This matches coreutils behavior (almost - see below) */
-	chown_func = chown;
 	if (OPT_NODEREF
 	    /* || (OPT_RECURSE && !OPT_TRAVERSE_TOP): */
-	    USE_DESKTOP( || (option_mask32 & (BIT_RECURSE|BIT_TRAVERSE_TOP)) == BIT_RECURSE)
+	    USE_DESKTOP( || (opt & (BIT_RECURSE|BIT_TRAVERSE_TOP)) == BIT_RECURSE)
 	) {
-		chown_func = lchown;
+		param.chown_func = lchown;
 	}
 
 	flags = ACTION_DEPTHFIRST; /* match coreutils order */
@@ -88,7 +98,7 @@ int chown_main(int argc UNUSED_PARAM, char **argv)
 	if (OPT_TRAVERSE)
 		flags |= ACTION_FOLLOWLINKS; /* follow links if -L */
 
-	parse_chown_usergroup_or_die(&ugid, argv[0]);
+	parse_chown_usergroup_or_die(&param.ugid, argv[0]);
 
 	/* Ok, ready to do the deed now */
 	argv++;
@@ -97,7 +107,7 @@ int chown_main(int argc UNUSED_PARAM, char **argv)
 				flags,          /* flags */
 				fileAction,     /* file action */
 				fileAction,     /* dir action */
-				chown_func,     /* user data */
+				&param,         /* user data */
 				0)              /* depth */
 		) {
 			retval = EXIT_FAILURE;
