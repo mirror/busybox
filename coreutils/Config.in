@@ -10,7 +10,7 @@ config BASENAME
 	default n
 	help
 	  basename is used to strip the directory and suffix from filenames,
-	  leaving just the filename itself.  Enable this option if you wish
+	  leaving just the filename itself. Enable this option if you wish
 	  to enable the 'basename' utility.
 
 config CAL
@@ -24,7 +24,7 @@ config CAT
 	default n
 	help
 	  cat is used to concatenate files and print them to the standard
-	  output.  Enable this option if you wish to enable the 'cat' utility.
+	  output. Enable this option if you wish to enable the 'cat' utility.
 
 config CATV
 	bool "catv"
@@ -117,7 +117,8 @@ config FEATURE_DD_SIGNAL_HANDLING
 	  print to standard error the number of records read and written
 	  so far, then to resume copying.
 
-	  $ dd if=/dev/zero of=/dev/null& pid=$! $ kill -USR1 $pid; sleep 1; kill $pid
+	  $ dd if=/dev/zero of=/dev/null&
+	  $ pid=$! kill -USR1 $pid; sleep 1; kill $pid
 	  10899206+0 records in 10899206+0 records out
 
 config FEATURE_DD_IBS_OBS
@@ -232,7 +233,7 @@ config EXPR_MATH_SUPPORT_64
 	default n
 	depends on EXPR
 	help
-	  Enable 64-bit math support in the expr applet.  This will make
+	  Enable 64-bit math support in the expr applet. This will make
 	  the applet slightly larger, but will allow computation with very
 	  large numbers.
 
@@ -548,8 +549,8 @@ config FEATURE_SORT_BIG
 	depends on SORT
 	help
 	  Without this, sort only supports -r, -u, and an integer version
-	  of -n.  Selecting this adds sort keys, floating point support, and
-	  more.  This adds a little over 3k to a nonstatic build on x86.
+	  of -n. Selecting this adds sort keys, floating point support, and
+	  more. This adds a little over 3k to a nonstatic build on x86.
 
 	  The SuSv3 sort standard is available at:
 	  http://www.opengroup.org/onlinepubs/007904975/utilities/sort.html
@@ -581,7 +582,7 @@ config FEATURE_STAT_FORMAT
 	depends on STAT
 	help
 	  Without this, stat will not support the '-c format' option where
-	  users can pass a custom format string for output.  This adds about
+	  users can pass a custom format string for output. This adds about
 	  7k to a nonstatic build on amd64.
 
 config STTY
@@ -642,7 +643,7 @@ config TEST
 	default n
 	help
 	  test is used to check file types and compare values,
-	  returning an appropriate exit code.  The bash shell
+	  returning an appropriate exit code. The bash shell
 	  has test built in, ash can build it in optionally.
 
 config FEATURE_TEST_64
@@ -753,7 +754,7 @@ config FEATURE_WC_LARGE
 	default n
 	depends on WC
 	help
-	  Use "unsigned long long" in wc for count variables
+	  Use "unsigned long long" in wc for count variables.
 
 config WHO
 	bool "who"

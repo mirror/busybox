@@ -62,7 +62,7 @@ config FEATURE_EDITING_VI
 	default n
 	depends on FEATURE_EDITING
 	help
-	  Enable vi-style line editing.  In shells, this mode can be
+	  Enable vi-style line editing. In shells, this mode can be
 	  turned on and off with "set -o vi" and "set +o vi".
 
 config FEATURE_EDITING_HISTORY

@@ -104,7 +104,7 @@ config FEATURE_INSMOD_VERSION_CHECKING
 	default n
 	depends on INSMOD && FEATURE_2_4_MODULES
 	help
-	  Support checking of versions for modules.  This is used to
+	  Support checking of versions for modules. This is used to
 	  ensure that the kernel and module are made for each other.
 
 config FEATURE_INSMOD_KSYMOOPS_SYMBOLS
@@ -113,9 +113,9 @@ config FEATURE_INSMOD_KSYMOOPS_SYMBOLS
 	depends on INSMOD && FEATURE_2_4_MODULES
 	help
 	  By adding module symbols to the kernel symbol table, Oops messages
-	  occuring within kernel modules can be properly debugged.  By enabling
+	  occuring within kernel modules can be properly debugged. By enabling
 	  this feature, module symbols will always be added to the kernel symbol
-	  table for properly debugging support.  If you are not interested in
+	  table for properly debugging support. If you are not interested in
 	  Oops messages from kernel modules, say N.
 
 config FEATURE_INSMOD_LOADINKMEM
@@ -145,7 +145,7 @@ config FEATURE_INSMOD_LOAD_MAP_FULL
 	depends on FEATURE_INSMOD_LOAD_MAP
 	help
 	  Without this option, -m will only output section
-	  load map.  With this option, -m will also output
+	  load map. With this option, -m will also output
 	  symbols load map.
 
 config RMMOD
@@ -229,7 +229,7 @@ config FEATURE_CHECK_TAINTED_MODULE
 	default y
 	depends on INSMOD || LSMOD
 	help
-	  Support checking for tainted modules.  These are usually binary
+	  Support checking for tainted modules. These are usually binary
 	  only modules that will make the linux-kernel list ignore your
 	  support request.
 	  This option is required to support GPLONLY modules.

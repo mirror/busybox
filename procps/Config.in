@@ -18,7 +18,7 @@ config FUSER
 	default n
 	help
 	  fuser lists all PIDs (Process IDs) that currently have a given
-	  file open.  fuser can also list all PIDs that have a given network
+	  file open. fuser can also list all PIDs that have a given network
 	  (TCP or UDP) port open.
 
 config KILL
@@ -26,7 +26,7 @@ config KILL
 	default n
 	help
 	  The command kill sends the specified signal to the specified
-	  process or process group.  If no signal is specified, the TERM
+	  process or process group. If no signal is specified, the TERM
 	  signal is sent.
 
 config KILLALL
@@ -35,7 +35,7 @@ config KILLALL
 	depends on KILL
 	help
 	  killall sends a signal to all processes running any of the
-	  specified commands.  If no signal name is specified, SIGTERM is
+	  specified commands. If no signal name is specified, SIGTERM is
 	  sent.
 
 config KILLALL5
