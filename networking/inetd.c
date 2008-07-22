@@ -894,9 +894,10 @@ static void reread_config_file(int sig UNUSED_PARAM)
 	sigset_t omask;
 	unsigned n;
 	uint16_t port;
+	int save_errno = errno;
 
 	if (!reopen_config_file())
-		return;
+		goto ret;
 	for (sep = serv_list; sep; sep = sep->se_next)
 		sep->se_checked = 0;
 
@@ -1055,6 +1056,8 @@ static void reread_config_file(int sig UNUSED_PARAM)
 		free(sep);
 	}
 	restore_sigmask(&omask);
+ ret:
+	errno = save_errno;
 }
 
 static void reap_child(int sig UNUSED_PARAM)
@@ -1068,24 +1071,27 @@ static void reap_child(int sig UNUSED_PARAM)
 		pid = wait_any_nohang(&status);
 		if (pid <= 0)
 			break;
-		for (sep = serv_list; sep; sep = sep->se_next)
-			if (sep->se_wait == pid) {
-				/* One of our "wait" services */
-				if (WIFEXITED(status) && WEXITSTATUS(status))
-					bb_error_msg("%s: exit status 0x%x",
-							sep->se_program, WEXITSTATUS(status));
-				else if (WIFSIGNALED(status))
-					bb_error_msg("%s: exit signal 0x%x",
-							sep->se_program, WTERMSIG(status));
-				sep->se_wait = 1;
-				add_fd_to_set(sep->se_fd);
-			}
+		for (sep = serv_list; sep; sep = sep->se_next) {
+			if (sep->se_wait != pid)
+				continue;
+			/* One of our "wait" services */
+			if (WIFEXITED(status) && WEXITSTATUS(status))
+				bb_error_msg("%s: exit status 0x%x",
+						sep->se_program, WEXITSTATUS(status));
+			else if (WIFSIGNALED(status))
+				bb_error_msg("%s: exit signal 0x%x",
+						sep->se_program, WTERMSIG(status));
+			sep->se_wait = 1;
+			add_fd_to_set(sep->se_fd);
+			break;
+		}
 	}
 	errno = save_errno;
 }
 
 static void retry_network_setup(int sig UNUSED_PARAM)
 {
+	int save_errno = errno;
 	servtab_t *sep;
 
 	alarm_armed = 0;
@@ -1098,6 +1104,7 @@ static void retry_network_setup(int sig UNUSED_PARAM)
 #endif
 		}
 	}
+	errno = save_errno;
 }
 
 static void clean_up_and_exit(int sig UNUSED_PARAM)
