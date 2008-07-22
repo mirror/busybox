@@ -170,8 +170,11 @@ static void make_device(char *path, int delete)
 				break;
 			aliaslink = *val;
 			if (aliaslink == '>' || aliaslink == '=') {
-				char *s, *p;
+				char *s;
+#if ENABLE_FEATURE_MDEV_RENAME_REGEXP
+				char *p;
 				unsigned i, n;
+#endif
 				char *a = val;
 				s = strchr(val, ' ');
 				val = (s && s[1]) ? s+1 : NULL;
