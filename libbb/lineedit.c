@@ -1552,7 +1552,7 @@ int FAST_FUNC read_line_input(const char *prompt, char *command, int maxsize, li
 		vi_case(CTRL('U')|vbit:)
 			/* Control-U -- Clear line before cursor */
 			if (cursor) {
-				strcpy(command, command + cursor);
+				overlapping_strcpy(command, command + cursor);
 				command_len -= cursor;
 				redraw(cmdedit_y, command_len);
 			}

@@ -16,3 +16,12 @@ char* FAST_FUNC safe_strncpy(char *dst, const char *src, size_t size)
 	dst[--size] = '\0';
 	return strncpy(dst, src, size);
 }
+
+/* Like strcpy but can copy overlapping strings. */
+void FAST_FUNC overlapping_strcpy(char *dst, const char *src)
+{
+	while ((*dst = *src) != '\0') {
+		dst++;
+		src++;
+	}
+}

@@ -800,7 +800,7 @@ int nmeter_main(int argc, char **argv)
 		if (!cur)
 			break;
 		if (cur[1] == '%') {	// %%
-			strcpy(cur, cur+1);
+			overlapping_strcpy(cur, cur + 1);
 			cur++;
 			goto again;
 		}

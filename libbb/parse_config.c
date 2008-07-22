@@ -161,7 +161,7 @@ int FAST_FUNC config_read(parser_t *parser, char **tokens, unsigned flags, const
 			int n = strspn(line, delims);
 			if (n) {
 				ii -= n;
-				strcpy(line, line + n);
+				overlapping_strcpy(line, line + n);
 			}
 			// cut trailing
 			if (ii) {

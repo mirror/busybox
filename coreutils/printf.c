@@ -289,7 +289,7 @@ static char **print_formatted(char *f, char **argv)
 			/* Remove size modifiers - "%Ld" would try to printf
 			 * long long, we pass long, and it spews garbage */
 			if ((*f | 0x20) == 'l' || *f == 'h' || *f == 'z') {
-				strcpy(f, f + 1);
+				overlapping_strcpy(f, f + 1);
 			}
 //FIXME: actually, the same happens with bare "%d":
 //it printfs an int, but we pass long!

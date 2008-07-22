@@ -540,6 +540,7 @@ ssize_t recv_from_to(int fd, void *buf, size_t len, int flags,
 
 char *xstrdup(const char *s) FAST_FUNC;
 char *xstrndup(const char *s, int n) FAST_FUNC;
+void overlapping_strcpy(char *dst, const char *src) FAST_FUNC;
 char *safe_strncpy(char *dst, const char *src, size_t size) FAST_FUNC;
 /* Guaranteed to NOT be a macro (smallest code). Saves nearly 2k on uclibc.
  * But potentially slow, don't use in one-billion-times loops */

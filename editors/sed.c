@@ -1219,7 +1219,7 @@ static void add_cmd_block(char *cmdstr)
 				slashes++;
 			/* Odd number of preceding slashes - newline is escaped */
 			if (slashes & 1) {
-				strcpy(eol-1, eol);
+				overlapping_strcpy(eol - 1, eol);
 				eol = strchr(eol, '\n');
 				goto next;
 			}
