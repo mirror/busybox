@@ -345,7 +345,7 @@ static void input_delete(int save)
 	}
 #endif
 
-	strcpy(command_ps + j, command_ps + j + 1);
+	overlapping_strcpy(command_ps + j, command_ps + j + 1);
 	command_len--;
 	input_end();                    /* rewrite new line */
 	cmdedit_set_out_char(' ');      /* erase char */
