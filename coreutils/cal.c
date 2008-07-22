@@ -40,7 +40,8 @@ static const unsigned char sep1752[] ALIGN1 = {
 	24,	25,	26,	27,	28,	29,	30
 };
 
-static unsigned julian;
+/* Set to 0 or 1 in main */
+#define julian ((unsigned)option_mask32)
 
 /* leap year -- account for Gregorian reformation in 1752 */
 static int leap_year(unsigned yr)
@@ -87,7 +88,8 @@ int cal_main(int argc, char **argv)
 	char buf[40];
 
 	flags = getopt32(argv, "jy");
-	julian = flags & 1;
+	/* This sets julian = flags & 1: */
+	option_mask32 &= 1;
 	month = 0;
 	argv += optind;
 	argc -= optind;
@@ -100,7 +102,7 @@ int cal_main(int argc, char **argv)
 		time(&now);
 		local_time = localtime(&now);
 		year = local_time->tm_year + 1900;
-		if (!(flags & 2)) {
+		if (!(flags & 2)) { /* no -y */
 			month = local_time->tm_mon + 1;
 		}
 	} else {
