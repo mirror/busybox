@@ -2196,7 +2196,7 @@
 #define lpd_full_usage "\n\n" \
        "SPOOLDIR must contain (symlinks to) device nodes or directories" \
      "\nwith names matching print queue names. In the first case, jobs are" \
-     "\nsent directly to the device. Othervise each job is stored in queue" \
+     "\nsent directly to the device. Otherwise each job is stored in queue" \
      "\ndirectory and HELPER program is called. Name of file to print" \
      "\nis passed in $DATAFILE variable." \
      "\nExample:" \

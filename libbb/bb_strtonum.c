@@ -10,7 +10,7 @@
 #include "libbb.h"
 
 /* On exit: errno = 0 only if there was non-empty, '\0' terminated value
- * errno = EINVAL if value was not '\0' terminated, but othervise ok
+ * errno = EINVAL if value was not '\0' terminated, but otherwise ok
  *    Return value is still valid, caller should just check whether end[0]
  *    is a valid terminating char for particular case. OTOH, if caller
  *    requires '\0' terminated input, [s]he can just check errno == 0.
