@@ -2194,8 +2194,13 @@
 #define lpd_trivial_usage \
        "SPOOLDIR [HELPER [ARGS...]]"
 #define lpd_full_usage "\n\n" \
-       "Example:" \
-     "\n	tcpsvd -E 0 515 softlimit -m 999999 lpd /var/spool ./print"
+       "SPOOLDIR must contain (symlinks to) device nodes or directories" \
+     "\nwith names matching print queue names. In the first case, jobs are" \
+     "\nsent directly to the device. Othervise each job is stored in queue" \
+     "\ndirectory and HELPER program is called. Name of file to print" \
+     "\nis passed in $DATAFILE variable." \
+     "\nExample:" \
+     "\n	tcpsvd -E 0 515 softlimit -m 999999 lpd /var/spool ./print" \
 
 #define lpq_trivial_usage \
        "[-P queue[@host[:port]]] [-U USERNAME] [-d JOBID...] [-fs]"
