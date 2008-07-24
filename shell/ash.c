@@ -526,66 +526,66 @@ static const char dolatstr[] ALIGN1 = {
 union node;
 
 struct ncmd {
-	int type;
+	smallint type; /* Nxxxx */
 	union node *assign;
 	union node *args;
 	union node *redirect;
 };
 
 struct npipe {
-	int type;
-	int backgnd;
+	smallint type;
+	smallint pipe_backgnd;
 	struct nodelist *cmdlist;
 };
 
 struct nredir {
-	int type;
+	smallint type;
 	union node *n;
 	union node *redirect;
 };
 
 struct nbinary {
-	int type;
+	smallint type;
 	union node *ch1;
 	union node *ch2;
 };
 
 struct nif {
-	int type;
+	smallint type;
 	union node *test;
 	union node *ifpart;
 	union node *elsepart;
 };
 
 struct nfor {
-	int type;
+	smallint type;
 	union node *args;
 	union node *body;
 	char *var;
 };
 
 struct ncase {
-	int type;
+	smallint type;
 	union node *expr;
 	union node *cases;
 };
 
 struct nclist {
-	int type;
+	smallint type;
 	union node *next;
 	union node *pattern;
 	union node *body;
 };
 
 struct narg {
-	int type;
+	smallint type;
 	union node *next;
 	char *text;
 	struct nodelist *backquote;
 };
 
 struct nfile {
-	int type;
+	smallint type;
 	union node *next;
 	int fd;
 	union node *fname;
@@ -593,7 +593,7 @@ struct nfile {
 };
 
 struct ndup {
-	int type;
+	smallint type;
 	union node *next;
 	int fd;
 	int dupfd;
@@ -601,19 +601,19 @@ struct ndup {
 };
 
 struct nhere {
-	int type;
+	smallint type;
 	union node *next;
 	int fd;
 	union node *doc;
 };
 
 struct nnot {
-	int type;
+	smallint type;
 	union node *com;
 };
 
 union node {
-	int type;
+	smallint type;
 	struct ncmd ncmd;
 	struct npipe npipe;
 	struct nredir nredir;
@@ -954,7 +954,7 @@ shtree(union node *n, int ind, char *pfx, FILE *fp)
 			if (lp->next)
 				fputs(" | ", fp);
 		}
-		if (n->npipe.backgnd)
+		if (n->npipe.pipe_backgnd)
 			fputs(" &", fp);
 		if (ind >= 0)
 			putc('\n', fp);
@@ -4899,7 +4899,6 @@ dupredirect(union node *redir, int f)
 static void
 redirect(union node *redir, int flags)
 {
-	union node *n;
 	struct redirtab *sv;
 	int i;
 	int fd;
@@ -4920,14 +4919,13 @@ redirect(union node *redir, int flags)
 			sv->renamed[i] = EMPTY;
 		g_nullredirs = 0;
 	}
-	n = redir;
 	do {
-		fd = n->nfile.fd;
-		if ((n->nfile.type == NTOFD || n->nfile.type == NFROMFD)
-		 && n->ndup.dupfd == fd)
+		fd = redir->nfile.fd;
+		if ((redir->nfile.type == NTOFD || redir->nfile.type == NFROMFD)
+		 && redir->ndup.dupfd == fd)
 			continue; /* redirect from/to same file descriptor */
 
-		newfd = openredirect(n);
+		newfd = openredirect(redir);
 		if (fd == newfd) {
 			/* Descriptor wasn't open before redirect.
 			 * Mark it for close in the future */
@@ -4953,8 +4951,8 @@ redirect(union node *redir, int flags)
 		} else {
 			close(fd);
 		}
-		dupredirect(n, newfd);
-	} while ((n = n->nfile.next));
+		dupredirect(redir, newfd);
+	} while ((redir = redir->nfile.next) != NULL);
 	INT_ON;
 	if ((flags & REDIR_SAVEFD2) && sv && sv->renamed[2] >= 0)
 		preverrout_fd = sv->renamed[2];
@@ -6572,7 +6570,7 @@ expmeta(char *enddir, char *name)
 	if (*p == '.')
 		matchdot++;
 	while (!intpending && (dp = readdir(dirp)) != NULL) {
-		if (dp->d_name[0] == '.' && ! matchdot)
+		if (dp->d_name[0] == '.' && !matchdot)
 			continue;
 		if (pmatch(start, dp->d_name)) {
 			if (atend) {
@@ -6587,7 +6585,7 @@ expmeta(char *enddir, char *name)
 		}
 	}
 	closedir(dirp);
-	if (! atend)
+	if (!atend)
 		endname[-1] = '/';
 }
 
@@ -7620,7 +7618,7 @@ copynode(union node *n)
 		break;
 	case NPIPE:
 		new->npipe.cmdlist = copynodelist(n->npipe.cmdlist);
-		new->npipe.backgnd = n->npipe.backgnd;
+		new->npipe.pipe_backgnd = n->npipe.pipe_backgnd;
 		break;
 	case NREDIR:
 	case NBACKGND:
@@ -8037,7 +8035,7 @@ evalsubshell(union node *n, int flags)
 		/* never returns */
 	}
 	status = 0;
-	if (! backgnd)
+	if (!backgnd)
 		status = waitforjob(jp);
 	exitstatus = status;
 	INT_ON;
@@ -8111,7 +8109,7 @@ evalpipe(union node *n, int flags)
 				ash_msg_and_raise_error("pipe call failed");
 			}
 		}
-		if (forkshell(jp, lp->n, n->npipe.backgnd) == 0) {
+		if (forkshell(jp, lp->n, n->npipe.pipe_backgnd) == 0) {
 			INT_ON;
 			if (pip[1] >= 0) {
 				close(pip[0]);
@@ -8132,7 +8130,7 @@ evalpipe(union node *n, int flags)
 		prevfd = pip[0];
 		close(pip[1]);
 	}
-	if (n->npipe.backgnd == 0) {
+	if (n->npipe.pipe_backgnd == 0) {
 		exitstatus = waitforjob(jp);
 		TRACE(("evalpipe:  job done exit status %d\n", exitstatus));
 	}
@@ -9861,7 +9859,7 @@ list(int nlflag)
 		tok = readtoken();
 		if (tok == TBACKGND) {
 			if (n2->type == NPIPE) {
-				n2->npipe.backgnd = 1;
+				n2->npipe.pipe_backgnd = 1;
 			} else {
 				if (n2->type != NREDIR) {
 					n3 = stzalloc(sizeof(struct nredir));
@@ -9958,7 +9956,7 @@ pipeline(void)
 	if (readtoken() == TPIPE) {
 		pipenode = stzalloc(sizeof(struct npipe));
 		pipenode->type = NPIPE;
-		/*pipenode->npipe.backgnd = 0; - stzalloc did it */
+		/*pipenode->npipe.pipe_backgnd = 0; - stzalloc did it */
 		lp = stzalloc(sizeof(struct nodelist));
 		pipenode->npipe.cmdlist = lp;
 		lp->n = n1;
@@ -10227,7 +10225,7 @@ parse_command(void)
 		break;
 	}
 	case TFOR:
-		if (readtoken() != TWORD || quoteflag || ! goodname(wordtext))
+		if (readtoken() != TWORD || quoteflag || !goodname(wordtext))
 			raise_error_syntax("Bad for loop variable");
 		n1 = stzalloc(sizeof(struct nfor));
 		n1->type = NFOR;
@@ -12854,7 +12852,7 @@ arith_apply(operator op, v_n_t *numstack, v_n_t **numstackptr)
 		--NUMPTR;
 		numptr_val = rez;
 		if (op == TOK_CONDITIONAL) {
-			if (! numptr_m1->contidional_second_val_initialized) {
+			if (!numptr_m1->contidional_second_val_initialized) {
 				/* protect $((expr1 ? expr2)) without ": expr" */
 				goto err;
 			}
@@ -13106,7 +13104,7 @@ arith(const char *expr, int *perrcode)
 			}
 			for (o = expr; *p && *o == *p; p++)
 				o++;
-			if (! *p) {
+			if (!*p) {
 				/* found */
 				expr = o - 1;
 				break;
