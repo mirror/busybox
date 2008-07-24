@@ -4828,6 +4828,7 @@ openredirect(union node *redir)
 		abort();
 #endif
 		/* Fall through to eliminate warning. */
+/* Our single caller does this itself */
 //	case NTOFD:
 //	case NFROMFD:
 //		f = -1;
@@ -4864,30 +4865,13 @@ copyfd(int from, int to)
 	return newfd;
 }
 
-static void
-dupredirect(union node *redir, int f)
-{
-	int fd = redir->nfile.fd;
-
-	if (f < 0) { /* redir->nfile.type == NTOFD || redir->nfile.type == NFROMFD */
-		if (redir->ndup.dupfd >= 0) {   /* if not ">&-" */
-			copyfd(redir->ndup.dupfd, fd);
-		}
-		return;
-	}
-	if (f != fd) {
-		copyfd(f, fd);
-		close(f);
-	}
-}
-
-/**/
+/* Struct def and variable are moved down to the first usage site */
 struct redirtab {
 	struct redirtab *next;
 	int renamed[10];
 	int nullredirs;
 };
-#define redirlist     (G_var.redirlist    )
+#define redirlist (G_var.redirlist)
 
 /*
  * Process a list of redirection commands.  If the REDIR_PUSH flag is set,
@@ -4918,10 +4902,11 @@ redirect(union node *redir, int flags)
 		sv->next = redirlist;
 		redirlist = sv;
 		sv->nullredirs = g_nullredirs - 1;
+		g_nullredirs = 0;
 		for (i = 0; i < 10; i++)
 			sv->renamed[i] = EMPTY;
-		g_nullredirs = 0;
 	}
+
 	do {
 		fd = redir->nfile.fd;
 		if (redir->nfile.type == NTOFD || redir->nfile.type == NFROMFD) {
@@ -4943,26 +4928,37 @@ redirect(union node *redir, int flags)
 			i = fcntl(fd, F_DUPFD, 10);
 			if (i == -1) {
 				i = errno;
-				if (i != EBADF) { /* strange error */
-					close(newfd);
+				if (i != EBADF) {
+					/* Strange error (e.g. "too many files" EMFILE?) */
+					/*if (newfd >= 0)*/ close(newfd);
 					errno = i;
 					ash_msg_and_raise_error("%d: %m", fd);
 					/* NOTREACHED */
 				}
-				/* it is not open - ok */
+				/* EBADF: it is not open - ok */
 			} else {
-				/* it is open, save its copy */
+				/* fd is open, save its copy */
+//TODO: CLOEXEC the copy? currently these extra "saved" fds are closed
+// in popredir() in the child, preventing them from leaking into child.
+// (popredir() also cleans up the mess in case of failures)
 				sv->renamed[fd] = i;
 				close(fd);
 			}
 		} else {
 			close(fd);
 		}
-		/* Here fd is closed */
-		/* NTOFD/NFROMFD: copy redir->ndup.dupfd to fd */
-		/* else: move newfd to fd */
-		dupredirect(redir, newfd);
+		/* At this point fd is closed */
+		if (newfd < 0) {
+			/* NTOFD/NFROMFD: copy redir->ndup.dupfd to fd */
+			if (redir->ndup.dupfd >= 0) {   /* if not ">&-" */
+				copyfd(redir->ndup.dupfd, fd);
+			}
+		} else { /* move newfd to fd */
+			copyfd(newfd, fd);
+			close(newfd);
+		}
 	} while ((redir = redir->nfile.next) != NULL);
+
 	INT_ON;
 	if ((flags & REDIR_SAVEFD2) && sv && sv->renamed[2] >= 0)
 		preverrout_fd = sv->renamed[2];
