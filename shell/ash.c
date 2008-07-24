@@ -4848,7 +4848,10 @@ openredirect(union node *redir)
  */
 /* 0x800..00: bit to set in "to" to request dup2 instead of fcntl(F_DUPFD).
  * old code was doing close(to) prior to copyfd() to achieve the same */
-#define COPYFD_EXACT ((int)~INT_MAX)
+enum {
+	COPYFD_EXACT   = (int)~(INT_MAX),
+	COPYFD_RESTORE = (int)((unsigned)COPYFD_EXACT >> 1),
+};
 static int
 copyfd(int from, int to)
 {
@@ -4981,7 +4984,19 @@ redirect(union node *redir, int flags)
 				/* EBADF: it is not open - good, remember to close it */
  remember_to_close:
 				i = CLOSED;
-			} /* else: fd is open, save its copy */
+			} else { /* fd is open, save its copy */
+				/* "exec fd>&-" should not close fds
+				 * which point to script file(s).
+				 * Force them to be restored afterwards */
+				struct parsefile *pf = g_parsefile;
+				while (pf) {
+					if (fd == pf->fd) {
+						i |= COPYFD_RESTORE;
+						break;
+					}
+					pf = pf->prev;
+				}
+			}
 			if (fd == 2)
 				copied_fd2 = i;
 			sv->two_fd[sv_pos].orig = fd;
@@ -4990,7 +5005,7 @@ redirect(union node *redir, int flags)
 		}
 		if (newfd < 0) {
 			/* NTOFD/NFROMFD: copy redir->ndup.dupfd to fd */
-			if (redir->ndup.dupfd < 0) { /* "NN>&-" */
+			if (redir->ndup.dupfd < 0) { /* "fd>&-" */
 				close(fd);
 			} else {
 				copyfd(redir->ndup.dupfd, fd | COPYFD_EXACT);
@@ -5021,17 +5036,19 @@ popredir(int drop)
 	rp = redirlist;
 	for (i = 0; i < rp->pair_count; i++) {
 		int fd = rp->two_fd[i].orig;
-		if (rp->two_fd[i].copy == CLOSED) {
+		int copy = rp->two_fd[i].copy;
+		if (copy == CLOSED) {
 			if (!drop)
 				close(fd);
 			continue;
 		}
-		if (rp->two_fd[i].copy != EMPTY) {
-			if (!drop) {
+		if (copy != EMPTY) {
+			if (!drop || (copy & COPYFD_RESTORE)) {
+				copy &= ~COPYFD_RESTORE;
 				/*close(fd);*/
-				copyfd(rp->two_fd[i].copy, fd | COPYFD_EXACT);
+				copyfd(copy, fd | COPYFD_EXACT);
 			}
-			close(rp->two_fd[i].copy);
+			close(copy);
 		}
 	}
 	redirlist = rp->next;
