@@ -8705,8 +8705,8 @@ evalcommand(union node *cmd, int flags)
 		for (;;) {
 			find_command(argv[0], &cmdentry, cmd_flag, path);
 			if (cmdentry.cmdtype == CMDUNKNOWN) {
-				status = 127;
 				flush_stderr();
+				status = 127;
 				goto bail;
 			}
 
@@ -8812,12 +8812,13 @@ evalcommand(union node *cmd, int flags)
 
  out:
 	popredir(cmd_is_exec);
-	if (lastarg)
+	if (lastarg) {
 		/* dsl: I think this is intended to be used to support
 		 * '_' in 'vi' command mode during line editing...
 		 * However I implemented that within libedit itself.
 		 */
 		setvar("_", lastarg, 0);
+	}
 	popstackmark(&smark);
 }
 
@@ -10649,7 +10650,7 @@ readtoken1(int firstc, int syntax, char *eofmark, int striptabs)
 	if (eofmark == NULL) {
 		if ((c == '>' || c == '<')
 		 && quotef == 0
-		 && len <= 2
+		 && len <= 2 // THIS LIMITS fd to 1 char: N>file, but no NN>file!
 		 && (*out == '\0' || isdigit(*out))
 		) {
 			PARSEREDIR();
