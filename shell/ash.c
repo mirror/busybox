@@ -62,6 +62,10 @@
 #include <termios.h>
 #endif
 
+#ifndef PIPE_BUF
+#define PIPE_BUF 4096           /* amount of buffering in a pipe */
+#endif
+
 #if defined(__uClinux__)
 #error "Do not even bother, ash will not run on uClinux"
 #endif
@@ -4285,7 +4289,6 @@ cmdtxt(union node *n)
 	union node *np;
 	struct nodelist *lp;
 	const char *p;
-	char s[2];
 
 	if (!n)
 		return;
@@ -4417,14 +4420,11 @@ cmdtxt(union node *n)
 	case NFROMTO:
 		p = "<>";
  redir:
-		s[0] = n->nfile.fd + '0';
-		s[1] = '\0';
-		cmdputs(s);
+		cmdputs(utoa(n->nfile.fd));
 		cmdputs(p);
 		if (n->type == NTOFD || n->type == NFROMFD) {
-			s[0] = n->ndup.dupfd + '0';
-			p = s;
-			goto dotail2;
+			cmdputs(utoa(n->ndup.dupfd));
+			break;
 		}
 		n = n->nfile.fname;
 		goto donode;
@@ -4675,11 +4675,6 @@ stoppedjobs(void)
 
 #define EMPTY -2                /* marks an unused slot in redirtab */
 #define CLOSED -3               /* marks a slot of previously-closed fd */
-#ifndef PIPE_BUF
-# define PIPESIZE 4096          /* amount of buffering in a pipe */
-#else
-# define PIPESIZE PIPE_BUF
-#endif
 
 /*
  * Open a file in noclobber mode.
@@ -4756,7 +4751,7 @@ openhere(union node *redir)
 		ash_msg_and_raise_error("pipe call failed");
 	if (redir->type == NHERE) {
 		len = strlen(redir->nhere.doc->narg.text);
-		if (len <= PIPESIZE) {
+		if (len <= PIPE_BUF) {
 			full_write(pip[1], redir->nhere.doc->narg.text, len);
 			goto out;
 		}
@@ -4860,18 +4855,39 @@ copyfd(int from, int to)
 	if (newfd < 0) {
 		if (errno == EMFILE)
 			return EMPTY;
+		/* Happens when source fd is not open: try "echo >&99" */
 		ash_msg_and_raise_error("%d: %m", from);
 	}
 	return newfd;
 }
 
 /* Struct def and variable are moved down to the first usage site */
+struct two_fd_t {
+	int orig, copy;
+};
 struct redirtab {
 	struct redirtab *next;
-	int renamed[10];
 	int nullredirs;
+	int pair_count;
+	struct two_fd_t two_fd[0];
 };
 #define redirlist (G_var.redirlist)
+
+static int need_to_remember(struct redirtab *rp, int fd)
+{
+	int i;
+
+	if (!rp) /* remebering was not requested */
+		return 0;
+
+	for (i = 0; i < rp->pair_count; i++) {
+		if (rp->two_fd[i].orig == fd) {
+			/* already remembered */
+			return 0;
+		}
+	}
+	return 1;
+}
 
 /*
  * Process a list of redirection commands.  If the REDIR_PUSH flag is set,
@@ -4887,24 +4903,36 @@ static void
 redirect(union node *redir, int flags)
 {
 	struct redirtab *sv;
+	int sv_pos;
 	int i;
 	int fd;
 	int newfd;
+	int copied_fd2 = -1;
 
 	g_nullredirs++;
 	if (!redir) {
 		return;
 	}
+
 	sv = NULL;
+	sv_pos = 0;
 	INT_OFF;
 	if (flags & REDIR_PUSH) {
-		sv = ckmalloc(sizeof(*sv));
+		union node *tmp = redir;
+		do {
+			sv_pos++;
+			tmp = tmp->nfile.next;
+		} while (tmp);
+		sv = ckmalloc(sizeof(*sv) + sv_pos * sizeof(sv->two_fd[0]));
 		sv->next = redirlist;
+		sv->pair_count = sv_pos;
 		redirlist = sv;
 		sv->nullredirs = g_nullredirs - 1;
 		g_nullredirs = 0;
-		for (i = 0; i < 10; i++)
-			sv->renamed[i] = EMPTY;
+		while (sv_pos > 0) {
+			sv_pos--;
+			sv->two_fd[sv_pos].orig = sv->two_fd[sv_pos].copy = EMPTY;
+		}
 	}
 
 	do {
@@ -4918,19 +4946,25 @@ redirect(union node *redir, int flags)
 			if (fd == newfd) {
 				/* Descriptor wasn't open before redirect.
 				 * Mark it for close in the future */
-				if (sv && sv->renamed[fd] == EMPTY)
-					sv->renamed[fd] = CLOSED;
+				if (need_to_remember(sv, fd)) {
+					if (fd == 2)
+						copied_fd2 = CLOSED; /// do we need this?
+					sv->two_fd[sv_pos].orig = fd;
+					sv->two_fd[sv_pos].copy = CLOSED;
+					sv_pos++;
+				}
 				continue;
 			}
 		}
-		if (sv && sv->renamed[fd] == EMPTY) {
+		if (need_to_remember(sv, fd)) {
 			/* Copy old descriptor */
 			i = fcntl(fd, F_DUPFD, 10);
 			if (i == -1) {
 				i = errno;
 				if (i != EBADF) {
 					/* Strange error (e.g. "too many files" EMFILE?) */
-					/*if (newfd >= 0)*/ close(newfd);
+					if (newfd >= 0)
+						close(newfd);
 					errno = i;
 					ash_msg_and_raise_error("%d: %m", fd);
 					/* NOTREACHED */
@@ -4938,10 +4972,15 @@ redirect(union node *redir, int flags)
 				/* EBADF: it is not open - ok */
 			} else {
 				/* fd is open, save its copy */
-//TODO: CLOEXEC the copy? currently these extra "saved" fds are closed
-// in popredir() in the child, preventing them from leaking into child.
-// (popredir() also cleans up the mess in case of failures)
-				sv->renamed[fd] = i;
+/* You'd expect copy to be CLOEXECed. Currently these extra "saved" fds
+ * are closed in popredir() in the child, preventing them from leaking
+ * into child. (popredir() also cleans up the mess in case of failures)
+ */
+				if (fd == 2)
+					copied_fd2 = i;
+				sv->two_fd[sv_pos].orig = fd;
+				sv->two_fd[sv_pos].copy = i;
+				sv_pos++;
 				close(fd);
 			}
 		} else {
@@ -4960,8 +4999,8 @@ redirect(union node *redir, int flags)
 	} while ((redir = redir->nfile.next) != NULL);
 
 	INT_ON;
-	if ((flags & REDIR_SAVEFD2) && sv && sv->renamed[2] >= 0)
-		preverrout_fd = sv->renamed[2];
+	if ((flags & REDIR_SAVEFD2) && copied_fd2 >= 0)
+		preverrout_fd = copied_fd2;
 }
 
 /*
@@ -4977,18 +5016,19 @@ popredir(int drop)
 		return;
 	INT_OFF;
 	rp = redirlist;
-	for (i = 0; i < 10; i++) {
-		if (rp->renamed[i] == CLOSED) {
+	for (i = 0; i < rp->pair_count; i++) {
+		int fd = rp->two_fd[i].orig;
+		if (rp->two_fd[i].copy == CLOSED) {
 			if (!drop)
-				close(i);
+				close(fd);
 			continue;
 		}
-		if (rp->renamed[i] != EMPTY) {
+		if (rp->two_fd[i].copy != EMPTY) {
 			if (!drop) {
-				close(i);
-				copyfd(rp->renamed[i], i);
+				close(fd);
+				copyfd(rp->two_fd[i].copy, fd);
 			}
-			close(rp->renamed[i]);
+			close(rp->two_fd[i].copy);
 		}
 	}
 	redirlist = rp->next;
@@ -10003,12 +10043,15 @@ makename(void)
 static void
 fixredir(union node *n, const char *text, int err)
 {
+	int fd;
+
 	TRACE(("Fix redir %s %d\n", text, err));
 	if (!err)
 		n->ndup.vname = NULL;
 
-	if (isdigit(text[0]) && text[1] == '\0')
-		n->ndup.dupfd = text[0] - '0';
+	fd = bb_strtou(text, NULL, 10);
+	if (!errno && fd >= 0)
+		n->ndup.dupfd = fd;
 	else if (LONE_DASH(text))
 		n->ndup.dupfd = -1;
 	else {
@@ -10630,7 +10673,7 @@ readtoken1(int firstc, int syntax, char *eofmark, int striptabs)
 
 			}
 			c = pgetc_macro();
-		} /* for(;;) */
+		} /* for (;;) */
 	}
  endword:
 #if ENABLE_ASH_MATH_SUPPORT
@@ -10650,12 +10693,20 @@ readtoken1(int firstc, int syntax, char *eofmark, int striptabs)
 	if (eofmark == NULL) {
 		if ((c == '>' || c == '<')
 		 && quotef == 0
-		 && len <= 2 // THIS LIMITS fd to 1 char: N>file, but no NN>file!
-		 && (*out == '\0' || isdigit(*out))
+		// && len <= 2 // THIS LIMITS fd to 1 char: N>file, but no NN>file!
+		// && (*out == '\0' || isdigit(*out))
 		) {
-			PARSEREDIR();
-			lasttoken = TREDIR;
-			return lasttoken;
+			int maxlen = 9 + 1; /* max 9 digit fd#: 999999999 */
+			char *np = out;
+			while (--maxlen && isdigit(*np))
+				np++;
+			if (*np == '\0') {
+				PARSEREDIR(); /* passed as params: out, c */
+				lasttoken = TREDIR;
+				return lasttoken;
+			}
+			/* else: non-number X seen, interpret it
+			 * as "NNNX>file" = "NNNX >file" */
 		}
 		pungetc();
 	}
@@ -10710,7 +10761,8 @@ checkend: {
  * first character of the redirection operator.
  */
 parseredir: {
-	char fd = *out;
+	/* out is already checked to be a valid number or "" */
+	int fd = (*out == '\0' ? -1 : atoi(out));
 	union node *np;
 
 	np = stzalloc(sizeof(struct nfile));
@@ -10762,8 +10814,8 @@ parseredir: {
 			break;
 		}
 	}
-	if (fd != '\0')
-		np->nfile.fd = fd - '0';
+	if (fd >= 0)
+		np->nfile.fd = fd;
 	redirnode = np;
 	goto parseredir_return;
 }
