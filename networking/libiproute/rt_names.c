@@ -13,41 +13,27 @@
 #include "libbb.h"
 #include "rt_names.h"
 
+/* so far all callers have size == 256 */
+#define rtnl_tab_initialize(file, tab, size) rtnl_tab_initialize(file, tab)
+#define size 256
 static void rtnl_tab_initialize(const char *file, const char **tab, int size)
 {
-	char buf[512];
-	FILE *fp;
-
-	fp = fopen_for_read(file);
-	if (!fp)
+	char *token[2];
+	parser_t *parser = config_open2(file, fopen_for_read);
+	if (!parser)
 		return;
-	while (fgets(buf, sizeof(buf), fp)) {
-		char *p = buf;
-		int id;
-		char namebuf[512];
-
-		while (*p == ' ' || *p == '\t')
-			p++;
-		if (*p == '#' || *p == '\n' || *p == 0)
-			continue;
-		if (sscanf(p, "0x%x %s\n", &id, namebuf) != 2
-		 && sscanf(p, "0x%x %s #", &id, namebuf) != 2
-		 && sscanf(p, "%d %s\n", &id, namebuf) != 2
-		 && sscanf(p, "%d %s #", &id, namebuf) != 2
-		) {
-			bb_error_msg("database %s is corrupted at %s",
-				file, p);
-			return;
+	while (config_read(parser, token, 2, 2, "# \t", 0)) {
+		int id = bb_strtou(token[0], NULL, 0);
+		if (id < 0 || id > size) {
+			bb_error_msg("database %s is corrupted at line %d",
+				file, parser->lineno);
+			break;
 		}
-
-		if (id < 0 || id > size)
-			continue;
-
-		tab[id] = xstrdup(namebuf);
+		tab[id] = xstrdup(token[1]);
 	}
-	fclose(fp);
+	config_close(parser);
 }
-
+#undef size
 
 static const char **rtnl_rtprot_tab; /* [256] */
 

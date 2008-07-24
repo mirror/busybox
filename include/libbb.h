@@ -1006,6 +1006,7 @@ enum {
 	PARSE_MIN_DIE        = 0x00100000, // die if less tokens found
 	// keep a copy of current line
 	PARSE_KEEP_COPY      = 0x00200000 * ENABLE_DEBUG_CROND_OPTION,
+	PARSE_ESCAPE         = 0x00400000, // process escape sequences in tokens
 };
 typedef struct parser_t {
 	FILE *fp;

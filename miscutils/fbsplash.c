@@ -38,13 +38,7 @@ struct globals {
 	FILE *logfile_fd;	// log file
 #endif
 	unsigned char *addr;	// pointer to framebuffer memory
-	unsigned nbar_width;	// progress bar width
-	unsigned nbar_height;	// progress bar height
-	unsigned nbar_posx;	// progress bar horizontal position
-	unsigned nbar_posy;	// progress bar vertical position
-	unsigned char nbar_colr;	// progress bar color red component
-	unsigned char nbar_colg;	// progress bar color green component
-	unsigned char nbar_colb;	// progress bar color blue component
+	unsigned ns[7];		// n-parameters
 	const char *image_filename;
 	struct fb_var_screeninfo scr_var;
 	struct fb_fix_screeninfo scr_fix;
@@ -54,6 +48,13 @@ struct globals {
 	SET_PTR_TO_GLOBALS(xzalloc(sizeof(G))); \
 } while (0)
 
+#define nbar_width	ns[0]	// progress bar width
+#define nbar_height	ns[1]	// progress bar height
+#define nbar_posx	ns[2]	// progress bar horizontal position
+#define nbar_posy	ns[3]	// progress bar vertical position
+#define nbar_colr	ns[4]	// progress bar color red component
+#define nbar_colg	ns[5]	// progress bar color green component
+#define nbar_colb	ns[6]	// progress bar color blue component
 
 #if DEBUG
 #define DEBUG_MESSAGE(strMessage, args...) \
@@ -280,77 +281,32 @@ static void fb_drawimage(void)
 static void init(const char *cfg_filename)
 {
 	static const char const param_names[] ALIGN1 =
-		"BAR_LEFT\0" "BAR_TOP\0"
 		"BAR_WIDTH\0" "BAR_HEIGHT\0"
+		"BAR_LEFT\0" "BAR_TOP\0"
 		"BAR_R\0" "BAR_G\0" "BAR_B\0"
 #if DEBUG
 		"DEBUG\0"
 #endif
 		;
 
-	FILE *inifile;
-	char *buf;
-
-	inifile = xfopen_stdin(cfg_filename);
-
-	while ((buf = xmalloc_fgetline(inifile)) != NULL) {
-		char *value_str;
-		int val;
-
-		if (*buf == '#') {  // it's a comment
-			free(buf);
-			continue;
-		}
-
-		value_str = strchr(buf, '=');
-		if (!value_str)
-			goto err;
-		*value_str++ = '\0';
-		val = xatoi_u(value_str);
-
-		switch (index_in_strings(param_names, buf)) {
-		case 0:
-			// progress bar horizontal position
-			G.nbar_posx = val;
-			break;
-		case 1:
-			// progress bar vertical position
-			G.nbar_posy = val;
-			break;
-		case 2:
-			// progress bar width
-			G.nbar_width = val;
-			break;
-		case 3:
-			// progress bar height
-			G.nbar_height = val;
-			break;
-		case 4:
-			// progress bar color - red component
-			G.nbar_colr = val;
-			break;
-		case 5:
-			// progress bar color - green component
-			G.nbar_colg = val;
-			break;
-		case 6:
-			// progress bar color - blue component
-			G.nbar_colb = val;
-			break;
+	char *token[2];
+	parser_t *parser = config_open2(cfg_filename, xfopen_stdin);
+	while (config_read(parser, token, 2, 2, "#=", PARSE_MIN_DIE)) {
+		unsigned val = xatoi_u(token[1]);
+		int i = index_in_strings(param_names, token[0]);
+		if (i < 0)
+			bb_error_msg_and_die("syntax error: '%s'", token[0]);
+		if (i >= 0 && i < 7)
+			G.ns[i] = val;
 #if DEBUG
-		case 7:
+		if (i == 7) {
 			G.bdebug_messages = val;
 			if (G.bdebug_messages)
 				G.logfile_fd = xfopen_for_write("/tmp/fbsplash.log");
-			break;
-#endif
- err:
-		default:
-			bb_error_msg_and_die("syntax error: '%s'", buf);
 		}
-		free(buf);
+#endif
 	}
-	fclose(inifile);
+	config_close(parser);
 }
 
 

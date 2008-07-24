@@ -485,23 +485,19 @@ static module_info* find_alias(const char *alias)
 }
 
 #if ENABLE_FEATURE_MODPROBE_SMALL_CHECK_ALREADY_LOADED
+// TODO: open only once, invent config_rewind()
 static int already_loaded(const char *name)
 {
 	int ret = 0;
-	int len = strlen(name);
-	char *line;
-	FILE* modules;
-
-	modules = xfopen_for_read("/proc/modules");
-	while ((line = xmalloc_fgets(modules)) != NULL) {
-		if (strncmp(line, name, len) == 0 && line[len] == ' ') {
-			free(line);
+	char *s;
+	parser_t *parser = config_open2("/proc/modules", xfopen_for_read);
+	while (config_read(parser, &s, 1, 1, "# \t", 0)) {
+		if (strcmp(s, name) == 0) {
 			ret = 1;
 			break;
 		}
-		free(line);
 	}
-	fclose(modules);
+	config_close(parser);
 	return ret;
 }
 #else

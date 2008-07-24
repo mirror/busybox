@@ -66,8 +66,7 @@ parser_t* FAST_FUNC config_open2(const char *filename, FILE* FAST_FUNC (*fopen_f
 	parser->fp = fopen_func(filename);
 	if (parser->fp)
 		return parser;
-	if (ENABLE_FEATURE_CLEAN_UP)
-		free(parser);
+	free(parser);
 	return NULL;
 }
 
@@ -212,6 +211,19 @@ int FAST_FUNC config_read(parser_t *parser, char **tokens, unsigned flags, const
 		if ((flags & (PARSE_DONT_REDUCE|PARSE_DONT_TRIM)) || *line) {
 			//bb_info_msg("N[%d] T[%s]", ii, line);
 			tokens[ii++] = line;
+			// process escapes in token
+			if (flags & PARSE_ESCAPE) {
+				char *s = line;
+				while (*s) {
+					if (*s == '\\') {
+						s++;
+						*line++ = bb_process_escape_sequence((const char **)&s);
+					} else {
+						*line++ = *s++;
+					}
+				}
+				*line = '\0';
+			}
 		}
 		line = q;
 		//bb_info_msg("A[%s]", line);
