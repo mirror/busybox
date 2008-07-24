@@ -594,8 +594,8 @@ struct nfile {
 
 struct ndup {
 	smallint type;
-	union node *next;
-	int fd;
+	union node *next; /* must match nfile's layout */
+	int fd; /* must match nfile's layout */
 	int dupfd;
 	union node *vname;
 };
@@ -1634,12 +1634,6 @@ nextopt(const char *optstring)
  * The parsefile structure pointed to by the global variable parsefile
  * contains information about the current file being read.
  */
-struct redirtab {
-	struct redirtab *next;
-	int renamed[10];
-	int nullredirs;
-};
-
 struct shparam {
 	int nparam;             /* # of positional parameters (without $0) */
 #if ENABLE_ASH_GETOPTS
@@ -1765,6 +1759,7 @@ static const struct {
 #endif
 };
 
+struct redirtab;
 
 struct globals_var {
 	struct shparam shellparam;      /* $@ current positional parameters */
@@ -1777,7 +1772,7 @@ struct globals_var {
 extern struct globals_var *const ash_ptr_to_globals_var;
 #define G_var (*ash_ptr_to_globals_var)
 #define shellparam    (G_var.shellparam   )
-#define redirlist     (G_var.redirlist    )
+//#define redirlist     (G_var.redirlist    )
 #define g_nullredirs  (G_var.g_nullredirs )
 #define preverrout_fd (G_var.preverrout_fd)
 #define vartab        (G_var.vartab       )
@@ -4767,6 +4762,7 @@ openhere(union node *redir)
 		}
 	}
 	if (forkshell((struct job *)NULL, (union node *)NULL, FORK_NOJOB) == 0) {
+		/* child */
 		close(pip[0]);
 		signal(SIGINT, SIG_IGN);
 		signal(SIGQUIT, SIG_IGN);
@@ -4777,7 +4773,7 @@ openhere(union node *redir)
 		signal(SIGPIPE, SIG_DFL);
 		if (redir->type == NHERE)
 			full_write(pip[1], redir->nhere.doc->narg.text, len);
-		else
+		else /* NXHERE */
 			expandhere(redir->nhere.doc, pip[1]);
 		_exit(EXIT_SUCCESS);
 	}
@@ -4832,10 +4828,10 @@ openredirect(union node *redir)
 		abort();
 #endif
 		/* Fall through to eliminate warning. */
-	case NTOFD:
-	case NFROMFD:
-		f = -1;
-		break;
+//	case NTOFD:
+//	case NFROMFD:
+//		f = -1;
+//		break;
 	case NHERE:
 	case NXHERE:
 		f = openhere(redir);
@@ -4873,18 +4869,25 @@ dupredirect(union node *redir, int f)
 {
 	int fd = redir->nfile.fd;
 
-	if (redir->nfile.type == NTOFD || redir->nfile.type == NFROMFD) {
+	if (f < 0) { /* redir->nfile.type == NTOFD || redir->nfile.type == NFROMFD */
 		if (redir->ndup.dupfd >= 0) {   /* if not ">&-" */
 			copyfd(redir->ndup.dupfd, fd);
 		}
 		return;
 	}
-
 	if (f != fd) {
 		copyfd(f, fd);
 		close(f);
 	}
 }
+
+/**/
+struct redirtab {
+	struct redirtab *next;
+	int renamed[10];
+	int nullredirs;
+};
+#define redirlist     (G_var.redirlist    )
 
 /*
  * Process a list of redirection commands.  If the REDIR_PUSH flag is set,
@@ -4921,36 +4924,43 @@ redirect(union node *redir, int flags)
 	}
 	do {
 		fd = redir->nfile.fd;
-		if ((redir->nfile.type == NTOFD || redir->nfile.type == NFROMFD)
-		 && redir->ndup.dupfd == fd)
-			continue; /* redirect from/to same file descriptor */
-
-		newfd = openredirect(redir);
-		if (fd == newfd) {
-			/* Descriptor wasn't open before redirect.
-			 * Mark it for close in the future */
-			if (sv && sv->renamed[fd] == EMPTY)
-				sv->renamed[fd] = CLOSED;
-			continue;
+		if (redir->nfile.type == NTOFD || redir->nfile.type == NFROMFD) {
+			if (redir->ndup.dupfd == fd)
+				continue; /* redirect from/to same file descriptor */
+			newfd = -1;
+		} else {
+			newfd = openredirect(redir); /* always >= 0 */
+			if (fd == newfd) {
+				/* Descriptor wasn't open before redirect.
+				 * Mark it for close in the future */
+				if (sv && sv->renamed[fd] == EMPTY)
+					sv->renamed[fd] = CLOSED;
+				continue;
+			}
 		}
 		if (sv && sv->renamed[fd] == EMPTY) {
+			/* Copy old descriptor */
 			i = fcntl(fd, F_DUPFD, 10);
-
 			if (i == -1) {
 				i = errno;
-				if (i != EBADF) {
+				if (i != EBADF) { /* strange error */
 					close(newfd);
 					errno = i;
 					ash_msg_and_raise_error("%d: %m", fd);
 					/* NOTREACHED */
 				}
+				/* it is not open - ok */
 			} else {
+				/* it is open, save its copy */
 				sv->renamed[fd] = i;
 				close(fd);
 			}
 		} else {
 			close(fd);
 		}
+		/* Here fd is closed */
+		/* NTOFD/NFROMFD: copy redir->ndup.dupfd to fd */
+		/* else: move newfd to fd */
 		dupredirect(redir, newfd);
 	} while ((redir = redir->nfile.next) != NULL);
 	INT_ON;
