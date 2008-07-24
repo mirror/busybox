@@ -4846,12 +4846,21 @@ openredirect(union node *redir)
  * if the source file descriptor is closed, EMPTY if there are no unused
  * file descriptors left.
  */
+/* 0x800..00: bit to set in "to" to request dup2 instead of fcntl(F_DUPFD).
+ * old code was doing close(to) prior to copyfd() to achieve the same */
+#define COPYFD_EXACT ((int)~INT_MAX)
 static int
 copyfd(int from, int to)
 {
 	int newfd;
 
-	newfd = fcntl(from, F_DUPFD, to);
+	if (to & COPYFD_EXACT) {
+		to &= ~COPYFD_EXACT;
+		/*if (from != to)*/
+			newfd = dup2(from, to);
+	} else {
+		newfd = fcntl(from, F_DUPFD, to);
+	}
 	if (newfd < 0) {
 		if (errno == EMFILE)
 			return EMPTY;
@@ -4947,11 +4956,7 @@ redirect(union node *redir, int flags)
 				/* Descriptor wasn't open before redirect.
 				 * Mark it for close in the future */
 				if (need_to_remember(sv, fd)) {
-					if (fd == 2)
-						copied_fd2 = CLOSED; /// do we need this?
-					sv->two_fd[sv_pos].orig = fd;
-					sv->two_fd[sv_pos].copy = CLOSED;
-					sv_pos++;
+					goto remember_to_close;
 				}
 				continue;
 			}
@@ -4959,6 +4964,10 @@ redirect(union node *redir, int flags)
 		if (need_to_remember(sv, fd)) {
 			/* Copy old descriptor */
 			i = fcntl(fd, F_DUPFD, 10);
+/* You'd expect copy to be CLOEXECed. Currently these extra "saved" fds
+ * are closed in popredir() in the child, preventing them from leaking
+ * into child. (popredir() also cleans up the mess in case of failures)
+ */
 			if (i == -1) {
 				i = errno;
 				if (i != EBADF) {
@@ -4969,31 +4978,25 @@ redirect(union node *redir, int flags)
 					ash_msg_and_raise_error("%d: %m", fd);
 					/* NOTREACHED */
 				}
-				/* EBADF: it is not open - ok */
-			} else {
-				/* fd is open, save its copy */
-/* You'd expect copy to be CLOEXECed. Currently these extra "saved" fds
- * are closed in popredir() in the child, preventing them from leaking
- * into child. (popredir() also cleans up the mess in case of failures)
- */
-				if (fd == 2)
-					copied_fd2 = i;
-				sv->two_fd[sv_pos].orig = fd;
-				sv->two_fd[sv_pos].copy = i;
-				sv_pos++;
-				close(fd);
-			}
-		} else {
-			close(fd);
+				/* EBADF: it is not open - good, remember to close it */
+ remember_to_close:
+				i = CLOSED;
+			} /* else: fd is open, save its copy */
+			if (fd == 2)
+				copied_fd2 = i;
+			sv->two_fd[sv_pos].orig = fd;
+			sv->two_fd[sv_pos].copy = i;
+			sv_pos++;
 		}
-		/* At this point fd is closed */
 		if (newfd < 0) {
 			/* NTOFD/NFROMFD: copy redir->ndup.dupfd to fd */
-			if (redir->ndup.dupfd >= 0) {   /* if not ">&-" */
-				copyfd(redir->ndup.dupfd, fd);
+			if (redir->ndup.dupfd < 0) { /* "NN>&-" */
+				close(fd);
+			} else {
+				copyfd(redir->ndup.dupfd, fd | COPYFD_EXACT);
 			}
-		} else { /* move newfd to fd */
-			copyfd(newfd, fd);
+		} else if (fd != newfd) { /* move newfd to fd */
+			copyfd(newfd, fd | COPYFD_EXACT);
 			close(newfd);
 		}
 	} while ((redir = redir->nfile.next) != NULL);
@@ -5025,8 +5028,8 @@ popredir(int drop)
 		}
 		if (rp->two_fd[i].copy != EMPTY) {
 			if (!drop) {
-				close(fd);
-				copyfd(rp->two_fd[i].copy, fd);
+				/*close(fd);*/
+				copyfd(rp->two_fd[i].copy, fd | COPYFD_EXACT);
 			}
 			close(rp->two_fd[i].copy);
 		}
@@ -5064,7 +5067,8 @@ redirectsafe(union node *redir, int flags)
 	struct jmploc jmploc;
 
 	SAVE_INT(saveint);
-	err = setjmp(jmploc.loc) * 2;
+	/* "echo 9>/dev/null; echo >&9; echo result: $?" - result should be 1, not 2! */
+	err = setjmp(jmploc.loc); // huh?? was = setjmp(jmploc.loc) * 2;
 	if (!err) {
 		exception_handler = &jmploc;
 		redirect(redir, flags);
@@ -5443,8 +5447,8 @@ evalbackcmd(union node *n, struct backcmd *result)
 			FORCE_INT_ON;
 			close(pip[0]);
 			if (pip[1] != 1) {
-				close(1);
-				copyfd(pip[1], 1);
+				/*close(1);*/
+				copyfd(pip[1], 1 | COPYFD_EXACT);
 				close(pip[1]);
 			}
 			eflag = 0;
@@ -10691,11 +10695,7 @@ readtoken1(int firstc, int syntax, char *eofmark, int striptabs)
 	len = out - (char *)stackblock();
 	out = stackblock();
 	if (eofmark == NULL) {
-		if ((c == '>' || c == '<')
-		 && quotef == 0
-		// && len <= 2 // THIS LIMITS fd to 1 char: N>file, but no NN>file!
-		// && (*out == '\0' || isdigit(*out))
-		) {
+		if ((c == '>' || c == '<') && quotef == 0) {
 			int maxlen = 9 + 1; /* max 9 digit fd#: 999999999 */
 			char *np = out;
 			while (--maxlen && isdigit(*np))

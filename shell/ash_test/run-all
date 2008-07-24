@@ -3,8 +3,8 @@
 TOPDIR=$PWD
 
 test -x ash || {
-    echo "No ./ash?! Perhaps you want to run 'ln -s ../../busybox ash'"
-    exit
+    echo "No ./ash - creating a link to ../../busybox"
+    ln -s ../../busybox ash
 }
 test -x printenv || gcc -O2 -o printenv printenv.c || exit $?
 test -x recho    || gcc -O2 -o recho    recho.c    || exit $?
