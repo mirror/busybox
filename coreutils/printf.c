@@ -348,8 +348,11 @@ int printf_main(int argc UNUSED_PARAM, char **argv)
 	 * even if libc receives EBADF on write attempts, it feels determined
 	 * to output data no matter what. So it will try later,
 	 * and possibly will clobber future output. Not good. */
-	if (dup2(1, 1) != 1)
-		return -1;
+// TODO: check fcntl() & O_ACCMODE == O_WRONLY or O_RDWR?
+	if (fcntl(1, F_GETFL) == -1)
+		return 1; /* match coreutils 6.10 (sans error msg to stderr) */
+	//if (dup2(1, 1) != 1) - old way
+	//	return 1;
 
 	/* bash builtin errors out on "printf '-%s-\n' foo",
 	 * coreutils-6.9 works. Both work with "printf -- '-%s-\n' foo".

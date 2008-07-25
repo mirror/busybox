@@ -4889,7 +4889,7 @@ static int need_to_remember(struct redirtab *rp, int fd)
 {
 	int i;
 
-	if (!rp) /* remebering was not requested */
+	if (!rp) /* remembering was not requested */
 		return 0;
 
 	for (i = 0; i < rp->pair_count; i++) {
@@ -4899,6 +4899,28 @@ static int need_to_remember(struct redirtab *rp, int fd)
 		}
 	}
 	return 1;
+}
+
+/* "hidden" fd is a fd used to read scripts, or a copy of such */
+static int is_hidden_fd(struct redirtab *rp, int fd)
+{
+	int i;
+	struct parsefile *pf = g_parsefile;
+	while (pf) {
+		if (fd == pf->fd) {
+			return 1;
+		}
+		pf = pf->prev;
+	}
+	if (!rp)
+		return 0;
+	fd |= COPYFD_RESTORE;
+	for (i = 0; i < rp->pair_count; i++) {
+		if (rp->two_fd[i].copy == fd) {
+			return 1;
+		}
+	}
+	return 0;
 }
 
 /*
@@ -4950,8 +4972,15 @@ redirect(union node *redir, int flags)
 	do {
 		fd = redir->nfile.fd;
 		if (redir->nfile.type == NTOFD || redir->nfile.type == NFROMFD) {
-			if (redir->ndup.dupfd == fd)
-				continue; /* redirect from/to same file descriptor */
+			int right_fd = redir->ndup.dupfd;
+			/* redirect from/to same file descriptor? */
+			if (right_fd == fd)
+				continue;
+			/* echo >&10 and 10 is a fd opened to the sh script? */
+			if (is_hidden_fd(sv, right_fd)) {
+				errno = EBADF; /* as if it is closed */
+				ash_msg_and_raise_error("%d: %m", right_fd);
+			}
 			newfd = -1;
 		} else {
 			newfd = openredirect(redir); /* always >= 0 */
@@ -4988,14 +5017,8 @@ redirect(union node *redir, int flags)
 				/* "exec fd>&-" should not close fds
 				 * which point to script file(s).
 				 * Force them to be restored afterwards */
-				struct parsefile *pf = g_parsefile;
-				while (pf) {
-					if (fd == pf->fd) {
-						i |= COPYFD_RESTORE;
-						break;
-					}
-					pf = pf->prev;
-				}
+				if (is_hidden_fd(sv, fd))
+					i |= COPYFD_RESTORE;
 			}
 			if (fd == 2)
 				copied_fd2 = i;
@@ -9026,7 +9049,7 @@ static int
 preadfd(void)
 {
 	int nr;
-	char *buf =  g_parsefile->buf;
+	char *buf = g_parsefile->buf;
 	parsenextc = buf;
 
 #if ENABLE_FEATURE_EDITING
