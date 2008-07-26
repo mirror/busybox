@@ -138,7 +138,7 @@ static unsigned int expand(const char *arg, char *buffer)
 				arg += 3;	/* skip CHAR=] */
 				continue;
 			}
-			if (*arg != '-') { /* not [x-...] - copy verbatim */
+			if (i == '\0' || *arg != '-') { /* not [x-...] - copy verbatim */
 				*buffer++ = '[';
 				arg--; /* points to x */
 				continue; /* copy all, including eventual ']' */
