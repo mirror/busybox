@@ -106,43 +106,41 @@ static void undot(uint8_t * rip)
  */
 static void dnsentryinit(void)
 {
+	char *token[2];
 	parser_t *parser;
 	struct dns_entry *m, *prev;
 
 	prev = dnsentry = NULL;
 	parser = config_open(fileconf);
-	if (parser) {
-		char *token[2];
-		while (config_read(parser, token, 2, 2, "# \t", 0)) {
-			unsigned int a,b,c,d;
-			/*
-			 * Assumes all host names are lower case only
-			 * Hostnames with more than one label are not handled correctly.
-			 * Presently the dot is copied into name without
-			 * converting to a length/string substring for that label.
-			 */
-//			if (!token[1] || sscanf(token[1], ".%u.%u.%u.%u"+1, &a, &b, &c, &d) != 4)
-			if (sscanf(token[1], ".%u.%u.%u.%u"+1, &a, &b, &c, &d) != 4)
-				continue;
+	while (config_read(parser, token, 2, 2, "# \t", PARSE_NORMAL)) {
+		unsigned a, b, c, d;
+		/*
+		 * Assumes all host names are lower case only
+		 * Hostnames with more than one label are not handled correctly.
+		 * Presently the dot is copied into name without
+		 * converting to a length/string substring for that label.
+		 */
+//		if (!token[1] || sscanf(token[1], ".%u.%u.%u.%u"+1, &a, &b, &c, &d) != 4)
+		if (sscanf(token[1], ".%u.%u.%u.%u"+1, &a, &b, &c, &d) != 4)
+			continue;
 
-			m = xzalloc(sizeof(*m));
-			/*m->next = NULL;*/
-			sprintf(m->ip, ".%u.%u.%u.%u"+1, a, b, c, d);
-			sprintf(m->rip, ".%u.%u.%u.%u", d, c, b, a);
-			undot((uint8_t*)m->rip);
-			convname(m->name, (uint8_t*)token[0]);
+		m = xzalloc(sizeof(*m));
+		/*m->next = NULL;*/
+		sprintf(m->ip, ".%u.%u.%u.%u"+1, a, b, c, d);
+		sprintf(m->rip, ".%u.%u.%u.%u", d, c, b, a);
+		undot((uint8_t*)m->rip);
+		convname(m->name, (uint8_t*)token[0]);
 
-			if (OPT_verbose)
-				fprintf(stderr, "\tname:%s, ip:%s\n", &(m->name[1]), m->ip);
+		if (OPT_verbose)
+			fprintf(stderr, "\tname:%s, ip:%s\n", &(m->name[1]), m->ip);
 
-			if (prev == NULL)
-				dnsentry = m;
-			else
-				prev->next = m;
-			prev = m;
-		}
-		config_close(parser);
+		if (prev == NULL)
+			dnsentry = m;
+		else
+			prev->next = m;
+		prev = m;
 	}
+	config_close(parser);
 }
 
 /*

@@ -998,15 +998,20 @@ int bb_parse_mode(const char* s, mode_t* theMode) FAST_FUNC;
  * Config file parser
  */
 enum {
-	PARSE_VANILLA        = 0x00000000, // trim line, collapse delimiters, warn and continue if less than mintokens
-	PARSE_DONT_REDUCE    = 0x00010000, // do not treat consecutive delimiters as one
-	PARSE_DONT_TRIM      = 0x00020000, // do not trim line of leading and trailing delimiters
-	PARSE_LAST_IS_GREEDY = 0x00040000, // last token takes whole remainder of the line
-//	PARSE_DONT_NULL      = 0x00080000, // do not set tokens[] to NULL
-	PARSE_MIN_DIE        = 0x00100000, // die if less tokens found
+	PARSE_COLLAPSE  = 0x00010000, // treat consecutive delimiters as one
+	PARSE_TRIM      = 0x00020000, // trim leading and trailing delimiters
+// TODO: COLLAPSE and TRIM seem to always go in pair
+	PARSE_GREEDY    = 0x00040000, // last token takes entire remainder of the line
+	PARSE_MIN_DIE   = 0x00100000, // die if < min tokens found
 	// keep a copy of current line
-	PARSE_KEEP_COPY      = 0x00200000 * ENABLE_DEBUG_CROND_OPTION,
-	PARSE_ESCAPE         = 0x00400000, // process escape sequences in tokens
+	PARSE_KEEP_COPY = 0x00200000 * ENABLE_DEBUG_CROND_OPTION,
+//	PARSE_ESCAPE    = 0x00400000, // process escape sequences in tokens
+	// NORMAL is:
+	// * remove leading and trailing delimiters and collapse
+	//   multiple delimiters into one
+	// * warn and continue if less than mintokens delimiters found
+	// * grab everything into last token
+	PARSE_NORMAL    = PARSE_COLLAPSE | PARSE_TRIM | PARSE_GREEDY,
 };
 typedef struct parser_t {
 	FILE *fp;

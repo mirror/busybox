@@ -20,7 +20,7 @@ static void do_sethostname(char *s, int isfile)
 		return;
 	if (isfile) {
 		parser_t *parser = config_open2(s, xfopen_for_read);
-		while (config_read(parser, &s, 1, 1, "# \t", 0)) {
+		while (config_read(parser, &s, 1, 1, "# \t", PARSE_NORMAL & ~PARSE_GREEDY)) {
 			do_sethostname(s, 0);
 		}
 		if (ENABLE_FEATURE_CLEAN_UP)

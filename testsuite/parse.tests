@@ -5,20 +5,24 @@
 
 . testing.sh
 
-NO_REDUCE=65536
-NO_TRIM=131072
-GREEDY=262144
+COLLAPSE=$(( 0x00010000))
+TRIM=$((     0x00020000))
+GREEDY=$((   0x00040000))
+MIN_DIE=$((  0x00100000))
+KEEP_COPY=$((0x00200000))
+ESCAPE=$((   0x00400000))
+NORMAL=$((   COLLAPSE | TRIM | GREEDY))
 
 # testing "description" "command" "result" "infile" "stdin"
 
-testing "mdev.conf" \
-	"parse -n 4 -m 3 -f $GREEDY -" \
+testing "parse mdev.conf" \
+	"parse -n 4 -m 3 -f $((NORMAL)) -" \
 	"[sda][0:0][644][@echo @echo TEST]\n" \
 	"-" \
 	" sda 0:0 644 @echo @echo TEST # echo trap\n"
 
-testing "notrim" \
-	"parse -n 4 -m 3 -f $(($GREEDY+$NO_TRIM)) -" \
+testing "parse notrim" \
+	"parse -n 4 -m 3 -f $((NORMAL - TRIM - COLLAPSE)) -" \
 	"[][sda][0:0][644 @echo @echo TEST ]\n" \
 	"-" \
 	" sda 0:0 644 @echo @echo TEST \n"
@@ -49,12 +53,12 @@ cat >$FILE.res <<EOF
 [/dev/cdrom][/cdrom][iso9660][ro,user,noauto,nohide][0][0]
 [/dev/hdb5][/redhat][ext2][rw,root,noauto,nohide][0][0]
 [/dev/hdb6][/win2home][ntfs][rw,root,noauto,nohide][0][0]
-[/dev/hdb7][/win2skul][ntfs][rw,root,noauto,nohide][none][0]
+[/dev/hdb7][/win2skul][ntfs][rw,root,noauto,nohide][none][0		0]
 [none][/dev/pts][devpts][gid=5,mode=620][0][0]
 [none][/proc][proc][defaults][0][0]
 EOF
 
-testing "polluted fstab" \
+testing "parse polluted fstab" \
 	"parse -n 6 -m 6 $FILE" \
 	"`cat $FILE.res`\n" \
 	"" \
@@ -74,8 +78,8 @@ cat >$FILE.res <<EOF
 [][][shutdown][/sbin/swapoff -a]
 EOF
 
-testing "inittab from examples" \
-	"parse -n 4 -m 4 -f $(($GREEDY+$NO_TRIM)) -d'#:' $FILE" \
+testing "parse inittab from examples" \
+	"parse -n 4 -m 4 -f $((NORMAL - TRIM - COLLAPSE)) -d'#:' $FILE" \
 	"`cat $FILE.res`\n" \
 	"" \
 	""
@@ -94,7 +98,7 @@ cat >$FILE.res <<EOF
 [option][lease][864000]
 EOF
 
-testing "udhcpd.conf from examples" \
+testing "parse udhcpd.conf from examples" \
 	"parse -n 127 $FILE" \
 	"`cat $FILE.res`\n" \
 	"" \

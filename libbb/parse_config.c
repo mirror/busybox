@@ -14,8 +14,9 @@ int parse_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int parse_main(int argc UNUSED_PARAM, char **argv)
 {
 	const char *delims = "# \t";
-	unsigned flags = 0;
+	unsigned flags = PARSE_NORMAL;
 	int mintokens = 0, ntokens = 128;
+
 	opt_complementary = "-1:n+:m+:f+";
 	getopt32(argv, "n:m:d:f:", &ntokens, &mintokens, &delims, &flags);
 	//argc -= optind;
@@ -61,13 +62,15 @@ Typical usage:
 
 parser_t* FAST_FUNC config_open2(const char *filename, FILE* FAST_FUNC (*fopen_func)(const char *path))
 {
-	parser_t *parser = xzalloc(sizeof(parser_t));
-	/* empty file configures nothing */
-	parser->fp = fopen_func(filename);
-	if (parser->fp)
-		return parser;
-	free(parser);
-	return NULL;
+	FILE* fp;
+	parser_t *parser;
+
+	fp = fopen_func(filename);
+	if (!fp)
+		return NULL;
+	parser = xzalloc(sizeof(*parser));
+	parser->fp = fp;
+	return parser;
 }
 
 parser_t* FAST_FUNC config_open(const char *filename)
@@ -87,41 +90,53 @@ static void config_free_data(parser_t *const parser)
 
 void FAST_FUNC config_close(parser_t *parser)
 {
-	config_free_data(parser);
-	fclose(parser->fp);
+	if (parser) {
+		config_free_data(parser);
+		fclose(parser->fp);
+		free(parser);
+	}
 }
 
 /*
-1. Read a line from config file. If nothing to read then bail out returning 0.
-   Handle continuation character. Advance lineno for each physical line. Cut comments.
-2. if PARSE_DONT_TRIM is not set (default) skip leading and cut trailing delimiters, if any.
+0. If parser is NULL return 0.
+1. Read a line from config file. If nothing to read then return 0.
+   Handle continuation character. Advance lineno for each physical line.
+   Discard everything past comment characher.
+2. if PARSE_TRIM is set (default), remove leading and trailing delimiters.
 3. If resulting line is empty goto 1.
-4. Look for first delimiter. If PARSE_DONT_REDUCE or PARSE_DONT_TRIM is set then pin empty token.
-5. Else (default) if number of seen tokens is equal to max number of tokens (token is the last one)
-   and PARSE_LAST_IS_GREEDY is set then pin the remainder of the line as the last token.
-   Else (token is not last or PARSE_LAST_IS_GREEDY is not set) just replace first delimiter with '\0'
-   thus delimiting token and pin it.
-6. Advance line pointer past the end of token. If number of seen tokens is less than required number
-   of tokens then goto 4.
-7. Control the number of seen tokens is not less the min number of tokens. Die if condition is not met.
+4. Look for first delimiter. If !PARSE_COLLAPSE or !PARSE_TRIM is set then
+   remember the token as empty.
+5. Else (default) if number of seen tokens is equal to max number of tokens
+   (token is the last one) and PARSE_GREEDY is set then the remainder
+   of the line is the last token.
+   Else (token is not last or PARSE_GREEDY is not set) just replace
+   first delimiter with '\0' thus delimiting the token.
+6. Advance line pointer past the end of token. If number of seen tokens
+   is less than required number of tokens then goto 4.
+7. Check the number of seen tokens is not less the min number of tokens.
+   Complain or die otherwise depending on PARSE_MIN_DIE.
 8. Return the number of seen tokens.
 
-mintokens > 0 make config_read() exit with error message if less than mintokens
+mintokens > 0 make config_read() print error message if less than mintokens
 (but more than 0) are found. Empty lines are always skipped (not warned about).
 */
 #undef config_read
 int FAST_FUNC config_read(parser_t *parser, char **tokens, unsigned flags, const char *delims)
 {
 	char *line, *q;
-	char comment = *delims++;
+	char comment;
 	int ii;
-	int ntokens = flags & 0xFF;
-	int mintokens = (flags & 0xFF00) >> 8;
+	int ntokens;
+	int mintokens;
+
+	comment = *delims++;
+	ntokens = flags & 0xFF;
+	mintokens = (flags & 0xFF00) >> 8;
 
  again:
-	// N.B. this could only be used in read-in-one-go version, or when tokens use xstrdup(). TODO
-	//if (!parser->lineno || !(flags & PARSE_DONT_NULL))
-		memset(tokens, 0, sizeof(tokens[0]) * ntokens);
+	memset(tokens, 0, sizeof(tokens[0]) * ntokens);
+	if (!parser)
+		return 0;
 	config_free_data(parser);
 
 	while (1) {
@@ -142,20 +157,20 @@ int FAST_FUNC config_read(parser_t *parser, char **tokens, unsigned flags, const
 			line[--ii] = '\0';
 //TODO: add xmalloc_fgetline-like iface but with appending to existing str
 			q = xmalloc_fgetline(parser->fp);
-			if (q) {
-				parser->lineno++;
-				line = xasprintf("%s%s", line, q);
-				free(q);
-			}
+			if (!q)
+				break;
+			parser->lineno++;
+			line = xasprintf("%s%s", line, q);
+			free(q);
 		}
-		// comments mean EOLs
+		// discard comments
 		if (comment) {
 			q = strchrnul(line, comment);
 			*q = '\0';
 			ii = q - line;
 		}
 		// skip leading and trailing delimiters
-		if (!(flags & PARSE_DONT_TRIM)) {
+		if (flags & PARSE_TRIM) {
 			// skip leading
 			int n = strspn(line, delims);
 			if (n) {
@@ -177,7 +192,6 @@ int FAST_FUNC config_read(parser_t *parser, char **tokens, unsigned flags, const
 		// skip empty line
 		free(line);
 	}
-
 	// non-empty line found, parse and return the number of tokens
 
 	// store line
@@ -190,14 +204,15 @@ int FAST_FUNC config_read(parser_t *parser, char **tokens, unsigned flags, const
 	ntokens--; // now it's max allowed token no
 	// N.B. non-empty remainder is also a token,
 	// so if ntokens <= 1, we just return the whole line
-	// N.B. if PARSE_LAST_IS_GREEDY is set the remainder of the line is stuck to the last token
-	for (ii = 0; *line && ii <= ntokens; ) {
+	// N.B. if PARSE_GREEDY is set the remainder of the line is stuck to the last token
+	ii = 0;
+	while (*line && ii <= ntokens) {
 		//bb_info_msg("L[%s]", line);
 		// get next token
-		// at the last token and need greedy token ->
-		if ((flags & PARSE_LAST_IS_GREEDY) && (ii == ntokens)) {
+		// at last token and need greedy token ->
+		if ((flags & PARSE_GREEDY) && (ii == ntokens)) {
 			// skip possible delimiters
-			if (!(flags & PARSE_DONT_REDUCE))
+			if (flags & PARSE_COLLAPSE)
 				line += strspn(line, delims);
 			// don't cut the line
 			q = line + strlen(line);
@@ -208,10 +223,11 @@ int FAST_FUNC config_read(parser_t *parser, char **tokens, unsigned flags, const
 				*q++ = '\0';
 		}
 		// pin token
-		if ((flags & (PARSE_DONT_REDUCE|PARSE_DONT_TRIM)) || *line) {
+		if (!(flags & (PARSE_COLLAPSE | PARSE_TRIM)) || *line) {
 			//bb_info_msg("N[%d] T[%s]", ii, line);
 			tokens[ii++] = line;
 			// process escapes in token
+#if 0 // unused so far
 			if (flags & PARSE_ESCAPE) {
 				char *s = line;
 				while (*s) {
@@ -224,6 +240,7 @@ int FAST_FUNC config_read(parser_t *parser, char **tokens, unsigned flags, const
 				}
 				*line = '\0';
 			}
+#endif
 		}
 		line = q;
 		//bb_info_msg("A[%s]", line);
@@ -234,6 +251,7 @@ int FAST_FUNC config_read(parser_t *parser, char **tokens, unsigned flags, const
  				parser->lineno, ii, mintokens);
 		if (flags & PARSE_MIN_DIE)
 			xfunc_die();
+		ntokens++;
 		goto again;
 	}
 

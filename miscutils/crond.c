@@ -469,10 +469,14 @@ static void SynchronizeFile(const char *fileName)
 		file->cf_User = xstrdup(fileName);
 		pline = &file->cf_LineBase;
 
-		while (--maxLines
-		 && (n = config_read(parser, tokens, 6, 1, "# \t", PARSE_LAST_IS_GREEDY|PARSE_KEEP_COPY))
-		) {
+		while (1) {
 			CronLine *line;
+
+			if (!--maxLines)
+				break;
+			n = config_read(parser, tokens, 6, 1, "# \t", PARSE_NORMAL | PARSE_KEEP_COPY);
+			if (!n)
+				break;
 
 			if (DebugOpt)
 				crondlog(LVL5 "user:%s entry:%s", fileName, parser->data);
@@ -488,7 +492,7 @@ static void SynchronizeFile(const char *fileName)
 			/* check if a minimum of tokens is specified */
 			if (n < 6)
 				continue;
-			*pline = line = xzalloc(sizeof(CronLine));
+			*pline = line = xzalloc(sizeof(*line));
 			/* parse date ranges */
 			ParseField(file->cf_User, line->cl_Mins, 60, 0, NULL, tokens[0]);
 			ParseField(file->cf_User, line->cl_Hrs, 24, 0, NULL, tokens[1]);

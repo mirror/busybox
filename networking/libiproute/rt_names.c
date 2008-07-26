@@ -20,9 +20,7 @@ static void rtnl_tab_initialize(const char *file, const char **tab, int size)
 {
 	char *token[2];
 	parser_t *parser = config_open2(file, fopen_for_read);
-	if (!parser)
-		return;
-	while (config_read(parser, token, 2, 2, "# \t", 0)) {
+	while (config_read(parser, token, 2, 2, "# \t", PARSE_NORMAL)) {
 		int id = bb_strtou(token[0], NULL, 0);
 		if (id < 0 || id > size) {
 			bb_error_msg("database %s is corrupted at line %d",

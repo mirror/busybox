@@ -701,13 +701,13 @@ static void parse_inittab(void)
 		new_init_action(ASKFIRST, bb_default_login_shell, VC_4);
 		/* sysinit */
 		new_init_action(SYSINIT, INIT_SCRIPT, "");
-
 		return;
 	}
 	/* optional_tty:ignored_runlevel:action:command
 	 * Delims are not to be collapsed and need exactly 4 tokens
 	 */
-	while (config_read(parser, token, 4, 0, "#:", PARSE_DONT_TRIM|PARSE_DONT_REDUCE|PARSE_LAST_IS_GREEDY)) {
+	while (config_read(parser, token, 4, 0, "#:",
+				PARSE_NORMAL & ~(PARSE_TRIM | PARSE_COLLAPSE))) {
 		int action;
 		char *tty = token[0];
 

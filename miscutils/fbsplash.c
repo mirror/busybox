@@ -288,10 +288,10 @@ static void init(const char *cfg_filename)
 		"DEBUG\0"
 #endif
 		;
-
 	char *token[2];
 	parser_t *parser = config_open2(cfg_filename, xfopen_stdin);
-	while (config_read(parser, token, 2, 2, "#=", PARSE_MIN_DIE)) {
+	while (config_read(parser, token, 2, 2, "#=",
+				    (PARSE_NORMAL | PARSE_MIN_DIE) & ~(PARSE_TRIM | PARSE_COLLAPSE))) {
 		unsigned val = xatoi_u(token[1]);
 		int i = index_in_strings(param_names, token[0]);
 		if (i < 0)

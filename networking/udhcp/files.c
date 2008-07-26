@@ -318,10 +318,7 @@ void read_config(const char *file)
 		keywords[i].handler(keywords[i].def, keywords[i].var);
 
 	parser = config_open(file);
-	if (!parser)
-		return;
-
-	while (config_read(parser, token, 2, 2, "# \t", PARSE_LAST_IS_GREEDY)) {
+	while (config_read(parser, token, 2, 2, "# \t", PARSE_NORMAL)) {
 		for (k = keywords, i = 0; i < ARRAY_SIZE(keywords); k++, i++) {
 			if (!strcasecmp(token[0], k->keyword)) {
 				if (!k->handler(token[1], k->var)) {

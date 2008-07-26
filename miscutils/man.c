@@ -82,6 +82,7 @@ int man_main(int argc UNUSED_PARAM, char **argv)
 	char *cur_path, *cur_sect;
 	int count_mp, cur_mp;
 	int opt, not_found;
+	char *token[2];
 
 	opt_complementary = "-1"; /* at least one argument */
 	opt = getopt32(argv, "+aw");

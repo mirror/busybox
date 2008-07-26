@@ -160,13 +160,11 @@ int nameif_main(int argc, char **argv)
 			prepend_new_eth_table(&clist, ifname, *argv++);
 		}
 	} else {
+		char *tokens[2];
 		struct parser_t *parser = config_open(fname);
-		if (parser) {
-			char *tokens[2];
-			while (config_read(parser, tokens, 2, 2, "# \t", 0))
-				prepend_new_eth_table(&clist, tokens[0], tokens[1]);
-			config_close(parser);
-		}
+		while (config_read(parser, tokens, 2, 2, "# \t", PARSE_NORMAL))
+			prepend_new_eth_table(&clist, tokens[0], tokens[1]);
+		config_close(parser);
 	}
 
 	ctl_sk = xsocket(PF_INET, SOCK_DGRAM, 0);

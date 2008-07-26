@@ -16,11 +16,19 @@
 
 static void bb_dump_addfile(dumper_t *dumper, char *name)
 {
-	parser_t *parser = config_open2(name, xfopen_for_read);
-	while (config_read(parser, &name, 1, 1, "# \t", 0)) {
-		bb_dump_add(dumper, name);
+	char *p;
+	FILE *fp;
+	char *buf;
+
+	fp = xfopen_for_read(name);
+	while ((buf = xmalloc_fgetline(fp)) != NULL) {
+		p = skip_whitespace(buf);
+		if (*p && (*p != '#')) {
+			bb_dump_add(dumper, p);
+		}
+		free(buf);
 	}
-	config_close(parser);
+	fclose(fp);
 }
 
 static const char *const add_strings[] = {

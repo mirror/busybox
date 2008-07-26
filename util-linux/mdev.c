@@ -107,10 +107,7 @@ static void make_device(char *path, int delete)
 	parser = config_open2("/etc/mdev.conf", fopen_for_read);
 
 	/* If we have config file, look up user settings */
-	if (!parser)
-		goto end_parse;
-
-	while (config_read(parser, tokens, 4, 3, "# \t", PARSE_LAST_IS_GREEDY)) {
+	while (config_read(parser, tokens, 4, 3, "# \t", PARSE_NORMAL)) {
 		regmatch_t off[1 + 9*ENABLE_FEATURE_MDEV_RENAME_REGEXP];
 		char *val;
 
@@ -244,7 +241,6 @@ static void make_device(char *path, int delete)
 	} /* end of "while line is read from /etc/mdev.conf" */
 
 	config_close(parser);
- end_parse:
 #endif /* ENABLE_FEATURE_MDEV_CONF */
 
 	if (!delete && sscanf(dev_maj_min, "%u:%u", &major, &minor) == 2) {

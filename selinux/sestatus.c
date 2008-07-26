@@ -54,10 +54,7 @@ static void read_config(char **pc, int npc, char **fc, int nfc)
 	pc[0] = fc[0] = NULL;
 
 	parser = config_open("/etc/sestatus.conf");
-	if (!parser)
-		return;
-
-	while (config_read(parser, &buf, 1, 1, "# \t", PARSE_LAST_IS_GREEDY)) {
+	while (config_read(parser, &buf, 1, 1, "# \t", PARSE_NORMAL)) {
 		if (strcmp(buf, "[process]") == 0) {
 			section = 1;
 		} else if (strcmp(buf, "[files]") == 0) {
