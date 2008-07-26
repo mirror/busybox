@@ -99,6 +99,12 @@ static void unzip_create_leading_dirs(const char *fn)
 
 static void unzip_extract(zip_header_t *zip_header, int src_fd, int dst_fd)
 {
+	if (zip_header->formatted.flags & (0x0008|0x0001)) {
+		/* 0x0001 - encrypted */
+		/* 0x0008 - streaming. [u]cmpsize can be reliably gotten
+		 * only from Central Directory. See unzip_doc.txt */
+		bb_error_msg_and_die("zip flags 8 and 1 are not supported");
+	}
 	if (zip_header->formatted.method == 0) {
 		/* Method 0 - stored (not compressed) */
 		off_t size = zip_header->formatted.ucmpsize;
