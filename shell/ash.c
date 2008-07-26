@@ -203,7 +203,7 @@ struct globals_misc {
 #define S_RESET 5               /* temporary - to reset a hard ignored sig */
 
 	/* indicates specified signal received */
-	char gotsig[NSIG - 1];
+	char gotsig[NSIG - 1]; /* offset by 1: "signal" 0 is meaningless */
 	char *trap[NSIG];
 
 	/* Rarely referenced stuff */
@@ -7846,12 +7846,12 @@ dotrap(void)
 	pendingsig = 0;
 	xbarrier();
 
-	for (i = 0, q = gotsig; i < NSIG - 1; i++, q++) {
+	for (i = 1, q = gotsig; i < NSIG; i++, q++) {
 		if (!*q)
 			continue;
 		*q = '\0';
 
-		p = trap[i + 1];
+		p = trap[i];
 		if (!p)
 			continue;
 		skip = evalstring(p, SKIPEVAL);
@@ -7881,16 +7881,33 @@ static void prehash(union node *);
 static void
 evaltree(union node *n, int flags)
 {
+
+	struct jmploc *volatile savehandler = exception_handler;
+	struct jmploc jmploc;
 	int checkexit = 0;
 	void (*evalfn)(union node *, int);
-	unsigned isor;
 	int status;
+
 	if (n == NULL) {
 		TRACE(("evaltree(NULL) called\n"));
-		goto out;
+		goto out1;
 	}
 	TRACE(("pid %d, evaltree(%p: %d, %d) called\n",
 			getpid(), n, n->type, flags));
+
+	exception_handler = &jmploc;
+	{
+		int err = setjmp(jmploc.loc);
+		if (err) {
+			/* if it was a signal, check for trap handlers */
+			if (exception == EXSIG)
+				goto out;
+			/* continue on the way out */
+			exception_handler = savehandler;
+			longjmp(exception_handler->loc, err);
+		}
+	}
+
 	switch (n->type) {
 	default:
 #if DEBUG
@@ -7936,19 +7953,20 @@ evaltree(union node *n, int flags)
 		goto calleval;
 	case NAND:
 	case NOR:
-	case NSEMI:
+	case NSEMI: {
+
 #if NAND + 1 != NOR
 #error NAND + 1 != NOR
 #endif
 #if NOR + 1 != NSEMI
 #error NOR + 1 != NSEMI
 #endif
-		isor = n->type - NAND;
+		unsigned is_or = is_or = n->type - NAND;
 		evaltree(
 			n->nbinary.ch1,
-			(flags | ((isor >> 1) - 1)) & EV_TESTED
+			(flags | ((is_or >> 1) - 1)) & EV_TESTED
 		);
-		if (!exitstatus == isor)
+		if (!exitstatus == is_or)
 			break;
 		if (!evalskip) {
 			n = n->nbinary.ch2;
@@ -7959,6 +7977,7 @@ evaltree(union node *n, int flags)
 			break;
 		}
 		break;
+	}
 	case NIF:
 		evaltree(n->nif.test, EV_TESTED);
 		if (evalskip)
@@ -7979,8 +7998,11 @@ evaltree(union node *n, int flags)
 		exitstatus = status;
 		break;
 	}
+
  out:
-	if ((checkexit & exitstatus))
+	exception_handler = savehandler;
+ out1:
+	if (checkexit & exitstatus)
 		evalskip |= SKIPEVAL;
 	else if (pendingsig && dotrap())
 		goto exexit;
@@ -11907,18 +11929,15 @@ trapcmd(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
 	if (!*ap) {
 		for (signo = 0; signo < NSIG; signo++) {
 			if (trap[signo] != NULL) {
-				const char *sn;
-
-				sn = get_signame(signo);
 				out1fmt("trap -- %s %s\n",
-					single_quote(trap[signo]), sn);
+						single_quote(trap[signo]),
+						get_signame(signo));
 			}
 		}
 		return 0;
 	}
-	if (!ap[1])
-		action = NULL;
-	else
+	action = NULL;
+	if (ap[1])
 		action = *ap++;
 	while (*ap) {
 		signo = get_signum(*ap);
