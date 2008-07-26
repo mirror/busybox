@@ -7961,7 +7961,7 @@ evaltree(union node *n, int flags)
 #if NOR + 1 != NSEMI
 #error NOR + 1 != NSEMI
 #endif
-		unsigned is_or = is_or = n->type - NAND;
+		unsigned is_or = n->type - NAND;
 		evaltree(
 			n->nbinary.ch1,
 			(flags | ((is_or >> 1) - 1)) & EV_TESTED
