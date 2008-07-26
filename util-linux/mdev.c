@@ -25,6 +25,7 @@ struct globals {
 /* We use additional 64+ bytes in make_device() */
 #define SCRATCH_SIZE 80
 
+#if ENABLE_FEATURE_MDEV_RENAME
 /* Builds an alias path.
  * This function potentionally reallocates the alias parameter.
  */
@@ -48,6 +49,7 @@ static char *build_alias(char *alias, const char *device_name)
 
 	return alias;
 }
+#endif
 
 /* mknod in /dev based on a path like "/sys/block/hda/hda1" */
 /* NB: "mdev -s" may call us many times, do not leak memory/fds! */
@@ -56,12 +58,20 @@ static void make_device(char *path, int delete)
 	const char *device_name;
 	int major, minor, type, len;
 	int mode = 0660;
+#if ENABLE_FEATURE_MDEV_CONF
 	uid_t uid = 0;
 	gid_t gid = 0;
-	char *dev_maj_min = path + strlen(path);
+	parser_t *parser;
+	char *tokens[5];
+#endif
+#if ENABLE_FEATURE_MDEV_EXEC
 	char *command = NULL;
+#endif
+#if ENABLE_FEATURE_MDEV_RENAME
 	char *alias = NULL;
 	char aliaslink = aliaslink; /* for compiler */
+#endif
+	char *dev_maj_min = path + strlen(path);
 
 	/* Force the configuration file settings exactly. */
 	umask(0);
@@ -93,148 +103,149 @@ static void make_device(char *path, int delete)
 	if (strstr(path, "/block/"))
 	        type = S_IFBLK;
 
-	if (ENABLE_FEATURE_MDEV_CONF) {
-		parser_t *parser = config_open("/etc/mdev.conf");
-		char *tokens[5];
+#if ENABLE_FEATURE_MDEV_CONF
+	parser = config_open2("/etc/mdev.conf", fopen_for_read);
 
-		/* If we have config file, look up user settings */
-		if (!parser)
-			goto end_parse;
+	/* If we have config file, look up user settings */
+	if (!parser)
+		goto end_parse;
 
-		while (config_read(parser, tokens, 4, 3, "# \t", PARSE_LAST_IS_GREEDY)) {
-			regmatch_t off[1+9*ENABLE_FEATURE_MDEV_RENAME_REGEXP];
-			char *val;
+	while (config_read(parser, tokens, 4, 3, "# \t", PARSE_LAST_IS_GREEDY)) {
+		regmatch_t off[1 + 9*ENABLE_FEATURE_MDEV_RENAME_REGEXP];
+		char *val;
 
-			/* Fields: regex uid:gid mode [alias] [cmd] */
+		/* Fields: regex uid:gid mode [alias] [cmd] */
 
-			/* 1st field: regex to match this device */
-			{
-				regex_t match;
-				int result;
+		/* 1st field: regex to match this device */
+		{
+			regex_t match;
+			int result;
 
-				/* Is this it? */
-				xregcomp(&match, tokens[0], REG_EXTENDED);
-				result = regexec(&match, device_name, ARRAY_SIZE(off), off, 0);
-				regfree(&match);
+			/* Is this it? */
+			xregcomp(&match, tokens[0], REG_EXTENDED);
+			result = regexec(&match, device_name, ARRAY_SIZE(off), off, 0);
+			regfree(&match);
 
-				//bb_error_msg("matches:");
-				//for (int i = 0; i < ARRAY_SIZE(off); i++) {
-				//	if (off[i].rm_so < 0) continue;
-				//	bb_error_msg("match %d: '%.*s'\n", i,
-				//		(int)(off[i].rm_eo - off[i].rm_so),
-				//		device_name + off[i].rm_so);
-				//}
+			//bb_error_msg("matches:");
+			//for (int i = 0; i < ARRAY_SIZE(off); i++) {
+			//	if (off[i].rm_so < 0) continue;
+			//	bb_error_msg("match %d: '%.*s'\n", i,
+			//		(int)(off[i].rm_eo - off[i].rm_so),
+			//		device_name + off[i].rm_so);
+			//}
 
-				/* If not this device, skip rest of line */
-				/* (regexec returns whole pattern as "range" 0) */
-				if (result || off[0].rm_so
-				 || ((int)off[0].rm_eo != (int)strlen(device_name))
-				) {
-					continue;
-				}
+			/* If not this device, skip rest of line */
+			/* (regexec returns whole pattern as "range" 0) */
+			if (result || off[0].rm_so
+			 || ((int)off[0].rm_eo != (int)strlen(device_name))
+			) {
+				continue;
 			}
+		}
 
-			/* This line matches: stop parsing the file
-			 * after parsing the rest of fields */
+		/* This line matches: stop parsing the file
+		 * after parsing the rest of fields */
 
-			/* 2nd field: uid:gid - device ownership */
-			{
-				struct passwd *pass;
-				struct group *grp;
-				char *str_uid = tokens[1];
-				char *str_gid = strchrnul(str_uid, ':');
+		/* 2nd field: uid:gid - device ownership */
+		{
+			struct passwd *pass;
+			struct group *grp;
+			char *str_uid = tokens[1];
+			char *str_gid = strchrnul(str_uid, ':');
 
-				if (*str_gid)
-					*str_gid++ = '\0';
-				/* Parse UID */
-				pass = getpwnam(str_uid);
-				if (pass)
-					uid = pass->pw_uid;
-				else
-					uid = strtoul(str_uid, NULL, 10);
-				/* Parse GID */
-				grp = getgrnam(str_gid);
-				if (grp)
-					gid = grp->gr_gid;
-				else
-					gid = strtoul(str_gid, NULL, 10);
-			}
+			if (*str_gid)
+				*str_gid++ = '\0';
+			/* Parse UID */
+			pass = getpwnam(str_uid);
+			if (pass)
+				uid = pass->pw_uid;
+			else
+				uid = strtoul(str_uid, NULL, 10);
+			/* Parse GID */
+			grp = getgrnam(str_gid);
+			if (grp)
+				gid = grp->gr_gid;
+			else
+				gid = strtoul(str_gid, NULL, 10);
+		}
 
-			/* 3rd field: mode - device permissions */
-			mode = strtoul(tokens[2], NULL, 8);
+		/* 3rd field: mode - device permissions */
+		mode = strtoul(tokens[2], NULL, 8);
 
-			val = tokens[3];
-			/* 4th field (opt): >alias */
+		val = tokens[3];
+		/* 4th field (opt): >alias */
 #if ENABLE_FEATURE_MDEV_RENAME
-			if (!val)
-				break;
-			aliaslink = *val;
-			if (aliaslink == '>' || aliaslink == '=') {
-				char *s;
+		if (!val)
+			break;
+		aliaslink = *val;
+		if (aliaslink == '>' || aliaslink == '=') {
+			char *s;
 #if ENABLE_FEATURE_MDEV_RENAME_REGEXP
-				char *p;
-				unsigned i, n;
+			char *p;
+			unsigned i, n;
 #endif
-				char *a = val;
-				s = strchr(val, ' ');
-				val = (s && s[1]) ? s+1 : NULL;
+			char *a = val;
+			s = strchr(val, ' ');
+			val = (s && s[1]) ? s+1 : NULL;
 #if ENABLE_FEATURE_MDEV_RENAME_REGEXP
-				/* substitute %1..9 with off[1..9], if any */
-				n = 0;
-				s = a;
-				while (*s)
-					if (*s++ == '%')
-						n++;
+			/* substitute %1..9 with off[1..9], if any */
+			n = 0;
+			s = a;
+			while (*s)
+				if (*s++ == '%')
+					n++;
 
-				p = alias = xzalloc(strlen(a) + n * strlen(device_name));
-				s = a + 1;
-				while (*s) {
-					*p = *s;
-					if ('%' == *s) {
-						i = (s[1] - '0');
-						if (i <= 9 && off[i].rm_so >= 0) {
-							n = off[i].rm_eo - off[i].rm_so;
-							strncpy(p, device_name + off[i].rm_so, n);
-							p += n - 1;
-							s++;
-						}
+			p = alias = xzalloc(strlen(a) + n * strlen(device_name));
+			s = a + 1;
+			while (*s) {
+				*p = *s;
+				if ('%' == *s) {
+					i = (s[1] - '0');
+					if (i <= 9 && off[i].rm_so >= 0) {
+						n = off[i].rm_eo - off[i].rm_so;
+						strncpy(p, device_name + off[i].rm_so, n);
+						p += n - 1;
+						s++;
 					}
-					p++;
-					s++;
 				}
-#else
-				alias = xstrdup(a + 1);
-#endif
+				p++;
+				s++;
 			}
+#else
+			alias = xstrdup(a + 1);
+#endif
+		}
 #endif /* ENABLE_FEATURE_MDEV_RENAME */
 
-			/* The rest (opt): command to run */
-			if (!val)
-				break;
-			if (ENABLE_FEATURE_MDEV_EXEC) {
-				const char *s = "@$*";
-				const char *s2 = strchr(s, *val);
+#if ENABLE_FEATURE_MDEV_EXEC
+		/* The rest (opt): command to run */
+		if (!val)
+			break;
+		{
+			const char *s = "@$*";
+			const char *s2 = strchr(s, *val);
 
-				if (!s2)
-					bb_error_msg_and_die("bad line %u", parser->lineno);
+			if (!s2)
+				bb_error_msg_and_die("bad line %u", parser->lineno);
 
-				/* Correlate the position in the "@$*" with the delete
-				 * step so that we get the proper behavior:
-				 * @cmd: run on create
-				 * $cmd: run on delete
-				 * *cmd: run on both
-				 */
-				if ((s2 - s + 1) /*1/2/3*/ & /*1/2*/ (1 + delete)) {
-					command = xstrdup(val + 1);
-				}
+			/* Correlate the position in the "@$*" with the delete
+			 * step so that we get the proper behavior:
+			 * @cmd: run on create
+			 * $cmd: run on delete
+			 * *cmd: run on both
+			 */
+			if ((s2 - s + 1) /*1/2/3*/ & /*1/2*/ (1 + delete)) {
+				command = xstrdup(val + 1);
 			}
-			/* end of field parsing */
-			break; /* we found matching line, stop */
-		} /* end of "while line is read from /etc/mdev.conf" */
+		}
+#endif
+		/* end of field parsing */
+		break; /* we found matching line, stop */
+	} /* end of "while line is read from /etc/mdev.conf" */
 
-		config_close(parser);
-	}
+	config_close(parser);
  end_parse:
+#endif /* ENABLE_FEATURE_MDEV_CONF */
 
 	if (!delete && sscanf(dev_maj_min, "%u:%u", &major, &minor) == 2) {
 
@@ -247,23 +258,26 @@ static void make_device(char *path, int delete)
 		if (major == root_major && minor == root_minor)
 			symlink(device_name, "root");
 
-		if (ENABLE_FEATURE_MDEV_CONF) {
-			chown(device_name, uid, gid);
+#if ENABLE_FEATURE_MDEV_CONF
+		chown(device_name, uid, gid);
 
-			if (ENABLE_FEATURE_MDEV_RENAME && alias) {
-				alias = build_alias(alias, device_name);
+#if ENABLE_FEATURE_MDEV_RENAME
+		if (alias) {
+			alias = build_alias(alias, device_name);
 
-				/* move the device, and optionally
-				 * make a symlink to moved device node */
-				if (rename(device_name, alias) == 0 && aliaslink == '>')
-					symlink(alias, device_name);
+			/* move the device, and optionally
+			 * make a symlink to moved device node */
+			if (rename(device_name, alias) == 0 && aliaslink == '>')
+				symlink(alias, device_name);
 
-				free(alias);
-			}
+			free(alias);
 		}
+#endif
+#endif
 	}
 
-	if (ENABLE_FEATURE_MDEV_EXEC && command) {
+#if ENABLE_FEATURE_MDEV_EXEC
+	if (command) {
 		/* setenv will leak memory, use putenv/unsetenv/free */
 		char *s = xasprintf("MDEV=%s", device_name);
 		putenv(s);
@@ -274,16 +288,19 @@ static void make_device(char *path, int delete)
 		free(s);
 		free(command);
 	}
+#endif
 
 	if (delete) {
 		unlink(device_name);
 		/* At creation time, device might have been moved
 		 * and a symlink might have been created. Undo that. */
-		if (ENABLE_FEATURE_MDEV_RENAME && alias) {
+#if ENABLE_FEATURE_MDEV_RENAME
+		if (alias) {
 			alias = build_alias(alias, device_name);
 			unlink(alias);
 			free(alias);
 		}
+#endif
 	}
 }
 

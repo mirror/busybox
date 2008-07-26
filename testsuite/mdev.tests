@@ -29,7 +29,6 @@ testing "mdev add /block/sda" \
 	"env - ACTION=add DEVPATH=/block/sda chroot mdev.testdir /mdev 2>&1;
 	ls -ln mdev.testdir/dev | $FILTER_LS" \
 "\
-mdev: /etc/mdev.conf: No such file or directory
 brw-rw---- 1 0 0 8,0 sda
 " \
 	"" ""

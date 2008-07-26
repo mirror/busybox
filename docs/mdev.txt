@@ -60,18 +60,23 @@ matched, then the default of 0:0 660 is used.  To set your own default, simply
 create your own total match like so:
 	.* 1:1 777
 
-You can rename/relocate device nodes by using the next optional field.
-	<device regex> <uid>:<gid> <octal permissions> [>path]
+You can rename/move device nodes by using the next optional field.
+	<device regex> <uid>:<gid> <octal permissions> [=path]
 So if you want to place the device node into a subdirectory, make sure the path
 has a trailing /.  If you want to rename the device node, just place the name.
-	hda 0:3 660 >drives/
-This will relocate "hda" into the drives/ subdirectory.
-	hdb 0:3 660 >cdrom
+	hda 0:3 660 =drives/
+This will move "hda" into the drives/ subdirectory.
+	hdb 0:3 660 =cdrom
 This will rename "hdb" to "cdrom".
+
+Similarly, ">path" renames/moves the device but it also creates
+a direct symlink /dev/DEVNAME to the renamed/moved device.
 
 If you also enable support for executing your own commands, then the file has
 the format:
-	<device regex> <uid>:<gid> <octal permissions> [<@|$|*> <command>]
+	<device regex> <uid>:<gid> <octal permissions> [=path] [@|$|*<command>]
+    or
+	<device regex> <uid>:<gid> <octal permissions> [>path] [@|$|*<command>]
 The special characters have the meaning:
 	@ Run after creating the device.
 	$ Run before removing the device.
