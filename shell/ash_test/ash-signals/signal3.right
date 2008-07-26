@@ -1,3 +1,4 @@
 child sleeps
-child exits as expected
+child got HUP
+child exits
 parent exits

@@ -1,14 +1,13 @@
 #!/bin/sh
 
 $THIS_SH -c '
-cleanup() {
-    echo "child exits as expected"
-    exit
+hup() {
+    echo "child got HUP"
 }
-trap cleanup HUP
+trap hup HUP
 echo "child sleeps"
 sleep 1
-echo "BAD exit from child!"
+echo "child exits"
 ' &
 
 child=$!
