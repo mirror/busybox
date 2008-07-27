@@ -170,6 +170,14 @@ enum {
 };
 #endif
 
+static void ss(uint32_t *x, uint32_t flag, char *where, const char *what)
+{
+	if (strstr(where, what))
+		*x &= ~flag;
+	else
+		*x |= flag;
+}
+
 #if ENABLE_FEATURE_FBSET_READMODE
 static int readmode(struct fb_var_screeninfo *base, const char *fn,
 					const char *mode)
@@ -211,46 +219,22 @@ static int readmode(struct fb_var_screeninfo *base, const char *fn,
 					&(base->hsync_len), &(base->vsync_len));
 			} else if ((p = strstr(buf, "laced "))) {
 				//p += 6;
-				if (strstr(buf, "false")) {
-					base->vmode &= ~FB_VMODE_INTERLACED;
-				} else {
-					base->vmode |= FB_VMODE_INTERLACED;
-				}
+				ss(&base->vmode, FB_VMODE_INTERLACED, buf, "false");
 			} else if ((p = strstr(buf, "double "))) {
 				//p += 7;
-				if (strstr(buf, "false")) {
-					base->vmode &= ~FB_VMODE_DOUBLE;
-				} else {
-					base->vmode |= FB_VMODE_DOUBLE;
-				}
+				ss(&base->vmode, FB_VMODE_DOUBLE, buf, "false");
 			} else if ((p = strstr(buf, "vsync "))) {
 				//p += 6;
-				if (strstr(buf, "low")) {
-					base->sync &= ~FB_SYNC_VERT_HIGH_ACT;
-				} else {
-					base->sync |= FB_SYNC_VERT_HIGH_ACT;
-				}
+				ss(&base->sync, FB_SYNC_VERT_HIGH_ACT, buf, "low");
 			} else if ((p = strstr(buf, "hsync "))) {
 				//p += 6;
-				if (strstr(buf, "low")) {
-					base->sync &= ~FB_SYNC_HOR_HIGH_ACT;
-				} else {
-					base->sync |= FB_SYNC_HOR_HIGH_ACT;
-				}
+				ss(&base->sync, FB_SYNC_HOR_HIGH_ACT, buf, "low");
 			} else if ((p = strstr(buf, "csync "))) {
 				//p += 6;
-				if (strstr(buf, "low")) {
-					base->sync &= ~FB_SYNC_COMP_HIGH_ACT;
-				} else {
-					base->sync |= FB_SYNC_COMP_HIGH_ACT;
-				}
+				ss(&base->sync, FB_SYNC_COMP_HIGH_ACT, buf, "low");
 			} else if ((p = strstr(buf, "extsync "))) {
 				//p += 8;
-				if (strstr(buf, "false")) {
-					base->sync &= ~FB_SYNC_EXT;
-				} else {
-					base->sync |= FB_SYNC_EXT;
-				}
+				ss(&base->sync, FB_SYNC_EXT, buf, "false");
 			}
 
 			if (strstr(buf, "endmode"))
