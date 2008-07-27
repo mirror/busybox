@@ -2820,7 +2820,7 @@
 #endif
 
 #define netstat_trivial_usage \
-       "[-laentuwxr"USE_FEATURE_NETSTAT_WIDE("W")"]"
+       "[-laentuwxr"USE_FEATURE_NETSTAT_WIDE("W")USE_FEATURE_NETSTAT_PRG("p")"]"
 #define netstat_full_usage "\n\n" \
        "Display networking information\n" \
      "\nOptions:" \
@@ -2835,6 +2835,9 @@
      "\n	-r	Display routing table" \
 	USE_FEATURE_NETSTAT_WIDE( \
      "\n	-W	Display with no column truncation" \
+	) \
+	USE_FEATURE_NETSTAT_PRG( \
+     "\n	-p	Display PID/Program name for sockets" \
 	)
 
 #define nice_trivial_usage \

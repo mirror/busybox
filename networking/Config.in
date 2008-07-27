@@ -633,6 +633,14 @@ config FEATURE_NETSTAT_WIDE
 	  Add support for wide columns. Useful when displaying IPv6 addresses
 	  (-W option).
 
+config FEATURE_NETSTAT_PRG
+	bool "Enable PID/Program name output"
+	default n
+	depends on NETSTAT
+	help
+	  Add support for -p flag to print out PID and program name.
+	  +700 bytes of code.
+
 config NSLOOKUP
 	bool "nslookup"
 	default n

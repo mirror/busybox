@@ -8,18 +8,37 @@
  * 2002-04-20
  * IPV6 support added by Bart Visscher <magick@linux-fan.com>
  *
+ * 2008-07-10
+ * optional '-p' flag support ported from net-tools by G. Somlo <somlo@cmu.edu>
+ *
  * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  */
 
 #include "libbb.h"
 #include "inet_common.h"
 
+#define NETSTAT_OPTS "laentuwx" \
+	USE_ROUTE(               "r") \
+	USE_FEATURE_NETSTAT_WIDE("W") \
+	USE_FEATURE_NETSTAT_PRG( "p")
+
 enum {
-	OPT_extended = 0x4,
-	OPT_showroute = 0x100,
-	OPT_widedisplay = 0x200 * ENABLE_FEATURE_NETSTAT_WIDE,
+	OPTBIT_KEEP_OLD = 7,
+	USE_ROUTE(               OPTBIT_ROUTE,)
+	USE_FEATURE_NETSTAT_WIDE(OPTBIT_WIDE ,)
+	USE_FEATURE_NETSTAT_PRG( OPTBIT_PRG  ,)
+	OPT_sock_listen = 1 << 0, // l
+	OPT_sock_all    = 1 << 1, // a
+	OPT_extended    = 1 << 2, // e
+	OPT_noresolve   = 1 << 3, // n
+	OPT_sock_tcp    = 1 << 4, // t
+	OPT_sock_udp    = 1 << 5, // u
+	OPT_sock_raw    = 1 << 6, // w
+	OPT_sock_unix   = 1 << 7, // x
+	OPT_route       = USE_ROUTE(               (1 << OPTBIT_ROUTE)) + 0, // r
+	OPT_wide        = USE_FEATURE_NETSTAT_WIDE((1 << OPTBIT_WIDE )) + 0, // W
+	OPT_prg         = USE_FEATURE_NETSTAT_PRG( (1 << OPTBIT_PRG  )) + 0, // p
 };
-# define NETSTAT_OPTS "laentuwxr"USE_FEATURE_NETSTAT_WIDE("W")
 
 #define NETSTAT_CONNECTED 0x01
 #define NETSTAT_LISTENING 0x02
@@ -31,7 +50,6 @@ enum {
 #define NETSTAT_UNIX      0x80
 #define NETSTAT_ALLPROTO  (NETSTAT_TCP|NETSTAT_UDP|NETSTAT_RAW|NETSTAT_UNIX)
 
-static smallint flags = NETSTAT_CONNECTED | NETSTAT_ALLPROTO;
 
 enum {
 	TCP_ESTABLISHED = 1,
@@ -44,7 +62,7 @@ enum {
 	TCP_CLOSE_WAIT,
 	TCP_LAST_ACK,
 	TCP_LISTEN,
-	TCP_CLOSING /* now a valid state */
+	TCP_CLOSING, /* now a valid state */
 };
 
 static const char *const tcp_state[] = {
@@ -76,8 +94,8 @@ typedef enum {
 
 /* Standard printout size */
 #define PRINT_IP_MAX_SIZE           23
-#define PRINT_NET_CONN              "%s   %6ld %6ld %-23s %-23s %-12s\n"
-#define PRINT_NET_CONN_HEADER       "\nProto Recv-Q Send-Q %-23s %-23s State\n"
+#define PRINT_NET_CONN              "%s   %6ld %6ld %-23s %-23s %-12s"
+#define PRINT_NET_CONN_HEADER       "\nProto Recv-Q Send-Q %-23s %-23s State       "
 
 /* When there are IPv6 connections the IPv6 addresses will be
  * truncated to none-recognition. The '-W' option makes the
@@ -86,10 +104,201 @@ typedef enum {
  * xxxx:xxxx:xxxx:xxxx:xxxx:xxxx:ddd.ddd.ddd.ddd
  */
 #define PRINT_IP_MAX_SIZE_WIDE      51  /* INET6_ADDRSTRLEN + 5 for the port number */
-#define PRINT_NET_CONN_WIDE         "%s   %6ld %6ld %-51s %-51s %-12s\n"
-#define PRINT_NET_CONN_HEADER_WIDE  "\nProto Recv-Q Send-Q %-51s %-51s State\n"
+#define PRINT_NET_CONN_WIDE         "%s   %6ld %6ld %-51s %-51s %-12s"
+#define PRINT_NET_CONN_HEADER_WIDE  "\nProto Recv-Q Send-Q %-51s %-51s State       "
 
-static const char *net_conn_line = PRINT_NET_CONN;
+
+#define PROGNAME_WIDTH     20
+#define PROGNAME_WIDTH_STR "20"
+/* PROGNAME_WIDTH chars: 12345678901234567890 */
+#define PROGNAME_BANNER "PID/Program name    "
+
+struct prg_node {
+	struct prg_node *next;
+	long inode;
+	char name[PROGNAME_WIDTH];
+};
+
+#define PRG_HASH_SIZE 211
+
+
+struct globals {
+	const char *net_conn_line;
+	smallint flags;
+#if ENABLE_FEATURE_NETSTAT_PRG
+	smallint prg_cache_loaded;
+	struct prg_node *prg_hash[PRG_HASH_SIZE];
+#endif
+};
+#define G (*ptr_to_globals)
+#define flags            (G.flags           )
+#define net_conn_line    (G.net_conn_line   )
+#define prg_hash         (G.prg_hash        )
+#define prg_cache_loaded (G.prg_cache_loaded)
+#define INIT_G() do { \
+	SET_PTR_TO_GLOBALS(xzalloc(sizeof(G))); \
+	flags = NETSTAT_CONNECTED | NETSTAT_ALLPROTO; \
+	net_conn_line = PRINT_NET_CONN; \
+} while (0)
+
+
+#if ENABLE_FEATURE_NETSTAT_PRG
+
+/* Deliberately truncating long to unsigned *int* */
+#define PRG_HASHIT(x) ((unsigned)(x) % PRG_HASH_SIZE)
+
+#define print_progname_banner() do { \
+	if (option_mask32 & OPT_prg) printf(PROGNAME_BANNER); \
+} while (0)
+
+static void prg_cache_add(long inode, char *name)
+{
+	unsigned hi = PRG_HASHIT(inode);
+	struct prg_node **pnp, *pn;
+
+	prg_cache_loaded = 2;
+	for (pnp = prg_hash + hi; (pn = *pnp) != NULL; pnp = &pn->next) {
+		if (pn->inode == inode) {
+			/* Some warning should be appropriate here
+			   as we got multiple processes for one i-node */
+			return;
+		}
+	}
+	*pnp = xzalloc(sizeof(struct prg_node));
+	pn = *pnp;
+	pn->inode = inode;
+	safe_strncpy(pn->name, name, PROGNAME_WIDTH);
+}
+
+static const char *prg_cache_get(long inode)
+{
+	unsigned hi = PRG_HASHIT(inode);
+	struct prg_node *pn;
+
+	for (pn = prg_hash[hi]; pn; pn = pn->next)
+		if (pn->inode == inode)
+			return pn->name;
+	return "-";
+}
+
+#if ENABLE_FEATURE_CLEAN_UP
+static void prg_cache_clear(void)
+{
+	struct prg_node **pnp, *pn;
+
+	for (pnp = prg_hash; pnp < prg_hash + PRG_HASH_SIZE; pnp++) {
+		while ((pn = *pnp) != NULL) {
+			*pnp = pn->next;
+			free(pn);
+		}
+	}
+}
+#else
+#define prg_cache_clear() ((void)0)
+#endif
+
+static long extract_socket_inode(const char *lname) {
+
+	long inode = -1;
+
+	if (strncmp(lname, "socket:[", sizeof("socket:[")-1) == 0) {
+		/* "socket:[12345]", extract the "12345" as inode */
+		inode = bb_strtol(lname + sizeof("socket:[")-1, (char**)&lname, 0);
+		if (*lname != ']')
+			inode = -1;
+	} else if (strncmp(lname, "[0000]:", sizeof("[0000]:")-1) == 0) {
+		/* "[0000]:12345", extract the "12345" as inode */
+		inode = bb_strtol(lname + sizeof("[0000]:")-1, NULL, 0);
+		if (errno) /* not NUL terminated? */
+			inode = -1;
+	}
+
+#if 0 /* bb_strtol returns all-ones bit pattern on ERANGE anyway */
+	if (errno == ERANGE)
+		inode = -1;
+#endif
+	return inode;
+}
+
+static int FAST_FUNC file_act(const char *fileName,
+		struct stat *statbuf UNUSED_PARAM,
+		void *userData,
+		int depth UNUSED_PARAM)
+{
+	char *linkname;
+	long inode;
+
+	linkname = xmalloc_readlink(fileName);
+	if (linkname != NULL) {
+		inode = extract_socket_inode(linkname);
+		free(linkname);
+		if (inode >= 0)
+			prg_cache_add(inode, (char *)userData);
+	}
+	return TRUE;
+}
+
+static int FAST_FUNC dir_act(const char *fileName,
+		struct stat *statbuf UNUSED_PARAM,
+		void *userData UNUSED_PARAM,
+		int depth)
+{
+	const char *shortName;
+	char *p, *q;
+	char cmdline_buf[512];
+	int i;
+
+	if (depth == 0) /* "/proc" itself */
+		return TRUE; /* continue looking one level below /proc */
+
+	shortName = fileName + sizeof("/proc/")-1; /* point after "/proc/" */
+	if (!isdigit(shortName[0])) /* skip /proc entries whic aren't processes */
+		return SKIP;
+
+	p = concat_path_file(fileName, "cmdline"); /* "/proc/PID/cmdline" */
+	i = open_read_close(p, cmdline_buf, sizeof(cmdline_buf) - 1);
+	free(p);
+	if (i < 0)
+		return FALSE;
+	cmdline_buf[i] = '\0';
+	q = concat_path_file(shortName, bb_basename(cmdline_buf)); /* "PID/argv0" */
+
+	/* go through all files in /proc/PID/fd */
+	p = concat_path_file(fileName, "fd");
+	i = recursive_action(p, ACTION_RECURSE | ACTION_QUIET,
+				file_act, NULL, (void *)q, 0);
+
+	free(p);
+	free(q);
+
+	if (!i)
+		return FALSE;	/* signal permissions error to caller */
+
+	return SKIP;		/* caller should not recurse further into this dir. */
+}
+
+static void prg_cache_load(void)
+{
+	int load_ok;
+
+	prg_cache_loaded = 1;
+	load_ok = recursive_action("/proc", ACTION_RECURSE | ACTION_QUIET,
+				NULL, dir_act, NULL, 0);
+	if (load_ok)
+		return;
+
+	if (prg_cache_loaded == 1)
+		bb_error_msg("can't scan /proc - are you root?");
+	else
+		bb_error_msg("showing only processes with your user ID");
+}
+
+#else
+
+#define prg_cache_clear()       ((void)0)
+#define print_progname_banner() ((void)0)
+
+#endif //ENABLE_FEATURE_NETSTAT_PRG
 
 
 #if ENABLE_FEATURE_IPV6
@@ -195,6 +404,11 @@ static int tcp_do_one(int lnr, char *line)
 				"tcp", flags & NETSTAT_NUMERIC);
 		printf(net_conn_line,
 			"tcp", rxq, txq, l, r, tcp_state[state]);
+#if ENABLE_FEATURE_NETSTAT_PRG
+		if (option_mask32 & OPT_prg)
+			printf("%."PROGNAME_WIDTH_STR"s", prg_cache_get(inode));
+#endif
+		bb_putchar('\n');
 		free(l);
 		free(r);
 	}
@@ -276,6 +490,11 @@ static int udp_do_one(int lnr, char *line)
 				"udp", flags & NETSTAT_NUMERIC);
 			printf(net_conn_line,
 				"udp", rxq, txq, l, r, state_str);
+#if ENABLE_FEATURE_NETSTAT_PRG
+			if (option_mask32 & OPT_prg)
+				printf("%."PROGNAME_WIDTH_STR"s", prg_cache_get(inode));
+#endif
+			bb_putchar('\n');
 			free(l);
 			free(r);
 		}
@@ -332,6 +551,11 @@ static int raw_do_one(int lnr, char *line)
 				"raw", flags & NETSTAT_NUMERIC);
 			printf(net_conn_line,
 				"raw", rxq, txq, l, r, itoa(state));
+#if ENABLE_FEATURE_NETSTAT_PRG
+			if (option_mask32 & OPT_prg)
+				printf("%-"PROGNAME_WIDTH_STR"s", prg_cache_get(inode));
+#endif
+			bb_putchar('\n');
 			free(l);
 			free(r);
 		}
@@ -443,6 +667,11 @@ static int unix_do_one(int nr, char *line)
 		ss_proto, refcnt, ss_flags, ss_type, ss_state, inode
 		);
 
+#if ENABLE_FEATURE_NETSTAT_PRG
+	if (option_mask32 & OPT_prg)
+		printf("%-"PROGNAME_WIDTH_STR"s", prg_cache_get(inode));
+#endif
+
 	/* TODO: currently we stop at first NUL byte. Is it a problem? */
 	line += path_ofs;
 	*strchrnul(line, '\n') = '\0';
@@ -497,6 +726,8 @@ int netstat_main(int argc UNUSED_PARAM, char **argv)
 	enum { inet = 1, inet6 = 0 };
 #endif
 
+	INIT_G();
+
 	/* Option string must match NETSTAT_xxx constants */
 	opt = getopt32(argv, NETSTAT_OPTS);
 	if (opt & 0x1) { // -l
@@ -510,7 +741,7 @@ int netstat_main(int argc UNUSED_PARAM, char **argv)
 	//if (opt & 0x20) // -u: NETSTAT_UDP
 	//if (opt & 0x40) // -w: NETSTAT_RAW
 	//if (opt & 0x80) // -x: NETSTAT_UNIX
-	if (opt & OPT_showroute) { // -r
+	if (opt & OPT_route) { // -r
 #if ENABLE_ROUTE
 		bb_displayroutes(flags & NETSTAT_NUMERIC, !(opt & OPT_extended));
 		return 0;
@@ -518,11 +749,15 @@ int netstat_main(int argc UNUSED_PARAM, char **argv)
 		bb_show_usage();
 #endif
 	}
-
-	if (opt & OPT_widedisplay) { // -W
+	if (opt & OPT_wide) { // -W
 		net_conn_line = PRINT_NET_CONN_WIDE;
 		net_conn_line_header = PRINT_NET_CONN_HEADER_WIDE;
 	}
+#if ENABLE_FEATURE_NETSTAT_PRG
+	if (opt & OPT_prg) { // -p
+		prg_cache_load();
+	}
+#endif
 
 	opt &= NETSTAT_ALLPROTO;
 	if (opt) {
@@ -539,23 +774,25 @@ int netstat_main(int argc UNUSED_PARAM, char **argv)
 		else
 			printf("(w/o servers)");
 		printf(net_conn_line_header, "Local Address", "Foreign Address");
+		print_progname_banner();
+		bb_putchar('\n');
 	}
-	if (inet && flags & NETSTAT_TCP)
+	if (inet && (flags & NETSTAT_TCP))
 		do_info(_PATH_PROCNET_TCP, "AF INET (tcp)", tcp_do_one);
 #if ENABLE_FEATURE_IPV6
-	if (inet6 && flags & NETSTAT_TCP)
+	if (inet6 && (flags & NETSTAT_TCP))
 		do_info(_PATH_PROCNET_TCP6, "AF INET6 (tcp)", tcp_do_one);
 #endif
-	if (inet && flags & NETSTAT_UDP)
+	if (inet && (flags & NETSTAT_UDP))
 		do_info(_PATH_PROCNET_UDP, "AF INET (udp)", udp_do_one);
 #if ENABLE_FEATURE_IPV6
-	if (inet6 && flags & NETSTAT_UDP)
+	if (inet6 && (flags & NETSTAT_UDP))
 		do_info(_PATH_PROCNET_UDP6, "AF INET6 (udp)", udp_do_one);
 #endif
-	if (inet && flags & NETSTAT_RAW)
+	if (inet && (flags & NETSTAT_RAW))
 		do_info(_PATH_PROCNET_RAW, "AF INET (raw)", raw_do_one);
 #if ENABLE_FEATURE_IPV6
-	if (inet6 && flags & NETSTAT_RAW)
+	if (inet6 && (flags & NETSTAT_RAW))
 		do_info(_PATH_PROCNET_RAW6, "AF INET6 (raw)", raw_do_one);
 #endif
 	if (flags & NETSTAT_UNIX) {
@@ -566,8 +803,11 @@ int netstat_main(int argc UNUSED_PARAM, char **argv)
 			printf("(only servers)");
 		else
 			printf("(w/o servers)");
-		printf("\nProto RefCnt Flags       Type       State         I-Node Path\n");
+		printf("\nProto RefCnt Flags       Type       State         I-Node ");
+		print_progname_banner();
+		printf("Path\n");
 		do_info(_PATH_PROCNET_UNIX, "AF UNIX", unix_do_one);
 	}
+	prg_cache_clear();
 	return 0;
 }

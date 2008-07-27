@@ -141,6 +141,7 @@ int FAST_FUNC recursive_action(const char *fileName,
 	return status;
 
  done_nak_warn:
-	bb_simple_perror_msg(fileName);
+	if (!(flags & ACTION_QUIET))
+		bb_simple_perror_msg(fileName);
 	return FALSE;
 }
