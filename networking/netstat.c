@@ -197,8 +197,8 @@ static void prg_cache_clear(void)
 #define prg_cache_clear() ((void)0)
 #endif
 
-static long extract_socket_inode(const char *lname) {
-
+static long extract_socket_inode(const char *lname)
+{
 	long inode = -1;
 
 	if (strncmp(lname, "socket:[", sizeof("socket:[")-1) == 0) {
