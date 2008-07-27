@@ -170,9 +170,9 @@ enum {
 };
 #endif
 
-static void ss(uint32_t *x, uint32_t flag, char *where, const char *what)
+static void ss(uint32_t *x, uint32_t flag, char *buf, const char *what)
 {
-	if (strstr(where, what))
+	if (strstr(buf, what))
 		*x &= ~flag;
 	else
 		*x |= flag;
@@ -187,8 +187,7 @@ static int readmode(struct fb_var_screeninfo *base, const char *fn,
 	char *p = buf;
 
 	f = xfopen_for_read(fn);
-	while (!feof(f)) {
-		fgets(buf, sizeof(buf), f);
+	while (fgets(buf, sizeof(buf), f)) {
 		p = strstr(buf, "mode ");
 		if (!p && !(p = strstr(buf, "mode\t")))
 			continue;
@@ -197,13 +196,13 @@ static int readmode(struct fb_var_screeninfo *base, const char *fn,
 			continue;
 		p += strlen(mode);
 		if (!isspace(*p) && (*p != 0) && (*p != '"')
-				&& (*p != '\r') && (*p != '\n'))
+		 && (*p != '\r') && (*p != '\n')
+		) {
 			continue;	/* almost, but not quite */
+		}
 
-		while (!feof(f)) {
-			fgets(buf, sizeof(buf), f);
-			p = strstr(buf, "geometry ");
-			if (p) {
+		while (fgets(buf, sizeof(buf), f)) {
+			if ((p = strstr(buf, "geometry "))) {
 				p += 9;
 				/* FIXME: catastrophic on arches with 64bit ints */
 				sscanf(p, "%d %d %d %d %d",
@@ -245,22 +244,22 @@ static int readmode(struct fb_var_screeninfo *base, const char *fn,
 }
 #endif
 
-static inline void setmode(struct fb_var_screeninfo *base,
+static void setmode(struct fb_var_screeninfo *base,
 					struct fb_var_screeninfo *set)
 {
-	if ((int) set->xres > 0)
+	if ((int32_t) set->xres > 0)
 		base->xres = set->xres;
-	if ((int) set->yres > 0)
+	if ((int32_t) set->yres > 0)
 		base->yres = set->yres;
-	if ((int) set->xres_virtual > 0)
+	if ((int32_t) set->xres_virtual > 0)
 		base->xres_virtual = set->xres_virtual;
-	if ((int) set->yres_virtual > 0)
+	if ((int32_t) set->yres_virtual > 0)
 		base->yres_virtual = set->yres_virtual;
-	if ((int) set->bits_per_pixel > 0)
+	if ((int32_t) set->bits_per_pixel > 0)
 		base->bits_per_pixel = set->bits_per_pixel;
 }
 
-static inline void showmode(struct fb_var_screeninfo *v)
+static void showmode(struct fb_var_screeninfo *v)
 {
 	double drate = 0, hrate = 0, vrate = 0;
 
@@ -290,12 +289,8 @@ static inline void showmode(struct fb_var_screeninfo *v)
 			v->blue.length, v->blue.offset, v->transp.length, v->transp.offset);
 }
 
-#ifdef STANDALONE
-int main(int argc, char **argv)
-#else
 int fbset_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int fbset_main(int argc, char **argv)
-#endif
 {
 	struct fb_var_screeninfo var, varset;
 	int fh, i;
