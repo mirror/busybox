@@ -440,6 +440,7 @@ struct globals {
 	smalluint last_return_code;
 	char **global_argv;
 	int global_argc;
+	unsigned depth_break_continue;
 	pid_t last_bg_pid;
 	const char *ifs;
 	const char *cwd;
@@ -487,7 +488,8 @@ enum { run_list_level = 0 };
 #define global_argc      (G.global_argc     )
 #define last_return_code (G.last_return_code)
 #define ifs              (G.ifs             )
-#define flag_break_continue (G.flag_break_continue)
+#define flag_break_continue  (G.flag_break_continue )
+#define depth_break_continue (G.depth_break_continue)
 #define fake_mode        (G.fake_mode       )
 #define cwd              (G.cwd             )
 #define last_bg_pid      (G.last_bg_pid     )
@@ -552,11 +554,11 @@ static int free_pipe(struct pipe *pi, int indent);
 static int setup_redirects(struct child_prog *prog, int squirrel[]);
 static int run_list(struct pipe *pi);
 #if BB_MMU
-#define pseudo_exec_argv(ptrs2free, argv)  pseudo_exec_argv(argv)
-#define      pseudo_exec(ptrs2free, child)      pseudo_exec(child)
+#define pseudo_exec_argv(ptrs2free, argv, argv_expanded) pseudo_exec_argv(argv, argv_expanded)
+#define      pseudo_exec(ptrs2free, child, argv_expanded)     pseudo_exec(child, argv_expanded)
 #endif
-static void pseudo_exec_argv(char **ptrs2free, char **argv) NORETURN;
-static void pseudo_exec(char **ptrs2free, struct child_prog *child) NORETURN;
+static void pseudo_exec_argv(char **ptrs2free, char **argv, char **argv_expanded) NORETURN;
+static void pseudo_exec(char **ptrs2free, struct child_prog *child, char **argv_expanded) NORETURN;
 static int run_pipe(struct pipe *pi);
 /*   data structure manipulation: */
 static int setup_redirect(struct p_context *ctx, int fd, redir_type style, struct in_str *input);
@@ -1410,7 +1412,7 @@ static void restore_redirects(int squirrel[])
  * XXX no exit() here.  If you don't exec, use _exit instead.
  * The at_exit handlers apparently confuse the calling process,
  * in particular stdin handling.  Not sure why? -- because of vfork! (vda) */
-static void pseudo_exec_argv(char **ptrs2free, char **argv)
+static void pseudo_exec_argv(char **ptrs2free, char **argv, char **argv_expanded)
 {
 	int i, rcode;
 	char *p;
@@ -1432,10 +1434,14 @@ static void pseudo_exec_argv(char **ptrs2free, char **argv)
 	if (!argv[0])
 		_exit(EXIT_SUCCESS);
 
-	argv = expand_strvec_to_strvec(argv);
+	if (argv_expanded) {
+		argv = argv_expanded;
+	} else {
+		argv = expand_strvec_to_strvec(argv);
 #if !BB_MMU
-	*ptrs2free++ = (char*) argv;
+		*ptrs2free++ = (char*) argv;
 #endif
+	}
 
 	/*
 	 * Check if the command matches any of the builtins.
@@ -1479,10 +1485,10 @@ static void pseudo_exec_argv(char **ptrs2free, char **argv)
 
 /* Called after [v]fork() in run_pipe()
  */
-static void pseudo_exec(char **ptrs2free, struct child_prog *child)
+static void pseudo_exec(char **ptrs2free, struct child_prog *child, char **argv_expanded)
 {
 	if (child->argv)
-		pseudo_exec_argv(ptrs2free, child->argv);
+		pseudo_exec_argv(ptrs2free, child->argv, argv_expanded);
 
 	if (child->group) {
 #if !BB_MMU
@@ -1760,14 +1766,16 @@ static int run_pipe(struct pipe *pi)
 	int nextin;
 	int pipefds[2];		/* pipefds[0] is for reading */
 	struct child_prog *child;
+	char **argv_expanded = NULL;
+	char **argv;
 	const struct built_in_command *x;
 	char *p;
 	/* it is not always needed, but we aim to smaller code */
 	int squirrel[] = { -1, -1, -1 };
 	int rcode;
-	const int single_fg = (pi->num_progs == 1 && pi->followup != PIPE_BG);
+	const int single_and_fg = (pi->num_progs == 1 && pi->followup != PIPE_BG);
 
-	debug_printf_exec("run_pipe start: single_fg=%d\n", single_fg);
+	debug_printf_exec("run_pipe start: single_and_fg=%d\n", single_and_fg);
 
 #if ENABLE_HUSH_JOB
 	pi->pgrp = -1;
@@ -1780,7 +1788,7 @@ static int run_pipe(struct pipe *pi)
 	 * pseudo_exec.  "echo foo | read bar" doesn't work on bash, either.
 	 */
 	child = &(pi->progs[0]);
-	if (single_fg && child->group && child->subshell == 0) {
+	if (single_and_fg && child->group && child->subshell == 0) {
 		debug_printf("non-subshell grouping\n");
 		setup_redirects(child, squirrel);
 		debug_printf_exec(": run_list\n");
@@ -1791,41 +1799,45 @@ static int run_pipe(struct pipe *pi)
 		return rcode;
 	}
 
-	if (single_fg && child->argv != NULL) {
-		char **argv_expanded;
-		char **argv = child->argv;
+	argv = child->argv;
 
+	if (single_and_fg && argv != NULL) {
 		for (i = 0; is_assignment(argv[i]); i++)
 			continue;
 		if (i != 0 && argv[i] == NULL) {
-			/* assignments, but no command: set the local environment */
+			/* assignments, but no command: set local environment */
 			for (i = 0; argv[i] != NULL; i++) {
 				debug_printf("local environment set: %s\n", argv[i]);
 				p = expand_string_to_string(argv[i]);
 				set_local_var(p, 0);
 			}
-			return EXIT_SUCCESS;   /* don't worry about errors in set_local_var() yet */
+			return EXIT_SUCCESS; /* don't worry about errors in set_local_var() yet */
 		}
+
+		/* Expand assignments into one string each */
 		for (i = 0; is_assignment(argv[i]); i++) {
 			p = expand_string_to_string(argv[i]);
 			putenv(p);
 //FIXME: do we leak p?!
 		}
+
+		/* Expand the rest into (possibly) many strings each */
+		argv_expanded = expand_strvec_to_strvec(argv + i);
+
 		for (x = bltins; x != &bltins[ARRAY_SIZE(bltins)]; x++) {
-			if (strcmp(argv[i], x->cmd) == 0) {
-				if (x->function == builtin_exec && argv[i+1] == NULL) {
+			if (strcmp(argv_expanded[0], x->cmd) == 0) {
+				if (x->function == builtin_exec && argv_expanded[1] == NULL) {
 					debug_printf("magic exec\n");
 					setup_redirects(child, NULL);
 					return EXIT_SUCCESS;
 				}
-				debug_printf("builtin inline %s\n", argv[0]);
+				debug_printf("builtin inline %s\n", argv_expanded[0]);
 				/* XXX setup_redirects acts on file descriptors, not FILEs.
 				 * This is perfect for work that comes after exec().
 				 * Is it really safe for inline use?  Experimentally,
 				 * things seem to work with glibc. */
 				setup_redirects(child, squirrel);
-				debug_printf_exec(": builtin '%s' '%s'...\n", x->cmd, argv[i+1]);
-				argv_expanded = expand_strvec_to_strvec(argv + i);
+				debug_printf_exec(": builtin '%s' '%s'...\n", x->cmd, argv_expanded[1]);
 				rcode = x->function(argv_expanded) & 0xff;
 				free(argv_expanded);
 				restore_redirects(squirrel);
@@ -1836,12 +1848,10 @@ static int run_pipe(struct pipe *pi)
 		}
 #if ENABLE_FEATURE_SH_STANDALONE
 		{
-			int a = find_applet_by_name(argv[i]);
+			int a = find_applet_by_name(argv_expanded[0]);
 			if (a >= 0 && APPLET_IS_NOFORK(a)) {
 				setup_redirects(child, squirrel);
 				save_nofork_data(&nofork_save);
-				argv_expanded = argv + i;
-				argv_expanded = expand_strvec_to_strvec(argv + i);
 				debug_printf_exec(": run_nofork_applet '%s' '%s'...\n", argv_expanded[0], argv_expanded[1]);
 				rcode = run_nofork_applet_prime(&nofork_save, a, argv_expanded);
 				free(argv_expanded);
@@ -1853,6 +1863,10 @@ static int run_pipe(struct pipe *pi)
 		}
 #endif
 	}
+
+	/* NB: argv_expanded may already be created, and that
+	 * might include `cmd` runs! Do not rerun it! We *must*
+	 * use argv_expanded if it's non-NULL */
 
 	/* Disable job control signals for shell (parent) and
 	 * for initial child code after fork */
@@ -1914,8 +1928,10 @@ static int run_pipe(struct pipe *pi)
 			set_jobctrl_sighandler(SIG_DFL);
 			set_misc_sighandler(SIG_DFL);
 			signal(SIGCHLD, SIG_DFL);
-			pseudo_exec(ptrs2free, child); /* does not return */
+			pseudo_exec(ptrs2free, child, argv_expanded); /* does not return */
 		}
+		free(argv_expanded);
+		argv_expanded = NULL;
 #if !BB_MMU
 		free_strings(ptrs2free);
 #endif
@@ -2236,18 +2252,22 @@ static int run_list(struct pipe *pi)
 				/* we only ran a builtin: rcode is already known
 				 * and we don't need to wait for anything. */
 				/* was it "break" or "continue"? */
+
 				if (flag_break_continue) {
 					smallint fbc = flag_break_continue;
 					/* we might fall into outer *loop*,
 					 * don't want to break it too */
-					flag_break_continue = 0;
 					if (loop_top) {
-						if (fbc == BC_BREAK)
+						depth_break_continue--;
+						if (depth_break_continue == 0)
+							flag_break_continue = 0;
+						if (depth_break_continue != 0 || fbc == BC_BREAK)
 							goto check_jobs_and_break;
 						/* "continue": simulate end of loop */
 						rword = RES_DONE;
 						continue;
 					}		
+					flag_break_continue = 0;
 					bb_error_msg("break/continue: only meaningful in a loop");
 					/* bash compat: exit code is still 0 */
 				}
@@ -4265,7 +4285,7 @@ static int builtin_exec(char **argv)
 		char **ptrs2free = alloc_ptrs(argv);
 #endif
 // FIXME: if exec fails, bash does NOT exit! We do...
-		pseudo_exec_argv(ptrs2free, argv + 1);
+		pseudo_exec_argv(ptrs2free, argv + 1, NULL);
 		/* never returns */
 	}
 }
@@ -4512,14 +4532,23 @@ static int builtin_unset(char **argv)
 	return EXIT_SUCCESS;
 }
 
-static int builtin_break(char **argv UNUSED_PARAM)
+static int builtin_break(char **argv)
 {
-	flag_break_continue = BC_BREAK;
+	flag_break_continue++; /* BC_BREAK = 1 */
+	depth_break_continue = 1;
+	if (argv[1]) {
+		depth_break_continue = bb_strtou(argv[1], NULL, 10);
+		if (errno || !depth_break_continue || argv[2]) {
+			bb_error_msg("bad arguments");
+			flag_break_continue = BC_BREAK;
+			depth_break_continue = UINT_MAX;
+		}
+	}
 	return EXIT_SUCCESS;
 }
 
-static int builtin_continue(char **argv UNUSED_PARAM)
+static int builtin_continue(char **argv)
 {
-	flag_break_continue = BC_CONTINUE;
-	return EXIT_SUCCESS;
+	flag_break_continue++; /* BC_CONTINUE = 2 = 1+1 */
+	return builtin_break(argv);
 }
