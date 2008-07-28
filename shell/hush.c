@@ -2027,9 +2027,10 @@ static int run_list(struct pipe *pi)
 	smalluint rcode = 0; /* probably for gcc only */
 #if ENABLE_HUSH_IF
 	smalluint cond_code = 0;
-	smalluint last_cond_code = 0; /* need double-buffer to handle "elif" */
+///experimentally off: last_cond_code seems to be bogus
+	///smalluint last_cond_code = 0; /* need double-buffer to handle "elif" */
 #else
-	enum { cond_code = 0, last_cond_code = 0 };
+	enum { cond_code = 0, /* ///last_cond_code = 0 */ };
 #endif
 	/*reserved_style*/ smallint rword IF_HAS_NO_KEYWORDS(= RES_NONE);
 	/*reserved_style*/ smallint skip_more_for_this_rword = RES_XXXX;
@@ -2062,8 +2063,8 @@ static int run_list(struct pipe *pi)
 #endif
 
 	/* Past this point, all code paths should jump to ret: label
-	 * in order to return, no direct "return" statements.
-	 * This helps to ensure that no memory is leaked */
+	 * in order to return, no direct "return" statements please.
+	 * This helps to ensure that no memory is leaked. */
 
 #if ENABLE_HUSH_JOB
 	/* Example of nested list: "while true; do { sleep 1 | exit 2; } done".
@@ -2124,7 +2125,8 @@ static int run_list(struct pipe *pi)
 		}
 #endif
 		if (rword == skip_more_for_this_rword && flag_skip) {
-			/* it is "<false> && CMD ... */
+			/* it is "<false> && CMD" or "<true> || CMD"
+			 * and we should not execute CMD */
 			if (pi->followup == PIPE_SEQ)
 				flag_skip = 0;
 			continue;
@@ -2132,13 +2134,13 @@ static int run_list(struct pipe *pi)
 		flag_skip = 1;
 		skip_more_for_this_rword = RES_XXXX;
 #if ENABLE_HUSH_IF
-		if (rword == RES_THEN || rword == RES_ELSE)
-			cond_code = last_cond_code;
+///		if (rword == RES_THEN) // || rword == RES_ELSE)
+///			cond_code = last_cond_code;
 		if (rword == RES_THEN && cond_code)
 			continue; /* "if <false> THEN cmd": skip cmd */
 		if (rword == RES_ELSE && !cond_code)
-			continue; /* "if <true> then ... ELSE cmd": skip cmd */
-// TODO: break;?
+			//continue; /* "if <true> then ... ELSE cmd": skip cmd */
+			break; //TEST
 		if (rword == RES_ELIF && !cond_code)
 			break; /* "if <true> then ... ELIF cmd": skip cmd and all following ones */
 #endif
@@ -2173,7 +2175,7 @@ static int run_list(struct pipe *pi)
 			}
 			free(pi->progs->argv[0]);
 			if (!*for_lcur) {
-				/* for loop is over, clean up */
+				/* "for" loop is over, clean up */
 				free(for_list);
 				for_list = NULL;
 				for_lcur = NULL;
@@ -2197,7 +2199,7 @@ static int run_list(struct pipe *pi)
 			} else {
 				loop_top = NULL;
 			}
-//TODO: continue;? DONE has no cmd anyway
+			continue; //TEST /* "done" has no cmd anyway */
 		}
 #endif
 #if ENABLE_HUSH_CASE
@@ -2213,17 +2215,17 @@ static int run_list(struct pipe *pi)
 			/* all prev words didn't match, does this one match? */
 			pattern = expand_strvec_to_string(pi->progs->argv);
 			/* TODO: which FNM_xxx flags to use? */
-			last_cond_code = (fnmatch(pattern, case_word, /*flags:*/ 0) != 0);
-			//bb_error_msg("fnmatch('%s','%s'):%d", pattern, case_word, last_cond_code);
+			/* ///last_ */ cond_code = (fnmatch(pattern, case_word, /*flags:*/ 0) != 0);
+			//bb_error_msg("fnmatch('%s','%s'):%d", pattern, case_word, cond_code);
 			free(pattern);
-			if (last_cond_code == 0) { /* match! we will execute this branch */
+			if (/* ///last_ */ cond_code == 0) { /* match! we will execute this branch */
 				free(case_word); /* make future "word)" stop */
 				case_word = NULL;
 			}
 			continue;
 		}
 		if (rword == RES_CASEI) { /* inside of a case branch */
-			if (last_cond_code != 0)
+			if (/* ///last_ */ cond_code != 0)
 				continue; /* not matched yet, skip this pipe */
 		}
 #endif
@@ -2269,7 +2271,7 @@ static int run_list(struct pipe *pi)
 		/* Analyze how result affects subsequent commands */
 #if ENABLE_HUSH_IF
 		if (rword == RES_IF || rword == RES_ELIF)
-			last_cond_code = rcode;
+			/* ///last_cond_code = */ cond_code = rcode;
 #endif
 #if ENABLE_HUSH_LOOPS
 		if (rword == RES_WHILE) {
