@@ -24,7 +24,7 @@ res_word controls statement execution. Examples:
 
 "echo Hello" -
 pipe 0 res_word=NONE followup=SEQ prog[0] 'echo' 'Hello'
-pipe 1 res_word=NONE followup=1 SEQ
+pipe 1 res_word=NONE followup=SEQ
 
 "echo foo || echo bar" -
 pipe 0 res_word=NONE followup=OR  prog[0] 'echo' 'foo'
@@ -51,7 +51,7 @@ pipe 0 res_word=NONE followup=SEQ
     pipe 1 res_word=NONE followup=SEQ prog[0] 'true'
     pipe 2 res_word=NONE followup=SEQ
   pipe 2 res_word=NONE followup=(null)
-pipe 1 res_word=NONE followup=1 SEQ
+pipe 1 res_word=NONE followup=SEQ
 
 "for v in a b; do echo $v; true; done" -
 pipe 0 res_word=NONE followup=SEQ
@@ -92,7 +92,7 @@ pipe 0 res_word=NONE followup=1 SEQ
   pipe 5 res_word=CASEI followup=SEQ prog[0] 'cmd3'
   pipe 6 res_word=ESAC followup=SEQ
   pipe 7 res_word=NONE followup=(null)
-pipe 1 res_word=NONE followup=1 SEQ
+pipe 1 res_word=NONE followup=SEQ
 
 
 2008-01
