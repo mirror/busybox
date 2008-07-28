@@ -431,12 +431,12 @@ struct globals {
 #endif
 	smallint fake_mode;
 	/* these three support $?, $#, and $1 */
+	smalluint last_return_code;
 	char **global_argv;
 	int global_argc;
-	int last_return_code;
+	pid_t last_bg_pid;
 	const char *ifs;
 	const char *cwd;
-	unsigned last_bg_pid;
 	struct variable *top_var; /* = &shell_ver (set in main()) */
 	struct variable shell_ver;
 #if ENABLE_FEATURE_SH_STANDALONE
@@ -2012,54 +2012,53 @@ static void debug_print_tree(struct pipe *pi, int lvl)
  * global data until exec/_exit (we can be a child after vfork!) */
 static int run_list(struct pipe *pi)
 {
-	struct pipe *rpipe;
-#if ENABLE_HUSH_LOOPS
-	char *for_varname = NULL;
-	char **for_lcur = NULL;
-	char **for_list = NULL;
-	int flag_rep = 0;
-#endif
 #if ENABLE_HUSH_CASE
 	char *case_word = NULL;
 #endif
-	int flag_skip = 1;
-	int rcode = 0; /* probably for gcc only */
-	int flag_restore = 0;
-#if ENABLE_HUSH_IF
-	int if_code = 0, next_if_code = 0;  /* need double-buffer to handle elif */
-#else
-	enum { if_code = 0, next_if_code = 0 };
+#if ENABLE_HUSH_LOOPS
+	struct pipe *loop_top;
+	char *for_varname = NULL;
+	char **for_lcur = NULL;
+	char **for_list = NULL;
+	smallint flag_run_loop = 0;
+	smallint flag_goto_looptop = 0;
 #endif
-	reserved_style rword IF_HAS_NO_KEYWORDS(= RES_NONE);
-	reserved_style skip_more_for_this_rword = RES_XXXX;
+	smallint flag_skip = 1;
+	smalluint rcode = 0; /* probably for gcc only */
+#if ENABLE_HUSH_IF
+	smalluint cond_code = 0;
+	smalluint last_cond_code = 0; /* need double-buffer to handle "elif" */
+#else
+	enum { cond_code = 0, last_cond_code = 0 };
+#endif
+	/*reserved_style*/ smallint rword IF_HAS_NO_KEYWORDS(= RES_NONE);
+	/*reserved_style*/ smallint skip_more_for_this_rword = RES_XXXX;
 
 	debug_printf_exec("run_list start lvl %d\n", run_list_level + 1);
 
 #if ENABLE_HUSH_LOOPS
 	/* check syntax for "for" */
-	for (rpipe = pi; rpipe; rpipe = rpipe->next) {
-		if (rpipe->res_word != RES_FOR && rpipe->res_word != RES_IN)
+	for (loop_top = pi; loop_top; loop_top = loop_top->next) {
+		if (loop_top->res_word != RES_FOR && loop_top->res_word != RES_IN)
 			continue;
 		/* current word is FOR or IN (BOLD in comments below) */
-		if (rpipe->next == NULL) {
+		if (loop_top->next == NULL) {
 			syntax("malformed for");
 			debug_printf_exec("run_list lvl %d return 1\n", run_list_level);
 			return 1;
 		}
 		/* "FOR v; do ..." and "for v IN a b; do..." are ok */
-		if (rpipe->next->res_word == RES_DO)
+		if (loop_top->next->res_word == RES_DO)
 			continue;
 		/* next word is not "do". It must be "in" then ("FOR v in ...") */
-		if (rpipe->res_word == RES_IN /* "for v IN a b; not_do..."? */
-		 || rpipe->next->res_word != RES_IN /* FOR v not_do_and_not_in..."? */
+		if (loop_top->res_word == RES_IN /* "for v IN a b; not_do..."? */
+		 || loop_top->next->res_word != RES_IN /* FOR v not_do_and_not_in..."? */
 		) {
 			syntax("malformed for");
 			debug_printf_exec("run_list lvl %d return 1\n", run_list_level);
 			return 1;
 		}
 	}
-#else
-	rpipe = NULL;
 #endif
 
 	/* Past this point, all code paths should jump to ret: label
@@ -2108,21 +2107,24 @@ static int run_list(struct pipe *pi)
 	}
 #endif /* JOB */
 
-	for (; pi; pi = flag_restore ? rpipe : pi->next) {
+	/* Go through list of pipes, (maybe) executing them */
+	for (; pi; pi = USE_HUSH_LOOPS( flag_goto_looptop ? loop_top : ) pi->next) {
 		IF_HAS_KEYWORDS(rword = pi->res_word;)
 		IF_HAS_NO_KEYWORDS(rword = RES_NONE;)
+		debug_printf_exec(": rword=%d cond_code=%d last_cond_code=%d skip_more=%d flag_run_loop=%d\n",
+				rword, cond_code, last_cond_code, skip_more_for_this_rword, flag_run_loop);
 #if ENABLE_HUSH_LOOPS
 		if (rword == RES_WHILE || rword == RES_UNTIL || rword == RES_FOR) {
-			flag_restore = 0;
-			if (!rpipe) {
-				flag_rep = 0;
-				rpipe = pi;
+			/* start of a loop: remember it */
+			flag_goto_looptop = 0; /* not yet reached final "done" */
+			if (!loop_top) { /* hmm why this check is needed? */
+				flag_run_loop = 0; /* suppose loop condition is false (for now) */
+				loop_top = pi; /* remember where loop starts */
 			}
 		}
 #endif
-		debug_printf_exec(": rword=%d if_code=%d next_if_code=%d skip_more=%d\n",
-				rword, if_code, next_if_code, skip_more_for_this_rword);
 		if (rword == skip_more_for_this_rword && flag_skip) {
+			/* it is "<false> && CMD ... */
 			if (pi->followup == PIPE_SEQ)
 				flag_skip = 0;
 			continue;
@@ -2131,13 +2133,14 @@ static int run_list(struct pipe *pi)
 		skip_more_for_this_rword = RES_XXXX;
 #if ENABLE_HUSH_IF
 		if (rword == RES_THEN || rword == RES_ELSE)
-			if_code = next_if_code;
-		if (rword == RES_THEN && if_code)
-			continue;
-		if (rword == RES_ELSE && !if_code)
-			continue;
-		if (rword == RES_ELIF && !if_code)
-			break;
+			cond_code = last_cond_code;
+		if (rword == RES_THEN && cond_code)
+			continue; /* "if <false> THEN cmd": skip cmd */
+		if (rword == RES_ELSE && !cond_code)
+			continue; /* "if <true> then ... ELSE cmd": skip cmd */
+// TODO: break;?
+		if (rword == RES_ELIF && !cond_code)
+			break; /* "if <true> then ... ELIF cmd": skip cmd and all following ones */
 #endif
 #if ENABLE_HUSH_LOOPS
 		if (rword == RES_FOR && pi->num_progs) {
@@ -2153,7 +2156,7 @@ static int run_list(struct pipe *pi)
 				char **vals;
 
 				vals = (char**)encoded_dollar_at_argv;
-				if (rpipe->next->res_word == RES_IN) {
+				if (loop_top->next->res_word == RES_IN) {
 					/* if no variable values after "in" we skip "for" */
 					if (!pi->next->progs->argv)
 						continue;
@@ -2166,7 +2169,7 @@ static int run_list(struct pipe *pi)
 				debug_print_strings("for_list", for_list);
 				for_varname = pi->progs->argv[0];
 				pi->progs->argv[0] = NULL;
-				flag_rep = 1;
+				flag_run_loop = 1; /* "for" has no loop condition, loop... */
 			}
 			free(pi->progs->argv[0]);
 			if (!*for_lcur) {
@@ -2174,26 +2177,27 @@ static int run_list(struct pipe *pi)
 				free(for_list);
 				for_list = NULL;
 				for_lcur = NULL;
-				flag_rep = 0;
+				flag_run_loop = 0; /* ... until end of value list */
 				pi->progs->argv[0] = for_varname;
 				continue;
 			}
 			/* insert next value from for_lcur */
-			/* vda: does it need escaping? */
+//TODO: does it need escaping?
 			pi->progs->argv[0] = xasprintf("%s=%s", for_varname, *for_lcur++);
 		}
-		if (rword == RES_IN)
+		if (rword == RES_IN) /* "for v IN list; do ..." - no pipe to execute here */
 			continue;
-		if (rword == RES_DO) {
-			if (!flag_rep)
-				continue;
+		if (rword == RES_DO) { /* "...; DO cmd; cmd" - this pipe is in loop body */
+			if (!flag_run_loop)
+				continue; /* we are skipping this iteration */
 		}
-		if (rword == RES_DONE) {
-			if (flag_rep) {
-				flag_restore = 1;
+		if (rword == RES_DONE) { /* end of loop? */
+			if (flag_run_loop) {
+				flag_goto_looptop = 1;
 			} else {
-				rpipe = NULL;
+				loop_top = NULL;
 			}
+//TODO: continue;? DONE has no cmd anyway
 		}
 #endif
 #if ENABLE_HUSH_CASE
@@ -2203,69 +2207,82 @@ static int run_list(struct pipe *pi)
 			continue;
 		}
 		if (rword == RES_MATCH) {
-			if (case_word) {
-				char *pattern = expand_strvec_to_string(pi->progs->argv);
-				/* TODO: which FNM_xxx flags to use? */
-				next_if_code = fnmatch(pattern, case_word, /*flags:*/ 0);
-				//bb_error_msg("fnmatch('%s','%s'):%d", pattern, case_word, next_if_code);
-				free(pattern);
-				if (next_if_code == 0) {
-					free(case_word);
-					case_word = NULL;
-				}
-				continue;
+			char *pattern;
+			if (!case_word) /* "case ... matched_word) ... WORD)": we executed selected branch, stop */
+				break;
+			/* all prev words didn't match, does this one match? */
+			pattern = expand_strvec_to_string(pi->progs->argv);
+			/* TODO: which FNM_xxx flags to use? */
+			last_cond_code = (fnmatch(pattern, case_word, /*flags:*/ 0) != 0);
+			//bb_error_msg("fnmatch('%s','%s'):%d", pattern, case_word, last_cond_code);
+			free(pattern);
+			if (last_cond_code == 0) { /* match! we will execute this branch */
+				free(case_word); /* make future "word)" stop */
+				case_word = NULL;
 			}
-			break;
+			continue;
 		}
-		if (rword == RES_CASEI) {
-			if (next_if_code != 0)
-				continue;
+		if (rword == RES_CASEI) { /* inside of a case branch */
+			if (last_cond_code != 0)
+				continue; /* not matched yet, skip this pipe */
 		}
 #endif
-
 		if (pi->num_progs == 0)
 			continue;
+
+		/* After analyzing all keywrds and conditions, we decided
+		 * to execute this pipe */
 		debug_printf_exec(": run_pipe with %d members\n", pi->num_progs);
-		rcode = run_pipe(pi);
-		if (rcode != -1) {
-			/* We only ran a builtin: rcode was set by the return value
-			 * of run_pipe(), and we don't need to wait for anything. */
-		} else if (pi->followup == PIPE_BG) {
-			/* What does bash do with attempts to background builtins? */
-			/* Even bash 3.2 doesn't do that well with nested bg:
-			 * try "{ { sleep 10; echo DEEP; } & echo HERE; } &".
-			 * I'm NOT treating inner &'s as jobs */
+		{
+			int r;
+			rcode = r = run_pipe(pi); /* NB: rcode is a smallint */
+			if (r != -1) {
+				/* We only ran a builtin: rcode was set by the return value
+				 * of run_pipe(), and we don't need to wait for anything. */
+			} else if (pi->followup == PIPE_BG) {
+				/* What does bash do with attempts to background builtins? */
+				/* Even bash 3.2 doesn't do that well with nested bg:
+				 * try "{ { sleep 10; echo DEEP; } & echo HERE; } &".
+				 * I'm NOT treating inner &'s as jobs */
 #if ENABLE_HUSH_JOB
-			if (run_list_level == 1)
-				insert_bg_job(pi);
+				if (run_list_level == 1)
+					insert_bg_job(pi);
 #endif
-			rcode = EXIT_SUCCESS;
-		} else {
+				rcode = 0; /* EXIT_SUCCESS */
+			} else {
 #if ENABLE_HUSH_JOB
-			if (run_list_level == 1 && interactive_fd) {
-				/* waits for completion, then fg's main shell */
-				rcode = checkjobs_and_fg_shell(pi);
-			} else
+				if (run_list_level == 1 && interactive_fd) {
+					/* waits for completion, then fg's main shell */
+					rcode = checkjobs_and_fg_shell(pi);
+					debug_printf_exec(": checkjobs_and_fg_shell returned %d\n", rcode);
+				} else
 #endif
-			{ /* this one just waits for completion */
-				rcode = checkjobs(pi);
+				{ /* this one just waits for completion */
+					rcode = checkjobs(pi);
+					debug_printf_exec(": checkjobs returned %d\n", rcode);
+				}
 			}
-			debug_printf_exec(": checkjobs returned %d\n", rcode);
 		}
 		debug_printf_exec(": setting last_return_code=%d\n", rcode);
 		last_return_code = rcode;
+
+		/* Analyze how result affects subsequent commands */
 #if ENABLE_HUSH_IF
 		if (rword == RES_IF || rword == RES_ELIF)
-			next_if_code = rcode;  /* can be overwritten a number of times */
+			last_cond_code = rcode;
 #endif
 #if ENABLE_HUSH_LOOPS
-		if (rword == RES_WHILE)
-			flag_rep = !last_return_code;
-		if (rword == RES_UNTIL)
-			flag_rep = last_return_code;
+		if (rword == RES_WHILE) {
+			flag_run_loop = !rcode;
+			debug_printf_exec(": setting flag_run_loop=%d\n", flag_run_loop);
+		}
+		if (rword == RES_UNTIL) {
+			flag_run_loop = rcode;
+			debug_printf_exec(": setting flag_run_loop=%d\n", flag_run_loop);
+		}
 #endif
-		if ((rcode == EXIT_SUCCESS && pi->followup == PIPE_OR)
-		 || (rcode != EXIT_SUCCESS && pi->followup == PIPE_AND)
+		if ((rcode == 0 && pi->followup == PIPE_OR)
+		 || (rcode != 0 && pi->followup == PIPE_AND)
 		) {
 			skip_more_for_this_rword = rword;
 		}
