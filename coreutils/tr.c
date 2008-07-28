@@ -135,6 +135,8 @@ static unsigned int expand(const char *arg, char *buffer)
 			/* "[xyz...", i=x, arg points to y */
 			if (ENABLE_FEATURE_TR_EQUIV && i == '=') { /* [=CHAR=] */
 				*buffer++ = *arg; /* copy CHAR */
+				if (!*arg || arg[1] != '=' || arg[2] != ']')
+					bb_show_usage();
 				arg += 3;	/* skip CHAR=] */
 				continue;
 			}
