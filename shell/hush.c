@@ -2016,7 +2016,7 @@ static int run_list(struct pipe *pi)
 	char *case_word = NULL;
 #endif
 #if ENABLE_HUSH_LOOPS
-	struct pipe *loop_top;
+	struct pipe *loop_top = loop_top; /* just for compiler */
 	char *for_varname = NULL;
 	char **for_lcur = NULL;
 	char **for_list = NULL;
@@ -2024,7 +2024,7 @@ static int run_list(struct pipe *pi)
 	smallint flag_goto_looptop = 0;
 #endif
 	smallint flag_skip = 1;
-	smalluint rcode = 0; /* probably for gcc only */
+	smalluint rcode = 0; /* probably just for compiler */
 #if ENABLE_HUSH_IF
 	smalluint cond_code = 0;
 ///experimentally off: last_cond_code seems to be bogus
@@ -2039,21 +2039,21 @@ static int run_list(struct pipe *pi)
 
 #if ENABLE_HUSH_LOOPS
 	/* check syntax for "for" */
-	for (loop_top = pi; loop_top; loop_top = loop_top->next) {
-		if (loop_top->res_word != RES_FOR && loop_top->res_word != RES_IN)
+	for (struct pipe *cpipe = pi; cpipe; cpipe = cpipe->next) {
+		if (cpipe->res_word != RES_FOR && cpipe->res_word != RES_IN)
 			continue;
 		/* current word is FOR or IN (BOLD in comments below) */
-		if (loop_top->next == NULL) {
+		if (cpipe->next == NULL) {
 			syntax("malformed for");
 			debug_printf_exec("run_list lvl %d return 1\n", run_list_level);
 			return 1;
 		}
 		/* "FOR v; do ..." and "for v IN a b; do..." are ok */
-		if (loop_top->next->res_word == RES_DO)
+		if (cpipe->next->res_word == RES_DO)
 			continue;
 		/* next word is not "do". It must be "in" then ("FOR v in ...") */
-		if (loop_top->res_word == RES_IN /* "for v IN a b; not_do..."? */
-		 || loop_top->next->res_word != RES_IN /* FOR v not_do_and_not_in..."? */
+		if (cpipe->res_word == RES_IN /* "for v IN a b; not_do..."? */
+		 || cpipe->next->res_word != RES_IN /* FOR v not_do_and_not_in..."? */
 		) {
 			syntax("malformed for");
 			debug_printf_exec("run_list lvl %d return 1\n", run_list_level);
@@ -2118,10 +2118,10 @@ static int run_list(struct pipe *pi)
 		if (rword == RES_WHILE || rword == RES_UNTIL || rword == RES_FOR) {
 			/* start of a loop: remember it */
 			flag_goto_looptop = 0; /* not yet reached final "done" */
-			if (!loop_top) { /* hmm why this check is needed? */
-				flag_run_loop = 0; /* suppose loop condition is false (for now) */
+//			if (!loop_top) { /* hmm why this check is needed? */
+//				flag_run_loop = 0; /* suppose loop condition is false (for now) */
 				loop_top = pi; /* remember where loop starts */
-			}
+//			}
 		}
 #endif
 		if (rword == skip_more_for_this_rword && flag_skip) {
@@ -2145,7 +2145,7 @@ static int run_list(struct pipe *pi)
 			break; /* "if <true> then ... ELIF cmd": skip cmd and all following ones */
 #endif
 #if ENABLE_HUSH_LOOPS
-		if (rword == RES_FOR && pi->num_progs) {
+		if (rword == RES_FOR && pi->num_progs) { /* hmm why "&& pi->num_progs"? */
 			if (!for_lcur) {
 				/* first loop through for */
 
@@ -2158,7 +2158,7 @@ static int run_list(struct pipe *pi)
 				char **vals;
 
 				vals = (char**)encoded_dollar_at_argv;
-				if (loop_top->next->res_word == RES_IN) {
+				if (pi->next->res_word == RES_IN) {
 					/* if no variable values after "in" we skip "for" */
 					if (!pi->next->progs->argv)
 						continue;
@@ -2196,8 +2196,8 @@ static int run_list(struct pipe *pi)
 		if (rword == RES_DONE) { /* end of loop? */
 			if (flag_run_loop) {
 				flag_goto_looptop = 1;
-			} else {
-				loop_top = NULL;
+//			} else {
+//				loop_top = NULL;
 			}
 			continue; //TEST /* "done" has no cmd anyway */
 		}
