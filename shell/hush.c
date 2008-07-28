@@ -2305,8 +2305,10 @@ static int run_list(struct pipe *pi)
 #endif
 #if ENABLE_HUSH_LOOPS
 		if (rword == RES_WHILE) {
-			if (rcode)
+			if (rcode) {
+				rcode = 0; /* "while false; do...done" - exitcode 0 */
 				goto check_jobs_and_break;
+			}
 		}
 		if (rword == RES_UNTIL) {
 			if (!rcode) {
