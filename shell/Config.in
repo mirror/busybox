@@ -178,9 +178,11 @@ config HUSH
 	  hush is a very small shell (just 18k) and it has fairly complete
 	  Bourne shell grammar. It even handles all the normal flow control
 	  options such as if/then/elif/else/fi, for/in/do/done, while loops,
-	  etc.
+	  case/esac.
 
-	  It does not handle case/esac, select, function, here documents ( <<
+	  It uses only vfork, so it can be used on uClinux systems.
+
+	  It does not handle select, functions, here documents ( <<
 	  word ), arithmetic expansion, aliases, brace expansion, tilde
 	  expansion, &> and >& redirection of stdout+stderr, etc.
 
@@ -232,6 +234,14 @@ config HUSH_LOOPS
 	depends on HUSH
 	help
 	  Enable for, while and until loops in hush.
+	  As of 2008-07, break and continue statements are not supported.
+
+config HUSH_CASE
+	bool "Support case ... esac statement"
+	default n
+	depends on HUSH
+	help
+	  Enable case ... esac statement in hush. +400 bytes.
 
 config LASH
 	bool "lash"
@@ -249,7 +259,7 @@ config MSH
 	  shell to do. It is not always pedantically correct about Bourne
 	  shell grammar (try running the shell testscript "tests/sh.testcases"
 	  on it and compare vs bash) but for most things it works quite well.
-	  It also uses only vfork, so it can be used on uClinux systems.
+	  It uses only vfork, so it can be used on uClinux systems.
 
 comment "Bourne Shell Options"
 	depends on MSH || LASH || HUSH || ASH

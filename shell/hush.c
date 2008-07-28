@@ -67,14 +67,12 @@
  * Licensed under the GPL v2 or later, see the file LICENSE in this tarball.
  */
 
-
-#include <glob.h>      /* glob, of course */
-/* #include <dmalloc.h> */
-
 #include "busybox.h" /* for APPLET_IS_NOFORK/NOEXEC */
-
-// TEMP
-#define ENABLE_HUSH_CASE 0
+#include <glob.h>
+/* #include <dmalloc.h> */
+#if ENABLE_HUSH_CASE
+#include <fnmatch.h>
+#endif
 
 
 #if !BB_MMU && ENABLE_HUSH_TICK
@@ -2064,6 +2062,10 @@ static int run_list(struct pipe *pi)
 	rpipe = NULL;
 #endif
 
+	/* Past this point, all code paths should jump to ret: label
+	 * in order to return, no direct "return" statements.
+	 * This helps to ensure that no memory is leaked */
+
 #if ENABLE_HUSH_JOB
 	/* Example of nested list: "while true; do { sleep 1 | exit 2; } done".
 	 * We are saving state before entering outermost list ("while...done")
@@ -2170,6 +2172,7 @@ static int run_list(struct pipe *pi)
 			if (!*for_lcur) {
 				/* for loop is over, clean up */
 				free(for_list);
+				for_list = NULL;
 				for_lcur = NULL;
 				flag_rep = 0;
 				pi->progs->argv[0] = for_varname;
@@ -2195,14 +2198,21 @@ static int run_list(struct pipe *pi)
 #endif
 #if ENABLE_HUSH_CASE
 		if (rword == RES_CASE) {
-			case_word = pi->progs->argv[0];
+			case_word = expand_strvec_to_string(pi->progs->argv);
+			//bb_error_msg("case: arg:'%s' case_word:'%s'", pi->progs->argv[0], case_word);
 			continue;
 		}
 		if (rword == RES_MATCH) {
 			if (case_word) {
-				next_if_code = strcmp(case_word, pi->progs->argv[0]);
-				if (next_if_code == 0)
+				char *pattern = expand_strvec_to_string(pi->progs->argv);
+				/* TODO: which FNM_xxx flags to use? */
+				next_if_code = fnmatch(pattern, case_word, /*flags:*/ 0);
+				//bb_error_msg("fnmatch('%s','%s'):%d", pattern, case_word, next_if_code);
+				free(pattern);
+				if (next_if_code == 0) {
+					free(case_word);
 					case_word = NULL;
+				}
 				continue;
 			}
 			break;
@@ -2276,6 +2286,12 @@ static int run_list(struct pipe *pi)
 	}
 #endif
 	debug_printf_exec("run_list lvl %d return %d\n", run_list_level + 1, rcode);
+#if ENABLE_HUSH_LOOPS
+	free(for_list);
+#endif
+#if ENABLE_HUSH_CASE
+	free(case_word);
+#endif
 	return rcode;
 }
 
