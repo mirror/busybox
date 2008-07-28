@@ -2,9 +2,10 @@
 
 	Command parsing
 
-Command parsing results in "pipe" structures. "Pipe" structure
-does not always correspond to what sh language calls "pipe",
-it also controls execution of if, while, etc statements.
+Command parsing results in a list of "pipe" structures.
+This list correspond not only to usual "pipe1 || pipe2 && pipe3"
+lists, but it also controls execution of if, while, etc statements.
+Every such statement is a list for hush. List consists of pipes.
 
 struct pipe fields:
   smallint res_word - "none" for normal commands,
@@ -18,7 +19,7 @@ Blocks of commands { pipe; pipe; } and (pipe; pipe) are represented
 as one pipe struct with one progs[0] element which is a "group" -
 struct child_prog can contain a list of pipes. Sometimes these
 "groups" are created implicitly, e.g. every control
-statement (if, while, etc) sits inside its own "pipe" struct).
+statement (if, while, etc) sits inside its own group.
 
 res_word controls statement execution. Examples:
 
@@ -40,6 +41,10 @@ res_word=NONE followup=SEQ
   pipe 3 res_word=FI followup=SEQ
   pipe 4 res_word=NONE followup=(null)
 pipe 1 res_word=NONE followup=SEQ
+
+Above you see that if is a list, and it sits in a {} group
+implicitly created by hush. Also note two THEN res_word's -
+it is explained below.
 
 "if true; then { echo Hello; true; }; fi" -
 pipe 0 res_word=NONE followup=SEQ

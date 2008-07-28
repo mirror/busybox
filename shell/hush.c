@@ -54,7 +54,7 @@
  * to-do:
  *      port selected bugfixes from post-0.49 busybox lash - done?
  *      change { and } from special chars to reserved words
- *      builtins: break, continue, eval, return, set, trap, ulimit
+ *      builtins: return, trap, ulimit
  *      test magic exec
  *      check setting of global_argc and global_argv
  *      follow IFS rules more precisely, including update semantics
@@ -74,6 +74,7 @@
 #include <fnmatch.h>
 #endif
 
+#define HUSH_VER_STR "0.9"
 
 #if !BB_MMU && ENABLE_HUSH_TICK
 //#undef ENABLE_HUSH_TICK
@@ -230,7 +231,7 @@ void xxfree(void *ptr)
 #define SPECIAL_VAR_SYMBOL       3
 #define PARSEFLAG_EXIT_FROM_LOOP 1
 
-typedef enum {
+typedef enum redir_type {
 	REDIRECT_INPUT     = 1,
 	REDIRECT_OVERWRITE = 2,
 	REDIRECT_APPEND    = 3,
@@ -253,14 +254,14 @@ static const struct {
 	{ O_RDWR,                    1, "<>" }
 };
 
-typedef enum {
+typedef enum pipe_style {
 	PIPE_SEQ = 1,
 	PIPE_AND = 2,
 	PIPE_OR  = 3,
 	PIPE_BG  = 4,
 } pipe_style;
 
-typedef enum {
+typedef enum reserved_style {
 	RES_NONE  = 0,
 #if ENABLE_HUSH_IF
 	RES_IF    ,
@@ -358,7 +359,7 @@ struct variable {
 	smallint flg_read_only;
 };
 
-typedef struct {
+typedef struct o_string {
 	char *data;
 	int length; /* position where data is appended */
 	int maxlen;
@@ -378,9 +379,9 @@ enum {
 /* Used for initialization: o_string foo = NULL_O_STRING; */
 #define NULL_O_STRING { NULL }
 
-/* I can almost use ordinary FILE *.  Is open_memstream() universally
+/* I can almost use ordinary FILE*.  Is open_memstream() universally
  * available?  Where is it documented? */
-struct in_str {
+typedef struct in_str {
 	const char *p;
 	/* eof_flag=1: last char in ->p is really an EOF */
 	char eof_flag; /* meaningless if ->p == NULL */
@@ -392,7 +393,7 @@ struct in_str {
 	FILE *file;
 	int (*get) (struct in_str *);
 	int (*peek) (struct in_str *);
-};
+} in_str;
 #define i_getch(input) ((input)->get(input))
 #define i_peek(input) ((input)->peek(input))
 
@@ -403,7 +404,11 @@ enum {
 	CHAR_SPECIAL            = 3, /* example: $ */
 };
 
-#define HUSH_VER_STR "0.02"
+enum {
+	BC_BREAK = 1,
+	BC_CONTINUE = 2,
+};
+
 
 /* "Globals" within this file */
 
@@ -429,6 +434,7 @@ struct globals {
 	struct pipe *toplevel_list;
 	smallint ctrl_z_flag;
 #endif
+	smallint flag_break_continue;
 	smallint fake_mode;
 	/* these three support $?, $#, and $1 */
 	smalluint last_return_code;
@@ -481,6 +487,7 @@ enum { run_list_level = 0 };
 #define global_argc      (G.global_argc     )
 #define last_return_code (G.last_return_code)
 #define ifs              (G.ifs             )
+#define flag_break_continue (G.flag_break_continue)
 #define fake_mode        (G.fake_mode       )
 #define cwd              (G.cwd             )
 #define last_bg_pid      (G.last_bg_pid     )
@@ -713,6 +720,8 @@ static int builtin_shift(char **argv);
 static int builtin_source(char **argv);
 static int builtin_umask(char **argv);
 static int builtin_unset(char **argv);
+static int builtin_break(char **argv);
+static int builtin_continue(char **argv);
 //static int builtin_not_written(char **argv);
 
 /* Table of built-in functions.  They can be forked or not, depending on
@@ -742,10 +751,10 @@ static const struct built_in_command bltins[] = {
 #if ENABLE_HUSH_JOB
 	BLTIN("bg"    , builtin_fg_bg, "Resume a job in the background"),
 #endif
-//	BLTIN("break" , builtin_not_written, "Exit for, while or until loop"),
+	BLTIN("break" , builtin_break, "Exit from a loop"),
 	BLTIN("cd"    , builtin_cd, "Change directory"),
-//	BLTIN("continue", builtin_not_written, "Continue for, while or until loop"),
-	BLTIN("echo"  , builtin_echo, "Write strings to stdout"),
+	BLTIN("continue", builtin_continue, "Start new loop iteration"),
+	BLTIN("echo"  , builtin_echo, "Write to stdout"),
 	BLTIN("eval"  , builtin_eval, "Construct and run shell command"),
 	BLTIN("exec"  , builtin_exec, "Execute command, don't return to shell"),
 	BLTIN("exit"  , builtin_exit, "Exit"),
@@ -2016,29 +2025,25 @@ static int run_list(struct pipe *pi)
 	char *case_word = NULL;
 #endif
 #if ENABLE_HUSH_LOOPS
-	struct pipe *loop_top = loop_top; /* just for compiler */
+	struct pipe *loop_top = NULL;
 	char *for_varname = NULL;
 	char **for_lcur = NULL;
 	char **for_list = NULL;
-	smallint flag_run_loop = 0;
-	smallint flag_goto_looptop = 0;
 #endif
 	smallint flag_skip = 1;
 	smalluint rcode = 0; /* probably just for compiler */
 #if ENABLE_HUSH_IF
 	smalluint cond_code = 0;
-///experimentally off: last_cond_code seems to be bogus
-	///smalluint last_cond_code = 0; /* need double-buffer to handle "elif" */
 #else
-	enum { cond_code = 0, /* ///last_cond_code = 0 */ };
+	enum { cond_code = 0, };
 #endif
-	/*reserved_style*/ smallint rword IF_HAS_NO_KEYWORDS(= RES_NONE);
-	/*reserved_style*/ smallint skip_more_for_this_rword = RES_XXXX;
+	/*enum reserved_style*/ smallint rword = RES_NONE;
+	/*enum reserved_style*/ smallint skip_more_for_this_rword = RES_XXXX;
 
 	debug_printf_exec("run_list start lvl %d\n", run_list_level + 1);
 
 #if ENABLE_HUSH_LOOPS
-	/* check syntax for "for" */
+	/* Check syntax for "for" */
 	for (struct pipe *cpipe = pi; cpipe; cpipe = cpipe->next) {
 		if (cpipe->res_word != RES_FOR && cpipe->res_word != RES_IN)
 			continue;
@@ -2108,20 +2113,16 @@ static int run_list(struct pipe *pi)
 	}
 #endif /* JOB */
 
-	/* Go through list of pipes, (maybe) executing them */
-	for (; pi; pi = USE_HUSH_LOOPS( flag_goto_looptop ? loop_top : ) pi->next) {
+	/* Go through list of pipes, (maybe) executing them. */
+	for (; pi; pi = USE_HUSH_LOOPS(rword == RES_DONE ? loop_top : ) pi->next) {
 		IF_HAS_KEYWORDS(rword = pi->res_word;)
 		IF_HAS_NO_KEYWORDS(rword = RES_NONE;)
-		debug_printf_exec(": rword=%d cond_code=%d last_cond_code=%d skip_more=%d flag_run_loop=%d\n",
-				rword, cond_code, last_cond_code, skip_more_for_this_rword, flag_run_loop);
+		debug_printf_exec(": rword=%d cond_code=%d skip_more=%d\n",
+				rword, cond_code, skip_more_for_this_rword);
 #if ENABLE_HUSH_LOOPS
 		if (rword == RES_WHILE || rword == RES_UNTIL || rword == RES_FOR) {
-			/* start of a loop: remember it */
-			flag_goto_looptop = 0; /* not yet reached final "done" */
-//			if (!loop_top) { /* hmm why this check is needed? */
-//				flag_run_loop = 0; /* suppose loop condition is false (for now) */
-				loop_top = pi; /* remember where loop starts */
-//			}
+			/* start of a loop: remember where loop starts */
+			loop_top = pi;
 		}
 #endif
 		if (rword == skip_more_for_this_rword && flag_skip) {
@@ -2134,18 +2135,21 @@ static int run_list(struct pipe *pi)
 		flag_skip = 1;
 		skip_more_for_this_rword = RES_XXXX;
 #if ENABLE_HUSH_IF
-///		if (rword == RES_THEN) // || rword == RES_ELSE)
-///			cond_code = last_cond_code;
-		if (rword == RES_THEN && cond_code)
-			continue; /* "if <false> THEN cmd": skip cmd */
-		if (rword == RES_ELSE && !cond_code)
-			//continue; /* "if <true> then ... ELSE cmd": skip cmd */
-			break; //TEST
-		if (rword == RES_ELIF && !cond_code)
-			break; /* "if <true> then ... ELIF cmd": skip cmd and all following ones */
+		if (cond_code) {
+			if (rword == RES_THEN) {
+				/* "if <false> THEN cmd": skip cmd */
+				continue;
+			}
+		} else {
+			if (rword == RES_ELSE || rword == RES_ELIF) {
+				/* "if <true> then ... ELSE/ELIF cmd":
+				 * skip cmd and all following ones */
+				break;
+			}
+		}
 #endif
 #if ENABLE_HUSH_LOOPS
-		if (rword == RES_FOR && pi->num_progs) { /* hmm why "&& pi->num_progs"? */
+		if (rword == RES_FOR) { /* && pi->num_progs - always == 1 */
 			if (!for_lcur) {
 				/* first loop through for */
 
@@ -2161,7 +2165,7 @@ static int run_list(struct pipe *pi)
 				if (pi->next->res_word == RES_IN) {
 					/* if no variable values after "in" we skip "for" */
 					if (!pi->next->progs->argv)
-						continue;
+						break;
 					vals = pi->next->progs->argv;
 				} /* else: "for var; do..." -> assume "$@" list */
 				/* create list of variable values */
@@ -2171,7 +2175,6 @@ static int run_list(struct pipe *pi)
 				debug_print_strings("for_list", for_list);
 				for_varname = pi->progs->argv[0];
 				pi->progs->argv[0] = NULL;
-				flag_run_loop = 1; /* "for" has no loop condition, loop... */
 			}
 			free(pi->progs->argv[0]);
 			if (!*for_lcur) {
@@ -2179,33 +2182,22 @@ static int run_list(struct pipe *pi)
 				free(for_list);
 				for_list = NULL;
 				for_lcur = NULL;
-				flag_run_loop = 0; /* ... until end of value list */
 				pi->progs->argv[0] = for_varname;
-				continue;
+				break;
 			}
 			/* insert next value from for_lcur */
 //TODO: does it need escaping?
 			pi->progs->argv[0] = xasprintf("%s=%s", for_varname, *for_lcur++);
 		}
-		if (rword == RES_IN) /* "for v IN list; do ..." - no pipe to execute here */
+		if (rword == RES_IN) /* "for v IN list;..." - "in" has no cmds anyway */
 			continue;
-		if (rword == RES_DO) { /* "...; DO cmd; cmd" - this pipe is in loop body */
-			if (!flag_run_loop)
-				continue; /* we are skipping this iteration */
-		}
-		if (rword == RES_DONE) { /* end of loop? */
-			if (flag_run_loop) {
-				flag_goto_looptop = 1;
-//			} else {
-//				loop_top = NULL;
-			}
-			continue; //TEST /* "done" has no cmd anyway */
+		if (rword == RES_DONE) {
+			continue; /* "done" has no cmds too */
 		}
 #endif
 #if ENABLE_HUSH_CASE
 		if (rword == RES_CASE) {
 			case_word = expand_strvec_to_string(pi->progs->argv);
-			//bb_error_msg("case: arg:'%s' case_word:'%s'", pi->progs->argv[0], case_word);
 			continue;
 		}
 		if (rword == RES_MATCH) {
@@ -2215,35 +2207,53 @@ static int run_list(struct pipe *pi)
 			/* all prev words didn't match, does this one match? */
 			pattern = expand_strvec_to_string(pi->progs->argv);
 			/* TODO: which FNM_xxx flags to use? */
-			/* ///last_ */ cond_code = (fnmatch(pattern, case_word, /*flags:*/ 0) != 0);
-			//bb_error_msg("fnmatch('%s','%s'):%d", pattern, case_word, cond_code);
+			cond_code = (fnmatch(pattern, case_word, /*flags:*/ 0) != 0);
 			free(pattern);
-			if (/* ///last_ */ cond_code == 0) { /* match! we will execute this branch */
+			if (cond_code == 0) { /* match! we will execute this branch */
 				free(case_word); /* make future "word)" stop */
 				case_word = NULL;
 			}
 			continue;
 		}
 		if (rword == RES_CASEI) { /* inside of a case branch */
-			if (/* ///last_ */ cond_code != 0)
+			if (cond_code != 0)
 				continue; /* not matched yet, skip this pipe */
 		}
 #endif
 		if (pi->num_progs == 0)
 			continue;
 
-		/* After analyzing all keywrds and conditions, we decided
-		 * to execute this pipe */
+		/* After analyzing all keywords and conditions, we decided
+		 * to execute this pipe. NB: has to do checkjobs(NULL)
+		 * after run_pipe() to collect any background children,
+		 * even if list execution is to be stopped. */
 		debug_printf_exec(": run_pipe with %d members\n", pi->num_progs);
 		{
 			int r;
+			flag_break_continue = 0;
 			rcode = r = run_pipe(pi); /* NB: rcode is a smallint */
 			if (r != -1) {
-				/* We only ran a builtin: rcode was set by the return value
-				 * of run_pipe(), and we don't need to wait for anything. */
+				/* we only ran a builtin: rcode is already known
+				 * and we don't need to wait for anything. */
+				/* was it "break" or "continue"? */
+				if (flag_break_continue) {
+					smallint fbc = flag_break_continue;
+					/* we might fall into outer *loop*,
+					 * don't want to break it too */
+					flag_break_continue = 0;
+					if (loop_top) {
+						if (fbc == BC_BREAK)
+							goto check_jobs_and_break;
+						/* "continue": simulate end of loop */
+						rword = RES_DONE;
+						continue;
+					}		
+					bb_error_msg("break/continue: only meaningful in a loop");
+					/* bash compat: exit code is still 0 */
+				}
 			} else if (pi->followup == PIPE_BG) {
-				/* What does bash do with attempts to background builtins? */
-				/* Even bash 3.2 doesn't do that well with nested bg:
+				/* what does bash do with attempts to background builtins? */
+				/* even bash 3.2 doesn't do that well with nested bg:
 				 * try "{ { sleep 10; echo DEEP; } & echo HERE; } &".
 				 * I'm NOT treating inner &'s as jobs */
 #if ENABLE_HUSH_JOB
@@ -2271,16 +2281,19 @@ static int run_list(struct pipe *pi)
 		/* Analyze how result affects subsequent commands */
 #if ENABLE_HUSH_IF
 		if (rword == RES_IF || rword == RES_ELIF)
-			/* ///last_cond_code = */ cond_code = rcode;
+			cond_code = rcode;
 #endif
 #if ENABLE_HUSH_LOOPS
 		if (rword == RES_WHILE) {
-			flag_run_loop = !rcode;
-			debug_printf_exec(": setting flag_run_loop=%d\n", flag_run_loop);
+			if (rcode)
+				goto check_jobs_and_break;
 		}
 		if (rword == RES_UNTIL) {
-			flag_run_loop = rcode;
-			debug_printf_exec(": setting flag_run_loop=%d\n", flag_run_loop);
+			if (!rcode) {
+ check_jobs_and_break:
+				checkjobs(NULL);
+				break;
+			}
 		}
 #endif
 		if ((rcode == 0 && pi->followup == PIPE_OR)
@@ -4496,5 +4509,17 @@ static int builtin_unset(char **argv)
 {
 	/* bash always returns true */
 	unset_local_var(argv[1]);
+	return EXIT_SUCCESS;
+}
+
+static int builtin_break(char **argv UNUSED_PARAM)
+{
+	flag_break_continue = BC_BREAK;
+	return EXIT_SUCCESS;
+}
+
+static int builtin_continue(char **argv UNUSED_PARAM)
+{
+	flag_break_continue = BC_CONTINUE;
 	return EXIT_SUCCESS;
 }
