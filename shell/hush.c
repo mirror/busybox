@@ -446,6 +446,7 @@ struct globals {
 	int global_argc;
 #if ENABLE_HUSH_LOOPS
 	unsigned depth_break_continue;
+	unsigned depth_of_loop;
 #endif
 	pid_t last_bg_pid;
 	const char *ifs;
@@ -496,6 +497,7 @@ enum { run_list_level = 0 };
 #define ifs              (G.ifs             )
 #define flag_break_continue  (G.flag_break_continue )
 #define depth_break_continue (G.depth_break_continue)
+#define depth_of_loop    (G.depth_of_loop   )
 #define fake_mode        (G.fake_mode       )
 #define cwd              (G.cwd             )
 #define last_bg_pid      (G.last_bg_pid     )
@@ -2153,13 +2155,14 @@ static int run_list(struct pipe *pi)
 		if (rword == RES_WHILE || rword == RES_UNTIL || rword == RES_FOR) {
 			/* start of a loop: remember where loop starts */
 			loop_top = pi;
+			depth_of_loop++;
 		}
 #endif
 		if (rword == skip_more_for_this_rword && flag_skip) {
-			/* it is "<false> && CMD" or "<true> || CMD"
-			 * and we should not execute CMD */
 			if (pi->followup == PIPE_SEQ)
 				flag_skip = 0;
+			/* it is "<false> && CMD" or "<true> || CMD"
+			 * and we should not execute CMD */
 			continue;
 		}
 		flag_skip = 1;
@@ -2277,15 +2280,13 @@ static int run_list(struct pipe *pi)
 						depth_break_continue--;
 						if (depth_break_continue == 0)
 							flag_break_continue = 0;
-						if (depth_break_continue != 0 || fbc == BC_BREAK)
-							goto check_jobs_and_break;
-						/* "continue": simulate end of loop */
-						rword = RES_DONE;
-						continue;
-					}		
-					flag_break_continue = 0;
-					bb_error_msg("break/continue: only meaningful in a loop");
-					/* bash compat: exit code is still 0 */
+						/* else: e.g. "continue 2" should *break* once, *then* continue */
+					} /* else: "while... do... { we are here (innermost list is not a loop!) };...done" */
+					if (depth_break_continue != 0 || fbc == BC_BREAK)
+						goto check_jobs_and_break;
+					/* "continue": simulate end of loop */
+					rword = RES_DONE;
+					continue;
 				}
 #endif
 			} else if (pi->followup == PIPE_BG) {
@@ -2358,6 +2359,8 @@ static int run_list(struct pipe *pi)
 #endif
 	debug_printf_exec("run_list lvl %d return %d\n", run_list_level + 1, rcode);
 #if ENABLE_HUSH_LOOPS
+	if (loop_top)
+		depth_of_loop--;
 	free(for_list);
 #endif
 #if ENABLE_HUSH_CASE
@@ -4554,6 +4557,10 @@ static int builtin_unset(char **argv)
 #if ENABLE_HUSH_LOOPS
 static int builtin_break(char **argv)
 {
+	if (depth_of_loop == 0) {
+		bb_error_msg("%s: only meaningful in a loop", "break");
+		return EXIT_SUCCESS; /* bash compat */
+	}
 	flag_break_continue++; /* BC_BREAK = 1 */
 	depth_break_continue = 1;
 	if (argv[1]) {
@@ -4564,12 +4571,18 @@ static int builtin_break(char **argv)
 			depth_break_continue = UINT_MAX;
 		}
 	}
+	if (depth_of_loop > depth_break_continue)
+		depth_break_continue = depth_of_loop;
 	return EXIT_SUCCESS;
 }
 
 static int builtin_continue(char **argv)
 {
-	flag_break_continue++; /* BC_CONTINUE = 2 = 1+1 */
-	return builtin_break(argv);
+	if (depth_of_loop) {
+		flag_break_continue++; /* BC_CONTINUE = 2 = 1+1 */
+		return builtin_break(argv);
+	}
+	bb_error_msg("%s: only meaningful in a loop", "continue");
+	return EXIT_SUCCESS; /* bash compat */
 }
 #endif
