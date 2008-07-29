@@ -17,7 +17,7 @@ extern int delete_module(const char *module, unsigned int flags);
 #endif
 
 #if ENABLE_FEATURE_2_6_MODULES
-static inline void filename2modname(char *modname, const char *afterslash)
+static void filename2modname(char *modname, const char *afterslash)
 {
 	unsigned int i;
 	int kr_chk = 1;

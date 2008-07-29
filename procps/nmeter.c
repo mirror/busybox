@@ -152,7 +152,7 @@ static const char* get_file(proc_file *pf)
 	return pf->file;
 }
 
-static inline ullong read_after_slash(const char *p)
+static ullong read_after_slash(const char *p)
 {
 	p = strchr(p, '/');
 	if (!p) return 0;

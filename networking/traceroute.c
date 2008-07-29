@@ -819,7 +819,7 @@ packet_ok(unsigned char *buf, int cc, struct sockaddr_in *from, int seq)
  * If the nflag has been supplied, give
  * numeric value, otherwise try for symbolic name.
  */
-static inline void
+static void
 print_inetname(struct sockaddr_in *from)
 {
 	const char *ina;
@@ -836,7 +836,7 @@ print_inetname(struct sockaddr_in *from)
 	}
 }
 
-static inline void
+static void
 print(unsigned char *buf, int cc, struct sockaddr_in *from)
 {
 	struct ip *ip;

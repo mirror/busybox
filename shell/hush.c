@@ -434,13 +434,17 @@ struct globals {
 	struct pipe *toplevel_list;
 	smallint ctrl_z_flag;
 #endif
+#if ENABLE_HUSH_LOOPS
 	smallint flag_break_continue;
+#endif
 	smallint fake_mode;
 	/* these three support $?, $#, and $1 */
 	smalluint last_return_code;
 	char **global_argv;
 	int global_argc;
+#if ENABLE_HUSH_LOOPS
 	unsigned depth_break_continue;
+#endif
 	pid_t last_bg_pid;
 	const char *ifs;
 	const char *cwd;
@@ -722,8 +726,10 @@ static int builtin_shift(char **argv);
 static int builtin_source(char **argv);
 static int builtin_umask(char **argv);
 static int builtin_unset(char **argv);
+#if ENABLE_HUSH_LOOPS
 static int builtin_break(char **argv);
 static int builtin_continue(char **argv);
+#endif
 //static int builtin_not_written(char **argv);
 
 /* Table of built-in functions.  They can be forked or not, depending on
@@ -753,9 +759,13 @@ static const struct built_in_command bltins[] = {
 #if ENABLE_HUSH_JOB
 	BLTIN("bg"    , builtin_fg_bg, "Resume a job in the background"),
 #endif
+#if ENABLE_HUSH_LOOPS
 	BLTIN("break" , builtin_break, "Exit from a loop"),
+#endif
 	BLTIN("cd"    , builtin_cd, "Change directory"),
+#if ENABLE_HUSH_LOOPS
 	BLTIN("continue", builtin_continue, "Start new loop iteration"),
+#endif
 	BLTIN("echo"  , builtin_echo, "Write to stdout"),
 	BLTIN("eval"  , builtin_eval, "Construct and run shell command"),
 	BLTIN("exec"  , builtin_exec, "Execute command, don't return to shell"),
@@ -2246,13 +2256,15 @@ static int run_list(struct pipe *pi)
 		debug_printf_exec(": run_pipe with %d members\n", pi->num_progs);
 		{
 			int r;
+#if ENABLE_HUSH_LOOPS
 			flag_break_continue = 0;
+#endif
 			rcode = r = run_pipe(pi); /* NB: rcode is a smallint */
 			if (r != -1) {
 				/* we only ran a builtin: rcode is already known
 				 * and we don't need to wait for anything. */
+#if ENABLE_HUSH_LOOPS
 				/* was it "break" or "continue"? */
-
 				if (flag_break_continue) {
 					smallint fbc = flag_break_continue;
 					/* we might fall into outer *loop*,
@@ -2271,6 +2283,7 @@ static int run_list(struct pipe *pi)
 					bb_error_msg("break/continue: only meaningful in a loop");
 					/* bash compat: exit code is still 0 */
 				}
+#endif
 			} else if (pi->followup == PIPE_BG) {
 				/* what does bash do with attempts to background builtins? */
 				/* even bash 3.2 doesn't do that well with nested bg:
@@ -4534,6 +4547,7 @@ static int builtin_unset(char **argv)
 	return EXIT_SUCCESS;
 }
 
+#if ENABLE_HUSH_LOOPS
 static int builtin_break(char **argv)
 {
 	flag_break_continue++; /* BC_BREAK = 1 */
@@ -4554,3 +4568,4 @@ static int builtin_continue(char **argv)
 	flag_break_continue++; /* BC_CONTINUE = 2 = 1+1 */
 	return builtin_break(argv);
 }
+#endif

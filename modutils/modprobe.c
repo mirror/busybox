@@ -263,7 +263,7 @@ static int FAST_FUNC include_conf_dir_act(const char *filename UNUSED_PARAM,
 	return TRUE;
 }
 
-static int inline include_conf_recursive(struct include_conf_t *conf, const char *filename)
+static int include_conf_recursive(struct include_conf_t *conf, const char *filename)
 {
 	return recursive_action(filename, ACTION_RECURSE,
 				include_conf_file_act,

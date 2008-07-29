@@ -498,7 +498,7 @@ static void get_dev_fields(char *bp, struct interface *ife, int procnetdev_vsn)
 	}
 }
 
-static inline int procnetdev_version(char *buf)
+static int procnetdev_version(char *buf)
 {
 	if (strstr(buf, "compressed"))
 		return 2;
