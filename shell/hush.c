@@ -2131,8 +2131,8 @@ static int run_list(struct pipe *pi)
 				/* ctrl-C. We just stop doing whatever we were doing */
 				bb_putchar('\n');
 			}
-			loop_top = NULL;
-			depth_of_loop = 0;
+			USE_HUSH_LOOPS(loop_top = NULL;)
+			USE_HUSH_LOOPS(depth_of_loop = 0;)
 			rcode = 0;
 			goto ret;
 		}
