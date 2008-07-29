@@ -4526,7 +4526,7 @@ static int builtin_unset(char **argv)
 static int builtin_break(char **argv)
 {
 	if (G.depth_of_loop == 0) {
-		bb_error_msg("%s: only meaningful in a loop", "break");
+		bb_error_msg("%s: only meaningful in a loop", argv[0]);
 		return EXIT_SUCCESS; /* bash compat */
 	}
 	G.flag_break_continue++; /* BC_BREAK = 1 */
@@ -4534,7 +4534,7 @@ static int builtin_break(char **argv)
 	if (argv[1]) {
 		G.depth_break_continue = bb_strtou(argv[1], NULL, 10);
 		if (errno || !G.depth_break_continue || argv[2]) {
-			bb_error_msg("bad arguments");
+			bb_error_msg("%s: bad arguments", argv[0]);
 			G.flag_break_continue = BC_BREAK;
 			G.depth_break_continue = UINT_MAX;
 		}
@@ -4546,11 +4546,7 @@ static int builtin_break(char **argv)
 
 static int builtin_continue(char **argv)
 {
-	if (G.depth_of_loop) {
-		G.flag_break_continue = 1; /* BC_CONTINUE = 2 = 1+1 */
-		return builtin_break(argv);
-	}
-	bb_error_msg("%s: only meaningful in a loop", "continue");
-	return EXIT_SUCCESS; /* bash compat */
+	G.flag_break_continue = 1; /* BC_CONTINUE = 2 = 1+1 */
+	return builtin_break(argv);
 }
 #endif
