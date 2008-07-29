@@ -4571,7 +4571,7 @@ static int builtin_break(char **argv)
 			depth_break_continue = UINT_MAX;
 		}
 	}
-	if (depth_of_loop > depth_break_continue)
+	if (depth_of_loop < depth_break_continue)
 		depth_break_continue = depth_of_loop;
 	return EXIT_SUCCESS;
 }
