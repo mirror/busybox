@@ -48,6 +48,10 @@ struct mod_list_t {	/* two-way list of modules to process */
 	struct mod_list_t * m_next;
 };
 
+struct include_conf_t {
+	struct dep_t *first;
+	struct dep_t *current;
+};
 
 static struct dep_t *depend;
 
@@ -242,21 +246,60 @@ static int is_conf_command(char *buffer, const char *command)
  * This function reads aliases and default module options from a configuration file
  * (/etc/modprobe.conf syntax). It supports includes (only files, no directories).
  */
-static void include_conf(struct dep_t **first, struct dep_t **current, char *buffer, int buflen, int fd)
+
+static int FAST_FUNC include_conf_file_act(const char *filename,
+					   struct stat *statbuf UNUSED_PARAM,
+					   void *userdata,
+					   int depth UNUSED_PARAM);
+
+static int FAST_FUNC include_conf_dir_act(const char *filename UNUSED_PARAM,
+					  struct stat *statbuf UNUSED_PARAM,
+					  void *userdata UNUSED_PARAM,
+					  int depth)
 {
+	if (depth > 1)
+		return SKIP;
+
+	return TRUE;
+}
+
+static int inline include_conf_recursive(struct include_conf_t *conf, const char *filename)
+{
+	return recursive_action(filename, ACTION_RECURSE,
+				include_conf_file_act,
+				include_conf_dir_act,
+				conf, 1);
+}
+
+static int FAST_FUNC include_conf_file_act(const char *filename,
+					   struct stat *statbuf UNUSED_PARAM,
+					   void *userdata,
+					   int depth UNUSED_PARAM)
+{
+	struct include_conf_t *conf = (struct include_conf_t *) userdata;
+	struct dep_t **first = &conf->first;
+	struct dep_t **current = &conf->current;
 	int continuation_line = 0;
+	int fd;
+
+	if (bb_basename(filename)[0] == '.')
+		return TRUE;
+
+	fd = open(filename, O_RDONLY);
+	if (fd < 0)
+		return FALSE;
 
 	// alias parsing is not 100% correct (no correct handling of continuation lines within an alias)!
 
-	while (reads(fd, buffer, buflen)) {
+	while (reads(fd, line_buffer, sizeof(line_buffer))) {
 		int l;
 
-		*strchrnul(buffer, '#') = '\0';
+		*strchrnul(line_buffer, '#') = '\0';
 
-		l = strlen(buffer);
+		l = strlen(line_buffer);
 
-		while (l && isspace(buffer[l-1])) {
-			buffer[l-1] = '\0';
+		while (l && isspace(line_buffer[l-1])) {
+			line_buffer[l-1] = '\0';
 			l--;
 		}
 
@@ -268,10 +311,10 @@ static void include_conf(struct dep_t **first, struct dep_t **current, char *buf
 		if (continuation_line)
 			continue;
 
-		if (is_conf_command(buffer, "alias")) {
+		if (is_conf_command(line_buffer, "alias")) {
 			char *alias, *mod;
 
-			if (parse_tag_value(buffer + 6, &alias, &mod)) {
+			if (parse_tag_value(line_buffer + 6, &alias, &mod)) {
 				/* handle alias as a module dependent on the aliased module */
 				if (!*current) {
 					(*first) = (*current) = xzalloc(sizeof(struct dep_t));
@@ -292,11 +335,11 @@ static void include_conf(struct dep_t **first, struct dep_t **current, char *buf
 				}
 				/*(*current)->m_next = NULL; - done by xzalloc */
 			}
-		} else if (is_conf_command(buffer, "options")) {
+		} else if (is_conf_command(line_buffer, "options")) {
 			char *mod, *opt;
 
 			/* split the line in the module/alias name, and options */
-			if (parse_tag_value(buffer + 8, &mod, &opt)) {
+			if (parse_tag_value(line_buffer + 8, &mod, &opt)) {
 				struct dep_t *dt;
 
 				/* find the corresponding module */
@@ -315,22 +358,17 @@ static void include_conf(struct dep_t **first, struct dep_t **current, char *buf
 					}
 				}
 			}
-		} else if (is_conf_command(buffer, "include")) {
-			int fdi;
-			char *filename;
+		} else if (is_conf_command(line_buffer, "include")) {
+			char *includefile;
 
-			filename = skip_whitespace(buffer + 8);
-			fdi = open(filename, O_RDONLY);
-			if (fdi >= 0) {
-				include_conf(first, current, buffer, buflen, fdi);
-				close(fdi);
-			}
+			includefile = skip_whitespace(line_buffer + 8);
+			include_conf_recursive(conf, includefile);
 		} else if (ENABLE_FEATURE_MODPROBE_BLACKLIST &&
-				(is_conf_command(buffer, "blacklist"))) {
+				(is_conf_command(line_buffer, "blacklist"))) {
 			char *mod;
 			struct dep_t *dt;
 
-			mod = skip_whitespace(buffer + 10);
+			mod = skip_whitespace(line_buffer + 10);
 			for (dt = *first; dt; dt = dt->m_next) {
 				if (strcmp(dt->m_name, mod) == 0)
 					break;
@@ -339,6 +377,23 @@ static void include_conf(struct dep_t **first, struct dep_t **current, char *buf
 				dt->m_isblacklisted = 1;
 		}
 	} /* while (reads(...)) */
+
+	close(fd);
+	return TRUE;
+}
+
+static int include_conf_file(struct include_conf_t *conf,
+			     const char *filename)
+{
+	return include_conf_file_act(filename, NULL, conf, 0);
+}
+
+static int include_conf_file2(struct include_conf_t *conf,
+			      const char *filename, const char *oldname)
+{
+	if (include_conf_file(conf, filename) == TRUE)
+		return TRUE;
+	return include_conf_file(conf, oldname);
 }
 
 /*
@@ -350,8 +405,7 @@ static struct dep_t *build_dep(void)
 {
 	int fd;
 	struct utsname un;
-	struct dep_t *first = NULL;
-	struct dep_t *current = NULL;
+	struct include_conf_t conf = { NULL, NULL };
 	char *filename;
 	int continuation_line = 0;
 	int k_version;
@@ -421,14 +475,14 @@ static struct dep_t *build_dep(void)
 				mod = xstrndup(mods, dot - mods);
 
 				/* enqueue new module */
-				if (!current) {
-					first = current = xzalloc(sizeof(struct dep_t));
+				if (!conf.current) {
+					conf.first = conf.current = xzalloc(sizeof(struct dep_t));
 				} else {
-					current->m_next = xzalloc(sizeof(struct dep_t));
-					current = current->m_next;
+					conf.current->m_next = xzalloc(sizeof(struct dep_t));
+					conf.current = conf.current->m_next;
 				}
-				current->m_name = mod;
-				current->m_path = xstrdup(modpath);
+				conf.current->m_name = mod;
+				conf.current->m_path = xstrdup(modpath);
 				/*current->m_options = NULL; - xzalloc did it*/
 				/*current->m_isalias = 0;*/
 				/*current->m_depcnt = 0;*/
@@ -482,8 +536,8 @@ static struct dep_t *build_dep(void)
 				dep = xstrndup(deps, next - deps - ext + 1);
 
 				/* Add the new dependable module name */
-				current->m_deparr = xrealloc_vector(current->m_deparr, 2, current->m_depcnt);
-				current->m_deparr[current->m_depcnt++] = dep;
+				conf.current->m_deparr = xrealloc_vector(conf.current->m_deparr, 2, conf.current->m_depcnt);
+				conf.current->m_deparr[conf.current->m_depcnt++] = dep;
 
 				p = next + 2;
 			} while (next < end);
@@ -500,52 +554,41 @@ static struct dep_t *build_dep(void)
 	 * >=2.6: we only care about modprobe.conf
 	 * <=2.4: we care about modules.conf and conf.modules
 	 */
-	if (ENABLE_FEATURE_2_6_MODULES
-	 && (fd = open("/etc/modprobe.conf", O_RDONLY)) < 0)
-		if (ENABLE_FEATURE_2_4_MODULES
-		 && (fd = open("/etc/modules.conf", O_RDONLY)) < 0)
-			if (ENABLE_FEATURE_2_4_MODULES)
-				fd = open("/etc/conf.modules", O_RDONLY);
+	{
+		int r = FALSE;
 
-	if (fd >= 0) {
-		include_conf(&first, &current, line_buffer, sizeof(line_buffer), fd);
-		close(fd);
+		if (ENABLE_FEATURE_2_6_MODULES) {
+			if (include_conf_file(&conf, "/etc/modprobe.conf"))
+				r = TRUE;
+			if (include_conf_recursive(&conf, "/etc/modprobe.d"))
+				r = TRUE;
+		}
+		if (ENABLE_FEATURE_2_4_MODULES && !r)
+			include_conf_file2(&conf,
+					   "/etc/modules.conf",
+					   "/etc/conf.modules");
 	}
 
 	/* Only 2.6 has a modules.alias file */
 	if (ENABLE_FEATURE_2_6_MODULES) {
 		/* Parse kernel-declared module aliases */
 		filename = xasprintf(CONFIG_DEFAULT_MODULES_DIR"/%s/modules.alias", un.release);
-		fd = open(filename, O_RDONLY);
-		if (fd < 0) {
-			/* Ok, that didn't work.  Fall back to looking in /lib/modules */
-			fd = open(CONFIG_DEFAULT_MODULES_DIR"/modules.alias", O_RDONLY);
-		}
+		include_conf_file2(&conf,
+				   filename,
+				   CONFIG_DEFAULT_MODULES_DIR"/modules.alias");
 		if (ENABLE_FEATURE_CLEAN_UP)
 			free(filename);
-
-		if (fd >= 0) {
-			include_conf(&first, &current, line_buffer, sizeof(line_buffer), fd);
-			close(fd);
-		}
 
 		/* Parse kernel-declared symbol aliases */
 		filename = xasprintf(CONFIG_DEFAULT_MODULES_DIR"/%s/modules.symbols", un.release);
-		fd = open(filename, O_RDONLY);
-		if (fd < 0) {
-			/* Ok, that didn't work.  Fall back to looking in /lib/modules */
-			fd = open(CONFIG_DEFAULT_MODULES_DIR"/modules.symbols", O_RDONLY);
-		}
+		include_conf_file2(&conf,
+				   filename,
+				   CONFIG_DEFAULT_MODULES_DIR"/modules.symbols");
 		if (ENABLE_FEATURE_CLEAN_UP)
 			free(filename);
-
-		if (fd >= 0) {
-			include_conf(&first, &current, line_buffer, sizeof(line_buffer), fd);
-			close(fd);
-		}
 	}
 
-	return first;
+	return conf.first;
 }
 
 /* return 1 = loaded, 0 = not loaded, -1 = can't tell */
