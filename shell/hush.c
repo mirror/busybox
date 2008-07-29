@@ -2131,6 +2131,8 @@ static int run_list(struct pipe *pi)
 				/* ctrl-C. We just stop doing whatever we were doing */
 				bb_putchar('\n');
 			}
+			loop_top = NULL;
+			depth_of_loop = 0;
 			rcode = 0;
 			goto ret;
 		}
@@ -2152,7 +2154,9 @@ static int run_list(struct pipe *pi)
 		debug_printf_exec(": rword=%d cond_code=%d skip_more=%d\n",
 				rword, cond_code, skip_more_for_this_rword);
 #if ENABLE_HUSH_LOOPS
-		if (rword == RES_WHILE || rword == RES_UNTIL || rword == RES_FOR) {
+		if ((rword == RES_WHILE || rword == RES_UNTIL || rword == RES_FOR)
+		 && loop_top == NULL /* avoid bumping depth_of_loop twice */
+		) {
 			/* start of a loop: remember where loop starts */
 			loop_top = pi;
 			depth_of_loop++;
