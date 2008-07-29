@@ -376,17 +376,16 @@ static unsigned char *get(priv_dumper_t *dumper)
 {
 	int n;
 	int need, nread;
-	unsigned char *tmpp;
 	int blocksize = dumper->blocksize;
 
 	if (!dumper->get__curp) {
 		dumper->address = (off_t)0; /*DBU:[dave@cray.com] initialize,initialize..*/
 		dumper->get__curp = xmalloc(blocksize);
-		dumper->get__savp = xmalloc(blocksize);
+		dumper->get__savp = xzalloc(blocksize); /* need to be initialized */
 	} else {
-		tmpp = dumper->get__curp;
+		unsigned char *tmp = dumper->get__curp;
 		dumper->get__curp = dumper->get__savp;
-		dumper->get__savp = tmpp;
+		dumper->get__savp = tmp;
 		dumper->savaddress += blocksize;
 		dumper->address = dumper->savaddress;
 	}
