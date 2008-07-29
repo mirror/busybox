@@ -170,6 +170,7 @@ enum {
 };
 #endif
 
+#if ENABLE_FEATURE_FBSET_READMODE
 static void ss(uint32_t *x, uint32_t flag, char *buf, const char *what)
 {
 	if (strstr(buf, what))
@@ -178,7 +179,6 @@ static void ss(uint32_t *x, uint32_t flag, char *buf, const char *what)
 		*x |= flag;
 }
 
-#if ENABLE_FEATURE_FBSET_READMODE
 static int readmode(struct fb_var_screeninfo *base, const char *fn,
 					const char *mode)
 {

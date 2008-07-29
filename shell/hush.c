@@ -217,7 +217,7 @@ void xxfree(void *ptr)
 /* Keep unconditionally on for now */
 #define HUSH_DEBUG 1
 /* Do we support ANY keywords? */
-#if ENABLE_HUSH_IF || ENABLE_HUSH_LOOPS
+#if ENABLE_HUSH_IF || ENABLE_HUSH_LOOPS || ENABLE_HUSH_CASE
 #define HAS_KEYWORDS 1
 #define IF_HAS_KEYWORDS(...) __VA_ARGS__
 #define IF_HAS_NO_KEYWORDS(...)
@@ -276,6 +276,8 @@ typedef enum reserved_style {
 	RES_UNTIL ,
 	RES_DO    ,
 	RES_DONE  ,
+#endif
+#if ENABLE_HUSH_LOOPS || ENABLE_HUSH_CASE
 	RES_IN    ,
 #endif
 #if ENABLE_HUSH_CASE
@@ -1998,6 +2000,8 @@ static void debug_print_tree(struct pipe *pi, int lvl)
 		[RES_UNTIL] = "UNTIL",
 		[RES_DO   ] = "DO"   ,
 		[RES_DONE ] = "DONE" ,
+#endif
+#if ENABLE_HUSH_LOOPS || ENABLE_HUSH_CASE
 		[RES_IN   ] = "IN"   ,
 #endif
 #if ENABLE_HUSH_CASE
@@ -2058,7 +2062,7 @@ static int run_list(struct pipe *pi)
 #endif
 	smallint flag_skip = 1;
 	smalluint rcode = 0; /* probably just for compiler */
-#if ENABLE_HUSH_IF
+#if ENABLE_HUSH_IF || ENABLE_HUSH_CASE
 	smalluint cond_code = 0;
 #else
 	enum { cond_code = 0, };
