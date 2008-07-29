@@ -427,9 +427,10 @@ struct globals {
 	line_input_t *line_input_state;
 #endif
 	pid_t root_pid;
+	pid_t last_bg_pid;
 #if ENABLE_HUSH_JOB
 	int run_list_level;
-	pid_t saved_task_pgrp;
+//	pid_t saved_task_pgrp;
 	pid_t saved_tty_pgrp;
 	int last_jobid;
 	struct pipe *job_list;
@@ -448,10 +449,9 @@ struct globals {
 	unsigned depth_break_continue;
 	unsigned depth_of_loop;
 #endif
-	pid_t last_bg_pid;
 	const char *ifs;
 	const char *cwd;
-	struct variable *top_var; /* = &shell_ver (set in main()) */
+	struct variable *top_var; /* = &G.shell_ver (set in main()) */
 	struct variable shell_ver;
 #if ENABLE_FEATURE_SH_STANDALONE
 	struct nofork_save_area nofork_save;
@@ -464,53 +464,9 @@ struct globals {
 };
 
 #define G (*ptr_to_globals)
-
-#if !ENABLE_HUSH_INTERACTIVE
-enum { interactive_fd = 0 };
-#endif
-#if !ENABLE_HUSH_JOB
-enum { run_list_level = 0 };
-#endif
-
-#if ENABLE_HUSH_INTERACTIVE
-#define interactive_fd   (G.interactive_fd  )
-#define PS1              (G.PS1             )
-#define PS2              (G.PS2             )
-#endif
-#if ENABLE_FEATURE_EDITING
-#define line_input_state (G.line_input_state)
-#endif
-#define root_pid         (G.root_pid        )
-#if ENABLE_HUSH_JOB
-#define run_list_level   (G.run_list_level  )
-#define saved_task_pgrp  (G.saved_task_pgrp )
-#define saved_tty_pgrp   (G.saved_tty_pgrp  )
-#define last_jobid       (G.last_jobid      )
-#define job_list         (G.job_list        )
-#define toplevel_list    (G.toplevel_list   )
-#define toplevel_jb      (G.toplevel_jb     )
-#define ctrl_z_flag      (G.ctrl_z_flag     )
-#endif /* JOB */
-#define global_argv      (G.global_argv     )
-#define global_argc      (G.global_argc     )
-#define last_return_code (G.last_return_code)
-#define ifs              (G.ifs             )
-#define flag_break_continue  (G.flag_break_continue )
-#define depth_break_continue (G.depth_break_continue)
-#define depth_of_loop    (G.depth_of_loop   )
-#define fake_mode        (G.fake_mode       )
-#define cwd              (G.cwd             )
-#define last_bg_pid      (G.last_bg_pid     )
-#define top_var          (G.top_var         )
-#define shell_ver        (G.shell_ver       )
-#if ENABLE_FEATURE_SH_STANDALONE
-#define nofork_save      (G.nofork_save     )
-#endif
-#if ENABLE_HUSH_JOB
-#define toplevel_jb      (G.toplevel_jb     )
-#endif
-#define charmap          (G.charmap         )
-#define user_input_buf   (G.user_input_buf  )
+/* Not #defining name to G.name - this quickly gets unwieldy
+ * (too many defines). Also, I actually prefer to see when a variable
+ * is global, thus "G." prefix is a useful hint */
 #define INIT_G() do { \
 	SET_PTR_TO_GLOBALS(xzalloc(sizeof(G))); \
 } while (0)
@@ -522,23 +478,29 @@ enum { run_list_level = 0 };
 /* Normal */
 static void syntax(const char *msg)
 {
+#if ENABLE_HUSH_INTERACTIVE
 	/* Was using fancy stuff:
-	 * (interactive_fd ? bb_error_msg : bb_error_msg_and_die)(...params...)
+	 * (G.interactive_fd ? bb_error_msg : bb_error_msg_and_die)(...params...)
 	 * but it SEGVs. ?! Oh well... explicit temp ptr works around that */
 	void FAST_FUNC (*fp)(const char *s, ...);
-
-	fp = (interactive_fd ? bb_error_msg : bb_error_msg_and_die);
+	fp = (G.interactive_fd ? bb_error_msg : bb_error_msg_and_die);
 	fp(msg ? "%s: %s" : "syntax error", "syntax error", msg);
+#else
+	bb_error_msg_and_die(msg ? "%s: %s" : "syntax error", "syntax error", msg);
+#endif
 }
 
 #else
 /* Debug */
 static void syntax_lineno(int line)
 {
+#if ENABLE_HUSH_INTERACTIVE
 	void FAST_FUNC (*fp)(const char *s, ...);
-
-	fp = (interactive_fd ? bb_error_msg : bb_error_msg_and_die);
+	fp = (G.interactive_fd ? bb_error_msg : bb_error_msg_and_die);
 	fp("syntax error hush.c:%d", line);
+#else
+	bb_error_msg_and_die("syntax error hush.c:%d", line);
+#endif
 }
 #define syntax(str) syntax_lineno(__LINE__)
 #endif
@@ -844,7 +806,7 @@ static void handler_ctrl_c(int sig UNUSED_PARAM)
 {
 	debug_printf_jobs("got sig %d\n", sig);
 // as usual we can have all kinds of nasty problems with leaked malloc data here
-	siglongjmp(toplevel_jb, 1);
+	siglongjmp(G.toplevel_jb, 1);
 }
 
 static void handler_ctrl_z(int sig UNUSED_PARAM)
@@ -855,7 +817,7 @@ static void handler_ctrl_z(int sig UNUSED_PARAM)
 	pid = fork();
 	if (pid < 0) /* can't fork. Pretend there was no ctrl-Z */
 		return;
-	ctrl_z_flag = 1;
+	G.ctrl_z_flag = 1;
 	if (!pid) { /* child */
 		if (ENABLE_HUSH_JOB)
 			die_sleep = 0; /* let nofork's xfuncs die */
@@ -870,13 +832,13 @@ static void handler_ctrl_z(int sig UNUSED_PARAM)
 	}
 	/* parent */
 	/* finish filling up pipe info */
-	toplevel_list->pgrp = pid; /* child is in its own pgrp */
-	toplevel_list->progs[0].pid = pid;
+	G.toplevel_list->pgrp = pid; /* child is in its own pgrp */
+	G.toplevel_list->progs[0].pid = pid;
 	/* parent needs to longjmp out of running nofork.
 	 * we will "return" exitcode 0, with child put in background */
 // as usual we can have all kinds of nasty problems with leaked malloc data here
 	debug_printf_jobs("siglongjmp in parent\n");
-	siglongjmp(toplevel_jb, 1);
+	siglongjmp(G.toplevel_jb, 1);
 }
 
 /* Restores tty foreground process group, and exits.
@@ -890,8 +852,10 @@ static void sigexit(int sig)
 	/* Disable all signals: job control, SIGPIPE, etc. */
 	sigprocmask_allsigs(SIG_BLOCK);
 
-	if (interactive_fd)
-		tcsetpgrp(interactive_fd, saved_tty_pgrp);
+#if ENABLE_HUSH_INTERACTIVE
+	if (G.interactive_fd)
+		tcsetpgrp(G.interactive_fd, G.saved_tty_pgrp);
+#endif
 
 	/* Not a signal, just exit */
 	if (sig <= 0)
@@ -919,12 +883,12 @@ static void hush_exit(int exitcode)
 
 static const char *set_cwd(void)
 {
-	if (cwd == bb_msg_unknown)
-		cwd = NULL;     /* xrealloc_getcwd_or_warn(arg) calls free(arg)! */
-	cwd = xrealloc_getcwd_or_warn((char *)cwd);
-	if (!cwd)
-		cwd = bb_msg_unknown;
-	return cwd;
+	if (G.cwd == bb_msg_unknown)
+		G.cwd = NULL;     /* xrealloc_getcwd_or_warn(arg) calls free(arg)! */
+	G.cwd = xrealloc_getcwd_or_warn((char *)G.cwd);
+	if (!G.cwd)
+		G.cwd = bb_msg_unknown;
+	return G.cwd;
 }
 
 
@@ -1224,11 +1188,11 @@ static int static_peek(struct in_str *i)
 static void cmdedit_set_initial_prompt(void)
 {
 #if !ENABLE_FEATURE_EDITING_FANCY_PROMPT
-	PS1 = NULL;
+	G.PS1 = NULL;
 #else
-	PS1 = getenv("PS1");
-	if (PS1 == NULL)
-		PS1 = "\\w \\$ ";
+	G.PS1 = getenv("PS1");
+	if (G.PS1 == NULL)
+		G.PS1 = "\\w \\$ ";
 #endif
 }
 #endif /* EDITING */
@@ -1240,14 +1204,14 @@ static const char* setup_prompt_string(int promptmode)
 #if !ENABLE_FEATURE_EDITING_FANCY_PROMPT
 	/* Set up the prompt */
 	if (promptmode == 0) { /* PS1 */
-		free((char*)PS1);
-		PS1 = xasprintf("%s %c ", cwd, (geteuid() != 0) ? '$' : '#');
-		prompt_str = PS1;
+		free((char*)G.PS1);
+		G.PS1 = xasprintf("%s %c ", G.cwd, (geteuid() != 0) ? '$' : '#');
+		prompt_str = G.PS1;
 	} else {
-		prompt_str = PS2;
+		prompt_str = G.PS2;
 	}
 #else
-	prompt_str = (promptmode == 0) ? PS1 : PS2;
+	prompt_str = (promptmode == 0) ? G.PS1 : G.PS2;
 #endif
 	debug_printf("result '%s'\n", prompt_str);
 	return prompt_str;
@@ -1263,21 +1227,21 @@ static void get_user_input(struct in_str *i)
 	/* Enable command line editing only while a command line
 	 * is actually being read */
 	do {
-		r = read_line_input(prompt_str, user_input_buf, BUFSIZ-1, line_input_state);
+		r = read_line_input(prompt_str, G.user_input_buf, BUFSIZ-1, G.line_input_state);
 	} while (r == 0); /* repeat if Ctrl-C */
 	i->eof_flag = (r < 0);
 	if (i->eof_flag) { /* EOF/error detected */
-		user_input_buf[0] = EOF; /* yes, it will be truncated, it's ok */
-		user_input_buf[1] = '\0';
+		G.user_input_buf[0] = EOF; /* yes, it will be truncated, it's ok */
+		G.user_input_buf[1] = '\0';
 	}
 #else
 	fputs(prompt_str, stdout);
 	fflush(stdout);
-	user_input_buf[0] = r = fgetc(i->file);
-	/*user_input_buf[1] = '\0'; - already is and never changed */
+	G.user_input_buf[0] = r = fgetc(i->file);
+	/*G.user_input_buf[1] = '\0'; - already is and never changed */
 	i->eof_flag = (r == EOF);
 #endif
-	i->p = user_input_buf;
+	i->p = G.user_input_buf;
 }
 
 #endif  /* INTERACTIVE */
@@ -1300,7 +1264,7 @@ static int file_get(struct in_str *i)
 		/* need to double check i->file because we might be doing something
 		 * more complicated by now, like sourcing or substituting. */
 #if ENABLE_HUSH_INTERACTIVE
-		if (interactive_fd && i->promptme && i->file == stdin) {
+		if (G.interactive_fd && i->promptme && i->file == stdin) {
 			do {
 				get_user_input(i);
 			} while (!*i->p); /* need non-empty line */
@@ -1561,15 +1525,15 @@ static void insert_bg_job(struct pipe *pi)
 
 	/* Linear search for the ID of the job to use */
 	pi->jobid = 1;
-	for (thejob = job_list; thejob; thejob = thejob->next)
+	for (thejob = G.job_list; thejob; thejob = thejob->next)
 		if (thejob->jobid >= pi->jobid)
 			pi->jobid = thejob->jobid + 1;
 
 	/* Add thejob to the list of running jobs */
-	if (!job_list) {
-		thejob = job_list = xmalloc(sizeof(*thejob));
+	if (!G.job_list) {
+		thejob = G.job_list = xmalloc(sizeof(*thejob));
 	} else {
-		for (thejob = job_list; thejob->next; thejob = thejob->next)
+		for (thejob = G.job_list; thejob->next; thejob = thejob->next)
 			continue;
 		thejob->next = xmalloc(sizeof(*thejob));
 		thejob = thejob->next;
@@ -1591,26 +1555,26 @@ static void insert_bg_job(struct pipe *pi)
 	/* We don't wait for background thejobs to return -- append it
 	   to the list of backgrounded thejobs and leave it alone */
 	printf("[%d] %d %s\n", thejob->jobid, thejob->progs[0].pid, thejob->cmdtext);
-	last_bg_pid = thejob->progs[0].pid;
-	last_jobid = thejob->jobid;
+	G.last_bg_pid = thejob->progs[0].pid;
+	G.last_jobid = thejob->jobid;
 }
 
 static void remove_bg_job(struct pipe *pi)
 {
 	struct pipe *prev_pipe;
 
-	if (pi == job_list) {
-		job_list = pi->next;
+	if (pi == G.job_list) {
+		G.job_list = pi->next;
 	} else {
-		prev_pipe = job_list;
+		prev_pipe = G.job_list;
 		while (prev_pipe->next != pi)
 			prev_pipe = prev_pipe->next;
 		prev_pipe->next = pi->next;
 	}
-	if (job_list)
-		last_jobid = job_list->jobid;
+	if (G.job_list)
+		G.last_jobid = G.job_list->jobid;
 	else
-		last_jobid = 0;
+		G.last_jobid = 0;
 }
 
 /* Remove a backgrounded job */
@@ -1705,7 +1669,7 @@ static int checkjobs(struct pipe* fg_pipe)
 #if ENABLE_HUSH_JOB
 		/* We asked to wait for bg or orphaned children */
 		/* No need to remember exitcode in this case */
-		for (pi = job_list; pi; pi = pi->next) {
+		for (pi = G.job_list; pi; pi = pi->next) {
 			for (i = 0; i < pi->num_progs; i++) {
 				if (pi->progs[i].pid == childpid)
 					goto found_pi_and_prognum;
@@ -1748,8 +1712,8 @@ static int checkjobs_and_fg_shell(struct pipe* fg_pipe)
 	/* Job finished, move the shell to the foreground */
 	p = getpgid(0); /* pgid of our process */
 	debug_printf_jobs("fg'ing ourself: getpgid(0)=%d\n", (int)p);
-	tcsetpgrp(interactive_fd, p);
-//	if (tcsetpgrp(interactive_fd, p) && errno != ENOTTY)
+	tcsetpgrp(G.interactive_fd, p);
+//	if (tcsetpgrp(G.interactive_fd, p) && errno != ENOTTY)
 //		bb_perror_msg("tcsetpgrp-4a");
 	return rcode;
 }
@@ -1865,9 +1829,9 @@ static int run_pipe(struct pipe *pi)
 			int a = find_applet_by_name(argv_expanded[0]);
 			if (a >= 0 && APPLET_IS_NOFORK(a)) {
 				setup_redirects(child, squirrel);
-				save_nofork_data(&nofork_save);
+				save_nofork_data(&G.nofork_save);
 				debug_printf_exec(": run_nofork_applet '%s' '%s'...\n", argv_expanded[0], argv_expanded[1]);
-				rcode = run_nofork_applet_prime(&nofork_save, a, argv_expanded);
+				rcode = run_nofork_applet_prime(&G.nofork_save, a, argv_expanded);
 				free(argv_expanded);
 				restore_redirects(squirrel);
 				debug_printf_exec("run_pipe return %d\n", rcode);
@@ -1916,7 +1880,7 @@ static int run_pipe(struct pipe *pi)
 #if ENABLE_HUSH_JOB
 			/* Every child adds itself to new process group
 			 * with pgid == pid_of_first_child_in_pipe */
-			if (run_list_level == 1 && interactive_fd) {
+			if (G.run_list_level == 1 && G.interactive_fd) {
 				pid_t pgrp;
 				/* Don't do pgrp restore anymore on fatal signals */
 				set_fatal_sighandler(SIG_DFL);
@@ -1926,7 +1890,7 @@ static int run_pipe(struct pipe *pi)
 				if (setpgid(0, pgrp) == 0 && pi->followup != PIPE_BG) {
 					/* We do it in *every* child, not just first,
 					 * to avoid races */
-					tcsetpgrp(interactive_fd, pgrp);
+					tcsetpgrp(G.interactive_fd, pgrp);
 				}
 			}
 #endif
@@ -2072,7 +2036,7 @@ static int run_list(struct pipe *pi)
 	/*enum reserved_style*/ smallint rword = RES_NONE;
 	/*enum reserved_style*/ smallint skip_more_for_this_rword = RES_XXXX;
 
-	debug_printf_exec("run_list start lvl %d\n", run_list_level + 1);
+	debug_printf_exec("run_list start lvl %d\n", G.run_list_level + 1);
 
 #if ENABLE_HUSH_LOOPS
 	/* Check syntax for "for" */
@@ -2082,7 +2046,7 @@ static int run_list(struct pipe *pi)
 		/* current word is FOR or IN (BOLD in comments below) */
 		if (cpipe->next == NULL) {
 			syntax("malformed for");
-			debug_printf_exec("run_list lvl %d return 1\n", run_list_level);
+			debug_printf_exec("run_list lvl %d return 1\n", G.run_list_level);
 			return 1;
 		}
 		/* "FOR v; do ..." and "for v IN a b; do..." are ok */
@@ -2093,7 +2057,7 @@ static int run_list(struct pipe *pi)
 		 || cpipe->next->res_word != RES_IN /* FOR v not_do_and_not_in..."? */
 		) {
 			syntax("malformed for");
-			debug_printf_exec("run_list lvl %d return 1\n", run_list_level);
+			debug_printf_exec("run_list lvl %d return 1\n", G.run_list_level);
 			return 1;
 		}
 	}
@@ -2108,22 +2072,22 @@ static int run_list(struct pipe *pi)
 	 * We are saving state before entering outermost list ("while...done")
 	 * so that ctrl-Z will correctly background _entire_ outermost list,
 	 * not just a part of it (like "sleep 1 | exit 2") */
-	if (++run_list_level == 1 && interactive_fd) {
-		if (sigsetjmp(toplevel_jb, 1)) {
+	if (++G.run_list_level == 1 && G.interactive_fd) {
+		if (sigsetjmp(G.toplevel_jb, 1)) {
 			/* ctrl-Z forked and we are parent; or ctrl-C.
 			 * Sighandler has longjmped us here */
 			signal(SIGINT, SIG_IGN);
 			signal(SIGTSTP, SIG_IGN);
 			/* Restore level (we can be coming from deep inside
 			 * nested levels) */
-			run_list_level = 1;
+			G.run_list_level = 1;
 #if ENABLE_FEATURE_SH_STANDALONE
-			if (nofork_save.saved) { /* if save area is valid */
+			if (G.nofork_save.saved) { /* if save area is valid */
 				debug_printf_jobs("exiting nofork early\n");
-				restore_nofork_data(&nofork_save);
+				restore_nofork_data(&G.nofork_save);
 			}
 #endif
-			if (ctrl_z_flag) {
+			if (G.ctrl_z_flag) {
 				/* ctrl-Z has forked and stored pid of the child in pi->pid.
 				 * Remember this child as background job */
 				insert_bg_job(pi);
@@ -2132,15 +2096,15 @@ static int run_list(struct pipe *pi)
 				bb_putchar('\n');
 			}
 			USE_HUSH_LOOPS(loop_top = NULL;)
-			USE_HUSH_LOOPS(depth_of_loop = 0;)
+			USE_HUSH_LOOPS(G.depth_of_loop = 0;)
 			rcode = 0;
 			goto ret;
 		}
 		/* ctrl-Z handler will store pid etc in pi */
-		toplevel_list = pi;
-		ctrl_z_flag = 0;
+		G.toplevel_list = pi;
+		G.ctrl_z_flag = 0;
 #if ENABLE_FEATURE_SH_STANDALONE
-		nofork_save.saved = 0; /* in case we will run a nofork later */
+		G.nofork_save.saved = 0; /* in case we will run a nofork later */
 #endif
 		signal_SA_RESTART_empty_mask(SIGTSTP, handler_ctrl_z);
 		signal(SIGINT, handler_ctrl_c);
@@ -2155,11 +2119,11 @@ static int run_list(struct pipe *pi)
 				rword, cond_code, skip_more_for_this_rword);
 #if ENABLE_HUSH_LOOPS
 		if ((rword == RES_WHILE || rword == RES_UNTIL || rword == RES_FOR)
-		 && loop_top == NULL /* avoid bumping depth_of_loop twice */
+		 && loop_top == NULL /* avoid bumping G.depth_of_loop twice */
 		) {
 			/* start of a loop: remember where loop starts */
 			loop_top = pi;
-			depth_of_loop++;
+			G.depth_of_loop++;
 		}
 #endif
 		if (rword == skip_more_for_this_rword && flag_skip) {
@@ -2268,7 +2232,7 @@ static int run_list(struct pipe *pi)
 		{
 			int r;
 #if ENABLE_HUSH_LOOPS
-			flag_break_continue = 0;
+			G.flag_break_continue = 0;
 #endif
 			rcode = r = run_pipe(pi); /* NB: rcode is a smallint */
 			if (r != -1) {
@@ -2276,17 +2240,17 @@ static int run_list(struct pipe *pi)
 				 * and we don't need to wait for anything. */
 #if ENABLE_HUSH_LOOPS
 				/* was it "break" or "continue"? */
-				if (flag_break_continue) {
-					smallint fbc = flag_break_continue;
+				if (G.flag_break_continue) {
+					smallint fbc = G.flag_break_continue;
 					/* we might fall into outer *loop*,
 					 * don't want to break it too */
 					if (loop_top) {
-						depth_break_continue--;
-						if (depth_break_continue == 0)
-							flag_break_continue = 0;
+						G.depth_break_continue--;
+						if (G.depth_break_continue == 0)
+							G.flag_break_continue = 0;
 						/* else: e.g. "continue 2" should *break* once, *then* continue */
 					} /* else: "while... do... { we are here (innermost list is not a loop!) };...done" */
-					if (depth_break_continue != 0 || fbc == BC_BREAK)
+					if (G.depth_break_continue != 0 || fbc == BC_BREAK)
 						goto check_jobs_and_break;
 					/* "continue": simulate end of loop */
 					rword = RES_DONE;
@@ -2299,13 +2263,13 @@ static int run_list(struct pipe *pi)
 				 * try "{ { sleep 10; echo DEEP; } & echo HERE; } &".
 				 * I'm NOT treating inner &'s as jobs */
 #if ENABLE_HUSH_JOB
-				if (run_list_level == 1)
+				if (G.run_list_level == 1)
 					insert_bg_job(pi);
 #endif
 				rcode = 0; /* EXIT_SUCCESS */
 			} else {
 #if ENABLE_HUSH_JOB
-				if (run_list_level == 1 && interactive_fd) {
+				if (G.run_list_level == 1 && G.interactive_fd) {
 					/* waits for completion, then fg's main shell */
 					rcode = checkjobs_and_fg_shell(pi);
 					debug_printf_exec(": checkjobs_and_fg_shell returned %d\n", rcode);
@@ -2318,7 +2282,7 @@ static int run_list(struct pipe *pi)
 			}
 		}
 		debug_printf_exec(": setting last_return_code=%d\n", rcode);
-		last_return_code = rcode;
+		G.last_return_code = rcode;
 
 		/* Analyze how result affects subsequent commands */
 #if ENABLE_HUSH_IF
@@ -2349,22 +2313,22 @@ static int run_list(struct pipe *pi)
 	} /* for (pi) */
 
 #if ENABLE_HUSH_JOB
-	if (ctrl_z_flag) {
+	if (G.ctrl_z_flag) {
 		/* ctrl-Z forked somewhere in the past, we are the child,
 		 * and now we completed running the list. Exit. */
 //TODO: _exit?
 		exit(rcode);
 	}
  ret:
-	if (!--run_list_level && interactive_fd) {
+	if (!--G.run_list_level && G.interactive_fd) {
 		signal(SIGTSTP, SIG_IGN);
 		signal(SIGINT, SIG_IGN);
 	}
 #endif
-	debug_printf_exec("run_list lvl %d return %d\n", run_list_level + 1, rcode);
+	debug_printf_exec("run_list lvl %d return %d\n", G.run_list_level + 1, rcode);
 #if ENABLE_HUSH_LOOPS
 	if (loop_top)
-		depth_of_loop--;
+		G.depth_of_loop--;
 	free(for_list);
 #endif
 #if ENABLE_HUSH_CASE
@@ -2449,7 +2413,7 @@ static int run_and_free_list(struct pipe *pi)
 {
 	int rcode = 0;
 	debug_printf_exec("run_and_free_list entered\n");
-	if (!fake_mode) {
+	if (!G.fake_mode) {
 		debug_printf_exec(": run_list with %d members\n", pi->num_progs);
 		rcode = run_list(pi);
 	}
@@ -2472,12 +2436,12 @@ static int run_and_free_list(struct pipe *pi)
  * Caller can deallocate entire list by single free(list). */
 
 /* Store given string, finalizing the word and starting new one whenever
- * we encounter ifs char(s). This is used for expanding variable values.
+ * we encounter IFS char(s). This is used for expanding variable values.
  * End-of-string does NOT finalize word: think about 'echo -$VAR-' */
 static int expand_on_ifs(o_string *output, int n, const char *str)
 {
 	while (1) {
-		int word_len = strcspn(str, ifs);
+		int word_len = strcspn(str, G.ifs);
 		if (word_len) {
 			if (output->o_quote || !output->o_glob)
 				o_addQstr(output, str, word_len);
@@ -2490,7 +2454,7 @@ static int expand_on_ifs(o_string *output, int n, const char *str)
 		o_addchr(output, '\0');
 		debug_print_list("expand_on_ifs", output, n);
 		n = o_save_ptr(output, n);
-		str += strspn(str, ifs); /* skip ifs chars */
+		str += strspn(str, G.ifs); /* skip ifs chars */
 	}
 	debug_print_list("expand_on_ifs[1]", output, n);
 	return n;
@@ -2540,31 +2504,31 @@ static int expand_vars_to_list(o_string *output, int n, char *arg, char or_mask)
 		switch (first_ch & 0x7f) {
 		/* Highest bit in first_ch indicates that var is double-quoted */
 		case '$': /* pid */
-			val = utoa(root_pid);
+			val = utoa(G.root_pid);
 			break;
 		case '!': /* bg pid */
-			val = last_bg_pid ? utoa(last_bg_pid) : (char*)"";
+			val = G.last_bg_pid ? utoa(G.last_bg_pid) : (char*)"";
 			break;
 		case '?': /* exitcode */
-			val = utoa(last_return_code);
+			val = utoa(G.last_return_code);
 			break;
 		case '#': /* argc */
-			val = utoa(global_argc ? global_argc-1 : 0);
+			val = utoa(G.global_argc ? G.global_argc-1 : 0);
 			break;
 		case '*':
 		case '@':
 			i = 1;
-			if (!global_argv[i])
+			if (!G.global_argv[i])
 				break;
 			ored_ch |= first_ch; /* do it for "$@" _now_, when we know it's not empty */
 			if (!(first_ch & 0x80)) { /* unquoted $* or $@ */
 				smallint sv = output->o_quote;
 				/* unquoted var's contents should be globbed, so don't quote */
 				output->o_quote = 0;
-				while (global_argv[i]) {
-					n = expand_on_ifs(output, n, global_argv[i]);
-					debug_printf_expand("expand_vars_to_list: argv %d (last %d)\n", i, global_argc-1);
-					if (global_argv[i++][0] && global_argv[i]) {
+				while (G.global_argv[i]) {
+					n = expand_on_ifs(output, n, G.global_argv[i]);
+					debug_printf_expand("expand_vars_to_list: argv %d (last %d)\n", i, G.global_argc - 1);
+					if (G.global_argv[i++][0] && G.global_argv[i]) {
 						/* this argv[] is not empty and not last:
 						 * put terminating NUL, start new word */
 						o_addchr(output, '\0');
@@ -2579,8 +2543,8 @@ static int expand_vars_to_list(o_string *output, int n, char *arg, char or_mask)
 			 * and in this case should treat it like '$*' - see 'else...' below */
 			if (first_ch == ('@'|0x80) && !or_mask) { /* quoted $@ */
 				while (1) {
-					o_addQstr(output, global_argv[i], strlen(global_argv[i]));
-					if (++i >= global_argc)
+					o_addQstr(output, G.global_argv[i], strlen(G.global_argv[i]));
+					if (++i >= G.global_argc)
 						break;
 					o_addchr(output, '\0');
 					debug_print_list("expand_vars_to_list[4]", output, n);
@@ -2588,11 +2552,11 @@ static int expand_vars_to_list(o_string *output, int n, char *arg, char or_mask)
 				}
 			} else { /* quoted $*: add as one word */
 				while (1) {
-					o_addQstr(output, global_argv[i], strlen(global_argv[i]));
-					if (!global_argv[++i])
+					o_addQstr(output, G.global_argv[i], strlen(G.global_argv[i]));
+					if (!G.global_argv[++i])
 						break;
-					if (ifs[0])
-						o_addchr(output, ifs[0]);
+					if (G.ifs[0])
+						o_addchr(output, G.ifs[0]);
 				}
 			}
 			break;
@@ -2620,8 +2584,8 @@ static int expand_vars_to_list(o_string *output, int n, char *arg, char or_mask)
 			arg[0] = first_ch & 0x7f;
 			if (isdigit(arg[0])) {
 				i = xatoi_u(arg);
-				if (i < global_argc)
-					val = global_argv[i];
+				if (i < G.global_argc)
+					val = G.global_argv[i];
 				/* else val remains NULL: $N with too big N */
 			} else
 				val = lookup_param(arg);
@@ -2736,7 +2700,7 @@ static char* expand_strvec_to_string(char **argv)
 			if (HUSH_DEBUG)
 				if (list[n-1] + strlen(list[n-1]) + 1 != list[n])
 					bb_error_msg_and_die("BUG in varexp3");
-			list[n][-1] = ' '; /* TODO: or to ifs[0]? */
+			list[n][-1] = ' '; /* TODO: or to G.ifs[0]? */
 			n++;
 		}
 	}
@@ -2755,7 +2719,7 @@ static struct variable *get_local_var(const char *name)
 	if (!name)
 		return NULL;
 	len = strlen(name);
-	for (cur = top_var; cur; cur = cur->next) {
+	for (cur = G.top_var; cur; cur = cur->next) {
 		if (strncmp(cur->varstr, name, len) == 0 && cur->varstr[len] == '=')
 			return cur;
 	}
@@ -2777,7 +2741,7 @@ static int set_local_var(char *str, int flg_export)
 	}
 
 	name_len = value - str + 1; /* including '=' */
-	cur = top_var; /* cannot be NULL (we have HUSH_VERSION and it's RO) */
+	cur = G.top_var; /* cannot be NULL (we have HUSH_VERSION and it's RO) */
 	while (1) {
 		if (strncmp(cur->varstr, str, name_len) != 0) {
 			if (!cur->next) {
@@ -2838,7 +2802,7 @@ static void unset_local_var(const char *name)
 	if (!name)
 		return;
 	name_len = strlen(name);
-	cur = top_var;
+	cur = G.top_var;
 	while (cur) {
 		if (strncmp(cur->varstr, name, name_len) == 0 && cur->varstr[name_len] == '=') {
 			if (cur->flg_read_only) {
@@ -3319,7 +3283,7 @@ static FILE *generate_stream_from_list(struct pipe *head)
 		xmove_fd(channel[1], 1);
 		/* Prevent it from trying to handle ctrl-z etc */
 #if ENABLE_HUSH_JOB
-		run_list_level = 1;
+		G.run_list_level = 1;
 #endif
 		/* Process substitution is not considered to be usual
 		 * 'command execution'.
@@ -3654,7 +3618,7 @@ static int parse_stream(o_string *dest, struct p_context *ctx,
 		next = '\0';
 		ch = i_getch(input);
 		if (ch != EOF) {
-			m = charmap[ch];
+			m = G.charmap[ch];
 			if (ch != '\n') {
 				next = i_peek(input);
 			}
@@ -3915,29 +3879,28 @@ static int parse_stream(o_string *dest, struct p_context *ctx,
 static void set_in_charmap(const char *set, int code)
 {
 	while (*set)
-		charmap[(unsigned char)*set++] = code;
+		G.charmap[(unsigned char)*set++] = code;
 }
 
 static void update_charmap(void)
 {
-	/* char *ifs and char charmap[256] are both globals. */
-	ifs = getenv("IFS");
-	if (ifs == NULL)
-		ifs = " \t\n";
+	G.ifs = getenv("IFS");
+	if (G.ifs == NULL)
+		G.ifs = " \t\n";
 	/* Precompute a list of 'flow through' behavior so it can be treated
 	 * quickly up front.  Computation is necessary because of IFS.
 	 * Special case handling of IFS == " \t\n" is not implemented.
 	 * The charmap[] array only really needs two bits each,
 	 * and on most machines that would be faster (reduced L1 cache use).
 	 */
-	memset(charmap, CHAR_ORDINARY, sizeof(charmap));
+	memset(G.charmap, CHAR_ORDINARY, sizeof(G.charmap));
 #if ENABLE_HUSH_TICK
 	set_in_charmap("\\$\"`", CHAR_SPECIAL);
 #else
 	set_in_charmap("\\$\"", CHAR_SPECIAL);
 #endif
 	set_in_charmap("<>;&|(){}#'", CHAR_ORDINARY_IF_QUOTED);
-	set_in_charmap(ifs, CHAR_IFS);  /* are ordinary if quoted */
+	set_in_charmap(G.ifs, CHAR_IFS);  /* are ordinary if quoted */
 }
 
 /* Most recursion does not come through here, the exception is
@@ -4016,13 +3979,14 @@ static void setup_job_control(void)
 {
 	pid_t shell_pgrp;
 
-	saved_task_pgrp = shell_pgrp = getpgrp();
-	debug_printf_jobs("saved_task_pgrp=%d\n", saved_task_pgrp);
-	close_on_exec_on(interactive_fd);
+//	G.saved_task_pgrp =
+	shell_pgrp = getpgrp();
+//	debug_printf_jobs("saved_task_pgrp=%d\n", G.saved_task_pgrp);
+	close_on_exec_on(G.interactive_fd);
 
 	/* If we were ran as 'hush &',
 	 * sleep until we are in the foreground.  */
-	while (tcgetpgrp(interactive_fd) != shell_pgrp) {
+	while (tcgetpgrp(G.interactive_fd) != shell_pgrp) {
 		/* Send TTIN to ourself (should stop us) */
 		kill(- shell_pgrp, SIGTTIN);
 		shell_pgrp = getpgrp();
@@ -4039,7 +4003,7 @@ static void setup_job_control(void)
 	/* Put ourselves in our own process group.  */
 	setpgrp(); /* is the same as setpgid(our_pid, our_pid); */
 	/* Grab control of the terminal.  */
-	tcsetpgrp(interactive_fd, getpid());
+	tcsetpgrp(G.interactive_fd, getpid());
 }
 #endif
 
@@ -4063,15 +4027,15 @@ int hush_main(int argc, char **argv)
 
 	INIT_G();
 
-	root_pid = getpid();
+	G.root_pid = getpid();
 
 	/* Deal with HUSH_VERSION */
-	shell_ver = const_shell_ver; /* copying struct here */
-	top_var = &shell_ver;
+	G.shell_ver = const_shell_ver; /* copying struct here */
+	G.top_var = &G.shell_ver;
 	unsetenv("HUSH_VERSION"); /* in case it exists in initial env */
 	/* Initialize our shell local variables with the values
 	 * currently living in the environment */
-	cur_var = top_var;
+	cur_var = G.top_var;
 	e = environ;
 	if (e) while (*e) {
 		char *value = strchr(*e, '=');
@@ -4087,22 +4051,22 @@ int hush_main(int argc, char **argv)
 	putenv((char *)version_str); /* reinstate HUSH_VERSION */
 
 #if ENABLE_FEATURE_EDITING
-	line_input_state = new_line_input_t(FOR_SHELL);
+	G.line_input_state = new_line_input_t(FOR_SHELL);
 #endif
 	/* XXX what should these be while sourcing /etc/profile? */
-	global_argc = argc;
-	global_argv = argv;
+	G.global_argc = argc;
+	G.global_argv = argv;
 	/* Initialize some more globals to non-zero values */
 	set_cwd();
 #if ENABLE_HUSH_INTERACTIVE
 #if ENABLE_FEATURE_EDITING
 	cmdedit_set_initial_prompt();
 #endif
-	PS2 = "> ";
+	G.PS2 = "> ";
 #endif
 
 	if (EXIT_SUCCESS) /* otherwise is already done */
-		last_return_code = EXIT_SUCCESS;
+		G.last_return_code = EXIT_SUCCESS;
 
 	if (argv[0] && argv[0][0] == '-') {
 		debug_printf("sourcing /etc/profile\n");
@@ -4118,17 +4082,17 @@ int hush_main(int argc, char **argv)
 	while ((opt = getopt(argc, argv, "c:xif")) > 0) {
 		switch (opt) {
 		case 'c':
-			global_argv = argv + optind;
-			global_argc = argc - optind;
+			G.global_argv = argv + optind;
+			G.global_argc = argc - optind;
 			opt = parse_and_run_string(optarg, 0 /* parse_flag */);
 			goto final_return;
 		case 'i':
 			/* Well, we cannot just declare interactiveness,
 			 * we have to have some stuff (ctty, etc) */
-			/* interactive_fd++; */
+			/* G.interactive_fd++; */
 			break;
 		case 'f':
-			fake_mode = 1;
+			G.fake_mode = 1;
 			break;
 		default:
 #ifndef BB_VER
@@ -4151,25 +4115,25 @@ int hush_main(int argc, char **argv)
 	if (argv[optind] == NULL && input == stdin
 	 && isatty(STDIN_FILENO) && isatty(STDOUT_FILENO)
 	) {
-		saved_tty_pgrp = tcgetpgrp(STDIN_FILENO);
-		debug_printf("saved_tty_pgrp=%d\n", saved_tty_pgrp);
-		if (saved_tty_pgrp >= 0) {
+		G.saved_tty_pgrp = tcgetpgrp(STDIN_FILENO);
+		debug_printf("saved_tty_pgrp=%d\n", G.saved_tty_pgrp);
+		if (G.saved_tty_pgrp >= 0) {
 			/* try to dup to high fd#, >= 255 */
-			interactive_fd = fcntl(STDIN_FILENO, F_DUPFD, 255);
-			if (interactive_fd < 0) {
+			G.interactive_fd = fcntl(STDIN_FILENO, F_DUPFD, 255);
+			if (G.interactive_fd < 0) {
 				/* try to dup to any fd */
-				interactive_fd = dup(STDIN_FILENO);
-				if (interactive_fd < 0)
+				G.interactive_fd = dup(STDIN_FILENO);
+				if (G.interactive_fd < 0)
 					/* give up */
-					interactive_fd = 0;
+					G.interactive_fd = 0;
 			}
 			// TODO: track & disallow any attempts of user
 			// to (inadvertently) close/redirect it
 		}
 	}
-	debug_printf("interactive_fd=%d\n", interactive_fd);
-	if (interactive_fd) {
-		fcntl(interactive_fd, F_SETFD, FD_CLOEXEC);
+	debug_printf("G.interactive_fd=%d\n", G.interactive_fd);
+	if (G.interactive_fd) {
+		fcntl(G.interactive_fd, F_SETFD, FD_CLOEXEC);
 		/* Looks like they want an interactive shell */
 		setup_job_control();
 		/* -1 is special - makes xfuncs longjmp, not exit
@@ -4189,16 +4153,16 @@ int hush_main(int argc, char **argv)
 	if (argv[optind] == NULL && input == stdin
 	 && isatty(STDIN_FILENO) && isatty(STDOUT_FILENO)
 	) {
-		interactive_fd = fcntl(STDIN_FILENO, F_DUPFD, 255);
-		if (interactive_fd < 0) {
+		G.interactive_fd = fcntl(STDIN_FILENO, F_DUPFD, 255);
+		if (G.interactive_fd < 0) {
 			/* try to dup to any fd */
-			interactive_fd = dup(STDIN_FILENO);
-			if (interactive_fd < 0)
+			G.interactive_fd = dup(STDIN_FILENO);
+			if (G.interactive_fd < 0)
 				/* give up */
-				interactive_fd = 0;
+				G.interactive_fd = 0;
 		}
-		if (interactive_fd) {
-			fcntl(interactive_fd, F_SETFD, FD_CLOEXEC);
+		if (G.interactive_fd) {
+			fcntl(G.interactive_fd, F_SETFD, FD_CLOEXEC);
 			set_misc_sighandler(SIG_IGN);
 		}
 	}
@@ -4208,8 +4172,8 @@ int hush_main(int argc, char **argv)
 		opt = parse_and_run_file(stdin);
 	} else {
 		debug_printf("\nrunning script '%s'\n", argv[optind]);
-		global_argv = argv + optind;
-		global_argc = argc - optind;
+		G.global_argv = argv + optind;
+		G.global_argc = argc - optind;
 		input = xfopen_for_read(argv[optind]);
 		fcntl(fileno(input), F_SETFD, FD_CLOEXEC);
 		opt = parse_and_run_file(input);
@@ -4219,9 +4183,9 @@ int hush_main(int argc, char **argv)
 
 #if ENABLE_FEATURE_CLEAN_UP
 	fclose(input);
-	if (cwd != bb_msg_unknown)
-		free((char*)cwd);
-	cur_var = top_var->next;
+	if (G.cwd != bb_msg_unknown)
+		free((char*)G.cwd);
+	cur_var = G.top_var->next;
 	while (cur_var) {
 		struct variable *tmp = cur_var;
 		if (!cur_var->max_len)
@@ -4230,7 +4194,7 @@ int hush_main(int argc, char **argv)
 		free(tmp);
 	}
 #endif
-	hush_exit(opt ? opt : last_return_code);
+	hush_exit(opt ? opt : G.last_return_code);
 }
 
 
@@ -4280,7 +4244,7 @@ static int builtin_eval(char **argv)
 		char *str = expand_strvec_to_string(argv + 1);
 		parse_and_run_string(str, PARSEFLAG_EXIT_FROM_LOOP);
 		free(str);
-		rcode = last_return_code;
+		rcode = G.last_return_code;
 	}
 	return rcode;
 }
@@ -4323,7 +4287,7 @@ static int builtin_exit(char **argv)
 // TODO: warn if we have background jobs: "There are stopped jobs"
 // On second consecutive 'exit', exit anyway.
 	if (argv[1] == NULL)
-		hush_exit(last_return_code);
+		hush_exit(G.last_return_code);
 	/* mimic bash: exit 123abc == exit 255 + error msg */
 	xfunc_error_retval = 255;
 	/* bash: exit -2 == exit 254, no error msg */
@@ -4373,12 +4337,12 @@ static int builtin_fg_bg(char **argv)
 	int i, jobnum;
 	struct pipe *pi;
 
-	if (!interactive_fd)
+	if (!G.interactive_fd)
 		return EXIT_FAILURE;
 	/* If they gave us no args, assume they want the last backgrounded task */
 	if (!argv[1]) {
-		for (pi = job_list; pi; pi = pi->next) {
-			if (pi->jobid == last_jobid) {
+		for (pi = G.job_list; pi; pi = pi->next) {
+			if (pi->jobid == G.last_jobid) {
 				goto found;
 			}
 		}
@@ -4389,7 +4353,7 @@ static int builtin_fg_bg(char **argv)
 		bb_error_msg("%s: bad argument '%s'", argv[0], argv[1]);
 		return EXIT_FAILURE;
 	}
-	for (pi = job_list; pi; pi = pi->next) {
+	for (pi = G.job_list; pi; pi = pi->next) {
 		if (pi->jobid == jobnum) {
 			goto found;
 		}
@@ -4401,7 +4365,7 @@ static int builtin_fg_bg(char **argv)
 	// of job being foregrounded (like "sleep 1 | cat")
 	if (*argv[0] == 'f') {
 		/* Put the job into the foreground.  */
-		tcsetpgrp(interactive_fd, pi->pgrp);
+		tcsetpgrp(G.interactive_fd, pi->pgrp);
 	}
 
 	/* Restart the processes in the job */
@@ -4451,7 +4415,7 @@ static int builtin_jobs(char **argv UNUSED_PARAM)
 	struct pipe *job;
 	const char *status_string;
 
-	for (job = job_list; job; job = job->next) {
+	for (job = G.job_list; job; job = job->next) {
 		if (job->alive_progs == job->stopped_progs)
 			status_string = "Stopped";
 		else
@@ -4485,7 +4449,7 @@ static int builtin_set(char **argv)
 	struct variable *e;
 
 	if (temp == NULL)
-		for (e = top_var; e; e = e->next)
+		for (e = G.top_var; e; e = e->next)
 			puts(e->varstr);
 	else
 		set_local_var(xstrdup(temp), 0);
@@ -4499,10 +4463,10 @@ static int builtin_shift(char **argv)
 	if (argv[1]) {
 		n = atoi(argv[1]);
 	}
-	if (n >= 0 && n < global_argc) {
-		global_argv[n] = global_argv[0];
-		global_argc -= n;
-		global_argv += n;
+	if (n >= 0 && n < G.global_argc) {
+		G.global_argv[n] = G.global_argv[0];
+		G.global_argc -= n;
+		G.global_argv += n;
 		return EXIT_SUCCESS;
 	}
 	return EXIT_FAILURE;
@@ -4525,9 +4489,9 @@ static int builtin_source(char **argv)
 	close_on_exec_on(fileno(input));
 
 	/* Now run the file */
-	/* XXX argv and argc are broken; need to save old global_argv
+	/* XXX argv and argc are broken; need to save old G.global_argv
 	 * (pointer only is OK!) on this stack frame,
-	 * set global_argv=argv+1, recurse, and restore. */
+	 * set G.global_argv=argv+1, recurse, and restore. */
 	status = parse_and_run_file(input);
 	fclose(input);
 	return status;
@@ -4561,29 +4525,29 @@ static int builtin_unset(char **argv)
 #if ENABLE_HUSH_LOOPS
 static int builtin_break(char **argv)
 {
-	if (depth_of_loop == 0) {
+	if (G.depth_of_loop == 0) {
 		bb_error_msg("%s: only meaningful in a loop", "break");
 		return EXIT_SUCCESS; /* bash compat */
 	}
-	flag_break_continue++; /* BC_BREAK = 1 */
-	depth_break_continue = 1;
+	G.flag_break_continue++; /* BC_BREAK = 1 */
+	G.depth_break_continue = 1;
 	if (argv[1]) {
-		depth_break_continue = bb_strtou(argv[1], NULL, 10);
-		if (errno || !depth_break_continue || argv[2]) {
+		G.depth_break_continue = bb_strtou(argv[1], NULL, 10);
+		if (errno || !G.depth_break_continue || argv[2]) {
 			bb_error_msg("bad arguments");
-			flag_break_continue = BC_BREAK;
-			depth_break_continue = UINT_MAX;
+			G.flag_break_continue = BC_BREAK;
+			G.depth_break_continue = UINT_MAX;
 		}
 	}
-	if (depth_of_loop < depth_break_continue)
-		depth_break_continue = depth_of_loop;
+	if (G.depth_of_loop < G.depth_break_continue)
+		G.depth_break_continue = G.depth_of_loop;
 	return EXIT_SUCCESS;
 }
 
 static int builtin_continue(char **argv)
 {
-	if (depth_of_loop) {
-		flag_break_continue++; /* BC_CONTINUE = 2 = 1+1 */
+	if (G.depth_of_loop) {
+		G.flag_break_continue = 1; /* BC_CONTINUE = 2 = 1+1 */
 		return builtin_break(argv);
 	}
 	bb_error_msg("%s: only meaningful in a loop", "continue");
