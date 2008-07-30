@@ -29,73 +29,68 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 /* Dependencies on runit_lib.c removed */
 
 #include "libbb.h"
-
 #include <dirent.h>
 
-// Must match constants in chpst_main!
-#define OPT_verbose  (option_mask32 & 0x2000)
-#define OPT_pgrp     (option_mask32 & 0x4000)
-#define OPT_nostdin  (option_mask32 & 0x8000)
-#define OPT_nostdout (option_mask32 & 0x10000)
-#define OPT_nostderr (option_mask32 & 0x20000)
+/*
+Five applets here: chpst, envdir, envuidgid, setuidgid, softlimit.
 
-struct globals {
-	char *set_user;
-	char *env_user;
-	const char *env_dir;
-	const char *root;
-	long limitd; /* limitX are initialized to -2 */
-	long limits;
-	long limitl;
-	long limita;
-	long limito;
-	long limitp;
-	long limitf;
-	long limitc;
-	long limitr;
-	long limitt;
-	int nicelvl;
+Only softlimit and chpst are taking options:
+
+# common
+-o N            Limit number of open files per process
+-p N            Limit number of processes per uid
+-m BYTES        Same as -d BYTES -s BYTES -l BYTES [-a BYTES]
+-d BYTES        Limit data segment
+-f BYTES        Limit output file sizes
+-c BYTES        Limit core file size
+# softlimit
+-a BYTES        Limit total size of all segments
+-s BYTES        Limit stack segment
+-l BYTES        Limit locked memory size
+-r BYTES        Limit resident set size
+-t N            Limit CPU time
+# chpst
+-u USER[:GRP]   Set uid and gid
+-U USER[:GRP]   Set $UID and $GID in environment
+-e DIR          Set environment variables as specified by files in DIR
+-/ DIR          Chroot to DIR
+-n NICE         Add NICE to nice value
+-v              Verbose
+-P              Create new process group
+-0 -1 -2        Close fd 0,1,2
+
+Even though we accept all these options for both softlimit and chpst,
+they are not to be advertised on their help texts.
+We have enough problems with feature creep in other people's
+software, don't want to add our own.
+
+envdir, envuidgid, setuidgid take no options, but they reuse code which
+handles -e, -U and -u.
+*/
+
+enum {
+	OPT_a = (1 << 0) * ENABLE_SOFTLIMIT,
+	OPT_c = (1 << 1) * (ENABLE_SOFTLIMIT || ENABLE_CHPST),
+	OPT_d = (1 << 2) * (ENABLE_SOFTLIMIT || ENABLE_CHPST),
+	OPT_f = (1 << 3) * (ENABLE_SOFTLIMIT || ENABLE_CHPST),
+	OPT_l = (1 << 4) * ENABLE_SOFTLIMIT,
+	OPT_m = (1 << 5) * (ENABLE_SOFTLIMIT || ENABLE_CHPST),
+	OPT_o = (1 << 6) * (ENABLE_SOFTLIMIT || ENABLE_CHPST),
+	OPT_p = (1 << 7) * (ENABLE_SOFTLIMIT || ENABLE_CHPST),
+	OPT_r = (1 << 8) * ENABLE_SOFTLIMIT,
+	OPT_s = (1 << 9) * ENABLE_SOFTLIMIT,
+	OPT_t = (1 << 10) * ENABLE_SOFTLIMIT,
+	OPT_u = (1 << 11) * (ENABLE_CHPST || ENABLE_SETUIDGID),
+	OPT_U = (1 << 12) * (ENABLE_CHPST || ENABLE_ENVUIDGID),
+	OPT_e = (1 << 13) * (ENABLE_CHPST || ENABLE_ENVDIR),
+	OPT_root = (1 << 14) * ENABLE_CHPST,
+	OPT_n = (1 << 15) * ENABLE_CHPST,
+	OPT_v = (1 << 16) * ENABLE_CHPST,
+	OPT_P = (1 << 17) * ENABLE_CHPST,
+	OPT_0 = (1 << 18) * ENABLE_CHPST,
+	OPT_1 = (1 << 19) * ENABLE_CHPST,
+	OPT_2 = (1 << 20) * ENABLE_CHPST,
 };
-#define G (*(struct globals*)&bb_common_bufsiz1)
-#define set_user (G.set_user)
-#define env_user (G.env_user)
-#define env_dir  (G.env_dir )
-#define root     (G.root    )
-#define limitd   (G.limitd  )
-#define limits   (G.limits  )
-#define limitl   (G.limitl  )
-#define limita   (G.limita  )
-#define limito   (G.limito  )
-#define limitp   (G.limitp  )
-#define limitf   (G.limitf  )
-#define limitc   (G.limitc  )
-#define limitr   (G.limitr  )
-#define limitt   (G.limitt  )
-#define nicelvl  (G.nicelvl )
-#define INIT_G() do { \
-	long *p = &limitd; \
-	do *p++ = -2; while (p <= &limitt); \
-} while (0)
-
-static void suidgid(char *user)
-{
-	struct bb_uidgid_t ugid;
-
-	xget_uidgid(&ugid, user);
-	if (setgroups(1, &ugid.gid) == -1)
-		bb_perror_msg_and_die("setgroups");
-	xsetgid(ugid.gid);
-	xsetuid(ugid.uid);
-}
-
-static void euidgid(char *user)
-{
-	struct bb_uidgid_t ugid;
-
-	xget_uidgid(&ugid, user);
-	xsetenv("GID", utoa(ugid.gid));
-	xsetenv("UID", utoa(ugid.uid));
-}
 
 static void edir(const char *directory_name)
 {
@@ -126,8 +121,8 @@ static void edir(const char *directory_name)
 			continue;
 		fd = open(d->d_name, O_RDONLY | O_NDELAY);
 		if (fd < 0) {
-			if ((errno == EISDIR) && env_dir) {
-				if (OPT_verbose)
+			if ((errno == EISDIR) && directory_name) {
+				if (option_mask32 & OPT_v)
 					bb_perror_msg("warning: %s/%s is a directory",
 						directory_name,	d->d_name);
 				continue;
@@ -175,229 +170,217 @@ static void limit(int what, long l)
 		bb_perror_msg_and_die("setrlimit");
 }
 
-static void slimit(void)
+int chpst_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
+int chpst_main(int argc UNUSED_PARAM, char **argv)
 {
-	if (limitd >= -1) {
+	struct bb_uidgid_t ugid;
+	char *set_user;
+	char *env_user;
+	char *env_dir;
+	char *root;
+	char *nicestr;
+	unsigned limita;
+	unsigned limitc;
+	unsigned limitd;
+	unsigned limitf;
+	unsigned limitl;
+	unsigned limitm;
+	unsigned limito;
+	unsigned limitp;
+	unsigned limitr;
+	unsigned limits;
+	unsigned limitt;
+	unsigned opt;
+
+	if ((ENABLE_CHPST && applet_name[0] == 'c')
+	 || (ENABLE_SOFTLIMIT && applet_name[1] == 'o')
+	) {
+		// FIXME: can we live with int-sized limits?
+		// can we live with 40000 days?
+		// if yes -> getopt converts strings to numbers for us
+		opt_complementary = "-1:a+:c+:d+:f+:l+:m+:o+:p+:r+:s+:t+";
+		opt = getopt32(argv, "+a:c:d:f:l:m:o:p:r:s:t:u:U:e:"
+			USE_CHPST("/:n:vP012"),
+			&limita, &limitc, &limitd, &limitf, &limitl,
+			&limitm, &limito, &limitp, &limitr, &limits, &limitt,
+			&set_user, &env_user, &env_dir
+			USE_CHPST(, &root, &nicestr));
+		argv += optind;
+		if (opt & OPT_m) { // -m means -asld
+			limita = limits = limitl = limitd = limitm;
+			opt |= (OPT_s | OPT_l | OPT_a | OPT_d);
+		}
+	} else {
+		option_mask32 = opt = 0;
+		argv++;
+	}
+
+	// envdir?
+	if (ENABLE_ENVDIR && applet_name[3] == 'd') {
+		env_dir = *argv++;
+		opt |= OPT_e;
+	}
+
+	// setuidgid?
+	if (ENABLE_SETUIDGID && applet_name[0] == 's') {
+		set_user = *argv++;
+		opt |= OPT_u;
+	}
+
+	// envuidgid?
+	if (ENABLE_ENVUIDGID && applet_name[0] == 'e') {
+		env_user = *argv++;
+		opt |= OPT_U;
+	}
+
+	// we must have PROG [ARGS]
+	if (!*argv)
+		bb_show_usage();
+
+	// set limits
+	if (opt & OPT_d) {
 #ifdef RLIMIT_DATA
 		limit(RLIMIT_DATA, limitd);
 #else
-		if (OPT_verbose)
+		if (opt & OPT_v)
 			bb_error_msg("system does not support RLIMIT_%s",
 				"DATA");
 #endif
 	}
-	if (limits >= -1) {
+	if (opt & OPT_s) {
 #ifdef RLIMIT_STACK
 		limit(RLIMIT_STACK, limits);
 #else
-		if (OPT_verbose)
+		if (opt & OPT_v)
 			bb_error_msg("system does not support RLIMIT_%s",
 				"STACK");
 #endif
 	}
-	if (limitl >= -1) {
+	if (opt & OPT_l) {
 #ifdef RLIMIT_MEMLOCK
 		limit(RLIMIT_MEMLOCK, limitl);
 #else
-		if (OPT_verbose)
+		if (opt & OPT_v)
 			bb_error_msg("system does not support RLIMIT_%s",
 				"MEMLOCK");
 #endif
 	}
-	if (limita >= -1) {
+	if (opt & OPT_a) {
 #ifdef RLIMIT_VMEM
 		limit(RLIMIT_VMEM, limita);
 #else
 #ifdef RLIMIT_AS
 		limit(RLIMIT_AS, limita);
 #else
-		if (OPT_verbose)
+		if (opt & OPT_v)
 			bb_error_msg("system does not support RLIMIT_%s",
 				"VMEM");
 #endif
 #endif
 	}
-	if (limito >= -1) {
+	if (opt & OPT_o) {
 #ifdef RLIMIT_NOFILE
 		limit(RLIMIT_NOFILE, limito);
 #else
 #ifdef RLIMIT_OFILE
 		limit(RLIMIT_OFILE, limito);
 #else
-		if (OPT_verbose)
+		if (opt & OPT_v)
 			bb_error_msg("system does not support RLIMIT_%s",
 				"NOFILE");
 #endif
 #endif
 	}
-	if (limitp >= -1) {
+	if (opt & OPT_p) {
 #ifdef RLIMIT_NPROC
 		limit(RLIMIT_NPROC, limitp);
 #else
-		if (OPT_verbose)
+		if (opt & OPT_v)
 			bb_error_msg("system does not support RLIMIT_%s",
 				"NPROC");
 #endif
 	}
-	if (limitf >= -1) {
+	if (opt & OPT_f) {
 #ifdef RLIMIT_FSIZE
 		limit(RLIMIT_FSIZE, limitf);
 #else
-		if (OPT_verbose)
+		if (opt & OPT_v)
 			bb_error_msg("system does not support RLIMIT_%s",
 				"FSIZE");
 #endif
 	}
-	if (limitc >= -1) {
+	if (opt & OPT_c) {
 #ifdef RLIMIT_CORE
 		limit(RLIMIT_CORE, limitc);
 #else
-		if (OPT_verbose)
+		if (opt & OPT_v)
 			bb_error_msg("system does not support RLIMIT_%s",
 				"CORE");
 #endif
 	}
-	if (limitr >= -1) {
+	if (opt & OPT_r) {
 #ifdef RLIMIT_RSS
 		limit(RLIMIT_RSS, limitr);
 #else
-		if (OPT_verbose)
+		if (opt & OPT_v)
 			bb_error_msg("system does not support RLIMIT_%s",
 				"RSS");
 #endif
 	}
-	if (limitt >= -1) {
+	if (opt & OPT_t) {
 #ifdef RLIMIT_CPU
 		limit(RLIMIT_CPU, limitt);
 #else
-		if (OPT_verbose)
+		if (opt & OPT_v)
 			bb_error_msg("system does not support RLIMIT_%s",
 				"CPU");
 #endif
 	}
-}
 
-/* argv[0] */
-static void setuidgid(int, char **) NORETURN;
-static void envuidgid(int, char **) NORETURN;
-static void envdir(int, char **) NORETURN;
-static void softlimit(int, char **) NORETURN;
+	if (opt & OPT_P)
+		setsid();
 
-int chpst_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int chpst_main(int argc UNUSED_PARAM, char **argv)
-{
-	INIT_G();
+	if (opt & OPT_e)
+		edir(env_dir);
 
-	if (applet_name[3] == 'd') envdir(argc, argv);
-	if (applet_name[1] == 'o') softlimit(argc, argv);
-	if (applet_name[0] == 's') setuidgid(argc, argv);
-	if (applet_name[0] == 'e') envuidgid(argc, argv);
-	// otherwise we are chpst
-
-	{
-		char *m,*d,*o,*p,*f,*c,*r,*t,*n;
-		getopt32(argv, "+u:U:e:m:d:o:p:f:c:r:t:/:n:vP012",
-				&set_user,&env_user,&env_dir,
-				&m,&d,&o,&p,&f,&c,&r,&t,&root,&n);
-		// if (option_mask32 & 0x1) // -u
-		// if (option_mask32 & 0x2) // -U
-		// if (option_mask32 & 0x4) // -e
-		if (option_mask32 & 0x8) limits = limitl = limita = limitd = xatoul(m); // -m
-		if (option_mask32 & 0x10) limitd = xatoul(d); // -d
-		if (option_mask32 & 0x20) limito = xatoul(o); // -o
-		if (option_mask32 & 0x40) limitp = xatoul(p); // -p
-		if (option_mask32 & 0x80) limitf = xatoul(f); // -f
-		if (option_mask32 & 0x100) limitc = xatoul(c); // -c
-		if (option_mask32 & 0x200) limitr = xatoul(r); // -r
-		if (option_mask32 & 0x400) limitt = xatoul(t); // -t
-		// if (option_mask32 & 0x800) // -/
-		if (option_mask32 & 0x1000) nicelvl = xatoi(n); // -n
-		// The below consts should match #defines at top!
-		//if (option_mask32 & 0x2000) OPT_verbose = 1; // -v
-		//if (option_mask32 & 0x4000) OPT_pgrp = 1; // -P
-		//if (option_mask32 & 0x8000) OPT_nostdin = 1; // -0
-		//if (option_mask32 & 0x10000) OPT_nostdout = 1; // -1
-		//if (option_mask32 & 0x20000) OPT_nostderr = 1; // -2
+	// FIXME: chrooted jail must have /etc/passwd if we move this after chroot!
+	// OTOH chroot fails for non-roots!
+	// SOLUTION: cache uid/gid before chroot, apply uid/gid after
+	if (opt & OPT_U) {
+		xget_uidgid(&ugid, env_user);
+		xsetenv("GID", utoa(ugid.gid));
+		xsetenv("UID", utoa(ugid.uid));
 	}
-	argv += optind;
-	if (!argv || !*argv) bb_show_usage();
 
-	if (OPT_pgrp) setsid();
-	if (env_dir) edir(env_dir);
-	if (root) {
+	if (opt & OPT_u) {
+		xget_uidgid(&ugid, set_user);
+	}
+
+	if (opt & OPT_root) {
 		xchdir(root);
 		xchroot(".");
 	}
-	slimit();
-	if (nicelvl) {
+
+	if (opt & OPT_u) {
+		if (setgroups(1, &ugid.gid) == -1)
+			bb_perror_msg_and_die("setgroups");
+		xsetgid(ugid.gid);
+		xsetuid(ugid.uid);
+	}
+
+	if (opt & OPT_n) {
 		errno = 0;
-		if (nice(nicelvl) == -1)
+		if (nice(xatoi(nicestr)) == -1)
 			bb_perror_msg_and_die("nice");
 	}
-	if (env_user) euidgid(env_user);
-	if (set_user) suidgid(set_user);
-	if (OPT_nostdin) close(0);
-	if (OPT_nostdout) close(1);
-	if (OPT_nostderr) close(2);
-	BB_EXECVP(argv[0], argv);
-	bb_perror_msg_and_die("exec %s", argv[0]);
-}
 
-static void setuidgid(int argc UNUSED_PARAM, char **argv)
-{
-	const char *account;
+	if (opt & OPT_0)
+		close(STDIN_FILENO);
+	if (opt & OPT_1)
+		close(STDOUT_FILENO);
+	if (opt & OPT_2)
+		close(STDERR_FILENO);
 
-	account = *++argv;
-	if (!account) bb_show_usage();
-	if (!*++argv) bb_show_usage();
-	suidgid((char*)account);
-	BB_EXECVP(argv[0], argv);
-	bb_perror_msg_and_die("exec %s", argv[0]);
-}
-
-static void envuidgid(int argc UNUSED_PARAM, char **argv)
-{
-	const char *account;
-
-	account = *++argv;
-	if (!account) bb_show_usage();
-	if (!*++argv) bb_show_usage();
-	euidgid((char*)account);
-	BB_EXECVP(argv[0], argv);
-	bb_perror_msg_and_die("exec %s", argv[0]);
-}
-
-static void envdir(int argc UNUSED_PARAM, char **argv)
-{
-	const char *dir;
-
-	dir = *++argv;
-	if (!dir) bb_show_usage();
-	if (!*++argv) bb_show_usage();
-	edir(dir);
-	BB_EXECVP(argv[0], argv);
-	bb_perror_msg_and_die("exec %s", argv[0]);
-}
-
-static void softlimit(int argc UNUSED_PARAM, char **argv)
-{
-	char *a,*c,*d,*f,*l,*m,*o,*p,*r,*s,*t;
-	getopt32(argv, "+a:c:d:f:l:m:o:p:r:s:t:",
-			&a,&c,&d,&f,&l,&m,&o,&p,&r,&s,&t);
-	if (option_mask32 & 0x001) limita = xatoul(a); // -a
-	if (option_mask32 & 0x002) limitc = xatoul(c); // -c
-	if (option_mask32 & 0x004) limitd = xatoul(d); // -d
-	if (option_mask32 & 0x008) limitf = xatoul(f); // -f
-	if (option_mask32 & 0x010) limitl = xatoul(l); // -l
-	if (option_mask32 & 0x020) limits = limitl = limita = limitd = xatoul(m); // -m
-	if (option_mask32 & 0x040) limito = xatoul(o); // -o
-	if (option_mask32 & 0x080) limitp = xatoul(p); // -p
-	if (option_mask32 & 0x100) limitr = xatoul(r); // -r
-	if (option_mask32 & 0x200) limits = xatoul(s); // -s
-	if (option_mask32 & 0x400) limitt = xatoul(t); // -t
-	argv += optind;
-	if (!argv[0]) bb_show_usage();
-	slimit();
 	BB_EXECVP(argv[0], argv);
 	bb_perror_msg_and_die("exec %s", argv[0]);
 }

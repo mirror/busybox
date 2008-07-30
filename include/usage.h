@@ -365,27 +365,26 @@
        "-r--r--r--    1 root     root            0 Apr 12 18:25 /tmp/foo\n"
 
 #define chpst_trivial_usage \
-       "[-vP012] [-u user[:group]] [-U user[:group]] [-e dir] " \
-       "[-/ dir] [-n nice] [-m bytes] [-d bytes] [-o files] " \
-       "[-p processes] [-f bytes] [-c bytes] prog args"
+       "[-vP012] [-u USER[:GRP]] [-U USER[:GRP]] [-e DIR]\n" \
+       "	[-/ DIR] [-n NICE] [-m BYTES] [-d BYTES] [-o N]\n" \
+       "	[-p N] [-f BYTES] [-c BYTES] PROG ARGS"
 #define chpst_full_usage "\n\n" \
-       "Change the process state and run specified program\n" \
+       "Change the process state and run PROG\n" \
      "\nOptions:" \
      "\n	-u USER[:GRP]	Set uid and gid" \
      "\n	-U USER[:GRP]	Set $UID and $GID in environment" \
      "\n	-e DIR		Set environment variables as specified by files" \
      "\n			in DIR: file=1st_line_of_file" \
      "\n	-/ DIR		Chroot to DIR" \
-     "\n	-n INC		Add INC to nice value" \
-     "\n	-m BYTES	Limit data segment, stack segment, locked physical pages," \
-     "\n			and total of all segment per process to BYTES each" \
+     "\n	-n NICE		Add NICE to nice value" \
+     "\n	-m BYTES	Same as -d BYTES -s BYTES -l BYTES" \
      "\n	-d BYTES	Limit data segment" \
-     "\n	-o N		Limit the number of open file descriptors per process to N" \
-     "\n	-p N		Limit number of processes per uid to N" \
-     "\n	-f BYTES	Limit output file size to BYTES" \
-     "\n	-c BYTES	Limit core file size to BYTES" \
+     "\n	-o N		Limit number of open files per process" \
+     "\n	-p N		Limit number of processes per uid" \
+     "\n	-f BYTES	Limit output file sizes" \
+     "\n	-c BYTES	Limit core file size" \
      "\n	-v		Verbose" \
-     "\n	-P		Run prog in a new process group" \
+     "\n	-P		Create new process group" \
      "\n	-0		Close standard input" \
      "\n	-1		Close standard output" \
      "\n	-2		Close standard error" \
@@ -394,41 +393,37 @@
        "account prog args"
 #define setuidgid_full_usage "\n\n" \
        "Set uid and gid to account's uid and gid, removing all supplementary\n" \
-       "groups, then run prog"
+       "groups and run PROG"
 #define envuidgid_trivial_usage \
        "account prog args"
 #define envuidgid_full_usage "\n\n" \
-       "Set $UID to account's uid and $GID to account's gid, then run prog"
+       "Set $UID to account's uid and $GID to account's gid and run PROG"
 #define envdir_trivial_usage \
        "dir prog args"
 #define envdir_full_usage "\n\n" \
        "Set various environment variables as specified by files\n" \
-       "in the directory dir, then run prog"
+       "in the directory dir and run PROG"
 #define softlimit_trivial_usage \
-       "[-a allbytes] [-c corebytes] [-d databytes] [-f filebytes] " \
-       "[-l lockbytes] [-m membytes] [-o openfiles] [-p processes] " \
-       "[-r residentbytes] [-s stackbytes] [-t cpusecs] prog args"
+       "[-a BYTES] [-m BYTES] [-d BYTES] [-s BYTES] [-l BYTES]\n" \
+       "	[-f BYTES] [-c BYTES] [-r BYTES] [-o N] [-p N] [-t N]\n" \
+       "	PROG ARGS"
 #define softlimit_full_usage "\n\n" \
-       "Set soft resource limits, then run prog\n" \
+       "Set soft resource limits, then run PROG\n" \
      "\nOptions:" \
-     "\n	-m n	Same as -d n -s n -l n -a n" \
-     "\n	-d n	Limit the data segment per process to n bytes" \
-     "\n	-s n	Limit the stack segment per process to n bytes" \
-     "\n	-l n	Limit the locked physical pages per process to n bytes" \
-     "\n	-a n	Limit the total of all segments per process to n bytes" \
-     "\n	-o n	Limit the number of open file descriptors per process to n" \
-     "\n	-p n	Limit the number of processes per uid to n" \
+     "\n	-a BYTES	Limit total size of all segments" \
+     "\n	-m BYTES	Same as -d BYTES -s BYTES -l BYTES -a BYTES" \
+     "\n	-d BYTES	Limit data segment" \
+     "\n	-s BYTES	Limit stack segment" \
+     "\n	-l BYTES	Limit locked memory size" \
+     "\n	-o N		Limit number of open files per process" \
+     "\n	-p N		Limit number of processes per uid" \
      "\nOptions controlling file sizes:" \
-     "\n	-f n	Limit output file sizes to n bytes" \
-     "\n	-c n	Limit core file sizes to n bytes" \
+     "\n	-f BYTES	Limit output file sizes" \
+     "\n	-c BYTES	Limit core file size" \
      "\nEfficiency opts:" \
-     "\n	-r n	Limit the resident set size to n bytes. This limit is not" \
-     "\n		enforced unless physical memory is full" \
-     "\n	-t n	Limit the CPU time to n seconds. This limit is not enforced" \
-     "\n		except that the process receives a SIGXCPU signal after n seconds" \
-     "\n" \
-     "\nSome options may have no effect on some operating systems" \
-     "\nn may be =, indicating that soft limit should be set equal to hard limit" \
+     "\n	-r BYTES	Limit resident set size" \
+     "\n	-t N		Limit CPU time, process receives" \
+     "\n			a SIGXCPU after N seconds" \
 
 #define chroot_trivial_usage \
        "NEWROOT [COMMAND...]"
