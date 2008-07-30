@@ -145,12 +145,14 @@ static unsigned int expand(const char *arg, char *buffer)
 				arg--; /* points to x */
 				continue; /* copy all, including eventual ']' */
 			}
-			/* [x-y...] */
-			arg++;
+			/* [x-z] */
+			arg++; /* skip - */
+			if (arg[0] == '\0' || arg[1] != ']')
+				bb_show_usage();
 			ac = *arg++;
 			while (i <= ac)
 				*buffer++ = i++;
-			arg++;	/* skip the assumed ']' */
+			arg++;	/* skip ] */
 			continue;
 		}
 		*buffer++ = *arg++;
