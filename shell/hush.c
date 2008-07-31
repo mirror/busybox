@@ -2202,17 +2202,23 @@ static int run_list(struct pipe *pi)
 			continue;
 		}
 		if (rword == RES_MATCH) {
-			char *pattern;
+			char **argv;
+
 			if (!case_word) /* "case ... matched_word) ... WORD)": we executed selected branch, stop */
 				break;
 			/* all prev words didn't match, does this one match? */
-			pattern = expand_strvec_to_string(pi->progs->argv);
-			/* TODO: which FNM_xxx flags to use? */
-			cond_code = (fnmatch(pattern, case_word, /*flags:*/ 0) != 0);
-			free(pattern);
-			if (cond_code == 0) { /* match! we will execute this branch */
-				free(case_word); /* make future "word)" stop */
-				case_word = NULL;
+			argv = pi->progs->argv;
+			while (*argv) {
+				char *pattern = expand_string_to_string(*argv);
+				/* TODO: which FNM_xxx flags to use? */
+				cond_code = (fnmatch(pattern, case_word, /*flags:*/ 0) != 0);
+				free(pattern);
+				if (cond_code == 0) { /* match! we will execute this branch */
+					free(case_word); /* make future "word)" stop */
+					case_word = NULL;
+					break;
+				}
+				argv++;
 			}
 			continue;
 		}
@@ -3831,6 +3837,10 @@ static int parse_stream(o_string *dest, struct p_context *ctx,
 			break;
 		case '|':
 			done_word(dest, ctx);
+#if ENABLE_HUSH_CASE
+			if (ctx->ctx_res_w == RES_MATCH)
+				break;
+#endif
 			if (next == '|') {
 				i_getch(input);
 				done_pipe(ctx, PIPE_OR);
