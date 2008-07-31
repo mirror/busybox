@@ -3659,6 +3659,15 @@ static int parse_stream(o_string *dest, struct p_context *ctx,
 			 * a newline as a command separator.
 			 * [why we don't handle it exactly like ';'? --vda] */
 			if (end_trigger && ch == '\n') {
+#if ENABLE_HUSH_CASE
+				/* "case ... in <newline> word) ..." -
+				 * newlines are ignored (but ';' wouldn't be) */
+				if (dest->length == 0 // && argv[0] == NULL
+				 && ctx->ctx_res_w == RES_MATCH
+				) {
+					continue;
+				}
+#endif
 				done_pipe(ctx, PIPE_SEQ);
 			}
 		}
@@ -3839,7 +3848,7 @@ static int parse_stream(o_string *dest, struct p_context *ctx,
 			done_word(dest, ctx);
 #if ENABLE_HUSH_CASE
 			if (ctx->ctx_res_w == RES_MATCH)
-				break;
+				break; /* we are in case's "word | word)" */
 #endif
 			if (next == '|') {
 				i_getch(input);
@@ -3853,6 +3862,7 @@ static int parse_stream(o_string *dest, struct p_context *ctx,
 			break;
 		case '(':
 #if ENABLE_HUSH_CASE
+			/* "case... in [(]word)..." - skip '(' */
 			if (dest->length == 0 // && argv[0] == NULL
 			 && ctx->ctx_res_w == RES_MATCH
 			) {

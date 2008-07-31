@@ -1,5 +1,13 @@
 case w in a) echo SKIP;; w) echo OK_1;; w) echo WRONG;; esac
 
+case w in
+ a) echo SKIP;;
+ w)echo OK_1 ;;
+ w)
+ echo WRONG
+ ;;
+esac
+
 t=w
 case $t in a) echo SKIP;; w) echo OK_21;; w) echo WRONG;; esac;
 case "$t" in a) echo SKIP;; w) echo OK_22;; w) echo WRONG;; esac;
