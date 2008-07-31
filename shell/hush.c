@@ -587,7 +587,7 @@ static int glob_needed(const char *s)
 
 static int is_assignment(const char *s)
 {
-	if (!s || !isalpha(*s))
+	if (!s || !(isalpha(*s) || *s == '_'))
 		return 0;
 	s++;
 	while (isalnum(*s) || *s == '_')
@@ -3529,22 +3529,24 @@ static int handle_dollar(o_string *dest, struct in_str *input)
 
 	debug_printf_parse("handle_dollar entered: ch='%c'\n", ch);
 	if (isalpha(ch)) {
+		i_getch(input);
+ make_var:
 		o_addchr(dest, SPECIAL_VAR_SYMBOL);
 		while (1) {
 			debug_printf_parse(": '%c'\n", ch);
-			i_getch(input);
 			o_addchr(dest, ch | quote_mask);
 			quote_mask = 0;
 			ch = i_peek(input);
 			if (!isalnum(ch) && ch != '_')
 				break;
+			i_getch(input);
 		}
 		o_addchr(dest, SPECIAL_VAR_SYMBOL);
 	} else if (isdigit(ch)) {
  make_one_char_var:
+		i_getch(input);
 		o_addchr(dest, SPECIAL_VAR_SYMBOL);
 		debug_printf_parse(": '%c'\n", ch);
-		i_getch(input);
 		o_addchr(dest, ch | quote_mask);
 		o_addchr(dest, SPECIAL_VAR_SYMBOL);
 	} else switch (ch) {
@@ -3586,8 +3588,15 @@ static int handle_dollar(o_string *dest, struct in_str *input)
 			break;
 		}
 #endif
-		case '-':
 		case '_':
+			i_getch(input);
+			ch = i_peek(input);
+			if (isalnum(ch)) { /* it's $_name or $_123 */
+				ch = '_';
+				goto make_var;
+			}
+			/* else: it's $_ */
+		case '-':
 			/* still unhandled, but should be eventually */
 			bb_error_msg("unhandled syntax: $%c", ch);
 			return 1;
