@@ -2298,18 +2298,19 @@
 #define makedevs_trivial_usage \
        "NAME TYPE MAJOR MINOR FIRST LAST [s]"
 #define makedevs_full_usage "\n\n" \
-       "Create a range of block or character special files\n\n" \
-       "TYPEs include:\n" \
-       "	b	Make a block device\n" \
-       "	c or u	Make a character device\n" \
-       "	p	Make a named pipe. MAJOR and MINOR are ignored\n" \
-       "\n" \
-       "FIRST specifies the number appended to NAME to create the first device.\n" \
-       "LAST specifies the number of the last item that should be created\n" \
-       "If 's' is the last argument, the base device is created as well.\n\n" \
-       "For example:\n" \
-       "	makedevs /dev/ttyS c 4 66 2 63   ->  ttyS2-ttyS63\n" \
-       "	makedevs /dev/hda b 3 0 0 8 s    ->  hda,hda1-hda8"
+       "Create a range of block or character special files" \
+     "\n" \
+     "\nTYPE is:" \
+     "\n	b	Block device" \
+     "\n	c	Character device" \
+     "\n	f	FIFO, MAJOR and MINOR are ignored" \
+     "\n" \
+     "\nFIRST..LAST specify numbers appended to NAME." \
+     "\nIf 's' is the last argument, the base device is created as well." \
+     "\n" \
+     "\nExamples:" \
+     "\n	makedevs /dev/ttyS c 4 66 2 63   ->  ttyS2-ttyS63" \
+     "\n	makedevs /dev/hda b 3 0 0 8 s    ->  hda,hda1-hda8"
 #define makedevs_example_usage \
        "# makedevs /dev/ttyS c 4 66 2 63\n" \
        "[creates ttyS2-ttyS63]\n" \
@@ -2325,10 +2326,10 @@
        "Device table entries take the form of:\n" \
        "<type> <mode> <uid> <gid> <major> <minor> <start> <inc> <count>\n" \
        "Where name is the file name, type can be one of:\n" \
-       "	f	A regular file\n" \
+       "	f	Regular file\n" \
        "	d	Directory\n" \
-       "	c	Character special device file\n" \
-       "	b	Block special device file\n" \
+       "	c	Character device\n" \
+       "	b	Block device\n" \
        "	p	Fifo (named pipe)\n" \
        "uid is the user id for the target file, gid is the group id for the\n" \
        "target file. The rest of the entries (major, minor, etc) apply to\n" \
