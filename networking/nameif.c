@@ -136,13 +136,11 @@ int nameif_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int nameif_main(int argc, char **argv)
 {
 	ethtable_t *clist = NULL;
-	FILE *ifh;
 	const char *fname = "/etc/mactab";
-	char *line;
-	char *line_ptr;
-	int linenum;
 	int ctl_sk;
 	ethtable_t *ch;
+	parser_t *parser;
+	char *token[2];
 
 	if (1 & getopt32(argv, "sc:", &fname)) {
 		openlog(applet_name, 0, LOG_LOCAL0);
@@ -160,35 +158,26 @@ int nameif_main(int argc, char **argv)
 			prepend_new_eth_table(&clist, ifname, *argv++);
 		}
 	} else {
-		char *tokens[2];
-		struct parser_t *parser = config_open(fname);
-		while (config_read(parser, tokens, 2, 2, "# \t", PARSE_NORMAL))
-			prepend_new_eth_table(&clist, tokens[0], tokens[1]);
+		parser = config_open(fname);
+		while (config_read(parser, token, 2, 2, "# \t", PARSE_NORMAL))
+			prepend_new_eth_table(&clist, token[0], token[1]);
 		config_close(parser);
 	}
 
 	ctl_sk = xsocket(PF_INET, SOCK_DGRAM, 0);
-	ifh = xfopen_for_read("/proc/net/dev");
+	parser = config_open2("/proc/net/dev", xfopen_for_read);
 
-	linenum = 0;
-	while (clist) {
+	while (clist && config_read(parser, token, 2, 2, "\0: \t", PARSE_NORMAL)) {
 		struct ifreq ifr;
 #if  ENABLE_FEATURE_NAMEIF_EXTENDED
 		struct ethtool_drvinfo drvinfo;
 #endif
-
-		line = xmalloc_fgets(ifh);
-		if (line == NULL)
-			break; /* Seems like we're done */
-		if (linenum++ < 2 )
-			goto next_line; /* Skip the first two lines */
+		if (parser->lineno < 2)
+			continue; /* Skip the first two lines */
 
 		/* Find the current interface name and copy it to ifr.ifr_name */
-		line_ptr = skip_whitespace(line);
-		*strpbrk(line_ptr, " \t\n:") = '\0';
-
 		memset(&ifr, 0, sizeof(struct ifreq));
-		strncpy(ifr.ifr_name, line_ptr, sizeof(ifr.ifr_name));
+		strncpy(ifr.ifr_name, token[0], sizeof(ifr.ifr_name));
 
 #if ENABLE_FEATURE_NAMEIF_EXTENDED
 		/* Check for driver etc. */
@@ -211,11 +200,12 @@ int nameif_main(int argc, char **argv)
 			if (ch->mac && memcmp(ch->mac, ifr.ifr_hwaddr.sa_data, ETH_ALEN) != 0)
 				continue;
 			/* if we came here, all selectors have matched */
-			goto found;
+			break;
 		}
 		/* Nothing found for current interface */
-		goto next_line;
- found:
+		if (!ch)
+			continue;
+
 		if (strcmp(ifr.ifr_name, ch->ifname) != 0) {
 			strcpy(ifr.ifr_newname, ch->ifname);
 			ioctl_or_perror_and_die(ctl_sk, SIOCSIFNAME, &ifr,
@@ -228,16 +218,14 @@ int nameif_main(int argc, char **argv)
 		else
 			clist = ch->next;
 		if (ch->next != NULL)
-		ch->next->prev = ch->prev;
+			ch->next->prev = ch->prev;
 		if (ENABLE_FEATURE_CLEAN_UP)
 			delete_eth_table(ch);
- next_line:
-		free(line);
 	}
 	if (ENABLE_FEATURE_CLEAN_UP) {
 		for (ch = clist; ch; ch = ch->next)
 			delete_eth_table(ch);
-		fclose(ifh);
+		config_close(parser);
 	};
 
 	return 0;
