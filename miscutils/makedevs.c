@@ -15,7 +15,7 @@ makedevs NAME TYPE MAJOR MINOR FIRST LAST [s]
 TYPEs:
 b       Block device
 c       Character device
-p       FIFO
+f       FIFO
 
 FIRST..LAST specify numbers appended to NAME.
 If 's' is the last argument, the base device is created as well.
@@ -82,28 +82,27 @@ int makedevs_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int makedevs_main(int argc UNUSED_PARAM, char **argv)
 {
 	parser_t *parser;
-	char *rootdir = NULL;
 	char *line = (char *)"-";
-	int linenum;
 	int ret = EXIT_SUCCESS;
 
 	opt_complementary = "=1"; /* exactly one param */
 	getopt32(argv, "d:", &line);
-	rootdir = argv[optind];
-	parser = config_open(line);
+	argv += optind;
 
-	xchdir(rootdir);
+	xchdir(*argv); /* ensure root dir exists */
 
 	umask(0);
 
-	printf("rootdir=%s\n", rootdir);
+	printf("rootdir=%s\ntable=", *argv);
 	if (NOT_LONE_DASH(line)) {
-		printf("table='%s'\n", line);
+		printf("'%s'\n", line);
 	} else {
-		printf("table=<stdin>\n");
+		puts("<stdin>");
 	}
 
+	parser = config_open(line);
 	while (config_read(parser, &line, 1, 1, "# \t", PARSE_NORMAL)) {
+		int linenum;
 		char type;
 		unsigned mode = 0755;
 		unsigned major = 0;
@@ -114,7 +113,7 @@ int makedevs_main(int argc UNUSED_PARAM, char **argv)
 		char name[41];
 		char user[41];
 		char group[41];
-		char *full_name;
+		char *full_name = name;
 		uid_t uid;
 		gid_t gid;
 
@@ -132,7 +131,10 @@ int makedevs_main(int argc UNUSED_PARAM, char **argv)
 
 		gid = (*group) ? get_ug_id(group, xgroup2gid) : getgid();
 		uid = (*user) ? get_ug_id(user, xuname2uid) : getuid();
-		full_name = concat_path_file(rootdir, name);
+		/* We are already in the right root dir,
+		 * so make absolute paths relative */
+		if ('/' == *full_name)
+			full_name++;
 
 		if (type == 'd') {
 			bb_make_directory(full_name, mode | S_IFDIR, FILEUTILS_RECUR);
@@ -140,20 +142,20 @@ int makedevs_main(int argc UNUSED_PARAM, char **argv)
  chown_fail:
 				bb_perror_msg("line %d: can't chown %s", linenum, full_name);
 				ret = EXIT_FAILURE;
-				goto loop;
+				continue;
 			}
 			if (chmod(full_name, mode) < 0) {
  chmod_fail:
 				bb_perror_msg("line %d: can't chmod %s", linenum, full_name);
 				ret = EXIT_FAILURE;
-				goto loop;
+				continue;
 			}
 		} else if (type == 'f') {
 			struct stat st;
 			if ((stat(full_name, &st) < 0 || !S_ISREG(st.st_mode))) {
 				bb_perror_msg("line %d: regular file '%s' does not exist", linenum, full_name);
 				ret = EXIT_FAILURE;
-				goto loop;
+				continue;
 			}
 			if (chown(full_name, uid, gid) < 0)
 				goto chown_fail;
@@ -173,7 +175,7 @@ int makedevs_main(int argc UNUSED_PARAM, char **argv)
 			} else {
 				bb_error_msg("line %d: unsupported file type %c", linenum, type);
 				ret = EXIT_FAILURE;
-				goto loop;
+				continue;
 			}
 
 			full_name_inc = xmalloc(strlen(full_name) + sizeof(int)*3 + 2);
@@ -195,8 +197,6 @@ int makedevs_main(int argc UNUSED_PARAM, char **argv)
 			}
 			free(full_name_inc);
 		}
-loop:
-		free(full_name);
 	}
 	if (ENABLE_FEATURE_CLEAN_UP)
 		config_close(parser);
