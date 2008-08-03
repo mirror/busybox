@@ -376,6 +376,8 @@ enum {
 int xargs_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int xargs_main(int argc, char **argv)
 {
+	static const char const_eof_str[] ALIGN1 = "_";
+
 	char **args;
 	int i, n;
 	xlist_t *list = NULL;
@@ -385,7 +387,7 @@ int xargs_main(int argc, char **argv)
 	int n_max_arg;
 	size_t n_chars = 0;
 	long orig_arg_max;
-	const char *eof_str = "_";
+	const char *eof_str = const_eof_str;
 	unsigned opt;
 	size_t n_max_chars;
 #if ENABLE_FEATURE_XARGS_SUPPORT_ZERO_TERM
@@ -395,6 +397,10 @@ int xargs_main(int argc, char **argv)
 #endif
 
 	opt = getopt32(argv, OPTION_STR, &max_args, &max_chars, &eof_str);
+
+	/* -e without optional param? */
+	if ((opt & OPT_EOF_STRING) && eof_str == const_eof_str)
+		eof_str = NULL;
 
 	if (opt & OPT_ZEROTERM)
 		USE_FEATURE_XARGS_SUPPORT_ZERO_TERM(read_args = process0_stdin);
