@@ -2471,8 +2471,6 @@ static int expand_on_ifs(o_string *output, int n, const char *str)
  * to be filled). This routine is extremely tricky: has to deal with
  * variables/parameters with whitespace, $* and $@, and constructs like
  * 'echo -$*-'. If you play here, you must run testsuite afterwards! */
-/* NB: another bug is that we cannot detect empty strings yet:
- * "" or $empty"" expands to zero words, has to expand to empty word */
 static int expand_vars_to_list(o_string *output, int n, char *arg, char or_mask)
 {
 	/* or_mask is either 0 (normal case) or 0x80
