@@ -3650,8 +3650,8 @@
        "[OPTIONS] [-S|-K] ... [-- arguments...]"
 #define start_stop_daemon_full_usage "\n\n" \
        "Search for matching processes, and then\n" \
-       "-S: stop all matching processes.\n" \
-       "-K: start a process unless a matching process is found.\n" \
+       "-K: stop all matching processes.\n" \
+       "-S: start a process unless a matching process is found.\n" \
 	USE_GETOPT_LONG( \
      "\nProcess matching:" \
      "\n	-u,--user USERNAME|UID	Match only this user's processes" \
@@ -3661,7 +3661,7 @@
      "\n				in /proc/PID/cmdline" \
      "\n	-p,--pidfile FILE	Match a process with PID from the file" \
      "\n	All specified conditions must match" \
-     "\n-K only:" \
+     "\n-S only:" \
      "\n	-x,--exec EXECUTABLE	Program to run" \
      "\n	-a,--startas NAME	Zeroth argument" \
      "\n	-b,--background		Background" \
@@ -3670,7 +3670,7 @@
 	) \
      "\n	-c,--chuid USER[:[GRP]]	Change to user/group" \
      "\n	-m,--make-pidfile	Write PID to the pidfile specified by -p" \
-     "\n-S only:" \
+     "\n-K only:" \
      "\n	-s,--signal SIG		Signal to send" \
      "\n	-t,--test		Match only, exit with 0 if a process is found" \
      "\nOther:" \
@@ -3689,7 +3689,7 @@
      "\n			command in /proc/PID/cmdline" \
      "\n	-p FILE		Match a process with PID from the file" \
      "\n	All specified conditions must match" \
-     "\n-K only:" \
+     "\n-S only:" \
      "\n	-x EXECUTABLE	Program to run" \
      "\n	-a NAME		Zeroth argument" \
      "\n	-b		Background" \
@@ -3698,7 +3698,7 @@
 	) \
      "\n	-c USER[:[GRP]]	Change to user/group" \
      "\n	-m		Write PID to the pidfile specified by -p" \
-     "\n-S only:" \
+     "\n-K only:" \
      "\n	-s SIG		Signal to send" \
      "\n	-t		Match only, exit with 0 if a process is found" \
      "\nOther:" \
