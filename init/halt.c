@@ -34,7 +34,7 @@ RB_AUTOBOOT
 	static const smallint signals[] = { SIGUSR1, SIGUSR2, SIGTERM };
 
 	int delay = 0;
-	int which, flags, rc = 1;
+	int which, flags, rc;
 #if ENABLE_FEATURE_WTMP
 	struct utmp utmp;
 	struct utsname uts;
@@ -71,7 +71,10 @@ RB_AUTOBOOT
 		sync();
 
 	/* Perform action. */
-	if (ENABLE_INIT && !(flags & 4)) { /* no -f */
+	rc = 1;
+	if (!(flags & 4)) { /* no -f */
+//TODO: I tend to think that signalling linuxrc is wrong
+// pity original author didn't comment on it...
 		if (ENABLE_FEATURE_INITRD) {
 			pid_t *pidlist = find_pid_by_name("linuxrc");
 			if (pidlist[0] > 0)
