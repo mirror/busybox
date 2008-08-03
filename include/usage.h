@@ -4567,13 +4567,16 @@
        "Execute COMMAND on every item given by standard input\n" \
      "\nOptions:" \
 	USE_FEATURE_XARGS_SUPPORT_CONFIRMATION( \
-     "\n	-p	Prompt the user about whether to run each command") \
-     "\n	-r	Do not run command for empty read lines" \
-	USE_FEATURE_XARGS_SUPPORT_TERMOPT( \
-     "\n	-x	Exit if the size is exceeded") \
+     "\n	-p	Ask user whether to run each command") \
+     "\n	-r	Do not run command if input is empty" \
 	USE_FEATURE_XARGS_SUPPORT_ZERO_TERM( \
-     "\n	-0	Input filenames are terminated by a null character") \
-     "\n	-t	Print the command line on stderr before executing it" \
+     "\n	-0	Input is separated by NUL characters") \
+     "\n	-t	Print the command on stderr before execution" \
+     "\n	-e[STR]	STR stops input processing (default _)" \
+     "\n	-n N	Pass no more than N args to COMMAND" \
+     "\n	-s N	Pass command line of no more than N bytes" \
+	USE_FEATURE_XARGS_SUPPORT_TERMOPT( \
+     "\n	-x	Exit if size is exceeded") \
 
 #define xargs_example_usage \
        "$ ls | xargs gzip\n" \
