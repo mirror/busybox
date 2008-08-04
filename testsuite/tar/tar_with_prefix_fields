@@ -244,6 +244,8 @@ tar2_bz2()
 # also lacking proper terminating zeroed blocks. But exitcode is 0.
 # This is intended.
 
+export TZ=UTC-1
+
 # Case 1: long name, with path in prefix field
 res1='-rw-r--r-- fm3/users      9869 2007-03-12 10:44:54 VirtualBox-1.5.6_OSE/src/libs/xpcom18a4/ipc/ipcd/extensions/transmngr/public/ipcITransactionService.idl'
 t=`tar1_bz2 | bunzip2 | busybox tar tvf -`

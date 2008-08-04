@@ -23,5 +23,7 @@ res1="\
 lrwxrwxrwx user/group         0 2008-07-19 15:02:37 firmware-372/sources/native/bin/chroot-setup.sh -> qemu-setup.sh
 -rwxr-xr-x user/group       512 2008-07-19 15:02:37 firmware-372/sources/native/bin/qemu-setup.sh"
 
+export TZ=UTC-2
+
 t=`tar1_bz2 | bunzip2 | busybox tar tvf -`
 test x"$res1" = x"$t"

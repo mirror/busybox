@@ -25,8 +25,10 @@ mkdir mdev.testdir/dev
 mkdir -p mdev.testdir/sys/block/sda
 echo "8:0" >mdev.testdir/sys/block/sda/dev
 
+# env - PATH=$PATH: on some systems chroot binary won't otherwise be found
+
 testing "mdev add /block/sda" \
-	"env - ACTION=add DEVPATH=/block/sda chroot mdev.testdir /mdev 2>&1;
+	"env - PATH=$PATH ACTION=add DEVPATH=/block/sda chroot mdev.testdir /mdev 2>&1;
 	ls -ln mdev.testdir/dev | $FILTER_LS" \
 "\
 brw-rw---- 1 0 0 8,0 sda
@@ -38,7 +40,7 @@ rm -rf mdev.testdir/dev/*
 echo ".* 1:1 666" >mdev.testdir/etc/mdev.conf
 echo "sda 2:2 444" >>mdev.testdir/etc/mdev.conf
 testing "mdev stops on first rule" \
-	"env - ACTION=add DEVPATH=/block/sda chroot mdev.testdir /mdev 2>&1;
+	"env - PATH=$PATH ACTION=add DEVPATH=/block/sda chroot mdev.testdir /mdev 2>&1;
 	ls -ln mdev.testdir/dev | $FILTER_LS" \
 "\
 brw-rw-rw- 1 1 1 8,0 sda
@@ -49,7 +51,7 @@ brw-rw-rw- 1 1 1 8,0 sda
 rm -rf mdev.testdir/dev/*
 echo "sda 0:0 444 >disk/scsiA" >mdev.testdir/etc/mdev.conf
 testing "mdev move/symlink rule '>bar/baz'" \
-	"env - ACTION=add DEVPATH=/block/sda chroot mdev.testdir /mdev 2>&1;
+	"env - PATH=$PATH ACTION=add DEVPATH=/block/sda chroot mdev.testdir /mdev 2>&1;
 	ls -lnR mdev.testdir/dev | $FILTER_LS2" \
 "\
 mdev.testdir/dev:
@@ -65,7 +67,7 @@ br--r--r-- 1 0 0 scsiA
 rm -rf mdev.testdir/dev/*
 echo "sda 0:0 444 >disk/" >mdev.testdir/etc/mdev.conf
 testing "mdev move/symlink rule '>bar/'" \
-	"env - ACTION=add DEVPATH=/block/sda chroot mdev.testdir /mdev 2>&1;
+	"env - PATH=$PATH ACTION=add DEVPATH=/block/sda chroot mdev.testdir /mdev 2>&1;
 	ls -lnR mdev.testdir/dev | $FILTER_LS2" \
 "\
 mdev.testdir/dev:
@@ -82,7 +84,7 @@ rm -rf mdev.testdir/dev/*
 # here we complicate things by having non-matching group 1 and using %0
 echo "s([0-9])*d([a-z]+) 0:0 644 >sd/%2_%0" >mdev.testdir/etc/mdev.conf
 testing "mdev regexp substring match + replace" \
-	"env - ACTION=add DEVPATH=/block/sda chroot mdev.testdir /mdev 2>&1;
+	"env - PATH=$PATH ACTION=add DEVPATH=/block/sda chroot mdev.testdir /mdev 2>&1;
 	ls -lnR mdev.testdir/dev | $FILTER_LS2" \
 "\
 mdev.testdir/dev:
@@ -99,7 +101,7 @@ rm -rf mdev.testdir/dev/*
 # here we complicate things by having non-matching group 1 and using %0
 echo "sda 0:0 644 @echo @echo TEST" >mdev.testdir/etc/mdev.conf
 testing "mdev command" \
-	"env - ACTION=add DEVPATH=/block/sda chroot mdev.testdir /mdev 2>&1;
+	"env - PATH=$PATH ACTION=add DEVPATH=/block/sda chroot mdev.testdir /mdev 2>&1;
 	ls -lnR mdev.testdir/dev | $FILTER_LS" \
 "\
 @echo TEST
