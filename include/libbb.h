@@ -586,9 +586,6 @@ extern ssize_t nonblock_safe_read(int fd, void *buf, size_t count) FAST_FUNC;
 extern ssize_t full_read(int fd, void *buf, size_t count) FAST_FUNC;
 extern void xread(int fd, void *buf, size_t count) FAST_FUNC;
 extern unsigned char xread_char(int fd) FAST_FUNC;
-// Reads one line a-la fgets (but doesn't save terminating '\n').
-// Uses single full_read() call, works only on seekable streams.
-extern char *reads(int fd, char *buf, size_t count) FAST_FUNC;
 extern ssize_t read_close(int fd, void *buf, size_t maxsz) FAST_FUNC;
 extern ssize_t open_read_close(const char *filename, void *buf, size_t maxsz) FAST_FUNC;
 // Reads one line a-la fgets (but doesn't save terminating '\n').

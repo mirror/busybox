@@ -280,18 +280,18 @@ static int FAST_FUNC include_conf_file_act(const char *filename,
 	struct dep_t **first = &conf->first;
 	struct dep_t **current = &conf->current;
 	int continuation_line = 0;
-	int fd;
+	FILE *f;
 
 	if (bb_basename(filename)[0] == '.')
 		return TRUE;
 
-	fd = open(filename, O_RDONLY);
-	if (fd < 0)
+	f = fopen_for_read(filename);
+	if (f == NULL)
 		return FALSE;
 
 	// alias parsing is not 100% correct (no correct handling of continuation lines within an alias)!
 
-	while (reads(fd, line_buffer, sizeof(line_buffer))) {
+	while (fgets(line_buffer, sizeof(line_buffer), f)) {
 		int l;
 
 		*strchrnul(line_buffer, '#') = '\0';
@@ -376,9 +376,9 @@ static int FAST_FUNC include_conf_file_act(const char *filename,
 			if (dt)
 				dt->m_isblacklisted = 1;
 		}
-	} /* while (reads(...)) */
+	} /* while (fgets(...)) */
 
-	close(fd);
+	fclose(f);
 	return TRUE;
 }
 
@@ -403,7 +403,7 @@ static int include_conf_file2(struct include_conf_t *conf,
  */
 static struct dep_t *build_dep(void)
 {
-	int fd;
+	FILE *f;
 	struct utsname un;
 	struct include_conf_t conf = { NULL, NULL };
 	char *filename;
@@ -419,18 +419,18 @@ static struct dep_t *build_dep(void)
 	}
 
 	filename = xasprintf(CONFIG_DEFAULT_MODULES_DIR"/%s/"CONFIG_DEFAULT_DEPMOD_FILE, un.release);
-	fd = open(filename, O_RDONLY);
+	f = fopen_for_read(filename);
 	if (ENABLE_FEATURE_CLEAN_UP)
 		free(filename);
-	if (fd < 0) {
+	if (f == NULL) {
 		/* Ok, that didn't work.  Fall back to looking in /lib/modules */
-		fd = open(CONFIG_DEFAULT_MODULES_DIR"/"CONFIG_DEFAULT_DEPMOD_FILE, O_RDONLY);
-		if (fd < 0) {
+		f = fopen_for_read(CONFIG_DEFAULT_MODULES_DIR"/"CONFIG_DEFAULT_DEPMOD_FILE);
+		if (f == NULL) {
 			bb_error_msg_and_die("cannot parse " CONFIG_DEFAULT_DEPMOD_FILE);
 		}
 	}
 
-	while (reads(fd, line_buffer, sizeof(line_buffer))) {
+	while (fgets(line_buffer, sizeof(line_buffer), f)) {
 		int l = strlen(line_buffer);
 		char *p = 0;
 
@@ -545,8 +545,8 @@ static struct dep_t *build_dep(void)
 
 		/* is there other dependable module(s) ? */
 		continuation_line = (line_buffer[l-1] == '\\');
-	} /* while (reads(...)) */
-	close(fd);
+	} /* while (fgets(...)) */
+	fclose(f);
 
 	/*
 	 * First parse system-specific options and aliases
@@ -594,13 +594,14 @@ static struct dep_t *build_dep(void)
 /* return 1 = loaded, 0 = not loaded, -1 = can't tell */
 static int already_loaded(const char *name)
 {
-	int fd, ret = 0;
+	FILE *f;
+	int ret = 0;
 
-	fd = open("/proc/modules", O_RDONLY);
-	if (fd < 0)
+	f = fopen_for_read("/proc/modules");
+	if (f == NULL)
 		return -1;
 
-	while (reads(fd, line_buffer, sizeof(line_buffer))) {
+	while (fgets(line_buffer, sizeof(line_buffer), f)) {
 		char *p;
 
 		p = strchr(line_buffer, ' ');
@@ -627,7 +628,7 @@ static int already_loaded(const char *name)
 		}
 	}
  done:
-	close(fd);
+	fclose(f);
 	return ret;
 }
 

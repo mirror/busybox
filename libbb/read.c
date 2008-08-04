@@ -127,31 +127,6 @@ unsigned char FAST_FUNC xread_char(int fd)
 	return tmp;
 }
 
-/* Read one line a-la fgets. Works only on seekable streams */
-char* FAST_FUNC reads(int fd, char *buffer, size_t size)
-{
-	char *p;
-
-	if (size < 2)
-		return NULL;
-	size = full_read(fd, buffer, size-1);
-	if ((ssize_t)size <= 0)
-		return NULL;
-
-	buffer[size] = '\0';
-	p = strchr(buffer, '\n');
-	if (p) {
-		off_t offset;
-		*p++ = '\0';
-		/* avoid incorrect (unsigned) widening */
-		offset = (off_t)(p - buffer) - (off_t)size;
-		/* set fd position right after '\n' */
-		if (offset && lseek(fd, offset, SEEK_CUR) == (off_t)-1)
-			return NULL;
-	}
-	return buffer;
-}
-
 // Reads one line a-la fgets (but doesn't save terminating '\n').
 // Reads byte-by-byte. Useful when it is important to not read ahead.
 // Bytes are appended to pfx (which must be malloced, or NULL).
