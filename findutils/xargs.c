@@ -355,20 +355,22 @@ enum {
 	OPTBIT_UPTO_NUMBER,
 	OPTBIT_UPTO_SIZE,
 	OPTBIT_EOF_STRING,
+	OPTBIT_EOF_STRING1,
 	USE_FEATURE_XARGS_SUPPORT_CONFIRMATION(OPTBIT_INTERACTIVE,)
 	USE_FEATURE_XARGS_SUPPORT_TERMOPT(     OPTBIT_TERMINATE  ,)
 	USE_FEATURE_XARGS_SUPPORT_ZERO_TERM(   OPTBIT_ZEROTERM   ,)
 
-	OPT_VERBOSE     = 1<<OPTBIT_VERBOSE    ,
-	OPT_NO_EMPTY    = 1<<OPTBIT_NO_EMPTY   ,
-	OPT_UPTO_NUMBER = 1<<OPTBIT_UPTO_NUMBER,
-	OPT_UPTO_SIZE   = 1<<OPTBIT_UPTO_SIZE  ,
-	OPT_EOF_STRING  = 1<<OPTBIT_EOF_STRING ,
-	OPT_INTERACTIVE = USE_FEATURE_XARGS_SUPPORT_CONFIRMATION((1<<OPTBIT_INTERACTIVE)) + 0,
-	OPT_TERMINATE   = USE_FEATURE_XARGS_SUPPORT_TERMOPT(     (1<<OPTBIT_TERMINATE  )) + 0,
-	OPT_ZEROTERM    = USE_FEATURE_XARGS_SUPPORT_ZERO_TERM(   (1<<OPTBIT_ZEROTERM   )) + 0,
+	OPT_VERBOSE     = 1 << OPTBIT_VERBOSE    ,
+	OPT_NO_EMPTY    = 1 << OPTBIT_NO_EMPTY   ,
+	OPT_UPTO_NUMBER = 1 << OPTBIT_UPTO_NUMBER,
+	OPT_UPTO_SIZE   = 1 << OPTBIT_UPTO_SIZE  ,
+	OPT_EOF_STRING  = 1 << OPTBIT_EOF_STRING , /* GNU: -e[<param>] */
+	OPT_EOF_STRING1 = 1 << OPTBIT_EOF_STRING1, /* SUS: -E<param> */
+	OPT_INTERACTIVE = USE_FEATURE_XARGS_SUPPORT_CONFIRMATION((1 << OPTBIT_INTERACTIVE)) + 0,
+	OPT_TERMINATE   = USE_FEATURE_XARGS_SUPPORT_TERMOPT(     (1 << OPTBIT_TERMINATE  )) + 0,
+	OPT_ZEROTERM    = USE_FEATURE_XARGS_SUPPORT_ZERO_TERM(   (1 << OPTBIT_ZEROTERM   )) + 0,
 };
-#define OPTION_STR "+trn:s:e::" \
+#define OPTION_STR "+trn:s:e::E:" \
 	USE_FEATURE_XARGS_SUPPORT_CONFIRMATION("p") \
 	USE_FEATURE_XARGS_SUPPORT_TERMOPT(     "x") \
 	USE_FEATURE_XARGS_SUPPORT_ZERO_TERM(   "0")
@@ -376,8 +378,6 @@ enum {
 int xargs_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int xargs_main(int argc, char **argv)
 {
-	static const char const_eof_str[] ALIGN1 = "_";
-
 	char **args;
 	int i, n;
 	xlist_t *list = NULL;
@@ -387,7 +387,7 @@ int xargs_main(int argc, char **argv)
 	int n_max_arg;
 	size_t n_chars = 0;
 	long orig_arg_max;
-	const char *eof_str = const_eof_str;
+	const char *eof_str = NULL;
 	unsigned opt;
 	size_t n_max_chars;
 #if ENABLE_FEATURE_XARGS_SUPPORT_ZERO_TERM
@@ -396,10 +396,12 @@ int xargs_main(int argc, char **argv)
 #define read_args process_stdin
 #endif
 
-	opt = getopt32(argv, OPTION_STR, &max_args, &max_chars, &eof_str);
+	opt = getopt32(argv, OPTION_STR, &max_args, &max_chars, &eof_str, &eof_str);
 
-	/* -e without optional param? */
-	if ((opt & OPT_EOF_STRING) && eof_str == const_eof_str)
+	/* -E ""? You may wonder why not just omit -E?
+	 * This is used for portability:
+	 * old xargs was using "_" as default for -E / -e */
+	if ((opt & OPT_EOF_STRING1) && eof_str[0] == '\0')
 		eof_str = NULL;
 
 	if (opt & OPT_ZEROTERM)

@@ -6,13 +6,23 @@
 
 # testing "test name" "command" "expected result" "file input" "stdin"
 
-testing "xargs stops on underscore" \
-	"xargs" \
+testing "xargs -E _ stops on underscore" \
+	"xargs -E _" \
 	"a\n" \
+	"" "a\n_\nb\n"
+
+testing "xargs -E ''" \
+	"xargs -E ''" \
+	"a _ b\n" \
 	"" "a\n_\nb\n"
 
 testing "xargs -e without param" \
 	"xargs -e" \
+	"a _ b\n" \
+	"" "a\n_\nb\n"
+
+testing "xargs does not stop on underscore ('new' GNU behavior)" \
+	"xargs" \
 	"a _ b\n" \
 	"" "a\n_\nb\n"
 
