@@ -112,7 +112,7 @@ int man_main(int argc UNUSED_PARAM, char **argv)
 			man_path_list[count_mp] = xstrdup(token[1]);
 			count_mp++;
 			/* man_path_list is NULL terminated */
-			man_path_list[count_mp] = NULL;
+			/*man_path_list[count_mp] = NULL; - xrealloc_vector did it */
 		}
 		if (strcmp("MANSECT", token[0]) == 0) {
 			free(sec_list);

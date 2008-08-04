@@ -1169,10 +1169,9 @@ static char **create_list(const char *filename)
 	file_list = NULL;
 	count = 0;
 	while ((line = xmalloc_fgetline(list_stream)) != NULL) {
-//TODO: zeroing xrealloc_vector?
 		file_list = xrealloc_vector(file_list, 2, count);
 		file_list[count++] = line;
-		file_list[count] = NULL;
+		/*file_list[count] = NULL; - xrealloc_vector did it */
 	}
 	fclose(list_stream);
 

@@ -814,7 +814,7 @@ int top_main(int argc UNUSED_PARAM, char **argv)
 			int n;
 			if (scan_mask == TOP_MASK) {
 				n = ntop;
-				top = xrealloc_vector(top, 2, ntop++);
+				top = xrealloc_vector(top, 6, ntop++);
 				top[n].pid = p->pid;
 				top[n].ppid = p->ppid;
 				top[n].vsz = p->vsz;
@@ -830,7 +830,7 @@ int top_main(int argc UNUSED_PARAM, char **argv)
 					continue; /* kernel threads are ignored */
 				n = ntop;
 				/* No bug here - top and topmem are the same */
-				top = xrealloc_vector(topmem, 2, ntop++);
+				top = xrealloc_vector(topmem, 6, ntop++);
 				strcpy(topmem[n].comm, p->comm);
 				topmem[n].pid      = p->pid;
 				topmem[n].vsz      = p->mapped_rw + p->mapped_ro;

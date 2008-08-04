@@ -14,7 +14,6 @@
  *  #define magic packed two parameters into one:
  *  sizeof = sizeof_and_shift >> 8
  *  shift  = (sizeof_and_shift) & 0xff
- *  (TODO: encode "I want it zeroed" in lowest bit?)
  *
  * Lets say shift = 4. 1 << 4 == 0x10.
  * If idx == 0, 0x10, 0x20 etc, vector[] is resized to next higher
@@ -23,14 +22,25 @@
  *
  * In other words: after xrealloc_vector(v, 4, idx) it's ok to use
  * at least v[idx] and v[idx+1], for all idx values.
+ *
+ * New elements are zeroed out, but only if realloc was done
+ * (not on every call). You can depend on v[idx] and v[idx+1] being
+ * zeroed out if you use it like this:
+ *  v = xrealloc_vector(v, 4, idx);
+ *  v[idx].some_fields = ...; - the rest stays 0/NULL
+ *  idx++;
+ * If you do not advance idx like above, you should be more careful.
+ * Next call to xrealloc_vector(v, 4, idx) may or may not zero out v[idx].
  */
 void* FAST_FUNC xrealloc_vector_helper(void *vector, unsigned sizeof_and_shift, int idx)
 {
 	int mask = 1 << (uint8_t)sizeof_and_shift;
 
 	if (!(idx & (mask - 1))) {
-		sizeof_and_shift >>= 8;
+		sizeof_and_shift >>= 8; /* sizeof(vector[0]) */
 		vector = xrealloc(vector, sizeof_and_shift * (idx + mask + 1));
+		vector += idx;
+		memset(vector, 0, sizeof_and_shift * (mask + 1));
 	}
 	return vector;
 }

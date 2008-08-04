@@ -92,7 +92,7 @@ static int FAST_FUNC act(const char *file, struct stat *statbuf, void *args UNUS
 
 	names = xrealloc_vector(names, 4, cur);
 	names[cur++] = xstrdup(file);
-	names[cur] = NULL;
+	/*names[cur] = NULL; - xrealloc_vector did it */
 
 	return TRUE;
 }

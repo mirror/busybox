@@ -238,14 +238,13 @@ static struct option *add_long_options(struct option *long_options, char *option
 				if (tlen == 0)
 					bb_error_msg_and_die("empty long option specified");
 			}
-//TODO: zeroing version of xrealloc_vector!
 			long_options = xrealloc_vector(long_options, 4, long_nr);
 			long_options[long_nr].has_arg = arg_opt;
-			long_options[long_nr].flag = NULL;
+			/*long_options[long_nr].flag = NULL; - xrealloc_vector did it */
 			long_options[long_nr].val = LONG_OPT;
 			long_options[long_nr].name = xstrdup(tokptr);
 			long_nr++;
-			memset(&long_options[long_nr], 0, sizeof(long_options[0]));
+			/*memset(&long_options[long_nr], 0, sizeof(long_options[0])); - xrealloc_vector did it */
 		}
 		tokptr = strtok(NULL, ", \t\n");
 	}

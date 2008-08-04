@@ -270,10 +270,9 @@ static FAST_FUNC int fileAction(const char *pathname,
 
 	cur = module_count++;
 	modinfo = xrealloc_vector(modinfo, 12, cur);
-//TODO: use zeroing version of xrealloc_vector?
 	modinfo[cur].pathname = xstrdup(pathname);
-	modinfo[cur].aliases = NULL;
-	modinfo[cur+1].pathname = NULL;
+	/*modinfo[cur].aliases = NULL; - xrealloc_vector did it */
+	/*modinfo[cur+1].pathname = NULL;*/
 
 	if (!pathname_matches_modname(fname, modname_to_match)) {
 		dbg1_error_msg("'%s' module name doesn't match", pathname);
@@ -330,8 +329,7 @@ static int load_dep_bb(void)
 		space = strchrnul(line, ' ');
 		cur = module_count++;
 		modinfo = xrealloc_vector(modinfo, 12, cur);
-//TODO: use zeroing version of xrealloc_vector?
-		modinfo[cur+1].pathname = NULL;
+		/*modinfo[cur+1].pathname = NULL; - xrealloc_vector did it */
 		modinfo[cur].pathname = line; /* we take ownership of malloced block here */
 		if (*space)
 			*space++ = '\0';
