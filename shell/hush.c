@@ -318,10 +318,12 @@ struct redir_struct {
 
 struct child_prog {
 	pid_t pid;                  /* 0 if exited */
+	int assignment_cnt;         /* how many argv[i] are assignments? */
 	smallint is_stopped;        /* is the program currently running? */
 	smallint subshell;          /* flag, non-zero if group must be forked */
+	struct pipe *group;         /* if non-NULL, this "prog" is {} group,
+	                             * subshell, or a compound statement */
 	char **argv;                /* program name and arguments */
-	struct pipe *group;         /* if non-NULL, first in group or subshell */
 	struct redir_struct *redirects; /* I/O redirections */
 };
 /* argv vector may contain variable references (^Cvar^C, ^C0^C etc)
@@ -377,6 +379,7 @@ enum {
 	MAYBE_ASSIGNMENT = 0,
 	DEFINITELY_ASSIGNMENT = 1,
 	NOT_ASSIGNMENT = 2,
+	WORD_IS_KEYWORD = 3, /* not assigment, but next word may be: "if v=xyz cmd;" */
 };
 /* Used for initialization: o_string foo = NULL_O_STRING; */
 #define NULL_O_STRING { NULL }
@@ -430,7 +433,6 @@ struct globals {
 	pid_t last_bg_pid;
 #if ENABLE_HUSH_JOB
 	int run_list_level;
-//	pid_t saved_task_pgrp;
 	pid_t saved_tty_pgrp;
 	int last_jobid;
 	struct pipe *job_list;
@@ -524,10 +526,12 @@ static int free_pipe(struct pipe *pi, int indent);
 static int setup_redirects(struct child_prog *prog, int squirrel[]);
 static int run_list(struct pipe *pi);
 #if BB_MMU
-#define pseudo_exec_argv(ptrs2free, argv, argv_expanded) pseudo_exec_argv(argv, argv_expanded)
-#define      pseudo_exec(ptrs2free, child, argv_expanded)     pseudo_exec(child, argv_expanded)
+#define pseudo_exec_argv(ptrs2free, argv, assignment_cnt, argv_expanded) \
+	pseudo_exec_argv(argv, assignment_cnt, argv_expanded)
+#define pseudo_exec(ptrs2free, child, argv_expanded) \
+	pseudo_exec(child, argv_expanded)
 #endif
-static void pseudo_exec_argv(char **ptrs2free, char **argv, char **argv_expanded) NORETURN;
+static void pseudo_exec_argv(char **ptrs2free, char **argv, int assignment_cnt, char **argv_expanded) NORETURN;
 static void pseudo_exec(char **ptrs2free, struct child_prog *child, char **argv_expanded) NORETURN;
 static int run_pipe(struct pipe *pi);
 /*   data structure manipulation: */
@@ -1390,13 +1394,13 @@ static void restore_redirects(int squirrel[])
  * XXX no exit() here.  If you don't exec, use _exit instead.
  * The at_exit handlers apparently confuse the calling process,
  * in particular stdin handling.  Not sure why? -- because of vfork! (vda) */
-static void pseudo_exec_argv(char **ptrs2free, char **argv, char **argv_expanded)
+static void pseudo_exec_argv(char **ptrs2free, char **argv, int assignment_cnt, char **argv_expanded)
 {
 	int i, rcode;
 	char *p;
 	const struct built_in_command *x;
 
-	for (i = 0; is_assignment(argv[i]); i++) {
+	for (i = 0; i < assignment_cnt; i++) {
 		debug_printf_exec("pid %d environment modification: %s\n",
 				getpid(), argv[i]);
 		p = expand_string_to_string(argv[i]);
@@ -1466,7 +1470,7 @@ static void pseudo_exec_argv(char **ptrs2free, char **argv, char **argv_expanded
 static void pseudo_exec(char **ptrs2free, struct child_prog *child, char **argv_expanded)
 {
 	if (child->argv)
-		pseudo_exec_argv(ptrs2free, child->argv, argv_expanded);
+		pseudo_exec_argv(ptrs2free, child->argv, child->assignment_cnt, argv_expanded);
 
 	if (child->group) {
 #if !BB_MMU
@@ -1713,8 +1717,6 @@ static int checkjobs_and_fg_shell(struct pipe* fg_pipe)
 	p = getpgid(0); /* pgid of our process */
 	debug_printf_jobs("fg'ing ourself: getpgid(0)=%d\n", (int)p);
 	tcsetpgrp(G.interactive_fd, p);
-//	if (tcsetpgrp(G.interactive_fd, p) && errno != ENOTTY)
-//		bb_perror_msg("tcsetpgrp-4a");
 	return rcode;
 }
 #endif
@@ -1780,8 +1782,7 @@ static int run_pipe(struct pipe *pi)
 	argv = child->argv;
 
 	if (single_and_fg && argv != NULL) {
-		for (i = 0; is_assignment(argv[i]); i++)
-			continue;
+		i = child->assignment_cnt;
 		if (i != 0 && argv[i] == NULL) {
 			/* assignments, but no command: set local environment */
 			for (i = 0; argv[i] != NULL; i++) {
@@ -1793,7 +1794,7 @@ static int run_pipe(struct pipe *pi)
 		}
 
 		/* Expand assignments into one string each */
-		for (i = 0; is_assignment(argv[i]); i++) {
+		for (i = 0; i < child->assignment_cnt; i++) {
 			p = expand_string_to_string(argv[i]);
 			putenv(p);
 //FIXME: do we leak p?!
@@ -1991,7 +1992,7 @@ static void debug_print_tree(struct pipe *pi, int lvl)
 			struct child_prog *child = &pi->progs[prn];
 			char **argv = child->argv;
 
-			fprintf(stderr, "%*s prog %d", lvl*2, "", prn);
+			fprintf(stderr, "%*s prog %d assignment_cnt:%d", lvl*2, "", prn, child->assignment_cnt);
 			if (child->group) {
 				fprintf(stderr, " group %s: (argv=%p)\n",
 						(child->subshell ? "()" : "{}"),
@@ -2165,30 +2166,31 @@ static int run_list(struct pipe *pi)
 				vals = (char**)encoded_dollar_at_argv;
 				if (pi->next->res_word == RES_IN) {
 					/* if no variable values after "in" we skip "for" */
-					if (!pi->next->progs->argv)
+					if (!pi->next->progs[0].argv)
 						break;
-					vals = pi->next->progs->argv;
+					vals = pi->next->progs[0].argv;
 				} /* else: "for var; do..." -> assume "$@" list */
 				/* create list of variable values */
 				debug_print_strings("for_list made from", vals);
 				for_list = expand_strvec_to_strvec(vals);
 				for_lcur = for_list;
 				debug_print_strings("for_list", for_list);
-				for_varname = pi->progs->argv[0];
-				pi->progs->argv[0] = NULL;
+				for_varname = pi->progs[0].argv[0];
+				pi->progs[0].argv[0] = NULL;
 			}
-			free(pi->progs->argv[0]);
+			free(pi->progs[0].argv[0]);
 			if (!*for_lcur) {
 				/* "for" loop is over, clean up */
 				free(for_list);
 				for_list = NULL;
 				for_lcur = NULL;
-				pi->progs->argv[0] = for_varname;
+				pi->progs[0].argv[0] = for_varname;
 				break;
 			}
 			/* insert next value from for_lcur */
 //TODO: does it need escaping?
-			pi->progs->argv[0] = xasprintf("%s=%s", for_varname, *for_lcur++);
+			pi->progs[0].argv[0] = xasprintf("%s=%s", for_varname, *for_lcur++);
+			pi->progs[0].assignment_cnt = 1;
 		}
 		if (rword == RES_IN) /* "for v IN list;..." - "in" has no cmds anyway */
 			continue;
@@ -2902,11 +2904,12 @@ static void initialize_context(struct p_context *ctx)
  * case, function, and select are obnoxious, save those for later.
  */
 #if HAS_KEYWORDS
-static int reserved_word(const o_string *word, struct p_context *ctx)
+static int reserved_word(o_string *word, struct p_context *ctx)
 {
 	struct reserved_combo {
-		char literal[7];
+		char literal[6];
 		unsigned char res;
+		unsigned char assignment_flag;
 		int flag;
 	};
 	enum {
@@ -2939,29 +2942,29 @@ static int reserved_word(const o_string *word, struct p_context *ctx)
 	 */
 	static const struct reserved_combo reserved_list[] = {
 #if ENABLE_HUSH_IF
-		{ "!",     RES_NONE,  0 },
-		{ "if",    RES_IF,    FLAG_THEN | FLAG_START },
-		{ "then",  RES_THEN,  FLAG_ELIF | FLAG_ELSE | FLAG_FI },
-		{ "elif",  RES_ELIF,  FLAG_THEN },
-		{ "else",  RES_ELSE,  FLAG_FI   },
-		{ "fi",    RES_FI,    FLAG_END  },
+		{ "!",     RES_NONE,  NOT_ASSIGNMENT , 0 },
+		{ "if",    RES_IF,    WORD_IS_KEYWORD, FLAG_THEN | FLAG_START },
+		{ "then",  RES_THEN,  WORD_IS_KEYWORD, FLAG_ELIF | FLAG_ELSE | FLAG_FI },
+		{ "elif",  RES_ELIF,  WORD_IS_KEYWORD, FLAG_THEN },
+		{ "else",  RES_ELSE,  WORD_IS_KEYWORD, FLAG_FI   },
+		{ "fi",    RES_FI,    NOT_ASSIGNMENT , FLAG_END  },
 #endif
 #if ENABLE_HUSH_LOOPS
-		{ "for",   RES_FOR,   FLAG_IN | FLAG_DO | FLAG_START },
-		{ "while", RES_WHILE, FLAG_DO | FLAG_START },
-		{ "until", RES_UNTIL, FLAG_DO | FLAG_START },
-		{ "in",    RES_IN,    FLAG_DO   },
-		{ "do",    RES_DO,    FLAG_DONE },
-		{ "done",  RES_DONE,  FLAG_END  },
+		{ "for",   RES_FOR,   NOT_ASSIGNMENT , FLAG_IN | FLAG_DO | FLAG_START },
+		{ "while", RES_WHILE, WORD_IS_KEYWORD, FLAG_DO | FLAG_START },
+		{ "until", RES_UNTIL, WORD_IS_KEYWORD, FLAG_DO | FLAG_START },
+		{ "in",    RES_IN,    NOT_ASSIGNMENT , FLAG_DO   },
+		{ "do",    RES_DO,    WORD_IS_KEYWORD, FLAG_DONE },
+		{ "done",  RES_DONE,  NOT_ASSIGNMENT , FLAG_END  },
 #endif
 #if ENABLE_HUSH_CASE
-		{ "case",  RES_CASE,  FLAG_MATCH | FLAG_START },
-		{ "esac",  RES_ESAC,  FLAG_END  },
+		{ "case",  RES_CASE,  NOT_ASSIGNMENT , FLAG_MATCH | FLAG_START },
+		{ "esac",  RES_ESAC,  NOT_ASSIGNMENT , FLAG_END  },
 #endif
 	};
 #if ENABLE_HUSH_CASE
 	static const struct reserved_combo reserved_match = {
-		"" /* "match" */, RES_MATCH, FLAG_MATCH | FLAG_ESAC
+		"",        RES_MATCH, NOT_ASSIGNMENT , FLAG_MATCH | FLAG_ESAC
 	};
 #endif
 	const struct reserved_combo *r;
@@ -3008,6 +3011,7 @@ static int reserved_word(const o_string *word, struct p_context *ctx)
 			*ctx = *old;   /* physical copy */
 			free(old);
 		}
+		word->o_assignment = r->assignment_flag;
 		return 1;
 	}
 	return 0;
@@ -3021,17 +3025,22 @@ static int done_word(o_string *word, struct p_context *ctx)
 	struct child_prog *child = ctx->child;
 
 	debug_printf_parse("done_word entered: '%s' %p\n", word->data, child);
-	/* If this word wasn't an assignment, next ones definitely
-	 * can't be assignments. Even if they look like ones. */
-	if (word->o_assignment != DEFINITELY_ASSIGNMENT) {
-		word->o_assignment = NOT_ASSIGNMENT;
-	} else {
-		word->o_assignment = MAYBE_ASSIGNMENT;
-	}
 	if (word->length == 0 && word->nonnull == 0) {
 		debug_printf_parse("done_word return 0: true null, ignored\n");
 		return 0;
 	}
+	/* If this word wasn't an assignment, next ones definitely
+	 * can't be assignments. Even if they look like ones. */
+	if (word->o_assignment != DEFINITELY_ASSIGNMENT
+	 && word->o_assignment != WORD_IS_KEYWORD
+	) {
+		word->o_assignment = NOT_ASSIGNMENT;
+	} else {
+		if (word->o_assignment == DEFINITELY_ASSIGNMENT)
+			child->assignment_cnt++;
+		word->o_assignment = MAYBE_ASSIGNMENT;
+	}
+
 	if (ctx->pending_redirect) {
 		/* We do not glob in e.g. >*.tmp case. bash seems to glob here
 		 * only if run as "bash", not "sh" */
@@ -3066,7 +3075,6 @@ static int done_word(o_string *word, struct p_context *ctx)
 			debug_printf_parse(": checking '%s' for reserved-ness\n", word->data);
 			if (reserved_word(word, ctx)) {
 				o_reset(word);
-				word->o_assignment = NOT_ASSIGNMENT;
 				debug_printf_parse("done_word return %d\n", (ctx->ctx_res_w == RES_SNTX));
 				return (ctx->ctx_res_w == RES_SNTX);
 			}
@@ -3343,11 +3351,6 @@ static int process_command_subs(o_string *dest,
 			o_addchr(dest, '\n');
 			eol_cnt--;
 		}
-//		/* Even unquoted `echo '\'` results in two backslashes
-//		 * (which are converted into one by globbing later) */
-//		if (!dest->o_quote && ch == '\\') {
-//			o_addchr(dest, ch);
-//		}
 		o_addQchr(dest, ch);
 	}
 
@@ -3367,6 +3370,9 @@ static int process_command_subs(o_string *dest,
 static int parse_group(o_string *dest, struct p_context *ctx,
 	struct in_str *input, int ch)
 {
+	/* NB: parse_group may create and use its own o_string,
+	 * without any code changes. It just so happens that code is smaller
+	 * if we (ab)use caller's one. */
 	int rcode;
 	const char *endch = NULL;
 	struct p_context sub;
@@ -3624,7 +3630,7 @@ static int parse_stream(o_string *dest, struct p_context *ctx,
 	 * A single-quote triggers a bypass of the main loop until its mate is
 	 * found.  When recursing, quote state is passed in via dest->o_quote. */
 
-	debug_printf_parse("parse_stream entered, end_trigger='%s'\n", end_trigger);
+	debug_printf_parse("parse_stream entered, end_trigger='%s' dest->o_assignment:%d\n", end_trigger, dest->o_assignment);
 
 	while (1) {
 		m = CHAR_IFS;
@@ -3647,7 +3653,8 @@ static int parse_stream(o_string *dest, struct p_context *ctx,
 				return 1;
 			}
 			o_addQchr(dest, ch);
-			if (dest->o_assignment == MAYBE_ASSIGNMENT
+			if ((dest->o_assignment == MAYBE_ASSIGNMENT
+			    || dest->o_assignment == WORD_IS_KEYWORD)
 			 && ch == '='
 			 && is_assignment(dest->data)
 			) {
@@ -3676,6 +3683,7 @@ static int parse_stream(o_string *dest, struct p_context *ctx,
 				}
 #endif
 				done_pipe(ctx, PIPE_SEQ);
+				dest->o_assignment = MAYBE_ASSIGNMENT;
 			}
 		}
 		if (end_trigger) {
@@ -3686,6 +3694,7 @@ static int parse_stream(o_string *dest, struct p_context *ctx,
 					done_word(dest, ctx);
 //err chk?
 					done_pipe(ctx, PIPE_SEQ);
+					dest->o_assignment = MAYBE_ASSIGNMENT;
 				}
 				if (!HAS_KEYWORDS
 				 IF_HAS_KEYWORDS(|| (ctx->ctx_res_w == RES_NONE && ctx->old_flag == 0))
@@ -3841,6 +3850,10 @@ static int parse_stream(o_string *dest, struct p_context *ctx,
 				}
 			}
 #endif
+ new_cmd:
+			/* We just finished a cmd. New one may start
+			 * with an assignment */
+			dest->o_assignment = MAYBE_ASSIGNMENT;
 			break;
 		case '&':
 			done_word(dest, ctx);
@@ -3850,14 +3863,14 @@ static int parse_stream(o_string *dest, struct p_context *ctx,
 			} else {
 				done_pipe(ctx, PIPE_BG);
 			}
-			break;
+			goto new_cmd;
 		case '|':
 			done_word(dest, ctx);
 #if ENABLE_HUSH_CASE
 			if (ctx->ctx_res_w == RES_MATCH)
 				break; /* we are in case's "word | word)" */
 #endif
-			if (next == '|') {
+			if (next == '|') { /* || */
 				i_getch(input);
 				done_pipe(ctx, PIPE_OR);
 			} else {
@@ -3866,7 +3879,7 @@ static int parse_stream(o_string *dest, struct p_context *ctx,
 				 * "echo foo 2| cat" yields "foo 2". */
 				done_command(ctx);
 			}
-			break;
+			goto new_cmd;
 		case '(':
 #if ENABLE_HUSH_CASE
 			/* "case... in [(]word)..." - skip '(' */
@@ -3881,7 +3894,7 @@ static int parse_stream(o_string *dest, struct p_context *ctx,
 				debug_printf_parse("parse_stream return 1: parse_group returned non-0\n");
 				return 1;
 			}
-			break;
+			goto new_cmd;
 		case ')':
 #if ENABLE_HUSH_CASE
 			if (ctx->ctx_res_w == RES_MATCH)
@@ -3947,6 +3960,7 @@ static int parse_and_run_stream(struct in_str *inp, int parse_flag)
 		/* We will stop & execute after each ';' or '\n'.
 		 * Example: "sleep 9999; echo TEST" + ctrl-C:
 		 * TEST should be printed */
+		temp.o_assignment = MAYBE_ASSIGNMENT;
 		rcode = parse_stream(&temp, &ctx, inp, ";\n");
 #if HAS_KEYWORDS
 		if (rcode != 1 && ctx.old_flag != 0) {
@@ -4006,9 +4020,7 @@ static void setup_job_control(void)
 {
 	pid_t shell_pgrp;
 
-//	G.saved_task_pgrp =
 	shell_pgrp = getpgrp();
-//	debug_printf_jobs("saved_task_pgrp=%d\n", G.saved_task_pgrp);
 	close_on_exec_on(G.interactive_fd);
 
 	/* If we were ran as 'hush &',
@@ -4302,7 +4314,7 @@ static int builtin_exec(char **argv)
 		char **ptrs2free = alloc_ptrs(argv);
 #endif
 // FIXME: if exec fails, bash does NOT exit! We do...
-		pseudo_exec_argv(ptrs2free, argv + 1, NULL);
+		pseudo_exec_argv(ptrs2free, argv + 1, 0, NULL);
 		/* never returns */
 	}
 }
