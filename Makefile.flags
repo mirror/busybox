@@ -44,12 +44,13 @@ CFLAGS += $(call cc-option,-falign-functions=1 -falign-jumps=1 -falign-labels=1 
 
 # FIXME: These warnings are at least partially to be concerned about and should
 # be fixed..
-#CFLAGS+=$(call cc-option,-Wconversion,)
+#CFLAGS += $(call cc-option,-Wconversion,)
 
 ifneq ($(CONFIG_DEBUG),y)
 CFLAGS += $(call cc-option,-Os,)
 else
 CFLAGS += $(call cc-option,-g,)
+#CFLAGS += "-D_FORTIFY_SOURCE=2"
 ifeq ($(CONFIG_DEBUG_PESSIMIZE),y)
 CFLAGS += $(call cc-option,-O0,)
 else
