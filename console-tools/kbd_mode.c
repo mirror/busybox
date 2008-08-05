@@ -46,7 +46,7 @@ int kbd_mode_main(int argc UNUSED_PARAM, char **argv)
 		printf("The keyboard is in %s mode\n", mode);
 	} else {
 		opt = opt & UNICODE ? 3 : opt >> 1;
-		xioctl(fd, KDSKBMODE, &opt);
+		xioctl(fd, KDSKBMODE, opt);
 	}
 
 	if (ENABLE_FEATURE_CLEAN_UP)
