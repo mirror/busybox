@@ -74,32 +74,37 @@ static int run_pipe(const char *unpacker, const char *pager, char *man_filename,
 		 */
 		*strchrnul(line, '\n') = '\0';
 		linkname = p = skip_whitespace(&line[4]);
-		while (1) {
-			char *newname_slash, *oldname_slash;
 
-			oldname_slash = strrchr(man_filename, '/');
-			if (!oldname_slash)
+		/* If link has no slashes, we just replace man page name.
+		 * If link has slashes (however many), we go back *once*.
+		 * ".so zzz/ggg/page.3" does NOT go back two levels. */
+		p = strrchr(man_filename, '/');
+		if (!p)
+			goto ordinary_manpage;
+		*p = '\0';
+		if (strchr(linkname, '/')) {
+			p = strrchr(man_filename, '/');
+			if (!p)
 				goto ordinary_manpage;
-			*oldname_slash = '\0';
-			newname_slash = strchr(p, '/');
-			if (!newname_slash)
-				break;
-			p = newname_slash + 1;
+			*p = '\0';
 		}
+
+		/* Links do not have .gz extensions, even if manpage
+		 * is compressed */
 		man_filename = xasprintf("%s/%s" ".bz2", man_filename, linkname);
 		free(line);
 		/* Note: we leak "new" man_filename string as well... */
 		if (show_manpage(pager, man_filename, man, level + 1))
 			return 1;
- 		/* else: show the link, it's better than nothing */
+		/* else: show the link, it's better than nothing */
 	}
 
  ordinary_manpage:
 	/* "2>&1" is added so that nroff errors are shown in pager too.
 	 * Otherwise it may show just empty screen */
 	cmd = xasprintf(
-		man ? "%s '%s' | gtbl | nroff -Tlatin1 -mandoc 2>&1 | %s"
-		    : "%s '%s' | %s",
+		man ? "%s '%s' 2>&1 | gtbl | nroff -Tlatin1 -mandoc 2>&1 | %s"
+		    : "%s '%s' 2>&1 | %s",
 		unpacker, man_filename, pager);
 	system(cmd);
 	free(cmd);
