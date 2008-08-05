@@ -49,9 +49,10 @@ static int run_pipe(const char *unpacker, const char *pager, char *man_filename,
 	}
 
 	if (man) { /* man page, not cat page */
-		/* Test whether the man page is not a link to another one. */
+		/* Is this a link to another manpage? */
 		/* The link has the following on the first line: */
 		/* ".so another_man_page" */
+
 		struct stat sb;
 		char *line;
 		char *linkname, *p;
@@ -73,7 +74,7 @@ static int run_pipe(const char *unpacker, const char *pager, char *man_filename,
 		 * ".so man7/path_resolution.7\n<junk>"
 		 */
 		*strchrnul(line, '\n') = '\0';
-		linkname = p = skip_whitespace(&line[4]);
+		linkname = skip_whitespace(&line[4]);
 
 		/* If link has no slashes, we just replace man page name.
 		 * If link has slashes (however many), we go back *once*.
