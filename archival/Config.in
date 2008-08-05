@@ -5,6 +5,30 @@
 
 menu "Archival Utilities"
 
+config FEATURE_SEAMLESS_LZMA
+	bool "Make tar, rpm, man, modprobe etc understand .lzma data"
+	default n
+	help
+	  Make tar, rpm, man, modprobe etc understand .lzma data.
+
+config FEATURE_SEAMLESS_BZ2
+	bool "Make tar, rpm, man, modprobe etc understand .bz2 data"
+	default n
+	help
+	  Make tar, rpm, man, modprobe etc understand .bz2 data.
+
+config FEATURE_SEAMLESS_GZ
+	bool "Make tar, rpm, man, modprobe etc understand .gz data"
+	default n
+	help
+	  Make tar, rpm, man, modprobe etc understand .gz data.
+
+config FEATURE_SEAMLESS_Z
+	bool "Make tar and gunzip understand .Z data"
+	default n
+	help
+	  Make tar and gunzip understand .Z data.
+
 config AR
 	bool "ar"
 	default n
@@ -126,15 +150,6 @@ config GUNZIP
 	  You can use the `-t' option to test the integrity of
 	  an archive, without decompressing it.
 
-config FEATURE_GUNZIP_UNCOMPRESS
-	bool "Uncompress support"
-	default n
-	depends on GUNZIP
-	help
-	  Enable if you want gunzip to have the ability to decompress
-	  archives created by the program compress (not much
-	  used anymore).
-
 config GZIP
 	bool "gzip"
 	default n
@@ -154,13 +169,6 @@ config RPM
 	help
 	  Mini RPM applet - queries and extracts RPM packages.
 
-config FEATURE_RPM_BZ2
-	bool "Enable handling of rpms with bzip2-compressed data inside"
-	default n
-	depends on RPM
-	help
-	  Enable handling of rpms with bzip2-compressed data inside.
-
 config TAR
 	bool "tar"
 	default n
@@ -179,42 +187,10 @@ config FEATURE_TAR_CREATE
 	  If you enable this option you'll be able to create
 	  tar archives using the `-c' option.
 
-config FEATURE_TAR_GZIP
-	bool "Enable -z option"
-	default y
-	depends on TAR
-	help
-	  If you enable this option tar will be able to call gzip,
-	  when creating or extracting tar gziped archives.
-
-config FEATURE_TAR_BZIP2
-	bool "Enable -j option to handle .tar.bz2 files"
-	default n
-	depends on TAR
-	help
-	  If you enable this option you'll be able to extract
-	  archives compressed with bzip2.
-
-config FEATURE_TAR_LZMA
-	bool "Enable -a option to handle .tar.lzma files"
-	default n
-	depends on TAR
-	help
-	  If you enable this option you'll be able to extract
-	  archives compressed with lzma.
-
-config FEATURE_TAR_COMPRESS
-	bool "Enable -Z option"
-	default n
-	depends on TAR
-	help
-	  If you enable this option tar will be able to call uncompress,
-	  when extracting .tar.Z archives.
-
 config FEATURE_TAR_AUTODETECT
-	bool "Autodetect gz/bz2 compresses tarballs"
+	bool "Autodetect gz/bz2 compressed tarballs"
 	default n
-	depends on FEATURE_TAR_GZIP || FEATURE_TAR_BZIP2
+	depends on FEATURE_SEAMLESS_Z || FEATURE_SEAMLESS_GZ || FEATURE_SEAMLESS_BZ2 || FEATURE_SEAMLESS_LZMA
 	help
 	  With this option tar can automatically detect gzip/bzip2 compressed
 	  tarballs. Currently it works only on files (not pipes etc).
@@ -311,43 +287,5 @@ config UNZIP
 	  (with no options) is to extract the archive into the
 	  current directory. Use the `-d' option to extract to a
 	  directory of your choice.
-
-comment "Common options for cpio and tar"
-	depends on CPIO || TAR
-
-comment "Common options for dpkg and dpkg_deb"
-	depends on DPKG || DPKG_DEB
-
-config FEATURE_DEB_TAR_GZ
-	bool "gzip debian packages (normal)"
-	default y if DPKG || DPKG_DEB
-	depends on DPKG || DPKG_DEB
-	help
-	  This is the default compression method inside the debian ar file.
-
-	  If you want compatibility with standard .deb's you should say yes
-	  here.
-
-config FEATURE_DEB_TAR_BZ2
-	bool "bzip2 debian packages"
-	default n
-	depends on DPKG || DPKG_DEB
-	help
-	  This allows dpkg and dpkg-deb to extract deb's that are compressed
-	  internally with bzip2 instead of gzip.
-
-	  You only want this if you are creating your own custom debian
-	  packages that use an internal control.tar.bz2 or data.tar.bz2.
-
-config FEATURE_DEB_TAR_LZMA
-	bool "lzma debian packages"
-	default n
-	depends on DPKG || DPKG_DEB
-	help
-	  This allows dpkg and dpkg-deb to extract deb's that are compressed
-	  internally with lzma instead of gzip.
-
-	  You only want this if you are creating your own custom debian
-	  packages that use an internal control.tar.lzma or data.tar.lzma.
 
 endmenu

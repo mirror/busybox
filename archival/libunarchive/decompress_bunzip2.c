@@ -590,7 +590,8 @@ int FAST_FUNC start_bunzip(bunzip_data **bdp, int in_fd, const unsigned char *in
 	bunzip_data *bd;
 	unsigned i;
 	enum {
-		BZh0 = ('B' << 24) + ('Z' << 16) + ('h' << 8) + '0'
+		BZh0 = ('B' << 24) + ('Z' << 16) + ('h' << 8) + '0',
+		h0 = ('h' << 8) + '0',
 	};
 
 	/* Figure out how much data to allocate */
@@ -617,12 +618,18 @@ int FAST_FUNC start_bunzip(bunzip_data **bdp, int in_fd, const unsigned char *in
 	if (i) return i;
 
 	/* Ensure that file starts with "BZh['1'-'9']." */
-	i = get_bits(bd, 32);
-	if ((unsigned)(i - BZh0 - 1) >= 9) return RETVAL_NOT_BZIP_DATA;
+	/* Update: now caller verifies 1st two bytes, makes .gz/.bz2
+	 * integration easier */
+	/* was: */
+	/* i = get_bits(bd, 32); */
+	/* if ((unsigned)(i - BZh0 - 1) >= 9) return RETVAL_NOT_BZIP_DATA; */
+	i = get_bits(bd, 16);
+	if ((unsigned)(i - h0 - 1) >= 9) return RETVAL_NOT_BZIP_DATA;
 
 	/* Fourth byte (ascii '1'-'9') indicates block size in units of 100k of
 	   uncompressed data.  Allocate intermediate buffer for block. */
-	bd->dbufSize = 100000 * (i - BZh0);
+	/* bd->dbufSize = 100000 * (i - BZh0); */
+	bd->dbufSize = 100000 * (i - h0);
 
 	/* Cannot use xmalloc - may leak bd in NOFORK case! */
 	bd->dbuf = malloc_or_warn(bd->dbufSize * sizeof(int));
@@ -682,6 +689,17 @@ unpack_bz2_stream(int src_fd, int dst_fd)
 	return i ? i : USE_DESKTOP(total_written) + 0;
 }
 
+USE_DESKTOP(long long) int FAST_FUNC
+unpack_bz2_stream_prime(int src_fd, int dst_fd)
+{
+	unsigned char magic[2];
+	xread(src_fd, magic, 2);
+	if (magic[0] != 'B' || magic[1] != 'Z') {
+		bb_error_msg_and_die("invalid magic");
+	}
+	return unpack_bz2_stream(src_fd, dst_fd);
+}
+
 #ifdef TESTING
 
 static char *const bunzip_errors[] = {
@@ -693,9 +711,10 @@ static char *const bunzip_errors[] = {
 /* Dumb little test thing, decompress stdin to stdout */
 int main(int argc, char **argv)
 {
-	int i = unpack_bz2_stream(0, 1);
+	int i;
 	char c;
 
+	int i = unpack_bz2_stream_prime(0, 1);
 	if (i < 0)
 		fprintf(stderr, "%s\n", bunzip_errors[-i]);
 	else if (read(STDIN_FILENO, &c, 1))

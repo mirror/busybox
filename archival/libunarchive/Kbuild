@@ -32,36 +32,20 @@ DPKG_FILES:= \
 	get_header_tar.o \
 	filter_accept_list_reassign.o
 
-lib-$(CONFIG_RPM)                       += open_transformer.o
-lib-$(CONFIG_FEATURE_TAR_BZIP2)         += open_transformer.o
-lib-$(CONFIG_FEATURE_TAR_LZMA)          += open_transformer.o
-lib-$(CONFIG_FEATURE_TAR_GZIP)          += open_transformer.o
-lib-$(CONFIG_FEATURE_TAR_COMPRESS)      += open_transformer.o
-lib-$(CONFIG_FEATURE_DEB_TAR_GZ)        += open_transformer.o
-lib-$(CONFIG_FEATURE_DEB_TAR_BZ2)       += open_transformer.o
-lib-$(CONFIG_FEATURE_DEB_TAR_LZMA)      += open_transformer.o
-
-lib-$(CONFIG_FEATURE_MODPROBE_SMALL_ZIPPED) += open_transformer.o decompress_unzip.o decompress_bunzip2.o
-
 lib-$(CONFIG_AR)                        += get_header_ar.o unpack_ar_archive.o
 lib-$(CONFIG_BUNZIP2)                   += decompress_bunzip2.o
 lib-$(CONFIG_UNLZMA)                    += decompress_unlzma.o
 lib-$(CONFIG_CPIO)                      += get_header_cpio.o
 lib-$(CONFIG_DPKG)                      += $(DPKG_FILES)
 lib-$(CONFIG_DPKG_DEB)                  += $(DPKG_FILES)
-lib-$(CONFIG_FEATURE_DEB_TAR_GZ)        += decompress_unzip.o get_header_tar_gz.o
-lib-$(CONFIG_FEATURE_DEB_TAR_BZ2)       += decompress_bunzip2.o get_header_tar_bz2.o
-lib-$(CONFIG_FEATURE_DEB_TAR_LZMA)      += decompress_unlzma.o get_header_tar_lzma.o
 lib-$(CONFIG_GUNZIP)                    += decompress_unzip.o
-lib-$(CONFIG_FEATURE_GUNZIP_UNCOMPRESS) += decompress_uncompress.o
 lib-$(CONFIG_RPM2CPIO)                  += decompress_unzip.o get_header_cpio.o
-lib-$(CONFIG_RPM)                       += decompress_unzip.o get_header_cpio.o
-lib-$(CONFIG_FEATURE_RPM_BZ2)           += decompress_bunzip2.o
+lib-$(CONFIG_RPM)                       += open_transformer.o decompress_unzip.o get_header_cpio.o
 lib-$(CONFIG_TAR)                       += get_header_tar.o
-lib-$(CONFIG_FEATURE_TAR_BZIP2)         += decompress_bunzip2.o get_header_tar_bz2.o
-lib-$(CONFIG_FEATURE_TAR_LZMA)          += decompress_unlzma.o get_header_tar_lzma.o
-lib-$(CONFIG_FEATURE_TAR_GZIP)          += decompress_unzip.o get_header_tar_gz.o
-lib-$(CONFIG_FEATURE_TAR_COMPRESS)      += decompress_uncompress.o
 lib-$(CONFIG_UNCOMPRESS)                += decompress_uncompress.o
 lib-$(CONFIG_UNZIP)                     += decompress_unzip.o
+lib-$(CONFIG_FEATURE_SEAMLESS_Z)        += open_transformer.o decompress_uncompress.o
+lib-$(CONFIG_FEATURE_SEAMLESS_GZ)       += open_transformer.o decompress_unzip.o get_header_tar_gz.o
+lib-$(CONFIG_FEATURE_SEAMLESS_BZ2)      += open_transformer.o decompress_bunzip2.o get_header_tar_bz2.o
+lib-$(CONFIG_FEATURE_SEAMLESS_LZMA)     += open_transformer.o decompress_unlzma.o get_header_tar_lzma.o
 lib-$(CONFIG_FEATURE_COMPRESS_USAGE)    += decompress_bunzip2.o

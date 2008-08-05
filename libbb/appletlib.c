@@ -73,7 +73,8 @@ static const char *unpack_usage_messages(void)
 
 	i = start_bunzip(&bd,
 			/* src_fd: */ -1,
-			/* inbuf:  */ (void *)packed_usage,
+//FIXME: can avoid storing these 2 bytes!
+			/* inbuf:  */ (void *)packed_usage + 2,
 			/* len:    */ sizeof(packed_usage));
 	/* read_bunzip can longjmp to start_bunzip, and ultimately
 	 * end up here with i != 0 on read data errors! Not trivial */

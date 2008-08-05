@@ -148,12 +148,12 @@ char FAST_FUNC get_header_tar(archive_handle_t *archive_handle)
 		 * we can switch to get_header_tar_gz/bz2/lzma().
 		 * Needs seekable fd. I wish recv(MSG_PEEK) works
 		 * on any fd... */
-#if ENABLE_FEATURE_TAR_GZIP
+#if ENABLE_FEATURE_SEAMLESS_GZ
 		if (tar.name[0] == 0x1f && tar.name[1] == (char)0x8b) { /* gzip */
 			get_header_ptr = get_header_tar_gz;
 		} else
 #endif
-#if ENABLE_FEATURE_TAR_BZIP2
+#if ENABLE_FEATURE_SEAMLESS_BZ2
 		if (tar.name[0] == 'B' && tar.name[1] == 'Z'
 		 && tar.name[2] == 'h' && isdigit(tar.name[3])
 		) { /* bzip2 */

@@ -36,7 +36,7 @@
 #define block_buf bb_common_bufsiz1
 
 
-#if !ENABLE_FEATURE_TAR_GZIP && !ENABLE_FEATURE_TAR_BZIP2
+#if !ENABLE_FEATURE_SEAMLESS_GZ && !ENABLE_FEATURE_SEAMLESS_BZ2
 /* Do not pass gzip flag to writeTarFile() */
 #define writeTarFile(tar_fd, verboseFlag, dereferenceFlag, include, exclude, gzip) \
 	writeTarFile(tar_fd, verboseFlag, dereferenceFlag, include, exclude)
@@ -503,19 +503,19 @@ static int FAST_FUNC writeFileToTarball(const char *fileName, struct stat *statb
 	return TRUE;
 }
 
-#if ENABLE_FEATURE_TAR_GZIP || ENABLE_FEATURE_TAR_BZIP2
-#if !(ENABLE_FEATURE_TAR_GZIP && ENABLE_FEATURE_TAR_BZIP2)
+#if ENABLE_FEATURE_SEAMLESS_GZ || ENABLE_FEATURE_SEAMLESS_BZ2
+#if !(ENABLE_FEATURE_SEAMLESS_GZ && ENABLE_FEATURE_SEAMLESS_BZ2)
 #define vfork_compressor(tar_fd, gzip) vfork_compressor(tar_fd)
 #endif
 /* Don't inline: vfork scares gcc and pessimizes code */
 static void NOINLINE vfork_compressor(int tar_fd, int gzip)
 {
 	pid_t gzipPid;
-#if ENABLE_FEATURE_TAR_GZIP && ENABLE_FEATURE_TAR_BZIP2
+#if ENABLE_FEATURE_SEAMLESS_GZ && ENABLE_FEATURE_SEAMLESS_BZ2
 	const char *zip_exec = (gzip == 1) ? "gzip" : "bzip2";
-#elif ENABLE_FEATURE_TAR_GZIP
+#elif ENABLE_FEATURE_SEAMLESS_GZ
 	const char *zip_exec = "gzip";
-#else /* only ENABLE_FEATURE_TAR_BZIP2 */
+#else /* only ENABLE_FEATURE_SEAMLESS_BZ2 */
 	const char *zip_exec = "bzip2";
 #endif
 	// On Linux, vfork never unpauses parent early, although standard
@@ -579,7 +579,7 @@ static void NOINLINE vfork_compressor(int tar_fd, int gzip)
 		bb_perror_msg_and_die("cannot exec %s", zip_exec);
 	}
 }
-#endif /* ENABLE_FEATURE_TAR_GZIP || ENABLE_FEATURE_TAR_BZIP2 */
+#endif /* ENABLE_FEATURE_SEAMLESS_GZ || ENABLE_FEATURE_SEAMLESS_BZ2 */
 
 
 /* gcc 4.2.1 inlines it, making code bigger */
@@ -601,7 +601,7 @@ static NOINLINE int writeTarFile(int tar_fd, int verboseFlag,
 	if (fstat(tbInfo.tarFd, &tbInfo.statBuf) < 0)
 		bb_perror_msg_and_die("cannot stat tar file");
 
-#if ENABLE_FEATURE_TAR_GZIP || ENABLE_FEATURE_TAR_BZIP2
+#if ENABLE_FEATURE_SEAMLESS_GZ || ENABLE_FEATURE_SEAMLESS_BZ2
 	if (gzip)
 		vfork_compressor(tbInfo.tarFd, gzip);
 #endif
@@ -637,7 +637,7 @@ static NOINLINE int writeTarFile(int tar_fd, int verboseFlag,
 	if (errorFlag)
 		bb_error_msg("error exit delayed from previous errors");
 
-#if ENABLE_FEATURE_TAR_GZIP || ENABLE_FEATURE_TAR_BZIP2
+#if ENABLE_FEATURE_SEAMLESS_GZ || ENABLE_FEATURE_SEAMLESS_BZ2
 	if (gzip) {
 		int status;
 		if (safe_waitpid(-1, &status, 0) == -1)
@@ -679,7 +679,7 @@ static llist_t *append_file_list_to_list(llist_t *list)
 #define append_file_list_to_list(x) 0
 #endif
 
-#if ENABLE_FEATURE_TAR_COMPRESS
+#if ENABLE_FEATURE_SEAMLESS_Z
 static char FAST_FUNC get_header_tar_Z(archive_handle_t *archive_handle)
 {
 	/* Can't lseek over pipes */
@@ -692,7 +692,7 @@ static char FAST_FUNC get_header_tar_Z(archive_handle_t *archive_handle)
 		bb_error_msg_and_die("invalid magic");
 	}
 
-	open_transformer(archive_handle->src_fd, uncompress, "uncompress");
+	open_transformer(archive_handle->src_fd, unpack_Z_stream, "uncompress");
 	archive_handle->offset = 0;
 	while (get_header_tar(archive_handle) == EXIT_SUCCESS)
 		continue;
@@ -729,14 +729,14 @@ static void handle_SIGCHLD(int status)
 
 enum {
 	OPTBIT_KEEP_OLD = 7,
-	USE_FEATURE_TAR_CREATE(  OPTBIT_CREATE      ,)
-	USE_FEATURE_TAR_CREATE(  OPTBIT_DEREFERENCE ,)
-	USE_FEATURE_TAR_BZIP2(   OPTBIT_BZIP2       ,)
-	USE_FEATURE_TAR_LZMA(    OPTBIT_LZMA        ,)
-	USE_FEATURE_TAR_FROM(    OPTBIT_INCLUDE_FROM,)
-	USE_FEATURE_TAR_FROM(    OPTBIT_EXCLUDE_FROM,)
-	USE_FEATURE_TAR_GZIP(    OPTBIT_GZIP        ,)
-	USE_FEATURE_TAR_COMPRESS(OPTBIT_COMPRESS    ,)
+	USE_FEATURE_TAR_CREATE(   OPTBIT_CREATE      ,)
+	USE_FEATURE_TAR_CREATE(   OPTBIT_DEREFERENCE ,)
+	USE_FEATURE_SEAMLESS_BZ2( OPTBIT_BZIP2       ,)
+	USE_FEATURE_SEAMLESS_LZMA(OPTBIT_LZMA        ,)
+	USE_FEATURE_TAR_FROM(     OPTBIT_INCLUDE_FROM,)
+	USE_FEATURE_TAR_FROM(     OPTBIT_EXCLUDE_FROM,)
+	USE_FEATURE_SEAMLESS_GZ(  OPTBIT_GZIP        ,)
+	USE_FEATURE_SEAMLESS_Z(   OPTBIT_COMPRESS    ,)
 	OPTBIT_NOPRESERVE_OWN,
 	OPTBIT_NOPRESERVE_PERM,
 	OPT_TEST         = 1 << 0, // t
@@ -747,14 +747,14 @@ enum {
 	OPT_P            = 1 << 5, // p
 	OPT_VERBOSE      = 1 << 6, // v
 	OPT_KEEP_OLD     = 1 << 7, // k
-	OPT_CREATE       = USE_FEATURE_TAR_CREATE(  (1<<OPTBIT_CREATE      )) + 0, // c
-	OPT_DEREFERENCE  = USE_FEATURE_TAR_CREATE(  (1<<OPTBIT_DEREFERENCE )) + 0, // h
-	OPT_BZIP2        = USE_FEATURE_TAR_BZIP2(   (1<<OPTBIT_BZIP2       )) + 0, // j
-	OPT_LZMA         = USE_FEATURE_TAR_LZMA(    (1<<OPTBIT_LZMA        )) + 0, // a
-	OPT_INCLUDE_FROM = USE_FEATURE_TAR_FROM(    (1<<OPTBIT_INCLUDE_FROM)) + 0, // T
-	OPT_EXCLUDE_FROM = USE_FEATURE_TAR_FROM(    (1<<OPTBIT_EXCLUDE_FROM)) + 0, // X
-	OPT_GZIP         = USE_FEATURE_TAR_GZIP(    (1<<OPTBIT_GZIP        )) + 0, // z
-	OPT_COMPRESS     = USE_FEATURE_TAR_COMPRESS((1<<OPTBIT_COMPRESS    )) + 0, // Z
+	OPT_CREATE       = USE_FEATURE_TAR_CREATE(   (1 << OPTBIT_CREATE      )) + 0, // c
+	OPT_DEREFERENCE  = USE_FEATURE_TAR_CREATE(   (1 << OPTBIT_DEREFERENCE )) + 0, // h
+	OPT_BZIP2        = USE_FEATURE_SEAMLESS_BZ2( (1 << OPTBIT_BZIP2       )) + 0, // j
+	OPT_LZMA         = USE_FEATURE_SEAMLESS_LZMA((1 << OPTBIT_LZMA        )) + 0, // a
+	OPT_INCLUDE_FROM = USE_FEATURE_TAR_FROM(     (1 << OPTBIT_INCLUDE_FROM)) + 0, // T
+	OPT_EXCLUDE_FROM = USE_FEATURE_TAR_FROM(     (1 << OPTBIT_EXCLUDE_FROM)) + 0, // X
+	OPT_GZIP         = USE_FEATURE_SEAMLESS_GZ(  (1 << OPTBIT_GZIP        )) + 0, // z
+	OPT_COMPRESS     = USE_FEATURE_SEAMLESS_Z(   (1 << OPTBIT_COMPRESS    )) + 0, // Z
 	OPT_NOPRESERVE_OWN  = 1 << OPTBIT_NOPRESERVE_OWN , // no-same-owner
 	OPT_NOPRESERVE_PERM = 1 << OPTBIT_NOPRESERVE_PERM, // no-same-permissions
 };
@@ -772,20 +772,20 @@ static const char tar_longopts[] ALIGN1 =
 	"create\0"              No_argument       "c"
 	"dereference\0"         No_argument       "h"
 # endif
-# if ENABLE_FEATURE_TAR_BZIP2
+# if ENABLE_FEATURE_SEAMLESS_BZ2
 	"bzip2\0"               No_argument       "j"
 # endif
-# if ENABLE_FEATURE_TAR_LZMA
+# if ENABLE_FEATURE_SEAMLESS_LZMA
 	"lzma\0"                No_argument       "a"
 # endif
 # if ENABLE_FEATURE_TAR_FROM
 	"files-from\0"          Required_argument "T"
 	"exclude-from\0"        Required_argument "X"
 # endif
-# if ENABLE_FEATURE_TAR_GZIP
+# if ENABLE_FEATURE_SEAMLESS_GZ
 	"gzip\0"                No_argument       "z"
 # endif
-# if ENABLE_FEATURE_TAR_COMPRESS
+# if ENABLE_FEATURE_SEAMLESS_Z
 	"compress\0"            No_argument       "Z"
 # endif
 	"no-same-owner\0"       No_argument       "\xfd"
@@ -834,12 +834,12 @@ int tar_main(int argc UNUSED_PARAM, char **argv)
 #endif
 	opt = getopt32(argv,
 		"txC:f:Opvk"
-		USE_FEATURE_TAR_CREATE(  "ch"  )
-		USE_FEATURE_TAR_BZIP2(   "j"   )
-		USE_FEATURE_TAR_LZMA(    "a"   )
-		USE_FEATURE_TAR_FROM(    "T:X:")
-		USE_FEATURE_TAR_GZIP(    "z"   )
-		USE_FEATURE_TAR_COMPRESS("Z"   )
+		USE_FEATURE_TAR_CREATE(   "ch"  )
+		USE_FEATURE_SEAMLESS_BZ2( "j"   )
+		USE_FEATURE_SEAMLESS_LZMA("a"   )
+		USE_FEATURE_TAR_FROM(     "T:X:")
+		USE_FEATURE_SEAMLESS_GZ(  "z"   )
+		USE_FEATURE_SEAMLESS_Z(   "Z"   )
 		, &base_dir // -C dir
 		, &tar_filename // -f filename
 		USE_FEATURE_TAR_FROM(, &(tar_handle->accept)) // T
@@ -922,8 +922,7 @@ int tar_main(int argc UNUSED_PARAM, char **argv)
 
 			tar_stream = stdout;
 			/* Mimicking GNU tar 1.15.1: */
-			flags = O_WRONLY|O_CREAT|O_TRUNC;
-		/* was doing unlink; open(O_WRONLY|O_CREAT|O_EXCL); why? */
+			flags = O_WRONLY | O_CREAT | O_TRUNC;
 		} else {
 			tar_stream = stdin;
 			flags = O_RDONLY;
@@ -933,7 +932,14 @@ int tar_main(int argc UNUSED_PARAM, char **argv)
 			tar_handle->src_fd = fileno(tar_stream);
 			tar_handle->seek = seek_by_read;
 		} else {
-			tar_handle->src_fd = xopen(tar_filename, flags);
+			if (ENABLE_FEATURE_TAR_AUTODETECT && flags == O_RDONLY) {
+				get_header_ptr = get_header_tar;
+				tar_handle->src_fd = open_zipped(tar_filename);
+				if (tar_handle->src_fd < 0)
+					bb_perror_msg_and_die("can't open '%s'", tar_filename);
+			} else {
+				tar_handle->src_fd = xopen(tar_filename, flags);
+			}
 		}
 	}
 
@@ -947,11 +953,11 @@ int tar_main(int argc UNUSED_PARAM, char **argv)
 
 	/* create an archive */
 	if (opt & OPT_CREATE) {
-#if ENABLE_FEATURE_TAR_GZIP || ENABLE_FEATURE_TAR_BZIP2
+#if ENABLE_FEATURE_SEAMLESS_GZ || ENABLE_FEATURE_SEAMLESS_BZ2
 		int zipMode = 0;
-		if (ENABLE_FEATURE_TAR_GZIP && (opt & OPT_GZIP))
+		if (ENABLE_FEATURE_SEAMLESS_GZ && (opt & OPT_GZIP))
 			zipMode = 1;
-		if (ENABLE_FEATURE_TAR_BZIP2 && (opt & OPT_BZIP2))
+		if (ENABLE_FEATURE_SEAMLESS_BZ2 && (opt & OPT_BZIP2))
 			zipMode = 2;
 #endif
 		/* NB: writeTarFile() closes tar_handle->src_fd */

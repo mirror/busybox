@@ -100,7 +100,7 @@ static char* find_keyword(char *ptr, size_t len, const char *word)
 {
 	int wlen;
 
-	if (!ptr) /* happens if read_module cannot read it */
+	if (!ptr) /* happens if xmalloc_open_zipped_read_close cannot read it */
 		return NULL;
 
 	wlen = strlen(word);
@@ -141,12 +141,6 @@ static char* str_2_list(const char *str)
 	return dst;
 }
 
-#if ENABLE_FEATURE_MODPROBE_SMALL_ZIPPED
-# define read_module xmalloc_open_zipped_read_close
-#else
-# define read_module xmalloc_open_read_close
-#endif
-
 /* We use error numbers in a loose translation... */
 static const char *moderror(int err)
 {
@@ -173,7 +167,7 @@ static int load_module(const char *fname, const char *options)
 	char *module_image;
 	dbg1_error_msg("load_module('%s','%s')", fname, options);
 
-	module_image = read_module(fname, &len);
+	module_image = xmalloc_open_zipped_read_close(fname, &len);
 	r = (!module_image || init_module(module_image, len, options ? options : "") != 0);
 	free(module_image);
 	dbg1_error_msg("load_module:%d", r);
@@ -195,7 +189,7 @@ static void parse_module(module_info *info, const char *pathname)
 
 	/* Read (possibly compressed) module */
 	len = 64 * 1024 * 1024; /* 64 Mb at most */
-	module_image = read_module(pathname, &len);
+	module_image = xmalloc_open_zipped_read_close(pathname, &len);
 //TODO: optimize redundant module body reads
 
 	/* "alias1 symbol:sym1 alias2 symbol:sym2" */

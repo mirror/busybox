@@ -597,6 +597,7 @@ extern void *xmalloc_read(int fd, size_t *maxsz_p) FAST_FUNC;
 /* Returns NULL if file can't be opened */
 extern void *xmalloc_open_read_close(const char *filename, size_t *maxsz_p) FAST_FUNC;
 /* Autodetects .gz etc */
+extern int open_zipped(const char *fname) FAST_FUNC;
 extern void *xmalloc_open_zipped_read_close(const char *fname, size_t *maxsz_p) FAST_FUNC;
 /* Never returns NULL */
 extern void *xmalloc_xopen_read_close(const char *filename, size_t *maxsz_p) FAST_FUNC;
@@ -1037,10 +1038,6 @@ char *concat_subpath_file(const char *path, const char *filename) FAST_FUNC;
 const char *bb_basename(const char *name) FAST_FUNC;
 /* NB: can violate const-ness (similarly to strchr) */
 char *last_char_is(const char *s, int c) FAST_FUNC;
-
-
-USE_DESKTOP(long long) int uncompress(int fd_in, int fd_out) FAST_FUNC;
-int inflate(int in, int out) FAST_FUNC;
 
 
 int bb_make_directory(char *path, long mode, int flags) FAST_FUNC;

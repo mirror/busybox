@@ -1,6 +1,4 @@
 /* vi: set sw=4 ts=4: */
-#include "libbb.h"
-
 /* uncompress for busybox -- (c) 2002 Robert Griebl
  *
  * based on the original compress42.c source
@@ -25,6 +23,10 @@
  * [... History snipped ...]
  *
  */
+
+#include "libbb.h"
+#include "unarchive.h"
+
 
 /* Default input buffer size */
 #define	IBUFSIZ	2048
@@ -71,7 +73,7 @@
  */
 
 USE_DESKTOP(long long) int FAST_FUNC
-uncompress(int fd_in, int fd_out)
+unpack_Z_stream(int fd_in, int fd_out)
 {
 	USE_DESKTOP(long long total_written = 0;)
 	USE_DESKTOP(long long) int retval = -1;

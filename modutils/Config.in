@@ -54,13 +54,6 @@ config FEATURE_MODPROBE_SMALL_CHECK_ALREADY_LOADED
 	  Check if the module is already loaded.
 	  N.B. It's racy.
 
-config FEATURE_MODPROBE_SMALL_ZIPPED
-	bool "Handle gzipped or bzipped modules"
-	default n
-	depends on MODPROBE_SMALL
-	help
-	  Handle compressed modules. Bloaty. Sloooow.
-
 config DEPMOD
 	bool "depmod"
 	default n

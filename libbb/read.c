@@ -8,7 +8,14 @@
  */
 
 #include "libbb.h"
-#if ENABLE_FEATURE_MODPROBE_SMALL_ZIPPED
+
+#define ZIPPED (ENABLE_FEATURE_SEAMLESS_LZMA \
+	|| ENABLE_FEATURE_SEAMLESS_BZ2 \
+	|| ENABLE_FEATURE_SEAMLESS_GZ \
+	/* || ENABLE_FEATURE_SEAMLESS_Z */ \
+)
+
+#if ZIPPED
 #include "unarchive.h"
 #endif
 
@@ -299,23 +306,80 @@ void* FAST_FUNC xmalloc_xopen_read_close(const char *filename, size_t *maxsz_p)
 	return buf;
 }
 
-#if ENABLE_FEATURE_MODPROBE_SMALL_ZIPPED
+int FAST_FUNC open_zipped(const char *fname)
+{
+#if !ZIPPED
+	return open(fname, O_RDONLY);
+#else
+	unsigned char magic[2];
+	char *sfx;
+	int fd;
+#if BB_MMU
+	USE_DESKTOP(long long) int FAST_FUNC (*xformer)(int src_fd, int dst_fd);
+	enum { xformer_prog = 0 };
+#else
+	enum { xformer = 0 };
+	const char *xformer_prog;
+#endif
+
+	fd = open(fname, O_RDONLY);
+	if (fd < 0)
+		return fd;
+
+	sfx = strrchr(fname, '.');
+	if (sfx) {
+		if (ENABLE_FEATURE_SEAMLESS_LZMA && strcmp(sfx, ".lzma") == 0)
+			/* .lzma has no header/signature, just trust it */
+			open_transformer(fd, unpack_lzma_stream, "unlzma");
+		else
+		if ((ENABLE_FEATURE_SEAMLESS_GZ && strcmp(sfx, ".gz") == 0)
+		 || (ENABLE_FEATURE_SEAMLESS_BZ2 && strcmp(sfx, ".bz2") == 0)
+		) {
+			/* .gz and .bz2 both have 2-byte signature, and their
+			 * unpack_XXX_stream want this header skipped. */
+			xread(fd, &magic, 2);
+#if BB_MMU
+			xformer = unpack_gz_stream;
+#else
+			xformer_prog = "gunzip";
+#endif
+			if (magic[0] != 0x1f || magic[1] != 0x8b) {
+				if (!ENABLE_FEATURE_SEAMLESS_BZ2
+				 || magic[0] != 'B' || magic[1] != 'Z'
+				) {
+					bb_error_msg_and_die("no gzip"
+						USE_FEATURE_SEAMLESS_BZ2("/bzip2")
+						" magic");
+				}
+#if BB_MMU
+				xformer = unpack_bz2_stream;
+#else
+				xformer_prog = "bunzip2";
+#endif
+			} else {
+#if !BB_MMU
+				/* NOMMU version of open_transformer execs
+				 * an external unzipper that wants
+				 * file position at the start of the file */
+				xlseek(fd, 0, SEEK_SET);
+#endif
+			}
+			open_transformer(fd, xformer, xformer_prog);
+		}
+	}
+
+	return fd;
+#endif
+}
+
 void* FAST_FUNC xmalloc_open_zipped_read_close(const char *fname, size_t *maxsz_p)
 {
+	int fd;
 	char *image;
-	char *suffix;
 
-	int fd = open(fname, O_RDONLY);
+	fd = open_zipped(fname);
 	if (fd < 0)
 		return NULL;
-
-	suffix = strrchr(fname, '.');
-	if (suffix) {
-		if (strcmp(suffix, ".gz") == 0)
-			open_transformer(fd, unpack_gz_stream, "gunzip");
-		else if (strcmp(suffix, ".bz2") == 0)
-			open_transformer(fd, unpack_bz2_stream, "bunzip2");
-	}
 
 	image = xmalloc_read(fd, maxsz_p);
 	if (!image)
@@ -324,4 +388,3 @@ void* FAST_FUNC xmalloc_open_zipped_read_close(const char *fname, size_t *maxsz_
 
 	return image;
 }
-#endif

@@ -206,27 +206,27 @@ static void extract_cpio_gz(int fd)
 	archive_handle->src_fd = fd;
 	/*archive_handle->offset = 0; - init_handle() did it */
 
+// TODO: open_zipped does the same
+
 	xread(archive_handle->src_fd, &magic, 2);
 #if BB_MMU
 	xformer = unpack_gz_stream;
 #else
 	xformer_prog = "gunzip";
 #endif
-	if ((magic[0] != 0x1f) || (magic[1] != 0x8b)) {
-		if (ENABLE_FEATURE_RPM_BZ2
-		 && (magic[0] == 0x42) && (magic[1] == 0x5a)) {
-#if BB_MMU
-			xformer = unpack_bz2_stream;
-#else
-			xformer_prog = "bunzip2";
-#endif
-	/* We can do better, need modifying unpack_bz2_stream to not require
-	 * first 2 bytes. Not very hard to do... I mean, TODO :) */
-			xlseek(archive_handle->src_fd, -2, SEEK_CUR);
-		} else
+	if (magic[0] != 0x1f || magic[1] != 0x8b) {
+		if (!ENABLE_FEATURE_SEAMLESS_BZ2
+		 || magic[0] != 'B' || magic[1] != 'Z'
+		) {
 			bb_error_msg_and_die("no gzip"
-				USE_FEATURE_RPM_BZ2("/bzip")
+				USE_FEATURE_SEAMLESS_BZ2("/bzip2")
 				" magic");
+		}
+#if BB_MMU
+		xformer = unpack_bz2_stream;
+#else
+		xformer_prog = "bunzip2";
+#endif
 	} else {
 #if !BB_MMU
 		/* NOMMU version of open_transformer execs an external unzipper that should

@@ -23,22 +23,25 @@ char FAST_FUNC filter_accept_list_reassign(archive_handle_t *archive_handle)
 
 		/* Find extension */
 		name_ptr = strrchr(archive_handle->file_header->name, '.');
+		if (!name_ptr)
+			return EXIT_FAILURE;
+		name_ptr++;
 
 		/* Modify the subarchive handler based on the extension */
-		if (ENABLE_FEATURE_DEB_TAR_GZ
-		 && strcmp(name_ptr, ".gz") == 0
+		if (ENABLE_FEATURE_SEAMLESS_GZ
+		 && strcmp(name_ptr, "gz") == 0
 		) {
 			archive_handle->action_data_subarchive = get_header_tar_gz;
 			return EXIT_SUCCESS;
 		}
-		if (ENABLE_FEATURE_DEB_TAR_BZ2
-		 && strcmp(name_ptr, ".bz2") == 0
+		if (ENABLE_FEATURE_SEAMLESS_BZ2
+		 && strcmp(name_ptr, "bz2") == 0
 		) {
 			archive_handle->action_data_subarchive = get_header_tar_bz2;
 			return EXIT_SUCCESS;
 		}
-		if (ENABLE_FEATURE_DEB_TAR_LZMA
-		 && strcmp(name_ptr, ".lzma") == 0
+		if (ENABLE_FEATURE_SEAMLESS_LZMA
+		 && strcmp(name_ptr, "lzma") == 0
 		) {
 			archive_handle->action_data_subarchive = get_header_tar_lzma;
 			return EXIT_SUCCESS;

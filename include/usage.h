@@ -3943,9 +3943,9 @@
        "nameserver 10.0.0.1\n"
 
 #define tar_trivial_usage \
-       "-[" USE_FEATURE_TAR_CREATE("c") USE_FEATURE_TAR_GZIP("z") \
-	USE_FEATURE_TAR_BZIP2("j") USE_FEATURE_TAR_LZMA("a") \
-	USE_FEATURE_TAR_COMPRESS("Z") "xtvO] " \
+       "-[" USE_FEATURE_TAR_CREATE("c") USE_FEATURE_SEAMLESS_GZ("z") \
+	USE_FEATURE_SEAMLESS_BZ2("j") USE_FEATURE_SEAMLESS_LZMA("a") \
+	USE_FEATURE_SEAMLESS_Z("Z") "xtvO] " \
 	USE_FEATURE_TAR_FROM("[-X FILE] ") \
        "[-f TARFILE] [-C DIR] [FILE(s)]..."
 #define tar_full_usage "\n\n" \
@@ -3956,16 +3956,16 @@
      "\n	x	Extract" \
      "\n	t	List" \
      "\nArchive format selection:" \
-	USE_FEATURE_TAR_GZIP( \
+	USE_FEATURE_SEAMLESS_GZ( \
      "\n	z	Filter the archive through gzip" \
 	) \
-	USE_FEATURE_TAR_BZIP2( \
+	USE_FEATURE_SEAMLESS_BZ2( \
      "\n	j	Filter the archive through bzip2" \
 	) \
-	USE_FEATURE_TAR_LZMA( \
+	USE_FEATURE_SEAMLESS_LZMA( \
      "\n	a	Filter the archive through lzma" \
 	) \
-	USE_FEATURE_TAR_COMPRESS( \
+	USE_FEATURE_SEAMLESS_Z( \
      "\n	Z	Filter the archive through compress" \
 	) \
      "\nFile selection:" \

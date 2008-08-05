@@ -98,9 +98,9 @@ extern void header_verbose_list(const file_header_t *file_header) FAST_FUNC;
 extern char get_header_ar(archive_handle_t *archive_handle) FAST_FUNC;
 extern char get_header_cpio(archive_handle_t *archive_handle) FAST_FUNC;
 extern char get_header_tar(archive_handle_t *archive_handle) FAST_FUNC;
+extern char get_header_tar_gz(archive_handle_t *archive_handle) FAST_FUNC;
 extern char get_header_tar_bz2(archive_handle_t *archive_handle) FAST_FUNC;
 extern char get_header_tar_lzma(archive_handle_t *archive_handle) FAST_FUNC;
-extern char get_header_tar_gz(archive_handle_t *archive_handle) FAST_FUNC;
 
 extern void seek_by_jump(const archive_handle_t *archive_handle, unsigned amount) FAST_FUNC;
 extern void seek_by_read(const archive_handle_t *archive_handle, unsigned amount) FAST_FUNC;
@@ -120,17 +120,22 @@ typedef struct inflate_unzip_result {
 	uint32_t crc;
 } inflate_unzip_result;
 
-extern USE_DESKTOP(long long) int unpack_bz2_stream(int src_fd, int dst_fd) FAST_FUNC;
-extern USE_DESKTOP(long long) int inflate_unzip(inflate_unzip_result *res, off_t compr_size, int src_fd, int dst_fd) FAST_FUNC;
-extern USE_DESKTOP(long long) int unpack_gz_stream(int src_fd, int dst_fd) FAST_FUNC;
-extern USE_DESKTOP(long long) int unpack_lzma_stream(int src_fd, int dst_fd) FAST_FUNC;
+USE_DESKTOP(long long) int inflate_unzip(inflate_unzip_result *res, off_t compr_size, int src_fd, int dst_fd) FAST_FUNC;
+/* lzma unpacker takes .lzma stream from offset 0 */
+USE_DESKTOP(long long) int unpack_lzma_stream(int src_fd, int dst_fd) FAST_FUNC;
+/* the rest wants 2 first bytes already skipped by the caller */
+USE_DESKTOP(long long) int unpack_bz2_stream(int src_fd, int dst_fd) FAST_FUNC;
+USE_DESKTOP(long long) int unpack_gz_stream(int src_fd, int dst_fd) FAST_FUNC;
+USE_DESKTOP(long long) int unpack_Z_stream(int fd_in, int fd_out) FAST_FUNC;
+/* wrapper which checks first two bytes to be "BZ" */
+USE_DESKTOP(long long) int unpack_bz2_stream_prime(int src_fd, int dst_fd) FAST_FUNC;
 
 #if BB_MMU
-extern void open_transformer(int fd,
+void open_transformer(int fd,
 	USE_DESKTOP(long long) int FAST_FUNC (*transformer)(int src_fd, int dst_fd)) FAST_FUNC;
 #define open_transformer(fd, transformer, transform_prog) open_transformer(fd, transformer)
 #else
-extern void open_transformer(int src_fd, const char *transform_prog) FAST_FUNC;
+void open_transformer(int src_fd, const char *transform_prog) FAST_FUNC;
 #define open_transformer(fd, transformer, transform_prog) open_transformer(fd, transform_prog)
 #endif
 

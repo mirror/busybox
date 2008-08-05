@@ -161,7 +161,7 @@ char* make_new_name_bunzip2(char *filename)
 static
 USE_DESKTOP(long long) int unpack_bunzip2(void)
 {
-	return unpack_bz2_stream(STDIN_FILENO, STDOUT_FILENO);
+	return unpack_bz2_stream_prime(STDIN_FILENO, STDOUT_FILENO);
 }
 
 int bunzip2_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
@@ -218,8 +218,8 @@ char* make_new_name_gunzip(char *filename)
 
 	extension++;
 	if (strcmp(extension, "tgz" + 1) == 0
-#if ENABLE_FEATURE_GUNZIP_UNCOMPRESS
-	 || strcmp(extension, "Z") == 0
+#if ENABLE_FEATURE_SEAMLESS_Z
+	 || (extension[0] == 'Z' && extension[1] == '\0')
 #endif
 	) {
 		extension[-1] = '\0';
@@ -244,8 +244,8 @@ USE_DESKTOP(long long) int unpack_gunzip(void)
 		unsigned char magic2;
 
 		magic2 = xread_char(STDIN_FILENO);
-		if (ENABLE_FEATURE_GUNZIP_UNCOMPRESS && magic2 == 0x9d) {
-			status = uncompress(STDIN_FILENO, STDOUT_FILENO);
+		if (ENABLE_FEATURE_SEAMLESS_Z && magic2 == 0x9d) {
+			status = unpack_Z_stream(STDIN_FILENO, STDOUT_FILENO);
 		} else if (magic2 == 0x8b) {
 			status = unpack_gz_stream(STDIN_FILENO, STDOUT_FILENO);
 		} else {
@@ -351,7 +351,7 @@ USE_DESKTOP(long long) int unpack_uncompress(void)
 	if ((xread_char(STDIN_FILENO) != 0x1f) || (xread_char(STDIN_FILENO) != 0x9d)) {
 		bb_error_msg("invalid magic");
 	} else {
-		status = uncompress(STDIN_FILENO, STDOUT_FILENO);
+		status = unpack_Z_stream(STDIN_FILENO, STDOUT_FILENO);
 	}
 	return status;
 }
