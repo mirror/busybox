@@ -23,16 +23,19 @@ echo ".pl \n(nlu+10"
 
 */
 
-/* Trick gcc to reuse "cat" string. */
-#define STR_catNULmanNUL "cat\0man"
-#define STR_cat          "cat\0man"
-
-//TODO: make gz/bz2 support conditional on FEATURE_SEAMLESS_GZ/BZ2,
-// add SEAMLESS_LZMA support
+#if ENABLE_FEATURE_SEAMLESS_LZMA
+#define Z_SUFFIX ".lzma"
+#elif ENABLE_FEATURE_SEAMLESS_BZ2
+#define Z_SUFFIX ".bz2"
+#elif ENABLE_FEATURE_SEAMLESS_GZ
+#define Z_SUFFIX ".gz"
+#else
+#define Z_SUFFIX ""
+#endif
 
 static int show_manpage(const char *pager, char *man_filename, int man, int level);
 
-static int run_pipe(const char *unpacker, const char *pager, char *man_filename, int man, int level)
+static int run_pipe(const char *pager, char *man_filename, int man, int level)
 {
 	char *cmd;
 
@@ -92,7 +95,7 @@ static int run_pipe(const char *unpacker, const char *pager, char *man_filename,
 
 		/* Links do not have .gz extensions, even if manpage
 		 * is compressed */
-		man_filename = xasprintf("%s/%s" ".bz2", man_filename, linkname);
+		man_filename = xasprintf("%s/%s" Z_SUFFIX, man_filename, linkname);
 		free(line);
 		/* Note: we leak "new" man_filename string as well... */
 		if (show_manpage(pager, man_filename, man, level + 1))
@@ -101,34 +104,47 @@ static int run_pipe(const char *unpacker, const char *pager, char *man_filename,
 	}
 
  ordinary_manpage:
+	close(STDIN_FILENO);
+	open_zipped(man_filename); /* guaranteed to use fd 0 (STDIN_FILENO) */
 	/* "2>&1" is added so that nroff errors are shown in pager too.
 	 * Otherwise it may show just empty screen */
 	cmd = xasprintf(
-		man ? "%s '%s' 2>&1 | gtbl | nroff -Tlatin1 -mandoc 2>&1 | %s"
-		    : "%s '%s' 2>&1 | %s",
-		unpacker, man_filename, pager);
+		man ? "gtbl | nroff -Tlatin1 -mandoc 2>&1 | %s"
+		    : "%s",
+		pager);
 	system(cmd);
 	free(cmd);
 	return 1;
 }
 
-/* man_filename is of the form "/dir/dir/dir/name.s.bz2" */
+/* man_filename is of the form "/dir/dir/dir/name.s" Z_SUFFIX */
 static int show_manpage(const char *pager, char *man_filename, int man, int level)
 {
-	int len;
-
-	if (run_pipe("bunzip2 -c", pager, man_filename, man, level))
+#if ENABLE_FEATURE_SEAMLESS_LZMA
+	if (run_pipe(pager, man_filename, man, level))
 		return 1;
+#endif
 
-	len = strlen(man_filename) - 1;
-
-	man_filename[len] = '\0'; /* ".bz2" -> ".gz" */
-	man_filename[len - 2] = 'g';
-	if (run_pipe("gunzip -c", pager, man_filename, man, level))
+#if ENABLE_FEATURE_SEAMLESS_BZ2
+#if ENABLE_FEATURE_SEAMLESS_LZMA
+	strcpy(strrchr(man_filename, '.') + 1, "bz2");
+#endif
+	if (run_pipe(pager, man_filename, man, level))
 		return 1;
+#endif
 
-	man_filename[len - 3] = '\0'; /* ".gz" -> "" */
-	if (run_pipe(STR_cat, pager, man_filename, man, level))
+#if ENABLE_FEATURE_SEAMLESS_GZ
+#if ENABLE_FEATURE_SEAMLESS_LZMA || ENABLE_FEATURE_SEAMLESS_BZ2
+	strcpy(strrchr(man_filename, '.') + 1, "gz");
+#endif
+	if (run_pipe(pager, man_filename, man, level))
+		return 1;
+#endif
+
+#if ENABLE_FEATURE_SEAMLESS_LZMA || ENABLE_FEATURE_SEAMLESS_BZ2 || ENABLE_FEATURE_SEAMLESS_GZ
+	*strrchr(man_filename, '.') = '\0';
+#endif
+	if (run_pipe(pager, man_filename, man, level))
 		return 1;
 
 	return 0;
@@ -187,6 +203,11 @@ int man_main(int argc UNUSED_PARAM, char **argv)
 	do { /* for each argv[] */
 		int found = 0;
 		cur_mp = 0;
+
+		if (strchr(*argv, '/')) {
+			found = show_manpage(pager, *argv, /*man:*/ 1, 0);
+			goto check_found;
+		}
 		while ((cur_path = man_path_list[cur_mp++]) != NULL) {
 			/* for each MANPATH */
 			do { /* for each MANPATH item */
@@ -202,9 +223,9 @@ int man_main(int argc UNUSED_PARAM, char **argv)
 					/* Search for cat, then man page */
 					while (cat0man1 < 2) {
 						int found_here;
-						man_filename = xasprintf("%.*s/%s%.*s/%s.%.*s" ".bz2",
+						man_filename = xasprintf("%.*s/%s%.*s/%s.%.*s" Z_SUFFIX,
 								path_len, cur_path,
-								STR_catNULmanNUL + cat0man1 * 4,
+								"cat\0man" + (cat0man1 * 4),
 								sect_len, cur_sect,
 								*argv,
 								sect_len, cur_sect);
@@ -225,6 +246,7 @@ int man_main(int argc UNUSED_PARAM, char **argv)
 					cur_path++;
 			} while (*cur_path);
 		}
+ check_found:
 		if (!found) {
 			bb_error_msg("no manual entry for '%s'", *argv);
 			not_found = 1;
