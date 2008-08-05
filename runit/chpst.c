@@ -174,9 +174,9 @@ int chpst_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int chpst_main(int argc UNUSED_PARAM, char **argv)
 {
 	struct bb_uidgid_t ugid;
-	char *set_user;
-	char *env_user;
-	char *env_dir;
+	char *set_user = set_user; /* for compiler */
+	char *env_user = env_user;
+	char *env_dir = env_dir;
 	char *root;
 	char *nicestr;
 	unsigned limita;

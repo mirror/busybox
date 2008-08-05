@@ -338,12 +338,16 @@ int FAST_FUNC open_zipped(const char *fname)
 			/* .gz and .bz2 both have 2-byte signature, and their
 			 * unpack_XXX_stream want this header skipped. */
 			xread(fd, &magic, 2);
+#if ENABLE_FEATURE_SEAMLESS_GZ
 #if BB_MMU
 			xformer = unpack_gz_stream;
 #else
 			xformer_prog = "gunzip";
 #endif
-			if (magic[0] != 0x1f || magic[1] != 0x8b) {
+#endif
+			if (!ENABLE_FEATURE_SEAMLESS_GZ
+			 || magic[0] != 0x1f || magic[1] != 0x8b
+			) {
 				if (!ENABLE_FEATURE_SEAMLESS_BZ2
 				 || magic[0] != 'B' || magic[1] != 'Z'
 				) {
