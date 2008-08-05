@@ -2916,13 +2916,13 @@
      "\n	-u	Unlock (re-enable) account" \
 
 #define chpasswd_trivial_usage \
-	USE_GETOPT_LONG("[--md5|--encrypt]") SKIP_GETOPT_LONG("[-m|-e]")
+	USE_GETOPT_LONG("[--md5|--encrypted]") SKIP_GETOPT_LONG("[-m|-e]")
 #define chpasswd_full_usage "\n\n" \
-       "Read user:password information from stdin\n" \
+       "Read user:password information from stdin " \
        "and update /etc/passwd accordingly.\n" \
      "\nOptions:" \
 	USE_GETOPT_LONG( \
-     "\n	-e,--encrypt	Supplied passwords are in encrypted form" \
+     "\n	-e,--encrypted	Supplied passwords are in encrypted form" \
      "\n	-m,--md5	Use MD5 encryption instead of DES" \
 	) \
 	SKIP_GETOPT_LONG( \
