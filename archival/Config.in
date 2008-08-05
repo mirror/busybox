@@ -6,22 +6,22 @@
 menu "Archival Utilities"
 
 config FEATURE_SEAMLESS_LZMA
-	bool "Make tar, rpm, man, modprobe etc understand .lzma data"
+	bool "Make tar, rpm, modprobe etc understand .lzma data"
 	default n
 	help
-	  Make tar, rpm, man, modprobe etc understand .lzma data.
+	  Make tar, rpm, modprobe etc understand .lzma data.
 
 config FEATURE_SEAMLESS_BZ2
-	bool "Make tar, rpm, man, modprobe etc understand .bz2 data"
+	bool "Make tar, rpm, modprobe etc understand .bz2 data"
 	default n
 	help
-	  Make tar, rpm, man, modprobe etc understand .bz2 data.
+	  Make tar, rpm, modprobe etc understand .bz2 data.
 
 config FEATURE_SEAMLESS_GZ
-	bool "Make tar, rpm, man, modprobe etc understand .gz data"
+	bool "Make tar, rpm, modprobe etc understand .gz data"
 	default n
 	help
-	  Make tar, rpm, man, modprobe etc understand .gz data.
+	  Make tar, rpm, modprobe etc understand .gz data.
 
 config FEATURE_SEAMLESS_Z
 	bool "Make tar and gunzip understand .Z data"

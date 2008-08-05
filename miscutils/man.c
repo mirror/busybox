@@ -27,9 +27,18 @@ echo ".pl \n(nlu+10"
 #define STR_catNULmanNUL "cat\0man"
 #define STR_cat          "cat\0man"
 
-static int run_pipe(const char *unpacker, const char *pager, char *man_filename, int man)
+//TODO: make gz/bz2 support conditional on FEATURE_SEAMLESS_GZ/BZ2,
+// add SEAMLESS_LZMA support
+
+static int show_manpage(const char *pager, char *man_filename, int man, int level);
+
+static int run_pipe(const char *unpacker, const char *pager, char *man_filename, int man, int level)
 {
 	char *cmd;
+
+	/* Prevent man page link loops */
+	if (level > 10)
+		return 0;
 
 	if (access(man_filename, R_OK) != 0)
 		return 0;
@@ -39,6 +48,53 @@ static int run_pipe(const char *unpacker, const char *pager, char *man_filename,
 		return 1;
 	}
 
+	if (man) { /* man page, not cat page */
+		/* Test whether the man page is not a link to another one. */
+		/* The link has the following on the first line: */
+		/* ".so another_man_page" */
+		struct stat sb;
+		char *line;
+		char *linkname, *p;
+
+		/* On my system:
+		 * man1/genhostid.1.gz: 203 bytes - smallest real manpage
+		 * man2/path_resolution.2.gz: 114 bytes - largest link
+		 */
+		xstat(man_filename, &sb);
+		if (sb.st_size > 300) /* err on the safe side */
+			goto ordinary_manpage;
+
+		line = xmalloc_open_zipped_read_close(man_filename, NULL);
+		if (!line || strncmp(line, ".so ", 4) != 0) {
+			free(line);
+			goto ordinary_manpage;
+		}
+		/* Example: man2/path_resolution.2.gz contains
+		 * ".so man7/path_resolution.7\n<junk>"
+		 */
+		*strchrnul(line, '\n') = '\0';
+		linkname = p = skip_whitespace(&line[4]);
+		while (1) {
+			char *newname_slash, *oldname_slash;
+
+			oldname_slash = strrchr(man_filename, '/');
+			if (!oldname_slash)
+				goto ordinary_manpage;
+			*oldname_slash = '\0';
+			newname_slash = strchr(p, '/');
+			if (!newname_slash)
+				break;
+			p = newname_slash + 1;
+		}
+		man_filename = xasprintf("%s/%s" ".bz2", man_filename, linkname);
+		free(line);
+		/* Note: we leak "new" man_filename string as well... */
+		if (show_manpage(pager, man_filename, man, level + 1))
+			return 1;
+ 		/* else: show the link, it's better than nothing */
+	}
+
+ ordinary_manpage:
 	/* "2>&1" is added so that nroff errors are shown in pager too.
 	 * Otherwise it may show just empty screen */
 	cmd = xasprintf(
@@ -51,22 +107,22 @@ static int run_pipe(const char *unpacker, const char *pager, char *man_filename,
 }
 
 /* man_filename is of the form "/dir/dir/dir/name.s.bz2" */
-static int show_manpage(const char *pager, char *man_filename, int man)
+static int show_manpage(const char *pager, char *man_filename, int man, int level)
 {
 	int len;
 
-	if (run_pipe("bunzip2 -c", pager, man_filename, man))
+	if (run_pipe("bunzip2 -c", pager, man_filename, man, level))
 		return 1;
 
 	len = strlen(man_filename) - 1;
 
 	man_filename[len] = '\0'; /* ".bz2" -> ".gz" */
 	man_filename[len - 2] = 'g';
-	if (run_pipe("gunzip -c", pager, man_filename, man))
+	if (run_pipe("gunzip -c", pager, man_filename, man, level))
 		return 1;
 
 	man_filename[len - 3] = '\0'; /* ".gz" -> "" */
-	if (run_pipe(STR_cat, pager, man_filename, man))
+	if (run_pipe(STR_cat, pager, man_filename, man, level))
 		return 1;
 
 	return 0;
@@ -121,11 +177,6 @@ int man_main(int argc UNUSED_PARAM, char **argv)
 	}
 	config_close(parser);
 
-// TODO: my man3/getpwuid.3.gz contains just one line:
-// .so man3/getpwnam.3
-// (and I _dont_ have man3/getpwnam.3, I have man3/getpwnam.3.gz)
-// need to support this...
-
 	not_found = 0;
 	do { /* for each argv[] */
 		int found = 0;
@@ -151,7 +202,7 @@ int man_main(int argc UNUSED_PARAM, char **argv)
 								sect_len, cur_sect,
 								*argv,
 								sect_len, cur_sect);
-						found_here = show_manpage(pager, man_filename, cat0man1);
+						found_here = show_manpage(pager, man_filename, cat0man1, 0);
 						found |= found_here;
 						cat0man1 += found_here + 1;
 						free(man_filename);
