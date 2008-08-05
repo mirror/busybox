@@ -640,7 +640,7 @@ Usage: rmmod [-fhswvV] modulename ...
  -s (or --syslog) says use syslog, not stderr
  -v (or --verbose) enables more messages
  -V (or --version) prints the version code
- -w (or --wait) begins a module removal even if it is used
+ -w (or --wait) begins module removal even if it is used
     and will stop new users from accessing the module (so it
     should eventually fall to zero).
 
@@ -658,19 +658,20 @@ depmod [-n -e -v -q -r -u] [-F kernelsyms] module1.ko module2.ko ...
 If no arguments (except options) are given, "depmod -a" is assumed.
 depmod will output a dependancy list suitable for the modprobe utility.
 Options:
-    -a, --all            Probe all modules
-    -A, --quick          Only does the work if there's a new module
-    -n, --show           Write the dependency file on stdout only
-    -e, --errsyms        Report not supplied symbols
-    -V, --version        Print the release version
-    -v, --verbose        Enable verbose mode
-    -h, --help           Print this usage message
+    -a, --all           Probe all modules
+    -A, --quick         Only does the work if there's a new module
+    -n, --show          Write the dependency file on stdout only
+    -e, --errsyms       Report not supplied symbols
+    -V, --version       Print the release version
+    -v, --verbose       Enable verbose mode
+    -h, --help          Print this usage message
 The following options are useful for people managing distributions:
     -b basedirectory
-        --basedir basedirectory    Use an image of a module tree.
+    --basedir basedirectory
+                        Use an image of a module tree
     -F kernelsyms
-        --filesyms kernelsyms      Use the file instead of the
-                                   current kernel symbols.
+    --filesyms kernelsyms
+                        Use the file instead of the current kernel symbols
 */
 
 int modprobe_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
