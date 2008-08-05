@@ -19,7 +19,6 @@ int chvt_main(int argc, char **argv)
 	}
 
 	num = xatou_range(argv[1], 1, 63);
-	/* double cast suppresses "cast to ptr from int of different size" */
-	console_make_active(get_console_fd(), num);
+	console_make_active(get_console_fd_or_die(), num);
 	return EXIT_SUCCESS;
 }

@@ -19,17 +19,15 @@ int kbd_mode_main(int argc UNUSED_PARAM, char **argv)
 	int fd;
 	unsigned opt;
 	enum {
-		SCANCODE = (1<<0),
-		ASCII	 = (1<<1),
-		MEDIUMRAW= (1<<2),
-		UNICODE	 = (1<<3)
+		SCANCODE  = (1 << 0),
+		ASCII	  = (1 << 1),
+		MEDIUMRAW = (1 << 2),
+		UNICODE	  = (1 << 3)
 	};
 	static const char KD_xxx[] ALIGN1 = "saku";
 	opt = getopt32(argv, KD_xxx);
-	fd = get_console_fd();
-/*	if (fd < 0)
-		return EXIT_FAILURE;
-*/
+	fd = get_console_fd_or_die();
+
 	if (!opt) { /* print current setting */
 		const char *mode = "unknown";
 		int m;
@@ -46,7 +44,8 @@ int kbd_mode_main(int argc UNUSED_PARAM, char **argv)
 		printf("The keyboard is in %s mode\n", mode);
 	} else {
 		opt = opt & UNICODE ? 3 : opt >> 1;
-		xioctl(fd, KDSKBMODE, opt);
+		/* double cast prevents warnings about widening conversion */
+		xioctl(fd, KDSKBMODE, (void*)(ptrdiff_t)opt);
 	}
 
 	if (ENABLE_FEATURE_CLEAN_UP)

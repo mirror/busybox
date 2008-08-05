@@ -174,7 +174,7 @@ int loadfont_main(int argc, char **argv UNUSED_PARAM)
 	if (argc != 1)
 		bb_show_usage();
 
-	fd = xopen(CURRENT_VC, O_RDWR);
+	fd = get_console_fd_or_die();
 	loadnewfont(fd);
 
 	return EXIT_SUCCESS;

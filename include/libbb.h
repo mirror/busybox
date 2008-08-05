@@ -287,7 +287,7 @@ extern int recursive_action(const char *fileName, unsigned flags,
 extern int device_open(const char *device, int mode) FAST_FUNC;
 enum { GETPTY_BUFSIZE = 16 }; /* more than enough for "/dev/ttyXXX" */
 extern int xgetpty(char *line) FAST_FUNC;
-extern int get_console_fd(void) FAST_FUNC;
+extern int get_console_fd_or_die(void) FAST_FUNC;
 extern void console_make_active(int fd, const int vt_num) FAST_FUNC;
 extern char *find_block_device(const char *path) FAST_FUNC;
 /* bb_copyfd_XX print read/write errors and return -1 if they occur */

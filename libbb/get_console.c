@@ -38,7 +38,7 @@ static int open_a_console(const char *fnam)
  * if someone else used X (which does a chown on /dev/console).
  */
 
-int FAST_FUNC get_console_fd(void)
+int FAST_FUNC get_console_fd_or_die(void)
 {
 	static const char *const console_names[] = {
 		DEV_CONSOLE, CURRENT_VC, CURRENT_TTY
@@ -65,8 +65,8 @@ int FAST_FUNC get_console_fd(void)
 		}
 	}
 
-	bb_error_msg("can't open console");
-	return fd;                      /* total failure */
+	bb_error_msg_and_die("can't open console");
+	/*return fd; - total failure */
 }
 
 /* From <linux/vt.h> */

@@ -35,7 +35,7 @@ int loadkmap_main(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
 
 /*  bb_warn_ignoring_args(argc>=2);*/
 
-	fd = xopen(CURRENT_VC, O_RDWR);
+	fd = get_console_fd_or_die();
 
 	xread(STDIN_FILENO, flags, 7);
 	if (strncmp(flags, BINARY_KEYMAP_MAGIC, 7))
