@@ -2661,6 +2661,7 @@
        "	[a]sync		Writes are asynchronous / synchronous\n" \
        "	[no]atime	Disable / enable updates to inode access times\n" \
        "	[no]diratime	Disable / enable atime updates to directories\n" \
+       "	[no]relatime	Disable / enable atime updates relative to modification time\n" \
        "	[no]dev		Allow use of special device files / disallow them\n" \
        "	[no]exec	Allow use of executable files / disallow them\n" \
        "	[no]suid	Allow set-user-id-root programs / disallow them\n" \

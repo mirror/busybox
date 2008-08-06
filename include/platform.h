@@ -350,7 +350,9 @@ static ALWAYS_INLINE char* strchrnul(const char *s, char c)
 #ifndef MS_SHARED
 #define MS_SHARED      (1<<20)
 #endif
-
+#ifndef MS_RELATIME
+#define MS_RELATIME   (1 << 21)
+#endif
 
 #if !defined(BLKSSZGET)
 #define BLKSSZGET _IO(0x12, 104)
