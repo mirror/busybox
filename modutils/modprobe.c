@@ -410,8 +410,7 @@ static struct dep_t *build_dep(void)
 	int continuation_line = 0;
 	int k_version;
 
-	if (uname(&un))
-		bb_error_msg_and_die("can't determine kernel version");
+	uname(&un); /* never fails */
 
 	k_version = 0;
 	if (un.release[0] == '2') {
@@ -426,13 +425,13 @@ static struct dep_t *build_dep(void)
 		/* Ok, that didn't work.  Fall back to looking in /lib/modules */
 		f = fopen_for_read(CONFIG_DEFAULT_MODULES_DIR"/"CONFIG_DEFAULT_DEPMOD_FILE);
 		if (f == NULL) {
-			bb_error_msg_and_die("cannot parse " CONFIG_DEFAULT_DEPMOD_FILE);
+			bb_error_msg_and_die("cannot parse "CONFIG_DEFAULT_DEPMOD_FILE);
 		}
 	}
 
 	while (fgets(line_buffer, sizeof(line_buffer), f)) {
 		int l = strlen(line_buffer);
-		char *p = 0;
+		char *p = NULL;
 
 		while (l > 0 && isspace(line_buffer[l-1])) {
 			line_buffer[l-1] = '\0';
@@ -531,7 +530,7 @@ static struct dep_t *build_dep(void)
 					ext = 2;
 
 				/* Cope with blank lines */
-				if ((next-deps-ext+1) <= 0)
+				if ((next - deps - ext + 1) <= 0)
 					continue;
 				dep = xstrndup(deps, next - deps - ext + 1);
 
@@ -595,36 +594,33 @@ static struct dep_t *build_dep(void)
 static int already_loaded(const char *name)
 {
 	FILE *f;
-	int ret = 0;
+	int ret;
 
 	f = fopen_for_read("/proc/modules");
 	if (f == NULL)
 		return -1;
 
+	ret = 0;
 	while (fgets(line_buffer, sizeof(line_buffer), f)) {
-		char *p;
+		char *p = line_buffer;
+		const char *n = name;
 
-		p = strchr(line_buffer, ' ');
-		if (p) {
-			const char *n;
-
-			// Truncate buffer at first space and check for matches, with
-			// the idiosyncrasy that _ and - are interchangeable because the
-			// 2.6 kernel does weird things.
-
-			*p = '\0';
-			for (p = line_buffer, n = name; ; p++, n++) {
-				if (*p != *n) {
-					if ((*p == '_' || *p == '-') && (*n == '_' || *n == '-'))
-						continue;
-					break;
-				}
-				// If we made it to the end, that's a match.
-				if (!*p) {
-					ret = 1;
+		while (1) {
+			char cn = *n;
+			char cp = *p;
+			if (cp == ' ' || cp == '\0') {
+				if (cn == '\0') {
+					ret = 1; /* match! */
 					goto done;
 				}
+				break; /* no match on this line, take next one */
 			}
+			if (cn == '-') cn = '_';
+			if (cp == '-') cp = '_';
+			if (cp != cn)
+				break; /* no match on this line, take next one */
+			n++;
+			p++;
 		}
 	}
  done:
@@ -648,7 +644,7 @@ static int mod_process(const struct mod_list_t *list, int do_insert)
 		 * each time we allocate memory for argv.
 		 * But it is (quite) small amounts of memory that leak each
 		 * time a module is loaded,  and it is reclaimed when modprobe
-		 * exits anyway (even when standalone shell?).
+		 * exits anyway (even when standalone shell? Yes --vda).
 		 * This could become a problem when loading a module with LOTS of
 		 * dependencies, with LOTS of options for each dependencies, with
 		 * very little memory on the target... But in that case, the module
@@ -862,23 +858,20 @@ static void check_dep(char *mod, struct mod_list_t **head, struct mod_list_t **t
 	}
 }
 
-static int mod_insert(char *mod, int argc, char **argv)
+static int mod_insert(char **argv)
 {
 	struct mod_list_t *tail = NULL;
 	struct mod_list_t *head = NULL;
+	char *modname = *argv++;
 	int rc;
 
 	// get dep list for module mod
-	check_dep(mod, &head, &tail);
+	check_dep(modname, &head, &tail);
 
 	rc = 1;
 	if (head && tail) {
-		if (argc) {
-			int i;
-			// append module args
-			for (i = 0; i < argc; i++)
-				head->m_options = append_option(head->m_options, argv[i]);
-		}
+		while (*argv)
+			head->m_options = append_option(head->m_options, *argv++);
 
 		// process tail ---> head
 		rc = mod_process(tail, 1);
@@ -889,23 +882,23 @@ static int mod_insert(char *mod, int argc, char **argv)
 			 * for example; or cold-plugging at boot time). Thus we shouldn't
 			 * fail if the module was loaded, and not by us.
 			 */
-			if (already_loaded(mod))
+			if (already_loaded(modname))
 				rc = 0;
 		}
 	}
 	return rc;
 }
 
-static int mod_remove(char *mod)
+static int mod_remove(char *modname)
 {
-	int rc;
 	static const struct mod_list_t rm_a_dummy = { "-a", NULL, NULL, NULL, NULL };
 
+	int rc;
 	struct mod_list_t *head = NULL;
 	struct mod_list_t *tail = NULL;
 
-	if (mod)
-		check_dep(mod, &head, &tail);
+	if (modname)
+		check_dep(modname, &head, &tail);
 	else  // autoclean
 		head = tail = (struct mod_list_t*) &rm_a_dummy;
 
@@ -916,17 +909,19 @@ static int mod_remove(char *mod)
 }
 
 int modprobe_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int modprobe_main(int argc, char **argv)
+int modprobe_main(int argc UNUSED_PARAM, char **argv)
 {
 	int rc = EXIT_SUCCESS;
+	unsigned opt;
 	char *unused;
 
 	opt_complementary = "q-v:v-q";
-	getopt32(argv, MAIN_OPT_STR, &unused, &unused);
+	opt = getopt32(argv, MAIN_OPT_STR, &unused, &unused);
+	argv += optind;
 
-	if (option_mask32 & (DUMP_CONF_EXIT | LIST_ALL))
+	if (opt & (DUMP_CONF_EXIT | LIST_ALL))
 		return EXIT_SUCCESS;
-	if (option_mask32 & (RESTRICT_DIR | CONFIG_FILE))
+	if (opt & (RESTRICT_DIR | CONFIG_FILE))
 		bb_error_msg_and_die("-t and -C not supported");
 
 	depend = build_dep();
@@ -936,19 +931,19 @@ int modprobe_main(int argc, char **argv)
 
 	if (remove_opt) {
 		do {
-			/* argv[optind] can be NULL here */
-			if (mod_remove(argv[optind])) {
-				bb_error_msg("failed to %s module %s", "remove",
-						argv[optind]);
+			/* (*argv) can be NULL here */
+			if (mod_remove(*argv)) {
+				bb_perror_msg("failed to %s module %s", "remove",
+						*argv);
 				rc = EXIT_FAILURE;
 			}
-		} while (++optind < argc);
+		} while (*argv && *++argv);
 	} else {
-		if (optind >= argc)
+		if (!*argv)
 			bb_error_msg_and_die("no module or pattern provided");
 
-		if (mod_insert(argv[optind], argc - optind - 1, argv + optind + 1))
-			bb_error_msg_and_die("failed to %s module %s", "load", argv[optind]);
+		if (mod_insert(argv))
+			bb_perror_msg_and_die("failed to %s module %s", "load", *argv);
 	}
 
 	/* Here would be a good place to free up memory allocated during the dependencies build. */
