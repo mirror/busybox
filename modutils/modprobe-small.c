@@ -444,8 +444,10 @@ static module_info* find_alias(const char *alias)
 		if (!modinfo[i].aliases) {
 			parse_module(&modinfo[i], modinfo[i].pathname);
 		}
-		if (result)
+		if (result) {
+			i++;
 			continue;
+		}
 		/* "alias1 symbol:sym1 alias2 symbol:sym2" */
 		desc = str_2_list(modinfo[i].aliases);
 		/* Does matching substring exist? */
