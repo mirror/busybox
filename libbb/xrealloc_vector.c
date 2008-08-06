@@ -39,8 +39,7 @@ void* FAST_FUNC xrealloc_vector_helper(void *vector, unsigned sizeof_and_shift, 
 	if (!(idx & (mask - 1))) {
 		sizeof_and_shift >>= 8; /* sizeof(vector[0]) */
 		vector = xrealloc(vector, sizeof_and_shift * (idx + mask + 1));
-		vector = (char*)vector + (sizeof_and_shift * idx);
-		memset(vector, 0, sizeof_and_shift * (mask + 1));
+		memset((char*)vector + (sizeof_and_shift * idx), 0, sizeof_and_shift * (mask + 1));
 	}
 	return vector;
 }
