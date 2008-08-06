@@ -51,7 +51,7 @@ config ASH_BASH_COMPAT
 	default y
 	depends on ASH
 	help
-	  Enable bash-conpatible extensions.
+	  Enable bash-compatible extensions.
 
 config ASH_JOB_CONTROL
 	bool "Job control"
