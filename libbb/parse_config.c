@@ -123,137 +123,96 @@ mintokens > 0 make config_read() print error message if less than mintokens
 #undef config_read
 int FAST_FUNC config_read(parser_t *parser, char **tokens, unsigned flags, const char *delims)
 {
-	char *line, *q;
-	char comment;
-	int ii;
-	int ntokens;
-	int mintokens;
+	char *line;
+	int ntokens, mintokens;
+	int t, len;
 
-	comment = *delims++;
 	ntokens = flags & 0xFF;
 	mintokens = (flags & 0xFF00) >> 8;
 
- again:
-	memset(tokens, 0, sizeof(tokens[0]) * ntokens);
-	if (!parser)
+	if (parser == NULL)
 		return 0;
+
+again:
+	memset(tokens, 0, sizeof(tokens[0]) * ntokens);
 	config_free_data(parser);
 
-	while (1) {
-//TODO: speed up xmalloc_fgetline by internally using fgets, not fgetc
-		line = xmalloc_fgetline(parser->fp);
-		if (!line)
-			return 0;
+	/* Read one line (handling continuations with backslash) */
+	line = bb_get_chunk_with_continuation(parser->fp, &len, &parser->lineno);
+	if (line == NULL)
+		return 0;
+	parser->line = line;
 
-		parser->lineno++;
-		// handle continuations. Tito's code stolen :)
-		while (1) {
-			ii = strlen(line);
-			if (!ii)
-				goto next_line;
-			if (line[ii - 1] != '\\')
-				break;
-			// multi-line object
-			line[--ii] = '\0';
-//TODO: add xmalloc_fgetline-like iface but with appending to existing str
-			q = xmalloc_fgetline(parser->fp);
-			if (!q)
-				break;
-			parser->lineno++;
-			line = xasprintf("%s%s", line, q);
-			free(q);
-		}
-		// discard comments
-		if (comment) {
-			q = strchrnul(line, comment);
-			*q = '\0';
-			ii = q - line;
-		}
-		// skip leading and trailing delimiters
-		if (flags & PARSE_TRIM) {
-			// skip leading
-			int n = strspn(line, delims);
-			if (n) {
-				ii -= n;
-				overlapping_strcpy(line, line + n);
-			}
-			// cut trailing
-			if (ii) {
-				while (strchr(delims, line[--ii]))
-					continue;
-				line[++ii] = '\0';
-			}
-		}
-		// if something still remains -> return it
-		if (ii)
-			break;
+	/* Strip trailing line-feed if any */
+	if (len && line[len-1] == '\n')
+		line[len-1] = '\0';
 
- next_line:
-		// skip empty line
-		free(line);
-	}
-	// non-empty line found, parse and return the number of tokens
+	/* Skip token in the start of line? */
+	if (flags & PARSE_TRIM)
+		line += strspn(line, delims + 1);
 
-	// store line
-	parser->line = line = xrealloc(line, ii + 1);
-	if (flags & PARSE_KEEP_COPY) {
+	if (line[0] == '\0' || line[0] == delims[0])
+		goto again;
+
+	if (flags & PARSE_KEEP_COPY)
 		parser->data = xstrdup(line);
-	}
 
-	// split line to tokens
-	ntokens--; // now it's max allowed token no
-	// N.B. non-empty remainder is also a token,
-	// so if ntokens <= 1, we just return the whole line
-	// N.B. if PARSE_GREEDY is set the remainder of the line is stuck to the last token
-	ii = 0;
-	while (*line && ii <= ntokens) {
-		//bb_info_msg("L[%s]", line);
-		// get next token
-		// at last token and need greedy token ->
-		if ((flags & PARSE_GREEDY) && (ii == ntokens)) {
-			// skip possible delimiters
-			if (flags & PARSE_COLLAPSE)
-				line += strspn(line, delims);
-			// don't cut the line
-			q = line + strlen(line);
+	/* Tokenize the line */
+	for (t = 0; *line && *line != delims[0] && t < ntokens; t++) {
+		/* Pin token */
+		tokens[t] = line;
+
+		/* Combine remaining arguments? */
+		if ((t != (ntokens-1)) || !(flags & PARSE_GREEDY)) {
+			/* Vanilla token, find next delimiter */
+			line += strcspn(line, delims[0] ? delims : delims + 1);
 		} else {
-			// vanilla token. cut the line at the first delim
-			q = line + strcspn(line, delims);
-			if (*q) // watch out: do not step past the line end!
-				*q++ = '\0';
-		}
-		// pin token
-		if (!(flags & (PARSE_COLLAPSE | PARSE_TRIM)) || *line) {
-			//bb_info_msg("N[%d] T[%s]", ii, line);
-			tokens[ii++] = line;
-			// process escapes in token
-#if 0 // unused so far
-			if (flags & PARSE_ESCAPE) {
-				char *s = line;
-				while (*s) {
-					if (*s == '\\') {
-						s++;
-						*line++ = bb_process_escape_sequence((const char **)&s);
-					} else {
-						*line++ = *s++;
-					}
-				}
-				*line = '\0';
+			/* Combining, find comment char if any */
+			line = strchrnul(line, delims[0]);
+
+			/* Trim any extra delimiters from the end */
+			if (flags & PARSE_TRIM) {
+				while (strchr(delims + 1, line[-1]) != NULL)
+					line--;
 			}
-#endif
 		}
-		line = q;
-		//bb_info_msg("A[%s]", line);
+
+		/* Token not terminated? */
+		if (line[0] == delims[0])
+			*line = '\0';
+		else if (line[0] != '\0')
+			*(line++) = '\0';
+
+#if 0 /* unused so far */
+		if (flags & PARSE_ESCAPE) {
+			const char *from;
+			char *to;
+
+			from = to = tokens[t];
+			while (*from) {
+				if (*from == '\\') {
+					from++;
+					*to++ = bb_process_escape_sequence(&from);
+				} else {
+					*to++ = *from++;
+				}
+			}
+			*to = '\0';
+		}
+#endif
+
+		/* Skip possible delimiters */
+		if (flags & PARSE_COLLAPSE)
+			line += strspn(line, delims + 1);
 	}
 
-	if (ii < mintokens) {
+	if (t < mintokens) {
 		bb_error_msg("bad line %u: %d tokens found, %d needed",
- 				parser->lineno, ii, mintokens);
+				parser->lineno, t, mintokens);
 		if (flags & PARSE_MIN_DIE)
 			xfunc_die();
-		ntokens++;
 		goto again;
 	}
 
-	return ii;
+	return t;
 }

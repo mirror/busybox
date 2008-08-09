@@ -613,6 +613,7 @@ extern void xopen_xwrite_close(const char* file, const char *str) FAST_FUNC;
 extern void xprint_and_close_file(FILE *file) FAST_FUNC;
 
 extern char *bb_get_chunk_from_file(FILE *file, int *end) FAST_FUNC;
+extern char *bb_get_chunk_with_continuation(FILE *file, int *end, int *lineno) FAST_FUNC;
 /* Reads up to (and including) TERMINATING_STRING: */
 extern char *xmalloc_fgets_str(FILE *file, const char *terminating_string) FAST_FUNC;
 /* Chops off TERMINATING_STRING from the end: */
