@@ -9,6 +9,10 @@
  * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  */
 
+/* for getline() [GNUism] */
+#ifndef _GNU_SOURCE
+#define _GNU_SOURCE 1
+#endif
 #include "libbb.h"
 
 /* This function reads an entire line from a text file, up to a newline
@@ -55,7 +59,6 @@ char* FAST_FUNC xmalloc_fgets(FILE *file)
 
 	return bb_get_chunk_from_file(file, &i);
 }
-
 /* Get line.  Remove trailing \n */
 char* FAST_FUNC xmalloc_fgetline(FILE *file)
 {
@@ -67,6 +70,44 @@ char* FAST_FUNC xmalloc_fgetline(FILE *file)
 
 	return c;
 }
+
+#if 0
+
+/* GNUism getline() should be faster (not tested) than a loop with fgetc */
+
+/* Get line, including trailing \n if any */
+char* FAST_FUNC xmalloc_fgets(FILE *file)
+{
+	char *res_buf = NULL;
+	size_t res_sz;
+
+	if (getline(&res_buf, &res_sz, file) == -1) {
+		free(res_buf); /* uclibc allocates a buffer even on EOF. WTF? */
+		res_buf = NULL;
+	}
+//TODO: trimming to res_sz?
+	return res_buf;
+}
+/* Get line.  Remove trailing \n */
+char* FAST_FUNC xmalloc_fgetline(FILE *file)
+{
+	char *res_buf = NULL;
+	size_t res_sz;
+
+	res_sz = getline(&res_buf, &res_sz, file);
+
+	if ((ssize_t)res_sz != -1) {
+		if (res_buf[res_sz - 1] == '\n')
+			res_buf[--res_sz] = '\0';
+//TODO: trimming to res_sz?
+	} else {
+		free(res_buf); /* uclibc allocates a buffer even on EOF. WTF? */
+		res_buf = NULL;
+	}
+	return res_buf;
+}
+
+#endif
 
 #if 0
 /* Faster routines (~twice as fast). +170 bytes. Unused as of 2008-07.

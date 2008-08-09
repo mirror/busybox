@@ -62,12 +62,8 @@ testing "grep -s nofile - (stdin and nonexisting file, match)" \
 	"grep -s domatch nonexistent - ; echo \$?" \
 	"(standard input):domatch\n2\n" "" "nomatch\ndomatch\nend\n"
 
-# This doesn't match GNU behaviour (Binary file input matches)
-# acts like GNU grep -a
-testing "grep handles binary files" "grep foo input" "foo\n" "\0foo\n\n" ""
-# This doesn't match GNU behaviour (Binary file (standard input) matches)
-# acts like GNU grep -a
-testing "grep handles binary stdin" "grep foo" "foo\n" "" "\0foo\n\n"
+testing "grep handles NUL in files" "grep -a foo input" "\0foo\n" "\0foo\n\n" ""
+testing "grep handles NUL on stdin" "grep -a foo" "\0foo\n" "" "\0foo\n\n"
 
 testing "grep matches NUL" "grep . input > /dev/null 2>&1 ; echo \$?" \
 	"0\n" "\0\n" ""
