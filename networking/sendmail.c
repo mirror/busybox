@@ -255,7 +255,8 @@ static void pop3_message(const char *filename)
 }
 #endif
 
-static char *parse_url(char *url, char **user, char **pass)
+// NB: parse_url can modify url[] (despite const), but only if '@' is there
+static const char *parse_url(const char *url, const char **user, const char **pass)
 {
 	// parse [user[:pass]@]host
 	// return host
@@ -284,8 +285,8 @@ int sendgetmail_main(int argc UNUSED_PARAM, char **argv)
 {
 	llist_t *opt_attachments = NULL;
 	char *opt_from;
-	char *opt_user;
-	char *opt_pass;
+	const char *opt_user;
+	const char *opt_pass;
 	enum {
 		OPT_w = 1 << 0,         // network timeout
 		OPT_H = 1 << 1,         // [user:password@]server[:port]
@@ -344,7 +345,7 @@ int sendgetmail_main(int argc UNUSED_PARAM, char **argv)
 	// fetch username and password, if any
 	// NB: parse_url modifies opt_connect[] ONLY if '@' is there.
 	// Thus "127.0.0.1" won't be modified, an is ok that it is RO.
-	opt_connect = parse_url((char*)opt_connect, &opt_user, &opt_pass);
+	opt_connect = parse_url(opt_connect, &opt_user, &opt_pass);
 //	bb_error_msg("H[%s] U[%s] P[%s]", opt_connect, opt_user, opt_pass);
 
 	// username must be defined!
@@ -405,7 +406,7 @@ int sendgetmail_main(int argc UNUSED_PARAM, char **argv)
 		// set sender
 		// NOTE: if password has not been specified
 		// then no authentication is possible
-		code = (opt_pass) ? -1 : 250;
+		code = (opt_pass ? -1 : 250);
 		// first try softly without authentication
 		while (250 != smtp_checkp("MAIL FROM:<%s>", opt_from, code)) {
 			// MAIL FROM failed -> authentication needed
