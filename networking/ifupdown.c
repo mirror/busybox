@@ -249,6 +249,14 @@ static char *parse(const char *command, struct interface_defn_t *ifd)
 				varvalue = get_var(command, nextpercent - command, ifd);
 
 				if (varvalue) {
+#if ENABLE_FEATURE_IFUPDOWN_IP
+					/* "hwaddress <class> <address>":
+					 * unlike ifconfig, ip doesnt want <class>
+					 * (usually "ether" keyword). Skip it. */
+					if (strncmp(command, "hwaddress", 9) == 0) {
+						varvalue = skip_whitespace(skip_non_whitespace(varvalue));
+					}
+#endif
 					addstr(&result, varvalue, strlen(varvalue));
 				} else {
 #if ENABLE_FEATURE_IFUPDOWN_IP
@@ -489,7 +497,11 @@ static int dhcp_up(struct interface_defn_t *ifd, execfn *exec)
 	unsigned i;
 #if ENABLE_FEATURE_IFUPDOWN_IP
 	/* ip doesn't up iface when it configures it (unlike ifconfig) */
-	if (!execute("ip link set %iface% up", ifd, exec))
+	if (!execute("ip link set[[ address %hwaddress%]] %iface% up", ifd, exec))
+		return 0;
+#else
+	/* needed if we have hwaddress on dhcp iface */
+	if (!execute("ifconfig %iface%[[ hw %hwaddress%]] up", ifd, exec))
 		return 0;
 #endif
 	for (i = 0; i < ARRAY_SIZE(ext_dhcp_clients); i++) {
@@ -504,7 +516,11 @@ static int dhcp_up(struct interface_defn_t *ifd, execfn *exec)
 {
 #if ENABLE_FEATURE_IFUPDOWN_IP
 	/* ip doesn't up iface when it configures it (unlike ifconfig) */
-	if (!execute("ip link set %iface% up", ifd, exec))
+	if (!execute("ip link set[[ address %hwaddress%]] %iface% up", ifd, exec))
+		return 0;
+#else
+	/* needed if we have hwaddress on dhcp iface */
+	if (!execute("ifconfig %iface%[[ hw %hwaddress%]] up", ifd, exec))
 		return 0;
 #endif
 	return execute("udhcpc -R -n -p /var/run/udhcpc.%iface%.pid "
