@@ -786,8 +786,10 @@ int nmeter_main(int argc, char **argv)
 	if (argc != 2)
 		bb_show_usage();
 
-	if (open_read_close("version", buf, sizeof(buf)) > 0)
-		is26 = (strstr(buf, " 2.4.")==NULL);
+	if (open_read_close("version", buf, sizeof(buf)-1) > 0) {
+		buf[sizeof(buf)-1] = '\0';
+		is26 = (strstr(buf, " 2.4.") == NULL);
+	}
 
 	// Can use argv[1] directly, but this will mess up
 	// parameters as seen by e.g. ps. Making a copy...
