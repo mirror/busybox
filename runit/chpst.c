@@ -228,7 +228,7 @@ int chpst_main(int argc UNUSED_PARAM, char **argv)
 	}
 
 	// envuidgid?
-	if (ENABLE_ENVUIDGID && applet_name[0] == 'e') {
+	if (ENABLE_ENVUIDGID && applet_name[0] == 'e' && applet_name[3] == 'u') {
 		env_user = *argv++;
 		opt |= OPT_U;
 	}
