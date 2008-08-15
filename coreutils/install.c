@@ -17,9 +17,9 @@ static const char install_longopts[] ALIGN1 =
 	"directory\0"           No_argument       "d"
 	"preserve-timestamps\0" No_argument       "p"
 	"strip\0"               No_argument       "s"
-	"group\0"               No_argument       "g"
-	"mode\0"                No_argument       "m"
-	"owner\0"               No_argument       "o"
+	"group\0"               Required_argument "g"
+	"mode\0"                Required_argument "m"
+	"owner\0"               Required_argument "o"
 /* autofs build insists of using -b --suffix=.orig */
 /* TODO? (short option for --suffix is -S) */
 #if ENABLE_SELINUX
