@@ -35,17 +35,10 @@ int FAST_FUNC bb_make_directory(char *path, long mode, int flags)
 	struct stat st;
 
 	mask = umask(0);
-	if (mode == -1) {
-		umask(mask);
-		mode = (S_IXUSR | S_IXGRP | S_IXOTH |
-				S_IWUSR | S_IWGRP | S_IWOTH |
-				S_IRUSR | S_IRGRP | S_IROTH) & ~mask;
-	} else {
-		umask(mask & ~0300);
-	}
+	umask(mask & ~0300); /* Ensure intermediate dirs are wx */
 
-	do {
-		c = 0;
+	while (1) {
+		c = '\0';
 
 		if (flags & FILEUTILS_RECUR) {	/* Get the parent. */
 			/* Bypass leading non-'/'s and then subsequent '/'s. */
@@ -54,20 +47,24 @@ int FAST_FUNC bb_make_directory(char *path, long mode, int flags)
 					do {
 						++s;
 					} while (*s == '/');
-					c = *s;		/* Save the current char */
-					*s = 0;		/* and replace it with nul. */
+					c = *s; /* Save the current char */
+					*s = '\0'; /* and replace it with nul. */
 					break;
 				}
 				++s;
 			}
 		}
 
+		if (!c) /* Last component uses orig umask */
+			umask(mask);
+
 		if (mkdir(path, 0777) < 0) {
 			/* If we failed for any other reason than the directory
-			 * already exists, output a diagnostic and return -1.*/
+			 * already exists, output a diagnostic and return -1. */
 			if (errno != EEXIST
-				|| !(flags & FILEUTILS_RECUR)
-				|| (stat(path, &st) < 0 || !S_ISDIR(st.st_mode))) {
+			 || !(flags & FILEUTILS_RECUR)
+			 || ((stat(path, &st) < 0) || !S_ISDIR(st.st_mode))
+			) {
 				fail_msg = "create";
 				umask(mask);
 				break;
@@ -82,11 +79,10 @@ int FAST_FUNC bb_make_directory(char *path, long mode, int flags)
 		}
 
 		if (!c) {
-			/* Done.  If necessary, updated perms on the newly
+			/* Done.  If necessary, update perms on the newly
 			 * created directory.  Failure to update here _is_
-			 * an error.*/
-			umask(mask);
-			if ((mode != -1) && (chmod(path, mode) < 0)){
+			 * an error. */
+			if ((mode != -1) && (chmod(path, mode) < 0)) {
 				fail_msg = "set permissions of";
 				break;
 			}
@@ -95,8 +91,7 @@ int FAST_FUNC bb_make_directory(char *path, long mode, int flags)
 
 		/* Remove any inserted nul from the path (recursive mode). */
 		*s = c;
-
-	} while (1);
+	} /* while (1) */
 
 	bb_perror_msg("cannot %s directory '%s'", fail_msg, path);
 	return -1;
