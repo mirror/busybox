@@ -50,7 +50,7 @@ static void cut_file(FILE *file, char delim, const struct cut_list *cut_lists, u
 
 		/* set up a list so we can keep track of what's been printed */
 		int linelen = strlen(line);
-		char *printed = xzalloc(linelen * sizeof(char));
+		char *printed = xzalloc(linelen + 1);
 		char *orig_line = line;
 		unsigned cl_pos = 0;
 		int spos;
