@@ -4905,7 +4905,11 @@ static int need_to_remember(struct redirtab *rp, int fd)
 static int is_hidden_fd(struct redirtab *rp, int fd)
 {
 	int i;
-	struct parsefile *pf = g_parsefile;
+	struct parsefile *pf;
+
+	if (fd == -1)
+		return 0;
+	pf = g_parsefile;
 	while (pf) {
 		if (fd == pf->fd) {
 			return 1;
@@ -5048,7 +5052,7 @@ redirect(union node *redir, int flags)
  * Undo the effects of the last redirection.
  */
 static void
-popredir(int drop)
+popredir(int drop, int restore)
 {
 	struct redirtab *rp;
 	int i;
@@ -5066,7 +5070,7 @@ popredir(int drop)
 			continue;
 		}
 		if (copy != EMPTY) {
-			if (!drop || (copy & COPYFD_RESTORE)) {
+			if (!drop || (restore && (copy & COPYFD_RESTORE))) {
 				copy &= ~COPYFD_RESTORE;
 				/*close(fd);*/
 				copyfd(copy, fd | COPYFD_EXACT);
@@ -5094,7 +5098,7 @@ clearredir(int drop)
 		g_nullredirs = 0;
 		if (!redirlist)
 			break;
-		popredir(drop);
+		popredir(drop, /*restore:*/ 0);
 	}
 }
 
@@ -7016,7 +7020,7 @@ shellexec(char **argv, const char *path, int idx)
 	int applet_no = -1;
 #endif
 
-	clearredir(1);
+	clearredir(/*drop:*/ 1);
 	envp = listvars(VEXPORT, VUNSET, 0);
 	if (strchr(argv[0], '/') != NULL
 #if ENABLE_FEATURE_SH_STANDALONE
@@ -7926,7 +7930,7 @@ evaltree(union node *n, int flags)
 			evaltree(n->nredir.n, flags & EV_TESTED);
 			status = exitstatus;
 		}
-		popredir(0);
+		popredir(/*drop:*/ 0, /*restore:*/ 0 /* not sure */);
 		goto setstatus;
 	case NCMD:
 		evalfn = evalcommand;
@@ -8707,11 +8711,11 @@ evalcommand(union node *cmd, int flags)
 	char *lastarg;
 	const char *path;
 	int spclbltin;
-	int cmd_is_exec;
 	int status;
 	char **nargv;
 	struct builtincmd *bcmd;
-	int pseudovarflag = 0;
+	smallint cmd_is_exec;
+	smallint pseudovarflag = 0;
 
 	/* First expand the arguments. */
 	TRACE(("evalcommand(0x%lx, %d) called\n", (long)cmd, flags));
@@ -8822,7 +8826,7 @@ evalcommand(union node *cmd, int flags)
 			if (spclbltin < 0)
 				spclbltin = IS_BUILTIN_SPECIAL(cmdentry.u.cmd);
 			if (cmdentry.u.cmd == EXECCMD)
-				cmd_is_exec++;
+				cmd_is_exec = 1;
 #if ENABLE_ASH_CMDCMD
 			if (cmdentry.u.cmd == COMMANDCMD) {
 				path = oldpath;
@@ -8917,7 +8921,7 @@ evalcommand(union node *cmd, int flags)
 	}
 
  out:
-	popredir(cmd_is_exec);
+	popredir(/*drop:*/ cmd_is_exec, /*restore:*/ cmd_is_exec);
 	if (lastarg) {
 		/* dsl: I think this is intended to be used to support
 		 * '_' in 'vi' command mode during line editing...
@@ -13485,7 +13489,7 @@ reset(void)
 	tokpushback = 0;
 	checkkwd = 0;
 	/* from redir.c: */
-	clearredir(0);
+	clearredir(/*drop:*/ 0);
 }
 
 #if PROFILE
