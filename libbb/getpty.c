@@ -13,18 +13,26 @@
 int FAST_FUNC xgetpty(char *line)
 {
 	int p;
+
 #if ENABLE_FEATURE_DEVPTS
 	p = open("/dev/ptmx", O_RDWR);
 	if (p > 0) {
+		grantpt(p); /* chmod+chown corresponding slave pty */
+		unlockpt(p); /* (what does this do?) */
+#if 0 /* if ptsname_r is not available... */
 		const char *name;
-		grantpt(p);
-		unlockpt(p);
-		name = ptsname(p);
+		name = ptsname(p); /* find out the name of slave pty */
 		if (!name) {
-			bb_perror_msg("ptsname error (is /dev/pts mounted?)");
-			goto fail;
+			bb_perror_msg_and_die("ptsname error (is /dev/pts mounted?)");
 		}
 		safe_strncpy(line, name, GETPTY_BUFSIZE);
+#else
+		/* find out the name of slave pty */
+		if (ptsname_r(p, line, GETPTY_BUFSIZE-1) != 0) {
+			bb_perror_msg_and_die("ptsname error (is /dev/pts mounted?)");
+		}
+		line[GETPTY_BUFSIZE-1] = '\0';
+#endif
 		return p;
 	}
 #else
@@ -52,9 +60,5 @@ int FAST_FUNC xgetpty(char *line)
 		}
 	}
 #endif /* FEATURE_DEVPTS */
-USE_FEATURE_DEVPTS( fail:)
-	bb_error_msg_and_die("open pty");
-	return -1; /* never get here */
+	bb_error_msg_and_die("can't find free pty");
 }
-
-
