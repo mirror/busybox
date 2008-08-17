@@ -3568,6 +3568,15 @@
      "\n	-w	Warn about improperly formatted SHA1 checksum lines" \
 	)
 
+#define showkey_trivial_usage \
+       "[-a | -k | -s]"
+#define showkey_full_usage "\n\n" \
+       "Show keys pressed\n" \
+     "\nOptions:" \
+     "\n	-a	Display decimal/octal/hex values of the keys" \
+     "\n	-k	Display interpreted keycodes (default)" \
+     "\n	-s	Display raw scan-codes" \
+
 #define slattach_trivial_usage \
        "[-cehmLF] [-s speed] [-p protocol] DEVICEs"
 #define slattach_full_usage "\n\n" \

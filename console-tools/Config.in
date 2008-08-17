@@ -114,4 +114,10 @@ config SETLOGCONS
 	help
 	  This program redirects the output console of kernel messages.
 
+config SHOWKEY
+	bool "showkey"
+	default n
+	help
+	  Shows keys presses.
+
 endmenu
