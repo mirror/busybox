@@ -95,6 +95,12 @@ config FEATURE_SETCONSOLE_LONG_OPTIONS
 	help
 	  Support long options for the setconsole applet.
 
+config SETFONT
+	bool "setfont"
+	default n
+	help
+	  Allows to load console screen map. Useful for i18n.
+
 config SETKEYCODES
 	bool "setkeycodes"
 	default n

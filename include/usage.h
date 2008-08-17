@@ -3501,6 +3501,15 @@
      "\n	-vv	Show changes in file labels, if type, role, or user are changing" \
      "\n	-W	Display warnings about entries that had no matching files" \
 
+#define setfont_trivial_usage \
+       "[-m mapfile] font"
+#define setfont_full_usage "\n\n" \
+       "Load a console font\n" \
+     "\nOptions:" \
+     "\n	-m mapfile	Load console screen map from mapfile"
+#define setfont_example_usage \
+       "$ setfont -m koi8-r /etc/i18n/fontname\n"
+
 #define setkeycodes_trivial_usage \
        "SCANCODE KEYCODE..."
 #define setkeycodes_full_usage "\n\n" \
