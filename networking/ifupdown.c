@@ -456,7 +456,10 @@ static int static_down(struct interface_defn_t *ifd, execfn *exec)
 	result = execute("ip addr flush dev %iface%", ifd, exec);
 	result += execute("ip link set %iface% down", ifd, exec);
 #else
-	result = execute("[[route del default gw %gateway% %iface%]]", ifd, exec);
+	/* result = execute("[[route del default gw %gateway% %iface%]]", ifd, exec); */
+	/* Bringing the interface down deletes the routes in itself.
+	   Otherwise this fails if we reference 'gateway' when using this from dhcp_down */
+	result = 1;
 	result += execute("ifconfig %iface% down", ifd, exec);
 #endif
 	return ((result == 2) ? 2 : 0);
@@ -538,19 +541,40 @@ static int dhcp_up(struct interface_defn_t *ifd UNUSED_PARAM,
 #if ENABLE_FEATURE_IFUPDOWN_EXTERNAL_DHCP
 static int dhcp_down(struct interface_defn_t *ifd, execfn *exec)
 {
+	int result = 0;
 	unsigned i;
+
 	for (i = 0; i < ARRAY_SIZE(ext_dhcp_clients); i++) {
-		if (exists_execable(ext_dhcp_clients[i].name))
-			return execute(ext_dhcp_clients[i].stopcmd, ifd, exec);
+		if (exists_execable(ext_dhcp_clients[i].name)) {
+			result += execute(ext_dhcp_clients[i].stopcmd, ifd, exec);
+			if (result)
+				break;
+		}
 	}
-	bb_error_msg("no dhcp clients found, using static interface shutdown");
-	return static_down(ifd, exec);
+
+	if (!result)
+		bb_error_msg("warning: no dhcp clients found and stopped");
+
+	/* Sleep a bit, otherwise static_down tries to bring down interface too soon,
+	   and it may come back up because udhcpc is still shutting down */
+	usleep(100000);
+	result += static_down(ifd, exec);
+	return ((result == 3) ? 3 : 0);
 }
 #elif ENABLE_APP_UDHCPC
 static int dhcp_down(struct interface_defn_t *ifd, execfn *exec)
 {
-	return execute("kill "
+	int result;
+	result = execute("kill "
 	               "`cat /var/run/udhcpc.%iface%.pid` 2>/dev/null", ifd, exec);
+	/* Also bring the hardware interface down since
+	   killing the dhcp client alone doesn't do it.
+	   This enables consecutive ifup->ifdown->ifup */
+	/* Sleep a bit, otherwise static_down tries to bring down interface too soon,
+	   and it may come back up because udhcpc is still shutting down */
+	usleep(100000);
+	result += static_down(ifd, exec);
+	return ((result == 3) ? 3 : 0);
 }
 #else
 static int dhcp_down(struct interface_defn_t *ifd UNUSED_PARAM,
