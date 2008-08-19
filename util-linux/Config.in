@@ -707,6 +707,12 @@ config RDATE
 	  the RFC868 protocol, which is built into the inetd daemon on most
 	  systems.
 
+config RDEV
+       bool "rdev"
+       default n
+       help
+	  Print the device node associated with the filesystem mounted at '/'.
+
 config READPROFILE
 	bool "readprofile"
 	default n

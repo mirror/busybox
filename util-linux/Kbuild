@@ -26,6 +26,7 @@ lib-$(CONFIG_MORE)              += more.o
 lib-$(CONFIG_MOUNT)             += mount.o
 lib-$(CONFIG_PIVOT_ROOT)        += pivot_root.o
 lib-$(CONFIG_RDATE)             += rdate.o
+lib-$(CONFIG_RDEV)              += rdev.o
 lib-$(CONFIG_READPROFILE)       += readprofile.o
 lib-$(CONFIG_RTCWAKE)           += rtcwake.o
 lib-$(CONFIG_SCRIPT)            += script.o

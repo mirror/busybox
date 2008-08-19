@@ -3168,6 +3168,14 @@
      "\n	-s	Set the system date and time (default)" \
      "\n	-p	Print the date and time" \
 
+#define rdev_trivial_usage \
+       ""
+#define rdev_full_usage "\n\n" \
+       "Print the device node associated with the filesystem mounted at '/'"
+#define rdev_example_usage \
+       "$ rdev\n" \
+       "/dev/mtdblock9 /\n"
+
 #define readahead_trivial_usage \
        "[FILE]..."
 #define readahead_full_usage "\n\n" \
