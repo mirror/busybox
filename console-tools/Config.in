@@ -118,6 +118,6 @@ config SHOWKEY
 	bool "showkey"
 	default n
 	help
-	  Shows keys presses.
+	  Shows keys pressed.
 
 endmenu
