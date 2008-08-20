@@ -763,8 +763,7 @@ int top_main(int argc UNUSED_PARAM, char **argv)
 
 	/* all args are options; -n NUM */
 	opt_complementary = "-:n+";
-	getopt32(argv, "d:n:b", &sinterval, &iterations);
-	if (option_mask32 & OPT_d) {
+	if (getopt32(argv, "d:n:b", &sinterval, &iterations) & OPT_d) {
 		/* Need to limit it to not overflow poll timeout */
 		interval = xatou16(sinterval); // -d
 	}

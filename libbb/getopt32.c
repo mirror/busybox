@@ -174,7 +174,7 @@ Special characters:
         on the command line.
 
  "V-"   An option with dash before colon or end-of-line results in
-        bb_show_usage being called if this option is encountered.
+        bb_show_usage() being called if this option is encountered.
         This is typically used to implement "print verbose usage message
         and exit" option.
 
@@ -285,10 +285,6 @@ const char *const bb_argv_dash[] = { "-", NULL };
 
 const char *opt_complementary;
 
-/* Many small applets don't want to suck in stdio.h only because
- * they need to parse options by calling us */
-#define DONT_USE_PRINTF 1
-
 enum {
 	PARAM_STRING,
 	PARAM_LIST,
@@ -322,7 +318,7 @@ getopt32(char **argv, const char *applet_opts, ...)
 	int argc;
 	unsigned flags = 0;
 	unsigned requires = 0;
-	t_complementary complementary[33];
+	t_complementary complementary[33]; /* last stays zero-filled */
 	int c;
 	const unsigned char *s;
 	t_complementary *on_off;
@@ -332,14 +328,13 @@ getopt32(char **argv, const char *applet_opts, ...)
 	struct option *long_options = (struct option *) &bb_null_long_options;
 #endif
 	unsigned trigger;
-	char **pargv = NULL;
+	char **pargv;
 	int min_arg = 0;
 	int max_arg = -1;
 
 #define SHOW_USAGE_IF_ERROR     1
 #define ALL_ARGV_IS_OPTS        2
 #define FIRST_ARGV_IS_OPT       4
-#define FREE_FIRST_ARGV_IS_OPT  (8 * !DONT_USE_PRINTF)
 
 	int spec_flgs = 0;
 
@@ -493,17 +488,18 @@ getopt32(char **argv, const char *applet_opts, ...)
 	}
 	va_end(p);
 
-	if (spec_flgs & FIRST_ARGV_IS_OPT) {
-		if (argv[1] && argv[1][0] != '-' && argv[1][0] != '\0') {
-#if DONT_USE_PRINTF
-			char *pp = alloca(strlen(argv[1]) + 2);
-			*pp = '-';
-			strcpy(pp + 1, argv[1]);
-			argv[1] = pp;
-#else
-			argv[1] = xasprintf("-%s", argv[1]);
-			spec_flgs |= FREE_FIRST_ARGV_IS_OPT;
-#endif
+	if (spec_flgs & (FIRST_ARGV_IS_OPT | ALL_ARGV_IS_OPTS)) {
+		pargv = argv + 1;
+		while (*pargv) {
+			if (pargv[0][0] != '-' && pargv[0][0] != '\0') {
+				char *pp = alloca(strlen(*pargv) + 2);
+				*pp = '-';
+				strcpy(pp + 1, *pargv);
+				*pargv = pp;
+			}
+			if (!(spec_flgs & ALL_ARGV_IS_OPTS))
+				break; 
+			pargv++;
 		}
 	}
 
@@ -529,6 +525,7 @@ getopt32(char **argv, const char *applet_opts, ...)
 	/* optreset = 1; */
 #endif
 	/* optarg = NULL; opterr = 0; optopt = 0; - do we need this?? */
+	pargv = NULL;
 
 	/* Note: just "getopt() <= 0" will not work well for
 	 * "fake" short options, like this one:
@@ -540,12 +537,17 @@ getopt32(char **argv, const char *applet_opts, ...)
 #else
 	while ((c = getopt(argc, argv, applet_opts)) != -1) {
 #endif
+		/* getopt prints "option requires an argument -- X"
+		 * and returns '?' if an option has no arg, but one is reqd */
 		c &= 0xff; /* fight libc's sign extension */
- loop_arg_is_opt:
 		for (on_off = complementary; on_off->opt_char != c; on_off++) {
-			/* c==0 if long opt have non NULL flag */
-			if (on_off->opt_char == '\0' && c != '\0')
+			/* c can be NUL if long opt has non-NULL ->flag,
+			 * but we construct long opts so that flag
+			 * is always NULL (see above) */
+			if (on_off->opt_char == '\0' /* && c != '\0' */) {
+				/* c is probably '?' - "bad option" */
 				bb_show_usage();
+			}
 		}
 		if (flags & on_off->incongruously)
 			bb_show_usage();
@@ -569,24 +571,6 @@ getopt32(char **argv, const char *applet_opts, ...)
 		if (pargv != NULL)
 			break;
 	}
-
-	if (spec_flgs & ALL_ARGV_IS_OPTS) {
-		/* process argv is option, for example "ps" applet */
-		if (pargv == NULL)
-			pargv = argv + optind;
-		while (*pargv) {
-			c = **pargv;
-			if (c == '\0') {
-				pargv++;
-			} else {
-				(*pargv)++;
-				goto loop_arg_is_opt;
-			}
-		}
-	}
-
-	if (spec_flgs & FREE_FIRST_ARGV_IS_OPT)
-		free(argv[1]);
 
 	/* check depending requires for given options */
 	for (on_off = complementary; on_off->opt_char; on_off++) {
