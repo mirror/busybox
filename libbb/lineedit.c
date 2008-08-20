@@ -1357,6 +1357,7 @@ static void win_changed(int nsig)
  */
 int FAST_FUNC read_line_input(const char *prompt, char *command, int maxsize, line_input_t *st)
 {
+	int len;
 #if ENABLE_FEATURE_TAB_COMPLETION
 	smallint lastWasTab = FALSE;
 #endif
@@ -1376,7 +1377,6 @@ int FAST_FUNC read_line_input(const char *prompt, char *command, int maxsize, li
 	 || !(initial_settings.c_lflag & ECHO)
 	) {
 		/* Happens when e.g. stty -echo was run before */
-		int len;
 		parse_and_put_prompt(prompt);
 		fflush(stdout);
 		if (fgets(command, maxsize, stdin) == NULL)
@@ -1843,9 +1843,10 @@ int FAST_FUNC read_line_input(const char *prompt, char *command, int maxsize, li
 	signal(SIGWINCH, previous_SIGWINCH_handler);
 	fflush(stdout);
 
+	len = command_len;
 	DEINIT_S();
 
-	return command_len;
+	return len; /* can't return command_len, DEINIT_S() destroys it */
 }
 
 line_input_t* FAST_FUNC new_line_input_t(int flags)
