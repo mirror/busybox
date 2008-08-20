@@ -213,6 +213,8 @@ int chpst_main(int argc UNUSED_PARAM, char **argv)
 	} else {
 		option_mask32 = opt = 0;
 		argv++;
+		if (!*argv)
+			bb_show_usage();
 	}
 
 	// envdir?
@@ -222,7 +224,7 @@ int chpst_main(int argc UNUSED_PARAM, char **argv)
 	}
 
 	// setuidgid?
-	if (ENABLE_SETUIDGID && applet_name[0] == 's') {
+	if (ENABLE_SETUIDGID && applet_name[1] == 'e') {
 		set_user = *argv++;
 		opt |= OPT_u;
 	}
