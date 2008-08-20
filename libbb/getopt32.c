@@ -155,11 +155,19 @@ Special characters:
         Allows any arguments to be given without a dash (./program w x)
         as well as with a dash (./program -x).
 
+	NB: getopt32() will leak a small amount of memory if you use
+	this option! Do not use it if there is a possibility of recursive
+	getopt32() calls.
+
  "--"   A double dash at the beginning of opt_complementary means the
         argv[1] string should always be treated as options, even if it isn't
         prefixed with a "-".  This is useful for special syntax in applets
         such as "ar" and "tar":
         tar xvf foo.tar
+
+	NB: getopt32() will leak a small amount of memory if you use
+	this option! Do not use it if there is a possibility of recursive
+	getopt32() calls.
 
  "-N"   A dash as the first char in a opt_complementary group followed
         by a single digit (0-9) means that at least N non-option
@@ -493,7 +501,10 @@ getopt32(char **argv, const char *applet_opts, ...)
 		pargv = argv + 1;
 		while (*pargv) {
 			if (pargv[0][0] != '-' && pargv[0][0] != '\0') {
-				char *pp = alloca(strlen(*pargv) + 2);
+				/* Can't use alloca: opts with params will
+				 * return pointers to stack!
+				 * NB: we leak these allocations... */
+				char *pp = xmalloc(strlen(*pargv) + 2);
 				*pp = '-';
 				strcpy(pp + 1, *pargv);
 				*pargv = pp;
