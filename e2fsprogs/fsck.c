@@ -280,9 +280,11 @@ static struct fs_info *create_fs_device(const char *device, const char *mntpnt,
 	fs = xzalloc(sizeof(*fs));
 	fs->device = xstrdup(device);
 	fs->mountpt = xstrdup(mntpnt);
+	if (strchr(type, ','))
+		type = (char *)"auto";
 	fs->type = xstrdup(type);
 	fs->opts = xstrdup(opts ? opts : "");
-	fs->passno = passno;
+	fs->passno = passno < 0 ? 1 : passno;
 	/*fs->flags = 0; */
 	/*fs->next = NULL; */
 
@@ -295,130 +297,29 @@ static struct fs_info *create_fs_device(const char *device, const char *mntpnt,
 	return fs;
 }
 
-static void strip_line(char *line)
-{
-	char *p = line + strlen(line) - 1;
-
-	while (*line) {
-		if (*p != '\n' && *p != '\r')
-			break;
-		*p-- = '\0';
-	}
-}
-
-static char *parse_word(char **buf)
-{
-	char *word, *next;
-
-	word = *buf;
-	if (*word == '\0')
-		return NULL;
-
-	word = skip_whitespace(word);
-	next = skip_non_whitespace(word);
-	if (*next)
-		*next++ = '\0';
-	*buf = next;
-	return word;
-}
-
-static void parse_escape(char *word)
-{
-	char *q, c;
-	const char *p;
-
-	if (!word)
-		return;
-
-	for (p = q = word; *p; q++) {
-		c = *p++;
-		if (c != '\\') {
-			*q = c;
-		} else {
-			*q = bb_process_escape_sequence(&p);
-		}
-	}
-	*q = '\0';
-}
-
-static int parse_fstab_line(char *line, struct fs_info **ret_fs)
-{
-	char *device, *mntpnt, *type, *opts, *passno, *cp;
-	struct fs_info *fs;
-
-	*ret_fs = NULL;
-	strip_line(line);
-	*strchrnul(line, '#') = '\0'; /* Ignore everything after comment */
-	cp = line;
-
-	device = parse_word(&cp);
-	if (!device) return 0; /* Allow blank lines */
-	mntpnt = parse_word(&cp);
-	type = parse_word(&cp);
-	opts = parse_word(&cp);
-	/*freq =*/ parse_word(&cp);
-	passno = parse_word(&cp);
-
-	if (!mntpnt || !type)
-		return -1;
-
-	parse_escape(device);
-	parse_escape(mntpnt);
-	parse_escape(type);
-	parse_escape(opts);
-	parse_escape(passno);
-
-	if (strchr(type, ','))
-		type = NULL;
-
-	fs = create_fs_device(device, mntpnt, type ? type : "auto", opts,
-			(passno ? atoi(passno) : -1));
-	*ret_fs = fs;
-	return 0;
-}
-
 /* Load the filesystem database from /etc/fstab */
 static void load_fs_info(const char *filename)
 {
-	FILE *f;
-	int lineno = 0;
-	int old_fstab = 1;
+	FILE *fstab;
+	struct mntent mte;
 	struct fs_info *fs;
 
-	f = fopen_or_warn(filename, "r");
-	if (f == NULL) {
+	fstab = setmntent(filename, "r");
+	if (!fstab) {
+		bb_perror_msg("cannot read %s", filename);
 		return;
 	}
-	while (1) {
-		int r;
-		char *buf = xmalloc_fgetline(f);
-		if (!buf) break;
-		r = parse_fstab_line(buf, &fs);
-		free(buf);
-		lineno++;
-		if (r < 0) {
-			bb_error_msg("WARNING: bad format "
-				"on line %d of %s", lineno, filename);
-			continue;
-		}
-		if (!fs)
-			continue;
-		if (fs->passno < 0)
-			fs->passno = 0;
-		else
-			old_fstab = 0;
-	}
-	fclose(f);
 
-	if (old_fstab) {
-		fputs("\007"
-"WARNING: Your /etc/fstab does not contain the fsck passno field.\n"
-"I will kludge around things for you, but you should fix\n"
-"your /etc/fstab file as soon as you can.\n\n", stderr);
-		for (fs = filesys_info; fs; fs = fs->next) {
-			fs->passno = 1;
-		}
+	// Loop through entries
+	while (getmntent_r(fstab, &mte, bb_common_bufsiz1, COMMON_BUFSIZE)) {
+		//bb_info_msg("CREATE[%s][%s][%s][%s][%d]", mte.mnt_fsname, mte.mnt_dir,
+		//	mte.mnt_type, mte.mnt_opts, 
+		//	mte.mnt_passno);
+		fs = create_fs_device(mte.mnt_fsname, mte.mnt_dir,
+			mte.mnt_type, mte.mnt_opts, 
+			mte.mnt_passno);
 	}
+	endmntent(fstab);
 }
 
 /* Lookup filesys in /etc/fstab and return the corresponding entry. */
