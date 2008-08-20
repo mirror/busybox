@@ -338,7 +338,8 @@ getopt32(char **argv, const char *applet_opts, ...)
 
 	int spec_flgs = 0;
 
-	argc = 0;
+	/* skip 0: some applets cheat: they do not actually HAVE argv[0] */
+	argc = 1;
 	while (argv[argc])
 		argc++;
 
