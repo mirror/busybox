@@ -66,7 +66,6 @@
 	<li>findfs: make it use setuid-ness of busybox binary
 	<li>fsck: use getmntent_r instead of open-coded parsing (by Vladimir)
 	<li>fuser: a bit of safety in scanf
-	<li>get_header_tar: handle autodetection for tiny .tar.gz files too
 	<li>grep: option to use GNU regex matching instead of POSIX one. This fixes problems with NULs in files being scanned, but costs +800 bytes
 	<li>halt: signal init regardless of ENABLE_INIT
 	<li>httpd: add homedir directive specially for (and by) Walter Harms wharms AT bfs.de
@@ -123,7 +122,7 @@
 	<li>ssd: fix -a without -x case
 	<li>ssd: use $PATH
 	<li>tar: fix handling of tarballs with symlinks with size field != 0
-	<li>tar: simplify autodetection of bz2/.gz
+	<li>tar: handle autodetection for tiny .tar.gz files too, simplify autodetection
 	<li>taskset: fix some careless code in both fancy and non-fancy cases. -5 bytes for fancy, +5 for non-fancy
 	<li>tee: fix infinite looping on open error (echo asd | tee "")
 	<li>tee: "-" is a name for stdout, handle it that way
