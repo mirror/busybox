@@ -802,7 +802,7 @@ file is at least worth a look.  Special-case code in the body of an applet is
 something we're trying to avoid.</p>
 
 <hr />
-<h2><a name="tips" />Programming tips and tricks.</a></h2>
+<h2><a name="tips">Programming tips and tricks.</a></h2>
 
 <p>Various things busybox uses that aren't particularly well documented
 elsewhere.</p>
@@ -1040,7 +1040,8 @@ to measure).</p>
 <hr />
 <h2><a name="tips_kernel_headers"></a>Including kernel headers</h2>
 
-<p>The "linux" or "asm" directories of /usr/include contain Linux kernel
+<p>The &quot;linux&quot; or &quot;asm&quot; directories of /usr/include
+contain Linux kernel
 headers, so that the C library can talk directly to the Linux kernel.  In
 a perfect world, applications shouldn't include these headers directly, but
 we don't live in a perfect world.</p>
@@ -1050,7 +1051,7 @@ we don't live in a perfect world.</p>
 Attempts to cut and paste the information into a local busybox header file
 proved incredibly painful, because portions of the loop_info structure vary by
 architecture, namely the type __kernel_dev_t has different sizes on alpha,
-arm, x86, and so on.  Meaning we either #include <linux/posix_types.h> or
+arm, x86, and so on.  Meaning we either #include &lt;linux/posix_types.h&gt; or
 we hardwire #ifdefs to check what platform we're building on and define this
 type appropriately for every single hardware architecture supported by
 Linux, which is simply unworkable.</p>
@@ -1058,7 +1059,8 @@ Linux, which is simply unworkable.</p>
 <p>This is aside from the fact that the relevant type defined in
 posix_types.h was renamed to __kernel_old_dev_t during the 2.5 series, so
 to cut and paste the structure into our header we have to #include
-<linux/version.h> to figure out which name to use.  (What we actually do is
+&lt;linux/version.h&gt; to figure out which name to use.  (What we actually
+do is
 check if we're building on 2.6, and if so just use the new 64 bit structure
 instead to avoid the rename entirely.)  But we still need the version
 check, since 2.4 didn't have the 64 bit structure.</p>
@@ -1067,8 +1069,9 @@ check, since 2.4 didn't have the 64 bit structure.</p>
 out a clean way to do all this.  There isn't one.  The losetup in the
 util-linux package from kernel.org isn't doing it cleanly either, they just
 hide the ugliness by nesting #include files.  Their mount/loop.h
-#includes "my_dev_t.h", which #includes <linux/posix_types.h> and
-<linux/version.h> just like we do.  There simply is no alternative.</p>
+#includes &quot;my_dev_t.h&quot;, which #includes &lt;linux/posix_types.h&gt;
+and &lt;linux/version.h&gt; just like we do.  There simply is no alternative.
+</p>
 
 <p>Just because directly #including kernel headers is sometimes
 unavoidable doesn't me we should include them when there's a better
@@ -1109,8 +1112,8 @@ vda       :Denys Vlasenko     - BusyBox maintainer
 </pre>
 
 <p>The following accounts used to exist on busybox.net, but don't anymore so
-I can't ask /etc/passwd for their names.  Rob Wentworth <robwen at gmail.com>
-asked Google and recovered the names:</p>
+I can't ask /etc/passwd for their names.  Rob Wentworth
+&lt;robwen at gmail.com&gt; asked Google and recovered the names:</p>
 
 <pre>
 aaronl   :Aaron Lehmann
