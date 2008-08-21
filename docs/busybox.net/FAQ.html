@@ -16,7 +16,7 @@ have additions to this FAQ document, we would love to add them,
 <li><a href="#arch">Which architectures does BusyBox run on?</a></li>
 <li><a href="#libc">Which C libraries are supported?</a></li>
 <li><a href="#commercial">Can I include BusyBox as part of the software on my device?</a></li>
-<li><a href="#external">Where can I find other small utilities since busybox does not include the features I want?</a></li></li>
+<li><a href="#external">Where can I find other small utilities since busybox does not include the features I want?</a></li>
 <li><a href="#demanding">I demand that you to add &lt;favorite feature&gt; right now!   How come you don't answer all my questions on the mailing list instantly?  I demand that you help me with all of my problems <em>Right Now</em>!</a></li>
 <li><a href="#helpme">I need help with BusyBox!  What should I do?</a></li>
 <li><a href="#contracts">I need you to add &lt;favorite feature&gt;!  Are the BusyBox developers willing to be paid in order to fix bugs or add in &lt;favorite feature&gt;?  Are you willing to provide support contracts?</a></li>
@@ -40,23 +40,25 @@ have additions to this FAQ document, we would love to add them,
 <ol>
   <li><a href="#goals">What are the goals of busybox?</a></li>
   <li><a href="#design">What is the design of busybox?</a></li>
-  <li><a href="#source">How is the source code organized?</a></li>
-  <ul>
+  <li><a href="#source">How is the source code organized?</a>
+    <ul>
     <li><a href="#source_applets">The applet directories.</a></li>
     <li><a href="#source_libbb">The busybox shared library (libbb)</a></li>
-  </ul>
+    </ul>
+  </li>
   <li><a href="#optimize">I want to make busybox even smaller, how do I go about it?</a></li>
   <li><a href="#adding">Adding an applet to busybox</a></li>
   <li><a href="#standards">What standards does busybox adhere to?</a></li>
   <li><a href="#portability">Portability.</a></li>
-  <li><a href="#tips">Tips and tricks.</a></li>
-  <ul>
+  <li><a href="#tips">Tips and tricks.</a>
+    <ul>
     <li><a href="#tips_encrypted_passwords">Encrypted Passwords</a></li>
     <li><a href="#tips_vfork">Fork and vfork</a></li>
     <li><a href="#tips_short_read">Short reads and writes</a></li>
     <li><a href="#tips_memory">Memory used by relocatable code, PIC, and static linking.</a></li>
     <li><a href="#tips_kernel_headers">Including Linux kernel headers.</a></li>
-  </ul>
+    </ul>
+  </li>
     <li><a href="#who">Who are the BusyBox developers?</a></li>
   </ul>
 </ol>
@@ -376,7 +378,7 @@ within each applet.  More build coverage testing.</p></li>
 </p>
 
 <hr />
-<h2><a name="backporting">I'm using an ancient version from the dawn of time and something's broken.  Can you backport fixes for free?</h2>
+<h2><a name="backporting">I'm using an ancient version from the dawn of time and something's broken.  Can you backport fixes for free?</a></h2>
 
 <p>Variants of this one get asked a lot.</p>
 
@@ -385,7 +387,7 @@ and we're happy to respond to our users' needs.  But if you're coming to the
 list for free tech support we're going to ask you to upgrade to a current
 version before we try to diagnose your problem.</p>
 
-<p>If you're building BusyBox 0.50 with uClibc 0.9.19 and gcc 0.9.26 there's a
+<p>If you're building BusyBox 0.50 with uClibc 0.9.19 and gcc 1.27 there's a
 fairly large chance that whatever problem you're seeing has already been fixed.
 To get that fix, all you have to do is upgrade to a newer version.  If you
 don't at least _try_ that, you're wasting our time.</p>
@@ -775,9 +777,9 @@ successor to ibcs2: <a href="http://www.telly.org/86open/">the 86open
 project</a>.  That project disbanded in 1999 with the endorsement of an
 existing standard: Linux ELF binaries.  Since then, the major players at the
 time (such as <a
-href=http://www-03.ibm.com/servers/aix/products/aixos/linux/index.html>AIX</a>, <a
-href=http://www.sun.com/software/solaris/ds/linux_interop.jsp#3>Solaris</a>, and
-<a href=http://www.onlamp.com/pub/a/bsd/2000/03/17/linuxapps.html>FreeBSD</a>)
+href="http://www-03.ibm.com/servers/aix/products/aixos/linux/index.html">AIX</a>, <a
+href="http://www.sun.com/software/solaris/ds/linux_interop.jsp#3">Solaris</a>, and
+<a href="http://www.onlamp.com/pub/a/bsd/2000/03/17/linuxapps.html">FreeBSD</a>)
 have all either grown Linux support or folded.</p>
 
 <p>The major exceptions are newcomer MacOS X, some embedded environments
