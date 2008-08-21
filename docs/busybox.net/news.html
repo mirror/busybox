@@ -1,6 +1,152 @@
 <!--#include file="header.html" -->
 
 <ul>
+  <li><b>25 June 2008 -- BusyBox 1.12.0 (unstable)</b>
+    <p><a href=http://busybox.net/downloads/busybox-1.12.0.tar.bz2>BusyBox 1.12.0</a>.
+    (<a href=http://busybox.net/cgi-bin/viewcvs.cgi/branches/busybox_1_12_stable/>svn</a>,
+    <a href=http://busybox.net/downloads/fixes-1.12.0/>patches</a>,
+    <a href=http://busybox.net/fix.html>how to add a patch</a>)</p>
+    <p>Sizes of busybox-1.11.1 and busybox-1.12.0 (with equivalent config, static uclibc build):<pre>
+   text    data     bss     dec     hex filename
+ 829687     617    7052  837356   cc6ec busybox-1.11.1/busybox
+ 822961     594    6832  830387   cabb3 busybox-1.12.0/busybox
+</pre>
+
+    <p>New applets: rdev (Grant Erickson), setfont, showkey (both by Vladimir)
+
+    <p>Most significant changes since previous release (please report is you found a regression):
+      <ul>
+	<li>ash: bash compat: "shift $BIGNUM" is equivalent to "shift 1"
+	<li>ash: dont allow e.g. exec &lt;&10 to attach to stript's fd!
+	<li>ash: fix a bug where redirection fds were not closed afterwards. optimize close+fcntl(DUPFD) into dup2
+	<li>ash: fix segfault in "command -v"
+	<li>ash: fix very weak $RANDOM generator
+	<li>ash: prevent exec NN&gt;&amp;- from closing fd used for script reading
+	<li>ash: teach ash about 123&gt;file. It could take only 0..9 before
+	<li>hush: add #defines to switch off break/continue if loops are not supported
+	<li>hush: delete unused field in struct child. reinstate needed check for invalid syntax
+	<li>hush: fix a case where "$@" must expand to no word at all
+	<li>hush: fix mishandling of a'b'c=fff as assignments. They are not
+	<li>hush: fix non-detection of builtins and applets in "v=break; ...; $v; ..." case
+	<li>hush: fix "while false; ..." exitcode; add testsuites
+	<li>hush: support "case...esac" statements (~350 bytes of code)
+	<li>hush: support "break N" and "continue N" statements
+	<li>hush: support "for if in do done then; do echo $if; done" case
+	<li>hush: support "for v; do ... done" syntax (implied 'in "$@"')
+	<li>hush: support $_NUMBERS variable names
+	<li>libbb: unified config parser (by Vladimir). This change affected many applets
+      </ul>
+
+    <p>Other changes:
+      <ul>
+	<li>libbb: dump: do not use uninitialized memory (closes bug 4364)
+	<li>libbb: fix bb_strtol[l]'s check for "-" (closes bug 4174)
+	<li>libbb: fix --help to not affect "test --help"
+	<li>libbb: fix mishandling of "all argv are opts" in getopt32()
+	<li>libbb: getopt32() should not ever touch argv[0] (even read)
+	<li>libbb: introduce and use xrealloc_vector
+	<li>libbb: [x]fopen_for_{read,write} introduced and used (by Valdimir)
+	<li>lineedit: fix use-after-free
+	<li>arp: without -H type, assume "ether" (closes bug 4564)
+	<li>ar: reuse existing ar unpacking code
+	<li>awk: fix a case with multiple -f options. simplify -f file reading.
+	<li>bb_strtoXXX: close bug 4174 (potential use of buf[-1])
+	<li>build system: introduce and use FAST_FUNC: regparm on i386, otherwise no-on
+	<li>bunzip2: fix an uncompression error (by Rob Landley rob AT landley.net)
+	<li>b[un]zip2, g[un]zip: unlink destination if -f is given (closes bug 3854)
+	<li>comm: almost total rewrite
+	<li>cpio: fix -m to actually work as expected (by Pascal Bellard)
+	<li>cpio: internalize archive_xread_all_eof, add a few paranoia checks for corrupted cpio files
+	<li>cpio: make long opts depend only on ENABLE_GETOPT_LONG
+	<li>cpio: on unpack, limit filename length to 8k
+	<li>cpio: support some long options
+	<li>crond: use execlp instead of execl
+	<li>cut: fix buffer overflow (bug 4544)
+	<li>envdir: fix "envdir with no params" and "envdir dir" cases
+	<li>findfs: make it use setuid-ness of busybox binary
+	<li>fsck: use getmntent_r instead of open-coded parsing (by Vladimir)
+	<li>fuser: a bit of safety in scanf
+	<li>get_header_tar: handle autodetection for tiny .tar.gz files too
+	<li>grep: option to use GNU regex matching instead of POSIX one. This fixes problems with NULs in files being scanned, but costs +800 bytes
+	<li>halt: signal init regardless of ENABLE_INIT
+	<li>httpd: add homedir directive specially for (and by) Walter Harms wharms AT bfs.de
+	<li>ifupdown: /etc/network/interfaces can have comments with leading blanks
+	<li>ifupdown: fixes for custom MAC address (by Wade Berrier wberrier AT gmail.com)
+	<li>ifupdown: fixes for shutdown of DHCP-managed interfaces (by Wade Berrier wberrier AT gmail.com)
+	<li>inetd: do not trash errno in signal handlers; in CHLD handler, stop looping through services when pid is found
+	<li>insmod: users report that "|| defined(__powerpc__)" is missing
+	<li>install: do not chown intermediate directories with install -d (by Natanael Copa)
+	<li>install: fix long option not taking params (closes bug 4584)
+	<li>lpd,lpr: send/receive ACKs after filenames, not only after file bodies
+	<li>ls: fix a bug where we may use uninintialized variable
+	<li>man: add handling of "man links", by Ivana Varekova varekova AT redhat.com
+	<li>man: fix a case when a full pathname to manpage is given
+	<li>man: fix inverted cat/man bool variable
+	<li>man: fix missed NULL termination of an array
+	<li>man: mimic "no manual entry for 'bogus'" message and exitcode
+	<li>man: support cat pages too (by Jason Curl jcurlnews AT arcor.de)
+	<li>man: teach it to use .lzma if requested by .config
+	<li>mdev: check for "/block/" substring for block dev detection
+	<li>mdev: do not complain if mdev.conf does not exist
+	<li>mdev: if device was moved at creation, at removal coreectly remove it from moved location and also remove symlinks to it
+	<li>mdev: support for serializing hotplug
+	<li>mdev, init: use shared code for fd sanitization
+	<li>mkdir: fix "uname 0222; mkdir foo/bar" case (by Doug Graham dgraham AT nortel.com)
+	<li>modprobe: support for /etc/modprobe.d (by Timo Teras)
+	<li>modprobe: use buffering line reads (fgets()) instead of reads()
+	<li>modutils: optional modprobe-small (by Vladimir), 15kb smaller than standard one
+	<li>mount: support for "-o mand"
+	<li>mount: support nfs mount option nordiplus (by Octavian Purdila opurdila AT ixiacom.com)
+	<li>mount: support relatime / norelatime
+	<li>mount: testsuite for "-o mand"
+	<li>msh: fix "while...continue" (closes bug 3884)
+	<li>mv: fix a case when we move dangling symlink
+	<li>netstat: optional -p support (by L. Gabriel Somlo somlo AT cmu.edu)
+	<li>nmeter: fix read past the end if a buffer (closes bug 4594)
+	<li>od, hexdump: fix bug where xrealloc may move pointer, leaving other pointers dangling (bug 4104)
+	<li>open_transformer: don't leak compressed descriptor anymore
+	<li>open_transformer: fix bug of calling exit instead of _exit
+	<li>pidof/killall: allow find_pid_by_name to find running processes started as scripts_with_name_longer_than_15_bytes.sh closes bug 4054 (and is generally neat)
+	<li>printf: do not print garbage on "%Ld" (closes bug 4214)
+	<li>printf: fix %b, fix several bugs in %*.*, fix compat issues with aborting too early, support %zd; expand testsuite
+	<li>printf: protect against bogus format specifiers (closes bug 4184)
+	<li>libunarchive: refactor handling of archived files. "tar f file.tar.lzma" now works too
+	<li>sendmail: updates from Vladimir:
+	<li>sendmail: do not discard all headers
+	<li>sendmail: do not ignore CC; accept to: and cc: case-insensitively. +20 bytes
+	<li>sendmail: fixed mail recipient address
+	<li>sendmail: fixed SEGV if sender address is missed
+	<li>sendmail: use HOSTNAME instead of HOST when no server is explicitly specified
+	<li>sleep: if FANCY && DESKTOP, support fractional seconds, minutes, hours and so on (coreutils compat)
+	<li>ssd: CLOSE_EXTRA_FDS in MMU case too
+	<li>ssd: do not stat -x EXECUTABLE, it is not needed anymore
+	<li>ssd: fix -a without -x case
+	<li>ssd: use $PATH
+	<li>tar: fix handling of tarballs with symlinks with size field != 0
+	<li>tar: simplify autodetection of bz2/.gz
+	<li>taskset: fix some careless code in both fancy and non-fancy cases. -5 bytes for fancy, +5 for non-fancy
+	<li>tee: fix infinite looping on open error (echo asd | tee "")
+	<li>tee: "-" is a name for stdout, handle it that way
+	<li>telnetd: fix issue file printing
+	<li>test: fix parser to prefer binop over unop, as coreutils does
+	<li>testsuite: uniformly use $ECHO with -n -e
+	<li>time: don't segfault with no arguments
+	<li>touch: support -r REF_FILE if ENABLE_DESKTOP (needed for blackfin compile)
+	<li>tr: fix "access past the end of a string" bug 4354
+	<li>tr: fix "tr [=" case (closes bug 4374)
+	<li>tr: fix yet another access past the end of a string (bug 4374)
+	<li>unlzma: fix memory leak (by Pascal Bellard)
+	<li>vi: fix reversed checks for underflow
+	<li>vi: using array data after it fell out of scope is stupid
+	<li>xargs: fix -e default to match newer GNU xargs, add SUS mandated -E (closes bug 4414)
+	<li>other fixes and code size reductions in many applets
+      </ul>
+    <p>
+    The email address gpl@busybox.net is the recommended way to contact
+    the Software Freedom Law Center to report BusyBox license violations.
+    </p>
+
+
   <li><b>12 July 2008 -- BusyBox 1.11.1 (stable)</b>
     <p><a href=http://busybox.net/downloads/busybox-1.11.1.tar.bz2>BusyBox 1.11.1</a>.
     (<a href=http://busybox.net/cgi-bin/viewcvs.cgi/branches/busybox_1_11_stable/>svn</a>,
