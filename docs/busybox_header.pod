@@ -6,9 +6,9 @@ BusyBox - The Swiss Army Knife of Embedded Linux
 
 =head1 SYNTAX
 
- BusyBox <function> [arguments...]  # or
+ busybox <applet> [arguments...]  # or
 
- <function> [arguments...]	    # if symlinked
+ <applet> [arguments...]	    # if symlinked
 
 =head1 DESCRIPTION
 
@@ -45,7 +45,8 @@ BusyBox is a multi-call binary.  A multi-call binary is an executable program
 that performs the same job as more than one utility program.  That means there
 is just a single BusyBox binary, but that single binary acts like a large
 number of utilities.  This allows BusyBox to be smaller since all the built-in
-utility programs (we call them applets) can share code for many common operations.
+utility programs (we call them applets) can share code for many common
+operations.
 
 You can also invoke BusyBox by issuing a command as an argument on the
 command line.  For example, entering
@@ -72,11 +73,11 @@ applets that have been compiled into your BusyBox binary.
 
 =head1 COMMON OPTIONS
 
-Most BusyBox commands support the B<--help> argument to provide a terse runtime
+Most BusyBox applets support the B<--help> argument to provide a terse runtime
 description of their behavior.  If the CONFIG_FEATURE_VERBOSE_USAGE option has
 been enabled, more detailed usage information will also be available.
 
 =head1 COMMANDS
 
-Currently defined functions include:
+Currently available applets include:
 
