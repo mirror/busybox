@@ -1,7 +1,7 @@
 <!--#include file="header.html" -->
 
 <ul>
-  <li><b>25 June 2008 -- BusyBox 1.12.0 (unstable)</b>
+  <li><b>21 August 2008 -- BusyBox 1.12.0 (unstable)</b>
     <p><a href=http://busybox.net/downloads/busybox-1.12.0.tar.bz2>BusyBox 1.12.0</a>.
     (<a href=http://busybox.net/cgi-bin/viewcvs.cgi/branches/busybox_1_12_stable/>svn</a>,
     <a href=http://busybox.net/downloads/fixes-1.12.0/>patches</a>,
@@ -14,17 +14,17 @@
 
     <p>New applets: rdev (Grant Erickson), setfont, showkey (both by Vladimir)
 
-    <p>Most significant changes since previous release (please report is you found a regression):
+    <p>Most significant changes since previous release (please report any regression):
       <ul>
 	<li>ash: bash compat: "shift $BIGNUM" is equivalent to "shift 1"
-	<li>ash: dont allow e.g. exec &lt;&10 to attach to stript's fd!
+	<li>ash: dont allow e.g. exec &lt;&10 to attach to script's fd!
 	<li>ash: fix a bug where redirection fds were not closed afterwards. optimize close+fcntl(DUPFD) into dup2
 	<li>ash: fix segfault in "command -v"
 	<li>ash: fix very weak $RANDOM generator
 	<li>ash: prevent exec NN&gt;&amp;- from closing fd used for script reading
 	<li>ash: teach ash about 123&gt;file. It could take only 0..9 before
 	<li>hush: add #defines to switch off break/continue if loops are not supported
-	<li>hush: delete unused field in struct child. reinstate needed check for invalid syntax
+	<li>hush: delete unused field in struct child. Reinstate needed check for invalid syntax
 	<li>hush: fix a case where "$@" must expand to no word at all
 	<li>hush: fix mishandling of a'b'c=fff as assignments. They are not
 	<li>hush: fix non-detection of builtins and applets in "v=break; ...; $v; ..." case
@@ -45,13 +45,13 @@
 	<li>libbb: fix mishandling of "all argv are opts" in getopt32()
 	<li>libbb: getopt32() should not ever touch argv[0] (even read)
 	<li>libbb: introduce and use xrealloc_vector
-	<li>libbb: [x]fopen_for_{read,write} introduced and used (by Valdimir)
+	<li>libbb: [x]fopen_for_{read,write} introduced and used (by Vladimir)
 	<li>lineedit: fix use-after-free
 	<li>arp: without -H type, assume "ether" (closes bug 4564)
 	<li>ar: reuse existing ar unpacking code
-	<li>awk: fix a case with multiple -f options. simplify -f file reading.
+	<li>awk: fix a case with multiple -f options. Simplify -f file reading.
 	<li>bb_strtoXXX: close bug 4174 (potential use of buf[-1])
-	<li>build system: introduce and use FAST_FUNC: regparm on i386, otherwise no-on
+	<li>build system: introduce and use FAST_FUNC: regparm on i386, otherwise no-op
 	<li>bunzip2: fix an uncompression error (by Rob Landley rob AT landley.net)
 	<li>b[un]zip2, g[un]zip: unlink destination if -f is given (closes bug 3854)
 	<li>comm: almost total rewrite
@@ -88,19 +88,19 @@
 	<li>man: teach it to use .lzma if requested by .config
 	<li>mdev: check for "/block/" substring for block dev detection
 	<li>mdev: do not complain if mdev.conf does not exist
-	<li>mdev: if device was moved at creation, at removal coreectly remove it from moved location and also remove symlinks to it
+	<li>mdev: if device was moved at creation, at removal correctly remove it from moved location and also remove symlinks to it
 	<li>mdev: support for serializing hotplug
 	<li>mdev, init: use shared code for fd sanitization
-	<li>mkdir: fix "uname 0222; mkdir foo/bar" case (by Doug Graham dgraham AT nortel.com)
+	<li>mkdir: fix "uname 0222; mkdir -p foo/bar" case (by Doug Graham dgraham AT nortel.com)
 	<li>modprobe: support for /etc/modprobe.d (by Timo Teras)
 	<li>modprobe: use buffering line reads (fgets()) instead of reads()
 	<li>modutils: optional modprobe-small (by Vladimir), 15kb smaller than standard one
-	<li>mount: support for "-o mand"
+	<li>mount: support for "-o mand" and "[no]relatime"
 	<li>mount: support nfs mount option nordiplus (by Octavian Purdila opurdila AT ixiacom.com)
 	<li>mount: support relatime / norelatime
 	<li>mount: testsuite for "-o mand"
 	<li>msh: fix "while...continue" (closes bug 3884)
-	<li>mv: fix a case when we move dangling symlink
+	<li>mv: fix a case when we move dangling symlink across mountpoints
 	<li>netstat: optional -p support (by L. Gabriel Somlo somlo AT cmu.edu)
 	<li>nmeter: fix read past the end if a buffer (closes bug 4594)
 	<li>od, hexdump: fix bug where xrealloc may move pointer, leaving other pointers dangling (bug 4104)
@@ -145,7 +145,6 @@
     The email address gpl@busybox.net is the recommended way to contact
     the Software Freedom Law Center to report BusyBox license violations.
     </p>
-
 
   <li><b>12 July 2008 -- BusyBox 1.11.1 (stable)</b>
     <p><a href=http://busybox.net/downloads/busybox-1.11.1.tar.bz2>BusyBox 1.11.1</a>.
