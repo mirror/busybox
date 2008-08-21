@@ -180,11 +180,18 @@ within each applet.  More build coverage testing.</p></li>
    during compilation. Only gcc and related binutils executables
    are prefixed with $(CROSS_COMPILE) in the makefiles.
    CROSS_COMPILE can be set on the command line:
+</p>
 <pre>
    make CROSS_COMPILE=arm-linux-uclibcgnueabi-
 </pre>
+<p>
    Alternatively CROSS_COMPILE can be set in the environment.
    Default value for CROSS_COMPILE is not to prefix executables.
+</p>
+<p>
+   To store the cross-compiler in your .config, set the variable
+   CONFIG_CROSS_COMPILER_PREFIX accordingly in menuconfig or by
+   editing the .config file.
 </p>
 
 <hr />
