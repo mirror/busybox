@@ -28,7 +28,7 @@
 	<li>hush: fix non-detection of builtins and applets in "v=break; ...; $v; ..." case
 	<li>hush: fix "while false; ..." exitcode; add testsuites
 	<li>hush: support "case...esac" statements (~350 bytes of code)
-	<li>hush: support "break N" and "continue N" statements
+	<li>hush: support "break [N]" and "continue [N]" statements
 	<li>hush: support "for if in do done then; do echo $if; done" case
 	<li>hush: support "for v; do ... done" syntax (implied 'in "$@"')
 	<li>hush: support $_NUMBERS variable names
@@ -45,10 +45,13 @@
 	<li>libbb: introduce and use xrealloc_vector
 	<li>libbb: [x]fopen_for_{read,write} introduced and used (by Vladimir)
 	<li>lineedit: fix use-after-free
+	<li>libunarchive: refactor handling of archived files. "tar f file.tar.lzma" now works too
+	<li>bb_strtoXXX: close bug 4174 (potential use of buf[-1])
+	<li>open_transformer: don't leak file descriptor
+	<li>open_transformer: fix bug of calling exit instead of _exit
 	<li>arp: without -H type, assume "ether" (closes bug 4564)
 	<li>ar: reuse existing ar unpacking code
 	<li>awk: fix a case with multiple -f options. Simplify -f file reading.
-	<li>bb_strtoXXX: close bug 4174 (potential use of buf[-1])
 	<li>build system: introduce and use FAST_FUNC: regparm on i386, otherwise no-op
 	<li>bunzip2: fix an uncompression error (by Rob Landley rob AT landley.net)
 	<li>b[un]zip2, g[un]zip: unlink destination if -f is given (closes bug 3854)
@@ -60,7 +63,7 @@
 	<li>cpio: support some long options
 	<li>crond: use execlp instead of execl
 	<li>cut: fix buffer overflow (closes bug 4544)
-	<li>envdir: fix "envdir with no params" and "envdir dir" cases
+	<li>envdir: fix "envdir" (no params at all) and "envdir dir" cases
 	<li>findfs: make it use setuid-ness of busybox binary
 	<li>fsck: use getmntent_r instead of open-coded parsing (by Vladimir)
 	<li>fuser: a bit of safety in scanf
@@ -93,21 +96,18 @@
 	<li>modprobe: use buffering line reads (fgets()) instead of reads()
 	<li>modutils: optional modprobe-small (by Vladimir), 15kb smaller than standard one
 	<li>mount: support for "-o mand" and "[no]relatime"
-	<li>mount: support nfs mount option nordiplus (by Octavian Purdila opurdila AT ixiacom.com)
-	<li>mount: support relatime / norelatime
+	<li>mount: support nfs mount option "nordiplus" (by Octavian Purdila opurdila AT ixiacom.com)
+	<li>mount: support "relatime" / "norelatime"
 	<li>mount: testsuite for "-o mand"
-	<li>msh: fix "while...continue" (closes bug 3884)
+	<li>msh: fix "while... continue; ..." (closes bug 3884)
 	<li>mv: fix a case when we move dangling symlink across mountpoints
 	<li>netstat: optional -p support (by L. Gabriel Somlo somlo AT cmu.edu)
-	<li>nmeter: fix read past the end if a buffer (closes bug 4594)
+	<li>nmeter: fix read past the end of a buffer (closes bug 4594)
 	<li>od, hexdump: fix bug where xrealloc may move pointer, leaving other pointers dangling (closes bug 4104)
-	<li>open_transformer: don't leak compressed descriptor anymore
-	<li>open_transformer: fix bug of calling exit instead of _exit
 	<li>pidof/killall: allow find_pid_by_name to find running processes started as scripts_with_name_longer_than_15_bytes.sh (closes bug 4054)
 	<li>printf: do not print garbage on "%Ld" (closes bug 4214)
 	<li>printf: fix %b, fix several bugs in %*.*, fix compat issues with aborting too early, support %zd; expand testsuite
 	<li>printf: protect against bogus format specifiers (closes bug 4184)
-	<li>libunarchive: refactor handling of archived files. "tar f file.tar.lzma" now works too
 	<li>sendmail: updates from Vladimir:
 	<li>sendmail: do not discard all headers
 	<li>sendmail: do not ignore CC; accept to: and cc: case-insensitively. +20 bytes
