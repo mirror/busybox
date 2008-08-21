@@ -505,7 +505,7 @@ endif
 # command line.
 # This allow a user to issue only 'make' to build a kernel including modules
 # Defaults busybox but it is usually overridden in the arch makefile
-all: busybox
+all: busybox doc
 
 -include $(srctree)/arch/$(ARCH)/Makefile
 

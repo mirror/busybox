@@ -105,6 +105,10 @@ bigdata: busybox_unstripped
 .PHONY: doc
 doc: docs/busybox.pod docs/BusyBox.txt docs/BusyBox.1 docs/BusyBox.html
 
+# FIXME: Doesn't belong here
+disp_doc = \
+  @$(if $(quiet),echo "  DOC     $(@F)")
+
 docs/busybox.pod: $(srctree)/docs/busybox_header.pod \
 		$(srctree)/include/usage.h \
 		$(srctree)/docs/busybox_footer.pod \
