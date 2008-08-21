@@ -23,8 +23,6 @@
 	<li>ash: fix very weak $RANDOM generator
 	<li>ash: prevent exec NN&gt;&amp;- from closing fd used for script reading
 	<li>ash: teach ash about 123&gt;file. It could take only 0..9 before
-	<li>hush: add #defines to switch off break/continue if loops are not supported
-	<li>hush: delete unused field in struct child. Reinstate needed check for invalid syntax
 	<li>hush: fix a case where "$@" must expand to no word at all
 	<li>hush: fix mishandling of a'b'c=fff as assignments. They are not
 	<li>hush: fix non-detection of builtins and applets in "v=break; ...; $v; ..." case
