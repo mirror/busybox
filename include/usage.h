@@ -3271,7 +3271,16 @@
 #define rmdir_trivial_usage \
        "[OPTION]... DIRECTORY..."
 #define rmdir_full_usage "\n\n" \
-       "Remove the DIRECTORY, if it is empty"
+       "Remove the DIRECTORY, if it is empty.\n" \
+     "\nOptions:" \
+     USE_FEATURE_RMDIR_LONG_OPTIONS( \
+     "\n	-p|--parents	Include parents" \
+     "\n	-ignore-fail-on-non-empty" \
+     ) \
+     SKIP_FEATURE_RMDIR_LONG_OPTIONS( \
+     "\n	-p	Include parents" \
+     )
+
 #define rmdir_example_usage \
        "# rmdir /tmp/foo\n"
 
