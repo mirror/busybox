@@ -3280,6 +3280,8 @@
 #define rmmod_full_usage "\n\n" \
        "Unload the specified kernel modules from the kernel\n" \
      "\nOptions:" \
+     "\n	-w	Wait until the module is no longer used" \
+     "\n	-f	Force unloading" \
      "\n	-a	Remove all unused modules (recursively)" \
 
 #define rmmod_example_usage \
@@ -3288,7 +3290,7 @@
 #define route_trivial_usage \
        "[{add|del|delete}]"
 #define route_full_usage "\n\n" \
-       "Edit the kernel's routing tables\n" \
+       "Edit kernel routing tables\n" \
      "\nOptions:" \
      "\n	-n	Don't resolve names" \
      "\n	-e	Display other/more information" \
