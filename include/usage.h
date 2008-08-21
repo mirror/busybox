@@ -4599,7 +4599,7 @@
 	USE_FEATURE_XARGS_SUPPORT_ZERO_TERM( \
      "\n	-0	Input is separated by NUL characters") \
      "\n	-t	Print the command on stderr before execution" \
-     "\n	-e[STR]	STR stops input processing (default _)" \
+     "\n	-e[STR]	STR stops input processing" \
      "\n	-n N	Pass no more than N args to COMMAND" \
      "\n	-s N	Pass command line of no more than N bytes" \
 	USE_FEATURE_XARGS_SUPPORT_TERMOPT( \
