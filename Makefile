@@ -966,6 +966,12 @@ clean: archclean $(clean-dirs)
 		-o -name '.*.d' -o -name '.*.tmp' -o -name '*.mod.c' \) \
 		-type f -print | xargs rm -f
 
+PHONY += doc-clean
+doc-clean: rm-files := docs/busybox.pod \
+		  docs/BusyBox.html docs/BusyBox.1 docs/BusyBox.txt
+doc-clean:
+	$(call cmd,rmfiles)
+
 # mrproper - Delete all generated files, including .config
 #
 mrproper: rm-dirs  := $(wildcard $(MRPROPER_DIRS))

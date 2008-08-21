@@ -6,6 +6,7 @@ help:
 	@echo 'Cleaning:'
 	@echo '  clean			- delete temporary files created by build'
 	@echo '  distclean		- delete all non-source files (including .config)'
+	@echo '  doc-clean		- delete all generated documentation'
 	@echo
 	@echo 'Build:'
 	@echo '  all			- Executable and documentation'
