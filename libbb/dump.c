@@ -298,7 +298,7 @@ static void rewrite(priv_dumper_t *dumper, FS *fs)
 	 * if, rep count is greater than 1, no trailing whitespace
 	 * gets output from the last iteration of the format unit.
 	 */
-	for (fu = fs->nextfu;; fu = fu->nextfu) {
+	for (fu = fs->nextfu; fu; fu = fu->nextfu) {
 		if (!fu->nextfu && fs->bcnt < dumper->blocksize
 		 && !(fu->flags & F_SETREP) && fu->bcnt
 		) {
@@ -723,7 +723,8 @@ void FAST_FUNC bb_dump_add(dumper_t* pub_dumper, const char *fmt)
 	nextfupp = &tfs->nextfu;
 
 	/* take the format string and break it up into format units */
-	for (p = fmt;;) {
+	p = fmt;
+	for (;;) {
 		p = skip_whitespace(p);
 		if (!*p) {
 			break;
