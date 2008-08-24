@@ -576,8 +576,9 @@ static void ping4(len_and_sockaddr *lsa)
 	/* enable broadcast pings */
 	setsockopt_broadcast(pingsock);
 
-	/* set recv buf for broadcast pings */
-	sockopt = 48 * 1024; /* explain why 48k? */
+	/* set recv buf (needed if we can get lots of responses: flood ping,
+	 * broadcast ping etc) */
+	sockopt = (datalen * 2) + 7 * 1024; /* giving it a bit of extra room */
 	setsockopt(pingsock, SOL_SOCKET, SO_RCVBUF, &sockopt, sizeof(sockopt));
 
 	signal(SIGINT, print_stats_and_exit);
@@ -640,8 +641,9 @@ static void ping6(len_and_sockaddr *lsa)
 	/* enable broadcast pings */
 	setsockopt_broadcast(pingsock);
 
-	/* set recv buf for broadcast pings */
-	sockopt = 48 * 1024; /* explain why 48k? */
+	/* set recv buf (needed if we can get lots of responses: flood ping,
+	 * broadcast ping etc) */
+	sockopt = (datalen * 2) + 7 * 1024; /* giving it a bit of extra room */
 	setsockopt(pingsock, SOL_SOCKET, SO_RCVBUF, &sockopt, sizeof(sockopt));
 
 	sockopt = offsetof(struct icmp6_hdr, icmp6_cksum);
