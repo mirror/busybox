@@ -18,11 +18,6 @@
 #define DEFAULTFBMODE "/etc/fb.modes"
 
 enum {
-	OPT_CHANGE   = (1 << 0),
-	OPT_INFO     = (1 << 1),
-	OPT_READMODE = (1 << 2),
-	OPT_ALL      = (1 << 9),
-
 	CMD_FB = 1,
 	CMD_DB = 2,
 	CMD_GEOMETRY = 3,
@@ -60,8 +55,6 @@ enum {
 	CMD_MOVE = 119,
 #endif
 };
-
-static unsigned g_options;
 
 /* Stuff stolen from the kernel's fb.h */
 #define FB_ACTIVATE_ALL 64
@@ -114,66 +107,66 @@ struct fb_var_screeninfo {
 
 
 static const struct cmdoptions_t {
-	const char name[10];
+	const char name[9];
 	const unsigned char param_count;
 	const unsigned char code;
 } g_cmdoptions[] = {
-	{ "-fb", 1, CMD_FB },
-	{ "-db", 1, CMD_DB },
-	{ "-a", 0, CMD_ALL },
-	{ "-i", 0, CMD_INFO },
-	{ "-g", 5, CMD_GEOMETRY },
-	{ "-t", 7, CMD_TIMING },
-	{ "-accel", 1, CMD_ACCEL },
-	{ "-hsync", 1, CMD_HSYNC },
-	{ "-vsync", 1, CMD_VSYNC },
-	{ "-laced", 1, CMD_LACED },
-	{ "-double", 1, CMD_DOUBLE },
-	{ "-n", 0, CMD_CHANGE },
+	/*"12345678" + NUL */
+	{ "fb"      , 1, CMD_FB       },
+	{ "db"      , 1, CMD_DB       },
+	{ "a"       , 0, CMD_ALL      },
+	{ "i"       , 0, CMD_INFO     },
+	{ "g"       , 5, CMD_GEOMETRY },
+	{ "t"       , 7, CMD_TIMING   },
+	{ "accel"   , 1, CMD_ACCEL    },
+	{ "hsync"   , 1, CMD_HSYNC    },
+	{ "vsync"   , 1, CMD_VSYNC    },
+	{ "laced"   , 1, CMD_LACED    },
+	{ "double"  , 1, CMD_DOUBLE   },
+	{ "n"       , 0, CMD_CHANGE   },
 #if ENABLE_FEATURE_FBSET_FANCY
-	{ "-all", 0, CMD_ALL },
-	{ "-xres", 1, CMD_XRES },
-	{ "-yres", 1, CMD_YRES },
-	{ "-vxres", 1, CMD_VXRES },
-	{ "-vyres", 1, CMD_VYRES },
-	{ "-depth", 1, CMD_DEPTH },
-	{ "-match", 0, CMD_MATCH },
-	{ "-geometry", 5, CMD_GEOMETRY },
-	{ "-pixclock", 1, CMD_PIXCLOCK },
-	{ "-left", 1, CMD_LEFT },
-	{ "-right", 1, CMD_RIGHT },
-	{ "-upper", 1, CMD_UPPER },
-	{ "-lower", 1, CMD_LOWER },
-	{ "-hslen", 1, CMD_HSLEN },
-	{ "-vslen", 1, CMD_VSLEN },
-	{ "-timings", 7, CMD_TIMING },
-	{ "-csync", 1, CMD_CSYNC },
-	{ "-gsync", 1, CMD_GSYNC },
-	{ "-extsync", 1, CMD_EXTSYNC },
-	{ "-bcast", 1, CMD_BCAST },
-	{ "-rgba", 1, CMD_RGBA },
-	{ "-step", 1, CMD_STEP },
-	{ "-move", 1, CMD_MOVE },
+	{ "all"     , 0, CMD_ALL      },
+	{ "xres"    , 1, CMD_XRES     },
+	{ "yres"    , 1, CMD_YRES     },
+	{ "vxres"   , 1, CMD_VXRES    },
+	{ "vyres"   , 1, CMD_VYRES    },
+	{ "depth"   , 1, CMD_DEPTH    },
+	{ "match"   , 0, CMD_MATCH    },
+	{ "geometry", 5, CMD_GEOMETRY },
+	{ "pixclock", 1, CMD_PIXCLOCK },
+	{ "left"    , 1, CMD_LEFT     },
+	{ "right"   , 1, CMD_RIGHT    },
+	{ "upper"   , 1, CMD_UPPER    },
+	{ "lower"   , 1, CMD_LOWER    },
+	{ "hslen"   , 1, CMD_HSLEN    },
+	{ "vslen"   , 1, CMD_VSLEN    },
+	{ "timings" , 7, CMD_TIMING   },
+	{ "csync"   , 1, CMD_CSYNC    },
+	{ "gsync"   , 1, CMD_GSYNC    },
+	{ "extsync" , 1, CMD_EXTSYNC  },
+	{ "bcast"   , 1, CMD_BCAST    },
+	{ "rgba"    , 1, CMD_RGBA     },
+	{ "step"    , 1, CMD_STEP     },
+	{ "move"    , 1, CMD_MOVE     },
 #endif
-	{ "", 0, 0 }
 };
 
 #if ENABLE_FEATURE_FBSET_READMODE
 /* taken from linux/fb.h */
 enum {
-	FB_VMODE_INTERLACED = 1,	/* interlaced	*/
-	FB_VMODE_DOUBLE = 2,	/* double scan */
-	FB_SYNC_HOR_HIGH_ACT = 1,	/* horizontal sync high active	*/
-	FB_SYNC_VERT_HIGH_ACT = 2,	/* vertical sync high active	*/
-	FB_SYNC_EXT = 4,	/* external sync		*/
-	FB_SYNC_COMP_HIGH_ACT = 8	/* composite sync high active   */
+	FB_VMODE_INTERLACED = 1,        /* interlaced */
+	FB_VMODE_DOUBLE = 2,            /* double scan */
+	FB_SYNC_HOR_HIGH_ACT = 1,       /* horizontal sync high active */
+	FB_SYNC_VERT_HIGH_ACT = 2,      /* vertical sync high active */
+	FB_SYNC_EXT = 4,                /* external sync */
+	FB_SYNC_COMP_HIGH_ACT = 8,      /* composite sync high active */
 };
 #endif
 
 #if ENABLE_FEATURE_FBSET_READMODE
 static void ss(uint32_t *x, uint32_t flag, char *buf, const char *what)
 {
-	if (strstr(buf, what))
+	if (strcmp(buf, what) == 0)
 		*x &= ~flag;
 	else
 		*x |= flag;
@@ -182,62 +175,77 @@ static void ss(uint32_t *x, uint32_t flag, char *buf, const char *what)
 static int readmode(struct fb_var_screeninfo *base, const char *fn,
 					const char *mode)
 {
-	FILE *f;
-	char buf[256];
-	char *p = buf;
+	char *token[2], *p, *s;
+	parser_t *parser = config_open(fn);
 
-	f = xfopen_for_read(fn);
-	while (fgets(buf, sizeof(buf), f)) {
-		p = strstr(buf, "mode ");
-		if (!p && !(p = strstr(buf, "mode\t")))
+	while (config_read(parser, token, 2, 1, "# \t\r", PARSE_NORMAL)) {
+		if (strcmp(token[0], "mode") != 0 || !token[1])
 			continue;
-		p = strstr(p + 5, mode);
+		p = strstr(token[1], mode);
 		if (!p)
 			continue;
-		p += strlen(mode);
-		if (!isspace(*p) && (*p != 0) && (*p != '"')
-		 && (*p != '\r') && (*p != '\n')
+		s = p + strlen(mode);
+		//bb_info_msg("CHECK[%s][%s][%d]", mode, p-1, *s);
+		/* exact match? */
+		if (((!*s || isspace(*s)) && '"' != s[-1]) /* end-of-token */
+		 || ('"' == *s && '"' == p[-1]) /* ends with " but starts with " too! */
 		) {
-			continue;	/* almost, but not quite */
+			//bb_info_msg("FOUND[%s][%s][%s][%d]", token[1], p, mode, isspace(*s));
+			break;
 		}
+	}
 
-		while (fgets(buf, sizeof(buf), f)) {
-			if ((p = strstr(buf, "geometry "))) {
-				p += 9;
-				/* FIXME: catastrophic on arches with 64bit ints */
-				sscanf(p, "%d %d %d %d %d",
-					&(base->xres), &(base->yres),
-					&(base->xres_virtual), &(base->yres_virtual),
-					&(base->bits_per_pixel));
-			} else if ((p = strstr(buf, "timings "))) {
-				p += 8;
-				sscanf(p, "%d %d %d %d %d %d %d",
-					&(base->pixclock),
-					&(base->left_margin), &(base->right_margin),
-					&(base->upper_margin), &(base->lower_margin),
-					&(base->hsync_len), &(base->vsync_len));
-			} else if ((p = strstr(buf, "laced "))) {
-				//p += 6;
-				ss(&base->vmode, FB_VMODE_INTERLACED, buf, "false");
-			} else if ((p = strstr(buf, "double "))) {
-				//p += 7;
-				ss(&base->vmode, FB_VMODE_DOUBLE, buf, "false");
-			} else if ((p = strstr(buf, "vsync "))) {
-				//p += 6;
-				ss(&base->sync, FB_SYNC_VERT_HIGH_ACT, buf, "low");
-			} else if ((p = strstr(buf, "hsync "))) {
-				//p += 6;
-				ss(&base->sync, FB_SYNC_HOR_HIGH_ACT, buf, "low");
-			} else if ((p = strstr(buf, "csync "))) {
-				//p += 6;
-				ss(&base->sync, FB_SYNC_COMP_HIGH_ACT, buf, "low");
-			} else if ((p = strstr(buf, "extsync "))) {
-				//p += 8;
-				ss(&base->sync, FB_SYNC_EXT, buf, "false");
-			}
+	if (!token[0])
+		return 0;
 
-			if (strstr(buf, "endmode"))
-				return 1;
+	while (config_read(parser, token, 2, 1, "# \t", PARSE_NORMAL)) {
+		int i;
+
+//bb_info_msg("???[%s][%s]", token[0], token[1]);
+		if (strcmp(token[0], "endmode") == 0) {
+//bb_info_msg("OK[%s]", mode);
+			return 1;
+		}
+		p = token[1];
+		i = index_in_strings(
+			"geometry\0timings\0interlaced\0double\0vsync\0hsync\0csync\0extsync\0",
+			token[0]);
+		switch (i) {
+		case 0:
+			/* FIXME: catastrophic on arches with 64bit ints */
+			sscanf(p, "%d %d %d %d %d",
+				&(base->xres), &(base->yres),
+				&(base->xres_virtual), &(base->yres_virtual),
+				&(base->bits_per_pixel));
+//bb_info_msg("GEO[%s]", p);
+			break;
+		case 1:
+			sscanf(p, "%d %d %d %d %d %d %d",
+				&(base->pixclock),
+				&(base->left_margin), &(base->right_margin),
+				&(base->upper_margin), &(base->lower_margin),
+				&(base->hsync_len), &(base->vsync_len));
+//bb_info_msg("TIM[%s]", p);
+			break;
+		case 2:
+		case 3: {
+			static const uint32_t syncs[] = {FB_VMODE_INTERLACED, FB_VMODE_DOUBLE};
+			ss(&base->vmode, syncs[i-2], p, "false");
+//bb_info_msg("VMODE[%s]", p);
+			break;
+		}
+		case 4:
+		case 5:
+		case 6:	{
+			static const uint32_t syncs[] = {FB_SYNC_VERT_HIGH_ACT, FB_SYNC_HOR_HIGH_ACT, FB_SYNC_COMP_HIGH_ACT};
+			ss(&base->sync, syncs[i-4], p, "low");
+//bb_info_msg("SYNC[%s]", p);
+			break;
+		}
+		case 7:
+			ss(&base->sync, FB_SYNC_EXT, p, "false");
+//bb_info_msg("EXTSYNC[%s]", p);
+			break;
 		}
 	}
 	return 0;
@@ -292,22 +300,30 @@ static void showmode(struct fb_var_screeninfo *v)
 int fbset_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int fbset_main(int argc, char **argv)
 {
+	enum {
+		OPT_CHANGE   = (1 << 0),
+		/*OPT_INFO     = (1 << 1), ??*/
+		OPT_READMODE = (1 << 2),
+		OPT_ALL      = (1 << 9),
+	};
 	struct fb_var_screeninfo var, varset;
 	int fh, i;
+	unsigned options = 0;
+
 	const char *fbdev = DEFAULTFBDEV;
 	const char *modefile = DEFAULTFBMODE;
 	char *thisarg, *mode = NULL;
 
-	memset(&varset, 0xFF, sizeof(varset));
+	memset(&varset, 0xff, sizeof(varset));
 
 	/* parse cmd args.... why do they have to make things so difficult? */
 	argv++;
 	argc--;
-	for (; argc > 0 && (thisarg = *argv); argc--, argv++) {
-		for (i = 0; g_cmdoptions[i].name[0]; i++) {
-			if (strcmp(thisarg, g_cmdoptions[i].name))
+	for (; argc > 0 && (thisarg = *argv) != NULL; argc--, argv++) {
+		if (thisarg[0] == '-') for (i = 0; i < ARRAY_SIZE(g_cmdoptions); i++) {
+			if (strcmp(thisarg + 1, g_cmdoptions[i].name) != 0)
 				continue;
-			if (argc-1 < g_cmdoptions[i].param_count)
+			if (argc <= g_cmdoptions[i].param_count)
 				bb_show_usage();
 
 			switch (g_cmdoptions[i].code) {
@@ -334,10 +350,10 @@ int fbset_main(int argc, char **argv)
 				varset.vsync_len = xatou32(argv[7]);
 				break;
 			case CMD_ALL:
-				g_options |= OPT_ALL;
+				options |= OPT_ALL;
 				break;
 			case CMD_CHANGE:
-				g_options |= OPT_CHANGE;
+				options |= OPT_CHANGE;
 				break;
 #if ENABLE_FEATURE_FBSET_FANCY
 			case CMD_XRES:
@@ -353,19 +369,18 @@ int fbset_main(int argc, char **argv)
 			}
 			argc -= g_cmdoptions[i].param_count;
 			argv += g_cmdoptions[i].param_count;
-			break;
+			goto contin;
 		}
-		if (!g_cmdoptions[i].name[0]) {
-			if (argc != 1)
-				bb_show_usage();
-			mode = *argv;
-			g_options |= OPT_READMODE;
-		}
+		if (argc != 1)
+			bb_show_usage();
+		mode = *argv;
+		options |= OPT_READMODE;
+ contin: ;
 	}
 
 	fh = xopen(fbdev, O_RDONLY);
 	xioctl(fh, FBIOGET_VSCREENINFO, &var);
-	if (g_options & OPT_READMODE) {
+	if (options & OPT_READMODE) {
 #if !ENABLE_FEATURE_FBSET_READMODE
 		bb_show_usage();
 #else
@@ -376,8 +391,8 @@ int fbset_main(int argc, char **argv)
 	}
 
 	setmode(&var, &varset);
-	if (g_options & OPT_CHANGE) {
-		if (g_options & OPT_ALL)
+	if (options & OPT_CHANGE) {
+		if (options & OPT_ALL)
 			var.activate = FB_ACTIVATE_ALL;
 		xioctl(fh, FBIOPUT_VSCREENINFO, &var);
 	}
