@@ -141,12 +141,12 @@ while test "$LDLIBS"; do
 		-Wl,--start-group $O_FILES $A_FILES -Wl,--end-group \
 		$l_list
 	if test $? = 0; then
-	    echo " Library $one is not needed"
+	    echo " Library $one is not needed, excluding it"
 	    LDLIBS="$without_one"
 	    all_needed=false
 	    last_needed=false
 	else
-	    echo " Library $one is needed"
+	    echo " Library $one is needed, can't exclude it (yet)"
 	    last_needed=true
 	fi
     done
