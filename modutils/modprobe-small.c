@@ -600,7 +600,7 @@ static void process_module(char *name, const char *cmdline_options)
 	free(deps);
 
 	/* insmod -> load it */
-	if (!is_rmmod) {
+	if (!is_rmmod && !strstr(options, "blacklist")) {
 		errno = 0;
 		if (load_module(info->pathname, options) != 0) {
 			if (EEXIST != errno) {
