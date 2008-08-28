@@ -136,12 +136,12 @@ config DF
 	  df reports the amount of disk space used and available
 	  on filesystems.
 
-config FEATURE_DF_INODE
-	bool "Enable -i (inode information)"
+config FEATURE_DF_FANCY
+	bool "Enable -a, -i, -B"
 	default n
 	depends on DF
 	help
-	  This option enables support for df -i.
+	  This option enables -a, -i and -B.
 
 config DIRNAME
 	bool "dirname"

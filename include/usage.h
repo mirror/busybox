@@ -705,36 +705,40 @@
      "\n		do not poll for events" \
 	)
 
-/* -k is accepted but ignored for !HUMAN_READABLE,
- * but we won't mention this (unimportant) */
-#if ENABLE_FEATURE_HUMAN_READABLE || ENABLE_FEATURE_DF_INODE
-#define DF_HAS_OPTIONS(x) x
-#else
-#define DF_HAS_OPTIONS(x)
-#endif
 #define df_trivial_usage \
-	DF_HAS_OPTIONS("[-") \
-	USE_FEATURE_HUMAN_READABLE("hmk") USE_FEATURE_DF_INODE("i") \
-	DF_HAS_OPTIONS("] ") "[FILESYSTEM...]"
+	"[-Pk" \
+	USE_FEATURE_HUMAN_READABLE("mh") \
+	USE_FEATURE_DF_FANCY("ai] [-B SIZE") \
+	"] [FILESYSTEM...]"
 #define df_full_usage "\n\n" \
        "Print filesystem usage statistics\n" \
-	DF_HAS_OPTIONS("\nOptions:") \
+     "\nOptions:" \
+     "\n	-P	POSIX output format" \
+     "\n	-k	1024-byte blocks (default)" \
 	USE_FEATURE_HUMAN_READABLE( \
+     "\n	-m	1M-byte blocks" \
      "\n	-h	Human readable (e.g. 1K 243M 2G)" \
-     "\n	-m	1024*1024 blocks" \
-     "\n	-k	1024 blocks" \
 	) \
-	USE_FEATURE_DF_INODE( \
+	USE_FEATURE_DF_FANCY( \
+     "\n	-a	Show all filesystems" \
      "\n	-i	Inodes" \
-	)
+     "\n	-B SIZE	Blocksize" \
+	) \
+
 #define df_example_usage \
        "$ df\n" \
-       "Filesystem           1k-blocks      Used Available Use% Mounted on\n" \
+       "Filesystem           1K-blocks      Used Available Use% Mounted on\n" \
        "/dev/sda3              8690864   8553540    137324  98% /\n" \
        "/dev/sda1                64216     36364     27852  57% /boot\n" \
        "$ df /dev/sda3\n" \
-       "Filesystem           1k-blocks      Used Available Use% Mounted on\n" \
-       "/dev/sda3              8690864   8553540    137324  98% /\n"
+       "Filesystem           1K-blocks      Used Available Use% Mounted on\n" \
+       "/dev/sda3              8690864   8553540    137324  98% /\n" \
+       "$ POSIXLY_CORRECT=sure df /dev/sda3\n" \
+       "Filesystem         512B-blocks      Used Available Use% Mounted on\n" \
+       "/dev/sda3             17381728  17107080    274648  98% /\n" \
+       "$ POSIXLY_CORRECT=yep df -P /dev/sda3\n" \
+       "Filesystem          512-blocks      Used Available Capacity Mounted on\n" \
+       "/dev/sda3             17381728  17107080    274648      98% /\n"
 
 #define dhcprelay_trivial_usage \
        "[client1,client2,...] [server_device]"

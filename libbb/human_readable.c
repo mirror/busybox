@@ -32,7 +32,9 @@ const char* FAST_FUNC make_human_readable_str(unsigned long long size,
 	unsigned long block_size, unsigned long display_unit)
 {
 	/* The code will adjust for additional (appended) units */
-	static const char zero_and_units[] ALIGN1 = { '0', 0, 'k', 'M', 'G', 'T' };
+	static const char unit_chars[] ALIGN1 = {
+		'\0', 'K', 'M', 'G', 'T', 'P', 'E'
+	};
 	static const char fmt[] ALIGN1 = "%llu";
 	static const char fmt_tenths[] ALIGN1 = "%llu.%d%c";
 
@@ -42,26 +44,33 @@ const char* FAST_FUNC make_human_readable_str(unsigned long long size,
 	int frac;
 	const char *u;
 	const char *f;
+	smallint no_tenths;
 
-	u = zero_and_units;
+	if (size == 0)
+		return "0";
+
+	/* If block_size is 0 then do not print tenths */
+	no_tenths = 0;
+	if (block_size == 0) {
+		no_tenths = 1;
+		block_size = 1;
+	}
+
+	u = unit_chars;
+	val = size * block_size;
 	f = fmt;
 	frac = 0;
-
-	val = size * block_size;
-	if (val == 0) {
-		return u;
-	}
 
 	if (display_unit) {
 		val += display_unit/2;	/* Deal with rounding */
 		val /= display_unit;	/* Don't combine with the line above!!! */
+		/* will just print it as ulonglong (below) */
 	} else {
-		++u;
 		while ((val >= 1024)
-		 && (u < zero_and_units + sizeof(zero_and_units) - 1)
+		 && (u < unit_chars + sizeof(unit_chars) - 1)
 		) {
 			f = fmt_tenths;
-			++u;
+			u++;
 			frac = (((int)(val % 1024)) * 10 + 1024/2) / 1024;
 			val /= 1024;
 		}
@@ -69,9 +78,9 @@ const char* FAST_FUNC make_human_readable_str(unsigned long long size,
 			++val;
 			frac = 0;
 		}
-#if 0
+#if 1
 		/* Sample code to omit decimal point and tenths digit. */
-		if (/* no_tenths */ 1) {
+		if (no_tenths) {
 			if (frac >= 5) {
 				++val;
 			}
