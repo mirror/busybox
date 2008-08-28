@@ -973,7 +973,12 @@ static uint32_t next_token(uint32_t expected)
 
 		} else if (*p == '.' || isdigit(*p)) {
 			/* it's a number */
-			t_double = strtod(p, &p);
+#if ENABLE_DESKTOP
+			if (p[0] == '0' && (p[1] | 0x20) == 'x')
+				t_double = strtoll(p, &p, 0);
+			else
+#endif
+				t_double = strtod(p, &p);
 			if (*p == '.')
 				syntax_error(EMSG_UNEXP_TOKEN);
 			tc = TC_NUMBER;
