@@ -13,9 +13,7 @@ ldflags()
 			fi
 		done
 	done
-	#bbox# exit 1
-	echo '-lcurses'
-	exit
+	exit 1
 }
 
 # Where is ncurses.h?

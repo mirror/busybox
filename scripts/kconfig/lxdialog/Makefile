@@ -12,7 +12,7 @@ HOST_EXTRACFLAGS += -DLOCALE
 
 PHONY += dochecklxdialog
 $(obj)/dochecklxdialog:
-	$(Q)$(CONFIG_SHELL) $(check-lxdialog) -check $(HOSTCC) $(HOST_LOADLIBES)
+	$(Q)$(CONFIG_SHELL) $(check-lxdialog) -check $(HOSTCC) $(HOST_EXTRACFLAGS) $(HOST_LOADLIBES)
 
 hostprogs-y	:= lxdialog
 always		:= $(hostprogs-y) dochecklxdialog
