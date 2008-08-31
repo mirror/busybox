@@ -36,6 +36,7 @@ sub beautify {
 			s/"\s*$//;
 			s/%/%%/g;
 			s/\$/\\\$/g;
+			s/\@/\\\@/g;
 			eval qq[ sprintf(qq{$_}) ]
 		} @line
 	);
