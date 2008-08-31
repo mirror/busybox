@@ -4275,7 +4275,7 @@ static int insmod_ng_main(int argc UNUSED_PARAM, char **argv)
 	}
 #else
 	len = MAXINT(ssize_t);
-	map = xmalloc_open_read_close(filename, &len);
+	map = xmalloc_xopen_read_close(filename, &len);
 #endif
 
 	if (init_module(map, len, options) != 0)
