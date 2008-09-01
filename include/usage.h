@@ -1424,7 +1424,7 @@
        "-rw-rw-r--    1 andersen andersen   554058 Apr 14 17:49 /tmp/busybox.tar.gz\n"
 
 #define halt_trivial_usage \
-       "[-d delay] [-n] [-f]"
+       "[-d delay] [-n] [-f]" USE_FEATURE_WTMP(" [-w]")
 #define halt_full_usage "\n\n" \
        "Halt the system\n" \
      "\nOptions:" \
