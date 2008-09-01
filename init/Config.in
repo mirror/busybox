@@ -83,8 +83,6 @@ config FEATURE_INIT_COREDUMPS
 	  core file sizes. If this option is disabled, processes
 	  will not generate any core files.
 
-
-
 config FEATURE_INITRD
 	bool "Support running init from within an initrd (not initramfs)"
 	default y
