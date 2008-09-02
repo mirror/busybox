@@ -681,6 +681,18 @@ static ALWAYS_INLINE int isalnum_(int c)
 	return (isalnum(c) || c == '_');
 }
 
+static double my_strtod(char **pp)
+{
+#if ENABLE_DESKTOP
+	if ((*pp)[0] == '0'
+	 && ((((*pp)[1] | 0x20) == 'x') || isdigit((*pp)[1]))
+	) {
+		return strtoull(*pp, pp, 0);
+	}
+#endif
+	return strtod(*pp, pp);
+}
+
 /* -------- working with variables (set/get/copy/etc) -------- */
 
 static xhash *iamarray(var *v)
@@ -790,7 +802,7 @@ static double getvar_i(var *v)
 		v->number = 0;
 		s = v->string;
 		if (s && *s) {
-			v->number = strtod(s, &s);
+			v->number = my_strtod(&s);
 			if (v->type & VF_USER) {
 				skip_spaces(&s);
 				if (*s != '\0')
@@ -802,6 +814,18 @@ static double getvar_i(var *v)
 		v->type |= VF_CACHED;
 	}
 	return v->number;
+}
+
+/* Used for operands of bitwise ops */
+static unsigned long getvar_i_int(var *v)
+{
+	double d = getvar_i(v);
+
+	/* Casting doubles to longs is undefined for values outside
+	 * of target type range. Try to widen it as much as possible */
+	if (d >= 0)
+		return (unsigned long)d;
+	return - (long) (unsigned long) (-d);
 }
 
 static var *copyvar(var *dest, const var *src)
@@ -973,12 +997,7 @@ static uint32_t next_token(uint32_t expected)
 
 		} else if (*p == '.' || isdigit(*p)) {
 			/* it's a number */
-#if ENABLE_DESKTOP
-			if (p[0] == '0' && (p[1] | 0x20) == 'x')
-				t_double = strtoll(p, &p, 0);
-			else
-#endif
-				t_double = strtod(p, &p);
+			t_double = my_strtod(&p);
 			if (*p == '.')
 				syntax_error(EMSG_UNEXP_TOKEN);
 			tc = TC_NUMBER;
@@ -2022,7 +2041,7 @@ static var *exec_builtin(node *op, var *res)
 		n = awk_split(as[0], spl, &s);
 		s1 = s;
 		clear_array(iamarray(av[1]));
-		for (i=1; i<=n; i++)
+		for (i = 1; i <= n; i++)
 			setari_u(av[1], i, nextword(&s1));
 		free(s);
 		setvar_i(res, n);
@@ -2042,27 +2061,27 @@ static var *exec_builtin(node *op, var *res)
 	/* Bitwise ops must assume that operands are unsigned. GNU Awk 3.1.5:
 	 * awk '{ print or(-1,1) }' gives "4.29497e+09", not "-2.xxxe+09" */
 	case B_an:
-		setvar_i(res, (unsigned long)getvar_i(av[0]) & (unsigned long)getvar_i(av[1]));
+		setvar_i(res, getvar_i_int(av[0]) & getvar_i_int(av[1]));
 		break;
 
 	case B_co:
-		setvar_i(res, ~(unsigned long)getvar_i(av[0]));
+		setvar_i(res, ~getvar_i_int(av[0]));
 		break;
 
 	case B_ls:
-		setvar_i(res, (unsigned long)getvar_i(av[0]) << (unsigned long)getvar_i(av[1]));
+		setvar_i(res, getvar_i_int(av[0]) << getvar_i_int(av[1]));
 		break;
 
 	case B_or:
-		setvar_i(res, (unsigned long)getvar_i(av[0]) | (unsigned long)getvar_i(av[1]));
+		setvar_i(res, getvar_i_int(av[0]) | getvar_i_int(av[1]));
 		break;
 
 	case B_rs:
-		setvar_i(res, (unsigned long)getvar_i(av[0]) >> (unsigned long)getvar_i(av[1]));
+		setvar_i(res, getvar_i_int(av[0]) >> getvar_i_int(av[1]));
 		break;
 
 	case B_xo:
-		setvar_i(res, (unsigned long)getvar_i(av[0]) ^ (unsigned long)getvar_i(av[1]));
+		setvar_i(res, getvar_i_int(av[0]) ^ getvar_i_int(av[1]));
 		break;
 
 	case B_lo:
