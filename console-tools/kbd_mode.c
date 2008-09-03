@@ -2,7 +2,7 @@
 /*
  * Mini kbd_mode implementation for busybox
  *
- * Copyright (C) 2007 Loïc Grenié <loic.grenie@gmail.com>
+ * Copyright (C) 2007 Loic Grenie <loic.grenie@gmail.com>
  *   written using Andries Brouwer <aeb@cwi.nl>'s kbd_mode from
  *   console-utils v0.2.3, licensed under GNU GPLv2
  *

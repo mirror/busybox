@@ -1873,19 +1873,20 @@
 	)
 
 #define install_trivial_usage \
-       "[-cgmops] [sources] dest|directory"
+       "[-cdDsp] [-o USER] [-g GRP] [-m MODE] [source] dest|directory"
 #define install_full_usage "\n\n" \
        "Copy files and set attributes\n" \
      "\nOptions:" \
-     "\n	-c	Copy the file, default" \
+     "\n	-c	Just copy (default)" \
      "\n	-d	Create directories" \
-     "\n	-g	Set group ownership" \
-     "\n	-m	Set permissions" \
-     "\n	-o	Set ownership" \
+     "\n	-D	Create leading directories" \
+     "\n	-s	Strip symbol table" \
      "\n	-p	Preserve date" \
-     "\n	-s	Strip symbol tables" \
+     "\n	-o USER	Set ownership" \
+     "\n	-g GRP	Set group ownership" \
+     "\n	-m MODE	Set permissions" \
 	USE_SELINUX( \
-     "\n	-Z	Set security context of copy" \
+     "\n	-Z	Set security context" \
 	)
 
 /* would need to make the " | " optional depending on more than one selected: */
