@@ -1872,6 +1872,7 @@
      "\n	-x	Do not export externs" \
 	)
 
+/* -v, -b, -c are ignored */
 #define install_trivial_usage \
        "[-cdDsp] [-o USER] [-g GRP] [-m MODE] [source] dest|directory"
 #define install_full_usage "\n\n" \
@@ -1879,7 +1880,7 @@
      "\nOptions:" \
      "\n	-c	Just copy (default)" \
      "\n	-d	Create directories" \
-     "\n	-D	Create leading directories" \
+     "\n	-D	Create leading target directories" \
      "\n	-s	Strip symbol table" \
      "\n	-p	Preserve date" \
      "\n	-o USER	Set ownership" \
