@@ -4111,6 +4111,26 @@
        "$ echo $?\n" \
        "1\n"
 
+#define tc_trivial_usage \
+	/*"[OPTIONS] "*/"OBJECT CMD [dev STRING]"
+#define tc_full_usage "\n\n" \
+	"OBJECT: {qdisc|class|filter}\n" \
+	"CMD: {add|del|change|replace|show}\n" \
+	"\n" \
+	"qdisc [ handle QHANDLE ] [ root |"USE_FEATURE_TC_INGRESS(" ingress |")" parent CLASSID ]\n" \
+	/* "\t[ estimator INTERVAL TIME_CONSTANT ]\n" */ \
+	"\t[ [ QDISC_KIND ] [ help | OPTIONS ] ]\n" \
+	"\tQDISC_KIND := { [p|b]fifo | tbf | prio | cbq | red | etc. }\n" \
+	"qdisc show [ dev STRING ]"USE_FEATURE_TC_INGRESS(" [ingress]")"\n" \
+	"class [ classid CLASSID ] [ root | parent CLASSID ]\n" \
+	"\t[ [ QDISC_KIND ] [ help | OPTIONS ] ]\n" \
+	"class show [ dev STRING ] [ root | parent CLASSID ]\n" \
+	"filter [ pref PRIO ] [ protocol PROTO ]\n" \
+	/* "\t[ estimator INTERVAL TIME_CONSTANT ]\n" */ \
+	"\t[ root | classid CLASSID ] [ handle FILTERID ]\n" \
+	"\t[ [ FILTER_TYPE ] [ help | OPTIONS ] ]\n" \
+	"filter show [ dev STRING ] [ root | parent CLASSID ]"
+
 #define tcpsvd_trivial_usage \
        "[-hEv] [-c n] [-C n:msg] [-b n] [-u user] [-l name] ip port prog..."
 /* with not-implemented options: */

@@ -32,6 +32,7 @@ lib-$(CONFIG_PSCAN)        += pscan.o
 lib-$(CONFIG_ROUTE)        += route.o
 lib-$(CONFIG_SENDMAIL)     += sendmail.o
 lib-$(CONFIG_SLATTACH)     += slattach.o
+lib-$(CONFIG_TC)           += tc.o
 lib-$(CONFIG_TELNET)       += telnet.o
 lib-$(CONFIG_TELNETD)      += telnetd.o
 lib-$(CONFIG_TFTP)         += tftp.o
