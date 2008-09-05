@@ -825,6 +825,7 @@ static unsigned long getvar_i_int(var *v)
 	 * of target type range. Try to widen it as much as possible */
 	if (d >= 0)
 		return (unsigned long)d;
+	/* Why? Think about d == -4294967295.0 (assuming 32bit longs) */
 	return - (long) (unsigned long) (-d);
 }
 
