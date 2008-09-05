@@ -118,6 +118,7 @@ int pgrep_main(int argc ATTRIBUTE_UNUSED, char **argv)
 			while (i) {
 				if (!cmd[i]) cmd[i] = ' ';
 				i--;
+			}
 		}
 		/* NB: OPT_INVERT is always 0 or 1 */
 		if ((regexec(&re_buffer, cmd, 1, re_match, 0) == 0 /* match found */
