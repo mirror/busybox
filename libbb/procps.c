@@ -385,16 +385,15 @@ procps_status_t *procps_scan(procps_status_t* sp, int flags)
 			n = read_to_buf(filename, buf);
 			if (n <= 0)
 				break;
-#if ENABLE_PGREP || ENABLE_PKILL
 			if (flags & PSSCAN_ARGVN) {
-				do {
-					n--;
-					if (buf[n] == '\0')
-						buf[n] = ' ';
-				} while (n);
+				sp->argv_len = n;
+				sp->argv0 = xmalloc(n + 1);
+				memcpy(sp->argv0, buf, n + 1);
+				/* sp->argv0[n] = '\0'; - buf has it */
+			} else {
+				sp->argv_len = 0;
+				sp->argv0 = xstrdup(buf);
 			}
-#endif
-			sp->argv0 = xstrdup(buf);
 		}
 #endif
 		break;
