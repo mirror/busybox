@@ -100,10 +100,14 @@
 
 #include "libbb.h"
 
-#include <net/if.h>
+/* #include <net/if.h> - no. linux/if_bonding.h pulls in linux/if.h */
 #include <net/if_arp.h>
 #include <linux/if_bonding.h>
 #include <linux/sockios.h>
+
+#ifndef IFNAMSIZ
+#define IFNAMSIZ 16
+#endif
 
 typedef uint64_t u64; /* hack, so we may include kernel's ethtool.h */
 typedef uint32_t u32; /* ditto */
