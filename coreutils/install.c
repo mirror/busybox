@@ -159,18 +159,15 @@ int install_main(int argc, char **argv)
 				goto next;
 			}
 		} else {
+			if (opts & OPT_MKDIR_LEADING) {
+				char *ddir = xstrdup(dest);
+				bb_make_directory(dirname(ddir), 0755, FILEUTILS_RECUR);
+				/* errors are not checked. copy_file
+				 * will fail if dir is not created. */
+				free(ddir);
+			}
 			if (isdir)
 				dest = concat_path_file(last, basename(arg));
-			if (opts & OPT_MKDIR_LEADING) {
-				char *slash = strrchr(dest, '/');
-				if (slash) {
-					*slash = '\0';
-					bb_make_directory(dest, 0755, FILEUTILS_RECUR);
-					/* errors are not checked. copy_file
-					 * will fail if dir is not created. */
-					*slash = '/';
-				}
-			}
 			if (copy_file(arg, dest, copy_flags)) {
 				/* copy is not made */
 				ret = EXIT_FAILURE;
