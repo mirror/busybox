@@ -98,7 +98,6 @@ brw-r--r-- 1 0 0 a_sda
 
 # continuing to use directory structure from prev test
 rm -rf mdev.testdir/dev/*
-# here we complicate things by having non-matching group 1 and using %0
 echo "sda 0:0 644 @echo @echo TEST" >mdev.testdir/etc/mdev.conf
 testing "mdev command" \
 	"env - PATH=$PATH ACTION=add DEVPATH=/block/sda chroot mdev.testdir /mdev 2>&1;
@@ -107,6 +106,18 @@ testing "mdev command" \
 @echo TEST
 mdev.testdir/dev:
 brw-r--r-- 1 0 0 8,0 sda
+" \
+	"" ""
+
+# continuing to use directory structure from prev test
+rm -rf mdev.testdir/dev/*
+echo "@8,0 :1 644" >mdev.testdir/etc/mdev.conf
+testing "mdev #maj,min and no explicit uid" \
+	"env - PATH=$PATH ACTION=add DEVPATH=/block/sda chroot mdev.testdir /mdev 2>&1;
+	ls -lnR mdev.testdir/dev | $FILTER_LS" \
+"\
+mdev.testdir/dev:
+brw-r--r-- 1 0 1 8,0 sda
 " \
 	"" ""
 

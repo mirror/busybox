@@ -4,14 +4,17 @@
  *
  * Copyright (C) 2003  Paul Mundt <lethal@linux-sh.org>
  * Copyright (C) 2006  Bernhard Fischer <busybox@busybox.net>
+ * Copyright (C) 2008  Darius Augulis <augulis.darius@gmail.com>
  *
  * Licensed under the GPL v2 or later, see the file LICENSE in this tarball.
  */
 
 #include "libbb.h"
+#include "linux/watchdog.h"
 
-#define OPT_FOREGROUND 0x01
-#define OPT_TIMER      0x02
+#define OPT_FOREGROUND  (1 << 0)
+#define OPT_STIMER      (1 << 1)
+#define OPT_HTIMER      (1 << 2)
 
 static void watchdog_shutdown(int sig UNUSED_PARAM)
 {
@@ -26,38 +29,42 @@ static void watchdog_shutdown(int sig UNUSED_PARAM)
 int watchdog_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int watchdog_main(int argc, char **argv)
 {
+	static const struct suffix_mult suffixes[] = {
+		{ "ms", 1 },
+		{ "", 1000 },
+		{ }
+	};
+
 	unsigned opts;
-	unsigned timer_duration = 30000; /* Userspace timer duration, in milliseconds */
-	char *t_arg;
+	unsigned stimer_duration; /* how often to restart */
+	unsigned htimer_duration = 60000; /* reboots after N ms if not restarted */
+	char *st_arg;
+	char *ht_arg;
 
-	opt_complementary = "=1"; /* must have 1 argument */
-	opts = getopt32(argv, "Ft:", &t_arg);
+	opt_complementary = "=1"; /* must have exactly 1 argument */
+	opts = getopt32(argv, "Ft:T:", &st_arg, &ht_arg);
 
-	if (opts & OPT_TIMER) {
-		static const struct suffix_mult suffixes[] = {
-			{ "ms", 1 },
-			{ "", 1000 },
-			{ }
-		};
-		timer_duration = xatou_sfx(t_arg, suffixes);
-	}
-
-	if (!(opts & OPT_FOREGROUND)) {
-		bb_daemonize_or_rexec(DAEMON_CHDIR_ROOT, argv);
-	}
+	if (opts & OPT_HTIMER)
+		htimer_duration = xatou_sfx(ht_arg, suffixes);
+	stimer_duration = htimer_duration / 2;
+	if (opts & OPT_STIMER)
+		stimer_duration = xatou_sfx(st_arg, suffixes);
 
 	bb_signals(BB_FATAL_SIGS, watchdog_shutdown);
 
 	/* Use known fd # - avoid needing global 'int fd' */
 	xmove_fd(xopen(argv[argc - 1], O_WRONLY), 3);
 
-// TODO?
-//	if (!(opts & OPT_TIMER)) {
-//		if (ioctl(fd, WDIOC_GETTIMEOUT, &timer_duration) == 0)
-//			timer_duration *= 500;
-//		else
-//			timer_duration = 30000;
-//	}
+	ioctl_or_warn(3, WDIOC_SETTIMEOUT, &htimer_duration);
+#if 0
+	ioctl_or_warn(3, WDIOC_GETTIMEOUT, &htimer_duration);
+	printf("watchdog: SW timer is %dms, HW timer is %dms\n",
+		stimer_duration, htimer_duration * 1000);
+#endif
+
+	if (!(opts & OPT_FOREGROUND)) {
+		bb_daemonize_or_rexec(DAEMON_CHDIR_ROOT, argv);
+	}
 
 	while (1) {
 		/*
@@ -65,7 +72,7 @@ int watchdog_main(int argc, char **argv)
 		 * is undefined at this point -- PFM
 		 */
 		write(3, "", 1); /* write zero byte */
-		usleep(timer_duration * 1000L);
+		usleep(stimer_duration * 1000L);
 	}
 	return EXIT_SUCCESS; /* - not reached, but gcc 4.2.1 is too dumb! */
 }

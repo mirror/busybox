@@ -428,7 +428,7 @@ int start_stop_daemon_main(int argc UNUSED_PARAM, char **argv)
 		write_pidfile(pidfile);
 	}
 	if (opt & OPT_c) {
-		struct bb_uidgid_t ugid;
+		struct bb_uidgid_t ugid = { -1, -1 };
 		parse_chown_usergroup_or_die(&ugid, chuid);
 		if (ugid.gid != (gid_t) -1) xsetgid(ugid.gid);
 		if (ugid.uid != (uid_t) -1) xsetuid(ugid.uid);

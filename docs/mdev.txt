@@ -51,9 +51,11 @@ device nodes if your system needs something more than the default root/root
 660 permissions.
 
 The file has the format:
-	<device regex> <uid>:<gid> <octal permissions>
+    <device regex>       <uid>:<gid> <octal permissions>
+ or @<maj[,min1[-min2]]> <uid>:<gid> <octal permissions>
+
 For example:
-	hd[a-z][0-9]* 0:3 660
+    hd[a-z][0-9]* 0:3 660
 
 The config file parsing stops at the first matching line.  If no line is
 matched, then the default of 0:0 660 is used.  To set your own default, simply

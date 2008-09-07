@@ -4561,14 +4561,15 @@
        "Mon Dec 17 10:31:44 GMT 2000"
 
 #define watchdog_trivial_usage \
-       "[-t N[ms]] [-F] DEV"
+       "[-t N[ms]] [-T N[ms]] [-F] DEV"
 #define watchdog_full_usage "\n\n" \
        "Periodically write to watchdog device DEV\n" \
      "\nOptions:" \
-     "\n	-t N	Timer period (default 30)" \
+     "\n	-T N	Reboot after N seconds if not reset (default 60)" \
+     "\n	-t N	Reset every N seconds (default 30)" \
      "\n	-F	Run in foreground" \
      "\n" \
-     "\nUse -t 500ms to specify period in milliseconds" \
+     "\nUse 500ms to specify period in milliseconds" \
 
 #define wc_trivial_usage \
        "[OPTION]... [FILE]..."

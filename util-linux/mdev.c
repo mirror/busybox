@@ -59,8 +59,7 @@ static void make_device(char *path, int delete)
 	int major, minor, type, len;
 	int mode = 0660;
 #if ENABLE_FEATURE_MDEV_CONF
-	uid_t uid = 0;
-	gid_t gid = 0;
+	struct bb_uidgid_t ugid = { 0, 0 };
 	parser_t *parser;
 	char *tokens[5];
 #endif
@@ -78,9 +77,10 @@ static void make_device(char *path, int delete)
 
 	/* Try to read major/minor string.  Note that the kernel puts \n after
 	 * the data, so we don't need to worry about null terminating the string
-	 * because sscanf() will stop at the first nondigit, which \n is.  We
-	 * also depend on path having writeable space after it.
+	 * because sscanf() will stop at the first nondigit, which \n is.
+	 * We also depend on path having writeable space after it.
 	 */
+	major = -1;
 	if (!delete) {
 		strcpy(dev_maj_min, "/dev");
 		len = open_read_close(path, dev_maj_min + 1, 64);
@@ -90,6 +90,8 @@ static void make_device(char *path, int delete)
 				return;
 			/* no "dev" file, so just try to run script */
 			*dev_maj_min = '\0';
+		} else if (sscanf(dev_maj_min, "%u:%u", &major, &minor) != 2) {
+			major = -1;
 		}
 	}
 
@@ -113,8 +115,23 @@ static void make_device(char *path, int delete)
 
 		/* Fields: regex uid:gid mode [alias] [cmd] */
 
-		/* 1st field: regex to match this device */
-		{
+		/* 1st field: @<numeric maj,min>... */
+		if (tokens[0][0] == '@') {
+			/* @major,minor[-last] */
+			/* (useful when name is ambiguous:
+			 * "/sys/class/usb/lp0" and
+			 * "/sys/class/printer/lp0") */
+			int cmaj, cmin0, cmin1, sc;
+			if (major < 0)
+				continue; /* no dev, no match */
+			sc = sscanf(tokens[0], "@%u,%u-%u", &cmaj, &cmin0, &cmin1);
+			if (sc < 1 || major != cmaj
+			 || (sc == 2 && minor != cmin0)
+			 || (sc == 3 && (minor < cmin0 || minor > cmin1))
+			) {
+				continue; /* no match */
+			}
+		} else { /* ... or regex to match device name */
 			regex_t match;
 			int result;
 
@@ -144,27 +161,7 @@ static void make_device(char *path, int delete)
 		 * after parsing the rest of fields */
 
 		/* 2nd field: uid:gid - device ownership */
-		{
-			struct passwd *pass;
-			struct group *grp;
-			char *str_uid = tokens[1];
-			char *str_gid = strchrnul(str_uid, ':');
-
-			if (*str_gid)
-				*str_gid++ = '\0';
-			/* Parse UID */
-			pass = getpwnam(str_uid);
-			if (pass)
-				uid = pass->pw_uid;
-			else
-				uid = strtoul(str_uid, NULL, 10);
-			/* Parse GID */
-			grp = getgrnam(str_gid);
-			if (grp)
-				gid = grp->gr_gid;
-			else
-				gid = strtoul(str_gid, NULL, 10);
-		}
+		parse_chown_usergroup_or_die(&ugid, tokens[1]);
 
 		/* 3rd field: mode - device permissions */
 		mode = strtoul(tokens[2], NULL, 8);
@@ -243,7 +240,7 @@ static void make_device(char *path, int delete)
 	config_close(parser);
 #endif /* ENABLE_FEATURE_MDEV_CONF */
 
-	if (!delete && sscanf(dev_maj_min, "%u:%u", &major, &minor) == 2) {
+	if (!delete && major >= 0) {
 
 		if (ENABLE_FEATURE_MDEV_RENAME)
 			unlink(device_name);
@@ -255,7 +252,7 @@ static void make_device(char *path, int delete)
 			symlink(device_name, "root");
 
 #if ENABLE_FEATURE_MDEV_CONF
-		chown(device_name, uid, gid);
+		chown(device_name, ugid.uid, ugid.gid);
 
 #if ENABLE_FEATURE_MDEV_RENAME
 		if (alias) {

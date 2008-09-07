@@ -87,14 +87,11 @@ void FAST_FUNC xget_uidgid(struct bb_uidgid_t *u, const char *ug)
  * ":group" sets gid only
  * "user:" sets uid and gid (to user's primary group id)
  * "user:group" sets uid and gid
- * ('unset' uid or gid is actually set to -1)
+ * ('unset' uid or gid retains the value it has on entry)
  */
 void FAST_FUNC parse_chown_usergroup_or_die(struct bb_uidgid_t *u, char *user_group)
 {
 	char *group;
-
-	u->uid = -1;
-	u->gid = -1;
 
 	/* Check if there is a group name */
 	group = strchr(user_group, '.'); /* deprecated? */
