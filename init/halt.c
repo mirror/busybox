@@ -13,44 +13,11 @@
 #if ENABLE_FEATURE_WTMP
 #include <sys/utsname.h>
 #include <utmp.h>
-#endif
 
-int halt_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int halt_main(int argc UNUSED_PARAM, char **argv)
+static void write_wtmp(void)
 {
-	static const int magic[] = {
-#ifdef RB_HALT_SYSTEM
-		RB_HALT_SYSTEM,
-#elif defined RB_HALT
-		RB_HALT,
-#endif
-#ifdef RB_POWER_OFF
-		RB_POWER_OFF,
-#elif defined RB_POWERDOWN
-		RB_POWERDOWN,
-#endif
-		RB_AUTOBOOT
-	};
-	static const smallint signals[] = { SIGUSR1, SIGUSR2, SIGTERM };
-
-	int delay = 0;
-	int which, flags, rc;
-#if ENABLE_FEATURE_WTMP
 	struct utmp utmp;
 	struct utsname uts;
-#endif
-
-	/* Figure out which applet we're running */
-	for (which = 0; "hpr"[which] != *applet_name; which++)
-		continue;
-
-	/* Parse and handle arguments */
-	opt_complementary = "d+"; /* -d N */
-	flags = getopt32(argv, "d:nf" USE_FEATURE_WTMP("w"), &delay);
-
-	sleep(delay);
-
-#if ENABLE_FEATURE_WTMP
 	if (access(bb_path_wtmp_file, R_OK|W_OK) == -1) {
 		close(creat(bb_path_wtmp_file, 0664));
 	}
@@ -64,9 +31,48 @@ int halt_main(int argc UNUSED_PARAM, char **argv)
 		safe_strncpy(utmp.ut_host, uts.release, sizeof(utmp.ut_host));
 	updwtmp(bb_path_wtmp_file, &utmp);
 
+}
+#else
+#define write_wtmp() ((void)0)
+#endif
+
+#ifndef RB_HALT_SYSTEM
+#define RB_HALT_SYSTEM RB_HALT
+#endif
+
+#ifndef RB_POWER_OFF
+#define RB_POWER_OFF RB_POWERDOWN
+#endif
+
+int halt_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
+int halt_main(int argc UNUSED_PARAM, char **argv)
+{
+	static const int magic[] = {
+		RB_HALT_SYSTEM,
+		RB_POWER_OFF,
+		RB_AUTOBOOT	  
+	};
+	static const smallint signals[] = { SIGUSR1, SIGUSR2, SIGTERM };
+
+	int delay = 0;
+	int which, flags, rc;
+
+	/* Figure out which applet we're running */
+	for (which = 0; "hpr"[which] != applet_name[0]; which++)
+		continue;
+
+	/* Parse and handle arguments */
+	opt_complementary = "d+"; /* -d N */
+	/* We support -w even if !ENABLE_FEATURE_WTMP, in order
+	 * to not break scripts */
+	flags = getopt32(argv, "d:nfw", &delay);
+
+	sleep(delay);
+
+	write_wtmp();
+
 	if (flags & 8) /* -w */
 		return EXIT_SUCCESS;
-#endif /* !ENABLE_FEATURE_WTMP */
 
 	if (!(flags & 2)) /* no -n */
 		sync();

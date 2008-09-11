@@ -19,7 +19,7 @@
 #include <syslog.h>
 
 #if ENABLE_FEATURE_UTMP
-#include <utmp.h>
+#include <utmp.h> /* updwtmp() */
 #endif
 
 /*
@@ -29,9 +29,6 @@
 #ifdef LOGIN_PROCESS                    /* defined in System V utmp.h */
 #include <sys/utsname.h>
 #include <time.h>
-#if ENABLE_FEATURE_WTMP
-extern void updwtmp(const char *filename, const struct utmp *ut);
-#endif
 #else /* if !sysV style, wtmp/utmp code is off */
 #undef ENABLE_FEATURE_UTMP
 #undef ENABLE_FEATURE_WTMP
