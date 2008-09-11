@@ -52,7 +52,6 @@ struct globals {
 	struct pollfd pfd[1];
 	unsigned stamplog;
 	smallint check; /* = 1; */
-	smallint exitsoon;
 	smallint set_pgrp;
 };
 #define G (*(struct globals*)&bb_common_bufsiz1)
@@ -65,7 +64,6 @@ struct globals {
 #define pfd       (G.pfd       )
 #define stamplog  (G.stamplog  )
 #define check     (G.check     )
-#define exitsoon  (G.exitsoon  )
 #define set_pgrp  (G.set_pgrp  )
 #define INIT_G() do { \
 	check = 1; \
@@ -87,15 +85,6 @@ static void warn2_cannot(const char *m1, const char *m2)
 static void warnx(const char *m1)
 {
 	warn3x(m1, "", "");
-}
-
-static void s_term(int sig_no UNUSED_PARAM)
-{
-	exitsoon = 1;
-}
-static void s_hangup(int sig_no UNUSED_PARAM)
-{
-	exitsoon = 2;
 }
 
 static void runsv(int no, const char *name)
@@ -246,20 +235,11 @@ int runsvdir_main(int argc UNUSED_PARAM, char **argv)
 
 	INIT_G();
 
-	argv++;
-	if (!*argv)
-		bb_show_usage();
-	if (argv[0][0] == '-') {
-		switch (argv[0][1]) {
-		case 'P': set_pgrp = 1;
-		case '-': ++argv;
-		}
-		if (!*argv)
-			bb_show_usage();
-	}
+	opt_complementary = "-1";
+	set_pgrp = getopt32(argv, "P");
+	argv += optind;
 
-	bb_signals_recursive(1 << SIGTERM, s_term);
-	bb_signals_recursive(1 << SIGHUP, s_hangup);
+	bb_signals_recursive((1 << SIGTERM) | (1 << SIGHUP), record_signo);
 	svdir = *argv++;
 	if (argv && *argv) {
 		rplog = *argv;
@@ -346,14 +326,14 @@ int runsvdir_main(int argc UNUSED_PARAM, char **argv)
 			}
 		}
 
-		switch (exitsoon) {
-		case 1:
-			_exit(EXIT_SUCCESS);
-		case 2:
+		switch (bb_got_signal) {
+		case SIGHUP:
 			for (i = 0; i < svnum; i++)
 				if (sv[i].pid)
 					kill(sv[i].pid, SIGTERM);
-			_exit(111);
+			// N.B. fall through
+		case SIGTERM:
+			_exit((SIGHUP == bb_got_signal) ? 111 : EXIT_SUCCESS);
 		}
 	}
 	/* not reached */

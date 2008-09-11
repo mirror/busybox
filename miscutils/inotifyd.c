@@ -30,13 +30,6 @@
 #include "libbb.h"
 #include <linux/inotify.h>
 
-static volatile smallint signalled;
-
-static void signal_handler(int signo)
-{
-	signalled = signo;
-}
-
 static const char mask_names[] ALIGN1 =
 	"a"	// 0x00000001	File was accessed
 	"c"	// 0x00000002	File was modified
@@ -104,14 +97,14 @@ int inotifyd_main(int argc UNUSED_PARAM, char **argv)
 		+ (1 << SIGINT)
 		+ (1 << SIGTERM)
 		+ (1 << SIGPIPE)
-		, signal_handler);
+		, record_signo);
 
 	// do watch
 
 //	pfd.fd = fd;
 	pfd.events = POLLIN;
 
-	while (!signalled && poll(&pfd, 1, -1) > 0) {
+	while (!bb_got_signal && poll(&pfd, 1, -1) > 0) {
 		ssize_t len;
 		void *buf;
 		struct inotify_event *ie;

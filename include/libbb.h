@@ -373,6 +373,9 @@ void sig_unblock(int sig) FAST_FUNC;
 int sigaction_set(int sig, const struct sigaction *act) FAST_FUNC;
 /* SIG_BLOCK/SIG_UNBLOCK all signals: */
 int sigprocmask_allsigs(int how) FAST_FUNC;
+/* Standard handler which just records signo */
+extern smallint bb_got_signal;
+void record_signo(int signo); /* not FAST_FUNC! */
 
 
 void xsetgid(gid_t gid) FAST_FUNC;

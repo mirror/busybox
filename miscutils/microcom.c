@@ -9,14 +9,6 @@
  */
 #include "libbb.h"
 
-/* All known arches use small ints for signals */
-static volatile smallint signalled;
-
-static void signal_handler(int signo)
-{
-	signalled = signo;
-}
-
 // set raw tty mode
 static void xget1(int fd, struct termios *t, struct termios *oldt)
 {
@@ -91,10 +83,10 @@ int microcom_main(int argc UNUSED_PARAM, char **argv)
 		+ (1 << SIGINT)
 		+ (1 << SIGTERM)
 		+ (1 << SIGPIPE)
-		, signal_handler);
+		, record_signo);
 
 	// error exit code if we fail to open the device
-	signalled = 1;
+	bb_got_signal = 1;
 
 	// open device
 	sfd = open_or_warn(argv[0], O_RDWR | O_NOCTTY | O_NONBLOCK);
@@ -123,9 +115,9 @@ int microcom_main(int argc UNUSED_PARAM, char **argv)
 	pfd[1].fd = STDIN_FILENO;
 	pfd[1].events = POLLIN;
 
-	signalled = 0;
+	bb_got_signal = 0;
 	nfd = 2;
-	while (!signalled && safe_poll(pfd, nfd, timeout) > 0) {
+	while (!bb_got_signal && safe_poll(pfd, nfd, timeout) > 0) {
 		if (nfd > 1 && pfd[1].revents) {
 			char c;
 			// read from stdin -> write to device
@@ -159,7 +151,7 @@ skip_write: ;
 				full_write(STDOUT_FILENO, iobuf, len);
 			else {
 				// EOF/error -> bail out
-				signalled = SIGHUP;
+				bb_got_signal = SIGHUP;
 				break;
 			}
 		}
@@ -175,5 +167,5 @@ done:
 	if (device_lock_file)
 		unlink(device_lock_file);
 
-	return signalled;
+	return bb_got_signal;
 }

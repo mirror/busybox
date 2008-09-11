@@ -60,7 +60,6 @@ struct globals {
 	byte	telwish;  /* DO, DONT, WILL, WONT */
 	byte    charmode;
 	byte    telflags;
-	byte	gotsig;
 	byte	do_termios;
 #if ENABLE_FEATURE_TELNET_TTYPE
 	char	*ttype;
@@ -113,7 +112,7 @@ static void conescape(void)
 {
 	char b;
 
-	if (G.gotsig)	/* came from line  mode... go raw */
+	if (bb_got_signal)	/* came from line  mode... go raw */
 		rawmode();
 
 	write_str(1, "\r\nConsole escape. Commands are:\r\n\n"
@@ -127,13 +126,13 @@ static void conescape(void)
 
 	switch (b) {
 	case 'l':
-		if (!G.gotsig) {
+		if (!bb_got_signal) {
 			do_linemode();
 			goto rrturn;
 		}
 		break;
 	case 'c':
-		if (G.gotsig) {
+		if (bb_got_signal) {
 			will_charmode();
 			goto rrturn;
 		}
@@ -149,11 +148,11 @@ static void conescape(void)
 
 	write_str(1, "continuing...\r\n");
 
-	if (G.gotsig)
+	if (bb_got_signal)
 		cookmode();
 
  rrturn:
-	G.gotsig = 0;
+	bb_got_signal = 0;
 
 }
 
@@ -524,12 +523,6 @@ static int subneg(byte c)
 	return FALSE;
 }
 
-static void fgotsig(int sig)
-{
-	G.gotsig = sig;
-}
-
-
 static void rawmode(void)
 {
 	if (G.do_termios)
@@ -592,7 +585,7 @@ int telnet_main(int argc UNUSED_PARAM, char **argv)
 
 	setsockopt(netfd, SOL_SOCKET, SO_KEEPALIVE, &const_int_1, sizeof(const_int_1));
 
-	signal(SIGINT, fgotsig);
+	signal(SIGINT, record_signo);
 
 #ifdef USE_POLL
 	ufds[0].fd = 0; ufds[1].fd = netfd;
@@ -617,7 +610,7 @@ int telnet_main(int argc UNUSED_PARAM, char **argv)
 			/* timeout */
 		case -1:
 			/* error, ignore and/or log something, bay go to loop */
-			if (G.gotsig)
+			if (bb_got_signal)
 				conescape();
 			else
 				sleep(1);
