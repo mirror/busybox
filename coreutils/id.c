@@ -7,10 +7,11 @@
  * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  */
 
-/* BB_AUDIT SUSv3 _NOT_ compliant -- option -G is not currently supported. */
+/* BB_AUDIT SUSv3 compliant. */
 /* Hacked by Tito Ragusa (C) 2004 to handle usernames of whatever length and to
  * be more similar to GNU id.
  * -Z option support: by Yuichi Nakamura <ynakam@hitachisoft.jp>
+ * Added -G option Tito Ragusa (C) 2008 for SUSv3.
  */
 
 #include "libbb.h"
@@ -19,17 +20,18 @@
 #define NAME_NOT_NUMBER   2
 #define JUST_USER         4
 #define JUST_GROUP        8
+#define JUST_ALL_GROUPS  16
 #if ENABLE_SELINUX
-#define JUST_CONTEXT     16
+#define JUST_CONTEXT     32
 #endif
 
-static int printf_full(unsigned int id, const char *arg, const char prefix)
+static int printf_full(unsigned int id, const char *arg, const char *prefix)
 {
-	const char *fmt = "%cid=%u";
+	const char *fmt = "%s%u";
 	int status = EXIT_FAILURE;
 
 	if (arg) {
-		fmt = "%cid=%u(%s)";
+		fmt = "%s%u(%s)";
 		status = EXIT_SUCCESS;
 	}
 	printf(fmt, prefix, id, arg);
@@ -42,6 +44,8 @@ int id_main(int argc UNUSED_PARAM, char **argv)
 	struct passwd *p;
 	uid_t uid;
 	gid_t gid;
+	gid_t *groups;
+	int grp;
 	unsigned long flags;
 	short status;
 #if ENABLE_SELINUX
@@ -49,8 +53,8 @@ int id_main(int argc UNUSED_PARAM, char **argv)
 #endif
 	/* Don't allow -n -r -nr -ug -rug -nug -rnug */
 	/* Don't allow more than one username */
-	opt_complementary = "?1:u--g:g--u:r?ug:n?ug" USE_SELINUX(":u--Z:Z--u:g--Z:Z--g");
-	flags = getopt32(argv, "rnug" USE_SELINUX("Z"));
+	opt_complementary = "?1:u--g:g--u:G--u:u--G:g--G:G--g:r?ugG:n?ugG" USE_SELINUX(":u--Z:Z--u:g--Z:Z--g");
+	flags = getopt32(argv, "rnugG" USE_SELINUX("Z"));
 
 	/* This values could be overwritten later */
 	uid = geteuid();
@@ -66,6 +70,22 @@ int id_main(int argc UNUSED_PARAM, char **argv)
 		uid = xuname2uid(argv[optind]);
 		gid = p->pw_gid;
 		/* in this case PRINT_REAL is the same */
+	}
+
+	grp = getgroups(0, 0);
+	groups = (gid_t *)xmalloc(sizeof(gid_t) * grp);
+	getgroups(grp, (gid_t *)groups);
+
+	if (flags & (JUST_ALL_GROUPS)) {
+		while (grp--) {
+			if (flags & NAME_NOT_NUMBER)
+				printf("%s", bb_getgrgid(NULL, 0, *groups++));
+			else
+				printf("%d", *groups++);
+			bb_putchar((grp > 0) ? ' ' : '\n');
+		}
+		/* exit */
+		fflush_stdout_and_exit(EXIT_SUCCESS);
 	}
 
 	if (flags & (JUST_GROUP | JUST_USER USE_SELINUX(| JUST_CONTEXT))) {
@@ -101,10 +121,17 @@ int id_main(int argc UNUSED_PARAM, char **argv)
 
 	/* Print full info like GNU id */
 	/* bb_getpwuid(0) doesn't exit on failure (returns NULL) */
-	status = printf_full(uid, bb_getpwuid(NULL, 0, uid), 'u');
+	status = printf_full(uid, bb_getpwuid(NULL, 0, uid), "uid=");
 	bb_putchar(' ');
-	status |= printf_full(gid, bb_getgrgid(NULL, 0, gid), 'g');
-
+	status |= printf_full(gid, bb_getgrgid(NULL, 0, gid), "gid=");
+	printf(" groups=");
+	while (grp--) {
+		status |= printf_full(*groups, bb_getgrgid(NULL, 0, *groups), "");
+		if (grp > 0)
+			bb_putchar(',');
+		groups++;
+	}
+	/* Don't free groups */
 #if ENABLE_SELINUX
 	if (is_selinux_enabled()) {
 		security_context_t mysid;

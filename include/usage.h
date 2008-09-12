@@ -1602,6 +1602,7 @@
 	USE_SELINUX( \
      "\n	-Z	Print the security context" \
 	) \
+     "\n	-G	Print all group IDs" \
      "\n	-g	Print group ID" \
      "\n	-u	Print user ID" \
      "\n	-n	Print name instead of a number" \
