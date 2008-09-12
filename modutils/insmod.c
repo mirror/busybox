@@ -257,15 +257,6 @@ static int insmod_ng_main(int argc, char **argv);
 #define USE_GOT_ENTRIES
 #define GOT_ENTRY_SIZE 4
 #define USE_SINGLE
-/* the SH changes have only been tested in =little endian= mode */
-/* I'm not sure about big endian, so let's warn: */
-#if defined(__sh__) && BB_BIG_ENDIAN
-# error insmod.c may require changes for use on big endian SH
-#endif
-/* it may or may not work on the SH1/SH2... Error on those also */
-#if ((!(defined(__SH3__) || defined(__SH4__) || defined(__SH5__)))) && (defined(__sh__))
-#error insmod.c may require changes for SH1 or SH2 use
-#endif
 #endif
 
 /* Sparc */
