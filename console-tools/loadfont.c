@@ -165,6 +165,39 @@ int loadfont_main(int argc UNUSED_PARAM, char **argv)
 }
 #endif
 
+/*
+kbd-1.12:
+
+setfont [-O font+umap.orig] [-o font.orig] [-om cmap.orig]
+[-ou umap.orig] [-N] [font.new ...] [-m cmap] [-u umap] [-C console]
+[-hNN] [-v] [-V]
+
+-h NN  Override font height
+-o file
+       Save previous font in file
+-O file
+       Save previous font and Unicode map in file
+-om file
+       Store console map in file
+-ou file
+       Save previous Unicode map in file
+-m file
+       Load console map or Unicode console map from file
+-u file
+       Load Unicode table describing the font from file
+       Example:
+       # cp866
+       0x00-0x7f       idem
+       #
+       0x80    U+0410  # CYRILLIC CAPITAL LETTER A
+       0x81    U+0411  # CYRILLIC CAPITAL LETTER BE
+       0x82    U+0412  # CYRILLIC CAPITAL LETTER VE
+-C console
+       Set the font for the indicated console
+-v     Verbose
+-V     Version
+*/
+
 #if ENABLE_SETFONT
 int setfont_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int setfont_main(int argc UNUSED_PARAM, char **argv)
@@ -188,6 +221,11 @@ int setfont_main(int argc UNUSED_PARAM, char **argv)
 	if (option_mask32 & 1) { // -m
 		void *map = xmalloc_open_zipped_read_close(mapfilename, &len);
 		if (len == E_TABSZ || len == 2*E_TABSZ) {
+			//TODO: support textual Unicode console maps:
+			// 0x00 U+0000  #  NULL (NUL)
+			// 0x01 U+0001  #  START OF HEADING (SOH)
+			// 0x02 U+0002  #  START OF TEXT (STX)
+			// 0x03 U+0003  #  END OF TEXT (ETX)
 			xioctl(fd, (len == 2*E_TABSZ) ? PIO_UNISCRNMAP : PIO_SCRNMAP, map);
 		}
 	}
