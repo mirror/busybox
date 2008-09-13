@@ -2569,12 +2569,17 @@
        "[-knqrsv] MODULE [symbol=value...]"
 #define modprobe_full_usage "\n\n" \
        "Options:" \
+	USE_FEATURE_2_4_MODULES( \
      "\n	-k	Make module autoclean-able" \
+	) \
      "\n	-n	Dry run" \
      "\n	-q	Quiet" \
      "\n	-r	Remove module (stacks) or do autoclean" \
      "\n	-s	Report via syslog instead of stderr" \
      "\n	-v	Verbose" \
+	USE_FEATURE_MODPROBE_BLACKLIST( \
+     "\n	-b	Apply blacklist to module names too" \
+        )
 
 #define modprobe_notes_usage \
 "modprobe can (un)load a stack of modules, passing each module options (when\n" \

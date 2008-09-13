@@ -5,9 +5,10 @@
 # Licensed under the GPL v2, see the file LICENSE in this tarball.
 
 lib-y:=
-lib-$(CONFIG_DEPMOD)            += depmod.o
-lib-$(CONFIG_INSMOD)            += insmod.o
-lib-$(CONFIG_LSMOD)             += lsmod.o
-lib-$(CONFIG_MODPROBE)          += modprobe.o
-lib-$(CONFIG_MODPROBE_SMALL)    += modprobe-small.o
-lib-$(CONFIG_RMMOD)             += rmmod.o
+lib-$(CONFIG_MODPROBE_SMALL)      += modprobe-small.o
+lib-$(CONFIG_DEPMOD)              += depmod.o modutils.o
+lib-$(CONFIG_INSMOD)              += insmod.o modutils.o
+lib-$(CONFIG_LSMOD)               += lsmod.o modutils.o
+lib-$(CONFIG_MODPROBE)            += modprobe.o modutils.o
+lib-$(CONFIG_RMMOD)               += rmmod.o modutils.o
+lib-$(CONFIG_FEATURE_2_4_MODULES) += modutils-24.o

@@ -3,192 +3,77 @@
  * Mini lsmod implementation for busybox
  *
  * Copyright (C) 1999-2004 by Erik Andersen <andersen@codepoet.org>
- *
- * Modified by Alcove, Julien Gaulmin <julien.gaulmin@alcove.fr> and
- * Nicolas Ferre <nicolas.ferre@alcove.fr> to support pre 2.1 kernels
- * (which lack the query_module() interface).
+ * Copyright (C) 2008 by Vladimir Dronnikov <dronnikov@gmail.com>
  *
  * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  */
 
 #include "libbb.h"
 
-
-#if !ENABLE_FEATURE_CHECK_TAINTED_MODULE
-static void check_tainted(void) { bb_putchar('\n'); }
-#else
-#define TAINT_FILENAME                  "/proc/sys/kernel/tainted"
-#define TAINT_PROPRIETORY_MODULE        (1<<0)
-#define TAINT_FORCED_MODULE             (1<<1)
-#define TAINT_UNSAFE_SMP                (1<<2)
+#if ENABLE_FEATURE_CHECK_TAINTED_MODULE
+enum {
+	TAINT_PROPRIETORY_MODULE = (1 << 0),
+	TAINT_FORCED_MODULE      = (1 << 1),
+	TAINT_UNSAFE_SMP         = (1 << 2),
+};
 
 static void check_tainted(void)
 {
-	int tainted;
-	FILE *f;
-
-	tainted = 0;
-	f = fopen_for_read(TAINT_FILENAME);
-	if (f) {
-		fscanf(f, "%d", &tainted);
-		fclose(f);
+	int tainted = 0;
+	char *buf = xmalloc_open_read_close("/proc/sys/kernel/tainted", NULL);
+	if (buf) {
+		tainted = atoi(buf);
+		if (ENABLE_FEATURE_CLEAN_UP)
+			free(buf);
 	}
+
 	if (tainted) {
 		printf("    Tainted: %c%c%c\n",
 				tainted & TAINT_PROPRIETORY_MODULE      ? 'P' : 'G',
 				tainted & TAINT_FORCED_MODULE           ? 'F' : ' ',
 				tainted & TAINT_UNSAFE_SMP              ? 'S' : ' ');
 	} else {
-		printf("    Not tainted\n");
+		puts("    Not tainted");
 	}
 }
-#endif
-
-#if ENABLE_FEATURE_QUERY_MODULE_INTERFACE
-
-struct module_info
-{
-	unsigned long addr;
-	unsigned long size;
-	unsigned long flags;
-	long usecount;
-};
-
-
-int query_module(const char *name, int which, void *buf, size_t bufsize, size_t *ret);
-
-enum {
-/* Values for query_module's which.  */
-	QM_MODULES = 1,
-	QM_DEPS = 2,
-	QM_REFS = 3,
-	QM_SYMBOLS = 4,
-	QM_INFO = 5,
-
-/* Bits of module.flags.  */
-	NEW_MOD_RUNNING = 1,
-	NEW_MOD_DELETED = 2,
-	NEW_MOD_AUTOCLEAN = 4,
-	NEW_MOD_VISITED = 8,
-	NEW_MOD_USED_ONCE = 16,
-	NEW_MOD_INITIALIZING = 64
-};
-
-int lsmod_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int lsmod_main(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
-{
-	struct module_info info;
-	char *module_names, *mn, *deps, *dn;
-	size_t bufsize, depsize, nmod, count, i, j;
-
-	module_names = deps = NULL;
-	bufsize = depsize = 0;
-	while (query_module(NULL, QM_MODULES, module_names, bufsize, &nmod)) {
-		if (errno != ENOSPC) bb_perror_msg_and_die("QM_MODULES");
-		module_names = xmalloc(bufsize = nmod);
-	}
-
-	deps = xmalloc(depsize = 256);
-	printf("Module\t\t\tSize  Used by");
-	check_tainted();
-
-	for (i = 0, mn = module_names; i < nmod; mn += strlen(mn) + 1, i++) {
-		if (query_module(mn, QM_INFO, &info, sizeof(info), &count)) {
-			if (errno == ENOENT) {
-				/* The module was removed out from underneath us. */
-				continue;
-			}
-			/* else choke */
-			bb_perror_msg_and_die("module %s: QM_INFO", mn);
-		}
-		while (query_module(mn, QM_REFS, deps, depsize, &count)) {
-			if (errno == ENOENT) {
-				/* The module was removed out from underneath us. */
-				continue;
-			} else if (errno != ENOSPC)
-				bb_perror_msg_and_die("module %s: QM_REFS", mn);
-			deps = xrealloc(deps, count);
-		}
-		printf("%-20s%8lu%4ld", mn, info.size, info.usecount);
-		if (info.flags & NEW_MOD_DELETED)
-			printf(" (deleted)");
-		else if (info.flags & NEW_MOD_INITIALIZING)
-			printf(" (initializing)");
-		else if (!(info.flags & NEW_MOD_RUNNING))
-			printf(" (uninitialized)");
-		else {
-			if (info.flags & NEW_MOD_AUTOCLEAN)
-				printf(" (autoclean) ");
-			if (!(info.flags & NEW_MOD_USED_ONCE))
-				printf(" (unused)");
-		}
-		if (count)
-			printf(" [");
-		for (j = 0, dn = deps; j < count; dn += strlen(dn) + 1, j++) {
-			printf("%s%s", dn, (j==count-1)? "":" ");
-		}
-		if (count)
-			bb_putchar(']');
-
-		bb_putchar('\n');
-	}
-
-#if ENABLE_FEATURE_CLEAN_UP
-	free(module_names);
-#endif
-
-	return 0;
-}
-
-#else /* CONFIG_FEATURE_QUERY_MODULE_INTERFACE */
-
-int lsmod_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int lsmod_main(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
-{
-	FILE *file = xfopen_for_read("/proc/modules");
-
-	printf("Module                  Size  Used by");
-	check_tainted();
-#if ENABLE_FEATURE_LSMOD_PRETTY_2_6_OUTPUT
-	{
-		char *line;
-		while ((line = xmalloc_fgets(file)) != NULL) {
-			char *tok;
-
-			tok = strtok(line, " \t");
-			printf("%-19s", tok);
-			tok = strtok(NULL, " \t\n");
-			printf(" %8s", tok);
-			tok = strtok(NULL, " \t\n");
-			/* Null if no module unloading support. */
-			if (tok) {
-				printf("  %s", tok);
-				tok = strtok(NULL, "\n");
-				if (!tok)
-					tok = (char*)"";
-				/* New-style has commas, or -.  If so,
-				truncate (other fields might follow). */
-				else if (strchr(tok, ',')) {
-					tok = strtok(tok, "\t ");
-					/* Strip trailing comma. */
-					if (tok[strlen(tok)-1] == ',')
-						tok[strlen(tok)-1] = '\0';
-				} else if (tok[0] == '-'
-				 && (tok[1] == '\0' || isspace(tok[1]))
-				) {
-					tok = (char*)"";
-				}
-				printf(" %s", tok);
-			}
-			bb_putchar('\n');
-			free(line);
-		}
-		fclose(file);
-	}
 #else
-	xprint_and_close_file(file);
-#endif  /*  CONFIG_FEATURE_2_6_MODULES  */
+static void check_tainted(void) { putchar('\n'); }
+#endif
+
+int lsmod_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
+int lsmod_main(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
+{
+#if ENABLE_FEATURE_LSMOD_PRETTY_2_6_OUTPUT
+	char *token[4];
+	parser_t *parser = config_open("/proc/modules");
+	printf("Module                  Size  Used by"); //vda!
+	check_tainted();
+
+	if (ENABLE_FEATURE_2_4_MODULES
+	 && get_linux_version_code() < KERNEL_VERSION(2,6,0)
+	) {
+		while (config_read(parser, token, 4, 3, "# \t", PARSE_NORMAL)) {
+			if (token[3] != NULL && token[3][0] == '[') {
+				token[3]++;
+				token[3][strlen(token[3])-1] = '\0';
+			} else
+				token[3] = (char *) "";
+			printf("%-19s %8s %2s %s\n", token[0], token[1], token[2], token[3]);
+		}
+	} else {
+		while (config_read(parser, token, 4, 4, "# \t", PARSE_NORMAL & ~PARSE_GREEDY)) {
+			// N.B. token[3] is either '-' (module is not used by others)
+			// or comma-separated list ended by comma
+			// so trimming the trailing char is just what we need!
+			token[3][strlen(token[3])-1] = '\0';
+			printf("%-19s %8s %2s %s\n", token[0], token[1], token[2], token[3]);
+		}
+	}
+	if (ENABLE_FEATURE_CLEAN_UP)
+		config_close(parser);
+#else
+	check_tainted();
+	xprint_and_close_file(xfopen_for_read("/proc/modules"));
+#endif
 	return EXIT_SUCCESS;
 }
-
-#endif /* CONFIG_FEATURE_QUERY_MODULE_INTERFACE */

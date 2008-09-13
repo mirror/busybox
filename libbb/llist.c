@@ -90,7 +90,6 @@ void FAST_FUNC llist_free(llist_t *elm, void (*freeit) (void *data))
 	}
 }
 
-#ifdef UNUSED
 /* Reverse list order. */
 llist_t* FAST_FUNC llist_rev(llist_t *list)
 {
@@ -105,4 +104,3 @@ llist_t* FAST_FUNC llist_rev(llist_t *list)
 	}
 	return rev;
 }
-#endif
