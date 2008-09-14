@@ -168,11 +168,13 @@ int man_main(int argc UNUSED_PARAM, char **argv)
 
 	sec_list = xstrdup("1:2:3:4:5:6:7:8:9");
 	/* Last valid man_path_list[] is [0x10] */
+	count_mp = 0;
 	man_path_list = xzalloc(0x11 * sizeof(man_path_list[0]));
 	man_path_list[0] = getenv("MANPATH");
-	if (!man_path_list[0])
+	if (!man_path_list[0]) /* default, may be overridden by /etc/man.conf */
 		man_path_list[0] = (char*)"/usr/man";
-	count_mp = 1;
+	else
+		count_mp++;
 	pager = getenv("MANPAGER");
 	if (!pager) {
 		pager = getenv("PAGER");
@@ -181,7 +183,7 @@ int man_main(int argc UNUSED_PARAM, char **argv)
 	}
 
 	/* Parse man.conf */
-	parser = config_open("/etc/man.conf");
+	parser = config_open2("/etc/man.conf", fopen_for_read);
 	while (config_read(parser, token, 2, 0, "# \t", PARSE_NORMAL)) {
 		if (!token[1])
 			continue;
