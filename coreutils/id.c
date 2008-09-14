@@ -25,7 +25,7 @@
 #define JUST_CONTEXT     32
 #endif
 
-static int printf_full(unsigned int id, const char *arg, const char *prefix)
+static int printf_full(unsigned id, const char *arg, const char *prefix)
 {
 	const char *fmt = "%s%u";
 	int status = EXIT_FAILURE;
@@ -46,7 +46,7 @@ int id_main(int argc UNUSED_PARAM, char **argv)
 	gid_t gid;
 	gid_t *groups;
 	int n;
-	unsigned long flags;
+	unsigned flags;
 	short status;
 #if ENABLE_SELINUX
 	security_context_t scontext;
@@ -81,7 +81,7 @@ int id_main(int argc UNUSED_PARAM, char **argv)
 			if (flags & NAME_NOT_NUMBER)
 				printf("%s", bb_getgrgid(NULL, 0, *groups++));
 			else
-				printf("%d", (int) *groups++);
+				printf("%u", (unsigned) *groups++);
 			bb_putchar((n > 0) ? ' ' : '\n');
 		}
 		/* exit */
@@ -91,14 +91,14 @@ int id_main(int argc UNUSED_PARAM, char **argv)
 	if (flags & (JUST_GROUP | JUST_USER USE_SELINUX(| JUST_CONTEXT))) {
 		/* JUST_GROUP and JUST_USER are mutually exclusive */
 		if (flags & NAME_NOT_NUMBER) {
-			/* bb_getXXXid(-1) exit on failure, puts cannot segfault */
+			/* bb_getXXXid(-1) exits on failure, puts cannot segfault */
 			puts((flags & JUST_USER) ? bb_getpwuid(NULL, -1, uid) : bb_getgrgid(NULL, -1, gid));
 		} else {
 			if (flags & JUST_USER) {
-				printf("%u\n", uid);
+				printf("%u\n", (unsigned)uid);
 			}
 			if (flags & JUST_GROUP) {
-				printf("%u\n", gid);
+				printf("%u\n", (unsigned)gid);
 			}
 		}
 
@@ -136,16 +136,10 @@ int id_main(int argc UNUSED_PARAM, char **argv)
 #if ENABLE_SELINUX
 	if (is_selinux_enabled()) {
 		security_context_t mysid;
-		const char *context;
-
-		context = "unknown";
 		getcon(&mysid);
-		if (mysid) {
-			context = alloca(strlen(mysid) + 1);
-			strcpy((char*)context, mysid);
+		printf(" context=%s", mysid ? mysid : "unknown");
+		if (mysid) /* TODO: maybe freecon(NULL) is harmless? */
 			freecon(mysid);
-		}
-		printf(" context=%s", context);
 	}
 #endif
 
