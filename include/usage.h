@@ -3533,11 +3533,13 @@
      "\n	-W	Display warnings about entries that had no matching files" \
 
 #define setfont_trivial_usage \
-       "[-m mapfile] font"
+       "FONT [-m MAPFILE] [-C TTY]"
 #define setfont_full_usage "\n\n" \
        "Load a console font\n" \
      "\nOptions:" \
-     "\n	-m mapfile	Load console screen map from mapfile"
+     "\n	-m MAPFILE	Load console screen map" \
+     "\n	-C TTY		Affect TTY instead of /dev/tty" \
+
 #define setfont_example_usage \
        "$ setfont -m koi8-r /etc/i18n/fontname\n"
 

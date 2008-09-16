@@ -17,7 +17,7 @@ enum {
 	PSF_MODE512 = 0x01,
 	PSF_MODEHASTAB = 0x02,
 	PSF_MAXMODE = 0x03,
-	PSF_SEPARATOR = 0xFFFF
+	PSF_SEPARATOR = 0xffff
 };
 
 struct psf_header {
@@ -165,6 +165,8 @@ int loadfont_main(int argc UNUSED_PARAM, char **argv)
 }
 #endif
 
+#if ENABLE_SETFONT
+
 /*
 kbd-1.12:
 
@@ -198,36 +200,125 @@ setfont [-O font+umap.orig] [-o font.orig] [-om cmap.orig]
 -V     Version
 */
 
-#if ENABLE_SETFONT
+#if ENABLE_FEATURE_SETFONT_TEXTUAL_MAP
+static int ctoi(char *s)
+{
+	if (s[0] == '\'' && s[1] != '\0' && s[2] == '\'' && s[3] == '\0')
+		return s[1];
+	// U+ means 0x
+	if (s[0] == 'U' && s[1] == '+') {
+		s[0] = '0';
+		s[1] = 'x';
+	}
+	if (!isdigit(s[0]))
+		return -1;
+	return xstrtoul(s, 0);
+}
+#endif
+
 int setfont_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int setfont_main(int argc UNUSED_PARAM, char **argv)
 {
 	size_t len;
+	unsigned opts;
+	int fd;
 	struct psf_header *psfhdr;
 	char *mapfilename;
-	int fd;
+	const char *tty_name = CURRENT_TTY;
 
 	opt_complementary = "=1";
-	getopt32(argv, "m:", &mapfilename);
+	opts = getopt32(argv, "m:C:", &mapfilename, &tty_name);
 	argv += optind;
 
+	fd = xopen(tty_name, O_NONBLOCK);
+
+	if (sizeof(CONFIG_DEFAULT_SETFONT_DIR) > 1) { // if not ""
+		if (strchr(*argv, '/') != NULL) {
+			// goto default fonts location. don't die if doesn't exist
+			chdir(CONFIG_DEFAULT_SETFONT_DIR "/consolefonts");
+			// buglet: we don't return to current dir...
+			// affects "setfont FONT -m ./MAP" case
+		}
+	}
 	// load font
 	len = 32*1024; // can't be larger
 	psfhdr = (struct psf_header *) xmalloc_open_zipped_read_close(*argv, &len);
-	fd = get_console_fd_or_die();
 	do_load(fd, psfhdr, len);
 
 	// load the screen map, if any
-	if (option_mask32 & 1) { // -m
-		void *map = xmalloc_open_zipped_read_close(mapfilename, &len);
-		if (len == E_TABSZ || len == 2*E_TABSZ) {
-			//TODO: support textual Unicode console maps:
-			// 0x00 U+0000  #  NULL (NUL)
-			// 0x01 U+0001  #  START OF HEADING (SOH)
-			// 0x02 U+0002  #  START OF TEXT (STX)
-			// 0x03 U+0003  #  END OF TEXT (ETX)
-			xioctl(fd, (len == 2*E_TABSZ) ? PIO_UNISCRNMAP : PIO_SCRNMAP, map);
+	if (opts & 1) { // -m
+		unsigned mode = PIO_SCRNMAP;
+		void *map;
+
+		if (sizeof(CONFIG_DEFAULT_SETFONT_DIR) > 1) { // if not ""
+			if (strchr(mapfilename, '/') != NULL) {
+				// goto default keymaps location
+				chdir(CONFIG_DEFAULT_SETFONT_DIR "/consoletrans");
+			}
 		}
+		// fetch keymap
+		map = xmalloc_open_zipped_read_close(mapfilename, &len);
+		if (!map)
+			bb_simple_perror_msg_and_die(mapfilename);
+		// file size is 256 or 512 bytes? -> assume binary map
+		if (len == E_TABSZ || len == 2*E_TABSZ) {
+			if (len == 2*E_TABSZ)
+				mode = PIO_UNISCRNMAP;
+		}
+#if ENABLE_FEATURE_SETFONT_TEXTUAL_MAP
+		// assume textual Unicode console maps:
+		// 0x00 U+0000  #  NULL (NUL)
+		// 0x01 U+0001  #  START OF HEADING (SOH)
+		// 0x02 U+0002  #  START OF TEXT (STX)
+		// 0x03 U+0003  #  END OF TEXT (ETX)
+		else {
+			int i;
+			char *token[2];
+			parser_t *parser;
+
+			if (ENABLE_FEATURE_CLEAN_UP)
+				free(map);
+			map = xmalloc(E_TABSZ * sizeof(unsigned short));
+
+#define unicodes ((unsigned short *)map)
+			// fill vanilla map
+			for (i = 0; i < E_TABSZ; i++)
+				unicodes[i] = 0xf000 + i;
+
+			parser = config_open(mapfilename);
+			while (config_read(parser, token, 2, 2, "# \t", PARSE_NORMAL | PARSE_MIN_DIE)) {
+				// parse code/value pair
+				int a = ctoi(token[0]);
+				int b = ctoi(token[1]);
+				if (a < 0 || a >= E_TABSZ
+				 || b < 0 || b > 65535
+				) {
+					bb_error_msg_and_die("map format");
+				}
+				// patch map
+				unicodes[a] = b;
+				// unicode character is met?
+				if (b > 255)
+					mode = PIO_UNISCRNMAP;
+			}
+			if (ENABLE_FEATURE_CLEAN_UP)
+				config_close(parser);
+
+			if (mode != PIO_UNISCRNMAP) {
+#define asciis ((unsigned char *)map)
+				for (i = 0; i < E_TABSZ; i++)
+					asciis[i] = unicodes[i];
+#undef asciis
+			}
+#undef unicodes
+		}
+#endif // ENABLE_FEATURE_SETFONT_TEXTUAL_MAP
+
+		// do set screen map
+		xioctl(fd, mode, map);
+
+		if (ENABLE_FEATURE_CLEAN_UP)
+			free(map);
 	}
 
 	return EXIT_SUCCESS;

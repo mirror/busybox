@@ -101,6 +101,21 @@ config SETFONT
 	help
 	  Allows to load console screen map. Useful for i18n.
 
+config FEATURE_SETFONT_TEXTUAL_MAP
+	bool "Support reading textual screen maps"
+	default n
+	depends on SETFONT
+	help
+	  Support reading textual screen maps.
+
+config DEFAULT_SETFONT_DIR
+	string "Default directory for console-tools files"
+	default ""
+	depends on SETFONT
+	help
+	  Directory to use if setfont's params are simple filenames
+	  (not /path/to/file or ./file). Default is "" (no default directory).
+
 config SETKEYCODES
 	bool "setkeycodes"
 	default n

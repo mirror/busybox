@@ -649,7 +649,7 @@ config TEST
 config FEATURE_TEST_64
 	bool "Extend test to 64 bit"
 	default n
-	depends on TEST || FEATURE_TEST_64
+	depends on TEST || ASH_BUILTIN_TEST
 	help
 	  Enable 64-bit support in test.
 
