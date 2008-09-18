@@ -620,43 +620,67 @@ struct spwd *sgetspent(const char *string)
 }
 #endif
 
-int initgroups(const char *user, gid_t gid)
+static gid_t *getgrouplist_internal(int *ngroups_ptr, const char *user, gid_t gid)
 {
 	FILE *grfile;
 	gid_t *group_list;
-	int num_groups, rv;
-	char **m;
+	int ngroups;
 	struct group group;
 	char buff[PWD_BUFFER_SIZE];
 
-	rv = -1;
+	/* We alloc space for 8 gids at a time. */
+	group_list = xmalloc(8 * sizeof(group_list[0]));
+	group_list[0] = gid;
+	ngroups = 1;
+
 	grfile = fopen_for_read(_PATH_GROUP);
-	if (grfile != NULL) {
-
-		/* We alloc space for 8 gids at a time. */
-		group_list = xmalloc(8 * sizeof(gid_t *));
-		*group_list = gid;
-		num_groups = 1;
-
+	if (grfile) {
 		while (!bb__pgsreader(bb__parsegrent, &group, buff, sizeof(buff), grfile)) {
+			char **m;
 			assert(group.gr_mem); /* Must have at least a NULL terminator. */
-			if (group.gr_gid != gid) {
-				for (m = group.gr_mem; *m; m++) {
-					if (!strcmp(*m, user)) {
-						group_list = xrealloc_vector(group_list, 3, num_groups);
-						group_list[num_groups++] = group.gr_gid;
-						break;
-					}
-				}
+			if (group.gr_gid == gid)
+				continue;
+			for (m = group.gr_mem; *m; m++) {
+				if (strcmp(*m, user) != 0)
+					continue;
+				group_list = xrealloc_vector(group_list, 3, ngroups);
+				group_list[ngroups++] = group.gr_gid;
+				break;
 			}
 		}
-
-		rv = setgroups(num_groups, group_list);
-		free(group_list);
 		fclose(grfile);
 	}
+	*ngroups_ptr = ngroups;
+	return group_list;
+}
 
-	return rv;
+int initgroups(const char *user, gid_t gid)
+{
+	int ngroups;
+	gid_t *group_list = getgrouplist_internal(&ngroups, user, gid);
+
+	if (!group_list)
+		return -1;
+
+	ngroups = setgroups(ngroups, group_list);
+	free(group_list);
+	return ngroups;
+}
+
+/* TODO: uclibc needs this ported to it! */
+int getgrouplist(const char *user, gid_t gid, gid_t *groups, int *ngroups)
+{
+	int ngroups_old = *ngroups;
+	gid_t *group_list = getgrouplist_internal(ngroups, user, gid);
+
+	if (*ngroups <= ngroups_old) {
+		ngroups_old = *ngroups;
+		memcpy(groups, group_list, ngroups_old * sizeof(groups[0]));
+	} else {
+		ngroups_old = -1;
+	}
+	free(group_list);
+	return ngroups_old;
 }
 
 int putpwent(const struct passwd *__restrict p, FILE *__restrict f)

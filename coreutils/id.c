@@ -38,14 +38,25 @@ static int printf_full(unsigned id, const char *arg, const char *prefix)
 	return status;
 }
 
+#if (defined(__GLIBC__) && !defined(__UCLIBC__))
+#define HAVE_getgrouplist 1
+#elif ENABLE_USE_BB_PWD_GRP
+#define HAVE_getgrouplist 1
+#else
+#define HAVE_getgrouplist 0
+#endif
+
 int id_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int id_main(int argc UNUSED_PARAM, char **argv)
 {
+	const char *username;
 	struct passwd *p;
 	uid_t uid;
 	gid_t gid;
+#if HAVE_getgrouplist
 	gid_t *groups;
 	int n;
+#endif
 	unsigned flags;
 	short status;
 #if ENABLE_SELINUX
@@ -55,6 +66,7 @@ int id_main(int argc UNUSED_PARAM, char **argv)
 	/* Don't allow more than one username */
 	opt_complementary = "?1:u--g:g--u:G--u:u--G:g--G:G--g:r?ugG:n?ugG" USE_SELINUX(":u--Z:Z--u:g--Z:Z--g");
 	flags = getopt32(argv, "rnugG" USE_SELINUX("Z"));
+	username = argv[optind];
 
 	/* This values could be overwritten later */
 	uid = geteuid();
@@ -64,19 +76,34 @@ int id_main(int argc UNUSED_PARAM, char **argv)
 		gid = getgid();
 	}
 
-	if (argv[optind]) {
-		p = getpwnam(argv[optind]);
+	if (username) {
+#if HAVE_getgrouplist
+		int m;
+#endif
+		p = getpwnam(username);
 		/* xuname2uid is needed because it exits on failure */
-		uid = xuname2uid(argv[optind]);
-		gid = p->pw_gid;
-		/* in this case PRINT_REAL is the same */
+		uid = xuname2uid(username);
+		gid = p->pw_gid; /* in this case PRINT_REAL is the same */
+
+#if HAVE_getgrouplist
+		n = 16;
+		groups = NULL;
+		do {
+			m = n;
+			groups = xrealloc(groups, sizeof(groups[0]) * m);
+			getgrouplist(username, gid, groups, &n); /* GNUism? */
+		} while (n > m);
+#endif
+	} else {
+#if HAVE_getgrouplist
+		n = getgroups(0, NULL);
+		groups = xmalloc(sizeof(groups[0]) * n);
+		getgroups(n, groups);
+#endif
 	}
 
-	n = getgroups(0, NULL);
-	groups = xmalloc(sizeof(groups[0]) * n);
-	getgroups(n, groups);
-
 	if (flags & JUST_ALL_GROUPS) {
+#if HAVE_getgrouplist
 		while (n--) {
 			if (flags & NAME_NOT_NUMBER)
 				printf("%s", bb_getgrgid(NULL, 0, *groups++));
@@ -84,6 +111,7 @@ int id_main(int argc UNUSED_PARAM, char **argv)
 				printf("%u", (unsigned) *groups++);
 			bb_putchar((n > 0) ? ' ' : '\n');
 		}
+#endif
 		/* exit */
 		fflush_stdout_and_exit(EXIT_SUCCESS);
 	}
@@ -105,7 +133,7 @@ int id_main(int argc UNUSED_PARAM, char **argv)
 #if ENABLE_SELINUX
 		if (flags & JUST_CONTEXT) {
 			selinux_or_die();
-			if (argv[optind]) {
+			if (username) {
 				bb_error_msg_and_die("user name can't be passed with -Z");
 			}
 
@@ -123,6 +151,7 @@ int id_main(int argc UNUSED_PARAM, char **argv)
 	/* bb_getpwuid(0) doesn't exit on failure (returns NULL) */
 	status = printf_full(uid, bb_getpwuid(NULL, 0, uid), "uid=");
 	status |= printf_full(gid, bb_getgrgid(NULL, 0, gid), " gid=");
+#if HAVE_getgrouplist
 	{
 		const char *msg = " groups=";
 		while (n--) {
@@ -132,6 +161,7 @@ int id_main(int argc UNUSED_PARAM, char **argv)
 		}
 	}
 	/* we leak groups vector... */
+#endif
 
 #if ENABLE_SELINUX
 	if (is_selinux_enabled()) {
