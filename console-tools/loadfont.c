@@ -233,16 +233,16 @@ int setfont_main(int argc UNUSED_PARAM, char **argv)
 	fd = xopen(tty_name, O_NONBLOCK);
 
 	if (sizeof(CONFIG_DEFAULT_SETFONT_DIR) > 1) { // if not ""
-		if (strchr(*argv, '/') != NULL) {
+		if (*argv[0] != '/') {
 			// goto default fonts location. don't die if doesn't exist
 			chdir(CONFIG_DEFAULT_SETFONT_DIR "/consolefonts");
-			// buglet: we don't return to current dir...
-			// affects "setfont FONT -m ./MAP" case
 		}
 	}
 	// load font
 	len = 32*1024; // can't be larger
 	psfhdr = (struct psf_header *) xmalloc_open_zipped_read_close(*argv, &len);
+	if (!psfhdr)
+		bb_simple_perror_msg_and_die(*argv);
 	do_load(fd, psfhdr, len);
 
 	// load the screen map, if any
@@ -251,7 +251,7 @@ int setfont_main(int argc UNUSED_PARAM, char **argv)
 		void *map;
 
 		if (sizeof(CONFIG_DEFAULT_SETFONT_DIR) > 1) { // if not ""
-			if (strchr(mapfilename, '/') != NULL) {
+			if (mapfilename[0] != '/') {
 				// goto default keymaps location
 				chdir(CONFIG_DEFAULT_SETFONT_DIR "/consoletrans");
 			}
