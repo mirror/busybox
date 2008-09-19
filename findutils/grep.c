@@ -559,6 +559,11 @@ int grep_main(int argc, char **argv)
 	) {
 		reflags |= REG_EXTENDED;
 	}
+#if ENABLE_EXTRA_COMPAT
+	else {
+		reflags = RE_SYNTAX_GREP;
+	}
+#endif
 
 	if (option_mask32 & OPT_i) {
 #if !ENABLE_EXTRA_COMPAT
