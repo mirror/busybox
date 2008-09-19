@@ -87,7 +87,11 @@ enum {
 
 struct globals {
 	int max_matches;
+#if !ENABLE_EXTRA_COMPAT
 	int reflags;
+#else
+	RE_TRANSLATE_TYPE case_fold; /* RE_TRANSLATE_TYPE is [[un]signed] char* */
+#endif
 	smalluint invert_search;
 	smalluint print_filename;
 	smalluint open_errors;
@@ -110,7 +114,19 @@ struct globals {
 	}; \
 } while (0)
 #define max_matches       (G.max_matches         )
+#if !ENABLE_EXTRA_COMPAT
 #define reflags           (G.reflags             )
+#else
+#define case_fold         (G.case_fold           )
+/* http://www.delorie.com/gnu/docs/regex/regex_46.html */
+#define reflags           re_syntax_options
+#undef REG_NOSUB
+#undef REG_EXTENDED
+#undef REG_ICASE
+#define REG_NOSUB    bug:is:here /* should not be used */
+#define REG_EXTENDED RE_SYNTAX_EGREP
+#define REG_ICASE    bug:is:here /* should not be used */
+#endif
 #define invert_search     (G.invert_search       )
 #define print_filename    (G.print_filename      )
 #define open_errors       (G.open_errors         )
@@ -240,6 +256,7 @@ static int grep_file(FILE *file)
 					xregcomp(&gl->compiled_regex, gl->pattern, reflags);
 #else
 					memset(&gl->compiled_regex, 0, sizeof(gl->compiled_regex));
+					gl->compiled_regex.translate = case_fold; /* for -i */
 					if (re_compile_pattern(gl->pattern, strlen(gl->pattern), &gl->compiled_regex))
 						bb_error_msg_and_die("bad regex '%s'", gl->pattern);
 #endif
@@ -532,8 +549,10 @@ int grep_main(int argc, char **argv)
 	if (ENABLE_FEATURE_GREP_FGREP_ALIAS && applet_name[0] == 'f')
 		option_mask32 |= OPT_F;
 
+#if !ENABLE_EXTRA_COMPAT
 	if (!(option_mask32 & (OPT_o | OPT_w)))
 		reflags = REG_NOSUB;
+#endif
 
 	if (ENABLE_FEATURE_GREP_EGREP_ALIAS
 	 && (applet_name[0] == 'e' || (option_mask32 & OPT_E))
@@ -541,8 +560,18 @@ int grep_main(int argc, char **argv)
 		reflags |= REG_EXTENDED;
 	}
 
-	if (option_mask32 & OPT_i)
+	if (option_mask32 & OPT_i) {
+#if !ENABLE_EXTRA_COMPAT
 		reflags |= REG_ICASE;
+#else
+		int i;
+		case_fold = xmalloc(256);
+		for (i = 0; i < 256; i++)
+			case_fold[i] = (unsigned char)i;
+		for (i = 'a'; i <= 'z'; i++)
+			case_fold[i] = (unsigned char)(i - ('a' - 'A'));
+#endif
+	}
 
 	argv += optind;
 	argc -= optind;
