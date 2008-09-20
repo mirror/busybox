@@ -10,6 +10,28 @@
 #include "libbb.h"
 #include <sys/kd.h>
 
+#ifndef KDFONTOP
+#define KDFONTOP 0x4B72
+struct console_font_op {
+	unsigned op;            /* KD_FONT_OP_* */
+	unsigned flags;         /* KD_FONT_FLAG_* */
+	unsigned width, height;
+	unsigned charcount;
+	unsigned char *data;    /* font data with height fixed to 32 */
+};
+
+#define KD_FONT_OP_SET          0  /* Set font */
+#define KD_FONT_OP_GET          1  /* Get font */
+#define KD_FONT_OP_SET_DEFAULT  2  /* Set font to default,
+                                         data points to name / NULL */
+#define KD_FONT_OP_COPY         3  /* Copy from another console */
+
+#define KD_FONT_FLAG_OLD        0x80000000 /* Invoked via old interface */
+#define KD_FONT_FLAG_DONT_RECALC 1 /* Don't call adjust_height() */
+                                   /* (Used internally for PIO_FONT support) */
+#endif /* KDFONTOP */
+
+
 enum {
 	PSF_MAGIC1 = 0x36,
 	PSF_MAGIC2 = 0x04,
@@ -40,6 +62,25 @@ static void do_loadfont(int fd, unsigned char *inbuf, int unit, int fontsize)
 	for (i = 0; i < fontsize; i++)
 		memcpy(buf + (32 * i), inbuf + (unit * i), unit);
 
+	{ /* KDFONTOP */
+		struct console_font_op cfo;
+
+		cfo.op = KD_FONT_OP_SET;
+		cfo.flags = 0;
+		cfo.width = 8;
+		cfo.height = unit;
+		cfo.charcount = fontsize;
+		cfo.data = (void*)buf;
+#if 0
+		if (!ioctl_or_perror(fd, KDFONTOP, &cfo, "KDFONTOP ioctl failed (will try PIO_FONTX)"))
+			goto ret;  /* success */
+#else
+		xioctl(fd, KDFONTOP, &cfo);
+#endif
+	}
+
+#if 0
+/* These ones do not honour -C tty (they set font on current tty regardless) */
 #if defined(PIO_FONTX) && !defined(__sparc__)
 	{
 		struct consolefontdesc cfd;
@@ -49,11 +90,12 @@ static void do_loadfont(int fd, unsigned char *inbuf, int unit, int fontsize)
 		cfd.chardata = buf;
 
 		if (!ioctl_or_perror(fd, PIO_FONTX, &cfd, "PIO_FONTX ioctl failed (will try PIO_FONT)"))
-			goto ret;			/* success */
+			goto ret;  /* success */
 	}
 #endif
 	xioctl(fd, PIO_FONT, buf);
  ret:
+#endif /* 0 */
 	free(buf);
 }
 
