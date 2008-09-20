@@ -144,7 +144,7 @@ static int run(char *argv[3], struct in_addr *ip)
 
 	if (ip) {
 		addr = inet_ntoa(*ip);
-		setenv("ip", addr, 1);
+		xsetenv("ip", addr);
 		fmt -= 3;
 	}
 	bb_info_msg(fmt, argv[1], intf, addr);
@@ -238,7 +238,7 @@ int zcip_main(int argc, char **argv)
 
 	intf = argv[0];
 	script_av[0] = argv[1];
-	setenv("interface", intf, 1);
+	xsetenv("interface", intf);
 
 	// initialize the interface (modprobe, ifup, etc)
 	script_av[1] = (char*)"init";

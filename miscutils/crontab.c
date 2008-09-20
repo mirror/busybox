@@ -21,9 +21,9 @@
 
 static void change_user(const struct passwd *pas)
 {
-	setenv("USER", pas->pw_name, 1);
-	setenv("HOME", pas->pw_dir, 1);
-	setenv("SHELL", DEFAULT_SHELL, 1);
+	xsetenv("USER", pas->pw_name);
+	xsetenv("HOME", pas->pw_dir);
+	xsetenv("SHELL", DEFAULT_SHELL);
 
 	/* initgroups, setgid, setuid */
 	change_identity(pas);

@@ -77,14 +77,6 @@ enum {
 #endif
 };
 
-static const char *const environment[] = {
-	"HOME=/",
-	bb_PATH_root_path,
-	"SHELL=/bin/sh",
-	"USER=root",
-	NULL
-};
-
 /* Function prototypes */
 static void halt_reboot_pwoff(int sig) NORETURN;
 
@@ -118,15 +110,16 @@ static void message(int where, const char *fmt, ...)
 {
 	static int log_fd = -1;
 	va_list arguments;
-	int l;
+	unsigned l;
 	char msg[128];
 
 	msg[0] = '\r';
 	va_start(arguments, fmt);
-	vsnprintf(msg + 1, sizeof(msg) - 2, fmt, arguments);
+	l = vsnprintf(msg + 1, sizeof(msg) - 2, fmt, arguments);
+	if (l > sizeof(msg) - 2)
+		l = sizeof(msg) - 2;
+	msg[l] = '\0';
 	va_end(arguments);
-	msg[sizeof(msg) - 2] = '\0';
-	l = strlen(msg);
 
 	if (ENABLE_FEATURE_INIT_SYSLOG) {
 		/* Log the message to syslogd */
@@ -213,6 +206,8 @@ static void console_init(void)
 		/* Make sure fd 0,1,2 are not closed
 		 * (so that they won't be used by future opens) */
 		bb_sanitize_stdio();
+		/* Make sure init can't be blocked by writing to stderr */
+		fcntl(STDERR_FILENO, F_SETFL, fcntl(STDERR_FILENO, F_GETFL) | O_NONBLOCK);
 	}
 
 	s = getenv("TERM");
@@ -825,15 +820,15 @@ int init_main(int argc UNUSED_PARAM, char **argv)
 	set_sane_term();
 	xchdir("/");
 	setsid();
-	{
-		const char *const *e;
-		/* Make sure environs is set to something sane */
-		for (e = environment; *e; e++)
-			putenv((char *) *e);
-	}
+
+	/* Make sure environs is set to something sane */
+	putenv((char *) "HOME=/");
+	putenv((char *) bb_PATH_root_path);
+	putenv((char *) "SHELL=/bin/sh");
+	putenv((char *) "USER=root"); /* needed? why? */
 
 	if (argv[1])
-		setenv("RUNLEVEL", argv[1], 1);
+		xsetenv("RUNLEVEL", argv[1]);
 
 	/* Hello world */
 	message(MAYBE_CONSOLE | L_LOG, "init started: %s", bb_banner);
