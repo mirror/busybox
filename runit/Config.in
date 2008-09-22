@@ -20,6 +20,15 @@ config RUNSVDIR
 	  a directory, in the services directory dir, up to a limit of 1000
 	  subdirectories, and restarts a runsv process if it terminates.
 
+config FEATURE_RUNSVDIR_LOG
+	bool "Enable scrolling argument log"
+	depends on RUNSVDIR
+	default n
+	help
+	  Enable feature where second parameter of runsvdir holds last error
+	  message (viewable via top/ps). Otherwise (feature is off
+	  or no parameter), error messages go to stderr only.
+
 config SV
 	bool "sv"
 	default n
