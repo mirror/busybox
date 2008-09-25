@@ -510,7 +510,7 @@ getopt32(char **argv, const char *applet_opts, ...)
 				*pargv = pp;
 			}
 			if (!(spec_flgs & ALL_ARGV_IS_OPTS))
-				break; 
+				break;
 			pargv++;
 		}
 	}

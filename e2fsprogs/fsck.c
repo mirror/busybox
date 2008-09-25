@@ -313,10 +313,10 @@ static void load_fs_info(const char *filename)
 	// Loop through entries
 	while (getmntent_r(fstab, &mte, bb_common_bufsiz1, COMMON_BUFSIZE)) {
 		//bb_info_msg("CREATE[%s][%s][%s][%s][%d]", mte.mnt_fsname, mte.mnt_dir,
-		//	mte.mnt_type, mte.mnt_opts, 
+		//	mte.mnt_type, mte.mnt_opts,
 		//	mte.mnt_passno);
 		fs = create_fs_device(mte.mnt_fsname, mte.mnt_dir,
-			mte.mnt_type, mte.mnt_opts, 
+			mte.mnt_type, mte.mnt_opts,
 			mte.mnt_passno);
 	}
 	endmntent(fstab);

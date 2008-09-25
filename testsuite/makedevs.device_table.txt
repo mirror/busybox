@@ -1,5 +1,5 @@
 # When building a target filesystem, it is desirable to not have to
-# become root and then run 'mknod' a thousand times.  Using a device 
+# become root and then run 'mknod' a thousand times.  Using a device
 # table you can create device nodes and directories "on the fly".
 #
 # This is a sample device table file for use with genext2fs.  You can
@@ -14,17 +14,17 @@
 # I could just use the following two table entries:
 #   /dev/hda    b       640     0       0       3       0       0       0       -
 #   /dev/hda    b       640     0       0       3       1       1       1       15
-# 
+#
 # Device table entries take the form of:
 # <name>    <type>      <mode>  <uid>   <gid>   <major> <minor> <start> <inc>   <count>
-# where name is the file name,  type can be one of: 
+# where name is the file name,  type can be one of:
 #       f       A regular file
 #       d       Directory
 #       c       Character special device file
 #       b       Block special device file
 #       p       Fifo (named pipe)
 # uid is the user id for the target file, gid is the group id for the
-# target file.  The rest of the entries (major, minor, etc) apply only 
+# target file.  The rest of the entries (major, minor, etc) apply only
 # to device special files.
 
 # Have fun

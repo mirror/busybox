@@ -17,7 +17,7 @@ echo 'static const char packed_usage[] ALIGN1 = {'
 ## Breaks on big-endian systems!
 ## # Extra effort to avoid using "od -t x1": -t is not available
 ## # in non-CONFIG_DESKTOPed busybox od
-## 
+##
 ## "$loc/usage" | bzip2 -1 | od -v -x \
 ## | $SED -e 's/^[^ ]*//' \
 ## | $SED -e 's/ //g' \

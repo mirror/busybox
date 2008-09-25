@@ -72,9 +72,9 @@ int showkey_main(int argc UNUSED_PARAM, char **argv)
 	// get keyboard settings
 	xioctl(STDIN_FILENO, KDGKBMODE, &kbmode);
 	printf("kb mode was %s\n\nPress any keys. Program terminates %s\n\n",
-		kbmode == K_RAW ? "RAW" : 
-			(kbmode == K_XLATE ? "XLATE" : 
-				(kbmode == K_MEDIUMRAW ? "MEDIUMRAW" : 
+		kbmode == K_RAW ? "RAW" :
+			(kbmode == K_XLATE ? "XLATE" :
+				(kbmode == K_MEDIUMRAW ? "MEDIUMRAW" :
 					(kbmode == K_UNICODE ? "UNICODE" : "?UNKNOWN?")))
 		, (option_mask32 & OPT_a) ? "when CTRL+D pressed" : "10s after last keypress"
 	);

@@ -50,7 +50,7 @@ int halt_main(int argc UNUSED_PARAM, char **argv)
 	static const int magic[] = {
 		RB_HALT_SYSTEM,
 		RB_POWER_OFF,
-		RB_AUTOBOOT	  
+		RB_AUTOBOOT
 	};
 	static const smallint signals[] = { SIGUSR1, SIGUSR2, SIGTERM };
 
