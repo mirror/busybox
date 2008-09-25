@@ -1227,14 +1227,14 @@
 #define ftpget_full_usage "\n\n" \
        "Retrieve a remote file via FTP\n" \
      "\nOptions:" \
-	USE_GETOPT_LONG( \
+	USE_FEATURE_FTPGETPUT_LONG_OPTIONS( \
      "\n	-c,--continue	Continue previous transfer" \
      "\n	-v,--verbose	Verbose" \
      "\n	-u,--username	Username" \
      "\n	-p,--password	Password" \
      "\n	-P,--port	Port number" \
 	) \
-	SKIP_GETOPT_LONG( \
+	SKIP_FEATURE_FTPGETPUT_LONG_OPTIONS( \
      "\n	-c	Continue previous transfer" \
      "\n	-v	Verbose" \
      "\n	-u	Username" \
@@ -1247,13 +1247,13 @@
 #define ftpput_full_usage "\n\n" \
        "Store a local file on a remote machine via FTP\n" \
      "\nOptions:" \
-	USE_GETOPT_LONG( \
+	USE_FEATURE_FTPGETPUT_LONG_OPTIONS( \
      "\n	-v,--verbose	Verbose" \
      "\n	-u,--username	Username" \
      "\n	-p,--password	Password" \
      "\n	-P,--port	Port number" \
 	) \
-	SKIP_GETOPT_LONG( \
+	SKIP_FEATURE_FTPGETPUT_LONG_OPTIONS( \
      "\n	-v	Verbose" \
      "\n	-u	Username" \
      "\n	-p	Password" \
@@ -1576,12 +1576,12 @@
      "\n	-d STRING	URL decode STRING" \
 
 #define hwclock_trivial_usage \
-	USE_GETOPT_LONG( \
+	USE_FEATURE_HWCLOCK_LONG_OPTIONS( \
        "[-r|--show] [-s|--hctosys] [-w|--systohc]" \
        " [-l|--localtime] [-u|--utc]" \
        " [-f FILE]" \
 	) \
-	SKIP_GETOPT_LONG( \
+	SKIP_FEATURE_HWCLOCK_LONG_OPTIONS( \
        "[-r] [-s] [-w] [-l] [-u] [-f FILE]" \
 	)
 #define hwclock_full_usage "\n\n" \
@@ -3364,14 +3364,14 @@
 #define runcon_full_usage "\n\n" \
        "Run a program in a different security context\n" \
      "\n	CONTEXT		Complete security context\n" \
-	USE_GETOPT_LONG( \
+	USE_FEATURE_RUNCON_LONG_OPTIONS( \
      "\n	-c,--compute	Compute process transition context before modifying" \
      "\n	-t,--type=TYPE	Type (for same role as parent)" \
      "\n	-u,--user=USER	User identity" \
      "\n	-r,--role=ROLE	Role" \
      "\n	-l,--range=RNG	Levelrange" \
 	) \
-	SKIP_GETOPT_LONG( \
+	SKIP_FEATURE_RUNCON_LONG_OPTIONS( \
      "\n	-c	Compute process transition context before modifying" \
      "\n	-t TYPE	Type (for same role as parent)" \
      "\n	-u USER	User identity" \
@@ -3704,7 +3704,7 @@
        "Search for matching processes, and then\n" \
        "-K: stop all matching processes.\n" \
        "-S: start a process unless a matching process is found.\n" \
-	USE_GETOPT_LONG( \
+	USE_FEATURE_START_STOP_DAEMON_LONG_OPTIONS( \
      "\nProcess matching:" \
      "\n	-u,--user USERNAME|UID	Match only this user's processes" \
      "\n	-n,--name NAME		Match processes with NAME" \
@@ -3732,7 +3732,7 @@
 	) \
      "\n	-v,--verbose		Verbose" \
 	) \
-	SKIP_GETOPT_LONG( \
+	SKIP_FEATURE_START_STOP_DAEMON_LONG_OPTIONS( \
      "\nProcess matching:" \
      "\n	-u USERNAME|UID	Match only this user's processes" \
      "\n	-n NAME		Match processes with NAME" \
@@ -4595,12 +4595,12 @@
        "     31      46    1365 /etc/passwd\n"
 
 #define wget_trivial_usage \
-	USE_GETOPT_LONG( \
+	USE_FEATURE_WGET_LONG_OPTIONS( \
        "[-c|--continue] [-s|--spider] [-q|--quiet] [-O|--output-document file]\n" \
        "	[--header 'header: value'] [-Y|--proxy on/off] [-P DIR]\n" \
        "	[-U|--user-agent agent] url" \
 	) \
-	SKIP_GETOPT_LONG( \
+	SKIP_FEATURE_WGET_LONG_OPTIONS( \
        "[-csq] [-O file] [-Y on/off] [-P DIR] [-U agent] url" \
 	)
 #define wget_full_usage "\n\n" \
