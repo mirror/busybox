@@ -135,46 +135,51 @@ config TOP
 	  system.
 
 config FEATURE_TOP_CPU_USAGE_PERCENTAGE
-	bool "Show CPU per-process usage percentage (adds 2k bytes)"
+	bool "Show CPU per-process usage percentage"
 	default y
 	depends on TOP
 	help
 	  Make top display CPU usage for each process.
+	  This adds about 2k.
 
 config FEATURE_TOP_CPU_GLOBAL_PERCENTS
-	bool "Show CPU global usage percentage (adds 0.5k bytes)"
+	bool "Show CPU global usage percentage"
 	default y
 	depends on FEATURE_TOP_CPU_USAGE_PERCENTAGE
 	help
 	  Makes top display "CPU: NN% usr NN% sys..." line.
+	  This adds about 0.5k.
 
 config FEATURE_TOP_SMP_CPU
-	bool "SMP CPU usage display ('c' key) (adds 0.5kb)"
+	bool "SMP CPU usage display ('c' key)"
 	default n
 	depends on FEATURE_TOP_CPU_GLOBAL_PERCENTS
 	help
-	  Allos 'c' key to switch between individual/cumulative CPU stats
+	  Allow 'c' key to switch between individual/cumulative CPU stats
+	  This adds about 0.5k.
 
 config FEATURE_TOP_DECIMALS
-	bool "Show 1/10th of a percent in CPU/mem statistics (adds 0.3k bytes)"
+	bool "Show 1/10th of a percent in CPU/mem statistics"
 	default n
 	depends on FEATURE_TOP_CPU_USAGE_PERCENTAGE
 	help
 	  Show 1/10th of a percent in CPU/mem statistics.
+	  This adds about 0.3k.
 
 config FEATURE_TOP_SMP_PROCESS
-	bool "Show CPU process runs on (adds <0.1k bytes)"
+	bool "Show CPU process runs on ('j' field)"
 	default n
 	depends on TOP
 	help
-	  Show CPU where process was last found running on
+	  Show CPU where process was last found running on.
+	  This is the 'j' field.
 
 config FEATURE_TOPMEM
 	bool "Topmem command ('s' key)"
 	default n
 	depends on TOP
 	help
-	  Enable 's' in top (gives lots of memory info)
+	  Enable 's' in top (gives lots of memory info).
 
 config UPTIME
 	bool "uptime"
@@ -187,7 +192,6 @@ config UPTIME
 config WATCH
 	bool "watch"
 	default n
-	#huh?? select DATE
 	help
 	  watch is used to execute a program periodically, showing
 	  output to the screen.
