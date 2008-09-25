@@ -80,8 +80,10 @@
 #endif
 
 /* Some libc's forget to declare these, do it ourself */
-extern char **environ;
 
+extern char **environ;
+/* Set the group set for the current user to GROUPS (N of them).  */
+int setgroups(size_t n, const gid_t *groups);
 #if defined(__GLIBC__) && __GLIBC__ < 2
 int vdprintf(int d, const char *format, va_list ap);
 #endif
@@ -107,7 +109,7 @@ struct sysinfo {
 	unsigned long totalhigh;	/* Total high memory size */
 	unsigned long freehigh;		/* Available high memory size */
 	unsigned int mem_unit;		/* Memory unit size in bytes */
-	char _f[20 - 2*sizeof(long) - sizeof(int)]; /* Padding: libc5 uses this.. */
+	char _f[20 - 2 * sizeof(long) - sizeof(int)]; /* Padding: libc5 uses this.. */
 };
 int sysinfo(struct sysinfo* info);
 
