@@ -1225,6 +1225,9 @@ typedef struct procps_status_t {
 	 * by link target or interpreter name) */
 	char comm[COMM_LEN];
 	/* user/group? - use passwd/group parsing functions */
+#if ENABLE_FEATURE_TOP_SMP_PROCESS
+	int last_seen_on_cpu;
+#endif
 } procps_status_t;
 enum {
 	PSSCAN_PID      = 1 << 0,
@@ -1246,12 +1249,16 @@ enum {
 	PSSCAN_ARGVN    = (1 << 16) * (ENABLE_PGREP || ENABLE_PKILL || ENABLE_PIDOF),
 	USE_SELINUX(PSSCAN_CONTEXT = 1 << 17,)
 	PSSCAN_START_TIME = 1 << 18,
+	PSSCAN_CPU      = 1 << 19,
 	/* These are all retrieved from proc/NN/stat in one go: */
 	PSSCAN_STAT     = PSSCAN_PPID | PSSCAN_PGID | PSSCAN_SID
-	                | PSSCAN_COMM | PSSCAN_STATE
-	                | PSSCAN_VSZ | PSSCAN_RSS
-			| PSSCAN_STIME | PSSCAN_UTIME | PSSCAN_START_TIME
-			| PSSCAN_TTY,
+	/**/            | PSSCAN_COMM | PSSCAN_STATE
+	/**/            | PSSCAN_VSZ | PSSCAN_RSS
+	/**/            | PSSCAN_STIME | PSSCAN_UTIME | PSSCAN_START_TIME
+	/**/            | PSSCAN_TTY
+#if ENABLE_FEATURE_TOP_SMP_PROCESS
+	/**/            | PSSCAN_CPU
+#endif
 };
 //procps_status_t* alloc_procps_scan(void) FAST_FUNC;
 void free_procps_scan(procps_status_t* sp) FAST_FUNC;

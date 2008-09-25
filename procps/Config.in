@@ -148,6 +148,13 @@ config FEATURE_TOP_CPU_GLOBAL_PERCENTS
 	help
 	  Makes top display "CPU: NN% usr NN% sys..." line.
 
+config FEATURE_TOP_SMP_CPU
+	bool "SMP CPU usage display ('c' key) (adds 0.5kb)"
+	default n
+	depends on FEATURE_TOP_CPU_GLOBAL_PERCENTS
+	help
+	  Allos 'c' key to switch between individual/cumulative CPU stats
+
 config FEATURE_TOP_DECIMALS
 	bool "Show 1/10th of a percent in CPU/mem statistics (adds 0.3k bytes)"
 	default n
@@ -155,8 +162,15 @@ config FEATURE_TOP_DECIMALS
 	help
 	  Show 1/10th of a percent in CPU/mem statistics.
 
+config FEATURE_TOP_SMP_PROCESS
+	bool "Show CPU process runs on (adds <0.1k bytes)"
+	default n
+	depends on TOP
+	help
+	  Show CPU where process was last found running on
+
 config FEATURE_TOPMEM
-	bool "topmem"
+	bool "Topmem command ('s' key)"
 	default n
 	depends on TOP
 	help
@@ -180,4 +194,3 @@ config WATCH
 
 
 endmenu
-

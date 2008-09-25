@@ -219,7 +219,6 @@ procps_status_t* FAST_FUNC procps_scan(procps_status_t* sp, int flags)
 #if !ENABLE_FEATURE_FAST_TOP
 			unsigned long vsz, rss;
 #endif
-
 			/* see proc(5) for some details on this */
 			strcpy(filename_tail, "/stat");
 			n = read_to_buf(filename, buf);
@@ -247,9 +246,12 @@ procps_status_t* FAST_FUNC procps_scan(procps_status_t* sp, int flags)
 				"%lu "                 /* start_time */
 				"%lu "                 /* vsize */
 				"%lu "                 /* rss */
-			/*	"%lu %lu %lu %lu %lu %lu " rss_rlim, start_code, end_code, start_stack, kstk_esp, kstk_eip */
-			/*	"%u %u %u %u "         signal, blocked, sigignore, sigcatch */
-			/*	"%lu %lu %lu"          wchan, nswap, cnswap */
+#if ENABLE_FEATURE_TOP_SMP_PROCESS
+				"%*s %*s %*s %*s %*s %*s " /*rss_rlim, start_code, end_code, start_stack, kstk_esp, kstk_eip */
+				"%*s %*s %*s %*s "         /*signal, blocked, sigignore, sigcatch */
+				"%*s %*s %*s %*s "         /*wchan, nswap, cnswap, exit_signal */
+				"%d"                       /*cpu last seen on*/
+#endif
 				,
 				sp->state, &sp->ppid,
 				&sp->pgid, &sp->sid, &tty,
@@ -257,9 +259,19 @@ procps_status_t* FAST_FUNC procps_scan(procps_status_t* sp, int flags)
 				&tasknice,
 				&sp->start_time,
 				&vsz,
-				&rss);
-			if (n != 11)
+				&rss
+#if ENABLE_FEATURE_TOP_SMP_PROCESS
+				, &sp->last_seen_on_cpu
+#endif
+				);
+
+			if (n < 11)
 				break;
+#if ENABLE_FEATURE_TOP_SMP_PROCESS
+			if (n < 11+15)
+				sp->last_seen_on_cpu = 0;
+#endif
+
 			/* vsz is in bytes and we want kb */
 			sp->vsz = vsz >> 10;
 			/* vsz is in bytes but rss is in *PAGES*! Can you believe that? */
@@ -288,7 +300,15 @@ procps_status_t* FAST_FUNC procps_scan(procps_status_t* sp, int flags)
 			sp->vsz = fast_strtoul_10(&cp) >> 10;
 			/* vsz is in bytes but rss is in *PAGES*! Can you believe that? */
 			sp->rss = fast_strtoul_10(&cp) << sp->shift_pages_to_kb;
+#if ENABLE_FEATURE_TOP_SMP_PROCESS
+			/* (6): rss_rlim, start_code, end_code, start_stack, kstk_esp, kstk_eip */
+			/* (4): signal, blocked, sigignore, sigcatch */
+			/* (4): wchan, nswap, cnswap, exit_signal */
+			cp = skip_fields(cp, 14);
+//FIXME: is it safe to assume this field exists?
+			sp->last_seen_on_cpu = fast_strtoul_10(&cp);
 #endif
+#endif /* end of !ENABLE_FEATURE_TOP_SMP_PROCESS */
 
 			if (sp->vsz == 0 && sp->state[0] != 'Z')
 				sp->state[1] = 'W';
@@ -300,7 +320,6 @@ procps_status_t* FAST_FUNC procps_scan(procps_status_t* sp, int flags)
 				sp->state[2] = 'N';
 			else
 				sp->state[2] = ' ';
-
 		}
 
 #if ENABLE_FEATURE_TOPMEM
