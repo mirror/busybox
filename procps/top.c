@@ -90,7 +90,7 @@ struct globals {
 	cmp_funcp sort_function[SORT_DEPTH];
 	struct save_hist *prev_hist;
 	int prev_hist_count;
-	jiffy_counts_t jif, prev_jif;
+	jiffy_counts_t cur_jif, prev_jif;
 	/* int hist_iterations; */
 	unsigned total_pcpu;
 	/* unsigned long total_vsz; */
@@ -120,7 +120,7 @@ enum { LINE_BUF_SIZE = COMMON_BUFSIZE - offsetof(struct globals, line_buf) };
 #define sort_function    (G.sort_function     )
 #define prev_hist        (G.prev_hist         )
 #define prev_hist_count  (G.prev_hist_count   )
-#define jif              (G.jif               )
+#define cur_jif          (G.cur_jif           )
 #define prev_jif         (G.prev_jif          )
 #define cpu_jif          (G.cpu_jif           )
 #define cpu_prev_jif     (G.cpu_prev_jif      )
@@ -214,23 +214,20 @@ static void get_jiffy_counts(void)
 {
 	FILE* fp = xfopen_for_read("stat");
 
-#if !ENABLE_FEATURE_TOP_SMP_CPU
-	prev_jif = jif;
-	if (read_cpu_jiffy(fp, &jif) < 4)
+	/* We need to parse cumulative counts even if SMP CPU display is on,
+	 * they are used to calculate per process CPU% */
+	prev_jif = cur_jif;
+	if (read_cpu_jiffy(fp, &cur_jif) < 4)
 		bb_error_msg_and_die("can't read /proc/stat");
+
+#if !ENABLE_FEATURE_TOP_SMP_CPU
 	fclose(fp);
 	return;
 #else
-	if (!smp_cpu_info) {  /* user wants to see cumulative cpu info */
-		prev_jif = jif;
-		if (read_cpu_jiffy(fp, &jif) < 4)
-			bb_error_msg_and_die("can't read /proc/stat");
+	if (!smp_cpu_info) {
 		fclose(fp);
 		return;
 	}
-
-	/* Discard first "cpu ..." line */
-	fgets(line_buf, LINE_BUF_SIZE, fp);
 
 	if (!num_cpus) {
 		/* First time here. How many CPUs?
@@ -245,10 +242,6 @@ static void get_jiffy_counts(void)
 		if (num_cpus == 0) /* /proc/stat with only "cpu ..." line?! */
 			smp_cpu_info = 0;
 
-		/* TODO: need to cap num_cpus to a reasonable num
-		 * on massively paralle machines so that we dont
-		 * swamp the terminal with cpu "only" info
-		 */
 		cpu_prev_jif = xzalloc(sizeof(cpu_prev_jif[0]) * num_cpus);
 
 		/* Otherwise the first per cpu display shows all 100% idles */
@@ -353,7 +346,7 @@ static char *fmt_100percent_8(char pbuf[8], unsigned value, unsigned total)
 static void display_cpus(int scr_width, char *scrbuf, int *lines_rem_p)
 {
 	/*
-	 * xxx% = (jif.xxx - prev_jif.xxx) / (jif.total - prev_jif.total) * 100%
+	 * xxx% = (cur_jif.xxx - prev_jif.xxx) / (cur_jif.total - prev_jif.total) * 100%
 	 */
 	unsigned total_diff;
 	jiffy_counts_t *p_jif, *p_prev_jif;
@@ -379,7 +372,7 @@ static void display_cpus(int scr_width, char *scrbuf, int *lines_rem_p)
 #if !ENABLE_FEATURE_TOP_SMP_CPU
 	{
 		i = 1;
-		p_jif = &jif;
+		p_jif = &cur_jif;
 		p_prev_jif = &prev_jif;
 #else
 	/* Loop thru CPU(s) */
@@ -388,13 +381,12 @@ static void display_cpus(int scr_width, char *scrbuf, int *lines_rem_p)
 		n_cpu_lines = *lines_rem_p;
 
 	for (i = 0; i < n_cpu_lines; i++) {
-		/* set the real loop end */
 		p_jif = &cpu_jif[i];
 		p_prev_jif = &cpu_prev_jif[i];
 #endif
 		total_diff = CALC_TOT_DIFF;
 
-		{ /* Need block: CALC_STAT are declarations */
+		{ /* Need a block: CALC_STAT are declarations */
 			CALC_STAT(usr);
 			CALC_STAT(sys);
 			CALC_STAT(nic);
@@ -500,8 +492,9 @@ static unsigned long display_header(int scr_width, int *lines_rem_p)
 
 	/* read load average as a string */
 	buf[0] = '\0';
-	open_read_close("loadavg", buf, sizeof("N.NN N.NN N.NN")-1);
-	buf[sizeof("N.NN N.NN N.NN")-1] = '\0';
+	open_read_close("loadavg", buf, sizeof(buf) - 1);
+	buf[sizeof(buf) - 1] = '\n';
+	*strchr(buf, '\n') = '\0';
 	snprintf(scrbuf, scr_width, "Load average: %s", buf);
 	puts(scrbuf);
 	(*lines_rem_p)--;
@@ -561,7 +554,7 @@ static NOINLINE void display_process_list(int lines_rem, int scr_width)
 	}
 	pmem_half = (1U << pmem_shift) / (ENABLE_FEATURE_TOP_DECIMALS? 20 : 2);
 #if ENABLE_FEATURE_TOP_CPU_USAGE_PERCENTAGE
-	busy_jifs = jif.busy - prev_jif.busy;
+	busy_jifs = cur_jif.busy - prev_jif.busy;
 	/* This happens if there were lots of short-lived processes
 	 * between two top updates (e.g. compilation) */
 	if (total_pcpu < busy_jifs) total_pcpu = busy_jifs;
@@ -570,17 +563,17 @@ static NOINLINE void display_process_list(int lines_rem, int scr_width)
 	 * CPU% = s->pcpu/sum(s->pcpu) * busy_cpu_ticks/total_cpu_ticks
 	 * (pcpu is delta of sys+user time between samples)
 	 */
-	/* (jif.xxx - prev_jif.xxx) and s->pcpu are
+	/* (cur_jif.xxx - prev_jif.xxx) and s->pcpu are
 	 * in 0..~64000 range (HZ*update_interval).
 	 * we assume that unsigned is at least 32-bit.
 	 */
 	pcpu_shift = 6;
-	pcpu_scale = (UPSCALE*64*(uint16_t)busy_jifs ? : 1);
-	while (pcpu_scale < (1U<<(BITS_PER_INT-2))) {
+	pcpu_scale = (UPSCALE*64 * (uint16_t)busy_jifs ? : 1);
+	while (pcpu_scale < (1U << (BITS_PER_INT-2))) {
 		pcpu_scale *= 4;
 		pcpu_shift += 2;
 	}
-	pcpu_scale /= ( (uint16_t)(jif.total-prev_jif.total)*total_pcpu ? : 1);
+	pcpu_scale /= ( (uint16_t)(cur_jif.total - prev_jif.total) * total_pcpu ? : 1);
 	/* we want (s->pcpu * pcpu_scale) to never overflow */
 	while (pcpu_scale >= 1024) {
 		pcpu_scale /= 4;
@@ -630,7 +623,7 @@ static NOINLINE void display_process_list(int lines_rem, int scr_width)
 			read_cmdline(line_buf + col, scr_width - col - 1, s->pid, s->comm);
 		fputs(line_buf, stdout);
 		/* printf(" %d/%d %lld/%lld", s->pcpu, total_pcpu,
-			jif.busy - prev_jif.busy, jif.total - prev_jif.total); */
+			cur_jif.busy - prev_jif.busy, cur_jif.total - prev_jif.total); */
 		s++;
 	}
 	/* printf(" %d", hist_iterations); */
@@ -696,6 +689,7 @@ enum { NUM_SORT_FIELD = 7 };
 #define topmem ((topmem_status_t*)top)
 
 #if ENABLE_FEATURE_TOPMEM
+
 static int topmem_sort(char *a, char *b)
 {
 	int n;
@@ -864,6 +858,7 @@ static NOINLINE void display_topmem_process_list(int lines_rem, int scr_width)
 #undef HDR_STR
 #undef MIN_WIDTH
 }
+
 #else
 void display_topmem_process_list(int lines_rem, int scr_width);
 int topmem_sort(char *a, char *b);
@@ -917,7 +912,7 @@ int top_main(int argc UNUSED_PARAM, char **argv)
 #if ENABLE_FEATURE_TOP_SMP_CPU
 	/*num_cpus = 0;*/
 	/*smp_cpu_info = 0;*/  /* to start with show aggregate */
-	cpu_jif = &jif;
+	cpu_jif = &cur_jif;
 	cpu_prev_jif = &prev_jif;
 #endif
 
@@ -1092,12 +1087,13 @@ int top_main(int argc UNUSED_PARAM, char **argv)
 				inverted ^= 1;
 #endif
 #if ENABLE_FEATURE_TOP_SMP_CPU
-			if (c == 'c') { /* procps-2.0.18 uses 'C' */
+			/* procps-2.0.18 uses 'C', 3.2.7 uses '1' */
+			if (c == 'c' || c == '1') {
 				/* User wants to toggle per cpu <> aggregate */
 				if (smp_cpu_info) {
 					free(cpu_prev_jif);
 					free(cpu_jif);
-					cpu_jif = &jif;
+					cpu_jif = &cur_jif;
 					cpu_prev_jif = &prev_jif;
 				} else {
 					/* Prepare for xrealloc() */
