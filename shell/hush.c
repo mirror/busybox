@@ -825,7 +825,7 @@ static void handler_ctrl_z(int sig UNUSED_PARAM)
 	if (!pid) { /* child */
 		if (ENABLE_HUSH_JOB)
 			die_sleep = 0; /* let nofork's xfuncs die */
-		setpgrp();
+		bb_setpgrp();
 		debug_printf_jobs("set pgrp for child %d ok\n", getpid());
 		set_every_sighandler(SIG_DFL);
 		raise(SIGTSTP); /* resend TSTP so that child will be stopped */
@@ -4040,7 +4040,7 @@ static void setup_job_control(void)
 	set_fatal_sighandler(sigexit);
 
 	/* Put ourselves in our own process group.  */
-	setpgrp(); /* is the same as setpgid(our_pid, our_pid); */
+	bb_setpgrp(); /* is the same as setpgid(our_pid, our_pid); */
 	/* Grab control of the terminal.  */
 	tcsetpgrp(G.interactive_fd, getpid());
 }
