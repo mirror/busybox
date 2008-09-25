@@ -4211,7 +4211,7 @@
      "\n	-v	Verbose" \
 
 #define top_trivial_usage \
-       "[-b] [-n COUNT] [-d SECONDS]"
+       "[-b] [-nCOUNT] [-dSECONDS]"
 #define top_full_usage "\n\n" \
        "Provide a view of process activity in real time.\n" \
        "Read the status of all processes from /proc each SECONDS\n" \
