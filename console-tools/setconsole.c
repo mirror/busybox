@@ -3,7 +3,7 @@
  *  setconsole.c - redirect system console output
  *
  *  Copyright (C) 2004,2005  Enrik Berkhan <Enrik.Berkhan@inka.de>
- *  Copyright (C) 2008 Bernhard Fischer
+ *  Copyright (C) 2008 Bernhard Reutner-Fischer
  *
  * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  */

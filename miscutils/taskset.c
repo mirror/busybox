@@ -1,7 +1,7 @@
 /* vi: set sw=4 ts=4: */
 /*
  * taskset - retrieve or set a processes' CPU affinity
- * Copyright (c) 2006 Bernhard Fischer
+ * Copyright (c) 2006 Bernhard Reutner-Fischer
  *
  * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  */

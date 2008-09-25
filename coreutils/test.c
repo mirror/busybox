@@ -12,7 +12,7 @@
  *     modified by Herbert Xu to be used as built-in in ash.
  *     modified by Erik Andersen <andersen@codepoet.org> to be used
  *     in busybox.
- *     modified by Bernhard Fischer to be useable (i.e. a bit less bloaty).
+ *     modified by Bernhard Reutner-Fischer to be useable (i.e. a bit less bloaty).
  *
  * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  *

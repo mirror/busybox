@@ -1,7 +1,7 @@
 /* vi: set sw=4 ts=4: */
 /*
  * chrt - manipulate real-time attributes of a process
- * Copyright (c) 2006-2007 Bernhard Fischer
+ * Copyright (c) 2006-2007 Bernhard Reutner-Fischer
  *
  * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  */

@@ -10,7 +10,7 @@
  * Changes:
  *
  * Rani Assaf <rani@magic.metawire.com> 980929:	resolve addresses
- * Bernhard Fischer rewrote to use index_in_substr_array
+ * Bernhard Reutner-Fischer rewrote to use index_in_substr_array
  */
 
 #include "libbb.h"

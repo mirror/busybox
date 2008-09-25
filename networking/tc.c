@@ -6,7 +6,7 @@
  *
  * Authors:	Alexey Kuznetsov, <kuznet@ms2.inr.ac.ru>
  *
- * Bernhard Fischer adjusted for busybox
+ * Bernhard Reutner-Fischer adjusted for busybox
  */
 
 #include "libbb.h"

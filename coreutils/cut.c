@@ -4,7 +4,7 @@
  *
  * Copyright (C) 1999,2000,2001 by Lineo, inc.
  * Written by Mark Whitley <markw@codepoet.org>
- * debloated by Bernhard Fischer
+ * debloated by Bernhard Reutner-Fischer
  *
  * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  */

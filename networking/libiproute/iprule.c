@@ -13,7 +13,7 @@
  * Changes:
  *
  * Rani Assaf <rani@magic.metawire.com> 980929:	resolve addresses
- * initially integrated into busybox by Bernhard Fischer
+ * initially integrated into busybox by Bernhard Reutner-Fischer
  */
 
 #include <netinet/in.h>

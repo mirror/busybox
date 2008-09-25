@@ -2,7 +2,7 @@
 /*
  * Mini run-parts implementation for busybox
  *
- * Copyright (C) 2007 Bernhard Fischer
+ * Copyright (C) 2007 Bernhard Reutner-Fischer
  *
  * Based on a older version that was in busybox which was 1k big..
  *   Copyright (C) 2001 by Emanuele Aina <emanuele.aina@tiscali.it>

@@ -5,7 +5,7 @@
  * by Matthew Grant <grantma@anathoth.gen.nz>
  *
  * iso-format handling added by Robert Griebl <griebl@gmx.de>
- * bugfixes and cleanup by Bernhard Fischer
+ * bugfixes and cleanup by Bernhard Reutner-Fischer
  *
  * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
 */

@@ -3,7 +3,7 @@
  * simplified modprobe
  *
  * Copyright (c) 2008 Vladimir Dronnikov
- * Copyright (c) 2008 Bernhard Fischer (initial depmod code)
+ * Copyright (c) 2008 Bernhard Reutner-Fischer (initial depmod code)
  *
  * Licensed under GPLv2, see file LICENSE in this tarball for details.
  */

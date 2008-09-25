@@ -1,7 +1,7 @@
 /* vi: set sw=4 ts=4: */
 /*
  * depmod - generate modules.dep
- * Copyright (c) 2008 Bernhard Fischer
+ * Copyright (c) 2008 Bernhard Reutner-Fischer
  * Copyrihgt (c) 2008 Timo Teras <timo.teras@iki.fi>
  * Copyright (c) 2008 Vladimir Dronnikov
  *

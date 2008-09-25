@@ -1,7 +1,7 @@
 /* vi: set sw=4 ts=4: */
 /*
  * split - split a file into pieces
- * Copyright (c) 2007 Bernhard Fischer
+ * Copyright (c) 2007 Bernhard Reutner-Fischer
  *
  * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  */

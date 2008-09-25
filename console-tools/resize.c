@@ -2,7 +2,7 @@
 /*
  * resize - set terminal width and height.
  *
- * Copyright 2006 Bernhard Fischer
+ * Copyright 2006 Bernhard Reutner-Fischer
  *
  * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  */

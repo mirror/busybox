@@ -99,7 +99,7 @@ Rob Landley suggested these:
     This one's open to everybody, but I'll wind up doing it...
 
 
-Bernhard Fischer <busybox@busybox.net> suggests to look at these:
+Bernhard Reutner-Fischer <busybox@busybox.net> suggests to look at these:
   New debug options:
     -Wlarger-than-127
     Cleanup any big users

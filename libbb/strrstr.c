@@ -2,7 +2,7 @@
 /*
  * Utility routines.
  *
- * Copyright (C) 2008 Bernhard Fischer
+ * Copyright (C) 2008 Bernhard Reutner-Fischer
  *
  * Licensed under GPLv2 or later, see file License in this tarball for details.
  */

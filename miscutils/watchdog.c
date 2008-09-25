@@ -3,7 +3,7 @@
  * Mini watchdog implementation for busybox
  *
  * Copyright (C) 2003  Paul Mundt <lethal@linux-sh.org>
- * Copyright (C) 2006  Bernhard Fischer <busybox@busybox.net>
+ * Copyright (C) 2006  Bernhard Reutner-Fischer <busybox@busybox.net>
  * Copyright (C) 2008  Darius Augulis <augulis.darius@gmail.com>
  *
  * Licensed under the GPL v2 or later, see the file LICENSE in this tarball.

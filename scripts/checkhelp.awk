@@ -1,7 +1,7 @@
 #!/usr/bin/awk -f
 # AWK script to check for missing help entries for config options
 #
-# Copyright (C) 2006 Bernhard Fischer
+# Copyright (C) 2006 Bernhard Reutner-Fischer
 #
 # This file is distributed under the terms and conditions of the
 # MIT/X public licenses. See http://opensource.org/licenses/mit-license.html

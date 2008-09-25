@@ -2,7 +2,7 @@
 /*
  * Small implementation of brctl for busybox.
  *
- * Copyright (C) 2008 by Bernhard Fischer
+ * Copyright (C) 2008 by Bernhard Reutner-Fischer
  *
  * Some helper functions from bridge-utils are
  * Copyright (C) 2000 Lennert Buytenhek
