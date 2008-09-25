@@ -25,6 +25,7 @@
  */
 
 #include "libbb.h"
+#include <fnmatch.h>
 #include "unarchive.h"
 
 /* note: if you vary hash_prime sizes be aware,
@@ -1293,7 +1294,7 @@ static void free_array(char **array)
  * the status_hashtable to retrieve the info. This results in smaller code than
  * scanning the status file. The resulting list, however, is unsorted.
  */
-static void list_packages(void)
+static void list_packages(const char *pattern)
 {
 	int i;
 
@@ -1313,6 +1314,9 @@ static void list_packages(void)
 			stat_str = name_hashtable[status_hashtable[i]->status];
 			name_str = name_hashtable[package_hashtable[status_hashtable[i]->package]->name];
 			vers_str = name_hashtable[package_hashtable[status_hashtable[i]->package]->version];
+
+			if (pattern && fnmatch(pattern, name_str, 0))
+				continue;
 
 			/* get abbreviation for status field 1 */
 			s1 = stat_str[0] == 'i' ? 'i' : 'r';
@@ -1626,7 +1630,7 @@ int dpkg_main(int argc UNUSED_PARAM, char **argv)
 
 	/* if the list action was given print the installed packages and exit */
 	if (opt & OPT_list_installed) {
-		list_packages();
+		list_packages(argv[0]);
 		return EXIT_SUCCESS;
 	}
 
