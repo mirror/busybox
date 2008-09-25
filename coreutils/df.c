@@ -93,7 +93,7 @@ int df_main(int argc, char **argv)
 		disp_units_hdr = xasprintf("%s-blocks",
 			make_human_readable_str(df_disp_hr, 0, !!(opt & OPT_POSIX)));
 #else
-		disp_units_hdr = xasprintf("%d-blocks", df_disp_hr);
+		disp_units_hdr = xasprintf("%lu-blocks", df_disp_hr);
 #endif
 	}
 	printf("Filesystem           %-15sUsed Available %s Mounted on\n",
