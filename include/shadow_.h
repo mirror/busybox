@@ -27,7 +27,7 @@
 #endif
 
 /* This file is #included after #include <shadow.h>
- * We will use libc-defined structures, but will #define finction names
+ * We will use libc-defined structures, but will #define function names
  * so that function calls are directed to bb_internal_XXX replacements
  */
 
