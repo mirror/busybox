@@ -23,7 +23,7 @@
  * returns a newly allocated string containing the space-separated domains,
  * prefixed with the contents of string pre, or NULL if an error occurs.
  */
-char *dname_dec(const uint8_t *cstr, int clen, const char *pre)
+char* FAST_FUNC dname_dec(const uint8_t *cstr, int clen, const char *pre)
 {
 	const uint8_t *c;
 	int crtpos, retpos, depth, plen = 0, len = 0;
@@ -178,7 +178,7 @@ static int find_offset(const uint8_t *cstr, int clen, const uint8_t *dname)
  * The computed string is returned directly; its length is returned via retlen;
  * NULL and 0, respectively, are returned if an error occurs.
  */
-uint8_t *dname_enc(const uint8_t *cstr, int clen, const char *src, int *retlen)
+uint8_t* FAST_FUNC dname_enc(const uint8_t *cstr, int clen, const char *src, int *retlen)
 {
 	uint8_t *d, *dname;
 	int off;

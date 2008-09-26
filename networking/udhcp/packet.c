@@ -15,7 +15,7 @@
 #include "options.h"
 
 
-void udhcp_init_header(struct dhcpMessage *packet, char type)
+void FAST_FUNC udhcp_init_header(struct dhcpMessage *packet, char type)
 {
 	memset(packet, 0, sizeof(struct dhcpMessage));
 	packet->op = BOOTREQUEST;
@@ -34,7 +34,7 @@ void udhcp_init_header(struct dhcpMessage *packet, char type)
 
 
 /* read a packet from socket fd, return -1 on read error, -2 on packet error */
-int udhcp_recv_kernel_packet(struct dhcpMessage *packet, int fd)
+int FAST_FUNC udhcp_recv_kernel_packet(struct dhcpMessage *packet, int fd)
 {
 	int bytes;
 	unsigned char *vendor;
@@ -85,7 +85,7 @@ int udhcp_recv_kernel_packet(struct dhcpMessage *packet, int fd)
 }
 
 
-uint16_t udhcp_checksum(void *addr, int count)
+uint16_t FAST_FUNC udhcp_checksum(void *addr, int count)
 {
 	/* Compute Internet Checksum for "count" bytes
 	 *         beginning at location "addr".
@@ -116,7 +116,7 @@ uint16_t udhcp_checksum(void *addr, int count)
 
 
 /* Construct a ip/udp header for a packet, send packet */
-int udhcp_send_raw_packet(struct dhcpMessage *payload,
+int FAST_FUNC udhcp_send_raw_packet(struct dhcpMessage *payload,
 		uint32_t source_ip, int source_port,
 		uint32_t dest_ip, int dest_port, const uint8_t *dest_arp, int ifindex)
 {
@@ -186,7 +186,7 @@ int udhcp_send_raw_packet(struct dhcpMessage *payload,
 
 
 /* Let the kernel do all the work for packet generation */
-int udhcp_send_kernel_packet(struct dhcpMessage *payload,
+int FAST_FUNC udhcp_send_kernel_packet(struct dhcpMessage *payload,
 		uint32_t source_ip, int source_port,
 		uint32_t dest_ip, int dest_port)
 {

@@ -209,7 +209,7 @@ static char **fill_envp(struct dhcpMessage *packet)
 
 
 /* Call a script with a par file and env vars */
-void udhcp_run_script(struct dhcpMessage *packet, const char *name)
+void FAST_FUNC udhcp_run_script(struct dhcpMessage *packet, const char *name)
 {
 	int pid;
 	char **envp, **curr;

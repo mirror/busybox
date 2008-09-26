@@ -35,7 +35,7 @@ static void signal_handler(int sig)
 
 /* Call this before doing anything else. Sets up the socket pair
  * and installs the signal handler */
-void udhcp_sp_setup(void)
+void FAST_FUNC udhcp_sp_setup(void)
 {
 	/* was socketpair, but it needs AF_UNIX in kernel */
 	xpiped_pair(signal_pipe);
@@ -53,7 +53,7 @@ void udhcp_sp_setup(void)
 /* Quick little function to setup the rfds. Will return the
  * max_fd for use with select. Limited in that you can only pass
  * one extra fd */
-int udhcp_sp_fd_set(fd_set *rfds, int extra_fd)
+int FAST_FUNC udhcp_sp_fd_set(fd_set *rfds, int extra_fd)
 {
 	FD_ZERO(rfds);
 	FD_SET(signal_pipe.rd, rfds);
@@ -68,7 +68,7 @@ int udhcp_sp_fd_set(fd_set *rfds, int extra_fd)
 /* Read a signal from the signal pipe. Returns 0 if there is
  * no signal, -1 on error (and sets errno appropriately), and
  * your signal on success */
-int udhcp_sp_read(const fd_set *rfds)
+int FAST_FUNC udhcp_sp_read(const fd_set *rfds)
 {
 	unsigned char sig;
 

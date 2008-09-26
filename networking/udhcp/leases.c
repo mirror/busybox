@@ -43,7 +43,7 @@ static void clear_lease(const uint8_t *chaddr, uint32_t yiaddr)
 
 
 /* add a lease into the table, clearing out any old ones */
-struct dhcpOfferedAddr *add_lease(const uint8_t *chaddr, uint32_t yiaddr, unsigned long lease)
+struct dhcpOfferedAddr* FAST_FUNC add_lease(const uint8_t *chaddr, uint32_t yiaddr, unsigned long lease)
 {
 	struct dhcpOfferedAddr *oldest;
 
@@ -63,14 +63,14 @@ struct dhcpOfferedAddr *add_lease(const uint8_t *chaddr, uint32_t yiaddr, unsign
 
 
 /* true if a lease has expired */
-int lease_expired(struct dhcpOfferedAddr *lease)
+int FAST_FUNC lease_expired(struct dhcpOfferedAddr *lease)
 {
 	return (lease->expires < (unsigned long) time(0));
 }
 
 
 /* Find the first lease that matches chaddr, NULL if no match */
-struct dhcpOfferedAddr *find_lease_by_chaddr(const uint8_t *chaddr)
+struct dhcpOfferedAddr* FAST_FUNC find_lease_by_chaddr(const uint8_t *chaddr)
 {
 	unsigned i;
 
@@ -83,7 +83,7 @@ struct dhcpOfferedAddr *find_lease_by_chaddr(const uint8_t *chaddr)
 
 
 /* Find the first lease that matches yiaddr, NULL is no match */
-struct dhcpOfferedAddr *find_lease_by_yiaddr(uint32_t yiaddr)
+struct dhcpOfferedAddr* FAST_FUNC find_lease_by_yiaddr(uint32_t yiaddr)
 {
 	unsigned i;
 
@@ -119,7 +119,7 @@ static int nobody_responds_to_arp(uint32_t addr)
 
 /* find an assignable address, if check_expired is true, we check all the expired leases as well.
  * Maybe this should try expired leases by age... */
-uint32_t find_address(int check_expired)
+uint32_t FAST_FUNC find_address(int check_expired)
 {
 	uint32_t addr, ret;
 	struct dhcpOfferedAddr *lease = NULL;

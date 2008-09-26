@@ -37,7 +37,7 @@
 #include "common.h"
 
 
-int read_interface(const char *interface, int *ifindex, uint32_t *addr, uint8_t *arp)
+int FAST_FUNC udhcp_read_interface(const char *interface, int *ifindex, uint32_t *addr, uint8_t *arp)
 {
 	int fd;
 	struct ifreq ifr;
@@ -85,7 +85,7 @@ int read_interface(const char *interface, int *ifindex, uint32_t *addr, uint8_t 
 
 /* 1. None of the callers expects it to ever fail */
 /* 2. ip was always INADDR_ANY */
-int listen_socket(/*uint32_t ip,*/ int port, const char *inf)
+int FAST_FUNC udhcp_listen_socket(/*uint32_t ip,*/ int port, const char *inf)
 {
 	int fd;
 	struct ifreq interface;

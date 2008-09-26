@@ -267,7 +267,7 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 		client_config.opt_mask[n >> 3] |= 1 << (n & 7);
 	}
 
-	if (read_interface(client_config.interface, &client_config.ifindex,
+	if (udhcp_read_interface(client_config.interface, &client_config.ifindex,
 			   NULL, client_config.arp))
 		return 1;
 #if !BB_MMU
@@ -322,9 +322,9 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 
 		if (listen_mode != LISTEN_NONE && sockfd < 0) {
 			if (listen_mode == LISTEN_KERNEL)
-				sockfd = listen_socket(/*INADDR_ANY,*/ CLIENT_PORT, client_config.interface);
+				sockfd = udhcp_listen_socket(/*INADDR_ANY,*/ CLIENT_PORT, client_config.interface);
 			else
-				sockfd = raw_socket(client_config.ifindex);
+				sockfd = udhcp_raw_socket(client_config.ifindex);
 		}
 		max_fd = udhcp_sp_fd_set(&rfds, sockfd);
 
@@ -348,7 +348,7 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 		 * resend discover/renew/whatever
 		 */
 		if (retval == 0) {
-			/* We will restart wait afresh in any case */
+			/* We will restart the wait in any case */
 			already_waited_sec = 0;
 
 			switch (state) {

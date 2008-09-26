@@ -107,13 +107,13 @@ extern const struct dhcp_option dhcp_options[];
 extern const char dhcp_option_strings[];
 extern const uint8_t dhcp_option_lengths[];
 
-uint8_t *get_option(struct dhcpMessage *packet, int code);
-int end_option(uint8_t *optionptr);
-int add_option_string(uint8_t *optionptr, uint8_t *string);
-int add_simple_option(uint8_t *optionptr, uint8_t code, uint32_t data);
+uint8_t *get_option(struct dhcpMessage *packet, int code) FAST_FUNC;
+int end_option(uint8_t *optionptr) FAST_FUNC;
+int add_option_string(uint8_t *optionptr, uint8_t *string) FAST_FUNC;
+int add_simple_option(uint8_t *optionptr, uint8_t code, uint32_t data) FAST_FUNC;
 #if ENABLE_FEATURE_RFC3397
-char *dname_dec(const uint8_t *cstr, int clen, const char *pre);
-uint8_t *dname_enc(const uint8_t *cstr, int clen, const char *src, int *retlen);
+char *dname_dec(const uint8_t *cstr, int clen, const char *pre) FAST_FUNC;
+uint8_t *dname_enc(const uint8_t *cstr, int clen, const char *src, int *retlen) FAST_FUNC;
 #endif
 
 #if __GNUC_PREREQ(4,1)

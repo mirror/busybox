@@ -37,17 +37,17 @@ struct client_config_t {
 
 /*** clientpacket.h ***/
 
-uint32_t random_xid(void);
-int send_discover(uint32_t xid, uint32_t requested);
-int send_selecting(uint32_t xid, uint32_t server, uint32_t requested);
+uint32_t random_xid(void) FAST_FUNC;
+int send_discover(uint32_t xid, uint32_t requested) FAST_FUNC;
+int send_selecting(uint32_t xid, uint32_t server, uint32_t requested) FAST_FUNC;
 #if ENABLE_FEATURE_UDHCPC_ARPING
-int send_decline(uint32_t xid, uint32_t server, uint32_t requested);
+int send_decline(uint32_t xid, uint32_t server, uint32_t requested) FAST_FUNC;
 #endif
-int send_renew(uint32_t xid, uint32_t server, uint32_t ciaddr);
-int send_renew(uint32_t xid, uint32_t server, uint32_t ciaddr);
-int send_release(uint32_t server, uint32_t ciaddr);
+int send_renew(uint32_t xid, uint32_t server, uint32_t ciaddr) FAST_FUNC;
+int send_renew(uint32_t xid, uint32_t server, uint32_t ciaddr) FAST_FUNC;
+int send_release(uint32_t server, uint32_t ciaddr) FAST_FUNC;
 
-int udhcp_recv_raw_packet(struct dhcpMessage *payload, int fd);
+int udhcp_recv_raw_packet(struct dhcpMessage *payload, int fd) FAST_FUNC;
 
 #if __GNUC_PREREQ(4,1)
 # pragma GCC visibility pop

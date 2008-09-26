@@ -82,40 +82,40 @@ struct dhcpOfferedAddr {
 	uint32_t expires;	/* host order */
 };
 
-struct dhcpOfferedAddr *add_lease(const uint8_t *chaddr, uint32_t yiaddr, unsigned long lease);
-int lease_expired(struct dhcpOfferedAddr *lease);
-struct dhcpOfferedAddr *find_lease_by_chaddr(const uint8_t *chaddr);
-struct dhcpOfferedAddr *find_lease_by_yiaddr(uint32_t yiaddr);
-uint32_t find_address(int check_expired);
+struct dhcpOfferedAddr *add_lease(const uint8_t *chaddr, uint32_t yiaddr, unsigned long lease) FAST_FUNC;
+int lease_expired(struct dhcpOfferedAddr *lease) FAST_FUNC;
+struct dhcpOfferedAddr *find_lease_by_chaddr(const uint8_t *chaddr) FAST_FUNC;
+struct dhcpOfferedAddr *find_lease_by_yiaddr(uint32_t yiaddr) FAST_FUNC;
+uint32_t find_address(int check_expired) FAST_FUNC;
 
 
 /*** static_leases.h ***/
 
 /* Config file will pass static lease info to this function which will add it
  * to a data structure that can be searched later */
-int addStaticLease(struct static_lease **lease_struct, uint8_t *mac, uint32_t *ip);
+int addStaticLease(struct static_lease **lease_struct, uint8_t *mac, uint32_t *ip) FAST_FUNC;
 /* Check to see if a mac has an associated static lease */
-uint32_t getIpByMac(struct static_lease *lease_struct, void *arg);
+uint32_t getIpByMac(struct static_lease *lease_struct, void *arg) FAST_FUNC;
 /* Check to see if an ip is reserved as a static ip */
-uint32_t reservedIp(struct static_lease *lease_struct, uint32_t ip);
+uint32_t reservedIp(struct static_lease *lease_struct, uint32_t ip) FAST_FUNC;
 /* Print out static leases just to check what's going on (debug code) */
-void printStaticLeases(struct static_lease **lease_struct);
+void printStaticLeases(struct static_lease **lease_struct) FAST_FUNC;
 
 
 /*** serverpacket.h ***/
 
-int send_offer(struct dhcpMessage *oldpacket);
-int send_NAK(struct dhcpMessage *oldpacket);
-int send_ACK(struct dhcpMessage *oldpacket, uint32_t yiaddr);
-int send_inform(struct dhcpMessage *oldpacket);
+int send_offer(struct dhcpMessage *oldpacket) FAST_FUNC;
+int send_NAK(struct dhcpMessage *oldpacket) FAST_FUNC;
+int send_ACK(struct dhcpMessage *oldpacket, uint32_t yiaddr) FAST_FUNC;
+int send_inform(struct dhcpMessage *oldpacket) FAST_FUNC;
 
 
 /*** files.h ***/
 
-void read_config(const char *file);
-void write_leases(void);
-void read_leases(const char *file);
-struct option_set *find_option(struct option_set *opt_list, uint8_t code);
+void read_config(const char *file) FAST_FUNC;
+void write_leases(void) FAST_FUNC;
+void read_leases(const char *file) FAST_FUNC;
+struct option_set *find_option(struct option_set *opt_list, uint8_t code) FAST_FUNC;
 
 
 #if __GNUC_PREREQ(4,1)

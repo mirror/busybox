@@ -69,7 +69,7 @@ static int read_yn(const char *line, void *arg)
 
 
 /* find option 'code' in opt_list */
-struct option_set *find_option(struct option_set *opt_list, uint8_t code)
+struct option_set* FAST_FUNC find_option(struct option_set *opt_list, uint8_t code)
 {
 	while (opt_list && opt_list->data[OPT_CODE] < code)
 		opt_list = opt_list->next;
@@ -307,7 +307,7 @@ static const struct config_keyword keywords[] = {
 };
 enum { KWS_WITH_DEFAULTS = ARRAY_SIZE(keywords) - 6 };
 
-void read_config(const char *file)
+void FAST_FUNC read_config(const char *file)
 {
 	parser_t *parser;
 	const struct config_keyword *k;
@@ -338,7 +338,7 @@ void read_config(const char *file)
 }
 
 
-void write_leases(void)
+void FAST_FUNC write_leases(void)
 {
 	int fp;
 	unsigned i;
@@ -380,7 +380,7 @@ void write_leases(void)
 }
 
 
-void read_leases(const char *file)
+void FAST_FUNC read_leases(const char *file)
 {
 	int fp;
 	unsigned i;

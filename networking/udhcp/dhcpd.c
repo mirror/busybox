@@ -94,7 +94,7 @@ int udhcpd_main(int argc UNUSED_PARAM, char **argv)
 	leases = xzalloc(server_config.max_leases * sizeof(*leases));
 	read_leases(server_config.lease_file);
 
-	if (read_interface(server_config.interface, &server_config.ifindex,
+	if (udhcp_read_interface(server_config.interface, &server_config.ifindex,
 			   &server_config.server, server_config.arp)) {
 		retval = 1;
 		goto ret;
@@ -107,7 +107,7 @@ int udhcpd_main(int argc UNUSED_PARAM, char **argv)
 	while (1) { /* loop until universe collapses */
 
 		if (server_socket < 0) {
-			server_socket = listen_socket(/*INADDR_ANY,*/ SERVER_PORT,
+			server_socket = udhcp_listen_socket(/*INADDR_ANY,*/ SERVER_PORT,
 					server_config.interface);
 		}
 

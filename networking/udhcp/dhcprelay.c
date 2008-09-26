@@ -156,12 +156,12 @@ static int init_sockets(char **client, int num_clients,
 	int i, n;
 
 	/* talk to real server on bootps */
-	fds[0] = listen_socket(/*INADDR_ANY,*/ SERVER_PORT, server);
+	fds[0] = udhcp_listen_socket(/*INADDR_ANY,*/ SERVER_PORT, server);
 	n = fds[0];
 
 	for (i = 1; i < num_clients; i++) {
 		/* listen for clients on bootps */
-		fds[i] = listen_socket(/*INADDR_ANY,*/ SERVER_PORT, client[i-1]);
+		fds[i] = udhcp_listen_socket(/*INADDR_ANY,*/ SERVER_PORT, client[i-1]);
 		if (fds[i] > n)
 			n = fds[i];
 	}
@@ -271,7 +271,7 @@ static void dhcprelay_loop(int *fds, int num_sockets, int max_socket, char **cli
 							(struct sockaddr *)(&client_addr), &addr_size);
 				if (packlen <= 0)
 					continue;
-				if (read_interface(clients[i-1], NULL, &dhcp_msg.giaddr, NULL))
+				if (udhcp_read_interface(clients[i-1], NULL, &dhcp_msg.giaddr, NULL))
 					dhcp_msg.giaddr = gw_ip;
 				pass_on(&dhcp_msg, packlen, i, fds, &client_addr, server_addr);
 			}
@@ -305,7 +305,7 @@ int dhcprelay_main(int argc, char **argv)
 	fds = xmalloc(num_sockets * sizeof(fds[0]));
 	max_socket = init_sockets(clients, num_sockets, argv[2], fds);
 
-	if (read_interface(argv[2], NULL, &gw_ip, NULL))
+	if (udhcp_read_interface(argv[2], NULL, &gw_ip, NULL))
 		return 1;
 
 	/* doesn't return */

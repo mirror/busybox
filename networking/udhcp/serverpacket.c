@@ -97,7 +97,7 @@ static void add_bootp_options(struct dhcpMessage *packet)
 
 
 /* send a DHCP OFFER to a DHCP DISCOVER */
-int send_offer(struct dhcpMessage *oldpacket)
+int FAST_FUNC send_offer(struct dhcpMessage *oldpacket)
 {
 	struct dhcpMessage packet;
 	struct dhcpOfferedAddr *lease = NULL;
@@ -185,7 +185,7 @@ int send_offer(struct dhcpMessage *oldpacket)
 }
 
 
-int send_NAK(struct dhcpMessage *oldpacket)
+int FAST_FUNC send_NAK(struct dhcpMessage *oldpacket)
 {
 	struct dhcpMessage packet;
 
@@ -196,7 +196,7 @@ int send_NAK(struct dhcpMessage *oldpacket)
 }
 
 
-int send_ACK(struct dhcpMessage *oldpacket, uint32_t yiaddr)
+int FAST_FUNC send_ACK(struct dhcpMessage *oldpacket, uint32_t yiaddr)
 {
 	struct dhcpMessage packet;
 	struct option_set *curr;
@@ -244,7 +244,7 @@ int send_ACK(struct dhcpMessage *oldpacket, uint32_t yiaddr)
 }
 
 
-int send_inform(struct dhcpMessage *oldpacket)
+int FAST_FUNC send_inform(struct dhcpMessage *oldpacket)
 {
 	struct dhcpMessage packet;
 	struct option_set *curr;

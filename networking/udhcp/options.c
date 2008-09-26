@@ -118,7 +118,7 @@ const uint8_t dhcp_option_lengths[] ALIGN1 = {
 
 
 /* get an option with bounds checking (warning, not aligned). */
-uint8_t *get_option(struct dhcpMessage *packet, int code)
+uint8_t* FAST_FUNC get_option(struct dhcpMessage *packet, int code)
 {
 	int i, length;
 	uint8_t *optionptr;
@@ -175,7 +175,7 @@ uint8_t *get_option(struct dhcpMessage *packet, int code)
 
 
 /* return the position of the 'end' option (no bounds checking) */
-int end_option(uint8_t *optionptr)
+int FAST_FUNC end_option(uint8_t *optionptr)
 {
 	int i = 0;
 
@@ -191,7 +191,7 @@ int end_option(uint8_t *optionptr)
 
 /* add an option string to the options (an option string contains an option code,
  * length, then data) */
-int add_option_string(uint8_t *optionptr, uint8_t *string)
+int FAST_FUNC add_option_string(uint8_t *optionptr, uint8_t *string)
 {
 	int end = end_option(optionptr);
 
@@ -209,7 +209,7 @@ int add_option_string(uint8_t *optionptr, uint8_t *string)
 
 
 /* add a one to four byte option to a packet */
-int add_simple_option(uint8_t *optionptr, uint8_t code, uint32_t data)
+int FAST_FUNC add_simple_option(uint8_t *optionptr, uint8_t code, uint32_t data)
 {
 	const struct dhcp_option *dh;
 

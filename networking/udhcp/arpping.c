@@ -39,7 +39,7 @@ enum {
 
 /* Returns 1 if no reply received */
 
-int arpping(uint32_t test_ip, uint32_t from_ip, uint8_t *from_mac, const char *interface)
+int FAST_FUNC arpping(uint32_t test_ip, uint32_t from_ip, uint8_t *from_mac, const char *interface)
 {
 	int timeout_ms;
 	struct pollfd pfd[1];

@@ -25,7 +25,7 @@
 
 
 /* Create a random xid */
-uint32_t random_xid(void)
+uint32_t FAST_FUNC random_xid(void)
 {
 	static smallint initialized;
 
@@ -81,7 +81,7 @@ static void add_param_req_option(struct dhcpMessage *packet)
 
 #if ENABLE_FEATURE_UDHCPC_ARPING
 /* Unicast a DHCP decline message */
-int send_decline(uint32_t xid, uint32_t server, uint32_t requested)
+int FAST_FUNC send_decline(uint32_t xid, uint32_t server, uint32_t requested)
 {
 	struct dhcpMessage packet;
 
@@ -98,7 +98,7 @@ int send_decline(uint32_t xid, uint32_t server, uint32_t requested)
 #endif
 
 /* Broadcast a DHCP discover packet to the network, with an optionally requested IP */
-int send_discover(uint32_t xid, uint32_t requested)
+int FAST_FUNC send_discover(uint32_t xid, uint32_t requested)
 {
 	struct dhcpMessage packet;
 
@@ -120,7 +120,7 @@ int send_discover(uint32_t xid, uint32_t requested)
 
 
 /* Broadcasts a DHCP request message */
-int send_selecting(uint32_t xid, uint32_t server, uint32_t requested)
+int FAST_FUNC send_selecting(uint32_t xid, uint32_t server, uint32_t requested)
 {
 	struct dhcpMessage packet;
 	struct in_addr addr;
@@ -140,7 +140,7 @@ int send_selecting(uint32_t xid, uint32_t server, uint32_t requested)
 
 
 /* Unicasts or broadcasts a DHCP renew message */
-int send_renew(uint32_t xid, uint32_t server, uint32_t ciaddr)
+int FAST_FUNC send_renew(uint32_t xid, uint32_t server, uint32_t ciaddr)
 {
 	struct dhcpMessage packet;
 
@@ -159,7 +159,7 @@ int send_renew(uint32_t xid, uint32_t server, uint32_t ciaddr)
 
 
 /* Unicasts a DHCP release message */
-int send_release(uint32_t server, uint32_t ciaddr)
+int FAST_FUNC send_release(uint32_t server, uint32_t ciaddr)
 {
 	struct dhcpMessage packet;
 
@@ -175,7 +175,7 @@ int send_release(uint32_t server, uint32_t ciaddr)
 
 
 /* Returns -1 on errors that are fatal for the socket, -2 for those that aren't */
-int udhcp_recv_raw_packet(struct dhcpMessage *payload, int fd)
+int FAST_FUNC udhcp_recv_raw_packet(struct dhcpMessage *payload, int fd)
 {
 	int bytes;
 	struct udp_dhcp_packet packet;

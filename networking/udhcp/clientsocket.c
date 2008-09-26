@@ -36,7 +36,7 @@
 #include "dhcpd.h"
 #include "dhcpc.h"
 
-int raw_socket(int ifindex)
+int FAST_FUNC udhcp_raw_socket(int ifindex)
 {
 	int fd;
 	struct sockaddr_ll sock;

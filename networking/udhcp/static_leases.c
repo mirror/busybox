@@ -14,7 +14,7 @@
 /* Takes the address of the pointer to the static_leases linked list,
  *   Address to a 6 byte mac address
  *   Address to a 4 byte ip address */
-int addStaticLease(struct static_lease **lease_struct, uint8_t *mac, uint32_t *ip)
+int FAST_FUNC addStaticLease(struct static_lease **lease_struct, uint8_t *mac, uint32_t *ip)
 {
 	struct static_lease *cur;
 	struct static_lease *new_static_lease;
@@ -41,7 +41,7 @@ int addStaticLease(struct static_lease **lease_struct, uint8_t *mac, uint32_t *i
 }
 
 /* Check to see if a mac has an associated static lease */
-uint32_t getIpByMac(struct static_lease *lease_struct, void *arg)
+uint32_t FAST_FUNC getIpByMac(struct static_lease *lease_struct, void *arg)
 {
 	uint32_t return_ip;
 	struct static_lease *cur = lease_struct;
@@ -62,7 +62,7 @@ uint32_t getIpByMac(struct static_lease *lease_struct, void *arg)
 }
 
 /* Check to see if an ip is reserved as a static ip */
-uint32_t reservedIp(struct static_lease *lease_struct, uint32_t ip)
+uint32_t FAST_FUNC reservedIp(struct static_lease *lease_struct, uint32_t ip)
 {
 	struct static_lease *cur = lease_struct;
 
@@ -82,7 +82,7 @@ uint32_t reservedIp(struct static_lease *lease_struct, uint32_t ip)
 #if ENABLE_FEATURE_UDHCP_DEBUG
 /* Print out static leases just to check what's going on */
 /* Takes the address of the pointer to the static_leases linked list */
-void printStaticLeases(struct static_lease **arg)
+void FAST_FUNC printStaticLeases(struct static_lease **arg)
 {
 	/* Get a pointer to the linked list */
 	struct static_lease *cur = *arg;
