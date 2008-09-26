@@ -79,6 +79,7 @@ enum {
 	FLAG_m = 1 << 2,
 	FLAG_N = 1 << 3,
 	FLAG_TILDE = 1 << 4,
+	FLAG_I = 1 << 5,
 /* hijack command line options variable for internal state vars */
 	LESS_STATE_MATCH_BACKWARDS = 1 << 15,
 };
@@ -965,7 +966,8 @@ static void regex_process(void)
 	}
 
 	/* Compile the regex and check for errors */
-	err = regcomp_or_errmsg(&pattern, uncomp_regex, 0);
+	err = regcomp_or_errmsg(&pattern, uncomp_regex,
+							option_mask32 & FLAG_I ? REG_ICASE : 0);
 	free(uncomp_regex);
 	if (err) {
 		print_statusline(err);
@@ -1359,7 +1361,7 @@ int less_main(int argc, char **argv)
 	/* TODO: -x: do not interpret backspace, -xx: tab also */
 	/* -xxx: newline also */
 	/* -w N: assume width N (-xxx -w 32: hex viewer of sorts) */
-	getopt32(argv, "EMmN~");
+	getopt32(argv, "EMmN~I");
 	argc -= optind;
 	argv += optind;
 	num_files = argc;

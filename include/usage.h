@@ -2078,7 +2078,7 @@
        "5\n"
 
 #define less_trivial_usage \
-       "[-EMNmh~?] [FILE...]"
+       "[-EMNmh~I?] [FILE...]"
 #define less_full_usage "\n\n" \
        "View a file or list of files. The position within files can be\n" \
        "changed, and files can be manipulated in various ways.\n" \
@@ -2087,6 +2087,7 @@
      "\n	-M,-m	Display a status line containing the line numbers" \
      "\n		and percentage through the file" \
      "\n	-N	Prefix line numbers to each line" \
+     "\n	-I	Ignore case in all searches" \
      "\n	-~	Suppress ~s displayed past the end of the file" \
 
 #define linux32_trivial_usage NOUSAGE_STR
