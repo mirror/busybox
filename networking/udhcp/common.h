@@ -66,8 +66,9 @@ int udhcp_recv_kernel_packet(struct dhcpMessage *packet, int fd) FAST_FUNC;
 
 int udhcp_send_raw_packet(struct dhcpMessage *payload,
 		uint32_t source_ip, int source_port,
-		uint32_t dest_ip, int dest_port,
-		const uint8_t *dest_arp, int ifindex) FAST_FUNC;
+		uint32_t dest_ip, int dest_port, const uint8_t *dest_arp,
+		int ifindex) FAST_FUNC;
+
 int udhcp_send_kernel_packet(struct dhcpMessage *payload,
 		uint32_t source_ip, int source_port,
 		uint32_t dest_ip, int dest_port) FAST_FUNC;

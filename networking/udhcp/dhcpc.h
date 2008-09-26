@@ -39,7 +39,7 @@ struct client_config_t {
 
 uint32_t random_xid(void) FAST_FUNC;
 int send_discover(uint32_t xid, uint32_t requested) FAST_FUNC;
-int send_selecting(uint32_t xid, uint32_t server, uint32_t requested) FAST_FUNC;
+int send_select(uint32_t xid, uint32_t server, uint32_t requested) FAST_FUNC;
 #if ENABLE_FEATURE_UDHCPC_ARPING
 int send_decline(uint32_t xid, uint32_t server, uint32_t requested) FAST_FUNC;
 #endif

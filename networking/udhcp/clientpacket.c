@@ -79,8 +79,18 @@ static void add_param_req_option(struct dhcpMessage *packet)
 }
 
 
+static int raw_bcast_from_client_config_ifindex(struct dhcpMessage *packet)
+{
+	return udhcp_send_raw_packet(packet,
+		/*src*/ INADDR_ANY, CLIENT_PORT,
+		/*dst*/ INADDR_BROADCAST, SERVER_PORT, MAC_BCAST_ADDR,
+		client_config.ifindex);
+}
+
+
 #if ENABLE_FEATURE_UDHCPC_ARPING
-/* Unicast a DHCP decline message */
+/* Broadcast a DHCP decline message */
+//FIXME: maybe it should be unicast?
 int FAST_FUNC send_decline(uint32_t xid, uint32_t server, uint32_t requested)
 {
 	struct dhcpMessage packet;
@@ -92,8 +102,7 @@ int FAST_FUNC send_decline(uint32_t xid, uint32_t server, uint32_t requested)
 
 	bb_info_msg("Sending decline...");
 
-	return udhcp_send_raw_packet(&packet, INADDR_ANY, CLIENT_PORT, INADDR_BROADCAST,
-		SERVER_PORT, MAC_BCAST_ADDR, client_config.ifindex);
+	return raw_bcast_from_client_config_ifindex(&packet);
 }
 #endif
 
@@ -114,13 +123,13 @@ int FAST_FUNC send_discover(uint32_t xid, uint32_t requested)
 	add_param_req_option(&packet);
 
 	bb_info_msg("Sending discover...");
-	return udhcp_send_raw_packet(&packet, INADDR_ANY, CLIENT_PORT, INADDR_BROADCAST,
-			SERVER_PORT, MAC_BCAST_ADDR, client_config.ifindex);
+	return raw_bcast_from_client_config_ifindex(&packet);
 }
 
 
 /* Broadcasts a DHCP request message */
-int FAST_FUNC send_selecting(uint32_t xid, uint32_t server, uint32_t requested)
+//FIXME: maybe it should be unicast?
+int FAST_FUNC send_select(uint32_t xid, uint32_t server, uint32_t requested)
 {
 	struct dhcpMessage packet;
 	struct in_addr addr;
@@ -134,8 +143,7 @@ int FAST_FUNC send_selecting(uint32_t xid, uint32_t server, uint32_t requested)
 
 	addr.s_addr = requested;
 	bb_info_msg("Sending select for %s...", inet_ntoa(addr));
-	return udhcp_send_raw_packet(&packet, INADDR_ANY, CLIENT_PORT, INADDR_BROADCAST,
-				SERVER_PORT, MAC_BCAST_ADDR, client_config.ifindex);
+	return raw_bcast_from_client_config_ifindex(&packet);
 }
 
 
@@ -151,10 +159,11 @@ int FAST_FUNC send_renew(uint32_t xid, uint32_t server, uint32_t ciaddr)
 	add_param_req_option(&packet);
 	bb_info_msg("Sending renew...");
 	if (server)
-		return udhcp_send_kernel_packet(&packet, ciaddr, CLIENT_PORT, server, SERVER_PORT);
+		return udhcp_send_kernel_packet(&packet,
+			ciaddr, CLIENT_PORT,
+			server, SERVER_PORT);
 
-	return udhcp_send_raw_packet(&packet, INADDR_ANY, CLIENT_PORT, INADDR_BROADCAST,
-				SERVER_PORT, MAC_BCAST_ADDR, client_config.ifindex);
+	return raw_bcast_from_client_config_ifindex(&packet);
 }
 
 

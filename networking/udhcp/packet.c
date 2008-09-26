@@ -118,7 +118,8 @@ uint16_t FAST_FUNC udhcp_checksum(void *addr, int count)
 /* Construct a ip/udp header for a packet, send packet */
 int FAST_FUNC udhcp_send_raw_packet(struct dhcpMessage *payload,
 		uint32_t source_ip, int source_port,
-		uint32_t dest_ip, int dest_port, const uint8_t *dest_arp, int ifindex)
+		uint32_t dest_ip, int dest_port, const uint8_t *dest_arp,
+		int ifindex)
 {
 	struct sockaddr_ll dest;
 	struct udp_dhcp_packet packet;

@@ -59,8 +59,10 @@ static int send_packet_to_client(struct dhcpMessage *payload, int force_broadcas
 		ciaddr = payload->yiaddr;
 		chaddr = payload->chaddr;
 	}
-	return udhcp_send_raw_packet(payload, server_config.server, SERVER_PORT,
-			ciaddr, CLIENT_PORT, chaddr, server_config.ifindex);
+	return udhcp_send_raw_packet(payload,
+		/*src*/ server_config.server, SERVER_PORT,
+		/*dst*/ ciaddr, CLIENT_PORT, chaddr,
+		server_config.ifindex);
 }
 
 

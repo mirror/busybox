@@ -389,7 +389,7 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 					if (state == RENEW_REQUESTED) /* unicast */
 						send_renew(xid, server_addr, requested_ip);
 					else /* broadcast */
-						send_selecting(xid, server_addr, requested_ip);
+						send_select(xid, server_addr, requested_ip);
 
 					timeout = discover_timeout;
 					packet_num++;
@@ -430,7 +430,7 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 				 * try to find DHCP server using broadcast */
 				if (timeout > 0) {
 					/* send a request packet */
-					send_renew(xid, 0, requested_ip); /* broadcast */
+					send_renew(xid, 0 /* INADDR_ANY*/, requested_ip); /* broadcast */
 					timeout >>= 1;
 					continue;
 				}
@@ -529,6 +529,8 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 						if (lease_seconds < 10) /* and not too small */
 							lease_seconds = 10;
 					}
+//FIXME: why do we check ARP only after we've got DHCPACK?
+//Shouldn't we do it immediately after DHCPOFFER?
 #if ENABLE_FEATURE_UDHCPC_ARPING
 					if (opt & OPT_a) {
 						if (!arpping(packet.yiaddr,
@@ -538,6 +540,8 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 						) {
 							bb_info_msg("offered address is in use "
 								"(got ARP reply), declining");
+//NB: not clear whether it should be unicast or bcast.
+//Currently it is a bcast. Why?
 							send_decline(xid, server_addr, packet.yiaddr);
 
 							if (state != REQUESTING)
