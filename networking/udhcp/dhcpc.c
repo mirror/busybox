@@ -363,6 +363,7 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 					packet_num++;
 					continue;
 				}
+ leasefail:
 				udhcp_run_script(NULL, "leasefail");
 #if BB_MMU /* -b is not supported on NOMMU */
 				if (opt & OPT_b) { /* background if no lease */
@@ -399,6 +400,11 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 					udhcp_run_script(NULL, "deconfig");
 				change_listen_mode(LISTEN_RAW);
 				state = INIT_SELECTING;
+				/* "discover...select...discover..." loops
+				 * were seen in the wild. Treat then similarly
+				 * to "no response to discover" case */
+				if (state == REQUESTING)
+					goto leasefail;
 				timeout = 0;
 				packet_num = 0;
 				continue;
