@@ -3729,9 +3729,9 @@
      "\nOther:" \
 	USE_FEATURE_START_STOP_DAEMON_FANCY( \
      "\n	-o,--oknodo		Exit with status 0 if nothing is done" \
-     "\n	-q,--quiet		Quiet" \
-	) \
      "\n	-v,--verbose		Verbose" \
+	) \
+     "\n	-q,--quiet		Quiet" \
 	) \
 	SKIP_FEATURE_START_STOP_DAEMON_LONG_OPTIONS( \
      "\nProcess matching:" \
@@ -3757,9 +3757,9 @@
      "\nOther:" \
 	USE_FEATURE_START_STOP_DAEMON_FANCY( \
      "\n	-o		Exit with status 0 if nothing is done" \
-     "\n	-q		Quiet" \
-	) \
      "\n	-v		Verbose" \
+	) \
+     "\n	-q		Quiet" \
 	) \
 
 #define stat_trivial_usage \
