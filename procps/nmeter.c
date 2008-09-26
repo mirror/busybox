@@ -22,11 +22,14 @@
 
 typedef unsigned long long ullong;
 
-enum { PROC_FILE_SIZE = 4096 };
+enum {  /* Preferably use powers of 2 */
+	PROC_MIN_FILE_SIZE = 256,
+	PROC_MAX_FILE_SIZE = 16 * 1024,
+};
 
 typedef struct proc_file {
 	char *file;
-	//const char *name;
+	int file_sz;
 	smallint last_gen;
 } proc_file;
 
@@ -124,30 +127,42 @@ static void put_question_marks(int count)
 		put_c('?');
 }
 
-static void readfile_z(char *buf, int sz, const char* fname)
+static void readfile_z(proc_file *pf, const char* fname)
 {
 // open_read_close() will do two reads in order to be sure we are at EOF,
 // and we don't need/want that.
-//	sz = open_read_close(fname, buf, sz-1);
+	int fd;
+	int sz, rdsz;
+	char *buf;
 
-	int fd = xopen(fname, O_RDONLY);
+	sz = pf->file_sz;
+	buf = pf->file;
+	if (!buf) {
+		buf = xmalloc(PROC_MIN_FILE_SIZE);
+		sz = PROC_MIN_FILE_SIZE;
+	}
+ again:
+	fd = xopen(fname, O_RDONLY);
 	buf[0] = '\0';
-	sz = read(fd, buf, sz - 1);
-	if (sz > 0)
-		buf[sz] = '\0';
+	rdsz = read(fd, buf, sz-1);
 	close(fd);
+	if (rdsz > 0) {
+		if (rdsz == sz-1 && sz < PROC_MAX_FILE_SIZE) {
+			sz *= 2;
+			buf = xrealloc(buf, sz);
+			goto again;
+		}
+		buf[rdsz] = '\0';
+	}
+	pf->file_sz = sz;
+	pf->file = buf;
 }
 
 static const char* get_file(proc_file *pf)
 {
 	if (pf->last_gen != gen) {
 		pf->last_gen = gen;
-		// We allocate PROC_FILE_SIZE bytes. This wastes memory,
-		// but allows us to allocate only once (at first sample)
-		// per proc file, and reuse buffer for each sample
-		if (!pf->file)
-			pf->file = xmalloc(PROC_FILE_SIZE);
-		readfile_z(pf->file, PROC_FILE_SIZE, proc_name[pf - &first_proc_file]);
+		readfile_z(pf, proc_name[pf - &first_proc_file]);
 	}
 	return pf->file;
 }
