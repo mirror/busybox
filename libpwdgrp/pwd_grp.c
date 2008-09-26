@@ -396,6 +396,7 @@ struct spwd *getspnam(const char *name)
 }
 #endif
 
+#ifdef THIS_ONE_IS_UNUSED
 /* This one doesn't use static buffers */
 int getpw(uid_t uid, char *buf)
 {
@@ -419,6 +420,7 @@ int getpw(uid_t uid, char *buf)
 
 	return -1;
 }
+#endif
 
 /**********************************************************************/
 

@@ -21,24 +21,17 @@
  *	POSIX Standard: 9.2.2 User Database Access	<pwd.h>
  */
 
-#ifndef	_PWD_H
-#define	_PWD_H 1
+#ifndef	BB_PWD_H
+#define	BB_PWD_H 1
 
 #if __GNUC_PREREQ(4,1)
 # pragma GCC visibility push(hidden)
 #endif
 
-/* The passwd structure.  */
-struct passwd {
-	char *pw_name;          /* Username.  */
-	char *pw_passwd;        /* Password.  */
-	uid_t pw_uid;           /* User ID.  */
-	gid_t pw_gid;           /* Group ID.  */
-	char *pw_gecos;         /* Real name.  */
-	char *pw_dir;           /* Home directory.  */
-	char *pw_shell;         /* Shell program.  */
-};
-
+/* This file is #included after #include <pwd.h>
+ * We will use libc-defined structures, but will #define finction names
+ * so that function calls are directed to bb_internal_XXX replacements
+ */
 
 #define setpwent    bb_internal_setpwent
 #define endpwent    bb_internal_endpwent
@@ -51,13 +44,11 @@ struct passwd {
 #define getpwuid_r  bb_internal_getpwuid_r
 #define getpwnam_r  bb_internal_getpwnam_r
 #define fgetpwent_r bb_internal_fgetpwent_r
-#define getpw       bb_internal_getpw
+//#define getpw       bb_internal_getpw
 
 
 /* All function names below should be remapped by #defines above
- * in order to not collide with libc names.
- * In theory it isn't necessary, but I saw weird interactions at link time.
- * Let's play safe */
+ * in order to not collide with libc names. */
 
 
 /* Rewind the password-file stream.  */
@@ -73,14 +64,14 @@ extern struct passwd *getpwent(void);
 extern struct passwd *fgetpwent(FILE *__stream);
 
 /* Write the given entry onto the given stream.  */
-extern int putpwent(__const struct passwd *__restrict __p,
+extern int putpwent(const struct passwd *__restrict __p,
 		     FILE *__restrict __f);
 
 /* Search for an entry with a matching user ID.  */
 extern struct passwd *getpwuid(uid_t __uid);
 
 /* Search for an entry with a matching username.  */
-extern struct passwd *getpwnam(__const char *__name);
+extern struct passwd *getpwnam(const char *__name);
 
 /* Reentrant versions of some of the functions above.
 
@@ -99,7 +90,7 @@ extern int getpwuid_r(uid_t __uid,
 		       char *__restrict __buffer, size_t __buflen,
 		       struct passwd **__restrict __result);
 
-extern int getpwnam_r(__const char *__restrict __name,
+extern int getpwnam_r(const char *__restrict __name,
 		       struct passwd *__restrict __resultbuf,
 		       char *__restrict __buffer, size_t __buflen,
 		       struct passwd **__restrict __result);
@@ -114,7 +105,7 @@ extern int fgetpwent_r(FILE *__restrict __stream,
 /* Re-construct the password-file line for the given uid
    in the given buffer.  This knows the format that the caller
    will expect, but this need not be the format of the password file.  */
-extern int getpw(uid_t __uid, char *__buffer);
+/* UNUSED extern int getpw(uid_t __uid, char *__buffer); */
 
 #if __GNUC_PREREQ(4,1)
 # pragma GCC visibility pop

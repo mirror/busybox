@@ -4,8 +4,8 @@
  * Licensed under the GPL-2 or later.
  */
 
-#ifndef _BB_RTC_H_
-#define _BB_RTC_H_
+#ifndef BB_RTC_H
+#define BB_RTC_H
 
 #include "libbb.h"
 

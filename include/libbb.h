@@ -69,21 +69,15 @@
 #include <dmalloc.h>
 #endif
 
-#if !ENABLE_USE_BB_PWD_GRP
-# include <pwd.h>
-# include <grp.h>
-#endif
+#include <pwd.h>
+#include <grp.h>
 #if ENABLE_FEATURE_SHADOWPASSWDS
-# if !ENABLE_USE_BB_SHADOW
-#  include <shadow.h>
-# endif
+# include <shadow.h>
 #endif
 
 /* Some libc's forget to declare these, do it ourself */
 
 extern char **environ;
-/* Set the group set for the current user to GROUPS (N of them).  */
-int setgroups(size_t n, const gid_t *groups);
 #if defined(__GLIBC__) && __GLIBC__ < 2
 int vdprintf(int d, const char *format, va_list ap);
 #endif
