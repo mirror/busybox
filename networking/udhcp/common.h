@@ -27,21 +27,23 @@ extern const uint8_t MAC_BCAST_ADDR[6]; /* six all-ones */
 #define DHCP_OPTIONS_BUFSIZE  308
 
 struct dhcpMessage {
-	uint8_t op;
-	uint8_t htype;
-	uint8_t hlen;
-	uint8_t hops;
-	uint32_t xid;
-	uint16_t secs;
-	uint16_t flags;
-	uint32_t ciaddr;
-	uint32_t yiaddr;
-	uint32_t siaddr;
-	uint32_t giaddr;
-	uint8_t chaddr[16];
-	uint8_t sname[64];
-	uint8_t file[128];
-	uint32_t cookie;
+	uint8_t op;      /* 1 = BOOTREQUEST, 2 = BOOTREPLY */
+	uint8_t htype;   /* hardware address type. 1 = 10mb ethernet */
+	uint8_t hlen;    /* hardware address length */
+	uint8_t hops;    /* used by relay agents only */
+	uint32_t xid;    /* unique id */
+	uint16_t secs;   /* elapsed since client began acquisition/renewal */
+	uint16_t flags;  /* only one flag so far: */
+#define BROADCAST_FLAG 0x8000 /* "I need broadcast replies" */
+	uint32_t ciaddr; /* client IP (if client is in BOUND, RENEW or REBINDING state) */
+	uint32_t yiaddr; /* 'your' (client) IP address */
+	uint32_t siaddr; /* IP address of next server to use in bootstrap,
+	                  * returned in DHCPOFFER, DHCPACK by server */
+	uint32_t giaddr; /* relay agent IP address */
+	uint8_t chaddr[16];/* link-layer client hardware address (MAC) */
+	uint8_t sname[64]; /* server host name (ASCIZ) */
+	uint8_t file[128]; /* boot file name (ASCIZ) */
+	uint32_t cookie;   /* fixed first four option bytes (99,130,83,99 dec) */
 	uint8_t options[DHCP_OPTIONS_BUFSIZE + CONFIG_UDHCPC_SLACK_FOR_BUGGY_SERVERS];
 } PACKED;
 

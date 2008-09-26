@@ -452,7 +452,7 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 		}
 
 		/* select() didn't timeout, something did happen. */
-		/* Is is a packet? */
+		/* Is it a packet? */
 		if (listen_mode != LISTEN_NONE && FD_ISSET(sockfd, &rfds)) {
 			int len;
 			/* A packet is ready, read it */
@@ -474,7 +474,7 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 				continue;
 
 			if (packet.xid != xid) {
-				DEBUG("Ignoring XID %x (our xid is %x)",
+				DEBUG("Ignoring xid %x (our xid is %x)",
 					(unsigned)packet.xid, (unsigned)xid);
 				continue;
 			}
@@ -524,17 +524,24 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 						bb_error_msg("no lease time with ACK, using 1 hour lease");
 						lease_seconds = 60 * 60;
 					} else {
-						/* can be misaligned, thus memcpy */
-						memcpy(&lease_seconds, temp, 4);
+						/* it IS unaligned sometimes, don't "optimize" */
+						lease_seconds = get_unaligned_u32p((uint32_t*)temp);
 						lease_seconds = ntohl(lease_seconds);
 						lease_seconds &= 0x0fffffff; /* paranoia: must not be prone to overflows */
 						if (lease_seconds < 10) /* and not too small */
 							lease_seconds = 10;
 					}
-//FIXME: why do we check ARP only after we've got DHCPACK?
-//Shouldn't we do it immediately after DHCPOFFER?
 #if ENABLE_FEATURE_UDHCPC_ARPING
 					if (opt & OPT_a) {
+/* RFC 2131 3.1 paragraph 5:
+ * "The client receives the DHCPACK message with configuration
+ * parameters. The client SHOULD perform a final check on the
+ * parameters (e.g., ARP for allocated network address), and notes
+ * the duration of the lease specified in the DHCPACK message. At this
+ * point, the client is configured. If the client detects that the
+ * address is already in use (e.g., through the use of ARP),
+ * the client MUST send a DHCPDECLINE message to the server and restarts
+ * the configuration process..." */
 						if (!arpping(packet.yiaddr,
 							    (uint32_t) 0,
 							    client_config.arp,
@@ -542,8 +549,6 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 						) {
 							bb_info_msg("offered address is in use "
 								"(got ARP reply), declining");
-//NB: not clear whether it should be unicast or bcast.
-//Currently it is a bcast. Why?
 							send_decline(xid, server_addr, packet.yiaddr);
 
 							if (state != REQUESTING)
@@ -568,7 +573,7 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 					}
 					requested_ip = packet.yiaddr;
 					udhcp_run_script(&packet,
-						   ((state == RENEWING || state == REBINDING) ? "renew" : "bound"));
+							((state == RENEWING || state == REBINDING) ? "renew" : "bound"));
 
 					state = BOUND;
 					change_listen_mode(LISTEN_NONE);

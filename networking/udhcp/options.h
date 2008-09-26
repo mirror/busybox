@@ -78,16 +78,14 @@ enum {
 #define ETH_10MB		1
 #define ETH_10MB_LEN		6
 
-#define DHCPDISCOVER		1
-#define DHCPOFFER		2
-#define DHCPREQUEST		3
-#define DHCPDECLINE		4
-#define DHCPACK			5
-#define DHCPNAK			6
-#define DHCPRELEASE		7
-#define DHCPINFORM		8
-
-#define BROADCAST_FLAG		0x8000
+#define DHCPDISCOVER		1 /* client -> server */
+#define DHCPOFFER		2 /* client <- server */
+#define DHCPREQUEST		3 /* client -> server */
+#define DHCPDECLINE		4 /* client -> server */
+#define DHCPACK			5 /* client <- server */
+#define DHCPNAK			6 /* client <- server */
+#define DHCPRELEASE		7 /* client -> server */
+#define DHCPINFORM		8 /* client -> server */
 
 #define OPTION_FIELD		0
 #define FILE_FIELD		1

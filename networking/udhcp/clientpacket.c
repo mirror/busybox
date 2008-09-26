@@ -78,6 +78,23 @@ static void add_param_req_option(struct dhcpMessage *packet)
 	}
 }
 
+/* RFC 2131
+ * 4.4.4 Use of broadcast and unicast
+ *
+ * The DHCP client broadcasts DHCPDISCOVER, DHCPREQUEST and DHCPINFORM
+ * messages, unless the client knows the address of a DHCP server.
+ * The client unicasts DHCPRELEASE messages to the server. Because
+ * the client is declining the use of the IP address supplied by the server,
+ * the client broadcasts DHCPDECLINE messages.
+ *
+ * When the DHCP client knows the address of a DHCP server, in either
+ * INIT or REBOOTING state, the client may use that address
+ * in the DHCPDISCOVER or DHCPREQUEST rather than the IP broadcast address.
+ * The client may also use unicast to send DHCPINFORM messages
+ * to a known DHCP server. If the client receives no response to DHCP
+ * messages sent to the IP address of a known DHCP server, the DHCP
+ * client reverts to using the IP broadcast address.
+ */
 
 static int raw_bcast_from_client_config_ifindex(struct dhcpMessage *packet)
 {
@@ -90,7 +107,6 @@ static int raw_bcast_from_client_config_ifindex(struct dhcpMessage *packet)
 
 #if ENABLE_FEATURE_UDHCPC_ARPING
 /* Broadcast a DHCP decline message */
-//FIXME: maybe it should be unicast?
 int FAST_FUNC send_decline(uint32_t xid, uint32_t server, uint32_t requested)
 {
 	struct dhcpMessage packet;
@@ -128,7 +144,9 @@ int FAST_FUNC send_discover(uint32_t xid, uint32_t requested)
 
 
 /* Broadcasts a DHCP request message */
-//FIXME: maybe it should be unicast?
+/* RFC 2131 3.1 paragraph 3:
+ * "The client _broadcasts_ a DHCPREQUEST message..."
+ */
 int FAST_FUNC send_select(uint32_t xid, uint32_t server, uint32_t requested)
 {
 	struct dhcpMessage packet;

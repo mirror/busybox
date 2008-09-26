@@ -50,7 +50,7 @@ static int send_packet_to_client(struct dhcpMessage *payload, int force_broadcas
 		DEBUG("unicasting packet to client ciaddr");
 		ciaddr = payload->ciaddr;
 		chaddr = payload->chaddr;
-	} else if (ntohs(payload->flags) & BROADCAST_FLAG) {
+	} else if (payload->flags & htons(BROADCAST_FLAG)) {
 		DEBUG("broadcasting packet to client (requested)");
 		ciaddr = INADDR_BROADCAST;
 		chaddr = MAC_BCAST_ADDR;
