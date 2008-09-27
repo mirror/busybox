@@ -533,21 +533,21 @@ static struct fs_info *lookup(char *filesys)
 /* Find fsck program for a given fs type. */
 static char *find_fsck(char *type)
 {
-  char *s;
-  const char *tpl;
-  char *p = string_copy(fsck_path);
-  struct stat st;
+	char *s;
+	const char *tpl;
+	char *p = string_copy(fsck_path);
+	struct stat st;
 
-  /* Are we looking for a program or just a type? */
-  tpl = (strncmp(type, "fsck.", 5) ? "%s/fsck.%s" : "%s/%s");
+	/* Are we looking for a program or just a type? */
+	tpl = (strncmp(type, "fsck.", 5) ? "%s/fsck.%s" : "%s/%s");
 
-  for(s = strtok(p, ":"); s; s = strtok(NULL, ":")) {
-	s = xasprintf(tpl, s, type);
-	if (stat(s, &st) == 0) break;
-	free(s);
-  }
-  free(p);
-  return s;
+	for (s = strtok(p, ":"); s; s = strtok(NULL, ":")) {
+		s = xasprintf(tpl, s, type);
+		if (stat(s, &st) == 0) break;
+		free(s);
+	}
+	free(p);
+	return s;
 }
 
 static int progress_active(void)
@@ -885,7 +885,7 @@ static void compile_fs_type(char *fs_type, struct fs_type_compile *cmp)
 	list = string_copy(fs_type);
 	num = 0;
 	s = strtok(list, ",");
-	while(s) {
+	while (s) {
 		negate = 0;
 		if (strncmp(s, "no", 2) == 0) {
 			s += 2;
@@ -930,7 +930,7 @@ static int opt_in_list(char *opt, char *optlist)
 	list = string_copy(optlist);
 
 	s = strtok(list, ",");
-	while(s) {
+	while (s) {
 		if (strcmp(s, opt) == 0) {
 			free(list);
 			return 1;

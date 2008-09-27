@@ -42,7 +42,7 @@ static void TEA_transform(__u32 buf[4], __u32 const in[])
 		sum += DELTA;
 		b0 += ((b1 << 4)+a) ^ (b1+sum) ^ ((b1 >> 5)+b);
 		b1 += ((b0 << 4)+c) ^ (b0+sum) ^ ((b0 >> 5)+d);
-	} while(--n);
+	} while (--n);
 
 	buf[0] += b0;
 	buf[1] += b1;

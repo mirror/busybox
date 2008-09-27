@@ -192,10 +192,10 @@ struct buffer_head {
 #define K_DEV_FS        1
 #define K_DEV_JOURNAL   2
 
-#define lock_buffer(bh) do {} while(0)
-#define unlock_buffer(bh) do {} while(0)
+#define lock_buffer(bh) do {} while (0)
+#define unlock_buffer(bh) do {} while (0)
 #define buffer_req(bh) 1
-#define do_readahead(journal, start) do {} while(0)
+#define do_readahead(journal, start) do {} while (0)
 
 static e2fsck_t e2fsck_global_ctx;  /* Try your very best not to use this! */
 
@@ -10014,7 +10014,7 @@ static int do_one_pass(journal_t *journal,
 		 * all of the sequence number checks.  What are we going
 		 * to do with it?  That depends on the pass... */
 
-		switch(blocktype) {
+		switch (blocktype) {
 		case JFS_DESCRIPTOR_BLOCK:
 			/* If it is a valid descriptor block, replay it
 			 * in pass REPLAY; otherwise, just skip over the
@@ -11158,7 +11158,7 @@ int journal_init_revoke(journal_t *journal, int hash_size)
 
 	shift = 0;
 	tmp = hash_size;
-	while((tmp >>= 1UL) != 0UL)
+	while ((tmp >>= 1UL) != 0UL)
 		shift++;
 	journal->j_revoke->hash_shift = shift;
 
@@ -12251,7 +12251,7 @@ static int read_a_char(void)
 	int     r;
 	int     fail = 0;
 
-	while(1) {
+	while (1) {
 		if (e2fsck_global_ctx &&
 		    (e2fsck_global_ctx->flags & E2F_FLAG_CANCEL)) {
 			return 3;
