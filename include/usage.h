@@ -3467,20 +3467,25 @@
 
 #define sendmail_trivial_usage \
        "[-w timeout] [-H [user:pass@]server[:port]] [-S]\n" \
-       "[-c charset] [-N type] [-i] [-s subject] [-a attach]... [-t] [-f sender] [rcpt]..."
+       "[-N type] [-f sender] [-F fullname] " \
+       USE_FEATURE_SENDMAIL_MAILX("[-s subject] [-c charset] [-a attach]... ") "[-t] [rcpt]..."
 #define sendmail_full_usage "\n\n" \
        "Send an email\n" \
      "\nOptions:" \
      "\n	-w timeout	Network timeout" \
      "\n	-H [user:pass@]server[:port] Server" \
      "\n	-S		Use openssl connection helper for secure servers" \
-     "\n	-c charset	Assume charset for body and subject (utf-8)" \
      "\n	-N type		Request delivery notification. Type is ignored" \
-     "\n	-i		Ignore single dots in mail body. Implied" \
-     "\n	-s subject	Subject" \
-     "\n	-a file		File to attach. May be multiple" \
-     "\n	-t		Read recipients and subject from body" \
      "\n	-f sender	Sender" \
+     "\n	-F fullname	Sender full name. Overrides $NAME" \
+	USE_FEATURE_SENDMAIL_MAILX( \
+     "\n	-s subject	Subject" \
+     "\n	-c charset	Assume charset for body and subject (" CONFIG_FEATURE_SENDMAIL_CHARSET ")" \
+     "\n	-a file		File to attach. May be multiple" \
+	)
+     "\n	-t		Read recipients and subject from body" \
+     "\n" \
+     "\nOther options are silently ignored; -oi is implied" \
 
 #define seq_trivial_usage \
        "[first [increment]] last"

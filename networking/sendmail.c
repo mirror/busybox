@@ -8,66 +8,10 @@
  */
 #include "libbb.h"
 
-#define INITIAL_STDIN_FILENO 3
-
-static void uuencode(char *fname, const char *text)
-{
-	enum {
-		SRC_BUF_SIZE = 45,  /* This *MUST* be a multiple of 3 */
-		DST_BUF_SIZE = 4 * ((SRC_BUF_SIZE + 2) / 3),
-	};
-
-#define src_buf text
-	int fd;
-#define len fd
-	char dst_buf[DST_BUF_SIZE + 1];
-
-	if (fname) {
-		fd = INITIAL_STDIN_FILENO;
-		if (NOT_LONE_DASH(fname))
-			fd = xopen(fname, O_RDONLY);
-		src_buf = bb_common_bufsiz1;
-	// N.B. strlen(NULL) segfaults!
-	} else if (text) {
-		// though we do not call uuencode(NULL, NULL) explicitly
-		// still we do not want to break things suddenly
-		len = strlen(text);
-	} else
-		return;
-
-	fflush(stdout); // sync stdio and unistd output
-	while (1) {
-		size_t size;
-		if (fname) {
-			size = full_read(fd, (char *)src_buf, SRC_BUF_SIZE);
-			if ((ssize_t)size < 0)
-				bb_perror_msg_and_die(bb_msg_read_error);
-		} else {
-			size = len;
-			if (len > SRC_BUF_SIZE)
-				size = SRC_BUF_SIZE;
-		}
-		if (!size)
-			break;
-		// encode the buffer we just read in
-		bb_uuencode(dst_buf, src_buf, size, bb_uuenc_tbl_base64);
-		if (fname) {
-			xwrite(STDOUT_FILENO, "\r\n", 2);
-		} else {
-			src_buf += size;
-			len -= size;
-		}
-		xwrite(STDOUT_FILENO, dst_buf, 4 * ((size + 2) / 3));
-	}
-	if (fname)
-		close(fd);
-#undef src_buf
-#undef len
-}
-
 struct globals {
 	pid_t helper_pid;
 	unsigned timeout;
+	FILE *fp0; // initial stdin
 	// arguments for SSL connection helper
 	const char *xargs[9];
 	// arguments for postprocess helper
@@ -76,6 +20,7 @@ struct globals {
 #define G (*ptr_to_globals)
 #define helper_pid      (G.helper_pid)
 #define timeout         (G.timeout   )
+#define fp0             (G.fp0       )
 #define xargs           (G.xargs     )
 #define fargs           (G.fargs     )
 #define INIT_G() do { \
@@ -88,14 +33,67 @@ struct globals {
 	xargs[5] = "-tls1"; \
 	xargs[6] = "-starttls"; \
 	xargs[7] = "smtp"; \
-	fargs[0] = "utf-8"; \
+	fargs[0] = CONFIG_FEATURE_SENDMAIL_CHARSET; \
 } while (0)
 
-#define opt_connect	  (xargs[4])
+#define opt_connect       (xargs[4])
 #define opt_after_connect (xargs[5])
-#define opt_charset	  (fargs[0])
-#define opt_subject	  (fargs[1])
+#define opt_charset       (fargs[0])
+#define opt_subject       (fargs[1])
 
+static void uuencode(char *fname, const char *text)
+{
+	enum {
+		SRC_BUF_SIZE = 45,  /* This *MUST* be a multiple of 3 */
+		DST_BUF_SIZE = 4 * ((SRC_BUF_SIZE + 2) / 3),
+	};
+
+#define src_buf text
+	FILE *fp = fp;
+	ssize_t len = len;
+	char dst_buf[DST_BUF_SIZE + 1];
+
+	if (fname) {
+		fp = (NOT_LONE_DASH(fname)) ? xfopen_for_read(fname) : fp0;
+		src_buf = bb_common_bufsiz1;
+	// N.B. strlen(NULL) segfaults!
+	} else if (text) {
+		// though we do not call uuencode(NULL, NULL) explicitly
+		// still we do not want to break things suddenly
+		len = strlen(text);
+	} else
+		return;
+
+	while (1) {
+		size_t size;
+		if (fname) {
+			size = fread((char *)src_buf, 1, SRC_BUF_SIZE, fp);
+			if ((ssize_t)size < 0)
+				bb_perror_msg_and_die(bb_msg_read_error);
+		} else {
+			size = len;
+			if (len > SRC_BUF_SIZE)
+				size = SRC_BUF_SIZE;
+		}
+		if (!size)
+			break;
+		// encode the buffer we just read in
+		bb_uuencode(dst_buf, src_buf, size, bb_uuenc_tbl_base64);
+		if (fname) {
+			printf("\r\n");
+		} else {
+			src_buf += size;
+			len -= size;
+		}
+		fwrite(dst_buf, 1, 4 * ((size + 2) / 3), stdout);
+	}
+	if (fname)
+		fclose(fp);
+#undef src_buf
+}
+
+
+#if ENABLE_FEATURE_SENDMAIL_SSL
 static void kill_helper(void)
 {
 	// TODO!!!: is there more elegant way to terminate child on program failure?
@@ -107,7 +105,6 @@ static void kill_helper(void)
 static void signal_handler(int signo)
 {
 #define err signo
-
 	if (SIGALRM == signo) {
 		kill_helper();
 		bb_error_msg_and_die("timed out");
@@ -151,6 +148,10 @@ static void launch_helper(const char **argv)
 	signal_handler(SIGCHLD);
 	// child seems OK -> parent goes on
 }
+#else
+#define kill_helper() ((void)0)
+#define launch_helper(x) bb_error_msg_and_die("no SSL support")
+#endif
 
 static const char *command(const char *fmt, const char *param)
 {
@@ -177,15 +178,14 @@ static int smtp_checkp(const char *fmt, const char *param, int code)
 	while ((answer = xmalloc_fgetline(stdin)) != NULL)
 		if (strlen(answer) <= 3 || '-' != answer[3])
 			break;
+//bb_error_msg("FMT[%s]ANS[%s]", fmt, answer);
 	if (answer) {
 		int n = atoi(answer);
+//bb_error_msg("FMT[%s]COD[%d][%d]", fmt, n, code);
 		alarm(0);
-		if (ENABLE_FEATURE_CLEAN_UP) {
-			free(answer);
-		}
-		if (-1 == code || n == code) {
+		free(answer);
+		if (-1 == code || n == code)
 			return n;
-		}
 	}
 	kill_helper();
 	bb_error_msg_and_die("%s failed", msg);
@@ -283,30 +283,34 @@ static void rcptto(const char *s)
 int sendgetmail_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int sendgetmail_main(int argc UNUSED_PARAM, char **argv)
 {
+#if ENABLE_FEATURE_SENDMAIL_MAILX
 	llist_t *opt_attachments = NULL;
-	char *opt_from;
+#endif
+	char *opt_from, *opt_fullname;
 	const char *opt_user;
 	const char *opt_pass;
+
 	enum {
 		OPT_w = 1 << 0,         // network timeout
+
 		OPT_H = 1 << 1,         // [user:password@]server[:port]
 		OPT_S = 1 << 2,         // connect using openssl s_client helper
 
-		OPTS_t = 1 << 3,        // sendmail: read addresses from body
+		OPTS_t = 1 << 3,        // sendmail: read message for recipients
 		OPTF_t = 1 << 3,        // fetchmail: use "TOP" not "RETR"
 
-		OPTS_s = 1 << 4,        // sendmail: subject
+		OPTS_N = 1 << 4,        // sendmail: request notification
 		OPTF_z = 1 << 4,        // fetchmail: delete from server
 
-		OPTS_c = 1 << 5,        // sendmail: assumed charset
-		OPTS_a = 1 << 6,        // sendmail: attachment(s)
-		OPTS_i = 1 << 7,        // sendmail: ignore lone dots in message body (implied)
+		OPTS_f = 1 << 5,        // sendmail: sender address
+		OPTS_F = 1 << 6,        // sendmail: sender name, overrides $NAME
 
-		OPTS_N = 1 << 8,        // sendmail: request notification
-		OPTS_f = 1 << 9,        // sendmail: sender address
+		OPTS_s = 1 << 7,        // sendmail: subject
+		OPTS_c = 1 << 8,        // sendmail: assumed charset
+		OPTS_a = 1 << 9,        // sendmail: attachment(s)
 	};
 	const char *options;
-	int opts;
+	unsigned opts;
 
 	// init global variables
 	INIT_G();
@@ -317,11 +321,11 @@ int sendgetmail_main(int argc UNUSED_PARAM, char **argv)
 	if (!ENABLE_FETCHMAIL || 's' == applet_name[0]) {
 		// SENDMAIL
 		// save initial stdin since body is piped!
-		xdup2(STDIN_FILENO, INITIAL_STDIN_FILENO);
+		xdup2(STDIN_FILENO, 3);
+		fp0 = fdopen(3, "r");
 		opt_complementary = "w+:a::";
-		options = "w:H:St" "s:c:a:iN:f:";
-		// body is pseudo attachment read from stdin
-		llist_add_to_end(&opt_attachments, (char *)"-");
+		options = "w:H:St" "N:f:F:" USE_FEATURE_SENDMAIL_MAILX("s:c:a:")
+		"X:V:vq:R:O:o:nmL:Iih:GC:B:b:A:"; // postfix compat only, ignored
 	} else {
 		// FETCHMAIL
 		opt_after_connect = NULL;
@@ -330,15 +334,19 @@ int sendgetmail_main(int argc UNUSED_PARAM, char **argv)
 	}
 	opts = getopt32(argv, options,
 		&timeout /* -w */, &opt_connect /* -H */,
-		&opt_subject, &opt_charset, &opt_attachments, NULL, &opt_from
+		NULL, &opt_from, &opt_fullname,
+#if ENABLE_FEATURE_SENDMAIL_MAILX
+		&opt_subject, &opt_charset, &opt_attachments,
+#endif
+		NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL
 	);
 	//argc -= optind;
 	argv += optind;
 
 	// connect to server
-	// host[:port] not specified ? -> use $HOSTNAME. no $HOSTNAME ? -> use localhost
+	// host[:port] not specified ? -> use $SMTPHOST. no $SMTPHOST ? -> use localhost
 	if (!(opts & OPT_H)) {
-		opt_connect = getenv("HOSTNAME");
+		opt_connect = getenv("SMTPHOST");
 		if (!opt_connect)
 			opt_connect = "127.0.0.1";
 	}
@@ -376,18 +384,13 @@ int sendgetmail_main(int argc UNUSED_PARAM, char **argv)
 	{
 		int code;
 		char *boundary;
-		const char *fmt;
-		const char *p;
-		char *q;
 		llist_t *l;
 		llist_t *headers = NULL;
+		char *domain = sane(safe_getdomainname());
 
 		// got no sender address? -> use username as a resort
 		if (!(opts & OPTS_f)) {
-			char *domain = safe_getdomainname();
 			opt_from = xasprintf("%s@%s", opt_user, domain);
-			if (ENABLE_FEATURE_CLEAN_UP)
-				free(domain);
 		}
 
 		// introduce to server
@@ -399,9 +402,11 @@ int sendgetmail_main(int argc UNUSED_PARAM, char **argv)
 		}
 
 		// we should start with modern EHLO
-		if (250 != smtp_checkp("EHLO %s", sane(opt_from), -1)) {
-			smtp_checkp("HELO %s", opt_from, 250);
+		if (250 != smtp_checkp("EHLO %s", domain, -1)) {
+			smtp_checkp("HELO %s", domain, 250);
 		}
+		if (ENABLE_FEATURE_CLEAN_UP)
+			free(domain);
 
 		// set sender
 		// NOTE: if password has not been specified
@@ -431,37 +436,36 @@ int sendgetmail_main(int argc UNUSED_PARAM, char **argv)
 			argv++;
 		}
 
-		// if -t specified or no recipients specified -> enter all-included mode
-		// i.e. scan stdin for To:, Cc:, Bcc:, and Subject: lines ...
+		// if -t specified or no recipients specified -> read recipients from message
+		// i.e. scan stdin for To:, Cc:, Bcc: lines ...
 		// ... and then use the rest of stdin as message body
-		// N.B. subject read from body has priority
-		// over that specified on command line.
-		// recipients are merged
+		// N.B. subject read from body can be further overrided with one specified on command line.
+		// recipients are merged. Bcc: lines are deleted
 		// N.B. other headers are collected and will be dumped verbatim
 		if (opts & OPTS_t || !headers) {
 			// fetch recipients and (optionally) subject
 			char *s;
-			while ((s = xmalloc_reads(INITIAL_STDIN_FILENO, NULL, NULL)) != NULL) {
+			while ((s = xmalloc_fgetline(fp0)) != NULL) {
 				if (0 == strncasecmp("To: ", s, 4) || 0 == strncasecmp("Cc: ", s, 4)) {
 					rcptto(sane(s+4));
 					llist_add_to_end(&headers, s);
 				} else if (0 == strncasecmp("Bcc: ", s, 5)) {
 					rcptto(sane(s+5));
-					if (ENABLE_FEATURE_CLEAN_UP)
-						free(s);
+					free(s);
 					// N.B. Bcc vanishes from headers!
-/*				} else if (0 == strncmp("From: ", s, 6)) {
-					opt_from = s+6;
-					opts |= OPTS_f;
-*/				} else if (0 == strncmp("Subject: ", s, 9)) {
-					opt_subject = s+9;
-					opts |= OPTS_s;
+				} else if (0 == strncmp("Subject: ", s, 9)) {
+					// we read subject -> use it verbatim unless it is specified
+					// on command line
+					if (!(opts & OPTS_s))
+						llist_add_to_end(&headers, s);
+					else
+						free(s);
 				} else if (s[0]) {
 					// misc header
 					llist_add_to_end(&headers, s);
 				} else {
 					free(s);
-					break; // empty line
+					break; // stop on the first empty line
 				}
 			}
 		}
@@ -476,17 +480,26 @@ int sendgetmail_main(int argc UNUSED_PARAM, char **argv)
 				free(l->data);
 		}
 
-		// put address header
-		printf("From: %s\r\n", opt_from);
-
-		// put encoded subject
+		// put (possibly encoded) subject
 		if (opts & OPTS_c)
 			sane((char *)opt_charset);
 		if (opts & OPTS_s) {
-			printf("Subject: =?%s?B?", opt_charset);
-			uuencode(NULL, opt_subject);
-			printf("?=\r\n");
+			printf("Subject: ");
+			if (opts & OPTS_c) {
+				printf("=?%s?B?", opt_charset);
+				uuencode(NULL, opt_subject);
+				printf("?=");
+			} else {
+				printf("%s", opt_subject);
+			}
+			printf("\r\n");
 		}
+
+		// put sender name, $NAME is the default
+		if (!(opts & OPTS_F))
+			opt_fullname = getenv("NAME");
+		if (opt_fullname)
+			printf("From: \"%s\" <%s>\r\n", opt_fullname, opt_from);
 
 		// put notification
 		if (opts & OPTS_N)
@@ -496,58 +509,92 @@ int sendgetmail_main(int argc UNUSED_PARAM, char **argv)
 		srand(monotonic_us());
 		boundary = xasprintf("%d-%d-%d", rand(), rand(), rand());
 
-		// put common headers and body start
-		printf(
-			"Message-ID: <%s>\r\n"
-			"Mime-Version: 1.0\r\n"
-			"%smultipart/mixed; boundary=\"%s\"\r\n"
-			, boundary
-			, "Content-Type: "
-			, boundary
-		);
+		// put common headers
+		// TODO: do we really need this?
+//		printf("Message-ID: <%s>\r\n", boundary);
 
-		// put body + attachment(s)
-		// N.B. all these weird things just to be tiny
-		// by reusing string patterns!
-		fmt =
-			"\r\n--%s\r\n"
-			"%stext/plain; charset=%s\r\n"
-			"%s%s\r\n"
-			"%s"
-		;
-		p = opt_charset;
-		q = (char *)"";
-		l = opt_attachments;
-		while (l) {
+#if ENABLE_FEATURE_SENDMAIL_MAILX
+		// have attachments? -> compose multipart MIME
+		if (opt_attachments) {
+			const char *fmt;
+			const char *p;
+			char *q;
+
 			printf(
-				fmt
-				, boundary
+				"Mime-Version: 1.0\r\n"
+				"%smultipart/mixed; boundary=\"%s\"\r\n"
 				, "Content-Type: "
-				, p
-				, "Content-Disposition: inline"
-				, q
-				, "Content-Transfer-Encoding: base64\r\n"
+				, boundary
 			);
-			p = "";
+
+			// body is pseudo attachment read from stdin in first turn
+			llist_add_to(&opt_attachments, (char *)"-");
+
+			// put body + attachment(s)
+			// N.B. all these weird things just to be tiny
+			// by reusing string patterns!
 			fmt =
 				"\r\n--%s\r\n"
-				"%sapplication/octet-stream%s\r\n"
-				"%s; filename=\"%s\"\r\n"
+				"%stext/plain; charset=%s\r\n"
+				"%s%s\r\n"
 				"%s"
 			;
-			uuencode(l->data, NULL);
-			l = l->link;
-			if (l)
-				q = bb_get_last_path_component_strip(l->data);
-		}
+			p = opt_charset;
+			q = (char *)"";
+			l = opt_attachments;
+			while (l) {
+				printf(
+					fmt
+					, boundary
+					, "Content-Type: "
+					, p
+					, "Content-Disposition: inline"
+					, q
+					, "Content-Transfer-Encoding: base64\r\n"
+				);
+				p = "";
+				fmt =
+					"\r\n--%s\r\n"
+					"%sapplication/octet-stream%s\r\n"
+					"%s; filename=\"%s\"\r\n"
+					"%s"
+				;
+				uuencode(l->data, NULL);
+				l = l->link;
+				if (l)
+					q = bb_get_last_path_component_strip(l->data);
+			}
 
-		// put message terminator
-		printf("\r\n--%s--\r\n" "\r\n", boundary);
+			// put message terminator
+			printf("\r\n--%s--\r\n" "\r\n", boundary);
+
+		// no attachments? -> just dump message
+		} else
+#endif
+		{
+			char *s;
+			// terminate headers
+			printf("\r\n");
+			// put plain text respecting leading dots
+			while ((s = xmalloc_fgetline(fp0)) != NULL) {
+				// escape leading dots
+				// N.B. this feature is implied even if no -i switch given
+				// N.B. we need to escape the leading dot regardless of
+				// whether it is single or not character on the line
+				if (/*(opts & OPTS_i) && */ '.' == s[0] /*&& '\0' == s[1] */)
+					printf(".");
+				// dump read line
+				printf("%s\r\n", s);
+			}
+		}
 
 		// leave "put message" mode
 		smtp_check(".", 250);
 		// ... and say goodbye
 		smtp_check("QUIT", 221);
+		// cleanup
+		if (ENABLE_FEATURE_CLEAN_UP)
+			fclose(fp0);
 	}
 #if ENABLE_FETCHMAIL
 /***************************************************
@@ -671,5 +718,5 @@ int sendgetmail_main(int argc UNUSED_PARAM, char **argv)
 	}
 #endif // ENABLE_FETCHMAIL
 
-	return 0;
+	return EXIT_SUCCESS;
 }
