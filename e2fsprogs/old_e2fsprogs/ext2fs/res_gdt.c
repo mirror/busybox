@@ -113,7 +113,7 @@ errcode_t ext2fs_create_resize_inode(ext2_filsys fs)
 		inode_size *= fs->blocksize;
 		inode.i_size = inode_size & 0xFFFFFFFF;
 		inode.i_size_high = (inode_size >> 32) & 0xFFFFFFFF;
-		if(inode.i_size_high) {
+		if (inode.i_size_high) {
 			sb->s_feature_ro_compat |=
 				EXT2_FEATURE_RO_COMPAT_LARGE_FILE;
 		}

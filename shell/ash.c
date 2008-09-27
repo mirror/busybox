@@ -5980,7 +5980,7 @@ subevalvar(char *p, char *str, int strloc, int subtype,
 
 			/* We must adjust the length by the number of escapes we find. */
 			for (ptr = startp; ptr < (str - 1); ptr++) {
-				if(*ptr == CTLESC) {
+				if (*ptr == CTLESC) {
 					len--;
 					ptr++;
 				}
@@ -6056,7 +6056,7 @@ subevalvar(char *p, char *str, int strloc, int subtype,
 	if (subtype == VSREPLACE || subtype == VSREPLACEALL) {
 		char *idx, *end, *restart_detect;
 
-		if(!repl) {
+		if (!repl) {
 			repl = parse_sub_pattern(str, varflags & VSQUOTE);
 			if (!repl)
 				repl = &null;

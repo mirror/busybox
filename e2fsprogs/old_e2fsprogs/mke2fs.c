@@ -676,7 +676,7 @@ static int set_os(struct ext2_super_block *sb, char *os)
 		return 1;
 	}
 
-	if((sb->s_creator_os = e2p_string2os(os)) >= 0) {
+	if ((sb->s_creator_os = e2p_string2os(os)) >= 0) {
 		return 1;
 	} else if (!strcasecmp("GNU", os)) {
 		sb->s_creator_os = EXT2_OS_HURD;
@@ -1187,7 +1187,7 @@ int mke2fs_main (int argc, char **argv)
 
 	if (ENABLE_FEATURE_CLEAN_UP)
 		atexit(mke2fs_clean_up);
-	if(!PRS(argc, argv))
+	if (!PRS(argc, argv))
 		return 0;
 
 #ifdef CONFIG_TESTIO_DEBUG
