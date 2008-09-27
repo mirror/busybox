@@ -661,15 +661,11 @@ int initgroups(const char *user, gid_t gid)
 	int ngroups;
 	gid_t *group_list = getgrouplist_internal(&ngroups, user, gid);
 
-	if (!group_list)
-		return -1;
-
 	ngroups = setgroups(ngroups, group_list);
 	free(group_list);
 	return ngroups;
 }
 
-/* TODO: uclibc needs this ported to it! */
 int getgrouplist(const char *user, gid_t gid, gid_t *groups, int *ngroups)
 {
 	int ngroups_old = *ngroups;
