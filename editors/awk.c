@@ -973,7 +973,12 @@ static uint32_t next_token(uint32_t expected)
 
 		} else if (*p == '.' || isdigit(*p)) {
 			/* it's a number */
-			t_double = strtod(p, &p);
+#if ENABLE_DESKTOP
+			if (p[0] == '0' && (p[1] | 0x20) == 'x')
+				t_double = strtoll(p, &p, 0);
+			else
+#endif
+				t_double = strtod(p, &p);
 			if (*p == '.')
 				syntax_error(EMSG_UNEXP_TOKEN);
 			tc = TC_NUMBER;
@@ -2034,28 +2039,30 @@ static var *exec_builtin(node *op, var *res)
 		setvar_p(res, s);
 		break;
 
+	/* Bitwise ops must assume that operands are unsigned. GNU Awk 3.1.5:
+	 * awk '{ print or(-1,1) }' gives "4.29497e+09", not "-2.xxxe+09" */
 	case B_an:
-		setvar_i(res, (long)getvar_i(av[0]) & (long)getvar_i(av[1]));
+		setvar_i(res, (unsigned long)getvar_i(av[0]) & (unsigned long)getvar_i(av[1]));
 		break;
 
 	case B_co:
-		setvar_i(res, ~(long)getvar_i(av[0]));
+		setvar_i(res, ~(unsigned long)getvar_i(av[0]));
 		break;
 
 	case B_ls:
-		setvar_i(res, (long)getvar_i(av[0]) << (long)getvar_i(av[1]));
+		setvar_i(res, (unsigned long)getvar_i(av[0]) << (unsigned long)getvar_i(av[1]));
 		break;
 
 	case B_or:
-		setvar_i(res, (long)getvar_i(av[0]) | (long)getvar_i(av[1]));
+		setvar_i(res, (unsigned long)getvar_i(av[0]) | (unsigned long)getvar_i(av[1]));
 		break;
 
 	case B_rs:
-		setvar_i(res, (long)((unsigned long)getvar_i(av[0]) >> (unsigned long)getvar_i(av[1])));
+		setvar_i(res, (unsigned long)getvar_i(av[0]) >> (unsigned long)getvar_i(av[1]));
 		break;
 
 	case B_xo:
-		setvar_i(res, (long)getvar_i(av[0]) ^ (long)getvar_i(av[1]));
+		setvar_i(res, (unsigned long)getvar_i(av[0]) ^ (unsigned long)getvar_i(av[1]));
 		break;
 
 	case B_lo:

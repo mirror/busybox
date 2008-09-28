@@ -50,7 +50,7 @@ static void signal_handler(int signo)
 {
 	// restore keyboard and console settings
 	xset1(STDIN_FILENO, &tio0, "stdin");
-	xioctl(STDIN_FILENO, KDSKBMODE, (void *)kbmode);
+	xioctl(STDIN_FILENO, KDSKBMODE, (void *)(ptrdiff_t)kbmode);
 	// alarmed? -> exit 0
 	exit(SIGALRM == signo);
 }
@@ -95,7 +95,7 @@ int showkey_main(int argc UNUSED_PARAM, char **argv)
 		// we should exit on any signal
 		bb_signals(BB_FATAL_SIGS, signal_handler);
 		// set raw keyboard mode
-		xioctl(STDIN_FILENO, KDSKBMODE, (void *)((option_mask32 & OPT_k) ? K_MEDIUMRAW : K_RAW));
+		xioctl(STDIN_FILENO, KDSKBMODE, (void *)(ptrdiff_t)((option_mask32 & OPT_k) ? K_MEDIUMRAW : K_RAW));
 
 		// read and show scancodes
 		while (1) {

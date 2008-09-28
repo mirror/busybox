@@ -745,7 +745,7 @@ int top_main(int argc UNUSED_PARAM, char **argv)
 	int iterations;
 	unsigned lines, col;
 	unsigned interval;
-	char *sinterval;
+	char *str_interval, *str_iterations;
 	SKIP_FEATURE_TOPMEM(const) unsigned scan_mask = TOP_MASK;
 #if ENABLE_FEATURE_USE_TERMIOS
 	struct termios new_settings;
@@ -762,10 +762,19 @@ int top_main(int argc UNUSED_PARAM, char **argv)
 	iterations = 0; /* infinite */
 
 	/* all args are options; -n NUM */
-	opt_complementary = "-:n+";
-	if (getopt32(argv, "d:n:b", &sinterval, &iterations) & OPT_d) {
+	opt_complementary = "-";
+	col = getopt32(argv, "d:n:b", &str_interval, &str_iterations);
+	if (col & OPT_d) {
+		/* work around for "-d 1" -> "-d -1" done by getopt32 */
+		if (str_interval[0] == '-')
+			str_interval++;
 		/* Need to limit it to not overflow poll timeout */
-		interval = xatou16(sinterval); // -d
+		interval = xatou16(str_interval);
+	}
+	if (col & OPT_n) {
+		if (str_iterations[0] == '-')
+			str_iterations++;
+		iterations = xatou(str_iterations);
 	}
 
 	/* change to /proc */
