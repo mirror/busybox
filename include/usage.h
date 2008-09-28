@@ -3468,7 +3468,7 @@
 #define sendmail_trivial_usage \
        "[-w timeout] [-H [user:pass@]server[:port]] [-S]\n" \
        "[-N type] [-f sender] [-F fullname] " \
-       USE_FEATURE_SENDMAIL_MAILX("[-s subject] [-c charset] [-a attach]... ") "[-t] [rcpt]..."
+       USE_FEATURE_SENDMAIL_MAILX("[-s subject] [-c cc-rcpt]... [-j charset] [-a attach]... [-e err-rcpt] ") "[-t] [rcpt]..."
 #define sendmail_full_usage "\n\n" \
        "Send an email\n" \
      "\nOptions:" \
@@ -3480,9 +3480,11 @@
      "\n	-F fullname	Sender full name. Overrides $NAME" \
 	USE_FEATURE_SENDMAIL_MAILX( \
      "\n	-s subject	Subject" \
-     "\n	-c charset	Assume charset for body and subject (" CONFIG_FEATURE_SENDMAIL_CHARSET ")" \
+     "\n	-c rcpt		Cc: recipient. May be multiple" \
+     "\n	-j charset	Assume charset for body and subject (" CONFIG_FEATURE_SENDMAIL_CHARSET ")" \
      "\n	-a file		File to attach. May be multiple" \
-	)
+     "\n	-e rcpt		Errors-To: recipient" \
+     	)
      "\n	-t		Read recipients and subject from body" \
      "\n" \
      "\nOther options are silently ignored; -oi is implied" \

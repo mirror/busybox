@@ -694,6 +694,13 @@ config FEATURE_SENDMAIL_MAILX
 	help
 	  Allow to specify subject, attachments and their charset.
 
+config FEATURE_SENDMAIL_MAILXX
+	bool "Allow to specify Cc: addresses and some additional headers"
+	default n
+	depends on FEATURE_SENDMAIL_MAILX
+	help
+	  Allow to specify Cc: addresses and some additional headers: Errors-To:.
+
 config FEATURE_SENDMAIL_SSL
 	bool "Allow to communicate via SSL/TLS"
 	default y
