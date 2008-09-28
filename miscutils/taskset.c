@@ -35,7 +35,8 @@ static char *__from_cpuset(cpu_set_t *mask)
 #define TASKSET_PRINTF_MASK "%x"
 /* (void*) cast is for battling gcc: */
 /* "dereferencing type-punned pointer will break strict-aliasing rules" */
-#define from_cpuset(mask) (*(unsigned*)(void*)&(mask))
+#define from_cpuset(mask) ({ void *__vp = &(mask); *(unsigned*)__vp; })
+/* gcc 4.3.0 still complains: #define from_cpuset(mask) (*(unsigned*)(void*)&(mask)) */
 #endif
 
 

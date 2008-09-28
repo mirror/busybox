@@ -953,24 +953,33 @@ static void input_tab(smallint *lastWasTab)
 
 #if MAX_HISTORY > 0
 
-/* state->flags is already checked to be nonzero */
-static void get_previous_history(void)
+static void save_command_ps_at_cur_history(void)
 {
-	if (command_ps[0] != '\0' || state->history[state->cur_history] == NULL) {
-		free(state->history[state->cur_history]);
-		state->history[state->cur_history] = xstrdup(command_ps);
+	if (command_ps[0] != '\0') {
+		int cur = state->cur_history;
+		free(state->history[cur]);
+		state->history[cur] = xstrdup(command_ps);
 	}
-	state->cur_history--;
+}
+
+/* state->flags is already checked to be nonzero */
+static int get_previous_history(void)
+{
+	if ((state->flags & DO_HISTORY) && state->cur_history) {
+		save_command_ps_at_cur_history();
+		state->cur_history--;
+		return 1;
+	}
+	beep();
+	return 0;
 }
 
 static int get_next_history(void)
 {
 	if (state->flags & DO_HISTORY) {
-		int ch = state->cur_history;
-		if (ch < state->cnt_history) {
-			get_previous_history(); /* save the current history line */
-			state->cur_history = ch + 1;
-			return state->cur_history;
+		if (state->cur_history < state->cnt_history) {
+			save_command_ps_at_cur_history(); /* save the current history line */
+			return ++state->cur_history;
 		}
 	}
 	beep();
@@ -992,6 +1001,7 @@ static void load_history(const char *fromfile)
 		for (hi = state->cnt_history; hi > 0;) {
 			hi--;
 			free(state->history[hi]);
+			state->history[hi] = NULL;
 		}
 
 		for (hi = 0; hi < MAX_HISTORY;) {
@@ -1003,14 +1013,14 @@ static void load_history(const char *fromfile)
 			l = strlen(hl);
 			if (l >= MAX_LINELEN)
 				hl[MAX_LINELEN-1] = '\0';
-			if (l == 0 || hl[0] == ' ') {
+			if (l == 0) {
 				free(hl);
 				continue;
 			}
 			state->history[hi++] = hl;
 		}
 		fclose(fp);
-		state->cur_history = state->cnt_history = hi;
+		state->cnt_history = hi;
 	}
 }
 
@@ -1040,19 +1050,27 @@ static void remember_in_history(const char *str)
 
 	if (!(state->flags & DO_HISTORY))
 		return;
-
+	if (str[0] == '\0')
+		return;
 	i = state->cnt_history;
-	free(state->history[MAX_HISTORY]);
-	state->history[MAX_HISTORY] = NULL;
-	/* After max history, remove the oldest command */
+	/* Don't save dupes */
+	if (i && strcmp(state->history[i-1], str) == 0)
+		return;
+
+	free(state->history[MAX_HISTORY]); /* redundant, paranoia */
+	state->history[MAX_HISTORY] = NULL; /* redundant, paranoia */
+
+	/* If history[] is full, remove the oldest command */
+	/* we need to keep history[MAX_HISTORY] empty, hence >=, not > */
 	if (i >= MAX_HISTORY) {
 		free(state->history[0]);
 		for (i = 0; i < MAX_HISTORY-1; i++)
 			state->history[i] = state->history[i+1];
+		/* i == MAX_HISTORY-1 */
 	}
-// Maybe "if (!i || strcmp(history[i-1], command) != 0) ..."
-// (i.e. do not save dups?)
+	/* i <= MAX_HISTORY-1 */
 	state->history[i++] = xstrdup(str);
+	/* i <= MAX_HISTORY */
 	state->cur_history = i;
 	state->cnt_history = i;
 #if ENABLE_FEATURE_EDITING_SAVEHISTORY
@@ -1394,6 +1412,7 @@ int read_line_input(const char *prompt, char *command, int maxsize, line_input_t
 	if ((state->flags & SAVE_HISTORY) && state->hist_file)
 		load_history(state->hist_file);
 #endif
+	state->cur_history = state->cnt_history;
 
 	/* prepare before init handlers */
 	cmdedit_y = 0;  /* quasireal y, not true if line > xt*yt */
@@ -1429,6 +1448,13 @@ int read_line_input(const char *prompt, char *command, int maxsize, line_input_t
 		}
 	}
 #endif
+
+#if 0
+	for (ic = 0; ic <= MAX_HISTORY; ic++)
+		bb_error_msg("history[%d]:'%s'", ic, state->history[ic]);
+	bb_error_msg("cur_history:%d cnt_history:%d", state->cur_history, state->cnt_history);
+#endif
+
 	/* Print out the command prompt */
 	parse_and_put_prompt(prompt);
 
@@ -1537,11 +1563,8 @@ int read_line_input(const char *prompt, char *command, int maxsize, line_input_t
 		vi_case(CTRL('P')|vbit:)
 		vi_case('k'|vbit:)
 			/* Control-p -- Get previous command from history */
-			if ((state->flags & DO_HISTORY) && state->cur_history > 0) {
-				get_previous_history();
+			if (get_previous_history())
 				goto rewrite_line;
-			}
-			beep();
 			break;
 #endif
 
@@ -1730,10 +1753,8 @@ int read_line_input(const char *prompt, char *command, int maxsize, line_input_t
 #if MAX_HISTORY > 0
 			case 'A':
 				/* Up Arrow -- Get previous command from history */
-				if ((state->flags & DO_HISTORY) && state->cur_history > 0) {
-					get_previous_history();
+				if (get_previous_history())
 					goto rewrite_line;
-				}
 				beep();
 				break;
 			case 'B':
@@ -1743,7 +1764,7 @@ int read_line_input(const char *prompt, char *command, int maxsize, line_input_t
  rewrite_line:
 				/* Rewrite the line with the selected history item */
 				/* change command */
-				command_len = strlen(strcpy(command, state->history[state->cur_history]));
+				command_len = strlen(strcpy(command, state->history[state->cur_history] ? : ""));
 				/* redraw and go to eol (bol, in vi */
 				redraw(cmdedit_y, (state->flags & VI_MODE) ? 9999 : 0);
 				break;
