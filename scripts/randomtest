@@ -1,0 +1,99 @@
+#!/bin/sh
+
+# Select which libc to build against
+libc="glibc" # assumed native
+# static cross-compiled (i486-linux-uclibc-XXX)
+libc="uclibc"
+
+test -d tree || exit 1
+
+dir=test.$$
+while test -e "$dir" -o -e failed."$dir"; do
+    dir=test."$RANDOM"
+done
+
+cp -dpr tree "$dir" || exit 1
+cd "$dir" || exit 1
+
+echo "Running randconfig test in $dir..." >&2
+
+make randconfig >/dev/null || exit 1
+
+cat .config \
+| grep -v ^CONFIG_DEBUG_PESSIMIZE= \
+| grep -v CONFIG_WERROR \
+| cat >.config.new
+mv .config.new .config
+echo CONFIG_WERROR=y >>.config
+
+test "$libc" = glibc && {
+cat .config \
+| grep -v ^CONFIG_SELINUX= \
+| grep -v ^CONFIG_EFENCE= \
+| grep -v ^CONFIG_DMALLOC= \
+| cat >.config.new
+mv .config.new .config
+}
+
+test "$libc" = uclibc && {
+cat .config \
+| grep -v ^CONFIG_SELINUX= \
+| grep -v ^CONFIG_EFENCE= \
+| grep -v ^CONFIG_DMALLOC= \
+| grep -v ^CONFIG_BUILD_LIBBUSYBOX= \
+| grep -v ^CONFIG_PAM= \
+| grep -v ^CONFIG_TASKSET= \
+| grep -v ^CONFIG_FEATURE_ASSUME_UNICODE= \
+| grep -v ^CONFIG_PIE= \
+| grep -v CONFIG_STATIC \
+| grep -v CONFIG_CROSS_COMPILER_PREFIX \
+| cat >.config.new
+mv .config.new .config
+echo 'CONFIG_CROSS_COMPILER_PREFIX="i486-linux-uclibc-"' >>.config
+echo 'CONFIG_STATIC=y' >>.config
+}
+
+# If NOMMU, remove some things
+grep -q ^CONFIG_NOMMU= .config && {
+cat .config \
+| grep -v ^CONFIG_ASH= \
+| grep -v ^CONFIG_FEATURE_SH_IS_ASH= \
+| cat >.config.new
+mv .config.new .config
+}
+
+# If STATIC, remove some things
+# PAM with static linking is probably pointless
+# (but I need to try - now I don't have libpam.a on my system, only libpam.so)
+grep -q ^CONFIG_STATIC= .config && {
+cat .config \
+| grep -v ^CONFIG_PAM= \
+| cat >.config.new
+mv .config.new .config
+}
+
+# CONFIG_NOMMU + CONFIG_HUSH + CONFIG_WERROR don't mix
+# (produces warning)
+grep -q ^CONFIG_NOMMU= .config && \
+grep -q ^CONFIG_HUSH= .config && \
+{
+cat .config \
+| grep -v ^CONFIG_WERROR= \
+| cat >.config.new
+mv .config.new .config
+}
+
+# Regenerate .config with default answers for yanked-off options
+{ yes "" | make oldconfig >/dev/null; } || exit 1
+
+nice -n 10 make
+
+test -x busybox && {
+    cd ..
+    rm -rf "$dir"
+    exit 0
+}
+
+cd ..
+mv "$dir" failed."$dir"
+exit 1

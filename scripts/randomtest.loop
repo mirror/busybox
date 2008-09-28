@@ -1,0 +1,10 @@
+#!/bin/sh
+
+cnt=0
+fail=0
+
+while sleep 1; do
+    echo "Passes: $cnt Failures: $fail"
+    ./randomtest >/dev/null || exit #let fail++
+    let cnt++
+done
