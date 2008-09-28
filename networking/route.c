@@ -302,7 +302,7 @@ static void INET_setroute(int action, char **args)
 
 	/* sanity checks.. */
 	if (mask_in_addr(rt)) {
-		unsigned long mask = mask_in_addr(rt);
+		uint32_t mask = mask_in_addr(rt);
 
 		mask = ~ntohl(mask);
 		if ((rt.rt_flags & RTF_HOST) && mask != 0xffffffff) {
@@ -313,7 +313,7 @@ static void INET_setroute(int action, char **args)
 			bb_error_msg_and_die("bogus netmask %s", netmask);
 		}
 		mask = ((struct sockaddr_in *) &rt.rt_dst)->sin_addr.s_addr;
-		if (mask & ~mask_in_addr(rt)) {
+		if (mask & ~(uint32_t)mask_in_addr(rt)) {
 			bb_error_msg_and_die("netmask and route address conflict");
 		}
 	}
