@@ -55,6 +55,8 @@ int watchdog_main(int argc, char **argv)
 	/* Use known fd # - avoid needing global 'int fd' */
 	xmove_fd(xopen(argv[argc - 1], O_WRONLY), 3);
 
+	/* WDIOC_SETTIMEOUT takes seconds, not milliseconds */
+	htimer_duration = htimer_duration / 1000;
 	ioctl_or_warn(3, WDIOC_SETTIMEOUT, &htimer_duration);
 #if 0
 	ioctl_or_warn(3, WDIOC_GETTIMEOUT, &htimer_duration);

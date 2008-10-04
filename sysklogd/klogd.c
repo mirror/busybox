@@ -44,6 +44,7 @@ int klogd_main(int argc UNUSED_PARAM, char **argv)
 	int i = 0;
 	char *start;
 	int opt;
+	int used = 0;
 
 	opt = getopt32(argv, "c:n", &start);
 	if (opt & OPT_LEVEL) {
@@ -72,16 +73,15 @@ int klogd_main(int argc UNUSED_PARAM, char **argv)
 
 	syslog(LOG_NOTICE, "klogd started: %s", bb_banner);
 
-	/* Note: this code does not detect incomplete messages
-	 * (messages not ending with '\n' or just when kernel
-	 * generates too many messages for us to keep up)
-	 * and will split them in two separate lines */
+	/* Initially null terminate the buffer in case of a very long line */
+	log_buffer[KLOGD_LOGBUF_SIZE - 1] = '\0';
+
 	while (1) {
 		int n;
 		int priority;
 
 		/* "2 -- Read from the log." */
-		n = klogctl(2, log_buffer, KLOGD_LOGBUF_SIZE - 1);
+		n = klogctl(2, log_buffer + used, KLOGD_LOGBUF_SIZE-1 - used);
 		if (n < 0) {
 			if (errno == EINTR)
 				continue;
@@ -89,32 +89,47 @@ int klogd_main(int argc UNUSED_PARAM, char **argv)
 					errno);
 			break;
 		}
-		log_buffer[n] = '\n';
-		i = 0;
-		while (i < n) {
-			priority = LOG_INFO;
-			start = &log_buffer[i];
-			if (log_buffer[i] == '<') {
-				i++;
-				// kernel never ganerates multi-digit prios
-				//priority = 0;
-				//while (log_buffer[i] >= '0' && log_buffer[i] <= '9') {
-				//	priority = priority * 10 + (log_buffer[i] - '0');
-				//	i++;
-				//}
-				if (isdigit(log_buffer[i])) {
-					priority = (log_buffer[i] - '0');
-					i++;
+
+		/* klogctl buffer parsing modelled after code in dmesg.c */
+		start = &log_buffer[0];
+
+		/* Process each newline-terminated line in the buffer */
+		while (1) {
+			char *newline = strchr(start, '\n');
+
+			if (!newline) {
+				/* This line is incomplete... */
+				if (start != log_buffer) {
+					/* move it to the front of the buffer */
+					strcpy(log_buffer, start);
+					/* don't log it yet */
+					used = strlen(log_buffer);
+					break;
 				}
-				if (log_buffer[i] == '>')
-					i++;
-				start = &log_buffer[i];
+				/* ...but buffer is full, so log it anyway */
+				used = 0;
+			} else {
+				*newline++ = '\0';
 			}
-			while (log_buffer[i] != '\n')
-				i++;
-			log_buffer[i] = '\0';
-			syslog(priority, "%s", start);
-			i++;
+
+			/* Extract the priority */
+			priority = LOG_INFO;
+			if (*start == '<') {
+				start++;
+				if (*start) {
+					/* kernel never generates multi-digit prios */
+					priority = (*start - '0');
+					start++;
+				}
+				if (*start == '>') {
+					start++;
+				}
+			}
+			if (*start)
+				syslog(priority, "%s", start);
+			if (!newline)
+				break;
+			start = newline;
 		}
 	}
 
