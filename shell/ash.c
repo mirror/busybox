@@ -8,7 +8,6 @@
  * Copyright (c) 1997-2005 Herbert Xu <herbert@gondor.apana.org.au>
  * was re-ported from NetBSD and debianized.
  *
- *
  * This code is derived from software contributed to Berkeley by
  * Kenneth Almquist.
  *
@@ -28,7 +27,6 @@
  * used in busybox and size optimizations,
  * rewrote arith (see notes to this), added locale support,
  * rewrote dynamic variables.
- *
  */
 
 /*
@@ -247,8 +245,17 @@ extern struct globals_misc *const ash_ptr_to_globals_misc;
 } while (0)
 
 
-/* ============ Interrupts / exceptions */
+/* ============ Utility functions */
+static int isdigit_str9(const char *str)
+{
+	int maxlen = 9 + 1; /* max 9 digits: 999999999 */
+	while (--maxlen && isdigit(*str))
+		str++;
+	return (*str == '\0');
+}
 
+
+/* ============ Interrupts / exceptions */
 /*
  * These macros allow the user to suspend the handling of interrupt signals
  * over a period of time.  This is similar to SIGHOLD or to sigblock, but
@@ -500,32 +507,35 @@ static const char dolatstr[] ALIGN1 = {
 	CTLVAR, VSNORMAL|VSQUOTE, '@', '=', '\0'
 };
 
-#define NCMD 0
-#define NPIPE 1
-#define NREDIR 2
-#define NBACKGND 3
+#define NCMD      0
+#define NPIPE     1
+#define NREDIR    2
+#define NBACKGND  3
 #define NSUBSHELL 4
-#define NAND 5
-#define NOR 6
-#define NSEMI 7
-#define NIF 8
-#define NWHILE 9
-#define NUNTIL 10
-#define NFOR 11
-#define NCASE 12
-#define NCLIST 13
-#define NDEFUN 14
-#define NARG 15
-#define NTO 16
-#define NCLOBBER 17
-#define NFROM 18
-#define NFROMTO 19
-#define NAPPEND 20
-#define NTOFD 21
-#define NFROMFD 22
-#define NHERE 23
-#define NXHERE 24
-#define NNOT 25
+#define NAND      5
+#define NOR       6
+#define NSEMI     7
+#define NIF       8
+#define NWHILE    9
+#define NUNTIL   10
+#define NFOR     11
+#define NCASE    12
+#define NCLIST   13
+#define NDEFUN   14
+#define NARG     15
+#define NTO      16
+#if ENABLE_ASH_BASH_COMPAT
+#define NTO2     17
+#endif
+#define NCLOBBER 18
+#define NFROM    19
+#define NFROMTO  20
+#define NAPPEND  21
+#define NTOFD    22
+#define NFROMFD  23
+#define NHERE    24
+#define NXHERE   25
+#define NNOT     26
 
 union node;
 
@@ -588,20 +598,26 @@ struct narg {
 	struct nodelist *backquote;
 };
 
+/* nfile and ndup layout must match!
+ * NTOFD (>&fdnum) uses ndup structure, but we may discover mid-flight
+ * that it is actually NTO2 (>&file), and change its type.
+ */
 struct nfile {
 	smallint type;
 	union node *next;
 	int fd;
+	int _unused_dupfd;
 	union node *fname;
 	char *expfname;
 };
 
 struct ndup {
 	smallint type;
-	union node *next; /* must match nfile's layout */
-	int fd; /* must match nfile's layout */
+	union node *next;
+	int fd;
 	int dupfd;
 	union node *vname;
+	char *_unused_expfname;
 };
 
 struct nhere {
@@ -904,8 +920,11 @@ shcmd(union node *cmd, FILE *fp)
 		case NTO:      s = ">>"+1; dftfd = 1; break;
 		case NCLOBBER: s = ">|"; dftfd = 1; break;
 		case NAPPEND:  s = ">>"; dftfd = 1; break;
+#if ENABLE_ASH_BASH_COMPAT
+		case NTO2:
+#endif
 		case NTOFD:    s = ">&"; dftfd = 1; break;
-		case NFROM:    s = "<";  break;
+		case NFROM:    s = "<"; break;
 		case NFROMFD:  s = "<&"; break;
 		case NFROMTO:  s = "<>"; break;
 		default:       s = "*error*"; break;
@@ -4408,6 +4427,9 @@ cmdtxt(union node *n)
 	case NAPPEND:
 		p = ">>";
 		goto redir;
+#if ENABLE_ASH_BASH_COMPAT
+	case NTO2:
+#endif
 	case NTOFD:
 		p = ">&";
 		goto redir;
@@ -4797,6 +4819,9 @@ openredirect(union node *redir)
 			goto ecreate;
 		break;
 	case NTO:
+#if ENABLE_ASH_BASH_COMPAT
+	case NTO2:
+#endif
 		/* Take care of noclobber mode. */
 		if (Cflag) {
 			fname = redir->nfile.expfname;
@@ -4959,6 +4984,10 @@ redirect(union node *redir, int flags)
 		union node *tmp = redir;
 		do {
 			sv_pos++;
+#if ENABLE_ASH_BASH_COMPAT
+			if (redir->nfile.type == NTO2)
+				sv_pos++;
+#endif
 			tmp = tmp->nfile.next;
 		} while (tmp);
 		sv = ckmalloc(sizeof(*sv) + sv_pos * sizeof(sv->two_fd[0]));
@@ -4997,6 +5026,9 @@ redirect(union node *redir, int flags)
 				continue;
 			}
 		}
+#if ENABLE_ASH_BASH_COMPAT
+ redirect_more:
+#endif
 		if (need_to_remember(sv, fd)) {
 			/* Copy old descriptor */
 			i = fcntl(fd, F_DUPFD, 10);
@@ -5039,8 +5071,19 @@ redirect(union node *redir, int flags)
 			}
 		} else if (fd != newfd) { /* move newfd to fd */
 			copyfd(newfd, fd | COPYFD_EXACT);
-			close(newfd);
+#if ENABLE_ASH_BASH_COMPAT
+			if (!(redir->nfile.type == NTO2 && fd == 2))
+#endif
+				close(newfd);
 		}
+#if ENABLE_ASH_BASH_COMPAT
+		if (redir->nfile.type == NTO2 && fd == 1) {
+			/* We already redirected it to fd 1, now copy it to 2 */
+			newfd = 1;
+			fd = 2;
+			goto redirect_more;
+		}
+#endif
 	} while ((redir = redir->nfile.next) != NULL);
 
 	INT_ON;
@@ -7641,6 +7684,9 @@ calcsize(union node *n)
 		calcsize(n->narg.next);
 		break;
 	case NTO:
+#if ENABLE_ASH_BASH_COMPAT
+	case NTO2:
+#endif
 	case NCLOBBER:
 	case NFROM:
 	case NFROMTO:
@@ -7754,6 +7800,9 @@ copynode(union node *n)
 		new->narg.next = copynode(n->narg.next);
 		break;
 	case NTO:
+#if ENABLE_ASH_BASH_COMPAT
+	case NTO2:
+#endif
 	case NCLOBBER:
 	case NFROM:
 	case NFROMTO:
@@ -8175,17 +8224,33 @@ expredir(union node *n)
 		case NFROMTO:
 		case NFROM:
 		case NTO:
+#if ENABLE_ASH_BASH_COMPAT
+		case NTO2:
+#endif
 		case NCLOBBER:
 		case NAPPEND:
 			expandarg(redir->nfile.fname, &fn, EXP_TILDE | EXP_REDIR);
+#if ENABLE_ASH_BASH_COMPAT
+ store_expfname:
+#endif
 			redir->nfile.expfname = fn.list->text;
 			break;
 		case NFROMFD:
-		case NTOFD:
+		case NTOFD: /* >& */
 			if (redir->ndup.vname) {
 				expandarg(redir->ndup.vname, &fn, EXP_FULL | EXP_TILDE);
 				if (fn.list == NULL)
 					ash_msg_and_raise_error("redir error");
+#if ENABLE_ASH_BASH_COMPAT
+//FIXME: we used expandarg with different args!
+				if (!isdigit_str9(fn.list->text)) {
+					/* >&file, not >&fd */
+					if (redir->nfile.fd != 1) /* 123>&file - BAD */
+						ash_msg_and_raise_error("redir error");
+					redir->type = NTO2;
+					goto store_expfname;
+				}
+#endif
 				fixredir(redir, fn.list->text, 1);
 			}
 			break;
@@ -10126,7 +10191,7 @@ fixredir(union node *n, const char *text, int err)
 		n->ndup.dupfd = -1;
 	else {
 		if (err)
-			raise_error_syntax("Bad fd number");
+			raise_error_syntax("bad fd number");
 		n->ndup.vname = makename();
 	}
 }
@@ -10169,7 +10234,7 @@ parsefname(void)
 			n->type = NXHERE;
 		TRACE(("Here document %d\n", n->type));
 		if (!noexpand(wordtext) || (i = strlen(wordtext)) == 0 || i > EOFMARKLEN)
-			raise_error_syntax("Illegal eof marker for << redirection");
+			raise_error_syntax("illegal eof marker for << redirection");
 		rmescapes(wordtext);
 		here->eofmark = wordtext;
 		here->next = NULL;
@@ -10261,7 +10326,7 @@ simplecmd(void)
 				if (!goodname(name)
 				 || ((bcmd = find_builtin(name)) && IS_BUILTIN_SPECIAL(bcmd))
 				) {
-					raise_error_syntax("Bad function name");
+					raise_error_syntax("bad function name");
 				}
 				n->type = NDEFUN;
 				checkkwd = CHKNL | CHKKWD | CHKALIAS;
@@ -10346,7 +10411,7 @@ parse_command(void)
 	}
 	case TFOR:
 		if (readtoken() != TWORD || quoteflag || !goodname(wordtext))
-			raise_error_syntax("Bad for loop variable");
+			raise_error_syntax("bad for loop variable");
 		n1 = stzalloc(sizeof(struct nfor));
 		n1->type = NFOR;
 		n1->nfor.var = wordtext;
@@ -10748,25 +10813,21 @@ readtoken1(int firstc, int syntax, char *eofmark, int striptabs)
  endword:
 #if ENABLE_ASH_MATH_SUPPORT
 	if (syntax == ARISYNTAX)
-		raise_error_syntax("Missing '))'");
+		raise_error_syntax("missing '))'");
 #endif
 	if (syntax != BASESYNTAX && !parsebackquote && eofmark == NULL)
-		raise_error_syntax("Unterminated quoted string");
+		raise_error_syntax("unterminated quoted string");
 	if (varnest != 0) {
 		startlinno = plinno;
 		/* { */
-		raise_error_syntax("Missing '}'");
+		raise_error_syntax("missing '}'");
 	}
 	USTPUTC('\0', out);
 	len = out - (char *)stackblock();
 	out = stackblock();
 	if (eofmark == NULL) {
 		if ((c == '>' || c == '<') && quotef == 0) {
-			int maxlen = 9 + 1; /* max 9 digit fd#: 999999999 */
-			char *np = out;
-			while (--maxlen && isdigit(*np))
-				np++;
-			if (*np == '\0') {
+			if (isdigit_str9(out)) {
 				PARSEREDIR(); /* passed as params: out, c */
 				lasttoken = TREDIR;
 				return lasttoken;
@@ -10841,6 +10902,7 @@ parseredir: {
 			np->type = NCLOBBER;
 		else if (c == '&')
 			np->type = NTOFD;
+			/* it also can be NTO2 (>&file), but we can't figure it out yet */
 		else {
 			np->type = NTO;
 			pungetc();
@@ -10954,8 +11016,10 @@ parsesub: {
 		} else if (is_special(c)) {
 			USTPUTC(c, out);
 			c = pgetc();
-		} else
- badsub:		raise_error_syntax("Bad substitution");
+		} else {
+ badsub:
+			raise_error_syntax("bad substitution");
+		}
 
 		STPUTC('=', out);
 		flags = 0;
