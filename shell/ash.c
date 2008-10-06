@@ -2691,7 +2691,6 @@ SIT(int c, int syntax)
 		indx = 0;
 	else
 #endif
-#define U_C(c) ((unsigned char)(c))
 
 	if ((unsigned char)c >= (unsigned char)(CTLESC)
 	 && (unsigned char)c <= (unsigned char)(CTLQUOTEMARK)
@@ -10663,7 +10662,9 @@ readtoken1(int firstc, int syntax, char *eofmark, int striptabs)
 	dqvarnest = 0;
 
 	STARTSTACKSTR(out);
-	loop: { /* for each line, until end of word */
+ loop:
+	/* For each line, until end of word */
+	{
 		CHECKEND();     /* set c to PEOF if at end of here document */
 		for (;;) {      /* until end of line or end of word */
 			CHECKSTRSPACE(4, out);  /* permit 4 calls to USTPUTC */
@@ -11310,55 +11311,51 @@ xxreadtoken(void)
 	startlinno = plinno;
 	for (;;) {                      /* until token or start of word found */
 		c = pgetc_macro();
+		if (c == ' ' || c == '\t' USE_ASH_ALIAS( || c == PEOA))
+			continue;
 
-		if ((c != ' ') && (c != '\t')
-#if ENABLE_ASH_ALIAS
-		 && (c != PEOA)
-#endif
-		) {
-			if (c == '#') {
-				while ((c = pgetc()) != '\n' && c != PEOF)
-					continue;
+		if (c == '#') {
+			while ((c = pgetc()) != '\n' && c != PEOF)
+				continue;
+			pungetc();
+		} else if (c == '\\') {
+			if (pgetc() != '\n') {
 				pungetc();
-			} else if (c == '\\') {
-				if (pgetc() != '\n') {
-					pungetc();
-					goto READTOKEN1;
-				}
-				startlinno = ++plinno;
-				if (doprompt)
-					setprompt(2);
-			} else {
-				const char *p
-					= xxreadtoken_chars + sizeof(xxreadtoken_chars) - 1;
-
-				if (c != PEOF) {
-					if (c == '\n') {
-						plinno++;
-						needprompt = doprompt;
-					}
-
-					p = strchr(xxreadtoken_chars, c);
-					if (p == NULL) {
- READTOKEN1:
-						return readtoken1(c, BASESYNTAX, (char *) NULL, 0);
-					}
-
-					if ((size_t)(p - xxreadtoken_chars) >= xxreadtoken_singles) {
-						if (pgetc() == *p) {    /* double occurrence? */
-							p += xxreadtoken_doubles + 1;
-						} else {
-							pungetc();
-						}
-					}
-				}
-				lasttoken = xxreadtoken_tokens[p - xxreadtoken_chars];
-				return lasttoken;
+				goto READTOKEN1;
 			}
+			startlinno = ++plinno;
+			if (doprompt)
+				setprompt(2);
+		} else {
+			const char *p;
+
+			p = xxreadtoken_chars + sizeof(xxreadtoken_chars) - 1;
+			if (c != PEOF) {
+				if (c == '\n') {
+					plinno++;
+					needprompt = doprompt;
+				}
+
+				p = strchr(xxreadtoken_chars, c);
+				if (p == NULL) {
+ READTOKEN1:
+					return readtoken1(c, BASESYNTAX, (char *) NULL, 0);
+				}
+
+				if ((size_t)(p - xxreadtoken_chars) >= xxreadtoken_singles) {
+					if (pgetc() == *p) {    /* double occurrence? */
+						p += xxreadtoken_doubles + 1;
+					} else {
+						pungetc();
+					}
+				}
+			}
+			lasttoken = xxreadtoken_tokens[p - xxreadtoken_chars];
+			return lasttoken;
 		}
-	} /* for */
+	} /* for (;;) */
 }
-#else
+#else /* old xxreadtoken */
 #define RETURN(token)   return lasttoken = token
 static int
 xxreadtoken(void)
@@ -11428,7 +11425,7 @@ xxreadtoken(void)
 	return readtoken1(c, BASESYNTAX, (char *)NULL, 0);
 #undef RETURN
 }
-#endif /* NEW_xxreadtoken */
+#endif /* old xxreadtoken */
 
 static int
 readtoken(void)
