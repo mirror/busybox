@@ -2572,34 +2572,36 @@ pwdcmd(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
 
 /* ============ ... */
 
+
 #define IBUFSIZ COMMON_BUFSIZE
-#define basebuf bb_common_bufsiz1       /* buffer for top level input file */
+/* buffer for top level input file */
+#define basebuf bb_common_bufsiz1
 
 /* Syntax classes */
-#define CWORD 0                 /* character is nothing special */
-#define CNL 1                   /* newline character */
-#define CBACK 2                 /* a backslash character */
-#define CSQUOTE 3               /* single quote */
-#define CDQUOTE 4               /* double quote */
+#define CWORD     0             /* character is nothing special */
+#define CNL       1             /* newline character */
+#define CBACK     2             /* a backslash character */
+#define CSQUOTE   3             /* single quote */
+#define CDQUOTE   4             /* double quote */
 #define CENDQUOTE 5             /* a terminating quote */
-#define CBQUOTE 6               /* backwards single quote */
-#define CVAR 7                  /* a dollar sign */
-#define CENDVAR 8               /* a '}' character */
-#define CLP 9                   /* a left paren in arithmetic */
-#define CRP 10                  /* a right paren in arithmetic */
+#define CBQUOTE   6             /* backwards single quote */
+#define CVAR      7             /* a dollar sign */
+#define CENDVAR   8             /* a '}' character */
+#define CLP       9             /* a left paren in arithmetic */
+#define CRP      10             /* a right paren in arithmetic */
 #define CENDFILE 11             /* end of file */
-#define CCTL 12                 /* like CWORD, except it must be escaped */
-#define CSPCL 13                /* these terminate a word */
-#define CIGN 14                 /* character should be ignored */
+#define CCTL     12             /* like CWORD, except it must be escaped */
+#define CSPCL    13             /* these terminate a word */
+#define CIGN     14             /* character should be ignored */
 
 #if ENABLE_ASH_ALIAS
-#define SYNBASE 130
-#define PEOF -130
-#define PEOA -129
+#define SYNBASE       130
+#define PEOF         -130
+#define PEOA         -129
 #define PEOA_OR_PEOF PEOA
 #else
-#define SYNBASE 129
-#define PEOF -129
+#define SYNBASE       129
+#define PEOF         -129
 #define PEOA_OR_PEOF PEOF
 #endif
 
@@ -9269,7 +9271,7 @@ preadbuffer(void)
 	return signed_char2int(*parsenextc++);
 }
 
-#define pgetc_as_macro() (--parsenleft >= 0? signed_char2int(*parsenextc++) : preadbuffer())
+#define pgetc_as_macro() (--parsenleft >= 0 ? signed_char2int(*parsenextc++) : preadbuffer())
 static int
 pgetc(void)
 {
@@ -9277,9 +9279,9 @@ pgetc(void)
 }
 
 #if ENABLE_ASH_OPTIMIZE_FOR_SIZE
-#define pgetc_macro() pgetc()
+#define pgetc_fast() pgetc()
 #else
-#define pgetc_macro() pgetc_as_macro()
+#define pgetc_fast() pgetc_as_macro()
 #endif
 
 /*
@@ -9290,18 +9292,13 @@ static int
 pgetc2(void)
 {
 	int c;
-
 	do {
-		c = pgetc_macro();
+		c = pgetc_fast();
 	} while (c == PEOA);
 	return c;
 }
 #else
-static int
-pgetc2(void)
-{
-	return pgetc_macro();
-}
+#define pgetc2() pgetc()
 #endif
 
 /*
@@ -9355,7 +9352,6 @@ pushstring(char *s, struct alias *ap)
 
 	len = strlen(s);
 	INT_OFF;
-/*dprintf("*** calling pushstring: %s, %d\n", s, len);*/
 	if (g_parsefile->strpush) {
 		sp = ckzalloc(sizeof(struct strpush));
 		sp->prev = g_parsefile->strpush;
@@ -10800,15 +10796,23 @@ readtoken1(int firstc, int syntax, char *eofmark, int striptabs)
 			case CIGN:
 				break;
 			default:
-				if (varnest == 0)
+				if (varnest == 0) {
+#if ENABLE_ASH_BASH_COMPAT
+					if (c == '&') {
+						if (pgetc() == '>')
+							c = 0x100 + '>'; /* flag &> */
+						pungetc();
+					}
+#endif
 					goto endword;   /* exit outer loop */
+				}
 #if ENABLE_ASH_ALIAS
 				if (c != PEOA)
 #endif
 					USTPUTC(c, out);
 
 			}
-			c = pgetc_macro();
+			c = pgetc_fast();
 		} /* for (;;) */
 	}
  endword:
@@ -10827,7 +10831,9 @@ readtoken1(int firstc, int syntax, char *eofmark, int striptabs)
 	len = out - (char *)stackblock();
 	out = stackblock();
 	if (eofmark == NULL) {
-		if ((c == '>' || c == '<') && quotef == 0) {
+		if ((c == '>' || c == '<' USE_ASH_BASH_COMPAT( || c == 0x100 + '>'))
+		 && quotef == 0
+		) {
 			if (isdigit_str9(out)) {
 				PARSEREDIR(); /* passed as params: out, c */
 				lasttoken = TREDIR;
@@ -10908,7 +10914,15 @@ parseredir: {
 			np->type = NTO;
 			pungetc();
 		}
-	} else {        /* c == '<' */
+	}
+#if ENABLE_ASH_BASH_COMPAT
+	else if (c == 0x100 + '>') { /* this flags &> redirection */
+		np->nfile.fd = 1;
+		pgetc(); /* this is '>', no need to check */
+		np->type = NTO2;
+	}
+#endif
+	else { /* c == '<' */
 		/*np->nfile.fd = 0; - stzalloc did it */
 		c = pgetc();
 		switch (c) {
@@ -11281,8 +11295,13 @@ parsearith: {
 #ifdef NEW_xxreadtoken
 /* singles must be first! */
 static const char xxreadtoken_chars[7] ALIGN1 = {
-	'\n', '(', ')', '&', '|', ';', 0
+	'\n', '(', ')', /* singles */
+	'&', '|', ';',  /* doubles */
+	0
 };
+
+#define xxreadtoken_singles 3
+#define xxreadtoken_doubles 3
 
 static const char xxreadtoken_tokens[] ALIGN1 = {
 	TNL, TLP, TRP,          /* only single occurrence allowed */
@@ -11290,11 +11309,6 @@ static const char xxreadtoken_tokens[] ALIGN1 = {
 	TEOF,                   /* corresponds to trailing nul */
 	TAND, TOR, TENDCASE     /* if double occurrence */
 };
-
-#define xxreadtoken_doubles \
-	(sizeof(xxreadtoken_tokens) - sizeof(xxreadtoken_chars))
-#define xxreadtoken_singles \
-	(sizeof(xxreadtoken_chars) - xxreadtoken_doubles - 1)
 
 static int
 xxreadtoken(void)
@@ -11310,7 +11324,7 @@ xxreadtoken(void)
 	}
 	startlinno = plinno;
 	for (;;) {                      /* until token or start of word found */
-		c = pgetc_macro();
+		c = pgetc_fast();
 		if (c == ' ' || c == '\t' USE_ASH_ALIAS( || c == PEOA))
 			continue;
 
@@ -11321,7 +11335,7 @@ xxreadtoken(void)
 		} else if (c == '\\') {
 			if (pgetc() != '\n') {
 				pungetc();
-				goto READTOKEN1;
+				break; /* return readtoken1(...) */
 			}
 			startlinno = ++plinno;
 			if (doprompt)
@@ -11337,16 +11351,19 @@ xxreadtoken(void)
 				}
 
 				p = strchr(xxreadtoken_chars, c);
-				if (p == NULL) {
- READTOKEN1:
-					return readtoken1(c, BASESYNTAX, (char *) NULL, 0);
-				}
+				if (p == NULL)
+					break; /* return readtoken1(...) */
 
-				if ((size_t)(p - xxreadtoken_chars) >= xxreadtoken_singles) {
-					if (pgetc() == *p) {    /* double occurrence? */
+				if ((int)(p - xxreadtoken_chars) >= xxreadtoken_singles) {
+					int cc = pgetc();
+					if (cc == c) {    /* double occurrence? */
 						p += xxreadtoken_doubles + 1;
 					} else {
 						pungetc();
+#if ENABLE_ASH_BASH_COMPAT
+						if (c == '&' && cc == '>') /* &> */
+							break; /* return readtoken1(...) */
+#endif
 					}
 				}
 			}
@@ -11354,6 +11371,8 @@ xxreadtoken(void)
 			return lasttoken;
 		}
 	} /* for (;;) */
+
+	return readtoken1(c, BASESYNTAX, (char *) NULL, 0);
 }
 #else /* old xxreadtoken */
 #define RETURN(token)   return lasttoken = token
@@ -11371,7 +11390,7 @@ xxreadtoken(void)
 	}
 	startlinno = plinno;
 	for (;;) {      /* until token or start of word found */
-		c = pgetc_macro();
+		c = pgetc_fast();
 		switch (c) {
 		case ' ': case '\t':
 #if ENABLE_ASH_ALIAS
