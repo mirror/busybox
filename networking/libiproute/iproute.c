@@ -291,7 +291,7 @@ static int iproute_modify(int cmd, unsigned flags, char **argv)
 {
 	static const char keywords[] ALIGN1 =
 		"src\0""via\0""mtu\0""lock\0""protocol\0"USE_FEATURE_IP_RULE("table\0")
-		"dev\0""oif\0""to\0";
+		"dev\0""oif\0""to\0""metric\0";
 	enum {
 		ARG_src,
 		ARG_via,
@@ -300,7 +300,8 @@ static int iproute_modify(int cmd, unsigned flags, char **argv)
 USE_FEATURE_IP_RULE(ARG_table,)
 		ARG_dev,
 		ARG_oif,
-		ARG_to
+		ARG_to,
+		ARG_metric,
 	};
 	enum {
 		gw_ok = 1 << 0,
@@ -387,6 +388,12 @@ USE_FEATURE_IP_RULE(ARG_table,)
 		} else if (arg == ARG_dev || arg == ARG_oif) {
 			NEXT_ARG();
 			d = *argv;
+		} else if (arg == ARG_metric) {
+			uint32_t metric;
+			NEXT_ARG();
+			if (get_u32(&metric, *argv, 0))
+				invarg(*argv, "metric");
+			addattr32(&req.n, sizeof(req), RTA_PRIORITY, metric);
 		} else {
 			int type;
 			inet_prefix dst;

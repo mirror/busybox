@@ -1992,7 +1992,8 @@
        "			[oif STRING]  [tos TOS]\n" \
        "iproute { add | del | change | append | replace | monitor } ROUTE\n" \
        "			SELECTOR := [root PREFIX] [match PREFIX] [proto RTPROTO]\n" \
-       "			ROUTE := [TYPE] PREFIX [tos TOS] [proto RTPROTO]" \
+       "			ROUTE := [TYPE] PREFIX [tos TOS] [proto RTPROTO]\n" \
+       "				[metric METRIC]" \
 
 #define iprule_trivial_usage \
        "{[list | add | del] RULE}"
