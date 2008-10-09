@@ -45,12 +45,11 @@
  *      aliases
  *      Arithmetic Expansion
  *      <(list) and >(list) Process Substitution
- *      reserved words: case, esac, select, function
+ *      reserved words: select, function
  *      Here Documents ( << word )
  *      Functions
  * Major bugs:
  *      job handling woefully incomplete and buggy (improved --vda)
- *      reserved word execution woefully incomplete and buggy
  * to-do:
  *      port selected bugfixes from post-0.49 busybox lash - done?
  *      change { and } from special chars to reserved words
@@ -291,23 +290,6 @@ typedef enum reserved_style {
 	RES_SNTX
 } reserved_style;
 
-/* This holds pointers to the various results of parsing */
-struct p_context {
-	struct child_prog *child;
-	struct pipe *list_head;
-	struct pipe *pipe;
-	struct redir_struct *pending_redirect;
-#if HAS_KEYWORDS
-	smallint ctx_res_w;
-	smallint ctx_inverted; /* "! cmd | cmd" */
-#if ENABLE_HUSH_CASE
-	smallint ctx_dsemicolon; /* ";;" seen */
-#endif
-	int old_flag; /* bitmask of FLAG_xxx, for figuring out valid reserved words */
-	struct p_context *stack;
-#endif
-};
-
 struct redir_struct {
 	struct redir_struct *next;
 	char *rd_filename;          /* filename */
@@ -316,14 +298,14 @@ struct redir_struct {
 	smallint /*enum redir_type*/ rd_type;
 };
 
-struct child_prog {
+struct command {
 	pid_t pid;                  /* 0 if exited */
 	int assignment_cnt;         /* how many argv[i] are assignments? */
-	smallint is_stopped;        /* is the program currently running? */
+	smallint is_stopped;        /* is the command currently running? */
 	smallint subshell;          /* flag, non-zero if group must be forked */
 	struct pipe *group;         /* if non-NULL, this "prog" is {} group,
 	                             * subshell, or a compound statement */
-	char **argv;                /* program name and arguments */
+	char **argv;                /* command name and arguments */
 	struct redir_struct *redirects; /* I/O redirections */
 };
 /* argv vector may contain variable references (^Cvar^C, ^C0^C etc)
@@ -335,18 +317,35 @@ struct child_prog {
 
 struct pipe {
 	struct pipe *next;
-	int num_progs;              /* total number of programs in job */
-	int alive_progs;            /* number of programs running (not exited) */
-	int stopped_progs;          /* number of programs alive, but stopped */
+	int num_cmds;               /* total number of commands in job */
+	int alive_cmds;             /* number of commands running (not exited) */
+	int stopped_cmds;           /* number of commands alive, but stopped */
 #if ENABLE_HUSH_JOB
 	int jobid;                  /* job number */
 	pid_t pgrp;                 /* process group ID for the job */
 	char *cmdtext;              /* name of job */
 #endif
-	struct child_prog *progs;   /* array of commands in pipe */
+	struct command *cmds;       /* array of commands in pipe */
 	smallint followup;          /* PIPE_BG, PIPE_SEQ, PIPE_OR, PIPE_AND */
 	IF_HAS_KEYWORDS(smallint pi_inverted;) /* "! cmd | cmd" */
 	IF_HAS_KEYWORDS(smallint res_word;) /* needed for if, for, while, until... */
+};
+
+/* This holds pointers to the various results of parsing */
+struct parse_context {
+	struct command *command;
+	struct pipe *list_head;
+	struct pipe *pipe;
+	struct redir_struct *pending_redirect;
+#if HAS_KEYWORDS
+	smallint ctx_res_w;
+	smallint ctx_inverted; /* "! cmd | cmd" */
+#if ENABLE_HUSH_CASE
+	smallint ctx_dsemicolon; /* ";;" seen */
+#endif
+	int old_flag; /* bitmask of FLAG_xxx, for figuring out valid reserved words */
+	struct parse_context *stack;
+#endif
 };
 
 /* On program start, environ points to initial environment.
@@ -523,23 +522,23 @@ static void setup_string_in_str(struct in_str *i, const char *s);
 static int free_pipe_list(struct pipe *head, int indent);
 static int free_pipe(struct pipe *pi, int indent);
 /*  really run the final data structures: */
-static int setup_redirects(struct child_prog *prog, int squirrel[]);
+static int setup_redirects(struct command *prog, int squirrel[]);
 static int run_list(struct pipe *pi);
 #if BB_MMU
 #define pseudo_exec_argv(ptrs2free, argv, assignment_cnt, argv_expanded) \
 	pseudo_exec_argv(argv, assignment_cnt, argv_expanded)
-#define pseudo_exec(ptrs2free, child, argv_expanded) \
-	pseudo_exec(child, argv_expanded)
+#define pseudo_exec(ptrs2free, command, argv_expanded) \
+	pseudo_exec(command, argv_expanded)
 #endif
 static void pseudo_exec_argv(char **ptrs2free, char **argv, int assignment_cnt, char **argv_expanded) NORETURN;
-static void pseudo_exec(char **ptrs2free, struct child_prog *child, char **argv_expanded) NORETURN;
+static void pseudo_exec(char **ptrs2free, struct command *command, char **argv_expanded) NORETURN;
 static int run_pipe(struct pipe *pi);
 /*   data structure manipulation: */
-static int setup_redirect(struct p_context *ctx, int fd, redir_type style, struct in_str *input);
-static void initialize_context(struct p_context *ctx);
-static int done_word(o_string *dest, struct p_context *ctx);
-static int done_command(struct p_context *ctx);
-static void done_pipe(struct p_context *ctx, pipe_style type);
+static int setup_redirect(struct parse_context *ctx, int fd, redir_type style, struct in_str *input);
+static void initialize_context(struct parse_context *ctx);
+static int done_word(o_string *dest, struct parse_context *ctx);
+static int done_command(struct parse_context *ctx);
+static void done_pipe(struct parse_context *ctx, pipe_style type);
 /*   primary string parsing: */
 static int redirect_dup_num(struct in_str *input);
 static int redirect_opt_num(o_string *o);
@@ -547,11 +546,11 @@ static int redirect_opt_num(o_string *o);
 static int process_command_subs(o_string *dest,
 		struct in_str *input, const char *subst_end);
 #endif
-static int parse_group(o_string *dest, struct p_context *ctx, struct in_str *input, int ch);
+static int parse_group(o_string *dest, struct parse_context *ctx, struct in_str *input, int ch);
 static const char *lookup_param(const char *src);
 static int handle_dollar(o_string *dest,
 		struct in_str *input);
-static int parse_stream(o_string *dest, struct p_context *ctx, struct in_str *input0, const char *end_trigger);
+static int parse_stream(o_string *dest, struct parse_context *ctx, struct in_str *input0, const char *end_trigger);
 /*   setup: */
 static int parse_and_run_stream(struct in_str *inp, int parse_flag);
 static int parse_and_run_string(const char *s, int parse_flag);
@@ -837,7 +836,7 @@ static void handler_ctrl_z(int sig UNUSED_PARAM)
 	/* parent */
 	/* finish filling up pipe info */
 	G.toplevel_list->pgrp = pid; /* child is in its own pgrp */
-	G.toplevel_list->progs[0].pid = pid;
+	G.toplevel_list->cmds[0].pid = pid;
 	/* parent needs to longjmp out of running nofork.
 	 * we will "return" exitcode 0, with child put in background */
 // as usual we can have all kinds of nasty problems with leaked malloc data here
@@ -1334,7 +1333,7 @@ static void setup_string_in_str(struct in_str *i, const char *s)
 
 /* squirrel != NULL means we squirrel away copies of stdin, stdout,
  * and stderr if they are redirected. */
-static int setup_redirects(struct child_prog *prog, int squirrel[])
+static int setup_redirects(struct command *prog, int squirrel[])
 {
 	int openfd, mode;
 	struct redir_struct *redir;
@@ -1467,18 +1466,18 @@ static void pseudo_exec_argv(char **ptrs2free, char **argv, int assignment_cnt, 
 
 /* Called after [v]fork() in run_pipe()
  */
-static void pseudo_exec(char **ptrs2free, struct child_prog *child, char **argv_expanded)
+static void pseudo_exec(char **ptrs2free, struct command *command, char **argv_expanded)
 {
-	if (child->argv)
-		pseudo_exec_argv(ptrs2free, child->argv, child->assignment_cnt, argv_expanded);
+	if (command->argv)
+		pseudo_exec_argv(ptrs2free, command->argv, command->assignment_cnt, argv_expanded);
 
-	if (child->group) {
+	if (command->group) {
 #if !BB_MMU
 		bb_error_msg_and_die("nested lists are not supported on NOMMU");
 #else
 		int rcode;
 		debug_printf_exec("pseudo_exec: run_list\n");
-		rcode = run_list(child->group);
+		rcode = run_list(command->group);
 		/* OK to leak memory by not calling free_pipe_list,
 		 * since this process is about to exit */
 		_exit(rcode);
@@ -1502,7 +1501,7 @@ static const char *get_cmdtext(struct pipe *pi)
 	 * On subsequent bg argv is trashed, but we won't use it */
 	if (pi->cmdtext)
 		return pi->cmdtext;
-	argv = pi->progs[0].argv;
+	argv = pi->cmds[0].argv;
 	if (!argv || !argv[0]) {
 		pi->cmdtext = xzalloc(1);
 		return pi->cmdtext;
@@ -1511,7 +1510,7 @@ static const char *get_cmdtext(struct pipe *pi)
 	len = 0;
 	do len += strlen(*argv) + 1; while (*++argv);
 	pi->cmdtext = p = xmalloc(len);
-	argv = pi->progs[0].argv;
+	argv = pi->cmds[0].argv;
 	do {
 		len = strlen(*argv);
 		memcpy(p, *argv, len);
@@ -1545,12 +1544,12 @@ static void insert_bg_job(struct pipe *pi)
 
 	/* Physically copy the struct job */
 	memcpy(thejob, pi, sizeof(struct pipe));
-	thejob->progs = xzalloc(sizeof(pi->progs[0]) * pi->num_progs);
-	/* We cannot copy entire pi->progs[] vector! Double free()s will happen */
-	for (i = 0; i < pi->num_progs; i++) {
+	thejob->cmds = xzalloc(sizeof(pi->cmds[0]) * pi->num_cmds);
+	/* We cannot copy entire pi->cmds[] vector! Double free()s will happen */
+	for (i = 0; i < pi->num_cmds; i++) {
 // TODO: do we really need to have so many fields which are just dead weight
 // at execution stage?
-		thejob->progs[i].pid = pi->progs[i].pid;
+		thejob->cmds[i].pid = pi->cmds[i].pid;
 		/* all other fields are not used and stay zero */
 	}
 	thejob->next = NULL;
@@ -1558,8 +1557,8 @@ static void insert_bg_job(struct pipe *pi)
 
 	/* We don't wait for background thejobs to return -- append it
 	   to the list of backgrounded thejobs and leave it alone */
-	printf("[%d] %d %s\n", thejob->jobid, thejob->progs[0].pid, thejob->cmdtext);
-	G.last_bg_pid = thejob->progs[0].pid;
+	printf("[%d] %d %s\n", thejob->jobid, thejob->cmds[0].pid, thejob->cmdtext);
+	G.last_bg_pid = thejob->cmds[0].pid;
 	G.last_jobid = thejob->jobid;
 }
 
@@ -1585,7 +1584,7 @@ static void remove_bg_job(struct pipe *pi)
 static void delete_finished_bg_job(struct pipe *pi)
 {
 	remove_bg_job(pi);
-	pi->stopped_progs = 0;
+	pi->stopped_cmds = 0;
 	free_pipe(pi, 0);
 	free(pi);
 }
@@ -1637,29 +1636,29 @@ static int checkjobs(struct pipe* fg_pipe)
 #endif
 		/* Were we asked to wait for fg pipe? */
 		if (fg_pipe) {
-			for (i = 0; i < fg_pipe->num_progs; i++) {
-				debug_printf_jobs("check pid %d\n", fg_pipe->progs[i].pid);
-				if (fg_pipe->progs[i].pid != childpid)
+			for (i = 0; i < fg_pipe->num_cmds; i++) {
+				debug_printf_jobs("check pid %d\n", fg_pipe->cmds[i].pid);
+				if (fg_pipe->cmds[i].pid != childpid)
 					continue;
 				/* printf("process %d exit %d\n", i, WEXITSTATUS(status)); */
 				if (dead) {
-					fg_pipe->progs[i].pid = 0;
-					fg_pipe->alive_progs--;
-					if (i == fg_pipe->num_progs - 1) {
+					fg_pipe->cmds[i].pid = 0;
+					fg_pipe->alive_cmds--;
+					if (i == fg_pipe->num_cmds - 1) {
 						/* last process gives overall exitstatus */
 						rcode = WEXITSTATUS(status);
 						IF_HAS_KEYWORDS(if (fg_pipe->pi_inverted) rcode = !rcode;)
 					}
 				} else {
-					fg_pipe->progs[i].is_stopped = 1;
-					fg_pipe->stopped_progs++;
+					fg_pipe->cmds[i].is_stopped = 1;
+					fg_pipe->stopped_cmds++;
 				}
-				debug_printf_jobs("fg_pipe: alive_progs %d stopped_progs %d\n",
-						fg_pipe->alive_progs, fg_pipe->stopped_progs);
-				if (fg_pipe->alive_progs - fg_pipe->stopped_progs <= 0) {
+				debug_printf_jobs("fg_pipe: alive_cmds %d stopped_cmds %d\n",
+						fg_pipe->alive_cmds, fg_pipe->stopped_cmds);
+				if (fg_pipe->alive_cmds - fg_pipe->stopped_cmds <= 0) {
 					/* All processes in fg pipe have exited/stopped */
 #if ENABLE_HUSH_JOB
-					if (fg_pipe->alive_progs)
+					if (fg_pipe->alive_cmds)
 						insert_bg_job(fg_pipe);
 #endif
 					return rcode;
@@ -1674,8 +1673,8 @@ static int checkjobs(struct pipe* fg_pipe)
 		/* We asked to wait for bg or orphaned children */
 		/* No need to remember exitcode in this case */
 		for (pi = G.job_list; pi; pi = pi->next) {
-			for (i = 0; i < pi->num_progs; i++) {
-				if (pi->progs[i].pid == childpid)
+			for (i = 0; i < pi->num_cmds; i++) {
+				if (pi->cmds[i].pid == childpid)
 					goto found_pi_and_prognum;
 			}
 		}
@@ -1686,17 +1685,17 @@ static int checkjobs(struct pipe* fg_pipe)
  found_pi_and_prognum:
 		if (dead) {
 			/* child exited */
-			pi->progs[i].pid = 0;
-			pi->alive_progs--;
-			if (!pi->alive_progs) {
+			pi->cmds[i].pid = 0;
+			pi->alive_cmds--;
+			if (!pi->alive_cmds) {
 				printf(JOB_STATUS_FORMAT, pi->jobid,
 						"Done", pi->cmdtext);
 				delete_finished_bg_job(pi);
 			}
 		} else {
 			/* child stopped */
-			pi->progs[i].is_stopped = 1;
-			pi->stopped_progs++;
+			pi->cmds[i].is_stopped = 1;
+			pi->stopped_cmds++;
 		}
 #endif
 	} /* while (waitpid succeeds)... */
@@ -1745,7 +1744,7 @@ static int run_pipe(struct pipe *pi)
 	int i;
 	int nextin;
 	int pipefds[2];		/* pipefds[0] is for reading */
-	struct child_prog *child;
+	struct command *command;
 	char **argv_expanded = NULL;
 	char **argv;
 	const struct built_in_command *x;
@@ -1753,36 +1752,36 @@ static int run_pipe(struct pipe *pi)
 	/* it is not always needed, but we aim to smaller code */
 	int squirrel[] = { -1, -1, -1 };
 	int rcode;
-	const int single_and_fg = (pi->num_progs == 1 && pi->followup != PIPE_BG);
+	const int single_and_fg = (pi->num_cmds == 1 && pi->followup != PIPE_BG);
 
 	debug_printf_exec("run_pipe start: single_and_fg=%d\n", single_and_fg);
 
 #if ENABLE_HUSH_JOB
 	pi->pgrp = -1;
 #endif
-	pi->alive_progs = 1;
-	pi->stopped_progs = 0;
+	pi->alive_cmds = 1;
+	pi->stopped_cmds = 0;
 
 	/* Check if this is a simple builtin (not part of a pipe).
 	 * Builtins within pipes have to fork anyway, and are handled in
 	 * pseudo_exec.  "echo foo | read bar" doesn't work on bash, either.
 	 */
-	child = &(pi->progs[0]);
-	if (single_and_fg && child->group && child->subshell == 0) {
+	command = &(pi->cmds[0]);
+	if (single_and_fg && command->group && command->subshell == 0) {
 		debug_printf("non-subshell grouping\n");
-		setup_redirects(child, squirrel);
+		setup_redirects(command, squirrel);
 		debug_printf_exec(": run_list\n");
-		rcode = run_list(child->group) & 0xff;
+		rcode = run_list(command->group) & 0xff;
 		restore_redirects(squirrel);
 		debug_printf_exec("run_pipe return %d\n", rcode);
 		IF_HAS_KEYWORDS(if (pi->pi_inverted) rcode = !rcode;)
 		return rcode;
 	}
 
-	argv = child->argv;
+	argv = command->argv;
 
 	if (single_and_fg && argv != NULL) {
-		i = child->assignment_cnt;
+		i = command->assignment_cnt;
 		if (i != 0 && argv[i] == NULL) {
 			/* assignments, but no command: set local environment */
 			for (i = 0; argv[i] != NULL; i++) {
@@ -1794,7 +1793,7 @@ static int run_pipe(struct pipe *pi)
 		}
 
 		/* Expand assignments into one string each */
-		for (i = 0; i < child->assignment_cnt; i++) {
+		for (i = 0; i < command->assignment_cnt; i++) {
 			p = expand_string_to_string(argv[i]);
 			putenv(p);
 //FIXME: do we leak p?!
@@ -1807,7 +1806,7 @@ static int run_pipe(struct pipe *pi)
 			if (strcmp(argv_expanded[0], x->cmd) == 0) {
 				if (x->function == builtin_exec && argv_expanded[1] == NULL) {
 					debug_printf("magic exec\n");
-					setup_redirects(child, NULL);
+					setup_redirects(command, NULL);
 					return EXIT_SUCCESS;
 				}
 				debug_printf("builtin inline %s\n", argv_expanded[0]);
@@ -1815,7 +1814,7 @@ static int run_pipe(struct pipe *pi)
 				 * This is perfect for work that comes after exec().
 				 * Is it really safe for inline use?  Experimentally,
 				 * things seem to work with glibc. */
-				setup_redirects(child, squirrel);
+				setup_redirects(command, squirrel);
 				debug_printf_exec(": builtin '%s' '%s'...\n", x->cmd, argv_expanded[1]);
 				rcode = x->function(argv_expanded) & 0xff;
 				free(argv_expanded);
@@ -1829,7 +1828,7 @@ static int run_pipe(struct pipe *pi)
 		{
 			int a = find_applet_by_name(argv_expanded[0]);
 			if (a >= 0 && APPLET_IS_NOFORK(a)) {
-				setup_redirects(child, squirrel);
+				setup_redirects(command, squirrel);
 				save_nofork_data(&G.nofork_save);
 				debug_printf_exec(": run_nofork_applet '%s' '%s'...\n", argv_expanded[0], argv_expanded[1]);
 				rcode = run_nofork_applet_prime(&G.nofork_save, a, argv_expanded);
@@ -1852,18 +1851,18 @@ static int run_pipe(struct pipe *pi)
 	set_jobctrl_sighandler(SIG_IGN);
 
 	/* Going to fork a child per each pipe member */
-	pi->alive_progs = 0;
+	pi->alive_cmds = 0;
 	nextin = 0;
 
-	for (i = 0; i < pi->num_progs; i++) {
+	for (i = 0; i < pi->num_cmds; i++) {
 #if !BB_MMU
 		char **ptrs2free = NULL;
 #endif
-		child = &(pi->progs[i]);
-		if (child->argv) {
-			debug_printf_exec(": pipe member '%s' '%s'...\n", child->argv[0], child->argv[1]);
+		command = &(pi->cmds[i]);
+		if (command->argv) {
+			debug_printf_exec(": pipe member '%s' '%s'...\n", command->argv[0], command->argv[1]);
 #if !BB_MMU
-			ptrs2free = alloc_ptrs(child->argv);
+			ptrs2free = alloc_ptrs(command->argv);
 #endif
 		} else
 			debug_printf_exec(": pipe member with no argv\n");
@@ -1871,11 +1870,11 @@ static int run_pipe(struct pipe *pi)
 		/* pipes are inserted between pairs of commands */
 		pipefds[0] = 0;
 		pipefds[1] = 1;
-		if ((i + 1) < pi->num_progs)
+		if ((i + 1) < pi->num_cmds)
 			xpipe(pipefds);
 
-		child->pid = BB_MMU ? fork() : vfork();
-		if (!child->pid) { /* child */
+		command->pid = BB_MMU ? fork() : vfork();
+		if (!command->pid) { /* child */
 			if (ENABLE_HUSH_JOB)
 				die_sleep = 0; /* let nofork's xfuncs die */
 #if ENABLE_HUSH_JOB
@@ -1901,45 +1900,45 @@ static int run_pipe(struct pipe *pi)
 				close(pipefds[0]); /* read end */
 			/* Like bash, explicit redirects override pipes,
 			 * and the pipe fd is available for dup'ing. */
-			setup_redirects(child, NULL);
+			setup_redirects(command, NULL);
 
 			/* Restore default handlers just prior to exec */
 			set_jobctrl_sighandler(SIG_DFL);
 			set_misc_sighandler(SIG_DFL);
 			signal(SIGCHLD, SIG_DFL);
-			pseudo_exec(ptrs2free, child, argv_expanded); /* does not return */
+			pseudo_exec(ptrs2free, command, argv_expanded); /* does not return */
 		}
 		free(argv_expanded);
 		argv_expanded = NULL;
 #if !BB_MMU
 		free_strings(ptrs2free);
 #endif
-		if (child->pid < 0) { /* [v]fork failed */
+		if (command->pid < 0) { /* [v]fork failed */
 			/* Clearly indicate, was it fork or vfork */
 			bb_perror_msg(BB_MMU ? "fork" : "vfork");
 		} else {
-			pi->alive_progs++;
+			pi->alive_cmds++;
 #if ENABLE_HUSH_JOB
 			/* Second and next children need to know pid of first one */
 			if (pi->pgrp < 0)
-				pi->pgrp = child->pid;
+				pi->pgrp = command->pid;
 #endif
 		}
 
 		if (i)
 			close(nextin);
-		if ((i + 1) < pi->num_progs)
+		if ((i + 1) < pi->num_cmds)
 			close(pipefds[1]); /* write end */
 		/* Pass read (output) pipe end to next iteration */
 		nextin = pipefds[0];
 	}
 
-	if (!pi->alive_progs) {
+	if (!pi->alive_cmds) {
 		debug_printf_exec("run_pipe return 1 (all forks failed, no children)\n");
 		return 1;
 	}
 
-	debug_printf_exec("run_pipe return -1 (%u children started)\n", pi->alive_progs);
+	debug_printf_exec("run_pipe return -1 (%u children started)\n", pi->alive_cmds);
 	return -1;
 }
 
@@ -1988,16 +1987,16 @@ static void debug_print_tree(struct pipe *pi, int lvl)
 		fprintf(stderr, "%*spipe %d res_word=%s followup=%d %s\n", lvl*2, "",
 				pin, RES[pi->res_word], pi->followup, PIPE[pi->followup]);
 		prn = 0;
-		while (prn < pi->num_progs) {
-			struct child_prog *child = &pi->progs[prn];
-			char **argv = child->argv;
+		while (prn < pi->num_cmds) {
+			struct command *command = &pi->cmds[prn];
+			char **argv = command->argv;
 
-			fprintf(stderr, "%*s prog %d assignment_cnt:%d", lvl*2, "", prn, child->assignment_cnt);
-			if (child->group) {
+			fprintf(stderr, "%*s prog %d assignment_cnt:%d", lvl*2, "", prn, command->assignment_cnt);
+			if (command->group) {
 				fprintf(stderr, " group %s: (argv=%p)\n",
-						(child->subshell ? "()" : "{}"),
+						(command->subshell ? "()" : "{}"),
 						argv);
-				debug_print_tree(child->group, lvl+1);
+				debug_print_tree(command->group, lvl+1);
 				prn++;
 				continue;
 			}
@@ -2151,7 +2150,7 @@ static int run_list(struct pipe *pi)
 		}
 #endif
 #if ENABLE_HUSH_LOOPS
-		if (rword == RES_FOR) { /* && pi->num_progs - always == 1 */
+		if (rword == RES_FOR) { /* && pi->num_cmds - always == 1 */
 			if (!for_lcur) {
 				/* first loop through for */
 
@@ -2166,31 +2165,31 @@ static int run_list(struct pipe *pi)
 				vals = (char**)encoded_dollar_at_argv;
 				if (pi->next->res_word == RES_IN) {
 					/* if no variable values after "in" we skip "for" */
-					if (!pi->next->progs[0].argv)
+					if (!pi->next->cmds[0].argv)
 						break;
-					vals = pi->next->progs[0].argv;
+					vals = pi->next->cmds[0].argv;
 				} /* else: "for var; do..." -> assume "$@" list */
 				/* create list of variable values */
 				debug_print_strings("for_list made from", vals);
 				for_list = expand_strvec_to_strvec(vals);
 				for_lcur = for_list;
 				debug_print_strings("for_list", for_list);
-				for_varname = pi->progs[0].argv[0];
-				pi->progs[0].argv[0] = NULL;
+				for_varname = pi->cmds[0].argv[0];
+				pi->cmds[0].argv[0] = NULL;
 			}
-			free(pi->progs[0].argv[0]);
+			free(pi->cmds[0].argv[0]);
 			if (!*for_lcur) {
 				/* "for" loop is over, clean up */
 				free(for_list);
 				for_list = NULL;
 				for_lcur = NULL;
-				pi->progs[0].argv[0] = for_varname;
+				pi->cmds[0].argv[0] = for_varname;
 				break;
 			}
 			/* insert next value from for_lcur */
 //TODO: does it need escaping?
-			pi->progs[0].argv[0] = xasprintf("%s=%s", for_varname, *for_lcur++);
-			pi->progs[0].assignment_cnt = 1;
+			pi->cmds[0].argv[0] = xasprintf("%s=%s", for_varname, *for_lcur++);
+			pi->cmds[0].assignment_cnt = 1;
 		}
 		if (rword == RES_IN) /* "for v IN list;..." - "in" has no cmds anyway */
 			continue;
@@ -2200,7 +2199,7 @@ static int run_list(struct pipe *pi)
 #endif
 #if ENABLE_HUSH_CASE
 		if (rword == RES_CASE) {
-			case_word = expand_strvec_to_string(pi->progs->argv);
+			case_word = expand_strvec_to_string(pi->cmds->argv);
 			continue;
 		}
 		if (rword == RES_MATCH) {
@@ -2209,7 +2208,7 @@ static int run_list(struct pipe *pi)
 			if (!case_word) /* "case ... matched_word) ... WORD)": we executed selected branch, stop */
 				break;
 			/* all prev words didn't match, does this one match? */
-			argv = pi->progs->argv;
+			argv = pi->cmds->argv;
 			while (*argv) {
 				char *pattern = expand_string_to_string(*argv);
 				/* TODO: which FNM_xxx flags to use? */
@@ -2229,14 +2228,14 @@ static int run_list(struct pipe *pi)
 				continue; /* not matched yet, skip this pipe */
 		}
 #endif
-		if (pi->num_progs == 0)
+		if (pi->num_cmds == 0)
 			continue;
 
 		/* After analyzing all keywords and conditions, we decided
 		 * to execute this pipe. NB: has to do checkjobs(NULL)
 		 * after run_pipe() to collect any background children,
 		 * even if list execution is to be stopped. */
-		debug_printf_exec(": run_pipe with %d members\n", pi->num_progs);
+		debug_printf_exec(": run_pipe with %d members\n", pi->num_cmds);
 		{
 			int r;
 #if ENABLE_HUSH_LOOPS
@@ -2349,30 +2348,30 @@ static int run_list(struct pipe *pi)
 static int free_pipe(struct pipe *pi, int indent)
 {
 	char **p;
-	struct child_prog *child;
+	struct command *command;
 	struct redir_struct *r, *rnext;
 	int a, i, ret_code = 0;
 
-	if (pi->stopped_progs > 0)
+	if (pi->stopped_cmds > 0)
 		return ret_code;
 	debug_printf_clean("%s run pipe: (pid %d)\n", indenter(indent), getpid());
-	for (i = 0; i < pi->num_progs; i++) {
-		child = &pi->progs[i];
+	for (i = 0; i < pi->num_cmds; i++) {
+		command = &pi->cmds[i];
 		debug_printf_clean("%s  command %d:\n", indenter(indent), i);
-		if (child->argv) {
-			for (a = 0, p = child->argv; *p; a++, p++) {
+		if (command->argv) {
+			for (a = 0, p = command->argv; *p; a++, p++) {
 				debug_printf_clean("%s   argv[%d] = %s\n", indenter(indent), a, *p);
 			}
-			free_strings(child->argv);
-			child->argv = NULL;
-		} else if (child->group) {
-			debug_printf_clean("%s   begin group (subshell:%d)\n", indenter(indent), child->subshell);
-			ret_code = free_pipe_list(child->group, indent+3);
+			free_strings(command->argv);
+			command->argv = NULL;
+		} else if (command->group) {
+			debug_printf_clean("%s   begin group (subshell:%d)\n", indenter(indent), command->subshell);
+			ret_code = free_pipe_list(command->group, indent+3);
 			debug_printf_clean("%s   end group\n", indenter(indent));
 		} else {
 			debug_printf_clean("%s   (nil)\n", indenter(indent));
 		}
-		for (r = child->redirects; r; r = rnext) {
+		for (r = command->redirects; r; r = rnext) {
 			debug_printf_clean("%s   redirect %d%s", indenter(indent), r->fd, redir_table[r->rd_type].descrip);
 			if (r->dup == -1) {
 				/* guard against the case >$FOO, where foo is unset or blank */
@@ -2387,10 +2386,10 @@ static int free_pipe(struct pipe *pi, int indent)
 			rnext = r->next;
 			free(r);
 		}
-		child->redirects = NULL;
+		command->redirects = NULL;
 	}
-	free(pi->progs);   /* children are an array, they get freed all at once */
-	pi->progs = NULL;
+	free(pi->cmds);   /* children are an array, they get freed all at once */
+	pi->cmds = NULL;
 #if ENABLE_HUSH_JOB
 	free(pi->cmdtext);
 	pi->cmdtext = NULL;
@@ -2422,7 +2421,7 @@ static int run_and_free_list(struct pipe *pi)
 	int rcode = 0;
 	debug_printf_exec("run_and_free_list entered\n");
 	if (!G.fake_mode) {
-		debug_printf_exec(": run_list with %d members\n", pi->num_progs);
+		debug_printf_exec(": run_list with %d members\n", pi->num_cmds);
 		rcode = run_list(pi);
 	}
 	/* free_pipe_list has the side effect of clearing memory.
@@ -2833,11 +2832,11 @@ static void unset_local_var(const char *name)
  * for file descriptor duplication, e.g., "2>&1".
  * Return code is 0 normally, 1 if a syntax error is detected in src.
  * Resource errors (in xmalloc) cause the process to exit */
-static int setup_redirect(struct p_context *ctx, int fd, redir_type style,
+static int setup_redirect(struct parse_context *ctx, int fd, redir_type style,
 	struct in_str *input)
 {
-	struct child_prog *child = ctx->child;
-	struct redir_struct *redir = child->redirects;
+	struct command *command = ctx->command;
+	struct redir_struct *redir = command->redirects;
 	struct redir_struct *last_redir = NULL;
 
 	/* Create a new redir_struct and drop it onto the end of the linked list */
@@ -2851,7 +2850,7 @@ static int setup_redirect(struct p_context *ctx, int fd, redir_type style,
 	if (last_redir) {
 		last_redir->next = redir;
 	} else {
-		child->redirects = redir;
+		command->redirects = redir;
 	}
 
 	redir->rd_type = style;
@@ -2887,13 +2886,13 @@ static struct pipe *new_pipe(void)
 	return pi;
 }
 
-static void initialize_context(struct p_context *ctx)
+static void initialize_context(struct parse_context *ctx)
 {
 	memset(ctx, 0, sizeof(*ctx));
 	ctx->pipe = ctx->list_head = new_pipe();
-	/* Create the memory for child, roughly:
-	 * ctx->pipe->progs = new struct child_prog;
-	 * ctx->child = &ctx->pipe->progs[0];
+	/* Create the memory for command, roughly:
+	 * ctx->pipe->cmds = new struct command;
+	 * ctx->command = &ctx->pipe->cmds[0];
 	 */
 	done_command(ctx);
 }
@@ -2904,7 +2903,7 @@ static void initialize_context(struct p_context *ctx)
  * case, function, and select are obnoxious, save those for later.
  */
 #if HAS_KEYWORDS
-static int reserved_word(o_string *word, struct p_context *ctx)
+static int reserved_word(o_string *word, struct parse_context *ctx)
 {
 	struct reserved_combo {
 		char literal[6];
@@ -2988,7 +2987,7 @@ static int reserved_word(o_string *word, struct p_context *ctx)
 			return 1;
 		}
 		if (r->flag & FLAG_START) {
-			struct p_context *new;
+			struct parse_context *new;
 			debug_printf("push stack\n");
 			new = xmalloc(sizeof(*new));
 			*new = *ctx;   /* physical copy */
@@ -3002,12 +3001,12 @@ static int reserved_word(o_string *word, struct p_context *ctx)
 		ctx->ctx_res_w = r->res;
 		ctx->old_flag = r->flag;
 		if (ctx->old_flag & FLAG_END) {
-			struct p_context *old;
+			struct parse_context *old;
 			debug_printf("pop stack\n");
 			done_pipe(ctx, PIPE_SEQ);
 			old = ctx->stack;
-			old->child->group = ctx->list_head;
-			old->child->subshell = 0;
+			old->command->group = ctx->list_head;
+			old->command->subshell = 0;
 			*ctx = *old;   /* physical copy */
 			free(old);
 		}
@@ -3020,11 +3019,11 @@ static int reserved_word(o_string *word, struct p_context *ctx)
 
 /* Word is complete, look at it and update parsing context.
  * Normal return is 0. Syntax errors return 1. */
-static int done_word(o_string *word, struct p_context *ctx)
+static int done_word(o_string *word, struct parse_context *ctx)
 {
-	struct child_prog *child = ctx->child;
+	struct command *command = ctx->command;
 
-	debug_printf_parse("done_word entered: '%s' %p\n", word->data, child);
+	debug_printf_parse("done_word entered: '%s' %p\n", word->data, command);
 	if (word->length == 0 && word->nonnull == 0) {
 		debug_printf_parse("done_word return 0: true null, ignored\n");
 		return 0;
@@ -3037,7 +3036,7 @@ static int done_word(o_string *word, struct p_context *ctx)
 		word->o_assignment = NOT_ASSIGNMENT;
 	} else {
 		if (word->o_assignment == DEFINITELY_ASSIGNMENT)
-			child->assignment_cnt++;
+			command->assignment_cnt++;
 		word->o_assignment = MAYBE_ASSIGNMENT;
 	}
 
@@ -3050,7 +3049,7 @@ static int done_word(o_string *word, struct p_context *ctx)
 	} else {
 		/* "{ echo foo; } echo bar" - bad */
 		/* NB: bash allows e.g. "if true; then { echo foo; } fi". TODO? */
-		if (child->group) {
+		if (command->group) {
 			syntax(NULL);
 			debug_printf_parse("done_word return 1: syntax error, groups and arglists don't mix\n");
 			return 1;
@@ -3066,7 +3065,7 @@ static int done_word(o_string *word, struct p_context *ctx)
 		} else
 #endif
 
-		if (!child->argv /* if it's the first word... */
+		if (!command->argv /* if it's the first word... */
 #if ENABLE_HUSH_LOOPS
 		 && ctx->ctx_res_w != RES_FOR /* ...not after FOR or IN */
 		 && ctx->ctx_res_w != RES_IN
@@ -3102,8 +3101,8 @@ static int done_word(o_string *word, struct p_context *ctx)
 				o_addchr(word, SPECIAL_VAR_SYMBOL);
 			}
 		}
-		child->argv = add_malloced_string_to_strings(child->argv, xstrdup(word->data));
-		debug_print_strings("word appended to argv", child->argv);
+		command->argv = add_malloced_string_to_strings(command->argv, xstrdup(word->data));
+		debug_print_strings("word appended to argv", command->argv);
 	}
 
 	o_reset(word);
@@ -3115,7 +3114,7 @@ static int done_word(o_string *word, struct p_context *ctx)
 	 * as it is "for v; in ...". FOR and IN become two pipe structs
 	 * in parse tree. */
 	if (ctx->ctx_res_w == RES_FOR) {
-//TODO: check that child->argv[0] is a valid variable name!
+//TODO: check that command->argv[0] is a valid variable name!
 		done_pipe(ctx, PIPE_SEQ);
 	}
 #endif
@@ -3131,40 +3130,40 @@ static int done_word(o_string *word, struct p_context *ctx)
 
 /* Command (member of a pipe) is complete. The only possible error here
  * is out of memory, in which case xmalloc exits. */
-static int done_command(struct p_context *ctx)
+static int done_command(struct parse_context *ctx)
 {
-	/* The child is really already in the pipe structure, so
-	 * advance the pipe counter and make a new, null child. */
+	/* The command is really already in the pipe structure, so
+	 * advance the pipe counter and make a new, null command. */
 	struct pipe *pi = ctx->pipe;
-	struct child_prog *child = ctx->child;
+	struct command *command = ctx->command;
 
-	if (child) {
-		if (child->group == NULL
-		 && child->argv == NULL
-		 && child->redirects == NULL
+	if (command) {
+		if (command->group == NULL
+		 && command->argv == NULL
+		 && command->redirects == NULL
 		) {
-			debug_printf_parse("done_command: skipping null cmd, num_progs=%d\n", pi->num_progs);
-			return pi->num_progs;
+			debug_printf_parse("done_command: skipping null cmd, num_cmds=%d\n", pi->num_cmds);
+			return pi->num_cmds;
 		}
-		pi->num_progs++;
-		debug_printf_parse("done_command: ++num_progs=%d\n", pi->num_progs);
+		pi->num_cmds++;
+		debug_printf_parse("done_command: ++num_cmds=%d\n", pi->num_cmds);
 	} else {
-		debug_printf_parse("done_command: initializing, num_progs=%d\n", pi->num_progs);
+		debug_printf_parse("done_command: initializing, num_cmds=%d\n", pi->num_cmds);
 	}
 
 	/* Only real trickiness here is that the uncommitted
-	 * child structure is not counted in pi->num_progs. */
-	pi->progs = xrealloc(pi->progs, sizeof(*pi->progs) * (pi->num_progs+1));
-	child = &pi->progs[pi->num_progs];
-	memset(child, 0, sizeof(*child));
+	 * command structure is not counted in pi->num_cmds. */
+	pi->cmds = xrealloc(pi->cmds, sizeof(*pi->cmds) * (pi->num_cmds+1));
+	command = &pi->cmds[pi->num_cmds];
+	memset(command, 0, sizeof(*command));
 
-	ctx->child = child;
+	ctx->command = command;
 	/* but ctx->pipe and ctx->list_head remain unchanged */
 
-	return pi->num_progs; /* used only for 0/nonzero check */
+	return pi->num_cmds; /* used only for 0/nonzero check */
 }
 
-static void done_pipe(struct p_context *ctx, pipe_style type)
+static void done_pipe(struct parse_context *ctx, pipe_style type)
 {
 	int not_null;
 
@@ -3189,7 +3188,7 @@ static void done_pipe(struct p_context *ctx, pipe_style type)
 		new_p = new_pipe();
 		ctx->pipe->next = new_p;
 		ctx->pipe = new_p;
-		ctx->child = NULL; /* needed! */
+		ctx->command = NULL; /* needed! */
 		/* RES_THEN, RES_DO etc are "sticky" -
 		 * they remain set for commands inside if/while.
 		 * This is used to control execution.
@@ -3205,9 +3204,9 @@ static void done_pipe(struct p_context *ctx, pipe_style type)
 		if (ctx->ctx_res_w == RES_MATCH)
 			ctx->ctx_res_w = RES_CASEI;
 #endif
-		/* Create the memory for child, roughly:
-		 * ctx->pipe->progs = new struct child_prog;
-		 * ctx->child = &ctx->pipe->progs[0];
+		/* Create the memory for command, roughly:
+		 * ctx->pipe->cmds = new struct command;
+		 * ctx->command = &ctx->pipe->cmds[0];
 		 */
 		done_command(ctx);
 	}
@@ -3320,7 +3319,7 @@ static int process_command_subs(o_string *dest,
 {
 	int retcode, ch, eol_cnt;
 	o_string result = NULL_O_STRING;
-	struct p_context inner;
+	struct parse_context inner;
 	FILE *p;
 	struct in_str pipe_str;
 
@@ -3367,7 +3366,7 @@ static int process_command_subs(o_string *dest,
 }
 #endif
 
-static int parse_group(o_string *dest, struct p_context *ctx,
+static int parse_group(o_string *dest, struct parse_context *ctx,
 	struct in_str *input, int ch)
 {
 	/* NB: parse_group may create and use its own o_string,
@@ -3375,11 +3374,14 @@ static int parse_group(o_string *dest, struct p_context *ctx,
 	 * if we (ab)use caller's one. */
 	int rcode;
 	const char *endch = NULL;
-	struct p_context sub;
-	struct child_prog *child = ctx->child;
+	struct parse_context sub;
+	struct command *command = ctx->command;
 
 	debug_printf_parse("parse_group entered\n");
-	if (child->argv) {
+	if (command->argv /* word [word](... */
+	 || dest->length /* word(... */
+	 || dest->nonnull /* ""(... */
+	) {
 		syntax(NULL);
 		debug_printf_parse("parse_group return 1: syntax error, groups and arglists don't mix\n");
 		return 1;
@@ -3388,17 +3390,17 @@ static int parse_group(o_string *dest, struct p_context *ctx,
 	endch = "}";
 	if (ch == '(') {
 		endch = ")";
-		child->subshell = 1;
+		command->subshell = 1;
 	}
 	rcode = parse_stream(dest, &sub, input, endch);
 	if (rcode == 0) {
 		done_word(dest, &sub); /* finish off the final word in the subcontext */
 		done_pipe(&sub, PIPE_SEQ);  /* and the final command there, too */
-		child->group = sub.list_head;
+		command->group = sub.list_head;
 	}
 	debug_printf_parse("parse_group return %d\n", rcode);
 	return rcode;
-	/* child remains "open", available for possible redirects */
+	/* command remains "open", available for possible redirects */
 }
 
 /* Basically useful version until someone wants to get fancier,
@@ -3617,7 +3619,7 @@ static int handle_dollar(o_string *dest, struct in_str *input)
  * Return code is 0 if end_trigger char is met,
  * -1 on EOF (but if end_trigger == NULL then return 0),
  * 1 for syntax error */
-static int parse_stream(o_string *dest, struct p_context *ctx,
+static int parse_stream(o_string *dest, struct parse_context *ctx,
 	struct in_str *input, const char *end_trigger)
 {
 	int ch, m;
@@ -3883,8 +3885,10 @@ static int parse_stream(o_string *dest, struct p_context *ctx,
 		case '(':
 #if ENABLE_HUSH_CASE
 			/* "case... in [(]word)..." - skip '(' */
-			if (dest->length == 0 // && argv[0] == NULL
+			if (dest->length == 0 /* not word(... */
+			 && dest->nonnull == 0 /* not ""(... */
 			 && ctx->ctx_res_w == RES_MATCH
+			 && ctx->command->argv == NULL /* not (word|(... */
 			) {
 				continue;
 			}
@@ -3947,7 +3951,7 @@ static void update_charmap(void)
  * from builtin_source() and builtin_eval() */
 static int parse_and_run_stream(struct in_str *inp, int parse_flag)
 {
-	struct p_context ctx;
+	struct parse_context ctx;
 	o_string temp = NULL_O_STRING;
 	int rcode;
 
@@ -4408,12 +4412,12 @@ static int builtin_fg_bg(char **argv)
 	}
 
 	/* Restart the processes in the job */
-	debug_printf_jobs("reviving %d procs, pgrp %d\n", pi->num_progs, pi->pgrp);
-	for (i = 0; i < pi->num_progs; i++) {
-		debug_printf_jobs("reviving pid %d\n", pi->progs[i].pid);
-		pi->progs[i].is_stopped = 0;
+	debug_printf_jobs("reviving %d procs, pgrp %d\n", pi->num_cmds, pi->pgrp);
+	for (i = 0; i < pi->num_cmds; i++) {
+		debug_printf_jobs("reviving pid %d\n", pi->cmds[i].pid);
+		pi->cmds[i].is_stopped = 0;
 	}
-	pi->stopped_progs = 0;
+	pi->stopped_cmds = 0;
 
 	i = kill(- pi->pgrp, SIGCONT);
 	if (i < 0) {
@@ -4455,7 +4459,7 @@ static int builtin_jobs(char **argv UNUSED_PARAM)
 	const char *status_string;
 
 	for (job = G.job_list; job; job = job->next) {
-		if (job->alive_progs == job->stopped_progs)
+		if (job->alive_cmds == job->stopped_cmds)
 			status_string = "Stopped";
 		else
 			status_string = "Running";
