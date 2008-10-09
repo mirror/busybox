@@ -54,7 +54,7 @@
  *      port selected bugfixes from post-0.49 busybox lash - done?
  *      change { and } from special chars to reserved words
  *      builtins: return, trap, ulimit
- *      test magic exec
+ *      test magic exec with redirection only
  *      check setting of global_argc and global_argv
  *      follow IFS rules more precisely, including update semantics
  *      figure out what to do with backslash-newline
@@ -73,7 +73,7 @@
 #include <fnmatch.h>
 #endif
 
-#define HUSH_VER_STR "0.9"
+#define HUSH_VER_STR "0.91"
 
 #if !BB_MMU && ENABLE_HUSH_TICK
 //#undef ENABLE_HUSH_TICK
@@ -525,13 +525,13 @@ static int free_pipe(struct pipe *pi, int indent);
 static int setup_redirects(struct command *prog, int squirrel[]);
 static int run_list(struct pipe *pi);
 #if BB_MMU
-#define pseudo_exec_argv(ptrs2free, argv, assignment_cnt, argv_expanded) \
+#define pseudo_exec_argv(ptr_ptrs2free, argv, assignment_cnt, argv_expanded) \
 	pseudo_exec_argv(argv, assignment_cnt, argv_expanded)
-#define pseudo_exec(ptrs2free, command, argv_expanded) \
+#define pseudo_exec(ptr_ptrs2free, command, argv_expanded) \
 	pseudo_exec(command, argv_expanded)
 #endif
-static void pseudo_exec_argv(char **ptrs2free, char **argv, int assignment_cnt, char **argv_expanded) NORETURN;
-static void pseudo_exec(char **ptrs2free, struct command *command, char **argv_expanded) NORETURN;
+static void pseudo_exec_argv(char ***ptr_ptrs2free, char **argv, int assignment_cnt, char **argv_expanded) NORETURN;
+static void pseudo_exec(char ***ptr_ptrs2free, struct command *command, char **argv_expanded) NORETURN;
 static int run_pipe(struct pipe *pi);
 /*   data structure manipulation: */
 static int setup_redirect(struct parse_context *ctx, int fd, redir_type style, struct in_str *input);
@@ -574,6 +574,9 @@ static char *expand_string_to_string(const char *str);
 static struct variable *get_local_var(const char *name);
 static int set_local_var(char *str, int flg_export);
 static void unset_local_var(const char *name);
+
+
+static const char hush_version_str[] ALIGN1 = "HUSH_VERSION="HUSH_VER_STR;
 
 
 static int glob_needed(const char *s)
@@ -650,26 +653,44 @@ static char **add_malloced_string_to_strings(char **strings, char *add)
 	return add_malloced_strings_to_strings(strings, v);
 }
 
-static void free_strings(char **strings)
+static void free_strings_and_unsetenv(char **strings, int unset)
 {
-	if (strings) {
-		char **v = strings;
-		while (*v)
-			free(*v++);
-		free(strings);
+	char **v;
+
+	if (!strings)
+		return;
+
+	v = strings;
+	while (*v) {
+		if (unset) {
+			char *copy;
+#if !BB_MMU
+			/* If this is a magic guard pointer, do not free it,
+			 * and stop unsetting */
+			if (*v == hush_version_str) {
+				unset = 0;
+				v++;
+				continue;
+			}
+#endif
+			/* *strchrnul(*v, '=') = '\0'; -- BAD
+			 * In case *v was putenv'ed, we can't
+			 * unsetenv(*v) after taking out '=':
+			 * it won't work, env is modified by taking out!
+			 * horror :( */
+			copy = xstrndup(*v, strchrnul(*v, '=') - *v);
+			unsetenv(copy);
+			free(copy);
+		}
+		free(*v++);
 	}
+	free(strings);
 }
 
-#if !BB_MMU
-#define EXTRA_PTRS 5 /* 1 for NULL, 1 for args, 3 for paranoid reasons */
-static char **alloc_ptrs(char **argv)
+static void free_strings(char **strings)
 {
-	char **v = argv;
-	while (*v)
-		v++;
-	return xzalloc((v - argv + EXTRA_PTRS) * sizeof(v[0]));
+	free_strings_and_unsetenv(strings, 0);
 }
-#endif
 
 
 /* Function prototypes for builtins */
@@ -1393,34 +1414,36 @@ static void restore_redirects(int squirrel[])
  * XXX no exit() here.  If you don't exec, use _exit instead.
  * The at_exit handlers apparently confuse the calling process,
  * in particular stdin handling.  Not sure why? -- because of vfork! (vda) */
-static void pseudo_exec_argv(char **ptrs2free, char **argv, int assignment_cnt, char **argv_expanded)
+static void pseudo_exec_argv(char ***ptr_ptrs2free, char **argv, int assignment_cnt, char **argv_expanded)
 {
 	int i, rcode;
 	char *p;
 	const struct built_in_command *x;
 
-	for (i = 0; i < assignment_cnt; i++) {
-		debug_printf_exec("pid %d environment modification: %s\n",
-				getpid(), argv[i]);
-		p = expand_string_to_string(argv[i]);
-#if !BB_MMU
-		*ptrs2free++ = p;
-#endif
-		putenv(p);
-	}
-	argv += i;
 	/* If a variable is assigned in a forest, and nobody listens,
 	 * was it ever really set?
 	 */
-	if (!argv[0])
+	if (!argv[assignment_cnt])
 		_exit(EXIT_SUCCESS);
 
+	for (i = 0; i < assignment_cnt; i++) {
+		debug_printf_exec("pid %d environment modification: %s\n",
+				getpid(), *argv);
+		p = expand_string_to_string(*argv);
+		putenv(p);
+#if !BB_MMU
+		*ptr_ptrs2free = add_malloced_string_to_strings(*ptr_ptrs2free, p);
+#endif
+		argv++;
+	}
 	if (argv_expanded) {
 		argv = argv_expanded;
 	} else {
 		argv = expand_strvec_to_strvec(argv);
 #if !BB_MMU
-		*ptrs2free++ = (char*) argv;
+		/* Inserting magic guard pointer to not unsetenv junk later */
+		*ptr_ptrs2free = add_malloced_string_to_strings(*ptr_ptrs2free, (char*)hush_version_str);
+		*ptr_ptrs2free = add_malloced_string_to_strings(*ptr_ptrs2free, (char*)argv);
 #endif
 	}
 
@@ -1466,10 +1489,10 @@ static void pseudo_exec_argv(char **ptrs2free, char **argv, int assignment_cnt, 
 
 /* Called after [v]fork() in run_pipe()
  */
-static void pseudo_exec(char **ptrs2free, struct command *command, char **argv_expanded)
+static void pseudo_exec(char ***ptr_ptrs2free, struct command *command, char **argv_expanded)
 {
 	if (command->argv)
-		pseudo_exec_argv(ptrs2free, command->argv, command->assignment_cnt, argv_expanded);
+		pseudo_exec_argv(ptr_ptrs2free, command->argv, command->assignment_cnt, argv_expanded);
 
 	if (command->group) {
 #if !BB_MMU
@@ -1745,6 +1768,7 @@ static int run_pipe(struct pipe *pi)
 	int nextin;
 	int pipefds[2];		/* pipefds[0] is for reading */
 	struct command *command;
+	char **ptrs2free = NULL;
 	char **argv_expanded = NULL;
 	char **argv;
 	const struct built_in_command *x;
@@ -1796,7 +1820,7 @@ static int run_pipe(struct pipe *pi)
 		for (i = 0; i < command->assignment_cnt; i++) {
 			p = expand_string_to_string(argv[i]);
 			putenv(p);
-//FIXME: do we leak p?!
+			ptrs2free = add_malloced_string_to_strings(ptrs2free, p);
 		}
 
 		/* Expand the rest into (possibly) many strings each */
@@ -1805,9 +1829,10 @@ static int run_pipe(struct pipe *pi)
 		for (x = bltins; x != &bltins[ARRAY_SIZE(bltins)]; x++) {
 			if (strcmp(argv_expanded[0], x->cmd) == 0) {
 				if (x->function == builtin_exec && argv_expanded[1] == NULL) {
-					debug_printf("magic exec\n");
+					debug_printf("exec with redirects only\n");
 					setup_redirects(command, NULL);
-					return EXIT_SUCCESS;
+					rcode = EXIT_SUCCESS;
+					goto clean_up_and_ret1;
 				}
 				debug_printf("builtin inline %s\n", argv_expanded[0]);
 				/* XXX setup_redirects acts on file descriptors, not FILEs.
@@ -1817,10 +1842,13 @@ static int run_pipe(struct pipe *pi)
 				setup_redirects(command, squirrel);
 				debug_printf_exec(": builtin '%s' '%s'...\n", x->cmd, argv_expanded[1]);
 				rcode = x->function(argv_expanded) & 0xff;
-				free(argv_expanded);
+ USE_FEATURE_SH_STANDALONE(clean_up_and_ret:)
 				restore_redirects(squirrel);
-				debug_printf_exec("run_pipe return %d\n", rcode);
+ clean_up_and_ret1:
+				free_strings_and_unsetenv(ptrs2free, 1);
+				free(argv_expanded);
 				IF_HAS_KEYWORDS(if (pi->pi_inverted) rcode = !rcode;)
+				debug_printf_exec("run_pipe return %d\n", rcode);
 				return rcode;
 			}
 		}
@@ -1832,11 +1860,7 @@ static int run_pipe(struct pipe *pi)
 				save_nofork_data(&G.nofork_save);
 				debug_printf_exec(": run_nofork_applet '%s' '%s'...\n", argv_expanded[0], argv_expanded[1]);
 				rcode = run_nofork_applet_prime(&G.nofork_save, a, argv_expanded);
-				free(argv_expanded);
-				restore_redirects(squirrel);
-				debug_printf_exec("run_pipe return %d\n", rcode);
-				IF_HAS_KEYWORDS(if (pi->pi_inverted) rcode = !rcode;)
-				return rcode;
+				goto clean_up_and_ret;
 			}
 		}
 #endif
@@ -1856,14 +1880,15 @@ static int run_pipe(struct pipe *pi)
 
 	for (i = 0; i < pi->num_cmds; i++) {
 #if !BB_MMU
-		char **ptrs2free = NULL;
+		/* Avoid confusion WHAT is volatile. Pointer is volatile,
+		 * not the stuff it points to. */
+		typedef char **ppchar_t;
+		volatile ppchar_t shared_across_vfork;
 #endif
+
 		command = &(pi->cmds[i]);
 		if (command->argv) {
 			debug_printf_exec(": pipe member '%s' '%s'...\n", command->argv[0], command->argv[1]);
-#if !BB_MMU
-			ptrs2free = alloc_ptrs(command->argv);
-#endif
 		} else
 			debug_printf_exec(": pipe member with no argv\n");
 
@@ -1873,6 +1898,9 @@ static int run_pipe(struct pipe *pi)
 		if ((i + 1) < pi->num_cmds)
 			xpipe(pipefds);
 
+#if !BB_MMU
+		shared_across_vfork = ptrs2free;
+#endif
 		command->pid = BB_MMU ? fork() : vfork();
 		if (!command->pid) { /* child */
 			if (ENABLE_HUSH_JOB)
@@ -1906,13 +1934,19 @@ static int run_pipe(struct pipe *pi)
 			set_jobctrl_sighandler(SIG_DFL);
 			set_misc_sighandler(SIG_DFL);
 			signal(SIGCHLD, SIG_DFL);
-			pseudo_exec(ptrs2free, command, argv_expanded); /* does not return */
+/* comment how it sets env????
+for single_and_fg, it's already set yes? */
+			pseudo_exec((char ***) &shared_across_vfork, command, argv_expanded);
+			/* pseudo_exec() does not return */
 		}
+		/* parent */
+#if !BB_MMU
+		ptrs2free = shared_across_vfork;
+#endif
 		free(argv_expanded);
 		argv_expanded = NULL;
-#if !BB_MMU
-		free_strings(ptrs2free);
-#endif
+		free_strings_and_unsetenv(ptrs2free, 1);
+		ptrs2free = NULL;
 		if (command->pid < 0) { /* [v]fork failed */
 			/* Clearly indicate, was it fork or vfork */
 			bb_perror_msg(BB_MMU ? "fork" : "vfork");
@@ -4077,10 +4111,9 @@ static void setup_job_control(void)
 int hush_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int hush_main(int argc, char **argv)
 {
-	static const char version_str[] ALIGN1 = "HUSH_VERSION="HUSH_VER_STR;
 	static const struct variable const_shell_ver = {
 		.next = NULL,
-		.varstr = (char*)version_str,
+		.varstr = (char*)hush_version_str,
 		.max_len = 1, /* 0 can provoke free(name) */
 		.flg_export = 1,
 		.flg_read_only = 1,
@@ -4114,7 +4147,7 @@ int hush_main(int argc, char **argv)
 		}
 		e++;
 	}
-	putenv((char *)version_str); /* reinstate HUSH_VERSION */
+	putenv((char *)hush_version_str); /* reinstate HUSH_VERSION */
 
 #if ENABLE_FEATURE_EDITING
 	G.line_input_state = new_line_input_t(FOR_SHELL);
@@ -4338,10 +4371,10 @@ static int builtin_exec(char **argv)
 		return EXIT_SUCCESS; /* bash does this */
 	{
 #if !BB_MMU
-		char **ptrs2free = alloc_ptrs(argv);
+		char **ptrs2free = NULL;
 #endif
 // FIXME: if exec fails, bash does NOT exit! We do...
-		pseudo_exec_argv(ptrs2free, argv + 1, 0, NULL);
+		pseudo_exec_argv(&ptrs2free, argv + 1, 0, NULL);
 		/* never returns */
 	}
 }
