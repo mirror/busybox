@@ -2903,37 +2903,38 @@ static void initialize_context(struct parse_context *ctx)
  * case, function, and select are obnoxious, save those for later.
  */
 #if HAS_KEYWORDS
-static int reserved_word(o_string *word, struct parse_context *ctx)
-{
-	struct reserved_combo {
-		char literal[6];
-		unsigned char res;
-		unsigned char assignment_flag;
-		int flag;
-	};
-	enum {
-		FLAG_END   = (1 << RES_NONE ),
+struct reserved_combo {
+	char literal[6];
+	unsigned char res;
+	unsigned char assignment_flag;
+	int flag;
+};
+enum {
+	FLAG_END   = (1 << RES_NONE ),
 #if ENABLE_HUSH_IF
-		FLAG_IF    = (1 << RES_IF   ),
-		FLAG_THEN  = (1 << RES_THEN ),
-		FLAG_ELIF  = (1 << RES_ELIF ),
-		FLAG_ELSE  = (1 << RES_ELSE ),
-		FLAG_FI    = (1 << RES_FI   ),
+	FLAG_IF    = (1 << RES_IF   ),
+	FLAG_THEN  = (1 << RES_THEN ),
+	FLAG_ELIF  = (1 << RES_ELIF ),
+	FLAG_ELSE  = (1 << RES_ELSE ),
+	FLAG_FI    = (1 << RES_FI   ),
 #endif
 #if ENABLE_HUSH_LOOPS
-		FLAG_FOR   = (1 << RES_FOR  ),
-		FLAG_WHILE = (1 << RES_WHILE),
-		FLAG_UNTIL = (1 << RES_UNTIL),
-		FLAG_DO    = (1 << RES_DO   ),
-		FLAG_DONE  = (1 << RES_DONE ),
-		FLAG_IN    = (1 << RES_IN   ),
+	FLAG_FOR   = (1 << RES_FOR  ),
+	FLAG_WHILE = (1 << RES_WHILE),
+	FLAG_UNTIL = (1 << RES_UNTIL),
+	FLAG_DO    = (1 << RES_DO   ),
+	FLAG_DONE  = (1 << RES_DONE ),
+	FLAG_IN    = (1 << RES_IN   ),
 #endif
 #if ENABLE_HUSH_CASE
-		FLAG_MATCH = (1 << RES_MATCH),
-		FLAG_ESAC  = (1 << RES_ESAC ),
+	FLAG_MATCH = (1 << RES_MATCH),
+	FLAG_ESAC  = (1 << RES_ESAC ),
 #endif
-		FLAG_START = (1 << RES_XXXX ),
-	};
+	FLAG_START = (1 << RES_XXXX ),
+};
+
+static const struct reserved_combo* match_reserved_word(o_string *word)
+{
 	/* Mostly a list of accepted follow-up reserved words.
 	 * FLAG_END means we are done with the sequence, and are ready
 	 * to turn the compound list into a command.
@@ -2961,6 +2962,16 @@ static int reserved_word(o_string *word, struct parse_context *ctx)
 		{ "esac",  RES_ESAC,  NOT_ASSIGNMENT , FLAG_END  },
 #endif
 	};
+	const struct reserved_combo *r;
+
+	for (r = reserved_list;	r < reserved_list + ARRAY_SIZE(reserved_list); r++) {
+		if (strcmp(word->data, r->literal) == 0)
+			return r;
+	}
+	return NULL;
+}
+static int reserved_word(o_string *word, struct parse_context *ctx)
+{
 #if ENABLE_HUSH_CASE
 	static const struct reserved_combo reserved_match = {
 		"",        RES_MATCH, NOT_ASSIGNMENT , FLAG_MATCH | FLAG_ESAC
@@ -2968,52 +2979,51 @@ static int reserved_word(o_string *word, struct parse_context *ctx)
 #endif
 	const struct reserved_combo *r;
 
-	for (r = reserved_list;	r < reserved_list + ARRAY_SIZE(reserved_list); r++) {
-		if (strcmp(word->data, r->literal) != 0)
-			continue;
-		debug_printf("found reserved word %s, res %d\n", r->literal, r->res);
+	r = match_reserved_word(word);
+	if (!r)
+		return 0;
+
+	debug_printf("found reserved word %s, res %d\n", r->literal, r->res);
 #if ENABLE_HUSH_CASE
-		if (r->res == RES_IN && ctx->ctx_res_w == RES_CASE)
-			/* "case word IN ..." - IN part starts first match part */
-			r = &reserved_match;
-		else
+	if (r->res == RES_IN && ctx->ctx_res_w == RES_CASE)
+		/* "case word IN ..." - IN part starts first match part */
+		r = &reserved_match;
+	else
 #endif
-		if (r->flag == 0) { /* '!' */
-			if (ctx->ctx_inverted) { /* bash doesn't accept '! ! true' */
-				syntax(NULL);
-				IF_HAS_KEYWORDS(ctx->ctx_res_w = RES_SNTX;)
-			}
-			ctx->ctx_inverted = 1;
-			return 1;
-		}
-		if (r->flag & FLAG_START) {
-			struct parse_context *new;
-			debug_printf("push stack\n");
-			new = xmalloc(sizeof(*new));
-			*new = *ctx;   /* physical copy */
-			initialize_context(ctx);
-			ctx->stack = new;
-		} else if (/*ctx->ctx_res_w == RES_NONE ||*/ !(ctx->old_flag & (1 << r->res))) {
+	if (r->flag == 0) { /* '!' */
+		if (ctx->ctx_inverted) { /* bash doesn't accept '! ! true' */
 			syntax(NULL);
-			ctx->ctx_res_w = RES_SNTX;
-			return 1;
+			IF_HAS_KEYWORDS(ctx->ctx_res_w = RES_SNTX;)
 		}
-		ctx->ctx_res_w = r->res;
-		ctx->old_flag = r->flag;
-		if (ctx->old_flag & FLAG_END) {
-			struct parse_context *old;
-			debug_printf("pop stack\n");
-			done_pipe(ctx, PIPE_SEQ);
-			old = ctx->stack;
-			old->command->group = ctx->list_head;
-			old->command->subshell = 0;
-			*ctx = *old;   /* physical copy */
-			free(old);
-		}
-		word->o_assignment = r->assignment_flag;
+		ctx->ctx_inverted = 1;
 		return 1;
 	}
-	return 0;
+	if (r->flag & FLAG_START) {
+		struct parse_context *new;
+		debug_printf("push stack\n");
+		new = xmalloc(sizeof(*new));
+		*new = *ctx;   /* physical copy */
+		initialize_context(ctx);
+		ctx->stack = new;
+	} else if (/*ctx->ctx_res_w == RES_NONE ||*/ !(ctx->old_flag & (1 << r->res))) {
+		syntax(NULL);
+		ctx->ctx_res_w = RES_SNTX;
+		return 1;
+	}
+	ctx->ctx_res_w = r->res;
+	ctx->old_flag = r->flag;
+	if (ctx->old_flag & FLAG_END) {
+		struct parse_context *old;
+		debug_printf("pop stack\n");
+		done_pipe(ctx, PIPE_SEQ);
+		old = ctx->stack;
+		old->command->group = ctx->list_head;
+		old->command->subshell = 0;
+		*ctx = *old;   /* physical copy */
+		free(old);
+	}
+	word->o_assignment = r->assignment_flag;
+	return 1;
 }
 #endif
 
@@ -3893,6 +3903,17 @@ static int parse_stream(o_string *dest, struct parse_context *ctx,
 				continue;
 			}
 #endif
+#if 0 /* TODO: implement functions */
+			if (dest->length != 0 /* not just () but word() */
+			 && dest->nonnull == 0 /* not a"b"c() */
+			 && ctx->command->argv == NULL /* it's the first word */
+			 && i_peek(input) == ')'
+			) {
+				bb_error_msg("seems like a function definition");
+				if (match_reserved_word(dest))
+					bb_error_msg("but '%s' is a reserved word!", dest->data);
+			}
+#endif
 		case '{':
 			if (parse_group(dest, ctx, input, ch) != 0) {
 				debug_printf_parse("parse_stream return 1: parse_group returned non-0\n");
@@ -3905,7 +3926,9 @@ static int parse_stream(o_string *dest, struct parse_context *ctx,
 				goto case_semi;
 #endif
 		case '}':
-			/* proper use of this character is caught by end_trigger */
+			/* proper use of this character is caught by end_trigger:
+			 * if we see {, we call parse_group(..., end_trigger='}')
+			 * and it will match } earlier (not here). */
 			syntax("unexpected } or )");
 			debug_printf_parse("parse_stream return 1: unexpected '}'\n");
 			return 1;
