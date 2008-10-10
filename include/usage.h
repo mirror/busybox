@@ -4680,8 +4680,11 @@
        "Manage a ZeroConf IPv4 link-local address\n" \
      "\nOptions:" \
      "\n	-f		Run in foreground" \
-     "\n	-q		Quit after address (no daemon)" \
+     "\n	-q		Quit after obtaining address" \
      "\n	-r 169.254.x.x	Request this address first" \
      "\n	-v		Verbose" \
+     "\n" \
+     "\nWith no -q, runs continuously monitoring for ARP conflicts," \
+     "\nexits only on I/O errors (link down etc)" \
 
 #endif /* __BB_USAGE_H__ */
