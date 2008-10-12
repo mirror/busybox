@@ -1098,6 +1098,11 @@
      "\n	-z		Delete messages on server" \
      "\n	prog		Run 'prog <message_file>' on message delivery" \
 
+#define blkid_trivial_usage \
+       ""
+#define blkid_full_usage "\n\n" \
+       "Print UUIDs of all filesystems."
+
 #define findfs_trivial_usage \
        "LABEL=label or UUID=uuid"
 #define findfs_full_usage "\n\n" \

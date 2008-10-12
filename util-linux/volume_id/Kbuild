@@ -6,6 +6,7 @@
 
 lib-y:=
 
+lib-$(CONFIG_BLKID)                             += get_devname.o
 lib-$(CONFIG_FINDFS)                            += get_devname.o
 lib-$(CONFIG_FEATURE_MOUNT_LABEL)               += get_devname.o
 

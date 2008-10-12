@@ -374,24 +374,25 @@ get_spec_by_volume_label(const char *s, int *major, int *minor)
 {
 	return get_spec_by_x(VOL, s, major, minor);
 }
-
-static int display_uuid_cache(void)
-{
-	struct uuidCache_s *u;
-	size_t i;
-
-	uuidcache_init();
-
-	u = uuidCache;
-	while (u) {
-		printf("%s %s %s\n", u->device, u->label, u->uc_uuid);
-		u = u->next;
-	}
-
-	return 0;
-}
 #endif // UNUSED
 
+/* Used by blkid */
+void display_uuid_cache(void)
+{
+	struct uuidCache_s *u;
+
+	uuidcache_init();
+	u = uuidCache;
+	while (u) {
+		printf("%s:", u->device);
+		if (u->label[0])
+			printf(" LABEL=\"%s\"", u->label);
+		if (u->uc_uuid[0])
+			printf(" UUID=\"%s\"", u->uc_uuid);
+		bb_putchar('\n');
+		u = u->next;
+	}
+}
 
 /* Used by mount and findfs */
 
