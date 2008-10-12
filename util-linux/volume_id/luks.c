@@ -20,20 +20,16 @@
 
 #include "volume_id_internal.h"
 
-#define SECTOR_SHIFT			9
-#define SECTOR_SIZE			(1 << SECTOR_SHIFT)
-
-#define LUKS_CIPHERNAME_L		32
-#define LUKS_CIPHERMODE_L		32
-#define LUKS_HASHSPEC_L			32
-#define LUKS_DIGESTSIZE			20
-#define LUKS_SALTSIZE			32
-#define LUKS_NUMKEYS			8
+#define LUKS_MAGIC_L             6
+#define UUID_STRING_L           40
+#define LUKS_CIPHERNAME_L       32
+#define LUKS_CIPHERMODE_L       32
+#define LUKS_HASHSPEC_L         32
+#define LUKS_DIGESTSIZE         20
+#define LUKS_SALTSIZE           32
+#define LUKS_NUMKEYS             8
 
 static const uint8_t LUKS_MAGIC[] = { 'L','U','K','S', 0xba, 0xbe };
-#define LUKS_MAGIC_L 6
-#define LUKS_PHDR_SIZE (sizeof(struct luks_phdr)/SECTOR_SIZE+1)
-#define UUID_STRING_L 40
 
 struct luks_phdr {
 	uint8_t		magic[LUKS_MAGIC_L];
@@ -56,11 +52,39 @@ struct luks_phdr {
 	} keyblock[LUKS_NUMKEYS];
 };
 
+enum {
+	EXPECTED_SIZE_luks_phdr = 0
+		+ 1 * LUKS_MAGIC_L
+		+ 2
+		+ 1 * LUKS_CIPHERNAME_L
+		+ 1 * LUKS_CIPHERMODE_L
+		+ 1 * LUKS_HASHSPEC_L
+		+ 4
+		+ 4
+		+ 1 * LUKS_DIGESTSIZE
+		+ 1 * LUKS_SALTSIZE
+		+ 4
+		+ 1 * UUID_STRING_L
+		+ LUKS_NUMKEYS * (0
+		  + 4
+		  + 4
+		  + 1 * LUKS_SALTSIZE
+		  + 4
+		  + 4
+		  )
+};
+
+struct BUG_bad_size_luks_phdr {
+	char BUG_bad_size_luks_phdr[
+		sizeof(struct luks_phdr) == EXPECTED_SIZE_luks_phdr ?
+		1 : -1];
+};
+
 int volume_id_probe_luks(struct volume_id *id, uint64_t off)
 {
 	struct luks_phdr *header;
 
-	header = volume_id_get_buffer(id, off, LUKS_PHDR_SIZE);
+	header = volume_id_get_buffer(id, off, sizeof(*header));
 	if (header == NULL)
 		return -1;
 

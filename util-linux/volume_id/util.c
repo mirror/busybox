@@ -181,7 +181,7 @@ set:
 			buf[4], buf[5],
 			buf[6], buf[7],
 			buf[8], buf[9],
-			buf[10], buf[11], buf[12], buf[13], buf[14],buf[15]);
+			buf[10], buf[11], buf[12], buf[13], buf[14], buf[15]);
 		break;
 	case UUID_DCE_STRING:
 		memcpy(id->uuid, buf, count);
@@ -190,6 +190,9 @@ set:
 	}
 }
 
+/* Do not use xlseek here. With it, single corrupted filesystem
+ * may result in attempt to seek past device -> exit.
+ * It's better to ignore such fs and continue.  */
 void *volume_id_get_buffer(struct volume_id *id, uint64_t off, size_t len)
 {
 	ssize_t buf_len;
@@ -204,7 +207,10 @@ void *volume_id_get_buffer(struct volume_id *id, uint64_t off, size_t len)
 		/* check if we need to read */
 		if ((off + len) > id->sbbuf_len) {
 			dbg("read sbbuf len:0x%llx", (unsigned long long) (off + len));
-			xlseek(id->fd, 0, SEEK_SET);
+			if (lseek(id->fd, 0, SEEK_SET) != 0) {
+				dbg("seek(0) failed");
+				return NULL;
+			}
 			buf_len = full_read(id->fd, id->sbbuf, off + len);
 			if (buf_len < 0) {
 				dbg("read failed (%s)", strerror(errno));
@@ -234,7 +240,10 @@ void *volume_id_get_buffer(struct volume_id *id, uint64_t off, size_t len)
 	/* check if we need to read */
 	if ((off < id->seekbuf_off) || ((off + len) > (id->seekbuf_off + id->seekbuf_len))) {
 		dbg("read seekbuf off:0x%llx len:0x%zx", (unsigned long long) off, len);
-		xlseek(id->fd, off, SEEK_SET);
+		if (lseek(id->fd, off, SEEK_SET) != off) {
+			dbg("seek(0x%llx) failed", (unsigned long long) off);
+			return NULL;
+		}
 		buf_len = full_read(id->fd, id->seekbuf, len);
 		if (buf_len < 0) {
 			dbg("read failed (%s)", strerror(errno));
