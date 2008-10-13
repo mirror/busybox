@@ -103,6 +103,7 @@
 #define debug_printf_parse(...)  do {} while (0)
 #define debug_print_tree(a, b)   do {} while (0)
 #define debug_printf_exec(...)   do {} while (0)
+#define debug_printf_env(...)    do {} while (0)
 #define debug_printf_jobs(...)   do {} while (0)
 #define debug_printf_expand(...) do {} while (0)
 #define debug_printf_glob(...)   do {} while (0)
@@ -120,6 +121,10 @@
 
 #ifndef debug_printf_exec
 #define debug_printf_exec(...) fprintf(stderr, __VA_ARGS__)
+#endif
+
+#ifndef debug_printf_env
+#define debug_printf_env(...) fprintf(stderr, __VA_ARGS__)
 #endif
 
 #ifndef debug_printf_jobs
@@ -522,16 +527,21 @@ static void setup_string_in_str(struct in_str *i, const char *s);
 static int free_pipe_list(struct pipe *head, int indent);
 static int free_pipe(struct pipe *pi, int indent);
 /*  really run the final data structures: */
-static int setup_redirects(struct command *prog, int squirrel[]);
-static int run_list(struct pipe *pi);
+typedef struct nommu_save_t {
+	char **new_env;
+	char **old_env;
+	char **argv;
+} nommu_save_t;
 #if BB_MMU
-#define pseudo_exec_argv(ptr_ptrs2free, argv, assignment_cnt, argv_expanded) \
+#define pseudo_exec_argv(nommu_save, argv, assignment_cnt, argv_expanded) \
 	pseudo_exec_argv(argv, assignment_cnt, argv_expanded)
-#define pseudo_exec(ptr_ptrs2free, command, argv_expanded) \
+#define pseudo_exec(nommu_save, command, argv_expanded) \
 	pseudo_exec(command, argv_expanded)
 #endif
-static void pseudo_exec_argv(char ***ptr_ptrs2free, char **argv, int assignment_cnt, char **argv_expanded) NORETURN;
-static void pseudo_exec(char ***ptr_ptrs2free, struct command *command, char **argv_expanded) NORETURN;
+static void pseudo_exec_argv(nommu_save_t *nommu_save, char **argv, int assignment_cnt, char **argv_expanded) NORETURN;
+static void pseudo_exec(nommu_save_t *nommu_save, struct command *command, char **argv_expanded) NORETURN;
+static int setup_redirects(struct command *prog, int squirrel[]);
+static int run_list(struct pipe *pi);
 static int run_pipe(struct pipe *pi);
 /*   data structure manipulation: */
 static int setup_redirect(struct parse_context *ctx, int fd, redir_type style, struct in_str *input);
@@ -655,8 +665,10 @@ static void putenv_all(char **strings)
 {
 	if (!strings)
 		return;
-	while (*strings)
+	while (*strings) {
+		debug_printf_env("putenv '%s'\n", *strings);
 		putenv(*strings++);
+	}
 }
 
 static char **putenv_all_and_save_old(char **strings)
@@ -667,10 +679,20 @@ static char **putenv_all_and_save_old(char **strings)
 	if (!strings)
 		return old;
 	while (*strings) {
-		char *v = getenv(*strings++);
-		if (!v)
-			continue;
-		old = add_string_to_strings(old, v);
+		char *v, *eq;
+
+		eq = strchr(*strings, '=');
+		if (eq) {
+			*eq = '\0';
+			v = getenv(*strings);
+			*eq = '=';
+			if (v) {
+				/* v points to VAL in VAR=VAL, go back to VAR */
+				v -= (eq - *strings) + 1;
+				old = add_string_to_strings(old, v);
+			}
+		}
+		strings++;
 	}
 	putenv_all(s);
 	return old;
@@ -687,21 +709,13 @@ static void free_strings_and_unsetenv(char **strings, int unset)
 	while (*v) {
 		if (unset) {
 			char *copy;
-#if !BB_MMU
-			/* If this is a magic guard pointer, do not free it,
-			 * and stop unsetting */
-			if (*v == hush_version_str) {
-				unset = 0;
-				v++;
-				continue;
-			}
-#endif
 			/* *strchrnul(*v, '=') = '\0'; -- BAD
 			 * In case *v was putenv'ed, we can't
 			 * unsetenv(*v) after taking out '=':
 			 * it won't work, env is modified by taking out!
 			 * horror :( */
 			copy = xstrndup(*v, strchrnul(*v, '=') - *v);
+			debug_printf_env("unsetenv '%s'\n", copy);
 			unsetenv(copy);
 			free(copy);
 		}
@@ -1431,16 +1445,26 @@ static void restore_redirects(int squirrel[])
 	}
 }
 
+static char **expand_assignments(char **argv, int count)
+{
+	int i;
+	char **p = NULL;
+	/* Expand assignments into one string each */
+	for (i = 0; i < count; i++) {
+		p = add_string_to_strings(p, expand_string_to_string(argv[i]));
+	}
+	return p;
+}
 
 /* Called after [v]fork() in run_pipe(), or from builtin_exec().
  * Never returns.
  * XXX no exit() here.  If you don't exec, use _exit instead.
  * The at_exit handlers apparently confuse the calling process,
  * in particular stdin handling.  Not sure why? -- because of vfork! (vda) */
-static void pseudo_exec_argv(char ***ptr_ptrs2free, char **argv, int assignment_cnt, char **argv_expanded)
+static void pseudo_exec_argv(nommu_save_t *nommu_save, char **argv, int assignment_cnt, char **argv_expanded)
 {
-	int i, rcode;
-	char *p;
+	int rcode;
+	char **new_env;
 	const struct built_in_command *x;
 
 	/* If a variable is assigned in a forest, and nobody listens,
@@ -1449,24 +1473,20 @@ static void pseudo_exec_argv(char ***ptr_ptrs2free, char **argv, int assignment_
 	if (!argv[assignment_cnt])
 		_exit(EXIT_SUCCESS);
 
-	for (i = 0; i < assignment_cnt; i++) {
-		debug_printf_exec("pid %d environment modification: %s\n",
-				getpid(), *argv);
-		p = expand_string_to_string(*argv);
-		putenv(p);
-#if !BB_MMU
-		*ptr_ptrs2free = add_string_to_strings(*ptr_ptrs2free, p);
+        new_env = expand_assignments(argv, assignment_cnt);
+#if BB_MMU
+	putenv_all(new_env);
+	free(new_env); /* optional */
+#else
+	nommu_save->new_env = new_env;
+	nommu_save->old_env = putenv_all_and_save_old(new_env);
 #endif
-		argv++;
-	}
 	if (argv_expanded) {
 		argv = argv_expanded;
 	} else {
 		argv = expand_strvec_to_strvec(argv);
 #if !BB_MMU
-		/* Inserting magic guard pointer to not unsetenv junk later */
-		*ptr_ptrs2free = add_string_to_strings(*ptr_ptrs2free, (char*)hush_version_str);
-		*ptr_ptrs2free = add_string_to_strings(*ptr_ptrs2free, (char*)argv);
+		nommu_save->argv = argv;
 #endif
 	}
 
@@ -1512,10 +1532,10 @@ static void pseudo_exec_argv(char ***ptr_ptrs2free, char **argv, int assignment_
 
 /* Called after [v]fork() in run_pipe()
  */
-static void pseudo_exec(char ***ptr_ptrs2free, struct command *command, char **argv_expanded)
+static void pseudo_exec(nommu_save_t *nommu_save, struct command *command, char **argv_expanded)
 {
 	if (command->argv)
-		pseudo_exec_argv(ptr_ptrs2free, command->argv, command->assignment_cnt, argv_expanded);
+		pseudo_exec_argv(nommu_save, command->argv, command->assignment_cnt, argv_expanded);
 
 	if (command->group) {
 #if !BB_MMU
@@ -1785,17 +1805,6 @@ static int checkjobs_and_fg_shell(struct pipe* fg_pipe)
  * Returns -1 only if started some children. IOW: we have to
  * mask out retvals of builtins etc with 0xff!
  */
-/* A little helper first */
-static char **expand_assignments(char **argv, int count)
-{
-	int i;
-	char **p = NULL;
-	/* Expand assignments into one string each */
-	for (i = 0; i < count; i++) {
-		p = add_string_to_strings(p, expand_string_to_string(argv[i]));
-	}
-	return p;
-}
 static int run_pipe(struct pipe *pi)
 {
 	int i;
@@ -1876,11 +1885,13 @@ static int run_pipe(struct pipe *pi)
 			old_env = putenv_all_and_save_old(new_env);
 			debug_printf_exec(": builtin '%s' '%s'...\n", x->cmd, argv_expanded[1]);
 			rcode = x->function(argv_expanded) & 0xff;
- USE_FEATURE_SH_STANDALONE(clean_up_and_ret:)
+#if ENABLE_FEATURE_SH_STANDALONE
+ clean_up_and_ret:
+#endif
 			restore_redirects(squirrel);
 			free_strings_and_unsetenv(new_env, 1);
 			putenv_all(old_env);
-			free_strings(old_env);
+			free(old_env); /* not free_strings()! */
  clean_up_and_ret1:
 			free(argv_expanded);
 			IF_HAS_KEYWORDS(if (pi->pi_inverted) rcode = !rcode;)
@@ -1915,12 +1926,11 @@ static int run_pipe(struct pipe *pi)
 
 	for (i = 0; i < pi->num_cmds; i++) {
 #if !BB_MMU
-		/* Avoid confusion WHAT is volatile. Pointer is volatile,
-		 * not the stuff it points to. */
-		typedef char **ppchar_t;
-		volatile ppchar_t shared_across_vfork = NULL;
+		volatile nommu_save_t nommu_save;
+		nommu_save.new_env = NULL;
+		nommu_save.old_env = NULL;
+		nommu_save.argv = NULL;
 #endif
-
 		command = &(pi->cmds[i]);
 		if (command->argv) {
 			debug_printf_exec(": pipe member '%s' '%s'...\n", command->argv[0], command->argv[1]);
@@ -1966,15 +1976,18 @@ static int run_pipe(struct pipe *pi)
 			set_jobctrl_sighandler(SIG_DFL);
 			set_misc_sighandler(SIG_DFL);
 			signal(SIGCHLD, SIG_DFL);
-/* comment how it sets env????
-for single_and_fg, it's already set yes? */
-			pseudo_exec((char ***) &shared_across_vfork, command, argv_expanded);
+			/* Stores to nommu_save list of env vars putenv'ed
+			 * (NOMMU, on MMU we don't need that) */
+			/* cast away volatility... */
+			pseudo_exec((nommu_save_t*) &nommu_save, command, argv_expanded);
 			/* pseudo_exec() does not return */
 		}
 		/* parent */
 #if !BB_MMU
-//BUG: does not restore OLD env var contents
-		free_strings_and_unsetenv((char **)shared_across_vfork, 1);
+		/* Clean up after vforked child */
+		free(nommu_save.argv);
+		free_strings_and_unsetenv(nommu_save.new_env, 1);
+		putenv_all(nommu_save.old_env);
 #endif
 		free(argv_expanded);
 		argv_expanded = NULL;
@@ -2829,6 +2842,7 @@ static int set_local_var(char *str, int flg_export)
 			free(str);
 			return -1;
 		}
+		debug_printf_env("%s: unsetenv '%s'\n", __func__, str);
 		unsetenv(str); /* just in case */
 		*value = '=';
 		if (strcmp(cur->varstr, str) == 0) {
@@ -2858,8 +2872,10 @@ static int set_local_var(char *str, int flg_export)
  exp:
 	if (flg_export)
 		cur->flg_export = 1;
-	if (cur->flg_export)
+	if (cur->flg_export) {
+		debug_printf_env("%s: putenv '%s'\n", __func__, cur->varstr);
 		return putenv(cur->varstr);
+	}
 	return 0;
 }
 
@@ -2879,9 +2895,10 @@ static void unset_local_var(const char *name)
 				bb_error_msg("%s: readonly variable", name);
 				return;
 			}
-		/* prev is ok to use here because 1st variable, HUSH_VERSION,
-		 * is ro, and we cannot reach this code on the 1st pass */
+			/* prev is ok to use here because 1st variable, HUSH_VERSION,
+			 * is ro, and we cannot reach this code on the 1st pass */
 			prev->next = cur->next;
+			debug_printf_env("%s: unsetenv '%s'\n", __func__, cur->varstr);
 			unsetenv(cur->varstr);
 			if (!cur->max_len)
 				free(cur->varstr);
@@ -3467,11 +3484,9 @@ static int parse_group(o_string *dest, struct parse_context *ctx,
 		endch = ")";
 		command->subshell = 1;
 	}
-#if 0 /* TODO function support */
-	if (ch == 'F') { /* function definition */
-		command->subshell = 2;
-	}
-#endif
+//TODO	if (ch == 'F') { /* function definition */
+//		command->subshell = 2;
+//	}
 	rcode = parse_stream(dest, &sub, input, endch);
 	if (rcode == 0) {
 		done_word(dest, &sub); /* finish off the final word in the subcontext */
@@ -4175,6 +4190,7 @@ int hush_main(int argc, char **argv)
 	/* Deal with HUSH_VERSION */
 	G.shell_ver = const_shell_ver; /* copying struct here */
 	G.top_var = &G.shell_ver;
+	debug_printf_env("unsetenv '%s'\n", "HUSH_VERSION");
 	unsetenv("HUSH_VERSION"); /* in case it exists in initial env */
 	/* Initialize our shell local variables with the values
 	 * currently living in the environment */
@@ -4191,6 +4207,7 @@ int hush_main(int argc, char **argv)
 		}
 		e++;
 	}
+	debug_printf_env("putenv '%s'\n", hush_version_str);
 	putenv((char *)hush_version_str); /* reinstate HUSH_VERSION */
 
 #if ENABLE_FEATURE_EDITING
@@ -4415,10 +4432,10 @@ static int builtin_exec(char **argv)
 		return EXIT_SUCCESS; /* bash does this */
 	{
 #if !BB_MMU
-		char **ptrs2free = NULL;
+		nommu_save_t dummy;
 #endif
 // FIXME: if exec fails, bash does NOT exit! We do...
-		pseudo_exec_argv(&ptrs2free, argv + 1, 0, NULL);
+		pseudo_exec_argv(&dummy, argv + 1, 0, NULL);
 		/* never returns */
 	}
 }
@@ -4462,6 +4479,7 @@ static int builtin_export(char **argv)
 		var = get_local_var(name);
 		if (var) {
 			var->flg_export = 1;
+			debug_printf_env("%s: putenv '%s'\n", __func__, var->varstr);
 			putenv(var->varstr);
 		}
 		/* bash does not return an error when trying to export
