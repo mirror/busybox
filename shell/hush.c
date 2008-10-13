@@ -614,7 +614,7 @@ static char *unbackslash(char *src)
 	return dst;
 }
 
-static char **add_malloced_strings_to_strings(char **strings, char **add)
+static char **add_strings_to_strings(char **strings, char **add)
 {
 	int i;
 	unsigned count1;
@@ -643,14 +643,37 @@ static char **add_malloced_strings_to_strings(char **strings, char **add)
 	return v;
 }
 
-static char **add_malloced_string_to_strings(char **strings, char *add)
+static char **add_string_to_strings(char **strings, char *add)
 {
 	char *v[2];
-
 	v[0] = add;
 	v[1] = NULL;
+	return add_strings_to_strings(strings, v);
+}
 
-	return add_malloced_strings_to_strings(strings, v);
+static void putenv_all(char **strings)
+{
+	if (!strings)
+		return;
+	while (*strings)
+		putenv(*strings++);
+}
+
+static char **putenv_all_and_save_old(char **strings)
+{
+	char **old = NULL;
+	char **s = strings;
+
+	if (!strings)
+		return old;
+	while (*strings) {
+		char *v = getenv(*strings++);
+		if (!v)
+			continue;
+		old = add_string_to_strings(old, v);
+	}
+	putenv_all(s);
+	return old;
 }
 
 static void free_strings_and_unsetenv(char **strings, int unset)
@@ -1432,7 +1455,7 @@ static void pseudo_exec_argv(char ***ptr_ptrs2free, char **argv, int assignment_
 		p = expand_string_to_string(*argv);
 		putenv(p);
 #if !BB_MMU
-		*ptr_ptrs2free = add_malloced_string_to_strings(*ptr_ptrs2free, p);
+		*ptr_ptrs2free = add_string_to_strings(*ptr_ptrs2free, p);
 #endif
 		argv++;
 	}
@@ -1442,8 +1465,8 @@ static void pseudo_exec_argv(char ***ptr_ptrs2free, char **argv, int assignment_
 		argv = expand_strvec_to_strvec(argv);
 #if !BB_MMU
 		/* Inserting magic guard pointer to not unsetenv junk later */
-		*ptr_ptrs2free = add_malloced_string_to_strings(*ptr_ptrs2free, (char*)hush_version_str);
-		*ptr_ptrs2free = add_malloced_string_to_strings(*ptr_ptrs2free, (char*)argv);
+		*ptr_ptrs2free = add_string_to_strings(*ptr_ptrs2free, (char*)hush_version_str);
+		*ptr_ptrs2free = add_string_to_strings(*ptr_ptrs2free, (char*)argv);
 #endif
 	}
 
@@ -1762,14 +1785,24 @@ static int checkjobs_and_fg_shell(struct pipe* fg_pipe)
  * Returns -1 only if started some children. IOW: we have to
  * mask out retvals of builtins etc with 0xff!
  */
+/* A little helper first */
+static char **expand_assignments(char **argv, int count)
+{
+	int i;
+	char **p = NULL;
+	/* Expand assignments into one string each */
+	for (i = 0; i < count; i++) {
+		p = add_string_to_strings(p, expand_string_to_string(argv[i]));
+	}
+	return p;
+}
 static int run_pipe(struct pipe *pi)
 {
 	int i;
 	int nextin;
 	int pipefds[2];		/* pipefds[0] is for reading */
 	struct command *command;
-	char **ptrs2free = NULL;
-	char **argv_expanded = NULL;
+	char **argv_expanded;
 	char **argv;
 	const struct built_in_command *x;
 	char *p;
@@ -1791,6 +1824,7 @@ static int run_pipe(struct pipe *pi)
 	 * pseudo_exec.  "echo foo | read bar" doesn't work on bash, either.
 	 */
 	command = &(pi->cmds[0]);
+
 	if (single_and_fg && command->group && command->subshell == 0) {
 		debug_printf("non-subshell grouping\n");
 		setup_redirects(command, squirrel);
@@ -1803,8 +1837,12 @@ static int run_pipe(struct pipe *pi)
 	}
 
 	argv = command->argv;
+	argv_expanded = NULL;
 
 	if (single_and_fg && argv != NULL) {
+		char **new_env = NULL;
+		char **old_env = NULL;
+
 		i = command->assignment_cnt;
 		if (i != 0 && argv[i] == NULL) {
 			/* assignments, but no command: set local environment */
@@ -1816,52 +1854,49 @@ static int run_pipe(struct pipe *pi)
 			return EXIT_SUCCESS; /* don't worry about errors in set_local_var() yet */
 		}
 
-		/* Expand assignments into one string each */
-		for (i = 0; i < command->assignment_cnt; i++) {
-			p = expand_string_to_string(argv[i]);
-			putenv(p);
-			ptrs2free = add_malloced_string_to_strings(ptrs2free, p);
-		}
-
 		/* Expand the rest into (possibly) many strings each */
 		argv_expanded = expand_strvec_to_strvec(argv + i);
 
 		for (x = bltins; x != &bltins[ARRAY_SIZE(bltins)]; x++) {
-			if (strcmp(argv_expanded[0], x->cmd) == 0) {
-				if (x->function == builtin_exec && argv_expanded[1] == NULL) {
-					debug_printf("exec with redirects only\n");
-					setup_redirects(command, NULL);
-					rcode = EXIT_SUCCESS;
-					goto clean_up_and_ret1;
-				}
-				debug_printf("builtin inline %s\n", argv_expanded[0]);
-				/* XXX setup_redirects acts on file descriptors, not FILEs.
-				 * This is perfect for work that comes after exec().
-				 * Is it really safe for inline use?  Experimentally,
-				 * things seem to work with glibc. */
-				setup_redirects(command, squirrel);
-				debug_printf_exec(": builtin '%s' '%s'...\n", x->cmd, argv_expanded[1]);
-				rcode = x->function(argv_expanded) & 0xff;
- USE_FEATURE_SH_STANDALONE(clean_up_and_ret:)
-				restore_redirects(squirrel);
- clean_up_and_ret1:
-				free_strings_and_unsetenv(ptrs2free, 1);
-				free(argv_expanded);
-				IF_HAS_KEYWORDS(if (pi->pi_inverted) rcode = !rcode;)
-				debug_printf_exec("run_pipe return %d\n", rcode);
-				return rcode;
+			if (strcmp(argv_expanded[0], x->cmd) != 0)
+				continue;
+			if (x->function == builtin_exec && argv_expanded[1] == NULL) {
+				debug_printf("exec with redirects only\n");
+				setup_redirects(command, NULL);
+				rcode = EXIT_SUCCESS;
+				goto clean_up_and_ret1;
 			}
+			debug_printf("builtin inline %s\n", argv_expanded[0]);
+			/* XXX setup_redirects acts on file descriptors, not FILEs.
+			 * This is perfect for work that comes after exec().
+			 * Is it really safe for inline use?  Experimentally,
+			 * things seem to work with glibc. */
+			setup_redirects(command, squirrel);
+			new_env = expand_assignments(argv, command->assignment_cnt);
+			old_env = putenv_all_and_save_old(new_env);
+			debug_printf_exec(": builtin '%s' '%s'...\n", x->cmd, argv_expanded[1]);
+			rcode = x->function(argv_expanded) & 0xff;
+ USE_FEATURE_SH_STANDALONE(clean_up_and_ret:)
+			restore_redirects(squirrel);
+			free_strings_and_unsetenv(new_env, 1);
+			putenv_all(old_env);
+			free_strings(old_env);
+ clean_up_and_ret1:
+			free(argv_expanded);
+			IF_HAS_KEYWORDS(if (pi->pi_inverted) rcode = !rcode;)
+			debug_printf_exec("run_pipe return %d\n", rcode);
+			return rcode;
 		}
 #if ENABLE_FEATURE_SH_STANDALONE
-		{
-			int a = find_applet_by_name(argv_expanded[0]);
-			if (a >= 0 && APPLET_IS_NOFORK(a)) {
-				setup_redirects(command, squirrel);
-				save_nofork_data(&G.nofork_save);
-				debug_printf_exec(": run_nofork_applet '%s' '%s'...\n", argv_expanded[0], argv_expanded[1]);
-				rcode = run_nofork_applet_prime(&G.nofork_save, a, argv_expanded);
-				goto clean_up_and_ret;
-			}
+		i = find_applet_by_name(argv_expanded[0]);
+		if (i >= 0 && APPLET_IS_NOFORK(i)) {
+			setup_redirects(command, squirrel);
+			save_nofork_data(&G.nofork_save);
+			new_env = expand_assignments(argv, command->assignment_cnt);
+			old_env = putenv_all_and_save_old(new_env);
+			debug_printf_exec(": run_nofork_applet '%s' '%s'...\n", argv_expanded[0], argv_expanded[1]);
+			rcode = run_nofork_applet_prime(&G.nofork_save, i, argv_expanded);
+			goto clean_up_and_ret;
 		}
 #endif
 	}
@@ -1883,7 +1918,7 @@ static int run_pipe(struct pipe *pi)
 		/* Avoid confusion WHAT is volatile. Pointer is volatile,
 		 * not the stuff it points to. */
 		typedef char **ppchar_t;
-		volatile ppchar_t shared_across_vfork;
+		volatile ppchar_t shared_across_vfork = NULL;
 #endif
 
 		command = &(pi->cmds[i]);
@@ -1898,9 +1933,6 @@ static int run_pipe(struct pipe *pi)
 		if ((i + 1) < pi->num_cmds)
 			xpipe(pipefds);
 
-#if !BB_MMU
-		shared_across_vfork = ptrs2free;
-#endif
 		command->pid = BB_MMU ? fork() : vfork();
 		if (!command->pid) { /* child */
 			if (ENABLE_HUSH_JOB)
@@ -1941,12 +1973,11 @@ for single_and_fg, it's already set yes? */
 		}
 		/* parent */
 #if !BB_MMU
-		ptrs2free = shared_across_vfork;
+//BUG: does not restore OLD env var contents
+		free_strings_and_unsetenv((char **)shared_across_vfork, 1);
 #endif
 		free(argv_expanded);
 		argv_expanded = NULL;
-		free_strings_and_unsetenv(ptrs2free, 1);
-		ptrs2free = NULL;
 		if (command->pid < 0) { /* [v]fork failed */
 			/* Clearly indicate, was it fork or vfork */
 			bb_perror_msg(BB_MMU ? "fork" : "vfork");
@@ -3145,7 +3176,7 @@ static int done_word(o_string *word, struct parse_context *ctx)
 				o_addchr(word, SPECIAL_VAR_SYMBOL);
 			}
 		}
-		command->argv = add_malloced_string_to_strings(command->argv, xstrdup(word->data));
+		command->argv = add_string_to_strings(command->argv, xstrdup(word->data));
 		debug_print_strings("word appended to argv", command->argv);
 	}
 
@@ -3436,6 +3467,11 @@ static int parse_group(o_string *dest, struct parse_context *ctx,
 		endch = ")";
 		command->subshell = 1;
 	}
+#if 0 /* TODO function support */
+	if (ch == 'F') { /* function definition */
+		command->subshell = 2;
+	}
+#endif
 	rcode = parse_stream(dest, &sub, input, endch);
 	if (rcode == 0) {
 		done_word(dest, &sub); /* finish off the final word in the subcontext */
@@ -3929,10 +3965,10 @@ static int parse_stream(o_string *dest, struct parse_context *ctx,
 		case '(':
 #if ENABLE_HUSH_CASE
 			/* "case... in [(]word)..." - skip '(' */
-			if (dest->length == 0 /* not word(... */
-			 && dest->nonnull == 0 /* not ""(... */
-			 && ctx->ctx_res_w == RES_MATCH
+			if (ctx->ctx_res_w == RES_MATCH
 			 && ctx->command->argv == NULL /* not (word|(... */
+			 && dest->length == 0 /* not word(... */
+			 && dest->nonnull == 0 /* not ""(... */
 			) {
 				continue;
 			}
@@ -3942,10 +3978,18 @@ static int parse_stream(o_string *dest, struct parse_context *ctx,
 			 && dest->nonnull == 0 /* not a"b"c() */
 			 && ctx->command->argv == NULL /* it's the first word */
 			 && i_peek(input) == ')'
+			 && !match_reserved_word(dest)
 			) {
 				bb_error_msg("seems like a function definition");
-				if (match_reserved_word(dest))
-					bb_error_msg("but '%s' is a reserved word!", dest->data);
+				i_getch(input);
+				do {
+					ch = i_getch(input);
+				} while (ch == ' ' || ch == '\n');
+				if (ch != '{') {
+					syntax("was expecting {");
+					debug_printf_parse("parse_stream return 1\n");
+					return 1;
+				}
 			}
 #endif
 		case '{':

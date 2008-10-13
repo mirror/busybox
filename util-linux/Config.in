@@ -165,7 +165,7 @@ config FINDFS
 	default n
 	select VOLUMEID
 	help
-	  Prints the name of a filesystem with given laver or UUID.
+	  Prints the name of a filesystem with given label or UUID.
 	  WARNING:
 	  With all submodules selected, it will add ~8k to busybox.
 
