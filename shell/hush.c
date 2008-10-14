@@ -96,6 +96,12 @@
 #endif
 
 
+/* Keep unconditionally on for now */
+#define HUSH_DEBUG 1
+/* In progress... */
+#define ENABLE_HUSH_FUNCTIONS 0
+
+
 /* If you comment out one of these below, it will be #defined later
  * to perform debug printfs to stderr: */
 #define debug_printf(...)        do {} while (0)
@@ -218,8 +224,6 @@ void xxfree(void *ptr)
 #endif
 
 
-/* Keep unconditionally on for now */
-#define HUSH_DEBUG 1
 /* Do we support ANY keywords? */
 #if ENABLE_HUSH_IF || ENABLE_HUSH_LOOPS || ENABLE_HUSH_CASE
 #define HAS_KEYWORDS 1
@@ -307,7 +311,7 @@ struct command {
 	pid_t pid;                  /* 0 if exited */
 	int assignment_cnt;         /* how many argv[i] are assignments? */
 	smallint is_stopped;        /* is the command currently running? */
-	smallint subshell;          /* flag, non-zero if group must be forked */
+	smallint grp_type;
 	struct pipe *group;         /* if non-NULL, this "prog" is {} group,
 	                             * subshell, or a compound statement */
 	char **argv;                /* command name and arguments */
@@ -319,6 +323,11 @@ struct command {
  * Example: argv[0]=='.^C*^C.' here: echo .$*.
  * References of the form ^C`cmd arg^C are `cmd arg` substitutions.
  */
+#define GRP_NORMAL   0
+#define GRP_SUBSHELL 1
+#if ENABLE_HUSH_FUNCTIONS
+#define GRP_FUNCTION 2
+#endif
 
 struct pipe {
 	struct pipe *next;
@@ -1016,12 +1025,14 @@ static void o_addstr_duplicate_backslash(o_string *o, const char *str, int len)
 static void o_addqchr(o_string *o, int ch)
 {
 	int sz = 1;
-	if (strchr("*?[\\", ch)) {
+	char *found = strchr("*?[\\", ch);
+	if (found)
 		sz++;
+	o_grow_by(o, sz);
+	if (found) {
 		o->data[o->length] = '\\';
 		o->length++;
 	}
-	o_grow_by(o, sz);
 	o->data[o->length] = ch;
 	o->length++;
 	o->data[o->length] = '\0';
@@ -1834,7 +1845,15 @@ static int run_pipe(struct pipe *pi)
 	 */
 	command = &(pi->cmds[0]);
 
-	if (single_and_fg && command->group && command->subshell == 0) {
+#if ENABLE_HUSH_FUNCTIONS
+	if (single_and_fg && command->group && command->grp_type == GRP_FUNCTION) {
+		/* We "execute" function definition */
+		bb_error_msg("here we ought to remember function definition, and go on");
+		return EXIT_SUCCESS;
+	}
+#endif
+
+	if (single_and_fg && command->group && command->grp_type == GRP_NORMAL) {
 		debug_printf("non-subshell grouping\n");
 		setup_redirects(command, squirrel);
 		debug_printf_exec(": run_list\n");
@@ -2023,7 +2042,7 @@ static int run_pipe(struct pipe *pi)
 #ifndef debug_print_tree
 static void debug_print_tree(struct pipe *pi, int lvl)
 {
-	static const char *PIPE[] = {
+	static const char *const PIPE[] = {
 		[PIPE_SEQ] = "SEQ",
 		[PIPE_AND] = "AND",
 		[PIPE_OR ] = "OR" ,
@@ -2057,6 +2076,13 @@ static void debug_print_tree(struct pipe *pi, int lvl)
 		[RES_XXXX ] = "XXXX" ,
 		[RES_SNTX ] = "SNTX" ,
 	};
+	static const char *const GRPTYPE[] = {
+		"()",
+		"{}",
+#if ENABLE_HUSH_FUNCTIONS
+		"func()",
+#endif
+	};
 
 	int pin, prn;
 
@@ -2072,7 +2098,7 @@ static void debug_print_tree(struct pipe *pi, int lvl)
 			fprintf(stderr, "%*s prog %d assignment_cnt:%d", lvl*2, "", prn, command->assignment_cnt);
 			if (command->group) {
 				fprintf(stderr, " group %s: (argv=%p)\n",
-						(command->subshell ? "()" : "{}"),
+						GRPTYPE[command->grp_type],
 						argv);
 				debug_print_tree(command->group, lvl+1);
 				prn++;
@@ -2443,7 +2469,7 @@ static int free_pipe(struct pipe *pi, int indent)
 			free_strings(command->argv);
 			command->argv = NULL;
 		} else if (command->group) {
-			debug_printf_clean("%s   begin group (subshell:%d)\n", indenter(indent), command->subshell);
+			debug_printf_clean("%s   begin group (grp_type:%d)\n", indenter(indent), command->grp_type);
 			ret_code = free_pipe_list(command->group, indent+3);
 			debug_printf_clean("%s   end group\n", indenter(indent));
 		} else {
@@ -2572,7 +2598,6 @@ static int expand_vars_to_list(o_string *output, int n, char *arg, char or_mask)
 #if ENABLE_HUSH_TICK
 		o_string subst_result = NULL_O_STRING;
 #endif
-
 		o_addstr(output, arg, p - arg);
 		debug_print_list("expand_vars_to_list[1]", output, n);
 		arg = ++p;
@@ -3100,7 +3125,7 @@ static int reserved_word(o_string *word, struct parse_context *ctx)
 		done_pipe(ctx, PIPE_SEQ);
 		old = ctx->stack;
 		old->command->group = ctx->list_head;
-		old->command->subshell = 0;
+		old->command->grp_type = GRP_NORMAL;
 		*ctx = *old;   /* physical copy */
 		free(old);
 	}
@@ -3461,15 +3486,24 @@ static int process_command_subs(o_string *dest,
 static int parse_group(o_string *dest, struct parse_context *ctx,
 	struct in_str *input, int ch)
 {
-	/* NB: parse_group may create and use its own o_string,
-	 * without any code changes. It just so happens that code is smaller
-	 * if we (ab)use caller's one. */
+	/* dest contains characters seen prior to ( or {.
+	 * Typically it's empty, but for functions defs,
+	 * it contains function name (without '()'). */
 	int rcode;
 	const char *endch = NULL;
 	struct parse_context sub;
 	struct command *command = ctx->command;
 
 	debug_printf_parse("parse_group entered\n");
+#if ENABLE_HUSH_FUNCTIONS
+	if (ch == 'F') { /* function definition? */
+		bb_error_msg("aha '%s' is a function, parsing it...", dest->data);
+		//command->fname = dest->data;
+		command->grp_type = GRP_FUNCTION;
+//TODO: review every o_reset() location... do they handle all o_string fields correctly?
+		memset(dest, 0, sizeof(*dest));
+	}
+#endif
 	if (command->argv /* word [word](... */
 	 || dest->length /* word(... */
 	 || dest->nonnull /* ""(... */
@@ -3482,11 +3516,8 @@ static int parse_group(o_string *dest, struct parse_context *ctx,
 	endch = "}";
 	if (ch == '(') {
 		endch = ")";
-		command->subshell = 1;
+		command->grp_type = GRP_SUBSHELL;
 	}
-//TODO	if (ch == 'F') { /* function definition */
-//		command->subshell = 2;
-//	}
 	rcode = parse_stream(dest, &sub, input, endch);
 	if (rcode == 0) {
 		done_word(dest, &sub); /* finish off the final word in the subcontext */
@@ -3988,16 +4019,18 @@ static int parse_stream(o_string *dest, struct parse_context *ctx,
 				continue;
 			}
 #endif
-#if 0 /* TODO: implement functions */
+#if ENABLE_HUSH_FUNCTIONS
 			if (dest->length != 0 /* not just () but word() */
 			 && dest->nonnull == 0 /* not a"b"c() */
 			 && ctx->command->argv == NULL /* it's the first word */
+//TODO: "func ( ) {...}" - note spaces - is valid format too in bash
 			 && i_peek(input) == ')'
 			 && !match_reserved_word(dest)
 			) {
 				bb_error_msg("seems like a function definition");
 				i_getch(input);
 				do {
+//TODO: do it properly.
 					ch = i_getch(input);
 				} while (ch == ' ' || ch == '\n');
 				if (ch != '{') {
@@ -4005,6 +4038,7 @@ static int parse_stream(o_string *dest, struct parse_context *ctx,
 					debug_printf_parse("parse_stream return 1\n");
 					return 1;
 				}
+				ch = 'F'; /* magic value */
 			}
 #endif
 		case '{':
