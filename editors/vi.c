@@ -96,6 +96,12 @@ static const char CMrc[] ALIGN1 = "\033[%d;%dH";
 static const char CMup[] ALIGN1 = "\033[A";
 static const char CMdown[] ALIGN1 = "\n";
 
+#if ENABLE_FEATURE_VI_DOT_CMD || ENABLE_FEATURE_VI_YANKMARK
+// cmds modifying text[]
+// vda: removed "aAiIs" as they switch us into insert mode
+// and remembering input for replay after them makes no sense
+static const char modifying_cmds[] = "cCdDJoOpPrRxX<>~";
+#endif
 
 enum {
 	YANKONLY = FALSE,
@@ -180,9 +186,6 @@ struct globals {
 #if ENABLE_FEATURE_VI_USE_SIGNALS || ENABLE_FEATURE_VI_CRASHME
 	int my_pid;
 #endif
-#if ENABLE_FEATURE_VI_DOT_CMD || ENABLE_FEATURE_VI_YANKMARK
-	char *modifying_cmds;    // cmds that modify text[]
-#endif
 #if ENABLE_FEATURE_VI_SEARCH
 	char *last_search_pattern; // last pattern from a '/' or '?' search
 #endif
@@ -266,7 +269,6 @@ struct globals {
 #define ioq_start               (G.ioq_start          )
 #define last_row                (G.last_row           )
 #define my_pid                  (G.my_pid             )
-#define modifying_cmds          (G.modifying_cmds     )
 #define last_search_pattern     (G.last_search_pattern)
 #define chars_to_parse          (G.chars_to_parse     )
 
@@ -429,10 +431,6 @@ int vi_main(int argc, char **argv)
 #endif
 
 	vi_setops = VI_AUTOINDENT | VI_SHOWMATCH | VI_IGNORECASE;
-#if ENABLE_FEATURE_VI_DOT_CMD || ENABLE_FEATURE_VI_YANKMARK
-	modifying_cmds = (char *) "aAcCdDiIJoOpPrRsxX<>~";	// cmds modifying text[]
-#endif
-
 	//  1-  process $HOME/.exrc file (not inplemented yet)
 	//  2-  process EXINIT variable from environment
 	//  3-  process command line args
@@ -624,6 +622,7 @@ static void edit_file(char *fn)
 		// These are commands that change text[].
 		// Remember the input for the "." command
 		if (!adding2q && ioq_start == NULL
+		 && cmd_mode == 0 /* command mode */
 		 && c != '\0' && strchr(modifying_cmds, c)
 		) {
 			start_new_cmd_q(c);
@@ -2200,12 +2199,12 @@ static char readit(void)	// read (maybe cursor) key from stdin
 	// Known escape sequences for cursor and function keys.
 	static const struct esc_cmds {
 		const char seq[4];
-		char val;
+		char val; //TODO: int? Need to make it at least 8-bit clean!
 	} esccmds[] = {
-		{"OA"  , VI_K_UP      },   // cursor key Up
-		{"OB"  , VI_K_DOWN    },   // cursor key Down
+		{"OA"  , VI_K_UP      },   // Cursor Key Up
+		{"OB"  , VI_K_DOWN    },   // Cursor Key Down
 		{"OC"  , VI_K_RIGHT   },   // Cursor Key Right
-		{"OD"  , VI_K_LEFT    },   // cursor key Left
+		{"OD"  , VI_K_LEFT    },   // Cursor Key Left
 		{"OH"  , VI_K_HOME    },   // Cursor Key Home
 		{"OF"  , VI_K_END     },   // Cursor Key End
 		{"OP"  , VI_K_FUN1    },   // Function Key F1
@@ -2213,10 +2212,10 @@ static char readit(void)	// read (maybe cursor) key from stdin
 		{"OR"  , VI_K_FUN3    },   // Function Key F3
 		{"OS"  , VI_K_FUN4    },   // Function Key F4
 
-		{"[A"  , VI_K_UP      },   // cursor key Up
-		{"[B"  , VI_K_DOWN    },   // cursor key Down
+		{"[A"  , VI_K_UP      },   // Cursor Key Up
+		{"[B"  , VI_K_DOWN    },   // Cursor Key Down
 		{"[C"  , VI_K_RIGHT   },   // Cursor Key Right
-		{"[D"  , VI_K_LEFT    },   // cursor key Left
+		{"[D"  , VI_K_LEFT    },   // Cursor Key Left
 		{"[H"  , VI_K_HOME    },   // Cursor Key Home
 		{"[F"  , VI_K_END     },   // Cursor Key End
 		{"[1~" , VI_K_HOME    },   // Cursor Key Home
@@ -3003,6 +3002,7 @@ static void do_cmd(char c)
 		case VI_K_END:
 		case VI_K_PAGEUP:
 		case VI_K_PAGEDOWN:
+		case VI_K_DELETE:
 			goto key_cmd_mode;
 	}
 
