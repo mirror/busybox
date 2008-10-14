@@ -3134,6 +3134,8 @@ static int reserved_word(o_string *word, struct parse_context *ctx)
 }
 #endif
 
+//TODO: many, many callers don't check error from done_word()
+
 /* Word is complete, look at it and update parsing context.
  * Normal return is 0. Syntax errors return 1. */
 static int done_word(o_string *word, struct parse_context *ctx)
