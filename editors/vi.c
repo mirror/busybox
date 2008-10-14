@@ -3698,7 +3698,7 @@ static void do_cmd(char c)
 	case 'y':			// y- yank   something
 	case 'Y':			// Y- Yank a line
 #endif
-		{
+	{
 		int yf, ml, whole = 0;
 		yf = YANKDEL;	// assume either "c" or "d"
 #if ENABLE_FEATURE_VI_YANKMARK
@@ -3771,8 +3771,8 @@ static void do_cmd(char c)
 #endif
 			end_cmd_q();	// stop adding to q
 		}
-		}
 		break;
+	}
 	case 'k':			// k- goto prev line, same col
 	case VI_K_UP:		// cursor key Up
 		if (cmdcnt-- > 1) {
