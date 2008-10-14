@@ -209,8 +209,12 @@ struct globals {
 	char *initial_cmds[3];  // currently 2 entries, NULL terminated
 #endif
 	// Should be just enough to hold a key sequence,
-	// but CRASME mode uses it as generated command buffer too
-	char readbuffer[8];
+	// but CRASHME mode uses it as generated command buffer too
+#if ENABLE_FEATURE_VI_CRASHME
+        char readbuffer[128];
+#else
+        char readbuffer[8];
+#endif
 #define STATUS_BUFFER_LEN  200
 	char status_buffer[STATUS_BUFFER_LEN]; // messages to the user
 #if ENABLE_FEATURE_VI_DOT_CMD
@@ -2283,8 +2287,8 @@ static char readit(void)	// read (maybe cursor) key from stdin
 					struct pollfd pfd;
 					pfd.fd = 0;
 					pfd.events = POLLIN;
-					// TODO: what is a good timeout here? why?
-					if (safe_poll(&pfd, 1, /*timeout:*/ 0)) {
+					// Rob needed 300ms timeout on qemu
+					if (safe_poll(&pfd, 1, /*timeout:*/ 300)) {
 						if (safe_read(0, readbuffer + n, 1) <= 0)
 							goto error;
 						n++;
