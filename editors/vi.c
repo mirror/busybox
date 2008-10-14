@@ -348,6 +348,7 @@ static void place_cursor(int, int, int);
 static void screen_erase(void);
 static void clear_to_eol(void);
 static void clear_to_eos(void);
+static void go_bottom_and_clear_to_eol(void);
 static void standout_start(void);	// send "start reverse video" sequence
 static void standout_end(void);	// send "end reverse video" sequence
 static void flash(int);		// flash the terminal screen
@@ -645,8 +646,7 @@ static void edit_file(char *fn)
 	}
 	//-------------------------------------------------------------------
 
-	place_cursor(rows - 1, 0, FALSE); // go to bottom of screen
-	clear_to_eol(); // erase to end of line
+	go_bottom_and_clear_to_eol();
 	cookmode();
 #undef cur_line
 }
@@ -842,8 +842,7 @@ static void colon(char *buf)
 	else if (strncmp(cmd, "!", 1) == 0) {	// run a cmd
 		int retcode;
 		// :!ls   run the <cmd>
-		place_cursor(rows - 1, 0, FALSE);	// go to Status line
-		clear_to_eol();			// clear the line
+		go_bottom_and_clear_to_eol();
 		cookmode();
 		retcode = system(orig_buf + 1);	// run the cmd
 		if (retcode)
@@ -920,8 +919,7 @@ static void colon(char *buf)
 		}
 	} else if (strncasecmp(cmd, "features", i) == 0) {	// what features are available
 		// print out values of all features
-		place_cursor(rows - 1, 0, FALSE);	// go to Status line, bottom of screen
-		clear_to_eol();	// clear the line
+		go_bottom_and_clear_to_eol();
 		cookmode();
 		show_help();
 		rawmode();
@@ -931,8 +929,7 @@ static void colon(char *buf)
 			q = begin_line(dot);	// assume .,. for the range
 			r = end_line(dot);
 		}
-		place_cursor(rows - 1, 0, FALSE);	// go to Status line, bottom of screen
-		clear_to_eol();	// clear the line
+		go_bottom_and_clear_to_eol();
 		puts("\r");
 		for (; q <= r; q++) {
 			int c_is_no_print;
@@ -1032,8 +1029,7 @@ static void colon(char *buf)
 		// only blank is regarded as args delmiter. What about tab '\t' ?
 		if (!args[0] || strcasecmp(args, "all") == 0) {
 			// print out values of all options
-			place_cursor(rows - 1, 0, FALSE);	// go to Status line, bottom of screen
-			clear_to_eol();	// clear the line
+			go_bottom_and_clear_to_eol();
 			printf("----------------------------------------\r\n");
 #if ENABLE_FEATURE_VI_SETOPTS
 			if (!autoindent)
@@ -2169,8 +2165,7 @@ static void cont_sig(int sig UNUSED_PARAM)
 //----- Come here when we get a Suspend signal -------------------
 static void suspend_sig(int sig UNUSED_PARAM)
 {
-	place_cursor(rows - 1, 0, FALSE); // go to bottom of screen
-	clear_to_eol(); // erase to end of line
+	go_bottom_and_clear_to_eol();
 	cookmode(); // terminal to "cooked"
 
 	signal(SIGCONT, cont_sig);
@@ -2253,8 +2248,7 @@ static char readit(void)	// read (maybe cursor) key from stdin
 		n = safe_read(0, readbuffer, 1);
 		if (n <= 0) {
  error:
-			place_cursor(rows - 1, 0, FALSE); // go to bottom of screen
-			clear_to_eol(); // erase to end of line
+			go_bottom_and_clear_to_eol();
 			cookmode(); // terminal to "cooked"
 			bb_error_msg_and_die("can't read user input");
 		}
@@ -2367,8 +2361,7 @@ static char *get_input_line(const char *prompt)
 
 	strcpy(buf, prompt);
 	last_status_cksum = 0;	// force status update
-	place_cursor(rows - 1, 0, FALSE);	// go to Status line, bottom of screen
-	clear_to_eol();		// clear the line
+	go_bottom_and_clear_to_eol();
 	write1(prompt);      // write out the :, /, or ? prompt
 
 	i = strlen(buf);
@@ -2572,6 +2565,12 @@ static void clear_to_eol(void)
 	write1(Ceol);   // Erase from cursor to end of line
 }
 
+static void go_bottom_and_clear_to_eol(void)
+{
+	place_cursor(rows - 1, 0, FALSE); // go to bottom of screen
+	clear_to_eol(); // erase to end of line
+}
+
 //----- Erase from cursor to end of screen -----------------------
 static void clear_to_eos(void)
 {
@@ -2643,9 +2642,8 @@ static void show_status_line(void)
 	}
 	if (have_status_msg || ((cnt > 0 && last_status_cksum != cksum))) {
 		last_status_cksum = cksum;		// remember if we have seen this line
-		place_cursor(rows - 1, 0, FALSE);	// put cursor on status line
+		go_bottom_and_clear_to_eol();
 		write1(status_buffer);
-		clear_to_eol();
 		if (have_status_msg) {
 			if (((int)strlen(status_buffer) - (have_status_msg - 1)) >
 					(columns - 1) ) {
