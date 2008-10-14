@@ -210,11 +210,7 @@ struct globals {
 #endif
 	// Should be just enough to hold a key sequence,
 	// but CRASME mode uses it as generated command buffer too
-#if ENABLE_FEATURE_VI_CRASHME
-	char readbuffer[128];
-#else
-	char readbuffer[32];
-#endif
+	char readbuffer[8];
 #define STATUS_BUFFER_LEN  200
 	char status_buffer[STATUS_BUFFER_LEN]; // messages to the user
 #if ENABLE_FEATURE_VI_DOT_CMD
@@ -2201,18 +2197,23 @@ static char readit(void)	// read (maybe cursor) key from stdin
 {
 	char c;
 	int n;
-	struct esc_cmds {
+
+	// Known escape sequences for cursor and function keys.
+	static const struct esc_cmds {
 		const char seq[4];
 		char val;
-	};
-
-	static const struct esc_cmds esccmds[] = {
+	} esccmds[] = {
 		{"OA"  , VI_K_UP      },   // cursor key Up
 		{"OB"  , VI_K_DOWN    },   // cursor key Down
 		{"OC"  , VI_K_RIGHT   },   // Cursor Key Right
 		{"OD"  , VI_K_LEFT    },   // cursor key Left
 		{"OH"  , VI_K_HOME    },   // Cursor Key Home
 		{"OF"  , VI_K_END     },   // Cursor Key End
+		{"OP"  , VI_K_FUN1    },   // Function Key F1
+		{"OQ"  , VI_K_FUN2    },   // Function Key F2
+		{"OR"  , VI_K_FUN3    },   // Function Key F3
+		{"OS"  , VI_K_FUN4    },   // Function Key F4
+
 		{"[A"  , VI_K_UP      },   // cursor key Up
 		{"[B"  , VI_K_DOWN    },   // cursor key Down
 		{"[C"  , VI_K_RIGHT   },   // Cursor Key Right
@@ -2225,10 +2226,6 @@ static char readit(void)	// read (maybe cursor) key from stdin
 		{"[4~" , VI_K_END     },   // Cursor Key End
 		{"[5~" , VI_K_PAGEUP  },   // Cursor Key Page Up
 		{"[6~" , VI_K_PAGEDOWN},   // Cursor Key Page Down
-		{"OP"  , VI_K_FUN1    },   // Function Key F1
-		{"OQ"  , VI_K_FUN2    },   // Function Key F2
-		{"OR"  , VI_K_FUN3    },   // Function Key F3
-		{"OS"  , VI_K_FUN4    },   // Function Key F4
 		// careful: these have no terminating NUL!
 		{"[11~", VI_K_FUN1    },   // Function Key F1
 		{"[12~", VI_K_FUN2    },   // Function Key F2
@@ -2243,67 +2240,67 @@ static char readit(void)	// read (maybe cursor) key from stdin
 		{"[23~", VI_K_FUN11   },   // Function Key F11
 		{"[24~", VI_K_FUN12   },   // Function Key F12
 	};
-	enum { ESCCMDS_COUNT = ARRAY_SIZE(esccmds) };
 
 	fflush(stdout);
+
+    // If no data, block waiting for input.
 	n = chars_to_parse;
-	// get input from User - are there already input chars in Q?
-	if (n <= 0) {
-		// the Q is empty, wait for a typed char
- again:
-		n = safe_read(STDIN_FILENO, readbuffer, sizeof(readbuffer));
+	while (!n) {
+		n = safe_read(0, readbuffer, 1);
 		if (n <= 0) {
 			place_cursor(rows - 1, 0, FALSE); // go to bottom of screen
 			clear_to_eol(); // erase to end of line
 			cookmode(); // terminal to "cooked"
 			bb_error_msg_and_die("can't read user input");
 		}
-		/* elsewhere we can get very confused by NULs */
-		if (readbuffer[0] == '\0')
-			goto again;
-		if (readbuffer[0] == 27) {
-			// This is an ESC char. Is this Esc sequence?
-			// Could be bare Esc key. See if there are any
-			// more chars to read after the ESC. This would
-			// be a Function or Cursor Key sequence.
-			struct pollfd pfd[1];
-			pfd[0].fd = 0;
-			pfd[0].events = POLLIN;
-			// keep reading while there are input chars, and room in buffer
-			// for a complete ESC sequence (assuming 8 chars is enough)
-			while ((safe_poll(pfd, 1, 0) > 0)
-			 && ((size_t)n <= (sizeof(readbuffer) - 8))
-			) {
-				// read the rest of the ESC string
-				int r = safe_read(STDIN_FILENO, readbuffer + n, sizeof(readbuffer) - n);
-				if (r > 0)
-					n += r;
-			}
-		}
-		chars_to_parse = n;
+		// Returning NUL from this routine would be bad.
+		if (*readbuffer) break;
 	}
-	c = readbuffer[0];
-	if (c == 27 && n > 1) {
-		// Maybe cursor or function key?
+
+	// Grab character to return from buffer
+	c = *readbuffer;
+	n--;
+	if (n) memmove(readbuffer, readbuffer+1, n);
+
+	// If it's an escape sequence, loop through known matches.
+	if (c == 27) {
 		const struct esc_cmds *eindex;
 
-		for (eindex = esccmds; eindex < &esccmds[ESCCMDS_COUNT]; eindex++) {
-			int cnt = strnlen(eindex->seq, 4);
-			if (n <= cnt)
-				continue;
-			if (strncmp(eindex->seq, readbuffer + 1, cnt) != 0)
-				continue;
-			c = eindex->val; // magic char value
-			n = cnt + 1; // squeeze out the ESC sequence
-			goto found;
+		for (eindex = esccmds; eindex < esccmds+ARRAY_SIZE(esccmds); eindex++) {
+			int i=0, cnt = strnlen(eindex->seq, 4);
+
+			// Loop through chars in this sequence.
+			for (;;) {
+
+				// If we've matched this escape sequence so far but need more
+				// chars, read another as long as it wouldn't block.  (Note that
+				// escape sequences come in as a unit, so if we would block
+				// it's not really an escape sequence.)
+				if (n <= i) {
+					struct pollfd pfd;
+					pfd.fd = 0;
+					pfd.events = POLLIN;
+					if (0 < safe_poll(&pfd, 1, 0)
+						&& 0 < safe_read(0, readbuffer + n, 1))
+							n++;
+
+					// Since the array is sorted from shortest to longest, if
+					// we needed more data we can't match anything later, so
+					// break out of both loops.
+					else goto loop_out;
+				}
+				if (readbuffer[i] != eindex->seq[i]) break;
+				if (++i == cnt) {
+					c = eindex->val;
+					n = 0;
+					goto loop_out;
+				}
+			}
 		}
-		// defined ESC sequence not found
 	}
-	n = 1;
- found:
-	// remove key sequence from Q
-	chars_to_parse -= n;
-	memmove(readbuffer, readbuffer + n, sizeof(readbuffer) - n);
+loop_out:
+
+	chars_to_parse = n;
 	return c;
 }
 
