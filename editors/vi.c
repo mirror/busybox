@@ -2243,60 +2243,70 @@ static char readit(void)	// read (maybe cursor) key from stdin
 
 	fflush(stdout);
 
-    // If no data, block waiting for input.
 	n = chars_to_parse;
-	while (!n) {
+	if (n == 0) {
+		// If no data, block waiting for input.
 		n = safe_read(0, readbuffer, 1);
 		if (n <= 0) {
+ error:
 			place_cursor(rows - 1, 0, FALSE); // go to bottom of screen
 			clear_to_eol(); // erase to end of line
 			cookmode(); // terminal to "cooked"
 			bb_error_msg_and_die("can't read user input");
 		}
-		// Returning NUL from this routine would be bad.
-		if (*readbuffer) break;
 	}
 
 	// Grab character to return from buffer
-	c = *readbuffer;
+	c = readbuffer[0];
+	// Returning NUL from this routine would be bad.
+	if (c == '\0')
+		c = ' ';
 	n--;
-	if (n) memmove(readbuffer, readbuffer+1, n);
+	if (n) memmove(readbuffer, readbuffer + 1, n);
 
 	// If it's an escape sequence, loop through known matches.
 	if (c == 27) {
 		const struct esc_cmds *eindex;
 
-		for (eindex = esccmds; eindex < esccmds+ARRAY_SIZE(esccmds); eindex++) {
-			int i=0, cnt = strnlen(eindex->seq, 4);
+		for (eindex = esccmds; eindex < esccmds + ARRAY_SIZE(esccmds); eindex++) {
+			// n - position in seq to read
+			int i = 0; // position in seq to compare
+			int cnt = strnlen(eindex->seq, 4);
 
 			// Loop through chars in this sequence.
 			for (;;) {
-
-				// If we've matched this escape sequence so far but need more
-				// chars, read another as long as it wouldn't block.  (Note that
-				// escape sequences come in as a unit, so if we would block
-				// it's not really an escape sequence.)
+				// We've matched this escape sequence up to [i-1]
 				if (n <= i) {
+					// Need more chars, read another one if it wouldn't block.
+					// (Note that escape sequences come in as a unit,
+					// so if we would block it's not really an escape sequence.)
 					struct pollfd pfd;
 					pfd.fd = 0;
 					pfd.events = POLLIN;
-					if (0 < safe_poll(&pfd, 1, 300)
-						&& 0 < safe_read(0, readbuffer + n, 1))
-							n++;
-
-					// Since the array is sorted from shortest to longest, if
-					// we needed more data we can't match anything later, so
-					// break out of both loops.
-					else goto loop_out;
+					// TODO: what is a good timeout here? why?
+					if (safe_poll(&pfd, 1, /*timeout:*/ 0)) {
+						if (safe_read(0, readbuffer + n, 1) <= 0)
+							goto error;
+						n++;
+					} else {
+						// No more data!
+						// Array is sorted from shortest to longest,
+						// we can't match anything later in array,
+						// break out of both loops.
+						goto loop_out;
+					}
 				}
-				if (readbuffer[i] != eindex->seq[i]) break;
-				if (++i == cnt) {
+				if (readbuffer[i] != eindex->seq[i])
+					break; // try next seq
+				if (++i == cnt) { // entire seq matched
 					c = eindex->val;
 					n = 0;
 					goto loop_out;
 				}
 			}
 		}
+		// We did not find matching sequence, it was a bare ESC.
+		// We possibly read and stored more input in readbuffer by now.
 	}
 loop_out:
 
