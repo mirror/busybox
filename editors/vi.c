@@ -2280,7 +2280,7 @@ static char readit(void)	// read (maybe cursor) key from stdin
 					struct pollfd pfd;
 					pfd.fd = 0;
 					pfd.events = POLLIN;
-					if (0 < safe_poll(&pfd, 1, 0)
+					if (0 < safe_poll(&pfd, 1, 300)
 						&& 0 < safe_read(0, readbuffer + n, 1))
 							n++;
 
