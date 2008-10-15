@@ -235,8 +235,11 @@ static int sysctl_display_all(const char *path)
 
 static void sysctl_dots_to_slashes(char *name)
 {
-	char *cptr, *last_good;
-	char *end = name + strlen(name) - 1;
+	char *cptr, *last_good, *end;
+
+	/* It can be good as-is! */
+	if (access(name, F_OK) == 0)
+		return;
 
 	/* Example from bug 3894:
 	 * net.ipv4.conf.eth0.100.mc_forwarding ->
@@ -246,6 +249,7 @@ static void sysctl_dots_to_slashes(char *name)
 	 * we replaced even one . -> /, start over again,
 	 * but never replace dots before the position
 	 * where replacement occurred. */
+	end = name + strlen(name) - 1;
 	last_good = name - 1;
  again:
 	cptr = end;
