@@ -20,6 +20,7 @@ static int sysctl_read_setting(const char *setting);
 static int sysctl_write_setting(const char *setting);
 static int sysctl_display_all(const char *path);
 static int sysctl_preload_file_and_exit(const char *filename);
+static void sysctl_dots_to_slashes(char *name);
 
 static const char ETC_SYSCTL_CONF[] ALIGN1 = "/etc/sysctl.conf";
 static const char PROC_SYS[] ALIGN1 = "/proc/sys/";
@@ -143,8 +144,7 @@ static int sysctl_write_setting(const char *setting)
 	tmpname = xasprintf("%s%.*s", PROC_SYS, (int)(equals - name), name);
 	outname = xstrdup(tmpname + strlen_PROC_SYS);
 
-	while ((cptr = strchr(tmpname, '.')) != NULL)
-		*cptr = '/';
+	sysctl_dots_to_slashes(tmpname);
 
 	while ((cptr = strchr(outname, '/')) != NULL)
 		*cptr = '.';
@@ -198,8 +198,8 @@ static int sysctl_read_setting(const char *name)
 	tmpname = concat_path_file(PROC_SYS, name);
 	outname = xstrdup(tmpname + strlen_PROC_SYS);
 
-	while ((cptr = strchr(tmpname, '.')) != NULL)
-		*cptr = '/';
+	sysctl_dots_to_slashes(tmpname);
+
 	while ((cptr = strchr(outname, '/')) != NULL)
 		*cptr = '.';
 
@@ -266,3 +266,22 @@ static int sysctl_display_all(const char *path)
 
 	return retval;
 } /* end sysctl_display_all() */
+
+static void sysctl_dots_to_slashes(char *name)
+{
+	char *cptr = name;
+
+	/* Example from bug 3894:
+	 * net.ipv4.conf.eth0.100.mc_forwarding ->
+	 * net/ipv4/conf/eth0.100/mc_forwarding */
+	while (*cptr != '\0') {
+		if (*cptr == '.') {
+			*cptr = '\0';
+			if (access(name, F_OK) == 0)
+				*cptr = '/';
+			else
+				*cptr = '.';
+		}
+		cptr++;
+	}
+} /* end sysctl_dots_to_slashes() */
