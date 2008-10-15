@@ -1,4 +1,3 @@
-/* vi: set sw=4 ts=4: */
 /*
  * Sysctl 1.01 - A utility to read and manipulate the sysctl parameters
  *
@@ -26,22 +25,8 @@ static const char ETC_SYSCTL_CONF[] ALIGN1 = "/etc/sysctl.conf";
 static const char PROC_SYS[] ALIGN1 = "/proc/sys/";
 enum { strlen_PROC_SYS = sizeof(PROC_SYS) - 1 };
 
-/* error messages */
-static const char ERR_MALFORMED_SETTING[] ALIGN1 =
-	"error: malformed setting '%s'";
-static const char ERR_NO_EQUALS[] ALIGN1 =
-	"error: '%s' must be of the form name=value";
-static const char ERR_INVALID_KEY[] ALIGN1 =
+static const char msg_unknown_key[] ALIGN1 =
 	"error: '%s' is an unknown key";
-static const char ERR_UNKNOWN_WRITING[] ALIGN1 =
-	"error setting key '%s'";
-static const char ERR_UNKNOWN_READING[] ALIGN1 =
-	"error reading key '%s'";
-static const char ERR_PERMISSION_DENIED[] ALIGN1 =
-	"error: permission denied on key '%s'";
-static const char WARN_BAD_LINE[] ALIGN1 =
-	"warning: %s(%d): invalid syntax, continuing";
-
 
 static void dwrite_str(int fd, const char *buf)
 {
@@ -98,7 +83,8 @@ static int sysctl_preload_file_and_exit(const char *filename)
 	parser = config_open(filename);
 	while (config_read(parser, token, 2, 2, "# \t=", PARSE_NORMAL)) { // TODO: ';' is comment char too
 //		if (!token[1]) {
-//			bb_error_msg(WARN_BAD_LINE, filename, parser->lineno);
+//			bb_error_msg("warning: %s(%d): invalid syntax, continuing",
+//					filename, parser->lineno);
 //		} else {
 		{
 #if 0
@@ -131,13 +117,13 @@ static int sysctl_write_setting(const char *setting)
 	name = setting;
 	equals = strchr(setting, '=');
 	if (!equals) {
-		bb_error_msg(ERR_NO_EQUALS, setting);
+		bb_error_msg("error: '%s' must be of the form name=value", setting);
 		return EXIT_FAILURE;
 	}
 
 	value = equals + 1;	/* point to the value in name=value */
 	if (name == equals || !*value) {
-		bb_error_msg(ERR_MALFORMED_SETTING, setting);
+		bb_error_msg("error: malformed setting '%s'", setting);
 		return EXIT_FAILURE;
 	}
 
@@ -154,13 +140,10 @@ static int sysctl_write_setting(const char *setting)
 		switch (errno) {
 		case ENOENT:
 			if (option_mask32 & FLAG_SHOW_KEY_ERRORS)
-				bb_error_msg(ERR_INVALID_KEY, outname);
-			break;
-		case EACCES:
-			bb_perror_msg(ERR_PERMISSION_DENIED, outname);
+				bb_error_msg(msg_unknown_key, outname);
 			break;
 		default:
-			bb_perror_msg(ERR_UNKNOWN_WRITING, outname);
+			bb_perror_msg("error setting key '%s'", outname);
 			break;
 		}
 		retval = EXIT_FAILURE;
@@ -191,7 +174,7 @@ static int sysctl_read_setting(const char *name)
 
 	if (!*name) {
 		if (option_mask32 & FLAG_SHOW_KEY_ERRORS)
-			bb_error_msg(ERR_INVALID_KEY, name);
+			bb_error_msg(msg_unknown_key, name);
 		return -1;
 	}
 
@@ -208,13 +191,10 @@ static int sysctl_read_setting(const char *name)
 		switch (errno) {
 		case ENOENT:
 			if (option_mask32 & FLAG_SHOW_KEY_ERRORS)
-				bb_error_msg(ERR_INVALID_KEY, outname);
-			break;
-		case EACCES:
-			bb_error_msg(ERR_PERMISSION_DENIED, outname);
+				bb_error_msg(msg_unknown_key, outname);
 			break;
 		default:
-			bb_perror_msg(ERR_UNKNOWN_READING, outname);
+			bb_perror_msg("error reading key '%s'", outname);
 			break;
 		}
 		retval = EXIT_FAILURE;
