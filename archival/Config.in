@@ -113,6 +113,7 @@ config FEATURE_CPIO_O
 config DPKG
 	bool "dpkg"
 	default n
+	select FEATURE_SEAMLESS_GZ
 	help
 	  dpkg is a medium-level tool to install, build, remove and manage
 	  Debian packages.
@@ -123,9 +124,9 @@ config DPKG
 config DPKG_DEB
 	bool "dpkg_deb"
 	default n
+	select FEATURE_SEAMLESS_GZ
 	help
-	  dpkg-deb packs, unpacks and provides information about Debian
-	  archives.
+	  dpkg-deb unpacks and provides information about Debian archives.
 
 	  This implementation of dpkg-deb cannot pack archives.
 
