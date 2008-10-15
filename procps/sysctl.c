@@ -1,3 +1,4 @@
+/* vi: set sw=4 ts=4: */
 /*
  * Sysctl 1.01 - A utility to read and manipulate the sysctl parameters
  *
