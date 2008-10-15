@@ -234,19 +234,30 @@ static int sysctl_display_all(const char *path)
 
 static void sysctl_dots_to_slashes(char *name)
 {
-	char *cptr = name;
+	char *cptr, *last_good;
+	char *end = name + strlen(name) - 1;
 
 	/* Example from bug 3894:
 	 * net.ipv4.conf.eth0.100.mc_forwarding ->
-	 * net/ipv4/conf/eth0.100/mc_forwarding */
-	while (*cptr != '\0') {
+	 * net/ipv4/conf/eth0.100/mc_forwarding. NB:
+	 * net/ipv4/conf/eth0/mc_forwarding *also exists*,
+	 * therefore we must start from the end, and if
+	 * we replaced even one . -> /, start over again,
+	 * but never replace dots before the position
+	 * where replacement occurred. */
+	last_good = name - 1;
+ again:
+	cptr = end;
+	while (cptr > last_good) {
 		if (*cptr == '.') {
 			*cptr = '\0';
-			if (access(name, F_OK) == 0)
+			if (access(name, F_OK) == 0) {
 				*cptr = '/';
-			else
-				*cptr = '.';
+				last_good = cptr;
+				goto again;
+			}
+			*cptr = '.';
 		}
-		cptr++;
+		cptr--;
 	}
 } /* end sysctl_dots_to_slashes() */
