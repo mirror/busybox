@@ -70,41 +70,32 @@ int sysctl_main(int argc UNUSED_PARAM, char **argv)
 	return retval;
 } /* end sysctl_main() */
 
-/*
- * preload the sysctl's from a conf file
- * - we parse the file and then reform it (strip out whitespace)
+/* Set sysctl's from a conf file. Format example:
+ * # Controls IP packet forwarding
+ * net.ipv4.ip_forward = 0
  */
-
 static int sysctl_preload_file_and_exit(const char *filename)
 {
 	char *token[2];
 	parser_t *parser;
 
 	parser = config_open(filename);
-	while (config_read(parser, token, 2, 2, "# \t=", PARSE_NORMAL)) { // TODO: ';' is comment char too
-//		if (!token[1]) {
-//			bb_error_msg("warning: %s(%d): invalid syntax, continuing",
-//					filename, parser->lineno);
-//		} else {
-		{
+// TODO: ';' is comment char too
+	while (config_read(parser, token, 2, 2, "# \t=", PARSE_NORMAL)) {
 #if 0
-			char *s = xasprintf("%s=%s", token[0], token[1]);
-			sysctl_write_setting(s);
-			free(s);
-#else // PLAY_WITH_FIRE for -4 bytes?
-			sprintf(parser->line, "%s=%s", token[0], token[1]); // must have room by definition
-			sysctl_write_setting(parser->line);
+		char *s = xasprintf("%s=%s", token[0], token[1]);
+		sysctl_write_setting(s);
+		free(s);
+#else /* Save ~4 bytes by using parser internals */
+		sprintf(parser->line, "%s=%s", token[0], token[1]); // must have room by definition
+		sysctl_write_setting(parser->line);
 #endif
-		}
 	}
 	if (ENABLE_FEATURE_CLEAN_UP)
 		config_close(parser);
 	return 0;
 } /* end sysctl_preload_file_and_exit() */
 
-/*
- *     Write a single sysctl setting
- */
 static int sysctl_write_setting(const char *setting)
 {
 	int retval;
@@ -162,9 +153,6 @@ static int sysctl_write_setting(const char *setting)
 	return retval;
 } /* end sysctl_write_setting() */
 
-/*
- *     Read a sysctl setting
- */
 static int sysctl_read_setting(const char *name)
 {
 	int retval;
@@ -214,12 +202,9 @@ static int sysctl_read_setting(const char *name)
 	return retval;
 } /* end sysctl_read_setting() */
 
-/*
- *     Display all the sysctl settings
- */
 static int sysctl_display_all(const char *path)
 {
-	int retval = 0;
+	int retval = EXIT_SUCCESS;
 	DIR *dp;
 	struct dirent *de;
 	char *tmpdir;
