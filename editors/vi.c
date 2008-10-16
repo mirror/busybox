@@ -2280,8 +2280,9 @@ static char readit(void)	// read (maybe cursor) key from stdin
 					struct pollfd pfd;
 					pfd.fd = 0;
 					pfd.events = POLLIN;
-					// Rob needed 300ms timeout on qemu
-					if (safe_poll(&pfd, 1, /*timeout:*/ 300)) {
+					// Timeout is needed to reconnect escape sequences split
+					// up by transmission over a serial console.
+					if (safe_poll(&pfd, 1, 25)) {
 						if (safe_read(0, readbuffer + n, 1) <= 0)
 							goto error;
 						n++;
