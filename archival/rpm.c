@@ -202,7 +202,12 @@ static void extract_cpio_gz(int fd)
 	archive_handle->seek = seek_by_read;
 	//archive_handle->action_header = header_list;
 	archive_handle->action_data = data_extract_all;
-	archive_handle->ah_flags = ARCHIVE_PRESERVE_DATE | ARCHIVE_CREATE_LEADING_DIRS;
+	archive_handle->ah_flags = ARCHIVE_PRESERVE_DATE | ARCHIVE_CREATE_LEADING_DIRS
+		/* compat: overwrite existing files.
+		 * try "rpm -i foo.src.rpm" few times in a row -
+		 * standard rpm will not complain.
+		 * (TODO? real rpm creates "file;1234" and then renames it) */
+		| ARCHIVE_EXTRACT_UNCONDITIONAL;
 	archive_handle->src_fd = fd;
 	/*archive_handle->offset = 0; - init_handle() did it */
 
@@ -378,9 +383,11 @@ static void fileaction_dobackup(char *filename, int fileref)
 
 static void fileaction_setowngrp(char *filename, int fileref)
 {
-	int uid, gid;
-	uid = xuname2uid(rpm_getstr(TAG_FILEUSERNAME, fileref));
-	gid = xgroup2gid(rpm_getstr(TAG_FILEGROUPNAME, fileref));
+	/* real rpm warns: "user foo does not exist - using <you>" */
+	struct passwd *pw = getpwnam(rpm_getstr(TAG_FILEUSERNAME, fileref));
+	int uid = pw ? pw->pw_uid : getuid(); /* or euid? */
+	struct group *gr = getgrnam(rpm_getstr(TAG_FILEGROUPNAME, fileref));
+	int gid = gr ? gr->gr_gid : getgid();
 	chown(filename, uid, gid);
 }
 
