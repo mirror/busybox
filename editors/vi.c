@@ -629,12 +629,12 @@ static void edit_file(char *fn)
 		}
 #endif
 		do_cmd(c);		// execute the user command
-		//
+
 		// poll to see if there is input already waiting. if we are
 		// not able to display output fast enough to keep up, skip
 		// the display update until we catch up with input.
-		if (mysleep(0) == 0) {
-			// no input pending- so update output
+		if (!chars_to_parse && mysleep(0) == 0) {
+			// no input pending - so update output
 			refresh(FALSE);
 			show_status_line();
 		}
@@ -2243,8 +2243,10 @@ static char readit(void)	// read (maybe cursor) key from stdin
 
 	n = chars_to_parse;
 	if (n == 0) {
-		// If no data, block waiting for input.
-		n = safe_read(0, readbuffer, 1);
+		// If no data, block waiting for input
+		// (can't read more than minimal ESC sequence -
+		// see "n = 0" below).
+		n = safe_read(0, readbuffer, 3);
 		if (n <= 0) {
  error:
 			go_bottom_and_clear_to_eol();
@@ -2264,25 +2266,29 @@ static char readit(void)	// read (maybe cursor) key from stdin
 	// If it's an escape sequence, loop through known matches.
 	if (c == 27) {
 		const struct esc_cmds *eindex;
+		struct pollfd pfd;
 
+		pfd.fd = STDIN_FILENO;
+		pfd.events = POLLIN;
 		for (eindex = esccmds; eindex < esccmds + ARRAY_SIZE(esccmds); eindex++) {
-			// n - position in seq to read
-			int i = 0; // position in seq to compare
-			int cnt = strnlen(eindex->seq, 4);
+			// n - position in sequence we did not read yet
+			int i = 0; // position in sequence to compare
 
-			// Loop through chars in this sequence.
+			// Loop through chars in this sequence
 			for (;;) {
-				// We've matched this escape sequence up to [i-1]
+				// So far escape sequence matches up to [i-1]
 				if (n <= i) {
 					// Need more chars, read another one if it wouldn't block.
 					// (Note that escape sequences come in as a unit,
 					// so if we would block it's not really an escape sequence.)
-					struct pollfd pfd;
-					pfd.fd = 0;
-					pfd.events = POLLIN;
-					// Timeout is needed to reconnect escape sequences split
-					// up by transmission over a serial console.
-					if (safe_poll(&pfd, 1, 25)) {
+
+					// Timeout is needed to reconnect escape sequences
+					// split up by transmission over a serial console.
+					// Even though inter-char delay on 1200 baud is <10ms,
+					// process scheduling can enlarge it arbitrarily,
+					// on both send and receive sides.
+					// Erring on the safe side - 5 timer ticks on 100 HZ.
+					if (safe_poll(&pfd, 1, 50)) {
 						if (safe_read(0, readbuffer + n, 1) <= 0)
 							goto error;
 						n++;
@@ -2296,9 +2302,14 @@ static char readit(void)	// read (maybe cursor) key from stdin
 				}
 				if (readbuffer[i] != eindex->seq[i])
 					break; // try next seq
-				if (++i == cnt) { // entire seq matched
+				i++;
+				if (i == 4 || !eindex->seq[i]) { // entire seq matched
 					c = eindex->val;
 					n = 0;
+					// n -= i; memmove(...);
+					// would be more correct,
+					// but we never read ahead that much,
+					// and n == i here.
 					goto loop_out;
 				}
 			}
@@ -2306,7 +2317,7 @@ static char readit(void)	// read (maybe cursor) key from stdin
 		// We did not find matching sequence, it was a bare ESC.
 		// We possibly read and stored more input in readbuffer by now.
 	}
-loop_out:
+ loop_out:
 
 	chars_to_parse = n;
 	return c;
