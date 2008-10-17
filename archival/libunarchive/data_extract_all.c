@@ -77,7 +77,9 @@ void FAST_FUNC data_extract_all(archive_handle_t *archive_handle)
 		}
 		case S_IFDIR:
 			res = mkdir(file_header->name, file_header->mode);
-			if ((res == -1) && (errno != EISDIR)
+			if ((res == -1)
+			 && (errno != EISDIR) /* btw, Linux doesn't return this */
+			 && (errno != EEXIST)
 			 && !(archive_handle->ah_flags & ARCHIVE_EXTRACT_QUIET)
 			) {
 				bb_perror_msg("cannot make dir %s", file_header->name);

@@ -27,6 +27,7 @@ char FAST_FUNC get_header_cpio(archive_handle_t *archive_handle)
 
 #define hardlinks_to_create (*(hardlinks_t **)(&archive_handle->ah_priv[0]))
 #define created_hardlinks   (*(hardlinks_t **)(&archive_handle->ah_priv[1]))
+#define block_count         (archive_handle->ah_priv[2])
 //	if (!archive_handle->ah_priv_inited) {
 //		archive_handle->ah_priv_inited = 1;
 //		hardlinks_to_create = NULL;
@@ -76,7 +77,7 @@ char FAST_FUNC get_header_cpio(archive_handle_t *archive_handle)
 
 	if (strcmp(file_header->name, "TRAILER!!!") == 0) {
 		/* Always round up. ">> 9" divides by 512 */
-		printf("%"OFF_FMT"u blocks\n", (archive_handle->offset + 511) >> 9);
+		block_count = (void*)(ptrdiff_t) ((archive_handle->offset + 511) >> 9);
 		goto create_hardlinks;
 	}
 

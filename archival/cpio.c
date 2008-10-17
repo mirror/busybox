@@ -344,5 +344,8 @@ int cpio_main(int argc UNUSED_PARAM, char **argv)
 	while (get_header_cpio(archive_handle) == EXIT_SUCCESS)
 		continue;
 
+	/* see get_header_cpio */
+	printf("%lu blocks\n", (unsigned long)(ptrdiff_t)(archive_handle->ah_priv[2]));
+
 	return EXIT_SUCCESS;
 }
