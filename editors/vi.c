@@ -2243,9 +2243,11 @@ static char readit(void)	// read (maybe cursor) key from stdin
 
 	n = chars_to_parse;
 	if (n == 0) {
-		// If no data, block waiting for input
-		// (can't read more than minimal ESC sequence -
-		// see "n = 0" below).
+		// If no data, block waiting for input.
+		// Can't read more than minimal ESC sequence size -
+		// see "n = 0" below. Example of mishandled
+		// sequence if we read 4 chars here: "ESC O A ESC O A".
+		// We'll read "ESC O A ESC" and lose second ESC!
 		n = safe_read(0, readbuffer, 3);
 		if (n <= 0) {
  error:
