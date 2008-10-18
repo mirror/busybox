@@ -214,9 +214,9 @@ struct globals {
 	// Should be just enough to hold a key sequence,
 	// but CRASHME mode uses it as generated command buffer too
 #if ENABLE_FEATURE_VI_CRASHME
-        char readbuffer[128];
+	char readbuffer[128];
 #else
-        char readbuffer[8];
+	char readbuffer[8];
 #endif
 #define STATUS_BUFFER_LEN  200
 	char status_buffer[STATUS_BUFFER_LEN]; // messages to the user
