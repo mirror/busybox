@@ -17,7 +17,8 @@ double FAST_FUNC bb_strtod(const char *arg, char **endp)
 	double v;
 	char *endptr;
 
-	if (arg[0] != '-' && NOT_DIGIT(arg[0]))
+	/* Allow .NN form. People want to use "sleep .15" etc */
+	if (arg[0] != '-' && arg[0] != '.' && NOT_DIGIT(arg[0]))
 		goto err;
 	errno = 0;
 	v = strtod(arg, &endptr);
