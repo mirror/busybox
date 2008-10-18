@@ -1754,7 +1754,7 @@ int mount_main(int argc UNUSED_PARAM, char **argv)
 	char *cmdopts = xstrdup("");
 	char *fstype = NULL;
 	char *storage_path;
-	char *opt_o;
+	llist_t *lst_o = NULL;
 	const char *fstabname;
 	FILE *fstab;
 	int i, j, rc = 0;
@@ -1776,10 +1776,10 @@ int mount_main(int argc UNUSED_PARAM, char **argv)
 
 	// Parse remaining options
 	// Max 2 params; -v is a counter
-	opt_complementary = "?2" USE_FEATURE_MOUNT_VERBOSE(":vv");
-	opt = getopt32(argv, OPTION_STR, &opt_o, &fstype
+	opt_complementary = "?2o::" USE_FEATURE_MOUNT_VERBOSE(":vv");
+	opt = getopt32(argv, OPTION_STR, &lst_o, &fstype
 			USE_FEATURE_MOUNT_VERBOSE(, &verbose));
-	if (opt & OPT_o) append_mount_options(&cmdopts, opt_o); // -o
+	while (lst_o) append_mount_options(&cmdopts, llist_pop(&lst_o)); // -o
 	if (opt & OPT_r) append_mount_options(&cmdopts, "ro"); // -r
 	if (opt & OPT_w) append_mount_options(&cmdopts, "rw"); // -w
 	argv += optind;
