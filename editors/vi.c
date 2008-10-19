@@ -2243,11 +2243,9 @@ static char readit(void)	// read (maybe cursor) key from stdin
 
 	n = chars_to_parse;
 	if (n == 0) {
-		// If no data, block waiting for input.
-		// Can't read more than minimal ESC sequence size -
-		// see "n = 0" below. Example of mishandled
-		// sequence if we read 4 chars here: "ESC O A ESC O A".
-		// We'll read "ESC O A ESC" and lose second ESC!
+		// If no data, block waiting for input.  (If we read more than the
+		// minimal ESC sequence size, the "n=0" below would instead have to
+		// figure out how much to keep, resulting in larger code.)
 		n = safe_read(0, readbuffer, 3);
 		if (n <= 0) {
  error:
@@ -2272,7 +2270,8 @@ static char readit(void)	// read (maybe cursor) key from stdin
 
 		pfd.fd = STDIN_FILENO;
 		pfd.events = POLLIN;
-		for (eindex = esccmds; eindex < esccmds + ARRAY_SIZE(esccmds); eindex++) {
+		for (eindex = esccmds; eindex < esccmds + ARRAY_SIZE(esccmds); eindex++)
+		{
 			// n - position in sequence we did not read yet
 			int i = 0; // position in sequence to compare
 
@@ -2286,10 +2285,7 @@ static char readit(void)	// read (maybe cursor) key from stdin
 
 					// Timeout is needed to reconnect escape sequences
 					// split up by transmission over a serial console.
-					// Even though inter-char delay on 1200 baud is <10ms,
-					// process scheduling can enlarge it arbitrarily,
-					// on both send and receive sides.
-					// Erring on the safe side - 5 timer ticks on 100 HZ.
+
 					if (safe_poll(&pfd, 1, 50)) {
 						if (safe_read(0, readbuffer + n, 1) <= 0)
 							goto error;
