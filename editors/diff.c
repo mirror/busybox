@@ -1189,7 +1189,7 @@ static char **get_recursive_dirlist(char *path)
 		recursive_action(path, ACTION_RECURSE|ACTION_FOLLOWLINKS,
 					add_to_dirlist, /* file_action */
 					NULL, /* dir_action */
-					(void*)(strlen(path) + 1),
+					(void*)(ptrdiff_t)(strlen(path) + 1),
 					0);
 	} else {
 		DIR *dp;

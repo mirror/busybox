@@ -87,7 +87,7 @@ struct volume_id {
 //	int		fd_close:1;
 };
 
-struct volume_id *volume_id_open_node(const char *path);
+struct volume_id *volume_id_open_node(int fd);
 int volume_id_probe_all(struct volume_id *id, uint64_t off, uint64_t size);
 void free_volume_id(struct volume_id *id);
 

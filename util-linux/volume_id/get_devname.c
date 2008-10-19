@@ -22,38 +22,23 @@ static struct uuidCache_s {
 
 /* Returns !0 on error.
  * Otherwise, returns malloc'ed strings for label and uuid
- * (and they can't be NULL, although they can be "") */
-#if !ENABLE_FEATURE_VOLUMEID_ISO9660
-#define get_label_uuid(device, label, uuid, iso_only) \
-	get_label_uuid(device, label, uuid)
-#endif
+ * (and they can't be NULL, although they can be "").
+ * NB: closes fd. */
 static int
-get_label_uuid(const char *device, char **label, char **uuid, int iso_only)
+get_label_uuid(int fd, char **label, char **uuid)
 {
 	int rv = 1;
 	uint64_t size;
 	struct volume_id *vid;
 
-	vid = volume_id_open_node(device);
-	if (!vid)
-		return rv;
+	/* fd is owned by vid now */
+	vid = volume_id_open_node(fd);
 
-	if (ioctl(vid->fd, BLKGETSIZE64, &size) != 0)
+	if (ioctl(/*vid->*/fd, BLKGETSIZE64, &size) != 0)
 		size = 0;
 
-#if ENABLE_FEATURE_VOLUMEID_ISO9660
-	if ((iso_only ?
-	     volume_id_probe_iso9660(vid, 0) :
-	     volume_id_probe_all(vid, 0, size)
-	    ) != 0
-	) {
+	if (volume_id_probe_all(vid, 0, size) != 0)
 		goto ret;
-	}
-#else
-	if (volume_id_probe_all(vid, 0, size) != 0) {
-		goto ret;
-	}
-#endif
 
 	if (vid->label[0] != '\0' || vid->uuid[0] != '\0') {
 		*label = xstrndup(vid->label, sizeof(vid->label));
@@ -62,7 +47,7 @@ get_label_uuid(const char *device, char **label, char **uuid, int iso_only)
 		rv = 0;
 	}
  ret:
-	free_volume_id(vid);
+	free_volume_id(vid); /* also closes fd */
 	return rv;
 }
 
@@ -91,204 +76,29 @@ uuidcache_addentry(char *device, /*int major, int minor,*/ char *label, char *uu
 /* If get_label_uuid() on device_name returns success,
  * add a cache entry for this device.
  * If device node does not exist, it will be temporarily created. */
-#if !ENABLE_FEATURE_VOLUMEID_ISO9660
-#define uuidcache_check_device(device_name, ma, mi, iso_only) \
-	uuidcache_check_device(device_name, ma, mi)
-#endif
-static void
-uuidcache_check_device(const char *device_name, int ma, int mi, int iso_only)
+static int FAST_FUNC
+uuidcache_check_device(const char *device,
+		struct stat *statbuf,
+		void *userData UNUSED_PARAM,
+		int depth UNUSED_PARAM)
 {
-	char *device, *last_slash;
-	char *uuid, *label;
-	char *ptr;
-	int must_remove = 0;
-	int added = 0;
+	char *uuid = uuid; /* for compiler */
+	char *label = label;
+	int fd;
 
-	last_slash = NULL;
-	device = xasprintf("/dev/%s", device_name);
-	if (access(device, F_OK) != 0) {
-		/* device does not exist, temporarily create */
-		int slash_cnt = 0;
+	if (!S_ISBLK(statbuf->st_mode))
+		return TRUE;
 
-		if ((ma | mi) < 0)
-			goto ret; /* we don't know major:minor! */
+	fd = open(device, O_RDONLY);
+	if (fd < 0)
+		return TRUE;
 
-		ptr = device;
-		while (*ptr)
-			if (*ptr++ == '/')
-				slash_cnt++;
-		if (slash_cnt > 2) {
-// BUG: handles only slash_cnt == 3 case
-			last_slash = strrchr(device, '/');
-			*last_slash = '\0';
-			if (mkdir(device, 0644)) {
-				bb_perror_msg("can't create directory %s", device);
-				*last_slash = '/';
-				last_slash = NULL; /* prevents rmdir */
-			} else {
-				*last_slash = '/';
-			}
-		}
-		mknod(device, S_IFBLK | 0600, makedev(ma, mi));
-		must_remove = 1;
+	/* get_label_uuid() closes fd in all cases (success & failure) */
+	if (get_label_uuid(fd, &label, &uuid) == 0) {
+		/* uuidcache_addentry() takes ownership of all three params */
+		uuidcache_addentry(xstrdup(device), /*ma, mi,*/ label, uuid);
 	}
-
-	uuid = NULL;
-	label = NULL;
-	if (get_label_uuid(device, &label, &uuid, iso_only) == 0) {
-		uuidcache_addentry(device, /*ma, mi,*/ label, uuid);
-		/* "device" is owned by cache now, don't free */
-		added = 1;
-	}
-
-	if (must_remove)
-		unlink(device);
-	if (last_slash) {
-		*last_slash = '\0';
-		rmdir(device);
-	}
- ret:
-	if (!added)
-		free(device);
-}
-
-/* Run uuidcache_check_device() for every device mentioned
- * in /proc/partitions */
-static void
-uuidcache_init_partitions(void)
-{
-	char line[100];
-	int ma, mi;
-	unsigned long long sz;
-	FILE *procpt;
-	int firstPass;
-	int handleOnFirst;
-	char *chptr;
-
-	procpt = xfopen_for_read("/proc/partitions");
-/*
-# cat /proc/partitions
-major minor  #blocks  name
-
-   8     0  293036184 sda
-   8     1    6835626 sda1
-   8     2          1 sda2
-   8     5     979933 sda5
-   8     6   15623181 sda6
-   8     7   97659103 sda7
-   8     8  171935631 sda8
-*/
-	for (firstPass = 1; firstPass >= 0; firstPass--) {
-		fseek(procpt, 0, SEEK_SET);
-
-		while (fgets(line, sizeof(line), procpt)) {
-			/* The original version of this code used sscanf, but
-			   diet's sscanf is quite limited */
-			chptr = line;
-			if (*chptr != ' ') continue;
-			chptr = skip_whitespace(chptr);
-
-			ma = bb_strtou(chptr, &chptr, 0);
-			if (ma < 0) continue;
-			chptr = skip_whitespace(chptr);
-
-			mi = bb_strtou(chptr, &chptr, 0);
-			if (mi < 0) continue;
-			chptr = skip_whitespace(chptr);
-
-			sz = bb_strtoull(chptr, &chptr, 0);
-			if ((long long)sz == -1LL) continue;
-			chptr = skip_whitespace(chptr);
-
-			/* skip extended partitions (heuristic: size 1) */
-			if (sz == 1)
-				continue;
-
-			*strchrnul(chptr, '\n') = '\0';
-			/* now chptr => device name */
-			dbg("/proc/partitions: maj:%d min:%d sz:%llu name:'%s'",
-						ma, mi, sz, chptr);
-			if (!chptr[0])
-				continue;
-
-			/* look only at md devices on first pass */
-			handleOnFirst = (chptr[0] == 'm' && chptr[1] == 'd');
-			if (firstPass != handleOnFirst)
-				continue;
-
-			/* heuristic: partition name ends in a digit */
-			if (isdigit(chptr[strlen(chptr) - 1])) {
-				uuidcache_check_device(chptr, ma, mi, 0);
-			}
-		}
-	}
-
-	fclose(procpt);
-}
-
-static void
-dev_get_major_minor(char *device_name, int *major, int *minor)
-{
-	char dev[16];
-	char *dev_path;
-	char *colon;
-	int sz;
-
-	dev_path = xasprintf("/sys/block/%s/dev", device_name);
-	sz = open_read_close(dev_path, dev, sizeof(dev) - 1);
-	if (sz < 0)
-		goto ret;
-	dev[sz] = '\0';
-
-	colon = strchr(dev, ':');
-	if (!colon)
-		goto ret;
-	*major = bb_strtou(dev, NULL, 10);
-	*minor = bb_strtou(colon + 1, NULL, 10);
-
- ret:
-	free(dev_path);
-	return;
-}
-
-static void
-uuidcache_init_cdroms(void)
-{
-#define PROC_CDROMS "/proc/sys/dev/cdrom/info"
-	char line[100];
-	int ma, mi;
-	FILE *proccd;
-
-	proccd = fopen_for_read(PROC_CDROMS);
-	if (!proccd) {
-//		static smallint warn = 0;
-//		if (!warn) {
-//			warn = 1;
-//			bb_error_msg("can't open %s, UUID and LABEL "
-//				"conversion cannot be done for CD-Roms",
-//				PROC_CDROMS);
-//		}
-		return;
-	}
-
-	while (fgets(line, sizeof(line), proccd)) {
-		static const char drive_name_string[] ALIGN1 = "drive name:";
-
-		if (strncmp(line, drive_name_string, sizeof(drive_name_string) - 1) == 0) {
-			char *device_name;
-
-			device_name = strtok(skip_whitespace(line + sizeof(drive_name_string) - 1), " \t\n");
-			while (device_name && device_name[0]) {
-				ma = mi = -1;
-				dev_get_major_minor(device_name, &ma, &mi);
-				uuidcache_check_device(device_name, ma, mi, 1);
-				device_name = strtok(NULL, " \t\n");
-			}
-			break;
-		}
-	}
-
-	fclose(proccd);
+	return TRUE;
 }
 
 static void
@@ -297,8 +107,11 @@ uuidcache_init(void)
 	if (uuidCache)
 		return;
 
-	uuidcache_init_partitions();
-	uuidcache_init_cdroms();
+	recursive_action("/dev", ACTION_RECURSE,
+		uuidcache_check_device, /* file_action */
+		NULL, /* dir_action */
+		NULL, /* userData */
+		0 /* depth */);
 }
 
 #define UUID   1

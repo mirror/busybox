@@ -190,19 +190,14 @@ int volume_id_probe_all(struct volume_id *id, uint64_t off, uint64_t size)
 }
 
 /* open volume by device node */
-struct volume_id *volume_id_open_node(const char *path)
+struct volume_id *volume_id_open_node(int fd)
 {
 	struct volume_id *id;
-	int fd;
 
-	fd = open(path, O_RDONLY);
-	if (fd < 0)
-		return NULL;
 	id = xzalloc(sizeof(struct volume_id));
 	id->fd = fd;
 	///* close fd on device close */
 	//id->fd_close = 1;
-
 	return id;
 }
 
