@@ -138,6 +138,14 @@ config DC
 	  Dc is a reverse-polish desk calculator which supports unlimited
 	  precision arithmetic.
 
+config FEATURE_DC_LIBM
+	bool "Enable power and exp functions (requires libm)"
+	default n
+	depends on DC
+	help
+	  Enable power and exp functions.
+	  NOTE: This will require libm to be present for linking.
+
 config DEVFSD
 	bool "devfsd (obsolete)"
 	default n

@@ -14,7 +14,7 @@ config AWK
 
 config FEATURE_AWK_MATH
 	bool "Enable math functions (requires libm)"
-	default y
+	default n
 	depends on AWK
 	help
 	  Enable math functions of the Awk programming language.

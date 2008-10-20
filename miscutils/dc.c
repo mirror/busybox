@@ -53,12 +53,14 @@ static void mul(void)
 	push(pop() * pop());
 }
 
+#if ENABLE_FEATURE_DC_LIBM
 static void power(void)
 {
 	double topower = pop();
 
 	push(pow(pop(), topower));
 }
+#endif
 
 static void divide(void)
 {
@@ -137,9 +139,11 @@ static const struct op operators[] = {
 	{"mul", mul},
 	{"/",   divide},
 	{"div", divide},
+#if ENABLE_FEATURE_DC_LIBM
 	{"**",  power},
 	{"exp", power},
 	{"pow", power},
+#endif
 	{"%",   mod},
 	{"mod", mod},
 	{"and", and},
