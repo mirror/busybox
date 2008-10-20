@@ -57,29 +57,33 @@ enum {
 	MAX_SCR_ROWS = CONFIG_FEATURE_VI_MAX_LEN,
 };
 
-// Misc. non-Ascii keys that report an escape sequence
-#define VI_K_UP			(char)128	// cursor key Up
-#define VI_K_DOWN		(char)129	// cursor key Down
-#define VI_K_RIGHT		(char)130	// Cursor Key Right
-#define VI_K_LEFT		(char)131	// cursor key Left
-#define VI_K_HOME		(char)132	// Cursor Key Home
-#define VI_K_END		(char)133	// Cursor Key End
-#define VI_K_INSERT		(char)134	// Cursor Key Insert
-#define VI_K_DELETE		(char)135	// Cursor Key Insert
-#define VI_K_PAGEUP		(char)136	// Cursor Key Page Up
-#define VI_K_PAGEDOWN		(char)137	// Cursor Key Page Down
-#define VI_K_FUN1		(char)138	// Function Key F1
-#define VI_K_FUN2		(char)139	// Function Key F2
-#define VI_K_FUN3		(char)140	// Function Key F3
-#define VI_K_FUN4		(char)141	// Function Key F4
-#define VI_K_FUN5		(char)142	// Function Key F5
-#define VI_K_FUN6		(char)143	// Function Key F6
-#define VI_K_FUN7		(char)144	// Function Key F7
-#define VI_K_FUN8		(char)145	// Function Key F8
-#define VI_K_FUN9		(char)146	// Function Key F9
-#define VI_K_FUN10		(char)147	// Function Key F10
-#define VI_K_FUN11		(char)148	// Function Key F11
-#define VI_K_FUN12		(char)149	// Function Key F12
+// "Keycodes" that report an escape sequence.
+// We use something which fits into signed char,
+// yet doesn't represent any valid Unicode characher.
+enum {
+	VI_K_UP       = -1,     // cursor key Up
+	VI_K_DOWN     = -2,     // cursor key Down
+	VI_K_RIGHT    = -3,     // Cursor Key Right
+	VI_K_LEFT     = -4,     // cursor key Left
+	VI_K_HOME     = -5,     // Cursor Key Home
+	VI_K_END      = -6,     // Cursor Key End
+	VI_K_INSERT   = -7,     // Cursor Key Insert
+	VI_K_DELETE   = -8,     // Cursor Key Insert
+	VI_K_PAGEUP   = -9,     // Cursor Key Page Up
+	VI_K_PAGEDOWN = -10,    // Cursor Key Page Down
+	VI_K_FUN1     = -11,    // Function Key F1
+	VI_K_FUN2     = -12,    // Function Key F2
+	VI_K_FUN3     = -13,    // Function Key F3
+	VI_K_FUN4     = -14,    // Function Key F4
+	VI_K_FUN5     = -15,    // Function Key F5
+	VI_K_FUN6     = -16,    // Function Key F6
+	VI_K_FUN7     = -17,    // Function Key F7
+	VI_K_FUN8     = -18,    // Function Key F8
+	VI_K_FUN9     = -19,    // Function Key F9
+	VI_K_FUN10    = -20,    // Function Key F10
+	VI_K_FUN11    = -21,    // Function Key F11
+	VI_K_FUN12    = -22,    // Function Key F12
+};
 
 /* vt102 typical ESC sequence */
 /* terminal standout start/normal ESC sequence */
@@ -171,9 +175,9 @@ struct globals {
 	char *screen;            // pointer to the virtual screen buffer
 	int screensize;          //            and its size
 	int tabstop;
+	int last_forward_char;   // last char searched for with 'f' (int because of Unicode)
 	char erase_char;         // the users erase character
 	char last_input_char;    // last char read from user
-	char last_forward_char;  // last char searched for with 'f'
 
 #if ENABLE_FEATURE_VI_DOT_CMD
 	smallint adding2q;	 // are we currently adding user input to q
@@ -298,7 +302,7 @@ struct globals {
 
 static int init_text_buffer(char *); // init from file or create new
 static void edit_file(char *);	// edit one file
-static void do_cmd(char);	// execute a command
+static void do_cmd(int);	// execute a command
 static int next_tabstop(int);
 static void sync_cursor(char *, int *, int *);	// synchronize the screen cursor to dot
 static char *begin_line(char *);	// return pointer to cur line B-o-l
@@ -334,8 +338,8 @@ static void rawmode(void);	// set "raw" mode on tty
 static void cookmode(void);	// return to "cooked" mode on tty
 // sleep for 'h' 1/100 seconds, return 1/0 if stdin is (ready for read)/(not ready)
 static int mysleep(int);
-static char readit(void);	// read (maybe cursor) key from stdin
-static char get_one_char(void);	// read 1 char from stdin
+static int readit(void);	// read (maybe cursor) key from stdin
+static int get_one_char(void);	// read 1 char from stdin
 static int file_size(const char *);   // what is the byte size of "fn"
 #if ENABLE_FEATURE_VI_READONLY
 static int file_insert(const char *, char *, int);
@@ -524,7 +528,7 @@ static void edit_file(char *fn)
 #if ENABLE_FEATURE_VI_YANKMARK
 #define cur_line edit_file__cur_line
 #endif
-	char c;
+	int c;
 	int size;
 #if ENABLE_FEATURE_VI_USE_SIGNALS
 	int sig;
@@ -622,8 +626,10 @@ static void edit_file(char *fn)
 		// These are commands that change text[].
 		// Remember the input for the "." command
 		if (!adding2q && ioq_start == NULL
-		 && cmd_mode == 0 /* command mode */
-		 && c != '\0' && strchr(modifying_cmds, c)
+		 && cmd_mode == 0 // command mode
+		 && c > '\0' // exclude NUL and non-ASCII chars
+		 && c < 0x7f // (Unicode and such)
+		 && strchr(modifying_cmds, c)
 		) {
 			start_new_cmd_q(c);
 		}
@@ -1198,7 +1204,7 @@ static void colon(char *buf)
 
 static void Hit_Return(void)
 {
-	char c;
+	int c;
 
 	standout_start();
 	write1("[Hit return to continue]");
@@ -2191,15 +2197,15 @@ static int mysleep(int hund)	// sleep for 'h' 1/100 seconds
 }
 
 //----- IO Routines --------------------------------------------
-static char readit(void)	// read (maybe cursor) key from stdin
+static int readit(void) // read (maybe cursor) key from stdin
 {
-	char c;
+	int c;
 	int n;
 
 	// Known escape sequences for cursor and function keys.
 	static const struct esc_cmds {
 		const char seq[4];
-		char val; //TODO: int? Need to make it at least 8-bit clean!
+		signed char val;
 	} esccmds[] = {
 		{"OA"  , VI_K_UP      },   // Cursor Key Up
 		{"OB"  , VI_K_DOWN    },   // Cursor Key Down
@@ -2256,7 +2262,7 @@ static char readit(void)	// read (maybe cursor) key from stdin
 	}
 
 	// Grab character to return from buffer
-	c = readbuffer[0];
+	c = (unsigned char)readbuffer[0];
 	// Returning NUL from this routine would be bad.
 	if (c == '\0')
 		c = ' ';
@@ -2302,7 +2308,7 @@ static char readit(void)	// read (maybe cursor) key from stdin
 					break; // try next seq
 				i++;
 				if (i == 4 || !eindex->seq[i]) { // entire seq matched
-					c = eindex->val;
+					c = eindex->val; // sign extended!
 					n = 0;
 					// n -= i; memmove(...);
 					// would be more correct,
@@ -2322,9 +2328,9 @@ static char readit(void)	// read (maybe cursor) key from stdin
 }
 
 //----- IO Routines --------------------------------------------
-static char get_one_char(void)
+static int get_one_char(void)
 {
-	char c;
+	int c;
 
 #if ENABLE_FEATURE_VI_DOT_CMD
 	if (!adding2q) {
@@ -2335,7 +2341,8 @@ static char get_one_char(void)
 			c = readit();	// get the users input
 		} else {
 			// there is a queue to get chars from first
-			c = *ioq++;
+			// careful with correct sign expansion!
+			c = (unsigned char)*ioq++;
 			if (c == '\0') {
 				// the end of the q, read from STDIN
 				free(ioq_start);
@@ -2365,7 +2372,7 @@ static char *get_input_line(const char *prompt)
 	// char [MAX_INPUT_LEN]
 #define buf get_input_line__buf
 
-	char c;
+	int c;
 	int i;
 
 	strcpy(buf, prompt);
@@ -2384,7 +2391,8 @@ static char *get_input_line(const char *prompt)
 			write1("\b \b"); // erase char on screen
 			if (i <= 0) // user backs up before b-o-l, exit
 				break;
-		} else {
+		} else if (c > 0 && c < 256) { // exclude Unicode
+			// (TODO: need to handle Unicode)
 			buf[i] = c;
 			buf[++i] = '\0';
 			bb_putchar(c);
@@ -2987,13 +2995,14 @@ static void refresh(int full_screen)
 //---------------------------------------------------------------------
 
 //----- Execute a Vi Command -----------------------------------
-static void do_cmd(char c)
+static void do_cmd(int c)
 {
 	const char *msg = msg; // for compiler
-	char c1, *p, *q, *save_dot;
+	char *p, *q, *save_dot;
 	char buf[12];
 	int dir = dir; // for compiler
 	int cnt, i, j;
+	int c1;
 
 //	c1 = c; // quiet the compiler
 //	cnt = yf = 0; // quiet the compiler
@@ -3173,21 +3182,18 @@ static void do_cmd(char c)
 		break;
 #if ENABLE_FEATURE_VI_YANKMARK
 	case '"':			// "- name a register to use for Delete/Yank
-		c1 = get_one_char();
-		c1 = tolower(c1);
-		if (islower(c1)) {
-			YDreg = c1 - 'a';
+		c1 = (get_one_char() | 0x20) - 'a'; // | 0x20 is tolower()
+		if ((unsigned)c1 <= 25) { // a-z?
+			YDreg = c1;
 		} else {
 			indicate_error(c);
 		}
 		break;
 	case '\'':			// '- goto a specific mark
-		c1 = get_one_char();
-		c1 = tolower(c1);
-		if (islower(c1)) {
-			c1 = c1 - 'a';
+		c1 = (get_one_char() | 0x20) - 'a';
+		if ((unsigned)c1 <= 25) { // a-z?
 			// get the b-o-l
-			q = mark[(unsigned char) c1];
+			q = mark[c1];
 			if (text <= q && q < end) {
 				dot = q;
 				dot_begin();	// go to B-o-l
@@ -3206,12 +3212,10 @@ static void do_cmd(char c)
 		// between text[0] and dot then this mark will not point to the
 		// correct location! It could be off by many lines!
 		// Well..., at least its quick and dirty.
-		c1 = get_one_char();
-		c1 = tolower(c1);
-		if (islower(c1)) {
-			c1 = c1 - 'a';
+		c1 = (get_one_char() | 0x20) - 'a';
+		if ((unsigned)c1 <= 25) { // a-z?
 			// remember the line
-			mark[(int) c1] = dot;
+			mark[c1] = dot;
 		} else {
 			indicate_error(c);
 		}
@@ -3546,12 +3550,11 @@ static void do_cmd(char c)
 			end_cmd_q();	// stop adding to q
 #endif
 		break;
-	case 'g':                       // 'gg' goto a line number (from vim)
-					// (default to first line in file)
+	case 'g': // 'gg' goto a line number (vim) (default: very first line)
 		c1 = get_one_char();
 		if (c1 != 'g') {
 			buf[0] = 'g';
-			buf[1] = c1;
+			buf[1] = c1; // TODO: if Unicode?
 			buf[2] = '\0';
 			not_implemented(buf);
 			break;
@@ -3804,7 +3807,7 @@ static void do_cmd(char c)
 		do_cmd(';');
 		if (*dot == last_forward_char)
 			dot_left();
-		last_forward_char= 0;
+		last_forward_char = 0;
 		break;
 	case 'w':			// w- forward a word
 		if (cmdcnt-- > 1) {
