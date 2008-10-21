@@ -14,6 +14,10 @@
 #include <paths.h>
 #include <sys/reboot.h>
 
+/* Was a CONFIG_xxx option. A lot of people were building
+ * not fully functional init by switching it on! */
+#define DEBUG_INIT 0
+
 #define COMMAND_SIZE 256
 #define CONSOLE_NAME_SIZE 32
 #define MAXENV	16		/* Number of env. vars */
@@ -103,7 +107,7 @@ static void loop_forever(void)
  * "where" may be bitwise-or'd from L_LOG | L_CONSOLE
  * NB: careful, we can be called after vfork!
  */
-#define messageD(...) do { if (ENABLE_DEBUG_INIT) message(__VA_ARGS__); } while (0)
+#define messageD(...) do { if (DEBUG_INIT) message(__VA_ARGS__); } while (0)
 static void message(int where, const char *fmt, ...)
 	__attribute__ ((format(printf, 2, 3)));
 static void message(int where, const char *fmt, ...)
@@ -275,7 +279,7 @@ static void open_stdio_to_tty(const char* tty_name, int exit_on_failure)
 				tty_name, strerror(errno));
 			if (exit_on_failure)
 				_exit(EXIT_FAILURE);
-			if (ENABLE_DEBUG_INIT)
+			if (DEBUG_INIT)
 				_exit(2);
 			/* NB: we don't reach this if we were called after vfork.
 			 * Thus halt_reboot_pwoff() itself need not be vfork-safe. */
@@ -788,7 +792,7 @@ int init_main(int argc UNUSED_PARAM, char **argv)
 		return kill(1, SIGHUP);
 	}
 
-	if (!ENABLE_DEBUG_INIT) {
+	if (!DEBUG_INIT) {
 		/* Expect to be invoked as init with PID=1 or be invoked as linuxrc */
 		if (getpid() != 1
 		 && (!ENABLE_FEATURE_INITRD || !strstr(applet_name, "linuxrc"))
