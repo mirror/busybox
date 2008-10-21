@@ -2025,7 +2025,7 @@ static var *exec_builtin(node *op, var *res)
 
 	case B_a2:
 #if ENABLE_FEATURE_AWK_MATH
-		setvar_i(res, atan2(getvar_i(av[i]), getvar_i(av[1])));
+		setvar_i(res, atan2(getvar_i(av[0]), getvar_i(av[1])));
 #else
 		syntax_error(EMSG_NO_MATH);
 #endif
