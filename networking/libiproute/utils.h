@@ -39,6 +39,8 @@ typedef struct {
 	uint32_t data[4];
 } inet_prefix;
 
+#define PREFIXLEN_SPECIFIED 1
+
 #define DN_MAXADDL 20
 #ifndef AF_DECnet
 #define AF_DECnet 12
