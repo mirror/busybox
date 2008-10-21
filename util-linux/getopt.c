@@ -157,6 +157,15 @@ static int generate_output(char **argv, int argc, const char *optstr, const stru
 	if (quiet_errors) /* No error reporting from getopt(3) */
 		opterr = 0;
 
+	/* We used it already in main() in getopt32(),
+	 * we *must* reset getopt(3): */
+#ifdef __GLIBC__
+	optind = 0;
+#else /* BSD style */
+	optind = 1;
+	/* optreset = 1; */
+#endif
+
 	while (1) {
 		opt =
 #if ENABLE_GETOPT_LONG
