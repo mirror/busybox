@@ -28,7 +28,7 @@
  */
 
 #include "libbb.h"
-#include <linux/inotify.h>
+#include <sys/inotify.h>
 
 static const char mask_names[] ALIGN1 =
 	"a"	// 0x00000001	File was accessed
