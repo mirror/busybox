@@ -166,6 +166,14 @@ struct globals {
 	USE_FEATURE_LESS_REGEXP(wanted_match = -1;) \
 } while (0)
 
+/* flines[] are lines read from stdin, each in malloc'ed buffer.
+ * Line numbers are stored as uint32_t prepended to each line.
+ * Pointer is adjusted so that flines[i] points directly past
+ * line number. Accesor: */
+#define MEMPTR(p) ((char*)(p) - 4)
+#define LINENO(p) (*(uint32_t*)((p) - 4))
+
+
 /* Reset terminal input to normal */
 static void set_tty_cooked(void)
 {
@@ -252,15 +260,13 @@ static void read_lines(void)
 
  USE_FEATURE_LESS_REGEXP(again0:)
 
-	p = current_line = xmalloc(w);
+	p = current_line = ((char*)xmalloc(w + 4)) + 4;
 	max_fline += last_terminated;
 	if (!last_terminated) {
 		const char *cp = flines[max_fline];
-		if (option_mask32 & FLAG_N)
-			cp += 8;
-		strcpy(current_line, cp);
+		strcpy(p, cp);
 		p += strlen(current_line);
-		free((char*)flines[max_fline]);
+		free(MEMPTR(flines[max_fline]));
 		/* linepos is still valid from previous read_lines() */
 	} else {
 		linepos = 0;
@@ -324,17 +330,12 @@ static void read_lines(void)
  reached_eof:
 		last_terminated = terminated;
 		flines = xrealloc_vector(flines, 8, max_fline);
-		if (option_mask32 & FLAG_N) {
-			/* Width of 7 preserves tab spacing in the text */
-			flines[max_fline] = xasprintf(
-				(max_lineno <= 9999999) ? "%7u %s" : "%07u %s",
-				max_lineno % 10000000, current_line);
-			free(current_line);
-			if (terminated)
-				max_lineno++;
-		} else {
-			flines[max_fline] = xrealloc(current_line, strlen(current_line) + 1);
-		}
+
+		flines[max_fline] = (char*)xrealloc(MEMPTR(current_line), strlen(current_line) + 1 + 4) + 4;
+		LINENO(flines[max_fline]) = max_lineno;
+		if (terminated)
+			max_lineno++;
+
 		if (max_fline >= MAXLINES) {
 			eof_error = 0; /* Pretend we saw EOF */
 			break;
@@ -380,7 +381,7 @@ static void read_lines(void)
 #endif
 		}
 		max_fline++;
-		current_line = xmalloc(w);
+		current_line = ((char*)xmalloc(w + 4)) + 4;
 		p = current_line;
 		linepos = 0;
 	} /* end of "read lines until we reach cur_fline" loop */
@@ -487,6 +488,30 @@ static const char ctrlconv[] ALIGN1 =
 	"\x40\x41\x42\x43\x44\x45\x46\x47\x48\x49\x40\x4b\x4c\x4d\x4e\x4f"
 	"\x50\x51\x52\x53\x54\x55\x56\x57\x58\x59\x5a\x5b\x5c\x5d\x5e\x5f";
 
+static void lineno_str(char *nbuf9, const char *line)
+{
+	nbuf9[0] = '\0';
+	if (option_mask32 & FLAG_N) {
+		const char *fmt;
+		unsigned n;
+
+		if (line == empty_line_marker) {
+			memset(nbuf9, ' ', 8);
+			nbuf9[8] = '\0';
+			return;
+		}
+		/* Width of 7 preserves tab spacing in the text */
+		fmt = "%7u ";
+		n = LINENO(line);
+		if (n > 9999999) {
+			n %= 10000000;
+			fmt = "%07u ";
+		}
+		sprintf(nbuf9, fmt, n);
+	}
+}
+
+
 #if ENABLE_FEATURE_LESS_REGEXP
 static void print_found(const char *line)
 {
@@ -496,6 +521,7 @@ static void print_found(const char *line)
 	regmatch_t match_structs;
 
 	char buf[width];
+	char nbuf9[9];
 	const char *str = line;
 	char *p = buf;
 	size_t n;
@@ -532,7 +558,8 @@ static void print_found(const char *line)
 				match_structs.rm_so, str,
 				match_structs.rm_eo - match_structs.rm_so,
 						str + match_structs.rm_so);
-		free(growline); growline = new;
+		free(growline);
+		growline = new;
 		str += match_structs.rm_eo;
 		line += match_structs.rm_eo;
 		eflags = REG_NOTBOL;
@@ -544,11 +571,12 @@ static void print_found(const char *line)
 			match_status = 1;
 	}
 
+	lineno_str(nbuf9, line);
 	if (!growline) {
-		printf(CLEAR_2_EOL"%s\n", str);
+		printf(CLEAR_2_EOL"%s%s\n", nbuf9, str);
 		return;
 	}
-	printf(CLEAR_2_EOL"%s%s\n", growline, str);
+	printf(CLEAR_2_EOL"%s%s%s\n", nbuf9, growline, str);
 	free(growline);
 }
 #else
@@ -558,10 +586,13 @@ void print_found(const char *line);
 static void print_ascii(const char *str)
 {
 	char buf[width];
+	char nbuf9[9];
 	char *p;
 	size_t n;
 
-	printf(CLEAR_2_EOL);
+	lineno_str(nbuf9, str);
+	printf(CLEAR_2_EOL"%s", nbuf9);
+
 	while (*str) {
 		n = strcspn(str, controls);
 		if (n) {
@@ -670,7 +701,7 @@ static void reinitialize(void)
 
 	if (flines) {
 		for (i = 0; i <= max_fline; i++)
-			free((void*)(flines[i]));
+			free(MEMPTR(flines[i]));
 		free(flines);
 		flines = NULL;
 	}
