@@ -41,9 +41,8 @@ try() {
     printf "%s\n" "$*" >>$EXE.out
     printf "%s\n" "==========" >>$EXE.out
     $debug && echo "Trying: $*"
-    "$@" >>$EXE.out 2>&1
-    exitcode=$?
-    return $exitcode
+    $@ >>$EXE.out 2>&1
+    return $?
 }
 
 check_cc() {
