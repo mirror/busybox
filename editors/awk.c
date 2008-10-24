@@ -512,7 +512,7 @@ static const char EMSG_TOO_FEW_ARGS[] ALIGN1 = "Too few arguments for builtin";
 static const char EMSG_NOT_ARRAY[] ALIGN1 = "Not an array";
 static const char EMSG_POSSIBLE_ERROR[] ALIGN1 = "Possible syntax error";
 static const char EMSG_UNDEF_FUNC[] ALIGN1 = "Call to undefined function";
-#if !ENABLE_FEATURE_AWK_MATH
+#if !ENABLE_FEATURE_AWK_LIBM
 static const char EMSG_NO_MATH[] ALIGN1 = "Math support is not compiled in";
 #endif
 
@@ -2024,7 +2024,7 @@ static var *exec_builtin(node *op, var *res)
 	switch (info & OPNMASK) {
 
 	case B_a2:
-#if ENABLE_FEATURE_AWK_MATH
+#if ENABLE_FEATURE_AWK_LIBM
 		setvar_i(res, atan2(getvar_i(av[0]), getvar_i(av[1])));
 #else
 		syntax_error(EMSG_NO_MATH);
@@ -2465,7 +2465,7 @@ static var *evaluate(node *op, var *res)
 			case F_rn:
 				R.d = (double)rand() / (double)RAND_MAX;
 				break;
-#if ENABLE_FEATURE_AWK_MATH
+#if ENABLE_FEATURE_AWK_LIBM
 			case F_co:
 				R.d = cos(L.d);
 				break;
@@ -2633,7 +2633,7 @@ static var *evaluate(node *op, var *res)
 				L.d /= R.d;
 				break;
 			case '&':
-#if ENABLE_FEATURE_AWK_MATH
+#if ENABLE_FEATURE_AWK_LIBM
 				L.d = pow(L.d, R.d);
 #else
 				syntax_error(EMSG_NO_MATH);

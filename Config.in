@@ -494,8 +494,8 @@ config INCLUDE_SUSv2
 	  will be supported in head, tail, and fold. (Note: should
 	  affect renice too.)
 
-config PARSE
-	bool "Uniform config file parser debugging applet: parse"
+### config PARSE
+### 	bool "Uniform config file parser debugging applet: parse"
 
 endmenu
 
