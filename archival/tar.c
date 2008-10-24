@@ -818,6 +818,10 @@ int tar_main(int argc UNUSED_PARAM, char **argv)
 	                     | ARCHIVE_PRESERVE_DATE
 	                     | ARCHIVE_EXTRACT_UNCONDITIONAL;
 
+	/* Apparently only root's tar preserves parms (see bug 3844) */
+	if (getuid() != 0)
+		tar_handle->ah_flags |= ARCHIVE_NOPRESERVE_PERM;
+
 	/* Prepend '-' to the first argument if required */
 	opt_complementary = "--:" // first arg is options
 		"tt:vv:" // count -t,-v
