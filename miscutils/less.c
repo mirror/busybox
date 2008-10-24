@@ -28,13 +28,6 @@
 #include "xregex.h"
 #endif
 
-/* In progress */
-#define ENABLE_FEATURE_LESS_REWRAP 0
-
-/* FIXME: currently doesn't work right */
-#undef ENABLE_FEATURE_LESS_FLAGCS
-#define ENABLE_FEATURE_LESS_FLAGCS 0
-
 /* The escape codes for highlighted and normal text */
 #define HIGHLIGHT "\033[7m"
 #define NORMAL "\033[0m"
@@ -77,14 +70,14 @@ enum {
 
 /* Command line options */
 enum {
-	FLAG_E = 1,
+	FLAG_E = 1 << 0,
 	FLAG_M = 1 << 1,
 	FLAG_m = 1 << 2,
 	FLAG_N = 1 << 3,
 	FLAG_TILDE = 1 << 4,
 	FLAG_I = 1 << 5,
+	FLAG_S = (1 << 6) * ENABLE_FEATURE_LESS_DASHCMD,
 /* hijack command line options variable for internal state vars */
-	LESS_STATE_NO_WRAP = 1 << 14,
 	LESS_STATE_MATCH_BACKWARDS = 1 << 15,
 };
 
@@ -98,10 +91,13 @@ struct globals {
 	int less_gets_pos;
 /* last position in last line, taking into account tabs */
 	size_t linepos;
-	unsigned max_displayed_line;
 	unsigned max_fline;
 	unsigned max_lineno; /* this one tracks linewrap */
+	unsigned max_displayed_line;
 	unsigned width;
+#if ENABLE_FEATURE_LESS_WINCH
+	unsigned winch_counter;
+#endif
 	ssize_t eof_error; /* eof if 0, error if < 0 */
 	ssize_t readpos;
 	ssize_t readeof; /* must be signed */
@@ -132,10 +128,11 @@ struct globals {
 #define kbd_fd              (G.kbd_fd            )
 #define less_gets_pos       (G.less_gets_pos     )
 #define linepos             (G.linepos           )
-#define max_displayed_line  (G.max_displayed_line)
 #define max_fline           (G.max_fline         )
 #define max_lineno          (G.max_lineno        )
+#define max_displayed_line  (G.max_displayed_line)
 #define width               (G.width             )
+#define winch_counter       (G.winch_counter     )
 #define eof_error           (G.eof_error         )
 #define readpos             (G.readpos           )
 #define readeof             (G.readeof           )
@@ -218,7 +215,7 @@ static void less_exit(int code)
 	exit(code);
 }
 
-#if ENABLE_FEATURE_LESS_REWRAP
+#if ENABLE_FEATURE_LESS_LINENUMS || ENABLE_FEATURE_LESS_WINCH
 static void re_wrap(void)
 {
 	int w = width;
@@ -297,6 +294,7 @@ static void re_wrap(void)
 	linepos = 0; // XXX
 	cur_fline = new_cur_fline;
 	/* max_lineno is screen-size independent */
+	pattern_valid = 0;
 }
 #endif
 
@@ -426,7 +424,11 @@ static void read_lines(void)
 			eof_error = 0; /* Pretend we saw EOF */
 			break;
 		}
-		if (max_fline > cur_fline + max_displayed_line) {
+		if (!(option_mask32 & FLAG_S)
+		  ? (max_fline > cur_fline + max_displayed_line)
+		  : (max_fline >= cur_fline
+		     && max_lineno > LINENO(flines[cur_fline]) + max_displayed_line)
+		) {
 #if !ENABLE_FEATURE_LESS_REGEXP
 			break;
 #else
@@ -719,18 +721,19 @@ static void buffer_print(void)
 	status_print();
 }
 
-#if ENABLE_FEATURE_LESS_REWRAP
 static void buffer_fill_and_print(void)
 {
-	unsigned i = 0;
-	int fpos = cur_fline + i;
+	unsigned i;
+#if ENABLE_FEATURE_LESS_DASHCMD
+	int fpos = cur_fline;
 
-	if (option_mask32 & LESS_STATE_NO_WRAP) {
+	if (option_mask32 & FLAG_S) {
 		/* Go back to the beginning of this line */
 		while (fpos && LINENO(flines[fpos]) == LINENO(flines[fpos-1]))
 			fpos--;
 	}
 
+	i = 0;
 	while (i <= max_displayed_line && fpos <= max_fline) {
 		int lineno = LINENO(flines[fpos]);
 		buffer[i] = flines[fpos];
@@ -738,28 +741,20 @@ static void buffer_fill_and_print(void)
 		do {
 			fpos++;
 		} while ((fpos <= max_fline)
-		      && (option_mask32 & LESS_STATE_NO_WRAP)
+		      && (option_mask32 & FLAG_S)
 		      && lineno == LINENO(flines[fpos])
 		);
 	}
-	for (; i <= max_displayed_line; i++) {
-		buffer[i] = empty_line_marker;
-	}
-	buffer_print();
-}
 #else
-static void buffer_fill_and_print(void)
-{
-	unsigned i;
 	for (i = 0; i <= max_displayed_line && cur_fline + i <= max_fline; i++) {
 		buffer[i] = flines[cur_fline + i];
 	}
+#endif
 	for (; i <= max_displayed_line; i++) {
 		buffer[i] = empty_line_marker;
 	}
 	buffer_print();
 }
-#endif
 
 /* Move the buffer up and down in the file in order to scroll */
 static void buffer_down(int nlines)
@@ -857,7 +852,19 @@ static ssize_t getch_nowait(char* input, int sz)
 	if (less_gets_pos >= 0)
 		move_cursor(max_displayed_line + 2, less_gets_pos + 1);
 	fflush(stdout);
+#if ENABLE_FEATURE_LESS_WINCH
+	while (1) {
+		int r;
+		r = poll(pfd + rd, 2 - rd, -1);
+		if (/*r < 0 && errno == EINTR &&*/ winch_counter) {
+			input[0] = '\\'; /* anything which has no defined function */
+			return 1;
+		}
+		if (r) break;
+	}
+#else
 	safe_poll(pfd + rd, 2 - rd, -1);
+#endif
 
 	input[0] = '\0';
 	rd = safe_read(kbd_fd, input, sz); /* NB: kbd_fd is in O_NONBLOCK mode */
@@ -1114,7 +1121,7 @@ static void regex_process(void)
 
 	/* Compile the regex and check for errors */
 	err = regcomp_or_errmsg(&pattern, uncomp_regex,
-							option_mask32 & FLAG_I ? REG_ICASE : 0);
+				(option_mask32 & FLAG_I) ? REG_ICASE : 0);
 	free(uncomp_regex);
 	if (err) {
 		print_statusline(err);
@@ -1208,7 +1215,7 @@ static void number_process(int first_digit)
 	}
 }
 
-#if ENABLE_FEATURE_LESS_FLAGCS
+#if ENABLE_FEATURE_LESS_DASHCMD
 static void flag_change(void)
 {
 	int keypress;
@@ -1230,6 +1237,17 @@ static void flag_change(void)
 	case '~':
 		option_mask32 ^= FLAG_TILDE;
 		break;
+	case 'S':
+		option_mask32 ^= FLAG_S;
+		buffer_fill_and_print();
+		break;
+#if ENABLE_FEATURE_LESS_LINENUMS
+	case 'N':
+		option_mask32 ^= FLAG_N;
+		re_wrap();
+		buffer_fill_and_print();
+		break;
+#endif
 	}
 }
 
@@ -1467,7 +1485,7 @@ static void keypress_process(int keypress)
 		regex_process();
 		break;
 #endif
-#if ENABLE_FEATURE_LESS_FLAGCS
+#if ENABLE_FEATURE_LESS_DASHCMD
 	case '-':
 		flag_change();
 		buffer_print();
@@ -1487,25 +1505,6 @@ static void keypress_process(int keypress)
 	case ':':
 		colon_process();
 		break;
-#if ENABLE_FEATURE_LESS_REWRAP
-	case '*': /* Should be -N command / option */
-		option_mask32 ^= FLAG_N;
-		get_terminal_width_height(kbd_fd, &width, &max_displayed_line);
-		if (width < 20) /* 20: two tabstops + 4 */
-			width = 20;
-		if (max_displayed_line < 3)
-			max_displayed_line = 3;
-		max_displayed_line -= 2;
-		free(buffer);
-		buffer = xmalloc((max_displayed_line+1) * sizeof(char *));
-		re_wrap();
-		buffer_fill_and_print();
-		break;
-	case '&': /* Should be -S command / option */
-		option_mask32 ^= LESS_STATE_NO_WRAP;
-		buffer_fill_and_print();
-		break;
-#endif
 	}
 
 	if (isdigit(keypress))
@@ -1517,6 +1516,13 @@ static void sig_catcher(int sig)
 	less_exit(- sig);
 }
 
+#if ENABLE_FEATURE_LESS_WINCH
+static void sigwinch_handler(int sig UNUSED_PARAM)
+{
+	winch_counter++;
+}
+#endif
+
 int less_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int less_main(int argc, char **argv)
 {
@@ -1527,7 +1533,7 @@ int less_main(int argc, char **argv)
 	/* TODO: -x: do not interpret backspace, -xx: tab also */
 	/* -xxx: newline also */
 	/* -w N: assume width N (-xxx -w 32: hex viewer of sorts) */
-	getopt32(argv, "EMmN~I");
+	getopt32(argv, "EMmN~I" USE_FEATURE_LESS_DASHCMD("S"));
 	argc -= optind;
 	argv += optind;
 	num_files = argc;
@@ -1537,10 +1543,6 @@ int less_main(int argc, char **argv)
 	 * is not a tty and turns into cat. This makes sense. */
 	if (!isatty(STDOUT_FILENO))
 		return bb_cat(argv);
-	kbd_fd = open(CURRENT_TTY, O_RDONLY);
-	if (kbd_fd < 0)
-		return bb_cat(argv);
-	ndelay_on(kbd_fd);
 
 	if (!num_files) {
 		if (isatty(STDIN_FILENO)) {
@@ -1548,18 +1550,17 @@ int less_main(int argc, char **argv)
 			bb_error_msg("missing filename");
 			bb_show_usage();
 		}
-	} else
+	} else {
 		filename = xstrdup(files[0]);
+	}
 
-	get_terminal_width_height(kbd_fd, &width, &max_displayed_line);
-	/* 20: two tabstops + 4 */
-	if (width < 20 || max_displayed_line < 3)
-		return bb_cat(argv);
-	max_displayed_line -= 2;
-
-	buffer = xmalloc((max_displayed_line+1) * sizeof(char *));
 	if (option_mask32 & FLAG_TILDE)
 		empty_line_marker = "";
+
+	kbd_fd = open(CURRENT_TTY, O_RDONLY);
+	if (kbd_fd < 0)
+		return bb_cat(argv);
+	ndelay_on(kbd_fd);
 
 	tcgetattr(kbd_fd, &term_orig);
 	term_less = term_orig;
@@ -1569,11 +1570,37 @@ int less_main(int argc, char **argv)
 	term_less.c_cc[VMIN] = 1;
 	term_less.c_cc[VTIME] = 0;
 
+	get_terminal_width_height(kbd_fd, &width, &max_displayed_line);
+	/* 20: two tabstops + 4 */
+	if (width < 20 || max_displayed_line < 3)
+		return bb_cat(argv);
+	max_displayed_line -= 2;
+
 	/* We want to restore term_orig on exit */
 	bb_signals(BB_FATAL_SIGS, sig_catcher);
+#if ENABLE_FEATURE_LESS_WINCH
+	signal(SIGWINCH, sigwinch_handler);
+#endif
 
+	buffer = xmalloc((max_displayed_line+1) * sizeof(char *));
 	reinitialize();
 	while (1) {
+#if ENABLE_FEATURE_LESS_WINCH
+		if (winch_counter) {
+			winch_counter--;
+			get_terminal_width_height(kbd_fd, &width, &max_displayed_line);
+			/* 20: two tabstops + 4 */
+			if (width < 20)
+				width = 20;
+			if (max_displayed_line < 3)
+				max_displayed_line = 3;
+			max_displayed_line -= 2;
+			free(buffer);
+			buffer = xmalloc((max_displayed_line+1) * sizeof(char *));
+			re_wrap();
+			buffer_fill_and_print();
+		}
+#endif
 		keypress = less_getch(-1); /* -1: do not position cursor */
 		keypress_process(keypress);
 	}

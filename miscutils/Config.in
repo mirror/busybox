@@ -293,13 +293,13 @@ config FEATURE_LESS_FLAGS
 	  The -M flag enables a more sophisticated status line.
 	  The -m flag enables a simpler status line with a percentage.
 
-config FEATURE_LESS_FLAGCS
-	bool "Enable flag changes"
+config FEATURE_LESS_DASHCMD
+	bool "Enable flag changes ('-' command)"
 	default n
 	depends on LESS
 	help
 	  This enables the ability to change command-line flags within
-	  less itself.
+	  less itself ('-' keyboard command).
 
 config FEATURE_LESS_MARKS
 	bool "Enable marks"
@@ -314,6 +314,20 @@ config FEATURE_LESS_REGEXP
 	depends on LESS
 	help
 	  Enable regular expressions, allowing complex file searches.
+
+config FEATURE_LESS_LINENUMS
+	bool "Enable dynamic switching of line numbers"
+	default n
+	depends on LESS
+	help
+	  Enable "-N" command.
+
+config FEATURE_LESS_WINCH
+	bool "Enable automatic resizing on window size changes"
+	default n
+	depends on LESS
+	help
+	  Makes less track window size changes.
 
 config HDPARM
 	bool "hdparm"
