@@ -28,6 +28,9 @@
 #include "xregex.h"
 #endif
 
+/* In progress */
+#define ENABLE_FEATURE_LESS_REWRAP 0
+
 /* FIXME: currently doesn't work right */
 #undef ENABLE_FEATURE_LESS_FLAGCS
 #define ENABLE_FEATURE_LESS_FLAGCS 0
@@ -81,6 +84,7 @@ enum {
 	FLAG_TILDE = 1 << 4,
 	FLAG_I = 1 << 5,
 /* hijack command line options variable for internal state vars */
+	LESS_STATE_NO_WRAP = 1 << 14,
 	LESS_STATE_MATCH_BACKWARDS = 1 << 15,
 };
 
@@ -213,6 +217,88 @@ static void less_exit(int code)
 		kill_myself_with_sig(- code); /* does not return */
 	exit(code);
 }
+
+#if ENABLE_FEATURE_LESS_REWRAP
+static void re_wrap(void)
+{
+	int w = width;
+	int rem;
+	int src_idx;
+	int dst_idx;
+	int new_cur_fline = 0;
+	uint32_t lineno;
+	char linebuf[w + 1];
+	const char **old_flines = flines;
+	const char *s;
+	char **new_flines = NULL;
+	char *d;
+
+	if (option_mask32 & FLAG_N)
+		w -= 8;
+
+	src_idx = 0;
+	dst_idx = 0;
+	s = old_flines[0];
+	lineno = LINENO(s);
+	d = linebuf;
+	rem = w;
+	while (1) {
+		*d = *s;
+		if (*d != '\0') {
+			s++;
+			d++;
+			rem--;
+			if (rem == 0) {
+				int sz;
+				/* new line is full, create next one */
+				*d = '\0';
+ next_new:
+				sz = (d - linebuf) + 1; /* + 1: NUL */
+				d = ((char*)xmalloc(sz + 4)) + 4;
+				LINENO(d) = lineno;
+				memcpy(d, linebuf, sz);
+				new_flines = xrealloc_vector(new_flines, 8, dst_idx);
+				new_flines[dst_idx] = d;
+				dst_idx++;
+				if (rem) {
+					/* did we come here thru "goto next_new"? */
+					if (src_idx > max_fline)
+						break;
+					lineno = LINENO(s);
+				}
+				d = linebuf;
+				rem = w;
+			}
+			continue;
+		}
+		/* *d == NUL: old line ended, go to next old one */
+		free(MEMPTR(old_flines[src_idx]));
+		/* btw, convert cur_fline... */
+		if (cur_fline == src_idx) {
+			new_cur_fline = dst_idx;
+		}
+		src_idx++;
+		/* no more lines? finish last new line (and exit the loop) */
+		if (src_idx > max_fline) {
+			goto next_new;
+		}
+		s = old_flines[src_idx];
+		if (lineno != LINENO(s)) {
+			/* this is not a continuation line!
+			 * create next _new_ line too */
+			goto next_new;
+		}
+	}
+
+	free(old_flines);
+	flines = (const char **)new_flines;
+
+	max_fline = dst_idx - 1;
+	linepos = 0; // XXX
+	cur_fline = new_cur_fline;
+	/* max_lineno is screen-size independent */
+}
+#endif
 
 #if ENABLE_FEATURE_LESS_REGEXP
 static void fill_match_lines(unsigned pos);
@@ -502,7 +588,7 @@ static void lineno_str(char *nbuf9, const char *line)
 		}
 		/* Width of 7 preserves tab spacing in the text */
 		fmt = "%7u ";
-		n = LINENO(line);
+		n = LINENO(line) + 1;
 		if (n > 9999999) {
 			n %= 10000000;
 			fmt = "%07u ";
@@ -633,6 +719,35 @@ static void buffer_print(void)
 	status_print();
 }
 
+#if ENABLE_FEATURE_LESS_REWRAP
+static void buffer_fill_and_print(void)
+{
+	unsigned i = 0;
+	int fpos = cur_fline + i;
+
+	if (option_mask32 & LESS_STATE_NO_WRAP) {
+		/* Go back to the beginning of this line */
+		while (fpos && LINENO(flines[fpos]) == LINENO(flines[fpos-1]))
+			fpos--;
+	}
+
+	while (i <= max_displayed_line && fpos <= max_fline) {
+		int lineno = LINENO(flines[fpos]);
+		buffer[i] = flines[fpos];
+		i++;
+		do {
+			fpos++;
+		} while ((fpos <= max_fline)
+		      && (option_mask32 & LESS_STATE_NO_WRAP)
+		      && lineno == LINENO(flines[fpos])
+		);
+	}
+	for (; i <= max_displayed_line; i++) {
+		buffer[i] = empty_line_marker;
+	}
+	buffer_print();
+}
+#else
 static void buffer_fill_and_print(void)
 {
 	unsigned i;
@@ -644,6 +759,7 @@ static void buffer_fill_and_print(void)
 	}
 	buffer_print();
 }
+#endif
 
 /* Move the buffer up and down in the file in order to scroll */
 static void buffer_down(int nlines)
@@ -1371,6 +1487,25 @@ static void keypress_process(int keypress)
 	case ':':
 		colon_process();
 		break;
+#if ENABLE_FEATURE_LESS_REWRAP
+	case '*':
+		option_mask32 ^= FLAG_N;
+		get_terminal_width_height(kbd_fd, &width, &max_displayed_line);
+		if (width < 20) /* 20: two tabstops + 4 */
+			width = 20;
+		if (max_displayed_line < 3)
+			max_displayed_line = 3;
+		max_displayed_line -= 2;
+		free(buffer);
+		buffer = xmalloc((max_displayed_line+1) * sizeof(char *));
+		re_wrap();
+		buffer_fill_and_print();
+		break;
+	case '&':
+		option_mask32 ^= LESS_STATE_NO_WRAP;
+		buffer_fill_and_print();
+		break;
+#endif
 	}
 
 	if (isdigit(keypress))
