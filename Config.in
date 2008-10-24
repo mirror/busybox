@@ -155,15 +155,17 @@ config FEATURE_SUID
 	default n
 	help
 	  With this option you can install the busybox binary belonging
-	  to root with the suid bit set, and it'll and it'll automatically drop
+	  to root with the suid bit set, and it will automatically drop
 	  priviledges for applets that don't need root access.
 
-	  If you're really paranoid and don't want to do this, build two
+	  If you are really paranoid and don't want to do this, build two
 	  busybox binaries with different applets in them (and the appropriate
 	  symlinks pointing to each binary), and only set the suid bit on the
 	  one that needs it. The applets currently marked to need the suid bit
-	  are login, passwd, su, ping, traceroute, crontab, dnsd, ipcrm, ipcs,
-	  and vlock.
+	  are:
+
+	  crontab, dnsd, findfs, ipcrm, ipcs, login, passwd, ping, su,
+	  traceroute, vlock.
 
 config FEATURE_SUID_CONFIG
 	bool "Runtime SUID/SGID configuration via /etc/busybox.conf"
@@ -593,9 +595,9 @@ source modutils/Config.in
 source util-linux/Config.in
 source miscutils/Config.in
 source networking/Config.in
+source printutils/Config.in
 source procps/Config.in
-source shell/Config.in
-source sysklogd/Config.in
 source runit/Config.in
 source selinux/Config.in
-source printutils/Config.in
+source shell/Config.in
+source sysklogd/Config.in
