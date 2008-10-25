@@ -36,34 +36,9 @@
 /* The escape code to clear to end of line */
 #define CLEAR_2_EOL "\033[K"
 
-/* These are the escape sequences corresponding to special keys */
 enum {
-	REAL_KEY_UP = 'A',
-	REAL_KEY_DOWN = 'B',
-	REAL_KEY_RIGHT = 'C',
-	REAL_KEY_LEFT = 'D',
-	REAL_PAGE_UP = '5',
-	REAL_PAGE_DOWN = '6',
-	REAL_KEY_HOME = '7', // vt100? linux vt? or what?
-	REAL_KEY_END = '8',
-	REAL_KEY_HOME_ALT = '1', // ESC [1~ (vt100? linux vt? or what?)
-	REAL_KEY_END_ALT = '4', // ESC [4~
-	REAL_KEY_HOME_XTERM = 'H',
-	REAL_KEY_END_XTERM = 'F',
-
-/* These are the special codes assigned by this program to the special keys */
-	KEY_UP = 20,
-	KEY_DOWN = 21,
-	KEY_RIGHT = 22,
-	KEY_LEFT = 23,
-	PAGE_UP = 24,
-	PAGE_DOWN = 25,
-	KEY_HOME = 26,
-	KEY_END = 27,
-
 /* Absolute max of lines eaten */
 	MAXLINES = CONFIG_FEATURE_LESS_MAXLINES,
-
 /* This many "after the end" lines we will show (at max) */
 	TILDES = 1,
 };
@@ -133,6 +108,8 @@ struct globals {
 #define max_displayed_line  (G.max_displayed_line)
 #define width               (G.width             )
 #define winch_counter       (G.winch_counter     )
+/* This one is 100% not cached by compiler on read access */
+#define WINCH_COUNTER (*(volatile unsigned *)&winch_counter)
 #define eof_error           (G.eof_error         )
 #define readpos             (G.readpos           )
 #define readeof             (G.readeof           )
@@ -824,9 +801,10 @@ static void reinitialize(void)
 	buffer_fill_and_print();
 }
 
-static ssize_t getch_nowait(char* input, int sz)
+static ssize_t getch_nowait(void)
 {
-	ssize_t rd;
+	char input[KEYCODE_BUFFER_SIZE];
+	int rd;
 	struct pollfd pfd[2];
 
 	pfd[0].fd = STDIN_FILENO;
@@ -842,34 +820,39 @@ static ssize_t getch_nowait(char* input, int sz)
 	 * (switch fd into O_NONBLOCK'ed mode to avoid it)
 	 */
 	rd = 1;
-	if (max_fline <= cur_fline + max_displayed_line
-	 && eof_error > 0 /* did NOT reach eof yet */
+	/* Are we interested in stdin? */
+//TODO: reuse code for determining this
+	if (!(option_mask32 & FLAG_S)
+	   ? !(max_fline > cur_fline + max_displayed_line)
+	   : !(max_fline >= cur_fline
+	       && max_lineno > LINENO(flines[cur_fline]) + max_displayed_line)
 	) {
-		/* We are interested in stdin */
-		rd = 0;
+		if (eof_error > 0) /* did NOT reach eof yet */
+			rd = 0; /* yes, we are interested in stdin */
 	}
-	/* position cursor if line input is done */
+	/* Position cursor if line input is done */
 	if (less_gets_pos >= 0)
 		move_cursor(max_displayed_line + 2, less_gets_pos + 1);
 	fflush(stdout);
 #if ENABLE_FEATURE_LESS_WINCH
 	while (1) {
 		int r;
+		/* NB: SIGWINCH interrupts poll() */
 		r = poll(pfd + rd, 2 - rd, -1);
-		if (/*r < 0 && errno == EINTR &&*/ winch_counter) {
-			input[0] = '\\'; /* anything which has no defined function */
-			return 1;
-		}
+		if (/*r < 0 && errno == EINTR &&*/ winch_counter)
+			return '\\'; /* anything which has no defined function */
 		if (r) break;
 	}
 #else
 	safe_poll(pfd + rd, 2 - rd, -1);
 #endif
 
-	input[0] = '\0';
-	rd = safe_read(kbd_fd, input, sz); /* NB: kbd_fd is in O_NONBLOCK mode */
-	if (rd < 0 && errno == EAGAIN) {
-		/* No keyboard input -> we have input on stdin! */
+	/* We have kbd_fd in O_NONBLOCK mode, read inside read_key()
+	 * would not block even if there is no input available */
+	rd = read_key(kbd_fd, NULL, input);
+	if (rd == -1 && errno == EAGAIN) {
+		/* No keyboard input available. Since poll() did return,
+		 * we should have input on stdin */
 		read_lines();
 		buffer_fill_and_print();
 		goto again;
@@ -883,51 +866,29 @@ static ssize_t getch_nowait(char* input, int sz)
  * special return codes. Note that this function works best with raw input. */
 static int less_getch(int pos)
 {
-	unsigned char input[16];
-	unsigned i;
+	int i;
 
  again:
 	less_gets_pos = pos;
-	memset(input, 0, sizeof(input));
-	getch_nowait((char *)input, sizeof(input));
+	i = getch_nowait();
 	less_gets_pos = -1;
 
-	/* Detect escape sequences (i.e. arrow keys) and handle
-	 * them accordingly */
-	if (input[0] == '\033' && input[1] == '[') {
-		i = input[2] - REAL_KEY_UP;
-		if (i < 4)
-			return 20 + i;
-		i = input[2] - REAL_PAGE_UP;
-		if (i < 4)
-			return 24 + i;
-		if (input[2] == REAL_KEY_HOME_XTERM)
-			return KEY_HOME;
-		if (input[2] == REAL_KEY_HOME_ALT)
-			return KEY_HOME;
-		if (input[2] == REAL_KEY_END_XTERM)
-			return KEY_END;
-		if (input[2] == REAL_KEY_END_ALT)
-			return KEY_END;
-		return 0;
-	}
-	/* Reject almost all control chars */
-	i = input[0];
-	if (i < ' ' && i != 0x0d && i != 8)
+	/* Discard Ctrl-something chars */
+	if (i >= 0 && i < ' ' && i != 0x0d && i != 8)
 		goto again;
 	return i;
 }
 
 static char* less_gets(int sz)
 {
-	char c;
+	int c;
 	unsigned i = 0;
 	char *result = xzalloc(1);
 
 	while (1) {
 		c = '\0';
 		less_gets_pos = sz + i;
-		getch_nowait(&c, 1);
+		c = getch_nowait();
 		if (c == 0x0d) {
 			result[i] = '\0';
 			less_gets_pos = -1;
@@ -939,7 +900,7 @@ static char* less_gets(int sz)
 			printf("\x8 \x8");
 			i--;
 		}
-		if (c < ' ')
+		if (c < ' ') /* filters out KEYCODE_xxx too (<0) */
 			continue;
 		if (i >= width - sz - 1)
 			continue; /* len limit */
@@ -1151,8 +1112,8 @@ static void number_process(int first_digit)
 {
 	unsigned i;
 	int num;
+	int keypress;
 	char num_input[sizeof(int)*4]; /* more than enough */
-	char keypress;
 
 	num_input[0] = first_digit;
 
@@ -1163,15 +1124,14 @@ static void number_process(int first_digit)
 	/* Receive input until a letter is given */
 	i = 1;
 	while (i < sizeof(num_input)-1) {
-		num_input[i] = less_getch(i + 1);
-		if (!num_input[i] || !isdigit(num_input[i]))
+		keypress = less_getch(i + 1);
+		if ((unsigned)keypress > 255 || !isdigit(num_input[i]))
 			break;
-		bb_putchar(num_input[i]);
+		num_input[i] = keypress;
+		bb_putchar(keypress);
 		i++;
 	}
 
-	/* Take the final letter out of the digits string */
-	keypress = num_input[i];
 	num_input[i] = '\0';
 	num = bb_strtou(num_input, NULL, 10);
 	/* on format error, num == -1 */
@@ -1182,10 +1142,10 @@ static void number_process(int first_digit)
 
 	/* We now know the number and the letter entered, so we process them */
 	switch (keypress) {
-	case KEY_DOWN: case 'z': case 'd': case 'e': case ' ': case '\015':
+	case KEYCODE_DOWN: case 'z': case 'd': case 'e': case ' ': case '\015':
 		buffer_down(num);
 		break;
-	case KEY_UP: case 'b': case 'w': case 'y': case 'u':
+	case KEYCODE_UP: case 'b': case 'w': case 'y': case 'u':
 		buffer_up(num);
 		break;
 	case 'g': case '<': case 'G': case '>':
@@ -1413,16 +1373,16 @@ static void match_left_bracket(char bracket)
 static void keypress_process(int keypress)
 {
 	switch (keypress) {
-	case KEY_DOWN: case 'e': case 'j': case 0x0d:
+	case KEYCODE_DOWN: case 'e': case 'j': case 0x0d:
 		buffer_down(1);
 		break;
-	case KEY_UP: case 'y': case 'k':
+	case KEYCODE_UP: case 'y': case 'k':
 		buffer_up(1);
 		break;
-	case PAGE_DOWN: case ' ': case 'z': case 'f':
+	case KEYCODE_PAGEDOWN: case ' ': case 'z': case 'f':
 		buffer_down(max_displayed_line + 1);
 		break;
-	case PAGE_UP: case 'w': case 'b':
+	case KEYCODE_PAGEUP: case 'w': case 'b':
 		buffer_up(max_displayed_line + 1);
 		break;
 	case 'd':
@@ -1431,10 +1391,10 @@ static void keypress_process(int keypress)
 	case 'u':
 		buffer_up((max_displayed_line + 1) / 2);
 		break;
-	case KEY_HOME: case 'g': case 'p': case '<': case '%':
+	case KEYCODE_HOME: case 'g': case 'p': case '<': case '%':
 		buffer_line(0);
 		break;
-	case KEY_END: case 'G': case '>':
+	case KEYCODE_END: case 'G': case '>':
 		cur_fline = MAXLINES;
 		read_lines();
 		buffer_line(cur_fline);
@@ -1586,7 +1546,8 @@ int less_main(int argc, char **argv)
 	reinitialize();
 	while (1) {
 #if ENABLE_FEATURE_LESS_WINCH
-		if (winch_counter) {
+		while (WINCH_COUNTER) {
+ again:
 			winch_counter--;
 			get_terminal_width_height(kbd_fd, &width, &max_displayed_line);
 			/* 20: two tabstops + 4 */
@@ -1597,8 +1558,16 @@ int less_main(int argc, char **argv)
 			max_displayed_line -= 2;
 			free(buffer);
 			buffer = xmalloc((max_displayed_line+1) * sizeof(char *));
+			/* Avoid re-wrap and/or redraw if we already know
+			 * we need to do it again. These ops are expensive */
+			if (WINCH_COUNTER)
+				goto again;
 			re_wrap();
+			if (WINCH_COUNTER)
+				goto again;
 			buffer_fill_and_print();
+			/* This took some time. Loop back and check,
+			 * were there another SIGWINCH? */
 		}
 #endif
 		keypress = less_getch(-1); /* -1: do not position cursor */

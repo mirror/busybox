@@ -33,14 +33,16 @@ int FAST_FUNC read_key(int fd, smalluint *nbuffered, char *buffer)
 		'[','B'        |0x80,KEYCODE_DOWN    ,
 		'[','C'        |0x80,KEYCODE_RIGHT   ,
 		'[','D'        |0x80,KEYCODE_LEFT    ,
-		'[','H'        |0x80,KEYCODE_HOME    ,
-		'[','F'        |0x80,KEYCODE_END     ,
-		'[','1','~'    |0x80,KEYCODE_HOME    ,
+		'[','H'        |0x80,KEYCODE_HOME    , /* xterm */
+		'[','F'        |0x80,KEYCODE_END     , /* xterm */
+		'[','1','~'    |0x80,KEYCODE_HOME    , /* vt100? linux vt? or what? */
 		'[','2','~'    |0x80,KEYCODE_INSERT  ,
 		'[','3','~'    |0x80,KEYCODE_DELETE  ,
-		'[','4','~'    |0x80,KEYCODE_END     ,
+		'[','4','~'    |0x80,KEYCODE_END     , /* vt100? linux vt? or what? */
 		'[','5','~'    |0x80,KEYCODE_PAGEUP  ,
 		'[','6','~'    |0x80,KEYCODE_PAGEDOWN,
+		'[','7','~'    |0x80,KEYCODE_HOME    , /* vt100? linux vt? or what? */
+		'[','8','~'    |0x80,KEYCODE_END     , /* vt100? linux vt? or what? */
 #if 0
 		'[','1','1','~'|0x80,KEYCODE_FUN1    ,
 		'[','1','2','~'|0x80,KEYCODE_FUN2    ,
@@ -58,7 +60,9 @@ int FAST_FUNC read_key(int fd, smalluint *nbuffered, char *buffer)
 		0
 	};
 
-	n = *nbuffered;
+	n = 0;
+	if (nbuffered)
+		n = *nbuffered;
 	if (n == 0) {
 		/* If no data, block waiting for input. If we read more
 		 * than the minimal ESC sequence size, the "n=0" below
@@ -141,6 +145,7 @@ int FAST_FUNC read_key(int fd, smalluint *nbuffered, char *buffer)
 	 * by now. */
 
  ret:
-	*nbuffered = n;
+	if (nbuffered)
+		*nbuffered = n;
 	return c;
 }

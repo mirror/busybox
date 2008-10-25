@@ -950,6 +950,8 @@ enum {
 	KEYCODE_FUN11    = -22,
 	KEYCODE_FUN12    = -23,
 #endif
+	/* How long the longest ESC sequence we know? */
+	KEYCODE_BUFFER_SIZE = 4
 };
 int read_key(int fd, smalluint *nbuffered, char *buffer) FAST_FUNC;
 

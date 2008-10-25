@@ -193,7 +193,7 @@ struct globals {
 #if ENABLE_FEATURE_VI_CRASHME
 	char readbuffer[128];
 #else
-	char readbuffer[8];
+	char readbuffer[KEYCODE_BUFFER_SIZE];
 #endif
 #define STATUS_BUFFER_LEN  200
 	char status_buffer[STATUS_BUFFER_LEN]; // messages to the user
