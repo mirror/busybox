@@ -75,6 +75,7 @@ lib-y += process_escape_sequence.o
 lib-y += procps.o
 lib-y += ptr_to_globals.o
 lib-y += read.o
+lib-y += read_key.o
 lib-y += recursive_action.o
 lib-y += remove_file.o
 lib-y += restricted_shell.o

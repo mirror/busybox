@@ -921,6 +921,39 @@ void bb_displayroutes(int noresolve, int netstatfmt) FAST_FUNC;
 #endif
 
 
+/* "Keycodes" that report an escape sequence.
+ * We use something which fits into signed char,
+ * yet doesn't represent any valid Unicode characher.
+ * Also, -1 is reserved for error indication and we don't use it. */
+enum {
+	KEYCODE_UP       =  -2, 
+	KEYCODE_DOWN     =  -3,
+	KEYCODE_RIGHT    =  -4,
+	KEYCODE_LEFT     =  -5,
+	KEYCODE_HOME     =  -6,
+	KEYCODE_END      =  -7,
+	KEYCODE_INSERT   =  -8,
+	KEYCODE_DELETE   =  -9,
+	KEYCODE_PAGEUP   = -10,
+	KEYCODE_PAGEDOWN = -11,
+#if 0
+	KEYCODE_FUN1     = -12,
+	KEYCODE_FUN2     = -13,
+	KEYCODE_FUN3     = -14,
+	KEYCODE_FUN4     = -15,
+	KEYCODE_FUN5     = -16,
+	KEYCODE_FUN6     = -17,
+	KEYCODE_FUN7     = -18,
+	KEYCODE_FUN8     = -19,
+	KEYCODE_FUN9     = -20,
+	KEYCODE_FUN10    = -21,
+	KEYCODE_FUN11    = -22,
+	KEYCODE_FUN12    = -23,
+#endif
+};
+int read_key(int fd, smalluint *nbuffered, char *buffer) FAST_FUNC;
+
+
 /* Networking */
 int create_icmp_socket(void) FAST_FUNC;
 int create_icmp6_socket(void) FAST_FUNC;

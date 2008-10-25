@@ -57,34 +57,6 @@ enum {
 	MAX_SCR_ROWS = CONFIG_FEATURE_VI_MAX_LEN,
 };
 
-// "Keycodes" that report an escape sequence.
-// We use something which fits into signed char,
-// yet doesn't represent any valid Unicode characher.
-enum {
-	VI_K_UP       = -1,     // cursor key Up
-	VI_K_DOWN     = -2,     // cursor key Down
-	VI_K_RIGHT    = -3,     // Cursor Key Right
-	VI_K_LEFT     = -4,     // cursor key Left
-	VI_K_HOME     = -5,     // Cursor Key Home
-	VI_K_END      = -6,     // Cursor Key End
-	VI_K_INSERT   = -7,     // Cursor Key Insert
-	VI_K_DELETE   = -8,     // Cursor Key Insert
-	VI_K_PAGEUP   = -9,     // Cursor Key Page Up
-	VI_K_PAGEDOWN = -10,    // Cursor Key Page Down
-	VI_K_FUN1     = -11,    // Function Key F1
-	VI_K_FUN2     = -12,    // Function Key F2
-	VI_K_FUN3     = -13,    // Function Key F3
-	VI_K_FUN4     = -14,    // Function Key F4
-	VI_K_FUN5     = -15,    // Function Key F5
-	VI_K_FUN6     = -16,    // Function Key F6
-	VI_K_FUN7     = -17,    // Function Key F7
-	VI_K_FUN8     = -18,    // Function Key F8
-	VI_K_FUN9     = -19,    // Function Key F9
-	VI_K_FUN10    = -20,    // Function Key F10
-	VI_K_FUN11    = -21,    // Function Key F11
-	VI_K_FUN12    = -22,    // Function Key F12
-};
-
 /* vt102 typical ESC sequence */
 /* terminal standout start/normal ESC sequence */
 static const char SOs[] ALIGN1 = "\033[7m";
@@ -179,6 +151,7 @@ struct globals {
 	char erase_char;         // the users erase character
 	char last_input_char;    // last char read from user
 
+	smalluint chars_to_parse;
 #if ENABLE_FEATURE_VI_DOT_CMD
 	smallint adding2q;	 // are we currently adding user input to q
 	int lmc_len;             // length of last_modifying_cmd
@@ -193,7 +166,7 @@ struct globals {
 #if ENABLE_FEATURE_VI_SEARCH
 	char *last_search_pattern; // last pattern from a '/' or '?' search
 #endif
-	int chars_to_parse;
+
 	/* former statics */
 #if ENABLE_FEATURE_VI_YANKMARK
 	char *edit_file__cur_line;
@@ -259,9 +232,10 @@ struct globals {
 #define screensize              (G.screensize         )
 #define screenbegin             (G.screenbegin        )
 #define tabstop                 (G.tabstop            )
+#define last_forward_char       (G.last_forward_char  )
 #define erase_char              (G.erase_char         )
 #define last_input_char         (G.last_input_char    )
-#define last_forward_char       (G.last_forward_char  )
+#define chars_to_parse          (G.chars_to_parse     )
 #if ENABLE_FEATURE_VI_READONLY
 #define readonly_mode           (G.readonly_mode      )
 #else
@@ -274,7 +248,6 @@ struct globals {
 #define last_row                (G.last_row           )
 #define my_pid                  (G.my_pid             )
 #define last_search_pattern     (G.last_search_pattern)
-#define chars_to_parse          (G.chars_to_parse     )
 
 #define edit_file__cur_line     (G.edit_file__cur_line)
 #define refresh__old_offset     (G.refresh__old_offset)
@@ -2200,130 +2173,14 @@ static int mysleep(int hund)	// sleep for 'h' 1/100 seconds
 static int readit(void) // read (maybe cursor) key from stdin
 {
 	int c;
-	int n;
-
-	// Known escape sequences for cursor and function keys.
-	static const struct esc_cmds {
-		const char seq[4];
-		signed char val;
-	} esccmds[] = {
-		{"OA"  , VI_K_UP      },   // Cursor Key Up
-		{"OB"  , VI_K_DOWN    },   // Cursor Key Down
-		{"OC"  , VI_K_RIGHT   },   // Cursor Key Right
-		{"OD"  , VI_K_LEFT    },   // Cursor Key Left
-		{"OH"  , VI_K_HOME    },   // Cursor Key Home
-		{"OF"  , VI_K_END     },   // Cursor Key End
-		{"OP"  , VI_K_FUN1    },   // Function Key F1
-		{"OQ"  , VI_K_FUN2    },   // Function Key F2
-		{"OR"  , VI_K_FUN3    },   // Function Key F3
-		{"OS"  , VI_K_FUN4    },   // Function Key F4
-
-		{"[A"  , VI_K_UP      },   // Cursor Key Up
-		{"[B"  , VI_K_DOWN    },   // Cursor Key Down
-		{"[C"  , VI_K_RIGHT   },   // Cursor Key Right
-		{"[D"  , VI_K_LEFT    },   // Cursor Key Left
-		{"[H"  , VI_K_HOME    },   // Cursor Key Home
-		{"[F"  , VI_K_END     },   // Cursor Key End
-		{"[1~" , VI_K_HOME    },   // Cursor Key Home
-		{"[2~" , VI_K_INSERT  },   // Cursor Key Insert
-		{"[3~" , VI_K_DELETE  },   // Cursor Key Delete
-		{"[4~" , VI_K_END     },   // Cursor Key End
-		{"[5~" , VI_K_PAGEUP  },   // Cursor Key Page Up
-		{"[6~" , VI_K_PAGEDOWN},   // Cursor Key Page Down
-		// careful: these have no terminating NUL!
-		{"[11~", VI_K_FUN1    },   // Function Key F1
-		{"[12~", VI_K_FUN2    },   // Function Key F2
-		{"[13~", VI_K_FUN3    },   // Function Key F3
-		{"[14~", VI_K_FUN4    },   // Function Key F4
-		{"[15~", VI_K_FUN5    },   // Function Key F5
-		{"[17~", VI_K_FUN6    },   // Function Key F6
-		{"[18~", VI_K_FUN7    },   // Function Key F7
-		{"[19~", VI_K_FUN8    },   // Function Key F8
-		{"[20~", VI_K_FUN9    },   // Function Key F9
-		{"[21~", VI_K_FUN10   },   // Function Key F10
-		{"[23~", VI_K_FUN11   },   // Function Key F11
-		{"[24~", VI_K_FUN12   },   // Function Key F12
-	};
 
 	fflush(stdout);
-
-	n = chars_to_parse;
-	if (n == 0) {
-		// If no data, block waiting for input.  (If we read more than the
-		// minimal ESC sequence size, the "n=0" below would instead have to
-		// figure out how much to keep, resulting in larger code.)
-		n = safe_read(0, readbuffer, 3);
-		if (n <= 0) {
- error:
-			go_bottom_and_clear_to_eol();
-			cookmode(); // terminal to "cooked"
-			bb_error_msg_and_die("can't read user input");
-		}
+	c = read_key(STDIN_FILENO, &chars_to_parse, readbuffer);
+	if (c == -1) { // EOF/error
+		go_bottom_and_clear_to_eol();
+		cookmode(); // terminal to "cooked"
+		bb_error_msg_and_die("can't read user input");
 	}
-
-	// Grab character to return from buffer
-	c = (unsigned char)readbuffer[0];
-	// Returning NUL from this routine would be bad.
-	if (c == '\0')
-		c = ' ';
-	n--;
-	if (n) memmove(readbuffer, readbuffer + 1, n);
-
-	// If it's an escape sequence, loop through known matches.
-	if (c == 27) {
-		const struct esc_cmds *eindex;
-		struct pollfd pfd;
-
-		pfd.fd = STDIN_FILENO;
-		pfd.events = POLLIN;
-		for (eindex = esccmds; eindex < esccmds + ARRAY_SIZE(esccmds); eindex++)
-		{
-			// n - position in sequence we did not read yet
-			int i = 0; // position in sequence to compare
-
-			// Loop through chars in this sequence
-			for (;;) {
-				// So far escape sequence matches up to [i-1]
-				if (n <= i) {
-					// Need more chars, read another one if it wouldn't block.
-					// (Note that escape sequences come in as a unit,
-					// so if we would block it's not really an escape sequence.)
-
-					// Timeout is needed to reconnect escape sequences
-					// split up by transmission over a serial console.
-
-					if (safe_poll(&pfd, 1, 50)) {
-						if (safe_read(0, readbuffer + n, 1) <= 0)
-							goto error;
-						n++;
-					} else {
-						// No more data!
-						// Array is sorted from shortest to longest,
-						// we can't match anything later in array,
-						// break out of both loops.
-						goto loop_out;
-					}
-				}
-				if (readbuffer[i] != eindex->seq[i])
-					break; // try next seq
-				i++;
-				if (i == 4 || !eindex->seq[i]) { // entire seq matched
-					c = eindex->val; // sign extended!
-					n = 0;
-					// n -= i; memmove(...);
-					// would be more correct,
-					// but we never read ahead that much,
-					// and n == i here.
-					goto loop_out;
-				}
-			}
-		}
-		// We did not find matching sequence, it was a bare ESC.
-		// We possibly read and stored more input in readbuffer by now.
-	}
- loop_out:
-
-	chars_to_parse = n;
 	return c;
 }
 
@@ -3013,21 +2870,21 @@ static void do_cmd(int c)
 
 	/* if this is a cursor key, skip these checks */
 	switch (c) {
-		case VI_K_UP:
-		case VI_K_DOWN:
-		case VI_K_LEFT:
-		case VI_K_RIGHT:
-		case VI_K_HOME:
-		case VI_K_END:
-		case VI_K_PAGEUP:
-		case VI_K_PAGEDOWN:
-		case VI_K_DELETE:
+		case KEYCODE_UP:
+		case KEYCODE_DOWN:
+		case KEYCODE_LEFT:
+		case KEYCODE_RIGHT:
+		case KEYCODE_HOME:
+		case KEYCODE_END:
+		case KEYCODE_PAGEUP:
+		case KEYCODE_PAGEDOWN:
+		case KEYCODE_DELETE:
 			goto key_cmd_mode;
 	}
 
 	if (cmd_mode == 2) {
 		//  flip-flop Insert/Replace mode
-		if (c == VI_K_INSERT)
+		if (c == KEYCODE_INSERT)
 			goto dc_i;
 		// we are 'R'eplacing the current *dot with new char
 		if (*dot == '\n') {
@@ -3044,7 +2901,7 @@ static void do_cmd(int c)
 	}
 	if (cmd_mode == 1) {
 		//  hitting "Insert" twice means "R" replace mode
-		if (c == VI_K_INSERT) goto dc5;
+		if (c == KEYCODE_INSERT) goto dc5;
 		// insert the char c at "dot"
 		if (1 <= c || Isprint(c)) {
 			dot = char_insert(dot, c);
@@ -3108,7 +2965,7 @@ static void do_cmd(int c)
 	case 0x00:			// nul- ignore
 		break;
 	case 2:			// ctrl-B  scroll up   full screen
-	case VI_K_PAGEUP:	// Cursor Key Page Up
+	case KEYCODE_PAGEUP:	// Cursor Key Page Up
 		dot_scroll(rows - 2, -1);
 		break;
 	case 4:			// ctrl-D  scroll down half screen
@@ -3118,14 +2975,14 @@ static void do_cmd(int c)
 		dot_scroll(1, 1);
 		break;
 	case 6:			// ctrl-F  scroll down full screen
-	case VI_K_PAGEDOWN:	// Cursor Key Page Down
+	case KEYCODE_PAGEDOWN:	// Cursor Key Page Down
 		dot_scroll(rows - 2, 1);
 		break;
 	case 7:			// ctrl-G  show current status
 		last_status_cksum = 0;	// force status update
 		break;
 	case 'h':			// h- move left
-	case VI_K_LEFT:	// cursor key Left
+	case KEYCODE_LEFT:	// cursor key Left
 	case 8:		// ctrl-H- move left    (This may be ERASE char)
 	case 0x7f:	// DEL- move left   (This may be ERASE char)
 		if (cmdcnt-- > 1) {
@@ -3135,7 +2992,7 @@ static void do_cmd(int c)
 		break;
 	case 10:			// Newline ^J
 	case 'j':			// j- goto next line, same col
-	case VI_K_DOWN:	// cursor key Down
+	case KEYCODE_DOWN:	// cursor key Down
 		if (cmdcnt-- > 1) {
 			do_cmd(c);
 		}				// repeat cnt
@@ -3174,7 +3031,7 @@ static void do_cmd(int c)
 		break;
 	case ' ':			// move right
 	case 'l':			// move right
-	case VI_K_RIGHT:	// Cursor Key Right
+	case KEYCODE_RIGHT:	// Cursor Key Right
 		if (cmdcnt-- > 1) {
 			do_cmd(c);
 		}				// repeat cnt
@@ -3259,7 +3116,7 @@ static void do_cmd(int c)
 		break;
 #endif /* FEATURE_VI_YANKMARK */
 	case '$':			// $- goto end of line
-	case VI_K_END:		// Cursor Key End
+	case KEYCODE_END:		// Cursor Key End
 		if (cmdcnt-- > 1) {
 			do_cmd(c);
 		}				// repeat cnt
@@ -3584,7 +3441,7 @@ static void do_cmd(int c)
 		dot_skip_over_ws();
 		//**** fall through to ... 'i'
 	case 'i':			// i- insert before current char
-	case VI_K_INSERT:	// Cursor Key Insert
+	case KEYCODE_INSERT:	// Cursor Key Insert
  dc_i:
 		cmd_mode = 1;	// start insrting
 		break;
@@ -3637,7 +3494,7 @@ static void do_cmd(int c)
  dc5:
 		cmd_mode = 2;
 		break;
-	case VI_K_DELETE:
+	case KEYCODE_DELETE:
 		c = 'x';
 		// fall through
 	case 'X':			// X- delete char before dot
@@ -3787,7 +3644,7 @@ static void do_cmd(int c)
 		break;
 	}
 	case 'k':			// k- goto prev line, same col
-	case VI_K_UP:		// cursor key Up
+	case KEYCODE_UP:		// cursor key Up
 		if (cmdcnt-- > 1) {
 			do_cmd(c);
 		}				// repeat cnt
@@ -3852,23 +3709,25 @@ static void do_cmd(int c)
 		end_cmd_q();	// stop adding to q
 		break;
 		//----- The Cursor and Function Keys -----------------------------
-	case VI_K_HOME:	// Cursor Key Home
+	case KEYCODE_HOME:	// Cursor Key Home
 		dot_begin();
 		break;
 		// The Fn keys could point to do_macro which could translate them
-	case VI_K_FUN1:	// Function Key F1
-	case VI_K_FUN2:	// Function Key F2
-	case VI_K_FUN3:	// Function Key F3
-	case VI_K_FUN4:	// Function Key F4
-	case VI_K_FUN5:	// Function Key F5
-	case VI_K_FUN6:	// Function Key F6
-	case VI_K_FUN7:	// Function Key F7
-	case VI_K_FUN8:	// Function Key F8
-	case VI_K_FUN9:	// Function Key F9
-	case VI_K_FUN10:	// Function Key F10
-	case VI_K_FUN11:	// Function Key F11
-	case VI_K_FUN12:	// Function Key F12
+#if 0
+	case KEYCODE_FUN1:	// Function Key F1
+	case KEYCODE_FUN2:	// Function Key F2
+	case KEYCODE_FUN3:	// Function Key F3
+	case KEYCODE_FUN4:	// Function Key F4
+	case KEYCODE_FUN5:	// Function Key F5
+	case KEYCODE_FUN6:	// Function Key F6
+	case KEYCODE_FUN7:	// Function Key F7
+	case KEYCODE_FUN8:	// Function Key F8
+	case KEYCODE_FUN9:	// Function Key F9
+	case KEYCODE_FUN10:	// Function Key F10
+	case KEYCODE_FUN11:	// Function Key F11
+	case KEYCODE_FUN12:	// Function Key F12
 		break;
+#endif
 	}
 
  dc1:
