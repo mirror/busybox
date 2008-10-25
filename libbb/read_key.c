@@ -25,6 +25,8 @@ int FAST_FUNC read_key(int fd, smalluint *nbuffered, char *buffer)
 		'O','F'        |0x80,KEYCODE_END     ,
 #if 0
 		'O','P'        |0x80,KEYCODE_FUN1    ,
+		/* [ESC] ESC O [2] P - [Alt-][Shift-]F1 */
+		/* Ctrl seem to not affect sequences */
 		'O','Q'        |0x80,KEYCODE_FUN2    ,
 		'O','R'        |0x80,KEYCODE_FUN3    ,
 		'O','S'        |0x80,KEYCODE_FUN4    ,
@@ -34,10 +36,12 @@ int FAST_FUNC read_key(int fd, smalluint *nbuffered, char *buffer)
 		'[','C'        |0x80,KEYCODE_RIGHT   ,
 		'[','D'        |0x80,KEYCODE_LEFT    ,
 		'[','H'        |0x80,KEYCODE_HOME    , /* xterm */
+		/* [ESC] ESC [ [2] H - [Alt-][Shift-]Home */
 		'[','F'        |0x80,KEYCODE_END     , /* xterm */
 		'[','1','~'    |0x80,KEYCODE_HOME    , /* vt100? linux vt? or what? */
 		'[','2','~'    |0x80,KEYCODE_INSERT  ,
 		'[','3','~'    |0x80,KEYCODE_DELETE  ,
+		/* [ESC] ESC [ 3 [;2] ~ - [Alt-][Shift-]Delete */
 		'[','4','~'    |0x80,KEYCODE_END     , /* vt100? linux vt? or what? */
 		'[','5','~'    |0x80,KEYCODE_PAGEUP  ,
 		'[','6','~'    |0x80,KEYCODE_PAGEDOWN,
@@ -49,6 +53,7 @@ int FAST_FUNC read_key(int fd, smalluint *nbuffered, char *buffer)
 		'[','1','3','~'|0x80,KEYCODE_FUN3    ,
 		'[','1','4','~'|0x80,KEYCODE_FUN4    ,
 		'[','1','5','~'|0x80,KEYCODE_FUN5    ,
+		/* [ESC] ESC [ 1 5 [;2] ~ - [Alt-][Shift-]F5 */
 		'[','1','7','~'|0x80,KEYCODE_FUN6    ,
 		'[','1','8','~'|0x80,KEYCODE_FUN7    ,
 		'[','1','9','~'|0x80,KEYCODE_FUN8    ,
