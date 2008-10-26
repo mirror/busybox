@@ -119,7 +119,7 @@ int devmem_main(int argc UNUSED_PARAM, char **argv)
 	}
 
 	if (ENABLE_FEATURE_CLEAN_UP) {
-		if (munmap(map_base, page_size) == -1)
+		if (munmap(map_base, page_size * 2) == -1)
 			bb_perror_msg_and_die("munmap");
 		close(fd);
 	}
