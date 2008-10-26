@@ -1211,6 +1211,7 @@ static void flag_change(void)
 	}
 }
 
+#ifdef BLOAT
 static void show_flag_status(void)
 {
 	int keypress;
@@ -1245,6 +1246,8 @@ static void show_flag_status(void)
 	printf(HIGHLIGHT"The status of the flag is: %u"NORMAL, flag_val != 0);
 }
 #endif
+
+#endif /* ENABLE_FEATURE_LESS_DASHCMD */
 
 static void save_input_to_file(void)
 {
@@ -1450,9 +1453,11 @@ static void keypress_process(int keypress)
 		flag_change();
 		buffer_print();
 		break;
+#ifdef BLOAT
 	case '_':
 		show_flag_status();
 		break;
+#endif
 #endif
 #if ENABLE_FEATURE_LESS_BRACKETS
 	case '{': case '(': case '[':
