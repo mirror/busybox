@@ -65,7 +65,7 @@ struct globals {
 	int kbd_fd;  /* fd to get input from */
 	int less_gets_pos;
 /* last position in last line, taking into account tabs */
-	size_t linepos;
+	size_t last_line_pos;
 	unsigned max_fline;
 	unsigned max_lineno; /* this one tracks linewrap */
 	unsigned max_displayed_line;
@@ -102,7 +102,7 @@ struct globals {
 #define cur_fline           (G.cur_fline         )
 #define kbd_fd              (G.kbd_fd            )
 #define less_gets_pos       (G.less_gets_pos     )
-#define linepos             (G.linepos           )
+#define last_line_pos       (G.last_line_pos     )
 #define max_fline           (G.max_fline         )
 #define max_lineno          (G.max_lineno        )
 #define max_displayed_line  (G.max_displayed_line)
@@ -197,7 +197,7 @@ static void less_exit(int code)
 static void re_wrap(void)
 {
 	int w = width;
-	int rem;
+	int new_line_pos;
 	int src_idx;
 	int dst_idx;
 	int new_cur_fline = 0;
@@ -216,14 +216,16 @@ static void re_wrap(void)
 	s = old_flines[0];
 	lineno = LINENO(s);
 	d = linebuf;
-	rem = w;
+	new_line_pos = 0;
 	while (1) {
 		*d = *s;
 		if (*d != '\0') {
+			new_line_pos++;
+			if (*d == '\t') /* tab */
+				new_line_pos += 7;
 			s++;
 			d++;
-			rem--;
-			if (rem == 0) {
+			if (new_line_pos >= w) {
 				int sz;
 				/* new line is full, create next one */
 				*d = '\0';
@@ -235,28 +237,26 @@ static void re_wrap(void)
 				new_flines = xrealloc_vector(new_flines, 8, dst_idx);
 				new_flines[dst_idx] = d;
 				dst_idx++;
-				if (rem) {
-					/* did we come here thru "goto next_new"? */
+				if (new_line_pos < w) {
+					/* if we came here thru "goto next_new" */
 					if (src_idx > max_fline)
 						break;
 					lineno = LINENO(s);
 				}
 				d = linebuf;
-				rem = w;
+				new_line_pos = 0;
 			}
 			continue;
 		}
 		/* *d == NUL: old line ended, go to next old one */
 		free(MEMPTR(old_flines[src_idx]));
 		/* btw, convert cur_fline... */
-		if (cur_fline == src_idx) {
+		if (cur_fline == src_idx)
 			new_cur_fline = dst_idx;
-		}
 		src_idx++;
 		/* no more lines? finish last new line (and exit the loop) */
-		if (src_idx > max_fline) {
+		if (src_idx > max_fline)
 			goto next_new;
-		}
 		s = old_flines[src_idx];
 		if (lineno != LINENO(s)) {
 			/* this is not a continuation line!
@@ -269,7 +269,7 @@ static void re_wrap(void)
 	flines = (const char **)new_flines;
 
 	max_fline = dst_idx - 1;
-	linepos = 0; // XXX
+	last_line_pos = new_line_pos;
 	cur_fline = new_cur_fline;
 	/* max_lineno is screen-size independent */
 	pattern_valid = 0;
@@ -301,7 +301,7 @@ static void fill_match_lines(unsigned pos);
  *      on line wrap, only on "real" new lines.
  * readbuf[0..readeof-1] - small preliminary buffer.
  * readbuf[readpos] - next character to add to current line.
- * linepos - screen line position of next char to be read
+ * last_line_pos - screen line position of next char to be read
  *      (takes into account tabs and backspaces)
  * eof_error - < 0 error, == 0 EOF, > 0 not EOF/error
  */
@@ -329,9 +329,9 @@ static void read_lines(void)
 		strcpy(p, cp);
 		p += strlen(current_line);
 		free(MEMPTR(flines[max_fline]));
-		/* linepos is still valid from previous read_lines() */
+		/* last_line_pos is still valid from previous read_lines() */
 	} else {
-		linepos = 0;
+		last_line_pos = 0;
 	}
 
 	while (1) { /* read lines until we reach cur_fline or wanted_match */
@@ -353,28 +353,28 @@ static void read_lines(void)
 			/* backspace? [needed for manpages] */
 			/* <tab><bs> is (a) insane and */
 			/* (b) harder to do correctly, so we refuse to do it */
-			if (c == '\x8' && linepos && p[-1] != '\t') {
+			if (c == '\x8' && last_line_pos && p[-1] != '\t') {
 				readpos++; /* eat it */
-				linepos--;
+				last_line_pos--;
 			/* was buggy (p could end up <= current_line)... */
 				*--p = '\0';
 				continue;
 			}
 			{
-				size_t new_linepos = linepos + 1;
+				size_t new_last_line_pos = last_line_pos + 1;
 				if (c == '\t') {
-					new_linepos += 7;
-					new_linepos &= (~7);
+					new_last_line_pos += 7;
+					new_last_line_pos &= (~7);
 				}
-				if ((int)new_linepos >= w)
+				if ((int)new_last_line_pos >= w)
 					break;
-				linepos = new_linepos;
+				last_line_pos = new_last_line_pos;
 			}
 			/* ok, we will eat this char */
 			readpos++;
 			if (c == '\n') {
 				terminated = 1;
-				linepos = 0;
+				last_line_pos = 0;
 				break;
 			}
 			/* NUL is substituted by '\n'! */
@@ -449,7 +449,7 @@ static void read_lines(void)
 		max_fline++;
 		current_line = ((char*)xmalloc(w + 4)) + 4;
 		p = current_line;
-		linepos = 0;
+		last_line_pos = 0;
 	} /* end of "read lines until we reach cur_fline" loop */
 	fill_match_lines(old_max_fline);
 #if ENABLE_FEATURE_LESS_REGEXP
@@ -778,7 +778,7 @@ static void open_file_and_read_lines(void)
 	}
 	readpos = 0;
 	readeof = 0;
-	linepos = 0;
+	last_line_pos = 0;
 	terminated = 1;
 	read_lines();
 }
