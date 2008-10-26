@@ -30,6 +30,7 @@ static off_t cpio_pad4(off_t size)
  * It's ok to exit instead of return. */
 static int cpio_o(void)
 {
+	static const char trailer[] ALIGN1 = "TRAILER!!!";
 	struct name_s {
 		struct name_s *next;
 		char name[1];
@@ -119,7 +120,7 @@ static int cpio_o(void)
 			} else {
 				/* If no (more) hardlinks to output,
 				 * output "trailer" entry */
-				name = "TRAILER!!!";
+				name = trailer;
 				/* st.st_size == 0 is a must, but for uniformity
 				 * in the output, we zero out everything */
 				memset(&st, 0, sizeof(st));
@@ -167,7 +168,7 @@ static int cpio_o(void)
 		}
 
 		if (!line) {
-			if (links)
+			if (name != trailer)
 				goto next_link;
 			/* TODO: GNU cpio pads trailer to 512 bytes, do we want that? */
 			return EXIT_SUCCESS;
