@@ -6,9 +6,6 @@
 
 #include "libbb.h"
 
-#define DEVMEM_MAP_SIZE 4096
-#define DEVMEM_MAP_MASK (off_t)(DEVMEM_MAP_SIZE - 1)
-
 int devmem_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int devmem_main(int argc UNUSED_PARAM, char **argv)
 {
@@ -16,10 +13,16 @@ int devmem_main(int argc UNUSED_PARAM, char **argv)
 	uint64_t read_result;
 	uint64_t writeval = writeval; /* for compiler */
 	off_t target;
+	unsigned page_size = getpagesize();
 	int fd;
 	int width = 8 * sizeof(int);
 
 	/* devmem ADDRESS [WIDTH [VALUE]] */
+// TODO: options?
+// -r: read and output only the value in hex, with 0x prefix
+// -w: write only, no reads before or after, and no output
+// or make this behavior default?
+// Let's try this and see how users react.
 
 	/* ADDRESS */
 	if (!argv[1])
@@ -54,67 +57,69 @@ int devmem_main(int argc UNUSED_PARAM, char **argv)
 		bb_show_usage(); /* bb_strtouXX failed */
 
 	fd = xopen("/dev/mem", argv[3] ? (O_RDWR | O_SYNC) : (O_RDONLY | O_SYNC));
-
 	map_base = mmap(NULL,
-			DEVMEM_MAP_SIZE * 2 /* in case value spans page */,
+			page_size * 2 /* in case value spans page */,
 			argv[3] ? (PROT_READ | PROT_WRITE) : PROT_READ,
 			MAP_SHARED,
 			fd,
-			target & ~DEVMEM_MAP_MASK);
+			target & ~(off_t)(page_size - 1));
 	if (map_base == MAP_FAILED)
 		bb_perror_msg_and_die("mmap");
 
 //	printf("Memory mapped at address %p.\n", map_base);
 
-	virt_addr = (char*)map_base + (target & DEVMEM_MAP_MASK);
+	virt_addr = (char*)map_base + (target & (page_size - 1));
 
-	switch (width) {
-	case 8:
-		read_result = *(volatile uint8_t*)virt_addr;
-		break;
-	case 16:
-		read_result = *(volatile uint16_t*)virt_addr;
-		break;
-	case 32:
-		read_result = *(volatile uint32_t*)virt_addr;
-		break;
-	case 64:
-		read_result = *(volatile uint64_t*)virt_addr;
-		break;
-	default:
-		bb_error_msg_and_die("bad width");
-	}
-
-	printf("Value at address 0x%"OFF_FMT"X (%p): 0x%llX\n",
-			target, virt_addr,
-			(unsigned long long)read_result);
-
-	if (argv[3]) {
+	if (!argv[3]) {
 		switch (width) {
 		case 8:
-			*(volatile uint8_t*)virt_addr = writeval;
 			read_result = *(volatile uint8_t*)virt_addr;
 			break;
 		case 16:
-			*(volatile uint16_t*)virt_addr = writeval;
 			read_result = *(volatile uint16_t*)virt_addr;
 			break;
 		case 32:
-			*(volatile uint32_t*)virt_addr = writeval;
 			read_result = *(volatile uint32_t*)virt_addr;
 			break;
 		case 64:
-			*(volatile uint64_t*)virt_addr = writeval;
 			read_result = *(volatile uint64_t*)virt_addr;
 			break;
+		default:
+			bb_error_msg_and_die("bad width");
 		}
-		printf("Written 0x%llX; readback 0x%llX\n",
-				(unsigned long long)writeval,
-				(unsigned long long)read_result);
+//		printf("Value at address 0x%"OFF_FMT"X (%p): 0x%llX\n",
+//			target, virt_addr,
+//			(unsigned long long)read_result);
+		/* Zero-padded output shows the width of access just done */
+		printf("0x%0*llX\n", (width >> 2), (unsigned long long)read_result);
+	} else {
+		switch (width) {
+		case 8:
+			*(volatile uint8_t*)virt_addr = writeval;
+//			read_result = *(volatile uint8_t*)virt_addr;
+			break;
+		case 16:
+			*(volatile uint16_t*)virt_addr = writeval;
+//			read_result = *(volatile uint16_t*)virt_addr;
+			break;
+		case 32:
+			*(volatile uint32_t*)virt_addr = writeval;
+//			read_result = *(volatile uint32_t*)virt_addr;
+			break;
+		case 64:
+			*(volatile uint64_t*)virt_addr = writeval;
+//			read_result = *(volatile uint64_t*)virt_addr;
+			break;
+		default:
+			bb_error_msg_and_die("bad width");
+		}
+//		printf("Written 0x%llX; readback 0x%llX\n",
+//				(unsigned long long)writeval,
+//				(unsigned long long)read_result);
 	}
 
 	if (ENABLE_FEATURE_CLEAN_UP) {
-		if (munmap(map_base, DEVMEM_MAP_SIZE) == -1)
+		if (munmap(map_base, page_size) == -1)
 			bb_perror_msg_and_die("munmap");
 		close(fd);
 	}
