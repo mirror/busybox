@@ -2,7 +2,8 @@
 /*
  * Utility routines.
  *
- * Copyright (C) 2008 Denys Vlasenko
+ * Copyright (C) 2008 Rob Landley <rob@landley.net>
+ * Copyright (C) 2008 Denys Vlasenko <vda.linux@googlemail.com>
  *
  * Licensed under GPL version 2, see file LICENSE in this tarball for details.
  */
@@ -26,7 +27,7 @@ int FAST_FUNC read_key(int fd, smalluint *nbuffered, char *buffer)
 #if 0
 		'O','P'        |0x80,KEYCODE_FUN1    ,
 		/* [ESC] ESC O [2] P - [Alt-][Shift-]F1 */
-		/* Ctrl seem to not affect sequences */
+		/* Ctrl- seems to not affect sequences */
 		'O','Q'        |0x80,KEYCODE_FUN2    ,
 		'O','R'        |0x80,KEYCODE_FUN3    ,
 		'O','S'        |0x80,KEYCODE_FUN4    ,
