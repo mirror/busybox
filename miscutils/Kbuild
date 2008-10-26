@@ -13,6 +13,7 @@ lib-$(CONFIG_CROND)       += crond.o
 lib-$(CONFIG_CRONTAB)     += crontab.o
 lib-$(CONFIG_DC)          += dc.o
 lib-$(CONFIG_DEVFSD)      += devfsd.o
+lib-$(CONFIG_DEVMEM)      += devmem.o
 lib-$(CONFIG_EJECT)       += eject.o
 lib-$(CONFIG_FBSPLASH)    += fbsplash.o
 lib-$(CONFIG_HDPARM)      += hdparm.o

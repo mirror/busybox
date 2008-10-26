@@ -196,6 +196,13 @@ config FEATURE_DEVFS
 	  /dev/loop0. If your /dev directory has normal names instead of
 	  devfs names, you don't want this.
 
+config DEVMEM
+	bool "devmem"
+	default n
+	help
+	  devmem is a small program that reads and writes from physical
+	  memory using /dev/mem.
+
 config EJECT
 	bool "eject"
 	default n
