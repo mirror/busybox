@@ -318,7 +318,7 @@ config FEATURE_LESS_REGEXP
 config FEATURE_LESS_LINENUMS
 	bool "Enable dynamic switching of line numbers"
 	default n
-	depends on LESS
+	depends on FEATURE_LESS_DASHCMD
 	help
 	  Enable "-N" command.
 

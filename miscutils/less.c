@@ -192,7 +192,8 @@ static void less_exit(int code)
 	exit(code);
 }
 
-#if ENABLE_FEATURE_LESS_LINENUMS || ENABLE_FEATURE_LESS_WINCH
+#if (ENABLE_FEATURE_LESS_DASHCMD && ENABLE_FEATURE_LESS_LINENUMS) \
+ || ENABLE_FEATURE_LESS_WINCH
 static void re_wrap(void)
 {
 	int w = width;
