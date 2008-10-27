@@ -241,10 +241,11 @@ enum {
 struct globals {
 	int pingsock;
 	int if_index;
-	char *opt_I;
+	char *str_I;
 	len_and_sockaddr *source_lsa;
 	unsigned datalen;
-	unsigned long ntransmitted, nreceived, nrepeats, pingcount;
+	unsigned pingcount; /* must be int-sized */
+	unsigned long ntransmitted, nreceived, nrepeats;
 	uint16_t myid;
 	unsigned tmin, tmax; /* in us */
 	unsigned long long tsum; /* in us, sum of all times */
@@ -266,7 +267,7 @@ struct globals {
 #define pingsock     (G.pingsock    )
 #define if_index     (G.if_index    )
 #define source_lsa   (G.source_lsa  )
-#define opt_I        (G.opt_I       )
+#define str_I        (G.str_I       )
 #define datalen      (G.datalen     )
 #define ntransmitted (G.ntransmitted)
 #define nreceived    (G.nreceived   )
@@ -570,8 +571,8 @@ static void ping4(len_and_sockaddr *lsa)
 			bb_error_msg_and_die("can't set multicast source interface");
 		xbind(pingsock, &source_lsa->u.sa, source_lsa->len);
 	}
-	if (opt_I)
-		setsockopt(pingsock, SOL_SOCKET, SO_BINDTODEVICE, opt_I, strlen(opt_I) + 1);
+	if (str_I)
+		setsockopt(pingsock, SOL_SOCKET, SO_BINDTODEVICE, str_I, strlen(str_I) + 1);
 
 	/* enable broadcast pings */
 	setsockopt_broadcast(pingsock);
@@ -620,8 +621,8 @@ static void ping6(len_and_sockaddr *lsa)
 	/* untested whether "-I addr" really works for IPv6: */
 	if (source_lsa)
 		xbind(pingsock, &source_lsa->u.sa, source_lsa->len);
-	if (opt_I)
-		setsockopt(pingsock, SOL_SOCKET, SO_BINDTODEVICE, opt_I, strlen(opt_I) + 1);
+	if (str_I)
+		setsockopt(pingsock, SOL_SOCKET, SO_BINDTODEVICE, str_I, strlen(str_I) + 1);
 
 #ifdef ICMP6_FILTER
 	{
@@ -719,34 +720,35 @@ int ping_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int ping_main(int argc UNUSED_PARAM, char **argv)
 {
 	len_and_sockaddr *lsa;
-	char *opt_c, *opt_s;
-	USE_PING6(sa_family_t af = AF_UNSPEC;)
+	char *str_s;
+	int opt;
 
 	INIT_G();
 
-	/* exactly one argument needed; -v and -q don't mix; -w NUM, -W NUM */
-	opt_complementary = "=1:q--v:v--q:w+:W+";
-	getopt32(argv, OPT_STRING, &opt_c, &opt_s, &deadline, &timeout, &opt_I);
-	if (option_mask32 & OPT_c)
-		pingcount = xatoul(opt_c); // -c
-	if (option_mask32 & OPT_s)
-		datalen = xatou16(opt_s); // -s
-	if (option_mask32 & OPT_I) { // -I
-		if_index = if_nametoindex(opt_I);
+	/* exactly one argument needed; -v and -q don't mix; -c NUM, -w NUM, -W NUM */
+	opt_complementary = "=1:q--v:v--q:c+:w+:W+";
+	opt = getopt32(argv, OPT_STRING, &pingcount, &str_s, &deadline, &timeout, &str_I);
+	if (opt & OPT_s)
+		datalen = xatou16(str_s); // -s
+	if (opt & OPT_I) { // -I
+		if_index = if_nametoindex(str_I);
 		if (!if_index) {
 			/* TODO: I'm not sure it takes IPv6 unless in [XX:XX..] format */
-			source_lsa = xdotted2sockaddr(opt_I, 0);
-			opt_I = NULL; /* don't try to bind to device later */
+			source_lsa = xdotted2sockaddr(str_I, 0);
+			str_I = NULL; /* don't try to bind to device later */
 		}
 	}
 	myid = (uint16_t) getpid();
 	hostname = argv[optind];
 #if ENABLE_PING6
-	if (option_mask32 & OPT_IPV4)
-		af = AF_INET;
-	if (option_mask32 & OPT_IPV6)
-		af = AF_INET6;
-	lsa = xhost_and_af2sockaddr(hostname, 0, af);
+	{
+		sa_family_t af = AF_UNSPEC;
+		if (opt & OPT_IPV4)
+			af = AF_INET;
+		if (opt & OPT_IPV6)
+			af = AF_INET6;
+		lsa = xhost_and_af2sockaddr(hostname, 0, af);
+	}
 #else
 	lsa = xhost_and_af2sockaddr(hostname, 0, AF_INET);
 #endif
@@ -765,10 +767,11 @@ int ping_main(int argc UNUSED_PARAM, char **argv)
 
 #if ENABLE_PING6
 int ping6_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int ping6_main(int argc, char **argv)
+int ping6_main(int argc UNUSED_PARAM, char **argv)
 {
 	argv[0] = (char*)"-6";
-	return ping_main(argc + 1, argv - 1);
+	return ping_main(0 /* argc+1 - but it's unused anyway */,
+			argv - 1);
 }
 #endif
 
