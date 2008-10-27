@@ -2252,21 +2252,21 @@
 #define ls_full_usage "\n\n" \
        "List directory contents\n" \
      "\nOptions:" \
-     "\n	-1	List files in a single column" \
-     "\n	-A	Do not list implied . and .." \
-     "\n	-a	Do not hide entries starting with ." \
-     "\n	-C	List entries by columns" \
+     "\n	-1	List in a single column" \
+     "\n	-A	Don't list . and .." \
+     "\n	-a	Don't hide entries starting with ." \
+     "\n	-C	List by columns" \
 	USE_FEATURE_LS_TIMESTAMPS( \
-     "\n	-c	With -l: show ctime") \
+     "\n	-c	With -l: sort by ctime") \
 	USE_FEATURE_LS_COLOR( \
      "\n	--color[={always,never,auto}]	Control coloring") \
      "\n	-d	List directory entries instead of contents" \
 	USE_FEATURE_LS_TIMESTAMPS( \
-     "\n	-e	List both full date and full time") \
+     "\n	-e	List full date and time") \
 	USE_FEATURE_LS_FILETYPES( \
      "\n	-F	Append indicator (one of */=@|) to entries") \
-     "\n	-i	List the i-node for each file" \
-     "\n	-l	Use a long listing format" \
+     "\n	-i	List inode numbers" \
+     "\n	-l	Long listing format" \
      "\n	-n	List numeric UIDs and GIDs instead of names" \
 	USE_FEATURE_LS_FILETYPES( \
      "\n	-p	Append indicator (one of /=@|) to entries") \
@@ -2275,31 +2275,31 @@
 	USE_FEATURE_LS_RECURSIVE( \
      "\n	-R	List subdirectories recursively") \
 	USE_FEATURE_LS_SORTFILES( \
-     "\n	-r	Sort the listing in reverse order") \
+     "\n	-r	Sort in reverse order") \
 	USE_FEATURE_LS_SORTFILES( \
-     "\n	-S	Sort the listing by file size") \
+     "\n	-S	Sort by file size") \
      "\n	-s	List the size of each file, in blocks" \
 	USE_FEATURE_AUTOWIDTH( \
-     "\n	-T NUM	Assume Tabstop every NUM columns") \
+     "\n	-T NUM	Assume tabstop every NUM columns") \
 	USE_FEATURE_LS_TIMESTAMPS( \
-     "\n	-t	With -l: show modification time") \
+     "\n	-t	With -l: sort by modification time") \
 	USE_FEATURE_LS_TIMESTAMPS( \
-     "\n	-u	With -l: show access time") \
+     "\n	-u	With -l: sort by access time") \
 	USE_FEATURE_LS_SORTFILES( \
-     "\n	-v	Sort the listing by version") \
+     "\n	-v	Sort by version") \
 	USE_FEATURE_AUTOWIDTH( \
      "\n	-w NUM	Assume the terminal is NUM columns wide") \
-     "\n	-x	List entries by lines instead of by columns" \
+     "\n	-x	List by lines" \
 	USE_FEATURE_LS_SORTFILES( \
-     "\n	-X	Sort the listing by extension") \
+     "\n	-X	Sort by extension") \
 	USE_FEATURE_HUMAN_READABLE( \
-     "\n	-h	Print sizes in human readable format (e.g., 1K 243M 2G)") \
+     "\n	-h	List sizes in human readable format (1K 243M 2G)") \
 	USE_SELINUX( \
-     "\n	-k	Print security context") \
+     "\n	-k	List security context") \
 	USE_SELINUX( \
-     "\n	-K	Print security context in long format") \
+     "\n	-K	List security context in long format") \
 	USE_SELINUX( \
-     "\n	-Z	Print security context and permission") \
+     "\n	-Z	List security context and permission") \
 
 #define lsattr_trivial_usage \
        "[-Radlv] [files...]"
@@ -2309,7 +2309,7 @@
      "\n	-R	Recursively list subdirectories" \
      "\n	-a	Do not hide entries starting with ." \
      "\n	-d	List directory entries instead of contents" \
-     "\n	-l	Print long flag names" \
+     "\n	-l	List long flag names" \
      "\n	-v	List the file's version/generation number" \
 
 #define lsmod_trivial_usage \
