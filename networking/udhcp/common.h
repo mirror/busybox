@@ -91,8 +91,8 @@ void udhcp_run_script(struct dhcpMessage *packet, const char *name) FAST_FUNC;
 void udhcp_sp_setup(void) FAST_FUNC;
 int udhcp_sp_fd_set(fd_set *rfds, int extra_fd) FAST_FUNC;
 int udhcp_sp_read(const fd_set *rfds) FAST_FUNC;
-int udhcp_raw_socket(int ifindex) FAST_FUNC;
 int udhcp_read_interface(const char *interface, int *ifindex, uint32_t *addr, uint8_t *arp) FAST_FUNC;
+int udhcp_raw_socket(int ifindex) FAST_FUNC;
 int udhcp_listen_socket(/*uint32_t ip,*/ int port, const char *inf) FAST_FUNC;
 /* Returns 1 if no reply received */
 int arpping(uint32_t test_ip, uint32_t from_ip, uint8_t *from_mac, const char *interface) FAST_FUNC;
