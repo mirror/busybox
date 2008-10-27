@@ -3762,48 +3762,6 @@ sprint_status(char *s, int status, int sigonly)
 	return col;
 }
 
-/*
- * Do a wait system call.  If job control is compiled in, we accept
- * stopped processes.  If block is zero, we return a value of zero
- * rather than blocking.
- *
- * System V doesn't have a non-blocking wait system call.  It does
- * have a SIGCLD signal that is sent to a process when one of it's
- * children dies.  The obvious way to use SIGCLD would be to install
- * a handler for SIGCLD which simply bumped a counter when a SIGCLD
- * was received, and have waitproc bump another counter when it got
- * the status of a process.  Waitproc would then know that a wait
- * system call would not block if the two counters were different.
- * This approach doesn't work because if a process has children that
- * have not been waited for, System V will send it a SIGCLD when it
- * installs a signal handler for SIGCLD.  What this means is that when
- * a child exits, the shell will be sent SIGCLD signals continuously
- * until is runs out of stack space, unless it does a wait call before
- * restoring the signal handler.  The code below takes advantage of
- * this (mis)feature by installing a signal handler for SIGCLD and
- * then checking to see whether it was called.  If there are any
- * children to be waited for, it will be.
- *
- * If neither SYSV nor BSD is defined, we don't implement nonblocking
- * waits at all.  In this case, the user will not be informed when
- * a background process until the next time she runs a real program
- * (as opposed to running a builtin command or just typing return),
- * and the jobs command may give out of date information.
- */
-static int
-waitproc(int wait_flags, int *status)
-{
-#if JOBS
-	if (doing_jobctl)
-		wait_flags |= WUNTRACED;
-#endif
-	/* NB: _not_ safe_waitpid, we need to detect EINTR */
-	return waitpid(-1, status, wait_flags);
-}
-
-/*
- * Wait for a process to terminate.
- */
 static int
 dowait(int wait_flags, struct job *job)
 {
@@ -3813,9 +3771,15 @@ dowait(int wait_flags, struct job *job)
 	struct job *thisjob;
 	int state;
 
-	TRACE(("dowait(%d) called\n", wait_flags));
-	pid = waitproc(wait_flags, &status);
-	TRACE(("wait returns pid=%d, status=%d\n", pid, status));
+	TRACE(("dowait(0x%x) called\n", wait_flags));
+
+	/* Do a wait system call. If job control is compiled in, we accept
+	 * stopped processes. wait_flags may have WNOHANG, preventing blocking.
+	 * NB: _not_ safe_waitpid, we need to detect EINTR */
+	pid = waitpid(-1, &status,
+			(doing_jobctl ? (wait_flags | WUNTRACED) : wait_flags));
+	TRACE(("wait returns pid=%d, status=0x%x\n", pid, status));
+
 	if (pid <= 0) {
 		/* If we were doing blocking wait and (probably) got EINTR,
 		 * check for pending sigs received while waiting.
@@ -8923,7 +8887,10 @@ evalcommand(union node *cmd, int flags)
 	/* Execute the command. */
 	switch (cmdentry.cmdtype) {
 	default:
+
 #if ENABLE_FEATURE_SH_NOFORK
+/* Hmmm... shouldn't it happen somewhere in forkshell() instead?
+ * Why "fork off a child process if necessary" doesn't apply to NOFORK? */
 	{
 		/* find_command() encodes applet_no as (-2 - applet_no) */
 		int applet_no = (- cmdentry.u.index - 2);
@@ -8935,7 +8902,6 @@ evalcommand(union node *cmd, int flags)
 		}
 	}
 #endif
-
 		/* Fork off a child process if necessary. */
 		if (!(flags & EV_EXIT) || trap[0]) {
 			INT_OFF;
@@ -8963,6 +8929,12 @@ evalcommand(union node *cmd, int flags)
 			}
 			listsetvar(list, i);
 		}
+		/* Tight loop with builtins only:
+		 * "while kill -0 $child; do true; done"
+		 * will never exit even if $child died, unless we do this
+		 * to reap the zombie and make kill detect that it's gone: */
+		dowait(DOWAIT_NONBLOCK, NULL);
+
 		if (evalbltin(cmdentry.u.cmd, argc, argv)) {
 			int exit_status;
 			int i = exception;
@@ -8984,6 +8956,8 @@ evalcommand(union node *cmd, int flags)
 
 	case CMDFUNCTION:
 		listsetvar(varlist.list, 0);
+		/* See above for the rationale */
+		dowait(DOWAIT_NONBLOCK, NULL);
 		if (evalfun(cmdentry.u.func, argc, argv, flags))
 			goto raise;
 		break;
