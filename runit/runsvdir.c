@@ -58,7 +58,6 @@ struct globals {
 	struct pollfd pfd[1];
 	unsigned stamplog;
 #endif
-	smallint set_pgrp;
 };
 #define G (*(struct globals*)&bb_common_bufsiz1)
 #define sv          (G.sv          )
@@ -69,7 +68,6 @@ struct globals {
 #define logpipe     (G.logpipe     )
 #define pfd         (G.pfd         )
 #define stamplog    (G.stamplog    )
-#define set_pgrp    (G.set_pgrp    )
 #define INIT_G() do { \
 } while (0)
 
@@ -109,7 +107,7 @@ static NOINLINE pid_t runsv(const char *name)
 	}
 	if (pid == 0) {
 		/* child */
-		if (set_pgrp)
+		if (option_mask32) /* -P option? */
 			setsid();
 /* man execv:
  * "Signals set to be caught by the calling process image
@@ -229,7 +227,7 @@ int runsvdir_main(int argc UNUSED_PARAM, char **argv)
 	INIT_G();
 
 	opt_complementary = "-1";
-	set_pgrp = getopt32(argv, "P");
+	getopt32(argv, "P");
 	argv += optind;
 
 	bb_signals(0
