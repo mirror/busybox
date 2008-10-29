@@ -364,7 +364,7 @@ static void log_locally(time_t now, char *msg)
 	}
 	G.curFileSize +=
 #endif
-	                full_write(G.logFD, msg, len);
+			full_write(G.logFD, msg, len);
 	fl.l_type = F_UNLCK;
 	fcntl(G.logFD, F_SETLKW, &fl);
 }

@@ -1484,7 +1484,7 @@ static void pseudo_exec_argv(nommu_save_t *nommu_save, char **argv, int assignme
 	if (!argv[assignment_cnt])
 		_exit(EXIT_SUCCESS);
 
-        new_env = expand_assignments(argv, assignment_cnt);
+	new_env = expand_assignments(argv, assignment_cnt);
 #if BB_MMU
 	putenv_all(new_env);
 	free(new_env); /* optional */

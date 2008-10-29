@@ -101,9 +101,9 @@ static void make_device(char *path, int delete)
 	 * "/sys/block/..." is for block devices. "/sys/bus" etc is not.
 	 * But since 2.6.25 block devices are also in /sys/class/block.
 	 * We use strstr("/block/") to forestall future surprises. */
-        type = S_IFCHR;
+	type = S_IFCHR;
 	if (strstr(path, "/block/"))
-	        type = S_IFBLK;
+		type = S_IFBLK;
 
 #if ENABLE_FEATURE_MDEV_CONF
 	parser = config_open2("/etc/mdev.conf", fopen_for_read);
