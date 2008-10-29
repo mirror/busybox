@@ -115,10 +115,16 @@ static void runsv(int no, const char *name)
 		/* child */
 		if (set_pgrp)
 			setsid();
+/* man execv:
+ * Signals set to be caught by the calling process image
+ * shall be set to the default action in the new process image.
+ * Therefore, we do not need this: */
+#if 0
 		bb_signals(0
-			+ (1 << SIGHUP)
-			+ (1 << SIGTERM)
+			| (1 << SIGHUP)
+			| (1 << SIGTERM)
 			, SIG_DFL);
+#endif
 		execvp(prog[0], prog);
 		fatal2_cannot("start runsv ", name);
 	}
@@ -227,7 +233,19 @@ int runsvdir_main(int argc UNUSED_PARAM, char **argv)
 	set_pgrp = getopt32(argv, "P");
 	argv += optind;
 
-	bb_signals_recursive((1 << SIGTERM) | (1 << SIGHUP), record_signo);
+	bb_signals(0
+		| (1 << SIGTERM)
+		| (1 << SIGHUP)
+		/* For busybox's init, SIGTERM == reboot,
+		 * SIGUSR1 == halt
+		 * SIGUSR2 == poweroff
+		 * so we need to intercept SIGUSRn too.
+		 * Note that we do not implement actual reboot
+		 * (killall(TERM) + umount, etc), we just pause
+		 * respawing and avoid exiting (-> making kernel oops).
+		 * The user is responsible for the rest. */
+		| (getpid() == 1 ? ((1 << SIGUSR1) | (1 << SIGUSR2)) : 0)
+		, record_signo);
 	svdir = *argv++;
 
 #if ENABLE_FEATURE_RUNSVDIR_LOG
@@ -256,7 +274,7 @@ int runsvdir_main(int argc UNUSED_PARAM, char **argv)
 		rplog = NULL;
 		warnx("log service disabled");
 	}
-run:
+ run:
 #endif
 	curdir = open_read(".");
 	if (curdir == -1)
@@ -319,8 +337,9 @@ run:
 		}
 		pfd[0].revents = 0;
 #endif
-		sig_block(SIGCHLD);
 		deadline = (need_rescan ? 1 : 5);
+ do_sleep:
+		sig_block(SIGCHLD);
 #if ENABLE_FEATURE_RUNSVDIR_LOG
 		if (rplog)
 			poll(pfd, 1, deadline*1000);
@@ -333,11 +352,11 @@ run:
 		if (pfd[0].revents & POLLIN) {
 			char ch;
 			while (read(logpipe.rd, &ch, 1) > 0) {
-				if (ch) {
-					for (i = 6; i < rploglen; i++)
-						rplog[i-1] = rplog[i];
-					rplog[rploglen-1] = ch;
-				}
+				if (ch < ' ')
+					ch = ' ';
+				for (i = 6; i < rploglen; i++)
+					rplog[i-1] = rplog[i];
+				rplog[rploglen-1] = ch;
 			}
 		}
 #endif
@@ -346,11 +365,19 @@ run:
 			for (i = 0; i < svnum; i++)
 				if (sv[i].pid)
 					kill(sv[i].pid, SIGTERM);
-			// N.B. fall through
+			/* fall through */
 		case SIGTERM:
-			_exit((SIGHUP == bb_got_signal) ? 111 : EXIT_SUCCESS);
+			/* exit, unless we are init */
+			if (getpid() != 1)
+				goto ret;
+		default:
+			/* so we are init. do not exit,
+			 * and pause respawning - we may be rebooting... */
+			bb_got_signal = 0;
+			deadline = 60;
+			goto do_sleep;
 		}
 	}
-	/* not reached */
-	return 0;
+ ret:
+	return (SIGHUP == bb_got_signal) ? 111 : EXIT_SUCCESS;
 }
