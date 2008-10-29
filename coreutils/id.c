@@ -84,7 +84,7 @@ static int get_groups(const char *username, gid_t rgid, gid_t *groups, int *n)
 		//if (*n < 0)
 		//	return 0;
 		//return m;
-		//commented here, happens below anyway
+		//commented out here, happens below anyway
 	} else {
 		/* On error -1 is returned, which ends up in *n */
 		int nn = getgroups(*n, groups);
@@ -152,9 +152,9 @@ int id_main(int argc UNUSED_PARAM, char **argv)
 			if (egid != rgid)
 				status |= print_group(egid, " ");
 		}
-		/* We'd rather try supplying largish buffer than
-		 * having get_groups() run twice. That might be slow
-		 * (think about "user database in remove SQL server" case) */
+		/* We are supplying largish buffer, trying
+		 * to not run get_groups() twice. That might be slow
+		 * ("user database in remote SQL server" case) */
 		groups = xmalloc(64 * sizeof(gid_t));
 		n = 64;
 		if (get_groups(username, rgid, groups, &n) < 0) {
@@ -171,14 +171,14 @@ int id_main(int argc UNUSED_PARAM, char **argv)
 				status |= print_group(groups[i], opt ? " " : prefix);
 				prefix = ",";
 			}
-			if (ENABLE_FEATURE_CLEAN_UP)
-				free(groups);
 		} else if (n < 0) { /* error in get_groups() */
 			if (!ENABLE_DESKTOP)
 				bb_error_msg_and_die("cannot get groups");
 			else
 				return EXIT_FAILURE;
 		}
+		if (ENABLE_FEATURE_CLEAN_UP)
+			free(groups);
 #if ENABLE_SELINUX
 		if (is_selinux_enabled()) {
 			if (getcon(&scontext) == 0)
