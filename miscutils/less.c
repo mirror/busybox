@@ -272,7 +272,9 @@ static void re_wrap(void)
 	last_line_pos = new_line_pos;
 	cur_fline = new_cur_fline;
 	/* max_lineno is screen-size independent */
+#if ENABLE_FEATURE_LESS_REGEXP
 	pattern_valid = 0;
+#endif
 }
 #endif
 

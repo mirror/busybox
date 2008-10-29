@@ -270,7 +270,8 @@ struct globals {
 #define INIT_G() do { \
 	SET_PTR_TO_GLOBALS(xzalloc(sizeof(G))); \
 	last_file_modified = -1; \
-	last_search_pattern = xzalloc(2); /* "" but has space for 2 chars */ \
+	/* "" but has space for 2 chars: */ \
+	USE_FEATURE_VI_SEARCH(last_search_pattern = xzalloc(2);) \
 } while (0)
 
 

@@ -261,11 +261,15 @@ int sendmail_main(int argc UNUSED_PARAM, char **argv)
 		OPT_N = 1 << 4,         // request notification
 		OPT_f = 1 << 5,         // sender address
 		OPT_F = 1 << 6,         // sender name, overrides $NAME
+#if ENABLE_FEATURE_SENDMAIL_MAILX
 		OPT_s = 1 << 7,         // subject
 		OPT_j = 1 << 8,         // assumed charset
 		OPT_a = 1 << 9,         // attachment(s)
+#if ENABLE_FEATURE_SENDMAIL_MAILXX
 		OPT_c = 1 << 10,        // carbon copy
 		OPT_e = 1 << 11,        // errors-to address
+#endif
+#endif
 	};
 
 	// init global variables
@@ -405,10 +409,12 @@ int sendmail_main(int argc UNUSED_PARAM, char **argv)
 			} else if (0 == strncmp("Subject: ", s, 9)) {
 				// we read subject -> use it verbatim unless it is specified
 				// on command line
-				if (!(opts & OPT_s))
-					llist_add_to_end(&headers, s);
-				else
+#if ENABLE_FEATURE_SENDMAIL_MAILX
+				if (opts & OPT_s)
 					free(s);
+				else
+#endif
+					llist_add_to_end(&headers, s);
 			} else if (s[0]) {
 				// misc header
 				llist_add_to_end(&headers, s);
@@ -430,6 +436,7 @@ int sendmail_main(int argc UNUSED_PARAM, char **argv)
 	}
 
 	// put (possibly encoded) subject
+#if ENABLE_FEATURE_SENDMAIL_MAILX
 	if (opts & OPT_j)
 		sane((char *)opt_charset);
 	if (opts & OPT_s) {
@@ -443,6 +450,7 @@ int sendmail_main(int argc UNUSED_PARAM, char **argv)
 		}
 		printf("\r\n");
 	}
+#endif
 
 	// put sender name, $NAME is the default
 	if (!(opts & OPT_F))
