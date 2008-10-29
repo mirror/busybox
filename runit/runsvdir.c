@@ -98,14 +98,7 @@ static void warnx(const char *m1)
 
 static void runsv(int no, const char *name)
 {
-	pid_t pid;
-	char *prog[3];
-
-	prog[0] = (char*)"runsv";
-	prog[1] = (char*)name;
-	prog[2] = NULL;
-
-	pid = vfork();
+	pid_t pid = vfork();
 
 	if (pid == -1) {
 		warn2_cannot("vfork", "");
@@ -125,7 +118,7 @@ static void runsv(int no, const char *name)
 			| (1 << SIGTERM)
 			, SIG_DFL);
 #endif
-		execvp(prog[0], prog);
+		execlp("runsv", "runsv", name, NULL);
 		fatal2_cannot("start runsv ", name);
 	}
 	sv[no].pid = pid;
