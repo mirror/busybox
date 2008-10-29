@@ -3,176 +3,210 @@
  * Mini id implementation for busybox
  *
  * Copyright (C) 2000 by Randolph Chung <tausq@debian.org>
+ * Copyright (C) 2008 by Tito Ragusa <farmatito@tiscali.it>
  *
  * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  */
 
 /* BB_AUDIT SUSv3 compliant. */
-/* Hacked by Tito Ragusa (C) 2004 to handle usernames of whatever length and to
- * be more similar to GNU id.
+/* Hacked by Tito Ragusa (C) 2004 to handle usernames of whatever
+ * length and to be more similar to GNU id.
  * -Z option support: by Yuichi Nakamura <ynakam@hitachisoft.jp>
  * Added -G option Tito Ragusa (C) 2008 for SUSv3.
  */
 
 #include "libbb.h"
 
-#define PRINT_REAL        1
-#define NAME_NOT_NUMBER   2
-#define JUST_USER         4
-#define JUST_GROUP        8
-#define JUST_ALL_GROUPS  16
+enum {
+	PRINT_REAL      = (1 << 0),
+	NAME_NOT_NUMBER = (1 << 1),
+	JUST_USER       = (1 << 2),
+	JUST_GROUP      = (1 << 3),
+	JUST_ALL_GROUPS = (1 << 4),
 #if ENABLE_SELINUX
-#define JUST_CONTEXT     32
+	JUST_CONTEXT    = (1 << 5),
 #endif
+};
 
-static int printf_full(unsigned id, const char *arg, const char *prefix)
+static int print_common(unsigned id,
+		char* FAST_FUNC bb_getXXXid(char *name, int bufsize, long uid),
+		const char *prefix)
 {
-	const char *fmt = "%s%u";
-	int status = EXIT_FAILURE;
+	const char *name = bb_getXXXid(NULL, 0, id);
 
-	if (arg) {
-		fmt = "%s%u(%s)";
-		status = EXIT_SUCCESS;
+	if (prefix) {
+		printf("%s", prefix);
 	}
-	printf(fmt, prefix, id, arg);
-	return status;
+	if (!(option_mask32 & NAME_NOT_NUMBER) || !name) {
+		printf("%u", id);
+	}
+	if (!option_mask32 || (option_mask32 & NAME_NOT_NUMBER)) {
+		if (name) {
+			printf(option_mask32 ? "%s" : "(%s)", name);
+		} else {
+			/* Don't set error status flag in default mode */
+			if (option_mask32) {
+				if (ENABLE_DESKTOP)
+					bb_error_msg("unknown ID %u", id);
+				return EXIT_FAILURE;
+			}
+		}
+	}
+	return EXIT_SUCCESS;
 }
 
-#if (defined(__GLIBC__) && !defined(__UCLIBC__))
-#define HAVE_getgrouplist 1
-#elif ENABLE_USE_BB_PWD_GRP
-#define HAVE_getgrouplist 1
-#else
-#define HAVE_getgrouplist 0
-#endif
+static int print_group(gid_t id, const char *prefix)
+{
+	return print_common(id, bb_getgrgid, prefix);
+}
+
+static int print_user(gid_t id, const char *prefix)
+{
+	return print_common(id, bb_getpwuid, prefix);
+}
+
+/* On error set *n < 0 and return >= 0
+ * If *n is too small, update it and return < 0
+ *  (ok to trash groups[] in both cases)
+ * Otherwise fill in groups[] and return >= 0
+ */
+static int get_groups(const char *username, gid_t rgid, gid_t *groups, int *n)
+{
+	int m;
+
+	if (username) {
+		/* If the user is a member of more than
+		 * *n groups, then -1 is returned. Otherwise >= 0.
+		 * (and no defined way of detecting errors?!) */
+		m = getgrouplist(username, rgid, groups, n);
+		/* I guess *n < 0 might indicate error. Anyway,
+		 * malloc'ing -1 bytes won't be good, so: */
+		//if (*n < 0)
+		//	return 0;
+		//return m;
+		//commented here, happens below anyway
+	} else {
+		/* On error -1 is returned, which ends up in *n */
+		int nn = getgroups(*n, groups);
+		/* 0: nn <= *n, groups[] was big enough; -1 otherwise */
+		m = - (nn > *n);
+		*n = nn;
+	}
+	if (*n < 0)
+		return 0; /* error, don't return < 0! */
+	return m;
+}
 
 int id_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int id_main(int argc UNUSED_PARAM, char **argv)
 {
+	uid_t ruid;
+	gid_t rgid;
+	uid_t euid;
+	gid_t egid;
+	unsigned opt;
+	int i;
+	int status = EXIT_SUCCESS;
+	const char *prefix;
 	const char *username;
-	struct passwd *p;
-	uid_t uid;
-	gid_t gid;
-#if HAVE_getgrouplist
-	gid_t *groups;
-	int n;
-#endif
-	unsigned flags;
-	short status;
 #if ENABLE_SELINUX
-	security_context_t scontext;
+	security_context_t scontext = NULL;
 #endif
-	/* Don't allow -n -r -nr -ug -rug -nug -rnug */
+	/* Don't allow -n -r -nr -ug -rug -nug -rnug -uZ -gZ -GZ*/
 	/* Don't allow more than one username */
-	opt_complementary = "?1:u--g:g--u:G--u:u--G:g--G:G--g:r?ugG:n?ugG" USE_SELINUX(":u--Z:Z--u:g--Z:Z--g");
-	flags = getopt32(argv, "rnugG" USE_SELINUX("Z"));
+	opt_complementary = "?1:u--g:g--u:G--u:u--G:g--G:G--g:r?ugG:n?ugG"
+			 USE_SELINUX(":u--Z:Z--u:g--Z:Z--g:G--Z:Z--G");
+	opt = getopt32(argv, "rnugG" USE_SELINUX("Z"));
+
 	username = argv[optind];
-
-	/* This values could be overwritten later */
-	uid = geteuid();
-	gid = getegid();
-	if (flags & PRINT_REAL) {
-		uid = getuid();
-		gid = getgid();
-	}
-
 	if (username) {
-#if HAVE_getgrouplist
-		int m;
-#endif
-		p = getpwnam(username);
-		/* xuname2uid is needed because it exits on failure */
-		uid = xuname2uid(username);
-		gid = p->pw_gid; /* in this case PRINT_REAL is the same */
-
-#if HAVE_getgrouplist
-		n = 16;
-		groups = NULL;
-		do {
-			m = n;
-			groups = xrealloc(groups, sizeof(groups[0]) * m);
-			getgrouplist(username, gid, groups, &n); /* GNUism? */
-		} while (n > m);
-#endif
+		struct passwd *p = getpwnam(username);
+		if (!p)
+			bb_error_msg_and_die("unknown user %s", username);
+		euid = ruid = p->pw_uid;
+		egid = rgid = p->pw_gid;
 	} else {
-#if HAVE_getgrouplist
-		n = getgroups(0, NULL);
-		groups = xmalloc(sizeof(groups[0]) * n);
-		getgroups(n, groups);
-#endif
+		egid = getegid();
+		rgid = getgid();
+		euid = geteuid();
+		ruid = getuid();
 	}
+	/* JUST_ALL_GROUPS ignores -r PRINT_REAL flag even if man page for */
+	/* id says: print the real ID instead of the effective ID, with -ugG */
+	/* in fact in ths case egid is always printed if egid != rgid */
+	if (!opt || (opt & JUST_ALL_GROUPS)) {
+		gid_t *groups;
+		int n;
 
-	if (flags & JUST_ALL_GROUPS) {
-#if HAVE_getgrouplist
-		while (n--) {
-			if (flags & NAME_NOT_NUMBER)
-				printf("%s", bb_getgrgid(NULL, 0, *groups++));
-			else
-				printf("%u", (unsigned) *groups++);
-			bb_putchar((n > 0) ? ' ' : '\n');
-		}
-#endif
-		/* exit */
-		fflush_stdout_and_exit(EXIT_SUCCESS);
-	}
-
-	if (flags & (JUST_GROUP | JUST_USER USE_SELINUX(| JUST_CONTEXT))) {
-		/* JUST_GROUP and JUST_USER are mutually exclusive */
-		if (flags & NAME_NOT_NUMBER) {
-			/* bb_getXXXid(-1) exits on failure, puts cannot segfault */
-			puts((flags & JUST_USER) ? bb_getpwuid(NULL, -1, uid) : bb_getgrgid(NULL, -1, gid));
+		if (!opt) {
+			/* Default Mode */
+			status |= print_user(ruid, "uid=");
+			status |= print_group(rgid, " gid=");
+			if (euid != ruid)
+				status |= print_user(euid, " euid=");
+			if (egid != rgid)
+				status |= print_group(egid, " egid=");
 		} else {
-			if (flags & JUST_USER) {
-				printf("%u\n", (unsigned)uid);
-			}
-			if (flags & JUST_GROUP) {
-				printf("%u\n", (unsigned)gid);
-			}
+			/* JUST_ALL_GROUPS */
+			status |= print_group(rgid, NULL);
+			if (egid != rgid)
+				status |= print_group(egid, " ");
 		}
-
+		/* We'd rather try supplying largish buffer than
+		 * having get_groups() run twice. That might be slow
+		 * (think about "user database in remove SQL server" case) */
+		groups = xmalloc(64 * sizeof(gid_t));
+		n = 64;
+		if (get_groups(username, rgid, groups, &n) < 0) {
+			/* Need bigger buffer after all */
+			groups = xrealloc(groups, n * sizeof(gid_t));
+			get_groups(username, rgid, groups, &n);
+		}
+		if (n > 0) {
+			/* Print the list */
+			prefix = " groups=";
+			for (i = 0; i < n; i++) {
+				if (opt && (groups[i] == rgid || groups[i] == egid))
+					continue;
+				status |= print_group(groups[i], opt ? " " : prefix);
+				prefix = ",";
+			}
+			if (ENABLE_FEATURE_CLEAN_UP)
+				free(groups);
+		} else if (n < 0) { /* error in get_groups() */
+			if (!ENABLE_DESKTOP)
+				bb_error_msg_and_die("cannot get groups");
+			else
+				return EXIT_FAILURE;
+		}
 #if ENABLE_SELINUX
-		if (flags & JUST_CONTEXT) {
-			selinux_or_die();
-			if (username) {
-				bb_error_msg_and_die("user name can't be passed with -Z");
-			}
-
-			if (getcon(&scontext)) {
-				bb_error_msg_and_die("can't get process context");
-			}
-			puts(scontext);
+		if (is_selinux_enabled()) {
+			if (getcon(&scontext) == 0)
+				printf(" context=%s", scontext);
 		}
 #endif
-		/* exit */
-		fflush_stdout_and_exit(EXIT_SUCCESS);
+	} else if (opt & PRINT_REAL) {
+		euid = ruid;
+		egid = rgid;
 	}
 
-	/* Print full info like GNU id */
-	/* bb_getpwuid(0) doesn't exit on failure (returns NULL) */
-	status = printf_full(uid, bb_getpwuid(NULL, 0, uid), "uid=");
-	status |= printf_full(gid, bb_getgrgid(NULL, 0, gid), " gid=");
-#if HAVE_getgrouplist
-	{
-		const char *msg = " groups=";
-		while (n--) {
-			status |= printf_full(*groups, bb_getgrgid(NULL, 0, *groups), msg);
-			msg = ",";
-			groups++;
-		}
-	}
-	/* we leak groups vector... */
-#endif
-
+	if (opt & JUST_USER)
+		status |= print_user(euid, NULL);
+	else if (opt & JUST_GROUP)
+		status |= print_group(egid, NULL);
 #if ENABLE_SELINUX
-	if (is_selinux_enabled()) {
-		security_context_t mysid;
-		getcon(&mysid);
-		printf(" context=%s", mysid ? mysid : "unknown");
-		if (mysid) /* TODO: maybe freecon(NULL) is harmless? */
-			freecon(mysid);
+	else if (opt & JUST_CONTEXT) {
+		selinux_or_die();
+		if (username || getcon(&scontext)) {
+			bb_error_msg_and_die("can't get process context%s",
+				username ? " for a different user" : "");
+		}
+		fputs(scontext, stdout);
 	}
+	/* freecon(NULL) seems to be harmless */
+	if (ENABLE_FEATURE_CLEAN_UP)
+		freecon(scontext);
 #endif
-
 	bb_putchar('\n');
 	fflush_stdout_and_exit(status);
 }
