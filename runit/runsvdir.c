@@ -58,7 +58,6 @@ struct globals {
 	struct pollfd pfd[1];
 	unsigned stamplog;
 #endif
-	smallint need_rescan; /* = 1; */
 	smallint set_pgrp;
 };
 #define G (*(struct globals*)&bb_common_bufsiz1)
@@ -70,10 +69,8 @@ struct globals {
 #define logpipe     (G.logpipe     )
 #define pfd         (G.pfd         )
 #define stamplog    (G.stamplog    )
-#define need_rescan (G.need_rescan )
 #define set_pgrp    (G.set_pgrp    )
 #define INIT_G() do { \
-	need_rescan = 1; \
 } while (0)
 
 static void fatal2_cannot(const char *m1, const char *m2)
@@ -96,21 +93,27 @@ static void warnx(const char *m1)
 }
 #endif
 
-static void runsv(int no, const char *name)
+/* inlining + vfork -> bigger code */
+static NOINLINE pid_t runsv(const char *name)
 {
-	pid_t pid = vfork();
+	pid_t pid;
 
+	/* If we got signaled, stop spawning children at once! */
+	if (bb_got_signal)
+		return 0;
+
+	pid = vfork();
 	if (pid == -1) {
 		warn2_cannot("vfork", "");
-		return;
+		return 0;
 	}
 	if (pid == 0) {
 		/* child */
 		if (set_pgrp)
 			setsid();
 /* man execv:
- * Signals set to be caught by the calling process image
- * shall be set to the default action in the new process image.
+ * "Signals set to be caught by the calling process image
+ *  shall be set to the default action in the new process image."
  * Therefore, we do not need this: */
 #if 0
 		bb_signals(0
@@ -121,20 +124,22 @@ static void runsv(int no, const char *name)
 		execlp("runsv", "runsv", name, NULL);
 		fatal2_cannot("start runsv ", name);
 	}
-	sv[no].pid = pid;
+	return pid;
 }
 
-static void do_rescan(void)
+/* gcc 4.3.0 does better with NOINLINE */
+static NOINLINE int do_rescan(void)
 {
 	DIR *dir;
 	direntry *d;
 	int i;
 	struct stat s;
+	int need_rescan = 0;
 
 	dir = opendir(".");
 	if (!dir) {
 		warn2_cannot("open directory ", svdir);
-		return;
+		return 1; /* need to rescan again soon */
 	}
 	for (i = 0; i < svnum; i++)
 		sv[i].isgone = 1;
@@ -152,47 +157,47 @@ static void do_rescan(void)
 		}
 		if (!S_ISDIR(s.st_mode))
 			continue;
+		/* Do we have this service listed already? */
 		for (i = 0; i < svnum; i++) {
 			if ((sv[i].ino == s.st_ino)
 #if CHECK_DEVNO_TOO
 			 && (sv[i].dev == s.st_dev)
 #endif
 			) {
-				sv[i].isgone = 0;
-				if (!sv[i].pid)
-					runsv(i, d->d_name);
-				break;
+				if (sv[i].pid == 0) /* restart if it has died */
+					goto run_ith_sv;
+				sv[i].isgone = 0; /* "we still see you" */
+				goto next_dentry;
 			}
 		}
-		if (i == svnum) {
-			/* new service */
+		{ /* Not found, make new service */
 			struct service *svnew = realloc(sv, (i+1) * sizeof(*sv));
 			if (!svnew) {
 				warn2_cannot("start runsv ", d->d_name);
+				need_rescan = 1;
 				continue;
 			}
 			sv = svnew;
 			svnum++;
-			memset(&sv[i], 0, sizeof(sv[i]));
-			sv[i].ino = s.st_ino;
 #if CHECK_DEVNO_TOO
 			sv[i].dev = s.st_dev;
 #endif
-			/*sv[i].pid = 0;*/
-			/*sv[i].isgone = 0;*/
-			runsv(i, d->d_name);
-			need_rescan = 1;
+			sv[i].ino = s.st_ino;
+ run_ith_sv:
+			sv[i].pid = runsv(d->d_name);
+			sv[i].isgone = 0;
 		}
+ next_dentry: ;
 	}
 	i = errno;
 	closedir(dir);
-	if (i) {
+	if (i) { /* readdir failed */
 		warn2_cannot("read directory ", svdir);
-		need_rescan = 1;
-		return;
+		return 1; /* need to rescan again soon */
 	}
 
-	/* Send SIGTERM to runsv whose directories were not found (removed) */
+	/* Send SIGTERM to runsv whose directories
+	 * were no longer found (-> must have been removed) */
 	for (i = 0; i < svnum; i++) {
 		if (!sv[i].isgone)
 			continue;
@@ -201,8 +206,8 @@ static void do_rescan(void)
 		svnum--;
 		sv[i] = sv[svnum];
 		i--; /* so that we don't skip new sv[i] (bug was here!) */
-		need_rescan = 1;
 	}
+	return need_rescan;
 }
 
 int runsvdir_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
@@ -219,6 +224,7 @@ int runsvdir_main(int argc UNUSED_PARAM, char **argv)
 	unsigned now;
 	unsigned stampcheck;
 	int i;
+	int need_rescan = 1;
 
 	INIT_G();
 
@@ -284,10 +290,9 @@ int runsvdir_main(int argc UNUSED_PARAM, char **argv)
 				break;
 			for (i = 0; i < svnum; i++) {
 				if (pid == sv[i].pid) {
-					/* runsv has gone */
+					/* runsv has died */
 					sv[i].pid = 0;
 					need_rescan = 1;
-					break;
 				}
 			}
 		}
@@ -306,19 +311,20 @@ int runsvdir_main(int argc UNUSED_PARAM, char **argv)
 						last_mtime = s.st_mtime;
 						last_dev = s.st_dev;
 						last_ino = s.st_ino;
-						need_rescan = 0;
 						//if (now <= mtime)
 						//	sleep(1);
-						do_rescan();
+						need_rescan = do_rescan();
 						while (fchdir(curdir) == -1) {
 							warn2_cannot("change directory, pausing", "");
 							sleep(5);
 						}
-					} else
+					} else {
 						warn2_cannot("change directory to ", svdir);
+					}
 				}
-			} else
+			} else {
 				warn2_cannot("stat ", svdir);
+			}
 		}
 
 #if ENABLE_FEATURE_RUNSVDIR_LOG
@@ -354,6 +360,8 @@ int runsvdir_main(int argc UNUSED_PARAM, char **argv)
 		}
 #endif
 		switch (bb_got_signal) {
+		case 0: /* we are not signaled, business as usual */
+			break;
 		case SIGHUP:
 			for (i = 0; i < svnum; i++)
 				if (sv[i].pid)
