@@ -270,6 +270,7 @@ struct globals {
 #define INIT_G() do { \
 	SET_PTR_TO_GLOBALS(xzalloc(sizeof(G))); \
 	last_file_modified = -1; \
+	last_search_pattern = xzalloc(2); /* "" but has space for 2 chars */ \
 } while (0)
 
 
@@ -2857,7 +2858,7 @@ static void do_cmd(int c)
 	const char *msg = msg; // for compiler
 	char *p, *q, *save_dot;
 	char buf[12];
-	int dir = dir; // for compiler
+	int dir;
 	int cnt, i, j;
 	int c1;
 
@@ -3196,7 +3197,7 @@ static void do_cmd(int c)
 		q = get_input_line(buf);	// get input line- use "status line"
 		if (q[0] && !q[1]) {
 			if (last_search_pattern[0])
-			    last_search_pattern[0] = c;
+				last_search_pattern[0] = c;
 			goto dc3; // if no pat re-use old pat
 		}
 		if (q[0]) {       // strlen(q) > 1: new pat- save it and find
@@ -3226,14 +3227,8 @@ static void do_cmd(int c)
 			do_cmd(c);
 		}				// repeat cnt
  dc3:
-		if (last_search_pattern == 0) {
-			msg = "No previous regular expression";
-			goto dc2;
-		}
-		if (last_search_pattern[0] == '/') {
-			dir = FORWARD;	// assume FORWARD search
-			p = dot + 1;
-		}
+		dir = FORWARD;	// assume FORWARD search
+		p = dot + 1;
 		if (last_search_pattern[0] == '?') {
 			dir = BACK;
 			p = dot - 1;
