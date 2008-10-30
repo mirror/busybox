@@ -4220,6 +4220,12 @@
        "[-cr] [-u USER] [DIR]"
 #define tftpd_full_usage "\n\n" \
        "Transfer a file on tftp client's request.\n" \
+       "\n" \
+       "tftpd should be used as an inetd service.\n" \
+       "tftpd's line for inetd.conf:\n" \
+       "	69 dgram udp nowait root tftpd tftpd /files/to/serve\n" \
+       "It also can be ran from udpsvd:\n" \
+       "	udpsvd -vE 0.0.0.0 69 tftpd /files/to/serve\n" \
      "\nOptions:" \
      "\n	-r	Prohibit upload" \
      "\n	-c	Allow file creation via upload" \
