@@ -98,19 +98,45 @@ static void not(void)
 
 static void set_output_base(void)
 {
-	base = (unsigned)pop();
-	if ((base != 10) && (base != 16)) {
-		bb_error_msg("error, base %d is not supported", base);
+	static const char bases[] ALIGN1 = { 2, 8, 10, 16, 0 };
+	unsigned b = (unsigned)pop();
+
+	base = *strchrnul(bases, b);
+	if (base == 0) {
+		bb_error_msg("error, base %u is not supported", b);
 		base = 10;
 	}
 }
 
 static void print_base(double print)
 {
-	if (base == 16)
-		printf("%x\n", (unsigned)print);
-	else
+	unsigned x, i;
+
+	if (base == 10) {
 		printf("%g\n", print);
+		return;
+	}
+
+	x = (unsigned)print;
+	switch (base) {
+	case 16:
+		printf("%x\n", x);
+		break;
+	case 8:
+		printf("%o\n", x);
+		break;
+	default: /* base 2 */
+		i = (unsigned)INT_MAX + 1;
+		do {
+			if (x & i) break;
+			i >>= 1;
+		} while (i > 1);
+		do {
+			bb_putchar('1' - !(x & i));
+			i >>= 1;
+		} while (i);
+		bb_putchar('\n');
+	}
 }
 
 static void print_stack_no_pop(void)
