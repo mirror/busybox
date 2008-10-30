@@ -165,23 +165,23 @@ static void parse_args(char **argv, int cmd, struct ip_tunnel_parm *p)
 			if (key == ARG_ipip ||
 			    key == ARG_ip_ip) {
 				if (p->iph.protocol && p->iph.protocol != IPPROTO_IPIP) {
-					bb_error_msg_and_die("you managed to ask for more than one tunnel mode");
+					bb_error_msg_and_die("%s tunnel mode", "you managed to ask for more than one");
 				}
 				p->iph.protocol = IPPROTO_IPIP;
 			} else if (key == ARG_gre ||
 				   key == ARG_gre_ip) {
 				if (p->iph.protocol && p->iph.protocol != IPPROTO_GRE) {
-					bb_error_msg_and_die("you managed to ask for more than one tunnel mode");
+					bb_error_msg_and_die("%s tunnel mode", "you managed to ask for more than one");
 				}
 				p->iph.protocol = IPPROTO_GRE;
 			} else if (key == ARG_sit ||
 				   key == ARG_ip6_ip) {
 				if (p->iph.protocol && p->iph.protocol != IPPROTO_IPV6) {
-					bb_error_msg_and_die("you managed to ask for more than one tunnel mode");
+					bb_error_msg_and_die("%s tunnel mode", "you managed to ask for more than one");
 				}
 				p->iph.protocol = IPPROTO_IPV6;
 			} else {
-				bb_error_msg_and_die("cannot guess tunnel mode");
+				bb_error_msg_and_die("%s tunnel mode", "cannot guess");
 			}
 		} else if (key == ARG_key) {
 			unsigned uval;
@@ -192,7 +192,7 @@ static void parse_args(char **argv, int cmd, struct ip_tunnel_parm *p)
 				p->i_key = p->o_key = get_addr32(*argv);
 			else {
 				if (get_unsigned(&uval, *argv, 0) < 0) {
-					bb_error_msg_and_die("invalid value of \"key\"");
+					invarg(*argv, "key");
 				}
 				p->i_key = p->o_key = htonl(uval);
 			}
@@ -204,7 +204,7 @@ static void parse_args(char **argv, int cmd, struct ip_tunnel_parm *p)
 				p->o_key = get_addr32(*argv);
 			else {
 				if (get_unsigned(&uval, *argv, 0) < 0) {
-					bb_error_msg_and_die("invalid value of \"ikey\"");
+					invarg(*argv, "ikey");
 				}
 				p->i_key = htonl(uval);
 			}
@@ -216,7 +216,7 @@ static void parse_args(char **argv, int cmd, struct ip_tunnel_parm *p)
 				p->o_key = get_addr32(*argv);
 			else {
 				if (get_unsigned(&uval, *argv, 0) < 0) {
-					bb_error_msg_and_die("invalid value of \"okey\"");
+					invarg(*argv, "okey");
 				}
 				p->o_key = htonl(uval);
 			}
@@ -442,7 +442,7 @@ static void do_tunnels_list(struct ip_tunnel_parm *p)
 	if (fp == NULL) {
 		return;
 	}
-
+	/* skip headers */
 	fgets(buf, sizeof(buf), fp);
 	fgets(buf, sizeof(buf), fp);
 
