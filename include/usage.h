@@ -2041,11 +2041,12 @@
      "\n	-u	Unicode (utf-8)" \
 
 #define kill_trivial_usage \
-       "[-l] [-signal] process-id..."
+       "[-l] [-SIG] PID..."
 #define kill_full_usage "\n\n" \
-       "Send a signal (default is TERM) to the specified process(es)\n" \
+       "Send a signal (default is TERM) to given PIDs\n" \
      "\nOptions:" \
      "\n	-l	List all signal names and numbers" \
+/*   "\n	-s SIG	Yet another way of specifying SIG" */ \
 
 #define kill_example_usage \
        "$ ps | grep apache\n" \
@@ -2058,22 +2059,24 @@
        "$ kill 252\n"
 
 #define killall_trivial_usage \
-       "[-l] [-q] [-signal] process-name..."
+       "[-l] [-q] [-SIG] process-name..."
 #define killall_full_usage "\n\n" \
-       "Send a signal (default is TERM) to the specified process(es)\n" \
+       "Send a signal (default is TERM) to given processes\n" \
      "\nOptions:" \
      "\n	-l	List all signal names and numbers" \
+/*   "\n	-s SIG	Yet another way of specifying SIG" */ \
      "\n	-q	Do not complain if no processes were killed" \
 
 #define killall_example_usage \
        "$ killall apache\n"
 
 #define killall5_trivial_usage \
-       "[-l] [-signal]"
+       "[-l] [-SIG]"
 #define killall5_full_usage "\n\n" \
        "Send a signal (default is TERM) to all processes outside current session\n" \
      "\nOptions:" \
      "\n	-l	List all signal names and numbers" \
+/*   "\n	-s SIG	Yet another way of specifying SIG" */ \
 
 #define klogd_trivial_usage \
        "[-c N] [-n]"

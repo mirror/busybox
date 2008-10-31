@@ -96,10 +96,14 @@ int kill_main(int argc, char **argv)
 		if (arg[0] != '-') goto do_it_now;
 	}
 
-	/* -SIG */
-	signo = get_signum(&arg[1]);
+	arg++; /* skip '-' */
+	if (argc > 1 && arg[0] == 's' && arg[1] == '\0') { /* -s SIG? */
+		argc--;
+		arg = *++argv;
+	} /* else it must be -SIG */
+	signo = get_signum(arg);
 	if (signo < 0) { /* || signo > MAX_SIGNUM ? */
-		bb_error_msg("bad signal name '%s'", &arg[1]);
+		bb_error_msg("bad signal name '%s'", arg);
 		return EXIT_FAILURE;
 	}
 	arg = *++argv;
