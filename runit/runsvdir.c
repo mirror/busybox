@@ -371,9 +371,10 @@ int runsvdir_main(int argc UNUSED_PARAM, char **argv)
 				goto ret;
 		default:
 			/* so we are init. do not exit,
-			 * and pause respawning - we may be rebooting... */
+			 * and pause respawning - we may be rebooting
+			 * (but SIGHUP is not a reboot, make short pause) */
+			deadline = (SIGHUP == bb_got_signal) ? 5 : 60;
 			bb_got_signal = 0;
-			deadline = 60;
 			goto do_sleep;
 		}
 	}
