@@ -853,12 +853,16 @@ static ssize_t getch_nowait(void)
 	/* We have kbd_fd in O_NONBLOCK mode, read inside read_key()
 	 * would not block even if there is no input available */
 	rd = read_key(kbd_fd, NULL, input);
-	if (rd == -1 && errno == EAGAIN) {
-		/* No keyboard input available. Since poll() did return,
-		 * we should have input on stdin */
-		read_lines();
-		buffer_fill_and_print();
-		goto again;
+	if (rd == -1) {
+		if (errno == EAGAIN) {
+			/* No keyboard input available. Since poll() did return,
+			 * we should have input on stdin */
+			read_lines();
+			buffer_fill_and_print();
+			goto again;
+		}
+		/* EOF/error (ssh session got killed etc) */
+		less_exit(0);
 	}
 	set_tty_cooked();
 	return rd;
