@@ -203,18 +203,17 @@ int modprobe_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int modprobe_main(int argc UNUSED_PARAM, char **argv)
 {
 	struct utsname uts;
-	int num_modules, i, rc;
+	int rc;
+	unsigned opt;
 	llist_t *options = NULL;
-	parser_t *parser;
 
 	opt_complementary = "q-v:v-q";
-	getopt32(argv, INSMOD_OPTS MODPROBE_OPTS INSMOD_ARGS,
+	opt = getopt32(argv, INSMOD_OPTS MODPROBE_OPTS INSMOD_ARGS,
 		 NULL, NULL);
 	argv += optind;
-	argc -= optind;
 
-	if (option_mask32 & (MODPROBE_OPT_DUMP_ONLY | MODPROBE_OPT_LIST_ONLY |
-			     MODPROBE_OPT_SHOW_ONLY))
+	if (opt & (MODPROBE_OPT_DUMP_ONLY | MODPROBE_OPT_LIST_ONLY |
+				MODPROBE_OPT_SHOW_ONLY))
 		bb_error_msg_and_die("not supported");
 
 	/* goto modules location */
@@ -222,40 +221,44 @@ int modprobe_main(int argc UNUSED_PARAM, char **argv)
 	uname(&uts);
 	xchdir(uts.release);
 
-	if (option_mask32 & (MODPROBE_OPT_REMOVE | MODPROBE_OPT_INSERT_ALL)) {
-		/* each parameter is a module name */
-		num_modules = argc;
-		if (num_modules == 0) {
+	if (!argv[0]) {
+		if (opt & MODPROBE_OPT_REMOVE) {
 			if (bb_delete_module(NULL, O_NONBLOCK|O_EXCL) != 0)
 				bb_perror_msg_and_die("rmmod");
-			return EXIT_SUCCESS;
 		}
-	} else {
-		/* the only module, the rest of parameters are options */
-		num_modules = 1;
+		return EXIT_SUCCESS;
+	}
+	if (!(opt & MODPROBE_OPT_INSERT_ALL)) {
+		/* If not -a, we have only one module name,
+		 * the rest of parameters are options */
 		add_option(&options, NULL, parse_cmdline_module_options(argv));
+		argv[1] = NULL;
 	}
 
 	/* cache modules */
-	parser = config_open2("/proc/modules", fopen_for_read);
-	if (parser) {
+	{
 		char *s;
+		parser_t *parser = config_open2("/proc/modules", fopen_for_read);
 		while (config_read(parser, &s, 1, 1, "# \t", PARSE_NORMAL & ~PARSE_GREEDY))
 			llist_add_to(&loaded, xstrdup(s));
 		config_close(parser);
 	}
 
-	for (i = 0; i < num_modules; i++) {
+	while (*argv) {
+		const char *arg = *argv;
 		struct modprobe_conf *conf;
 
-		conf = xzalloc(sizeof(struct modprobe_conf));
+		conf = xzalloc(sizeof(*conf));
 		conf->options = options;
-		filename2modname(argv[i], conf->probename);
+		filename2modname(arg, conf->probename);
 		read_config(conf, "/etc/modprobe.conf");
 		read_config(conf, "/etc/modprobe.d");
-		if (ENABLE_FEATURE_MODUTILS_SYMBOLS &&
-		    conf->aliases == NULL && strncmp(argv[i], "symbol:", 7) == 0)
+		if (ENABLE_FEATURE_MODUTILS_SYMBOLS
+		 && conf->aliases == NULL
+		 && strncmp(arg, "symbol:", 7) == 0
+		) {
 			read_config(conf, "modules.symbols");
+		}
 
 		if (ENABLE_FEATURE_MODUTILS_ALIAS && conf->aliases == NULL)
 			read_config(conf, "modules.alias");
@@ -263,11 +266,11 @@ int modprobe_main(int argc UNUSED_PARAM, char **argv)
 		if (conf->aliases == NULL) {
 			/* Try if module by literal name is found; literal
 			 * names are blacklist only if '-b' is given. */
-			if (!(option_mask32 & MODPROBE_OPT_BLACKLIST) ||
+			if (!(opt & MODPROBE_OPT_BLACKLIST) ||
 			    check_blacklist(conf, conf->probename)) {
 				rc = do_modprobe(conf, conf->probename);
-				if (rc < 0 && !(option_mask32 & INSMOD_OPT_SILENT))
-					bb_error_msg("Module %s not found.", argv[i]);
+				if (rc < 0 && !(opt & INSMOD_OPT_SILENT))
+					bb_error_msg("Module %s not found.", arg);
 			}
 		} else {
 			/* Probe all aliases */
@@ -279,6 +282,7 @@ int modprobe_main(int argc UNUSED_PARAM, char **argv)
 					free(realname);
 			}
 		}
+		argv++;
 	}
 
 	return EXIT_SUCCESS;
