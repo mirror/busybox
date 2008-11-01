@@ -174,15 +174,18 @@ static int do_set(char **argv)
 	char *newname = NULL;
 	int htype, halen;
 	static const char keywords[] ALIGN1 =
-		"up\0""down\0""name\0""mtu\0""multicast\0""arp\0""address\0""dev\0";
-	enum { ARG_up = 0, ARG_down, ARG_name, ARG_mtu, ARG_multicast, ARG_arp,
-		ARG_addr, ARG_dev };
+		"up\0""down\0""name\0""mtu\0""multicast\0"
+		"arp\0""address\0""dev\0";
+	enum { ARG_up = 0, ARG_down, ARG_name, ARG_mtu, ARG_multicast,
+		ARG_arp, ARG_addr, ARG_dev };
 	static const char str_on_off[] ALIGN1 = "on\0""off\0";
 	enum { PARM_on = 0, PARM_off };
 	smalluint key;
 
 	while (*argv) {
-		key = index_in_strings(keywords, *argv);
+		/* substring search ensures that e.g. "addr" and "address"
+		 * are both accepted */
+		key = index_in_substrings(keywords, *argv);
 		if (key == ARG_up) {
 			mask |= IFF_UP;
 			flags |= IFF_UP;

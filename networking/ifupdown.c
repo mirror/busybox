@@ -349,7 +349,7 @@ static int static_up6(struct interface_defn_t *ifd, execfn *exec)
 	int result;
 #if ENABLE_FEATURE_IFUPDOWN_IP
 	result = execute("ip addr add %address%/%netmask% dev %iface%[[ label %label%]]", ifd, exec);
-	result += execute("ip link set[[ mtu %mtu%]][[ address %hwaddress%]] %iface% up", ifd, exec);
+	result += execute("ip link set[[ mtu %mtu%]][[ addr %hwaddress%]] %iface% up", ifd, exec);
 	/* Was: "[[ ip ....%gateway% ]]". Removed extra spaces w/o checking */
 	result += execute("[[ip route add ::/0 via %gateway%]]", ifd, exec);
 #else
@@ -433,7 +433,7 @@ static int static_up(struct interface_defn_t *ifd, execfn *exec)
 #if ENABLE_FEATURE_IFUPDOWN_IP
 	result = execute("ip addr add %address%/%bnmask%[[ broadcast %broadcast%]] "
 			"dev %iface%[[ peer %pointopoint%]][[ label %label%]]", ifd, exec);
-	result += execute("ip link set[[ mtu %mtu%]][[ address %hwaddress%]] %iface% up", ifd, exec);
+	result += execute("ip link set[[ mtu %mtu%]][[ addr %hwaddress%]] %iface% up", ifd, exec);
 	result += execute("[[ip route add default via %gateway% dev %iface%]]", ifd, exec);
 	return ((result == 3) ? 3 : 0);
 #else
@@ -500,7 +500,7 @@ static int dhcp_up(struct interface_defn_t *ifd, execfn *exec)
 	unsigned i;
 #if ENABLE_FEATURE_IFUPDOWN_IP
 	/* ip doesn't up iface when it configures it (unlike ifconfig) */
-	if (!execute("ip link set[[ address %hwaddress%]] %iface% up", ifd, exec))
+	if (!execute("ip link set[[ addr %hwaddress%]] %iface% up", ifd, exec))
 		return 0;
 #else
 	/* needed if we have hwaddress on dhcp iface */
@@ -519,7 +519,7 @@ static int dhcp_up(struct interface_defn_t *ifd, execfn *exec)
 {
 #if ENABLE_FEATURE_IFUPDOWN_IP
 	/* ip doesn't up iface when it configures it (unlike ifconfig) */
-	if (!execute("ip link set[[ address %hwaddress%]] %iface% up", ifd, exec))
+	if (!execute("ip link set[[ addr %hwaddress%]] %iface% up", ifd, exec))
 		return 0;
 #else
 	/* needed if we have hwaddress on dhcp iface */
