@@ -912,10 +912,7 @@ int chown_main(int argc, char **argv) USE_CHOWN(MAIN_EXTERNALLY_VISIBLE);
 /* Don't need USE_xxx() guard for these */
 int gunzip_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int bunzip2_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int bbunpack(char **argv,
-	char* (*make_new_name)(char *filename),
-	USE_DESKTOP(long long) int (*unpacker)(void)
-) FAST_FUNC;
+
 #if ENABLE_ROUTE
 void bb_displayroutes(int noresolve, int netstatfmt) FAST_FUNC;
 #endif

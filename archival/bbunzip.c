@@ -30,13 +30,14 @@ int open_to_or_warn(int to_fd, const char *filename, int flags, int mode)
 
 int FAST_FUNC bbunpack(char **argv,
 	char* (*make_new_name)(char *filename),
-	USE_DESKTOP(long long) int (*unpacker)(void)
+	USE_DESKTOP(long long) int (*unpacker)(unpack_info_t *info)
 )
 {
 	struct stat stat_buf;
 	USE_DESKTOP(long long) int status;
 	char *filename, *new_name;
 	smallint exitcode = 0;
+	unpack_info_t info;
 
 	do {
 		/* NB: new_name is *maybe* malloc'ed! */
@@ -92,14 +93,29 @@ int FAST_FUNC bbunpack(char **argv,
 					"use -f to force it");
 		}
 
-		status = unpacker();
+		/* memset(&info, 0, sizeof(info)); */
+		info.mtime = 0; /* so far it has one member only */
+		status = unpacker(&info);
 		if (status < 0)
 			exitcode = 1;
 
 		if (filename) {
 			char *del = new_name;
 			if (status >= 0) {
-				/* TODO: restore user/group/times here? */
+				/* TODO: restore other things? */
+				if (info.mtime) {
+					struct utimbuf times;
+
+					times.actime = info.mtime;
+					times.modtime = info.mtime;
+					/* Close first.
+					 * On some systems calling utime
+					 * then closing resets the mtime. */
+					close(STDOUT_FILENO);
+					/* Ignoring errors */
+					utime(new_name, &times);
+				}
+
 				/* Delete _compressed_ file */
 				del = filename;
 				/* restore extension (unless tgz -> tar case) */
@@ -159,7 +175,7 @@ char* make_new_name_bunzip2(char *filename)
 }
 
 static
-USE_DESKTOP(long long) int unpack_bunzip2(void)
+USE_DESKTOP(long long) int unpack_bunzip2(unpack_info_t *info UNUSED_PARAM)
 {
 	return unpack_bz2_stream_prime(STDIN_FILENO, STDOUT_FILENO);
 }
@@ -235,7 +251,7 @@ char* make_new_name_gunzip(char *filename)
 }
 
 static
-USE_DESKTOP(long long) int unpack_gunzip(void)
+USE_DESKTOP(long long) int unpack_gunzip(unpack_info_t *info)
 {
 	USE_DESKTOP(long long) int status = -1;
 
@@ -247,7 +263,7 @@ USE_DESKTOP(long long) int unpack_gunzip(void)
 		if (ENABLE_FEATURE_SEAMLESS_Z && magic2 == 0x9d) {
 			status = unpack_Z_stream(STDIN_FILENO, STDOUT_FILENO);
 		} else if (magic2 == 0x8b) {
-			status = unpack_gz_stream(STDIN_FILENO, STDOUT_FILENO);
+			status = unpack_gz_stream_with_info(STDIN_FILENO, STDOUT_FILENO, info);
 		} else {
 			goto bad_magic;
 		}
@@ -309,7 +325,7 @@ char* make_new_name_unlzma(char *filename)
 }
 
 static
-USE_DESKTOP(long long) int unpack_unlzma(void)
+USE_DESKTOP(long long) int unpack_unlzma(unpack_info_t *info UNUSED_PARAM)
 {
 	return unpack_lzma_stream(STDIN_FILENO, STDOUT_FILENO);
 }
@@ -344,7 +360,7 @@ char* make_new_name_uncompress(char *filename)
 }
 
 static
-USE_DESKTOP(long long) int unpack_uncompress(void)
+USE_DESKTOP(long long) int unpack_uncompress(unpack_info_t *info UNUSED_PARAM)
 {
 	USE_DESKTOP(long long) int status = -1;
 

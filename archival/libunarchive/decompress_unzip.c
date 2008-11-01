@@ -1108,18 +1108,21 @@ static uint32_t buffer_read_le_u32(STATE_PARAM_ONLY)
 	return res;
 }
 
-static int check_header_gzip(STATE_PARAM_ONLY)
+static int check_header_gzip(STATE_PARAM unpack_info_t *info)
 {
 	union {
 		unsigned char raw[8];
 		struct {
 			uint8_t gz_method;
 			uint8_t flags;
-			//uint32_t mtime; - unused fields
-			//uint8_t xtra_flags;
-			//uint8_t os_flags;
-		} formatted; /* packed */
+			uint32_t mtime;
+			uint8_t xtra_flags_UNUSED;
+			uint8_t os_flags_UNUSED;
+		} __attribute__((packed)) formatted;
 	} header;
+	struct BUG_header {
+		char BUG_header[sizeof(header) == 8 ? 1 : -1];
+	};
 
 	/*
 	 * Rewind bytebuffer. We use the beginning because the header has 8
@@ -1167,6 +1170,9 @@ static int check_header_gzip(STATE_PARAM_ONLY)
 		}
 	}
 
+	if (info)
+		info->mtime = SWAP_LE32(header.formatted.mtime);
+
 	/* Read the header checksum */
 	if (header.formatted.flags & 0x02) {
 		if (!top_up(PASS_STATE 2))
@@ -1177,7 +1183,7 @@ static int check_header_gzip(STATE_PARAM_ONLY)
 }
 
 USE_DESKTOP(long long) int FAST_FUNC
-unpack_gz_stream(int in, int out)
+unpack_gz_stream_with_info(int in, int out, unpack_info_t *info)
 {
 	uint32_t v32;
 	USE_DESKTOP(long long) int n;
@@ -1192,7 +1198,7 @@ unpack_gz_stream(int in, int out)
 	gunzip_src_fd = in;
 
  again:
-	if (!check_header_gzip(PASS_STATE_ONLY)) {
+	if (!check_header_gzip(PASS_STATE info)) {
 		bb_error_msg("corrupted data");
 		n = -1;
 		goto ret;
@@ -1238,4 +1244,10 @@ unpack_gz_stream(int in, int out)
 	free(bytebuffer);
 	DEALLOC_STATE;
 	return n;
+}
+
+USE_DESKTOP(long long) int FAST_FUNC
+unpack_gz_stream(int in, int out)
+{
+	return unpack_gz_stream_with_info(in, out, NULL);
 }

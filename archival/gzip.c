@@ -40,6 +40,7 @@ aa:      85.1% -- replaced with aa.gz
 */
 
 #include "libbb.h"
+#include "unarchive.h"
 
 
 /* ===========================================================================
@@ -2014,7 +2015,7 @@ char* make_new_name_gzip(char *filename)
 }
 
 static
-USE_DESKTOP(long long) int pack_gzip(void)
+USE_DESKTOP(long long) int pack_gzip(unpack_info_t *info UNUSED_PARAM)
 {
 	struct stat s;
 

@@ -46,7 +46,7 @@ int lsmod_main(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
 #if ENABLE_FEATURE_LSMOD_PRETTY_2_6_OUTPUT
 	char *token[4];
 	parser_t *parser = config_open("/proc/modules");
-	printf("Module                  Size  Used by"); //vda!
+	printf("%-24sSize  Used by", "Module");
 	check_tainted();
 
 	if (ENABLE_FEATURE_2_4_MODULES

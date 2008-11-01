@@ -115,8 +115,8 @@ int rpm_main(int argc, char **argv)
 		}
 	}
 	argv += optind;
-	argc -= optind;
-	if (!argc) bb_show_usage();
+	//argc -= optind;
+	if (!argv[0]) bb_show_usage();
 
 	while (*argv) {
 		rpm_fd = xopen(*argv++, O_RDONLY);
@@ -251,7 +251,7 @@ static void extract_cpio_gz(int fd)
 static rpm_index **rpm_gettags(int fd, int *num_tags)
 {
 	/* We should never need mode than 200, and realloc later */
-	rpm_index **tags = xzalloc(200 * sizeof(struct rpmtag *));
+	rpm_index **tags = xzalloc(200 * sizeof(tags[0]));
 	int pass, tagindex = 0;
 
 	xlseek(fd, 96, SEEK_CUR); /* Seek past the unused lead */
@@ -265,6 +265,9 @@ static rpm_index **rpm_gettags(int fd, int *num_tags)
 			uint32_t entries; /* Number of entries in header (4 bytes) */
 			uint32_t size; /* Size of store (4 bytes) */
 		} header;
+		struct BUG_header {
+			char BUG_header[sizeof(header) == 16 ? 1 : -1];
+		};
 		rpm_index *tmpindex;
 		int storepos;
 
@@ -278,8 +281,8 @@ static rpm_index **rpm_gettags(int fd, int *num_tags)
 		storepos = xlseek(fd,0,SEEK_CUR) + header.entries * 16;
 
 		while (header.entries--) {
-			tmpindex = tags[tagindex++] = xmalloc(sizeof(rpm_index));
-			xread(fd, tmpindex, sizeof(rpm_index));
+			tmpindex = tags[tagindex++] = xmalloc(sizeof(*tmpindex));
+			xread(fd, tmpindex, sizeof(*tmpindex));
 			tmpindex->tag = ntohl(tmpindex->tag);
 			tmpindex->type = ntohl(tmpindex->type);
 			tmpindex->count = ntohl(tmpindex->count);
@@ -292,7 +295,7 @@ static rpm_index **rpm_gettags(int fd, int *num_tags)
 		if (pass == 0)
 			xlseek(fd, (8 - (xlseek(fd,0,SEEK_CUR) % 8)) % 8, SEEK_CUR);
 	}
-	tags = xrealloc(tags, tagindex * sizeof(struct rpmtag *)); /* realloc tags to save space */
+	tags = xrealloc(tags, tagindex * sizeof(tags[0])); /* realloc tags to save space */
 	*num_tags = tagindex;
 	return tags; /* All done, leave the file at the start of the gzipped cpio archive */
 }

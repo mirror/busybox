@@ -8,6 +8,7 @@
  */
 
 #include "libbb.h"
+#include "unarchive.h"
 
 #define CONFIG_BZIP2_FEATURE_SPEED 1
 
@@ -101,7 +102,7 @@ USE_DESKTOP(long long) int bz_write(bz_stream *strm, void* rbuf, ssize_t rlen, v
 }
 
 static
-USE_DESKTOP(long long) int compressStream(void)
+USE_DESKTOP(long long) int compressStream(unpack_info_t *info UNUSED_PARAM)
 {
 	USE_DESKTOP(long long) int total;
 	ssize_t count;

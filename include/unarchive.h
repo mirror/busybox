@@ -77,6 +77,12 @@ typedef struct archive_handle_t {
 } archive_handle_t;
 
 
+/* Info struct unpackers can fill out to inform users of thing like
+ * timestamps of unpacked files */
+typedef struct unpack_info_t {
+	time_t mtime;
+} unpack_info_t;
+
 extern archive_handle_t *init_handle(void) FAST_FUNC;
 
 extern char filter_accept_all(archive_handle_t *archive_handle) FAST_FUNC;
@@ -126,9 +132,14 @@ USE_DESKTOP(long long) int unpack_lzma_stream(int src_fd, int dst_fd) FAST_FUNC;
 /* the rest wants 2 first bytes already skipped by the caller */
 USE_DESKTOP(long long) int unpack_bz2_stream(int src_fd, int dst_fd) FAST_FUNC;
 USE_DESKTOP(long long) int unpack_gz_stream(int src_fd, int dst_fd) FAST_FUNC;
+USE_DESKTOP(long long) int unpack_gz_stream_with_info(int src_fd, int dst_fd, unpack_info_t *info) FAST_FUNC;
 USE_DESKTOP(long long) int unpack_Z_stream(int fd_in, int fd_out) FAST_FUNC;
 /* wrapper which checks first two bytes to be "BZ" */
 USE_DESKTOP(long long) int unpack_bz2_stream_prime(int src_fd, int dst_fd) FAST_FUNC;
+
+int bbunpack(char **argv,
+	     char* (*make_new_name)(char *filename),
+	     USE_DESKTOP(long long) int (*unpacker)(unpack_info_t *info)) FAST_FUNC;
 
 #if BB_MMU
 void open_transformer(int fd,
