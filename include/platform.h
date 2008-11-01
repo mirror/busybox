@@ -132,6 +132,7 @@
 # define BB_LITTLE_ENDIAN 1
 #endif
 
+/* SWAP_LEnn means "convert CPU<->little_endian by swapping bytes" */
 #if BB_BIG_ENDIAN
 #define SWAP_BE16(x) (x)
 #define SWAP_BE32(x) (x)
