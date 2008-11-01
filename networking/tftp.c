@@ -653,8 +653,15 @@ int tftpd_main(int argc UNUSED_PARAM, char **argv)
 	INIT_G();
 
 	our_lsa = get_sock_lsa(STDIN_FILENO);
-	if (!our_lsa)
-		bb_perror_msg_and_die("stdin is not a socket");
+	if (!our_lsa) {
+		/* This is confusing:
+		 *bb_error_msg_and_die("stdin is not a socket");
+		 * Better: */
+		bb_show_usage();
+		/* Help text says that tftpd must be used as inetd service,
+		 * which is by far the most usual cause of get_sock_lsa
+		 * failure */
+	}
 	peer_lsa = xzalloc(LSA_LEN_SIZE + our_lsa->len);
 	peer_lsa->len = our_lsa->len;
 
