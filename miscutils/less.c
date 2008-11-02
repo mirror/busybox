@@ -96,7 +96,9 @@ struct globals {
 	smallint pattern_valid;
 #endif
 	smallint terminated;
+	smalluint kbd_input_size;
 	struct termios term_orig, term_less;
+	char kbd_input[KEYCODE_BUFFER_SIZE];
 };
 #define G (*ptr_to_globals)
 #define cur_fline           (G.cur_fline         )
@@ -133,6 +135,8 @@ struct globals {
 #define terminated          (G.terminated        )
 #define term_orig           (G.term_orig         )
 #define term_less           (G.term_less         )
+#define kbd_input_size      (G.kbd_input_size    )
+#define kbd_input           (G.kbd_input         )
 #define INIT_G() do { \
 	SET_PTR_TO_GLOBALS(xzalloc(sizeof(G))); \
 	less_gets_pos = -1; \
@@ -806,7 +810,6 @@ static void reinitialize(void)
 
 static ssize_t getch_nowait(void)
 {
-	char input[KEYCODE_BUFFER_SIZE];
 	int rd;
 	struct pollfd pfd[2];
 
@@ -837,22 +840,25 @@ static ssize_t getch_nowait(void)
 	if (less_gets_pos >= 0)
 		move_cursor(max_displayed_line + 2, less_gets_pos + 1);
 	fflush(stdout);
+
+	if (kbd_input_size == 0) {
 #if ENABLE_FEATURE_LESS_WINCH
-	while (1) {
-		int r;
-		/* NB: SIGWINCH interrupts poll() */
-		r = poll(pfd + rd, 2 - rd, -1);
-		if (/*r < 0 && errno == EINTR &&*/ winch_counter)
-			return '\\'; /* anything which has no defined function */
-		if (r) break;
-	}
+		while (1) {
+			int r;
+			/* NB: SIGWINCH interrupts poll() */
+			r = poll(pfd + rd, 2 - rd, -1);
+			if (/*r < 0 && errno == EINTR &&*/ winch_counter)
+				return '\\'; /* anything which has no defined function */
+			if (r) break;
+		}
 #else
-	safe_poll(pfd + rd, 2 - rd, -1);
+		safe_poll(pfd + rd, 2 - rd, -1);
 #endif
+	}
 
 	/* We have kbd_fd in O_NONBLOCK mode, read inside read_key()
 	 * would not block even if there is no input available */
-	rd = read_key(kbd_fd, NULL, input);
+	rd = read_key(kbd_fd, &kbd_input_size, kbd_input);
 	if (rd == -1) {
 		if (errno == EAGAIN) {
 			/* No keyboard input available. Since poll() did return,
