@@ -15,8 +15,11 @@
 #include "libbb.h"
 
 /*
- *  I'm only implementing non-interactive mode;
- *  I totally forgot nslookup even had an interactive mode.
+ * I'm only implementing non-interactive mode;
+ * I totally forgot nslookup even had an interactive mode.
+ *
+ * This applet is the only user of res_init(). Without it,
+ * you may avoid pulling in _res global from libc.
  */
 
 /* Examples of 'standard' nslookup output
@@ -51,7 +54,6 @@ static int print_host(const char *hostname, const char *header)
 {
 	/* We can't use xhost2sockaddr() - we want to get ALL addresses,
 	 * not just one */
-
 	struct addrinfo *result = NULL;
 	int rc;
 	struct addrinfo hint;
@@ -116,7 +118,7 @@ static void server_print(void)
 }
 
 /* alter the global _res nameserver structure to use
-   an explicit dns server instead of what is in /etc/resolv.h */
+   an explicit dns server instead of what is in /etc/resolv.conf */
 static void set_default_dns(char *server)
 {
 	struct in_addr server_in_addr;
@@ -135,18 +137,17 @@ int nslookup_main(int argc, char **argv)
 	 * optional DNS server with which to do the lookup.
 	 * More than 3 arguments is an error to follow the pattern of the
 	 * standard nslookup */
-
-	if (argc < 2 || *argv[1] == '-' || argc > 3)
+	if (!argv[1] || argv[1][0] == '-' || argc > 3)
 		bb_show_usage();
 
 	/* initialize DNS structure _res used in printing the default
 	 * name server and in the explicit name server option feature. */
 	res_init();
 	/* rfc2133 says this enables IPv6 lookups */
-	/* (but it also says "may be enabled in /etc/resolv.conf|) */
+	/* (but it also says "may be enabled in /etc/resolv.conf") */
 	/*_res.options |= RES_USE_INET6;*/
 
-	if (argc == 3)
+	if (argv[2])
 		set_default_dns(argv[2]);
 
 	server_print();

@@ -63,9 +63,6 @@ int FAST_FUNC INET_resolve(const char *name, struct sockaddr_in *s_in, int hostf
 #ifdef DEBUG
 	res_init();
 	_res.options |= RES_DEBUG;
-#endif
-
-#ifdef DEBUG
 	bb_error_msg("gethostbyname(%s)", name);
 #endif
 	hp = gethostbyname(name);
