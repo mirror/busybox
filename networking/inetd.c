@@ -223,7 +223,7 @@ typedef struct servtab_t {
 	smallint se_checked;                  /* looked at during merge */
 	unsigned se_max;                      /* allowed instances per minute */
 	unsigned se_count;                    /* number started since se_time */
-	unsigned se_time;                     /* whem we started counting */
+	unsigned se_time;                     /* when we started counting */
 	char *se_user;                        /* user name to run as */
 	char *se_group;                       /* group name to run as, can be NULL */
 #ifdef INETD_BUILTINS_ENABLED
@@ -295,8 +295,10 @@ struct globals {
 	struct rlimit rlim_ofile;
 	servtab_t *serv_list;
 	int global_queuelen;
+	int maxsock;		/* max fd# in allsock, -1: unknown */
+	/* whenever maxsock grows, prev_maxsock is set to new maxsock,
+	 * but if maxsock is set to -1, prev_maxsock is not changed */
 	int prev_maxsock;
-	int maxsock;
 	unsigned max_concurrency;
 	smallint alarm_armed;
 	uid_t real_uid; /* user ID who ran us */
@@ -321,8 +323,8 @@ struct BUG_G_too_big {
 #define rlim_ofile      (G.rlim_ofile     )
 #define serv_list       (G.serv_list      )
 #define global_queuelen (G.global_queuelen)
-#define prev_maxsock    (G.prev_maxsock   )
 #define maxsock         (G.maxsock        )
+#define prev_maxsock    (G.prev_maxsock   )
 #define max_concurrency (G.max_concurrency)
 #define alarm_armed     (G.alarm_armed    )
 #define real_uid        (G.real_uid       )
@@ -459,7 +461,7 @@ static void add_fd_to_set(int fd)
 		FD_SET(fd, &allsock);
 		if (maxsock >= 0 && fd > maxsock) {
 			prev_maxsock = maxsock = fd;
-			if ((rlim_t)maxsock > rlim_ofile_cur - FD_MARGIN)
+			if ((rlim_t)fd > rlim_ofile_cur - FD_MARGIN)
 				bump_nofile();
 		}
 	}
@@ -468,6 +470,10 @@ static void add_fd_to_set(int fd)
 static void recalculate_maxsock(void)
 {
 	int fd = 0;
+
+	/* We may have no services, in this case maxsock should still be >= 0
+	 * (code elsewhere is not happy with maxsock == -1) */
+	maxsock = 0;
 	while (fd <= prev_maxsock) {
 		if (FD_ISSET(fd, &allsock))
 			maxsock = fd;
@@ -1161,7 +1167,8 @@ int inetd_main(int argc UNUSED_PARAM, char **argv)
 
 		readable = allsock; /* struct copy */
 		/* if there are no fds to wait on, we will block
-		 * until signal wakes us up */
+		 * until signal wakes us up (maxsock == 0, but readable
+		 * never contains fds 0 and 1...) */
 		ready_fd_cnt = select(maxsock + 1, &readable, NULL, NULL, NULL);
 		if (ready_fd_cnt < 0) {
 			if (errno != EINTR) {
@@ -1418,7 +1425,7 @@ static void echo_dg(int s, servtab_t *sep)
 
 
 #if ENABLE_FEATURE_INETD_SUPPORT_BUILTIN_DISCARD
-/* Discard service -- ignore data. MMU arches only. */
+/* Discard service -- ignore data. */
 /* ARGSUSED */
 static void discard_stream(int s, servtab_t *sep UNUSED_PARAM)
 {
