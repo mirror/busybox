@@ -60,7 +60,7 @@ static int print_group(gid_t id, const char *prefix)
 	return print_common(id, bb_getgrgid, prefix);
 }
 
-static int print_user(gid_t id, const char *prefix)
+static int print_user(uid_t id, const char *prefix)
 {
 	return print_common(id, bb_getpwuid, prefix);
 }
