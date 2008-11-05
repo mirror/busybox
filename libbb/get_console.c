@@ -13,7 +13,6 @@
 /* From <linux/kd.h> */
 enum { KDGKBTYPE = 0x4B33 };  /* get keyboard type */
 
-
 static int open_a_console(const char *fnam)
 {
 	int fd;
@@ -37,7 +36,6 @@ static int open_a_console(const char *fnam)
  * We try several things because opening /dev/console will fail
  * if someone else used X (which does a chown on /dev/console).
  */
-
 int FAST_FUNC get_console_fd_or_die(void)
 {
 	static const char *const console_names[] = {

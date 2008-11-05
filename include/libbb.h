@@ -1142,6 +1142,8 @@ extern void print_login_prompt(void) FAST_FUNC;
 /* NB: typically you want to pass fd 0, not 1. Think 'applet | grep something' */
 int get_terminal_width_height(int fd, unsigned *width, unsigned *height) FAST_FUNC;
 
+int tcsetattr_stdin_TCSANOW(const struct termios *tp) FAST_FUNC;
+
 /* NB: "unsigned request" is crucial! "int request" will break some arches! */
 int ioctl_or_perror(int fd, unsigned request, void *argp, const char *fmt,...) __attribute__ ((format (printf, 4, 5))) FAST_FUNC;
 int ioctl_or_perror_and_die(int fd, unsigned request, void *argp, const char *fmt,...) __attribute__ ((format (printf, 4, 5))) FAST_FUNC;

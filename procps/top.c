@@ -649,7 +649,7 @@ static void clearmems(void)
 
 static void reset_term(void)
 {
-	tcsetattr(0, TCSANOW, &initial_settings);
+	tcsetattr_stdin_TCSANOW(&initial_settings);
 	if (ENABLE_FEATURE_CLEAN_UP) {
 		clearmems();
 #if ENABLE_FEATURE_TOP_CPU_USAGE_PERCENTAGE
@@ -941,7 +941,7 @@ int top_main(int argc UNUSED_PARAM, char **argv)
 	new_settings.c_lflag &= ~(ISIG | ICANON | ECHO | ECHONL);
 
 	bb_signals(BB_FATAL_SIGS, sig_catcher);
-	tcsetattr(0, TCSANOW, (void *) &new_settings);
+	tcsetattr_stdin_TCSANOW(&new_settings);
 #endif /* FEATURE_USE_TERMIOS */
 
 #if ENABLE_FEATURE_TOP_CPU_USAGE_PERCENTAGE

@@ -87,7 +87,7 @@ int vlock_main(int argc UNUSED_PARAM, char **argv)
 	term.c_iflag |= IGNBRK;
 	term.c_lflag &= ~ISIG;
 	term.c_lflag &= ~(ECHO | ECHOCTL);
-	tcsetattr(STDIN_FILENO, TCSANOW, &term);
+	tcsetattr_stdin_TCSANOW(&term);
 
 	do {
 		printf("Virtual console%s locked by %s.\n",
@@ -101,6 +101,6 @@ int vlock_main(int argc UNUSED_PARAM, char **argv)
 	} while (1);
 
 	ioctl(STDIN_FILENO, VT_SETMODE, &ovtm);
-	tcsetattr(STDIN_FILENO, TCSANOW, &oterm);
+	tcsetattr_stdin_TCSANOW(&oterm);
 	fflush_stdout_and_exit(EXIT_SUCCESS);
 }

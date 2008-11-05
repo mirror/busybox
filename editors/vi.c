@@ -2106,13 +2106,13 @@ static void rawmode(void)
 	term_vi.c_cc[VMIN] = 1;
 	term_vi.c_cc[VTIME] = 0;
 	erase_char = term_vi.c_cc[VERASE];
-	tcsetattr(0, TCSANOW, &term_vi);
+	tcsetattr_stdin_TCSANOW(&term_vi);
 }
 
 static void cookmode(void)
 {
 	fflush(stdout);
-	tcsetattr(0, TCSANOW, &term_orig);
+	tcsetattr_stdin_TCSANOW(&term_orig);
 }
 
 //----- Come here when we get a window resize signal ---------

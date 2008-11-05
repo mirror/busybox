@@ -293,7 +293,7 @@ static void die(const char *str) NORETURN;
 static void die(const char *str)
 {
 	if (termios_set)
-		tcsetattr(0, TCSANOW, &sv_termios);
+		tcsetattr_stdin_TCSANOW(&sv_termios);
 	bb_error_msg_and_die("%s", str);
 }
 
@@ -1254,7 +1254,7 @@ int fsck_minix_main(int argc UNUSED_PARAM, char **argv)
 		tcgetattr(0, &sv_termios);
 		tmp = sv_termios;
 		tmp.c_lflag &= ~(ICANON | ECHO);
-		tcsetattr(0, TCSANOW, &tmp);
+		tcsetattr_stdin_TCSANOW(&tmp);
 		termios_set = 1;
 	}
 
@@ -1299,7 +1299,7 @@ int fsck_minix_main(int argc UNUSED_PARAM, char **argv)
 		write_superblock();
 
 	if (OPT_manual)
-		tcsetattr(0, TCSANOW, &sv_termios);
+		tcsetattr_stdin_TCSANOW(&sv_termios);
 
 	if (changed)
 		retcode += 3;

@@ -261,7 +261,7 @@ static void set_sane_term(void)
 	tty.c_lflag =
 		ISIG | ICANON | ECHO | ECHOE | ECHOK | ECHOCTL | ECHOKE | IEXTEN;
 
-	tcsetattr(STDIN_FILENO, TCSANOW, &tty);
+	tcsetattr_stdin_TCSANOW(&tty);
 }
 
 /* Open the new terminal device.

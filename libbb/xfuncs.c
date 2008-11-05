@@ -289,3 +289,8 @@ int FAST_FUNC get_terminal_width_height(int fd, unsigned *width, unsigned *heigh
 
 	return ret;
 }
+
+int FAST_FUNC tcsetattr_stdin_TCSANOW(const struct termios *tp)
+{
+	return tcsetattr(STDIN_FILENO, TCSANOW, tp);
+}

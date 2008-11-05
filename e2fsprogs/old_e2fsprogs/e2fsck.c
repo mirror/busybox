@@ -12281,7 +12281,7 @@ static int ask_yn(const char * string, int def)
 	tmp.c_lflag &= ~(ICANON | ECHO);
 	tmp.c_cc[VMIN] = 1;
 	tmp.c_cc[VTIME] = 0;
-	tcsetattr (0, TCSANOW, &tmp);
+	tcsetattr_stdin_TCSANOW(&tmp);
 #endif
 
 	if (def == 1)
@@ -12297,7 +12297,7 @@ static int ask_yn(const char * string, int def)
 			break;
 		if (c == 3) {
 #ifdef HAVE_TERMIOS_H
-			tcsetattr (0, TCSANOW, &termios);
+			tcsetattr_stdin_TCSANOW(&termios);
 #endif
 			if (e2fsck_global_ctx &&
 			    e2fsck_global_ctx->flags & E2F_FLAG_SETJMP_OK) {
@@ -12323,7 +12323,7 @@ static int ask_yn(const char * string, int def)
 	else
 		puts ("no\n");
 #ifdef HAVE_TERMIOS_H
-	tcsetattr (0, TCSANOW, &termios);
+	tcsetattr_stdin_TCSANOW(&termios);
 #endif
 	return def;
 }

@@ -279,7 +279,7 @@ static void termios_init(struct termios *tp, int speed, struct options *op)
 	 */
 #ifdef __linux__
 	/* flush input and output queues, important for modems! */
-	ioctl(0, TCFLSH, TCIOFLUSH);
+	ioctl(0, TCFLSH, TCIOFLUSH); /* tcflush(0, TCIOFLUSH)? - same */
 #endif
 
 	tp->c_cflag = CS8 | HUPCL | CREAD | speed;
@@ -297,7 +297,7 @@ static void termios_init(struct termios *tp, int speed, struct options *op)
 		tp->c_cflag |= CRTSCTS;
 #endif
 
-	ioctl(0, TCSETS, tp);
+	tcsetattr_stdin_TCSANOW(tp);
 
 	debug("term_io 2\n");
 }
@@ -334,7 +334,7 @@ static void auto_baud(char *buf, unsigned size_buf, struct termios *tp)
 	tp->c_iflag |= ISTRIP;          /* enable 8th-bit stripping */
 	vmin = tp->c_cc[VMIN];
 	tp->c_cc[VMIN] = 0;             /* don't block if queue empty */
-	ioctl(0, TCSETS, tp);
+	tcsetattr_stdin_TCSANOW(tp);
 
 	/*
 	 * Wait for a while, then read everything the modem has said so far and
@@ -359,7 +359,7 @@ static void auto_baud(char *buf, unsigned size_buf, struct termios *tp)
 	/* Restore terminal settings. Errors will be dealt with later on. */
 	tp->c_iflag = iflag;
 	tp->c_cc[VMIN] = vmin;
-	ioctl(0, TCSETS, tp);
+	tcsetattr_stdin_TCSANOW(tp);
 }
 
 /* do_prompt - show login prompt, optionally preceded by /etc/issue contents */
@@ -404,7 +404,7 @@ static char *get_logname(char *logname, unsigned size_logname,
 
 	/* Flush pending input (esp. after parsing or switching the baud rate). */
 	sleep(1);
-	ioctl(0, TCFLSH, TCIFLUSH);
+	ioctl(0, TCFLSH, TCIFLUSH); /* tcflush(0, TCIOFLUSH)? - same */
 
 	/* Prompt for and read a login name. */
 	logname[0] = '\0';
@@ -552,12 +552,13 @@ static void termios_final(struct options *op, struct termios *tp, struct chardat
 	}
 #endif
 	/* Optionally enable hardware flow control */
-#ifdef  CRTSCTS
+#ifdef CRTSCTS
 	if (op->flags & F_RTSCTS)
 		tp->c_cflag |= CRTSCTS;
 #endif
 
 	/* Finally, make the new settings effective */
+	/* It's tcsetattr_stdin_TCSANOW() + error check */
 	ioctl_or_perror_and_die(0, TCSETS, tp, "%s: TCSETS", op->tty);
 }
 
@@ -689,6 +690,7 @@ int getty_main(int argc UNUSED_PARAM, char **argv)
 	 * by patching the SunOS kernel variable "zsadtrlow" to a larger value;
 	 * 5 seconds seems to be a good value.
 	 */
+	/* tcgetattr() + error check */
 	ioctl_or_perror_and_die(0, TCGETS, &termios, "%s: TCGETS", options.tty);
 
 #ifdef __linux__
@@ -753,7 +755,7 @@ int getty_main(int argc UNUSED_PARAM, char **argv)
 			baud_index = (baud_index + 1) % options.numspeed;
 			termios.c_cflag &= ~CBAUD;
 			termios.c_cflag |= options.speeds[baud_index];
-			ioctl(0, TCSETS, &termios);
+			tcsetattr_stdin_TCSANOW(&termios);
 		}
 	}
 

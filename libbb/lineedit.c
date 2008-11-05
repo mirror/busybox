@@ -1436,7 +1436,7 @@ int FAST_FUNC read_line_input(const char *prompt, char *command, int maxsize, li
 #define _POSIX_VDISABLE '\0'
 #endif
 	new_settings.c_cc[VINTR] = _POSIX_VDISABLE;
-	tcsetattr(STDIN_FILENO, TCSANOW, &new_settings);
+	tcsetattr_stdin_TCSANOW(&new_settings);
 
 	/* Now initialize things */
 	previous_SIGWINCH_handler = signal(SIGWINCH, win_changed);
@@ -1860,7 +1860,7 @@ int FAST_FUNC read_line_input(const char *prompt, char *command, int maxsize, li
 #endif
 
 	/* restore initial_settings */
-	tcsetattr(STDIN_FILENO, TCSANOW, &initial_settings);
+	tcsetattr_stdin_TCSANOW(&initial_settings);
 	/* restore SIGWINCH handler */
 	signal(SIGWINCH, previous_SIGWINCH_handler);
 	fflush(stdout);

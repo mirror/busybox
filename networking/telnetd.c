@@ -243,7 +243,7 @@ make_new_session(
 	termbuf.c_iflag |= ICRNL;
 	termbuf.c_iflag &= ~IXOFF;
 	/*termbuf.c_lflag &= ~ICANON;*/
-	tcsetattr(0, TCSANOW, &termbuf);
+	tcsetattr_stdin_TCSANOW(&termbuf);
 
 	/* Uses FILE-based I/O to stdout, but does fflush(stdout),
 	 * so should be safe with vfork.
