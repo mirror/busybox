@@ -48,5 +48,6 @@ int basename_main(int argc, char **argv)
 
 	/* puts(s) will do, but we can do without stdio this way: */
 	s[m++] = '\n';
-	return full_write(STDOUT_FILENO, s, m) == (ssize_t)m;
+	/* NB: != is correct here: */
+	return full_write(STDOUT_FILENO, s, m) != (ssize_t)m;
 }
