@@ -197,7 +197,7 @@ int loadfont_main(int argc UNUSED_PARAM, char **argv)
 	 * just read the entire file.
 	 */
 	len = 32*1024; // can't be larger
-	psfhdr = (struct psf_header *) xmalloc_read(STDIN_FILENO, &len);
+	psfhdr = xmalloc_read(STDIN_FILENO, &len);
 	// xmalloc_open_zipped_read_close(filename, &len);
 	if (!psfhdr)
 		bb_perror_msg_and_die("error reading input font");
@@ -282,7 +282,7 @@ int setfont_main(int argc UNUSED_PARAM, char **argv)
 	}
 	// load font
 	len = 32*1024; // can't be larger
-	psfhdr = (struct psf_header *) xmalloc_open_zipped_read_close(*argv, &len);
+	psfhdr = xmalloc_open_zipped_read_close(*argv, &len);
 	if (!psfhdr)
 		bb_simple_perror_msg_and_die(*argv);
 	do_load(fd, psfhdr, len);

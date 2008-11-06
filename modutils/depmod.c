@@ -50,7 +50,7 @@ static int FAST_FUNC parse_module(const char *fname, struct stat *sb,
 	if (strrstr(fname, ".ko") == NULL)
 		return TRUE;
 
-	image = (char *) xmalloc_open_zipped_read_close(fname, &len);
+	image = xmalloc_open_zipped_read_close(fname, &len);
 	info = xzalloc(sizeof(module_info));
 
 	info->next = *first;

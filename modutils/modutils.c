@@ -123,7 +123,7 @@ int FAST_FUNC bb_init_module(const char *filename, const char *options)
 #endif
 
 	/* Use the 2.6 way */
-	image = (char *) xmalloc_open_zipped_read_close(filename, &len);
+	image = xmalloc_open_zipped_read_close(filename, &len);
 	if (image) {
 		if (init_module(image, len, options) != 0)
 			rc = errno;
