@@ -66,9 +66,9 @@ pid_t FAST_FUNC xspawn(char **argv)
 	return pid;
 }
 
-int FAST_FUNC safe_waitpid(int pid, int *wstat, int options)
+pid_t FAST_FUNC safe_waitpid(pid_t pid, int *wstat, int options)
 {
-	int r;
+	pid_t r;
 
 	do
 		r = waitpid(pid, wstat, options);
@@ -76,13 +76,13 @@ int FAST_FUNC safe_waitpid(int pid, int *wstat, int options)
 	return r;
 }
 
-int FAST_FUNC wait_any_nohang(int *wstat)
+pid_t FAST_FUNC wait_any_nohang(int *wstat)
 {
 	return safe_waitpid(-1, wstat, WNOHANG);
 }
 
 // Wait for the specified child PID to exit, returning child's error return.
-int FAST_FUNC wait4pid(int pid)
+int FAST_FUNC wait4pid(pid_t pid)
 {
 	int status;
 

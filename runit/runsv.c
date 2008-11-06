@@ -247,7 +247,7 @@ static void update_status(struct svdir *s)
 
 static unsigned custom(struct svdir *s, char c)
 {
-	int pid;
+	pid_t pid;
 	int w;
 	char a[10];
 	struct stat st;
@@ -584,7 +584,7 @@ int runsv_main(int argc UNUSED_PARAM, char **argv)
 			continue;
 
 		for (;;) {
-			int child;
+			pid_t child;
 			int wstat;
 
 			child = wait_any_nohang(&wstat);

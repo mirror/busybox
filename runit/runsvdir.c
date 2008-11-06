@@ -107,7 +107,7 @@ static NOINLINE pid_t runsv(const char *name)
 	}
 	if (pid == 0) {
 		/* child */
-		if (option_mask32) /* -P option? */
+		if (option_mask32 & 1) /* -P option? */
 			setsid();
 /* man execv:
  * "Signals set to be caught by the calling process image
@@ -217,17 +217,20 @@ int runsvdir_main(int argc UNUSED_PARAM, char **argv)
 	time_t last_mtime = 0;
 	int wstat;
 	int curdir;
-	int pid;
+	pid_t pid;
 	unsigned deadline;
 	unsigned now;
 	unsigned stampcheck;
 	int i;
 	int need_rescan = 1;
+	char *opt_s_argv[3];
 
 	INIT_G();
 
 	opt_complementary = "-1";
-	getopt32(argv, "P");
+	opt_s_argv[0] = NULL;
+	opt_s_argv[2] = NULL;
+	getopt32(argv, "Ps:", &opt_s_argv[0]);
 	argv += optind;
 
 	bb_signals(0
@@ -335,7 +338,6 @@ int runsvdir_main(int argc UNUSED_PARAM, char **argv)
 		pfd[0].revents = 0;
 #endif
 		deadline = (need_rescan ? 1 : 5);
- do_sleep:
 		sig_block(SIGCHLD);
 #if ENABLE_FEATURE_RUNSVDIR_LOG
 		if (rplog)
@@ -357,27 +359,37 @@ int runsvdir_main(int argc UNUSED_PARAM, char **argv)
 			}
 		}
 #endif
+		if (!bb_got_signal)
+			continue;
+
+		/* -s SCRIPT: useful if we are init.
+		 * In this case typically script never returns,
+		 * it halts/powers off/reboots the system. */
+		if (opt_s_argv[0]) {
+			/* Single parameter: signal# */
+			opt_s_argv[1] = utoa(bb_got_signal);
+			pid = spawn(opt_s_argv);
+			if (pid > 0) {
+				/* Remebering to wait for _any_ children,
+				 * not just pid */
+				while (wait(NULL) != pid)
+					continue;
+			}
+		}
+
 		switch (bb_got_signal) {
-		case 0: /* we are not signaled, business as usual */
-			break;
 		case SIGHUP:
 			for (i = 0; i < svnum; i++)
 				if (sv[i].pid)
 					kill(sv[i].pid, SIGTERM);
-			/* fall through */
-		case SIGTERM:
-			/* exit, unless we are init */
-			if (getpid() != 1)
-				goto ret;
-		default:
-			/* so we are init. do not exit,
-			 * and pause respawning - we may be rebooting
-			 * (but SIGHUP is not a reboot, make short pause) */
-			deadline = (SIGHUP == bb_got_signal) ? 5 : 60;
-			bb_got_signal = 0;
-			goto do_sleep;
+			/* Fall through */
+		default: /* SIGTERM (or SIGUSRn if we are init) */
+			/* Exit unless we are init */
+			if (getpid() == 1)
+				break;
+			return (SIGHUP == bb_got_signal) ? 111 : EXIT_SUCCESS;
 		}
-	}
- ret:
-	return (SIGHUP == bb_got_signal) ? 111 : EXIT_SUCCESS;
+
+		bb_got_signal = 0;
+	} /* for (;;) */
 }

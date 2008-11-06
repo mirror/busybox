@@ -797,7 +797,8 @@ static void sig_term_handler(int sig_no UNUSED_PARAM)
 
 static void sig_child_handler(int sig_no UNUSED_PARAM)
 {
-	int pid, l;
+	pid_t pid;
+	int l;
 
 	if (verbose)
 		bb_error_msg(INFO"sig%s received", "child");

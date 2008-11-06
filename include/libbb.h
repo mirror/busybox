@@ -743,7 +743,7 @@ int bb_execvp(const char *file, char *const argv[]) FAST_FUNC;
 pid_t spawn(char **argv) FAST_FUNC;
 pid_t xspawn(char **argv) FAST_FUNC;
 
-int safe_waitpid(int pid, int *wstat, int options) FAST_FUNC;
+pid_t safe_waitpid(pid_t pid, int *wstat, int options) FAST_FUNC;
 /* Unlike waitpid, waits ONLY for one process.
  * It's safe to pass negative 'pids' from failed [v]fork -
  * wait4pid will return -1 (and will not clobber [v]fork's errno).
@@ -751,14 +751,14 @@ int safe_waitpid(int pid, int *wstat, int options) FAST_FUNC;
  *      if (rc < 0) bb_perror_msg("%s", argv[0]);
  *      if (rc > 0) bb_error_msg("exit code: %d", rc);
  */
-int wait4pid(int pid) FAST_FUNC;
-int wait_any_nohang(int *wstat) FAST_FUNC;
+int wait4pid(pid_t pid) FAST_FUNC;
+pid_t wait_any_nohang(int *wstat) FAST_FUNC;
 #define wait_crashed(w) ((w) & 127)
 #define wait_exitcode(w) ((w) >> 8)
 #define wait_stopsig(w) ((w) >> 8)
 #define wait_stopped(w) (((w) & 127) == 127)
 /* wait4pid(spawn(argv)) + NOFORK/NOEXEC (if configured) */
-int spawn_and_wait(char **argv) FAST_FUNC;
+pid_t spawn_and_wait(char **argv) FAST_FUNC;
 struct nofork_save_area {
 	jmp_buf die_jmp;
 	const char *applet_name;

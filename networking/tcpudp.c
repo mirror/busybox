@@ -147,7 +147,7 @@ static void connection_status(void)
 static void sig_child_handler(int sig UNUSED_PARAM)
 {
 	int wstat;
-	int pid;
+	pid_t pid;
 
 	while ((pid = wait_any_nohang(&wstat)) > 0) {
 		if (max_per_host)
