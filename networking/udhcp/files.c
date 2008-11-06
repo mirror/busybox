@@ -90,7 +90,7 @@ static void attach_option(struct option_set **opt_list,
 	if (!existing) {
 		DEBUG("Attaching option %02x to list", option->code);
 
-#if ENABLE_FEATURE_RFC3397
+#if ENABLE_FEATURE_UDHCP_RFC3397
 		if ((option->flags & TYPE_MASK) == OPTION_STR1035)
 			/* reuse buffer and length for RFC1035-formatted string */
 			buffer = (char *)dname_enc(NULL, 0, buffer, &length);
@@ -109,7 +109,7 @@ static void attach_option(struct option_set **opt_list,
 
 		new->next = *curr;
 		*curr = new;
-#if ENABLE_FEATURE_RFC3397
+#if ENABLE_FEATURE_UDHCP_RFC3397
 		if ((option->flags & TYPE_MASK) == OPTION_STR1035 && buffer != NULL)
 			free(buffer);
 #endif
@@ -119,7 +119,7 @@ static void attach_option(struct option_set **opt_list,
 	/* add it to an existing option */
 	DEBUG("Attaching option %02x to existing member of list", option->code);
 	if (option->flags & OPTION_LIST) {
-#if ENABLE_FEATURE_RFC3397
+#if ENABLE_FEATURE_UDHCP_RFC3397
 		if ((option->flags & TYPE_MASK) == OPTION_STR1035)
 			/* reuse buffer and length for RFC1035-formatted string */
 			buffer = (char *)dname_enc(existing->data + 2,
@@ -139,7 +139,7 @@ static void attach_option(struct option_set **opt_list,
 			memcpy(existing->data + existing->data[OPT_LEN] + 2, buffer, length);
 			existing->data[OPT_LEN] += length;
 		} /* else, ignore the data, we could put this in a second option in the future */
-#if ENABLE_FEATURE_RFC3397
+#if ENABLE_FEATURE_UDHCP_RFC3397
 		if ((option->flags & TYPE_MASK) == OPTION_STR1035 && buffer != NULL)
 			free(buffer);
 #endif
@@ -190,7 +190,7 @@ static int read_opt(const char *const_line, void *arg)
 				retval = read_ip(val, buffer + 4);
 			break;
 		case OPTION_STRING:
-#if ENABLE_FEATURE_RFC3397
+#if ENABLE_FEATURE_UDHCP_RFC3397
 		case OPTION_STR1035:
 #endif
 			length = strlen(val);
@@ -266,7 +266,7 @@ static int read_staticlease(const char *const_line, void *arg)
 
 	addStaticLease(arg, mac_bytes, ip);
 
-	if (ENABLE_FEATURE_UDHCP_DEBUG) printStaticLeases(arg);
+	if (ENABLE_UDHCP_DEBUG) printStaticLeases(arg);
 
 	return 1;
 }

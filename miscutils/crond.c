@@ -80,9 +80,9 @@ enum {
 	OPT_b = (1 << 3),
 	OPT_S = (1 << 4),
 	OPT_c = (1 << 5),
-	OPT_d = (1 << 6) * ENABLE_DEBUG_CROND_OPTION,
+	OPT_d = (1 << 6) * ENABLE_FEATURE_CROND_D,
 };
-#if ENABLE_DEBUG_CROND_OPTION
+#if ENABLE_FEATURE_CROND_D
 #define DebugOpt (option_mask32 & OPT_d)
 #else
 #define DebugOpt 0
@@ -166,11 +166,11 @@ int crond_main(int argc UNUSED_PARAM, char **argv)
 	INIT_G();
 
 	/* "-b after -f is ignored", and so on for every pair a-b */
-	opt_complementary = "f-b:b-f:S-L:L-S" USE_DEBUG_CROND_OPTION(":d-l")
+	opt_complementary = "f-b:b-f:S-L:L-S" USE_FEATURE_CROND_D(":d-l")
 			":l+:d+"; /* -l and -d have numeric param */
-	opt = getopt32(argv, "l:L:fbSc:" USE_DEBUG_CROND_OPTION("d:"),
+	opt = getopt32(argv, "l:L:fbSc:" USE_FEATURE_CROND_D("d:"),
 			&LogLevel, &LogFile, &CDir
-			USE_DEBUG_CROND_OPTION(,&LogLevel));
+			USE_FEATURE_CROND_D(,&LogLevel));
 	/* both -d N and -l N set the same variable: LogLevel */
 
 	if (!(opt & OPT_f)) {

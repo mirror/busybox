@@ -403,10 +403,8 @@ config FEATURE_USE_TERMIOS
 	  unable to move the cursor.
 
 config VOLUMEID
-	bool "Routines for detecting label and uuid on common filesystems"
+	bool #No description makes it a hidden option
 	default n
-	help
-	  TODO
 
 config FEATURE_VOLUMEID_EXT
 	bool "Ext filesystem"

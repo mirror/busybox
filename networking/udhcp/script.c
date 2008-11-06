@@ -18,7 +18,7 @@ static const uint8_t max_option_length[] = {
 	[OPTION_IP] =		sizeof("255.255.255.255 "),
 	[OPTION_IP_PAIR] =	sizeof("255.255.255.255 ") * 2,
 	[OPTION_STRING] =	1,
-#if ENABLE_FEATURE_RFC3397
+#if ENABLE_FEATURE_UDHCP_RFC3397
 	[OPTION_STR1035] =	1,
 #endif
 	[OPTION_BOOLEAN] =	sizeof("yes "),
@@ -109,7 +109,7 @@ static char *alloc_fill_opts(uint8_t *option, const struct dhcp_option *type_p, 
 			memcpy(dest, option, len);
 			dest[len] = '\0';
 			return ret;	 /* Short circuit this case */
-#if ENABLE_FEATURE_RFC3397
+#if ENABLE_FEATURE_UDHCP_RFC3397
 		case OPTION_STR1035:
 			/* unpack option into dest; use ret for prefix (i.e., "optname=") */
 			dest = dname_dec(option, len, ret);

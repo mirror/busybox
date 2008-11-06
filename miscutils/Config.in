@@ -107,7 +107,7 @@ config CROND
 	      # Run daily cron jobs at 4:40 every day:
 	      40 4 * * * /etc/cron/daily > /dev/null 2>&1
 
-config DEBUG_CROND_OPTION
+config FEATURE_CROND_D
 	bool "Support option -d to redirect output to stderr"
 	depends on CROND
 	default n

@@ -43,7 +43,7 @@ const struct dhcp_option dhcp_options[] = {
 	{ OPTION_STRING                           , 0x42 }, /* tftp               */
 	{ OPTION_STRING                           , 0x43 }, /* bootfile           */
 	{ OPTION_STRING                           , 0x4D }, /* userclass          */
-#if ENABLE_FEATURE_RFC3397
+#if ENABLE_FEATURE_UDHCP_RFC3397
 	{ OPTION_STR1035 | OPTION_LIST            , 0x77 }, /* search             */
 #endif
 	/* MSIE's "Web Proxy Autodiscovery Protocol" support */
@@ -92,7 +92,7 @@ const char dhcp_option_strings[] ALIGN1 =
 	"tftp" "\0"
 	"bootfile" "\0"
 	"userclass" "\0"
-#if ENABLE_FEATURE_RFC3397
+#if ENABLE_FEATURE_UDHCP_RFC3397
 	"search" "\0"
 #endif
 	/* MSIE's "Web Proxy Autodiscovery Protocol" support */
@@ -106,7 +106,7 @@ const uint8_t dhcp_option_lengths[] ALIGN1 = {
 	[OPTION_IP_PAIR] = 8,
 	[OPTION_BOOLEAN] = 1,
 	[OPTION_STRING] =  1,
-#if ENABLE_FEATURE_RFC3397
+#if ENABLE_FEATURE_UDHCP_RFC3397
 	[OPTION_STR1035] = 1,
 #endif
 	[OPTION_U8] =      1,

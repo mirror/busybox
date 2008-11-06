@@ -1037,7 +1037,7 @@ enum {
 	PARSE_GREEDY    = 0x00040000, // last token takes entire remainder of the line
 	PARSE_MIN_DIE   = 0x00100000, // die if < min tokens found
 	// keep a copy of current line
-	PARSE_KEEP_COPY = 0x00200000 * ENABLE_DEBUG_CROND_OPTION,
+	PARSE_KEEP_COPY = 0x00200000 * ENABLE_FEATURE_CROND_D,
 //	PARSE_ESCAPE    = 0x00400000, // process escape sequences in tokens
 	// NORMAL is:
 	// * remove leading and trailing delimiters and collapse

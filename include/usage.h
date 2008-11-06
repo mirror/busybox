@@ -535,13 +535,13 @@
      "\n	F	Input from file" \
 
 #define crond_trivial_usage \
-       "-fbS -l N " USE_DEBUG_CROND_OPTION("-d N ") "-L LOGFILE -c DIR"
+       "-fbS -l N " USE_FEATURE_CROND_D("-d N ") "-L LOGFILE -c DIR"
 #define crond_full_usage "\n\n" \
        "	-f	Foreground" \
      "\n	-b	Background (default)" \
      "\n	-S	Log to syslog (default)" \
      "\n	-l	Set log level. 0 is the most verbose, default 8" \
-	USE_DEBUG_CROND_OPTION( \
+	USE_FEATURE_CROND_D( \
      "\n	-d	Set log level, log to stderr" \
 	) \
      "\n	-L	Log to file" \
@@ -4349,7 +4349,7 @@
      "\n	-C,--clientid-none	Suppress default client identifier" \
      "\n	-p,--pidfile=file	Create pidfile" \
      "\n	-r,--request=IP		IP address to request" \
-     "\n	-s,--script=file	Run file at DHCP events (default "CONFIG_DHCPC_DEFAULT_SCRIPT")" \
+     "\n	-s,--script=file	Run file at DHCP events (default "CONFIG_UDHCPC_DEFAULT_SCRIPT")" \
      "\n	-t,--retries=N		Send up to N request packets" \
      "\n	-T,--timeout=N		Try to get a lease for N seconds (default 3)" \
      "\n	-A,--tryagain=N		Wait N seconds (default 20) after failure" \
@@ -4378,7 +4378,7 @@
      "\n	-C		Suppress default client identifier" \
      "\n	-p file		Create pidfile" \
      "\n	-r IP		IP address to request" \
-     "\n	-s file		Run file at DHCP events (default "CONFIG_DHCPC_DEFAULT_SCRIPT")" \
+     "\n	-s file		Run file at DHCP events (default "CONFIG_UDHCPC_DEFAULT_SCRIPT")" \
      "\n	-t N		Send up to N request packets" \
      "\n	-T N		Try to get a lease for N seconds (default 3)" \
      "\n	-A N		Wait N seconds (default 20) after failure" \

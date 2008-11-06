@@ -74,14 +74,14 @@ config FEATURE_UDHCP_PORT
 	  At the cost of ~300 bytes, enables -P port option.
 	  This feature is typically not needed.
 
-config FEATURE_UDHCP_DEBUG
+config UDHCP_DEBUG
 	bool "Compile udhcp with noisy debugging messages"
 	default n
 	depends on APP_UDHCPD || APP_UDHCPC
 	help
 	  If selected, udhcpd will output extra debugging output.
 
-config FEATURE_RFC3397
+config FEATURE_UDHCP_RFC3397
 	bool "Support for RFC3397 domain search (experimental)"
 	default n
 	depends on APP_UDHCPD || APP_UDHCPC
@@ -89,7 +89,7 @@ config FEATURE_RFC3397
 	  If selected, both client and server will support passing of domain
 	  search lists via option 119, specified in RFC3397.
 
-config DHCPC_DEFAULT_SCRIPT
+config UDHCPC_DEFAULT_SCRIPT
 	string "Absolute path to config script"
 	default "/usr/share/udhcpc/default.script"
 	depends on APP_UDHCPC

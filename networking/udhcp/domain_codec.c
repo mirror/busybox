@@ -7,7 +7,7 @@
  * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  */
 
-#if ENABLE_FEATURE_RFC3397
+#if ENABLE_FEATURE_UDHCP_RFC3397
 
 #include "common.h"
 #include "options.h"
@@ -202,4 +202,4 @@ uint8_t* FAST_FUNC dname_enc(const uint8_t *cstr, int clen, const char *src, int
 	return dname;
 }
 
-#endif /* ENABLE_FEATURE_RFC3397 */
+#endif /* ENABLE_FEATURE_UDHCP_RFC3397 */

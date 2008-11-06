@@ -22,4 +22,4 @@ lib-$(CONFIG_APP_UDHCPD)        += dhcpd.o arpping.o files.o leases.o \
 
 lib-$(CONFIG_APP_DUMPLEASES)    += dumpleases.o
 lib-$(CONFIG_APP_DHCPRELAY)     += dhcprelay.o
-lib-$(CONFIG_FEATURE_RFC3397)   += domain_codec.o
+lib-$(CONFIG_FEATURE_UDHCP_RFC3397) += domain_codec.o

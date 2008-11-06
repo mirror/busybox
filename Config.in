@@ -256,18 +256,18 @@ config BUSYBOX_EXEC_PATH
 # These are auto-selected by other options
 
 config FEATURE_SYSLOG
-	bool "Support for logging to syslog"
+	bool #No description makes it a hidden option
 	default n
-	help
-	  This option is auto-selected when you select any applet which may
-	  send its output to syslog. You do not need to select it manually.
+	#help
+	#  This option is auto-selected when you select any applet which may
+	#  send its output to syslog. You do not need to select it manually.
 
 config FEATURE_HAVE_RPC
-	bool "RPC support"
+	bool #No description makes it a hidden option
 	default n
-	help
-	  This is automatically selected if any of enabled applets need it.
-	  You do not need to select it manually.
+	#help
+	#  This is automatically selected if any of enabled applets need it.
+	#  You do not need to select it manually.
 
 endmenu
 

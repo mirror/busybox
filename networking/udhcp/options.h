@@ -13,7 +13,7 @@ enum {
 	OPTION_IP = 1,
 	OPTION_IP_PAIR,
 	OPTION_STRING,
-#if ENABLE_FEATURE_RFC3397
+#if ENABLE_FEATURE_UDHCP_RFC3397
 	OPTION_STR1035,	/* RFC1035 compressed domain name list */
 #endif
 	OPTION_BOOLEAN,
@@ -109,7 +109,7 @@ uint8_t *get_option(struct dhcpMessage *packet, int code) FAST_FUNC;
 int end_option(uint8_t *optionptr) FAST_FUNC;
 int add_option_string(uint8_t *optionptr, uint8_t *string) FAST_FUNC;
 int add_simple_option(uint8_t *optionptr, uint8_t code, uint32_t data) FAST_FUNC;
-#if ENABLE_FEATURE_RFC3397
+#if ENABLE_FEATURE_UDHCP_RFC3397
 char *dname_dec(const uint8_t *cstr, int clen, const char *pre) FAST_FUNC;
 uint8_t *dname_enc(const uint8_t *cstr, int clen, const char *src, int *retlen) FAST_FUNC;
 #endif

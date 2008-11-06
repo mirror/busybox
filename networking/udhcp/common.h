@@ -18,7 +18,7 @@
 # pragma GCC visibility push(hidden)
 #endif
 
-#define DEFAULT_SCRIPT   CONFIG_DHCPC_DEFAULT_SCRIPT
+#define DEFAULT_SCRIPT   CONFIG_UDHCPC_DEFAULT_SCRIPT
 
 extern const uint8_t MAC_BCAST_ADDR[6]; /* six all-ones */
 
@@ -97,7 +97,7 @@ int udhcp_listen_socket(/*uint32_t ip,*/ int port, const char *inf) FAST_FUNC;
 /* Returns 1 if no reply received */
 int arpping(uint32_t test_ip, uint32_t from_ip, uint8_t *from_mac, const char *interface) FAST_FUNC;
 
-#if ENABLE_FEATURE_UDHCP_DEBUG
+#if ENABLE_UDHCP_DEBUG
 # define DEBUG(str, args...) bb_info_msg("### " str, ## args)
 #else
 # define DEBUG(str, args...) do {;} while (0)

@@ -79,7 +79,7 @@ uint32_t FAST_FUNC reservedIp(struct static_lease *lease_struct, uint32_t ip)
 	return return_val;
 }
 
-#if ENABLE_FEATURE_UDHCP_DEBUG
+#if ENABLE_UDHCP_DEBUG
 /* Print out static leases just to check what's going on */
 /* Takes the address of the pointer to the static_leases linked list */
 void FAST_FUNC printStaticLeases(struct static_lease **arg)

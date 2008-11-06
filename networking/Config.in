@@ -859,7 +859,7 @@ config FEATURE_TFTP_BLOCKSIZE
 	  Allow tftp to specify block size, and tftpd to understand
 	  "blksize" option.
 
-config DEBUG_TFTP
+config TFTP_DEBUG
 	bool "Enable debug"
 	default n
 	depends on TFTP
