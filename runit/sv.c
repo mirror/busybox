@@ -417,7 +417,7 @@ int sv_main(int argc, char **argv)
 	unsigned i, want_exit;
 	char *x;
 	char *action;
-	const char *varservice = "/var/service/";
+	const char *varservice = CONFIG_SV_DEFAULT_SERVICE_DIR;
 	unsigned services;
 	char **servicex;
 	unsigned waitsec = 7;

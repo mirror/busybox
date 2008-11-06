@@ -36,6 +36,14 @@ config SV
 	  sv reports the current status and controls the state of services
 	  monitored by the runsv supervisor.
 
+config SV_DEFAULT_SERVICE_DIR
+	string "Default directory for services"
+	default "/var/service"
+	depends on SV
+	help
+	  Default directory for services.
+	  Defaults to "/var/service"
+
 config SVLOGD
 	bool "svlogd"
 	default n
