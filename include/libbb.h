@@ -789,7 +789,7 @@ int run_nofork_applet_prime(struct nofork_save_area *old, int applet_no, char **
  *
  * forkexit_or_rexec(argv) = bare-bones "fork + parent exits" on MMU,
  *      "vfork + re-exec ourself" on NOMMU. No fd redirection, no setsid().
- *      Currently used for openvt and setsid. On MMU ignores argv.
+ *      Currently used for setsid only. On MMU ignores argv.
  *
  * Helper for network daemons in foreground mode:
  *
