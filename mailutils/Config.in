@@ -1,0 +1,64 @@
+menu "Mail Utilities"
+
+config MAKEMIME
+	bool "makemime"
+	default n
+	help
+	  Create MIME-formatted messages.
+
+config FEATURE_MIME_CHARSET
+	string "Default charset"
+	default "us-ascii"
+	depends on MAKEMIME || REFORMIME || SENDMAIL
+	help
+	  Default charset of the message.
+
+config POPMAILDIR
+	bool "popmaildir"
+	default n
+	help
+	  Simple yet powerful POP3 mail popper. Delivers content of remote mailboxes to local Maildir.
+
+config FEATURE_POPMAILDIR_DELIVERY
+	bool "Allow message filters and custom delivery program"
+	default n
+	depends on POPMAILDIR
+	help
+	  Allow to use a custom program to filter the content of the message before actual delivery (-F "prog [args...]").
+	  Allow to use a custom program for message actual delivery (-M "prog [args...]").
+
+config REFORMIME
+	bool "reformime"
+	default n
+	help
+	  Parse MIME-formatted messages.
+
+config FEATURE_REFORMIME_COMPAT
+	bool "Accept and ignore options other than -x and -X"
+	default y
+	depends on REFORMIME
+	help
+	  Accept (for compatibility only) and ignore options other than -x and -X.
+
+config SENDMAIL
+	bool "sendmail"
+	default n
+	help
+	  Barebones sendmail.
+
+config FEATURE_SENDMAIL_MAILX
+	bool "Allow to specify subject, attachments, their charset and connection helper"
+	default y
+	depends on SENDMAIL
+	help
+	  Allow to specify subject, attachments and their charset.
+	  Allow to use custom connection helper.
+
+config FEATURE_SENDMAIL_MAILXX
+	bool "Allow to specify Cc: addresses and some additional headers"
+	default n
+	depends on FEATURE_SENDMAIL_MAILX
+	help
+	  Allow to specify Cc: addresses and some additional headers: Errors-To:.
+
+endmenu
