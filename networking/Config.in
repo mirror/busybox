@@ -681,47 +681,6 @@ config ROUTE
 	help
 	  Route displays or manipulates the kernel's IP routing tables.
 
-config SENDMAIL
-	bool "sendmail"
-	default n
-	help
-	  Barebones sendmail.
-
-config FEATURE_SENDMAIL_MAILX
-	bool "Allow to specify subject, attachments and their charset"
-	default y
-	depends on SENDMAIL
-	help
-	  Allow to specify subject, attachments and their charset.
-
-config FEATURE_SENDMAIL_MAILXX
-	bool "Allow to specify Cc: addresses and some additional headers"
-	default n
-	depends on FEATURE_SENDMAIL_MAILX
-	help
-	  Allow to specify Cc: addresses and some additional headers:
-	  Errors-To:
-
-config FEATURE_SENDMAIL_SSL
-	bool "Allow to communicate via SSL/TLS"
-	default y
-	depends on SENDMAIL
-	help
-	  Allow to use secure connections provided by openssl. E.g. @gmail.com.
-
-config FEATURE_SENDMAIL_CHARSET
-	string "Default charset"
-	default "utf-8"
-	depends on SENDMAIL
-	help
-	  Default charset of the message.
-
-config FETCHMAIL
-	bool "fetchmail"
-	default n
-	help
-	  Barebones fetchmail.
-
 config SLATTACH
 	bool "slattach"
 	default n

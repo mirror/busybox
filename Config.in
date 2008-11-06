@@ -596,6 +596,7 @@ source util-linux/Config.in
 source miscutils/Config.in
 source networking/Config.in
 source printutils/Config.in
+source mailutils/Config.in
 source procps/Config.in
 source runit/Config.in
 source selinux/Config.in

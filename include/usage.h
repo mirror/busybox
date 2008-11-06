@@ -1095,18 +1095,6 @@
      "\n	-H HEADS\n" \
      "\n	-S SECTORS" \
 
-#define fetchmail_trivial_usage \
-       "[-w timeout] [-H [user:pass@]server[:port]] [-S] [-t] [-z] maildir [prog]"
-#define fetchmail_full_usage "\n\n" \
-       "Fetch content of remote mailbox to local maildir\n" \
-     "\nOptions:" \
-     "\n	-w timeout	Network timeout" \
-     "\n	-H [user:pass@]server[:port] Server" \
-     "\n	-S		Use openssl connection helper for secure servers" \
-     "\n	-t		Get only headers" \
-     "\n	-z		Delete messages on server" \
-     "\n	prog		Run 'prog <message_file>' on message delivery" \
-
 #define blkid_trivial_usage \
        ""
 #define blkid_full_usage "\n\n" \
@@ -2378,6 +2366,16 @@
        "/dev/hda[0-15]\n"
 #endif
 
+#define makemime_trivial_usage \
+       "[OPTION]... [FILE]..."
+#define makemime_full_usage "\n\n" \
+       "Create MIME-encoded message\n" \
+     "\nOptions:" \
+     "\n	-C      Charset" \
+     "\n	-e	Tranfer encoding. Ignored. base64 is assumed" \
+     "\n" \
+     "\nOther options are silently ignored." \
+
 #define man_trivial_usage \
        "[OPTION]... [MANPAGE]..."
 #define man_full_usage "\n\n" \
@@ -3095,6 +3093,33 @@
      "\n	-v	Negate the matching" \
      "\n	-x	Match whole name (not substring)" \
 
+#define popmaildir_trivial_usage \
+       "[OPTIONS] Maildir [connection-helper ...]"
+#define popmaildir_full_usage "\n\n" \
+       "Fetch content of remote mailbox to local maildir\n" \
+     "\nOptions:" \
+     "\n	-b		Binary mode. Ignored" \
+     "\n	-d		Debug. Ignored" \
+     "\n	-m		Show used memory. Ignored" \
+     "\n	-V		Show version. Ignored" \
+     "\n	-c		Use tcpclient. Ignored" \
+     "\n	-a		Use APOP protocol. Implied. If server supports APOP -> use it" \
+     "\n	-s		Skip authorization" \
+     "\n	-T		Get messages with TOP instead with RETR" \
+     "\n	-k		Keep retrieved messages on the server" \
+     "\n	-t timeout	Set network timeout" \
+     USE_FEATURE_POPMAILDIR_DELIVERY( \
+     "\n	-F \"program arg1 arg2 ...\"	Filter by program. May be multiple" \
+     "\n	-M \"program arg1 arg2 ...\"	Deliver by program" \
+     ) \
+     "\n	-R size		Remove old messages on the server >= size (in bytes). Ignored" \
+     "\n	-Z N1-N2	Remove messages from N1 to N2 (dangerous). Ignored" \
+     "\n	-L size		Do not retrieve new messages >= size (in bytes). Ignored" \
+     "\n	-H lines	Type specified number of lines of a message. Ignored"
+#define popmaildir_example_usage \
+       "$ popmaildir -k ~/Maildir -- nc pop.drvv.ru 110 [<password_file]\n" \
+       "$ popmaildir ~/Maildir -- openssl s_client -quiet -connect pop.gmail.com:995 [<password_file]\n"
+
 #define poweroff_trivial_usage \
        "[-d delay] [-n] [-f]"
 #define poweroff_full_usage "\n\n" \
@@ -3249,6 +3274,17 @@
      "\n	-d	Delay interval for rebooting" \
      "\n	-n	No call to sync()" \
      "\n	-f	Force reboot (don't go through init)" \
+
+#define reformime_trivial_usage \
+       "[OPTION]... [FILE]..."
+#define reformime_full_usage "\n\n" \
+       "Parse MIME-encoded message\n" \
+     "\nOptions:" \
+     "\n	-x prefix	Extract content of MIME sections to files" \
+     "\n	-X prog [args]	Filter content of MIME sections through prog." \
+     "\n			Must be the last option" \
+     "\n" \
+     "\nOther options are silently ignored." \
 
 #define renice_trivial_usage \
        "{{-n INCREMENT} | PRIORITY} [[-p | -g | -u] ID...]"
@@ -3484,9 +3520,7 @@
 #define selinuxenabled_full_usage ""
 
 #define sendmail_trivial_usage \
-       "[-w timeout] [-H [user:pass@]server[:port]] [-S]\n" \
-       "[-N type] [-f sender] [-F fullname] " \
-       USE_FEATURE_SENDMAIL_MAILX("[-s subject] [-c cc-rcpt]... [-j charset] [-a attach]... [-e err-rcpt] ") "[-t] [rcpt]..."
+       "[OPTIONS] [rcpt]..."
 #define sendmail_full_usage "\n\n" \
        "Send an email\n" \
      "\nOptions:" \
@@ -3498,11 +3532,15 @@
      "\n	-F fullname	Sender full name. Overrides $NAME" \
 	USE_FEATURE_SENDMAIL_MAILX( \
      "\n	-s subject	Subject" \
-     "\n	-c rcpt		Cc: recipient. May be multiple" \
-     "\n	-j charset	Assume charset for body and subject (" CONFIG_FEATURE_SENDMAIL_CHARSET ")" \
+     "\n	-j charset	Assume charset for body and subject (" CONFIG_FEATURE_MIME_CHARSET ")" \
      "\n	-a file		File to attach. May be multiple" \
+     "\n	-H \"prog args...\" Use external connection helper. E.g. openssl for secure servers" \
+     "\n	-S server[:port] Server" \
+     	) \
+	USE_FEATURE_SENDMAIL_MAILXX( \
+     "\n	-c rcpt		Cc: recipient. May be multiple" \
      "\n	-e rcpt		Errors-To: recipient" \
-     	)
+       	)
      "\n	-t		Read recipients and subject from body" \
      "\n" \
      "\nOther options are silently ignored; -oi is implied" \

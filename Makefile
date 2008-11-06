@@ -456,6 +456,7 @@ libs-y		:= \
 		libbb/ \
 		libpwdgrp/ \
 		loginutils/ \
+		mailutils/ \
 		miscutils/ \
 		modutils/ \
 		networking/ \
