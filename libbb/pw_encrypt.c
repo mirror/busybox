@@ -20,6 +20,11 @@ static const uint8_t ascii64[] = "./0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefgh
 #include "pw_encrypt_des.c"
 #include "pw_encrypt_md5.c"
 
+/* Other advanced crypt ids: */
+/* $2$ or $2a$: Blowfish */
+/* $5$: SHA-256 */
+/* $6$: SHA-512 */
+/* TODO: implement SHA - http://people.redhat.com/drepper/SHA-crypt.txt */
 
 static struct const_des_ctx *des_cctx;
 static struct des_ctx *des_ctx;
@@ -54,12 +59,6 @@ char* FAST_FUNC pw_encrypt(const char *clear, const char *salt, int cleanup)
 {
 	char *encrypted;
 
-#if 0 /* was CONFIG_FEATURE_SHA1_PASSWORDS, but there is no such thing??? */
-	if (strncmp(salt, "$2$", 3) == 0) {
-		return sha1_crypt(clear);
-	}
-#endif
-
 	encrypted = my_crypt(clear, salt);
 
 	if (cleanup)
@@ -72,12 +71,6 @@ char* FAST_FUNC pw_encrypt(const char *clear, const char *salt, int cleanup)
 
 char* FAST_FUNC pw_encrypt(const char *clear, const char *salt, int cleanup)
 {
-#if 0 /* was CONFIG_FEATURE_SHA1_PASSWORDS, but there is no such thing??? */
-	if (strncmp(salt, "$2$", 3) == 0) {
-		return xstrdup(sha1_crypt(clear));
-	}
-#endif
-
 	return xstrdup(crypt(clear, salt));
 }
 
