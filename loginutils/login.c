@@ -118,18 +118,25 @@ static void die_if_nologin(void)
 {
 	FILE *fp;
 	int c;
-
-	if (access("/etc/nologin", F_OK))
-		return;
+	int empty = 1;
 
 	fp = fopen_for_read("/etc/nologin");
-	if (fp) {
-		while ((c = getc(fp)) != EOF)
-			bb_putchar((c=='\n') ? '\r' : c);
-		fflush(stdout);
-		fclose(fp);
-	} else
+	if (!fp) /* assuming it does not exist */
+		return;
+
+	while ((c = getc(fp)) != EOF) {
+		if (c == '\n')
+			bb_putchar('\r');
+		bb_putchar(c);
+		empty = 0;
+	}
+	if (empty)
 		puts("\r\nSystem closed for routine maintenance\r");
+
+	fclose(fp);
+	fflush(NULL);
+	/* Users say that they do need this prior to exit: */
+	tcdrain(STDOUT_FILENO);
 	exit(EXIT_FAILURE);
 }
 #else

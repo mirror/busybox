@@ -17,15 +17,18 @@ config POPMAILDIR
 	bool "popmaildir"
 	default n
 	help
-	  Simple yet powerful POP3 mail popper. Delivers content of remote mailboxes to local Maildir.
+	  Simple yet powerful POP3 mail popper. Delivers content
+	  of remote mailboxes to local Maildir.
 
 config FEATURE_POPMAILDIR_DELIVERY
 	bool "Allow message filters and custom delivery program"
 	default n
 	depends on POPMAILDIR
 	help
-	  Allow to use a custom program to filter the content of the message before actual delivery (-F "prog [args...]").
-	  Allow to use a custom program for message actual delivery (-M "prog [args...]").
+	  Allow to use a custom program to filter the content
+	  of the message before actual delivery (-F "prog [args...]").
+	  Allow to use a custom program for message actual delivery
+	  (-M "prog [args...]").
 
 config REFORMIME
 	bool "reformime"
@@ -38,7 +41,8 @@ config FEATURE_REFORMIME_COMPAT
 	default y
 	depends on REFORMIME
 	help
-	  Accept (for compatibility only) and ignore options other than -x and -X.
+	  Accept (for compatibility only) and ignore options
+	  other than -x and -X.
 
 config SENDMAIL
 	bool "sendmail"
@@ -59,6 +63,7 @@ config FEATURE_SENDMAIL_MAILXX
 	default n
 	depends on FEATURE_SENDMAIL_MAILX
 	help
-	  Allow to specify Cc: addresses and some additional headers: Errors-To:.
+	  Allow to specify Cc: addresses and some additional headers:
+	  Errors-To:
 
 endmenu
