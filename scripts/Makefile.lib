@@ -117,8 +117,12 @@ a_flags        = -Wp,-MD,$(depfile) $(NOSTDINC_FLAGS) $(CPPFLAGS) \
 
 cpp_flags      = -Wp,-MD,$(depfile) $(NOSTDINC_FLAGS) $(__cpp_flags)
 
-# TODO: seems to be a wrong thing to do! LDFLAGS contains gcc's flags!
-ld_flags       = $(LDFLAGS) $(EXTRA_LDFLAGS)
+# Seems to be a wrong thing to do. LDFLAGS contains gcc's flags,
+# yet ld_flags is fed to ld.
+#ld_flags       = $(LDFLAGS) $(EXTRA_LDFLAGS)
+# Remove the -Wl, prefix from linker options normally passed through gcc
+ld_flags       = $(filter-out -Wl$(comma)%,$(LDFLAGS) $(EXTRA_LDFLAGS))
+
 
 # Finds the multi-part object the current object will be linked into
 modname-multi = $(sort $(foreach m,$(multi-used),\
