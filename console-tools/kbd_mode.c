@@ -32,7 +32,7 @@ int kbd_mode_main(int argc UNUSED_PARAM, char **argv)
 		const char *mode = "unknown";
 		int m;
 
-		ioctl(fd, KDGKBMODE, &m);
+		xioctl(fd, KDGKBMODE, &m);
 		if (m == K_RAW)
 			mode = "raw (scancode)";
 		else if (m == K_XLATE)
