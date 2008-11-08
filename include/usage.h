@@ -2019,7 +2019,7 @@
        "	[ttl TTL] [tos TOS] [[no]pmtudisc] [dev PHYS_DEV]" \
 
 #define kbd_mode_trivial_usage \
-       "[-a|k|s|u]"
+       "[-a|k|s|u] [-C TTY]"
 #define kbd_mode_full_usage "\n\n" \
        "Report or set the keyboard mode\n" \
      "\nOptions set mode:" \
@@ -2027,6 +2027,7 @@
      "\n	-k	Medium-raw (keyboard)" \
      "\n	-s	Raw (scancode)" \
      "\n	-u	Unicode (utf-8)" \
+     "\n	-C TTY	Affect TTY instead of /dev/tty" \
 
 #define kill_trivial_usage \
        "[-l] [-SIG] PID..."
@@ -2129,20 +2130,23 @@
        "lrwxrwxrwx    1 root     root            7 Apr 12 18:39 ls -> BusyBox*\n"
 
 #define load_policy_trivial_usage NOUSAGE_STR
-
 #define load_policy_full_usage ""
 
 #define loadfont_trivial_usage \
        "< font"
 #define loadfont_full_usage "\n\n" \
-       "Load a console font from standard input"
+       "Load a console font from standard input" \
+/*   "\n	-C TTY	Affect TTY instead of /dev/tty" */ \
+
 #define loadfont_example_usage \
        "$ loadfont < /etc/i18n/fontname\n"
 
 #define loadkmap_trivial_usage \
        "< keymap"
 #define loadkmap_full_usage "\n\n" \
-       "Load a binary keyboard translation table from standard input"
+       "Load a binary keyboard translation table from standard input\n" \
+/*   "\n	-C TTY	Affect TTY instead of /dev/tty" */ \
+
 #define loadkmap_example_usage \
        "$ loadkmap < /etc/i18n/lang-keymap\n"
 
@@ -3476,9 +3480,11 @@
        "Start and monitor a service and optionally an appendant log service"
 
 #define runsvdir_trivial_usage \
-       "[-P] dir"
+       "[-P] [-s SCRIPT] dir"
 #define runsvdir_full_usage "\n\n" \
-       "Start a runsv process for each subdirectory"
+       "Start a runsv process for each subdirectory. If it exits, restart it.\n" \
+     "\n	-P		Put each runsv in a new session" \
+     "\n	-s SCRIPT	Run SCRIPT <signo> after signal is processed" \
 
 #define rx_trivial_usage \
        "FILE"

@@ -80,7 +80,10 @@ static void do_loadfont(int fd, unsigned char *inbuf, int unit, int fontsize)
 	}
 
 #if 0
-/* These ones do not honour -C tty (they set font on current tty regardless) */
+/* These ones do not honour -C tty (they set font on current tty regardless)
+ * On x86, this distinction is visible on framebuffer consoles
+ * (regular character consoles may have only one shared font anyway)
+ */
 #if defined(PIO_FONTX) && !defined(__sparc__)
 	{
 		struct consolefontdesc cfd;

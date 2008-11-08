@@ -5,9 +5,7 @@
  * Copyright (C) 1998 Enrique Zanardi <ezanardi@ull.es>
  *
  * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
- *
  */
-
 #include "libbb.h"
 
 #define BINARY_KEYMAP_MAGIC "bkeymap"
@@ -31,11 +29,15 @@ int loadkmap_main(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
 	struct kbentry ke;
 	int i, j, fd;
 	uint16_t ibuff[NR_KEYS];
+/*	const char *tty_name = CURRENT_TTY; */
 	RESERVE_CONFIG_BUFFER(flags,MAX_NR_KEYMAPS);
 
-/*  bb_warn_ignoring_args(argc>=2);*/
-
+/* bb_warn_ignoring_args(argc >= 2); */
 	fd = get_console_fd_or_die();
+/* or maybe:
+	opt = getopt32(argv, "C:", &tty_name);
+	fd = xopen(tty_name, O_NONBLOCK);
+*/
 
 	xread(STDIN_FILENO, flags, 7);
 	if (strncmp(flags, BINARY_KEYMAP_MAGIC, 7))
