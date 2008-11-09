@@ -486,8 +486,8 @@ int login_main(int argc UNUSED_PARAM, char **argv)
 	// If this stuff is really needed, add it and explain why!
 
 	/* Set signals to defaults */
-	/*signal(SIGALRM, SIG_DFL); - not needed, we already set it
-	 * to non-SIG_IGN, and on exec such signals are reset to SIG_DFL */
+	/* Non-ignored signals revert to SIG_DFL on exec anyway */
+	/*signal(SIGALRM, SIG_DFL);*/
 
 	/* Is this correct? This way user can ctrl-c out of /etc/profile,
 	 * potentially creating security breach (tested with bash 3.0).

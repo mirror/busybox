@@ -336,10 +336,11 @@ static void startservice(struct svdir *s)
 				xdup2(logpipe.wr, 1);
 			}
 		}
-		bb_signals(0
+		/* Non-ignored signals revert to SIG_DFL on exec anyway */
+		/*bb_signals(0
 			+ (1 << SIGCHLD)
 			+ (1 << SIGTERM)
-			, SIG_DFL);
+			, SIG_DFL);*/
 		sig_unblock(SIGCHLD);
 		sig_unblock(SIGTERM);
 		execvp(*run, run);

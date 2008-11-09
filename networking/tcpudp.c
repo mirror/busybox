@@ -497,9 +497,9 @@ int tcpudpsvd_main(int argc UNUSED_PARAM, char **argv)
 
 	xdup2(0, 1);
 
-	signal(SIGTERM, SIG_DFL);
-	signal(SIGPIPE, SIG_DFL);
-	signal(SIGCHLD, SIG_DFL);
+	signal(SIGPIPE, SIG_DFL); /* this one was SIG_IGNed */
+	/* Non-ignored signals revert to SIG_DFL on exec anyway */
+	/*signal(SIGCHLD, SIG_DFL);*/
 	sig_unblock(SIGCHLD);
 
 #ifdef SSLSVD

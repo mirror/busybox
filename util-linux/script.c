@@ -179,7 +179,8 @@ int script_main(int argc UNUSED_PARAM, char **argv)
 	setsid();
 	ioctl(0, TIOCSCTTY, 0 /* 0: don't forcibly steal */);
 
-	/* signal(SIGCHLD, SIG_DFL); - exec does this for us */
+	/* Non-ignored signals revert to SIG_DFL on exec anyway */
+	/*signal(SIGCHLD, SIG_DFL);*/
 	execl(shell, shell, shell_opt, shell_arg, NULL);
 	bb_simple_perror_msg_and_die(shell);
 }

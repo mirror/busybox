@@ -227,11 +227,12 @@ static void processorstart(struct logdir *ld)
 		int fd;
 
 		/* child */
-		bb_signals(0
+		/* Non-ignored signals revert to SIG_DFL on exec anyway */
+		/*bb_signals(0
 			+ (1 << SIGTERM)
 			+ (1 << SIGALRM)
 			+ (1 << SIGHUP)
-			, SIG_DFL);
+			, SIG_DFL);*/
 		sig_unblock(SIGTERM);
 		sig_unblock(SIGALRM);
 		sig_unblock(SIGHUP);

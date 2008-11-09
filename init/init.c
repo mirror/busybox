@@ -60,7 +60,6 @@ struct init_action {
 static struct init_action *init_action_list = NULL;
 
 static const char *log_console = VC_5;
-static sig_atomic_t got_cont = 0;
 
 enum {
 	L_LOG = 0x1,
@@ -613,22 +612,19 @@ static void ctrlaltdel_signal(int sig UNUSED_PARAM)
 	run_actions(CTRLALTDEL);
 }
 
+/* The SIGCONT handler is set to record_signo().
+ * It just sets bb_got_signal = SIGCONT.  */
+
 /* The SIGSTOP & SIGTSTP handler */
 static void stop_handler(int sig UNUSED_PARAM)
 {
 	int saved_errno = errno;
 
-	got_cont = 0;
-	while (!got_cont)
+	bb_got_signal = 0;
+	while (bb_got_signal == 0)
 		pause();
 
 	errno = saved_errno;
-}
-
-/* The SIGCONT handler */
-static void cont_handler(int sig UNUSED_PARAM)
-{
-	got_cont = 1;
 }
 
 static void new_init_action(uint8_t action_type, const char *command, const char *cons)
@@ -808,7 +804,7 @@ int init_main(int argc UNUSED_PARAM, char **argv)
 			+ (1 << SIGTERM)  /* reboot */
 			, halt_reboot_pwoff);
 		signal(SIGINT, ctrlaltdel_signal);
-		signal(SIGCONT, cont_handler);
+		signal(SIGCONT, record_signo);
 		bb_signals(0
 			+ (1 << SIGSTOP)
 			+ (1 << SIGTSTP)
