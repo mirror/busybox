@@ -182,6 +182,8 @@ make_new_session(
 	ndelay_on(fd);
 #if ENABLE_FEATURE_TELNETD_STANDALONE
 	ts->sockfd_read = sock;
+	/* SO_KEEPALIVE by popular demand */
+	setsockopt(sock, SOL_SOCKET, SO_KEEPALIVE, &const_int_1, sizeof(const_int_1));
 	ndelay_on(sock);
 	if (!sock) { /* We are called with fd 0 - we are in inetd mode */
 		sock++; /* so use fd 1 for output */
@@ -191,6 +193,8 @@ make_new_session(
 	if (sock > maxfd)
 		maxfd = sock;
 #else
+	/* SO_KEEPALIVE by popular demand */
+	setsockopt(0, SOL_SOCKET, SO_KEEPALIVE, &const_int_1, sizeof(const_int_1));
 	/* ts->sockfd_read = 0; - done by xzalloc */
 	ts->sockfd_write = 1;
 	ndelay_on(0);
