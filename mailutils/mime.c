@@ -221,7 +221,7 @@ static int parse(const char *boundary, char **argv)
 			if (opts & OPT_X) {
 				int fd[2];
 				xpipe(fd);
-				pid = fork();
+				pid = vfork();
 				if (0 == pid) {
 					// child reads from fd[0]
 					xdup2(fd[0], STDIN_FILENO);

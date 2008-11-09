@@ -51,7 +51,7 @@ config SENDMAIL
 	  Barebones sendmail.
 
 config FEATURE_SENDMAIL_MAILX
-	bool "Allow to specify subject, attachments, their charset and connection helper"
+	bool "Allow to specify subject, attachments, their charset etc"
 	default y
 	depends on SENDMAIL
 	help
