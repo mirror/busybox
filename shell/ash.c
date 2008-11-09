@@ -6964,8 +6964,11 @@ tryexec(USE_FEATURE_SH_STANDALONE(int applet_no,) char *cmd, char **argv, char *
 
 #if ENABLE_FEATURE_SH_STANDALONE
 	if (applet_no >= 0) {
-		if (APPLET_IS_NOEXEC(applet_no))
+		if (APPLET_IS_NOEXEC(applet_no)) {
+			while (*envp)
+				putenv(*envp++);
 			run_applet_no_and_exit(applet_no, argv);
+		}
 		/* re-exec ourselves with the new arguments */
 		execve(bb_busybox_exec_path, argv, envp);
 		/* If they called chroot or otherwise made the binary no longer
@@ -12014,7 +12017,7 @@ exportcmd(int argc UNUSED_PARAM, char **argv)
 	char *name;
 	const char *p;
 	char **aptr;
-	int flag = argv[0][0] == 'r'? VREADONLY : VEXPORT;
+	int flag = argv[0][0] == 'r' ? VREADONLY : VEXPORT;
 
 	if (nextopt("p") != 'p') {
 		aptr = argptr;

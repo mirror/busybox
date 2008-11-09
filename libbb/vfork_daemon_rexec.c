@@ -125,6 +125,7 @@ int FAST_FUNC run_nofork_applet_prime(struct nofork_save_area *old, int applet_n
 	int rc, argc;
 
 	applet_name = APPLET_NAME(applet_no);
+
 	xfunc_error_retval = EXIT_FAILURE;
 
 	/* Special flag for xfunc_die(). If xfunc will "die"
@@ -132,7 +133,30 @@ int FAST_FUNC run_nofork_applet_prime(struct nofork_save_area *old, int applet_n
 	 * die_sleep and longjmp here instead. */
 	die_sleep = -1;
 
-	/* option_mask32 = 0; - not needed */
+	/* In case getopt() or getopt32() was already called:
+	 * reset the libc getopt() function, which keeps internal state.
+	 *
+	 * BSD-derived getopt() functions require that optind be set to 1 in
+	 * order to reset getopt() state.  This used to be generally accepted
+	 * way of resetting getopt().  However, glibc's getopt()
+	 * has additional getopt() state beyond optind, and requires that
+	 * optind be set to zero to reset its state.  So the unfortunate state of
+	 * affairs is that BSD-derived versions of getopt() misbehave if
+	 * optind is set to 0 in order to reset getopt(), and glibc's getopt()
+	 * will core dump if optind is set 1 in order to reset getopt().
+	 *
+	 * More modern versions of BSD require that optreset be set to 1 in
+	 * order to reset getopt().  Sigh.  Standards, anyone?
+	 */
+#ifdef __GLIBC__
+	optind = 0;
+#else /* BSD style */
+	optind = 1;
+	/* optreset = 1; */
+#endif
+	/* optarg = NULL; opterr = 1; optopt = 63; - do we need this too? */
+	/* (values above are what they initialized to in glibc and uclibc) */
+	/* option_mask32 = 0; - not needed, no applet depends on it being 0 */
 
 	argc = 1;
 	while (argv[argc])
@@ -161,8 +185,16 @@ int FAST_FUNC run_nofork_applet_prime(struct nofork_save_area *old, int applet_n
 			rc = 0;
 	}
 
-	/* Restoring globals */
+	/* Restoring some globals */
 	restore_nofork_data(old);
+
+	/* Other globals can be simply reset to defaults */
+#ifdef __GLIBC__
+	optind = 0;
+#else /* BSD style */
+	optind = 1;
+#endif
+
 	return rc & 0xff; /* don't confuse people with "exitcodes" >255 */
 }
 

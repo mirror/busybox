@@ -515,28 +515,6 @@ getopt32(char **argv, const char *applet_opts, ...)
 		}
 	}
 
-	/* In case getopt32 was already called:
-	 * reset the libc getopt() function, which keeps internal state.
-	 *
-	 * BSD-derived getopt() functions require that optind be set to 1 in
-	 * order to reset getopt() state.  This used to be generally accepted
-	 * way of resetting getopt().  However, glibc's getopt()
-	 * has additional getopt() state beyond optind, and requires that
-	 * optind be set to zero to reset its state.  So the unfortunate state of
-	 * affairs is that BSD-derived versions of getopt() misbehave if
-	 * optind is set to 0 in order to reset getopt(), and glibc's getopt()
-	 * will core dump if optind is set 1 in order to reset getopt().
-	 *
-	 * More modern versions of BSD require that optreset be set to 1 in
-	 * order to reset getopt().   Sigh.  Standards, anyone?
-	 */
-#ifdef __GLIBC__
-	optind = 0;
-#else /* BSD style */
-	optind = 1;
-	/* optreset = 1; */
-#endif
-	/* optarg = NULL; opterr = 0; optopt = 0; - do we need this?? */
 	pargv = NULL;
 
 	/* Note: just "getopt() <= 0" will not work well for

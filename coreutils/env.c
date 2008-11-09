@@ -29,6 +29,8 @@
  * - use xfunc_error_retval
  */
 
+/* This is a NOEXEC applet. Be very careful! */
+
 #include "libbb.h"
 
 #if ENABLE_FEATURE_ENV_LONG_OPTIONS
@@ -119,5 +121,3 @@ int env_main(int argc UNUSED_PARAM, char **argv)
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  */
-
-
