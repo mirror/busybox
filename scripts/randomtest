@@ -2,8 +2,12 @@
 
 # Select which libc to build against
 libc="glibc" # assumed native
-# static cross-compiled (i486-linux-uclibc-XXX)
+# static, cross-compilation
 libc="uclibc"
+# x86 32-bit:
+uclibc_cross="i486-linux-uclibc-"
+# My system has strange prefix for x86 64-bit uclibc:
+#uclibc_cross="x86_64-pc-linux-gnu-"
 
 test -d tree || exit 1
 
@@ -49,7 +53,7 @@ cat .config \
 | grep -v CONFIG_CROSS_COMPILER_PREFIX \
 | cat >.config.new
 mv .config.new .config
-echo 'CONFIG_CROSS_COMPILER_PREFIX="i486-linux-uclibc-"' >>.config
+echo 'CONFIG_CROSS_COMPILER_PREFIX="'"$uclibc_cross"'"' >>.config
 echo 'CONFIG_STATIC=y' >>.config
 }
 
