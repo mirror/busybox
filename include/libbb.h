@@ -1310,7 +1310,24 @@ typedef struct sha1_ctx_t {
 void sha1_begin(sha1_ctx_t *ctx) FAST_FUNC;
 void sha1_hash(const void *data, size_t length, sha1_ctx_t *ctx) FAST_FUNC;
 void *sha1_end(void *resbuf, sha1_ctx_t *ctx) FAST_FUNC;
-
+typedef struct sha256_ctx_t {
+	uint32_t H[8];
+	uint32_t total[2]; /* rename to "count"? */
+	uint32_t buflen;
+	char buffer[128]; /* NB: always correctly aligned for uint32_t */
+} sha256_ctx_t;
+void sha256_begin(sha256_ctx_t *ctx) FAST_FUNC;
+void sha256_hash(const void *buffer, size_t len, sha256_ctx_t *ctx) FAST_FUNC;
+void* sha256_end(void *resbuf, sha256_ctx_t *ctx) FAST_FUNC;
+typedef struct sha512_ctx_t {
+	uint64_t H[8];
+	uint64_t total[2];
+	uint64_t buflen;
+	char buffer[256]; /* NB: always correctly aligned for uint64_t */
+} sha512_ctx_t;
+void sha512_begin(sha512_ctx_t *ctx) FAST_FUNC;
+void sha512_hash(const void *buffer, size_t len, sha512_ctx_t *ctx) FAST_FUNC;
+void* sha512_end(void *resbuf, sha512_ctx_t *ctx) FAST_FUNC;
 typedef struct md5_ctx_t {
 	uint32_t A;
 	uint32_t B;

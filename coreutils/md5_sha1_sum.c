@@ -8,7 +8,13 @@
 
 #include "libbb.h"
 
-typedef enum { HASH_SHA1, HASH_MD5 } hash_algo_t;
+typedef enum {
+	/* 4th letter of applet_name is... */
+	HASH_MD5 = 's', /* "md5>s<um" */
+	HASH_SHA1 = '1',
+	HASH_SHA256 = '2',
+	HASH_SHA512 = '5',
+} hash_algo_t;
 
 #define FLAG_SILENT	1
 #define FLAG_CHECK	2
@@ -24,10 +30,12 @@ static unsigned char *hash_bin_to_hex(unsigned char *hash_value,
 	return (unsigned char *)hex_value;
 }
 
-static uint8_t *hash_file(const char *filename, hash_algo_t hash_algo)
+static uint8_t *hash_file(const char *filename /*, hash_algo_t hash_algo*/)
 {
 	int src_fd, hash_len, count;
 	union _ctx_ {
+		sha512_ctx_t sha512;
+		sha256_ctx_t sha256;
 		sha1_ctx_t sha1;
 		md5_ctx_t md5;
 	} context;
@@ -35,6 +43,7 @@ static uint8_t *hash_file(const char *filename, hash_algo_t hash_algo)
 	RESERVE_CONFIG_UBUFFER(in_buf, 4096);
 	void FAST_FUNC (*update)(const void*, size_t, void*);
 	void FAST_FUNC (*final)(void*, void*);
+	hash_algo_t hash_algo = applet_name[3];
 
 	src_fd = open_or_warn_stdin(filename);
 	if (src_fd < 0) {
@@ -42,16 +51,26 @@ static uint8_t *hash_file(const char *filename, hash_algo_t hash_algo)
 	}
 
 	/* figure specific hash algorithims */
-	if (ENABLE_MD5SUM && hash_algo==HASH_MD5) {
+	if (ENABLE_MD5SUM && hash_algo == HASH_MD5) {
 		md5_begin(&context.md5);
 		update = (void*)md5_hash;
 		final = (void*)md5_end;
 		hash_len = 16;
-	} else if (ENABLE_SHA1SUM && hash_algo==HASH_SHA1) {
+	} else if (ENABLE_SHA1SUM && hash_algo == HASH_SHA1) {
 		sha1_begin(&context.sha1);
 		update = (void*)sha1_hash;
 		final = (void*)sha1_end;
 		hash_len = 20;
+	} else if (ENABLE_SHA256SUM && hash_algo == HASH_SHA256) {
+		sha256_begin(&context.sha256);
+		update = (void*)sha256_hash;
+		final = (void*)sha256_end;
+		hash_len = 32;
+	} else if (ENABLE_SHA512SUM && hash_algo == HASH_SHA512) {
+		sha512_begin(&context.sha512);
+		update = (void*)sha512_hash;
+		final = (void*)sha512_end;
+		hash_len = 64;
 	} else {
 		bb_error_msg_and_die("algorithm not supported");
 	}
@@ -80,9 +99,7 @@ int md5_sha1_sum_main(int argc UNUSED_PARAM, char **argv)
 	int return_value = EXIT_SUCCESS;
 	uint8_t *hash_value;
 	unsigned flags;
-	hash_algo_t hash_algo = ENABLE_MD5SUM
-		? (ENABLE_SHA1SUM ? (applet_name[0] == 'm' ? HASH_MD5 : HASH_SHA1) : HASH_MD5)
-		: HASH_SHA1;
+	/*hash_algo_t hash_algo = applet_name[3];*/
 
 	if (ENABLE_FEATURE_MD5_SHA1_SUM_CHECK)
 		flags = getopt32(argv, "scw");
@@ -136,7 +153,7 @@ int md5_sha1_sum_main(int argc UNUSED_PARAM, char **argv)
 			*filename_ptr = '\0';
 			filename_ptr += 2;
 
-			hash_value = hash_file(filename_ptr, hash_algo);
+			hash_value = hash_file(filename_ptr /*, hash_algo*/);
 
 			if (hash_value && (strcmp((char*)hash_value, line) == 0)) {
 				if (!(flags & FLAG_SILENT))
@@ -162,7 +179,7 @@ int md5_sha1_sum_main(int argc UNUSED_PARAM, char **argv)
 		*/
 	} else {
 		do {
-			hash_value = hash_file(*argv, hash_algo);
+			hash_value = hash_file(*argv/*, hash_algo*/);
 			if (hash_value == NULL) {
 				return_value = EXIT_FAILURE;
 			} else {

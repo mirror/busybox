@@ -509,6 +509,18 @@ config SHA1SUM
 	help
 	  Compute and check SHA1 message digest
 
+config SHA256SUM
+	bool "sha256sum"
+	default n
+	help
+	  Compute and check SHA256 message digest
+
+config SHA512SUM
+	bool "sha512sum"
+	default n
+	help
+	  Compute and check SHA512 message digest
+
 config SLEEP
 	bool "sleep"
 	default n

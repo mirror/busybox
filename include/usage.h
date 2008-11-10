@@ -2404,9 +2404,10 @@
        "Print" USE_FEATURE_MD5_SHA1_SUM_CHECK(" or check") " MD5 checksums" \
 	USE_FEATURE_MD5_SHA1_SUM_CHECK( "\n" \
      "\nOptions:" \
-     "\n	-c	Check MD5 sums against given list" \
+     "\n	-c	Check sums against given list" \
      "\n	-s	Don't output anything, status code shows success" \
-     "\n	-w	Warn about improperly formatted MD5 checksum lines") \
+     "\n	-w	Warn about improperly formatted checksum lines" \
+	)
 
 #define md5sum_example_usage \
        "$ md5sum < busybox\n" \
@@ -2417,6 +2418,42 @@
        "6fd11e98b98a58f64ff3398d7b324003  busybox\n" \
        "busybox: OK\n" \
        "^D\n"
+
+#define sha1sum_trivial_usage \
+       "[OPTION] [FILEs...]" \
+	USE_FEATURE_MD5_SHA1_SUM_CHECK("\n   or: sha1sum [OPTION] -c [FILE]")
+#define sha1sum_full_usage "\n\n" \
+       "Print" USE_FEATURE_MD5_SHA1_SUM_CHECK(" or check") " SHA1 checksums." \
+	USE_FEATURE_MD5_SHA1_SUM_CHECK( "\n" \
+     "\nOptions:" \
+     "\n	-c	Check sums against given list" \
+     "\n	-s	Don't output anything, status code shows success" \
+     "\n	-w	Warn about improperly formatted checksum lines" \
+	)
+
+#define sha256sum_trivial_usage \
+       "[OPTION] [FILEs...]" \
+	USE_FEATURE_MD5_SHA1_SUM_CHECK("\n   or: sha256sum [OPTION] -c [FILE]")
+#define sha256sum_full_usage "\n\n" \
+       "Print" USE_FEATURE_MD5_SHA1_SUM_CHECK(" or check") " SHA1 checksums." \
+	USE_FEATURE_MD5_SHA1_SUM_CHECK( "\n" \
+     "\nOptions:" \
+     "\n	-c	Check sums against given list" \
+     "\n	-s	Don't output anything, status code shows success" \
+     "\n	-w	Warn about improperly formatted checksum lines" \
+	)
+
+#define sha512sum_trivial_usage \
+       "[OPTION] [FILEs...]" \
+	USE_FEATURE_MD5_SHA1_SUM_CHECK("\n   or: sha512sum [OPTION] -c [FILE]")
+#define sha512sum_full_usage "\n\n" \
+       "Print" USE_FEATURE_MD5_SHA1_SUM_CHECK(" or check") " SHA1 checksums." \
+	USE_FEATURE_MD5_SHA1_SUM_CHECK( "\n" \
+     "\nOptions:" \
+     "\n	-c	Check sums against given list" \
+     "\n	-s	Don't output anything, status code shows success" \
+     "\n	-w	Warn about improperly formatted checksum lines" \
+	)
 
 #define mdev_trivial_usage \
        "[-s]"
@@ -3657,18 +3694,6 @@
 /*   "\n	-H	Show header line" */ \
      "\n	-W	Display with no host column truncation" \
      "\n	-f file Read from file instead of /var/log/wtmp" \
-	)
-
-#define sha1sum_trivial_usage \
-       "[OPTION] [FILEs...]" \
-	USE_FEATURE_MD5_SHA1_SUM_CHECK("\n   or: sha1sum [OPTION] -c [FILE]")
-#define sha1sum_full_usage "\n\n" \
-       "Print" USE_FEATURE_MD5_SHA1_SUM_CHECK(" or check") " SHA1 checksums." \
-	USE_FEATURE_MD5_SHA1_SUM_CHECK( "\n" \
-     "\nOptions:" \
-     "\n	-c	Check SHA1 sums against given list" \
-     "\n	-s	Don't output anything, status code shows success" \
-     "\n	-w	Warn about improperly formatted SHA1 checksum lines" \
 	)
 
 #define showkey_trivial_usage \
