@@ -2376,7 +2376,7 @@
        "Create MIME-encoded message\n" \
      "\nOptions:" \
      "\n	-C      Charset" \
-     "\n	-e	Tranfer encoding. Ignored. base64 is assumed" \
+     "\n	-e	Transfer encoding. Ignored. base64 is assumed" \
      "\n" \
      "\nOther options are silently ignored." \
 

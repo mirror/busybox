@@ -97,7 +97,7 @@ void FAST_FUNC sha1_hash(const void *data, size_t length, sha1_ctx_t *ctx)
 	if ((ctx->count[0] += length) < length)
 		ctx->count[1]++;
 
-	while (length >= freeb) {	/* tranfer whole blocks while possible  */
+	while (length >= freeb) {	/* transfer whole blocks while possible  */
 		memcpy(((unsigned char *) ctx->wbuf) + pos, sp, freeb);
 		sp += freeb;
 		length -= freeb;
