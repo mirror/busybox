@@ -58,7 +58,7 @@ config USE_BB_SHADOW
 	  password servers and whatnot.
 
 config USE_BB_CRYPT
-	bool "Use internal DES and MD5 crypt functions"
+	bool "Use internal crypt functions"
 	default y
 	help
 	  Busybox has internal DES and MD5 crypt functions.
@@ -78,6 +78,18 @@ config USE_BB_CRYPT
 	  if you are building dynamically linked executable.
 	  In static build, it makes code _smaller_ by about 1.2k,
 	  and likely many kilobytes less of bss.
+
+config USE_BB_CRYPT_SHA
+	bool "Enable SHA256/512 crypt functions"
+	default n
+	depends on USE_BB_CRYPT
+	help
+	  Enable this if you have passwords starting with "$5$" or "$6$"
+	  in your /etc/passwd or /etc/shadow files. These passwords
+	  are hashed using SHA256 and SHA512 algorithms. Support for them
+	  was added to glibc in 2008.
+	  With this option off, login will fail password check for any
+	  user which has password encrypted with these algorithms.
 
 config ADDGROUP
 	bool "addgroup"

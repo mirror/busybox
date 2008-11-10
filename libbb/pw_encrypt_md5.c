@@ -494,16 +494,6 @@ static void __md5_Transform(uint32_t state[4], const unsigned char block[64])
 }
 
 
-static char*
-__md5_to64(char *s, unsigned v, int n)
-{
-	while (--n >= 0) {
-		*s++ = ascii64[v & 0x3f];
-		v >>= 6;
-	}
-	return s;
-}
-
 /*
  * UNIX password
  *
@@ -605,9 +595,9 @@ md5_crypt(char passwd[MD5_OUT_BUFSIZE], const unsigned char *pw, const unsigned 
 	final[16] = final[5];
 	for (i = 0; i < 5; i++) {
 		unsigned l = (final[i] << 16) | (final[i+6] << 8) | final[i+12];
-		p = __md5_to64(p, l, 4);
+		p = to64(p, l, 4);
 	}
-	p = __md5_to64(p, final[11], 2);
+	p = to64(p, final[11], 2);
 	*p = '\0';
 
 	/* Don't leave anything around in vm they could use. */

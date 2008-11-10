@@ -557,8 +557,13 @@
      "\n	-r	Delete crontab" \
      "\n	FILE	Replace crontab by FILE ('-': stdin)" \
 
+#if !ENABLE_USE_BB_CRYPT || ENABLE_USE_BB_CRYPT_SHA
+#define cryptpw_trivial_usage \
+       "[-a des|md5|sha256/512] [string]"
+#else
 #define cryptpw_trivial_usage \
        "[-a des|md5] [string]"
+#endif
 #define cryptpw_full_usage "\n\n" \
        "Output crypted string.\n" \
        "If string isn't supplied on cmdline, read it from stdin.\n" \

@@ -15,16 +15,27 @@
  * DES and MD5 crypt implementations are taken from uclibc.
  * They were modified to not use static buffers.
  */
-/* Common for them */
+
+/* Used by pw_encrypt_XXX.c */
 static const uint8_t ascii64[] = "./0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
+static char*
+to64(char *s, unsigned v, int n)
+{
+	while (--n >= 0) {
+		*s++ = ascii64[v & 0x3f];
+		v >>= 6;
+	}
+	return s;
+}
+
 #include "pw_encrypt_des.c"
 #include "pw_encrypt_md5.c"
+#if ENABLE_USE_BB_CRYPT_SHA
+#include "pw_encrypt_sha.c"
+#endif
 
-/* Other advanced crypt ids: */
+/* Other advanced crypt ids (TODO?): */
 /* $2$ or $2a$: Blowfish */
-/* $5$: SHA-256 */
-/* $6$: SHA-512 */
-/* TODO: implement SHA - http://people.redhat.com/drepper/SHA-crypt.txt */
 
 static struct const_des_ctx *des_cctx;
 static struct des_ctx *des_ctx;
@@ -32,18 +43,20 @@ static struct des_ctx *des_ctx;
 /* my_crypt returns malloc'ed data */
 static char *my_crypt(const char *key, const char *salt)
 {
-	/* First, check if we are supposed to be using the MD5 replacement
-	 * instead of DES...  */
-	if (salt[0] == '$' && salt[1] == '1' && salt[2] == '$') {
-		return md5_crypt(xzalloc(MD5_OUT_BUFSIZE), (unsigned char*)key, (unsigned char*)salt);
+	/* MD5 or SHA? */
+	if (salt[0] == '$' && salt[1] && salt[2] == '$') {
+		if (salt[1] == '1')
+			return md5_crypt(xzalloc(MD5_OUT_BUFSIZE), (unsigned char*)key, (unsigned char*)salt);
+#if ENABLE_USE_BB_CRYPT_SHA
+		if (salt[1] == '5' || salt[1] == '6')
+			return sha_crypt((char*)key, (char*)salt);
+#endif
 	}
 
-	{
-		if (!des_cctx)
-			des_cctx = const_des_init();
-		des_ctx = des_init(des_ctx, des_cctx);
-		return des_crypt(des_ctx, xzalloc(DES_OUT_BUFSIZE), (unsigned char*)key, (unsigned char*)salt);
-	}
+	if (!des_cctx)
+		des_cctx = const_des_init();
+	des_ctx = des_init(des_ctx, des_cctx);
+	return des_crypt(des_ctx, xzalloc(DES_OUT_BUFSIZE), (unsigned char*)key, (unsigned char*)salt);
 }
 
 /* So far nobody wants to have it public */
