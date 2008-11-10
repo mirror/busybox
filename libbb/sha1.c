@@ -21,14 +21,11 @@
 #define SHA1_BLOCK_SIZE  64
 #define SHA1_DIGEST_SIZE 20
 #define SHA1_HASH_SIZE   SHA1_DIGEST_SIZE
-#define SHA2_GOOD        0
-#define SHA2_BAD         1
+#define SHA1_MASK        (SHA1_BLOCK_SIZE - 1)
 
 #define rotl32(x,n)      (((x) << n) | ((x) >> (32 - n)))
 
-#define SHA1_MASK        (SHA1_BLOCK_SIZE - 1)
-
-/* reverse byte order in 32-bit words   */
+/* Reverse byte order in 32-bit words   */
 #define ch(x,y,z)        ((z) ^ ((x) & ((y) ^ (z))))
 #define parity(x,y,z)    ((x) ^ (y) ^ (z))
 #define maj(x,y,z)       (((x) & (y)) | ((z) & ((x) | (y))))
@@ -60,21 +57,17 @@ static void sha1_compile(sha1_ctx_t *ctx)
 	d = ctx->hash[3];
 	e = ctx->hash[4];
 
-	for (i = 0; i < 20; ++i) {
+	for (i = 0; i < 20; ++i)
 		rnd(ch, 0x5a827999);
-	}
 
-	for (i = 20; i < 40; ++i) {
+	for (i = 20; i < 40; ++i)
 		rnd(parity, 0x6ed9eba1);
-	}
 
-	for (i = 40; i < 60; ++i) {
+	for (i = 40; i < 60; ++i)
 		rnd(maj, 0x8f1bbcdc);
-	}
 
-	for (i = 60; i < 80; ++i) {
+	for (i = 60; i < 80; ++i)
 		rnd(parity, 0xca62c1d6);
-	}
 
 	ctx->hash[0] += a;
 	ctx->hash[1] += b;
@@ -102,7 +95,7 @@ void FAST_FUNC sha1_hash(const void *data, size_t length, sha1_ctx_t *ctx)
 	const unsigned char *sp = data;
 
 	if ((ctx->count[0] += length) < length)
-		++(ctx->count[1]);
+		ctx->count[1]++;
 
 	while (length >= freeb) {	/* tranfer whole blocks while possible  */
 		memcpy(((unsigned char *) ctx->wbuf) + pos, sp, freeb);
@@ -120,11 +113,11 @@ void* FAST_FUNC sha1_end(void *resbuf, sha1_ctx_t *ctx)
 {
 	/* SHA1 Final padding and digest calculation  */
 #if BB_BIG_ENDIAN
-	static uint32_t mask[4] = { 0x00000000, 0xff000000, 0xffff0000, 0xffffff00 };
-	static uint32_t bits[4] = { 0x80000000, 0x00800000, 0x00008000, 0x00000080 };
+	static const uint32_t mask[4] = { 0x00000000, 0xff000000, 0xffff0000, 0xffffff00 };
+	static const uint32_t bits[4] = { 0x80000000, 0x00800000, 0x00008000, 0x00000080 };
 #else
-	static uint32_t mask[4] = { 0x00000000, 0x000000ff, 0x0000ffff, 0x00ffffff };
-	static uint32_t bits[4] = { 0x00000080, 0x00008000, 0x00800000, 0x80000000 };
+	static const uint32_t mask[4] = { 0x00000000, 0x000000ff, 0x0000ffff, 0x00ffffff };
+	static const uint32_t bits[4] = { 0x00000080, 0x00008000, 0x00800000, 0x80000000 };
 #endif
 
 	uint8_t *hval = resbuf;
@@ -146,15 +139,14 @@ void* FAST_FUNC sha1_end(void *resbuf, sha1_ctx_t *ctx)
 			ctx->wbuf[15] = 0;
 		sha1_compile(ctx);
 		cnt = 0;
-	} else				/* compute a word index for the empty buffer positions  */
+	} else  /* compute a word index for the empty buffer positions */
 		cnt = (cnt >> 2) + 1;
 
-	while (cnt < 14)	/* and zero pad all but last two positions      */
+	while (cnt < 14)  /* and zero pad all but last two positions */
 		ctx->wbuf[cnt++] = 0;
 
 	/* assemble the eight byte counter in the buffer in big-endian  */
 	/* format					                */
-
 	ctx->wbuf[14] = htonl((ctx->count[1] << 3) | (ctx->count[0] >> 29));
 	ctx->wbuf[15] = htonl(ctx->count[0] << 3);
 
@@ -162,7 +154,6 @@ void* FAST_FUNC sha1_end(void *resbuf, sha1_ctx_t *ctx)
 
 	/* extract the hash value as bytes in case the hash buffer is   */
 	/* misaligned for 32-bit words                                  */
-
 	for (i = 0; i < SHA1_DIGEST_SIZE; ++i)
 		hval[i] = (unsigned char) (ctx->hash[i >> 2] >> 8 * (~i & 3));
 
