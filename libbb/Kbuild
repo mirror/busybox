@@ -58,6 +58,8 @@ lib-y += make_directory.o
 lib-y += makedev.o
 lib-y += match_fstype.o
 lib-y += md5.o
+# Alternative (disabled) implementation
+#lib-y += md5prime.o
 lib-y += messages.o
 lib-y += mode_string.o
 lib-y += mtab_file.o

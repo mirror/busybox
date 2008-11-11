@@ -546,7 +546,7 @@ void FAST_FUNC sha512_hash(const void *buffer, size_t len, sha512_ctx_t *ctx)
 }
 
 
-void* FAST_FUNC sha1_end(void *resbuf, sha1_ctx_t *ctx)
+void FAST_FUNC sha1_end(void *resbuf, sha1_ctx_t *ctx)
 {
 	/* SHA1 Final padding and digest calculation  */
 #if BB_BIG_ENDIAN
@@ -593,8 +593,6 @@ void* FAST_FUNC sha1_end(void *resbuf, sha1_ctx_t *ctx)
 	/* misaligned for 32-bit words                                  */
 	for (i = 0; i < SHA1_DIGEST_SIZE; ++i)
 		hval[i] = (unsigned char) (ctx->hash[i >> 2] >> 8 * (~i & 3));
-
-	return resbuf;
 }
 
 
@@ -603,7 +601,7 @@ void* FAST_FUNC sha1_end(void *resbuf, sha1_ctx_t *ctx)
 
    IMPORTANT: On some systems it is required that RESBUF is correctly
    aligned for a 32 bits value.  */
-void* FAST_FUNC sha256_end(void *resbuf, sha256_ctx_t *ctx)
+void FAST_FUNC sha256_end(void *resbuf, sha256_ctx_t *ctx)
 {
 	/* Take yet unprocessed bytes into account.  */
 	uint32_t bytes = ctx->buflen;
@@ -630,8 +628,6 @@ void* FAST_FUNC sha256_end(void *resbuf, sha256_ctx_t *ctx)
 	/* Put result from CTX in first 32 bytes following RESBUF.  */
 	for (unsigned i = 0; i < 8; ++i)
 		((uint32_t *) resbuf)[i] = ntohl(ctx->H[i]);
-
-	return resbuf;
 }
 
 /* Process the remaining bytes in the internal buffer and the usual
@@ -639,7 +635,7 @@ void* FAST_FUNC sha256_end(void *resbuf, sha256_ctx_t *ctx)
 
    IMPORTANT: On some systems it is required that RESBUF is correctly
    aligned for a 64 bits value.  */
-void* FAST_FUNC sha512_end(void *resbuf, sha512_ctx_t *ctx)
+void FAST_FUNC sha512_end(void *resbuf, sha512_ctx_t *ctx)
 {
 	/* Take yet unprocessed bytes into account.  */
 	uint64_t bytes = ctx->buflen;
@@ -666,6 +662,4 @@ void* FAST_FUNC sha512_end(void *resbuf, sha512_ctx_t *ctx)
 	/* Put result from CTX in first 64 bytes following RESBUF.  */
 	for (unsigned i = 0; i < 8; ++i)
 		((uint64_t *) resbuf)[i] = hton64(ctx->H[i]);
-
-	return resbuf;
 }

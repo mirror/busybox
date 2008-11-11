@@ -1309,7 +1309,7 @@ typedef struct sha1_ctx_t {
 } sha1_ctx_t;
 void sha1_begin(sha1_ctx_t *ctx) FAST_FUNC;
 void sha1_hash(const void *data, size_t length, sha1_ctx_t *ctx) FAST_FUNC;
-void *sha1_end(void *resbuf, sha1_ctx_t *ctx) FAST_FUNC;
+void sha1_end(void *resbuf, sha1_ctx_t *ctx) FAST_FUNC;
 typedef struct sha256_ctx_t {
 	uint32_t H[8];
 	uint32_t total[2]; /* rename to "count"? */
@@ -1318,7 +1318,7 @@ typedef struct sha256_ctx_t {
 } sha256_ctx_t;
 void sha256_begin(sha256_ctx_t *ctx) FAST_FUNC;
 void sha256_hash(const void *buffer, size_t len, sha256_ctx_t *ctx) FAST_FUNC;
-void* sha256_end(void *resbuf, sha256_ctx_t *ctx) FAST_FUNC;
+void sha256_end(void *resbuf, sha256_ctx_t *ctx) FAST_FUNC;
 typedef struct sha512_ctx_t {
 	uint64_t H[8];
 	uint64_t total[2];
@@ -1327,7 +1327,8 @@ typedef struct sha512_ctx_t {
 } sha512_ctx_t;
 void sha512_begin(sha512_ctx_t *ctx) FAST_FUNC;
 void sha512_hash(const void *buffer, size_t len, sha512_ctx_t *ctx) FAST_FUNC;
-void* sha512_end(void *resbuf, sha512_ctx_t *ctx) FAST_FUNC;
+void sha512_end(void *resbuf, sha512_ctx_t *ctx) FAST_FUNC;
+#if 1
 typedef struct md5_ctx_t {
 	uint32_t A;
 	uint32_t B;
@@ -1337,9 +1338,18 @@ typedef struct md5_ctx_t {
 	uint32_t buflen;
 	char buffer[128];
 } md5_ctx_t;
+#else
+/* libbb/md5prime.c uses a bit different one: */
+typedef struct md5_ctx_t {
+	uint32_t state[4];	/* state (ABCD) */
+	uint32_t count[2];	/* number of bits, modulo 2^64 (lsb first) */
+	unsigned char buffer[64];	/* input buffer */
+} md5_ctx_t;
+#endif
 void md5_begin(md5_ctx_t *ctx) FAST_FUNC;
 void md5_hash(const void *data, size_t length, md5_ctx_t *ctx) FAST_FUNC;
-void *md5_end(void *resbuf, md5_ctx_t *ctx) FAST_FUNC;
+void md5_end(void *resbuf, md5_ctx_t *ctx) FAST_FUNC;
+
 
 uint32_t *crc32_filltable(uint32_t *tbl256, int endian) FAST_FUNC;
 
