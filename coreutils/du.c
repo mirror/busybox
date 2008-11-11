@@ -25,19 +25,28 @@
 
 #include "libbb.h"
 
+enum {
+	OPT_a_files_too    = (1 << 0),
+	OPT_H_follow_links = (1 << 1),
+	OPT_k_kbytes       = (1 << 2),
+	OPT_L_follow_links = (1 << 3),
+	OPT_s_total_norecurse = (1 << 4),
+	OPT_x_one_FS       = (1 << 5),
+	OPT_d_maxdepth     = (1 << 6),
+	OPT_l_hardlinks    = (1 << 7),
+	OPT_c_total        = (1 << 8),
+	OPT_h_for_humans   = (1 << 9),
+	OPT_m_mbytes       = (1 << 10),
+};
+
 struct globals {
 #if ENABLE_FEATURE_HUMAN_READABLE
 	unsigned long disp_hr;
 #else
 	unsigned disp_k;
 #endif
-
 	int max_print_depth;
-	nlink_t count_hardlinks;
-
 	bool status;
-	bool one_file_system;
-	int print_files;
 	int slink_depth;
 	int du_depth;
 	dev_t dir_dev;
@@ -72,7 +81,7 @@ static unsigned long du(const char *filename)
 		return 0;
 	}
 
-	if (G.one_file_system) {
+	if (option_mask32 & OPT_x_one_FS) {
 		if (G.du_depth == 0) {
 			G.dir_dev = statbuf.st_dev;
 		} else if (G.dir_dev != statbuf.st_dev) {
@@ -83,7 +92,7 @@ static unsigned long du(const char *filename)
 	sum = statbuf.st_blocks;
 
 	if (S_ISLNK(statbuf.st_mode)) {
-		if (G.slink_depth > G.du_depth) {	/* -H or -L */
+		if (G.slink_depth > G.du_depth) { /* -H or -L */
 			if (stat(filename, &statbuf) != 0) {
 				bb_simple_perror_msg(filename);
 				G.status = EXIT_FAILURE;
@@ -91,12 +100,15 @@ static unsigned long du(const char *filename)
 			}
 			sum = statbuf.st_blocks;
 			if (G.slink_depth == 1) {
-				G.slink_depth = INT_MAX;	/* Convert -H to -L. */
+				/* Convert -H to -L */
+				G.slink_depth = INT_MAX;
 			}
 		}
 	}
 
-	if (statbuf.st_nlink > G.count_hardlinks) {
+	if (!(option_mask32 & OPT_l_hardlinks)
+	 && statbuf.st_nlink > 1
+	) {
 		/* Add files/directories with links only once */
 		if (is_in_ino_dev_hashtable(&statbuf)) {
 			return 0;
@@ -115,14 +127,8 @@ static unsigned long du(const char *filename)
 			return sum;
 		}
 
-		newfile = last_char_is(filename, '/');
-		if (newfile)
-			*newfile = '\0';
-
 		while ((entry = readdir(dir))) {
-			char *name = entry->d_name;
-
-			newfile = concat_subpath_file(filename, name);
+			newfile = concat_subpath_file(filename, entry->d_name);
 			if (newfile == NULL)
 				continue;
 			++G.du_depth;
@@ -131,8 +137,9 @@ static unsigned long du(const char *filename)
 			free(newfile);
 		}
 		closedir(dir);
-	} else if (G.du_depth > G.print_files) {
-		return sum;
+	} else {
+		if (!(option_mask32 & OPT_a_files_too) && G.du_depth != 0)
+			return sum;
 	}
 	if (G.du_depth <= G.max_print_depth) {
 		print(sum, filename);
@@ -145,7 +152,6 @@ int du_main(int argc UNUSED_PARAM, char **argv)
 {
 	unsigned long total;
 	int slink_depth_save;
-	bool print_final_total;
 	unsigned opt;
 
 #if ENABLE_FEATURE_HUMAN_READABLE
@@ -158,7 +164,6 @@ int du_main(int argc UNUSED_PARAM, char **argv)
 	/* SKIP_FEATURE_DU_DEFAULT_BLOCKSIZE_1K(G.disp_k = 0;) - G is pre-zeroed */
 #endif
 	G.max_print_depth = INT_MAX;
-	G.count_hardlinks = 1;
 
 	/* Note: SUSv3 specifies that -a and -s options cannot be used together
 	 * in strictly conforming applications.  However, it also says that some
@@ -170,16 +175,13 @@ int du_main(int argc UNUSED_PARAM, char **argv)
 	opt_complementary = "h-km:k-hm:m-hk:H-L:L-H:s-d:d-s:d+";
 	opt = getopt32(argv, "aHkLsx" "d:" "lc" "hm", &G.max_print_depth);
 	argv += optind;
-	if (opt & (1 << 9)) {
-		/* -h opt */
+	if (opt & OPT_h_for_humans) {
 		G.disp_hr = 0;
 	}
-	if (opt & (1 << 10)) {
-		/* -m opt */
+	if (opt & OPT_m_mbytes) {
 		G.disp_hr = 1024*1024;
 	}
-	if (opt & (1 << 2)) {
-		/* -k opt */
+	if (opt & OPT_k_kbytes) {
 		G.disp_hr = 1024;
 	}
 #else
@@ -187,34 +189,20 @@ int du_main(int argc UNUSED_PARAM, char **argv)
 	opt = getopt32(argv, "aHkLsx" "d:" "lc", &G.max_print_depth);
 	argv += optind;
 #if !ENABLE_FEATURE_DU_DEFAULT_BLOCKSIZE_1K
-	if (opt & (1 << 2)) {
-		/* -k opt */
+	if (opt & OPT_k_kbytes) {
 		G.disp_k = 1;
 	}
 #endif
 #endif
-	if (opt & (1 << 0)) {
-		/* -a opt */
-		G.print_files = INT_MAX;
-	}
-	if (opt & (1 << 1)) {
-		/* -H opt */
+	if (opt & OPT_H_follow_links) {
 		G.slink_depth = 1;
 	}
-	if (opt & (1 << 3)) {
-		/* -L opt */
+	if (opt & OPT_L_follow_links) {
 		G.slink_depth = INT_MAX;
 	}
-	if (opt & (1 << 4)) {
-		/* -s opt */
+	if (opt & OPT_s_total_norecurse) {
 		G.max_print_depth = 0;
 	}
-	G.one_file_system = opt & (1 << 5); /* -x opt */
-	if (opt & (1 << 7)) {
-		/* -l opt */
-		G.count_hardlinks = MAXINT(nlink_t);
-	}
-	print_final_total = opt & (1 << 8); /* -c opt */
 
 	/* go through remaining args (if any) */
 	if (!*argv) {
@@ -228,12 +216,12 @@ int du_main(int argc UNUSED_PARAM, char **argv)
 	total = 0;
 	do {
 		total += du(*argv);
+		/* otherwise du /dir /dir won't show /dir twice: */
+		reset_ino_dev_hashtable();
 		G.slink_depth = slink_depth_save;
 	} while (*++argv);
 
-	if (ENABLE_FEATURE_CLEAN_UP)
-		reset_ino_dev_hashtable();
-	if (print_final_total)
+	if (opt & OPT_c_total)
 		print(total, "total");
 
 	fflush_stdout_and_exit(G.status);
