@@ -481,24 +481,21 @@ static VALUE *eval(void)
 }
 
 int expr_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int expr_main(int argc, char **argv)
+int expr_main(int argc UNUSED_PARAM, char **argv)
 {
 	VALUE *v;
 
-	if (argc == 1) {
+	xfunc_error_retval = 2; /* coreutils compat */
+	G.args = argv + 1;
+	if (*G.args == NULL) {
 		bb_error_msg_and_die("too few arguments");
 	}
-
-	G.args = argv + 1;
-
 	v = eval();
 	if (*G.args)
 		bb_error_msg_and_die("syntax error");
-
 	if (v->type == INTEGER)
 		printf("%" PF_REZ "d\n", PF_REZ_TYPE v->u.i);
 	else
 		puts(v->u.s);
-
 	fflush_stdout_and_exit(null(v));
 }
