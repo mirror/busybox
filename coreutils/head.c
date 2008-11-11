@@ -40,7 +40,6 @@ int head_main(int argc, char **argv)
 	int count_bytes = 0;
 	int header_threshhold = 1;
 #endif
-
 	FILE *fp;
 	const char *fmt;
 	char *p;
@@ -50,7 +49,7 @@ int head_main(int argc, char **argv)
 
 #if ENABLE_INCLUDE_SUSv2 || ENABLE_FEATURE_FANCY_HEAD
 	/* Allow legacy syntax of an initial numeric option without -n. */
-	if (argc > 1 && argv[1][0] == '-'
+	if (argv[1] && argv[1][0] == '-'
 	 && isdigit(argv[1][1])
 	) {
 		--argc;
@@ -79,7 +78,6 @@ int head_main(int argc, char **argv)
 #if ENABLE_INCLUDE_SUSv2 || ENABLE_FEATURE_FANCY_HEAD
  GET_COUNT:
 #endif
-
 #if !ENABLE_FEATURE_FANCY_HEAD
 			count = xatoul(p);
 #else
@@ -128,10 +126,12 @@ int head_main(int argc, char **argv)
 				putchar(c);
 			}
 			if (fclose_if_not_stdin(fp)) {
-				bb_simple_perror_msg(*argv);	/* Avoid multibyte problems. */
+				bb_simple_perror_msg(*argv);
 				retval = EXIT_FAILURE;
 			}
 			die_if_ferror_stdout();
+		} else {
+			retval = EXIT_FAILURE;
 		}
 		fmt = header_fmt_str;
 	} while (*++argv);
