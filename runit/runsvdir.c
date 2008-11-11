@@ -377,19 +377,17 @@ int runsvdir_main(int argc UNUSED_PARAM, char **argv)
 			}
 		}
 
-		switch (bb_got_signal) {
-		case SIGHUP:
+		if (bb_got_signal == SIGHUP) {
 			for (i = 0; i < svnum; i++)
 				if (sv[i].pid)
 					kill(sv[i].pid, SIGTERM);
-			/* Fall through */
-		default: /* SIGTERM (or SIGUSRn if we are init) */
-			/* Exit unless we are init */
-			if (getpid() == 1)
-				break;
-			return (SIGHUP == bb_got_signal) ? 111 : EXIT_SUCCESS;
 		}
+		/* SIGHUP or SIGTERM (or SIGUSRn if we are init) */
+		/* Exit unless we are init */
+		if (getpid() != 1)
+			return (SIGHUP == bb_got_signal) ? 111 : EXIT_SUCCESS;
 
+		/* init continues to monitor services forever */
 		bb_got_signal = 0;
 	} /* for (;;) */
 }
