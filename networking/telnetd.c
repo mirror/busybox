@@ -74,9 +74,6 @@ static const char *issuefile = "/etc/issue.net";
    past (bf + len) then that IAC will be left unprocessed and *processed
    will be less than len.
 
-   FIXME - if we mean to send 0xFF to the terminal then it will be escaped,
-   what is the escape character?  We aren't handling that situation here.
-
    CR-LF ->'s CR mapping is also done here, for convenience.
 
    NB: may fail to remove iacs which wrap around buffer!
@@ -159,6 +156,47 @@ remove_iacs(struct tsession *ts, int *pnum_totty)
 	return memmove(ptr - num_totty, ptr0, num_totty);
 }
 
+/*
+ * Converting single 0xff into double on output
+ */
+static size_t iac_safe_write(int fd, const char *buf, size_t count)
+{
+	const char *oxff;
+	size_t wr, rc, total;
+
+	total = 0;
+	while (1) {
+		if (count == 0)
+			return total;
+		if (*buf == (char)0xff) {
+			rc = safe_write(fd, "\xff\xff", 2);
+			if (rc != 2)
+				break;
+			buf++;
+			total++;
+			count--;
+			continue;
+		}
+		/* count != 0, *buf != 0xff */
+		oxff = memchr(buf, 0xff, count);
+		wr = count;
+		if (oxff)
+			wr = oxff - buf;
+		rc = safe_write(fd, buf, wr);
+		if (rc != wr)
+			break;
+		buf += rc;
+		total += rc;
+		count -= rc;
+	}
+	/* here: rc - result of last short write */
+	if ((ssize_t)rc < 0) { /* error? */
+		if (total == 0)
+			return rc;
+		rc = 0;
+	}
+	return total + rc;
+}
 
 static struct tsession *
 make_new_session(
@@ -212,9 +250,15 @@ make_new_session(
 			IAC, WILL, TELOPT_ECHO,
 			IAC, WILL, TELOPT_SGA
 		};
-		memcpy(TS_BUF2, iacs_to_send, sizeof(iacs_to_send));
-		ts->rdidx2 = sizeof(iacs_to_send);
-		ts->size2 = sizeof(iacs_to_send);
+		/* This confuses iac_safe_write(), it will try to duplicate
+		 * each IAC... */
+		//memcpy(TS_BUF2, iacs_to_send, sizeof(iacs_to_send));
+		//ts->rdidx2 = sizeof(iacs_to_send);
+		//ts->size2 = sizeof(iacs_to_send);
+		/* So just stuff it into TCP buffer! */
+		safe_write(sock, iacs_to_send, sizeof(iacs_to_send));
+		/*ts->rdidx2 = 0; - xzalloc did it! */
+		/*ts->size2 = 0;*/
 	}
 
 	fflush(NULL); /* flush all streams */
@@ -538,7 +582,7 @@ int telnetd_main(int argc UNUSED_PARAM, char **argv)
 		if (/*ts->size2 &&*/ FD_ISSET(ts->sockfd_write, &wrfdset)) {
 			/* Write to socket from buffer 2. */
 			count = MIN(BUFSIZE - ts->wridx2, ts->size2);
-			count = safe_write(ts->sockfd_write, TS_BUF2 + ts->wridx2, count);
+			count = iac_safe_write(ts->sockfd_write, (void*)(TS_BUF2 + ts->wridx2), count);
 			if (count < 0) {
 				if (errno == EAGAIN)
 					goto skip2;

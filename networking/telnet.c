@@ -93,7 +93,7 @@ static void will_charmode(void);
 static void telopt(byte c);
 static int subneg(byte c);
 
-static void iacflush(void)
+static void iac_flush(void)
 {
 	write(netfd, G.iacbuf, G.iaclen);
 	G.iaclen = 0;
@@ -108,11 +108,11 @@ static void doexit(int ev)
 	exit(ev);
 }
 
-static void conescape(void)
+static void con_escape(void)
 {
 	char b;
 
-	if (bb_got_signal)	/* came from line  mode... go raw */
+	if (bb_got_signal) /* came from line mode... go raw */
 		rawmode();
 
 	write_str(1, "\r\nConsole escape. Commands are:\r\n\n"
@@ -128,13 +128,13 @@ static void conescape(void)
 	case 'l':
 		if (!bb_got_signal) {
 			do_linemode();
-			goto rrturn;
+			goto ret;
 		}
 		break;
 	case 'c':
 		if (bb_got_signal) {
 			will_charmode();
-			goto rrturn;
+			goto ret;
 		}
 		break;
 	case 'z':
@@ -150,13 +150,12 @@ static void conescape(void)
 
 	if (bb_got_signal)
 		cookmode();
-
- rrturn:
+ ret:
 	bb_got_signal = 0;
 
 }
 
-static void handlenetoutput(int len)
+static void handle_net_output(int len)
 {
 	/* here we could do smart tricks how to handle 0xFF:s in output
 	 * stream like writing twice every sequence of FF:s (thus doing
@@ -169,19 +168,19 @@ static void handlenetoutput(int len)
 	 * first - I cannot use programs like sz/rz
 	 * second - the 0x0D is sent as one character and if the next
 	 *	char is 0x0A then it's eaten by a server side.
-	 * third - whay doy you have to make 'many write()s'?
+	 * third - why do you have to make 'many write()s'?
 	 *	I don't understand.
-	 * So I implemented it. It's realy useful for me. I hope that
-	 * others people will find it interesting too.
+	 * So I implemented it. It's really useful for me. I hope that
+	 * other people will find it interesting too.
 	 */
 
 	int i, j;
-	byte * p = (byte*)G.buf;
+	byte *p = (byte*)G.buf;
 	byte outbuf[4*DATABUFSIZE];
 
 	for (i = len, j = 0; i > 0; i--, p++) {
 		if (*p == 0x1d) {
-			conescape();
+			con_escape();
 			return;
 		}
 		outbuf[j++] = *p;
@@ -194,7 +193,7 @@ static void handlenetoutput(int len)
 		write(netfd, outbuf, j);
 }
 
-static void handlenetinput(int len)
+static void handle_net_input(int len)
 {
 	int i;
 	int cstart = 0;
@@ -207,51 +206,54 @@ static void handlenetinput(int len)
 				cstart = i;
 				G.telstate = TS_IAC;
 			}
-		} else
-			switch (G.telstate) {
-			case TS_0:
-				if (c == IAC)
-					G.telstate = TS_IAC;
-				else
-					G.buf[cstart++] = c;
-				break;
+			continue;
+		}
+		switch (G.telstate) {
+		case TS_0:
+			if (c == IAC)
+				G.telstate = TS_IAC;
+			else
+				G.buf[cstart++] = c;
+			break;
 
-			case TS_IAC:
-				if (c == IAC) { /* IAC IAC -> 0xFF */
-					G.buf[cstart++] = c;
-					G.telstate = TS_0;
-					break;
-				}
-				/* else */
-				switch (c) {
-				case SB:
-					G.telstate = TS_SUB1;
-					break;
-				case DO:
-				case DONT:
-				case WILL:
-				case WONT:
-					G.telwish =  c;
-					G.telstate = TS_OPT;
-					break;
-				default:
-					G.telstate = TS_0;	/* DATA MARK must be added later */
-				}
-				break;
-			case TS_OPT: /* WILL, WONT, DO, DONT */
-				telopt(c);
+		case TS_IAC:
+			if (c == IAC) { /* IAC IAC -> 0xFF */
+				G.buf[cstart++] = c;
 				G.telstate = TS_0;
 				break;
-			case TS_SUB1: /* Subnegotiation */
-			case TS_SUB2: /* Subnegotiation */
-				if (subneg(c))
-					G.telstate = TS_0;
-				break;
 			}
+			/* else */
+			switch (c) {
+			case SB:
+				G.telstate = TS_SUB1;
+				break;
+			case DO:
+			case DONT:
+			case WILL:
+			case WONT:
+				G.telwish =  c;
+				G.telstate = TS_OPT;
+				break;
+			default:
+				G.telstate = TS_0;	/* DATA MARK must be added later */
+			}
+			break;
+		case TS_OPT: /* WILL, WONT, DO, DONT */
+			telopt(c);
+			G.telstate = TS_0;
+			break;
+		case TS_SUB1: /* Subnegotiation */
+		case TS_SUB2: /* Subnegotiation */
+			if (subneg(c))
+				G.telstate = TS_0;
+			break;
+		}
 	}
 	if (G.telstate) {
-		if (G.iaclen) iacflush();
-		if (G.telstate == TS_0)	G.telstate = 0;
+		if (G.iaclen)
+			iac_flush();
+		if (G.telstate == TS_0)
+			G.telstate = 0;
 		len = cstart;
 	}
 
@@ -259,87 +261,87 @@ static void handlenetinput(int len)
 		write(STDOUT_FILENO, G.buf, len);
 }
 
-static void putiac(int c)
+static void put_iac(int c)
 {
 	G.iacbuf[G.iaclen++] = c;
 }
 
-static void putiac2(byte wwdd, byte c)
+static void put_iac2(byte wwdd, byte c)
 {
 	if (G.iaclen + 3 > IACBUFSIZE)
-		iacflush();
+		iac_flush();
 
-	putiac(IAC);
-	putiac(wwdd);
-	putiac(c);
+	put_iac(IAC);
+	put_iac(wwdd);
+	put_iac(c);
 }
 
 #if ENABLE_FEATURE_TELNET_TTYPE
-static void putiac_subopt(byte c, char *str)
+static void put_iac_subopt(byte c, char *str)
 {
-	int	len = strlen(str) + 6;   // ( 2 + 1 + 1 + strlen + 2 )
+	int len = strlen(str) + 6;   // ( 2 + 1 + 1 + strlen + 2 )
 
 	if (G.iaclen + len > IACBUFSIZE)
-		iacflush();
+		iac_flush();
 
-	putiac(IAC);
-	putiac(SB);
-	putiac(c);
-	putiac(0);
+	put_iac(IAC);
+	put_iac(SB);
+	put_iac(c);
+	put_iac(0);
 
 	while (*str)
-		putiac(*str++);
+		put_iac(*str++);
 
-	putiac(IAC);
-	putiac(SE);
+	put_iac(IAC);
+	put_iac(SE);
 }
 #endif
 
 #if ENABLE_FEATURE_TELNET_AUTOLOGIN
-static void putiac_subopt_autologin(void)
+static void put_iac_subopt_autologin(void)
 {
 	int len = strlen(G.autologin) + 6;	// (2 + 1 + 1 + strlen + 2)
 	const char *user = "USER";
 
 	if (G.iaclen + len > IACBUFSIZE)
-		iacflush();
+		iac_flush();
 
-	putiac(IAC);
-	putiac(SB);
-	putiac(TELOPT_NEW_ENVIRON);
-	putiac(TELQUAL_IS);
-	putiac(NEW_ENV_VAR);
+	put_iac(IAC);
+	put_iac(SB);
+	put_iac(TELOPT_NEW_ENVIRON);
+	put_iac(TELQUAL_IS);
+	put_iac(NEW_ENV_VAR);
 
 	while (*user)
-		putiac(*user++);
+		put_iac(*user++);
 
-	putiac(NEW_ENV_VALUE);
+	put_iac(NEW_ENV_VALUE);
 
 	while (*G.autologin)
-		putiac(*G.autologin++);
+		put_iac(*G.autologin++);
 
-	putiac(IAC);
-	putiac(SE);
+	put_iac(IAC);
+	put_iac(SE);
 }
 #endif
 
 #if ENABLE_FEATURE_AUTOWIDTH
-static void putiac_naws(byte c, int x, int y)
+static void put_iac_naws(byte c, int x, int y)
 {
 	if (G.iaclen + 9 > IACBUFSIZE)
-		iacflush();
+		iac_flush();
 
-	putiac(IAC);
-	putiac(SB);
-	putiac(c);
+	put_iac(IAC);
+	put_iac(SB);
+	put_iac(c);
 
-	putiac((x >> 8) & 0xff);
-	putiac(x & 0xff);
-	putiac((y >> 8) & 0xff);
-	putiac(y & 0xff);
+	put_iac((x >> 8) & 0xff);
+	put_iac(x & 0xff);
+	put_iac((y >> 8) & 0xff);
+	put_iac(y & 0xff);
 
-	putiac(IAC);
-	putiac(SE);
+	put_iac(IAC);
+	put_iac(SE);
 }
 #endif
 
@@ -368,9 +370,9 @@ static void will_charmode(void)
 	G.telflags |= (UF_ECHO | UF_SGA);
 	setConMode();
 
-	putiac2(DO, TELOPT_ECHO);
-	putiac2(DO, TELOPT_SGA);
-	iacflush();
+	put_iac2(DO, TELOPT_ECHO);
+	put_iac2(DO, TELOPT_SGA);
+	iac_flush();
 }
 
 static void do_linemode(void)
@@ -379,24 +381,24 @@ static void do_linemode(void)
 	G.telflags &= ~(UF_ECHO | UF_SGA);
 	setConMode();
 
-	putiac2(DONT, TELOPT_ECHO);
-	putiac2(DONT, TELOPT_SGA);
-	iacflush();
+	put_iac2(DONT, TELOPT_ECHO);
+	put_iac2(DONT, TELOPT_SGA);
+	iac_flush();
 }
 
 static void to_notsup(char c)
 {
 	if (G.telwish == WILL)
-		putiac2(DONT, c);
+		put_iac2(DONT, c);
 	else if (G.telwish == DO)
-		putiac2(WONT, c);
+		put_iac2(WONT, c);
 }
 
 static void to_echo(void)
 {
 	/* if server requests ECHO, don't agree */
 	if (G.telwish == DO) {
-		putiac2(WONT, TELOPT_ECHO);
+		put_iac2(WONT, TELOPT_ECHO);
 		return;
 	}
 	if (G.telwish == DONT)
@@ -412,9 +414,9 @@ static void to_echo(void)
 		G.telflags ^= UF_ECHO;
 
 	if (G.telflags & UF_ECHO)
-		putiac2(DO, TELOPT_ECHO);
+		put_iac2(DO, TELOPT_ECHO);
 	else
-		putiac2(DONT, TELOPT_ECHO);
+		put_iac2(DONT, TELOPT_ECHO);
 
 	setConMode();
 	write_str(1, "\r\n");  /* sudden modec */
@@ -432,9 +434,9 @@ static void to_sga(void)
 
 	G.telflags ^= UF_SGA; /* toggle */
 	if (G.telflags & UF_SGA)
-		putiac2(DO, TELOPT_SGA);
+		put_iac2(DO, TELOPT_SGA);
 	else
-		putiac2(DONT, TELOPT_SGA);
+		put_iac2(DONT, TELOPT_SGA);
 }
 
 #if ENABLE_FEATURE_TELNET_TTYPE
@@ -443,9 +445,9 @@ static void to_ttype(void)
 	/* Tell server we will (or won't) do TTYPE */
 
 	if (G.ttype)
-		putiac2(WILL, TELOPT_TTYPE);
+		put_iac2(WILL, TELOPT_TTYPE);
 	else
-		putiac2(WONT, TELOPT_TTYPE);
+		put_iac2(WONT, TELOPT_TTYPE);
 }
 #endif
 
@@ -455,9 +457,9 @@ static void to_new_environ(void)
 	/* Tell server we will (or will not) do AUTOLOGIN */
 
 	if (G.autologin)
-		putiac2(WILL, TELOPT_NEW_ENVIRON);
+		put_iac2(WILL, TELOPT_NEW_ENVIRON);
 	else
-		putiac2(WONT, TELOPT_NEW_ENVIRON);
+		put_iac2(WONT, TELOPT_NEW_ENVIRON);
 }
 #endif
 
@@ -465,7 +467,7 @@ static void to_new_environ(void)
 static void to_naws(void)
 {
 	/* Tell server we will do NAWS */
-	putiac2(WILL, TELOPT_NAWS);
+	put_iac2(WILL, TELOPT_NAWS);
 }
 #endif
 
@@ -487,7 +489,7 @@ static void telopt(byte c)
 #if ENABLE_FEATURE_AUTOWIDTH
 	case TELOPT_NAWS:
 		to_naws();
-		putiac_naws(c, G.win_width, G.win_height);
+		put_iac_naws(c, G.win_width, G.win_height);
 		break;
 #endif
 	default:
@@ -506,12 +508,12 @@ static int subneg(byte c)
 #if ENABLE_FEATURE_TELNET_TTYPE
 		else
 		if (c == TELOPT_TTYPE)
-			putiac_subopt(TELOPT_TTYPE, G.ttype);
+			put_iac_subopt(TELOPT_TTYPE, G.ttype);
 #endif
 #if ENABLE_FEATURE_TELNET_AUTOLOGIN
 		else
 		if (c == TELOPT_NEW_ENVIRON)
-			putiac_subopt_autologin();
+			put_iac_subopt_autologin();
 #endif
 		break;
 	case TS_SUB2:
@@ -611,7 +613,7 @@ int telnet_main(int argc UNUSED_PARAM, char **argv)
 		case -1:
 			/* error, ignore and/or log something, bay go to loop */
 			if (bb_got_signal)
-				conescape();
+				con_escape();
 			else
 				sleep(1);
 			break;
@@ -627,7 +629,7 @@ int telnet_main(int argc UNUSED_PARAM, char **argv)
 				if (len <= 0)
 					doexit(EXIT_SUCCESS);
 				TRACE(0, ("Read con: %d\n", len));
-				handlenetoutput(len);
+				handle_net_output(len);
 			}
 
 #ifdef USE_POLL
@@ -642,7 +644,7 @@ int telnet_main(int argc UNUSED_PARAM, char **argv)
 					doexit(EXIT_FAILURE);
 				}
 				TRACE(0, ("Read netfd (%d): %d\n", netfd, len));
-				handlenetinput(len);
+				handle_net_input(len);
 			}
 		}
 	} /* while (1) */
