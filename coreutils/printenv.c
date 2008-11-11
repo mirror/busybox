@@ -13,6 +13,8 @@
 int printenv_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int printenv_main(int argc UNUSED_PARAM, char **argv)
 {
+	int exit_code = EXIT_SUCCESS;
+
 	/* no variables specified, show whole env */
 	if (!argv[1]) {
 		int e = 0;
@@ -26,8 +28,10 @@ int printenv_main(int argc UNUSED_PARAM, char **argv)
 			env = getenv(arg);
 			if (env)
 				puts(env);
+			else
+				exit_code = EXIT_FAILURE;
 		}
 	}
 
-	fflush_stdout_and_exit(EXIT_SUCCESS);
+	fflush_stdout_and_exit(exit_code);
 }
