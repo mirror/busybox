@@ -139,6 +139,20 @@ static void printfs(char *pformat, const char *msg)
 	printf(pformat, msg);
 }
 
+/* "man statfs" says that statfsbuf->f_fsid is a mess */
+/* coreutils treats it as an array of ints, most significant first */
+static unsigned long long get_f_fsid(const struct statfs *statfsbuf)
+{
+	const unsigned *p = (const void*) &statfsbuf->f_fsid;
+	unsigned sz = sizeof(statfsbuf->f_fsid) / sizeof(unsigned);
+	unsigned long long r = 0;
+
+	do
+		r = (r << (sizeof(unsigned)*8)) | *p++;
+	while (--sz > 0);
+	return r;
+}
+
 /* print statfs info */
 static void print_statfs(char *pformat, const char m,
 		const char *const filename, const void *data
@@ -148,11 +162,11 @@ static void print_statfs(char *pformat, const char m,
 	if (m == 'n') {
 		printfs(pformat, filename);
 	} else if (m == 'i') {
-		strcat(pformat, "Lx");
-		printf(pformat, statfsbuf->f_fsid);
+		strcat(pformat, "llx");
+		printf(pformat, get_f_fsid(statfsbuf));
 	} else if (m == 'l') {
 		strcat(pformat, "lu");
-		printf(pformat, statfsbuf->f_namelen);
+		printf(pformat, (unsigned long) (statfsbuf->f_namelen));
 	} else if (m == 't') {
 		strcat(pformat, "lx");
 		printf(pformat, (unsigned long) (statfsbuf->f_type)); /* no equiv */
@@ -349,10 +363,11 @@ static void print_it(const char *masterformat, const char *filename,
 #endif
 static bool do_statfs(const char *filename, const char *format)
 {
+	struct statfs statfsbuf;
+
 #if !ENABLE_FEATURE_STAT_FORMAT
 	const char *format;
 #endif
-	struct statfs statfsbuf;
 #if ENABLE_SELINUX
 	security_context_t scontext = NULL;
 
@@ -406,10 +421,10 @@ static bool do_statfs(const char *filename, const char *format)
 	format = (option_mask32 & OPT_TERSE
 		? "%s %llx %lu "
 		: "  File: \"%s\"\n"
-		  "    ID: %-8Lx Namelen: %-7lu ");
+		  "    ID: %-8llx Namelen: %-7lu ");
 	printf(format,
 	       filename,
-	       statfsbuf.f_fsid,
+	       get_f_fsid(&statfsbuf),
 	       statfsbuf.f_namelen);
 
 	if (option_mask32 & OPT_TERSE)
