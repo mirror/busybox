@@ -43,8 +43,6 @@ static const char env_longopts[] ALIGN1 =
 int env_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int env_main(int argc UNUSED_PARAM, char **argv)
 {
-	/* cleanenv was static - why? */
-	char *cleanenv[1];
 	char **ep;
 	unsigned opt;
 	llist_t *unset_env = NULL;
@@ -60,12 +58,16 @@ int env_main(int argc UNUSED_PARAM, char **argv)
 		++argv;
 	}
 	if (opt & 1) {
-		cleanenv[0] = NULL;
-		environ = cleanenv;
-	} else {
-		while (unset_env) {
-			unsetenv(llist_pop(&unset_env));
-		}
+		clearenv();
+	}
+	while (unset_env) {
+		char *var = llist_pop(&unset_env);
+		/* This does not handle -uVAR=VAL
+		 * (coreutils _sets_ the variable in that case): */
+		/*unsetenv(var);*/
+		/* This does, but uses somewhan undocumented feature that
+		 * putenv("name_without_equal_sign") unsets the variable: */
+		putenv(var);
 	}
 
 	while (*argv && (strchr(*argv, '=') != NULL)) {
