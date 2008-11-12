@@ -16,23 +16,30 @@ int seq_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int seq_main(int argc, char **argv)
 {
 	double last, increment, i;
+	enum { OPT_w = 1 };
+	unsigned opt = getopt32(argv, "+w");
+	unsigned width = 0;
 
+	argc -= optind;
+	argv += optind;
 	i = increment = 1;
 	switch (argc) {
-		case 4:
-			increment = atof(argv[2]);
 		case 3:
-			i = atof(argv[1]);
+			increment = atof(argv[1]);
 		case 2:
+			i = atof(*argv);
+		case 1:
 			last = atof(argv[argc-1]);
 			break;
 		default:
 			bb_show_usage();
 	}
+	if (opt & OPT_w) /* Pad to length of start or last */
+		width = MAX(strlen(*argv), strlen(argv[argc-1]));
 
 	/* You should note that this is pos-5.0.91 semantics, -- FK. */
 	while ((increment > 0 && i <= last) || (increment < 0 && i >= last)) {
-		printf("%g\n", i);
+		printf("%0*g\n", width, i);
 		i += increment;
 	}
 

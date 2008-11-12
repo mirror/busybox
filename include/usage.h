@@ -3594,11 +3594,12 @@
      "\nOther options are silently ignored; -oi is implied" \
 
 #define seq_trivial_usage \
-       "[first [increment]] last"
+       "[-w] [first [increment]] last"
 #define seq_full_usage "\n\n" \
        "Print numbers from FIRST to LAST, in steps of INCREMENT.\n" \
        "FIRST, INCREMENT default to 1\n" \
      "\nArguments:" \
+     "\n       -w          Pad to last with leading zeros" \
      "\n	LAST" \
      "\n	FIRST LAST" \
      "\n	FIRST INCREMENT LAST" \
