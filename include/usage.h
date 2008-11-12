@@ -3588,22 +3588,19 @@
 	USE_FEATURE_SENDMAIL_MAILXX( \
      "\n	-c rcpt		Cc: recipient. May be multiple" \
      "\n	-e rcpt		Errors-To: recipient" \
-       	)
+       	) \
      "\n	-t		Read recipients and subject from body" \
      "\n" \
      "\nOther options are silently ignored; -oi is implied" \
 
 #define seq_trivial_usage \
-       "[-w] [-s separator] [first [increment]] last"
+       "[-w] [-s SEP] [FIRST [INC]] LAST"
 #define seq_full_usage "\n\n" \
-       "Print numbers from FIRST to LAST, in steps of INCREMENT.\n" \
-       "FIRST, INCREMENT default to 1\n" \
-     "\nArguments:" \
-     "\n	-w          Pad to last with leading zeros" \
-     "\n	-s <string> Use string separator" \
-     "\n	LAST" \
-     "\n	FIRST LAST" \
-     "\n	FIRST INCREMENT LAST" \
+       "Print numbers from FIRST to LAST, in steps of INC.\n" \
+       "FIRST, INC default to 1\n" \
+     "\nOptions:" \
+     "\n	-w	Pad to last with leading zeros" \
+     "\n	-s SEP	String separator" \
 
 #define sestatus_trivial_usage \
        "[-vb]"
