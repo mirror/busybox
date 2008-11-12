@@ -157,19 +157,20 @@ remove_iacs(struct tsession *ts, int *pnum_totty)
 }
 
 /*
- * Converting single 0xff into double on output
+ * Converting single IAC into double on output
  */
 static size_t iac_safe_write(int fd, const char *buf, size_t count)
 {
-	const char *oxff;
+	const char *IACptr;
 	size_t wr, rc, total;
 
 	total = 0;
 	while (1) {
 		if (count == 0)
 			return total;
-		if (*buf == (char)0xff) {
-			rc = safe_write(fd, "\xff\xff", 2);
+		if (*buf == (char)IAC) {
+			static const char IACIAC[] ALIGN1 = { IAC, IAC };
+			rc = safe_write(fd, IACIAC, 2);
 			if (rc != 2)
 				break;
 			buf++;
@@ -177,11 +178,11 @@ static size_t iac_safe_write(int fd, const char *buf, size_t count)
 			count--;
 			continue;
 		}
-		/* count != 0, *buf != 0xff */
-		oxff = memchr(buf, 0xff, count);
+		/* count != 0, *buf != IAC */
+		IACptr = memchr(buf, IAC, count);
 		wr = count;
-		if (oxff)
-			wr = oxff - buf;
+		if (IACptr)
+			wr = IACptr - buf;
 		rc = safe_write(fd, buf, wr);
 		if (rc != wr)
 			break;
@@ -255,9 +256,13 @@ make_new_session(
 		//memcpy(TS_BUF2, iacs_to_send, sizeof(iacs_to_send));
 		//ts->rdidx2 = sizeof(iacs_to_send);
 		//ts->size2 = sizeof(iacs_to_send);
-		/* So just stuff it into TCP buffer! */
+		/* So just stuff it into TCP stream! (no error check...) */
+#if ENABLE_FEATURE_TELNETD_STANDALONE
 		safe_write(sock, iacs_to_send, sizeof(iacs_to_send));
-		/*ts->rdidx2 = 0; - xzalloc did it! */
+#else
+		safe_write(1, iacs_to_send, sizeof(iacs_to_send));
+#endif
+		/*ts->rdidx2 = 0; - xzalloc did it */
 		/*ts->size2 = 0;*/
 	}
 
