@@ -600,18 +600,22 @@ static void process_module(char *name, const char *cmdline_options)
 	free(deps);
 
 	/* modprobe -> load it */
-	if (!is_rmmod && (options && !strstr(options, "blacklist"))) {
-		errno = 0;
-		if (load_module(info->pathname, options) != 0) {
-			if (EEXIST != errno) {
-				bb_error_msg("'%s': %s",
+	if (!is_rmmod) {
+		if (!options || strstr(options, "blacklist") == NULL) {
+			errno = 0;
+			if (load_module(info->pathname, options) != 0) {
+				if (EEXIST != errno) {
+					bb_error_msg("'%s': %s",
 						info->pathname,
 						moderror(errno));
-			} else {
-				dbg1_error_msg("'%s': %s",
+				} else {
+					dbg1_error_msg("'%s': %s",
 						info->pathname,
 						moderror(errno));
+				}
 			}
+		} else {
+			dbg1_error_msg("'%s': blacklisted", info->pathname);
 		}
 	}
  ret:

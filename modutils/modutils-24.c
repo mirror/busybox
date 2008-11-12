@@ -997,8 +997,9 @@ arch_apply_relocation(struct obj_file *f,
 
 		case R_68K_PC8:
 			v -= dot;
-			if ((ElfW(Sword))v > 0x7f ||
-					(ElfW(Sword))v < -(ElfW(Sword))0x80) {
+			if ((ElfW(Sword))v > 0x7f
+			 || (ElfW(Sword))v < -(ElfW(Sword))0x80
+			) {
 				ret = obj_reloc_overflow;
 			}
 			*(char *)loc = v;
@@ -1006,8 +1007,9 @@ arch_apply_relocation(struct obj_file *f,
 
 		case R_68K_PC16:
 			v -= dot;
-			if ((ElfW(Sword))v > 0x7fff ||
-					(ElfW(Sword))v < -(ElfW(Sword))0x8000) {
+			if ((ElfW(Sword))v > 0x7fff
+			 || (ElfW(Sword))v < -(ElfW(Sword))0x8000
+			) {
 				ret = obj_reloc_overflow;
 			}
 			*(short *)loc = v;
@@ -1146,8 +1148,9 @@ arch_apply_relocation(struct obj_file *f,
 			{
 				Elf32_Addr word;
 
-				if ((Elf32_Sword)v > 0x7fff ||
-				    (Elf32_Sword)v < -(Elf32_Sword)0x8000) {
+				if ((Elf32_Sword)v > 0x7fff
+				 || (Elf32_Sword)v < -(Elf32_Sword)0x8000
+				) {
 					ret = obj_reloc_overflow;
 				}
 
@@ -1176,8 +1179,9 @@ arch_apply_relocation(struct obj_file *f,
 				Elf32_Addr word;
 
 				v -= dot + 4;
-				if ((Elf32_Sword)v > 0x7fff ||
-				    (Elf32_Sword)v < -(Elf32_Sword)0x8000) {
+				if ((Elf32_Sword)v > 0x7fff
+				 || (Elf32_Sword)v < -(Elf32_Sword)0x8000
+				) {
 					ret = obj_reloc_overflow;
 				}
 
@@ -1191,9 +1195,10 @@ arch_apply_relocation(struct obj_file *f,
 				Elf32_Addr word, gp;
 				/* get _gp */
 				gp = obj_symbol_final_value(f, obj_find_symbol(f, SPFX "_gp"));
-				v-=gp;
-				if ((Elf32_Sword)v > 0x7fff ||
-						(Elf32_Sword)v < -(Elf32_Sword)0x8000) {
+				v -= gp;
+				if ((Elf32_Sword)v > 0x7fff
+				 || (Elf32_Sword)v < -(Elf32_Sword)0x8000
+				) {
 					ret = obj_reloc_overflow;
 				}
 
@@ -2070,7 +2075,6 @@ obj_find_symbol(struct obj_file *f, const char *name)
 	for (sym = f->symtab[hash]; sym; sym = sym->next)
 		if (f->symbol_cmp(sym->name, name) == 0)
 			return sym;
-
 	return NULL;
 }
 
@@ -2079,12 +2083,10 @@ static ElfW(Addr) obj_symbol_final_value(struct obj_file * f, struct obj_symbol 
 	if (sym) {
 		if (sym->secidx >= SHN_LORESERVE)
 			return sym->value;
-
 		return sym->value + f->sections[sym->secidx]->header.sh_addr;
-	} else {
-		/* As a special case, a NULL sym has value zero.  */
-		return 0;
 	}
+	/* As a special case, a NULL sym has value zero.  */
+	return 0;
 }
 
 static struct obj_section *obj_find_section(struct obj_file *f, const char *name)
@@ -2094,7 +2096,6 @@ static struct obj_section *obj_find_section(struct obj_file *f, const char *name
 	for (i = 0; i < n; ++i)
 		if (strcmp(f->sections[i]->name, name) == 0)
 			return f->sections[i];
-
 	return NULL;
 }
 
@@ -2105,9 +2106,11 @@ static int obj_load_order_prio(struct obj_section *a)
 	af = a->header.sh_flags;
 
 	ac = 0;
-	if (a->name[0] != '.' || strlen(a->name) != 10 ||
-			strcmp(a->name + 5, ".init"))
+	if (a->name[0] != '.' || strlen(a->name) != 10
+	 || strcmp(a->name + 5, ".init") != 0
+	) {
 		ac |= 32;
+	}
 	if (af & SHF_ALLOC)
 		ac |= 16;
 	if (!(af & SHF_WRITE))
@@ -2738,18 +2741,19 @@ static int new_create_module_ksymtab(struct obj_file *f)
 		/* We don't want to export symbols residing in sections that
 		   aren't loaded.  There are a number of these created so that
 		   we make sure certain module options don't appear twice.  */
-
-		loaded = alloca(sizeof(int) * (i = f->header.e_shnum));
+		i = f->header.e_shnum;
+		loaded = alloca(sizeof(int) * i);
 		while (--i >= 0)
 			loaded[i] = (f->sections[i]->header.sh_flags & SHF_ALLOC) != 0;
 
 		for (nsyms = i = 0; i < HASH_BUCKETS; ++i) {
 			struct obj_symbol *sym;
-			for (sym = f->symtab[i]; sym; sym = sym->next)
+			for (sym = f->symtab[i]; sym; sym = sym->next) {
 				if (ELF_ST_BIND(sym->info) != STB_LOCAL
 						&& sym->secidx <= SHN_HIRESERVE
 						&& (sym->secidx >= SHN_LORESERVE
-							|| loaded[sym->secidx])) {
+							|| loaded[sym->secidx])
+				) {
 					ElfW(Addr) ofs = nsyms * 2 * tgt_sizeof_void_p;
 
 					obj_symbol_patch(f, sec->idx, ofs, sym);
@@ -2758,6 +2762,7 @@ static int new_create_module_ksymtab(struct obj_file *f)
 
 					nsyms++;
 				}
+			}
 		}
 
 		obj_extend_section(sec, nsyms * 2 * tgt_sizeof_char_p);
@@ -2816,9 +2821,11 @@ new_init_module(const char *m_name, struct obj_file *f, unsigned long m_size)
 	}
 	sec = obj_find_section(f, ".data.init");
 	if (sec) {
-		if (!module->runsize ||
-				module->runsize > sec->header.sh_addr - m_addr)
+		if (!module->runsize
+		 || module->runsize > sec->header.sh_addr - m_addr
+		) {
 			module->runsize = sec->header.sh_addr - m_addr;
+		}
 	}
 	sec = obj_find_section(f, ARCHDATA_SEC_NAME);
 	if (sec && sec->header.sh_size) {
@@ -3104,8 +3111,8 @@ static int obj_relocate(struct obj_file *f, ElfW(Addr) base)
 #if SHT_RELM == SHT_RELA
 #if defined(__alpha__) && defined(AXP_BROKEN_GAS)
 			/* Work around a nasty GAS bug, that is fixed as of 2.7.0.9.  */
-			if (!extsym || !extsym->st_name ||
-					ELF_ST_BIND(extsym->st_info) != STB_LOCAL)
+			if (!extsym || !extsym->st_name
+			 || ELF_ST_BIND(extsym->st_info) != STB_LOCAL)
 #endif
 				value += rel->r_addend;
 #endif
@@ -3211,16 +3218,17 @@ static struct obj_file *obj_load(FILE *fp, int loadprogbits UNUSED_PARAM)
 	}
 
 	if (f->header.e_ident[EI_MAG0] != ELFMAG0
-			|| f->header.e_ident[EI_MAG1] != ELFMAG1
-			|| f->header.e_ident[EI_MAG2] != ELFMAG2
-			|| f->header.e_ident[EI_MAG3] != ELFMAG3) {
+	 || f->header.e_ident[EI_MAG1] != ELFMAG1
+	 || f->header.e_ident[EI_MAG2] != ELFMAG2
+	 || f->header.e_ident[EI_MAG3] != ELFMAG3
+	) {
 		bb_error_msg_and_die("not an ELF file");
 	}
 	if (f->header.e_ident[EI_CLASS] != ELFCLASSM
-			|| f->header.e_ident[EI_DATA] != (BB_BIG_ENDIAN
-				? ELFDATA2MSB : ELFDATA2LSB)
-			|| f->header.e_ident[EI_VERSION] != EV_CURRENT
-			|| !MATCH_MACHINE(f->header.e_machine)) {
+	 || f->header.e_ident[EI_DATA] != (BB_BIG_ENDIAN ? ELFDATA2MSB : ELFDATA2LSB)
+	 || f->header.e_ident[EI_VERSION] != EV_CURRENT
+	 || !MATCH_MACHINE(f->header.e_machine)
+	) {
 		bb_error_msg_and_die("ELF file not for this architecture");
 	}
 	if (f->header.e_type != ET_REL) {
@@ -3236,8 +3244,10 @@ static struct obj_file *obj_load(FILE *fp, int loadprogbits UNUSED_PARAM)
 	}
 
 	shnum = f->header.e_shnum;
-	f->sections = xmalloc(sizeof(struct obj_section *) * shnum);
-	memset(f->sections, 0, sizeof(struct obj_section *) * shnum);
+	/* Growth of ->sections vector will be done by
+	 * xrealloc_vector(..., 2, ...), therefore we must allocate
+	 * at least 2^2 = 4 extra elements here. */
+	f->sections = xzalloc(sizeof(f->sections[0]) * (shnum + 4));
 
 	section_headers = alloca(sizeof(ElfW(Shdr)) * shnum);
 	fseek(fp, f->header.e_shoff, SEEK_SET);
@@ -3742,16 +3752,20 @@ static void print_load_map(struct obj_file *f)
 	for (nsyms = i = 0; i < HASH_BUCKETS; ++i)
 		for (sym = f->symtab[i]; sym; sym = sym->next)
 			if (sym->secidx <= SHN_HIRESERVE
-					&& (sym->secidx >= SHN_LORESERVE || loaded[sym->secidx]))
+			 && (sym->secidx >= SHN_LORESERVE || loaded[sym->secidx])
+			) {
 				++nsyms;
+			}
 
 	all = alloca(nsyms * sizeof(struct obj_symbol *));
 
 	for (i = 0, p = all; i < HASH_BUCKETS; ++i)
 		for (sym = f->symtab[i]; sym; sym = sym->next)
 			if (sym->secidx <= SHN_HIRESERVE
-					&& (sym->secidx >= SHN_LORESERVE || loaded[sym->secidx]))
+			 && (sym->secidx >= SHN_LORESERVE || loaded[sym->secidx])
+			) {
 				*p++ = sym;
+			}
 
 	/* And list them.  */
 	printf("\nSymbols:\n");
