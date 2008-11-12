@@ -155,9 +155,9 @@ Special characters:
         Allows any arguments to be given without a dash (./program w x)
         as well as with a dash (./program -x).
 
-	NB: getopt32() will leak a small amount of memory if you use
-	this option! Do not use it if there is a possibility of recursive
-	getopt32() calls.
+        NB: getopt32() will leak a small amount of memory if you use
+        this option! Do not use it if there is a possibility of recursive
+        getopt32() calls.
 
  "--"   A double dash at the beginning of opt_complementary means the
         argv[1] string should always be treated as options, even if it isn't
@@ -165,9 +165,9 @@ Special characters:
         such as "ar" and "tar":
         tar xvf foo.tar
 
-	NB: getopt32() will leak a small amount of memory if you use
-	this option! Do not use it if there is a possibility of recursive
-	getopt32() calls.
+        NB: getopt32() will leak a small amount of memory if you use
+        this option! Do not use it if there is a possibility of recursive
+        getopt32() calls.
 
  "-N"   A dash as the first char in a opt_complementary group followed
         by a single digit (0-9) means that at least N non-option
@@ -514,6 +514,19 @@ getopt32(char **argv, const char *applet_opts, ...)
 			pargv++;
 		}
 	}
+
+	/* In case getopt32 was already called:
+	 * reset the libc getopt() function, which keeps internal state.
+	 * run_nofork_applet_prime() does this, but we might end up here
+	 * also via gunzip_main() -> gzip_main(). Play safe.
+	 */
+#ifdef __GLIBC__
+	optind = 0;
+#else /* BSD style */
+	optind = 1;
+	/* optreset = 1; */
+#endif
+	/* optarg = NULL; opterr = 0; optopt = 0; - do we need this?? */
 
 	pargv = NULL;
 
