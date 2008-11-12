@@ -16,8 +16,10 @@ int seq_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int seq_main(int argc, char **argv)
 {
 	double last, increment, i;
-	enum { OPT_w = 1 };
-	unsigned opt = getopt32(argv, "+w");
+	enum { OPT_w = 1, OPT_s };
+	const char *sep = "\n";
+	bool is_consecutive = 0;
+	unsigned opt = getopt32(argv, "+ws:", &sep);
 	unsigned width = 0;
 
 	argc -= optind;
@@ -39,9 +41,12 @@ int seq_main(int argc, char **argv)
 
 	/* You should note that this is pos-5.0.91 semantics, -- FK. */
 	while ((increment > 0 && i <= last) || (increment < 0 && i >= last)) {
-		printf("%0*g\n", width, i);
+		if (is_consecutive++) {
+			printf("%s", sep);
+		}
+		printf("%0*g", width, i);
 		i += increment;
 	}
-
+	bb_putchar('\n');
 	return fflush(stdout);
 }
