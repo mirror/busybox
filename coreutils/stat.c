@@ -125,20 +125,6 @@ static const char *human_fstype(uint32_t f_type)
 	return humantypes[i].fs;
 }
 
-#if ENABLE_FEATURE_STAT_FORMAT
-static void strcatc(char *str, char c)
-{
-	int len = strlen(str);
-	str[len++] = c;
-	str[len] = '\0';
-}
-
-static void printfs(char *pformat, const char *msg)
-{
-	strcatc(pformat, 's');
-	printf(pformat, msg);
-}
-
 /* "man statfs" says that statfsbuf->f_fsid is a mess */
 /* coreutils treats it as an array of ints, most significant first */
 static unsigned long long get_f_fsid(const struct statfs *statfsbuf)
@@ -151,6 +137,20 @@ static unsigned long long get_f_fsid(const struct statfs *statfsbuf)
 		r = (r << (sizeof(unsigned)*8)) | *p++;
 	while (--sz > 0);
 	return r;
+}
+
+#if ENABLE_FEATURE_STAT_FORMAT
+static void strcatc(char *str, char c)
+{
+	int len = strlen(str);
+	str[len++] = c;
+	str[len] = '\0';
+}
+
+static void printfs(char *pformat, const char *msg)
+{
+	strcatc(pformat, 's');
+	printf(pformat, msg);
 }
 
 /* print statfs info */
