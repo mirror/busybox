@@ -26,16 +26,22 @@ sha_crypt(/*const*/ char *key_data, /*const*/ char *salt_data)
 	char *result, *resptr;
 
 	/* btw, sha256 needs [32] and uint32_t only */
-	unsigned char alt_result[64] __attribute__((__aligned__(__alignof__(uint64_t))));
-	unsigned char temp_result[64] __attribute__((__aligned__(__alignof__(uint64_t))));
-	union {
-		sha256_ctx_t x;
-		sha512_ctx_t y;
-	} ctx;
-	union {
-		sha256_ctx_t x;
-		sha512_ctx_t y;
-	} alt_ctx;
+	struct {
+		unsigned char alt_result[64];
+		unsigned char temp_result[64];
+		union {
+			sha256_ctx_t x;
+			sha512_ctx_t y;
+		} ctx;
+		union {
+			sha256_ctx_t x;
+			sha512_ctx_t y;
+		} alt_ctx;
+	} L __attribute__((__aligned__(__alignof__(uint64_t))));
+#define alt_result  (L.alt_result )
+#define temp_result (L.temp_result)
+#define ctx         (L.ctx        )
+#define alt_ctx     (L.alt_ctx    )
 	unsigned salt_len;
 	unsigned key_len;
 	unsigned cnt;
@@ -186,7 +192,6 @@ sha_crypt(/*const*/ char *key_data, /*const*/ char *salt_data)
 		sha_end(alt_result, &ctx);
 	}
 
-
 	/* Append encrypted password to result buffer */
 //TODO: replace with something like
 //	bb_uuencode(cp, src, length, bb_uuenc_tbl_XXXbase64);
@@ -196,18 +201,16 @@ do {							\
 	resptr = to64(resptr, w, N);			\
 } while (0)
 	if (is_sha512 == '5') {
-		int i = 0;
-		int j = 10;
-		int k = 20;
+		unsigned i = 0;
 		while (1) {
+			unsigned j = i + 10;
+			unsigned k = i + 20;
+			if (j >= 30) j -= 30;
+			if (k >= 30) k -= 30;
 			b64_from_24bit(alt_result[i], alt_result[j], alt_result[k], 4);
-			if (i == 9)
+			if (k == 29)
 				break;
-			/* if x - 9 produces < 0, subtract 2 more:
-			 * ((i >> 8) << 1) is either 0 or binary 111111...1110 */
-			i -= 9; i = (i & 0x1f) + ((i >> 8) << 1);
-			j -= 9; j = (j & 0x1f) + ((j >> 8) << 1);
-			k -= 9; k = (k & 0x1f) + ((k >> 8) << 1);
+			i = k + 1; 
 		}
 		b64_from_24bit(0, alt_result[31], alt_result[30], 3);
 		/* was:
@@ -225,15 +228,15 @@ do {							\
 		*/
 	} else {
 		unsigned i = 0;
-		unsigned j = 21;
-		unsigned k = 42;
 		while (1) {
+			unsigned j = i + 21;
+			unsigned k = i + 42;
+			if (j >= 63) j -= 63;
+			if (k >= 63) k -= 63;
 			b64_from_24bit(alt_result[i], alt_result[j], alt_result[k], 4);
-			if (i == 62)
+			if (j == 20)
 				break;
-			i += 22; i = ((i >> 6) + i) & 0x3f;
-			j += 22; j = ((j >> 6) + j) & 0x3f;
-			k += 22; k = ((k >> 6) + k) & 0x3f;
+			i = j + 1;
 		}
 		b64_from_24bit(0, 0, alt_result[63], 2);
 		/* was:
@@ -267,10 +270,7 @@ do {							\
 	/* Clear the buffer for the intermediate result so that people
 	   attaching to processes or reading core dumps cannot get any
 	   information.  */
-	memset(temp_result, 0, sizeof(temp_result));
-	memset(alt_result, 0, sizeof(alt_result));
-	memset(&ctx, 0, sizeof(ctx));
-	memset(&alt_ctx, 0, sizeof(alt_ctx));
+	memset(&L, 0, sizeof(L)); /* [alt]_ctx and XXX_result buffers */
 	memset(key_data, 0, key_len); /* also p_bytes */
 	memset(salt_data, 0, salt_len); /* also s_bytes */
 	free(key_data);
@@ -279,4 +279,8 @@ do {							\
 #undef s_bytes
 
 	return result;
+#undef alt_result
+#undef temp_result
+#undef ctx
+#undef alt_ctx
 }
