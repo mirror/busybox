@@ -61,12 +61,11 @@
      "\n	-v	Verbose" \
 
 #define arp_trivial_usage \
-       "\n" \
-       "[-vn]	[-H type] [-i if] -a [hostname]\n" \
-       "[-v]		  [-i if] -d hostname [pub]\n" \
-       "[-v]	[-H type] [-i if] -s hostname hw_addr [temp]\n" \
-       "[-v]	[-H type] [-i if] -s hostname hw_addr [netmask nm] pub\n" \
-       "[-v]	[-H type] [-i if] -Ds hostname ifa [netmask nm] pub\n"
+     "\n[-vn]	[-H type] [-i if] -a [hostname]" \
+     "\n[-v]		  [-i if] -d hostname [pub]" \
+     "\n[-v]	[-H type] [-i if] -s hostname hw_addr [temp]" \
+     "\n[-v]	[-H type] [-i if] -s hostname hw_addr [netmask nm] pub" \
+     "\n[-v]	[-H type] [-i if] -Ds hostname ifa [netmask nm] pub"
 #define arp_full_usage "\n\n" \
        "Manipulate ARP cache\n" \
      "\nOptions:" \

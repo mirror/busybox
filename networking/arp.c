@@ -27,24 +27,40 @@
 #define DFLT_AF "inet"
 #define DFLT_HW "ether"
 
-#define	ARP_OPT_A (0x1)
-#define	ARP_OPT_p (0x2)
-#define	ARP_OPT_H (0x4)
-#define	ARP_OPT_t (0x8)
-#define	ARP_OPT_i (0x10)
-#define	ARP_OPT_a (0x20)
-#define	ARP_OPT_d (0x40)
-#define	ARP_OPT_n (0x80)	/* do not resolve addresses     */
-#define	ARP_OPT_D (0x100)	/* HW-address is devicename     */
-#define	ARP_OPT_s (0x200)
-#define	ARP_OPT_v (0x400 * DEBUG)	/* debugging output flag        */
+enum {
+	ARP_OPT_A = (1 << 0),
+	ARP_OPT_p = (1 << 1),
+	ARP_OPT_H = (1 << 2),
+	ARP_OPT_t = (1 << 3),
+	ARP_OPT_i = (1 << 4),
+	ARP_OPT_a = (1 << 5),
+	ARP_OPT_d = (1 << 6),
+	ARP_OPT_n = (1 << 7), /* do not resolve addresses */
+	ARP_OPT_D = (1 << 8), /* HW-address is devicename */
+	ARP_OPT_s = (1 << 9),
+	ARP_OPT_v = (1 << 10) * DEBUG, /* debugging output flag */
+};
 
+enum {
+	sockfd = 3, /* active socket descriptor */
+};
 
-static const struct aftype *ap; /* current address family       */
-static const struct hwtype *hw; /* current hardware type        */
-static int sockfd;              /* active socket descriptor     */
-static smallint hw_set;         /* flag if hw-type was set (-H) */
-static const char *device = ""; /* current device               */
+struct globals {
+	const struct aftype *ap; /* current address family */
+	const struct hwtype *hw; /* current hardware type */
+	const char *device;      /* current device */
+	smallint hw_set;         /* flag if hw-type was set (-H) */
+
+};
+#define G (*(struct globals*)&bb_common_bufsiz1)
+#define ap         (G.ap        )
+#define hw         (G.hw        )
+#define device     (G.device    )
+#define hw_set     (G.hw_set    )
+#define INIT_G() do { \
+	device = ""; \
+} while (0)
+
 
 static const char options[] ALIGN1 =
 	"pub\0"
@@ -445,27 +461,30 @@ int arp_main(int argc UNUSED_PARAM, char **argv)
 {
 	const char *hw_type = "ether";
 	const char *protocol;
+	unsigned opts;
 
-	/* Initialize variables... */
+	INIT_G();
+
+	xmove_fd(xsocket(AF_INET, SOCK_DGRAM, 0), sockfd);
 	ap = get_aftype(DFLT_AF);
 	if (!ap)
 		bb_error_msg_and_die("%s: %s not supported", DFLT_AF, "address family");
 
-	getopt32(argv, "A:p:H:t:i:adnDsv", &protocol, &protocol,
+	opts = getopt32(argv, "A:p:H:t:i:adnDsv", &protocol, &protocol,
 				 &hw_type, &hw_type, &device);
 	argv += optind;
-	if (option_mask32 & ARP_OPT_A || option_mask32 & ARP_OPT_p) {
+	if (opts & (ARP_OPT_A | ARP_OPT_p)) {
 		ap = get_aftype(protocol);
 		if (ap == NULL)
 			bb_error_msg_and_die("%s: unknown %s", protocol, "address family");
 	}
-	if (option_mask32 & ARP_OPT_A || option_mask32 & ARP_OPT_p) {
+	if (opts & (ARP_OPT_A | ARP_OPT_p)) {
 		hw = get_hwtype(hw_type);
 		if (hw == NULL)
 			bb_error_msg_and_die("%s: unknown %s", hw_type, "hardware type");
 		hw_set = 1;
 	}
-	//if (option_mask32 & ARP_OPT_i)... -i
+	//if (opts & ARP_OPT_i)... -i
 
 	if (ap->af != AF_INET) {
 		bb_error_msg_and_die("%s: kernel only supports 'inet'", ap->name);
@@ -482,16 +501,15 @@ int arp_main(int argc UNUSED_PARAM, char **argv)
 		bb_error_msg_and_die("%s: %s without ARP support",
 							 hw->name, "hardware type");
 	}
-	sockfd = xsocket(AF_INET, SOCK_DGRAM, 0);
 
 	/* Now see what we have to do here... */
-	if (option_mask32 & (ARP_OPT_d|ARP_OPT_s)) {
+	if (opts & (ARP_OPT_d | ARP_OPT_s)) {
 		if (argv[0] == NULL)
 			bb_error_msg_and_die("need host name");
-		if (option_mask32 & ARP_OPT_s)
+		if (opts & ARP_OPT_s)
 			return arp_set(argv);
 		return arp_del(argv);
 	}
-	//if (option_mask32 & ARP_OPT_a) - default
+	//if (opts & ARP_OPT_a) - default
 	return arp_show(argv[0]);
 }
