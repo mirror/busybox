@@ -196,25 +196,23 @@ do {							\
 	resptr = to64(resptr, w, N);			\
 } while (0)
 	if (is_sha512 == '5') {
-		unsigned i = 0;
-		unsigned j = 10;
-		unsigned k = 20;
-		/* strange swap of one byte (see below why) */
-		unsigned char alt_result_31 = alt_result[31];
-		alt_result[31] = alt_result[1];
+		int i = 0;
+		int j = 10;
+		int k = 20;
 		while (1) {
 			b64_from_24bit(alt_result[i], alt_result[j], alt_result[k], 4);
 			if (i == 9)
 				break;
-			i += 21; i = (((i >> 4) & 2) + i) & 0x1f;
-			j += 21; j = (((j >> 4) & 2) + j) & 0x1f;
-			k += 21; k = (((k >> 4) & 2) + k) & 0x1f;
+			/* if x - 9 produces < 0, subtract 2 more:
+			 * ((i >> 8) << 1) is either 0 or binary 111111...1110 */
+			i -= 9; i = (i & 0x1f) + ((i >> 8) << 1);
+			j -= 9; j = (j & 0x1f) + ((j >> 8) << 1);
+			k -= 9; k = (k & 0x1f) + ((k >> 8) << 1);
 		}
-		b64_from_24bit(0, alt_result_31, alt_result[30], 3);
+		b64_from_24bit(0, alt_result[31], alt_result[30], 3);
 		/* was:
 		b64_from_24bit(alt_result[0], alt_result[10], alt_result[20], 4);
 		b64_from_24bit(alt_result[21], alt_result[1], alt_result[11], 4);
-		...............................^^^^^^^^^^^^^ why [1] and not [31]?
 		b64_from_24bit(alt_result[12], alt_result[22], alt_result[2], 4);
 		b64_from_24bit(alt_result[3], alt_result[13], alt_result[23], 4);
 		b64_from_24bit(alt_result[24], alt_result[4], alt_result[14], 4);
