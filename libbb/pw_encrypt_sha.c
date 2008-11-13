@@ -57,14 +57,16 @@ sha_crypt(/*const*/ char *key_data, /*const*/ char *salt_data)
 	if (strncmp(salt_data, str_rounds, 7) == 0) {
 		/* 7 == strlen("rounds=") */
 		char *endp;
-		unsigned srounds = bb_strtou(salt_data + 7, &endp, 10);
+		cnt = bb_strtou(salt_data + 7, &endp, 10);
 		if (*endp == '$') {
 			salt_data = endp + 1;
-			rounds = srounds;
+			rounds = cnt;
 			if (rounds < ROUNDS_MIN)
 				rounds = ROUNDS_MIN;
 			if (rounds > ROUNDS_MAX)
 				rounds = ROUNDS_MAX;
+			/* add "rounds=NNNNN$" to result */
+			resptr += sprintf(resptr, str_rounds, rounds);
 		}
 	}
 	salt_len = strchrnul(salt_data, '$') - salt_data;
@@ -73,8 +75,7 @@ sha_crypt(/*const*/ char *key_data, /*const*/ char *salt_data)
 	/* xstrdup assures suitable alignment; also we will use it
 	   as a scratch space later. */
 	salt_data = xstrndup(salt_data, salt_len);
-	if (rounds != ROUNDS_DEFAULT) /* add "rounds=NNNNN$" */
-		resptr += sprintf(resptr, str_rounds, rounds);
+	/* add "salt$" to result */
 	strcpy(resptr, salt_data);
 	resptr += salt_len;
 	*resptr++ = '$';
@@ -195,8 +196,25 @@ do {							\
 	resptr = to64(resptr, w, N);			\
 } while (0)
 	if (is_sha512 == '5') {
+		unsigned i = 0;
+		unsigned j = 10;
+		unsigned k = 20;
+		/* strange swap of one byte (see below why) */
+		unsigned char alt_result_31 = alt_result[31];
+		alt_result[31] = alt_result[1];
+		while (1) {
+			b64_from_24bit(alt_result[i], alt_result[j], alt_result[k], 4);
+			if (i == 9)
+				break;
+			i += 21; i = (((i >> 4) & 2) + i) & 0x1f;
+			j += 21; j = (((j >> 4) & 2) + j) & 0x1f;
+			k += 21; k = (((k >> 4) & 2) + k) & 0x1f;
+		}
+		b64_from_24bit(0, alt_result_31, alt_result[30], 3);
+		/* was:
 		b64_from_24bit(alt_result[0], alt_result[10], alt_result[20], 4);
 		b64_from_24bit(alt_result[21], alt_result[1], alt_result[11], 4);
+		...............................^^^^^^^^^^^^^ why [1] and not [31]?
 		b64_from_24bit(alt_result[12], alt_result[22], alt_result[2], 4);
 		b64_from_24bit(alt_result[3], alt_result[13], alt_result[23], 4);
 		b64_from_24bit(alt_result[24], alt_result[4], alt_result[14], 4);
@@ -206,7 +224,21 @@ do {							\
 		b64_from_24bit(alt_result[18], alt_result[28], alt_result[8], 4);
 		b64_from_24bit(alt_result[9], alt_result[19], alt_result[29], 4);
 		b64_from_24bit(0, alt_result[31], alt_result[30], 3);
+		*/
 	} else {
+		unsigned i = 0;
+		unsigned j = 21;
+		unsigned k = 42;
+		while (1) {
+			b64_from_24bit(alt_result[i], alt_result[j], alt_result[k], 4);
+			if (i == 62)
+				break;
+			i += 22; i = ((i >> 6) + i) & 0x3f;
+			j += 22; j = ((j >> 6) + j) & 0x3f;
+			k += 22; k = ((k >> 6) + k) & 0x3f;
+		}
+		b64_from_24bit(0, 0, alt_result[63], 2);
+		/* was:
 		b64_from_24bit(alt_result[0], alt_result[21], alt_result[42], 4);
 		b64_from_24bit(alt_result[22], alt_result[43], alt_result[1], 4);
 		b64_from_24bit(alt_result[44], alt_result[2], alt_result[23], 4);
@@ -229,6 +261,7 @@ do {							\
 		b64_from_24bit(alt_result[40], alt_result[61], alt_result[19], 4);
 		b64_from_24bit(alt_result[62], alt_result[20], alt_result[41], 4);
 		b64_from_24bit(0, 0, alt_result[63], 2);
+		*/
 	}
 	/* *resptr = '\0'; - xzalloc did it */
 #undef b64_from_24bit

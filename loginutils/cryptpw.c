@@ -34,7 +34,7 @@ done
 int cryptpw_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int cryptpw_main(int argc UNUSED_PARAM, char **argv)
 {
-	char salt[sizeof("$N$") + 16];
+	char salt[sizeof("$N$") + 16 + TESTING*100];
 	char *opt_a;
 	int opts;
 
@@ -54,7 +54,12 @@ int cryptpw_main(int argc UNUSED_PARAM, char **argv)
 			salt[1] = '5' + (strcmp(opt_a, "sha512") == 0);
 			crypt_make_salt(salt + 3, 16/2, 0); /* sha */
 #if TESTING
-			strcpy(salt, "$6$em7yVj./Mv5n1V5X");
+			strcpy(salt, "$5$rounds=5000$toolongsaltstring");
+			// with "This is just a test" as password, should produce:
+			// "$5$rounds=5000$toolongsaltstrin$Un/5jzAHMgOGZ5.mWJpuVolil07guHPvOW8mGRcvxa5"
+			strcpy(salt, "$6$rounds=5000$toolongsaltstring");
+			// with "This is just a test" as password, should produce:
+			// "$6$rounds=5000$toolongsaltstrin$lQ8jolhgVRVhY4b5pZKaysCLi0QBxGoNeKQzQ3glMhwllF7oGDZxUhx1yxdYcz/e1JSbq3y6JMxxl8audkUEm0"
 #endif
 		} else
 #endif
