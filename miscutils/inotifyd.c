@@ -58,7 +58,7 @@ int inotifyd_main(int argc UNUSED_PARAM, char **argv)
 	const char *args[] = { *argv, NULL, NULL, NULL, NULL };
 
 	// sanity check: agent and at least one watch must be given
-	if (!argv[1])
+	if (!argv[0] || !argv[1])
 		bb_show_usage();
 
 	// open inotify

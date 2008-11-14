@@ -1847,7 +1847,7 @@
      "\n1. actual event(s)" \
      "\n2. file name" \
      "\n3. name of subfile (if any), in case of watching a directory" \
-     "\ninotify waits for agent to exit." \
+     "\ninotifyd waits for agent to exit." \
      "\nEvents:" \
      "\n	a	File is accessed" \
      "\n	c	File is modified" \
