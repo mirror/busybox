@@ -1840,14 +1840,15 @@
 #define inotifyd_trivial_usage \
 	"/user/space/agent dir/or/file/being/watched[:mask] ..."
 #define inotifyd_full_usage "\n\n" \
-       "Spawn userspace agent on filesystem changes." \
+       "Run userspace agent on filesystem changes." \
      "\nWhen a filesystem event matching the mask occurs" \
-     "\non specified file/directory an userspace agent is spawned" \
+     "\non specified file /user/space/agent is run" \
      "\nwith the parameters:" \
      "\n1. actual event(s)" \
-     "\n2. file/directory name" \
+     "\n2. file name" \
      "\n3. name of subfile (if any), in case of watching a directory" \
-     "\n" \
+     "\ninotify waits for agent to exit." \
+     "\nEvents:" \
      "\n	a	File is accessed" \
      "\n	c	File is modified" \
      "\n	e	Metadata changed" \

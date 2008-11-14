@@ -103,7 +103,7 @@ int inotifyd_main(int argc UNUSED_PARAM, char **argv)
 		if (bb_got_signal)
 			break;
 		n = poll(&pfd, 1, -1);
-		/* Signal interrupted us? */
+		// Signal interrupted us?
 		if (n < 0 && errno == EINTR)
 			goto again;
 		// Under Linux, above if() is not necessary.
