@@ -31,6 +31,8 @@
 #define MAX_INTERFACE_LENGTH 10
 #endif
 
+#define UDHCPC_CMD_OPTIONS CONFIG_IFUPDOWN_UDHCPC_CMD_OPTIONS
+
 #define debug_noise(args...) /*fprintf(stderr, args)*/
 
 /* Forward declaration */
@@ -487,7 +489,7 @@ static const struct dhcp_client_t ext_dhcp_clients[] = {
 		"pump -i %iface% -k",
 	},
 	{ "udhcpc",
-		"udhcpc -R -n -p /var/run/udhcpc.%iface%.pid -i %iface%[[ -H %hostname%]][[ -c %clientid%]]"
+		"udhcpc " UDHCPC_CMD_OPTIONS " -p /var/run/udhcpc.%iface%.pid -i %iface%[[ -H %hostname%]][[ -c %clientid%]]"
 				"[[ -s %script%]][[ %udhcpc_opts%]]",
 		"kill `cat /var/run/udhcpc.%iface%.pid` 2>/dev/null",
 	},
@@ -526,7 +528,7 @@ static int dhcp_up(struct interface_defn_t *ifd, execfn *exec)
 	if (!execute("ifconfig %iface%[[ hw %hwaddress%]] up", ifd, exec))
 		return 0;
 #endif
-	return execute("udhcpc -R -n -p /var/run/udhcpc.%iface%.pid "
+	return execute("udhcpc " UDHCPC_CMD_OPTIONS " -p /var/run/udhcpc.%iface%.pid "
 			"-i %iface%[[ -H %hostname%]][[ -c %clientid%]][[ -s %script%]][[ %udhcpc_opts%]]",
 			ifd, exec);
 }
