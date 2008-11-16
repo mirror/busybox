@@ -103,14 +103,15 @@ static int print_host(const char *hostname, const char *header)
 static void server_print(void)
 {
 	char *server;
+	struct sockaddr *sa;
 
-	server = xmalloc_sockaddr2dotted_noport((struct sockaddr*)&_res.nsaddr_list[0]);
-	/* I honestly don't know what to do if DNS server has _IPv6 address_.
-	 * Probably it is listed in
-	 * _res._u._ext_.nsaddrs[MAXNS] (of type "struct sockaddr_in6*" each)
-	 * but how to find out whether resolver uses
-	 * _res.nsaddr_list[] or _res._u._ext_.nsaddrs[], or both?
-	 * Looks like classic design from hell, BIND-grade. Hard to surpass. */
+#if ENABLE_FEATURE_IPV6
+	sa = (struct sockaddr*)_res._u._ext.nsaddrs[0];
+	if (!sa)
+#endif
+		sa = (struct sockaddr*)&_res.nsaddr_list[0];
+	server = xmalloc_sockaddr2dotted_noport(sa);
+
 	print_host(server, "Server:");
 	if (ENABLE_FEATURE_CLEAN_UP)
 		free(server);
@@ -119,14 +120,28 @@ static void server_print(void)
 
 /* alter the global _res nameserver structure to use
    an explicit dns server instead of what is in /etc/resolv.conf */
-static void set_default_dns(char *server)
+static void set_default_dns(const char *server)
 {
-	struct in_addr server_in_addr;
+	len_and_sockaddr *lsa;
 
-	if (inet_pton(AF_INET, server, &server_in_addr) > 0) {
+	/* NB: this works even with, say, "[::1]:5353"! :) */
+	lsa = xhost2sockaddr(server, 53);
+
+	if (lsa->u.sa.sa_family == AF_INET) {
 		_res.nscount = 1;
-		_res.nsaddr_list[0].sin_addr = server_in_addr;
+		/* struct copy */
+		_res.nsaddr_list[0] = lsa->u.sin;
 	}
+#if ENABLE_FEATURE_IPV6
+// Hoping libc will handle an IPv4 address there too,
+// if it so happens that family is indeed AF_INET
+//	if (lsa->u.sa.sa_family == AF_INET6) {
+		_res._u._ext.nscount = 1;
+		/* store a pointer to part of malloc'ed lsa */
+		_res._u._ext.nsaddrs[0] = &lsa->u.sin6;
+		/* must not free(lsa)! */
+//	}
+#endif
 }
 
 int nslookup_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
