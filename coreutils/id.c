@@ -17,6 +17,12 @@
 
 #include "libbb.h"
 
+#if defined(__UCLIBC_MAJOR__) && (__UCLIBC_MAJOR__ == 0)
+#if (__UCLIBC_MINOR__ < 9) || (__UCLIBC_MINOR__ == 9 &&  __UCLIBC_SUBLEVEL__ < 30)
+#error "Sorry, you need at least uClibc version 0.9.30 for id applet to build"
+#endif
+#endif
+
 enum {
 	PRINT_REAL      = (1 << 0),
 	NAME_NOT_NUMBER = (1 << 1),
