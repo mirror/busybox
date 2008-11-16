@@ -188,24 +188,40 @@ int man_main(int argc UNUSED_PARAM, char **argv)
 		if (!token[1])
 			continue;
 		if (strcmp("MANPATH", token[0]) == 0) {
-			/* Do we already have it? */
-			char **path_element = man_path_list;
-			while (*path_element) {
-				if (strcmp(*path_element, token[1]) == 0)
-					goto skip;
-				path_element++;
+			char *path = token[1];
+			while (*path) {
+				char *next_path;
+				char **path_element;
+
+				next_path = strchr(path, ':');
+				if (next_path) {
+					*next_path = '\0';
+					if (next_path++ == path) /* "::"? */
+						goto next;
+				}
+				/* Do we already have path? */
+				path_element = man_path_list;
+				while (*path_element) {
+					if (strcmp(*path_element, path) == 0)
+						goto skip;
+					path_element++;
+				}
+				man_path_list = xrealloc_vector(man_path_list, 4, count_mp);
+				man_path_list[count_mp] = xstrdup(path);
+				count_mp++;
+				/* man_path_list is NULL terminated */
+				/*man_path_list[count_mp] = NULL; - xrealloc_vector did it */
+ skip:
+				if (!next_path)
+					break;
+ next:
+				path = next_path;
 			}
-			man_path_list = xrealloc_vector(man_path_list, 4, count_mp);
-			man_path_list[count_mp] = xstrdup(token[1]);
-			count_mp++;
-			/* man_path_list is NULL terminated */
-			/*man_path_list[count_mp] = NULL; - xrealloc_vector did it */
 		}
 		if (strcmp("MANSECT", token[0]) == 0) {
 			free(sec_list);
 			sec_list = xstrdup(token[1]);
 		}
- skip: ;
 	}
 	config_close(parser);
 
@@ -220,41 +236,34 @@ int man_main(int argc UNUSED_PARAM, char **argv)
 		}
 		while ((cur_path = man_path_list[cur_mp++]) != NULL) {
 			/* for each MANPATH */
-			do { /* for each MANPATH item */
-				char *next_path = strchrnul(cur_path, ':');
-				int path_len = next_path - cur_path;
-				cur_sect = sec_list;
-				do { /* for each section */
-					char *next_sect = strchrnul(cur_sect, ':');
-					int sect_len = next_sect - cur_sect;
-					char *man_filename;
-					int cat0man1 = 0;
+			cur_sect = sec_list;
+			do { /* for each section */
+				char *next_sect = strchrnul(cur_sect, ':');
+				int sect_len = next_sect - cur_sect;
+				char *man_filename;
+				int cat0man1 = 0;
 
-					/* Search for cat, then man page */
-					while (cat0man1 < 2) {
-						int found_here;
-						man_filename = xasprintf("%.*s/%s%.*s/%s.%.*s" Z_SUFFIX,
-								path_len, cur_path,
-								"cat\0man" + (cat0man1 * 4),
-								sect_len, cur_sect,
-								*argv,
-								sect_len, cur_sect);
-						found_here = show_manpage(pager, man_filename, cat0man1, 0);
-						found |= found_here;
-						cat0man1 += found_here + 1;
-						free(man_filename);
-					}
+				/* Search for cat, then man page */
+				while (cat0man1 < 2) {
+					int found_here;
+					man_filename = xasprintf("%s/%s%.*s/%s.%.*s" Z_SUFFIX,
+							cur_path,
+							"cat\0man" + (cat0man1 * 4),
+							sect_len, cur_sect,
+							*argv,
+							sect_len, cur_sect);
+					found_here = show_manpage(pager, man_filename, cat0man1, 0);
+					found |= found_here;
+					cat0man1 += found_here + 1;
+					free(man_filename);
+				}
 
-					if (found && !(opt & OPT_a))
-						goto next_arg;
-					cur_sect = next_sect;
-					while (*cur_sect == ':')
-						cur_sect++;
-				} while (*cur_sect);
-				cur_path = next_path;
-				while (*cur_path == ':')
-					cur_path++;
-			} while (*cur_path);
+				if (found && !(opt & OPT_a))
+					goto next_arg;
+				cur_sect = next_sect;
+				while (*cur_sect == ':')
+					cur_sect++;
+			} while (*cur_sect);
 		}
  check_found:
 		if (!found) {
