@@ -579,11 +579,11 @@ static void display(priv_dumper_t* dumper)
 
 							switch (pr->bcnt) {
 							case 4:
-								memmove(&fval, bp, sizeof(fval));
+								memcpy(&fval, bp, sizeof(fval));
 								printf(pr->fmt, fval);
 								break;
 							case 8:
-								memmove(&dval, bp, sizeof(dval));
+								memcpy(&dval, bp, sizeof(dval));
 								printf(pr->fmt, dval);
 								break;
 							}
@@ -598,11 +598,11 @@ static void display(priv_dumper_t* dumper)
 								printf(pr->fmt, (int) *bp);
 								break;
 							case 2:
-								memmove(&sval, bp, sizeof(sval));
+								memcpy(&sval, bp, sizeof(sval));
 								printf(pr->fmt, (int) sval);
 								break;
 							case 4:
-								memmove(&ival, bp, sizeof(ival));
+								memcpy(&ival, bp, sizeof(ival));
 								printf(pr->fmt, ival);
 								break;
 							}
@@ -629,11 +629,11 @@ static void display(priv_dumper_t* dumper)
 								printf(pr->fmt, (unsigned) *bp);
 								break;
 							case 2:
-								memmove(&sval, bp, sizeof(sval));
+								memcpy(&sval, bp, sizeof(sval));
 								printf(pr->fmt, (unsigned) sval);
 								break;
 							case 4:
-								memmove(&ival, bp, sizeof(ival));
+								memcpy(&ival, bp, sizeof(ival));
 								printf(pr->fmt, ival);
 								break;
 							}
