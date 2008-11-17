@@ -133,14 +133,19 @@ static void set_default_dns(const char *server)
 		_res.nsaddr_list[0] = lsa->u.sin;
 	}
 #if ENABLE_FEATURE_IPV6
-// Hoping libc will handle an IPv4 address there too,
-// if it so happens that family is indeed AF_INET
-//	if (lsa->u.sa.sa_family == AF_INET6) {
+	/* Hoped libc can cope with IPv4 address there too.
+	 * No such luck, glibc 2.4 segfaults even with IPv6,
+	 * maybe I misunderstand how to make glibc use IPv6 addr?
+	 * (uclibc 0.9.31+ should work) */
+	if (lsa->u.sa.sa_family == AF_INET6) {
+		// glibc neither SEGVs nor sends any dgrams with this
+		// (strace shows no socket ops):
+		//_res.nscount = 0;
 		_res._u._ext.nscount = 1;
 		/* store a pointer to part of malloc'ed lsa */
 		_res._u._ext.nsaddrs[0] = &lsa->u.sin6;
 		/* must not free(lsa)! */
-//	}
+	}
 #endif
 }
 
