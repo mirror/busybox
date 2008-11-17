@@ -43,7 +43,14 @@ static const char mask_names[] ALIGN1 =
 	"d"	// 0x00000200	Subfile was deleted
 	"D"	// 0x00000400	Self was deleted
 	"M"	// 0x00000800	Self was moved
+	"\0"	// 0x00001000   (unused)
+	"u"	// 0x00002000   Backing fs was unmounted
+	"o"	// 0x00004000   Event queued overflowed
+	"x"	// 0x00008000   File is no longer watched (usually deleted)
 ;
+enum {
+	MASK_BITS = sizeof(mask_names) - 1
+};
 
 extern int inotify_init(void);
 extern int inotify_add_watch(int fd, const char *path, uint32_t mask);
@@ -76,10 +83,10 @@ int inotifyd_main(int argc UNUSED_PARAM, char **argv)
 			// convert mask names to mask bitset
 			mask = 0;
 			while (*++masks) {
-				int i = strchr(mask_names, *masks) - mask_names;
-				if (i >= 0) {
-					mask |= (1 << i);
-				}
+				const char *found;
+				found = memchr(mask_names, *masks, MASK_BITS);
+				if (found)
+					mask |= (1 << (found - mask_names));
 			}
 		}
 		// add watch
@@ -124,21 +131,23 @@ int inotifyd_main(int argc UNUSED_PARAM, char **argv)
 		// process events. N.B. events may vary in length
 		while (len > 0) {
 			int i;
-			char events[sizeof(mask_names)];
-			char *s = events;
-			unsigned m = ie->mask;
-
-			for (i = 0; i < sizeof(mask_names)-1; ++i, m >>= 1) {
-				if (m & 1)
-					*s++ = mask_names[i];
+			// cache relevant events mask
+			unsigned m = ie->mask & ((1 << MASK_BITS) - 1);
+			if (m) {
+				char events[MASK_BITS + 1];
+				char *s = events;
+				for (i = 0; i < MASK_BITS; ++i, m >>= 1) {
+					if ((m & 1) && (mask_names[i] != '\0'))
+						*s++ = mask_names[i];
+				}
+				*s = '\0';
+//				bb_error_msg("exec %s %08X\t%s\t%s\t%s", args[0],
+//					ie->mask, events, watched[ie->wd], ie->len ? ie->name : "");
+				args[1] = events;
+				args[2] = watched[ie->wd];
+				args[3] = ie->len ? ie->name : NULL;
+				wait4pid(xspawn((char **)args));
 			}
-			*s = '\0';
-			//bb_error_msg("exec %s %08X\t%s\t%s\t%s", agent,
-			// ie->mask, events, watched[ie->wd], ie->len ? ie->name : "");
-			args[1] = events;
-			args[2] = watched[ie->wd];
-			args[3] = ie->len ? ie->name : NULL;
-			wait4pid(xspawn((char **)args));
 			// next event
 			i = sizeof(struct inotify_event) + ie->len;
 			len -= i;

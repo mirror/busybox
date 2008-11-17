@@ -1846,7 +1846,7 @@
      "\nwith the parameters:" \
      "\n1. actual event(s)" \
      "\n2. file name" \
-     "\n3. name of subfile (if any), in case of watching a directory" \
+     "\n3. name of subfile (if any)" \
      "\ninotifyd waits for agent to exit." \
      "\nEvents:" \
      "\n	a	File is accessed" \
@@ -1855,12 +1855,16 @@
      "\n	w	Writtable file is closed" \
      "\n	0	Unwrittable file is closed" \
      "\n	r	File is opened" \
-     "\n	m	File is moved from X" \
-     "\n	y	File is moved to Y" \
+     "\n	D	File is deleted" \
+     "\n	M	File is moved" \
+     "\n	u	Backing fs is unmounted" \
+     "\n	o	Event queue overflowed" \
+     "\n	x	File can't be watched anymore" \
+     "\nIf watching a directory:" \
+     "\n	m	Subfile is moved into dir" \
+     "\n	y	Subfile is moved out of dir" \
      "\n	n	Subfile is created" \
      "\n	d	Subfile is deleted" \
-     "\n	D	Self is deleted" \
-     "\n	M	Self is moved" \
 
 #define insmod_trivial_usage \
 	USE_FEATURE_2_4_MODULES("[OPTION]... ") "MODULE [symbol=value]..."
