@@ -89,6 +89,7 @@ int klogd_main(int argc UNUSED_PARAM, char **argv)
 
 		/* klogctl buffer parsing modelled after code in dmesg.c */
 		/* Process each newline-terminated line in the buffer */
+		start = log_buffer;
 		while (1) {
 			char *newline = strchrnul(start, '\n');
 
