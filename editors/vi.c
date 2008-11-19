@@ -300,13 +300,17 @@ static void dot_delete(void);	// delete the char at 'dot'
 static char *bound_dot(char *);	// make sure  text[0] <= P < "end"
 static char *new_screen(int, int);	// malloc virtual screen memory
 static char *char_insert(char *, char);	// insert the char c at 'p'
-static char *stupid_insert(char *, char);	// stupidly insert the char c at 'p'
+// might reallocate text[]! use p += stupid_insert(p, ...),
+// and be careful to not use pointers into potentially freed text[]!
+static uintptr_t stupid_insert(char *, char);	// stupidly insert the char c at 'p'
 static int find_range(char **, char **, char);	// return pointers for an object
 static int st_test(char *, int, int, char *);	// helper for skip_thing()
 static char *skip_thing(char *, int, int, int);	// skip some object
 static char *find_pair(char *, char);	// find matching pair ()  []  {}
 static char *text_hole_delete(char *, char *);	// at "p", delete a 'size' byte hole
-static char *text_hole_make(char *, int);	// at "p", make a 'size' byte hole
+// might reallocate text[]! use p += text_hole_make(p, ...),
+// and be careful to not use pointers into potentially freed text[]!
+static uintptr_t text_hole_make(char *, int);	// at "p", make a 'size' byte hole
 static char *yank_delete(char *, char *, int, int);	// yank text[] into register then delete
 static void show_help(void);	// display some help info
 static void rawmode(void);	// set "raw" mode on tty
@@ -316,11 +320,11 @@ static int mysleep(int);
 static int readit(void);	// read (maybe cursor) key from stdin
 static int get_one_char(void);	// read 1 char from stdin
 static int file_size(const char *);   // what is the byte size of "fn"
-#if ENABLE_FEATURE_VI_READONLY
-static int file_insert(const char *, char *, int);
-#else
-static int file_insert(const char *, char *);
+#if !ENABLE_FEATURE_VI_READONLY
+#define file_insert(fn, p, update_ro_status) file_insert(fn, p)
 #endif
+// file_insert might reallocate text[]!
+static int file_insert(const char *, char *, int);
 static int file_write(char *, char *, char *);
 #if !ENABLE_FEATURE_VI_OPTIMIZE_CURSOR
 #define place_cursor(a, b, optimize) place_cursor(a, b)
@@ -370,7 +374,9 @@ static void end_cmd_q(void);	// stop saving input chars
 static void showmatching(char *);	// show the matching pair ()  []  {}
 #endif
 #if ENABLE_FEATURE_VI_YANKMARK || (ENABLE_FEATURE_VI_COLON && ENABLE_FEATURE_VI_SEARCH) || ENABLE_FEATURE_VI_CRASHME
-static char *string_insert(char *, char *);	// insert the string at 'p'
+// might reallocate text[]! use p += string_insert(p, ...),
+// and be careful to not use pointers into potentially freed text[]!
+static uintptr_t string_insert(char *, const char *);	// insert the string at 'p'
 #endif
 #if ENABLE_FEATURE_VI_YANKMARK
 static char *text_yank(char *, char *, int);	// save copy of "p" into a register
@@ -486,8 +492,7 @@ static int init_text_buffer(char *fn)
 		char_insert(text, '\n');
 		rc = 0;
 	} else {
-		rc = file_insert(fn, text
-			USE_FEATURE_VI_READONLY(, 1));
+		rc = file_insert(fn, text, 1);
 	}
 	file_modified = 0;
 	last_file_modified = -1;
@@ -584,7 +589,8 @@ static void edit_file(char *fn)
 				crash_dummy();	// generate a random command
 			} else {
 				crashme = 0;
-				dot = string_insert(text, "\n\n#####  Ran out of text to work on.  #####\n\n"); // insert the string
+				string_insert(text, "\n\n#####  Ran out of text to work on.  #####\n\n"); // insert the string
+				dot = text;
 				refresh(FALSE);
 			}
 		}
@@ -976,7 +982,11 @@ static void colon(char *buf)
 		// read after current line- unless user said ":0r foo"
 		if (b != 0)
 			q = next_line(q);
-		ch = file_insert(fn, q  USE_FEATURE_VI_READONLY(, 0));
+		{ // dance around potentially-reallocated text[]
+			uintptr_t ofs = q - text;
+			ch = file_insert(fn, q, 0);
+			q = text + ofs;
+		}
 		if (ch < 0)
 			goto vc1;	// nothing was inserted
 		// how many lines in text[]?
@@ -990,7 +1000,7 @@ static void colon(char *buf)
 			// if the insert is before "dot" then we need to update
 			if (q <= dot)
 				dot += ch;
-			file_modified++;
+			/*file_modified++; - done by file_insert */
 		}
 	} else if (strncasecmp(cmd, "rewind", i) == 0) {	// rewind cmd line args
 		if (file_modified && !useforce) {
@@ -1063,10 +1073,12 @@ static void colon(char *buf)
 		c = orig_buf[1];	// what is the delimiter
 		F = orig_buf + 2;	// start of "find"
 		R = strchr(F, c);	// middle delimiter
-		if (!R) goto colon_s_fail;
+		if (!R)
+			goto colon_s_fail;
 		*R++ = '\0';	// terminate "find"
 		buf1 = strchr(R, c);
-		if (!buf1) goto colon_s_fail;
+		if (!buf1)
+			goto colon_s_fail;
 		*buf1++ = '\0';	// terminate "replace"
 		if (*buf1 == 'g') {	// :s/foo/bar/g
 			buf1++;
@@ -1084,10 +1096,14 @@ static void colon(char *buf)
  vc4:
 			buf1 = char_search(q, F, FORWARD, LIMITED);	// search cur line only for "find"
 			if (buf1) {
+				uintptr_t bias;
 				// we found the "find" pattern - delete it
 				text_hole_delete(buf1, buf1 + strlen(F) - 1);
 				// inset the "replace" patern
-				string_insert(buf1, R);	// insert the string
+				bias = string_insert(buf1, R);	// insert the string
+				buf1 += bias;
+				ls += bias;
+				/*q += bias; - recalculated anyway */
 				// check for "global"  :s/foo/bar/g
 				if (gflag == 1) {
 					if ((buf1 + strlen(R)) < end_line(ls)) {
@@ -1623,8 +1639,7 @@ static char *char_search(char *p, const char *pat, int dir, int range)
 static char *char_insert(char *p, char c) // insert the char c at 'p'
 {
 	if (c == 22) {		// Is this an ctrl-V?
-		p = stupid_insert(p, '^');	// use ^ to indicate literal next
-		p--;			// backup onto ^
+		p += stupid_insert(p, '^');	// use ^ to indicate literal next
 		refresh(FALSE);	// show the ^
 		c = get_one_char();
 		*p = c;
@@ -1651,7 +1666,7 @@ static char *char_insert(char *p, char c) // insert the char c at 'p'
 		if (c == 13)
 			c = '\n';	// translate \r to \n
 		sp = p;			// remember addr of insert
-		p = stupid_insert(p, c);	// insert the char
+		p += 1 + stupid_insert(p, c);	// insert the char
 #if ENABLE_FEATURE_VI_SETOPTS
 		if (showmatch && strchr(")]}", *sp) != NULL) {
 			showmatching(sp);
@@ -1659,9 +1674,11 @@ static char *char_insert(char *p, char c) // insert the char c at 'p'
 		if (autoindent && c == '\n') {	// auto indent the new line
 			char *q;
 
-			q = prev_line(p);	// use prev line as templet
+			q = prev_line(p);	// use prev line as template
 			for (; isblank(*q); q++) {
-				p = stupid_insert(p, *q);	// insert the char
+				uintptr_t bias = stupid_insert(p, *q);	// insert the char
+				p += bias + 1;
+				q += bias;
 			}
 		}
 #endif
@@ -1669,12 +1686,16 @@ static char *char_insert(char *p, char c) // insert the char c at 'p'
 	return p;
 }
 
-static char *stupid_insert(char *p, char c) // stupidly insert the char c at 'p'
+// might reallocate text[]! use p += stupid_insert(p, ...),
+// and be careful to not use pointers into potentially freed text[]!
+static uintptr_t stupid_insert(char *p, char c) // stupidly insert the char c at 'p'
 {
-	p = text_hole_make(p, 1);
+	uintptr_t bias;
+	bias = text_hole_make(p, 1);
+	p += bias;
 	*p = c;
 	//file_modified++; - done by text_hole_make()
-	return p + 1;
+	return bias;
 }
 
 static int find_range(char **start, char **stop, char c)
@@ -1854,26 +1875,31 @@ static void showmatching(char *p)
 }
 #endif /* FEATURE_VI_SETOPTS */
 
-//  open a hole in text[]
-static char *text_hole_make(char *p, int size)	// at "p", make a 'size' byte hole
+// open a hole in text[]
+// might reallocate text[]! use p += text_hole_make(p, ...),
+// and be careful to not use pointers into potentially freed text[]!
+static uintptr_t text_hole_make(char *p, int size)	// at "p", make a 'size' byte hole
 {
+	uintptr_t bias = 0;
+
 	if (size <= 0)
-		return p;
+		return bias;
 	end += size;		// adjust the new END
 	if (end >= (text + text_size)) {
 		char *new_text;
 		text_size += end - (text + text_size) + 10240;
 		new_text = xrealloc(text, text_size);
-		screenbegin = new_text + (screenbegin - text);
-		dot         = new_text + (dot         - text);
-		end         = new_text + (end         - text);
-		p           = new_text + (p           - text);
+		bias = (new_text - text);
+		screenbegin += bias;
+		dot         += bias;
+		end         += bias;
+		p           += bias;
 		text = new_text;
 	}
 	memmove(p + size, p, end - size - p);
 	memset(p, ' ', size);	// clear new hole
 	file_modified++;
-	return p;
+	return bias;
 }
 
 //  close a hole in text[]
@@ -2006,21 +2032,28 @@ static void end_cmd_q(void)
 #if ENABLE_FEATURE_VI_YANKMARK \
  || (ENABLE_FEATURE_VI_COLON && ENABLE_FEATURE_VI_SEARCH) \
  || ENABLE_FEATURE_VI_CRASHME
-static char *string_insert(char *p, char *s) // insert the string at 'p'
+// might reallocate text[]! use p += string_insert(p, ...),
+// and be careful to not use pointers into potentially freed text[]!
+static uintptr_t string_insert(char *p, const char *s) // insert the string at 'p'
 {
-	int cnt, i;
+	uintptr_t bias;
+	int i;
 
 	i = strlen(s);
-	text_hole_make(p, i);
+	bias = text_hole_make(p, i);
+	p += bias;
 	strncpy(p, s, i);
-	for (cnt = 0; *s != '\0'; s++) {
-		if (*s == '\n')
-			cnt++;
-	}
 #if ENABLE_FEATURE_VI_YANKMARK
-	status_line("Put %d lines (%d chars) from [%c]", cnt, i, what_reg());
+	{
+		int cnt;
+		for (cnt = 0; *s != '\0'; s++) {
+			if (*s == '\n')
+				cnt++;
+		}
+		status_line("Put %d lines (%d chars) from [%c]", cnt, i, what_reg());
+	}
 #endif
-	return p;
+	return bias;
 }
 #endif
 
@@ -2273,8 +2306,8 @@ static int file_size(const char *fn) // what is the byte size of "fn"
 	return cnt;
 }
 
-static int file_insert(const char *fn, char *p
-		USE_FEATURE_VI_READONLY(, int update_ro_status))
+// might reallocate text[]!
+static int file_insert(const char *fn, char *p, int update_ro_status)
 {
 	int cnt = -1;
 	int fd, size;
@@ -2302,7 +2335,7 @@ static int file_insert(const char *fn, char *p
 		goto fi0;
 	}
 	size = statbuf.st_size;
-	p = text_hole_make(p, size);
+	p += text_hole_make(p, size);
 	cnt = safe_read(fd, p, size);
 	if (cnt < 0) {
 		status_line_bold("\"%s\" %s", fn, strerror(errno));
@@ -3103,7 +3136,7 @@ static void do_cmd(int c)
 			if (c == 'p')
 				dot_right();	// move to right, can move to NL
 		}
-		dot = string_insert(dot, p);	// insert the string
+		string_insert(dot, p);	// insert the string
 		end_cmd_q();	// stop adding to q
 		break;
 	case 'U':			// U- Undo; replace current line with original version
@@ -3111,7 +3144,7 @@ static void do_cmd(int c)
 			p = begin_line(dot);
 			q = end_line(dot);
 			p = text_hole_delete(p, q);	// delete cur line
-			p = string_insert(p, reg[Ureg]);	// insert orig line
+			p += string_insert(p, reg[Ureg]);	// insert orig line
 			dot = p;
 			dot_skip_over_ws();
 		}
