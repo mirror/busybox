@@ -42,14 +42,14 @@ int klogd_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int klogd_main(int argc UNUSED_PARAM, char **argv)
 {
 	int i = 0;
-	char *start;
+	char *opt_c;
 	int opt;
 	int used = 0;
 
-	opt = getopt32(argv, "c:n", &start);
+	opt = getopt32(argv, "c:n", &opt_c);
 	if (opt & OPT_LEVEL) {
 		/* Valid levels are between 1 and 8 */
-		i = xatou_range(start, 1, 8);
+		i = xatou_range(opt_c, 1, 8);
 	}
 	if (!(opt & OPT_FOREGROUND)) {
 		bb_daemonize_or_rexec(DAEMON_CHDIR_ROOT, argv);
@@ -57,10 +57,7 @@ int klogd_main(int argc UNUSED_PARAM, char **argv)
 
 	openlog("kernel", 0, LOG_KERN);
 
-	bb_signals(0
-		+ (1 << SIGINT)
-		+ (1 << SIGTERM)
-		, klogd_signal);
+	bb_signals(BB_FATAL_SIGS, klogd_signal);
 	signal(SIGHUP, SIG_IGN);
 
 	/* "Open the log. Currently a NOP" */
@@ -73,15 +70,14 @@ int klogd_main(int argc UNUSED_PARAM, char **argv)
 
 	syslog(LOG_NOTICE, "klogd started: %s", bb_banner);
 
-	/* Initially null terminate the buffer in case of a very long line */
-	log_buffer[KLOGD_LOGBUF_SIZE - 1] = '\0';
-
 	while (1) {
 		int n;
 		int priority;
+		char *start;
 
 		/* "2 -- Read from the log." */
-		n = klogctl(2, log_buffer + used, KLOGD_LOGBUF_SIZE-1 - used);
+		start = log_buffer + used;
+		n = klogctl(2, start, KLOGD_LOGBUF_SIZE-1 - used);
 		if (n < 0) {
 			if (errno == EINTR)
 				continue;
@@ -89,25 +85,25 @@ int klogd_main(int argc UNUSED_PARAM, char **argv)
 					errno);
 			break;
 		}
+		start[n] = '\0';
 
 		/* klogctl buffer parsing modelled after code in dmesg.c */
-		start = &log_buffer[0];
-
 		/* Process each newline-terminated line in the buffer */
 		while (1) {
-			char *newline = strchr(start, '\n');
+			char *newline = strchrnul(start, '\n');
 
-			if (!newline) {
+			if (*newline == '\0') {
 				/* This line is incomplete... */
 				if (start != log_buffer) {
 					/* move it to the front of the buffer */
-					strcpy(log_buffer, start);
+					overlapping_strcpy(log_buffer, start);
+					used = newline - start;
 					/* don't log it yet */
-					used = strlen(log_buffer);
 					break;
 				}
-				/* ...but buffer is full, so log it anyway */
+				/* ...but if buffer is full, log it anyway */
 				used = 0;
+				newline = NULL;
 			} else {
 				*newline++ = '\0';
 			}
@@ -121,12 +117,13 @@ int klogd_main(int argc UNUSED_PARAM, char **argv)
 					priority = (*start - '0');
 					start++;
 				}
-				if (*start == '>') {
+				if (*start == '>')
 					start++;
-				}
 			}
+			/* Log (only non-empty lines) */
 			if (*start)
 				syslog(priority, "%s", start);
+
 			if (!newline)
 				break;
 			start = newline;
