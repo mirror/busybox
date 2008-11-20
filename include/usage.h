@@ -1838,16 +1838,11 @@
 "	::shutdown:/sbin/swapoff -a\n"
 
 #define inotifyd_trivial_usage \
-	"/user/space/agent dir/or/file/being/watched[:mask] ..."
+	"PROG FILE1[:MASK] ..."
 #define inotifyd_full_usage "\n\n" \
-       "Run userspace agent on filesystem changes." \
-     "\nWhen a filesystem event matching the mask occurs" \
-     "\non specified file /user/space/agent is run" \
-     "\nwith the parameters:" \
-     "\n1. actual event(s)" \
-     "\n2. file name" \
-     "\n3. name of subfile (if any)" \
-     "\ninotifyd waits for agent to exit." \
+       "Run PROG on filesystem changes." \
+     "\nWhen a filesystem event matching MASK occurs on FILEn," \
+     "\nPROG <actual_event(s)> <FILEn> [<subfile_name>] is run." \
      "\nEvents:" \
      "\n	a	File is accessed" \
      "\n	c	File is modified" \
@@ -1865,6 +1860,9 @@
      "\n	y	Subfile is moved out of dir" \
      "\n	n	Subfile is created" \
      "\n	d	Subfile is deleted" \
+     "\n" \
+     "\ninotifyd waits for PROG to exit." \
+     "\nWhen x event happens for all FILEs, inotifyd exits" \
 
 #define insmod_trivial_usage \
 	USE_FEATURE_2_4_MODULES("[OPTION]... ") "MODULE [symbol=value]..."

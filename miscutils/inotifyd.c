@@ -44,6 +44,7 @@ static const char mask_names[] ALIGN1 =
 	"D"	// 0x00000400	Self was deleted
 	"M"	// 0x00000800	Self was moved
 	"\0"	// 0x00001000   (unused)
+	// Kernel events, always reported:
 	"u"	// 0x00002000   Backing fs was unmounted
 	"o"	// 0x00004000   Event queued overflowed
 	"x"	// 0x00008000   File is no longer watched (usually deleted)
@@ -56,27 +57,38 @@ extern int inotify_init(void);
 extern int inotify_add_watch(int fd, const char *path, uint32_t mask);
 
 int inotifyd_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int inotifyd_main(int argc UNUSED_PARAM, char **argv)
+int inotifyd_main(int argc, char **argv)
 {
 	int n;
-	unsigned mask = IN_ALL_EVENTS; // assume we want all events
+	unsigned mask;
 	struct pollfd pfd;
-	char **watched = ++argv; // watched name list
-	const char *args[] = { *argv, NULL, NULL, NULL, NULL };
+	char **watches; // names of files being watched
+	const char *args[5];
 
 	// sanity check: agent and at least one watch must be given
-	if (!argv[0] || !argv[1])
+	if (!argv[1] || !argv[2])
 		bb_show_usage();
+
+	argv++;
+	// inotify_add_watch will number watched files
+	// starting from 1, thus watches[0] is unimportant,
+	// and 1st file name is watches[1].
+	watches = argv;
+	args[0] = *argv;
+	args[4] = NULL;
+	argc -= 2; // number of files we watch
 
 	// open inotify
 	pfd.fd = inotify_init();
 	if (pfd.fd < 0)
 		bb_perror_msg_and_die("no kernel support");
 
-	// setup watched
+	// setup watches
 	while (*++argv) {
 		char *path = *argv;
 		char *masks = strchr(path, ':');
+
+		mask = 0x0fff; // assuming we want all non-kernel events
 		// if mask is specified ->
 		if (masks) {
 			*masks = '\0'; // split path and mask
@@ -102,10 +114,9 @@ int inotifyd_main(int argc UNUSED_PARAM, char **argv)
 	// do watch
 	pfd.events = POLLIN;
 	while (1) {
-		ssize_t len;
+		int len;
 		void *buf;
 		struct inotify_event *ie;
-
  again:
 		if (bb_got_signal)
 			break;
@@ -124,6 +135,7 @@ int inotifyd_main(int argc UNUSED_PARAM, char **argv)
 			break;
 
 		// read out all pending events
+		// (NB: len must be int, not ssize_t or long!)
 		xioctl(pfd.fd, FIONREAD, &len);
 #define eventbuf bb_common_bufsiz1
 		ie = buf = (len <= sizeof(eventbuf)) ? eventbuf : xmalloc(len);
@@ -142,11 +154,15 @@ int inotifyd_main(int argc UNUSED_PARAM, char **argv)
 				}
 				*s = '\0';
 //				bb_error_msg("exec %s %08X\t%s\t%s\t%s", args[0],
-//					ie->mask, events, watched[ie->wd], ie->len ? ie->name : "");
+//					ie->mask, events, watches[ie->wd], ie->len ? ie->name : "");
 				args[1] = events;
-				args[2] = watched[ie->wd];
+				args[2] = watches[ie->wd];
 				args[3] = ie->len ? ie->name : NULL;
 				wait4pid(xspawn((char **)args));
+				// we are done if all files got final x event
+				if (ie->mask & 0x8000)
+					if (--argc <= 0)
+						goto done;
 			}
 			// next event
 			i = sizeof(struct inotify_event) + ie->len;
@@ -155,7 +171,7 @@ int inotifyd_main(int argc UNUSED_PARAM, char **argv)
 		}
 		if (eventbuf != buf)
 			free(buf);
-	}
-
-	return EXIT_SUCCESS;
+	} // while (1)
+ done:
+	return bb_got_signal;
 }
