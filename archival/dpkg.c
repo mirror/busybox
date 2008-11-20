@@ -6,6 +6,10 @@
  *  written by glenn mcgrath with the help of others
  *  copyright (c) 2001 by glenn mcgrath
  *
+ *  parts of the version comparison code is plucked from the real dpkg
+ *  application which is licensed GPLv2 and
+ *  copyright (c) 1995 Ian Jackson <ian@chiark.greenend.org.uk>
+ *
  *  started life as a busybox implementation of udpkg
  *
  * licensed under gplv2 or later, see file license in this tarball for details.
@@ -135,7 +139,7 @@ static void make_hash(const char *key, unsigned *start, unsigned *decrement, con
 		/* shifts the ascii based value and adds it to previous value
 		 * shift amount is mod 24 because long int is 32 bit and data
 		 * to be shifted is 8, don't want to shift data to where it has
-		 * no effect*/
+		 * no effect */
 		hash_num += (key[i] + key[i-1]) << ((key[i] * i) % 24);
 	}
 	*start = (unsigned) hash_num % hash_prime;
@@ -183,60 +187,52 @@ static unsigned search_status_hashtable(const char *key)
 	return probe_address;
 }
 
-/* Need to rethink version comparison, maybe the official dpkg has something i can use ? */
-static int version_compare_part(const char *version1, const char *version2)
+static int order(char x)
 {
-	int upstream_len1 = 0;
-	int upstream_len2 = 0;
-	char *name1_char;
-	char *name2_char;
-	int len1 = 0;
-	int len2 = 0;
-	int tmp_int;
-	int ver_num1;
-	int ver_num2;
+	return (x == '~' ? -1
+		: x == '\0' ? 0
+		: isdigit(x) ? 0
+		: isalpha(x) ? x
+		: (unsigned char)x + 256
+	);
+}
 
-	if (version1 == NULL) {
-		version1 = xstrdup("");
-	}
-	if (version2 == NULL) {
-		version2 = xstrdup("");
-	}
-	upstream_len1 = strlen(version1);
-	upstream_len2 = strlen(version2);
+/* This code is taken from dpkg and modified slightly to work with busybox */
+static int version_compare_part(const char *val, const char *ref)
+{
+	if (!val) val = "";
+	if (!ref) ref = "";
 
-	while ((len1 < upstream_len1) || (len2 < upstream_len2)) {
-		/* Compare non-digit section */
-		tmp_int = strcspn(&version1[len1], "0123456789");
-		name1_char = xstrndup(&version1[len1], tmp_int);
-		len1 += tmp_int;
-		tmp_int = strcspn(&version2[len2], "0123456789");
-		name2_char = xstrndup(&version2[len2], tmp_int);
-		len2 += tmp_int;
-		tmp_int = strcmp(name1_char, name2_char);
-		free(name1_char);
-		free(name2_char);
-		if (tmp_int != 0) {
-			return tmp_int;
+	while (*val || *ref) {
+		int first_diff;
+
+		while ((*val && !isdigit(*val)) || (*ref && !isdigit(*ref))) {
+			int vc = order(*val);
+			int rc = order(*ref);
+			if (vc != rc)
+				return vc - rc;
+			val++;
+			ref++;
 		}
 
-		/* Compare digits */
-		tmp_int = strspn(&version1[len1], "0123456789");
-		name1_char = xstrndup(&version1[len1], tmp_int);
-		len1 += tmp_int;
-		tmp_int = strspn(&version2[len2], "0123456789");
-		name2_char = xstrndup(&version2[len2], tmp_int);
-		len2 += tmp_int;
-		ver_num1 = atoi(name1_char);
-		ver_num2 = atoi(name2_char);
-		free(name1_char);
-		free(name2_char);
-		if (ver_num1 < ver_num2) {
-			return -1;
+		while (*val == '0')
+			val++;
+		while (*ref == '0')
+			ref++;
+
+		first_diff = 0;
+		while (isdigit(*val) && isdigit(*ref)) {
+			if (first_diff == 0)
+				first_diff = *val - *ref;
+			val++;
+			ref++;
 		}
-		if (ver_num1 > ver_num2) {
+		if (isdigit(*val))
 			return 1;
-		}
+		if (isdigit(*ref))
+			return -1;
+		if (first_diff)
+			return first_diff;
 	}
 	return 0;
 }
@@ -249,39 +245,34 @@ static int version_compare(const unsigned ver1, const unsigned ver2)
 {
 	char *ch_ver1 = name_hashtable[ver1];
 	char *ch_ver2 = name_hashtable[ver2];
-
-	char epoch1, epoch2;
+	unsigned long epoch1 = 0, epoch2 = 0;
+	char *colon;
 	char *deb_ver1, *deb_ver2;
-	char *ver1_ptr, *ver2_ptr;
 	char *upstream_ver1;
 	char *upstream_ver2;
 	int result;
 
 	/* Compare epoch */
-	if (ch_ver1[1] == ':') {
-		epoch1 = ch_ver1[0];
-		ver1_ptr = strchr(ch_ver1, ':') + 1;
-	} else {
-		epoch1 = '0';
-		ver1_ptr = ch_ver1;
+	colon = strchr(ch_ver1, ':');
+	if (colon) {
+		epoch1 = atoi(ch_ver1);
+		ch_ver1 = colon + 1;
 	}
-	if (ch_ver2[1] == ':') {
-		epoch2 = ch_ver2[0];
-		ver2_ptr = strchr(ch_ver2, ':') + 1;
-	} else {
-		epoch2 = '0';
-		ver2_ptr = ch_ver2;
+	colon = strchr(ch_ver2, ':');
+	if (colon) {
+		epoch2 = atoi(ch_ver2);
+		ch_ver2 = colon + 1;
 	}
 	if (epoch1 < epoch2) {
 		return -1;
 	}
-	else if (epoch1 > epoch2) {
+	if (epoch1 > epoch2) {
 		return 1;
 	}
 
 	/* Compare upstream version */
-	upstream_ver1 = xstrdup(ver1_ptr);
-	upstream_ver2 = xstrdup(ver2_ptr);
+	upstream_ver1 = xstrdup(ch_ver1);
+	upstream_ver2 = xstrdup(ch_ver2);
 
 	/* Chop off debian version, and store for later use */
 	deb_ver1 = strrchr(upstream_ver1, '-');
