@@ -254,6 +254,7 @@ struct globals {
 	USE_FEATURE_HTTPD_BASIC_AUTH(char *remoteuser;)
 	USE_FEATURE_HTTPD_CGI(char *referer;)
 	USE_FEATURE_HTTPD_CGI(char *user_agent;)
+	USE_FEATURE_HTTPD_CGI(char *host;)
 	USE_FEATURE_HTTPD_CGI(char *http_accept;)
 	USE_FEATURE_HTTPD_CGI(char *http_accept_language;)
 
@@ -301,6 +302,7 @@ struct globals {
 #define remoteuser        (G.remoteuser       )
 #define referer           (G.referer          )
 #define user_agent        (G.user_agent       )
+#define host              (G.host             )
 #define http_accept       (G.http_accept      )
 #define http_accept_language (G.http_accept_language)
 #define file_size         (G.file_size        )
@@ -1406,6 +1408,7 @@ static void send_cgi_and_exit(
 #endif
 	if (referer)
 		setenv1("HTTP_REFERER", referer);
+	setenv1("HTTP_HOST", host); /* set to "" if NULL */
 
 	xpiped_pair(fromCgi);
 	xpiped_pair(toCgi);
@@ -2013,6 +2016,8 @@ static void handle_incoming_and_exit(const len_and_sockaddr *fromAddr)
 				referer = xstrdup(skip_whitespace(iobuf + sizeof("Referer:")-1));
 			} else if (STRNCASECMP(iobuf, "User-Agent:") == 0) {
 				user_agent = xstrdup(skip_whitespace(iobuf + sizeof("User-Agent:")-1));
+			} else if (STRNCASECMP(iobuf, "Host:") == 0) {
+				host = xstrdup(skip_whitespace(iobuf + sizeof("Host:")-1));
 			} else if (STRNCASECMP(iobuf, "Accept:") == 0) {
 				http_accept = xstrdup(skip_whitespace(iobuf + sizeof("Accept:")-1));
 			} else if (STRNCASECMP(iobuf, "Accept-Language:") == 0) {
