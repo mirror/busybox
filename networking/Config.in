@@ -821,7 +821,7 @@ config FEATURE_TFTP_BLOCKSIZE
 config TFTP_DEBUG
 	bool "Enable debug"
 	default n
-	depends on TFTP
+	depends on TFTP || TFTPD
 	help
 	  Enable debug settings for tftp. This is useful if you're running
 	  into problems with tftp as the protocol doesn't help you much when
