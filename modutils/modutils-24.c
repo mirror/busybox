@@ -3810,7 +3810,7 @@ static void print_load_map(struct obj_file *f UNUSED_PARAM)
 }
 #endif
 
-int FAST_FUNC bb_init_module_24(const char *m_filename, const char *options UNUSED_PARAM)
+int FAST_FUNC bb_init_module_24(const char *m_filename, const char *options)
 {
 	int k_crcs;
 	unsigned long m_size;
@@ -3906,13 +3906,13 @@ int FAST_FUNC bb_init_module_24(const char *m_filename, const char *options UNUS
 
 	m_addr = create_module(m_name, m_size);
 	if (m_addr == (ElfW(Addr))(-1)) switch (errno) {
-		case EEXIST:
-			bb_error_msg_and_die("a module named %s already exists", m_name);
-		case ENOMEM:
-			bb_error_msg_and_die("can't allocate kernel memory for module; needed %lu bytes",
-					m_size);
-		default:
-			bb_perror_msg_and_die("create_module: %s", m_name);
+	case EEXIST:
+		bb_error_msg_and_die("a module named %s already exists", m_name);
+	case ENOMEM:
+		bb_error_msg_and_die("can't allocate kernel memory for module; needed %lu bytes",
+				m_size);
+	default:
+		bb_perror_msg_and_die("create_module: %s", m_name);
 	}
 
 #if !LOADBITS

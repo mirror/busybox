@@ -1864,8 +1864,12 @@
      "\ninotifyd waits for PROG to exit." \
      "\nWhen x event happens for all FILEs, inotifyd exits" \
 
+/* 2.6 style insmod has no options and required filename
+ * (not module name - .ko can't be omitted) */
 #define insmod_trivial_usage \
-	USE_FEATURE_2_4_MODULES("[OPTION]... ") "MODULE [symbol=value]..."
+	USE_FEATURE_2_4_MODULES("[OPTION]... MODULE ") \
+	SKIP_FEATURE_2_4_MODULES("FILE ") \
+	"[symbol=value]..."
 #define insmod_full_usage "\n\n" \
        "Load the specified kernel modules into the kernel" \
 	USE_FEATURE_2_4_MODULES( "\n" \

@@ -23,7 +23,7 @@ const char *moderror(int err) FAST_FUNC;
 llist_t *llist_find(llist_t *first, const char *str) FAST_FUNC;
 void replace(char *s, char what, char with) FAST_FUNC;
 char *replace_underscores(char *s) FAST_FUNC;
-int string_to_llist(char *string, llist_t **llist, const char *delim) FAST_FUNC ;
+int string_to_llist(char *string, llist_t **llist, const char *delim) FAST_FUNC;
 char *filename2modname(const char *filename, char *modname) FAST_FUNC;
 char *parse_cmdline_module_options(char **argv) FAST_FUNC;
 

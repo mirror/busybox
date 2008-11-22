@@ -16,9 +16,17 @@ int insmod_main(int argc UNUSED_PARAM, char **argv)
 	char *filename;
 	int rc;
 
+	/* Compat note:
+	 * 2.6 style insmod has no options and required filename
+	 * (not module name - .ko can't be omitted).
+	 * 2.4 style insmod can take module name without .ko
+	 * and performs module search in default directories
+	 * or in $MODPATH.
+	 */
+
 	USE_FEATURE_2_4_MODULES(
 		getopt32(argv, INSMOD_OPTS INSMOD_ARGS);
-		argv += optind-1;
+		argv += optind - 1;
 	);
 
 	filename = *++argv;
