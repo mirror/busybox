@@ -91,7 +91,7 @@ struct in6_ifreq {
 /* Display an Internet socket address. */
 static const char* FAST_FUNC INET_sprint(struct sockaddr *sap, int numeric)
 {
-	static char *buff;
+	static char *buff; /* defaults to NULL */
 
 	free(buff);
 	if (sap->sa_family == 0xFFFF || sap->sa_family == 0)
@@ -916,20 +916,90 @@ static void print_bytes_scaled(unsigned long long ull, const char *end)
 	printf("X bytes:%llu (%llu.%u %sB)%s", ull, int_part, frac_part, ext, end);
 }
 
+
+#ifdef HAVE_AFINET6
+#define IPV6_ADDR_ANY           0x0000U
+
+#define IPV6_ADDR_UNICAST       0x0001U
+#define IPV6_ADDR_MULTICAST     0x0002U
+#define IPV6_ADDR_ANYCAST       0x0004U
+
+#define IPV6_ADDR_LOOPBACK      0x0010U
+#define IPV6_ADDR_LINKLOCAL     0x0020U
+#define IPV6_ADDR_SITELOCAL     0x0040U
+
+#define IPV6_ADDR_COMPATv4      0x0080U
+
+#define IPV6_ADDR_SCOPE_MASK    0x00f0U
+
+#define IPV6_ADDR_MAPPED        0x1000U
+#define IPV6_ADDR_RESERVED      0x2000U	/* reserved address space */
+
+
+static void ife_print6(struct interface *ptr)
+{
+
+	FILE *f;
+	char addr6[40], devname[20];
+	struct sockaddr_in6 sap;
+	int plen, scope, dad_status, if_idx;
+	char addr6p[8][5];
+
+	f = fopen_for_read(_PATH_PROCNET_IFINET6);
+	if (f == NULL)
+		return;
+
+	while (fscanf
+		   (f, "%4s%4s%4s%4s%4s%4s%4s%4s %08x %02x %02x %02x %20s\n",
+			addr6p[0], addr6p[1], addr6p[2], addr6p[3], addr6p[4],
+			addr6p[5], addr6p[6], addr6p[7], &if_idx, &plen, &scope,
+			&dad_status, devname) != EOF
+	) {
+		if (!strcmp(devname, ptr->name)) {
+			sprintf(addr6, "%s:%s:%s:%s:%s:%s:%s:%s",
+					addr6p[0], addr6p[1], addr6p[2], addr6p[3],
+					addr6p[4], addr6p[5], addr6p[6], addr6p[7]);
+			inet_pton(AF_INET6, addr6,
+					  (struct sockaddr *) &sap.sin6_addr);
+			sap.sin6_family = AF_INET6;
+			printf("          inet6 addr: %s/%d",
+				   INET6_sprint((struct sockaddr *) &sap, 1),
+				   plen);
+			printf(" Scope:");
+			switch (scope & IPV6_ADDR_SCOPE_MASK) {
+			case 0:
+				puts("Global");
+				break;
+			case IPV6_ADDR_LINKLOCAL:
+				puts("Link");
+				break;
+			case IPV6_ADDR_SITELOCAL:
+				puts("Site");
+				break;
+			case IPV6_ADDR_COMPATv4:
+				puts("Compat");
+				break;
+			case IPV6_ADDR_LOOPBACK:
+				puts("Host");
+				break;
+			default:
+				puts("Unknown");
+			}
+		}
+	}
+	fclose(f);
+}
+#else
+static void ife_print6(struct interface *ptr) {}
+#endif
+
+
 static void ife_print(struct interface *ptr)
 {
 	const struct aftype *ap;
 	const struct hwtype *hw;
 	int hf;
 	int can_compress = 0;
-
-#ifdef HAVE_AFINET6
-	FILE *f;
-	char addr6[40], devname[20];
-	struct sockaddr_in6 sap;
-	int plen, scope, dad_status, if_idx;
-	char addr6p[8][5];
-#endif
 
 	ap = get_afntype(ptr->addr.sa_family);
 	if (ap == NULL)
@@ -947,9 +1017,11 @@ static void ife_print(struct interface *ptr)
 	printf("%-9.9s Link encap:%s  ", ptr->name, hw->title);
 	/* For some hardware types (eg Ash, ATM) we don't print the
 	   hardware address if it's null.  */
-	if (hw->print != NULL && (!(hw_null_address(hw, ptr->hwaddr) &&
-								hw->suppress_null_addr)))
+	if (hw->print != NULL
+	 && !(hw_null_address(hw, ptr->hwaddr) && hw->suppress_null_addr)
+	) {
 		printf("HWaddr %s  ", hw->print((unsigned char *)ptr->hwaddr));
+	}
 #ifdef IFF_PORTSEL
 	if (ptr->flags & IFF_PORTSEL) {
 		printf("Media:%s", if_port_text[ptr->map.port] /* [0] */);
@@ -971,68 +1043,7 @@ static void ife_print(struct interface *ptr)
 		printf(" Mask:%s\n", ap->sprint(&ptr->netmask, 1));
 	}
 
-#ifdef HAVE_AFINET6
-
-#define IPV6_ADDR_ANY           0x0000U
-
-#define IPV6_ADDR_UNICAST       0x0001U
-#define IPV6_ADDR_MULTICAST     0x0002U
-#define IPV6_ADDR_ANYCAST       0x0004U
-
-#define IPV6_ADDR_LOOPBACK      0x0010U
-#define IPV6_ADDR_LINKLOCAL     0x0020U
-#define IPV6_ADDR_SITELOCAL     0x0040U
-
-#define IPV6_ADDR_COMPATv4      0x0080U
-
-#define IPV6_ADDR_SCOPE_MASK    0x00f0U
-
-#define IPV6_ADDR_MAPPED        0x1000U
-#define IPV6_ADDR_RESERVED      0x2000U	/* reserved address space */
-
-	f = fopen_for_read(_PATH_PROCNET_IFINET6);
-	if (f != NULL) {
-		while (fscanf
-			   (f, "%4s%4s%4s%4s%4s%4s%4s%4s %08x %02x %02x %02x %20s\n",
-				addr6p[0], addr6p[1], addr6p[2], addr6p[3], addr6p[4],
-				addr6p[5], addr6p[6], addr6p[7], &if_idx, &plen, &scope,
-				&dad_status, devname) != EOF
-		) {
-			if (!strcmp(devname, ptr->name)) {
-				sprintf(addr6, "%s:%s:%s:%s:%s:%s:%s:%s",
-						addr6p[0], addr6p[1], addr6p[2], addr6p[3],
-						addr6p[4], addr6p[5], addr6p[6], addr6p[7]);
-				inet_pton(AF_INET6, addr6,
-						  (struct sockaddr *) &sap.sin6_addr);
-				sap.sin6_family = AF_INET6;
-				printf("          inet6 addr: %s/%d",
-					   INET6_sprint((struct sockaddr *) &sap, 1),
-					   plen);
-				printf(" Scope:");
-				switch (scope & IPV6_ADDR_SCOPE_MASK) {
-				case 0:
-					puts("Global");
-					break;
-				case IPV6_ADDR_LINKLOCAL:
-					puts("Link");
-					break;
-				case IPV6_ADDR_SITELOCAL:
-					puts("Site");
-					break;
-				case IPV6_ADDR_COMPATv4:
-					puts("Compat");
-					break;
-				case IPV6_ADDR_LOOPBACK:
-					puts("Host");
-					break;
-				default:
-					puts("Unknown");
-				}
-			}
-		}
-		fclose(f);
-	}
-#endif
+	ife_print6(ptr);
 
 	printf("          ");
 	/* DONT FORGET TO ADD THE FLAGS IN ife_print_short, too */
@@ -1124,11 +1135,11 @@ static void ife_print(struct interface *ptr)
 		printf("\n          R");
 		print_bytes_scaled(ptr->stats.rx_bytes, "  T");
 		print_bytes_scaled(ptr->stats.tx_bytes, "\n");
-
 	}
 
-	if ((ptr->map.irq || ptr->map.mem_start || ptr->map.dma ||
-		 ptr->map.base_addr)) {
+	if (ptr->map.irq || ptr->map.mem_start
+	 || ptr->map.dma || ptr->map.base_addr
+	) {
 		printf("          ");
 		if (ptr->map.irq)
 			printf("Interrupt:%d ", ptr->map.irq);
@@ -1146,7 +1157,6 @@ static void ife_print(struct interface *ptr)
 	}
 	bb_putchar('\n');
 }
-
 
 static int do_if_print(struct interface *ife) /*, int *opt_a)*/
 {
