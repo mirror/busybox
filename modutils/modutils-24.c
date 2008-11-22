@@ -2153,7 +2153,7 @@ static struct obj_section *obj_create_alloced_section(struct obj_file *f,
 	sec->name = name;
 	sec->idx = newidx;
 	if (size)
-		sec->contents = xmalloc(size);
+		sec->contents = xzalloc(size);
 
 	obj_insert_section_load_order(f, sec);
 
@@ -2168,7 +2168,7 @@ static struct obj_section *obj_create_alloced_section_first(struct obj_file *f,
 	int newidx = f->header.e_shnum++;
 	struct obj_section *sec;
 
-	f->sections = xrealloc(f->sections, (newidx + 1) * sizeof(sec));
+	f->sections = xrealloc_vector(f->sections, 2, newidx);
 	f->sections[newidx] = sec = arch_new_section();
 
 	sec->header.sh_type = SHT_PROGBITS;
@@ -2178,7 +2178,7 @@ static struct obj_section *obj_create_alloced_section_first(struct obj_file *f,
 	sec->name = name;
 	sec->idx = newidx;
 	if (size)
-		sec->contents = xmalloc(size);
+		sec->contents = xzalloc(size);
 
 	sec->load_next = f->load_order;
 	f->load_order = sec;
@@ -2574,8 +2574,7 @@ static void new_get_kernel_symbols(void)
 	/* Collect the modules' symbols.  */
 
 	if (nmod) {
-		ext_modules = modules = xmalloc(nmod * sizeof(*modules));
-		memset(modules, 0, nmod * sizeof(*modules));
+		ext_modules = modules = xzalloc(nmod * sizeof(*modules));
 		for (i = 0, mn = module_names, m = modules;
 				i < nmod; ++i, ++m, mn += strlen(mn) + 1) {
 			struct new_module_info info;
@@ -2655,13 +2654,14 @@ static int new_is_kernel_checksummed(void)
 }
 
 
-static void  new_create_this_module(struct obj_file *f, const char *m_name)
+static void new_create_this_module(struct obj_file *f, const char *m_name)
 {
 	struct obj_section *sec;
 
 	sec = obj_create_alloced_section_first(f, ".this", tgt_sizeof_long,
 			sizeof(struct new_module));
-	memset(sec->contents, 0, sizeof(struct new_module));
+	/* done by obj_create_alloced_section_first: */
+	/*memset(sec->contents, 0, sizeof(struct new_module));*/
 
 	obj_add_symbol(f, SPFX "__this_module", -1,
 			ELF_ST_INFO(STB_LOCAL, STT_OBJECT), sec->idx, 0,
@@ -2750,16 +2750,14 @@ static int new_create_module_ksymtab(struct obj_file *f)
 			struct obj_symbol *sym;
 			for (sym = f->symtab[i]; sym; sym = sym->next) {
 				if (ELF_ST_BIND(sym->info) != STB_LOCAL
-						&& sym->secidx <= SHN_HIRESERVE
-						&& (sym->secidx >= SHN_LORESERVE
-							|| loaded[sym->secidx])
+				 && sym->secidx <= SHN_HIRESERVE
+				 && (sym->secidx >= SHN_LORESERVE || loaded[sym->secidx])
 				) {
 					ElfW(Addr) ofs = nsyms * 2 * tgt_sizeof_void_p;
 
 					obj_symbol_patch(f, sec->idx, ofs, sym);
 					obj_string_patch(f, sec->idx, ofs + tgt_sizeof_void_p,
 							sym->name);
-
 					nsyms++;
 				}
 			}
@@ -2972,9 +2970,9 @@ static void obj_allocate_commons(struct obj_file *f)
 		if (i == f->header.e_shnum) {
 			struct obj_section *sec;
 
+			f->header.e_shnum++;
 			f->sections = xrealloc_vector(f->sections, 2, i);
 			f->sections[i] = sec = arch_new_section();
-			f->header.e_shnum = i + 1;
 
 			sec->header.sh_type = SHT_PROGBITS;
 			sec->header.sh_flags = SHF_WRITE | SHF_ALLOC;
@@ -3013,12 +3011,9 @@ static void obj_allocate_commons(struct obj_file *f)
 	for (i = 0; i < f->header.e_shnum; ++i) {
 		struct obj_section *s = f->sections[i];
 		if (s->header.sh_type == SHT_NOBITS) {
+			s->contents = NULL;
 			if (s->header.sh_size != 0)
-				s->contents = memset(xmalloc(s->header.sh_size),
-						0, s->header.sh_size);
-			else
-				s->contents = NULL;
-
+				s->contents = xzalloc(s->header.sh_size);
 			s->header.sh_type = SHT_PROGBITS;
 		}
 	}
@@ -3272,7 +3267,6 @@ static struct obj_file *obj_load(FILE *fp, int loadprogbits UNUSED_PARAM)
 			case SHT_NOBITS:
 				/* ignore */
 				break;
-
 			case SHT_PROGBITS:
 #if LOADBITS
 				if (!loadprogbits) {
@@ -3283,17 +3277,15 @@ static struct obj_file *obj_load(FILE *fp, int loadprogbits UNUSED_PARAM)
 			case SHT_SYMTAB:
 			case SHT_STRTAB:
 			case SHT_RELM:
+				sec->contents = NULL;
 				if (sec->header.sh_size > 0) {
 					sec->contents = xmalloc(sec->header.sh_size);
 					fseek(fp, sec->header.sh_offset, SEEK_SET);
 					if (fread(sec->contents, sec->header.sh_size, 1, fp) != 1) {
 						bb_perror_msg_and_die("error reading ELF section data");
 					}
-				} else {
-					sec->contents = NULL;
 				}
 				break;
-
 #if SHT_RELM == SHT_REL
 			case SHT_RELA:
 				bb_error_msg_and_die("RELA relocations not supported on this architecture");
