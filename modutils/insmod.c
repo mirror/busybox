@@ -19,7 +19,7 @@ int insmod_main(int argc UNUSED_PARAM, char **argv)
 	/* Compat note:
 	 * 2.6 style insmod has no options and required filename
 	 * (not module name - .ko can't be omitted).
-	 * 2.4 style insmod can take module name without .ko
+	 * 2.4 style insmod can take module name without .o
 	 * and performs module search in default directories
 	 * or in $MODPATH.
 	 */
