@@ -7575,7 +7575,9 @@ static const short nodesize[N_NUMBER] = {
 	[NDEFUN   ] = SHELL_ALIGN(sizeof(struct narg)),
 	[NARG     ] = SHELL_ALIGN(sizeof(struct narg)),
 	[NTO      ] = SHELL_ALIGN(sizeof(struct nfile)),
+#if ENABLE_ASH_BASH_COMPAT
 	[NTO2     ] = SHELL_ALIGN(sizeof(struct nfile)),
+#endif
 	[NCLOBBER ] = SHELL_ALIGN(sizeof(struct nfile)),
 	[NFROM    ] = SHELL_ALIGN(sizeof(struct nfile)),
 	[NFROMTO  ] = SHELL_ALIGN(sizeof(struct nfile)),
