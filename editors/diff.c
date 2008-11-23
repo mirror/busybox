@@ -858,7 +858,7 @@ static void print_header(const char *file1, const char *file2)
  * lines appended (beginning at b).  If c is greater than d then there are
  * lines missing from the to file.
  */
-static void change(char *file1, FILE *f1, char *file2, FILE *f2,
+static void change(const char *file1, FILE *f1, const char *file2, FILE *f2,
 			int a, int b, int c, int d)
 {
 	if ((a > b && c > d) || (option_mask32 & FLAG_q)) {
@@ -902,7 +902,7 @@ static void change(char *file1, FILE *f1, char *file2, FILE *f2,
 }
 
 
-static void output(char *file1, FILE *f1, char *file2, FILE *f2)
+static void output(const char *file1, FILE *f1, const char *file2, FILE *f2)
 {
 	/* Note that j0 and j1 can't be used as they are defined in math.h.
 	 * This also allows the rather amusing variable 'j00'... */
@@ -999,7 +999,7 @@ static void output(char *file1, FILE *f1, char *file2, FILE *f2)
  */
 /* NB: files can be not REGular. The only sure thing that they
  * are not both DIRectories. */
-static unsigned diffreg(char *file1, char *file2, int flags)
+static unsigned diffreg(const char *file1, const char *file2, int flags)
 {
 	int *member;     /* will be overlaid on nfile[1] */
 	int *class;      /* will be overlaid on nfile[0] */
@@ -1022,13 +1022,11 @@ static unsigned diffreg(char *file1, char *file2, int flags)
 
 	if (flags & D_EMPTY1)
 		/* can't be stdin, but xfopen_stdin() is smaller code */
-		f1 = xfopen_stdin(bb_dev_null);
-	else
-		f1 = xfopen_stdin(file1);
+		file1 = bb_dev_null;
+	f1 = xfopen_stdin(file1);
 	if (flags & D_EMPTY2)
-		f2 = xfopen_stdin(bb_dev_null);
-	else
-		f2 = xfopen_stdin(file2);
+		file2 = bb_dev_null;
+	f2 = xfopen_stdin(file2);
 
 	/* NB: if D_EMPTY1/2 is set, other file is always a regular file,
 	 * not pipe/fifo/chardev/etc - D_EMPTY is used by "diff -r" only,
