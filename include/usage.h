@@ -4325,7 +4325,7 @@
 	"[-t SECS] [-s SIG] PROG [ARGS]"
 #define timeout_full_usage "\n\n" \
        "Runs PROG. Sends SIG to it if it is not gone in SECS seconds.\n" \
-       "Defaults: SECS: 10, SIG: TERM.\n" \
+       "Defaults: SECS: 10, SIG: TERM." \
 
 #define top_trivial_usage \
        "[-b] [-nCOUNT] [-dSECONDS]"
