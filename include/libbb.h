@@ -923,7 +923,7 @@ void bb_displayroutes(int noresolve, int netstatfmt) FAST_FUNC;
  * yet doesn't represent any valid Unicode characher.
  * Also, -1 is reserved for error indication and we don't use it. */
 enum {
-	KEYCODE_UP       =  -2, 
+	KEYCODE_UP       =  -2,
 	KEYCODE_DOWN     =  -3,
 	KEYCODE_RIGHT    =  -4,
 	KEYCODE_LEFT     =  -5,

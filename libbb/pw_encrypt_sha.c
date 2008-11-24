@@ -210,7 +210,7 @@ do {							\
 			b64_from_24bit(alt_result[i], alt_result[j], alt_result[k], 4);
 			if (k == 29)
 				break;
-			i = k + 1; 
+			i = k + 1;
 		}
 		b64_from_24bit(0, alt_result[31], alt_result[30], 3);
 		/* was:

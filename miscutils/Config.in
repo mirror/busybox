@@ -529,6 +529,13 @@ config TIME
 	  When the command finishes, time writes a message to standard output
 	  giving timing statistics about this program run.
 
+config TIMEOUT
+	bool "timeout"
+	default n
+	help
+	  Runs a program and watches it. If it does not terminate in
+	  specified number of seconds, it is sent a signal.
+
 config TTYSIZE
 	bool "ttysize"
 	default n

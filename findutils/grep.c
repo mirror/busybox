@@ -374,11 +374,11 @@ static int grep_file(FILE *file)
 						break;
 #else
 						if (re_search(&gl->compiled_regex, line, line_len,
-								gl->matched_range.rm_eo, line_len - gl->matched_range.rm_eo, 
+								gl->matched_range.rm_eo, line_len - gl->matched_range.rm_eo,
 								&gl->matched_range) < 0)
 							break;
 #endif
-					} 
+					}
 				} else {
 					print_line(line, line_len, linenum, ':');
 				}
