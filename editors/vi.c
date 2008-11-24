@@ -662,7 +662,7 @@ static char *get_one_address(char *p, int *addr)	// get colon addr, if present
 			c = c - 'a';
 			q = mark[(unsigned char) c];
 			if (q != NULL) {	// is mark valid
-				*addr = count_lines(text, q);	// count lines
+				*addr = count_lines(text, q);
 			}
 		}
 	}
@@ -1673,12 +1673,16 @@ static char *char_insert(char *p, char c) // insert the char c at 'p'
 		}
 		if (autoindent && c == '\n') {	// auto indent the new line
 			char *q;
-
+			size_t len;
 			q = prev_line(p);	// use prev line as template
-			for (; isblank(*q); q++) {
-				uintptr_t bias = stupid_insert(p, *q);	// insert the char
-				p += bias + 1;
+			len = strspn(q, " \t"); // space or tab
+			if (len) {
+				uintptr_t bias;			    
+				bias = text_hole_make(p, len);
+				p += bias;
 				q += bias;
+				memcpy(p, q, len);
+				p += len;			
 			}
 		}
 #endif
@@ -2042,7 +2046,7 @@ static uintptr_t string_insert(char *p, const char *s) // insert the string at '
 	i = strlen(s);
 	bias = text_hole_make(p, i);
 	p += bias;
-	strncpy(p, s, i);
+	memcpy(p, s, i);
 #if ENABLE_FEATURE_VI_YANKMARK
 	{
 		int cnt;
@@ -2060,21 +2064,13 @@ static uintptr_t string_insert(char *p, const char *s) // insert the string at '
 #if ENABLE_FEATURE_VI_YANKMARK
 static char *text_yank(char *p, char *q, int dest)	// copy text into a register
 {
-	char *t;
-	int cnt;
-
-	if (q < p) {		// they are backwards- reverse them
-		t = q;
-		q = p;
-		p = t;
+	int cnt = q - p;
+	if (cnt < 0) {		// they are backwards- reverse them
+		p = q;
+		cnt = -cnt;
 	}
-	cnt = q - p + 1;
-	t = reg[dest];
-	free(t);		//  if already a yank register, free it
-	t = xmalloc(cnt + 1);	// get a new register
-	memset(t, '\0', cnt + 1);	// clear new text[]
-	strncpy(t, p, cnt);	// copy text[] into bufer
-	reg[dest] = t;
+	free(reg[dest]);	//  if already a yank register, free it
+	reg[dest] = xstrndup(p, cnt + 1);
 	return p;
 }
 
@@ -3115,7 +3111,7 @@ static void do_cmd(int c)
 	case 'P':			// P- Put register before
 	case 'p':			// p- put register after
 		p = reg[YDreg];
-		if (p == 0) {
+		if (p == NULL) {
 			status_line_bold("Nothing in register %c", what_reg());
 			break;
 		}

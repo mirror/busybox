@@ -54,14 +54,14 @@ enum {
 	STALLTIME = 5                   /* Seconds when xfer considered "stalled" */
 };
 
-static unsigned int getttywidth(void)
+static unsigned int get_tty2_width(void)
 {
 	unsigned width;
-	get_terminal_width_height(0, &width, NULL);
+	get_terminal_width_height(2, &width, NULL);
 	return width;
 }
 
-static void progressmeter(int flag)
+static void progress_meter(int flag)
 {
 	/* We can be called from signal handler */
 	int save_errno = errno;
@@ -70,7 +70,7 @@ static void progressmeter(int flag)
 	unsigned ratio;
 	int barlength, i;
 
-	if (flag == -1) { /* first call to progressmeter */
+	if (flag == -1) { /* first call to progress_meter */
 		start_sec = monotonic_sec();
 		lastupdate_sec = start_sec;
 		lastsize = 0;
@@ -86,7 +86,7 @@ static void progressmeter(int flag)
 
 	fprintf(stderr, "\r%-20.20s%4d%% ", curfile, ratio);
 
-	barlength = getttywidth() - 49;
+	barlength = get_tty2_width() - 49;
 	if (barlength > 0) {
 		/* god bless gcc for variable arrays :) */
 		i = barlength * ratio / 100;
@@ -138,13 +138,13 @@ static void progressmeter(int flag)
 	}
 
 	if (flag == 0) {
-		/* last call to progressmeter */
+		/* last call to progress_meter */
 		alarm(0);
 		transferred = 0;
 		fputc('\n', stderr);
 	} else {
-		if (flag == -1) { /* first call to progressmeter */
-			signal_SA_RESTART_empty_mask(SIGALRM, progressmeter);
+		if (flag == -1) { /* first call to progress_meter */
+			signal_SA_RESTART_empty_mask(SIGALRM, progress_meter);
 		}
 		alarm(1);
 	}
@@ -188,7 +188,7 @@ static void progressmeter(int flag)
  */
 #else /* FEATURE_WGET_STATUSBAR */
 
-static ALWAYS_INLINE void progressmeter(int flag UNUSED_PARAM) { }
+static ALWAYS_INLINE void progress_meter(int flag UNUSED_PARAM) { }
 
 #endif
 
@@ -202,6 +202,7 @@ static size_t safe_fread(void *ptr, size_t nmemb, FILE *stream)
 
 	do {
 		clearerr(stream);
+		errno = 0;
 		ret = fread(p, 1, nmemb, stream);
 		p += ret;
 		nmemb -= ret;
@@ -218,6 +219,7 @@ static char *safe_fgets(char *s, int size, FILE *stream)
 
 	do {
 		clearerr(stream);
+		errno = 0;
 		ret = fgets(s, size, stream);
 	} while (ret == NULL && ferror(stream) && errno == EINTR);
 
@@ -765,7 +767,7 @@ However, in real world it was observed that some web servers
 	 * Retrieve file
 	 */
 
-	/* Do it before progressmeter (want to have nice error message) */
+	/* Do it before progress_meter (want to have nice error message) */
 	if (output_fd < 0) {
 		int o_flags = O_WRONLY | O_CREAT | O_TRUNC | O_EXCL;
 		/* compat with wget: -O FILE can overwrite */
@@ -775,7 +777,7 @@ However, in real world it was observed that some web servers
 	}
 
 	if (!(opt & WGET_OPT_QUIET))
-		progressmeter(-1);
+		progress_meter(-1);
 
 	if (chunked)
 		goto get_clen;
@@ -817,7 +819,7 @@ However, in real world it was observed that some web servers
 	}
 
 	if (!(opt & WGET_OPT_QUIET))
-		progressmeter(0);
+		progress_meter(0);
 
 	if ((use_proxy == 0) && target.is_ftp) {
 		fclose(dfp);

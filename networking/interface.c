@@ -990,7 +990,7 @@ static void ife_print6(struct interface *ptr)
 	fclose(f);
 }
 #else
-static void ife_print6(struct interface *ptr) {}
+#define ife_print6(a) ((void)0)
 #endif
 
 
