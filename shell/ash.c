@@ -9189,8 +9189,9 @@ preadbuffer(void)
 
 	while (g_parsefile->strpush) {
 #if ENABLE_ASH_ALIAS
-		if (parsenleft == -1 && g_parsefile->strpush->ap &&
-			parsenextc[-1] != ' ' && parsenextc[-1] != '\t') {
+		if (parsenleft == -1 && g_parsefile->strpush->ap
+		 && parsenextc[-1] != ' ' && parsenextc[-1] != '\t'
+		) {
 			return PEOA;
 		}
 #endif
@@ -9314,6 +9315,9 @@ pfgets(char *line, int len)
 static void
 pungetc(void)
 {
+	/* check is needed for ash -c 'echo 5&' + BASH_COMPAT to work */
+	if (parsenleft < 0)
+		return;
 	parsenleft++;
 	parsenextc--;
 }
