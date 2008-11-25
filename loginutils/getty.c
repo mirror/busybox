@@ -28,7 +28,6 @@
  */
 #ifdef LOGIN_PROCESS                    /* defined in System V utmp.h */
 #include <sys/utsname.h>
-#include <time.h>
 #else /* if !sysV style, wtmp/utmp code is off */
 #undef ENABLE_FEATURE_UTMP
 #undef ENABLE_FEATURE_WTMP

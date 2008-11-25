@@ -17,7 +17,6 @@
 //  totalram=2107416576, freeram=211525632, sharedram=0, bufferram=157204480}
 //  totalswap=134209536, freeswap=134209536, procs=157})
 
-#include <time.h>
 #include "libbb.h"
 
 typedef unsigned long long ullong;

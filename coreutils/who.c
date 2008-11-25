@@ -20,7 +20,6 @@
 
 #include "libbb.h"
 #include <utmp.h>
-#include <time.h>
 
 static void idle_string(char *str6, time_t t)
 {

@@ -10,7 +10,6 @@
 #define __MODUTILS_H__
 
 #include "libbb.h"
-#include <stdio.h>
 
 #if __GNUC_PREREQ(4,1)
 # pragma GCC visibility push(hidden)
