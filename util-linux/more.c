@@ -15,10 +15,6 @@
  */
 
 #include "libbb.h"
-#if ENABLE_FEATURE_USE_TERMIOS
-#include <termios.h>
-#endif /* FEATURE_USE_TERMIOS */
-
 
 #if ENABLE_FEATURE_USE_TERMIOS
 

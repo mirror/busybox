@@ -21,7 +21,6 @@
  *
  */
 
-#include <termios.h>
 #include <arpa/telnet.h>
 #include <netinet/in.h>
 #include "libbb.h"

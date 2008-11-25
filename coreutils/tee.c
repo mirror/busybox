@@ -11,7 +11,6 @@
 /* http://www.opengroup.org/onlinepubs/007904975/utilities/tee.html */
 
 #include "libbb.h"
-#include <signal.h>
 
 int tee_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int tee_main(int argc, char **argv)

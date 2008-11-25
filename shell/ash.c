@@ -53,11 +53,21 @@
 #endif
 
 #include "busybox.h" /* for applet_names */
+//TODO: pull in some .h and find out do we have SINGLE_APPLET_MAIN?
+//#include "applet_tables.h" doesn't work
 #include <paths.h>
 #include <setjmp.h>
 #include <fnmatch.h>
-#if JOBS || ENABLE_ASH_READ_NCHARS
-#include <termios.h>
+
+#if defined SINGLE_APPLET_MAIN
+/* STANDALONE does not make sense, and won't compile */
+#undef CONFIG_FEATURE_SH_STANDALONE
+#undef ENABLE_FEATURE_SH_STANDALONE
+#undef USE_FEATURE_SH_STANDALONE
+#undef SKIP_FEATURE_SH_STANDALONE(...)
+#define ENABLE_FEATURE_SH_STANDALONE 0
+#define USE_FEATURE_SH_STANDALONE(...)
+#define SKIP_FEATURE_SH_STANDALONE(...) __VA_ARGS__
 #endif
 
 #ifndef PIPE_BUF

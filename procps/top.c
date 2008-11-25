@@ -644,8 +644,6 @@ static void clearmems(void)
 }
 
 #if ENABLE_FEATURE_USE_TERMIOS
-#include <termios.h>
-#include <signal.h>
 
 static void reset_term(void)
 {

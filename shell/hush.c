@@ -67,6 +67,8 @@
  */
 
 #include "busybox.h" /* for APPLET_IS_NOFORK/NOEXEC */
+//TODO: pull in some .h and find out do we have SINGLE_APPLET_MAIN?
+//#include "applet_tables.h" doesn't work
 #include <glob.h>
 /* #include <dmalloc.h> */
 #if ENABLE_HUSH_CASE
@@ -74,6 +76,17 @@
 #endif
 
 #define HUSH_VER_STR "0.91"
+
+#if defined SINGLE_APPLET_MAIN
+/* STANDALONE does not make sense, and won't compile */
+#undef CONFIG_FEATURE_SH_STANDALONE
+#undef ENABLE_FEATURE_SH_STANDALONE
+#undef USE_FEATURE_SH_STANDALONE
+#define SKIP_FEATURE_SH_STANDALONE(...) __VA_ARGS__
+#define ENABLE_FEATURE_SH_STANDALONE 0
+#define USE_FEATURE_SH_STANDALONE(...)
+#define SKIP_FEATURE_SH_STANDALONE(...) __VA_ARGS__
+#endif
 
 #if !BB_MMU && ENABLE_HUSH_TICK
 //#undef ENABLE_HUSH_TICK

@@ -7,7 +7,6 @@
  * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  */
 
-#include <termios.h>
 #include "libbb.h"
 
 struct speed_map {
