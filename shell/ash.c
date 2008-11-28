@@ -1033,8 +1033,8 @@ struct alias;
 
 struct strpush {
 	struct strpush *prev;   /* preceding string on stack */
-	char *prevstring;
-	int prevnleft;
+	char *prev_string;
+	int prev_left_in_line;
 #if ENABLE_ASH_ALIAS
 	struct alias *ap;       /* if push was associated with an alias */
 #endif
@@ -1045,9 +1045,9 @@ struct parsefile {
 	struct parsefile *prev; /* preceding file on stack */
 	int linno;              /* current line */
 	int fd;                 /* file descriptor (or -1 if string) */
-	int nleft;              /* number of chars left in this line */
-	int lleft;              /* number of chars left in this buffer */
-	char *nextc;            /* next char in buffer */
+	int left_in_line;       /* number of chars left in this line */
+	int left_in_buffer;     /* number of chars left in this buffer past the line */
+	char *next_to_pgetc;    /* next char in buffer */
 	char *buf;              /* input buffer */
 	struct strpush *strpush; /* for pushing strings at this level */
 	struct strpush basestrpush; /* so pushing one is fast */
@@ -9084,18 +9084,47 @@ enum {
 	INPUT_NOFILE_OK = 2,
 };
 
-static int plinno = 1;                  /* input line number */
-/* number of characters left in input buffer */
-static int parsenleft;                  /* copy of parsefile->nleft */
-static int parselleft;                  /* copy of parsefile->lleft */
-/* next character in input buffer */
-static char *parsenextc;                /* copy of parsefile->nextc */
-
 static smallint checkkwd;
 /* values of checkkwd variable */
 #define CHKALIAS        0x1
 #define CHKKWD          0x2
 #define CHKNL           0x4
+
+/*
+ * Push a string back onto the input at this current parsefile level.
+ * We handle aliases this way.
+ */
+#if !ENABLE_ASH_ALIAS
+#define pushstring(s, ap) pushstring(s)
+#endif
+static void
+pushstring(char *s, struct alias *ap)
+{
+	struct strpush *sp;
+	int len;
+
+	len = strlen(s);
+	INT_OFF;
+	if (g_parsefile->strpush) {
+		sp = ckzalloc(sizeof(*sp));
+		sp->prev = g_parsefile->strpush;
+	} else {
+		sp = &(g_parsefile->basestrpush);
+	}
+	g_parsefile->strpush = sp;
+	sp->prev_string = g_parsefile->next_to_pgetc;
+	sp->prev_left_in_line = g_parsefile->left_in_line;
+#if ENABLE_ASH_ALIAS
+	sp->ap = ap;
+	if (ap) {
+		ap->flag |= ALIASINUSE;
+		sp->string = s;
+	}
+#endif
+	g_parsefile->next_to_pgetc = s;
+	g_parsefile->left_in_line = len;
+	INT_ON;
+}
 
 static void
 popstring(void)
@@ -9105,7 +9134,9 @@ popstring(void)
 	INT_OFF;
 #if ENABLE_ASH_ALIAS
 	if (sp->ap) {
-		if (parsenextc[-1] == ' ' || parsenextc[-1] == '\t') {
+		if (g_parsefile->next_to_pgetc[-1] == ' '
+		 || g_parsefile->next_to_pgetc[-1] == '\t'
+		) {
 			checkkwd |= CHKALIAS;
 		}
 		if (sp->string != sp->ap->val) {
@@ -9117,8 +9148,8 @@ popstring(void)
 		}
 	}
 #endif
-	parsenextc = sp->prevstring;
-	parsenleft = sp->prevnleft;
+	g_parsefile->next_to_pgetc = sp->prev_string;
+	g_parsefile->left_in_line = sp->prev_left_in_line;
 	g_parsefile->strpush = sp->prev;
 	if (sp != &(g_parsefile->basestrpush))
 		free(sp);
@@ -9130,8 +9161,8 @@ preadfd(void)
 {
 	int nr;
 	char *buf = g_parsefile->buf;
-	parsenextc = buf;
 
+	g_parsefile->next_to_pgetc = buf;
 #if ENABLE_FEATURE_EDITING
  retry:
 	if (!iflag || g_parsefile->fd != STDIN_FILENO)
@@ -9182,8 +9213,9 @@ preadfd(void)
  * Refill the input buffer and return the next input character:
  *
  * 1) If a string was pushed back on the input, pop it;
- * 2) If an EOF was pushed back (parsenleft < -BIGNUM) or we are reading
- *    from a string so we can't refill the buffer, return EOF.
+ * 2) If an EOF was pushed back (g_parsefile->left_in_line < -BIGNUM)
+ *    or we are reading from a string so we can't refill the buffer,
+ *    return EOF.
  * 3) If the is more stuff in this buffer, use it else call read to fill it.
  * 4) Process input up to the next newline, deleting nul characters.
  */
@@ -9197,8 +9229,10 @@ preadbuffer(void)
 
 	while (g_parsefile->strpush) {
 #if ENABLE_ASH_ALIAS
-		if (parsenleft == -1 && g_parsefile->strpush->ap
-		 && parsenextc[-1] != ' ' && parsenextc[-1] != '\t'
+		if (g_parsefile->left_in_line == -1
+		 && g_parsefile->strpush->ap
+		 && g_parsefile->next_to_pgetc[-1] != ' '
+		 && g_parsefile->next_to_pgetc[-1] != '\t'
 		) {
 			pgetc_debug("preadbuffer PEOA");
 			return PEOA;
@@ -9206,43 +9240,51 @@ preadbuffer(void)
 #endif
 		popstring();
 		/* try "pgetc" now: */
-		pgetc_debug("internal pgetc at %d:%p'%s'", parsenleft, parsenextc, parsenextc);
-		if (--parsenleft >= 0)
-			return signed_char2int(*parsenextc++);
+		pgetc_debug("preadbuffer internal pgetc at %d:%p'%s'",
+				g_parsefile->left_in_line,
+				g_parsefile->next_to_pgetc,
+				g_parsefile->next_to_pgetc);
+		if (--g_parsefile->left_in_line >= 0)
+			return (unsigned char)(*g_parsefile->next_to_pgetc++);
 	}
-	/* on both branches above parsenleft < 0.
+	/* on both branches above g_parsefile->left_in_line < 0.
 	 * "pgetc" needs refilling.
 	 */
 
 	/* -90 is -BIGNUM. Below we use -99 to mark "EOF on read",
-	 * pungetc() may decrement it a few times. -90 is enough.
+	 * pungetc() may increment it a few times.
+	 * Assuming it won't increment it to 0.
 	 */
-	if (parsenleft < -90 || g_parsefile->buf == NULL) {
+	if (g_parsefile->left_in_line < -90 || g_parsefile->buf == NULL) {
 		pgetc_debug("preadbuffer PEOF1");
-		/* even in failure keep them in lock step,
-		 * for correct pungetc. */
-		parsenextc++;
+		/* even in failure keep left_in_line and next_to_pgetc
+		 * in lock step, for correct multi-layer pungetc.
+		 * left_in_line was decremented before preadbuffer(),
+		 * must inc next_to_pgetc: */
+		g_parsefile->next_to_pgetc++;
 		return PEOF;
 	}
 
-	more = parselleft;
+	more = g_parsefile->left_in_buffer;
 	if (more <= 0) {
 		flush_stdout_stderr();
  again:
 		more = preadfd();
 		if (more <= 0) {
-			parselleft = parsenleft = -99;
+			/* don't try reading again */
+			g_parsefile->left_in_line = -99;
 			pgetc_debug("preadbuffer PEOF2");
-			parsenextc++;
+			g_parsefile->next_to_pgetc++;
 			return PEOF;
 		}
 	}
 
 	/* Find out where's the end of line.
-	 * Set parsenleft/parselleft acordingly.
+	 * Set g_parsefile->left_in_line
+	 * and g_parsefile->left_in_buffer acordingly.
 	 * NUL chars are deleted.
 	 */
-	q = parsenextc;
+	q = g_parsefile->next_to_pgetc;
 	for (;;) {
 		char c;
 
@@ -9254,37 +9296,47 @@ preadbuffer(void)
 		} else {
 			q++;
 			if (c == '\n') {
-				parsenleft = q - parsenextc - 1;
+				g_parsefile->left_in_line = q - g_parsefile->next_to_pgetc - 1;
 				break;
 			}
 		}
 
 		if (more <= 0) {
-			parsenleft = q - parsenextc - 1;
-			if (parsenleft < 0)
+			g_parsefile->left_in_line = q - g_parsefile->next_to_pgetc - 1;
+			if (g_parsefile->left_in_line < 0)
 				goto again;
 			break;
 		}
 	}
-	parselleft = more;
+	g_parsefile->left_in_buffer = more;
 
 	if (vflag) {
 		char save = *q;
 		*q = '\0';
-		out2str(parsenextc);
+		out2str(g_parsefile->next_to_pgetc);
 		*q = save;
 	}
 
-	pgetc_debug("preadbuffer at %d:%p'%s'", parsenleft, parsenextc, parsenextc);
-	return signed_char2int(*parsenextc++);
+	pgetc_debug("preadbuffer at %d:%p'%s'",
+			g_parsefile->left_in_line,
+			g_parsefile->next_to_pgetc,
+			g_parsefile->next_to_pgetc);
+	return (unsigned char)(*g_parsefile->next_to_pgetc++);
 }
 
-#define pgetc_as_macro() (--parsenleft >= 0 ? signed_char2int(*parsenextc++) : preadbuffer())
+#define pgetc_as_macro() \
+	(--g_parsefile->left_in_line >= 0 \
+	? (unsigned char)(*g_parsefile->next_to_pgetc++) \
+	: preadbuffer() \
+	)
 
 static int
 pgetc(void)
 {
-	pgetc_debug("pgetc at %d:%p'%s'", parsenleft, parsenextc, parsenextc);
+	pgetc_debug("pgetc_fast at %d:%p'%s'",
+			g_parsefile->left_in_line,
+			g_parsefile->next_to_pgetc,
+			g_parsefile->next_to_pgetc);
 	return pgetc_as_macro();
 }
 
@@ -9303,6 +9355,10 @@ pgetc2(void)
 {
 	int c;
 	do {
+		pgetc_debug("pgetc_fast at %d:%p'%s'",
+				g_parsefile->left_in_line,
+				g_parsefile->next_to_pgetc,
+				g_parsefile->next_to_pgetc);
 		c = pgetc_fast();
 	} while (c == PEOA);
 	return c;
@@ -9343,45 +9399,12 @@ pfgets(char *line, int len)
 static void
 pungetc(void)
 {
-	parsenleft++;
-	parsenextc--;
-	pgetc_debug("pushed back to %d:%p'%s'", parsenleft, parsenextc, parsenextc);
-}
-
-/*
- * Push a string back onto the input at this current parsefile level.
- * We handle aliases this way.
- */
-#if !ENABLE_ASH_ALIAS
-#define pushstring(s, ap) pushstring(s)
-#endif
-static void
-pushstring(char *s, struct alias *ap)
-{
-	struct strpush *sp;
-	int len;
-
-	len = strlen(s);
-	INT_OFF;
-	if (g_parsefile->strpush) {
-		sp = ckzalloc(sizeof(*sp));
-		sp->prev = g_parsefile->strpush;
-	} else {
-		sp = &(g_parsefile->basestrpush);
-	}
-	g_parsefile->strpush = sp;
-	sp->prevstring = parsenextc;
-	sp->prevnleft = parsenleft;
-#if ENABLE_ASH_ALIAS
-	sp->ap = ap;
-	if (ap) {
-		ap->flag |= ALIASINUSE;
-		sp->string = s;
-	}
-#endif
-	parsenextc = s;
-	parsenleft = len;
-	INT_ON;
+	g_parsefile->left_in_line++;
+	g_parsefile->next_to_pgetc--;
+	pgetc_debug("pushed back to %d:%p'%s'",
+			g_parsefile->left_in_line,
+			g_parsefile->next_to_pgetc,
+			g_parsefile->next_to_pgetc);
 }
 
 /*
@@ -9393,10 +9416,6 @@ pushfile(void)
 {
 	struct parsefile *pf;
 
-	g_parsefile->nleft = parsenleft;
-	g_parsefile->lleft = parselleft;
-	g_parsefile->nextc = parsenextc;
-	g_parsefile->linno = plinno;
 	pf = ckzalloc(sizeof(*pf));
 	pf->prev = g_parsefile;
 	pf->fd = -1;
@@ -9418,10 +9437,6 @@ popfile(void)
 		popstring();
 	g_parsefile = pf->prev;
 	free(pf);
-	parsenleft = g_parsefile->nleft;
-	parselleft = g_parsefile->lleft;
-	parsenextc = g_parsefile->nextc;
-	plinno = g_parsefile->linno;
 	INT_ON;
 }
 
@@ -9464,8 +9479,9 @@ setinputfd(int fd, int push)
 	g_parsefile->fd = fd;
 	if (g_parsefile->buf == NULL)
 		g_parsefile->buf = ckmalloc(IBUFSIZ);
-	parselleft = parsenleft = 0;
-	plinno = 1;
+	g_parsefile->left_in_buffer = 0;
+	g_parsefile->left_in_line = 0;
+	g_parsefile->linno = 1;
 }
 
 /*
@@ -9506,10 +9522,10 @@ setinputstring(char *string)
 {
 	INT_OFF;
 	pushfile();
-	parsenextc = string;
-	parsenleft = strlen(string);
+	g_parsefile->next_to_pgetc = string;
+	g_parsefile->left_in_line = strlen(string);
 	g_parsefile->buf = NULL;
-	plinno = 1;
+	g_parsefile->linno = 1;
 	INT_ON;
 }
 
@@ -10653,7 +10669,7 @@ readtoken1(int firstc, int syntax, char *eofmark, int striptabs)
 	(void) &prevsyntax;
 	(void) &syntax;
 #endif
-	startlinno = plinno;
+	startlinno = g_parsefile->linno;
 	bqlist = NULL;
 	quotef = 0;
 	oldstyle = 0;
@@ -10681,7 +10697,7 @@ readtoken1(int firstc, int syntax, char *eofmark, int striptabs)
 				if (syntax == BASESYNTAX)
 					goto endword;   /* exit outer loop */
 				USTPUTC(c, out);
-				plinno++;
+				g_parsefile->linno++;
 				if (doprompt)
 					setprompt(2);
 				c = pgetc();
@@ -10835,7 +10851,7 @@ readtoken1(int firstc, int syntax, char *eofmark, int striptabs)
 	if (syntax != BASESYNTAX && !parsebackquote && eofmark == NULL)
 		raise_error_syntax("unterminated quoted string");
 	if (varnest != 0) {
-		startlinno = plinno;
+		startlinno = g_parsefile->linno;
 		/* { */
 		raise_error_syntax("missing '}'");
 	}
@@ -10890,7 +10906,7 @@ checkend: {
 					continue;
 				if (*p == '\n' && *q == '\0') {
 					c = PEOF;
-					plinno++;
+					g_parsefile->linno++;
 					needprompt = doprompt;
 				} else {
 					pushstring(line, NULL);
@@ -11166,7 +11182,7 @@ parsebackq: {
 			case '\\':
 				pc = pgetc();
 				if (pc == '\n') {
-					plinno++;
+					g_parsefile->linno++;
 					if (doprompt)
 						setprompt(2);
 					/*
@@ -11189,11 +11205,11 @@ parsebackq: {
 #if ENABLE_ASH_ALIAS
 			case PEOA:
 #endif
-				startlinno = plinno;
+				startlinno = g_parsefile->linno;
 				raise_error_syntax("EOF in backquote substitution");
 
 			case '\n':
-				plinno++;
+				g_parsefile->linno++;
 				needprompt = doprompt;
 				break;
 
@@ -11334,7 +11350,7 @@ xxreadtoken(void)
 	if (needprompt) {
 		setprompt(2);
 	}
-	startlinno = plinno;
+	startlinno = g_parsefile->linno;
 	for (;;) {                      /* until token or start of word found */
 		c = pgetc_fast();
 		if (c == ' ' || c == '\t' USE_ASH_ALIAS( || c == PEOA))
@@ -11349,7 +11365,7 @@ xxreadtoken(void)
 				pungetc();
 				break; /* return readtoken1(...) */
 			}
-			startlinno = ++plinno;
+			startlinno = ++g_parsefile->linno;
 			if (doprompt)
 				setprompt(2);
 		} else {
@@ -11358,7 +11374,7 @@ xxreadtoken(void)
 			p = xxreadtoken_chars + sizeof(xxreadtoken_chars) - 1;
 			if (c != PEOF) {
 				if (c == '\n') {
-					plinno++;
+					g_parsefile->linno++;
 					needprompt = doprompt;
 				}
 
@@ -11400,7 +11416,7 @@ xxreadtoken(void)
 	if (needprompt) {
 		setprompt(2);
 	}
-	startlinno = plinno;
+	startlinno = g_parsefile->linno;
 	for (;;) {      /* until token or start of word found */
 		c = pgetc_fast();
 		switch (c) {
@@ -11416,7 +11432,7 @@ xxreadtoken(void)
 			continue;
 		case '\\':
 			if (pgetc() == '\n') {
-				startlinno = ++plinno;
+				startlinno = ++g_parsefile->linno;
 				if (doprompt)
 					setprompt(2);
 				continue;
@@ -11424,7 +11440,7 @@ xxreadtoken(void)
 			pungetc();
 			goto breakloop;
 		case '\n':
-			plinno++;
+			g_parsefile->linno++;
 			needprompt = doprompt;
 			RETURN(TNL);
 		case PEOF:
@@ -13454,7 +13470,7 @@ static void
 init(void)
 {
 	/* from input.c: */
-	basepf.nextc = basepf.buf = basebuf;
+	basepf.next_to_pgetc = basepf.buf = basebuf;
 
 	/* from trap.c: */
 	signal(SIGCHLD, SIG_DFL);
@@ -13575,7 +13591,8 @@ reset(void)
 	evalskip = 0;
 	loopnest = 0;
 	/* from input.c: */
-	parselleft = parsenleft = 0;      /* clear input buffer */
+	g_parsefile->left_in_buffer = 0;
+	g_parsefile->left_in_line = 0;      /* clear input buffer */
 	popallfiles();
 	/* from parser.c: */
 	tokpushback = 0;
