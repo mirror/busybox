@@ -9156,6 +9156,11 @@ popstring(void)
 	INT_ON;
 }
 
+//FIXME: BASH_COMPAT with "...&" does TWO pungetc():
+//it peeks whether it is &>, and then pushes back both chars.
+//This function needs to save last *next_to_pgetc to buf[0]
+//to make two pungetc() reliable. Currently,
+// pgetc (out of buf: does preadfd), pgetc, pungetc, pungetc won't work...
 static int
 preadfd(void)
 {
@@ -9251,9 +9256,9 @@ preadbuffer(void)
 	 * "pgetc" needs refilling.
 	 */
 
-	/* -90 is -BIGNUM. Below we use -99 to mark "EOF on read",
+	/* -90 is our -BIGNUM. Below we use -99 to mark "EOF on read",
 	 * pungetc() may increment it a few times.
-	 * Assuming it won't increment it to 0.
+	 * Assuming it won't increment it to less than -90.
 	 */
 	if (g_parsefile->left_in_line < -90 || g_parsefile->buf == NULL) {
 		pgetc_debug("preadbuffer PEOF1");
