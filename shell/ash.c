@@ -10032,7 +10032,7 @@ raise_error_unexpected_syntax(int token)
 	char msg[64];
 	int l;
 
-	l = sprintf(msg, "%s unexpected", tokname(lasttoken));
+	l = sprintf(msg, "unexpected %s", tokname(lasttoken));
 	if (token >= 0)
 		sprintf(msg + l, " (expecting %s)", tokname(token));
 	raise_error_syntax(msg);
