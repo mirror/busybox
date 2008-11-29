@@ -209,8 +209,9 @@ static void console_init(void)
 		/* Make sure fd 0,1,2 are not closed
 		 * (so that they won't be used by future opens) */
 		bb_sanitize_stdio();
-		/* Make sure init can't be blocked by writing to stderr */
-		fcntl(STDERR_FILENO, F_SETFL, fcntl(STDERR_FILENO, F_GETFL) | O_NONBLOCK);
+// Users report problems
+//		/* Make sure init can't be blocked by writing to stderr */
+//		fcntl(STDERR_FILENO, F_SETFL, fcntl(STDERR_FILENO, F_GETFL) | O_NONBLOCK);
 	}
 
 	s = getenv("TERM");
