@@ -3236,8 +3236,10 @@ static struct obj_file *obj_load(FILE *fp, int loadprogbits UNUSED_PARAM)
 	}
 
 	shnum = f->header.e_shnum;
-	f->sections = xmalloc(sizeof(struct obj_section *) * shnum);
-	memset(f->sections, 0, sizeof(struct obj_section *) * shnum);
+	/* Growth of ->sections vector will be done by
+	 * xrealloc_vector(..., 2, ...), therefore we must allocate
+	 * at least 2^2 = 4 extra elements here. */
+	f->sections = xzalloc(sizeof(f->sections[0]) * (shnum + 4));
 
 	section_headers = alloca(sizeof(ElfW(Shdr)) * shnum);
 	fseek(fp, f->header.e_shoff, SEEK_SET);

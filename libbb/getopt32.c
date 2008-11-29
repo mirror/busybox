@@ -515,6 +515,19 @@ getopt32(char **argv, const char *applet_opts, ...)
 		}
 	}
 
+	/* In case getopt32 was already called:
+	 * reset the libc getopt() function, which keeps internal state.
+	 * run_nofork_applet_prime() does this, but we might end up here
+	 * also via gunzip_main() -> gzip_main(). Play safe.
+	 */
+#ifdef __GLIBC__
+	optind = 0;
+#else /* BSD style */
+	optind = 1;
+	/* optreset = 1; */
+#endif
+	/* optarg = NULL; opterr = 0; optopt = 0; - do we need this?? */
+
 	pargv = NULL;
 
 	/* Note: just "getopt() <= 0" will not work well for
