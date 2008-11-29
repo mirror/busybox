@@ -16,6 +16,23 @@
 
 #define NOUSAGE_STR "\b"
 
+#define acpid_trivial_usage \
+       "[-d] [-c CONFDIR] [-l LOGFILE] [-e PROC_EVENT_FILE] [EVDEV_EVENT_FILE...]"
+
+#define acpid_full_usage "\n\n" \
+       "Listen to ACPI events and spawn specific helpers on event arrival\n" \
+     "\nOptions:" \
+     "\n	-d	Do not daemonize and log to stderr" \
+     "\n	-c DIR	Config directory [/etc/acpi]" \
+     "\n	-e FILE	/proc event file [/proc/acpi/event]" \
+     "\n	-l FILE	Log file [/var/log/acpid]" \
+	USE_FEATURE_ACPID_COMPAT( \
+     "\n\nAccept and ignore compatibility options -g -m -s -S -v" \
+	)
+
+#define acpid_example_usage \
+       "# acpid -l /var/log/my-acpi-log\n" \
+       "# acpid -d /dev/input/event*\n"
 
 #define addgroup_trivial_usage \
        "[-g GID] " USE_FEATURE_ADDUSER_TO_GROUP("[user_name] ") "group_name"
