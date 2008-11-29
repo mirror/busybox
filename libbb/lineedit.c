@@ -1415,8 +1415,10 @@ int FAST_FUNC read_line_input(const char *prompt, char *command, int maxsize, li
 	if ((state->flags & SAVE_HISTORY) && state->hist_file)
 		load_history(state->hist_file);
 #endif
+#if MAX_HISTORY > 0
 	if (state->flags & DO_HISTORY)
 		state->cur_history = state->cnt_history;
+#endif
 
 	/* prepare before init handlers */
 	cmdedit_y = 0;  /* quasireal y, not true if line > xt*yt */
