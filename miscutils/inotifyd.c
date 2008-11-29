@@ -53,9 +53,6 @@ enum {
 	MASK_BITS = sizeof(mask_names) - 1
 };
 
-extern int inotify_init(void);
-extern int inotify_add_watch(int fd, const char *path, uint32_t mask);
-
 int inotifyd_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int inotifyd_main(int argc, char **argv)
 {
@@ -160,9 +157,11 @@ int inotifyd_main(int argc, char **argv)
 				args[3] = ie->len ? ie->name : NULL;
 				wait4pid(xspawn((char **)args));
 				// we are done if all files got final x event
-				if (ie->mask & 0x8000)
+				if (ie->mask & 0x8000) {
 					if (--argc <= 0)
 						goto done;
+					inotify_rm_watch(pfd.fd, ie->wd);
+				}
 			}
 			// next event
 			i = sizeof(struct inotify_event) + ie->len;
