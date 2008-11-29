@@ -2788,12 +2788,13 @@
        "Returns 0 for success, number of failed mounts for -a, or errno for one mount."
 
 #define mountpoint_trivial_usage \
-       "[-q] <[-d] DIR | -x DEVICE>"
+       "[-q] <[-dn] DIR | -x DEVICE>"
 #define mountpoint_full_usage "\n\n" \
-       "mountpoint checks if the directory is a mountpoint\n" \
+       "Check if the directory is a mountpoint\n" \
      "\nOptions:" \
      "\n	-q	Quiet" \
      "\n	-d	Print major/minor device number of the filesystem" \
+     "\n	-n	Print device name of the filesystem" \
      "\n	-x	Print major/minor device number of the blockdevice" \
 
 #define mountpoint_example_usage \
