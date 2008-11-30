@@ -61,6 +61,17 @@ struct volume_id_partition {
 #endif
 
 struct volume_id {
+	int		fd;
+//	int		fd_close:1;
+	size_t		sbbuf_len;
+	size_t		seekbuf_len;
+	uint8_t		*sbbuf;
+	uint8_t		*seekbuf;
+	uint64_t	seekbuf_off;
+#ifdef UNUSED_PARTITION_CODE
+	struct volume_id_partition *partitions;
+	size_t		partition_count;
+#endif
 //	uint8_t		label_raw[VOLUME_ID_LABEL_SIZE];
 //	size_t		label_raw_len;
 	char		label[VOLUME_ID_LABEL_SIZE+1];
@@ -72,19 +83,6 @@ struct volume_id {
 //	smallint	usage_id;
 //	const char	*usage;
 //	const char	*type;
-
-#ifdef UNUSED_PARTITION_CODE
-	struct volume_id_partition *partitions;
-	size_t		partition_count;
-#endif
-
-	int		fd;
-	uint8_t		*sbbuf;
-	uint8_t		*seekbuf;
-	size_t		sbbuf_len;
-	uint64_t	seekbuf_off;
-	size_t		seekbuf_len;
-//	int		fd_close:1;
 };
 
 struct volume_id *volume_id_open_node(int fd);

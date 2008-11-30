@@ -245,7 +245,7 @@ int volume_id_probe_vfat(struct volume_id *id, uint64_t fat_partition_off)
 	buf_size = dir_entries * sizeof(struct vfat_dir_entry);
 	buf = volume_id_get_buffer(id, fat_partition_off + root_start_off, buf_size);
 	if (buf == NULL)
-		goto found;
+		goto ret;
 
 	label = get_attr_volume_id((struct vfat_dir_entry*) buf, dir_entries);
 
@@ -261,7 +261,7 @@ int volume_id_probe_vfat(struct volume_id *id, uint64_t fat_partition_off)
 		volume_id_set_label_string(id, vs->type.fat.label, 11);
 	}
 	volume_id_set_uuid(id, vs->type.fat.serno, UUID_DOS);
-	goto found;
+	goto ret;
 
  fat32:
 	/* FAT32 root dir is a cluster chain like any other directory */
@@ -272,20 +272,20 @@ int volume_id_probe_vfat(struct volume_id *id, uint64_t fat_partition_off)
 	next_cluster = root_cluster;
 	maxloop = 100;
 	while (--maxloop) {
-		uint32_t next_off_sct;
+		uint64_t next_off_sct;
 		uint64_t next_off;
 		uint64_t fat_entry_off;
 		int count;
 
 		dbg("next_cluster 0x%x", (unsigned)next_cluster);
-		next_off_sct = (next_cluster - 2) * vs->sectors_per_cluster;
+		next_off_sct = (uint64_t)(next_cluster - 2) * vs->sectors_per_cluster;
 		next_off = (start_data_sct + next_off_sct) * sector_size_bytes;
 		dbg("cluster offset 0x%llx", (unsigned long long) next_off);
 
 		/* get cluster */
 		buf = volume_id_get_buffer(id, fat_partition_off + next_off, buf_size);
 		if (buf == NULL)
-			goto found;
+			goto ret;
 
 		dir = (struct vfat_dir_entry*) buf;
 		count = buf_size / sizeof(struct vfat_dir_entry);
@@ -300,7 +300,7 @@ int volume_id_probe_vfat(struct volume_id *id, uint64_t fat_partition_off)
 		dbg("fat_entry_off 0x%llx", (unsigned long long)fat_entry_off);
 		buf = volume_id_get_buffer(id, fat_partition_off + fat_entry_off, buf_size);
 		if (buf == NULL)
-			goto found;
+			goto ret;
 
 		/* set next cluster */
 		next_cluster = le32_to_cpu(*(uint32_t*)buf) & 0x0fffffff;
@@ -323,7 +323,7 @@ int volume_id_probe_vfat(struct volume_id *id, uint64_t fat_partition_off)
 	}
 	volume_id_set_uuid(id, vs->type.fat32.serno, UUID_DOS);
 
- found:
+ ret:
 //	volume_id_set_usage(id, VOLUME_ID_FILESYSTEM);
 //	id->type = "vfat";
 

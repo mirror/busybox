@@ -195,70 +195,73 @@ set:
  * It's better to ignore such fs and continue.  */
 void *volume_id_get_buffer(struct volume_id *id, uint64_t off, size_t len)
 {
-	ssize_t buf_len;
+	uint8_t *dst;
+	unsigned small_off;
+	ssize_t read_len;
 
-	dbg("get buffer off 0x%llx(%llu), len 0x%zx", (unsigned long long) off, (unsigned long long) off, len);
+	dbg("get buffer off 0x%llx(%llu), len 0x%zx",
+		(unsigned long long) off, (unsigned long long) off, len);
+
 	/* check if requested area fits in superblock buffer */
-	if (off + len <= SB_BUFFER_SIZE) {
+	if (off + len <= SB_BUFFER_SIZE
+	 /* && off <= SB_BUFFER_SIZE - want this paranoid overflow check? */
+	) {
 		if (id->sbbuf == NULL) {
 			id->sbbuf = xmalloc(SB_BUFFER_SIZE);
 		}
+		small_off = off;
+		dst = id->sbbuf;
 
 		/* check if we need to read */
-		if ((off + len) > id->sbbuf_len) {
-			dbg("read sbbuf len:0x%llx", (unsigned long long) (off + len));
-			if (lseek(id->fd, 0, SEEK_SET) != 0) {
-				dbg("seek(0) failed");
-				return NULL;
-			}
-			buf_len = full_read(id->fd, id->sbbuf, off + len);
-			if (buf_len < 0) {
-				dbg("read failed (%s)", strerror(errno));
-				return NULL;
-			}
-			dbg("got 0x%zx (%zi) bytes", buf_len, buf_len);
-			id->sbbuf_len = buf_len;
-			if ((uint64_t)buf_len < off + len) {
-				dbg("requested 0x%zx bytes, got only 0x%zx bytes", len, buf_len);
-				return NULL;
-			}
-		}
+		len += off;
+		if (len <= id->sbbuf_len)
+			goto ret; /* we already have it */
 
-		return &(id->sbbuf[off]);
+		dbg("read sbbuf len:0x%x", (unsigned) len);
+		id->sbbuf_len = len;
+		off = 0;
+		goto do_read;
 	}
 
 	if (len > SEEK_BUFFER_SIZE) {
 		dbg("seek buffer too small %d", SEEK_BUFFER_SIZE);
 		return NULL;
 	}
-
-	/* get seek buffer */
-	if (id->seekbuf == NULL) {
-		id->seekbuf = xmalloc(SEEK_BUFFER_SIZE);
-	}
+	dst = id->seekbuf;
 
 	/* check if we need to read */
-	if ((off < id->seekbuf_off) || ((off + len) > (id->seekbuf_off + id->seekbuf_len))) {
-		dbg("read seekbuf off:0x%llx len:0x%zx", (unsigned long long) off, len);
-		if (lseek(id->fd, off, SEEK_SET) != off) {
-			dbg("seek(0x%llx) failed", (unsigned long long) off);
-			return NULL;
-		}
-		buf_len = full_read(id->fd, id->seekbuf, len);
-		if (buf_len < 0) {
-			dbg("read failed (%s)", strerror(errno));
-			return NULL;
-		}
-		dbg("got 0x%zx (%zi) bytes", buf_len, buf_len);
-		id->seekbuf_off = off;
-		id->seekbuf_len = buf_len;
-		if ((size_t)buf_len < len) {
-			dbg("requested 0x%zx bytes, got only 0x%zx bytes", len, buf_len);
-			return NULL;
-		}
+	if ((off >= id->seekbuf_off)
+	 && ((off + len) <= (id->seekbuf_off + id->seekbuf_len))
+	) {
+		small_off = off - id->seekbuf_off; /* can't overflow */
+		goto ret; /* we already have it */
 	}
 
-	return &(id->seekbuf[off - id->seekbuf_off]);
+	id->seekbuf_off = off;
+	id->seekbuf_len = len;
+	id->seekbuf = xrealloc(id->seekbuf, len);
+	small_off = 0;
+	dst = id->seekbuf;
+	dbg("read seekbuf off:0x%llx len:0x%zx",
+				(unsigned long long) off, len);
+ do_read:
+	if (lseek(id->fd, off, SEEK_SET) != off) {
+		dbg("seek(0x%llx) failed", (unsigned long long) off);
+		goto err;
+	}
+	read_len = full_read(id->fd, dst, len);
+	if (read_len != len) {
+		dbg("requested 0x%x bytes, got 0x%x bytes",
+				(unsigned) len, (unsigned) read_len);
+ err:
+		/* id->seekbuf_len or id->sbbuf_len is wrong now! Fixing.
+		 * Most likely user will not do any additional
+		 * calls anyway, it's a corrupted fs or something. */
+		volume_id_free_buffer(id);
+		return NULL;
+	}
+ ret:
+	return dst + small_off;
 }
 
 void volume_id_free_buffer(struct volume_id *id)
@@ -269,4 +272,5 @@ void volume_id_free_buffer(struct volume_id *id)
 	free(id->seekbuf);
 	id->seekbuf = NULL;
 	id->seekbuf_len = 0;
+	id->seekbuf_off = 0; /* paranoia */
 }
