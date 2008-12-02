@@ -133,7 +133,7 @@ int vconfig_main(int argc, char **argv)
 	if (ifr.cmd == SET_VLAN_NAME_TYPE_CMD) { /* set_name_type */
 		ifr.u.name_type = *xfind_str(name_types+1, argv[1]);
 	} else {
-		strncpy(ifr.device1, argv[1], IFNAMSIZ);
+		strncpy_IFNAMSIZ(ifr.device1, argv[1]);
 		p = argv[2];
 
 		/* I suppose one could try to combine some of the function calls below,

@@ -40,6 +40,14 @@ int FAST_FUNC close_on_exec_on(int fd)
 	return fcntl(fd, F_SETFD, FD_CLOEXEC);
 }
 
+char* FAST_FUNC strncpy_IFNAMSIZ(char *dst, const char *src)
+{
+#ifndef IFNAMSIZ
+	enum { IFNAMSIZ = 16 };
+#endif
+	return strncpy(dst, src, IFNAMSIZ);
+}
+
 /* Convert unsigned long long value into compact 4-char
  * representation. Examples: "1234", "1.2k", " 27M", "123T"
  * String is not terminated (buf[4] is untouched) */

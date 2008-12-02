@@ -219,7 +219,7 @@ int ether_wake_main(int argc UNUSED_PARAM, char **argv)
 	{
 		struct ifreq if_hwaddr;
 
-		strncpy(if_hwaddr.ifr_name, ifname, sizeof(if_hwaddr.ifr_name));
+		strncpy_IFNAMSIZ(if_hwaddr.ifr_name, ifname);
 		ioctl_or_perror_and_die(s, SIOCGIFHWADDR, &if_hwaddr, "SIOCGIFHWADDR on %s failed", ifname);
 
 		memcpy(outpack+6, if_hwaddr.ifr_hwaddr.sa_data, 6);
@@ -255,7 +255,7 @@ int ether_wake_main(int argc UNUSED_PARAM, char **argv)
 #if defined(PF_PACKET)
 	{
 		struct ifreq ifr;
-		strncpy(ifr.ifr_name, ifname, sizeof(ifr.ifr_name));
+		strncpy_IFNAMSIZ(ifr.ifr_name, ifname);
 		xioctl(s, SIOCGIFINDEX, &ifr);
 		memset(&whereto, 0, sizeof(whereto));
 		whereto.sll_family = AF_PACKET;

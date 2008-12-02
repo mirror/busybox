@@ -83,7 +83,7 @@ static void print_queuelen(char *name)
 		return;
 
 	memset(&ifr, 0, sizeof(ifr));
-	strncpy(ifr.ifr_name, name, sizeof(ifr.ifr_name));
+	strncpy_IFNAMSIZ(ifr.ifr_name, name);
 	if (ioctl_or_warn(s, SIOCGIFTXQLEN, &ifr) < 0) {
 		close(s);
 		return;

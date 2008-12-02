@@ -447,7 +447,7 @@ ifaddrlist(struct IFADDRLIST **ipaddrp)
 		 * SIOCGIFFLAGS stomps over it because the requests
 		 * are returned in a union.)
 		 */
-		strncpy(ifr.ifr_name, ifrp->ifr_name, sizeof(ifr.ifr_name));
+		strncpy_IFNAMSIZ(ifr.ifr_name, ifrp->ifr_name);
 		if (ioctl(fd, SIOCGIFFLAGS, (char *)&ifr) < 0) {
 			if (errno == ENXIO)
 				continue;

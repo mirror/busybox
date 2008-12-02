@@ -286,7 +286,7 @@ int arping_main(int argc UNUSED_PARAM, char **argv)
 		struct ifreq ifr;
 
 		memset(&ifr, 0, sizeof(ifr));
-		strncpy(ifr.ifr_name, device, sizeof(ifr.ifr_name) - 1);
+		strncpy_IFNAMSIZ(ifr.ifr_name, device);
 		/* We use ifr.ifr_name in error msg so that problem
 		 * with truncated name will be visible */
 		ioctl_or_perror_and_die(sock_fd, SIOCGIFINDEX, &ifr, err_str, "not found");

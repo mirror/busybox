@@ -140,11 +140,6 @@ struct globals {
 
 /* NOINLINEs are placed where it results in smaller code (gcc 4.3.1) */
 
-static void strncpy_IFNAMSIZ(char *dst, const char *src)
-{
-	strncpy(dst, src, IFNAMSIZ);
-}
-
 static int ioctl_on_skfd(unsigned request, struct ifreq *ifr)
 {
 	return ioctl(skfd, request, ifr);

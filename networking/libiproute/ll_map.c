@@ -176,7 +176,7 @@ int xll_name_to_index(const char *const name)
 		struct ifreq ifr;
 		int tmp;
 
-		strncpy(ifr.ifr_name, name, IFNAMSIZ);
+		strncpy_IFNAMSIZ(ifr.ifr_name, name);
 		ifr.ifr_ifindex = -1;
 		tmp = ioctl(sock_fd, SIOCGIFINDEX, &ifr);
 		close(sock_fd);

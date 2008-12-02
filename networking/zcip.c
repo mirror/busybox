@@ -268,7 +268,7 @@ int zcip_main(int argc, char **argv)
 
 	// get the interface's ethernet address
 	//memset(&ifr, 0, sizeof(ifr));
-	strncpy(ifr.ifr_name, argv_intf, sizeof(ifr.ifr_name));
+	strncpy_IFNAMSIZ(ifr.ifr_name, argv_intf);
 	xioctl(sock_fd, SIOCGIFHWADDR, &ifr);
 	memcpy(&eth_addr, &ifr.ifr_hwaddr.sa_data, ETH_ALEN);
 

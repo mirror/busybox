@@ -423,7 +423,7 @@ static void INET6_setroute(int action, char **args)
 	if (devname) {
 		struct ifreq ifr;
 		memset(&ifr, 0, sizeof(ifr));
-		strncpy(ifr.ifr_name, devname, sizeof(ifr.ifr_name));
+		strncpy_IFNAMSIZ(ifr.ifr_name, devname);
 		xioctl(skfd, SIOGIFINDEX, &ifr);
 		rt.rtmsg_ifindex = ifr.ifr_ifindex;
 	}

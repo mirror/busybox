@@ -177,7 +177,7 @@ int nameif_main(int argc, char **argv)
 
 		/* Find the current interface name and copy it to ifr.ifr_name */
 		memset(&ifr, 0, sizeof(struct ifreq));
-		strncpy(ifr.ifr_name, token[0], sizeof(ifr.ifr_name));
+		strncpy_IFNAMSIZ(ifr.ifr_name, token[0]);
 
 #if ENABLE_FEATURE_NAMEIF_EXTENDED
 		/* Check for driver etc. */
