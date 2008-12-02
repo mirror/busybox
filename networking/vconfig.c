@@ -50,13 +50,14 @@ struct vlan_ioctl_args {
 #define VLAN_GROUP_ARRAY_LEN 4096
 #define SIOCSIFVLAN	0x8983		/* Set 802.1Q VLAN options */
 
-/* On entry, table points to the length of the current string plus
- * nul terminator plus data length for the subsequent entry.  The
- * return value is the last data entry for the matching string. */
+/* On entry, table points to the length of the current string
+ * plus NUL terminator plus data length for the subsequent entry.
+ * The return value is the last data entry for the matching string. */
 static const char *xfind_str(const char *table, const char *str)
 {
 	while (strcasecmp(str, table+1) != 0) {
-		if (!*(table += table[0])) {
+		table += table[0];
+		if (!*table) {
 			bb_show_usage();
 		}
 	}
@@ -121,7 +122,7 @@ int vconfig_main(int argc, char **argv)
 	/* Will die if 802.1q is not present */
 	xopen(conf_file_name, O_RDONLY);
 
-	memset(&ifr, 0, sizeof(struct vlan_ioctl_args));
+	memset(&ifr, 0, sizeof(ifr));
 
 	++argv;
 	p = xfind_str(cmds+2, *argv);
