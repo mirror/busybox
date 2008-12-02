@@ -702,14 +702,14 @@ int get_uidgid(struct bb_uidgid_t*, const char*, int numeric_ok) FAST_FUNC;
 void xget_uidgid(struct bb_uidgid_t*, const char*) FAST_FUNC;
 /* chown-like handling of "user[:[group]" */
 void parse_chown_usergroup_or_die(struct bb_uidgid_t *u, char *user_group) FAST_FUNC;
-/* bb_getpwuid, bb_getgrgid:
- * bb_getXXXid(buf, bufsz, id) - copy user/group name or id
- *              as a string to buf, return user/group name or NULL
- * bb_getXXXid(NULL, 0, id) - return user/group name or NULL
- * bb_getXXXid(NULL, -1, id) - return user/group name or exit
-*/
-char *bb_getpwuid(char *name, int bufsize, long uid) FAST_FUNC;
-char *bb_getgrgid(char *group, int bufsize, long gid) FAST_FUNC;
+struct passwd* xgetpwuid(uid_t uid) FAST_FUNC;
+struct group* xgetgrgid(gid_t gid) FAST_FUNC;
+char* xuid2uname(uid_t uid) FAST_FUNC;
+char* xgid2group(gid_t gid) FAST_FUNC;
+char* uid2uname(uid_t uid) FAST_FUNC;
+char* gid2group(gid_t gid) FAST_FUNC;
+char* uid2uname_utoa(long uid) FAST_FUNC;
+char* gid2group_utoa(long gid) FAST_FUNC;
 /* versions which cache results (useful for ps, ls etc) */
 const char* get_cached_username(uid_t uid) FAST_FUNC;
 const char* get_cached_groupname(gid_t gid) FAST_FUNC;

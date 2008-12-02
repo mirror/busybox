@@ -13,7 +13,7 @@
 
 
 typedef struct unsigned_to_name_map_t {
-	unsigned id;
+	long id;
 	char name[USERNAME_MAX_SIZE];
 } unsigned_to_name_map_t;
 
@@ -52,8 +52,8 @@ static int get_cached(cache_t *cp, unsigned id)
 }
 #endif
 
-typedef char* FAST_FUNC ug_func(char *name, int bufsize, long uid);
-static char* get_cached(cache_t *cp, unsigned id, ug_func* fp)
+static char* get_cached(cache_t *cp, long id,
+			char* FAST_FUNC x2x_utoa(long id))
 {
 	int i;
 	for (i = 0; i < cp->size; i++)
@@ -63,16 +63,16 @@ static char* get_cached(cache_t *cp, unsigned id, ug_func* fp)
 	cp->cache = xrealloc_vector(cp->cache, 2, i);
 	cp->cache[i].id = id;
 	/* Never fails. Generates numeric string if name isn't found */
-	fp(cp->cache[i].name, sizeof(cp->cache[i].name), id);
+	safe_strncpy(cp->cache[i].name, x2x_utoa(id), sizeof(cp->cache[i].name));
 	return cp->cache[i].name;
 }
 const char* FAST_FUNC get_cached_username(uid_t uid)
 {
-	return get_cached(&username, uid, bb_getpwuid);
+	return get_cached(&username, uid, uid2uname_utoa);
 }
 const char* FAST_FUNC get_cached_groupname(gid_t gid)
 {
-	return get_cached(&groupname, gid, bb_getgrgid);
+	return get_cached(&groupname, gid, gid2group_utoa);
 }
 
 

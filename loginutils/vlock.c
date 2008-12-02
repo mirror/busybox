@@ -38,14 +38,9 @@ int vlock_main(int argc UNUSED_PARAM, char **argv)
 	struct termios term;
 	struct termios oterm;
 	struct vt_mode ovtm;
-	uid_t uid;
 	struct passwd *pw;
-/* XXX: xgetpwuid */
-	uid = getuid();
-	pw = getpwuid(uid);
-	if (pw == NULL)
-		bb_error_msg_and_die("unknown uid %d", (int)uid);
 
+	pw = xgetpwuid(getuid());
 	opt_complementary = "=0"; /* no params! */
 	getopt32(argv, "a");
 

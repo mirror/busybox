@@ -20,7 +20,7 @@ int whoami_main(int argc, char **argv UNUSED_PARAM)
 		bb_show_usage();
 
 	/* Will complain and die if username not found */
-	puts(bb_getpwuid(NULL, -1, geteuid()));
+	puts(xuid2uname(geteuid()));
 
 	return fflush(stdout);
 }

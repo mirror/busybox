@@ -172,7 +172,7 @@ int sendmail_main(int argc UNUSED_PARAM, char **argv)
 	// got no sender address? -> use system username as a resort
 	if (!(opts & OPT_f)) {
 		// N.B. IMHO getenv("USER") can be way easily spoofed!
-		G.user = bb_getpwuid(NULL, -1, getuid());
+		G.user = xuid2uname(getuid());
 		opt_from = xasprintf("%s@%s", G.user, domain);
 	}
 	if (ENABLE_FEATURE_CLEAN_UP)

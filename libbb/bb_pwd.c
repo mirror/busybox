@@ -3,79 +3,72 @@
  * password utility routines.
  *
  * Copyright (C) 1999-2004 by Erik Andersen <andersen@codepoet.org>
+ * Copyright (C) 2008 by Tito Ragusa <farmatito@tiscali.it>
  *
  * Licensed under the GPL v2 or later, see the file LICENSE in this tarball.
  */
 
 #include "libbb.h"
 
-#define assert(x) ((void)0)
-
-/* internal function for bb_getpwuid and bb_getgrgid */
-/* Hacked by Tito Ragusa (c) 2004 <farmatito@tiscali.it> to make it more
- * flexible:
- *
- * bufsize > 0:      If idname is not NULL it is copied to buffer,
- *                   and buffer is returned. Else id as string is written
- *                   to buffer, and NULL is returned.
- *
- * bufsize == 0:     idname is returned.
- *
- * bufsize < 0:      If idname is not NULL it is returned.
- *                   Else an error message is printed and the program exits.
+/* TODO: maybe change API to return malloced data?
+ * This will allow to stop using libc functions returning
+ * pointers to static data (getpwuid)
  */
-static char* bb_getug(char *buffer, int bufsize, char *idname, long id, char prefix)
+
+/* TODO: add xgetpwnam, this construct is used a lot */
+
+struct passwd* FAST_FUNC xgetpwuid(uid_t uid)
 {
-	if (bufsize > 0) {
-		assert(buffer != NULL);
-		if (idname) {
-			return safe_strncpy(buffer, idname, bufsize);
-		}
-		snprintf(buffer, bufsize, "%ld", id);
-	} else if (bufsize < 0 && !idname) {
-		bb_error_msg_and_die("unknown %cid %ld", prefix, id);
-	}
-	return idname;
+	struct passwd *pw = getpwuid(uid);
+	if (!pw)
+		bb_error_msg_and_die("unknown uid %u", (unsigned)uid);
+	return pw;
 }
 
-/* bb_getpwuid, bb_getgrgid:
- * bb_getXXXid(buf, bufsz, id) - copy user/group name or id
- *               as a string to buf, return user/group name or NULL
- * bb_getXXXid(NULL, 0, id) - return user/group name or NULL
- * bb_getXXXid(NULL, -1, id) - return user/group name or exit
- */
-/* gets a username given a uid */
-char* FAST_FUNC bb_getpwuid(char *name, int bufsize, long uid)
+struct group* FAST_FUNC xgetgrgid(gid_t gid)
 {
-	struct passwd *myuser = getpwuid(uid);
-
-	return bb_getug(name, bufsize,
-			(myuser ? myuser->pw_name : (char*)myuser),
-			uid, 'u');
-}
-/* gets a groupname given a gid */
-char* FAST_FUNC bb_getgrgid(char *group, int bufsize, long gid)
-{
-	struct group *mygroup = getgrgid(gid);
-
-	return bb_getug(group, bufsize,
-			(mygroup ? mygroup->gr_name : (char*)mygroup),
-			gid, 'g');
+	struct group *gr = getgrgid(gid);
+	if (!gr)
+		bb_error_msg_and_die("unknown gid %u", (unsigned)gid);
+	return gr;
 }
 
-/* returns a gid given a group name */
-long FAST_FUNC xgroup2gid(const char *name)
+char* FAST_FUNC xuid2uname(uid_t uid)
 {
-	struct group *mygroup;
-
-	mygroup = getgrnam(name);
-	if (mygroup == NULL)
-		bb_error_msg_and_die("unknown group name: %s", name);
-
-	return mygroup->gr_gid;
+	struct passwd *pw = xgetpwuid(uid);
+	return pw->pw_name;
 }
 
-/* returns a uid given a username */
+char* FAST_FUNC xgid2group(gid_t gid)
+{
+	struct group *gr = xgetgrgid(gid);
+	return gr->gr_name;
+}
+
+char* FAST_FUNC uid2uname(uid_t uid)
+{
+	struct passwd *pw = getpwuid(uid);
+	return (pw) ? pw->pw_name : NULL;
+}
+
+char* FAST_FUNC gid2group(gid_t gid)
+{
+	struct group *gr = getgrgid(gid);
+	return (gr) ? gr->gr_name : NULL;
+}
+
+char* FAST_FUNC uid2uname_utoa(long uid)
+{
+	char *name = uid2uname(uid);
+	return (name) ? name : utoa(uid);
+}
+
+char* FAST_FUNC gid2group_utoa(long gid)
+{
+	char *name = gid2group(gid);
+	return (name) ? name : utoa(gid);
+}
+
 long FAST_FUNC xuname2uid(const char *name)
 {
 	struct passwd *myuser;
@@ -85,6 +78,17 @@ long FAST_FUNC xuname2uid(const char *name)
 		bb_error_msg_and_die("unknown user %s", name);
 
 	return myuser->pw_uid;
+}
+
+long FAST_FUNC xgroup2gid(const char *name)
+{
+	struct group *mygroup;
+
+	mygroup = getgrnam(name);
+	if (mygroup == NULL)
+		bb_error_msg_and_die("unknown group %s", name);
+
+	return mygroup->gr_gid;
 }
 
 unsigned long FAST_FUNC get_ug_id(const char *s,

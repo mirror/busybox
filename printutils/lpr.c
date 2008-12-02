@@ -65,7 +65,7 @@ int lpqr_main(int argc UNUSED_PARAM, char *argv[])
 	const char *server = "localhost"; // server[:port] of printer queue
 	char *hostname;
 	// N.B. IMHO getenv("USER") can be way easily spoofed!
-	const char *user = bb_getpwuid(NULL, -1, getuid());
+	const char *user = xuid2uname(getuid());
 	unsigned job;
 	unsigned opts;
 	int fd;

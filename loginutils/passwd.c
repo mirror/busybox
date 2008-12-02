@@ -115,7 +115,7 @@ int passwd_main(int argc UNUSED_PARAM, char **argv)
 		bb_show_usage();
 
 	/* Will complain and die if username not found */
-	myname = xstrdup(bb_getpwuid(NULL, -1, myuid));
+	myname = xstrdup(xuid2uname(myuid));
 	name = argv[0] ? argv[0] : myname;
 
 	pw = getpwnam(name);

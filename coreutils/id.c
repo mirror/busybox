@@ -36,12 +36,8 @@ enum {
 #endif
 };
 
-static int print_common(unsigned id,
-		char* FAST_FUNC bb_getXXXid(char *name, int bufsize, long uid),
-		const char *prefix)
+static int print_common(unsigned id, const char *name, const char *prefix)
 {
-	const char *name = bb_getXXXid(NULL, 0, id);
-
 	if (prefix) {
 		printf("%s", prefix);
 	}
@@ -65,12 +61,12 @@ static int print_common(unsigned id,
 
 static int print_group(gid_t id, const char *prefix)
 {
-	return print_common(id, bb_getgrgid, prefix);
+	return print_common(id, gid2group(id), prefix);
 }
 
 static int print_user(uid_t id, const char *prefix)
 {
-	return print_common(id, bb_getpwuid, prefix);
+	return print_common(id, uid2uname(id), prefix);
 }
 
 /* On error set *n < 0 and return >= 0
