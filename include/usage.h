@@ -2626,8 +2626,7 @@
      "\n\t-P"USE_GETOPT_LONG(", --password-fd=")"NUM\tread password from fd NUM" \
      "\n\t-s"USE_GETOPT_LONG(", --stdin")"\t\tuse stdin; like -P0" \
      "\n\t-m"USE_GETOPT_LONG(", --method=")"TYPE\tEncryption method TYPE" \
-     "\n\t-S"USE_GETOPT_LONG(", --salt=")"SALT\t\tuse SALT" \
-     //"\n\t-l"USE_GETOPT_LONG(", --length=")"LEN\tRandom password with length LEN"
+     "\n\t-S"USE_GETOPT_LONG(", --salt=")"SALT\t\tuse SALT"
 
 #define mkpasswd_example_usage \
        "$ mkpasswd -m md5\n" \
