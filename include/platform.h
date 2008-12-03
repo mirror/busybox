@@ -78,7 +78,7 @@
 //__attribute__ ((__externally_visible__))
 #else
 # define EXTERNALLY_VISIBLE
-#endif /* GNUC >= 4.1 */
+#endif
 
 /* We use __extension__ in some places to suppress -pedantic warnings
    about GCC extensions.  This feature didn't work properly before
@@ -185,7 +185,7 @@ typedef int socklen_t;
  * until userspace is widely fixed.  */
 #if (defined __INTEL_COMPILER && !defined __GNUC__) || \
 	(defined __GNUC__ && defined __STRICT_ANSI__)
-__extension__ typedef __signed__ long long __s64;
+__extension__ typedef long long __s64;
 __extension__ typedef unsigned long long __u64;
 #endif
 
@@ -296,30 +296,32 @@ static ALWAYS_INLINE char* strchrnul(const char *s, char c)
 #endif
 
 #if (defined __digital__ && defined __unix__)
-#include <standards.h>
-#define HAVE_STANDARDS_H
-#include <inttypes.h>
-#define HAVE_INTTYPES_H
-#define PRIu32 "u"
 
+# include <standards.h>
+# define HAVE_STANDARDS_H
+# include <inttypes.h>
+# define HAVE_INTTYPES_H
+# define PRIu32 "u"
 /* use legacy setpgrp(pid_t,pid_t) for now.  move to platform.c */
-#define bb_setpgrp() do { pid_t __me = getpid(); setpgrp(__me,__me); } while (0)
+# define bb_setpgrp() do { pid_t __me = getpid(); setpgrp(__me,__me); } while (0)
 
-#if !defined ADJ_OFFSET_SINGLESHOT && defined MOD_CLKA && defined MOD_OFFSET
-#define ADJ_OFFSET_SINGLESHOT (MOD_CLKA | MOD_OFFSET)
-#endif
-#if !defined ADJ_FREQUENCY && defined MOD_FREQUENCY
-#define ADJ_FREQUENCY MOD_FREQUENCY
-#endif
-#if !defined ADJ_TIMECONST && defined MOD_TIMECONST
-#define ADJ_TIMECONST MOD_TIMECONST
-#endif
-#if !defined ADJ_TICK && defined MOD_CLKB
-#define ADJ_TICK MOD_CLKB
-#endif
+# if !defined ADJ_OFFSET_SINGLESHOT && defined MOD_CLKA && defined MOD_OFFSET
+#  define ADJ_OFFSET_SINGLESHOT (MOD_CLKA | MOD_OFFSET)
+# endif
+# if !defined ADJ_FREQUENCY && defined MOD_FREQUENCY
+#  define ADJ_FREQUENCY MOD_FREQUENCY
+# endif
+# if !defined ADJ_TIMECONST && defined MOD_TIMECONST
+#  define ADJ_TIMECONST MOD_TIMECONST
+# endif
+# if !defined ADJ_TICK && defined MOD_CLKB
+#  define ADJ_TICK MOD_CLKB
+# endif
 
-#else
-#define bb_setpgrp() setpgrp()
+#else /* !__digital__ */
+
+# define bb_setpgrp() setpgrp()
+
 #endif
 
 #if defined(__linux__)
