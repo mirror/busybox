@@ -201,14 +201,13 @@ struct globals_misc {
 	/*
 	 * Sigmode records the current value of the signal handlers for the various
 	 * modes.  A value of zero means that the current handler is not known.
-	 * S_HARD_IGN indicates that the signal was ignored on entry to the shell,
+	 * S_HARD_IGN indicates that the signal was ignored on entry to the shell.
 	 */
 	char sigmode[NSIG - 1];
-#define S_DFL 1                 /* default signal handling (SIG_DFL) */
-#define S_CATCH 2               /* signal is caught */
-#define S_IGN 3                 /* signal is ignored (SIG_IGN) */
+#define S_DFL      1            /* default signal handling (SIG_DFL) */
+#define S_CATCH    2            /* signal is caught */
+#define S_IGN      3            /* signal is ignored (SIG_IGN) */
 #define S_HARD_IGN 4            /* signal is ignored permenantly */
-#define S_RESET 5               /* temporary - to reset a hard ignored sig */
 
 	/* indicates specified signal received */
 	char gotsig[NSIG - 1]; /* offset by 1: "signal" 0 is meaningless */
@@ -368,7 +367,7 @@ force_int_on(void)
 } while (0)
 
 /*
- * Ignore a signal. Only one usage site - in forkchild()
+ * Ignore a signal. Avoids unnecessary system calls.
  */
 static void
 ignoresig(int signo)
@@ -3295,81 +3294,90 @@ static void setjobctl(int);
 static void
 setsignal(int signo)
 {
-	int action;
-	char *t, tsig;
+	char *t;
+	char cur_act, new_act;
 	struct sigaction act;
 
 	t = trap[signo];
-	action = S_IGN;
-	if (t == NULL)
-		action = S_DFL;
-	else if (*t != '\0')
-		action = S_CATCH;
-	if (rootshell && action == S_DFL) {
+	new_act = S_DFL;
+	if (t != NULL) { /* trap for this sig is set */
+		new_act = S_CATCH;
+		if (t[0] == '\0') /* trap is "": ignore this sig */
+			new_act = S_IGN;
+	}
+
+	if (rootshell && new_act == S_DFL) {
 		switch (signo) {
 		case SIGINT:
 			if (iflag || minusc || sflag == 0)
-				action = S_CATCH;
+				new_act = S_CATCH;
 			break;
 		case SIGQUIT:
 #if DEBUG
 			if (debug)
 				break;
 #endif
-			/* FALLTHROUGH */
+			/* man bash:
+			 * "In all cases, bash ignores SIGQUIT. Non-builtin
+			 * commands run by bash have signal handlers
+			 * set to the values inherited by the shell
+			 * from its parent". */
+			new_act = S_IGN;
+			break;
 		case SIGTERM:
 			if (iflag)
-				action = S_IGN;
+				new_act = S_IGN;
 			break;
 #if JOBS
 		case SIGTSTP:
 		case SIGTTOU:
 			if (mflag)
-				action = S_IGN;
+				new_act = S_IGN;
 			break;
 #endif
 		}
 	}
+//TODO: if !rootshell, we reset SIGQUIT to DFL,
+//whereas we have to restore it to what shell got on entry
+//from the parent. See comment above
 
 	t = &sigmode[signo - 1];
-	tsig = *t;
-	if (tsig == 0) {
-		/*
-		 * current setting unknown
-		 */
-		if (sigaction(signo, NULL, &act) == -1) {
-			/*
-			 * Pretend it worked; maybe we should give a warning
-			 * here, but other shells don't. We don't alter
-			 * sigmode, so that we retry every time.
-			 */
+	cur_act = *t;
+	if (cur_act == 0) {
+		/* current setting is not yet known */
+		if (sigaction(signo, NULL, &act)) {
+			/* pretend it worked; maybe we should give a warning,
+			 * but other shells don't. We don't alter sigmode,
+			 * so we retry every time.
+			 * btw, in Linux it never fails. --vda */
 			return;
 		}
-		tsig = S_RESET; /* force to be set */
 		if (act.sa_handler == SIG_IGN) {
-			tsig = S_HARD_IGN;
+			cur_act = S_HARD_IGN;
 			if (mflag
 			 && (signo == SIGTSTP || signo == SIGTTIN || signo == SIGTTOU)
 			) {
-				tsig = S_IGN;   /* don't hard ignore these */
+				cur_act = S_IGN;   /* don't hard ignore these */
 			}
 		}
 	}
-	if (tsig == S_HARD_IGN || tsig == action)
+	if (cur_act == S_HARD_IGN || cur_act == new_act)
 		return;
+
 	act.sa_handler = SIG_DFL;
-	switch (action) {
+	switch (new_act) {
 	case S_CATCH:
 		act.sa_handler = onsig;
+		act.sa_flags = 0; /* matters only if !DFL and !IGN */
+		sigfillset(&act.sa_mask); /* ditto */
 		break;
 	case S_IGN:
 		act.sa_handler = SIG_IGN;
 		break;
 	}
-	*t = action;
-	act.sa_flags = 0;
-	sigfillset(&act.sa_mask);
 	sigaction_set(signo, &act);
+
+	*t = new_act;
 }
 
 /* mode flags for set_curjob */
@@ -3790,15 +3798,9 @@ dowait(int wait_flags, struct job *job)
 	pid = waitpid(-1, &status,
 			(doing_jobctl ? (wait_flags | WUNTRACED) : wait_flags));
 	TRACE(("wait returns pid=%d, status=0x%x\n", pid, status));
-
-	if (pid <= 0) {
-		/* If we were doing blocking wait and (probably) got EINTR,
-		 * check for pending sigs received while waiting.
-		 * (NB: can be moved into callers if needed) */
-		if (wait_flags == DOWAIT_BLOCK && pendingsig)
-			raise_exception(EXSIG);
+	if (pid <= 0)
 		return pid;
-	}
+
 	INT_OFF;
 	thisjob = NULL;
 	for (jp = curjob; jp; jp = jp->prev_job) {
@@ -3867,6 +3869,15 @@ dowait(int wait_flags, struct job *job)
 			out2str(s);
 		}
 	}
+	return pid;
+}
+
+static int
+blocking_wait_with_raise_on_sig(struct job *job)
+{
+	pid_t pid = dowait(DOWAIT_BLOCK, job);
+	if (pid <= 0 && pendingsig)
+		raise_exception(EXSIG);
 	return pid;
 }
 
@@ -3949,7 +3960,7 @@ showjobs(FILE *out, int mode)
 
 	TRACE(("showjobs(%x) called\n", mode));
 
-	/* If not even one job changed, there is nothing to do */
+	/* Handle all finished jobs */
 	while (dowait(DOWAIT_NONBLOCK, NULL) > 0)
 		continue;
 
@@ -4041,7 +4052,14 @@ waitcmd(int argc UNUSED_PARAM, char **argv)
 				jp->waited = 1;
 				jp = jp->prev_job;
 			}
-			dowait(DOWAIT_BLOCK, NULL);
+	/* man bash:
+	 * "When bash is waiting for an asynchronous command via
+	 * the wait builtin, the reception of a signal for which a trap
+	 * has been set will cause the wait builtin to return immediately
+	 * with an exit status greater than 128, immediately after which
+	 * the trap is executed."
+	 * Do we do it that way? */
+			blocking_wait_with_raise_on_sig(NULL);
 		}
 	}
 
@@ -4061,11 +4079,10 @@ waitcmd(int argc UNUSED_PARAM, char **argv)
 			job = getjob(*argv, 0);
 		/* loop until process terminated or stopped */
 		while (job->state == JOBRUNNING)
-			dowait(DOWAIT_BLOCK, NULL);
+			blocking_wait_with_raise_on_sig(NULL);
 		job->waited = 1;
 		retval = getstatus(job);
- repeat:
-		;
+ repeat: ;
 	} while (*++argv);
 
  ret:
@@ -4492,6 +4509,10 @@ forkchild(struct job *jp, /*union node *n,*/ int mode)
 	oldlvl = shlvl;
 	shlvl++;
 
+	/* man bash: "Non-builtin commands run by bash have signal handlers
+	 * set to the values inherited by the shell from its parent".
+	 * Do we do it correctly? */
+
 	closescript();
 	clear_traps();
 #if JOBS
@@ -4504,8 +4525,8 @@ forkchild(struct job *jp, /*union node *n,*/ int mode)
 			pgrp = getpid();
 		else
 			pgrp = jp->ps[0].pid;
-		/* This can fail because we are doing it in the parent also */
-		(void)setpgid(0, pgrp);
+		/* this can fail because we are doing it in the parent also */
+		setpgid(0, pgrp);
 		if (mode == FORK_FG)
 			xtcsetpgrp(ttyfd, pgrp);
 		setsignal(SIGTSTP);
@@ -4513,6 +4534,8 @@ forkchild(struct job *jp, /*union node *n,*/ int mode)
 	} else
 #endif
 	if (mode == FORK_BG) {
+		/* man bash: "When job control is not in effect,
+		 * asynchronous commands ignore SIGINT and SIGQUIT" */
 		ignoresig(SIGINT);
 		ignoresig(SIGQUIT);
 		if (jp->nprocs == 0) {
@@ -4521,10 +4544,18 @@ forkchild(struct job *jp, /*union node *n,*/ int mode)
 				ash_msg_and_raise_error("can't open %s", bb_dev_null);
 		}
 	}
-	if (!oldlvl && iflag) {
-		setsignal(SIGINT);
+	if (!oldlvl) {
+		if (iflag) { /* why if iflag only? */
+			setsignal(SIGINT);
+			setsignal(SIGTERM);
+		}
+		/* man bash:
+		 * "In all cases, bash ignores SIGQUIT. Non-builtin
+		 * commands run by bash have signal handlers
+		 * set to the values inherited by the shell
+		 * from its parent".
+		 * Take care of the second rule: */
 		setsignal(SIGQUIT);
-		setsignal(SIGTERM);
 	}
 	for (jp = curjob; jp; jp = jp->prev_job)
 		freejob(jp);
@@ -4596,12 +4627,12 @@ forkshell(struct job *jp, union node *n, int mode)
 /*
  * Wait for job to finish.
  *
- * Under job control we have the problem that while a child process is
- * running interrupts generated by the user are sent to the child but not
- * to the shell.  This means that an infinite loop started by an inter-
- * active user may be hard to kill.  With job control turned off, an
- * interactive user may place an interactive program inside a loop.  If
- * the interactive program catches interrupts, the user doesn't want
+ * Under job control we have the problem that while a child process
+ * is running interrupts generated by the user are sent to the child
+ * but not to the shell.  This means that an infinite loop started by
+ * an interactive user may be hard to kill.  With job control turned off,
+ * an interactive user may place an interactive program inside a loop.
+ * If the interactive program catches interrupts, the user doesn't want
  * these interrupts to also abort the loop.  The approach we take here
  * is to have the shell ignore interrupt signals while waiting for a
  * foreground process to terminate, and then send itself an interrupt
@@ -4619,9 +4650,44 @@ waitforjob(struct job *jp)
 	int st;
 
 	TRACE(("waitforjob(%%%d) called\n", jobno(jp)));
+
+	INT_OFF;
 	while (jp->state == JOBRUNNING) {
+		/* In non-interactive shells, we _can_ get
+		 * a keyboard signal here and be EINTRed,
+		 * but we just loop back, waiting for command to complete.
+		 *
+		 * man bash:
+		 * "If bash is waiting for a command to complete and receives
+		 * a signal for which a trap has been set, the trap
+		 * will not be executed until the command completes."
+		 *
+		 * Reality is that even if trap is not set, bash
+		 * will not act on the signal until command completes.
+		 * Try this. sleep5intoff.c:
+		 * #include <signal.h>
+		 * #include <unistd.h>
+		 * int main() {
+		 *         sigset_t set;
+		 *         sigemptyset(&set);
+		 *         sigaddset(&set, SIGINT);
+		 *         sigaddset(&set, SIGQUIT);
+		 *         sigprocmask(SIG_BLOCK, &set, NULL);
+		 *         sleep(5);
+		 *         return 0;
+		 * }
+		 * $ bash -c './sleep5intoff; echo hi'
+		 * ^C^C^C^C <--- pressing ^C once a second
+		 * $ _
+		 * TODO: we do not execute "echo hi" as bash does:
+		 * $ bash -c './sleep5intoff; echo hi'
+		 * ^\^\^\^\hi <--- pressing ^\ (SIGQUIT)
+		 * $ _
+		 */
 		dowait(DOWAIT_BLOCK, jp);
 	}
+	INT_ON;
+
 	st = getstatus(jp);
 #if JOBS
 	if (jp->jobctl) {
@@ -4757,12 +4823,10 @@ openhere(union node *redir)
 	if (forkshell((struct job *)NULL, (union node *)NULL, FORK_NOJOB) == 0) {
 		/* child */
 		close(pip[0]);
-		signal(SIGINT, SIG_IGN);
-		signal(SIGQUIT, SIG_IGN);
-		signal(SIGHUP, SIG_IGN);
-#ifdef SIGTSTP
-		signal(SIGTSTP, SIG_IGN);
-#endif
+		ignoresig(SIGINT);  //signal(SIGINT, SIG_IGN);
+		ignoresig(SIGQUIT); //signal(SIGQUIT, SIG_IGN);
+		ignoresig(SIGHUP);  //signal(SIGHUP, SIG_IGN);
+		ignoresig(SIGTSTP); //signal(SIGTSTP, SIG_IGN);
 		signal(SIGPIPE, SIG_DFL);
 		if (redir->type == NHERE)
 			full_write(pip[1], redir->nhere.doc->narg.text, len);
