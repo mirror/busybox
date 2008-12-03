@@ -118,9 +118,7 @@ int passwd_main(int argc UNUSED_PARAM, char **argv)
 	myname = xstrdup(xuid2uname(myuid));
 	name = argv[0] ? argv[0] : myname;
 
-	pw = getpwnam(name);
-	if (!pw)
-		bb_error_msg_and_die("unknown user %s", name);
+	pw = xgetpwnam(name);
 	if (myuid && pw->pw_uid != myuid) {
 		/* LOGMODE_BOTH */
 		bb_error_msg_and_die("%s can't change password for %s", myname, name);

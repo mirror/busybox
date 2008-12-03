@@ -48,9 +48,7 @@ int su_main(int argc UNUSED_PARAM, char **argv)
 		openlog(applet_name, 0, LOG_AUTH);
 	}
 
-	pw = getpwnam(opt_username);
-	if (!pw)
-		bb_error_msg_and_die("unknown id: %s", opt_username);
+	pw = xgetpwnam(opt_username);
 
 	/* Make sure pw->pw_shell is non-NULL.  It may be NULL when NEW_USER
 	   is a username that is retrieved via NIS (YP), but that doesn't have

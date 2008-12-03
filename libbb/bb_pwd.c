@@ -15,7 +15,15 @@
  * pointers to static data (getpwuid)
  */
 
-/* TODO: add xgetpwnam, this construct is used a lot */
+struct passwd* FAST_FUNC xgetpwnam(const char *name)
+{
+	struct passwd *pw = getpwnam(name);
+	if (!pw)
+		bb_error_msg_and_die("unknown user %s", name);
+	return pw;
+}
+
+/* xgetgrnam too? */
 
 struct passwd* FAST_FUNC xgetpwuid(uid_t uid)
 {
@@ -73,10 +81,7 @@ long FAST_FUNC xuname2uid(const char *name)
 {
 	struct passwd *myuser;
 
-	myuser = getpwnam(name);
-	if (myuser == NULL)
-		bb_error_msg_and_die("unknown user %s", name);
-
+	myuser = xgetpwnam(name);
 	return myuser->pw_uid;
 }
 

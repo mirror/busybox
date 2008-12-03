@@ -126,9 +126,7 @@ int crontab_main(int argc UNUSED_PARAM, char **argv)
 	}
 
 	if (opt_ler & OPT_u) {
-		pas = getpwnam(user_name);
-		if (!pas)
-			bb_error_msg_and_die("user %s is not known", user_name);
+		pas = xgetpwnam(user_name);
 	} else {
 		pas = xgetpwuid(getuid());
 	}

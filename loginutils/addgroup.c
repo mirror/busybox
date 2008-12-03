@@ -159,6 +159,7 @@ int addgroup_main(int argc UNUSED_PARAM, char **argv)
 		/* check if group and user exist */
 		xuname2uid(argv[0]); /* unknown user: exit */
 		xgroup2gid(argv[1]); /* unknown group: exit */
+// race here!
 		/* check if user is already in this group */
 		gr = getgrnam(argv[1]);
 		for (; *(gr->gr_mem) != NULL; (gr->gr_mem)++) {

@@ -124,9 +124,7 @@ int id_main(int argc UNUSED_PARAM, char **argv)
 
 	username = argv[optind];
 	if (username) {
-		struct passwd *p = getpwnam(username);
-		if (!p)
-			bb_error_msg_and_die("unknown user %s", username);
+		struct passwd *p = xgetpwnam(username);
 		euid = ruid = p->pw_uid;
 		egid = rgid = p->pw_gid;
 	} else {
