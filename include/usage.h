@@ -2618,6 +2618,21 @@
        "$ mknod /dev/fd0 b 2 0\n" \
        "$ mknod -m 644 /tmp/pipe p\n"
 
+#define mkpasswd_trivial_usage \
+       "[OPTIONS] [PASSWORD]"
+#define mkpasswd_full_usage "\n\n" \
+       "Crypts the PASSWORD using crypt(3)\n" \
+     "\nOptions:" \
+     "\n\t-P"USE_GETOPT_LONG(", --password-fd=")"NUM\tread password from fd NUM" \
+     "\n\t-s"USE_GETOPT_LONG(", --stdin")"\t\tuse stdin; like -P0" \
+     "\n\t-m"USE_GETOPT_LONG(", --method=")"TYPE\tEncryption method TYPE" \
+     "\n\t-S"USE_GETOPT_LONG(", --salt=")"SALT\t\tuse SALT" \
+     //"\n\t-l"USE_GETOPT_LONG(", --length=")"LEN\tRandom password with length LEN"
+
+#define mkpasswd_example_usage \
+       "$ mkpasswd -m md5\n" \
+       "$ mkpasswd -l 12\n"
+
 #define mkswap_trivial_usage \
        "DEVICE"
 #define mkswap_full_usage "\n\n" \

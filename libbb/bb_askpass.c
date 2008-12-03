@@ -15,7 +15,11 @@ static void askpass_timeout(int UNUSED_PARAM ignore)
 {
 }
 
-char* FAST_FUNC bb_askpass(int timeout, const char *prompt)
+char* FAST_FUNC bb_ask_stdin(const char *prompt)
+{
+	return bb_ask(STDIN_FILENO, 0, prompt);
+}
+char* FAST_FUNC bb_ask(const int fd, int timeout, const char *prompt)
 {
 	/* Was static char[BIGNUM] */
 	enum { sizeof_passwd = 128 };
@@ -30,8 +34,8 @@ char* FAST_FUNC bb_askpass(int timeout, const char *prompt)
 		passwd = xmalloc(sizeof_passwd);
 	memset(passwd, 0, sizeof_passwd);
 
-	tcgetattr(STDIN_FILENO, &oldtio);
-	tcflush(STDIN_FILENO, TCIFLUSH);
+	tcgetattr(fd, &oldtio);
+	tcflush(fd, TCIFLUSH);
 	tio = oldtio;
 	tio.c_iflag &= ~(IUCLC|IXON|IXOFF|IXANY);
 	tio.c_lflag &= ~(ECHO|ECHOE|ECHOK|ECHONL|TOSTOP);
@@ -52,7 +56,7 @@ char* FAST_FUNC bb_askpass(int timeout, const char *prompt)
 	ret = NULL;
 	/* On timeout or Ctrl-C, read will hopefully be interrupted,
 	 * and we return NULL */
-	if (read(STDIN_FILENO, passwd, sizeof_passwd - 1) > 0) {
+	if (read(fd, passwd, sizeof_passwd - 1) > 0) {
 		ret = passwd;
 		i = 0;
 		/* Last byte is guaranteed to be 0

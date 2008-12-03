@@ -252,6 +252,13 @@ config CHPASSWD
 	  standard input and uses this information to update a group of
 	  existing users.
 
+config MKPASSWD
+	bool "mkpasswd"
+	default n
+	help
+	  mkpasswd encrypts the given password with the crypt(3) libc function
+	  using the given salt.
+
 config SU
 	bool "su"
 	default n

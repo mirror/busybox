@@ -22,7 +22,7 @@ static char* new_password(const struct passwd *pw, uid_t myuid, int algo)
 	if (myuid && pw->pw_passwd[0]) {
 		char *encrypted;
 
-		orig = bb_askpass(0, "Old password:"); /* returns ptr to static */
+		orig = bb_ask_stdin("Old password:"); /* returns ptr to static */
 		if (!orig)
 			goto err_ret;
 		encrypted = pw_encrypt(orig, pw->pw_passwd, 1); /* returns malloced str */
@@ -35,16 +35,16 @@ static char* new_password(const struct passwd *pw, uid_t myuid, int algo)
 		}
 		if (ENABLE_FEATURE_CLEAN_UP) free(encrypted);
 	}
-	orig = xstrdup(orig); /* or else bb_askpass() will destroy it */
-	newp = bb_askpass(0, "New password:"); /* returns ptr to static */
+	orig = xstrdup(orig); /* or else bb_ask_stdin() will destroy it */
+	newp = bb_ask_stdin("New password:"); /* returns ptr to static */
 	if (!newp)
 		goto err_ret;
-	newp = xstrdup(newp); /* we are going to bb_askpass() again, so save it */
+	newp = xstrdup(newp); /* we are going to bb_ask_stdin() again, so save it */
 	if (ENABLE_FEATURE_PASSWD_WEAK_CHECK
 	 && obscure(orig, newp, pw) && myuid)
 		goto err_ret; /* non-root is not allowed to have weak passwd */
 
-	cp = bb_askpass(0, "Retype password:");
+	cp = bb_ask_stdin("Retype password:");
 	if (!cp)
 		goto err_ret;
 	if (strcmp(cp, newp)) {

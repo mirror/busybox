@@ -1021,9 +1021,10 @@ extern int del_loop(const char *device) FAST_FUNC;
  * return value: 1: read-only loopdev was setup, 0: rw, < 0: error */
 extern int set_loop(char **devname, const char *file, unsigned long long offset) FAST_FUNC;
 
-
+/* Like bb_ask below, but asks on stdin with no timeout.  */
+char *bb_ask_stdin(const char * prompt) FAST_FUNC;
 //TODO: pass buf pointer or return allocated buf (avoid statics)?
-char *bb_askpass(int timeout, const char * prompt) FAST_FUNC;
+char *bb_ask(const int fd, int timeout, const char * prompt) FAST_FUNC;
 int bb_ask_confirmation(void) FAST_FUNC;
 
 int bb_parse_mode(const char* s, mode_t* theMode) FAST_FUNC;

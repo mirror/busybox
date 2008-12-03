@@ -68,7 +68,7 @@ int FAST_FUNC correct_password(const struct passwd *pw)
 		return 1;
 
  fake_it:
-	unencrypted = bb_askpass(0, "Password: ");
+	unencrypted = bb_ask_stdin("Password: ");
 	if (!unencrypted) {
 		return 0;
 	}

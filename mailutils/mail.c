@@ -228,8 +228,8 @@ void FAST_FUNC get_cred_or_die(int fd)
 {
 	// either from TTY
 	if (isatty(fd)) {
-		G.user = xstrdup(bb_askpass(0, "User: "));
-		G.pass = xstrdup(bb_askpass(0, "Password: "));
+		G.user = xstrdup(bb_ask_stdin("User: "));
+		G.pass = xstrdup(bb_ask_stdin("Password: "));
 	// or from STDIN
 	} else {
 		FILE *fp = fdopen(fd, "r");
