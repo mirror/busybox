@@ -75,7 +75,7 @@
 #endif
 
 #if defined(__uClinux__)
-#error "Do not even bother, ash will not run on uClinux"
+#error "Do not even bother, ash will not run on NOMMU machine"
 #endif
 
 
@@ -90,7 +90,7 @@
 
 #define xbarrier() do { __asm__ __volatile__ ("": : :"memory"); } while (0)
 
-/* C99 say: "char" declaration may be signed or unsigned default */
+/* C99 says: "char" declaration may be signed or unsigned by default */
 #define signed_char2int(sc) ((int)((signed char)sc))
 
 
@@ -4679,7 +4679,6 @@ waitforjob(struct job *jp)
 		 * $ bash -c './sleep5intoff; echo hi'
 		 * ^C^C^C^C <--- pressing ^C once a second
 		 * $ _
-		 * TODO: we do not execute "echo hi" as bash does:
 		 * $ bash -c './sleep5intoff; echo hi'
 		 * ^\^\^\^\hi <--- pressing ^\ (SIGQUIT)
 		 * $ _
@@ -5556,9 +5555,8 @@ evalbackcmd(union node *n, struct backcmd *result)
 	result->buf = NULL;
 	result->nleft = 0;
 	result->jp = NULL;
-	if (n == NULL) {
+	if (n == NULL)
 		goto out;
-	}
 
 	saveherefd = herefd;
 	herefd = -1;
@@ -5665,7 +5663,7 @@ expari(int quotes)
 	int flag;
 	int len;
 
-	/*      ifsfree(); */
+	/* ifsfree(); */
 
 	/*
 	 * This routine is slightly over-complicated for
@@ -5983,8 +5981,9 @@ varunset(const char *end, const char *var, const char *umsg, int varflags)
 		if (*end == CTLENDVAR) {
 			if (varflags & VSNUL)
 				tail = " or null";
-		} else
+		} else {
 			msg = umsg;
+		}
 	}
 	ash_msg_and_raise_error("%.*s: %s%s", end - var - 1, var, msg, tail);
 }
@@ -6178,8 +6177,9 @@ subevalvar(char *p, char *str, int strloc, int subtype,
 					idx++;
 					rmesc++;
 				}
-			} else
+			} else {
 				idx = loc;
+			}
 
 			for (loc = repl; *loc; loc++) {
 				restart_detect = stackblock();
