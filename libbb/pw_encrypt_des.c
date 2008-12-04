@@ -696,13 +696,22 @@ do_des(struct des_ctx *ctx, /*uint32_t l_in, uint32_t r_in,*/ uint32_t *l_out, u
 
 #define DES_OUT_BUFSIZE 21
 
+static void
+to64_msb_first(char *s, unsigned v)
+{
+	*s++ = ascii64[(v >> 18) & 0x3f]; /* bits 23..18 */
+	*s++ = ascii64[(v >> 12) & 0x3f]; /* bits 17..12 */
+	*s++ = ascii64[(v >> 6) & 0x3f]; /* bits 11..6 */
+	*s = ascii64[v & 0x3f]; /* bits 5..0 */
+}
+
 static char *
 NOINLINE
 des_crypt(struct des_ctx *ctx, char output[DES_OUT_BUFSIZE],
 		const unsigned char *key, const unsigned char *setting)
 {
-	uint32_t salt, l, r0, r1, keybuf[2];
-	uint8_t *p, *q;
+	uint32_t salt, r0, r1, keybuf[2];
+	uint8_t *q;
 
 	/*
 	 * Copy the key, shifting each character up by one bit
@@ -733,34 +742,39 @@ des_crypt(struct des_ctx *ctx, char output[DES_OUT_BUFSIZE],
 	 */
 	output[1] = setting[1] ? setting[1] : output[0];
 
-	p = (uint8_t *)output + 2;
-
 	setup_salt(ctx, salt);
-	/*
-	 * Do it.
-	 */
+	/* Do it. */
 	do_des(ctx, /*0, 0,*/ &r0, &r1, 25 /* count */);
 
-	/*
-	 * Now encode the result...
-	 */
-	l = (r0 >> 8);
-	*p++ = ascii64[(l >> 18) & 0x3f];
-	*p++ = ascii64[(l >> 12) & 0x3f];
-	*p++ = ascii64[(l >> 6) & 0x3f];
-	*p++ = ascii64[l & 0x3f];
-
+	/* Now encode the result. */
+#if 0
+{
+	uint32_t l = (r0 >> 8);
+	q = (uint8_t *)output + 2;
+	*q++ = ascii64[(l >> 18) & 0x3f]; /* bits 31..26 of r0 */
+	*q++ = ascii64[(l >> 12) & 0x3f]; /* bits 25..20 of r0 */
+	*q++ = ascii64[(l >> 6) & 0x3f]; /* bits 19..14 of r0 */
+	*q++ = ascii64[l & 0x3f]; /* bits 13..8 of r0 */
 	l = ((r0 << 16) | (r1 >> 16));
-	*p++ = ascii64[(l >> 18) & 0x3f];
-	*p++ = ascii64[(l >> 12) & 0x3f];
-	*p++ = ascii64[(l >> 6) & 0x3f];
-	*p++ = ascii64[l & 0x3f];
-
+	*q++ = ascii64[(l >> 18) & 0x3f]; /* bits 7..2 of r0 */
+	*q++ = ascii64[(l >> 12) & 0x3f]; /* bits 1..2 of r0 and 31..28 of r1 */
+	*q++ = ascii64[(l >> 6) & 0x3f]; /* bits 27..22 of r1 */
+	*q++ = ascii64[l & 0x3f]; /* bits 21..16 of r1 */
 	l = r1 << 2;
-	*p++ = ascii64[(l >> 12) & 0x3f];
-	*p++ = ascii64[(l >> 6) & 0x3f];
-	*p++ = ascii64[l & 0x3f];
-	*p = 0;
+	*q++ = ascii64[(l >> 12) & 0x3f]; /* bits 15..10 of r1 */
+	*q++ = ascii64[(l >> 6) & 0x3f]; /* bits 9..4 of r1 */
+	*q++ = ascii64[l & 0x3f]; /* bits 3..0 of r1 + 00 */
+	*q = 0;
+}
+#else
+	/* Each call takes low-order 24 bits and stores 4 chars */
+	/* bits 31..8 of r0 */
+	to64_msb_first(output + 2, (r0 >> 8));
+	/* bits 7..0 of r0 and 31..16 of r1 */
+	to64_msb_first(output + 6, (r0 << 16) | (r1 >> 16));
+	/* (bits 15..0 of r1 + 00) and NUL byte */
+	to64_msb_first(output + 10, (r1 << 8));
+#endif
 
 	return output;
 }

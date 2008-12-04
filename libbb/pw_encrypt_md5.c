@@ -65,10 +65,6 @@
  * by Erik Andersen to remove reentrance stuff...
  */
 
-#define MD5_MAGIC_STR "$1$"
-#define MD5_MAGIC_LEN (sizeof(MD5_MAGIC_STR) - 1)
-static const unsigned char __md5__magic[] = MD5_MAGIC_STR;
-
 /*
  * UNIX password
  *
@@ -163,5 +159,3 @@ md5_crypt(char result[MD5_OUT_BUFSIZE], const unsigned char *pw, const unsigned 
 
 	return result;
 }
-#undef MD5_MAGIC_STR
-#undef MD5_MAGIC_LEN
