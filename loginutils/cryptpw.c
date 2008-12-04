@@ -1,6 +1,8 @@
 /* vi: set sw=4 ts=4: */
 /*
- * cryptpw.c
+ * cryptpw.c - output a crypt(3)ed password to stdout.
+ *
+ * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  *
  * Cooked from passwd.c by Thomas Lundquist <thomasez@zelow.no>
  * mkpasswd compatible options added by Bernhard Reutner-Fischer
@@ -103,8 +105,8 @@ int cryptpw_main(int argc UNUSED_PARAM, char **argv)
 		argv[0]	? argv[0] : (
 			/* Only mkpasswd, and only from tty, prompts.
 			 * Otherwise it is a plain read. */
-			(isatty(0) && applet_name[0] == 'm')
-			? bb_ask(STDIN_FILENO, 0, "Password: ")
+			(isatty(STDIN_FILENO) && applet_name[0] == 'm')
+			? bb_ask_stdin("Password: ")
 			: xmalloc_fgetline(stdin)
 		),
 		salt, 1));
