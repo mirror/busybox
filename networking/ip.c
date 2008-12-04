@@ -31,7 +31,7 @@ static int NORETURN ip_print_help(char **argv UNUSED_PARAM)
 
 static int ip_do(int (*ip_func)(char **argv), char **argv)
 {
-	argv = ip_parse_common_args(argv);
+	argv = ip_parse_common_args(argv + 1);
 	return ip_func(argv);
 }
 
