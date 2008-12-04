@@ -573,18 +573,45 @@
      "\n	-r	Delete crontab" \
      "\n	FILE	Replace crontab by FILE ('-': stdin)" \
 
-#if !ENABLE_USE_BB_CRYPT || ENABLE_USE_BB_CRYPT_SHA
 #define cryptpw_trivial_usage \
-       "[-a des|md5|sha256/512] [string]"
-#else
-#define cryptpw_trivial_usage \
-       "[-a des|md5] [string]"
-#endif
+       "[OPTIONS] [PASSWORD] [SALT]"
+/* We do support -s, we just don't mention it */
 #define cryptpw_full_usage "\n\n" \
-       "Output crypted string.\n" \
-       "If string isn't supplied on cmdline, read it from stdin.\n" \
+       "Crypt the PASSWORD using crypt(3)\n" \
      "\nOptions:" \
-     "\n	-a	Algorithm to use (default: md5)" \
+	USE_GETOPT_LONG( \
+     "\n	-P,--password-fd=NUM	Read password from fd NUM" \
+/*   "\n	-s,--stdin		Use stdin; like -P0" */ \
+     "\n	-m,--method=TYPE	Encryption method TYPE" \
+     "\n	-S,--salt=SALT" \
+	) \
+	SKIP_GETOPT_LONG( \
+     "\n	-P NUM	Read password from fd NUM" \
+/*   "\n	-s	Use stdin; like -P0" */ \
+     "\n	-m TYPE	Encryption method TYPE" \
+     "\n	-S SALT" \
+	) \
+
+/* mkpasswd is an alias to cryptpw */
+
+#define mkpasswd_trivial_usage \
+       "[OPTIONS] [PASSWORD] [SALT]"
+/* We do support -s, we just don't mention it */
+#define mkpasswd_full_usage "\n\n" \
+       "Crypt the PASSWORD using crypt(3)\n" \
+     "\nOptions:" \
+	USE_GETOPT_LONG( \
+     "\n	-P,--password-fd=NUM	Read password from fd NUM" \
+/*   "\n	-s,--stdin		Use stdin; like -P0" */ \
+     "\n	-m,--method=TYPE	Encryption method TYPE" \
+     "\n	-S,--salt=SALT" \
+	) \
+	SKIP_GETOPT_LONG( \
+     "\n	-P NUM	Read password from fd NUM" \
+/*   "\n	-s	Use stdin; like -P0" */ \
+     "\n	-m TYPE	Encryption method TYPE" \
+     "\n	-S SALT" \
+	) \
 
 #define cttyhack_trivial_usage NOUSAGE_STR
 #define cttyhack_full_usage ""
@@ -2617,20 +2644,6 @@
 #define mknod_example_usage \
        "$ mknod /dev/fd0 b 2 0\n" \
        "$ mknod -m 644 /tmp/pipe p\n"
-
-#define mkpasswd_trivial_usage \
-       "[OPTIONS] [PASSWORD]"
-#define mkpasswd_full_usage "\n\n" \
-       "Crypts the PASSWORD using crypt(3)\n" \
-     "\nOptions:" \
-     "\n\t-P"USE_GETOPT_LONG(", --password-fd=")"NUM\tread password from fd NUM" \
-     "\n\t-s"USE_GETOPT_LONG(", --stdin")"\t\tuse stdin; like -P0" \
-     "\n\t-m"USE_GETOPT_LONG(", --method=")"TYPE\tEncryption method TYPE" \
-     "\n\t-S"USE_GETOPT_LONG(", --salt=")"SALT\t\tuse SALT"
-
-#define mkpasswd_example_usage \
-       "$ mkpasswd -m md5\n" \
-       "$ mkpasswd -l 12\n"
 
 #define mkswap_trivial_usage \
        "DEVICE"

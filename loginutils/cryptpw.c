@@ -3,75 +3,111 @@
  * cryptpw.c
  *
  * Cooked from passwd.c by Thomas Lundquist <thomasez@zelow.no>
+ * mkpasswd compatible options added by Bernhard Reutner-Fischer
  */
 
 #include "libbb.h"
 
-#define TESTING 0
+/* Debian has 'mkpasswd' utility, manpage says:
 
-/*
-set TESTING to 1 and pipe some file through this script
-if you played with bbox's crypt implementation.
+NAME
+    mkpasswd - Overfeatured front end to crypt(3)
+SYNOPSIS
+    mkpasswd PASSWORD SALT
+...
+OPTIONS
+-S, --salt=STRING
+    Use the STRING as salt. It must not  contain  prefixes  such  as
+    $1$.
+-R, --rounds=NUMBER
+    Use NUMBER rounds. This argument is ignored if the method
+    choosen does not support variable rounds. For the OpenBSD Blowfish
+    method this is the logarithm of the number of rounds.
+-m, --method=TYPE
+    Compute the password using the TYPE method. If TYPE is 'help'
+    then the available methods are printed.
+-P, --password-fd=NUM
+    Read the password from file descriptor NUM instead of using getpass(3).
+    If the file descriptor is not connected to a tty then
+    no other message than the hashed password is printed on stdout.
+-s, --stdin
+    Like --password-fd=0.
+ENVIRONMENT
+    $MKPASSWD_OPTIONS
+    A list of options which will be evaluated before the ones
+    specified on the command line.
+BUGS
+    This programs suffers of a bad case of featuritis.
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-while read line; do
-	n=`./busybox cryptpw -a des -- "$line"`
-	o=`./busybox_org cryptpw -a des -- "$line"`
-	test "$n" != "$o" && {
-		echo n="$n"
-		echo o="$o"
-		exit
-	}
-	n=`./busybox cryptpw -- "$line"`
-	o=`./busybox_org cryptpw -- "$line"`
-	test "$n" != "$o" && {
-		echo n="$n"
-		echo o="$o"
-		exit
-	}
-done
- */
+Very true...
+
+cryptpw was in bbox before this gem, so we retain it, and alias mkpasswd
+to cryptpw. -a option (alias for -m) came from cryptpw.
+*/
 
 int cryptpw_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int cryptpw_main(int argc UNUSED_PARAM, char **argv)
 {
-	char salt[sizeof("$N$") + 16 + TESTING*100];
-	char *opt_a;
-	int opts;
+	/* $N$ + sha_salt_16_bytes + NUL */
+	char salt[3 + 16 + 1];
+	char *salt_ptr;
+	const char *opt_m, *opt_S;
+	int len;
+	int fd;
 
-	opts = getopt32(argv, "a:", &opt_a);
-
-	if (opts && opt_a[0] == 'd') {
-		crypt_make_salt(salt, 2/2, 0);     /* des */
-#if TESTING
-		strcpy(salt, "a.");
+#if ENABLE_GETOPT_LONG
+	static const char mkpasswd_longopts[] ALIGN1 =
+		"stdin\0"       No_argument       "s"
+		"password-fd\0" Required_argument "P"
+		"salt\0"        Required_argument "S"
+		"method\0"      Required_argument "m"
+	;
+	applet_long_options = mkpasswd_longopts;
 #endif
-	} else {
-		salt[0] = '$';
-		salt[1] = '1';
-		salt[2] = '$';
+	fd = STDIN_FILENO;
+	opt_m = "d";
+	opt_S = NULL;
+	/* at most two non-option arguments; -P NUM */
+	opt_complementary = "?2:P+";
+	getopt32(argv, "sP:S:m:a:", &fd, &opt_S, &opt_m, &opt_m);
+	argv += optind;
+
+	/* have no idea how to handle -s... */
+
+	if (argv[0] && !opt_S)
+		opt_S = argv[1];
+
+	len = 2/2;
+	salt_ptr = salt;
+	if (opt_m[0] != 'd') { /* not des */
+		len = 8/2; /* so far assuming md5 */
+		*salt_ptr++ = '$';
+		*salt_ptr++ = '1';
+		*salt_ptr++ = '$';
 #if !ENABLE_USE_BB_CRYPT || ENABLE_USE_BB_CRYPT_SHA
-		if (opts && opt_a[0] == 's') {
-			salt[1] = '5' + (strcmp(opt_a, "sha512") == 0);
-			crypt_make_salt(salt + 3, 16/2, 0); /* sha */
-#if TESTING
-			strcpy(salt, "$5$rounds=5000$toolongsaltstring");
-			// with "This is just a test" as password, should produce:
-			// "$5$rounds=5000$toolongsaltstrin$Un/5jzAHMgOGZ5.mWJpuVolil07guHPvOW8mGRcvxa5"
-			strcpy(salt, "$6$rounds=5000$toolongsaltstring");
-			// with "This is just a test" as password, should produce:
-			// "$6$rounds=5000$toolongsaltstrin$lQ8jolhgVRVhY4b5pZKaysCLi0QBxGoNeKQzQ3glMhwllF7oGDZxUhx1yxdYcz/e1JSbq3y6JMxxl8audkUEm0"
-#endif
-		} else
-#endif
-		{
-			crypt_make_salt(salt + 3, 8/2, 0); /* md5 */
-#if TESTING
-			strcpy(salt + 3, "ajg./bcf");
-#endif
+		if (opt_m[0] == 's') { /* sha */
+			salt[1] = '5' + (strcmp(opt_m, "sha512") == 0);
+			len = 16/2;
 		}
+#endif
 	}
+	if (opt_S)
+		safe_strncpy(salt_ptr, opt_S, sizeof(salt) - 3);
+	else
+		crypt_make_salt(salt_ptr, len, 0);
 
-	puts(pw_encrypt(argv[optind] ? argv[optind] : xmalloc_fgetline(stdin), salt, 1));
+	xmove_fd(fd, STDIN_FILENO);
 
-	return 0;
+	puts(pw_encrypt(
+		argv[0]	? argv[0] : (
+			/* Only mkpasswd, and only from tty, prompts.
+			 * Otherwise it is a plain read. */
+			(isatty(0) && applet_name[0] == 'm')
+			? bb_ask(STDIN_FILENO, 0, "Password: ")
+			: xmalloc_fgetline(stdin)
+		),
+		salt, 1));
+
+	return EXIT_SUCCESS;
 }

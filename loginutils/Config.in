@@ -242,22 +242,16 @@ config CRYPTPW
 	bool "cryptpw"
 	default n
 	help
-	  Applet for crypting a string.
+	  Encrypts the given password with the crypt(3) libc function
+	  using the given salt. Debian has this utility under mkpasswd
+	  name. Busybox provides mkpasswd as an alias for cryptpw.
 
 config CHPASSWD
 	bool "chpasswd"
 	default n
 	help
-	  chpasswd reads a file of user name and password pairs from
-	  standard input and uses this information to update a group of
-	  existing users.
-
-config MKPASSWD
-	bool "mkpasswd"
-	default n
-	help
-	  mkpasswd encrypts the given password with the crypt(3) libc function
-	  using the given salt.
+	  Reads a file of user name and password pairs from standard input
+	  and uses this information to update a group of existing users.
 
 config SU
 	bool "su"
