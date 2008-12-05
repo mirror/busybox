@@ -23,7 +23,14 @@ struct passwd* FAST_FUNC xgetpwnam(const char *name)
 	return pw;
 }
 
-/* xgetgrnam too? */
+struct group* FAST_FUNC xgetgrnam(const char *name)
+{
+	struct group *gr = getgrnam(name);
+	if (!gr)
+		bb_error_msg_and_die("unknown group %s", name);
+	return gr;
+}
+
 
 struct passwd* FAST_FUNC xgetpwuid(uid_t uid)
 {
@@ -89,10 +96,7 @@ long FAST_FUNC xgroup2gid(const char *name)
 {
 	struct group *mygroup;
 
-	mygroup = getgrnam(name);
-	if (mygroup == NULL)
-		bb_error_msg_and_die("unknown group %s", name);
-
+	mygroup = xgetgrnam(name);
 	return mygroup->gr_gid;
 }
 
