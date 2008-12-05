@@ -9,14 +9,14 @@
  * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  */
 
-/* Design notes: There is no spec for mount.  Remind me to write one.
-
-   mount_main() calls singlemount() which calls mount_it_now().
-
-   mount_main() can loop through /etc/fstab for mount -a
-   singlemount() can loop through /etc/filesystems for fstype detection.
-   mount_it_now() does the actual mount.
-*/
+// Design notes: There is no spec for mount.  Remind me to write one.
+//
+// mount_main() calls singlemount() which calls mount_it_now().
+//
+// mount_main() can loop through /etc/fstab for mount -a
+// singlemount() can loop through /etc/filesystems for fstype detection.
+// mount_it_now() does the actual mount.
+//
 
 #include <mntent.h>
 #include <syslog.h>
@@ -26,7 +26,7 @@
 #include "volume_id.h"
 #endif
 
-/* Needed for nfs support only */
+// Needed for nfs support only
 #include <sys/utsname.h>
 #undef TRUE
 #undef FALSE
@@ -37,15 +37,15 @@
 #ifndef MS_SILENT
 #define MS_SILENT	(1 << 15)
 #endif
-/* Grab more as needed from util-linux's mount/mount_constants.h */
+// Grab more as needed from util-linux's mount/mount_constants.h
 #ifndef MS_DIRSYNC
-#define MS_DIRSYNC      128     /* Directory modifications are synchronous */
+#define MS_DIRSYNC      128     // Directory modifications are synchronous
 #endif
 
 
 #if defined(__dietlibc__)
-/* 16.12.2006, Sampo Kellomaki (sampo@iki.fi)
- * dietlibc-0.30 does not have implementation of getmntent_r() */
+// 16.12.2006, Sampo Kellomaki (sampo@iki.fi)
+// dietlibc-0.30 does not have implementation of getmntent_r()
 static struct mntent *getmntent_r(FILE* stream, struct mntent* result,
 		char* buffer UNUSED_PARAM, int bufsize UNUSED_PARAM)
 {
@@ -99,9 +99,8 @@ enum {
 // This may be useful e.g. for /dev/fd if a login script makes
 // the console user owner of this device.
 
-/* Standard mount options (from -o options or --options), with corresponding
- * flags */
-
+// Standard mount options (from -o options or --options),
+// with corresponding flags
 static const int32_t mount_options[] = {
 	// MS_FLAGS set a bit.  ~MS_FLAGS disable that bit.  0 flags are NOPs.
 
@@ -166,7 +165,7 @@ static const char mount_option_str[] =
 	)
 	USE_FEATURE_MOUNT_FSTAB(
 		"defaults" "\0"
-		/* "quiet" "\0" - do not filter out, vfat wants to see it */
+		// "quiet" "\0" - do not filter out, vfat wants to see it
 		"noauto" "\0"
 		"sw" "\0"
 		"swap" "\0"
@@ -275,11 +274,11 @@ static int resolve_mount_spec(char **fsname)
 	return 0;
 }
 
-/* Append mount options to string */
+// Append mount options to string
 static void append_mount_options(char **oldopts, const char *newopts)
 {
 	if (*oldopts && **oldopts) {
-		/* do not insert options which are already there */
+		// Do not insert options which are already there
 		while (newopts[0]) {
 			char *p;
 			int len = strlen(newopts);
@@ -307,8 +306,8 @@ static void append_mount_options(char **oldopts, const char *newopts)
 	}
 }
 
-/* Use the mount_options list to parse options into flags.
- * Also return list of unrecognized options if unrecognized!=NULL */
+// Use the mount_options list to parse options into flags.
+// Also return list of unrecognized options if unrecognized != NULL
 static long parse_mount_options(char *options, char **unrecognized)
 {
 	long flags = MS_SILENT;
@@ -321,7 +320,7 @@ static long parse_mount_options(char *options, char **unrecognized)
 
 		if (comma) *comma = '\0';
 
-/* FIXME: use hasmntopt() */
+// FIXME: use hasmntopt()
 		// Find this option in mount_options
 		for (i = 0; i < ARRAY_SIZE(mount_options); i++) {
 			if (!strcasecmp(option_str, options)) {
@@ -332,7 +331,7 @@ static long parse_mount_options(char *options, char **unrecognized)
 			}
 			option_str += strlen(option_str) + 1;
 		}
-		// If unrecognized not NULL, append unrecognized mount options */
+		// If unrecognized not NULL, append unrecognized mount options
 		if (unrecognized && i == ARRAY_SIZE(mount_options)) {
 			// Add it to strflags, to pass on to kernel
 			i = *unrecognized ? strlen(*unrecognized) : 0;
@@ -354,7 +353,6 @@ static long parse_mount_options(char *options, char **unrecognized)
 }
 
 // Return a list of all block device backed filesystems
-
 static llist_t *get_block_backed_filesystems(void)
 {
 	static const char filesystems[2][sizeof("/proc/filesystems")] = {
@@ -448,8 +446,8 @@ static int mount_it_now(struct mntent *mp, long vfsflags, char *filteropts)
 	if (rc && errno == EPERM)
 		bb_error_msg_and_die(bb_msg_perm_denied_are_you_root);
 
-	/* If the mount was successful, and we're maintaining an old-style
-	 * mtab file by hand, add the new entry to it now. */
+	// If the mount was successful, and we're maintaining an old-style
+	// mtab file by hand, add the new entry to it now.
  mtab:
 	if (useMtab && !rc && !(vfsflags & MS_REMOUNT)) {
 		char *fsname;
@@ -479,7 +477,7 @@ static int mount_it_now(struct mntent *mp, long vfsflags, char *filteropts)
 
 		mp->mnt_dir = bb_simplify_path(mp->mnt_dir);
 		fsname = 0;
-		if (!mp->mnt_type || !*mp->mnt_type) { /* bind mount */
+		if (!mp->mnt_type || !*mp->mnt_type) { // bind mount
 			mp->mnt_fsname = fsname = bb_simplify_path(mp->mnt_fsname);
 			mp->mnt_type = (char*)"bind";
 		}
@@ -723,8 +721,7 @@ enum {
 #define EDQUOT	ENOSPC
 #endif
 
-// Convert each NFSERR_BLAH into EBLAH
-
+/* Convert each NFSERR_BLAH into EBLAH */
 static const struct {
 	short stat;
 	short errnum;
@@ -734,7 +731,6 @@ static const struct {
 	{28,ENOSPC}, {30,EROFS}, {63,ENAMETOOLONG}, {66,ENOTEMPTY}, {69,EDQUOT},
 	{70,ESTALE}, {71,EREMOTE}, {-1,EIO}
 };
-
 static char *nfs_strerror(int status)
 {
 	int i;
@@ -920,7 +916,7 @@ static int daemonize(void)
 static inline int daemonize(void) { return -ENOSYS; }
 #endif
 
-// TODO
+/* TODO */
 static inline int we_saw_this_host_before(const char *hostname UNUSED_PARAM)
 {
 	return 0;
@@ -939,7 +935,7 @@ static void error_msg_rpc(const char *msg)
 	bb_error_msg("%.*s", len, msg);
 }
 
-// NB: mp->xxx fields may be trashed on exit
+/* NB: mp->xxx fields may be trashed on exit */
 static int nfsmount(struct mntent *mp, long vfsflags, char *filteropts)
 {
 	CLIENT *mclient;
@@ -1290,7 +1286,7 @@ static int nfsmount(struct mntent *mp, long vfsflags, char *filteropts)
 		}
 	}
 
-	/* create mount daemon client */
+	/* Create mount daemon client */
 	/* See if the nfs host = mount host. */
 	if (mounthost) {
 		if (mounthost[0] >= '0' && mounthost[0] <= '9') {
@@ -1336,12 +1332,12 @@ static int nfsmount(struct mntent *mp, long vfsflags, char *filteropts)
 		retry_timeout.tv_usec = 0;
 		total_timeout.tv_sec = 20;
 		total_timeout.tv_usec = 0;
-//FIXME: use monotonic()?
+/* FIXME: use monotonic()? */
 		timeout = time(NULL) + 60 * retry;
 		prevt = 0;
 		t = 30;
  retry:
-		/* be careful not to use too many CPU cycles */
+		/* Be careful not to use too many CPU cycles */
 		if (t - prevt < 30)
 			sleep(30);
 
@@ -1381,10 +1377,11 @@ static int nfsmount(struct mntent *mp, long vfsflags, char *filteropts)
 				error_msg_rpc(clnt_spcreateerror(" "));
 		} else {
 			enum clnt_stat clnt_stat;
-			/* try to mount hostname:pathname */
+
+			/* Try to mount hostname:pathname */
 			mclient->cl_auth = authunix_create_default();
 
-			/* make pointers in xdr_mountres3 NULL so
+			/* Make pointers in xdr_mountres3 NULL so
 			 * that xdr_array allocates memory for us
 			 */
 			memset(&status, 0, sizeof(status));
@@ -1421,7 +1418,6 @@ static int nfsmount(struct mntent *mp, long vfsflags, char *filteropts)
 		}
 
 		/* Timeout. We are going to retry... maybe */
-
 		if (!bg)
 			goto fail;
 		if (!daemonized) {
@@ -1475,8 +1471,7 @@ static int nfsmount(struct mntent *mp, long vfsflags, char *filteropts)
 		data.flags |= NFS_MOUNT_VER3;
 	}
 
-	/* create nfs socket for kernel */
-
+	/* Create nfs socket for kernel */
 	if (tcp) {
 		if (nfs_mount_version < 3) {
 			bb_error_msg("NFS over TCP is not supported");
@@ -1502,14 +1497,12 @@ static int nfsmount(struct mntent *mp, long vfsflags, char *filteropts)
 	}
 	server_addr.sin_port = htons(port);
 
-	/* prepare data structure for kernel */
-
+	/* Prepare data structure for kernel */
 	data.fd = fsock;
 	memcpy((char *) &data.addr, (char *) &server_addr, sizeof(data.addr));
 	strncpy(data.hostname, hostname, sizeof(data.hostname));
 
-	/* clean up */
-
+	/* Clean up */
 	auth_destroy(mclient->cl_auth);
 	clnt_destroy(mclient);
 	close(msock);
@@ -1523,7 +1516,7 @@ static int nfsmount(struct mntent *mp, long vfsflags, char *filteropts)
 			if (!daemonized) {
 				daemonized = daemonize();
 				if (daemonized <= 0) { /* parent or error */
-// FIXME: parent doesn't close fsock - ??!
+/* FIXME: parent doesn't close fsock - ??! */
 					retval = -daemonized;
 					goto ret;
 				}
@@ -1535,14 +1528,14 @@ static int nfsmount(struct mntent *mp, long vfsflags, char *filteropts)
 		}
 	}
 
- do_mount: /* perform actual mount */
-
+	/* Perform actual mount */
+ do_mount:
 	mp->mnt_type = (char*)"nfs";
 	retval = mount_it_now(mp, vfsflags, (char*)&data);
 	goto ret;
 
- fail:	/* abort */
-
+	/* Abort */
+ fail:
 	if (msock >= 0) {
 		if (mclient) {
 			auth_destroy(mclient->cl_auth);
@@ -1560,12 +1553,12 @@ static int nfsmount(struct mntent *mp, long vfsflags, char *filteropts)
 	return retval;
 }
 
-#else /* !ENABLE_FEATURE_MOUNT_NFS */
+#else // !ENABLE_FEATURE_MOUNT_NFS
 
-/* Never called. Call should be optimized out. */
+// Never called. Call should be optimized out.
 int nfsmount(struct mntent *mp, long vfsflags, char *filteropts);
 
-#endif /* !ENABLE_FEATURE_MOUNT_NFS */
+#endif // !ENABLE_FEATURE_MOUNT_NFS
 
 // Mount one directory.  Handles CIFS, NFS, loopback, autobind, and filesystem
 // type detection.  Returns 0 for success, nonzero for failure.
@@ -1580,13 +1573,11 @@ static int singlemount(struct mntent *mp, int ignore_busy)
 
 	vfsflags = parse_mount_options(mp->mnt_opts, &filteropts);
 
-	// Treat fstype "auto" as unspecified.
-
+	// Treat fstype "auto" as unspecified
 	if (mp->mnt_type && strcmp(mp->mnt_type, "auto") == 0)
 		mp->mnt_type = NULL;
 
 	// Might this be a virtual filesystem?
-
 	if (ENABLE_FEATURE_MOUNT_HELPERS
 	 && (strchr(mp->mnt_fsname, '#'))
 	) {
@@ -1609,7 +1600,6 @@ static int singlemount(struct mntent *mp, int ignore_busy)
 	}
 
 	// Might this be an CIFS filesystem?
-
 	if (ENABLE_FEATURE_MOUNT_CIFS
 	 && (!mp->mnt_type || strcmp(mp->mnt_type, "cifs") == 0)
 	 && (mp->mnt_fsname[0] == '/' || mp->mnt_fsname[0] == '\\')
@@ -1621,12 +1611,10 @@ static int singlemount(struct mntent *mp, int ignore_busy)
 
 		rc = 1;
 		// Replace '/' with '\' and verify that unc points to "//server/share".
-
 		for (s = mp->mnt_fsname; *s; ++s)
 			if (*s == '/') *s = '\\';
 
-		// get server IP
-
+		// Get server IP
 		s = strrchr(mp->mnt_fsname, '\\');
 		if (s <= mp->mnt_fsname+1) goto report_error;
 		*s = '\0';
@@ -1634,18 +1622,16 @@ static int singlemount(struct mntent *mp, int ignore_busy)
 		*s = '\\';
 		if (!lsa) goto report_error;
 
-		// insert ip=... option into string flags.
-
+		// Insert ip=... option into string flags.
 		dotted = xmalloc_sockaddr2dotted_noport(&lsa->u.sa);
 		ip = xasprintf("ip=%s", dotted);
 		parse_mount_options(ip, &filteropts);
 
-		// compose new unc '\\server-ip\share'
+		// Compose new unc '\\server-ip\share'
 		// (s => slash after hostname)
-
 		mp->mnt_fsname = xasprintf("\\\\%s%s", dotted, s);
 
-		// lock is required
+		// Lock is required
 		vfsflags |= MS_MANDLOCK;
 
 		mp->mnt_type = (char*)"cifs";
@@ -1660,7 +1646,6 @@ static int singlemount(struct mntent *mp, int ignore_busy)
 	}
 
 	// Might this be an NFS filesystem?
-
 	if (ENABLE_FEATURE_MOUNT_NFS
 	 && (!mp->mnt_type || !strcmp(mp->mnt_type, "nfs"))
 	 && strchr(mp->mnt_fsname, ':') != NULL
@@ -1673,15 +1658,13 @@ static int singlemount(struct mntent *mp, int ignore_busy)
 	// a synthetic filesystem like proc or sysfs.)
 	// (We use stat, not lstat, in order to allow
 	// mount symlink_to_file_or_blkdev dir)
-
 	if (!stat(mp->mnt_fsname, &st)
 	 && !(vfsflags & (MS_REMOUNT | MS_BIND | MS_MOVE))
 	) {
 		// Do we need to allocate a loopback device for it?
-
 		if (ENABLE_FEATURE_MOUNT_LOOP && S_ISREG(st.st_mode)) {
 			loopFile = bb_simplify_path(mp->mnt_fsname);
-			mp->mnt_fsname = NULL; /* will receive malloced loop dev name */
+			mp->mnt_fsname = NULL; // will receive malloced loop dev name
 			if (set_loop(&(mp->mnt_fsname), loopFile, 0) < 0) {
 				if (errno == EPERM || errno == EACCES)
 					bb_error_msg(bb_msg_perm_denied_are_you_root);
@@ -1691,24 +1674,21 @@ static int singlemount(struct mntent *mp, int ignore_busy)
 			}
 
 		// Autodetect bind mounts
-
 		} else if (S_ISDIR(st.st_mode) && !mp->mnt_type)
 			vfsflags |= MS_BIND;
 	}
 
-	/* If we know the fstype (or don't need to), jump straight
-	 * to the actual mount. */
-
+	// If we know the fstype (or don't need to), jump straight
+	// to the actual mount.
 	if (mp->mnt_type || (vfsflags & (MS_REMOUNT | MS_BIND | MS_MOVE)))
 		rc = mount_it_now(mp, vfsflags, filteropts);
 	else {
 		// Loop through filesystem types until mount succeeds
 		// or we run out
 
-		/* Initialize list of block backed filesystems.  This has to be
-		 * done here so that during "mount -a", mounts after /proc shows up
-		 * can autodetect. */
-
+		// Initialize list of block backed filesystems.  This has to be
+		// done here so that during "mount -a", mounts after /proc shows up
+		// can autodetect.
 		if (!fslist) {
 			fslist = get_block_backed_filesystems();
 			if (ENABLE_FEATURE_CLEAN_UP && fslist)
@@ -1723,7 +1703,6 @@ static int singlemount(struct mntent *mp, int ignore_busy)
 	}
 
 	// If mount failed, clean up loop file (if any).
-
 	if (ENABLE_FEATURE_MOUNT_LOOP && rc && loopFile) {
 		del_loop(mp->mnt_fsname);
 		if (ENABLE_FEATURE_CLEAN_UP) {
@@ -1745,7 +1724,6 @@ static int singlemount(struct mntent *mp, int ignore_busy)
 
 // Parse options, if necessary parse fstab/mtab, and call singlemount for
 // each directory to be mounted.
-
 static const char must_be_root[] ALIGN1 = "you must be root";
 
 int mount_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
@@ -1840,8 +1818,8 @@ int mount_main(int argc UNUSED_PARAM, char **argv)
 	if (ENABLE_FEATURE_MOUNT_FLAGS
 	 && (i & (MS_SHARED | MS_PRIVATE | MS_SLAVE | MS_UNBINDABLE))
 	) {
-		rc = verbose_mount(/*source:*/ "", /*target:*/ argv[0],
-				/*type:*/ "", /*flags:*/ i, /*data:*/ "");
+		// verbose_mount(source, target, type, flags, data)
+		rc = verbose_mount("", argv[0], "", i, "");
 		if (rc)
 			bb_simple_perror_msg_and_die(argv[0]);
 		return rc;
