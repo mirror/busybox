@@ -1,12 +1,12 @@
+/*
+ * Copyright (C) Andreas Neuper, Sep 1998.
+ *
+ * Licensed under GPLv2, see file LICENSE in this tarball for details.
+ */
+
 #if ENABLE_FEATURE_SGI_LABEL
 
 #define SGI_DEBUG 0
-
-/*
- * Copyright (C) Andreas Neuper, Sep 1998.
- *      This file may be modified and redistributed under
- *      the terms of the GNU Public License.
- */
 
 #define SGI_VOLHDR      0x00
 /* 1 and 2 were used for drive types no longer supported by SGI */

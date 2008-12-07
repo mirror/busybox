@@ -2,8 +2,7 @@
 /*
  * See README for additional information
  *
- * This file can be redistributed under the terms of the GNU Library General
- * Public License
+ * Licensed under GPLv2, see file LICENSE in this tarball for details.
  */
 
 #include "libbb.h"

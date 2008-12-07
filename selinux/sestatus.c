@@ -4,6 +4,8 @@
  * Ported to busybox: KaiGai Kohei <kaigai@ak.jp.nec.com>
  *
  * Copyright (C) KaiGai Kohei <kaigai@ak.jp.nec.com>
+ *
+ * Licensed under GPLv2, see file LICENSE in this tarball for details.
  */
 
 #include "libbb.h"

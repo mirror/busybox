@@ -3,6 +3,8 @@
  *   -- common SELinux utility functions
  *
  * Copyright 2007 KaiGai Kohei <kaigai@kaigai.gr.jp>
+ *
+ * Licensed under GPLv2, see file LICENSE in this tarball for details.
  */
 #include "libbb.h"
 #include <selinux/context.h>

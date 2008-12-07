@@ -4,7 +4,7 @@
  *
  * This is written specifically for the linux /proc/<PID>/stat(m)
  * files format.
-
+ *
  * This reads the PIDs of all processes and their status and shows
  * the status of processes (first ones that fit to screen) at given
  * intervals.
@@ -22,16 +22,13 @@
  * - CPU where Process was last seen running
  *   (to see effect of sched_setaffinity() etc)
  * - CPU Time Split (idle/IO/wait etc) PER CPU
- */
-
-/* Original code Copyrights */
-/*
+ *
  * Copyright (c) 1992 Branko Lankester
  * Copyright (c) 1992 Roger Binns
  * Copyright (C) 1994-1996 Charles L. Blake.
  * Copyright (C) 1992-1998 Michael K. Johnson
- * May be distributed under the conditions of the
- * GNU Library General Public License
+ *
+ * Licensed under GPLv2, see file LICENSE in this tarball for details.
  */
 
 #include "libbb.h"

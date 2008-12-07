@@ -1,7 +1,9 @@
 /* vi: set sw=4 ts=4: */
 /*
- *  xreadlink.c - safe implementation of readlink.
- *  Returns a NULL on failure...
+ * xreadlink.c - safe implementation of readlink.
+ * Returns a NULL on failure...
+ *
+ * Licensed under GPLv2, see file LICENSE in this tarball for details.
  */
 
 #include "libbb.h"

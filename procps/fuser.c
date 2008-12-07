@@ -4,8 +4,7 @@
  *
  * Copyright 2004 Tony J. White
  *
- * May be distributed under the conditions of the
- * GNU Library General Public License
+ * Licensed under GPLv2, see file LICENSE in this tarball for details.
  */
 
 #include "libbb.h"

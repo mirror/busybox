@@ -5,7 +5,7 @@
  *
  * Heavily modified by Manuel Novoa III       Mar 12, 2001
  *
- *
+ * Licensed under GPLv2, see file LICENSE in this tarball for details.
  */
 
 #include "libbb.h"

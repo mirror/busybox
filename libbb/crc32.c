@@ -12,6 +12,8 @@
  *
  * endian = 1: big-endian
  * endian = 0: little-endian
+ *
+ * Licensed under GPLv2, see file LICENSE in this tarball for details.
  */
 
 #include "libbb.h"

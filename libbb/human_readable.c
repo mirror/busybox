@@ -24,6 +24,8 @@
  *
  *      Some code to omit the decimal point and tenths digit is sketched out
  *      and "#if 0"'d below.
+ *
+ * Licensed under GPLv2, see file LICENSE in this tarball for details.
  */
 
 #include "libbb.h"

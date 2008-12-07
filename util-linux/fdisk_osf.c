@@ -1,4 +1,3 @@
-#if ENABLE_FEATURE_OSF_LABEL
 /*
  * Copyright (c) 1987, 1988 Regents of the University of California.
  * All rights reserved.
@@ -32,6 +31,7 @@
  * SUCH DAMAGE.
  */
 
+#if ENABLE_FEATURE_OSF_LABEL
 
 #ifndef BSD_DISKMAGIC
 #define BSD_DISKMAGIC     ((uint32_t) 0x82564557)

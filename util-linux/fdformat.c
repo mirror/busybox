@@ -1,7 +1,8 @@
 /* vi: set sw=4 ts=4: */
-/* fdformat.c  -  Low-level formats a floppy disk - Werner Almesberger */
-
-/* 5 July 2003 -- modified for Busybox by Erik Andersen
+/* fdformat.c  -  Low-level formats a floppy disk - Werner Almesberger
+ * 5 July 2003 -- modified for Busybox by Erik Andersen
+ *
+ * Licensed under GPLv2, see file LICENSE in this tarball for details.
  */
 
 #include "libbb.h"

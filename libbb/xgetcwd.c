@@ -5,7 +5,9 @@
  * Written by David MacKenzie <djm@gnu.ai.mit.edu>.
  *
  * Special function for busybox written by Vladimir Oleynik <dzo@simtreas.ru>
-*/
+ *
+ * Licensed under GPLv2, see file LICENSE in this tarball for details.
+ */
 
 #include "libbb.h"
 

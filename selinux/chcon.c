@@ -4,6 +4,8 @@
  * Port to busybox: KaiGai Kohei <kaigai@kaigai.gr.jp>
  *
  * Copyright (C) 2006 - 2007 KaiGai Kohei <kaigai@kaigai.gr.jp>
+ *
+ * Licensed under GPLv2, see file LICENSE in this tarball for details.
  */
 #include <getopt.h>
 #include <selinux/context.h>

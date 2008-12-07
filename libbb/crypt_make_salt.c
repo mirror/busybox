@@ -6,6 +6,7 @@
  *
  * Lifted from loginutils/passwd.c by Thomas Lundquist <thomasez@zelow.no>
  *
+ * Licensed under GPLv2, see file LICENSE in this tarball for details.
  */
 
 #include "libbb.h"

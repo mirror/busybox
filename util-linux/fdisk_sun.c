@@ -1,3 +1,17 @@
+/*
+ * fdisk_sun.c
+ *
+ * I think this is mostly, or entirely, due to
+ *      Jakub Jelinek (jj@sunsite.mff.cuni.cz), July 1996
+ *
+ * Merged with fdisk for other architectures, aeb, June 1998.
+ *
+ * Sat Mar 20 EST 1999 Arnaldo Carvalho de Melo <acme@conectiva.com.br>
+ *      Internationalization
+ *
+ * Licensed under GPLv2, see file LICENSE in this tarball for details.
+ */
+
 #if ENABLE_FEATURE_SUN_LABEL
 
 #define SUNOS_SWAP 3
@@ -12,19 +26,6 @@
 #define FLOPPY_MAJOR    2
 
 #define SCSI_IOCTL_GET_IDLUN 0x5382
-
-/*
- * fdisksunlabel.c
- *
- * I think this is mostly, or entirely, due to
- *      Jakub Jelinek (jj@sunsite.mff.cuni.cz), July 1996
- *
- * Merged with fdisk for other architectures, aeb, June 1998.
- *
- * Sat Mar 20 EST 1999 Arnaldo Carvalho de Melo <acme@conectiva.com.br>
- *      Internationalization
- */
-
 
 static int sun_other_endian;
 static int scsi_disk;

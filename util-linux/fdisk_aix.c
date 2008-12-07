@@ -1,8 +1,8 @@
 #if ENABLE_FEATURE_AIX_LABEL
 /*
  * Copyright (C) Andreas Neuper, Sep 1998.
- *      This file may be redistributed under
- *      the terms of the GNU Public License.
+ *
+ * Licensed under GPLv2, see file LICENSE in this tarball for details.
  */
 
 typedef struct {

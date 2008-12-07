@@ -6,6 +6,8 @@
  *
  * Cooked from passwd.c by Thomas Lundquist <thomasez@zelow.no>
  * mkpasswd compatible options added by Bernhard Reutner-Fischer
+ *
+ * Licensed under GPLv2, see file LICENSE in this tarball for details.
  */
 
 #include "libbb.h"

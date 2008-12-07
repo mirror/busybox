@@ -4,6 +4,7 @@
  *
  * Chip Rosenthal Covad Communications <chip@laserlink.net>
  *
+ * Licensed under GPLv2, see file LICENSE in this tarball for details.
  */
 
 #include "libbb.h"

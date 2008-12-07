@@ -2,8 +2,9 @@
 /*
  * mkfs.c - make a linux (minix) file-system.
  *
- * (C) 1991 Linus Torvalds. This file may be redistributed as per
- * the Linux copyright.
+ * (C) 1991 Linus Torvalds.
+ *
+ * Licensed under GPLv2, see file LICENSE in this tarball for details.
  */
 
 /*

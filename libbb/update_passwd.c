@@ -7,6 +7,8 @@
  * /etc/shadow) for a given user and password.
  *
  * Moved from loginutils/passwd.c by Alexander Shishkin <virtuoso@slind.org>
+ *
+ * Licensed under GPLv2, see file LICENSE in this tarball for details.
  */
 
 #include "libbb.h"
