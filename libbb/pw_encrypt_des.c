@@ -699,10 +699,16 @@ do_des(struct des_ctx *ctx, /*uint32_t l_in, uint32_t r_in,*/ uint32_t *l_out, u
 static void
 to64_msb_first(char *s, unsigned v)
 {
+#if 0
 	*s++ = ascii64[(v >> 18) & 0x3f]; /* bits 23..18 */
 	*s++ = ascii64[(v >> 12) & 0x3f]; /* bits 17..12 */
 	*s++ = ascii64[(v >> 6) & 0x3f]; /* bits 11..6 */
-	*s = ascii64[v & 0x3f]; /* bits 5..0 */
+	*s   = ascii64[v & 0x3f]; /* bits 5..0 */
+#endif
+	*s++ = i64c(v >> 18); /* bits 23..18 */
+	*s++ = i64c(v >> 12); /* bits 17..12 */
+	*s++ = i64c(v >> 6); /* bits 11..6 */
+	*s   = i64c(v); /* bits 5..0 */
 }
 
 static char *
