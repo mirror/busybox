@@ -279,7 +279,8 @@ int zcip_main(int argc, char **argv)
 	// NOTE: the sequence of addresses we try changes only
 	// depending on when we detect conflicts.
 	{
-		uint32_t t = get_unaligned_u32p((uint32_t *) ((char *)&eth_addr + 2));
+		uint32_t t;
+		move_from_unaligned32(t, ((char *)&eth_addr + 2));
 		srand(t);
 	}
 	if (ip.s_addr == 0)

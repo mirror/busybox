@@ -43,6 +43,8 @@ const char *ll_addr_n2a(unsigned char *addr, int alen, int type, char *buf, int 
 
 int ll_addr_a2n(unsigned char *lladdr, int len, char *arg)
 {
+	int i;
+
 	if (strchr(arg, '.')) {
 		inet_prefix pfx;
 		if (get_addr_1(&pfx, arg, AF_INET)) {
@@ -54,26 +56,24 @@ int ll_addr_a2n(unsigned char *lladdr, int len, char *arg)
 		}
 		memcpy(lladdr, pfx.data, 4);
 		return 4;
-	} else {
-		int i;
-
-		for (i=0; i<len; i++) {
-			int temp;
-			char *cp = strchr(arg, ':');
-			if (cp) {
-				*cp = 0;
-				cp++;
-			}
-			if (sscanf(arg, "%x", &temp) != 1 || (temp < 0 || temp > 255)) {
-				bb_error_msg("\"%s\" is invalid lladdr", arg);
-				return -1;
-			}
-			lladdr[i] = temp;
-			if (!cp) {
-				break;
-			}
-			arg = cp;
-		}
-		return i+1;
 	}
+
+	for (i = 0; i < len; i++) {
+		int temp;
+		char *cp = strchr(arg, ':');
+		if (cp) {
+			*cp = 0;
+			cp++;
+		}
+		if (sscanf(arg, "%x", &temp) != 1 || (temp < 0 || temp > 255)) {
+			bb_error_msg("\"%s\" is invalid lladdr", arg);
+			return -1;
+		}
+		lladdr[i] = temp;
+		if (!cp) {
+			break;
+		}
+		arg = cp;
+	}
+	return i+1;
 }

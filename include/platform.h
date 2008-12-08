@@ -151,13 +151,19 @@
 
 /* ---- Unaligned access ------------------------------------ */
 
-/* parameter is supposed to be an uint32_t* ptr */
+/* NB: unaligned parameter should be a pointer, aligned one -
+ * a lvalue. This makes it more likely to not swap them by mistake
+ */
 #if defined(i386) || defined(__x86_64__)
-#define get_unaligned_u32p(u32p) (*(u32p))
+#define move_from_unaligned16(v, u16p) ((v) = *(uint16_t*)(u16p))
+#define move_from_unaligned32(v, u32p) ((v) = *(uint32_t*)(u32p))
+#define move_to_unaligned32(u32p, v)   (*(uint32_t*)(u32p) = (v))
 /* #elif ... - add your favorite arch today! */
 #else
 /* performs reasonably well (gcc usually inlines memcpy here) */
-#define get_unaligned_u32p(u32p) ({ uint32_t __t; memcpy(&__t, (u32p), 4); __t; })
+#define move_from_unaligned16(v, u16p) (memcpy(&(v), (u16p), 2))
+#define move_from_unaligned32(v, u32p) (memcpy(&(v), (u32p), 4))
+#define move_to_unaligned32(u32p, v)   (memcpy((u32p), &(v), 4))
 #endif
 
 /* ---- Networking ------------------------------------------ */

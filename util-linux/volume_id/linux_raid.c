@@ -62,7 +62,7 @@ int volume_id_probe_linux_raid(struct volume_id *id, uint64_t off, uint64_t size
 	if (mdp->md_magic != cpu_to_le32(MD_MAGIC))
 		return -1;
 
-	memcpy(uuid, &mdp->set_uuid0, 4);
+	*(uint32_t*)uuid = mdp->set_uuid0;
 	memcpy(&uuid[4], &mdp->set_uuid1, 12);
 	volume_id_set_uuid(id, uuid, UUID_DCE);
 

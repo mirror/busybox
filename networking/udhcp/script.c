@@ -90,19 +90,19 @@ static char *alloc_fill_opts(uint8_t *option, const struct dhcp_option *type_p, 
 			dest += sprintf(dest, "%u", *option);
 			break;
 		case OPTION_U16:
-			memcpy(&val_u16, option, 2);
+			move_from_unaligned16(val_u16, option);
 			dest += sprintf(dest, "%u", ntohs(val_u16));
 			break;
 		case OPTION_S16:
-			memcpy(&val_s16, option, 2);
+			move_from_unaligned16(val_s16, option);
 			dest += sprintf(dest, "%d", ntohs(val_s16));
 			break;
 		case OPTION_U32:
-			memcpy(&val_u32, option, 4);
+			move_from_unaligned32(val_u32, option);
 			dest += sprintf(dest, "%lu", (unsigned long) ntohl(val_u32));
 			break;
 		case OPTION_S32:
-			memcpy(&val_s32, option, 4);
+			move_from_unaligned32(val_s32, option);
 			dest += sprintf(dest, "%ld", (long) ntohl(val_s32));
 			break;
 		case OPTION_STRING:
@@ -183,7 +183,7 @@ static char **fill_envp(struct dhcpMessage *packet)
 		/* Fill in a subnet bits option for things like /24 */
 		if (dhcp_options[i].code == DHCP_SUBNET) {
 			uint32_t subnet;
-			memcpy(&subnet, temp, 4);
+			move_from_unaligned32(subnet, temp);
 			envp[j++] = xasprintf("mask=%d", mton(subnet));
 		}
  next:

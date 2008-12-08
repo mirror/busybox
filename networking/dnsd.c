@@ -253,7 +253,7 @@ static int process_packet(uint8_t *buf)
 			goto empty_packet;
 		}
 		v32 = a.s_addr; /* in case long != int */
-		memcpy(answstr, &v32, 4);
+		move_to_unaligned32(answstr, v32);
 		outr_rlen = 4;			// uint32_t IP
 	} else
 		outr_rlen = strlen((char *)answstr) + 1;	// a host name

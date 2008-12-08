@@ -30,7 +30,9 @@ int udhcpd_main(int argc UNUSED_PARAM, char **argv)
 	int server_socket = -1, bytes, retval, max_sock;
 	struct dhcpMessage packet;
 	uint8_t *state, *server_id, *requested;
-	uint32_t server_id_align, requested_align, static_lease_ip;
+	uint32_t server_id_aligned = server_id_aligned; /* for compiler */
+	uint32_t requested_aligned = requested_aligned;
+	uint32_t static_lease_ip;
 	unsigned timeout_end;
 	unsigned num_ips;
 	unsigned opt;
@@ -79,7 +81,7 @@ int udhcpd_main(int argc UNUSED_PARAM, char **argv)
 	option = find_option(server_config.options, DHCP_LEASE_TIME);
 	server_config.lease = LEASE_TIME;
 	if (option) {
-		memcpy(&server_config.lease, option->data + 2, 4);
+		move_from_unaligned32(server_config.lease, option->data + 2);
 		server_config.lease = ntohl(server_config.lease);
 	}
 
@@ -190,21 +192,24 @@ int udhcpd_main(int argc UNUSED_PARAM, char **argv)
 			requested = get_option(&packet, DHCP_REQUESTED_IP);
 			server_id = get_option(&packet, DHCP_SERVER_ID);
 
-			if (requested) memcpy(&requested_align, requested, 4);
-			if (server_id) memcpy(&server_id_align, server_id, 4);
+			if (requested)
+				move_from_unaligned32(requested_aligned, requested);
+			if (server_id)
+				move_from_unaligned32(server_id_aligned, server_id);
 
 			if (lease) {
 				if (server_id) {
 					/* SELECTING State */
-					DEBUG("server_id = %08x", ntohl(server_id_align));
-					if (server_id_align == server_config.server && requested
-					 && requested_align == lease->yiaddr
+					DEBUG("server_id = %08x", ntohl(server_id_aligned));
+					if (server_id_aligned == server_config.server
+					 && requested
+					 && requested_aligned == lease->yiaddr
 					) {
 						send_ACK(&packet, lease->yiaddr);
 					}
 				} else if (requested) {
 					/* INIT-REBOOT State */
-					if (lease->yiaddr == requested_align)
+					if (lease->yiaddr == requested_aligned)
 						send_ACK(&packet, lease->yiaddr);
 					else
 						send_NAK(&packet);
@@ -221,7 +226,7 @@ int udhcpd_main(int argc UNUSED_PARAM, char **argv)
 
 			} else if (requested) {
 				/* INIT-REBOOT State */
-				lease = find_lease_by_yiaddr(requested_align);
+				lease = find_lease_by_yiaddr(requested_aligned);
 				if (lease) {
 					if (lease_expired(lease)) {
 						/* probably best if we drop this lease */
@@ -230,7 +235,7 @@ int udhcpd_main(int argc UNUSED_PARAM, char **argv)
 					} else
 						send_NAK(&packet);
 				} else {
-					uint32_t r = ntohl(requested_align);
+					uint32_t r = ntohl(requested_aligned);
 					if (r < server_config.start_ip
 				         || r > server_config.end_ip
 					) {

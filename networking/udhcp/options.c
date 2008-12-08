@@ -224,9 +224,8 @@ int FAST_FUNC add_simple_option(uint8_t *optionptr, uint8_t code, uint32_t data)
 			option[OPT_LEN] = len;
 			if (BB_BIG_ENDIAN)
 				data <<= 8 * (4 - len);
-			/* This memcpy is for processors which can't
-			 * handle a simple unaligned 32-bit assignment */
-			memcpy(&option[OPT_DATA], &data, 4);
+			/* Assignment is unaligned! */
+			move_to_unaligned32(&option[OPT_DATA], data);
 			return add_option_string(optionptr, option);
 		}
 	}

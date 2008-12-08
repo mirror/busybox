@@ -1083,8 +1083,7 @@ static uint16_t buffer_read_le_u16(STATE_PARAM_ONLY)
 {
 	uint16_t res;
 #if BB_LITTLE_ENDIAN
-	/* gcc 4.2.1 is very clever */
-	memcpy(&res, &bytebuffer[bytebuffer_offset], 2);
+	move_from_unaligned16(res, &bytebuffer[bytebuffer_offset]);
 #else
 	res = bytebuffer[bytebuffer_offset];
 	res |= bytebuffer[bytebuffer_offset + 1] << 8;
@@ -1097,7 +1096,7 @@ static uint32_t buffer_read_le_u32(STATE_PARAM_ONLY)
 {
 	uint32_t res;
 #if BB_LITTLE_ENDIAN
-	memcpy(&res, &bytebuffer[bytebuffer_offset], 4);
+	move_from_unaligned32(res, &bytebuffer[bytebuffer_offset]);
 #else
 	res = bytebuffer[bytebuffer_offset];
 	res |= bytebuffer[bytebuffer_offset + 1] << 8;

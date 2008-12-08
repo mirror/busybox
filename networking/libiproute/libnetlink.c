@@ -341,7 +341,7 @@ int FAST_FUNC addattr32(struct nlmsghdr *n, int maxlen, int type, uint32_t data)
 	rta = (struct rtattr*)(((char*)n) + NLMSG_ALIGN(n->nlmsg_len));
 	rta->rta_type = type;
 	rta->rta_len = len;
-	memcpy(RTA_DATA(rta), &data, 4);
+	move_to_unaligned32(RTA_DATA(rta), data);
 	n->nlmsg_len = NLMSG_ALIGN(n->nlmsg_len) + len;
 	return 0;
 }
@@ -372,7 +372,7 @@ int FAST_FUNC rta_addattr32(struct rtattr *rta, int maxlen, int type, uint32_t d
 	subrta = (struct rtattr*)(((char*)rta) + RTA_ALIGN(rta->rta_len));
 	subrta->rta_type = type;
 	subrta->rta_len = len;
-	memcpy(RTA_DATA(subrta), &data, 4);
+	move_to_unaligned32(RTA_DATA(subrta), data);
 	rta->rta_len = NLMSG_ALIGN(rta->rta_len) + len;
 	return 0;
 }

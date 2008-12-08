@@ -153,6 +153,15 @@ static bool recv_pack(unsigned char *buf, int len, struct sockaddr_ll *FROM)
 	struct arphdr *ah = (struct arphdr *) buf;
 	unsigned char *p = (unsigned char *) (ah + 1);
 	struct in_addr src_ip, dst_ip;
+	/* moves below assume in_addr is 4 bytes big, ensure that */
+	struct BUG_in_addr_must_be_4 {
+		char BUG_in_addr_must_be_4[
+			sizeof(struct in_addr) == 4 ? 1 : -1
+		];
+		char BUG_s_addr_must_be_4[
+			sizeof(src_ip.s_addr) == 4 ? 1 : -1
+		];
+	};
 
 	/* Filter out wild packets */
 	if (FROM->sll_pkttype != PACKET_HOST
@@ -171,13 +180,13 @@ static bool recv_pack(unsigned char *buf, int len, struct sockaddr_ll *FROM)
 
 	/* Protocol must be IP. */
 	if (ah->ar_pro != htons(ETH_P_IP)
-		|| (ah->ar_pln != 4)
-		|| (ah->ar_hln != me.sll_halen)
-		|| (len < (int)(sizeof(*ah) + 2 * (4 + ah->ar_hln))))
+	 || (ah->ar_pln != 4)
+	 || (ah->ar_hln != me.sll_halen)
+	 || (len < (int)(sizeof(*ah) + 2 * (4 + ah->ar_hln))))
 		return false;
 
-	memcpy(&src_ip, p + ah->ar_hln, 4);
-	memcpy(&dst_ip, p + ah->ar_hln + 4 + ah->ar_hln, 4);
+	move_from_unaligned32(src_ip.s_addr, p + ah->ar_hln);
+	move_from_unaligned32(dst_ip.s_addr, p + ah->ar_hln + 4 + ah->ar_hln);
 
 	if (dst.s_addr != src_ip.s_addr)
 		return false;
@@ -200,7 +209,7 @@ static bool recv_pack(unsigned char *buf, int len, struct sockaddr_ll *FROM)
 		   dst_ip/dst_hw do not matter.
 		 */
 		if ((memcmp(p, &me.sll_addr, me.sll_halen) == 0)
-			|| (src.s_addr && src.s_addr != dst_ip.s_addr))
+		 || (src.s_addr && src.s_addr != dst_ip.s_addr))
 			return false;
 	}
 	if (!(option_mask32 & QUIET)) {
@@ -306,7 +315,7 @@ int arping_main(int argc UNUSED_PARAM, char **argv)
 	/* if (!inet_aton(target, &dst)) - not needed */ {
 		len_and_sockaddr *lsa;
 		lsa = xhost_and_af2sockaddr(target, 0, AF_INET);
-		memcpy(&dst, &lsa->u.sin.sin_addr.s_addr, 4);
+		dst = lsa->u.sin.sin_addr;
 		if (ENABLE_FEATURE_CLEAN_UP)
 			free(lsa);
 	}

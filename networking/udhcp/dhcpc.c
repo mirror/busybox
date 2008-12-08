@@ -503,7 +503,7 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 						/* still selecting - this server looks bad */
 					}
 					/* it IS unaligned sometimes, don't "optimize" */
-					server_addr = get_unaligned_u32p((uint32_t*)temp);
+					move_from_unaligned32(server_addr, temp);
 					xid = packet.xid;
 					requested_ip = packet.yiaddr;
 
@@ -525,7 +525,7 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 						lease_seconds = 60 * 60;
 					} else {
 						/* it IS unaligned sometimes, don't "optimize" */
-						lease_seconds = get_unaligned_u32p((uint32_t*)temp);
+						move_from_unaligned32(lease_seconds, temp);
 						lease_seconds = ntohl(lease_seconds);
 						lease_seconds &= 0x0fffffff; /* paranoia: must not be prone to overflows */
 						if (lease_seconds < 10) /* and not too small */
