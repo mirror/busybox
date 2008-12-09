@@ -43,6 +43,9 @@
  * (semaphores are down but do_mark routine tries to down them again) */
 #undef SYSLOGD_MARK
 
+/* Write locking does not seem to be useful either */
+#undef SYSLOGD_WRLOCK
+
 enum {
 	MAX_READ = 256,
 	DNS_WAIT_SEC = 2 * 60,
@@ -152,7 +155,7 @@ enum {
 	OPTBIT_small, // -S
 	USE_FEATURE_ROTATE_LOGFILE(OPTBIT_filesize   ,)	// -s
 	USE_FEATURE_ROTATE_LOGFILE(OPTBIT_rotatecnt  ,)	// -b
-	USE_FEATURE_REMOTE_LOG(    OPTBIT_remote     ,)	// -R
+	USE_FEATURE_REMOTE_LOG(    OPTBIT_remotelog  ,)	// -R
 	USE_FEATURE_REMOTE_LOG(    OPTBIT_locallog   ,)	// -L
 	USE_FEATURE_IPC_SYSLOG(    OPTBIT_circularlog,)	// -C
 	USE_FEATURE_SYSLOGD_DUP(   OPTBIT_dup        ,)	// -D
@@ -164,7 +167,7 @@ enum {
 	OPT_small       = 1 << OPTBIT_small   ,
 	OPT_filesize    = USE_FEATURE_ROTATE_LOGFILE((1 << OPTBIT_filesize   )) + 0,
 	OPT_rotatecnt   = USE_FEATURE_ROTATE_LOGFILE((1 << OPTBIT_rotatecnt  )) + 0,
-	OPT_remotelog   = USE_FEATURE_REMOTE_LOG(    (1 << OPTBIT_remote     )) + 0,
+	OPT_remotelog   = USE_FEATURE_REMOTE_LOG(    (1 << OPTBIT_remotelog  )) + 0,
 	OPT_locallog    = USE_FEATURE_REMOTE_LOG(    (1 << OPTBIT_locallog   )) + 0,
 	OPT_circularlog = USE_FEATURE_IPC_SYSLOG(    (1 << OPTBIT_circularlog)) + 0,
 	OPT_dup         = USE_FEATURE_SYSLOGD_DUP(   (1 << OPTBIT_dup        )) + 0,
@@ -291,7 +294,9 @@ void log_to_shmem(const char *msg);
 /* Print a message to the log file. */
 static void log_locally(time_t now, char *msg)
 {
+#ifdef SYSLOGD_WRLOCK
 	struct flock fl;
+#endif
 	int len = strlen(msg);
 
 #if ENABLE_FEATURE_IPC_SYSLOG
@@ -332,11 +337,13 @@ static void log_locally(time_t now, char *msg)
 #endif
 	}
 
+#ifdef SYSLOGD_WRLOCK
 	fl.l_whence = SEEK_SET;
 	fl.l_start = 0;
 	fl.l_len = 1;
 	fl.l_type = F_WRLCK;
 	fcntl(G.logFD, F_SETLKW, &fl);
+#endif
 
 #if ENABLE_FEATURE_ROTATE_LOGFILE
 	if (G.logFileSize && G.isRegular && G.curFileSize > G.logFileSize) {
@@ -355,8 +362,10 @@ static void log_locally(time_t now, char *msg)
 			}
 			/* newFile == "f.0" now */
 			rename(G.logFilePath, newFile);
+#ifdef SYSLOGD_WRLOCK
 			fl.l_type = F_UNLCK;
 			fcntl(G.logFD, F_SETLKW, &fl);
+#endif
 			close(G.logFD);
 			goto reopen;
 		}
@@ -365,8 +374,10 @@ static void log_locally(time_t now, char *msg)
 	G.curFileSize +=
 #endif
 			full_write(G.logFD, msg, len);
+#ifdef SYSLOGD_WRLOCK
 	fl.l_type = F_UNLCK;
 	fcntl(G.logFD, F_SETLKW, &fl);
+#endif
 }
 
 static void parse_fac_prio_20(int pri, char *res20)
@@ -432,6 +443,7 @@ static void timestamp_and_log(int pri, char *msg, int len)
 
 static void timestamp_and_log_internal(const char *msg)
 {
+	/* -L, or no -R */
 	if (ENABLE_FEATURE_REMOTE_LOG && !(option_mask32 & OPT_locallog))
 		return;
 	timestamp_and_log(LOG_SYSLOG | LOG_INFO, (char*)msg, 0);
@@ -474,15 +486,6 @@ static void split_escape_and_log(char *tmpbuf, int len)
 		if (LOG_PRI(pri) < G.logLevel)
 			timestamp_and_log(pri, G.parsebuf, q - G.parsebuf);
 	}
-}
-
-static void quit_signal(int sig)
-{
-	timestamp_and_log_internal("syslogd exiting");
-	puts("syslogd exiting");
-	if (ENABLE_FEATURE_IPC_SYSLOG)
-		ipcsyslog_cleanup();
-	kill_myself_with_sig(sig);
 }
 
 #ifdef SYSLOGD_MARK
@@ -553,14 +556,11 @@ static void do_syslogd(void)
 #define recvbuf (G.recvbuf)
 #endif
 
-	/* Set up signal handlers */
-	bb_signals(0
-		+ (1 << SIGINT)
-		+ (1 << SIGTERM)
-		+ (1 << SIGQUIT)
-		, quit_signal);
+	/* Set up signal handlers (so that they interrupt read()) */
+	signal_no_SA_RESTART_empty_mask(SIGTERM, record_signo);
+	signal_no_SA_RESTART_empty_mask(SIGINT, record_signo);
+	//signal_no_SA_RESTART_empty_mask(SIGQUIT, record_signo);
 	signal(SIGHUP, SIG_IGN);
-	/* signal(SIGCHLD, SIG_IGN); - why? */
 #ifdef SYSLOGD_MARK
 	signal(SIGALRM, do_mark);
 	alarm(G.markInterval);
@@ -573,7 +573,7 @@ static void do_syslogd(void)
 
 	timestamp_and_log_internal("syslogd started: BusyBox v" BB_VER);
 
-	for (;;) {
+	while (!bb_got_signal) {
 		ssize_t sz;
 
 #if ENABLE_FEATURE_SYSLOGD_DUP
@@ -584,9 +584,12 @@ static void do_syslogd(void)
 			recvbuf = G.recvbuf;
 #endif
  read_again:
-		sz = safe_read(sock_fd, recvbuf, MAX_READ - 1);
-		if (sz < 0)
-			bb_perror_msg_and_die("read from /dev/log");
+		sz = read(sock_fd, recvbuf, MAX_READ - 1);
+		if (sz < 0) {
+			if (!bb_got_signal)
+				bb_perror_msg("read from /dev/log");
+			break;
+		}
 
 		/* Drop trailing '\n' and NULs (typically there is one NUL) */
 		while (1) {
@@ -633,7 +636,13 @@ static void do_syslogd(void)
 			recvbuf[sz] = '\0'; /* ensure it *is* NUL terminated */
 			split_escape_and_log(recvbuf, sz);
 		}
-	} /* for (;;) */
+	} /* while (!bb_got_signal) */
+
+	timestamp_and_log_internal("syslogd exiting");
+	puts("syslogd exiting");
+	if (ENABLE_FEATURE_IPC_SYSLOG)
+		ipcsyslog_cleanup();
+	kill_myself_with_sig(bb_got_signal);
 #undef recvbuf
 }
 
@@ -641,6 +650,7 @@ int syslogd_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int syslogd_main(int argc UNUSED_PARAM, char **argv)
 {
 	char OPTION_DECL;
+	int opts;
 
 	INIT_G();
 #if ENABLE_FEATURE_REMOTE_LOG
@@ -649,20 +659,20 @@ int syslogd_main(int argc UNUSED_PARAM, char **argv)
 
 	/* do normal option parsing */
 	opt_complementary = "=0"; /* no non-option params */
-	getopt32(argv, OPTION_STR, OPTION_PARAM);
+	opts = getopt32(argv, OPTION_STR, OPTION_PARAM);
 #ifdef SYSLOGD_MARK
-	if (option_mask32 & OPT_mark) // -m
+	if (opts & OPT_mark) // -m
 		G.markInterval = xatou_range(opt_m, 0, INT_MAX/60) * 60;
 #endif
-	//if (option_mask32 & OPT_nofork) // -n
-	//if (option_mask32 & OPT_outfile) // -O
-	if (option_mask32 & OPT_loglevel) // -l
+	//if (opts & OPT_nofork) // -n
+	//if (opts & OPT_outfile) // -O
+	if (opts & OPT_loglevel) // -l
 		G.logLevel = xatou_range(opt_l, 1, 8);
-	//if (option_mask32 & OPT_small) // -S
+	//if (opts & OPT_small) // -S
 #if ENABLE_FEATURE_ROTATE_LOGFILE
-	if (option_mask32 & OPT_filesize) // -s
+	if (opts & OPT_filesize) // -s
 		G.logFileSize = xatou_range(opt_s, 0, INT_MAX/1024) * 1024;
-	if (option_mask32 & OPT_rotatecnt) // -b
+	if (opts & OPT_rotatecnt) // -b
 		G.logFileRotate = xatou_range(opt_b, 0, 99);
 #endif
 #if ENABLE_FEATURE_IPC_SYSLOG
@@ -671,14 +681,14 @@ int syslogd_main(int argc UNUSED_PARAM, char **argv)
 #endif
 
 	/* If they have not specified remote logging, then log locally */
-	if (ENABLE_FEATURE_REMOTE_LOG && !(option_mask32 & OPT_remotelog))
+	if (ENABLE_FEATURE_REMOTE_LOG && !(opts & OPT_remotelog)) // -R
 		option_mask32 |= OPT_locallog;
 
 	/* Store away localhost's name before the fork */
 	G.hostname = safe_gethostname();
 	*strchrnul(G.hostname, '.') = '\0';
 
-	if (!(option_mask32 & OPT_nofork)) {
+	if (!(opts & OPT_nofork)) {
 		bb_daemonize_or_rexec(DAEMON_CHDIR_ROOT, argv);
 	}
 	umask(0);
@@ -688,6 +698,9 @@ int syslogd_main(int argc UNUSED_PARAM, char **argv)
 }
 
 /* Clean up. Needed because we are included from syslogd_and_logger.c */
+#undef DEBUG
+#undef SYSLOGD_MARK
+#undef SYSLOGD_WRLOCK
 #undef G
 #undef GLOBALS
 #undef INIT_G
