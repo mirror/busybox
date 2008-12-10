@@ -161,56 +161,56 @@ static const int32_t mount_options[] = {
 
 static const char mount_option_str[] =
 	USE_FEATURE_MOUNT_LOOP(
-		"loop" "\0"
+		"loop\0"
 	)
 	USE_FEATURE_MOUNT_FSTAB(
-		"defaults" "\0"
-		// "quiet" "\0" - do not filter out, vfat wants to see it
-		"noauto" "\0"
-		"sw" "\0"
-		"swap" "\0"
-		USE_DESKTOP("user" "\0")
-		USE_DESKTOP("users" "\0")
-		"_netdev" "\0"
+		"defaults\0"
+		// "quiet\0" - do not filter out, vfat wants to see it
+		"noauto\0"
+		"sw\0"
+		"swap\0"
+		USE_DESKTOP("user\0")
+		USE_DESKTOP("users\0")
+		"_netdev\0"
 	)
 	USE_FEATURE_MOUNT_FLAGS(
 		// vfs flags
-		"nosuid" "\0"
-		"suid" "\0"
-		"dev" "\0"
-		"nodev" "\0"
-		"exec" "\0"
-		"noexec" "\0"
-		"sync" "\0"
-		"dirsync" "\0"
-		"async" "\0"
-		"atime" "\0"
-		"noatime" "\0"
-		"diratime" "\0"
-		"nodiratime" "\0"
-		"mand" "\0"
-		"nomand" "\0"
-		"relatime" "\0"
-		"norelatime" "\0"
-		"loud" "\0"
+		"nosuid\0"
+		"suid\0"
+		"dev\0"
+		"nodev\0"
+		"exec\0"
+		"noexec\0"
+		"sync\0"
+		"dirsync\0"
+		"async\0"
+		"atime\0"
+		"noatime\0"
+		"diratime\0"
+		"nodiratime\0"
+		"mand\0"
+		"nomand\0"
+		"relatime\0"
+		"norelatime\0"
+		"loud\0"
 
 		// action flags
-		"bind" "\0"
-		"move" "\0"
-		"shared" "\0"
-		"slave" "\0"
-		"private" "\0"
-		"unbindable" "\0"
-		"rshared" "\0"
-		"rslave" "\0"
-		"rprivate" "\0"
-		"runbindable" "\0"
+		"bind\0"
+		"move\0"
+		"shared\0"
+		"slave\0"
+		"private\0"
+		"unbindable\0"
+		"rshared\0"
+		"rslave\0"
+		"rprivate\0"
+		"runbindable\0"
 	)
 
 	// Always understood.
-	"ro" "\0"        // vfs flag
-	"rw" "\0"        // vfs flag
-	"remount" "\0"   // action flag
+	"ro\0"        // vfs flag
+	"rw\0"        // vfs flag
+	"remount\0"   // action flag
 ;
 
 
