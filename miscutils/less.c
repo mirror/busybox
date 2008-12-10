@@ -774,9 +774,7 @@ static void buffer_line(int linenum)
 static void open_file_and_read_lines(void)
 {
 	if (filename) {
-		int fd = xopen(filename, O_RDONLY);
-		dup2(fd, 0);
-		if (fd) close(fd);
+		xmove_fd(xopen(filename, O_RDONLY), STDIN_FILENO);
 	} else {
 		/* "less" with no arguments in argv[] */
 		/* For status line only */

@@ -172,7 +172,7 @@ int xll_name_to_index(const char *const name)
 #endif
 
 	sock_fd = socket(AF_INET, SOCK_DGRAM, 0);
-	if (sock_fd) {
+	if (sock_fd >= 0) {
 		struct ifreq ifr;
 		int tmp;
 
