@@ -43,11 +43,17 @@ static void change_listen_mode(int new_mode)
 {
 	DEBUG("entering %s listen mode",
 		new_mode ? (new_mode == 1 ? "kernel" : "raw") : "none");
+
+	listen_mode = new_mode;
 	if (sockfd >= 0) {
 		close(sockfd);
 		sockfd = -1;
 	}
-	listen_mode = new_mode;
+	if (new_mode == LISTEN_KERNEL)
+		sockfd = udhcp_listen_socket(/*INADDR_ANY,*/ CLIENT_PORT, client_config.interface);
+	else if (new_mode != LISTEN_NONE)
+		sockfd = udhcp_raw_socket(client_config.ifindex);
+	/* else LISTEN_NONE: sockfd stay closed */
 }
 
 
@@ -320,12 +326,15 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 	for (;;) {
 		unsigned timestamp_before_wait;
 
-		if (listen_mode != LISTEN_NONE && sockfd < 0) {
-			if (listen_mode == LISTEN_KERNEL)
-				sockfd = udhcp_listen_socket(/*INADDR_ANY,*/ CLIENT_PORT, client_config.interface);
-			else
-				sockfd = udhcp_raw_socket(client_config.ifindex);
-		}
+		//bb_error_msg("sockfd:%d, listen_mode:%d", sockfd, listen_mode);
+
+		/* Was opening raw or udp socket here
+		 * if (listen_mode != LISTEN_NONE && sockfd < 0),
+		 * but on fast network renew responses return faster
+		 * than we open sockets. Thus this code is moved
+		 * to change_listen_mode(). Thus we open listen socket
+		 * BEFORE we send renew request (see "case BOUND:"). */
+
 		max_fd = udhcp_sp_fd_set(&rfds, sockfd);
 
 		tv.tv_sec = timeout - already_waited_sec;
