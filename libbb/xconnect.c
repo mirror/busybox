@@ -24,7 +24,9 @@ int FAST_FUNC setsockopt_bindtodevice(int fd, const char *iface)
 	int r;
 	struct ifreq ifr;
 	strncpy_IFNAMSIZ(ifr.ifr_name, iface);
-	/* Actually, ifr_name is at offset 0, and in practice
+	/* NB: passing (iface, strlen(iface) + 1) does not work!
+	 * (maybe it works on _some_ kernels, but not on 2.6.26)
+	 * Actually, ifr_name is at offset 0, and in practice
 	 * just giving char[IFNAMSIZ] instead of struct ifreq works too.
 	 * But just in case it's not true on some obscure arch... */
 	r = setsockopt(fd, SOL_SOCKET, SO_BINDTODEVICE, &ifr, sizeof(ifr));
