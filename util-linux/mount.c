@@ -256,23 +256,22 @@ static int verbose_mount(const char *source, const char *target,
 #define verbose_mount(...) mount(__VA_ARGS__)
 #endif
 
-static int resolve_mount_spec(char **fsname)
+#if ENABLE_FEATURE_MOUNT_LABEL
+static void resolve_mount_spec(char **fsname)
 {
 	char *tmp = NULL;
 
-#if ENABLE_FEATURE_MOUNT_LABEL
 	if (!strncmp(*fsname, "UUID=", 5))
 		tmp = get_devname_from_uuid(*fsname + 5);
 	else if (!strncmp(*fsname, "LABEL=", 6))
 		tmp = get_devname_from_label(*fsname + 6);
-#endif
 
-	if (tmp) {
+	if (tmp)
 		*fsname = tmp;
-		return 1;
-	}
-	return 0;
 }
+#else
+#define resolve_mount_spec(fsname) ((void)0)
+#endif
 
 // Append mount options to string
 static void append_mount_options(char **oldopts, const char *newopts)
@@ -1798,9 +1797,7 @@ int mount_main(int argc UNUSED_PARAM, char **argv)
 			mtpair->mnt_dir = argv[1];
 			mtpair->mnt_type = fstype;
 			mtpair->mnt_opts = cmdopts;
-			if (ENABLE_FEATURE_MOUNT_LABEL) {
-				resolve_mount_spec(&mtpair->mnt_fsname);
-			}
+			resolve_mount_spec(&mtpair->mnt_fsname);
 			rc = singlemount(mtpair, 0);
 			return rc;
 		}
@@ -1881,12 +1878,12 @@ int mount_main(int argc UNUSED_PARAM, char **argv)
 			if (nonroot)
 				bb_error_msg_and_die(must_be_root);
 
-			// Mount this thing
-			if (ENABLE_FEATURE_MOUNT_LABEL)
-				resolve_mount_spec(&mtpair->mnt_fsname);
+			resolve_mount_spec(&mtpair->mnt_fsname);
 
 			// NFS mounts want this to be xrealloc-able
 			mtcur->mnt_opts = xstrdup(mtcur->mnt_opts);
+
+			// Mount this thing
 			if (singlemount(mtcur, 1)) {
 				// Count number of failed mounts
 				rc++;
@@ -1911,9 +1908,7 @@ int mount_main(int argc UNUSED_PARAM, char **argv)
 		// Mount the last thing we found
 		mtcur->mnt_opts = xstrdup(mtcur->mnt_opts);
 		append_mount_options(&(mtcur->mnt_opts), cmdopts);
-		if (ENABLE_FEATURE_MOUNT_LABEL) {
-			resolve_mount_spec(&mtpair->mnt_fsname);
-		}
+		resolve_mount_spec(&mtpair->mnt_fsname);
 		rc = singlemount(mtcur, 0);
 		if (ENABLE_FEATURE_CLEAN_UP)
 			free(mtcur->mnt_opts);
