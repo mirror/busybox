@@ -24,11 +24,11 @@ void FAST_FUNC header_verbose_list(const file_header_t *file_header)
 		snprintf(gid, sizeof(gid), "%u", (unsigned)file_header->gid);
 		group = gid;
 	}
-	printf("%s %s/%s %9u %4u-%02u-%02u %02u:%02u:%02u %s",
+	printf("%s %s/%s %9"OFF_FMT"u %4u-%02u-%02u %02u:%02u:%02u %s",
 		bb_mode_string(file_header->mode),
 		user,
 		group,
-		(unsigned int) file_header->size,
+		file_header->size,
 		1900 + mtime->tm_year,
 		1 + mtime->tm_mon,
 		mtime->tm_mday,

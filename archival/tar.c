@@ -357,7 +357,8 @@ static int writeTarHeader(struct TarBallInfo *tbInfo,
 	if (tbInfo->verboseFlag) {
 		FILE *vbFd = stdout;
 
-		if (tbInfo->tarFd == STDOUT_FILENO)	/* If the archive goes to stdout, verbose to stderr */
+		/* If archive goes to stdout, verbose goes to stderr */
+		if (tbInfo->tarFd == STDOUT_FILENO)
 			vbFd = stderr;
 		/* GNU "tar cvvf" prints "extended" listing a-la "ls -l" */
 		/* We don't have such excesses here: for us "v" == "vv" */
