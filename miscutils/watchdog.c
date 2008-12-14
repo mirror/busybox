@@ -10,6 +10,7 @@
  */
 
 #include "libbb.h"
+#include "linux/types.h" /* for __u32 */
 #include "linux/watchdog.h"
 
 #define OPT_FOREGROUND  (1 << 0)
@@ -57,7 +58,11 @@ int watchdog_main(int argc, char **argv)
 
 	/* WDIOC_SETTIMEOUT takes seconds, not milliseconds */
 	htimer_duration = htimer_duration / 1000;
+#ifndef WDIOC_SETTIMEOUT
+#error WDIOC_SETTIMEOUT is not defined, cannot compile watchdog applet
+#else
 	ioctl_or_warn(3, WDIOC_SETTIMEOUT, &htimer_duration);
+#endif
 #if 0
 	ioctl_or_warn(3, WDIOC_GETTIMEOUT, &htimer_duration);
 	printf("watchdog: SW timer is %dms, HW timer is %dms\n",
@@ -70,8 +75,8 @@ int watchdog_main(int argc, char **argv)
 
 	while (1) {
 		/*
-		 * Make sure we clear the counter before sleeping, as the counter value
-		 * is undefined at this point -- PFM
+		 * Make sure we clear the counter before sleeping,
+		 * as the counter value is undefined at this point -- PFM
 		 */
 		write(3, "", 1); /* write zero byte */
 		usleep(stimer_duration * 1000L);
