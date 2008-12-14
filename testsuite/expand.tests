@@ -1,0 +1,15 @@
+#!/bin/sh
+# Copyright 2008 by Denys Vlasenko
+# Licensed under GPL v2, see file LICENSE for details.
+
+. testing.sh
+
+# testing "test name" "options" "expected result" "file input" "stdin"
+
+testing "expand" \
+	"expand" \
+	"        12345678        12345678\n" \
+	"" \
+	"\t12345678\t12345678\n" \
+
+exit $FAILCOUNT

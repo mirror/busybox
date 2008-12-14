@@ -29,51 +29,43 @@ enum {
 	OPT_ALL         = 1 << 2,
 };
 
-static void xputchar(char c)
-{
-	if (putchar(c) < 0)
-		bb_error_msg_and_die(bb_msg_write_error);
-}
-
 #if ENABLE_EXPAND
-static void expand(FILE *file, unsigned tab_size, unsigned opt)
+static void expand(FILE *file, int tab_size, unsigned opt)
 {
 	char *line;
-	char *ptr;
-	int convert;
-	unsigned pos;
 
-	/* Increment tab_size by 1 locally.*/
-	tab_size++;
+	tab_size = -tab_size;
 
 	while ((line = xmalloc_fgets(file)) != NULL) {
-		convert = 1;
-		pos = 0;
-		ptr = line;
-		while (*line) {
-			pos++;
-			if (*line == '\t' && convert) {
-				for (; pos < tab_size; pos++) {
-					xputchar(' ');
-				}
-			} else {
-				if ((opt & OPT_INITIAL) && !isblank(*line)) {
-					convert = 0;
-				}
-				xputchar(*line);
+		int pos;
+		unsigned char c;
+		char *ptr = line;
+
+		goto start;
+		while ((c = *ptr) != '\0') {
+			if ((opt & OPT_INITIAL) && !isblank(c)) {
+				fputs(ptr, stdout);
+				break;
 			}
-			if (pos == tab_size) {
-				pos = 0;
+			ptr++;
+			if (c == '\t') {
+				c = ' ';
+				while (++pos < 0)
+					bb_putchar(c);
 			}
-			line++;
+			bb_putchar(c);
+			if (++pos >= 0) {
+ start:
+				pos = tab_size;
+			}
 		}
-		free(ptr);
+		free(line);
 	}
 }
 #endif
 
 #if ENABLE_UNEXPAND
-static void unexpand(FILE *file, unsigned int tab_size, unsigned opt)
+static void unexpand(FILE *file, unsigned tab_size, unsigned opt)
 {
 	char *line;
 	char *ptr;
@@ -101,11 +93,11 @@ static void unexpand(FILE *file, unsigned int tab_size, unsigned opt)
 				if (i) {
 					for (; i > 0; i--) {
  put_tab:
-						xputchar('\t');
+						bb_putchar('\t');
 					}
 				} else {
 					for (i = pos % tab_size; i > 0; i--) {
-						xputchar(' ');
+						bb_putchar(' ');
 					}
 				}
 				pos = 0;
@@ -116,7 +108,7 @@ static void unexpand(FILE *file, unsigned int tab_size, unsigned opt)
 				if (opt & OPT_ALL) {
 					column++;
 				}
-				xputchar(*line);
+				bb_putchar(*line);
 				line++;
 			}
 		}
