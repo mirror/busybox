@@ -2708,12 +2708,11 @@ SIT(int c, int syntax)
 	 && (unsigned char)c <= (unsigned char)(CTLQUOTEMARK)
 	) {
 		return CCTL;
-	} else {
-		s = strchrnul(spec_symbls, c);
-		if (*s == '\0')
-			return CWORD;
-		indx = syntax_index_table[s - spec_symbls];
 	}
+	s = strchrnul(spec_symbls, c);
+	if (*s == '\0')
+		return CWORD;
+	indx = syntax_index_table[s - spec_symbls];
 	return S_I_T[indx][syntax];
 }
 
@@ -9290,6 +9289,12 @@ preadfd(void)
  */
 //#define pgetc_debug(...) bb_error_msg(__VA_ARGS__)
 #define pgetc_debug(...) ((void)0)
+/*
+ * NB: due to SIT(c) internals (syntax_index_table[] vector),
+ * pgetc() and related functions must return chars SIGN-EXTENDED into ints,
+ * not zero-extended. Seems fragile to me. Affects only !USE_SIT_FUNCTION case,
+ * so we can fix it by ditching !USE_SIT_FUNCTION if Unicode requires that.
+ */
 static int
 preadbuffer(void)
 {
@@ -9390,12 +9395,12 @@ preadbuffer(void)
 			g_parsefile->left_in_line,
 			g_parsefile->next_to_pgetc,
 			g_parsefile->next_to_pgetc);
-	return (unsigned char)(*g_parsefile->next_to_pgetc++);
+	return signed_char2int(*g_parsefile->next_to_pgetc++);
 }
 
 #define pgetc_as_macro() \
 	(--g_parsefile->left_in_line >= 0 \
-	? (unsigned char)(*g_parsefile->next_to_pgetc++) \
+	? signed_char2int(*g_parsefile->next_to_pgetc++) \
 	: preadbuffer() \
 	)
 
@@ -10293,9 +10298,9 @@ fixredir(union node *n, const char *text, int err)
  * or backquotes).
  */
 static int
-noexpand(char *text)
+noexpand(const char *text)
 {
-	char *p;
+	const char *p;
 	char c;
 
 	p = text;
@@ -10304,7 +10309,7 @@ noexpand(char *text)
 			continue;
 		if (c == CTLESC)
 			p++;
-		else if (SIT(c, BASESYNTAX) == CCTL)
+		else if (SIT((signed char)c, BASESYNTAX) == CCTL)
 			return 0;
 	}
 	return 1;
