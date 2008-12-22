@@ -132,14 +132,6 @@ patch
   And while we're at it, a new patch filename quoting format is apparently
   coming soon:  http://marc.theaimsgroup.com/?l=git&m=112927316408690&w=2
 ---
-man
-  It would be nice to have a man command.  Not one that handles troff or
-  anything, just one that can handle preformatted ascii man pages, possibly
-  compressed.  This could probably be a script in the extras directory that
-  calls cat/zcat/bzcat | less
-
-  (How doclifter might work into this is anybody's guess.)
----
 ar
   Write support!
 ---
