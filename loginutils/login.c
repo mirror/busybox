@@ -275,7 +275,7 @@ int login_main(int argc UNUSED_PARAM, char **argv)
 	if (!isatty(0) || !isatty(1) || !isatty(2))
 		return EXIT_FAILURE;		/* Must be a terminal */
 	safe_strncpy(full_tty, "UNKNOWN", sizeof(full_tty));
-	tmp = ttyname(0);
+	tmp = xmalloc_ttyname(STDIN_FILENO);
 	if (tmp) {
 		safe_strncpy(full_tty, tmp, sizeof(full_tty));
 		if (strncmp(full_tty, "/dev/", 5) == 0)
@@ -285,12 +285,12 @@ int login_main(int argc UNUSED_PARAM, char **argv)
 	read_or_build_utent(&utent, run_by_root);
 
 	if (opt & LOGIN_OPT_h) {
-		USE_FEATURE_UTMP(
+		if (ENABLE_FEATURE_UTMP)
 			safe_strncpy(utent.ut_host, opt_host, sizeof(utent.ut_host));
-		)
 		fromhost = xasprintf(" on '%s' from '%s'", short_tty, opt_host);
-	} else
+	} else {
 		fromhost = xasprintf(" on '%s'", short_tty);
+	}
 
 	/* Was breaking "login <username>" from shell command line: */
 	/*bb_setpgrp();*/

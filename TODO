@@ -23,7 +23,7 @@ Rob Landley suggested these:
     lash is phased out. hush can be configured down to be nearly as small,
     but less buggy :)
   init
-    General cleanup (should use ENABLE_FEATURE_INIT_SYSLOG and ENABLE_FEATURE_INIT_DEBUG).
+    General cleanup (should use ENABLE_FEATURE_INIT_SYSLOG).
   Do a SUSv3 audit
     Look at the full Single Unix Specification version 3 (available online at
     "http://www.opengroup.org/onlinepubs/009695399/nfindex.html") and

@@ -114,7 +114,8 @@ static void display_verbose(void)
 	/* files contexts */
 	puts("\nFile contexts:");
 
-	cterm = ttyname(0);
+	cterm = xmalloc_ttyname(0);
+//FIXME: if cterm == NULL, we segfault!??
 	puts(cterm);
 	if (cterm && lgetfilecon(cterm, &con) >= 0) {
 		printf(COL_FMT "%s\n", "Controlling term:", con);
@@ -122,7 +123,7 @@ static void display_verbose(void)
 			freecon(con);
 	}
 
-	for (i=0; fc[i] != NULL; i++) {
+	for (i = 0; fc[i] != NULL; i++) {
 		struct stat stbuf;
 
 		if (lgetfilecon(fc[i], &con) < 0)

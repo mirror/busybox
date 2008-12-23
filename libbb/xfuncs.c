@@ -268,6 +268,17 @@ off_t FAST_FUNC fdlength(int fd)
 }
 #endif
 
+char* FAST_FUNC xmalloc_ttyname(int fd)
+{
+	char *buf = xzalloc(128);
+	int r = ttyname_r(fd, buf, 127);
+	if (r) {
+		free(buf);
+		buf = NULL;
+	}
+	return buf;
+}
+
 /* It is perfectly ok to pass in a NULL for either width or for
  * height, in which case that value will not be set.  */
 int FAST_FUNC get_terminal_width_height(int fd, unsigned *width, unsigned *height)

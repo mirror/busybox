@@ -13691,7 +13691,7 @@ int ash_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int ash_main(int argc UNUSED_PARAM, char **argv)
 {
 	char *shinit;
-	volatile int state;
+	volatile smallint state;
 	struct jmploc jmploc;
 	struct stackmark smark;
 
@@ -13714,7 +13714,7 @@ int ash_main(int argc UNUSED_PARAM, char **argv)
 	state = 0;
 	if (setjmp(jmploc.loc)) {
 		int e;
-		int s;
+		smallint s;
 
 		reset();
 
@@ -13769,7 +13769,7 @@ int ash_main(int argc UNUSED_PARAM, char **argv)
 		}
 	}
 #endif
-	if (argv[0] && argv[0][0] == '-')
+	if (/* argv[0] && */ argv[0][0] == '-')
 		isloginsh = 1;
 	if (isloginsh) {
 		state = 1;

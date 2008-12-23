@@ -25,7 +25,7 @@ int mesg_main(int argc, char **argv)
 	if (--argc == 0
 	 || (argc == 1 && ((c = **++argv) == 'y' || c == 'n'))
 	) {
-		tty = ttyname(STDERR_FILENO);
+		tty = xmalloc_ttyname(STDERR_FILENO);
 		if (tty == NULL) {
 			tty = "ttyname";
 		} else if (stat(tty, &sb) == 0) {

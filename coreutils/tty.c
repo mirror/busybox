@@ -30,7 +30,7 @@ int tty_main(int argc, char **argv SKIP_INCLUDE_SUSv2(UNUSED_PARAM))
 
 	retval = 0;
 
-	s = ttyname(0);
+	s = xmalloc_ttyname(0);
 	if (s == NULL) {
 	/* According to SUSv3, ttyname can fail with EBADF or ENOTTY.
 	 * We know the file descriptor is good, so failure means not a tty. */

@@ -1144,6 +1144,7 @@ const char *nth_string(const char *strings, int n) FAST_FUNC;
 extern void print_login_issue(const char *issue_file, const char *tty) FAST_FUNC;
 extern void print_login_prompt(void) FAST_FUNC;
 
+char *xmalloc_ttyname(int fd) FAST_FUNC;
 /* NB: typically you want to pass fd 0, not 1. Think 'applet | grep something' */
 int get_terminal_width_height(int fd, unsigned *width, unsigned *height) FAST_FUNC;
 
