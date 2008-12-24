@@ -193,7 +193,7 @@ error:
 	if (ENABLE_FEATURE_CLEAN_UP)
 		RELEASE_CONFIG_BUFFER(modname);
 	if (rc > 0 && !(option_mask32 & INSMOD_OPT_SILENT))
-		bb_error_msg("Failed to %sload module %s: %s.",
+		bb_error_msg("failed to %sload module %s: %s",
 			     (option_mask32 & MODPROBE_OPT_REMOVE) ? "un" : "",
 			     module, moderror(rc));
 	return rc;
@@ -270,7 +270,7 @@ int modprobe_main(int argc UNUSED_PARAM, char **argv)
 			    check_blacklist(conf, conf->probename)) {
 				rc = do_modprobe(conf, conf->probename);
 				if (rc < 0 && !(opt & INSMOD_OPT_SILENT))
-					bb_error_msg("Module %s not found.", arg);
+					bb_error_msg("module %s not found", arg);
 			}
 		} else {
 			/* Probe all aliases */

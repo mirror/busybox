@@ -12632,7 +12632,7 @@ static void check_mount(e2fsck_t ctx)
 	retval = ext2fs_check_if_mounted(ctx->filesystem_name,
 					 &ctx->mount_flags);
 	if (retval) {
-		bb_error_msg(_("while determining whether %s is mounted."),
+		bb_error_msg(_("while determining whether %s is mounted"),
 			ctx->filesystem_name);
 		return;
 	}
@@ -12653,7 +12653,7 @@ static void check_mount(e2fsck_t ctx)
 
 	printf(_("%s is mounted.  "), ctx->filesystem_name);
 	if (!ctx->interactive)
-		bb_error_msg_and_die(_("Cannot continue, aborting."));
+		bb_error_msg_and_die(_("cannot continue, aborting"));
 	printf(_("\n\n\007\007\007\007WARNING!!!  "
 	       "Running e2fsck on a mounted filesystem may cause\n"
 	       "SEVERE filesystem damage.\007\007\007\n\n"));
@@ -13060,7 +13060,7 @@ static errcode_t PRS(int argc, char **argv, e2fsck_t *ret_ctx)
 		case 'a':
 			if (ctx->options & (E2F_OPT_YES|E2F_OPT_NO)) {
 			conflict_opt:
-				bb_error_msg_and_die(_("Only one the options -p/-a, -n or -y may be specified."));
+				bb_error_msg_and_die(_("only one the options -p/-a, -n or -y may be specified"));
 			}
 			ctx->options |= E2F_OPT_PREEN;
 			break;
@@ -13405,7 +13405,7 @@ restart:
 #ifdef ENABLE_COMPRESSION
 	/* FIXME - do we support this at all? */
 	if (sb->s_feature_incompat & EXT2_FEATURE_INCOMPAT_COMPRESSION)
-		bb_error_msg(_("Warning: compression support is experimental."));
+		bb_error_msg(_("warning: compression support is experimental"));
 #endif
 #ifndef ENABLE_HTREE
 	if (sb->s_feature_compat & EXT2_FEATURE_COMPAT_DIR_INDEX) {

@@ -16,18 +16,10 @@
 
 #include "libbb.h"
 
-static int sysctl_read_setting(const char *setting);
-static int sysctl_write_setting(const char *setting);
+static int sysctl_act_on_setting(char *setting);
 static int sysctl_display_all(const char *path);
-static int sysctl_preload_file_and_exit(const char *filename);
+static int sysctl_handle_preload_file(const char *filename);
 static void sysctl_dots_to_slashes(char *name);
-
-static const char ETC_SYSCTL_CONF[] ALIGN1 = "/etc/sysctl.conf";
-static const char PROC_SYS[] ALIGN1 = "/proc/sys/";
-enum { strlen_PROC_SYS = sizeof(PROC_SYS) - 1 };
-
-static const char msg_unknown_key[] ALIGN1 =
-	"error: '%s' is an unknown key";
 
 static void dwrite_str(int fd, const char *buf)
 {
@@ -52,212 +44,209 @@ int sysctl_main(int argc UNUSED_PARAM, char **argv)
 	opt = getopt32(argv, "+neAapw"); /* '+' - stop on first non-option */
 	argv += optind;
 	opt ^= (FLAG_SHOW_KEYS | FLAG_SHOW_KEY_ERRORS);
-	option_mask32 ^= (FLAG_SHOW_KEYS | FLAG_SHOW_KEY_ERRORS);
+	option_mask32 = opt;
 
-	if (opt & (FLAG_TABLE_FORMAT | FLAG_SHOW_ALL))
-		return sysctl_display_all(PROC_SYS);
-	if (opt & FLAG_PRELOAD_FILE)
-		return sysctl_preload_file_and_exit(*argv ? *argv : ETC_SYSCTL_CONF);
+	if (opt & FLAG_PRELOAD_FILE) {
+		option_mask32 |= FLAG_WRITE;
+		/* xchdir("/proc/sys") is inside */
+		return sysctl_handle_preload_file(*argv ? *argv : "/etc/sysctl.conf");
+	}
+	xchdir("/proc/sys");
+	/* xchroot(".") - if you are paranoid */
+	if (opt & (FLAG_TABLE_FORMAT | FLAG_SHOW_ALL)) {
+		return sysctl_display_all(".");
+	}
 
 	retval = 0;
 	while (*argv) {
-		if (opt & FLAG_WRITE)
-			retval |= sysctl_write_setting(*argv);
-		else
-			retval |= sysctl_read_setting(*argv);
+		sysctl_dots_to_slashes(*argv);
+		retval |= sysctl_display_all(*argv);
 		argv++;
 	}
 
 	return retval;
-} /* end sysctl_main() */
+}
 
 /* Set sysctl's from a conf file. Format example:
  * # Controls IP packet forwarding
  * net.ipv4.ip_forward = 0
  */
-static int sysctl_preload_file_and_exit(const char *filename)
+static int sysctl_handle_preload_file(const char *filename)
 {
 	char *token[2];
 	parser_t *parser;
 
 	parser = config_open(filename);
+	/* Must do it _after_ config_open(): */
+	xchdir("/proc/sys");
+	/* xchroot(".") - if you are paranoid */
+
 // TODO: ';' is comment char too
 	while (config_read(parser, token, 2, 2, "# \t=", PARSE_NORMAL)) {
-#if 0
-		char *s = xasprintf("%s=%s", token[0], token[1]);
-		sysctl_write_setting(s);
-		free(s);
-#else /* Save ~4 bytes by using parser internals */
-		sprintf(parser->line, "%s=%s", token[0], token[1]); // must have room by definition
-		sysctl_write_setting(parser->line);
-#endif
+		/* Save ~4 bytes by using parser internals */
+		/* parser->line is big enough for sprintf */
+		sprintf(parser->line, "%s=%s", token[0], token[1]);
+		sysctl_dots_to_slashes(parser->line);
+		sysctl_display_all(parser->line);
 	}
 	if (ENABLE_FEATURE_CLEAN_UP)
 		config_close(parser);
 	return 0;
-} /* end sysctl_preload_file_and_exit() */
+}
 
-static int sysctl_write_setting(const char *setting)
+static int sysctl_act_on_setting(char *setting)
 {
-	int retval;
-	const char *name;
-	const char *value;
-	const char *equals;
-	char *tmpname, *outname, *cptr;
-	int fd;
+	int fd, retval = EXIT_SUCCESS;
+	char *cptr, *outname, *value;
 
-	name = setting;
-	equals = strchr(setting, '=');
-	if (!equals) {
-		bb_error_msg("error: '%s' must be of the form name=value", setting);
-		return EXIT_FAILURE;
+	outname = xstrdup(setting);
+
+	cptr = outname;
+	while (*cptr) {
+		if (*cptr == '/')
+			*cptr = '.';
+		cptr++;
 	}
 
-	value = equals + 1;	/* point to the value in name=value */
-	if (name == equals || !*value) {
-		bb_error_msg("error: malformed setting '%s'", setting);
-		return EXIT_FAILURE;
+	if (option_mask32 & FLAG_WRITE) {
+		cptr = strchr(setting, '=');
+		if (cptr == NULL) {
+			bb_error_msg("error: '%s' must be of the form name=value",
+				outname);
+			retval = EXIT_FAILURE;
+			goto end;
+		}
+		value = cptr + 1;	/* point to the value in name=value */
+		if (setting == cptr || !*value) {
+			bb_error_msg("error: malformed setting '%s'", outname);
+			retval = EXIT_FAILURE;
+			goto end;
+		}
+		*cptr = '\0';
+		fd = open(setting, O_WRONLY|O_CREAT|O_TRUNC, 0666);
+	} else {
+		fd = open(setting, O_RDONLY);
 	}
 
-	tmpname = xasprintf("%s%.*s", PROC_SYS, (int)(equals - name), name);
-	outname = xstrdup(tmpname + strlen_PROC_SYS);
-
-	sysctl_dots_to_slashes(tmpname);
-
-	while ((cptr = strchr(outname, '/')) != NULL)
-		*cptr = '.';
-
-	fd = open(tmpname, O_WRONLY | O_CREAT | O_TRUNC, 0666);
 	if (fd < 0) {
 		switch (errno) {
 		case ENOENT:
 			if (option_mask32 & FLAG_SHOW_KEY_ERRORS)
-				bb_error_msg(msg_unknown_key, outname);
+				bb_error_msg("error: '%s' is an unknown key", outname);
 			break;
 		default:
-			bb_perror_msg("error setting key '%s'", outname);
+			bb_perror_msg("error %sing key '%s'",
+					option_mask32 & FLAG_WRITE ?
+						"sett" : "read",
+					outname);
 			break;
 		}
 		retval = EXIT_FAILURE;
-	} else {
+		goto end;
+	}
+
+	if (option_mask32 & FLAG_WRITE) {
 		dwrite_str(fd, value);
 		close(fd);
-		if (option_mask32 & FLAG_SHOW_KEYS) {
+		if (option_mask32 & FLAG_SHOW_KEYS)
 			printf("%s = ", outname);
-		}
 		puts(value);
-		retval = EXIT_SUCCESS;
-	}
-
-	free(tmpname);
-	free(outname);
-	return retval;
-} /* end sysctl_write_setting() */
-
-static int sysctl_read_setting(const char *name)
-{
-	int retval;
-	char *tmpname, *outname, *cptr;
-	char inbuf[1025];
-	FILE *fp;
-
-	if (!*name) {
-		if (option_mask32 & FLAG_SHOW_KEY_ERRORS)
-			bb_error_msg(msg_unknown_key, name);
-		return -1;
-	}
-
-	tmpname = concat_path_file(PROC_SYS, name);
-	outname = xstrdup(tmpname + strlen_PROC_SYS);
-
-	sysctl_dots_to_slashes(tmpname);
-
-	while ((cptr = strchr(outname, '/')) != NULL)
-		*cptr = '.';
-
-	fp = fopen_for_read(tmpname);
-	if (fp == NULL) {
-		switch (errno) {
-		case ENOENT:
-			if (option_mask32 & FLAG_SHOW_KEY_ERRORS)
-				bb_error_msg(msg_unknown_key, outname);
-			break;
-		default:
-			bb_perror_msg("error reading key '%s'", outname);
-			break;
-		}
-		retval = EXIT_FAILURE;
 	} else {
-		while (fgets(inbuf, sizeof(inbuf) - 1, fp)) {
-			if (option_mask32 & FLAG_SHOW_KEYS) {
-				printf("%s = ", outname);
-			}
-			fputs(inbuf, stdout);
-		}
-		fclose(fp);
-		retval = EXIT_SUCCESS;
-	}
+		char c;
 
-	free(tmpname);
+		value = cptr = xmalloc_read(fd, NULL);
+		close(fd);
+		if (value == NULL) {
+			bb_perror_msg("error reading key '%s'", outname);
+			goto end;
+		}
+
+		/* dev.cdrom.info and sunrpc.transports, for example,
+		 * are multi-line. Try "sysctl sunrpc.transports"
+		 */
+		while ((c = *cptr) != '\0') {
+			if (option_mask32 & FLAG_SHOW_KEYS)
+				printf("%s = ", outname);
+			while (1) {
+				fputc(c, stdout);
+				cptr++;
+				if (c == '\n')
+					break;
+				c = *cptr;
+				if (c == '\0')
+					break;
+			}
+		}
+		free(value);
+	}
+ end:
 	free(outname);
 	return retval;
-} /* end sysctl_read_setting() */
+}
 
 static int sysctl_display_all(const char *path)
 {
-	int retval = EXIT_SUCCESS;
-	DIR *dp;
-	struct dirent *de;
-	char *tmpdir;
-	struct stat ts;
+	DIR *dirp;
+	struct stat buf;
+	struct dirent *entry;
+	char *next;
+	int retval = 0;
 
-	dp = opendir(path);
-	if (!dp) {
-		return EXIT_FAILURE;
-	}
-	while ((de = readdir(dp)) != NULL) {
-		tmpdir = concat_subpath_file(path, de->d_name);
-		if (tmpdir == NULL)
-			continue; /* . or .. */
-		if (stat(tmpdir, &ts) != 0) {
-			bb_perror_msg(tmpdir);
-		} else if (S_ISDIR(ts.st_mode)) {
-			retval |= sysctl_display_all(tmpdir);
-		} else {
-			retval |= sysctl_read_setting(tmpdir + strlen_PROC_SYS);
+	stat(path, &buf);
+	if (S_ISDIR(buf.st_mode) && !(option_mask32 & FLAG_WRITE)) {
+		dirp = opendir(path);
+		if (dirp == NULL)
+			return -1;
+		while ((entry = readdir(dirp)) != NULL) {
+			next = concat_subpath_file(
+				path, entry->d_name);
+			if (next == NULL)
+				continue; /* d_name is "." or ".." */
+			/* if path was ".", drop "./" prefix: */
+			retval |= sysctl_display_all((next[0] == '.' && next[1] == '/') ?
+					    next + 2 : next);
+			free(next);
 		}
-		free(tmpdir);
-	} /* end while */
-	closedir(dp);
+		closedir(dirp);
+	} else {
+		char *name = xstrdup(path);
+		retval |= sysctl_act_on_setting(name);
+		free(name);
+	}
 
 	return retval;
-} /* end sysctl_display_all() */
+}
 
 static void sysctl_dots_to_slashes(char *name)
 {
 	char *cptr, *last_good, *end;
 
-	/* It can be good as-is! */
-	if (access(name, F_OK) == 0)
-		return;
-
-	/* Example from bug 3894:
+	/* Convert minimum number of '.' to '/' so that
+	 * we end up with existing file's name.
+	 *
+	 * Example from bug 3894:
 	 * net.ipv4.conf.eth0.100.mc_forwarding ->
-	 * net/ipv4/conf/eth0.100/mc_forwarding. NB:
-	 * net/ipv4/conf/eth0/mc_forwarding *also exists*,
+	 * net/ipv4/conf/eth0.100/mc_forwarding
+	 * NB: net/ipv4/conf/eth0/mc_forwarding *also exists*,
 	 * therefore we must start from the end, and if
 	 * we replaced even one . -> /, start over again,
 	 * but never replace dots before the position
-	 * where replacement occurred. */
-	end = name + strlen(name) - 1;
+	 * where last replacement occurred.
+	 */
+	end = name + strlen(name);
 	last_good = name - 1;
+	*end = '.'; /* trick the loop in trying full name too */
+
  again:
 	cptr = end;
 	while (cptr > last_good) {
 		if (*cptr == '.') {
 			*cptr = '\0';
+			//bb_error_msg("trying:'%s'", name);
 			if (access(name, F_OK) == 0) {
 				*cptr = '/';
+				*end = '\0'; /* prevent trailing '/' */
+				//bb_error_msg("replaced:'%s'", name);
 				last_good = cptr;
 				goto again;
 			}
@@ -265,4 +254,5 @@ static void sysctl_dots_to_slashes(char *name)
 		}
 		cptr--;
 	}
-} /* end sysctl_dots_to_slashes() */
+	*end = '\0';
+}
