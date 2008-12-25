@@ -37,14 +37,14 @@
 #define addgroup_trivial_usage \
        "[-g GID] " USE_FEATURE_ADDUSER_TO_GROUP("[user_name] ") "group_name"
 #define addgroup_full_usage "\n\n" \
-       "Add a group " USE_FEATURE_ADDUSER_TO_GROUP("or add an user to a group") "\n" \
+       "Add a group " USE_FEATURE_ADDUSER_TO_GROUP("or add a user to a group") "\n" \
      "\nOptions:" \
      "\n	-g GID	Group id" \
 
 #define adduser_trivial_usage \
        "[OPTIONS] user_name"
 #define adduser_full_usage "\n\n" \
-       "Add an user\n" \
+       "Add a user\n" \
      "\nOptions:" \
      "\n	-h DIR		Home directory" \
      "\n	-g GECOS	GECOS field" \
