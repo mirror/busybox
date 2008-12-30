@@ -252,14 +252,12 @@ int crond_main(int argc UNUSED_PARAM, char **argv)
 /* We set environment *before* vfork (because we want to use vfork),
  * so we cannot use setenv() - repeated calls to setenv() may leak memory!
  * Using putenv(), and freeing memory after unsetenv() won't leak */
-static void safe_setenv4(char **pvar_val, const char *var, const char *val /*, int len*/)
+static void safe_setenv(char **pvar_val, const char *var, const char *val)
 {
-	const int len = 4; /* both var names are 4 char long */
 	char *var_val = *pvar_val;
 
 	if (var_val) {
-		var_val[len] = '\0'; /* nuke '=' */
-		unsetenv(var_val);
+		bb_unsetenv(var_val);
 		free(var_val);
 	}
 	*pvar_val = xasprintf("%s=%s", var, val);
@@ -270,10 +268,10 @@ static void safe_setenv4(char **pvar_val, const char *var, const char *val /*, i
 static void SetEnv(struct passwd *pas)
 {
 #if SETENV_LEAKS
-	safe_setenv4(&env_var_user, "USER", pas->pw_name);
-	safe_setenv4(&env_var_home, "HOME", pas->pw_dir);
+	safe_setenv(&env_var_user, "USER", pas->pw_name);
+	safe_setenv(&env_var_home, "HOME", pas->pw_dir);
 	/* if we want to set user's shell instead: */
-	/*safe_setenv(env_var_user, "SHELL", pas->pw_shell, 5);*/
+	/*safe_setenv(env_var_user, "SHELL", pas->pw_shell);*/
 #else
 	xsetenv("USER", pas->pw_name);
 	xsetenv("HOME", pas->pw_dir);

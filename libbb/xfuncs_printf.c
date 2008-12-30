@@ -333,6 +333,29 @@ void FAST_FUNC xsetenv(const char *key, const char *value)
 		bb_error_msg_and_die(bb_msg_memory_exhausted);
 }
 
+/* Handles "VAR=VAL" strings, even those which are part of environ
+ * _right now_
+ */
+void FAST_FUNC bb_unsetenv(const char *var)
+{
+	char *tp = strchr(var, '=');
+
+	if (!tp) {
+		unsetenv(var);
+		return;
+	}
+
+	/* In case var was putenv'ed, we can't replace '='
+	 * with NUL and unsetenv(var) - it won't work,
+	 * env is modified by the replacement, unsetenv
+	 * sees "VAR" instead of "VAR=VAL" and does not remove it!
+	 * horror :( */
+	tp = xstrndup(var, tp - var);
+	unsetenv(tp);
+	free(tp);
+}
+
+
 // Die with an error message if we can't set gid.  (Because resource limits may
 // limit this user to a given number of processes, and if that fills up the
 // setgid() will fail and we'll _still_be_root_, which is bad.)

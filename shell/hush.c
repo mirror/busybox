@@ -730,16 +730,8 @@ static void free_strings_and_unsetenv(char **strings, int unset)
 	v = strings;
 	while (*v) {
 		if (unset) {
-			char *copy;
-			/* *strchrnul(*v, '=') = '\0'; -- BAD
-			 * In case *v was putenv'ed, we can't
-			 * unsetenv(*v) after taking out '=':
-			 * it won't work, env is modified by taking out!
-			 * horror :( */
-			copy = xstrndup(*v, strchrnul(*v, '=') - *v);
-			debug_printf_env("unsetenv '%s'\n", copy);
-			unsetenv(copy);
-			free(copy);
+			debug_printf_env("unsetenv '%s'\n", *v);
+			bb_unsetenv(*v);
 		}
 		free(*v++);
 	}
@@ -2937,7 +2929,7 @@ static void unset_local_var(const char *name)
 			 * is ro, and we cannot reach this code on the 1st pass */
 			prev->next = cur->next;
 			debug_printf_env("%s: unsetenv '%s'\n", __func__, cur->varstr);
-			unsetenv(cur->varstr);
+			bb_unsetenv(cur->varstr);
 			if (!cur->max_len)
 				free(cur->varstr);
 			free(cur);

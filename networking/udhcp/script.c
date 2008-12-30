@@ -119,7 +119,8 @@ static char *alloc_fill_opts(uint8_t *option, const struct dhcp_option *type_p, 
 		}
 		option += optlen;
 		len -= optlen;
-		if (len <= 0) break;
+		if (len <= 0)
+			break;
 		dest += sprintf(dest, " ");
 	}
 	return ret;
@@ -130,9 +131,8 @@ static char *alloc_fill_opts(uint8_t *option, const struct dhcp_option *type_p, 
 static char **fill_envp(struct dhcpMessage *packet)
 {
 	int num_options = 0;
-	int i, j;
-	char **envp;
-	char *var;
+	int i;
+	char **envp, **curr;
 	const char *opt_name;
 	uint8_t *temp;
 	char over = 0;
@@ -156,21 +156,16 @@ static char **fill_envp(struct dhcpMessage *packet)
 			num_options++;
 	}
 
-	envp = xzalloc(sizeof(char *) * (num_options + 5));
-	j = 0;
-	envp[j++] = xasprintf("interface=%s", client_config.interface);
-	var = getenv("PATH");
-	if (var)
-		envp[j++] = xasprintf("PATH=%s", var);
-	var = getenv("HOME");
-	if (var)
-		envp[j++] = xasprintf("HOME=%s", var);
+	curr = envp = xzalloc(sizeof(char *) * (num_options + 3));
+	*curr = xasprintf("interface=%s", client_config.interface);
+	putenv(*curr++);
 
 	if (packet == NULL)
 		return envp;
 
-	envp[j] = xmalloc(sizeof("ip=255.255.255.255"));
-	sprintip(envp[j++], "ip=", (uint8_t *) &packet->yiaddr);
+	*curr = xmalloc(sizeof("ip=255.255.255.255"));
+	sprintip(*curr, "ip=", (uint8_t *) &packet->yiaddr);
+	putenv(*curr++);
 
 	opt_name = dhcp_option_strings;
 	i = 0;
@@ -178,31 +173,36 @@ static char **fill_envp(struct dhcpMessage *packet)
 		temp = get_option(packet, dhcp_options[i].code);
 		if (!temp)
 			goto next;
-		envp[j++] = alloc_fill_opts(temp, &dhcp_options[i], opt_name);
+		*curr = alloc_fill_opts(temp, &dhcp_options[i], opt_name);
+		putenv(*curr++);
 
 		/* Fill in a subnet bits option for things like /24 */
 		if (dhcp_options[i].code == DHCP_SUBNET) {
 			uint32_t subnet;
 			move_from_unaligned32(subnet, temp);
-			envp[j++] = xasprintf("mask=%d", mton(subnet));
+			*curr = xasprintf("mask=%d", mton(subnet));
+			putenv(*curr++);
 		}
  next:
 		opt_name += strlen(opt_name) + 1;
 		i++;
 	}
 	if (packet->siaddr) {
-		envp[j] = xmalloc(sizeof("siaddr=255.255.255.255"));
-		sprintip(envp[j++], "siaddr=", (uint8_t *) &packet->siaddr);
+		*curr = xmalloc(sizeof("siaddr=255.255.255.255"));
+		sprintip(*curr, "siaddr=", (uint8_t *) &packet->siaddr);
+		putenv(*curr++);
 	}
 	if (!(over & FILE_FIELD) && packet->file[0]) {
 		/* watch out for invalid packets */
 		packet->file[sizeof(packet->file) - 1] = '\0';
-		envp[j++] = xasprintf("boot_file=%s", packet->file);
+		*curr = xasprintf("boot_file=%s", packet->file);
+		putenv(*curr++);
 	}
 	if (!(over & SNAME_FIELD) && packet->sname[0]) {
 		/* watch out for invalid packets */
 		packet->sname[sizeof(packet->sname) - 1] = '\0';
-		envp[j++] = xasprintf("sname=%s", packet->sname);
+		*curr = xasprintf("sname=%s", packet->sname);
+		putenv(*curr++);
 	}
 	return envp;
 }
@@ -211,29 +211,25 @@ static char **fill_envp(struct dhcpMessage *packet)
 /* Call a script with a par file and env vars */
 void FAST_FUNC udhcp_run_script(struct dhcpMessage *packet, const char *name)
 {
-	int pid;
 	char **envp, **curr;
+	char *argv[3];
 
 	if (client_config.script == NULL)
 		return;
 
-	DEBUG("vfork'ing and execle'ing %s", client_config.script);
+	DEBUG("vfork'ing and exec'ing %s", client_config.script);
 
 	envp = fill_envp(packet);
 
 	/* call script */
-// can we use wait4pid(spawn(...)) here?
-	pid = vfork();
-	if (pid < 0) return;
-	if (pid == 0) {
-		/* close fd's? */
-		/* exec script */
-		execle(client_config.script, client_config.script,
-		       name, NULL, envp);
-		bb_perror_msg_and_die("exec %s", client_config.script);
-	}
-	safe_waitpid(pid, NULL, 0);
-	for (curr = envp; *curr; curr++)
+	argv[0] = (char*) client_config.script;
+	argv[1] = (char*) name;
+	argv[2] = NULL;
+	wait4pid(spawn(argv));
+
+	for (curr = envp; *curr; curr++) {
+		bb_unsetenv(*curr);
 		free(*curr);
+	}
 	free(envp);
 }

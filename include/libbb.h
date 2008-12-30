@@ -377,6 +377,7 @@ void xsetuid(uid_t uid) FAST_FUNC;
 void xchdir(const char *path) FAST_FUNC;
 void xchroot(const char *path) FAST_FUNC;
 void xsetenv(const char *key, const char *value) FAST_FUNC;
+void bb_unsetenv(const char *key) FAST_FUNC;
 void xunlink(const char *pathname) FAST_FUNC;
 void xstat(const char *pathname, struct stat *buf) FAST_FUNC;
 int xopen(const char *pathname, int flags) FAST_FUNC FAST_FUNC;
