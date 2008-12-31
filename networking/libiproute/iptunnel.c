@@ -6,7 +6,6 @@
  *
  * Authors:	Alexey Kuznetsov, <kuznet@ms2.inr.ac.ru>
  *
- *
  * Changes:
  *
  * Rani Assaf <rani@magic.metawire.com> 980929:	resolve addresses
@@ -18,10 +17,52 @@
 #include <net/if.h>
 #include <net/if_arp.h>
 #include <asm/types.h>
+
 #ifndef __constant_htons
 #define __constant_htons htons
 #endif
-#include <linux/if_tunnel.h>
+
+// FYI: #define SIOCDEVPRIVATE 0x89F0
+
+/* From linux/if_tunnel.h. #including it proved troublesome
+ * (redefiniton errors due to name collisions in linux/ and net[inet]/) */
+#define SIOCGETTUNNEL   (SIOCDEVPRIVATE + 0)
+#define SIOCADDTUNNEL   (SIOCDEVPRIVATE + 1)
+#define SIOCDELTUNNEL   (SIOCDEVPRIVATE + 2)
+#define SIOCCHGTUNNEL   (SIOCDEVPRIVATE + 3)
+//#define SIOCGETPRL      (SIOCDEVPRIVATE + 4)
+//#define SIOCADDPRL      (SIOCDEVPRIVATE + 5)
+//#define SIOCDELPRL      (SIOCDEVPRIVATE + 6)
+//#define SIOCCHGPRL      (SIOCDEVPRIVATE + 7)
+#define GRE_CSUM        __constant_htons(0x8000)
+//#define GRE_ROUTING     __constant_htons(0x4000)
+#define GRE_KEY         __constant_htons(0x2000)
+#define GRE_SEQ         __constant_htons(0x1000)
+//#define GRE_STRICT      __constant_htons(0x0800)
+//#define GRE_REC         __constant_htons(0x0700)
+//#define GRE_FLAGS       __constant_htons(0x00F8)
+//#define GRE_VERSION     __constant_htons(0x0007)
+struct ip_tunnel_parm {
+	char            name[IFNAMSIZ];
+	int             link;
+	uint16_t        i_flags;
+	uint16_t        o_flags;
+	uint32_t        i_key;
+	uint32_t        o_key;
+	struct iphdr    iph;
+};
+/* SIT-mode i_flags */
+//#define SIT_ISATAP 0x0001
+//struct ip_tunnel_prl {
+//	uint32_t          addr;
+//	uint16_t          flags;
+//	uint16_t          __reserved;
+//	uint32_t          datalen;
+//	uint32_t          __reserved2;
+//	/* data follows */
+//};
+///* PRL flags */
+//#define PRL_DEFAULT 0x0001
 
 #include "ip_common.h"  /* #include "libbb.h" is inside */
 #include "rt_names.h"
