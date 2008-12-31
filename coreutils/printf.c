@@ -359,8 +359,15 @@ int printf_main(int argc UNUSED_PARAM, char **argv)
 	 * We will mimic coreutils. */
 	if (argv[1] && argv[1][0] == '-' && argv[1][1] == '-' && !argv[1][2])
 		argv++;
-	if (!argv[1])
+	if (!argv[1]) {
+		if (ENABLE_ASH_BUILTIN_PRINTF
+		 && applet_name[0] != 'p'
+		) {
+			bb_error_msg("usage: printf FORMAT [ARGUMENT...]");
+			return 2; /* bash compat */
+		}
 		bb_show_usage();
+	}
 
 	format = argv[1];
 	argv2 = argv + 2;

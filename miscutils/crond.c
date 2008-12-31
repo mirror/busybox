@@ -779,6 +779,8 @@ ForkJob(const char *user, CronLine *line, int mailFd,
 			xmove_fd(mailFd, mail_filename ? 1 : 0);
 			dup2(1, 2);
 		}
+		/* crond 3.0pl1-100 puts tasks in separate process groups */
+		bb_setpgrp();
 		execlp(prog, prog, cmd, arg, NULL);
 		crondlog(ERR20 "can't exec, user %s cmd %s %s %s", user, prog, cmd, arg);
 		if (mail_filename) {
@@ -914,6 +916,8 @@ static void RunJob(const char *user, CronLine *line)
 		if (DebugOpt) {
 			crondlog(LVL5 "child running %s", DEFAULT_SHELL);
 		}
+		/* crond 3.0pl1-100 puts tasks in separate process groups */
+		bb_setpgrp();
 		execl(DEFAULT_SHELL, DEFAULT_SHELL, "-c", line->cl_Shell, NULL);
 		crondlog(ERR20 "can't exec, user %s cmd %s %s %s", user,
 				 DEFAULT_SHELL, "-c", line->cl_Shell);

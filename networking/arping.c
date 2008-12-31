@@ -322,8 +322,7 @@ int arping_main(int argc UNUSED_PARAM, char **argv)
 		struct sockaddr_in saddr;
 		int probe_fd = xsocket(AF_INET, SOCK_DGRAM, 0);
 
-		if (setsockopt(probe_fd, SOL_SOCKET, SO_BINDTODEVICE, device, strlen(device) + 1) == -1)
-			bb_perror_msg("cannot bind to device %s", device);
+		setsockopt_bindtodevice(probe_fd, device);
 		memset(&saddr, 0, sizeof(saddr));
 		saddr.sin_family = AF_INET;
 		if (src.s_addr) {

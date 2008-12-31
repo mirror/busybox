@@ -7,6 +7,7 @@
  */
 
 #include <netinet/in.h>
+#include <net/if.h>
 #include "libbb.h"
 
 void FAST_FUNC setsockopt_reuseaddr(int fd)
@@ -17,6 +18,20 @@ int FAST_FUNC setsockopt_broadcast(int fd)
 {
 	return setsockopt(fd, SOL_SOCKET, SO_BROADCAST, &const_int_1, sizeof(const_int_1));
 }
+int FAST_FUNC setsockopt_bindtodevice(int fd, const char *iface)
+{
+	int r;
+	struct ifreq ifr;
+	strncpy(ifr.ifr_name, iface, IFNAMSIZ);
+	/* Actually, ifr_name is at offset 0, and in practice
+	 * just giving char[IFNAMSIZ] instead of struct ifreq works too.
+	 * But just in case it's not true on some obscure arch... */
+	r = setsockopt(fd, SOL_SOCKET, SO_BINDTODEVICE, &ifr, sizeof(ifr));
+	if (r)
+		bb_perror_msg("can't bind to interface %s", iface);
+	return r;
+}
+
 
 void FAST_FUNC xconnect(int s, const struct sockaddr *s_addr, socklen_t addrlen)
 {
