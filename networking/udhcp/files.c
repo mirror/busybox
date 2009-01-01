@@ -28,12 +28,7 @@ static int read_ip(const char *line, void *arg)
 
 static int read_mac(const char *line, void *arg)
 {
-	struct ether_addr *temp_ether_addr;
-
-	temp_ether_addr = ether_aton_r(line, (struct ether_addr *)arg);
-	if (temp_ether_addr == NULL)
-		return 0;
-	return 1;
+	return NULL == ether_aton_r(line, (struct ether_addr *)arg);
 }
 
 
@@ -250,23 +245,19 @@ static int read_staticlease(const char *const_line, void *arg)
 	char *line;
 	char *mac_string;
 	char *ip_string;
-	uint8_t *mac_bytes;
-	uint32_t *ip;
-
-	/* Allocate memory for addresses */
-	mac_bytes = xmalloc(sizeof(unsigned char) * 8);
-	ip = xmalloc(sizeof(uint32_t));
+	struct ether_addr mac_bytes;
+	uint32_t ip;
 
 	/* Read mac */
 	line = (char *) const_line;
-	mac_string = strtok(line, " \t");
-	read_mac(mac_string, mac_bytes);
+	mac_string = strtok_r(line, " \t", &line);
+	read_mac(mac_string, &mac_bytes);
 
 	/* Read ip */
-	ip_string = strtok(NULL, " \t");
-	read_ip(ip_string, ip);
+	ip_string = strtok_r(NULL, " \t", &line);
+	read_ip(ip_string, &ip);
 
-	addStaticLease(arg, mac_bytes, ip);
+	addStaticLease(arg, (uint8_t*) &mac_bytes, ip);
 
 	if (ENABLE_UDHCP_DEBUG) printStaticLeases(arg);
 
@@ -289,7 +280,7 @@ static const struct config_keyword keywords[] = {
 	/* Avoid "max_leases value not sane" warning by setting default
 	 * to default_end_ip - default_start_ip + 1: */
 	{"max_leases",   read_u32, &(server_config.max_leases),   "235"},
-	{"remaining",    read_yn,  &(server_config.remaining),    "yes"},
+//	{"remaining",    read_yn,  &(server_config.remaining),    "yes"},
 	{"auto_time",    read_u32, &(server_config.auto_time),    "7200"},
 	{"decline_time", read_u32, &(server_config.decline_time), "3600"},
 	{"conflict_time",read_u32, &(server_config.conflict_time),"3600"},
@@ -305,7 +296,6 @@ static const struct config_keyword keywords[] = {
 	{"sname",        read_str, &(server_config.sname),        ""},
 	{"boot_file",    read_str, &(server_config.boot_file),    ""},
 	{"static_lease", read_staticlease, &(server_config.static_leases), ""},
-	/* ADDME: static lease */
 };
 enum { KWS_WITH_DEFAULTS = ARRAY_SIZE(keywords) - 6 };
 
@@ -342,36 +332,42 @@ void FAST_FUNC read_config(const char *file)
 
 void FAST_FUNC write_leases(void)
 {
-	int fp;
+	int fd;
 	unsigned i;
-	time_t curr = time(0);
-	unsigned long tmp_time;
+	leasetime_t curr;
 
-	fp = open_or_warn(server_config.lease_file, O_WRONLY|O_CREAT|O_TRUNC);
-	if (fp < 0) {
+	fd = open_or_warn(server_config.lease_file, O_WRONLY|O_CREAT|O_TRUNC);
+	if (fd < 0)
 		return;
-	}
+
+	curr = time(NULL);
+//TODO: write out current time? Readers need to adjust .expires field
+// to account for time between file was written and when it was read back.
 
 	for (i = 0; i < server_config.max_leases; i++) {
-		if (leases[i].yiaddr != 0) {
+		leasetime_t tmp_time;
 
-			/* screw with the time in the struct, for easier writing */
-			tmp_time = leases[i].expires;
+		if (leases[i].yiaddr == 0)
+			continue;
 
-			if (server_config.remaining) {
-				if (lease_expired(&(leases[i])))
-					leases[i].expires = 0;
-				else leases[i].expires -= curr;
-			} /* else stick with the time we got */
-			leases[i].expires = htonl(leases[i].expires);
-			// FIXME: error check??
-			full_write(fp, &leases[i], sizeof(leases[i]));
+		/* screw with the time in the struct, for easier writing */
+		tmp_time = leases[i].expires;
 
-			/* then restore it when done */
-			leases[i].expires = tmp_time;
-		}
+		//if (server_config.remaining) {
+			leases[i].expires -= curr;
+			if ((signed_leasetime_t) leases[i].expires < 0)
+				leases[i].expires = 0;
+		//} /* else stick with the time we got */
+		leases[i].expires = htonl(leases[i].expires);
+
+		/* No error check. If the file gets truncated,
+		 * we lose some leases on restart. Oh well. */
+		full_write(fd, &leases[i], sizeof(leases[i]));
+
+		/* then restore it when done */
+		leases[i].expires = tmp_time;
 	}
-	close(fp);
+	close(fd);
 
 	if (server_config.notify_file) {
 // TODO: vfork-based child creation
@@ -384,26 +380,29 @@ void FAST_FUNC write_leases(void)
 
 void FAST_FUNC read_leases(const char *file)
 {
-	int fp;
+	int fd;
 	unsigned i;
+//	leasetime_t curr;
 	struct dhcpOfferedAddr lease;
 
-	fp = open_or_warn(file, O_RDONLY);
-	if (fp < 0) {
+	fd = open_or_warn(file, O_RDONLY);
+	if (fd < 0)
 		return;
-	}
 
+//	curr = time(NULL);
 	i = 0;
 	while (i < server_config.max_leases
-	 && full_read(fp, &lease, sizeof(lease)) == sizeof(lease)
+	 && full_read(fd, &lease, sizeof(lease)) == sizeof(lease)
 	) {
-		/* ADDME: is it a static lease */
+		/* ADDME: what if it matches some static lease? */
 		uint32_t y = ntohl(lease.yiaddr);
 		if (y >= server_config.start_ip && y <= server_config.end_ip) {
-			lease.expires = ntohl(lease.expires);
-			if (!server_config.remaining)
-				lease.expires -= time(NULL);
-			if (!(add_lease(lease.chaddr, lease.yiaddr, lease.expires))) {
+			leasetime_t expires = ntohl(lease.expires);
+//			if (!server_config.remaining)
+//				expires -= curr;
+			/* NB: add_lease takes "relative time", IOW,
+			 * lease duration, not lease deadline. */
+			if (!(add_lease(lease.chaddr, lease.yiaddr, expires))) {
 				bb_error_msg("too many leases while loading %s", file);
 				break;
 			}
@@ -411,5 +410,5 @@ void FAST_FUNC read_leases(const char *file)
 		}
 	}
 	DEBUG("Read %d leases", i);
-	close(fp);
+	close(fd);
 }

@@ -12,7 +12,8 @@ int dumpleases_main(int argc UNUSED_PARAM, char **argv)
 	int fd;
 	int i;
 	unsigned opt;
-	time_t expires;
+	leasetime_t expires;
+	leasetime_t curr;
 	const char *file = LEASES_FILE;
 	struct dhcpOfferedAddr lease;
 	struct in_addr addr;
@@ -38,27 +39,33 @@ int dumpleases_main(int argc UNUSED_PARAM, char **argv)
 
 	printf("Mac Address       IP-Address      Expires %s\n", (opt & OPT_a) ? "at" : "in");
 	/*     "00:00:00:00:00:00 255.255.255.255 Wed Jun 30 21:49:08 1993" */
+
+	curr = time(NULL);
 	while (full_read(fd, &lease, sizeof(lease)) == sizeof(lease)) {
-		printf(":%02x"+1, lease.chaddr[0]);
-		for (i = 1; i < 6; i++) {
-			printf(":%02x", lease.chaddr[i]);
+		const char *fmt = ":%02x" + 1;
+		for (i = 0; i < 6; i++) {
+			printf(fmt, lease.chaddr[i]);
+			fmt = ":%02x";
 		}
 		addr.s_addr = lease.yiaddr;
 		printf(" %-15s ", inet_ntoa(addr));
+		if (lease.expires == 0) {
+			puts("expired");
+			continue;
+		}
 		expires = ntohl(lease.expires);
 		if (!(opt & OPT_a)) { /* no -a */
-			if (!expires)
-				puts("expired");
-			else {
-				unsigned d, h, m;
-				d = expires / (24*60*60); expires %= (24*60*60);
-				h = expires / (60*60); expires %= (60*60);
-				m = expires / 60; expires %= 60;
-				if (d) printf("%u days ", d);
-				printf("%02u:%02u:%02u\n", h, m, (unsigned)expires);
-			}
-		} else /* -a */
-			fputs(ctime(&expires), stdout);
+			unsigned d, h, m;
+			d = expires / (24*60*60); expires %= (24*60*60);
+			h = expires / (60*60); expires %= (60*60);
+			m = expires / 60; expires %= 60;
+			if (d)
+				printf("%u days ", d);
+			printf("%02u:%02u:%02u\n", h, m, (unsigned)expires);
+		} else { /* -a */
+			time_t t = expires + curr;
+			fputs(ctime(&t), stdout);
+		}
 	}
 	/* close(fd); */
 

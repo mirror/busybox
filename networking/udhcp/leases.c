@@ -13,21 +13,23 @@
 /* Find the oldest expired lease, NULL if there are no expired leases */
 static struct dhcpOfferedAddr *oldest_expired_lease(void)
 {
-	struct dhcpOfferedAddr *oldest = NULL;
-// TODO: use monotonic_sec()
-	unsigned long oldest_lease = time(0);
+	struct dhcpOfferedAddr *oldest_lease = NULL;
+	leasetime_t oldest_time = time(NULL);
 	unsigned i;
 
-	for (i = 0; i < server_config.max_leases; i++)
-		if (oldest_lease > leases[i].expires) {
-			oldest_lease = leases[i].expires;
-			oldest = &(leases[i]);
+	/* Unexpired leases have leases[i].expires >= current time
+	 * and therefore can't ever match */
+	for (i = 0; i < server_config.max_leases; i++) {
+		if (leases[i].expires < oldest_time) {
+			oldest_time = leases[i].expires;
+			oldest_lease = &(leases[i]);
 		}
-	return oldest;
+	}
+	return oldest_lease;
 }
 
 
-/* clear every lease out that chaddr OR yiaddr matches and is nonzero */
+/* Clear every lease out that chaddr OR yiaddr matches and is nonzero */
 static void clear_lease(const uint8_t *chaddr, uint32_t yiaddr)
 {
 	unsigned i, j;
@@ -35,17 +37,18 @@ static void clear_lease(const uint8_t *chaddr, uint32_t yiaddr)
 	for (j = 0; j < 16 && !chaddr[j]; j++)
 		continue;
 
-	for (i = 0; i < server_config.max_leases; i++)
+	for (i = 0; i < server_config.max_leases; i++) {
 		if ((j != 16 && memcmp(leases[i].chaddr, chaddr, 16) == 0)
 		 || (yiaddr && leases[i].yiaddr == yiaddr)
 		) {
 			memset(&(leases[i]), 0, sizeof(leases[i]));
 		}
+	}
 }
 
 
-/* add a lease into the table, clearing out any old ones */
-struct dhcpOfferedAddr* FAST_FUNC add_lease(const uint8_t *chaddr, uint32_t yiaddr, unsigned long lease)
+/* Add a lease into the table, clearing out any old ones */
+struct dhcpOfferedAddr* FAST_FUNC add_lease(const uint8_t *chaddr, uint32_t yiaddr, leasetime_t leasetime)
 {
 	struct dhcpOfferedAddr *oldest;
 
@@ -57,17 +60,17 @@ struct dhcpOfferedAddr* FAST_FUNC add_lease(const uint8_t *chaddr, uint32_t yiad
 	if (oldest) {
 		memcpy(oldest->chaddr, chaddr, 16);
 		oldest->yiaddr = yiaddr;
-		oldest->expires = time(0) + lease;
+		oldest->expires = time(NULL) + leasetime;
 	}
 
 	return oldest;
 }
 
 
-/* true if a lease has expired */
+/* True if a lease has expired */
 int FAST_FUNC lease_expired(struct dhcpOfferedAddr *lease)
 {
-	return (lease->expires < (unsigned long) time(0));
+	return (lease->expires < (leasetime_t) time(NULL));
 }
 
 
@@ -119,33 +122,43 @@ static int nobody_responds_to_arp(uint32_t addr)
 }
 
 
-/* find an assignable address, if check_expired is true, we check all the expired leases as well.
- * Maybe this should try expired leases by age... */
-uint32_t FAST_FUNC find_address(int check_expired)
+/* Find a new usable (we think) address. */
+uint32_t FAST_FUNC find_free_or_expired_address(void)
 {
-	uint32_t addr, ret;
-	struct dhcpOfferedAddr *lease = NULL;
+	uint32_t addr;
+	struct dhcpOfferedAddr *oldest_lease = NULL;
 
 	addr = server_config.start_ip; /* addr is in host order here */
 	for (; addr <= server_config.end_ip; addr++) {
+		uint32_t net_addr;
+		struct dhcpOfferedAddr *lease;
+
 		/* ie, 192.168.55.0 */
-		if (!(addr & 0xFF))
+		if ((addr & 0xff) == 0)
 			continue;
 		/* ie, 192.168.55.255 */
-		if ((addr & 0xFF) == 0xFF)
+		if ((addr & 0xff) == 0xff)
 			continue;
-		/* Only do if it isn't assigned as a static lease */
-		ret = htonl(addr);
-		if (!reservedIp(server_config.static_leases, ret)) {
-			/* lease is not taken */
-			lease = find_lease_by_yiaddr(ret);
-			/* no lease or it expired and we are checking for expired leases */
-			if ((!lease || (check_expired && lease_expired(lease)))
-			 && nobody_responds_to_arp(ret) /* it isn't used on the network */
-			) {
-				return ret;
-			}
+		net_addr = htonl(addr);
+		/* addr has a static lease? */
+		if (reservedIp(server_config.static_leases, net_addr))
+			continue;
+
+		lease = find_lease_by_yiaddr(net_addr);
+		if (!lease) {
+			if (nobody_responds_to_arp(net_addr))
+				return net_addr;
+		} else {
+			if (!oldest_lease || lease->expires < oldest_lease->expires)
+				oldest_lease = lease;
 		}
 	}
+
+	if (oldest_lease && lease_expired(oldest_lease)
+	 && nobody_responds_to_arp(oldest_lease->yiaddr)
+	) {
+		return oldest_lease->yiaddr;
+	}
+
 	return 0;
 }

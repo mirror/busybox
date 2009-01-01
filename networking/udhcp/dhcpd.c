@@ -26,8 +26,7 @@ int udhcpd_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int udhcpd_main(int argc UNUSED_PARAM, char **argv)
 {
 	fd_set rfds;
-	struct timeval tv;
-	int server_socket = -1, bytes, retval, max_sock;
+	int server_socket = -1, retval, max_sock;
 	struct dhcpMessage packet;
 	uint8_t *state, *server_id, *requested;
 	uint32_t server_id_aligned = server_id_aligned; /* for compiler */
@@ -107,6 +106,8 @@ int udhcpd_main(int argc UNUSED_PARAM, char **argv)
 
 	timeout_end = monotonic_sec() + server_config.auto_time;
 	while (1) { /* loop until universe collapses */
+		int bytes;
+		struct timeval tv;
 
 		if (server_socket < 0) {
 			server_socket = udhcp_listen_socket(/*INADDR_ANY,*/ SERVER_PORT,
@@ -143,12 +144,15 @@ int udhcpd_main(int argc UNUSED_PARAM, char **argv)
 		case SIGTERM:
 			bb_info_msg("Received a SIGTERM");
 			goto ret0;
-		case 0: break;		/* no signal */
-		default: continue;	/* signal or error (probably EINTR) */
+		case 0:	/* no signal: read a packet */
+			break;
+		default: /* signal or error (probably EINTR): back to select */
+			continue;
 		}
 
-		bytes = udhcp_recv_kernel_packet(&packet, server_socket); /* this waits for a packet - idle */
+		bytes = udhcp_recv_kernel_packet(&packet, server_socket);
 		if (bytes < 0) {
+			/* bytes can also be -2 ("bad packet data") */
 			if (bytes == -1 && errno != EINTR) {
 				DEBUG("error on read, %s, reopening socket", strerror(errno));
 				close(server_socket);
@@ -165,7 +169,6 @@ int udhcpd_main(int argc UNUSED_PARAM, char **argv)
 
 		/* Look for a static lease */
 		static_lease_ip = getIpByMac(server_config.static_leases, &packet.chaddr);
-
 		if (static_lease_ip) {
 			bb_info_msg("Found static lease: %x", static_lease_ip);
 

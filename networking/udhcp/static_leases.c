@@ -15,69 +15,49 @@
 /* Takes the address of the pointer to the static_leases linked list,
  *   Address to a 6 byte mac address
  *   Address to a 4 byte ip address */
-int FAST_FUNC addStaticLease(struct static_lease **lease_struct, uint8_t *mac, uint32_t *ip)
+void FAST_FUNC addStaticLease(struct static_lease **lease_struct, uint8_t *mac, uint32_t ip)
 {
-	struct static_lease *cur;
 	struct static_lease *new_static_lease;
 
 	/* Build new node */
-	new_static_lease = xmalloc(sizeof(struct static_lease));
-	new_static_lease->mac = mac;
+	new_static_lease = xzalloc(sizeof(struct static_lease));
+	memcpy(new_static_lease->mac, mac, 6);
 	new_static_lease->ip = ip;
-	new_static_lease->next = NULL;
+	/*new_static_lease->next = NULL;*/
 
 	/* If it's the first node to be added... */
 	if (*lease_struct == NULL) {
 		*lease_struct = new_static_lease;
 	} else {
-		cur = *lease_struct;
-		while (cur->next) {
+		struct static_lease *cur = *lease_struct;
+		while (cur->next)
 			cur = cur->next;
-		}
-
 		cur->next = new_static_lease;
 	}
-
-	return 1;
 }
 
 /* Check to see if a mac has an associated static lease */
-uint32_t FAST_FUNC getIpByMac(struct static_lease *lease_struct, void *arg)
+uint32_t FAST_FUNC getIpByMac(struct static_lease *lease_struct, void *mac)
 {
-	uint32_t return_ip;
-	struct static_lease *cur = lease_struct;
-	uint8_t *mac = arg;
-
-	return_ip = 0;
-
-	while (cur) {
-		/* If the client has the correct mac  */
-		if (memcmp(cur->mac, mac, 6) == 0) {
-			return_ip = *(cur->ip);
-		}
-
-		cur = cur->next;
+	while (lease_struct) {
+		if (memcmp(lease_struct->mac, mac, 6) == 0)
+			return lease_struct->ip;
+		lease_struct = lease_struct->next;
 	}
 
-	return return_ip;
+	return 0;
 }
 
 /* Check to see if an ip is reserved as a static ip */
-uint32_t FAST_FUNC reservedIp(struct static_lease *lease_struct, uint32_t ip)
+int FAST_FUNC reservedIp(struct static_lease *lease_struct, uint32_t ip)
 {
-	struct static_lease *cur = lease_struct;
-
-	uint32_t return_val = 0;
-
-	while (cur) {
-		/* If the client has the correct ip  */
-		if (*cur->ip == ip)
-			return_val = 1;
-
-		cur = cur->next;
+	while (lease_struct) {
+		if (lease_struct->ip == ip)
+			return 1;
+		lease_struct = lease_struct->next;
 	}
 
-	return return_val;
+	return 0;
 }
 
 #if ENABLE_UDHCP_DEBUG
@@ -85,15 +65,14 @@ uint32_t FAST_FUNC reservedIp(struct static_lease *lease_struct, uint32_t ip)
 /* Takes the address of the pointer to the static_leases linked list */
 void FAST_FUNC printStaticLeases(struct static_lease **arg)
 {
-	/* Get a pointer to the linked list */
 	struct static_lease *cur = *arg;
 
 	while (cur) {
-		/* printf("PrintStaticLeases: Lease mac Address: %x\n", cur->mac); */
-		printf("PrintStaticLeases: Lease mac Value: %x\n", *(cur->mac));
-		/* printf("PrintStaticLeases: Lease ip Address: %x\n", cur->ip); */
-		printf("PrintStaticLeases: Lease ip Value: %x\n", *(cur->ip));
-
+		printf("PrintStaticLeases: Lease mac Value: %02x:%02x:%02x:%02x:%02x:%02x\n",
+			cur->mac[0], cur->mac[1], cur->mac[2],
+			cur->mac[3], cur->mac[4], cur->mac[5]
+		);
+		printf("PrintStaticLeases: Lease ip Value: %x\n", cur->ip);
 		cur = cur->next;
 	}
 }
