@@ -75,13 +75,13 @@ static int multiconvert(const char *arg, void *result, converter convert)
 	return 0;
 }
 
-static void FAST_FUNC conv_strtoul(const char *arg, void *result)
+static void FAST_FUNC conv_strtoull(const char *arg, void *result)
 {
-	*(unsigned long*)result = bb_strtoul(arg, NULL, 0);
+	*(unsigned long long*)result = bb_strtoull(arg, NULL, 0);
 }
-static void FAST_FUNC conv_strtol(const char *arg, void *result)
+static void FAST_FUNC conv_strtoll(const char *arg, void *result)
 {
-	*(long*)result = bb_strtol(arg, NULL, 0);
+	*(long long*)result = bb_strtoll(arg, NULL, 0);
 }
 static void FAST_FUNC conv_strtod(const char *arg, void *result)
 {
@@ -96,17 +96,17 @@ static void FAST_FUNC conv_strtod(const char *arg, void *result)
 }
 
 /* Callers should check errno to detect errors */
-static unsigned long my_xstrtoul(const char *arg)
+static unsigned long long my_xstrtoull(const char *arg)
 {
-	unsigned long result;
-	if (multiconvert(arg, &result, conv_strtoul))
+	unsigned long long result;
+	if (multiconvert(arg, &result, conv_strtoull))
 		result = 0;
 	return result;
 }
-static long my_xstrtol(const char *arg)
+static long long my_xstrtoll(const char *arg)
 {
-	long result;
-	if (multiconvert(arg, &result, conv_strtol))
+	long long result;
+	if (multiconvert(arg, &result, conv_strtoll))
 		result = 0;
 	return result;
 }
@@ -134,7 +134,7 @@ static void print_direc(char *format, unsigned fmt_length,
 		int field_width, int precision,
 		const char *argument)
 {
-	long lv;
+	long long llv;
 	double dv;
 	char saved;
 	char *have_prec, *have_width;
@@ -153,42 +153,44 @@ static void print_direc(char *format, unsigned fmt_length,
 		break;
 	case 'd':
 	case 'i':
-		lv = my_xstrtol(argument);
+		llv = my_xstrtoll(argument);
  print_long:
 		/* if (errno) return; - see comment at the top */
 		if (!have_width) {
 			if (!have_prec)
-				printf(format, lv);
+				printf(format, llv);
 			else
-				printf(format, precision, lv);
+				printf(format, precision, llv);
 		} else {
 			if (!have_prec)
-				printf(format, field_width, lv);
+				printf(format, field_width, llv);
 			else
-				printf(format, field_width, precision, lv);
+				printf(format, field_width, precision, llv);
 		}
 		break;
 	case 'o':
 	case 'u':
 	case 'x':
 	case 'X':
-		lv = my_xstrtoul(argument);
+		llv = my_xstrtoull(argument);
 		/* cheat: unsigned long and long have same width, so... */
 		goto print_long;
 	case 's':
-		/* Are char* and long the same? (true for most arches) */
-		if (sizeof(argument) == sizeof(lv)) {
-			lv = (long)(ptrdiff_t)argument;
+		/* Are char* and long long the same? */
+		if (sizeof(argument) == sizeof(llv)) {
+			llv = (long long)(ptrdiff_t)argument;
 			goto print_long;
-		} else { /* Hope compiler will optimize it out */
+		} else {
+			/* Hope compiler will optimize it out by moving call
+			 * instruction after the ifs... */
 			if (!have_width) {
 				if (!have_prec)
-					printf(format, argument);
+					printf(format, argument, /*unused:*/ argument, argument);
 				else
-					printf(format, precision, argument);
+					printf(format, precision, argument, /*unused:*/ argument);
 			} else {
 				if (!have_prec)
-					printf(format, field_width, argument);
+					printf(format, field_width, argument, /*unused:*/ argument);
 				else
 					printf(format, field_width, precision, argument);
 			}
@@ -286,38 +288,48 @@ static char **print_formatted(char *f, char **argv)
 					}
 				}
 			}
-			/* Remove size modifiers - "%Ld" would try to printf
-			 * long long, we pass long, and it spews garbage */
-			if ((*f | 0x20) == 'l' || *f == 'h' || *f == 'z') {
+
+			/* Remove "lLhz" size modifiers, repeatedly.
+			 * bash does not like "%lld", but coreutils
+			 * would happily take even "%Llllhhzhhzd"!
+			 * We will be permissive like coreutils */
+			while ((*f | 0x20) == 'l' || *f == 'h' || *f == 'z') {
 				overlapping_strcpy(f, f + 1);
 			}
-//FIXME: actually, the same happens with bare "%d":
-//it printfs an int, but we pass long!
-//What saves us is that on most arches stack slot
-//is pointer-sized -> long-sized -> ints are promoted to longs
-// for variadic functions -> printf("%d", int_v) is in reality
-// indistinqushable from printf("%d", long_v) ->
-// since printf("%d", int_v) works, printf("%d", long_v) has to work.
-//But "clean" solution would be to add "l" to d,i,o,x,X.
-//Probably makes sense to go all the way to "ll" then.
-//Coreutils support long long-sized arguments.
-
-			/* needed - try "printf %" without it */
-			if (!strchr("diouxXfeEgGcs", *f)) {
-				bb_error_msg("%s: invalid format", direc_start);
-				/* causes main() to exit with error */
-				return saved_argv - 1;
+			/* Add "ll" if integer modifier, then print */
+			{
+				static const char format_chars[] ALIGN1 = "diouxXfeEgGcs";
+				char *p = strchr(format_chars, *f);
+				/* needed - try "printf %" without it */
+				if (p == NULL) {
+					bb_error_msg("%s: invalid format", direc_start);
+					/* causes main() to exit with error */
+					return saved_argv - 1;
+				}
+				++direc_length;
+				if (p - format_chars <= 5) {
+					/* it is one of "diouxX" */
+					p = xmalloc(direc_length + 3);
+					memcpy(p, direc_start, direc_length);
+					p[direc_length + 1] = p[direc_length - 1];
+					p[direc_length - 1] = 'l';
+					p[direc_length] = 'l';
+					//bb_error_msg("<%s>", p);
+					direc_length += 2;
+					direc_start = p;
+				} else {
+					p = NULL;
+				}
+				if (*argv) {
+					print_direc(direc_start, direc_length, field_width,
+								precision, *argv);
+					++argv;
+				} else {
+					print_direc(direc_start, direc_length, field_width,
+								precision, "");
+				}
+				free(p);
 			}
-			++direc_length;
-			if (*argv) {
-				print_direc(direc_start, direc_length, field_width,
-							precision, *argv);
-				++argv;
-			} else {
-				print_direc(direc_start, direc_length, field_width,
-							precision, "");
-			}
-			/* if (errno) return saved_argv - 1; */
 			break;
 		case '\\':
 			if (*++f == 'c') {
