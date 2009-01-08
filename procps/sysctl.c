@@ -233,6 +233,12 @@ static void sysctl_dots_to_slashes(char *name)
 	 * we replaced even one . -> /, start over again,
 	 * but never replace dots before the position
 	 * where last replacement occurred.
+	 *
+	 * Another bug we later had is that
+	 * net.ipv4.conf.eth0.100
+	 * (without .mc_forwarding) was mishandled.
+	 *
+	 * To set up testing: modprobe 8021q; vconfig add eth0 100
 	 */
 	end = name + strlen(name);
 	last_good = name - 1;
@@ -245,8 +251,8 @@ static void sysctl_dots_to_slashes(char *name)
 			*cptr = '\0';
 			//bb_error_msg("trying:'%s'", name);
 			if (access(name, F_OK) == 0) {
-				*cptr = '/';
-				*end = '\0'; /* prevent trailing '/' */
+				if (cptr != end) /* prevent trailing '/' */
+					*cptr = '/';
 				//bb_error_msg("replaced:'%s'", name);
 				last_good = cptr;
 				goto again;
