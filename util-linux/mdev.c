@@ -421,7 +421,7 @@ int mdev_main(int argc UNUSED_PARAM, char **argv)
 		 * (kernel's CONFIG_SYSFS_DEPRECATED makes them real dirs,
 		 * but we can't enforce that on users) */
 		recursive_action("/sys/block",
-			ACTION_RECURSE | ACTION_FOLLOWLINKS,
+			ACTION_RECURSE | ACTION_FOLLOWLINKS | ACTION_QUIET,
 			fileAction, dirAction, temp, 0);
 		recursive_action("/sys/class",
 			ACTION_RECURSE | ACTION_FOLLOWLINKS,
