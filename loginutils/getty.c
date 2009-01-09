@@ -473,7 +473,7 @@ static char *get_logname(char *logname, unsigned size_logname,
 			case CTL('D'):
 				exit(EXIT_SUCCESS);
 			default:
-				if (!isascii(ascval) || !isprint(ascval)) {
+				if (!isprint(ascval)) {
 					/* ignore garbage characters */
 				} else if ((int)(bp - logname) >= size_logname - 1) {
 					bb_error_msg_and_die("%s: input overrun", op->tty);
