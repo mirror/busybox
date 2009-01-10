@@ -78,7 +78,7 @@ Downloading the current source code:
     http://busybox.net/developer.html
 
   The developers also have a bug and patch tracking system
-  (http://bugs.busybox.net) although posting a bug/patch to the mailing list
+  (https://bugs.busybox.net) although posting a bug/patch to the mailing list
   is generally a faster way of getting it fixed, and the complete archive of
   what happened is the subversion changelog.
 
