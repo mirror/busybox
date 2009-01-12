@@ -33,18 +33,17 @@ static void passwd_study(struct passwd *p)
 	}
 
 	/* check for a free uid (and maybe gid) */
-	while (getpwuid(p->pw_uid) || (!p->pw_gid && getgrgid(p->pw_uid)))
+	while (getpwuid(p->pw_uid) || (p->pw_gid == (gid_t)-1 && getgrgid(p->pw_uid))) {
 		p->pw_uid++;
+		if (p->pw_uid > max)
+			bb_error_msg_and_die("no free uids left");
+	}
 
-	if (!p->pw_gid) {
-		/* new gid = uid */
-		p->pw_gid = p->pw_uid;
+	if (p->pw_gid == (gid_t)-1) {
+		p->pw_gid = p->pw_uid; /* new gid = uid */
 		if (getgrnam(p->pw_name))
 			bb_error_msg_and_die("group name '%s' is in use", p->pw_name);
 	}
-
-	if (p->pw_uid > max)
-		bb_error_msg_and_die("no free uids left");
 }
 
 static void addgroup_wrapper(struct passwd *p)
@@ -90,6 +89,7 @@ int adduser_main(int argc UNUSED_PARAM, char **argv)
 	struct passwd pw;
 	const char *usegroup = NULL;
 	FILE *file;
+	int fd;
 
 #if ENABLE_FEATURE_ADDUSER_LONG_OPTIONS
 	applet_long_options = adduser_longopts;
@@ -117,7 +117,7 @@ int adduser_main(int argc UNUSED_PARAM, char **argv)
 		pw.pw_dir = xasprintf("/home/%s", argv[0]);
 	}
 	pw.pw_passwd = (char *)"x";
-	pw.pw_gid = usegroup ? xgroup2gid(usegroup) : 0; /* exits on failure */
+	pw.pw_gid = usegroup ? xgroup2gid(usegroup) : -1; /* exits on failure */
 
 	/* make sure everything is kosher and setup uid && maybe gid */
 	passwd_study(&pw);
@@ -134,17 +134,19 @@ int adduser_main(int argc UNUSED_PARAM, char **argv)
 
 #if ENABLE_FEATURE_SHADOWPASSWDS
 	/* add to shadow if necessary */
-	file = fopen_or_warn(bb_path_shadow_file, "a");
-	if (file) {
-		//fseek(file, 0, SEEK_END);
-		fprintf(file, "%s:!:%u:0:99999:7:::\n",
+	/* fopen(..., "a"); would create shadow file, which is wrong.
+	 * If shadow file doesn't exist, admin probably does not want it */
+	fd = open_or_warn(bb_path_shadow_file, O_WRONLY | O_APPEND);
+	if (fd >= 0) {
+		char *s = xasprintf("%s:!:%u:0:99999:7:::\n",
 				pw.pw_name,             /* username */
 				(unsigned)(time(NULL) / 86400) /* sp->sp_lstchg */
 				/*0,*/                  /* sp->sp_min */
 				/*99999,*/              /* sp->sp_max */
 				/*7*/                   /* sp->sp_warn */
 		);
-		fclose(file);
+		xwrite(fd, s, strlen(s));
+		close(fd);
 	}
 #endif
 
