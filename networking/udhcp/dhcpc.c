@@ -324,7 +324,8 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 	 * "continue" statements in code below jump to the top of the loop.
 	 */
 	for (;;) {
-		unsigned timestamp_before_wait;
+		/* silence "uninitialized!" warning */
+		unsigned timestamp_before_wait = timestamp_before_wait;
 
 		//bb_error_msg("sockfd:%d, listen_mode:%d", sockfd, listen_mode);
 
@@ -441,7 +442,7 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 				 * try to find DHCP server using broadcast */
 				if (timeout > 0) {
 					/* send a request packet */
-					send_renew(xid, 0 /* INADDR_ANY*/, requested_ip); /* broadcast */
+					send_renew(xid, 0 /*INADDR_ANY*/, requested_ip); /* broadcast */
 					timeout >>= 1;
 					continue;
 				}
