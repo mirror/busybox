@@ -80,7 +80,7 @@ int uname_main(int argc UNUSED_PARAM, char **argv)
 	const char *unknown_str = "unknown";
 	const char *fmt;
 	const unsigned short *delta;
-	char toprint;
+	unsigned toprint;
 
 	toprint = getopt32(argv, options);
 
