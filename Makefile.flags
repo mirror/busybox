@@ -81,6 +81,11 @@ CFLAGS_busybox += $(ARCH_PIE)
 CFLAGS += $(ARCH_FPIE)
 endif
 
+ifneq ($(CONFIG_EXTRA_CFLAGS),)
+CFLAGS += $(strip $(subst ",,$(CONFIG_EXTRA_CFLAGS)))
+#"))
+endif
+
 LDLIBS += m crypt
 
 ifeq ($(CONFIG_PAM),y)

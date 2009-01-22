@@ -411,6 +411,12 @@ config CROSS_COMPILER_PREFIX
 
 	  Native builds leave this empty.
 
+config EXTRA_CFLAGS
+	string "Additional CFLAGS"
+	default ""
+	help
+	  Additional CFLAGS to pass to the compiler verbatim.
+
 endmenu
 
 menu 'Debugging Options'
