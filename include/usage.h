@@ -4457,6 +4457,23 @@
 #define ttysize_full_usage "\n\n" \
        "Print dimension(s) of standard input's terminal, on error return 80x25"
 
+#define tunctl_trivial_usage \
+       "[-f device] ([-t name] | -d name)" USE_FEATURE_TUNCTL_UG(" [-u owner] [-g group] [-b]")
+#define tunctl_full_usage "\n\n" \
+       "Create or delete tun interfaces" \
+     "\nOptions:" \
+     "\n	-f name		tun device (/dev/net/tun)" \
+     "\n	-t name		Create iface 'name'" \
+     "\n	-d name		Delete iface 'name'" \
+USE_FEATURE_TUNCTL_UG( \
+     "\n	-u owner	Set iface owner" \
+     "\n	-g group	Set iface group" \
+     "\n	-b		Brief output" \
+)
+#define tunctl_example_usage \
+       "# tunctl\n" \
+       "# tunctl -d tun0\n"
+
 #define tune2fs_trivial_usage \
        "[-c max-mounts-count] [-e errors-behavior] [-g group] " \
        "[-i interval[d|m|w]] [-j] [-J journal-options] [-l] [-s sparse-flag] " \

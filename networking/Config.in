@@ -920,6 +920,20 @@ config TCPSVD
 	  tcpsvd listens on a TCP port and runs a program for each new
 	  connection.
 
+config TUNCTL
+	bool "tunctl"
+	default n
+	help
+	  tunctl creates or deletes tun devices.
+
+config FEATURE_TUNCTL_UG
+	bool "Support owner:group assignment"
+	default n
+	depends on TUNCTL
+	help
+	  Allow to specify owner and group of newly created interface.
+	  340 bytes of pure bloat. Say no here.
+
 config UDPSVD
 	bool "udpsvd"
 	default n
