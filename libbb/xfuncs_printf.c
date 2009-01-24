@@ -440,7 +440,7 @@ void FAST_FUNC xlisten(int s, int backlog)
 
 /* Die with an error message if sendto failed.
  * Return bytes sent otherwise  */
-ssize_t FAST_FUNC xsendto(int s, const  void *buf, size_t len, const struct sockaddr *to,
+ssize_t FAST_FUNC xsendto(int s, const void *buf, size_t len, const struct sockaddr *to,
 				socklen_t tolen)
 {
 	ssize_t ret = sendto(s, buf, len, 0, to, tolen);

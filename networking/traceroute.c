@@ -223,11 +223,10 @@
 #define IPVERSION 4
 
 #ifndef IPPROTO_ICMP
-/* Grrrr.... */
-#define IPPROTO_ICMP 1
+# define IPPROTO_ICMP 1
 #endif
 #ifndef IPPROTO_IP
-#define IPPROTO_IP 0
+# define IPPROTO_IP 0
 #endif
 
 /*
@@ -482,7 +481,6 @@ ifaddrlist(struct IFADDRLIST **ipaddrp)
 	return nipaddr;
 }
 
-
 static void
 setsin(struct sockaddr_in *addr_sin, uint32_t addr)
 {
@@ -493,7 +491,6 @@ setsin(struct sockaddr_in *addr_sin, uint32_t addr)
 	addr_sin->sin_family = AF_INET;
 	addr_sin->sin_addr.s_addr = addr;
 }
-
 
 /*
  * Return the source address for the given destination address
@@ -547,13 +544,6 @@ findsaddr(const struct sockaddr_in *to, struct sockaddr_in *from)
 	setsin(from, al->addr);
 }
 
-/*
-"Usage: %s [-dFIlnrvx] [-g gateway] [-i iface] [-f first_ttl]\n"
-"\t[-m max_ttl] [ -p port] [-q nqueries] [-s src_addr] [-t tos]\n"
-"\t[-w waittime] [-z pausemsecs] host [packetlen]"
-
-*/
-
 static int
 wait_for_reply(int sock, struct sockaddr_in *fromp)
 {
@@ -581,12 +571,12 @@ in_cksum(uint16_t *addr, int len)
 	int sum = 0;
 
 	/*
-	 *  Our algorithm is simple, using a 32 bit accumulator (sum),
-	 *  we add sequential 16 bit words to it, and at the end, fold
-	 *  back all the carry bits from the top 16 bits into the lower
-	 *  16 bits.
+	 * Our algorithm is simple, using a 32 bit accumulator (sum),
+	 * we add sequential 16 bit words to it, and at the end, fold
+	 * back all the carry bits from the top 16 bits into the lower
+	 * 16 bits.
 	 */
-	while (nleft > 1)  {
+	while (nleft > 1) {
 		sum += *w++;
 		nleft -= 2;
 	}
@@ -595,15 +585,12 @@ in_cksum(uint16_t *addr, int len)
 	if (nleft == 1)
 		sum += *(unsigned char *)w;
 
-	/*
-	 * add back carry outs from top 16 bits to low 16 bits
-	 */
+	/* add back carry outs from top 16 bits to low 16 bits */
 	sum = (sum >> 16) + (sum & 0xffff);     /* add hi 16 to low 16 */
 	sum += (sum >> 16);                     /* add carry */
 	answer = ~sum;                          /* truncate to 16 bits */
 	return answer;
 }
-
 
 static void
 send_probe(int seq, int ttl)
@@ -617,12 +604,10 @@ send_probe(int seq, int ttl)
 
 	/*
 	 * In most cases, the kernel will recalculate the ip checksum.
-	 * But we must do it anyway so that the udp checksum comes out
-	 * right.
+	 * But we must do it anyway so that the udp checksum comes out right.
 	 */
 	if (doipcksum) {
-		outip->ip_sum =
-		    in_cksum((uint16_t *)outip, sizeof(*outip) + optlen);
+		outip->ip_sum = in_cksum((uint16_t *)outip, sizeof(*outip) + optlen);
 		if (outip->ip_sum == 0)
 			outip->ip_sum = 0xffff;
 	}
@@ -645,7 +630,7 @@ send_probe(int seq, int ttl)
 		/* Always calculate checksum for icmp packets */
 		outicmp->icmp_cksum = 0;
 		outicmp->icmp_cksum = in_cksum((uint16_t *)outicmp,
-		    packlen - (sizeof(*outip) + optlen));
+					packlen - (sizeof(*outip) + optlen));
 		if (outicmp->icmp_cksum == 0)
 			outicmp->icmp_cksum = 0xffff;
 	} else
@@ -656,7 +641,7 @@ send_probe(int seq, int ttl)
 		ui = (struct udpiphdr *)outip;
 		oui = (struct udpiphdr *)&tip;
 		/* Easier to zero and put back things that are ok */
-		memset((char *)ui, 0, sizeof(ui->ui_i));
+		memset(ui, 0, sizeof(ui->ui_i));
 		ui->ui_src = oui->ui_src;
 		ui->ui_dst = oui->ui_dst;
 		ui->ui_pr = oui->ui_pr;
@@ -668,7 +653,8 @@ send_probe(int seq, int ttl)
 		*outip = tip;
 	}
 
-#if ENABLE_FEATURE_TRACEROUTE_VERBOSE
+//BUG! verbose is (x & OPT_VERBOSE), not a counter!
+#if 0 //ENABLE_FEATURE_TRACEROUTE_VERBOSE
 	/* XXX undocumented debugging hack */
 	if (verbose > 1) {
 		const uint16_t *sp;
@@ -695,15 +681,15 @@ send_probe(int seq, int ttl)
 
 #if !defined(IP_HDRINCL) && defined(IP_TTL)
 	if (setsockopt(sndsock, IPPROTO_IP, IP_TTL,
-	    (char *)&ttl, sizeof(ttl)) < 0) {
+				(char *)&ttl, sizeof(ttl)) < 0) {
 		bb_perror_msg_and_die("setsockopt ttl %d", ttl);
 	}
 #endif
 
-	cc = xsendto(sndsock, (char *)outip,
-	    packlen, (struct sockaddr *)&whereto, sizeof(whereto));
-	if (cc != packlen)  {
-		bb_info_msg("wrote %s %d chars, ret=%d", hostname, packlen, cc);
+	cc = xsendto(sndsock, outip, packlen,
+			(struct sockaddr *)&whereto, sizeof(whereto));
+	if (cc != packlen) {
+		bb_info_msg("sent %s %d octets, ret=%d", hostname, packlen, cc);
 	}
 }
 
@@ -722,7 +708,7 @@ pr_type(unsigned char t)
 	"Info Reply",   "Mask Request", "Mask Reply"
 	};
 
-	if (t > 18)
+	if (t >= ARRAY_SIZE(ttab))
 		return "OUT-OF-RANGE";
 
 	return ttab[t];
@@ -734,12 +720,12 @@ pr_type(unsigned char t)
 	packet_ok(buf, cc, seq)
 #endif
 static int
-packet_ok(unsigned char *buf, int cc, struct sockaddr_in *from, int seq)
+packet_ok(const unsigned char *buf, int cc, const struct sockaddr_in *from, int seq)
 {
-	struct icmp *icp;
+	const struct icmp *icp;
 	unsigned char type, code;
 	int hlen;
-	struct ip *ip;
+	const struct ip *ip;
 
 	ip = (struct ip *) buf;
 	hlen = ip->ip_hl << 2;
@@ -756,15 +742,16 @@ packet_ok(unsigned char *buf, int cc, struct sockaddr_in *from, int seq)
 	type = icp->icmp_type;
 	code = icp->icmp_code;
 	/* Path MTU Discovery (RFC1191) */
-	if (code != ICMP_UNREACH_NEEDFRAG)
-		pmtu = 0;
-	else {
+	pmtu = 0;
+	if (code == ICMP_UNREACH_NEEDFRAG)
 		pmtu = ntohs(icp->icmp_nextmtu);
-	}
-	if ((type == ICMP_TIMXCEED && code == ICMP_TIMXCEED_INTRANS) ||
-	    type == ICMP_UNREACH || type == ICMP_ECHOREPLY) {
-		struct ip *hip;
-		struct udphdr *up;
+
+	if ((type == ICMP_TIMXCEED && code == ICMP_TIMXCEED_INTRANS)
+	 || type == ICMP_UNREACH
+	 || type == ICMP_ECHOREPLY
+	) {
+		const struct ip *hip;
+		const struct udphdr *up;
 
 		hip = &icp->icmp_ip;
 		hlen = hip->ip_hl << 2;
@@ -804,8 +791,9 @@ packet_ok(unsigned char *buf, int cc, struct sockaddr_in *from, int seq)
 
 		printf("\n%d bytes from %s to "
 		       "%s: icmp type %d (%s) code %d\n",
-		    cc, inet_ntoa(from->sin_addr),
-		    inet_ntoa(ip->ip_dst), type, pr_type(type), icp->icmp_code);
+			cc, inet_ntoa(from->sin_addr),
+			inet_ntoa(ip->ip_dst),
+			type, pr_type(type), icp->icmp_code);
 		for (i = 4; i < cc; i += sizeof(*lp))
 			printf("%2d: x%8.8x\n", i, *lp++);
 	}
@@ -813,14 +801,13 @@ packet_ok(unsigned char *buf, int cc, struct sockaddr_in *from, int seq)
 	return 0;
 }
 
-
 /*
  * Construct an Internet address representation.
- * If the nflag has been supplied, give
+ * If the -n flag has been supplied, give
  * numeric value, otherwise try for symbolic name.
  */
 static void
-print_inetname(struct sockaddr_in *from)
+print_inetname(const struct sockaddr_in *from)
 {
 	const char *ina;
 
@@ -837,9 +824,9 @@ print_inetname(struct sockaddr_in *from)
 }
 
 static void
-print(unsigned char *buf, int cc, struct sockaddr_in *from)
+print(const unsigned char *buf, int cc, const struct sockaddr_in *from)
 {
-	struct ip *ip;
+	const struct ip *ip;
 	int hlen;
 
 	ip = (struct ip *) buf;
@@ -852,7 +839,6 @@ print(unsigned char *buf, int cc, struct sockaddr_in *from)
 		printf(" %d bytes to %s", cc, inet_ntoa(ip->ip_dst));
 #endif
 }
-
 
 static struct hostinfo *
 gethostinfo(const char *host)
@@ -910,15 +896,19 @@ static void
 print_delta_ms(unsigned t1p, unsigned t2p)
 {
 	unsigned tt = t2p - t1p;
-	printf("  %u.%03u ms", tt/1000, tt%1000);
+	printf("  %u.%03u ms", tt / 1000, tt % 1000);
 }
+
+/*
+"Usage: %s [-dFIlnrvx] [-g gateway] [-i iface] [-f first_ttl]\n"
+"\t[-m max_ttl] [ -p port] [-q nqueries] [-s src_addr] [-t tos]\n"
+"\t[-w waittime] [-z pausemsecs] host [packetlen]"
+*/
 
 int traceroute_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int traceroute_main(int argc, char **argv)
 {
-	int code, n;
 	unsigned char *outp;
-	uint32_t *ap;
 	struct sockaddr_in *from;
 	struct sockaddr_in *to;
 	struct hostinfo *hi;
@@ -931,7 +921,6 @@ int traceroute_main(int argc, char **argv)
 #if ENABLE_FEATURE_TRACEROUTE_SOURCE_ROUTE
 	int lsrr = 0;
 #endif
-	uint16_t off = 0;
 	struct IFADDRLIST *al;
 	char *device;
 	int max_ttl = 30;
@@ -952,7 +941,6 @@ int traceroute_main(int argc, char **argv)
 	from = (struct sockaddr_in *)&wherefrom;
 	to = (struct sockaddr_in *)&whereto;
 
-	//opterr = 0;
 #if ENABLE_FEATURE_TRACEROUTE_SOURCE_ROUTE
 	opt_complementary = "x-x:g::";
 #else
@@ -970,8 +958,6 @@ int traceroute_main(int argc, char **argv)
 #endif
 	);
 
-	if (op & OPT_DONT_FRAGMNT)
-		off = IP_DF;
 	if (op & OPT_IP_CHKSUM) {
 		doipcksum = 0;
 		bb_error_msg("warning: ip checksums disabled");
@@ -989,15 +975,15 @@ int traceroute_main(int argc, char **argv)
 		 * set the ip source address of the outbound
 		 * probe (e.g., on a multi-homed host).
 		 */
-		if (getuid())
-			bb_error_msg_and_die("-s %s: permission denied", source);
+		if (getuid() != 0)
+			bb_error_msg_and_die("you must be root to use -s");
 	}
 	if (op & OPT_WAITTIME)
 		waittime = xatou_range(waittime_str, 2, 24 * 60 * 60);
 	if (op & OPT_PAUSE_MS)
 		pausemsecs = xatou_range(pausemsecs_str, 0, 60 * 60 * 1000);
 	if (op & OPT_FIRST_TTL)
-		first_ttl = xatou_range(first_ttl_str, 1, 255);
+		first_ttl = xatou_range(first_ttl_str, 1, max_ttl);
 
 #if ENABLE_FEATURE_TRACEROUTE_SOURCE_ROUTE
 	if (source_route_list) {
@@ -1011,12 +997,6 @@ int traceroute_main(int argc, char **argv)
 	}
 #endif
 
-	if (first_ttl > max_ttl) {
-		bb_error_msg_and_die(
-		    "first ttl (%d) may not be greater than max ttl (%d)",
-		    first_ttl, max_ttl);
-	}
-
 	minpacket = sizeof(*outip) + sizeof(*outdata) + optlen;
 
 #if ENABLE_FEATURE_TRACEROUTE_USE_ICMP
@@ -1028,14 +1008,14 @@ int traceroute_main(int argc, char **argv)
 	packlen = minpacket;                    /* minimum sized packet */
 
 	/* Process destination and optional packet size */
-	switch (argc - optind) {
-
+	argv += optind;
+	argc -= optind;
+	switch (argc) {
 	case 2:
-		packlen = xatoul_range(argv[optind + 1], minpacket, maxpacket);
+		packlen = xatoul_range(argv[1], minpacket, maxpacket);
 		/* Fall through */
-
 	case 1:
-		hostname = argv[optind];
+		hostname = argv[0];
 		hi = gethostinfo(hostname);
 		setsin(to, hi->addrs[0]);
 		if (hi->n > 1)
@@ -1045,7 +1025,6 @@ int traceroute_main(int argc, char **argv)
 		hi->name = NULL;
 		freehostinfo(hi);
 		break;
-
 	default:
 		bb_show_usage();
 	}
@@ -1081,12 +1060,12 @@ int traceroute_main(int argc, char **argv)
 		optlist[1] = IPOPT_LSRR;
 		i = lsrr * sizeof(gwlist[0]);
 		optlist[2] = i + 3;
-		/* Pointer to LSRR addresses */
+		/* pointer to LSRR addresses */
 		optlist[3] = IPOPT_MINOFF;
 		memcpy(optlist + 4, gwlist, i);
 
-		if ((setsockopt(sndsock, IPPROTO_IP, IP_OPTIONS,
-		    (char *)optlist, i + sizeof(gwlist[0]))) < 0) {
+		if (setsockopt(sndsock, IPPROTO_IP, IP_OPTIONS,
+				(char *)optlist, i + sizeof(gwlist[0])) < 0) {
 			bb_perror_msg_and_die("IP_OPTIONS");
 		}
 	}
@@ -1106,7 +1085,7 @@ int traceroute_main(int argc, char **argv)
 	}
 #else
 #ifdef IP_TOS
-	if (tos_str && setsockopt(sndsock, IPPROTO_IP, IP_TOS, &tos, sizeof(tos)) < 0) {
+	if ((op & OPT_TOS) && setsockopt(sndsock, IPPROTO_IP, IP_TOS, &tos, sizeof(tos)) < 0) {
 		bb_perror_msg_and_die("setsockopt tos %d", tos);
 	}
 #endif
@@ -1127,10 +1106,11 @@ int traceroute_main(int argc, char **argv)
 	outip = xzalloc(packlen);
 
 	outip->ip_v = IPVERSION;
-	if (tos_str)
+	if (op & OPT_TOS)
 		outip->ip_tos = tos;
 	outip->ip_len = htons(packlen);
-	outip->ip_off = htons(off);
+	if (op & OPT_DONT_FRAGMNT)
+		outip->ip_off = htons(IP_DF);
 	outp = (unsigned char *)(outip + 1);
 	outip->ip_dst = to->sin_addr;
 
@@ -1153,12 +1133,11 @@ int traceroute_main(int argc, char **argv)
 		outdata = (outdata_t *)(outudp + 1);
 	}
 
-	/* Get the interface address list */
-	n = ifaddrlist(&al);
-
 	/* Look for a specific device */
 	if (op & OPT_DEVICE) {
-		for (i = n; i > 0; --i, ++al)
+		/* Get the interface address list */
+		int n = ifaddrlist(&al);
+		for (; n > 0; --n, ++al)
 			if (strcmp(device, al->device) == 0)
 				goto found_dev;
 		bb_error_msg_and_die("can't find interface %s", device);
@@ -1185,6 +1164,7 @@ int traceroute_main(int argc, char **argv)
 		 * there are more than one).
 		 */
 		if (op & OPT_DEVICE) {
+			uint32_t *ap;
 			for (i = hi->n, ap = hi->addrs; i > 0; --i, ++ap)
 				if (*ap == al->addr)
 					goto found_dev2;
@@ -1197,7 +1177,7 @@ int traceroute_main(int argc, char **argv)
 			if (hi->n > 1)
 				bb_error_msg(
 			"warning: %s has multiple addresses; using %s",
-				    source, inet_ntoa(from->sin_addr));
+					source, inet_ntoa(from->sin_addr));
 		}
 		freehostinfo(hi);
 	}
@@ -1211,7 +1191,6 @@ int traceroute_main(int argc, char **argv)
 	if (op & OPT_SOURCE)
 		printf(" from %s", source);
 	printf(", %d hops max, %d byte packets\n", max_ttl, packlen);
-	fflush(stdout);
 
 	for (ttl = first_ttl; ttl <= max_ttl; ++ttl) {
 		uint32_t lastaddr = 0;
@@ -1229,17 +1208,21 @@ int traceroute_main(int argc, char **argv)
 
 			if (sentfirst && pausemsecs > 0)
 				usleep(pausemsecs * 1000);
+			fflush(stdout);
+
 			t1 = monotonic_us();
 			send_probe(++seq, ttl);
 			++sentfirst;
+
 			while ((cc = wait_for_reply(rcvsock, from)) != 0) {
 				t2 = monotonic_us();
 				i = packet_ok(packet, cc, from, seq);
 				/* Skip short packet */
 				if (i == 0)
 					continue;
-				if (!gotlastaddr ||
-				    from->sin_addr.s_addr != lastaddr) {
+				if (!gotlastaddr
+				 || from->sin_addr.s_addr != lastaddr
+				) {
 					print(packet, cc, from);
 					lastaddr = from->sin_addr.s_addr;
 					++gotlastaddr;
@@ -1251,99 +1234,86 @@ int traceroute_main(int argc, char **argv)
 				if (i == -2) {
 					if (ip->ip_ttl <= 1)
 						printf(" !");
-					++got_there;
+					got_there = 1;
 					break;
 				}
 				/* time exceeded in transit */
 				if (i == -1)
 					break;
-				code = i - 1;
-				switch (code) {
-
+				i--;
+				switch (i) {
 				case ICMP_UNREACH_PORT:
 					if (ip->ip_ttl <= 1)
 						printf(" !");
-					++got_there;
+					got_there = 1;
 					break;
-
 				case ICMP_UNREACH_NET:
-					++unreachable;
 					printf(" !N");
+					++unreachable;
 					break;
-
 				case ICMP_UNREACH_HOST:
-					++unreachable;
 					printf(" !H");
+					++unreachable;
 					break;
-
 				case ICMP_UNREACH_PROTOCOL:
-					++got_there;
 					printf(" !P");
+					got_there = 1;
 					break;
-
 				case ICMP_UNREACH_NEEDFRAG:
-					++unreachable;
 					printf(" !F-%d", pmtu);
-					break;
-
-				case ICMP_UNREACH_SRCFAIL:
 					++unreachable;
-					printf(" !S");
 					break;
-
+				case ICMP_UNREACH_SRCFAIL:
+					printf(" !S");
+					++unreachable;
+					break;
 				case ICMP_UNREACH_FILTER_PROHIB:
 				case ICMP_UNREACH_NET_PROHIB:   /* misuse */
-					++unreachable;
 					printf(" !A");
+					++unreachable;
 					break;
-
 				case ICMP_UNREACH_HOST_PROHIB:
-					++unreachable;
 					printf(" !C");
+					++unreachable;
 					break;
-
 				case ICMP_UNREACH_HOST_PRECEDENCE:
-					++unreachable;
 					printf(" !V");
-					break;
-
-				case ICMP_UNREACH_PRECEDENCE_CUTOFF:
 					++unreachable;
-					printf(" !C");
 					break;
-
+				case ICMP_UNREACH_PRECEDENCE_CUTOFF:
+					printf(" !C");
+					++unreachable;
+					break;
 				case ICMP_UNREACH_NET_UNKNOWN:
 				case ICMP_UNREACH_HOST_UNKNOWN:
-					++unreachable;
 					printf(" !U");
-					break;
-
-				case ICMP_UNREACH_ISOLATED:
 					++unreachable;
-					printf(" !I");
 					break;
-
+				case ICMP_UNREACH_ISOLATED:
+					printf(" !I");
+					++unreachable;
+					break;
 				case ICMP_UNREACH_TOSNET:
 				case ICMP_UNREACH_TOSHOST:
-					++unreachable;
 					printf(" !T");
-					break;
-
-				default:
 					++unreachable;
-					printf(" !<%d>", code);
+					break;
+				default:
+					printf(" !<%d>", i);
+					++unreachable;
 					break;
 				}
 				break;
 			}
 			if (cc == 0)
-				printf(" *");
-			(void)fflush(stdout);
+				printf("  *");
 		}
 		bb_putchar('\n');
-		if (got_there ||
-		    (unreachable > 0 && unreachable >= nprobes - 1))
+		if (got_there
+		 || (unreachable > 0 && unreachable >= nprobes - 1)
+		) {
 			break;
+		}
 	}
 	return 0;
 }
