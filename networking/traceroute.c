@@ -652,7 +652,7 @@ int traceroute_main(int argc, char **argv)
 			bb_error_msg_and_die("you must be root to use -s");
 	}
 	if (op & OPT_WAITTIME)
-		waittime = xatou_range(waittime_str, 2, 24 * 60 * 60);
+		waittime = xatou_range(waittime_str, 1, 24 * 60 * 60);
 	if (op & OPT_PAUSE_MS)
 		pausemsecs = xatou_range(pausemsecs_str, 0, 60 * 60 * 1000);
 	if (op & OPT_FIRST_TTL)
