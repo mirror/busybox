@@ -29,4 +29,11 @@ testing "awk 'gcc build bug'" \
 	"" ""
 rm -rf awk_t1_*
 
+Q='":"'
+
+testing "awk NF in BEGIN" \
+	"awk 'BEGIN { print ${Q} NF ${Q} \$0 ${Q} \$1 ${Q} \$2 ${Q} }'" \
+	":0::::\n" \
+	"" ""
+
 exit $FAILCOUNT

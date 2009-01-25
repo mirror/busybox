@@ -366,25 +366,22 @@ static const uint32_t tokeninfo[] = {
 enum {
 	CONVFMT,    OFMT,       FS,         OFS,
 	ORS,        RS,         RT,         FILENAME,
-	SUBSEP,     ARGIND,     ARGC,       ARGV,
-	ERRNO,      FNR,
-	NR,         NF,         IGNORECASE,
-	ENVIRON,    F0,         NUM_INTERNAL_VARS
+	SUBSEP,     F0,         ARGIND,     ARGC,
+	ARGV,       ERRNO,      FNR,        NR,
+	NF,         IGNORECASE,	ENVIRON,    NUM_INTERNAL_VARS
 };
 
 static const char vNames[] ALIGN1 =
 	"CONVFMT\0" "OFMT\0"    "FS\0*"     "OFS\0"
 	"ORS\0"     "RS\0*"     "RT\0"      "FILENAME\0"
-	"SUBSEP\0"  "ARGIND\0"  "ARGC\0"    "ARGV\0"
-	"ERRNO\0"   "FNR\0"
-	"NR\0"      "NF\0*"     "IGNORECASE\0*"
-	"ENVIRON\0" "$\0*"      "\0";
+	"SUBSEP\0"  "$\0*"      "ARGIND\0"  "ARGC\0"
+	"ARGV\0"    "ERRNO\0"   "FNR\0"     "NR\0"
+	"NF\0*"     "IGNORECASE\0*" "ENVIRON\0" "\0";
 
 static const char vValues[] ALIGN1 =
 	"%.6g\0"    "%.6g\0"    " \0"       " \0"
 	"\n\0"      "\n\0"      "\0"        "\0"
-	"\034\0"
-	"\377";
+	"\034\0"    "\0"        "\377";
 
 /* hash size may grow to these values */
 #define FIRST_PRIME 61
@@ -1856,7 +1853,6 @@ static int fmt_num(char *b, int size, const char *format, double n, int int_as_i
 	return r;
 }
 
-
 /* formatted output into an allocated buffer, return ptr to buffer */
 static char *awk_printf(node *n)
 {
@@ -2866,18 +2862,18 @@ int awk_main(int argc, char **argv)
 			parse_program(s + 1);
 			free(s);
 		} while (list_f);
+		argc++;
 	} else { // no -f: take program from 1st parameter
 		if (!argc)
 			bb_show_usage();
 		g_progname = "cmd. line";
 		parse_program(*argv++);
-		argc--;
 	}
 	if (opt & 0x8) // -W
 		bb_error_msg("warning: unrecognized option '-W %s' ignored", opt_W);
 
 	/* fill in ARGV array */
-	setvar_i(intvar[ARGC], argc + 1);
+	setvar_i(intvar[ARGC], argc);
 	setari_u(intvar[ARGV], 0, "awk");
 	i = 0;
 	while (*argv)
