@@ -168,6 +168,7 @@ ifeq ($(CROSS_COMPILE),)
 CROSS_COMPILE := $(shell grep ^CONFIG_CROSS_COMPILER_PREFIX .config 2>/dev/null)
 CROSS_COMPILE := $(subst CONFIG_CROSS_COMPILER_PREFIX=,,$(CROSS_COMPILE))
 CROSS_COMPILE := $(subst ",,$(CROSS_COMPILE))
+#")
 endif
 
 # SUBARCH tells the usermode build what the underlying arch is.  That is set
