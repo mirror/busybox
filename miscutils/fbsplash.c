@@ -1,7 +1,6 @@
 /* vi: set sw=4 ts=4: */
 /*
- * Copyright (C) 2008 Michele Sanges <michele.sanges@otomelara.it>,
- * <michele.sanges@gmail.it>
+ * Copyright (C) 2008 Michele Sanges <michele.sanges@gmail.com>
  *
  * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  *
