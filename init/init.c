@@ -64,13 +64,7 @@ static const char *log_console = VC_5;
 enum {
 	L_LOG = 0x1,
 	L_CONSOLE = 0x2,
-
-#if ENABLE_FEATURE_EXTRA_QUIET
-	MAYBE_CONSOLE = 0x0,
-#else
-	MAYBE_CONSOLE = L_CONSOLE,
-#endif
-
+	MAYBE_CONSOLE = L_CONSOLE * !ENABLE_FEATURE_EXTRA_QUIET,
 #ifndef RB_HALT_SYSTEM
 	RB_HALT_SYSTEM = 0xcdef0123, /* FIXME: this overflows enum */
 	RB_ENABLE_CAD = 0x89abcdef,
@@ -775,6 +769,8 @@ static void reload_signal(int sig UNUSED_PARAM)
 	}
 	run_actions(RESPAWN | ASKFIRST);
 }
+#else
+void reload_signal(int sig);
 #endif
 
 int init_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
@@ -901,11 +897,7 @@ int init_main(int argc UNUSED_PARAM, char **argv)
 	run_actions(ONCE);
 
 	/* Redefine SIGHUP to reread /etc/inittab */
-#if ENABLE_FEATURE_USE_INITTAB
-	signal(SIGHUP, reload_signal);
-#else
-	signal(SIGHUP, SIG_IGN);
-#endif
+	signal(SIGHUP, ENABLE_FEATURE_USE_INITTAB ? reload_signal : SIG_IGN);
 
 	/* Now run the looping stuff for the rest of forever */
 	while (1) {
