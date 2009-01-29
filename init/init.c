@@ -13,25 +13,15 @@
 #include <syslog.h>
 #include <paths.h>
 #include <sys/reboot.h>
+#include <sys/resource.h>
 
 /* Was a CONFIG_xxx option. A lot of people were building
  * not fully functional init by switching it on! */
 #define DEBUG_INIT 0
 
-#define COMMAND_SIZE 256
+#define COMMAND_SIZE      256
 #define CONSOLE_NAME_SIZE 32
-#define MAXENV	16		/* Number of env. vars */
 
-/*
- * When a file named CORE_ENABLE_FLAG_FILE exists, setrlimit is called
- * before processes are spawned to set core file size as unlimited.
- * This is for debugging only.  Don't use this is production, unless
- * you want core dumps lying about....
- */
-#define CORE_ENABLE_FLAG_FILE "/.init_enable_core"
-#include <sys/resource.h>
-
-#define INITTAB      "/etc/inittab"	/* inittab file location */
 #ifndef INIT_SCRIPT
 #define INIT_SCRIPT  "/etc/init.d/rcS"	/* Default sysinit script. */
 #endif
@@ -56,7 +46,6 @@ struct init_action {
 	char command[COMMAND_SIZE];
 };
 
-/* Static variables */
 static struct init_action *init_action_list = NULL;
 
 static const char *log_console = VC_5;
@@ -74,7 +63,6 @@ enum {
 #endif
 };
 
-/* Function prototypes */
 static void halt_reboot_pwoff(int sig) NORETURN;
 
 static void waitfor(pid_t pid)
@@ -445,9 +433,14 @@ static pid_t run(const struct init_action *a)
 			continue;
 	}
 
+	/*
+	 * When a file named /.init_enable_core exists, setrlimit is called
+	 * before processes are spawned to set core file size as unlimited.
+	 * This is for debugging only.  Don't use this is production, unless
+	 * you want core dumps lying about....
+	 */
 	if (ENABLE_FEATURE_INIT_COREDUMPS) {
-		struct stat sb;
-		if (stat(CORE_ENABLE_FLAG_FILE, &sb) == 0) {
+		if (access("/.init_enable_core", F_OK) == 0) {
 			struct rlimit limit;
 			limit.rlim_cur = RLIM_INFINITY;
 			limit.rlim_max = RLIM_INFINITY;
@@ -665,15 +658,14 @@ static void new_init_action(uint8_t action_type, const char *command, const char
  */
 static void parse_inittab(void)
 {
+#if ENABLE_FEATURE_USE_INITTAB
 	char *token[4];
-	/* order must correspond to SYSINIT..RESTART constants */
-	static const char actions[] ALIGN1 =
-		"sysinit\0""respawn\0""askfirst\0""wait\0""once\0"
-		"ctrlaltdel\0""shutdown\0""restart\0";
+	parser_t *parser = config_open2("/etc/inittab", fopen_for_read);
 
-	parser_t *parser = config_open2(INITTAB, fopen_for_read);
-	/* No inittab file -- set up some default behavior */
-	if (parser == NULL) {
+	if (parser == NULL)
+#endif
+	{
+		/* No inittab file -- set up some default behavior */
 		/* Reboot on Ctrl-Alt-Del */
 		new_init_action(CTRLALTDEL, "reboot", "");
 		/* Umount all filesystems on halt/reboot */
@@ -693,11 +685,17 @@ static void parse_inittab(void)
 		new_init_action(SYSINIT, INIT_SCRIPT, "");
 		return;
 	}
+
+#if ENABLE_FEATURE_USE_INITTAB
 	/* optional_tty:ignored_runlevel:action:command
 	 * Delims are not to be collapsed and need exactly 4 tokens
 	 */
 	while (config_read(parser, token, 4, 0, "#:",
 				PARSE_NORMAL & ~(PARSE_TRIM | PARSE_COLLAPSE))) {
+		/* order must correspond to SYSINIT..RESTART constants */
+		static const char actions[] ALIGN1 =
+			"sysinit\0""respawn\0""askfirst\0""wait\0""once\0"
+			"ctrlaltdel\0""shutdown\0""restart\0";
 		int action;
 		char *tty = token[0];
 
@@ -721,6 +719,7 @@ static void parse_inittab(void)
 				parser->lineno);
 	}
 	config_close(parser);
+#endif
 }
 
 #if ENABLE_FEATURE_USE_INITTAB
@@ -794,6 +793,10 @@ int init_main(int argc UNUSED_PARAM, char **argv)
 		}
 		/* Set up sig handlers  -- be sure to
 		 * clear all of these in run() */
+// TODO: handlers should just set a flag variable.
+// Move signal handling from handlers to main loop -
+// we have bad races otherwise.
+// E.g. parse_inittab() vs. delete_init_action()...
 		signal(SIGQUIT, exec_restart_action);
 		bb_signals(0
 			+ (1 << SIGUSR1)  /* halt */
@@ -834,9 +837,9 @@ int init_main(int argc UNUSED_PARAM, char **argv)
 	if (ENABLE_SWAPONOFF) {
 		struct sysinfo info;
 
-		if (!sysinfo(&info) &&
-			(info.mem_unit ? : 1) * (long long)info.totalram < 1024*1024)
-		{
+		if (sysinfo(&info) == 0
+		 && (info.mem_unit ? : 1) * (long long)info.totalram < 1024*1024
+		) {
 			message(L_CONSOLE, "Low memory, forcing swapon");
 			/* swapon -a requires /proc typically */
 			new_init_action(SYSINIT, "mount -t proc proc /proc", "");
@@ -877,7 +880,7 @@ int init_main(int argc UNUSED_PARAM, char **argv)
 			exit(EXIT_FAILURE);
 		}
 	}
-#endif /* CONFIG_SELINUX */
+#endif
 
 	/* Make the command line just say "init"  - thats all, nothing else */
 	strncpy(argv[0], "init", strlen(argv[0]));
