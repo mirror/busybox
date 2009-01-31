@@ -2135,7 +2135,7 @@ obj_insert_section_load_order(struct obj_file *f, struct obj_section *sec)
 	*p = sec;
 }
 
-static struct obj_section *obj_create_alloced_section(struct obj_file *f,
+static struct obj_section *helper_create_alloced_section(struct obj_file *f,
 				const char *name,
 				unsigned long align,
 				unsigned long size)
@@ -2155,8 +2155,18 @@ static struct obj_section *obj_create_alloced_section(struct obj_file *f,
 	if (size)
 		sec->contents = xzalloc(size);
 
-	obj_insert_section_load_order(f, sec);
+	return sec;
+}
 
+static struct obj_section *obj_create_alloced_section(struct obj_file *f,
+				const char *name,
+				unsigned long align,
+				unsigned long size)
+{
+	struct obj_section *sec;
+
+	sec = helper_create_alloced_section(f, name, align, size);
+	obj_insert_section_load_order(f, sec);
 	return sec;
 }
 
@@ -2165,21 +2175,9 @@ static struct obj_section *obj_create_alloced_section_first(struct obj_file *f,
 				unsigned long align,
 				unsigned long size)
 {
-	int newidx = f->header.e_shnum++;
 	struct obj_section *sec;
 
-	f->sections = xrealloc_vector(f->sections, 2, newidx);
-	f->sections[newidx] = sec = arch_new_section();
-
-	sec->header.sh_type = SHT_PROGBITS;
-	sec->header.sh_flags = SHF_WRITE | SHF_ALLOC;
-	sec->header.sh_size = size;
-	sec->header.sh_addralign = align;
-	sec->name = name;
-	sec->idx = newidx;
-	if (size)
-		sec->contents = xzalloc(size);
-
+	sec = helper_create_alloced_section(f, name, align, size);
 	sec->load_next = f->load_order;
 	f->load_order = sec;
 	if (f->load_order_search_start == &f->load_order)
@@ -2202,15 +2200,16 @@ static void *obj_extend_section(struct obj_section *sec, unsigned long more)
 /* Conditionally add the symbols from the given symbol set to the
    new module.  */
 
-static int
-add_symbols_from( struct obj_file *f,
-				 int idx, struct new_module_symbol *syms, size_t nsyms)
+static int add_symbols_from(struct obj_file *f,
+				int idx,
+				struct new_module_symbol *syms,
+				size_t nsyms)
 {
 	struct new_module_symbol *s;
 	size_t i;
 	int used = 0;
 #ifdef SYMBOL_PREFIX
-	char *name_buf = 0;
+	char *name_buf = NULL;
 	size_t name_alloced_size = 0;
 #endif
 #if ENABLE_FEATURE_CHECK_TAINTED_MODULE
@@ -2900,7 +2899,7 @@ static void obj_check_undefineds(struct obj_file *f)
 
 	for (i = 0; i < HASH_BUCKETS; ++i) {
 		struct obj_symbol *sym;
-		for (sym = f->symtab[i]; sym; sym = sym->next)
+		for (sym = f->symtab[i]; sym; sym = sym->next) {
 			if (sym->secidx == SHN_UNDEF) {
 				if (ELF_ST_BIND(sym->info) == STB_WEAK) {
 					sym->secidx = SHN_ABS;
@@ -2910,6 +2909,7 @@ static void obj_check_undefineds(struct obj_file *f)
 						bb_error_msg_and_die("unresolved symbol %s", sym->name);
 				}
 			}
+		}
 	}
 }
 
@@ -3074,7 +3074,7 @@ static int obj_relocate(struct obj_file *f, ElfW(Addr) base)
 			ElfW(Addr) value = 0;
 			struct obj_symbol *intsym = NULL;
 			unsigned long symndx;
-			ElfW(Sym) * extsym = 0;
+			ElfW(Sym) *extsym = NULL;
 			const char *errmsg;
 
 			/* Attempt to find a value to use for this relocation.  */
@@ -3634,7 +3634,8 @@ add_ksymoops_symbols(struct obj_file *f, const char *filename,
 		version = get_module_version(f, str);	/* -1 if not found */
 		name = xasprintf("%s%s_O%s_M%0*lX_V%d",
 				symprefix, m_name, absolute_filename,
-				(int)(2 * sizeof(statbuf.st_mtime)), statbuf.st_mtime,
+				(int)(2 * sizeof(statbuf.st_mtime)),
+				(long)statbuf.st_mtime,
 				version);
 		sym = obj_add_symbol(f, name, -1,
 				ELF_ST_INFO(STB_GLOBAL, STT_NOTYPE),
@@ -3645,7 +3646,6 @@ add_ksymoops_symbols(struct obj_file *f, const char *filename,
 	free(absolute_filename);
 #ifdef _NOT_SUPPORTED_
 	/* record where the persistent data is going, same address as previous symbol */
-
 	if (f->persist) {
 		name = xasprintf("%s%s_P%s",
 				symprefix, m_name, f->persist);
@@ -3656,7 +3656,6 @@ add_ksymoops_symbols(struct obj_file *f, const char *filename,
 	}
 #endif
 	/* tag the desired sections if size is non-zero */
-
 	for (i = 0; i < ARRAY_SIZE(section_names); ++i) {
 		sec = obj_find_section(f, section_names[i]);
 		if (sec && sec->header.sh_size) {
@@ -3678,11 +3677,11 @@ static void print_load_map(struct obj_file *f)
 	struct obj_section *sec;
 #if ENABLE_FEATURE_INSMOD_LOAD_MAP_FULL
 	struct obj_symbol **all, **p;
-	int i, nsyms, *loaded;
+	int i, nsyms;
+	char *loaded; /* array of booleans */
 	struct obj_symbol *sym;
 #endif
 	/* Report on the section layout.  */
-
 	printf("Sections:       Size      %-*s  Align\n",
 			(int) (2 * sizeof(void *)), "Address");
 
@@ -3704,14 +3703,12 @@ static void print_load_map(struct obj_file *f)
 	}
 #if ENABLE_FEATURE_INSMOD_LOAD_MAP_FULL
 	/* Quick reference which section indices are loaded.  */
-
 	i = f->header.e_shnum;
-	loaded = alloca(sizeof(int) * i);
+	loaded = alloca(i * sizeof(loaded[0]));
 	while (--i >= 0)
 		loaded[i] = ((f->sections[i]->header.sh_flags & SHF_ALLOC) != 0);
 
 	/* Collect the symbols we'll be listing.  */
-
 	for (nsyms = i = 0; i < HASH_BUCKETS; ++i)
 		for (sym = f->symtab[i]; sym; sym = sym->next)
 			if (sym->secidx <= SHN_HIRESERVE
@@ -3720,7 +3717,7 @@ static void print_load_map(struct obj_file *f)
 				++nsyms;
 			}
 
-	all = alloca(nsyms * sizeof(struct obj_symbol *));
+	all = alloca(nsyms * sizeof(all[0]));
 
 	for (i = 0, p = all; i < HASH_BUCKETS; ++i)
 		for (sym = f->symtab[i]; sym; sym = sym->next)
@@ -3760,7 +3757,7 @@ static void print_load_map(struct obj_file *f)
 		}
 
 		if (ELF_ST_BIND(sym->info) == STB_LOCAL)
-			type = tolower(type);
+			type |= 0x20; /* tolower. safe for '?' too */
 
 		printf("%0*lx %c %s\n", (int) (2 * sizeof(void *)), value,
 				type, sym->name);
@@ -3799,10 +3796,7 @@ int FAST_FUNC bb_init_module_24(const char *m_filename, const char *options)
 
 	f = obj_load(fp, LOADBITS);
 
-	if (get_modinfo_value(f, "kernel_version") == NULL)
-		m_has_modinfo = 0;
-	else
-		m_has_modinfo = 1;
+	m_has_modinfo = (get_modinfo_value(f, "kernel_version") != NULL);
 
 #if ENABLE_FEATURE_INSMOD_VERSION_CHECKING
 	/* Version correspondence?  */
@@ -3846,13 +3840,12 @@ int FAST_FUNC bb_init_module_24(const char *m_filename, const char *options)
 	add_kernel_symbols(f);
 
 	/* Allocate common symbols, symbol tables, and string tables.  */
-
 	new_create_this_module(f, m_name);
 	obj_check_undefineds(f);
 	obj_allocate_commons(f);
 	check_tainted_module(f, m_name);
 
-	/* done with the module name, on to the optional var=value arguments */
+	/* Done with the module name, on to the optional var=value arguments */
 	new_process_module_arguments(f, options);
 
 	arch_create_got(f);
