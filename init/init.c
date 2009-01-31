@@ -780,16 +780,16 @@ static void reload_inittab(void)
 		for (a = init_action_list; a; a = a->next)
 			if (a->pid != 0)
 				kill(a->pid, SIGTERM);
-#if CONFIG_FEATURE_KILL_DELAY
-		/* NB: parent will wait in NOMMU case */
-		if ((BB_MMU ? fork() : vfork()) == 0) { /* child */
-			sleep(CONFIG_FEATURE_KILL_DELAY);
-			for (a = init_action_list; a; a = a->next)
-				if (a->pid != 0)
-					kill(a->pid, SIGKILL);
-			_exit(EXIT_SUCCESS);
+		if (CONFIG_FEATURE_KILL_DELAY) {
+			/* NB: parent will wait in NOMMU case */
+			if ((BB_MMU ? fork() : vfork()) == 0) { /* child */
+				sleep(CONFIG_FEATURE_KILL_DELAY);
+				for (a = init_action_list; a; a = a->next)
+					if (a->pid != 0)
+						kill(a->pid, SIGKILL);
+				_exit(EXIT_SUCCESS);
+			}
 		}
-#endif
 	}
 
 	/* Remove old and unused entries */

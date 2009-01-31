@@ -646,7 +646,7 @@ static enum obj_reloc arch_apply_relocation(struct obj_file *f,
 static void arch_create_got(struct obj_file *f);
 #if ENABLE_FEATURE_CHECK_TAINTED_MODULE
 static int obj_gpl_license(struct obj_file *f, const char **license);
-#endif /* FEATURE_CHECK_TAINTED_MODULE */
+#endif
 #endif /* obj.h */
 //----------------------------------------------------------------------------
 //--------end of modutils obj.h
@@ -1687,11 +1687,11 @@ static int arch_list_add(ElfW(RelM) *rel, struct arch_list_entry **list,
 	}
 
 	if (pe == NULL) {
-		pe = xmalloc(sizeof(struct arch_list_entry));
+		pe = xzalloc(sizeof(struct arch_list_entry));
 		pe->next = *list;
 		pe->addend = rel->r_addend;
 		pe->offset = offset;
-		pe->inited = 0;
+		/*pe->inited = 0;*/
 		*list = pe;
 		return size;
 	}
@@ -2255,7 +2255,7 @@ add_symbols_from( struct obj_file *f,
 		strcpy(name_buf, SYMBOL_PREFIX);
 		strcpy(name_buf + extra - 1, name);
 		name = name_buf;
-#endif /* SYMBOL_PREFIX */
+#endif
 
 		sym = obj_find_symbol(f, name);
 		if (sym && !(ELF_ST_BIND(sym->info) == STB_LOCAL)) {
@@ -2618,7 +2618,8 @@ static void new_get_kernel_symbols(void)
 
 	/* Collect the kernel's symbols.  */
 
-	syms = xmalloc(bufsize = 16 * 1024);
+	bufsize = 16 * 1024;
+	syms = xmalloc(bufsize);
  retry_kern_sym_load:
 	if (query_module(NULL, QM_SYMBOLS, syms, bufsize, &ret)) {
 		if (errno == ENOSPC && bufsize < ret) {
@@ -2802,10 +2803,8 @@ new_init_module(const char *m_name, struct obj_file *f, unsigned long m_size)
 		module->ndeps = n_ext_modules_used;
 	}
 
-	module->init =
-		obj_symbol_final_value(f, obj_find_symbol(f, SPFX "init_module"));
-	module->cleanup =
-		obj_symbol_final_value(f, obj_find_symbol(f, SPFX "cleanup_module"));
+	module->init = obj_symbol_final_value(f, obj_find_symbol(f, SPFX "init_module"));
+	module->cleanup = obj_symbol_final_value(f, obj_find_symbol(f, SPFX "cleanup_module"));
 
 	sec = obj_find_section(f, "__ex_table");
 	if (sec) {
@@ -2863,7 +2862,7 @@ obj_string_patch(struct obj_file *f, int secidx, ElfW(Addr) offset,
 	size_t len = strlen(string) + 1;
 	char *loc;
 
-	p = xmalloc(sizeof(*p));
+	p = xzalloc(sizeof(*p));
 	p->next = f->string_patches;
 	p->reloc_secidx = secidx;
 	p->reloc_offset = offset;
@@ -2872,7 +2871,7 @@ obj_string_patch(struct obj_file *f, int secidx, ElfW(Addr) offset,
 	strsec = obj_find_section(f, ".kstrtab");
 	if (strsec == NULL) {
 		strsec = obj_create_alloced_section(f, ".kstrtab", 1, len);
-		p->string_offset = 0;
+		/*p->string_offset = 0;*/
 		loc = strsec->contents;
 	} else {
 		p->string_offset = strsec->header.sh_size;
@@ -2925,38 +2924,37 @@ static void obj_allocate_commons(struct obj_file *f)
 
 	for (i = 0; i < HASH_BUCKETS; ++i) {
 		struct obj_symbol *sym;
-		for (sym = f->symtab[i]; sym; sym = sym->next)
+		for (sym = f->symtab[i]; sym; sym = sym->next) {
 			if (sym->secidx == SHN_COMMON) {
 				/* Collect all COMMON symbols and sort them by size so as to
 				   minimize space wasted by alignment requirements.  */
-				{
-					struct common_entry **p, *n;
-					for (p = &common_head; *p; p = &(*p)->next)
-						if (sym->size <= (*p)->sym->size)
-							break;
-
-					n = alloca(sizeof(*n));
-					n->next = *p;
-					n->sym = sym;
-					*p = n;
-				}
+				struct common_entry **p, *n;
+				for (p = &common_head; *p; p = &(*p)->next)
+					if (sym->size <= (*p)->sym->size)
+						break;
+				n = alloca(sizeof(*n));
+				n->next = *p;
+				n->sym = sym;
+				*p = n;
 			}
+		}
 	}
 
 	for (i = 1; i < f->local_symtab_size; ++i) {
 		struct obj_symbol *sym = f->local_symtab[i];
 		if (sym && sym->secidx == SHN_COMMON) {
 			struct common_entry **p, *n;
-			for (p = &common_head; *p; p = &(*p)->next)
+			for (p = &common_head; *p; p = &(*p)->next) {
 				if (sym == (*p)->sym)
 					break;
-				else if (sym->size < (*p)->sym->size) {
+				if (sym->size < (*p)->sym->size) {
 					n = alloca(sizeof(*n));
 					n->next = *p;
 					n->sym = sym;
 					*p = n;
 					break;
 				}
+			}
 		}
 	}
 
@@ -3546,15 +3544,12 @@ static void check_tainted_module(struct obj_file *f, const char *m_name)
 		case 1:
 			set_tainted(fd, m_name, kernel_has_tainted, TAINT_PROPRIETORY_MODULE, "no license", "");
 			break;
-		case 2:
+		default: /* case 2: */
 			/* The module has a non-GPL license so we pretend that the
 			 * kernel always has a taint flag to get a warning even on
 			 * kernels without the proc flag.
 			 */
 			set_tainted(fd, m_name, 1, TAINT_PROPRIETORY_MODULE, "non-GPL license - ", ptr);
-			break;
-		default:
-			set_tainted(fd, m_name, 1, TAINT_PROPRIETORY_MODULE, "Unexpected return from obj_gpl_license", "");
 			break;
 	}
 
@@ -3564,9 +3559,9 @@ static void check_tainted_module(struct obj_file *f, const char *m_name)
 	if (fd >= 0)
 		close(fd);
 }
-#else /* FEATURE_CHECK_TAINTED_MODULE */
+#else /* !FEATURE_CHECK_TAINTED_MODULE */
 #define check_tainted_module(x, y) do { } while (0);
-#endif /* FEATURE_CHECK_TAINTED_MODULE */
+#endif
 
 #if ENABLE_FEATURE_INSMOD_KSYMOOPS_SYMBOLS
 /* add module source, timestamp, kernel version and a symbol for the
@@ -3581,10 +3576,10 @@ get_module_version(struct obj_file *f, char str[STRVERSIONLEN])
 {
 #if ENABLE_FEATURE_INSMOD_VERSION_CHECKING
 	return new_get_module_version(f, str);
-#else  /* FEATURE_INSMOD_VERSION_CHECKING */
+#else
 	strncpy(str, "???", sizeof(str));
 	return -1;
-#endif /* FEATURE_INSMOD_VERSION_CHECKING */
+#endif
 }
 
 /* add module source, timestamp, kernel version and a symbol for the
@@ -3609,7 +3604,7 @@ add_ksymoops_symbols(struct obj_file *f, const char *filename,
 	char *name, *absolute_filename;
 	char str[STRVERSIONLEN];
 	unsigned i;
-	int l, lm_name, lfilename, use_ksymtab, version;
+	int lm_name, lfilename, use_ksymtab, version;
 	struct stat statbuf;
 
 	/* WARNING: was using realpath, but replaced by readlink to stop using
@@ -3634,20 +3629,10 @@ add_ksymoops_symbols(struct obj_file *f, const char *filename,
 		 * is 0xffffff, decimal 16777215.  putting all three fields in
 		 * one symbol is less readable but saves kernel space.
 		 */
-		l = sizeof(symprefix) +                 /* "__insmod_" */
-			lm_name +                       /* module name */
-			2 +                             /* "_O" */
-			lfilename +                     /* object filename */
-			2 +                             /* "_M" */
-			2 * sizeof(statbuf.st_mtime) +  /* mtime in hex */
-			2 +                             /* "_V" */
-			8 +                             /* version in dec */
-			1;                              /* nul */
-		name = xmalloc(l);
 		if (stat(absolute_filename, &statbuf) != 0)
 			statbuf.st_mtime = 0;
 		version = get_module_version(f, str);	/* -1 if not found */
-		snprintf(name, l, "%s%s_O%s_M%0*lX_V%d",
+		name = xasprintf("%s%s_O%s_M%0*lX_V%d",
 				symprefix, m_name, absolute_filename,
 				(int)(2 * sizeof(statbuf.st_mtime)), statbuf.st_mtime,
 				version);
@@ -3662,34 +3647,20 @@ add_ksymoops_symbols(struct obj_file *f, const char *filename,
 	/* record where the persistent data is going, same address as previous symbol */
 
 	if (f->persist) {
-		l = sizeof(symprefix) +         /* "__insmod_" */
-			lm_name +               /* module name */
-			2 +                     /* "_P" */
-			strlen(f->persist) +    /* data store */
-			1;                      /* nul */
-		name = xmalloc(l);
-		snprintf(name, l, "%s%s_P%s",
+		name = xasprintf("%s%s_P%s",
 				symprefix, m_name, f->persist);
 		sym = obj_add_symbol(f, name, -1, ELF_ST_INFO(STB_GLOBAL, STT_NOTYPE),
 				sec->idx, sec->header.sh_addr, 0);
 		if (use_ksymtab)
 			new_add_ksymtab(f, sym);
 	}
-#endif /* _NOT_SUPPORTED_ */
+#endif
 	/* tag the desired sections if size is non-zero */
 
 	for (i = 0; i < ARRAY_SIZE(section_names); ++i) {
 		sec = obj_find_section(f, section_names[i]);
 		if (sec && sec->header.sh_size) {
-			l = sizeof(symprefix) +         /* "__insmod_" */
-				lm_name +               /* module name */
-				2 +                     /* "_S" */
-				strlen(sec->name) +     /* section name */
-				2 +                     /* "_L" */
-				8 +                     /* length in dec */
-				1;                      /* nul */
-			name = xmalloc(l);
-			snprintf(name, l, "%s%s_S%s_L%ld",
+			name = xasprintf("%s%s_S%s_L%ld",
 					symprefix, m_name, sec->name,
 					(long)sec->header.sh_size);
 			sym = obj_add_symbol(f, name, -1, ELF_ST_INFO(STB_GLOBAL, STT_NOTYPE),
@@ -3855,7 +3826,7 @@ int FAST_FUNC bb_init_module_24(const char *m_filename, const char *options)
 		}
 	}
 	k_crcs = 0;
-#endif /* FEATURE_INSMOD_VERSION_CHECKING */
+#endif
 
 	if (query_module(NULL, 0, NULL, 0, NULL))
 		bb_error_msg_and_die("not configured to support old kernels");
@@ -3869,7 +3840,7 @@ int FAST_FUNC bb_init_module_24(const char *m_filename, const char *options)
 
 	if (m_crcs != k_crcs)
 		obj_set_symbol_compare(f, ncv_strcmp, ncv_symbol_hash);
-#endif /* FEATURE_INSMOD_VERSION_CHECKING */
+#endif
 
 	/* Let the module know about the kernel symbols.  */
 	add_kernel_symbols(f);
@@ -3889,7 +3860,7 @@ int FAST_FUNC bb_init_module_24(const char *m_filename, const char *options)
 
 #if ENABLE_FEATURE_INSMOD_KSYMOOPS_SYMBOLS
 	add_ksymoops_symbols(f, m_filename, m_name);
-#endif /* FEATURE_INSMOD_KSYMOOPS_SYMBOLS */
+#endif
 
 	new_create_module_ksymtab(f);
 

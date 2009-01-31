@@ -5,20 +5,6 @@
 
 menu "Linux Module Utilities"
 
-config DEFAULT_MODULES_DIR
-	string "Default directory containing modules"
-	default "/lib/modules"
-	help
-	  Directory that contains kernel modules.
-	  Defaults to "/lib/modules"
-
-config DEFAULT_DEPMOD_FILE
-	string "Default name of modules.dep"
-	default "modules.dep"
-	help
-	  Filename that contains kernel modules dependencies.
-	  Defaults to "modules.dep"
-
 config MODPROBE_SMALL
 	bool "Simplified modutils"
 	default n
@@ -193,7 +179,7 @@ config FEATURE_INSMOD_LOAD_MAP_FULL
 config FEATURE_CHECK_TAINTED_MODULE
 	bool "Support tainted module checking with new kernels"
 	default y
-	depends on !MODPROBE_SMALL
+	depends on (LSMOD || FEATURE_2_4_MODULES) && !MODPROBE_SMALL
 	help
 	  Support checking for tainted modules. These are usually binary
 	  only modules that will make the linux-kernel list ignore your
@@ -226,5 +212,21 @@ config FEATURE_MODUTILS_SYMBOLS
 	    alias symbol:usb_sg_init usbcore
 
 	  Say Y if unsure.
+
+config DEFAULT_MODULES_DIR
+	string "Default directory containing modules"
+	default "/lib/modules"
+	depends on DEPMOD || MODPROBE || MODPROBE_SMALL
+	help
+	  Directory that contains kernel modules.
+	  Defaults to "/lib/modules"
+
+config DEFAULT_DEPMOD_FILE
+	string "Default name of modules.dep"
+	default "modules.dep"
+	depends on DEPMOD || MODPROBE || MODPROBE_SMALL
+	help
+	  Filename that contains kernel modules dependencies.
+	  Defaults to "modules.dep"
 
 endmenu
