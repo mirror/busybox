@@ -15,6 +15,7 @@
 #include <sys/reboot.h>
 #include <sys/resource.h>
 
+
 /* Was a CONFIG_xxx option. A lot of people were building
  * not fully functional init by switching it on! */
 #define DEBUG_INIT 0
@@ -22,22 +23,53 @@
 #define COMMAND_SIZE      256
 #define CONSOLE_NAME_SIZE 32
 
+/* Default sysinit script. */
 #ifndef INIT_SCRIPT
-#define INIT_SCRIPT  "/etc/init.d/rcS"	/* Default sysinit script. */
+#define INIT_SCRIPT  "/etc/init.d/rcS"
 #endif
 
-/* Allowed init action types */
+/* Each type of actions can appear many times. They will be
+ * handled in order. RESTART is an exception, only 1st is used.
+ */
+/* Start these actions first and wait for completion */
 #define SYSINIT     0x01
-#define RESPAWN     0x02
-/* like respawn, but wait for <Enter> to be pressed on tty: */
-#define ASKFIRST    0x04
-#define WAIT        0x08
-#define ONCE        0x10
+/* Start these after SYSINIT and wait for completion */
+#define WAIT        0x02
+/* Start these after WAIT and *dont* wait for completion */
+#define ONCE        0x04
+/*
+ * NB: while SYSINIT/WAIT/ONCE are being processed,
+ * SIGHUP ("reread /etc/inittab") will be ignored.
+ * Rationale: it would be ambiguous whether SYSINIT/WAIT/ONCE
+ * need to be rerun or not.
+ */
+/* Start these after ONCE are started, restart on exit */
+#define RESPAWN     0x08
+/* Like RESPAWN, but wait for <Enter> to be pressed on tty */
+#define ASKFIRST    0x10
+/*
+ * Start these on SIGINT, and wait for completion.
+ * Then go back to respawning RESPAWN and ASKFIRST actions.
+ * NB: kernel sends SIGINT to us if Ctrl-Alt-Del was pressed.
+ */
 #define CTRLALTDEL  0x20
+/*
+ * Start these before killing all processes in preparation for
+ * running RESTART actions or doing low-level halt/reboot/poweroff
+ * (initiated by SIGUSR1/SIGTERM/SIGUSR2).
+ * Wait for completion before proceeding.
+ */
 #define SHUTDOWN    0x40
+/*
+ * exec() on SIGQUIT. SHUTDOWN actions are started and waited for,
+ * then all processes are killed, then init exec's 1st RESTART action,
+ * replacing itself by it. If no RESTART action specified,
+ * SIGQUIT has no effect.
+ */
 #define RESTART     0x80
 
-/* Set up a linked list of init_actions, to be read from inittab */
+
+/* A linked list of init_actions, to be read from inittab */
 struct init_action {
 	struct init_action *next;
 	pid_t pid;
@@ -64,13 +96,6 @@ enum {
 };
 
 static void halt_reboot_pwoff(int sig) NORETURN;
-
-static void loop_forever(void) NORETURN;
-static void loop_forever(void)
-{
-	while (1)
-		sleep(1);
-}
 
 /* Print a message to the specified device.
  * "where" may be bitwise-or'd from L_LOG | L_CONSOLE
@@ -241,6 +266,7 @@ static void open_stdio_to_tty(const char* tty_name, int exit_on_failure)
 	/* empty tty_name means "use init's tty", else... */
 	if (tty_name[0]) {
 		int fd;
+
 		close(STDIN_FILENO);
 		/* fd can be only < 0 or 0: */
 		fd = device_open(tty_name, O_RDWR);
@@ -252,7 +278,8 @@ static void open_stdio_to_tty(const char* tty_name, int exit_on_failure)
 			if (DEBUG_INIT)
 				_exit(2);
 			/* NB: we don't reach this if we were called after vfork.
-			 * Thus halt_reboot_pwoff() itself need not be vfork-safe. */
+			 * Thus halt_reboot_pwoff() itself needs not be vfork-safe.
+			 */
 			halt_reboot_pwoff(SIGUSR1); /* halt the system */
 		}
 		dup2(STDIN_FILENO, STDOUT_FILENO);
@@ -313,88 +340,36 @@ static void init_exec(const char *command)
 static pid_t run(const struct init_action *a)
 {
 	pid_t pid;
-	sigset_t nmask, omask;
 
-	/* Block sigchild while forking (why?) */
-	sigemptyset(&nmask);
-	sigaddset(&nmask, SIGCHLD);
-	sigprocmask(SIG_BLOCK, &nmask, &omask);
 	if (BB_MMU && (a->action_type & ASKFIRST))
 		pid = fork();
 	else
 		pid = vfork();
-	sigprocmask(SIG_SETMASK, &omask, NULL);
-
 	if (pid < 0)
 		message(L_LOG | L_CONSOLE, "can't fork");
 	if (pid)
-		return pid;
+		return pid; /* Parent or error */
 
 	/* Child */
 
 	/* Reset signal handlers that were set by the parent process */
+//TODO: block signals across fork(), prevent them to affect child before
+//signals are reset?
 	bb_signals(0
 		+ (1 << SIGUSR1)
 		+ (1 << SIGUSR2)
-		+ (1 << SIGINT)
 		+ (1 << SIGTERM)
-		+ (1 << SIGHUP)
 		+ (1 << SIGQUIT)
-		+ (1 << SIGCONT)
-		+ (1 << SIGSTOP)
+		+ (1 << SIGINT)
+		+ (1 << SIGHUP)
 		+ (1 << SIGTSTP)
 		, SIG_DFL);
 
-	/* Create a new session and make ourself the process
-	 * group leader */
+	/* Create a new session and make ourself the process group leader */
 	setsid();
 
 	/* Open the new terminal device */
 	open_stdio_to_tty(a->terminal, 1 /* - exit if open fails */);
-
-// NB: do not enable unless you change vfork to fork above
-#ifdef BUT_RUN_ACTIONS_ALREADY_DOES_WAITING
-	/* If the init Action requires us to wait, then force the
-	 * supplied terminal to be the controlling tty. */
-	if (a->action_type & (SYSINIT | WAIT | CTRLALTDEL | SHUTDOWN | RESTART)) {
-		/* Now fork off another process to just hang around */
-		pid = fork();
-		if (pid < 0) {
-			message(L_LOG | L_CONSOLE, "can't fork");
-			_exit(EXIT_FAILURE);
-		}
-
-		if (pid > 0) {
-			/* Parent - wait till the child is done */
-			bb_signals(0
-				+ (1 << SIGINT)
-				+ (1 << SIGTSTP)
-				+ (1 << SIGQUIT)
-				, SIG_IGN);
-			signal(SIGCHLD, SIG_DFL);
-
-			waitfor(pid);
-			/* See if stealing the controlling tty back is necessary */
-			if (tcgetpgrp(0) != getpid())
-				_exit(EXIT_SUCCESS);
-
-			/* Use a temporary process to steal the controlling tty. */
-			pid = fork();
-			if (pid < 0) {
-				message(L_LOG | L_CONSOLE, "can't fork");
-				_exit(EXIT_FAILURE);
-			}
-			if (pid == 0) {
-				setsid();
-				ioctl(0, TIOCSCTTY, 1);
-				_exit(EXIT_SUCCESS);
-			}
-			waitfor(pid);
-			_exit(EXIT_SUCCESS);
-		}
-		/* Child - fall though to actually execute things */
-	}
-#endif
 
 	/* NB: on NOMMU we can't wait for input in child, so
 	 * "askfirst" will work the same as "respawn". */
@@ -449,19 +424,30 @@ static pid_t run(const struct init_action *a)
 
 static void delete_init_action(struct init_action *action)
 {
-	struct init_action *a, *b = NULL;
+	struct init_action *a, **nextp;
 
-	for (a = init_action_list; a; b = a, a = a->next) {
+	nextp = &init_action_list;
+	while ((a = *nextp) != NULL) {
 		if (a == action) {
-			if (b == NULL) {
-				init_action_list = a->next;
-			} else {
-				b->next = a->next;
-			}
+			*nextp = a->next;
 			free(a);
 			break;
 		}
+		nextp = &a->next;
 	}
+}
+
+static struct init_action *mark_terminated(int pid)
+{
+	struct init_action *a;
+
+	for (a = init_action_list; a; a = a->next) {
+		if (a->pid == pid) {
+			a->pid = 0;
+			return a;
+		}
+	}
+	return NULL;
 }
 
 static void waitfor(pid_t pid)
@@ -472,176 +458,71 @@ static void waitfor(pid_t pid)
 
 	/* Wait for any child (prevent zombies from exiting orphaned processes)
 	 * but exit the loop only when specified one has exited. */
-	while (wait(NULL) != pid)
-		continue;
+	while (1) {
+		pid_t wpid = wait(NULL);
+		mark_terminated(wpid);
+		/* Unsafe. SIGTSTP handler might have wait'ed it already */
+		/*if (wpid == pid) break;*/
+		/* More reliable */
+		if (kill(pid, 0))
+			break;
+	}
 }
 
 /* Run all commands of a particular type */
 static void run_actions(int action_type)
 {
-	struct init_action *a, *tmp;
-
-	for (a = init_action_list; a; a = tmp) {
-		tmp = a->next;
-		if (a->action_type & action_type) {
-			// Pointless: run() will error out if open of device fails.
-			///* a->terminal of "" means "init's console" */
-			//if (a->terminal[0] && access(a->terminal, R_OK | W_OK)) {
-			//	//message(L_LOG | L_CONSOLE, "Device %s cannot be opened in RW mode", a->terminal /*, strerror(errno)*/);
-			//	delete_init_action(a);
-			//} else
-			if (a->action_type & (SYSINIT | WAIT | CTRLALTDEL | SHUTDOWN | RESTART)) {
-				waitfor(run(a));
-				delete_init_action(a);
-			} else if (a->action_type & ONCE) {
-				run(a);
-				delete_init_action(a);
-			} else if (a->action_type & (RESPAWN | ASKFIRST)) {
-				/* Only run stuff with pid==0.  If they have
-				 * a pid, that means it is still running */
-				if (a->pid == 0) {
-					a->pid = run(a);
-				}
-			}
-		}
-	}
-}
-
-static void low_level_reboot(unsigned long magic)
-{
-	pid_t pid;
-	/* We have to fork here, since the kernel calls do_exit(EXIT_SUCCESS) in
-	 * linux/kernel/sys.c, which can cause the machine to panic when
-	 * the init process is killed.... */
-	pid = vfork();
-	if (pid == 0) { /* child */
-		reboot(magic);
-		_exit(EXIT_SUCCESS);
-	}
-	waitfor(pid);
-}
-
-static void kill_all_processes(void)
-{
-	/* run everything to be run at "shutdown".  This is done _prior_
-	 * to killing everything, in case people wish to use scripts to
-	 * shut things down gracefully... */
-	run_actions(SHUTDOWN);
-
-	/* first disable all our signals */
-	sigprocmask_allsigs(SIG_BLOCK);
-
-	message(L_CONSOLE | L_LOG, "The system is going down NOW!");
-
-	/* Allow Ctrl-Alt-Del to reboot system. */
-	low_level_reboot(RB_ENABLE_CAD);
-
-	/* Send signals to every process _except_ pid 1 */
-	message(L_CONSOLE | L_LOG, "Sending SIG%s to all processes", "TERM");
-	kill(-1, SIGTERM);
-	sync();
-	sleep(1);
-
-	message(L_CONSOLE | L_LOG, "Sending SIG%s to all processes", "KILL");
-	kill(-1, SIGKILL);
-	sync();
-	sleep(1);
-}
-
-static void halt_reboot_pwoff(int sig)
-{
-	const char *m = "halt";
-	int rb;
-
-	kill_all_processes();
-
-	rb = RB_HALT_SYSTEM;
-	if (sig == SIGTERM) {
-		m = "reboot";
-		rb = RB_AUTOBOOT;
-	} else if (sig == SIGUSR2) {
-		m = "poweroff";
-		rb = RB_POWER_OFF;
-	}
-	message(L_CONSOLE | L_LOG, "Requesting system %s", m);
-	/* allow time for last message to reach serial console */
-	sleep(2);
-	low_level_reboot(rb);
-	loop_forever();
-}
-
-/* Handler for QUIT - exec "restart" action,
- * else (no such action defined) do nothing */
-static void restart_handler(int sig UNUSED_PARAM)
-{
 	struct init_action *a;
 
 	for (a = init_action_list; a; a = a->next) {
-		if (a->action_type & RESTART) {
-			kill_all_processes();
+		if (!(a->action_type & action_type))
+			continue;
 
-			/* unblock all signals (blocked in kill_all_processes()) */
-			sigprocmask_allsigs(SIG_UNBLOCK);
-
-			/* Open the new terminal device */
-			open_stdio_to_tty(a->terminal, 0 /* - halt if open fails */);
-
-			messageD(L_CONSOLE | L_LOG, "Trying to re-exec %s", a->command);
-			init_exec(a->command);
-			sleep(2);
-			low_level_reboot(RB_HALT_SYSTEM);
-			loop_forever();
+		if (a->action_type & (SYSINIT | WAIT | ONCE | CTRLALTDEL | SHUTDOWN)) {
+			pid_t pid = run(a);
+			if (a->action_type & (SYSINIT | WAIT | CTRLALTDEL | SHUTDOWN))
+				waitfor(pid);
+		}
+		if (a->action_type & (RESPAWN | ASKFIRST)) {
+			/* Only run stuff with pid == 0. If pid != 0,
+			 * it is already running
+			 */
+			if (a->pid == 0)
+				a->pid = run(a);
 		}
 	}
-}
-
-static void ctrlaltdel_signal(int sig UNUSED_PARAM)
-{
-	run_actions(CTRLALTDEL);
-}
-
-/* The SIGCONT handler is set to record_signo().
- * It just sets bb_got_signal = SIGCONT.  */
-
-/* The SIGSTOP & SIGTSTP handler */
-static void stop_handler(int sig UNUSED_PARAM)
-{
-	int saved_errno = errno;
-
-	bb_got_signal = 0;
-	while (bb_got_signal == 0)
-		pause();
-
-	errno = saved_errno;
 }
 
 static void new_init_action(uint8_t action_type, const char *command, const char *cons)
 {
-	struct init_action *a, *last;
+	struct init_action *a, **nextp;
 
-// Why?
-//	if (strcmp(cons, bb_dev_null) == 0 && (action & ASKFIRST))
-//		return;
-
-	/* Append to the end of the list */
-	for (a = last = init_action_list; a; a = a->next) {
-		/* don't enter action if it's already in the list,
-		 * but do overwrite existing actions */
+//BUG
+//old:
+//::shutdown:umount -a -r
+//::shutdown:swapoff -a
+//new: swapped:
+//::shutdown:swapoff -a
+//::shutdown:umount -a -r
+//on SIGHUP, new one will be loaded, but order will be wrong.
+	nextp = &init_action_list;
+	while ((a = *nextp) != NULL) {
+		/* Don't enter action if it's already in the list,
+		 * just overwrite existing one's type.
+		 * This prevents losing running RESPAWNs.
+		 */
 		if ((strcmp(a->command, command) == 0)
 		 && (strcmp(a->terminal, cons) == 0)
 		) {
 			a->action_type = action_type;
 			return;
 		}
-		last = a;
+		nextp = &a->next;
 	}
 
+	/* Append to the end of the list */
 	a = xzalloc(sizeof(*a));
-	if (last) {
-		last->next = a;
-	} else {
-		init_action_list = a;
-	}
+	*nextp = a;
 	a->action_type = action_type;
 	safe_strncpy(a->command, command, sizeof(a->command));
 	safe_strncpy(a->terminal, cons, sizeof(a->terminal));
@@ -665,7 +546,7 @@ static void parse_inittab(void)
 	if (parser == NULL)
 #endif
 	{
-		/* No inittab file -- set up some default behavior */
+		/* No inittab file - set up some default behavior */
 		/* Reboot on Ctrl-Alt-Del */
 		new_init_action(CTRLALTDEL, "reboot", "");
 		/* Umount all filesystems on halt/reboot */
@@ -694,7 +575,7 @@ static void parse_inittab(void)
 				PARSE_NORMAL & ~(PARSE_TRIM | PARSE_COLLAPSE))) {
 		/* order must correspond to SYSINIT..RESTART constants */
 		static const char actions[] ALIGN1 =
-			"sysinit\0""respawn\0""askfirst\0""wait\0""once\0"
+			"sysinit\0""wait\0""once\0""respawn\0""askfirst\0"
 			"ctrlaltdel\0""shutdown\0""restart\0";
 		int action;
 		char *tty = token[0];
@@ -722,14 +603,172 @@ static void parse_inittab(void)
 #endif
 }
 
+static void low_level_reboot(unsigned magic) NORETURN;
+static void low_level_reboot(unsigned magic)
+{
+	pid_t pid;
+
+	/* Allow time for last message to reach serial console, etc */
+	sleep(1);
+
+	/* We have to fork here, since the kernel calls do_exit(EXIT_SUCCESS)
+	 * in linux/kernel/sys.c, which can cause the machine to panic when
+	 * the init process exits... */
+	pid = vfork();
+	if (pid == 0) { /* child */
+		reboot(magic);
+		_exit(EXIT_SUCCESS);
+	}
+	waitfor(pid);
+	while (1)
+		sleep(1);
+}
+
+static void kill_all_processes(void)
+{
+	/* Run everything to be run at "shutdown".  This is done _prior_
+	 * to killing everything, in case people wish to use scripts to
+	 * shut things down gracefully... */
+	run_actions(SHUTDOWN);
+
+	message(L_CONSOLE | L_LOG, "The system is going down NOW!");
+
+	/* Allow Ctrl-Alt-Del to reboot system. */
+	reboot(RB_ENABLE_CAD); /* misnomer */
+
+	/* Send signals to every process _except_ pid 1 */
+	message(L_CONSOLE | L_LOG, "Sending SIG%s to all processes", "TERM");
+	kill(-1, SIGTERM);
+	sync();
+	sleep(1);
+
+	message(L_CONSOLE, "Sending SIG%s to all processes", "KILL");
+	kill(-1, SIGKILL);
+	sync();
+	sleep(1);
+}
+
+/* Signal handling by init:
+ *
+ * For process with PID==1, on entry kernel sets all signals to SIG_DFL
+ * and unmasks all signals. However, for process with PID==1,
+ * default action (SIG_DFL) on any signal is to ignore it,
+ * even for special signals SIGKILL and SIGCONT.
+ * (SIGSTOP is still handled specially, at least in 2.6.20)
+ * Also, any signal can be caught or blocked.
+ *
+ * We install two kinds of handlers, "immediate" and "delayed".
+ *
+ * Immediate handlers execute at any time, even while, say, sysinit
+ * is running.
+ *
+ * Delayed handlers just set a flag variable. The variable is checked
+ * in the main loop and acted upon.
+ *
+ * halt/poweroff/reboot and restart have immediate handlers.
+ * They only traverse linked list of struct action's, never modify it,
+ * this should be safe to do even in signal handler. Also they
+ * never return.
+ *
+ * SIGSTOP and SIGTSTP have immediate handlers. They just wait
+ * for SIGCONT to happen.
+ *
+ * SIGHUP has a delayed handler, because modifying linked list
+ * of struct action's from a signal handler while it is manipulated
+ * by the program may be disastrous.
+ *
+ * Ctrl-Alt-Del has a delayed handler. Not a must, but allowing
+ * it to happen even somewhere inside "sysinit" would be a bit awkward.
+ *
+ * There is a tiny probability that SIGHUP and Ctrl-Alt-Del will collide
+ * and only one will be remebered and acted upon.
+ */
+
+static void halt_reboot_pwoff(int sig)
+{
+	const char *m;
+	unsigned rb;
+
+	kill_all_processes();
+
+	m = "halt";
+	rb = RB_HALT_SYSTEM;
+	if (sig == SIGTERM) {
+		m = "reboot";
+		rb = RB_AUTOBOOT;
+	} else if (sig == SIGUSR2) {
+		m = "poweroff";
+		rb = RB_POWER_OFF;
+	}
+	message(L_CONSOLE, "Requesting system %s", m);
+	low_level_reboot(rb);
+	/* not reached */
+}
+
+/* The SIGSTOP/SIGTSTP handler
+ * NB: inside it, all signals except SIGCONT are masked
+ * via appropriate setup in sigaction().
+ */
+static void stop_handler(int sig UNUSED_PARAM)
+{
+	int saved_errno;
+	smallint saved_bb_got_signal;
+
+	saved_errno = errno;
+	saved_bb_got_signal = bb_got_signal;
+	signal(SIGCONT, record_signo);
+
+	while (1) {
+		pid_t wpid;
+
+		if (bb_got_signal == SIGCONT)
+			break;
+		/* NB: this can accidentally wait() for a process
+		 * which we waitfor() elsewhere! waitfor() must have
+		 * code which is resilient against this.
+		 */
+		wpid = wait_any_nohang(NULL);
+		if (wpid > 0)
+			mark_terminated(wpid);
+		sleep(1);
+	}
+
+	signal(SIGCONT, SIG_DFL);
+	bb_got_signal = saved_bb_got_signal;
+	errno = saved_errno;
+}
+
+/* Handler for QUIT - exec "restart" action,
+ * else (no such action defined) do nothing */
+static void restart_handler(int sig UNUSED_PARAM)
+{
+	struct init_action *a;
+
+	for (a = init_action_list; a; a = a->next) {
+		if (!(a->action_type & RESTART))
+			continue;
+
+		/* Starting from here, we won't return.
+		 * Thus don't need to worry about preserving errno
+		 * and such.
+		 */
+		kill_all_processes();
+		open_stdio_to_tty(a->terminal, 0 /* - halt if open fails */);
+		messageD(L_CONSOLE, "Trying to re-exec %s", a->command);
+		init_exec(a->command);
+		low_level_reboot(RB_HALT_SYSTEM);
+		/* not reached */
+	}
+}
+
 #if ENABLE_FEATURE_USE_INITTAB
-static void reload_inittab(int sig UNUSED_PARAM)
+static void reload_inittab(void)
 {
 	struct init_action *a, *tmp;
 
 	message(L_LOG, "reloading /etc/inittab");
 
-	/* disable old entrys */
+	/* Disable old entries */
 	for (a = init_action_list; a; a = a->next) {
 		a->action_type = ONCE;
 	}
@@ -738,47 +777,57 @@ static void reload_inittab(int sig UNUSED_PARAM)
 
 	if (ENABLE_FEATURE_KILL_REMOVED) {
 		/* Be nice and send SIGTERM first */
-		for (a = init_action_list; a; a = a->next) {
-			pid_t pid = a->pid;
-			if ((a->action_type & ONCE) && pid != 0) {
-				kill(pid, SIGTERM);
-			}
-		}
+		for (a = init_action_list; a; a = a->next)
+			if (a->pid != 0)
+				kill(a->pid, SIGTERM);
 #if CONFIG_FEATURE_KILL_DELAY
 		/* NB: parent will wait in NOMMU case */
 		if ((BB_MMU ? fork() : vfork()) == 0) { /* child */
 			sleep(CONFIG_FEATURE_KILL_DELAY);
-			for (a = init_action_list; a; a = a->next) {
-				pid_t pid = a->pid;
-				if ((a->action_type & ONCE) && pid != 0) {
-					kill(pid, SIGKILL);
-				}
-			}
+			for (a = init_action_list; a; a = a->next)
+				if (a->pid != 0)
+					kill(a->pid, SIGKILL);
 			_exit(EXIT_SUCCESS);
 		}
 #endif
 	}
 
-	/* remove unused entrys */
+	/* Remove old and unused entries */
 	for (a = init_action_list; a; a = tmp) {
 		tmp = a->next;
-		if ((a->action_type & (ONCE | SYSINIT | WAIT)) && a->pid == 0) {
+		if (a->action_type & (ONCE | SYSINIT | WAIT))
 			delete_init_action(a);
-		}
 	}
-	run_actions(RESPAWN | ASKFIRST);
+	/* Not needed: */
+	/* run_actions(RESPAWN | ASKFIRST); */
+	/* - we return to main loop, which does this automagically */
 }
-#else
-void reload_inittab(int sig);
 #endif
+
+static int check_delayed_sigs(void)
+{
+	int sigs_seen = 0;
+
+	while (1) {
+		smallint sig = bb_got_signal;
+
+		if (!sig)
+			return sigs_seen;
+		bb_got_signal = 0;
+		sigs_seen = 1;
+#if ENABLE_FEATURE_USE_INITTAB
+		if (sig == SIGHUP)
+			reload_inittab();
+#endif
+		if (sig == SIGINT)
+			run_actions(CTRLALTDEL);
+	}
+}
 
 int init_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int init_main(int argc UNUSED_PARAM, char **argv)
 {
-	struct init_action *a;
-	pid_t wpid;
-
-	die_sleep = 30 * 24*60*60; /* if xmalloc will ever die... */
+	die_sleep = 30 * 24*60*60; /* if xmalloc would ever die... */
 
 	if (argv[1] && !strcmp(argv[1], "-q")) {
 		return kill(1, SIGHUP);
@@ -791,28 +840,9 @@ int init_main(int argc UNUSED_PARAM, char **argv)
 		) {
 			bb_show_usage();
 		}
-		/* Set up sig handlers  -- be sure to
-		 * clear all of these in run() */
-// TODO: handlers should just set a flag variable.
-// Move signal handling from handlers to main loop -
-// we have bad races otherwise.
-// E.g. parse_inittab() vs. delete_init_action()...
-		signal(SIGQUIT, restart_handler);
-		bb_signals(0
-			+ (1 << SIGUSR1)  /* halt */
-			+ (1 << SIGUSR2)  /* poweroff */
-			+ (1 << SIGTERM)  /* reboot */
-			, halt_reboot_pwoff);
-		signal(SIGINT, ctrlaltdel_signal);
-		signal(SIGCONT, record_signo);
-		bb_signals(0
-			+ (1 << SIGSTOP)
-			+ (1 << SIGTSTP)
-			, stop_handler);
-
-		/* Turn off rebooting via CTL-ALT-DEL -- we get a
+		/* Turn off rebooting via CTL-ALT-DEL - we get a
 		 * SIGINT on CAD so we can shut things down gracefully... */
-		low_level_reboot(RB_DISABLE_CAD);
+		reboot(RB_DISABLE_CAD); /* misnomer */
 	}
 
 	/* Figure out where the default console should be */
@@ -857,11 +887,11 @@ int init_main(int argc UNUSED_PARAM, char **argv)
 		/* Start a shell on console */
 		new_init_action(RESPAWN, bb_default_login_shell, "");
 	} else {
-		/* Not in single user mode -- see what inittab says */
+		/* Not in single user mode - see what inittab says */
 
 		/* NOTE that if CONFIG_FEATURE_USE_INITTAB is NOT defined,
 		 * then parse_inittab() simply adds in some default
-		 * actions(i.e., runs INIT_SCRIPT and then starts a pair
+		 * actions(i.e., INIT_SCRIPT and a pair
 		 * of "askfirst" shells */
 		parse_inittab();
 	}
@@ -888,44 +918,91 @@ int init_main(int argc UNUSED_PARAM, char **argv)
 	while (*++argv)
 		memset(*argv, 0, strlen(*argv));
 
-	/* Now run everything that needs to be run */
+	/* Set up signal handlers */
+	if (!DEBUG_INIT) {
+		struct sigaction sa;
 
+		bb_signals(0
+			+ (1 << SIGUSR1) /* halt */
+			+ (1 << SIGTERM) /* reboot */
+			+ (1 << SIGUSR2) /* poweroff */
+			, halt_reboot_pwoff);
+		signal(SIGQUIT, restart_handler); /* re-exec another init */
+
+		/* Stop handler must allow only SIGCONT inside itself */
+		memset(&sa, 0, sizeof(sa));
+		sigfillset(&sa.sa_mask);
+		sigdelset(&sa.sa_mask, SIGCONT);
+		sa.sa_handler = stop_handler;
+		/* NB: sa_flags doesn't have SA_RESTART.
+		 * It must be able to interrupt wait().
+		 */
+		sigaction_set(SIGTSTP, &sa); /* pause */
+		/* Does not work as intended, at least in 2.6.20.
+		 * SIGSTOP is simply ignored by init:
+		 */
+		sigaction_set(SIGSTOP, &sa); /* pause */
+
+		/* SIGINT (Ctrl-Alt-Del) must interrupt wait(),
+		 * setting handler without SA_RESTART flag.
+		 */
+		bb_signals_recursive_norestart((1 << SIGINT), record_signo);
+	}
+
+	/* Now run everything that needs to be run */
 	/* First run the sysinit command */
 	run_actions(SYSINIT);
-
+	check_delayed_sigs();
 	/* Next run anything that wants to block */
 	run_actions(WAIT);
-
+	check_delayed_sigs();
 	/* Next run anything to be run only once */
 	run_actions(ONCE);
 
-	/* Redefine SIGHUP to reread /etc/inittab */
-	signal(SIGHUP, ENABLE_FEATURE_USE_INITTAB ? reload_inittab : SIG_IGN);
+	/* Set up "reread /etc/inittab" handler.
+	 * Handler is set up without SA_RESTART, it will interrupt syscalls.
+	 */
+	if (!DEBUG_INIT && ENABLE_FEATURE_USE_INITTAB)
+		bb_signals_recursive_norestart((1 << SIGHUP), record_signo);
 
-	/* Now run the looping stuff for the rest of forever */
+	/* Now run the looping stuff for the rest of forever.
+	 * NB: if delayed signal happened, avoid blocking in wait().
+	 */
 	while (1) {
-		/* run the respawn/askfirst stuff */
+		pid_t wpid;
+		int got_sigs;
+
+		got_sigs = check_delayed_sigs();
+
+		/* (Re)run the respawn/askfirst stuff */
 		run_actions(RESPAWN | ASKFIRST);
 
-		/* Don't consume all CPU time -- sleep a bit */
+		got_sigs |= check_delayed_sigs();
+
+		/* Don't consume all CPU time - sleep a bit */
 		sleep(1);
 
-		/* Wait for any child process to exit */
+		got_sigs |= check_delayed_sigs();
+
+		/* Wait for any child process to exit.
+		 * NB: "delayed" signals will also interrupt this wait(),
+		 * bb_signals_recursive_norestart() set them up for that.
+		 * This guarantees we won't be stuck here
+		 * till next orphan dies.
+		 */
+		if (got_sigs)
+			goto dont_block;
 		wpid = wait(NULL);
 		while (wpid > 0) {
-			/* Find out who died and clean up their corpse */
-			for (a = init_action_list; a; a = a->next) {
-				if (a->pid == wpid) {
-					/* Set the pid to 0 so that the process gets
-					 * restarted by run_actions() */
-					a->pid = 0;
-					message(L_LOG, "process '%s' (pid %d) exited. "
-							"Scheduling for restart.",
-							a->command, wpid);
-				}
+			struct init_action *a = mark_terminated(wpid);
+			if (a) {
+				message(L_LOG, "process '%s' (pid %d) exited. "
+						"Scheduling for restart.",
+						a->command, wpid);
 			}
-			/* see if anyone else is waiting to be reaped */
+			/* See if anyone else is waiting to be reaped */
+ dont_block:
 			wpid = wait_any_nohang(NULL);
 		}
-	}
+	} /* while (1) */
 }
