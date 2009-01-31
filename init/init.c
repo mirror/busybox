@@ -95,18 +95,15 @@ enum {
 #endif
 };
 
-static void halt_reboot_pwoff(int sig) NORETURN;
-
 /* Print a message to the specified device.
  * "where" may be bitwise-or'd from L_LOG | L_CONSOLE
  * NB: careful, we can be called after vfork!
  */
-#define messageD(...) do { if (DEBUG_INIT) message(__VA_ARGS__); } while (0)
+#define dbg_message(...) do { if (DEBUG_INIT) message(__VA_ARGS__); } while (0)
 static void message(int where, const char *fmt, ...)
 	__attribute__ ((format(printf, 2, 3)));
 static void message(int where, const char *fmt, ...)
 {
-	static int log_fd = -1;
 	va_list arguments;
 	unsigned l;
 	char msg[128];
@@ -116,20 +113,23 @@ static void message(int where, const char *fmt, ...)
 	l = 1 + vsnprintf(msg + 1, sizeof(msg) - 2, fmt, arguments);
 	if (l > sizeof(msg) - 1)
 		l = sizeof(msg) - 1;
-	msg[l] = '\0';
 	va_end(arguments);
 
-	if (ENABLE_FEATURE_INIT_SYSLOG) {
-		if (where & L_LOG) {
-			/* Log the message to syslogd */
-			openlog("init", 0, LOG_DAEMON);
-			/* don't print "\r" */
-			syslog(LOG_INFO, "%s", msg + 1);
-			closelog();
-		}
-		msg[l++] = '\n';
-		msg[l] = '\0';
-	} else {
+#if ENABLE_FEATURE_INIT_SYSLOG
+	msg[l] = '\0';
+	if (where & L_LOG) {
+		/* Log the message to syslogd */
+		openlog("init", 0, LOG_DAEMON);
+		/* don't print "\r" */
+		syslog(LOG_INFO, "%s", msg + 1);
+		closelog();
+	}
+	msg[l++] = '\n';
+	msg[l] = '\0';
+#else
+	{
+		static int log_fd = -1;
+
 		msg[l++] = '\n';
 		msg[l] = '\0';
 		/* Take full control of the log tty, and never close it.
@@ -153,6 +153,7 @@ static void message(int where, const char *fmt, ...)
 				return; /* don't print dup messages */
 		}
 	}
+#endif
 
 	if (where & L_CONSOLE) {
 		/* Send console messages to console so people will see them. */
@@ -199,7 +200,7 @@ static void console_init(void)
 			dup2(fd, STDOUT_FILENO);
 			xmove_fd(fd, STDERR_FILENO);
 		}
-		messageD(L_LOG, "console='%s'", s);
+		dbg_message(L_LOG, "console='%s'", s);
 	} else {
 		/* Make sure fd 0,1,2 are not closed
 		 * (so that they won't be used by future opens) */
@@ -261,7 +262,7 @@ static void set_sane_term(void)
 
 /* Open the new terminal device.
  * NB: careful, we can be called after vfork! */
-static void open_stdio_to_tty(const char* tty_name, int exit_on_failure)
+static int open_stdio_to_tty(const char* tty_name)
 {
 	/* empty tty_name means "use init's tty", else... */
 	if (tty_name[0]) {
@@ -273,19 +274,13 @@ static void open_stdio_to_tty(const char* tty_name, int exit_on_failure)
 		if (fd) {
 			message(L_LOG | L_CONSOLE, "can't open %s: %s",
 				tty_name, strerror(errno));
-			if (exit_on_failure)
-				_exit(EXIT_FAILURE);
-			if (DEBUG_INIT)
-				_exit(2);
-			/* NB: we don't reach this if we were called after vfork.
-			 * Thus halt_reboot_pwoff() itself needs not be vfork-safe.
-			 */
-			halt_reboot_pwoff(SIGUSR1); /* halt the system */
+			return 0; /* failure */
 		}
 		dup2(STDIN_FILENO, STDOUT_FILENO);
 		dup2(STDIN_FILENO, STDERR_FILENO);
 	}
 	set_sane_term();
+	return 1; /* success */
 }
 
 /* Wrapper around exec:
@@ -369,7 +364,8 @@ static pid_t run(const struct init_action *a)
 	setsid();
 
 	/* Open the new terminal device */
-	open_stdio_to_tty(a->terminal, 1 /* - exit if open fails */);
+	if (!open_stdio_to_tty(a->terminal))
+		_exit(EXIT_FAILURE);
 
 	/* NB: on NOMMU we can't wait for input in child, so
 	 * "askfirst" will work the same as "respawn". */
@@ -388,7 +384,7 @@ static pid_t run(const struct init_action *a)
 		 * be allowed to start a shell or whatever an init script
 		 * specifies.
 		 */
-		messageD(L_LOG, "waiting for enter to start '%s'"
+		dbg_message(L_LOG, "waiting for enter to start '%s'"
 					"(pid %d, tty '%s')\n",
 				a->command, getpid(), a->terminal);
 		full_write(STDOUT_FILENO, press_enter, sizeof(press_enter) - 1);
@@ -420,21 +416,6 @@ static pid_t run(const struct init_action *a)
 	init_exec(a->command);
 	/* We're still here?  Some error happened. */
 	_exit(-1);
-}
-
-static void delete_init_action(struct init_action *action)
-{
-	struct init_action *a, **nextp;
-
-	nextp = &init_action_list;
-	while ((a = *nextp) != NULL) {
-		if (a == action) {
-			*nextp = a->next;
-			free(a);
-			break;
-		}
-		nextp = &a->next;
-	}
 }
 
 static struct init_action *mark_terminated(int pid)
@@ -497,36 +478,44 @@ static void new_init_action(uint8_t action_type, const char *command, const char
 {
 	struct init_action *a, **nextp;
 
-//BUG
-//old:
-//::shutdown:umount -a -r
-//::shutdown:swapoff -a
-//new: swapped:
-//::shutdown:swapoff -a
-//::shutdown:umount -a -r
-//on SIGHUP, new one will be loaded, but order will be wrong.
+	/* Scenario:
+	 * old inittab:
+	 * ::shutdown:umount -a -r
+	 * ::shutdown:swapoff -a
+	 * new inittab:
+	 * ::shutdown:swapoff -a
+	 * ::shutdown:umount -a -r
+	 * On reload, we must ensure entries end up in correct order.
+	 * To achieve that, if we find a matching entry, we move it
+	 * to the end.
+	 */
 	nextp = &init_action_list;
 	while ((a = *nextp) != NULL) {
 		/* Don't enter action if it's already in the list,
-		 * just overwrite existing one's type.
 		 * This prevents losing running RESPAWNs.
 		 */
 		if ((strcmp(a->command, command) == 0)
 		 && (strcmp(a->terminal, cons) == 0)
 		) {
-			a->action_type = action_type;
-			return;
+			/* Remove from list */
+			*nextp = a->next;
+			/* Find the end of the list */
+			while (*nextp != NULL)
+				nextp = &(*nextp)->next;
+			a->next = NULL;
+			break;
 		}
 		nextp = &a->next;
 	}
 
+	if (!a)
+		a = xzalloc(sizeof(*a));
 	/* Append to the end of the list */
-	a = xzalloc(sizeof(*a));
 	*nextp = a;
 	a->action_type = action_type;
 	safe_strncpy(a->command, command, sizeof(a->command));
 	safe_strncpy(a->terminal, cons, sizeof(a->terminal));
-	messageD(L_LOG | L_CONSOLE, "command='%s' action=%d tty='%s'\n",
+	dbg_message(L_LOG | L_CONSOLE, "command='%s' action=%d tty='%s'\n",
 		a->command, a->action_type, a->terminal);
 }
 
@@ -603,8 +592,8 @@ static void parse_inittab(void)
 #endif
 }
 
-static void low_level_reboot(unsigned magic) NORETURN;
-static void low_level_reboot(unsigned magic)
+static void pause_and_low_level_reboot(unsigned magic) NORETURN;
+static void pause_and_low_level_reboot(unsigned magic)
 {
 	pid_t pid;
 
@@ -619,12 +608,11 @@ static void low_level_reboot(unsigned magic)
 		reboot(magic);
 		_exit(EXIT_SUCCESS);
 	}
-	waitfor(pid);
 	while (1)
 		sleep(1);
 }
 
-static void kill_all_processes(void)
+static void run_shutdown_and_kill_processes(void)
 {
 	/* Run everything to be run at "shutdown".  This is done _prior_
 	 * to killing everything, in case people wish to use scripts to
@@ -633,19 +621,16 @@ static void kill_all_processes(void)
 
 	message(L_CONSOLE | L_LOG, "The system is going down NOW!");
 
-	/* Allow Ctrl-Alt-Del to reboot system. */
-	reboot(RB_ENABLE_CAD); /* misnomer */
-
 	/* Send signals to every process _except_ pid 1 */
-	message(L_CONSOLE | L_LOG, "Sending SIG%s to all processes", "TERM");
 	kill(-1, SIGTERM);
+	message(L_CONSOLE | L_LOG, "Sent SIG%s to all processes", "TERM");
 	sync();
 	sleep(1);
 
-	message(L_CONSOLE, "Sending SIG%s to all processes", "KILL");
 	kill(-1, SIGKILL);
+	message(L_CONSOLE, "Sent SIG%s to all processes", "KILL");
 	sync();
-	sleep(1);
+	/*sleep(1); - callers take care about making a pause */
 }
 
 /* Signal handling by init:
@@ -684,12 +669,13 @@ static void kill_all_processes(void)
  * and only one will be remebered and acted upon.
  */
 
+static void halt_reboot_pwoff(int sig) NORETURN;
 static void halt_reboot_pwoff(int sig)
 {
 	const char *m;
 	unsigned rb;
 
-	kill_all_processes();
+	run_shutdown_and_kill_processes();
 
 	m = "halt";
 	rb = RB_HALT_SYSTEM;
@@ -701,7 +687,7 @@ static void halt_reboot_pwoff(int sig)
 		rb = RB_POWER_OFF;
 	}
 	message(L_CONSOLE, "Requesting system %s", m);
-	low_level_reboot(rb);
+	pause_and_low_level_reboot(rb);
 	/* not reached */
 }
 
@@ -752,11 +738,21 @@ static void restart_handler(int sig UNUSED_PARAM)
 		 * Thus don't need to worry about preserving errno
 		 * and such.
 		 */
-		kill_all_processes();
-		open_stdio_to_tty(a->terminal, 0 /* - halt if open fails */);
-		messageD(L_CONSOLE, "Trying to re-exec %s", a->command);
-		init_exec(a->command);
-		low_level_reboot(RB_HALT_SYSTEM);
+		run_shutdown_and_kill_processes();
+
+		/* Allow Ctrl-Alt-Del to reboot the system.
+		 * This is how kernel sets it up for init, we follow suit.
+		 */
+		reboot(RB_ENABLE_CAD); /* misnomer */
+
+		if (open_stdio_to_tty(a->terminal)) {
+			dbg_message(L_CONSOLE, "Trying to re-exec %s", a->command);
+			while (wait(NULL) > 0)
+				continue;
+			init_exec(a->command);
+		}
+		/* Open or exec failed */
+		pause_and_low_level_reboot(RB_HALT_SYSTEM);
 		/* not reached */
 	}
 }
@@ -764,40 +760,50 @@ static void restart_handler(int sig UNUSED_PARAM)
 #if ENABLE_FEATURE_USE_INITTAB
 static void reload_inittab(void)
 {
-	struct init_action *a, *tmp;
+	struct init_action *a, **nextp;
 
 	message(L_LOG, "reloading /etc/inittab");
 
 	/* Disable old entries */
-	for (a = init_action_list; a; a = a->next) {
+	for (a = init_action_list; a; a = a->next)
 		a->action_type = ONCE;
-	}
 
+	/* Append new entries, or modify existing entries
+	 * (set a->action_type) if cmd and device name
+	 * match new ones. End result: only entries with
+	 * a->action_type == ONCE are stale.
+	 */
 	parse_inittab();
 
 	if (ENABLE_FEATURE_KILL_REMOVED) {
+		/* Kill stale entries */
 		/* Be nice and send SIGTERM first */
 		for (a = init_action_list; a; a = a->next)
-			if (a->pid != 0)
+			if (a->action_type == ONCE && a->pid != 0)
 				kill(a->pid, SIGTERM);
 		if (CONFIG_FEATURE_KILL_DELAY) {
 			/* NB: parent will wait in NOMMU case */
 			if ((BB_MMU ? fork() : vfork()) == 0) { /* child */
 				sleep(CONFIG_FEATURE_KILL_DELAY);
 				for (a = init_action_list; a; a = a->next)
-					if (a->pid != 0)
+					if (a->action_type == ONCE && a->pid != 0)
 						kill(a->pid, SIGKILL);
 				_exit(EXIT_SUCCESS);
 			}
 		}
 	}
 
-	/* Remove old and unused entries */
-	for (a = init_action_list; a; a = tmp) {
-		tmp = a->next;
-		if (a->action_type & (ONCE | SYSINIT | WAIT))
-			delete_init_action(a);
+	/* Remove stale (ONCE) and not useful (SYSINIT,WAIT) entries */
+	nextp = &init_action_list;
+	while ((a = *nextp) != NULL) {
+		if (a->action_type & (ONCE | SYSINIT | WAIT)) {
+			*nextp = a->next;
+			free(a);
+		} else {
+			nextp = &a->next;
+		}
 	}
+
 	/* Not needed: */
 	/* run_actions(RESPAWN | ASKFIRST); */
 	/* - we return to main loop, which does this automagically */
