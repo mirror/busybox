@@ -1932,7 +1932,7 @@
 
 /* -v, -b, -c are ignored */
 #define install_trivial_usage \
-       "[-cdDsp] [-o USER] [-g GRP] [-m MODE] [source] dest|directory"
+	"[-cdDsp] [-o USER] [-g GRP] [-m MODE] [source] dest|directory"
 #define install_full_usage "\n\n" \
        "Copy files and set attributes\n" \
      "\nOptions:" \
@@ -1947,6 +1947,14 @@
 	USE_SELINUX( \
      "\n	-Z	Set security context" \
 	)
+
+#define ionice_trivial_usage \
+	"[-c 1-3] [-n 0-7] [-p PID] [PROG]"
+#define ionice_full_usage "\n\n" \
+       "Change I/O scheduling class and priority\n" \
+     "\nOptions:" \
+     "\n	-c	Class. 1:realtime 2:best-effort 3:idle" \
+     "\n	-n	Priority" \
 
 /* would need to make the " | " optional depending on more than one selected: */
 #define ip_trivial_usage \

@@ -238,6 +238,13 @@ config FBSPLASH
 	    "NN" (ASCII decimal number) - percentage to show on progress bar
 	    "exit" - well you guessed it
 
+config IONICE
+	bool "ionice"
+	default n
+	help
+	  Set/set program io scheduling class and priority
+	  Requires kernel >= 2.6.13
+
 config INOTIFYD
 	bool "inotifyd"
 	default n
