@@ -353,8 +353,8 @@ enum {
 void bb_signals(int sigs, void (*f)(int)) FAST_FUNC;
 /* Unlike signal() and bb_signals, sets handler with sigaction()
  * and in a way that while signal handler is run, no other signals
- * will be blocked: */
-void bb_signals_recursive(int sigs, void (*f)(int)) FAST_FUNC;
+ * will be blocked; syscalls will not be restarted: */
+void bb_signals_recursive_norestart(int sigs, void (*f)(int)) FAST_FUNC;
 /* syscalls like read() will be interrupted with EINTR: */
 void signal_no_SA_RESTART_empty_mask(int sig, void (*handler)(int)) FAST_FUNC;
 /* syscalls like read() won't be interrupted (though select/poll will be): */

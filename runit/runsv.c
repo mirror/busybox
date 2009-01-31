@@ -455,9 +455,9 @@ int runsv_main(int argc UNUSED_PARAM, char **argv)
 	ndelay_on(selfpipe.wr);
 
 	sig_block(SIGCHLD);
-	bb_signals_recursive(1 << SIGCHLD, s_child);
+	bb_signals_recursive_norestart(1 << SIGCHLD, s_child);
 	sig_block(SIGTERM);
-	bb_signals_recursive(1 << SIGTERM, s_term);
+	bb_signals_recursive_norestart(1 << SIGTERM, s_term);
 
 	xchdir(dir);
 	/* bss: svd[0].pid = 0; */

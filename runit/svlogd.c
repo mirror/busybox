@@ -912,10 +912,10 @@ int svlogd_main(int argc, char **argv)
 	sigaddset(&blocked_sigset, SIGALRM);
 	sigaddset(&blocked_sigset, SIGHUP);
 	sigprocmask(SIG_BLOCK, &blocked_sigset, NULL);
-	bb_signals_recursive(1 << SIGTERM, sig_term_handler);
-	bb_signals_recursive(1 << SIGCHLD, sig_child_handler);
-	bb_signals_recursive(1 << SIGALRM, sig_alarm_handler);
-	bb_signals_recursive(1 << SIGHUP, sig_hangup_handler);
+	bb_signals_recursive_norestart(1 << SIGTERM, sig_term_handler);
+	bb_signals_recursive_norestart(1 << SIGCHLD, sig_child_handler);
+	bb_signals_recursive_norestart(1 << SIGALRM, sig_alarm_handler);
+	bb_signals_recursive_norestart(1 << SIGHUP, sig_hangup_handler);
 
 	logdirs_reopen();
 

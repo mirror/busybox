@@ -65,18 +65,6 @@ enum {
 
 static void halt_reboot_pwoff(int sig) NORETURN;
 
-static void waitfor(pid_t pid)
-{
-	/* waitfor(run(x)): protect against failed fork inside run() */
-	if (pid <= 0)
-		return;
-
-	/* Wait for any child (prevent zombies from exiting orphaned processes)
-	 * but exit the loop only when specified one has exited. */
-	while (wait(NULL) != pid)
-		continue;
-}
-
 static void loop_forever(void) NORETURN;
 static void loop_forever(void)
 {
@@ -476,6 +464,18 @@ static void delete_init_action(struct init_action *action)
 	}
 }
 
+static void waitfor(pid_t pid)
+{
+	/* waitfor(run(x)): protect against failed fork inside run() */
+	if (pid <= 0)
+		return;
+
+	/* Wait for any child (prevent zombies from exiting orphaned processes)
+	 * but exit the loop only when specified one has exited. */
+	while (wait(NULL) != pid)
+		continue;
+}
+
 /* Run all commands of a particular type */
 static void run_actions(int action_type)
 {
@@ -507,7 +507,7 @@ static void run_actions(int action_type)
 	}
 }
 
-static void init_reboot(unsigned long magic)
+static void low_level_reboot(unsigned long magic)
 {
 	pid_t pid;
 	/* We have to fork here, since the kernel calls do_exit(EXIT_SUCCESS) in
@@ -534,7 +534,7 @@ static void kill_all_processes(void)
 	message(L_CONSOLE | L_LOG, "The system is going down NOW!");
 
 	/* Allow Ctrl-Alt-Del to reboot system. */
-	init_reboot(RB_ENABLE_CAD);
+	low_level_reboot(RB_ENABLE_CAD);
 
 	/* Send signals to every process _except_ pid 1 */
 	message(L_CONSOLE | L_LOG, "Sending SIG%s to all processes", "TERM");
@@ -566,13 +566,13 @@ static void halt_reboot_pwoff(int sig)
 	message(L_CONSOLE | L_LOG, "Requesting system %s", m);
 	/* allow time for last message to reach serial console */
 	sleep(2);
-	init_reboot(rb);
+	low_level_reboot(rb);
 	loop_forever();
 }
 
 /* Handler for QUIT - exec "restart" action,
  * else (no such action defined) do nothing */
-static void exec_restart_action(int sig UNUSED_PARAM)
+static void restart_handler(int sig UNUSED_PARAM)
 {
 	struct init_action *a;
 
@@ -589,7 +589,7 @@ static void exec_restart_action(int sig UNUSED_PARAM)
 			messageD(L_CONSOLE | L_LOG, "Trying to re-exec %s", a->command);
 			init_exec(a->command);
 			sleep(2);
-			init_reboot(RB_HALT_SYSTEM);
+			low_level_reboot(RB_HALT_SYSTEM);
 			loop_forever();
 		}
 	}
@@ -723,7 +723,7 @@ static void parse_inittab(void)
 }
 
 #if ENABLE_FEATURE_USE_INITTAB
-static void reload_signal(int sig UNUSED_PARAM)
+static void reload_inittab(int sig UNUSED_PARAM)
 {
 	struct init_action *a, *tmp;
 
@@ -769,7 +769,7 @@ static void reload_signal(int sig UNUSED_PARAM)
 	run_actions(RESPAWN | ASKFIRST);
 }
 #else
-void reload_signal(int sig);
+void reload_inittab(int sig);
 #endif
 
 int init_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
@@ -797,7 +797,7 @@ int init_main(int argc UNUSED_PARAM, char **argv)
 // Move signal handling from handlers to main loop -
 // we have bad races otherwise.
 // E.g. parse_inittab() vs. delete_init_action()...
-		signal(SIGQUIT, exec_restart_action);
+		signal(SIGQUIT, restart_handler);
 		bb_signals(0
 			+ (1 << SIGUSR1)  /* halt */
 			+ (1 << SIGUSR2)  /* poweroff */
@@ -812,7 +812,7 @@ int init_main(int argc UNUSED_PARAM, char **argv)
 
 		/* Turn off rebooting via CTL-ALT-DEL -- we get a
 		 * SIGINT on CAD so we can shut things down gracefully... */
-		init_reboot(RB_DISABLE_CAD);
+		low_level_reboot(RB_DISABLE_CAD);
 	}
 
 	/* Figure out where the default console should be */
@@ -900,7 +900,7 @@ int init_main(int argc UNUSED_PARAM, char **argv)
 	run_actions(ONCE);
 
 	/* Redefine SIGHUP to reread /etc/inittab */
-	signal(SIGHUP, ENABLE_FEATURE_USE_INITTAB ? reload_signal : SIG_IGN);
+	signal(SIGHUP, ENABLE_FEATURE_USE_INITTAB ? reload_inittab : SIG_IGN);
 
 	/* Now run the looping stuff for the rest of forever */
 	while (1) {
