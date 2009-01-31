@@ -16,6 +16,20 @@
 #include <linux/sockios.h>
 #include <net/if.h>
 
+#ifndef SIOCBRADDBR
+# define SIOCBRADDBR BRCTL_ADD_BRIDGE
+#endif
+#ifndef SIOCBRDELBR
+# define SIOCBRDELBR BRCTL_DEL_BRIDGE
+#endif
+#ifndef SIOCBRADDIF
+# define SIOCBRADDIF BRCTL_ADD_IF
+#endif
+#ifndef SIOCBRDELIF
+# define SIOCBRDELIF BRCTL_DEL_IF
+#endif
+
+
 /* Maximum number of ports supported per bridge interface.  */
 #ifndef MAX_PORTS
 #define MAX_PORTS 32
