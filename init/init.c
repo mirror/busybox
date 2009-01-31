@@ -418,14 +418,16 @@ static pid_t run(const struct init_action *a)
 	_exit(-1);
 }
 
-static struct init_action *mark_terminated(int pid)
+static struct init_action *mark_terminated(pid_t pid)
 {
 	struct init_action *a;
 
-	for (a = init_action_list; a; a = a->next) {
-		if (a->pid == pid) {
-			a->pid = 0;
-			return a;
+	if (pid > 0) {
+		for (a = init_action_list; a; a = a->next) {
+			if (a->pid == pid) {
+				a->pid = 0;
+				return a;
+			}
 		}
 	}
 	return NULL;
@@ -444,7 +446,7 @@ static void waitfor(pid_t pid)
 		mark_terminated(wpid);
 		/* Unsafe. SIGTSTP handler might have wait'ed it already */
 		/*if (wpid == pid) break;*/
-		/* More reliable */
+		/* More reliable: */
 		if (kill(pid, 0))
 			break;
 	}
@@ -697,11 +699,11 @@ static void halt_reboot_pwoff(int sig)
  */
 static void stop_handler(int sig UNUSED_PARAM)
 {
-	int saved_errno;
 	smallint saved_bb_got_signal;
+	int saved_errno;
 
-	saved_errno = errno;
 	saved_bb_got_signal = bb_got_signal;
+	saved_errno = errno;
 	signal(SIGCONT, record_signo);
 
 	while (1) {
@@ -714,14 +716,13 @@ static void stop_handler(int sig UNUSED_PARAM)
 		 * code which is resilient against this.
 		 */
 		wpid = wait_any_nohang(NULL);
-		if (wpid > 0)
-			mark_terminated(wpid);
+		mark_terminated(wpid);
 		sleep(1);
 	}
 
 	signal(SIGCONT, SIG_DFL);
-	bb_got_signal = saved_bb_got_signal;
 	errno = saved_errno;
+	bb_got_signal = saved_bb_got_signal;
 }
 
 /* Handler for QUIT - exec "restart" action,
@@ -747,8 +748,14 @@ static void restart_handler(int sig UNUSED_PARAM)
 
 		if (open_stdio_to_tty(a->terminal)) {
 			dbg_message(L_CONSOLE, "Trying to re-exec %s", a->command);
-			while (wait(NULL) > 0)
-				continue;
+			/* Theoretically should be safe.
+			 * But in practice, kernel bugs may leave
+			 * unkillable processes, and wait() may block forever.
+			 * Oh well. Hoping "new" init won't be too surprised
+			 * by having children it didn't create.
+			 */
+			//while (wait(NULL) > 0)
+			//	continue;
 			init_exec(a->command);
 		}
 		/* Open or exec failed */
@@ -990,14 +997,14 @@ int init_main(int argc UNUSED_PARAM, char **argv)
 
 		got_sigs |= check_delayed_sigs();
 
+		if (got_sigs)
+			goto dont_block;
 		/* Wait for any child process to exit.
 		 * NB: "delayed" signals will also interrupt this wait(),
 		 * bb_signals_recursive_norestart() set them up for that.
 		 * This guarantees we won't be stuck here
 		 * till next orphan dies.
 		 */
-		if (got_sigs)
-			goto dont_block;
 		wpid = wait(NULL);
 		while (wpid > 0) {
 			struct init_action *a = mark_terminated(wpid);
