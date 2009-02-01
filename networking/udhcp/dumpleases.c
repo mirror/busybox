@@ -6,14 +6,24 @@
 #include "common.h"
 #include "dhcpd.h"
 
+#if BB_LITTLE_ENDIAN
+static inline uint64_t hton64(uint64_t v)
+{
+        return (((uint64_t)htonl(v)) << 32) | htonl(v >> 32);
+}
+#else
+#define hton64(v) (v)
+#endif
+#define ntoh64(v) hton64(v)
+
+
 int dumpleases_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int dumpleases_main(int argc UNUSED_PARAM, char **argv)
 {
 	int fd;
 	int i;
 	unsigned opt;
-	leasetime_t expires;
-	leasetime_t curr;
+	int64_t written_at, curr, expires_abs;
 	const char *file = LEASES_FILE;
 	struct dhcpOfferedAddr lease;
 	struct in_addr addr;
@@ -40,7 +50,13 @@ int dumpleases_main(int argc UNUSED_PARAM, char **argv)
 	printf("Mac Address       IP-Address      Expires %s\n", (opt & OPT_a) ? "at" : "in");
 	/*     "00:00:00:00:00:00 255.255.255.255 Wed Jun 30 21:49:08 1993" */
 
+	if (full_read(fd, &written_at, sizeof(written_at)) != sizeof(written_at))
+		return 0;
+	written_at = ntoh64(written_at);
 	curr = time(NULL);
+	if (curr < written_at)
+		written_at = curr; /* lease file from future! :) */
+
 	while (full_read(fd, &lease, sizeof(lease)) == sizeof(lease)) {
 		const char *fmt = ":%02x" + 1;
 		for (i = 0; i < 6; i++) {
@@ -49,13 +65,14 @@ int dumpleases_main(int argc UNUSED_PARAM, char **argv)
 		}
 		addr.s_addr = lease.yiaddr;
 		printf(" %-15s ", inet_ntoa(addr));
-		if (lease.expires == 0) {
+		expires_abs = ntohl(lease.expires) + written_at;
+		if (expires_abs <= curr) {
 			puts("expired");
 			continue;
 		}
-		expires = ntohl(lease.expires);
 		if (!(opt & OPT_a)) { /* no -a */
 			unsigned d, h, m;
+			unsigned expires = expires_abs - curr;
 			d = expires / (24*60*60); expires %= (24*60*60);
 			h = expires / (60*60); expires %= (60*60);
 			m = expires / 60; expires %= 60;
@@ -63,7 +80,7 @@ int dumpleases_main(int argc UNUSED_PARAM, char **argv)
 				printf("%u days ", d);
 			printf("%02u:%02u:%02u\n", h, m, (unsigned)expires);
 		} else { /* -a */
-			time_t t = expires + curr;
+			time_t t = expires_abs;
 			fputs(ctime(&t), stdout);
 		}
 	}

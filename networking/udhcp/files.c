@@ -12,6 +12,16 @@
 #include "dhcpd.h"
 #include "options.h"
 
+#if BB_LITTLE_ENDIAN
+static inline uint64_t hton64(uint64_t v)
+{
+        return (((uint64_t)htonl(v)) << 32) | htonl(v >> 32);
+}
+#else
+#define hton64(v) (v)
+#endif
+#define ntoh64(v) hton64(v)
+
 
 /* on these functions, make sure your datatype matches */
 static int read_ip(const char *line, void *arg)
@@ -335,14 +345,16 @@ void FAST_FUNC write_leases(void)
 	int fd;
 	unsigned i;
 	leasetime_t curr;
+	int64_t written_at;
 
 	fd = open_or_warn(server_config.lease_file, O_WRONLY|O_CREAT|O_TRUNC);
 	if (fd < 0)
 		return;
 
-	curr = time(NULL);
-//TODO: write out current time? Readers need to adjust .expires field
-// to account for time between file was written and when it was read back.
+	curr = written_at = time(NULL);
+
+	written_at = hton64(written_at);
+	full_write(fd, &written_at, sizeof(written_at));
 
 	for (i = 0; i < server_config.max_leases; i++) {
 		leasetime_t tmp_time;
@@ -353,11 +365,9 @@ void FAST_FUNC write_leases(void)
 		/* screw with the time in the struct, for easier writing */
 		tmp_time = leases[i].expires;
 
-		//if (server_config.remaining) {
-			leases[i].expires -= curr;
-			if ((signed_leasetime_t) leases[i].expires < 0)
-				leases[i].expires = 0;
-		//} /* else stick with the time we got */
+		leases[i].expires -= curr;
+		if ((signed_leasetime_t) leases[i].expires < 0)
+			leases[i].expires = 0;
 		leases[i].expires = htonl(leases[i].expires);
 
 		/* No error check. If the file gets truncated,
@@ -382,14 +392,20 @@ void FAST_FUNC read_leases(const char *file)
 {
 	int fd;
 	unsigned i;
-//	leasetime_t curr;
 	struct dhcpOfferedAddr lease;
+	int64_t written_at, curr;
 
 	fd = open_or_warn(file, O_RDONLY);
 	if (fd < 0)
 		return;
 
-//	curr = time(NULL);
+	if (full_read(fd, &written_at, sizeof(written_at)) != sizeof(written_at))
+		goto ret;
+	written_at = ntoh64(written_at);
+	curr = time(NULL);
+	if (curr < written_at)
+		written_at = curr; /* lease file from future! :) */
+
 	i = 0;
 	while (i < server_config.max_leases
 	 && full_read(fd, &lease, sizeof(lease)) == sizeof(lease)
@@ -397,9 +413,9 @@ void FAST_FUNC read_leases(const char *file)
 		/* ADDME: what if it matches some static lease? */
 		uint32_t y = ntohl(lease.yiaddr);
 		if (y >= server_config.start_ip && y <= server_config.end_ip) {
-			leasetime_t expires = ntohl(lease.expires);
-//			if (!server_config.remaining)
-//				expires -= curr;
+			int64_t expires = ntohl(lease.expires) + written_at - curr;
+			if (expires <= 0)
+				continue;
 			/* NB: add_lease takes "relative time", IOW,
 			 * lease duration, not lease deadline. */
 			if (!(add_lease(lease.chaddr, lease.yiaddr, expires))) {
@@ -410,5 +426,6 @@ void FAST_FUNC read_leases(const char *file)
 		}
 	}
 	DEBUG("Read %d leases", i);
+ ret:
 	close(fd);
 }
