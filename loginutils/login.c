@@ -165,6 +165,56 @@ static int check_securetty(void)
 static ALWAYS_INLINE int check_securetty(void) { return 1; }
 #endif
 
+#if ENABLE_SELINUX
+static void initselinux(char *username, char *full_tty,
+						security_context_t *user_sid)
+{
+	security_context_t old_tty_sid, new_tty_sid;
+
+	if (!is_selinux_enabled())
+		return;
+
+	if (get_default_context(username, NULL, user_sid)) {
+		bb_error_msg_and_die("cannot get SID for %s", username);
+	}
+	if (getfilecon(full_tty, &old_tty_sid) < 0) {
+		bb_perror_msg_and_die("getfilecon(%s) failed", full_tty);
+	}
+	if (security_compute_relabel(user_sid, old_tty_sid,
+				SECCLASS_CHR_FILE, &new_tty_sid) != 0) {
+		bb_perror_msg_and_die("security_change_sid(%s) failed", full_tty);
+	}
+	if (setfilecon(full_tty, new_tty_sid) != 0) {
+		bb_perror_msg_and_die("chsid(%s, %s) failed", full_tty, new_tty_sid);
+	}
+}
+#endif
+
+#if ENABLE_LOGIN_SCRIPTS
+static void run_login_script(struct passwd *pw, char *full_tty)
+{
+	char *t_argv[2];
+
+	t_argv[0] = getenv("LOGIN_PRE_SUID_SCRIPT");
+	if (t_argv[0]) {
+		t_argv[1] = NULL;
+		xsetenv("LOGIN_TTY", full_tty);
+		xsetenv("LOGIN_USER", pw->pw_name);
+		xsetenv("LOGIN_UID", utoa(pw->pw_uid));
+		xsetenv("LOGIN_GID", utoa(pw->pw_gid));
+		xsetenv("LOGIN_SHELL", pw->pw_shell);
+		spawn_and_wait(t_argv);	/* NOMMU-friendly */
+		unsetenv("LOGIN_TTY");
+		unsetenv("LOGIN_USER");
+		unsetenv("LOGIN_UID");
+		unsetenv("LOGIN_GID");
+		unsetenv("LOGIN_SHELL");
+	}
+}
+#else
+void run_login_script(struct passwd *pw, char *full_tty);
+#endif
+
 static void get_username_or_die(char *buf, int size_buf)
 {
 	int c, cntdown;
@@ -285,8 +335,7 @@ int login_main(int argc UNUSED_PARAM, char **argv)
 	read_or_build_utent(&utent, run_by_root);
 
 	if (opt & LOGIN_OPT_h) {
-		if (ENABLE_FEATURE_UTMP)
-			safe_strncpy(utent.ut_host, opt_host, sizeof(utent.ut_host));
+		USE_FEATURE_UTMP(safe_strncpy(utent.ut_host, opt_host, sizeof(utent.ut_host));)
 		fromhost = xasprintf(" on '%s' from '%s'", short_tty, opt_host);
 	} else {
 		fromhost = xasprintf(" on '%s'", short_tty);
@@ -410,54 +459,16 @@ int login_main(int argc UNUSED_PARAM, char **argv)
 
 	write_utent(&utent, username);
 
-#if ENABLE_SELINUX
-	if (is_selinux_enabled()) {
-		security_context_t old_tty_sid, new_tty_sid;
+	USE_SELINUX(initselinux(username, full_tty, &user_sid));
 
-		if (get_default_context(username, NULL, &user_sid)) {
-			bb_error_msg_and_die("cannot get SID for %s",
-					username);
-		}
-		if (getfilecon(full_tty, &old_tty_sid) < 0) {
-			bb_perror_msg_and_die("getfilecon(%s) failed",
-					full_tty);
-		}
-		if (security_compute_relabel(user_sid, old_tty_sid,
-					SECCLASS_CHR_FILE, &new_tty_sid) != 0) {
-			bb_perror_msg_and_die("security_change_sid(%s) failed",
-					full_tty);
-		}
-		if (setfilecon(full_tty, new_tty_sid) != 0) {
-			bb_perror_msg_and_die("chsid(%s, %s) failed",
-					full_tty, new_tty_sid);
-		}
-	}
-#endif
 	/* Try these, but don't complain if they fail.
 	 * _f_chown is safe wrt race t=ttyname(0);...;chown(t); */
 	fchown(0, pw->pw_uid, pw->pw_gid);
 	fchmod(0, 0600);
 
 	/* We trust environment only if we run by root */
-	if (ENABLE_LOGIN_SCRIPTS && run_by_root) {
-		char *t_argv[2];
-
-		t_argv[0] = getenv("LOGIN_PRE_SUID_SCRIPT");
-		if (t_argv[0]) {
-			t_argv[1] = NULL;
-			xsetenv("LOGIN_TTY", full_tty);
-			xsetenv("LOGIN_USER", pw->pw_name);
-			xsetenv("LOGIN_UID", utoa(pw->pw_uid));
-			xsetenv("LOGIN_GID", utoa(pw->pw_gid));
-			xsetenv("LOGIN_SHELL", pw->pw_shell);
-			spawn_and_wait(t_argv); /* NOMMU-friendly */
-			unsetenv("LOGIN_TTY"  );
-			unsetenv("LOGIN_USER" );
-			unsetenv("LOGIN_UID"  );
-			unsetenv("LOGIN_GID"  );
-			unsetenv("LOGIN_SHELL");
-		}
-	}
+	if (ENABLE_LOGIN_SCRIPTS && run_by_root) 
+		run_login_script(pw, full_tty);
 
 	change_identity(pw);
 	tmp = pw->pw_shell;
@@ -470,11 +481,10 @@ int login_main(int argc UNUSED_PARAM, char **argv)
 
 	if (pw->pw_uid == 0)
 		syslog(LOG_INFO, "root login%s", fromhost);
-#if ENABLE_SELINUX
+
 	/* well, a simple setexeccon() here would do the job as well,
 	 * but let's play the game for now */
-	set_current_security_context(user_sid);
-#endif
+	USE_SELINUX(set_current_security_context(user_sid);)
 
 	// util-linux login also does:
 	// /* start new session */
