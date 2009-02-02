@@ -284,7 +284,7 @@ int login_main(int argc UNUSED_PARAM, char **argv)
 	struct passwd *pw;
 	char *opt_host = opt_host; /* for compiler */
 	char *opt_user = opt_user; /* for compiler */
-	char full_tty[TTYNAME_SIZE];
+	char *full_tty;
 	USE_SELINUX(security_context_t user_sid = NULL;)
 	USE_FEATURE_UTMP(struct utmp utent;)
 #if ENABLE_PAM
@@ -296,7 +296,6 @@ int login_main(int argc UNUSED_PARAM, char **argv)
 	char pwdbuf[256];
 #endif
 
-	short_tty = full_tty;
 	username[0] = '\0';
 	signal(SIGALRM, alarm_handler);
 	alarm(TIMEOUT);
@@ -322,15 +321,14 @@ int login_main(int argc UNUSED_PARAM, char **argv)
 		safe_strncpy(username, argv[0], sizeof(username));
 
 	/* Let's find out and memorize our tty */
-	if (!isatty(0) || !isatty(1) || !isatty(2))
+	if (!isatty(STDIN_FILENO) || !isatty(STDOUT_FILENO) || !isatty(STDERR_FILENO))
 		return EXIT_FAILURE;		/* Must be a terminal */
-	safe_strncpy(full_tty, "UNKNOWN", sizeof(full_tty));
-	tmp = xmalloc_ttyname(STDIN_FILENO);
-	if (tmp) {
-		safe_strncpy(full_tty, tmp, sizeof(full_tty));
-		if (strncmp(full_tty, "/dev/", 5) == 0)
-			short_tty = full_tty + 5;
-	}
+	full_tty = xmalloc_ttyname(STDIN_FILENO);
+	if (!full_tty)
+		full_tty = xstrdup("UNKNOWN");
+	short_tty = full_tty;
+	if (strncmp(full_tty, "/dev/", 5) == 0)
+		short_tty += 5;
 
 	read_or_build_utent(&utent, run_by_root);
 
