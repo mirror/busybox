@@ -35,8 +35,8 @@
 /* Structure that describes a session */
 struct tsession {
 	struct tsession *next;
+	pid_t shell_pid;
 	int sockfd_read, sockfd_write, ptyfd;
-	int shell_pid;
 
 	/* two circular buffers */
 	/*char *buf1, *buf2;*/
@@ -247,7 +247,8 @@ make_new_session(
 		static const char iacs_to_send[] ALIGN1 = {
 			IAC, DO, TELOPT_ECHO,
 			IAC, DO, TELOPT_NAWS,
-			IAC, DO, TELOPT_LFLOW,
+		/* This requires telnetd.ctrlSQ.patch (incomplete) */
+		/*	IAC, DO, TELOPT_LFLOW, */
 			IAC, WILL, TELOPT_ECHO,
 			IAC, WILL, TELOPT_SGA
 		};
@@ -284,13 +285,13 @@ make_new_session(
 	/* Child */
 	/* Careful - we are after vfork! */
 
-	/* make new session and process group */
-	setsid();
-
-	/* Restore default signal handling */
+	/* Restore default signal handling ASAP */
 	bb_signals((1 << SIGCHLD) + (1 << SIGPIPE), SIG_DFL);
 
-	/* open the child's side of the tty. */
+	/* Make new session and process group */
+	setsid();
+
+	/* Open the child's side of the tty. */
 	/* NB: setsid() disconnects from any previous ctty's. Therefore
 	 * we must open child's side of the tty AFTER setsid! */
 	close(0);
@@ -360,7 +361,7 @@ free_session(struct tsession *ts)
 	 * doesn't send SIGKILL. When we close ptyfd,
 	 * kernel sends SIGHUP to processes having slave side opened. */
 	kill(ts->shell_pid, SIGKILL);
-	wait4(ts->shell_pid, NULL, 0, NULL);
+	waitpid(ts->shell_pid, NULL, 0);
 #endif
 	close(ts->ptyfd);
 	close(ts->sockfd_read);
