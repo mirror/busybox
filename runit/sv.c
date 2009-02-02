@@ -445,7 +445,7 @@ int sv_main(int argc, char **argv)
 	service = argv;
 	services = argc - 1;
 
-	tnow = time(0) + 0x400000000000000aULL;
+	tnow = time(NULL) + 0x400000000000000aULL;
 	tstart = tnow;
 	curdir = open_read(".");
 	if (curdir == -1)
@@ -592,7 +592,7 @@ int sv_main(int argc, char **argv)
 		}
 		if (want_exit) break;
 		usleep(420000);
-		tnow = time(0) + 0x400000000000000aULL;
+		tnow = time(NULL) + 0x400000000000000aULL;
 	}
 	return rc > 99 ? 99 : rc;
 }

@@ -2270,7 +2270,7 @@ static void e2fsck_move_ext3_journal(e2fsck_t ctx)
 	ext2fs_mark_super_dirty(fs);
 	fs->flags &= ~EXT2_FLAG_MASTER_SB_ONLY;
 	inode.i_links_count = 0;
-	inode.i_dtime = time(0);
+	inode.i_dtime = time(NULL);
 	if ((retval = ext2fs_write_inode(fs, ino, &inode)) != 0)
 		goto err_out;
 
@@ -3381,7 +3381,7 @@ static void e2fsck_pass1(e2fsck_t ctx)
 			 */
 			if (!LINUX_S_ISDIR(inode->i_mode)) {
 				if (fix_problem(ctx, PR_1_ROOT_NO_DIR, &pctx)) {
-					inode->i_dtime = time(0);
+					inode->i_dtime = time(NULL);
 					inode->i_links_count = 0;
 					ext2fs_icount_store(ctx->inode_link_info,
 							    ino, 0);
@@ -3475,7 +3475,7 @@ static void e2fsck_pass1(e2fsck_t ctx)
 		    inode->i_dtime < ctx->fs->super->s_inodes_count) {
 			if (fix_problem(ctx, PR_1_LOW_DTIME, &pctx)) {
 				inode->i_dtime = inode->i_links_count ?
-					0 : time(0);
+					0 : time(NULL);
 				e2fsck_write_inode(ctx, ino, inode,
 						   "pass1");
 			}
@@ -3489,7 +3489,7 @@ static void e2fsck_pass1(e2fsck_t ctx)
 			if (!inode->i_dtime && inode->i_mode) {
 				if (fix_problem(ctx,
 					    PR_1_ZERO_DTIME, &pctx)) {
-					inode->i_dtime = time(0);
+					inode->i_dtime = time(NULL);
 					e2fsck_write_inode(ctx, ino, inode,
 							   "pass1");
 				}
@@ -3659,7 +3659,7 @@ static void e2fsck_pass1(e2fsck_t ctx)
 		}
 		e2fsck_read_inode(ctx, EXT2_RESIZE_INO, inode,
 				  "recreate inode");
-		inode->i_mtime = time(0);
+		inode->i_mtime = time(NULL);
 		e2fsck_write_inode(ctx, EXT2_RESIZE_INO, inode,
 				  "recreate inode");
 		fs->block_map = save_bmap;
@@ -4169,7 +4169,7 @@ static void check_blocks(e2fsck_t ctx, struct problem_context *pctx,
 	if (pb.clear) {
 		inode->i_links_count = 0;
 		ext2fs_icount_store(ctx->inode_link_info, ino, 0);
-		inode->i_dtime = time(0);
+		inode->i_dtime = time(NULL);
 		dirty_inode++;
 		ext2fs_unmark_inode_bitmap(ctx->inode_dir_map, ino);
 		ext2fs_unmark_inode_bitmap(ctx->inode_reg_map, ino);
@@ -4202,7 +4202,7 @@ static void check_blocks(e2fsck_t ctx, struct problem_context *pctx,
 		if (fix_problem(ctx, PR_1_ZERO_LENGTH_DIR, pctx)) {
 			inode->i_links_count = 0;
 			ext2fs_icount_store(ctx->inode_link_info, ino, 0);
-			inode->i_dtime = time(0);
+			inode->i_dtime = time(NULL);
 			dirty_inode++;
 			ext2fs_unmark_inode_bitmap(ctx->inode_dir_map, ino);
 			ext2fs_unmark_inode_bitmap(ctx->inode_reg_map, ino);
@@ -5147,7 +5147,7 @@ static void delete_file(e2fsck_t ctx, ext2_ino_t ino,
 	/* Inode may have changed by block_iterate, so reread it */
 	e2fsck_read_inode(ctx, ino, &inode, "delete_file");
 	inode.i_links_count = 0;
-	inode.i_dtime = time(0);
+	inode.i_dtime = time(NULL);
 	if (inode.i_file_acl &&
 	    (fs->super->s_feature_compat & EXT2_FEATURE_COMPAT_EXT_ATTR)) {
 		count = 1;
@@ -6393,7 +6393,7 @@ static void deallocate_inode(e2fsck_t ctx, ext2_ino_t ino, char* block_buf)
 	ext2fs_icount_store(ctx->inode_link_info, ino, 0);
 	e2fsck_read_inode(ctx, ino, &inode, "deallocate_inode");
 	inode.i_links_count = 0;
-	inode.i_dtime = time(0);
+	inode.i_dtime = time(NULL);
 	e2fsck_write_inode(ctx, ino, &inode, "deallocate_inode");
 	clear_problem_context(&pctx);
 	pctx.ino = ino;
@@ -6890,7 +6890,7 @@ static void check_root(e2fsck_t ctx)
 	memset(&inode, 0, sizeof(inode));
 	inode.i_mode = 040755;
 	inode.i_size = fs->blocksize;
-	inode.i_atime = inode.i_ctime = inode.i_mtime = time(0);
+	inode.i_atime = inode.i_ctime = inode.i_mtime = time(NULL);
 	inode.i_links_count = 2;
 	inode.i_blocks = fs->blocksize / 512;
 	inode.i_block[0] = blk;
@@ -7138,7 +7138,7 @@ ext2_ino_t e2fsck_get_lost_and_found(e2fsck_t ctx, int fix)
 	memset(&inode, 0, sizeof(inode));
 	inode.i_mode = 040700;
 	inode.i_size = fs->blocksize;
-	inode.i_atime = inode.i_ctime = inode.i_mtime = time(0);
+	inode.i_atime = inode.i_ctime = inode.i_mtime = time(NULL);
 	inode.i_links_count = 2;
 	inode.i_blocks = fs->blocksize / 512;
 	inode.i_block[0] = blk;
@@ -7492,7 +7492,7 @@ static int disconnect_inode(e2fsck_t ctx, ext2_ino_t i)
 		if (fix_problem(ctx, PR_4_ZERO_LEN_INODE, &pctx)) {
 			ext2fs_icount_store(ctx->inode_link_info, i, 0);
 			inode.i_links_count = 0;
-			inode.i_dtime = time(0);
+			inode.i_dtime = time(NULL);
 			e2fsck_write_inode(ctx, i, &inode,
 					   "disconnect_inode");
 			/*
@@ -11558,7 +11558,7 @@ static int release_orphan_inodes(e2fsck_t ctx)
 		if (!inode.i_links_count) {
 			ext2fs_inode_alloc_stats2(fs, ino, -1,
 						  LINUX_S_ISDIR(inode.i_mode));
-			inode.i_dtime = time(0);
+			inode.i_dtime = time(NULL);
 		} else {
 			inode.i_dtime = 0;
 		}
@@ -12714,7 +12714,7 @@ static void check_if_skip(e2fsck_t ctx)
 	unsigned int reason_arg = 0;
 	long next_check;
 	int batt = is_on_batt();
-	time_t now = time(0);
+	time_t now = time(NULL);
 
 	if ((ctx->options & E2F_OPT_FORCE) || cflag || swapfs)
 		return;

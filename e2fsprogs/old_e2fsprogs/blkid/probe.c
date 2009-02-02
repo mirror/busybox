@@ -562,7 +562,7 @@ blkid_dev blkid_verify(blkid_cache cache, blkid_dev dev)
 	if (!dev)
 		return NULL;
 
-	now = time(0);
+	now = time(NULL);
 	diff = now - dev->bid_time;
 
 	if ((now < dev->bid_time) ||
@@ -659,7 +659,7 @@ try_again:
 found_type:
 	if (dev && type) {
 		dev->bid_devno = st.st_rdev;
-		dev->bid_time = time(0);
+		dev->bid_time = time(NULL);
 		dev->bid_flags |= BLKID_BID_FL_VERIFIED;
 		cache->bic_flags |= BLKID_BIC_FL_CHANGED;
 

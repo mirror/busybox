@@ -273,7 +273,7 @@ int blkid_probe_all(blkid_cache cache)
 		return -BLKID_ERR_PARAM;
 
 	if (cache->bic_flags & BLKID_BIC_FL_PROBED &&
-	    time(0) - cache->bic_time < BLKID_PROBE_INTERVAL)
+	    time(NULL) - cache->bic_time < BLKID_PROBE_INTERVAL)
 		return 0;
 
 	blkid_read_cache(cache);
@@ -335,7 +335,7 @@ int blkid_probe_all(blkid_cache cache)
 
 	fclose(proc);
 
-	cache->bic_time = time(0);
+	cache->bic_time = time(NULL);
 	cache->bic_flags |= BLKID_BIC_FL_PROBED;
 	blkid_flush_cache(cache);
 	return 0;

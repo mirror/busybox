@@ -255,13 +255,13 @@ int udhcpd_main(int argc UNUSED_PARAM, char **argv)
 			DEBUG("Received DECLINE");
 			if (lease) {
 				memset(lease->chaddr, 0, 16);
-				lease->expires = time(0) + server_config.decline_time;
+				lease->expires = time(NULL) + server_config.decline_time;
 			}
 			break;
 		case DHCPRELEASE:
 			DEBUG("Received RELEASE");
 			if (lease)
-				lease->expires = time(0);
+				lease->expires = time(NULL);
 			break;
 		case DHCPINFORM:
 			DEBUG("Received INFORM");

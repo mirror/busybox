@@ -969,7 +969,7 @@ static void send_headers(int responseNum)
 	const char *error_page = NULL;
 #endif
 	unsigned i;
-	time_t timer = time(0);
+	time_t timer = time(NULL);
 	char tmp_str[80];
 	int len;
 

@@ -36,6 +36,7 @@ static int read_ip(const char *line, void *arg)
 	return 1;
 }
 
+
 static int read_mac(const char *line, void *arg)
 {
 	return NULL == ether_aton_r(line, (struct ether_addr *)arg);
@@ -362,7 +363,7 @@ void FAST_FUNC write_leases(void)
 		if (leases[i].yiaddr == 0)
 			continue;
 
-		/* screw with the time in the struct, for easier writing */
+		/* Screw with the time in the struct, for easier writing */
 		tmp_time = leases[i].expires;
 
 		leases[i].expires -= curr;
@@ -374,7 +375,7 @@ void FAST_FUNC write_leases(void)
 		 * we lose some leases on restart. Oh well. */
 		full_write(fd, &leases[i], sizeof(leases[i]));
 
-		/* then restore it when done */
+		/* Then restore it when done */
 		leases[i].expires = tmp_time;
 	}
 	close(fd);
@@ -390,10 +391,10 @@ void FAST_FUNC write_leases(void)
 
 void FAST_FUNC read_leases(const char *file)
 {
-	int fd;
-	unsigned i;
 	struct dhcpOfferedAddr lease;
-	int64_t written_at, curr;
+	int64_t written_at, time_passed;
+	int fd;
+	USE_UDHCP_DEBUG(unsigned i;)
 
 	fd = open_or_warn(file, O_RDONLY);
 	if (fd < 0)
@@ -402,18 +403,19 @@ void FAST_FUNC read_leases(const char *file)
 	if (full_read(fd, &written_at, sizeof(written_at)) != sizeof(written_at))
 		goto ret;
 	written_at = ntoh64(written_at);
-	curr = time(NULL);
-	if (curr < written_at)
-		written_at = curr; /* lease file from future! :) */
 
-	i = 0;
-	while (i < server_config.max_leases
-	 && full_read(fd, &lease, sizeof(lease)) == sizeof(lease)
-	) {
+	time_passed = time(NULL) - written_at;
+	/* Strange written_at, or lease file from old version of udhcpd
+	 * which had no "written_at" field? */
+	if ((uint64_t)time_passed > 12 * 60 * 60)
+		goto ret;
+
+	USE_UDHCP_DEBUG(i = 0;)
+	while (full_read(fd, &lease, sizeof(lease)) == sizeof(lease)) {
 		/* ADDME: what if it matches some static lease? */
 		uint32_t y = ntohl(lease.yiaddr);
 		if (y >= server_config.start_ip && y <= server_config.end_ip) {
-			int64_t expires = ntohl(lease.expires) + written_at - curr;
+			signed_leasetime_t expires = ntohl(lease.expires) - (signed_leasetime_t)time_passed;
 			if (expires <= 0)
 				continue;
 			/* NB: add_lease takes "relative time", IOW,
@@ -422,7 +424,7 @@ void FAST_FUNC read_leases(const char *file)
 				bb_error_msg("too many leases while loading %s", file);
 				break;
 			}
-			i++;
+			USE_UDHCP_DEBUG(i++;)
 		}
 	}
 	DEBUG("Read %d leases", i);

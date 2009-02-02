@@ -159,7 +159,7 @@ int rtcwake_main(int argc UNUSED_PARAM, char **argv)
 		bb_error_msg_and_die("%s not enabled for wakeup events", rtcname);
 
 	/* relative or absolute alarm time, normalized to time_t */
-	sys_time = time(0);
+	sys_time = time(NULL);
 	if (sys_time == (time_t)-1)
 		bb_perror_msg_and_die("read system time");
 	rtc_time = rtc_read_time(fd, utc);
