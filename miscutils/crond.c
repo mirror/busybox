@@ -23,12 +23,8 @@
 #endif
 
 
-#ifndef CRONTABS
-#define CRONTABS        "/var/spool/cron/crontabs"
-#endif
-#ifndef TMPDIR
-#define TMPDIR          "/var/spool/cron"
-#endif
+#define TMPDIR          CONFIG_FEATURE_CROND_DIR
+#define CRONTABS        CONFIG_FEATURE_CROND_DIR "/crontabs"
 #ifndef SENDMAIL
 #define SENDMAIL        "sendmail"
 #endif

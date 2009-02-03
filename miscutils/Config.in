@@ -121,6 +121,13 @@ config FEATURE_CROND_CALL_SENDMAIL
 	help
 	  Support calling /usr/sbin/sendmail for send cmd outputs.
 
+config FEATURE_CROND_DIR
+	string "crond spool directory"
+	default "/var/spool/cron"
+	depends on CROND || CRONTAB
+	help
+	  Location of crond spool.
+
 config CRONTAB
 	bool "crontab"
 	default n
