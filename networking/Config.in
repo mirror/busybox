@@ -141,14 +141,6 @@ config FEATURE_HTTPD_USE_SENDFILE
 	  When enabled, httpd will use the kernel sendfile() function
 	  instead of read/write loop.
 
-config FEATURE_HTTPD_RELOAD_CONFIG_SIGHUP
-	bool "Support reloading of global config file on HUP signal"
-	default n
-	depends on HTTPD
-	help
-	  This option enables processing of SIGHUP to reload cached
-	  configuration settings.
-
 config FEATURE_HTTPD_SETUID
 	bool "Enable -u <user> option"
 	default n
@@ -174,14 +166,6 @@ config FEATURE_HTTPD_AUTH_MD5
 	help
 	  Enables basic per URL authentication from /etc/httpd.conf
 	  using md5 passwords.
-
-config FEATURE_HTTPD_CONFIG_WITH_MIME_TYPES
-	bool "Support loading additional MIME types at run-time"
-	default n
-	depends on HTTPD
-	help
-	  This option enables support for additional MIME types at
-	  run-time to be specified in the configuration file.
 
 config FEATURE_HTTPD_CGI
 	bool "Support Common Gateway Interface (CGI)"
