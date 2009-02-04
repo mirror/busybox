@@ -3632,8 +3632,6 @@
        "Send an email\n" \
      "\nOptions:" \
      "\n	-w timeout	Network timeout" \
-     "\n	-H [user:pass@]server[:port] Server" \
-     "\n	-S		Use openssl connection helper for secure servers" \
      "\n	-N type		Request delivery notification. Type is ignored" \
      "\n	-f sender	Sender" \
      "\n	-F fullname	Sender full name. Overrides $NAME" \
