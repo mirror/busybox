@@ -1059,6 +1059,7 @@ static int get_line(void)
 	int count = 0;
 	char c;
 
+	alarm(HEADER_READ_TIMEOUT);
 	while (1) {
 		if (hdr_cnt <= 0) {
 			hdr_cnt = safe_read(STDIN_FILENO, hdr_buf, sizeof(hdr_buf));
@@ -1073,7 +1074,7 @@ static int get_line(void)
 			continue;
 		if (c == '\n') {
 			iobuf[count] = '\0';
-			return count;
+			break;
 		}
 		if (count < (IOBUF_SIZE - 1))      /* check overflow */
 			count++;
@@ -1739,8 +1740,8 @@ static Htaccess_Proxy *find_proxy_entry(const char *url)
 /*
  * Handle timeouts
  */
-static void exit_on_signal(int sig) NORETURN;
-static void exit_on_signal(int sig UNUSED_PARAM)
+static void send_REQUEST_TIMEOUT_and_exit(int sig) NORETURN;
+static void send_REQUEST_TIMEOUT_and_exit(int sig UNUSED_PARAM)
 {
 	send_headers_and_exit(HTTP_REQUEST_TIMEOUT);
 }
@@ -1805,9 +1806,8 @@ static void handle_incoming_and_exit(const len_and_sockaddr *fromAddr)
 			bb_error_msg("connected");
 	}
 
-	/* Install timeout handler */
-	signal_no_SA_RESTART_empty_mask(SIGALRM, exit_on_signal);
-	alarm(HEADER_READ_TIMEOUT);
+	/* Install timeout handler. get_line() needs it. */
+	signal(SIGALRM, send_REQUEST_TIMEOUT_and_exit);
 
 	if (!get_line()) /* EOF or error or empty line */
 		send_headers_and_exit(HTTP_BAD_REQUEST);
@@ -1934,7 +1934,6 @@ static void handle_incoming_and_exit(const len_and_sockaddr *fromAddr)
 
 		/* Read until blank line for HTTP version specified, else parse immediate */
 		while (1) {
-			alarm(HEADER_READ_TIMEOUT);
 			if (!get_line())
 				break; /* EOF or error or empty line */
 			if (DEBUG)
