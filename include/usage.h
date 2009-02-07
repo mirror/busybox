@@ -2123,11 +2123,12 @@
        "$ killall apache\n"
 
 #define killall5_trivial_usage \
-       "[-l] [-SIG]"
+       "[-l] [-SIG] [-o PID]..."
 #define killall5_full_usage "\n\n" \
        "Send a signal (default is TERM) to all processes outside current session\n" \
      "\nOptions:" \
      "\n	-l	List all signal names and numbers" \
+     "\n	-o PID	Do not signal this PID" \
 /*   "\n	-s SIG	Yet another way of specifying SIG" */ \
 
 #define klogd_trivial_usage \
