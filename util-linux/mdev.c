@@ -420,10 +420,17 @@ int mdev_main(int argc UNUSED_PARAM, char **argv)
 		 * /sys/block/loop* (for example) are symlinks to dirs,
 		 * not real directories.
 		 * (kernel's CONFIG_SYSFS_DEPRECATED makes them real dirs,
-		 * but we can't enforce that on users) */
-		recursive_action("/sys/block",
-			ACTION_RECURSE | ACTION_FOLLOWLINKS | ACTION_QUIET,
-			fileAction, dirAction, temp, 0);
+		 * but we can't enforce that on users)
+		 */
+		if (access("/sys/class/block", F_OK) != 0) {
+			/* Scan obsolete /sys/block only if /sys/class/block
+			 * doesn't exist. Otherwise we'll have dupes.
+			 */
+			recursive_action("/sys/block",
+				ACTION_RECURSE | ACTION_FOLLOWLINKS,
+				// not needed now? | ACTION_QUIET
+				fileAction, dirAction, temp, 0);
+		}
 		recursive_action("/sys/class",
 			ACTION_RECURSE | ACTION_FOLLOWLINKS,
 			fileAction, dirAction, temp, 0);
