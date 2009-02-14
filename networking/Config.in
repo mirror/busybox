@@ -13,7 +13,7 @@ config FEATURE_IPV6
 	  This adds IPv6 support in the networking applets.
 
 config FEATURE_PREFER_IPV4_ADDRESS
-	bool "Preferentially use IPv4 addresses from DNS queries"
+	bool "Prefer IPv4 addresses from DNS queries"
 	default y
 	depends on FEATURE_IPV6
 	help
