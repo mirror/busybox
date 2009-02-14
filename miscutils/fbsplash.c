@@ -87,7 +87,7 @@ static void fb_open(const char *strfb_device)
 			* BYTES_PER_PIXEL /*(G.scr_var.bits_per_pixel / 8)*/ ,
 			PROT_WRITE, MAP_SHARED, fbfd, 0);
 	if (G.addr == MAP_FAILED)
-		bb_perror_msg_and_die("can't mmap %s", strfb_device);
+		bb_perror_msg_and_die("mmap");
 	close(fbfd);
 }
 
@@ -121,7 +121,7 @@ static void fb_drawrectangle(void)
 	// vertical lines
 	ptr1 = (DATA*)(G.addr + (G.nbar_posy * G.scr_var.xres + G.nbar_posx) * BYTES_PER_PIXEL);
 	ptr2 = (DATA*)(G.addr + (G.nbar_posy * G.scr_var.xres + G.nbar_posx + G.nbar_width - 1) * BYTES_PER_PIXEL);
-	cnt = G.nbar_posy + G.nbar_height - 1 - G.nbar_posy;
+	cnt = G.nbar_height - 1 /* HUH?!  G.nbar_posy + G.nbar_height - 1 - G.nbar_posy*/;
 	do {
 		*ptr1 = thispix; ptr1 += G.scr_var.xres;
 		*ptr2 = thispix; ptr2 += G.scr_var.xres;
@@ -216,18 +216,18 @@ static void fb_drawprogressbar(unsigned percent)
  */
 static void fb_drawimage(void)
 {
-	char head[256];
-	char s[80];
-	FILE *theme_file;
+	RESERVE_CONFIG_BUFFER(head, 256);
+	RESERVE_CONFIG_BUFFER(s, 80);
+	int theme_file;
 	unsigned char *pixline;
 	unsigned i, j, width, height, line_size;
 
 	memset(head, 0, sizeof(head));
-	theme_file = xfopen_stdin(G.image_filename);
+	theme_file = open_or_warn_stdin(G.image_filename);
 
 	// parse ppm header
 	while (1) {
-		if (fgets(s, sizeof(s), theme_file) == NULL)
+		if (safe_read(theme_file, s, sizeof(s)) <= 0)
 			bb_error_msg_and_die("bad PPM file '%s'", G.image_filename);
 
 		if (s[0] == '#')
@@ -257,7 +257,7 @@ static void fb_drawimage(void)
 		unsigned char *pixel = pixline;
 		DATA *src = (DATA *)(G.addr + j * G.scr_fix.line_length);
 
-		if (fread(pixline, 1, line_size, theme_file) != line_size)
+		if (safe_read(theme_file, pixline, line_size) != line_size)
 			bb_error_msg_and_die("bad PPM file '%s'", G.image_filename);
 		for (i = 0; i < width; i++) {
 			unsigned thispix;
@@ -268,8 +268,12 @@ static void fb_drawimage(void)
 			pixel += 3;
 		}
 	}
-	free(pixline);
-	fclose(theme_file);
+	if (ENABLE_FEATURE_CLEAN_UP) {
+		free(pixline);
+		RELEASE_CONFIG_BUFFER(s);
+		RELEASE_CONFIG_BUFFER(head);
+	}
+	close(theme_file);
 }
 
 
@@ -294,7 +298,7 @@ static void init(const char *cfg_filename)
 		unsigned val = xatoi_u(token[1]);
 		int i = index_in_strings(param_names, token[0]);
 		if (i < 0)
-			bb_error_msg_and_die("syntax error: '%s'", token[0]);
+			bb_error_msg_and_die("syntax error: %s", token[0]);
 		if (i >= 0 && i < 7)
 			G.ns[i] = val;
 #if DEBUG
