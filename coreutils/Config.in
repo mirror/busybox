@@ -766,7 +766,7 @@ config FEATURE_WC_LARGE
 	default n
 	depends on WC
 	help
-	  Use "unsigned long long" in wc for count variables.
+	  Use "unsigned long long" in wc for counter variables.
 
 config WHO
 	bool "who"
