@@ -370,7 +370,7 @@ int runsvdir_main(int argc UNUSED_PARAM, char **argv)
 			opt_s_argv[1] = utoa(bb_got_signal);
 			pid = spawn(opt_s_argv);
 			if (pid > 0) {
-				/* Remebering to wait for _any_ children,
+				/* Remembering to wait for _any_ children,
 				 * not just pid */
 				while (wait(NULL) != pid)
 					continue;

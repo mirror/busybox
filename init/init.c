@@ -668,7 +668,7 @@ static void run_shutdown_and_kill_processes(void)
  * it to happen even somewhere inside "sysinit" would be a bit awkward.
  *
  * There is a tiny probability that SIGHUP and Ctrl-Alt-Del will collide
- * and only one will be remebered and acted upon.
+ * and only one will be remembered and acted upon.
  */
 
 static void halt_reboot_pwoff(int sig) NORETURN;
@@ -782,23 +782,23 @@ static void reload_inittab(void)
 	 */
 	parse_inittab();
 
-	if (ENABLE_FEATURE_KILL_REMOVED) {
-		/* Kill stale entries */
-		/* Be nice and send SIGTERM first */
-		for (a = init_action_list; a; a = a->next)
-			if (a->action_type == ONCE && a->pid != 0)
-				kill(a->pid, SIGTERM);
-		if (CONFIG_FEATURE_KILL_DELAY) {
-			/* NB: parent will wait in NOMMU case */
-			if ((BB_MMU ? fork() : vfork()) == 0) { /* child */
-				sleep(CONFIG_FEATURE_KILL_DELAY);
-				for (a = init_action_list; a; a = a->next)
-					if (a->action_type == ONCE && a->pid != 0)
-						kill(a->pid, SIGKILL);
-				_exit(EXIT_SUCCESS);
-			}
+#if ENABLE_FEATURE_KILL_REMOVED
+	/* Kill stale entries */
+	/* Be nice and send SIGTERM first */
+	for (a = init_action_list; a; a = a->next)
+		if (a->action_type == ONCE && a->pid != 0)
+			kill(a->pid, SIGTERM);
+	if (CONFIG_FEATURE_KILL_DELAY) {
+		/* NB: parent will wait in NOMMU case */
+		if ((BB_MMU ? fork() : vfork()) == 0) { /* child */
+			sleep(CONFIG_FEATURE_KILL_DELAY);
+			for (a = init_action_list; a; a = a->next)
+				if (a->action_type == ONCE && a->pid != 0)
+					kill(a->pid, SIGKILL);
+			_exit(EXIT_SUCCESS);
 		}
 	}
+#endif
 
 	/* Remove stale (ONCE) and not useful (SYSINIT,WAIT) entries */
 	nextp = &init_action_list;
