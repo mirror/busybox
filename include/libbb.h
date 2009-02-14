@@ -1281,7 +1281,13 @@ enum {
 	PSSCAN_UTIME    = 1 << 13,
 	PSSCAN_TTY      = 1 << 14,
 	PSSCAN_SMAPS	= (1 << 15) * ENABLE_FEATURE_TOPMEM,
-	PSSCAN_ARGVN    = (1 << 16) * (ENABLE_PGREP || ENABLE_PKILL || ENABLE_PIDOF),
+	/* NB: used by find_pid_by_name(). Any applet using it
+	 * needs to be mentioned here. */
+	PSSCAN_ARGVN    = (1 << 16) * (ENABLE_KILLALL
+				|| ENABLE_PGREP || ENABLE_PKILL
+				|| ENABLE_PIDOF
+				|| ENABLE_SESTATUS 
+				),
 	USE_SELINUX(PSSCAN_CONTEXT = 1 << 17,)
 	PSSCAN_START_TIME = 1 << 18,
 	PSSCAN_CPU      = 1 << 19,

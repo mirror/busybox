@@ -67,15 +67,14 @@ static int comm_match(procps_status_t *p, const char *procName)
 	return 1;
 }
 
-/* find_pid_by_name()
+/* This finds the pid of the specified process.
+ * Currently, it's implemented by rummaging through
+ * the proc filesystem.
  *
- *  Modified by Vladimir Oleynik for use with libbb/procps.c
- *  This finds the pid of the specified process.
- *  Currently, it's implemented by rummaging through
- *  the proc filesystem.
+ * Returns a list of all matching PIDs
+ * It is the caller's duty to free the returned pidlist.
  *
- *  Returns a list of all matching PIDs
- *  It is the caller's duty to free the returned pidlist.
+ * Modified by Vladimir Oleynik for use with libbb/procps.c
  */
 pid_t* FAST_FUNC find_pid_by_name(const char *procName)
 {
