@@ -11828,7 +11828,16 @@ find_dot_file(char *name)
 	if (strchr(name, '/'))
 		return name;
 
+	/* IIRC standards do not say whether . is to be searched.
+	 * And it is even smaller this way, making it unconditional for now:
+	 */
+	if (1) { /* ENABLE_ASH_BASH_COMPAT */
+		fullname = name;
+		goto try_cur_dir;
+	}
+
 	while ((fullname = padvance(&path, name)) != NULL) {
+ try_cur_dir:
 		if ((stat(fullname, &statb) == 0) && S_ISREG(statb.st_mode)) {
 			/*
 			 * Don't bother freeing here, since it will
