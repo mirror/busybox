@@ -524,6 +524,8 @@ int conf_write(const char *name)
 				}
 			case S_INT:
 				str = sym_get_string_value(sym);
+				if (!str[0])
+					str = "0";
 				fprintf(out, "CONFIG_%s=%s\n", sym->name, str);
 				if (out_h) {
 					fprintf(out_h, "#define CONFIG_%s %s\n", sym->name, str);
