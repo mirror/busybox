@@ -119,8 +119,9 @@ static uint8_t *get_attr_volume_id(struct vfat_dir_entry *dir, int count)
 	return NULL;
 }
 
-int volume_id_probe_vfat(struct volume_id *id, uint64_t fat_partition_off)
+int volume_id_probe_vfat(struct volume_id *id /*,uint64_t fat_partition_off*/)
 {
+#define fat_partition_off ((uint64_t)0)
 	struct vfat_super_block *vs;
 	struct vfat_dir_entry *dir;
 	uint16_t sector_size_bytes;

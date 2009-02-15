@@ -37,7 +37,7 @@ get_label_uuid(int fd, char **label, char **uuid)
 	if (ioctl(/*vid->*/fd, BLKGETSIZE64, &size) != 0)
 		size = 0;
 
-	if (volume_id_probe_all(vid, 0, size) != 0)
+	if (volume_id_probe_all(vid, /*0,*/ size) != 0)
 		goto ret;
 
 	if (vid->label[0] != '\0' || vid->uuid[0] != '\0') {

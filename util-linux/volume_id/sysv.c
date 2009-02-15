@@ -83,8 +83,9 @@ struct xenix_super {
 #define XENIX_MAGIC				0x2b5544
 #define SYSV_MAX_BLOCKSIZE			0x800
 
-int volume_id_probe_sysv(struct volume_id *id, uint64_t off)
+int volume_id_probe_sysv(struct volume_id *id /*,uint64_t off*/)
 {
+#define off ((uint64_t)0)
 	struct sysv_super *vs;
 	struct xenix_super *xs;
 	unsigned boff;

@@ -47,8 +47,9 @@ struct high_sierra_volume_descriptor {
 	uint8_t		version;
 } __attribute__((__packed__));
 
-int volume_id_probe_iso9660(struct volume_id *id, uint64_t off)
+int volume_id_probe_iso9660(struct volume_id *id /*,uint64_t off*/)
 {
+#define off ((uint64_t)0)
 	uint8_t *buf;
 	struct iso_volume_descriptor *is;
 	struct high_sierra_volume_descriptor *hs;

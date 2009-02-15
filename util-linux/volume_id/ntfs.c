@@ -84,8 +84,9 @@ struct volume_info {
 #define MFT_RECORD_ATTR_OBJECT_ID		0x40
 #define MFT_RECORD_ATTR_END			0xffffffffu
 
-int volume_id_probe_ntfs(struct volume_id *id, uint64_t off)
+int volume_id_probe_ntfs(struct volume_id *id /*,uint64_t off*/)
 {
+#define off ((uint64_t)0)
 	unsigned sector_size;
 	unsigned cluster_size;
 	uint64_t mft_cluster;

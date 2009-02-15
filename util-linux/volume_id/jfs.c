@@ -35,8 +35,9 @@ struct jfs_super_block {
 
 #define JFS_SUPERBLOCK_OFFSET			0x8000
 
-int volume_id_probe_jfs(struct volume_id *id, uint64_t off)
+int volume_id_probe_jfs(struct volume_id *id /*,uint64_t off*/)
 {
+#define off ((uint64_t)0)
 	struct jfs_super_block *js;
 
 	dbg("probing at offset 0x%llx", (unsigned long long) off);

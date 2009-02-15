@@ -27,8 +27,9 @@ struct romfs_super {
 	uint8_t name[0];
 } __attribute__((__packed__));
 
-int volume_id_probe_romfs(struct volume_id *id, uint64_t off)
+int volume_id_probe_romfs(struct volume_id *id /*,uint64_t off*/)
 {
+#define off ((uint64_t)0)
 	struct romfs_super *rfs;
 
 	dbg("probing at offset 0x%llx", (unsigned long long) off);

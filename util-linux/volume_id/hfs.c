@@ -131,8 +131,9 @@ struct hfsplus_vol_header {
 #define HFS_NODE_LEAF			0xff
 #define HFSPLUS_POR_CNID		1
 
-int volume_id_probe_hfs_hfsplus(struct volume_id *id, uint64_t off)
+int volume_id_probe_hfs_hfsplus(struct volume_id *id /*,uint64_t off*/)
 {
+	uint64_t off = 0;
 	unsigned blocksize;
 	unsigned cat_block;
 	unsigned ext_block_start;

@@ -254,9 +254,15 @@ void *volume_id_get_buffer(struct volume_id *id, uint64_t off, size_t len)
 		dbg("requested 0x%x bytes, got 0x%x bytes",
 				(unsigned) len, (unsigned) read_len);
  err:
-		/* id->seekbuf_len or id->sbbuf_len is wrong now! Fixing.
-		 * Most likely user will not do any additional
-		 * calls anyway, it's a corrupted fs or something. */
+		/* No filesystem can be this tiny. It's most likely
+		 * non-associated loop device, empty drive and so on.
+		 * Flag it, making it possible to short circuit future
+		 * accesses. Rationale:
+		 * users complained of slow blkid due to empty floppy drives.
+		 */
+		if (off < 64*1024)
+			id->error = 1;
+		/* id->seekbuf_len or id->sbbuf_len is wrong now! Fixing. */
 		volume_id_free_buffer(id);
 		return NULL;
 	}

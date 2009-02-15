@@ -63,6 +63,7 @@ struct volume_id_partition {
 struct volume_id {
 	int		fd;
 //	int		fd_close:1;
+	int		error;
 	size_t		sbbuf_len;
 	size_t		seekbuf_len;
 	uint8_t		*sbbuf;
@@ -86,7 +87,7 @@ struct volume_id {
 };
 
 struct volume_id *volume_id_open_node(int fd);
-int volume_id_probe_all(struct volume_id *id, uint64_t off, uint64_t size);
+int volume_id_probe_all(struct volume_id *id, /*uint64_t off,*/ uint64_t size);
 void free_volume_id(struct volume_id *id);
 
 /* util.h */
@@ -164,67 +165,67 @@ void volume_id_free_buffer(struct volume_id *id);
 
 /* RAID */
 
-//int volume_id_probe_highpoint_37x_raid(struct volume_id *id, uint64_t off);
-//int volume_id_probe_highpoint_45x_raid(struct volume_id *id, uint64_t off, uint64_t size);
+//int volume_id_probe_highpoint_37x_raid(struct volume_id *id /*,uint64_t off*/);
+//int volume_id_probe_highpoint_45x_raid(struct volume_id *id /*,uint64_t off*/, uint64_t size);
 
-//int volume_id_probe_intel_software_raid(struct volume_id *id, uint64_t off, uint64_t size);
+//int volume_id_probe_intel_software_raid(struct volume_id *id /*,uint64_t off*/, uint64_t size);
 
-int volume_id_probe_linux_raid(struct volume_id *id, uint64_t off, uint64_t size);
+int volume_id_probe_linux_raid(struct volume_id *id /*,uint64_t off*/, uint64_t size);
 
-//int volume_id_probe_lsi_mega_raid(struct volume_id *id, uint64_t off, uint64_t size);
+//int volume_id_probe_lsi_mega_raid(struct volume_id *id /*,uint64_t off*/, uint64_t size);
 
-//int volume_id_probe_nvidia_raid(struct volume_id *id, uint64_t off, uint64_t size);
+//int volume_id_probe_nvidia_raid(struct volume_id *id /*,uint64_t off*/, uint64_t size);
 
-//int volume_id_probe_promise_fasttrack_raid(struct volume_id *id, uint64_t off, uint64_t size);
+//int volume_id_probe_promise_fasttrack_raid(struct volume_id *id /*,uint64_t off*/, uint64_t size);
 
-//int volume_id_probe_silicon_medley_raid(struct volume_id *id, uint64_t off, uint64_t size);
+//int volume_id_probe_silicon_medley_raid(struct volume_id *id /*,uint64_t off*/, uint64_t size);
 
-//int volume_id_probe_via_raid(struct volume_id *id, uint64_t off, uint64_t size);
+//int volume_id_probe_via_raid(struct volume_id *id /*,uint64_t off*/, uint64_t size);
 
-//int volume_id_probe_lvm1(struct volume_id *id, uint64_t off);
-//int volume_id_probe_lvm2(struct volume_id *id, uint64_t off);
+//int volume_id_probe_lvm1(struct volume_id *id /*,uint64_t off*/);
+//int volume_id_probe_lvm2(struct volume_id *id /*,uint64_t off*/);
 
 /* FS */
 
-int volume_id_probe_cramfs(struct volume_id *id, uint64_t off);
+int volume_id_probe_cramfs(struct volume_id *id /*,uint64_t off*/);
 
-int volume_id_probe_ext(struct volume_id *id, uint64_t off);
+int volume_id_probe_ext(struct volume_id *id /*,uint64_t off*/);
 
-int volume_id_probe_vfat(struct volume_id *id, uint64_t off);
+int volume_id_probe_vfat(struct volume_id *id /*,uint64_t off*/);
 
-int volume_id_probe_hfs_hfsplus(struct volume_id *id, uint64_t off);
+int volume_id_probe_hfs_hfsplus(struct volume_id *id /*,uint64_t off*/);
 
-//int volume_id_probe_hpfs(struct volume_id *id, uint64_t off);
+//int volume_id_probe_hpfs(struct volume_id *id /*,uint64_t off*/);
 
-int volume_id_probe_iso9660(struct volume_id *id, uint64_t off);
+int volume_id_probe_iso9660(struct volume_id *id /*,uint64_t off*/);
 
-int volume_id_probe_jfs(struct volume_id *id, uint64_t off);
+int volume_id_probe_jfs(struct volume_id *id /*,uint64_t off*/);
 
-int volume_id_probe_linux_swap(struct volume_id *id, uint64_t off);
+int volume_id_probe_linux_swap(struct volume_id *id /*,uint64_t off*/);
 
-int volume_id_probe_luks(struct volume_id *id, uint64_t off);
+int volume_id_probe_luks(struct volume_id *id /*,uint64_t off*/);
 
-//int volume_id_probe_mac_partition_map(struct volume_id *id, uint64_t off);
+//int volume_id_probe_mac_partition_map(struct volume_id *id /*,uint64_t off*/);
 
-//int volume_id_probe_minix(struct volume_id *id, uint64_t off);
+//int volume_id_probe_minix(struct volume_id *id /*,uint64_t off*/);
 
-//int volume_id_probe_msdos_part_table(struct volume_id *id, uint64_t off);
+//int volume_id_probe_msdos_part_table(struct volume_id *id /*,uint64_t off*/);
 
-int volume_id_probe_ntfs(struct volume_id *id, uint64_t off);
+int volume_id_probe_ntfs(struct volume_id *id /*,uint64_t off*/);
 
-int volume_id_probe_ocfs2(struct volume_id *id, uint64_t off);
+int volume_id_probe_ocfs2(struct volume_id *id /*,uint64_t off*/);
 
-int volume_id_probe_reiserfs(struct volume_id *id, uint64_t off);
+int volume_id_probe_reiserfs(struct volume_id *id /*,uint64_t off*/);
 
-int volume_id_probe_romfs(struct volume_id *id, uint64_t off);
+int volume_id_probe_romfs(struct volume_id *id /*,uint64_t off*/);
 
-int volume_id_probe_sysv(struct volume_id *id, uint64_t off);
+int volume_id_probe_sysv(struct volume_id *id /*,uint64_t off*/);
 
-int volume_id_probe_udf(struct volume_id *id, uint64_t off);
+int volume_id_probe_udf(struct volume_id *id /*,uint64_t off*/);
 
-//int volume_id_probe_ufs(struct volume_id *id, uint64_t off);
+//int volume_id_probe_ufs(struct volume_id *id /*,uint64_t off*/);
 
-int volume_id_probe_xfs(struct volume_id *id, uint64_t off);
+int volume_id_probe_xfs(struct volume_id *id /*,uint64_t off*/);
 
 #if __GNUC_PREREQ(4,1)
 # pragma GCC visibility pop
