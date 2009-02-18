@@ -257,7 +257,9 @@ static void fb_drawimage(void)
 
 	if (ENABLE_FEATURE_CLEAN_UP)
 		free(head);
-
+	if (width != G.scr_var.xres || height != G.scr_var.yres)
+		bb_error_msg_and_die("PPM %dx%d does not match screen %dx%d",
+							 width, height, G.scr_var.xres, G.scr_var.yres);
 	line_size = width*3;
 	if (width > G.scr_var.xres)
 		width = G.scr_var.xres;
