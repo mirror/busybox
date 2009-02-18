@@ -1,35 +1,30 @@
+/* vi: set sw=4 ts=4: */
 /* eraseall.c -- erase the whole of a MTD device
-
-   Ported to busybox from mtd-utils.
-
-   Copyright (C) 2000 Arcom Control System Ltd
-
-   Renamed to flash_eraseall.c
-
-   This program is free software; you can redistribute it and/or modify
-   it under the terms of the GNU General Public License as published by
-   the Free Software Foundation; either version 2 of the License, or
-   (at your option) any later version.
-
-   This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-   GNU General Public License for more details.
-
-   You should have received a copy of the GNU General Public License
-   along with this program; if not, write to the Free Software
-   Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA
+ *
+ * Ported to busybox from mtd-utils.
+ *
+ * Copyright (C) 2000 Arcom Control System Ltd
+ *
+ * Renamed to flash_eraseall.c
+ *
+ * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  */
 
 #include "libbb.h"
-
 #include <mtd/mtd-user.h>
 #include <mtd/jffs2-user.h>
 
 #define OPTION_J	(1 << 0)
 #define OPTION_Q	(1 << 1)
+#define _bitNAND (2)
+#define isNAND		(1 << _bitNAND)
+#define bbtest		(1 << 3)
 
-int target_endian = __BYTE_ORDER;
+/* This is used in the cpu_to_je/je_to_cpu macros in jffs2_user.h */
+/* FIXME: target_endian should be const!
+ * FIXME: Also it sounds more sensible to use our own existing SWAP_ macros.
+ */
+/* const */ int target_endian = __BYTE_ORDER;
 
 static uint32_t crc32(uint32_t val, const void *ss, int len,
 		uint32_t *crc32_table)
@@ -49,14 +44,13 @@ static void show_progress(mtd_info_t *meminfo, erase_info_t *erase)
 }
 
 int flash_eraseall_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int flash_eraseall_main(int argc, char **argv)
+int flash_eraseall_main(int argc UNUSED_PARAM, char **argv)
 {
 	struct jffs2_unknown_node cleanmarker;
 	mtd_info_t meminfo;
 	int fd, clmpos = 0, clmlen = 8;
 	erase_info_t erase;
 	struct stat st;
-	int isNAND, bbtest = 1;
 	unsigned int flags;
 	char *mtd_name;
 
@@ -73,7 +67,7 @@ int flash_eraseall_main(int argc, char **argv)
 	xioctl(fd, MEMGETINFO, &meminfo);
 
 	erase.length = meminfo.erasesize;
-	isNAND = meminfo.type == MTD_NANDFLASH ? 1 : 0;
+	flags |= bbtest | ((meminfo.type == MTD_NANDFLASH) << _bitNAND);
 
 	if (flags & OPTION_J) {
 		uint32_t *crc32_table;
@@ -82,7 +76,7 @@ int flash_eraseall_main(int argc, char **argv)
 
 		cleanmarker.magic = cpu_to_je16 (JFFS2_MAGIC_BITMASK);
 		cleanmarker.nodetype = cpu_to_je16 (JFFS2_NODETYPE_CLEANMARKER);
-		if (!isNAND)
+		if (!(flags & isNAND))
 			cleanmarker.totlen = cpu_to_je32 (sizeof (struct jffs2_unknown_node));
 		else {
 			struct nand_oobinfo oobinfo;
@@ -125,10 +119,10 @@ int flash_eraseall_main(int argc, char **argv)
 
 	for (erase.start = 0; erase.start < meminfo.size;
 	     erase.start += meminfo.erasesize) {
-		if (bbtest) {
+		if (flags & bbtest) {
 			int ret;
-
 			loff_t offset = erase.start;
+
 			ret = ioctl(fd, MEMGETBADBLOCK, &offset);
 			if (ret > 0) {
 				if (!(flags & OPTION_Q))
@@ -139,13 +133,13 @@ int flash_eraseall_main(int argc, char **argv)
 				 * types e.g. NOR
 				 */
 				if (errno == EOPNOTSUPP) {
-					bbtest = 0;
-					if (isNAND)
+					flags =~ bbtest;
+					if (flags & isNAND)
 						bb_error_msg_and_die("%s: Bad block check not available",
 								mtd_name);
 				} else {
-					bb_error_msg_and_die("\n%s: MTD get bad block failed: %s",
-							mtd_name, strerror(errno));
+					bb_perror_msg_and_die("\n%s: MTD %s failure",
+							mtd_name, "get bad block ");
 				}
 			}
 		}
@@ -160,19 +154,20 @@ int flash_eraseall_main(int argc, char **argv)
 			continue;
 
 		/* write cleanmarker */
-		if (isNAND) {
+		if (flags & isNAND) {
 			struct mtd_oob_buf oob;
+
 			oob.ptr = (unsigned char *) &cleanmarker;
 			oob.start = erase.start + clmpos;
 			oob.length = clmlen;
 			xioctl (fd, MEMWRITEOOB, &oob);
 		} else {
 			if (lseek (fd, erase.start, SEEK_SET) < 0) {
-				bb_error_msg("\n%s: MTD lseek failure: %s", mtd_name, strerror(errno));
+				bb_perror_msg("\n%s: MTD %s failure", mtd_name, "seek");
 				continue;
 			}
 			if (write (fd , &cleanmarker, sizeof (cleanmarker)) != sizeof (cleanmarker)) {
-				bb_error_msg("\n%s: MTD write failure: %s", mtd_name, strerror(errno));
+				bb_perror_msg("\n%s: MTD %s failure", mtd_name, "write");
 				continue;
 			}
 		}
@@ -181,8 +176,10 @@ int flash_eraseall_main(int argc, char **argv)
 	}
 	if (!(flags & OPTION_Q)) {
 		show_progress(&meminfo, &erase);
-		printf("\n");
+		bb_putchar('\n');
 	}
 
+	if (ENABLE_FEATURE_CLEAN_UP)
+		close(fd);
 	return EXIT_SUCCESS;
 }
