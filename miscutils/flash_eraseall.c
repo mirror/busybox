@@ -20,11 +20,15 @@
 #define isNAND		(1 << _bitNAND)
 #define bbtest		(1 << 3)
 
-/* This is used in the cpu_to_je/je_to_cpu macros in jffs2_user.h */
-/* FIXME: target_endian should be const!
- * FIXME: Also it sounds more sensible to use our own existing SWAP_ macros.
- */
-/* const */ int target_endian = __BYTE_ORDER;
+struct globals {
+	/* This is used in the cpu_to_je/je_to_cpu macros in jffs2_user.h */
+	int tgt_endian;
+};
+#define G (*(struct globals*)&bb_common_bufsiz1)
+#define target_endian	(G.tgt_endian)
+#define INIT_G() do { \
+	target_endian = __BYTE_ORDER; \
+} while (0)
 
 static uint32_t crc32(uint32_t val, const void *ss, int len,
 		uint32_t *crc32_table)
@@ -54,6 +58,7 @@ int flash_eraseall_main(int argc UNUSED_PARAM, char **argv)
 	unsigned int flags;
 	char *mtd_name;
 
+	INIT_G();
 	opt_complementary = "=1";
 	flags = getopt32(argv, "jq");
 
