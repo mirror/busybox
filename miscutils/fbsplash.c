@@ -224,14 +224,26 @@ static void fb_drawimage(void)
 	theme_file = xfopen_stdin(G.image_filename);
 	head = xmalloc(256);
 
-	// parse ppm header
+	/* parse ppm header
+	 * - A ppm image’s magic number is the two characters "P6".
+	 * - Whitespace (blanks, TABs, CRs, LFs).
+	 * - A width, formatted as ASCII characters in decimal.
+	 * - Whitespace.
+	 * - A height, again in ASCII decimal.
+	 * - Whitespace.
+	 * - The maximum color value (Maxval), again in ASCII decimal. Must be
+	 *   less than 65536.
+	 * - Newline or other single whitespace character.
+	 * - A raster of Width * Height pixels in triplets of rgb
+	 *   in pure binary by 1 (or not implemented 2) bytes.
+	 */
 	while (1) {
 		if (fgets(head, 256, theme_file) == NULL
 			/* do not overrun the buffer */
 			|| strlen(bb_common_bufsiz1) >= sizeof(bb_common_bufsiz1) - 256)
 			bb_error_msg_and_die("bad PPM file '%s'", G.image_filename);
 
-		ptr = memchr(head, '#', 256);
+		ptr = memchr(skip_whitespace(head), '#', 256);
 		if (ptr != NULL)
 			*ptr = 0; /* ignore comments */
 		strcat(bb_common_bufsiz1, head);
