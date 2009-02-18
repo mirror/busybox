@@ -1217,6 +1217,14 @@
        "$ find / -name passwd\n" \
        "/etc/passwd\n"
 
+#define flash_eraseall_trivial_usage \
+       "[-jq] MTD_DEVICE"
+#define flash_eraseall_full_usage "\n\n" \
+       "Erase an MTD device\n" \
+     "\nOptions:" \
+     "\n	-j	format the device for jffs2" \
+     "\n	-q	don't display progress messages"
+
 #define fold_trivial_usage \
        "[-bs] [-w WIDTH] [FILE]"
 #define fold_full_usage "\n\n" \

@@ -23,6 +23,7 @@ CFLAGS += $(call cc-option,-Wwrite-strings,)
 CFLAGS += $(call cc-option,-Wundef,)
 CFLAGS += $(call cc-option,-Wstrict-prototypes,)
 CFLAGS += $(call cc-option,-Wunused -Wunused-parameter,)
+CFLAGS += $(call cc-option,-Wunused-function -Wunused-value,)
 CFLAGS += $(call cc-option,-Wmissing-prototypes -Wmissing-declarations,)
 # warn about C99 declaration after statement
 CFLAGS += $(call cc-option,-Wdeclaration-after-statement,)
