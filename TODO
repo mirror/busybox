@@ -103,11 +103,6 @@ Bernhard Reutner-Fischer <busybox@busybox.net> suggests to look at these:
   New debug options:
     -Wlarger-than-127
     Cleanup any big users
-    -Wunused-parameter
-    Facilitate applet PROTOTYPES to provide means for having applets that
-    do a) not take any arguments b) need only one of argc or argv c) need
-    both argc and argv. All of these three options should go for the most
-    feature complete denominator.
   Collate BUFSIZ IOBUF_SIZE MY_BUF_SIZE PIPE_PROGRESS_SIZE BUFSIZE PIPESIZE
     make bb_common_bufsiz1 configurable, size wise.
     make pipesize configurable, size wise.
@@ -175,8 +170,7 @@ Unify archivers
 ---
 Text buffer support.
   Several existing applets (sort, vi, less...) read
-  a whole file into memory and act on it.  There might be an opportunity
-  for shared code in there that could be moved into libbb...
+  a whole file into memory and act on it.  Use open_read_close().
 ---
 Memory Allocation
   We have a CONFIG_BUFFER mechanism that lets us select whether to do memory
@@ -279,6 +273,7 @@ Minor stuff:
 ---
   in_ether duplicated in network/{interface,ifconfig}.c
 ---
+  unify progress_meter. wget, flash_eraseall, pipe_progress, fbsplash, setfiles.
 
 
 Code cleanup:
