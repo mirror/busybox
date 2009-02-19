@@ -37,6 +37,7 @@ enum {
 	ARG_e = (1<<3), /* with -F, print unresolved symbols */
 	ARG_F = (1<<4), /* System.map that contains the symbols */
 	ARG_n = (1<<5)  /* dry-run, print to stdout only */
+	ARG_r = (1<<6)  /* Compat dummy. Linux Makefile uses it */
 };
 
 static int FAST_FUNC parse_module(const char *fname, struct stat *sb,
@@ -138,7 +139,7 @@ int depmod_main(int argc UNUSED_PARAM, char **argv)
 	struct utsname uts;
 	int tmp;
 
-	getopt32(argv, "aAb:eF:n", &moddir_base, NULL);
+	getopt32(argv, "aAb:eF:nr", &moddir_base, NULL);
 	argv += optind;
 
 	/* goto modules location */
