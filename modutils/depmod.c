@@ -36,7 +36,7 @@ enum {
 	ARG_b = (1<<2), /* base directory when modules are in staging area */
 	ARG_e = (1<<3), /* with -F, print unresolved symbols */
 	ARG_F = (1<<4), /* System.map that contains the symbols */
-	ARG_n = (1<<5)  /* dry-run, print to stdout only */
+	ARG_n = (1<<5), /* dry-run, print to stdout only */
 	ARG_r = (1<<6)  /* Compat dummy. Linux Makefile uses it */
 };
 
