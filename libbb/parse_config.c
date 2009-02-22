@@ -5,6 +5,7 @@
  * Copyright (C) 2008 by Vladimir Dronnikov <dronnikov@gmail.com>
  *
  * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
+ * Also for use in uClibc (http://uclibc.org/) licensed under LGLPv2.1 or later.
  */
 
 #include "libbb.h"
