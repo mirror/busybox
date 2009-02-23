@@ -89,7 +89,7 @@ static void printargv(char *const *argv)
    This is funky since the pagesize could be less than 1K.
    Note: Some machines express getrusage statistics in terms of K,
    others in terms of pages.  */
-static unsigned long ptok(unsigned pagesize, unsigned long pages)
+static unsigned long ptok(const unsigned pagesize, const unsigned long pages)
 {
 	unsigned long tmp;
 
@@ -303,7 +303,7 @@ static void summarize(const char *fmt, char **command, resource_t *resp)
 				printf("%lu", ptok(pagesize, (UL) resp->ru.ru_ixrss) / cpu_ticks);
 				break;
 			case 'Z':	/* Page size.  */
-				printf("%u", getpagesize());
+				printf("%u", pagesize);
 				break;
 			case 'c':	/* Involuntary context switches.  */
 				printf("%lu", resp->ru.ru_nivcsw);
