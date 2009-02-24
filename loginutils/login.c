@@ -180,7 +180,7 @@ static void initselinux(char *username, char *full_tty,
 	if (getfilecon(full_tty, &old_tty_sid) < 0) {
 		bb_perror_msg_and_die("getfilecon(%s) failed", full_tty);
 	}
-	if (security_compute_relabel(user_sid, old_tty_sid,
+	if (security_compute_relabel(*user_sid, old_tty_sid,
 				SECCLASS_CHR_FILE, &new_tty_sid) != 0) {
 		bb_perror_msg_and_die("security_change_sid(%s) failed", full_tty);
 	}
