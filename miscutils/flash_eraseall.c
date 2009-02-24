@@ -142,7 +142,7 @@ int flash_eraseall_main(int argc UNUSED_PARAM, char **argv)
 				 * types e.g. NOR
 				 */
 				if (errno == EOPNOTSUPP) {
-					flags = ~BBTEST;
+					flags &= ~BBTEST;
 					if (flags & IS_NAND)
 						bb_error_msg_and_die("bad block check not available");
 				} else {
