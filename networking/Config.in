@@ -838,7 +838,7 @@ config FEATURE_TRACEROUTE_USE_ICMP
 	default n
 	depends on TRACEROUTE
 	help
-	  Add feature to allow for ICMP ECHO instead of UDP datagrams.
+	  Add option -I to use ICMP ECHO instead of UDP datagrams.
 
 source networking/udhcp/Config.in
 
