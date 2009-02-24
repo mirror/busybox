@@ -2716,7 +2716,7 @@
 "loading). modprobe uses a configuration file to determine what option(s) to\n" \
 "pass each module it loads.\n" \
 "\n" \
-"The configuration file is searched (in order) amongst:\n" \
+"The configuration file is searched (in this order):\n" \
 "\n" \
 "    /etc/modprobe.conf (2.6 only)\n" \
 "    /etc/modules.conf\n" \

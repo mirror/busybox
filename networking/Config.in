@@ -822,7 +822,7 @@ config FEATURE_TRACEROUTE_VERBOSE
 	default n
 	depends on TRACEROUTE
 	help
-	  Add some verbosity to traceroute. This includes amongst other things
+	  Add some verbosity to traceroute. This includes among other things
 	  hostnames and ICMP response types.
 
 config FEATURE_TRACEROUTE_SOURCE_ROUTE
