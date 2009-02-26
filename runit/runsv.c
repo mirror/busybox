@@ -251,7 +251,6 @@ static unsigned custom(struct svdir *s, char c)
 	int w;
 	char a[10];
 	struct stat st;
-	char *prog[2];
 
 	if (s->islog) return 0;
 	strcpy(a, "control/?");
@@ -267,13 +266,11 @@ static unsigned custom(struct svdir *s, char c)
 				/* child */
 				if (haslog && dup2(logpipe.wr, 1) == -1)
 					warn_cannot("setup stdout for control/?");
-				prog[0] = a;
-				prog[1] = NULL;
-				execv(a, prog);
+				execl(a, a, (char *) NULL);
 				fatal_cannot("run control/?");
 			}
 			/* parent */
-			while (safe_waitpid(pid, &w, 0) == -1) {
+			if (safe_waitpid(pid, &w, 0) == -1) {
 				warn_cannot("wait for child control/?");
 				return 0;
 			}

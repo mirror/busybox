@@ -982,7 +982,7 @@ static int doit(char *str)
 		case -1: /* failure */
 			return 0;
 		case 0: /* child */
-			execle(DEFAULT_SHELL, DEFAULT_SHELL, "-c", str, NULL, my_environ);
+			execle(DEFAULT_SHELL, DEFAULT_SHELL, "-c", str, (char *) NULL, my_environ);
 			_exit(127);
 		}
 		safe_waitpid(child, &status, 0);

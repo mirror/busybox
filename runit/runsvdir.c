@@ -119,7 +119,7 @@ static NOINLINE pid_t runsv(const char *name)
 			| (1 << SIGTERM)
 			, SIG_DFL);
 #endif
-		execlp("runsv", "runsv", name, NULL);
+		execlp("runsv", "runsv", name, (char *) NULL);
 		fatal2_cannot("start runsv ", name);
 	}
 	return pid;

@@ -181,6 +181,6 @@ int script_main(int argc UNUSED_PARAM, char **argv)
 
 	/* Non-ignored signals revert to SIG_DFL on exec anyway */
 	/*signal(SIGCHLD, SIG_DFL);*/
-	execl(shell, shell, shell_opt, shell_arg, NULL);
+	execl(shell, shell, shell_opt, shell_arg, (char *) NULL);
 	bb_simple_perror_msg_and_die(shell);
 }
