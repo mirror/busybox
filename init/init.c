@@ -671,15 +671,14 @@ static void new_init_action(uint8_t action_type, const char *command, const char
  */
 static void parse_inittab(void)
 {
+#if ENABLE_FEATURE_USE_INITTAB
 	char *token[4];
-	/* order must correspond to SYSINIT..RESTART constants */
-	static const char actions[] ALIGN1 =
-		"sysinit\0""respawn\0""askfirst\0""wait\0""once\0"
-		"ctrlaltdel\0""shutdown\0""restart\0";
+	parser_t *parser = config_open2("/etc/inittab", fopen_for_read);
 
-	parser_t *parser = config_open2(INITTAB, fopen_for_read);
-	/* No inittab file -- set up some default behavior */
-	if (parser == NULL) {
+	if (parser == NULL)
+#endif
+	{
+		/* No inittab file -- set up some default behavior */
 		/* Reboot on Ctrl-Alt-Del */
 		new_init_action(CTRLALTDEL, "reboot", "");
 		/* Umount all filesystems on halt/reboot */
@@ -699,11 +698,17 @@ static void parse_inittab(void)
 		new_init_action(SYSINIT, INIT_SCRIPT, "");
 		return;
 	}
+
+#if ENABLE_FEATURE_USE_INITTAB
 	/* optional_tty:ignored_runlevel:action:command
 	 * Delims are not to be collapsed and need exactly 4 tokens
 	 */
 	while (config_read(parser, token, 4, 0, "#:",
 				PARSE_NORMAL & ~(PARSE_TRIM | PARSE_COLLAPSE))) {
+		/* order must correspond to SYSINIT..RESTART constants */
+		static const char actions[] ALIGN1 =
+			"sysinit\0""respawn\0""askfirst\0""wait\0""once\0"
+			"ctrlaltdel\0""shutdown\0""restart\0";
 		int action;
 		char *tty = token[0];
 
@@ -727,6 +732,7 @@ static void parse_inittab(void)
 				parser->lineno);
 	}
 	config_close(parser);
+#endif
 }
 
 #if ENABLE_FEATURE_USE_INITTAB

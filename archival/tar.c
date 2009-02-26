@@ -591,8 +591,6 @@ static NOINLINE int writeTarFile(int tar_fd, int verboseFlag,
 	struct TarBallInfo tbInfo;
 
 	tbInfo.hlInfoHead = NULL;
-
-	fchmod(tar_fd, 0644);
 	tbInfo.tarFd = tar_fd;
 	tbInfo.verboseFlag = verboseFlag;
 

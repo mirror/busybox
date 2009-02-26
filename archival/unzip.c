@@ -140,7 +140,7 @@ struct BUG_cde_header_must_be_16_bytes {
 };
 
 #define FIX_ENDIANNESS_CDE(cde_header) do { \
-	(cde_header).formatted.cds_offset = SWAP_LE16((cde_header).formatted.cds_offset); \
+	(cde_header).formatted.cds_offset = SWAP_LE32((cde_header).formatted.cds_offset); \
 } while (0)
 
 enum { zip_fd = 3 };

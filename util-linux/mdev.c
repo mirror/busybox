@@ -179,8 +179,9 @@ static void make_device(char *path, int delete)
 			unsigned i, n;
 #endif
 			char *a = val;
-			s = strchr(val, ' ');
-			val = (s && s[1]) ? s+1 : NULL;
+			s = strchrnul(val, ' ');
+			val = (s[0] && s[1]) ? s+1 : NULL;
+			s[0] = '\0';
 #if ENABLE_FEATURE_MDEV_RENAME_REGEXP
 			/* substitute %1..9 with off[1..9], if any */
 			n = 0;
