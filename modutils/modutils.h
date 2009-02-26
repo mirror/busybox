@@ -16,8 +16,9 @@
 # pragma GCC visibility push(hidden)
 #endif
 
-/* As defined in linux/include/linux/module.h */
-#define MODULE_NAME_LEN 64
+/* linux/include/linux/module.h has 64, but this is also used
+ * internally for the maximum alias name length, which can be quite long */
+#define MODULE_NAME_LEN 256
 
 const char *moderror(int err) FAST_FUNC;
 llist_t *llist_find(llist_t *first, const char *str) FAST_FUNC;
