@@ -304,15 +304,14 @@ static void stopservice(struct svdir *s)
 static void startservice(struct svdir *s)
 {
 	int p;
-	char *run[2];
+	const char *run;
 
 	if (s->state == S_FINISH)
-		run[0] = (char*)"./finish";
+		run = "./finish";
 	else {
-		run[0] = (char*)"./run";
+		run = "./run";
 		custom(s, 'u');
 	}
-	run[1] = NULL;
 
 	if (s->pid != 0)
 		stopservice(s); /* should never happen */
@@ -340,8 +339,8 @@ static void startservice(struct svdir *s)
 			, SIG_DFL);*/
 		sig_unblock(SIGCHLD);
 		sig_unblock(SIGTERM);
-		execvp(*run, run);
-		fatal2_cannot(s->islog ? "start log/" : "start ", *run);
+		execl(run, run, (char *) NULL);
+		fatal2_cannot(s->islog ? "start log/" : "start ", run);
 	}
 	/* parent */
 	if (s->state != S_FINISH) {
@@ -395,8 +394,7 @@ static int ctrl(struct svdir *s, char c)
 	case 'c': /* sig cont */
 		if (s->pid && !custom(s, c))
 			kill(s->pid, SIGCONT);
-		if (s->ctrl & C_PAUSE)
-			s->ctrl &= ~C_PAUSE;
+		s->ctrl &= ~C_PAUSE;
 		update_status(s);
 		break;
 	case 'o': /* once */
