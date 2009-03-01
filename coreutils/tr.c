@@ -23,11 +23,11 @@
 #define ASCII 0377
 
 static void map(char *pvector,
-		unsigned char *string1, unsigned int string1_len,
-		unsigned char *string2, unsigned int string2_len)
+		unsigned char *string1, unsigned string1_len,
+		unsigned char *string2, unsigned string2_len)
 {
 	char last = '0';
-	unsigned int i, j;
+	unsigned i, j;
 
 	for (j = 0, i = 0; i < string1_len; i++) {
 		if (string2_len <= j)
@@ -39,12 +39,11 @@ static void map(char *pvector,
 
 /* supported constructs:
  *   Ranges,  e.g.,  0-9   ==>  0123456789
- *   Ranges,  e.g.,  [0-9] ==>  0123456789
  *   Escapes, e.g.,  \a    ==>  Control-G
  *   Character classes, e.g. [:upper:] ==> A...Z
  *   Equiv classess, e.g. [=A=] ==> A   (hmmmmmmm?)
  */
-static unsigned int expand(const char *arg, char *buffer)
+static unsigned expand(const char *arg, char *buffer)
 {
 	char *buffer_start = buffer;
 	unsigned i; /* can't be unsigned char: must be able to hold 256 */
@@ -77,7 +76,8 @@ static unsigned int expand(const char *arg, char *buffer)
 				static const char classes[] ALIGN1 =
 					"alpha"CLO "alnum"CLO "digit"CLO
 					"lower"CLO "upper"CLO "space"CLO
-					"blank"CLO "punct"CLO "cntrl"CLO;
+					"blank"CLO "punct"CLO "cntrl"CLO
+					"xdigit"CLO;
 #define CLASS_invalid 0 /* we increment the retval */
 #define CLASS_alpha 1
 #define CLASS_alnum 2
@@ -88,16 +88,17 @@ static unsigned int expand(const char *arg, char *buffer)
 #define CLASS_blank 7
 #define CLASS_punct 8
 #define CLASS_cntrl 9
-//#define CLASS_xdigit 10
+#define CLASS_xdigit 10
 //#define CLASS_graph 11
 //#define CLASS_print 12
 				smalluint j;
-				{ /* not really pretty.. */
-					char *tmp = xstrndup(arg, 7); // warning: xdigit would need 8, not 7
+				{
+					/* xdigit needs 8, not 7 */
+					char *tmp = xstrndup(arg, 7 + (arg[0]=='x'));
 					j = index_in_strings(classes, tmp) + 1;
 					free(tmp);
 				}
-				if (j == CLASS_alnum || j == CLASS_digit) {
+				if (j == CLASS_alnum || j == CLASS_digit || j == CLASS_xdigit) {
 					for (i = '0'; i <= '9'; i++)
 						*buffer++ = i;
 				}
@@ -125,6 +126,12 @@ static unsigned int expand(const char *arg, char *buffer)
 						 || (j == CLASS_cntrl && iscntrl(i)))
 							*buffer++ = i;
 				}
+				if (j == CLASS_xdigit) {
+					for (i = 'A'; i <= 'F'; i++) {
+						*buffer++ = i;
+						*buffer++ = i | 0x20;
+					}
+				}
 				if (j == CLASS_invalid) {
 					*buffer++ = '[';
 					*buffer++ = ':';
@@ -140,19 +147,14 @@ static unsigned int expand(const char *arg, char *buffer)
 				arg += 3;	/* skip CHAR=] */
 				continue;
 			}
-			if (i == '\0' || *arg != '-') { /* not [x-...] - copy verbatim */
-				*buffer++ = '[';
-				arg--; /* points to x */
-				continue; /* copy all, including eventual ']' */
-			}
-			/* [x-z] */
-			arg++; /* skip - */
-			if (arg[0] == '\0' || arg[1] != ']')
-				bb_show_usage();
-			ac = *arg++;
-			while (i <= ac)
-				*buffer++ = i++;
-			arg++;	/* skip ] */
+			/* The rest of [xyz... cases is treated as normal
+			 * string, '[' has no special meaning here:
+			 * tr "[a-z]" "[A-Z]" can be written as tr "a-z" "A-Z",
+			 * also try tr "[a-z]" "_A-Z+" and you'll see that
+			 * [] is not special here.
+			 */
+			*buffer++ = '[';
+			arg--; /* points to x */
 			continue;
 		}
 		*buffer++ = *arg++;
@@ -162,29 +164,30 @@ static unsigned int expand(const char *arg, char *buffer)
 
 static int complement(char *buffer, int buffer_len)
 {
-	int i, j, ix;
+	int ch, j, len;
 	char conv[ASCII + 2];
 
-	ix = 0;
-	for (i = '\0'; i <= ASCII; i++) {
+	len = 0;
+	for (ch = '\0'; ch <= ASCII; ch++) {
 		for (j = 0; j < buffer_len; j++)
-			if (buffer[j] == i)
-				break;
-		if (j == buffer_len)
-			conv[ix++] = i & ASCII;
+			if (buffer[j] == ch)
+				goto next_ch;
+		/* Didn't find it */
+		conv[len++] = (char) ch;
+ next_ch:
+		continue;
 	}
-	memcpy(buffer, conv, ix);
-	return ix;
+	memcpy(buffer, conv, len);
+	return len;
 }
 
 int tr_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int tr_main(int argc UNUSED_PARAM, char **argv)
 {
-	int output_length = 0, input_length;
 	int i;
 	smalluint flags;
-	ssize_t read_chars = 0;
-	size_t in_index = 0, out_index = 0;
+	ssize_t read_chars;
+	size_t in_index, out_index;
 	unsigned last = UCHAR_MAX + 1; /* not equal to any char */
 	unsigned char coded, c;
 	unsigned char *output = xmalloc(BUFSIZ);
@@ -206,6 +209,9 @@ int tr_main(int argc UNUSED_PARAM, char **argv)
 
 #define tr_buf bb_common_bufsiz1
 	if (*argv != NULL) {
+		int output_length = 0;
+		int input_length;
+
 		input_length = expand(*argv++, tr_buf);
 		if (flags & TR_OPT_complement)
 			input_length = complement(tr_buf, input_length);
@@ -221,30 +227,33 @@ int tr_main(int argc UNUSED_PARAM, char **argv)
 			outvec[output[i]] = TRUE;
 	}
 
+	goto start_from;
+
 	for (;;) {
 		/* If we're out of input, flush output and read more input. */
 		if ((ssize_t)in_index == read_chars) {
 			if (out_index) {
 				xwrite(STDOUT_FILENO, (char *)output, out_index);
+ start_from:
 				out_index = 0;
 			}
 			read_chars = safe_read(STDIN_FILENO, tr_buf, BUFSIZ);
 			if (read_chars <= 0) {
 				if (read_chars < 0)
 					bb_perror_msg_and_die(bb_msg_read_error);
-				exit(EXIT_SUCCESS);
+				break;
 			}
 			in_index = 0;
 		}
 		c = tr_buf[in_index++];
-		coded = vector[c];
 		if ((flags & TR_OPT_delete) && invec[c])
 			continue;
+		coded = vector[c];
 		if ((flags & TR_OPT_squeeze_reps) && last == coded
 		 && (invec[c] || outvec[coded]))
 			continue;
 		output[out_index++] = last = coded;
 	}
-	/* NOTREACHED */
+
 	return EXIT_SUCCESS;
 }

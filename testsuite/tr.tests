@@ -1,0 +1,22 @@
+#!/bin/sh
+
+# Copyright 2009 by Denys Vlasenko <vda.linux@googlemail.com>
+# Licensed under GPL v2, see file LICENSE for details.
+
+. testing.sh
+
+# testing "description" "arguments" "result" "infile" "stdin"
+
+testing "tr does not treat [] in [a-z] as special" \
+	"tr '[q-z]' '_Q-Z+'" \
+	"_QWe+" "" "[qwe]"
+
+testing "tr understands 0-9A-F" \
+	"tr -cd '[0-9A-F]'" \
+	"19AF" "" "19AFH\n"
+
+testing "tr understands [:xdigit:]" \
+	"tr -cd '[:xdigit:]'" \
+	"19AF" "" "19AFH\n"
+
+exit $FAILCOUNT
