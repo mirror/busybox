@@ -3647,12 +3647,14 @@
 	USE_FEATURE_SENDMAIL_MAILX( \
      "\n	-s subject	Subject" \
      "\n	-j charset	Assume charset for body and subject (" CONFIG_FEATURE_MIME_CHARSET ")" \
-     "\n	-a file		File to attach. May be multiple" \
-     "\n	-H \"prog args...\" Use external connection helper. E.g. openssl for secure servers" \
+     "\n	-a file		File to attach. May be repeated" \
+     "\n	-H 'prog args'	Run connection helper. E.g. openssl for encryption:" \
+     "\n			-H 'exec openssl s_client -quiet -tls1 -starttls smtp" \
+     "\n					-connect smtp.gmail.com:25' <email.txt" \
      "\n	-S server[:port] Server" \
      	) \
 	USE_FEATURE_SENDMAIL_MAILXX( \
-     "\n	-c rcpt		Cc: recipient. May be multiple" \
+     "\n	-c rcpt		Cc: recipient. May be repeated" \
      "\n	-e rcpt		Errors-To: recipient" \
        	) \
      "\n	-t		Read recipients and subject from body" \
