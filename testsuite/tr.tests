@@ -19,4 +19,13 @@ testing "tr understands [:xdigit:]" \
 	"tr -cd '[:xdigit:]'" \
 	"19AF" "" "19AFH\n"
 
+testing "tr does not stop after [:digit:]" \
+	"tr '[:digit:]y-z' 111111111123" \
+	"111abcx23\n" "" "789abcxyz\n"
+
+testing "tr has correct xdigit sequence" \
+	"tr '[:xdigit:]Gg' 1111111151242222333330xX" \
+	"#1111111151242222x333330X\n" "" \
+	"#0123456789ABCDEFGabcdefg\n"
+
 exit $FAILCOUNT
