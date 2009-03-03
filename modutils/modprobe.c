@@ -100,8 +100,7 @@ static int FAST_FUNC config_file_action(const char *filename,
 	}
 	config_close(p);
 error:
-	if (ENABLE_FEATURE_CLEAN_UP)
-		RELEASE_CONFIG_BUFFER(modname);
+	RELEASE_CONFIG_BUFFER(modname);
 	return rc;
 }
 
@@ -141,8 +140,13 @@ static int do_modprobe(struct modprobe_conf *conf, const char *module)
 	int rc = -1;
 
 	p = config_open2(CONFIG_DEFAULT_DEPMOD_FILE, fopen_for_read);
+	/* Modprobe does not work at all without modprobe.dep,
+	 * even if the full module name is given. Returning error here
+	 * was making us later confuse user with this message:
+	 * "module /full/path/to/existing/file/module.ko not found".
+	 * It's better to die immediately, with good message: */
 	if (p == NULL)
-		goto error;
+		bb_perror_msg_and_die("can't open '%s'", CONFIG_DEFAULT_DEPMOD_FILE);
 
 	while (config_read(p, tokens, 2, 1, "# \t", PARSE_NORMAL)) {
 		colon = last_char_is(tokens[0], ':');
@@ -179,23 +183,21 @@ static int do_modprobe(struct modprobe_conf *conf, const char *module)
 			rc = bb_init_module(fn, options);
 			if (rc == 0)
 				llist_add_to(&loaded, xstrdup(modname));
-			if (ENABLE_FEATURE_CLEAN_UP)
-				free(options);
+			free(options);
 		}
 
-		if (ENABLE_FEATURE_CLEAN_UP)
-			free(fn);
+		free(fn);
 	}
 
-error_not_found:
+ error_not_found:
 	config_close(p);
-error:
-	if (ENABLE_FEATURE_CLEAN_UP)
-		RELEASE_CONFIG_BUFFER(modname);
+
 	if (rc > 0 && !(option_mask32 & INSMOD_OPT_SILENT))
 		bb_error_msg("failed to %sload module %s: %s",
 			     (option_mask32 & MODPROBE_OPT_REMOVE) ? "un" : "",
 			     module, moderror(rc));
+
+	RELEASE_CONFIG_BUFFER(modname);
 	return rc;
 }
 
@@ -278,8 +280,7 @@ int modprobe_main(int argc UNUSED_PARAM, char **argv)
 				char *realname = llist_pop(&conf->aliases);
 				if (check_blacklist(conf, realname))
 					do_modprobe(conf, realname);
-				if (ENABLE_FEATURE_CLEAN_UP)
-					free(realname);
+				free(realname);
 			}
 		}
 		argv++;

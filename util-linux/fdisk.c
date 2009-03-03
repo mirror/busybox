@@ -83,7 +83,7 @@ struct partition {
 	unsigned char size4[4];         /* nr of sectors in partition */
 } PACKED;
 
-static const char unable_to_open[] ALIGN1 = "can't open %s";
+static const char unable_to_open[] ALIGN1 = "can't open '%s'";
 static const char unable_to_read[] ALIGN1 = "can't read from %s";
 static const char unable_to_seek[] ALIGN1 = "can't seek on %s";
 

@@ -69,7 +69,7 @@ int umount_main(int argc UNUSED_PARAM, char **argv)
 	fp = setmntent(bb_path_mtab_file, "r");
 	if (!fp) {
 		if (opt & OPT_ALL)
-			bb_error_msg_and_die("can't open %s", bb_path_mtab_file);
+			bb_error_msg_and_die("can't open '%s'", bb_path_mtab_file);
 	} else {
 		while (getmntent_r(fp, &me, path, PATH_MAX)) {
 			/* Match fstype if passed */

@@ -4540,7 +4540,7 @@ forkchild(struct job *jp, /*union node *n,*/ int mode)
 		if (jp->nprocs == 0) {
 			close(0);
 			if (open(bb_dev_null, O_RDONLY) != 0)
-				ash_msg_and_raise_error("can't open %s", bb_dev_null);
+				ash_msg_and_raise_error("can't open '%s'", bb_dev_null);
 		}
 	}
 	if (!oldlvl) {
@@ -9573,7 +9573,7 @@ setinputfile(const char *fname, int flags)
 	if (fd < 0) {
 		if (flags & INPUT_NOFILE_OK)
 			goto out;
-		ash_msg_and_raise_error("can't open %s", fname);
+		ash_msg_and_raise_error("can't open '%s'", fname);
 	}
 	if (fd < 10) {
 		fd2 = copyfd(fd, 10);
