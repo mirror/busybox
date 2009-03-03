@@ -604,16 +604,16 @@ static int list_single(const struct dnode *dn)
 	for (i = 0; i <= 31; i++) {
 		switch (all_fmt & (1 << i)) {
 		case LIST_INO:
-			column += printf("%7ld ", (long) dn->dstat.st_ino);
+			column += printf("%7lu ", (long) dn->dstat.st_ino);
 			break;
 		case LIST_BLOCKS:
-			column += printf("%4"OFF_FMT"d ", (off_t) dn->dstat.st_blocks >> 1);
+			column += printf("%4"OFF_FMT"u ", (off_t) dn->dstat.st_blocks >> 1);
 			break;
 		case LIST_MODEBITS:
 			column += printf("%-10s ", (char *) bb_mode_string(dn->dstat.st_mode));
 			break;
 		case LIST_NLINKS:
-			column += printf("%4ld ", (long) dn->dstat.st_nlink);
+			column += printf("%4lu ", (long) dn->dstat.st_nlink);
 			break;
 		case LIST_ID_NAME:
 #if ENABLE_FEATURE_LS_USERNAME
@@ -624,19 +624,19 @@ static int list_single(const struct dnode *dn)
 			break;
 #endif
 		case LIST_ID_NUMERIC:
-			column += printf("%-8d %-8d", dn->dstat.st_uid, dn->dstat.st_gid);
+			column += printf("%-8u %-8u", dn->dstat.st_uid, dn->dstat.st_gid);
 			break;
 		case LIST_SIZE:
 		case LIST_DEV:
 			if (S_ISBLK(dn->dstat.st_mode) || S_ISCHR(dn->dstat.st_mode)) {
-				column += printf("%4d, %3d ", (int) major(dn->dstat.st_rdev),
+				column += printf("%4u, %3u ", (int) major(dn->dstat.st_rdev),
 					   (int) minor(dn->dstat.st_rdev));
 			} else {
 				if (all_fmt & LS_DISP_HR) {
 					column += printf("%9s ",
 						make_human_readable_str(dn->dstat.st_size, 1, 0));
 				} else {
-					column += printf("%9"OFF_FMT"d ", (off_t) dn->dstat.st_size);
+					column += printf("%9"OFF_FMT"u ", (off_t) dn->dstat.st_size);
 				}
 			}
 			break;
@@ -683,7 +683,7 @@ static int list_single(const struct dnode *dn)
 			errno = 0;
 #if ENABLE_FEATURE_LS_COLOR
 			if (show_color && !lstat(dn->fullname, &info)) {
-				printf("\033[%d;%dm", bgcolor(info.st_mode),
+				printf("\033[%u;%um", bgcolor(info.st_mode),
 						fgcolor(info.st_mode));
 			}
 #endif
@@ -710,7 +710,7 @@ static int list_single(const struct dnode *dn)
 #if ENABLE_FEATURE_LS_COLOR
 				if (show_color) {
 					errno = 0;
-					printf("\033[%d;%dm", bgcolor(info.st_mode),
+					printf("\033[%u;%um", bgcolor(info.st_mode),
 						   fgcolor(info.st_mode));
 				}
 #endif
@@ -932,8 +932,8 @@ int ls_main(int argc UNUSED_PARAM, char **argv)
 	dn = NULL;
 	nfiles = 0;
 	do {
-		/* ls w/o -l follows links on command line */
-		cur = my_stat(*argv, *argv, !(all_fmt & STYLE_LONG));
+		/* NB: follow links on command line unless -l or -s */
+		cur = my_stat(*argv, *argv, !(all_fmt & (STYLE_LONG|LIST_BLOCKS)));
 		argv++;
 		if (!cur)
 			continue;
