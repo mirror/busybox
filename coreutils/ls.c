@@ -118,6 +118,103 @@ SPLIT_SUBDIR    = 2,
 #define ATTR(mode)	("\00\00\01\00\01\00\01\00"\
 			 "\00\00\01\00\01\00\00\01" [TYPEINDEX(mode)])
 
+/* "[-]Cadil1", POSIX mandated options, busybox always supports */
+/* "[-]gnsx", POSIX non-mandated options, busybox always supports */
+/* "[-]Q" GNU option? busybox always supports */
+/* "[-]Ak" GNU options, busybox always supports */
+/* "[-]FLRctur", POSIX mandated options, busybox optionally supports */
+/* "[-]p", POSIX non-mandated options, busybox optionally supports */
+/* "[-]SXvThw", GNU options, busybox optionally supports */
+/* "[-]K", SELinux mandated options, busybox optionally supports */
+/* "[-]e", I think we made this one up */
+static const char ls_options[] ALIGN1 =
+	"Cadil1gnsxQAk" /* 13 opts, total 13 */
+	USE_FEATURE_LS_TIMESTAMPS("cetu") /* 4, 17 */
+	USE_FEATURE_LS_SORTFILES("SXrv")  /* 4, 21 */
+	USE_FEATURE_LS_FILETYPES("Fp")    /* 2, 23 */
+	USE_FEATURE_LS_FOLLOWLINKS("L")   /* 1, 24 */
+	USE_FEATURE_LS_RECURSIVE("R")     /* 1, 25 */
+	USE_FEATURE_HUMAN_READABLE("h")   /* 1, 26 */
+	USE_SELINUX("K") /* 1, 27 */
+	USE_SELINUX("Z") /* 1, 28 */
+	USE_FEATURE_AUTOWIDTH("T:w:") /* 2, 30 */
+	;
+enum {
+	//OPT_C = (1 << 0),
+	//OPT_a = (1 << 1),
+	//OPT_d = (1 << 2),
+	//OPT_i = (1 << 3),
+	//OPT_l = (1 << 4),
+	//OPT_1 = (1 << 5),
+	OPT_g = (1 << 6),
+	//OPT_n = (1 << 7),
+	//OPT_s = (1 << 8),
+	//OPT_x = (1 << 9),
+	OPT_Q = (1 << 10),
+	//OPT_A = (1 << 11),
+	//OPT_k = (1 << 12),
+};
+
+enum {
+	LIST_MASK_TRIGGER	= 0,
+	STYLE_MASK_TRIGGER	= STYLE_MASK,
+	DISP_MASK_TRIGGER	= DISP_ROWS,
+	SORT_MASK_TRIGGER	= SORT_MASK,
+};
+
+/* TODO: simple toggles may be stored as OPT_xxx bits instead */
+static const unsigned opt_flags[] = {
+	LIST_SHORT | STYLE_COLUMNS, /* C */
+	DISP_HIDDEN | DISP_DOT,     /* a */
+	DISP_NOLIST,                /* d */
+	LIST_INO,                   /* i */
+	LIST_LONG | STYLE_LONG,     /* l - remember LS_DISP_HR in mask! */
+	LIST_SHORT | STYLE_SINGLE,  /* 1 */
+	0,                          /* g (don't show group) - handled via OPT_g */
+	LIST_ID_NUMERIC,            /* n */
+	LIST_BLOCKS,                /* s */
+	DISP_ROWS,                  /* x */
+	0,                          /* Q (quote filename) - handled via OPT_Q */
+	DISP_HIDDEN,                /* A */
+	ENABLE_SELINUX * LIST_CONTEXT, /* k (ignored if !SELINUX) */
+#if ENABLE_FEATURE_LS_TIMESTAMPS
+	TIME_CHANGE | (ENABLE_FEATURE_LS_SORTFILES * SORT_CTIME),   /* c */
+	LIST_FULLTIME,              /* e */
+	ENABLE_FEATURE_LS_SORTFILES * SORT_MTIME,   /* t */
+	TIME_ACCESS | (ENABLE_FEATURE_LS_SORTFILES * SORT_ATIME),   /* u */
+#endif
+#if ENABLE_FEATURE_LS_SORTFILES
+	SORT_SIZE,                  /* S */
+	SORT_EXT,                   /* X */
+	SORT_REVERSE,               /* r */
+	SORT_VERSION,               /* v */
+#endif
+#if ENABLE_FEATURE_LS_FILETYPES
+	LIST_FILETYPE | LIST_EXEC,  /* F */
+	LIST_FILETYPE,              /* p */
+#endif
+#if ENABLE_FEATURE_LS_FOLLOWLINKS
+	FOLLOW_LINKS,               /* L */
+#endif
+#if ENABLE_FEATURE_LS_RECURSIVE
+	DISP_RECURSIVE,             /* R */
+#endif
+#if ENABLE_FEATURE_HUMAN_READABLE
+	LS_DISP_HR,                 /* h */
+#endif
+#if ENABLE_SELINUX
+	LIST_MODEBITS|LIST_NLINKS|LIST_CONTEXT|LIST_SIZE|LIST_DATE_TIME, /* K */
+#endif
+#if ENABLE_SELINUX
+	LIST_MODEBITS|LIST_ID_NAME|LIST_CONTEXT, /* Z */
+#endif
+	(1U<<31)
+	/* options after Z are not processed through opt_flags:
+	 * T, w - ignored
+	 */
+};
+
+
 /*
  * a directory entry and its stat info are stored here
  */
@@ -573,6 +670,37 @@ static struct dnode **list_dir(const char *path)
 }
 
 
+static int print_name(const char *name)
+{
+	if (option_mask32 & OPT_Q) {
+#if ENABLE_FEATURE_ASSUME_UNICODE
+		int len = 2 + mbstrlen(name);
+#else
+		int len = 2;
+#endif
+		putchar('"');
+		while (*name) {
+			if (*name == '"') {
+				putchar('\\');
+				len++;
+			}
+			putchar(*name++);
+			if (!ENABLE_FEATURE_ASSUME_UNICODE)
+				len++;
+		}
+		putchar('"');
+		return len;
+	}
+	/* No -Q: */
+#if ENABLE_FEATURE_ASSUME_UNICODE
+	fputs(name, stdout);
+	return mbstrlen(name);
+#else
+	return printf("%s", name);
+#endif
+}
+
+
 static int list_single(const struct dnode *dn)
 {
 	int i, column = 0;
@@ -617,6 +745,12 @@ static int list_single(const struct dnode *dn)
 			break;
 		case LIST_ID_NAME:
 #if ENABLE_FEATURE_LS_USERNAME
+			if (option_mask32 & OPT_g) {
+				printf("%-8.8s",
+					get_cached_username(dn->dstat.st_uid));
+				column += 9;
+				break;
+			}
 			printf("%-8.8s %-8.8s",
 				get_cached_username(dn->dstat.st_uid),
 				get_cached_groupname(dn->dstat.st_gid));
@@ -662,21 +796,8 @@ static int list_single(const struct dnode *dn)
 #endif
 #if ENABLE_SELINUX
 		case LIST_CONTEXT:
-			{
-				char context[80];
-				int len = 0;
-
-				if (dn->sid) {
-					/* I assume sid initilized with NULL */
-					len = strlen(dn->sid) + 1;
-					safe_strncpy(context, dn->sid, len);
-					freecon(dn->sid);
-				} else {
-					safe_strncpy(context, "unknown", 8);
-				}
-				printf("%-32s ", context);
-				column += MAX(33, len);
-			}
+			column += printf("%-32s ", dn->sid ? dn->sid : "unknown");
+			freecon(dn->sid);
 			break;
 #endif
 		case LIST_FILENAME:
@@ -687,12 +808,7 @@ static int list_single(const struct dnode *dn)
 						fgcolor(info.st_mode));
 			}
 #endif
-#if ENABLE_FEATURE_ASSUME_UNICODE
-			printf("%s", dn->name);
-			column += mbstrlen(dn->name);
-#else
-			column += printf("%s", dn->name);
-#endif
+			column += print_name(dn->name);
 			if (show_color) {
 				printf("\033[0m");
 			}
@@ -714,7 +830,7 @@ static int list_single(const struct dnode *dn)
 						   fgcolor(info.st_mode));
 				}
 #endif
-				column += printf("%s", lpath) + 4;
+				column += print_name(lpath) + 4;
 				if (show_color) {
 					printf("\033[0m");
 				}
@@ -734,84 +850,6 @@ static int list_single(const struct dnode *dn)
 
 	return column;
 }
-
-
-/* "[-]Cadil1", POSIX mandated options, busybox always supports */
-/* "[-]gnsx", POSIX non-mandated options, busybox always supports */
-/* "[-]Ak" GNU options, busybox always supports */
-/* "[-]FLRctur", POSIX mandated options, busybox optionally supports */
-/* "[-]p", POSIX non-mandated options, busybox optionally supports */
-/* "[-]SXvThw", GNU options, busybox optionally supports */
-/* "[-]K", SELinux mandated options, busybox optionally supports */
-/* "[-]e", I think we made this one up */
-static const char ls_options[] ALIGN1 =
-	"Cadil1gnsxAk"
-	USE_FEATURE_LS_TIMESTAMPS("cetu")
-	USE_FEATURE_LS_SORTFILES("SXrv")
-	USE_FEATURE_LS_FILETYPES("Fp")
-	USE_FEATURE_LS_FOLLOWLINKS("L")
-	USE_FEATURE_LS_RECURSIVE("R")
-	USE_FEATURE_HUMAN_READABLE("h")
-	USE_SELINUX("K")
-	USE_FEATURE_AUTOWIDTH("T:w:")
-	USE_SELINUX("Z");
-
-enum {
-	LIST_MASK_TRIGGER	= 0,
-	STYLE_MASK_TRIGGER	= STYLE_MASK,
-	DISP_MASK_TRIGGER	= DISP_ROWS,
-	SORT_MASK_TRIGGER	= SORT_MASK,
-};
-
-static const unsigned opt_flags[] = {
-	LIST_SHORT | STYLE_COLUMNS, /* C */
-	DISP_HIDDEN | DISP_DOT,     /* a */
-	DISP_NOLIST,                /* d */
-	LIST_INO,                   /* i */
-	LIST_LONG | STYLE_LONG,     /* l - remember LS_DISP_HR in mask! */
-	LIST_SHORT | STYLE_SINGLE,  /* 1 */
-	0,                          /* g - ingored */
-	LIST_ID_NUMERIC,            /* n */
-	LIST_BLOCKS,                /* s */
-	DISP_ROWS,                  /* x */
-	DISP_HIDDEN,                /* A */
-	ENABLE_SELINUX * LIST_CONTEXT, /* k (ignored if !SELINUX) */
-#if ENABLE_FEATURE_LS_TIMESTAMPS
-	TIME_CHANGE | (ENABLE_FEATURE_LS_SORTFILES * SORT_CTIME),   /* c */
-	LIST_FULLTIME,              /* e */
-	ENABLE_FEATURE_LS_SORTFILES * SORT_MTIME,   /* t */
-	TIME_ACCESS | (ENABLE_FEATURE_LS_SORTFILES * SORT_ATIME),   /* u */
-#endif
-#if ENABLE_FEATURE_LS_SORTFILES
-	SORT_SIZE,                  /* S */
-	SORT_EXT,                   /* X */
-	SORT_REVERSE,               /* r */
-	SORT_VERSION,               /* v */
-#endif
-#if ENABLE_FEATURE_LS_FILETYPES
-	LIST_FILETYPE | LIST_EXEC,  /* F */
-	LIST_FILETYPE,              /* p */
-#endif
-#if ENABLE_FEATURE_LS_FOLLOWLINKS
-	FOLLOW_LINKS,               /* L */
-#endif
-#if ENABLE_FEATURE_LS_RECURSIVE
-	DISP_RECURSIVE,             /* R */
-#endif
-#if ENABLE_FEATURE_HUMAN_READABLE
-	LS_DISP_HR,                 /* h */
-#endif
-#if ENABLE_SELINUX
-	LIST_MODEBITS|LIST_NLINKS|LIST_CONTEXT|LIST_SIZE|LIST_DATE_TIME, /* K */
-#endif
-#if ENABLE_FEATURE_AUTOWIDTH
-	0, 0,                       /* T, w - ignored */
-#endif
-#if ENABLE_SELINUX
-	LIST_MODEBITS|LIST_ID_NAME|LIST_CONTEXT, /* Z */
-#endif
-	(1U<<31)
-};
 
 
 /* colored LS support by JaWi, janwillem.janssen@lxtreme.nl */
