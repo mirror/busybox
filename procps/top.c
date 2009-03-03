@@ -50,7 +50,9 @@ typedef struct top_status_t {
 } top_status_t;
 
 typedef struct jiffy_counts_t {
-	unsigned long long usr,nic,sys,idle,iowait,irq,softirq,steal;
+	/* Linux 2.4.x has only first four */
+	unsigned long long usr, nic, sys, idle;
+	unsigned long long iowait, irq, softirq, steal;
 	unsigned long long total;
 	unsigned long long busy;
 } jiffy_counts_t;
@@ -179,15 +181,12 @@ static int mult_lvl_cmp(void* a, void* b)
 	return 0;
 }
 
-/* NOINLINE so that complier doesn't unfold the call
- * causing multiple copies of the arithmatic instrns
- */
 static NOINLINE int read_cpu_jiffy(FILE *fp, jiffy_counts_t *p_jif)
 {
 #if !ENABLE_FEATURE_TOP_SMP_CPU
-	static const char fmt[] = "cpu %lld %lld %lld %lld %lld %lld %lld %lld";
+	static const char fmt[] = "cpu %llu %llu %llu %llu %llu %llu %llu %llu";
 #else
-	static const char fmt[] = "cp%*s %lld %lld %lld %lld %lld %lld %lld %lld";
+	static const char fmt[] = "cp%*s %llu %llu %llu %llu %llu %llu %llu %llu";
 #endif
 	int ret;
 
@@ -197,7 +196,7 @@ static NOINLINE int read_cpu_jiffy(FILE *fp, jiffy_counts_t *p_jif)
 			&p_jif->usr, &p_jif->nic, &p_jif->sys, &p_jif->idle,
 			&p_jif->iowait, &p_jif->irq, &p_jif->softirq,
 			&p_jif->steal);
-	if (ret > 4) {
+	if (ret >= 4) {
 		p_jif->total = p_jif->usr + p_jif->nic + p_jif->sys + p_jif->idle
 			+ p_jif->iowait + p_jif->irq + p_jif->softirq + p_jif->steal;
 		/* procps 2.x does not count iowait as busy time */
