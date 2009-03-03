@@ -60,7 +60,7 @@ struct ipx_addr {
 
 extern uint32_t get_addr32(char *name);
 extern int get_addr_1(inet_prefix *dst, char *arg, int family);
-extern int get_prefix_1(inet_prefix *dst, char *arg, int family);
+/*extern int get_prefix_1(inet_prefix *dst, char *arg, int family);*/
 extern int get_addr(inet_prefix *dst, char *arg, int family);
 extern int get_prefix(inet_prefix *dst, char *arg, int family);
 

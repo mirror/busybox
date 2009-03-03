@@ -43,7 +43,7 @@ int get_unsigned(unsigned *val, char *arg, int base)
 	return 0;
 }
 
-int get_u32(uint32_t * val, char *arg, int base)
+int get_u32(uint32_t *val, char *arg, int base)
 {
 	unsigned long res;
 	char *ptr;
@@ -57,7 +57,7 @@ int get_u32(uint32_t * val, char *arg, int base)
 	return 0;
 }
 
-int get_u16(uint16_t * val, char *arg, int base)
+int get_u16(uint16_t *val, char *arg, int base)
 {
 	unsigned long res;
 	char *ptr;
@@ -71,7 +71,7 @@ int get_u16(uint16_t * val, char *arg, int base)
 	return 0;
 }
 
-int get_u8(uint8_t * val, char *arg, int base)
+int get_u8(uint8_t *val, char *arg, int base)
 {
 	unsigned long res;
 	char *ptr;
@@ -85,7 +85,7 @@ int get_u8(uint8_t * val, char *arg, int base)
 	return 0;
 }
 
-int get_s16(int16_t * val, char *arg, int base)
+int get_s16(int16_t *val, char *arg, int base)
 {
 	long res;
 	char *ptr;
@@ -99,7 +99,7 @@ int get_s16(int16_t * val, char *arg, int base)
 	return 0;
 }
 
-int get_s8(int8_t * val, char *arg, int base)
+int get_s8(int8_t *val, char *arg, int base)
 {
 	long res;
 	char *ptr;
@@ -113,12 +113,14 @@ int get_s8(int8_t * val, char *arg, int base)
 	return 0;
 }
 
-int get_addr_1(inet_prefix * addr, char *name, int family)
+int get_addr_1(inet_prefix *addr, char *name, int family)
 {
 	memset(addr, 0, sizeof(*addr));
 
-	if (strcmp(name, bb_str_default) == 0 ||
-		strcmp(name, "all") == 0 || strcmp(name, "any") == 0) {
+	if (strcmp(name, bb_str_default) == 0
+	 || strcmp(name, "all") == 0
+	 || strcmp(name, "any") == 0
+	) {
 		addr->family = family;
 		addr->bytelen = (family == AF_INET6 ? 16 : 4);
 		addr->bitlen = -1;
@@ -146,7 +148,7 @@ int get_addr_1(inet_prefix * addr, char *name, int family)
 	return 0;
 }
 
-int get_prefix_1(inet_prefix * dst, char *arg, int family)
+static int get_prefix_1(inet_prefix *dst, char *arg, int family)
 {
 	int err;
 	unsigned plen;
@@ -154,7 +156,10 @@ int get_prefix_1(inet_prefix * dst, char *arg, int family)
 
 	memset(dst, 0, sizeof(*dst));
 
-	if (strcmp(arg, bb_str_default) == 0 || strcmp(arg, "any") == 0) {
+	if (strcmp(arg, bb_str_default) == 0
+	 || strcmp(arg, "all") == 0
+	 || strcmp(arg, "any") == 0
+	) {
 		dst->family = family;
 		dst->bytelen = 0;
 		dst->bitlen = 0;
@@ -172,7 +177,7 @@ int get_prefix_1(inet_prefix * dst, char *arg, int family)
 
 			netmask_pfx.family = AF_UNSPEC;
 			if ((get_unsigned(&plen, slash + 1, 0) || plen > dst->bitlen)
-				&& (get_addr_1(&netmask_pfx, slash + 1, family)))
+			 && (get_addr_1(&netmask_pfx, slash + 1, family)))
 				err = -1;
 			else if (netmask_pfx.family == AF_INET) {
 				/* fill in prefix length of dotted quad */
@@ -184,8 +189,8 @@ int get_prefix_1(inet_prefix * dst, char *arg, int family)
 					for (plen = 0; mask; mask <<= 1)
 						++plen;
 					if (plen >= 0 && plen <= dst->bitlen) {
-							dst->bitlen = plen;
-							/* dst->flags |= PREFIXLEN_SPECIFIED; */
+						dst->bitlen = plen;
+						/* dst->flags |= PREFIXLEN_SPECIFIED; */
 					} else
 						err = -1;
 				} else
@@ -201,7 +206,7 @@ int get_prefix_1(inet_prefix * dst, char *arg, int family)
 	return err;
 }
 
-int get_addr(inet_prefix * dst, char *arg, int family)
+int get_addr(inet_prefix *dst, char *arg, int family)
 {
 	if (family == AF_PACKET) {
 		bb_error_msg_and_die("\"%s\" may be inet %s, but it is not allowed in this context", arg, "address");
@@ -212,7 +217,7 @@ int get_addr(inet_prefix * dst, char *arg, int family)
 	return 0;
 }
 
-int get_prefix(inet_prefix * dst, char *arg, int family)
+int get_prefix(inet_prefix *dst, char *arg, int family)
 {
 	if (family == AF_PACKET) {
 		bb_error_msg_and_die("\"%s\" may be inet %s, but it is not allowed in this context", arg, "prefix");
@@ -253,7 +258,7 @@ void duparg2(const char *key, const char *arg)
 	bb_error_msg_and_die("either \"%s\" is duplicate, or \"%s\" is garbage", key, arg);
 }
 
-int inet_addr_match(inet_prefix * a, inet_prefix * b, int bits)
+int inet_addr_match(inet_prefix *a, inet_prefix *b, int bits)
 {
 	uint32_t *a1 = a->data;
 	uint32_t *a2 = b->data;
@@ -292,7 +297,6 @@ const char *rt_addr_n2a(int af, int UNUSED_PARAM len,
 		return "???";
 	}
 }
-
 
 const char *format_host(int af, int len, void *addr, char *buf, int buflen)
 {
