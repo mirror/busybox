@@ -223,13 +223,13 @@ static VALUE *docolon(VALUE *sv, VALUE *pv)
 	tostring(pv);
 
 	if (pv->u.s[0] == '^') {
-		bb_error_msg("\
-warning: unportable BRE: `%s': using `^' as the first character\n\
-of a basic regular expression is not portable; it is being ignored", pv->u.s);
+		bb_error_msg(
+"warning: '%s': using '^' as the first character\n"
+"of a basic regular expression is not portable; it is ignored", pv->u.s);
 	}
 
 	memset(&re_buffer, 0, sizeof(re_buffer));
-	memset(re_regs, 0, sizeof(*re_regs));
+	memset(re_regs, 0, sizeof(re_regs));
 	xregcomp(&re_buffer, pv->u.s, 0);
 
 	/* expr uses an anchored pattern match, so check that there was a
@@ -238,7 +238,7 @@ of a basic regular expression is not portable; it is being ignored", pv->u.s);
 	 && re_regs[0].rm_so == 0
 	) {
 		/* Were \(...\) used? */
-		if (re_buffer.re_nsub > 0) {
+		if (re_buffer.re_nsub > 0 && re_regs[1].rm_so >= 0) {
 			sv->u.s[re_regs[1].rm_eo] = '\0';
 			v = str_value(sv->u.s + re_regs[1].rm_so);
 		} else {
@@ -251,7 +251,7 @@ of a basic regular expression is not portable; it is being ignored", pv->u.s);
 		else
 			v = int_value(0);
 	}
-//FIXME: sounds like here is a bit missing: regfree(&re_buffer);
+	regfree(&re_buffer);
 	return v;
 }
 
