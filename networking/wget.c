@@ -387,6 +387,43 @@ static char *gethdr(char *buf, size_t bufsiz, FILE *fp /*, int *istrunc*/)
 	return hdrval;
 }
 
+#if ENABLE_FEATURE_WGET_LONG_OPTIONS
+static char *URL_escape(const char *str)
+{
+	/* URL encode, see RFC 2396 */
+	char *dst;
+	char *res = dst = xmalloc(strlen(str) * 3 + 1);
+	unsigned char c;
+
+	while (1) {
+		c = *str++;
+		if (c == '\0'
+		/* || strchr("!&'()*-.=_~", c) - more code */
+		 || c == '!'
+		 || c == '&'
+		 || c == '\''
+		 || c == '('
+		 || c == ')'
+		 || c == '*'
+		 || c == '-'
+		 || c == '.'
+		 || c == '='
+		 || c == '_'
+		 || c == '~'
+		 || (c >= '0' && c <= '9')
+		 || ((c|0x20) >= 'a' && (c|0x20) <= 'z')
+		) {
+			*dst++ = c;
+			if (c == '\0')
+				return res;
+		} else {
+			*dst++ = '%';
+			*dst++ = bb_hexdigits_upcase[c >> 4];
+			*dst++ = bb_hexdigits_upcase[c & 0xf];
+		}
+	}
+}
+#endif
 
 int wget_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int wget_main(int argc UNUSED_PARAM, char **argv)
@@ -402,6 +439,7 @@ int wget_main(int argc UNUSED_PARAM, char **argv)
 	char *proxy = 0;
 	char *dir_prefix = NULL;
 #if ENABLE_FEATURE_WGET_LONG_OPTIONS
+	char *post_data;
 	char *extra_headers = NULL;
 	llist_t *headers_llist = NULL;
 #endif
@@ -430,7 +468,8 @@ int wget_main(int argc UNUSED_PARAM, char **argv)
 		WGET_OPT_RETRIES    = (1 << 7),
 		WGET_OPT_NETWORK_READ_TIMEOUT = (1 << 8),
 		WGET_OPT_PASSIVE    = (1 << 9),
-		WGET_OPT_HEADER     = (1 << 10),
+		WGET_OPT_HEADER     = (1 << 10) * ENABLE_FEATURE_WGET_LONG_OPTIONS,
+		WGET_OPT_POST_DATA  = (1 << 11) * ENABLE_FEATURE_WGET_LONG_OPTIONS,
 	};
 #if ENABLE_FEATURE_WGET_LONG_OPTIONS
 	static const char wget_longopts[] ALIGN1 =
@@ -448,6 +487,7 @@ int wget_main(int argc UNUSED_PARAM, char **argv)
 		/* Ignored (we always use PASV): */
 		"passive-ftp\0"      No_argument       "\xff"
 		"header\0"           Required_argument "\xfe"
+		"post-data\0"        Required_argument "\xfd"
 		;
 #endif
 
@@ -464,6 +504,7 @@ int wget_main(int argc UNUSED_PARAM, char **argv)
 				NULL, /* -t RETRIES */
 				NULL /* -T NETWORK_READ_TIMEOUT */
 				USE_FEATURE_WGET_LONG_OPTIONS(, &headers_llist)
+				USE_FEATURE_WGET_LONG_OPTIONS(, &post_data)
 				);
 	if (strcmp(proxy_flag, "off") == 0) {
 		/* Use the proxy if necessary */
@@ -564,7 +605,10 @@ int wget_main(int argc UNUSED_PARAM, char **argv)
 					target.is_ftp ? "f" : "ht", target.host,
 					target.path);
 			} else {
-				fprintf(sfp, "GET /%s HTTP/1.1\r\n", target.path);
+				if (opt & WGET_OPT_POST_DATA)
+					fprintf(sfp, "POST /%s HTTP/1.1\r\n", target.path);
+				else
+					fprintf(sfp, "GET /%s HTTP/1.1\r\n", target.path);
 			}
 
 			fprintf(sfp, "Host: %s\r\nUser-Agent: %s\r\n",
@@ -586,12 +630,24 @@ int wget_main(int argc UNUSED_PARAM, char **argv)
 #if ENABLE_FEATURE_WGET_LONG_OPTIONS
 			if (extra_headers)
 				fputs(extra_headers, sfp);
+
+			if (opt & WGET_OPT_POST_DATA) {
+				char *estr = URL_escape(post_data);
+				fprintf(sfp, "Content-Type: application/x-www-form-urlencoded\r\n");
+				fprintf(sfp, "Content-Length: %u\r\n" "\r\n" "%s",
+						(int) strlen(estr), estr);
+				/*fprintf(sfp, "Connection: Keep-Alive\r\n\r\n");*/
+				/*fprintf(sfp, "%s\r\n", estr);*/
+				free(estr);
+			} else
 #endif
-			fprintf(sfp, "Connection: close\r\n\r\n");
+			{ /* If "Connection:" is needed, document why */
+				fprintf(sfp, /* "Connection: close\r\n" */ "\r\n");
+			}
 
 			/*
-			* Retrieve HTTP response line and check for "200" status code.
-			*/
+			 * Retrieve HTTP response line and check for "200" status code.
+			 */
  read_response:
 			if (fgets(buf, sizeof(buf), sfp) == NULL)
 				bb_error_msg_and_die("no response from server");
