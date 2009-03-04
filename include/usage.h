@@ -3651,6 +3651,7 @@
      "\n	-H 'prog args'	Run connection helper. E.g. openssl for encryption:" \
      "\n			-H 'exec openssl s_client -quiet -tls1 -starttls smtp" \
      "\n					-connect smtp.gmail.com:25' <email.txt" \
+     "\n					[4<username_and_passwd.txt]" \
      "\n	-S server[:port] Server" \
      	) \
 	USE_FEATURE_SENDMAIL_MAILXX( \

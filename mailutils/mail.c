@@ -11,9 +11,10 @@
 
 static void kill_helper(void)
 {
-	// TODO!!!: is there more elegant way to terminate child on program failure?
-	if (G.helper_pid > 0)
+	if (G.helper_pid > 0) {
 		kill(G.helper_pid, SIGTERM);
+		G.helper_pid = 0;
+	}
 }
 
 // generic signal handler
@@ -26,44 +27,50 @@ static void signal_handler(int signo)
 	}
 
 	// SIGCHLD. reap zombies
-	if (safe_waitpid(G.helper_pid, &err, WNOHANG) > 0)
+	if (safe_waitpid(G.helper_pid, &err, WNOHANG) > 0) {
+		if (WIFSIGNALED(err))
+			bb_error_msg_and_die("helper killed by signal %u", WTERMSIG(err));
 		if (WIFEXITED(err)) {
 			G.helper_pid = 0;
 			if (WEXITSTATUS(err))
-				bb_error_msg_and_die("child exited (%d)", WEXITSTATUS(err));
+				bb_error_msg_and_die("helper exited (%u)", WEXITSTATUS(err));
 		}
+	}
 #undef err
 }
 
 void FAST_FUNC launch_helper(const char **argv)
 {
 	// setup vanilla unidirectional pipes interchange
-	int idx;
+	int i;
 	int pipes[4];
 
 	xpipe(pipes);
-	xpipe(pipes+2);
+	xpipe(pipes + 2);
+
 	G.helper_pid = vfork();
 	if (G.helper_pid < 0)
 		bb_perror_msg_and_die("vfork");
-	idx = (!G.helper_pid) * 2;
-	xdup2(pipes[idx], STDIN_FILENO);
-	xdup2(pipes[3-idx], STDOUT_FILENO);
-	if (ENABLE_FEATURE_CLEAN_UP)
-		for (int i = 4; --i >= 0; )
-			if (pipes[i] > STDOUT_FILENO)
-				close(pipes[i]);
+
+	i = (!G.helper_pid) * 2; // for parent:0, for child:2
+	close(pipes[i + 1]); // 1 or 3 - closing one write end
+	close(pipes[2 - i]); // 2 or 0 - closing one read end
+	xmove_fd(pipes[i], STDIN_FILENO); // 0 or 2 - using other read end
+	xmove_fd(pipes[3 - i], STDOUT_FILENO); // 3 or 1 - other write end
+
 	if (!G.helper_pid) {
 		// child: try to execute connection helper
 		BB_EXECVP(*argv, (char **)argv);
 		_exit(127);
 	}
-	// parent: check whether child is alive
+
+	// parent
 	bb_signals(0
 		+ (1 << SIGCHLD)
 		+ (1 << SIGALRM)
 		, signal_handler);
-	signal_handler(SIGCHLD);
+	// check whether child is alive
+	//redundant:signal_handler(SIGCHLD);
 	// child seems OK -> parent goes on
 	atexit(kill_helper);
 }
@@ -226,17 +233,13 @@ void FAST_FUNC decode_base64(FILE *src_stream, FILE *dst_stream)
  */
 void FAST_FUNC get_cred_or_die(int fd)
 {
-	// either from TTY
 	if (isatty(fd)) {
-		G.user = xstrdup(bb_ask_stdin("User: "));
-		G.pass = xstrdup(bb_ask_stdin("Password: "));
-	// or from STDIN
+		G.user = xstrdup(bb_ask(fd, /* timeout: */ 0, "User: "));
+		G.pass = xstrdup(bb_ask(fd, /* timeout: */ 0, "Password: "));
 	} else {
-		FILE *fp = fdopen(fd, "r");
-		G.user = xmalloc_fgetline(fp);
-		G.pass = xmalloc_fgetline(fp);
-		fclose(fp);
+		G.user = xmalloc_reads(fd, /* pfx: */ NULL, /* maxsize: */ NULL);
+		G.pass = xmalloc_reads(fd, /* pfx: */ NULL, /* maxsize: */ NULL);
 	}
-	if (!G.user || !*G.user || !G.pass || !*G.pass)
+	if (!G.user || !*G.user || !G.pass)
 		bb_error_msg_and_die("no username or password");
 }
