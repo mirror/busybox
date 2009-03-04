@@ -200,7 +200,7 @@ static NOINLINE int read_cpu_jiffy(FILE *fp, jiffy_counts_t *p_jif)
 			&p_jif->usr, &p_jif->nic, &p_jif->sys, &p_jif->idle,
 			&p_jif->iowait, &p_jif->irq, &p_jif->softirq,
 			&p_jif->steal);
-	if (ret > 4) {
+	if (ret >= 4) {
 		p_jif->total = p_jif->usr + p_jif->nic + p_jif->sys + p_jif->idle
 			+ p_jif->iowait + p_jif->irq + p_jif->softirq + p_jif->steal;
 		/* procps 2.x does not count iowait as busy time */
