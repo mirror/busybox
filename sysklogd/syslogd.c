@@ -301,17 +301,23 @@ static void log_locally(time_t now, char *msg)
 	}
 #endif
 	if (G.logFD >= 0) {
+		/* Reopen log file every second. This allows admin
+		 * to delete the file and not worry about restarting us.
+		 * This costs almost nothing since it happens
+		 * _at most_ once a second.
+		 */
 		if (!now)
 			now = time(NULL);
 		if (G.last_log_time != now) {
-			G.last_log_time = now; /* reopen log file every second */
+			G.last_log_time = now;
 			close(G.logFD);
 			goto reopen;
 		}
 	} else {
  reopen:
-		G.logFD = device_open(G.logFilePath, O_WRONLY | O_CREAT
-					| O_NOCTTY | O_APPEND | O_NONBLOCK);
+		G.logFD = open(G.logFilePath, O_WRONLY | O_CREAT
+					| O_NOCTTY | O_APPEND | O_NONBLOCK,
+					0666);
 		if (G.logFD < 0) {
 			/* cannot open logfile? - print to /dev/console then */
 			int fd = device_open(DEV_CONSOLE, O_WRONLY | O_NOCTTY | O_NONBLOCK);
