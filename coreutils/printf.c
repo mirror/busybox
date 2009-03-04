@@ -139,13 +139,13 @@ static void print_direc(char *format, unsigned fmt_length,
 	char saved;
 	char *have_prec, *have_width;
 
+	saved = format[fmt_length];
+	format[fmt_length] = '\0';
+
 	have_prec = strstr(format, ".*");
 	have_width = strchr(format, '*');
 	if (have_width - 1 == have_prec)
 		have_width = NULL;
-
-	saved = format[fmt_length];
-	format[fmt_length] = '\0';
 
 	switch (format[fmt_length - 1]) {
 	case 'c':
