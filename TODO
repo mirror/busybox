@@ -222,7 +222,7 @@ Switch CONFIG_SYMBOLS to ENABLE_SYMBOLS
 FEATURE_CLEAN_UP
   This is more an unresolved issue than a to-do item.  More thought is needed.
 
-  Normally we rely on exit() to free memory, close files, and unmap segments
+  Normally we rely on exit() to free memory, close files and unmap segments
   for us.  This makes most calls to free(), close(), and unmap() optional in
   busybox applets that don't intend to run for very long, and optional stuff
   can be omitted to save size.
