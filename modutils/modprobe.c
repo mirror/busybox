@@ -13,26 +13,22 @@
 #include <sys/utsname.h>
 #include <fnmatch.h>
 
-struct modprobe_option {
-	char *module;
-	char *option;
+#define MODULE_FLAG_LOADED		0x0001
+#define MODULE_FLAG_NEED_DEPS		0x0002
+//Misnomer? Seems to mean "was seen in modules.dep":
+#define MODULE_FLAG_EXISTS		0x0004
+#define MODULE_FLAG_BLACKLISTED		0x0008
+
+struct module_entry { /* I'll call it ME. */
+	unsigned flags;
+	char *modname; /* stripped of /path/, .ext and s/-/_/g */
+	const char *probed_name; /* verbatim as seen on cmdline */
+	llist_t *aliases; /* strings. aliases from config files */
+	llist_t *options; /* strings. options from config files */
+	llist_t *deps; /* strings. modules we depend on */
 };
 
-struct modprobe_conf {
-	char probename[MODULE_NAME_LEN];
-	llist_t *options;
-	llist_t *aliases;
-#if ENABLE_FEATURE_MODPROBE_BLACKLIST
-#define add_to_blacklist(conf, name) llist_add_to(&conf->blacklist, name)
-#define check_blacklist(conf, name) (llist_find(conf->blacklist, name) == NULL)
-	llist_t *blacklist;
-#else
-#define add_to_blacklist(conf, name) do {} while (0)
-#define check_blacklist(conf, name) (1)
-#endif
-};
-
-#define MODPROBE_OPTS	"acdlnrt:VC:" USE_FEATURE_MODPROBE_BLACKLIST("b")
+#define MODPROBE_OPTS  "acdlnrt:VC:" USE_FEATURE_MODPROBE_BLACKLIST("b")
 enum {
 	MODPROBE_OPT_INSERT_ALL	= (INSMOD_OPT_UNUSED << 0), /* a */
 	MODPROBE_OPT_DUMP_ONLY	= (INSMOD_OPT_UNUSED << 1), /* c */
@@ -46,30 +42,75 @@ enum {
 	MODPROBE_OPT_BLACKLIST	= (INSMOD_OPT_UNUSED << 9) * ENABLE_FEATURE_MODPROBE_BLACKLIST,
 };
 
-static llist_t *loaded;
+struct globals {
+	llist_t *db; /* MEs of all modules ever seen (caching for speed) */
+	llist_t *probes; /* MEs of module(s) requested on cmdline */
+	llist_t *cmdline_mopts; /* strings. module options (from cmdline) */
+	int num_deps; /* what is this? */
+	/* bool. "Did we have 'symbol:FOO' requested on cmdline?" */
+	smallint need_symbols;
+};
+#define G (*(struct globals*)&bb_common_bufsiz1)
+#define INIT_G() do { } while (0)
 
-static int read_config(struct modprobe_conf *conf, const char *path);
 
-static void add_option(llist_t **all_opts, const char *module, const char *opts)
+static int read_config(const char *path);
+
+static struct module_entry *helper_get_module(const char *module, int create)
 {
-	struct modprobe_option *o;
+	char modname[MODULE_NAME_LEN];
+	struct module_entry *e;
+	llist_t *l;
 
-	o = xzalloc(sizeof(struct modprobe_option));
-	if (module)
-		o->module = filename2modname(module, NULL);
-	o->option = xstrdup(opts);
-	llist_add_to(all_opts, o);
+	filename2modname(module, modname);
+	for (l = G.db; l != NULL; l = l->link) {
+		e = (struct module_entry *) l->data;
+		if (strcmp(e->modname, modname) == 0)
+			return e;
+	}
+	if (!create)
+		return NULL;
+
+	e = xzalloc(sizeof(*e));
+	e->modname = xstrdup(modname);
+	llist_add_to(&G.db, e);
+
+	return e;
+}
+static struct module_entry *get_or_add_modentry(const char *module)
+{
+	return helper_get_module(module, 1);
+}
+static struct module_entry *get_modentry(const char *module)
+{
+	return helper_get_module(module, 0);
+}
+
+static void add_probe(const char *name)
+{
+	struct module_entry *m;
+
+	m = get_or_add_modentry(name);
+	m->probed_name = name;
+	m->flags |= MODULE_FLAG_NEED_DEPS;
+	llist_add_to(&G.probes, m);
+
+	G.num_deps++;
+	if (ENABLE_FEATURE_MODUTILS_SYMBOLS
+	 && strncmp(m->modname, "symbol:", 7) == 0)
+		G.need_symbols = 1;
 }
 
 static int FAST_FUNC config_file_action(const char *filename,
 					struct stat *statbuf UNUSED_PARAM,
-					void *userdata,
+					void *userdata UNUSED_PARAM,
 					int depth UNUSED_PARAM)
 {
-	struct modprobe_conf *conf = (struct modprobe_conf *) userdata;
 	RESERVE_CONFIG_BUFFER(modname, MODULE_NAME_LEN);
-	char *tokens[3];
+	char *tokens[3], *rmod;
 	parser_t *p;
+	llist_t *l;
+        struct module_entry *m;
 	int rc = TRUE;
 
 	if (bb_basename(filename)[0] == '.')
@@ -82,20 +123,39 @@ static int FAST_FUNC config_file_action(const char *filename,
 	}
 
 	while (config_read(p, tokens, 3, 2, "# \t", PARSE_NORMAL)) {
+//Use index_in_strings?
 		if (strcmp(tokens[0], "alias") == 0) {
 			filename2modname(tokens[1], modname);
-			if (tokens[2] &&
-			    fnmatch(modname, conf->probename, 0) == 0)
-				llist_add_to(&conf->aliases,
-					filename2modname(tokens[2], NULL));
+			if (tokens[2] == NULL)
+				continue;
+
+			for (l = G.probes; l != NULL; l = l->link) {
+				m = (struct module_entry *) l->data;
+				if (fnmatch(modname, m->modname, 0) != 0)
+					continue;
+				rmod = filename2modname(tokens[2], NULL);
+				llist_add_to(&m->aliases, rmod);
+
+				if (m->flags & MODULE_FLAG_NEED_DEPS) {
+					m->flags &= ~MODULE_FLAG_NEED_DEPS;
+					G.num_deps--;
+				}
+
+				m = get_or_add_modentry(rmod);
+				m->flags |= MODULE_FLAG_NEED_DEPS;
+				G.num_deps++;
+			}
 		} else if (strcmp(tokens[0], "options") == 0) {
-			if (tokens[2])
-				add_option(&conf->options, tokens[1], tokens[2]);
+			if (tokens[2] == NULL)
+				continue;
+			m = get_or_add_modentry(tokens[1]);
+			llist_add_to(&m->options, xstrdup(tokens[2]));
 		} else if (strcmp(tokens[0], "include") == 0) {
-			read_config(conf, tokens[1]);
-		} else if (ENABLE_FEATURE_MODPROBE_BLACKLIST &&
-			   strcmp(tokens[0], "blacklist") == 0) {
-			add_to_blacklist(conf, xstrdup(tokens[1]));
+			read_config(tokens[1]);
+		} else if (ENABLE_FEATURE_MODPROBE_BLACKLIST
+		 && strcmp(tokens[0], "blacklist") == 0
+		) {
+			get_or_add_modentry(tokens[1])->flags |= MODULE_FLAG_BLACKLISTED;
 		}
 	}
 	config_close(p);
@@ -104,101 +164,109 @@ error:
 	return rc;
 }
 
-static int read_config(struct modprobe_conf *conf, const char *path)
+static int read_config(const char *path)
 {
 	return recursive_action(path, ACTION_RECURSE | ACTION_QUIET,
-				config_file_action, NULL, conf, 1);
+				config_file_action, NULL, NULL, 1);
 }
 
-static char *gather_options(llist_t *first, const char *module, int usecmdline)
+static char *gather_options(char *opts, llist_t *o)
 {
-	struct modprobe_option *opt;
-	llist_t *n;
-	char *opts = xstrdup("");
-	int optlen = 0;
+	int optlen;
 
-	for (n = first; n != NULL; n = n->link) {
-		opt = (struct modprobe_option *) n->data;
+	if (opts == NULL)
+		opts = xstrdup("");
+	optlen = strlen(opts);
 
-		if (opt->module == NULL && !usecmdline)
-			continue;
-		if (opt->module != NULL && strcmp(opt->module, module) != 0)
-			continue;
-
-		opts = xrealloc(opts, optlen + strlen(opt->option) + 2);
-		optlen += sprintf(opts + optlen, "%s ", opt->option);
+	for (; o != NULL; o = o->link) {
+		opts = xrealloc(opts, optlen + strlen(o->data) + 2);
+		optlen += sprintf(opts + optlen, "%s ", o->data);
 	}
 	return opts;
 }
 
-static int do_modprobe(struct modprobe_conf *conf, const char *module)
+static int do_modprobe(struct module_entry *m)
 {
-	RESERVE_CONFIG_BUFFER(modname, MODULE_NAME_LEN);
-	llist_t *deps = NULL;
-	char *fn, *options, *colon = NULL, *tokens[2];
-	parser_t *p;
+	struct module_entry *m2;
+	char *fn, *options;
 	int rc = -1;
 
-	p = config_open2(CONFIG_DEFAULT_DEPMOD_FILE, fopen_for_read);
-	/* Modprobe does not work at all without modprobe.dep,
-	 * even if the full module name is given. Returning error here
-	 * was making us later confuse user with this message:
-	 * "module /full/path/to/existing/file/module.ko not found".
-	 * It's better to die immediately, with good message: */
-	if (p == NULL)
-		bb_perror_msg_and_die("can't open '%s'", CONFIG_DEFAULT_DEPMOD_FILE);
-
-	while (config_read(p, tokens, 2, 1, "# \t", PARSE_NORMAL)) {
-		colon = last_char_is(tokens[0], ':');
-		if (colon == NULL)
-			continue;
-
-		filename2modname(tokens[0], modname);
-		if (strcmp(modname, module) == 0)
-			break;
-
-		colon = NULL;
-	}
-	if (colon == NULL)
-		goto error_not_found;
-
-	colon[0] = '\0';
-	llist_add_to(&deps, xstrdup(tokens[0]));
-	if (tokens[1])
-		string_to_llist(tokens[1], &deps, " ");
+	if (!(m->flags & MODULE_FLAG_EXISTS))
+		return -ENOENT;
 
 	if (!(option_mask32 & MODPROBE_OPT_REMOVE))
-		deps = llist_rev(deps);
+		m->deps = llist_rev(m->deps);
 
 	rc = 0;
-	while (deps && rc == 0) {
-		fn = llist_pop(&deps);
-		filename2modname(fn, modname);
+	while (m->deps && rc == 0) {
+		fn = llist_pop(&m->deps);
+		m2 = get_or_add_modentry(fn);
 		if (option_mask32 & MODPROBE_OPT_REMOVE) {
-			if (bb_delete_module(modname, O_EXCL) != 0)
+			if (bb_delete_module(m->modname, O_EXCL) != 0)
 				rc = errno;
-		} else if (llist_find(loaded, modname) == NULL) {
-			options = gather_options(conf->options, modname,
-						 strcmp(modname, module) == 0);
+		} else if (!(m2->flags & MODULE_FLAG_LOADED)) {
+			options = gather_options(NULL, m2->options);
+			if (m == m2)
+				options = gather_options(options, G.cmdline_mopts);
+//TODO: looks like G.cmdline_mopts can contain either NULL or just one string, not more?
 			rc = bb_init_module(fn, options);
 			if (rc == 0)
-				llist_add_to(&loaded, xstrdup(modname));
+				m2->flags |= MODULE_FLAG_LOADED;
 			free(options);
 		}
 
 		free(fn);
 	}
 
- error_not_found:
-	config_close(p);
-
-	if (rc > 0 && !(option_mask32 & INSMOD_OPT_SILENT))
+	if (rc > 0 && !(option_mask32 & INSMOD_OPT_SILENT)) {
 		bb_error_msg("failed to %sload module %s: %s",
-			     (option_mask32 & MODPROBE_OPT_REMOVE) ? "un" : "",
-			     module, moderror(rc));
+			(option_mask32 & MODPROBE_OPT_REMOVE) ? "un" : "",
+			m->probed_name ? m->probed_name : m->modname,
+			moderror(rc)
+		);
+	}
 
-	RELEASE_CONFIG_BUFFER(modname);
 	return rc;
+}
+
+static void load_modules_dep(void)
+{
+	struct module_entry *m;
+	char *colon, *tokens[2];
+	parser_t *p;
+
+	p = config_open2(CONFIG_DEFAULT_DEPMOD_FILE, xfopen_for_read);
+//Still true?
+	/* Modprobe does not work at all without modprobe.dep,
+	 * even if the full module name is given. Returning error here
+	 * was making us later confuse user with this message:
+	 * "module /full/path/to/existing/file/module.ko not found".
+	 * It's better to die immediately, with good message: */
+//	if (p == NULL)
+//		bb_perror_msg_and_die("can't open '%s'", CONFIG_DEFAULT_DEPMOD_FILE);
+
+	while (G.num_deps
+	 && config_read(p, tokens, 2, 1, "# \t", PARSE_NORMAL)
+	) {
+		colon = last_char_is(tokens[0], ':');
+		if (colon == NULL)
+			continue;
+		*colon = 0;
+
+		m = get_modentry(tokens[0]);
+		if (m == NULL)
+			continue;
+//Can we skip it too if it is MODULE_FLAG_LOADED?
+
+		m->flags |= MODULE_FLAG_EXISTS;
+		if ((m->flags & MODULE_FLAG_NEED_DEPS) && (m->deps == NULL)) {
+			G.num_deps--;
+			llist_add_to(&m->deps, xstrdup(tokens[0]));
+			if (tokens[1])
+				string_to_llist(tokens[1], &m->deps, " ");
+		}
+	}
+	config_close(p);
 }
 
 int modprobe_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
@@ -207,83 +275,87 @@ int modprobe_main(int argc UNUSED_PARAM, char **argv)
 	struct utsname uts;
 	int rc;
 	unsigned opt;
-	llist_t *options = NULL;
+	struct module_entry *me;
 
 	opt_complementary = "q-v:v-q";
-	opt = getopt32(argv, INSMOD_OPTS MODPROBE_OPTS INSMOD_ARGS,
-		 NULL, NULL);
+	opt = getopt32(argv, INSMOD_OPTS MODPROBE_OPTS INSMOD_ARGS, NULL, NULL);
 	argv += optind;
 
 	if (opt & (MODPROBE_OPT_DUMP_ONLY | MODPROBE_OPT_LIST_ONLY |
 				MODPROBE_OPT_SHOW_ONLY))
 		bb_error_msg_and_die("not supported");
 
-	/* goto modules location */
+	/* Goto modules location */
 	xchdir(CONFIG_DEFAULT_MODULES_DIR);
 	uname(&uts);
 	xchdir(uts.release);
 
 	if (!argv[0]) {
 		if (opt & MODPROBE_OPT_REMOVE) {
+			/* TODO: comment here */
 			if (bb_delete_module(NULL, O_NONBLOCK|O_EXCL) != 0)
 				bb_perror_msg_and_die("rmmod");
 		}
 		return EXIT_SUCCESS;
 	}
-	if (!(opt & MODPROBE_OPT_INSERT_ALL)) {
-		/* If not -a, we have only one module name,
-		 * the rest of parameters are options */
-		add_option(&options, NULL, parse_cmdline_module_options(argv));
-		argv[1] = NULL;
+
+	if (opt & MODPROBE_OPT_INSERT_ALL) {
+		/* Each argument is a module name */
+		do {
+			add_probe(*argv++);
+		} while (*argv);
+		G.probes = llist_rev(G.probes);
+	} else {
+		/* First argument is module name, rest are parameters */
+		add_probe(argv[0]);
+//TODO: looks like G.cmdline_mopts can contain either NULL or just one string, not more?
+//optimize it them
+		llist_add_to(&G.cmdline_mopts, parse_cmdline_module_options(argv));
 	}
 
-	/* cache modules */
+	/* Retrieve module names of already loaded modules */
 	{
 		char *s;
 		parser_t *parser = config_open2("/proc/modules", fopen_for_read);
 		while (config_read(parser, &s, 1, 1, "# \t", PARSE_NORMAL & ~PARSE_GREEDY))
-			llist_add_to(&loaded, xstrdup(s));
+			get_or_add_modentry(s)->flags |= MODULE_FLAG_LOADED;
 		config_close(parser);
 	}
 
-	while (*argv) {
-		const char *arg = *argv;
-		struct modprobe_conf *conf;
+	read_config("/etc/modprobe.conf");
+	read_config("/etc/modprobe.d");
+	if (ENABLE_FEATURE_MODUTILS_SYMBOLS && G.need_symbols)
+		read_config("modules.symbols");
+	load_modules_dep();
+	if (ENABLE_FEATURE_MODUTILS_ALIAS && G.num_deps) {
+		read_config("modules.alias");
+		load_modules_dep();
+	}
 
-		conf = xzalloc(sizeof(*conf));
-		conf->options = options;
-		filename2modname(arg, conf->probename);
-		read_config(conf, "/etc/modprobe.conf");
-		read_config(conf, "/etc/modprobe.d");
-		if (ENABLE_FEATURE_MODUTILS_SYMBOLS
-		 && conf->aliases == NULL
-		 && strncmp(arg, "symbol:", 7) == 0
-		) {
-			read_config(conf, "modules.symbols");
-		}
-
-		if (ENABLE_FEATURE_MODUTILS_ALIAS && conf->aliases == NULL)
-			read_config(conf, "modules.alias");
-
-		if (conf->aliases == NULL) {
+	while ((me = llist_pop(&G.probes)) != NULL) {
+		if (me->aliases == NULL) {
 			/* Try if module by literal name is found; literal
-			 * names are blacklist only if '-b' is given. */
-			if (!(opt & MODPROBE_OPT_BLACKLIST) ||
-			    check_blacklist(conf, conf->probename)) {
-				rc = do_modprobe(conf, conf->probename);
+			 * names are blacklisted only if '-b' is given. */
+			if (!(opt & MODPROBE_OPT_BLACKLIST)
+			 || !(me->flags & MODULE_FLAG_BLACKLISTED)
+			) {
+				rc = do_modprobe(me);
 				if (rc < 0 && !(opt & INSMOD_OPT_SILENT))
-					bb_error_msg("module %s not found", arg);
+					bb_error_msg("module %s not found",
+						     me->probed_name);
 			}
 		} else {
 			/* Probe all aliases */
-			while (conf->aliases != NULL) {
-				char *realname = llist_pop(&conf->aliases);
-				if (check_blacklist(conf, realname))
-					do_modprobe(conf, realname);
+			do {
+				char *realname = llist_pop(&me->aliases);
+				struct module_entry *m2;
+
+				m2 = get_or_add_modentry(realname);
+				if (!(m2->flags & MODULE_FLAG_BLACKLISTED))
+					do_modprobe(m2);
 				free(realname);
-			}
+			} while (me->aliases != NULL);
 		}
-		argv++;
 	}
 
 	return EXIT_SUCCESS;
